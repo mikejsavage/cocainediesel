@@ -84,7 +84,7 @@ static void CM_Clear( CModelServerOrClient soc, CollisionModel * cms ) {
 
 	for( u32 i = 0; i < cms->num_models; i++ ) {
 		String< 16 > suffix( "*{}", i );
-		u64 hash = Hash64( suffix.c_str(), suffix.len(), cms->base_hash );
+		u64 hash = Hash64( suffix.c_str(), suffix.length(), cms->base_hash );
 		cmodel_t * model = GetCModels( soc )->get( hash );
 
 		FREE( sys_allocator, model->markfaces );

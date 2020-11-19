@@ -501,7 +501,7 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 	// TODO: meshopt
 
 	String< 16 > suffix( "*{}", model_idx );
-	Model * model = NewModel( Hash64( suffix.c_str(), suffix.len(), base_hash ) );
+	Model * model = NewModel( Hash64( suffix.c_str(), suffix.length(), base_hash ) );
 	*model = { };
 	model->transform = Mat4::Identity();
 

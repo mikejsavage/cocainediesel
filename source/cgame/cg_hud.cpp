@@ -3126,11 +3126,6 @@ static void CG_RecurseExecuteLayoutThread( cg_layoutnode_t *rootnode ) {
 	}
 }
 
-void CG_DrawHUD() {
-	ZoneScoped;
-	CG_RecurseExecuteLayoutThread( hud_root );
-}
-
 //=============================================================================
 
 static bool LoadHUDFile( const char * path, DynamicString & script ) {
@@ -3188,11 +3183,26 @@ static void CG_LoadHUD() {
 }
 
 void CG_InitHUD() {
-	Cmd_AddCommand( "reloadhud", CG_LoadHUD );
 	CG_LoadHUD();
 }
 
 void CG_ShutdownHUD() {
 	CG_RecurseFreeLayoutThread( hud_root );
-	Cmd_RemoveCommand( "reloadhud" );
+}
+
+void CG_DrawHUD() {
+	bool hotload = false;
+	for( const char * path : ModifiedAssetPaths() ) {
+		if( FileExtension( path ) == ".hud" ) {
+			hotload = true;
+			break;
+		}
+	}
+
+	if( hotload ) {
+		CG_LoadHUD();
+	}
+
+	ZoneScoped;
+	CG_RecurseExecuteLayoutThread( hud_root );
 }

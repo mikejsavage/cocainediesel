@@ -731,11 +731,9 @@ void Cmd_TokenizeString( const char *text ) {
 
 		if( cmd_argc < MAX_STRING_TOKENS ) {
 			if( cmd_argv_sizes[cmd_argc] < token.n + 1 ) {
-				cmd_argv_sizes[cmd_argc] = Min2( token.n + 64, size_t( MAX_TOKEN_CHARS ) );
-				if( cmd_argv[cmd_argc] ) {
-					FREE( sys_allocator, cmd_argv[cmd_argc] );
-				}
-				cmd_argv[cmd_argc] = ALLOC_MANY( sys_allocator, char, cmd_argv_sizes[cmd_argc] );
+				size_t new_size = Min2( token.n + 64, size_t( MAX_TOKEN_CHARS ) );
+				cmd_argv[cmd_argc] = REALLOC_MANY( sys_allocator, char, cmd_argv[cmd_argc], cmd_argv_sizes[cmd_argc], new_size );
+				cmd_argv_sizes[cmd_argc] = new_size;
 			}
 			memcpy( cmd_argv[cmd_argc], token.ptr, token.n );
 			cmd_argv[cmd_argc][token.n] = '\0';

@@ -83,6 +83,9 @@ public:
 
 	bool operator==( const char * rhs ) const { return strcmp( buf, rhs ) == 0; }
 	bool operator!=( const char * rhs ) const { return !( *this == rhs ); }
+
+	Span< char > span() { return Span< const char >( buf, len ); }
+	Span< const char > span() const { return Span< const char >( buf, len ); }
 };
 
 class DynamicString {
@@ -147,6 +150,9 @@ public:
 	char * end() { return buf.end(); }
 	const char * begin() const { return buf.begin(); }
 	const char * end() const { return buf.end(); }
+
+	Span< char > span() { return buf.span(); }
+	Span< const char > span() const { return buf.span(); }
 };
 
 template< size_t N >

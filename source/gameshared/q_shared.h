@@ -98,6 +98,7 @@ template< size_t N > bool operator==( const char ( &str )[ N ], Span< const char
 template< size_t N > bool operator!=( Span< const char > span, const char ( &str )[ N ] ) { return !( span == str ); }
 template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char > span ) { return !( span == str ); }
 
+bool StartsWith( Span< const char > str, const char * prefix );
 bool StartsWith( const char * str, const char * prefix );
 
 Span< const char > FileExtension( const char * path );

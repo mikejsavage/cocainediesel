@@ -406,6 +406,13 @@ bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
 	return StrCaseEqual( lhs, rhs );
 }
 
+bool StartsWith( Span< const char > str, const char * prefix ) {
+	if( str.n < strlen( prefix ) )
+		return false;
+
+	return memcmp( str.ptr, prefix, strlen( prefix ) ) == 0;
+}
+
 bool StartsWith( const char * str, const char * prefix ) {
 	if( strlen( str ) < strlen( prefix ) )
 		return false;

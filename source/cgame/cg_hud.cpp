@@ -59,13 +59,14 @@ static const Font * GetHUDFont() {
 using opFunc_t = float( * )( const float a, float b );
 
 struct cg_layoutnode_t {
-	bool ( *func )( cg_layoutnode_t *argumentnode, int numArguments );
+	bool ( *func )( cg_layoutnode_t *argumentnode );
 	int type;
 	char *string;
-	int integer;
+	int num_args;
+	size_t idx;
 	float value;
 	opFunc_t opFunc;
-	cg_layoutnode_t *parent;
+	cg_layoutnode_t *args;
 	cg_layoutnode_t *next;
 	cg_layoutnode_t *ifthread;
 };
@@ -112,8 +113,6 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "RoundType_MatchPoint", RoundType_MatchPoint },
 	{ "RoundType_Overtime", RoundType_Overtime },
 	{ "RoundType_OvertimeMatchPoint", RoundType_OvertimeMatchPoint },
-
-	{ NULL, 0 }
 };
 
 //=============================================================================
@@ -272,8 +271,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 
 	{ "DOWNLOAD_IN_PROGRESS", CG_DownloadInProgress, NULL },
 	{ "DOWNLOAD_PERCENT", CG_GetCvar, "cl_download_percent" },
-
-	{ NULL, NULL, NULL }
 };
 
 //=============================================================================
@@ -305,10 +302,7 @@ struct {
 	u64 entropy;
 } self_obituary;
 
-/*
-* CG_SC_ResetObituaries
-*/
-void CG_SC_ResetObituaries( void ) {
+void CG_SC_ResetObituaries() {
 	memset( cg_obituaries, 0, sizeof( cg_obituaries ) );
 	cg_obituaries_current = -1;
 	self_obituary = { };
@@ -1498,10 +1492,7 @@ static const char * RandomPrefix( RNG * rng, float p ) {
 	return random_select( rng, prefixes );
 }
 
-/*
-* CG_SC_Obituary
-*/
-void CG_SC_Obituary( void ) {
+void CG_SC_Obituary() {
 	int victimNum = atoi( Cmd_Argv( 1 ) );
 	int attackerNum = atoi( Cmd_Argv( 2 ) );
 	int mod = atoi( Cmd_Argv( 3 ) );
@@ -1711,7 +1702,7 @@ static void CG_DrawObituaries(
 
 //=============================================================================
 
-void CG_ClearAwards( void ) {
+void CG_ClearAwards() {
 	// reset awards
 	cg.award_head = 0;
 	memset( cg.award_times, 0, sizeof( cg.award_times ) );
@@ -1758,7 +1749,7 @@ static void CG_DrawAwards( int x, int y, Alignment alignment, float font_size, V
 	}
 }
 
-static bool CG_LFuncDrawCallvote( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawCallvote( cg_layoutnode_t *argumentnode ) {
 	const char * vote = cgs.configStrings[ CS_CALLVOTE ];
 	if( strlen( vote ) == 0 )
 		return true;
@@ -1946,25 +1937,12 @@ static cg_layoutoperators_t cg_LayoutOperators[] = {
 		"||",
 		CG_OpFuncCompareOr
 	},
-
-	{
-		NULL,
-		NULL
-	},
 };
 
-/*
-* CG_OperatorFuncForArgument
-*/
-static opFunc_t CG_OperatorFuncForArgument( const char *token ) {
-	cg_layoutoperators_t *op;
-
-	while( *token == ' ' )
-		token++;
-
-	for( op = cg_LayoutOperators; op->name; op++ ) {
-		if( !Q_stricmp( token, op->name ) ) {
-			return op->opFunc;
+static opFunc_t CG_OperatorFuncForArgument( Span< const char > token ) {
+	for( cg_layoutoperators_t op : cg_LayoutOperators ) {
+		if( StrCaseEqual( token, op.name ) ) {
+			return op.opFunc;
 		}
 	}
 
@@ -1979,10 +1957,11 @@ static float CG_GetNumericArg( cg_layoutnode_t **argumentsnode );
 //=============================================================================
 
 enum {
+	LNODE_COMMAND,
 	LNODE_NUMERIC,
 	LNODE_STRING,
 	LNODE_REFERENCE_NUMERIC,
-	LNODE_COMMAND
+	LNODE_DUMMY,
 };
 
 //=============================================================================
@@ -2028,7 +2007,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 		Draw2DBox( curx, cury, iw, ih, cls.white_material, color );
 		Draw2DBox( curx + border, cury + border, innerw, innerh, cls.white_material, dark_gray );
-		
+
 		Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, cgs.media.shaderBombIcon, color );
 	}
 
@@ -2101,7 +2080,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 	}
 }
 
-static bool CG_LFuncDrawPicByName( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawPicByName( cg_layoutnode_t *argumentnode ) {
 	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_alignment, layout_cursor_width );
 	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_alignment, layout_cursor_height );
 	Draw2DBox( x, y, layout_cursor_width, layout_cursor_height, FindMaterial( CG_GetStringArg( &argumentnode ) ), layout_cursor_color );
@@ -2116,7 +2095,7 @@ static float ScaleY( float y ) {
 	return y * frame_static.viewport_height / 600.0f;
 }
 
-static bool CG_LFuncCursor( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncCursor( cg_layoutnode_t *argumentnode ) {
 	float x = ScaleX( CG_GetNumericArg( &argumentnode ) );
 	float y = ScaleY( CG_GetNumericArg( &argumentnode ) );
 
@@ -2125,7 +2104,7 @@ static bool CG_LFuncCursor( cg_layoutnode_t *argumentnode, int numArguments ) {
 	return true;
 }
 
-static bool CG_LFuncMoveCursor( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncMoveCursor( cg_layoutnode_t *argumentnode ) {
 	float x = ScaleX( CG_GetNumericArg( &argumentnode ) );
 	float y = ScaleY( CG_GetNumericArg( &argumentnode ) );
 
@@ -2134,7 +2113,7 @@ static bool CG_LFuncMoveCursor( cg_layoutnode_t *argumentnode, int numArguments 
 	return true;
 }
 
-static bool CG_LFuncSize( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncSize( cg_layoutnode_t *argumentnode ) {
 	float x = ScaleX( CG_GetNumericArg( &argumentnode ) );
 	float y = ScaleY( CG_GetNumericArg( &argumentnode ) );
 
@@ -2143,36 +2122,36 @@ static bool CG_LFuncSize( cg_layoutnode_t *argumentnode, int numArguments ) {
 	return true;
 }
 
-static bool CG_LFuncColor( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncColor( cg_layoutnode_t *argumentnode ) {
 	for( int i = 0; i < 4; i++ ) {
 		layout_cursor_color[ i ] = Clamp01( CG_GetNumericArg( &argumentnode ) );
 	}
 	return true;
 }
 
-static bool CG_LFuncColorsRGB( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncColorsRGB( cg_layoutnode_t *argumentnode ) {
 	for( int i = 0; i < 4; i++ ) {
 		layout_cursor_color[ i ] = sRGBToLinear( Clamp01( CG_GetNumericArg( &argumentnode ) ) );
 	}
 	return true;
 }
 
-static bool CG_LFuncColorToTeamColor( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncColorToTeamColor( cg_layoutnode_t *argumentnode ) {
 	layout_cursor_color = CG_TeamColorVec4( CG_GetNumericArg( &argumentnode ) );
 	return true;
 }
 
-static bool CG_LFuncAttentionGettingColor( cg_layoutnode_t * argumentnode, int numArguments ) {
+static bool CG_LFuncAttentionGettingColor( cg_layoutnode_t * argumentnode ) {
 	layout_cursor_color = AttentionGettingColor();
 	return true;
 }
 
-static bool CG_LFuncColorAlpha( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncColorAlpha( cg_layoutnode_t *argumentnode ) {
 	layout_cursor_color.w = CG_GetNumericArg( &argumentnode );
 	return true;
 }
 
-static bool CG_LFuncAlignment( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncAlignment( cg_layoutnode_t *argumentnode ) {
 	const char * x = CG_GetStringArg( &argumentnode );
 	const char * y = CG_GetStringArg( &argumentnode );
 
@@ -2207,7 +2186,7 @@ static bool CG_LFuncAlignment( cg_layoutnode_t *argumentnode, int numArguments )
 	return true;
 }
 
-static bool CG_LFuncFontSize( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncFontSize( cg_layoutnode_t *argumentnode ) {
 	cg_layoutnode_t *charnode = argumentnode;
 	const char * fontsize = CG_GetStringArg( &charnode );
 
@@ -2230,7 +2209,7 @@ static bool CG_LFuncFontSize( cg_layoutnode_t *argumentnode, int numArguments ) 
 	return true;
 }
 
-static bool CG_LFuncFontStyle( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncFontStyle( cg_layoutnode_t *argumentnode ) {
 	const char * fontstyle = CG_GetStringArg( &argumentnode );
 
 	if( !Q_stricmp( fontstyle, "normal" ) ) {
@@ -2253,13 +2232,13 @@ static bool CG_LFuncFontStyle( cg_layoutnode_t *argumentnode, int numArguments )
 	return true;
 }
 
-static bool CG_LFuncFontBorder( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncFontBorder( cg_layoutnode_t *argumentnode ) {
 	const char * border = CG_GetStringArg( &argumentnode );
 	layout_cursor_font_border = Q_stricmp( border, "on" ) == 0;
 	return true;
 }
 
-static bool CG_LFuncDrawObituaries( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawObituaries( cg_layoutnode_t *argumentnode ) {
 	int internal_align = (int)CG_GetNumericArg( &argumentnode );
 	int icon_size = (int)CG_GetNumericArg( &argumentnode );
 
@@ -2268,27 +2247,27 @@ static bool CG_LFuncDrawObituaries( cg_layoutnode_t *argumentnode, int numArgume
 	return true;
 }
 
-static bool CG_LFuncDrawAwards( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawAwards( cg_layoutnode_t *argumentnode ) {
 	CG_DrawAwards( layout_cursor_x, layout_cursor_y, layout_cursor_alignment, layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
-static bool CG_LFuncDrawClock( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawClock( cg_layoutnode_t *argumentnode ) {
 	CG_DrawClock( layout_cursor_x, layout_cursor_y, layout_cursor_alignment, GetHUDFont(), layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
-static bool CG_LFuncDrawDamageNumbers( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawDamageNumbers( cg_layoutnode_t *argumentnode ) {
 	CG_DrawDamageNumbers();
 	return true;
 }
 
-static bool CG_LFuncDrawBombIndicators( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawBombIndicators( cg_layoutnode_t *argumentnode ) {
 	CG_DrawBombHUD();
 	return true;
 }
 
-static bool CG_LFuncDrawPlayerIcons( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawPlayerIcons( cg_layoutnode_t *argumentnode ) {
 	int team = int( CG_GetNumericArg( &argumentnode ) );
 	int alive = int( CG_GetNumericArg( &argumentnode ) );
 	int total = int( CG_GetNumericArg( &argumentnode ) );
@@ -2317,12 +2296,12 @@ static bool CG_LFuncDrawPlayerIcons( cg_layoutnode_t *argumentnode, int numArgum
 	return true;
 }
 
-static bool CG_LFuncDrawPointed( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawPointed( cg_layoutnode_t *argumentnode ) {
 	CG_DrawPlayerNames( GetHUDFont(), layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
-static bool CG_LFuncDrawString( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawString( cg_layoutnode_t *argumentnode ) {
 	const char *string = CG_GetStringArg( &argumentnode );
 
 	if( !string || !string[0] ) {
@@ -2334,7 +2313,7 @@ static bool CG_LFuncDrawString( cg_layoutnode_t *argumentnode, int numArguments 
 	return true;
 }
 
-static bool CG_LFuncDrawBindString( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawBindString( cg_layoutnode_t *argumentnode ) {
 	const char * fmt = CG_GetStringArg( &argumentnode );
 	const char * command = CG_GetStringArg( &argumentnode );
 
@@ -2351,7 +2330,7 @@ static bool CG_LFuncDrawBindString( cg_layoutnode_t *argumentnode, int numArgume
 	return true;
 }
 
-static bool CG_LFuncDrawPlayerName( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawPlayerName( cg_layoutnode_t *argumentnode ) {
 	int index = (int)CG_GetNumericArg( &argumentnode ) - 1;
 
 	if( index >= 0 && index < client_gs.maxclients && cgs.clientInfo[index].name[0] ) {
@@ -2362,13 +2341,13 @@ static bool CG_LFuncDrawPlayerName( cg_layoutnode_t *argumentnode, int numArgume
 	return false;
 }
 
-static bool CG_LFuncDrawNumeric( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawNumeric( cg_layoutnode_t *argumentnode ) {
 	int value = CG_GetNumericArg( &argumentnode );
 	DrawText( GetHUDFont(), layout_cursor_font_size, va( "%i", value ), layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
-static bool CG_LFuncDrawWeaponIcons( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawWeaponIcons( cg_layoutnode_t *argumentnode ) {
 	int offx = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
 	int offy = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600;
 	int w = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
@@ -2380,27 +2359,31 @@ static bool CG_LFuncDrawWeaponIcons( cg_layoutnode_t *argumentnode, int numArgum
 	return true;
 }
 
-static bool CG_LFuncDrawCrossHair( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawCrossHair( cg_layoutnode_t *argumentnode ) {
 	CG_DrawCrosshair();
 	return true;
 }
 
-static bool CG_LFuncDrawNet( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncDrawNet( cg_layoutnode_t *argumentnode ) {
 	CG_DrawNet( layout_cursor_x, layout_cursor_y, layout_cursor_width, layout_cursor_height, layout_cursor_alignment, layout_cursor_color );
 	return true;
 }
 
-static bool CG_LFuncIf( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncIf( cg_layoutnode_t *argumentnode ) {
 	return (int)CG_GetNumericArg( &argumentnode ) != 0;
 }
 
-static bool CG_LFuncIfNot( cg_layoutnode_t *argumentnode, int numArguments ) {
+static bool CG_LFuncIfNot( cg_layoutnode_t *argumentnode ) {
 	return (int)CG_GetNumericArg( &argumentnode ) == 0;
+}
+
+static bool CG_LFuncEndIf( cg_layoutnode_t *argumentnode ) {
+	return true;
 }
 
 struct cg_layoutcommand_t {
 	const char *name;
-	bool ( *func )( cg_layoutnode_t *argumentnode, int numArguments );
+	bool ( *func )( cg_layoutnode_t *argumentnode );
 	int numparms;
 	const char *help;
 };
@@ -2618,28 +2601,22 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 
 	{
 		"endif",
-		NULL,
+		CG_LFuncEndIf,
 		0,
 		"End of conditional expression block",
 	},
-
-	{ }
 };
 
 
 //=============================================================================
 
-/*
-* CG_GetStringArg
-*/
 static const char *CG_GetStringArg( cg_layoutnode_t **argumentsnode ) {
 	cg_layoutnode_t *anode = *argumentsnode;
 
-	if( !anode || anode->type == LNODE_COMMAND ) {
-		Com_Error( ERR_DROP, "'CG_LayoutGetStringArg': bad arg count" );
+	if( anode == NULL ) {
+		return "";
 	}
 
-	// we can return anything as string
 	*argumentsnode = anode->next;
 	return anode->string;
 }
@@ -2650,10 +2627,9 @@ static const char *CG_GetStringArg( cg_layoutnode_t **argumentsnode ) {
 */
 static float CG_GetNumericArg( cg_layoutnode_t **argumentsnode ) {
 	cg_layoutnode_t *anode = *argumentsnode;
-	float value;
 
-	if( !anode || anode->type == LNODE_COMMAND ) {
-		Com_Error( ERR_DROP, "'CG_LayoutGetNumericArg': bad arg count" );
+	if( anode == NULL ) {
+		return 0.0f;
 	}
 
 	if( anode->type != LNODE_NUMERIC && anode->type != LNODE_REFERENCE_NUMERIC ) {
@@ -2661,8 +2637,9 @@ static float CG_GetNumericArg( cg_layoutnode_t **argumentsnode ) {
 	}
 
 	*argumentsnode = anode->next;
+	float value;
 	if( anode->type == LNODE_REFERENCE_NUMERIC ) {
-		value = cg_numeric_references[anode->integer].func( cg_numeric_references[anode->integer].parameter );
+		value = cg_numeric_references[anode->idx].func( cg_numeric_references[anode->idx].parameter );
 	} else {
 		value = anode->value;
 	}
@@ -2679,382 +2656,220 @@ static float CG_GetNumericArg( cg_layoutnode_t **argumentsnode ) {
 * CG_LayoutParseCommandNode
 * alloc a new node for a command
 */
-static cg_layoutnode_t *CG_LayoutParseCommandNode( const char *token ) {
-	int i = 0;
-	const cg_layoutcommand_t *command = NULL;
-	cg_layoutnode_t *node;
+static cg_layoutnode_t *CG_LayoutParseCommandNode( Span< const char > token ) {
+	for( cg_layoutcommand_t command : cg_LayoutCommands ) {
+		if( StrCaseEqual( token, command.name ) ) {
+			cg_layoutnode_t * node = ALLOC( sys_allocator, cg_layoutnode_t );
+			*node = { };
 
-	for( i = 0; cg_LayoutCommands[i].name; i++ ) {
-		if( !Q_stricmp( token, cg_LayoutCommands[i].name ) ) {
-			command = &cg_LayoutCommands[i];
-			break;
+			node->type = LNODE_COMMAND;
+			node->num_args = command.numparms;
+			node->string = CopyString( sys_allocator, command.name );
+			node->func = command.func;
+
+			return node;
 		}
 	}
 
-	if( command == NULL ) {
-		return NULL;
-	}
-
-	node = ( cg_layoutnode_t * )CG_Malloc( sizeof( cg_layoutnode_t ) );
-	node->type = LNODE_COMMAND;
-	node->integer = command->numparms;
-	node->value = 0.0f;
-	node->string = CG_CopyString( command->name );
-	node->func = command->func;
-	node->ifthread = NULL;
-
-	return node;
+	return NULL;
 }
 
 /*
 * CG_LayoutParseArgumentNode
 * alloc a new node for an argument
 */
-static cg_layoutnode_t *CG_LayoutParseArgumentNode( const char *token ) {
-	cg_layoutnode_t *node;
-	int type = LNODE_NUMERIC;
-	const char *valuetok;
-	static char tmpstring[8];
+static cg_layoutnode_t *CG_LayoutParseArgumentNode( Span< const char > token ) {
+	cg_layoutnode_t * node = ALLOC( sys_allocator, cg_layoutnode_t );
+	*node = { };
 
-	// find what's it
-	if( !token ) {
-		return NULL;
-	}
+	if( token[ 0 ] == '%' ) {
+		node->type = LNODE_REFERENCE_NUMERIC;
 
-	valuetok = token;
-
-	if( token[0] == '%' ) { // it's a stat parm
-		int i;
-		type = LNODE_REFERENCE_NUMERIC;
-		valuetok++; // skip %
-
-		// replace stat names by values
-		for( i = 0; cg_numeric_references[i].name != NULL; i++ ) {
-			if( !Q_stricmp( valuetok, cg_numeric_references[i].name ) ) {
-				snprintf( tmpstring, sizeof( tmpstring ), "%i", i );
-				valuetok = tmpstring;
+		bool ok = false;
+		for( size_t i = 0; i < ARRAY_COUNT( cg_numeric_references ); i++ ) {
+			if( StrCaseEqual( token + 1, cg_numeric_references[ i ].name ) ) {
+				ok = true;
+				node->idx = i;
 				break;
 			}
 		}
-		if( cg_numeric_references[i].name == NULL ) {
-			Com_Printf( "Warning: HUD: %s is not valid numeric reference\n", valuetok );
-			valuetok--;
-			valuetok = "0";
-		}
-	} else if( token[0] == '#' ) {   // it's a integer constant
-		int i;
-		type = LNODE_NUMERIC;
-		valuetok++; // skip #
 
-		for( i = 0; cg_numeric_constants[i].name != NULL; i++ ) {
-			if( !Q_stricmp( valuetok, cg_numeric_constants[i].name ) ) {
-				snprintf( tmpstring, sizeof( tmpstring ), "%i", cg_numeric_constants[i].value );
-				valuetok = tmpstring;
+		if( !ok ) {
+			Com_GGPrint( "Warning: HUD: {} is not valid numeric reference", token );
+		}
+	}
+	else if( token[ 0 ] == '#' ) {
+		node->type = LNODE_NUMERIC;
+
+		bool ok = false;
+		for( size_t i = 0; i < ARRAY_COUNT( cg_numeric_constants ); i++ ) {
+			if( StrCaseEqual( token + 1, cg_numeric_constants[ i ].name ) ) {
+				ok = true;
+				node->value = cg_numeric_constants[ i ].value;
 				break;
 			}
 		}
-		if( cg_numeric_constants[i].name == NULL ) {
-			Com_Printf( "Warning: HUD: %s is not valid numeric constant\n", valuetok );
-			valuetok = "0";
+
+		if( !ok ) {
+			Com_GGPrint( "Warning: HUD: %s is not valid numeric constant", token );
 		}
 
-	} else if( token[0] == '\\' ) {
-		valuetok = ++token;
-		type = LNODE_STRING;
-	} else if( token[0] < '0' && token[0] > '9' && token[0] != '.' ) {
-		type = LNODE_STRING;
+	}
+	else if( token[ 0 ] == '\\' ) {
+		node->type = LNODE_STRING;
+		token++;
+	}
+	else {
+		node->value = 0.0f;
+		node->type = TrySpanToFloat( token, &node->value ) ? LNODE_NUMERIC : LNODE_STRING;
 	}
 
-	// alloc
-	node = ( cg_layoutnode_t * )CG_Malloc( sizeof( cg_layoutnode_t ) );
-	node->type = type;
-	node->integer = atoi( valuetok );
-	node->value = atof( valuetok );
-	node->string = CG_CopyString( token );
-	node->func = NULL;
-	node->ifthread = NULL;
+	node->string = ( *sys_allocator )( "{}", token );
 
-	// return it
 	return node;
 }
 
-/*
-* CG_LayoutCathegorizeToken
-*/
-static int CG_LayoutCathegorizeToken( const char *token ) {
-	int i = 0;
-
-	for( i = 0; cg_LayoutCommands[i].name; i++ ) {
-		if( !Q_stricmp( token, cg_LayoutCommands[i].name ) ) {
-			return LNODE_COMMAND;
-		}
-	}
-
-	if( token[0] == '%' ) { // it's a numerical reference
-		return LNODE_REFERENCE_NUMERIC;
-	} else if( token[0] == '#' ) {   // it's a numerical constant
-		return LNODE_NUMERIC;
-	} else if( token[0] < '0' && token[0] > '9' && token[0] != '.' ) {
-		return LNODE_STRING;
-	}
-
-	return LNODE_NUMERIC;
-}
-
-/*
-* CG_RecurseFreeLayoutThread
-* recursive for freeing "if" subtrees
-*/
-static void CG_RecurseFreeLayoutThread( cg_layoutnode_t *rootnode ) {
-	cg_layoutnode_t *node;
-
-	if( !rootnode ) {
+static void CG_RecurseFreeLayoutThread( cg_layoutnode_t * node ) {
+	if( node == NULL )
 		return;
-	}
 
-	while( rootnode ) {
-		node = rootnode;
-		rootnode = rootnode->parent;
-
-		if( node->ifthread ) {
-			CG_RecurseFreeLayoutThread( node->ifthread );
-		}
-
-		if( node->string ) {
-			CG_Free( node->string );
-		}
-
-		CG_Free( node );
-	}
+	CG_RecurseFreeLayoutThread( node->args );
+	CG_RecurseFreeLayoutThread( node->ifthread );
+	CG_RecurseFreeLayoutThread( node->next );
+	FREE( sys_allocator, node->string );
+	FREE( sys_allocator, node );
 }
 
-/*
-* CG_LayoutFixCommasInToken
-* commas are accepted in the scripts. They actually do nothing, but are good for readability
-*/
-static bool CG_LayoutFixCommasInToken( char **ptr, char **backptr ) {
-	char *token;
-	char *back;
-	int offset, count;
-	bool stepback = false;
+static Span< const char > ParseHUDToken( Span< const char > * cursor ) {
+	Span< const char > token;
 
-	token = *ptr;
-	back = *backptr;
+	// skip comments
+	while( true ) {
+		token = ParseToken( cursor, Parse_DontStopOnNewLine );
+		if( !StartsWith( token, "//" ) )
+			break;
 
-	if( !token || !strlen( token ) ) {
-		return false;
+		while( true ) {
+			if( ParseToken( cursor, Parse_StopOnNewLine ) == "" ) {
+				break;
+			}
+		}
 	}
 
-	// check that sizes match (quotes are removed from tokens)
-	offset = count = strlen( token );
-	back = *backptr;
-	while( count-- ) {
-		if( *back == '"' ) {
-			count++;
-			offset++;
-		}
-		back--;
+	// strip trailing comma
+	if( token.n > 0 && token[ token.n - 1 ] == ',' ) {
+		token.n--;
 	}
 
-	back = *backptr - offset;
-	while( offset ) {
-		if( *back == '"' ) {
-			offset--;
-			back++;
-			continue;
-		}
-
-		if( *token != *back ) {
-			Com_Printf( "Token and Back mismatch %c - %c\n", *token, *back );
-		}
-
-		if( *back == ',' ) {
-			*back = ' ';
-			stepback = true;
-		}
-
-		offset--;
-		token++;
-		back++;
-	}
-
-	return stepback;
+	return token;
 }
 
-/*
-* CG_RecurseParseLayoutScript
-* recursive for generating "if" subtrees
-*/
-static cg_layoutnode_t *CG_RecurseParseLayoutScript( char **ptr, int level ) {
-	cg_layoutnode_t *command = NULL;
-	cg_layoutnode_t *argumentnode = NULL;
-	cg_layoutnode_t *node = NULL;
-	cg_layoutnode_t *rootnode = NULL;
-	int expecArgs = 0, numArgs = 0;
-	int token_type;
-	bool add;
-	char *token, *s_tokenback;
+struct LayoutNodeList {
+	cg_layoutnode_t * head;
+	cg_layoutnode_t * tail;
 
-	if( !ptr ) {
-		return NULL;
+	LayoutNodeList() {
+		head = ALLOC( sys_allocator, cg_layoutnode_t );
+		tail = head;
+
+		*head = { };
+		head->type = LNODE_DUMMY;
 	}
 
-	if( !*ptr || !*ptr[0] ) {
-		return NULL;
+	void add( cg_layoutnode_t * node ) {
+		tail->next = node;
+		tail = tail->next;
 	}
+};
 
-	while( *ptr ) {
-		s_tokenback = *ptr;
+static cg_layoutnode_t * CG_ParseArgs( Span< const char > * cursor, const char * command_name, int expected_args, int * parsed_args ) {
+	LayoutNodeList nodes;
 
-		token = COM_Parse( ptr );
-		while( *token == ' ' ) token++; // eat up whitespaces
-		if( !Q_stricmp( ",", token ) ) {
-			continue;                            // was just a comma
-		}
-		if( CG_LayoutFixCommasInToken( &token, ptr ) ) {
-			*ptr = s_tokenback; // step back
-			continue;
-		}
+	*parsed_args = 0;
 
-		if( !*token ) {
-			continue;
-		}
-		if( !strlen( token ) ) {
-			continue;
-		}
+	while( true ) {
+		Span< const char > last_cursor = *cursor;
+		Span< const char > token = ParseHUDToken( cursor );
+		if( token == "" )
+			break;
 
-		add = false;
-		token_type = CG_LayoutCathegorizeToken( token );
-
-		// if it's an operator, we don't create a node, but add the operation to the last one
-		if( CG_OperatorFuncForArgument( token ) != NULL ) {
-			if( !node ) {
-				Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" Operator hasn't any prior argument\n", level, token );
+		opFunc_t op = CG_OperatorFuncForArgument( token );
+		if( op != NULL ) {
+			if( nodes.tail == NULL ) {
+				Com_GGPrint( "WARNING 'CG_RecurseParseLayoutScript'({}): \"{}\" Operator hasn't any prior argument", command_name, token );
 				continue;
 			}
-			if( node->type == LNODE_COMMAND || node->type == LNODE_STRING ) {
-				Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" Operator was assigned to a command node\n", level, token );
-			} else {
-				expecArgs++; // we now expect one extra argument (not counting the operator one)
-
+			if( nodes.tail->opFunc != NULL ) {
+				Com_GGPrint( "WARNING 'CG_RecurseParseLayoutScript'({}): \"{}\" Found two operators in a row", command_name, token );
 			}
-			node->opFunc = CG_OperatorFuncForArgument( token );
-			continue; // skip and continue
+			if( nodes.tail->type == LNODE_STRING ) {
+				Com_GGPrint( "WARNING 'CG_RecurseParseLayoutScript'({}): \"{}\" Operator was assigned to a string node", command_name, token );
+			}
+
+			nodes.tail->opFunc = op;
+			continue;
 		}
 
-		if( expecArgs > numArgs ) {
-			// we are expecting an argument
-			switch( token_type ) {
-				case LNODE_NUMERIC:
-				case LNODE_STRING:
-				case LNODE_REFERENCE_NUMERIC:
-					break;
-				case LNODE_COMMAND:
-				{
-					Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" is not a valid argument for \"%s\"\n", level, token, command ? command->string : "" );
-					continue;
-				}
-				break;
-				default:
-				{
-					Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i) skip and continue: Unrecognized token \"%s\"\n", level, token );
-					continue;
-				}
-				break;
-			}
-		} else {
-			if( token_type != LNODE_COMMAND ) {
-				// we are expecting a command
-				Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): unrecognized command \"%s\"\n", level, token );
-				continue;
-			}
-
-			// special case: endif commands interrupt the thread and are not saved
-			if( !Q_stricmp( token, "endif" ) ) {
-				//finish the last command properly
-				if( command ) {
-					command->integer = expecArgs;
-				}
-				return rootnode;
-			}
-
-			// special case: last command was "if", we create a new sub-thread and ignore the new command
-			if( command && ( !Q_stricmp( command->string, "if" ) || !Q_stricmp( command->string, "ifnot" ) ) ) {
-				*ptr = s_tokenback; // step back one token
-				command->ifthread = CG_RecurseParseLayoutScript( ptr, level + 1 );
-			}
+		if( *parsed_args == expected_args && nodes.tail->opFunc == NULL ) {
+			*cursor = last_cursor;
+			break;
 		}
 
-		// things look fine, proceed creating the node
-		switch( token_type ) {
-			case LNODE_NUMERIC:
-			case LNODE_STRING:
-			case LNODE_REFERENCE_NUMERIC:
-			{
-				node = CG_LayoutParseArgumentNode( token );
-				if( !node ) {
-					Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" is not a valid argument for \"%s\"\n", level, token, command ? command->string : "" );
-					break;
-				}
-				numArgs++;
-				add = true;
+		cg_layoutnode_t * command = CG_LayoutParseCommandNode( token );
+		if( command != NULL ) {
+			Com_GGPrint( "WARNING 'CG_RecurseParseLayoutScript': \"{}\" is not a valid argument for \"{}\"", token, command_name );
+			break;
+		}
+
+		cg_layoutnode_t * node = CG_LayoutParseArgumentNode( token );
+
+		if( nodes.tail == NULL || nodes.tail->opFunc == NULL ) {
+			*parsed_args += 1;
+		}
+
+		nodes.add( node );
+	}
+
+	return nodes.head;
+}
+
+static cg_layoutnode_t *CG_RecurseParseLayoutScript( Span< const char > * cursor, int level ) {
+	LayoutNodeList nodes;
+
+	while( true ) {
+		Span< const char > token = ParseHUDToken( cursor );
+		if( token == "" ) {
+			if( level > 0 ) {
+				Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): If without endif\n", level );
 			}
 			break;
-			case LNODE_COMMAND:
-			{
-				node = CG_LayoutParseCommandNode( token );
-				if( !node ) {
-					Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): \"%s\" is not a valid command\n", level, token );
-					break; // skip and continue
-				}
-
-				// expected arguments could have been extended by the operators
-				if( command ) {
-					command->integer = expecArgs;
-				}
-
-				// move on into the new command
-				command = node;
-				argumentnode = NULL;
-				numArgs = 0;
-				expecArgs = command->integer;
-				add = true;
-			}
-			break;
-			default:
-				break;
 		}
 
-		if( add == true ) {
-			if( command && command == rootnode ) {
-				if( !argumentnode ) {
-					argumentnode = node;
-				}
-			}
+		cg_layoutnode_t * command = CG_LayoutParseCommandNode( token );
+		if( command == NULL ) {
+			Com_GGPrint( "WARNING 'CG_RecurseParseLayoutScript'(level {}): unrecognized command \"{}\"", level, token );
+			break;
+		}
 
-			if( rootnode ) {
-				rootnode->next = node;
-			}
-			node->parent = rootnode;
-			rootnode = node;
+		int parsed_args;
+		command->args = CG_ParseArgs( cursor, command->string, command->num_args, &parsed_args );
+
+		if( parsed_args != command->num_args ) {
+			Com_Printf( "ERROR: Layout command %s: invalid argument count (expecting %i, found %i)\n", command->string, command->num_args, parsed_args );
+		}
+
+		nodes.add( command );
+
+		if( command->func == CG_LFuncIf || command->func == CG_LFuncIfNot ) {
+			command->ifthread = CG_RecurseParseLayoutScript( cursor, level + 1 );
+		}
+		else if( command->func == CG_LFuncEndIf ) {
+			break;
 		}
 	}
 
-	if( level > 0 ) {
-		Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): If without endif\n", level );
-	}
-
-	return rootnode;
+	return nodes.head;
 }
-
-static void CG_ParseLayoutScript( char *string ) {
-	CG_RecurseFreeLayoutThread( hud_root );
-	hud_root = CG_RecurseParseLayoutScript( &string, 0 );
-}
-
-//=============================================================================
-
-//=============================================================================
 
 /*
 * CG_RecurseExecuteLayoutThread
@@ -3066,67 +2881,17 @@ static void CG_ParseLayoutScript( char *string ) {
 * When finding an "if" command with a subtree, we execute the "if" command. In the case it
 * returns any value, we recurse execute the subtree
 */
-static void CG_RecurseExecuteLayoutThread( cg_layoutnode_t *rootnode ) {
-	cg_layoutnode_t *argumentnode = NULL;
-	cg_layoutnode_t *commandnode = NULL;
-	int numArguments;
-
-	if( !rootnode ) {
+static void CG_RecurseExecuteLayoutThread( cg_layoutnode_t * node ) {
+	if( node == NULL )
 		return;
+
+	// args->next to skip the dummy node
+	if( node->type != LNODE_DUMMY && node->func( node->args->next ) ) {
+		CG_RecurseExecuteLayoutThread( node->ifthread );
 	}
 
-	// run until the real root
-	commandnode = rootnode;
-	while( commandnode->parent ) {
-		commandnode = commandnode->parent;
-	}
-
-	// now run backwards up to the next command node
-	while( commandnode ) {
-		argumentnode = commandnode->next;
-
-		// we could trust the parser, but I prefer counting the arguments here
-		numArguments = 0;
-		while( argumentnode ) {
-			if( argumentnode->type == LNODE_COMMAND ) {
-				break;
-			}
-
-			argumentnode = argumentnode->next;
-			numArguments++;
-		}
-
-		// reset
-		argumentnode = commandnode->next;
-
-		// Execute the command node
-		if( commandnode->integer != numArguments ) {
-			Com_Printf( "ERROR: Layout command %s: invalid argument count (expecting %i, found %i)\n", commandnode->string, commandnode->integer, numArguments );
-			return;
-		}
-		if( commandnode->func ) {
-			//special case for if commands
-			if( commandnode->func( argumentnode, numArguments ) ) {
-				// execute the "if" thread when command returns a value
-				if( commandnode->ifthread ) {
-					CG_RecurseExecuteLayoutThread( commandnode->ifthread );
-				}
-			}
-		}
-
-		//move up to next command node
-		commandnode = argumentnode;
-		if( commandnode == rootnode ) {
-			return;
-		}
-
-		while( commandnode && commandnode->type != LNODE_COMMAND ) {
-			commandnode = commandnode->next;
-		}
-	}
+	CG_RecurseExecuteLayoutThread( node->next );
 }
-
-//=============================================================================
 
 static bool LoadHUDFile( const char * path, DynamicString & script ) {
 	Span< const char > contents = AssetString( StringHash( path ) );
@@ -3167,6 +2932,8 @@ static bool LoadHUDFile( const char * path, DynamicString & script ) {
 }
 
 static void CG_LoadHUD() {
+	CG_RecurseFreeLayoutThread( hud_root );
+
 	TempAllocator temp = cls.frame_arena.temp();
 	const char * path = "huds/default.hud";
 
@@ -3176,13 +2943,15 @@ static void CG_LoadHUD() {
 		return;
 	}
 
-	CG_ParseLayoutScript( const_cast< char * >( script.c_str() ) );
+	Span< const char > cursor = script.span();
+	hud_root = CG_RecurseParseLayoutScript( &cursor, 0 );
 
 	layout_cursor_font_style = FontStyle_Normal;
 	layout_cursor_font_size = cgs.textSizeSmall;
 }
 
 void CG_InitHUD() {
+	hud_root = NULL;
 	CG_LoadHUD();
 }
 

@@ -15,9 +15,7 @@ void format( FormatBuffer * fb, Span< const char > span, const FormatOpts & opts
 }
 
 char * CopyString( Allocator * a, const char * str ) {
-	char * copy = ALLOC_MANY( a, char, strlen( str ) + 1 );
-	strcpy( copy, str );
-	return copy;
+	return ( *a )( "{}", str );
 }
 
 Span< const char > MakeSpan( const char * str ) {

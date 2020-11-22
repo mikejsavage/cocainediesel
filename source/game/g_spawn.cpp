@@ -274,12 +274,12 @@ static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent ) {
 		Span< const char > key = ParseToken( cursor, Parse_DontStopOnNewLine );
 		if( key == "}" )
 			break;
-		if( key == "" ) {
+		if( key.ptr == NULL ) {
 			Com_Error( ERR_DROP, "ED_ParseEntity: EOF without closing brace" );
 		}
 
 		Span< const char > value = ParseToken( cursor, Parse_StopOnNewLine );
-		if( value == "" ) {
+		if( value.ptr == NULL ) {
 			Com_Error( ERR_DROP, "ED_ParseEntity: EOF without closing brace" );
 		}
 		if( value == "}" ) {
@@ -325,7 +325,7 @@ static void G_SpawnEntities( void ) {
 	while( true ) {
 		// parse the opening brace
 		Span< const char > brace = ParseToken( &cursor, Parse_DontStopOnNewLine );
-		if( brace == "" )
+		if( brace.ptr == NULL )
 			break;
 		if( brace != "{" ) {
 			Com_Error( ERR_DROP, "G_SpawnEntities: entity string doesn't begin with {" );

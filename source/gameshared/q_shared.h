@@ -76,7 +76,7 @@ bool TrySpanToInt( Span< const char > str, int * x );
 bool TrySpanToFloat( Span< const char > str, float * x );
 
 int SpanToInt( Span< const char > token, int def );
-int SpanToFloat( Span< const char > token, float def );
+float SpanToFloat( Span< const char > token, float def );
 
 int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop );
 float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop );

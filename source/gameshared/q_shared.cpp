@@ -365,7 +365,7 @@ int SpanToInt( Span< const char > token, int def ) {
 	return TrySpanToInt( token, &x ) ? x : def;
 }
 
-int SpanToFloat( Span< const char > token, float def ) {
+float SpanToFloat( Span< const char > token, float def ) {
 	float x;
 	return TrySpanToFloat( token, &x ) ? x : def;
 }

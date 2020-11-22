@@ -30,18 +30,17 @@
   }
 
   particles {
-    material textures/vfx/glow1
+    material textures/vfx/glow2
     blendfunc add
 
-    position sphere 64
-	acceleration $gravity
+    position sphere 42
 
-    speed 150
+    speed 5
 
     color 1.0 0.25 0.0 1.0
 	end_color 0.0 0.0 0.0
 
-    size 12 0
+    size 32 0
     size_distribution uniform 4
 
     lifetime 0.25
@@ -57,7 +56,7 @@
 
     speed 35
 
-    color 0.1 0.1 0.1 0.5
+    color 0.1 0.1 0.1 0.25
     end_color 0.0 0.0 0.0
 
     size 12 42
@@ -76,7 +75,7 @@
 
     speed 72
 
-    color 0.5 0.5 0.5 0.5
+    color 0.5 0.5 0.5 1.0
     end_color 0.0 0.0 0.0
 
     size 42 12
@@ -88,25 +87,25 @@
   }
 
   particles {
-    material textures/vfx/smoke10
-    blendfunc add
+    material textures/vfx/fire2
+    blendfunc blend
+	acceleration 450
+    position cone 50 16
 
-    position cone 180 0
-
-    speed 600
-
-    color 1.0 0.15 0.0 1.0
+    speed 200
+	
+    color 0.15 0.15 0.15 0.5
     end_color 0.0 0.0 0.0
 
-    size 42
+    size 64 64
     size_distribution uniform 16
 
-    lifetime 0.25
+    lifetime 0.45
     lifetime_distribution uniform 0.05
-    count 128
+    count 8
   }
 
-    particles {
+  particles {
     material textures/vfx/fire1
     blendfunc add
 
@@ -117,8 +116,8 @@
     color 1.0 1.0 1.0 1.0
     color_override
 
-    size 200 100
-    size_distribution uniform 0
+    size 150 100
+    size_distribution uniform 25
 
     lifetime 0.25
     lifetime_distribution uniform 0

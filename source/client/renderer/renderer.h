@@ -40,7 +40,7 @@ struct FrameStatic {
 
 	u8 write_world_gbuffer_pass;
 	u8 postprocess_world_gbuffer_pass;
-	
+
 	u8 particle_update_pass;
 
 	u8 world_opaque_pass;
@@ -82,7 +82,6 @@ void RendererSubmitFrame();
 const Texture * BlueNoiseTexture();
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
-bool HasAlpha( TextureFormat format );
 PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false );
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color = vec4_white );

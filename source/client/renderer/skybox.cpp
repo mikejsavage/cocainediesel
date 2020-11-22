@@ -44,7 +44,8 @@ void DrawSkybox() {
 	pipeline.pass = frame_static.sky_pass;
 	pipeline.cull_face = CullFace_Front;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_Time", UploadUniformBlock( float( ( Sys_Milliseconds() % 100000 ) * 0.0000628318 ) ) ); // * 0.00001 * 3.14159 * 2
+	pipeline.set_uniform( "u_Time", UploadUniformBlock( float( Sys_Milliseconds() ) / 1000.0f ) );
+	pipeline.set_texture( "u_Noise", FindMaterial( "textures/noise" )->texture );
 	pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
 	pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
 	DrawMesh( sky_mesh, pipeline );

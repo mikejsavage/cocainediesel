@@ -266,7 +266,7 @@ static float ParseFogStrength( const BSPSpans * bsp ) {
 
 		if( key == "fog_strength" ) {
 			float f;
-			if( SpanToFloat( value, &f ) ) {
+			if( TrySpanToFloat( value, &f ) ) {
 				return f;
 			}
 		}
@@ -492,10 +492,16 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 		}
 	}
 
+	for( BSPModelVertex & v : vertices ) {
+		if( v.position.z <= -1024.0f ) {
+			v.position.z = -999999.0f;
+		}
+	}
+
 	// TODO: meshopt
 
 	String< 16 > suffix( "*{}", model_idx );
-	Model * model = NewModel( Hash64( suffix.c_str(), suffix.len(), base_hash ) );
+	Model * model = NewModel( Hash64( suffix.c_str(), suffix.length(), base_hash ) );
 	*model = { };
 	model->transform = Mat4::Identity();
 
@@ -565,14 +571,12 @@ bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data ) {
 	map->num_models = bsp.models.n;
 	map->fog_strength = ParseFogStrength( &bsp );
 
-
 	DynamicArray< GPUBSPNode > nodes( sys_allocator, bsp.nodes.n );
 	DynamicArray< GPUBSPLeaf > leaves( sys_allocator, bsp.leaves.n );
 	DynamicArray< GPUBSPLeafBrush > leafbrushes( sys_allocator, bsp.leafbrushes.n );
 	DynamicArray< GPUBSPPlane > planes( sys_allocator, bsp.planes.n + bsp.brushsides.n );
 
-	for ( u32 i = 0; i < bsp.nodes.n; i++ )
-	{
+	for( u32 i = 0; i < bsp.nodes.n; i++ ) {
 		const BSPNode node = bsp.nodes[ i ];
 		const BSPPlane plane = bsp.planes[ node.planenum ];
 
@@ -582,30 +586,26 @@ bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data ) {
 		planes.add( gpu_plane );
 	}
 
-	for ( u32 i = 0; i < bsp.leaves.n; i++ )
-	{
+	for( u32 i = 0; i < bsp.leaves.n; i++ ) {
 		const BSPLeaf leaf = bsp.leaves[ i ];
 		GPUBSPLeaf gpu_leaf = { leaf.firstLeafBrush, leaf.numLeafBrushes };
 		leaves.add( gpu_leaf );
 	}
-	int planes_offset = planes.size();
-	for ( u32 i = 0; i < bsp.leafbrushes.n; i++ )
-	{
+	u32 planes_offset = planes.size();
+	for( u32 i = 0; i < bsp.leafbrushes.n; i++ ) {
 		const BSPLeafBrush leafbrush = bsp.leafbrushes[ i ];
 		const BSPBrush brush = bsp.brushes[ leafbrush.brush ];
 		bool solid = ( bsp.materials[ brush.material ].contents & MASK_PLAYERSOLID ) != 0;
 		GPUBSPLeafBrush gpu_brush = { planes_offset + brush.first_side, solid ? brush.num_sides : 0 };
 		leafbrushes.add( gpu_brush );
 	}
-	for ( u32 i = 0; i < bsp.brushsides.n; i++ )
-	{
+	for( u32 i = 0; i < bsp.brushsides.n; i++ ) {
 		const BSPBrushSide brushside = bsp.brushsides[ i ];
 		const BSPPlane plane = bsp.planes[ brushside.planenum ];
 		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };
 		planes.add( gpu_plane );
 	}
-	for ( u32 i = 0; i < bsp.raven_brushsides.n; i++ )
-	{
+	for( u32 i = 0; i < bsp.raven_brushsides.n; i++ ) {
 		const RavenBSPBrushSide brushside = bsp.raven_brushsides[ i ];
 		const BSPPlane plane = bsp.planes[ brushside.planenum ];
 		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };

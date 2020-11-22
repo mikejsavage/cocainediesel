@@ -154,17 +154,16 @@ retry:
 }
 
 
-typedef struct
-{
+struct pushed_t {
 	edict_t *ent;
 	Vec3 origin;
 	Vec3 angles;
 	float yaw;
 	Vec3 pmove_origin;
-} pushed_t;
-pushed_t pushed[MAX_EDICTS], *pushed_p;
+};
+static pushed_t pushed[MAX_EDICTS], *pushed_p;
 
-edict_t *obstacle;
+static edict_t *obstacle;
 
 
 /*
@@ -200,8 +199,8 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 	pushed_p++;
 
 	// move the pusher to its final position
-	pusher->s.origin = pusher->s.origin + move;
-	pusher->s.angles = pusher->s.angles + amove;
+	pusher->s.origin += move;
+	pusher->s.angles += amove;
 	GClip_LinkEntity( pusher );
 
 	// see if any solid entities are inside the final position
@@ -413,7 +412,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		} else {
 			Vec3 acceldir;
 			acceldir = Normalize( ent->velocity );
-			acceldir = acceldir * ( ent->accel * FRAMETIME );
+			acceldir = acceldir * ent->accel * FRAMETIME;
 			ent->velocity = ent->velocity + acceldir;
 		}
 	}
@@ -422,11 +421,8 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 	// add gravity
 	if( ent->movetype != MOVETYPE_FLY && !ent->groundentity ) {
-		ent->velocity.z -= ent->gravity * level.gravity * FRAMETIME;
+		ent->velocity.z -= GRAVITY * FRAMETIME;
 	}
-
-	// move angles
-	ent->s.angles = ent->s.angles + ent->avelocity * FRAMETIME;
 
 	// move origin
 	move = ent->velocity * FRAMETIME;
@@ -459,7 +455,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 				( ISWALKABLEPLANE( &trace.plane ) &&
 				  Abs( Dot( trace.plane.normal, ent->velocity ) ) < 40
 				)
-				) {
+			) {
 				ent->groundentity = &game.edicts[trace.ent];
 				ent->groundentity_linkcount = ent->groundentity->linkcount;
 				ent->velocity = Vec3( 0.0f );
@@ -478,6 +474,20 @@ static void SV_Physics_Toss( edict_t *ent ) {
 				G_CallStop( ent );
 			}
 		}
+	}
+
+	// move angles
+	if( ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
+		if( ent->velocity == Vec3( 0.0f ) ) {
+			ent->s.angles.x = 0.0f;
+			ent->s.angles.z = 0.0f;
+		}
+		else {
+			ent->s.angles = VecToAngles( SafeNormalize( ent->velocity ) );
+		}
+	}
+	else {
+		ent->s.angles += ent->avelocity * FRAMETIME;
 	}
 
 	// check for water transition

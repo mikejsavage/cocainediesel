@@ -3,6 +3,12 @@
 #include "qcommon/types.h"
 #include "client/renderer/types.h"
 
+enum InterpolationMode {
+	InterpolationMode_Step,
+	InterpolationMode_Linear,
+	// InterpolationMode_CubicSpline,
+};
+
 struct Model {
 	struct Primitive {
 		const Material * material;
@@ -16,6 +22,7 @@ struct Model {
 		T * samples;
 		float * times;
 		u32 num_samples;
+		InterpolationMode interpolation;
 	};
 
 	struct Node {

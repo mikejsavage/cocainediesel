@@ -280,10 +280,10 @@ struct cg_static_t {
 	float textSizeMedium;
 	float textSizeBig;
 
-	const Font * fontMontserrat;
-	const Font * fontMontserratBold;
-	const Font * fontMontserratItalic;
-	const Font * fontMontserratBoldItalic;
+	const Font * fontNormal;
+	const Font * fontNormalBold;
+	const Font * fontNormalItalic;
+	const Font * fontNormalBoldItalic;
 
 	cgs_media_t media;
 
@@ -299,11 +299,7 @@ struct cg_static_t {
 	char configStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	char baseConfigStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 
-	WeaponModelMetadata *weaponInfos[ Weapon_Count + 1 ];
-
 	cg_clientInfo_t clientInfo[MAX_CLIENTS];
-
-	PlayerModelMetadata *teamModelInfo[2];
 
 	char checkname[MAX_QPATH];
 };
@@ -371,9 +367,6 @@ struct cg_state_t {
 	int64_t award_times[MAX_AWARD_LINES];
 	int award_head;
 
-	// statusbar program
-	struct cg_layoutnode_s *statusBar;
-
 	cg_viewweapon_t weapon;
 	cg_viewdef_t view;
 };
@@ -393,7 +386,10 @@ extern centity_t cg_entities[MAX_EDICTS];
 // cg_ents.c
 //
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe );
-struct cmodel_s *CG_CModelForEntity( int entNum );
+
+struct cmodel_t;
+cmodel_t *CG_CModelForEntity( int entNum );
+
 void CG_SoundEntityNewState( centity_t *cent );
 void CG_AddEntities( void );
 void CG_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity );
@@ -424,7 +420,6 @@ extern cvar_t *cg_hand;
 
 void CG_ResetClientInfos( void );
 void CG_LoadClientInfo( int client );
-void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name );
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 
 //
@@ -482,7 +477,7 @@ void CG_InitHUD();
 void CG_ShutdownHUD();
 void CG_SC_ResetObituaries();
 void CG_SC_Obituary();
-void CG_ExecuteLayoutProgram( struct cg_layoutnode_s *rootnode );
+void CG_DrawHUD();
 void CG_ClearAwards();
 
 //
@@ -502,8 +497,6 @@ extern cvar_t *cg_showClamp;
 extern cvar_t *cg_showHotkeys;
 
 // wsw
-extern cvar_t *cg_volume_hitsound;    // hit sound volume
-extern cvar_t *cg_volume_announcer; // announcer sounds volume
 extern cvar_t *cg_autoaction_demo;
 extern cvar_t *cg_autoaction_screenshot;
 extern cvar_t *cg_autoaction_spectator;
@@ -511,9 +504,6 @@ extern cvar_t *cg_autoaction_spectator;
 extern cvar_t *cg_voiceChats;
 extern cvar_t *cg_projectileAntilagOffset;
 extern cvar_t *cg_chatFilter;
-
-extern cvar_t *cg_allyModel;
-extern cvar_t *cg_enemyModel;
 
 extern cvar_t *cg_particleDebug;
 
@@ -551,8 +541,7 @@ void CG_SC_AutoRecordAction( const char *action );
 //
 // cg_teams.c
 //
-void CG_RegisterPlayerModels();
-const PlayerModelMetadata * CG_PModelForCentity( centity_t * cent );
+bool CG_IsAlly( int team );
 RGB8 CG_TeamColor( int team );
 Vec4 CG_TeamColorVec4( int team );
 
@@ -593,10 +582,7 @@ bool CG_SwitchChaseCamMode( void );
 //
 
 void CG_BubbleTrail( Vec3 start, Vec3 end, int dist );
-void CG_ProjectileTrail( const centity_t * cent );
 void CG_RifleBulletTrail( const centity_t * cent );
-void CG_NewBloodTrail( centity_t *cent );
-void CG_BloodDamageEffect( Vec3 origin, Vec3 dir, int damage, Vec4 team_color );
 void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color );
 void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
@@ -634,7 +620,6 @@ void DrawPersistentBeams();
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon );
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon );
 void CG_ViewWeapon_StartAnimationEvent( int newAnim );
-void CG_ViewWeapon_RefreshAnimation( cg_viewweapon_t *viewweapon );
 
 void CG_AddRecoil( WeaponType weapon );
 void CG_Recoil( WeaponType weapon );
@@ -647,6 +632,9 @@ void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted );
 void CG_AddAnnouncerEvent( const SoundEffect *sound, bool queued );
 void CG_ReleaseAnnouncerEvents( void );
 void CG_ClearAnnouncerEvents( void );
+
+void ResetAnnouncerSpeakers();
+void AddAnnouncerSpeaker( const centity_t * cent );
 
 // I don't know where to put these ones
 void CG_WeaponBeamEffect( centity_t *cent );

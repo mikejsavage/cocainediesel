@@ -51,19 +51,22 @@ enum TextureFilter : u8 {
 };
 
 enum VertexFormat : u8 {
+	VertexFormat_U8x2,
+	VertexFormat_U8x2_Norm,
+	VertexFormat_U8x3,
+	VertexFormat_U8x3_Norm,
 	VertexFormat_U8x4,
 	VertexFormat_U8x4_Norm,
 
+	VertexFormat_U16x2,
+	VertexFormat_U16x2_Norm,
+	VertexFormat_U16x3,
+	VertexFormat_U16x3_Norm,
 	VertexFormat_U16x4,
 	VertexFormat_U16x4_Norm,
 
 	VertexFormat_U32x1,
 
-	VertexFormat_Halfx2,
-	VertexFormat_Halfx3,
-	VertexFormat_Halfx4,
-
-	VertexFormat_Floatx1,
 	VertexFormat_Floatx2,
 	VertexFormat_Floatx3,
 	VertexFormat_Floatx4,
@@ -323,6 +326,7 @@ IndexBuffer NewIndexBuffer( Span< T > data ) {
 TextureBuffer NewTextureBuffer( TextureBufferFormat format, u32 len );
 void WriteTextureBuffer( TextureBuffer tb, const void * data, u32 size );
 void DeleteTextureBuffer( TextureBuffer tb );
+void DeferDeleteTextureBuffer( TextureBuffer tb );
 
 Texture NewTexture( const TextureConfig & config );
 void DeleteTexture( Texture texture );

@@ -39,7 +39,6 @@ static Hashtable< MAX_DECAL_EMITTERS * 2 > decalEmitters_hashtable;
 constexpr u32 particles_per_emitter = 10000;
 
 bool ParseParticleEvents( Span< const char > * data, ParticleEvents * event ) {
-	StringHash despawn = StringHash( "despawn" );
 	while( true ) {
 		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
 		if( opening_brace == "" )
@@ -640,17 +639,6 @@ void ShutdownVisualEffects() {
 	ShutdownParticleSystems();
 }
 
-static float EvaluateEasingDerivative( EasingFunction func, float t ) {
-	switch( func ) {
-		case EasingFunction_Linear: return 1.0f;
-		case EasingFunction_Quadratic: return t < 0.5f ? 4.0f * t : -4.0f * t + 4.0f;
-		case EasingFunction_QuadraticEaseIn: return 2.0f * t;
-		case EasingFunction_QuadraticEaseOut: return -2.0f * t + 2.0f;
-	}
-
-	return 0.0f;
-}
-
 bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 	StringHash despawn = StringHash( "despawn" );
 	bool result = true;
@@ -696,7 +684,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 				GPUParticleFeedback feedback = ps->particles_feedback[ index ];
 				if ( !ParticleFeedback( ps, &feedback ) ) {
 					ps->num_particles--;
-					Swap2( &ps->gpu_instances[ index ], &ps->gpu_instances[ ps->num_particles ] );
+					Swap2( &ps->gpu_instances[ i ], &ps->gpu_instances[ ps->num_particles ] );
 					i--;
 				}
 			}
@@ -796,7 +784,7 @@ void DrawParticles() {
 		for( size_t i = 0; i < num_particleSystems; i++ ) {
 			ParticleSystem * ps = &particleSystems[ i ];
 			if( ps->initialized ) {
-				ImGui::Text( "ps: %i, num: %i / %i", i, ps->num_particles, ps->max_particles );
+				ImGui::Text( "ps: %zu, num: %zu / %zu", i, ps->num_particles, ps->max_particles );
 			}
 		}
 
@@ -891,7 +879,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 color ) {
 	ZoneScoped;
 
-	if( !emitter ) {
+	if( emitter == NULL ) {
 		return;
 	}
 
@@ -933,8 +921,7 @@ void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, floa
 }
 
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count ) {
-	if( emitter )
-		EmitParticles( emitter, pos, count, Vec4( 1.0f ) );
+	EmitParticles( emitter, pos, count, Vec4( 1.0f ) );
 }
 
 ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, Vec3 normal, float theta, float radius ) {
@@ -995,9 +982,9 @@ void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color ) {
 
 void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec4 color ) {
 	VisualEffectGroup * vfx = FindVisualEffectGroup( name );
-	if( !vfx ) {
+	if( vfx == NULL )
 		return;
-	}
+
 	for( size_t i = 0; i < vfx->num_effects; i++ ) {
 		VisualEffect e = vfx->effects[ i ];
 		if( e.type == VisualEffectType_Particles ) {

@@ -142,7 +142,6 @@ static WORD NearestConsoleColor( RGB8 c ) {
 
 void Sys_ConsoleOutput( const char * str ) {
 	HANDLE output = GetStdHandle( STD_OUTPUT_HANDLE );
-	SetConsoleTextAttribute( output, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE );
 
 	const char * end = str + strlen( str );
 
@@ -166,4 +165,5 @@ void Sys_ConsoleOutput( const char * str ) {
 
 	DWORD written;
 	WriteConsole( output, print_from, strlen( print_from ), &written, NULL );
+	SetConsoleTextAttribute( output, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE );
 }

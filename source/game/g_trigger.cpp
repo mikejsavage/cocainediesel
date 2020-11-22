@@ -215,13 +215,13 @@ static void trigger_push_setup( edict_t *self ) {
 	Vec3 velocity = target->s.origin - origin;
 
 	float height = target->s.origin.z - origin.z;
-	float time = sqrtf( height / ( 0.5f * level.gravity ) );
+	float time = sqrtf( height / ( 0.5f * GRAVITY ) );
 	if( time != 0 ) {
 		velocity.z = 0;
 		float dist = Length( velocity );
 		velocity = SafeNormalize( velocity );
 		velocity = velocity * ( dist / time );
-		velocity.z = time * level.gravity;
+		velocity.z = time * GRAVITY;
 		self->s.origin2 = velocity;
 	}
 	else {
@@ -349,41 +349,6 @@ void SP_trigger_hurt( edict_t *self ) {
 	if( self->spawnflags & 2 ) {
 		self->use = hurt_use;
 	}
-}
-
-//==============================================================================
-//
-//trigger_gravity
-//
-//==============================================================================
-
-static void trigger_gravity_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
-	if( self->s.team && self->s.team != other->s.team ) {
-		return;
-	}
-
-	other->gravity = self->gravity;
-}
-
-void SP_trigger_gravity( edict_t *self ) {
-	if( st.gravity == 0 ) {
-		if( developer->integer ) {
-			Com_GGPrint( "trigger_gravity without gravity set at {}", self->s.origin );
-		}
-		G_FreeEdict( self );
-		return;
-	}
-
-	// gameteam field from editor
-	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
-		self->s.team = st.gameteam;
-	} else {
-		self->s.team = TEAM_SPECTATOR;
-	}
-
-	InitTrigger( self );
-	self->gravity = atof( st.gravity );
-	self->touch = trigger_gravity_touch;
 }
 
 static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {

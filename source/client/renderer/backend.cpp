@@ -52,9 +52,10 @@ struct DrawCall {
 	VertexBuffer feedback_data;
 };
 
-static DynamicArray< RenderPass > render_passes( NO_RAII );
-static DynamicArray< DrawCall > draw_calls( NO_RAII );
-static DynamicArray< Mesh > deferred_deletes( NO_RAII );
+static NonRAIIDynamicArray< RenderPass > render_passes;
+static NonRAIIDynamicArray< DrawCall > draw_calls;
+static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
+static NonRAIIDynamicArray< TextureBuffer > deferred_tb_deletes;
 
 static u32 num_vertices_this_frame;
 
@@ -194,6 +195,20 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 	*normalized = false;
 
 	switch( format ) {
+		case VertexFormat_U8x2:
+		case VertexFormat_U8x2_Norm:
+			*type = GL_UNSIGNED_BYTE;
+			*num_components = 2;
+			*integral = true;
+			*normalized = format == VertexFormat_U8x2_Norm;
+			return;
+		case VertexFormat_U8x3:
+		case VertexFormat_U8x3_Norm:
+			*type = GL_UNSIGNED_BYTE;
+			*num_components = 3;
+			*integral = true;
+			*normalized = format == VertexFormat_U8x3_Norm;
+			return;
 		case VertexFormat_U8x4:
 		case VertexFormat_U8x4_Norm:
 			*type = GL_UNSIGNED_BYTE;
@@ -202,6 +217,20 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*normalized = format == VertexFormat_U8x4_Norm;
 			return;
 
+		case VertexFormat_U16x2:
+		case VertexFormat_U16x2_Norm:
+			*type = GL_UNSIGNED_SHORT;
+			*num_components = 2;
+			*integral = true;
+			*normalized = format == VertexFormat_U16x2_Norm;
+			return;
+		case VertexFormat_U16x3:
+		case VertexFormat_U16x3_Norm:
+			*type = GL_UNSIGNED_SHORT;
+			*num_components = 3;
+			*integral = true;
+			*normalized = format == VertexFormat_U16x3_Norm;
+			return;
 		case VertexFormat_U16x4:
 		case VertexFormat_U16x4_Norm:
 			*type = GL_UNSIGNED_SHORT;
@@ -216,23 +245,6 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*integral = true;
 			return;
 
-		case VertexFormat_Halfx2:
-			*type = GL_HALF_FLOAT;
-			*num_components = 2;
-			return;
-		case VertexFormat_Halfx3:
-			*type = GL_HALF_FLOAT;
-			*num_components = 3;
-			return;
-		case VertexFormat_Halfx4:
-			*type = GL_HALF_FLOAT;
-			*num_components = 4;
-			return;
-
-		case VertexFormat_Floatx1:
-			*type = GL_FLOAT;
-			*num_components = 1;
-			return;
 		case VertexFormat_Floatx2:
 			*type = GL_FLOAT;
 			*num_components = 2;
@@ -287,7 +299,8 @@ void RenderBackendInit() {
 
 	render_passes.init( sys_allocator );
 	draw_calls.init( sys_allocator );
-	deferred_deletes.init( sys_allocator );
+	deferred_mesh_deletes.init( sys_allocator );
+	deferred_tb_deletes.init( sys_allocator );
 
 	glEnable( GL_DEPTH_TEST );
 	glDepthFunc( GL_LESS );
@@ -329,7 +342,8 @@ void RenderBackendShutdown() {
 
 	render_passes.shutdown();
 	draw_calls.shutdown();
-	deferred_deletes.shutdown();
+	deferred_mesh_deletes.shutdown();
+	deferred_tb_deletes.shutdown();
 }
 
 void RenderBackendBeginFrame() {
@@ -338,7 +352,8 @@ void RenderBackendBeginFrame() {
 
 	render_passes.clear();
 	draw_calls.clear();
-	deferred_deletes.clear();
+	deferred_mesh_deletes.clear();
+	deferred_tb_deletes.clear();
 
 	num_vertices_this_frame = 0;
 
@@ -633,9 +648,9 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 			glDrawElements( primitive, dc.num_instances, type, offset );
 			glEndTransformFeedback();
 
-			glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 0, NULL );
+			glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 0, 0 );
 			if( dc.feedback_data.vbo ) {
-				glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 1, NULL );
+				glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 1, 0 );
 			}
 			glDisable( GL_RASTERIZER_DISCARD );
 		}
@@ -668,7 +683,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 static void SubmitResolveMSAA( Framebuffer fb ) {
 	assert( fb.width == frame_static.viewport_width && fb.height == frame_static.viewport_height );
 	glBindFramebuffer( GL_READ_FRAMEBUFFER, fb.fbo );
-	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
+	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST );
 }
 
 void RenderBackendSubmitFrame() {
@@ -724,9 +739,16 @@ void RenderBackendSubmitFrame() {
 	}
 
 	{
-		ZoneScopedN( "Deferred deletes" );
-		for( const Mesh & mesh : deferred_deletes ) {
+		ZoneScopedN( "Deferred mesh deletes" );
+		for( const Mesh & mesh : deferred_mesh_deletes ) {
 			DeleteMesh( mesh );
+		}
+	}
+
+	{
+		ZoneScopedN( "Deferred texturebuffer deletes" );
+		for( const TextureBuffer & tb : deferred_tb_deletes ) {
+			DeleteTextureBuffer( tb );
 		}
 	}
 
@@ -868,6 +890,10 @@ void WriteTextureBuffer( TextureBuffer tb, const void * data, u32 len ) {
 void DeleteTextureBuffer( TextureBuffer tb ) {
 	glDeleteBuffers( 1, &tb.tbo );
 	glDeleteTextures( 1, &tb.texture );
+}
+
+void DeferDeleteTextureBuffer( TextureBuffer tb ) {
+	deferred_tb_deletes.add( tb );
 }
 
 static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
@@ -1091,18 +1117,21 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 	bool feedback = feedback_varyings.n > 0;
 
 	GLuint vs = CompileShader( GL_VERTEX_SHADER, srcs, lens );
-	GLuint fs;
+	if( vs == 0 )
+		return false;
+	defer { glDeleteShader( vs ); };
+
+	GLuint fs = 0;
 	if( !feedback ) {
 		fs = CompileShader( GL_FRAGMENT_SHADER, srcs, lens );
+		if( fs == 0 )
+			return false;
 	}
-
-	if( vs == 0 || fs == 0 ) {
-		if( vs != 0 )
-			glDeleteShader( vs );
-		if( !feedback && fs != 0 )
+	defer {
+		if( fs != 0 ) {
 			glDeleteShader( fs );
-		return false;
-	}
+		}
+	};
 
 	GLuint program = glCreateProgram();
 	glAttachShader( program, vs );
@@ -1136,11 +1165,6 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 	}
 
 	glLinkProgram( program );
-
-	glDeleteShader( vs );
-	if( !feedback ) {
-		glDeleteShader( fs );
-	}
 
 	GLint status;
 	glGetProgramiv( program, GL_LINK_STATUS, &status );
@@ -1357,6 +1381,25 @@ void DeleteMesh( const Mesh & mesh ) {
 	glDeleteVertexArrays( 1, &mesh.vao );
 }
 
+void DeferDeleteMesh( const Mesh & mesh ) {
+	deferred_mesh_deletes.add( mesh );
+}
+
+void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 index_offset ) {
+	assert( in_frame );
+	assert( pipeline.pass != U8_MAX );
+	assert( pipeline.shader != NULL );
+
+	DrawCall dc = { };
+	dc.mesh = mesh;
+	dc.pipeline = pipeline;
+	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
+	dc.index_offset = index_offset;
+	draw_calls.add( dc );
+
+	num_vertices_this_frame += dc.num_vertices;
+}
+
 u8 AddRenderPass( const RenderPass & pass ) {
 	return checked_cast< u8 >( render_passes.add( pass ) );
 }
@@ -1397,25 +1440,6 @@ void AddResolveMSAAPass( Framebuffer src, Framebuffer dst ) {
 	draw_calls.add( dc );
 }
 
-void DeferDeleteMesh( const Mesh & mesh ) {
-	deferred_deletes.add( mesh );
-}
-
-void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 index_offset ) {
-	assert( in_frame );
-	assert( pipeline.pass != U8_MAX );
-	assert( pipeline.shader != NULL );
-
-	DrawCall dc = { };
-	dc.mesh = mesh;
-	dc.pipeline = pipeline;
-	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
-	dc.index_offset = index_offset;
-	draw_calls.add( dc );
-
-	num_vertices_this_frame += dc.num_vertices;
-}
-
 void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, float radius, u32 num_particles, float dt ) {
 	assert( in_frame );
 
@@ -1437,7 +1461,7 @@ void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out
 	dc.num_instances = num_particles;
 	dc.instance_data = vb_in;
 	dc.update_data = vb_out;
-	
+
 	draw_calls.add( dc );
 }
 
@@ -1463,7 +1487,7 @@ void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffe
 	dc.instance_data = vb_in;
 	dc.update_data = vb_out;
 	dc.feedback_data = vb_feedback;
-	
+
 	draw_calls.add( dc );
 }
 

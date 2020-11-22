@@ -31,16 +31,40 @@ static void SetNodeIdx( cgltf_node * node, u8 idx ) {
 	node->camera = ( cgltf_camera * ) uintptr_t( idx + 1 );
 }
 
-static MinMax3 Extend( MinMax3 bounds, Vec3 p ) {
-	return MinMax3(
-		Vec3( Min2( bounds.mins.x, p.x ), Min2( bounds.mins.y, p.y ), Min2( bounds.mins.z, p.z ) ),
-		Vec3( Max2( bounds.maxs.x, p.x ), Max2( bounds.maxs.y, p.y ), Max2( bounds.maxs.z, p.z ) )
-	);
-}
-
 static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
 	cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
 	return Span< const u8 >( ( const u8 * ) accessor->buffer_view->buffer->data + offset, accessor->count * accessor->stride );
+}
+
+static VertexFormat VertexFormatFromGLTF( cgltf_type dim, cgltf_component_type component, bool normalized ) {
+	if( dim == cgltf_type_vec2 ) {
+		if( component == cgltf_component_type_r_8u )
+			return normalized ? VertexFormat_U8x2_Norm : VertexFormat_U8x2;
+		if( component == cgltf_component_type_r_16u )
+			return normalized ? VertexFormat_U16x2_Norm : VertexFormat_U16x2;
+		if( component == cgltf_component_type_r_32f )
+			return VertexFormat_Floatx2;
+	}
+
+	if( dim == cgltf_type_vec3 ) {
+		if( component == cgltf_component_type_r_8u )
+			return normalized ? VertexFormat_U8x3_Norm : VertexFormat_U8x3;
+		if( component == cgltf_component_type_r_16u )
+			return normalized ? VertexFormat_U16x3_Norm : VertexFormat_U16x3;
+		if( component == cgltf_component_type_r_32f )
+			return VertexFormat_Floatx3;
+	}
+
+	if( dim == cgltf_type_vec4 ) {
+		if( component == cgltf_component_type_r_8u )
+			return normalized ? VertexFormat_U8x4_Norm : VertexFormat_U8x4;
+		if( component == cgltf_component_type_r_16u )
+			return normalized ? VertexFormat_U16x4_Norm : VertexFormat_U16x4;
+		if( component == cgltf_component_type_r_32f )
+			return VertexFormat_Floatx4;
+	}
+
+	return VertexFormat_Floatx4; // TODO: actual error handling
 }
 
 static void LoadGeometry( Model * model, const cgltf_node * node, const Mat4 & transform ) {
@@ -52,14 +76,17 @@ static void LoadGeometry( Model * model, const cgltf_node * node, const Mat4 & t
 		const cgltf_attribute & attr = prim.attributes[ i ];
 
 		if( attr.type == cgltf_attribute_type_position ) {
-			Span< const Vec3 > positions = AccessorToSpan( attr.data ).cast< const Vec3 >();
-			mesh_config.num_vertices = positions.n;
-			mesh_config.positions = NewVertexBuffer( positions );
+			mesh_config.num_vertices = attr.data->count;
+			mesh_config.positions = NewVertexBuffer( AccessorToSpan( attr.data ) );
 
-			for( size_t j = 0; j < positions.n; j++ ) {
-				Vec3 transformed = ( transform * Vec4( positions[ j ], 1.0f ) ).xyz();
-				model->bounds = Extend( model->bounds, transformed );
+			Vec3 min, max;
+			for( int j = 0; j < 3; j++ ) {
+				min[ j ] = attr.data->min[ j ];
+				max[ j ] = attr.data->max[ j ];
 			}
+
+			model->bounds = Extend( model->bounds, ( transform * Vec4( min, 1.0f ) ).xyz() );
+			model->bounds = Extend( model->bounds, ( transform * Vec4( max, 1.0f ) ).xyz() );
 		}
 
 		if( attr.type == cgltf_attribute_type_normal ) {
@@ -68,28 +95,22 @@ static void LoadGeometry( Model * model, const cgltf_node * node, const Mat4 & t
 
 		if( attr.type == cgltf_attribute_type_texcoord ) {
 			mesh_config.tex_coords = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.tex_coords_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
+		}
+
+		if( attr.type == cgltf_attribute_type_color ) {
+			mesh_config.colors = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.colors_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 
 		if( attr.type == cgltf_attribute_type_joints ) {
-			Span< u16 > joints_u16 = AccessorToSpan( attr.data ).cast< u16 >();
-			Span< u8 > joints_u8 = ALLOC_SPAN( sys_allocator, u8, attr.data->count * 4 );
-			for( size_t j = 0; j < joints_u16.n; j++ ) {
-				joints_u8[ j ] = checked_cast< u8 >( joints_u16[ j ] );
-			}
-			mesh_config.joints = NewVertexBuffer( joints_u8 );
-			mesh_config.joints_format = VertexFormat_U8x4;
-			FREE( sys_allocator, joints_u8.ptr );
+			mesh_config.joints = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.joints_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 
 		if( attr.type == cgltf_attribute_type_weights ) {
-			Span< float > weights_float = AccessorToSpan( attr.data ).cast< float >();
-			Span< u8 > weights_u8 = ALLOC_SPAN( sys_allocator, u8, attr.data->count * 4 );
-			for( size_t k = 0; k < weights_float.n; k++ ) {
-				weights_u8[ k ] = weights_float[ k ] * 255;
-			}
-			mesh_config.weights = NewVertexBuffer( weights_u8 );
-			mesh_config.weights_format = VertexFormat_U8x4_Norm;
-			FREE( sys_allocator, weights_u8.ptr );
+			mesh_config.weights = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.weights_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 	}
 
@@ -173,6 +194,11 @@ static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
 	}
 }
 
+static InterpolationMode InterpolationModeFromGLTF( cgltf_interpolation_type interpolation ) {
+	// TODO: cubic
+	return interpolation == cgltf_interpolation_type_step ? InterpolationMode_Step : InterpolationMode_Linear;
+}
+
 template< typename T >
 static void LoadChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< T > * out_channel ) {
 	constexpr size_t lanes = sizeof( T ) / sizeof( float );
@@ -182,6 +208,7 @@ static void LoadChannel( const cgltf_animation_channel * chan, Model::AnimationC
 	out_channel->times = memory;
 	out_channel->samples = ( T * ) ( memory + n );
 	out_channel->num_samples = n;
+	out_channel->interpolation = InterpolationModeFromGLTF( chan->sampler->interpolation );
 
 	for( size_t i = 0; i < n; i++ ) {
 		cgltf_bool ok = cgltf_accessor_read_float( chan->sampler->input, i, &out_channel->times[ i ], 1 );
@@ -197,6 +224,7 @@ static void LoadScaleChannel( const cgltf_animation_channel * chan, Model::Anima
 	out_channel->times = memory;
 	out_channel->samples = memory + n;
 	out_channel->num_samples = n;
+	out_channel->interpolation = InterpolationModeFromGLTF( chan->sampler->interpolation );
 
 	for( size_t i = 0; i < n; i++ ) {
 		cgltf_accessor_read_float( chan->sampler->input, i, &out_channel->times[ i ], 1 );
@@ -296,6 +324,7 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 	}
 
 	*model = { };
+	model->bounds = MinMax3::Empty();
 
 	constexpr Mat4 y_up_to_z_up(
 		1, 0, 0, 0,

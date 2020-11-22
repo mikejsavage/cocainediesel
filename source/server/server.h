@@ -26,7 +26,6 @@
 
 //=============================================================================
 
-#define MAX_MASTERS                     16 // max recipients for heartbeat packets
 #define HEARTBEAT_SECONDS               300
 #define TTL_MASTERS                     24 * 60 * 60
 

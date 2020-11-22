@@ -161,7 +161,6 @@ enum {
 #define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 4LL )
 #define GAMESTAT_FLAG_ISRACE ( 1 << 5LL )
 #define GAMESTAT_FLAG_COUNTDOWN ( 1 << 6LL )
-#define GAMESTAT_FLAG_SELFDAMAGE ( 1 << 7LL )
 
 struct SyncBombGameState {
 	u8 alpha_score;
@@ -210,6 +209,9 @@ struct SyncEntityState {
 
 	StringHash model;
 	StringHash model2;
+
+	StringHash material;
+	RGBA8 color;
 
 	int channel;                    // ET_SOUNDEVENT
 
@@ -270,7 +272,6 @@ struct pmove_state_t {
 	s16 max_speed;
 	s16 jump_speed;
 	s16 dash_speed;
-	s16 gravity;
 };
 
 struct SyncPlayerState {
@@ -555,7 +556,7 @@ enum MeansOfDeath {
 	MOD_TRIGGER_HURT,
 
 	MOD_LASER,
-	MOD_SPIKES,
+	MOD_SPIKE,
 	MOD_VOID,
 };
 
@@ -707,11 +708,14 @@ enum EntityType {
 
 	ET_LASERBEAM,   // for continuous beams
 
+	ET_DECAL,
+
 	ET_BOMB,
 	ET_BOMB_SITE,
 
 	ET_LASER,
 	ET_SPIKES,
+	ET_SPEAKER,
 
 	// eventual entities: types below this will get event treatment
 	ET_EVENT = EVENT_ENTITIES_START,
@@ -722,16 +726,11 @@ enum EntityType {
 };
 
 // SyncEntityState->effects
-// Effects are things handled on the client side (lights, particles, frame animations)
-// that happen constantly on the given entity.
-// An entity that has effects will be sent to the client
-// even if it has a zero index model.
 #define EF_CARRIER                  ( 1 << 0 )
 #define EF_TAKEDAMAGE               ( 1 << 1 )
 #define EF_GODMODE                  ( 1 << 2 )
 #define EF_HAT                      ( 1 << 3 )
-#define EF_WORLD_MODEL              ( 1 << 4 )
-#define EF_TEAM_SILHOUETTE          ( 1 << 5 )
+#define EF_TEAM_SILHOUETTE          ( 1 << 4 )
 
 //===============================================================
 // gs_weapons.c

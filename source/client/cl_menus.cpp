@@ -692,7 +692,7 @@ static void MainMenu() {
 	ImGui::BeginChild( "mainmenubody", ImVec2( 0, -ImGui::GetFrameHeightWithSpacing() + window_padding.y ) );
 
 	ImGui::PushFont( cls.large_font );
-	const char * name = "KOKAIN DIZEL";
+	const char * name = "VACCAINE PFIZEL";
 	const int break_time = 1000;
 	for( size_t i = 0; i < strlen( name ); i++ ) {
 		ImGui::SameLine();
@@ -886,7 +886,7 @@ static void WeaponButton( WeaponType weapon, Vec2 size ) {
 	CG_GetBoundKeycodes( va( "use %s", def->short_name ), weaponBinds );
 
 	if( clicked || ImGui::Hotkey( weaponBinds[ 0 ] ) || ImGui::Hotkey( weaponBinds[ 1 ] ) ) {
-		selected_weapons[ def->category ] = selected ? Weapon_None : weapon;
+		selected_weapons[ def->category ] = selected ? WeaponType( Weapon_None ) : weapon;
 		SendLoadout();
 	}
 }

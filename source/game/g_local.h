@@ -136,14 +136,11 @@ struct level_locals_t {
 
 	bool teamlock;
 	bool ready[MAX_CLIENTS];
-	bool forceStart;    // force starting the game, when warmup timelimit is up
 	bool forceExit;     // just exit, ignore extended time checks
 
 	edict_t *current_entity;    // entity running from G_RunFrame
-	edict_t *spawning_entity;   // entity being spawned from G_InitLevel
 
 	timeout_t timeout;
-	float gravity;
 };
 
 // spawn_temp_t is only used to hold entity field values that
@@ -158,13 +155,9 @@ struct spawn_temp_t {
 	StringHash noise_start;
 	StringHash noise_stop;
 	float pausetime;
-	const char *gravity;
-
 	int gameteam;
-
 	int size;
-
-	int rgba;
+	float spawn_probability;
 };
 
 extern game_locals_t game;
@@ -209,8 +202,6 @@ extern cvar_t *g_projectile_prestep;
 extern cvar_t *g_numbots;
 extern cvar_t *g_maxtimeouts;
 
-extern cvar_t *g_self_knockback;
-extern cvar_t *g_knockback_scale;
 extern cvar_t *g_respawn_delay_min;
 extern cvar_t *g_respawn_delay_max;
 extern cvar_t *g_deadbody_followkiller;
@@ -298,7 +289,14 @@ void SP_func_static( edict_t *ent );
 //
 // g_gladiator
 //
-void SP_spikes( edict_t *ent );
+void SP_spike( edict_t * ent );
+void SP_spikes( edict_t * ent );
+
+//
+// g_speakers
+//
+
+void SP_speaker_wall( edict_t * ent );
 
 //
 // g_ascript.c
@@ -460,7 +458,6 @@ void SP_trigger_push( edict_t *ent );
 void SP_trigger_hurt( edict_t *ent );
 void SP_trigger_key( edict_t *ent );
 void SP_trigger_elevator( edict_t *ent );
-void SP_trigger_gravity( edict_t *ent );
 
 //
 // g_clip.c
@@ -524,9 +521,9 @@ void BecomeExplosion1( edict_t *self );
 
 void SP_path_corner( edict_t *self );
 
-void SP_misc_model( edict_t *ent );
-
 void SP_model( edict_t *ent );
+
+void SP_decal( edict_t * ent );
 
 //
 // g_weapon.c
@@ -854,7 +851,6 @@ struct edict_t {
 	//
 
 	const char *classname;
-	const char *spawnString;            // keep track of string definition of this entity
 	int spawnflags;
 
 	int64_t nextThink;
@@ -891,7 +887,6 @@ struct edict_t {
 	const char *message;
 
 	int mass;
-	float gravity;              // per entity gravity multiplier (1.0 is normal) // use for lowgrav artifact, flares
 
 	edict_t *movetarget;
 
@@ -925,9 +920,6 @@ struct edict_t {
 	int waterlevel;
 
 	int style;                  // also used as areaportal number
-
-	float light;
-	Vec3 color;
 
 	const Item *item;       // for bonus items
 

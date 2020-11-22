@@ -25,17 +25,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 /* Trie structure definitions */
 
-struct trie_node_s {
+struct trie_node_t {
 	int depth;
 	char letter;
-	struct trie_node_s *child;
-	struct trie_node_s *sibling;
+	trie_node_t *child;
+	trie_node_t *sibling;
 	int data_is_set;
 	void *data;
 };
 
-struct trie_s {
-	struct trie_node_s *root;
+struct trie_t {
+	trie_node_t *root;
 	unsigned int size;
 	trie_casing_t casing;
 };
@@ -49,21 +49,21 @@ typedef enum trie_remove_result_t {
 
 /* Forward declarations of internal implementation */
 
-static struct trie_node_s *Trie_CreateNode(
+static trie_node_t *Trie_CreateNode(
 	int depth,
 	char letter,
-	struct trie_node_s *child,
-	struct trie_node_s *sibling,
+	trie_node_t *child,
+	trie_node_t *sibling,
 	int data_is_set,
 	void *data
 	);
 
 static void Trie_Destroy_Rec(
-	struct trie_node_s *node
+	trie_node_t *node
 	);
 
-static struct trie_node_s *TRIE_Find_Rec(
-	struct trie_node_s *node,
+static trie_node_t *TRIE_Find_Rec(
+	trie_node_t *node,
 	const char *key,
 	trie_find_mode_t mode,
 	trie_casing_t casing,
@@ -72,21 +72,21 @@ static struct trie_node_s *TRIE_Find_Rec(
 	);
 
 static int Trie_Insert_Rec(
-	struct trie_node_s *node,
+	trie_node_t *node,
 	const char *key,
 	trie_casing_t casing,
 	void *data
 	);
 
 static trie_remove_result_t Trie_Remove_Rec(
-	struct trie_node_s *node,
+	trie_node_t *node,
 	const char *key,
 	trie_casing_t casing,
 	void **data
 	);
 
 static unsigned int Trie_NoOfKeys(
-	const struct trie_node_s *node,
+	const trie_node_t *node,
 	trie_casing_t casing,
 	int ( *predicate )( void *value, const void *cookie ),
 	const void *cookie,
@@ -94,14 +94,14 @@ static unsigned int Trie_NoOfKeys(
 	);
 
 static void Trie_Dump_Rec(
-	const struct trie_node_s *node,
+	const trie_node_t *node,
 	trie_dump_what_t what,
 	trie_casing_t casing,
 	int ( *predicate )( void *value, const void *cookie ),
 	const void *cookie,
 	int dumpSiblings,
 	const char *key_prev,
-	struct trie_key_value_s **key_value_vector
+	trie_key_value_t **key_value_vector
 	);
 
 static int Trie_AlwaysTrue( void *, const void * );
@@ -116,10 +116,10 @@ static inline int Trie_LetterCompare(
 
 trie_error_t Trie_Create(
 	trie_casing_t casing,
-	struct trie_s **trie
+	trie_t **trie
 	) {
 	if( trie ) {
-		*trie = (struct trie_s *) malloc( sizeof( struct trie_s ) );
+		*trie = (trie_t *) malloc( sizeof( trie_t ) );
 		( *trie )->root = Trie_CreateNode( 0, '\0', NULL, NULL, 0, NULL );
 		( *trie )->size = 0;
 		( *trie )->casing = casing;
@@ -130,7 +130,7 @@ trie_error_t Trie_Create(
 }
 
 trie_error_t Trie_Destroy(
-	struct trie_s *trie
+	trie_t *trie
 	) {
 	if( trie ) {
 		Trie_Destroy_Rec( trie->root );
@@ -142,7 +142,7 @@ trie_error_t Trie_Destroy(
 }
 
 trie_error_t Trie_Clear(
-	struct trie_s *trie
+	trie_t *trie
 	) {
 	if( trie ) {
 		Trie_Destroy_Rec( trie->root );
@@ -155,7 +155,7 @@ trie_error_t Trie_Clear(
 }
 
 trie_error_t Trie_GetSize(
-	struct trie_s *trie,
+	trie_t *trie,
 	unsigned int *size
 	) {
 	if( trie && size ) {
@@ -167,7 +167,7 @@ trie_error_t Trie_GetSize(
 }
 
 trie_error_t Trie_Insert(
-	struct trie_s *trie,
+	trie_t *trie,
 	const char *key,
 	void *data
 	) {
@@ -186,7 +186,7 @@ trie_error_t Trie_Insert(
 }
 
 trie_error_t Trie_Remove(
-	struct trie_s *trie,
+	trie_t *trie,
 	const char *key,
 	void **data
 	) {
@@ -204,13 +204,13 @@ trie_error_t Trie_Remove(
 }
 
 trie_error_t Trie_Replace(
-	struct trie_s *trie,
+	trie_t *trie,
 	const char *key,
 	void *data_new,
 	void **data_old
 	) {
 	if( trie && key ) {
-		struct trie_node_s *result = TRIE_Find_Rec( trie->root, key, TRIE_EXACT_MATCH, trie->casing, Trie_AlwaysTrue, NULL );
+		trie_node_t *result = TRIE_Find_Rec( trie->root, key, TRIE_EXACT_MATCH, trie->casing, Trie_AlwaysTrue, NULL );
 		if( result ) {
 			// key found, replace data pointer
 			*data_old = result->data;
@@ -225,7 +225,7 @@ trie_error_t Trie_Replace(
 }
 
 trie_error_t Trie_Find(
-	const struct trie_s *trie,
+	const trie_t *trie,
 	const char *key,
 	trie_find_mode_t mode,
 	void **data
@@ -234,7 +234,7 @@ trie_error_t Trie_Find(
 }
 
 trie_error_t Trie_FindIf(
-	const struct trie_s *trie,
+	const trie_t *trie,
 	const char *key,
 	trie_find_mode_t mode,
 	int ( *predicate )( void *value, const void *cookie ),
@@ -242,10 +242,10 @@ trie_error_t Trie_FindIf(
 	void **data
 	) {
 	if( trie && key && data ) {
-		const struct trie_node_s *result = TRIE_Find_Rec( trie->root, key, mode, trie->casing, predicate, cookie );
+		const trie_node_t *result = TRIE_Find_Rec( trie->root, key, mode, trie->casing, predicate, cookie );
 		if( result ) {
 			while( result->child && !result->data_is_set ) {
-				const struct trie_node_s *sibling;
+				const trie_node_t *sibling;
 				for( sibling = result; sibling->sibling && !sibling->data_is_set; sibling = sibling->sibling )
 					/* search for sibling with data */;
 				if( sibling->data_is_set ) {
@@ -269,7 +269,7 @@ trie_error_t Trie_FindIf(
 }
 
 trie_error_t Trie_NoOfMatches(
-	const struct trie_s *trie,
+	const trie_t *trie,
 	const char *prefix,
 	unsigned int *matches
 	) {
@@ -277,14 +277,14 @@ trie_error_t Trie_NoOfMatches(
 }
 
 trie_error_t Trie_NoOfMatchesIf(
-	const struct trie_s *trie,
+	const trie_t *trie,
 	const char *prefix,
 	int ( *predicate )( void *value, const void *cookie ),
 	const void *cookie,
 	unsigned int *matches
 	) {
 	if( trie && prefix && matches ) {
-		struct trie_node_s *node = TRIE_Find_Rec( trie->root, prefix, TRIE_PREFIX_MATCH, trie->casing, predicate, cookie );
+		trie_node_t *node = TRIE_Find_Rec( trie->root, prefix, TRIE_PREFIX_MATCH, trie->casing, predicate, cookie );
 		*matches = node
 				   ? Trie_NoOfKeys( node, trie->casing, predicate, cookie, 0 )
 				   : 0;
@@ -295,30 +295,30 @@ trie_error_t Trie_NoOfMatchesIf(
 }
 
 trie_error_t Trie_Dump(
-	const struct trie_s *trie,
+	const trie_t *trie,
 	const char *prefix,
 	trie_dump_what_t what,
-	struct trie_dump_s **dump
+	trie_dump_t **dump
 	) {
 	return Trie_DumpIf( trie, prefix, what, Trie_AlwaysTrue, NULL, dump );
 }
 
 trie_error_t Trie_DumpIf(
-	const struct trie_s *trie,
+	const trie_t *trie,
 	const char *prefix,
 	trie_dump_what_t what,
 	int ( *predicate )( void *value, const void *cookie ),
 	const void *cookie,
-	struct trie_dump_s **dump
+	trie_dump_t **dump
 	) {
 	if( prefix && dump && predicate ) {
-		struct trie_node_s *result = TRIE_Find_Rec( trie->root, prefix, TRIE_PREFIX_MATCH, trie->casing, predicate, cookie );
-		*dump = (struct trie_dump_s *) malloc( sizeof( struct trie_dump_s ) );
+		trie_node_t *result = TRIE_Find_Rec( trie->root, prefix, TRIE_PREFIX_MATCH, trie->casing, predicate, cookie );
+		*dump = (trie_dump_t *) malloc( sizeof( trie_dump_t ) );
 		// prefix matches some nodes, begin dump
 		if( result ) {
 			( *dump )->size = Trie_NoOfKeys( result, trie->casing, predicate, cookie, 0 );
 			( *dump )->what = what;
-			( *dump )->key_value_vector = (struct trie_key_value_s *) malloc( sizeof( struct trie_key_value_s ) * ( ( *dump )->size + 1 ) );
+			( *dump )->key_value_vector = (trie_key_value_t *) malloc( sizeof( trie_key_value_t ) * ( ( *dump )->size + 1 ) );
 			Trie_Dump_Rec( result, what, trie->casing, predicate, cookie, 0, prefix, &( *dump )->key_value_vector );
 			( *dump )->key_value_vector -= ( *dump )->size;
 		} else {
@@ -332,7 +332,7 @@ trie_error_t Trie_DumpIf(
 }
 
 trie_error_t Trie_FreeDump(
-	struct trie_dump_s *dump
+	trie_dump_t *dump
 	) {
 	if( dump ) {
 		unsigned int i;
@@ -348,15 +348,15 @@ trie_error_t Trie_FreeDump(
 
 /* Internal implementations */
 
-static struct trie_node_s *Trie_CreateNode(
+static trie_node_t *Trie_CreateNode(
 	int depth,
 	char letter,
-	struct trie_node_s *child,
-	struct trie_node_s *sibling,
+	trie_node_t *child,
+	trie_node_t *sibling,
 	int data_is_set,
 	void *data
 	) {
-	struct trie_node_s *result = (struct trie_node_s *) malloc( sizeof( struct trie_node_s ) );
+	trie_node_t *result = (trie_node_t *) malloc( sizeof( trie_node_t ) );
 	assert( result );
 	result->depth = depth;
 	result->letter = letter;
@@ -368,7 +368,7 @@ static struct trie_node_s *Trie_CreateNode(
 }
 
 static void Trie_Destroy_Rec(
-	struct trie_node_s *node
+	trie_node_t *node
 	) {
 	assert( node );
 	if( node->sibling ) {
@@ -380,8 +380,8 @@ static void Trie_Destroy_Rec(
 	free( node );
 }
 
-static struct trie_node_s *TRIE_Find_Rec(
-	struct trie_node_s *node,
+static trie_node_t *TRIE_Find_Rec(
+	trie_node_t *node,
 	const char *key,
 	trie_find_mode_t mode,
 	trie_casing_t casing,
@@ -433,7 +433,7 @@ static struct trie_node_s *TRIE_Find_Rec(
 }
 
 static int Trie_Insert_Rec(
-	struct trie_node_s *node,
+	trie_node_t *node,
 	const char *key,
 	trie_casing_t casing,
 	void *data
@@ -473,7 +473,7 @@ static int Trie_Insert_Rec(
 }
 
 static trie_remove_result_t Trie_Remove_Rec(
-	struct trie_node_s *node,
+	trie_node_t *node,
 	const char *key,
 	trie_casing_t casing,
 	void **data
@@ -488,7 +488,7 @@ static trie_remove_result_t Trie_Remove_Rec(
 			status = Trie_Remove_Rec( node->sibling, key, casing, data );
 			if( status == TRIE_REMOVE_NO_CHILDREN_OR_DATA_LEFT ) {
 				// sibling node has no children or data, free it and preserve siblings
-				struct trie_node_s *sibling = node->sibling->sibling;
+				trie_node_t *sibling = node->sibling->sibling;
 				free( node->sibling );
 				node->sibling = sibling;
 				// ch : is this right?
@@ -509,7 +509,7 @@ static trie_remove_result_t Trie_Remove_Rec(
 				status = Trie_Remove_Rec( node->child, node->depth ? key + 1 : key, casing, data );
 				if( !status ) {
 					// child node has no children, free it and preserve siblings
-					struct trie_node_s *sibling = node->child->sibling;
+					trie_node_t *sibling = node->child->sibling;
 					free( node->child );
 					node->child = sibling;
 					// ch : is this right?
@@ -538,7 +538,7 @@ static trie_remove_result_t Trie_Remove_Rec(
 }
 
 static unsigned int Trie_NoOfKeys(
-	const struct trie_node_s *node,
+	const trie_node_t *node,
 	trie_casing_t casing,
 	int ( *predicate )( void *value, const void *cookie ),
 	const void *cookie,
@@ -564,14 +564,14 @@ static unsigned int Trie_NoOfKeys(
 }
 
 static void Trie_Dump_Rec(
-	const struct trie_node_s *node,
+	const trie_node_t *node,
 	trie_dump_what_t what,
 	trie_casing_t casing,
 	int ( *predicate )( void *value, const void *cookie ),
 	const void *cookie,
 	int dumpSiblings,
 	const char *key_prev,
-	struct trie_key_value_s **key_value_vector
+	trie_key_value_t **key_value_vector
 	) {
 	char *key = NULL;
 	int keyDumped = 0;

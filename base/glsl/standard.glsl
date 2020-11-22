@@ -90,7 +90,7 @@ void OrthonormalBasis( vec3 v, out vec3 tangent, out vec3 bitangent ) {
 
 void main() {
 #if APPLY_DRAWFLAT
-	vec4 diffuse = vec4( 0.25, 0.25, 0.25, 1.0 );
+	vec4 diffuse = vec4( 0.17, 0.17, 0.17, 1.0 );
 #else
 	vec4 color = u_MaterialColor;
 

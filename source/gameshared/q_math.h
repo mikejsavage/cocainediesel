@@ -113,3 +113,5 @@ Vec3 ClosestPointOnLine( Vec3 p0, Vec3 p1, Vec3 p );
 Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p );
 
 Mat4 TransformKToDir( Vec3 dir );
+
+MinMax3 Extend( MinMax3 bounds, Vec3 p );

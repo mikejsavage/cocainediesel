@@ -1,0 +1,59 @@
+{
+  particles {
+    material textures/vfx/glow1
+    blendfunc add
+    
+    position line 0
+
+
+    speed 5
+
+    color 1.0 1.0 1.0 0.5
+    end_color 0.0 0.5 1.0
+
+
+    size 8 16
+    lifetime 0.25
+
+    emission 128
+  }
+    particles {
+    material textures/vfx/glow2
+    blendfunc add
+    
+    position line 0
+
+
+    speed 5
+
+    color 1.0 1.0 1.0 0.5
+	color_override
+
+    size 16 8
+    lifetime 0.25
+
+    count 1
+  }
+
+  particles {
+    material textures/vfx/smoke3
+    material textures/vfx/smoke4
+	material textures/vfx/smoke5
+	material textures/vfx/smoke6
+	material textures/vfx/smoke7
+	material textures/vfx/smoke8
+	material textures/vfx/smoke9
+    blendfunc add
+    
+    position point
+
+    speed 0
+
+    color 1.0 1.0 1.0 0.5
+
+    size 6 2
+    lifetime 0.75
+
+    count 2
+  }
+}

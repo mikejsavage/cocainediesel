@@ -358,7 +358,7 @@ void Cvar_SetValue( const char *var_name, float value ) {
 */
 void Cvar_GetLatchedVars( cvar_flag_t flags ) {
 	unsigned int i;
-	struct trie_dump_s *dump = NULL;
+	trie_dump_t *dump = NULL;
 	cvar_flag_t latchFlags;
 
 	Cvar_FlagsClear( &latchFlags );
@@ -390,7 +390,7 @@ void Cvar_GetLatchedVars( cvar_flag_t flags ) {
 * All cheat variables with be reset to default unless cheats are allowed
 */
 void Cvar_FixCheatVars( void ) {
-	struct trie_dump_s *dump = NULL;
+	trie_dump_t *dump = NULL;
 	unsigned int i;
 	cvar_flag_t flags = CVAR_CHEAT;
 
@@ -529,7 +529,7 @@ static void Cvar_Toggle_f( void ) {
 */
 void Cvar_WriteVariables( int file ) {
 	char buffer[MAX_PRINTMSG];
-	struct trie_dump_s *dump = NULL;
+	trie_dump_t *dump = NULL;
 	unsigned int i;
 	cvar_flag_t cvar_archive = CVAR_ARCHIVE;
 
@@ -569,7 +569,7 @@ void Cvar_WriteVariables( int file ) {
 * Cvar_List_f
 */
 static void Cvar_List_f( void ) {
-	struct trie_dump_s *dump = NULL;
+	trie_dump_t *dump = NULL;
 	unsigned int i;
 	char *pattern;
 
@@ -631,7 +631,7 @@ static void Cvar_List_f( void ) {
 * Cvar_ArchiveList_f
 */
 static void Cvar_ArchiveList_f( void ) {
-	struct trie_dump_s *dump;
+	trie_dump_t *dump;
 	unsigned int i;
 
 	assert( cvar_trie );
@@ -658,7 +658,7 @@ bool userinfo_modified;
 
 static char *Cvar_BitInfo( int bit ) {
 	static char info[MAX_INFO_STRING];
-	struct trie_dump_s *dump = NULL;
+	trie_dump_t *dump = NULL;
 	unsigned int i;
 
 	info[0] = 0;
@@ -736,7 +736,7 @@ int Cvar_CompleteCountPossible( const char *partial ) {
 * CVar_CompleteBuildList
 */
 const char **Cvar_CompleteBuildList( const char *partial ) {
-	struct trie_dump_s *dump = NULL;
+	trie_dump_t *dump = NULL;
 	const char **buf;
 	unsigned int i;
 
@@ -760,7 +760,7 @@ const char **Cvar_CompleteBuildList( const char *partial ) {
 * Cvar_CompleteBuildListWithFlag
 */
 const char **Cvar_CompleteBuildListWithFlag( const char *partial, cvar_flag_t flag ) {
-	struct trie_dump_s *dump = NULL;
+	trie_dump_t *dump = NULL;
 	const char **buf;
 	unsigned int i;
 
@@ -851,7 +851,7 @@ void Cvar_Init( void ) {
 void Cvar_Shutdown( void ) {
 	if( cvar_initialized ) {
 		unsigned int i;
-		struct trie_dump_s *dump;
+		trie_dump_t *dump;
 		extern cvar_t *developer, *developer_memory;
 
 		assert( cvar_trie );

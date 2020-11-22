@@ -59,12 +59,8 @@ void CG_WeaponBeamEffect( centity_t * cent ) {
 
 static centity_t * laserOwner = NULL;
 
-static void BulletSparks( Vec3 pos, Vec3 normal, Vec4 color, int num_particles ) {
-	DoVisualEffect( "vfx/bulletsparks", pos, normal, num_particles, color );
-}
-
 static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles ) {
-	BulletSparks( trace->endpos, trace->plane.normal, color, num_particles );
+	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, num_particles, color );
 
 	constexpr StringHash decals[] = {
 		"weapons/bullet_impact1",
@@ -77,12 +73,13 @@ static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles )
 	AddPersistentDecal( trace->endpos, trace->plane.normal, size, angle, random_select( &cls.rng, decals ), vec4_white, 30000 );
 }
 
-static void WallbangImpact( const trace_t * trace, int num_particles ) {
+static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles ) {
 	// TODO: should draw on entry/exit of all wallbanged surfaces
 	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
 		return;
 
-	DoVisualEffect( "vfx/wallbangimpact", trace->endpos, trace->plane.normal, num_particles );
+	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, num_particles, color );
+	DoVisualEffect( "vfx/wallbangimpact", trace->endpos, trace->plane.normal, num_particles, color );
 
 	constexpr StringHash decals[] = {
 		"weapons/bullet_impact1",
@@ -103,7 +100,7 @@ static void LGImpact( const trace_t * trace, Vec3 dir ) {
 		laserOwner->localEffects[ LOCALEFFECT_LASERBEAM_SMOKE_TRAIL ] = cl.serverTime;
 	}
 
-	BulletSparks( trace->endpos, trace->plane.normal, team_color, 4 );
+	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, 4, team_color );
 }
 
 void CG_LaserBeamEffect( centity_t * cent ) {
@@ -189,7 +186,7 @@ static void CG_Event_LaserBeam( Vec3 origin, Vec3 dir, int entNum ) {
  * CG_FireWeaponEvent
  */
 static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
-	const WeaponModelMetadata * weaponInfo = cgs.weaponInfos[ weapon ];
+	const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( weapon );
 	const SoundEffect * sfx = weaponInfo->fire_sound;
 
 	if( sfx ) {
@@ -268,7 +265,7 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, WeaponType weapon, int o
 			}
 		}
 
-		WallbangImpact( &wallbang, 12 );
+		WallbangImpact( &wallbang, team_color, 12 );
 	}
 
 	orientation_t projection;
@@ -308,13 +305,13 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 			BulletImpact( &trace, team_color, 4 );
 		}
 
-		WallbangImpact( &wallbang, 2 );
+		WallbangImpact( &wallbang, team_color, 2 );
 
 		AddPersistentBeam( projection.origin, trace.endpos, 1.0f, team_color, cgs.media.shaderTracer, 0.2f, 0.1f );
 	}
 
 	// spawn a single sound at the impact
-	Vec3 end = origin + dir * ( def->range );
+	Vec3 end = origin + dir * def->range;
 
 	trace_t trace;
 	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, owner, MASK_SHOT );
@@ -330,31 +327,51 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 #define CG_MAX_ANNOUNCER_EVENTS 32
 #define CG_MAX_ANNOUNCER_EVENTS_MASK ( CG_MAX_ANNOUNCER_EVENTS - 1 )
 #define CG_ANNOUNCER_EVENTS_FRAMETIME 1500 // the announcer will speak each 1.5 seconds
-typedef struct cg_announcerevent_s {
+struct cg_announcerevent_t {
 	const SoundEffect * sound;
-} cg_announcerevent_t;
+};
 cg_announcerevent_t cg_announcerEvents[ CG_MAX_ANNOUNCER_EVENTS ];
 static int cg_announcerEventsCurrent = 0;
 static int cg_announcerEventsHead = 0;
 static int cg_announcerEventsDelay = 0;
 
-/*
- * CG_ClearAnnouncerEvents
- */
+static Vec3 speaker_origins[ 1024 ];
+static size_t num_speakers;
+
+void ResetAnnouncerSpeakers() {
+	num_speakers = 0;
+}
+
+void AddAnnouncerSpeaker( const centity_t * cent ) {
+	if( num_speakers == ARRAY_COUNT( speaker_origins ) )
+		return;
+
+	speaker_origins[ num_speakers ] = cent->current.origin;
+	num_speakers++;
+}
+
+static void PlayAnnouncerSound( const SoundEffect * sound ) {
+	if( num_speakers == 0 ) {
+		S_StartLocalSound( sound, CHAN_AUTO, 1.0f );
+	}
+	else {
+		for( size_t i = 0; i < num_speakers; i++ ) {
+			S_StartFixedSound( sound, speaker_origins[ i ], CHAN_AUTO, 1.0f );
+		}
+	}
+}
+
 void CG_ClearAnnouncerEvents( void ) {
 	cg_announcerEventsCurrent = cg_announcerEventsHead = 0;
 }
 
-/*
- * CG_AddAnnouncerEvent
- */
 void CG_AddAnnouncerEvent( const SoundEffect * sound, bool queued ) {
 	if( !sound ) {
 		return;
 	}
 
 	if( !queued ) {
-		S_StartLocalSound( sound, CHAN_AUTO, cg_volume_announcer->value );
+		PlayAnnouncerSound( sound );
 		cg_announcerEventsDelay = CG_ANNOUNCER_EVENTS_FRAMETIME; // wait
 		return;
 	}
@@ -380,7 +397,7 @@ void CG_ReleaseAnnouncerEvents( void ) {
 
 	if( cg_announcerEventsCurrent < cg_announcerEventsHead ) {
 		const SoundEffect * sound = cg_announcerEvents[ cg_announcerEventsCurrent & CG_MAX_ANNOUNCER_EVENTS_MASK ].sound;
-		S_StartLocalSound( sound, CHAN_AUTO, cg_volume_announcer->value );
+		PlayAnnouncerSound( sound );
 		cg_announcerEventsDelay = CG_ANNOUNCER_EVENTS_FRAMETIME; // wait
 		cg_announcerEventsCurrent++;
 	}
@@ -426,8 +443,6 @@ static void CG_StartVoiceTokenEffect( int entNum, u64 parm ) {
 	else
 		S_StartEntitySound( sound, entNum, CHAN_AUTO, 1.0f, entropy );
 }
-
-//==================================================================
 
 //==================================================================
 
@@ -598,13 +613,12 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			bool silent = ( parm & 1 ) != 0;
 			if( predicted ) {
 				cg_entities[ ent->number ].current.weapon = weapon;
-				CG_ViewWeapon_RefreshAnimation( &cg.weapon );
 			}
 
 			if( !silent ) {
 				CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
 
-				const SoundEffect * sfx = cgs.weaponInfos[ weapon ]->up_sound;
+				const SoundEffect * sfx = GetWeaponModelMetadata( weapon )->up_sound;
 				if( viewer ) {
 					S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f );
 				}
@@ -617,8 +631,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_SMOOTHREFIREWEAPON: // the server never sends this event
 			if( predicted ) {
 				cg_entities[ ent->number ].current.weapon = parm;
-
-				CG_ViewWeapon_RefreshAnimation( &cg.weapon );
 
 				if( parm == Weapon_Laser ) {
 					Vec3 origin = cg.predictedPlayerState.pmove.origin;
@@ -692,7 +704,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			if( parm <= Weapon_None || parm >= Weapon_Count )
 				return;
 
-			const WeaponModelMetadata * weapon = cgs.weaponInfos[ parm ];
+			const WeaponModelMetadata * weapon = GetWeaponModelMetadata( parm );
 			const SoundEffect * sfx = ev == EV_ZOOM_IN ? weapon->zoom_in_sound : weapon->zoom_out_sound;
 
 			if( viewer ) {
@@ -843,7 +855,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_RIFLEBULLET_IMPACT: {
 			Vec3 dir = ByteToDir( parm );
-			BulletSparks( ent->origin, dir, team_color, 24 );
+			DoVisualEffect( "vfx/bulletsparks", ent->origin, dir, 24, team_color );
 			S_StartFixedSound( cgs.media.sfxBulletImpact, ent->origin, CHAN_AUTO, 1.0f );
 		} break;
 
@@ -915,7 +927,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_SPRAY:
-			AddSpray( ent->origin, ent->origin2, ent->angles, StringHash( parm ) );
+			AddSpray( ent->origin, ent->origin2, ent->angles, parm );
 			S_StartFixedSound( cgs.media.sfxSpray, ent->origin, CHAN_AUTO, 1.0f );
 			break;
 
@@ -980,15 +992,15 @@ static void CG_FirePlayerStateEvents( void ) {
 					break;
 				}
 				if( parm < 4 ) { // hit of some caliber
-					S_StartLocalSound( cgs.media.sfxWeaponHit[ parm ], CHAN_AUTO, cg_volume_hitsound->value );
+					S_StartLocalSound( cgs.media.sfxWeaponHit[ parm ], CHAN_AUTO, 1.0f );
 					CG_ScreenCrosshairDamageUpdate();
 				}
 				else if( parm == 4 ) { // killed an enemy
-					S_StartLocalSound( cgs.media.sfxWeaponKill, CHAN_AUTO, cg_volume_hitsound->value );
+					S_StartLocalSound( cgs.media.sfxWeaponKill, CHAN_AUTO, 1.0f );
 					CG_ScreenCrosshairDamageUpdate();
 				}
 				else { // hit a teammate
-					S_StartLocalSound( cgs.media.sfxWeaponHitTeam, CHAN_AUTO, cg_volume_hitsound->value );
+					S_StartLocalSound( cgs.media.sfxWeaponHitTeam, CHAN_AUTO, 1.0f );
 				}
 				break;
 

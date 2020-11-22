@@ -6,11 +6,11 @@ void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 }
 
 void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	DoVisualEffect( "vfx/plasmaimpact", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
+	DoVisualEffect( "weapons/pg/explosion", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
 }
 
 void BubbleImpactParticles( Vec3 origin, Vec3 team_color ) {
-	DoVisualEffect( "vfx/bubbleimpact", origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, Vec4( team_color, 1.0f ) );
+	DoVisualEffect( "weapons/bg/explosion", origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, Vec4( team_color, 1.0f ) );
 }
 
 void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
@@ -18,7 +18,7 @@ void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 	float distance_between_particles = 4.0f;
 	float len = Length( end - start );
 	float count = Min2( len / distance_between_particles + 1.0f, float( max_ions ) );
-	DoVisualEffect( "vfx/railtrail", start, end, count, color );
+	DoVisualEffect( "weapons/eb/trail", start, end, count, color );
 }
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material ) {

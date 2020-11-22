@@ -125,8 +125,7 @@ static void CG_SC_Scoreboard( void ) {
 
 static int ParseIntOr0( const char ** cursor ) {
 	Span< const char > token = ParseToken( cursor, Parse_DontStopOnNewLine );
-	int x;
-	return SpanToInt( token, &x ) ? x : 0;
+	return SpanToInt( token, 0 );
 }
 
 static void CG_SC_PlayerStats() {

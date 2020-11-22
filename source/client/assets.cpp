@@ -53,8 +53,7 @@ static void LoadAsset( const char * full_path, size_t skip ) {
 	}
 	else {
 		a = &assets[ num_assets ];
-		a->path = ALLOC_MANY( sys_allocator, char, strlen( path ) + 1 );
-		Q_strncpyz( a->path, path, strlen( path ) + 1 );
+		a->path = CopyString( sys_allocator, path );
 		asset_paths[ num_assets ] = a->path;
 	}
 

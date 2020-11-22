@@ -561,7 +561,7 @@ static void PM_Move() {
 		PM_Accelerate( wishdir, wishspeed, pm_accelerate );
 
 		if( wishvel.z == 0.0f ) {
-			float decel = pm->playerState->pmove.gravity * pml.frametime;
+			float decel = GRAVITY * pml.frametime;
 			if( pml.velocity.z > 0 ) {
 				pml.velocity.z = Max2( 0.0f, pml.velocity.z - decel );
 			}
@@ -580,13 +580,7 @@ static void PM_Move() {
 
 		PM_Accelerate( wishdir, wishspeed, pm_accelerate );
 
-		// fix for negative trigger_gravity fields
-		if( pm->playerState->pmove.gravity > 0 ) {
-			pml.velocity.z = Min2( 0.0f, pml.velocity.z );
-		}
-		else {
-			pml.velocity.z -= pm->playerState->pmove.gravity * pml.frametime;
-		}
+		pml.velocity.z = Min2( 0.0f, pml.velocity.z );
 
 		if( pml.velocity.xy() == Vec2( 0.0f ) ) {
 			return;
@@ -621,7 +615,7 @@ static void PM_Move() {
 		}
 
 		// add gravity
-		pml.velocity.z -= pm->playerState->pmove.gravity * pml.frametime;
+		pml.velocity.z -= GRAVITY * pml.frametime;
 		PM_StepSlideMove();
 	}
 }
@@ -1429,7 +1423,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		// teleport pause stays exactly in place
 	} else if( pm->playerState->pmove.pm_flags & PMF_TIME_WATERJUMP ) {
 		// waterjump has no control, but falls
-		pml.velocity.z -= pm->playerState->pmove.gravity * pml.frametime;
+		pml.velocity.z -= GRAVITY * pml.frametime;
 		if( pml.velocity.z < 0 ) {
 			// cancel as soon as we are falling down again
 			pm->playerState->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT );

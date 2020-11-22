@@ -353,7 +353,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	chase_dest.z += 8;
 
 	// find the spot the player is looking at
-	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * ( 512 );
+	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * 512.0f;
 	CG_Trace( &trace, view->origin, mins, maxs, dest, view->POVent, MASK_SOLID );
 
 	// calculate pitch to look at the same spot from camera
@@ -634,7 +634,6 @@ static void DrawWorld() {
 
 		const Framebuffer & fb = frame_static.world_gbuffer;
 		pipeline.set_texture( "u_DepthTexture", &fb.depth_texture );
-		pipeline.set_texture( "u_NormalTexture", &fb.normal_texture );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 
 		DrawFullscreenMesh( pipeline );
@@ -801,6 +800,21 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	}
 
 	cg.lerpfrac = Clamp01( cg.lerpfrac );
+
+	{
+		float scale = ( float )( frame_static.viewport_height ) / 600.0f;
+
+		cgs.fontSystemTinySize = ceilf( SYSTEM_FONT_TINY_SIZE * scale );
+		cgs.fontSystemSmallSize = ceilf( SYSTEM_FONT_SMALL_SIZE * scale );
+		cgs.fontSystemMediumSize = ceilf( SYSTEM_FONT_MEDIUM_SIZE * scale );
+		cgs.fontSystemBigSize = ceilf( SYSTEM_FONT_BIG_SIZE * scale );
+
+		scale *= 1.3f;
+		cgs.textSizeTiny = SYSTEM_FONT_TINY_SIZE * scale;
+		cgs.textSizeSmall = SYSTEM_FONT_SMALL_SIZE * scale;
+		cgs.textSizeMedium = SYSTEM_FONT_MEDIUM_SIZE * scale;
+		cgs.textSizeBig = SYSTEM_FONT_BIG_SIZE * scale;
+	}
 
 	CG_FlashGameWindow(); // notify player of important game events
 

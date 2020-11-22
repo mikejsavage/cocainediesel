@@ -1,4 +1,4 @@
-#include "g_local.h"
+#include "game/g_local.h"
 
 static void SpikesRearm( edict_t * self ) {
 	self->s.linearMovementTimeStamp = 0;
@@ -11,7 +11,7 @@ static void SpikesDeploy( edict_t * self ) {
 		Vec3 dir;
 		AngleVectors( self->s.angles, NULL, NULL, &dir );
 		Vec3 knockback = dir * 30.0f;
-		KillBox( self, MOD_SPIKES, knockback );
+		KillBox( self, MOD_SPIKE, knockback );
 		self->nextThink = level.time + 1;
 	}
 	else {
@@ -25,7 +25,7 @@ static void SpikesTouched( edict_t * self, edict_t * other, cplane_t * plane, in
 		return;
 
 	if( self->s.radius == 1 ) {
-		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 10000, 0, 0, MOD_SPIKES );
+		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 10000, 0, 0, MOD_SPIKE );
 		return;
 	}
 
@@ -36,27 +36,54 @@ static void SpikesTouched( edict_t * self, edict_t * other, cplane_t * plane, in
 	}
 }
 
+void SP_spike( edict_t * spike ) {
+	spike->r.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
+	spike->r.solid = SOLID_TRIGGER;
+	spike->s.radius = spike->spawnflags & 1;
+
+	spike->s.angles.x += 90.0f; // make spike orientation match the arrow in radiant
+	Vec3 forward, right, up;
+	AngleVectors( spike->s.angles, &forward, &right, &up );
+
+	MinMax3 bounds = MinMax3::Empty();
+	bounds = Extend( bounds, -( forward + right ) * 8.0f + up * 48.0f );
+	bounds = Extend( bounds, ( forward + right ) * 8.0f );
+	spike->r.mins = bounds.mins;
+	spike->r.maxs = bounds.maxs;
+
+	spike->s.model = "models/spikes/spike";
+	spike->s.type = ET_SPIKES;
+
+	spike->touch = SpikesTouched;
+
+	GClip_LinkEntity( spike );
+
+	edict_t * base = G_Spawn();
+	base->r.svflags &= ~SVF_NOCLIENT;
+	base->r.mins = bounds.mins;
+	base->r.maxs = bounds.maxs;
+	base->s.origin = spike->s.origin;
+	base->s.angles = spike->s.angles;
+	base->s.model = "models/spikes/spike_base";
+	GClip_LinkEntity( base );
+}
+
 void SP_spikes( edict_t * spikes ) {
 	spikes->r.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
 	spikes->r.solid = SOLID_TRIGGER;
 	spikes->s.radius = spikes->spawnflags & 1;
 
-	spikes->s.angles.x += 90;
+	spikes->s.angles.x += 90.0f; // make spike orientation match the arrow in radiant
 	Vec3 forward, right, up;
 	AngleVectors( spikes->s.angles, &forward, &right, &up );
 
-	Vec3 mins = -( forward + right ) * 64 + up * 48;
-	Vec3 maxs = ( forward + right ) * 64;
+	MinMax3 bounds = MinMax3::Empty();
+	bounds = Extend( bounds, -( forward + right ) * 64.0f + up * 48.0f );
+	bounds = Extend( bounds, ( forward + right ) * 64.0f );
+	spikes->r.mins = bounds.mins;
+	spikes->r.maxs = bounds.maxs;
 
-	spikes->r.mins.x = Min2( mins.x, maxs.x );
-	spikes->r.mins.y = Min2( mins.y, maxs.y );
-	spikes->r.mins.z = Min2( mins.z, maxs.z );
-
-	spikes->r.maxs.x = Max2( mins.x, maxs.x );
-	spikes->r.maxs.y = Max2( mins.y, maxs.y );
-	spikes->r.maxs.z = Max2( mins.z, maxs.z );
-
-	spikes->s.model = "models/objects/spikes/spikes";
+	spikes->s.model = "models/spikes/spikes";
 	spikes->s.type = ET_SPIKES;
 
 	spikes->touch = SpikesTouched;
@@ -65,9 +92,10 @@ void SP_spikes( edict_t * spikes ) {
 
 	edict_t * base = G_Spawn();
 	base->r.svflags &= ~SVF_NOCLIENT;
+	base->r.mins = bounds.mins;
+	base->r.maxs = bounds.maxs;
 	base->s.origin = spikes->s.origin;
 	base->s.angles = spikes->s.angles;
-	base->s.model = "models/objects/spikes/base";
-	base->s.effects = EF_WORLD_MODEL;
+	base->s.model = "models/spikes/spikes_base";
 	GClip_LinkEntity( base );
 }

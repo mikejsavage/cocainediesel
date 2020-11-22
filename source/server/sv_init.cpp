@@ -96,6 +96,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 
 	// load and spawn all other entities
 	G_InitLevel( sv.mapname, 0 );
+	G_CallVotes_Init();
 
 	// run two frames to allow everything to settle
 	G_RunFrame( svc.snapFrameTime );

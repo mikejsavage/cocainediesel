@@ -45,7 +45,7 @@ struct DownloadInProgress {
 };
 
 static DownloadInProgress download;
-static DynamicArray< u8 > download_data( NO_RAII );
+static NonRAIIDynamicArray< u8 > download_data;
 
 static void DownloadRejected() {
 	FREE( sys_allocator, download.requestname );

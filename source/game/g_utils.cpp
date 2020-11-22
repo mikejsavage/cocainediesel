@@ -266,10 +266,10 @@ char *_G_LevelCopyString( const char *in, const char *filename, int fileline ) {
 #define STRINGPOOL_SIZE         1024 * 1024
 #define STRINGPOOL_HASH_SIZE    32
 
-typedef struct g_poolstring_s {
+struct g_poolstring_t {
 	char *buf;
-	struct g_poolstring_s *hash_next;
-} g_poolstring_t;
+	g_poolstring_t *hash_next;
+};
 
 static uint8_t *g_stringpool;
 static size_t g_stringpool_offset;
@@ -554,7 +554,6 @@ void G_FreeEdict( edict_t *ed ) {
 void G_InitEdict( edict_t *e ) {
 	e->r.inuse = true;
 	e->classname = NULL;
-	e->gravity = 1.0;
 	e->timeDelta = 0;
 	e->deadflag = DEAD_NO;
 	e->timeStamp = 0;
@@ -1292,9 +1291,6 @@ edict_t *G_PlayerForText( const char *text ) {
 	return NULL;
 }
 
-/*
-* G_AnnouncerSound - sends inmediatly. queue client side (excepting at player's ps events queue)
-*/
 void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, edict_t *ignore ) {
 	int psev = queued ? PSEV_ANNOUNCER_QUEUED : PSEV_ANNOUNCER;
 	int playerTeam;

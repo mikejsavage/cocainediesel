@@ -104,14 +104,13 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->r.solid = SOLID_NOT;
 	body->takedamage = DAMAGE_NO;
 	body->movetype = MOVETYPE_TOSS;
-	body->think = G_FreeEdict; // body self destruction countdown
 
 	body->s.teleported = true;
 	body->s.ownerNum = ent->s.number;
 
 	int mod = meansOfDeath;
 	bool gib = mod == MOD_RAILGUN || mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG
-		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKES ||
+		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKE ||
 		( ( mod == MOD_ROCKET || mod == MOD_GRENADE ) && damage >= 20 );
 
 	if( gib ) {
@@ -129,11 +128,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 
 	// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
 	// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
-	if( GS_MatchState( &server_gs ) == MATCH_STATE_WARMUP ) {
+	if( GS_MatchState( &server_gs ) != MATCH_STATE_PLAYTIME ) {
 		body->nextThink = level.time + 3500;
-	}
-	else {
-		body->think = NULL;
+		body->think = G_FreeEdict; // body self destruction countdown
 	}
 
 	GClip_LinkEntity( body );
@@ -991,8 +988,6 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	client->ps.pmove.origin = ent->s.origin;
 	client->ps.pmove.velocity = ent->velocity;
 	client->ps.viewangles = ent->s.angles;
-
-	client->ps.pmove.gravity = level.gravity;
 
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH || GS_MatchPaused( &server_gs )
 		|| ( ent->movetype != MOVETYPE_PLAYER && ent->movetype != MOVETYPE_NOCLIP ) ) {

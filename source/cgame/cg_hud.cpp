@@ -983,6 +983,7 @@ static const char * prefixes[] = {
 	"CABIN",
 	"CAN",
 	"CANDY",
+	"CANISTER",
 	"CANNON",
 	"CAPITAL",
 	"CARBONARA",

@@ -84,7 +84,6 @@ public:
 	bool operator==( const char * rhs ) const { return strcmp( buf, rhs ) == 0; }
 	bool operator!=( const char * rhs ) const { return !( *this == rhs ); }
 
-	Span< char > span() { return Span< char >( buf, len ); }
 	Span< const char > span() const { return Span< const char >( buf, len ); }
 };
 
@@ -142,16 +141,8 @@ public:
 	char & operator[]( size_t i ) { return buf[ i ]; }
 	const char & operator[]( size_t i ) const { return buf[ i ]; }
 
-	size_t length() const {
-		return buf.size() == 0 ? 0 : buf.size() - 1;
-	}
+	size_t length() const { return buf.size() == 0 ? 0 : buf.size() - 1; }
 
-	char * begin() { return buf.begin(); }
-	char * end() { return buf.end(); }
-	const char * begin() const { return buf.begin(); }
-	const char * end() const { return buf.end(); }
-
-	Span< char > span() { return buf.span(); }
 	Span< const char > span() const { return buf.span(); }
 };
 

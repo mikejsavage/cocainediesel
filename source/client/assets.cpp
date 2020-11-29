@@ -26,11 +26,10 @@ static u32 num_modified_assets;
 
 static Hashtable< MAX_ASSETS * 2 > assets_hashtable;
 
-static void LoadAsset( const char * full_path, size_t skip ) {
+static void LoadAsset( const char * game_path, const char * full_path ) {
 	ZoneScoped;
 
-	const char * path = full_path + skip;
-	u64 hash = Hash64( path );
+	u64 hash = Hash64( game_path );
 
 	s64 modified_time = FileLastModifiedTime( full_path );
 
@@ -53,7 +52,7 @@ static void LoadAsset( const char * full_path, size_t skip ) {
 	}
 	else {
 		a = &assets[ num_assets ];
-		a->path = CopyString( sys_allocator, path );
+		a->path = CopyString( sys_allocator, game_path );
 		asset_paths[ num_assets ] = a->path;
 	}
 
@@ -68,7 +67,7 @@ static void LoadAsset( const char * full_path, size_t skip ) {
 		num_assets++;
 
 		if( !ok ) {
-			Com_Error( ERR_FATAL, "Asset hash name collision %s", path );
+			Com_Error( ERR_FATAL, "Asset hash name collision %s", game_path );
 		}
 	}
 }
@@ -94,7 +93,7 @@ static void LoadAssetsRecursive( DynamicString * path, size_t skip ) {
 			LoadAssetsRecursive( path, skip );
 		}
 		else {
-			LoadAsset( path->c_str(), skip );
+			LoadAsset( path->c_str() + skip, path->c_str() );
 		}
 		path->truncate( old_len );
 	}

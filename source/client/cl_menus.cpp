@@ -689,18 +689,22 @@ static void MainMenu() {
 
 	ImGui::BeginChild( "mainmenubody", ImVec2( 0, -ImGui::GetFrameHeightWithSpacing() + window_padding.y ) );
 
+	auto triangel = []( s64 x, s64 period ) {
+		float normalized = float( x % period ) / period;
+		return normalized < 0.5f ? Unlerp( 0.0f, normalized, 0.5f ) : Unlerp( 1.0f, normalized, 0.5f );
+	};
+
+	auto glitch = []( s64 x ) {
+		s64 a = x % 697;
+		s64 b = x % 531;
+		return a + b < 300;
+	};
+
+	ImGui::SetCursorPosX( 40.0f * triangel( cls.monotonicTime, 631 ) );
 	ImGui::PushFont( cls.large_font );
-	const char * name = "VACCAINE PFIZEL";
-	const int break_time = 1000;
-	for( size_t i = 0; i < strlen( name ); i++ ) {
-		ImGui::SameLine();
-		if( cls.monotonicTime < break_time ) {
-			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + frame_static.viewport_width * Max2( s64( 0 ), ( 1000 - cls.monotonicTime ) ) / 1000.f );
-		} else {
-			ImGui::SetCursorPosX( ImGui::GetCursorPosX() + Max2( 0.0f, sinf( ( cls.monotonicTime - break_time ) / 500.0f + i*1.33f )*16 ) );
-		}
-		ImGui::Text( "%s%c", temp( "{}", ImGuiColorToken( 255, 255, 255, 255 - i*16 ) ), name[ i ] );
-	}
+	ImGui::PushStyleColor( ImGuiCol_Text, glitch( cls.monotonicTime ) ? IM_COL32( 255, 255, 255, 255 ) : IM_COL32( 32, 182, 252, 255 ) );
+	ImGui::Text( "VACCAINE PFIZEL" );
+	ImGui::PopStyleColor();
 	ImGui::PopFont();
 
 	if( ImGui::Button( "FIND SERVERS" ) ) {

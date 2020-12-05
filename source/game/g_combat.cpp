@@ -104,7 +104,7 @@ static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, cplane_t *plan
 /*
 * G_Killed
 */
-void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point, int mod ) {
+void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int assistorNo, int damage, Vec3 point, int mod ) {
 	if( targ->health < -999 ) {
 		targ->health = -999;
 	}
@@ -133,7 +133,7 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage,
 
 	G_Gametype_ScoreEvent( attacker ? attacker->r.client : NULL, "kill", va( "%i %i %i %i", targ->s.number, ( inflictor == world ) ? -1 : ENTNUM( inflictor ), ENTNUM( attacker ), mod ) );
 
-	G_CallDie( targ, inflictor, attacker, damage, point );
+	G_CallDie( targ, inflictor, attacker, assistorNo, damage, point );
 }
 
 /*
@@ -162,6 +162,52 @@ static void G_BlendFrameDamage( edict_t *ent, float damage, float *old_damage, c
 	*old_dir = Lerp( *old_dir, frac, dir );
 
 	*old_damage += damage;
+}
+
+static void G_AddAssistDamage( edict_t* targ, edict_t* attacker, int amount ) {
+	if ( attacker == world || attacker == targ ) {
+		return;
+	}	
+
+	int attacker_entno = attacker->s.number;
+	assistinfo_t *assist = NULL;
+
+	for ( int i = 0; i < MAX_ASSIST_INFO; ++i ) {
+		// check for recent attacker or free slot first 
+		if ( targ->recent_attackers[i].entno == attacker_entno || !targ->recent_attackers[i].entno) {
+			assist = &targ->recent_attackers[i];
+			break;
+		}
+	}
+
+	if ( assist == NULL ) {
+		// no free slots, replace oldest attacker seeya pal
+		for ( int i = 0; i < MAX_ASSIST_INFO; ++i ) {
+			if ( assist == NULL || targ->recent_attackers[i].lastTime < assist->lastTime ) {
+				assist = &targ->recent_attackers[i];
+			}
+		}
+
+		assist->cumDamage = 0; // we're taking over this slot
+	}
+
+	assist->lastTime = svs.gametime;
+	assist->entno = attacker_entno; //incase old re-write/empty
+	assist->cumDamage += HEALTH_TO_INT(amount);
+}
+
+static int G_FindTopAssistor( edict_t* victim, edict_t* attacker ) {
+	assistinfo_t *top = NULL;
+
+	// TODO: could weigh damage by most recent timestamp as well
+	for (int i = 0; i < MAX_ASSIST_INFO; ++i) {
+		if (victim->recent_attackers[i].entno && (top == NULL || victim->recent_attackers[i].cumDamage > top->cumDamage)) {
+			top = &victim->recent_attackers[i];
+		}
+	}
+
+	// dont return last-hit killer as assistor as well
+	return top != NULL && top->entno != attacker->s.number ? top->entno : 0;
 }
 
 #define MIN_KNOCKBACK_SPEED 2.5
@@ -333,6 +379,9 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 	targ->health = targ->health - take;
 
+	int clamped_takedmg = HEALTH_TO_INT( take );
+	G_AddAssistDamage( targ, attacker, clamped_takedmg );
+
 	// add damage done to stats
 	if( statDmg && MODToWeapon( mod ) != Weapon_None && client && attacker->r.client ) {
 		attacker->r.client->level.stats.accuracy_hits[ MODToWeapon( mod ) ]++;
@@ -355,7 +404,9 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 			killed->s.ownerNum = ENTNUM( attacker );
 		}
 
-		G_Killed( targ, inflictor, attacker, HEALTH_TO_INT( take ), point, mod );
+		int topAssistorNo = G_FindTopAssistor( targ, attacker );
+
+		G_Killed( targ, inflictor, attacker, topAssistorNo, clamped_takedmg, point, mod );
 	} else {
 		G_CallPain( targ, attacker, knockback, take );
 	}

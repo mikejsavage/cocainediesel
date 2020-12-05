@@ -917,7 +917,7 @@ static void button_touch( edict_t *self, edict_t *other, cplane_t *plane, int su
 	button_fire( self );
 }
 
-static void button_killed( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point ) {
+static void button_killed( edict_t *self, edict_t *inflictor, edict_t *attacker, int assistor, int damage, Vec3 point ) {
 	self->activator = attacker;
 	self->health = self->max_health;
 	self->takedamage = DAMAGE_NO;

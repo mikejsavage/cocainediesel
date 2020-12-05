@@ -1496,12 +1496,13 @@ static const char * RandomPrefix( RNG * rng, float p ) {
 void CG_SC_Obituary() {
 	int victimNum = atoi( Cmd_Argv( 1 ) );
 	int attackerNum = atoi( Cmd_Argv( 2 ) );
-	int mod = atoi( Cmd_Argv( 3 ) );
-	u64 entropy = strtonum( Cmd_Argv( 4 ), S64_MIN, S64_MAX, NULL );
+	int topAssistorNum = atoi( Cmd_Argv( 3 ) );
+	int mod = atoi( Cmd_Argv( 4 ) );
+	u64 entropy = strtonum( Cmd_Argv( 5 ), S64_MIN, S64_MAX, NULL );
 
 	cg_clientInfo_t * victim = &cgs.clientInfo[ victimNum - 1 ];
 	cg_clientInfo_t * attacker = attackerNum == 0 ? NULL : &cgs.clientInfo[ attackerNum - 1 ];
-
+	cg_clientInfo_t * assistor = topAssistorNum == 0 ? NULL : &cgs.clientInfo[ topAssistorNum - 1 ];
 	cg_obituaries_current = ( cg_obituaries_current + 1 ) % MAX_OBITUARIES;
 	obituary_t * current = &cg_obituaries[cg_obituaries_current];
 
@@ -1544,11 +1545,27 @@ void CG_SC_Obituary() {
 				CG_CenterPrint( temp( "{} {}", obituary, victim_name ) );
 			}
 
-			CG_AddChat( temp( "{}{} {}{} {}{}",
-				ImGuiColorToken( attacker_color ), attacker_name,
-				ImGuiColorToken( rgba8_diesel_yellow ), obituary,
-				ImGuiColorToken( victim_color ), victim_name
-			) );
+			if ( !assistor ) {
+				CG_AddChat( temp( "{}{} {}{} {}{}",
+					ImGuiColorToken( attacker_color ), attacker_name,
+					ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+					ImGuiColorToken( victim_color ), victim_name
+				) );
+			} 
+			else
+			{
+				char assistor_name[ MAX_NAME_CHARS + 1 ];
+				Q_strncpyz( assistor_name, assistor->name, sizeof( assistor_name ) );
+				Q_strupr( assistor_name );
+
+				CG_AddChat( temp( "{}{} {}and {}{} {}{} {}{}",
+					ImGuiColorToken( attacker_color ), attacker_name,
+					ImGuiColorToken( 255, 255, 255, 255 ), 
+					ImGuiColorToken( attacker_color ), assistor_name,
+					ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+					ImGuiColorToken( victim_color ), victim_name
+				) );
+			}
 
 			if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
 				self_obituary.time = cls.monotonicTime;

@@ -154,7 +154,7 @@ static void Cmd_Kill_f( edict_t *ent ) {
 	meansOfDeath = MOD_SUICIDE;
 
 	// wsw : pb : fix /kill command
-	G_Killed( ent, ent, ent, 100000, Vec3( 0.0f ), MOD_SUICIDE );
+	G_Killed( ent, ent, ent, -1, 100000, Vec3( 0.0f ), MOD_SUICIDE );
 }
 
 void Cmd_ChaseNext_f( edict_t *ent ) {

@@ -758,9 +758,9 @@ void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage ) {
 /*
 * G_CallDie
 */
-void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point ) {
+void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assistorNo, int damage, Vec3 point ) {
 	if( ent->die ) {
-		ent->die( ent, inflictor, attacker, damage, point );
+		ent->die( ent, inflictor, attacker, assistorNo, damage, point );
 	} else if( ent->scriptSpawned && ent->asDieFunc ) {
 		G_asCallMapEntityDie( ent, inflictor, attacker, damage, point );
 	}
@@ -908,8 +908,8 @@ void G_ClearCenterPrint( edict_t *ent ) {
 *
 * Prints death message to all clients
 */
-void G_Obituary( edict_t * victim, edict_t * attacker, int mod ) {
-	PF_GameCmd( NULL, va( "obry %i %i %i %" PRIi64, ENTNUM( victim ), ENTNUM( attacker ), mod, random_u64( &svs.rng ) ) );
+void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, int mod ) {
+	PF_GameCmd( NULL, va( "obry %i %i %i %i %" PRIi64, ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod, random_u64( &svs.rng ) ) );
 }
 
 //==================================================

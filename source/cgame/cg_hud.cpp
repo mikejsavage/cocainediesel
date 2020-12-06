@@ -1483,6 +1483,17 @@ static const char * prefixes[] = {
 	"ZOOMER",
 };
 
+static const char * conjunctions[] = {
+	"AND",
+	"N'",
+	"AS WELL AS",
+	"UND",
+	"+",
+	"PLUS",
+	"ALONG WITH",
+	"W/",
+};
+
 static const char * RandomObituary( RNG * rng ) {
 	return random_select( rng, obituaries );
 }
@@ -1491,6 +1502,10 @@ static const char * RandomPrefix( RNG * rng, float p ) {
 	if( !random_p( rng, p ) )
 		return "";
 	return random_select( rng, prefixes );
+}
+
+static const char* RandomAssistConjunction( RNG * rng ) {
+	return random_select( rng, conjunctions );
 }
 
 void CG_SC_Obituary() {
@@ -1554,13 +1569,14 @@ void CG_SC_Obituary() {
 			} 
 			else
 			{
+				const char * assist_conj = RandomAssistConjunction( &rng );
 				char assistor_name[ MAX_NAME_CHARS + 1 ];
 				Q_strncpyz( assistor_name, assistor->name, sizeof( assistor_name ) );
 				Q_strupr( assistor_name );
 
-				CG_AddChat( temp( "{}{} {}AND {}{} {}{} {}{}",
+				CG_AddChat( temp( "{}{} {}{} {}{} {}{} {}{}",
 					ImGuiColorToken( attacker_color ), attacker_name,
-					ImGuiColorToken( 255, 255, 255, 255 ), 
+					ImGuiColorToken( 255, 255, 255, 255 ), assist_conj,
 					ImGuiColorToken( attacker_color ), assistor_name,
 					ImGuiColorToken( rgba8_diesel_yellow ), obituary,
 					ImGuiColorToken( victim_color ), victim_name

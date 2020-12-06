@@ -1502,7 +1502,7 @@ void CG_SC_Obituary() {
 
 	cg_clientInfo_t * victim = &cgs.clientInfo[ victimNum - 1 ];
 	cg_clientInfo_t * attacker = attackerNum == 0 ? NULL : &cgs.clientInfo[ attackerNum - 1 ];
-	cg_clientInfo_t * assistor = topAssistorNum == 0 ? NULL : &cgs.clientInfo[ topAssistorNum - 1 ];
+	cg_clientInfo_t * assistor = topAssistorNum == -1 ? NULL : &cgs.clientInfo[ topAssistorNum - 1 ];
 	cg_obituaries_current = ( cg_obituaries_current + 1 ) % MAX_OBITUARIES;
 	obituary_t * current = &cg_obituaries[cg_obituaries_current];
 
@@ -1558,7 +1558,7 @@ void CG_SC_Obituary() {
 				Q_strncpyz( assistor_name, assistor->name, sizeof( assistor_name ) );
 				Q_strupr( assistor_name );
 
-				CG_AddChat( temp( "{}{} {}and {}{} {}{} {}{}",
+				CG_AddChat( temp( "{}{} {}AND {}{} {}{} {}{}",
 					ImGuiColorToken( attacker_color ), attacker_name,
 					ImGuiColorToken( 255, 255, 255, 255 ), 
 					ImGuiColorToken( attacker_color ), assistor_name,

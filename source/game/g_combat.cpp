@@ -192,8 +192,8 @@ static void G_AddAssistDamage( edict_t* targ, edict_t* attacker, int amount ) {
 	}
 
 	assist->lastTime = svs.gametime;
-	assist->entno = attacker_entno; //incase old re-write/empty
-	assist->cumDamage += HEALTH_TO_INT(amount);
+	assist->entno = attacker_entno; // incase old re-write/empty
+	assist->cumDamage += amount;
 }
 
 static int G_FindTopAssistor( edict_t* victim, edict_t* attacker ) {
@@ -206,8 +206,8 @@ static int G_FindTopAssistor( edict_t* victim, edict_t* attacker ) {
 		}
 	}
 
-	// dont return last-hit killer as assistor as well
-	return top != NULL && top->entno != attacker->s.number ? top->entno : 0;
+	// dont return last-hit killer as assistor as well. if they did a tiny amount of dmg ignore
+	return top != NULL && top->entno != attacker->s.number && top->cumDamage > 9 ? top->entno : -1;
 }
 
 #define MIN_KNOCKBACK_SPEED 2.5
@@ -380,8 +380,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	targ->health = targ->health - take;
 
 	int clamped_takedmg = HEALTH_TO_INT( take );
-	G_AddAssistDamage( targ, attacker, clamped_takedmg );
-
+	
 	// add damage done to stats
 	if( statDmg && MODToWeapon( mod ) != Weapon_None && client && attacker->r.client ) {
 		attacker->r.client->level.stats.accuracy_hits[ MODToWeapon( mod ) ]++;
@@ -405,9 +404,9 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 		}
 
 		int topAssistorNo = G_FindTopAssistor( targ, attacker );
-
 		G_Killed( targ, inflictor, attacker, topAssistorNo, clamped_takedmg, point, mod );
 	} else {
+		G_AddAssistDamage( targ, attacker, clamped_takedmg );
 		G_CallPain( targ, attacker, knockback, take );
 	}
 }

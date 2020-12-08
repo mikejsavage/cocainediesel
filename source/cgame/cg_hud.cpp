@@ -1493,13 +1493,14 @@ static const char * prefixes[] = {
 };
 
 static const char * conjunctions[] = {
-	"AND",
-	"N'",
-	"AS WELL AS",
-	"UND",
 	"+",
-	"PLUS",
 	"ALONG WITH",
+	"AND",
+	"AS WELL AS",
+	"FEAT.",
+	"N'",
+	"PLUS",
+	"UND",
 	"W/",
 };
 
@@ -1513,7 +1514,7 @@ static const char * RandomPrefix( RNG * rng, float p ) {
 	return random_select( rng, prefixes );
 }
 
-static const char* RandomAssistConjunction( RNG * rng ) {
+static const char * RandomAssistConjunction( RNG * rng ) {
 	return random_select( rng, conjunctions );
 }
 

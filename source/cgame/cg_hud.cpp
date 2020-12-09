@@ -1494,14 +1494,18 @@ static const char * prefixes[] = {
 
 static const char * conjunctions[] = {
 	"+",
+	"&&",
 	"ALONG WITH",
 	"AND",
 	"AS WELL AS",
+	"ASSISTED BY",
 	"FEAT.",
 	"N'",
 	"PLUS",
 	"UND",
 	"W/",
+	"WITH",
+	"X",
 };
 
 static const char * RandomObituary( RNG * rng ) {

@@ -1123,6 +1123,7 @@ static const char * prefixes[] = {
 	"FUDGE",
 	"FULL",
 	"FURY",
+	"FUTURE OF ",
 	"G-",
 	"GALAXY",
 	"GANGSTA",

@@ -262,7 +262,7 @@ static void ED_ParseField( Span< const char > key, Span< const char > value, edi
 	}
 
 	if( developer->integer ) {
-		Com_Printf( "%s is not a field\n", key );
+		Com_GGPrint( "{} is not a field", key );
 	}
 }
 

@@ -35,7 +35,7 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 			mode->fullscreen = FullscreenMode_Windowed;
 			mode->x = -1;
 			mode->y = -1;
-			return true;
+			return mode->video_mode.width > 0 && mode->video_mode.height > 0;
 		}
 	}
 
@@ -62,7 +62,7 @@ static bool ParseWindowMode( const char * str, WindowMode * mode ) {
 		int comps = sscanf( str, "F %d %dx%d %dHz", &mode->monitor, &mode->video_mode.width, &mode->video_mode.height, &mode->video_mode.frequency );
 		if( comps == 4 ) {
 			mode->fullscreen = FullscreenMode_Fullscreen;
-			return true;
+			return mode->video_mode.width > 0 && mode->video_mode.height > 0;
 		}
 	}
 

@@ -706,6 +706,7 @@ enum EntityType {
 #define EF_GODMODE                  ( 1 << 2 )
 #define EF_HAT                      ( 1 << 3 )
 #define EF_TEAM_SILHOUETTE          ( 1 << 4 )
+#define EF_WORLD_MODEL              ( 1 << 5 )
 
 //===============================================================
 // gs_weapons.c

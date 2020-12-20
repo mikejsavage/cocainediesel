@@ -598,6 +598,8 @@ void SP_func_door( edict_t *ent ) {
 		}
 	}
 
+	ent->s.effects = EF_WORLD_MODEL;
+
 	// calculate second position
 	ent->moveinfo.start_origin = ent->s.origin;
 	Vec3 abs_movedir;

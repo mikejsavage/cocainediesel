@@ -392,7 +392,7 @@ A big spike trap
 angles : Angles
 */
 
-/*QUAKED speaker_wall (1 1 0) (-32, -32, -16) (32, 32, 16)
+/*QUAKED speaker_wall (1 1 0) (-32 -32 -16) (32 32 16)
 A speaker hanging off the wall, place the box origin on the wall and the speaker points in the direction of the arrow
 -------- KEYS --------
 angle : Angle

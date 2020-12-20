@@ -136,10 +136,6 @@ static void ParseCull( Material * material, Span< const char > name, Span< const
 	}
 }
 
-static void ParseDiscard( Material * material, Span< const char > name, Span< const char > * data ) {
-	material->discard = true;
-}
-
 static void ParseDecal( Material * material, Span< const char > name, Span< const char > * data ) {
 	material->decal = true;
 }
@@ -150,7 +146,6 @@ static void ParseMaskOutlines( Material * material, Span< const char > name, Spa
 
 static const MaterialSpecKey shaderkeys[] = {
 	{ "cull", ParseCull },
-	{ "polygonoffset", ParseDiscard },
 	{ "decal", ParseDecal },
 	{ "maskoutlines", ParseMaskOutlines },
 

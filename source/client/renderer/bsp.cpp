@@ -356,10 +356,6 @@ static int Order2BezierSubdivisions( Vec3 control0, Vec3 control1, Vec3 control2
 	return Order2BezierSubdivisions( control0, control1, control2, max_error, control0, control2, 0.0f, 1.0f );
 }
 
-static bool SortByMaterial( const BSPDrawCall & a, const BSPDrawCall & b ) {
-	return a.material < b.material;
-}
-
 static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSpans & bsp, u64 base_hash, size_t model_idx ) {
 	ZoneScoped;
 
@@ -403,7 +399,9 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 		}
 	}
 
-	std::sort( draw_calls.begin(), draw_calls.end(), SortByMaterial );
+	std::sort( draw_calls.begin(), draw_calls.end(), []( const BSPDrawCall & a, const BSPDrawCall & b ) {
+		return a.material < b.material;
+	} );
 
 	// generate patch geometry and merge draw calls
 	// TODO: this generates terrible geometry then relies on meshopt to fix it up. maybe it could be done better
@@ -413,13 +411,10 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 	Model::Primitive first;
 	first.first_index = 0;
 	first.num_vertices = 0;
-	first.material = draw_calls[ 0 ].material; // TODO: first material may have discard
+	first.material = draw_calls[ 0 ].material;
 	primitives.add( first );
 
 	for( const BSPDrawCall & dc : draw_calls ) {
-		if( dc.material->discard )
-			continue;
-
 		if( dc.material != primitives.top().material ) {
 			Model::Primitive prim;
 			prim.first_index = primitives.top().first_index + primitives.top().num_vertices;

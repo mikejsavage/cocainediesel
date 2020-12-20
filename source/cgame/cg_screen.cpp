@@ -65,14 +65,11 @@ void CG_CenterPrint( const char *str ) {
 }
 
 static void CG_DrawCenterString( void ) {
-	DrawText( cgs.fontMontserrat, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.75f, vec4_white, true );
+	DrawText( cgs.fontNormal, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.75f, vec4_white, true );
 }
 
 //============================================================================
 
-/*
-* CG_ScreenInit
-*/
 void CG_ScreenInit( void ) {
 	cg_showFPS =        Cvar_Get( "cg_showFPS", "0", CVAR_ARCHIVE );
 	cg_draw2D =     Cvar_Get( "cg_draw2D", "1", 0 );
@@ -91,9 +88,6 @@ void CG_ScreenInit( void ) {
 	cg_showPlayerNames_barWidth =   Cvar_Get( "cg_showPlayerNames_barWidth", "8", CVAR_ARCHIVE );
 }
 
-/*
-* CG_DrawNet
-*/
 void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
 	if( cgs.demoPlaying ) {
 		return;
@@ -137,9 +131,6 @@ void CG_DrawCrosshair() {
 	CG_FillRect( w / 2 - 1 - size, h / 2 - 1, 2 + 2 * size, 2, color );
 }
 
-/*
-* CG_DrawClock
-*/
 void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border ) {
 	int64_t clocktime, startTime, duration, curtime;
 	char string[12];
@@ -184,18 +175,12 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	DrawText( font, font_size, string, alignment, x, y, color, border );
 }
 
-/*
-* CG_ClearPointedNum
-*/
 void CG_ClearPointedNum( void ) {
 	cg.pointedNum = 0;
 	cg.pointRemoveTime = 0;
 	cg.pointedHealth = 0;
 }
 
-/*
-* CG_UpdatePointedNum
-*/
 static void CG_UpdatePointedNum( void ) {
 	// disable cases
 	if( cg.view.thirdperson || cg.view.type != VIEWDEF_PLAYERVIEW || !cg_showPointedPlayer->integer ) {
@@ -220,9 +205,6 @@ static void CG_UpdatePointedNum( void ) {
 	}
 }
 
-/*
-* CG_DrawPlayerNames
-*/
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {
 	// static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
 	Vec3 dir, drawOrigin;
@@ -351,19 +333,19 @@ static const char * mini_obituaries[] = {
 	"BZZZ",
 	"CHEERS",
 	"CHING",
-	"CHUNK"
-	,"CLACK"
-	,"CLANG"
-	,"CLANK"
-	,"CLAP"
-	,"CLASH"
-	,"CLICK"
-	,"CLINK"
-	,"CLOP"
-	,"CLOUT"
-	,"CLUCK"
-	,"CLUNK"
-	,"COOL",
+	"CHUNK",
+	"CLACK",
+	"CLANG",
+	"CLANK",
+	"CLAP",
+	"CLASH",
+	"CLICK",
+	"CLINK",
+	"CLOP",
+	"CLOUT",
+	"CLUCK",
+	"CLUNK",
+	"COOL",
 	"CRACK",
 	"CRISP",
 	"CRUNCH",
@@ -624,7 +606,7 @@ void CG_DrawDamageNumbers() {
 			continue;
 
 		Vec3 origin = dn.origin;
-		
+
 		if( obituary ) {
 			origin.z += 256.0f * frac - 512.0f * frac * frac;
 		}
@@ -658,7 +640,7 @@ void CG_DrawDamageNumbers() {
 		float alpha = 1 - Max2( 0.0f, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;
 
-		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterBottom, coords.x, coords.y, color, true );
+		DrawText( cgs.fontNormal, font_size, buf, Alignment_CenterBottom, coords.x, coords.y, color, true );
 	}
 }
 
@@ -702,7 +684,7 @@ void CG_AddBomb( centity_t * cent ) {
 	if( bomb.state == BombState_Planted ) {
 		Mat2 r = Mat2Rotation( cent->current.angles.y );
 		Vec3 origin = bomb.origin + Vec3( r * Vec2( -12.0f, 3.0f ), -12.0f );
-		DoVisualEffect( "vfx/bomb_fuse", origin );
+		DoVisualEffect( "models/bomb/fuse", origin );
 	}
 }
 
@@ -736,12 +718,12 @@ void CG_DrawBombHUD() {
 
 			char buf[ 4 ];
 			snprintf( buf, sizeof( buf ), "%c", site->letter );
-			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
+			DrawText( cgs.fontNormal, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == site->team ? "DEFEND" : "ATTACK";
 				coords.y += ( cgs.fontSystemMediumSize * 7 ) / 8;
-				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
+				DrawText( cgs.fontNormal, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 			}
 		}
 	}
@@ -764,7 +746,7 @@ void CG_DrawBombHUD() {
 					color = AttentionGettingColor();
 
 					// TODO: lol
-					DoVisualEffect( "vfx/bomb_attention", bomb.origin - Vec3( 0.0f, 0.0f, 32.0f ), Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, AttentionGettingColor() );
+					DoVisualEffect( "models/bomb/pickup_sparkle", bomb.origin - Vec3( 0.0f, 0.0f, 32.0f ), Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, AttentionGettingColor() );
 				}
 				else if( bomb.state == BombState_Planting ) {
 					msg = "PLANTING";
@@ -781,7 +763,7 @@ void CG_DrawBombHUD() {
 				}
 
 				float y = coords.y - cgs.fontSystemTinySize / 2;
-				DrawText( cgs.fontMontserrat, cgs.textSizeSmall, msg, Alignment_CenterMiddle, coords.x, y, color, true );
+				DrawText( cgs.fontNormal, cgs.textSizeSmall, msg, Alignment_CenterMiddle, coords.x, y, color, true );
 			}
 		}
 
@@ -795,9 +777,6 @@ void CG_ResetBombHUD() {
 
 //=============================================================================
 
-/*
-* CG_EscapeKey
-*/
 void CG_EscapeKey( void ) {
 	if( cgs.demoPlaying ) {
 		UI_ShowDemoMenu();
@@ -819,9 +798,6 @@ static Vec4 CG_CalcColorBlend() {
 	return Vec4( 0 );
 }
 
-/*
-* CG_SCRDrawViewBlend
-*/
 static void CG_SCRDrawViewBlend( void ) {
 	if( !cg_showViewBlends->integer ) {
 		return;
@@ -856,9 +832,6 @@ static void CG_DrawScope() {
 	}
 }
 
-/*
-* CG_Draw2DView
-*/
 void CG_Draw2DView( void ) {
 	ZoneScoped;
 
@@ -876,13 +849,10 @@ void CG_Draw2DView( void ) {
 		CG_DrawCenterString();
 	}
 
-	CG_ExecuteLayoutProgram( cg.statusBar );
+	CG_DrawHUD();
 	CG_DrawChat();
 }
 
-/*
-* CG_Draw2D
-*/
 void CG_Draw2D( void ) {
 	CG_DrawScope();
 

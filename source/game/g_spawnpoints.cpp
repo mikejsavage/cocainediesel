@@ -170,41 +170,31 @@ bool G_OffsetSpawnPoint( Vec3 * origin, Vec3 box_mins, Vec3 box_maxs, float radi
 *
 * Chooses a player start, deathmatch start, etc
 */
-void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, Vec3 * origin, Vec3 * angles ) {
-	edict_t *spot = NULL;
+void SelectSpawnPoint( edict_t * ent, edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles ) {
+	edict_t * spot;
+	bool cam = false;
 
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
 		spot = G_FindPostMatchCamera();
-	} else {
+		cam = spot != NULL;
+	}
+	else {
 		spot = GT_asCallSelectSpawnPoint( ent );
 	}
 
-	// find a single player start spot
-	if( !spot ) {
-		spot = G_Find( spot, FOFS( classname ), "info_player_start" );
-		if( !spot ) {
-			spot = G_Find( spot, FOFS( classname ), "team_CTF_alphaspawn" );
-			if( !spot ) {
-				spot = G_Find( spot, FOFS( classname ), "team_CTF_betaspawn" );
-			}
-			if( !spot ) {
-				spot = world;
-			}
-		}
+	if( spot == NULL ) {
+		spot = world;
 	}
 
 	*spawnpoint = spot;
 	*origin = spot->s.origin;
 	*angles = spot->s.angles;
 
-	if( !Q_stricmp( spot->classname, "info_player_intermission" ) ) {
-		// if it has a target, look towards it
-		if( spot->target ) {
-			edict_t * target = G_PickTarget( spot->target );
-			if( target != NULL ) {
-				Vec3 dir = target->s.origin - *origin;
-				*angles = VecToAngles( dir );
-			}
+	if( cam && spot->target ) {
+		edict_t * target = G_PickTarget( spot->target );
+		if( target != NULL ) {
+			Vec3 dir = target->s.origin - *origin;
+			*angles = VecToAngles( dir );
 		}
 	}
 

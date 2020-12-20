@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /*
 * ClientObituary
 */
-static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
+static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker, int topAssistEntNo ) {
 	char message[64];
 	char message2[64];
 
@@ -49,14 +49,14 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 			G_PositionedSound( self->s.origin, CHAN_AUTO, "sounds/trombone/sad" );
 		}
 
-		G_Obituary( self, attacker, mod );
+		G_Obituary( self, attacker, topAssistEntNo, mod );
 	} else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
 		if( is_dedicated_server ) {
 			Com_Printf( "%s %s\n", self->r.client->netname, message );
 		}
 
-		G_Obituary( self, attacker == self ? self : world, mod );
+		G_Obituary( self, attacker == self ? self : world, topAssistEntNo, mod );
 	}
 }
 
@@ -104,14 +104,13 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->r.solid = SOLID_NOT;
 	body->takedamage = DAMAGE_NO;
 	body->movetype = MOVETYPE_TOSS;
-	body->think = G_FreeEdict; // body self destruction countdown
 
 	body->s.teleported = true;
 	body->s.ownerNum = ent->s.number;
 
 	int mod = meansOfDeath;
 	bool gib = mod == MOD_RAILGUN || mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG
-		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKES ||
+		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKE ||
 		( ( mod == MOD_ROCKET || mod == MOD_GRENADE ) && damage >= 20 );
 
 	if( gib ) {
@@ -129,11 +128,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 
 	// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
 	// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
-	if( GS_MatchState( &server_gs ) == MATCH_STATE_WARMUP ) {
+	if( GS_MatchState( &server_gs ) != MATCH_STATE_PLAYTIME ) {
 		body->nextThink = level.time + 3500;
-	}
-	else {
-		body->think = NULL;
+		body->think = G_FreeEdict; // body self destruction countdown
 	}
 
 	GClip_LinkEntity( body );
@@ -143,7 +140,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 /*
 * player_die
 */
-void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, const Vec3 point ) {
+void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, int damage, const Vec3 point ) {
 	snap_edict_t snap_backup = ent->snap;
 	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
 
@@ -156,7 +153,7 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage
 	ent->r.solid = SOLID_NOT;
 
 	// player death
-	ClientObituary( ent, inflictor, attacker );
+	ClientObituary( ent, inflictor, attacker, topAssistorEntNo );
 
 	// create a corpse
 	CreateCorpse( ent, attacker, damage );
@@ -397,6 +394,8 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 
 	self->s.teleported = true;
+
+	memset( self->recent_attackers, 0, sizeof(self->recent_attackers) );
 
 	// hold in place briefly
 	client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
@@ -991,8 +990,6 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	client->ps.pmove.origin = ent->s.origin;
 	client->ps.pmove.velocity = ent->velocity;
 	client->ps.viewangles = ent->s.angles;
-
-	client->ps.pmove.gravity = level.gravity;
 
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH || GS_MatchPaused( &server_gs )
 		|| ( ent->movetype != MOVETYPE_PLAYER && ent->movetype != MOVETYPE_NOCLIP ) ) {

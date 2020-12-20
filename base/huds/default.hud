@@ -1,14 +1,3 @@
-/*
-Credz:
- - Warsow Team
- - Scratch
- - joki
- - kuhjoe
- - Jihnsius 4EXTREME BRA1NZ
- - IRC for <3 and feedback
- - clownFart for most of the work
-*/
-
 if %MATCH_STATE < #MATCH_STATE_POSTMATCH
 
 #include callvote
@@ -31,10 +20,6 @@ endif
 
 #include speed
 #include fps
-
-/*
-#include download
-*/
 
 #include net
 #include damage_numbers

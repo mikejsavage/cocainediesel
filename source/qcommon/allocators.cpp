@@ -92,9 +92,6 @@ struct AllocationTracker {
 #endif
 
 struct SystemAllocator final : public Allocator {
-	SystemAllocator() { }
-	NONCOPYABLE( SystemAllocator );
-
 	AllocationTracker tracker;
 
 	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {

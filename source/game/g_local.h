@@ -139,10 +139,8 @@ struct level_locals_t {
 	bool forceExit;     // just exit, ignore extended time checks
 
 	edict_t *current_entity;    // entity running from G_RunFrame
-	edict_t *spawning_entity;   // entity being spawned from G_InitLevel
 
 	timeout_t timeout;
-	float gravity;
 };
 
 // spawn_temp_t is only used to hold entity field values that
@@ -157,13 +155,9 @@ struct spawn_temp_t {
 	StringHash noise_start;
 	StringHash noise_stop;
 	float pausetime;
-	const char *gravity;
-
 	int gameteam;
-
 	int size;
-
-	int rgba;
+	float spawn_probability;
 };
 
 extern game_locals_t game;
@@ -208,8 +202,6 @@ extern cvar_t *g_projectile_prestep;
 extern cvar_t *g_numbots;
 extern cvar_t *g_maxtimeouts;
 
-extern cvar_t *g_self_knockback;
-extern cvar_t *g_knockback_scale;
 extern cvar_t *g_respawn_delay_min;
 extern cvar_t *g_respawn_delay_max;
 extern cvar_t *g_deadbody_followkiller;
@@ -297,7 +289,14 @@ void SP_func_static( edict_t *ent );
 //
 // g_gladiator
 //
-void SP_spikes( edict_t *ent );
+void SP_spike( edict_t * ent );
+void SP_spikes( edict_t * ent );
+
+//
+// g_speakers
+//
+
+void SP_speaker_wall( edict_t * ent );
 
 //
 // g_ascript.c
@@ -399,7 +398,7 @@ void G_CallTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags 
 void G_CallUse( edict_t *self, edict_t *other, edict_t *activator );
 void G_CallStop( edict_t *self );
 void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage );
-void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point );
+void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assistorNo, int damage, Vec3 point );
 
 #ifndef _MSC_VER
 void G_PrintMsg( edict_t *ent, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
@@ -412,7 +411,7 @@ void G_CenterPrintMsg( edict_t *ent, _Printf_format_string_ const char *format, 
 #endif
 void G_ClearCenterPrint( edict_t *ent );
 
-void G_Obituary( edict_t *victim, edict_t *attacker, int mod );
+void G_Obituary( edict_t *victim, edict_t *attacker, int topAssistEntNo, int mod );
 
 edict_t *G_Sound( edict_t *owner, int channel, StringHash sound );
 edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound );
@@ -459,7 +458,6 @@ void SP_trigger_push( edict_t *ent );
 void SP_trigger_hurt( edict_t *ent );
 void SP_trigger_key( edict_t *ent );
 void SP_trigger_elevator( edict_t *ent );
-void SP_trigger_gravity( edict_t *ent );
 
 //
 // g_clip.c
@@ -502,7 +500,7 @@ bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t *ent );
 // g_combat.c
 //
 bool G_IsTeamDamage( SyncEntityState *targ, SyncEntityState *attacker );
-void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point, int mod );
+void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int topAssistorNo, int damage, Vec3 point, int mod );
 void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 point, float maxradius, Vec3 * pushdir, float *frac, bool selfdamage );
 void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, int mod );
 void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cplane_t *plane, int mod, int timeDelta );
@@ -523,9 +521,9 @@ void BecomeExplosion1( edict_t *self );
 
 void SP_path_corner( edict_t *self );
 
-void SP_misc_model( edict_t *ent );
-
 void SP_model( edict_t *ent );
+
+void SP_decal( edict_t * ent );
 
 //
 // g_weapon.c
@@ -567,7 +565,7 @@ bool G_PlayerCanTeleport( edict_t *player );
 // g_player.c
 //
 void player_pain( edict_t *self, edict_t *other, float kick, int damage );
-void player_die( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point );
+void player_die( edict_t *self, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, int damage, Vec3 point );
 void player_think( edict_t *self );
 
 //
@@ -679,6 +677,13 @@ struct chasecam_t {
 	bool teamonly;
 	int64_t timeout;           //delay after loosing target
 	int followmode;
+};
+
+#define MAX_ASSIST_INFO 4
+struct assistinfo_t {
+	int entno;
+	int cumDamage;
+	int64_t lastTime;
 };
 
 struct moveinfo_t {
@@ -853,7 +858,6 @@ struct edict_t {
 	//
 
 	const char *classname;
-	const char *spawnString;            // keep track of string definition of this entity
 	int spawnflags;
 
 	int64_t nextThink;
@@ -862,7 +866,7 @@ struct edict_t {
 	EdictTouchCallback touch;
 	void ( *use )( edict_t *self, edict_t *other, edict_t *activator );
 	void ( *pain )( edict_t *self, edict_t *other, float kick, int damage );
-	void ( *die )( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point );
+	void ( *die )( edict_t *self, edict_t *inflictor, edict_t *attacker, int assistorNo, int damage, Vec3 point );
 	void ( *stop )( edict_t *self );
 
 	const char *target;
@@ -890,7 +894,6 @@ struct edict_t {
 	const char *message;
 
 	int mass;
-	float gravity;              // per entity gravity multiplier (1.0 is normal) // use for lowgrav artifact, flares
 
 	edict_t *movetarget;
 
@@ -925,9 +928,6 @@ struct edict_t {
 
 	int style;                  // also used as areaportal number
 
-	float light;
-	Vec3 color;
-
 	const Item *item;       // for bonus items
 
 	// common data blocks
@@ -943,6 +943,8 @@ struct edict_t {
 	bool scriptSpawned;
 	asIScriptModule *asScriptModule;
 	asIScriptFunction *asSpawnFunc, *asThinkFunc, *asUseFunc, *asTouchFunc, *asPainFunc, *asDieFunc, *asStopFunc;
+
+	assistinfo_t recent_attackers[MAX_ASSIST_INFO]; 
 };
 
 static inline int ENTNUM( const edict_t *x ) { return x - game.edicts; }

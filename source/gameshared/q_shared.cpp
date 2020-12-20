@@ -227,6 +227,10 @@ static bool IsWhitespace( char c ) {
 	return c == '\0' || c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
+/*
+ * this can return an empty string if it parses empty quotes
+ * check for ret.ptr == NULL to see if you hit the end of the string
+ */
 Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
 	const char * cursor = *ptr;
 	if( cursor == NULL ) {
@@ -237,12 +241,12 @@ Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
 	while( IsWhitespace( *cursor ) ) {
 		if( *cursor == '\0' ) {
 			*ptr = NULL;
-			return MakeSpan( "" );
+			return Span< const char >( NULL, 0 );
 		}
 
 		if( *cursor == '\n' && stop == Parse_StopOnNewLine ) {
 			*ptr = cursor;
-			return MakeSpan( "" );
+			return Span< const char >( NULL, 0 );
 		}
 
 		cursor++;
@@ -277,6 +281,10 @@ Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
 	return span;
 }
 
+/*
+ * this can return an empty string if it parses empty quotes
+ * check for ret.ptr == NULL to see if you hit the end of the string
+ */
 Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop ) {
 	Span< const char > c = *cursor;
 
@@ -284,12 +292,12 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 	while( c.n == 0 || IsWhitespace( c[ 0 ] ) ) {
 		if( c.n == 0 ) {
 			*cursor = c;
-			return c;
+			return Span< const char >( NULL, 0 );
 		}
 
 		if( c[ 0 ] == '\n' && stop == Parse_StopOnNewLine ) {
 			*cursor = c;
-			return MakeSpan( "" );
+			return Span< const char >( NULL, 0 );
 		}
 
 		c++;
@@ -324,19 +332,7 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 	return token;
 }
 
-int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop ) {
-	Span< const char > token = ParseToken( cursor, stop );
-	int x;
-	return SpanToInt( token, &x ) ? x : def;
-}
-
-float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop ) {
-	Span< const char > token = ParseToken( cursor, stop );
-	float x;
-	return SpanToFloat( token, &x ) ? x : def;
-}
-
-bool SpanToInt( Span< const char > str, int * x ) {
+bool TrySpanToInt( Span< const char > str, int * x ) {
 	char buf[ 128 ];
 	if( str.n >= sizeof( buf ) )
 		return false;
@@ -350,7 +346,7 @@ bool SpanToInt( Span< const char > str, int * x ) {
 	return err == NULL;
 }
 
-bool SpanToFloat( Span< const char > str, float * x ) {
+bool TrySpanToFloat( Span< const char > str, float * x ) {
 	char buf[ 128 ];
 	if( str.n >= sizeof( buf ) )
 		return false;
@@ -362,6 +358,26 @@ bool SpanToFloat( Span< const char > str, float * x ) {
 	*x = strtof( buf, &end );
 
 	return end == buf + str.n;
+}
+
+int SpanToInt( Span< const char > token, int def ) {
+	int x;
+	return TrySpanToInt( token, &x ) ? x : def;
+}
+
+float SpanToFloat( Span< const char > token, float def ) {
+	float x;
+	return TrySpanToFloat( token, &x ) ? x : def;
+}
+
+int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop ) {
+	Span< const char > token = ParseToken( cursor, stop );
+	return SpanToInt( token, def );
+}
+
+float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop ) {
+	Span< const char > token = ParseToken( cursor, stop );
+	return SpanToFloat( token, def );
 }
 
 bool StrEqual( Span< const char > lhs, Span< const char > rhs ) {
@@ -390,6 +406,13 @@ bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
 	return StrCaseEqual( lhs, rhs );
 }
 
+bool StartsWith( Span< const char > str, const char * prefix ) {
+	if( str.n < strlen( prefix ) )
+		return false;
+
+	return memcmp( str.ptr, prefix, strlen( prefix ) ) == 0;
+}
+
 bool StartsWith( const char * str, const char * prefix ) {
 	if( strlen( str ) < strlen( prefix ) )
 		return false;
@@ -412,135 +435,6 @@ Span< const char > BaseName( const char * path ) {
 Span< const char > BasePath( const char * path ) {
 	const char * slash = strrchr( path, '/' );
 	return slash == NULL ? MakeSpan( path ) : Span< const char >( path, slash - path );
-}
-
-/*
-* COM_ParseExt2_r
-*
-* Parse a token out of a string
-*/
-char *COM_ParseExt2_r( char *token, size_t token_size, const char **data_p, bool nl, bool sq ) {
-	int c;
-	unsigned len;
-	const char *data;
-	bool newlines = false;
-
-	data = *data_p;
-	len = 0;
-	token[0] = 0;
-
-	if( !data ) {
-		*data_p = NULL;
-		return token;
-	}
-
-	// skip whitespace
-skipwhite:
-	while( (unsigned char)( c = *data ) <= ' ' ) {
-		if( c == 0 ) {
-			*data_p = NULL;
-			return token;
-		}
-		if( c == '\n' ) {
-			newlines = true;
-		}
-		data++;
-	}
-
-	if( newlines && !nl ) {
-		*data_p = data;
-		return token;
-	}
-
-	// skip // comments
-	if( c == '/' && data[1] == '/' ) {
-		data += 2;
-
-		while( *data && *data != '\n' )
-			data++;
-		goto skipwhite;
-	}
-
-	// skip /* */ comments
-	if( c == '/' && data[1] == '*' ) {
-		data += 2;
-
-		while( 1 ) {
-			if( !*data ) {
-				break;
-			}
-			if( *data != '*' || *( data + 1 ) != '/' ) {
-				data++;
-			} else {
-				data += 2;
-				break;
-			}
-		}
-		goto skipwhite;
-	}
-
-	// handle quoted strings specially
-	if( c == '\"' ) {
-		if( sq ) {
-			data++;
-		}
-		while( 1 ) {
-			c = *data++;
-			if( c == '\"' || !c ) {
-				if( !c ) {
-					data--;
-				}
-
-				if( ( len < token_size ) && ( !sq ) ) {
-					token[len] = '\"';
-					len++;
-					//data++;
-				}
-
-				if( len == token_size ) {
-					//Com_Printf ("Token exceeded %i chars, discarded.\n", (int)token_size);
-					len = 0;
-				}
-				token[len] = 0;
-				*data_p = data;
-				return token;
-			}
-			if( len < token_size ) {
-				token[len] = c;
-				len++;
-			}
-		}
-	}
-
-	// parse a regular word
-	do {
-		if( len < token_size ) {
-			token[len] = c;
-			len++;
-		}
-		data++;
-		c = *data;
-	} while( (unsigned char)c > 32 );
-
-	if( len == token_size ) {
-		//Com_Printf ("Token exceeded %i chars, discarded.\n", (int)token_size);
-		len = 0;
-	}
-	token[len] = 0;
-
-	*data_p = data;
-	return token;
-}
-
-static char com_token[MAX_TOKEN_CHARS];
-
-/*
- * COM_ParseExt
- *
- * Parse a token out of a string
- */
-char *COM_ParseExt2( const char **data_p, bool nl, bool sq ) {
-	return COM_ParseExt2_r( com_token, MAX_TOKEN_CHARS, data_p, nl, sq );
 }
 
 /*

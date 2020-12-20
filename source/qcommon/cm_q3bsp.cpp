@@ -24,7 +24,161 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/cm_local.h"
 #include "qcommon/patch.h"
 
+#define MAX_LIGHTMAPS       4
 #define MAX_FACET_PLANES 32
+
+#define LUMP_ENTITIES       0
+#define LUMP_SHADERREFS     1
+#define LUMP_PLANES     2
+#define LUMP_NODES      3
+#define LUMP_LEAFS      4
+#define LUMP_LEAFFACES      5
+#define LUMP_LEAFBRUSHES    6
+#define LUMP_MODELS     7
+#define LUMP_BRUSHES        8
+#define LUMP_BRUSHSIDES     9
+#define LUMP_VERTEXES       10
+#define LUMP_ELEMENTS       11
+#define LUMP_FOGS       12
+#define LUMP_FACES      13
+#define LUMP_LIGHTING       14
+#define LUMP_LIGHTGRID      15
+#define LUMP_VISIBILITY     16
+#define LUMP_LIGHTARRAY     17
+
+#define HEADER_LUMPS        18      // 16 for IDBSP
+
+struct lump_t {
+	int fileofs, filelen;
+};
+
+struct dheader_t {
+	int ident;
+	int version;
+	lump_t lumps[HEADER_LUMPS];
+};
+
+struct dmodel_t {
+	float mins[3], maxs[3];
+	int firstface, numfaces;        // submodels just draw faces
+	                                // without walking the bsp tree
+	int firstbrush, numbrushes;
+};
+
+struct dvertex_t {
+	float point[3];
+	float tex_st[2];            // texture coords
+	float lm_st[2];             // lightmap texture coords
+	float normal[3];            // normal
+	unsigned char color[4];     // color used for vertex lighting
+};
+
+struct rdvertex_t {
+	float point[3];
+	float tex_st[2];
+	float lm_st[MAX_LIGHTMAPS][2];
+	float normal[3];
+	unsigned char color[MAX_LIGHTMAPS][4];
+};
+
+// planes (x&~1) and (x&~1)+1 are always opposites
+struct dplane_t {
+	float normal[3];
+	float dist;
+};
+
+struct dnode_t {
+	int planenum;
+	int children[2];            // negative numbers are -(leafs+1), not nodes
+	int mins[3];                // for frustum culling
+	int maxs[3];
+};
+
+struct dshaderref_t {
+	char name[64];
+	int flags;
+	int contents;
+};
+
+struct dface_t {
+	int shadernum;
+	int fognum;
+	int facetype;
+
+	int firstvert;
+	int numverts;
+	unsigned firstelem;
+	int numelems;
+
+	int lm_texnum;              // lightmap info
+	int lm_offset[2];
+	int lm_size[2];
+
+	float origin[3];            // FaceType_Flare only
+
+	float mins[3];
+	float maxs[3];              // FaceType_Patch and FaceType_Mesh only
+	float normal[3];            // FaceType_Planar only
+
+	int patch_cp[2];            // patch control point dimensions
+};
+
+struct rdface_t {
+	int shadernum;
+	int fognum;
+	int facetype;
+
+	int firstvert;
+	int numverts;
+	unsigned firstelem;
+	int numelems;
+
+	unsigned char lightmapStyles[MAX_LIGHTMAPS];
+	unsigned char vertexStyles[MAX_LIGHTMAPS];
+
+	int lm_texnum[MAX_LIGHTMAPS];               // lightmap info
+	int lm_offset[MAX_LIGHTMAPS][2];
+	int lm_size[2];
+
+	float origin[3];            // FaceType_Flare only
+
+	float mins[3];
+	float maxs[3];              // FaceType_Patch and FaceType_Mesh only
+	float normal[3];            // FaceType_Planar only
+
+	int patch_cp[2];            // patch control point dimensions
+};
+
+struct dleaf_t {
+	int cluster;
+	int area;
+
+	int mins[3];
+	int maxs[3];
+
+	int firstleafface;
+	int numleaffaces;
+
+	int firstleafbrush;
+	int numleafbrushes;
+};
+
+struct dbrushside_t {
+	int planenum;
+	int shadernum;
+};
+
+struct rdbrushside_t {
+	int planenum;
+	int shadernum;
+	int surfacenum;
+};
+
+struct dbrush_t {
+	int firstside;
+	int numsides;
+	int shadernum;
+};
 
 static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 *verts, int numverts, cshaderref_t *shaderref, cplane_t *brushplanes ) {
 	Vec3 normal;
@@ -454,7 +608,7 @@ static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, l
 
 	for( int i = 0; i < count; i++, in++ ) {
 		String< 16 > suffix( "*{}", i );
-		u64 hash = Hash64( suffix.c_str(), suffix.len(), cms->base_hash );
+		u64 hash = Hash64( suffix.c_str(), suffix.length(), cms->base_hash );
 
 		cmodel_t * model = CM_NewCModel( soc, hash );
 

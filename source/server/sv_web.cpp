@@ -45,12 +45,12 @@ enum sv_http_content_state_t {
 	CONTENT_STATE_RECEIVED = 2,
 };
 
-typedef struct {
+struct sv_http_content_range_t {
 	long begin;
 	long end;
-} sv_http_content_range_t;
+};
 
-typedef struct {
+struct sv_http_stream_t {
 	size_t header_length;
 	char header_buf[0x4000];
 	size_t header_buf_p;
@@ -60,9 +60,9 @@ typedef struct {
 	size_t content_p;
 	size_t content_length;
 	sv_http_content_range_t content_range;
-} sv_http_stream_t;
+};
 
-typedef struct {
+struct sv_http_request_t {
 	uint64_t id;
 	http_query_method_t method;
 	http_response_code_t error;
@@ -82,9 +82,9 @@ typedef struct {
 
 	bool got_start_line;
 	bool close_after_resp;
-} sv_http_request_t;
+};
 
-typedef struct {
+struct sv_http_response_t {
 	uint64_t request_id;
 	http_response_code_t code;
 	sv_http_stream_t stream;
@@ -97,9 +97,9 @@ typedef struct {
 	int fileno;
 	size_t file_send_pos;
 	char *filename;
-} sv_http_response_t;
+};
 
-typedef struct sv_http_connection_s {
+struct sv_http_connection_t {
 	bool open;
 	sv_http_connstate_t state;
 	bool close_after_resp;
@@ -114,14 +114,15 @@ typedef struct sv_http_connection_s {
 
 	bool is_upstream;
 
-	struct sv_http_connection_s *next, *prev;
-} sv_http_connection_t;
+	sv_http_connection_t *next;
+	sv_http_connection_t *prev;
+};
 
-typedef struct {
+struct http_game_client_t {
 	int clientNum;
 	char session[16];               // session id for HTTP requests
 	netadr_t remoteAddress;
-} http_game_client_t;
+};
 
 static bool sv_http_initialized = false;
 static volatile bool sv_http_running = false;
@@ -400,7 +401,7 @@ static bool SV_Web_FindGameClientBySession( const char *session, int clientNum )
 */
 static bool SV_Web_FindGameClientByAddress( const netadr_t *netadr ) {
 	unsigned int i;
-	struct trie_dump_s *dump;
+	trie_dump_t *dump;
 	bool valid_address;
 
 	Lock( sv_http_clients_mutex );

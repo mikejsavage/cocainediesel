@@ -10,6 +10,11 @@ struct Spray {
 	s64 spawn_time;
 };
 
+// run base/textures/sprays/gen_materials.sh to generate this
+static StringHash spray_names[] = {
+#include "spray_names.h"
+};
+
 constexpr static s64 SPRAY_LIFETIME = 60000;
 
 static Spray sprays[ 1024 ];
@@ -21,15 +26,17 @@ void InitSprays() {
 	num_sprays = 0;
 }
 
-void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, StringHash material ) {
+void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, u64 entropy ) {
+	RNG rng = new_rng( entropy, 0 );
+
 	Vec3 forward, up;
 	AngleVectors( angles, &forward, NULL, &up );
 
 	Spray spray;
 	spray.origin = origin;
 	spray.normal = normal;
-	spray.material = material;
-	spray.radius = random_uniform_float( &cls.rng, 32.0f, 48.0f );
+	spray.material = random_select( &rng, spray_names );
+	spray.radius = random_uniform_float( &rng, 32.0f, 48.0f );
 	spray.spawn_time = cls.gametime;
 
 	Vec3 left = Cross( normal, up );
@@ -39,7 +46,7 @@ void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, StringHash material ) {
 	OrthonormalBasis( normal, &tangent, &bitangent );
 
 	spray.angle = -atan2f( Dot( decal_up, tangent ), Dot( decal_up, bitangent ) );
-	spray.angle += random_float11( &cls.rng ) * Radians( 10.0f );
+	spray.angle += random_float11( &rng ) * Radians( 10.0f );
 
 	sprays[ ( sprays_head + num_sprays ) % ARRAY_COUNT( sprays ) ] = spray;
 

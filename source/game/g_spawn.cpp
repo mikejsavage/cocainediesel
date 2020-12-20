@@ -28,9 +28,10 @@ enum EntityFieldType {
 	F_FLOAT,
 	F_LSTRING,      // string on disk, pointer in memory, TAG_LEVEL
 	F_HASH,
-	F_MODELHASH,
+	F_ASSET,
 	F_VECTOR,
 	F_ANGLE,
+	F_RGBA,
 };
 
 struct EntityField {
@@ -45,8 +46,10 @@ struct EntityField {
 static const EntityField fields[] = {
 	{ "classname", FOFS( classname ), F_LSTRING },
 	{ "origin", FOFS( s.origin ), F_VECTOR },
-	{ "model", FOFS( s.model ), F_MODELHASH },
-	{ "model2", FOFS( s.model2 ), F_MODELHASH },
+	{ "model", FOFS( s.model ), F_ASSET },
+	{ "model2", FOFS( s.model2 ), F_ASSET },
+	{ "material", FOFS( s.material ), F_ASSET },
+	{ "color", FOFS( s.color ), F_RGBA },
 	{ "spawnflags", FOFS( spawnflags ), F_INT },
 	{ "speed", FOFS( speed ), F_FLOAT },
 	{ "target", FOFS( target ), F_LSTRING },
@@ -60,11 +63,8 @@ static const EntityField fields[] = {
 	{ "style", FOFS( style ), F_INT },
 	{ "count", FOFS( count ), F_INT },
 	{ "health", FOFS( health ), F_FLOAT },
-	{ "light", FOFS( light ), F_FLOAT },
-	{ "color", FOFS( color ), F_VECTOR },
 	{ "dmg", FOFS( dmg ), F_INT },
 	{ "angles", FOFS( s.angles ), F_VECTOR },
-	{ "mangle", FOFS( s.angles ), F_VECTOR },
 	{ "angle", FOFS( s.angles ), F_ANGLE },
 	{ "mass", FOFS( mass ), F_INT },
 	{ "random", FOFS( random ), F_FLOAT },
@@ -78,16 +78,15 @@ static const EntityField fields[] = {
 	{ "noise_start", STOFS( noise_start ), F_HASH, FFL_SPAWNTEMP },
 	{ "noise_stop", STOFS( noise_stop ), F_HASH, FFL_SPAWNTEMP },
 	{ "pausetime", STOFS( pausetime ), F_FLOAT, FFL_SPAWNTEMP },
-	{ "gravity", STOFS( gravity ), F_LSTRING, FFL_SPAWNTEMP },
 	{ "gameteam", STOFS( gameteam ), F_INT, FFL_SPAWNTEMP },
 	{ "size", STOFS( size ), F_INT, FFL_SPAWNTEMP },
+	{ "spawn_probability", STOFS( spawn_probability ), F_FLOAT, FFL_SPAWNTEMP },
 };
 
-typedef struct
-{
+struct spawn_t {
 	const char *name;
 	void ( *spawn )( edict_t *ent );
-} spawn_t;
+};
 
 static void SP_worldspawn( edict_t *ent );
 
@@ -96,7 +95,6 @@ static spawn_t spawns[] = {
 	{ "info_player_deathmatch", SP_info_player_deathmatch },
 
 	{ "post_match_camera", SP_post_match_camera },
-	{ "info_player_intermission", SP_post_match_camera },
 
 	{ "func_plat", SP_func_plat },
 	{ "func_button", SP_func_button },
@@ -115,7 +113,6 @@ static spawn_t spawns[] = {
 	{ "trigger_push", SP_trigger_push },
 	{ "trigger_hurt", SP_trigger_hurt },
 	{ "trigger_elevator", SP_trigger_elevator },
-	{ "trigger_gravity", SP_trigger_gravity },
 
 	{ "target_explosion", SP_target_explosion },
 	{ "target_laser", SP_target_laser },
@@ -131,10 +128,13 @@ static spawn_t spawns[] = {
 	{ "trigger_teleport", SP_trigger_teleport },
 	{ "misc_teleporter_dest", SP_target_position },
 
-	{ "misc_model", SP_misc_model },
 	{ "model", SP_model },
+	{ "decal", SP_decal },
 
+	{ "spike", SP_spike },
 	{ "spikes", SP_spikes },
+
+	{ "speaker_wall", SP_speaker_wall },
 };
 
 /*
@@ -171,88 +171,30 @@ bool G_CallSpawn( edict_t *ent ) {
 }
 
 /*
-* G_GetEntitySpawnKey
-*/
-const char *G_GetEntitySpawnKey( const char *key, edict_t *self ) {
-	static char value[MAX_TOKEN_CHARS];
-	char keyname[MAX_TOKEN_CHARS];
-	char *com_token;
-	const char *data = NULL;
-
-	value[0] = 0;
-
-	if( self ) {
-		data = self->spawnString;
-	}
-
-	if( data && data[0] && key && key[0] ) {
-		// go through all the dictionary pairs
-		while( 1 ) {
-			// parse key
-			com_token = COM_Parse( &data );
-			if( com_token[0] == '}' ) {
-				break;
-			}
-
-			if( !data ) {
-				Com_Error( ERR_DROP, "G_GetEntitySpawnKey: EOF without closing brace" );
-			}
-
-			Q_strncpyz( keyname, com_token, sizeof( keyname ) );
-
-			// parse value
-			com_token = COM_Parse( &data );
-			if( !data ) {
-				Com_Error( ERR_DROP, "G_GetEntitySpawnKey: EOF without closing brace" );
-			}
-
-			if( com_token[0] == '}' ) {
-				Com_Error( ERR_DROP, "G_GetEntitySpawnKey: closing brace without data" );
-			}
-
-			// key names with a leading underscore are used for utility comments and are immediately discarded
-			if( keyname[0] == '_' ) {
-				continue;
-			}
-
-			if( !Q_stricmp( key, keyname ) ) {
-				Q_strncpyz( value, com_token, sizeof( value ) );
-				break;
-			}
-		}
-	}
-
-	return value;
-}
-
-/*
 * ED_NewString
 */
-static char *ED_NewString( const char *string ) {
-	char *newb, *new_p;
-	size_t i, l;
+static char *ED_NewString( Span< const char > token ) {
+	char * newb = &level.map_parsed_ents[ level.map_parsed_len ];
+	level.map_parsed_len += token.n + 1;
 
-	l = strlen( string ) + 1;
-	newb = &level.map_parsed_ents[level.map_parsed_len];
-	level.map_parsed_len += l;
+	char * new_p = newb;
 
-	new_p = newb;
-
-	for( i = 0; i < l; i++ ) {
-		if( string[i] == '\\' && i < l - 1 ) {
+	for( size_t i = 0; i < token.n; i++ ) {
+		if( token[ i ] == '\\' && i < token.n - 1 ) {
 			i++;
-			if( string[i] == 'n' ) {
+			if( token[ i ] == 'n' ) {
 				*new_p++ = '\n';
 			} else {
 				*new_p++ = '/';
-				*new_p++ = string[i];
+				*new_p++ = token[ i ];
 			}
 		} else {
-			*new_p++ = string[i];
+			*new_p++ = token[ i ];
 		}
 	}
 
 	*new_p = '\0';
+
 	return newb;
 }
 
@@ -262,9 +204,9 @@ static char *ED_NewString( const char *string ) {
 * Takes a key/value pair and sets the binary values
 * in an edict
 */
-static void ED_ParseField( char *key, char *value, edict_t *ent ) {
+static void ED_ParseField( Span< const char > key, Span< const char > value, edict_t * ent ) {
 	for( EntityField f : fields ) {
-		if( Q_stricmp( f.name, key ) != 0 )
+		if( !StrCaseEqual( f.name, key ) )
 			continue;
 
 		uint8_t *b;
@@ -281,105 +223,83 @@ static void ED_ParseField( char *key, char *value, edict_t *ent ) {
 			case F_HASH:
 				*(StringHash *)( b + f.ofs ) = StringHash( value );
 				break;
-			case F_MODELHASH:
+			case F_ASSET:
 				if( value[ 0 ] == '*' ) {
-					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value, strlen( value ), svs.cms->base_hash ) );
+					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value.ptr, value.n, svs.cms->base_hash ) );
 				}
 				else {
 					*(StringHash *)( b + f.ofs ) = StringHash( value );
 				}
 				break;
 			case F_INT:
-				*(int *)( b + f.ofs ) = atoi( value );
+				*(int *)( b + f.ofs ) = SpanToInt( value, 0 );
 				break;
 			case F_FLOAT:
-				*(float *)( b + f.ofs ) = atof( value );
+				*(float *)( b + f.ofs ) = SpanToFloat( value, 0.0f );
 				break;
 			case F_ANGLE:
-				*(Vec3 *)( b + f.ofs ) = Vec3( 0.0f, atof( value ), 0.0f );
+				*(Vec3 *)( b + f.ofs ) = Vec3( 0.0f, SpanToFloat( value, 0.0f ), 0.0f );
 				break;
 
 			case F_VECTOR: {
 				Vec3 vec;
-				sscanf( value, "%f %f %f", &vec.x, &vec.y, &vec.z );
+				vec.x = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+				vec.y = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+				vec.z = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
 				*(Vec3 *)( b + f.ofs ) = vec;
+			} break;
+
+			case F_RGBA: {
+				RGBA8 rgba;
+				rgba.r = ParseInt( &value, 255, Parse_StopOnNewLine );
+				rgba.g = ParseInt( &value, 255, Parse_StopOnNewLine );
+				rgba.b = ParseInt( &value, 255, Parse_StopOnNewLine );
+				rgba.a = ParseInt( &value, 255, Parse_StopOnNewLine );
+				*(RGBA8 *)( b + f.ofs ) = rgba;
 			} break;
 		}
 		return;
 	}
 
 	if( developer->integer ) {
-		Com_Printf( "%s is not a field\n", key );
+		Com_GGPrint( "{} is not a field", key );
 	}
 }
 
-/*
-* ED_ParseEdict
-*
-* Parses an edict out of the given string, returning the new position
-* ed should be a properly initialized empty edict.
-*/
-static char *ED_ParseEdict( char *data, edict_t *ent ) {
-	bool init;
-	char keyname[256];
-	char *com_token;
-
-	init = false;
+static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent ) {
 	memset( &st, 0, sizeof( st ) );
-	level.spawning_entity = ent;
+	st.spawn_probability = 1.0f;
 
-	// go through all the dictionary pairs
-	while( 1 ) {
-		// parse key
-		com_token = COM_Parse( &data );
-		if( com_token[0] == '}' ) {
+	while( true ) {
+		Span< const char > key = ParseToken( cursor, Parse_DontStopOnNewLine );
+		if( key == "}" )
 			break;
-		}
-		if( !data ) {
+		if( key == "" ) {
 			Com_Error( ERR_DROP, "ED_ParseEntity: EOF without closing brace" );
 		}
 
-		Q_strncpyz( keyname, com_token, sizeof( keyname ) );
-
-		// parse value
-		com_token = COM_Parse( &data );
-		if( !data ) {
+		Span< const char > value = ParseToken( cursor, Parse_StopOnNewLine );
+		if( value == "" ) {
 			Com_Error( ERR_DROP, "ED_ParseEntity: EOF without closing brace" );
 		}
-
-		if( com_token[0] == '}' ) {
+		if( value == "}" ) {
 			Com_Error( ERR_DROP, "ED_ParseEntity: closing brace without data" );
 		}
 
-		init = true;
-
-		// keynames with a leading underscore are used for utility comments,
-		// and are immediately discarded by quake
-		if( keyname[0] == '_' ) {
-			continue;
-		}
-
-		ED_ParseField( keyname, com_token, ent );
+		ED_ParseField( key, value, ent );
 	}
-
-	if( !init ) {
-		ent->classname = NULL;
-	}
-
-	return data;
 }
 
 /*
 * G_FreeEntities
 */
 static void G_FreeEntities( void ) {
-	int i;
-
 	if( !level.time ) {
 		memset( game.edicts, 0, game.maxentities * sizeof( game.edicts[0] ) );
-	} else {
+	}
+	else {
 		G_FreeEdict( world );
-		for( i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+		for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
 			if( game.edicts[i].r.inuse ) {
 				G_FreeEdict( game.edicts + i );
 			}
@@ -393,52 +313,41 @@ static void G_FreeEntities( void ) {
 * G_SpawnEntities
 */
 static void G_SpawnEntities( void ) {
-	int i;
-	edict_t *ent;
-	char *token;
-	char *entities;
-
 	level.spawnedTimeStamp = svs.gametime;
 	level.canSpawnEntities = true;
 
-	entities = level.mapString;
 	level.map_parsed_ents[0] = 0;
 	level.map_parsed_len = 0;
 
-	i = 0;
-	ent = NULL;
-	while( 1 ) {
-		level.spawning_entity = NULL;
+	Span< const char > cursor = MakeSpan( level.mapString );
+	edict_t * ent = NULL;
 
+	while( true ) {
 		// parse the opening brace
-		token = COM_Parse( &entities );
-		if( !entities ) {
+		Span< const char > brace = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		if( brace == "" )
 			break;
-		}
-		if( token[0] != '{' ) {
-			Com_Error( ERR_DROP, "G_SpawnMapEntities: found %s when expecting {", token );
+		if( brace != "{" ) {
+			Com_Error( ERR_DROP, "G_SpawnEntities: entity string doesn't begin with {" );
 		}
 
-		if( !ent ) {
+		if( ent == NULL ) {
 			ent = world;
 			G_InitEdict( world );
-		} else {
+		}
+		else {
 			ent = G_Spawn();
 		}
 
-		ent->spawnString = entities; // keep track of string definition of this entity
+		ED_ParseEntity( &cursor, ent );
 
-		entities = ED_ParseEdict( entities, ent );
-		if( !ent->classname ) {
-			i++;
-			G_FreeEdict( ent );
-			continue;
-		}
+		bool ok = true;
+		ok = ok && ent->classname != NULL;
+		ok = ok && random_p( &svs.rng, st.spawn_probability );
+		ok = ok && G_CallSpawn( ent );
 
-		if( !G_CallSpawn( ent ) ) {
-			i++;
+		if( !ok ) {
 			G_FreeEdict( ent );
-			continue;
 		}
 	}
 
@@ -480,7 +389,6 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	G_StringPoolInit();
 
 	level.time = levelTime;
-	level.gravity = GRAVITY;
 
 	// get the strings back
 	level.mapString = ( char * )G_LevelMalloc( entstrlen + 1 );
@@ -610,8 +518,4 @@ static void SP_worldspawn( edict_t *ent ) {
 	const char * model_name = "*0";
 	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), svs.cms->base_hash ) );
 	GClip_SetBrushModel( ent );
-
-	if( st.gravity ) {
-		level.gravity = atof( st.gravity );
-	}
 }

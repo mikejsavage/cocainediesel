@@ -17,13 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// cg_pmodels.h -- local definitions for pmodels and view weapon
-
-//=============================================================================
-//
-//							SPLITMODELS
-//
-//=============================================================================
 
 extern cvar_t *cg_weaponFlashes;
 extern cvar_t *cg_gunx;
@@ -181,8 +174,6 @@ struct PlayerModelMetadata {
 		float loop_from; // we only loop the last part of the animation
 	};
 
-	u64 name_hash;
-
 	const Model * model;
 	const SoundEffect * sounds[ PlayerSound_Count ];
 
@@ -190,19 +181,14 @@ struct PlayerModelMetadata {
 	u8 head_rotator_node;
 	u8 upper_root_node;
 
-	Tag tag_backpack;
-	Tag tag_head;
+	Tag tag_bomb;
+	Tag tag_hat;
 	Tag tag_weapon;
 
 	AnimationClip clips[ PMODEL_TOTAL_ANIMATIONS ];
-
-	PlayerModelMetadata *next;
 };
 
 struct pmodel_t {
-	// static data
-	const PlayerModelMetadata * metadata;
-
 	// dynamic
 	pmodel_animationstate_t animState;
 
@@ -227,11 +213,11 @@ void CG_MoveToTag( Vec3 * move_origin,
 				   Vec3 tag_origin,
 				   const mat3_t tag_axis );
 
-//pmodels
-void CG_PModelsInit( void );
-void CG_PModelsShutdown( void );
+void InitPlayerModels();
+const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num );
+
 void CG_ResetPModels( void );
-PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename );
+
 void CG_DrawPlayer( centity_t * cent );
 bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result );
 void CG_UpdatePlayerModelEnt( centity_t *cent );

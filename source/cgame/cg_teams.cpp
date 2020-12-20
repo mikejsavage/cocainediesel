@@ -1,28 +1,7 @@
-/*
-Copyright (C) 2006 Pekka Lampila ("Medar"), Damien Deville ("Pb")
-and German Garcia Fernandez ("Jal") for Chasseur de bots association.
-
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/
-
 #include "cgame/cg_local.h"
 #include "client/renderer/srgb.h"
 
-static bool CG_IsAlly( int team ) {
+bool CG_IsAlly( int team ) {
 	if( team == TEAM_ALLY || team == TEAM_ENEMY )
 		return team == TEAM_ALLY;
 
@@ -34,36 +13,6 @@ static bool CG_IsAlly( int team ) {
 	return team == myteam;
 }
 
-static void CG_RegisterPlayerModel( cvar_t *modelCvar, PlayerModelMetadata **model ) {
-	if( !modelCvar->modified )
-		return;
-	modelCvar->modified = false;
-
-	*model = NULL;
-
-	const char * name = modelCvar->string;
-	PlayerModelMetadata * new_model = CG_RegisterPlayerModel( va( "players/%s", name ) );
-	if( new_model == NULL ) {
-		name = modelCvar->dvalue;
-		new_model = CG_RegisterPlayerModel( va( "players/%s", name ) );
-	}
-
-	if( new_model != NULL ) {
-		*model = new_model;
-	}
-}
-
-static void CG_CheckUpdateTeamModelRegistration( bool ally ) {
-	cvar_t * modelCvar = ally ? cg_allyModel : cg_enemyModel;
-	CG_RegisterPlayerModel( modelCvar, &cgs.teamModelInfo[ int( ally ) ] );
-}
-
-const PlayerModelMetadata * CG_PModelForCentity( centity_t * cent ) {
-	bool ally = CG_IsAlly( cent->current.team );
-	CG_CheckUpdateTeamModelRegistration( ally );
-	return cgs.teamModelInfo[ int( ally ) ];
-}
-
 RGB8 CG_TeamColor( int team ) {
 	if( team == TEAM_PLAYERS )
 		return RGB8( 255, 255, 255 );
@@ -73,9 +22,4 @@ RGB8 CG_TeamColor( int team ) {
 
 Vec4 CG_TeamColorVec4( int team ) {
 	return Vec4( sRGBToLinear( CG_TeamColor( team ) ), 1.0f );
-}
-
-void CG_RegisterPlayerModels() {
-	CG_CheckUpdateTeamModelRegistration( true );
-	CG_CheckUpdateTeamModelRegistration( false );
 }

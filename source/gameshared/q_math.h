@@ -114,3 +114,5 @@ Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p );
 
 Mat4 Mat4RotationAxisSinCos( Vec3 axis, float s, float c );
 Mat4 TransformKToDir( Vec3 dir );
+
+MinMax3 Extend( MinMax3 bounds, Vec3 p );

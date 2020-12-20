@@ -52,10 +52,10 @@ struct DrawCall {
 	VertexBuffer feedback_data;
 };
 
-static DynamicArray< RenderPass > render_passes( NO_RAII );
-static DynamicArray< DrawCall > draw_calls( NO_RAII );
-static DynamicArray< Mesh > deferred_mesh_deletes( NO_RAII );
-static DynamicArray< TextureBuffer > deferred_tb_deletes( NO_RAII );
+static NonRAIIDynamicArray< RenderPass > render_passes;
+static NonRAIIDynamicArray< DrawCall > draw_calls;
+static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
+static NonRAIIDynamicArray< TextureBuffer > deferred_tb_deletes;
 
 static u32 num_vertices_this_frame;
 
@@ -195,6 +195,20 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 	*normalized = false;
 
 	switch( format ) {
+		case VertexFormat_U8x2:
+		case VertexFormat_U8x2_Norm:
+			*type = GL_UNSIGNED_BYTE;
+			*num_components = 2;
+			*integral = true;
+			*normalized = format == VertexFormat_U8x2_Norm;
+			return;
+		case VertexFormat_U8x3:
+		case VertexFormat_U8x3_Norm:
+			*type = GL_UNSIGNED_BYTE;
+			*num_components = 3;
+			*integral = true;
+			*normalized = format == VertexFormat_U8x3_Norm;
+			return;
 		case VertexFormat_U8x4:
 		case VertexFormat_U8x4_Norm:
 			*type = GL_UNSIGNED_BYTE;
@@ -203,6 +217,20 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*normalized = format == VertexFormat_U8x4_Norm;
 			return;
 
+		case VertexFormat_U16x2:
+		case VertexFormat_U16x2_Norm:
+			*type = GL_UNSIGNED_SHORT;
+			*num_components = 2;
+			*integral = true;
+			*normalized = format == VertexFormat_U16x2_Norm;
+			return;
+		case VertexFormat_U16x3:
+		case VertexFormat_U16x3_Norm:
+			*type = GL_UNSIGNED_SHORT;
+			*num_components = 3;
+			*integral = true;
+			*normalized = format == VertexFormat_U16x3_Norm;
+			return;
 		case VertexFormat_U16x4:
 		case VertexFormat_U16x4_Norm:
 			*type = GL_UNSIGNED_SHORT;
@@ -217,23 +245,6 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*integral = true;
 			return;
 
-		case VertexFormat_Halfx2:
-			*type = GL_HALF_FLOAT;
-			*num_components = 2;
-			return;
-		case VertexFormat_Halfx3:
-			*type = GL_HALF_FLOAT;
-			*num_components = 3;
-			return;
-		case VertexFormat_Halfx4:
-			*type = GL_HALF_FLOAT;
-			*num_components = 4;
-			return;
-
-		case VertexFormat_Floatx1:
-			*type = GL_FLOAT;
-			*num_components = 1;
-			return;
 		case VertexFormat_Floatx2:
 			*type = GL_FLOAT;
 			*num_components = 2;
@@ -672,7 +683,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 static void SubmitResolveMSAA( Framebuffer fb ) {
 	assert( fb.width == frame_static.viewport_width && fb.height == frame_static.viewport_height );
 	glBindFramebuffer( GL_READ_FRAMEBUFFER, fb.fbo );
-	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
+	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST );
 }
 
 void RenderBackendSubmitFrame() {

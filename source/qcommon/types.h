@@ -49,7 +49,6 @@ typedef uint64_t u64;
  */
 
 struct Allocator {
-	virtual ~Allocator() { }
 	virtual void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) = 0;
 	virtual void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) = 0;
 	void * allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
@@ -142,13 +141,6 @@ template< typename T >
 T Clamp01( const T & x ) {
 	return Clamp( T( 0.0f ), x, T( 1.0f ) );
 }
-
-/*
- * NoInit
- */
-
-enum class NoRAII { NoRAII };
-constexpr NoRAII NO_RAII = NoRAII::NoRAII;
 
 /*
  * Span

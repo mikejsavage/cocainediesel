@@ -409,13 +409,13 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 				config->num_random_sounds++;
 			}
 			else if( key == "delay" ) {
-				if( !SpanToFloat( value, &config->delay ) ) {
+				if( !TrySpanToFloat( value, &config->delay ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to delay should be a number\n" );
 					return false;
 				}
 			}
 			else if( key == "volume" ) {
-				if( !SpanToFloat( value, &config->volume ) ) {
+				if( !TrySpanToFloat( value, &config->volume ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to volume should be a number\n" );
 					return false;
 				}

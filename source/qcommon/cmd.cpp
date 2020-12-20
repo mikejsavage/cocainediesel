@@ -17,20 +17,19 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// cmd.c -- Quake script command processing module
 
-#include "qcommon.h"
+#include "qcommon/qcommon.h"
 #include "qcommon/q_trie.h"
 #include "client/console.h"
 
 #define MAX_ALIAS_NAME      64
 #define ALIAS_LOOP_COUNT    16
 
-typedef struct cmdalias_s {
+struct cmd_alias_t {
 	char *name;
 	char *value;
 	bool archive;
-} cmd_alias_t;
+};
 
 static bool cmd_preinitialized = false;
 static bool cmd_initialized = false;
@@ -473,7 +472,7 @@ static void Cmd_AliasList_f( void ) {
 	char *pattern;
 	unsigned int size;
 	unsigned int i;
-	struct trie_dump_s *dump = NULL;
+	trie_dump_t *dump = NULL;
 
 	assert( cmd_alias_trie );
 
@@ -607,7 +606,7 @@ static void Cmd_Unalias_f( void ) {
 * Removes an alias command
 */
 static void Cmd_UnaliasAll_f( void ) {
-	struct trie_dump_s *dump;
+	trie_dump_t *dump;
 	unsigned int i;
 
 	assert( cmd_alias_trie );
@@ -629,12 +628,11 @@ COMMAND EXECUTION
 =============================================================================
 */
 
-typedef struct cmd_function_s {
+struct cmd_function_t {
 	char *name;
 	xcommand_t function;
 	xcompletionf_t completion_func;
-} cmd_function_t;
-
+};
 
 static int cmd_argc;
 static char *cmd_argv[MAX_STRING_TOKENS];
@@ -687,8 +685,6 @@ char *Cmd_Args( void ) {
 * Takes a null terminated string.  Does not need to be /n terminated.
 */
 void Cmd_TokenizeString( const char *text ) {
-	char *com_token;
-
 	cmd_argc = 0;
 	cmd_args[0] = 0;
 
@@ -696,7 +692,7 @@ void Cmd_TokenizeString( const char *text ) {
 		return;
 	}
 
-	for(;; ) {
+	while( true ) {
 		// skip whitespace up to a /n
 		while( *text && (unsigned char)*text <= ' ' && *text != '\n' )
 			text++;
@@ -729,21 +725,18 @@ void Cmd_TokenizeString( const char *text ) {
 				}
 		}
 
-		com_token = COM_Parse( &text );
-		if( !text ) {
+		Span< const char > token = ParseToken( &text, Parse_StopOnNewLine );
+		if( token.ptr == NULL )
 			return;
-		}
 
 		if( cmd_argc < MAX_STRING_TOKENS ) {
-			size_t size = strlen( com_token ) + 1;
-			if( cmd_argv_sizes[cmd_argc] < size ) {
-				cmd_argv_sizes[cmd_argc] = Min2( size + 64, size_t( MAX_TOKEN_CHARS ) );
-				if( cmd_argv[cmd_argc] ) {
-					Mem_ZoneFree( cmd_argv[cmd_argc] );
-				}
-				cmd_argv[cmd_argc] = ( char * ) Mem_ZoneMalloc( cmd_argv_sizes[cmd_argc] );
+			if( cmd_argv_sizes[cmd_argc] < token.n + 1 ) {
+				size_t new_size = Min2( token.n + 64, size_t( MAX_TOKEN_CHARS ) );
+				cmd_argv[cmd_argc] = REALLOC_MANY( sys_allocator, char, cmd_argv[cmd_argc], cmd_argv_sizes[cmd_argc], new_size );
+				cmd_argv_sizes[cmd_argc] = new_size;
 			}
-			strcpy( cmd_argv[cmd_argc], com_token );
+			memcpy( cmd_argv[cmd_argc], token.ptr, token.n );
+			cmd_argv[cmd_argc][token.n] = '\0';
 			cmd_argc++;
 		}
 	}
@@ -859,7 +852,7 @@ int Cmd_CompleteCountPossible( const char *partial ) {
 * Cmd_CompleteBuildList
 */
 const char **Cmd_CompleteBuildList( const char *partial ) {
-	struct trie_dump_s *dump;
+	trie_dump_t *dump;
 	const char **buf;
 	unsigned int i;
 
@@ -1092,7 +1085,7 @@ int Cmd_CompleteAliasCountPossible( const char *partial ) {
 Cmd_CompleteAliasBuildList
 */
 const char **Cmd_CompleteAliasBuildList( const char *partial ) {
-	struct trie_dump_s *dump;
+	trie_dump_t *dump;
 	const char **buf;
 	unsigned int i;
 
@@ -1198,7 +1191,7 @@ void Cmd_ExecuteString( const char *text ) {
 * Cmd_List_f
 */
 static void Cmd_List_f( void ) {
-	struct trie_dump_s *dump = NULL;
+	trie_dump_t *dump = NULL;
 	unsigned int i;
 	char *pattern;
 
@@ -1268,7 +1261,7 @@ void Cmd_Init( void ) {
 void Cmd_Shutdown( void ) {
 	if( cmd_initialized ) {
 		unsigned int i;
-		struct trie_dump_s *dump;
+		trie_dump_t *dump;
 
 		assert( cmd_alias_trie );
 		assert( cmd_function_trie );
@@ -1284,7 +1277,7 @@ void Cmd_Shutdown( void ) {
 
 		// this is somewhat ugly IMO
 		for( i = 0; i < MAX_STRING_TOKENS && cmd_argv_sizes[i]; i++ ) {
-			Mem_ZoneFree( cmd_argv[i] );
+			FREE( sys_allocator, cmd_argv[i] );
 			cmd_argv_sizes[i] = 0;
 		}
 

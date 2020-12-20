@@ -684,7 +684,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 				GPUParticleFeedback feedback = ps->particles_feedback[ index ];
 				if ( !ParticleFeedback( ps, &feedback ) ) {
 					ps->num_particles--;
-					Swap2( &ps->gpu_instances[ index ], &ps->gpu_instances[ ps->num_particles ] );
+					Swap2( &ps->gpu_instances[ i ], &ps->gpu_instances[ ps->num_particles ] );
 					i--;
 				}
 			}
@@ -879,7 +879,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 color ) {
 	ZoneScoped;
 
-	if( !emitter ) {
+	if( emitter == NULL ) {
 		return;
 	}
 
@@ -921,8 +921,7 @@ void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, floa
 }
 
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count ) {
-	if( emitter )
-		EmitParticles( emitter, pos, count, Vec4( 1.0f ) );
+	EmitParticles( emitter, pos, count, Vec4( 1.0f ) );
 }
 
 ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, Vec3 normal, float theta, float radius ) {
@@ -983,9 +982,9 @@ void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color ) {
 
 void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec4 color ) {
 	VisualEffectGroup * vfx = FindVisualEffectGroup( name );
-	if( !vfx ) {
+	if( vfx == NULL )
 		return;
-	}
+
 	for( size_t i = 0; i < vfx->num_effects; i++ ) {
 		VisualEffect e = vfx->effects[ i ];
 		if( e.type == VisualEffectType_Particles ) {

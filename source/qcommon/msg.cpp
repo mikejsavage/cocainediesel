@@ -477,6 +477,8 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.type, baseline.type );
 	Delta( buf, ent.solid, baseline.solid );
 	Delta( buf, ent.model, baseline.model );
+	Delta( buf, ent.material, baseline.material );
+	Delta( buf, ent.color, baseline.color );
 	Delta( buf, ent.svflags, baseline.svflags );
 	Delta( buf, ent.effects, baseline.effects );
 	Delta( buf, ent.ownerNum, baseline.ownerNum );
@@ -600,7 +602,6 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 	Delta( buf, pmove.max_speed, baseline.max_speed );
 	Delta( buf, pmove.jump_speed, baseline.jump_speed );
 	Delta( buf, pmove.dash_speed, baseline.dash_speed );
-	Delta( buf, pmove.gravity, baseline.gravity );
 }
 
 static void Delta( DeltaBuffer * buf, SyncPlayerState::WeaponInfo & weapon, const SyncPlayerState::WeaponInfo & baseline ) {

@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "q_arch.h"
-
 //==========================================================
 //
 //CVARS (console variables)
@@ -44,7 +42,7 @@ typedef int cvar_flag_t;
 #define CVAR_FROMCONFIG     512     // set by the user's config, don't trim it
 
 // nothing outside the Cvar_*() functions should access these fields!!!
-typedef struct cvar_s {
+struct cvar_t {
 	char *name;
 	char *string;
 	char *dvalue;
@@ -53,4 +51,4 @@ typedef struct cvar_s {
 	bool modified;          // set each time the cvar is changed
 	float value;
 	int integer;
-} cvar_t;
+};

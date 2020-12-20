@@ -42,8 +42,6 @@ cvar_t *cg_gunbob;
 
 cvar_t *cg_handOffset;
 cvar_t *cg_gun_fov;
-cvar_t *cg_volume_announcer;
-cvar_t *cg_volume_hitsound;
 cvar_t *cg_voiceChats;
 cvar_t *cg_projectileAntilagOffset;
 cvar_t *cg_chatFilter;
@@ -54,9 +52,6 @@ cvar_t *cg_autoaction_demo;
 cvar_t *cg_autoaction_screenshot;
 cvar_t *cg_autoaction_spectator;
 cvar_t *cg_showClamp;
-
-cvar_t *cg_allyModel;
-cvar_t *cg_enemyModel;
 
 cvar_t *cg_particleDebug;
 
@@ -152,9 +147,6 @@ static void CG_RegisterVariables( void ) {
 
 	cg_gun_fov =        Cvar_Get( "cg_gun_fov", "90", CVAR_ARCHIVE );
 
-	// wsw
-	cg_volume_announcer =   Cvar_Get( "cg_volume_announcer", "1.0", CVAR_ARCHIVE );
-	cg_volume_hitsound =    Cvar_Get( "cg_volume_hitsound", "1.0", CVAR_ARCHIVE );
 	cg_handOffset =     Cvar_Get( "cg_handOffset", "5", CVAR_ARCHIVE );
 	cg_autoaction_demo =    Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
 	cg_autoaction_screenshot =  Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );
@@ -166,14 +158,7 @@ static void CG_RegisterVariables( void ) {
 
 	cg_chatFilter =     Cvar_Get( "cg_chatFilter", "0", CVAR_ARCHIVE );
 
-	// developer cvars
 	cg_showClamp = Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
-
-	cg_allyModel = Cvar_Get( "cg_allyModel", "bigvic", CVAR_ARCHIVE );
-	cg_allyModel->modified = true;
-
-	cg_enemyModel = Cvar_Get( "cg_enemyModel", "padpork", CVAR_ARCHIVE );
-	cg_enemyModel->modified = true;
 
 	cg_particleDebug = Cvar_Get( "cg_particleDebug", "0", CVAR_DEVELOPER );
 
@@ -186,7 +171,6 @@ void CG_Precache( void ) {
 	}
 
 	CG_RegisterMediaModels();
-	CG_RegisterPlayerModels();
 	CG_RegisterMediaSounds();
 	CG_RegisterMediaSounds();
 	CG_RegisterMediaShaders();
@@ -273,7 +257,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_InitInput();
 
 	CG_RegisterVariables();
-	CG_PModelsInit();
+	InitPlayerModels();
 	InitWeaponModels();
 
 	CG_ScreenInit();
@@ -318,7 +302,6 @@ void CG_Shutdown() {
 	ShutdownPhysics();
 	CG_DemocamShutdown();
 	CG_UnregisterCGameCommands();
-	CG_PModelsShutdown();
 	CG_ShutdownChat();
 	CG_ShutdownInput();
 	CG_ShutdownHUD();

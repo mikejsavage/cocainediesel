@@ -231,8 +231,12 @@ static T SampleAnimationChannel( const Model::AnimationChannel< T > & channel, f
 		}
 	}
 
-	float lerp_frac = ( t - channel.times[ sample ] ) / ( channel.times[ sample + 1 ] - channel.times[ sample ] );
+	// TODO: cubic
+	if( channel.interpolation == InterpolationMode_Step ) {
+		return channel.samples[ sample ];
+	}
 
+	float lerp_frac = ( t - channel.times[ sample ] ) / ( channel.times[ sample + 1 ] - channel.times[ sample ] );
 	return lerp( channel.samples[ sample ], lerp_frac, channel.samples[ sample + 1 ] );
 }
 

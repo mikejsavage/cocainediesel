@@ -390,7 +390,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	}
 
 	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes", frame_static.postprocess_fb );
-	frame_static.postprocess_pass = AddRenderPass( "Postprocess" );
+	frame_static.postprocess_pass = AddRenderPass( "Postprocess", ClearColor_Do );
 	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI" );
 }
 

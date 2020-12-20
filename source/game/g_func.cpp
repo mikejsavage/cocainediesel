@@ -919,7 +919,7 @@ static void button_touch( edict_t *self, edict_t *other, cplane_t *plane, int su
 	button_fire( self );
 }
 
-static void button_killed( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point ) {
+static void button_killed( edict_t *self, edict_t *inflictor, edict_t *attacker, int assistor, int damage, Vec3 point ) {
 	self->activator = attacker;
 	self->health = self->max_health;
 	self->takedamage = DAMAGE_NO;
@@ -1179,7 +1179,6 @@ void SP_func_train( edict_t *self ) {
 
 	self->moveinfo.speed = self->speed;
 	self->use = train_use;
-	self->s.effects = EF_WORLD_MODEL;
 
 	GClip_LinkEntity( self );
 
@@ -1292,7 +1291,7 @@ void SP_func_timer( edict_t *self ) {
 
 	if( self->spawnflags & 1 ) {
 		self->nextThink = level.time + 1000 *
-						  ( 1.0 + st.pausetime + self->delay + self->wait + random_float11( &svs.rng ) * self->random );
+						  ( 1.0f + st.pausetime + self->delay + self->wait + random_float11( &svs.rng ) * self->random );
 		self->activator = self;
 	}
 }

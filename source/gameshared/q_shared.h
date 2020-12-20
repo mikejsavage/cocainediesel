@@ -72,11 +72,14 @@ enum ParseStopOnNewLine {
 Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop );
 Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop );
 
+bool TrySpanToInt( Span< const char > str, int * x );
+bool TrySpanToFloat( Span< const char > str, float * x );
+
+int SpanToInt( Span< const char > token, int def );
+float SpanToFloat( Span< const char > token, float def );
+
 int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop );
 float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop );
-
-bool SpanToInt( Span< const char > str, int * x );
-bool SpanToFloat( Span< const char > str, float * x );
 
 bool StrEqual( Span< const char > lhs, Span< const char > rhs );
 bool StrEqual( Span< const char > lhs, const char * rhs );
@@ -95,20 +98,12 @@ template< size_t N > bool operator==( const char ( &str )[ N ], Span< const char
 template< size_t N > bool operator!=( Span< const char > span, const char ( &str )[ N ] ) { return !( span == str ); }
 template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char > span ) { return !( span == str ); }
 
+bool StartsWith( Span< const char > str, const char * prefix );
 bool StartsWith( const char * str, const char * prefix );
 
 Span< const char > FileExtension( const char * path );
 Span< const char > BaseName( const char * path );
 Span< const char > BasePath( const char * path );
-
-// data is an in/out parm, returns a parsed out token
-char *COM_ParseExt2_r( char *token, size_t token_size, const char **data_p, bool nl, bool sq );
-#define COM_ParseExt_r( token, token_size, data_p, nl ) COM_ParseExt2_r( token, token_size, (const char **)data_p, nl, true )
-#define COM_Parse_r( token, token_size, data_p )   COM_ParseExt_r( token, token_size, data_p, true )
-
-char *COM_ParseExt2( const char **data_p, bool nl, bool sq );
-#define COM_ParseExt( data_p, nl ) COM_ParseExt2( (const char **)data_p, nl, true )
-#define COM_Parse( data_p )   COM_ParseExt( data_p, true )
 
 const char *COM_RemoveJunkChars( const char *in );
 bool COM_ValidateConfigstring( const char *string );

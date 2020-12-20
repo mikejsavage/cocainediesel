@@ -62,12 +62,12 @@ void CL_InitImGui() {
 	}
 
 	{
-		AddFontAsset( "fonts/Montserrat-SemiBold.ttf", 18.0f );
-		cls.huge_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 128.0f );
-		cls.large_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 64.0f );
-		cls.big_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 48.0f );
-		cls.medium_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 28.0f );
-		cls.console_font = AddFontAsset( "fonts/Montserrat-SemiBold.ttf", 14.0f );
+		AddFontAsset( "fonts/Decalotype-Bold.ttf", 18.0f );
+		cls.huge_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 128.0f );
+		cls.large_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 64.0f );
+		cls.big_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 48.0f );
+		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f );
+		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
 
 		ImGuiFreeType::BuildFontAtlas( io.Fonts );
 

@@ -144,7 +144,7 @@ static bool CG_ClipEntityContact( Vec3 origin, Vec3 mins, Vec3 maxs, int entNum 
 	int64_t serverTime = cg.frame.serverTime;
 
 	// find the cmodel
-	struct cmodel_s * cmodel = CG_CModelForEntity( entNum );
+	cmodel_t * cmodel = CG_CModelForEntity( entNum );
 	if( !cmodel ) {
 		return false;
 	}
@@ -202,7 +202,7 @@ static void CG_ClipMoveToEntities( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, i
 	trace_t trace;
 	Vec3 origin, angles;
 	SyncEntityState *ent;
-	struct cmodel_s *cmodel;
+	cmodel_t *cmodel;
 	int64_t serverTime = cg.frame.serverTime;
 
 	for( i = 0; i < cg_numSolids; i++ ) {
@@ -298,7 +298,7 @@ int CG_PointContents( Vec3 point ) {
 			continue;
 		}
 
-		struct cmodel_s * cmodel = CM_TryFindCModel( CM_Client, ent->model );
+		cmodel_t * cmodel = CM_TryFindCModel( CM_Client, ent->model );
 		if( cmodel ) {
 			contents |= CM_TransformedPointContents( CM_Client, cl.cms, point, cmodel, ent->origin, ent->angles );
 		}

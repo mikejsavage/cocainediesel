@@ -19,33 +19,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "qcommon/hash.h"
+#include "qcommon/hashtable.h"
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 
-pmodel_t cg_entPModels[MAX_EDICTS];
-static PlayerModelMetadata *cg_PModelInfos;
+constexpr StringHash ally_model = "players/rigg_bigvic_sounds/model";
+constexpr StringHash enemy_model = "players/rigg_padpork_sounds/model";
 
-void CG_PModelsInit() {
-	memset( cg_entPModels, 0, sizeof( cg_entPModels ) );
-	cg_PModelInfos = NULL;
-}
+constexpr u32 MAX_PLAYER_MODELS = 128;
 
-void CG_PModelsShutdown() {
-	PlayerModelMetadata * next = cg_PModelInfos;
-	while( next != NULL ) {
-		PlayerModelMetadata * curr = next;
-		next = next->next;
-		CG_Free( curr );
-	}
-}
+pmodel_t cg_entPModels[ MAX_EDICTS ];
 
-void CG_ResetPModels( void ) {
-	for( int i = 0; i < MAX_EDICTS; i++ ) {
-		memset( &cg_entPModels[i].animState, 0, sizeof( pmodel_animationstate_t ) );
-	}
-	memset( &cg.weapon, 0, sizeof( cg.weapon ) );
-}
+static PlayerModelMetadata player_model_metadatas[ MAX_PLAYER_MODELS ];
+static u32 num_player_models;
+static Hashtable< MAX_PLAYER_MODELS * 2 > player_models_hashtable;
 
 static Mat4 EulerAnglesToMat4( float pitch, float yaw, float roll ) {
 	mat3_t axis;
@@ -66,19 +55,7 @@ static Mat4 EulerAnglesToMat4( float pitch, float yaw, float roll ) {
 	return m;
 }
 
-/*
-* CG_ParseAnimationScript
-*
-* Reads the animation config file.
-*
-* 0 = first frame
-* 1 = lastframe
-* 2 = looping frames
-* 3 = fps
-*
-* Note: The animations count begins at 1, not 0. I preserve zero for "no animation change"
-*/
-static bool CG_ParseAnimationScript( PlayerModelMetadata * metadata, const char * filename ) {
+static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * filename ) {
 	int num_clips = 1;
 
 	Span< const char > cursor = AssetString( filename );
@@ -94,29 +71,29 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata * metadata, const char 
 
 		if( cmd == "upper_rotator_joints" ) {
 			Span< const char > node_name0 = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( metadata->model, Hash32( node_name0 ), &metadata->upper_rotator_nodes[ 0 ] );
+			FindNodeByName( meta->model, Hash32( node_name0 ), &meta->upper_rotator_nodes[ 0 ] );
 
 			Span< const char > node_name1 = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( metadata->model, Hash32( node_name1 ), &metadata->upper_rotator_nodes[ 1 ] );
+			FindNodeByName( meta->model, Hash32( node_name1 ), &meta->upper_rotator_nodes[ 1 ] );
 		}
 		else if( cmd == "head_rotator_joint" ) {
 			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( metadata->model, Hash32( node_name ), &metadata->head_rotator_node );
+			FindNodeByName( meta->model, Hash32( node_name ), &meta->head_rotator_node );
 		}
 		else if( cmd == "upper_root_joint" ) {
 			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( metadata->model, Hash32( node_name ), &metadata->upper_root_node );
+			FindNodeByName( meta->model, Hash32( node_name ), &meta->upper_root_node );
 		}
 		else if( cmd == "tag" ) {
 			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
 			u8 node_idx;
-			if( FindNodeByName( metadata->model, Hash32( node_name ), &node_idx ) ) {
+			if( FindNodeByName( meta->model, Hash32( node_name ), &node_idx ) ) {
 				Span< const char > tag_name = ParseToken( &cursor, Parse_StopOnNewLine );
-				PlayerModelMetadata::Tag * tag = &metadata->tag_backpack;
-				if( tag_name == "tag_head" )
-					tag = &metadata->tag_head;
+				PlayerModelMetadata::Tag * tag = &meta->tag_bomb;
+				if( tag_name == "tag_hat" )
+					tag = &meta->tag_hat;
 				else if( tag_name == "tag_weapon" )
-					tag = &metadata->tag_weapon;
+					tag = &meta->tag_weapon;
 
 				float forward = ParseFloat( &cursor, 0.0f, Parse_StopOnNewLine );
 				float right = ParseFloat( &cursor, 0.0f, Parse_StopOnNewLine );
@@ -150,7 +127,7 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata * metadata, const char 
 			clip.duration = float( end_frame - start_frame ) / float( fps );
 			clip.loop_from = clip.duration - float( loop_frames ) / float( fps );
 
-			metadata->clips[ num_clips ] = clip;
+			meta->clips[ num_clips ] = clip;
 			num_clips++;
 		}
 		else {
@@ -163,73 +140,81 @@ static bool CG_ParseAnimationScript( PlayerModelMetadata * metadata, const char 
 		return false;
 	}
 
-	metadata->clips[ ANIM_NONE ].start_time = 0;
-	metadata->clips[ ANIM_NONE ].duration = 0;
-	metadata->clips[ ANIM_NONE ].loop_from = 0;
+	meta->clips[ ANIM_NONE ].start_time = 0;
+	meta->clips[ ANIM_NONE ].duration = 0;
+	meta->clips[ ANIM_NONE ].loop_from = 0;
 
 	return true;
 }
 
-/*
-* CG_LoadPlayerModel
-*/
-static bool CG_LoadPlayerModel( PlayerModelMetadata *metadata, const char *filename ) {
-	ZoneScoped;
+static constexpr const char * PLAYER_SOUND_NAMES[] = {
+	"death",
+	"jump",
+	"pain25", "pain50", "pain75", "pain100",
+	"walljump",
+	"dash",
+};
 
-	TempAllocator temp = cls.frame_arena.temp();
+STATIC_ASSERT( ARRAY_COUNT( PLAYER_SOUND_NAMES ) == PlayerSound_Count );
 
-	bool loaded_model = false;
-
-	metadata->model = FindModel( temp( "{}/model", filename ) );
-
-	// load animations script
-	if( metadata->model ) {
-		loaded_model = CG_ParseAnimationScript( metadata, temp( "{}/model.cfg", filename ) );
+static void FindPlayerSounds( PlayerModelMetadata * meta, Span< const char > dir ) {
+	for( size_t i = 0; i < ARRAY_COUNT( meta->sounds ); i++ ) {
+		TempAllocator temp = cls.frame_arena.temp();
+		const char * path = temp( "{}/{}", dir, PLAYER_SOUND_NAMES[ i ] );
+		meta->sounds[ i ] = FindSoundEffect( path );
 	}
-
-	// clean up if failed
-	if( !loaded_model ) {
-		metadata->model = NULL;
-		return false;
-	}
-
-	metadata->name_hash = Hash64( filename );
-
-	CG_RegisterPlayerSounds( metadata, filename );
-
-	return true;
 }
 
-/*
-* CG_RegisterPModel
-* PModel is not exactly the model, but the indexes of the
-* models contained in the pmodel and it's animation data
-*/
-PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename ) {
-	PlayerModelMetadata *metadata;
+void InitPlayerModels() {
+	num_player_models = 0;
 
-	u64 hash = Hash64( filename );
-	for( metadata = cg_PModelInfos; metadata; metadata = metadata->next ) {
-		if( hash == metadata->name_hash ) {
-			return metadata;
+	for( const char * path : AssetPaths() ) {
+		if( num_player_models == ARRAY_COUNT( player_model_metadatas ) ) {
+			Com_Printf( S_COLOR_RED "Too many player models!\n" );
+			break;
+		}
+
+		Span< const char > ext = FileExtension( path );
+		if( ext == ".glb" && StartsWith( path, "players/" ) ) {
+			Span< const char > path_no_ext = Span< const char >( path, strlen( path ) - ext.n );
+			Span< const char > dir = BasePath( path );
+			u64 hash = Hash64( path_no_ext );
+
+			PlayerModelMetadata * meta = &player_model_metadatas[ num_player_models ];
+			meta->model = FindModel( StringHash( hash ) );
+
+			TempAllocator temp = cls.frame_arena.temp();
+			const char * config_path = temp( "{}/model.cfg", dir );
+			if( !ParsePlayerModelConfig( meta, config_path ) )
+				continue;
+
+			FindPlayerSounds( meta, dir );
+
+			player_models_hashtable.add( hash, num_player_models );
+			num_player_models++;
 		}
 	}
-
-	metadata = ( PlayerModelMetadata * )CG_Malloc( sizeof( PlayerModelMetadata ) );
-	if( !CG_LoadPlayerModel( metadata, filename ) ) {
-		CG_Free( metadata );
-		return NULL;
-	}
-
-	metadata->next = cg_PModelInfos;
-	cg_PModelInfos = metadata;
-
-	return metadata;
 }
 
-//======================================================================
-//							tools
-//======================================================================
+static const PlayerModelMetadata * GetPlayerModelMetadata( StringHash name ) {
+	u64 idx;
+	if( !player_models_hashtable.get( name.hash, &idx ) )
+		return NULL;
+	return &player_model_metadatas[ idx ];
+}
+
+const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num ) {
+	int team = cg_entities[ ent_num ].current.team;
+	StringHash model = CG_IsAlly( team ) ? ally_model : enemy_model;
+	return GetPlayerModelMetadata( model );
+}
+
+void CG_ResetPModels( void ) {
+	for( int i = 0; i < MAX_EDICTS; i++ ) {
+		memset( &cg_entPModels[i].animState, 0, sizeof( pmodel_animationstate_t ) );
+	}
+	memset( &cg.weapon, 0, sizeof( cg.weapon ) );
+}
 
 /*
 * CG_MoveToTag
@@ -532,7 +517,7 @@ static float GetAnimationTime( const PlayerModelMetadata * metadata, int64_t cur
 * continue playing it until a new event chanel animation
 * is fired.
 */
-static void CG_GetAnimationTimes( pmodel_t * pmodel, int64_t curTime, float * lower_time, float * upper_time ) {
+static void CG_GetAnimationTimes( const PlayerModelMetadata * meta, pmodel_t * pmodel, int64_t curTime, float * lower_time, float * upper_time ) {
 	float times[ PMODEL_PARTS ];
 
 	for( int i = LOWER; i < PMODEL_PARTS; i++ ) {
@@ -550,10 +535,10 @@ static void CG_GetAnimationTimes( pmodel_t * pmodel, int64_t curTime, float * lo
 			}
 		}
 
-		times[ i ] = GetAnimationTime( pmodel->metadata, curTime, pmodel->animState.curAnims[ i ][ EVENT_CHANNEL ], false );
+		times[ i ] = GetAnimationTime( meta, curTime, pmodel->animState.curAnims[ i ][ EVENT_CHANNEL ], false );
 		if( times[ i ] == -1.0f ) {
 			pmodel->animState.curAnims[ i ][ EVENT_CHANNEL ].anim = ANIM_NONE;
-			times[ i ] = GetAnimationTime( pmodel->metadata, curTime, pmodel->animState.curAnims[ i ][ BASE_CHANNEL ], true );
+			times[ i ] = GetAnimationTime( meta, curTime, pmodel->animState.curAnims[ i ][ BASE_CHANNEL ], true );
 		}
 	}
 
@@ -660,8 +645,7 @@ void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	memset( &cent->ent, 0, sizeof( cent->ent ) );
 	cent->ent.scale = 1.0f;
 
-	pmodel_t * pmodel = &cg_entPModels[cent->current.number];
-	pmodel->metadata = CG_PModelForCentity( cent );
+	pmodel_t * pmodel = &cg_entPModels[ cent->current.number ];
 
 	cent->ent.color = RGBA8( CG_TeamColor( cent->current.number ) );
 
@@ -769,7 +753,9 @@ static Mat4 TransformTag( const Model * model, const Mat4 & transform, const Mat
 
 void CG_DrawPlayer( centity_t *cent ) {
 	pmodel_t * pmodel = &cg_entPModels[ cent->current.number ];
-	const PlayerModelMetadata * meta = pmodel->metadata;
+	const PlayerModelMetadata * meta = GetPlayerModelMetadata( cent->current.number );
+	if( meta == NULL )
+		return;
 
 	// if viewer model, and casting shadows, offset the entity to predicted player position
 	// for view and shadow accuracy
@@ -795,7 +781,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	float lower_time, upper_time;
-	CG_GetAnimationTimes( pmodel, cl.serverTime, &lower_time, &upper_time );
+	CG_GetAnimationTimes( meta, pmodel, cl.serverTime, &lower_time, &upper_time );
 	Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
 	Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
 	MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_node );
@@ -821,6 +807,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 		// also add rotations from velocity leaning
 		{
 			EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ UPPER ], cg.lerpfrac, pmodel->angles[ UPPER ] ) * 0.5f );
+			Swap2( &angles.pitch, &angles.yaw ); // hack for rigg model
 
 			Quaternion q = EulerAnglesToQuaternion( angles );
 			lower[ meta->upper_rotator_nodes[ 0 ] ].rotation *= q;
@@ -871,12 +858,12 @@ void CG_DrawPlayer( centity_t *cent ) {
 		}
 	}
 
-	// add backpack/hat
+	// add bomb/hat
 	const Model * attached_model = FindModel( cent->current.model2 );
 	if( attached_model != NULL ) {
-		PlayerModelMetadata::Tag tag = meta->tag_backpack;
+		PlayerModelMetadata::Tag tag = meta->tag_bomb;
 		if( cent->current.effects & EF_HAT )
-			tag = meta->tag_head;
+			tag = meta->tag_hat;
 		Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
 		DrawModel( attached_model, tag_transform, vec4_white );
 

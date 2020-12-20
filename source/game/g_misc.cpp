@@ -175,8 +175,6 @@ void SP_func_wall( edict_t *self ) {
 	GClip_LinkEntity( self );
 }
 
-//===========================================================
-
 void SP_func_static( edict_t *ent ) {
 	G_InitMover( ent );
 	ent->movetype = MOVETYPE_NONE;
@@ -184,9 +182,7 @@ void SP_func_static( edict_t *ent ) {
 	GClip_LinkEntity( ent );
 }
 
-//===========================================================
-
-static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point ) {
+static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *attacker, int assistor, int damage, Vec3 point ) {
 	// do not explode unless visible
 	if( self->r.svflags & SVF_NOCLIENT ) {
 		return;
@@ -240,7 +236,7 @@ static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *
 }
 
 static void func_explosive_think( edict_t *self ) {
-	func_explosive_explode( self, self, self->enemy, self->count, Vec3( 0.0f ) );
+	func_explosive_explode( self, self, self->enemy, -1, self->count, Vec3( 0.0f ) );
 }
 
 static void func_explosive_use( edict_t *self, edict_t *other, edict_t *activator ) {
@@ -253,7 +249,7 @@ static void func_explosive_use( edict_t *self, edict_t *other, edict_t *activato
 		return;
 	}
 
-	func_explosive_explode( self, self, other, self->count, Vec3( 0.0f ) );
+	func_explosive_explode( self, self, other, -1, self->count, Vec3( 0.0f ) );
 }
 
 static void func_explosive_spawn( edict_t *self, edict_t *other, edict_t *activator ) {
@@ -294,22 +290,18 @@ void SP_func_explosive( edict_t *self ) {
 		self->takedamage = DAMAGE_YES;
 	}
 	self->max_health = self->health;
-	self->s.effects = EF_WORLD_MODEL;
 
 	GClip_LinkEntity( self );
 }
 
-//========================================================
-//
-//	MISC_*
-//
-//========================================================
-
-void SP_misc_model( edict_t *ent ) {
-	G_FreeEdict( ent );
-}
-
 void SP_model( edict_t *ent ) {
 	ent->r.svflags &= ~SVF_NOCLIENT;
+	GClip_LinkEntity( ent );
+}
+
+void SP_decal( edict_t * ent ) {
+	ent->r.svflags &= ~SVF_NOCLIENT;
+	ent->s.type = ET_DECAL;
+	ent->s.radius = st.radius;
 	GClip_LinkEntity( ent );
 }

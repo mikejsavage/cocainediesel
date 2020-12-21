@@ -233,10 +233,10 @@ void Cbuf_ExecuteText( int exec_when, const char *text ) {
 
 /*
 * Cbuf_Execute
-* // Pulls off \n terminated lines of text from the command buffer and sends
-* // them through Cmd_ExecuteString.  Stops when the buffer is empty.
-* // Normally called once per frame, but may be explicitly invoked.
-* // Do not call inside a command function!
+* Pulls off \n terminated lines of text from the command buffer and sends
+* them through Cmd_ExecuteString.  Stops when the buffer is empty.
+* Normally called once per frame, but may be explicitly invoked.
+* Do not call inside a command function!
 */
 void Cbuf_Execute( void ) {
 	size_t i;
@@ -393,7 +393,6 @@ SCRIPT COMMANDS
 static void Cmd_Exec_f( void ) {
 	char *f = NULL, *name;
 	const char *arg = Cmd_Argv( 1 );
-	bool silent = Cmd_Argc() >= 3 && !Q_stricmp( Cmd_Argv( 2 ), "silent" );
 	int len = -1, name_size;
 	const char *basename;
 
@@ -409,9 +408,7 @@ static void Cmd_Exec_f( void ) {
 	COM_SanitizeFilePath( name );
 
 	if( !COM_ValidateRelativeFilename( name ) ) {
-		if( !silent ) {
-			Com_Printf( "Invalid filename\n" );
-		}
+		Com_Printf( "Invalid filename\n" );
 		Mem_TempFree( name );
 		return;
 	}
@@ -424,23 +421,15 @@ static void Cmd_Exec_f( void ) {
 	}
 
 	if( !f ) {
-		if( !silent ) {
-			Com_Printf( "Couldn't execute: %s\n", name );
-		}
+		Com_Printf( "Couldn't execute: %s\n", name );
 		Mem_TempFree( name );
 		return;
 	}
 
-	if( !silent ) {
-		Com_Printf( "Executing: %s\n", name );
-	}
+	Com_Printf( "Executing: %s\n", name );
 
 	Cbuf_InsertText( "\n" );
-	if( len >= 3 && ( (uint8_t)f[0] == 0xEF && (uint8_t)f[1] == 0xBB && (uint8_t)f[2] == 0xBF ) ) {
-		Cbuf_InsertText( f + 3 ); // skip Windows UTF-8 marker
-	} else {
-		Cbuf_InsertText( f );
-	}
+	Cbuf_InsertText( f );
 
 	FS_FreeFile( f );
 	Mem_TempFree( name );
@@ -745,11 +734,11 @@ void Cmd_TokenizeString( const char *text ) {
 
 /*
 * Cmd_AddCommand
-* // called by the init functions of other parts of the program to
-* // register commands and functions to call for them.
-* // The cmd_name is referenced later, so it should not be in temp memory
-* // if function is NULL, the command will be forwarded to the server
-* // as a clc_clientcommand instead of executed locally
+* called by the init functions of other parts of the program to
+* register commands and functions to call for them.
+* The cmd_name is referenced later, so it should not be in temp memory
+* if function is NULL, the command will be forwarded to the server
+* as a clc_clientcommand instead of executed locally
 */
 void Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
 	cmd_function_t *cmd;
@@ -804,7 +793,7 @@ void Cmd_RemoveCommand( const char *cmd_name ) {
 
 /*
 * Cmd_Exists
-* // used by the cvar code to check for cvar / command name overlap
+* used by the cvar code to check for cvar / command name overlap
 */
 bool Cmd_Exists( const char *cmd_name ) {
 	cmd_function_t *cmd;
@@ -1136,8 +1125,8 @@ bool Cmd_CheckForCommand( char *text ) {
 
 /*
 * Cmd_ExecuteString
-* // Parses a single line of text into arguments and tries to execute it
-* // as if it was typed at the console
+* Parses a single line of text into arguments and tries to execute it
+* as if it was typed at the console
 * FIXME: lookupnoadd the token to speed search?
 */
 void Cmd_ExecuteString( const char *text ) {

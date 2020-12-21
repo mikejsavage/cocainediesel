@@ -726,7 +726,7 @@ void Cmd_TokenizeString( const char *text ) {
 		}
 
 		Span< const char > token = ParseToken( &text, Parse_StopOnNewLine );
-		if( token.ptr == NULL )
+		if( token.ptr == NULL || token == "//" )
 			return;
 
 		if( cmd_argc < MAX_STRING_TOKENS ) {

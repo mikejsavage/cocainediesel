@@ -391,9 +391,9 @@ struct cmodel_t;
 cmodel_t *CG_CModelForEntity( int entNum );
 
 void CG_SoundEntityNewState( centity_t *cent );
-void CG_AddEntities( void );
+void DrawEntities();
 void CG_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity );
-void CG_LerpEntities( void );
+void CG_LerpEntities();
 void CG_LerpGenericEnt( centity_t *cent );
 void CG_BBoxForEntityState( const SyncEntityState * state, Vec3 * mins, Vec3 * maxs );
 
@@ -567,7 +567,6 @@ extern cvar_t *cg_thirdPersonRange;
 
 void CG_ResetKickAngles( void );
 
-void CG_AddEntityToScene( entity_t *ent );
 void CG_StartFallKickEffect( int bounceTime );
 void CG_ViewSmoothPredictedSteps( Vec3 * vieworg );
 float CG_ViewSmoothFallKick( void );

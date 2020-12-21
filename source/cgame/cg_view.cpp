@@ -283,15 +283,6 @@ void CG_StartFallKickEffect( int bounceTime ) {
 //============================================================================
 
 /*
-* CG_AddEntityToScene
-*/
-void CG_AddEntityToScene( entity_t * ent ) {
-	// trap_R_AddEntityToScene( ent );
-}
-
-//============================================================================
-
-/*
 * CG_InterpolatePlayerState
 */
 static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
@@ -845,7 +836,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	DrawWorld();
 	DrawSilhouettes();
-	CG_AddEntities();
+	DrawEntities();
 	CG_AddViewWeapon( &cg.weapon );
 	DrawGibs();
 	DrawParticles();

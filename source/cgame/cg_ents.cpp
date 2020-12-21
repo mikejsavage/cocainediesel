@@ -438,7 +438,7 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 	}
 }
 
-static void CG_AddGenericEnt( centity_t *cent ) {
+static void DrawEntityModel( centity_t *cent ) {
 	if( !cent->ent.scale ) {
 		return;
 	}
@@ -650,11 +650,7 @@ static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
 	DoVisualEffect( name, cent->ent.origin, cent->trailOrigin, 1.0f, color );
 }
 
-/*
-* CG_AddPacketEntitiesToScene
-* Add the entities to the rendering list
-*/
-void CG_AddEntities( void ) {
+void DrawEntities() {
 	ZoneScoped;
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
@@ -669,32 +665,32 @@ void CG_AddEntities( void ) {
 
 		switch( cent->type ) {
 			case ET_GENERIC:
-				CG_AddGenericEnt( cent );
+				DrawEntityModel( cent );
 				CG_EntityLoopSound( cent, state );
 				break;
 
 			case ET_ROCKET:
-				CG_AddGenericEnt( cent );
+				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/rl/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_GRENADE:
-				CG_AddGenericEnt( cent );
+				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/gl/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_PLASMA:
-				CG_AddGenericEnt( cent );
+				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/pg/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_BUBBLE:
-				CG_AddGenericEnt( cent );
+				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/bg/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_RIFLEBULLET:
-				CG_AddGenericEnt( cent );
+				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/rifle/bullet_trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
@@ -745,15 +741,15 @@ void CG_AddEntities( void ) {
 				cent->sound = S_ImmediateLineSound( FindSoundEffect( state->sound ), cent->ent.origin, cent->ent.origin2, 1.0f, cent->sound );
 
 			case ET_SPIKES:
-				CG_AddGenericEnt( cent );
+				DrawEntityModel( cent );
 				break;
 
 			case ET_SPEAKER:
-				CG_AddGenericEnt( cent );
+				DrawEntityModel( cent );
 				break;
 
 			default:
-				Com_Error( ERR_DROP, "CG_AddEntities: unknown entity type" );
+				Com_Error( ERR_DROP, "DrawEntities: unknown entity type" );
 				break;
 		}
 

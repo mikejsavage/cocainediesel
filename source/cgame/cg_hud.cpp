@@ -1270,6 +1270,7 @@ static const char * prefixes[] = {
 	"MVP",
 	"MWAGA",
 	"Mc",
+	"NAS NE ",
 	"NASTY",
 	"NEAT",
 	"NEATLY ",

@@ -231,6 +231,10 @@ inline Vec2 operator*( const Mat2 & m, const Vec2 & v ) {
  * Mat4
  */
 
+inline Mat3 TopLeft3x3( const Mat4 & m ) {
+	return Mat3( m.col0.xyz(), m.col1.xyz(), m.col2.xyz() );
+}
+
 inline Mat4 Mat4Translation( float x, float y, float z ) {
 	return Mat4(
 		1, 0, 0, x,

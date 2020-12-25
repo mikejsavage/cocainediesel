@@ -786,6 +786,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			if( ( unsigned ) ent->ownerNum == cgs.playerNum + 1 ) {
 				CG_ResetKickAngles();
 				cg.recoiling = false;
+				cg.damage_effect = 0.0f;
 			}
 			break;
 

@@ -134,43 +134,6 @@ void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 	*/
 }
 
-void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose ) {
-	/*
-	for( int i = LOCALEFFECT_EV_PLAYER_TELEPORT_IN; i <= LOCALEFFECT_EV_PLAYER_TELEPORT_OUT; i++ ) {
-		if( !cent->localEffects[i] )
-			continue;
-
-		cent->localEffects[i] = 0;
-
-		Vec3 teleportOrigin;
-		Vec4 color = Vec4( 0.5f, 0.5f, 0.5f, 1.0f );
-		if( i == LOCALEFFECT_EV_PLAYER_TELEPORT_OUT ) {
-			teleportOrigin = cent->teleportedFrom;
-		}
-		else {
-			teleportOrigin = cent->teleportedTo;
-			if( ISVIEWERENTITY( cent->current.number ) ) {
-				color = Vec4( 0.1f, 0.1f, 0.1f, 1.0f );
-			}
-		}
-
-		LocalEntity * le = CG_AllocModel( LE_RGB_FADE, teleportOrigin, Vec3( 0.0f ), 10,
-							color, 0, 0, 0, 0, cent->ent.model,
-							cgs.media.shaderTeleportShellGfx );
-
-		MatrixPalettes pose;
-		pose.joint_poses = ALLOC_SPAN( sys_allocator, Mat4, temp_pose.joint_poses.n );
-		pose.skinning_matrices = ALLOC_SPAN( sys_allocator, Mat4, temp_pose.skinning_matrices.n );
-		memcpy( pose.joint_poses.ptr, temp_pose.joint_poses.ptr, pose.joint_poses.num_bytes() );
-		memcpy( pose.skinning_matrices.ptr, temp_pose.skinning_matrices.ptr, pose.skinning_matrices.num_bytes() );
-
-		le->pose = pose;
-
-		Matrix3_Copy( cent->ent.axis, le->ent.axis );
-	}
-	*/
-}
-
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
 	/*
 	LocalEntity *le;

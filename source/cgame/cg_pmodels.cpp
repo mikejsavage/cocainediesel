@@ -842,8 +842,6 @@ void CG_DrawPlayer( centity_t *cent ) {
 	float outline_height = CG_OutlineScaleForDist( &cent->ent, 4096, 1.0f );
 	DrawOutlinedModel( meta->model, transform, vec4_black, outline_height, pose );
 
-	CG_PModel_SpawnTeleportEffect( cent, pose );
-
 	// add weapon model
 	if( cent->current.weapon != Weapon_None ) {
 		const Model * weapon_model = GetWeaponModelMetadata( cent->current.weapon )->model;

@@ -23,7 +23,7 @@ static void target_explosion_explode( edict_t *self ) {
 	float save;
 	int radius;
 
-	G_RadiusDamage( self, self->activator, NULL, NULL, MOD_EXPLOSIVE );
+	G_RadiusDamage( self, self->activator, NULL, NULL, MeanOfDeath_Explosion );
 
 	if( ( self->projectileInfo.radius * 1 / 8 ) > 255 ) {
 		radius = ( self->projectileInfo.radius * 1 / 16 ) & 0xFF;
@@ -215,7 +215,7 @@ void SP_target_laser( edict_t *self ) {
 	// let everything else get spawned before we start firing
 	self->think = target_laser_start;
 	self->nextThink = level.time + 1;
-	self->count = MOD_LASER;
+	self->count = MeanOfDeath_Laser;
 }
 
 void SP_target_position( edict_t *self ) { }

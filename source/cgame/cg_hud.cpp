@@ -1615,8 +1615,36 @@ void CG_SC_Obituary() {
 	}
 }
 
-static const Material * CG_GetWeaponIcon( int weapon ) {
-	return cgs.media.shaderWeaponIcon[ weapon ];
+static const Material * MODToIcon( int mod ) {
+	int weapon = MODToWeapon( mod );
+	if( weapon != Weapon_None ) {
+		return cgs.media.shaderWeaponIcon[ weapon ];
+	}
+
+	switch( mod ) {
+		case MeanOfDeath_Slime:
+			return FindMaterial( "gfx/slime" );
+		case MeanOfDeath_Lava:
+			return FindMaterial( "gfx/lava" );
+		case MeanOfDeath_Crush:
+			return FindMaterial( "gfx/crush" );
+		case MeanOfDeath_Telefrag:
+			return FindMaterial( "gfx/telefrag" );
+		case MeanOfDeath_Suicide:
+			return FindMaterial( "gfx/suicide" );
+		case MeanOfDeath_Explosion:
+			return FindMaterial( "gfx/explosion" );
+		case MeanOfDeath_Trigger:
+			return FindMaterial( "gfx/trigger" );
+		case MeanOfDeath_Laser:
+			return FindMaterial( "gfx/laser" );
+		case MeanOfDeath_Spike:
+			return FindMaterial( "gfx/spike" );
+		case MeanOfDeath_Void:
+			return FindMaterial( "gfx/void" );
+	}
+
+	return FindMaterial( "" );
 }
 
 static void CG_DrawObituaries(
@@ -1680,11 +1708,7 @@ static void CG_DrawObituaries(
 			continue;
 		}
 
-		WeaponType weapon = MODToWeapon( obr->mod );
-		if( weapon == Weapon_None )
-			weapon = Weapon_Knife;
-
-		const Material *pic = CG_GetWeaponIcon( weapon );
+		const Material * pic = MODToIcon( obr->mod );
 
 		float attacker_width = TextBounds( font, layout_cursor_font_size, obr->attacker ).maxs.x;
 		float victim_width = TextBounds( font, layout_cursor_font_size, obr->victim ).maxs.x;
@@ -2111,7 +2135,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		Draw2DBoxUV( curx + border + padding, cury + border + padding + asdf - pady_sel,
 			iconw, iconh - asdf,
 			Vec2( half_pixel.x, Lerp( half_pixel.y, asdf / iconh, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
-			CG_GetWeaponIcon( weap ), color );
+			cgs.media.shaderWeaponIcon[ weap ], color );
 
 		if( def->clip_size != 0 ) {
 			DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_CenterMiddle, curx + iw*0.5f, cury - ih * 0.25f - pady_sel, color, layout_cursor_font_border );

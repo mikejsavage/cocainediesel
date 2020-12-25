@@ -26,20 +26,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 WeaponType MODToWeapon( int mod ) {
 	switch( mod ) {
-		case MOD_GUNBLADE: return Weapon_Knife;
-		case MOD_PISTOL: return Weapon_Pistol;
-		case MOD_MACHINEGUN: return Weapon_MachineGun;
-		case MOD_DEAGLE: return Weapon_Deagle;
-		case MOD_SHOTGUN: return Weapon_Shotgun;
-		case MOD_ASSAULTRIFLE: return Weapon_AssaultRifle;
-		case MOD_GRENADE: return Weapon_GrenadeLauncher;
-		case MOD_ROCKET: return Weapon_RocketLauncher;
-		case MOD_PLASMA: return Weapon_Plasma;
-		case MOD_BUBBLEGUN: return Weapon_BubbleGun;
-		case MOD_RAILGUN: return Weapon_Railgun;
-		case MOD_LASERGUN: return Weapon_Laser;
-		case MOD_SNIPER: return Weapon_Sniper;
-		case MOD_RIFLE: return Weapon_Rifle;
+		case MeanOfDeath_Knife: return Weapon_Knife;
+		case MeanOfDeath_Pistol: return Weapon_Pistol;
+		case MeanOfDeath_MachineGun: return Weapon_MachineGun;
+		case MeanOfDeath_Deagle: return Weapon_Deagle;
+		case MeanOfDeath_Shotgun: return Weapon_Shotgun;
+		case MeanOfDeath_AssaultRifle: return Weapon_AssaultRifle;
+		case MeanOfDeath_GrenadeLauncher: return Weapon_GrenadeLauncher;
+		case MeanOfDeath_RocketLauncher: return Weapon_RocketLauncher;
+		case MeanOfDeath_Plasma: return Weapon_Plasma;
+		case MeanOfDeath_BubbleGun: return Weapon_BubbleGun;
+		case MeanOfDeath_Railgun: return Weapon_Railgun;
+		case MeanOfDeath_Lasergun: return Weapon_Laser;
+		case MeanOfDeath_Sniper: return Weapon_Sniper;
+		case MeanOfDeath_Rifle: return Weapon_Rifle;
 	}
 
 	return Weapon_None;

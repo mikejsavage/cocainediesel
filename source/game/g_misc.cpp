@@ -126,7 +126,7 @@ static void func_wall_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->r.solid == SOLID_NOT ) {
 		self->r.solid = SOLID_YES;
 		self->r.svflags &= ~SVF_NOCLIENT;
-		KillBox( self, MOD_CRUSH, Vec3( 0.0f ) );
+		KillBox( self, MeanOfDeath_Crush, Vec3( 0.0f ) );
 	} else {
 		self->r.solid = SOLID_NOT;
 		self->r.svflags |= SVF_NOCLIENT;
@@ -197,7 +197,7 @@ static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *
 	self->s.origin = origin;
 
 	if( self->projectileInfo.maxDamage ) {
-		G_RadiusDamage( self, attacker, NULL, NULL, MOD_EXPLOSIVE );
+		G_RadiusDamage( self, attacker, NULL, NULL, MeanOfDeath_Explosion );
 	}
 
 	self->velocity = self->s.origin - inflictor->s.origin;
@@ -256,7 +256,7 @@ static void func_explosive_spawn( edict_t *self, edict_t *other, edict_t *activa
 	self->r.solid = SOLID_YES;
 	self->r.svflags &= ~SVF_NOCLIENT;
 	self->use = NULL;
-	KillBox( self, MOD_CRUSH, Vec3( 0.0f ) );
+	KillBox( self, MeanOfDeath_Crush, Vec3( 0.0f ) );
 	GClip_LinkEntity( self );
 }
 

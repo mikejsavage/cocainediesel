@@ -88,25 +88,25 @@ void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *me
 
 	if( !attacker || attacker == victim ) {
 		switch( mod ) {
-			case MOD_SUICIDE:
+			case MeanOfDeath_Suicide:
 				strcpy( message, "suicides" );
 				break;
-			case MOD_CRUSH:
+			case MeanOfDeath_Crush:
 				strcpy( message, "was squished" );
 				break;
-			case MOD_SLIME:
+			case MeanOfDeath_Slime:
 				strcpy( message, "melted" );
 				break;
-			case MOD_LAVA:
+			case MeanOfDeath_Lava:
 				strcpy( message, "sacrificed to the lava god" ); // wsw : pb : some killed messages
 				break;
-			case MOD_TRIGGER_HURT:
+			case MeanOfDeath_Trigger:
 				strcpy( message, "was in the wrong place" );
 				break;
-			case MOD_LASER:
+			case MeanOfDeath_Laser:
 				strcpy( message, "was cut in half" );
 				break;
-			case MOD_SPIKE:
+			case MeanOfDeath_Spike:
 				strcpy( message, "was impaled on a spike" );
 				break;
 			default:
@@ -117,40 +117,40 @@ void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *me
 	}
 
 	switch( mod ) {
-		case MOD_TELEFRAG:
+		case MeanOfDeath_Telefrag:
 			strcpy( message, "tried to invade" );
 			strcpy( message2, "'s personal space" );
 			break;
-		case MOD_GUNBLADE:
+		case MeanOfDeath_Knife:
 			strcpy( message, "was impaled by" );
 			strcpy( message2, "'s gunblade" );
 			break;
-		case MOD_MACHINEGUN:
+		case MeanOfDeath_MachineGun:
 			strcpy( message, "was penetrated by" );
 			strcpy( message2, "'s machinegun" );
 			break;
-		case MOD_SHOTGUN:
+		case MeanOfDeath_Shotgun:
 			strcpy( message, "was shredded by" );
 			strcpy( message2, "'s riotgun" );
 			break;
-		case MOD_GRENADE:
+		case MeanOfDeath_GrenadeLauncher:
 			strcpy( message, "was popped by" );
 			strcpy( message2, "'s grenade" );
 			break;
-		case MOD_ROCKET:
+		case MeanOfDeath_RocketLauncher:
 			strcpy( message, "ate" );
 			strcpy( message2, "'s rocket" );
 			break;
-		case MOD_PLASMA:
-		case MOD_BUBBLEGUN:
+		case MeanOfDeath_Plasma:
+		case MeanOfDeath_BubbleGun:
 			strcpy( message, "was melted by" );
 			strcpy( message2, "'s plasmagun" );
 			break;
-		case MOD_RAILGUN:
+		case MeanOfDeath_Railgun:
 			strcpy( message, "was bolted by" );
 			strcpy( message2, "'s electrobolt" );
 			break;
-		case MOD_LASERGUN:
+		case MeanOfDeath_Lasergun:
 			strcpy( message, "was cut by" );
 			strcpy( message2, "'s lasergun" );
 			break;

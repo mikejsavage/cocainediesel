@@ -109,9 +109,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->s.ownerNum = ent->s.number;
 
 	int mod = meansOfDeath;
-	bool gib = mod == MOD_RAILGUN || mod == MOD_TRIGGER_HURT || mod == MOD_TELEFRAG
-		|| mod == MOD_EXPLOSIVE || mod == MOD_SPIKE ||
-		( ( mod == MOD_ROCKET || mod == MOD_GRENADE ) && damage >= 20 );
+	bool gib = mod == MeanOfDeath_Railgun || mod == MeanOfDeath_Trigger || mod == MeanOfDeath_Telefrag
+		|| mod == MeanOfDeath_Explosion || mod == MeanOfDeath_Spike ||
+		( ( mod == MeanOfDeath_RocketLauncher || mod == MeanOfDeath_GrenadeLauncher ) && damage >= 20 );
 
 	if( gib ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );
@@ -390,7 +390,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	// don't put spectators in the game
 	if( !ghost ) {
-		KillBox( self, MOD_TELEFRAG, Vec3( 0.0f ) );
+		KillBox( self, MeanOfDeath_Telefrag, Vec3( 0.0f ) );
 	}
 
 	self->s.teleported = true;
@@ -481,7 +481,7 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	GClip_UnlinkEntity( player );
 
 	// kill anything at the destination
-	KillBox( player, MOD_TELEFRAG, Vec3( 0.0f ) );
+	KillBox( player, MeanOfDeath_Telefrag, Vec3( 0.0f ) );
 
 	GClip_LinkEntity( player );
 
@@ -1051,7 +1051,7 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 		}
 
 		if( ent->s.origin.z <= -1024 ) {
-			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin, 1337, 0, 0, MOD_VOID );
+			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin, 1337, 0, 0, MeanOfDeath_Void );
 		}
 	}
 

@@ -1,0 +1,17 @@
+{
+  particles {
+    material textures/vfx/dirt1
+    blendfunc blend
+    rotate
+
+    position cone 10 0
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+
+    speed 512
+    size 16 32
+    lifetime 0.4
+    count 1
+  }
+}

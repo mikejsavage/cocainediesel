@@ -867,6 +867,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			int damage = ent->radius;
 			float p = damage / 20.0f;
 
+			DoVisualEffect( "vfx/blood_spray", ent->origin, dir, damage, team_color );
+
 			while( true ) {
 				if( !random_p( &cls.rng, p ) )
 					break;

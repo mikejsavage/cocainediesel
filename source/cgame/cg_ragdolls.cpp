@@ -137,35 +137,6 @@ static void CreateBone( Ragdoll * ragdoll, RagdollBoneType bone, const Model * m
 	ragdoll->bones[ bone ].actor = actor;
 }
 
-/*
-static void CreateBone( Ragdoll * ragdoll, RagdollBoneType bone, const Model * model, MatrixPalettes pose, u8 j0, u8 j1, float radius ) {
-	Vec3 p0 = ( model->transform * pose.node_transforms[ j0 ] ).col3.xyz();
-	Vec3 p1 = ( model->transform * pose.node_transforms[ j1 ] ).col3.xyz();
-
-	// TODO: radius
-	ragdoll->bones[ bone ].capsule = PxCapsuleGeometry( 3.0f, Length( p1 - p0 ) * 0.5f );
-
-	Vec3 physx_ragdoll_up = Vec3( -1, 0, 0 );
-	Vec3 pose_up = p1 - p0;
-
-	// TODO: this does a lookat transform so the bone's up vector is
-	// aligned with the world up vector. we would like the bone to be
-	// twisted like how it is in the skeleton instead
-	Vec3 axis = Normalize( Cross( physx_ragdoll_up, pose_up ) );
-	float theta = acosf( Dot( physx_ragdoll_up, Normalize( pose_up ) ) );
-	PxQuat q = PxQuat( theta, PxVec3( axis.x, axis.y, axis.z ) );
-	Vec3 m = ( p0 + p1 ) * 0.5f;
-
-	PxRigidDynamic * actor = PxCreateDynamic( *physx_physics, PxTransform( m.x, m.y, m.z, q ), ragdoll->bones[ bone ].capsule, *physx_default_material, 10.0f );
-	actor->setLinearDamping( 0.5f );
-	actor->setAngularDamping( 0.5f );
-	ragdoll->aggregate->addActor( *actor );
-
-	ragdoll->bones[ bone ].actor = actor;
-}
-*/
-
-
 Mat3 invert( Mat3 m ) {
 	return FromPhysx( ToPhysx( m ).getInverse() );
 }
@@ -175,28 +146,7 @@ static PxTransform JointOffsetTransform( const Model * model, MatrixPalettes pos
 	Vec3 p0 = ( model->transform * pose.node_transforms[ j0 ] * t0 ).col3.xyz();
 	Vec3 p1 = ( model->transform * pose.node_transforms[ j1 ] ).col3.xyz();
 
-	Com_GGPrint( "{} to {} = {}", p0, p1, p1 - p0 );
 	Vec3 d = invert( TopLeft3x3( model->transform ) * TopLeft3x3( pose.node_transforms[ j0 ] ) ) * ( p1 - p0 );
-
-	Com_GGPrint( "post transform {}", d );
-	{
-		PxSphereGeometry sphere = PxSphereGeometry( 1.0f );
-		PxTransform t = PxTransform( ToPhysx( p0 ) ).getNormalized();
-
-		PxRigidDynamic * actor = PxCreateDynamic( *physx_physics, t, sphere, *physx_default_material, 10.0f );
-		actor->setLinearDamping( 0.5f );
-		actor->setAngularDamping( 0.5f );
-		physx_scene->addActor( *actor );
-	}
-	{
-		PxSphereGeometry sphere = PxSphereGeometry( 1.0f );
-		PxTransform t = PxTransform( ToPhysx( p1 ) ).getNormalized();
-
-		PxRigidDynamic * actor = PxCreateDynamic( *physx_physics, t, sphere, *physx_default_material, 10.0f );
-		actor->setLinearDamping( 0.5f );
-		actor->setAngularDamping( 0.5f );
-		physx_scene->addActor( *actor );
-	}
 
 	return PxTransform( ToPhysx( d ) );
 }
@@ -208,53 +158,24 @@ static Ragdoll AddRagdoll( const Model * model, RagdollConfig config, MatrixPale
 
 	ragdoll.aggregate = physx_physics->createAggregate( Bone_Count, true );
 
-	// geometry
-	// ragdoll.bones[ Bone_LowerBack ].capsule = PxCapsuleGeometry( 0.15 * scale, 0.20 * scale * 0.5f);
-	// ragdoll.bones[ Bone_UpperBack ].capsule = PxCapsuleGeometry( 0.15 * scale, 0.28 * scale * 0.5f);
-	// ragdoll.bones[ Bone_Head ].capsule = PxCapsuleGeometry(0.10 * scale, 0.05 * scale * 0.5f);
-	// ragdoll.bones[ Bone_LeftThigh ].capsule = PxCapsuleGeometry(0.07 * scale, 0.45 * scale * 0.5f);
-	// ragdoll.bones[ Bone_LeftLowerLeg ].capsule = PxCapsuleGeometry(0.05 * scale, 0.37 * scale * 0.5f);
-	// ragdoll.bones[ Bone_RightThigh ].capsule = PxCapsuleGeometry(0.07 * scale, 0.45 * scale * 0.5f);
-	// ragdoll.bones[ Bone_RightLowerLeg ].capsule = PxCapsuleGeometry(0.05 * scale, 0.37 * scale * 0.5f);
-	// ragdoll.bones[ Bone_LeftUpperArm ].capsule = PxCapsuleGeometry(0.05 * scale, 0.33 * scale * 0.5f);
-	// ragdoll.bones[ Bone_LeftForearm ].capsule = PxCapsuleGeometry(0.04 * scale, 0.25 * scale * 0.5f);
-	// ragdoll.bones[ Bone_RightUpperArm ].capsule = PxCapsuleGeometry(0.05 * scale, 0.33 * scale * 0.5f);
-	// ragdoll.bones[ Bone_RightForearm ].capsule = PxCapsuleGeometry(0.04 * scale, 0.25 * scale * 0.5f);
-
 	// actors
 	CreateBone( &ragdoll, Bone_LowerBack, model, pose, config.pelvis, config.spine, config.lower_back_radius );
 	CreateBone( &ragdoll, Bone_UpperBack, model, pose, config.spine, config.neck, config.upper_back_radius );
 	// TODO: head
 
-	// CreateBone( &ragdoll, Bone_LeftUpperArm, model, pose, config.left_shoulder, config.left_elbow, config.left_upper_arm_radius );
-	// CreateBone( &ragdoll, Bone_LeftForearm, model, pose, config.left_elbow, config.left_wrist, config.left_forearm_radius );
+	CreateBone( &ragdoll, Bone_LeftUpperArm, model, pose, config.left_shoulder, config.left_elbow, config.left_upper_arm_radius );
+	CreateBone( &ragdoll, Bone_LeftForearm, model, pose, config.left_elbow, config.left_wrist, config.left_forearm_radius );
 
 	CreateBone( &ragdoll, Bone_RightUpperArm, model, pose, config.right_shoulder, config.right_elbow, config.right_upper_arm_radius );
-	// CreateBone( &ragdoll, Bone_RightForearm, model, pose, config.right_elbow, config.right_wrist, config.right_forearm_radius );
+	CreateBone( &ragdoll, Bone_RightForearm, model, pose, config.right_elbow, config.right_wrist, config.right_forearm_radius );
 
-	// CreateBone( &ragdoll, Bone_LeftThigh, model, pose, config.left_hip, config.left_knee, config.left_thigh_radius );
-	// CreateBone( &ragdoll, Bone_LeftLowerLeg, model, pose, config.left_knee, config.left_ankle, config.left_lower_leg_radius );
+	CreateBone( &ragdoll, Bone_LeftThigh, model, pose, config.left_hip, config.left_knee, config.left_thigh_radius );
+	CreateBone( &ragdoll, Bone_LeftLowerLeg, model, pose, config.left_knee, config.left_ankle, config.left_lower_leg_radius );
 	// TODO: left foot
 
-	// CreateBone( &ragdoll, Bone_RightThigh, model, pose, config.right_hip, config.right_knee, config.right_thigh_radius );
-	// CreateBone( &ragdoll, Bone_RightLowerLeg, model, pose, config.right_knee, config.right_ankle, config.right_lower_leg_radius );
+	CreateBone( &ragdoll, Bone_RightThigh, model, pose, config.right_hip, config.right_knee, config.right_thigh_radius );
+	CreateBone( &ragdoll, Bone_RightLowerLeg, model, pose, config.right_knee, config.right_ankle, config.right_lower_leg_radius );
 	// TODO: right foot
-
-	// CreateActor( &ragdoll, Bone_LowerBack, transform, 1.0f * scale, 0, 0 );
-	// CreateActor( &ragdoll, Bone_UpperBack, transform, 1.4f * scale, 0, 0 );
-	// CreateActor( &ragdoll, Bone_Head, transform, 1.75f * scale, 0, 0 );
-	// CreateActor( &ragdoll, Bone_LeftThigh, transform, 0.65f * scale, -0.18f * scale, 0 );
-	// CreateActor( &ragdoll, Bone_LeftLowerLeg, transform, 0.2f * scale, -0.18f * scale, 0 );
-	// CreateActor( &ragdoll, Bone_RightThigh, transform, 0.65f * scale, 0.18f * scale, 0 );
-	// CreateActor( &ragdoll, Bone_RightLowerLeg, transform, 0.2f * scale, 0.18f * scale, 0 );
-        //
-	// PxQuat left_arm_rotation = PxQuat( DEG2RAD( 90 ), PxVec3( 0, 0, 1 ) );
-	// CreateActor( &ragdoll, Bone_LeftUpperArm, transform, 1.55f * scale, -0.35f * scale, 0, left_arm_rotation );
-	// CreateActor( &ragdoll, Bone_LeftForearm, transform, 1.55f * scale, -0.7f * scale, 0, left_arm_rotation );
-        //
-	// PxQuat right_arm_rotation = PxQuat( DEG2RAD( -90 ), PxVec3( 0, 0, 1 ) );
-	// CreateActor( &ragdoll, Bone_RightUpperArm, transform, 1.55f * scale, 0.35f * scale, 0, right_arm_rotation );
-	// CreateActor( &ragdoll, Bone_RightForearm, transform, 1.55f * scale, 0.7f * scale, 0, right_arm_rotation );
 
 	// joints
 	// PxSphericalJoint * neck = PxSphericalJointCreate( *physx_physics,
@@ -264,6 +185,12 @@ static Ragdoll AddRagdoll( const Model * model, RagdollConfig config, MatrixPale
 	// neck->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
 	// ragdoll.joints[ Joint_Neck ] = neck;
 
+	// roll 90deg in Y then in Z
+	PxTransform elbow_knee_transform = PxTransform( PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ) * PxTransform( PxQuat( PxPi / 2, PxVec3( 0, 1, 0 ) ) );
+
+	// roll 180deg in Y then twist 90deg in X
+	PxTransform hip_transform = PxTransform( PxQuat( PxPi / 2, PxVec3( 1, 0, 0 ) ) ) * PxTransform( PxQuat( PxPi, PxVec3( 0, 1, 0 ) ) );
+
 	PxSphericalJoint * spine = PxSphericalJointCreate( *physx_physics,
 		ragdoll.bones[ Bone_LowerBack ].actor, PxTransform( ragdoll.bones[ Bone_LowerBack ].capsule.halfHeight, 0, 0 ),
 		ragdoll.bones[ Bone_UpperBack ].actor, PxTransform( -ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight, 0, 0 ) );
@@ -271,22 +198,19 @@ static Ragdoll AddRagdoll( const Model * model, RagdollConfig config, MatrixPale
 	spine->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_Spine ] = spine;
 
-#if 0
 	PxSphericalJoint * left_shoulder = PxSphericalJointCreate( *physx_physics,
-		ragdoll.bones[ Bone_UpperBack ].actor, PxTransform( -ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( model, pose, config.neck, config.left_shoulder ) * PxTransform( PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ),
-		ragdoll.bones[ Bone_LeftUpperArm ].actor, PxTransform( ragdoll.bones[ Bone_LeftUpperArm ].capsule.halfHeight, 0, 0 ) );
+		ragdoll.bones[ Bone_UpperBack ].actor, PxTransform( ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( model, pose, ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight * 2.0f, config.spine, config.left_shoulder ) * PxTransform( PxQuat( -PxPi / 2, PxVec3( 0, 1, 0 ) ) ),
+		ragdoll.bones[ Bone_LeftUpperArm ].actor, PxTransform( -ragdoll.bones[ Bone_LeftUpperArm ].capsule.halfHeight, 0, 0 ) );
 	left_shoulder->setLimitCone( PxJointLimitCone( PxPi / 2, PxPi / 2, 0.01f ) );
 	left_shoulder->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_LeftShoulder ] = left_shoulder;
 
 	PxRevoluteJoint * left_elbow = PxRevoluteJointCreate( *physx_physics,
-		ragdoll.bones[ Bone_LeftUpperArm ].actor, PxTransform( -ragdoll.bones[ Bone_LeftUpperArm ].capsule.halfHeight, 0, 0, PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ) * PxTransform( PxQuat( PxPi, PxVec3( 1, 0, 0 ) ) ),
-		ragdoll.bones[ Bone_LeftForearm ].actor, PxTransform( ragdoll.bones[ Bone_LeftForearm ].capsule.halfHeight, 0, 0, PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ) );
+		ragdoll.bones[ Bone_LeftUpperArm ].actor, PxTransform( ragdoll.bones[ Bone_LeftUpperArm ].capsule.halfHeight, 0, 0 ) * elbow_knee_transform,
+		ragdoll.bones[ Bone_LeftForearm ].actor, PxTransform( -ragdoll.bones[ Bone_LeftForearm ].capsule.halfHeight, 0, 0 ) * elbow_knee_transform );
 	left_elbow->setLimit( PxJointAngularLimitPair( 0, PxPi * 7.0f / 8.0f, 0.1f ) );
 	left_elbow->setRevoluteJointFlag( PxRevoluteJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_LeftElbow ] = left_elbow;
-
-#endif
 
 	PxSphericalJoint * right_shoulder = PxSphericalJointCreate( *physx_physics,
 		ragdoll.bones[ Bone_UpperBack ].actor, PxTransform( ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( model, pose, ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight * 2.0f, config.spine, config.right_shoulder ) * PxTransform( PxQuat( PxPi / 2, PxVec3( 0, 1, 0 ) ) ),
@@ -295,42 +219,42 @@ static Ragdoll AddRagdoll( const Model * model, RagdollConfig config, MatrixPale
 	right_shoulder->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_RightShoulder ] = right_shoulder;
 
-#if 0
 	PxRevoluteJoint * right_elbow = PxRevoluteJointCreate( *physx_physics,
-		ragdoll.bones[ Bone_RightUpperArm ].actor, PxTransform( -ragdoll.bones[ Bone_RightUpperArm ].capsule.halfHeight, 0, 0, PxQuat( PxPi, PxVec3( 1, 0, 0 ) ) ) * PxTransform( PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ),
-		ragdoll.bones[ Bone_RightForearm ].actor, PxTransform( ragdoll.bones[ Bone_RightForearm ].capsule.halfHeight, 0, 0, PxQuat( PxPi, PxVec3( 1, 0, 0 ) ) ) * PxTransform( PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ) );
+		ragdoll.bones[ Bone_RightUpperArm ].actor, PxTransform( ragdoll.bones[ Bone_RightUpperArm ].capsule.halfHeight, 0, 0 ) * elbow_knee_transform,
+		ragdoll.bones[ Bone_RightForearm ].actor, PxTransform( -ragdoll.bones[ Bone_RightForearm ].capsule.halfHeight, 0, 0 ) * elbow_knee_transform );
 	right_elbow->setLimit( PxJointAngularLimitPair( 0, PxPi * 7.0f / 8.0f, 0.1f ) );
 	right_elbow->setRevoluteJointFlag( PxRevoluteJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_RightElbow ] = right_elbow;
 
+#if 0
 	PxSphericalJoint * left_hip = PxSphericalJointCreate( *physx_physics,
-		ragdoll.bones[ Bone_LowerBack ].actor, PxTransform( ragdoll.bones[ Bone_LowerBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( model, pose, config.pelvis, config.left_hip ),
-		ragdoll.bones[ Bone_LeftThigh ].actor, PxTransform( ragdoll.bones[ Bone_LeftThigh ].capsule.halfHeight, 0, 0 ) );
+		ragdoll.bones[ Bone_LowerBack ].actor, PxTransform( -ragdoll.bones[ Bone_LowerBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( model, pose, config.pelvis, config.left_hip ) * hip_transform,
+		ragdoll.bones[ Bone_LeftThigh ].actor, PxTransform( -ragdoll.bones[ Bone_LeftThigh ].capsule.halfHeight, 0, 0 ) * hip_transform );
 	left_hip->setLimitCone( PxJointLimitCone( PxPi / 2, PxPi / 6, 0.01f ) );
 	left_hip->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_LeftHip ] = left_hip;
+#endif
 
 	PxRevoluteJoint * left_knee = PxRevoluteJointCreate( *physx_physics,
-		ragdoll.bones[ Bone_LeftThigh ].actor, PxTransform( -ragdoll.bones[ Bone_LeftThigh ].capsule.halfHeight, 0, 0, PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ),
-		ragdoll.bones[ Bone_LeftLowerLeg ].actor, PxTransform( ragdoll.bones[ Bone_LeftLowerLeg ].capsule.halfHeight, 0, 0, PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ) );
+		ragdoll.bones[ Bone_LeftThigh ].actor, PxTransform( ragdoll.bones[ Bone_LeftThigh ].capsule.halfHeight, 0, 0 ) * elbow_knee_transform,
+		ragdoll.bones[ Bone_LeftLowerLeg ].actor, PxTransform( -ragdoll.bones[ Bone_LeftLowerLeg ].capsule.halfHeight, 0, 0 ) * elbow_knee_transform );
 	left_knee->setLimit( PxJointAngularLimitPair( 0, PxPi * 7.0f / 8.0f, 0.1f ) );
 	left_knee->setRevoluteJointFlag( PxRevoluteJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_LeftKnee ] = left_knee;
 
 	PxSphericalJoint * right_hip = PxSphericalJointCreate( *physx_physics,
-		ragdoll.bones[ Bone_LowerBack ].actor, PxTransform( ragdoll.bones[ Bone_LowerBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( model, pose, config.pelvis, config.right_hip ),
-		ragdoll.bones[ Bone_RightThigh ].actor, PxTransform( ragdoll.bones[ Bone_RightThigh ].capsule.halfHeight, 0, 0 ) );
+		ragdoll.bones[ Bone_LowerBack ].actor, PxTransform( -ragdoll.bones[ Bone_LowerBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( model, pose, 0.0f, config.pelvis, config.right_hip ) * hip_transform,
+		ragdoll.bones[ Bone_RightThigh ].actor, PxTransform( -ragdoll.bones[ Bone_RightThigh ].capsule.halfHeight, 0, 0 ) * hip_transform );
 	right_hip->setLimitCone( PxJointLimitCone( PxPi / 2, PxPi / 6, 0.01f ) );
 	right_hip->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_RightHip ] = right_hip;
 
 	PxRevoluteJoint * right_knee = PxRevoluteJointCreate( *physx_physics,
-		ragdoll.bones[ Bone_RightThigh ].actor, PxTransform( -ragdoll.bones[ Bone_RightThigh ].capsule.halfHeight, 0, 0, PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ),
-		ragdoll.bones[ Bone_RightLowerLeg ].actor, PxTransform( ragdoll.bones[ Bone_RightLowerLeg ].capsule.halfHeight, 0, 0, PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ) );
+		ragdoll.bones[ Bone_RightThigh ].actor, PxTransform( ragdoll.bones[ Bone_RightThigh ].capsule.halfHeight, 0, 0 ) * elbow_knee_transform,
+		ragdoll.bones[ Bone_RightLowerLeg ].actor, PxTransform( -ragdoll.bones[ Bone_RightLowerLeg ].capsule.halfHeight, 0, 0 ) * elbow_knee_transform );
 	right_knee->setLimit( PxJointAngularLimitPair( 0, PxPi * 7.0f / 8.0f, 0.1f ) );
 	right_knee->setRevoluteJointFlag( PxRevoluteJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_RightKnee ] = right_knee;
-#endif
 
 	physx_scene->addAggregate( *ragdoll.aggregate );
 
@@ -525,34 +449,6 @@ EulerDegrees3 QuaternionToEulerAngles( Quaternion q ) {
 	return euler;
 }
 
-// static PxRigidDynamic * dumpy1;
-// static PxRigidDynamic * dumpy2;
-// static PxRevoluteJoint * dumpyjoint;
-
-// static void AddDumpyModel() {
-// 	PxCapsuleGeometry capsule = PxCapsuleGeometry( 1.0f, 4.0f );
-//
-// 	PxTransform transform1 = PxTransform( PxVec3( -4.0f, 0.0f, 0.0f ), PxQuat( PxIdentity ) );
-// 	PxTransform transform2 = PxTransform( PxVec3( 4.0f, 0.0f, 0.0f ), PxQuat( PxIdentity ) );
-//
-// 	dumpy1 = PxCreateDynamic( *physx_physics, transform1, capsule, *physx_default_material, 10.0f );
-// 	dumpy2 = PxCreateDynamic( *physx_physics, transform2, capsule, *physx_default_material, 10.0f );
-//
-// 	PxVec3 K = PxVec3( 0.0f, 0.0f, 1.0f );
-// 	dumpyjoint = PxRevoluteJointCreate( *physx_physics,
-// 		dumpy1, PxTransform( -transform1.p, PxQuat( PxPi / 2.0f, K ) ),
-// 		dumpy2, PxTransform( -transform2.p, PxQuat( PxPi / 2.0f, K ) )
-// 	);
-// 	dumpyjoint->setLimit( PxJointAngularLimitPair( 0.0f, PxPi ) );
-// 	dumpyjoint->setRevoluteJointFlag( PxRevoluteJointFlag::eLIMIT_ENABLED, true );
-//
-// 	physx_scene->addActor( *dumpy1 );
-// 	physx_scene->addActor( *dumpy2 );
-//
-// 	PxRigidDynamic * gg = PxCreateDynamic( *physx_physics, PxTransform( PxVec3( 4.0f, 0.0f, -10.0f ), PxQuat( PxIdentity ) ), PxSphereGeometry( 8.0f ), *physx_default_material, 10.0f );
-// 	physx_scene->addActor( *gg );
-// }
-
 void DrawRagdollEditor() {
 	const Model * padpork = FindModel( "players/padpork/model" );
 
@@ -630,15 +526,10 @@ void DrawRagdollEditor() {
 
 			InitPhysicsForRagdollEditor();
 			editor_ragdoll = AddRagdoll( padpork, editor_ragdoll_config, pose );
-
-			// AddDumpyModel();
 		}
 
 		PxTransform transform1 = PxTransform( PxVec3( -4.0f, 0.0f, 0.0f ), PxQuat( PxIdentity ) );
 		PxTransform transform2 = PxTransform( PxVec3( 4.0f, 0.0f, 0.0f ), PxQuat( PxIdentity ) );
-
-		// dumpy1->setGlobalPose( transform1 );
-		// dumpy2->setGlobalPose( transform2 );
 
 		UpdatePhysicsCommon( cls.frametime / 5000.0f );
 

@@ -273,7 +273,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 	if( !attacker ) {
 		attacker = world;
-		mod = MOD_TRIGGER_HURT;
+		mod = MeanOfDeath_Trigger;
 	}
 
 	meansOfDeath = mod;
@@ -290,7 +290,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	}
 
 	// dont count self-damage cause it just adds the same to both stats
-	bool statDmg = attacker != targ && mod != MOD_TELEFRAG;
+	bool statDmg = attacker != targ && mod != MeanOfDeath_Telefrag;
 
 	// push
 	G_KnockBackPush( targ, attacker, pushdir, knockback, dflags );
@@ -331,7 +331,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 		// shotgun calls G_Damage for every bullet, so we accumulate damage
 		// in W_Fire_Shotgun and show one number there instead
-		if( mod != MOD_SHOTGUN ) {
+		if( mod != MeanOfDeath_Shotgun ) {
 			u64 parm = HEALTH_TO_INT( take ) << 1;
 			if( dflags & DAMAGE_HEADSHOT ) {
 				parm |= 1;
@@ -364,7 +364,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 		G_BlendFrameDamage( targ, take, &targ->snap.damage_taken, &dorigin, dmgdir, &targ->snap.damage_at, &targ->snap.damage_dir );
 		G_BlendFrameDamage( targ, save, &targ->snap.damage_saved, &dorigin, dmgdir, &targ->snap.damage_at, &targ->snap.damage_dir );
 
-		if( targ->r.client && mod != MOD_TELEFRAG && mod != MOD_SUICIDE ) {
+		if( targ->r.client && mod != MeanOfDeath_Telefrag && mod != MeanOfDeath_Suicide ) {
 			if( inflictor == world || attacker == world ) {
 				// for world inflicted damage use always 'frontal'
 				G_ClientAddDamageIndicatorImpact( targ->r.client, take + save, Vec3( 0.0f ) );

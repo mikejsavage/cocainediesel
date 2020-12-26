@@ -785,30 +785,17 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_PLAYER_RESPAWN:
 			if( ( unsigned ) ent->ownerNum == cgs.playerNum + 1 ) {
 				CG_ResetKickAngles();
-			}
-
-			if( ent->ownerNum && ent->ownerNum < client_gs.maxclients + 1 ) {
-				cg_entities[ ent->ownerNum ].localEffects[ LOCALEFFECT_EV_PLAYER_TELEPORT_IN ] = cl.serverTime;
-				cg_entities[ ent->ownerNum ].teleportedTo = ent->origin;
+				cg.recoiling = false;
+				cg.damage_effect = 0.0f;
 			}
 			break;
 
 		case EV_PLAYER_TELEPORT_IN:
 			S_StartFixedSound( cgs.media.sfxTeleportIn, ent->origin, CHAN_AUTO, 1.0f );
-
-			if( ent->ownerNum && ent->ownerNum < client_gs.maxclients + 1 ) {
-				cg_entities[ ent->ownerNum ].localEffects[ LOCALEFFECT_EV_PLAYER_TELEPORT_IN ] = cl.serverTime;
-				cg_entities[ ent->ownerNum ].teleportedTo = ent->origin;
-			}
 			break;
 
 		case EV_PLAYER_TELEPORT_OUT:
 			S_StartFixedSound( cgs.media.sfxTeleportOut, ent->origin, CHAN_AUTO, 1.0f );
-
-			if( ent->ownerNum && ent->ownerNum < client_gs.maxclients + 1 ) {
-				cg_entities[ ent->ownerNum ].localEffects[ LOCALEFFECT_EV_PLAYER_TELEPORT_OUT ] = cl.serverTime;
-				cg_entities[ ent->ownerNum ].teleportedFrom = ent->origin;
-			}
 			break;
 
 		case EV_PLASMA_EXPLOSION: {
@@ -866,6 +853,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 			int damage = ent->radius;
 			float p = damage / 20.0f;
+
+			DoVisualEffect( "vfx/blood_spray", ent->origin, dir, damage, team_color );
 
 			while( true ) {
 				if( !random_p( &cls.rng, p ) )

@@ -45,8 +45,6 @@ constexpr RGB8 TEAM_COLORS[] = {
 };
 
 enum {
-	LOCALEFFECT_EV_PLAYER_TELEPORT_IN,
-	LOCALEFFECT_EV_PLAYER_TELEPORT_OUT,
 	LOCALEFFECT_VSAY_TIMEOUT,
 	LOCALEFFECT_ROCKETTRAIL_LAST_DROP,
 	LOCALEFFECT_ROCKETFIRE_LAST_DROP,
@@ -203,7 +201,6 @@ struct cgs_media_t {
 	const Material * shaderEnergyMark;
 	const Material * shaderLaser;
 	const Material * shaderNet;
-	const Material * shaderTeleportShellGfx;
 
 	const Material * shaderPlasmaMark;
 	const Material * shaderEBBeam;
@@ -590,7 +587,6 @@ void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color );
 void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color );
 void CG_BladeImpact( Vec3 pos, Vec3 dir );
-void CG_PModel_SpawnTeleportEffect( centity_t * cent, MatrixPalettes temp_pose );
 
 void CG_Dash( const SyncEntityState *state );
 void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count );

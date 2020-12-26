@@ -151,10 +151,10 @@ static void Cmd_Kill_f( edict_t *ent ) {
 
 	ent->flags &= ~FL_GODMODE;
 	ent->health = 0;
-	meansOfDeath = MOD_SUICIDE;
+	meansOfDeath = MeanOfDeath_Suicide;
 
 	// wsw : pb : fix /kill command
-	G_Killed( ent, ent, ent, -1, 100000, Vec3( 0.0f ), MOD_SUICIDE );
+	G_Killed( ent, ent, ent, -1, 100000, Vec3( 0.0f ), MeanOfDeath_Suicide );
 }
 
 void Cmd_ChaseNext_f( edict_t *ent ) {

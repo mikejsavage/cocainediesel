@@ -255,7 +255,7 @@ static void plat_go_up( edict_t *ent ) {
 static void plat_blocked( edict_t *self, edict_t *other ) {
 	if( !other->r.client ) {
 		// give it a chance to go away on its own terms (like gibs)
-		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, MOD_CRUSH );
+		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, MeanOfDeath_Crush );
 
 		// if it's still there, nuke it
 		if( other->r.inuse ) {
@@ -264,7 +264,7 @@ static void plat_blocked( edict_t *self, edict_t *other ) {
 		return;
 	}
 
-	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MeanOfDeath_Crush );
 
 	if( self->moveinfo.state == STATE_UP ) {
 		plat_go_down( self );
@@ -545,7 +545,7 @@ static void Think_SpawnDoorTrigger( edict_t *ent ) {
 static void door_blocked( edict_t *self, edict_t *other ) {
 	if( !other->r.client ) {
 		// give it a chance to go away on its own terms (like gibs)
-		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, MOD_CRUSH );
+		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, MeanOfDeath_Crush );
 
 		// if it's still there, nuke it
 		if( other->r.inuse ) {
@@ -554,7 +554,7 @@ static void door_blocked( edict_t *self, edict_t *other ) {
 		return;
 	}
 
-	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MeanOfDeath_Crush );
 
 	if( self->spawnflags & DOOR_CRUSHER ) {
 		return;
@@ -751,12 +751,12 @@ static void Think_RotateDecel( edict_t *self ) {
 }
 
 static void rotating_blocked( edict_t *self, edict_t *other ) {
-	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MeanOfDeath_Crush );
 }
 
 static void rotating_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
 	if( self->avelocity != Vec3( 0.0f ) ) {
-		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MeanOfDeath_Crush );
 	}
 }
 
@@ -980,7 +980,7 @@ static void train_next( edict_t *self );
 static void train_blocked( edict_t *self, edict_t *other ) {
 	if( !other->r.client ) {
 		// give it a chance to go away on its own terms (like gibs)
-		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, MOD_CRUSH );
+		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, MeanOfDeath_Crush );
 
 		// if it's still there, nuke it
 		if( other->r.inuse ) {
@@ -997,7 +997,7 @@ static void train_blocked( edict_t *self, edict_t *other ) {
 		return;
 	}
 	self->timeStamp = level.time;
-	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MeanOfDeath_Crush );
 }
 
 static void train_wait( edict_t *self ) {

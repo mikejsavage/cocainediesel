@@ -1171,7 +1171,7 @@ static void objectGameEntity_splashDamage( edict_t *attacker, int radius, float 
 	self->projectileInfo.minKnockback = 1;
 	self->projectileInfo.radius = radius;
 
-	G_RadiusDamage( self, attacker, NULL, self, MOD_EXPLOSIVE );
+	G_RadiusDamage( self, attacker, NULL, self, MeanOfDeath_Explosion );
 }
 
 static void objectGameEntity_explosionEffect( int radius, edict_t *self ) {

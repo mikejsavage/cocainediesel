@@ -311,7 +311,7 @@ static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surf
 		}
 	}
 
-	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, damage, damage, dflags, MOD_TRIGGER_HURT );
+	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, damage, damage, dflags, MeanOfDeath_Trigger );
 }
 
 void SP_trigger_hurt( edict_t *self ) {

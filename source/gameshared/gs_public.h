@@ -505,34 +505,33 @@ static constexpr const char *gs_keyicon_names[] = {
 };
 
 enum MeansOfDeath {
-	MOD_UNKNOWN,
-	MOD_GUNBLADE,
-	MOD_PISTOL,
-	MOD_MACHINEGUN,
-	MOD_DEAGLE,
-	MOD_SHOTGUN,
-	MOD_ASSAULTRIFLE,
-	MOD_GRENADE,
-	MOD_ROCKET,
-	MOD_PLASMA,
-	MOD_BUBBLEGUN,
-	MOD_RAILGUN,
-	MOD_LASERGUN,
-	MOD_SNIPER,
-	MOD_RIFLE,
+	MeanOfDeath_Knife,
+	MeanOfDeath_Pistol,
+	MeanOfDeath_MachineGun,
+	MeanOfDeath_Deagle,
+	MeanOfDeath_Shotgun,
+	MeanOfDeath_AssaultRifle,
+	MeanOfDeath_GrenadeLauncher,
+	MeanOfDeath_RocketLauncher,
+	MeanOfDeath_Plasma,
+	MeanOfDeath_BubbleGun,
+	MeanOfDeath_Lasergun,
+	MeanOfDeath_Railgun,
+	MeanOfDeath_Sniper,
+	MeanOfDeath_Rifle,
 
-	MOD_SLIME,
-	MOD_LAVA,
-	MOD_CRUSH, // moving item blocked by player
-	MOD_TELEFRAG,
-	MOD_SUICIDE,
-	MOD_EXPLOSIVE,
+	MeanOfDeath_Slime,
+	MeanOfDeath_Lava,
+	MeanOfDeath_Crush, // moving item blocked by player
+	MeanOfDeath_Telefrag,
+	MeanOfDeath_Suicide,
+	MeanOfDeath_Explosion,
 
-	MOD_TRIGGER_HURT,
+	MeanOfDeath_Trigger,
 
-	MOD_LASER,
-	MOD_SPIKE,
-	MOD_VOID,
+	MeanOfDeath_Laser,
+	MeanOfDeath_Spike,
+	MeanOfDeath_Void,
 };
 
 //

@@ -132,7 +132,6 @@ void CG_RegisterMediaShaders() {
 	cgs.media.shaderBloodTrailLiquidPuff = FindMaterial( "gfx/misc/bloodtrailliquid_puff" );
 	cgs.media.shaderBloodImpactPuff = FindMaterial( "gfx/misc/bloodimpact_puff" );
 	cgs.media.shaderBombIcon = FindMaterial( "gfx/bomb" );
-	cgs.media.shaderTeleportShellGfx = FindMaterial( "gfx/misc/teleportshell" );
 
 	cgs.media.shaderBladeMark = FindMaterial( "gfx/decals/d_blade_hit" );
 	cgs.media.shaderBulletMark = FindMaterial( "gfx/decals/d_bullet_hit" );

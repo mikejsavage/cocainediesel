@@ -88,26 +88,6 @@ static PxVec4 ToPhysx( Vec4 v ) {
 	return PxVec4( v.x, v.y, v.z, v.w );
 }
 
-static PxMat33 ToPhysx( Mat3 m ) {
-	return PxMat33(
-		ToPhysx( m.col0 ),
-		ToPhysx( m.col1 ),
-		ToPhysx( m.col2 )
-	);
-}
-
-static Vec3 FromPhysx( PxVec3 v ) {
-	return Vec3( v.x, v.y, v.z );
-}
-
-static Mat3 FromPhysx( PxMat33 m ) {
-	return Mat3(
-		FromPhysx( m.column0 ),
-		FromPhysx( m.column1 ),
-		FromPhysx( m.column2 )
-	);
-}
-
 static PxMat44 ToPhysx( Mat4 m ) {
 	return PxMat44(
 		ToPhysx( m.col0 ),
@@ -137,16 +117,15 @@ static void CreateBone( Ragdoll * ragdoll, RagdollBoneType bone, const Model * m
 	ragdoll->bones[ bone ].actor = actor;
 }
 
-Mat3 invert( Mat3 m ) {
-	return FromPhysx( ToPhysx( m ).getInverse() );
+static Mat3 InvertOrthonormal( Mat3 m ) {
+	return Mat3( m.row0(), m.row1(), m.row2() );
 }
 
-static PxTransform JointOffsetTransform( const Model * model, MatrixPalettes pose, float h, u8 j0, u8 j1 ) {
-	Mat4 t0 = Mat4Translation( Vec3( h, 0.0f, 0.0f ) );
-	Vec3 p0 = ( model->transform * pose.node_transforms[ j0 ] * t0 ).col3.xyz();
-	Vec3 p1 = ( model->transform * pose.node_transforms[ j1 ] ).col3.xyz();
+static PxTransform JointOffsetTransform( MatrixPalettes pose, float h, u8 j0, u8 j1 ) {
+	Vec3 p0 = ( /* model->transform * */ pose.node_transforms[ j0 ] * Vec4( h, 0.0f, 0.0f, 1.0f ) ).xyz();
+	Vec3 p1 = ( /* model->transform * */ pose.node_transforms[ j1 ] * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
 
-	Vec3 d = invert( TopLeft3x3( model->transform ) * TopLeft3x3( pose.node_transforms[ j0 ] ) ) * ( p1 - p0 );
+	Vec3 d = InvertOrthonormal( /* TopLeft3x3( model->transform ) * */ TopLeft3x3( pose.node_transforms[ j0 ] ) ) * ( p1 - p0 );
 
 	return PxTransform( ToPhysx( d ) );
 }
@@ -199,7 +178,7 @@ static Ragdoll AddRagdoll( const Model * model, RagdollConfig config, MatrixPale
 	ragdoll.joints[ Joint_Spine ] = spine;
 
 	PxSphericalJoint * left_shoulder = PxSphericalJointCreate( *physx_physics,
-		ragdoll.bones[ Bone_UpperBack ].actor, PxTransform( ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( model, pose, ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight * 2.0f, config.spine, config.left_shoulder ) * PxTransform( PxQuat( -PxPi / 2, PxVec3( 0, 1, 0 ) ) ),
+		ragdoll.bones[ Bone_UpperBack ].actor, PxTransform( ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( pose, ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight * 2.0f, config.spine, config.left_shoulder ) * PxTransform( PxQuat( -PxPi / 2, PxVec3( 0, 1, 0 ) ) ),
 		ragdoll.bones[ Bone_LeftUpperArm ].actor, PxTransform( -ragdoll.bones[ Bone_LeftUpperArm ].capsule.halfHeight, 0, 0 ) );
 	left_shoulder->setLimitCone( PxJointLimitCone( PxPi / 2, PxPi / 2, 0.01f ) );
 	left_shoulder->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
@@ -213,7 +192,7 @@ static Ragdoll AddRagdoll( const Model * model, RagdollConfig config, MatrixPale
 	ragdoll.joints[ Joint_LeftElbow ] = left_elbow;
 
 	PxSphericalJoint * right_shoulder = PxSphericalJointCreate( *physx_physics,
-		ragdoll.bones[ Bone_UpperBack ].actor, PxTransform( ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( model, pose, ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight * 2.0f, config.spine, config.right_shoulder ) * PxTransform( PxQuat( PxPi / 2, PxVec3( 0, 1, 0 ) ) ),
+		ragdoll.bones[ Bone_UpperBack ].actor, PxTransform( ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( pose, ragdoll.bones[ Bone_UpperBack ].capsule.halfHeight * 2.0f, config.spine, config.right_shoulder ) * PxTransform( PxQuat( PxPi / 2, PxVec3( 0, 1, 0 ) ) ),
 		ragdoll.bones[ Bone_RightUpperArm ].actor, PxTransform( -ragdoll.bones[ Bone_RightUpperArm ].capsule.halfHeight, 0, 0 ) );
 	right_shoulder->setLimitCone( PxJointLimitCone( PxPi / 2, PxPi / 2, 0.01f ) );
 	right_shoulder->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
@@ -228,7 +207,7 @@ static Ragdoll AddRagdoll( const Model * model, RagdollConfig config, MatrixPale
 
 #if 0
 	PxSphericalJoint * left_hip = PxSphericalJointCreate( *physx_physics,
-		ragdoll.bones[ Bone_LowerBack ].actor, PxTransform( -ragdoll.bones[ Bone_LowerBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( model, pose, config.pelvis, config.left_hip ) * hip_transform,
+		ragdoll.bones[ Bone_LowerBack ].actor, PxTransform( -ragdoll.bones[ Bone_LowerBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( pose, config.pelvis, config.left_hip ) * hip_transform,
 		ragdoll.bones[ Bone_LeftThigh ].actor, PxTransform( -ragdoll.bones[ Bone_LeftThigh ].capsule.halfHeight, 0, 0 ) * hip_transform );
 	left_hip->setLimitCone( PxJointLimitCone( PxPi / 2, PxPi / 6, 0.01f ) );
 	left_hip->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
@@ -243,7 +222,7 @@ static Ragdoll AddRagdoll( const Model * model, RagdollConfig config, MatrixPale
 	ragdoll.joints[ Joint_LeftKnee ] = left_knee;
 
 	PxSphericalJoint * right_hip = PxSphericalJointCreate( *physx_physics,
-		ragdoll.bones[ Bone_LowerBack ].actor, PxTransform( -ragdoll.bones[ Bone_LowerBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( model, pose, 0.0f, config.pelvis, config.right_hip ) * hip_transform,
+		ragdoll.bones[ Bone_LowerBack ].actor, PxTransform( -ragdoll.bones[ Bone_LowerBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( pose, 0.0f, config.pelvis, config.right_hip ) * hip_transform,
 		ragdoll.bones[ Bone_RightThigh ].actor, PxTransform( -ragdoll.bones[ Bone_RightThigh ].capsule.halfHeight, 0, 0 ) * hip_transform );
 	right_hip->setLimitCone( PxJointLimitCone( PxPi / 2, PxPi / 6, 0.01f ) );
 	right_hip->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );

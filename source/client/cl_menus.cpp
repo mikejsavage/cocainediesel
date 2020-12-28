@@ -225,6 +225,7 @@ static void SettingsGeneral() {
 
 	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
 
+	CvarCheckbox( "Show chat", "cg_chat", "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
 	CvarCheckbox( "Show speed", "cg_showSpeed", "0", CVAR_ARCHIVE );

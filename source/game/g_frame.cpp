@@ -251,6 +251,7 @@ static void G_SnapEntities() {
 
 				edict_t * event = G_SpawnEvent( EV_BLOOD, DirToByte( dir ), &origin );
 				event->s.radius = HEALTH_TO_INT( damage );
+				event->s.ownerNum = ent->s.number;
 				event->s.team = ent->s.team;
 
 				if( !G_IsDead( ent ) ) {

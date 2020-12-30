@@ -1786,7 +1786,7 @@ static const char * prefixes[] = {
 	"SWAMP",
 	"SWEETHEART",
 	"SWINDLE",
-	"SWOLE"
+	"SWOLE",
 	"SYNDROME",
 	"TAG",
 	"TAKEOUT",

@@ -926,7 +926,7 @@ static const char * obituaries[] = {
 	"SNAKED",
 	"SNAPPED",
 	"SNITCHED ON",
-	"SNOOPED"
+	"SNOOPED",
 	"SNUBBED",
 	"SOCKED",
 	"SOILED",
@@ -1088,7 +1088,7 @@ static const char * prefixes[] = {
 	"BAILOUT",
 	"BALL",
 	"BALLER",
-	"BAM"
+	"BAM",
 	"BANANA",
 	"BANK",
 	"BARBIE",
@@ -1486,7 +1486,7 @@ static const char * prefixes[] = {
 	"LAD",
 	"LASER",
 	"LATE",
-	"LATIN AMERICA"
+	"LATIN AMERICA",
 	"LEMMING",
 	"LEMON",
 	"LEVERAGE",
@@ -1510,7 +1510,7 @@ static const char * prefixes[] = {
 	"MAD SOBBING CHILD ",
 	"MADLY ",
 	"MAGIC",
-	"MAIL-IN "
+	"MAIL-IN ",
 	"MALARKEY",
 	"MALLET",
 	"MALWARE",
@@ -1617,7 +1617,7 @@ static const char * prefixes[] = {
 	"PIG",
 	"PILE",
 	"PIMP",
-	"PINKY"
+	"PINKY",
 	"PIPE",
 	"PISS",
 	"PISTACCHIO",

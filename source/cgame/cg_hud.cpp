@@ -1226,7 +1226,7 @@ static const char * prefixes[] = {
 	"CRUELLY ",
 	"CRUNK",
 	"CRYPTO",
-	"CTRL + ALT +",
+	"CTRL + ALT + ",
 	"CU@",
 	"CUCKOLD",
 	"CULTURE",

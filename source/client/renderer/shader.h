@@ -11,6 +11,8 @@ struct Shaders {
 
 	Shader standard_alphatest;
 
+	Shader write_shadowmap;
+
 	Shader world;
 	Shader write_world_gbuffer;
 	Shader postprocess_world_gbuffer;

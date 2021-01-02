@@ -517,6 +517,15 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		glDepthMask( pipeline.write_depth ? GL_TRUE : GL_FALSE );
 	}
 
+	// depth clamping
+	if( pipeline.clamp_depth != prev_pipeline.clamp_depth ) {
+		if( pipeline.clamp_depth ) {
+			glEnable( GL_DEPTH_CLAMP );
+		} else {
+			glDisable( GL_DEPTH_CLAMP );
+		}
+	}
+
 	// view weapon depth hack
 	if( pipeline.view_weapon_depth_hack != prev_pipeline.view_weapon_depth_hack ) {
 		float far = pipeline.view_weapon_depth_hack ? 0.3f : 1.0f;

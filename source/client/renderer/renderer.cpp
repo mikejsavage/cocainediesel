@@ -136,6 +136,8 @@ static void DeleteFramebuffers() {
 	DeleteFramebuffer( frame_static.silhouette_gbuffer );
 	DeleteFramebuffer( frame_static.silhouette_silhouettes_fb );
 	DeleteFramebuffer( frame_static.msaa_fb );
+	DeleteFramebuffer( frame_static.shadowmap_fb );
+	DeleteFramebuffer( frame_static.shadowmap2_fb );
 }
 
 void ShutdownRenderer() {
@@ -253,8 +255,8 @@ static Mat4 InvertViewMatrix( const Mat4 & V, Vec3 position ) {
 	);
 }
 
-static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, Vec3 camera_pos, Vec2 viewport_size, float near_plane, int samples ) {
-	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane, samples );
+static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, Vec3 camera_pos, Vec2 viewport_size, float near_plane, int samples, Mat4 S, Mat4 S2, Vec3 light_dir ) {
+	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane, samples, S, S2, light_dir );
 }
 
 static void CreateFramebuffers() {
@@ -320,6 +322,25 @@ static void CreateFramebuffers() {
 
 		frame_static.postprocess_fb = NewFramebuffer( fb );
 	}
+
+	{
+		FramebufferConfig fb;
+
+		constexpr u32 shadowmap_res = 1024;
+		texture_config.width = shadowmap_res;
+		texture_config.height = shadowmap_res;
+		texture_config.filter = TextureFilter_Linear;
+
+		texture_config.format = TextureFormat_Depth;
+		fb.depth_attachment = texture_config;
+
+		frame_static.shadowmap_fb = NewFramebuffer( fb );
+
+		constexpr u32 shadowmap2_res = 2048;
+		texture_config.width = shadowmap2_res;
+		texture_config.height = shadowmap2_res;
+		frame_static.shadowmap2_fb = NewFramebuffer( fb );
+	}
 }
 
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
@@ -353,7 +374,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	bool msaa = frame_static.msaa_samples;
 
-	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples );
+	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), Vec3() );
 	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
 	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f );
 
@@ -363,6 +384,9 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.postprocess_world_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer", frame_static.world_outlines_fb );
 
 	frame_static.particle_update_pass = AddRenderPass( "Particle Update" );
+	
+	frame_static.shadowmap_pass = AddRenderPass( "Render shadows", frame_static.shadowmap_fb, ClearColor_Dont, ClearDepth_Do );
+	frame_static.shadowmap2_pass = AddRenderPass( "Render shadows2", frame_static.shadowmap2_fb, ClearColor_Dont, ClearDepth_Do );
 
 	if( msaa ) {
 		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
@@ -394,6 +418,31 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI" );
 }
 
+MinMax3 ShadowMapBounds( float tan_half_fov, float aspect_ratio, Vec3 position, Vec3 fwd, Vec3 right, Vec3 up, Mat4 shadow_view, float near, float far ) {
+	float far_plane_h = far * tan_half_fov;
+	float far_plane_w = far_plane_h * frame_static.aspect_ratio;
+	float near_plane_h = near * tan_half_fov;
+	float near_plane_w = near_plane_h * frame_static.aspect_ratio;
+
+	Vec3 verts[ 8 ];
+	verts[ 0 ] = position + fwd * near + right * near_plane_w + up * near_plane_h;
+	verts[ 1 ] = position + fwd * near - right * near_plane_w + up * near_plane_h;
+	verts[ 2 ] = position + fwd * near + right * near_plane_w - up * near_plane_h;
+	verts[ 3 ] = position + fwd * near - right * near_plane_w - up * near_plane_h;
+
+	verts[ 4 ] = position + fwd * far + right * far_plane_w + up * far_plane_h;
+	verts[ 5 ] = position + fwd * far - right * far_plane_w + up * far_plane_h;
+	verts[ 6 ] = position + fwd * far + right * far_plane_w - up * far_plane_h;
+	verts[ 7 ] = position + fwd * far - right * far_plane_w - up * far_plane_h;
+
+	MinMax3 bounds = MinMax3::Empty();
+	for ( u32 i = 0; i < ARRAY_COUNT( verts ); i++ ) {
+		Vec3 vert = ( shadow_view * Vec4( verts[ i ], 1.0f ) ).xyz();
+		bounds = Extend( bounds, vert );
+	}
+	return bounds;
+}
+
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) {
 	float near_plane = 4.0f;
 
@@ -405,7 +454,42 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	frame_static.vertical_fov = vertical_fov;
 	frame_static.near_plane = near_plane;
 
-	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.inverse_V, frame_static.P, frame_static.inverse_P, position, frame_static.viewport, near_plane, frame_static.msaa_samples );
+	// MESS INCOMING
+
+	constexpr float shadow_dist = 256.0f;
+	constexpr float shadow_dist2 = 2048.0f;
+
+	Vec3 fwd, right, up;
+	AngleVectors( Vec3( angles.pitch, angles.yaw, angles.roll ), &fwd, &right, &up );
+
+	frame_static.light_direction = Normalize( Vec3( 1.0f, 2.0f, -3.0f ) );
+	// frame_static.light_direction.x = cosf( float( cls.monotonicTime ) * 0.0001f ) * 2.0f;
+	// frame_static.light_direction.y = sinf( float( cls.monotonicTime ) * 0.0001f ) * 2.0f;
+	// frame_static.light_direction = Normalize( frame_static.light_direction );
+
+	Vec3 light_angles = VecToAngles( frame_static.light_direction );
+	Mat4 shadow_view = ViewMatrix( Vec3( 0.0f ), EulerDegrees3( light_angles ) );
+
+	float tan_half_fov = tanf( Radians( vertical_fov ) * 0.5f );
+	MinMax3 bounds = ShadowMapBounds( tan_half_fov, frame_static.aspect_ratio, position, fwd, right, up, shadow_view, near_plane, shadow_dist );
+	MinMax3 bounds2 = ShadowMapBounds( tan_half_fov, frame_static.aspect_ratio, position, fwd, right, up, shadow_view, near_plane, shadow_dist2 );
+
+	float shadow_near = Min2( -bounds.maxs.z, -bounds2.maxs.z );
+	float shadow_far = Max2( -bounds.mins.z, -bounds2.mins.z );
+
+	Mat4 shadow_projection = OrthographicProjection( bounds.mins.x, bounds.maxs.y, bounds.maxs.x, bounds.mins.y, shadow_near, shadow_far );
+	Mat4 shadow2_projection = OrthographicProjection( bounds2.mins.x, bounds2.maxs.y, bounds2.maxs.x, bounds2.mins.y, shadow_near, shadow_far );
+
+	frame_static.world_to_shadowmap = shadow_projection * shadow_view;
+	frame_static.world_to_shadowmap2 = shadow2_projection * shadow_view;
+
+	frame_static.shadowmap_view_uniforms = UploadViewUniforms( shadow_view, Mat4::Identity(), shadow_projection, Mat4::Identity(), Vec3(), frame_static.viewport, near_plane, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), frame_static.light_direction );
+
+	frame_static.shadowmap2_view_uniforms = UploadViewUniforms( shadow_view, Mat4::Identity(), shadow2_projection, Mat4::Identity(), Vec3(), frame_static.viewport, near_plane, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), frame_static.light_direction );
+
+	// END MESS
+
+	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.inverse_V, frame_static.P, frame_static.inverse_P, position, frame_static.viewport, near_plane, frame_static.msaa_samples, frame_static.world_to_shadowmap, frame_static.world_to_shadowmap2, frame_static.light_direction );
 }
 
 void RendererSubmitFrame() {

@@ -144,6 +144,7 @@ struct PipelineState {
 	CullFace cull_face = CullFace_Back;
 	Scissor scissor = { };
 	bool write_depth = true;
+	bool clamp_depth = false;
 	bool view_weapon_depth_hack = false;
 	bool wireframe = false;
 

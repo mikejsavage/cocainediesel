@@ -650,8 +650,6 @@ static inline void CM_TestBox( traceWork_t *tw, const int *markbrushes, int numm
 }
 
 static void CM_RecursiveHullCheck( traceWork_t *tw, int num, float p1f, float p2f, Vec3 p1, Vec3 p2 ) {
-	ZoneScoped;
-
 	const CollisionModel * cms = tw->cms;
 
 	if( tw->realfraction <= p1f ) {

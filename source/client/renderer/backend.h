@@ -260,6 +260,8 @@ struct TextureArrayConfig {
 	const void * data = NULL;
 };
 
+namespace tracy { struct SourceLocationData; }
+
 struct RenderPass {
 	const char * name = NULL;
 
@@ -274,6 +276,8 @@ struct RenderPass {
 	bool sorted = true;
 
 	Framebuffer msaa_source = { };
+
+	const tracy::SourceLocationData * tracy;
 };
 
 struct FramebufferConfig {
@@ -293,10 +297,10 @@ void RenderBackendBeginFrame();
 void RenderBackendSubmitFrame();
 
 u8 AddRenderPass( const RenderPass & config );
-u8 AddRenderPass( const char * name, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
-u8 AddRenderPass( const char * name, Framebuffer target, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
-u8 AddUnsortedRenderPass( const char * name );
-void AddResolveMSAAPass( Framebuffer src, Framebuffer dst );
+u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * tracy );
+void AddResolveMSAAPass( Framebuffer src, Framebuffer dst, const tracy::SourceLocationData * tracy );
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 

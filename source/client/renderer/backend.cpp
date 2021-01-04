@@ -570,7 +570,9 @@ static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u
 static void SetupRenderPass( const RenderPass & pass ) {
 	ZoneScoped;
 	ZoneText( pass.name, strlen( pass.name ) );
+#if TRACY_ENABLE
 	renderpass_zone = new (renderpass_zone_memory) tracy::GpuCtxScope( pass.tracy );
+#endif
 
 	if( GLAD_GL_KHR_debug != 0 ) {
 		glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.name );
@@ -621,7 +623,9 @@ static void FinishRenderPass() {
 	if( GLAD_GL_KHR_debug != 0 )
 		glPopDebugGroup();
 
+#if TRACY_ENABLE
 	renderpass_zone->~GpuCtxScope();
+#endif
 }
 
 static void SubmitDrawCall( const DrawCall & dc ) {

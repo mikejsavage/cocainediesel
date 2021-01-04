@@ -341,6 +341,18 @@ static void CreateFramebuffers() {
 	}
 }
 
+#if !TRACY_ENABLE
+namespace tracy {
+struct SourceLocationData {
+	const char * name;
+	const char * function;
+	const char * file;
+	uint32_t line;
+	uint32_t color;
+};
+}
+#endif
+
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadShaders();
 	HotloadMaterials();

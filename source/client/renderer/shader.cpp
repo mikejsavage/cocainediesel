@@ -86,9 +86,6 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/standard.glsl", "#define ALPHA_TEST 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_alphatest, srcs.span(), lengths.span() );
 
-	BuildShaderSrcs( "glsl/write_shadowmap.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.write_shadowmap, srcs.span(), lengths.span() );
-
 	const char * world_defines = temp(
 		"#define APPLY_DRAWFLAT 1\n"
 		"#define APPLY_FOG 1\n"
@@ -97,8 +94,8 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/standard.glsl", world_defines, &srcs, &lengths );
 	ReplaceShader( &shaders.world, srcs.span(), lengths.span() );
 
-	BuildShaderSrcs( "glsl/write_world_gbuffer.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.write_world_gbuffer, srcs.span(), lengths.span() );
+	BuildShaderSrcs( "glsl/depth_only.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.depth_only, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/postprocess_world_gbuffer.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.postprocess_world_gbuffer, srcs.span(), lengths.span() );

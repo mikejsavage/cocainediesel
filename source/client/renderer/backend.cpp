@@ -1,4 +1,5 @@
 #include <algorithm> // std::stable_sort
+#include <new>
 
 #include "glad/glad.h"
 
@@ -56,6 +57,9 @@ static NonRAIIDynamicArray< RenderPass > render_passes;
 static NonRAIIDynamicArray< DrawCall > draw_calls;
 static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
 static NonRAIIDynamicArray< TextureBuffer > deferred_tb_deletes;
+
+static alignas( tracy::GpuCtxScope ) char renderpass_zone_memory[ sizeof( tracy::GpuCtxScope ) ];
+static tracy::GpuCtxScope * renderpass_zone;
 
 static u32 num_vertices_this_frame;
 
@@ -575,7 +579,8 @@ static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u
 static void SetupRenderPass( const RenderPass & pass ) {
 	ZoneScoped;
 	ZoneText( pass.name, strlen( pass.name ) );
-	TracyGpuZone( "Setup render pass" );
+
+	renderpass_zone = new (renderpass_zone_memory) tracy::GpuCtxScope( pass.tracy );
 
 	if( GLAD_GL_KHR_debug != 0 ) {
 		glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.name );
@@ -620,6 +625,13 @@ static void SetupRenderPass( const RenderPass & pass ) {
 
 		glClear( clear_mask );
 	}
+}
+
+static void FinishRenderPass() {
+	if( GLAD_GL_KHR_debug != 0 )
+		glPopDebugGroup();
+
+	renderpass_zone->~GpuCtxScope();
 }
 
 static void SubmitDrawCall( const DrawCall & dc ) {
@@ -722,8 +734,7 @@ void RenderBackendSubmitFrame() {
 		ZoneScopedN( "Submit draw calls" );
 		for( const DrawCall & dc : draw_calls ) {
 			while( dc.pipeline.pass > pass_idx ) {
-				if( GLAD_GL_KHR_debug != 0 )
-					glPopDebugGroup();
+				FinishRenderPass();
 				pass_idx++;
 				SetupRenderPass( render_passes[ pass_idx ] );
 			}
@@ -737,14 +748,12 @@ void RenderBackendSubmitFrame() {
 		}
 	}
 
-	if( GLAD_GL_KHR_debug != 0 )
-		glPopDebugGroup();
+	FinishRenderPass();
 
 	while( pass_idx < render_passes.size() - 1 ) {
 		pass_idx++;
 		SetupRenderPass( render_passes[ pass_idx ] );
-		if( GLAD_GL_KHR_debug != 0 )
-			glPopDebugGroup();
+		FinishRenderPass();
 	}
 
 	{
@@ -1413,32 +1422,35 @@ u8 AddRenderPass( const RenderPass & pass ) {
 	return checked_cast< u8 >( render_passes.add( pass ) );
 }
 
-u8 AddRenderPass( const char * name, Framebuffer target, ClearColor clear_color, ClearDepth clear_depth ) {
+u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color, ClearDepth clear_depth ) {
 	RenderPass pass;
 	pass.target = target;
 	pass.name = name;
 	pass.clear_color = clear_color == ClearColor_Do;
 	pass.clear_depth = clear_depth == ClearDepth_Do;
+	pass.tracy = tracy;
 	return AddRenderPass( pass );
 }
 
-u8 AddRenderPass( const char * name, ClearColor clear_color, ClearDepth clear_depth ) {
+u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, ClearColor clear_color, ClearDepth clear_depth ) {
 	Framebuffer target = { };
-	return AddRenderPass( name, target, clear_color, clear_depth );
+	return AddRenderPass( name, tracy, target, clear_color, clear_depth );
 }
 
-u8 AddUnsortedRenderPass( const char * name ) {
+u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * tracy ) {
 	RenderPass pass;
 	pass.name = name;
 	pass.sorted = false;
+	pass.tracy = tracy;
 	return AddRenderPass( pass );
 }
 
-void AddResolveMSAAPass( Framebuffer src, Framebuffer dst ) {
+void AddResolveMSAAPass( Framebuffer src, Framebuffer dst, const tracy::SourceLocationData * tracy ) {
 	RenderPass pass;
 	pass.name = "Resolve MSAA";
 	pass.msaa_source = src;
 	pass.target = dst;
+	pass.tracy = tracy;
 
 	PipelineState dummy;
 	dummy.pass = AddRenderPass( pass );

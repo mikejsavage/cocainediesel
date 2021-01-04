@@ -136,8 +136,8 @@ static void DeleteFramebuffers() {
 	DeleteFramebuffer( frame_static.silhouette_gbuffer );
 	DeleteFramebuffer( frame_static.silhouette_silhouettes_fb );
 	DeleteFramebuffer( frame_static.msaa_fb );
-	DeleteFramebuffer( frame_static.shadowmap_fb );
-	DeleteFramebuffer( frame_static.shadowmap2_fb );
+	DeleteFramebuffer( frame_static.near_shadowmap_fb );
+	DeleteFramebuffer( frame_static.far_shadowmap_fb );
 }
 
 void ShutdownRenderer() {
@@ -326,20 +326,18 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb;
 
-		constexpr u32 shadowmap_res = 1024;
-		texture_config.width = shadowmap_res;
-		texture_config.height = shadowmap_res;
-		texture_config.filter = TextureFilter_Linear;
-
+		constexpr u32 near_shadowmap_res = 1024;
+		texture_config.width = near_shadowmap_res;
+		texture_config.height = near_shadowmap_res;
 		texture_config.format = TextureFormat_Depth;
 		fb.depth_attachment = texture_config;
 
-		frame_static.shadowmap_fb = NewFramebuffer( fb );
+		frame_static.near_shadowmap_fb = NewFramebuffer( fb );
 
-		constexpr u32 shadowmap2_res = 2048;
-		texture_config.width = shadowmap2_res;
-		texture_config.height = shadowmap2_res;
-		frame_static.shadowmap2_fb = NewFramebuffer( fb );
+		constexpr u32 far_shadowmap_res = 2048;
+		texture_config.width = far_shadowmap_res;
+		texture_config.height = far_shadowmap_res;
+		frame_static.far_shadowmap_fb = NewFramebuffer( fb );
 	}
 }
 
@@ -380,42 +378,61 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
 
-	frame_static.write_world_gbuffer_pass = AddRenderPass( "Write world gbuffer", frame_static.world_gbuffer, ClearColor_Dont, ClearDepth_Do );
-	frame_static.postprocess_world_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer", frame_static.world_outlines_fb );
+#define TRACY( name ) { name, __FUNCTION__, __FILE__, uint32_t( __LINE__ ), 0 }
+	static const tracy::SourceLocationData write_world_gbuffer_tracy = TRACY( "Write world gbuffer" );
+	static const tracy::SourceLocationData postprocess_world_gbuffer_tracy = TRACY( "Postprocess world gbuffer" );
+	static const tracy::SourceLocationData particle_update_tracy = TRACY( "Update particles" );
+	static const tracy::SourceLocationData write_near_shadowmap_tracy = TRACY( "Write near shadowmap" );
+	static const tracy::SourceLocationData write_far_shadowmap_tracy = TRACY( "Write far shadowmap" );
+	static const tracy::SourceLocationData world_opaque_tracy = TRACY( "Render world opaque" );
+	static const tracy::SourceLocationData add_world_outlines_tracy = TRACY( "Render world outlines" );
+	static const tracy::SourceLocationData write_silhouette_buffer_tracy = TRACY( "Write silhouette buffer" );
+	static const tracy::SourceLocationData postprocess_silhouette_buffer_tracy = TRACY( "Postprocess silhouette buffer" );
+	static const tracy::SourceLocationData nonworld_opaque_tracy = TRACY( "Render nonworld opaque" );
+	static const tracy::SourceLocationData msaa_tracy = TRACY( "Resolve MSAA" );
+	static const tracy::SourceLocationData sky_tracy = TRACY( "Render sky" );
+	static const tracy::SourceLocationData transparent_tracy = TRACY( "Render transparent" );
+	static const tracy::SourceLocationData silhouettes_tracy = TRACY( "Render silhouettes" );
+	static const tracy::SourceLocationData postprocess_tracy = TRACY( "Postprocess" );
+	static const tracy::SourceLocationData ui_tracy = TRACY( "Render UI" );
+#undef TRACY
 
-	frame_static.particle_update_pass = AddRenderPass( "Particle Update" );
-	
-	frame_static.shadowmap_pass = AddRenderPass( "Render shadows", frame_static.shadowmap_fb, ClearColor_Dont, ClearDepth_Do );
-	frame_static.shadowmap2_pass = AddRenderPass( "Render shadows2", frame_static.shadowmap2_fb, ClearColor_Dont, ClearDepth_Do );
+	frame_static.write_world_gbuffer_pass = AddRenderPass( "Write world gbuffer", &write_world_gbuffer_tracy, frame_static.world_gbuffer, ClearColor_Dont, ClearDepth_Do );
+	frame_static.postprocess_world_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer", &postprocess_world_gbuffer_tracy, frame_static.world_outlines_fb );
+
+	frame_static.particle_update_pass = AddRenderPass( "Particle Update", &particle_update_tracy );
+
+	frame_static.near_shadowmap_pass = AddRenderPass( "Write near shadowmap", &write_near_shadowmap_tracy, frame_static.near_shadowmap_fb, ClearColor_Dont, ClearDepth_Do );
+	frame_static.far_shadowmap_pass = AddRenderPass( "Write far shadowmap", &write_far_shadowmap_tracy, frame_static.far_shadowmap_fb, ClearColor_Dont, ClearDepth_Do );
 
 	if( msaa ) {
-		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
-		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", frame_static.msaa_fb );
+		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", &add_world_outlines_tracy, frame_static.msaa_fb );
 	}
 	else {
-		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
-		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", frame_static.postprocess_fb );
+		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", &add_world_outlines_tracy, frame_static.postprocess_fb );
 	}
 
-	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( "Write silhouette gbuffer", frame_static.silhouette_gbuffer, ClearColor_Do, ClearDepth_Dont );
-	frame_static.postprocess_silhouette_gbuffer_pass = AddRenderPass( "Postprocess silhouette gbuffer", frame_static.silhouette_silhouettes_fb );
+	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( "Write silhouette gbuffer", &write_silhouette_buffer_tracy, frame_static.silhouette_gbuffer, ClearColor_Do, ClearDepth_Dont );
+	frame_static.postprocess_silhouette_gbuffer_pass = AddRenderPass( "Postprocess silhouette gbuffer", &postprocess_silhouette_buffer_tracy, frame_static.silhouette_silhouettes_fb );
 
 	if( msaa ) {
-		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", frame_static.msaa_fb );
-		frame_static.sky_pass = AddRenderPass( "Render sky", frame_static.msaa_fb );
-		frame_static.transparent_pass = AddRenderPass( "Render transparent", frame_static.msaa_fb );
+		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", &nonworld_opaque_tracy, frame_static.msaa_fb );
+		frame_static.sky_pass = AddRenderPass( "Render sky", &sky_tracy, frame_static.msaa_fb );
+		frame_static.transparent_pass = AddRenderPass( "Render transparent", &transparent_tracy, frame_static.msaa_fb );
 
-		AddResolveMSAAPass( frame_static.msaa_fb, frame_static.postprocess_fb );
+		AddResolveMSAAPass( frame_static.msaa_fb, frame_static.postprocess_fb, &sky_tracy );
 	}
 	else {
-		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", frame_static.postprocess_fb );
-		frame_static.sky_pass = AddRenderPass( "Render sky", frame_static.postprocess_fb );
-		frame_static.transparent_pass = AddRenderPass( "Render transparent", frame_static.postprocess_fb );
+		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", &nonworld_opaque_tracy, frame_static.postprocess_fb );
+		frame_static.sky_pass = AddRenderPass( "Render sky", &sky_tracy, frame_static.postprocess_fb );
+		frame_static.transparent_pass = AddRenderPass( "Render transparent", &transparent_tracy, frame_static.postprocess_fb );
 	}
 
-	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes", frame_static.postprocess_fb );
-	frame_static.postprocess_pass = AddRenderPass( "Postprocess", ClearColor_Do );
-	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI" );
+	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes", &silhouettes_tracy, frame_static.postprocess_fb );
+	frame_static.postprocess_pass = AddRenderPass( "Postprocess", &postprocess_tracy, ClearColor_Do );
+	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI", &ui_tracy );
 }
 
 MinMax3 ShadowMapBounds( float tan_half_fov, float aspect_ratio, Vec3 position, Vec3 fwd, Vec3 right, Vec3 up, Mat4 shadow_view, float near, float far ) {
@@ -480,16 +497,15 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	Mat4 shadow_projection = OrthographicProjection( bounds.mins.x, bounds.maxs.y, bounds.maxs.x, bounds.mins.y, shadow_near, shadow_far );
 	Mat4 shadow2_projection = OrthographicProjection( bounds2.mins.x, bounds2.maxs.y, bounds2.maxs.x, bounds2.mins.y, shadow_near, shadow_far );
 
-	frame_static.world_to_shadowmap = shadow_projection * shadow_view;
-	frame_static.world_to_shadowmap2 = shadow2_projection * shadow_view;
+	frame_static.near_shadowmap_VP = shadow_projection * shadow_view;
+	frame_static.far_shadowmap_VP = shadow2_projection * shadow_view;
 
-	frame_static.shadowmap_view_uniforms = UploadViewUniforms( shadow_view, Mat4::Identity(), shadow_projection, Mat4::Identity(), Vec3(), frame_static.viewport, near_plane, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), frame_static.light_direction );
-
-	frame_static.shadowmap2_view_uniforms = UploadViewUniforms( shadow_view, Mat4::Identity(), shadow2_projection, Mat4::Identity(), Vec3(), frame_static.viewport, near_plane, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), frame_static.light_direction );
+	frame_static.near_shadowmap_view_uniforms = UploadViewUniforms( shadow_view, Mat4::Identity(), shadow_projection, Mat4::Identity(), Vec3(), frame_static.viewport, near_plane, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), frame_static.light_direction );
+	frame_static.far_shadowmap_view_uniforms = UploadViewUniforms( shadow_view, Mat4::Identity(), shadow2_projection, Mat4::Identity(), Vec3(), frame_static.viewport, near_plane, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), frame_static.light_direction );
 
 	// END MESS
 
-	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.inverse_V, frame_static.P, frame_static.inverse_P, position, frame_static.viewport, near_plane, frame_static.msaa_samples, frame_static.world_to_shadowmap, frame_static.world_to_shadowmap2, frame_static.light_direction );
+	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.inverse_V, frame_static.P, frame_static.inverse_P, position, frame_static.viewport, near_plane, frame_static.msaa_samples, frame_static.near_shadowmap_VP, frame_static.far_shadowmap_VP, frame_static.light_direction );
 }
 
 void RendererSubmitFrame() {

@@ -20,10 +20,6 @@ void main() {
 
 #else
 
-out vec4 f_Albedo;
-
-void main() {
-	f_Albedo = vec4( 1.0 );
-}
+void main() { }
 
 #endif

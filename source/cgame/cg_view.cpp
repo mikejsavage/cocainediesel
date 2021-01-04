@@ -598,7 +598,7 @@ static void DrawWorld() {
 		if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
 			PipelineState pipeline;
 			pipeline.pass = frame_static.write_world_gbuffer_pass;
-			pipeline.shader = &shaders.write_world_gbuffer;
+			pipeline.shader = &shaders.depth_only;
 			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 
@@ -607,11 +607,11 @@ static void DrawWorld() {
 
 		if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
 			PipelineState pipeline;
-			pipeline.pass = frame_static.shadowmap_pass;
-			pipeline.shader = &shaders.write_shadowmap;
+			pipeline.pass = frame_static.near_shadowmap_pass;
+			pipeline.shader = &shaders.depth_only;
 			pipeline.clamp_depth = true;
 			pipeline.cull_face = CullFace_Disabled;
-			pipeline.set_uniform( "u_View", frame_static.shadowmap_view_uniforms );
+			pipeline.set_uniform( "u_View", frame_static.near_shadowmap_view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 
 			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
@@ -619,11 +619,11 @@ static void DrawWorld() {
 
 		if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
 			PipelineState pipeline;
-			pipeline.pass = frame_static.shadowmap2_pass;
-			pipeline.shader = &shaders.write_shadowmap;
+			pipeline.pass = frame_static.far_shadowmap_pass;
+			pipeline.shader = &shaders.depth_only;
 			pipeline.clamp_depth = true;
 			pipeline.cull_face = CullFace_Disabled;
-			pipeline.set_uniform( "u_View", frame_static.shadowmap2_view_uniforms );
+			pipeline.set_uniform( "u_View", frame_static.far_shadowmap_view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 
 			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
@@ -633,8 +633,8 @@ static void DrawWorld() {
 			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
 			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-			pipeline.set_texture( "u_ShadowmapTexture", &frame_static.shadowmap_fb.depth_texture );
-			pipeline.set_texture( "u_Shadowmap2Texture", &frame_static.shadowmap2_fb.depth_texture );
+			pipeline.set_texture( "u_ShadowmapTexture", &frame_static.near_shadowmap_fb.depth_texture );
+			pipeline.set_texture( "u_Shadowmap2Texture", &frame_static.far_shadowmap_fb.depth_texture );
 			pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
 			AddDecalsToPipeline( &pipeline );
 

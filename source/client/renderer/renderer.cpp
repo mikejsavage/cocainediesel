@@ -378,24 +378,24 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
 
-#define TRACY( name ) { name, __FUNCTION__, __FILE__, uint32_t( __LINE__ ), 0 }
-	static const tracy::SourceLocationData write_world_gbuffer_tracy = TRACY( "Write world gbuffer" );
-	static const tracy::SourceLocationData postprocess_world_gbuffer_tracy = TRACY( "Postprocess world gbuffer" );
-	static const tracy::SourceLocationData particle_update_tracy = TRACY( "Update particles" );
-	static const tracy::SourceLocationData write_near_shadowmap_tracy = TRACY( "Write near shadowmap" );
-	static const tracy::SourceLocationData write_far_shadowmap_tracy = TRACY( "Write far shadowmap" );
-	static const tracy::SourceLocationData world_opaque_tracy = TRACY( "Render world opaque" );
-	static const tracy::SourceLocationData add_world_outlines_tracy = TRACY( "Render world outlines" );
-	static const tracy::SourceLocationData write_silhouette_buffer_tracy = TRACY( "Write silhouette buffer" );
-	static const tracy::SourceLocationData postprocess_silhouette_buffer_tracy = TRACY( "Postprocess silhouette buffer" );
-	static const tracy::SourceLocationData nonworld_opaque_tracy = TRACY( "Render nonworld opaque" );
-	static const tracy::SourceLocationData msaa_tracy = TRACY( "Resolve MSAA" );
-	static const tracy::SourceLocationData sky_tracy = TRACY( "Render sky" );
-	static const tracy::SourceLocationData transparent_tracy = TRACY( "Render transparent" );
-	static const tracy::SourceLocationData silhouettes_tracy = TRACY( "Render silhouettes" );
-	static const tracy::SourceLocationData postprocess_tracy = TRACY( "Postprocess" );
-	static const tracy::SourceLocationData ui_tracy = TRACY( "Render UI" );
-#undef TRACY
+#define TRACY_HACK( name ) { name, __FUNCTION__, __FILE__, uint32_t( __LINE__ ), 0 }
+	static const tracy::SourceLocationData write_world_gbuffer_tracy = TRACY_HACK( "Write world gbuffer" );
+	static const tracy::SourceLocationData postprocess_world_gbuffer_tracy = TRACY_HACK( "Postprocess world gbuffer" );
+	static const tracy::SourceLocationData particle_update_tracy = TRACY_HACK( "Update particles" );
+	static const tracy::SourceLocationData write_near_shadowmap_tracy = TRACY_HACK( "Write near shadowmap" );
+	static const tracy::SourceLocationData write_far_shadowmap_tracy = TRACY_HACK( "Write far shadowmap" );
+	static const tracy::SourceLocationData world_opaque_tracy = TRACY_HACK( "Render world opaque" );
+	static const tracy::SourceLocationData add_world_outlines_tracy = TRACY_HACK( "Render world outlines" );
+	static const tracy::SourceLocationData write_silhouette_buffer_tracy = TRACY_HACK( "Write silhouette buffer" );
+	static const tracy::SourceLocationData postprocess_silhouette_buffer_tracy = TRACY_HACK( "Postprocess silhouette buffer" );
+	static const tracy::SourceLocationData nonworld_opaque_tracy = TRACY_HACK( "Render nonworld opaque" );
+	static const tracy::SourceLocationData msaa_tracy = TRACY_HACK( "Resolve MSAA" );
+	static const tracy::SourceLocationData sky_tracy = TRACY_HACK( "Render sky" );
+	static const tracy::SourceLocationData transparent_tracy = TRACY_HACK( "Render transparent" );
+	static const tracy::SourceLocationData silhouettes_tracy = TRACY_HACK( "Render silhouettes" );
+	static const tracy::SourceLocationData postprocess_tracy = TRACY_HACK( "Postprocess" );
+	static const tracy::SourceLocationData ui_tracy = TRACY_HACK( "Render UI" );
+#undef TRACY_HACK
 
 	frame_static.write_world_gbuffer_pass = AddRenderPass( "Write world gbuffer", &write_world_gbuffer_tracy, frame_static.world_gbuffer, ClearColor_Dont, ClearDepth_Do );
 	frame_static.postprocess_world_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer", &postprocess_world_gbuffer_tracy, frame_static.world_outlines_fb );
@@ -422,7 +422,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.sky_pass = AddRenderPass( "Render sky", &sky_tracy, frame_static.msaa_fb );
 		frame_static.transparent_pass = AddRenderPass( "Render transparent", &transparent_tracy, frame_static.msaa_fb );
 
-		AddResolveMSAAPass( frame_static.msaa_fb, frame_static.postprocess_fb, &sky_tracy );
+		AddResolveMSAAPass( frame_static.msaa_fb, frame_static.postprocess_fb, &msaa_tracy );
 	}
 	else {
 		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", &nonworld_opaque_tracy, frame_static.postprocess_fb );

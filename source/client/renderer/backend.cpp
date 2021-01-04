@@ -579,7 +579,6 @@ static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u
 static void SetupRenderPass( const RenderPass & pass ) {
 	ZoneScoped;
 	ZoneText( pass.name, strlen( pass.name ) );
-
 	renderpass_zone = new (renderpass_zone_memory) tracy::GpuCtxScope( pass.tracy );
 
 	if( GLAD_GL_KHR_debug != 0 ) {

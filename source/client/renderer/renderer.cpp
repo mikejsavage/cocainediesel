@@ -452,12 +452,36 @@ MinMax3 ShadowMapBounds( float tan_half_fov, float aspect_ratio, Vec3 position, 
 	verts[ 6 ] = position + fwd * far + right * far_plane_w - up * far_plane_h;
 	verts[ 7 ] = position + fwd * far - right * far_plane_w - up * far_plane_h;
 
-	MinMax3 bounds = MinMax3::Empty();
+	Vec3 frustum_center = Vec3( 0.0f );
+
 	for ( u32 i = 0; i < ARRAY_COUNT( verts ); i++ ) {
-		Vec3 vert = ( shadow_view * Vec4( verts[ i ], 1.0f ) ).xyz();
-		bounds = Extend( bounds, vert );
+		verts[ i ] = ( shadow_view * Vec4( verts[ i ], 1.0f ) ).xyz();
+		frustum_center += verts[ i ];
 	}
-	return bounds;
+	frustum_center /= 8.0f;
+
+	float radius = 0.0f;
+	for ( u32 i = 0; i < ARRAY_COUNT( verts ); i++ ) {
+		float dist = Length( verts[ i ] - frustum_center );
+		radius = Max2( radius, dist );
+	}
+	radius = round( radius * 16.0f ) / 16.0f;
+
+	return MinMax3( frustum_center - Vec3( radius ), frustum_center + Vec3( radius ) );
+}
+
+Mat4 ShadowProjection( MinMax3 bounds, float near, float far, Mat4 view, u32 map_size ) {
+	Mat4 proj = OrthographicProjection( bounds.mins.x, bounds.maxs.y, bounds.maxs.x, bounds.mins.y, near, far );
+	Mat4 VP = proj * view;
+	
+	Vec2 origin = ( VP * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xy();
+	origin *= map_size / 2.0f;
+	Vec2 rounded_origin = Vec2( round( origin.x ), round( origin.y ) );
+	Vec2 rounded_offset = ( rounded_origin - origin ) * ( 2.0f / map_size );
+	proj.col3.x += rounded_offset.x;
+	proj.col3.y += rounded_offset.y;
+
+	return proj;
 }
 
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) {
@@ -473,8 +497,8 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 
 	// MESS INCOMING
 
-	constexpr float shadow_dist = 256.0f;
-	constexpr float shadow_dist2 = 2048.0f;
+	constexpr float near_shadow_dist = 256.0f;
+	constexpr float far_shadow_dist = 2048.0f;
 
 	Vec3 fwd, right, up;
 	AngleVectors( Vec3( angles.pitch, angles.yaw, angles.roll ), &fwd, &right, &up );
@@ -488,20 +512,20 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	Mat4 shadow_view = ViewMatrix( Vec3( 0.0f ), EulerDegrees3( light_angles ) );
 
 	float tan_half_fov = tanf( Radians( vertical_fov ) * 0.5f );
-	MinMax3 bounds = ShadowMapBounds( tan_half_fov, frame_static.aspect_ratio, position, fwd, right, up, shadow_view, near_plane, shadow_dist );
-	MinMax3 bounds2 = ShadowMapBounds( tan_half_fov, frame_static.aspect_ratio, position, fwd, right, up, shadow_view, near_plane, shadow_dist2 );
+	MinMax3 near_bounds = ShadowMapBounds( tan_half_fov, frame_static.aspect_ratio, position, fwd, right, up, shadow_view, near_plane, near_shadow_dist );
+	MinMax3 far_bounds = ShadowMapBounds( tan_half_fov, frame_static.aspect_ratio, position, fwd, right, up, shadow_view, near_plane, far_shadow_dist );
 
-	float shadow_near = Min2( -bounds.maxs.z, -bounds2.maxs.z );
-	float shadow_far = Max2( -bounds.mins.z, -bounds2.mins.z );
+	float shadow_near = Min2( -near_bounds.maxs.z, -far_bounds.maxs.z );
+	float shadow_far = Max2( -near_bounds.mins.z, -far_bounds.mins.z );
 
-	Mat4 shadow_projection = OrthographicProjection( bounds.mins.x, bounds.maxs.y, bounds.maxs.x, bounds.mins.y, shadow_near, shadow_far );
-	Mat4 shadow2_projection = OrthographicProjection( bounds2.mins.x, bounds2.maxs.y, bounds2.maxs.x, bounds2.mins.y, shadow_near, shadow_far );
+	Mat4 near_shadow_projection = ShadowProjection( near_bounds, shadow_near, shadow_far, shadow_view, frame_static.near_shadowmap_fb.width );
+	Mat4 far_shadow_projection = ShadowProjection( far_bounds, shadow_near, shadow_far, shadow_view, frame_static.far_shadowmap_fb.width );
 
-	frame_static.near_shadowmap_VP = shadow_projection * shadow_view;
-	frame_static.far_shadowmap_VP = shadow2_projection * shadow_view;
+	frame_static.near_shadowmap_VP = near_shadow_projection * shadow_view;
+	frame_static.far_shadowmap_VP = far_shadow_projection * shadow_view;
 
-	frame_static.near_shadowmap_view_uniforms = UploadViewUniforms( shadow_view, Mat4::Identity(), shadow_projection, Mat4::Identity(), Vec3(), frame_static.viewport, near_plane, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), frame_static.light_direction );
-	frame_static.far_shadowmap_view_uniforms = UploadViewUniforms( shadow_view, Mat4::Identity(), shadow2_projection, Mat4::Identity(), Vec3(), frame_static.viewport, near_plane, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), frame_static.light_direction );
+	frame_static.near_shadowmap_view_uniforms = UploadViewUniforms( shadow_view, Mat4::Identity(), near_shadow_projection, Mat4::Identity(), Vec3(), frame_static.viewport, near_plane, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), frame_static.light_direction );
+	frame_static.far_shadowmap_view_uniforms = UploadViewUniforms( shadow_view, Mat4::Identity(), far_shadow_projection, Mat4::Identity(), Vec3(), frame_static.viewport, near_plane, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), frame_static.light_direction );
 
 	// END MESS
 

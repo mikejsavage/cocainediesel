@@ -7,8 +7,8 @@
 v2f vec3 v_Position;
 v2f vec3 v_Normal;
 v2f vec2 v_TexCoord;
-v2f vec4 v_ShadowmapPosition;
-v2f vec4 v_Shadowmap2Position;
+v2f vec4 v_NearShadowmapPosition;
+v2f vec4 v_FarShadowmapPosition;
 
 #if VERTEX_COLORS
 v2f vec4 v_Color;
@@ -42,8 +42,8 @@ void main() {
 	v_Position = ( u_M * Position ).xyz;
 	v_Normal = mat3( u_M ) * Normal;
 	v_TexCoord = ApplyTCMod( a_TexCoord );
-	v_ShadowmapPosition = u_WorldToShadowmap * vec4( v_Position, 1.0 );
-	v_Shadowmap2Position = u_WorldToShadowmap2 * vec4( v_Position, 1.0 );
+	v_NearShadowmapPosition = u_NearWorldToShadowmap * vec4( v_Position, 1.0 );
+	v_FarShadowmapPosition = u_FarWorldToShadowmap * vec4( v_Position, 1.0 );
 
 #if VERTEX_COLORS
 	v_Color = sRGBToLinear( a_Color );
@@ -62,8 +62,8 @@ void main() {
 out vec4 f_Albedo;
 
 uniform sampler2D u_BaseTexture;
-uniform sampler2D u_ShadowmapTexture;
-uniform sampler2D u_Shadowmap2Texture;
+uniform sampler2D u_NearShadowmapTexture;
+uniform sampler2D u_FarShadowmapTexture;
 
 #if APPLY_SOFT_PARTICLE
 #include "include/softparticle.glsl"
@@ -101,12 +101,10 @@ vec2 ShadowOffsets( vec3 N, vec3 L ) {
 	return vec2( offset_scale_N, min( 5.0, offset_scale_L ) );
 }
 
-float GetLight( vec4 shadow_pos, vec3 normal, vec3 lightdir, sampler2D shadowmap, int pcfCount, out bool in_range ) {
-	in_range = true;
+float GetLight( vec4 shadow_pos, vec3 normal, vec3 lightdir, sampler2D shadowmap, int pcfCount ) {
 	vec3 light_ndc = shadow_pos.xyz / shadow_pos.w;
 	vec3 light_norm = light_ndc * 0.5 + 0.5;
 	if ( clamp( light_norm.xy, 0.0, 1.0 ) != light_norm.xy ) {
-		in_range = false;
 		return 0.0;
 	}
 	vec2 offsets = ShadowOffsets( normal, lightdir );
@@ -214,16 +212,18 @@ void main() {
 	diffuse.rgb *= lambertlight * 0.5 + 0.5;
 
 	float light = 0.0;
-	vec3 light_ndc = v_ShadowmapPosition.xyz / v_ShadowmapPosition.w;
+	vec3 light_ndc = v_NearShadowmapPosition.xyz / v_NearShadowmapPosition.w;
 	vec3 light_norm = light_ndc * 0.5 + 0.5;
 	if ( light_norm.z > 1.0 || abs( dot( v_Normal, u_LightDir ) ) < 0.1 ) {
 		light = 0.0;
 	} else {
-		bool in_range = false;
-		light = GetLight( v_ShadowmapPosition, v_Normal, u_LightDir, u_ShadowmapTexture, 1, in_range);
-		if ( !in_range ) {
-			light = GetLight( v_Shadowmap2Position, v_Normal, u_LightDir, u_Shadowmap2Texture, 1, in_range );
+		float near_far_fract = smoothstep( 0.8, 1.0, length( v_NearShadowmapPosition.xy ) );
+		float near_light = 0.0;
+		if ( near_far_fract < 1.0 ) {
+			near_light = GetLight( v_NearShadowmapPosition, v_Normal, u_LightDir, u_NearShadowmapTexture, 1 );
 		}
+		float far_light = GetLight( v_FarShadowmapPosition, v_Normal, u_LightDir, u_FarShadowmapTexture, 1 );
+		light = mix( near_light, far_light, near_far_fract );
 	}
 	diffuse.rgb *= 0.5 + light * 0.5;
 

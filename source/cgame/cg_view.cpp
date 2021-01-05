@@ -633,8 +633,8 @@ static void DrawWorld() {
 			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
 			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-			pipeline.set_texture( "u_ShadowmapTexture", &frame_static.near_shadowmap_fb.depth_texture );
-			pipeline.set_texture( "u_Shadowmap2Texture", &frame_static.far_shadowmap_fb.depth_texture );
+			pipeline.set_texture( "u_NearShadowmapTexture", &frame_static.near_shadowmap_fb.depth_texture );
+			pipeline.set_texture( "u_FarShadowmapTexture", &frame_static.far_shadowmap_fb.depth_texture );
 			pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
 			AddDecalsToPipeline( &pipeline );
 

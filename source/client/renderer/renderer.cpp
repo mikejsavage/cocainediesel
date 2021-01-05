@@ -465,7 +465,7 @@ MinMax3 ShadowMapBounds( float tan_half_fov, float aspect_ratio, Vec3 position, 
 		float dist = Length( verts[ i ] - frustum_center );
 		radius = Max2( radius, dist );
 	}
-	radius = round( radius * 16.0f ) / 16.0f;
+	radius = roundf( radius * 16.0f ) / 16.0f;
 
 	return MinMax3( frustum_center - Vec3( radius ), frustum_center + Vec3( radius ) );
 }
@@ -476,7 +476,7 @@ Mat4 ShadowProjection( MinMax3 bounds, float near, float far, Mat4 view, u32 map
 	
 	Vec2 origin = ( VP * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xy();
 	origin *= map_size / 2.0f;
-	Vec2 rounded_origin = Vec2( round( origin.x ), round( origin.y ) );
+	Vec2 rounded_origin = Vec2( roundf( origin.x ), roundf( origin.y ) );
 	Vec2 rounded_offset = ( rounded_origin - origin ) * ( 2.0f / map_size );
 	proj.col3.x += rounded_offset.x;
 	proj.col3.y += rounded_offset.y;

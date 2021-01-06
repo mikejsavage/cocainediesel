@@ -831,16 +831,21 @@ void CG_DrawPlayer( centity_t *cent ) {
 		color *= Vec4( 0.25f, 0.25f, 0.25f, 1.0 );
 	}
 
-	DrawModel( meta->model, transform, color, pose );
-
+	bool draw_model = !ISVIEWERENTITY( cent->current.number ) || cg.view.thirdperson;
 	bool same_team = GS_TeamBasedGametype( &client_gs ) && cg.predictedPlayerState.team == cent->current.team;
-	bool draw_silhouette = ISREALSPECTATOR() || same_team;
+	bool draw_silhouette = draw_model && ( ISREALSPECTATOR() || same_team );
+
+	if( draw_model )
+		DrawModel( meta->model, transform, color, pose );
+	DrawModelShadow( meta->model, transform, color, pose );
 	if( !corpse && draw_silhouette ) {
 		DrawModelSilhouette( meta->model, transform, color, pose );
 	}
 
-	float outline_height = CG_OutlineScaleForDist( &cent->ent, 4096, 1.0f );
-	DrawOutlinedModel( meta->model, transform, color, outline_height, pose );
+	if( draw_model ) {
+		float outline_height = CG_OutlineScaleForDist( &cent->ent, 4096, 1.0f );
+		DrawOutlinedModel( meta->model, transform, color, outline_height, pose );
+	}
 
 	// add weapon model
 	if( cent->current.weapon != Weapon_None ) {
@@ -848,7 +853,9 @@ void CG_DrawPlayer( centity_t *cent ) {
 		if( weapon_model != NULL ) {
 			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon );
 
-			DrawModel( weapon_model, tag_transform, vec4_white );
+			if( draw_model )
+				DrawModel( weapon_model, tag_transform, vec4_white );
+			DrawModelShadow( weapon_model, tag_transform, vec4_white );
 
 			if( draw_silhouette ) {
 				DrawModelSilhouette( weapon_model, tag_transform, color );
@@ -863,7 +870,9 @@ void CG_DrawPlayer( centity_t *cent ) {
 		if( cent->current.effects & EF_HAT )
 			tag = meta->tag_hat;
 		Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
-		DrawModel( attached_model, tag_transform, vec4_white );
+		if ( draw_model )
+			DrawModel( attached_model, tag_transform, vec4_white );
+		DrawModelShadow( attached_model, tag_transform, vec4_white );
 
 		if( draw_silhouette ) {
 			DrawModelSilhouette( attached_model, tag_transform, color );

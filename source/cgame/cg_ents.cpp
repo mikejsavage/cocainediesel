@@ -452,6 +452,7 @@ static void DrawEntityModel( centity_t *cent ) {
 
 	Vec4 color = sRGBToLinear( cent->ent.color );
 	DrawModel( model, transform, color );
+	DrawModelShadow( model, transform, color );
 
 	if( cent->current.silhouetteColor.a > 0 ) {
 		if( ( cent->current.effects & EF_TEAM_SILHOUETTE ) == 0 || ISREALSPECTATOR() || cent->current.team == cg.predictedPlayerState.team ) {
@@ -464,13 +465,37 @@ static void DrawEntityModel( centity_t *cent ) {
 		UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
 		for( u32 i = 0; i < model->num_primitives; i++ ) {
 			if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
-				PipelineState pipeline;
-				pipeline.pass = frame_static.write_world_gbuffer_pass;
-				pipeline.shader = &shaders.depth_only;
-				pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-				pipeline.set_uniform( "u_Model", model_uniforms );
+				{
+					PipelineState pipeline;
+					pipeline.pass = frame_static.write_world_gbuffer_pass;
+					pipeline.shader = &shaders.depth_only;
+					pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+					pipeline.set_uniform( "u_Model", model_uniforms );
 
-				DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+				}
+				{
+					PipelineState pipeline;
+					pipeline.pass = frame_static.near_shadowmap_pass;
+					pipeline.shader = &shaders.depth_only;
+					pipeline.clamp_depth = true;
+					pipeline.cull_face = CullFace_Disabled;
+					pipeline.set_uniform( "u_View", frame_static.near_shadowmap_view_uniforms );
+					pipeline.set_uniform( "u_Model", model_uniforms );
+
+					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+				}
+				{
+					PipelineState pipeline;
+					pipeline.pass = frame_static.far_shadowmap_pass;
+					pipeline.shader = &shaders.depth_only;
+					pipeline.clamp_depth = true;
+					pipeline.cull_face = CullFace_Disabled;
+					pipeline.set_uniform( "u_View", frame_static.far_shadowmap_view_uniforms );
+					pipeline.set_uniform( "u_Model", model_uniforms );
+
+					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+				}
 			}
 		}
 	}
@@ -479,10 +504,6 @@ static void DrawEntityModel( centity_t *cent ) {
 static void CG_AddPlayerEnt( centity_t *cent ) {
 	if( ISVIEWERENTITY( cent->current.number ) ) {
 		cg.effects = cent->effects;
-		if( !cg.view.thirdperson ) {
-			// CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
-			return;
-		}
 	}
 
 	// if set to invisible, skip

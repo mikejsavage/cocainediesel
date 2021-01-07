@@ -339,6 +339,7 @@ TextureArray NewAtlasTextureArray( const TextureArrayConfig & config );
 void DeleteTextureArray( TextureArray ta );
 
 Framebuffer NewFramebuffer( const FramebufferConfig & config );
+Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, Texture * depth_texture );
 void DeleteFramebuffer( Framebuffer fb );
 
 bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths, Span< const char * > feedback_varyings = Span< const char * >() );

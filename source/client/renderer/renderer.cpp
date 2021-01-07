@@ -131,11 +131,11 @@ void InitRenderer() {
 }
 
 static void DeleteFramebuffers() {
-	DeleteFramebuffer( frame_static.world_gbuffer );
-	DeleteFramebuffer( frame_static.world_outlines_fb );
 	DeleteFramebuffer( frame_static.silhouette_gbuffer );
-	DeleteFramebuffer( frame_static.silhouette_silhouettes_fb );
+	DeleteFramebuffer( frame_static.postprocess_fb );
 	DeleteFramebuffer( frame_static.msaa_fb );
+	DeleteFramebuffer( frame_static.postprocess_fb_onlycolor );
+	DeleteFramebuffer( frame_static.msaa_fb_onlycolor );
 }
 
 void ShutdownRenderer() {
@@ -268,31 +268,10 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb;
 
-		texture_config.format = TextureFormat_Depth;
-		fb.depth_attachment = texture_config;
-
-		fb.msaa_samples = frame_static.msaa_samples;
-
-		frame_static.world_gbuffer = NewFramebuffer( fb );
-	}
-
-	{
-		FramebufferConfig fb;
-
-		texture_config.format = TextureFormat_A_U8;
-		fb.albedo_attachment = texture_config;
-
-		frame_static.world_outlines_fb = NewFramebuffer( fb );
-	}
-
-	{
-		FramebufferConfig fb;
-
 		texture_config.format = TextureFormat_RGBA_U8_sRGB;
 		fb.albedo_attachment = texture_config;
 
 		frame_static.silhouette_gbuffer = NewFramebuffer( fb );
-		frame_static.silhouette_silhouettes_fb = NewFramebuffer( fb );
 	}
 
 	if( frame_static.msaa_samples > 1 ) {
@@ -320,6 +299,9 @@ static void CreateFramebuffers() {
 
 		frame_static.postprocess_fb = NewFramebuffer( fb );
 	}
+
+	frame_static.postprocess_fb_onlycolor = NewFramebuffer( &frame_static.postprocess_fb.albedo_texture, NULL, NULL );
+	frame_static.msaa_fb_onlycolor = NewFramebuffer( &frame_static.msaa_fb.albedo_texture, NULL, NULL );
 }
 
 #if !TRACY_ENABLE
@@ -372,13 +354,10 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
 
 #define TRACY_HACK( name ) { name, __FUNCTION__, __FILE__, uint32_t( __LINE__ ), 0 }
-	static const tracy::SourceLocationData write_world_gbuffer_tracy = TRACY_HACK( "Write world gbuffer" );
-	static const tracy::SourceLocationData postprocess_world_gbuffer_tracy = TRACY_HACK( "Postprocess world gbuffer" );
 	static const tracy::SourceLocationData particle_update_tracy = TRACY_HACK( "Update particles" );
 	static const tracy::SourceLocationData world_opaque_tracy = TRACY_HACK( "Render world opaque" );
 	static const tracy::SourceLocationData add_world_outlines_tracy = TRACY_HACK( "Render world outlines" );
 	static const tracy::SourceLocationData write_silhouette_buffer_tracy = TRACY_HACK( "Write silhouette buffer" );
-	static const tracy::SourceLocationData postprocess_silhouette_buffer_tracy = TRACY_HACK( "Postprocess silhouette buffer" );
 	static const tracy::SourceLocationData nonworld_opaque_tracy = TRACY_HACK( "Render nonworld opaque" );
 	static const tracy::SourceLocationData msaa_tracy = TRACY_HACK( "Resolve MSAA" );
 	static const tracy::SourceLocationData sky_tracy = TRACY_HACK( "Render sky" );
@@ -388,22 +367,18 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	static const tracy::SourceLocationData ui_tracy = TRACY_HACK( "Render UI" );
 #undef TRACY_HACK
 
-	frame_static.write_world_gbuffer_pass = AddRenderPass( "Write world gbuffer", &write_world_gbuffer_tracy, frame_static.world_gbuffer, ClearColor_Dont, ClearDepth_Do );
-	frame_static.postprocess_world_gbuffer_pass = AddRenderPass( "Postprocess world gbuffer", &postprocess_world_gbuffer_tracy, frame_static.world_outlines_fb );
-
 	frame_static.particle_update_pass = AddRenderPass( "Particle Update", &particle_update_tracy );
 
 	if( msaa ) {
 		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
-		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", &add_world_outlines_tracy, frame_static.msaa_fb );
+		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", &add_world_outlines_tracy, frame_static.msaa_fb_onlycolor );
 	}
 	else {
 		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
-		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", &add_world_outlines_tracy, frame_static.postprocess_fb );
+		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", &add_world_outlines_tracy, frame_static.postprocess_fb_onlycolor );
 	}
 
 	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( "Write silhouette gbuffer", &write_silhouette_buffer_tracy, frame_static.silhouette_gbuffer, ClearColor_Do, ClearDepth_Dont );
-	frame_static.postprocess_silhouette_gbuffer_pass = AddRenderPass( "Postprocess silhouette gbuffer", &postprocess_silhouette_buffer_tracy, frame_static.silhouette_silhouettes_fb );
 
 	if( msaa ) {
 		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", &nonworld_opaque_tracy, frame_static.msaa_fb );

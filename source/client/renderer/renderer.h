@@ -31,15 +31,11 @@ struct FrameStatic {
 	float vertical_fov;
 	float near_plane;
 
-	Framebuffer world_gbuffer;
-	Framebuffer world_outlines_fb;
 	Framebuffer silhouette_gbuffer;
-	Framebuffer silhouette_silhouettes_fb;
 	Framebuffer msaa_fb;
 	Framebuffer postprocess_fb;
-
-	u8 write_world_gbuffer_pass;
-	u8 postprocess_world_gbuffer_pass;
+	Framebuffer msaa_fb_onlycolor;
+	Framebuffer postprocess_fb_onlycolor;
 
 	u8 particle_update_pass;
 
@@ -47,7 +43,6 @@ struct FrameStatic {
 	u8 add_world_outlines_pass;
 
 	u8 write_silhouette_gbuffer_pass;
-	u8 postprocess_silhouette_gbuffer_pass;
 
 	u8 nonworld_opaque_pass;
 	u8 sky_pass;

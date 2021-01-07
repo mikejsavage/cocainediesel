@@ -143,7 +143,6 @@ static void SubmitPostprocessPass() {
 		const Framebuffer & fb = frame_static.postprocess_fb;
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_texture( "u_Screen", &fb.albedo_texture );
-		pipeline.set_texture( "u_DepthTexture", &fb.depth_texture );
 		pipeline.set_texture( "u_Noise", FindMaterial( "textures/noise" )->texture );
 		float damage_effect = cg.view.type == VIEWDEF_PLAYERVIEW ? cg.damage_effect : 0.0f;
 		pipeline.set_uniform( "u_PostProcess", UploadUniformBlock( float( Sys_Milliseconds() ) * 0.001f, damage_effect ) );

@@ -2,6 +2,10 @@
 #include "include/common.glsl"
 #include "include/fog.glsl"
 
+layout( std140 ) uniform u_Outline {
+	vec4 u_OutlineColor;
+};
+
 #if MSAA
 uniform sampler2DMS u_DepthTexture;
 #else
@@ -18,7 +22,7 @@ void main() {
 
 #else
 
-out float f_Albedo;
+out vec4 f_Albedo;
 
 float edgeDetect( float center, float up, float down_left, float down_right ) {
 	float delta = 4.0 * center - 2.0 * up - down_left - down_right;
@@ -59,7 +63,7 @@ void main() {
 	float edgeness = edgeDetect( depth, depth_up, depth_down_left, depth_down_right );
 	edgeness = VoidFogAlpha( edgeness, gl_FragCoord.xy, depth );
 #endif
-	f_Albedo = LinearTosRGB( edgeness );
+	f_Albedo = LinearTosRGB( edgeness * u_OutlineColor );
 }
 
 #endif

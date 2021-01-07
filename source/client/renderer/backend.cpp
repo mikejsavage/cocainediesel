@@ -698,7 +698,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 static void SubmitResolveMSAA( Framebuffer fb ) {
 	assert( fb.width == frame_static.viewport_width && fb.height == frame_static.viewport_height );
 	glBindFramebuffer( GL_READ_FRAMEBUFFER, fb.fbo );
-	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST );
+	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 }
 
 void RenderBackendSubmitFrame() {
@@ -1044,6 +1044,50 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 		height = texture.height;
 	}
 
+	glDrawBuffers( ARRAY_COUNT( bufs ), bufs );
+
+	assert( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	assert( width > 0 && height > 0 );
+	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+
+	fb.width = width;
+	fb.height = height;
+
+	return fb;
+}
+
+Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, Texture * depth_texture ) {
+	GLuint fbo;
+	glGenFramebuffers( 1, &fbo );
+	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+
+	Framebuffer fb = { };
+	fb.fbo = fbo;
+
+	u32 width = 0;
+	u32 height = 0;
+	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
+	if( albedo_texture ) {
+		GLenum target = albedo_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, albedo_texture->texture, 0 );
+		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
+		width = albedo_texture->width;
+		height = albedo_texture->height;
+	}
+	if( normal_texture ) {
+		GLenum target = normal_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, target, normal_texture->texture, 0 );
+		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
+		width = normal_texture->width;
+		height = normal_texture->height;
+	}
+	if( depth_texture ) {
+		GLenum target = depth_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, depth_texture->texture, 0 );
+		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
+		width = depth_texture->width;
+		height = depth_texture->height;
+	}
 	glDrawBuffers( ARRAY_COUNT( bufs ), bufs );
 
 	assert( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );

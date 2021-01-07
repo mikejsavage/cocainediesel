@@ -784,7 +784,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 
 	if( material->mask_outlines ) {
 		PipelineState pipeline;
-		pipeline.pass = frame_static.write_world_gbuffer_pass;
+		pipeline.pass = frame_static.world_opaque_pass;
 		pipeline.shader = &shaders.write_world_gbuffer;
 		return pipeline;
 	}

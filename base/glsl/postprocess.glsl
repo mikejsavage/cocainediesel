@@ -12,7 +12,6 @@ void main() {
 #else
 
 uniform sampler2D u_Screen;
-uniform sampler2D u_DepthTexture;
 uniform sampler2D u_Noise;
 
 layout( std140 ) uniform u_PostProcess {

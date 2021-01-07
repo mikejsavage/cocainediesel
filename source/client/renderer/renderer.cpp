@@ -301,7 +301,9 @@ static void CreateFramebuffers() {
 	}
 
 	frame_static.postprocess_fb_onlycolor = NewFramebuffer( &frame_static.postprocess_fb.albedo_texture, NULL, NULL );
-	frame_static.msaa_fb_onlycolor = NewFramebuffer( &frame_static.msaa_fb.albedo_texture, NULL, NULL );
+	if ( frame_static.msaa_samples > 1 ) {
+		frame_static.msaa_fb_onlycolor = NewFramebuffer( &frame_static.msaa_fb.albedo_texture, NULL, NULL );
+	}
 }
 
 #if !TRACY_ENABLE

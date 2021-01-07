@@ -1067,21 +1067,21 @@ Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, 
 	u32 width = 0;
 	u32 height = 0;
 	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
-	if( albedo_texture ) {
+	if( albedo_texture != NULL ) {
 		GLenum target = albedo_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, albedo_texture->texture, 0 );
 		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
 		width = albedo_texture->width;
 		height = albedo_texture->height;
 	}
-	if( normal_texture ) {
+	if( normal_texture != NULL ) {
 		GLenum target = normal_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, target, normal_texture->texture, 0 );
 		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
 		width = normal_texture->width;
 		height = normal_texture->height;
 	}
-	if( depth_texture ) {
+	if( depth_texture != NULL ) {
 		GLenum target = depth_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, depth_texture->texture, 0 );
 		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;

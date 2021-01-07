@@ -1,6 +1,8 @@
 #include "include/uniforms.glsl"
 #include "include/common.glsl"
+#include "include/fog.glsl"
 
+v2f vec3 v_Position;
 v2f vec2 v_TexCoord;
 v2f float v_Layer;
 v2f vec4 v_Color;
@@ -54,6 +56,7 @@ void main() {
 #if MODEL
 	vec3 position = a_ParticlePosition + ( u_M * vec4( a_Position * scale, 1.0 ) ).xyz;
 
+	v_Position = position;
 	gl_Position = u_P * u_V * vec4( position, 1.0 );
 #else
 	// stretched billboards based on
@@ -71,6 +74,7 @@ void main() {
 		vec3 stretch = dot( quadPos, view_velocity ) * view_velocity;
 		quadPos += normalize( stretch ) * clamp( length( stretch ), 0.0, scale );
 	}
+	v_Position = a_ParticlePosition;
 	gl_Position = u_P * ( u_V * vec4( a_ParticlePosition, 1.0 ) + vec4( quadPos, 0.0 ) );
 #endif
 }
@@ -84,11 +88,16 @@ out vec4 f_Albedo;
 
 void main() {
 	// TODO: soft particles
+	vec4 color;
 #if MODEL
-	f_Albedo = LinearTosRGB( texture( u_BaseTexture, v_TexCoord ) * v_Color );
+	color = texture( u_BaseTexture, v_TexCoord ) * v_Color;
 #else
-	f_Albedo = LinearTosRGB( texture( u_DecalAtlases, vec3( v_TexCoord, v_Layer ) ) * v_Color );
+	color = texture( u_DecalAtlases, vec3( v_TexCoord, v_Layer ) ) * v_Color;
 #endif
+	color.a = FogAlpha( color.a, length( v_Position - u_CameraPos ) );
+	color.a = VoidFogAlpha( color.a, v_Position.z );
+
+	f_Albedo = LinearTosRGB( color );
 }
 
 #endif

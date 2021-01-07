@@ -176,6 +176,9 @@ void main() {
 	diffuse.rgb += Dither();
 #endif
 
+	diffuse.rgb = VoidFog( diffuse.rgb, v_Position.z );
+	diffuse.a = VoidFogAlpha( diffuse.a, v_Position.z );
+
 	f_Albedo = LinearTosRGB( diffuse );
 }
 

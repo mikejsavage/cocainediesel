@@ -1515,6 +1515,7 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material 
 	pipeline.blend_func = blend_func;
 	pipeline.write_depth = false;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 	pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( HalfPixelSize( gradient ).x ) );
 	pipeline.set_texture( "u_GradientTexture", gradient->texture );
 	pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
@@ -1548,6 +1549,7 @@ void DrawInstancedParticles( VertexBuffer vb, const Model * model, const Materia
 		pipeline.shader = &shaders.particle_model;
 		pipeline.write_depth = true;
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
 		pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( HalfPixelSize( gradient ).x ) );
 		// pipeline.set_texture( "u_BaseTexture", material->texture );

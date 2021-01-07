@@ -1,5 +1,6 @@
 #include "include/uniforms.glsl"
 #include "include/common.glsl"
+#include "include/fog.glsl"
 
 #if MSAA
 uniform sampler2DMS u_DepthTexture;
@@ -33,14 +34,18 @@ void main() {
 	ivec2 pixel_up = ivec2( 0, 1 );
 
 	float edgeness = 0.0;
+	float avg_depth = 0.0;
 	for( int i = 0; i < u_Samples; i++ ) {
 		float depth =            texelFetch( u_DepthTexture, p, i ).r;
 		float depth_up =         texelFetch( u_DepthTexture, p + pixel_up, i ).r;
 		float depth_down_left =  texelFetch( u_DepthTexture, p - pixel_up - pixel_right, i ).r;
 		float depth_down_right = texelFetch( u_DepthTexture, p - pixel_up + pixel_right, i ).r;
 		edgeness += edgeDetect( depth, depth_up, depth_down_left, depth_down_right );
+		avg_depth += depth;
 	}
 	edgeness /= u_Samples;
+	avg_depth /= u_Samples;
+	edgeness = VoidFogAlpha( edgeness, gl_FragCoord.xy, avg_depth );
 #else
 	vec2 pixel_size = 1.0 / u_ViewportSize;
 	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
@@ -52,6 +57,7 @@ void main() {
 	float depth_down_left =  texture( u_DepthTexture, uv - pixel_up - pixel_right ).r;
 	float depth_down_right = texture( u_DepthTexture, uv - pixel_up + pixel_right ).r;
 	float edgeness = edgeDetect( depth, depth_up, depth_down_left, depth_down_right );
+	edgeness = VoidFogAlpha( edgeness, gl_FragCoord.xy, depth );
 #endif
 	f_Albedo = LinearTosRGB( edgeness );
 }

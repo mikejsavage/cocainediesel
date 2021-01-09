@@ -6,7 +6,7 @@
 constexpr u32 MAX_PARTICLE_SYSTEMS = 512;
 constexpr u32 MAX_PARTICLE_EMITTERS = 512;
 constexpr u32 MAX_PARTICLE_EMITTER_EVENTS = 8;
-constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 8;
+constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 16;
 
 constexpr u32 MAX_DECAL_EMITTERS = 512;
 constexpr u32 MAX_DECAL_EMITTER_MATERIALS = 8;
@@ -230,5 +230,5 @@ void DrawParticles();
 // void ResetParticleMenuEffect();
 // void ResetParticleEditor();
 
-// void DrawParticleMenuEffect();
+void DrawParticleMenuEffect();
 // void DrawParticleEditor();

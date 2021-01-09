@@ -794,7 +794,7 @@ void DrawParticles() {
 		}
 	}
 
-	if( cg_particleDebug->integer ) {
+	if( cg_particleDebug != NULL && cg_particleDebug->integer ) {
 		const ImGuiIO & io = ImGui::GetIO();
 		float width_frac = Lerp( 0.25f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.15f );
 		Vec2 size = io.DisplaySize * Vec2( width_frac, 0.5f );
@@ -1197,15 +1197,22 @@ void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal, float count, V
 // 	}
 // }
 
-// void DrawParticleMenuEffect() {
-// 	RendererSetView( Vec3( -400, 0, 400 ), EulerDegrees3( 45, 0, 0 ), 90 );
+
+void DrawParticleMenuEffect() {
+	ImVec2 mouse_pos = ImGui::GetMousePos();
+	Vec2 pos = Clamp( Vec2( 0.0f ), Vec2( mouse_pos.x, mouse_pos.y ), frame_static.viewport ) - frame_static.viewport * 0.5f;
+	pos *= 0.05;
+	RendererSetView( Vec3( -400, pos.x, pos.y ), EulerDegrees3( 0, 0, 0 ), 90 );
+	frame_static.fog_uniforms = UploadUniformBlock( 0.0f );
+	DoVisualEffect( "vfx/menu", Vec3( 0.0f ) );
+	DrawParticles();
 
 // 	float dt = cls.frametime / 1000.0f;
 
 // 	EmitParticles( &menu_ps, menu_emitter, dt );
 // 	UpdateParticleSystem( &menu_ps, dt );
 // 	DrawParticleSystem( &menu_ps );
-// }
+}
 
 // void DrawParticleEditor() {
 // 	TempAllocator temp = cls.frame_arena.temp();

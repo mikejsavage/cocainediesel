@@ -390,8 +390,7 @@ UniformBlock UploadUniformBlock( Rest... rest ) {
 	// assign to constexpr variable to break the build if it
 	// stops being constexpr, instead of switching to VLA
 	constexpr size_t buf_size = Std140Size< Rest... >( 0 );
-	char buf[ buf_size ];
-	memset( buf, 0, sizeof( buf ) );
+	char buf[ buf_size ] = { };
 	SerializeUniforms( buf, 0, rest... );
 	return UploadUniforms( buf, sizeof( buf ) );
 }

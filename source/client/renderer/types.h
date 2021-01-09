@@ -64,7 +64,9 @@ struct Mesh {
 
 struct GPUParticle {
 	Vec3 position;
+	float angle;
 	Vec3 velocity;
+	float rotation_speed;
 	float acceleration;
 	float drag;
 	float restitution;

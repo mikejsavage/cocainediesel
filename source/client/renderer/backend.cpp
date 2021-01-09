@@ -640,8 +640,8 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	if( dc.num_instances != 0 ) {
 		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
 
-		SetupAttribute( VertexAttribute_ParticlePosition, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
-		SetupAttribute( VertexAttribute_ParticleVelocity, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, velocity ) );
+		SetupAttribute( VertexAttribute_ParticlePosition, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
+		SetupAttribute( VertexAttribute_ParticleVelocity, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, velocity ) );
 		SetupAttribute( VertexAttribute_ParticleAccelDragRest, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, acceleration ) );
 		SetupAttribute( VertexAttribute_ParticleUVWH, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, uvwh ) );
 		SetupAttribute( VertexAttribute_ParticleStartColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, start_color ) );

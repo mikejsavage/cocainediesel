@@ -257,6 +257,18 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			else if( key == "speed_distribution" ) {
 				emitter->speed_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
 			}
+			else if( key == "angle" ) {
+				emitter->angle = Radians( ParseFloat( data, 0.0f, Parse_StopOnNewLine ) );
+			}
+			else if( key == "angle_distribution" ) {
+				emitter->angle_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "rotation" ) {
+				emitter->rotation = Radians( ParseFloat( data, 0.0f, Parse_StopOnNewLine ) );
+			}
+			else if( key == "rotation_distribution" ) {
+				emitter->rotation_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
 			else if( key == "size" ) {
 				emitter->start_size = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
 				emitter->end_size = ParseFloat( data, emitter->start_size, Parse_StopOnNewLine );
@@ -318,6 +330,10 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			}
 			else if( key == "on_age" ) {
 				ParseParticleEvents( data, &emitter->on_age );
+				emitter->feedback = true;
+			}
+			else if( key == "on_frame" ) {
+				ParseParticleEvents( data, &emitter->on_frame );
 				emitter->feedback = true;
 			}
 		}
@@ -518,6 +534,7 @@ void CreateParticleSystems() {
 				ps.feedback = true;
 				ps.on_collision = emitter->on_collision;
 				ps.on_age = emitter->on_age;
+				ps.on_frame = emitter->on_frame;
 
 				// TODO(msc): lol
 				u64 hash = random_u64( &cls.rng );
@@ -541,6 +558,7 @@ void CreateParticleSystems() {
 				ps.feedback = true;
 				ps.on_collision = emitter->on_collision;
 				ps.on_age = emitter->on_age;
+				ps.on_frame = emitter->on_frame;
 			}
 			u64 idx = num_particleSystems;
 			if( !particleSystems_hashtable.get( hash, &idx ) ) {
@@ -667,6 +685,17 @@ bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 			}
 		}
 	}
+
+	for( u8 i = 0; i < ps->on_frame.num_events; i++ ) {
+		StringHash event = ps->on_frame.events[ i ];
+		if( event == despawn ) {
+			result = false;
+		}
+		else {
+			DoVisualEffect( event, feedback->position, feedback->normal );
+		}
+	}
+
 	return result;
 };
 
@@ -792,14 +821,16 @@ void DrawParticles() {
 	}
 }
 
-static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 start_color, Vec4 end_color, float start_size, float end_size, u32 flags ) {
+static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float rotation, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 start_color, Vec4 end_color, float start_size, float end_size, u32 flags ) {
 	ZoneScopedN( "Store Particle" );
 	if( ps->num_particles + ps->new_particles == ps->max_particles )
 		return;
 
 	GPUParticle & particle = ps->particles[ ps->new_particles ];
 	particle.position = position;
+	particle.angle = angle;
 	particle.velocity = velocity;
+	particle.rotation_speed = rotation;
 	particle.acceleration = acceleration;
 	particle.drag = drag;
 	particle.restitution = restitution;
@@ -858,6 +889,8 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 	}
 
 	float speed = emitter->speed + SampleRandomDistribution( &cls.rng, emitter->speed_distribution );
+	float angle = emitter->angle + Radians( SampleRandomDistribution( &cls.rng, emitter->angle_distribution ) );
+	float rotation = emitter->rotation + Radians( SampleRandomDistribution( &cls.rng, emitter->rotation_distribution ) );
 
 	start_color.x += SampleRandomDistribution( &cls.rng, emitter->red_distribution );
 	start_color.y += SampleRandomDistribution( &cls.rng, emitter->green_distribution );
@@ -867,11 +900,11 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 
 	Vec4 uvwh = Vec4( 0.0f );
 	if( ps->model ) {
-		EmitParticle( ps, lifetime, position, dir * speed, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, start_color, end_color, size, emitter->end_size, emitter->flags );
+		EmitParticle( ps, lifetime, position, dir * speed, angle, rotation, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, start_color, end_color, size, emitter->end_size, emitter->flags );
 	}
 	else if( emitter->num_materials ) {
 		if( TryFindDecal( emitter->materials[ random_uniform( &cls.rng, 0, emitter->num_materials - 1 ) ], &uvwh ) ) {
-			EmitParticle( ps, lifetime, position, dir * speed, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, start_color, end_color, size, emitter->end_size, emitter->flags );
+			EmitParticle( ps, lifetime, position, dir * speed, angle, rotation, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, start_color, end_color, size, emitter->end_size, emitter->flags );
 		}
 	}
 }

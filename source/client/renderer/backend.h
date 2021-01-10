@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string.h>
+
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
 #include "client/renderer/types.h"

@@ -930,10 +930,11 @@ void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, floa
 
 	Mat4 dir_transform = Mat4::Identity();
 	if( pos.theta != 0.0f ) {
-		dir_transform = TransformKToDir( pos.normal );
+		dir_transform = pos.normal == Vec3( 0.0f ) ? Mat4::Identity() : TransformKToDir( pos.normal );
 	}
 	else if( pos.type == ParticleEmitterPosition_Line && pos.radius > 0.0f ) {
-		dir_transform = TransformKToDir( Normalize( pos.end - pos.origin ) );
+		Vec3 dir = pos.end - pos.origin;
+		dir_transform = dir == Vec3( 0.0f ) ? Mat4::Identity() : TransformKToDir( dir );
 	}
 
 	Vec4 start_color = emitter->start_color;

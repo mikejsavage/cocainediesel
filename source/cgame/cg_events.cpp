@@ -100,7 +100,7 @@ static void LGImpact( const trace_t * trace, Vec3 dir ) {
 		laserOwner->localEffects[ LOCALEFFECT_LASERBEAM_SMOKE_TRAIL ] = cl.serverTime;
 	}
 
-	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, 4, team_color );
+	DoVisualEffect( "vfx/laser_impact", trace->endpos, trace->plane.normal, 4, team_color );
 }
 
 void CG_LaserBeamEffect( centity_t * cent ) {

@@ -711,7 +711,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 			for( size_t i = 0; i < ps->num_particles; i++ ) {
 				size_t index = ps->gpu_instances[ i ];
 				GPUParticleFeedback feedback = ps->particles_feedback[ index ];
-				if ( !ParticleFeedback( ps, &feedback ) ) {
+				if( !ParticleFeedback( ps, &feedback ) ) {
 					ps->num_particles--;
 					Swap2( &ps->gpu_instances[ i ], &ps->gpu_instances[ ps->num_particles ] );
 					i--;
@@ -719,7 +719,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 			}
 		} else {
 			for( size_t i = 0; i < ps->num_particles; i++ ) {
-				if ( ps->gpu_instances_time[ i ] < cls.monotonicTime ) {
+				if( ps->gpu_instances_time[ i ] < cls.monotonicTime ) {
 					ps->num_particles--;
 					Swap2( &ps->gpu_instances[ i ], &ps->gpu_instances[ ps->num_particles ] );
 					Swap2( &ps->gpu_instances_time[ i ], &ps->gpu_instances_time[ ps->num_particles ] );

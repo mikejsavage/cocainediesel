@@ -165,25 +165,25 @@ static void G_BlendFrameDamage( edict_t *ent, float damage, float *old_damage, c
 }
 
 static void G_AddAssistDamage( edict_t* targ, edict_t* attacker, int amount ) {
-	if ( attacker == world || attacker == targ ) {
+	if( attacker == world || attacker == targ ) {
 		return;
-	}	
+	}
 
 	int attacker_entno = attacker->s.number;
 	assistinfo_t *assist = NULL;
 
 	for ( int i = 0; i < MAX_ASSIST_INFO; ++i ) {
-		// check for recent attacker or free slot first 
-		if ( targ->recent_attackers[i].entno == attacker_entno || !targ->recent_attackers[i].entno) {
+		// check for recent attacker or free slot first
+		if( targ->recent_attackers[i].entno == attacker_entno || !targ->recent_attackers[i].entno) {
 			assist = &targ->recent_attackers[i];
 			break;
 		}
 	}
 
-	if ( assist == NULL ) {
+	if( assist == NULL ) {
 		// no free slots, replace oldest attacker seeya pal
 		for ( int i = 0; i < MAX_ASSIST_INFO; ++i ) {
-			if ( assist == NULL || targ->recent_attackers[i].lastTime < assist->lastTime ) {
+			if( assist == NULL || targ->recent_attackers[i].lastTime < assist->lastTime ) {
 				assist = &targ->recent_attackers[i];
 			}
 		}
@@ -201,7 +201,7 @@ static int G_FindTopAssistor( edict_t* victim, edict_t* attacker ) {
 
 	// TODO: could weigh damage by most recent timestamp as well
 	for (int i = 0; i < MAX_ASSIST_INFO; ++i) {
-		if (victim->recent_attackers[i].entno && (top == NULL || victim->recent_attackers[i].cumDamage > top->cumDamage)) {
+		if(victim->recent_attackers[i].entno && (top == NULL || victim->recent_attackers[i].cumDamage > top->cumDamage)) {
 			top = &victim->recent_attackers[i];
 		}
 	}
@@ -380,7 +380,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	targ->health = targ->health - take;
 
 	int clamped_takedmg = HEALTH_TO_INT( take );
-	
+
 	// add damage done to stats
 	if( statDmg && MODToWeapon( mod ) != Weapon_None && client && attacker->r.client ) {
 		attacker->r.client->level.stats.accuracy_hits[ MODToWeapon( mod ) ]++;

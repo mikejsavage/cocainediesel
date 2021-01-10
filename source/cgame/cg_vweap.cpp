@@ -55,12 +55,19 @@ static float SmoothStep( float t ) {
 	return t * t * ( 3.0f - 2.0f * t );
 }
 
-static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles ) {
+static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * viewweapon ) {
 	const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
-
+	
 	if( cg.predictedPlayerState.weapon_state == WeaponState_Firing || cg.predictedPlayerState.weapon_state == WeaponState_FiringSemiAuto ) {
 		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->refire_time );
-		angles->x -= def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+		if ( !strcmp( def->short_name, "gb" ) ) {
+			viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+			angles->z -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+			angles->y += def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+			angles->x -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+		} else {
+			angles->x -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+		}	
 	}
 	else if( cg.predictedPlayerState.weapon_state == WeaponState_SwitchingIn || cg.predictedPlayerState.weapon_state == WeaponState_SwitchingOut ) {
 		float frac;
@@ -154,7 +161,7 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_UP ) * gunOffset.z;
 
 	// add angles effects
-	CG_ViewWeapon_AddAngleEffects( &gunAngles );
+	CG_ViewWeapon_AddAngleEffects( &gunAngles, viewweapon );
 
 	// finish
 	AnglesToAxis( gunAngles, viewweapon->axis );

@@ -820,7 +820,6 @@ struct snap_edict_t {
 
 	// ents can accumulate damage along the frame, so they spawn less events
 	float damage_taken;
-	float damage_saved;
 	Vec3 damage_dir;
 	Vec3 damage_at;
 	float damage_given;             // for hitsounds

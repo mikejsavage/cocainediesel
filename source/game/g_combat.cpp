@@ -296,26 +296,23 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	G_KnockBackPush( targ, attacker, pushdir, knockback, dflags );
 
 	float take = damage;
-	float save = 0;
 
 	// check for cases where damage is protected
 	if( !( dflags & DAMAGE_NO_PROTECTION ) ) {
 		// check for godmode
 		if( targ->flags & FL_GODMODE ) {
 			take = 0;
-			save = damage;
 		}
 		// never damage in timeout
 		else if( GS_MatchPaused( &server_gs ) ) {
-			take = save = 0;
+			take = 0;
 		}
 		else if( attacker == targ ) {
 			if( level.gametype.selfDamage ) {
 				take = damage * GS_GetWeaponDef( MODToWeapon( mod ) )->selfdamage;
-				save = damage - take;
 			}
 			else {
-				take = save = 0;
+				take = 0;
 			}
 		}
 	}
@@ -362,17 +359,16 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 		}
 
 		G_BlendFrameDamage( targ, take, &targ->snap.damage_taken, &dorigin, dmgdir, &targ->snap.damage_at, &targ->snap.damage_dir );
-		G_BlendFrameDamage( targ, save, &targ->snap.damage_saved, &dorigin, dmgdir, &targ->snap.damage_at, &targ->snap.damage_dir );
 
 		if( targ->r.client && mod != MeanOfDeath_Telefrag && mod != MeanOfDeath_Suicide ) {
 			if( inflictor == world || attacker == world ) {
 				// for world inflicted damage use always 'frontal'
-				G_ClientAddDamageIndicatorImpact( targ->r.client, take + save, Vec3( 0.0f ) );
+				G_ClientAddDamageIndicatorImpact( targ->r.client, take, Vec3( 0.0f ) );
 			} else if( dflags & DAMAGE_RADIUS ) {
 				// for splash hits the direction is from the inflictor origin
-				G_ClientAddDamageIndicatorImpact( targ->r.client, take + save, pushdir );
+				G_ClientAddDamageIndicatorImpact( targ->r.client, take, pushdir );
 			} else {   // for direct hits the direction is the projectile direction
-				G_ClientAddDamageIndicatorImpact( targ->r.client, take + save, dmgdir );
+				G_ClientAddDamageIndicatorImpact( targ->r.client, take, dmgdir );
 			}
 		}
 	}

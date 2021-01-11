@@ -1,0 +1,47 @@
+{
+  particles {
+    material textures/vfx/glow2
+    blendfunc add
+    
+    position sphere 0 0
+
+    speed 0
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+    size 34 0
+    lifetime 0.25
+    emission 20
+  }
+
+  particles {
+    material textures/vfx/light3
+    blendfunc add
+    
+    position sphere 0 0
+
+    speed 0
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+    size 26 26
+    lifetime 0.25
+    emission 40
+  }
+
+  particles {
+    material textures/vfx/light2
+    blendfunc add
+    rotate
+
+    position line 0
+
+    speed 0
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+    size 30 0
+    lifetime 0.1
+    emission 30
+  }
+}

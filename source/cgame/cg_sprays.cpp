@@ -57,7 +57,7 @@ void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, u64 entropy ) {
 		num_sprays++;
 	}
 
-	DoVisualEffect( "vfx/spray", origin - forward * 64.0f, forward );
+	DoVisualEffect( "vfx/spray", origin - forward * 8.0f, forward );
 }
 
 void DrawSprays() {

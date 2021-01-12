@@ -1,24 +1,40 @@
 {
   particles {
-    material textures/vfx/trace3
-    blendfunc blend
+    material textures/vfx/smoke1
+    material textures/vfx/smoke2
+    blendfunc add
+
+    position cone 90 15
+  
+    speed -10
+    color 1 1 1 0.05
+
+    size 12 80
+    size_distribution uniform 12
+
+    lifetime 1.0
+    lifetime_distribution 0.25
+
+    count 25
+  }
+  
+  particles {
+    material textures/vfx/flame4
+    blendfunc add
     rotate
-    stretch
 
-    position cone 20 0
+    position sphere 20 0
+  
+    speed -50
+    color 1 1 1 0.25
 
-    acceleration $gravity
-    collision point
+    size 32 42
+    size_distribution uniform 12
 
-    speed 500
-    color 1 1 1 1
+    lifetime 0.4
+    lifetime_distribution 0.4
 
-    size 4 4
-    size_distribution uniform 4
-
-    lifetime 0.1
-    lifetime_distribution 0.05
-
-    count 64
+    count 50
   }
 }
+

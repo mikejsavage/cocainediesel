@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string.h>
+
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
 #include "client/renderer/types.h"
@@ -340,6 +342,7 @@ TextureArray NewAtlasTextureArray( const TextureArrayConfig & config );
 void DeleteTextureArray( TextureArray ta );
 
 Framebuffer NewFramebuffer( const FramebufferConfig & config );
+Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, Texture * depth_texture );
 void DeleteFramebuffer( Framebuffer fb );
 
 bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths, Span< const char * > feedback_varyings = Span< const char * >() );
@@ -390,8 +393,7 @@ UniformBlock UploadUniformBlock( Rest... rest ) {
 	// assign to constexpr variable to break the build if it
 	// stops being constexpr, instead of switching to VLA
 	constexpr size_t buf_size = Std140Size< Rest... >( 0 );
-	char buf[ buf_size ];
-	memset( buf, 0, sizeof( buf ) );
+	char buf[ buf_size ] = { };
 	SerializeUniforms( buf, 0, rest... );
 	return UploadUniforms( buf, sizeof( buf ) );
 }

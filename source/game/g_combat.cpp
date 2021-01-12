@@ -165,25 +165,25 @@ static void G_BlendFrameDamage( edict_t *ent, float damage, float *old_damage, c
 }
 
 static void G_AddAssistDamage( edict_t* targ, edict_t* attacker, int amount ) {
-	if ( attacker == world || attacker == targ ) {
+	if( attacker == world || attacker == targ ) {
 		return;
-	}	
+	}
 
 	int attacker_entno = attacker->s.number;
 	assistinfo_t *assist = NULL;
 
 	for ( int i = 0; i < MAX_ASSIST_INFO; ++i ) {
-		// check for recent attacker or free slot first 
-		if ( targ->recent_attackers[i].entno == attacker_entno || !targ->recent_attackers[i].entno) {
+		// check for recent attacker or free slot first
+		if( targ->recent_attackers[i].entno == attacker_entno || !targ->recent_attackers[i].entno) {
 			assist = &targ->recent_attackers[i];
 			break;
 		}
 	}
 
-	if ( assist == NULL ) {
+	if( assist == NULL ) {
 		// no free slots, replace oldest attacker seeya pal
 		for ( int i = 0; i < MAX_ASSIST_INFO; ++i ) {
-			if ( assist == NULL || targ->recent_attackers[i].lastTime < assist->lastTime ) {
+			if( assist == NULL || targ->recent_attackers[i].lastTime < assist->lastTime ) {
 				assist = &targ->recent_attackers[i];
 			}
 		}
@@ -201,7 +201,7 @@ static int G_FindTopAssistor( edict_t* victim, edict_t* attacker ) {
 
 	// TODO: could weigh damage by most recent timestamp as well
 	for (int i = 0; i < MAX_ASSIST_INFO; ++i) {
-		if (victim->recent_attackers[i].entno && (top == NULL || victim->recent_attackers[i].cumDamage > top->cumDamage)) {
+		if(victim->recent_attackers[i].entno && (top == NULL || victim->recent_attackers[i].cumDamage > top->cumDamage)) {
 			top = &victim->recent_attackers[i];
 		}
 	}
@@ -296,26 +296,23 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	G_KnockBackPush( targ, attacker, pushdir, knockback, dflags );
 
 	float take = damage;
-	float save = 0;
 
 	// check for cases where damage is protected
 	if( !( dflags & DAMAGE_NO_PROTECTION ) ) {
 		// check for godmode
 		if( targ->flags & FL_GODMODE ) {
 			take = 0;
-			save = damage;
 		}
 		// never damage in timeout
 		else if( GS_MatchPaused( &server_gs ) ) {
-			take = save = 0;
+			take = 0;
 		}
 		else if( attacker == targ ) {
 			if( level.gametype.selfDamage ) {
 				take = damage * GS_GetWeaponDef( MODToWeapon( mod ) )->selfdamage;
-				save = damage - take;
 			}
 			else {
-				take = save = 0;
+				take = 0;
 			}
 		}
 	}
@@ -362,17 +359,16 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 		}
 
 		G_BlendFrameDamage( targ, take, &targ->snap.damage_taken, &dorigin, dmgdir, &targ->snap.damage_at, &targ->snap.damage_dir );
-		G_BlendFrameDamage( targ, save, &targ->snap.damage_saved, &dorigin, dmgdir, &targ->snap.damage_at, &targ->snap.damage_dir );
 
 		if( targ->r.client && mod != MeanOfDeath_Telefrag && mod != MeanOfDeath_Suicide ) {
 			if( inflictor == world || attacker == world ) {
 				// for world inflicted damage use always 'frontal'
-				G_ClientAddDamageIndicatorImpact( targ->r.client, take + save, Vec3( 0.0f ) );
+				G_ClientAddDamageIndicatorImpact( targ->r.client, take, Vec3( 0.0f ) );
 			} else if( dflags & DAMAGE_RADIUS ) {
 				// for splash hits the direction is from the inflictor origin
-				G_ClientAddDamageIndicatorImpact( targ->r.client, take + save, pushdir );
+				G_ClientAddDamageIndicatorImpact( targ->r.client, take, pushdir );
 			} else {   // for direct hits the direction is the projectile direction
-				G_ClientAddDamageIndicatorImpact( targ->r.client, take + save, dmgdir );
+				G_ClientAddDamageIndicatorImpact( targ->r.client, take, dmgdir );
 			}
 		}
 	}
@@ -380,7 +376,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	targ->health = targ->health - take;
 
 	int clamped_takedmg = HEALTH_TO_INT( take );
-	
+
 	// add damage done to stats
 	if( statDmg && MODToWeapon( mod ) != Weapon_None && client && attacker->r.client ) {
 		attacker->r.client->level.stats.accuracy_hits[ MODToWeapon( mod ) ]++;

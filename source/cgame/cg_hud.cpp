@@ -327,7 +327,6 @@ static const char * obituaries[] = {
 	"AIMED AT",
 	"ALIGNED",
 	"ALLOCATED",
-	"ALPHA",
 	"AMPLIFIED",
 	"AMPUTATED",
 	"ANALYZED",
@@ -1065,6 +1064,7 @@ static const char * prefixes[] = {
 	"AIR",
 	"AFRICA",
 	"ALIEN",
+	"A$AP ",
 	"ALL-STAR ",
 	"ALPHA",
 	"AMERICA",
@@ -1073,9 +1073,9 @@ static const char * prefixes[] = {
 	"ANUS",
 	"APE",
 	"ARBITRAGE",
+	"ARBORETUM",
 	"AREA51",
 	"ART & ",
-	"A$AP ",
 	"ASIA",
 	"ASS",
 	"ASTRO",
@@ -1140,6 +1140,7 @@ static const char * prefixes[] = {
 	"BRASS",
 	"BREXIT",
 	"BRICK",
+	"BRIDGE",
 	"BRO",
 	"BROWNOUT",
 	"BRUTALLY ",
@@ -1494,6 +1495,7 @@ static const char * prefixes[] = {
 	"KEPT CALM AND ",
 	"KICK",
 	"KICKFLIP",
+	"KIM IL-",
 	"KIM JONG-",
 	"KIND",
 	"KINDLY ",
@@ -1978,9 +1980,9 @@ void CG_SC_Obituary() {
 	int mod = atoi( Cmd_Argv( 4 ) );
 	u64 entropy = strtonum( Cmd_Argv( 5 ), S64_MIN, S64_MAX, NULL );
 
-	cg_clientInfo_t * victim = &cgs.clientInfo[ victimNum - 1 ];
-	cg_clientInfo_t * attacker = attackerNum == 0 ? NULL : &cgs.clientInfo[ attackerNum - 1 ];
-	cg_clientInfo_t * assistor = topAssistorNum == -1 ? NULL : &cgs.clientInfo[ topAssistorNum - 1 ];
+	const cg_clientInfo_t * victim = &cgs.clientInfo[ victimNum - 1 ];
+	const cg_clientInfo_t * attacker = attackerNum == 0 ? NULL : &cgs.clientInfo[ attackerNum - 1 ];
+	const cg_clientInfo_t * assistor = topAssistorNum == -1 ? NULL : &cgs.clientInfo[ topAssistorNum - 1 ];
 	cg_obituaries_current = ( cg_obituaries_current + 1 ) % MAX_OBITUARIES;
 	obituary_t * current = &cg_obituaries[cg_obituaries_current];
 
@@ -2023,15 +2025,14 @@ void CG_SC_Obituary() {
 				CG_CenterPrint( temp( "{} {}", obituary, victim_name ) );
 			}
 
-			if ( !assistor ) {
+			if( assistor == NULL ) {
 				CG_AddChat( temp( "{}{} {}{} {}{}",
 					ImGuiColorToken( attacker_color ), attacker_name,
 					ImGuiColorToken( rgba8_diesel_yellow ), obituary,
 					ImGuiColorToken( victim_color ), victim_name
 				) );
-			} 
-			else
-			{
+			}
+			else {
 				const char * assist_conj = RandomAssistConjunction( &rng );
 				char assistor_name[ MAX_NAME_CHARS + 1 ];
 				Q_strncpyz( assistor_name, assistor->name, sizeof( assistor_name ) );

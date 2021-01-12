@@ -9,8 +9,8 @@ layout( std140 ) uniform u_ParticleUpdate {
 };
 
 // input vbo
-in vec3 a_ParticlePosition;
-in vec3 a_ParticleVelocity;
+in vec4 a_ParticlePosition;
+in vec4 a_ParticleVelocity;
 in vec3 a_ParticleAccelDragRest;
 in vec4 a_ParticleUVWH;
 in vec4 a_ParticleStartColor;
@@ -20,8 +20,8 @@ in vec2 a_ParticleAgeLifetime;
 in uint a_ParticleFlags;
 
 // output vbo
-out vec3 v_ParticlePosition;
-out vec3 v_ParticleVelocity;
+out vec4 v_ParticlePosition;
+out vec4 v_ParticleVelocity;
 out vec3 v_ParticleAccelDragRest;
 out vec4 v_ParticleUVWH;
 out uint v_ParticleStartColor;
@@ -51,6 +51,11 @@ uint colorPack( vec4 color ) {
 	return (bytes.a << 24) | (bytes.b << 16) | (bytes.g << 8) | (bytes.r);
 }
 
+vec3 safe_normalize( vec3 v ) {
+	float len = length( v );
+	return len == 0.0 ? vec3( 0.0, 0.0, 1.0 ) : v / len;
+}
+
 bool collide() {
 	if ( u_Collision == 0 || ( a_ParticleFlags & ( PARTICLE_COLLISION_POINT | PARTICLE_COLLISION_SPHERE ) ) == 0u ) {
 		return false;
@@ -66,21 +71,22 @@ bool collide() {
 	float asdf = 8.0;
 	float prestep = 0.1;
 	
-	vec4 frac = Trace( a_ParticlePosition - a_ParticleVelocity * u_dt * prestep, a_ParticleVelocity * u_dt * asdf, radius );
+	vec4 frac = Trace( a_ParticlePosition.xyz - a_ParticleVelocity.xyz * u_dt * prestep, a_ParticleVelocity.xyz * u_dt * asdf, radius );
 	if ( frac.w < 1.0 ) {
-		v_ParticlePosition = a_ParticlePosition + a_ParticleVelocity * frac.w * u_dt / asdf;
+		v_ParticlePosition.xyz = a_ParticlePosition.xyz + a_ParticleVelocity.xyz * frac.w * u_dt / asdf;
 
-		vec3 impulse = ( 1.0 + restitution ) * dot( a_ParticleVelocity, frac.xyz ) * frac.xyz;
+		vec3 impulse = ( 1.0 + restitution ) * dot( a_ParticleVelocity.xyz, frac.xyz ) * frac.xyz;
 
-		v_ParticleVelocity = a_ParticleVelocity - impulse;
+		v_ParticleVelocity.xyz = a_ParticleVelocity.xyz - impulse;
 
 #if FEEDBACK
 		v_Feedback |= FEEDBACK_COLLISION;
-		v_FeedbackPosition = a_ParticlePosition + a_ParticleVelocity * ( frac.w * ( prestep + asdf ) - prestep ) * u_dt;
-		v_FeedbackNormal = normalize( frac.xyz );
+		v_FeedbackPosition = a_ParticlePosition.xyz + a_ParticleVelocity.xyz * ( frac.w * ( prestep + asdf ) - prestep ) * u_dt;
+		v_FeedbackNormal = safe_normalize( frac.xyz );
 #endif
 
-		v_ParticlePosition += v_ParticleVelocity * ( 1.0 - frac.w / asdf ) * u_dt;
+		v_ParticlePosition.xyz += v_ParticleVelocity.xyz * ( 1.0 - frac.w / asdf ) * u_dt;
+		v_ParticlePosition.w = a_ParticlePosition.w + a_ParticleVelocity.w * u_dt;
 
 		return true;
 	}
@@ -92,8 +98,8 @@ void main() {
 
 #if FEEDBACK
 	v_Feedback = FEEDBACK_NONE;
-	v_FeedbackPosition = a_ParticlePosition;
-	v_FeedbackNormal = normalize( a_ParticleVelocity );
+	v_FeedbackPosition = a_ParticlePosition.xyz;
+	v_FeedbackNormal = safe_normalize( a_ParticleVelocity.xyz );
 	if ( v_ParticleAgeLifetime.x >= a_ParticleAgeLifetime.y ) {
 		v_Feedback |= FEEDBACK_AGE;
 	}
@@ -106,7 +112,7 @@ void main() {
 	}
 
 	v_ParticleVelocity.z += a_ParticleAccelDragRest.x * u_dt;
-	v_ParticleVelocity -= v_ParticleVelocity * a_ParticleAccelDragRest.y * u_dt;
+	v_ParticleVelocity.xyz -= v_ParticleVelocity.xyz * a_ParticleAccelDragRest.y * u_dt;
 	v_ParticleAccelDragRest = a_ParticleAccelDragRest;
 	v_ParticleUVWH = a_ParticleUVWH;
 	v_ParticleStartColor = colorPack( a_ParticleStartColor );

@@ -1,8 +1,10 @@
 #include "include/uniforms.glsl"
 #include "include/common.glsl"
 #include "include/dither.glsl"
+#include "include/fog.glsl"
 
 v2f vec3 v_Position;
+v2f float v_Height;
 
 #if VERTEX_SHADER
 
@@ -64,6 +66,8 @@ void main() {
   float m = smoothstep( 30.0, 0.0, length( uv ) );
 
   vec3 color = mix( sky_color, cloud_color, exp( g ) * n * m );
+
+  color = VoidFog( color, gl_FragCoord.xy );
 
   f_Albedo = LinearTosRGB( color + Dither() );
 }

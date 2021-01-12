@@ -649,8 +649,8 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	if( dc.num_instances != 0 ) {
 		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
 
-		SetupAttribute( VertexAttribute_ParticlePosition, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
-		SetupAttribute( VertexAttribute_ParticleVelocity, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, velocity ) );
+		SetupAttribute( VertexAttribute_ParticlePosition, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
+		SetupAttribute( VertexAttribute_ParticleVelocity, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, velocity ) );
 		SetupAttribute( VertexAttribute_ParticleAccelDragRest, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, acceleration ) );
 		SetupAttribute( VertexAttribute_ParticleUVWH, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, uvwh ) );
 		SetupAttribute( VertexAttribute_ParticleStartColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, start_color ) );
@@ -707,7 +707,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 static void SubmitResolveMSAA( Framebuffer fb ) {
 	assert( fb.width == frame_static.viewport_width && fb.height == frame_static.viewport_height );
 	glBindFramebuffer( GL_READ_FRAMEBUFFER, fb.fbo );
-	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST );
+	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 }
 
 void RenderBackendSubmitFrame() {
@@ -1053,6 +1053,50 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 		height = texture.height;
 	}
 
+	glDrawBuffers( ARRAY_COUNT( bufs ), bufs );
+
+	assert( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	assert( width > 0 && height > 0 );
+	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+
+	fb.width = width;
+	fb.height = height;
+
+	return fb;
+}
+
+Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, Texture * depth_texture ) {
+	GLuint fbo;
+	glGenFramebuffers( 1, &fbo );
+	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+
+	Framebuffer fb = { };
+	fb.fbo = fbo;
+
+	u32 width = 0;
+	u32 height = 0;
+	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
+	if( albedo_texture != NULL ) {
+		GLenum target = albedo_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, albedo_texture->texture, 0 );
+		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
+		width = albedo_texture->width;
+		height = albedo_texture->height;
+	}
+	if( normal_texture != NULL ) {
+		GLenum target = normal_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, target, normal_texture->texture, 0 );
+		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
+		width = normal_texture->width;
+		height = normal_texture->height;
+	}
+	if( depth_texture != NULL ) {
+		GLenum target = depth_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, depth_texture->texture, 0 );
+		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
+		width = depth_texture->width;
+		height = depth_texture->height;
+	}
 	glDrawBuffers( ARRAY_COUNT( bufs ), bufs );
 
 	assert( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
@@ -1524,6 +1568,7 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material 
 	pipeline.blend_func = blend_func;
 	pipeline.write_depth = false;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 	pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( HalfPixelSize( gradient ).x ) );
 	pipeline.set_texture( "u_GradientTexture", gradient->texture );
 	pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
@@ -1557,6 +1602,7 @@ void DrawInstancedParticles( VertexBuffer vb, const Model * model, const Materia
 		pipeline.shader = &shaders.particle_model;
 		pipeline.write_depth = true;
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
 		pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( HalfPixelSize( gradient ).x ) );
 		// pipeline.set_texture( "u_BaseTexture", material->texture );

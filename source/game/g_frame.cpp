@@ -238,11 +238,6 @@ static void G_SnapEntities() {
 		}
 
 		if( ent->s.type == ET_PLAYER ) {
-			// Until we get a proper damage saved effect, we accumulate both into the blood fx
-			// so, at least, we don't send 2 entities where we can send one
-			ent->snap.damage_taken += ent->snap.damage_saved;
-
-			//spawn accumulated damage
 			if( ent->snap.damage_taken && !( ent->flags & FL_GODMODE ) ) {
 				float damage = Min2( ent->snap.damage_taken, 120.0f );
 

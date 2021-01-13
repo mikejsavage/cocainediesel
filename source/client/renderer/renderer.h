@@ -43,9 +43,6 @@ struct FrameStatic {
 	Framebuffer near_shadowmap_fb;
 	Framebuffer far_shadowmap_fb;
 
-	u8 write_world_gbuffer_pass;
-	u8 postprocess_world_gbuffer_pass;
-
 	u8 particle_update_pass;
 
 	u8 near_shadowmap_pass;

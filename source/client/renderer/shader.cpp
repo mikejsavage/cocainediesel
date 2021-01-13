@@ -94,8 +94,11 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/standard.glsl", world_defines, &srcs, &lengths );
 	ReplaceShader( &shaders.world, srcs.span(), lengths.span() );
 
-	BuildShaderSrcs( "glsl/write_world_gbuffer.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.write_world_gbuffer, srcs.span(), lengths.span() );
+	BuildShaderSrcs( "glsl/depth_only.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.depth_only, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/depth_only.glsl", "#define SKINNED 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.depth_only_skinned, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/postprocess_world_gbuffer.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.postprocess_world_gbuffer, srcs.span(), lengths.span() );

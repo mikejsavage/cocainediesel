@@ -7,6 +7,9 @@ layout( std140 ) uniform u_View {
 	vec2 u_ViewportSize;
 	float u_NearClip;
 	int u_Samples;
+	mat4 u_NearWorldToShadowmap;
+	mat4 u_FarWorldToShadowmap;
+	vec3 u_LightDir;
 };
 
 layout( std140 ) uniform u_Model {

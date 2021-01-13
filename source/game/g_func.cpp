@@ -440,8 +440,8 @@ static void door_hit_bottom( edict_t *self ) {
 }
 
 void door_go_down( edict_t *self ) {
-	if( self->moveinfo.sound_start != EMPTY_HASH ) {
-		G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start.hash, true );
+	if( self->moveinfo.sound_end != EMPTY_HASH ) {
+		G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_end.hash, true );
 	}
 	self->s.sound = self->moveinfo.sound_middle;
 

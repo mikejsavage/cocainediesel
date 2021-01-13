@@ -7,7 +7,8 @@
     
     collision point
 
-    speed 4
+    speed 8
+    speed_distribution 0.5
 
     color 1.0 1.0 1.0 1.0
     end_color 0.0 0.5 1.0
@@ -17,11 +18,11 @@
     blue_distribution uniform 0.1
     alpha_distribution uniform 0.1
 
-    size 1 1
-    size_distribution uniform 0.1
+    size 1.5 1.5
+    size_distribution uniform 0.5
 
-    lifetime 0.9
-    lifetime_distribution uniform 0.3
+    lifetime 1.1
+    lifetime_distribution uniform 0.5
     count 1
   }
 }

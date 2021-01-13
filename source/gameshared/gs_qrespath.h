@@ -51,11 +51,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define S_DOOR_START    "sounds/movers/door_start"
 #define S_DOOR_MOVE     EMPTY_HASH
-#define S_DOOR_STOP     "sounds/movers/door_stop"
+#define S_DOOR_CLOSE     "sounds/movers/door_close"
 
 #define S_DOOR_ROTATING_START   "sounds/movers/door_start"
 #define S_DOOR_ROTATING_MOVE    EMPTY_HASH
-#define S_DOOR_ROTATING_STOP    "sounds/movers/door_stop"
+#define S_DOOR_ROTATING_STOP    "sounds/movers/door_close"
 
 #define S_FUNC_ROTATING_START   EMPTY_HASH
 #define S_FUNC_ROTATING_MOVE    EMPTY_HASH

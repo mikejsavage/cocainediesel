@@ -1,5 +1,5 @@
 {
 	attenuation static
 	volume 0.5
-	sound ./door_start
+	sound ./door_close
 }

@@ -1,5 +1,0 @@
-{
-	attenuation static
-	volume 0.75
-	sound ./door_stop
-}

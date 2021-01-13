@@ -28,16 +28,24 @@ float VoidFogAlpha( float alpha, float height ) {
 	return alpha * void_amount;
 }
 
-vec3 VoidFog( vec3 color, vec2 frag_coord, float depth = 0.999 ) {
+vec3 VoidFog( vec3 color, vec2 frag_coord, float depth ) {
 	vec4 clip = vec4( vec3( frag_coord / u_ViewportSize, depth ) * 2.0 - 1.0, 1.0 );
 	vec4 world = u_InverseP * clip;
 	float height = ( u_InverseV * ( world / world.w ) ).z;
 	return VoidFog( color, height );
 }
 
-float VoidFogAlpha( float alpha, vec2 frag_coord, float depth = 0.999 ) {
+vec3 VoidFog( vec3 color, vec2 frag_coord ) {
+	return VoidFog( color, frag_coord, 0.999 );
+}
+
+float VoidFogAlpha( float alpha, vec2 frag_coord, float depth ) {
 	vec4 clip = vec4( vec3( frag_coord / u_ViewportSize, depth ) * 2.0 - 1.0, 1.0 );
 	vec4 world = u_InverseP * clip;
 	float height = ( u_InverseV * ( world / world.w ) ).z;
 	return VoidFogAlpha( alpha, height );
+}
+
+float VoidFogAlpha( float alpha, vec2 frag_coord ) {
+	return VoidFogAlpha( alpha, frag_coord, 0.999 );
 }

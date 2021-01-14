@@ -5,7 +5,7 @@
     rotate
     stretch
 
-    position cone 90 0
+    position sphere 0
 
     acceleration $gravity
 
@@ -17,12 +17,11 @@
     size 5 0
     size_distribution uniform 1.5
 
-    lifetime 0.5
+    lifetime 0.45
     lifetime_distribution uniform 0.5
-    count 24
+    count 55
   }
 
-  {
   particles {
     material textures/vfx/flame2
     blendfunc add
@@ -38,9 +37,30 @@
 
     size 32 0
 
-    lifetime 0.45
+    lifetime 0.35
     count 64
   }
+
+  particles {
+    material textures/vfx/muzzle1
+    material textures/vfx/muzzle2
+    material textures/vfx/muzzle3
+    material textures/vfx/muzzle4
+    material textures/vfx/muzzle5
+    blendfunc add
+    rotate
+
+    position sphere 0
+
+    speed 10
+
+    color 1.0 1.0 1.0 1.0
+    size 0 32
+
+    lifetime 0.2
+    count 64
+  }
+
 
   particles {
     material textures/vfx/circle6
@@ -59,7 +79,7 @@
 
     size 15 0
 
-    lifetime 0.25
+    lifetime 0.3
     count 24
   }
 }

@@ -5,13 +5,29 @@
     
     position sphere 0 0
 
-    speed 0
+    speed 5
 
-    color 1.0 1.0 1.0 1.0
+    color 1.0 1.0 1.0 0.25
+
+    size 24 12
+    lifetime 0.2
+    emission 100
+  }
+
+  particles {
+    material textures/vfx/glow1
+    blendfunc add
+    
+    position sphere 0 0
+
+    speed 5
+
+    color 1.0 1.0 1.0 0.55
     color_override
-    size 34 0
-    lifetime 0.25
-    emission 20
+
+    size 52 0
+    lifetime 0.3
+    emission 100
   }
 
   particles {
@@ -24,9 +40,9 @@
 
     color 1.0 1.0 1.0 1.0
     color_override
-    size 26 26
+    size 26 0
     lifetime 0.25
-    emission 40
+    emission 100
   }
 
   particles {
@@ -43,5 +59,25 @@
     size 30 0
     lifetime 0.1
     emission 30
+  }
+
+  particles {
+    material textures/vfx/twirl1
+    material textures/vfx/twirl2
+    material textures/vfx/twirl3
+    blendfunc add
+    rotate
+    rotation 245
+    rotation_distribution uniform 245
+
+    position line 0
+
+    speed 2
+
+    color 1.0 1.0 1.0 0.2
+    color_override
+    size 26 0
+    lifetime 0.75
+    emission 75
   }
 }

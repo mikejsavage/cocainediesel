@@ -12,6 +12,6 @@ weapons/bg/cell
 	{
 		blendFunc add
 		map weapons/bg/cell
-		rgbgen entity
+		rgbGen const 0.9 1.0 1.0
 	}
 }

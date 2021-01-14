@@ -194,8 +194,6 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 			S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f );
 		}
 		else {
-			// fixed position is better for location, but the channels are used from worldspawn
-			// and openal runs out of channels quick on cheap cards. Relative sound uses per-entity channels.
 			S_StartEntitySound( sfx, entNum, CHAN_AUTO, 1.0f );
 		}
 	}

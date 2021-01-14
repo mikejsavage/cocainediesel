@@ -1306,6 +1306,7 @@ static const char * prefixes[] = {
 	"EPIPHANY",
 	"EPSTEIN",
 	"ETHERNET",
+	"ETHIC",
 	"EXPERTLY",
 	"EXPELIARMUS",
 	"EXTRA",

@@ -360,6 +360,7 @@ static const char * mini_obituaries[] = {
 	"EEK",
 	"EEYORE",
 	"EHHH",
+	"ETHIK",
 	"ESPORT",
 	"EWW",
 	"FART",

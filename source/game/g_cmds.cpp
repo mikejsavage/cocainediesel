@@ -555,6 +555,7 @@ static const g_vsays_t g_vsays[] = {
 	{ "valley", Vsay_Valley },
 	{ "mike", Vsay_Mike },
 	{ "user", Vsay_User },
+	{ "guyman", Vsay_Guyman },
 
 	{ NULL, 0 }
 };

@@ -686,14 +686,14 @@ static void W_Touch_RifleBullet( edict_t *ent, edict_t *other, cplane_t *plane, 
 		return;
 	}
 
-	if( other->takedamage ) {
-		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MeanOfDeath_Rifle );
-	}
-
 	edict_t * event = G_SpawnEvent( EV_RIFLEBULLET_IMPACT, DirToByte( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
 	event->s.team = ent->s.team;
 
-	G_FreeEdict( ent );
+	if( other->takedamage ) {
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MeanOfDeath_Rifle );
+	} else {
+		G_FreeEdict( ent );
+	}
 }
 
 void W_Fire_RifleBullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
@@ -734,7 +734,7 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 			break;
 
 		case Weapon_MachineGun:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_MachineGun, MeanOfDeath_MachineGun, true );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_MachineGun, MeanOfDeath_MachineGun, false );
 			break;
 
 		case Weapon_Deagle:

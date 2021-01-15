@@ -303,12 +303,12 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 			}
 
 			if( hit != self && hit->takedamage ) {
-				int dmgflags = 0;
+				int dmgflags = DAMAGE_KNOCKBACK_SOFT;
 				if( IsHeadshot( tr.ent, tr.endpos, timeDelta ) ) {
 					dmgflags |= DAMAGE_HEADSHOT;
 				}
 
-				G_Damage( hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, dmgflags, MeanOfDeath_Railgun );
+				G_Damage( hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, dmgflags, mod );
 
 				// if we hit a teammate stop the trace
 				if( G_IsTeamDamage( &hit->s, &self->s ) ) {

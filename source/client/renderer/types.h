@@ -81,9 +81,9 @@ struct GPUParticle {
 };
 
 struct GPUParticleFeedback {
-	u32 parm;
-	Vec3 position;
-	Vec3 normal;
+	Vec3 position_normal;
+	RGB8 color;
+	u8 parm;
 };
 
 struct TRS {

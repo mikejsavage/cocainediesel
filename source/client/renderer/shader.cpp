@@ -150,9 +150,8 @@ static void LoadShaders() {
 		"v_ParticleAgeLifetime",
 		"v_ParticleFlags",
 		"gl_NextBuffer",
-		"v_Feedback",
-		"v_FeedbackPosition",
-		"v_FeedbackNormal",
+		"v_FeedbackPositionNormal",
+		"v_FeedbackColorParm",
 	};
 	ReplaceShader( &shaders.particle_update_feedback, srcs.span(), lengths.span(), Span< const char *>( update_feedback, ARRAY_COUNT( update_feedback ) ) );
 

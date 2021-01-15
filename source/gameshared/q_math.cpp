@@ -650,7 +650,7 @@ Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p ) {
 }
 
 Mat4 TransformKToDir( Vec3 dir ) {
-	assert( ( Length( dir ) - 1.0f ) < 0.0001f );
+	dir = Normalize( dir );
 
 	Vec3 K = Vec3( 0, 0, 1 );
 
@@ -659,7 +659,7 @@ Mat4 TransformKToDir( Vec3 dir ) {
 	}
 
 	Vec3 axis = Normalize( Cross( K, dir ) );
-	float c = Dot( K, dir ) / Length( dir );
+	float c = Dot( K, dir );
 	float s = sqrtf( 1.0f - c * c );
 
 	Mat4 rotation = Mat4(

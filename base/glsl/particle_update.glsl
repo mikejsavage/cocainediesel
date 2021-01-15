@@ -2,6 +2,16 @@
 #include "include/common.glsl"
 #include "include/trace.glsl"
 
+// must match source
+#define PARTICLE_COLLISION_POINT 1u
+#define PARTICLE_COLLISION_SPHERE 2u
+#define PARTICLE_ROTATE 4u
+#define PARTICLE_STRETCH 8u
+
+#define FEEDBACK_NONE 0u
+#define FEEDBACK_AGE 1u
+#define FEEDBACK_COLLISION 2u
+
 layout( std140 ) uniform u_ParticleUpdate {
 	int u_Collision;
 	float u_Radius;
@@ -31,24 +41,23 @@ out vec2 v_ParticleAgeLifetime;
 out uint v_ParticleFlags;
 
 #if FEEDBACK
-	out uint v_Feedback;
-	out vec3 v_FeedbackPosition;
-	out vec3 v_FeedbackNormal;
+	out vec3 v_FeedbackPositionNormal;
+	out uint v_FeedbackColorParm;
+	uint parm = FEEDBACK_NONE;
 #endif
-
-// must match source
-#define PARTICLE_COLLISION_POINT 1u
-#define PARTICLE_COLLISION_SPHERE 2u
-#define PARTICLE_ROTATE 4u
-#define PARTICLE_STRETCH 8u
-
-#define FEEDBACK_NONE 0u
-#define FEEDBACK_AGE 1u
-#define FEEDBACK_COLLISION 2u
 
 uint colorPack( vec4 color ) {
 	uvec4 bytes = uvec4( color * 255.0 );
 	return (bytes.a << 24) | (bytes.b << 16) | (bytes.g << 8) | (bytes.r);
+}
+
+uint colorParmPack( vec3 color, uint parm ) {
+	uvec3 bytes = uvec3( color * 255.0 );
+	return (parm << 24) | (bytes.b << 16) | (bytes.g << 8) | (bytes.r);
+}
+
+vec3 positionNormalPack( vec3 position, vec3 normal ) {
+	return floor( position ) + ( normal * 0.49 + 0.5 );
 }
 
 vec3 safe_normalize( vec3 v ) {
@@ -69,7 +78,7 @@ bool collide() {
 	}
 	float restitution = a_ParticleAccelDragRest.z;
 	float asdf = 8.0;
-	float prestep = 0.1;
+	float prestep = min( 0.1, a_ParticleAgeLifetime.x );
 	
 	vec4 frac = Trace( a_ParticlePosition.xyz - a_ParticleVelocity.xyz * u_dt * prestep, a_ParticleVelocity.xyz * u_dt * asdf, radius );
 	if ( frac.w < 1.0 ) {
@@ -80,9 +89,11 @@ bool collide() {
 		v_ParticleVelocity.xyz = a_ParticleVelocity.xyz - impulse;
 
 #if FEEDBACK
-		v_Feedback |= FEEDBACK_COLLISION;
-		v_FeedbackPosition = a_ParticlePosition.xyz + a_ParticleVelocity.xyz * ( frac.w * ( prestep + asdf ) - prestep ) * u_dt;
-		v_FeedbackNormal = safe_normalize( frac.xyz );
+		parm |= FEEDBACK_COLLISION;
+		v_FeedbackPositionNormal = positionNormalPack(
+			a_ParticlePosition.xyz + a_ParticleVelocity.xyz * ( frac.w * ( prestep + asdf ) - prestep ) * u_dt,
+			safe_normalize( frac.xyz )
+		);
 #endif
 
 		v_ParticlePosition.xyz += v_ParticleVelocity.xyz * ( 1.0 - frac.w / asdf ) * u_dt;
@@ -97,11 +108,10 @@ void main() {
 	v_ParticleAgeLifetime.x = a_ParticleAgeLifetime.x + u_dt;
 
 #if FEEDBACK
-	v_Feedback = FEEDBACK_NONE;
-	v_FeedbackPosition = a_ParticlePosition.xyz;
-	v_FeedbackNormal = safe_normalize( a_ParticleVelocity.xyz );
+	parm = FEEDBACK_NONE;
+	v_FeedbackPositionNormal = positionNormalPack( a_ParticlePosition.xyz, safe_normalize( a_ParticleVelocity.xyz ) );
 	if ( v_ParticleAgeLifetime.x >= a_ParticleAgeLifetime.y ) {
-		v_Feedback |= FEEDBACK_AGE;
+		parm |= FEEDBACK_AGE;
 	}
 #endif
 
@@ -120,4 +130,9 @@ void main() {
 	v_ParticleSize = a_ParticleSize;
 	v_ParticleAgeLifetime.y = a_ParticleAgeLifetime.y;
 	v_ParticleFlags = a_ParticleFlags;
+#if FEEDBACK
+	float fage = a_ParticleAgeLifetime.x / a_ParticleAgeLifetime.y;
+	vec3 color = mix( a_ParticleStartColor.rgb, a_ParticleEndColor.rgb, fage );
+	v_FeedbackColorParm = colorParmPack( color, parm );
+#endif
 }

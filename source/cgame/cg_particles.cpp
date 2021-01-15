@@ -513,7 +513,6 @@ void CreateParticleSystems() {
 	particleSystems_hashtable.add( blendSystem_hash, 1 );
 	num_particleSystems ++;
 
-	// TODO(msc): models / feedback events
 	for( size_t i = 0; i < num_particleEmitters; i++ ) {
 		ParticleEmitter * emitter = &particleEmitters[ i ];
 		if( emitter->num_materials ) {
@@ -660,6 +659,9 @@ void ShutdownVisualEffects() {
 bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 	StringHash despawn = StringHash( "despawn" );
 	bool result = true;
+	Vec3 position = Floor( feedback->position_normal );
+	Vec3 normal = ( ( feedback->position_normal - position ) - 0.5f ) / 0.49f;
+	Vec4 color = Vec4( sRGBToLinear( feedback->color ), 1.0f );
 
 	if( feedback->parm & FEEDBACK_COLLISION ) {
 		for( u8 i = 0; i < ps->on_collision.num_events; i++ ) {
@@ -668,7 +670,7 @@ bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 				result = false;
 			}
 			else {
-				DoVisualEffect( event, feedback->position, feedback->normal );
+				DoVisualEffect( event, position, normal, 1.0f, color );
 			}
 		}
 	}
@@ -681,7 +683,7 @@ bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 				result = false;
 			}
 			else {
-				DoVisualEffect( event, feedback->position, feedback->normal );
+				DoVisualEffect( event, position, normal, 1.0f, color );
 			}
 		}
 	}
@@ -692,7 +694,7 @@ bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 			result = false;
 		}
 		else {
-			DoVisualEffect( event, feedback->position, feedback->normal );
+			DoVisualEffect( event, position, normal, 1.0f, color );
 		}
 	}
 

@@ -10,7 +10,7 @@ const float BOMB_MIN_DOT_GROUND = 0.90f;
 
 const Vec3 VEC_UP( 0, 0, 1 ); // this must have length 1! don't change this unless +z is no longer up...
 
-const float BOMB_ARM_DEFUSE_RADIUS = 32.0f;
+const float BOMB_ARM_DEFUSE_RADIUS = 36.0f;
 
 const uint BOMB_AUTODROP_DISTANCE = 400; // distance from indicator to drop (only some maps)
 
@@ -35,9 +35,9 @@ Vec3 BOMB_MAXS(  16,  16, 48 ); // same size as player i guess
 
 // cvars
 Cvar cvarRoundTime( "g_bomb_roundtime", "61", CVAR_ARCHIVE ); //So round starts with 1:00 and not 0:59
-Cvar cvarExplodeTime( "g_bomb_bombtimer", "35", CVAR_ARCHIVE );
+Cvar cvarExplodeTime( "g_bomb_bombtimer", "30", CVAR_ARCHIVE );
 Cvar cvarArmTime( "g_bomb_armtime", "1", CVAR_ARCHIVE );
-Cvar cvarDefuseTime( "g_bomb_defusetime", "5", CVAR_ARCHIVE );
+Cvar cvarDefuseTime( "g_bomb_defusetime", "4", CVAR_ARCHIVE );
 Cvar cvarSpawnProtection( "g_bomb_spawnprotection", "3", CVAR_ARCHIVE );
 
 // read from this later

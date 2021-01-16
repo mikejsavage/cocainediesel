@@ -44,7 +44,7 @@ cvar_t *cg_handOffset;
 cvar_t *cg_gun_fov;
 cvar_t *cg_voiceChats;
 cvar_t *cg_projectileAntilagOffset;
-cvar_t *cg_chatFilter;
+cvar_t *cg_chat;
 
 cvar_t *cg_showHotkeys;
 
@@ -156,11 +156,11 @@ static void CG_RegisterVariables( void ) {
 
 	cg_projectileAntilagOffset = Cvar_Get( "cg_projectileAntilagOffset", "1.0", CVAR_ARCHIVE );
 
-	cg_chatFilter =     Cvar_Get( "cg_chatFilter", "0", CVAR_ARCHIVE );
+	cg_chat =           Cvar_Get( "cg_chat", "1", CVAR_ARCHIVE );
 
-	cg_showClamp = Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
+	cg_showClamp =      Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
 
-	cg_particleDebug = Cvar_Get( "cg_particleDebug", "0", CVAR_DEVELOPER );
+	cg_particleDebug =  Cvar_Get( "cg_particleDebug", "0", CVAR_DEVELOPER );
 
 	Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
 }

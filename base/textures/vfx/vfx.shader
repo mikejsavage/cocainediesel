@@ -110,6 +110,20 @@ textures/vfx/dirt3
   }
   decal
 }
+textures/vfx/drop
+{
+  {
+    map textures/vfx/drop
+  }
+  decal
+}
+textures/vfx/drop2
+{
+  {
+    map textures/vfx/drop2
+  }
+  decal
+}
 textures/vfx/explosion1
 {
   {

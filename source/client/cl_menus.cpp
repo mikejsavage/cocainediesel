@@ -227,6 +227,7 @@ static void SettingsGeneral() {
 
 	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
 
+	CvarCheckbox( "Show chat", "cg_chat", "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
 	CvarCheckbox( "Show speed", "cg_showSpeed", "0", CVAR_ARCHIVE );
@@ -297,6 +298,8 @@ static void SettingsControls() {
 			KeyBindButton( "Acne pack", "vsay acne" );
 			KeyBindButton( "Valley pack", "vsay valley" );
 			KeyBindButton( "Mike pack", "vsay mike" );
+			KeyBindButton( "User pack", "vsay user" );
+			KeyBindButton( "Guyman pack", "vsay guyman" );
 
 			ImGui::BeginChild( "voice", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {
@@ -1114,7 +1117,7 @@ void UI_Refresh() {
 
 	if( uistate == UIState_MainMenu ) {
 		if( mainmenu_state != MainMenuState_ParticleEditor ) {
-			// DrawParticleMenuEffect();
+			DrawParticleMenuEffect();
 		}
 
 		MainMenu();
@@ -1122,7 +1125,7 @@ void UI_Refresh() {
 
 	if( uistate == UIState_Connecting ) {
 		if( mainmenu_state != MainMenuState_ParticleEditor ) {
-			// DrawParticleMenuEffect();
+			DrawParticleMenuEffect();
 		}
 
 		const char * connecting = "Connecting...";

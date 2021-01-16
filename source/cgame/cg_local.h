@@ -500,7 +500,7 @@ extern cvar_t *cg_autoaction_spectator;
 
 extern cvar_t *cg_voiceChats;
 extern cvar_t *cg_projectileAntilagOffset;
-extern cvar_t *cg_chatFilter;
+extern cvar_t *cg_chat;
 
 extern cvar_t *cg_particleDebug;
 

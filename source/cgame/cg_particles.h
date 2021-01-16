@@ -6,7 +6,7 @@
 constexpr u32 MAX_PARTICLE_SYSTEMS = 512;
 constexpr u32 MAX_PARTICLE_EMITTERS = 512;
 constexpr u32 MAX_PARTICLE_EMITTER_EVENTS = 8;
-constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 8;
+constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 16;
 
 constexpr u32 MAX_DECAL_EMITTERS = 512;
 constexpr u32 MAX_DECAL_EMITTER_MATERIALS = 8;
@@ -91,6 +91,7 @@ struct ParticleSystem {
 
 	ParticleEvents on_collision;
 	ParticleEvents on_age;
+	ParticleEvents on_frame;
 
 	// dynamic stuff
 	bool initialized;
@@ -164,6 +165,12 @@ struct ParticleEmitter {
 	float speed;
 	RandomDistribution speed_distribution;
 
+	float angle;
+	RandomDistribution angle_distribution;
+
+	float rotation;
+	RandomDistribution rotation_distribution;
+
 	Vec4 start_color = Vec4( 1.0f ), end_color = Vec4( 1.0f );
 	RandomDistribution red_distribution, green_distribution, blue_distribution, alpha_distribution;
 	bool color_override;
@@ -182,6 +189,7 @@ struct ParticleEmitter {
 	bool feedback;
 	ParticleEvents on_collision;
 	ParticleEvents on_age;
+	ParticleEvents on_frame;
 };
 
 struct DecalEmitter {
@@ -222,5 +230,5 @@ void DrawParticles();
 // void ResetParticleMenuEffect();
 // void ResetParticleEditor();
 
-// void DrawParticleMenuEffect();
+void DrawParticleMenuEffect();
 // void DrawParticleEditor();

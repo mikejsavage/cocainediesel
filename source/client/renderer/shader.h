@@ -11,8 +11,10 @@ struct Shaders {
 
 	Shader standard_alphatest;
 
+	Shader depth_only;
+	Shader depth_only_skinned;
+
 	Shader world;
-	Shader write_world_gbuffer;
 	Shader postprocess_world_gbuffer;
 	Shader postprocess_world_gbuffer_msaa;
 

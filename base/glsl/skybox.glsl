@@ -1,8 +1,10 @@
 #include "include/uniforms.glsl"
 #include "include/common.glsl"
 #include "include/dither.glsl"
+#include "include/fog.glsl"
 
 v2f vec3 v_Position;
+v2f float v_Height;
 
 #if VERTEX_SHADER
 
@@ -35,9 +37,17 @@ void main() {
 
   vec3 cloud_color = 0.01 * vec3( 1.0, 1.0, 1.0 );
   vec3 sky_color = 0.06 * vec3( 1.0, 1.0, 1.0 );
+  vec3 sun_color = vec3( 1.0 );
+
   vec2 wind = vec2( 0.3, -0.3 );
   float iterations = 4.0;
 
+  // sun
+  float sun_fract = max( 0.0, dot( normalize( v_Position ), -u_LightDir ) );
+  sun_fract = pow( sun_fract, 66.6 ) * 4.0;
+  sky_color = mix( sky_color, sun_color, sun_fract );
+
+  // clouds
   vec2 c = uv;
   vec2 h = vec2( 0.0 );
   float a = 1.0;
@@ -56,6 +66,8 @@ void main() {
   float m = smoothstep( 30.0, 0.0, length( uv ) );
 
   vec3 color = mix( sky_color, cloud_color, exp( g ) * n * m );
+
+  color = VoidFog( color, gl_FragCoord.xy );
 
   f_Albedo = LinearTosRGB( color + Dither() );
 }

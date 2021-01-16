@@ -20,6 +20,8 @@ struct FrameStatic {
 
 	UniformBlock view_uniforms;
 	UniformBlock ortho_view_uniforms;
+	UniformBlock near_shadowmap_view_uniforms;
+	UniformBlock far_shadowmap_view_uniforms;
 	UniformBlock identity_model_uniforms;
 	UniformBlock identity_material_uniforms;
 	UniformBlock fog_uniforms;
@@ -27,27 +29,29 @@ struct FrameStatic {
 
 	Mat4 V, inverse_V;
 	Mat4 P, inverse_P;
+	Vec3 light_direction;
+	Mat4 near_shadowmap_VP, far_shadowmap_VP;
 	Vec3 position;
 	float vertical_fov;
 	float near_plane;
 
-	Framebuffer world_gbuffer;
-	Framebuffer world_outlines_fb;
 	Framebuffer silhouette_gbuffer;
-	Framebuffer silhouette_silhouettes_fb;
 	Framebuffer msaa_fb;
 	Framebuffer postprocess_fb;
-
-	u8 write_world_gbuffer_pass;
-	u8 postprocess_world_gbuffer_pass;
+	Framebuffer msaa_fb_onlycolor;
+	Framebuffer postprocess_fb_onlycolor;
+	Framebuffer near_shadowmap_fb;
+	Framebuffer far_shadowmap_fb;
 
 	u8 particle_update_pass;
+
+	u8 near_shadowmap_pass;
+	u8 far_shadowmap_pass;
 
 	u8 world_opaque_pass;
 	u8 add_world_outlines_pass;
 
 	u8 write_silhouette_gbuffer_pass;
-	u8 postprocess_silhouette_gbuffer_pass;
 
 	u8 nonworld_opaque_pass;
 	u8 sky_pass;

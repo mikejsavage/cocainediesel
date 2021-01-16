@@ -7,6 +7,8 @@
 v2f vec3 v_Position;
 v2f vec3 v_Normal;
 v2f vec2 v_TexCoord;
+v2f vec4 v_NearShadowmapPosition;
+v2f vec4 v_FarShadowmapPosition;
 
 #if VERTEX_COLORS
 v2f vec4 v_Color;
@@ -40,6 +42,8 @@ void main() {
 	v_Position = ( u_M * Position ).xyz;
 	v_Normal = mat3( u_M ) * Normal;
 	v_TexCoord = ApplyTCMod( a_TexCoord );
+	v_NearShadowmapPosition = u_NearWorldToShadowmap * vec4( v_Position, 1.0 );
+	v_FarShadowmapPosition = u_FarWorldToShadowmap * vec4( v_Position, 1.0 );
 
 #if VERTEX_COLORS
 	v_Color = sRGBToLinear( a_Color );
@@ -58,6 +62,8 @@ void main() {
 out vec4 f_Albedo;
 
 uniform sampler2D u_BaseTexture;
+uniform sampler2D u_NearShadowmapTexture;
+uniform sampler2D u_FarShadowmapTexture;
 
 #if APPLY_SOFT_PARTICLE
 #include "include/softparticle.glsl"
@@ -86,6 +92,36 @@ void OrthonormalBasis( vec3 v, out vec3 tangent, out vec3 bitangent ) {
 
 	tangent = vec3( 1.0 + s * v.x * v.x * a, s * b, -s * v.x );
 	bitangent = vec3( b, s + v.y * v.y * a, -v.y );
+}
+
+vec2 ShadowOffsets( vec3 N, vec3 L ) {
+	float cos_alpha = clamp( dot( N, L ), 0.0, 1.0 );
+	float offset_scale_N = sqrt( 1.0 - cos_alpha * cos_alpha );
+	float offset_scale_L = offset_scale_N / cos_alpha;
+	return vec2( offset_scale_N, min( 5.0, offset_scale_L ) );
+}
+
+float GetLight( vec4 shadow_pos, vec3 normal, vec3 lightdir, sampler2D shadowmap, int pcfCount ) {
+	vec3 light_ndc = shadow_pos.xyz / shadow_pos.w;
+	vec3 light_norm = light_ndc * 0.5 + 0.5;
+	if ( clamp( light_norm.xy, 0.0, 1.0 ) != light_norm.xy ) {
+		return 0.0;
+	}
+	vec2 offsets = ShadowOffsets( normal, lightdir );
+	float bias = 2e-6 + 1e-6 * offsets.x + 5e-6 * offsets.y;
+
+	float shadow = 0.0;
+	vec2 inv_shadowmap_size = 1.0 / textureSize( shadowmap, 0 );
+	float pcfTotal = ( pcfCount * 2.0 + 1.0 ) * ( pcfCount * 2.0 + 1.0 );
+	for ( int x = -pcfCount; x <= pcfCount; x++ ) {
+		for ( int y = -pcfCount; y <= pcfCount; y++ ) {
+			vec2 offset = vec2( x, y ) * inv_shadowmap_size;
+			float shadow_depth = texture( shadowmap, light_norm.xy + offset ).r;
+			shadow += step( light_norm.z - shadow_depth, bias );
+			// shadow += smoothstep( bias, 0.0, light_norm.z - shadow_depth );
+		}
+	}
+	return shadow / pcfTotal;
 }
 
 void main() {
@@ -172,9 +208,31 @@ void main() {
 #endif
 
 #if APPLY_FOG
+	float lambertlight = dot( v_Normal, -u_LightDir ) * 0.5 + 0.5;
+	diffuse.rgb *= lambertlight * 0.5 + 0.5;
+
+	float light = 0.0;
+	vec3 light_ndc = v_NearShadowmapPosition.xyz / v_NearShadowmapPosition.w;
+	vec3 light_norm = light_ndc * 0.5 + 0.5;
+	if ( light_norm.z > 1.0 || abs( dot( v_Normal, u_LightDir ) ) < 0.1 ) {
+		light = 0.0;
+	} else {
+		float near_far_fract = smoothstep( 0.8, 1.0, length( v_NearShadowmapPosition.xy ) );
+		float near_light = 0.0;
+		if ( near_far_fract < 1.0 ) {
+			near_light = GetLight( v_NearShadowmapPosition, v_Normal, u_LightDir, u_NearShadowmapTexture, 1 );
+		}
+		float far_light = GetLight( v_FarShadowmapPosition, v_Normal, u_LightDir, u_FarShadowmapTexture, 1 );
+		light = mix( near_light, far_light, near_far_fract );
+	}
+	diffuse.rgb *= 0.5 + light * 0.5;
+
 	diffuse.rgb = Fog( diffuse.rgb, length( v_Position - u_CameraPos ) );
 	diffuse.rgb += Dither();
 #endif
+
+	diffuse.rgb = VoidFog( diffuse.rgb, v_Position.z );
+	diffuse.a = VoidFogAlpha( diffuse.a, v_Position.z );
 
 	f_Albedo = LinearTosRGB( diffuse );
 }

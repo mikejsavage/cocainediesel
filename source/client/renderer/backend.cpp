@@ -1,4 +1,5 @@
 #include <algorithm> // std::stable_sort
+#include <new>
 
 #include "glad/glad.h"
 
@@ -56,6 +57,9 @@ static NonRAIIDynamicArray< RenderPass > render_passes;
 static NonRAIIDynamicArray< DrawCall > draw_calls;
 static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
 static NonRAIIDynamicArray< TextureBuffer > deferred_tb_deletes;
+
+static alignas( tracy::GpuCtxScope ) char renderpass_zone_memory[ sizeof( tracy::GpuCtxScope ) ];
+static tracy::GpuCtxScope * renderpass_zone;
 
 static u32 num_vertices_this_frame;
 
@@ -517,6 +521,15 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		glDepthMask( pipeline.write_depth ? GL_TRUE : GL_FALSE );
 	}
 
+	// depth clamping
+	if( pipeline.clamp_depth != prev_pipeline.clamp_depth ) {
+		if( pipeline.clamp_depth ) {
+			glEnable( GL_DEPTH_CLAMP );
+		} else {
+			glDisable( GL_DEPTH_CLAMP );
+		}
+	}
+
 	// view weapon depth hack
 	if( pipeline.view_weapon_depth_hack != prev_pipeline.view_weapon_depth_hack ) {
 		float far = pipeline.view_weapon_depth_hack ? 0.3f : 1.0f;
@@ -566,7 +579,9 @@ static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u
 static void SetupRenderPass( const RenderPass & pass ) {
 	ZoneScoped;
 	ZoneText( pass.name, strlen( pass.name ) );
-	TracyGpuZone( "Setup render pass" );
+#if TRACY_ENABLE
+	renderpass_zone = new (renderpass_zone_memory) tracy::GpuCtxScope( pass.tracy );
+#endif
 
 	if( GLAD_GL_KHR_debug != 0 ) {
 		glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.name );
@@ -613,6 +628,15 @@ static void SetupRenderPass( const RenderPass & pass ) {
 	}
 }
 
+static void FinishRenderPass() {
+	if( GLAD_GL_KHR_debug != 0 )
+		glPopDebugGroup();
+
+#if TRACY_ENABLE
+	renderpass_zone->~GpuCtxScope();
+#endif
+}
+
 static void SubmitDrawCall( const DrawCall & dc ) {
 	ZoneScoped;
 	TracyGpuZone( "Draw call" );
@@ -625,8 +649,8 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	if( dc.num_instances != 0 ) {
 		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
 
-		SetupAttribute( VertexAttribute_ParticlePosition, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
-		SetupAttribute( VertexAttribute_ParticleVelocity, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, velocity ) );
+		SetupAttribute( VertexAttribute_ParticlePosition, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
+		SetupAttribute( VertexAttribute_ParticleVelocity, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, velocity ) );
 		SetupAttribute( VertexAttribute_ParticleAccelDragRest, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, acceleration ) );
 		SetupAttribute( VertexAttribute_ParticleUVWH, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, uvwh ) );
 		SetupAttribute( VertexAttribute_ParticleStartColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, start_color ) );
@@ -683,7 +707,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 static void SubmitResolveMSAA( Framebuffer fb ) {
 	assert( fb.width == frame_static.viewport_width && fb.height == frame_static.viewport_height );
 	glBindFramebuffer( GL_READ_FRAMEBUFFER, fb.fbo );
-	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST );
+	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
 }
 
 void RenderBackendSubmitFrame() {
@@ -713,8 +737,7 @@ void RenderBackendSubmitFrame() {
 		ZoneScopedN( "Submit draw calls" );
 		for( const DrawCall & dc : draw_calls ) {
 			while( dc.pipeline.pass > pass_idx ) {
-				if( GLAD_GL_KHR_debug != 0 )
-					glPopDebugGroup();
+				FinishRenderPass();
 				pass_idx++;
 				SetupRenderPass( render_passes[ pass_idx ] );
 			}
@@ -728,14 +751,12 @@ void RenderBackendSubmitFrame() {
 		}
 	}
 
-	if( GLAD_GL_KHR_debug != 0 )
-		glPopDebugGroup();
+	FinishRenderPass();
 
 	while( pass_idx < render_passes.size() - 1 ) {
 		pass_idx++;
 		SetupRenderPass( render_passes[ pass_idx ] );
-		if( GLAD_GL_KHR_debug != 0 )
-			glPopDebugGroup();
+		FinishRenderPass();
 	}
 
 	{
@@ -1032,6 +1053,50 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 		height = texture.height;
 	}
 
+	glDrawBuffers( ARRAY_COUNT( bufs ), bufs );
+
+	assert( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	assert( width > 0 && height > 0 );
+	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+
+	fb.width = width;
+	fb.height = height;
+
+	return fb;
+}
+
+Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, Texture * depth_texture ) {
+	GLuint fbo;
+	glGenFramebuffers( 1, &fbo );
+	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+
+	Framebuffer fb = { };
+	fb.fbo = fbo;
+
+	u32 width = 0;
+	u32 height = 0;
+	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
+	if( albedo_texture != NULL ) {
+		GLenum target = albedo_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, albedo_texture->texture, 0 );
+		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
+		width = albedo_texture->width;
+		height = albedo_texture->height;
+	}
+	if( normal_texture != NULL ) {
+		GLenum target = normal_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, target, normal_texture->texture, 0 );
+		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
+		width = normal_texture->width;
+		height = normal_texture->height;
+	}
+	if( depth_texture != NULL ) {
+		GLenum target = depth_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, depth_texture->texture, 0 );
+		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
+		width = depth_texture->width;
+		height = depth_texture->height;
+	}
 	glDrawBuffers( ARRAY_COUNT( bufs ), bufs );
 
 	assert( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
@@ -1404,32 +1469,35 @@ u8 AddRenderPass( const RenderPass & pass ) {
 	return checked_cast< u8 >( render_passes.add( pass ) );
 }
 
-u8 AddRenderPass( const char * name, Framebuffer target, ClearColor clear_color, ClearDepth clear_depth ) {
+u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color, ClearDepth clear_depth ) {
 	RenderPass pass;
 	pass.target = target;
 	pass.name = name;
 	pass.clear_color = clear_color == ClearColor_Do;
 	pass.clear_depth = clear_depth == ClearDepth_Do;
+	pass.tracy = tracy;
 	return AddRenderPass( pass );
 }
 
-u8 AddRenderPass( const char * name, ClearColor clear_color, ClearDepth clear_depth ) {
+u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, ClearColor clear_color, ClearDepth clear_depth ) {
 	Framebuffer target = { };
-	return AddRenderPass( name, target, clear_color, clear_depth );
+	return AddRenderPass( name, tracy, target, clear_color, clear_depth );
 }
 
-u8 AddUnsortedRenderPass( const char * name ) {
+u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * tracy ) {
 	RenderPass pass;
 	pass.name = name;
 	pass.sorted = false;
+	pass.tracy = tracy;
 	return AddRenderPass( pass );
 }
 
-void AddResolveMSAAPass( Framebuffer src, Framebuffer dst ) {
+void AddResolveMSAAPass( Framebuffer src, Framebuffer dst, const tracy::SourceLocationData * tracy ) {
 	RenderPass pass;
 	pass.name = "Resolve MSAA";
 	pass.msaa_source = src;
 	pass.target = dst;
+	pass.tracy = tracy;
 
 	PipelineState dummy;
 	dummy.pass = AddRenderPass( pass );
@@ -1500,6 +1568,7 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material 
 	pipeline.blend_func = blend_func;
 	pipeline.write_depth = false;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 	pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( HalfPixelSize( gradient ).x ) );
 	pipeline.set_texture( "u_GradientTexture", gradient->texture );
 	pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
@@ -1533,6 +1602,7 @@ void DrawInstancedParticles( VertexBuffer vb, const Model * model, const Materia
 		pipeline.shader = &shaders.particle_model;
 		pipeline.write_depth = true;
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
 		pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( HalfPixelSize( gradient ).x ) );
 		// pipeline.set_texture( "u_BaseTexture", material->texture );

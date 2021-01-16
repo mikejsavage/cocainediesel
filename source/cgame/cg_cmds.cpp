@@ -47,7 +47,7 @@ static void CG_SC_ChatPrint() {
 		return;
 	}
 
-	if( cg_chatFilter->integer & ( teamonly ? 2 : 1 ) ) {
+	if( !cg_chat->integer & ( teamonly ? 2 : 1 ) ) {
 		return;
 	}
 

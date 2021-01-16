@@ -214,6 +214,37 @@ void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec
 	}
 }
 
+void DrawModelShadow( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
+	auto MakeNearShadowPipeline = []( PipelineState * pipeline, bool skinned ) {
+		pipeline->shader = skinned ? &shaders.depth_only_skinned : &shaders.depth_only;
+		pipeline->pass = frame_static.near_shadowmap_pass;
+		pipeline->clamp_depth = true;
+		pipeline->cull_face = CullFace_Disabled;
+		pipeline->write_depth = true;
+		pipeline->set_uniform( "u_View", frame_static.near_shadowmap_view_uniforms );
+	};
+	auto MakeFarShadowPipeline = []( PipelineState * pipeline, bool skinned ) {
+		pipeline->shader = skinned ? &shaders.depth_only_skinned : &shaders.depth_only;
+		pipeline->pass = frame_static.far_shadowmap_pass;
+		pipeline->clamp_depth = true;
+		pipeline->cull_face = CullFace_Disabled;
+		pipeline->write_depth = true;
+		pipeline->set_uniform( "u_View", frame_static.far_shadowmap_view_uniforms );
+	};
+
+	UniformBlock pose_uniforms;
+	if( palettes.skinning_matrices.ptr != NULL ) {
+		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
+	}
+
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		if( model->nodes[ i ].parent == U8_MAX ) {
+			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeNearShadowPipeline );
+			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeFarShadowPipeline );
+		}
+	}
+}
+
 template< typename T, typename F >
 static T SampleAnimationChannel( const Model::AnimationChannel< T > & channel, float t, T def, F lerp ) {
 	if( channel.samples == NULL )

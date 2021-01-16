@@ -416,10 +416,6 @@ static void door_use_areaportals( edict_t *self, bool open ) {
 static void door_go_down( edict_t *self );
 
 static void door_hit_top( edict_t *self ) {
-	if( self->moveinfo.sound_end != EMPTY_HASH ) {
-		G_AddEvent( self, EV_DOOR_HIT_TOP, self->moveinfo.sound_end.hash, true );
-	}
-	self->s.sound = EMPTY_HASH;
 	self->moveinfo.state = STATE_TOP;
 	if( self->spawnflags & DOOR_TOGGLE ) {
 		return;
@@ -431,17 +427,13 @@ static void door_hit_top( edict_t *self ) {
 }
 
 static void door_hit_bottom( edict_t *self ) {
-	if( self->moveinfo.sound_end != EMPTY_HASH ) {
-		G_AddEvent( self, EV_DOOR_HIT_BOTTOM, self->moveinfo.sound_end.hash, true );
-	}
-	self->s.sound = EMPTY_HASH;
 	self->moveinfo.state = STATE_BOTTOM;
 	door_use_areaportals( self, false );
 }
 
 void door_go_down( edict_t *self ) {
-	if( self->moveinfo.sound_start != EMPTY_HASH ) {
-		G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start.hash, true );
+	if( self->moveinfo.sound_end != EMPTY_HASH ) {
+		G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_end.hash, true );
 	}
 	self->s.sound = self->moveinfo.sound_middle;
 
@@ -575,7 +567,7 @@ void SP_func_door( edict_t *ent ) {
 	G_InitMover( ent );
 	G_SetMovedir( &ent->s.angles, &ent->moveinfo.movedir );
 
-	G_AssignMoverSounds( ent, S_DOOR_START, S_DOOR_MOVE, S_DOOR_STOP );
+	G_AssignMoverSounds( ent, S_DOOR_START, S_DOOR_MOVE, S_DOOR_CLOSE );
 
 	ent->moveinfo.blocked = door_blocked;
 	ent->use = door_use;

@@ -64,7 +64,9 @@ struct Mesh {
 
 struct GPUParticle {
 	Vec3 position;
+	float angle;
 	Vec3 velocity;
+	float rotation_speed;
 	float acceleration;
 	float drag;
 	float restitution;
@@ -79,9 +81,9 @@ struct GPUParticle {
 };
 
 struct GPUParticleFeedback {
-	u32 parm;
-	Vec3 position;
-	Vec3 normal;
+	Vec3 position_normal;
+	RGB8 color;
+	u8 parm;
 };
 
 struct TRS {

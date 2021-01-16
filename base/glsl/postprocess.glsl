@@ -12,7 +12,6 @@ void main() {
 #else
 
 uniform sampler2D u_Screen;
-uniform sampler2D u_DepthTexture;
 uniform sampler2D u_Noise;
 
 layout( std140 ) uniform u_PostProcess {
@@ -71,21 +70,8 @@ vec3 discolor( vec3 col ) {
 	return vec3( 0.0, 0.0, 0.0 );
 }
 
-float WorldHeight( vec2 uv ) {
-	float depth = texture( u_DepthTexture, uv ).r;
-	depth = min( depth, 0.999 ); // account for sky not having depth
-
-	vec4 clip = vec4( vec3( uv, depth ) * 2.0 - 1.0, 1.0 );
-	vec4 world = u_InverseP * clip;
-	float height = ( u_InverseV * ( world / world.w ) ).z;
-	return height;
-}
-
 vec3 SampleScreen( vec2 uv ) {
-	vec3 color = texture( u_Screen, uv ).rgb;
-	vec3 void_color = vec3( 0.01 );
-	float fade = smoothstep( -2048.0, -1024.0, WorldHeight( uv ) );
-	return mix( void_color, color, fade );
+	return texture( u_Screen, uv ).rgb;
 }
 
 vec3 glitch( vec2 uv ) {

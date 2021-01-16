@@ -255,7 +255,8 @@ static void W_Fire_Blade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta
 	}
 }
 
-static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, WeaponType weapon, int mod ) {
+
+static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, WeaponType weapon, int mod, bool piercing ) {
 	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
 	Vec3 dir, right, up;
@@ -270,16 +271,67 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 		y_spread = random_float11( &svs.rng ) * spread;
 	}
 
-	trace_t trace, wallbang;
-	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, x_spread, y_spread, def->range, ENTNUM( self ), timeDelta );
-	if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
-		int dmgflags = DAMAGE_KNOCKBACK_SOFT;
+	if( piercing ) {
+		Vec3 end = start + dir * def->range;
+		Vec3 from = start;
+		
+		edict_t * ignore = self;
 
-		if( IsHeadshot( trace.ent, trace.endpos, timeDelta ) ) {
-			dmgflags |= DAMAGE_HEADSHOT;
+		trace_t tr;
+		tr.ent = -1;
+
+		while( ignore ) {
+			G_Trace4D( &tr, from, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_WALLBANG, timeDelta );
+
+			from = tr.endpos;
+			ignore = NULL;
+
+			if( tr.ent == -1 ) {
+				break;
+			}
+
+			// some entity was touched
+			edict_t * hit = &game.edicts[tr.ent];
+			int hit_movetype = hit->movetype; // backup the original movetype as the entity may "die"
+			if( hit == world ) { // stop dead if hit the world
+				break;
+			}
+
+			// allow trail to go through BBOX entities (players, gibs, etc)
+			if( !CM_IsBrushModel( CM_Server, hit->s.model ) ) {
+				ignore = hit;
+			}
+
+			if( hit != self && hit->takedamage ) {
+				int dmgflags = DAMAGE_KNOCKBACK_SOFT;
+				if( IsHeadshot( tr.ent, tr.endpos, timeDelta ) ) {
+					dmgflags |= DAMAGE_HEADSHOT;
+				}
+
+				G_Damage( hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, dmgflags, mod );
+
+				// if we hit a teammate stop the trace
+				if( G_IsTeamDamage( &hit->s, &self->s ) ) {
+					break;
+				}
+			}
+
+			if( hit_movetype == MOVETYPE_NONE || hit_movetype == MOVETYPE_PUSH ) {
+				break;
+			}
 		}
+	} else {
+		trace_t trace, wallbang;
+		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, x_spread, y_spread, def->range, ENTNUM( self ), timeDelta );
+		if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
+			int dmgflags = DAMAGE_KNOCKBACK_SOFT;
 
-		G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, mod );
+			if( IsHeadshot( trace.ent, trace.endpos, timeDelta ) ) {
+				dmgflags |= DAMAGE_HEADSHOT;
+			}
+
+			G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, mod );
+		}
 	}
 }
 
@@ -634,14 +686,14 @@ static void W_Touch_RifleBullet( edict_t *ent, edict_t *other, cplane_t *plane, 
 		return;
 	}
 
-	if( other->takedamage ) {
-		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MeanOfDeath_Rifle );
-	}
-
 	edict_t * event = G_SpawnEvent( EV_RIFLEBULLET_IMPACT, DirToByte( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
 	event->s.team = ent->s.team;
 
-	G_FreeEdict( ent );
+	if( other->takedamage ) {
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MeanOfDeath_Rifle );
+	} else {
+		G_FreeEdict( ent );
+	}
 }
 
 void W_Fire_RifleBullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
@@ -678,15 +730,15 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 			break;
 
 		case Weapon_Pistol:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Pistol, MeanOfDeath_Pistol );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Pistol, MeanOfDeath_Pistol, false );
 			break;
 
 		case Weapon_MachineGun:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_MachineGun, MeanOfDeath_MachineGun );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_MachineGun, MeanOfDeath_MachineGun, false );
 			break;
 
 		case Weapon_Deagle:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Deagle, MeanOfDeath_Deagle );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Deagle, MeanOfDeath_Deagle, true );
 			break;
 
 		case Weapon_Shotgun:
@@ -694,7 +746,7 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 			break;
 
 		case Weapon_AssaultRifle:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_AssaultRifle, MeanOfDeath_AssaultRifle );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_AssaultRifle, MeanOfDeath_AssaultRifle, true );
 			break;
 
 		case Weapon_GrenadeLauncher:
@@ -718,7 +770,7 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 			break;
 
 		case Weapon_Sniper:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Sniper, MeanOfDeath_Sniper );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Sniper, MeanOfDeath_Sniper, true );
 			break;
 
 		case Weapon_Railgun:

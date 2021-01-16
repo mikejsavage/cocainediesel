@@ -100,7 +100,7 @@ static void LGImpact( const trace_t * trace, Vec3 dir ) {
 		laserOwner->localEffects[ LOCALEFFECT_LASERBEAM_SMOKE_TRAIL ] = cl.serverTime;
 	}
 
-	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, 4, team_color );
+	DoVisualEffect( "vfx/laser_impact", trace->endpos, trace->plane.normal, 4, team_color );
 }
 
 void CG_LaserBeamEffect( centity_t * cent ) {
@@ -194,8 +194,6 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 			S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f );
 		}
 		else {
-			// fixed position is better for location, but the channels are used from worldspawn
-			// and openal runs out of channels quick on cheap cards. Relative sound uses per-entity channels.
 			S_StartEntitySound( sfx, entNum, CHAN_AUTO, 1.0f );
 		}
 	}
@@ -854,7 +852,9 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			int damage = ent->radius;
 			float p = damage / 20.0f;
 
-			DoVisualEffect( "vfx/blood_spray", ent->origin, dir, damage, team_color );
+			if( !ISVIEWERENTITY( ent->ownerNum ) ) {
+				DoVisualEffect( "vfx/blood_spray", ent->origin, dir, damage, team_color );
+			}
 
 			while( true ) {
 				if( !random_p( &cls.rng, p ) )

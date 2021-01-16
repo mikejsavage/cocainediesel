@@ -87,6 +87,7 @@ void DrawViewWeapon( const Model * model, const Mat4 & transform );
 void DrawOutlinedViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height );
 void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
 void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, MatrixPalettes palettes = MatrixPalettes() );
+void DrawModelShadow( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
 
 Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t );
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses );

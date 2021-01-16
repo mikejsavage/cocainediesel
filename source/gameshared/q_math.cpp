@@ -671,7 +671,7 @@ Mat4 Mat4RotationAxisSinCos( Vec3 axis, float s, float c ) {
 }
 
 Mat4 TransformKToDir( Vec3 dir ) {
-	assert( ( Length( dir ) - 1.0f ) < 0.0001f );
+	dir = Normalize( dir );
 
 	Vec3 K = Vec3( 0, 0, 1 );
 
@@ -680,7 +680,7 @@ Mat4 TransformKToDir( Vec3 dir ) {
 	}
 
 	Vec3 axis = Normalize( Cross( K, dir ) );
-	float c = Dot( K, dir ) / Length( dir );
+	float c = Dot( K, dir );
 	float s = sqrtf( 1.0f - c * c );
 
 	return Mat4RotationAxisSinCos( axis, s, c );

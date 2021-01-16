@@ -568,6 +568,8 @@ enum {
 	Vsay_Acne,
 	Vsay_Valley,
 	Vsay_Mike,
+	Vsay_User,
+	Vsay_Guyman,
 
 	Vsay_Total
 };

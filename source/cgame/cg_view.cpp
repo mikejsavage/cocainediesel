@@ -646,6 +646,7 @@ static void DrawWorld() {
 
 		const Framebuffer & fb = msaa ? frame_static.msaa_fb : frame_static.postprocess_fb;
 		pipeline.set_texture( "u_DepthTexture", &fb.depth_texture );
+		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
 		DrawFullscreenMesh( pipeline );

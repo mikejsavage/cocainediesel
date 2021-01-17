@@ -134,8 +134,6 @@ enum solid_t {
 	SOLID_YES               // touch on edge
 };
 
-#define SOLID_BMODEL    31  // special value for bmodel
-
 // SyncEntityState->event values
 // entity events are for effects that take place relative
 // to an existing entities origin. Very network efficient.

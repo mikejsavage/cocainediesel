@@ -718,11 +718,6 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 		*state = ent->s;
 		state->svflags = ent->r.svflags;
 
-		// don't mark *any* missiles as solid
-		if( ent->r.svflags & SVF_PROJECTILE ) {
-			state->solid = 0;
-		}
-
 		frame->num_entities++;
 		ne++;
 	}

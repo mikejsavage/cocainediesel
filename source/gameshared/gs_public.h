@@ -184,14 +184,10 @@ struct SyncEntityState {
 
 	int type;                           // ET_GENERIC, ET_BEAM, etc
 
-	// for client side prediction, 8*(bits 0-4) is x/y radius
-	// 8*(bits 5-9) is z down distance, 8(bits10-15) is z up
-	// GClip_LinkEntity sets this properly
-	int solid;
-
 	Vec3 origin;
 	Vec3 angles;
 	Vec3 origin2; // velocity for players/corpses. often used for endpoints, e.g. ET_BEAM and some events
+	MinMax3 bounds;
 
 	StringHash model;
 	StringHash model2;

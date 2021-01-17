@@ -228,14 +228,11 @@ static void CG_CalcViewBob( void ) {
 		} else if( CG_PointContents( cg.view.origin ) & MASK_WATER ) {
 			bobScale =  0.75f;
 		} else {
-			centity_t *cent;
-			Vec3 mins, maxs;
 			trace_t trace;
 
-			cent = &cg_entities[cg.view.POVent];
-			CG_BBoxForEntityState( &cent->current, &mins, &maxs );
-			maxs.z = mins.z;
-			mins.z -= 1.6f * STEPSIZE;
+			const centity_t * cent = &cg_entities[cg.view.POVent];
+			Vec3 maxs = cent->current.bounds.mins;
+			Vec3 mins = maxs - Vec3( 0.0f, 0.0f, 1.6f * STEPSIZE );
 
 			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, MASK_PLAYERSOLID );
 			if( trace.startsolid || trace.allsolid ) {

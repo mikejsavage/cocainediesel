@@ -480,16 +480,11 @@ void GClip_UnlinkEntity( edict_t *ent ) {
 void GClip_LinkEntity( edict_t *ent ) {
 	int leafs[MAX_TOTAL_ENT_LEAFS];
 	int clusters[MAX_TOTAL_ENT_LEAFS];
-	int num_leafs;
-	int i, j, k;
-	int area;
-	int topnode;
 
 	GClip_UnlinkEntity( ent ); // unlink from old position
 
 	if( ent == game.edicts ) {
 		return; // don't add the world
-
 	}
 	if( !ent->r.inuse ) {
 		return;
@@ -497,40 +492,12 @@ void GClip_LinkEntity( edict_t *ent ) {
 
 	// set the size
 	ent->r.size = ent->r.maxs - ent->r.mins;
-
-	if( ent->r.solid == SOLID_NOT || ( ent->r.svflags & SVF_PROJECTILE ) ) {
-		ent->s.solid = 0;
-	} else if( CM_IsBrushModel( CM_Server, ent->s.model ) ) {
-		// the only predicted SOLID_TRIGGER entity is jumppads
-		if( ent->r.solid != SOLID_TRIGGER || ent->s.type == ET_JUMPPAD || ent->s.type == ET_PAINKILLER_JUMPPAD ) {
-			ent->s.solid = SOLID_BMODEL;
-		} else {
-			ent->s.solid = 0;
-		}
-	} else {   // encode the size into the entity_state for client prediction
-		if( ent->r.solid == SOLID_TRIGGER ) {
-			ent->s.solid = 0;
-		} else {
-			// assume that x/y are equal and symetric
-			i = Clamp( 1.0f, ent->r.maxs.x / 8, 31.0f );
-
-			// z is not symetric
-			j = Clamp( 1.0f, ( -ent->r.mins.z ) / 8, 31.0f );
-
-			// and z maxs can be negative...
-			k = Clamp( 1.0f, ( ent->r.maxs.z + 32 ) / 8, 63.0f );
-
-			ent->s.solid = ( k << 10 ) | ( j << 5 ) | i;
-		}
-	}
+	ent->s.bounds = MinMax3( ent->r.mins, ent->r.maxs );
 
 	// set the abs box
-	if( CM_IsBrushModel( CM_Server, ent->s.model ) && ( ent->s.angles.x || ent->s.angles.y || ent->s.angles.z ) ) {
+	if( CM_IsBrushModel( CM_Server, ent->s.model ) && ent->s.angles != Vec3( 0.0f ) ) {
 		// expand for rotation
-		float radius;
-
-		radius = RadiusFromBounds( ent->r.mins, ent->r.maxs );
-
+		float radius = RadiusFromBounds( ent->r.mins, ent->r.maxs );
 		ent->r.absmin = ent->s.origin - Vec3( radius );
 		ent->r.absmax = ent->s.origin + Vec3( radius );
 	} else {   // axis aligned
@@ -548,13 +515,14 @@ void GClip_LinkEntity( edict_t *ent ) {
 	ent->r.areanum = ent->r.areanum2 = -1;
 
 	// get all leafs, including solids
-	num_leafs = CM_BoxLeafnums( svs.cms, ent->r.absmin, ent->r.absmax,
+	int topnode;
+	int num_leafs = CM_BoxLeafnums( svs.cms, ent->r.absmin, ent->r.absmax,
 									 leafs, MAX_TOTAL_ENT_LEAFS, &topnode );
 
 	// set areas
-	for( i = 0; i < num_leafs; i++ ) {
+	for( int i = 0; i < num_leafs; i++ ) {
 		clusters[i] = CM_LeafCluster( svs.cms, leafs[i] );
-		area = CM_LeafArea( svs.cms, leafs[i] );
+		int area = CM_LeafArea( svs.cms, leafs[i] );
 		if( area > -1 ) {
 			// doors may legally straggle two areas,
 			// but nothing should ever need more than that
@@ -579,14 +547,16 @@ void GClip_LinkEntity( edict_t *ent ) {
 		ent->r.headnode = topnode;
 	} else {
 		ent->r.num_clusters = 0;
-		for( i = 0; i < num_leafs; i++ ) {
+		for( int i = 0; i < num_leafs; i++ ) {
 			if( clusters[i] == -1 ) {
 				continue; // not a visible leaf
 			}
-			for( j = 0; j < i; j++ )
+			int j;
+			for( j = 0; j < i; j++ ) {
 				if( clusters[j] == clusters[i] ) {
 					break;
 				}
+			}
 			if( j == i ) {
 				if( ent->r.num_clusters == MAX_ENT_CLUSTERS ) {
 					// assume we missed some leafs, and mark by headnode

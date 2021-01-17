@@ -271,7 +271,6 @@ void CL_GameModule_ConfigString( int number, const char *value );
 void CL_GameModule_EscapeKey( void );
 bool CL_GameModule_NewSnapshot( int pendingSnapshot );
 void CL_GameModule_RenderView();
-void CL_GameModule_GetEntitySpatilization( int entnum, Vec3 * origin, Vec3 * velocity );
 void CL_GameModule_InputFrame( int frameTime );
 unsigned CL_GameModule_GetButtonBits( void );
 void CL_GameModule_AddViewAngles( Vec3 * viewAngles );

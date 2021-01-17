@@ -452,11 +452,8 @@ void CG_Event_Fall( const SyncEntityState * state, u64 parm ) {
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
 	}
 
-	Vec3 mins, maxs;
-	CG_BBoxForEntityState( state, &mins, &maxs );
-
 	Vec3 ground_position = state->origin;
-	ground_position.z += mins.z;
+	ground_position.z += state->bounds.mins.z;
 
 	if( parm < 40 )
 		return;

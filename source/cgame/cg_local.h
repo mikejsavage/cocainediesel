@@ -383,14 +383,13 @@ extern centity_t cg_entities[MAX_EDICTS];
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe );
 
 struct cmodel_t;
-cmodel_t *CG_CModelForEntity( int entNum );
+const cmodel_t *CG_CModelForEntity( int entNum );
 
 void CG_SoundEntityNewState( centity_t *cent );
 void DrawEntities();
 void CG_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity );
 void CG_LerpEntities();
 void CG_LerpGenericEnt( centity_t *cent );
-void CG_BBoxForEntityState( const SyncEntityState * state, Vec3 * mins, Vec3 * maxs );
 
 //
 // cg_draw.c

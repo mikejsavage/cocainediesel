@@ -204,6 +204,11 @@ static void Delta( DeltaBuffer * buf, Vec3 & v, const Vec3 & baseline ) {
 	}
 }
 
+static void Delta( DeltaBuffer * buf, MinMax3 & b, const MinMax3 & baseline ) {
+	Delta( buf, b.mins, baseline.mins );
+	Delta( buf, b.maxs, baseline.maxs );
+}
+
 static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 	Delta( buf, rgba.r, baseline.r );
 	Delta( buf, rgba.g, baseline.b );
@@ -472,10 +477,11 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.origin, baseline.origin );
 	DeltaAngle( buf, ent.angles, baseline.angles );
 
+	Delta( buf, ent.bounds, baseline.bounds );
+
 	Delta( buf, ent.teleported, baseline.teleported );
 
 	Delta( buf, ent.type, baseline.type );
-	Delta( buf, ent.solid, baseline.solid );
 	Delta( buf, ent.model, baseline.model );
 	Delta( buf, ent.material, baseline.material );
 	Delta( buf, ent.color, baseline.color );

@@ -44,13 +44,9 @@ typedef struct {
 
 	trace_t *trace;
 
-	int nummarkbrushes;
 	cbrush_t *brushes;
-	int *markbrushes;
 
-	int nummarkfaces;
 	cface_t *faces;
-	int *markfaces;
 
 	int *brush_checkcounts;
 	int *face_checkcounts;
@@ -726,7 +722,7 @@ static void CM_RecursiveHullCheck( traceWork_t *tw, int num, float p1f, float p2
 
 static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	Vec3 start, Vec3 end, Vec3 mins, Vec3 maxs,
-	cmodel_t *cmodel, Vec3 origin, int brushmask ) {
+	const cmodel_t *cmodel, Vec3 origin, int brushmask ) {
 
 	ZoneScoped;
 
@@ -835,7 +831,7 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 * rotating entities
 */
 void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, Vec3 start, Vec3 end, Vec3 mins, Vec3 maxs,
-							 cmodel_t *cmodel, int brushmask, Vec3 origin, Vec3 angles ) {
+							 const cmodel_t *cmodel, int brushmask, Vec3 origin, Vec3 angles ) {
 	ZoneScoped;
 
 	Vec3 start_l, end_l;

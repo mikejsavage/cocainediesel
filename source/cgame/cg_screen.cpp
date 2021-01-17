@@ -236,7 +236,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		if( !cent->current.solid || cent->current.solid == SOLID_BMODEL || cent->current.team == TEAM_SPECTATOR ) {
+		if( cent->current.team == TEAM_SPECTATOR ) {
 			continue;
 		}
 

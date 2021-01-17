@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "qcommon/cmodel.h"
 
 /*
 ==============================================================================
@@ -945,7 +946,8 @@ edict_t *G_Sound( edict_t *owner, int channel, StringHash sound ) {
 	edict_t * ent = _G_SpawnSound( channel, sound );
 	ent->s.ownerNum = owner->s.number;
 
-	if( owner->s.solid == SOLID_BMODEL ) {
+	const cmodel_t * cmodel = CM_TryFindCModel( CM_Server, owner->s.model );
+	if( cmodel != NULL ) {
 		ent->s.origin = owner->s.origin;
 	}
 	else {

@@ -25,9 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 
-constexpr StringHash ally_model = "players/rigg_bigvic_sounds/model";
-constexpr StringHash enemy_model = "players/rigg_padpork_sounds/model";
-
 constexpr u32 MAX_PLAYER_MODELS = 128;
 
 pmodel_t cg_entPModels[ MAX_EDICTS ];
@@ -204,9 +201,7 @@ static const PlayerModelMetadata * GetPlayerModelMetadata( StringHash name ) {
 }
 
 const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num ) {
-	int team = cg_entities[ ent_num ].current.team;
-	StringHash model = CG_IsAlly( team ) ? ally_model : enemy_model;
-	return GetPlayerModelMetadata( model );
+	return GetPlayerModelMetadata( "players/rigg/model" );
 }
 
 void CG_ResetPModels( void ) {

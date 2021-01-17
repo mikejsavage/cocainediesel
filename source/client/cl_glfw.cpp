@@ -357,6 +357,10 @@ static void OnCharTyped( GLFWwindow *, unsigned int codepoint ) {
 }
 
 static void OnGlfwError( int code, const char * message ) {
+	// ignore clipboard conversion errors
+	if( code == GLFW_FORMAT_UNAVAILABLE && strstr( message, "Failed to convert" ) )
+		return;
+
 	Com_Error( ERR_FATAL, "GLFW error %d: %s", code, message );
 }
 

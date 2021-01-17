@@ -816,14 +816,12 @@ struct gclient_t {
 struct snap_edict_t {
 	// whether we have killed anyone this snap
 	bool kill;
-	bool teamkill;
 
 	// ents can accumulate damage along the frame, so they spawn less events
 	float damage_taken;
 	Vec3 damage_dir;
 	Vec3 damage_at;
 	float damage_given;             // for hitsounds
-	float damageteam_given;
 };
 
 using EdictTouchCallback = void ( * )( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags );

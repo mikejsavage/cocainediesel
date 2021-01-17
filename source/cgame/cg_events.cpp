@@ -977,19 +977,13 @@ static void CG_FirePlayerStateEvents( void ) {
 
 		switch( cg.frame.playerState.events[ count ].type ) {
 			case PSEV_HIT:
-				if( parm > 6 ) {
-					break;
-				}
 				if( parm < 4 ) { // hit of some caliber
 					S_StartLocalSound( cgs.media.sfxWeaponHit[ parm ], CHAN_AUTO, 1.0f );
 					CG_ScreenCrosshairDamageUpdate();
 				}
-				else if( parm == 4 ) { // killed an enemy
+				else { // killed an enemy
 					S_StartLocalSound( cgs.media.sfxWeaponKill, CHAN_AUTO, 1.0f );
 					CG_ScreenCrosshairDamageUpdate();
-				}
-				else { // hit a teammate
-					S_StartLocalSound( cgs.media.sfxWeaponHitTeam, CHAN_AUTO, 1.0f );
 				}
 				break;
 

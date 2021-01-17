@@ -157,9 +157,7 @@ void G_ClientDamageFeedback( edict_t *ent ) {
 	}
 
 	// add hitsounds from given damage
-	if( ent->snap.damageteam_given ) { //keep it in case we use a sound for teamhit
-		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 5 );
-	} else if( ent->snap.kill ) { //kill
+	if( ent->snap.kill ) { //kill
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 4 );
 	} else if( ent->snap.damage_given >= 35 ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 0 );

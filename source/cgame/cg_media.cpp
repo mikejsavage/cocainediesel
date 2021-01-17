@@ -30,7 +30,6 @@ void CG_RegisterMediaSounds() {
 	for( int i = 0; i < 4; i++ )
 		cgs.media.sfxWeaponHit[ i ] = FindSoundEffect( va( S_WEAPON_HITS, i ) );
 	cgs.media.sfxWeaponKill = FindSoundEffect( S_WEAPON_KILL );
-	cgs.media.sfxWeaponHitTeam = FindSoundEffect( S_WEAPON_HIT_TEAM );
 	cgs.media.sfxWeaponNoAmmo = FindSoundEffect( "weapons/noammo" );
 
 	cgs.media.sfxTeleportIn = FindSoundEffect( S_TELEPORT );

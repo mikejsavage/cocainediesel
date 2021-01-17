@@ -115,7 +115,6 @@ struct cgs_media_t {
 
 	const SoundEffect * sfxWeaponHit[ 4 ];
 	const SoundEffect * sfxWeaponKill;
-	const SoundEffect * sfxWeaponHitTeam;
 
 	const SoundEffect * sfxItemRespawn;
 	const SoundEffect * sfxTeleportIn;

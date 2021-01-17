@@ -986,6 +986,7 @@ static const char * obituaries[] = {
 	"SWIPED",
 	"SWIRLED",
 	"SYNTHETIZED",
+	"TAPED",
 	"TAPPED",
 	"TARGETED",
 	"TARNISHED",

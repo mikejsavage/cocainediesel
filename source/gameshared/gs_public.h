@@ -752,6 +752,8 @@ struct WeaponDef {
 
 	int speed;
 	float spread;
+
+	bool pierce;
 };
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );

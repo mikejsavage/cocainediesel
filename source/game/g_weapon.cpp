@@ -256,7 +256,7 @@ static void W_Fire_Blade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta
 }
 
 
-static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, WeaponType weapon, int mod, bool piercing ) {
+static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, WeaponType weapon, int mod ) {
 	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
 	Vec3 dir, right, up;
@@ -271,7 +271,7 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 		y_spread = random_float11( &svs.rng ) * spread;
 	}
 
-	if( piercing ) {
+	if( def->pierce ) {
 		Vec3 end = start + dir * def->range;
 		Vec3 from = start;
 		
@@ -689,8 +689,12 @@ static void W_Touch_RifleBullet( edict_t *ent, edict_t *other, cplane_t *plane, 
 	edict_t * event = G_SpawnEvent( EV_RIFLEBULLET_IMPACT, DirToByte( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
 	event->s.team = ent->s.team;
 
-	if( other->takedamage ) {
+	if( other->takedamage && ent->enemy != other ) {
 		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MeanOfDeath_Rifle );
+		ent->enemy = other;
+		if( !GS_GetWeaponDef( Weapon_Rifle )->pierce ) {
+			G_FreeEdict( ent );
+		}
 	} else {
 		G_FreeEdict( ent );
 	}
@@ -730,15 +734,15 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 			break;
 
 		case Weapon_Pistol:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Pistol, MeanOfDeath_Pistol, false );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Pistol, MeanOfDeath_Pistol );
 			break;
 
 		case Weapon_MachineGun:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_MachineGun, MeanOfDeath_MachineGun, false );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_MachineGun, MeanOfDeath_MachineGun );
 			break;
 
 		case Weapon_Deagle:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Deagle, MeanOfDeath_Deagle, true );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Deagle, MeanOfDeath_Deagle );
 			break;
 
 		case Weapon_Shotgun:
@@ -746,7 +750,7 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 			break;
 
 		case Weapon_AssaultRifle:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_AssaultRifle, MeanOfDeath_AssaultRifle, true );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_AssaultRifle, MeanOfDeath_AssaultRifle );
 			break;
 
 		case Weapon_GrenadeLauncher:
@@ -770,7 +774,7 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 			break;
 
 		case Weapon_Sniper:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Sniper, MeanOfDeath_Sniper, true );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Sniper, MeanOfDeath_Sniper );
 			break;
 
 		case Weapon_Railgun:

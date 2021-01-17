@@ -46,6 +46,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		45,                             // spread
+		false,							// pierce
 	},
 
 	{
@@ -81,6 +82,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		0,                              // spread
+		false,							// pierce
 	},
 
 	{
@@ -116,6 +118,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		0,                              // spread
+		false,							// pierce
 	},
 
 	{
@@ -151,6 +154,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		0,                              // spread
+		true,							// pierce
 	},
 
 	{
@@ -186,6 +190,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		50,                             // spread
+		false,							// pierce
 	},
 
 	{
@@ -221,6 +226,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		0,                              // spread
+		true,							// pierce
 	},
 
 	{
@@ -256,6 +262,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		420,                            // speed
 		0,                              // spread
+		false,							// pierce
 	},
 
 	{
@@ -291,6 +298,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		1400,                           // speed
 		0,                              // spread
+		false,							// pierce
 	},
 
 	{
@@ -326,6 +334,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		3500,                           // speed
 		0.0f,                           // spread
+		false,							// pierce
 	},
 
 	{
@@ -361,6 +370,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		600,                            // speed
 		0,                              // spread
+		false,							// pierce
 	},
 
 	{
@@ -396,6 +406,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		0,                              // spread
+		false,							// pierce
 	},
 
 	{
@@ -431,6 +442,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		0,                              // spread
+		true,							// pierce
 	},
 
 	{
@@ -466,6 +478,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		0,                              // spread
+		true,							// pierce
 	},
 
 	{
@@ -501,6 +514,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		5500,                           // speed
 		0,                              // spread
+		false,							// pierce
 	},
 };
 

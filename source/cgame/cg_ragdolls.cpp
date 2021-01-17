@@ -205,14 +205,12 @@ static Ragdoll AddRagdoll( const Model * model, RagdollConfig config, MatrixPale
 	right_elbow->setRevoluteJointFlag( PxRevoluteJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_RightElbow ] = right_elbow;
 
-#if 0
 	PxSphericalJoint * left_hip = PxSphericalJointCreate( *physx_physics,
-		ragdoll.bones[ Bone_LowerBack ].actor, PxTransform( -ragdoll.bones[ Bone_LowerBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( pose, config.pelvis, config.left_hip ) * hip_transform,
-		ragdoll.bones[ Bone_LeftThigh ].actor, PxTransform( -ragdoll.bones[ Bone_LeftThigh ].capsule.halfHeight, 0, 0 ) * hip_transform );
+		ragdoll.bones[ Bone_LowerBack ].actor, PxTransform( -ragdoll.bones[ Bone_LowerBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( pose, 0.0f, config.pelvis, config.left_hip ) * hip_transform,
+		ragdoll.bones[ Bone_LeftThigh ].actor, PxTransform( -ragdoll.bones[ Bone_LeftThigh ].capsule.halfHeight, 0, 0 ) );
 	left_hip->setLimitCone( PxJointLimitCone( PxPi / 2, PxPi / 6, 0.01f ) );
 	left_hip->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_LeftHip ] = left_hip;
-#endif
 
 	PxRevoluteJoint * left_knee = PxRevoluteJointCreate( *physx_physics,
 		ragdoll.bones[ Bone_LeftThigh ].actor, PxTransform( ragdoll.bones[ Bone_LeftThigh ].capsule.halfHeight, 0, 0 ) * elbow_knee_transform,
@@ -223,7 +221,7 @@ static Ragdoll AddRagdoll( const Model * model, RagdollConfig config, MatrixPale
 
 	PxSphericalJoint * right_hip = PxSphericalJointCreate( *physx_physics,
 		ragdoll.bones[ Bone_LowerBack ].actor, PxTransform( -ragdoll.bones[ Bone_LowerBack ].capsule.halfHeight, 0, 0 ) * JointOffsetTransform( pose, 0.0f, config.pelvis, config.right_hip ) * hip_transform,
-		ragdoll.bones[ Bone_RightThigh ].actor, PxTransform( -ragdoll.bones[ Bone_RightThigh ].capsule.halfHeight, 0, 0 ) * hip_transform );
+		ragdoll.bones[ Bone_RightThigh ].actor, PxTransform( -ragdoll.bones[ Bone_RightThigh ].capsule.halfHeight, 0, 0 ) );
 	right_hip->setLimitCone( PxJointLimitCone( PxPi / 2, PxPi / 6, 0.01f ) );
 	right_hip->setSphericalJointFlag( PxSphericalJointFlag::eLIMIT_ENABLED, true );
 	ragdoll.joints[ Joint_RightHip ] = right_hip;

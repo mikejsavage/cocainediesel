@@ -45,6 +45,7 @@ static void DeleteModel( Model * model ) {
 	DeleteMesh( model->mesh );
 
 	FREE( sys_allocator, model->primitives );
+	FREE( sys_allocator, model->collision_shapes );
 	FREE( sys_allocator, model->nodes );
 	FREE( sys_allocator, model->skin );
 }

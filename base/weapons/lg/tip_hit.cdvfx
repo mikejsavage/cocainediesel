@@ -23,7 +23,7 @@
     size 16 12
 
     lifetime 0.4
-    emission 30
+    emission 120
   }
 
   particles {
@@ -48,7 +48,7 @@
     size 16 12
 
     lifetime 0.1
-    emission 100
+    emission 400
   }
 
   particles {
@@ -70,7 +70,7 @@
     size_distribution uniform 16
 
     lifetime 0.05
-    emission 25
+    emission 100
   }
 
   particles {
@@ -89,6 +89,6 @@
     size 16 0
 
     lifetime 0.05
-    emission 100
+    emission 400
   }
 }

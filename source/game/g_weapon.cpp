@@ -602,7 +602,7 @@ static float laser_damage;
 static int laser_knockback;
 static int laser_attackerNum;
 
-static void _LaserImpact( const trace_t *trace, Vec3 dir ) {
+static void _LaserImpact( const trace_t *trace, Vec3 dir, void * data ) {
 	edict_t *attacker;
 
 	if( !trace || trace->ent <= 0 ) {
@@ -658,7 +658,7 @@ static void W_Fire_Lasergun( edict_t * self, Vec3 start, Vec3 angles, int timeDe
 	laser_attackerNum = ENTNUM( self );
 
 	trace_t tr;
-	GS_TraceLaserBeam( &server_gs, &tr, start, angles, def->range, ENTNUM( self ), timeDelta, _LaserImpact );
+	GS_TraceLaserBeam( &server_gs, &tr, start, angles, def->range, ENTNUM( self ), timeDelta, _LaserImpact, NULL );
 
 	laser->r.svflags |= SVF_FORCEOWNER;
 

@@ -734,6 +734,9 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 				CheckedALSource( ps->sources[ j ], AL_POSITION, entities[ ps->ent_num ].origin );
 				CheckedALSource( ps->sources[ j ], AL_VELOCITY, entities[ ps->ent_num ].velocity );
 			}
+			else if( ps->type == PlayingSoundType_Position ) {
+				CheckedALSource( ps->sources[ j ], AL_POSITION, ps->origin );
+			}
 			else if( ps->type == PlayingSoundType_Line ) {
 				Vec3 p = ClosestPointOnSegment( ps->origin, ps->end, origin );
 				CheckedALSource( ps->sources[ j ], AL_POSITION, p );
@@ -846,7 +849,7 @@ void S_StartLineSound( const SoundEffect * sfx, Vec3 start, Vec3 end, int channe
 
 static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int ent_num, float volume, PlayingSoundType type, ImmediateSoundHandle handle ) {
 	if( sfx == NULL )
-		return handle;
+		return { 0 };
 
 	u64 idx;
 	if( handle.x != 0 && immediate_sounds_hashtable.get( handle.x, &idx ) ) {
@@ -855,9 +858,9 @@ static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int en
 	else {
 		PlayingSound * ps = StartSoundEffect( sfx, ent_num, CHAN_AUTO, volume, type );
 		if( ps == NULL )
-			return handle;
+			return { 0 };
 
-		handle = { Hash64( immediate_sounds_autoinc ) };
+		handle = { immediate_sounds_autoinc };
 
 		immediate_sounds_autoinc++;
 		if( immediate_sounds_autoinc == 0 )
@@ -874,6 +877,21 @@ static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int en
 
 ImmediateSoundHandle S_ImmediateEntitySound( const SoundEffect * sfx, int ent_num, float volume, ImmediateSoundHandle handle ) {
 	return StartImmediateSound( sfx, ent_num, volume, PlayingSoundType_Entity, handle );
+}
+
+ImmediateSoundHandle S_ImmediateFixedSound( const SoundEffect * sfx, Vec3 origin, float volume, ImmediateSoundHandle handle ) {
+	handle = StartImmediateSound( sfx, -1, volume, PlayingSoundType_Position, handle );
+	if( handle.x == 0 )
+		return handle;
+
+	u64 idx;
+	bool ok = immediate_sounds_hashtable.get( handle.x, &idx );
+	assert( ok );
+
+	PlayingSound * ps = &playing_sound_effects[ idx ];
+	ps->origin = origin;
+
+	return handle;
 }
 
 ImmediateSoundHandle S_ImmediateLineSound( const SoundEffect * sfx, Vec3 start, Vec3 end, float volume, ImmediateSoundHandle handle ) {

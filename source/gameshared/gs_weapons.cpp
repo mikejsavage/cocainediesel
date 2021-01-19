@@ -55,7 +55,7 @@ void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_
 	}
 }
 
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, Vec3 dir ) ) {
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * trace, Vec3 dir, void * data ), void * data ) {
 	Vec3 maxs = Vec3( 0.5f, 0.5f, 0.5f );
 
 	Vec3 dir;
@@ -66,7 +66,7 @@ void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec
 
 	gs->api.Trace( trace, origin, -maxs, maxs, end, ignore, MASK_SHOT, timeDelta );
 	if( trace->ent != -1 && impact != NULL ) {
-		impact( trace, dir );
+		impact( trace, dir, data );
 	}
 }
 

@@ -51,7 +51,6 @@ enum {
 	LOCALEFFECT_BLOODTRAIL_LAST_DROP,
 	LOCALEFFECT_FLAGTRAIL_LAST_DROP,
 	LOCALEFFECT_LASERBEAM,
-	LOCALEFFECT_LASERBEAM_SMOKE_TRAIL,
 	LOCALEFFECT_EV_WEAPONBEAM,
 	MAX_LOCALEFFECTS = 64,
 };
@@ -90,7 +89,9 @@ struct centity_t {
 	Vec3 laserPoint;
 	Vec3 laserOriginOld;
 	Vec3 laserPointOld;
+	ImmediateSoundHandle lg_hum_sound;
 	ImmediateSoundHandle lg_beam_sound;
+	ImmediateSoundHandle lg_tip_sound;
 
 	bool linearProjectileCanDraw;
 	Vec3 linearProjectileViewerSource;

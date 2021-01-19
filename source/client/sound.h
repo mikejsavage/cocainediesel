@@ -26,6 +26,7 @@ void S_StartLocalSound( const SoundEffect * sfx, int channel, float volume );
 void S_StartLineSound( const SoundEffect * sfx, Vec3 start, Vec3 end, int channel, float volume );
 
 ImmediateSoundHandle S_ImmediateEntitySound( const SoundEffect * sfx, int ent_num, float volume, ImmediateSoundHandle handle );
+ImmediateSoundHandle S_ImmediateFixedSound( const SoundEffect * sfx, Vec3 pos, float volume, ImmediateSoundHandle handle );
 ImmediateSoundHandle S_ImmediateLineSound( const SoundEffect * sfx, Vec3 start, Vec3 end, float volume, ImmediateSoundHandle handle );
 
 void S_StopAllSounds( bool stopMusic );

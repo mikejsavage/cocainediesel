@@ -45,14 +45,10 @@ constexpr RGB8 TEAM_COLORS[] = {
 
 enum {
 	LOCALEFFECT_VSAY_TIMEOUT,
-	LOCALEFFECT_ROCKETTRAIL_LAST_DROP,
-	LOCALEFFECT_ROCKETFIRE_LAST_DROP,
-	LOCALEFFECT_GRENADETRAIL_LAST_DROP,
-	LOCALEFFECT_BLOODTRAIL_LAST_DROP,
-	LOCALEFFECT_FLAGTRAIL_LAST_DROP,
 	LOCALEFFECT_LASERBEAM,
 	LOCALEFFECT_EV_WEAPONBEAM,
-	MAX_LOCALEFFECTS = 64,
+
+	LOCALEFFECT_COUNT
 };
 
 struct centity_t {
@@ -82,7 +78,7 @@ struct centity_t {
 	Vec3 trailOrigin;         // for particle trails
 
 	// local effects from events timers
-	int64_t localEffects[MAX_LOCALEFFECTS];
+	int64_t localEffects[LOCALEFFECT_COUNT];
 
 	// attached laser beam
 	Vec3 laserOrigin;

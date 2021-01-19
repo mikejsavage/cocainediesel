@@ -266,7 +266,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "SHOW_FPS", CG_GetCvar, "cg_showFPS" },
 	{ "SHOW_POINTED_PLAYER", CG_GetCvar, "cg_showPointedPlayer" },
 	{ "SHOW_SPEED", CG_GetCvar, "cg_showSpeed" },
-	{ "SHOW_AWARDS", CG_GetCvar, "cg_showAwards" },
 	{ "SHOW_HOTKEYS", CG_GetCvar, "cg_showHotkeys" },
 
 	{ "DOWNLOAD_IN_PROGRESS", CG_DownloadInProgress, NULL },
@@ -2342,10 +2341,6 @@ void CG_ClearAwards() {
 }
 
 static void CG_DrawAwards( int x, int y, Alignment alignment, float font_size, Vec4 color, bool border ) {
-	if( !cg_showAwards->integer ) {
-		return;
-	}
-
 	if( !cg.award_head ) {
 		return;
 	}

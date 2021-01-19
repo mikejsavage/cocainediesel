@@ -435,7 +435,6 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin );
 // cg_screen.c
 //
 extern cvar_t *cg_showFPS;
-extern cvar_t *cg_showAwards;
 
 void CG_ScreenInit( void );
 void CG_Draw2D( void );

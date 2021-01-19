@@ -490,6 +490,8 @@ static const asProperty_t match_Properties[] =
 	{ ASLIB_PROPERTY_DECL( uint8, betaScore ), offsetof( SyncGameState, bomb.beta_score ) },
 	{ ASLIB_PROPERTY_DECL( uint8, betaPlayersTotal ), offsetof( SyncGameState, bomb.beta_players_total ) },
 	{ ASLIB_PROPERTY_DECL( uint8, betaPlayersAlive ), offsetof( SyncGameState, bomb.beta_players_alive ) },
+	{ ASLIB_PROPERTY_DECL( bool, exploding ), offsetof( SyncGameState, bomb.exploding ) },
+	{ ASLIB_PROPERTY_DECL( int64, explodedAt ), offsetof( SyncGameState, bomb.exploded_at ) },
 	ASLIB_PROPERTY_NULL
 };
 

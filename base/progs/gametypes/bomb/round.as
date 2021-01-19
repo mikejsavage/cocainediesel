@@ -3,17 +3,10 @@ enum RoundState {
 	RoundState_Pre,
 	RoundState_Round,
 	RoundState_Finished,
-	RoundState_Post
+	RoundState_Post,
 }
 
-const uint RoundState_None = 0;
-const uint RoundState_Pre = 1;
-const uint RoundState_Round = 2;
-const uint RoundState_Finished = 3;
-const uint RoundState_Post = 4;
-
-//eRoundStates roundState = RoundState_None; FIXME enum
-uint roundState = RoundState_None;
+RoundState roundState = RoundState_None;
 
 bool roundCheckEndTime; // you can check if roundStateEndTime == 0 but roundStateEndTime can overflow
 int64 roundStartTime;    // roundStartTime because only spawn protection uses it
@@ -200,8 +193,7 @@ void setRoundType() {
 	}
 }
 
-//void roundNewState( eRoundStates state ) FIXME enum
-void roundNewState( uint state ) {
+void roundNewState( RoundState state ) {
 	if( state > RoundState_Post ) {
 		state = RoundState_Pre;
 	}
@@ -222,6 +214,8 @@ void roundNewState( uint state ) {
 
 			gametype.shootingDisabled = true;
 			gametype.removeInactivePlayers = false;
+
+			match.exploding = false;
 
 			was1vx = false;
 
@@ -327,8 +321,7 @@ void roundThink() {
 			}
 		}
 		else {
-			//roundNewState( eRoundStates( roundState + 1 ) ); FIXME enum
-			roundNewState( roundState + 1 );
+			roundNewState( RoundState( roundState + 1 ) );
 
 			return;
 		}

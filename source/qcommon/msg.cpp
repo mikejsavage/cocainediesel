@@ -696,6 +696,8 @@ static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGa
 	Delta( buf, bomb.alpha_players_total, baseline.alpha_players_total );
 	Delta( buf, bomb.beta_players_alive, baseline.beta_players_alive );
 	Delta( buf, bomb.beta_players_total, baseline.beta_players_total );
+	Delta( buf, bomb.exploding, baseline.exploding );
+	Delta( buf, bomb.exploded_at, baseline.exploded_at );
 }
 
 static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState & baseline ) {

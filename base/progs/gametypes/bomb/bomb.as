@@ -253,6 +253,9 @@ void bombExplode() {
 	bombState = BombState_Exploding;
 	@defuser = null;
 
+	match.exploding = true;
+	match.explodedAt = levelTime;
+
 	G_Sound( @bombModel, 0, sndComedy );
 }
 

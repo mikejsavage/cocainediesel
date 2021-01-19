@@ -796,6 +796,13 @@ static Vec4 CG_CalcColorBlend() {
 
 static void CG_SCRDrawViewBlend() {
 	Vec4 color = CG_CalcColorBlend();
+
+	float t = 0.0f;
+	if( client_gs.gameState.bomb.exploding ) {
+		t = Unlerp01( client_gs.gameState.bomb.exploded_at, cl.serverTime, client_gs.gameState.bomb.exploded_at + 2000 );
+	}
+	color = Lerp( color, t, vec4_black );
+
 	if( color.w < 0.01f ) {
 		return;
 	}

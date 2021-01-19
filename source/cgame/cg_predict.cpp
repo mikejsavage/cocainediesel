@@ -111,6 +111,7 @@ void CG_BuildSolidList( void ) {
 
 		switch( ent->type ) {
 			// the following entities can never be solid
+			case ET_GHOST:
 			case ET_ROCKET:
 			case ET_GRENADE:
 			case ET_PLASMA:

@@ -35,7 +35,7 @@ void mediaInit() {
 	sndFuseExtinguished = Hash64( "models/bomb/tss" );
 	sndComedy = Hash64( "sounds/vsay/comedy" );
 	sndBombTaken = Hash64( "sounds/announcer/bomb/offense/taken" );
-	sndAce = Hash64( "sounds/announcer/bomb/bongo" );
+	sndAce = Hash64( "sounds/announcer/bomb/ace" );
 
 	snd1v1 = Hash64( "sounds/announcer/bomb/1v1" );
 	snd1vx = Hash64( "sounds/announcer/bomb/1vx" );

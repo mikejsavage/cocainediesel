@@ -78,6 +78,7 @@ static ALCcontext * al_context;
 // so we don't crash when some other application is running in exclusive playback mode (WASAPI/JACK/etc)
 static bool initialized;
 
+cvar_t * s_device;
 static cvar_t * s_volume;
 static cvar_t * s_musicvolume;
 static cvar_t * s_muteinbackground;
@@ -204,10 +205,22 @@ static void CheckedALSourceStop( ALuint source ) {
 static bool S_InitAL() {
 	ZoneScoped;
 
-	al_device = alcOpenDevice( NULL );
+	al_device = NULL;
+
+	if( strcmp( s_device->string, "" ) != 0 ) {
+		al_device = alcOpenDevice( s_device->string );
+		if( al_device == NULL ) {
+			Com_Printf( S_COLOR_YELLOW "Failed to open sound device %s, trying default\n", s_device->string );
+		}
+	}
+
 	if( al_device == NULL ) {
-		Com_Printf( S_COLOR_RED "Failed to open device\n" );
-		return false;
+		al_device = alcOpenDevice( NULL );
+
+		if( al_device == NULL ) {
+			Com_Printf( S_COLOR_RED "Failed to open device\n" );
+			return false;
+		}
 	}
 
 	ALCint attrs[] = { ALC_HRTF_SOFT, ALC_HRTF_ENABLED_SOFT, 0 };
@@ -514,11 +527,16 @@ bool S_Init() {
 	num_sound_effects = 0;
 	num_playing_sound_effects = 0;
 	immediate_sounds_autoinc = 1;
+	sounds_hashtable.clear();
+	sound_effects_hashtable.clear();
+	immediate_sounds_hashtable.clear();
 	music_playing = false;
 	initialized = false;
 
 	memset( entities, 0, sizeof( entities ) );
 
+	s_device = Cvar_Get( "s_device", "", CVAR_ARCHIVE );
+	s_device->modified = false;
 	s_volume = Cvar_Get( "s_volume", "1", CVAR_ARCHIVE );
 	s_musicvolume = Cvar_Get( "s_musicvolume", "0.5", CVAR_ARCHIVE );
 	s_muteinbackground = Cvar_Get( "s_muteinbackground", "1", CVAR_ARCHIVE );
@@ -556,6 +574,10 @@ void S_Shutdown() {
 
 	alcDestroyContext( al_context );
 	alcCloseDevice( al_device );
+}
+
+const char * GetAudioDevicesAsSequentialStrings() {
+	return alcGetString( NULL, ALC_ALL_DEVICES_SPECIFIER );
 }
 
 static bool FindSound( StringHash name, Sound * sound ) {
@@ -658,6 +680,12 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 
 	if( !initialized )
 		return;
+
+	if( s_device->modified ) {
+		S_Shutdown();
+		S_Init();
+		s_device->modified = false;
+	}
 
 	HotloadSounds();
 	HotloadSoundEffects();

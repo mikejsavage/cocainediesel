@@ -517,7 +517,40 @@ static void SettingsVideo() {
 	CvarCheckbox( "Vsync", "vid_vsync", "0", CVAR_ARCHIVE );
 }
 
+static const char * CleanAudioDeviceName( const char * name ) {
+	const char * openal_prefix = "OpenAL Soft on ";
+	if( StartsWith( name, openal_prefix ) ) {
+		return name + strlen( openal_prefix );
+	}
+	return name;
+}
+
 static void SettingsAudio() {
+	SettingLabel( "Audio device" );
+	ImGui::PushItemWidth( 400 );
+
+	const char * current = strcmp( s_device->string, "" ) == 0 ? "Default" : s_device->string;
+	if( ImGui::BeginCombo( "##audio_device", CleanAudioDeviceName( current ) ) ) {
+		if( ImGui::Selectable( "Default", strcmp( s_device->string, "" ) == 0 ) ) {
+			Cvar_Set( "s_device", "" );
+		}
+
+		const char * device = GetAudioDevicesAsSequentialStrings();
+		while( strcmp( device, "" ) != 0 ) {
+			if( ImGui::Selectable( CleanAudioDeviceName( device ), strcmp( device, s_device->string ) == 0 ) ) {
+				Cvar_Set( "s_device", device );
+			}
+			device += strlen( device ) + 1;
+		}
+		ImGui::EndCombo();
+	}
+
+	if( ImGui::Button( "Test" ) ) {
+		S_StartLocalSound( FindSoundEffect( "sounds/announcer/bomb/ace" ), CHAN_AUTO, 1.0f );
+	}
+
+	ImGui::Separator();
+
 	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
 	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "0.5", CVAR_ARCHIVE );
 	CvarCheckbox( "Mute when alt-tabbed", "s_muteinbackground", "1", CVAR_ARCHIVE );

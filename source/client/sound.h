@@ -8,8 +8,12 @@ struct ImmediateSoundHandle {
 	u64 x;
 };
 
+extern cvar_t * s_device;
+
 bool S_Init();
 void S_Shutdown();
+
+const char * GetAudioDevicesAsSequentialStrings();
 
 const SoundEffect * FindSoundEffect( StringHash name );
 const SoundEffect * FindSoundEffect( const char * name );

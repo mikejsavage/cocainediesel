@@ -492,7 +492,10 @@ void GClip_LinkEntity( edict_t *ent ) {
 
 	// set the size
 	ent->r.size = ent->r.maxs - ent->r.mins;
-	ent->s.bounds = MinMax3( ent->r.mins, ent->r.maxs );
+
+	bool predicted_trigger = ent->r.solid == SOLID_TRIGGER && ( ent->s.type == ET_JUMPPAD || ent->s.type == ET_PAINKILLER_JUMPPAD );
+	bool transmit_bounds = ent->r.solid == SOLID_YES || predicted_trigger;
+	ent->s.bounds = transmit_bounds ? MinMax3( ent->r.mins, ent->r.maxs ) : MinMax3::Empty();
 
 	// set the abs box
 	if( CM_IsBrushModel( CM_Server, ent->s.model ) && ent->s.angles != Vec3( 0.0f ) ) {

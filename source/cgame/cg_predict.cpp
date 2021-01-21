@@ -105,9 +105,12 @@ void CG_BuildSolidList( void ) {
 
 	for( int i = 0; i < cg.frame.numEntities; i++ ) {
 		const SyncEntityState * ent = &cg.frame.parsedEntities[ i ];
-		if( ISEVENTENTITY( ent ) ) {
+
+		if( ISEVENTENTITY( ent ) )
 			continue;
-		}
+
+		if( ent->bounds.mins == MinMax3::Empty().mins && ent->bounds.maxs == MinMax3::Empty().maxs )
+			continue;
 
 		switch( ent->type ) {
 			// the following entities can never be solid

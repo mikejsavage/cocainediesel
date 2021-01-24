@@ -1057,6 +1057,7 @@ static const char * obituaries[] = {
 static const char * prefixes[] = {
 	"#",
 	"1080",
+	"2 FAST 2 ",
 	"360",
 	"420",
 	"666",

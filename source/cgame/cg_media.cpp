@@ -94,6 +94,7 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxVSaySounds[ Vsay_Mike ] = FindSoundEffect( "sounds/vsay/mike" );
 	cgs.media.sfxVSaySounds[ Vsay_User ] = FindSoundEffect( "sounds/vsay/user" );
 	cgs.media.sfxVSaySounds[ Vsay_Guyman ] = FindSoundEffect( "sounds/vsay/guyman" );
+	cgs.media.sfxVSaySounds[ Vsay_Helena ] = FindSoundEffect( "sounds/vsay/helena" );
 }
 
 void CG_RegisterMediaModels() {

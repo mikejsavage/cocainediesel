@@ -298,6 +298,7 @@ static void SettingsControls() {
 			KeyBindButton( "Mike pack", "vsay mike" );
 			KeyBindButton( "User pack", "vsay user" );
 			KeyBindButton( "Guyman pack", "vsay guyman" );
+			KeyBindButton( "Helena pack", "vsay helena" );
 
 			ImGui::BeginChild( "voice", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {

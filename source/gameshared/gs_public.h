@@ -569,6 +569,7 @@ enum {
 	Vsay_Mike,
 	Vsay_User,
 	Vsay_Guyman,
+	Vsay_Helena,
 
 	Vsay_Total
 };

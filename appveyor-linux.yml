@@ -11,5 +11,3 @@ build_script:
 artifacts:
 - path: release
   name: cocaine_diesel_linux
-- path: base
-  name: cocaine_diesel_base

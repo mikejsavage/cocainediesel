@@ -413,12 +413,7 @@ static void W_Touch_Grenade( edict_t *ent, edict_t *other, cplane_t *plane, int 
 }
 
 static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, bool aim_up ) {
-	Vec3 new_angles = angles;
-	if( aim_up ) {
-		new_angles.x -= 5.0f * cosf( Radians( new_angles.x ) ); // aim some degrees upwards from view dir
-	}
-
-	edict_t * grenade = FireProjectile( self, start, new_angles, timeDelta, GS_GetWeaponDef( Weapon_GrenadeLauncher ), W_Touch_Grenade, ET_GRENADE, MASK_SHOT );
+	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, GS_GetWeaponDef( Weapon_GrenadeLauncher ), W_Touch_Grenade, ET_GRENADE, MASK_SHOT );
 
 	grenade->classname = "grenade";
 	grenade->movetype = MOVETYPE_BOUNCEGRENADE;

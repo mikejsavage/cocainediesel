@@ -45,10 +45,6 @@ typedef struct filehandle_s {
 	gzFile gzstream;
 	int gzlevel;
 
-	void *mapping;
-	size_t mapping_size;
-	size_t mapping_offset;
-
 	struct filehandle_s *prev, *next;
 } filehandle_t;
 

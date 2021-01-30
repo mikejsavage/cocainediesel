@@ -38,7 +38,6 @@ Cvar cvarRoundTime( "g_bomb_roundtime", "61", CVAR_ARCHIVE ); //So round starts 
 Cvar cvarExplodeTime( "g_bomb_bombtimer", "30", CVAR_ARCHIVE );
 Cvar cvarArmTime( "g_bomb_armtime", "1", CVAR_ARCHIVE );
 Cvar cvarDefuseTime( "g_bomb_defusetime", "4", CVAR_ARCHIVE );
-Cvar cvarSpawnProtection( "g_bomb_spawnprotection", "3", CVAR_ARCHIVE );
 
 // read from this later
 Cvar cvarScoreLimit( "g_scorelimit", "10", CVAR_ARCHIVE );

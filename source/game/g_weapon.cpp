@@ -25,7 +25,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PLASMAHACK // ffs : hack for the plasmagun
 
 static bool CanHit( const edict_t * projectile, const edict_t * target ) {
-	return target == world || target != projectile->r.owner;
+	if( target == world )
+		return true;
+	if( target == projectile->r.owner )
+		return false;
+
+	constexpr s64 projectile_ignore_teammates_time = 50;
+	if( projectile->s.team != TEAM_PLAYERS && projectile->s.team == target->s.team && level.time - projectile->timeStamp < projectile_ignore_teammates_time )
+		return false;
+
+	return true;
 }
 
 static void W_Explode_Plasma( edict_t *ent, edict_t *other, cplane_t *plane ) {

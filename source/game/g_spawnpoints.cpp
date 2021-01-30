@@ -38,124 +38,6 @@ static edict_t *G_FindPostMatchCamera( void ) {
 	return G_Find( NULL, FOFS( classname ), "info_player_intermission" );
 }
 
-/*
-* G_OffsetSpawnPoint - use a grid of player boxes to offset the spawn point
-*/
-bool G_OffsetSpawnPoint( Vec3 * origin, Vec3 box_mins, Vec3 box_maxs, float radius, bool checkground ) {
-	trace_t trace;
-	Vec3 virtualorigin;
-	Vec3 absmins, absmaxs;
-	float playerbox_rowwidth;
-	float playerbox_columnwidth;
-	int rows, columns;
-	int i, j;
-	int mask_spawn = MASK_PLAYERSOLID | ( CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_TELEPORTER | CONTENTS_JUMPPAD | CONTENTS_BODY | CONTENTS_NODROP );
-	int playersFound = 0, worldfound = 0, nofloorfound = 0, badclusterfound = 0;
-
-	// check box clusters
-	int cluster;
-	int num_leafs;
-	int leafs[8];
-
-	if( radius <= box_maxs.x - box_mins.x ) {
-		return true;
-	}
-
-	if( checkground ) { // drop the point to ground (scripts can accept any entity now)
-		virtualorigin = *origin;
-		virtualorigin.z -= 1024;
-
-		G_Trace( &trace, *origin, box_mins, box_maxs, virtualorigin, NULL, MASK_PLAYERSOLID );
-		if( trace.fraction == 1.0f ) {
-			checkground = false;
-		} else if( trace.endpos.z + 8.0f < origin->z ) {
-			*origin = trace.endpos;
-			origin->z += 8.0f;
-		}
-	}
-
-	playerbox_rowwidth = 2 + box_maxs.x - box_mins.x;
-	playerbox_columnwidth = 2 + box_maxs.y - box_mins.y;
-
-	rows = radius / playerbox_rowwidth;
-	columns = radius / playerbox_columnwidth;
-
-	// no, we won't just do a while, let's go safe and just check as many times as
-	// positions in the grid. If we didn't found a spawnpoint by then, we let it telefrag.
-	for( i = 0; i < ( rows * columns ); i++ ) {
-		int row = random_uniform( &svs.rng, -rows, rows + 1 );
-		int column = random_uniform( &svs.rng, -columns, columns + 1 );
-
-		virtualorigin = *origin + Vec3( row * playerbox_rowwidth, column * playerbox_columnwidth, 0.0f );
-
-		absmins = virtualorigin + box_mins;
-		absmaxs = virtualorigin + box_maxs;
-
-		absmaxs.x += 1;
-		absmaxs.y += 1;
-		absmins.x -= 1;
-		absmins.y -= 1;
-
-		//check if position is inside world
-
-		// check if valid cluster
-		cluster = -1; // fix a warning
-		num_leafs = CM_BoxLeafnums( svs.cms, absmins, absmaxs, leafs, 8, NULL );
-		for( j = 0; j < num_leafs; j++ ) {
-			cluster = CM_LeafCluster( svs.cms, leafs[j] );
-			if( cluster == -1 ) {
-				break;
-			}
-		}
-
-		if( cluster == -1 ) {
-			badclusterfound++;
-			continue;
-		}
-
-		// one more trace is needed, only checking if some part of the world is on the
-		// way from spawnpoint to the virtual position
-		CM_TransformedBoxTrace( CM_Server, svs.cms, &trace, *origin, virtualorigin, box_mins, box_maxs, NULL, MASK_PLAYERSOLID, Vec3( 0.0f ), Vec3( 0.0f ) );
-		if( trace.fraction != 1.0f ) {
-			continue;
-		}
-
-		// check if anything solid is on player's way
-
-		G_Trace( &trace, Vec3( 0.0f ), absmins, absmaxs, Vec3( 0.0f ), world, mask_spawn );
-		if( trace.startsolid || trace.allsolid || trace.ent != -1 ) {
-			if( trace.ent == 0 ) {
-				worldfound++;
-			} else if( trace.ent < server_gs.maxclients ) {
-				playersFound++;
-			}
-			continue;
-		}
-
-		// one more check before accepting this spawn: there's ground at our feet?
-		if( checkground ) { // if floating item flag is not set
-			Vec3 origin_from, origin_to;
-			origin_from = virtualorigin;
-			origin_from.z += box_mins.z + 1;
-			origin_to = origin_from;
-			origin_to.z -= 32;
-
-			// use point trace instead of box trace to avoid small glitches that can't support the player but will stop the trace
-			G_Trace( &trace, origin_from, Vec3( 0.0f ), Vec3( 0.0f ), origin_to, NULL, MASK_PLAYERSOLID );
-			if( trace.startsolid || trace.allsolid || trace.fraction == 1.0f ) { // full run means no ground
-				nofloorfound++;
-				continue;
-			}
-		}
-
-		*origin = virtualorigin;
-		return true;
-	}
-
-	//Com_Printf( "Warning: couldn't find a safe spawnpoint (blocked by players:%i world:%i nofloor:%i badcluster:%i)\n", playersFound, worldfound, nofloorfound, badclusterfound );
-	return false;
-}
-
 
 /*
 * SelectSpawnPoint
@@ -190,10 +72,14 @@ void SelectSpawnPoint( edict_t * ent, edict_t ** spawnpoint, Vec3 * origin, Vec3
 		}
 	}
 
-	// SPAWN TELEFRAGGING PROTECTION.
-	if( ent->r.solid == SOLID_YES && level.gametype.spawnpointRadius > playerbox_stand_maxs.x - playerbox_stand_mins.x ) {
-		G_OffsetSpawnPoint( origin, playerbox_stand_mins, playerbox_stand_maxs, level.gametype.spawnpointRadius, ( spot->spawnflags & 1 ) == 0 );
-	}
+	// drop to floor
+	trace_t trace;
+	Vec3 start = *origin + Vec3( 0.0f, 0.0f, 16.0f );
+	Vec3 end = *origin - Vec3( 0.0f, 0.0f, 512.0f );
+
+	G_Trace( &trace, start, playerbox_stand_mins, playerbox_stand_maxs, end, ent, MASK_PLAYERSOLID );
+
+	*origin = trace.endpos + trace.plane.normal;
 }
 
 //==================================================

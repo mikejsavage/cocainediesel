@@ -366,7 +366,6 @@ edict_t *G_PickTarget( const char *targetname );
 void G_UseTargets( edict_t *ent, edict_t *activator );
 void G_SetMovedir( Vec3 * angles, Vec3 * movedir );
 void G_InitMover( edict_t *ent );
-void G_DropSpawnpointToFloor( edict_t *ent );
 
 void G_InitEdict( edict_t *e );
 edict_t *G_Spawn( void );
@@ -938,7 +937,7 @@ struct edict_t {
 	asIScriptModule *asScriptModule;
 	asIScriptFunction *asSpawnFunc, *asThinkFunc, *asUseFunc, *asTouchFunc, *asPainFunc, *asDieFunc, *asStopFunc;
 
-	assistinfo_t recent_attackers[MAX_ASSIST_INFO]; 
+	assistinfo_t recent_attackers[MAX_ASSIST_INFO];
 };
 
 static inline int ENTNUM( const edict_t *x ) { return x - game.edicts; }

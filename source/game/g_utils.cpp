@@ -1178,34 +1178,6 @@ void G_CategorizePosition( edict_t *ent ) {
 }
 
 /*
-* G_DropSpawnpointToFloor
-*/
-void G_DropSpawnpointToFloor( edict_t *ent ) {
-	Vec3 start, end;
-	trace_t trace;
-
-	start = ent->s.origin;
-	start.z += 16;
-	end = ent->s.origin;
-	end.z -= 16000;
-
-	G_Trace( &trace, start, playerbox_stand_mins, playerbox_stand_maxs, end, ent, MASK_PLAYERSOLID );
-	if( trace.startsolid || trace.allsolid ) {
-		Com_GGPrint( "Warning: {} {} spawns inside solid. Inhibited", ent->classname, ent->s.origin );
-		G_FreeEdict( ent );
-		return;
-	}
-
-	if( ent->spawnflags & 1 ) { //  floating items flag, we test that they are not inside solid too
-		return;
-	}
-
-	if( trace.fraction < 1.0f ) {
-		ent->s.origin = trace.endpos + trace.plane.normal;
-	}
-}
-
-/*
 * G_SetBoundsForSpanEntity
 *
 * Set origin and origin2 and then call this before linkEntity

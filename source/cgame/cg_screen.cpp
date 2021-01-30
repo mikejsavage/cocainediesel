@@ -231,7 +231,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		if( cent->current.team == TEAM_SPECTATOR ) {
+		if( cent->current.type != ET_PLAYER ) {
 			continue;
 		}
 

@@ -412,7 +412,7 @@ static void W_Touch_Grenade( edict_t *ent, edict_t *other, cplane_t *plane, int 
 	W_Grenade_ExplodeDir( ent, plane ? plane->normal : Vec3( 0.0f ) );
 }
 
-static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, bool aim_up ) {
+static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, GS_GetWeaponDef( Weapon_GrenadeLauncher ), W_Touch_Grenade, ET_GRENADE, MASK_SHOT );
 
 	grenade->classname = "grenade";
@@ -749,7 +749,7 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 			break;
 
 		case Weapon_GrenadeLauncher:
-			W_Fire_Grenade( ent, origin, angles, timeDelta, true );
+			W_Fire_Grenade( ent, origin, angles, timeDelta );
 			break;
 
 		case Weapon_RocketLauncher:

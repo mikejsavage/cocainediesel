@@ -283,7 +283,7 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 	if( def->pierce ) {
 		Vec3 end = start + dir * def->range;
 		Vec3 from = start;
-		
+
 		edict_t * ignore = self;
 
 		trace_t tr;
@@ -574,59 +574,39 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	}
 }
 
-static void G_HideLaser( edict_t *ent ) {
-	ent->r.svflags = SVF_NOCLIENT;
-
-	// give it 100 msecs before freeing itself, so we can relink it if we start firing again
-	ent->think = G_FreeEdict;
-	ent->nextThink = level.time + 100;
-}
-
-static void G_Laser_Think( edict_t *ent ) {
-	edict_t *owner;
-
-	if( ent->s.ownerNum < 1 || ent->s.ownerNum > server_gs.maxclients ) {
-		G_FreeEdict( ent );
-		return;
-	}
-
-	owner = &game.edicts[ent->s.ownerNum];
+static void G_Laser_Think( edict_t * ent ) {
+	edict_t * owner = &game.edicts[ent->s.ownerNum];
 
 	if( G_ISGHOSTING( owner ) || owner->s.weapon != Weapon_Laser ||
 		PF_GetClientState( PLAYERNUM( owner ) ) < CS_SPAWNED ||
 		owner->r.client->ps.weapon_state != WeaponState_Firing ) {
-		G_HideLaser( ent );
+		G_FreeEdict( ent );
 		return;
 	}
 
 	ent->nextThink = level.time + 1;
 }
 
-static float laser_damage;
-static int laser_knockback;
-static int laser_attackerNum;
+struct LaserBeamTraceData {
+	float damage;
+	int knockback;
+	int attacker;
+};
 
-static void _LaserImpact( const trace_t *trace, Vec3 dir, void * data ) {
-	edict_t *attacker;
+static void LaserImpact( const trace_t * trace, Vec3 dir, void * data ) {
+	LaserBeamTraceData * beam = ( LaserBeamTraceData * ) data;
 
-	if( !trace || trace->ent <= 0 ) {
-		return;
-	}
-	if( trace->ent == laser_attackerNum ) {
+	if( trace->ent == beam->attacker ) {
 		return; // should not be possible theoretically but happened at least once in practice
-
 	}
-	attacker = &game.edicts[laser_attackerNum];
 
-	if( game.edicts[trace->ent].takedamage ) {
-		G_Damage( &game.edicts[trace->ent], attacker, attacker, dir, dir, trace->endpos, laser_damage, laser_knockback, DAMAGE_KNOCKBACK_SOFT, MeanOfDeath_Lasergun );
-	}
+	edict_t * attacker = &game.edicts[ beam->attacker ];
+	G_Damage( &game.edicts[ trace->ent ], attacker, attacker, dir, dir, trace->endpos, beam->damage, beam->knockback, DAMAGE_KNOCKBACK_SOFT, MeanOfDeath_Lasergun );
 }
 
-static edict_t *FindOrSpawnLaser( edict_t * owner ) {
-	// first of all, see if we already have a beam entity for this laser
-	edict_t * laser = NULL;
+static edict_t * FindOrSpawnLaser( edict_t * owner ) {
 	int ownerNum = ENTNUM( owner );
+
 	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
 		edict_t * e = &game.edicts[i];
 		if( !e->r.inuse ) {
@@ -634,21 +614,16 @@ static edict_t *FindOrSpawnLaser( edict_t * owner ) {
 		}
 
 		if( e->s.ownerNum == ownerNum && e->s.type == ET_LASERBEAM ) {
-			laser = e;
-			break;
+			return e;
 		}
 	}
 
-	// if no ent was found we have to create one
-	if( !laser ) {
-		laser = G_Spawn();
-		laser->s.type = ET_LASERBEAM;
-		laser->s.ownerNum = ownerNum;
-		laser->movetype = MOVETYPE_NONE;
-		laser->r.solid = SOLID_NOT;
-		laser->r.svflags &= ~SVF_NOCLIENT;
-	}
-
+	edict_t * laser = G_Spawn();
+	laser->s.type = ET_LASERBEAM;
+	laser->s.ownerNum = ownerNum;
+	laser->movetype = MOVETYPE_NONE;
+	laser->r.solid = SOLID_NOT;
+	laser->r.svflags &= ~SVF_NOCLIENT;
 	return laser;
 }
 
@@ -657,12 +632,13 @@ static void W_Fire_Lasergun( edict_t * self, Vec3 start, Vec3 angles, int timeDe
 
 	edict_t * laser = FindOrSpawnLaser( self );
 
-	laser_damage = def->damage;
-	laser_knockback = def->knockback;
-	laser_attackerNum = ENTNUM( self );
+	LaserBeamTraceData data;
+	data.damage = def->damage;
+	data.knockback = def->knockback;
+	data.attacker = ENTNUM( self );
 
 	trace_t tr;
-	GS_TraceLaserBeam( &server_gs, &tr, start, angles, def->range, ENTNUM( self ), timeDelta, _LaserImpact, NULL );
+	GS_TraceLaserBeam( &server_gs, &tr, start, angles, def->range, ENTNUM( self ), timeDelta, LaserImpact, &data );
 
 	laser->r.svflags |= SVF_FORCEOWNER;
 
@@ -672,7 +648,7 @@ static void W_Fire_Lasergun( edict_t * self, Vec3 start, Vec3 angles, int timeDe
 	laser->s.origin2 = laser->s.origin + dir * def->range;
 
 	laser->think = G_Laser_Think;
-	laser->nextThink = level.time + 100;
+	laser->nextThink = level.time + 1;
 
 	// calculate laser's mins and maxs for linkEntity
 	G_SetBoundsForSpanEntity( laser, 8 );

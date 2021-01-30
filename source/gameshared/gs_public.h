@@ -647,6 +647,8 @@ enum EventType {
 	EV_DAMAGE,
 	EV_HEADSHOT,
 
+	EV_VFX,
+
 	MAX_EVENTS = 128
 };
 

@@ -1320,7 +1320,7 @@ static const asProperty_t gedict_Properties[] =
 static const asClassDescriptor_t asGameEntityClassDescriptor =
 {
 	"Entity",                   /* name */
-	asOBJ_REF | asOBJ_NOCOUNT,    /* object type flags */
+	asOBJ_REF | asOBJ_NOCOUNT,  /* object type flags */
 	sizeof( edict_t ),          /* size */
 	gedict_Funcdefs,            /* funcdefs */
 	gedict_ObjectBehaviors,     /* object behaviors */
@@ -1535,6 +1535,10 @@ static void asFunc_G_Sound( edict_t *owner, int channel, u64 sound ) {
 	G_Sound( owner, channel, StringHash( sound ) );
 }
 
+static void asFunc_G_VFX( Vec3 pos, u64 vfx ) {
+	G_SpawnEvent( EV_VFX, vfx, &pos );
+}
+
 static int asFunc_DirToByte( asvec3_t *vec ) {
 	if( !vec ) {
 		return 0;
@@ -1727,6 +1731,7 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_GlobalSound( int channel, uint64 sound )", asFUNCTION( asFunc_G_GlobalSound ), NULL },
 	{ "void G_LocalSound( Client @, int channel, uint64 sound )", asFUNCTION( asFunc_G_LocalSound ), NULL },
 	{ "void G_AnnouncerSound( Client @, uint64 sound, int team, bool queued, Client @ )", asFUNCTION( asFunc_G_AnnouncerSound ), NULL },
+	{ "void G_VFX( const Vec3 &in, uint64 vfx )", asFUNCTION( asFunc_G_VFX ), NULL },
 	{ "int G_DirToByte( const Vec3 &in origin )", asFUNCTION( asFunc_DirToByte ), NULL },
 	{ "int G_PointContents( const Vec3 &in origin )", asFUNCTION( asFunc_PointContents ), NULL },
 	{ "void G_CmdExecute( const String & )", asFUNCTION( asFunc_Cbuf_ExecuteText ), NULL },

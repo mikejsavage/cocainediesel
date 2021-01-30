@@ -216,7 +216,7 @@ bool GENERIC_LookAtEntity( Vec3 &in origin, Vec3 &in angles, Entity @lookTarget,
 	return visible;
 }
 
-Entity @GENERIC_SelectBestRandomSpawnPoint( Entity @self, String &className )
+Entity @RandomEntity( String &className )
 {
 	array<Entity @> @spawnents = G_FindByClassname( className );
 	if( spawnents.size() == 0 )

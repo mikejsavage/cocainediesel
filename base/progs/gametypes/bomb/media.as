@@ -6,10 +6,13 @@ uint64 sndFuseExtinguished;
 uint64 sndComedy;
 uint64 sndBombTaken;
 uint64 sndAce;
+uint64 sndBombRespawn;
 
 uint64 snd1v1;
 uint64 snd1vx;
 uint64 sndxv1;
+
+uint64 vfxBombRespawn;
 
 enum Announcement {
 	Announcement_RoundStarted,
@@ -36,10 +39,13 @@ void mediaInit() {
 	sndComedy = Hash64( "sounds/vsay/comedy" );
 	sndBombTaken = Hash64( "sounds/announcer/bomb/offense/taken" );
 	sndAce = Hash64( "sounds/announcer/bomb/ace" );
+	sndBombRespawn = Hash64( "models/bomb/respawn" );
 
 	snd1v1 = Hash64( "sounds/announcer/bomb/1v1" );
 	snd1vx = Hash64( "sounds/announcer/bomb/1vx" );
 	sndxv1 = Hash64( "sounds/announcer/bomb/xv1" );
+
+	vfxBombRespawn = Hash64( "models/bomb/respawn" );
 
 	sndAnnouncementsOff[ Announcement_RoundStarted ] = Hash64( "sounds/announcer/bomb/offense/start" );
 	sndAnnouncementsOff[ Announcement_Planted ] = Hash64( "sounds/announcer/bomb/offense/planted" );

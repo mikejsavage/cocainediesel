@@ -107,21 +107,21 @@ void spawn_gladiator( Entity @ent ) { }
 
 Entity @GT_SelectSpawnPoint( Entity @self ) {
 	// loading individual gladiator arenas loads bomb gt, so prioritise gladi spawns
-	Entity @gladi_spawn = GENERIC_SelectBestRandomSpawnPoint( @self, "spawn_gladiator" );
+	Entity @gladi_spawn = RandomEntity( "spawn_gladiator" );
 	if( @gladi_spawn != null )
 		return gladi_spawn;
 
 	if( self.team == attackingTeam ) {
-		Entity @spawn = GENERIC_SelectBestRandomSpawnPoint( @self, "spawn_bomb_attacking" );
+		Entity @spawn = RandomEntity( "spawn_bomb_attacking" );
 		if( @spawn != null )
 			return spawn;
-		return GENERIC_SelectBestRandomSpawnPoint( @self, "team_CTF_betaspawn" );
+		return RandomEntity( "team_CTF_betaspawn" );
 	}
 
-	Entity @spawn = GENERIC_SelectBestRandomSpawnPoint( @self, "spawn_bomb_defending" );
+	Entity @spawn = RandomEntity( "spawn_bomb_defending" );
 	if( @spawn != null )
 		return spawn;
-	return GENERIC_SelectBestRandomSpawnPoint( @self, "team_CTF_alphaspawn" );
+	return RandomEntity( "team_CTF_alphaspawn" );
 }
 
 String @teamScoreboardMessage( int t ) {

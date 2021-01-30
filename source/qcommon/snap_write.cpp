@@ -467,6 +467,13 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 		return true;
 	}
 
+	if( ( ent->r.svflags & SVF_OWNERANDCHASERS ) && clent ) {
+		bool self = ent->s.ownerNum == clent->s.number;
+		bool spec = ent->s.ownerNum == clent->r.client->resp.chase.target;
+		if( !self && !spec )
+			return true;
+	}
+
 	if( ( ent->r.svflags & SVF_NEVEROWNER ) && ( clent && ent->s.ownerNum == clent->s.number ) ) {
 		return true;
 	}

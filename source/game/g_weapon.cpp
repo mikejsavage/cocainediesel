@@ -373,7 +373,7 @@ static void W_Fire_Shotgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 			continue;
 		edict_t * target = &game.edicts[ i ];
 		edict_t * ev = G_SpawnEvent( EV_DAMAGE, HEALTH_TO_INT( damage_dealt[ i ] ) << 1, &target->s.origin );
-		ev->r.svflags |= SVF_ONLYOWNER;
+		ev->r.svflags |= SVF_OWNERANDCHASERS;
 		ev->s.ownerNum = ENTNUM( self );
 	}
 }

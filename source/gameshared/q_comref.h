@@ -124,8 +124,9 @@ constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "ghdigital
 #define SVF_ONLYTEAM            0x00000200      // this entity is only transmited to clients with the same ent->s.team value
 #define SVF_FORCEOWNER          0x00000400      // this entity forces the entity at s.ownerNum to be included in the snapshot
 #define SVF_ONLYOWNER           0x00000800      // this entity is only transmitted to its owner
-#define SVF_FORCETEAM           0x00001000      // this entity is always transmitted to clients with the same ent->s.team value
-#define SVF_NEVEROWNER          0x00002000      // this entity is tramitted to everyone but its owner
+#define SVF_OWNERANDCHASERS     0x00001000      // this entity is only transmitted to its owner and people spectating them
+#define SVF_FORCETEAM           0x00002000      // this entity is always transmitted to clients with the same ent->s.team value
+#define SVF_NEVEROWNER          0x00004000      // this entity is tramitted to everyone but its owner
 
 // edict->solid values
 enum solid_t {

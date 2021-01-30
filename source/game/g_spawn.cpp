@@ -57,7 +57,6 @@ static const EntityField fields[] = {
 	{ "pathtarget", FOFS( pathtarget ), F_LSTRING },
 	{ "killtarget", FOFS( killtarget ), F_LSTRING },
 	{ "message", FOFS( message ), F_LSTRING },
-	{ "team", FOFS( team ), F_LSTRING },
 	{ "wait", FOFS( wait ), F_FLOAT },
 	{ "delay", FOFS( delay ), F_FLOAT },
 	{ "style", FOFS( style ), F_INT },
@@ -91,9 +90,6 @@ struct spawn_t {
 static void SP_worldspawn( edict_t *ent );
 
 static spawn_t spawns[] = {
-	{ "info_player_start", SP_info_player_start },
-	{ "info_player_deathmatch", SP_info_player_deathmatch },
-
 	{ "post_match_camera", SP_post_match_camera },
 
 	{ "func_plat", SP_func_plat },

@@ -268,8 +268,6 @@ void G_SpawnQueue_RemoveClient( edict_t *ent );
 void G_SpawnQueue_Think( void );
 
 void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, Vec3 * origin, Vec3 * angles );
-void SP_info_player_start( edict_t *ent );
-void SP_info_player_deathmatch( edict_t *ent );
 void SP_post_match_camera( edict_t *ent );
 
 //
@@ -869,7 +867,6 @@ struct edict_t {
 	const char *target;
 	const char *targetname;
 	const char *killtarget;
-	const char *team;
 	const char *pathtarget;
 	edict_t *target_ent;
 

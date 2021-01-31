@@ -197,7 +197,7 @@ bool Info_Validate( const char *s );
 //
 // per-level limits
 //
-#define MAX_CLIENTS                 256         // absolute limit
+#define MAX_CLIENTS                 16
 #define MAX_EDICTS                  1024        // must change protocol to increase more
 
 //============================================

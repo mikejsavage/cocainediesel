@@ -143,16 +143,16 @@ void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const Vec3
 void G_ClientDamageFeedback( edict_t *ent ) {
 	if( ent->r.client->resp.snap.damageTaken ) {
 		int damage = ent->r.client->resp.snap.damageTaken;
-		int byteDir = DirToByte( ent->r.client->resp.snap.damageTakenDir );
+		u64 parm = DirToU64( ent->r.client->resp.snap.damageTakenDir );
 
 		if( damage <= 10 ) {
-			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_10, byteDir );
+			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_10, parm );
 		} else if( damage <= 20 ) {
-			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_20, byteDir );
+			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_20, parm );
 		} else if( damage <= 30 ) {
-			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_30, byteDir );
+			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_30, parm );
 		} else {
-			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_40, byteDir );
+			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_40, parm );
 		}
 	}
 

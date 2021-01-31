@@ -512,7 +512,7 @@ void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
  * CG_Event_WallJump
  */
 void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
-	Vec3 normal = ByteToDir( parm );
+	Vec3 normal = U64ToDir( parm );
 
 	Vec3 forward, right;
 	AngleVectors( Vec3( state->angles.x, state->angles.y, 0 ), &forward, &right, NULL );
@@ -748,7 +748,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_SPARKS: {
-			// Vec3 dir = ByteToDir( parm );
+			// Vec3 dir = U64ToDir( parm );
 			// if( ent->damage > 0 ) {
 			// 	count = Clamp( 1, int( ent->damage * 0.25f ), 10 );
 			// } else {
@@ -759,7 +759,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		} break;
 
 		case EV_LASER_SPARKS: {
-			// Vec3 dir = ByteToDir( parm );
+			// Vec3 dir = U64ToDir( parm );
 			// CG_ParticleEffect2( ent->origin, dir,
 			// 					COLOR_R( ent->colorRGBA ) * ( 1.0 / 255.0 ),
 			// 					COLOR_G( ent->colorRGBA ) * ( 1.0 / 255.0 ),
@@ -788,7 +788,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_PLASMA_EXPLOSION: {
-			Vec3 dir = ByteToDir( parm );
+			Vec3 dir = U64ToDir( parm );
 			CG_PlasmaExplosion( ent->origin, dir, team_color );
 		} break;
 
@@ -797,7 +797,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_BOLT_EXPLOSION: {
-			Vec3 dir = ByteToDir( parm );
+			Vec3 dir = U64ToDir( parm );
 			CG_EBImpact( ent->origin, dir, 0, team_color );
 		} break;
 
@@ -805,7 +805,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			Vec3 dir;
 			if( parm ) {
 				// we have a direction
-				dir = ByteToDir( parm );
+				dir = U64ToDir( parm );
 				CG_GrenadeExplosion( ent->origin, dir, team_color );
 			}
 			else {
@@ -816,7 +816,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		} break;
 
 		case EV_ROCKET_EXPLOSION: {
-			Vec3 dir = ByteToDir( parm );
+			Vec3 dir = U64ToDir( parm );
 			CG_RocketExplosion( ent->origin, dir, team_color );
 
 		} break;
@@ -830,13 +830,13 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_RIFLEBULLET_IMPACT: {
-			Vec3 dir = ByteToDir( parm );
+			Vec3 dir = U64ToDir( parm );
 			DoVisualEffect( "vfx/bulletsparks", ent->origin, dir, 24, team_color );
 			S_StartFixedSound( cgs.media.sfxBulletImpact, ent->origin, CHAN_AUTO, 1.0f );
 		} break;
 
 		case EV_BLOOD: {
-			Vec3 dir = ByteToDir( parm );
+			Vec3 dir = U64ToDir( parm );
 			Vec3 tangent, bitangent;
 			OrthonormalBasis( dir, &tangent, &bitangent );
 
@@ -961,8 +961,6 @@ static void CG_FireEntityEvents( bool early ) {
  * This events are only received by this client, and only affect it.
  */
 static void CG_FirePlayerStateEvents( void ) {
-	Vec3 dir;
-
 	if( cg.view.POVent != ( int ) cg.frame.playerState.POVnum ) {
 		return;
 	}
@@ -982,25 +980,25 @@ static void CG_FirePlayerStateEvents( void ) {
 				}
 				break;
 
-			case PSEV_DAMAGE_10:
-				dir = ByteToDir( parm );
+			case PSEV_DAMAGE_10: {
+				Vec3 dir = U64ToDir( parm );
 				AddDamageEffect( 0.1f );
-				break;
+			} break;
 
-			case PSEV_DAMAGE_20:
-				dir = ByteToDir( parm );
+			case PSEV_DAMAGE_20: {
+				Vec3 dir = U64ToDir( parm );
 				AddDamageEffect( 0.2f );
-				break;
+			} break;
 
-			case PSEV_DAMAGE_30:
-				dir = ByteToDir( parm );
+			case PSEV_DAMAGE_30: {
+				Vec3 dir = U64ToDir( parm );
 				AddDamageEffect( 0.3f );
-				break;
+			} break;
 
-			case PSEV_DAMAGE_40:
-				dir = ByteToDir( parm );
+			case PSEV_DAMAGE_40: {
+				Vec3 dir = U64ToDir( parm );
 				AddDamageEffect( 0.4f );
-				break;
+			} break;
 
 			case PSEV_ANNOUNCER:
 				CG_AddAnnouncerEvent( FindSoundEffect( StringHash( parm ) ), false );

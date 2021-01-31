@@ -244,7 +244,7 @@ static void G_SnapEntities() {
 				Vec3 dir = SafeNormalize( ent->snap.damage_dir );
 				Vec3 origin = ent->s.origin + ent->snap.damage_at;
 
-				edict_t * event = G_SpawnEvent( EV_BLOOD, DirToByte( dir ), &origin );
+				edict_t * event = G_SpawnEvent( EV_BLOOD, DirToU64( dir ), &origin );
 				event->s.radius = HEALTH_TO_INT( damage );
 				event->s.ownerNum = ent->s.number;
 				event->s.team = ent->s.team;

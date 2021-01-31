@@ -1539,14 +1539,6 @@ static void asFunc_G_VFX( Vec3 pos, u64 vfx ) {
 	G_SpawnEvent( EV_VFX, vfx, &pos );
 }
 
-static int asFunc_DirToByte( asvec3_t *vec ) {
-	if( !vec ) {
-		return 0;
-	}
-
-	return DirToByte( vec->v );
-}
-
 static int asFunc_PointContents( asvec3_t *vec ) {
 	if( !vec ) {
 		return 0;
@@ -1732,7 +1724,6 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_LocalSound( Client @, int channel, uint64 sound )", asFUNCTION( asFunc_G_LocalSound ), NULL },
 	{ "void G_AnnouncerSound( Client @, uint64 sound, int team, bool queued, Client @ )", asFUNCTION( asFunc_G_AnnouncerSound ), NULL },
 	{ "void G_VFX( const Vec3 &in, uint64 vfx )", asFUNCTION( asFunc_G_VFX ), NULL },
-	{ "int G_DirToByte( const Vec3 &in origin )", asFUNCTION( asFunc_DirToByte ), NULL },
 	{ "int G_PointContents( const Vec3 &in origin )", asFUNCTION( asFunc_PointContents ), NULL },
 	{ "void G_CmdExecute( const String & )", asFUNCTION( asFunc_Cbuf_ExecuteText ), NULL },
 

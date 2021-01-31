@@ -883,7 +883,7 @@ void G_PredictedFireWeapon( int entNum, WeaponType weapon ) {
 
 	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, weapon, &start );
 	event->s.ownerNum = entNum;
-	event->s.origin2 = ent->r.client->ps.viewangles; // DirToByte is too inaccurate
+	event->s.origin2 = ent->r.client->ps.viewangles;
 	event->s.team = ent->s.team;
 }
 

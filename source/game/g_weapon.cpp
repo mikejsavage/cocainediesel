@@ -46,7 +46,7 @@ static void W_Explode_Plasma( edict_t *ent, edict_t *other, cplane_t *plane ) {
 
 	G_RadiusDamage( ent, ent->r.owner, plane, other, ent->s.type == ET_PLASMA ? MeanOfDeath_Plasma : MeanOfDeath_BubbleGun );
 
-	edict_t * event = G_SpawnEvent( ent->s.type == ET_PLASMA ? EV_PLASMA_EXPLOSION : EV_BUBBLE_EXPLOSION, DirToByte( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
+	edict_t * event = G_SpawnEvent( ent->s.type == ET_PLASMA ? EV_PLASMA_EXPLOSION : EV_BUBBLE_EXPLOSION, DirToU64( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
 	event->s.weapon = Min2( ent->projectileInfo.radius / 8, 127 );
 	event->s.team = ent->s.team;
 
@@ -384,7 +384,7 @@ static void W_Grenade_ExplodeDir( edict_t *ent, Vec3 normal ) {
 	G_RadiusDamage( ent, ent->r.owner, NULL, ent->enemy, MeanOfDeath_GrenadeLauncher );
 
 	int radius = ( ( ent->projectileInfo.radius * 1 / 8 ) > 127 ) ? 127 : ( ent->projectileInfo.radius * 1 / 8 );
-	edict_t * event = G_SpawnEvent( EV_GRENADE_EXPLOSION, DirToByte( dir ), &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_GRENADE_EXPLOSION, DirToU64( dir ), &ent->s.origin );
 	event->s.weapon = radius;
 	event->s.team = ent->s.team;
 
@@ -450,7 +450,7 @@ static void W_Touch_Rocket( edict_t *ent, edict_t *other, cplane_t *plane, int s
 
 	G_RadiusDamage( ent, ent->r.owner, plane, other, MeanOfDeath_RocketLauncher );
 
-	edict_t * event = G_SpawnEvent( EV_ROCKET_EXPLOSION, DirToByte( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_ROCKET_EXPLOSION, DirToU64( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
 	event->s.weapon = Min2( ent->projectileInfo.radius / 8, 255 );
 	event->s.team = ent->s.team;
 
@@ -559,7 +559,7 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 
 
 			// spawn a impact event on each damaged ent
-			edict_t * event = G_SpawnEvent( EV_BOLT_EXPLOSION, DirToByte( tr.plane.normal ), &tr.endpos );
+			edict_t * event = G_SpawnEvent( EV_BOLT_EXPLOSION, DirToU64( tr.plane.normal ), &tr.endpos );
 			event->s.team = self->s.team;
 
 			// if we hit a teammate stop the trace
@@ -666,7 +666,7 @@ static void W_Touch_RifleBullet( edict_t *ent, edict_t *other, cplane_t *plane, 
 		return;
 	}
 
-	edict_t * event = G_SpawnEvent( EV_RIFLEBULLET_IMPACT, DirToByte( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_RIFLEBULLET_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
 	event->s.team = ent->s.team;
 
 	if( other->takedamage && ent->enemy != other ) {

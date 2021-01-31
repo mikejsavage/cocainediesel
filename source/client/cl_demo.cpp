@@ -247,11 +247,7 @@ static void CL_ReadDemoMessage( void ) {
 
 	read = SNAP_ReadDemoMessage( demofilehandle, &demomsg );
 	if( read == -1 ) {
-		if( cls.demo.pause_on_stop ) {
-			cls.demo.paused = true;
-		} else {
-			CL_Disconnect( NULL );
-		}
+		CL_Disconnect( NULL );
 		return;
 	}
 
@@ -310,7 +306,7 @@ void CL_LatchedDemoJump( void ) {
 /*
 * CL_StartDemo
 */
-static void CL_StartDemo( const char *demoname, bool pause_on_stop ) {
+static void CL_StartDemo( const char *demoname, bool yolo ) {
 	size_t name_size;
 	char *name, *servername;
 	const char *filename = NULL;
@@ -367,11 +363,11 @@ static void CL_StartDemo( const char *demoname, bool pause_on_stop ) {
 	cls.demo.playing = true;
 	cls.demo.basetime = cls.demo.duration = cls.demo.time = 0;
 
-	cls.demo.pause_on_stop = pause_on_stop;
 	cls.demo.play_ignore_next_frametime = false;
 	cls.demo.play_jump = false;
 	cls.demo.filename = ZoneCopyString( name );
 	cls.demo.name = ZoneCopyString( servername );
+	cls.demo.yolo = yolo;
 
 	CL_PauseDemo( false );
 
@@ -393,10 +389,18 @@ const char **CL_DemoComplete( const char *partial ) {
 */
 void CL_PlayDemo_f( void ) {
 	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "demo <demoname> [pause_on_stop]\n" );
+		Com_Printf( "demo <demoname>\n" );
 		return;
 	}
-	CL_StartDemo( Cmd_Argv( 1 ), atoi( Cmd_Argv( 2 ) ) != 0 );
+	CL_StartDemo( Cmd_Argv( 1 ), false );
+}
+
+void CL_YoloDemo_f( void ) {
+	if( Cmd_Argc() < 2 ) {
+		Com_Printf( "demo <demoname>\n" );
+		return;
+	}
+	CL_StartDemo( Cmd_Argv( 1 ), true );
 }
 
 /*

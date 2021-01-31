@@ -119,10 +119,10 @@ struct cl_demo_t {
 	int64_t play_jump_time;
 	bool play_ignore_next_frametime;
 
-	bool pause_on_stop;
-
 	char meta_data[SNAP_MAX_DEMO_META_DATA_SIZE];
 	size_t meta_data_realsize;
+
+	bool yolo;
 };
 
 struct client_static_t {
@@ -305,6 +305,7 @@ void CL_WriteUcmdsToMessage( msg_t *msg );
 void CL_WriteDemoMessage( msg_t *msg );
 void CL_DemoCompleted( void );
 void CL_PlayDemo_f( void );
+void CL_YoloDemo_f( void );
 void CL_ReadDemoPackets( void );
 void CL_LatchedDemoJump( void );
 void CL_Stop_f( void );

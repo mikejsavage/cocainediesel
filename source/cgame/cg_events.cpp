@@ -894,7 +894,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_TRAIN_STOP:
 		case EV_TRAIN_START: {
 			Vec3 so;
-			CG_GetEntitySpatilization( ent->number, &so, NULL );
+			CG_GetEntitySpatialization( ent->number, &so, NULL );
 			S_StartFixedSound( FindSoundEffect( StringHash( parm ) ), so, CHAN_AUTO, 1.0f );
 		} break;
 

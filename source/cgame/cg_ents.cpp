@@ -833,7 +833,7 @@ void CG_LerpEntities( void ) {
 		}
 
 		Vec3 origin, velocity;
-		CG_GetEntitySpatilization( number, &origin, &velocity );
+		CG_GetEntitySpatialization( number, &origin, &velocity );
 		S_UpdateEntity( number, origin, velocity );
 	}
 }
@@ -915,29 +915,8 @@ void CG_UpdateEntities( void ) {
 	}
 }
 
-/*
-* CG_GetEntitySpatilization
-*
-* Called to get the sound spatialization origin and velocity
-*/
-void CG_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity ) {
-	if( entNum < -1 || entNum >= MAX_EDICTS ) {
-		Com_Error( ERR_DROP, "CG_GetEntitySpatilization: bad entnum" );
-		return;
-	}
-
-	// hack for client side floatcam
-	if( entNum == -1 ) {
-		if( origin != NULL ) {
-			*origin = cg.frame.playerState.pmove.origin;
-		}
-		if( velocity != NULL ) {
-			*velocity = cg.frame.playerState.pmove.velocity;
-		}
-		return;
-	}
-
-	const centity_t * cent = &cg_entities[entNum];
+void CG_GetEntitySpatialization( int entNum, Vec3 * origin, Vec3 * velocity ) {
+	const centity_t * cent = &cg_entities[ entNum ];
 
 	if( velocity != NULL ) {
 		*velocity = cent->velocity;

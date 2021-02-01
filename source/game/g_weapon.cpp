@@ -179,7 +179,7 @@ static edict_t * FireProjectile(
 		edict_t * owner,
 		Vec3 start, Vec3 angles,
 		int timeDelta,
-		const WeaponDef * def, EdictTouchCallback touch, int event_type, int clipmask
+		const WeaponDef * def, EdictTouchCallback touch, int ent_type, int clipmask
 ) {
 	edict_t * projectile = G_Spawn();
 	projectile->s.origin = start;
@@ -208,7 +208,7 @@ static edict_t * FireProjectile(
 	projectile->timeStamp = level.time;
 	projectile->timeDelta = timeDelta;
 	projectile->s.team = owner->s.team;
-	projectile->s.type = event_type;
+	projectile->s.type = ent_type;
 
 	projectile->projectileInfo.minDamage = Min2( float( def->mindamage ), def->damage );
 	projectile->projectileInfo.maxDamage = def->damage;
@@ -225,9 +225,9 @@ static edict_t * FireLinearProjectile(
 		edict_t * owner,
 		Vec3 start, Vec3 angles,
 		int timeDelta,
-		const WeaponDef * def, EdictTouchCallback touch, int event_type, int clipmask
+		const WeaponDef * def, EdictTouchCallback touch, int ent_type, int clipmask
 ) {
-	edict_t * projectile = FireProjectile( owner, start, angles, timeDelta, def, touch, event_type, clipmask );
+	edict_t * projectile = FireProjectile( owner, start, angles, timeDelta, def, touch, ent_type, clipmask );
 
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 	projectile->s.linearMovement = true;

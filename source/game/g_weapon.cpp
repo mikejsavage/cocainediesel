@@ -77,22 +77,25 @@ static void W_Plasma_Backtrace( edict_t *ent, Vec3 start ) {
 	Vec3 oldorigin = ent->s.origin;
 	ent->s.origin = start;
 
+	// workaround to stop this hanging when you shoot a teammate
+	int iter = 0;
 	do {
 		G_Trace4D( &tr, ent->s.origin, mins, maxs, oldorigin, ent, CONTENTS_BODY, ent->timeDelta );
 
 		ent->s.origin = tr.endpos;
 
-		if( tr.ent == -1 ) {
+		if( tr.fraction == 1.0f )
 			break;
-		}
+
 		if( tr.allsolid || tr.startsolid ) {
 			W_Touch_Plasma( ent, &game.edicts[tr.ent], NULL, 0 );
-		} else if( tr.fraction != 1.0 ) {
-			W_Touch_Plasma( ent, &game.edicts[tr.ent], &tr.plane, tr.surfFlags );
-		} else {
-			break;
 		}
-	} while( ent->r.inuse && ent->s.origin != oldorigin );
+		else {
+			W_Touch_Plasma( ent, &game.edicts[tr.ent], &tr.plane, tr.surfFlags );
+		}
+
+		iter++;
+	} while( ent->r.inuse && ent->s.origin != oldorigin && iter < 5 );
 
 	if( ent->r.inuse ) {
 		ent->s.origin = oldorigin;

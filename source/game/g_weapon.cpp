@@ -122,7 +122,9 @@ static void W_Think_Plasma( edict_t *ent ) {
 
 static void W_AutoTouch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
 	W_Think_Plasma( ent );
-	W_Touch_Plasma( ent, other, plane, surfFlags );
+	if( ent->r.inuse ) {
+		W_Touch_Plasma( ent, other, plane, surfFlags );
+	}
 }
 
 static void G_ProjectileDistancePrestep( edict_t *projectile, float distance ) {

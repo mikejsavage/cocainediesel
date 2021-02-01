@@ -980,25 +980,21 @@ static void CG_FirePlayerStateEvents( void ) {
 				}
 				break;
 
-			case PSEV_DAMAGE_10: {
-				Vec3 dir = U64ToDir( parm );
+			case PSEV_DAMAGE_10:
 				AddDamageEffect( 0.1f );
-			} break;
+				break;
 
-			case PSEV_DAMAGE_20: {
-				Vec3 dir = U64ToDir( parm );
+			case PSEV_DAMAGE_20:
 				AddDamageEffect( 0.2f );
-			} break;
+				break;
 
-			case PSEV_DAMAGE_30: {
-				Vec3 dir = U64ToDir( parm );
+			case PSEV_DAMAGE_30:
 				AddDamageEffect( 0.3f );
-			} break;
+				break;
 
-			case PSEV_DAMAGE_40: {
-				Vec3 dir = U64ToDir( parm );
+			case PSEV_DAMAGE_40:
 				AddDamageEffect( 0.4f );
-			} break;
+				break;
 
 			case PSEV_ANNOUNCER:
 				CG_AddAnnouncerEvent( FindSoundEffect( StringHash( parm ) ), false );

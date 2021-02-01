@@ -476,6 +476,9 @@ static void W_Fire_Plasma( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 	plasma->classname = "plasma";
 	plasma->s.model = "weapons/pg/cell";
 	plasma->s.sound = "weapons/pg/trail";
+
+	plasma->think = W_Think_Plasma;
+	plasma->nextThink = level.time + 1;
 }
 
 static void FireBubble( edict_t * owner, Vec3 start, Vec3 angles, const WeaponDef * def, int timeDelta ) {

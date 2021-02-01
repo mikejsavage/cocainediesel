@@ -498,6 +498,7 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 */
 void ClientBegin( edict_t *ent ) {
 	gclient_t *client = ent->r.client;
+	ent->r.inuse = true;
 
 	memset( &client->ucmd, 0, sizeof( client->ucmd ) );
 	memset( &client->level, 0, sizeof( client->level ) );

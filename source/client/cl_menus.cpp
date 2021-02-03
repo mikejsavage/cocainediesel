@@ -77,9 +77,9 @@ static void PushButtonColor( ImVec4 color ) {
 
 static void ResetServerBrowser() {
 	for( int i = 0; i < num_servers; i++ ) {
-		free( const_cast< char * >( servers[ i ].address ) );
-		free( const_cast< char * >( servers[ i ].name ) );
-		free( const_cast< char * >( servers[ i ].map ) );
+		FREE( sys_allocator, const_cast< char * >( servers[ i ].address ) );
+		FREE( sys_allocator, const_cast< char * >( servers[ i ].name ) );
+		FREE( sys_allocator, const_cast< char * >( servers[ i ].map ) );
 	}
 
 	memset( servers, 0, sizeof( servers ) );
@@ -1216,8 +1216,8 @@ void UI_AddToServerList( const char * address, const char * info ) {
 			int parsed = sscanf( info, "\\\\ping\\\\%d\\\\n\\\\%127[^\\]\\\\m\\\\ %31[^\\]\\\\u\\\\%d/%d\\\\EOT", &servers[ i ].ping, name, map, &servers[ i ].num_players, &servers[ i ].max_players );
 
 			if( parsed == 5 ) {
-				servers[ i ].name = strdup( name );
-				servers[ i ].map = strdup( map );
+				servers[ i ].name = CopyString( sys_allocator, name );
+				servers[ i ].map = CopyString( sys_allocator, map );
 			}
 
 			return;
@@ -1225,7 +1225,7 @@ void UI_AddToServerList( const char * address, const char * info ) {
 	}
 
 	if( size_t( num_servers ) < ARRAY_COUNT( servers ) ) {
-		servers[ num_servers ].address = strdup( address );
+		servers[ num_servers ].address = CopyString( sys_allocator, address );
 		num_servers++;
 
 		if( strcmp( info, "\\\\EOT" ) == 0 ) {

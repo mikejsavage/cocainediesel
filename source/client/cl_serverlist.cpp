@@ -45,6 +45,7 @@ struct masterserver_t {
 	netadr_t address;
 	Thread *resolverThread;
 	volatile bool resolverActive;
+	bool should_query;
 };
 
 static masterserver_t masterServers[ ARRAY_COUNT( MASTER_SERVERS ) ];
@@ -497,8 +498,9 @@ void CL_GetServers_f( void ) {
 
 		master->resolverActive = true;
 		master->resolverThread = NewThread( CL_MasterResolverThreadFunc, master );
-
 	}
+
+	master->should_query = true;
 }
 
 /*
@@ -506,13 +508,17 @@ void CL_GetServers_f( void ) {
 */
 void CL_ServerListFrame( void ) {
 	for( masterserver_t & master : masterServers ) {
-		if( master.resolverActive ) {
+		if( master.resolverActive )
 			continue;
-		}
+
+		if( master.should_query )
+			continue;
 
 		if( master.address.type == NA_IP || master.address.type == NA_IP6 ) {
 			CL_SendMasterServerQuery( &master.address );
 		}
+
+		master.should_query = false;
 	}
 }
 

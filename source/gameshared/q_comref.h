@@ -105,7 +105,7 @@ enum pmtype_t {
 
 //==============================================
 
-constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "ghdigital.com", "excalibur.nvg.ntnu.no" };
+constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "excalibur.nvg.ntnu.no" };
 #define SERVER_PINGING_TIMEOUT              50
 #define LAN_SERVER_PINGING_TIMEOUT          20
 

@@ -1571,6 +1571,7 @@ static const char * prefixes[] = {
 	"KRACH",
 	"KRUNK",
 	"LAD",
+	"LARGE HADRON ",
 	"LASER",
 	"LATE",
 	"LATIN AMERICA",

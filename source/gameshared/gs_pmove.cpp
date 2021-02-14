@@ -968,7 +968,7 @@ static void PM_CheckWallJump() {
 				pm->playerState->pmove.walljump_time = PM_WALLJUMP_TIMEDELAY;
 
 				// Create the event
-				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_WALLJUMP, DirToByte( normal ) );
+				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_WALLJUMP, DirToU64( normal ) );
 			}
 		}
 	} else {

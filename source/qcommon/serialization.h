@@ -56,6 +56,7 @@ void Serialize( SerializationBuffer * buf, Mat4 & m );
 void Serialize( SerializationBuffer * buf, Quaternion & q );
 void Serialize( SerializationBuffer * buf, MinMax1 & b );
 void Serialize( SerializationBuffer * buf, MinMax2 & b );
+void Serialize( SerializationBuffer * buf, MinMax3 & b );
 
 template< typename T, size_t N >
 void Serialize( SerializationBuffer * buf, T ( &arr )[ N ] ) {

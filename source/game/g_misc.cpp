@@ -140,7 +140,7 @@ static void func_wall_use( edict_t *self, edict_t *other, edict_t *activator ) {
 
 void SP_func_wall( edict_t *self ) {
 	G_InitMover( self );
-	self->s.solid = SOLID_NOT;
+	self->r.solid = SOLID_NOT;
 
 	// just a wall
 	if( ( self->spawnflags & 7 ) == 0 ) {
@@ -192,8 +192,7 @@ static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *
 
 	// bmodel origins are (0 0 0), we need to adjust that here
 	Vec3 bakorigin = self->s.origin;
-	Vec3 size = self->r.size * 0.5f;
-	Vec3 origin = self->r.absmin + size;
+	Vec3 origin = self->r.absmin + self->r.size * 0.5f;
 	self->s.origin = origin;
 
 	if( self->projectileInfo.maxDamage ) {
@@ -205,7 +204,6 @@ static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *
 	self->velocity = self->velocity * 150.0f;
 
 	// start chunks towards the center
-	size = size * 0.5f;
 	int mass = self->projectileInfo.radius * 0.75f;
 	if( !mass ) {
 		mass = 75;

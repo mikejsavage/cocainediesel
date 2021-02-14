@@ -155,6 +155,9 @@ struct SyncBombGameState {
 	u8 alpha_players_total;
 	u8 beta_players_alive;
 	u8 beta_players_total;
+
+	bool exploding;
+	s64 exploded_at;
 };
 
 struct SyncGameState {
@@ -184,14 +187,10 @@ struct SyncEntityState {
 
 	int type;                           // ET_GENERIC, ET_BEAM, etc
 
-	// for client side prediction, 8*(bits 0-4) is x/y radius
-	// 8*(bits 5-9) is z down distance, 8(bits10-15) is z up
-	// GClip_LinkEntity sets this properly
-	int solid;
-
 	Vec3 origin;
 	Vec3 angles;
 	Vec3 origin2; // velocity for players/corpses. often used for endpoints, e.g. ET_BEAM and some events
+	MinMax3 bounds;
 
 	StringHash model;
 	StringHash model2;
@@ -570,6 +569,7 @@ enum {
 	Vsay_Mike,
 	Vsay_User,
 	Vsay_Guyman,
+	Vsay_Helena,
 
 	Vsay_Total
 };
@@ -646,6 +646,8 @@ enum EventType {
 
 	EV_DAMAGE,
 	EV_HEADSHOT,
+
+	EV_VFX,
 
 	MAX_EVENTS = 128
 };
@@ -752,6 +754,8 @@ struct WeaponDef {
 
 	int speed;
 	float spread;
+
+	bool pierce;
 };
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
@@ -759,5 +763,5 @@ SyncPlayerState::WeaponInfo * GS_FindWeapon( SyncPlayerState * player, WeaponTyp
 WeaponType MODToWeapon( int mod );
 WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, const usercmd_t * cmd, int timeDelta );
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, float r, float u, int range, int ignore, int timeDelta );
-void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * tr, Vec3 dir ) );
+void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * trace, Vec3 dir, void * data ), void * data );
 bool GS_CanEquip( SyncPlayerState * player, WeaponType weapon );

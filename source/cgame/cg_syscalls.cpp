@@ -40,8 +40,6 @@ cgame_export_t * GetCGameAPI( cgame_import_t * import ) {
 
 	globals.EscapeKey = CG_EscapeKey;
 
-	globals.GetEntitySpatilization = CG_GetEntitySpatilization;
-
 	globals.Trace = CG_Trace;
 	globals.RenderView = CG_RenderView;
 

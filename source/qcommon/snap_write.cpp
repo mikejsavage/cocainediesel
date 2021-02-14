@@ -467,6 +467,13 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 		return true;
 	}
 
+	if( ( ent->r.svflags & SVF_OWNERANDCHASERS ) && clent ) {
+		bool self = ent->s.ownerNum == clent->s.number;
+		bool spec = ent->s.ownerNum == clent->r.client->resp.chase.target;
+		if( !self && !spec )
+			return true;
+	}
+
 	if( ( ent->r.svflags & SVF_NEVEROWNER ) && ( clent && ent->s.ownerNum == clent->s.number ) ) {
 		return true;
 	}
@@ -717,11 +724,6 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 
 		*state = ent->s;
 		state->svflags = ent->r.svflags;
-
-		// don't mark *any* missiles as solid
-		if( ent->r.svflags & SVF_PROJECTILE ) {
-			state->solid = 0;
-		}
 
 		frame->num_entities++;
 		ne++;

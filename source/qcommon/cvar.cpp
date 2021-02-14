@@ -246,7 +246,7 @@ static cvar_t *Cvar_Set2( const char *var_name, const char *value, bool force ) 
 			}
 		}
 
-		if( Cvar_FlagIsSet( var->flags, CVAR_LATCH ) || Cvar_FlagIsSet( var->flags, CVAR_LATCH_VIDEO ) ) {
+		if( Cvar_FlagIsSet( var->flags, CVAR_LATCH ) ) {
 			if( var->latched_string ) {
 				if( !strcmp( value, var->latched_string ) ) {
 					return var;
@@ -262,16 +262,11 @@ static cvar_t *Cvar_Set2( const char *var_name, const char *value, bool force ) 
 				Com_Printf( "%s will be changed upon restarting.\n", var->name );
 				var->latched_string = ZoneCopyString( (char *) value );
 			} else {
-				if( Cvar_FlagIsSet( var->flags, CVAR_LATCH_VIDEO ) ) {
-					Com_Printf( "%s will be changed upon restarting video.\n", var->name );
-					var->latched_string = ZoneCopyString( (char *) value );
-				} else {
-					Mem_ZoneFree( var->string ); // free the old value string
-					var->string = ZoneCopyString( value );
-					var->value = atof( var->string );
-					var->integer = Q_rint( var->value );
-					Cvar_SetModified( var );
-				}
+				Mem_ZoneFree( var->string ); // free the old value string
+				var->string = ZoneCopyString( value );
+				var->value = atof( var->string );
+				var->integer = Q_rint( var->value );
+				Cvar_SetModified( var );
 			}
 			return var;
 		}
@@ -363,7 +358,6 @@ void Cvar_GetLatchedVars( cvar_flag_t flags ) {
 
 	Cvar_FlagsClear( &latchFlags );
 	Cvar_FlagSet( &latchFlags, CVAR_LATCH );
-	Cvar_FlagSet( &latchFlags, CVAR_LATCH_VIDEO );
 	Cvar_FlagUnset( &flags, ~latchFlags );
 	if( !flags ) {
 		return;
@@ -551,7 +545,7 @@ void Cvar_WriteVariables( int file ) {
 			cmd = "seta";
 		}
 
-		if( Cvar_FlagIsSet( var->flags, CVAR_LATCH ) || Cvar_FlagIsSet( var->flags, CVAR_LATCH_VIDEO ) ) {
+		if( Cvar_FlagIsSet( var->flags, CVAR_LATCH ) ) {
 			if( var->latched_string ) {
 				snprintf( buffer, sizeof( buffer ), "%s %s \"%s\"\r\n", cmd, var->name, var->latched_string );
 			} else {
@@ -609,7 +603,7 @@ static void Cvar_List_f( void ) {
 		}
 		if( Cvar_FlagIsSet( var->flags, CVAR_NOSET ) || Cvar_FlagIsSet( var->flags, CVAR_READONLY ) ) {
 			Com_Printf( "-" );
-		} else if( Cvar_FlagIsSet( var->flags, CVAR_LATCH ) || Cvar_FlagIsSet( var->flags, CVAR_LATCH_VIDEO ) ) {
+		} else if( Cvar_FlagIsSet( var->flags, CVAR_LATCH ) ) {
 			Com_Printf( "L" );
 		} else {
 			Com_Printf( " " );

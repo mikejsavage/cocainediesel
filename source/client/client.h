@@ -119,10 +119,10 @@ struct cl_demo_t {
 	int64_t play_jump_time;
 	bool play_ignore_next_frametime;
 
-	bool pause_on_stop;
-
 	char meta_data[SNAP_MAX_DEMO_META_DATA_SIZE];
 	size_t meta_data_realsize;
+
+	bool yolo;
 };
 
 struct client_static_t {
@@ -271,7 +271,6 @@ void CL_GameModule_ConfigString( int number, const char *value );
 void CL_GameModule_EscapeKey( void );
 bool CL_GameModule_NewSnapshot( int pendingSnapshot );
 void CL_GameModule_RenderView();
-void CL_GameModule_GetEntitySpatilization( int entnum, Vec3 * origin, Vec3 * velocity );
 void CL_GameModule_InputFrame( int frameTime );
 unsigned CL_GameModule_GetButtonBits( void );
 void CL_GameModule_AddViewAngles( Vec3 * viewAngles );
@@ -306,6 +305,7 @@ void CL_WriteUcmdsToMessage( msg_t *msg );
 void CL_WriteDemoMessage( msg_t *msg );
 void CL_DemoCompleted( void );
 void CL_PlayDemo_f( void );
+void CL_YoloDemo_f( void );
 void CL_ReadDemoPackets( void );
 void CL_LatchedDemoJump( void );
 void CL_Stop_f( void );

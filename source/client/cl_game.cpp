@@ -139,15 +139,6 @@ void CL_GameModule_EscapeKey( void ) {
 }
 
 /*
-* CL_GameModule_GetEntitySoundOrigin
-*/
-void CL_GameModule_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity ) {
-	if( cge ) {
-		cge->GetEntitySpatilization( entNum, origin, velocity );
-	}
-}
-
-/*
 * CL_GameModule_ConfigString
 */
 void CL_GameModule_ConfigString( int number, const char *value ) {

@@ -30,7 +30,6 @@ void CG_RegisterMediaSounds() {
 	for( int i = 0; i < 4; i++ )
 		cgs.media.sfxWeaponHit[ i ] = FindSoundEffect( va( S_WEAPON_HITS, i ) );
 	cgs.media.sfxWeaponKill = FindSoundEffect( S_WEAPON_KILL );
-	cgs.media.sfxWeaponHitTeam = FindSoundEffect( S_WEAPON_HIT_TEAM );
 	cgs.media.sfxWeaponNoAmmo = FindSoundEffect( "weapons/noammo" );
 
 	cgs.media.sfxTeleportIn = FindSoundEffect( S_TELEPORT );
@@ -95,6 +94,7 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxVSaySounds[ Vsay_Mike ] = FindSoundEffect( "sounds/vsay/mike" );
 	cgs.media.sfxVSaySounds[ Vsay_User ] = FindSoundEffect( "sounds/vsay/user" );
 	cgs.media.sfxVSaySounds[ Vsay_Guyman ] = FindSoundEffect( "sounds/vsay/guyman" );
+	cgs.media.sfxVSaySounds[ Vsay_Helena ] = FindSoundEffect( "sounds/vsay/helena" );
 }
 
 void CG_RegisterMediaModels() {

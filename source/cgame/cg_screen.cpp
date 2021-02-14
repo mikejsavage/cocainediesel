@@ -30,14 +30,11 @@ cvar_t *cg_draw2D;
 cvar_t *cg_crosshair_size;
 
 cvar_t *cg_showSpeed;
-cvar_t *cg_showAwards;
 
 cvar_t *cg_showPlayerNames;
 cvar_t *cg_showPlayerNames_alpha;
 cvar_t *cg_showPlayerNames_zfar;
 cvar_t *cg_showPlayerNames_barWidth;
-
-cvar_t *cg_showViewBlends;
 
 static int64_t scr_damagetime = 0;
 
@@ -79,8 +76,6 @@ void CG_ScreenInit( void ) {
 
 	cg_showSpeed =      Cvar_Get( "cg_showSpeed", "0", CVAR_ARCHIVE );
 	cg_showPointedPlayer =  Cvar_Get( "cg_showPointedPlayer", "1", CVAR_ARCHIVE );
-	cg_showViewBlends = Cvar_Get( "cg_showViewBlends", "1", CVAR_ARCHIVE );
-	cg_showAwards =     Cvar_Get( "cg_showAwards", "1", CVAR_ARCHIVE );
 
 	cg_showPlayerNames =        Cvar_Get( "cg_showPlayerNames", "2", CVAR_ARCHIVE );
 	cg_showPlayerNames_alpha =  Cvar_Get( "cg_showPlayerNames_alpha", "0.4", CVAR_ARCHIVE );
@@ -236,7 +231,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		if( !cent->current.solid || cent->current.solid == SOLID_BMODEL || cent->current.team == TEAM_SPECTATOR ) {
+		if( cent->current.type != ET_PLAYER ) {
 			continue;
 		}
 
@@ -799,12 +794,15 @@ static Vec4 CG_CalcColorBlend() {
 	return Vec4( 0 );
 }
 
-static void CG_SCRDrawViewBlend( void ) {
-	if( !cg_showViewBlends->integer ) {
-		return;
-	}
-
+static void CG_SCRDrawViewBlend() {
 	Vec4 color = CG_CalcColorBlend();
+
+	float t = 0.0f;
+	if( client_gs.gameState.bomb.exploding ) {
+		t = Unlerp01( client_gs.gameState.bomb.exploded_at, cl.serverTime, client_gs.gameState.bomb.exploded_at + 2000 );
+	}
+	color = Lerp( color, t, vec4_black );
+
 	if( color.w < 0.01f ) {
 		return;
 	}

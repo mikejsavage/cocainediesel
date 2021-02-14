@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "qcommon/cmodel.h"
 
 /*
 ==============================================================================
@@ -945,7 +946,8 @@ edict_t *G_Sound( edict_t *owner, int channel, StringHash sound ) {
 	edict_t * ent = _G_SpawnSound( channel, sound );
 	ent->s.ownerNum = owner->s.number;
 
-	if( owner->s.solid == SOLID_BMODEL ) {
+	const cmodel_t * cmodel = CM_TryFindCModel( CM_Server, owner->s.model );
+	if( cmodel != NULL ) {
 		ent->s.origin = owner->s.origin;
 	}
 	else {
@@ -1172,34 +1174,6 @@ void G_CategorizePosition( edict_t *ent ) {
 	cont = G_PointContents( point );
 	if( cont & MASK_WATER ) {
 		ent->waterlevel = 3;
-	}
-}
-
-/*
-* G_DropSpawnpointToFloor
-*/
-void G_DropSpawnpointToFloor( edict_t *ent ) {
-	Vec3 start, end;
-	trace_t trace;
-
-	start = ent->s.origin;
-	start.z += 16;
-	end = ent->s.origin;
-	end.z -= 16000;
-
-	G_Trace( &trace, start, playerbox_stand_mins, playerbox_stand_maxs, end, ent, MASK_PLAYERSOLID );
-	if( trace.startsolid || trace.allsolid ) {
-		Com_GGPrint( "Warning: {} {} spawns inside solid. Inhibited", ent->classname, ent->s.origin );
-		G_FreeEdict( ent );
-		return;
-	}
-
-	if( ent->spawnflags & 1 ) { //  floating items flag, we test that they are not inside solid too
-		return;
-	}
-
-	if( trace.fraction < 1.0f ) {
-		ent->s.origin = trace.endpos + trace.plane.normal;
 	}
 }
 

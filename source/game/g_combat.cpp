@@ -336,7 +336,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 			}
 
 			edict_t * ev = G_SpawnEvent( EV_DAMAGE, parm, &targ->s.origin );
-			ev->r.svflags |= SVF_ONLYOWNER;
+			ev->r.svflags |= SVF_OWNERANDCHASERS;
 			ev->s.ownerNum = ENTNUM( attacker );
 		}
 	}
@@ -395,7 +395,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 		if( targ->s.type != ET_CORPSE && attacker != targ ) {
 			edict_t * killed = G_SpawnEvent( EV_DAMAGE, 255 << 1, &targ->s.origin );
-			killed->r.svflags |= SVF_ONLYOWNER;
+			killed->r.svflags |= SVF_OWNERANDCHASERS;
 			killed->s.ownerNum = ENTNUM( attacker );
 		}
 

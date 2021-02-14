@@ -41,7 +41,8 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 		serverTime = cl.serverTime + cgs.extrapolationTime;
 	}
 
-	if( state->solid != SOLID_BMODEL ) {
+	const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, state->model );
+	if( cmodel == NULL ) {
 		// add a time offset to counter antilag visualization
 		if( !cgs.demoPlaying && cg_projectileAntilagOffset->value > 0.0f &&
 			!ISVIEWERENTITY( state->ownerNum ) && ( cgs.playerNum + 1 != cg.predictedPlayerState.POVnum ) ) {
@@ -53,7 +54,7 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 	int moveTime = GS_LinearMovement( state, serverTime, &origin );
 	state->origin = origin;
 
-	if( moveTime < 0 && state->solid != SOLID_BMODEL ) {
+	if( moveTime < 0 && cmodel == NULL ) {
 		// when flyTime is negative don't offset it backwards more than PROJECTILE_PRESTEP value
 		// FIXME: is this still valid?
 		float maxBackOffset;
@@ -315,38 +316,25 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 * CG_CModelForEntity
 *  get the collision model for the given entity, no matter if box or brush-model.
 */
-cmodel_t *CG_CModelForEntity( int entNum ) {
-	cmodel_t *cmodel = NULL;
-
+const cmodel_t *CG_CModelForEntity( int entNum ) {
 	if( entNum < 0 || entNum >= MAX_EDICTS ) {
 		return NULL;
 	}
 
-	centity_t * cent = &cg_entities[entNum];
-
+	const centity_t * cent = &cg_entities[entNum];
 	if( cent->serverFrame != cg.frame.serverFrame ) { // not present in current frame
 		return NULL;
 	}
 
-	// find the cmodel
-	if( cent->current.solid == SOLID_BMODEL ) { // special value for bmodel
-		cmodel = CM_FindCModel( CM_Client, cent->current.model );
-	}
-	else if( cent->current.solid ) {   // encoded bbox
-		int x = 8 * ( cent->current.solid & 31 );
-		int zd = 8 * ( ( cent->current.solid >> 5 ) & 31 );
-		int zu = 8 * ( ( cent->current.solid >> 10 ) & 63 ) - 32;
+	const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, cent->current.model );
+	if( cmodel != NULL )
+		return cmodel;
 
-		Vec3 bmins = Vec3( -x, -x, -zd );
-		Vec3 bmaxs = Vec3( x, x, zu );
-		if( cent->type == ET_PLAYER || cent->type == ET_CORPSE ) {
-			cmodel = CM_OctagonModelForBBox( cl.cms, bmins, bmaxs );
-		} else {
-			cmodel = CM_ModelForBBox( cl.cms, bmins, bmaxs );
-		}
+	if( cent->type == ET_PLAYER || cent->type == ET_CORPSE ) {
+		return CM_OctagonModelForBBox( cl.cms, cent->current.bounds.mins, cent->current.bounds.maxs );
 	}
 
-	return cmodel;
+	return CM_ModelForBBox( cl.cms, cent->current.bounds.mins, cent->current.bounds.maxs );
 }
 
 static void CG_UpdateGenericEnt( centity_t *cent ) {
@@ -845,7 +833,7 @@ void CG_LerpEntities( void ) {
 		}
 
 		Vec3 origin, velocity;
-		CG_GetEntitySpatilization( number, &origin, &velocity );
+		CG_GetEntitySpatialization( number, &origin, &velocity );
 		S_UpdateEntity( number, origin, velocity );
 	}
 }
@@ -863,7 +851,7 @@ void CG_UpdateEntities( void ) {
 		if( cgs.demoPlaying ) {
 			if( ( state->svflags & SVF_ONLYTEAM ) && cg.predictedPlayerState.team != state->team )
 				continue;
-			if( ( state->svflags & SVF_ONLYOWNER ) && cg.predictedPlayerState.POVnum != state->ownerNum )
+			if( ( ( state->svflags & SVF_ONLYOWNER ) || ( state->svflags & SVF_OWNERANDCHASERS ) ) && cg.predictedPlayerState.POVnum != state->ownerNum )
 				continue;
 		}
 
@@ -927,63 +915,23 @@ void CG_UpdateEntities( void ) {
 	}
 }
 
-/*
-* CG_GetEntitySpatilization
-*
-* Called to get the sound spatialization origin and velocity
-*/
-void CG_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity ) {
-	if( entNum < -1 || entNum >= MAX_EDICTS ) {
-		Com_Error( ERR_DROP, "CG_GetEntitySpatilization: bad entnum" );
-		return;
-	}
+void CG_GetEntitySpatialization( int entNum, Vec3 * origin, Vec3 * velocity ) {
+	const centity_t * cent = &cg_entities[ entNum ];
 
-	// hack for client side floatcam
-	if( entNum == -1 ) {
-		if( origin != NULL ) {
-			*origin = cg.frame.playerState.pmove.origin;
-		}
-		if( velocity != NULL ) {
-			*velocity = cg.frame.playerState.pmove.velocity;
-		}
-		return;
-	}
-
-	const centity_t * cent = &cg_entities[entNum];
-
-	// normal
-	if( cent->current.solid != SOLID_BMODEL ) {
-		if( origin != NULL ) {
-			*origin = cent->ent.origin;
-		}
-		if( velocity != NULL ) {
-			*velocity = cent->velocity;
-		}
-		return;
-	}
-
-	// bmodel
-	if( origin != NULL ) {
-		const cmodel_t * cmodel = CM_FindCModel( CM_Client, cent->current.model );
-		Vec3 mins, maxs;
-		CM_InlineModelBounds( cl.cms, cmodel, &mins, &maxs );
-		*origin = maxs + mins;
-		*origin = cent->ent.origin + *origin * ( 0.5f );
-	}
 	if( velocity != NULL ) {
 		*velocity = cent->velocity;
 	}
-}
 
-void CG_BBoxForEntityState( const SyncEntityState * state, Vec3 * mins, Vec3 * maxs ) {
-	if( state->solid == SOLID_BMODEL ) {
-		Com_Error( ERR_DROP, "CG_BBoxForEntityState: called for a brush model\n" );
-	} else { // encoded bbox
-		int x = 8 * ( state->solid & 31 );
-		int zd = 8 * ( ( state->solid >> 5 ) & 31 );
-		int zu = 8 * ( ( state->solid >> 10 ) & 63 ) - 32;
-
-		*mins = Vec3( -x, -x, -zd );
-		*maxs = Vec3( x, x, zu );
+	const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, cent->current.model );
+	if( cmodel == NULL ) {
+		if( origin != NULL ) {
+			*origin = cent->ent.origin;
+		}
+	}
+	else {
+		Vec3 mins, maxs;
+		CM_InlineModelBounds( cl.cms, cmodel, &mins, &maxs );
+		*origin = maxs + mins;
+		*origin = cent->ent.origin + *origin * 0.5f;
 	}
 }

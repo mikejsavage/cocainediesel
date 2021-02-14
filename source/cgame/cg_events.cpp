@@ -57,8 +57,6 @@ void CG_WeaponBeamEffect( centity_t * cent ) {
 	cent->localEffects[ LOCALEFFECT_EV_WEAPONBEAM ] = 0;
 }
 
-static centity_t * laserOwner = NULL;
-
 static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles ) {
 	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, num_particles, color );
 
@@ -92,17 +90,6 @@ static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles
 	AddPersistentDecal( trace->endpos, trace->plane.normal, size, angle, random_select( &cls.rng, decals ), vec4_white, 30000 );
 }
 
-static void LGImpact( const trace_t * trace, Vec3 dir ) {
-	Vec4 team_color = CG_TeamColorVec4( laserOwner->current.team );
-
-	constexpr int trailtime = int( 1000.0f / 20.0f ); // density as quantity per second
-	if( laserOwner->localEffects[ LOCALEFFECT_LASERBEAM_SMOKE_TRAIL ] + trailtime < cl.serverTime ) {
-		laserOwner->localEffects[ LOCALEFFECT_LASERBEAM_SMOKE_TRAIL ] = cl.serverTime;
-	}
-
-	DoVisualEffect( "vfx/laser_impact", trace->endpos, trace->plane.normal, 4, team_color );
-}
-
 void CG_LaserBeamEffect( centity_t * cent ) {
 	trace_t trace;
 	orientation_t projectsource;
@@ -121,8 +108,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 		return;
 	}
 
-	laserOwner = cent;
-	Vec4 color = CG_TeamColorVec4( laserOwner->current.team );
+	Vec4 color = CG_TeamColorVec4( cent->current.team );
 
 	// interpolate the positions
 	bool firstPerson = ISVIEWERENTITY( cent->current.number ) && !cg.view.thirdperson;
@@ -145,7 +131,14 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 
 	// trace the beam: for tracing we use the real beam origin
 	float range = GS_GetWeaponDef( Weapon_Laser )->range;
-	GS_TraceLaserBeam( &client_gs, &trace, laserOrigin, laserAngles, range, cent->current.number, 0, LGImpact );
+	GS_TraceLaserBeam( &client_gs, &trace, laserOrigin, laserAngles, range, cent->current.number, 0, []( const trace_t * trace, Vec3 dir, void * data ) {
+		centity_t * cent = ( centity_t * ) data;
+
+		Vec4 color = CG_TeamColorVec4( cent->current.team );
+		DoVisualEffect( "weapons/lg/tip_hit", trace->endpos, trace->plane.normal, 1.0f, color );
+
+		cent->lg_tip_sound = S_ImmediateFixedSound( FindSoundEffect( "weapons/lg/tip_hit" ), trace->endpos, 1.0f, cent->lg_tip_sound );
+	}, cent );
 
 	// draw the beam: for drawing we use the weapon projection source (already handles the case of viewer entity)
 	if( CG_PModel_GetProjectionSource( cent->current.number, &projectsource ) ) {
@@ -156,7 +149,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 	Vec3 end = trace.endpos;
 	DrawBeam( start, end, 16.0f, color, cgs.media.shaderLGBeam );
 
-	cent->sound = S_ImmediateEntitySound( cgs.media.sfxLasergunHum, cent->current.number, 1.0f, cent->sound );
+	cent->lg_hum_sound = S_ImmediateEntitySound( cgs.media.sfxLasergunHum, cent->current.number, 1.0f, cent->lg_hum_sound );
 
 	if( ISVIEWERENTITY( cent->current.number ) ) {
 		cent->lg_beam_sound = S_ImmediateEntitySound( cgs.media.sfxLasergunBeam, cent->current.number, 1.0f, cent->lg_beam_sound );
@@ -165,7 +158,10 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 		cent->lg_beam_sound = S_ImmediateLineSound( cgs.media.sfxLasergunBeam, start, end, 1.0f, cent->lg_beam_sound );
 	}
 
-	laserOwner = NULL;
+	if( trace.fraction == 1.0f ) {
+		DoVisualEffect( "weapons/lg/tip_miss", end, Vec3( 0.0f, 0.0f, 1.0f ), 1, color );
+		cent->lg_tip_sound = S_ImmediateFixedSound( FindSoundEffect( "weapons/lg/tip_miss" ), end, 1.0f, cent->lg_tip_sound );
+	}
 }
 
 static void CG_Event_LaserBeam( Vec3 origin, Vec3 dir, int entNum ) {
@@ -319,8 +315,6 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	}
 }
 
-//==================================================================
-
 //=========================================================
 #define CG_MAX_ANNOUNCER_EVENTS 32
 #define CG_MAX_ANNOUNCER_EVENTS_MASK ( CG_MAX_ANNOUNCER_EVENTS - 1 )
@@ -452,11 +446,8 @@ void CG_Event_Fall( const SyncEntityState * state, u64 parm ) {
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
 	}
 
-	Vec3 mins, maxs;
-	CG_BBoxForEntityState( state, &mins, &maxs );
-
 	Vec3 ground_position = state->origin;
-	ground_position.z += mins.z;
+	ground_position.z += state->bounds.mins.z;
 
 	if( parm < 40 )
 		return;
@@ -521,7 +512,7 @@ void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
  * CG_Event_WallJump
  */
 void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
-	Vec3 normal = ByteToDir( parm );
+	Vec3 normal = U64ToDir( parm );
 
 	Vec3 forward, right;
 	AngleVectors( Vec3( state->angles.x, state->angles.y, 0 ), &forward, &right, NULL );
@@ -757,7 +748,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_SPARKS: {
-			// Vec3 dir = ByteToDir( parm );
+			// Vec3 dir = U64ToDir( parm );
 			// if( ent->damage > 0 ) {
 			// 	count = Clamp( 1, int( ent->damage * 0.25f ), 10 );
 			// } else {
@@ -768,7 +759,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		} break;
 
 		case EV_LASER_SPARKS: {
-			// Vec3 dir = ByteToDir( parm );
+			// Vec3 dir = U64ToDir( parm );
 			// CG_ParticleEffect2( ent->origin, dir,
 			// 					COLOR_R( ent->colorRGBA ) * ( 1.0 / 255.0 ),
 			// 					COLOR_G( ent->colorRGBA ) * ( 1.0 / 255.0 ),
@@ -797,7 +788,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_PLASMA_EXPLOSION: {
-			Vec3 dir = ByteToDir( parm );
+			Vec3 dir = U64ToDir( parm );
 			CG_PlasmaExplosion( ent->origin, dir, team_color );
 		} break;
 
@@ -806,7 +797,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_BOLT_EXPLOSION: {
-			Vec3 dir = ByteToDir( parm );
+			Vec3 dir = U64ToDir( parm );
 			CG_EBImpact( ent->origin, dir, 0, team_color );
 		} break;
 
@@ -814,7 +805,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			Vec3 dir;
 			if( parm ) {
 				// we have a direction
-				dir = ByteToDir( parm );
+				dir = U64ToDir( parm );
 				CG_GrenadeExplosion( ent->origin, dir, team_color );
 			}
 			else {
@@ -825,7 +816,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		} break;
 
 		case EV_ROCKET_EXPLOSION: {
-			Vec3 dir = ByteToDir( parm );
+			Vec3 dir = U64ToDir( parm );
 			CG_RocketExplosion( ent->origin, dir, team_color );
 
 		} break;
@@ -839,13 +830,13 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_RIFLEBULLET_IMPACT: {
-			Vec3 dir = ByteToDir( parm );
+			Vec3 dir = U64ToDir( parm );
 			DoVisualEffect( "vfx/bulletsparks", ent->origin, dir, 24, team_color );
 			S_StartFixedSound( cgs.media.sfxBulletImpact, ent->origin, CHAN_AUTO, 1.0f );
 		} break;
 
 		case EV_BLOOD: {
-			Vec3 dir = ByteToDir( parm );
+			Vec3 dir = U64ToDir( parm );
 			Vec3 tangent, bitangent;
 			OrthonormalBasis( dir, &tangent, &bitangent );
 
@@ -903,7 +894,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_TRAIN_STOP:
 		case EV_TRAIN_START: {
 			Vec3 so;
-			CG_GetEntitySpatilization( ent->number, &so, NULL );
+			CG_GetEntitySpatialization( ent->number, &so, NULL );
 			S_StartFixedSound( FindSoundEffect( StringHash( parm ) ), so, CHAN_AUTO, 1.0f );
 		} break;
 
@@ -927,6 +918,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_HEADSHOT:
 			S_StartFixedSound( cgs.media.sfxHeadshot, ent->origin, CHAN_AUTO, 1.0f );
 			break;
+
+		case EV_VFX:
+			DoVisualEffect( StringHash( parm ), ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1, vec4_white );
+			break;
 	}
 }
 
@@ -942,7 +937,7 @@ static void CG_FireEntityEvents( bool early ) {
 		if( cgs.demoPlaying ) {
 			if( ( state->svflags & SVF_ONLYTEAM ) && cg.predictedPlayerState.team != state->team )
 				continue;
-			if( ( state->svflags & SVF_ONLYOWNER ) && cg.predictedPlayerState.POVnum != state->ownerNum )
+			if( ( ( state->svflags & SVF_ONLYOWNER ) || ( state->svflags & SVF_OWNERANDCHASERS ) ) && cg.predictedPlayerState.POVnum != state->ownerNum )
 				continue;
 		}
 
@@ -966,8 +961,6 @@ static void CG_FireEntityEvents( bool early ) {
  * This events are only received by this client, and only affect it.
  */
 static void CG_FirePlayerStateEvents( void ) {
-	Vec3 dir;
-
 	if( cg.view.POVent != ( int ) cg.frame.playerState.POVnum ) {
 		return;
 	}
@@ -977,39 +970,29 @@ static void CG_FirePlayerStateEvents( void ) {
 
 		switch( cg.frame.playerState.events[ count ].type ) {
 			case PSEV_HIT:
-				if( parm > 6 ) {
-					break;
-				}
 				if( parm < 4 ) { // hit of some caliber
 					S_StartLocalSound( cgs.media.sfxWeaponHit[ parm ], CHAN_AUTO, 1.0f );
 					CG_ScreenCrosshairDamageUpdate();
 				}
-				else if( parm == 4 ) { // killed an enemy
+				else { // killed an enemy
 					S_StartLocalSound( cgs.media.sfxWeaponKill, CHAN_AUTO, 1.0f );
 					CG_ScreenCrosshairDamageUpdate();
-				}
-				else { // hit a teammate
-					S_StartLocalSound( cgs.media.sfxWeaponHitTeam, CHAN_AUTO, 1.0f );
 				}
 				break;
 
 			case PSEV_DAMAGE_10:
-				dir = ByteToDir( parm );
 				AddDamageEffect( 0.1f );
 				break;
 
 			case PSEV_DAMAGE_20:
-				dir = ByteToDir( parm );
 				AddDamageEffect( 0.2f );
 				break;
 
 			case PSEV_DAMAGE_30:
-				dir = ByteToDir( parm );
 				AddDamageEffect( 0.3f );
 				break;
 
 			case PSEV_DAMAGE_40:
-				dir = ByteToDir( parm );
 				AddDamageEffect( 0.4f );
 				break;
 

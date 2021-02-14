@@ -60,9 +60,8 @@ float RadiusFromBounds( Vec3 mins, Vec3 maxs );
 bool BoundsOverlap( const Vec3 & mins1, const Vec3 & maxs1, const Vec3 & mins2, const Vec3 & maxs2 );
 bool BoundsOverlapSphere( Vec3 mins, Vec3 maxs, Vec3 centre, float radius );
 
-#define NUMVERTEXNORMALS    162
-int DirToByte( Vec3 dir );
-Vec3 ByteToDir( int b );
+u64 DirToU64( Vec3 dir );
+Vec3 U64ToDir( u64 v );
 
 void ViewVectors( Vec3 forward, Vec3 * right, Vec3 * up );
 void AngleVectors( Vec3 angles, Vec3 * forward, Vec3 * right, Vec3 * up );

@@ -87,8 +87,6 @@ struct cgame_export_t {
 
 	void ( *EscapeKey )( void );
 
-	void ( *GetEntitySpatilization )( int entNum, Vec3 * origin, Vec3 * velocity );
-
 	void ( *Trace )( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int passent, int contentmask );
 
 	void ( *RenderView )( unsigned extrapolationTime );

@@ -133,7 +133,7 @@ static void target_laser_think( edict_t *self ) {
 
 				self->spawnflags &= ~0x80000000;
 
-				event = G_SpawnEvent( EV_LASER_SPARKS, DirToByte( tr.plane.normal ), &tr.endpos );
+				event = G_SpawnEvent( EV_LASER_SPARKS, DirToU64( tr.plane.normal ), &tr.endpos );
 				event->s.counterNum = count;
 			}
 			break;

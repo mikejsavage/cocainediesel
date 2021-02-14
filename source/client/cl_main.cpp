@@ -1240,6 +1240,7 @@ static void CL_InitLocal( void ) {
 	Cmd_AddCommand( "rcon", CL_Rcon_f );
 	Cmd_AddCommand( "writeconfig", CL_WriteConfig_f );
 	Cmd_AddCommand( "demo", CL_PlayDemo_f );
+	Cmd_AddCommand( "yolodemo", CL_YoloDemo_f );
 	Cmd_AddCommand( "next", CL_SetNext_f );
 	Cmd_AddCommand( "pingserver", CL_PingServer_f );
 	Cmd_AddCommand( "demopause", CL_PauseDemo_f );
@@ -1247,6 +1248,7 @@ static void CL_InitLocal( void ) {
 	Cmd_AddCommand( "showserverip", CL_ShowServerIP_f );
 
 	Cmd_SetCompletionFunc( "demo", CL_DemoComplete );
+	Cmd_SetCompletionFunc( "yolodemo", CL_DemoComplete );
 }
 
 /*
@@ -1270,6 +1272,7 @@ static void CL_ShutdownLocal( void ) {
 	Cmd_RemoveCommand( "rcon" );
 	Cmd_RemoveCommand( "writeconfig" );
 	Cmd_RemoveCommand( "demo" );
+	Cmd_RemoveCommand( "yolodemo" );
 	Cmd_RemoveCommand( "next" );
 	Cmd_RemoveCommand( "pingserver" );
 	Cmd_RemoveCommand( "demopause" );

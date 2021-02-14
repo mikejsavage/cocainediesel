@@ -25,7 +25,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PLASMAHACK // ffs : hack for the plasmagun
 
 static bool CanHit( const edict_t * projectile, const edict_t * target ) {
-	return target == world || target != projectile->r.owner;
+	if( target == world )
+		return true;
+	if( target == projectile->r.owner )
+		return false;
+
+	constexpr s64 projectile_ignore_teammates_time = 50;
+	if( projectile->s.team != TEAM_PLAYERS && projectile->s.team == target->s.team && level.time - projectile->timeStamp < projectile_ignore_teammates_time )
+		return false;
+
+	return true;
 }
 
 static void W_Explode_Plasma( edict_t *ent, edict_t *other, cplane_t *plane ) {
@@ -37,7 +46,7 @@ static void W_Explode_Plasma( edict_t *ent, edict_t *other, cplane_t *plane ) {
 
 	G_RadiusDamage( ent, ent->r.owner, plane, other, ent->s.type == ET_PLASMA ? MeanOfDeath_Plasma : MeanOfDeath_BubbleGun );
 
-	edict_t * event = G_SpawnEvent( ent->s.type == ET_PLASMA ? EV_PLASMA_EXPLOSION : EV_BUBBLE_EXPLOSION, DirToByte( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
+	edict_t * event = G_SpawnEvent( ent->s.type == ET_PLASMA ? EV_PLASMA_EXPLOSION : EV_BUBBLE_EXPLOSION, DirToU64( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
 	event->s.weapon = Min2( ent->projectileInfo.radius / 8, 127 );
 	event->s.team = ent->s.team;
 
@@ -68,22 +77,25 @@ static void W_Plasma_Backtrace( edict_t *ent, Vec3 start ) {
 	Vec3 oldorigin = ent->s.origin;
 	ent->s.origin = start;
 
+	// workaround to stop this hanging when you shoot a teammate
+	int iter = 0;
 	do {
 		G_Trace4D( &tr, ent->s.origin, mins, maxs, oldorigin, ent, CONTENTS_BODY, ent->timeDelta );
 
 		ent->s.origin = tr.endpos;
 
-		if( tr.ent == -1 ) {
+		if( tr.fraction == 1.0f )
 			break;
-		}
+
 		if( tr.allsolid || tr.startsolid ) {
 			W_Touch_Plasma( ent, &game.edicts[tr.ent], NULL, 0 );
-		} else if( tr.fraction != 1.0 ) {
-			W_Touch_Plasma( ent, &game.edicts[tr.ent], &tr.plane, tr.surfFlags );
-		} else {
-			break;
 		}
-	} while( ent->r.inuse && ent->s.origin != oldorigin );
+		else {
+			W_Touch_Plasma( ent, &game.edicts[tr.ent], &tr.plane, tr.surfFlags );
+		}
+
+		iter++;
+	} while( ent->r.inuse && ent->s.origin != oldorigin && iter < 5 );
 
 	if( ent->r.inuse ) {
 		ent->s.origin = oldorigin;
@@ -110,7 +122,9 @@ static void W_Think_Plasma( edict_t *ent ) {
 
 static void W_AutoTouch_Plasma( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
 	W_Think_Plasma( ent );
-	W_Touch_Plasma( ent, other, plane, surfFlags );
+	if( ent->r.inuse ) {
+		W_Touch_Plasma( ent, other, plane, surfFlags );
+	}
 }
 
 static void G_ProjectileDistancePrestep( edict_t *projectile, float distance ) {
@@ -165,7 +179,7 @@ static edict_t * FireProjectile(
 		edict_t * owner,
 		Vec3 start, Vec3 angles,
 		int timeDelta,
-		const WeaponDef * def, EdictTouchCallback touch, int event_type, int clipmask
+		const WeaponDef * def, EdictTouchCallback touch, int ent_type, int clipmask
 ) {
 	edict_t * projectile = G_Spawn();
 	projectile->s.origin = start;
@@ -194,7 +208,7 @@ static edict_t * FireProjectile(
 	projectile->timeStamp = level.time;
 	projectile->timeDelta = timeDelta;
 	projectile->s.team = owner->s.team;
-	projectile->s.type = event_type;
+	projectile->s.type = ent_type;
 
 	projectile->projectileInfo.minDamage = Min2( float( def->mindamage ), def->damage );
 	projectile->projectileInfo.maxDamage = def->damage;
@@ -211,9 +225,9 @@ static edict_t * FireLinearProjectile(
 		edict_t * owner,
 		Vec3 start, Vec3 angles,
 		int timeDelta,
-		const WeaponDef * def, EdictTouchCallback touch, int event_type, int clipmask
+		const WeaponDef * def, EdictTouchCallback touch, int ent_type, int clipmask
 ) {
-	edict_t * projectile = FireProjectile( owner, start, angles, timeDelta, def, touch, event_type, clipmask );
+	edict_t * projectile = FireProjectile( owner, start, angles, timeDelta, def, touch, ent_type, clipmask );
 
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 	projectile->s.linearMovement = true;
@@ -256,7 +270,7 @@ static void W_Fire_Blade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta
 }
 
 
-static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, WeaponType weapon, int mod, bool piercing ) {
+static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, WeaponType weapon, int mod ) {
 	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
 	Vec3 dir, right, up;
@@ -271,10 +285,10 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 		y_spread = random_float11( &svs.rng ) * spread;
 	}
 
-	if( piercing ) {
+	if( def->pierce ) {
 		Vec3 end = start + dir * def->range;
 		Vec3 from = start;
-		
+
 		edict_t * ignore = self;
 
 		trace_t tr;
@@ -364,7 +378,7 @@ static void W_Fire_Shotgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 			continue;
 		edict_t * target = &game.edicts[ i ];
 		edict_t * ev = G_SpawnEvent( EV_DAMAGE, HEALTH_TO_INT( damage_dealt[ i ] ) << 1, &target->s.origin );
-		ev->r.svflags |= SVF_ONLYOWNER;
+		ev->r.svflags |= SVF_OWNERANDCHASERS;
 		ev->s.ownerNum = ENTNUM( self );
 	}
 }
@@ -375,7 +389,7 @@ static void W_Grenade_ExplodeDir( edict_t *ent, Vec3 normal ) {
 	G_RadiusDamage( ent, ent->r.owner, NULL, ent->enemy, MeanOfDeath_GrenadeLauncher );
 
 	int radius = ( ( ent->projectileInfo.radius * 1 / 8 ) > 127 ) ? 127 : ( ent->projectileInfo.radius * 1 / 8 );
-	edict_t * event = G_SpawnEvent( EV_GRENADE_EXPLOSION, DirToByte( dir ), &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_GRENADE_EXPLOSION, DirToU64( dir ), &ent->s.origin );
 	event->s.weapon = radius;
 	event->s.team = ent->s.team;
 
@@ -412,13 +426,8 @@ static void W_Touch_Grenade( edict_t *ent, edict_t *other, cplane_t *plane, int 
 	W_Grenade_ExplodeDir( ent, plane ? plane->normal : Vec3( 0.0f ) );
 }
 
-static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, bool aim_up ) {
-	Vec3 new_angles = angles;
-	if( aim_up ) {
-		new_angles.x -= 5.0f * cosf( Radians( new_angles.x ) ); // aim some degrees upwards from view dir
-	}
-
-	edict_t * grenade = FireProjectile( self, start, new_angles, timeDelta, GS_GetWeaponDef( Weapon_GrenadeLauncher ), W_Touch_Grenade, ET_GRENADE, MASK_SHOT );
+static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, GS_GetWeaponDef( Weapon_GrenadeLauncher ), W_Touch_Grenade, ET_GRENADE, MASK_SHOT );
 
 	grenade->classname = "grenade";
 	grenade->movetype = MOVETYPE_BOUNCEGRENADE;
@@ -446,7 +455,7 @@ static void W_Touch_Rocket( edict_t *ent, edict_t *other, cplane_t *plane, int s
 
 	G_RadiusDamage( ent, ent->r.owner, plane, other, MeanOfDeath_RocketLauncher );
 
-	edict_t * event = G_SpawnEvent( EV_ROCKET_EXPLOSION, DirToByte( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_ROCKET_EXPLOSION, DirToU64( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
 	event->s.weapon = Min2( ent->projectileInfo.radius / 8, 255 );
 	event->s.team = ent->s.team;
 
@@ -467,6 +476,9 @@ static void W_Fire_Plasma( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 	plasma->classname = "plasma";
 	plasma->s.model = "weapons/pg/cell";
 	plasma->s.sound = "weapons/pg/trail";
+
+	plasma->think = W_Think_Plasma;
+	plasma->nextThink = level.time + 1;
 }
 
 static void FireBubble( edict_t * owner, Vec3 start, Vec3 angles, const WeaponDef * def, int timeDelta ) {
@@ -555,7 +567,7 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 
 
 			// spawn a impact event on each damaged ent
-			edict_t * event = G_SpawnEvent( EV_BOLT_EXPLOSION, DirToByte( tr.plane.normal ), &tr.endpos );
+			edict_t * event = G_SpawnEvent( EV_BOLT_EXPLOSION, DirToU64( tr.plane.normal ), &tr.endpos );
 			event->s.team = self->s.team;
 
 			// if we hit a teammate stop the trace
@@ -570,59 +582,39 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	}
 }
 
-static void G_HideLaser( edict_t *ent ) {
-	ent->r.svflags = SVF_NOCLIENT;
-
-	// give it 100 msecs before freeing itself, so we can relink it if we start firing again
-	ent->think = G_FreeEdict;
-	ent->nextThink = level.time + 100;
-}
-
-static void G_Laser_Think( edict_t *ent ) {
-	edict_t *owner;
-
-	if( ent->s.ownerNum < 1 || ent->s.ownerNum > server_gs.maxclients ) {
-		G_FreeEdict( ent );
-		return;
-	}
-
-	owner = &game.edicts[ent->s.ownerNum];
+static void G_Laser_Think( edict_t * ent ) {
+	edict_t * owner = &game.edicts[ent->s.ownerNum];
 
 	if( G_ISGHOSTING( owner ) || owner->s.weapon != Weapon_Laser ||
 		PF_GetClientState( PLAYERNUM( owner ) ) < CS_SPAWNED ||
 		owner->r.client->ps.weapon_state != WeaponState_Firing ) {
-		G_HideLaser( ent );
+		G_FreeEdict( ent );
 		return;
 	}
 
 	ent->nextThink = level.time + 1;
 }
 
-static float laser_damage;
-static int laser_knockback;
-static int laser_attackerNum;
+struct LaserBeamTraceData {
+	float damage;
+	int knockback;
+	int attacker;
+};
 
-static void _LaserImpact( const trace_t *trace, Vec3 dir ) {
-	edict_t *attacker;
+static void LaserImpact( const trace_t * trace, Vec3 dir, void * data ) {
+	LaserBeamTraceData * beam = ( LaserBeamTraceData * ) data;
 
-	if( !trace || trace->ent <= 0 ) {
-		return;
-	}
-	if( trace->ent == laser_attackerNum ) {
+	if( trace->ent == beam->attacker ) {
 		return; // should not be possible theoretically but happened at least once in practice
-
 	}
-	attacker = &game.edicts[laser_attackerNum];
 
-	if( game.edicts[trace->ent].takedamage ) {
-		G_Damage( &game.edicts[trace->ent], attacker, attacker, dir, dir, trace->endpos, laser_damage, laser_knockback, DAMAGE_KNOCKBACK_SOFT, MeanOfDeath_Lasergun );
-	}
+	edict_t * attacker = &game.edicts[ beam->attacker ];
+	G_Damage( &game.edicts[ trace->ent ], attacker, attacker, dir, dir, trace->endpos, beam->damage, beam->knockback, DAMAGE_KNOCKBACK_SOFT, MeanOfDeath_Lasergun );
 }
 
-static edict_t *FindOrSpawnLaser( edict_t * owner ) {
-	// first of all, see if we already have a beam entity for this laser
-	edict_t * laser = NULL;
+static edict_t * FindOrSpawnLaser( edict_t * owner ) {
 	int ownerNum = ENTNUM( owner );
+
 	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
 		edict_t * e = &game.edicts[i];
 		if( !e->r.inuse ) {
@@ -630,21 +622,16 @@ static edict_t *FindOrSpawnLaser( edict_t * owner ) {
 		}
 
 		if( e->s.ownerNum == ownerNum && e->s.type == ET_LASERBEAM ) {
-			laser = e;
-			break;
+			return e;
 		}
 	}
 
-	// if no ent was found we have to create one
-	if( !laser ) {
-		laser = G_Spawn();
-		laser->s.type = ET_LASERBEAM;
-		laser->s.ownerNum = ownerNum;
-		laser->movetype = MOVETYPE_NONE;
-		laser->r.solid = SOLID_NOT;
-		laser->r.svflags &= ~SVF_NOCLIENT;
-	}
-
+	edict_t * laser = G_Spawn();
+	laser->s.type = ET_LASERBEAM;
+	laser->s.ownerNum = ownerNum;
+	laser->movetype = MOVETYPE_NONE;
+	laser->r.solid = SOLID_NOT;
+	laser->r.svflags &= ~SVF_NOCLIENT;
 	return laser;
 }
 
@@ -653,12 +640,13 @@ static void W_Fire_Lasergun( edict_t * self, Vec3 start, Vec3 angles, int timeDe
 
 	edict_t * laser = FindOrSpawnLaser( self );
 
-	laser_damage = def->damage;
-	laser_knockback = def->knockback;
-	laser_attackerNum = ENTNUM( self );
+	LaserBeamTraceData data;
+	data.damage = def->damage;
+	data.knockback = def->knockback;
+	data.attacker = ENTNUM( self );
 
 	trace_t tr;
-	GS_TraceLaserBeam( &server_gs, &tr, start, angles, def->range, ENTNUM( self ), timeDelta, _LaserImpact );
+	GS_TraceLaserBeam( &server_gs, &tr, start, angles, def->range, ENTNUM( self ), timeDelta, LaserImpact, &data );
 
 	laser->r.svflags |= SVF_FORCEOWNER;
 
@@ -668,7 +656,7 @@ static void W_Fire_Lasergun( edict_t * self, Vec3 start, Vec3 angles, int timeDe
 	laser->s.origin2 = laser->s.origin + dir * def->range;
 
 	laser->think = G_Laser_Think;
-	laser->nextThink = level.time + 100;
+	laser->nextThink = level.time + 1;
 
 	// calculate laser's mins and maxs for linkEntity
 	G_SetBoundsForSpanEntity( laser, 8 );
@@ -686,11 +674,15 @@ static void W_Touch_RifleBullet( edict_t *ent, edict_t *other, cplane_t *plane, 
 		return;
 	}
 
-	edict_t * event = G_SpawnEvent( EV_RIFLEBULLET_IMPACT, DirToByte( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_RIFLEBULLET_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
 	event->s.team = ent->s.team;
 
-	if( other->takedamage ) {
+	if( other->takedamage && ent->enemy != other ) {
 		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MeanOfDeath_Rifle );
+		ent->enemy = other;
+		if( !GS_GetWeaponDef( Weapon_Rifle )->pierce ) {
+			G_FreeEdict( ent );
+		}
 	} else {
 		G_FreeEdict( ent );
 	}
@@ -730,15 +722,15 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 			break;
 
 		case Weapon_Pistol:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Pistol, MeanOfDeath_Pistol, false );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Pistol, MeanOfDeath_Pistol );
 			break;
 
 		case Weapon_MachineGun:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_MachineGun, MeanOfDeath_MachineGun, false );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_MachineGun, MeanOfDeath_MachineGun );
 			break;
 
 		case Weapon_Deagle:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Deagle, MeanOfDeath_Deagle, true );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Deagle, MeanOfDeath_Deagle );
 			break;
 
 		case Weapon_Shotgun:
@@ -746,11 +738,11 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 			break;
 
 		case Weapon_AssaultRifle:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_AssaultRifle, MeanOfDeath_AssaultRifle, true );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_AssaultRifle, MeanOfDeath_AssaultRifle );
 			break;
 
 		case Weapon_GrenadeLauncher:
-			W_Fire_Grenade( ent, origin, angles, timeDelta, true );
+			W_Fire_Grenade( ent, origin, angles, timeDelta );
 			break;
 
 		case Weapon_RocketLauncher:
@@ -770,7 +762,7 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 			break;
 
 		case Weapon_Sniper:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Sniper, MeanOfDeath_Sniper, true );
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Sniper, MeanOfDeath_Sniper );
 			break;
 
 		case Weapon_Railgun:

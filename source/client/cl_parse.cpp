@@ -299,10 +299,6 @@ SERVER CONNECTING MESSAGES
 */
 
 static void CL_ParseServerData( msg_t *msg ) {
-	const char *str;
-	int i, sv_bitflags;
-	int http_portnum;
-
 	Com_DPrintf( "Serverdata packet received.\n" );
 
 	// wipe the client_state_t struct
@@ -311,10 +307,18 @@ static void CL_ParseServerData( msg_t *msg ) {
 	CL_SetClientState( CA_CONNECTED );
 
 	// parse protocol version number
-	i = MSG_ReadInt32( msg );
+	int i = MSG_ReadInt32( msg );
 
 	if( i != APP_PROTOCOL_VERSION ) {
-		Com_GGError( ERR_DROP, "Server returned version {}, not {}", i, APP_PROTOCOL_VERSION );
+		if( cls.demo.playing ) {
+			Com_Printf( S_COLOR_YELLOW "This demo was recorded with an old version of the game and may be broken!\n" );
+			if( !cls.demo.yolo ) {
+				Com_Error( ERR_DROP, "Run yolodemo %s to force load it", cls.demo.name );
+			}
+		}
+		else {
+			Com_GGError( ERR_DROP, "Server returned version {}, not {}", i, APP_PROTOCOL_VERSION );
+		}
 	}
 
 	cl.servercount = MSG_ReadInt32( msg );
@@ -325,7 +329,7 @@ static void CL_ParseServerData( msg_t *msg ) {
 	cl_extrapolationTime->modified = false;
 
 	// base game directory
-	str = MSG_ReadString( msg );
+	const char * str = MSG_ReadString( msg );
 	if( !str || !str[0] ) {
 		Com_Error( ERR_DROP, "Server sent an empty base game directory" );
 	}
@@ -340,7 +344,7 @@ static void CL_ParseServerData( msg_t *msg ) {
 	// parse player entity number
 	cl.playernum = MSG_ReadInt16( msg );
 
-	sv_bitflags = MSG_ReadUint8( msg );
+	int sv_bitflags = MSG_ReadUint8( msg );
 
 	if( cls.demo.playing ) {
 		cls.reliable = ( sv_bitflags & SV_BITFLAGS_RELIABLE );
@@ -361,7 +365,7 @@ static void CL_ParseServerData( msg_t *msg ) {
 			// read base upstream url
 			cls.httpbaseurl = ZoneCopyString( MSG_ReadString( msg ) );
 		} else {
-			http_portnum = MSG_ReadInt16( msg ) & 0xffff;
+			int http_portnum = MSG_ReadInt16( msg ) & 0xffff;
 			cls.httpaddress = cls.serveraddress;
 			if( cls.httpaddress.type == NA_IP6 ) {
 				cls.httpaddress.address.ipv6.port = BigShort( http_portnum );

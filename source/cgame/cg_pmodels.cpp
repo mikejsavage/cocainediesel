@@ -25,9 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 
-constexpr StringHash ally_model = "players/rigg_bigvic_sounds/model";
-constexpr StringHash enemy_model = "players/rigg_padpork_sounds/model";
-
 constexpr u32 MAX_PLAYER_MODELS = 128;
 
 pmodel_t cg_entPModels[ MAX_EDICTS ];
@@ -204,9 +201,7 @@ static const PlayerModelMetadata * GetPlayerModelMetadata( StringHash name ) {
 }
 
 const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num ) {
-	int team = cg_entities[ ent_num ].current.team;
-	StringHash model = CG_IsAlly( team ) ? ally_model : enemy_model;
-	return GetPlayerModelMetadata( model );
+	return GetPlayerModelMetadata( "players/rigg/model" );
 }
 
 void CG_ResetPModels( void ) {
@@ -408,10 +403,6 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 vel
 	constexpr float RUNEPSILON = 220.0f;
 
 	uint32_t moveflags = 0;
-	mat3_t viewaxis;
-	int waterlevel;
-	Vec3 mins, maxs;
-	Vec3 point;
 	trace_t trace;
 
 	if( state->type == ET_CORPSE ) {
@@ -422,12 +413,13 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 vel
 		return a;
 	}
 
-	CG_BBoxForEntityState( state, &mins, &maxs );
+	Vec3 mins = state->bounds.mins;
+	Vec3 maxs = state->bounds.maxs;
 
 	// determine if player is at ground, for walking or falling
 	// this is not like having groundEntity, we are more generous with
 	// the tracing size here to include small steps
-	point = state->origin;
+	Vec3 point = state->origin;
 	point.z -= 1.6 * STEPSIZE;
 	client_gs.api.Trace( &trace, state->origin, mins, maxs, point, state->number, MASK_PLAYERSOLID, 0 );
 	if( trace.ent == -1 || ( trace.fraction < 1.0f && !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
@@ -440,7 +432,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 vel
 	// }
 
 	// find out the water level
-	waterlevel = GS_WaterLevel( &client_gs, state, mins, maxs );
+	int waterlevel = GS_WaterLevel( &client_gs, state, mins, maxs );
 	if( waterlevel >= 2 || ( waterlevel && ( moveflags & ANIMMOVE_AIR ) ) ) {
 		moveflags |= ANIMMOVE_SWIM;
 	}
@@ -451,6 +443,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 vel
 	float xyspeedcheck = Length( hvel );
 	Vec3 movedir = Vec3( SafeNormalize( hvel ), 0.0f );
 	if( xyspeedcheck > WALKEPSILON ) {
+		mat3_t viewaxis;
 		Matrix3_FromAngles( Vec3( 0, state->angles.y, 0 ), viewaxis );
 
 		// if it's moving to where is looking, it's moving forward

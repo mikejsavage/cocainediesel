@@ -253,6 +253,9 @@ void bombExplode() {
 	bombState = BombState_Exploding;
 	@defuser = null;
 
+	match.exploding = true;
+	match.explodedAt = levelTime;
+
 	G_Sound( @bombModel, 0, sndComedy );
 }
 
@@ -269,6 +272,18 @@ void resetBomb() {
 
 void bombThink() {
 	switch( bombState ) {
+		case BombState_Dropped: {
+			// respawn the bomb if it falls in the void
+			if( bombModel.origin.z <= -1024.0f ) {
+				bombModel.origin = RandomEntity( "spawn_bomb_attacking" ).origin;
+				bombModel.velocity = Vec3();
+				bombModel.teleported = true;
+
+				G_PositionedSound( bombModel.origin, 0, sndBombRespawn );
+				G_VFX( bombModel.origin, vfxBombRespawn );
+			}
+		} break;
+
 		case BombState_Planting: {
 			if( !entCanSee( bombCarrier, bombModel.origin ) || bombCarrier.origin.distance( bombModel.origin ) > BOMB_ARM_DEFUSE_RADIUS ) {
 				setTeamProgress( attackingTeam, 0, BombProgress_Nothing );

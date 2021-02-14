@@ -498,6 +498,7 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 */
 void ClientBegin( edict_t *ent ) {
 	gclient_t *client = ent->r.client;
+	ent->r.inuse = true;
 
 	memset( &client->ucmd, 0, sizeof( client->ucmd ) );
 	memset( &client->level, 0, sizeof( client->level ) );
@@ -883,7 +884,7 @@ void G_PredictedFireWeapon( int entNum, WeaponType weapon ) {
 
 	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, weapon, &start );
 	event->s.ownerNum = entNum;
-	event->s.origin2 = ent->r.client->ps.viewangles; // DirToByte is too inaccurate
+	event->s.origin2 = ent->r.client->ps.viewangles;
 	event->s.team = ent->s.team;
 }
 

@@ -46,15 +46,10 @@ constexpr RGB8 TEAM_COLORS[] = {
 
 enum {
 	LOCALEFFECT_VSAY_TIMEOUT,
-	LOCALEFFECT_ROCKETTRAIL_LAST_DROP,
-	LOCALEFFECT_ROCKETFIRE_LAST_DROP,
-	LOCALEFFECT_GRENADETRAIL_LAST_DROP,
-	LOCALEFFECT_BLOODTRAIL_LAST_DROP,
-	LOCALEFFECT_FLAGTRAIL_LAST_DROP,
 	LOCALEFFECT_LASERBEAM,
-	LOCALEFFECT_LASERBEAM_SMOKE_TRAIL,
 	LOCALEFFECT_EV_WEAPONBEAM,
-	MAX_LOCALEFFECTS = 64,
+
+	LOCALEFFECT_COUNT
 };
 
 struct centity_t {
@@ -84,14 +79,16 @@ struct centity_t {
 	Vec3 trailOrigin;         // for particle trails
 
 	// local effects from events timers
-	int64_t localEffects[MAX_LOCALEFFECTS];
+	int64_t localEffects[LOCALEFFECT_COUNT];
 
 	// attached laser beam
 	Vec3 laserOrigin;
 	Vec3 laserPoint;
 	Vec3 laserOriginOld;
 	Vec3 laserPointOld;
+	ImmediateSoundHandle lg_hum_sound;
 	ImmediateSoundHandle lg_beam_sound;
+	ImmediateSoundHandle lg_tip_sound;
 
 	bool linearProjectileCanDraw;
 	Vec3 linearProjectileViewerSource;
@@ -116,7 +113,6 @@ struct cgs_media_t {
 
 	const SoundEffect * sfxWeaponHit[ 4 ];
 	const SoundEffect * sfxWeaponKill;
-	const SoundEffect * sfxWeaponHitTeam;
 
 	const SoundEffect * sfxItemRespawn;
 	const SoundEffect * sfxTeleportIn;
@@ -385,14 +381,13 @@ extern centity_t cg_entities[MAX_EDICTS];
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe );
 
 struct cmodel_t;
-cmodel_t *CG_CModelForEntity( int entNum );
+const cmodel_t *CG_CModelForEntity( int entNum );
 
 void CG_SoundEntityNewState( centity_t *cent );
 void DrawEntities();
-void CG_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity );
+void CG_GetEntitySpatialization( int entNum, Vec3 * origin, Vec3 * velocity );
 void CG_LerpEntities();
 void CG_LerpGenericEnt( centity_t *cent );
-void CG_BBoxForEntityState( const SyncEntityState * state, Vec3 * mins, Vec3 * maxs );
 
 //
 // cg_draw.c
@@ -437,7 +432,6 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin );
 // cg_screen.c
 //
 extern cvar_t *cg_showFPS;
-extern cvar_t *cg_showAwards;
 
 void CG_ScreenInit( void );
 void CG_Draw2D( void );

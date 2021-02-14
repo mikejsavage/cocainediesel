@@ -78,9 +78,9 @@ static void PushButtonColor( ImVec4 color ) {
 
 static void ResetServerBrowser() {
 	for( int i = 0; i < num_servers; i++ ) {
-		free( const_cast< char * >( servers[ i ].address ) );
-		free( const_cast< char * >( servers[ i ].name ) );
-		free( const_cast< char * >( servers[ i ].map ) );
+		FREE( sys_allocator, const_cast< char * >( servers[ i ].address ) );
+		FREE( sys_allocator, const_cast< char * >( servers[ i ].name ) );
+		FREE( sys_allocator, const_cast< char * >( servers[ i ].map ) );
 	}
 
 	memset( servers, 0, sizeof( servers ) );
@@ -300,6 +300,7 @@ static void SettingsControls() {
 			KeyBindButton( "Mike pack", "vsay mike" );
 			KeyBindButton( "User pack", "vsay user" );
 			KeyBindButton( "Guyman pack", "vsay guyman" );
+			KeyBindButton( "Helena pack", "vsay helena" );
 
 			ImGui::BeginChild( "voice", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {
@@ -519,7 +520,40 @@ static void SettingsVideo() {
 	CvarCheckbox( "Vsync", "vid_vsync", "0", CVAR_ARCHIVE );
 }
 
+static const char * CleanAudioDeviceName( const char * name ) {
+	const char * openal_prefix = "OpenAL Soft on ";
+	if( StartsWith( name, openal_prefix ) ) {
+		return name + strlen( openal_prefix );
+	}
+	return name;
+}
+
 static void SettingsAudio() {
+	SettingLabel( "Audio device" );
+	ImGui::PushItemWidth( 400 );
+
+	const char * current = strcmp( s_device->string, "" ) == 0 ? "Default" : s_device->string;
+	if( ImGui::BeginCombo( "##audio_device", CleanAudioDeviceName( current ) ) ) {
+		if( ImGui::Selectable( "Default", strcmp( s_device->string, "" ) == 0 ) ) {
+			Cvar_Set( "s_device", "" );
+		}
+
+		const char * device = GetAudioDevicesAsSequentialStrings();
+		while( strcmp( device, "" ) != 0 ) {
+			if( ImGui::Selectable( CleanAudioDeviceName( device ), strcmp( device, s_device->string ) == 0 ) ) {
+				Cvar_Set( "s_device", device );
+			}
+			device += strlen( device ) + 1;
+		}
+		ImGui::EndCombo();
+	}
+
+	if( ImGui::Button( "Test" ) ) {
+		S_StartLocalSound( FindSoundEffect( "sounds/announcer/bomb/ace" ), CHAN_AUTO, 1.0f );
+	}
+
+	ImGui::Separator();
+
 	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
 	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "0.5", CVAR_ARCHIVE );
 	CvarCheckbox( "Mute when alt-tabbed", "s_muteinbackground", "1", CVAR_ARCHIVE );
@@ -1188,8 +1222,8 @@ void UI_AddToServerList( const char * address, const char * info ) {
 			int parsed = sscanf( info, "\\\\ping\\\\%d\\\\n\\\\%127[^\\]\\\\m\\\\ %31[^\\]\\\\u\\\\%d/%d\\\\EOT", &servers[ i ].ping, name, map, &servers[ i ].num_players, &servers[ i ].max_players );
 
 			if( parsed == 5 ) {
-				servers[ i ].name = strdup( name );
-				servers[ i ].map = strdup( map );
+				servers[ i ].name = CopyString( sys_allocator, name );
+				servers[ i ].map = CopyString( sys_allocator, map );
 			}
 
 			return;
@@ -1197,7 +1231,7 @@ void UI_AddToServerList( const char * address, const char * info ) {
 	}
 
 	if( size_t( num_servers ) < ARRAY_COUNT( servers ) ) {
-		servers[ num_servers ].address = strdup( address );
+		servers[ num_servers ].address = CopyString( sys_allocator, address );
 		num_servers++;
 
 		if( strcmp( info, "\\\\EOT" ) == 0 ) {

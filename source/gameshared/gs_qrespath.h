@@ -79,7 +79,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // combat and weapons
 #define S_WEAPON_HITS               "sounds/misc/hit_%i"
 #define S_WEAPON_KILL               "sounds/misc/kill"
-#define S_WEAPON_HIT_TEAM           "sounds/misc/hit_team"
 
 // announcer sounds
 

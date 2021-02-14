@@ -45,7 +45,7 @@ struct masterserver_t {
 	netadr_t address;
 	Thread *resolverThread;
 	volatile bool resolverActive;
-	char delayedRequestModName[MAX_TOKEN_CHARS];
+	bool should_query;
 };
 
 static masterserver_t masterServers[ ARRAY_COUNT( MASTER_SERVERS ) ];
@@ -400,7 +400,7 @@ static void CL_MasterAddressCache_Shutdown( void ) {
 /*
 * CL_SendMasterServerQuery
 */
-static void CL_SendMasterServerQuery( netadr_t *adr, const char *modname ) {
+static void CL_SendMasterServerQuery( netadr_t *adr ) {
 	const char *cmdname;
 	socket_t *socket;
 	const char *requeststring;
@@ -414,7 +414,7 @@ static void CL_SendMasterServerQuery( netadr_t *adr, const char *modname ) {
 	}
 
 	// create the message
-	requeststring = va( "%s %c%s %i %s %s", cmdname, toupper( modname[0] ), modname + 1, APP_PROTOCOL_VERSION,
+	requeststring = va( "%s %s %i %s %s", cmdname, APPLICATION_NOSPACES, APP_PROTOCOL_VERSION,
 						filter_allow_full ? "full" : "",
 						filter_allow_empty ? "empty" : "" );
 
@@ -428,7 +428,7 @@ static void CL_SendMasterServerQuery( netadr_t *adr, const char *modname ) {
 */
 void CL_GetServers_f( void ) {
 	const char *requeststring;
-	const char *modname, *masterAddress;
+	const char *masterAddress;
 	masterserver_t *master = NULL;
 
 	filter_allow_full = false;
@@ -453,8 +453,6 @@ void CL_GetServers_f( void ) {
 		// send a broadcast packet
 		Com_DPrintf( "Pinging broadcast...\n" );
 
-		// erm... modname isn't sent in local queries?
-
 		requeststring = va( "info %i %s %s", APP_PROTOCOL_VERSION,
 							filter_allow_full ? "full" : "",
 							filter_allow_empty ? "empty" : "" );
@@ -473,13 +471,6 @@ void CL_GetServers_f( void ) {
 		return;
 	}
 
-	modname = Cmd_Argv( 3 );
-	// never allow anyone to use DEFAULT_BASEGAME as mod name
-	if( !modname || !modname[0] || !Q_stricmp( modname, DEFAULT_BASEGAME ) ) {
-		modname = APPLICATION_NOSPACES;
-	}
-	assert( modname[0] );
-
 	// check memory cache
 	for( size_t i = 0; i < ARRAY_COUNT( masterServers ); i++ ) {
 		if( !Q_stricmp( masterServers[i].addressString, masterAddress ) ) {
@@ -495,7 +486,7 @@ void CL_GetServers_f( void ) {
 
 	if( !master->resolverActive ) {
 		if( master->address.type == NA_IP || master->address.type == NA_IP6 ) {
-			CL_SendMasterServerQuery( &master->address, modname );
+			CL_SendMasterServerQuery( &master->address );
 			return;
 		}
 
@@ -507,10 +498,9 @@ void CL_GetServers_f( void ) {
 
 		master->resolverActive = true;
 		master->resolverThread = NewThread( CL_MasterResolverThreadFunc, master );
-
 	}
 
-	Q_strncpyz( master->delayedRequestModName, modname, sizeof( master->delayedRequestModName ) );
+	master->should_query = true;
 }
 
 /*
@@ -518,14 +508,17 @@ void CL_GetServers_f( void ) {
 */
 void CL_ServerListFrame( void ) {
 	for( masterserver_t & master : masterServers ) {
-		if( !master.delayedRequestModName[0] || master.resolverActive ) {
+		if( master.resolverActive )
 			continue;
-		}
+
+		if( master.should_query )
+			continue;
 
 		if( master.address.type == NA_IP || master.address.type == NA_IP6 ) {
-			CL_SendMasterServerQuery( &master.address, master.delayedRequestModName );
+			CL_SendMasterServerQuery( &master.address );
 		}
-		master.delayedRequestModName[0] = '\0';
+
+		master.should_query = false;
 	}
 }
 

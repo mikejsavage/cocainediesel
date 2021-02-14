@@ -179,7 +179,6 @@ void RegisterCvarAddon( asIScriptEngine *engine ) {
 	r = engine->RegisterEnumValue( "eCvarFlag", "CVAR_SERVERINFO", CVAR_SERVERINFO ); assert( r >= 0 );
 	r = engine->RegisterEnumValue( "eCvarFlag", "CVAR_NOSET", CVAR_NOSET ); assert( r >= 0 );
 	r = engine->RegisterEnumValue( "eCvarFlag", "CVAR_LATCH", CVAR_LATCH ); assert( r >= 0 );
-	r = engine->RegisterEnumValue( "eCvarFlag", "CVAR_LATCH_VIDEO", CVAR_LATCH_VIDEO ); assert( r >= 0 );
 	r = engine->RegisterEnumValue( "eCvarFlag", "CVAR_CHEAT", CVAR_CHEAT ); assert( r >= 0 );
 	r = engine->RegisterEnumValue( "eCvarFlag", "CVAR_READONLY", CVAR_READONLY ); assert( r >= 0 );
 

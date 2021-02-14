@@ -204,7 +204,7 @@ void CM_InlineModelBounds( const CollisionModel *cms, const cmodel_t *cmodel, Ve
 int CM_TransformedPointContents( CModelServerOrClient soc, CollisionModel * cms, Vec3 p, cmodel_t *cmodel, Vec3 origin, Vec3 angles );
 
 void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, Vec3 start, Vec3 end, Vec3 mins, Vec3 maxs,
-							 cmodel_t *cmodel, int brushmask, Vec3 origin, Vec3 angles );
+							 const cmodel_t *cmodel, int brushmask, Vec3 origin, Vec3 angles );
 
 int CM_ClusterRowSize( const CollisionModel *cms );
 int CM_AreaRowSize( const CollisionModel *cms );

@@ -204,6 +204,11 @@ static void Delta( DeltaBuffer * buf, Vec3 & v, const Vec3 & baseline ) {
 	}
 }
 
+static void Delta( DeltaBuffer * buf, MinMax3 & b, const MinMax3 & baseline ) {
+	Delta( buf, b.mins, baseline.mins );
+	Delta( buf, b.maxs, baseline.maxs );
+}
+
 static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 	Delta( buf, rgba.r, baseline.r );
 	Delta( buf, rgba.g, baseline.b );
@@ -472,10 +477,11 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.origin, baseline.origin );
 	DeltaAngle( buf, ent.angles, baseline.angles );
 
+	Delta( buf, ent.bounds, baseline.bounds );
+
 	Delta( buf, ent.teleported, baseline.teleported );
 
 	Delta( buf, ent.type, baseline.type );
-	Delta( buf, ent.solid, baseline.solid );
 	Delta( buf, ent.model, baseline.model );
 	Delta( buf, ent.material, baseline.material );
 	Delta( buf, ent.color, baseline.color );
@@ -690,6 +696,8 @@ static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGa
 	Delta( buf, bomb.alpha_players_total, baseline.alpha_players_total );
 	Delta( buf, bomb.beta_players_alive, baseline.beta_players_alive );
 	Delta( buf, bomb.beta_players_total, baseline.beta_players_total );
+	Delta( buf, bomb.exploding, baseline.exploding );
+	Delta( buf, bomb.exploded_at, baseline.exploded_at );
 }
 
 static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState & baseline ) {

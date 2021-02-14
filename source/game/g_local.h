@@ -268,8 +268,6 @@ void G_SpawnQueue_RemoveClient( edict_t *ent );
 void G_SpawnQueue_Think( void );
 
 void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, Vec3 * origin, Vec3 * angles );
-void SP_info_player_start( edict_t *ent );
-void SP_info_player_deathmatch( edict_t *ent );
 void SP_post_match_camera( edict_t *ent );
 
 //
@@ -368,7 +366,6 @@ edict_t *G_PickTarget( const char *targetname );
 void G_UseTargets( edict_t *ent, edict_t *activator );
 void G_SetMovedir( Vec3 * angles, Vec3 * movedir );
 void G_InitMover( edict_t *ent );
-void G_DropSpawnpointToFloor( edict_t *ent );
 
 void G_InitEdict( edict_t *e );
 edict_t *G_Spawn( void );
@@ -816,14 +813,12 @@ struct gclient_t {
 struct snap_edict_t {
 	// whether we have killed anyone this snap
 	bool kill;
-	bool teamkill;
 
 	// ents can accumulate damage along the frame, so they spawn less events
 	float damage_taken;
 	Vec3 damage_dir;
 	Vec3 damage_at;
 	float damage_given;             // for hitsounds
-	float damageteam_given;
 };
 
 using EdictTouchCallback = void ( * )( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags );
@@ -871,7 +866,6 @@ struct edict_t {
 	const char *target;
 	const char *targetname;
 	const char *killtarget;
-	const char *team;
 	const char *pathtarget;
 	edict_t *target_ent;
 
@@ -943,7 +937,7 @@ struct edict_t {
 	asIScriptModule *asScriptModule;
 	asIScriptFunction *asSpawnFunc, *asThinkFunc, *asUseFunc, *asTouchFunc, *asPainFunc, *asDieFunc, *asStopFunc;
 
-	assistinfo_t recent_attackers[MAX_ASSIST_INFO]; 
+	assistinfo_t recent_attackers[MAX_ASSIST_INFO];
 };
 
 static inline int ENTNUM( const edict_t *x ) { return x - game.edicts; }

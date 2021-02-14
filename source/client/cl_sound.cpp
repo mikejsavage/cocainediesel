@@ -78,6 +78,7 @@ static ALCcontext * al_context;
 // so we don't crash when some other application is running in exclusive playback mode (WASAPI/JACK/etc)
 static bool initialized;
 
+cvar_t * s_device;
 static cvar_t * s_volume;
 static cvar_t * s_musicvolume;
 static cvar_t * s_muteinbackground;
@@ -204,10 +205,22 @@ static void CheckedALSourceStop( ALuint source ) {
 static bool S_InitAL() {
 	ZoneScoped;
 
-	al_device = alcOpenDevice( NULL );
+	al_device = NULL;
+
+	if( strcmp( s_device->string, "" ) != 0 ) {
+		al_device = alcOpenDevice( s_device->string );
+		if( al_device == NULL ) {
+			Com_Printf( S_COLOR_YELLOW "Failed to open sound device %s, trying default\n", s_device->string );
+		}
+	}
+
 	if( al_device == NULL ) {
-		Com_Printf( S_COLOR_RED "Failed to open device\n" );
-		return false;
+		al_device = alcOpenDevice( NULL );
+
+		if( al_device == NULL ) {
+			Com_Printf( S_COLOR_RED "Failed to open device\n" );
+			return false;
+		}
 	}
 
 	ALCint attrs[] = { ALC_HRTF_SOFT, ALC_HRTF_ENABLED_SOFT, 0 };
@@ -514,11 +527,16 @@ bool S_Init() {
 	num_sound_effects = 0;
 	num_playing_sound_effects = 0;
 	immediate_sounds_autoinc = 1;
+	sounds_hashtable.clear();
+	sound_effects_hashtable.clear();
+	immediate_sounds_hashtable.clear();
 	music_playing = false;
 	initialized = false;
 
 	memset( entities, 0, sizeof( entities ) );
 
+	s_device = Cvar_Get( "s_device", "", CVAR_ARCHIVE );
+	s_device->modified = false;
 	s_volume = Cvar_Get( "s_volume", "1", CVAR_ARCHIVE );
 	s_musicvolume = Cvar_Get( "s_musicvolume", "0.5", CVAR_ARCHIVE );
 	s_muteinbackground = Cvar_Get( "s_muteinbackground", "1", CVAR_ARCHIVE );
@@ -556,6 +574,10 @@ void S_Shutdown() {
 
 	alcDestroyContext( al_context );
 	alcCloseDevice( al_device );
+}
+
+const char * GetAudioDevicesAsSequentialStrings() {
+	return alcGetString( NULL, ALC_ALL_DEVICES_SPECIFIER );
 }
 
 static bool FindSound( StringHash name, Sound * sound ) {
@@ -659,6 +681,12 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 	if( !initialized )
 		return;
 
+	if( s_device->modified ) {
+		S_Shutdown();
+		S_Init();
+		s_device->modified = false;
+	}
+
 	HotloadSounds();
 	HotloadSoundEffects();
 
@@ -733,6 +761,9 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 			if( ps->type == PlayingSoundType_Entity ) {
 				CheckedALSource( ps->sources[ j ], AL_POSITION, entities[ ps->ent_num ].origin );
 				CheckedALSource( ps->sources[ j ], AL_VELOCITY, entities[ ps->ent_num ].velocity );
+			}
+			else if( ps->type == PlayingSoundType_Position ) {
+				CheckedALSource( ps->sources[ j ], AL_POSITION, ps->origin );
 			}
 			else if( ps->type == PlayingSoundType_Line ) {
 				Vec3 p = ClosestPointOnSegment( ps->origin, ps->end, origin );
@@ -846,7 +877,7 @@ void S_StartLineSound( const SoundEffect * sfx, Vec3 start, Vec3 end, int channe
 
 static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int ent_num, float volume, PlayingSoundType type, ImmediateSoundHandle handle ) {
 	if( sfx == NULL )
-		return handle;
+		return { 0 };
 
 	u64 idx;
 	if( handle.x != 0 && immediate_sounds_hashtable.get( handle.x, &idx ) ) {
@@ -855,9 +886,9 @@ static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int en
 	else {
 		PlayingSound * ps = StartSoundEffect( sfx, ent_num, CHAN_AUTO, volume, type );
 		if( ps == NULL )
-			return handle;
+			return { 0 };
 
-		handle = { Hash64( immediate_sounds_autoinc ) };
+		handle = { immediate_sounds_autoinc };
 
 		immediate_sounds_autoinc++;
 		if( immediate_sounds_autoinc == 0 )
@@ -874,6 +905,21 @@ static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int en
 
 ImmediateSoundHandle S_ImmediateEntitySound( const SoundEffect * sfx, int ent_num, float volume, ImmediateSoundHandle handle ) {
 	return StartImmediateSound( sfx, ent_num, volume, PlayingSoundType_Entity, handle );
+}
+
+ImmediateSoundHandle S_ImmediateFixedSound( const SoundEffect * sfx, Vec3 origin, float volume, ImmediateSoundHandle handle ) {
+	handle = StartImmediateSound( sfx, -1, volume, PlayingSoundType_Position, handle );
+	if( handle.x == 0 )
+		return handle;
+
+	u64 idx;
+	bool ok = immediate_sounds_hashtable.get( handle.x, &idx );
+	assert( ok );
+
+	PlayingSound * ps = &playing_sound_effects[ idx ];
+	ps->origin = origin;
+
+	return handle;
 }
 
 ImmediateSoundHandle S_ImmediateLineSound( const SoundEffect * sfx, Vec3 start, Vec3 end, float volume, ImmediateSoundHandle handle ) {

@@ -68,12 +68,11 @@ void CG_CheckPredictionError( void ) {
 
 	if( cg.predictedGroundEntity != -1 ) {
 		SyncEntityState *ent = &cg_entities[cg.predictedGroundEntity].current;
-		if( ent->solid == SOLID_BMODEL ) {
-			if( ent->linearMovement ) {
-				Vec3 move;
-				GS_LinearMovementDelta( ent, cg.oldFrame.serverTime, cg.frame.serverTime, &move );
-				origin = cg.predictedOrigins[frame] + move;
-			}
+		const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, ent->model );
+		if( cmodel != NULL && ent->linearMovement ) {
+			Vec3 move;
+			GS_LinearMovementDelta( ent, cg.oldFrame.serverTime, cg.frame.serverTime, &move );
+			origin = cg.predictedOrigins[frame] + move;
 		}
 	}
 
@@ -106,32 +105,34 @@ void CG_BuildSolidList( void ) {
 
 	for( int i = 0; i < cg.frame.numEntities; i++ ) {
 		const SyncEntityState * ent = &cg.frame.parsedEntities[ i ];
-		if( ISEVENTENTITY( ent ) ) {
+
+		if( ISEVENTENTITY( ent ) )
 			continue;
-		}
 
-		if( ent->solid ) {
-			switch( ent->type ) {
-				// the following entities can never be solid
-				case ET_ROCKET:
-				case ET_GRENADE:
-				case ET_PLASMA:
-				case ET_LASERBEAM:
-				case ET_BOMB:
-				case ET_BOMB_SITE:
-				case ET_LASER:
-				case ET_SPIKES:
-					break;
+		if( ent->bounds.mins == MinMax3::Empty().mins && ent->bounds.maxs == MinMax3::Empty().maxs )
+			continue;
 
-				case ET_JUMPPAD:
-				case ET_PAINKILLER_JUMPPAD:
-					cg_triggersList[cg_numTriggers++] = &cg_entities[ ent->number ].current;
-					break;
+		switch( ent->type ) {
+			// the following entities can never be solid
+			case ET_GHOST:
+			case ET_ROCKET:
+			case ET_GRENADE:
+			case ET_PLASMA:
+			case ET_LASERBEAM:
+			case ET_BOMB:
+			case ET_BOMB_SITE:
+			case ET_LASER:
+			case ET_SPIKES:
+				break;
 
-				default:
-					cg_solidList[cg_numSolids++] = &cg_entities[ ent->number ].current;
-					break;
-			}
+			case ET_JUMPPAD:
+			case ET_PAINKILLER_JUMPPAD:
+				cg_triggersList[cg_numTriggers++] = &cg_entities[ ent->number ].current;
+				break;
+
+			default:
+				cg_solidList[cg_numSolids++] = &cg_entities[ ent->number ].current;
+				break;
 		}
 	}
 }
@@ -144,22 +145,22 @@ static bool CG_ClipEntityContact( Vec3 origin, Vec3 mins, Vec3 maxs, int entNum 
 	int64_t serverTime = cg.frame.serverTime;
 
 	// find the cmodel
-	cmodel_t * cmodel = CG_CModelForEntity( entNum );
+	const cmodel_t * cmodel = CG_CModelForEntity( entNum );
 	if( !cmodel ) {
 		return false;
 	}
 
-	centity_t * cent = &cg_entities[entNum];
+	const centity_t * cent = &cg_entities[entNum];
 
 	// find the origin
-	if( cent->current.solid == SOLID_BMODEL ) { // special value for bmodel
+	if( !cmodel->builtin ) { // special value for bmodel
 		if( cent->current.linearMovement ) {
 			GS_LinearMovement( &cent->current, serverTime, &entorigin );
 		} else {
 			entorigin = cent->current.origin;
 		}
 		entangles = cent->current.angles;
-	} else {   // encoded bbox
+	} else {
 		entorigin = cent->current.origin;
 		entangles = Vec3( 0.0f ); // boxes don't rotate
 	}
@@ -198,15 +199,10 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 * CG_ClipMoveToEntities
 */
 static void CG_ClipMoveToEntities( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, trace_t *tr ) {
-	int i;
-	trace_t trace;
-	Vec3 origin, angles;
-	SyncEntityState *ent;
-	cmodel_t *cmodel;
 	int64_t serverTime = cg.frame.serverTime;
 
-	for( i = 0; i < cg_numSolids; i++ ) {
-		ent = cg_solidList[i];
+	for( int i = 0; i < cg_numSolids; i++ ) {
+		const SyncEntityState * ent = cg_solidList[i];
 
 		if( ent->number == ignore ) {
 			continue;
@@ -225,34 +221,21 @@ static void CG_ClipMoveToEntities( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, i
 			}
 		}
 
-		if( ent->solid == SOLID_BMODEL ) { // special value for bmodel
-			cmodel = CM_FindCModel( CM_Client, ent->model );
-
+		const cmodel_t * cmodel = CG_CModelForEntity( ent->number );
+		Vec3 origin, angles;
+		if( !cmodel->builtin ) { // special value for bmodel
 			if( ent->linearMovement ) {
 				GS_LinearMovement( ent, serverTime, &origin );
 			} else {
 				origin = ent->origin;
 			}
-
 			angles = ent->angles;
-		} else {   // encoded bbox
-			int x = 8 * ( ent->solid & 31 );
-			int zd = 8 * ( ( ent->solid >> 5 ) & 31 );
-			int zu = 8 * ( ( ent->solid >> 10 ) & 63 ) - 32;
-
-			Vec3 bmins = Vec3( -x, -x, -zd );
-			Vec3 bmaxs = Vec3( x, x, zu );
-
+		} else {
 			origin = ent->origin;
 			angles = Vec3( 0.0f ); // boxes don't rotate
-
-			if( ent->type == ET_PLAYER || ent->type == ET_CORPSE ) {
-				cmodel = CM_OctagonModelForBBox( cl.cms, bmins, bmaxs );
-			} else {
-				cmodel = CM_ModelForBBox( cl.cms, bmins, bmaxs );
-			}
 		}
 
+		trace_t trace;
 		CM_TransformedBoxTrace( CM_Client, cl.cms, &trace, start, end, mins, maxs, cmodel, contentmask, origin, angles );
 		if( trace.allsolid || trace.fraction < tr->fraction ) {
 			trace.ent = ent->number;
@@ -294,12 +277,9 @@ int CG_PointContents( Vec3 point ) {
 
 	for( int i = 0; i < cg_numSolids; i++ ) {
 		const SyncEntityState * ent = cg_solidList[i];
-		if( ent->solid != SOLID_BMODEL ) { // special value for bmodel
-			continue;
-		}
 
 		cmodel_t * cmodel = CM_TryFindCModel( CM_Client, ent->model );
-		if( cmodel ) {
+		if( cmodel != NULL ) {
 			contents |= CM_TransformedPointContents( CM_Client, cl.cms, point, cmodel, ent->origin, ent->angles );
 		}
 	}
@@ -450,17 +430,13 @@ void CG_PredictMovement( void ) {
 
 	// compensate for ground entity movement
 	if( pm.groundentity != -1 ) {
-		SyncEntityState *ent = &cg_entities[pm.groundentity].current;
-
-		if( ent->solid == SOLID_BMODEL ) {
-			if( ent->linearMovement ) {
-				Vec3 move;
-				int64_t serverTime;
-
-				serverTime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime + cgs.extrapolationTime;
-				GS_LinearMovementDelta( ent, cg.frame.serverTime, serverTime, &move );
-				cg.predictedPlayerState.pmove.origin = cg.predictedPlayerState.pmove.origin + move;
-			}
+		const SyncEntityState * ent = &cg_entities[pm.groundentity].current;
+		const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, ent->model );
+		if( cmodel != NULL && ent->linearMovement ) {
+			Vec3 move;
+			s64 serverTime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime + cgs.extrapolationTime;
+			GS_LinearMovementDelta( ent, cg.frame.serverTime, serverTime, &move );
+			cg.predictedPlayerState.pmove.origin = cg.predictedPlayerState.pmove.origin + move;
 		}
 	}
 

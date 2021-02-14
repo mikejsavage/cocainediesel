@@ -1,2447 +1,2807 @@
-textures/sprays/100sprays
-{
-	{
-		map textures/sprays/100sprays
-	}
-	decal
-}
-
-textures/sprays/102
-{
-	{
-		map textures/sprays/102
-	}
-	decal
-}
-
-textures/sprays/120
-{
-	{
-		map textures/sprays/120
-	}
-	decal
-}
-
-textures/sprays/15152
-{
-	{
-		map textures/sprays/15152
-	}
-	decal
-}
-
-textures/sprays/3pac
-{
-	{
-		map textures/sprays/3pac
-	}
-	decal
-}
-
-textures/sprays/420
-{
-	{
-		map textures/sprays/420
-	}
-	decal
-}
-
-textures/sprays/48
-{
-	{
-		map textures/sprays/48
-	}
-	decal
-}
-
-textures/sprays/666
-{
-	{
-		map textures/sprays/666
-	}
-	decal
-}
-
-textures/sprays/8ball
-{
-	{
-		map textures/sprays/8ball
-	}
-	decal
-}
-
-textures/sprays/911
-{
-	{
-		map textures/sprays/911
-	}
-	decal
-}
-
-textures/sprays/934
-{
-	{
-		map textures/sprays/934
-	}
-	decal
-}
-
-textures/sprays/acab
-{
-	{
-		map textures/sprays/acab
-	}
-	decal
-}
-
-textures/sprays/acab2
-{
-	{
-		map textures/sprays/acab2
-	}
-	decal
-}
-
-textures/sprays/acab3
-{
-	{
-		map textures/sprays/acab3
-	}
-	decal
-}
-
-textures/sprays/acab4
-{
-	{
-		map textures/sprays/acab4
-	}
-	decal
-}
-
-textures/sprays/ahacheers
-{
-	{
-		map textures/sprays/ahacheers
-	}
-	decal
-}
-
-textures/sprays/aititty
-{
-	{
-		map textures/sprays/aititty
-	}
-	decal
-}
-
-textures/sprays/amen
-{
-	{
-		map textures/sprays/amen
-	}
-	decal
-}
-
-textures/sprays/amk
-{
-	{
-		map textures/sprays/amk
-	}
-	decal
-}
-
-textures/sprays/anal
-{
-	{
-		map textures/sprays/anal
-	}
-	decal
-}
-
-textures/sprays/angry
-{
-	{
-		map textures/sprays/angry
-	}
-	decal
-}
-
-textures/sprays/antifa
-{
-	{
-		map textures/sprays/antifa
-	}
-	decal
-}
-
-textures/sprays/aor
-{
-	{
-		map textures/sprays/aor
-	}
-	decal
-}
-
-textures/sprays/astley
-{
-	{
-		map textures/sprays/astley
-	}
-	decal
-}
-
-textures/sprays/avocadotoast
-{
-	{
-		map textures/sprays/avocadotoast
-	}
-	decal
-}
-
-textures/sprays/beets
-{
-	{
-		map textures/sprays/beets
-	}
-	decal
-}
-
-textures/sprays/bestballs
-{
-	{
-		map textures/sprays/bestballs
-	}
-	decal
-}
-
-textures/sprays/betmen2
-{
-	{
-		map textures/sprays/betmen2
-	}
-	decal
-}
-
-textures/sprays/biedronka
-{
-	{
-		map textures/sprays/biedronka
-	}
-	decal
-}
-
-textures/sprays/blender
-{
-	{
-		map textures/sprays/blender
-	}
-	decal
-}
-
-textures/sprays/blm
-{
-	{
-		map textures/sprays/blm
-	}
-	decal
-}
-
-textures/sprays/bojo
-{
-	{
-		map textures/sprays/bojo
-	}
-	decal
-}
-
-textures/sprays/bojofanny
-{
-	{
-		map textures/sprays/bojofanny
-	}
-	decal
-}
-
-textures/sprays/bom
-{
-	{
-		map textures/sprays/bom
-	}
-	decal
-}
-
-textures/sprays/bombsite
-{
-	{
-		map textures/sprays/bombsite
-	}
-	decal
-}
-
-textures/sprays/bonk
-{
-	{
-		map textures/sprays/bonk
-	}
-	decal
-}
-
-textures/sprays/boobs
-{
-	{
-		map textures/sprays/boobs
-	}
-	decal
-}
-
-textures/sprays/bumhole
-{
-	{
-		map textures/sprays/bumhole
-	}
-	decal
-}
-
-textures/sprays/butterfly
-{
-	{
-		map textures/sprays/butterfly
-	}
-	decal
-}
-
-textures/sprays/cabbage
-{
-	{
-		map textures/sprays/cabbage
-	}
-	decal
-}
-
-textures/sprays/cactus
-{
-	{
-		map textures/sprays/cactus
-	}
-	decal
-}
-
-textures/sprays/callme
-{
-	{
-		map textures/sprays/callme
-	}
-	decal
-}
-
-textures/sprays/candle
-{
-	{
-		map textures/sprays/candle
-	}
-	decal
-}
-
-textures/sprays/cccp
-{
-	{
-		map textures/sprays/cccp
-	}
-	decal
-}
-
-textures/sprays/cd
-{
-	{
-		map textures/sprays/cd
-	}
-	decal
-}
-
-textures/sprays/chainmail
-{
-	{
-		map textures/sprays/chainmail
-	}
-	decal
-}
-
-textures/sprays/clint
-{
-	{
-		map textures/sprays/clint
-	}
-	decal
-}
-
-textures/sprays/cock
-{
-	{
-		map textures/sprays/cock
-	}
-	decal
-}
-
-textures/sprays/cock2
-{
-	{
-		map textures/sprays/cock2
-	}
-	decal
-}
-
-textures/sprays/cock3
-{
-	{
-		map textures/sprays/cock3
-	}
-	decal
-}
-
-textures/sprays/cock4
-{
-	{
-		map textures/sprays/cock4
-	}
-	decal
-}
-
-textures/sprays/cock5
-{
-	{
-		map textures/sprays/cock5
-	}
-	decal
-}
-
-textures/sprays/combo
-{
-	{
-		map textures/sprays/combo
-	}
-	decal
-}
-
-textures/sprays/cr
-{
-	{
-		map textures/sprays/cr
-	}
-	decal
-}
-
-textures/sprays/cracovia
-{
-	{
-		map textures/sprays/cracovia
-	}
-	decal
-}
-
-textures/sprays/crazyal
-{
-	{
-		map textures/sprays/crazyal
-	}
-	decal
-}
-
-textures/sprays/creep
-{
-	{
-		map textures/sprays/creep
-	}
-	decal
-}
-
-textures/sprays/cumshoot
-{
-	{
-		map textures/sprays/cumshoot
-	}
-	decal
-}
-
-textures/sprays/cunt
-{
-	{
-		map textures/sprays/cunt
-	}
-	decal
-}
-
-textures/sprays/daddy
-{
-	{
-		map textures/sprays/daddy
-	}
-	decal
-}
-
-textures/sprays/danksy
-{
-	{
-		map textures/sprays/danksy
-	}
-	decal
-}
-
-textures/sprays/defqon1
-{
-	{
-		map textures/sprays/defqon1
-	}
-	decal
-}
-
-textures/sprays/dickbutt
-{
-	{
-		map textures/sprays/dickbutt
-	}
-	decal
-}
-
-textures/sprays/dickslap
-{
-	{
-		map textures/sprays/dickslap
-	}
-	decal
-}
-
-textures/sprays/dikhed
-{
-	{
-		map textures/sprays/dikhed
-	}
-	decal
-}
-
-textures/sprays/disastergirl
-{
-	{
-		map textures/sprays/disastergirl
-	}
-	decal
-}
-
-textures/sprays/dontgiveupo
-{
-	{
-		map textures/sprays/dontgiveupo
-	}
-	decal
-}
-
-textures/sprays/donttellme
-{
-	{
-		map textures/sprays/donttellme
-	}
-	decal
-}
-
-textures/sprays/dragonface
-{
-	{
-		map textures/sprays/dragonface
-	}
-	decal
-}
-
-textures/sprays/drbutt
-{
-	{
-		map textures/sprays/drbutt
-	}
-	decal
-}
-
-textures/sprays/dude
-{
-	{
-		map textures/sprays/dude
-	}
-	decal
-}
-
-textures/sprays/dudedead
-{
-	{
-		map textures/sprays/dudedead
-	}
-	decal
-}
-
-textures/sprays/duderando
-{
-	{
-		map textures/sprays/duderando
-	}
-	decal
-}
-
-textures/sprays/dwoglf
-{
-	{
-		map textures/sprays/dwoglf
-	}
-	decal
-}
-
-textures/sprays/eggmask
-{
-	{
-		map textures/sprays/eggmask
-	}
-	decal
-}
-
-textures/sprays/eggquake
-{
-	{
-		map textures/sprays/eggquake
-	}
-	decal
-}
-
-textures/sprays/emule
-{
-	{
-		map textures/sprays/emule
-	}
-	decal
-}
-
-textures/sprays/epstein
-{
-	{
-		map textures/sprays/epstein
-	}
-	decal
-}
-
-textures/sprays/epstein2
-{
-	{
-		map textures/sprays/epstein2
-	}
-	decal
-}
-
-textures/sprays/eye
-{
-	{
-		map textures/sprays/eye
-	}
-	decal
-}
-
-textures/sprays/face
-{
-	{
-		map textures/sprays/face
-	}
-	decal
-}
-
-textures/sprays/face1
-{
-	{
-		map textures/sprays/face1
-	}
-	decal
-}
-
-textures/sprays/faceman
-{
-	{
-		map textures/sprays/faceman
-	}
-	decal
-}
-
-textures/sprays/faec
-{
-	{
-		map textures/sprays/faec
-	}
-	decal
-}
-
-textures/sprays/fakeb
-{
-	{
-		map textures/sprays/fakeb
-	}
-	decal
-}
-
-textures/sprays/farm
-{
-	{
-		map textures/sprays/farm
-	}
-	decal
-}
-
-textures/sprays/fish
-{
-	{
-		map textures/sprays/fish
-	}
-	decal
-}
-
-textures/sprays/five
-{
-	{
-		map textures/sprays/five
-	}
-	decal
-}
-
-textures/sprays/flat_earth
-{
-	{
-		map textures/sprays/flat_earth
-	}
-	decal
-}
-
-textures/sprays/flower
-{
-	{
-		map textures/sprays/flower
-	}
-	decal
-}
-
-textures/sprays/forkknife
-{
-	{
-		map textures/sprays/forkknife
-	}
-	decal
-}
-
-textures/sprays/ftba
-{
-	{
-		map textures/sprays/ftba
-	}
-	decal
-}
-
-textures/sprays/ftpl
-{
-	{
-		map textures/sprays/ftpl
-	}
-	decal
-}
-
-textures/sprays/fuck
-{
-	{
-		map textures/sprays/fuck
-	}
-	decal
-}
-
-textures/sprays/fuckmen
-{
-	{
-		map textures/sprays/fuckmen
-	}
-	decal
-}
-
-textures/sprays/fuckyou
-{
-	{
-		map textures/sprays/fuckyou
-	}
-	decal
-}
-
-textures/sprays/fuckyour
-{
-	{
-		map textures/sprays/fuckyour
-	}
-	decal
-}
-
-textures/sprays/fun
-{
-	{
-		map textures/sprays/fun
-	}
-	decal
-}
-
-textures/sprays/fyc
-{
-	{
-		map textures/sprays/fyc
-	}
-	decal
-}
-
-textures/sprays/gaydicks
-{
-	{
-		map textures/sprays/gaydicks
-	}
-	decal
-}
-
-textures/sprays/getrekt
-{
-	{
-		map textures/sprays/getrekt
-	}
-	decal
-}
-
-textures/sprays/gfnervig
-{
-	{
-		map textures/sprays/gfnervig
-	}
-	decal
-}
-
-textures/sprays/gg2
-{
-	{
-		map textures/sprays/gg2
-	}
-	decal
-}
-
-textures/sprays/gitgud
-{
-	{
-		map textures/sprays/gitgud
-	}
-	decal
-}
-
-textures/sprays/goku
-{
-	{
-		map textures/sprays/goku
-	}
-	decal
-}
-
-textures/sprays/goochie
-{
-	{
-		map textures/sprays/goochie
-	}
-	decal
-}
-
-textures/sprays/goteem
-{
-	{
-		map textures/sprays/goteem
-	}
-	decal
-}
-
-textures/sprays/goy
-{
-	{
-		map textures/sprays/goy
-	}
-	decal
-}
-
-textures/sprays/graf
-{
-	{
-		map textures/sprays/graf
-	}
-	decal
-}
-
-textures/sprays/greencube
-{
-	{
-		map textures/sprays/greencube
-	}
-	decal
-}
-
-textures/sprays/hacktheplanet
-{
-	{
-		map textures/sprays/hacktheplanet
-	}
-	decal
-}
-
-textures/sprays/hahaha
-{
-	{
-		map textures/sprays/hahaha
-	}
-	decal
-}
-
-textures/sprays/hands
-{
-	{
-		map textures/sprays/hands
-	}
-	decal
-}
-
-textures/sprays/hang
-{
-	{
-		map textures/sprays/hang
-	}
-	decal
-}
-
-textures/sprays/hank
-{
-	{
-		map textures/sprays/hank
-	}
-	decal
-}
-
-textures/sprays/happysad
-{
-	{
-		map textures/sprays/happysad
-	}
-	decal
-}
-
-textures/sprays/harambe
-{
-	{
-		map textures/sprays/harambe
-	}
-	decal
-}
-
-textures/sprays/heart1
-{
-	{
-		map textures/sprays/heart1
-	}
-	decal
-}
-
-textures/sprays/hideyokidz
-{
-	{
-		map textures/sprays/hideyokidz
-	}
-	decal
-}
-
-textures/sprays/himom
-{
-	{
-		map textures/sprays/himom
-	}
-	decal
-}
-
-textures/sprays/hitit
-{
-	{
-		map textures/sprays/hitit
-	}
-	decal
-}
-
-textures/sprays/hotel
-{
-	{
-		map textures/sprays/hotel
-	}
-	decal
-}
-
-textures/sprays/hotline
-{
-	{
-		map textures/sprays/hotline
-	}
-	decal
-}
-
-textures/sprays/hta
-{
-	{
-		map textures/sprays/hta
-	}
-	decal
-}
-
-textures/sprays/hug
-{
-	{
-		map textures/sprays/hug
-	}
-	decal
-}
-
-textures/sprays/humanity
-{
-	{
-		map textures/sprays/humanity
-	}
-	decal
-}
-
-textures/sprays/huso
-{
-	{
-		map textures/sprays/huso
-	}
-	decal
-}
-
-textures/sprays/hyde
-{
-	{
-		map textures/sprays/hyde
-	}
-	decal
-}
-
-textures/sprays/icq
-{
-	{
-		map textures/sprays/icq
-	}
-	decal
-}
-
-textures/sprays/ig
-{
-	{
-		map textures/sprays/ig
-	}
-	decal
-}
-
-textures/sprays/influencer
-{
-	{
-		map textures/sprays/influencer
-	}
-	decal
-}
-
-textures/sprays/informer
-{
-	{
-		map textures/sprays/informer
-	}
-	decal
-}
-
-textures/sprays/jay
-{
-	{
-		map textures/sprays/jay
-	}
-	decal
-}
-
-textures/sprays/jebise
-{
-	{
-		map textures/sprays/jebise
-	}
-	decal
-}
-
-textures/sprays/jesusu
-{
-	{
-		map textures/sprays/jesusu
-	}
-	decal
-}
-
-textures/sprays/jwzr
-{
-	{
-		map textures/sprays/jwzr
-	}
-	decal
-}
-
-textures/sprays/kama
-{
-	{
-		map textures/sprays/kama
-	}
-	decal
-}
-
-textures/sprays/kanye
-{
-	{
-		map textures/sprays/kanye
-	}
-	decal
-}
-
-textures/sprays/kanye2
-{
-	{
-		map textures/sprays/kanye2
-	}
-	decal
-}
-
-textures/sprays/kanye3
-{
-	{
-		map textures/sprays/kanye3
-	}
-	decal
-}
-
-textures/sprays/kapow
-{
-	{
-		map textures/sprays/kapow
-	}
-	decal
-}
-
-textures/sprays/kazaa
-{
-	{
-		map textures/sprays/kazaa
-	}
-	decal
-}
-
-textures/sprays/kerning
-{
-	{
-		map textures/sprays/kerning
-	}
-	decal
-}
-
-textures/sprays/ket
-{
-	{
-		map textures/sprays/ket
-	}
-	decal
-}
-
-textures/sprays/ketamine
-{
-	{
-		map textures/sprays/ketamine
-	}
-	decal
-}
-
-textures/sprays/kilroy
-{
-	{
-		map textures/sprays/kilroy
-	}
-	decal
-}
-
-textures/sprays/knobhead
-{
-	{
-		map textures/sprays/knobhead
-	}
-	decal
-}
-
-textures/sprays/knobhead2
-{
-	{
-		map textures/sprays/knobhead2
-	}
-	decal
-}
-
-textures/sprays/kobe
-{
-	{
-		map textures/sprays/kobe
-	}
-	decal
-}
-
-textures/sprays/kurva
-{
-	{
-		map textures/sprays/kurva
-	}
-	decal
-}
-
-textures/sprays/kurwa
-{
-	{
-		map textures/sprays/kurwa
-	}
-	decal
-}
-
-textures/sprays/lastoink
-{
-	{
-		map textures/sprays/lastoink
-	}
-	decal
-}
-
-textures/sprays/limewire
-{
-	{
-		map textures/sprays/limewire
-	}
-	decal
-}
-
-textures/sprays/lojk
-{
-	{
-		map textures/sprays/lojk
-	}
-	decal
-}
-
-textures/sprays/lovingmemory
-{
-	{
-		map textures/sprays/lovingmemory
-	}
-	decal
-}
-
-textures/sprays/maddox
-{
-	{
-		map textures/sprays/maddox
-	}
-	decal
-}
-
-textures/sprays/mask
-{
-	{
-		map textures/sprays/mask
-	}
-	decal
-}
-
-textures/sprays/maskzombies
-{
-	{
-		map textures/sprays/maskzombies
-	}
-	decal
-}
-
-textures/sprays/master
-{
-	{
-		map textures/sprays/master
-	}
-	decal
-}
-
-textures/sprays/matress
-{
-	{
-		map textures/sprays/matress
-	}
-	decal
-}
-
-textures/sprays/mdma
-{
-	{
-		map textures/sprays/mdma
-	}
-	decal
-}
-
-textures/sprays/member
-{
-	{
-		map textures/sprays/member
-	}
-	decal
-}
-
-textures/sprays/meowmeow
-{
-	{
-		map textures/sprays/meowmeow
-	}
-	decal
-}
-
-textures/sprays/mike
-{
-	{
-		map textures/sprays/mike
-	}
-	decal
-}
-
-textures/sprays/mike2
-{
-	{
-		map textures/sprays/mike2
-	}
-	decal
-}
-
-textures/sprays/mirc
-{
-	{
-		map textures/sprays/mirc
-	}
-	decal
-}
-
-textures/sprays/missgeburt
-{
-	{
-		map textures/sprays/missgeburt
-	}
-	decal
-}
-
-textures/sprays/mitch1
-{
-	{
-		map textures/sprays/mitch1
-	}
-	decal
-}
-
-textures/sprays/mitch2
-{
-	{
-		map textures/sprays/mitch2
-	}
-	decal
-}
-
-textures/sprays/munch
-{
-	{
-		map textures/sprays/munch
-	}
-	decal
-}
-
-textures/sprays/mussolini
-{
-	{
-		map textures/sprays/mussolini
-	}
-	decal
-}
-
-textures/sprays/napster
-{
-	{
-		map textures/sprays/napster
-	}
-	decal
-}
-
-textures/sprays/never
-{
-	{
-		map textures/sprays/never
-	}
-	decal
-}
-
-textures/sprays/neveragain2
-{
-	{
-		map textures/sprays/neveragain2
-	}
-	decal
-}
-
-textures/sprays/neveragain3
-{
-	{
-		map textures/sprays/neveragain3
-	}
-	decal
-}
-
-textures/sprays/neverforget
-{
-	{
-		map textures/sprays/neverforget
-	}
-	decal
-}
-
-textures/sprays/nigel
-{
-	{
-		map textures/sprays/nigel
-	}
-	decal
-}
-
-textures/sprays/nighty
-{
-	{
-		map textures/sprays/nighty
-	}
-	decal
-}
-
-textures/sprays/nipplegate
-{
-	{
-		map textures/sprays/nipplegate
-	}
-	decal
-}
-
-textures/sprays/nodrama
-{
-	{
-		map textures/sprays/nodrama
-	}
-	decal
-}
-
-textures/sprays/noregerts
-{
-	{
-		map textures/sprays/noregerts
-	}
-	decal
-}
-
-textures/sprays/nutcream
-{
-	{
-		map textures/sprays/nutcream
-	}
-	decal
-}
-
-textures/sprays/obama
-{
-	{
-		map textures/sprays/obama
-	}
-	decal
-}
-
-textures/sprays/oink
-{
-	{
-		map textures/sprays/oink
-	}
-	decal
-}
-
-textures/sprays/onion
-{
-	{
-		map textures/sprays/onion
-	}
-	decal
-}
-
-textures/sprays/onionfire1
-{
-	{
-		map textures/sprays/onionfire1
-	}
-	decal
-}
-
-textures/sprays/owned
-{
-	{
-		map textures/sprays/owned
-	}
-	decal
-}
-
-textures/sprays/pakguy
-{
-	{
-		map textures/sprays/pakguy
-	}
-	decal
-}
-
-textures/sprays/palestine
-{
-	{
-		map textures/sprays/palestine
-	}
-	decal
-}
-
-textures/sprays/peace
-{
-	{
-		map textures/sprays/peace
-	}
-	decal
-}
-
-textures/sprays/peekatyou
-{
-	{
-		map textures/sprays/peekatyou
-	}
-	decal
-}
-
-textures/sprays/peepee
-{
-	{
-		map textures/sprays/peepee
-	}
-	decal
-}
-
-textures/sprays/penis
-{
-	{
-		map textures/sprays/penis
-	}
-	decal
-}
-
-textures/sprays/perrina
-{
-	{
-		map textures/sprays/perrina
-	}
-	decal
-}
-
-textures/sprays/phart
-{
-	{
-		map textures/sprays/phart
-	}
-	decal
-}
-
-textures/sprays/pig
-{
-	{
-		map textures/sprays/pig
-	}
-	decal
-}
-
-textures/sprays/pigeon
-{
-	{
-		map textures/sprays/pigeon
-	}
-	decal
-}
-
-textures/sprays/pistol
-{
-	{
-		map textures/sprays/pistol
-	}
-	decal
-}
-
-textures/sprays/pizza
-{
-	{
-		map textures/sprays/pizza
-	}
-	decal
-}
-
-textures/sprays/pog
-{
-	{
-		map textures/sprays/pog
-	}
-	decal
-}
-
-textures/sprays/poon
-{
-	{
-		map textures/sprays/poon
-	}
-	decal
-}
-
-textures/sprays/poop
-{
-	{
-		map textures/sprays/poop
-	}
-	decal
-}
-
-textures/sprays/poop2
-{
-	{
-		map textures/sprays/poop2
-	}
-	decal
-}
-
-textures/sprays/popit
-{
-	{
-		map textures/sprays/popit
-	}
-	decal
-}
-
-textures/sprays/potato
-{
-	{
-		map textures/sprays/potato
-	}
-	decal
-}
-
-textures/sprays/pow
-{
-	{
-		map textures/sprays/pow
-	}
-	decal
-}
-
-textures/sprays/praisethesun
-{
-	{
-		map textures/sprays/praisethesun
-	}
-	decal
-}
-
-textures/sprays/ps
-{
-	{
-		map textures/sprays/ps
-	}
-	decal
-}
-
-textures/sprays/puffdar
-{
-	{
-		map textures/sprays/puffdar
-	}
-	decal
-}
-
-textures/sprays/puffdarneko
-{
-	{
-		map textures/sprays/puffdarneko
-	}
-	decal
-}
-
-textures/sprays/puke
-{
-	{
-		map textures/sprays/puke
-	}
-	decal
-}
-
-textures/sprays/punk
-{
-	{
-		map textures/sprays/punk
-	}
-	decal
-}
-
-textures/sprays/puppies
-{
-	{
-		map textures/sprays/puppies
-	}
-	decal
-}
-
-textures/sprays/pusikuirac
-{
-	{
-		map textures/sprays/pusikuirac
-	}
-	decal
-}
-
-textures/sprays/pussyxxx
-{
-	{
-		map textures/sprays/pussyxxx
-	}
-	decal
-}
-
-textures/sprays/quakelove
-{
-	{
-		map textures/sprays/quakelove
-	}
-	decal
-}
-
-textures/sprays/random
-{
-	{
-		map textures/sprays/random
-	}
-	decal
-}
-
-textures/sprays/ranger
-{
-	{
-		map textures/sprays/ranger
-	}
-	decal
-}
-
-textures/sprays/raptor
-{
-	{
-		map textures/sprays/raptor
-	}
-	decal
-}
-
-textures/sprays/redrum
-{
-	{
-		map textures/sprays/redrum
-	}
-	decal
-}
-
-textures/sprays/redskin
-{
-	{
-		map textures/sprays/redskin
-	}
-	decal
-}
-
-textures/sprays/remember
-{
-	{
-		map textures/sprays/remember
-	}
-	decal
-}
-
-textures/sprays/restauration
-{
-	{
-		map textures/sprays/restauration
-	}
-	decal
-}
-
-textures/sprays/restoration2
-{
-	{
-		map textures/sprays/restoration2
-	}
-	decal
-}
-
-textures/sprays/right2bear
-{
-	{
-		map textures/sprays/right2bear
-	}
-	decal
-}
-
-textures/sprays/rip
-{
-	{
-		map textures/sprays/rip
-	}
-	decal
-}
-
-textures/sprays/ripbro
-{
-	{
-		map textures/sprays/ripbro
-	}
-	decal
-}
-
-textures/sprays/ripwpd
-{
-	{
-		map textures/sprays/ripwpd
-	}
-	decal
-}
-
-textures/sprays/robot
-{
-	{
-		map textures/sprays/robot
-	}
-	decal
-}
-
-textures/sprays/rtr
-{
-	{
-		map textures/sprays/rtr
-	}
-	decal
-}
-
-textures/sprays/s
-{
-	{
-		map textures/sprays/s
-	}
-	decal
-}
-
-textures/sprays/sad
-{
-	{
-		map textures/sprays/sad
-	}
-	decal
-}
-
-textures/sprays/santa
-{
-	{
-		map textures/sprays/santa
-	}
-	decal
-}
-
-textures/sprays/santa2
-{
-	{
-		map textures/sprays/santa2
-	}
-	decal
-}
-
-textures/sprays/sapipa
-{
-	{
-		map textures/sprays/sapipa
-	}
-	decal
-}
-
-textures/sprays/scotty
-{
-	{
-		map textures/sprays/scotty
-	}
-	decal
-}
-
-textures/sprays/shia
-{
-	{
-		map textures/sprays/shia
-	}
-	decal
-}
-
-textures/sprays/shit
-{
-	{
-		map textures/sprays/shit
-	}
-	decal
-}
-
-textures/sprays/shitcunt
-{
-	{
-		map textures/sprays/shitcunt
-	}
-	decal
-}
-
-textures/sprays/shitgoose
-{
-	{
-		map textures/sprays/shitgoose
-	}
-	decal
-}
-
-textures/sprays/skirym
-{
-	{
-		map textures/sprays/skirym
-	}
-	decal
-}
-
-textures/sprays/skull
-{
-	{
-		map textures/sprays/skull
-	}
-	decal
-}
-
-textures/sprays/skull2
-{
-	{
-		map textures/sprays/skull2
-	}
-	decal
-}
-
-textures/sprays/slime
-{
-	{
-		map textures/sprays/slime
-	}
-	decal
-}
-
-textures/sprays/slk
-{
-	{
-		map textures/sprays/slk
-	}
-	decal
-}
-
-textures/sprays/smiley
-{
-	{
-		map textures/sprays/smiley
-	}
-	decal
-}
-
-textures/sprays/smudge
-{
-	{
-		map textures/sprays/smudge
-	}
-	decal
-}
-
-textures/sprays/snooy
-{
-	{
-		map textures/sprays/snooy
-	}
-	decal
-}
-
-textures/sprays/snowman
-{
-	{
-		map textures/sprays/snowman
-	}
-	decal
-}
-
-textures/sprays/sonik
-{
-	{
-		map textures/sprays/sonik
-	}
-	decal
-}
-
-textures/sprays/spin
-{
-	{
-		map textures/sprays/spin
-	}
-	decal
-}
-
-textures/sprays/spook
-{
-	{
-		map textures/sprays/spook
-	}
-	decal
-}
-
-textures/sprays/starwings
-{
-	{
-		map textures/sprays/starwings
-	}
-	decal
-}
-
-textures/sprays/strawman
-{
-	{
-		map textures/sprays/strawman
-	}
-	decal
-}
-
-textures/sprays/sun
-{
-	{
-		map textures/sprays/sun
-	}
-	decal
-}
-
-textures/sprays/sun2
-{
-	{
-		map textures/sprays/sun2
-	}
-	decal
-}
-
-textures/sprays/sunlaser
-{
-	{
-		map textures/sprays/sunlaser
-	}
-	decal
-}
-
-textures/sprays/sup
-{
-	{
-		map textures/sprays/sup
-	}
-	decal
-}
-
-textures/sprays/sup2
-{
-	{
-		map textures/sprays/sup2
-	}
-	decal
-}
-
-textures/sprays/sure
-{
-	{
-		map textures/sprays/sure
-	}
-	decal
-}
-
-textures/sprays/symbol
-{
-	{
-		map textures/sprays/symbol
-	}
-	decal
-}
-
-textures/sprays/tbag
-{
-	{
-		map textures/sprays/tbag
-	}
-	decal
-}
-
-textures/sprays/teleport
-{
-	{
-		map textures/sprays/teleport
-	}
-	decal
-}
-
-textures/sprays/teritory
-{
-	{
-		map textures/sprays/teritory
-	}
-	decal
-}
-
-textures/sprays/terrible
-{
-	{
-		map textures/sprays/terrible
-	}
-	decal
-}
-
-textures/sprays/terry
-{
-	{
-		map textures/sprays/terry
-	}
-	decal
-}
-
-textures/sprays/tictactoe
-{
-	{
-		map textures/sprays/tictactoe
-	}
-	decal
-}
-
-textures/sprays/tissue
-{
-	{
-		map textures/sprays/tissue
-	}
-	decal
-}
-
-textures/sprays/titties
-{
-	{
-		map textures/sprays/titties
-	}
-	decal
-}
-
-textures/sprays/tonyskate
-{
-	{
-		map textures/sprays/tonyskate
-	}
-	decal
-}
-
-textures/sprays/toof
-{
-	{
-		map textures/sprays/toof
-	}
-	decal
-}
-
-textures/sprays/triangel
-{
-	{
-		map textures/sprays/triangel
-	}
-	decal
-}
-
-textures/sprays/truffle
-{
-	{
-		map textures/sprays/truffle
-	}
-	decal
-}
-
-textures/sprays/ts2
-{
-	{
-		map textures/sprays/ts2
-	}
-	decal
-}
-
-textures/sprays/tupac
-{
-	{
-		map textures/sprays/tupac
-	}
-	decal
-}
-
-textures/sprays/turdbox
-{
-	{
-		map textures/sprays/turdbox
-	}
-	decal
-}
-
-textures/sprays/turtle
-{
-	{
-		map textures/sprays/turtle
-	}
-	decal
-}
-
-textures/sprays/turtle2
-{
-	{
-		map textures/sprays/turtle2
-	}
-	decal
-}
-
-textures/sprays/urgay
-{
-	{
-		map textures/sprays/urgay
-	}
-	decal
-}
-
-textures/sprays/urinate
-{
-	{
-		map textures/sprays/urinate
-	}
-	decal
-}
-
-textures/sprays/urterrible
-{
-	{
-		map textures/sprays/urterrible
-	}
-	decal
-}
-
-textures/sprays/usa
-{
-	{
-		map textures/sprays/usa
-	}
-	decal
-}
-
-textures/sprays/user
-{
-	{
-		map textures/sprays/user
-	}
-	decal
-}
-
-textures/sprays/vagina
-{
-	{
-		map textures/sprays/vagina
-	}
-	decal
-}
-
-textures/sprays/volim1
-{
-	{
-		map textures/sprays/volim1
-	}
-	decal
-}
-
-textures/sprays/wack
-{
-	{
-		map textures/sprays/wack
-	}
-	decal
-}
-
-textures/sprays/warnneko
-{
-	{
-		map textures/sprays/warnneko
-	}
-	decal
-}
-
-textures/sprays/warsowsucks
-{
-	{
-		map textures/sprays/warsowsucks
-	}
-	decal
-}
-
-textures/sprays/webdev
-{
-	{
-		map textures/sprays/webdev
-	}
-	decal
-}
-
-textures/sprays/what
-{
-	{
-		map textures/sprays/what
-	}
-	decal
-}
-
-textures/sprays/whatablast
-{
-	{
-		map textures/sprays/whatablast
-	}
-	decal
-}
-
-textures/sprays/whatelse
-{
-	{
-		map textures/sprays/whatelse
-	}
-	decal
-}
-
-textures/sprays/whodone
-{
-	{
-		map textures/sprays/whodone
-	}
-	decal
-}
-
-textures/sprays/whoopi
-{
-	{
-		map textures/sprays/whoopi
-	}
-	decal
-}
-
-textures/sprays/worship
-{
-	{
-		map textures/sprays/worship
-	}
-	decal
-}
-
-textures/sprays/wutang
-{
-	{
-		map textures/sprays/wutang
-	}
-	decal
-}
-
-textures/sprays/x_x
-{
-	{
-		map textures/sprays/x_x
-	}
-	decal
-}
-
-textures/sprays/xd
-{
-	{
-		map textures/sprays/xd
-	}
-	decal
-}
-
-textures/sprays/xmas
-{
-	{
-		map textures/sprays/xmas
-	}
-	decal
-}
-
-textures/sprays/xxx
-{
-	{
-		map textures/sprays/xxx
-	}
-	decal
-}
-
-textures/sprays/yanderedev
-{
-	{
-		map textures/sprays/yanderedev
-	}
-	decal
-}
-
-textures/sprays/youngp
-{
-	{
-		map textures/sprays/youngp
-	}
-	decal
-}
-
-textures/sprays/yourdone
-{
-	{
-		map textures/sprays/yourdone
-	}
-	decal
-}
-
-textures/sprays/zakalidis
-{
-	{
-		map textures/sprays/zakalidis
-	}
-	decal
-}
-
-textures/sprays/zelder
-{
-	{
-		map textures/sprays/zelder
-	}
-	decal
-}
-
-textures/sprays/zoink
-{
-	{
-		map textures/sprays/zoink
-	}
-	decal
-}
+-e textures/sprays/100sprays
+-e {
+-e 	{
+-e 		map textures/sprays/100sprays
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/102
+-e {
+-e 	{
+-e 		map textures/sprays/102
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/120
+-e {
+-e 	{
+-e 		map textures/sprays/120
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/15152
+-e {
+-e 	{
+-e 		map textures/sprays/15152
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/3pac
+-e {
+-e 	{
+-e 		map textures/sprays/3pac
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/420
+-e {
+-e 	{
+-e 		map textures/sprays/420
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/48
+-e {
+-e 	{
+-e 		map textures/sprays/48
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/666
+-e {
+-e 	{
+-e 		map textures/sprays/666
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/8ball
+-e {
+-e 	{
+-e 		map textures/sprays/8ball
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/911
+-e {
+-e 	{
+-e 		map textures/sprays/911
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/934
+-e {
+-e 	{
+-e 		map textures/sprays/934
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/acab
+-e {
+-e 	{
+-e 		map textures/sprays/acab
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/acab2
+-e {
+-e 	{
+-e 		map textures/sprays/acab2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/acab3
+-e {
+-e 	{
+-e 		map textures/sprays/acab3
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/acab4
+-e {
+-e 	{
+-e 		map textures/sprays/acab4
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ahaa
+-e {
+-e 	{
+-e 		map textures/sprays/ahaa
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ahacheers
+-e {
+-e 	{
+-e 		map textures/sprays/ahacheers
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/aititty
+-e {
+-e 	{
+-e 		map textures/sprays/aititty
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/alright
+-e {
+-e 	{
+-e 		map textures/sprays/alright
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/amen
+-e {
+-e 	{
+-e 		map textures/sprays/amen
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/amk
+-e {
+-e 	{
+-e 		map textures/sprays/amk
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/anal
+-e {
+-e 	{
+-e 		map textures/sprays/anal
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/angry
+-e {
+-e 	{
+-e 		map textures/sprays/angry
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/antifa
+-e {
+-e 	{
+-e 		map textures/sprays/antifa
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/aor
+-e {
+-e 	{
+-e 		map textures/sprays/aor
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/areya
+-e {
+-e 	{
+-e 		map textures/sprays/areya
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/astley
+-e {
+-e 	{
+-e 		map textures/sprays/astley
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/avocadotoast
+-e {
+-e 	{
+-e 		map textures/sprays/avocadotoast
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/beets
+-e {
+-e 	{
+-e 		map textures/sprays/beets
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/bestballs
+-e {
+-e 	{
+-e 		map textures/sprays/bestballs
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/betmen2
+-e {
+-e 	{
+-e 		map textures/sprays/betmen2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/biedronka
+-e {
+-e 	{
+-e 		map textures/sprays/biedronka
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/blender
+-e {
+-e 	{
+-e 		map textures/sprays/blender
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/blm
+-e {
+-e 	{
+-e 		map textures/sprays/blm
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/bojo
+-e {
+-e 	{
+-e 		map textures/sprays/bojo
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/bojofanny
+-e {
+-e 	{
+-e 		map textures/sprays/bojofanny
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/bom
+-e {
+-e 	{
+-e 		map textures/sprays/bom
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/bombsite
+-e {
+-e 	{
+-e 		map textures/sprays/bombsite
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/bonk
+-e {
+-e 	{
+-e 		map textures/sprays/bonk
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/boobs
+-e {
+-e 	{
+-e 		map textures/sprays/boobs
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/brb
+-e {
+-e 	{
+-e 		map textures/sprays/brb
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/bumhole
+-e {
+-e 	{
+-e 		map textures/sprays/bumhole
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/butterfly
+-e {
+-e 	{
+-e 		map textures/sprays/butterfly
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cabbage
+-e {
+-e 	{
+-e 		map textures/sprays/cabbage
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cactus
+-e {
+-e 	{
+-e 		map textures/sprays/cactus
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/callme
+-e {
+-e 	{
+-e 		map textures/sprays/callme
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/candle
+-e {
+-e 	{
+-e 		map textures/sprays/candle
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cat_food
+-e {
+-e 	{
+-e 		map textures/sprays/cat_food
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/catsrule
+-e {
+-e 	{
+-e 		map textures/sprays/catsrule
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cccp
+-e {
+-e 	{
+-e 		map textures/sprays/cccp
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cd
+-e {
+-e 	{
+-e 		map textures/sprays/cd
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/chainmail
+-e {
+-e 	{
+-e 		map textures/sprays/chainmail
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/clint
+-e {
+-e 	{
+-e 		map textures/sprays/clint
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cock
+-e {
+-e 	{
+-e 		map textures/sprays/cock
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cock2
+-e {
+-e 	{
+-e 		map textures/sprays/cock2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cock3
+-e {
+-e 	{
+-e 		map textures/sprays/cock3
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cock4
+-e {
+-e 	{
+-e 		map textures/sprays/cock4
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cock5
+-e {
+-e 	{
+-e 		map textures/sprays/cock5
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/combo
+-e {
+-e 	{
+-e 		map textures/sprays/combo
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cornholio
+-e {
+-e 	{
+-e 		map textures/sprays/cornholio
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cr
+-e {
+-e 	{
+-e 		map textures/sprays/cr
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cracovia
+-e {
+-e 	{
+-e 		map textures/sprays/cracovia
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/crazyal
+-e {
+-e 	{
+-e 		map textures/sprays/crazyal
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/creep
+-e {
+-e 	{
+-e 		map textures/sprays/creep
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cumshoot
+-e {
+-e 	{
+-e 		map textures/sprays/cumshoot
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cunt
+-e {
+-e 	{
+-e 		map textures/sprays/cunt
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/cyaa
+-e {
+-e 	{
+-e 		map textures/sprays/cyaa
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/daddy
+-e {
+-e 	{
+-e 		map textures/sprays/daddy
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/danksy
+-e {
+-e 	{
+-e 		map textures/sprays/danksy
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/defqon1
+-e {
+-e 	{
+-e 		map textures/sprays/defqon1
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/dickbutt
+-e {
+-e 	{
+-e 		map textures/sprays/dickbutt
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/dickslap
+-e {
+-e 	{
+-e 		map textures/sprays/dickslap
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/dikhed
+-e {
+-e 	{
+-e 		map textures/sprays/dikhed
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/disastergirl
+-e {
+-e 	{
+-e 		map textures/sprays/disastergirl
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/dontgiveupo
+-e {
+-e 	{
+-e 		map textures/sprays/dontgiveupo
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/donttellme
+-e {
+-e 	{
+-e 		map textures/sprays/donttellme
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/dragonface
+-e {
+-e 	{
+-e 		map textures/sprays/dragonface
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/drbutt
+-e {
+-e 	{
+-e 		map textures/sprays/drbutt
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/dude
+-e {
+-e 	{
+-e 		map textures/sprays/dude
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/dudedead
+-e {
+-e 	{
+-e 		map textures/sprays/dudedead
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/duderando
+-e {
+-e 	{
+-e 		map textures/sprays/duderando
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/dudes
+-e {
+-e 	{
+-e 		map textures/sprays/dudes
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/dwoglf
+-e {
+-e 	{
+-e 		map textures/sprays/dwoglf
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/eggmask
+-e {
+-e 	{
+-e 		map textures/sprays/eggmask
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/eggquake
+-e {
+-e 	{
+-e 		map textures/sprays/eggquake
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/emule
+-e {
+-e 	{
+-e 		map textures/sprays/emule
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/epstein
+-e {
+-e 	{
+-e 		map textures/sprays/epstein
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/epstein2
+-e {
+-e 	{
+-e 		map textures/sprays/epstein2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ettu
+-e {
+-e 	{
+-e 		map textures/sprays/ettu
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/eye
+-e {
+-e 	{
+-e 		map textures/sprays/eye
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/face
+-e {
+-e 	{
+-e 		map textures/sprays/face
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/face1
+-e {
+-e 	{
+-e 		map textures/sprays/face1
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/faceman
+-e {
+-e 	{
+-e 		map textures/sprays/faceman
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/faec
+-e {
+-e 	{
+-e 		map textures/sprays/faec
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/fakeb
+-e {
+-e 	{
+-e 		map textures/sprays/fakeb
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/farm
+-e {
+-e 	{
+-e 		map textures/sprays/farm
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/fish
+-e {
+-e 	{
+-e 		map textures/sprays/fish
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/five
+-e {
+-e 	{
+-e 		map textures/sprays/five
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/flat_earth
+-e {
+-e 	{
+-e 		map textures/sprays/flat_earth
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/flower
+-e {
+-e 	{
+-e 		map textures/sprays/flower
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/forkknife
+-e {
+-e 	{
+-e 		map textures/sprays/forkknife
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ftba
+-e {
+-e 	{
+-e 		map textures/sprays/ftba
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ftpl
+-e {
+-e 	{
+-e 		map textures/sprays/ftpl
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/fuck
+-e {
+-e 	{
+-e 		map textures/sprays/fuck
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/fuckmen
+-e {
+-e 	{
+-e 		map textures/sprays/fuckmen
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/fuckyou
+-e {
+-e 	{
+-e 		map textures/sprays/fuckyou
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/fuckyour
+-e {
+-e 	{
+-e 		map textures/sprays/fuckyour
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/fun
+-e {
+-e 	{
+-e 		map textures/sprays/fun
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/futureuro
+-e {
+-e 	{
+-e 		map textures/sprays/futureuro
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/fyc
+-e {
+-e 	{
+-e 		map textures/sprays/fyc
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/gaydicks
+-e {
+-e 	{
+-e 		map textures/sprays/gaydicks
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/getrekt
+-e {
+-e 	{
+-e 		map textures/sprays/getrekt
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/gfnervig
+-e {
+-e 	{
+-e 		map textures/sprays/gfnervig
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/gg2
+-e {
+-e 	{
+-e 		map textures/sprays/gg2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/gitgud
+-e {
+-e 	{
+-e 		map textures/sprays/gitgud
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/giveflower
+-e {
+-e 	{
+-e 		map textures/sprays/giveflower
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/goku
+-e {
+-e 	{
+-e 		map textures/sprays/goku
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/goochie
+-e {
+-e 	{
+-e 		map textures/sprays/goochie
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/goteem
+-e {
+-e 	{
+-e 		map textures/sprays/goteem
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/goy
+-e {
+-e 	{
+-e 		map textures/sprays/goy
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/gr
+-e {
+-e 	{
+-e 		map textures/sprays/gr
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/graf
+-e {
+-e 	{
+-e 		map textures/sprays/graf
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/greencube
+-e {
+-e 	{
+-e 		map textures/sprays/greencube
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hacktheplanet
+-e {
+-e 	{
+-e 		map textures/sprays/hacktheplanet
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hahaha
+-e {
+-e 	{
+-e 		map textures/sprays/hahaha
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hand_fist
+-e {
+-e 	{
+-e 		map textures/sprays/hand_fist
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hand_ok
+-e {
+-e 	{
+-e 		map textures/sprays/hand_ok
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hand_peace
+-e {
+-e 	{
+-e 		map textures/sprays/hand_peace
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hand_shake
+-e {
+-e 	{
+-e 		map textures/sprays/hand_shake
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hand_thumbsup
+-e {
+-e 	{
+-e 		map textures/sprays/hand_thumbsup
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hand_you
+-e {
+-e 	{
+-e 		map textures/sprays/hand_you
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hands
+-e {
+-e 	{
+-e 		map textures/sprays/hands
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hang
+-e {
+-e 	{
+-e 		map textures/sprays/hang
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hank
+-e {
+-e 	{
+-e 		map textures/sprays/hank
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/happysad
+-e {
+-e 	{
+-e 		map textures/sprays/happysad
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/harambe
+-e {
+-e 	{
+-e 		map textures/sprays/harambe
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/heart1
+-e {
+-e 	{
+-e 		map textures/sprays/heart1
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hideyokidz
+-e {
+-e 	{
+-e 		map textures/sprays/hideyokidz
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/himom
+-e {
+-e 	{
+-e 		map textures/sprays/himom
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hitit
+-e {
+-e 	{
+-e 		map textures/sprays/hitit
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hoe
+-e {
+-e 	{
+-e 		map textures/sprays/hoe
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/holup
+-e {
+-e 	{
+-e 		map textures/sprays/holup
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hotel
+-e {
+-e 	{
+-e 		map textures/sprays/hotel
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hotline
+-e {
+-e 	{
+-e 		map textures/sprays/hotline
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hta
+-e {
+-e 	{
+-e 		map textures/sprays/hta
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hug
+-e {
+-e 	{
+-e 		map textures/sprays/hug
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/humanity
+-e {
+-e 	{
+-e 		map textures/sprays/humanity
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/huso
+-e {
+-e 	{
+-e 		map textures/sprays/huso
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/hyde
+-e {
+-e 	{
+-e 		map textures/sprays/hyde
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ice_city
+-e {
+-e 	{
+-e 		map textures/sprays/ice_city
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/icq
+-e {
+-e 	{
+-e 		map textures/sprays/icq
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ig
+-e {
+-e 	{
+-e 		map textures/sprays/ig
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/influencer
+-e {
+-e 	{
+-e 		map textures/sprays/influencer
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/informer
+-e {
+-e 	{
+-e 		map textures/sprays/informer
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/jay
+-e {
+-e 	{
+-e 		map textures/sprays/jay
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/jebise
+-e {
+-e 	{
+-e 		map textures/sprays/jebise
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/jesusu
+-e {
+-e 	{
+-e 		map textures/sprays/jesusu
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/jwzr
+-e {
+-e 	{
+-e 		map textures/sprays/jwzr
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/kama
+-e {
+-e 	{
+-e 		map textures/sprays/kama
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/kanye
+-e {
+-e 	{
+-e 		map textures/sprays/kanye
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/kanye2
+-e {
+-e 	{
+-e 		map textures/sprays/kanye2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/kanye3
+-e {
+-e 	{
+-e 		map textures/sprays/kanye3
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/kapow
+-e {
+-e 	{
+-e 		map textures/sprays/kapow
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/kazaa
+-e {
+-e 	{
+-e 		map textures/sprays/kazaa
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/kerning
+-e {
+-e 	{
+-e 		map textures/sprays/kerning
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ket
+-e {
+-e 	{
+-e 		map textures/sprays/ket
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ketamine
+-e {
+-e 	{
+-e 		map textures/sprays/ketamine
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/kilroy
+-e {
+-e 	{
+-e 		map textures/sprays/kilroy
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/king
+-e {
+-e 	{
+-e 		map textures/sprays/king
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/knobhead
+-e {
+-e 	{
+-e 		map textures/sprays/knobhead
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/knobhead2
+-e {
+-e 	{
+-e 		map textures/sprays/knobhead2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/kobe
+-e {
+-e 	{
+-e 		map textures/sprays/kobe
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/kungfu
+-e {
+-e 	{
+-e 		map textures/sprays/kungfu
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/kurva
+-e {
+-e 	{
+-e 		map textures/sprays/kurva
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/kurwa
+-e {
+-e 	{
+-e 		map textures/sprays/kurwa
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/lastoink
+-e {
+-e 	{
+-e 		map textures/sprays/lastoink
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/lenny
+-e {
+-e 	{
+-e 		map textures/sprays/lenny
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/limewire
+-e {
+-e 	{
+-e 		map textures/sprays/limewire
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/linux
+-e {
+-e 	{
+-e 		map textures/sprays/linux
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/lojk
+-e {
+-e 	{
+-e 		map textures/sprays/lojk
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/lovingmemory
+-e {
+-e 	{
+-e 		map textures/sprays/lovingmemory
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/maddox
+-e {
+-e 	{
+-e 		map textures/sprays/maddox
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/mask
+-e {
+-e 	{
+-e 		map textures/sprays/mask
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/maskzombies
+-e {
+-e 	{
+-e 		map textures/sprays/maskzombies
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/master
+-e {
+-e 	{
+-e 		map textures/sprays/master
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/matress
+-e {
+-e 	{
+-e 		map textures/sprays/matress
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/mdma
+-e {
+-e 	{
+-e 		map textures/sprays/mdma
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/member
+-e {
+-e 	{
+-e 		map textures/sprays/member
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/meowmeow
+-e {
+-e 	{
+-e 		map textures/sprays/meowmeow
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/microdick
+-e {
+-e 	{
+-e 		map textures/sprays/microdick
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/mike
+-e {
+-e 	{
+-e 		map textures/sprays/mike
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/mike2
+-e {
+-e 	{
+-e 		map textures/sprays/mike2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/mirc
+-e {
+-e 	{
+-e 		map textures/sprays/mirc
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/missgeburt
+-e {
+-e 	{
+-e 		map textures/sprays/missgeburt
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/mitch1
+-e {
+-e 	{
+-e 		map textures/sprays/mitch1
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/mitch2
+-e {
+-e 	{
+-e 		map textures/sprays/mitch2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/moese
+-e {
+-e 	{
+-e 		map textures/sprays/moese
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/munch
+-e {
+-e 	{
+-e 		map textures/sprays/munch
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/mussolini
+-e {
+-e 	{
+-e 		map textures/sprays/mussolini
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/napster
+-e {
+-e 	{
+-e 		map textures/sprays/napster
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/never
+-e {
+-e 	{
+-e 		map textures/sprays/never
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/neveragain2
+-e {
+-e 	{
+-e 		map textures/sprays/neveragain2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/neveragain3
+-e {
+-e 	{
+-e 		map textures/sprays/neveragain3
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/neverforget
+-e {
+-e 	{
+-e 		map textures/sprays/neverforget
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/neverforget2
+-e {
+-e 	{
+-e 		map textures/sprays/neverforget2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/nick
+-e {
+-e 	{
+-e 		map textures/sprays/nick
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/nigel
+-e {
+-e 	{
+-e 		map textures/sprays/nigel
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/nighty
+-e {
+-e 	{
+-e 		map textures/sprays/nighty
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/nipplegate
+-e {
+-e 	{
+-e 		map textures/sprays/nipplegate
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/nodrama
+-e {
+-e 	{
+-e 		map textures/sprays/nodrama
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/noregerts
+-e {
+-e 	{
+-e 		map textures/sprays/noregerts
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/nutcream
+-e {
+-e 	{
+-e 		map textures/sprays/nutcream
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/obama
+-e {
+-e 	{
+-e 		map textures/sprays/obama
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ohwow
+-e {
+-e 	{
+-e 		map textures/sprays/ohwow
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/oink
+-e {
+-e 	{
+-e 		map textures/sprays/oink
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ok
+-e {
+-e 	{
+-e 		map textures/sprays/ok
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/onion
+-e {
+-e 	{
+-e 		map textures/sprays/onion
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/onionfire1
+-e {
+-e 	{
+-e 		map textures/sprays/onionfire1
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/owned
+-e {
+-e 	{
+-e 		map textures/sprays/owned
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/oz
+-e {
+-e 	{
+-e 		map textures/sprays/oz
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/pakguy
+-e {
+-e 	{
+-e 		map textures/sprays/pakguy
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/palestine
+-e {
+-e 	{
+-e 		map textures/sprays/palestine
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/peace
+-e {
+-e 	{
+-e 		map textures/sprays/peace
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/peekatyou
+-e {
+-e 	{
+-e 		map textures/sprays/peekatyou
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/peepee
+-e {
+-e 	{
+-e 		map textures/sprays/peepee
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/pegdo
+-e {
+-e 	{
+-e 		map textures/sprays/pegdo
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/penis
+-e {
+-e 	{
+-e 		map textures/sprays/penis
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/perrina
+-e {
+-e 	{
+-e 		map textures/sprays/perrina
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/phart
+-e {
+-e 	{
+-e 		map textures/sprays/phart
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/pig
+-e {
+-e 	{
+-e 		map textures/sprays/pig
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/pigeon
+-e {
+-e 	{
+-e 		map textures/sprays/pigeon
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/pistol
+-e {
+-e 	{
+-e 		map textures/sprays/pistol
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/pizza
+-e {
+-e 	{
+-e 		map textures/sprays/pizza
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/pog
+-e {
+-e 	{
+-e 		map textures/sprays/pog
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/poon
+-e {
+-e 	{
+-e 		map textures/sprays/poon
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/poop
+-e {
+-e 	{
+-e 		map textures/sprays/poop
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/poop2
+-e {
+-e 	{
+-e 		map textures/sprays/poop2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/popit
+-e {
+-e 	{
+-e 		map textures/sprays/popit
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/potato
+-e {
+-e 	{
+-e 		map textures/sprays/potato
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/pow
+-e {
+-e 	{
+-e 		map textures/sprays/pow
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/praisethesun
+-e {
+-e 	{
+-e 		map textures/sprays/praisethesun
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ps
+-e {
+-e 	{
+-e 		map textures/sprays/ps
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/puffdar
+-e {
+-e 	{
+-e 		map textures/sprays/puffdar
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/puffdarneko
+-e {
+-e 	{
+-e 		map textures/sprays/puffdarneko
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/puke
+-e {
+-e 	{
+-e 		map textures/sprays/puke
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/punk
+-e {
+-e 	{
+-e 		map textures/sprays/punk
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/puppies
+-e {
+-e 	{
+-e 		map textures/sprays/puppies
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/pusikuirac
+-e {
+-e 	{
+-e 		map textures/sprays/pusikuirac
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/pussyxxx
+-e {
+-e 	{
+-e 		map textures/sprays/pussyxxx
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/quakelove
+-e {
+-e 	{
+-e 		map textures/sprays/quakelove
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/random
+-e {
+-e 	{
+-e 		map textures/sprays/random
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ranger
+-e {
+-e 	{
+-e 		map textures/sprays/ranger
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/raptor
+-e {
+-e 	{
+-e 		map textures/sprays/raptor
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/redrum
+-e {
+-e 	{
+-e 		map textures/sprays/redrum
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/redskin
+-e {
+-e 	{
+-e 		map textures/sprays/redskin
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/remember
+-e {
+-e 	{
+-e 		map textures/sprays/remember
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/restauration
+-e {
+-e 	{
+-e 		map textures/sprays/restauration
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/restoration2
+-e {
+-e 	{
+-e 		map textures/sprays/restoration2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/right2bear
+-e {
+-e 	{
+-e 		map textures/sprays/right2bear
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/rip
+-e {
+-e 	{
+-e 		map textures/sprays/rip
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ripbro
+-e {
+-e 	{
+-e 		map textures/sprays/ripbro
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ripwpd
+-e {
+-e 	{
+-e 		map textures/sprays/ripwpd
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/robot
+-e {
+-e 	{
+-e 		map textures/sprays/robot
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/rtr
+-e {
+-e 	{
+-e 		map textures/sprays/rtr
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/s
+-e {
+-e 	{
+-e 		map textures/sprays/s
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/sad
+-e {
+-e 	{
+-e 		map textures/sprays/sad
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/santa
+-e {
+-e 	{
+-e 		map textures/sprays/santa
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/santa2
+-e {
+-e 	{
+-e 		map textures/sprays/santa2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/sapipa
+-e {
+-e 	{
+-e 		map textures/sprays/sapipa
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/scotty
+-e {
+-e 	{
+-e 		map textures/sprays/scotty
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/shia
+-e {
+-e 	{
+-e 		map textures/sprays/shia
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/shit
+-e {
+-e 	{
+-e 		map textures/sprays/shit
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/shitcunt
+-e {
+-e 	{
+-e 		map textures/sprays/shitcunt
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/shitgoose
+-e {
+-e 	{
+-e 		map textures/sprays/shitgoose
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/sizors
+-e {
+-e 	{
+-e 		map textures/sprays/sizors
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/skirym
+-e {
+-e 	{
+-e 		map textures/sprays/skirym
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/skull
+-e {
+-e 	{
+-e 		map textures/sprays/skull
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/skull2
+-e {
+-e 	{
+-e 		map textures/sprays/skull2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/slime
+-e {
+-e 	{
+-e 		map textures/sprays/slime
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/slk
+-e {
+-e 	{
+-e 		map textures/sprays/slk
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/smile
+-e {
+-e 	{
+-e 		map textures/sprays/smile
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/smiley
+-e {
+-e 	{
+-e 		map textures/sprays/smiley
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/smudge
+-e {
+-e 	{
+-e 		map textures/sprays/smudge
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/snooy
+-e {
+-e 	{
+-e 		map textures/sprays/snooy
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/snowman
+-e {
+-e 	{
+-e 		map textures/sprays/snowman
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/snowman2
+-e {
+-e 	{
+-e 		map textures/sprays/snowman2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/sonik
+-e {
+-e 	{
+-e 		map textures/sprays/sonik
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/spin
+-e {
+-e 	{
+-e 		map textures/sprays/spin
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/spinfaster
+-e {
+-e 	{
+-e 		map textures/sprays/spinfaster
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/spiral
+-e {
+-e 	{
+-e 		map textures/sprays/spiral
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/spook
+-e {
+-e 	{
+-e 		map textures/sprays/spook
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/starwings
+-e {
+-e 	{
+-e 		map textures/sprays/starwings
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/strawman
+-e {
+-e 	{
+-e 		map textures/sprays/strawman
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/sun
+-e {
+-e 	{
+-e 		map textures/sprays/sun
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/sun2
+-e {
+-e 	{
+-e 		map textures/sprays/sun2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/sunlaser
+-e {
+-e 	{
+-e 		map textures/sprays/sunlaser
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/sup
+-e {
+-e 	{
+-e 		map textures/sprays/sup
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/sup2
+-e {
+-e 	{
+-e 		map textures/sprays/sup2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/sure
+-e {
+-e 	{
+-e 		map textures/sprays/sure
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/symbol
+-e {
+-e 	{
+-e 		map textures/sprays/symbol
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/tbag
+-e {
+-e 	{
+-e 		map textures/sprays/tbag
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/teleport
+-e {
+-e 	{
+-e 		map textures/sprays/teleport
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/teritory
+-e {
+-e 	{
+-e 		map textures/sprays/teritory
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/terrible
+-e {
+-e 	{
+-e 		map textures/sprays/terrible
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/terry
+-e {
+-e 	{
+-e 		map textures/sprays/terry
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/thumbsup
+-e {
+-e 	{
+-e 		map textures/sprays/thumbsup
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/tictactoe
+-e {
+-e 	{
+-e 		map textures/sprays/tictactoe
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/tissue
+-e {
+-e 	{
+-e 		map textures/sprays/tissue
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/titties
+-e {
+-e 	{
+-e 		map textures/sprays/titties
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/tonyskate
+-e {
+-e 	{
+-e 		map textures/sprays/tonyskate
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/toof
+-e {
+-e 	{
+-e 		map textures/sprays/toof
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/triangel
+-e {
+-e 	{
+-e 		map textures/sprays/triangel
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/truffle
+-e {
+-e 	{
+-e 		map textures/sprays/truffle
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/ts2
+-e {
+-e 	{
+-e 		map textures/sprays/ts2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/tupac
+-e {
+-e 	{
+-e 		map textures/sprays/tupac
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/turdbox
+-e {
+-e 	{
+-e 		map textures/sprays/turdbox
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/turtle
+-e {
+-e 	{
+-e 		map textures/sprays/turtle
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/turtle2
+-e {
+-e 	{
+-e 		map textures/sprays/turtle2
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/urgay
+-e {
+-e 	{
+-e 		map textures/sprays/urgay
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/urinate
+-e {
+-e 	{
+-e 		map textures/sprays/urinate
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/urterrible
+-e {
+-e 	{
+-e 		map textures/sprays/urterrible
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/usa
+-e {
+-e 	{
+-e 		map textures/sprays/usa
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/user
+-e {
+-e 	{
+-e 		map textures/sprays/user
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/vagina
+-e {
+-e 	{
+-e 		map textures/sprays/vagina
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/volim1
+-e {
+-e 	{
+-e 		map textures/sprays/volim1
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/wack
+-e {
+-e 	{
+-e 		map textures/sprays/wack
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/warnneko
+-e {
+-e 	{
+-e 		map textures/sprays/warnneko
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/warsowsucks
+-e {
+-e 	{
+-e 		map textures/sprays/warsowsucks
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/webdev
+-e {
+-e 	{
+-e 		map textures/sprays/webdev
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/what
+-e {
+-e 	{
+-e 		map textures/sprays/what
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/whatablast
+-e {
+-e 	{
+-e 		map textures/sprays/whatablast
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/whatelse
+-e {
+-e 	{
+-e 		map textures/sprays/whatelse
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/whodone
+-e {
+-e 	{
+-e 		map textures/sprays/whodone
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/whoopi
+-e {
+-e 	{
+-e 		map textures/sprays/whoopi
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/win2loose
+-e {
+-e 	{
+-e 		map textures/sprays/win2loose
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/wojakflat
+-e {
+-e 	{
+-e 		map textures/sprays/wojakflat
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/wojakparty
+-e {
+-e 	{
+-e 		map textures/sprays/wojakparty
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/worship
+-e {
+-e 	{
+-e 		map textures/sprays/worship
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/wutang
+-e {
+-e 	{
+-e 		map textures/sprays/wutang
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/x_x
+-e {
+-e 	{
+-e 		map textures/sprays/x_x
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/xd
+-e {
+-e 	{
+-e 		map textures/sprays/xd
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/xeyes
+-e {
+-e 	{
+-e 		map textures/sprays/xeyes
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/xmas
+-e {
+-e 	{
+-e 		map textures/sprays/xmas
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/xxx
+-e {
+-e 	{
+-e 		map textures/sprays/xxx
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/yanderedev
+-e {
+-e 	{
+-e 		map textures/sprays/yanderedev
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/youngp
+-e {
+-e 	{
+-e 		map textures/sprays/youngp
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/yourapussy
+-e {
+-e 	{
+-e 		map textures/sprays/yourapussy
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/yourdone
+-e {
+-e 	{
+-e 		map textures/sprays/yourdone
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/zakalidis
+-e {
+-e 	{
+-e 		map textures/sprays/zakalidis
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/zelder
+-e {
+-e 	{
+-e 		map textures/sprays/zelder
+-e 	}
+-e 	decal
+-e }
+-e 
+-e textures/sprays/zoink
+-e {
+-e 	{
+-e 		map textures/sprays/zoink
+-e 	}
+-e 	decal
+-e }

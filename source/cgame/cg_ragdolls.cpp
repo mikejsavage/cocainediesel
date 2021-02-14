@@ -97,6 +97,28 @@ static PxMat44 ToPhysx( Mat4 m ) {
 	);
 }
 
+static Quaternion FromPhysx( PxQuat q ) {
+	return Quaternion( q.x, q.y, q.z, q.w );
+}
+
+static TRS FromPhysx( PxTransform t ) {
+	TRS trs;
+	trs.translation = Vec3( t.p.x, t.p.y, t.p.z );
+	trs.rotation = Quaternion( t.q.x, t.q.y, t.q.z, t.q.w );
+	trs.scale = 1.0f;
+	return trs;
+}
+
+void format( FormatBuffer * fb, const TRS & trs, const FormatOpts & opts ) {
+	format( fb, "TRS(" );
+	format( fb, trs.translation, opts );
+	format( fb, ", " );
+	format( fb, trs.rotation, opts );
+	format( fb, ", " );
+	format( fb, trs.scale, opts );
+	format( fb, ")" );
+}
+
 static void CreateBone( Ragdoll * ragdoll, RagdollBoneType bone, const Model * model, MatrixPalettes pose, u8 j0, u8 j1, float radius ) {
 	Vec3 p0 = ( model->transform * pose.node_transforms[ j0 ] ).col3.xyz();
 	Vec3 p1 = ( model->transform * pose.node_transforms[ j1 ] ).col3.xyz();
@@ -166,6 +188,13 @@ static Ragdoll AddRagdoll( const Model * model, RagdollConfig config, MatrixPale
 
 	// roll 90deg in Y then in Z
 	PxTransform elbow_knee_transform = PxTransform( PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ) * PxTransform( PxQuat( PxPi / 2, PxVec3( 0, 1, 0 ) ) );
+	Com_GGPrint( "Y 90deg {}", FromPhysx( PxQuat( PxPi / 2, PxVec3( 0, 1, 0 ) ) ) );
+	Com_GGPrint( "Z 90deg {}", FromPhysx( PxQuat( PxPi / 2, PxVec3( 0, 0, 1 ) ) ) );
+	Com_GGPrint( "Y then Z {}", elbow_knee_transform.q );
+	
+	PxQuat asdf = PxQuat( 0.66308f, -0.00025f, -0.00029f, 0.74855f );
+	Com_GGPrint( "* {}", elbow_knee_transform.q * asdf );
+	Com_GGPrint( "inv* {}", elbow_knee_transform.q.getConjugate() * asdf );
 
 	// roll 180deg in Y then twist 90deg in X
 	PxTransform hip_transform = PxTransform( PxQuat( PxPi / 2, PxVec3( 1, 0, 0 ) ) ) * PxTransform( PxQuat( PxPi, PxVec3( 0, 1, 0 ) ) );
@@ -426,6 +455,17 @@ EulerDegrees3 QuaternionToEulerAngles( Quaternion q ) {
 	return euler;
 }
 
+static Quaternion Conjugate( Quaternion q ) {
+	return Quaternion( -q.x, -q.y, -q.z, q.w );
+}
+
+static void DoSHit( RagdollJointType joint, u8 lol, u8 asdf ) {
+	PxTransform gg = editor_ragdoll.joints[ joint ]->getLocalPose( PxJointActorIndex::eACTOR0 );
+	editor_initial_local_pose[ lol ] = FromPhysx( editor_ragdoll.joints[ joint ]->getRelativeTransform() );
+	editor_initial_local_pose[ lol ].translation.x += editor_ragdoll.bones[ asdf ].capsule.halfHeight;
+	// editor_initial_local_pose[ lol ].rotation = Conjugate( FromPhysx( gg ).rotation ) * editor_initial_local_pose[ lol ].rotation;
+}
+
 void DrawRagdollEditor() {
 	const Model * padpork = FindModel( "players/padpork/model" );
 
@@ -484,6 +524,7 @@ void DrawRagdollEditor() {
 	RendererSetView( Vec3( 50, -50, 40 ), EulerDegrees3( 20, 135, 0 ), 90 );
 
 	MatrixPalettes pose;
+	Mat4 root_transform = Mat4::Identity();
 
 	if( !editor_simulate ) {
 		if( simulate_clicked ) {
@@ -499,6 +540,9 @@ void DrawRagdollEditor() {
 			editor_initial_local_pose = SampleAnimation( sys_allocator, padpork, editor_t );
 			pose = ComputeMatrixPalettes( &temp, padpork, editor_initial_local_pose );
 
+			Com_GGPrint( "left elbow {}", editor_initial_local_pose[ editor_ragdoll_config.left_elbow ] );
+			Com_GGPrint( "right elbow {}", editor_initial_local_pose[ editor_ragdoll_config.right_elbow ] );
+
 			Com_Printf( "blah %s\n", temp( "{}", QuaternionToEulerAngles( editor_initial_local_pose[ editor_ragdoll_config.right_elbow ].rotation ) ) );
 
 			InitPhysicsForRagdollEditor();
@@ -509,6 +553,24 @@ void DrawRagdollEditor() {
 		PxTransform transform2 = PxTransform( PxVec3( 4.0f, 0.0f, 0.0f ), PxQuat( PxIdentity ) );
 
 		UpdatePhysicsCommon( cls.frametime / 5000.0f );
+
+		{
+			// PxTransform gg = editor_ragdoll.joints[ Joint_LeftShoulder ]->getLocalPose( 0 );
+			// editor_initial_local_pose[ editor_ragdoll_config.left_shoulder ] = FromPhysx( editor_ragdoll.joints[ Joint_LeftShoulder ]->getRelativeTransform() );
+			// editor_initial_local_pose[ editor_ragdoll_config.left_shoulder ].translation -= gg.p;
+		}
+
+		DoSHit( Joint_LeftElbow, editor_ragdoll_config.left_elbow, Bone_LeftUpperArm );
+		DoSHit( Joint_RightElbow, editor_ragdoll_config.right_elbow, Bone_RightUpperArm );
+		DoSHit( Joint_LeftKnee, editor_ragdoll_config.left_knee, Bone_LeftThigh );
+		DoSHit( Joint_RightKnee, editor_ragdoll_config.right_knee, Bone_RightThigh );
+
+		Com_GGPrint( "left elbow {}", editor_initial_local_pose[ editor_ragdoll_config.left_elbow ] );
+		Com_GGPrint( "right elbow {}", editor_initial_local_pose[ editor_ragdoll_config.right_elbow ] );
+
+		pose = ComputeMatrixPalettes( &temp, padpork, editor_initial_local_pose );
+
+
 
 		// todo: print joint transform
 
@@ -530,16 +592,16 @@ void DrawRagdollEditor() {
 		// pose = ComputeMatrixPalettes( &temp, padpork, editor_initial_local_pose );
 	}
 
-	/*
 	if( editor_draw_model ) {
 		RGB8 rgb = TEAM_COLORS[ 0 ];
 		Vec4 color = Vec4( rgb.r / 255.0f, rgb.g / 255.0f, rgb.b / 255.0f, 1.0f );
 		float outline_height = 0.42f;
 
-		DrawModel( padpork, Mat4::Identity(), color, pose );
-		DrawOutlinedModel( padpork, Mat4::Identity(), vec4_black, outline_height, pose );
+		DrawModel( padpork, root_transform, color, pose );
+		DrawOutlinedModel( padpork, root_transform, vec4_black, outline_height, pose );
 	}
 
+	/*
 	DrawBone( padpork, pose, editor_ragdoll_config.pelvis, editor_ragdoll_config.spine, editor_ragdoll_config.lower_back_radius );
 	DrawBone( padpork, pose, editor_ragdoll_config.spine, editor_ragdoll_config.neck, editor_ragdoll_config.upper_back_radius );
 	// TODO: head

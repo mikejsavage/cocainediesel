@@ -6,3 +6,11 @@ models/players/rigg
 		rgbgen entity
 	}
 }
+
+models/players/padpork
+{
+	{
+		map $whiteimage
+		rgbgen entity
+	}
+}

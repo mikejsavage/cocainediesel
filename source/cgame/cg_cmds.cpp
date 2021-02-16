@@ -418,13 +418,7 @@ static WeaponType CG_UseWeaponStep( SyncPlayerState * ps, bool next, WeaponType 
 		}
 	}
 
-	for( int i = ( next ? 0 : num_weapons - 1 ); i != end; i+= step ) {
-		if( ps->weapons[ i ].weapon != Weapon_None ) {
-			return ps->weapons[ i ].weapon;
-		}
-	}
-
-	return Weapon_Count;
+	return predicted_equipped_weapon;
 }
 
 static void CG_Cmd_NextWeapon_f() {
@@ -434,7 +428,7 @@ static void CG_Cmd_NextWeapon_f() {
 	}
 
 	WeaponType weapon = CG_UseWeaponStep( &cg.frame.playerState, true, cg.predictedPlayerState.pending_weapon );
-	if( weapon != Weapon_Count ) {
+	if( weapon != Weapon_Count && weapon != Weapon_Knife ) {
 		SwitchWeapon( weapon );
 	}
 }
@@ -446,7 +440,7 @@ static void CG_Cmd_PrevWeapon_f() {
 	}
 
 	WeaponType weapon = CG_UseWeaponStep( &cg.frame.playerState, false, cg.predictedPlayerState.pending_weapon );
-	if( weapon != Weapon_Count ) {
+	if( weapon != Weapon_Count && weapon != Weapon_Knife ) {
 		SwitchWeapon( weapon );
 	}
 }

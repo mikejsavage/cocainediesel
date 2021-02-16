@@ -1702,8 +1702,6 @@ void CL_Init( void ) {
 
 	cl_initialized = true;
 
-	Con_Init();
-
 	InitThreadPool();
 
 	ThreadPoolDo( []( TempAllocator * temp, void * data ) {

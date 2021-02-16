@@ -352,7 +352,7 @@ static void G_SpawnEntities() {
 	level.map_parsed_ents[level.map_parsed_len] = 0;
 
 	// make sure server got the edicts data
-	SV_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, game.numentities, game.maxentities );
 }
 
 /*

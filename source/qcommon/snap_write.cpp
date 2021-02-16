@@ -22,12 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/cmodel.h"
 #include "server/server.h"
 
-#undef EDICT_NUM
-#undef NUM_FOR_EDICT
-
-#define EDICT_NUM( n ) ( (edict_t *)( (uint8_t *)gi->edicts + gi->edict_size * ( n ) ) )
-#define NUM_FOR_EDICT( e ) ( ( (uint8_t *)( e ) - (uint8_t *)gi->edicts ) / gi->edict_size )
-
 /*
 =========================================================================
 
@@ -533,16 +527,12 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 */
 static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, edict_t *clent, Vec3 vieworg,
 											int viewarea, client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
-	int entNum;
-	edict_t *ent;
-	uint8_t *pvs;
-
-	pvs = ( uint8_t * ) alloca( CM_ClusterRowSize( cms ) );
+	uint8_t * pvs = ( uint8_t * ) alloca( CM_ClusterRowSize( cms ) );
 	SNAP_FatPVS( cms, vieworg, pvs );
 
 	// add the entities to the list
-	for( entNum = 1; entNum < gi->num_edicts; entNum++ ) {
-		ent = EDICT_NUM( entNum );
+	for( int entNum = 1; entNum < gi->num_edicts; entNum++ ) {
+		edict_t * ent = EDICT_NUM( entNum );
 
 		// fix number if broken
 		if( ent->s.number != entNum ) {

@@ -146,14 +146,9 @@ void SV_ShutdownGameProgs() {
 	G_Shutdown();
 }
 
-void SV_LocateEntities( edict_t *edicts, size_t edict_size, int num_edicts, int max_edicts ) {
-	if( !edicts || edict_size < sizeof( entity_shared_t ) ) {
-		Com_Error( ERR_DROP, "SV_LocateEntities: bad edicts" );
-	}
-
+void SV_LocateEntities( edict_t *edicts, int num_edicts, int max_edicts ) {
 	sv.gi.edicts = edicts;
 	sv.gi.clients = svs.clients;
-	sv.gi.edict_size = edict_size;
 	sv.gi.num_edicts = num_edicts;
 	sv.gi.max_edicts = max_edicts;
 	sv.gi.max_clients = Min2( num_edicts, sv_maxclients->integer );

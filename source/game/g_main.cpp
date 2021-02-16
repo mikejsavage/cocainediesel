@@ -212,7 +212,7 @@ void G_Init( unsigned int framemsec ) {
 
 	game.numentities = server_gs.maxclients + 1;
 
-	SV_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, game.numentities, game.maxentities );
 
 	// server console commands
 	G_AddServerCommands();

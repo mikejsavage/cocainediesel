@@ -583,15 +583,13 @@ void G_InitEdict( edict_t *e ) {
 * angles and bad trails.
 */
 edict_t *G_Spawn() {
-	int i;
-	edict_t *e, *freed;
-
 	if( !level.canSpawnEntities ) {
 		Com_Printf( "WARNING: Spawning entity before map entities have been spawned\n" );
 	}
 
-	freed = NULL;
-	e = &game.edicts[server_gs.maxclients + 1];
+	int i;
+	edict_t * freed = NULL;
+	edict_t * e = &game.edicts[server_gs.maxclients + 1];
 	for( i = server_gs.maxclients + 1; i < game.numentities; i++, e++ ) {
 		if( e->r.inuse ) {
 			continue;
@@ -621,7 +619,7 @@ edict_t *G_Spawn() {
 
 	game.numentities++;
 
-	SV_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, game.numentities, game.maxentities );
 
 	G_InitEdict( e );
 

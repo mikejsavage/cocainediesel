@@ -28,8 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //FIXME: this use of "area" is different from the bsp file use
 //===============================================================================
 
-#define GAME_EDICT_NUM( n ) ( (edict_t *)( game.edicts + n ) )
-
 #define AREA_GRID       128
 #define AREA_GRIDNODES  ( AREA_GRID * AREA_GRID )
 #define AREA_GRIDMINSIZE 64.0f  // minimum areagrid cell size, smaller values
@@ -298,7 +296,7 @@ static void GClip_LinkEntity_AreaGrid( areagrid_t *areagrid, edict_t *ent ) {
 	int igrid[3], igridmins[3], igridmaxs[3], gridnum, entitynumber;
 
 	entitynumber = ENTNUM( ent );
-	if( entitynumber <= 0 || entitynumber >= game.maxentities || GAME_EDICT_NUM( entitynumber ) != ent ) {
+	if( entitynumber <= 0 || entitynumber >= game.maxentities || &game.edicts[ entitynumber ] != ent ) {
 		Com_Printf( "GClip_LinkEntity_AreaGrid: invalid edict %p "
 					"(edicts is %p, edict compared to prog->edicts is %i)\n",
 					(void *)ent, game.edicts, entitynumber );
@@ -991,7 +989,7 @@ int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int time
 	int num = GClip_AreaEdicts( mins, maxs, touch, MAX_EDICTS, AREA_ALL, timeDelta );
 
 	for( int i = 0; i < num; i++ ) {
-		edict_t * check = GAME_EDICT_NUM( touch[i] );
+		const edict_t * check = &game.edicts[ i ];
 
 		// make absolute mins and maxs
 		if( !BoundsOverlapSphere( check->r.absmin, check->r.absmax, org, rad ) ) {

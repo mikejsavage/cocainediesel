@@ -45,7 +45,6 @@ struct ginfo_t {
 	edict_t *edicts;
 	client_t *clients;
 
-	int edict_size;
 	int num_edicts;         // current number, <= max_edicts
 	int max_edicts;
 	int max_clients;        // <= sv_maxclients, <= max_edicts
@@ -68,8 +67,8 @@ struct server_t {
 	ginfo_t gi;
 };
 
-#define EDICT_NUM( n ) ( (edict_t *)( (uint8_t *)sv.gi.edicts + sv.gi.edict_size * ( n ) ) )
-#define NUM_FOR_EDICT( e ) ( ( (uint8_t *)( e ) - (uint8_t *)sv.gi.edicts ) / sv.gi.edict_size )
+#define EDICT_NUM( n ) ( sv.gi.edicts + ( n ) )
+#define NUM_FOR_EDICT( e ) ( ( e ) - sv.gi.edicts )
 
 struct client_snapshot_t {
 	bool allentities;
@@ -382,7 +381,7 @@ int PF_GetClientState( int numClient );
 void PF_GameCmd( edict_t *ent, const char *cmd );
 void PF_ConfigString( int index, const char *val );
 const char *PF_GetConfigString( int index );
-void SV_LocateEntities( edict_t *edicts, size_t edict_size, int num_edicts, int max_edicts );
+void SV_LocateEntities( edict_t *edicts, int num_edicts, int max_edicts );
 
 //
 // sv_demos.c

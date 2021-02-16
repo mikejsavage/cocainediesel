@@ -418,7 +418,7 @@ static WeaponType CG_UseWeaponStep( SyncPlayerState * ps, bool next, WeaponType 
 		}
 	}
 
-	return predicted_equipped_weapon;
+	return Weapon_Count;
 }
 
 static void CG_Cmd_NextWeapon_f() {

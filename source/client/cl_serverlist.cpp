@@ -50,11 +50,6 @@ struct masterserver_t {
 
 static masterserver_t masterServers[ ARRAY_COUNT( MASTER_SERVERS ) ];
 
-//=========================================================
-
-/*
-* CL_FreeServerlist
-*/
 static void CL_FreeServerlist( serverlist_t **serversList ) {
 	serverlist_t *ptr;
 
@@ -65,9 +60,6 @@ static void CL_FreeServerlist( serverlist_t **serversList ) {
 	}
 }
 
-/*
-* CL_ServerIsInList
-*/
 static serverlist_t *CL_ServerFindInList( serverlist_t *serversList, const char *adr ) {
 
 	serverlist_t *server;
@@ -83,9 +75,6 @@ static serverlist_t *CL_ServerFindInList( serverlist_t *serversList, const char 
 	return NULL;
 }
 
-/*
-* CL_AddServerToList
-*/
 static bool CL_AddServerToList( serverlist_t **serversList, const char *adr ) {
 	serverlist_t *newserv;
 	netadr_t nadr;
@@ -142,10 +131,6 @@ void CL_ParseGetStatusResponse( const socket_t *socket, const netadr_t *address,
 	Com_DPrintf( "%s\n", s );
 }
 
-
-/*
-* CL_QueryGetInfoMessage
-*/
 static void CL_QueryGetInfoMessage( const char *cmdname ) {
 	netadr_t adr;
 	const char *server;
@@ -175,25 +160,16 @@ static void CL_QueryGetInfoMessage( const char *cmdname ) {
 }
 
 
-/*
-* CL_QueryGetInfoMessage_f - getinfo 83.97.146.17:27911
-*/
-void CL_QueryGetInfoMessage_f( void ) {
+void CL_QueryGetInfoMessage_f() {
 	CL_QueryGetInfoMessage( "getinfo" );
 }
 
 
-/*
-* CL_QueryGetStatusMessage_f - getstatus 83.97.146.17:27911
-*/
-void CL_QueryGetStatusMessage_f( void ) {
+void CL_QueryGetStatusMessage_f() {
 	CL_QueryGetInfoMessage( "getstatus" );
 }
 
-/*
-* CL_PingServer_f
-*/
-void CL_PingServer_f( void ) {
+void CL_PingServer_f() {
 	const char *address_string;
 	char requestString[64];
 	netadr_t adr;
@@ -355,9 +331,6 @@ void CL_ParseGetServersResponse( const socket_t *socket, const netadr_t *address
 	}
 }
 
-/*
-* CL_MasterResolverThreadFunc
-*/
 static void CL_MasterResolverThreadFunc( void *param ) {
 	masterserver_t *master = ( masterserver_t * ) param;
 
@@ -373,9 +346,6 @@ static void CL_MasterResolverThreadFunc( void *param ) {
 	master->resolverActive = false;
 }
 
-/*
-* CL_MasterAddressCache_Init
-*/
 static void CL_MasterAddressCache_Init() {
 	for( size_t i = 0; i < ARRAY_COUNT( MASTER_SERVERS ); i++ ) {
 		masterserver_t * master = &masterServers[ i ];
@@ -387,23 +357,16 @@ static void CL_MasterAddressCache_Init() {
 	}
 }
 
-/*
-* CL_MasterAddressCache_Shutdown
-*/
-static void CL_MasterAddressCache_Shutdown( void ) {
+static void CL_MasterAddressCache_Shutdown() {
 	// here we leak the mutex and resources allocated for resolving threads,
 	// but at least we're not calling cancel on them, which is possibly dangerous
 
 	// we're going to kill the main thread anyway, so keep the lock and let the threads die
 }
 
-/*
-* CL_SendMasterServerQuery
-*/
 static void CL_SendMasterServerQuery( netadr_t *adr ) {
 	const char *cmdname;
 	socket_t *socket;
-	const char *requeststring;
 
 	if( adr->type == NA_IP ) {
 		cmdname = "getservers";
@@ -414,21 +377,17 @@ static void CL_SendMasterServerQuery( netadr_t *adr ) {
 	}
 
 	// create the message
-	requeststring = va( "%s %s %i %s %s", cmdname, APPLICATION_NOSPACES, APP_PROTOCOL_VERSION,
-						filter_allow_full ? "full" : "",
-						filter_allow_empty ? "empty" : "" );
+	TempAllocator temp = cls.frame_arena.temp();
+	const char * requeststring = temp( "{} {} {} {} {}", cmdname, APPLICATION_NOSPACES, APP_PROTOCOL_VERSION,
+		filter_allow_full ? "full" : "",
+		filter_allow_empty ? "empty" : "" );
 
 	Com_DPrintf( "Querying %s: %s\n", NET_AddressToString( adr ), requeststring );
 
 	Netchan_OutOfBandPrint( socket, adr, "%s", requeststring );
 }
 
-/*
-* CL_GetServers_f
-*/
-void CL_GetServers_f( void ) {
-	const char *requeststring;
-	const char *masterAddress;
+void CL_GetServers_f() {
 	masterserver_t *master = NULL;
 
 	filter_allow_full = false;
@@ -453,9 +412,8 @@ void CL_GetServers_f( void ) {
 		// send a broadcast packet
 		Com_DPrintf( "Pinging broadcast...\n" );
 
-		requeststring = va( "info %i %s %s", APP_PROTOCOL_VERSION,
-							filter_allow_full ? "full" : "",
-							filter_allow_empty ? "empty" : "" );
+		TempAllocator temp = cls.frame_arena.temp();
+		const char * requeststring = temp( "info {} {} {}", APP_PROTOCOL_VERSION, filter_allow_full ? "full" : "", filter_allow_empty ? "empty" : "" );
 
 		for( int i = 0; i < NUM_BROADCAST_PORTS; i++ ) {
 			netadr_t broadcastAddress;
@@ -466,7 +424,7 @@ void CL_GetServers_f( void ) {
 	}
 
 	//get what master
-	masterAddress = Cmd_Argv( 2 );
+	const char * masterAddress = Cmd_Argv( 2 );
 	if( !masterAddress || !( *masterAddress ) ) {
 		return;
 	}
@@ -503,10 +461,7 @@ void CL_GetServers_f( void ) {
 	master->should_query = true;
 }
 
-/*
-* CL_ServerListFrame
-*/
-void CL_ServerListFrame( void ) {
+void CL_ServerListFrame() {
 	for( masterserver_t & master : masterServers ) {
 		if( master.resolverActive )
 			continue;
@@ -522,19 +477,13 @@ void CL_ServerListFrame( void ) {
 	}
 }
 
-/*
-* CL_InitServerList
-*/
-void CL_InitServerList( void ) {
+void CL_InitServerList() {
 	CL_FreeServerlist( &masterList );
 
 	CL_MasterAddressCache_Init();
 }
 
-/*
-* CL_ShutDownServerList
-*/
-void CL_ShutDownServerList( void ) {
+void CL_ShutDownServerList() {
 	CL_FreeServerlist( &masterList );
 
 	CL_MasterAddressCache_Shutdown();

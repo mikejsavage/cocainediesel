@@ -290,7 +290,7 @@ static int PM_SlideMove() {
 				}
 
 				// bad luck: slide the original velocity along the crease
-				Vec3 dir = Normalize( Cross( planes[i], planes[j] ) );
+				Vec3 dir = SafeNormalize( Cross( planes[i], planes[j] ) );
 				float value = Dot( dir, pml.velocity );
 				pml.velocity = dir * value;
 

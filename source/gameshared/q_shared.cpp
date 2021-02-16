@@ -1053,6 +1053,26 @@ bool Info_SetValueForKey( char *info, const char *key, const char *value ) {
 	return true;
 }
 
+Span< const char > ParseWorldspawnKey( Span< const char > entities, const char * name ) {
+	Span< const char > cursor = entities;
+
+	if( ParseToken( &cursor, Parse_DontStopOnNewLine ) != "{" ) {
+		Com_Error( ERR_FATAL, "Entity string doesn\'t start with {" );
+	}
+
+	while( true ) {
+		Span< const char > key = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		Span< const char > value = ParseToken( &cursor, Parse_DontStopOnNewLine );
+
+		if( key == "" || value == "" || key == "}" )
+			break;
+
+		if( StrCaseEqual( key, name ) )
+			return value;
+	}
+
+	return Span< const char >();
+}
 
 //=====================================================================
 //

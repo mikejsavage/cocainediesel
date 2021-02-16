@@ -192,6 +192,8 @@ void Info_RemoveKey( char *s, const char *key );
 bool Info_SetValueForKey( char *s, const char *key, const char *value );
 bool Info_Validate( const char *s );
 
+Span< const char > ParseWorldspawnKey( Span< const char > entities, const char * name );
+
 //==============================================
 
 //

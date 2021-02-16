@@ -250,29 +250,8 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 static float ParseFogStrength( const BSPSpans * bsp ) {
 	ZoneScoped;
 
-	float default_fog_strength = 0.0007f;
-
-	Span< const char > cursor = bsp->entities;
-
-	if( ParseToken( &cursor, Parse_DontStopOnNewLine ) != "{" )
-		return default_fog_strength;
-
-	while( true ) {
-		Span< const char > key = ParseToken( &cursor, Parse_DontStopOnNewLine );
-		Span< const char > value = ParseToken( &cursor, Parse_DontStopOnNewLine );
-
-		if( key == "" || value == "" || key == "}" )
-			break;
-
-		if( key == "fog_strength" ) {
-			float f;
-			if( TrySpanToFloat( value, &f ) ) {
-				return f;
-			}
-		}
-	}
-
-	return default_fog_strength;
+	Span< const char > key = ParseWorldspawnKey( bsp->entities, "fog_strength" );
+	return SpanToFloat( key, 0.0007f );
 }
 
 struct BSPDrawCall {

@@ -1634,6 +1634,11 @@ static void asFunc_G_LoadMap( asstring_t *str ) {
 	G_Aasdf();
 }
 
+static asstring_t *asFunc_G_GetWorldspawnKey( asstring_t * key ) {
+	Span< const char > value = ParseWorldspawnKey( Span< const char >( level.mapString, level.mapStrlen ), key->buffer );
+	return game.asExport->asStringFactoryBuffer( value.ptr, value.n );
+}
+
 static void asFunc_PositionedSound( asvec3_t *origin, int channel, u64 sound ) {
 	if( !origin ) {
 		return;
@@ -1705,6 +1710,7 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "Entity @G_Find( Entity @last, const String &in )", asFUNCTION( asFunc_G_Find ), NULL },
 
 	{ "void G_LoadMap( const String &name )", asFUNCTION( asFunc_G_LoadMap ), NULL },
+	{ "const String @G_GetWorldspawnKey( const String &key )", asFUNCTION( asFunc_G_GetWorldspawnKey ), NULL },
 
 	// misc management utils
 	{ "void G_RemoveProjectiles( Entity @ )", asFUNCTION( asFunc_G_Match_RemoveProjectiles ), NULL },

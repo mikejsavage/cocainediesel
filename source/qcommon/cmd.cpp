@@ -391,18 +391,15 @@ SCRIPT COMMANDS
 * Cmd_Exec_f
 */
 static void Cmd_Exec_f( void ) {
-	char *f = NULL, *name;
 	const char *arg = Cmd_Argv( 1 );
-	int len = -1, name_size;
-	const char *basename;
 
 	if( Cmd_Argc() < 2 || !arg[0] ) {
 		Com_Printf( "Usage: exec <filename>\n" );
 		return;
 	}
 
-	name_size = sizeof( char ) * ( strlen( arg ) + strlen( ".cfg" ) + 1 );
-	name = ( char * ) Mem_TempMalloc( name_size );
+	size_t name_size = sizeof( char ) * ( strlen( arg ) + strlen( ".cfg" ) + 1 );
+	char * name = ( char * ) Mem_TempMalloc( name_size );
 
 	Q_strncpyz( name, arg, name_size );
 	COM_SanitizeFilePath( name );
@@ -415,9 +412,10 @@ static void Cmd_Exec_f( void ) {
 
 	COM_DefaultExtension( name, ".cfg", name_size );
 
-	basename = FS_BaseNameForFile( name );
+	const char * basename = FS_BaseNameForFile( name );
+	char * f;
 	if( basename ) {
-		len = FS_LoadBaseFile( basename, (void **)&f, NULL, 0 );
+		FS_LoadBaseFile( basename, (void **)&f, NULL, 0 );
 	}
 
 	if( !f ) {

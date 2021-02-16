@@ -21,24 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "client/ui.h"
 
-/*
-==========================================================================
-
-SERVER COMMANDS
-
-==========================================================================
-*/
-
-/*
-* CG_SC_Print
-*/
 static void CG_SC_Print( void ) {
 	CG_LocalPrint( "%s", Cmd_Argv( 1 ) );
 }
 
-/*
-* CG_SC_ChatPrint
-*/
 static void CG_SC_ChatPrint() {
 	bool teamonly = Q_stricmp( Cmd_Argv( 0 ), "tch" ) == 0;
 	int who = atoi( Cmd_Argv( 1 ) );
@@ -78,16 +64,10 @@ static void CG_SC_ChatPrint() {
 	}
 }
 
-/*
-* CG_SC_CenterPrint
-*/
 static void CG_SC_CenterPrint( void ) {
 	CG_CenterPrint( Cmd_Argv( 1 ) );
 }
 
-/*
-* CG_ConfigString
-*/
 void CG_ConfigString( int i, const char *s ) {
 	size_t len;
 
@@ -116,9 +96,6 @@ void CG_ConfigString( int i, const char *s ) {
 	}
 }
 
-/*
-* CG_SC_Scoreboard
-*/
 static void CG_SC_Scoreboard( void ) {
 	SCR_UpdateScoreboardMessage( Cmd_Argv( 1 ) );
 }
@@ -172,9 +149,6 @@ static void CG_SC_PlayerStats() {
 #undef STATS_PERCENT
 }
 
-/*
-* CG_SC_AutoRecordName
-*/
 static const char *CG_SC_AutoRecordName( void ) {
 	static char name[MAX_STRING_CHARS];
 
@@ -186,9 +160,6 @@ static const char *CG_SC_AutoRecordName( void ) {
 	return name;
 }
 
-/*
-* CG_SC_AutoRecordAction
-*/
 void CG_SC_AutoRecordAction( const char *action ) {
 	static bool autorecording = false;
 	const char *name;
@@ -246,9 +217,6 @@ void CG_SC_AutoRecordAction( const char *action ) {
 	}
 }
 
-/*
-* CG_Cmd_DemoGet_f
-*/
 static bool demo_requested = false;
 static void CG_Cmd_DemoGet_f( void ) {
 	if( demo_requested ) {
@@ -268,9 +236,6 @@ static void CG_Cmd_DemoGet_f( void ) {
 	demo_requested = true;
 }
 
-/*
-* CG_SC_DemoGet
-*/
 static void CG_SC_DemoGet( void ) {
 	if( cgs.demoPlaying ) {
 		// ignore download commands coming from demo files
@@ -400,7 +365,7 @@ static WeaponType CG_UseWeaponStep( SyncPlayerState * ps, bool next, WeaponType 
 		return Weapon_Count;
 
 	size_t num_weapons = ARRAY_COUNT( ps->weapons );
-	
+
 	int weapon;
 	for( weapon = 0; weapon < num_weapons; weapon++ ) { //find the basis weapon
 		if( ps->weapons[ weapon ].weapon == predicted_equipped_weapon ) {
@@ -457,9 +422,6 @@ static void CG_Cmd_Weapon_f() {
 	}
 }
 
-/*
-* CG_Viewpos_f
-*/
 static void CG_Viewpos_f( void ) {
 	Com_Printf( "\"origin\" \"%i %i %i\"\n", (int)cg.view.origin.x, (int)cg.view.origin.y, (int)cg.view.origin.z );
 	Com_Printf( "\"angles\" \"%i %i %i\"\n", (int)cg.view.angles.x, (int)cg.view.angles.y, (int)cg.view.angles.z );
@@ -500,37 +462,22 @@ static const char **CG_PlayerNamesCompletionExt_f( const char *partial, bool tea
 	return matches;
 }
 
-/*
-* CG_PlayerNamesCompletion_f
-*/
 static const char **CG_PlayerNamesCompletion_f( const char *partial ) {
 	return CG_PlayerNamesCompletionExt_f( partial, false );
 }
 
-/*
-* CG_TeamPlayerNamesCompletion_f
-*/
 static const char **CG_TeamPlayerNamesCompletion_f( const char *partial ) {
 	return CG_PlayerNamesCompletionExt_f( partial, true );
 }
 
-/*
-* CG_SayCmdAdd_f
-*/
 static void CG_SayCmdAdd_f( void ) {
 	Cmd_SetCompletionFunc( "say", &CG_PlayerNamesCompletion_f );
 }
 
-/*
-* CG_SayTeamCmdAdd_f
-*/
 static void CG_SayTeamCmdAdd_f( void ) {
 	Cmd_SetCompletionFunc( "say_team", &CG_TeamPlayerNamesCompletion_f );
 }
 
-/*
-* CG_StatsCmdAdd_f
-*/
 static void CG_StatsCmdAdd_f( void ) {
 	Cmd_SetCompletionFunc( "stats", &CG_PlayerNamesCompletion_f );
 }
@@ -545,15 +492,13 @@ static const ServerCommand cg_consvcmds[] = {
 };
 
 // local cgame commands
-typedef struct
-{
+struct cgcmd_t {
 	const char *name;
 	void ( *func )( void );
 	bool allowdemo;
-} cgcmd_t;
+};
 
-static const cgcmd_t cgcmds[] =
-{
+static const cgcmd_t cgcmds[] = {
 	{ "+scores", CG_ScoresOn_f, true },
 	{ "-scores", CG_ScoresOff_f, true },
 	{ "demoget", CG_Cmd_DemoGet_f, false },
@@ -570,20 +515,15 @@ static const cgcmd_t cgcmds[] =
 	{ NULL, NULL, false }
 };
 
-/*
-* CG_RegisterCGameCommands
-*/
 void CG_RegisterCGameCommands( void ) {
-	int i;
-	char *name;
 	const cgcmd_t *cmd;
 
 	if( !cgs.demoPlaying ) {
 		const ServerCommand *svcmd;
 
 		// add game side commands
-		for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
-			name = cgs.configStrings[CS_GAMECOMMANDS + i];
+		for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
+			const char * name = cgs.configStrings[CS_GAMECOMMANDS + i];
 			if( !name[0] ) {
 				continue;
 			}
@@ -621,18 +561,13 @@ void CG_RegisterCGameCommands( void ) {
 	}
 }
 
-/*
-* CG_UnregisterCGameCommands
-*/
 void CG_UnregisterCGameCommands( void ) {
-	int i;
-	char *name;
 	const cgcmd_t *cmd;
 
 	if( !cgs.demoPlaying ) {
 		// remove game commands
-		for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
-			name = cgs.configStrings[CS_GAMECOMMANDS + i];
+		for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
+			const char * name = cgs.configStrings[CS_GAMECOMMANDS + i];
 			if( !name[0] ) {
 				continue;
 			}

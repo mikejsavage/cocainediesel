@@ -1454,7 +1454,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 				pml.flatforward = pml.forward;
 			}
 			pml.flatforward.z = 0.0f;
-			pml.flatforward = Normalize( pml.flatforward );
+			pml.flatforward = SafeNormalize( pml.flatforward );
 
 			PM_Move();
 		}

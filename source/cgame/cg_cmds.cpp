@@ -445,6 +445,10 @@ static void CG_Cmd_PrevWeapon_f() {
 	}
 }
 
+static void CG_Cmd_LastWeapon_f() {
+	SwitchWeapon( cg.predictedPlayerState.last_weapon );
+}
+
 static void CG_Cmd_Weapon_f() {
 	WeaponType weap = cg.predictedPlayerState.weapons[ atoi( Cmd_Argv( 1 ) ) - 1 ].weapon;
 
@@ -555,6 +559,7 @@ static const cgcmd_t cgcmds[] =
 	{ "demoget", CG_Cmd_DemoGet_f, false },
 	{ "demolist", NULL, false },
 	{ "use", CG_Cmd_UseItem_f, false },
+	{ "lastweapon", CG_Cmd_LastWeapon_f, false },
 	{ "weapnext", CG_Cmd_NextWeapon_f, false },
 	{ "weapprev", CG_Cmd_PrevWeapon_f, false },
 	{ "weapon", CG_Cmd_Weapon_f, false },

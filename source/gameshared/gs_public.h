@@ -301,6 +301,7 @@ struct SyncPlayerState {
 	WeaponState weapon_state;
 	WeaponType weapon;
 	WeaponType pending_weapon;
+	WeaponType last_weapon;
 	s16 weapon_time;
 	s16 zoom_time;
 

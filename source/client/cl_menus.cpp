@@ -276,6 +276,7 @@ static void SettingsControls() {
 			KeyBindButton( "Backup", "weapon 4" );
 			KeyBindButton( "Next weapon", "weapnext" );
 			KeyBindButton( "Previous weapon", "weapprev" );
+			KeyBindButton( "Last weapon", "lastweapon" );
 
 			ImGui::BeginChild( "weapon", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {

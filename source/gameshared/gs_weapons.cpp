@@ -124,6 +124,7 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 	const WeaponDef * def = GS_GetWeaponDef( player->weapon );
 
 	if( cmd->weaponSwitch != Weapon_None && GS_CanEquip( player, cmd->weaponSwitch ) ) {
+		player->last_weapon = player->weapon;
 		player->pending_weapon = cmd->weaponSwitch;
 	}
 

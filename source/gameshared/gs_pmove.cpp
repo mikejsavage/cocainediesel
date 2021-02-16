@@ -1055,9 +1055,6 @@ static void PM_FlyMove( bool doclip ) {
 		smove *= 2;
 	}
 
-	pml.forward = Normalize( pml.forward );
-	pml.right = Normalize( pml.right );
-
 	Vec3 wishvel = pml.forward * fmove + pml.right * smove;
 	wishvel.z += pml.upPush;
 

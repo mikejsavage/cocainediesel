@@ -466,7 +466,7 @@ void CL_ServerListFrame() {
 		if( master.resolverActive )
 			continue;
 
-		if( master.should_query )
+		if( !master.should_query )
 			continue;
 
 		if( master.address.type == NA_IP || master.address.type == NA_IP6 ) {

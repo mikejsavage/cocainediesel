@@ -348,7 +348,7 @@ bool TrySpanToInt( Span< const char > str, int * x ) {
 
 bool TrySpanToFloat( Span< const char > str, float * x ) {
 	char buf[ 128 ];
-	if( str.n >= sizeof( buf ) )
+	if( str.n == 0 || str.n >= sizeof( buf ) )
 		return false;
 
 	memcpy( buf, str.ptr, str.n );

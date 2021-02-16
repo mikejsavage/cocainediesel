@@ -413,7 +413,7 @@ static void Cmd_Exec_f() {
 	COM_DefaultExtension( name, ".cfg", name_size );
 
 	const char * basename = FS_BaseNameForFile( name );
-	char * f;
+	char * f = NULL;
 	if( basename ) {
 		FS_LoadBaseFile( basename, (void **)&f, NULL, 0 );
 	}

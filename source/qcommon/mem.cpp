@@ -551,7 +551,7 @@ static void Mem_CountPoolStats( mempool_t *pool, int *count, int *size, int *rea
 	}
 }
 
-static void Mem_PrintStats( void ) {
+static void Mem_PrintStats() {
 	int count, size, real;
 	int total, totalsize, realsize;
 	mempool_t *pool;
@@ -628,7 +628,7 @@ static void Mem_PrintList( int listchildren, int listallocations ) {
 		Mem_PrintPoolStats( pool, listchildren, listallocations );
 }
 
-static void MemList_f( void ) {
+static void MemList_f() {
 	mempool_t *pool;
 	const char *name = "";
 
@@ -661,7 +661,7 @@ static void MemList_f( void ) {
 	Com_Printf( "MemList_f: unknown pool name '%s'. Usage: %s [all|pool]\n", name, Cmd_Argv( 0 ) );
 }
 
-static void MemStats_f( void ) {
+static void MemStats_f() {
 	Mem_CheckSentinelsGlobal();
 	Mem_PrintStats();
 }
@@ -670,7 +670,7 @@ static void MemStats_f( void ) {
 /*
 * Memory_Init
 */
-void Memory_Init( void ) {
+void Memory_Init() {
 	assert( !memory_initialized );
 
 	memMutex = NewMutex();
@@ -684,7 +684,7 @@ void Memory_Init( void ) {
 /*
 * Memory_InitCommands
 */
-void Memory_InitCommands( void ) {
+void Memory_InitCommands() {
 	assert( !commands_initialized );
 
 	developer_memory = Cvar_Get( "developer_memory", "0", 0 );
@@ -700,7 +700,7 @@ void Memory_InitCommands( void ) {
 *
 * NOTE: Should be the last called function before shutdown!
 */
-void Memory_Shutdown( void ) {
+void Memory_Shutdown() {
 	mempool_t *pool, *next;
 
 	if( !memory_initialized ) {
@@ -733,7 +733,7 @@ void Memory_Shutdown( void ) {
 /*
 * Memory_ShutdownCommands
 */
-void Memory_ShutdownCommands( void ) {
+void Memory_ShutdownCommands() {
 	if( !commands_initialized ) {
 		return;
 	}

@@ -182,7 +182,7 @@ static bool OnDownloadData( const void * data, size_t n ) {
 	return true;
 }
 
-static void CL_InitDownload_f( void ) {
+static void CL_InitDownload_f() {
 	// ignore download commands coming from demo files
 	if( cls.demo.playing ) {
 		return;
@@ -281,7 +281,7 @@ static void CL_InitDownload_f( void ) {
 	Com_Printf( "Downloading %s\n", fullurl );
 }
 
-void CL_CheckDownloadTimeout( void ) {
+void CL_CheckDownloadTimeout() {
 	if( download.timeout == 0 || download.timeout > Sys_Milliseconds() ) {
 		return;
 	}
@@ -480,7 +480,7 @@ static void CL_UpdateConfigString( int idx, const char *s ) {
 	CL_GameModule_ConfigString( idx, s );
 }
 
-static void CL_ParseConfigstringCommand( void ) {
+static void CL_ParseConfigstringCommand() {
 	int i, argc, idx;
 	const char *s;
 
@@ -500,7 +500,7 @@ static void CL_ParseConfigstringCommand( void ) {
 
 typedef struct {
 	const char *name;
-	void ( *func )( void );
+	void ( *func )();
 } svcmd_t;
 
 static svcmd_t svcmds[] = {

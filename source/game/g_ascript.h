@@ -80,7 +80,7 @@ typedef struct asglobproperties_s {
 	void *pointer;
 } asglobproperties_t;
 
-void asemptyfunc( void );
+void asemptyfunc();
 
 #define ASLIB_LOCAL_CLASS_DESCR( x )
 

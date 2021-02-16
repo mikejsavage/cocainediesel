@@ -34,7 +34,7 @@ server_t sv;                 // local server
 * to the clients -- only the fields that differ from the
 * baseline will be transmitted
 */
-static void SV_CreateBaseline( void ) {
+static void SV_CreateBaseline() {
 	for( int entnum = 1; entnum < sv.gi.num_edicts; entnum++ ) {
 		edict_t * svent = EDICT_NUM( entnum );
 		if( !svent->r.inuse ) {
@@ -48,7 +48,7 @@ static void SV_CreateBaseline( void ) {
 /*
 * SV_SetServerConfigStrings
 */
-void SV_SetServerConfigStrings( void ) {
+void SV_SetServerConfigStrings() {
 	snprintf( sv.configstrings[CS_MAXCLIENTS], sizeof( sv.configstrings[0] ), "%i", sv_maxclients->integer );
 	Q_strncpyz( sv.configstrings[CS_HOSTNAME], Cvar_String( "sv_hostname" ), sizeof( sv.configstrings[0] ) );
 }
@@ -113,7 +113,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 * SV_InitGame
 * A brand new game has been started
 */
-void SV_InitGame( void ) {
+void SV_InitGame() {
 	int i;
 	edict_t *ent;
 	netadr_t address, ipv6_address;

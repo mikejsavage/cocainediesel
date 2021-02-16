@@ -491,7 +491,7 @@ asIScriptContext *qasAcquireContext( asIScriptEngine *engine ) {
 	return qasCreateContext( engine );
 }
 
-asIScriptContext *qasGetActiveContext( void ) {
+asIScriptContext *qasGetActiveContext() {
 	return asGetActiveContext();
 }
 

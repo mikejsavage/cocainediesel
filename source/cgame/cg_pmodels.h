@@ -216,7 +216,7 @@ void CG_MoveToTag( Vec3 * move_origin,
 void InitPlayerModels();
 const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num );
 
-void CG_ResetPModels( void );
+void CG_ResetPModels();
 
 void CG_DrawPlayer( centity_t * cent );
 bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result );

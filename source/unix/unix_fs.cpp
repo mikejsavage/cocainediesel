@@ -190,7 +190,7 @@ const char *Sys_FS_FindNext( unsigned musthave, unsigned canhave ) {
 	return NULL;
 }
 
-void Sys_FS_FindClose( void ) {
+void Sys_FS_FindClose() {
 	assert( findbase );
 
 	if( fdir ) {
@@ -215,7 +215,7 @@ void Sys_FS_FindClose( void ) {
 /*
 * Sys_FS_GetHomeDirectory
 */
-const char *Sys_FS_GetHomeDirectory( void ) {
+const char *Sys_FS_GetHomeDirectory() {
 	static char home[PATH_MAX] = { '\0' };
 
 	if( home[0] == '\0' ) {

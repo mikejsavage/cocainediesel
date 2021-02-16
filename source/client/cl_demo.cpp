@@ -42,7 +42,7 @@ void CL_WriteDemoMessage( msg_t *msg ) {
 *
 * stop recording a demo
 */
-void CL_Stop_f( void ) {
+void CL_Stop_f() {
 	int arg;
 	bool silent, cancel;
 
@@ -109,7 +109,7 @@ void CL_Stop_f( void ) {
 *
 * Begins recording a demo from the current position
 */
-void CL_Record_f( void ) {
+void CL_Record_f() {
 	char *name;
 	size_t name_size;
 	bool silent;
@@ -201,7 +201,7 @@ static int demofilelen, demofilelentotal;
 *
 * Close the demo file and disable demo state. Called from disconnection proccess
 */
-void CL_DemoCompleted( void ) {
+void CL_DemoCompleted() {
 	if( demofilehandle ) {
 		FS_FCloseFile( demofilehandle );
 		demofilehandle = 0;
@@ -229,7 +229,7 @@ void CL_DemoCompleted( void ) {
 *
 * Read a packet from the demo file and send it to the messages parser
 */
-static void CL_ReadDemoMessage( void ) {
+static void CL_ReadDemoMessage() {
 	static uint8_t msgbuf[MAX_MSGLEN];
 	static msg_t demomsg;
 	static bool init = true;
@@ -259,7 +259,7 @@ static void CL_ReadDemoMessage( void ) {
 *
 * See if it's time to read a new demo packet
 */
-void CL_ReadDemoPackets( void ) {
+void CL_ReadDemoPackets() {
 	if( cls.demo.paused ) {
 		return;
 	}
@@ -280,7 +280,7 @@ void CL_ReadDemoPackets( void ) {
 *
 * See if it's time to read a new demo packet
 */
-void CL_LatchedDemoJump( void ) {
+void CL_LatchedDemoJump() {
 	if( cls.demo.paused || !cls.demo.play_jump_latched ) {
 		return;
 	}
@@ -387,7 +387,7 @@ const char **CL_DemoComplete( const char *partial ) {
 *
 * demo <demoname>
 */
-void CL_PlayDemo_f( void ) {
+void CL_PlayDemo_f() {
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "demo <demoname>\n" );
 		return;
@@ -395,7 +395,7 @@ void CL_PlayDemo_f( void ) {
 	CL_StartDemo( Cmd_Argv( 1 ), false );
 }
 
-void CL_YoloDemo_f( void ) {
+void CL_YoloDemo_f() {
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "demo <demoname>\n" );
 		return;
@@ -413,7 +413,7 @@ static void CL_PauseDemo( bool paused ) {
 /*
 * CL_PauseDemo_f
 */
-void CL_PauseDemo_f( void ) {
+void CL_PauseDemo_f() {
 	if( !cls.demo.playing ) {
 		Com_Printf( "Can only demopause when playing a demo.\n" );
 		return;
@@ -434,7 +434,7 @@ void CL_PauseDemo_f( void ) {
 /*
 * CL_DemoJump_f
 */
-void CL_DemoJump_f( void ) {
+void CL_DemoJump_f() {
 	bool relative;
 	int time;
 	const char *p;

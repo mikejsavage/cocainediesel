@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "g_local.h"
 #include "g_as_local.h"
 
-static void GT_ResetScriptData( void ) {
+static void GT_ResetScriptData() {
 	level.gametype.initFunc = NULL;
 	level.gametype.spawnFunc = NULL;
 	level.gametype.matchStateStartedFunc = NULL;
@@ -35,7 +35,7 @@ static void GT_ResetScriptData( void ) {
 	level.gametype.shutdownFunc = NULL;
 }
 
-void GT_asShutdownScript( void ) {
+void GT_asShutdownScript() {
 	int i;
 	edict_t *e;
 
@@ -60,7 +60,7 @@ void GT_asShutdownScript( void ) {
 }
 
 //"void GT_SpawnGametype()"
-void GT_asCallSpawn( void ) {
+void GT_asCallSpawn() {
 	int error;
 	asIScriptContext *ctx;
 
@@ -82,7 +82,7 @@ void GT_asCallSpawn( void ) {
 }
 
 //"void GT_MatchStateStarted()"
-void GT_asCallMatchStateStarted( void ) {
+void GT_asCallMatchStateStarted() {
 	int error;
 	asIScriptContext *ctx;
 
@@ -134,8 +134,8 @@ bool GT_asCallMatchStateFinished( int incomingMatchState ) {
 	return result;
 }
 
-//"void GT_ThinkRules( void )"
-void GT_asCallThinkRules( void ) {
+//"void GT_ThinkRules()"
+void GT_asCallThinkRules() {
 	int error;
 	asIScriptContext *ctx;
 
@@ -326,7 +326,7 @@ bool GT_asCallGameCommand( gclient_t *client, const char *cmd, const char *args,
 }
 
 //"void GT_Shutdown()"
-void GT_asCallShutdown( void ) {
+void GT_asCallShutdown() {
 	int error;
 	asIScriptContext *ctx;
 

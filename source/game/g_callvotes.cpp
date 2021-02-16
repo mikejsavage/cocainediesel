@@ -55,7 +55,7 @@ typedef struct callvotetype_s
 	int expectedargs;               // -1 = any amount, -2 = any amount except 0
 	bool ( *validate )( callvotedata_t *data, bool first );
 	void ( *execute )( callvotedata_t *vote );
-	const char *( *current )( void );
+	const char *( *current )();
 	void ( *extraHelp )( edict_t *ent );
 	const char *argument_format;
 	const char *help;
@@ -205,7 +205,7 @@ static void G_VoteMapPassed( callvotedata_t *vote ) {
 	G_EndMatch();
 }
 
-static const char *G_VoteMapCurrent( void ) {
+static const char *G_VoteMapCurrent() {
 	return sv.mapname;
 }
 
@@ -246,7 +246,7 @@ static void G_VoteScorelimitPassed( callvotedata_t *vote ) {
 	Cvar_Set( "g_scorelimit", va( "%i", atoi( vote->argv[0] ) ) );
 }
 
-static const char *G_VoteScorelimitCurrent( void ) {
+static const char *G_VoteScorelimitCurrent() {
 	return va( "%i", g_scorelimit->integer );
 }
 
@@ -278,7 +278,7 @@ static void G_VoteWarmupTimelimitPassed( callvotedata_t *vote ) {
 	Cvar_Set( "g_warmup_timelimit", va( "%i", atoi( vote->argv[0] ) ) );
 }
 
-static const char *G_VoteWarmupTimelimitCurrent( void ) {
+static const char *G_VoteWarmupTimelimitCurrent() {
 	return va( "%i", g_warmup_timelimit->integer );
 }
 
@@ -360,7 +360,7 @@ static void G_VoteMaxTeamplayersPassed( callvotedata_t *vote ) {
 	Cvar_Set( "g_teams_maxplayers", va( "%i", atoi( vote->argv[0] ) ) );
 }
 
-static const char *G_VoteMaxTeamplayersCurrent( void ) {
+static const char *G_VoteMaxTeamplayersCurrent() {
 	return va( "%i", g_teams_maxplayers->integer );
 }
 
@@ -976,7 +976,7 @@ static void G_VoteAllowUnevenPassed( callvotedata_t *vote ) {
 	Cvar_Set( "g_teams_allow_uneven", va( "%i", atoi( vote->argv[0] ) ) );
 }
 
-static const char *G_VoteAllowUnevenCurrent( void ) {
+static const char *G_VoteAllowUnevenCurrent() {
 	if( g_teams_allow_uneven->integer ) {
 		return "1";
 	} else {
@@ -1052,7 +1052,7 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 	memset( &callvoteState, 0, sizeof( callvoteState ) );
 }
 
-void G_FreeCallvotes( void ) {
+void G_FreeCallvotes() {
 	callvotetype_t *callvote;
 
 	while( callvotesHeadNode ) {
@@ -1156,7 +1156,7 @@ static const char *G_CallVotes_String( const callvotedata_t *vote ) {
 /*
 * G_CallVotes_CheckState
 */
-static void G_CallVotes_CheckState( void ) {
+static void G_CallVotes_CheckState() {
 	edict_t *ent;
 	int yeses = 0, voters = 0, noes = 0;
 
@@ -1267,7 +1267,7 @@ void G_CallVotes_CmdVote( edict_t *ent ) {
 /*
 * G_CallVotes_Think
 */
-void G_CallVotes_Think( void ) {
+void G_CallVotes_Think() {
 	static int64_t callvotethinktimer = 0;
 
 	if( !callvoteState.vote.callvote ) {
@@ -1519,7 +1519,7 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 /*
 * G_CallVotes_Init
 */
-void G_CallVotes_Init( void ) {
+void G_CallVotes_Init() {
 	callvotetype_t *callvote;
 
 	g_callvote_electpercentage =    Cvar_Get( "g_vote_percent", "55", CVAR_ARCHIVE );

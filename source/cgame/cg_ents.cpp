@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/cmodel.h"
 #include "client/renderer/renderer.h"
 
-static void CG_UpdateEntities( void );
+static void CG_UpdateEntities();
 
 static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 	constexpr int MIN_DRAWDISTANCE_FIRSTPERSON = 86;
@@ -176,7 +176,7 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 	}
 }
 
-int CG_LostMultiviewPOV( void ) {
+int CG_LostMultiviewPOV() {
 	int best = client_gs.maxclients;
 	int index = -1;
 	int fallback = -1;
@@ -211,7 +211,7 @@ static void CG_SetFramePlayerState( snapshot_t *frame, int index ) {
 	}
 }
 
-static void CG_UpdatePlayerState( void ) {
+static void CG_UpdatePlayerState() {
 	int index = 0;
 
 	if( cg.frame.multipov ) {
@@ -774,7 +774,7 @@ void DrawEntities() {
 * CG_LerpEntities
 * Interpolate the entity states positions into the entity_t structs
 */
-void CG_LerpEntities( void ) {
+void CG_LerpEntities() {
 	ZoneScoped;
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
@@ -842,7 +842,7 @@ void CG_LerpEntities( void ) {
 * CG_UpdateEntities
 * Called at receiving a new serverframe. Sets up the model, type, etc to be drawn later on
 */
-void CG_UpdateEntities( void ) {
+void CG_UpdateEntities() {
 	ZoneScoped;
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {

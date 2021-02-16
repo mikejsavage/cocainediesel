@@ -36,7 +36,7 @@ static int( WINAPI * pTransmitFile )( SOCKET hSocket,
 /*
 * Sys_NET_GetLastError
 */
-net_error_t Sys_NET_GetLastError( void ) {
+net_error_t Sys_NET_GetLastError() {
 	int error = WSAGetLastError();
 	switch( error ) {
 		case 0:                 return NET_ERR_NONE;
@@ -96,7 +96,7 @@ int64_t Sys_NET_SendFile( socket_handle_t handle, int fileno, size_t offset, siz
 /*
 * Sys_NET_InitFunctions
 */
-static void Sys_NET_InitFunctions( void ) {
+static void Sys_NET_InitFunctions() {
 	SOCKET sock;
 	GUID tf_guid = WSAID_TRANSMITFILE;
 	DWORD bytes;
@@ -117,7 +117,7 @@ static void Sys_NET_InitFunctions( void ) {
 /*
 * Sys_NET_Init
 */
-void Sys_NET_Init( void ) {
+void Sys_NET_Init() {
 	WSADATA winsockdata;
 
 	if( WSAStartup( MAKEWORD( 2, 2 ), &winsockdata ) ) {
@@ -132,6 +132,6 @@ void Sys_NET_Init( void ) {
 /*
 * Sys_NET_Shutdown
 */
-void Sys_NET_Shutdown( void ) {
+void Sys_NET_Shutdown() {
 	WSACleanup();
 }

@@ -14,7 +14,7 @@
  */
 
 // checks if the cvar system can still be used
-bool Cvar_Initialized( void );
+bool Cvar_Initialized();
 
 // flag manipulation routines
 static inline cvar_flag_t Cvar_FlagSet( cvar_flag_t *flags, cvar_flag_t flag );
@@ -55,14 +55,14 @@ int     Cvar_CompleteCountPossible( const char *partial );
 const char **Cvar_CompleteBuildList( const char *partial );
 char *Cvar_TabComplete( const char *partial );
 void        Cvar_GetLatchedVars( cvar_flag_t flags );
-void        Cvar_FixCheatVars( void );
-bool    Cvar_Command( void );
+void        Cvar_FixCheatVars();
+bool    Cvar_Command();
 void        Cvar_WriteVariables( int file );
-void        Cvar_PreInit( void );
-void        Cvar_Init( void );
-void        Cvar_Shutdown( void );
-char *Cvar_Userinfo( void );
-char *Cvar_Serverinfo( void );
+void        Cvar_PreInit();
+void        Cvar_Init();
+void        Cvar_Shutdown();
+char *Cvar_Userinfo();
+char *Cvar_Serverinfo();
 
 // inlined function implementations
 

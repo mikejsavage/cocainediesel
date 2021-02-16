@@ -77,7 +77,7 @@ PRIVATE FUNCTIONS
 /*
 * GetLastErrorString
 */
-static const char *GetLastErrorString( void ) {
+static const char *GetLastErrorString() {
 	switch( Sys_NET_GetLastError() ) {
 		case NET_ERR_UNKNOWN:       return "Unknown error";
 		case NET_ERR_NONE:          return "No error";
@@ -1262,7 +1262,7 @@ bool NET_IsLANAddress( const netadr_t *address ) {
 /*
 * NET_ErrorString
 */
-const char *NET_ErrorString( void ) {
+const char *NET_ErrorString() {
 	return errorstring;
 }
 
@@ -1567,7 +1567,7 @@ int64_t NET_SendFile( const socket_t *socket, int file, size_t offset, size_t co
 /*
 * NET_Init
 */
-void NET_Init( void ) {
+void NET_Init() {
 	assert( !net_initialized );
 
 	Sys_NET_Init();
@@ -1578,7 +1578,7 @@ void NET_Init( void ) {
 /*
 * NET_Shutdown
 */
-void NET_Shutdown( void ) {
+void NET_Shutdown() {
 	if( !net_initialized ) {
 		return;
 	}

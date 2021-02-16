@@ -122,7 +122,7 @@ typedef struct angelwrap_api_s {
 	// context
 	asIScriptContext *( *asAcquireContext )( asIScriptEngine * engine );
 	void ( *asReleaseContext )( asIScriptContext *context );
-	asIScriptContext *( *asGetActiveContext )( void );
+	asIScriptContext *( *asGetActiveContext )();
 
 	// strings
 	asstring_t *( *asStringFactoryBuffer )( const char *buffer, unsigned int length );

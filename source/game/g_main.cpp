@@ -92,7 +92,7 @@ static void G_GS_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end,
 * G_InitGameShared
 * give gameshared access to some utilities
 */
-static void G_InitGameShared( void ) {
+static void G_InitGameShared() {
 	int maxclients = atoi( PF_GetConfigString( CS_MAXCLIENTS ) );
 	if( maxclients < 1 || maxclients > MAX_EDICTS ) {
 		Com_Error( ERR_DROP, "Invalid maxclients value %i\n", maxclients );
@@ -224,7 +224,7 @@ void G_Init( unsigned int framemsec ) {
 /*
 * G_Shutdown
 */
-void G_Shutdown( void ) {
+void G_Shutdown() {
 	Com_Printf( "==== G_Shutdown ====\n" );
 
 	GT_asCallShutdown();
@@ -259,7 +259,7 @@ void G_Shutdown( void ) {
 *
 * Reads current map rotation into internal list
 */
-static void G_UpdateMapRotation( void ) {
+static void G_UpdateMapRotation() {
 	int count, i;
 	bool thiswhitespace, lastwhitespace, found;
 	char *p, *start;
@@ -343,7 +343,7 @@ static void G_UpdateMapRotation( void ) {
 /*
 * G_MapRotationNormal
 */
-static const char *G_MapRotationNormal( void ) {
+static const char *G_MapRotationNormal() {
 	G_UpdateMapRotation();
 
 	if( !map_rotation_count ) {
@@ -359,7 +359,7 @@ static const char *G_MapRotationNormal( void ) {
 	return map_rotation_p[map_rotation_current];
 }
 
-static const char *G_NextMap( void ) {
+static const char *G_NextMap() {
 	if( strlen( level.callvote_map ) > 0 )
 		return level.callvote_map;
 
@@ -375,7 +375,7 @@ static const char *G_NextMap( void ) {
 /*
 * G_ExitLevel
 */
-void G_ExitLevel( void ) {
+void G_ExitLevel() {
 	bool loadmap = true;
 
 	level.exitNow = false;

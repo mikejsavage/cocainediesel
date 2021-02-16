@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 ChasecamState chaseCam;
 
-int CG_LostMultiviewPOV( void );
+int CG_LostMultiviewPOV();
 
 /*
 * CG_ChaseStep
@@ -83,7 +83,7 @@ bool CG_ChaseStep( int step ) {
 /*
 * CG_AddLocalSounds
 */
-static void CG_AddLocalSounds( void ) {
+static void CG_AddLocalSounds() {
 	static unsigned lastSecond = 0;
 
 	// add local announces
@@ -126,7 +126,7 @@ static void CG_AddLocalSounds( void ) {
 *
 * Flashes game window in case of important events (match state changes, etc) for user to notice
 */
-static void CG_FlashGameWindow( void ) {
+static void CG_FlashGameWindow() {
 	static int oldState = -1;
 	bool flash = false;
 	static u8 oldAlphaScore, oldBetaScore;
@@ -208,7 +208,7 @@ float CG_CalcViewFov() {
 /*
 * CG_CalcViewBob
 */
-static void CG_CalcViewBob( void ) {
+static void CG_CalcViewBob() {
 	float bobMove, bobTime, bobScale;
 
 	if( !cg.view.drawWeapon ) {
@@ -255,7 +255,7 @@ static void CG_CalcViewBob( void ) {
 /*
 * CG_ResetKickAngles
 */
-void CG_ResetKickAngles( void ) {
+void CG_ResetKickAngles() {
 	memset( cg.kickangles, 0, sizeof( cg.kickangles ) );
 }
 
@@ -383,7 +383,7 @@ void CG_ViewSmoothPredictedSteps( Vec3 * vieworg ) {
 /*
 * CG_ViewSmoothFallKick
 */
-float CG_ViewSmoothFallKick( void ) {
+float CG_ViewSmoothFallKick() {
 	// fallkick offset
 	if( cg.fallEffectTime > cl.serverTime ) {
 		float fallfrac = (float)( cl.serverTime - cg.fallEffectRebounceTime ) / (float)( cg.fallEffectTime - cg.fallEffectRebounceTime );
@@ -400,7 +400,7 @@ float CG_ViewSmoothFallKick( void ) {
 *
 * Returns whether the mode was actually switched.
 */
-bool CG_SwitchChaseCamMode( void ) {
+bool CG_SwitchChaseCamMode() {
 	bool chasecam = ( cg.frame.playerState.pmove.pm_type == PM_CHASECAM )
 					&& ( cg.frame.playerState.POVnum != (unsigned)( cgs.playerNum + 1 ) );
 	bool realSpec = cgs.demoPlaying || ISREALSPECTATOR();
@@ -433,7 +433,7 @@ bool CG_SwitchChaseCamMode( void ) {
 /*
 * CG_UpdateChaseCam
 */
-static void CG_UpdateChaseCam( void ) {
+static void CG_UpdateChaseCam() {
 	bool chasecam = ( cg.frame.playerState.pmove.pm_type == PM_CHASECAM )
 					&& ( cg.frame.playerState.POVnum != (unsigned)( cgs.playerNum + 1 ) );
 

@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /*
 * G_Timeout_Reset
 */
-void G_Timeout_Reset( void ) {
+void G_Timeout_Reset() {
 	G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, false );
 	level.timeout = { };
 }
@@ -87,7 +87,7 @@ static void G_Timeout_Update( unsigned int msec ) {
 * G_UpdateServerInfo
 * update the cvars which show the match state at server browsers
 */
-static void G_UpdateServerInfo( void ) {
+static void G_UpdateServerInfo() {
 	// g_match_time
 	if( GS_MatchState( &server_gs ) <= MATCH_STATE_WARMUP ) {
 		Cvar_ForceSet( "g_match_time", "Warmup" );
@@ -154,7 +154,7 @@ static void G_UpdateServerInfo( void ) {
 * G_CheckCvars
 * Check for cvars that have been modified and need the game to be updated
 */
-void G_CheckCvars( void ) {
+void G_CheckCvars() {
 	if( g_antilag_maxtimedelta->modified ) {
 		if( g_antilag_maxtimedelta->integer < 0 ) {
 			Cvar_SetValue( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
@@ -202,7 +202,7 @@ void G_CheckCvars( void ) {
 /*
 * G_SnapClients
 */
-void G_SnapClients( void ) {
+void G_SnapClients() {
 	int i;
 	edict_t *ent;
 
@@ -269,7 +269,7 @@ static StringHash entity_sound_backup[MAX_EDICTS];
 * We just run G_SnapFrame, the server just sent the snap to the clients,
 * it's now time to clean up snap specific data to start the next snap from clean.
 */
-void G_ClearSnap( void ) {
+void G_ClearSnap() {
 	edict_t *ent;
 
 	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
@@ -314,7 +314,7 @@ void G_ClearSnap( void ) {
 * G_SnapFrame
 * It's time to send a new snap, so set the world up for sending
 */
-void G_SnapFrame( void ) {
+void G_SnapFrame() {
 	edict_t *ent;
 	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
 
@@ -375,7 +375,7 @@ void G_SnapFrame( void ) {
 * treat each object in turn
 * even the world and clients get a chance to think
 */
-static void G_RunEntities( void ) {
+static void G_RunEntities() {
 	ZoneScoped;
 
 	edict_t *ent;
@@ -412,7 +412,7 @@ static void G_RunEntities( void ) {
 /*
 * G_RunClients
 */
-static void G_RunClients( void ) {
+static void G_RunClients() {
 	ZoneScoped;
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {

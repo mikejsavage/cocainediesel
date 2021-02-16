@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "client/ui.h"
 
-static void CG_SC_Print( void ) {
+static void CG_SC_Print() {
 	CG_LocalPrint( "%s", Cmd_Argv( 1 ) );
 }
 
@@ -64,7 +64,7 @@ static void CG_SC_ChatPrint() {
 	}
 }
 
-static void CG_SC_CenterPrint( void ) {
+static void CG_SC_CenterPrint() {
 	CG_CenterPrint( Cmd_Argv( 1 ) );
 }
 
@@ -96,7 +96,7 @@ void CG_ConfigString( int i, const char *s ) {
 	}
 }
 
-static void CG_SC_Scoreboard( void ) {
+static void CG_SC_Scoreboard() {
 	SCR_UpdateScoreboardMessage( Cmd_Argv( 1 ) );
 }
 
@@ -149,7 +149,7 @@ static void CG_SC_PlayerStats() {
 #undef STATS_PERCENT
 }
 
-static const char *CG_SC_AutoRecordName( void ) {
+static const char *CG_SC_AutoRecordName() {
 	static char name[MAX_STRING_CHARS];
 
 	char date[ 128 ];
@@ -218,7 +218,7 @@ void CG_SC_AutoRecordAction( const char *action ) {
 }
 
 static bool demo_requested = false;
-static void CG_Cmd_DemoGet_f( void ) {
+static void CG_Cmd_DemoGet_f() {
 	if( demo_requested ) {
 		Com_Printf( "Already requesting a demo\n" );
 		return;
@@ -236,7 +236,7 @@ static void CG_Cmd_DemoGet_f( void ) {
 	demo_requested = true;
 }
 
-static void CG_SC_DemoGet( void ) {
+static void CG_SC_DemoGet() {
 	if( cgs.demoPlaying ) {
 		// ignore download commands coming from demo files
 		return;
@@ -345,7 +345,7 @@ static void SwitchWeapon( WeaponType weapon ) {
 	cl.weaponSwitch = weapon;
 }
 
-static void CG_Cmd_UseItem_f( void ) {
+static void CG_Cmd_UseItem_f() {
 	if( !Cmd_Argc() ) {
 		Com_Printf( "Usage: 'use <item name>' or 'use <item index>'\n" );
 		return;
@@ -422,7 +422,7 @@ static void CG_Cmd_Weapon_f() {
 	}
 }
 
-static void CG_Viewpos_f( void ) {
+static void CG_Viewpos_f() {
 	Com_Printf( "\"origin\" \"%i %i %i\"\n", (int)cg.view.origin.x, (int)cg.view.origin.y, (int)cg.view.origin.z );
 	Com_Printf( "\"angles\" \"%i %i %i\"\n", (int)cg.view.angles.x, (int)cg.view.angles.y, (int)cg.view.angles.z );
 }
@@ -470,15 +470,15 @@ static const char **CG_TeamPlayerNamesCompletion_f( const char *partial ) {
 	return CG_PlayerNamesCompletionExt_f( partial, true );
 }
 
-static void CG_SayCmdAdd_f( void ) {
+static void CG_SayCmdAdd_f() {
 	Cmd_SetCompletionFunc( "say", &CG_PlayerNamesCompletion_f );
 }
 
-static void CG_SayTeamCmdAdd_f( void ) {
+static void CG_SayTeamCmdAdd_f() {
 	Cmd_SetCompletionFunc( "say_team", &CG_TeamPlayerNamesCompletion_f );
 }
 
-static void CG_StatsCmdAdd_f( void ) {
+static void CG_StatsCmdAdd_f() {
 	Cmd_SetCompletionFunc( "stats", &CG_PlayerNamesCompletion_f );
 }
 
@@ -494,7 +494,7 @@ static const ServerCommand cg_consvcmds[] = {
 // local cgame commands
 struct cgcmd_t {
 	const char *name;
-	void ( *func )( void );
+	void ( *func )();
 	bool allowdemo;
 };
 
@@ -515,7 +515,7 @@ static const cgcmd_t cgcmds[] = {
 	{ NULL, NULL, false }
 };
 
-void CG_RegisterCGameCommands( void ) {
+void CG_RegisterCGameCommands() {
 	const cgcmd_t *cmd;
 
 	if( !cgs.demoPlaying ) {
@@ -561,7 +561,7 @@ void CG_RegisterCGameCommands( void ) {
 	}
 }
 
-void CG_UnregisterCGameCommands( void ) {
+void CG_UnregisterCGameCommands() {
 	const cgcmd_t *cmd;
 
 	if( !cgs.demoPlaying ) {

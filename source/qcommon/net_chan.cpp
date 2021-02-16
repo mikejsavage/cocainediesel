@@ -610,14 +610,14 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg ) {
 /*
 * Netchan_GamePort
 */
-int Netchan_GamePort( void ) {
+int Netchan_GamePort() {
 	return local_game_port;
 }
 
 /*
 * Netchan_Init
 */
-void Netchan_Init( void ) {
+void Netchan_Init() {
 	// pick a game port value that should be nice and random
 	local_game_port = Sys_Milliseconds() & 0xffff;
 
@@ -629,5 +629,5 @@ void Netchan_Init( void ) {
 /*
 * Netchan_Shutdown
 */
-void Netchan_Shutdown( void ) {
+void Netchan_Shutdown() {
 }

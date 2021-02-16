@@ -28,7 +28,7 @@ static inline void trap_NET_GetUserCmd( int frame, usercmd_t *cmd ) {
 	CGAME_IMPORT.NET_GetUserCmd( frame, cmd );
 }
 
-static inline int trap_NET_GetCurrentUserCmdNum( void ) {
+static inline int trap_NET_GetCurrentUserCmdNum() {
 	return CGAME_IMPORT.NET_GetCurrentUserCmdNum();
 }
 

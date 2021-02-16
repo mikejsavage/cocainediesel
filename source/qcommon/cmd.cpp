@@ -71,7 +71,7 @@ static mempool_t *cbuf_pool;
 /*
 * Cbuf_Init
 */
-void Cbuf_Init( void ) {
+void Cbuf_Init() {
 	assert( !cbuf_initialized );
 
 	cbuf_pool = Mem_AllocPool( NULL, "Command buffer" );
@@ -87,7 +87,7 @@ void Cbuf_Init( void ) {
 /*
 * Cbuf_Shutdown
 */
-void Cbuf_Shutdown( void ) {
+void Cbuf_Shutdown() {
 	if( !cbuf_initialized ) {
 		return;
 	}
@@ -108,7 +108,7 @@ void Cbuf_Shutdown( void ) {
 *
 * Frees some space, if we have too big buffer in use
 */
-static void Cbuf_FreeSpace( void ) {
+static void Cbuf_FreeSpace() {
 	char *old;
 	size_t used, old_size;
 
@@ -238,7 +238,7 @@ void Cbuf_ExecuteText( int exec_when, const char *text ) {
 * Normally called once per frame, but may be explicitly invoked.
 * Do not call inside a command function!
 */
-void Cbuf_Execute( void ) {
+void Cbuf_Execute() {
 	size_t i;
 	int c;
 	char line[MAX_STRING_CHARS];
@@ -337,7 +337,7 @@ void Cbuf_AddEarlyCommands( bool second_run ) {
 * Returns true if any late commands were added, which
 * will keep the demoloop from immediately starting
 */
-bool Cbuf_AddLateCommands( void ) {
+bool Cbuf_AddLateCommands() {
 	int i;
 	size_t text_size;
 	char *text;
@@ -390,7 +390,7 @@ SCRIPT COMMANDS
 /*
 * Cmd_Exec_f
 */
-static void Cmd_Exec_f( void ) {
+static void Cmd_Exec_f() {
 	const char *arg = Cmd_Argv( 1 );
 
 	if( Cmd_Argc() < 2 || !arg[0] ) {
@@ -445,7 +445,7 @@ static const char **CL_CompleteExecBuildList( const char *partial ) {
 *
 * Just prints the rest of the line to the console
 */
-static void Cmd_Echo_f( void ) {
+static void Cmd_Echo_f() {
 	int i;
 	for( i = 1; i < Cmd_Argc(); ++i )
 		Com_Printf( "%s ", Cmd_Argv( i ) );
@@ -455,7 +455,7 @@ static void Cmd_Echo_f( void ) {
 /*
 * Cmd_AliasList_f
 */
-static void Cmd_AliasList_f( void ) {
+static void Cmd_AliasList_f() {
 	char *pattern;
 	unsigned int size;
 	unsigned int i;
@@ -547,14 +547,14 @@ static void Cmd_Alias_f_( bool archive ) {
 /*
 * Cmd_Alias_f
 */
-static void Cmd_Alias_f( void ) {
+static void Cmd_Alias_f() {
 	Cmd_Alias_f_( false );
 }
 
 /*
 * Cmd_Aliasa_f
 */
-static void Cmd_Aliasa_f( void ) {
+static void Cmd_Aliasa_f() {
 	Cmd_Alias_f_( true );
 }
 
@@ -563,7 +563,7 @@ static void Cmd_Aliasa_f( void ) {
 *
 * Removes an alias command
 */
-static void Cmd_Unalias_f( void ) {
+static void Cmd_Unalias_f() {
 	const char *s;
 	cmd_alias_t *a;
 
@@ -592,7 +592,7 @@ static void Cmd_Unalias_f( void ) {
 *
 * Removes an alias command
 */
-static void Cmd_UnaliasAll_f( void ) {
+static void Cmd_UnaliasAll_f() {
 	trie_dump_t *dump;
 	unsigned int i;
 
@@ -641,7 +641,7 @@ static int Cmd_PatternMatchesFunction( void *cmd, const void *pattern ) {
 /*
 * Cmd_Argc
 */
-int Cmd_Argc( void ) {
+int Cmd_Argc() {
 	return cmd_argc;
 }
 
@@ -660,7 +660,7 @@ const char *Cmd_Argv( int arg ) {
 *
 * Returns a single string containing argv(1) to argv(argc()-1)
 */
-char *Cmd_Args( void ) {
+char *Cmd_Args() {
 	return cmd_args;
 }
 
@@ -1177,7 +1177,7 @@ void Cmd_ExecuteString( const char *text ) {
 /*
 * Cmd_List_f
 */
-static void Cmd_List_f( void ) {
+static void Cmd_List_f() {
 	trie_dump_t *dump = NULL;
 	unsigned int i;
 	char *pattern;
@@ -1202,7 +1202,7 @@ static void Cmd_List_f( void ) {
 /*
 * Cmd_PreInit
 */
-void Cmd_PreInit( void ) {
+void Cmd_PreInit() {
 	assert( !cmd_preinitialized );
 	assert( !cmd_initialized );
 
@@ -1218,7 +1218,7 @@ void Cmd_PreInit( void ) {
 /*
 * Cmd_Init
 */
-void Cmd_Init( void ) {
+void Cmd_Init() {
 	assert( !cmd_initialized );
 	assert( cmd_preinitialized );
 
@@ -1245,7 +1245,7 @@ void Cmd_Init( void ) {
 	cmd_initialized = true;
 }
 
-void Cmd_Shutdown( void ) {
+void Cmd_Shutdown() {
 	if( cmd_initialized ) {
 		unsigned int i;
 		trie_dump_t *dump;

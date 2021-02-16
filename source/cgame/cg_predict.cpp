@@ -52,7 +52,7 @@ void CG_PredictedFireWeapon( int entNum, WeaponType weapon ) {
 /*
 * CG_CheckPredictionError
 */
-void CG_CheckPredictionError( void ) {
+void CG_CheckPredictionError() {
 	int delta[3];
 	int frame;
 
@@ -99,7 +99,7 @@ void CG_CheckPredictionError( void ) {
 /*
 * CG_BuildSolidList
 */
-void CG_BuildSolidList( void ) {
+void CG_BuildSolidList() {
 	cg_numSolids = 0;
 	cg_numTriggers = 0;
 
@@ -312,7 +312,7 @@ static void CG_PredictAddStep( int virtualtime, int predictiontime, float stepSi
 /*
 * CG_PredictSmoothSteps
 */
-static void CG_PredictSmoothSteps( void ) {
+static void CG_PredictSmoothSteps() {
 	int64_t outgoing;
 	int64_t frame;
 	usercmd_t cmd;
@@ -353,7 +353,7 @@ static void CG_PredictSmoothSteps( void ) {
 *
 * Sets cg.predictedVelocty, cg.predictedOrigin and cg.predictedAngles
 */
-void CG_PredictMovement( void ) {
+void CG_PredictMovement() {
 	ZoneScoped;
 
 	int64_t ucmdExecuted, ucmdHead;

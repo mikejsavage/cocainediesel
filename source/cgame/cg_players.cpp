@@ -68,7 +68,7 @@ void CG_LoadClientInfo( int client ) {
 	CG_ParseClientInfo( &cgs.clientInfo[client], cgs.configStrings[CS_PLAYERINFOS + client] );
 }
 
-void CG_ResetClientInfos( void ) {
+void CG_ResetClientInfos() {
 	memset( cgs.clientInfo, 0, sizeof( cgs.clientInfo ) );
 
 	for( int i = 0; i < MAX_CLIENTS; i++ ) {

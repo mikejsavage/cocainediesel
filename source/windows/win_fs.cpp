@@ -179,7 +179,7 @@ const char *Sys_FS_FindNext( unsigned musthave, unsigned canthave ) {
 /*
 * Sys_FS_FindClose
 */
-void Sys_FS_FindClose( void ) {
+void Sys_FS_FindClose() {
 	assert( findbase );
 
 	if( findhandle != -1 ) {
@@ -200,7 +200,7 @@ void Sys_FS_FindClose( void ) {
 /*
 * Sys_FS_GetHomeDirectory
 */
-const char *Sys_FS_GetHomeDirectory( void ) {
+const char *Sys_FS_GetHomeDirectory() {
 	int csidl = CSIDL_PERSONAL;
 
 	static char home[MAX_PATH] = { '\0' };

@@ -816,7 +816,7 @@ g_gamecommands_t g_Commands[MAX_GAMECOMMANDS];
 /*
 * G_PrecacheGameCommands
 */
-void G_PrecacheGameCommands( void ) {
+void G_PrecacheGameCommands() {
 	for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
 		PF_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
 	}
@@ -871,7 +871,7 @@ void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 /*
 * G_InitGameCommands
 */
-void G_InitGameCommands( void ) {
+void G_InitGameCommands() {
 	memset( g_Commands, 0, sizeof( g_Commands ) );
 
 	G_AddCommand( "position", Cmd_Position_f );

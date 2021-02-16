@@ -142,7 +142,7 @@ const char *PF_GetConfigString( int index ) {
 * Called when either the entire server is being killed, or
 * it is changing to a different game directory.
 */
-void SV_ShutdownGameProgs( void ) {
+void SV_ShutdownGameProgs() {
 	G_Shutdown();
 }
 
@@ -164,7 +164,7 @@ void SV_LocateEntities( edict_t *edicts, size_t edict_size, int num_edicts, int 
 *
 * Init the game subsystem for a new map
 */
-void SV_InitGameProgs( void ) {
+void SV_InitGameProgs() {
 	SV_SetServerConfigStrings();
 
 	G_Init( svc.snapFrameTime );

@@ -32,7 +32,7 @@ cvar_t *g_teams_autojoin;
 /*
 * G_Teams_Init
 */
-void G_Teams_Init( void ) {
+void G_Teams_Init() {
 	edict_t *ent;
 
 	g_teams_maxplayers = Cvar_Get( "g_teams_maxplayers", "0", CVAR_ARCHIVE );
@@ -76,7 +76,7 @@ static int G_Teams_CompareMembers( const void *a, const void *b ) {
 * It's better to count the list in detail once per fame, than
 * creating a quick list each time we need it.
 */
-void G_Teams_UpdateMembersList( void ) {
+void G_Teams_UpdateMembersList() {
 	edict_t *ent;
 	int i, team;
 
@@ -434,7 +434,7 @@ static int G_Teams_ChallengersQueueCmp( const edict_t **pe1, const edict_t **pe2
 * Returns a NULL-terminated list of challengers or NULL if
 * there are no challengers.
 */
-edict_t **G_Teams_ChallengersQueue( void ) {
+edict_t **G_Teams_ChallengersQueue() {
 	int num_challengers = 0;
 	static edict_t *challengers[MAX_CLIENTS + 1];
 	edict_t *e;
@@ -474,7 +474,7 @@ edict_t **G_Teams_ChallengersQueue( void ) {
 /*
 * G_Teams_ExecuteChallengersQueue
 */
-void G_Teams_ExecuteChallengersQueue( void ) {
+void G_Teams_ExecuteChallengersQueue() {
 	edict_t *ent;
 	edict_t **challengers;
 	bool restartmatch = false;
@@ -565,7 +565,7 @@ static edict_t *G_Teams_BestScoreBelow( int maxscore ) {
 /*
 * G_Teams_AdvanceChallengersQueue
 */
-void G_Teams_AdvanceChallengersQueue( void ) {
+void G_Teams_AdvanceChallengersQueue() {
 	int i, team, loserscount, winnerscount, playerscount = 0;
 	int maxscore = 999999;
 	edict_t *won, *e;
@@ -677,7 +677,7 @@ void G_Teams_JoinChallengersQueue( edict_t *ent ) {
 	}
 }
 
-void G_InitChallengersQueue( void ) {
+void G_InitChallengersQueue() {
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		game.clients[i].queueTimeStamp = 0;
 	}

@@ -289,7 +289,7 @@ static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent ) {
 /*
 * G_FreeEntities
 */
-static void G_FreeEntities( void ) {
+static void G_FreeEntities() {
 	if( !level.time ) {
 		memset( game.edicts, 0, game.maxentities * sizeof( game.edicts[0] ) );
 	}
@@ -308,7 +308,7 @@ static void G_FreeEntities( void ) {
 /*
 * G_SpawnEntities
 */
-static void G_SpawnEntities( void ) {
+static void G_SpawnEntities() {
 	level.spawnedTimeStamp = svs.gametime;
 	level.canSpawnEntities = true;
 
@@ -435,7 +435,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	G_asGarbageCollect( true );
 }
 
-void G_ResetLevel( void ) {
+void G_ResetLevel() {
 	G_FreeEdict( world );
 	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
 		if( game.edicts[i].r.inuse ) {

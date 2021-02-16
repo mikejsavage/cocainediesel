@@ -35,7 +35,7 @@ extern cvar_t *sv_iplimit;
 //
 //==============================================================================
 
-static void SV_ResolveMaster( void ) {
+static void SV_ResolveMaster() {
 	memset( sv_masters, 0, sizeof( sv_masters ) );
 
 	if( sv.state > ss_game ) {
@@ -64,7 +64,7 @@ static void SV_ResolveMaster( void ) {
 * SV_InitMaster
 * Set up the main master server
 */
-void SV_InitMaster( void ) {
+void SV_InitMaster() {
 	SV_ResolveMaster();
 
 	svc.nextHeartbeat = Sys_Milliseconds();
@@ -73,7 +73,7 @@ void SV_InitMaster( void ) {
 /*
 * SV_UpdateMaster
 */
-void SV_UpdateMaster( void ) {
+void SV_UpdateMaster() {
 	// refresh master server IP addresses periodically
 	if( svc.lastMasterResolve + TTL_MASTERS < Sys_Milliseconds() ) {
 		SV_ResolveMaster();
@@ -85,7 +85,7 @@ void SV_UpdateMaster( void ) {
 * Send a message to the master every few minutes to
 * let it know we are alive, and log information
 */
-void SV_MasterHeartbeat( void ) {
+void SV_MasterHeartbeat() {
 	int64_t time = Sys_Milliseconds();
 
 	if( svc.nextHeartbeat > time ) {
@@ -179,7 +179,7 @@ static char *SV_LongInfoString( bool fullStatus ) {
 */
 #define MAX_STRING_SVCINFOSTRING 180
 #define MAX_SVCINFOSTRING_LEN ( MAX_STRING_SVCINFOSTRING - 4 )
-static char *SV_ShortInfoString( void ) {
+static char *SV_ShortInfoString() {
 	static char string[MAX_STRING_SVCINFOSTRING];
 	char hostname[64];
 	char entry[20];
@@ -649,7 +649,7 @@ int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const
 /*
 * Rcon_Validate
 */
-static int Rcon_Validate( void ) {
+static int Rcon_Validate() {
 	if( !strlen( rcon_password->string ) ) {
 		return 0;
 	}

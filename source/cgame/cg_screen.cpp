@@ -61,13 +61,13 @@ void CG_CenterPrint( const char *str ) {
 	scr_centertime_off = cg_centerTime->value * 1000.0f;
 }
 
-static void CG_DrawCenterString( void ) {
+static void CG_DrawCenterString() {
 	DrawText( cgs.fontNormal, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.75f, vec4_white, true );
 }
 
 //============================================================================
 
-void CG_ScreenInit( void ) {
+void CG_ScreenInit() {
 	cg_showFPS =        Cvar_Get( "cg_showFPS", "0", CVAR_ARCHIVE );
 	cg_draw2D =     Cvar_Get( "cg_draw2D", "1", 0 );
 	cg_centerTime =     Cvar_Get( "cg_centerTime", "2.5", 0 );
@@ -98,7 +98,7 @@ void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
 	Draw2DBox( x, y, w, h, cgs.media.shaderNet, color );
 }
 
-void CG_ScreenCrosshairDamageUpdate( void ) {
+void CG_ScreenCrosshairDamageUpdate() {
 	scr_damagetime = cls.monotonicTime;
 }
 
@@ -170,13 +170,13 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	DrawText( font, font_size, string, alignment, x, y, color, border );
 }
 
-void CG_ClearPointedNum( void ) {
+void CG_ClearPointedNum() {
 	cg.pointedNum = 0;
 	cg.pointRemoveTime = 0;
 	cg.pointedHealth = 0;
 }
 
-static void CG_UpdatePointedNum( void ) {
+static void CG_UpdatePointedNum() {
 	// disable cases
 	if( cg.view.thirdperson || cg.view.type != VIEWDEF_PLAYERVIEW || !cg_showPointedPlayer->integer ) {
 		CG_ClearPointedNum();
@@ -773,7 +773,7 @@ void CG_ResetBombHUD() {
 
 //=============================================================================
 
-void CG_EscapeKey( void ) {
+void CG_EscapeKey() {
 	if( cgs.demoPlaying ) {
 		UI_ShowDemoMenu();
 		return;
@@ -831,7 +831,7 @@ static void CG_DrawScope() {
 	}
 }
 
-void CG_Draw2DView( void ) {
+void CG_Draw2DView() {
 	ZoneScoped;
 
 	if( !cg.view.draw2D ) {
@@ -852,7 +852,7 @@ void CG_Draw2DView( void ) {
 	CG_DrawChat();
 }
 
-void CG_Draw2D( void ) {
+void CG_Draw2D() {
 	CG_DrawScope();
 
 	if( !cg_draw2D->integer ) {

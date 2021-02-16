@@ -78,7 +78,7 @@ cvar_t *sv_demodir;
 *
 * Updates the cl->ping variables
 */
-static void SV_CalcPings( void ) {
+static void SV_CalcPings() {
 	unsigned int i, j;
 	client_t *cl;
 	unsigned int total, count, lat, best;
@@ -148,7 +148,7 @@ static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 /*
 * SV_ReadPackets
 */
-static void SV_ReadPackets( void ) {
+static void SV_ReadPackets() {
 	ZoneScoped;
 
 	int i, ret;
@@ -270,7 +270,7 @@ static void SV_ReadPackets( void ) {
 * for a few seconds to make sure any final reliable message gets resent
 * if necessary
 */
-static void SV_CheckTimeouts( void ) {
+static void SV_CheckTimeouts() {
 	ZoneScoped;
 
 	client_t *cl;
@@ -320,7 +320,7 @@ static void SV_CheckTimeouts( void ) {
 * and only the last one is applied.
 * Applies latched userinfo updates if the timeout is over.
 */
-static void SV_CheckLatchedUserinfoChanges( void ) {
+static void SV_CheckLatchedUserinfoChanges() {
 	ZoneScoped;
 
 	client_t *cl;
@@ -440,7 +440,7 @@ static bool SV_RunGameFrame( int msec ) {
 	return false;
 }
 
-static void SV_CheckDefaultMap( void ) {
+static void SV_CheckDefaultMap() {
 	if( svc.autostarted ) {
 		return;
 	}
@@ -550,7 +550,7 @@ void SV_UserinfoChanged( client_t *client ) {
 /*
 * SV_Init
 */
-void SV_Init( void ) {
+void SV_Init() {
 	ZoneScoped;
 
 	assert( !sv_initialized );

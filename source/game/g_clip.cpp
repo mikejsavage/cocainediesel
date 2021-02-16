@@ -74,7 +74,7 @@ struct c4frame_t {
 static c4frame_t sv_collisionframes[CFRAME_UPDATE_BACKUP];
 static int64_t sv_collisionFrameNum = 0;
 
-void GClip_BackUpCollisionFrame( void ) {
+void GClip_BackUpCollisionFrame() {
 	c4frame_t *cframe;
 	edict_t *svedict;
 	int i;
@@ -447,7 +447,7 @@ static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, Vec3 mins, Vec3 m
 * GClip_ClearWorld
 * called after the world model has been loaded, before linking any entities
 */
-void GClip_ClearWorld( void ) {
+void GClip_ClearWorld() {
 	cmodel_t * world_model = CM_FindCModel( CM_Server, StringHash( svs.cms->world_hash ) );
 
 	Vec3 world_mins, world_maxs;

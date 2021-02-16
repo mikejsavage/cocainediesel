@@ -59,7 +59,7 @@ static void CL_GameModule_NET_GetUserCmd( int frame, usercmd_t *cmd ) {
 /*
 * CL_GameModule_NET_GetCurrentUserCmdNum
 */
-static int CL_GameModule_NET_GetCurrentUserCmdNum( void ) {
+static int CL_GameModule_NET_GetCurrentUserCmdNum() {
 	return cls.ucmdHead;
 }
 
@@ -83,7 +83,7 @@ static void CL_GameModule_NET_GetCurrentState( int64_t *incomingAcknowledged, in
 /*
 * CL_GameModule_Init
 */
-void CL_GameModule_Init( void ) {
+void CL_GameModule_Init() {
 	cgame_import_t import;
 
 	// stop all playing sounds
@@ -109,7 +109,7 @@ void CL_GameModule_Init( void ) {
 /*
 * CL_GameModule_Reset
 */
-void CL_GameModule_Reset( void ) {
+void CL_GameModule_Reset() {
 	if( cge ) {
 		cge->Reset();
 	}
@@ -118,7 +118,7 @@ void CL_GameModule_Reset( void ) {
 /*
 * CL_GameModule_Shutdown
 */
-void CL_GameModule_Shutdown( void ) {
+void CL_GameModule_Shutdown() {
 	if( !cge ) {
 		return;
 	}
@@ -132,7 +132,7 @@ void CL_GameModule_Shutdown( void ) {
 /*
 * CL_GameModule_EscapeKey
 */
-void CL_GameModule_EscapeKey( void ) {
+void CL_GameModule_EscapeKey() {
 	if( cge ) {
 		cge->EscapeKey();
 	}
@@ -174,7 +174,7 @@ void CL_GameModule_RenderView() {
 /*
 * CL_GameModule_GetButtonBits
 */
-unsigned CL_GameModule_GetButtonBits( void ) {
+unsigned CL_GameModule_GetButtonBits() {
 	if( cge ) {
 		return cge->GetButtonBits();
 	}

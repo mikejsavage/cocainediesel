@@ -51,7 +51,7 @@ asIScriptEngine *qasCreateEngine( bool *asMaxPortability );
 asIScriptContext *qasAcquireContext( asIScriptEngine *engine );
 void qasReleaseContext( asIScriptContext *ctx );
 void qasReleaseEngine( asIScriptEngine *engine );
-asIScriptContext *qasGetActiveContext( void );
+asIScriptContext *qasGetActiveContext();
 void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool singleFile, bool markdown, unsigned andMask, unsigned notMask );
 
 // array tools

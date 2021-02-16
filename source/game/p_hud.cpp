@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 *
 * Show the scoreboard messages if the scoreboards are active
 */
-void G_UpdateScoreBoardMessages( void ) {
+void G_UpdateScoreBoardMessages() {
 	char as_scoreboard[ 1024 ];
 	GT_asCallScoreboardMessage( as_scoreboard, sizeof( as_scoreboard ) );
 

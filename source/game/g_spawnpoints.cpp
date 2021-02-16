@@ -30,7 +30,7 @@ void SP_post_match_camera( edict_t *ent ) { }
 //
 //=======================================================================
 
-static edict_t *G_FindPostMatchCamera( void ) {
+static edict_t *G_FindPostMatchCamera() {
 	edict_t * ent = G_Find( NULL, FOFS( classname ), "post_match_camera" );
 	if( ent != NULL )
 		return ent;
@@ -131,7 +131,7 @@ void G_SpawnQueue_SetTeamSpawnsystem( int team, int spawnsystem, int wave_time, 
 /*
 * G_SpawnQueue_Init
 */
-void G_SpawnQueue_Init( void ) {
+void G_SpawnQueue_Init() {
 	int spawnsystem, team;
 	cvar_t *g_spawnsystem;
 	cvar_t *g_spawnsystem_wave_time;
@@ -301,7 +301,7 @@ void G_SpawnQueue_AddClient( edict_t *ent ) {
 /*
 * G_SpawnQueue_Think
 */
-void G_SpawnQueue_Think( void ) {
+void G_SpawnQueue_Think() {
 	int team, maxCount, count;
 	g_teamspawnqueue_t *queue;
 	edict_t *ent;

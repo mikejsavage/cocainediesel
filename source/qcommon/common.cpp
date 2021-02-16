@@ -90,7 +90,7 @@ void Com_BeginRedirect( int target, char *buffer, int buffersize,
 	Unlock( com_print_mutex );
 }
 
-void Com_EndRedirect( void ) {
+void Com_EndRedirect() {
 	Lock( com_print_mutex );
 
 	rd_flush( rd_target, rd_buffer, rd_extra );
@@ -104,7 +104,7 @@ void Com_EndRedirect( void ) {
 	Unlock( com_print_mutex );
 }
 
-void Com_DeferConsoleLogReopen( void ) {
+void Com_DeferConsoleLogReopen() {
 	if( logconsole != NULL ) {
 		logconsole->modified = true;
 	}
@@ -133,7 +133,7 @@ static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	}
 }
 
-static void Com_ReopenConsoleLog( void ) {
+static void Com_ReopenConsoleLog() {
 	char errmsg[MAX_PRINTMSG] = { 0 };
 
 	Lock( com_print_mutex );
@@ -280,7 +280,7 @@ void Com_Error( com_error_code_t code, const char *format, ... ) {
 /*
 * Com_DeferQuit
 */
-void Com_DeferQuit( void ) {
+void Com_DeferQuit() {
 	com_quit = true;
 }
 
@@ -290,7 +290,7 @@ void Com_DeferQuit( void ) {
 * Both client and server can use this, and it will
 * do the apropriate things.
 */
-void Com_Quit( void ) {
+void Com_Quit() {
 	SV_Shutdown( "Server quit\n" );
 	CL_Shutdown();
 	ShutdownMapList();
@@ -301,7 +301,7 @@ void Com_Quit( void ) {
 /*
 * Com_ServerState
 */
-int Com_ServerState( void ) {
+int Com_ServerState() {
 	return server_state;
 }
 
@@ -312,7 +312,7 @@ void Com_SetServerState( int state ) {
 	server_state = state;
 }
 
-int Com_ClientState( void ) {
+int Com_ClientState() {
 	return client_state;
 }
 
@@ -320,7 +320,7 @@ void Com_SetClientState( int state ) {
 	client_state = state;
 }
 
-bool Com_DemoPlaying( void ) {
+bool Com_DemoPlaying() {
 	return demo_playing;
 }
 
@@ -348,7 +348,7 @@ int COM_CheckParm( char *parm ) {
 	return 0;
 }
 
-int COM_Argc( void ) {
+int COM_Argc() {
 	return com_argc;
 }
 
@@ -453,8 +453,8 @@ void Info_Print( char *s ) {
 
 //============================================================================
 
-void Key_Init( void );
-void Key_Shutdown( void );
+void Key_Init();
+void Key_Shutdown();
 
 /*
 * Q_malloc
@@ -496,7 +496,7 @@ void Q_free( void *buf ) {
 /*
 * Qcommon_InitCommands
 */
-void Qcommon_InitCommands( void ) {
+void Qcommon_InitCommands() {
 	assert( !commands_intialized );
 
 	if( is_dedicated_server ) {
@@ -509,7 +509,7 @@ void Qcommon_InitCommands( void ) {
 /*
 * Qcommon_ShutdownCommands
 */
-void Qcommon_ShutdownCommands( void ) {
+void Qcommon_ShutdownCommands() {
 	if( !commands_intialized ) {
 		return;
 	}
@@ -671,7 +671,7 @@ void Qcommon_Frame( unsigned int realMsec ) {
 /*
 * Qcommon_Shutdown
 */
-void Qcommon_Shutdown( void ) {
+void Qcommon_Shutdown() {
 	CM_Shutdown();
 	Netchan_Shutdown();
 	NET_Shutdown();

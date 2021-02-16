@@ -225,5 +225,5 @@ bool CM_HeadnodeVisible( CollisionModel *cms, int headnode, uint8_t *visbits );
 
 void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out );
 
-void CM_Init( void );
-void CM_Shutdown( void );
+void CM_Init();
+void CM_Shutdown();

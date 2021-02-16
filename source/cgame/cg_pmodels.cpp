@@ -204,7 +204,7 @@ const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num ) {
 	return GetPlayerModelMetadata( "players/rigg/model" );
 }
 
-void CG_ResetPModels( void ) {
+void CG_ResetPModels() {
 	for( int i = 0; i < MAX_EDICTS; i++ ) {
 		memset( &cg_entPModels[i].animState, 0, sizeof( pmodel_animationstate_t ) );
 	}

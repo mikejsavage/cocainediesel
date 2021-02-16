@@ -264,7 +264,7 @@ static searchpath_t *FS_SearchPathForBaseFile( const char *filename, char *path,
 /*
 * FS_OpenFileHandle
 */
-static int FS_OpenFileHandle( void ) {
+static int FS_OpenFileHandle() {
 	filehandle_t *fh;
 
 	Lock( fs_fh_mutex );
@@ -1328,7 +1328,7 @@ int FS_GetFileList( const char *dir, const char *extension, char *buf, size_t bu
 *
 * Returns the current game directory, without the path
 */
-const char *FS_GameDirectory( void ) {
+const char *FS_GameDirectory() {
 	return DEFAULT_BASEGAME;
 }
 
@@ -1337,7 +1337,7 @@ const char *FS_GameDirectory( void ) {
 *
 * Returns the current base game directory, without the path
 */
-const char *FS_BaseGameDirectory( void ) {
+const char *FS_BaseGameDirectory() {
 	return DEFAULT_BASEGAME;
 }
 
@@ -1346,7 +1346,7 @@ const char *FS_BaseGameDirectory( void ) {
 *
 * Returns directory where we can write, no gamedir attached
 */
-const char *FS_WriteDirectory( void ) {
+const char *FS_WriteDirectory() {
 	return fs_write_searchpath->path;
 }
 
@@ -1356,7 +1356,7 @@ const char *FS_WriteDirectory( void ) {
 * Returns directory where we can store downloads to, no gamedir attached.
 * Returns NULL if downloads are disabled.
 */
-const char *FS_DownloadsDirectory( void ) {
+const char *FS_DownloadsDirectory() {
 	if( fs_downloads_searchpath ) {
 		return fs_downloads_searchpath->path;
 	}
@@ -1488,7 +1488,7 @@ static void FS_AddBasePath( const char *path ) {
 /*
 * FS_FreeSearchFiles
 */
-static void FS_FreeSearchFiles( void ) {
+static void FS_FreeSearchFiles() {
 	// free temp memory
 	for( int i = 0; i < fs_cursearchfiles; i++ ) {
 		Mem_ZoneFree( fs_searchfiles[i].name );
@@ -1499,7 +1499,7 @@ static void FS_FreeSearchFiles( void ) {
 /*
 * FS_Init
 */
-void FS_Init( void ) {
+void FS_Init() {
 	int i;
 	const char *homedir;
 	char downloadsdir[FS_MAX_PATH];
@@ -1578,7 +1578,7 @@ void FS_Init( void ) {
 /*
 * FS_Frame
 */
-void FS_Frame( void ) {
+void FS_Frame() {
 	ZoneScoped;
 	FS_FreeSearchFiles();
 }
@@ -1586,7 +1586,7 @@ void FS_Frame( void ) {
 /*
 * FS_Shutdown
 */
-void FS_Shutdown( void ) {
+void FS_Shutdown() {
 	searchpath_t *search;
 
 	if( !fs_initialized ) {

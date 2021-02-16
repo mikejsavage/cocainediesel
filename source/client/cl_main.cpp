@@ -122,7 +122,7 @@ void CL_UpdateClientCommandsToServer( msg_t *msg ) {
 /*
 * CL_ForwardToServer_f
 */
-void CL_ForwardToServer_f( void ) {
+void CL_ForwardToServer_f() {
 	if( cls.demo.playing ) {
 		return;
 	}
@@ -141,7 +141,7 @@ void CL_ForwardToServer_f( void ) {
 /*
 * CL_ServerDisconnect_f
 */
-void CL_ServerDisconnect_f( void ) {
+void CL_ServerDisconnect_f() {
 	char menuparms[MAX_STRING_CHARS];
 	int type;
 	char reason[MAX_STRING_CHARS];
@@ -166,7 +166,7 @@ void CL_ServerDisconnect_f( void ) {
 /*
 * CL_Quit
 */
-void CL_Quit( void ) {
+void CL_Quit() {
 	CL_Disconnect( NULL );
 	Com_Quit();
 }
@@ -174,7 +174,7 @@ void CL_Quit( void ) {
 /*
 * CL_Quit_f
 */
-static void CL_Quit_f( void ) {
+static void CL_Quit_f() {
 	CL_Quit();
 }
 
@@ -184,7 +184,7 @@ static void CL_Quit_f( void ) {
 * We have gotten a challenge from the server, so try and
 * connect.
 */
-static void CL_SendConnectPacket( void ) {
+static void CL_SendConnectPacket() {
 	userinfo_modified = false;
 
 	Netchan_OutOfBandPrint( cls.socket, &cls.serveraddress, "connect %i %i %i \"%s\"\n",
@@ -196,7 +196,7 @@ static void CL_SendConnectPacket( void ) {
 *
 * Resend a connect message if the last one has timed out
 */
-static void CL_CheckForResend( void ) {
+static void CL_CheckForResend() {
 	// FIXME: should use cls.realtime, but it can be old here after starting a server
 	int64_t realtime = Sys_Milliseconds();
 
@@ -363,7 +363,7 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 /*
 * CL_Connect_f
 */
-static void CL_Connect_f( void ) {
+static void CL_Connect_f() {
 	CL_Connect_Cmd_f( SOCKET_UDP );
 }
 
@@ -374,7 +374,7 @@ static void CL_Connect_f( void ) {
 * Send the rest of the command line over as
 * an unconnected command.
 */
-static void CL_Rcon_f( void ) {
+static void CL_Rcon_f() {
 	char message[1024];
 	int i;
 	const socket_t *socket;
@@ -478,14 +478,14 @@ size_t CL_GetBaseServerURL( char *buffer, size_t buffer_size ) {
 /*
 * CL_ResetServerCount
 */
-void CL_ResetServerCount( void ) {
+void CL_ResetServerCount() {
 	cl.servercount = -1;
 }
 
 /*
 * CL_ClearState
 */
-void CL_ClearState( void ) {
+void CL_ClearState() {
 	// wipe the entire cl structure
 	memset( &cl, 0, sizeof( client_state_t ) );
 	memset( cl_baselines, 0, sizeof( cl_baselines ) );
@@ -514,7 +514,7 @@ void CL_ClearState( void ) {
 *
 * Next is used to set an action which is executed at disconnecting.
 */
-static void CL_SetNext_f( void ) {
+static void CL_SetNext_f() {
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "USAGE: next <commands>\n" );
 		return;
@@ -527,7 +527,7 @@ static void CL_SetNext_f( void ) {
 *
 * Sends a disconnect message to the server
 */
-static void CL_Disconnect_SendCommand( void ) {
+static void CL_Disconnect_SendCommand() {
 	// wsw : jal : send the packet 3 times to make sure isn't lost
 	CL_AddReliableCommand( "disconnect" );
 	CL_SendMessagesToServer( true );
@@ -605,7 +605,7 @@ void CL_Disconnect( const char *message ) {
 	}
 }
 
-void CL_Disconnect_f( void ) {
+void CL_Disconnect_f() {
 	CL_Disconnect( NULL );
 }
 
@@ -615,7 +615,7 @@ void CL_Disconnect_f( void ) {
 * Just sent as a hint to the client that they should
 * drop to full console
 */
-void CL_Changing_f( void ) {
+void CL_Changing_f() {
 	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
 	if( CL_IsDownloading() ) {
 		return;
@@ -640,7 +640,7 @@ void CL_Changing_f( void ) {
 *
 * The server is changing levels
 */
-void CL_ServerReconnect_f( void ) {
+void CL_ServerReconnect_f() {
 	if( cls.demo.playing ) {
 		return;
 	}
@@ -680,7 +680,7 @@ void CL_ServerReconnect_f( void ) {
 *
 * User reconnect command.
 */
-void CL_Reconnect_f( void ) {
+void CL_Reconnect_f() {
 	char *servername;
 	socket_type_t servertype;
 	netadr_t serveraddress;
@@ -928,7 +928,7 @@ static bool CL_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 /*
 * CL_ReadPackets
 */
-void CL_ReadPackets( void ) {
+void CL_ReadPackets() {
 	msg_t msg;
 	uint8_t msgData[MAX_MSGLEN];
 	int ret;
@@ -1025,7 +1025,7 @@ void CL_ReadPackets( void ) {
 /*
 * CL_Userinfo_f
 */
-static void CL_Userinfo_f( void ) {
+static void CL_Userinfo_f() {
 	Com_Printf( "User info settings:\n" );
 	Info_Print( Cvar_Userinfo() );
 }
@@ -1043,7 +1043,7 @@ void CL_FinishConnect() {
 * The server will send this command right
 * before allowing the client into the server
 */
-void CL_Precache_f( void ) {
+void CL_Precache_f() {
 	if( cls.demo.playing ) {
 		if( !cls.demo.play_jump ) {
 			CL_GameModule_Init();
@@ -1095,7 +1095,7 @@ static void CL_WriteConfiguration( const char *name ) {
 /*
 * CL_WriteConfig_f
 */
-static void CL_WriteConfig_f( void ) {
+static void CL_WriteConfig_f() {
 	char *name;
 	int name_size;
 
@@ -1161,7 +1161,7 @@ void CL_SetClientState( connstate_t state ) {
 /*
 * CL_ShowServerIP_f - wsw : pb : show the ip:port of the server the client is connected to
 */
-static void CL_ShowServerIP_f( void ) {
+static void CL_ShowServerIP_f() {
 	if( cls.state != CA_CONNECTED && cls.state != CA_ACTIVE ) {
 		Com_Printf( "Not connected to a server\n" );
 		return;
@@ -1175,7 +1175,7 @@ static void CL_ShowServerIP_f( void ) {
 /*
 * CL_InitLocal
 */
-static void CL_InitLocal( void ) {
+static void CL_InitLocal() {
 	cvar_t *name;
 
 	cls.state = CA_DISCONNECTED;
@@ -1254,7 +1254,7 @@ static void CL_InitLocal( void ) {
 /*
 * CL_ShutdownLocal
 */
-static void CL_ShutdownLocal( void ) {
+static void CL_ShutdownLocal() {
 	cls.state = CA_UNINITIALIZED;
 	Com_SetClientState( CA_UNINITIALIZED );
 
@@ -1334,7 +1334,7 @@ void CL_RestartTimeDeltas( int newTimeDelta ) {
 /*
 * CL_SmoothTimeDeltas
 */
-int CL_SmoothTimeDeltas( void ) {
+int CL_SmoothTimeDeltas() {
 	int i, count;
 	double delta;
 	snapshot_t  *snap;
@@ -1370,7 +1370,7 @@ int CL_SmoothTimeDeltas( void ) {
 /*
 * CL_UpdateSnapshot - Check for pending snapshots, and fire if needed
 */
-void CL_UpdateSnapshot( void ) {
+void CL_UpdateSnapshot() {
 	ZoneScoped;
 
 	snapshot_t  *snap;
@@ -1436,7 +1436,7 @@ void CL_Netchan_Transmit( msg_t *msg ) {
 /*
 * CL_MaxPacketsReached
 */
-static bool CL_MaxPacketsReached( void ) {
+static bool CL_MaxPacketsReached() {
 	static int64_t lastPacketTime = 0;
 	static float roundingMsec = 0.0f;
 	int minpackettime;
@@ -1683,7 +1683,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 /*
 * CL_Init
 */
-void CL_Init( void ) {
+void CL_Init() {
 	ZoneScoped;
 
 	constexpr size_t frame_arena_size = 1024 * 1024; // 1MB
@@ -1758,7 +1758,7 @@ void CL_Init( void ) {
 * FIXME: this is a callback from Sys_Quit and Com_Error.  It would be better
 * to run quit through here before the final handoff to the sys code.
 */
-void CL_Shutdown( void ) {
+void CL_Shutdown() {
 	if( !cl_initialized ) {
 		return;
 	}

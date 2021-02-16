@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/angelwrap/qas_public.h"
 
-void asemptyfunc( void ) {}
+void asemptyfunc() {}
 
 static const asEnumVal_t asSpawnSystemEnumVals[] =
 {
@@ -1487,15 +1487,15 @@ static void asFunc_G_Match_RemoveProjectiles( edict_t *owner ) {
 	G_Match_RemoveProjectiles( owner );
 }
 
-static void asFunc_G_Match_RemoveAllProjectiles( void ) {
+static void asFunc_G_Match_RemoveAllProjectiles() {
 	G_Match_RemoveProjectiles( NULL );
 }
 
-static void asFunc_G_ResetLevel( void ) {
+static void asFunc_G_ResetLevel() {
 	G_ResetLevel();
 }
 
-static void asFunc_G_Match_FreeBodyQueue( void ) {
+static void asFunc_G_Match_FreeBodyQueue() {
 	G_Match_FreeBodyQueue();
 }
 
@@ -2045,7 +2045,7 @@ asIScriptModule *G_LoadGameScript( const char *moduleName, const char *dir, cons
 /*
 * G_ResetGameModuleScriptData
 */
-static void G_ResetGameModuleScriptData( void ) {
+static void G_ResetGameModuleScriptData() {
 	game.asEngine = NULL;
 }
 
@@ -2269,7 +2269,7 @@ static void G_InitializeGameModuleSyntax( asIScriptEngine *asEngine ) {
 /*
 * G_asInitGameModuleEngine
 */
-void G_asInitGameModuleEngine( void ) {
+void G_asInitGameModuleEngine() {
 	bool asGeneric;
 	asIScriptEngine *asEngine;
 
@@ -2298,7 +2298,7 @@ void G_asInitGameModuleEngine( void ) {
 /*
 * G_asShutdownGameModuleEngine
 */
-void G_asShutdownGameModuleEngine( void ) {
+void G_asShutdownGameModuleEngine() {
 	if( game.asEngine == NULL ) {
 		return;
 	}
@@ -2555,7 +2555,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 *
 * Dump all classes, global functions and variables into a file
 */
-void G_asDumpAPI_f( void ) {
+void G_asDumpAPI_f() {
 	char path[MAX_QPATH];
 
 	snprintf( path, sizeof( path ), "AS_API/v%.g/", Cvar_Value( "version" ) );

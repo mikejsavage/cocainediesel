@@ -353,7 +353,7 @@ static void PlayAnnouncerSound( const SoundEffect * sound ) {
 	}
 }
 
-void CG_ClearAnnouncerEvents( void ) {
+void CG_ClearAnnouncerEvents() {
 	cg_announcerEventsCurrent = cg_announcerEventsHead = 0;
 }
 
@@ -380,7 +380,7 @@ void CG_AddAnnouncerEvent( const SoundEffect * sound, bool queued ) {
 /*
  * CG_ReleaseAnnouncerEvents
  */
-void CG_ReleaseAnnouncerEvents( void ) {
+void CG_ReleaseAnnouncerEvents() {
 	// see if enough time has passed
 	cg_announcerEventsDelay -= cls.realFrameTime;
 	if( cg_announcerEventsDelay > 0 ) {
@@ -960,7 +960,7 @@ static void CG_FireEntityEvents( bool early ) {
  * CG_FirePlayerStateEvents
  * This events are only received by this client, and only affect it.
  */
-static void CG_FirePlayerStateEvents( void ) {
+static void CG_FirePlayerStateEvents() {
 	if( cg.view.POVent != ( int ) cg.frame.playerState.POVnum ) {
 		return;
 	}

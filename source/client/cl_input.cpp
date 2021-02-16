@@ -62,7 +62,7 @@ void CL_UserInputFrame( int realMsec ) {
 /*
 * CL_InitInput
 */
-void CL_InitInput( void ) {
+void CL_InitInput() {
 	cl_ucmdMaxResend =  Cvar_Get( "cl_ucmdMaxResend", "3", CVAR_ARCHIVE );
 	cl_ucmdFPS =        Cvar_Get( "cl_ucmdFPS", "62", CVAR_DEVELOPER );
 }

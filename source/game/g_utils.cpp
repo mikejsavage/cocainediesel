@@ -230,7 +230,7 @@ void G_LevelInitPool( size_t size ) {
 /*
 * G_LevelFreePool
 */
-void G_LevelFreePool( void ) {
+void G_LevelFreePool() {
 	if( levelzone ) {
 		G_Free( levelzone );
 		levelzone = NULL;
@@ -281,7 +281,7 @@ static g_poolstring_t *g_stringpool_hash[STRINGPOOL_HASH_SIZE];
 *
 * Preallocates a memory region to permanently store level strings
 */
-void G_StringPoolInit( void ) {
+void G_StringPoolInit() {
 	memset( g_stringpool_hash, 0, sizeof( g_stringpool_hash ) );
 
 	g_stringpool = ( uint8_t * )G_LevelMalloc( STRINGPOOL_SIZE );
@@ -582,7 +582,7 @@ void G_InitEdict( edict_t *e ) {
 * instead of being removed and recreated, which can cause interpolated
 * angles and bad trails.
 */
-edict_t *G_Spawn( void ) {
+edict_t *G_Spawn() {
 	int i;
 	edict_t *e, *freed;
 

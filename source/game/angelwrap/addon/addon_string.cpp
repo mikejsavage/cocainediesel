@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define CONST_STRING_BITFLAG    ( 1 << 31 )
 #define ENABLE_STRING_IMPLICIT_CASTS
 
-static inline asstring_t *objectString_Alloc( void ) {
+static inline asstring_t *objectString_Alloc() {
 	static asstring_t *object;
 
 	object = new asstring_t;
@@ -151,7 +151,7 @@ static asstring_t *objectString_AddPattern( asstring_t *first, const char *patte
 	return objectString_AddString( first, buf, strlen( buf ) );
 }
 
-static asstring_t *objectString_Factory( void ) {
+static asstring_t *objectString_Factory() {
 	return objectString_FactoryBuffer( NULL, 0 );
 }
 

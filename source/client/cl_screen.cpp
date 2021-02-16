@@ -43,7 +43,7 @@ BAR GRAPHS
 *
 * A new packet was just parsed
 */
-void CL_AddNetgraph( void ) {
+void CL_AddNetgraph() {
 	int i;
 	int ping;
 
@@ -86,7 +86,7 @@ static void SCR_DrawFillRect( int x, int y, int w, int h, Vec4 color ) {
 	Draw2DBox( x, y, w, h, cls.white_material, color );
 }
 
-static void SCR_DrawDebugGraph( void ) {
+static void SCR_DrawDebugGraph() {
 	//
 	// draw the graph
 	//
@@ -110,7 +110,7 @@ static void SCR_DrawDebugGraph( void ) {
 	}
 }
 
-void SCR_InitScreen( void ) {
+void SCR_InitScreen() {
 	scr_netgraph = Cvar_Get( "netgraph", "0", 0 );
 	scr_timegraph = Cvar_Get( "timegraph", "0", 0 );
 	scr_debuggraph = Cvar_Get( "debuggraph", "0", 0 );

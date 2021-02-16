@@ -6,7 +6,7 @@
 
 static bool stdin_active = true;
 
-const char * Sys_ConsoleInput( void ) {
+const char * Sys_ConsoleInput() {
 	static char text[256];
 	int len;
 	fd_set fdset;

@@ -1011,7 +1011,7 @@ int GClip_FindInRadius4D( Vec3 origin, float radius, int * output, int maxcount,
 * Returns entities that have their boxes within a spherical area
 */
 int GClip_FindInRadius( Vec3 origin, float radius, int * output, int maxcount ) {
-	return GClip_FindInRadius4D( org, radius, output, maxcount, 0 );
+	return GClip_FindInRadius4D( origin, radius, output, maxcount, 0 );
 }
 
 void G_SplashFrac4D( const edict_t *ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage ) {

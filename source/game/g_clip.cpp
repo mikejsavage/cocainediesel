@@ -978,31 +978,31 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 * GClip_FindInRadius4D
 * Returns entities that have their boxes within a spherical area
 */
-int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int timeDelta ) {
-	float rad_ = rad * sqrtf( 2.0f ) + 1.0f;
-	int touch[MAX_EDICTS];
+int GClip_FindInRadius4D( Vec3 origin, float radius, int * output, int maxcount, int timeDelta ) {
+	float aabb_size = radius * sqrtf( 2.0f ) + 1.0f;
+	Vec3 mins = origin - Vec3( aabb_size );
+	Vec3 maxs = origin + Vec3( aabb_size );
 
-	Vec3 mins = Vec3( org.x - rad_, org.y - rad_, org.z - rad_ );
-	Vec3 maxs = Vec3( org.x + rad_, org.y + rad_, org.z + rad_ );
+	int candidates[ MAX_EDICTS ];
+	int num = GClip_AreaEdicts( mins, maxs, candidates, MAX_EDICTS, AREA_ALL, timeDelta );
 
-	int listnum = 0;
-	int num = GClip_AreaEdicts( mins, maxs, touch, MAX_EDICTS, AREA_ALL, timeDelta );
+	int n = 0;
 
 	for( int i = 0; i < num; i++ ) {
-		const edict_t * check = &game.edicts[ i ];
+		const edict_t * check = &game.edicts[ candidates[ i ] ];
 
 		// make absolute mins and maxs
-		if( !BoundsOverlapSphere( check->r.absmin, check->r.absmax, org, rad ) ) {
+		if( !BoundsOverlapSphere( check->r.absmin, check->r.absmax, origin, radius ) ) {
 			continue;
 		}
 
-		if( listnum < maxcount ) {
-			list[listnum] = touch[i];
+		if( n < maxcount ) {
+			output[ n ] = candidates[ i ];
 		}
-		listnum++;
+		n++;
 	}
 
-	return listnum;
+	return n;
 }
 
 /*
@@ -1010,8 +1010,8 @@ int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int time
 *
 * Returns entities that have their boxes within a spherical area
 */
-int GClip_FindInRadius( Vec3 org, float rad, int *list, int maxcount ) {
-	return GClip_FindInRadius4D( org, rad, list, maxcount, 0 );
+int GClip_FindInRadius( Vec3 origin, float radius, int * output, int maxcount ) {
+	return GClip_FindInRadius4D( org, radius, output, maxcount, 0 );
 }
 
 void G_SplashFrac4D( const edict_t *ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage ) {

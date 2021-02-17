@@ -308,7 +308,6 @@ void CG_SC_ResetObituaries() {
 }
 
 static const char * obituaries[] = {
-	"-19 INFECTED",
 	"2.3'ED",
 	"2077'ED",
 	"ABOLISHED",
@@ -369,7 +368,7 @@ static const char * obituaries[] = {
 	"BELITTLED",
 	"BENT OVER",
 	"BENT",
-	"BIGGED ON",
+	"BIGGED",
 	"BINNED",
 	"BIT",
 	"BLASTED",

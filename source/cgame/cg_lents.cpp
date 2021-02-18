@@ -80,6 +80,16 @@ void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	S_StartFixedSound( cgs.media.sfxGrenadeExplosion, pos, CHAN_AUTO, 1.0f );
 }
 
+void CG_StakeImpact( Vec3 pos, Vec3 dir, Vec4 team_color ) {
+	DoVisualEffect( "weapons/stake/hit", pos, dir, 1.0f, team_color );
+	S_StartFixedSound( cgs.media.sfxStakeHit, pos, CHAN_AUTO, 1.0f );
+}
+
+void CG_StakeImpale( Vec3 pos, Vec3 dir, Vec4 team_color ) {
+	DoVisualEffect( "weapons/stake/impale", pos, dir, 1.0f, team_color );
+	S_StartFixedSound( cgs.media.sfxStakeImpale, pos, CHAN_AUTO, 1.0f );
+}
+
 void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 	/*
 	LocalEntity *le;

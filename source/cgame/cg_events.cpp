@@ -835,6 +835,16 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			S_StartFixedSound( cgs.media.sfxBulletImpact, ent->origin, CHAN_AUTO, 1.0f );
 		} break;
 
+		case EV_STAKE_IMPACT: {
+			Vec3 dir = U64ToDir( parm );
+			CG_StakeImpact( ent->origin, dir, team_color );
+		} break;
+
+		case EV_STAKE_IMPALE: {
+			Vec3 dir = U64ToDir( parm );
+			CG_StakeImpale( ent->origin, dir, team_color );
+		} break;
+
 		case EV_BLOOD: {
 			Vec3 dir = U64ToDir( parm );
 			Vec3 tangent, bitangent;

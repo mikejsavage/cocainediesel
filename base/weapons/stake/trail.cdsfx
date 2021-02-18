@@ -1,0 +1,5 @@
+{
+	attenuation distant
+	volume 0.7
+	sound ./trail
+}

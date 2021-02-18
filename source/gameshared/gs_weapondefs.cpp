@@ -230,6 +230,42 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
+		"Stakes", "stake",
+		WeaponCategory_Backup,
+
+		1,                              // projectiles fired each shot
+		1,                              // clip size
+		1000,                           // reload time
+		false,                          // staged reloading
+
+		//timings (in msecs)
+		WEAPONUP_TIME_NORMAL,           // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		500,                            // refire time
+		5000,                           // projectile timeout
+		Vec2( 325.0f, 60.0f ),          // recoil
+		Vec2( 125.0f, 20.0f ),          // recoilmin
+		2000.0f,                        // recoil recovery
+		FiringMode_SemiAuto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		60,                             // damage
+		1.0f,                           // selfdamage ratio
+		100,                            // knockback
+		120,                            // splash radius
+		15,                              // splash minimum damage
+		50,                             // splash minimum knockback
+
+		//projectile def
+		1400,                            // speed
+		0,                              // spread
+		false,							// pierce
+	},
+
+	{
 		"Grenades", "gl",
 		WeaponCategory_Backup,
 

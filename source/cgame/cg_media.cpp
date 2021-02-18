@@ -49,6 +49,10 @@ void CG_RegisterMediaSounds() {
 	// Rocket launcher sounds :
 	cgs.media.sfxRocketLauncherHit = FindSoundEffect( "weapons/rl/explode" );
 
+	// Stake sounds:
+	cgs.media.sfxStakeHit = FindSoundEffect( "weapons/stake/hit" );
+	cgs.media.sfxStakeImpale = FindSoundEffect( "weapons/stake/impale" );
+
 	// Plasmagun sounds :
 	cgs.media.sfxPlasmaHit = FindSoundEffect( "weapons/pg/explode" );
 	cgs.media.sfxBubbleHit = FindSoundEffect( "weapons/bg/explode" );

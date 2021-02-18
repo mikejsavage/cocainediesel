@@ -32,6 +32,7 @@ WeaponType MODToWeapon( int mod ) {
 		case MeanOfDeath_Deagle: return Weapon_Deagle;
 		case MeanOfDeath_Shotgun: return Weapon_Shotgun;
 		case MeanOfDeath_AssaultRifle: return Weapon_AssaultRifle;
+		case MeanOfDeath_StakeGun: return Weapon_StakeGun;
 		case MeanOfDeath_GrenadeLauncher: return Weapon_GrenadeLauncher;
 		case MeanOfDeath_RocketLauncher: return Weapon_RocketLauncher;
 		case MeanOfDeath_Plasma: return Weapon_Plasma;

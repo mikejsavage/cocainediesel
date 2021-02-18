@@ -437,6 +437,46 @@ static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	grenade->think = W_Grenade_Explode;
 }
 
+static void W_Touch_Stake( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
+	if( surfFlags & SURF_NOIMPACT ) {
+		G_FreeEdict( ent );
+		return;
+	}
+
+	if( !CanHit( ent, other ) ) {
+		return;
+	}
+
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_StakeGun );
+
+	if( other->takedamage ) {
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MeanOfDeath_StakeGun );
+		ent->enemy = other;
+		edict_t * event = G_SpawnEvent( EV_STAKE_IMPALE, DirToU64( -SafeNormalize( ent->velocity ) ), &ent->s.origin );
+		event->s.team = ent->s.team;
+		if( !def->pierce ) {
+			G_FreeEdict( ent );
+		}
+	} else {
+		ent->s.type = ET_GENERIC;
+		// ent->think = G_FreeEdict;
+		// ent->nextThink = level.time + def->range;
+		ent->movetype = MOVETYPE_NONE;
+		ent->s.sound = "";
+		edict_t * event = G_SpawnEvent( EV_STAKE_IMPACT, DirToU64( -SafeNormalize( ent->velocity ) ), &ent->s.origin );
+		event->s.team = ent->s.team;
+	}
+}
+
+static void W_Fire_Stake( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	edict_t * stake = FireProjectile( self, start, angles, timeDelta, GS_GetWeaponDef( Weapon_StakeGun ), W_Touch_Stake, ET_STAKE, MASK_SHOT );
+
+	stake->classname = "stake";
+	stake->movetype = MOVETYPE_BOUNCEGRENADE;
+	stake->s.model = "weapons/stake/stake";
+	stake->s.sound = "weapons/stake/trail";
+}
+
 static void W_Touch_Rocket( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
 	if( surfFlags & SURF_NOIMPACT ) {
 		G_FreeEdict( ent );
@@ -739,6 +779,10 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 
 		case Weapon_AssaultRifle:
 			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_AssaultRifle, MeanOfDeath_AssaultRifle );
+			break;
+
+		case Weapon_StakeGun:
+			W_Fire_Stake( ent, origin, angles, timeDelta );
 			break;
 
 		case Weapon_GrenadeLauncher:

@@ -81,6 +81,7 @@ enum WeaponType_ : WeaponType {
 	Weapon_Deagle,
 	Weapon_Shotgun,
 	Weapon_AssaultRifle,
+	Weapon_StakeGun,
 	Weapon_GrenadeLauncher,
 	Weapon_RocketLauncher,
 	Weapon_Plasma,
@@ -511,6 +512,7 @@ enum MeansOfDeath {
 	MeanOfDeath_Deagle,
 	MeanOfDeath_Shotgun,
 	MeanOfDeath_AssaultRifle,
+	MeanOfDeath_StakeGun,
 	MeanOfDeath_GrenadeLauncher,
 	MeanOfDeath_RocketLauncher,
 	MeanOfDeath_Plasma,
@@ -618,6 +620,8 @@ enum EventType {
 	EV_BUBBLE_EXPLOSION,
 	EV_BOLT_EXPLOSION,
 	EV_RIFLEBULLET_IMPACT,
+	EV_STAKE_IMPALE,
+	EV_STAKE_IMPACT,
 
 	EV_EXPLOSION1,
 	EV_EXPLOSION2,
@@ -684,6 +688,7 @@ enum EntityType {
 	ET_PLASMA,
 	ET_BUBBLE,
 	ET_RIFLEBULLET,
+	ET_STAKE,
 
 	ET_LASERBEAM,   // for continuous beams
 

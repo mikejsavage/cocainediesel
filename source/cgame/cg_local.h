@@ -131,6 +131,9 @@ struct cgs_media_t {
 
 	const SoundEffect * sfxRocketLauncherHit;
 
+	const SoundEffect * sfxStakeHit;
+	const SoundEffect * sfxStakeImpale;
+
 	const SoundEffect * sfxPlasmaHit;
 	const SoundEffect * sfxBubbleHit;
 
@@ -577,6 +580,8 @@ void CG_BubbleExplosion( Vec3 pos, Vec4 team_color );
 void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
 void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_StakeImpact( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_StakeImpale( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color );
 void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color );
 void CG_BladeImpact( Vec3 pos, Vec3 dir );

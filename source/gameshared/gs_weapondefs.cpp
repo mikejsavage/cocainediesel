@@ -252,7 +252,7 @@ const WeaponDef gs_weaponDefs[] = {
 		0.0f,                           // !zoom inaccuracy
 
 		//damages
-		60,                             // damage
+		50,                             // damage
 		1.0f,                           // selfdamage ratio
 		100,                            // knockback
 		120,                            // splash radius
@@ -260,27 +260,27 @@ const WeaponDef gs_weaponDefs[] = {
 		50,                             // splash minimum knockback
 
 		//projectile def
-		1400,                            // speed
+		2000,                            // speed
 		0,                              // spread
 		false,							// pierce
 	},
 
 	{
 		"Grenades", "gl",
-		WeaponCategory_Backup,
+		WeaponCategory_Secondary,
 
 		1,                              // projectiles fired each shot
-		1,                              // clip size
-		1000,                           // reload time
-		false,                          // staged reloading
+		5,                              // clip size
+		600,                           // reload time
+		true,                          // staged reloading
 
 		//timings (in msecs)
-		WEAPONUP_TIME_NORMAL,           // weapon up time
+		WEAPONUP_TIME_SLOW,           // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		500,                            // refire time
+		1000,                            // refire time
 		2000,                           // projectile timeout
-		Vec2( 325.0f, 60.0f ),          // recoil
-		Vec2( 125.0f, 20.0f ),          // recoilmin
+		Vec2( 350.0f, 100.0f ),          // recoil
+		Vec2( 150.0f, 40.0f ),          // recoilmin
 		2000.0f,                        // recoil recovery
 		FiringMode_SemiAuto,
 
@@ -288,11 +288,11 @@ const WeaponDef gs_weaponDefs[] = {
 		0.0f,                           // !zoom inaccuracy
 
 		//damages
-		60,                             // damage
+		40,                             // damage
 		1.0f,                           // selfdamage ratio
 		100,                            // knockback
 		120,                            // splash radius
-		15,                              // splash minimum damage
+		10,                              // splash minimum damage
 		50,                             // splash minimum knockback
 
 		//projectile def
@@ -339,10 +339,10 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Plasma", "pg",
-		WeaponCategory_Backup,
+		WeaponCategory_Secondary,
 
 		1,                              // projectiles fired each shot
-		30,                             // clip size
+		35,                             // clip size
 		1500,                           // reload time
 		false,                          // staged reloading
 
@@ -385,7 +385,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//timings (in msecs)
 		WEAPONUP_TIME_NORMAL,           // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		200,                            // refire time
+		175,                            // refire time
 		10000,                          // projectile timeout
 		Vec2( 80.0f, 60.0f ),           // recoil
 		Vec2( 50.0f, 20.0f ),           // recoilmin
@@ -404,7 +404,7 @@ const WeaponDef gs_weaponDefs[] = {
 		25,                              // splash minimum knockback
 
 		//projectile def
-		600,                            // speed
+		650,                            // speed
 		0,                              // spread
 		false,							// pierce
 	},
@@ -519,7 +519,7 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		"Rifle", "rifle",
-		WeaponCategory_Secondary,
+		WeaponCategory_Backup,
 
 		1,                              // projectiles fired each shot
 		5,                              // clip size

@@ -118,6 +118,7 @@ void CG_BuildSolidList() {
 			case ET_ROCKET:
 			case ET_GRENADE:
 			case ET_PLASMA:
+			case ET_BUBBLE:
 			case ET_LASERBEAM:
 			case ET_BOMB:
 			case ET_BOMB_SITE:

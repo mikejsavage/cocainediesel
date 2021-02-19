@@ -2,7 +2,7 @@ models/weapons/lg
 {
 	{
 		map $whiteimage
-		rgbGen const 0.1 0.1 0.1
+		rgbGen const 0.086 0.086 0.086
 	}
 }
 
@@ -20,8 +20,7 @@ weapons/lg/beam
 models/weapons/lasergun/lasergun_fx
 {
 	{
-		map weapons/lg/lg_fx
-		blendFunc add
-		tcmod scroll -2 0
+		map $whiteimage
+		rgbGen const 0.086 0.086 0.086
 	}
 }

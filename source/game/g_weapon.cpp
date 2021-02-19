@@ -514,7 +514,6 @@ static void W_Fire_Plasma( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 	edict_t * plasma = FireLinearProjectile( self, start, angles, timeDelta, GS_GetWeaponDef( Weapon_Plasma ), W_AutoTouch_Plasma, ET_PLASMA, MASK_SHOT );
 
 	plasma->classname = "plasma";
-	plasma->s.model = "weapons/pg/cell";
 	plasma->s.sound = "weapons/pg/trail";
 
 	plasma->think = W_Think_Plasma;
@@ -525,7 +524,6 @@ static void FireBubble( edict_t * owner, Vec3 start, Vec3 angles, const WeaponDe
 	edict_t * bubble = FireLinearProjectile( owner, start, angles, timeDelta, def, W_AutoTouch_Plasma, ET_BUBBLE, MASK_SHOT );
 
 	bubble->classname = "bubble";
-	bubble->s.model = "weapons/bg/cell";
 	bubble->s.sound = "weapons/bg/trail";
 
 	bubble->think = W_Think_Plasma;

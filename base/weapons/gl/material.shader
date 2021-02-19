@@ -2,7 +2,7 @@ models/weapons/gl
 {
 	{
 		map $whiteimage
-		rgbGen const 0.1 0.1 0.1
+		rgbGen const 0.086 0.086 0.086
 	}
 }
 
@@ -18,8 +18,7 @@ models/weapons/glauncher/glauncher_fx
 {
 	cull disable
 	{
-		map weapons/gl/glauncher_fx
-		blendFunc add
-		rgbGen wave sin 0.5 0.5 0 0.5
+		map $whiteimage
+		rgbGen const 0.086 0.086 0.086
 	}
 }

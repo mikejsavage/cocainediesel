@@ -37,9 +37,6 @@ void CG_BubbleTrail( Vec3 start, Vec3 end, int dist ) {
 
 void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	PlasmaImpactParticles( pos, dir, team_color.xyz() );
-
-	// AddPersistentDecal( pos, dir, 8.0f, RandomRadians(), "weapons/pg/impact_decal", team_color, 30000 );
-
 	S_StartFixedSound( cgs.media.sfxPlasmaHit, pos, CHAN_AUTO, 1.0f );
 }
 
@@ -65,7 +62,6 @@ void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color ) {
 	le->ent.scale = 1.5f;
 	*/
 
-	AddPersistentDecal( pos, dir, 4.0f, RandomRadians(), "weapons/eb/impact_decal", team_color, 30000 );
 	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, team_color );
 	S_StartFixedSound( cgs.media.sfxElectroboltHit, pos, CHAN_AUTO, 1.0f );
 }

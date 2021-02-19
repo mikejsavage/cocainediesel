@@ -66,7 +66,7 @@ void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color ) {
 	*/
 
 	AddPersistentDecal( pos, dir, 4.0f, RandomRadians(), "weapons/eb/impact_decal", team_color, 30000 );
-
+	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, team_color );
 	S_StartFixedSound( cgs.media.sfxElectroboltHit, pos, CHAN_AUTO, 1.0f );
 }
 

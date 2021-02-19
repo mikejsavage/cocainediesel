@@ -6,16 +6,6 @@ weapons/pg
 	}
 }
 
-weapons/pg/cell
-{
-	cull disable
-	{
-
-		alphaGen const 0.5
-		blendfunc add
-	}
-}
-
 models/weapons/plasmagun/plasmagun_fx
 {
 	cull disable

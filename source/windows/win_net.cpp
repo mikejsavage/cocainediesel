@@ -114,9 +114,6 @@ static void Sys_NET_InitFunctions() {
 	closesocket( sock );
 }
 
-/*
-* Sys_NET_Init
-*/
 void Sys_NET_Init() {
 	WSADATA winsockdata;
 
@@ -125,13 +122,8 @@ void Sys_NET_Init() {
 	}
 
 	Sys_NET_InitFunctions();
-
-	Com_Printf( "Winsock initialized\n" );
 }
 
-/*
-* Sys_NET_Shutdown
-*/
 void Sys_NET_Shutdown() {
 	WSACleanup();
 }

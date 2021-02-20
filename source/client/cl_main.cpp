@@ -1177,6 +1177,7 @@ static void CL_ShowServerIP_f() {
 */
 static void CL_InitLocal() {
 	cvar_t *name;
+	TempAllocator temp = cls.frame_arena.temp();
 
 	cls.state = CA_DISCONNECTED;
 	Com_SetClientState( CA_DISCONNECTED );
@@ -1215,7 +1216,7 @@ static void CL_InitLocal() {
 
 	name = Cvar_Get( "name", "", CVAR_USERINFO | CVAR_ARCHIVE );
 	if( !name->string[0] ) {
-		Cvar_Set( name->name, "Player" );
+		Cvar_Set( name->name, temp( "user{}", random_u64( &cls.rng ) ) );
 	}
 
 	Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );

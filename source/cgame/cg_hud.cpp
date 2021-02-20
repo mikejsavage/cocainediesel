@@ -1952,6 +1952,7 @@ static const char * prefixes[] = {
 	"SHART",
 	"SHEEP",
 	"SHELF",
+	"SHERIF",
 	"SHIBA",
 	"SHIT",
 	"SHOOK",

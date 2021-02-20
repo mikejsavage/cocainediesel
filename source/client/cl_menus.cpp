@@ -229,7 +229,7 @@ static const char * SelectableMapList() {
 static void SettingsGeneral() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
+	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "", CVAR_USERINFO | CVAR_ARCHIVE );
 
 	CvarCheckbox( "Show chat", "cg_chat", "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CVAR_ARCHIVE );
@@ -692,9 +692,6 @@ static void CreateServer() {
 }
 
 static void MainMenu() {
-	static bool change_name_popup = false;
-	static const char * player_name = Cvar_Get( "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE )->string;
-
 	TempAllocator temp = cls.frame_arena.temp();
 
 	ImGui::SetNextWindowPos( ImVec2() );
@@ -704,30 +701,6 @@ static void MainMenu() {
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
 
 	ImGui::Begin( "mainmenu", WindowZOrder_Menu, flags );
-
-	//Set your nickname if its the default one
-	if( !change_name_popup && strcmp( "Player", player_name ) == 0 ) {
-		ImGui::OpenPopup( "change name" );
-	} else {
-		change_name_popup = true;
-	}
-
-	if( ImGui::BeginPopupModal( "change name", NULL, ImGuiWindowFlags_NoDecoration ) ) {
-		ImGui::BeginChild( "nameset", ImVec2( 500, 150 ) );
-		ImGui::Text( "Change your nickname" );
-
-		CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
-
-		if( ImGui::Button( "Ok", ImVec2( -1, 0 ) ) || ImGui::Hotkey( K_ESCAPE ) ) {
-			change_name_popup = true;
-			ImGui::CloseCurrentPopup();
-		}
-
-		ImGui::EndChild();
-		ImGui::EndPopup();
-	}
-
-
 
 	ImVec2 window_padding = ImGui::GetStyle().WindowPadding;
 

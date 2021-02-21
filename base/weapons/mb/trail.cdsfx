@@ -1,5 +1,5 @@
 {
 	attenuation distant
-	volume 0.7
+	volume 0.0
 	sound ./trail
 }

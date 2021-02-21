@@ -558,9 +558,9 @@ const WeaponDef gs_weaponDefs[] = {
 		WeaponCategory_Backup,
 
 		10,                              // projectiles fired each shot
-		5,                              // clip size
-		1000,                           // reload time
-		true,                          // staged reloading
+		6,                              // clip size
+		1500,                           // reload time
+		false,                          // staged reloading
 
 		//timings (in msecs)
 		WEAPONUP_TIME_NORMAL,           // weapon up time
@@ -570,7 +570,7 @@ const WeaponDef gs_weaponDefs[] = {
 		Vec2( 325.0f, 60.0f ),          // recoil
 		Vec2( 125.0f, 20.0f ),          // recoilmin
 		2000.0f,                        // recoil recovery
-		FiringMode_SemiAuto,
+		FiringMode_Auto,
 
 		0.0f,                           // zoom fov
 		0.0f,                           // !zoom inaccuracy
@@ -578,7 +578,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//damages
 		3,                             // damage
 		0,                           // selfdamage ratio
-		50,                            // knockback
+		10,                            // knockback
 		0,                            // splash radius
 		0,                              // splash minimum damage
 		0,                             // splash minimum knockback

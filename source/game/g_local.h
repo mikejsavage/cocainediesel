@@ -490,6 +490,13 @@ void G_ResetLevel();
 void G_InitLevel( const char *mapname, int64_t levelTime );
 void G_LoadMap( const char * name );
 
+struct EntityID {
+	u64 id;
+};
+
+EntityID NewEntity();
+void ResetEntityIDSequence();
+
 //============================================================================
 
 struct projectileinfo_t {
@@ -648,6 +655,8 @@ struct edict_t {
 	// EXPECTS THE FIELDS IN THAT ORDER!
 
 	//================================
+
+	EntityID id;
 
 	int linkcount;
 

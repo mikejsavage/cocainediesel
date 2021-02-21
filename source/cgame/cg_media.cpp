@@ -67,7 +67,7 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxLasergunStop = FindSoundEffect( "weapons/lg/stop" );
 	cgs.media.sfxLasergunHit = FindSoundEffect( "weapons/lg/hit" );
 
-	cgs.media.sfxElectroboltHit = FindSoundEffect( "weapons/rg/hit" );
+	cgs.media.sfxElectroboltHit = FindSoundEffect( "weapons/eb/hit" );
 
 	cgs.media.sfxSpikesArm = FindSoundEffect( "sounds/spikes/arm" );
 	cgs.media.sfxSpikesDeploy = FindSoundEffect( "sounds/spikes/deploy" );

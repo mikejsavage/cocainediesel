@@ -2291,22 +2291,30 @@ void CG_SC_Obituary() {
 	}
 
 	if( attackerNum ) {
-		if( victimNum != attackerNum ) {
-			current->type = OBITUARY_NORMAL;
+		TempAllocator temp = cls.frame_arena.temp();
+		const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ) );
 
-			TempAllocator temp = cls.frame_arena.temp();
-			const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ) );
+		char victim_name[ MAX_NAME_CHARS + 1 ];
+		Q_strncpyz( victim_name, victim->name, sizeof( victim_name ) );
+		Q_strupr( victim_name );
+
+		RGB8 attacker_color = CG_TeamColor( current->attacker_team );
+		RGB8 victim_color = CG_TeamColor( current->victim_team );
+
+		if( attacker == victim ) {
+			current->type = OBITUARY_SUICIDE;
+
+			CG_AddChat( temp( "{}{} {}SELF{}",
+				ImGuiColorToken( victim_color ), victim_name,
+				ImGuiColorToken( rgba8_diesel_yellow ), obituary
+			) );
+		}
+		else {
+			current->type = OBITUARY_NORMAL;
 
 			char attacker_name[ MAX_NAME_CHARS + 1 ];
 			Q_strncpyz( attacker_name, attacker->name, sizeof( attacker_name ) );
 			Q_strupr( attacker_name );
-
-			char victim_name[ MAX_NAME_CHARS + 1 ];
-			Q_strncpyz( victim_name, victim->name, sizeof( victim_name ) );
-			Q_strupr( victim_name );
-
-			RGB8 attacker_color = CG_TeamColor( current->attacker_team );
-			RGB8 victim_color = CG_TeamColor( current->victim_team );
 
 			if( ISVIEWERENTITY( attackerNum ) ) {
 				CG_CenterPrint( temp( "{} {}", obituary, victim_name ) );
@@ -2338,9 +2346,6 @@ void CG_SC_Obituary() {
 				self_obituary.time = cls.monotonicTime;
 				self_obituary.entropy = entropy;
 			}
-		}
-		else {   // suicide
-			current->type = OBITUARY_SUICIDE;
 		}
 	}
 	else {   // world accidents

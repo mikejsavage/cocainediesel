@@ -2265,7 +2265,7 @@ void CG_SC_Obituary() {
 	int attackerNum = atoi( Cmd_Argv( 2 ) );
 	int topAssistorNum = atoi( Cmd_Argv( 3 ) );
 	int mod = atoi( Cmd_Argv( 4 ) );
-	u64 entropy = strtonum( Cmd_Argv( 5 ), S64_MIN, S64_MAX, NULL );
+	u64 entropy = StringToU64( Cmd_Argv( 5 ), 0 );
 
 	const cg_clientInfo_t * victim = &cgs.clientInfo[ victimNum - 1 ];
 	const cg_clientInfo_t * attacker = attackerNum == 0 ? NULL : &cgs.clientInfo[ attackerNum - 1 ];

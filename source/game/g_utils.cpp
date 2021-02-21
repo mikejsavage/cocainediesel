@@ -908,7 +908,8 @@ void G_ClearCenterPrint( edict_t *ent ) {
 * Prints death message to all clients
 */
 void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, int mod ) {
-	PF_GameCmd( NULL, va( "obry %i %i %i %i %" PRIi64, ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod, random_u64( &svs.rng ) ) );
+	TempAllocator temp = svs.frame_arena.temp();
+	PF_GameCmd( NULL, temp( "obry {} {} {} {} {}", ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod, random_u64( &svs.rng ) ) );
 }
 
 //==================================================

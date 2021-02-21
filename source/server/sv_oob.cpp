@@ -520,8 +520,7 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 		if( cl->state == CS_FREE ) {
 			continue;
 		}
-		if( NET_CompareAddress( address, &cl->netchan.remoteAddress ) ||
-			( NET_CompareBaseAddress( address, &cl->netchan.remoteAddress ) && cl->netchan.game_port == game_port ) ) {
+		if( NET_CompareAddress( address, &cl->netchan.remoteAddress ) ) {
 			if( !NET_IsLocalAddress( address ) &&
 				( time - cl->lastconnect ) < (unsigned)( sv_reconnectlimit->integer * 1000 ) ) {
 				Com_DPrintf( "%s:reconnect rejected : too soon\n", NET_AddressToString( address ) );

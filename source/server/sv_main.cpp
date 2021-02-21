@@ -206,18 +206,21 @@ static void SV_ReadPackets() {
 				if( cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
 					continue;
 				}
-				if( !NET_CompareBaseAddress( &address, &cl->netchan.remoteAddress ) ) {
+				// originally compare base address, todo conduct testing to verify that this doesn't break everything
+				// if it does, then match msg -> client a smarter way!
+				if( !NET_CompareAddress( &address, &cl->netchan.remoteAddress ) ) {
 					continue;
 				}
 				if( cl->netchan.game_port != game_port ) {
 					continue;
 				}
 
-				addr_port = NET_GetAddressPort( &address );
-				if( NET_GetAddressPort( &cl->netchan.remoteAddress ) != addr_port ) {
-					Com_Printf( "SV_ReadPackets: fixing up a translated port\n" );
-					NET_SetAddressPort( &cl->netchan.remoteAddress, addr_port );
-				}
+				// NOTE(scoot) see above
+				// addr_port = NET_GetAddressPort( &address );
+				// if( NET_GetAddressPort( &cl->netchan.remoteAddress ) != addr_port ) {
+				// 	Com_Printf( "SV_ReadPackets: fixing up a translated port\n" );
+				// 	NET_SetAddressPort( &cl->netchan.remoteAddress, addr_port );
+				// }
 
 				if( SV_ProcessPacket( &cl->netchan, &msg ) ) { // this is a valid, sequenced packet, so process it
 					cl->lastPacketReceivedTime = svs.realtime;

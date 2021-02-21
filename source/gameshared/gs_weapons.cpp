@@ -41,6 +41,7 @@ WeaponType MODToWeapon( int mod ) {
 		case MeanOfDeath_Lasergun: return Weapon_Laser;
 		case MeanOfDeath_Sniper: return Weapon_Sniper;
 		case MeanOfDeath_Rifle: return Weapon_Rifle;
+		case MeanOfDeath_MasterBlaster: return Weapon_MasterBlaster;
 	}
 
 	return Weapon_None;

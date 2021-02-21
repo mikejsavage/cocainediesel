@@ -552,6 +552,42 @@ const WeaponDef gs_weaponDefs[] = {
 		0,                              // spread
 		false,							// pierce
 	},
+
+	{
+		"MasterBlaster", "mb",
+		WeaponCategory_Backup,
+
+		10,                              // projectiles fired each shot
+		5,                              // clip size
+		1000,                           // reload time
+		true,                          // staged reloading
+
+		//timings (in msecs)
+		WEAPONUP_TIME_NORMAL,           // weapon up time
+		WEAPONDOWN_TIME,                // weapon down time
+		500,                            // refire time
+		5000,                           // projectile timeout
+		Vec2( 325.0f, 60.0f ),          // recoil
+		Vec2( 125.0f, 20.0f ),          // recoilmin
+		2000.0f,                        // recoil recovery
+		FiringMode_SemiAuto,
+
+		0.0f,                           // zoom fov
+		0.0f,                           // !zoom inaccuracy
+
+		//damages
+		3,                             // damage
+		0,                           // selfdamage ratio
+		50,                            // knockback
+		0,                            // splash radius
+		0,                              // splash minimum damage
+		0,                             // splash minimum knockback
+
+		//projectile def
+		3000,                            // speed
+		25,                              // spread
+		false,							// pierce
+	},
 };
 
 STATIC_ASSERT( ARRAY_COUNT( gs_weaponDefs ) == Weapon_Count );

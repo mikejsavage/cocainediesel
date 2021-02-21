@@ -938,6 +938,7 @@ struct edict_t {
 	asIScriptFunction *asSpawnFunc, *asThinkFunc, *asUseFunc, *asTouchFunc, *asPainFunc, *asDieFunc, *asStopFunc;
 
 	assistinfo_t recent_attackers[MAX_ASSIST_INFO];
+	u32 num_bounces;
 };
 
 static inline int ENTNUM( const edict_t *x ) { return x - game.edicts; }

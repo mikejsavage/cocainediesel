@@ -53,6 +53,10 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxStakeHit = FindSoundEffect( "weapons/stake/hit" );
 	cgs.media.sfxStakeImpale = FindSoundEffect( "weapons/stake/impale" );
 
+	// Blast sounds:
+	cgs.media.sfxBlastImpact = FindSoundEffect( "weapons/mb/hit" );
+	cgs.media.sfxBlastBounce = FindSoundEffect( "weapons/mb/bounce" );
+
 	// Plasmagun sounds :
 	cgs.media.sfxPlasmaHit = FindSoundEffect( "weapons/pg/explode" );
 	cgs.media.sfxBubbleHit = FindSoundEffect( "weapons/bg/explode" );

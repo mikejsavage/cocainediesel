@@ -86,6 +86,16 @@ void CG_StakeImpale( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	S_StartFixedSound( cgs.media.sfxStakeImpale, pos, CHAN_AUTO, 1.0f );
 }
 
+void CG_BlastImpact( Vec3 pos, Vec3 dir, Vec4 team_color ) {
+	DoVisualEffect( "weapons/mb/hit", pos, dir, 1.0f, team_color );
+	S_StartFixedSound( cgs.media.sfxBlastImpact, pos, CHAN_AUTO, 1.0f );
+}
+
+void CG_BlastBounce( Vec3 pos, Vec3 dir, Vec4 team_color ) {
+	DoVisualEffect( "weapons/mb/bounce", pos, dir, 1.0f, team_color );
+	S_StartFixedSound( cgs.media.sfxBlastBounce, pos, CHAN_AUTO, 1.0f );
+}
+
 void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 	/*
 	LocalEntity *le;

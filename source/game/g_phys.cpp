@@ -443,6 +443,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		}
 
 		ent->velocity = GS_ClipVelocity( ent->velocity, trace.plane.normal, backoff );
+		ent->num_bounces++;
 
 		// stop if on ground
 

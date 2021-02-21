@@ -55,7 +55,7 @@ Vec3 U64ToDir( u64 u ) {
 	float y = bit_cast< float >( u32( packed.y << 1 ) );
 
 	float sign = packed.zsign == 0 ? 1.0f : -1.0f;
-	float z = sqrtf( 1.0f - x * x - y * y ) * sign;
+	float z = sqrtf( Max2( 1.0f - x * x - y * y, 0.0f ) ) * sign;
 
 	return Vec3( x, y, z );
 }

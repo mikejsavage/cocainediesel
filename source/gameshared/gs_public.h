@@ -90,6 +90,7 @@ enum WeaponType_ : WeaponType {
 	Weapon_Railgun,
 	Weapon_Sniper,
 	Weapon_Rifle,
+	Weapon_MasterBlaster,
 
 	Weapon_Count
 };
@@ -521,6 +522,7 @@ enum MeansOfDeath {
 	MeanOfDeath_Railgun,
 	MeanOfDeath_Sniper,
 	MeanOfDeath_Rifle,
+	MeanOfDeath_MasterBlaster,
 
 	MeanOfDeath_Slime,
 	MeanOfDeath_Lava,
@@ -622,6 +624,8 @@ enum EventType {
 	EV_RIFLEBULLET_IMPACT,
 	EV_STAKE_IMPALE,
 	EV_STAKE_IMPACT,
+	EV_BLAST_BOUNCE,
+	EV_BLAST_IMPACT,
 
 	EV_EXPLOSION1,
 	EV_EXPLOSION2,
@@ -689,6 +693,7 @@ enum EntityType {
 	ET_BUBBLE,
 	ET_RIFLEBULLET,
 	ET_STAKE,
+	ET_BLAST,
 
 	ET_LASERBEAM,   // for continuous beams
 

@@ -845,6 +845,16 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			CG_StakeImpale( ent->origin, dir, team_color );
 		} break;
 
+		case EV_BLAST_IMPACT: {
+			Vec3 dir = U64ToDir( parm );
+			CG_BlastImpact( ent->origin, dir, team_color );
+		} break;
+
+		case EV_BLAST_BOUNCE: {
+			Vec3 dir = U64ToDir( parm );
+			CG_BlastBounce( ent->origin, dir, team_color );
+		} break;
+
 		case EV_BLOOD: {
 			Vec3 dir = U64ToDir( parm );
 			Vec3 tangent, bitangent;

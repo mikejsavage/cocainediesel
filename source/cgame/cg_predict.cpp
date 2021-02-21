@@ -124,6 +124,8 @@ void CG_BuildSolidList() {
 			case ET_BOMB_SITE:
 			case ET_LASER:
 			case ET_SPIKES:
+			case ET_STAKE:
+			case ET_BLAST:
 				break;
 
 			case ET_JUMPPAD:

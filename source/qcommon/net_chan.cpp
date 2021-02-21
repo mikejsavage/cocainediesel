@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
+#include "qcommon/csprng.h"
 
 #if defined ( __MACOSX__ )
 #include <arpa/inet.h>
@@ -78,9 +79,7 @@ then a packet only needs to be delivered if there is something in the
 unacknowledged reliable
 */
 
-// application level protocol port number, to differentiate multiple clients
-// from the same IP address, and still work even if client's UDP port number suddenly changes
-static int local_game_port;
+static u64 client_session_id;
 
 static cvar_t *showpackets;
 static cvar_t *showdrop;
@@ -128,12 +127,12 @@ void Netchan_OutOfBandPrint( const socket_t *socket, const netadr_t *address, co
 *
 * called to open a channel to a remote system
 */
-void Netchan_Setup( netchan_t *chan, const socket_t *socket, const netadr_t *address, int game_port ) {
+void Netchan_Setup( netchan_t *chan, const socket_t *socket, const netadr_t *address, u64 session_id ) {
 	memset( chan, 0, sizeof( *chan ) );
 
 	chan->socket = socket;
 	chan->remoteAddress = *address;
-	chan->game_port = game_port;
+	chan->session_id = session_id;
 	chan->incomingSequence = 0;
 	chan->outgoingSequence = 1;
 }
@@ -314,7 +313,7 @@ bool Netchan_TransmitNextFragment( netchan_t *chan ) {
 
 	// send the game port if we are a client
 	if( !chan->socket->server ) {
-		MSG_WriteInt16( &send, local_game_port );
+		MSG_WriteUint64( &send, client_session_id );
 	}
 
 	// copy the reliable message to the packet first
@@ -417,7 +416,7 @@ bool Netchan_Transmit( netchan_t *chan, msg_t *msg ) {
 
 	// send the game port if we are a client
 	if( !chan->socket->server ) {
-		MSG_WriteInt16( &send, local_game_port );
+		MSG_WriteUint64( &send, chan->session_id );
 	}
 
 	MSG_CopyData( &send, msg->data, msg->cursize );
@@ -447,7 +446,7 @@ bool Netchan_Transmit( netchan_t *chan, msg_t *msg ) {
 */
 bool Netchan_Process( netchan_t *chan, msg_t *msg ) {
 	int sequence, sequence_ack;
-	int game_port = -1;
+	u64 session_id;
 	int fragmentStart, fragmentLength;
 	bool fragmented = false;
 	int headerlength;
@@ -480,9 +479,9 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg ) {
 		}
 	}
 
-	// read the game port if we are a server
+	// read the session ID if we are a server
 	if( chan->socket->server ) {
-		game_port = MSG_ReadInt16( msg );
+		session_id = MSG_ReadUint64( msg );
 	}
 
 	// read the fragment information
@@ -584,7 +583,7 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg ) {
 		MSG_WriteInt32( msg, sequence );
 		MSG_WriteInt32( msg, sequence_ack );
 		if( chan->socket->server ) {
-			MSG_WriteInt16( msg, game_port );
+			MSG_WriteUint64( msg, session_id );
 		}
 
 		msg->compressed = compressed;
@@ -607,19 +606,15 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg ) {
 	return true;
 }
 
-/*
-* Netchan_GamePort
-*/
-int Netchan_GamePort() {
-	return local_game_port;
+u64 Netchan_ClientSessionID() {
+	return client_session_id;
 }
 
 /*
 * Netchan_Init
 */
 void Netchan_Init() {
-	// pick a game port value that should be nice and random
-	local_game_port = Sys_Milliseconds() & 0xffff;
+	CSPRNG_Bytes( &client_session_id, sizeof( client_session_id ) );
 
 	showpackets = Cvar_Get( "showpackets", "0", 0 );
 	showdrop = Cvar_Get( "showdrop", "0", 0 );

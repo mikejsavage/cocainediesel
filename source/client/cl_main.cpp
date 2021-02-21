@@ -187,8 +187,9 @@ static void CL_Quit_f() {
 static void CL_SendConnectPacket() {
 	userinfo_modified = false;
 
-	Netchan_OutOfBandPrint( cls.socket, &cls.serveraddress, "connect %i %i %i \"%s\"\n",
-							APP_PROTOCOL_VERSION, Netchan_GamePort(), cls.challenge, Cvar_Userinfo() );
+	TempAllocator temp = cls.frame_arena.temp();
+	Netchan_OutOfBandPrint( cls.socket, &cls.serveraddress, "%s", temp( "connect {} {} {} \"{}\"\n",
+							APP_PROTOCOL_VERSION, Netchan_ClientSessionID(), cls.challenge, Cvar_Userinfo() ) );
 }
 
 /*
@@ -773,7 +774,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 
 		Q_strncpyz( cls.session, MSG_ReadStringLine( msg ), sizeof( cls.session ) );
 
-		Netchan_Setup( &cls.netchan, socket, address, Netchan_GamePort() );
+		Netchan_Setup( &cls.netchan, socket, address, Netchan_ClientSessionID() );
 		memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 		CL_SetClientState( CA_HANDSHAKE );
 		CL_AddReliableCommand( "new" );

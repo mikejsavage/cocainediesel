@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "server.h"
+#include "server/server.h"
 
 
 //===============================================================================
@@ -136,8 +136,8 @@ void SV_Status_f() {
 	}
 	Com_Printf( "map              : %s\n", sv.mapname );
 
-	Com_Printf( "num score ping name                            lastmsg address               port  \n" );
-	Com_Printf( "--- ----- ---- ------------------------------- ------- --------------------- ------\n" );
+	Com_Printf( "num score ping name                            lastmsg address               session         \n" );
+	Com_Printf( "--- ----- ---- ------------------------------- ------- --------------------- ----------------\n" );
 	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
 		if( !cl->state ) {
 			continue;
@@ -170,7 +170,7 @@ void SV_Status_f() {
 			Com_Printf( " " );
 		Com_Printf( " " ); // always add at least one space between the columns because IPv6 addresses are long
 
-		Com_Printf( "%5i", cl->netchan.game_port );
+		Com_GGPrint( "{16x}", cl->netchan.session_id );
 		Com_Printf( "\n" );
 	}
 	Com_Printf( "\n" );

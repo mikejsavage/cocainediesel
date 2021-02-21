@@ -64,8 +64,6 @@ cvar_t *sv_defaultmap;
 
 cvar_t *sv_iplimit;
 
-cvar_t *sv_reconnectlimit; // minimum seconds between connect messages
-
 // wsw : debug netcode
 cvar_t *sv_debug_serverCmd;
 
@@ -122,19 +120,17 @@ static void SV_CalcPings() {
 * SV_ProcessPacket
 */
 static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
-	int zerror;
-
 	if( !Netchan_Process( netchan, msg ) ) {
 		return false; // wasn't accepted for some reason
-
 	}
+
 	// now if compressed, expand it
 	MSG_BeginReading( msg );
 	MSG_ReadInt32( msg ); // sequence
 	MSG_ReadInt32( msg ); // sequence_ack
-	MSG_ReadInt16( msg ); // game_port
+	MSG_ReadUint64( msg ); // session_id
 	if( msg->compressed ) {
-		zerror = Netchan_DecompressMessage( msg );
+		int zerror = Netchan_DecompressMessage( msg );
 		if( zerror < 0 ) {
 			// compression error. Drop the packet
 			Com_DPrintf( "SV_ProcessPacket: Compression error %i. Dropping packet\n", zerror );
@@ -151,17 +147,10 @@ static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 static void SV_ReadPackets() {
 	ZoneScoped;
 
-	int i, ret;
-	client_t *cl;
-	int game_port;
-	socket_t *socket;
-	netadr_t address;
-
 	static msg_t msg;
 	static uint8_t msgData[MAX_MSGLEN];
 
-	socket_t* sockets [] =
-	{
+	socket_t * sockets[] = {
 		&svs.socket_loopback,
 		&svs.socket_udp,
 		&svs.socket_udp6,
@@ -170,12 +159,14 @@ static void SV_ReadPackets() {
 	MSG_Init( &msg, msgData, sizeof( msgData ) );
 
 	for( size_t socketind = 0; socketind < ARRAY_COUNT( sockets ); socketind++ ) {
-		socket = sockets[socketind];
+		socket_t * socket = sockets[socketind];
 
 		if( !socket->open ) {
 			continue;
 		}
 
+		int ret;
+		netadr_t address;
 		while( ( ret = NET_GetPacket( socket, &address, &msg ) ) != 0 ) {
 			if( ret == -1 ) {
 				Com_Printf( "NET_GetPacket: Error: %s\n", NET_ErrorString() );
@@ -188,17 +179,13 @@ static void SV_ReadPackets() {
 				continue;
 			}
 
-			// read the game port out of the message so we can fix up
-			// stupid address translating routers
 			MSG_BeginReading( &msg );
 			MSG_ReadInt32( &msg ); // sequence number
 			MSG_ReadInt32( &msg ); // sequence number
-			game_port = MSG_ReadInt16( &msg ) & 0xffff;
-			// data follows
+			u64 session_id = MSG_ReadUint64( &msg );
 
-			// check for packets from connected clients
-			for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
-				unsigned short addr_port;
+			for( int i = 0; i < sv_maxclients->integer; i++ ) {
+				client_t * cl = &svs.clients[ i ];
 
 				if( cl->state == CS_FREE || cl->state == CS_ZOMBIE ) {
 					continue;
@@ -206,31 +193,26 @@ static void SV_ReadPackets() {
 				if( cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
 					continue;
 				}
-				if( !NET_CompareBaseAddress( &address, &cl->netchan.remoteAddress ) ) {
-					continue;
-				}
-				if( cl->netchan.game_port != game_port ) {
+
+				if( cl->netchan.session_id != session_id ) {
 					continue;
 				}
 
-				addr_port = NET_GetAddressPort( &address );
-				if( NET_GetAddressPort( &cl->netchan.remoteAddress ) != addr_port ) {
-					Com_Printf( "SV_ReadPackets: fixing up a translated port\n" );
-					NET_SetAddressPort( &cl->netchan.remoteAddress, addr_port );
-				}
+				cl->netchan.remoteAddress = address;
 
 				if( SV_ProcessPacket( &cl->netchan, &msg ) ) { // this is a valid, sequenced packet, so process it
 					cl->lastPacketReceivedTime = svs.realtime;
 					SV_ParseClientMessage( cl, &msg );
 				}
+
 				break;
 			}
 		}
 	}
 
 	// handle clients with individual sockets
-	for( i = 0; i < sv_maxclients->integer; i++ ) {
-		cl = &svs.clients[i];
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		client_t * cl = &svs.clients[ i ];
 
 		if( cl->state == CS_ZOMBIE || cl->state == CS_FREE ) {
 			continue;
@@ -241,6 +223,8 @@ static void SV_ReadPackets() {
 		}
 
 		// not while, we only handle one packet per client at a time here
+		int ret;
+		netadr_t address;
 		if( ( ret = NET_GetPacket( cl->netchan.socket, &address, &msg ) ) != 0 ) {
 			if( ret == -1 ) {
 				Com_Printf( "Error receiving packet from %s: %s\n", NET_AddressToString( &cl->netchan.remoteAddress ),
@@ -613,7 +597,6 @@ void SV_Init() {
 	sv_iplimit = Cvar_Get( "sv_iplimit", "3", CVAR_ARCHIVE );
 
 	sv_defaultmap =         Cvar_Get( "sv_defaultmap", "carfentanil", CVAR_ARCHIVE );
-	sv_reconnectlimit =     Cvar_Get( "sv_reconnectlimit", "3", CVAR_ARCHIVE );
 	sv_maxclients =         Cvar_Get( "sv_maxclients", "16", CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_LATCH );
 
 	// fix invalid sv_maxclients values

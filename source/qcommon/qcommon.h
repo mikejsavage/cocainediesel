@@ -85,6 +85,7 @@ void MSG_WriteInt16( msg_t *sb, int c );
 void MSG_WriteUint16( msg_t *sb, unsigned c );
 void MSG_WriteInt32( msg_t *sb, int c );
 void MSG_WriteInt64( msg_t *sb, int64_t c );
+void MSG_WriteUint64( msg_t *sb, uint64_t c );
 void MSG_WriteUintBase128( msg_t *msg, uint64_t c );
 void MSG_WriteIntBase128( msg_t *msg, int64_t c );
 void MSG_WriteString( msg_t *sb, const char *s );
@@ -101,6 +102,7 @@ int16_t MSG_ReadInt16( msg_t *sb );
 uint16_t MSG_ReadUint16( msg_t *sb );
 int MSG_ReadInt32( msg_t *sb );
 int64_t MSG_ReadInt64( msg_t *sb );
+uint64_t MSG_ReadUint64( msg_t *sb );
 uint64_t MSG_ReadUintBase128( msg_t *msg );
 int64_t MSG_ReadIntBase128( msg_t *msg );
 char *MSG_ReadString( msg_t *sb );
@@ -430,7 +432,7 @@ struct netchan_t {
 	int dropped;                // between last packet and previous
 
 	netadr_t remoteAddress;
-	int game_port;              // game port value to write when transmitting
+	u64 session_id;
 
 	// sequencing variables
 	int incomingSequence;
@@ -456,7 +458,7 @@ extern netadr_t net_from;
 
 void Netchan_Init();
 void Netchan_Shutdown();
-void Netchan_Setup( netchan_t *chan, const socket_t *socket, const netadr_t *address, int qport );
+void Netchan_Setup( netchan_t *chan, const socket_t *socket, const netadr_t *address, u64 session_id );
 bool Netchan_Process( netchan_t *chan, msg_t *msg );
 bool Netchan_Transmit( netchan_t *chan, msg_t *msg );
 bool Netchan_PushAllFragments( netchan_t *chan );
@@ -471,7 +473,7 @@ void Netchan_OutOfBandPrint( const socket_t *socket, const netadr_t *address, co
 void Netchan_OutOfBandPrint( const socket_t *socket, const netadr_t *address, _Printf_format_string_ const char *format, ... );
 #endif
 
-int Netchan_GamePort();
+u64 Netchan_ClientSessionID();
 
 /*
 ==============================================================

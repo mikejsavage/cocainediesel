@@ -62,7 +62,7 @@ void SV_ClientCloseDownload( client_t *client ) {
 * this is the only place a client_t is ever initialized
 */
 bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t *client, char *userinfo,
-					   int game_port, int challenge, bool fakeClient ) {
+					   u64 session_id, int challenge, bool fakeClient ) {
 	edict_t *ent;
 	int edictnum;
 
@@ -112,9 +112,9 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 		client->netchan.remoteAddress.type = NA_NOTRANSMIT; // fake-clients can't transmit
 	} else {
 		if( client->individual_socket ) {
-			Netchan_Setup( &client->netchan, &client->socket, address, game_port );
+			Netchan_Setup( &client->netchan, &client->socket, address, session_id );
 		} else {
-			Netchan_Setup( &client->netchan, socket, address, game_port );
+			Netchan_Setup( &client->netchan, socket, address, session_id );
 		}
 	}
 

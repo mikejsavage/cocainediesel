@@ -1538,6 +1538,7 @@ static const char * prefixes[] = {
 	"GRASS",
 	"GRAVE",
 	"GRAVITY",
+	"GREEN CHAIR ",
 	"GREMLIN",
 	"GRETA",
 	"GRID",

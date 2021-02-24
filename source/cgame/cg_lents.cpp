@@ -10,31 +10,6 @@ void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color ) {
 	RailTrailParticles( start, end, team_color );
 }
 
-void CG_BubbleTrail( Vec3 start, Vec3 end, int dist ) {
-	/*
-	Vec3 move, vec;
-	move = start;
-	vec = end - start;
-	float len = Length( vec );
-	vec = Normalize( vec );
-	if( !len ) {
-		return;
-	}
-
-	vec = vec * ( dist );
-	const Material * material = cgs.media.shaderWaterBubble;
-
-	for( int i = 0; i < len; i += dist ) {
-		LocalEntity * le = CG_AllocSprite( LE_ALPHA_FADE, move, 3, 10,
-							 vec4_white,
-							 0, 0, 0, 0,
-							 material );
-		le->velocity = Vec3( random_float11( &cls.rng ) * 5, random_float11( &cls.rng ) * 5, random_float11( &cls.rng ) * 5 + 6 );
-		move = move + vec;
-	}
-	*/
-}
-
 void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	PlasmaImpactParticles( pos, dir, team_color.xyz() );
 	S_StartFixedSound( "weapons/pg/explode", pos, CHAN_AUTO, 1.0f );
@@ -49,18 +24,6 @@ void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color ) {
 	if( surfFlags & ( SURF_SKY | SURF_NOMARKS | SURF_NOIMPACT ) ) {
 		return;
 	}
-
-	/*
-	Vec3 angles = VecToAngles( dir );
-
-	LocalEntity * le = CG_AllocModel( LE_INVERSESCALE_ALPHA_FADE, pos, angles, 6, // 6 is time
-						vec4_white,
-						250, 0.75, 0.75, 0.75, //white dlight
-						cgs.media.modElectroBoltWallHit, NULL );
-
-	le->ent.rotation = random_float01( &cls.rng ) * 360;
-	le->ent.scale = 1.5f;
-	*/
 
 	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, team_color );
 	S_StartFixedSound( "weapons/eb/hit", pos, CHAN_AUTO, 1.0f );

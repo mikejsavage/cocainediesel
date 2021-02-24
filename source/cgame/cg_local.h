@@ -122,8 +122,6 @@ struct cgs_media_t {
 	const Model * modBladeWallHit;
 	const Model * modBladeWallExplo;
 
-	const Model * modElectroBoltWallHit;
-
 	const Model * modLasergunWallExplo;
 
 	const Material * shaderBombIcon;
@@ -496,7 +494,6 @@ bool CG_SwitchChaseCamMode();
 // cg_lents.c
 //
 
-void CG_BubbleTrail( Vec3 start, Vec3 end, int dist );
 void CG_RifleBulletTrail( const centity_t * cent );
 void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color );

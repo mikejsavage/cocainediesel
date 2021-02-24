@@ -158,7 +158,7 @@ static void FindPlayerSounds( PlayerModelMetadata * meta, Span< const char > dir
 	for( size_t i = 0; i < ARRAY_COUNT( meta->sounds ); i++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
 		const char * path = temp( "{}/{}", dir, PLAYER_SOUND_NAMES[ i ] );
-		meta->sounds[ i ] = FindSoundEffect( path );
+		meta->sounds[ i ] = StringHash( path );
 	}
 }
 

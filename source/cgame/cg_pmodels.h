@@ -122,10 +122,10 @@ struct WeaponModelMetadata {
 	Vec3 handpositionOrigin;
 	Vec3 handpositionAngles;
 
-	const SoundEffect * fire_sound;
-	const SoundEffect * up_sound;
-	const SoundEffect * zoom_in_sound;
-	const SoundEffect * zoom_out_sound;
+	StringHash fire_sound;
+	StringHash up_sound;
+	StringHash zoom_in_sound;
+	StringHash zoom_out_sound;
 };
 
 enum {
@@ -175,7 +175,7 @@ struct PlayerModelMetadata {
 	};
 
 	const Model * model;
-	const SoundEffect * sounds[ PlayerSound_Count ];
+	StringHash sounds[ PlayerSound_Count ];
 
 	u8 upper_rotator_nodes[ 2 ];
 	u8 head_rotator_node;

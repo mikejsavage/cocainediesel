@@ -108,58 +108,9 @@ struct centity_t {
 
 struct cgs_media_t {
 	// sounds
-	const SoundEffect * sfxWeaponNoAmmo;
+	StringHash sfxWeaponHit[ 4 ];
 
-	const SoundEffect * sfxWeaponHit[ 4 ];
-	const SoundEffect * sfxWeaponKill;
-
-	const SoundEffect * sfxItemRespawn;
-	const SoundEffect * sfxTeleportIn;
-	const SoundEffect * sfxTeleportOut;
-	const SoundEffect * sfxShellHit;
-
-	const SoundEffect * sfxBladeFleshHit;
-	const SoundEffect * sfxBladeWallHit;
-
-	const SoundEffect * sfxBulletImpact;
-	const SoundEffect * sfxBulletWhizz;
-
-	const SoundEffect * sfxRiotgunHit;
-
-	const SoundEffect * sfxGrenadeBounce;
-	const SoundEffect * sfxGrenadeExplosion;
-
-	const SoundEffect * sfxRocketLauncherHit;
-
-	const SoundEffect * sfxStakeHit;
-	const SoundEffect * sfxStakeImpale;
-	
-	const SoundEffect * sfxBlastImpact;
-	const SoundEffect * sfxBlastBounce;
-
-	const SoundEffect * sfxPlasmaHit;
-	const SoundEffect * sfxBubbleHit;
-
-	const SoundEffect * sfxLasergunHum;
-	const SoundEffect * sfxLasergunBeam;
-	const SoundEffect * sfxLasergunStop;
-	const SoundEffect * sfxLasergunHit;
-
-	const SoundEffect * sfxElectroboltHit;
-
-	const SoundEffect * sfxVSaySounds[ Vsay_Total ];
-
-	const SoundEffect * sfxSpikesArm;
-	const SoundEffect * sfxSpikesDeploy;
-	const SoundEffect * sfxSpikesGlint;
-	const SoundEffect * sfxSpikesRetract;
-
-	const SoundEffect * sfxFall;
-
-	const SoundEffect * sfxTbag;
-	const SoundEffect * sfxSpray;
-
-	const SoundEffect * sfxHeadshot;
+	StringHash sfxVSaySounds[ Vsay_Total ];
 
 	// models
 	const Model * modDash;
@@ -626,7 +577,7 @@ void CG_Recoil( WeaponType weapon );
 //
 void CG_FireEvents( bool early );
 void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted );
-void CG_AddAnnouncerEvent( const SoundEffect *sound, bool queued );
+void CG_AddAnnouncerEvent( StringHash sound, bool queued );
 void CG_ReleaseAnnouncerEvents();
 void CG_ClearAnnouncerEvents();
 

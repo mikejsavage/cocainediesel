@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define S_HIT_WATER     "sounds/misc/hit_water"
 
-#define S_TELEPORT      "sounds/world/tele_in"
 #define S_JUMPPAD       "sounds/world/jumppad"
 
 #define S_PLAT_START    EMPTY_HASH
@@ -53,10 +52,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define S_WORLD_LAVA_IN             "sounds/world/lava_in"
 #define S_WORLD_UNDERLAVA           "sounds/world/underwater"
 #define S_WORLD_LAVA_OUT            "sounds/world/lava_out"
-
-// combat and weapons
-#define S_WEAPON_HITS               "sounds/misc/hit_%i"
-#define S_WEAPON_KILL               "sounds/misc/kill"
 
 // announcer sounds
 

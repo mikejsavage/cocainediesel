@@ -554,10 +554,8 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	int channel = cent->current.channel & ~CHAN_FIXED;
 	bool fixed = ( cent->current.channel & CHAN_FIXED ) != 0;
 
-	const SoundEffect * sfx = FindSoundEffect( cent->current.sound );
-
 	if( cent->current.svflags & SVF_BROADCAST ) {
-		S_StartGlobalSound( sfx, channel, 1.0f );
+		S_StartGlobalSound( cent->current.sound, channel, 1.0f );
 		return;
 	}
 
@@ -576,13 +574,13 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 
 	if( fixed ) {
-		S_StartFixedSound( sfx, cent->current.origin, channel, 1.0f );
+		S_StartFixedSound( cent->current.sound, cent->current.origin, channel, 1.0f );
 	}
 	else if( ISVIEWERENTITY( owner ) ) {
-		S_StartGlobalSound( sfx, channel, 1.0f );
+		S_StartGlobalSound( cent->current.sound, channel, 1.0f );
 	}
 	else {
-		S_StartEntitySound( sfx, owner, channel, 1.0f );
+		S_StartEntitySound( cent->current.sound, owner, channel, 1.0f );
 	}
 }
 
@@ -635,21 +633,21 @@ static void CG_UpdateSpikes( centity_t * cent ) {
 	int64_t delta = cg.frame.serverTime - cent->current.linearMovementTimeStamp;
 
 	if( old_delta < 0 && delta >= 0 ) {
-		S_StartEntitySound( cgs.media.sfxSpikesArm, cent->current.number, CHAN_AUTO, 1.0f );
+		S_StartEntitySound( "sounds/spikes/arm", cent->current.number, CHAN_AUTO, 1.0f );
 	}
 	else if( old_delta < 1000 && delta >= 1000 ) {
-		S_StartEntitySound( cgs.media.sfxSpikesDeploy, cent->current.number, CHAN_AUTO, 1.0f );
+		S_StartEntitySound( "sounds/spikes/retract", cent->current.number, CHAN_AUTO, 1.0f );
 	}
 	else if( old_delta < 1050 && delta >= 1050 ) {
-		S_StartEntitySound( cgs.media.sfxSpikesGlint, cent->current.number, CHAN_AUTO, 1.0f );
+		S_StartEntitySound( "sounds/spikes/glint", cent->current.number, CHAN_AUTO, 1.0f );
 	}
 	else if( old_delta < 1500 && delta >= 1500 ) {
-		S_StartEntitySound( cgs.media.sfxSpikesRetract, cent->current.number, CHAN_AUTO, 1.0f );
+		S_StartEntitySound( "sounds/spikes/retract", cent->current.number, CHAN_AUTO, 1.0f );
 	}
 }
 
 void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
-	cent->sound = S_ImmediateEntitySound( FindSoundEffect( state->sound ), state->number, 1.0f, cent->sound );
+	cent->sound = S_ImmediateEntitySound( state->sound, state->number, 1.0f, cent->sound );
 }
 
 static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
@@ -760,7 +758,7 @@ void DrawEntities() {
 
 			case ET_LASER:
 				CG_AddLaserEnt( cent );
-				cent->sound = S_ImmediateLineSound( FindSoundEffect( state->sound ), cent->ent.origin, cent->ent.origin2, 1.0f, cent->sound );
+				cent->sound = S_ImmediateLineSound( state->sound, cent->ent.origin, cent->ent.origin2, 1.0f, cent->sound );
 
 			case ET_SPIKES:
 				DrawEntityModel( cent );

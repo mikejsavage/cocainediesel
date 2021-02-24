@@ -89,24 +89,25 @@ static void CG_AddLocalSounds() {
 	// add local announces
 	if( GS_Countdown( &client_gs ) ) {
 		if( GS_MatchDuration( &client_gs ) ) {
-			int64_t duration, curtime;
-			unsigned remainingSeconds;
-			float seconds;
-
-			curtime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime;
-			duration = GS_MatchDuration( &client_gs );
+			s64 curtime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime;
+			s64 duration = GS_MatchDuration( &client_gs );
 
 			if( duration + GS_MatchStartTime( &client_gs ) < curtime ) {
 				duration = curtime - GS_MatchStartTime( &client_gs ); // avoid negative results
-
 			}
-			seconds = (float)( GS_MatchStartTime( &client_gs ) + duration - curtime ) * 0.001f;
-			remainingSeconds = (unsigned int)seconds;
+
+			float seconds = (float)( GS_MatchStartTime( &client_gs ) + duration - curtime ) * 0.001f;
+			unsigned int remainingSeconds = (unsigned int)seconds;
 
 			if( remainingSeconds != lastSecond ) {
 				if( 1 + remainingSeconds < 4 ) {
-					const SoundEffect * sfx = FindSoundEffect( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 1 + remainingSeconds, 1 ) );
-					CG_AddAnnouncerEvent( sfx, false );
+					constexpr StringHash countdown[] = {
+						"sounds/announcer/countdown1",
+						"sounds/announcer/countdown2",
+						"sounds/announcer/countdown3",
+					};
+
+					CG_AddAnnouncerEvent( countdown[ remainingSeconds ], false );
 					CG_CenterPrint( va( "%i", remainingSeconds + 1 ) );
 				}
 

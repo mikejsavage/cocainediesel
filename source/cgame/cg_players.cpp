@@ -19,11 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cgame/cg_local.h"
 
-static const SoundEffect * GetPlayerSound( int entnum, PlayerSound ps ) {
+static StringHash GetPlayerSound( int entnum, PlayerSound ps ) {
 	const PlayerModelMetadata * meta = GetPlayerModelMetadata( entnum );
 	if( meta == NULL ) {
 		Com_Printf( "Player model metadata is null\n" );
-		return NULL;
+		return EMPTY_HASH;
 	}
 	return meta->sounds[ ps ];
 }
@@ -32,7 +32,7 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
 	bool fixed = ( entchannel & CHAN_FIXED ) != 0;
 	entchannel &= ~CHAN_FIXED;
 
-	const SoundEffect * sfx = GetPlayerSound( entnum, ps );
+	StringHash sfx = GetPlayerSound( entnum, ps );
 	if( fixed ) {
 		S_StartFixedSound( sfx, cg_entities[entnum].current.origin, entchannel, 1.0f );
 	}

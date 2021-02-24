@@ -554,7 +554,7 @@ static void SettingsAudio() {
 	}
 
 	if( ImGui::Button( "Test" ) ) {
-		S_StartLocalSound( FindSoundEffect( "sounds/announcer/bomb/ace" ), CHAN_AUTO, 1.0f );
+		S_StartLocalSound( "sounds/announcer/bomb/ace", CHAN_AUTO, 1.0f );
 	}
 
 	ImGui::Separator();

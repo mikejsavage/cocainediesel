@@ -96,7 +96,7 @@ static void SendChat() {
 		const char * cmd = chat.mode == ChatMode_SayTeam && Cmd_Exists( "say_team" ) ? "say_team" : "say";
 		Cbuf_AddText( temp( "{} \"{}\"\n", cmd, chat.input ) );
 
-		S_StartGlobalSound( FindSoundEffect( "sounds/typewriter/return" ), CHAN_AUTO, 1.0f );
+		S_StartGlobalSound( "sounds/typewriter/return", CHAN_AUTO, 1.0f );
 	}
 
 	CloseChat();
@@ -104,11 +104,11 @@ static void SendChat() {
 
 static int InputCallback( ImGuiInputTextCallbackData * data ) {
 	if( data->EventChar == ' ' ) {
-		S_StartGlobalSound( FindSoundEffect( "sounds/typewriter/space" ), CHAN_AUTO, 1.0f );
+		S_StartGlobalSound( "sounds/typewriter/space", CHAN_AUTO, 1.0f );
 		Cbuf_AddText( "cmd typewriterspace\n" );
 	}
 	else {
-		S_StartGlobalSound( FindSoundEffect( "sounds/typewriter/clack" ), CHAN_AUTO, 1.0f );
+		S_StartGlobalSound( "sounds/typewriter/clack", CHAN_AUTO, 1.0f );
 		Cbuf_AddText( "cmd typewriterclack\n" );
 	}
 	return 0;

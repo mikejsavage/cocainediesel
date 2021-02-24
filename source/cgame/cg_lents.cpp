@@ -37,12 +37,12 @@ void CG_BubbleTrail( Vec3 start, Vec3 end, int dist ) {
 
 void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	PlasmaImpactParticles( pos, dir, team_color.xyz() );
-	S_StartFixedSound( cgs.media.sfxPlasmaHit, pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/pg/explode", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color ) {
 	BubbleImpactParticles( pos, team_color.xyz() );
-	S_StartFixedSound( cgs.media.sfxBubbleHit, pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/bg/explode", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color ) {
@@ -63,37 +63,37 @@ void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color ) {
 	*/
 
 	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, team_color );
-	S_StartFixedSound( cgs.media.sfxElectroboltHit, pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/eb/hit", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	ExplosionParticles( pos, dir, team_color.xyz() );
-	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/rl/explode", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	ExplosionParticles( pos, dir, team_color.xyz() );
-	S_StartFixedSound( cgs.media.sfxGrenadeExplosion, pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/gl/explode", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_StakeImpact( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	DoVisualEffect( "weapons/stake/hit", pos, dir, 1.0f, team_color );
-	S_StartFixedSound( cgs.media.sfxStakeHit, pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/stake/hit", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_StakeImpale( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	DoVisualEffect( "weapons/stake/impale", pos, dir, 1.0f, team_color );
-	S_StartFixedSound( cgs.media.sfxStakeImpale, pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/stake/impale", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_BlastImpact( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	DoVisualEffect( "weapons/mb/hit", pos, dir, 1.0f, team_color );
-	S_StartFixedSound( cgs.media.sfxBlastImpact, pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/mb/hit", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_BlastBounce( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	DoVisualEffect( "weapons/mb/bounce", pos, dir, 1.0f, team_color );
-	S_StartFixedSound( cgs.media.sfxBlastBounce, pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/mb/bounce", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_BladeImpact( Vec3 pos, Vec3 dir ) {

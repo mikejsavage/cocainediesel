@@ -432,9 +432,7 @@ void GT_InitGametype() {
 		gametype.setTeamSpawnsystem( t, SPAWNSYSTEM_INSTANT, 0, 0, false );
 	}
 
-	// add commands
 	G_RegisterCommand( "drop" );
-	G_RegisterCommand( "carrier" );
 
 	G_RegisterCommand( "gametypemenu" );
 	G_RegisterCommand( "weapselect" );

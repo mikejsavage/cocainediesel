@@ -102,9 +102,9 @@ static void CG_AddLocalSounds() {
 			if( remainingSeconds != lastSecond ) {
 				if( 1 + remainingSeconds < 4 ) {
 					constexpr StringHash countdown[] = {
-						"sounds/announcer/countdown1",
-						"sounds/announcer/countdown2",
-						"sounds/announcer/countdown3",
+						"sounds/announcer/1",
+						"sounds/announcer/2",
+						"sounds/announcer/3",
 					};
 
 					CG_AddAnnouncerEvent( countdown[ remainingSeconds ], false );

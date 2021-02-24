@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include "qcommon/hash.h"
-#include "gameshared/gs_qrespath.h"
 #include "gameshared/q_comref.h"
 #include "gameshared/q_collision.h"
 #include "gameshared/q_math.h"

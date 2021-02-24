@@ -232,7 +232,7 @@ static void trigger_push_setup( edict_t *self ) {
 void SP_trigger_push( edict_t *self ) {
 	InitTrigger( self );
 
-	self->moveinfo.sound_start = st.noise != EMPTY_HASH ? st.noise : S_JUMPPAD;
+	self->moveinfo.sound_start = st.noise != EMPTY_HASH ? st.noise : StringHash( "sounds/world/jumppad" );
 
 	// gameteam field from editor
 	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {

@@ -378,7 +378,7 @@ void SP_func_plat( edict_t *ent ) {
 
 	GClip_LinkEntity( ent );
 
-	G_AssignMoverSounds( ent, S_PLAT_START, S_PLAT_MOVE, S_PLAT_STOP );
+	G_AssignMoverSounds( ent, EMPTY_HASH, "sounds/movers/elevator_move", EMPTY_HASH );
 }
 
 
@@ -567,7 +567,7 @@ void SP_func_door( edict_t *ent ) {
 	G_InitMover( ent );
 	G_SetMovedir( &ent->s.angles, &ent->moveinfo.movedir );
 
-	G_AssignMoverSounds( ent, S_DOOR_START, S_DOOR_MOVE, S_DOOR_CLOSE );
+	G_AssignMoverSounds( ent, "sounds/movers/door_start", EMPTY_HASH, "sounds/movers/door_close" );
 
 	ent->moveinfo.blocked = door_blocked;
 	ent->use = door_use;
@@ -671,7 +671,7 @@ void SP_func_door_rotating( edict_t *ent ) {
 		ent->dmg = 2;
 	}
 
-	G_AssignMoverSounds( ent, S_DOOR_ROTATING_START, S_DOOR_ROTATING_MOVE, S_DOOR_ROTATING_STOP );
+	G_AssignMoverSounds( ent, "sounds/movers/door_start", EMPTY_HASH, "sounds/movers/door_close" );
 
 	// if it starts open, switch the positions
 	if( ent->spawnflags & DOOR_START_OPEN ) {
@@ -841,7 +841,7 @@ void SP_func_rotating( edict_t *ent ) {
 		ent->moveinfo.blocked = rotating_blocked;
 	}
 
-	G_AssignMoverSounds( ent, S_FUNC_ROTATING_START, S_FUNC_ROTATING_MOVE, S_FUNC_ROTATING_STOP );
+	G_AssignMoverSounds( ent, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 
 	if( !( ent->spawnflags & 1 ) ) {
 		G_CallUse( ent, NULL, NULL );
@@ -922,7 +922,7 @@ void SP_func_button( edict_t *ent ) {
 	G_InitMover( ent );
 	G_SetMovedir( &ent->s.angles, &ent->moveinfo.movedir );
 
-	ent->moveinfo.sound_start = st.noise != EMPTY_HASH ? st.noise : S_BUTTON_START;
+	ent->moveinfo.sound_start = st.noise != EMPTY_HASH ? st.noise : StringHash( "sounds/movers/button" );
 
 	if( !ent->speed ) {
 		ent->speed = 40;

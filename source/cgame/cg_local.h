@@ -60,7 +60,7 @@ struct centity_t {
 
 	int64_t respawnTime;
 
-	entity_t ent;                   // interpolated, to be added to render list
+	InterpolatedEntity interpolated;
 	unsigned int type;
 	unsigned int effects;
 

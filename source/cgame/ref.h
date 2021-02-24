@@ -30,7 +30,7 @@ struct orientation_t {
 	Vec3 origin;
 };
 
-struct entity_t {
+struct InterpolatedEntity {
 	const Model * model;
 
 	mat3_t axis;

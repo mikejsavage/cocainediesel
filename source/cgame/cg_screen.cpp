@@ -202,10 +202,6 @@ static void CG_UpdatePointedNum() {
 
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {
 	// static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
-	Vec3 dir, drawOrigin;
-	float dist, fadeFrac;
-	trace_t trace;
-
 	if( !cg_showPlayerNames->integer && !cg_showPointedPlayer->integer ) {
 		return;
 	}
@@ -236,8 +232,8 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 		}
 
 		// Kill if behind the view
-		dir = cent->ent.origin - cg.view.origin;
-		dist = Length( dir ) * cg.view.fracDistFOV;
+		Vec3 dir = cent->interpolated.origin - cg.view.origin;
+		float dist = Length( dir ) * cg.view.fracDistFOV;
 		dir = Normalize( dir );
 
 		if( Dot( dir, FromQFAxis( cg.view.axis, AXIS_FORWARD ) ) < 0 ) {
@@ -246,6 +242,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 
 		Vec4 tmpcolor = color;
 
+		float fadeFrac;
 		if( cent->current.number != cg.pointedNum ) {
 			if( dist > cg_showPlayerNames_zfar->value ) {
 				continue;
@@ -264,12 +261,13 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), cent->ent.origin, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
+		trace_t trace;
+		CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), cent->interpolated.origin, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
 		if( trace.fraction < 1.0f && trace.ent != cent->current.number ) {
 			continue;
 		}
 
-		drawOrigin = Vec3( cent->ent.origin.x, cent->ent.origin.y, cent->ent.origin.z + playerbox_stand_maxs.z + 8 );
+		Vec3 drawOrigin = cent->interpolated.origin + Vec3( 0.0f, 0.0f, playerbox_stand_maxs.z + 8 );
 
 		Vec2 coords = WorldToScreen( drawOrigin );
 		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {

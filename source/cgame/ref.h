@@ -39,8 +39,6 @@ struct entity_t {
 	RGBA8 color;
 
 	float scale;
-	float radius;                       // used as RT_SPRITE's radius
-	float rotation;
 };
 
 enum XAlignment {

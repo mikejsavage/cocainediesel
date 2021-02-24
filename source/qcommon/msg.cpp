@@ -659,8 +659,6 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	DeltaHalf( buf, player.viewheight, baseline.viewheight );
 
-	Delta( buf, player.plrkeys, baseline.plrkeys );
-
 	Delta( buf, player.weapons, baseline.weapons );
 	Delta( buf, player.items, baseline.items );
 

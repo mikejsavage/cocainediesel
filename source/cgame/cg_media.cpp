@@ -163,15 +163,6 @@ void CG_RegisterMediaShaders() {
 		cgs.media.shaderWeaponIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GS_GetWeaponDef( i )->short_name ) );
 	}
 
-	cgs.media.shaderKeyIcon[KEYICON_FORWARD] = FindMaterial( PATH_KEYICON_FORWARD );
-	cgs.media.shaderKeyIcon[KEYICON_BACKWARD] = FindMaterial( PATH_KEYICON_BACKWARD );
-	cgs.media.shaderKeyIcon[KEYICON_LEFT] = FindMaterial( PATH_KEYICON_LEFT );
-	cgs.media.shaderKeyIcon[KEYICON_RIGHT] = FindMaterial( PATH_KEYICON_RIGHT );
-	cgs.media.shaderKeyIcon[KEYICON_FIRE] = FindMaterial( PATH_KEYICON_FIRE );
-	cgs.media.shaderKeyIcon[KEYICON_JUMP] = FindMaterial( PATH_KEYICON_JUMP );
-	cgs.media.shaderKeyIcon[KEYICON_CROUCH] = FindMaterial( PATH_KEYICON_CROUCH );
-	cgs.media.shaderKeyIcon[KEYICON_SPECIAL] = FindMaterial( PATH_KEYICON_SPECIAL );
-
 	cgs.media.shaderAlive = FindMaterial( "gfx/scoreboard/alive" );
 	cgs.media.shaderDead = FindMaterial( "gfx/scoreboard/dead" );
 	cgs.media.shaderReady = FindMaterial( "gfx/scoreboard/ready" );

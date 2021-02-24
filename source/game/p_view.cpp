@@ -288,8 +288,6 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 		G_SetClientStats( ent );
 		G_SetClientEffects( ent );
 		G_SetClientSound( ent );
-
-		client->ps.plrkeys = client->resp.snap.plrkeys;
 	}
 
 	G_ReleaseClientPSEvent( client );

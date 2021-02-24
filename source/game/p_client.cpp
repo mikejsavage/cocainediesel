@@ -889,45 +889,6 @@ void G_PredictedFireWeapon( int entNum, WeaponType weapon ) {
 }
 
 /*
-* ClientMakePlrkeys
-*/
-static void ClientMakePlrkeys( gclient_t *client, usercmd_t *ucmd ) {
-	client_snapreset_t *clsnap;
-
-	if( !client ) {
-		return;
-	}
-
-	clsnap = &client->resp.snap;
-	clsnap->plrkeys = 0; // clear it first
-
-	if( ucmd->forwardmove > 0 ) {
-		clsnap->plrkeys |= ( 1 << KEYICON_FORWARD );
-	}
-	if( ucmd->forwardmove < 0 ) {
-		clsnap->plrkeys |= ( 1 << KEYICON_BACKWARD );
-	}
-	if( ucmd->sidemove > 0 ) {
-		clsnap->plrkeys |= ( 1 << KEYICON_RIGHT );
-	}
-	if( ucmd->sidemove < 0 ) {
-		clsnap->plrkeys |= ( 1 << KEYICON_LEFT );
-	}
-	if( ucmd->upmove > 0 ) {
-		clsnap->plrkeys |= ( 1 << KEYICON_JUMP );
-	}
-	if( ucmd->upmove < 0 ) {
-		clsnap->plrkeys |= ( 1 << KEYICON_CROUCH );
-	}
-	if( ucmd->buttons & BUTTON_ATTACK ) {
-		clsnap->plrkeys |= ( 1 << KEYICON_FIRE );
-	}
-	if( ucmd->buttons & BUTTON_SPECIAL ) {
-		clsnap->plrkeys |= ( 1 << KEYICON_SPECIAL );
-	}
-}
-
-/*
 * ClientThink
 */
 void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
@@ -1065,9 +1026,6 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	} else if( client->ps.pmove.no_control_time <= 0 ) {
 		client->resp.snap.buttons |= ucmd->buttons;
 	}
-
-	// generating plrkeys (optimized for net communication)
-	ClientMakePlrkeys( client, ucmd );
 }
 
 /*

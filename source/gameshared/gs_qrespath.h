@@ -18,28 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-// decals
-#define PATH_BULLET_MARK        "gfx/decals/d_bullet_hit"
-#define PATH_EXPLOSION_MARK     "gfx/decals/d_explode_hit"
-
-#define PATH_KEYICON_FORWARD            "gfx/hud/keys/key_forward"
-#define PATH_KEYICON_BACKWARD           "gfx/hud/keys/key_back"
-#define PATH_KEYICON_LEFT               "gfx/hud/keys/key_left"
-#define PATH_KEYICON_RIGHT              "gfx/hud/keys/key_right"
-#define PATH_KEYICON_FIRE               "gfx/hud/keys/act_fire"
-#define PATH_KEYICON_JUMP               "gfx/hud/keys/act_jump"
-#define PATH_KEYICON_CROUCH             "gfx/hud/keys/act_crouch"
-#define PATH_KEYICON_SPECIAL            "gfx/hud/keys/act_special"
-
-//
-//
-// SOUNDS
-//
-//
-
-// misc sounds
-#define S_TIMER_BIP_BIP "sounds/misc/timer_bip_bip"
-
 #define S_HIT_WATER     "sounds/misc/hit_water"
 
 #define S_TELEPORT      "sounds/world/tele_in"

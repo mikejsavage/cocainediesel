@@ -307,21 +307,6 @@ static const asEnumVal_t asSVFlagEnumVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
-static const asEnumVal_t asKeyiconEnumVals[] =
-{
-	ASLIB_ENUM_VAL( KEYICON_FORWARD ),
-	ASLIB_ENUM_VAL( KEYICON_BACKWARD ),
-	ASLIB_ENUM_VAL( KEYICON_LEFT ),
-	ASLIB_ENUM_VAL( KEYICON_RIGHT ),
-	ASLIB_ENUM_VAL( KEYICON_FIRE ),
-	ASLIB_ENUM_VAL( KEYICON_JUMP ),
-	ASLIB_ENUM_VAL( KEYICON_CROUCH ),
-	ASLIB_ENUM_VAL( KEYICON_SPECIAL ),
-	ASLIB_ENUM_VAL( KEYICON_TOTAL ),
-
-	ASLIB_ENUM_VAL_NULL
-};
-
 static const asEnumVal_t asAxisEnumVals[] =
 {
 	ASLIB_ENUM_VAL( PITCH ),
@@ -383,7 +368,6 @@ static const asEnum_t asGameEnums[] =
 	{ "contents_e", asContentsEnumVals },
 	{ "surfaceflags_e", asSurfFlagEnumVals },
 	{ "serverflags_e", asSVFlagEnumVals },
-	{ "keyicon_e", asKeyiconEnumVals },
 
 	{ "axis_e", asAxisEnumVals },
 
@@ -831,10 +815,6 @@ static void objectGameClient_execGameCommand( asstring_t *msg, gclient_t *self )
 	PF_GameCmd( PLAYERENT( playerNum ), msg->buffer );
 }
 
-static unsigned int objectGameClient_getPressedKeys( gclient_t *self ) {
-	return self->ps.plrkeys;
-}
-
 static asstring_t *objectGameClient_getUserInfoKey( asstring_t *key, gclient_t *self ) {
 	char *s;
 
@@ -916,7 +896,6 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, selectWeapon, ( int tag ) ), asFUNCTION( objectGameClient_SelectWeapon ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, addAward, ( const String &in ) ), asFUNCTION( objectGameClient_addAward ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, execGameCommand, ( const String &in ) ), asFUNCTION( objectGameClient_execGameCommand ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( uint, get_pressedKeys, ( ) const ), asFUNCTION( objectGameClient_getPressedKeys ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, getUserInfoKey, ( const String &in ) const ), asFUNCTION( objectGameClient_getUserInfoKey ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, printMessage, ( const String &in ) ), asFUNCTION( objectGameClient_printMessage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, chaseCam, ( const String @, bool teamOnly ) ), asFUNCTION( objectGameClient_ChaseCam ), asCALL_CDECL_OBJLAST },

@@ -68,42 +68,13 @@ void CG_RegisterMediaModels() {
 void CG_RegisterMediaShaders() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	cgs.media.shaderParticle = FindMaterial( "particle" );
-
 	cgs.media.shaderNet = FindMaterial( "gfx/hud/net" );
 
-	cgs.media.shaderPlayerShadow = FindMaterial( "gfx/decals/shadow" );
-
-	cgs.media.shaderWaterBubble = FindMaterial( "gfx/misc/waterBubble" );
-	cgs.media.shaderSmokePuff = FindMaterial( "gfx/misc/smokepuff" );
-
-	cgs.media.shaderSmokePuff1 = FindMaterial( "gfx/misc/smokepuff1" );
-	cgs.media.shaderSmokePuff2 = FindMaterial( "gfx/misc/smokepuff2" );
-	cgs.media.shaderSmokePuff3 = FindMaterial( "gfx/misc/smokepuff3" );
-
-	cgs.media.shaderRocketFireTrailPuff = FindMaterial( "gfx/misc/strong_rocket_fire" );
-	cgs.media.shaderTeleporterSmokePuff = FindMaterial( "TeleporterSmokePuff" );
-	cgs.media.shaderGrenadeTrailSmokePuff = FindMaterial( "gfx/grenadetrail_smoke_puf" );
-	cgs.media.shaderRocketTrailSmokePuff = FindMaterial( "gfx/misc/rocketsmokepuff" );
-	cgs.media.shaderBloodTrailPuff = FindMaterial( "gfx/misc/bloodtrail_puff" );
-	cgs.media.shaderBloodTrailLiquidPuff = FindMaterial( "gfx/misc/bloodtrailliquid_puff" );
-	cgs.media.shaderBloodImpactPuff = FindMaterial( "gfx/misc/bloodimpact_puff" );
 	cgs.media.shaderBombIcon = FindMaterial( "gfx/bomb" );
-
-	cgs.media.shaderBladeMark = FindMaterial( "gfx/decals/d_blade_hit" );
-	cgs.media.shaderBulletMark = FindMaterial( "gfx/decals/d_bullet_hit" );
-	cgs.media.shaderExplosionMark = FindMaterial( "gfx/decals/d_explode_hit" );
-	cgs.media.shaderPlasmaMark = FindMaterial( "gfx/decals/d_plasma_hit" );
-	cgs.media.shaderEBImpact = FindMaterial( "gfx/decals/ebimpact" );
 
 	cgs.media.shaderEBBeam = FindMaterial( "weapons/eb/beam" );
 	cgs.media.shaderLGBeam = FindMaterial( "weapons/lg/beam" );
 	cgs.media.shaderTracer = FindMaterial( "weapons/tracer" );
-	cgs.media.shaderRocketExplosion = FindMaterial( "weapons/rl/explosion" );
-	cgs.media.shaderRocketExplosionRing = FindMaterial( "weapons/rl/explosion_ring" );
-	cgs.media.shaderGrenadeExplosion = FindMaterial( "weapons/gl/explosion" );
-	cgs.media.shaderGrenadeExplosionRing = FindMaterial( "weapons/gl/explosion_ring" );
-
 	cgs.media.shaderLaser = FindMaterial( "gfx/misc/laser" );
 
 	for( WeaponType i = 0; i < Weapon_Count; i++ ) {

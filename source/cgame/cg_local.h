@@ -126,43 +126,13 @@ struct cgs_media_t {
 
 	const Model * modLasergunWallExplo;
 
-	const Material * shaderParticle;
-	const Material * shaderRocketExplosion;
-	const Material * shaderRocketExplosionRing;
-	const Material * shaderGrenadeExplosion;
-	const Material * shaderGrenadeExplosionRing;
-	const Material * shaderBulletExplosion;
-	const Material * shaderWaterBubble;
-	const Material * shaderSmokePuff;
-
-	const Material * shaderSmokePuff1;
-	const Material * shaderSmokePuff2;
-	const Material * shaderSmokePuff3;
-
-	const Material * shaderRocketFireTrailPuff;
-	const Material * shaderGrenadeTrailSmokePuff;
-	const Material * shaderRocketTrailSmokePuff;
-	const Material * shaderBloodTrailPuff;
-	const Material * shaderBloodTrailLiquidPuff;
-	const Material * shaderBloodImpactPuff;
 	const Material * shaderBombIcon;
-	const Material * shaderTeleporterSmokePuff;
-	const Material * shaderBladeMark;
-	const Material * shaderBulletMark;
-	const Material * shaderExplosionMark;
-	const Material * shaderEnergyMark;
 	const Material * shaderLaser;
 	const Material * shaderNet;
 
-	const Material * shaderPlasmaMark;
 	const Material * shaderEBBeam;
 	const Material * shaderLGBeam;
 	const Material * shaderTracer;
-	const Material * shaderEBImpact;
-
-	const Material * shaderPlayerShadow;
-
-	const Material * shaderTick;
 
 	const Material * shaderWeaponIcon[ Weapon_Count ];
 

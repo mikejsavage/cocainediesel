@@ -368,16 +368,6 @@ void Matrix3_Copy( const mat3_t m1, mat3_t m2 ) {
 	memcpy( m2, m1, sizeof( mat3_t ) );
 }
 
-bool Matrix3_Compare( const mat3_t m1, const mat3_t m2 ) {
-	int i;
-
-	for( i = 0; i < 9; i++ )
-		if( m1[i] != m2[i] ) {
-			return false;
-		}
-	return true;
-}
-
 void Matrix3_Multiply( const mat3_t m1, const mat3_t m2, mat3_t out ) {
 	out[0] = m1[0] * m2[0] + m1[1] * m2[3] + m1[2] * m2[6];
 	out[1] = m1[0] * m2[1] + m1[1] * m2[4] + m1[2] * m2[7];
@@ -394,19 +384,6 @@ void Matrix3_TransformVector( const mat3_t m, Vec3 v, Vec3 * out ) {
 	out->x = m[0] * v.x + m[1] * v.y + m[2] * v.z;
 	out->y = m[3] * v.x + m[4] * v.y + m[5] * v.z;
 	out->z = m[6] * v.x + m[7] * v.y + m[8] * v.z;
-}
-
-void Matrix3_Transpose( const mat3_t in, mat3_t out ) {
-	out[0] = in[0];
-	out[4] = in[4];
-	out[8] = in[8];
-
-	out[1] = in[3];
-	out[2] = in[6];
-	out[3] = in[1];
-	out[5] = in[7];
-	out[6] = in[2];
-	out[7] = in[5];
 }
 
 void Matrix3_FromAngles( Vec3 angles, mat3_t m ) {

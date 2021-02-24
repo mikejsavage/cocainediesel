@@ -90,10 +90,8 @@ void ProjectPointOntoVector( Vec3 point, Vec3 vStart, Vec3 vDir, Vec3 * vProj );
 
 void Matrix3_Identity( mat3_t m );
 void Matrix3_Copy( const mat3_t m1, mat3_t m2 );
-bool Matrix3_Compare( const mat3_t m1, const mat3_t m2 );
 void Matrix3_Multiply( const mat3_t m1, const mat3_t m2, mat3_t out );
 void Matrix3_TransformVector( const mat3_t m, Vec3 v, Vec3 * out );
-void Matrix3_Transpose( const mat3_t in, mat3_t out );
 void Matrix3_FromAngles( Vec3 angles, mat3_t m );
 
 float PositiveMod( float x, float y );

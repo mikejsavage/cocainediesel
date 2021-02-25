@@ -315,6 +315,12 @@ static const char * prefixes[] = {
 #include "prefixes.h"
 };
 
+static const char * suicides[] = {
+	"AUTO",
+	"SELF",
+	"SOLO",
+};
+
 static const char * conjunctions[] = {
 	"+",
 	"&",
@@ -342,9 +348,14 @@ static const char * RandomPrefix( RNG * rng, float p ) {
 	return random_select( rng, prefixes );
 }
 
+static const char * RandomSuicidePrefix( RNG * rng ) {
+	return random_select( rng, suicides );
+}
+
 static const char * RandomAssistConjunction( RNG * rng ) {
 	return random_select( rng, conjunctions );
 }
+
 
 void CG_SC_Obituary() {
 	int victimNum = atoi( Cmd_Argv( 1 ) );
@@ -388,11 +399,12 @@ void CG_SC_Obituary() {
 		RGB8 victim_color = CG_TeamColor( current->victim_team );
 
 		if( attacker == victim ) {
+			const char * suicide_prefix = RandomSuicidePrefix( &rng );
 			current->type = OBITUARY_SUICIDE;
 
-			CG_AddChat( temp( "{}{} {}SELF{}",
+			CG_AddChat( temp( "{}{} {}{}{}",
 				ImGuiColorToken( victim_color ), victim_name,
-				ImGuiColorToken( rgba8_diesel_yellow ), obituary
+				ImGuiColorToken( rgba8_diesel_yellow ), suicide_prefix, obituary
 			) );
 		}
 		else {

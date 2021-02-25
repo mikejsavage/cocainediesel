@@ -157,7 +157,7 @@ void ShutdownRenderer() {
 	RenderBackendShutdown();
 }
 
-static Mat4 OrthographicProjection( float left, float top, float right, float bottom, float near_plane, float far_plane ) {
+Mat4 OrthographicProjection( float left, float top, float right, float bottom, float near_plane, float far_plane ) {
 	return Mat4(
 		2.0f / ( right - left ),
 		0.0f,
@@ -388,6 +388,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	static const tracy::SourceLocationData silhouettes_tracy = TRACY_HACK( "Render silhouettes" );
 	static const tracy::SourceLocationData postprocess_tracy = TRACY_HACK( "Postprocess" );
 	static const tracy::SourceLocationData ui_tracy = TRACY_HACK( "Render UI" );
+	static const tracy::SourceLocationData ultralight_tracy = TRACY_HACK( "Render Ultralight" );
 #undef TRACY_HACK
 
 	frame_static.particle_update_pass = AddRenderPass( "Particle Update", &particle_update_tracy );
@@ -422,6 +423,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes", &silhouettes_tracy, frame_static.postprocess_fb );
 	frame_static.postprocess_pass = AddRenderPass( "Postprocess", &postprocess_tracy, ClearColor_Do );
 	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI", &ui_tracy );
+	frame_static.ultralight_pass = AddUnsortedRenderPass( "Render Ultralight", &ultralight_tracy );
 }
 
 MinMax3 ShadowMapBounds( float tan_half_fov, float aspect_ratio, Vec3 position, Vec3 fwd, Vec3 right, Vec3 up, Mat4 shadow_view, float near, float far ) {

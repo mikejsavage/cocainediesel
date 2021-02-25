@@ -346,6 +346,12 @@ void CL_ImGuiBeginFrame();
 void CL_ImGuiEndFrame();
 
 //
+// cl_ultralight
+//
+void CL_Ultralight_Init();
+void CL_Ultralight_Frame();
+
+//
 // snap_read
 //
 void SNAP_ParseBaseline( msg_t *msg, SyncEntityState *baselines );

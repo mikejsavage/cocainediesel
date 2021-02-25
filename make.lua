@@ -39,6 +39,7 @@ require( "libs.tracy" )
 require( "libs.whereami" )
 require( "libs.zlib" )
 require( "libs.zstd" )
+require( "libs.ultralight" )
 
 do
 	local platform_srcs
@@ -101,16 +102,18 @@ do
 			"whereami",
 			"zlib",
 			"zstd",
+			"ultralight",
 			platform_libs,
 		},
 
 		rc = "source/windows/client",
 
-		gcc_extra_ldflags = "-lm -lpthread -ldl -lX11 -no-pie -static-libstdc++",
-		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS",
+		gcc_extra_ldflags = "-lm -lpthread -ldl -lX11 -no-pie -static-libstdc++ -lUltralight -lUltralightCore -lAppCore -lWebCore",
+		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS libs/ultralight/windows-release/Ultralight.lib libs/ultralight/windows-release/UltralightCore.lib libs/ultralight/windows-release/AppCore.lib libs/ultralight/windows-release/WebCore.lib",
 	} )
 
 	obj_cxxflags( "source/client/renderer/text.cpp", "-I libs/freetype" )
+	obj_cxxflags( "source/client/cl_ultralight.cpp", "-I libs/ultralight" )
 end
 
 do

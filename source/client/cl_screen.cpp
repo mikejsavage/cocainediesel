@@ -174,4 +174,6 @@ void SCR_UpdateScreen() {
 	UI_Refresh();
 
 	CL_ImGuiEndFrame();
+
+	CL_Ultralight_Frame();
 }

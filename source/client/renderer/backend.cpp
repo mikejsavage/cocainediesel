@@ -163,6 +163,12 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			*channels = GL_DEPTH_COMPONENT;
 			*type = GL_FLOAT;
 			return;
+
+		case TextureFormat_BGRA_U8_sRGB:
+			*internal = GL_SRGB8_ALPHA8;
+			*channels = GL_BGRA;
+			*type = GL_UNSIGNED_BYTE;
+			return;
 	}
 
 	assert( false );
@@ -562,7 +568,7 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 	return a.pipeline.shader < b.pipeline.shader;
 }
 
-static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
+void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
 	const GLvoid * gl_offset = checked_cast< const GLvoid * >( checked_cast< uintptr_t >( offset ) );
 
 	GLenum type;

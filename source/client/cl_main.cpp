@@ -1745,6 +1745,7 @@ void CL_Init() {
 	InitDownloads();
 
 	CL_InitImGui();
+	CL_Ultralight_Init();
 	UI_Init();
 
 	UI_ShowMainMenu();

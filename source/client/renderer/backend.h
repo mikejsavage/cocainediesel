@@ -1,5 +1,7 @@
 #pragma once
 
+#include "glad/glad.h"
+
 #include <string.h>
 
 #include "qcommon/types.h"
@@ -38,6 +40,8 @@ enum TextureFormat : u8 {
 	TextureFormat_RGBA_U8_sRGB,
 
 	TextureFormat_Depth,
+
+	TextureFormat_BGRA_U8_sRGB,
 };
 
 enum TextureWrap : u8 {
@@ -397,3 +401,5 @@ UniformBlock UploadUniformBlock( Rest... rest ) {
 	SerializeUniforms( buf, 0, rest... );
 	return UploadUniforms( buf, sizeof( buf ) );
 }
+
+void SetupAttribute( GLuint index, VertexFormat format, u32 stride, u32 offset );

@@ -35,7 +35,8 @@ enum GameMenuState {
 };
 
 enum DemoMenuState {
-
+	DemoMenuState_Menu,
+	DemoMenuState_Settings,
 };
 
 enum SettingsState {
@@ -61,9 +62,11 @@ static int num_servers = 0;
 static UIState uistate;
 
 static MainMenuState mainmenu_state;
+static GameMenuState gamemenu_state;
+static DemoMenuState demomenu_state;
+
 static int selected_server;
 
-static GameMenuState gamemenu_state;
 static WeaponType selected_weapons[ WeaponCategory_Count ];
 
 static SettingsState settings_state;
@@ -1089,16 +1092,28 @@ static void DemoMenu() {
 	ImVec2 pos = ImGui::GetIO().DisplaySize;
 	pos.x *= 0.5f;
 	pos.y *= 0.8f;
-	ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-	ImGui::SetNextWindowSize( ImVec2( 600, 0 ) );
-	ImGui::Begin( "demomenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+	if( demomenu_state == DemoMenuState_Menu ) {
+		ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowSize( ImVec2( 600, 0 ) );
+		ImGui::Begin( "demomenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
-	GameMenuButton( cls.demo.paused ? "Play" : "Pause", "demopause" );
-	GameMenuButton( "Jump +15s", "demojump +15" );
-	GameMenuButton( "Jump -15s", "demojump -15" );
+		GameMenuButton( cls.demo.paused ? "Play" : "Pause", "demopause" );
+		GameMenuButton( "Jump +15s", "demojump +15" );
+		GameMenuButton( "Jump -15s", "demojump -15" );
 
-	GameMenuButton( "Disconnect to main menu", "disconnect", &should_close );
-	GameMenuButton( "Exit to desktop", "quit", &should_close );
+		if( ImGui::Button( "SETTINGS" ) ) {
+			demomenu_state = DemoMenuState_Settings;
+		}
+
+		GameMenuButton( "Disconnect to main menu", "disconnect", &should_close );
+		GameMenuButton( "Exit to desktop", "quit", &should_close );
+	} else if( demomenu_state == DemoMenuState_Settings ) {
+		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowSize( ImVec2( Max2( 800.f, displaySize.x * 0.65f ), Max2( 600.f, displaySize.y * 0.65f ) ) );
+		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+
+		Settings();
+	}
 
 	if( ImGui::Hotkey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;

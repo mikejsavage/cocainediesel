@@ -1089,6 +1089,7 @@ static void DemoMenu() {
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
 	bool should_close = false;
 
+	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
 	ImVec2 pos = ImGui::GetIO().DisplaySize;
 	pos.x *= 0.5f;
 	pos.y *= 0.8f;
@@ -1097,11 +1098,23 @@ static void DemoMenu() {
 		ImGui::SetNextWindowSize( ImVec2( 600, 0 ) );
 		ImGui::Begin( "demomenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
-		GameMenuButton( cls.demo.paused ? "Play" : "Pause", "demopause" );
-		GameMenuButton( "Jump +15s", "demojump +15" );
-		GameMenuButton( "Jump -15s", "demojump -15" );
+		ImGuiStyle & style = ImGui::GetStyle();
+		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
-		if( ImGui::Button( "SETTINGS" ) ) {
+		GameMenuButton( cls.demo.paused ? "Play" : "Pause", "demopause" );
+
+		ImGui::Columns( 2, NULL, false );
+		ImGui::SetColumnWidth( 0, half );
+		ImGui::SetColumnWidth( 1, half );
+
+		GameMenuButton( "-15s", "demojump -15", NULL, 0 );
+		ImGui::NextColumn();
+		GameMenuButton( "+15s", "demojump +15", NULL, 1 );
+		ImGui::NextColumn();
+
+		ImGui::Columns( 1, NULL, false );
+
+		if( ImGui::Button( "Settings", ImVec2( -1, 0 ) ) ) {
 			demomenu_state = DemoMenuState_Settings;
 		}
 
@@ -1198,6 +1211,7 @@ void UI_ShowDemoMenu() {
 	ImGui::GetIO().KeysDown[ K_ESCAPE ] = false;
 
 	uistate = UIState_DemoMenu;
+	demomenu_state = DemoMenuState_Menu;
 	CL_SetKeyDest( key_menu );
 }
 

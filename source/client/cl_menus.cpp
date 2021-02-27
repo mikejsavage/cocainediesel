@@ -1057,7 +1057,7 @@ static void GameMenu() {
 		ImGui::RadioButton( "Change map", &e, 1 );
 
 		if( e == 0 ) {
-			GameMenuButton( "Start vote", "callvote allready", &should_close );
+			GameMenuButton( "Start vote", "callvote start", &should_close );
 		}
 
 		if( e == 1 ) {

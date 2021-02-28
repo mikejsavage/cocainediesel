@@ -38,7 +38,6 @@ void G_Timeout_Reset() {
 static void G_Timeout_Update( unsigned int msec ) {
 	static int timeout_printtime = 0;
 	static int timeout_last_endtime = 0;
-	static int countdown_set = 1;
 
 	if( !GS_MatchPaused( &server_gs ) ) {
 		return;
@@ -67,7 +66,6 @@ static void G_Timeout_Update( unsigned int msec ) {
 
 			if( seconds_left == ( TIMEIN_TIME * 2 ) / 1000 ) {
 				G_AnnouncerSound( NULL, StringHash( "sounds/announcer/ready" ), GS_MAX_TEAMS, false, NULL );
-				countdown_set = random_uniform( &svs.rng, 1, 3 );
 			} else if( seconds_left >= 1 && seconds_left <= 3 ) {
 				constexpr StringHash countdown[] = {
 					"sounds/announcer/1",

@@ -587,10 +587,6 @@ static const SoundEffect * FindSoundEffect( StringHash name ) {
 	return &sound_effects[ idx ];
 }
 
-static const SoundEffect * FindSoundEffect( const char * name ) {
-	return FindSoundEffect( StringHash( name ) );
-}
-
 static bool StartSound( PlayingSound * ps, u8 i ) {
 	SoundEffect::PlaybackConfig config = ps->sfx->sounds[ i ];
 

@@ -154,6 +154,12 @@ struct PipelineState {
 	bool view_weapon_depth_hack = false;
 	bool wireframe = false;
 
+	// ultralight
+	Framebuffer target = { };
+	bool clear_target = false;
+	u32 viewport_width = 0;
+	u32 viewport_height = 0;
+
 	void set_uniform( StringHash name, UniformBlock block ) {
 		for( size_t i = 0; i < num_uniforms; i++ ) {
 			if( uniforms[ i ].name_hash == name.hash ) {

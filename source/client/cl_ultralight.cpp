@@ -162,10 +162,6 @@ public:
 		return next_texture_id++;
 	}
 	void CreateTexture( u32 texture_id, ul::Ref< ul::Bitmap > bitmap ) override {
-		if( bitmap->IsEmpty() ) {
-			// framebuffer texture, i think
-			// return;
-		}
 		TextureConfig config;
 		config.filter = TextureFilter_Linear;
 		config.wrap = TextureWrap_Clamp;
@@ -174,11 +170,14 @@ public:
 		config.height = bitmap->height();
 		config.data = bitmap->LockPixels();
 
-		if( bitmap->format() == ul::kBitmapFormat_A8_UNORM ) {
+		if( bitmap->IsEmpty() ) {
+			config.format = TextureFormat_RGBA_U8; // fbo texture
+		}
+		else if( bitmap->format() == ul::kBitmapFormat_A8_UNORM ) {
 			config.format = TextureFormat_R_U8;
 		}
 		else if( bitmap->format() == ul::kBitmapFormat_BGRA8_UNORM_SRGB ) {
-			config.format = TextureFormat_BGRA_U8_sRGB; // TODO: should be BGRA
+			config.format = TextureFormat_BGRA_U8_sRGB;
 		}
 
 		glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
@@ -227,10 +226,21 @@ public:
 		DeleteFramebuffer( framebuffers[ render_buffer_id ] );
 	}
 	void ClearRenderBuffer( u32 render_buffer_id ) {
-		glBindFramebuffer( GL_FRAMEBUFFER, framebuffers[ render_buffer_id ].fbo );
-		glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-		glClear( GL_COLOR_BUFFER_BIT );
-		glBindFramebuffer( GL_FRAMEBUFFER, 0 );    
+		PipelineState pipeline;
+		pipeline.pass = frame_static.ultralight_pass;
+		pipeline.shader = &ultralight_shaders[ 0 ];
+		pipeline.depth_func = DepthFunc_Disabled;
+		pipeline.blend_func = BlendFunc_Blend;
+		pipeline.cull_face = CullFace_Disabled;
+		pipeline.write_depth = false;
+
+		pipeline.target = framebuffers[ render_buffer_id ];
+		pipeline.clear_target = true;
+		DrawFullscreenMesh( pipeline );
+		// glBindFramebuffer( GL_FRAMEBUFFER, framebuffers[ render_buffer_id ].fbo );
+		// glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
+		// glClear( GL_COLOR_BUFFER_BIT );
+		// glBindFramebuffer( GL_FRAMEBUFFER, 0 );    
 	}
 
 	u32 NextGeometryId() override {
@@ -294,7 +304,10 @@ public:
 		pipeline.cull_face = CullFace_Disabled;
 		pipeline.write_depth = false;
 
-		// TODO: set viewport from state.viewport_width/height
+		pipeline.viewport_width = state.viewport_width;
+		pipeline.viewport_height = state.viewport_height;
+
+		pipeline.target = framebuffers[ state.render_buffer_id ];
 
 		if( state.enable_scissor ) {
 			pipeline.scissor.x = state.scissor_rect.x();
@@ -447,6 +460,52 @@ void CL_Ultralight_Frame() {
 	renderer->Render();
 	renderer->LogMemoryUsage();
 	driver.Draw();
+
+	{
+		PipelineState pipeline;
+		pipeline.pass = frame_static.ultralight_pass;
+		pipeline.shader = &shaders.standard_vertexcolors;
+		pipeline.depth_func = DepthFunc_Disabled;
+		pipeline.blend_func = BlendFunc_Blend;
+		pipeline.write_depth = false;
+
+		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
+		pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+		pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
+		pipeline.set_texture( "u_BaseTexture", &driver.textures[ view->render_target().texture_id ] );
+
+		Vec3 positions[] = {
+			Vec3( 0, 0, 0 ),
+			Vec3( frame_static.viewport_width, 0, 0 ),
+			Vec3( 0, frame_static.viewport_height, 0 ),
+			Vec3( frame_static.viewport_width, frame_static.viewport_height, 0 ),
+		};	
+
+		Vec2 half_pixel = 0.5f / frame_static.viewport;
+		Vec2 uvs[] = {
+			Vec2( half_pixel.x, 1.0f - half_pixel.y ),
+			Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
+			Vec2( half_pixel.x, half_pixel.y ),
+			Vec2( 1.0f - half_pixel.x, half_pixel.y ),
+		};
+		constexpr RGBA8 colors[] = { rgba8_white, rgba8_white, rgba8_white, rgba8_white };
+
+		u16 base_index = DynamicMeshBaseIndex();
+		u16 indices[] = { 0, 2, 1, 3, 1, 2 };
+		for( u16 & idx : indices ) {
+			idx += base_index;
+		}
+
+		DynamicMesh mesh = { };
+		mesh.positions = positions;
+		mesh.uvs = uvs;
+		mesh.colors = colors;
+		mesh.indices = indices;
+		mesh.num_vertices = 4;
+		mesh.num_indices = 6;
+
+		DrawDynamicMesh( pipeline, mesh );
+	}
 }
 
 void CL_Ultralight_MouseMove( u32 x, u32 y ) {

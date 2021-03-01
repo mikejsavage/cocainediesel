@@ -390,6 +390,20 @@ static bool operator!=( PipelineState::Scissor a, PipelineState::Scissor b ) {
 static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	TracyGpuZone( "Set pipeline state" );
 
+	// overwrite fbo
+	if( pipeline.target.fbo != prev_pipeline.target.fbo ) {
+		if( pipeline.target.fbo == 0 ) {
+			glBindFramebuffer( GL_DRAW_FRAMEBUFFER, render_passes[ pipeline.pass ].target.fbo );
+		}
+		else {
+			glBindFramebuffer( GL_DRAW_FRAMEBUFFER, pipeline.target.fbo );
+		}
+		if( pipeline.clear_target ) {
+			glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
+			glClear( GL_COLOR_BUFFER_BIT );
+		}
+	}
+
 	if( pipeline.shader != NULL && ( prev_pipeline.shader == NULL || pipeline.shader->program != prev_pipeline.shader->program ) ) {
 		glUseProgram( pipeline.shader->program );
 	}
@@ -506,6 +520,16 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 				glEnable( GL_CULL_FACE );
 			}
 			glCullFace( pipeline.cull_face == CullFace_Front ? GL_FRONT : GL_BACK );
+		}
+	}
+
+	// viewport
+	if( pipeline.viewport_width != prev_pipeline.viewport_width || pipeline.viewport_height != prev_pipeline.viewport_height ) {
+		if( pipeline.viewport_width == 0 && pipeline.viewport_height == 0 ) {
+			glViewport( 0, 0, frame_static.viewport_width, frame_static.viewport_height );
+		}
+		else {
+			glViewport( 0, 0, pipeline.viewport_width, pipeline.viewport_height );
 		}
 	}
 

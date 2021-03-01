@@ -15,6 +15,8 @@
 
 #include "glad/glad.h"
 
+namespace ul = ultralight;
+
 static Shader ultralight_shaders[ 2 ];
 
 static GLuint CL_Ultralight_CompileShader( GLenum type, const char * source ) {
@@ -36,11 +38,11 @@ static GLuint CL_Ultralight_CompileShader( GLenum type, const char * source ) {
 
 static void CL_Ultralight_LoadProgram( u32 type ) {
 	GLuint vs, fs;
-	if( type == ultralight::kShaderType_Fill ) {
+	if( type == ul::kShaderType_Fill ) {
 		vs = CL_Ultralight_CompileShader( GL_VERTEX_SHADER, shader_v2f_c4f_t2f_t2f_d28f_vert().c_str() );
 		fs = CL_Ultralight_CompileShader( GL_FRAGMENT_SHADER, shader_fill_frag().c_str() );
 	}
-	else if( type == ultralight::kShaderType_FillPath ) {
+	else if( type == ul::kShaderType_FillPath ) {
 		vs = CL_Ultralight_CompileShader( GL_VERTEX_SHADER, shader_v2f_c4f_t2f_vert().c_str() );
 		fs = CL_Ultralight_CompileShader( GL_FRAGMENT_SHADER, shader_fill_path_frag().c_str() );
 	}
@@ -53,7 +55,7 @@ static void CL_Ultralight_LoadProgram( u32 type ) {
 	glBindAttribLocation( program, 1, "in_Color" );
 	glBindAttribLocation( program, 2, "in_TexCoord" );
 	
-	if( type == ultralight::kShaderType_Fill ) {
+	if( type == ul::kShaderType_Fill ) {
 		glBindAttribLocation( program, 3, "in_ObjCoord" );
 		glBindAttribLocation( program, 4, "in_Data0" );
 		glBindAttribLocation( program, 5, "in_Data1" );
@@ -113,11 +115,11 @@ static void CL_Ultralight_LoadProgram( u32 type ) {
 }
 
 static void CL_Ultralight_LoadShaders() {
-	CL_Ultralight_LoadProgram( ultralight::kShaderType_Fill );
-	CL_Ultralight_LoadProgram( ultralight::kShaderType_FillPath );
+	CL_Ultralight_LoadProgram( ul::kShaderType_Fill );
+	CL_Ultralight_LoadProgram( ul::kShaderType_FillPath );
 }
 
-Mat4 UltralightToDiesel( ultralight::Matrix4x4 mat ) {
+Mat4 UltralightToDiesel( ul::Matrix4x4 mat ) {
 	return Mat4(
 		mat.data[ 0 ], mat.data[ 4 ], mat.data[ 8 ], mat.data[ 12 ],
 		mat.data[ 1 ], mat.data[ 5 ], mat.data[ 9 ], mat.data[ 13 ],
@@ -126,18 +128,32 @@ Mat4 UltralightToDiesel( ultralight::Matrix4x4 mat ) {
 	);
 }
 
-Vec4 UltralightToDiesel( ultralight::vec4 v ) {
+Vec4 UltralightToDiesel( ul::vec4 v ) {
 	return Vec4( v.x, v.y, v.z, v.w );
 }
 
-class GPUDriverGL : public ultralight::GPUDriver {
+class GPUDriverGL : public ul::GPUDriver {
 public:
 	GPUDriverGL() : 
 		command_list( sys_allocator ),
 		textures( sys_allocator ),
 		framebuffers( sys_allocator ),
 		meshes( sys_allocator ) {};
-	~GPUDriverGL() {};
+	~GPUDriverGL() {
+		for( Texture tex : textures ) {
+			DeleteTexture( tex );
+		}
+		for( Framebuffer fb : framebuffers ) {
+			DeleteFramebuffer( fb );
+		}
+		for( Mesh mesh : meshes ) {
+			DeleteMesh( mesh );
+		}
+		FREE( sys_allocator, command_list.ptr() );
+		FREE( sys_allocator, textures.ptr() );
+		FREE( sys_allocator, framebuffers.ptr() );
+		FREE( sys_allocator, meshes.ptr() );
+	};
 
 	void BeginSynchronize() override {}
 	void EndSynchronize() override {}
@@ -145,7 +161,7 @@ public:
 	u32 NextTextureId() override {
 		return next_texture_id++;
 	}
-	void CreateTexture( u32 texture_id, ultralight::Ref< ultralight::Bitmap > bitmap ) override {
+	void CreateTexture( u32 texture_id, ul::Ref< ul::Bitmap > bitmap ) override {
 		if( bitmap->IsEmpty() ) {
 			// framebuffer texture, i think
 			// return;
@@ -158,10 +174,10 @@ public:
 		config.height = bitmap->height();
 		config.data = bitmap->LockPixels();
 
-		if( bitmap->format() == ultralight::kBitmapFormat_A8_UNORM ) {
+		if( bitmap->format() == ul::kBitmapFormat_A8_UNORM ) {
 			config.format = TextureFormat_R_U8;
 		}
-		else if( bitmap->format() == ultralight::kBitmapFormat_BGRA8_UNORM_SRGB ) {
+		else if( bitmap->format() == ul::kBitmapFormat_BGRA8_UNORM_SRGB ) {
 			config.format = TextureFormat_BGRA_U8_sRGB; // TODO: should be BGRA
 		}
 
@@ -179,7 +195,7 @@ public:
 	void DestroyTexture( u32 texture_id ) override {
 		DeleteTexture( textures[ texture_id ] );
 	}
-	void UpdateTexture( u32 texture_id, ultralight::Ref< ultralight::Bitmap > bitmap ) override {
+	void UpdateTexture( u32 texture_id, ul::Ref< ul::Bitmap > bitmap ) override {
 		DestroyTexture( texture_id );
 		CreateTexture( texture_id, bitmap );
 	}
@@ -187,7 +203,7 @@ public:
 	u32 NextRenderBufferId() override {
 		return next_render_buffer_id++;
 	}
-	void CreateRenderBuffer( u32 render_buffer_id, const ultralight::RenderBuffer & buffer ) override {
+	void CreateRenderBuffer( u32 render_buffer_id, const ul::RenderBuffer & buffer ) override {
 		FramebufferConfig fb;
 
 		Texture tex = textures[ buffer.texture_id ];
@@ -220,7 +236,7 @@ public:
 	u32 NextGeometryId() override {
 		return next_geometry_id++;
 	}
-	void CreateGeometry( u32 geometry_id, const ultralight::VertexBuffer & vertices, const ultralight::IndexBuffer & indices ) override {
+	void CreateGeometry( u32 geometry_id, const ul::VertexBuffer & vertices, const ul::IndexBuffer & indices ) override {
 		Mesh mesh;
 
 		mesh.primitive_type = PrimitiveType_Triangles;
@@ -232,7 +248,7 @@ public:
 		glBindVertexArray( mesh.vao );
 
 		glBindBuffer( GL_ARRAY_BUFFER, mesh.positions.vbo );
-		if( vertices.format == ultralight::kVertexBufferFormat_2f_4ub_2f_2f_28f ) {
+		if( vertices.format == ul::kVertexBufferFormat_2f_4ub_2f_2f_28f ) {
 			u32 stride = 140;
 
 			SetupAttribute( 0, VertexFormat_Floatx2, stride, 0 );
@@ -244,7 +260,7 @@ public:
 				SetupAttribute( 4 + i, VertexFormat_Floatx4, stride, 28 + ( i * sizeof( Vec4 ) ) );
 			}
 		}
-		else if( vertices.format == ultralight::kVertexBufferFormat_2f_4ub_2f ) {
+		else if( vertices.format == ul::kVertexBufferFormat_2f_4ub_2f ) {
 			u32 stride = 20;
 
 			SetupAttribute( 0, VertexFormat_Floatx2, stride, 0 );
@@ -265,11 +281,11 @@ public:
 		Mesh mesh = meshes[ geometry_id ];
 		DeleteMesh( mesh );
 	}
-	void UpdateGeometry( u32 geometry_id, const ultralight::VertexBuffer & vertices, const ultralight::IndexBuffer & indices ) override {
+	void UpdateGeometry( u32 geometry_id, const ul::VertexBuffer & vertices, const ul::IndexBuffer & indices ) override {
 		DestroyGeometry( geometry_id );
 		CreateGeometry( geometry_id, vertices, indices );
 	}
-	void DrawGeometry( u32 geometry_id, u32 indices_count, u32 indices_offset, const ultralight::GPUState & state ) {
+	void DrawGeometry( u32 geometry_id, u32 indices_count, u32 indices_offset, const ul::GPUState & state ) {
 		PipelineState pipeline;
 		pipeline.pass = frame_static.ultralight_pass;
 		pipeline.shader = &ultralight_shaders[ state.shader_type ];
@@ -293,9 +309,9 @@ public:
 		float scale = 1.0f;
 		pipeline.set_uniform( "u_State", UploadUniformBlock( Vec4( time, state.viewport_width, state.viewport_height, scale ) ) );
 
-		ultralight::Matrix transform;
+		ul::Matrix transform;
 		transform.Set( state.transform );
-		ultralight::Matrix result;
+		ul::Matrix result;
 		result.SetOrthographicProjection( state.viewport_width, state.viewport_height, false );
 		result.Transform( transform );
 		pipeline.set_uniform( "u_Transform", UploadUniformBlock( UltralightToDiesel( result.GetMatrix4x4() ) ) );
@@ -344,17 +360,25 @@ public:
 		DrawMesh( meshes[ geometry_id ], pipeline, indices_count, indices_offset * sizeof( u32 ) );
 	}
 
-	void UpdateCommandList( const ultralight::CommandList & list ) {
-		command_list.resize( list.size );
-		memcpy( command_list.ptr(), list.commands, sizeof( ultralight::Command ) * list.size );
+	void UpdateCommandList( const ul::CommandList & list ) {
+		if( list.size ) {
+			command_list.resize( list.size );
+			memcpy( command_list.ptr(), list.commands, sizeof( ul::Command ) * list.size );
+		}
 	}
 
 	void Draw() {
-		for( ultralight::Command cmd : command_list ) {
-			if( cmd.command_type == ultralight::kCommandType_ClearRenderBuffer ) {
+		ZoneScoped;
+
+		if( command_list.size() == 0 ) {
+			return;
+		}
+
+		for( ul::Command cmd : command_list ) {
+			if( cmd.command_type == ul::kCommandType_ClearRenderBuffer ) {
 				ClearRenderBuffer( cmd.gpu_state.render_buffer_id );
 			}
-			else if( cmd.command_type == ultralight::kCommandType_DrawGeometry ) {
+			else if( cmd.command_type == ul::kCommandType_DrawGeometry ) {
 				DrawGeometry( cmd.geometry_id, cmd.indices_count, cmd.indices_offset, cmd.gpu_state );
 			}
 		}
@@ -364,42 +388,132 @@ public:
 	u32 next_texture_id = 1;
 	u32 next_render_buffer_id = 1;
 	u32 next_geometry_id = 1;
-	DynamicArray< ultralight::Command > command_list;
+	DynamicArray< ul::Command > command_list;
 
 	DynamicArray< Texture > textures;
 	DynamicArray< Framebuffer > framebuffers;
 	DynamicArray< Mesh > meshes;
 };
 
-ultralight::RefPtr< ultralight::Renderer > renderer;
-ultralight::RefPtr< ultralight::View > view;
+ul::RefPtr< ul::Renderer > renderer;
+ul::RefPtr< ul::View > view;
 GPUDriverGL driver;
 
 void CL_Ultralight_Init() {
+	ZoneScoped;
+
 	CL_Ultralight_LoadShaders();
 
-	ultralight::Config config;
+	ul::Config config;
 
 	config.resource_path = "./resources/";
 	config.use_gpu_renderer = true;
 	config.device_scale = 1.0;
 	config.enable_images = true;
 	config.force_repaint = true;
-	ultralight::Platform::instance().set_gpu_driver( &driver );
-	ultralight::Platform::instance().set_config( config );
-	ultralight::Platform::instance().set_font_loader( ultralight::GetPlatformFontLoader() );
-	ultralight::Platform::instance().set_file_system( ultralight::GetPlatformFileSystem( "." ) );
-	ultralight::Platform::instance().set_logger( ultralight::GetDefaultLogger( "ultralight.log" ) );
+	config.enable_javascript = true;
+	config.font_hinting = ul::FontHinting::kFontHinting_Smooth;
 
-	renderer = ultralight::Renderer::Create();
+	ul::Platform::instance().set_gpu_driver( &driver );
+	ul::Platform::instance().set_config( config );
+	ul::Platform::instance().set_font_loader( ul::GetPlatformFontLoader() );
+	ul::Platform::instance().set_file_system( ul::GetPlatformFileSystem( "." ) );
+	ul::Platform::instance().set_logger( ul::GetDefaultLogger( "ultralight.log" ) );
+
+	renderer = ul::Renderer::Create();
 	view = renderer->CreateView( frame_static.viewport_width, frame_static.viewport_height, true, nullptr );
 	view->LoadURL( "https://cocainediesel.fun" );
 	view->Focus();
 }
 
+void CL_Ultralight_Shutdown() {
+	ZoneScoped;
+
+	view->Release();
+	view = nullptr;
+
+	renderer->Release();
+	renderer = nullptr;
+
+	DeleteShader( ultralight_shaders[ 0 ] );
+	DeleteShader( ultralight_shaders[ 1 ] );
+}
+
 void CL_Ultralight_Frame() {
+	ZoneScoped;
+
 	view->Resize( frame_static.viewport_width, frame_static.viewport_height );
 	renderer->Update();
 	renderer->Render();
+	renderer->LogMemoryUsage();
 	driver.Draw();
+}
+
+void CL_Ultralight_MouseMove( u32 x, u32 y ) {
+	ul::MouseEvent evt;
+	evt.type = ul::MouseEvent::kType_MouseMoved;
+	evt.x = x;
+	evt.y = y;
+	evt.button = ul::MouseEvent::kButton_None;
+	
+	view->FireMouseEvent( evt );
+}
+
+void CL_Ultralight_MouseScroll( u32 x, u32 y ) {
+	ul::ScrollEvent evt;
+	evt.type = ul::ScrollEvent::kType_ScrollByPage;
+	evt.delta_x = x;
+	evt.delta_y = y;
+	
+	view->FireScrollEvent( evt );
+}
+
+void CL_Ultralight_MouseDown( u32 x, u32 y, s32 button ) {
+	ul::MouseEvent evt;
+	evt.type = ul::MouseEvent::kType_MouseDown;
+	evt.x = x;
+	evt.y = y;
+	evt.button = ul::MouseEvent::Button( button );
+	
+	view->FireMouseEvent( evt );
+}
+
+void CL_Ultralight_MouseUp( u32 x, u32 y, s32 button ) {
+	ul::MouseEvent evt;
+	evt.type = ul::MouseEvent::kType_MouseUp;
+	evt.x = x;
+	evt.y = y;
+	evt.button = ul::MouseEvent::Button( button );
+	
+	view->FireMouseEvent( evt );
+}
+
+void CL_Ultralight_KeyDown( s32 virtual_key, s32 native_key, s32 mods ) {
+	ul::KeyEvent evt;
+	evt.type = ul::KeyEvent::kType_KeyDown;
+	evt.virtual_key_code = virtual_key;
+	evt.native_key_code = native_key;
+	evt.modifiers = mods;
+
+	view->FireKeyEvent( evt );
+}
+
+void CL_Ultralight_KeyUp( s32 virtual_key, s32 native_key, s32 mods ) {
+	ul::KeyEvent evt;
+	evt.type = ul::KeyEvent::kType_KeyUp;
+	evt.virtual_key_code = virtual_key;
+	evt.native_key_code = native_key;
+	evt.modifiers = mods;
+
+	view->FireKeyEvent( evt );
+}
+
+void CL_Ultralight_Char( u32 codepoint ) {
+	ul::KeyEvent evt;
+	evt.type = ul::KeyEvent::kType_Char;
+	ul::String text = ul::String32( ( const char32_t * ) &codepoint, 1 );
+	evt.text = text;
+	evt.unmodified_text = text;
+
+	view->FireKeyEvent( evt );
 }

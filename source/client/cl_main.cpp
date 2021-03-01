@@ -1783,6 +1783,7 @@ void CL_Shutdown() {
 
 	UI_Shutdown();
 	CL_ShutdownImGui();
+	CL_Ultralight_Shutdown();
 
 	CL_GameModule_Shutdown();
 	S_Shutdown();

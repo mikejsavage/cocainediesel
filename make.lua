@@ -114,6 +114,7 @@ do
 
 	obj_cxxflags( "source/client/renderer/text.cpp", "-I libs/freetype" )
 	obj_cxxflags( "source/client/cl_ultralight.cpp", "-I libs/ultralight" )
+	obj_cxxflags( "source/client/cl_glfw.cpp", "-I libs/ultralight" )
 end
 
 do

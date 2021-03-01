@@ -349,7 +349,15 @@ void CL_ImGuiEndFrame();
 // cl_ultralight
 //
 void CL_Ultralight_Init();
+void CL_Ultralight_Shutdown();
 void CL_Ultralight_Frame();
+void CL_Ultralight_MouseMove( u32 x, u32 y );
+void CL_Ultralight_MouseScroll( u32 x, u32 y );
+void CL_Ultralight_MouseDown( u32 x, u32 y, s32 button );
+void CL_Ultralight_MouseUp( u32 x, u32 y, s32 button );
+void CL_Ultralight_KeyDown( s32 virtual_key, s32 native_key, s32 mods );
+void CL_Ultralight_KeyUp( s32 virtual_key, s32 native_key, s32 mods );
+void CL_Ultralight_Char( u32 codepoint );
 
 //
 // snap_read

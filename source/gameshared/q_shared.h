@@ -39,16 +39,6 @@ short ShortSwap( short l );
 #define EXEC_NOW                    0           // don't return until completed
 #define EXEC_APPEND                 1           // add to end of the command buffer
 
-//=============================================
-// fonts
-//=============================================
-
-#define SYSTEM_FONT_TINY_SIZE       8
-#define SYSTEM_FONT_CONSOLE_SIZE    12
-#define SYSTEM_FONT_SMALL_SIZE      14
-#define SYSTEM_FONT_MEDIUM_SIZE     16
-#define SYSTEM_FONT_BIG_SIZE        24
-
 //==============================================================
 //
 //PATHLIB

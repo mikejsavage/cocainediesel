@@ -719,7 +719,13 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	cg.lerpfrac = Clamp01( cg.lerpfrac );
 
 	{
-		float scale = ( float )( frame_static.viewport_height ) / 600.0f;
+		constexpr float SYSTEM_FONT_TINY_SIZE = 8;
+		constexpr float SYSTEM_FONT_CONSOLE_SIZE = 12;
+		constexpr float SYSTEM_FONT_SMALL_SIZE = 14;
+		constexpr float SYSTEM_FONT_MEDIUM_SIZE = 16;
+		constexpr float SYSTEM_FONT_BIG_SIZE = 24;
+
+		float scale = frame_static.viewport_height / 600.0f;
 
 		cgs.fontSystemTinySize = ceilf( SYSTEM_FONT_TINY_SIZE * scale );
 		cgs.fontSystemSmallSize = ceilf( SYSTEM_FONT_SMALL_SIZE * scale );

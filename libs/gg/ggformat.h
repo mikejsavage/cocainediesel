@@ -1,5 +1,5 @@
 /*
- * ggformat v1.0
+ * ggformat v1.1
  *
  * Copyright (c) 2017 Michael Savage <mike@mikejsavage.co.uk>
  *

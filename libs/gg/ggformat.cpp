@@ -1,12 +1,12 @@
 /*
- * ggformat v1.0
+ * ggformat v1.1
  *
  * Copyright (c) 2017 Michael Savage <mike@mikejsavage.co.uk>
- * 
+ *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -24,8 +24,8 @@
 
 #include "ggformat.h"
 
-static size_t strlcat( char * dst, const char * src, size_t dsize );
-static long long strtonum( const char * numstr, long long minval, long long maxval, const char ** errstrp );
+static size_t ggformat_strlcat( char * dst, const char * src, size_t dsize );
+static long long ggformat_strtonum( const char * numstr, long long minval, long long maxval, const char ** errstrp );
 
 template< typename To, typename From >
 inline To checked_cast( const From & from ) {
@@ -34,6 +34,7 @@ inline To checked_cast( const From & from ) {
 	return result;
 }
 
+namespace {
 struct ShortString {
 	char buf[ 16 ];
 
@@ -48,12 +49,13 @@ struct ShortString {
 	}
 
 	void operator+=( const char * str ) {
-		strlcat( buf, str, sizeof( buf ) );
+		ggformat_strlcat( buf, str, sizeof( buf ) );
 	}
 };
+}
 
 template< typename T >
-static void format_helper( FormatBuffer * fb, const ShortString & fmt, const T & x ) {
+static void format_helper( FormatBuffer * fb, const ::ShortString & fmt, const T & x ) {
 	char * dst = fb->buf + fb->len;
 	size_t len = fb->capacity - fb->len;
 
@@ -73,7 +75,7 @@ static void format_helper( FormatBuffer * fb, const ShortString & fmt, const T &
 }
 
 void format( FormatBuffer * fb, double x, const FormatOpts & opts ) {
-	ShortString fmt;
+	::ShortString fmt;
 	fmt += "%";
 	int precision = opts.precision != -1 ? opts.precision : 5;
 	if( opts.plus_sign ) fmt += "+";
@@ -87,7 +89,7 @@ void format( FormatBuffer * fb, double x, const FormatOpts & opts ) {
 }
 
 void format( FormatBuffer * fb, char x, const FormatOpts & opts ) {
-	ShortString fmt;
+	::ShortString fmt;
 	fmt += "%";
 	if( opts.left_align ) fmt += "-";
 	if( opts.width != -1 ) fmt += opts.width;
@@ -96,7 +98,7 @@ void format( FormatBuffer * fb, char x, const FormatOpts & opts ) {
 }
 
 void format( FormatBuffer * fb, const char * x, const FormatOpts & opts ) {
-	ShortString fmt;
+	::ShortString fmt;
 	fmt += "%";
 	if( opts.left_align ) fmt += "-";
 	if( opts.width != -1 ) fmt += opts.width;
@@ -110,7 +112,7 @@ void format( FormatBuffer * fb, bool x, const FormatOpts & opts ) {
 
 template< typename T >
 static void int_helper( FormatBuffer * fb, const char * fmt_length, const char * fmt_decimal, const T & x, const FormatOpts & opts ) {
-	ShortString fmt;
+	::ShortString fmt;
 	fmt += "%";
 	if( opts.plus_sign ) fmt += "+";
 	if( opts.left_align ) fmt += "-";
@@ -130,8 +132,7 @@ static void int_helper( FormatBuffer * fb, const char * fmt_length, const char *
 		binary[ sizeof( x ) * 8 ] = '\0';
 
 		for( size_t i = 0; i < sizeof( x ) * 8; i++ ) {
-			// this is UB for signed types, but who cares?
-			T bit = x & ( T( 1 ) << ( sizeof( x ) * 8 - i - 1 ) );
+			unsigned long long bit = x & ( ( unsigned long long ) 1 << ( sizeof( x ) * 8 - i - 1 ) );
 			binary[ i ] = bit == 0 ? '0' : '1';
 		}
 
@@ -176,7 +177,7 @@ static const char * parse_format_int( const char * p, const char * one_past_end,
 
 	if( num_len == 0 ) return p;
 
-	*out = int( strtonum( num, 1, 1024, NULL ) );
+	*out = int( ggformat_strtonum( num, 1, 1024, NULL ) );
 	GGFORMAT_ASSERT( *out != 0 );
 
 	return p + num_len;
@@ -306,7 +307,7 @@ void ggformat_impl( FormatBuffer * fb, const char * fmt ) {
  */
 
 static size_t
-strlcat(char *dst, const char *src, size_t dsize)
+ggformat_strlcat(char *dst, const char *src, size_t dsize)
 {
 	const char *odst = dst;
 	const char *osrc = src;
@@ -355,7 +356,7 @@ strlcat(char *dst, const char *src, size_t dsize)
 #define TOOLARGE        3
 
 static long long
-strtonum(const char *numstr, long long minval, long long maxval, const char **errstrp)
+ggformat_strtonum(const char *numstr, long long minval, long long maxval, const char **errstrp)
 {
 	long long ll = 0;
 	char *ep;

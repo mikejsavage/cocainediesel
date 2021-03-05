@@ -1217,7 +1217,7 @@ static void CL_InitLocal() {
 
 	name = Cvar_Get( "name", "", CVAR_USERINFO | CVAR_ARCHIVE );
 	if( !name->string[0] ) {
-		Cvar_Set( name->name, temp( "user{}", random_u64( &cls.rng ) ) );
+		Cvar_Set( name->name, temp( "user{06}", random_uniform( &cls.rng, 0, 1000000 ) ) );
 	}
 
 	Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );

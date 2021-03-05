@@ -315,10 +315,17 @@ static const char * prefixes[] = {
 #include "prefixes.h"
 };
 
-static const char * suicides[] = {
+static const char * suicide_prefixes[] = {
 	"AUTO",
 	"SELF",
 	"SOLO",
+};
+
+static const char * void_obituaries[] = {
+	"ATE",
+	"HOLED",
+	"RECLAIMED",
+	"TOOK",
 };
 
 static const char * conjunctions[] = {
@@ -349,7 +356,11 @@ static const char * RandomPrefix( RNG * rng, float p ) {
 }
 
 static const char * RandomSuicidePrefix( RNG * rng ) {
-	return random_select( rng, suicides );
+	return random_select( rng, suicide_prefixes );
+}
+
+static const char * RandomVoidObituary( RNG * rng ) {
+	return random_select( rng, void_obituaries );
 }
 
 static const char * RandomAssistConjunction( RNG * rng ) {
@@ -387,16 +398,15 @@ void CG_SC_Obituary() {
 		self_obituary.entropy = 0;
 	}
 
+	TempAllocator temp = cls.frame_arena.temp();
+
+	char victim_name[ MAX_NAME_CHARS + 1 ];
+	Q_strncpyz( victim_name, victim->name, sizeof( victim_name ) );
+	Q_strupr( victim_name );
+	RGB8 victim_color = CG_TeamColor( current->victim_team );
+
 	if( attackerNum ) {
-		TempAllocator temp = cls.frame_arena.temp();
 		const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ) );
-
-		char victim_name[ MAX_NAME_CHARS + 1 ];
-		Q_strncpyz( victim_name, victim->name, sizeof( victim_name ) );
-		Q_strupr( victim_name );
-
-		RGB8 attacker_color = CG_TeamColor( current->attacker_team );
-		RGB8 victim_color = CG_TeamColor( current->victim_team );
 
 		if( attacker == victim ) {
 			const char * suicide_prefix = RandomSuicidePrefix( &rng );
@@ -413,6 +423,7 @@ void CG_SC_Obituary() {
 			char attacker_name[ MAX_NAME_CHARS + 1 ];
 			Q_strncpyz( attacker_name, attacker->name, sizeof( attacker_name ) );
 			Q_strupr( attacker_name );
+			RGB8 attacker_color = CG_TeamColor( current->attacker_team );
 
 			if( ISVIEWERENTITY( attackerNum ) ) {
 				CG_CenterPrint( temp( "{} {}", obituary, victim_name ) );
@@ -448,6 +459,16 @@ void CG_SC_Obituary() {
 	}
 	else {   // world accidents
 		current->type = OBITUARY_ACCIDENT;
+
+		if( mod == MeanOfDeath_Void ) {
+			const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomVoidObituary( &rng ) );
+
+			CG_AddChat( temp( "{}THE VOID {}{} {}{}",
+				ImGuiColorToken( rgba8_black ),
+				ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+				ImGuiColorToken( victim_color ), victim_name
+			) );
+		}
 	}
 }
 

@@ -19,9 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "cgame/cg_local.h"
 
-/*
- * CG_Event_WeaponBeam
- */
 static void CG_Event_WeaponBeam( Vec3 origin, Vec3 dir, int ownerNum ) {
 	float range = GS_GetWeaponDef( Weapon_Railgun )->range;
 	Vec3 end = origin + dir * range;
@@ -57,7 +54,7 @@ void CG_WeaponBeamEffect( centity_t * cent ) {
 	cent->localEffects[ LOCALEFFECT_EV_WEAPONBEAM ] = 0;
 }
 
-static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles ) {
+static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_duration_min = 30.0f, float decal_duration_max = 30.0f ) {
 	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, num_particles, color );
 
 	constexpr StringHash decals[] = {
@@ -68,10 +65,11 @@ static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles )
 
 	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
 	float size = random_uniform_float( &cls.rng, 2.0f, 5.0f );
-	AddPersistentDecal( trace->endpos, trace->plane.normal, size, angle, random_select( &cls.rng, decals ), vec4_white, 30000 );
+	s64 duration = random_uniform_float( &cls.rng, decal_duration_min, decal_duration_max ) * 1000.0f;
+	AddPersistentDecal( trace->endpos, trace->plane.normal, size, angle, random_select( &cls.rng, decals ), vec4_white, duration );
 }
 
-static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles ) {
+static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_duration_min = 30.0f, float decal_duration_max = 30.0f ) {
 	// TODO: should draw on entry/exit of all wallbanged surfaces
 	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
 		return;
@@ -87,7 +85,8 @@ static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles
 
 	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
 	float size = random_uniform_float( &cls.rng, 2.0f, 5.0f );
-	AddPersistentDecal( trace->endpos, trace->plane.normal, size, angle, random_select( &cls.rng, decals ), vec4_white, 30000 );
+	s64 duration = random_uniform_float( &cls.rng, decal_duration_min, decal_duration_max ) * 1000.0f;
+	AddPersistentDecal( trace->endpos, trace->plane.normal, size, angle, random_select( &cls.rng, decals ), vec4_white, duration );
 }
 
 void CG_LaserBeamEffect( centity_t * cent ) {
@@ -178,9 +177,6 @@ static void CG_Event_LaserBeam( Vec3 origin, Vec3 dir, int entNum ) {
 	cent->localEffects[ LOCALEFFECT_LASERBEAM ] = cl.serverTime + range;
 }
 
-/*
- * CG_FireWeaponEvent
- */
 static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 	const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( weapon );
 	StringHash sfx = weaponInfo->fire_sound;
@@ -270,9 +266,6 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, WeaponType weapon, int o
 	}
 }
 
-/*
- * CG_Event_FireShotgun
- */
 static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_color ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
 
@@ -293,11 +286,16 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 		trace_t trace, wallbang;
 		GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, r, u, def->range, owner, 0 );
 
-		if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
-			BulletImpact( &trace, team_color, 4 );
-		}
+		// don't create so many decals if they would all end up overlapping anyway
+		float distance = Length( trace.endpos - origin );
+		float decal_p = Lerp( 0.25f, Unlerp( 0.0f, distance, 256.0f ), 0.5f );
+		if( random_p( &cls.rng, decal_p ) ) {
+			if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
+				BulletImpact( &trace, team_color, 4, 5.0f, 15.0f );
+			}
 
-		WallbangImpact( &wallbang, team_color, 2 );
+			WallbangImpact( &wallbang, team_color, 2, 5.0f, 15.0f );
+		}
 
 		AddPersistentBeam( projection.origin, trace.endpos, 1.0f, team_color, cgs.media.shaderTracer, 0.2f, 0.1f );
 	}

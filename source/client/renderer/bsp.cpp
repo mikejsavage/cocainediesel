@@ -408,21 +408,26 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 			u32 num_patches_x = ( dc.patch_width - 1 ) / 2;
 			u32 num_patches_y = ( dc.patch_height - 1 ) / 2;
 
+			// find best tessellation for rows and columns
+			// minimum of 2 seems reasonable
+			float max_error = 1.0f;
+			s32 tess_x = 2;
+			s32 tess_y = 2;
+
 			for( u32 patch_y = 0; patch_y < num_patches_y; patch_y++ ) {
 				for( u32 patch_x = 0; patch_x < num_patches_x; patch_x++ ) {
 					u32 control_base = ( patch_y * 2 * dc.patch_width + patch_x * 2 ) + dc.base_vertex;
-
-					float max_error = 1.0f;
-					int tess_x = 0;
-					int tess_y = 0;
-					{
-						Span2D< const BSPModelVertex > control( &vertices[ control_base ], 3, 3, dc.patch_width );
-						for( int j = 0; j < 3; j++ ) {
-							tess_x = Max2( tess_x, Order2BezierSubdivisions( control( 0, j ).position, control( 1, j ).position, control( 2, j ).position, max_error ) );
-							tess_y = Max2( tess_y, Order2BezierSubdivisions( control( j, 0 ).position, control( j, 1 ).position, control( j, 2 ).position, max_error ) );
-						}
+					Span2D< const BSPModelVertex > control( &vertices[ control_base ], 3, 3, dc.patch_width );
+					for( int j = 0; j < 3; j++ ) {
+						tess_x = Max2( tess_x, Order2BezierSubdivisions( control( 0, j ).position, control( 1, j ).position, control( 2, j ).position, max_error ) );
+						tess_y = Max2( tess_y, Order2BezierSubdivisions( control( j, 0 ).position, control( j, 1 ).position, control( j, 2 ).position, max_error ) );
 					}
+				}
+			}
 
+			for( u32 patch_y = 0; patch_y < num_patches_y; patch_y++ ) {
+				for( u32 patch_x = 0; patch_x < num_patches_x; patch_x++ ) {
+					u32 control_base = ( patch_y * 2 * dc.patch_width + patch_x * 2 ) + dc.base_vertex;
 					u32 base_vert = vertices.size();
 
 					for( int y = 0; y <= tess_y; y++ ) {

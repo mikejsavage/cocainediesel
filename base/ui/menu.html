@@ -12,12 +12,14 @@ body {
 }
 
 .health {
+	background: #111;
 	display: flex;
 	flex-direction: row;
 	position: absolute;
 	left: 2em;
 	bottom: 20%;
-	width: 500px;
+	height: 2em;
+	width: 25%;
 }
 
 .health_red {
@@ -118,6 +120,7 @@ function OnFrame( state ) {
 
 if( location.hash != "#ultralight" ) {
 	OnFrame( { in_game: true, howdy: "howdy!", health: 66 } );
+	document.body.style = "background: #222;";
 }
 </script>
 

@@ -173,7 +173,9 @@ local function join_libs( names )
 	for _, lib in ipairs( flatten( names ) ) do
 		local prebuilt = prebuilt_libs[ lib ]
 		if prebuilt then
-			table.insert( joined, "libs/" .. lib .. "/" .. prebuilt_lib_dir .. "/" .. lib_prefix .. lib .. lib_suffix )
+			for _, archive in ipairs( prebuilt ) do
+				table.insert( joined, "libs/" .. lib .. "/" .. prebuilt_lib_dir .. "/" .. lib_prefix .. archive .. lib_suffix )
+			end
 		else
 			table.insert( joined, dir .. "/" .. lib_prefix .. lib .. lib_suffix )
 		end
@@ -233,7 +235,6 @@ function bin( bin_name, cfg )
 	assert( type( cfg ) == "table", "cfg should be a table" )
 	assert( type( cfg.srcs ) == "table", "cfg.srcs should be a table" )
 	assert( not cfg.libs or type( cfg.libs ) == "table", "cfg.libs should be a table or nil" )
-	assert( not cfg.prebuilt_libs or type( cfg.prebuilt_libs ) == "table", "cfg.prebuilt_libs should be a table or nil" )
 	assert( not bins[ bin_name ] )
 
 	bins[ bin_name ] = cfg
@@ -250,9 +251,9 @@ function lib( lib_name, srcs )
 	add_srcs( globbed )
 end
 
-function prebuilt_lib( lib_name )
+function prebuilt_lib( lib_name, archives )
 	assert( not prebuilt_libs[ lib_name ] )
-	prebuilt_libs[ lib_name ] = true
+	prebuilt_libs[ lib_name ] = archives or { lib_name }
 end
 
 function obj_cxxflags( pattern, flags )

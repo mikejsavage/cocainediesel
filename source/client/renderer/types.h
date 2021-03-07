@@ -5,6 +5,7 @@
 enum BlendFunc : u8 {
 	BlendFunc_Disabled,
 	BlendFunc_Blend,
+	BlendFunc_Straight,
 	BlendFunc_Add,
 };
 

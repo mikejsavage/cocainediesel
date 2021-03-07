@@ -186,10 +186,12 @@ public:
 		Texture tex = NewTexture( config );
 		bitmap->UnlockPixels();
 
+		// defaults
+		glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+		glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
+
 		textures.resize( Max2( textures.size(), size_t( texture_id + 1 ) ) );
 		textures[ texture_id ] = tex;
-
-		Com_GGPrint( "CreateTexture id: {}", tex.texture );
 	}
 	void DestroyTexture( u32 texture_id ) override {
 		DeleteTexture( textures[ texture_id ] );
@@ -219,8 +221,6 @@ public:
 		Framebuffer fbo = NewFramebuffer( &tex, NULL, NULL );
 		framebuffers.resize( Max2( framebuffers.size(), size_t( render_buffer_id + 1 ) ) );
 		framebuffers[ render_buffer_id ] = fbo;
-
-		Com_GGPrint( "CreateRenderBuffer id: {}", tex.texture );
 	}
 	void DestroyRenderBuffer( u32 render_buffer_id ) override {
 		DeleteFramebuffer( framebuffers[ render_buffer_id ] );
@@ -230,7 +230,7 @@ public:
 		pipeline.pass = frame_static.ultralight_pass;
 		pipeline.shader = &ultralight_shaders[ 0 ];
 		pipeline.depth_func = DepthFunc_Disabled;
-		pipeline.blend_func = BlendFunc_Blend;
+		pipeline.blend_func = BlendFunc_Disabled;
 		pipeline.cull_face = CullFace_Disabled;
 		pipeline.write_depth = false;
 
@@ -300,7 +300,6 @@ public:
 		pipeline.pass = frame_static.ultralight_pass;
 		pipeline.shader = &ultralight_shaders[ state.shader_type ];
 		pipeline.depth_func = DepthFunc_Disabled;
-		pipeline.blend_func = BlendFunc_Blend;
 		pipeline.cull_face = CullFace_Disabled;
 		pipeline.write_depth = false;
 
@@ -316,7 +315,7 @@ public:
 			pipeline.scissor.h = state.scissor_rect.height();
 		}
 
-		pipeline.blend_func = state.enable_blend ? BlendFunc_Blend : BlendFunc_Disabled;
+		pipeline.blend_func = state.enable_blend ? BlendFunc_Straight : BlendFunc_Disabled;
 	
 		float time = cls.monotonicTime * 0.001f;
 		float scale = 1.0f;
@@ -325,7 +324,9 @@ public:
 		ul::Matrix transform;
 		transform.Set( state.transform );
 		ul::Matrix result;
-		result.SetOrthographicProjection( state.viewport_width, state.viewport_height, false );
+		bool flip_y = state.render_buffer_id != 0;
+		pipeline.flip_y = flip_y;
+		result.SetOrthographicProjection( state.viewport_width, state.viewport_height, flip_y );
 		result.Transform( transform );
 		pipeline.set_uniform( "u_Transform", UploadUniformBlock( UltralightToDiesel( result.GetMatrix4x4() ) ) );
 
@@ -425,7 +426,7 @@ void CL_Ultralight_Init() {
 	config.enable_images = true;
 	config.force_repaint = true;
 	config.enable_javascript = true;
-	config.font_hinting = ul::FontHinting::kFontHinting_Smooth;
+	config.font_hinting = ul::FontHinting::kFontHinting_Normal;
 
 	ul::Platform::instance().set_gpu_driver( &driver );
 	ul::Platform::instance().set_config( config );
@@ -458,7 +459,7 @@ void CL_Ultralight_Frame() {
 	view->Resize( frame_static.viewport_width, frame_static.viewport_height );
 	renderer->Update();
 	renderer->Render();
-	renderer->LogMemoryUsage();
+	// renderer->LogMemoryUsage();
 	driver.Draw();
 
 	{
@@ -466,7 +467,7 @@ void CL_Ultralight_Frame() {
 		pipeline.pass = frame_static.ultralight_pass;
 		pipeline.shader = &shaders.standard_vertexcolors;
 		pipeline.depth_func = DepthFunc_Disabled;
-		pipeline.blend_func = BlendFunc_Blend;
+		pipeline.blend_func = BlendFunc_Straight;
 		pipeline.write_depth = false;
 
 		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
@@ -483,10 +484,10 @@ void CL_Ultralight_Frame() {
 
 		Vec2 half_pixel = 0.5f / frame_static.viewport;
 		Vec2 uvs[] = {
-			Vec2( half_pixel.x, 1.0f - half_pixel.y ),
-			Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
 			Vec2( half_pixel.x, half_pixel.y ),
 			Vec2( 1.0f - half_pixel.x, half_pixel.y ),
+			Vec2( half_pixel.x, 1.0f - half_pixel.y ),
+			Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
 		};
 		constexpr RGBA8 colors[] = { rgba8_white, rgba8_white, rgba8_white, rgba8_white };
 

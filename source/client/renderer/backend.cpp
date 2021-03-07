@@ -487,6 +487,9 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 			if( pipeline.blend_func == BlendFunc_Blend ) {
 				glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 			}
+			if( pipeline.blend_func == BlendFunc_Straight ) {
+				glBlendFunc( GL_ONE, GL_ONE_MINUS_SRC_ALPHA );
+			}
 			else {
 				glBlendFunc( GL_SRC_ALPHA, GL_ONE );
 			}
@@ -524,13 +527,14 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	}
 
 	// viewport
+	u32 viewport_width = frame_static.viewport_width;
+	u32 viewport_height = frame_static.viewport_height;
 	if( pipeline.viewport_width != prev_pipeline.viewport_width || pipeline.viewport_height != prev_pipeline.viewport_height ) {
-		if( pipeline.viewport_width == 0 && pipeline.viewport_height == 0 ) {
-			glViewport( 0, 0, frame_static.viewport_width, frame_static.viewport_height );
+		if( pipeline.viewport_width != 0 || pipeline.viewport_height != 0 ) {
+			viewport_width = pipeline.viewport_width;
+			viewport_height = pipeline.viewport_height;
 		}
-		else {
-			glViewport( 0, 0, pipeline.viewport_width, pipeline.viewport_height );
-		}
+		glViewport( 0, 0, viewport_width, viewport_height );
 	}
 
 	// scissor
@@ -544,7 +548,11 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 			if( old.x == 0 && old.y == 0 && old.w == 0 && old.h == 0 ) {
 				glEnable( GL_SCISSOR_TEST );
 			}
-			glScissor( s.x, frame_static.viewport_height - s.y - s.h, s.w, s.h );
+			if( pipeline.flip_y ) {
+				glScissor( s.x, s.y, s.w, s.h );
+			} else {
+				glScissor( s.x, viewport_height - s.y - s.h, s.w, s.h );
+			}
 		}
 	}
 

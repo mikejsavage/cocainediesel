@@ -2,6 +2,9 @@
 #include <Ultralight/platform/GPUDriver.h>
 #include <AppCore/Platform.h>
 
+#include <Ultralight/JavaScript.h>
+#include <JavaScriptCore/JSRetainPtr.h>
+
 #include <glsl/shader_fill_frag.h>
 #include <glsl/shader_fill_path_frag.h>
 #include <glsl/shader_v2f_c4f_t2f_t2f_d28f_vert.h>
@@ -23,7 +26,7 @@ static GLuint CL_Ultralight_CompileShader( GLenum type, const char * source ) {
 	GLuint shader = glCreateShader( type );
 	glShaderSource( shader, 1, &source, NULL );
 	glCompileShader( shader );
-	
+
 	GLint status;
 	glGetShaderiv( shader, GL_COMPILE_STATUS, &status );
 	if( status == GL_FALSE ) {
@@ -54,7 +57,7 @@ static void CL_Ultralight_LoadProgram( u32 type ) {
 	glBindAttribLocation( program, 0, "in_Position" );
 	glBindAttribLocation( program, 1, "in_Color" );
 	glBindAttribLocation( program, 2, "in_TexCoord" );
-	
+
 	if( type == ul::kShaderType_Fill ) {
 		glBindAttribLocation( program, 3, "in_ObjCoord" );
 		glBindAttribLocation( program, 4, "in_Data0" );
@@ -134,7 +137,7 @@ Vec4 UltralightToDiesel( ul::vec4 v ) {
 
 class GPUDriverGL : public ul::GPUDriver {
 public:
-	GPUDriverGL() : 
+	GPUDriverGL() :
 		command_list( sys_allocator ),
 		textures( sys_allocator ),
 		framebuffers( sys_allocator ),
@@ -240,7 +243,7 @@ public:
 		// glBindFramebuffer( GL_FRAMEBUFFER, framebuffers[ render_buffer_id ].fbo );
 		// glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
 		// glClear( GL_COLOR_BUFFER_BIT );
-		// glBindFramebuffer( GL_FRAMEBUFFER, 0 );    
+		// glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 	}
 
 	u32 NextGeometryId() override {
@@ -251,7 +254,7 @@ public:
 
 		mesh.primitive_type = PrimitiveType_Triangles;
 		mesh.indices_format = IndexFormat_U32;
-		
+
 		mesh.positions = NewVertexBuffer( vertices.data, vertices.size );
 
 		glGenVertexArrays( 1, &mesh.vao );
@@ -316,7 +319,7 @@ public:
 		}
 
 		pipeline.blend_func = state.enable_blend ? BlendFunc_Straight : BlendFunc_Disabled;
-	
+
 		float time = cls.monotonicTime * 0.001f;
 		float scale = 1.0f;
 		pipeline.set_uniform( "u_State", UploadUniformBlock( Vec4( time, state.viewport_width, state.viewport_height, scale ) ) );
@@ -436,7 +439,7 @@ void CL_Ultralight_Init() {
 
 	renderer = ul::Renderer::Create();
 	view = renderer->CreateView( frame_static.viewport_width, frame_static.viewport_height, true, nullptr );
-	view->LoadURL( "https://cocainediesel.fun" );
+	view->LoadURL( "file:///base/ui/menu.html#ultralight" );
 	view->Focus();
 }
 
@@ -453,10 +456,60 @@ void CL_Ultralight_Shutdown() {
 	DeleteShader( ultralight_shaders[ 1 ] );
 }
 
+static void SetObjectKey( JSContextRef ctx, JSObjectRef obj, const char * key, JSValueRef value ) {
+	JSRetainPtr< JSStringRef > keylol = adopt( JSStringCreateWithUTF8CString( key ) );
+	JSObjectSetPropertyForKey( ctx, obj, JSValueMakeString( ctx, keylol.get() ), value, kJSPropertyAttributeReadOnly, NULL );
+}
+
 void CL_Ultralight_Frame() {
 	ZoneScoped;
 
 	view->Resize( frame_static.viewport_width, frame_static.viewport_height );
+
+	ul::Ref<ul::JSContext> context = view->LockJSContext();
+	JSContextRef ctx = context.get();
+
+	JSRetainPtr<JSStringRef> str = adopt(JSStringCreateWithUTF8CString("OnFrame"));
+	JSValueRef func = JSEvaluateScript(ctx, str.get(), 0, 0, 0, 0);
+
+	if (JSValueIsObject(ctx, func)) {
+		JSObjectRef funcObj = JSValueToObject(ctx, func, 0);
+		assert( funcObj != NULL );
+		if (JSObjectIsFunction(ctx, funcObj)) {
+			JSObjectRef args = JSObjectMake( ctx, NULL, NULL );
+
+			SetObjectKey( ctx, args, "in_game", JSValueMakeBoolean( ctx, cls.state == CA_ACTIVE ) );
+
+			JSRetainPtr<JSStringRef> msg = adopt(JSStringCreateWithUTF8CString("Howdy!"));
+			SetObjectKey( ctx, args, "howdy", JSValueMakeString( ctx, msg.get() ) );
+
+			if( cls.state == CA_ACTIVE ) {
+				SetObjectKey( ctx, args, "health", JSValueMakeNumber( ctx, cg.predictedPlayerState.health ) );
+			}
+
+			JSValueRef exception = 0;
+			JSObjectCallAsFunction( ctx, funcObj, 0, 1, &args, &exception );
+
+			if( exception ) {
+				JSObjectRef asdf = JSValueToObject( ctx, exception, 0 );
+				assert( asdf != NULL );
+
+				JSRetainPtr< JSStringRef > message_literal_string = adopt( JSStringCreateWithUTF8CString( "message" ) );
+
+				JSValueRef shit = JSObjectGetPropertyForKey( ctx, asdf, JSValueMakeString( ctx, message_literal_string.get() ), NULL );
+
+				JSStringRef fdsa = JSValueToStringCopy( ctx, shit, NULL );
+				if( fdsa != NULL ) {
+					TempAllocator temp = cls.frame_arena.temp();
+					size_t buf_size = JSStringGetMaximumUTF8CStringSize( fdsa );
+					char * buf = ALLOC_MANY( &temp, char, buf_size );
+					JSStringGetUTF8CString( fdsa, buf, buf_size );
+					Com_GGPrint( "shits fucked: {}", buf );
+				}
+			}
+		}
+	}
+
 	renderer->Update();
 	renderer->Render();
 	// renderer->LogMemoryUsage();
@@ -480,7 +533,7 @@ void CL_Ultralight_Frame() {
 			Vec3( frame_static.viewport_width, 0, 0 ),
 			Vec3( 0, frame_static.viewport_height, 0 ),
 			Vec3( frame_static.viewport_width, frame_static.viewport_height, 0 ),
-		};	
+		};
 
 		Vec2 half_pixel = 0.5f / frame_static.viewport;
 		Vec2 uvs[] = {
@@ -515,7 +568,7 @@ void CL_Ultralight_MouseMove( u32 x, u32 y ) {
 	evt.x = x;
 	evt.y = y;
 	evt.button = ul::MouseEvent::kButton_None;
-	
+
 	view->FireMouseEvent( evt );
 }
 
@@ -524,7 +577,7 @@ void CL_Ultralight_MouseScroll( u32 x, u32 y ) {
 	evt.type = ul::ScrollEvent::kType_ScrollByPage;
 	evt.delta_x = x;
 	evt.delta_y = y;
-	
+
 	view->FireScrollEvent( evt );
 }
 
@@ -534,7 +587,7 @@ void CL_Ultralight_MouseDown( u32 x, u32 y, s32 button ) {
 	evt.x = x;
 	evt.y = y;
 	evt.button = ul::MouseEvent::Button( button );
-	
+
 	view->FireMouseEvent( evt );
 }
 
@@ -544,7 +597,7 @@ void CL_Ultralight_MouseUp( u32 x, u32 y, s32 button ) {
 	evt.x = x;
 	evt.y = y;
 	evt.button = ul::MouseEvent::Button( button );
-	
+
 	view->FireMouseEvent( evt );
 }
 

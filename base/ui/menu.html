@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<script src="preact-10.5.12.js"></script>
+<script src="preact-hooks-10.5.12.js"></script>
+<script src="htm-3.0.4.js"></script>
+
+<style>
+body {
+	font-family: sans-serif;
+	font-size: calc( 100vh / 700 * 16 );
+}
+
+.health {
+	display: flex;
+	flex-direction: row;
+	position: absolute;
+	left: 2em;
+	bottom: 20%;
+	width: 500px;
+}
+
+.health_red {
+	background: red;
+}
+</style>
+
+<div id="base"></div>
+
+<script>
+const html = htm.bind( preact.h );
+
+function HelloSayer( props ) {
+	return html`<h1 style="color: red;">${props.howdy} ${window.navigator.appCodeName}<//>`;
+}
+
+function QuantizeU8( x ) {
+	return Math.floor( x * 255 + 0.5 );
+}
+
+function LinearTosRGB( linear ) {
+	if( linear <= 0.0031308 )
+		return linear * 12.92;
+	return 1.055 * Math.pow( linear, 1.0 / 2.4 ) - 0.055;
+}
+
+function GetHealthColor( health ) {
+	let r, g, b;
+	if( health > 50 ) {
+		r = 1 - ( health - 50 ) / 50;
+		g = 0.6;
+		b = health / 500;
+	}
+	else {
+		r = 1;
+		g = health / ( 50 / 60 ) / 100;
+		b = health / 500;
+	}
+
+	r = QuantizeU8( LinearTosRGB( r ) );
+	g = QuantizeU8( LinearTosRGB( g ) );
+	b = QuantizeU8( LinearTosRGB( b ) );
+
+	return `rgb( ${r}, ${g}, ${b} )`;
+}
+
+let old_state = { };
+let decaying_health = null;
+let decaying_health_time = null;
+
+function TakeDamage() {
+	decaying_health = old_state.health;
+	decaying_health_time = Date.now();
+}
+
+function HealthBar( state ) {
+	if( old_state.health != null && state.health < old_state.health ) {
+		decaying_health = old_state.health;
+		decaying_health_time = Date.now();
+	}
+
+	console.log( old_state );
+	console.log( state );
+	console.log( decaying_health, decaying_health_time );
+
+	const hold = 1000;
+	const fade = 50;
+	let red_width = decaying_health - state.health;
+	if( decaying_health != null && state.now - decaying_health_time >= hold ) {
+		decaying_health = Math.max( decaying_health - fade * state.dt, state.health );
+	}
+
+	return html`<div class="health">${state.health}<div class="health_left" style="background: ${GetHealthColor( state.health )}; width: ${state.health}%;"></div><div class="health_red" style="width: ${red_width}%;"></div></div>`
+}
+
+function HUD( state ) {
+	return html`<${HealthBar} ...${state} />`;
+}
+
+function Clone( obj ) {
+	// TODO: this is shallow copy
+	return { ...obj };
+}
+
+function OnFrame( state ) {
+	state.now = Date.now();
+	state.dt = old_state.now != null ? ( state.now - old_state.now ) * 0.001 : 0;
+
+	if( state.in_game ) {
+		preact.render( html`<${HelloSayer} howdy=GGGGG${state.howdy} /><${HUD} ...${state} />`, document.getElementById( "base" ) );
+	}
+	else {
+		preact.render( html`<${HelloSayer} howdy=${state.howdy} />`, document.getElementById( "base" ) );
+	}
+
+	old_state = Clone( state );
+}
+
+if( location.hash != "#ultralight" ) {
+	OnFrame( { in_game: true, howdy: "howdy!", health: 66 } );
+}
+</script>
+
+<!-- <button onclick="OnFrame( { in_game: true, howdy: 'howdy!', health: 100 } )">100</button> -->
+<!-- <button onclick="OnFrame( { in_game: true, howdy: 'howdy!', health: 50 } )">50</button> -->
+<!-- <button onclick="OnFrame( { in_game: true, howdy: 'howdy!', health: 1 } )">1</button> -->

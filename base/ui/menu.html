@@ -6,6 +6,10 @@
 <script src="htm-3.0.4.js"></script>
 
 <style>
+* {
+	box-sizing: border-box;
+}
+
 body {
 	font-family: sans-serif;
 	font-size: calc( 100vh / 700 * 16 );
@@ -20,6 +24,12 @@ body {
 	bottom: 20%;
 	height: 2em;
 	width: 25%;
+}
+
+.health_text {
+	position: absolute;
+	padding: 0.25em 0.5em;
+	height: 100%;
 }
 
 .health_red {
@@ -92,7 +102,7 @@ function HealthBar( state ) {
 		decaying_health = Math.max( decaying_health - fade * state.dt, state.health );
 	}
 
-	return html`<div class="health">${state.health}<div class="health_left" style="background: ${GetHealthColor( state.health )}; width: ${state.health}%;"></div><div class="health_red" style="width: ${red_width}%;"></div></div>`
+	return html`<div class="health"><div class="health_text">${state.health}</div><div class="health_bar" style="background: ${GetHealthColor( state.health )}; width: ${state.health}%;"></div><div class="health_red" style="width: ${red_width}%;"></div></div>`
 }
 
 function HUD( state ) {

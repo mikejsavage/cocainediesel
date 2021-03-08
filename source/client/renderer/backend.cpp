@@ -398,10 +398,6 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		else {
 			glBindFramebuffer( GL_DRAW_FRAMEBUFFER, pipeline.target.fbo );
 		}
-		if( pipeline.clear_target ) {
-			glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-			glClear( GL_COLOR_BUFFER_BIT );
-		}
 	}
 
 	if( pipeline.shader != NULL && ( prev_pipeline.shader == NULL || pipeline.shader->program != prev_pipeline.shader->program ) ) {
@@ -487,7 +483,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 			if( pipeline.blend_func == BlendFunc_Blend ) {
 				glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 			}
-			if( pipeline.blend_func == BlendFunc_Straight ) {
+			else if( pipeline.blend_func == BlendFunc_Straight ) {
 				glBlendFunc( GL_ONE, GL_ONE_MINUS_SRC_ALPHA );
 			}
 			else {
@@ -587,6 +583,12 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 			glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 			glDisable( GL_POLYGON_OFFSET_LINE );
 		}
+	}
+
+	// clear target
+	if( pipeline.clear_target ) {
+		glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
+		glClear( GL_COLOR_BUFFER_BIT );
 	}
 
 	prev_pipeline = pipeline;

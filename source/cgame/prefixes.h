@@ -24,6 +24,7 @@
 "AMERICA",
 "ANAL",
 "ANGER",
+"ANNYEONGHASE",
 "ANTI",
 "ANUS",
 "APE",

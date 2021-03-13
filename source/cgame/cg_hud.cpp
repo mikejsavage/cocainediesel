@@ -412,9 +412,10 @@ void CG_SC_Obituary() {
 			const char * suicide_prefix = RandomSuicidePrefix( &rng );
 			current->type = OBITUARY_SUICIDE;
 
-			CG_AddChat( temp( "{}{} {}{}{}",
+			CG_AddChat( temp( "{}{} {}{}{} {}{}",
 				ImGuiColorToken( victim_color ), victim_name,
-				ImGuiColorToken( rgba8_diesel_yellow ), suicide_prefix, obituary
+				ImGuiColorToken( rgba8_diesel_yellow ), suicide_prefix, obituary,
+				ImGuiColorToken( victim_color ), victim_name
 			) );
 		}
 		else {

@@ -71,7 +71,6 @@ static WeaponType selected_weapons[ WeaponCategory_Count ];
 
 static SettingsState settings_state;
 static bool reset_video_settings;
-static bool just_closed_popup = false;
 
 static void PushButtonColor( ImVec4 color ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, color );
@@ -171,11 +170,6 @@ static void CvarSliderFloat( const char * label, const char * cvar_name, float l
 	Cvar_Set( cvar_name, buf );
 }
 
-static void JustCloseCurrentPopup() {
-	ImGui::CloseCurrentPopup();
-	just_closed_popup = true;
-}
-
 static void KeyBindButton( const char * label, const char * command ) {
 	SettingLabel( label );
 	ImGui::PushID( label );
@@ -189,19 +183,23 @@ static void KeyBindButton( const char * label, const char * command ) {
 	if( ImGui::BeginPopupModal( label, NULL, ImGuiWindowFlags_NoDecoration ) ) {
 		ImGui::Text( "Press a key to set a new bind, or press ESCAPE to cancel." );
 
-		const ImGuiIO & io = ImGui::GetIO();
+		ImGuiIO & io = ImGui::GetIO();
 		for( size_t i = 0; i < ARRAY_COUNT( io.KeysDown ); i++ ) {
 			if( ImGui::IsKeyPressed( i ) ) {
 				if( i != K_ESCAPE ) {
 					Key_SetBinding( i, command );
 				}
-				JustCloseCurrentPopup();
+				ImGui::CloseCurrentPopup();
+
+				// consume the escape so we don't close the ingame menu
+				io.KeysDown[ K_ESCAPE ] = false;
+				io.KeysDownDuration[ K_ESCAPE ] = -1.0f;
 			}
 		}
 
 		if( ImGui::IsKeyReleased( K_MWHEELUP ) || ImGui::IsKeyReleased( K_MWHEELDOWN ) ) {
 			Key_SetBinding( ImGui::IsKeyReleased( K_MWHEELUP ) ? K_MWHEELUP : K_MWHEELDOWN, command );
-			JustCloseCurrentPopup();
+			ImGui::CloseCurrentPopup();
 		}
 
 		ImGui::EndPopup();
@@ -1073,12 +1071,10 @@ static void GameMenu() {
 		Settings();
 	}
 
-	if( ( ImGui::Hotkey( K_ESCAPE ) && !just_closed_popup ) || should_close ) {
+	if( ImGui::Hotkey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
-
-	just_closed_popup = false;
 
 	ImGui::End();
 

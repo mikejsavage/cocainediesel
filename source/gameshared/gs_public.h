@@ -101,6 +101,7 @@ enum WeaponState_ : WeaponState {
 	WeaponState_SwitchingOut,
 	WeaponState_Firing,
 	WeaponState_FiringSemiAuto,
+	WeaponState_FiringEntireClip,
 	WeaponState_Reloading,
 };
 
@@ -108,6 +109,7 @@ enum FiringMode {
 	FiringMode_Auto,
 	FiringMode_Smooth,
 	FiringMode_SemiAuto,
+	FiringMode_Clip,
 };
 
 enum ItemType {

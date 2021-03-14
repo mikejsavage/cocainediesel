@@ -210,7 +210,7 @@ const WeaponDef gs_weaponDefs[] = {
 		Vec2( 60.0f, 20.0f ),          // recoil
 		Vec2( 20.0f, 10.0f ),           // recoilmin
 		1250.0f,                        // recoil recovery
-		FiringMode_Auto,
+		FiringMode_Clip,
 
 		0.0f,                           // zoom fov
 		0.0f,                           // !zoom inaccuracy

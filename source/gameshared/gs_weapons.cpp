@@ -133,7 +133,8 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 	s16 last_zoom_time = player->zoom_time;
 	bool can_zoom = ( player->weapon_state == WeaponState_Ready
 			|| player->weapon_state == WeaponState_Firing
-			|| player->weapon_state == WeaponState_FiringSemiAuto )
+			|| player->weapon_state == WeaponState_FiringSemiAuto
+			|| player->weapon_state == WeaponState_FiringEntireClip )
 		&& ( player->pmove.features & PMFEAT_SCOPE );
 
 	if( can_zoom && def->zoom_fov != 0 && ( buttons & BUTTON_SPECIAL ) != 0 ) {
@@ -236,34 +237,46 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 		player->weapon_state = WeaponState_Ready;
 	}
 
-	if( player->weapon_state == WeaponState_Ready ) {
+	if( player->weapon_state == WeaponState_Ready || player->weapon_state == WeaponState_FiringEntireClip ) {
 		if( player->weapon_time > 0 ) {
 			return player->weapon;
 		}
 
-		if( def->clip_size != 0 && selected_weapon->ammo == 0 ) {
+		if( !GS_CheckAmmoInWeapon( player, player->weapon ) ) {
 			player->weapon_time = def->reload_time;
 			player->weapon_state = WeaponState_Reloading;
+			return player->weapon;
 		}
 
 		if( !GS_ShootingDisabled( gs ) ) {
-			if( buttons & BUTTON_ATTACK ) {
-				if( GS_CheckAmmoInWeapon( player, player->weapon ) ) {
-					player->weapon_time = def->refire_time;
-					player->weapon_state = def->mode == FiringMode_SemiAuto ? WeaponState_FiringSemiAuto : WeaponState_Firing;
+			if( ( buttons & BUTTON_ATTACK ) || player->weapon_state == WeaponState_FiringEntireClip ) {
+				player->weapon_time = def->refire_time;
+				switch( def->mode ) {
+					case FiringMode_Auto:
+					case FiringMode_Smooth:
+						player->weapon_state = WeaponState_Firing;
+						break;
 
-					if( refire && def->mode == FiringMode_Smooth ) {
-						gs->api.PredictedEvent( player->POVnum, EV_SMOOTHREFIREWEAPON, player->weapon );
-					}
-					else {
-						gs->api.PredictedFireWeapon( player->POVnum, player->weapon );
-					}
+					case FiringMode_SemiAuto:
+						player->weapon_state = WeaponState_FiringSemiAuto;
+						break;
 
-					if( def->clip_size > 0 ) {
-						selected_weapon->ammo--;
-						if( selected_weapon->ammo == 0 ) {
-							gs->api.PredictedEvent( player->POVnum, EV_NOAMMOCLICK, 0 );
-						}
+					case FiringMode_Clip:
+						player->weapon_state = WeaponState_FiringEntireClip;
+						break;
+				}
+
+				if( refire && def->mode == FiringMode_Smooth ) {
+					gs->api.PredictedEvent( player->POVnum, EV_SMOOTHREFIREWEAPON, player->weapon );
+				}
+				else {
+					gs->api.PredictedFireWeapon( player->POVnum, player->weapon );
+				}
+
+				if( def->clip_size > 0 ) {
+					selected_weapon->ammo--;
+					if( selected_weapon->ammo == 0 ) {
+						gs->api.PredictedEvent( player->POVnum, EV_NOAMMOCLICK, 0 );
 					}
 				}
 			}

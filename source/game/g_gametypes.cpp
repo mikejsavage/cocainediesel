@@ -665,6 +665,8 @@ void G_Gametype_Init() {
 	G_Gametype_SetDefaults();
 
 	if( !GT_asLoadScript( gt ) ) {
+#if PUBLIC_BUILD
 		Com_Error( ERR_DROP, "Failed to load %s", gt );
+#endif
 	}
 }

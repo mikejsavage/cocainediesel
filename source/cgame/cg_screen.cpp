@@ -797,9 +797,9 @@ static void CG_SCRDrawViewBlend() {
 
 	float t = 0.0f;
 	if( client_gs.gameState.bomb.exploding ) {
-		t = Unlerp01( client_gs.gameState.bomb.exploded_at, cl.serverTime, client_gs.gameState.bomb.exploded_at + 2000 );
+		t = Unlerp01( client_gs.gameState.bomb.exploded_at + 500, cl.serverTime, client_gs.gameState.bomb.exploded_at + 1500 );
 	}
-	color = Lerp( color, t, vec4_black );
+	color = Lerp( color, t, vec4_white );
 
 	if( color.w < 0.01f ) {
 		return;

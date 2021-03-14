@@ -114,36 +114,8 @@ void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 }
 
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
-	/*
-	LocalEntity *le;
-	Vec3 angles;
-	Vec3 decaldir;
-	Vec3 origin, vec;
-	float expvelocity = 8.0f;
-
-	decaldir = dir;
-	angles = VecToAngles( dir );
-
-	//if( CG_PointContents( pos ) & MASK_WATER )
-	//jalfixme: (shouldn't we do the water sound variation?)
-
-	// CG_SpawnDecal( pos, decaldir, random_float01( &cls.rng ) * 360, radius * 0.5, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderExplosionMark );
-
-	// animmap shader of the explosion
-	origin = pos + dir * ( radius * 0.15f );
-	le = CG_AllocSprite( LE_ALPHA_FADE, origin, radius * 0.5f, 8,
-						 vec4_white,
-						 radius * 4, 0.75f, 0.533f, 0, // yellow dlight
-						 cgs.media.shaderRocketExplosion );
-
-	vec = Vec3( random_float11( &cls.rng ) * expvelocity, random_float11( &cls.rng ) * expvelocity, random_float11( &cls.rng ) * expvelocity );
-	le->velocity = dir * expvelocity;
-	le->velocity = le->velocity + vec;
-	le->ent.rotation = random_float01( &cls.rng ) * 360;
-
-	// use the rocket explosion sounds
-	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, pos, CHAN_AUTO, 1.0f );
-	*/
+	ExplosionParticles( pos, dir, vec4_white.xyz() );
+	S_StartFixedSound( "models/bomb/explode", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_Dash( const SyncEntityState * state ) {

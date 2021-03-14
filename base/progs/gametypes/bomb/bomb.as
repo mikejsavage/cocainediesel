@@ -249,6 +249,7 @@ void bombExplode() {
 	hide( @bombHud );
 
 	bombSite.explode();
+	bombModel.splashDamage( null, 9999, 1, 400 );
 
 	bombState = BombState_Exploding;
 	@defuser = null;
@@ -334,13 +335,6 @@ void bombThink() {
 				break;
 			}
 		} break;
-	}
-}
-
-// fixes the exploding animation from stopping
-void bombPostRoundThink() {
-	if( bombState == BombState_Exploding ) {
-		bombSite.stepExplosion();
 	}
 }
 

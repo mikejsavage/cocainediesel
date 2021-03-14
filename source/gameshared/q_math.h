@@ -70,6 +70,7 @@ float AngleNormalize360( float angle );
 float AngleNormalize180( float angle );
 float AngleDelta( float angle1, float angle2 );
 Vec3 AngleDelta( Vec3 angle1, Vec3 angle2 );
+EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b );
 Vec3 VecToAngles( Vec3 vec );
 void AnglesToAxis( Vec3 angles, mat3_t axis );
 void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent );

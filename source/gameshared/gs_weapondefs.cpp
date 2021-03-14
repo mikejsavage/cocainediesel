@@ -27,8 +27,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		600,                            // refire time
 		85,                             // projectile timeout / projectile range for instant weapons
-		Vec2( 0.0f, 0.0f ),             // recoil
-		Vec2( 0.0f, 0.0f ),             // recoilmin
+		EulerDegrees2( 0.0f, 0.0f ),             // max recoil
+		EulerDegrees2( 0.0f, 0.0f ),             // min recoil
 		0.0f,                           // recoil recovery
 		FiringMode_Auto,
 
@@ -63,9 +63,9 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		120,                            // refire time
 		HITSCAN_RANGE,                  // projectile timeout
-		Vec2( 80.0f, 40.0f ),           // recoil
-		Vec2( 40.0f, 20.0f ),           // recoilmin
-		1000.0f,                        // recoil recovery
+		EulerDegrees2( 150.0f, 20.0f ), // max recoil
+		EulerDegrees2( 125.0f, -20.0f ),// min recoil
+		1500.0f,                        // recoil recovery
 		FiringMode_SemiAuto,
 
 		0.0f,                           // zoom fov
@@ -82,7 +82,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		0,                              // spread
-		false,							// pierce
+		false,                          // pierce
 	},
 
 	{
@@ -99,9 +99,9 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		75,                             // refire time
 		HITSCAN_RANGE,                  // projectile timeout
-		Vec2( 85.0f, 40.0f ),           // recoil
-		Vec2( 50.0f, 10.0f ),           // recoilmin
-		1350.0f,                        // recoil recovery
+		EulerDegrees2( 100.0f, -30.0f ),// max recoil
+		EulerDegrees2( 75.0f, 5.0f ),   // min recoil
+		1000.0f,                        // recoil recovery
 		FiringMode_Auto,
 
 		0.0f,                           // zoom fov
@@ -118,7 +118,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		0,                              // spread
-		false,							// pierce
+		false,                          // pierce
 	},
 
 	{
@@ -135,9 +135,9 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		500,                            // refire time
 		HITSCAN_RANGE,                  // projectile timeout
-		Vec2( 300.0f, 100.0f ),         // recoil
-		Vec2( 175.0f, 40.0f ),          // recoilmin
-		3000.0f,                        // recoil recovery
+		EulerDegrees2( 550.0f, 30.0f ), // max recoil
+		EulerDegrees2( 500.0f, -30.0f ),// min recoil
+		4000.0f,                        // recoil recovery
 		FiringMode_SemiAuto,
 
 		0.0f,                           // zoom fov
@@ -154,7 +154,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		0,                              // spread
-		true,							// pierce
+		true,                           // pierce
 	},
 
 	{
@@ -171,8 +171,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		1250,                           // refire time
 		HITSCAN_RANGE,                  // projectile timeout / projectile range for instant weapons
-		Vec2( 325.0f, 120.0f ),         // recoil
-		Vec2( 125.0f, 80.0f ),          // recoilmin
+		EulerDegrees2( 325.0f, 120.0f ),// max recoil
+		EulerDegrees2( 125.0f, 80.0f ), // min recoil
 		1500.0f,                        // recoil recovery
 		FiringMode_Auto,
 
@@ -190,7 +190,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		50,                             // spread
-		false,							// pierce
+		false,                          // pierce
 	},
 
 	{
@@ -198,17 +198,17 @@ const WeaponDef gs_weaponDefs[] = {
 		WeaponCategory_Primary,
 
 		1,                              // projectiles fired each shot
-		5,                             // clip size
-		600,                           // reload time
+		5,                              // clip size
+		600,                            // reload time
 		false,                          // staged reloading
 
 		//timings (in msecs)
 		WEAPONUP_TIME_NORMAL,           // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		30,                            // refire time
+		30,                             // refire time
 		HITSCAN_RANGE,                  // projectile timeout
-		Vec2( 60.0f, 20.0f ),          // recoil
-		Vec2( 20.0f, 10.0f ),           // recoilmin
+		EulerDegrees2( 60.0f, 20.0f ),  // max recoil
+		EulerDegrees2( 20.0f, 10.0f ),  // min recoil
 		1250.0f,                        // recoil recovery
 		FiringMode_Clip,
 
@@ -216,7 +216,7 @@ const WeaponDef gs_weaponDefs[] = {
 		0.0f,                           // !zoom inaccuracy
 
 		//damages
-		9,                             // damage
+		9,                              // damage
 		0,                              // selfdamage ratio
 		10,                             // knockback
 		0,                              // splash radius
@@ -226,7 +226,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		0,                              // spread
-		true,							// pierce
+		true,                           // pierce
 	},
 
 	{
@@ -243,8 +243,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		500,                            // refire time
 		5000,                           // projectile timeout
-		Vec2( 325.0f, 60.0f ),          // recoil
-		Vec2( 125.0f, 20.0f ),          // recoilmin
+		EulerDegrees2( 325.0f, 60.0f ), // max recoil
+		EulerDegrees2( 125.0f, 20.0f ), // min recoil
 		2000.0f,                        // recoil recovery
 		FiringMode_Auto,
 
@@ -256,13 +256,13 @@ const WeaponDef gs_weaponDefs[] = {
 		1.0f,                           // selfdamage ratio
 		100,                            // knockback
 		120,                            // splash radius
-		15,                              // splash minimum damage
+		15,                             // splash minimum damage
 		50,                             // splash minimum knockback
 
 		//projectile def
-		2000,                            // speed
+		2000,                           // speed
 		0,                              // spread
-		false,							// pierce
+		false,                          // pierce
 	},
 
 	{
@@ -271,16 +271,16 @@ const WeaponDef gs_weaponDefs[] = {
 
 		1,                              // projectiles fired each shot
 		5,                              // clip size
-		600,                           // reload time
-		true,                          // staged reloading
+		600,                            // reload time
+		true,                           // staged reloading
 
 		//timings (in msecs)
-		WEAPONUP_TIME_SLOW,           // weapon up time
+		WEAPONUP_TIME_SLOW,             // weapon up time
 		WEAPONDOWN_TIME,                // weapon down time
-		1000,                            // refire time
+		1000,                           // refire time
 		2000,                           // projectile timeout
-		Vec2( 350.0f, 100.0f ),          // recoil
-		Vec2( 150.0f, 40.0f ),          // recoilmin
+		EulerDegrees2( 350.0f, 100.0f ),// max recoil
+		EulerDegrees2( 150.0f, 40.0f ), // min recoil
 		2000.0f,                        // recoil recovery
 		FiringMode_SemiAuto,
 
@@ -292,13 +292,13 @@ const WeaponDef gs_weaponDefs[] = {
 		1.0f,                           // selfdamage ratio
 		100,                            // knockback
 		120,                            // splash radius
-		10,                              // splash minimum damage
+		10,                             // splash minimum damage
 		50,                             // splash minimum knockback
 
 		//projectile def
-		1400,                            // speed
+		1400,                           // speed
 		0,                              // spread
-		false,							// pierce
+		false,                          // pierce
 	},
 
 	{
@@ -315,8 +315,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		1000,                           // refire time
 		10000,                          // projectile timeout
-		Vec2( 350.0f, 100.0f ),         // recoil
-		Vec2( 150.0f, 40.0f ),          // recoilmin
+		EulerDegrees2( 350.0f, 100.0f ),// max recoil
+		EulerDegrees2( 150.0f, 40.0f ), // min recoil
 		2000.0f,                        // recoil recovery
 		FiringMode_Auto,
 
@@ -351,8 +351,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		50,                             // refire time
 		10000,                          // projectile timeout
-		Vec2( 60.0f, 50.0f ),           // recoil
-		Vec2( 30.0f, 10.0f ),           // recoilmin
+		EulerDegrees2( 60.0f, 50.0f ),           // max recoil
+		EulerDegrees2( 30.0f, 10.0f ),           // min recoil
 		1350.0f,                        // recoil recovery
 		FiringMode_Auto,
 
@@ -387,8 +387,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		175,                            // refire time
 		10000,                          // projectile timeout
-		Vec2( 80.0f, 60.0f ),           // recoil
-		Vec2( 50.0f, 20.0f ),           // recoilmin
+		EulerDegrees2( 80.0f, 60.0f ),           // max recoil
+		EulerDegrees2( 50.0f, 20.0f ),           // min recoil
 		1350.0f,                        // recoil recovery
 		FiringMode_Auto,
 
@@ -423,8 +423,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		50,                             // refire time
 		900,                            // projectile timeout / projectile range for instant weapons
-		Vec2( 0.0f, 0.0f ),             // recoil
-		Vec2( 0.0f, 0.0f ),             // recoilmin
+		EulerDegrees2( 0.0f, 0.0f ),             // max recoil
+		EulerDegrees2( 0.0f, 0.0f ),             // min recoil
 		0.0f,                           // recoil recovery
 		FiringMode_Smooth,
 
@@ -459,8 +459,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		600,                            // refire time
 		HITSCAN_RANGE,                  // range
-		Vec2( 120.0f, 40.0f ),          // recoil
-		Vec2( 60.0f, 0.0f ),            // recoilmin
+		EulerDegrees2( 120.0f, 40.0f ), // max recoil
+		EulerDegrees2( 60.0f, 0.0f ),   // min recoil
 		1000.0f,                        // recoil recovery
 		FiringMode_Auto,
 
@@ -471,14 +471,14 @@ const WeaponDef gs_weaponDefs[] = {
 		25,                             // damage
 		0,                              // selfdamage ratio
 		45,                             // knockback
-		70,                            // splash radius
+		70,                             // splash radius
 		0,                              // minimum damage
 		45,                             // minimum knockback
 
 		//projectile def
 		INSTANT,                        // speed
 		0,                              // spread
-		true,							// pierce
+		true,                           // pierce
 	},
 
 	{
@@ -495,8 +495,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		500,                            // refire time
 		HITSCAN_RANGE,                  // range
-		Vec2( 500.0f, 150.0f ),         // recoil
-		Vec2( 200.0f, 50.0f ),          // recoilmin
+		EulerDegrees2( 500.0f, 150.0f ),// max recoil
+		EulerDegrees2( 200.0f, 50.0f ), // min recoil
 		2500.0f,                        // recoil recovery
 		FiringMode_Auto,
 
@@ -514,7 +514,7 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		INSTANT,                        // speed
 		0,                              // spread
-		true,							// pierce
+		true,                           // pierce
 	},
 
 	{
@@ -531,8 +531,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		600,                            // refire time
 		10000,                          // range
-		Vec2( 250.0f, 60.0f ),          // recoil
-		Vec2( 125.0f, 20.0f ),          // recoilmin
+		EulerDegrees2( 250.0f, 60.0f ), // max recoil
+		EulerDegrees2( 125.0f, 20.0f ), // min recoil
 		1500.0f,                        // recoil recovery
 		FiringMode_SemiAuto,
 
@@ -550,14 +550,14 @@ const WeaponDef gs_weaponDefs[] = {
 		//projectile def
 		5500,                           // speed
 		0,                              // spread
-		false,							// pierce
+		false,                          // pierce
 	},
 
 	{
 		"MasterBlaster", "mb",
 		WeaponCategory_Backup,
 
-		10,                              // projectiles fired each shot
+		10,                             // projectiles fired each shot
 		6,                              // clip size
 		1500,                           // reload time
 		false,                          // staged reloading
@@ -567,8 +567,8 @@ const WeaponDef gs_weaponDefs[] = {
 		WEAPONDOWN_TIME,                // weapon down time
 		500,                            // refire time
 		5000,                           // projectile timeout
-		Vec2( 325.0f, 60.0f ),          // recoil
-		Vec2( 125.0f, 20.0f ),          // recoilmin
+		EulerDegrees2( 325.0f, 30.0f ), // max recoil
+		EulerDegrees2( 125.0f, -10.0f ),// min recoil
 		2000.0f,                        // recoil recovery
 		FiringMode_Auto,
 
@@ -576,17 +576,17 @@ const WeaponDef gs_weaponDefs[] = {
 		0.0f,                           // !zoom inaccuracy
 
 		//damages
-		3,                             // damage
-		0,                           // selfdamage ratio
-		10,                            // knockback
-		0,                            // splash radius
+		3,                              // damage
+		0,                              // selfdamage ratio
+		10,                             // knockback
+		0,                              // splash radius
 		0,                              // splash minimum damage
-		0,                             // splash minimum knockback
+		0,                              // splash minimum knockback
 
 		//projectile def
-		3000,                            // speed
-		25,                              // spread
-		false,							// pierce
+		3000,                           // speed
+		25,                             // spread
+		false,                          // pierce
 	},
 };
 

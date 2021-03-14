@@ -188,33 +188,15 @@ Vec3 LerpAngles( Vec3 a, float t, Vec3 b ) {
 	);
 }
 
-/*
-* AngleNormalize360
-*
-* returns angle normalized to the range [0 <= angle < 360]
-*/
 float AngleNormalize360( float angle ) {
-	return angle - 360.0f * floorf( angle / 360.0f );
+	return PositiveMod( angle, 360.0f );
 }
 
-/*
-* AngleNormalize180
-*
-* returns angle normalized to the range [-180 < angle <= 180]
-*/
 float AngleNormalize180( float angle ) {
 	angle = AngleNormalize360( angle );
-	if( angle > 180.0f ) {
-		angle -= 360.0f;
-	}
-	return angle;
+	return angle > 180.0f ? angle - 360.0f : angle;
 }
 
-/*
-* AngleDelta
-*
-* returns the normalized delta from angle1 to angle2
-*/
 float AngleDelta( float angle1, float angle2 ) {
 	return AngleNormalize180( angle1 - angle2 );
 }
@@ -225,6 +207,10 @@ Vec3 AngleDelta( Vec3 angle1, Vec3 angle2 ) {
 		AngleDelta( angle1.y, angle2.y ),
 		AngleDelta( angle1.z, angle2.z )
 	);
+}
+
+EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b ) {
+	return EulerDegrees2( AngleDelta( a.pitch, b.pitch ), AngleDelta( a.yaw, b.yaw ) );
 }
 
 /*

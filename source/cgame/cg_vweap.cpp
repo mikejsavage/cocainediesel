@@ -192,65 +192,62 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 void CG_AddRecoil( WeaponType weapon ) {
 	if( !cg.recoiling ) {
-		cg.recoil_initial = cl.viewangles;
+		cg.recoil_initial_angles = EulerDegrees2( cl.viewangles[ PITCH ], cl.viewangles[ YAW ] );
 		cg.recoiling = true;
 	}
-	constexpr float recenter_mult = 1.0f / 16.0f;
-	Vec2 recoil = GS_GetWeaponDef( weapon )->recoil;
-	Vec2 viewKickMin = Vec2( -recoil.x, -recoil.y );
-	Vec2 viewKickMax = Vec2( 0.0f, recoil.y );
-	Vec2 viewKickMinMag = GS_GetWeaponDef( weapon )->recoil_min;
 
-	Vec3 kick = Vec3( 0.0f );
-	Vec3 dir_to_center = AngleDelta( cg.recoil_initial, cl.viewangles );
-	for( size_t i = 0; i < 2; i++ ) {
-		float amount = random_uniform_float( &cls.rng, viewKickMin[ i ] + viewKickMinMag[ i ], viewKickMax[ i ] - viewKickMinMag[ i ] );
-		if( amount < 0.0f ) {
-			amount -= viewKickMinMag[ i ];
-		}
-		else {
-			amount += viewKickMinMag[ i ];
-		}
+	EulerDegrees2 min = GS_GetWeaponDef( weapon )->recoil_min;
+	EulerDegrees2 max = GS_GetWeaponDef( weapon )->recoil_max;
 
-		bool recentering = ( dir_to_center[ i ] * amount ) > 0.0f;
-		float mult = recentering ? recenter_mult : 1.0f;
+	cg.recoil_velocity.pitch = -random_uniform_float( &cls.rng, min.pitch, max.pitch );
+	cg.recoil_velocity.yaw = random_uniform_float( &cls.rng, min.yaw, max.yaw );
+}
 
-		kick[ i ] = amount * mult;
-	}
-	cg.recoil = kick;
+static bool SameSign( float x, float y ) {
+	return copysignf( 1.0f, x * y ) == 1.0f;
 }
 
 void CG_Recoil( WeaponType weapon ) {
-	if( cg.recoiling ) {
-		constexpr float recenter_mult = 1.0f / 16.0f;
-		constexpr float stop_epsilon = 0.01f;
-		float viewKickCenterSpeed = GS_GetWeaponDef( weapon )->recoil_recover;
+	if( !cg.recoiling )
+		return;
 
-		float dt = cls.frametime * 0.001f;
-		Vec3 dir_to_center = AngleDelta( cg.recoil_initial, cl.viewangles );
-		for( size_t i = 0; i < 2; i++ ) {
-			bool recentering = ( dir_to_center[ i ] * cg.recoil[ i ] ) > 0.0f;
-			float direction = ( dir_to_center[ i ] > 0.0f ) - ( dir_to_center[ i ] < 0.0f );
-			float mult = recentering ? recenter_mult : 1.0f;
-			float accel = viewKickCenterSpeed * direction * mult;
+	float dt = cls.frametime * 0.001f;
+	EulerDegrees2 viewangles = EulerDegrees2( cl.viewangles[ PITCH ], cl.viewangles[ YAW ] );
+	EulerDegrees2 recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
 
-			float correction = cl.viewangles[ i ] - cl.prevviewangles[ i ];
-			if( correction * dir_to_center[ i ] <= 0.0f ) {
-				cg.recoil_initial[ i ] += correction;
-				dir_to_center[ i ] += correction;
-			}
+	cg.recoil_initial_angles.pitch += Min2( 0.0f, cl.viewangles[ PITCH ] - cl.prevviewangles[ PITCH ] );
+	cg.recoil_initial_angles.yaw += AngleDelta( cl.viewangles[ YAW ], cl.prevviewangles[ YAW ] );;
 
-			if( recentering && Abs( cg.recoil[ i ] * dt ) > Abs( dir_to_center[ i ] ) ) {
-				cg.recoil[ i ] = 0.0f;
-				cl.viewangles[ i ] = cg.recoil_initial[ i ];
-			} else {
-				cl.viewangles[ i ] += cg.recoil[ i ] * dt;
-			}
-			cg.recoil[ i ] += accel * dt;
-		}
+	recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
 
-		if( Length( AngleDelta( cg.recoil_initial, cl.viewangles ) ) < stop_epsilon ) {
+	constexpr float recenter_mult = 1.0f / 16.0f;
+	float viewKickCenterSpeed = GS_GetWeaponDef( weapon )->recoil_recover;
+
+	// pitch
+	{
+		bool recovering = cg.recoil_velocity.pitch >= 0.0f;
+		float accel = viewKickCenterSpeed * copysignf( 1.0f, recovery_delta.pitch ) * ( recovering ? recenter_mult : 1.0f );
+		cg.recoil_velocity.pitch += accel * dt;
+
+		if( recovering && recovery_delta.pitch <= cg.recoil_velocity.pitch * dt ) {
 			cg.recoiling = false;
+			cl.viewangles[ PITCH ] = Max2( viewangles.pitch, cg.recoil_initial_angles.pitch );
+		}
+		else {
+			cl.viewangles[ PITCH ] += cg.recoil_velocity.pitch * dt;
 		}
 	}
+
+	// yaw
+	{
+		bool recovering = SameSign( cg.recoil_velocity.yaw, recovery_delta.yaw );
+		float accel = viewKickCenterSpeed * 0.2f * copysignf( 1.0f, recovery_delta.yaw ) * ( recovering ? recenter_mult : 1.0f );
+		cg.recoil_velocity.yaw += accel * dt;
+
+		cl.viewangles[ YAW ] += cg.recoil_velocity.yaw * dt;
+	}
+}
+
+
+
 }

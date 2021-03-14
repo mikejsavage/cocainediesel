@@ -359,12 +359,20 @@ struct alignas( 16 ) Mat3x4 {
 	}
 };
 
+struct EulerDegrees2 {
+	float pitch, yaw;
+
+	EulerDegrees2() = default;
+	constexpr EulerDegrees2( float p, float y ) : pitch( p ), yaw( y ) { }
+	explicit constexpr EulerDegrees2( Vec2 v ) : pitch( v.x ), yaw( v.y ) { }
+};
+
 struct EulerDegrees3 {
 	float pitch, yaw, roll;
 
 	EulerDegrees3() = default;
 	constexpr EulerDegrees3( float p, float y, float r ) : pitch( p ), yaw( y ), roll( r ) { }
-	constexpr EulerDegrees3( Vec3 v ) : pitch( v.x ), yaw( v.y ), roll( v.z ) { }
+	explicit constexpr EulerDegrees3( Vec3 v ) : pitch( v.x ), yaw( v.y ), roll( v.z ) { }
 };
 
 struct Quaternion {

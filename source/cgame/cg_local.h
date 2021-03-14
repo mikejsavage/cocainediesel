@@ -261,8 +261,8 @@ struct cg_state_t {
 	float xyspeed;
 
 	bool recoiling;
-	Vec3 recoil;
-	Vec3 recoil_initial;
+	EulerDegrees2 recoil_velocity;
+	EulerDegrees2 recoil_initial_angles;
 
 	float damage_effect;
 

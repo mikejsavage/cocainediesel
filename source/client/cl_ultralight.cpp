@@ -165,6 +165,7 @@ public:
 		return next_texture_id++;
 	}
 	void CreateTexture( u32 texture_id, ul::Ref< ul::Bitmap > bitmap ) override {
+		ZoneScoped;
 		TextureConfig config;
 		config.filter = TextureFilter_Linear;
 		config.wrap = TextureWrap_Clamp;
@@ -197,38 +198,42 @@ public:
 		textures[ texture_id ] = tex;
 	}
 	void DestroyTexture( u32 texture_id ) override {
+		ZoneScoped;
 		DeleteTexture( textures[ texture_id ] );
 	}
 	void UpdateTexture( u32 texture_id, ul::Ref< ul::Bitmap > bitmap ) override {
-		DestroyTexture( texture_id );
-		CreateTexture( texture_id, bitmap );
+		ZoneScoped;
+
+		glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+		glPixelStorei( GL_UNPACK_ROW_LENGTH, bitmap->row_bytes() / bitmap->bpp() );
+		
+		WriteTexture( textures[ texture_id ], bitmap->LockPixels() );
+		bitmap->UnlockPixels();
+
+		// defaults
+		glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+		glPixelStorei( GL_UNPACK_ROW_LENGTH, 0 );
 	}
 
 	u32 NextRenderBufferId() override {
 		return next_render_buffer_id++;
 	}
 	void CreateRenderBuffer( u32 render_buffer_id, const ul::RenderBuffer & buffer ) override {
+		ZoneScoped;
 		FramebufferConfig fb;
 
 		Texture tex = textures[ buffer.texture_id ];
-
-		// TextureConfig config;
-		// config.width = buffer.width;
-		// config.height = buffer.height;
-		// config.format = TextureFormat_RGBA_U8_sRGB;
-
-		// Texture tex = NewTexture( config );
-		// textures.resize( Max2( textures.size(), size_t( buffer.texture_id + 1 ) ) );
-		// textures[ buffer.texture_id ] = tex;
 
 		Framebuffer fbo = NewFramebuffer( &tex, NULL, NULL );
 		framebuffers.resize( Max2( framebuffers.size(), size_t( render_buffer_id + 1 ) ) );
 		framebuffers[ render_buffer_id ] = fbo;
 	}
 	void DestroyRenderBuffer( u32 render_buffer_id ) override {
+		ZoneScoped;
 		DeleteFramebuffer( framebuffers[ render_buffer_id ] );
 	}
 	void ClearRenderBuffer( u32 render_buffer_id ) {
+		ZoneScoped;
 		PipelineState pipeline;
 		pipeline.pass = frame_static.ultralight_pass;
 		pipeline.shader = &ultralight_shaders[ 0 ];
@@ -240,16 +245,13 @@ public:
 		pipeline.target = framebuffers[ render_buffer_id ];
 		pipeline.clear_target = true;
 		DrawFullscreenMesh( pipeline );
-		// glBindFramebuffer( GL_FRAMEBUFFER, framebuffers[ render_buffer_id ].fbo );
-		// glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-		// glClear( GL_COLOR_BUFFER_BIT );
-		// glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 	}
 
 	u32 NextGeometryId() override {
 		return next_geometry_id++;
 	}
 	void CreateGeometry( u32 geometry_id, const ul::VertexBuffer & vertices, const ul::IndexBuffer & indices ) override {
+		ZoneScoped;
 		Mesh mesh;
 
 		mesh.primitive_type = PrimitiveType_Triangles;
@@ -291,14 +293,20 @@ public:
 		meshes[ geometry_id ] = mesh;
 	}
 	void DestroyGeometry( u32 geometry_id ) override {
+		ZoneScoped;
 		Mesh mesh = meshes[ geometry_id ];
 		DeleteMesh( mesh );
 	}
 	void UpdateGeometry( u32 geometry_id, const ul::VertexBuffer & vertices, const ul::IndexBuffer & indices ) override {
-		DestroyGeometry( geometry_id );
-		CreateGeometry( geometry_id, vertices, indices );
+		ZoneScoped;
+		Mesh & mesh = meshes[ geometry_id ];
+		glBindBuffer( GL_ARRAY_BUFFER, mesh.positions.vbo );
+		glBufferData( GL_ARRAY_BUFFER, vertices.size, vertices.data, GL_DYNAMIC_DRAW );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh.indices.ebo );
+		glBufferData( GL_ELEMENT_ARRAY_BUFFER, indices.size, indices.data, GL_STATIC_DRAW );
 	}
 	void DrawGeometry( u32 geometry_id, u32 indices_count, u32 indices_offset, const ul::GPUState & state ) {
+		ZoneScoped;
 		PipelineState pipeline;
 		pipeline.pass = frame_static.ultralight_pass;
 		pipeline.shader = &ultralight_shaders[ state.shader_type ];
@@ -378,6 +386,7 @@ public:
 	}
 
 	void UpdateCommandList( const ul::CommandList & list ) {
+		ZoneScoped;
 		if( list.size ) {
 			command_list.resize( list.size );
 			memcpy( command_list.ptr(), list.commands, sizeof( ul::Command ) * list.size );
@@ -510,12 +519,22 @@ void CL_Ultralight_Frame() {
 		}
 	}
 
-	renderer->Update();
-	renderer->Render();
+	{
+		ZoneScopedN( "renderer->Update()" );
+		renderer->Update();
+	}
+	{
+		ZoneScopedN( "renderer->Render()" );
+		renderer->Render();
+	}
 	// renderer->LogMemoryUsage();
-	driver.Draw();
+	{
+		ZoneScopedN( "driver.Draw()" );
+		driver.Draw();
+	}
 
 	{
+		ZoneScopedN( "render fbo to screen" );
 		PipelineState pipeline;
 		pipeline.pass = frame_static.ultralight_pass;
 		pipeline.shader = &shaders.standard_vertexcolors;

@@ -585,12 +585,6 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		}
 	}
 
-	// clear target
-	if( pipeline.clear_target ) {
-		glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-		glClear( GL_COLOR_BUFFER_BIT );
-	}
-
 	prev_pipeline = pipeline;
 }
 
@@ -684,6 +678,11 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	TracyGpuZone( "Draw call" );
 
 	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
+	if( dc.pipeline.clear_target ) {
+		glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
+		glClear( GL_COLOR_BUFFER_BIT );
+		return;
+	}
 
 	glBindVertexArray( dc.mesh.vao );
 	GLenum primitive = PrimitiveTypeToGL( dc.mesh.primitive_type );
@@ -1021,6 +1020,16 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 
 Texture NewTexture( const TextureConfig & config ) {
 	return NewTextureSamples( config, 0 );
+}
+
+void WriteTexture( Texture texture, const void * data ) {
+	glBindTexture( GL_TEXTURE_2D, texture.texture );
+
+	GLenum internal_format, channels, type;
+	TextureFormatToGL( texture.format, &internal_format, &channels, &type );
+
+	glTexImage2D( GL_TEXTURE_2D, 0, internal_format,
+		texture.width, texture.height, 0, channels, type, data );
 }
 
 void DeleteTexture( Texture texture ) {

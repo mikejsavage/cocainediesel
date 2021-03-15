@@ -347,6 +347,7 @@ void DeleteTextureBuffer( TextureBuffer tb );
 void DeferDeleteTextureBuffer( TextureBuffer tb );
 
 Texture NewTexture( const TextureConfig & config );
+void WriteTexture( Texture texture, const void * data );
 void DeleteTexture( Texture texture );
 
 TextureArray NewAtlasTextureArray( const TextureArrayConfig & config );

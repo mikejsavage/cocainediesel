@@ -247,7 +247,3 @@ void CG_Recoil( WeaponType weapon ) {
 		cl.viewangles[ YAW ] += cg.recoil_velocity.yaw * dt;
 	}
 }
-
-
-
-}

@@ -241,7 +241,7 @@ void CG_Recoil( WeaponType weapon ) {
 	// yaw
 	{
 		bool recovering = SameSign( cg.recoil_velocity.yaw, recovery_delta.yaw );
-		float accel = viewKickCenterSpeed * 0.2f * copysignf( 1.0f, recovery_delta.yaw ) * ( recovering ? recenter_mult : 1.0f );
+		float accel = viewKickCenterSpeed * 0.2f * SignedOne( recovery_delta.yaw ) * ( recovering ? recenter_mult : 1.0f );
 		cg.recoil_velocity.yaw += accel * dt;
 
 		cl.viewangles[ YAW ] += cg.recoil_velocity.yaw * dt;

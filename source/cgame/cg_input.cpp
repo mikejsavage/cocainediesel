@@ -225,12 +225,8 @@ float CG_GetSensitivityScale( float sens, float zoomSens ) {
 }
 
 // TODO: these belong somewhere else
-static float Sign( float x ) {
-	return x < 0 ? -1.0f : 1.0f;
-}
-
-static Vec2 Sign( Vec2 v ) {
-	return Vec2( Sign( v.x ), Sign( v.y ) );
+static Vec2 SignedOne( Vec2 v ) {
+	return Vec2( SignedOne( v.x ), SignedOne( v.y ) );
 }
 
 static Vec2 Abs( Vec2 v ) {
@@ -250,7 +246,7 @@ void CG_MouseMove( int frameTime, Vec2 m ) {
 		if( m_accelStyle->integer == 1 ) {
 			Vec2 base = Abs( m ) / float( frameTime );
 			Vec2 power = Pow( base / m_accelOffset->value, m_accel->value );
-			m += Sign( m ) * power * m_accelOffset->value;
+			m += SignedOne( m ) * power * m_accelOffset->value;
 		} else if( m_accelStyle->integer == 2 ) {
 			// ch : similar to normal acceleration with offset and variable pow mechanisms
 

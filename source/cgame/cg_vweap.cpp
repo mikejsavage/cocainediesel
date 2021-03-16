@@ -204,7 +204,7 @@ void CG_AddRecoil( WeaponType weapon ) {
 }
 
 static bool SameSign( float x, float y ) {
-	return copysignf( 1.0f, x * y ) == 1.0f;
+	return x * y >= 0.0f;
 }
 
 void CG_Recoil( WeaponType weapon ) {
@@ -226,7 +226,7 @@ void CG_Recoil( WeaponType weapon ) {
 	// pitch
 	{
 		bool recovering = cg.recoil_velocity.pitch >= 0.0f;
-		float accel = viewKickCenterSpeed * copysignf( 1.0f, recovery_delta.pitch ) * ( recovering ? recenter_mult : 1.0f );
+		float accel = viewKickCenterSpeed * SignedOne( recovery_delta.pitch ) * ( recovering ? recenter_mult : 1.0f );
 		cg.recoil_velocity.pitch += accel * dt;
 
 		if( recovering && recovery_delta.pitch <= cg.recoil_velocity.pitch * dt ) {

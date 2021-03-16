@@ -63,6 +63,8 @@ bool BoundsOverlapSphere( Vec3 mins, Vec3 maxs, Vec3 centre, float radius );
 u64 DirToU64( Vec3 dir );
 Vec3 U64ToDir( u64 v );
 
+float SignedOne( float x );
+
 void ViewVectors( Vec3 forward, Vec3 * right, Vec3 * up );
 void AngleVectors( Vec3 angles, Vec3 * forward, Vec3 * right, Vec3 * up );
 Vec3 LerpAngles( Vec3 a, float t, Vec3 b );

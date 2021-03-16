@@ -60,6 +60,10 @@ Vec3 U64ToDir( u64 u ) {
 	return Vec3( x, y, z );
 }
 
+float SignedOne( float x ) {
+	return copysignf( 1.0f, x );
+}
+
 void ViewVectors( Vec3 forward, Vec3 * right, Vec3 * up ) {
 	constexpr Vec3 world_up = Vec3( 0, 0, 1 );
 
@@ -140,7 +144,7 @@ void AnglesToAxis( Vec3 angles, mat3_t axis ) {
 
 // must match the GLSL OrthonormalBasis
 void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent ) {
-	float s = copysignf( 1.0f, v.z );
+	float s = SignedOne( v.z );
 	float a = -1.0f / ( s + v.z );
 	float b = v.x * v.y * a;
 

@@ -309,7 +309,7 @@ static bool G_VoteStartValidate( callvotedata_t *vote, bool first ) {
 
 	if( !notreadys ) {
 		if( first ) {
-			G_PrintMsg( vote->caller, "%Match is already starting\n", S_COLOR_RED );
+			G_PrintMsg( vote->caller, "%sMatch is already starting\n", S_COLOR_RED );
 		}
 		return false;
 	}

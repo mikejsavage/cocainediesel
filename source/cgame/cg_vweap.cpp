@@ -220,13 +220,13 @@ void CG_Recoil( WeaponType weapon ) {
 
 	recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
 
-	constexpr float recenter_mult = 1.0f / 16.0f;
-	float viewKickCenterSpeed = GS_GetWeaponDef( weapon )->recoil_recover;
+	constexpr float recenter_speed_scale = 1.0f / 16.0f;
+	float recenter_accel = GS_GetWeaponDef( weapon )->recoil_recover;
 
 	// pitch
 	{
 		bool recovering = cg.recoil_velocity.pitch >= 0.0f;
-		float accel = viewKickCenterSpeed * SignedOne( recovery_delta.pitch ) * ( recovering ? recenter_mult : 1.0f );
+		float accel = recenter_accel * ( recovering ? recenter_speed_scale : 1.0f );
 		cg.recoil_velocity.pitch += accel * dt;
 
 		if( recovering && recovery_delta.pitch <= cg.recoil_velocity.pitch * dt ) {
@@ -241,7 +241,7 @@ void CG_Recoil( WeaponType weapon ) {
 	// yaw
 	{
 		bool recovering = SameSign( cg.recoil_velocity.yaw, recovery_delta.yaw );
-		float accel = viewKickCenterSpeed * 0.2f * SignedOne( recovery_delta.yaw ) * ( recovering ? recenter_mult : 1.0f );
+		float accel = recenter_accel * 0.2f * SignedOne( recovery_delta.yaw ) * ( recovering ? recenter_speed_scale : 1.0f );
 		cg.recoil_velocity.yaw += accel * dt;
 
 		cl.viewangles[ YAW ] += cg.recoil_velocity.yaw * dt;

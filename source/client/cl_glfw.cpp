@@ -597,6 +597,7 @@ void GlfwInputFrame() {
 }
 
 void SwapBuffers() {
+	ZoneScoped;
 	glfwSwapBuffers( window );
 }
 
@@ -620,6 +621,7 @@ int main( int argc, char ** argv ) {
 		AssignMonitorNumbers();
 	}
 
+	Con_Init();
 	Qcommon_Init( argc, argv );
 
 	int64_t oldtime = Sys_Milliseconds();

@@ -193,11 +193,11 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	//
 	if( !old_waterlevel && waterlevel ) {
 		if( ent->watertype & CONTENTS_LAVA ) {
-			G_Sound( ent, CHAN_AUTO, S_WORLD_LAVA_IN );
+			G_Sound( ent, CHAN_AUTO, "sounds/world/lava_in" );
 		} else if( ent->watertype & CONTENTS_SLIME ) {
-			G_Sound( ent, CHAN_AUTO, S_WORLD_SLIME_IN );
+			G_Sound( ent, CHAN_AUTO, "sounds/world/water_in" );
 		} else if( ent->watertype & CONTENTS_WATER ) {
-			G_Sound( ent, CHAN_AUTO, S_WORLD_WATER_IN );
+			G_Sound( ent, CHAN_AUTO, "sounds/world/water_in" );
 		}
 	}
 
@@ -206,11 +206,11 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	//
 	if( old_waterlevel && !waterlevel ) {
 		if( old_watertype & CONTENTS_LAVA ) {
-			G_Sound( ent, CHAN_AUTO, S_WORLD_LAVA_OUT );
+			G_Sound( ent, CHAN_AUTO, "sounds/world/lava_out" );
 		} else if( old_watertype & CONTENTS_SLIME ) {
-			G_Sound( ent, CHAN_AUTO, S_WORLD_SLIME_OUT );
+			G_Sound( ent, CHAN_AUTO, "sounds/world/water_out" );
 		} else if( old_watertype & CONTENTS_WATER ) {
-			G_Sound( ent, CHAN_AUTO, S_WORLD_WATER_OUT );
+			G_Sound( ent, CHAN_AUTO, "sounds/world/water_out" );
 		}
 	}
 
@@ -250,11 +250,11 @@ static void G_SetClientEffects( edict_t *ent ) {
 static void G_SetClientSound( edict_t *ent ) {
 	if( ent->waterlevel == 3 ) {
 		if( ent->watertype & CONTENTS_LAVA ) {
-			ent->s.sound = S_WORLD_UNDERLAVA;
+			ent->s.sound = "sounds/world/underwater";
 		} else if( ent->watertype & CONTENTS_SLIME ) {
-			ent->s.sound = S_WORLD_UNDERSLIME;
+			ent->s.sound = "sounds/world/underwater";
 		} else if( ent->watertype & CONTENTS_WATER ) {
-			ent->s.sound = S_WORLD_UNDERWATER;
+			ent->s.sound = "sounds/world/underwater";
 		}
 	} else {
 		ent->s.sound = EMPTY_HASH;
@@ -288,8 +288,6 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 		G_SetClientStats( ent );
 		G_SetClientEffects( ent );
 		G_SetClientSound( ent );
-
-		client->ps.plrkeys = client->resp.snap.plrkeys;
 	}
 
 	G_ReleaseClientPSEvent( client );

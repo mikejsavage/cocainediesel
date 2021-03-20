@@ -40,7 +40,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /*
 * Sys_NET_GetLastError
 */
-net_error_t Sys_NET_GetLastError( void ) {
+net_error_t Sys_NET_GetLastError() {
 	int _errno = errno == EAGAIN ? EWOULDBLOCK : errno;
 
 	switch( _errno ) {
@@ -93,11 +93,11 @@ int64_t Sys_NET_SendFile( socket_handle_t handle, int fileno, size_t offset, siz
 /*
 * Sys_NET_Init
 */
-void Sys_NET_Init( void ) {
+void Sys_NET_Init() {
 }
 
 /*
 * Sys_NET_Shutdown
 */
-void Sys_NET_Shutdown( void ) {
+void Sys_NET_Shutdown() {
 }

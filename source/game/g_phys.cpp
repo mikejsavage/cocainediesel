@@ -443,6 +443,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		}
 
 		ent->velocity = GS_ClipVelocity( ent->velocity, trace.plane.normal, backoff );
+		ent->num_bounces++;
 
 		// stop if on ground
 
@@ -505,9 +506,9 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 
 	if( !wasinwater && isinwater ) {
-		G_PositionedSound( old_origin, CHAN_AUTO, S_HIT_WATER );
+		G_PositionedSound( old_origin, CHAN_AUTO, "sounds/misc/hit_water" );
 	} else if( wasinwater && !isinwater ) {
-		G_PositionedSound( ent->s.origin, CHAN_AUTO, S_HIT_WATER );
+		G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/misc/hit_water" );
 	}
 
 	GClip_LinkEntity( ent );
@@ -542,9 +543,9 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	ent->waterlevel = G_PointContents( ent->s.origin ) & MASK_WATER;
 
 	if( !wasinwater && ent->waterlevel ) {
-		G_PositionedSound( start, CHAN_AUTO, S_HIT_WATER );
+		G_PositionedSound( start, CHAN_AUTO, "sounds/misc/hit_water" );
 	} else if( wasinwater && !ent->waterlevel ) {
-		G_PositionedSound( ent->s.origin, CHAN_AUTO, S_HIT_WATER );
+		G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/misc/hit_water" );
 	}
 }
 

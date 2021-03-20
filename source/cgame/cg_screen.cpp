@@ -61,13 +61,13 @@ void CG_CenterPrint( const char *str ) {
 	scr_centertime_off = cg_centerTime->value * 1000.0f;
 }
 
-static void CG_DrawCenterString( void ) {
+static void CG_DrawCenterString() {
 	DrawText( cgs.fontNormal, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.75f, vec4_white, true );
 }
 
 //============================================================================
 
-void CG_ScreenInit( void ) {
+void CG_ScreenInit() {
 	cg_showFPS =        Cvar_Get( "cg_showFPS", "0", CVAR_ARCHIVE );
 	cg_draw2D =     Cvar_Get( "cg_draw2D", "1", 0 );
 	cg_centerTime =     Cvar_Get( "cg_centerTime", "2.5", 0 );
@@ -98,7 +98,7 @@ void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
 	Draw2DBox( x, y, w, h, cgs.media.shaderNet, color );
 }
 
-void CG_ScreenCrosshairDamageUpdate( void ) {
+void CG_ScreenCrosshairDamageUpdate() {
 	scr_damagetime = cls.monotonicTime;
 }
 
@@ -170,13 +170,13 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	DrawText( font, font_size, string, alignment, x, y, color, border );
 }
 
-void CG_ClearPointedNum( void ) {
+void CG_ClearPointedNum() {
 	cg.pointedNum = 0;
 	cg.pointRemoveTime = 0;
 	cg.pointedHealth = 0;
 }
 
-static void CG_UpdatePointedNum( void ) {
+static void CG_UpdatePointedNum() {
 	// disable cases
 	if( cg.view.thirdperson || cg.view.type != VIEWDEF_PLAYERVIEW || !cg_showPointedPlayer->integer ) {
 		CG_ClearPointedNum();
@@ -202,10 +202,6 @@ static void CG_UpdatePointedNum( void ) {
 
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {
 	// static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
-	Vec3 dir, drawOrigin;
-	float dist, fadeFrac;
-	trace_t trace;
-
 	if( !cg_showPlayerNames->integer && !cg_showPointedPlayer->integer ) {
 		return;
 	}
@@ -236,8 +232,8 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 		}
 
 		// Kill if behind the view
-		dir = cent->ent.origin - cg.view.origin;
-		dist = Length( dir ) * cg.view.fracDistFOV;
+		Vec3 dir = cent->interpolated.origin - cg.view.origin;
+		float dist = Length( dir ) * cg.view.fracDistFOV;
 		dir = Normalize( dir );
 
 		if( Dot( dir, FromQFAxis( cg.view.axis, AXIS_FORWARD ) ) < 0 ) {
@@ -246,6 +242,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 
 		Vec4 tmpcolor = color;
 
+		float fadeFrac;
 		if( cent->current.number != cg.pointedNum ) {
 			if( dist > cg_showPlayerNames_zfar->value ) {
 				continue;
@@ -264,12 +261,13 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), cent->ent.origin, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
+		trace_t trace;
+		CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), cent->interpolated.origin, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
 		if( trace.fraction < 1.0f && trace.ent != cent->current.number ) {
 			continue;
 		}
 
-		drawOrigin = Vec3( cent->ent.origin.x, cent->ent.origin.y, cent->ent.origin.z + playerbox_stand_maxs.z + 8 );
+		Vec3 drawOrigin = cent->interpolated.origin + Vec3( 0.0f, 0.0f, playerbox_stand_maxs.z + 8 );
 
 		Vec2 coords = WorldToScreen( drawOrigin );
 		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
@@ -773,7 +771,7 @@ void CG_ResetBombHUD() {
 
 //=============================================================================
 
-void CG_EscapeKey( void ) {
+void CG_EscapeKey() {
 	if( cgs.demoPlaying ) {
 		UI_ShowDemoMenu();
 		return;
@@ -799,9 +797,9 @@ static void CG_SCRDrawViewBlend() {
 
 	float t = 0.0f;
 	if( client_gs.gameState.bomb.exploding ) {
-		t = Unlerp01( client_gs.gameState.bomb.exploded_at, cl.serverTime, client_gs.gameState.bomb.exploded_at + 2000 );
+		t = Unlerp01( client_gs.gameState.bomb.exploded_at + 500, cl.serverTime, client_gs.gameState.bomb.exploded_at + 1500 );
 	}
-	color = Lerp( color, t, vec4_black );
+	color = Lerp( color, t, vec4_white );
 
 	if( color.w < 0.01f ) {
 		return;
@@ -831,7 +829,7 @@ static void CG_DrawScope() {
 	}
 }
 
-void CG_Draw2DView( void ) {
+void CG_Draw2DView() {
 	ZoneScoped;
 
 	if( !cg.view.draw2D ) {
@@ -852,7 +850,7 @@ void CG_Draw2DView( void ) {
 	CG_DrawChat();
 }
 
-void CG_Draw2D( void ) {
+void CG_Draw2D() {
 	CG_DrawScope();
 
 	if( !cg_draw2D->integer ) {

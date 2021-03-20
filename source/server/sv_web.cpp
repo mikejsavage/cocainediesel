@@ -204,7 +204,7 @@ static void SV_Web_ResetRequest( sv_http_request_t *request ) {
 /*
 * SV_Web_GetNewRequestId
 */
-static uint64_t SV_Web_GetNewRequestId( void ) {
+static uint64_t SV_Web_GetNewRequestId() {
 	return sv_http_request_autoicr++;
 }
 
@@ -238,7 +238,7 @@ static void SV_Web_ResetResponse( sv_http_response_t *response ) {
 /*
 * SV_Web_AllocConnection
 */
-static sv_http_connection_t *SV_Web_AllocConnection( void ) {
+static sv_http_connection_t *SV_Web_AllocConnection() {
 	sv_http_connection_t *con;
 
 	if( sv_free_http_connections ) {
@@ -281,7 +281,7 @@ static void SV_Web_FreeConnection( sv_http_connection_t *con ) {
 /*
 * SV_Web_InitConnections
 */
-static void SV_Web_InitConnections( void ) {
+static void SV_Web_InitConnections() {
 	unsigned int i;
 
 	memset( sv_http_connections, 0, sizeof( sv_http_connections ) );
@@ -298,7 +298,7 @@ static void SV_Web_InitConnections( void ) {
 /*
 * SV_Web_ShutdownConnections
 */
-static void SV_Web_ShutdownConnections( void ) {
+static void SV_Web_ShutdownConnections() {
 	sv_http_connection_t *con, *next, *hnode;
 
 	// close dead connections
@@ -1239,7 +1239,7 @@ static void SV_Web_Listen( socket_t *socket ) {
 /*
 * SV_Web_Init
 */
-void SV_Web_Init( void ) {
+void SV_Web_Init() {
 	sv_http_initialized = false;
 	sv_http_running = false;
 	sv_http_request_autoicr = 1;
@@ -1269,7 +1269,7 @@ void SV_Web_Init( void ) {
 /*
 * SV_Web_Frame
 */
-static void SV_Web_Frame( void ) {
+static void SV_Web_Frame() {
 	sv_http_connection_t *con, *next, *hnode = &sv_http_connection_headnode;
 	socket_t *sockets[MAX_INCOMING_HTTP_CONNECTIONS + 1];
 	void *connections[MAX_INCOMING_HTTP_CONNECTIONS];
@@ -1373,7 +1373,7 @@ static void SV_Web_Frame( void ) {
 /*
 * SV_Web_Running
 */
-bool SV_Web_Running( void ) {
+bool SV_Web_Running() {
 	return sv_http_running;
 }
 
@@ -1391,7 +1391,7 @@ static void SV_Web_ThreadProc( void *param ) {
 /*
 * SV_Web_Shutdown
 */
-void SV_Web_Shutdown( void ) {
+void SV_Web_Shutdown() {
 	if( !sv_http_initialized ) {
 		return;
 	}
@@ -1408,6 +1408,6 @@ void SV_Web_Shutdown( void ) {
 /*
 * SV_Web_UpstreamBaseUrl
 */
-const char *SV_Web_UpstreamBaseUrl( void ) {
+const char *SV_Web_UpstreamBaseUrl() {
 	return sv_http_upstream_baseurl->string;
 }

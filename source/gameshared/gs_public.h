@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #include "qcommon/hash.h"
-#include "gameshared/gs_qrespath.h"
 #include "gameshared/q_comref.h"
 #include "gameshared/q_collision.h"
 #include "gameshared/q_math.h"
@@ -81,6 +80,7 @@ enum WeaponType_ : WeaponType {
 	Weapon_Deagle,
 	Weapon_Shotgun,
 	Weapon_AssaultRifle,
+	Weapon_StakeGun,
 	Weapon_GrenadeLauncher,
 	Weapon_RocketLauncher,
 	Weapon_Plasma,
@@ -89,6 +89,7 @@ enum WeaponType_ : WeaponType {
 	Weapon_Railgun,
 	Weapon_Sniper,
 	Weapon_Rifle,
+	Weapon_MasterBlaster,
 
 	Weapon_Count
 };
@@ -100,6 +101,7 @@ enum WeaponState_ : WeaponState {
 	WeaponState_SwitchingOut,
 	WeaponState_Firing,
 	WeaponState_FiringSemiAuto,
+	WeaponState_FiringEntireClip,
 	WeaponState_Reloading,
 };
 
@@ -107,6 +109,7 @@ enum FiringMode {
 	FiringMode_Auto,
 	FiringMode_Smooth,
 	FiringMode_SemiAuto,
+	FiringMode_Clip,
 };
 
 enum ItemType {
@@ -287,8 +290,6 @@ struct SyncPlayerState {
 	WeaponInfo weapons[ Weapon_Count - 1 ];
 	bool items[ Item_Count ];
 
-	uint32_t plrkeys;           // infos on the pressed keys of chased player (self if not chasing)
-
 	bool show_scoreboard;
 	bool ready;
 	bool voted;
@@ -301,6 +302,7 @@ struct SyncPlayerState {
 	WeaponState weapon_state;
 	WeaponType weapon;
 	WeaponType pending_weapon;
+	WeaponType last_weapon;
 	s16 weapon_time;
 	s16 zoom_time;
 
@@ -510,6 +512,7 @@ enum MeansOfDeath {
 	MeanOfDeath_Deagle,
 	MeanOfDeath_Shotgun,
 	MeanOfDeath_AssaultRifle,
+	MeanOfDeath_StakeGun,
 	MeanOfDeath_GrenadeLauncher,
 	MeanOfDeath_RocketLauncher,
 	MeanOfDeath_Plasma,
@@ -518,6 +521,7 @@ enum MeansOfDeath {
 	MeanOfDeath_Railgun,
 	MeanOfDeath_Sniper,
 	MeanOfDeath_Rifle,
+	MeanOfDeath_MasterBlaster,
 
 	MeanOfDeath_Slime,
 	MeanOfDeath_Lava,
@@ -617,6 +621,10 @@ enum EventType {
 	EV_BUBBLE_EXPLOSION,
 	EV_BOLT_EXPLOSION,
 	EV_RIFLEBULLET_IMPACT,
+	EV_STAKE_IMPALE,
+	EV_STAKE_IMPACT,
+	EV_BLAST_BOUNCE,
+	EV_BLAST_IMPACT,
 
 	EV_EXPLOSION1,
 	EV_EXPLOSION2,
@@ -683,6 +691,8 @@ enum EntityType {
 	ET_PLASMA,
 	ET_BUBBLE,
 	ET_RIFLEBULLET,
+	ET_STAKE,
+	ET_BLAST,
 
 	ET_LASERBEAM,   // for continuous beams
 
@@ -737,9 +747,11 @@ struct WeaponDef {
 	unsigned int weapondown_time;
 	unsigned int refire_time;
 	unsigned int range;
-	Vec2 recoil;
-	Vec2 recoil_min;
+
+	EulerDegrees2 recoil_max;
+	EulerDegrees2 recoil_min;
 	float recoil_recover;
+
 	FiringMode mode;
 
 	float zoom_fov;

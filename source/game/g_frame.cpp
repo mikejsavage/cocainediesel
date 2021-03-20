@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /*
 * G_Timeout_Reset
 */
-void G_Timeout_Reset( void ) {
+void G_Timeout_Reset() {
 	G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, false );
 	level.timeout = { };
 }
@@ -38,7 +38,6 @@ void G_Timeout_Reset( void ) {
 static void G_Timeout_Update( unsigned int msec ) {
 	static int timeout_printtime = 0;
 	static int timeout_last_endtime = 0;
-	static int countdown_set = 1;
 
 	if( !GS_MatchPaused( &server_gs ) ) {
 		return;
@@ -66,12 +65,14 @@ static void G_Timeout_Update( unsigned int msec ) {
 			int seconds_left = (int)( ( level.timeout.endtime - level.timeout.time ) / 1000.0 + 0.5 );
 
 			if( seconds_left == ( TIMEIN_TIME * 2 ) / 1000 ) {
-				G_AnnouncerSound( NULL, StringHash( va( S_ANNOUNCER_COUNTDOWN_READY_1_to_2, random_uniform( &svs.rng, 1, 3 ) ) ),
-								  GS_MAX_TEAMS, false, NULL );
-				countdown_set = random_uniform( &svs.rng, 1, 3 );
+				G_AnnouncerSound( NULL, StringHash( "sounds/announcer/ready" ), GS_MAX_TEAMS, false, NULL );
 			} else if( seconds_left >= 1 && seconds_left <= 3 ) {
-				G_AnnouncerSound( NULL, StringHash( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, seconds_left,
-															 countdown_set ) ), GS_MAX_TEAMS, false, NULL );
+				constexpr StringHash countdown[] = {
+					"sounds/announcer/1",
+					"sounds/announcer/2",
+					"sounds/announcer/3",
+				};
+				G_AnnouncerSound( NULL, countdown[ seconds_left + 1 ], GS_MAX_TEAMS, false, NULL );
 			}
 
 			G_CenterPrintMsg( NULL, "Match will resume in %i %s", seconds_left, seconds_left == 1 ? "second" : "seconds" );
@@ -87,7 +88,7 @@ static void G_Timeout_Update( unsigned int msec ) {
 * G_UpdateServerInfo
 * update the cvars which show the match state at server browsers
 */
-static void G_UpdateServerInfo( void ) {
+static void G_UpdateServerInfo() {
 	// g_match_time
 	if( GS_MatchState( &server_gs ) <= MATCH_STATE_WARMUP ) {
 		Cvar_ForceSet( "g_match_time", "Warmup" );
@@ -154,7 +155,7 @@ static void G_UpdateServerInfo( void ) {
 * G_CheckCvars
 * Check for cvars that have been modified and need the game to be updated
 */
-void G_CheckCvars( void ) {
+void G_CheckCvars() {
 	if( g_antilag_maxtimedelta->modified ) {
 		if( g_antilag_maxtimedelta->integer < 0 ) {
 			Cvar_SetValue( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
@@ -202,7 +203,7 @@ void G_CheckCvars( void ) {
 /*
 * G_SnapClients
 */
-void G_SnapClients( void ) {
+void G_SnapClients() {
 	int i;
 	edict_t *ent;
 
@@ -269,7 +270,7 @@ static StringHash entity_sound_backup[MAX_EDICTS];
 * We just run G_SnapFrame, the server just sent the snap to the clients,
 * it's now time to clean up snap specific data to start the next snap from clean.
 */
-void G_ClearSnap( void ) {
+void G_ClearSnap() {
 	edict_t *ent;
 
 	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
@@ -314,7 +315,7 @@ void G_ClearSnap( void ) {
 * G_SnapFrame
 * It's time to send a new snap, so set the world up for sending
 */
-void G_SnapFrame( void ) {
+void G_SnapFrame() {
 	edict_t *ent;
 	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
 
@@ -375,7 +376,7 @@ void G_SnapFrame( void ) {
 * treat each object in turn
 * even the world and clients get a chance to think
 */
-static void G_RunEntities( void ) {
+static void G_RunEntities() {
 	ZoneScoped;
 
 	edict_t *ent;
@@ -412,7 +413,7 @@ static void G_RunEntities( void ) {
 /*
 * G_RunClients
 */
-static void G_RunClients( void ) {
+static void G_RunClients() {
 	ZoneScoped;
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {

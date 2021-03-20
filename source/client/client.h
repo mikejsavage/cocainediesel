@@ -231,8 +231,8 @@ extern SyncEntityState cl_baselines[MAX_EDICTS];
 //
 // cl_main.c
 //
-void CL_Init( void );
-void CL_Quit( void );
+void CL_Init();
+void CL_Quit();
 
 void CL_UpdateClientCommandsToServer( msg_t *msg );
 void CL_AddReliableCommand( const char *cmd );
@@ -243,19 +243,19 @@ void CL_AdjustServerTime( unsigned int gamemsec );
 
 void CL_SetKeyDest( keydest_t key_dest );
 void CL_SetOldKeyDest( keydest_t key_dest );
-void CL_ResetServerCount( void );
+void CL_ResetServerCount();
 void CL_SetClientState( connstate_t state );
-void CL_ClearState( void );
-void CL_ReadPackets( void );
-void CL_Disconnect_f( void );
+void CL_ClearState();
+void CL_ReadPackets();
+void CL_Disconnect_f();
 
-void CL_Reconnect_f( void );
+void CL_Reconnect_f();
 void CL_FinishConnect();
-void CL_ServerReconnect_f( void );
-void CL_Changing_f( void );
-void CL_Precache_f( void );
-void CL_ForwardToServer_f( void );
-void CL_ServerDisconnect_f( void );
+void CL_ServerReconnect_f();
+void CL_Changing_f();
+void CL_Precache_f();
+void CL_ForwardToServer_f();
+void CL_ServerDisconnect_f();
 
 void CL_ForceVsync( bool force );
 
@@ -264,15 +264,15 @@ size_t CL_GetBaseServerURL( char *buffer, size_t buffer_size );
 //
 // cl_game.c
 //
-void CL_GameModule_Init( void );
-void CL_GameModule_Reset( void );
-void CL_GameModule_Shutdown( void );
+void CL_GameModule_Init();
+void CL_GameModule_Reset();
+void CL_GameModule_Shutdown();
 void CL_GameModule_ConfigString( int number, const char *value );
-void CL_GameModule_EscapeKey( void );
+void CL_GameModule_EscapeKey();
 bool CL_GameModule_NewSnapshot( int pendingSnapshot );
 void CL_GameModule_RenderView();
 void CL_GameModule_InputFrame( int frameTime );
-unsigned CL_GameModule_GetButtonBits( void );
+unsigned CL_GameModule_GetButtonBits();
 void CL_GameModule_AddViewAngles( Vec3 * viewAngles );
 void CL_GameModule_AddMovement( Vec3 * movement );
 void CL_GameModule_MouseMove( int frameTime, Vec2 m );
@@ -282,20 +282,20 @@ void CL_GameModule_MouseMove( int frameTime, Vec2 m );
 //
 void CL_ParseGetInfoResponse( const socket_t *socket, const netadr_t *address, msg_t *msg );
 void CL_ParseGetStatusResponse( const socket_t *socket, const netadr_t *address, msg_t *msg );
-void CL_QueryGetInfoMessage_f( void );
-void CL_QueryGetStatusMessage_f( void );
+void CL_QueryGetInfoMessage_f();
+void CL_QueryGetStatusMessage_f();
 void CL_ParseStatusMessage( const socket_t *socket, const netadr_t *address, msg_t *msg );
 void CL_ParseGetServersResponse( const socket_t *socket, const netadr_t *address, msg_t *msg, bool extended );
-void CL_GetServers_f( void );
-void CL_PingServer_f( void );
-void CL_ServerListFrame( void );
-void CL_InitServerList( void );
-void CL_ShutDownServerList( void );
+void CL_GetServers_f();
+void CL_PingServer_f();
+void CL_ServerListFrame();
+void CL_InitServerList();
+void CL_ShutDownServerList();
 
 //
 // cl_input.c
 //
-void CL_InitInput( void );
+void CL_InitInput();
 void CL_UserInputFrame( int realMsec );
 void CL_WriteUcmdsToMessage( msg_t *msg );
 
@@ -303,15 +303,15 @@ void CL_WriteUcmdsToMessage( msg_t *msg );
 // cl_demo.c
 //
 void CL_WriteDemoMessage( msg_t *msg );
-void CL_DemoCompleted( void );
-void CL_PlayDemo_f( void );
-void CL_YoloDemo_f( void );
-void CL_ReadDemoPackets( void );
-void CL_LatchedDemoJump( void );
-void CL_Stop_f( void );
-void CL_Record_f( void );
-void CL_PauseDemo_f( void );
-void CL_DemoJump_f( void );
+void CL_DemoCompleted();
+void CL_PlayDemo_f();
+void CL_YoloDemo_f();
+void CL_ReadDemoPackets();
+void CL_LatchedDemoJump();
+void CL_Stop_f();
+void CL_Record_f();
+void CL_PauseDemo_f();
+void CL_DemoJump_f();
 size_t CL_ReadDemoMetaData( const char *demopath, char *meta_data, size_t meta_data_size );
 const char **CL_DemoComplete( const char *partial );
 #define CL_SetDemoMetaKeyValue( k,v ) cls.demo.meta_data_realsize = SNAP_SetDemoMetaKeyValue( cls.demo.meta_data, sizeof( cls.demo.meta_data ), cls.demo.meta_data_realsize, k, v )
@@ -331,11 +331,11 @@ void CL_CheckDownloadTimeout();
 //
 // cl_screen.c
 //
-void SCR_InitScreen( void );
-void SCR_UpdateScreen( void );
+void SCR_InitScreen();
+void SCR_UpdateScreen();
 void SCR_DebugGraph( float value, float r, float g, float b );
 
-void CL_AddNetgraph( void );
+void CL_AddNetgraph();
 
 //
 // cl_imgui

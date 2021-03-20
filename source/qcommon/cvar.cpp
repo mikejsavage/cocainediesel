@@ -67,7 +67,7 @@ static bool Cvar_InfoValidate( const char *s, bool name ) {
 /*
 * Cvar_Initialized
 */
-bool Cvar_Initialized( void ) {
+bool Cvar_Initialized() {
 	return cvar_initialized;
 }
 
@@ -383,7 +383,7 @@ void Cvar_GetLatchedVars( cvar_flag_t flags ) {
 *
 * All cheat variables with be reset to default unless cheats are allowed
 */
-void Cvar_FixCheatVars( void ) {
+void Cvar_FixCheatVars() {
 	trie_dump_t *dump = NULL;
 	unsigned int i;
 	cvar_flag_t flags = CVAR_CHEAT;
@@ -413,7 +413,7 @@ void Cvar_FixCheatVars( void ) {
 * command.  Returns true if the command was a variable reference that
 * was handled. (print or change)
 */
-bool Cvar_Command( void ) {
+bool Cvar_Command() {
 	cvar_t *v;
 
 	// check variables
@@ -441,7 +441,7 @@ bool Cvar_Command( void ) {
 *
 * Allows setting and defining of arbitrary cvars from console
 */
-static void Cvar_Set_f( void ) {
+static void Cvar_Set_f() {
 	if( Cmd_Argc() != 3 ) {
 		Com_Printf( "usage: set <variable> <value>\n" );
 		return;
@@ -457,27 +457,27 @@ static void Cvar_SetWithFlag_f( cvar_flag_t flag ) {
 	Cvar_FullSet( Cmd_Argv( 1 ), Cmd_Argv( 2 ), flag, false );
 }
 
-static void Cvar_Seta_f( void ) {
+static void Cvar_Seta_f() {
 	Cvar_SetWithFlag_f( CVAR_ARCHIVE | CVAR_FROMCONFIG );
 }
 
-static void Cvar_Setau_f( void ) {
+static void Cvar_Setau_f() {
 	Cvar_SetWithFlag_f( CVAR_ARCHIVE | CVAR_USERINFO | CVAR_FROMCONFIG );
 }
 
-static void Cvar_Setas_f( void ) {
+static void Cvar_Setas_f() {
 	Cvar_SetWithFlag_f( CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_FROMCONFIG );
 }
 
-static void Cvar_Sets_f( void ) {
+static void Cvar_Sets_f() {
 	Cvar_SetWithFlag_f( CVAR_SERVERINFO );
 }
 
-static void Cvar_Setu_f( void ) {
+static void Cvar_Setu_f() {
 	Cvar_SetWithFlag_f( CVAR_USERINFO );
 }
 
-static void Cvar_Reset_f( void ) {
+static void Cvar_Reset_f() {
 	cvar_t *v;
 
 	if( Cmd_Argc() != 2 ) {
@@ -496,7 +496,7 @@ static void Cvar_Reset_f( void ) {
 /*
 * Cvar_Toggle_f
 */
-static void Cvar_Toggle_f( void ) {
+static void Cvar_Toggle_f() {
 	int i;
 	cvar_t *var;
 
@@ -562,7 +562,7 @@ void Cvar_WriteVariables( int file ) {
 /*
 * Cvar_List_f
 */
-static void Cvar_List_f( void ) {
+static void Cvar_List_f() {
 	trie_dump_t *dump = NULL;
 	unsigned int i;
 	char *pattern;
@@ -624,7 +624,7 @@ static void Cvar_List_f( void ) {
 /*
 * Cvar_ArchiveList_f
 */
-static void Cvar_ArchiveList_f( void ) {
+static void Cvar_ArchiveList_f() {
 	trie_dump_t *dump;
 	unsigned int i;
 
@@ -688,7 +688,7 @@ static char *Cvar_BitInfo( int bit ) {
 * Cvar_Userinfo
 * Returns an info string containing all the CVAR_USERINFO cvars
 */
-char *Cvar_Userinfo( void ) {
+char *Cvar_Userinfo() {
 	return Cvar_BitInfo( CVAR_USERINFO );
 }
 
@@ -696,7 +696,7 @@ char *Cvar_Userinfo( void ) {
 * Cvar_Serverinfo
 * Returns an info string containing all the CVAR_SERVERINFO cvars
 */
-char *Cvar_Serverinfo( void ) {
+char *Cvar_Serverinfo() {
 	return Cvar_BitInfo( CVAR_SERVERINFO );
 }
 
@@ -787,7 +787,7 @@ const char **Cvar_CompleteBuildListServer( const char *partial ) {
 /*
 * Cvar_PreInit
 */
-void Cvar_PreInit( void ) {
+void Cvar_PreInit() {
 	assert( !cvar_initialized );
 	assert( !cvar_preinitialized );
 
@@ -805,7 +805,7 @@ void Cvar_PreInit( void ) {
 *
 * Reads in all archived cvars
 */
-void Cvar_Init( void ) {
+void Cvar_Init() {
 	assert( !cvar_initialized );
 	assert( cvar_preinitialized );
 
@@ -842,7 +842,7 @@ void Cvar_Init( void ) {
 *
 * Reads in all archived cvars
 */
-void Cvar_Shutdown( void ) {
+void Cvar_Shutdown() {
 	if( cvar_initialized ) {
 		unsigned int i;
 		trie_dump_t *dump;

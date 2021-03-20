@@ -53,14 +53,14 @@ static void qasMessageCallback( const asSMessageInfo *msg ) {
 
 	switch( msg->type ) {
 		case asMSGTYPE_ERROR:
-			msg_type = "ERROR: ";
+			msg_type = S_COLOR_RED "ERROR: ";
 			break;
 		case asMSGTYPE_WARNING:
-			msg_type = "WARNING: ";
+			msg_type = S_COLOR_YELLOW "WARNING: ";
 			break;
 		case asMSGTYPE_INFORMATION:
 		default:
-			msg_type = "ANGELSCRIPT: ";
+			msg_type = S_COLOR_CYAN "ANGELSCRIPT: ";
 			break;
 	}
 
@@ -286,7 +286,7 @@ void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool s
 			// class file
 			int mode;
 			std::string class_file( spath );
-			
+
 			if( singleFile ) {
 				mode = FS_APPEND;
 				class_file += singleFn;
@@ -491,7 +491,7 @@ asIScriptContext *qasAcquireContext( asIScriptEngine *engine ) {
 	return qasCreateContext( engine );
 }
 
-asIScriptContext *qasGetActiveContext( void ) {
+asIScriptContext *qasGetActiveContext() {
 	return asGetActiveContext();
 }
 

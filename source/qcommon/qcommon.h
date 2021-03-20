@@ -85,6 +85,7 @@ void MSG_WriteInt16( msg_t *sb, int c );
 void MSG_WriteUint16( msg_t *sb, unsigned c );
 void MSG_WriteInt32( msg_t *sb, int c );
 void MSG_WriteInt64( msg_t *sb, int64_t c );
+void MSG_WriteUint64( msg_t *sb, uint64_t c );
 void MSG_WriteUintBase128( msg_t *msg, uint64_t c );
 void MSG_WriteIntBase128( msg_t *msg, int64_t c );
 void MSG_WriteString( msg_t *sb, const char *s );
@@ -101,6 +102,7 @@ int16_t MSG_ReadInt16( msg_t *sb );
 uint16_t MSG_ReadUint16( msg_t *sb );
 int MSG_ReadInt32( msg_t *sb );
 int64_t MSG_ReadInt64( msg_t *sb );
+uint64_t MSG_ReadUint64( msg_t *sb );
 uint64_t MSG_ReadUintBase128( msg_t *msg );
 int64_t MSG_ReadIntBase128( msg_t *msg );
 char *MSG_ReadString( msg_t *sb );
@@ -132,13 +134,13 @@ size_t SNAP_ReadDemoMetaData( int demofile, char *meta_data, size_t meta_data_si
 
 //============================================================================
 
-int COM_Argc( void );
+int COM_Argc();
 const char *COM_Argv( int arg );  // range and null checked
 void COM_ClearArgv( int arg );
 int COM_CheckParm( char *parm );
 void COM_AddParm( char *parm );
 
-void COM_Init( void );
+void COM_Init();
 void COM_InitArgv( int argc, char **argv );
 
 // some hax, because we want to save the file and line where the copy was called
@@ -241,13 +243,13 @@ servers can also send across commands and entire text files can be execed.
 The + command line options are also added to the command buffer.
 */
 
-void Cbuf_Init( void );
-void Cbuf_Shutdown( void );
+void Cbuf_Init();
+void Cbuf_Shutdown();
 void Cbuf_AddText( const char *text );
 void Cbuf_ExecuteText( int exec_when, const char *text );
 void Cbuf_AddEarlyCommands( bool clear );
-bool Cbuf_AddLateCommands( void );
-void Cbuf_Execute( void );
+bool Cbuf_AddLateCommands();
+void Cbuf_Execute();
 
 
 //===========================================================================
@@ -259,12 +261,12 @@ then searches for a command or variable that matches the first token.
 
 */
 
-typedef void ( *xcommand_t )( void );
+typedef void ( *xcommand_t )();
 typedef const char ** ( *xcompletionf_t )( const char *partial );
 
-void        Cmd_PreInit( void );
-void        Cmd_Init( void );
-void        Cmd_Shutdown( void );
+void        Cmd_PreInit();
+void        Cmd_Init();
+void        Cmd_Shutdown();
 void        Cmd_AddCommand( const char *cmd_name, xcommand_t function );
 void        Cmd_RemoveCommand( const char *cmd_name );
 bool    Cmd_Exists( const char *cmd_name );
@@ -276,9 +278,9 @@ const char  **Cmd_CompleteBuildList( const char *partial );
 const char  **Cmd_CompleteBuildArgList( const char *partial );
 const char  **Cmd_CompleteBuildArgListExt( const char *command, const char *arguments );
 const char  **Cmd_CompleteFileList( const char *partial, const char *basedir, const char *extension, bool subdirectories );
-int         Cmd_Argc( void );
+int         Cmd_Argc();
 const char  *Cmd_Argv( int arg );
-char        *Cmd_Args( void );
+char        *Cmd_Args();
 void        Cmd_TokenizeString( const char *text );
 void        Cmd_ExecuteString( const char *text );
 void        Cmd_SetCompletionFunc( const char *cmd_name, xcompletionf_t completion_func );
@@ -376,8 +378,8 @@ enum net_error_t {
 	NET_ERR_UNSUPPORTED,
 };
 
-void        NET_Init( void );
-void        NET_Shutdown( void );
+void        NET_Init();
+void        NET_Shutdown();
 
 bool        NET_OpenSocket( socket_t *socket, socket_type_t type, const netadr_t *address, bool server );
 void        NET_CloseSocket( socket_t *socket );
@@ -397,7 +399,7 @@ int         NET_Monitor( int msec, socket_t *sockets[],
 						 void ( *read_cb )( socket_t *socket, void* ),
 						 void ( *write_cb )( socket_t *socket, void* ),
 						 void ( *exception_cb )( socket_t *socket, void* ), void *privatep[] );
-const char *NET_ErrorString( void );
+const char *NET_ErrorString();
 
 #ifndef _MSC_VER
 void NET_SetErrorString( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
@@ -430,7 +432,7 @@ struct netchan_t {
 	int dropped;                // between last packet and previous
 
 	netadr_t remoteAddress;
-	int game_port;              // game port value to write when transmitting
+	u64 session_id;
 
 	// sequencing variables
 	int incomingSequence;
@@ -454,9 +456,9 @@ struct netchan_t {
 extern netadr_t net_from;
 
 
-void Netchan_Init( void );
-void Netchan_Shutdown( void );
-void Netchan_Setup( netchan_t *chan, const socket_t *socket, const netadr_t *address, int qport );
+void Netchan_Init();
+void Netchan_Shutdown();
+void Netchan_Setup( netchan_t *chan, const socket_t *socket, const netadr_t *address, u64 session_id );
 bool Netchan_Process( netchan_t *chan, msg_t *msg );
 bool Netchan_Transmit( netchan_t *chan, msg_t *msg );
 bool Netchan_PushAllFragments( netchan_t *chan );
@@ -471,7 +473,7 @@ void Netchan_OutOfBandPrint( const socket_t *socket, const netadr_t *address, co
 void Netchan_OutOfBandPrint( const socket_t *socket, const netadr_t *address, _Printf_format_string_ const char *format, ... );
 #endif
 
-int Netchan_GamePort( void );
+u64 Netchan_ClientSessionID();
 
 /*
 ==============================================================
@@ -481,17 +483,17 @@ FILESYSTEM
 ==============================================================
 */
 
-void        FS_Init( void );
-void        FS_Frame( void );
-void        FS_Shutdown( void );
+void        FS_Init();
+void        FS_Frame();
+void        FS_Shutdown();
 
-const char *FS_GameDirectory( void );
-const char *FS_BaseGameDirectory( void );
+const char *FS_GameDirectory();
+const char *FS_BaseGameDirectory();
 
 // handling of absolute filenames
 // only to be used if necessary (library not supporting custom file handling functions etc.)
-const char *FS_WriteDirectory( void );
-const char *FS_DownloadsDirectory( void );
+const char *FS_WriteDirectory();
+const char *FS_DownloadsDirectory();
 void        FS_CreateAbsolutePath( const char *path );
 const char *FS_AbsoluteNameForFile( const char *filename );
 const char *FS_AbsoluteNameForBaseFile( const char *filename );
@@ -556,19 +558,19 @@ MISC
 
 void        Com_BeginRedirect( int target, char *buffer, int buffersize,
 							   void ( *flush )( int, const char*, const void* ), const void *extra );
-void        Com_EndRedirect( void );
-void        Com_DeferConsoleLogReopen( void );
+void        Com_EndRedirect();
+void        Com_DeferConsoleLogReopen();
 
 #ifndef _MSC_VER
 void Com_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 void Com_DPrintf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 void Com_Error( com_error_code_t code, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) ) __attribute__( ( noreturn ) );
-void Com_Quit( void ) __attribute__( ( noreturn ) );
+void Com_Quit() __attribute__( ( noreturn ) );
 #else
 void Com_Printf( _Printf_format_string_ const char *format, ... );
 void Com_DPrintf( _Printf_format_string_ const char *format, ... );
 __declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_string_ const char *format, ... );
-__declspec( noreturn ) void Com_Quit( void );
+__declspec( noreturn ) void Com_Quit();
 #endif
 
 template< typename... Rest >
@@ -587,15 +589,15 @@ void Com_GGError( com_error_code_t code, const char * fmt, const Rest & ... rest
 	Com_Error( code, "%s", buf );
 }
 
-void        Com_DeferQuit( void );
+void        Com_DeferQuit();
 
-int         Com_ClientState( void );        // this should have just been a cvar...
+int         Com_ClientState();        // this should have just been a cvar...
 void        Com_SetClientState( int state );
 
-bool		Com_DemoPlaying( void );
+bool		Com_DemoPlaying();
 void        Com_SetDemoPlaying( bool state );
 
-int         Com_ServerState( void );        // this should have just been a cvar...
+int         Com_ServerState();        // this should have just been a cvar...
 void        Com_SetServerState( int state );
 
 extern cvar_t *developer;
@@ -616,10 +618,10 @@ struct mempool_t;
 #define MEMPOOL_GAME                2
 #define MEMPOOL_CLIENTGAME          4
 
-void Memory_Init( void );
-void Memory_InitCommands( void );
-void Memory_Shutdown( void );
-void Memory_ShutdownCommands( void );
+void Memory_Init();
+void Memory_InitCommands();
+void Memory_Shutdown();
+void Memory_ShutdownCommands();
 
 ATTRIBUTE_MALLOC void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t aligment, int z, int musthave, int canthave, const char *filename, int fileline );
 ATTRIBUTE_MALLOC void *_Mem_Alloc( mempool_t *pool, size_t size, int musthave, int canthave, const char *filename, int fileline );
@@ -672,7 +674,7 @@ void Q_free( void *buf );
 
 void Qcommon_Init( int argc, char **argv );
 void Qcommon_Frame( unsigned int realMsec );
-void Qcommon_Shutdown( void );
+void Qcommon_Shutdown();
 
 /*
 ==============================================================
@@ -706,10 +708,10 @@ bool Sys_BeingDebugged();
 
 #ifndef _MSC_VER
 void Sys_Error( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
-void Sys_Quit( void ) __attribute__( ( noreturn ) );
+void Sys_Quit() __attribute__( ( noreturn ) );
 #else
 __declspec( noreturn ) void Sys_Error( _Printf_format_string_ const char *error, ... );
-__declspec( noreturn ) void Sys_Quit( void );
+__declspec( noreturn ) void Sys_Quit();
 #endif
 
 /*
@@ -720,13 +722,13 @@ CLIENT / SERVER SYSTEMS
 ==============================================================
 */
 
-void CL_Init( void );
+void CL_Init();
 void CL_Disconnect( const char *message );
-void CL_Shutdown( void );
+void CL_Shutdown();
 void CL_Frame( int realMsec, int gameMsec );
 void Con_Print( const char *text );
 
-void SV_Init( void );
+void SV_Init();
 void SV_Shutdown( const char *finalmsg );
 void SV_ShutdownGame( const char *finalmsg, bool reconnect );
 void SV_Frame( unsigned realMsec, unsigned gameMsec );

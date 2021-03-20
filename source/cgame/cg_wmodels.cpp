@@ -37,10 +37,10 @@ static WeaponModelMetadata LoadWeaponModel( WeaponType weapon ) {
 
 	ParseWeaponModelConfig( &metadata, temp( "weapons/{}/model.cfg", name ) );
 
-	metadata.fire_sound = FindSoundEffect( temp( "weapons/{}/fire", name ) );
-	metadata.up_sound = FindSoundEffect( temp( "weapons/{}/up", name ) );
-	metadata.zoom_in_sound = FindSoundEffect( temp( "weapons/{}/zoom_in", name ) );
-	metadata.zoom_out_sound = FindSoundEffect( temp( "weapons/{}/zoom_out", name ) );
+	metadata.fire_sound = StringHash( temp( "weapons/{}/fire", name ) );
+	metadata.up_sound = StringHash( temp( "weapons/{}/up", name ) );
+	metadata.zoom_in_sound = StringHash( temp( "weapons/{}/zoom_in", name ) );
+	metadata.zoom_out_sound = StringHash( temp( "weapons/{}/zoom_out", name ) );
 
 	metadata.tag_projectionsource.origin = Vec3( 16, 0, 8 );
 	Matrix3_Identity( metadata.tag_projectionsource.axis );

@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 /*
 * Cmd_ConsoleSay_f
 */
-static void Cmd_ConsoleSay_f( void ) {
+static void Cmd_ConsoleSay_f() {
 	G_ChatMsg( NULL, NULL, false, "%s", Cmd_Args() );
 }
 
@@ -31,7 +31,7 @@ static void Cmd_ConsoleSay_f( void ) {
 /*
 * Cmd_ConsoleKick_f
 */
-static void Cmd_ConsoleKick_f( void ) {
+static void Cmd_ConsoleKick_f() {
 	edict_t *ent;
 
 	if( Cmd_Argc() != 2 ) {
@@ -52,7 +52,7 @@ static void Cmd_ConsoleKick_f( void ) {
 /*
 * Cmd_Match_f
 */
-static void Cmd_Match_f( void ) {
+static void Cmd_Match_f() {
 	const char *cmd;
 
 	if( Cmd_Argc() != 2 ) {
@@ -160,7 +160,7 @@ static bool StringToFilter( const char *s, ipfilter_t *f ) {
 /*
 * SV_ResetPacketFiltersTimeouts
 */
-void SV_ResetPacketFiltersTimeouts( void ) {
+void SV_ResetPacketFiltersTimeouts() {
 	int i;
 
 	for( i = 0; i < MAX_IPFILTERS; i++ )
@@ -208,7 +208,7 @@ bool SV_FilterPacket( char *from ) {
 /*
 * SV_ReadIPList
 */
-void SV_ReadIPList( void ) {
+void SV_ReadIPList() {
 	SV_ResetPacketFiltersTimeouts();
 
 	Cbuf_ExecuteText( EXEC_APPEND, "exec listip.cfg silent\n" );
@@ -217,7 +217,7 @@ void SV_ReadIPList( void ) {
 /*
 * SV_WriteIPList
 */
-void SV_WriteIPList( void ) {
+void SV_WriteIPList() {
 	int file;
 	char name[MAX_QPATH];
 	char string[MAX_STRING_CHARS];
@@ -255,7 +255,7 @@ void SV_WriteIPList( void ) {
 /*
 * Cmd_AddIP_f
 */
-static void Cmd_AddIP_f( void ) {
+static void Cmd_AddIP_f() {
 	int i;
 
 	if( Cmd_Argc() < 2 ) {
@@ -286,7 +286,7 @@ static void Cmd_AddIP_f( void ) {
 /*
 * Cmd_RemoveIP_f
 */
-static void Cmd_RemoveIP_f( void ) {
+static void Cmd_RemoveIP_f() {
 	ipfilter_t f;
 	int i, j;
 
@@ -314,7 +314,7 @@ static void Cmd_RemoveIP_f( void ) {
 /*
 * Cmd_ListIP_f
 */
-static void Cmd_ListIP_f( void ) {
+static void Cmd_ListIP_f() {
 	int i;
 	uint8_t b[4];
 
@@ -333,14 +333,14 @@ static void Cmd_ListIP_f( void ) {
 /*
 * Cmd_WriteIP_f
 */
-static void Cmd_WriteIP_f( void ) {
+static void Cmd_WriteIP_f() {
 	SV_WriteIPList();
 }
 
 /*
 * G_AddCommands
 */
-void G_AddServerCommands( void ) {
+void G_AddServerCommands() {
 	if( is_dedicated_server ) {
 		Cmd_AddCommand( "say", Cmd_ConsoleSay_f );
 	}
@@ -361,7 +361,7 @@ void G_AddServerCommands( void ) {
 /*
 * G_RemoveCommands
 */
-void G_RemoveCommands( void ) {
+void G_RemoveCommands() {
 	if( is_dedicated_server ) {
 		Cmd_RemoveCommand( "say" );
 	}

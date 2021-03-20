@@ -250,7 +250,7 @@ void SV_BroadcastCommand( const char *format, ... ) {
 /*
 * SV_SendClientsFragments
 */
-bool SV_SendClientsFragments( void ) {
+bool SV_SendClientsFragments() {
 	client_t *client;
 	int i;
 	bool sent = false;
@@ -339,7 +339,7 @@ bool SV_SendMessageToClient( client_t *client, msg_t *msg ) {
 * SV_ResetClientFrameCounters
 * This is used for a temporary sanity check I'm doing.
 */
-void SV_ResetClientFrameCounters( void ) {
+void SV_ResetClientFrameCounters() {
 	int i;
 	client_t *client;
 	for( i = 0, client = svs.clients; i < sv_maxclients->integer; i++, client++ ) {
@@ -393,7 +393,7 @@ static bool SV_SendClientDatagram( client_t *client ) {
 /*
 * SV_SendClientMessages
 */
-void SV_SendClientMessages( void ) {
+void SV_SendClientMessages() {
 	ZoneScoped;
 
 	int i;

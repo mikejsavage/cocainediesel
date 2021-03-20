@@ -121,7 +121,7 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 /*
 * G_EndServerFrames_UpdateChaseCam
 */
-void G_EndServerFrames_UpdateChaseCam( void ) {
+void G_EndServerFrames_UpdateChaseCam() {
 	int i, team;
 	edict_t *ent;
 

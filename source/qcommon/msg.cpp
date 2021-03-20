@@ -291,6 +291,18 @@ void MSG_WriteInt64( msg_t *msg, int64_t c ) {
 	buf[7] = ( uint8_t )( c >> 56L );
 }
 
+void MSG_WriteUint64( msg_t *msg, uint64_t c ) {
+	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 8 );
+	buf[0] = ( uint8_t )( c & 0xffL );
+	buf[1] = ( uint8_t )( ( c >> 8L ) & 0xffL );
+	buf[2] = ( uint8_t )( ( c >> 16L ) & 0xffL );
+	buf[3] = ( uint8_t )( ( c >> 24L ) & 0xffL );
+	buf[4] = ( uint8_t )( ( c >> 32L ) & 0xffL );
+	buf[5] = ( uint8_t )( ( c >> 40L ) & 0xffL );
+	buf[6] = ( uint8_t )( ( c >> 48L ) & 0xffL );
+	buf[7] = ( uint8_t )( c >> 56L );
+}
+
 void MSG_WriteUintBase128( msg_t *msg, uint64_t c ) {
 	uint8_t buf[10];
 	size_t len = 0;
@@ -394,6 +406,22 @@ int64_t MSG_ReadInt64( msg_t *msg ) {
 		| ( ( int64_t )msg->data[msg->readcount - 3] << 40L )
 		| ( ( int64_t )msg->data[msg->readcount - 2] << 48L )
 		| ( ( int64_t )msg->data[msg->readcount - 1] << 56L );
+}
+
+uint64_t MSG_ReadUint64( msg_t *msg ) {
+	msg->readcount += 8;
+	if( msg->readcount > msg->cursize ) {
+		return 0;
+	}
+
+	return ( uint64_t )msg->data[msg->readcount - 8]
+		| ( ( uint64_t )msg->data[msg->readcount - 7] << 8L )
+		| ( ( uint64_t )msg->data[msg->readcount - 6] << 16L )
+		| ( ( uint64_t )msg->data[msg->readcount - 5] << 24L )
+		| ( ( uint64_t )msg->data[msg->readcount - 4] << 32L )
+		| ( ( uint64_t )msg->data[msg->readcount - 3] << 40L )
+		| ( ( uint64_t )msg->data[msg->readcount - 2] << 48L )
+		| ( ( uint64_t )msg->data[msg->readcount - 1] << 56L );
 }
 
 uint64_t MSG_ReadUintBase128( msg_t *msg ) {
@@ -631,8 +659,6 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	DeltaHalf( buf, player.viewheight, baseline.viewheight );
 
-	Delta( buf, player.plrkeys, baseline.plrkeys );
-
 	Delta( buf, player.weapons, baseline.weapons );
 	Delta( buf, player.items, baseline.items );
 
@@ -647,6 +673,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	Delta( buf, player.weapon, baseline.weapon );
 	Delta( buf, player.pending_weapon, baseline.pending_weapon );
+	Delta( buf, player.last_weapon, baseline.last_weapon );
 	Delta( buf, player.weapon_time, baseline.weapon_time );
 	Delta( buf, player.zoom_time, baseline.zoom_time );
 

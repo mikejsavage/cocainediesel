@@ -348,7 +348,7 @@ bool TrySpanToInt( Span< const char > str, int * x ) {
 
 bool TrySpanToFloat( Span< const char > str, float * x ) {
 	char buf[ 128 ];
-	if( str.n >= sizeof( buf ) )
+	if( str.n == 0 || str.n >= sizeof( buf ) )
 		return false;
 
 	memcpy( buf, str.ptr, str.n );
@@ -360,6 +360,33 @@ bool TrySpanToFloat( Span< const char > str, float * x ) {
 	return end == buf + str.n;
 }
 
+bool TryStringToU64( const char * str, u64 * x ) {
+	if( strlen( str ) == 0 )
+		return false;
+
+	u64 res = 0;
+	while( true ) {
+		if( *str == '\0' )
+			break;
+
+		if( *str < '0' || *str > '9' )
+			return false;
+
+		if( U64_MAX / 10 < res )
+			return false;
+
+		u64 digit = *str - '0';
+		if( U64_MAX - digit < res )
+			return false;
+
+		res = res * 10 + digit;
+		str++;
+	}
+
+	*x = res;
+	return true;
+}
+
 int SpanToInt( Span< const char > token, int def ) {
 	int x;
 	return TrySpanToInt( token, &x ) ? x : def;
@@ -368,6 +395,11 @@ int SpanToInt( Span< const char > token, int def ) {
 float SpanToFloat( Span< const char > token, float def ) {
 	float x;
 	return TrySpanToFloat( token, &x ) ? x : def;
+}
+
+u64 StringToU64( const char * str, u64 def ) {
+	u64 x;
+	return TryStringToU64( str, &x ) ? x : def;
 }
 
 int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop ) {
@@ -1053,6 +1085,26 @@ bool Info_SetValueForKey( char *info, const char *key, const char *value ) {
 	return true;
 }
 
+Span< const char > ParseWorldspawnKey( Span< const char > entities, const char * name ) {
+	Span< const char > cursor = entities;
+
+	if( ParseToken( &cursor, Parse_DontStopOnNewLine ) != "{" ) {
+		Com_Error( ERR_FATAL, "Entity string doesn\'t start with {" );
+	}
+
+	while( true ) {
+		Span< const char > key = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		Span< const char > value = ParseToken( &cursor, Parse_DontStopOnNewLine );
+
+		if( key == "" || value == "" || key == "}" )
+			break;
+
+		if( StrCaseEqual( key, name ) )
+			return value;
+	}
+
+	return Span< const char >();
+}
 
 //=====================================================================
 //

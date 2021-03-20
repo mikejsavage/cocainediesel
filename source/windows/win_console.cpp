@@ -22,7 +22,7 @@ static char *OEM_to_utf8( const char *str ) {
 	return utf8str;
 }
 
-const char *Sys_ConsoleInput( void ) {
+const char *Sys_ConsoleInput() {
 	INPUT_RECORD rec;
 	int ch;
 	DWORD dummy;

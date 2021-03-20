@@ -39,16 +39,6 @@ short ShortSwap( short l );
 #define EXEC_NOW                    0           // don't return until completed
 #define EXEC_APPEND                 1           // add to end of the command buffer
 
-//=============================================
-// fonts
-//=============================================
-
-#define SYSTEM_FONT_TINY_SIZE       8
-#define SYSTEM_FONT_CONSOLE_SIZE    12
-#define SYSTEM_FONT_SMALL_SIZE      14
-#define SYSTEM_FONT_MEDIUM_SIZE     16
-#define SYSTEM_FONT_BIG_SIZE        24
-
 //==============================================================
 //
 //PATHLIB
@@ -74,9 +64,11 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 
 bool TrySpanToInt( Span< const char > str, int * x );
 bool TrySpanToFloat( Span< const char > str, float * x );
+bool TryStringToU64( const char * str, u64 * x );
 
 int SpanToInt( Span< const char > token, int def );
 float SpanToFloat( Span< const char > token, float def );
+u64 StringToU64( const char * str, u64 def );
 
 int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop );
 float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop );
@@ -191,6 +183,8 @@ char *Info_ValueForKey( const char *s, const char *key );
 void Info_RemoveKey( char *s, const char *key );
 bool Info_SetValueForKey( char *s, const char *key, const char *value );
 bool Info_Validate( const char *s );
+
+Span< const char > ParseWorldspawnKey( Span< const char > entities, const char * name );
 
 //==============================================
 

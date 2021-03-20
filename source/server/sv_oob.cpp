@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static netadr_t sv_masters[ ARRAY_COUNT( MASTER_SERVERS ) ];
 
 extern cvar_t *sv_hostname;
-extern cvar_t *sv_reconnectlimit;     // minimum seconds between connect messages
 extern cvar_t *rcon_password;         // password for remote server commands
 extern cvar_t *sv_iplimit;
 
@@ -35,7 +34,7 @@ extern cvar_t *sv_iplimit;
 //
 //==============================================================================
 
-static void SV_ResolveMaster( void ) {
+static void SV_ResolveMaster() {
 	memset( sv_masters, 0, sizeof( sv_masters ) );
 
 	if( sv.state > ss_game ) {
@@ -64,7 +63,7 @@ static void SV_ResolveMaster( void ) {
 * SV_InitMaster
 * Set up the main master server
 */
-void SV_InitMaster( void ) {
+void SV_InitMaster() {
 	SV_ResolveMaster();
 
 	svc.nextHeartbeat = Sys_Milliseconds();
@@ -73,7 +72,7 @@ void SV_InitMaster( void ) {
 /*
 * SV_UpdateMaster
 */
-void SV_UpdateMaster( void ) {
+void SV_UpdateMaster() {
 	// refresh master server IP addresses periodically
 	if( svc.lastMasterResolve + TTL_MASTERS < Sys_Milliseconds() ) {
 		SV_ResolveMaster();
@@ -85,7 +84,7 @@ void SV_UpdateMaster( void ) {
 * Send a message to the master every few minutes to
 * let it know we are alive, and log information
 */
-void SV_MasterHeartbeat( void ) {
+void SV_MasterHeartbeat() {
 	int64_t time = Sys_Milliseconds();
 
 	if( svc.nextHeartbeat > time ) {
@@ -179,7 +178,7 @@ static char *SV_LongInfoString( bool fullStatus ) {
 */
 #define MAX_STRING_SVCINFOSTRING 180
 #define MAX_SVCINFOSTRING_LEN ( MAX_STRING_SVCINFOSTRING - 4 )
-static char *SV_ShortInfoString( void ) {
+static char *SV_ShortInfoString() {
 	static char string[MAX_STRING_SVCINFOSTRING];
 	char hostname[64];
 	char entry[20];
@@ -421,29 +420,22 @@ static void SVC_GetChallenge( const socket_t *socket, const netadr_t *address ) 
 	Netchan_OutOfBandPrint( socket, address, "challenge %i", svs.challenges[i].challenge );
 }
 
-
 /*
 * SVC_DirectConnect
 * A connection request that did not come from the master
 */
 static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address ) {
-	char userinfo[MAX_INFO_STRING];
-	client_t *cl, *newcl;
-	int i, version, game_port, challenge;
-	int previousclients;
-	int64_t time;
-
 	Com_DPrintf( "SVC_DirectConnect (%s)\n", Cmd_Args() );
 
-	version = atoi( Cmd_Argv( 1 ) );
+	int version = atoi( Cmd_Argv( 1 ) );
 	if( version != APP_PROTOCOL_VERSION ) {
 		Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nServer and client don't have the same version\n", DROP_TYPE_GENERAL, 0 );
 		Com_DPrintf( "    rejected connect from protocol %i\n", version );
 		return;
 	}
 
-	game_port = atoi( Cmd_Argv( 2 ) );
-	challenge = atoi( Cmd_Argv( 3 ) );
+	u64 session_id = StringToU64( Cmd_Argv( 2 ), 0 );
+	int challenge = atoi( Cmd_Argv( 3 ) );
 
 	if( !Info_Validate( Cmd_Argv( 4 ) ) ) {
 		Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nInvalid userinfo string\n", DROP_TYPE_GENERAL, 0 );
@@ -451,6 +443,7 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 		return;
 	}
 
+	char userinfo[ MAX_INFO_STRING ];
 	Q_strncpyz( userinfo, Cmd_Argv( 4 ), sizeof( userinfo ) );
 
 	// force the IP key/value pair so the game can filter based on ip
@@ -468,29 +461,33 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 	}
 
 	// see if the challenge is valid
-	for( i = 0; i < MAX_CHALLENGES; i++ ) {
-		if( NET_CompareBaseAddress( address, &svs.challenges[i].adr ) ) {
-			if( challenge == svs.challenges[i].challenge ) {
-				svs.challenges[i].challenge = 0; // wsw : r1q2 : reset challenge
-				svs.challenges[i].time = 0;
-				NET_InitAddress( &svs.challenges[i].adr, NA_NOTRANSMIT );
-				break; // good
+	{
+		int i;
+		for( i = 0; i < MAX_CHALLENGES; i++ ) {
+			if( NET_CompareBaseAddress( address, &svs.challenges[i].adr ) ) {
+				if( challenge == svs.challenges[i].challenge ) {
+					svs.challenges[i].challenge = 0; // wsw : r1q2 : reset challenge
+					svs.challenges[i].time = 0;
+					NET_InitAddress( &svs.challenges[i].adr, NA_NOTRANSMIT );
+					break; // good
+				}
+				Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nBad challenge\n",
+										DROP_TYPE_GENERAL, DROP_FLAG_AUTORECONNECT );
+				return;
 			}
-			Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nBad challenge\n",
+		}
+		if( i == MAX_CHALLENGES ) {
+			Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nNo challenge for address\n",
 									DROP_TYPE_GENERAL, DROP_FLAG_AUTORECONNECT );
 			return;
 		}
 	}
-	if( i == MAX_CHALLENGES ) {
-		Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nNo challenge for address\n",
-								DROP_TYPE_GENERAL, DROP_FLAG_AUTORECONNECT );
-		return;
-	}
 
 	//r1: limit connections from a single IP
 	if( sv_iplimit->integer ) {
-		previousclients = 0;
-		for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
+		int previousclients = 0;
+		for( int i = 0; i < sv_maxclients->integer; i++ ) {
+			client_t * cl = &svs.clients[ i ];
 			if( cl->state == CS_FREE ) {
 				continue;
 			}
@@ -512,52 +509,32 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 		}
 	}
 
-	newcl = NULL;
+	client_t * newcl = NULL;
 
-	// if there is already a slot for this ip, reuse it
-	time = Sys_Milliseconds();
-	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
+	// find a client slot
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		client_t * cl = &svs.clients[ i ];
 		if( cl->state == CS_FREE ) {
-			continue;
-		}
-		if( NET_CompareAddress( address, &cl->netchan.remoteAddress ) ||
-			( NET_CompareBaseAddress( address, &cl->netchan.remoteAddress ) && cl->netchan.game_port == game_port ) ) {
-			if( !NET_IsLocalAddress( address ) &&
-				( time - cl->lastconnect ) < (unsigned)( sv_reconnectlimit->integer * 1000 ) ) {
-				Com_DPrintf( "%s:reconnect rejected : too soon\n", NET_AddressToString( address ) );
-				return;
-			}
-			Com_Printf( "%s:reconnect\n", NET_AddressToString( address ) );
 			newcl = cl;
 			break;
 		}
+		// overwrite fakeclient if no free spots found
+		if( cl->state && cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
+			newcl = cl;
+		}
 	}
-
-	// find a client slot
 	if( !newcl ) {
-		for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
-			if( cl->state == CS_FREE ) {
-				newcl = cl;
-				break;
-			}
-			// overwrite fakeclient if no free spots found
-			if( cl->state && cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
-				newcl = cl;
-			}
-		}
-		if( !newcl ) {
-			Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nServer is full\n", DROP_TYPE_GENERAL,
-									DROP_FLAG_AUTORECONNECT );
-			Com_DPrintf( "Server is full. Rejected a connection.\n" );
-			return;
-		}
-		if( newcl->state && newcl->edict && ( newcl->edict->r.svflags & SVF_FAKECLIENT ) ) {
-			SV_DropClient( newcl, DROP_TYPE_GENERAL, "%s", "Need room for a real player" );
-		}
+		Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nServer is full\n", DROP_TYPE_GENERAL,
+								DROP_FLAG_AUTORECONNECT );
+		Com_DPrintf( "Server is full. Rejected a connection.\n" );
+		return;
+	}
+	if( newcl->state && newcl->edict && ( newcl->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		SV_DropClient( newcl, DROP_TYPE_GENERAL, "%s", "Need room for a real player" );
 	}
 
 	// get the game a chance to reject this connection or modify the userinfo
-	if( !SV_ClientConnect( socket, address, newcl, userinfo, game_port, challenge, false ) ) {
+	if( !SV_ClientConnect( socket, address, newcl, userinfo, session_id, challenge, false ) ) {
 		const char *rejtype, *rejflag, *rejtypeflag, *rejmsg;
 
 		rejtype = Info_ValueForKey( userinfo, "rejtype" );
@@ -634,7 +611,7 @@ int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const
 
 	NET_InitAddress( &address, NA_NOTRANSMIT );
 	// get the game a chance to reject this connection or modify the userinfo
-	if( !SV_ClientConnect( NULL, &address, newcl, userinfo, -1, -1, true ) ) {
+	if( !SV_ClientConnect( NULL, &address, newcl, userinfo, 0, -1, true ) ) {
 		Com_DPrintf( "Game rejected a connection.\n" );
 		return -1;
 	}
@@ -649,7 +626,7 @@ int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const
 /*
 * Rcon_Validate
 */
-static int Rcon_Validate( void ) {
+static int Rcon_Validate() {
 	if( !strlen( rcon_password->string ) ) {
 		return 0;
 	}

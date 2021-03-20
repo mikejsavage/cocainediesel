@@ -18,12 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "gameshared/q_arch.h"
-#include "gameshared/q_math.h"
-#include "gameshared/q_shared.h"
-#include "gameshared/q_collision.h"
-#include "gameshared/gs_public.h"
-#include "qcommon/qfiles.h"
+#include "qcommon/qcommon.h"
 
 #define SPEEDKEY    500.0f
 
@@ -78,27 +73,30 @@ static const gs_state_t * pmove_gs;
 #define DEFAULT_CROUCHEDSPEED 100.0f
 #define DEFAULT_LADDERSPEED 300.0f
 
-const float pm_friction = 16; //  ( initially 6 )
-const float pm_waterfriction = 16;
-const float pm_wateraccelerate = 12; // user intended acceleration when swimming ( initially 6 )
+constexpr float pm_friction = 16; //  ( initially 6 )
+constexpr float pm_waterfriction = 16;
+constexpr float pm_wateraccelerate = 12; // user intended acceleration when swimming ( initially 6 )
 
-const float pm_accelerate = 16; // user intended acceleration when on ground or fly movement ( initially 10 )
-const float pm_decelerate = 16; // user intended deceleration when on ground
+constexpr float pm_accelerate = 16; // user intended acceleration when on ground or fly movement ( initially 10 )
+constexpr float pm_decelerate = 16; // user intended deceleration when on ground
 
-const float pm_airaccelerate = 0.5f; // user intended aceleration when on air
-const float pm_airdecelerate = 1.0f; // air deceleration (not +strafe one, just at normal moving).
+constexpr float pm_airaccelerate = 0.5f; // user intended aceleration when on air
+constexpr float pm_airdecelerate = 1.0f; // air deceleration (not +strafe one, just at normal moving).
 
 // special movement parameters
 
-const float pm_aircontrol = 140.0f; // aircontrol multiplier (intertia velocity to forward velocity conversion)
-const float pm_strafebunnyaccel = 60; // forward acceleration when strafe bunny hopping
-const float pm_wishspeed = 30;
+constexpr float pm_aircontrol = 140.0f; // aircontrol multiplier (intertia velocity to forward velocity conversion)
+constexpr float pm_strafebunnyaccel = 60; // forward acceleration when strafe bunny hopping
+constexpr float pm_wishspeed = 30;
 
-const float pm_dashupspeed = ( 174.0f * GRAVITY_COMPENSATE );
+constexpr float pm_dashupspeed = ( 174.0f * GRAVITY_COMPENSATE );
 
-const float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
-const float pm_wjbouncefactor = 0.4f;
-#define pm_wjminspeed ( ( pml.maxWalkSpeed + pml.maxPlayerSpeed ) * 0.5f )
+constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
+constexpr float pm_wjbouncefactor = 0.4f;
+
+static float pm_wjminspeed() {
+	return ( pml.maxWalkSpeed + pml.maxPlayerSpeed ) * 0.5f;
+}
 
 static float Normalize2D( Vec3 * v ) {
 	float length = Length( v->xy() );
@@ -292,7 +290,7 @@ static int PM_SlideMove() {
 				}
 
 				// bad luck: slide the original velocity along the crease
-				Vec3 dir = Normalize( Cross( planes[i], planes[j] ) );
+				Vec3 dir = SafeNormalize( Cross( planes[i], planes[j] ) );
 				float value = Dot( dir, pml.velocity );
 				pml.velocity = dir * value;
 
@@ -444,10 +442,6 @@ static void PM_Accelerate( Vec3 wishdir, float wishspeed, float accel ) {
 
 // when using +strafe convert the inertia to forward speed.
 static void PM_Aircontrol( Vec3 wishdir, float wishspeed ) {
-	if( !pm_aircontrol ) {
-		return;
-	}
-
 	// accelerate
 	float smove = pml.sidePush;
 
@@ -610,7 +604,7 @@ static void PM_Move() {
 
 		// Air control
 		PM_Accelerate( wishdir, wishspeed, accel );
-		if( pm_aircontrol && !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) && pm->playerState->pmove.knockback_time <= 0 ) { // no air ctrl while wjing
+		if( !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) && pm->playerState->pmove.knockback_time <= 0 ) { // no air ctrl while wjing
 			PM_Aircontrol( wishdir, wishspeed2 );
 		}
 
@@ -947,8 +941,8 @@ static void PM_CheckWallJump() {
 				pml.velocity = GS_ClipVelocity( pml.velocity, normal, 1.0005f );
 				pml.velocity = pml.velocity + normal * pm_wjbouncefactor;
 
-				if( hspeed < pm_wjminspeed ) {
-					hspeed = pm_wjminspeed;
+				if( hspeed < pm_wjminspeed() ) {
+					hspeed = pm_wjminspeed();
 				}
 
 				pml.velocity = Normalize( pml.velocity );
@@ -1061,9 +1055,6 @@ static void PM_FlyMove( bool doclip ) {
 		smove *= 2;
 	}
 
-	pml.forward = Normalize( pml.forward );
-	pml.right = Normalize( pml.right );
-
 	Vec3 wishvel = pml.forward * fmove + pml.right * smove;
 	wishvel.z += pml.upPush;
 
@@ -1121,9 +1112,7 @@ static void PM_AdjustBBox() {
 		pm->playerState->viewheight = playerbox_stand_viewheight;
 	}
 
-	if( pml.upPush < 0 && ( pm->playerState->pmove.features & PMFEAT_CROUCH ) &&
-		( pm->playerState->pmove.pm_flags & PMF_ON_GROUND ) ) {
-
+	if( pml.upPush < 0 && ( pm->playerState->pmove.features & PMFEAT_CROUCH ) ) {
 		if( pm->playerState->pmove.crouch_time == 0 ) {
 			pm->playerState->pmove.tbag_time = Min2( pm->playerState->pmove.tbag_time + TBAG_AMOUNT_PER_CROUCH, int( MAX_TBAG_TIME ) );
 
@@ -1463,7 +1452,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 				pml.flatforward = pml.forward;
 			}
 			pml.flatforward.z = 0.0f;
-			pml.flatforward = Normalize( pml.flatforward );
+			pml.flatforward = SafeNormalize( pml.flatforward );
 
 			PM_Move();
 		}

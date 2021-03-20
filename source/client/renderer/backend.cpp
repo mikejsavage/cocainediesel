@@ -58,8 +58,10 @@ static NonRAIIDynamicArray< DrawCall > draw_calls;
 static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
 static NonRAIIDynamicArray< TextureBuffer > deferred_tb_deletes;
 
+#if TRACY_ENABLE
 alignas( tracy::GpuCtxScope ) static char renderpass_zone_memory[ sizeof( tracy::GpuCtxScope ) ];
 static tracy::GpuCtxScope * renderpass_zone;
+#endif
 
 static u32 num_vertices_this_frame;
 

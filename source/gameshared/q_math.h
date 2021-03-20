@@ -63,6 +63,8 @@ bool BoundsOverlapSphere( Vec3 mins, Vec3 maxs, Vec3 centre, float radius );
 u64 DirToU64( Vec3 dir );
 Vec3 U64ToDir( u64 v );
 
+float SignedOne( float x );
+
 void ViewVectors( Vec3 forward, Vec3 * right, Vec3 * up );
 void AngleVectors( Vec3 angles, Vec3 * forward, Vec3 * right, Vec3 * up );
 Vec3 LerpAngles( Vec3 a, float t, Vec3 b );
@@ -70,6 +72,7 @@ float AngleNormalize360( float angle );
 float AngleNormalize180( float angle );
 float AngleDelta( float angle1, float angle2 );
 Vec3 AngleDelta( Vec3 angle1, Vec3 angle2 );
+EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b );
 Vec3 VecToAngles( Vec3 vec );
 void AnglesToAxis( Vec3 angles, mat3_t axis );
 void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent );
@@ -90,10 +93,8 @@ void ProjectPointOntoVector( Vec3 point, Vec3 vStart, Vec3 vDir, Vec3 * vProj );
 
 void Matrix3_Identity( mat3_t m );
 void Matrix3_Copy( const mat3_t m1, mat3_t m2 );
-bool Matrix3_Compare( const mat3_t m1, const mat3_t m2 );
 void Matrix3_Multiply( const mat3_t m1, const mat3_t m2, mat3_t out );
 void Matrix3_TransformVector( const mat3_t m, Vec3 v, Vec3 * out );
-void Matrix3_Transpose( const mat3_t in, mat3_t out );
 void Matrix3_FromAngles( Vec3 angles, mat3_t m );
 
 float PositiveMod( float x, float y );

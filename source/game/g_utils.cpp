@@ -230,7 +230,7 @@ void G_LevelInitPool( size_t size ) {
 /*
 * G_LevelFreePool
 */
-void G_LevelFreePool( void ) {
+void G_LevelFreePool() {
 	if( levelzone ) {
 		G_Free( levelzone );
 		levelzone = NULL;
@@ -281,7 +281,7 @@ static g_poolstring_t *g_stringpool_hash[STRINGPOOL_HASH_SIZE];
 *
 * Preallocates a memory region to permanently store level strings
 */
-void G_StringPoolInit( void ) {
+void G_StringPoolInit() {
 	memset( g_stringpool_hash, 0, sizeof( g_stringpool_hash ) );
 
 	g_stringpool = ( uint8_t * )G_LevelMalloc( STRINGPOOL_SIZE );
@@ -582,16 +582,14 @@ void G_InitEdict( edict_t *e ) {
 * instead of being removed and recreated, which can cause interpolated
 * angles and bad trails.
 */
-edict_t *G_Spawn( void ) {
-	int i;
-	edict_t *e, *freed;
-
+edict_t *G_Spawn() {
 	if( !level.canSpawnEntities ) {
 		Com_Printf( "WARNING: Spawning entity before map entities have been spawned\n" );
 	}
 
-	freed = NULL;
-	e = &game.edicts[server_gs.maxclients + 1];
+	int i;
+	edict_t * freed = NULL;
+	edict_t * e = &game.edicts[server_gs.maxclients + 1];
 	for( i = server_gs.maxclients + 1; i < game.numentities; i++, e++ ) {
 		if( e->r.inuse ) {
 			continue;
@@ -621,7 +619,7 @@ edict_t *G_Spawn( void ) {
 
 	game.numentities++;
 
-	SV_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, game.numentities, game.maxentities );
 
 	G_InitEdict( e );
 
@@ -901,7 +899,7 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 }
 
 void G_ClearCenterPrint( edict_t *ent ) {
-	G_CenterPrintMsg( ent, "" );
+	G_CenterPrintMsg( ent, "%s", "" );
 }
 
 /*
@@ -910,7 +908,8 @@ void G_ClearCenterPrint( edict_t *ent ) {
 * Prints death message to all clients
 */
 void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, int mod ) {
-	PF_GameCmd( NULL, va( "obry %i %i %i %i %" PRIi64, ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod, random_u64( &svs.rng ) ) );
+	TempAllocator temp = svs.frame_arena.temp();
+	PF_GameCmd( NULL, temp( "obry {} {} {} {} {}", ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod, random_u64( &svs.rng ) ) );
 }
 
 //==================================================

@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/angelwrap/qas_public.h"
 
-void asemptyfunc( void ) {}
+void asemptyfunc() {}
 
 static const asEnumVal_t asSpawnSystemEnumVals[] =
 {
@@ -59,8 +59,38 @@ static const asEnumVal_t asDamageEnumVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
-static const asEnumVal_t asMiscelaneaEnumVals[] =
+static const asEnumVal_t asMeanOfDeathVals[] =
 {
+	ASLIB_ENUM_VAL( MeanOfDeath_Knife ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Pistol ),
+	ASLIB_ENUM_VAL( MeanOfDeath_MachineGun ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Deagle ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Shotgun ),
+	ASLIB_ENUM_VAL( MeanOfDeath_AssaultRifle ),
+	ASLIB_ENUM_VAL( MeanOfDeath_StakeGun ),
+	ASLIB_ENUM_VAL( MeanOfDeath_GrenadeLauncher ),
+	ASLIB_ENUM_VAL( MeanOfDeath_RocketLauncher ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Plasma ),
+	ASLIB_ENUM_VAL( MeanOfDeath_BubbleGun ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Lasergun ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Railgun ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Sniper ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Rifle ),
+	ASLIB_ENUM_VAL( MeanOfDeath_MasterBlaster ),
+
+	ASLIB_ENUM_VAL( MeanOfDeath_Slime ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Lava ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Crush ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Telefrag ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Suicide ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Explosion ),
+
+	ASLIB_ENUM_VAL( MeanOfDeath_Trigger ),
+
+	ASLIB_ENUM_VAL( MeanOfDeath_Laser ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Spike ),
+	ASLIB_ENUM_VAL( MeanOfDeath_Void ),
+
 	ASLIB_ENUM_VAL_NULL
 };
 
@@ -182,6 +212,7 @@ static const asEnumVal_t asWeaponTypeEnumVals[] =
 	ASLIB_ENUM_VAL( Weapon_Deagle ),
 	ASLIB_ENUM_VAL( Weapon_Shotgun ),
 	ASLIB_ENUM_VAL( Weapon_AssaultRifle ),
+	ASLIB_ENUM_VAL( Weapon_StakeGun ),
 	ASLIB_ENUM_VAL( Weapon_GrenadeLauncher ),
 	ASLIB_ENUM_VAL( Weapon_RocketLauncher ),
 	ASLIB_ENUM_VAL( Weapon_Plasma ),
@@ -190,6 +221,7 @@ static const asEnumVal_t asWeaponTypeEnumVals[] =
 	ASLIB_ENUM_VAL( Weapon_Railgun ),
 	ASLIB_ENUM_VAL( Weapon_Sniper ),
 	ASLIB_ENUM_VAL( Weapon_Rifle ),
+	ASLIB_ENUM_VAL( Weapon_MasterBlaster ),
 
 	ASLIB_ENUM_VAL( Weapon_Count ),
 
@@ -305,21 +337,6 @@ static const asEnumVal_t asSVFlagEnumVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
-static const asEnumVal_t asKeyiconEnumVals[] =
-{
-	ASLIB_ENUM_VAL( KEYICON_FORWARD ),
-	ASLIB_ENUM_VAL( KEYICON_BACKWARD ),
-	ASLIB_ENUM_VAL( KEYICON_LEFT ),
-	ASLIB_ENUM_VAL( KEYICON_RIGHT ),
-	ASLIB_ENUM_VAL( KEYICON_FIRE ),
-	ASLIB_ENUM_VAL( KEYICON_JUMP ),
-	ASLIB_ENUM_VAL( KEYICON_CROUCH ),
-	ASLIB_ENUM_VAL( KEYICON_SPECIAL ),
-	ASLIB_ENUM_VAL( KEYICON_TOTAL ),
-
-	ASLIB_ENUM_VAL_NULL
-};
-
 static const asEnumVal_t asAxisEnumVals[] =
 {
 	ASLIB_ENUM_VAL( PITCH ),
@@ -362,7 +379,7 @@ static const asEnum_t asGameEnums[] =
 	{ "movetype_e", asMovetypeEnumVals },
 
 	{ "takedamage_e", asDamageEnumVals },
-	{ "miscelanea_e", asMiscelaneaEnumVals },
+	{ "MeansOfDeath", asMeanOfDeathVals },
 
 	{ "configstrings_e", asConfigstringEnumVals },
 	{ "state_effects_e", asEffectEnumVals },
@@ -381,7 +398,6 @@ static const asEnum_t asGameEnums[] =
 	{ "contents_e", asContentsEnumVals },
 	{ "surfaceflags_e", asSurfFlagEnumVals },
 	{ "serverflags_e", asSVFlagEnumVals },
-	{ "keyicon_e", asKeyiconEnumVals },
 
 	{ "axis_e", asAxisEnumVals },
 
@@ -829,10 +845,6 @@ static void objectGameClient_execGameCommand( asstring_t *msg, gclient_t *self )
 	PF_GameCmd( PLAYERENT( playerNum ), msg->buffer );
 }
 
-static unsigned int objectGameClient_getPressedKeys( gclient_t *self ) {
-	return self->ps.plrkeys;
-}
-
 static asstring_t *objectGameClient_getUserInfoKey( asstring_t *key, gclient_t *self ) {
 	char *s;
 
@@ -914,7 +926,6 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, selectWeapon, ( int tag ) ), asFUNCTION( objectGameClient_SelectWeapon ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, addAward, ( const String &in ) ), asFUNCTION( objectGameClient_addAward ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, execGameCommand, ( const String &in ) ), asFUNCTION( objectGameClient_execGameCommand ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( uint, get_pressedKeys, ( ) const ), asFUNCTION( objectGameClient_getPressedKeys ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, getUserInfoKey, ( const String &in ) const ), asFUNCTION( objectGameClient_getUserInfoKey ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, printMessage, ( const String &in ) ), asFUNCTION( objectGameClient_printMessage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, chaseCam, ( const String @, bool teamOnly ) ), asFUNCTION( objectGameClient_ChaseCam ), asCALL_CDECL_OBJLAST },
@@ -1155,7 +1166,7 @@ static void objectGameEntity_TeleportEffect( bool in, edict_t *self ) {
 	G_TeleportEffect( self, in );
 }
 
-static void objectGameEntity_sustainDamage( edict_t *inflictor, edict_t *attacker, asvec3_t *dir, float damage, float knockback, int mod, edict_t *self ) {
+static void objectGameEntity_sustainDamage( edict_t *inflictor, edict_t *attacker, asvec3_t *dir, float damage, float knockback, MeansOfDeath mod, edict_t *self ) {
 	G_Damage( self, inflictor, attacker,
 			  dir ? dir->v : Vec3( 0.0f ), dir ? dir->v : Vec3( 0.0f ),
 			  inflictor ? inflictor->s.origin : self->s.origin,
@@ -1255,7 +1266,7 @@ static const asMethod_t gedict_Methods[] =
 	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargets, ( ) const ), asFUNCTION( objectGameEntity_findTargets ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargeting, ( ) const ), asFUNCTION( objectGameEntity_findTargeting ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, useTargets, ( const Entity @activator ) ), asFUNCTION( objectGameEntity_UseTargets ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, sustainDamage, ( Entity @inflicter, Entity @attacker, const Vec3 &in dir, float damage, float knockback, int mod ) ), asFUNCTION( objectGameEntity_sustainDamage ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, sustainDamage, ( Entity @inflicter, Entity @attacker, const Vec3 &in dir, float damage, float knockback, MeansOfDeath mod ) ), asFUNCTION( objectGameEntity_sustainDamage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, splashDamage, ( Entity @attacker, int radius, float damage, float knockback ) ), asFUNCTION( objectGameEntity_splashDamage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, explosionEffect, ( int radius ) ), asFUNCTION( objectGameEntity_explosionEffect ), asCALL_CDECL_OBJLAST },
 
@@ -1290,7 +1301,6 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( int, moveType ), offsetof( edict_t, movetype ) },
 	{ ASLIB_PROPERTY_DECL( int64, nextThink ), offsetof( edict_t, nextThink ) },
 	{ ASLIB_PROPERTY_DECL( float, health ), offsetof( edict_t, health ) },
-	{ ASLIB_PROPERTY_DECL( int, maxHealth ), offsetof( edict_t, max_health ) },
 	{ ASLIB_PROPERTY_DECL( int, viewHeight ), offsetof( edict_t, viewheight ) },
 	{ ASLIB_PROPERTY_DECL( int, takeDamage ), offsetof( edict_t, takedamage ) },
 	{ ASLIB_PROPERTY_DECL( int, damage ), offsetof( edict_t, dmg ) },
@@ -1487,15 +1497,15 @@ static void asFunc_G_Match_RemoveProjectiles( edict_t *owner ) {
 	G_Match_RemoveProjectiles( owner );
 }
 
-static void asFunc_G_Match_RemoveAllProjectiles( void ) {
+static void asFunc_G_Match_RemoveAllProjectiles() {
 	G_Match_RemoveProjectiles( NULL );
 }
 
-static void asFunc_G_ResetLevel( void ) {
+static void asFunc_G_ResetLevel() {
 	G_ResetLevel();
 }
 
-static void asFunc_G_Match_FreeBodyQueue( void ) {
+static void asFunc_G_Match_FreeBodyQueue() {
 	G_Match_FreeBodyQueue();
 }
 
@@ -1634,6 +1644,11 @@ static void asFunc_G_LoadMap( asstring_t *str ) {
 	G_Aasdf();
 }
 
+static asstring_t *asFunc_G_GetWorldspawnKey( asstring_t * key ) {
+	Span< const char > value = ParseWorldspawnKey( Span< const char >( level.mapString, level.mapStrlen ), key->buffer );
+	return game.asExport->asStringFactoryBuffer( value.ptr, value.n );
+}
+
 static void asFunc_PositionedSound( asvec3_t *origin, int channel, u64 sound ) {
 	if( !origin ) {
 		return;
@@ -1705,6 +1720,7 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "Entity @G_Find( Entity @last, const String &in )", asFUNCTION( asFunc_G_Find ), NULL },
 
 	{ "void G_LoadMap( const String &name )", asFUNCTION( asFunc_G_LoadMap ), NULL },
+	{ "const String @G_GetWorldspawnKey( const String &key )", asFUNCTION( asFunc_G_GetWorldspawnKey ), NULL },
 
 	// misc management utils
 	{ "void G_RemoveProjectiles( Entity @ )", asFUNCTION( asFunc_G_Match_RemoveProjectiles ), NULL },
@@ -2039,7 +2055,7 @@ asIScriptModule *G_LoadGameScript( const char *moduleName, const char *dir, cons
 /*
 * G_ResetGameModuleScriptData
 */
-static void G_ResetGameModuleScriptData( void ) {
+static void G_ResetGameModuleScriptData() {
 	game.asEngine = NULL;
 }
 
@@ -2263,7 +2279,7 @@ static void G_InitializeGameModuleSyntax( asIScriptEngine *asEngine ) {
 /*
 * G_asInitGameModuleEngine
 */
-void G_asInitGameModuleEngine( void ) {
+void G_asInitGameModuleEngine() {
 	bool asGeneric;
 	asIScriptEngine *asEngine;
 
@@ -2292,7 +2308,7 @@ void G_asInitGameModuleEngine( void ) {
 /*
 * G_asShutdownGameModuleEngine
 */
-void G_asShutdownGameModuleEngine( void ) {
+void G_asShutdownGameModuleEngine() {
 	if( game.asEngine == NULL ) {
 		return;
 	}
@@ -2549,7 +2565,7 @@ static void G_asDumpAPIToFile( const char *path ) {
 *
 * Dump all classes, global functions and variables into a file
 */
-void G_asDumpAPI_f( void ) {
+void G_asDumpAPI_f() {
 	char path[MAX_QPATH];
 
 	snprintf( path, sizeof( path ), "AS_API/v%.g/", Cvar_Value( "version" ) );

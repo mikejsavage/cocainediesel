@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "server.h"
+#include "server/server.h"
 
 
 //===============================================================================
@@ -85,7 +85,7 @@ found_player:
 * devmap: restart game, enable cheats, and start map
 * gamemap: just start the map
 */
-static void SV_Map_f( void ) {
+static void SV_Map_f() {
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "Usage: %s <map>\n", Cmd_Argv( 0 ) );
 		return;
@@ -125,7 +125,7 @@ static void SV_Map_f( void ) {
 /*
 * SV_Status_f
 */
-void SV_Status_f( void ) {
+void SV_Status_f() {
 	int i, j, l;
 	client_t *cl;
 	const char *s;
@@ -136,8 +136,8 @@ void SV_Status_f( void ) {
 	}
 	Com_Printf( "map              : %s\n", sv.mapname );
 
-	Com_Printf( "num score ping name                            lastmsg address               port  \n" );
-	Com_Printf( "--- ----- ---- ------------------------------- ------- --------------------- ------\n" );
+	Com_Printf( "num score ping name                            lastmsg address               session         \n" );
+	Com_Printf( "--- ----- ---- ------------------------------- ------- --------------------- ----------------\n" );
 	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
 		if( !cl->state ) {
 			continue;
@@ -170,7 +170,7 @@ void SV_Status_f( void ) {
 			Com_Printf( " " );
 		Com_Printf( " " ); // always add at least one space between the columns because IPv6 addresses are long
 
-		Com_Printf( "%5i", cl->netchan.game_port );
+		Com_GGPrint( "{16x}", cl->netchan.session_id );
 		Com_Printf( "\n" );
 	}
 	Com_Printf( "\n" );
@@ -179,7 +179,7 @@ void SV_Status_f( void ) {
 /*
 * SV_Heartbeat_f
 */
-static void SV_Heartbeat_f( void ) {
+static void SV_Heartbeat_f() {
 	svc.nextHeartbeat = Sys_Milliseconds();
 }
 
@@ -187,7 +187,7 @@ static void SV_Heartbeat_f( void ) {
 * SV_Serverinfo_f
 * Examine or change the serverinfo string
 */
-static void SV_Serverinfo_f( void ) {
+static void SV_Serverinfo_f() {
 	Com_Printf( "Server info settings:\n" );
 	Info_Print( Cvar_Serverinfo() );
 }
@@ -196,7 +196,7 @@ static void SV_Serverinfo_f( void ) {
 * SV_DumpUser_f
 * Examine all a users info strings
 */
-static void SV_DumpUser_f( void ) {
+static void SV_DumpUser_f() {
 	client_t *client;
 	if( Cmd_Argc() != 2 ) {
 		Com_Printf( "Usage: info <userid>\n" );
@@ -217,7 +217,7 @@ static void SV_DumpUser_f( void ) {
 * SV_KillServer_f
 * Kick everyone off, possibly in preparation for a new game
 */
-static void SV_KillServer_f( void ) {
+static void SV_KillServer_f() {
 	if( !svs.initialized ) {
 		return;
 	}
@@ -230,7 +230,7 @@ static void SV_KillServer_f( void ) {
 /*
 * SV_InitOperatorCommands
 */
-void SV_InitOperatorCommands( void ) {
+void SV_InitOperatorCommands() {
 	Cmd_AddCommand( "heartbeat", SV_Heartbeat_f );
 	Cmd_AddCommand( "status", SV_Status_f );
 	Cmd_AddCommand( "serverinfo", SV_Serverinfo_f );
@@ -254,7 +254,7 @@ void SV_InitOperatorCommands( void ) {
 /*
 * SV_ShutdownOperatorCommands
 */
-void SV_ShutdownOperatorCommands( void ) {
+void SV_ShutdownOperatorCommands() {
 	Cmd_RemoveCommand( "heartbeat" );
 	Cmd_RemoveCommand( "status" );
 	Cmd_RemoveCommand( "serverinfo" );

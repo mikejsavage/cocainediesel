@@ -197,7 +197,7 @@ static void CG_Democam_UnregisterCam( cg_democam_t *cam ) {
 /*
 * CG_Democam_FreeCams
 */
-void CG_Democam_FreeCams( void ) {
+void CG_Democam_FreeCams() {
 	while( cg_cams_headnode )
 		CG_Democam_UnregisterCam( cg_cams_headnode );
 
@@ -212,7 +212,7 @@ void CG_Democam_FreeCams( void ) {
 /*
 * CG_Democam_ExecutePathAnalisys
 */
-static void CG_Democam_ExecutePathAnalysis( void ) {
+static void CG_Democam_ExecutePathAnalysis() {
 	int64_t pathtime;
 	cg_democam_t *ccam, *ncam, *pcam, *sncam;
 	int count;
@@ -491,7 +491,7 @@ void CG_SaveRecamScriptFile( const char *filename ) {
 /*
 * CG_DrawEntityNumbers
 */
-static void CG_DrawEntityNumbers( void ) {
+static void CG_DrawEntityNumbers() {
 	float zfar = 2048;
 	int i, entnum;
 	centity_t *cent;
@@ -545,7 +545,7 @@ static void CG_DrawEntityNumbers( void ) {
 /*
 * CG_DrawDemocam2D
 */
-void CG_DrawDemocam2D( void ) {
+void CG_DrawDemocam2D() {
 	int xpos, ypos;
 	const char *cam_type_name;
 	int64_t cam_timestamp;
@@ -664,14 +664,14 @@ static bool CG_DemoCam_LookAt( int trackEnt, Vec3 vieworg, Vec3 * viewangles ) {
 /*
 * CG_DemoCam_GetViewType
 */
-int CG_DemoCam_GetViewType( void ) {
+int CG_DemoCam_GetViewType() {
 	return cam_viewtype;
 }
 
 /*
 * CG_DemoCam_GetThirdPerson
 */
-bool CG_DemoCam_GetThirdPerson( void ) {
+bool CG_DemoCam_GetThirdPerson() {
 	if( !currentcam ) {
 		return ( chaseCam.mode == CAM_THIRDPERSON );
 	}
@@ -709,7 +709,7 @@ static short freecam_delta_angles[3];
 /*
 * CG_DemoCam_FreeFly
 */
-int CG_DemoCam_FreeFly( void ) {
+int CG_DemoCam_FreeFly() {
 	usercmd_t cmd;
 	const float SPEED = 500;
 
@@ -758,7 +758,7 @@ int CG_DemoCam_FreeFly( void ) {
 	return VIEWDEF_PLAYERVIEW;
 }
 
-static void CG_Democam_SetCameraPositionFromView( void ) {
+static void CG_Democam_SetCameraPositionFromView() {
 	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
 		cam_origin = cg.view.origin;
 		cam_angles = cg.view.angles;
@@ -783,7 +783,7 @@ static void CG_Democam_SetCameraPositionFromView( void ) {
 /*
 * CG_Democam_CalcView
 */
-static int CG_Democam_CalcView( void ) {
+static int CG_Democam_CalcView() {
 	int viewType;
 	float lerpfrac;
 	Vec3 v;
@@ -986,7 +986,7 @@ static int CG_Democam_CalcView( void ) {
 /*
 * CG_DemoCam_Update
 */
-bool CG_DemoCam_Update( void ) {
+bool CG_DemoCam_Update() {
 	if( !cgs.demoPlaying ) {
 		return false;
 	}
@@ -1019,14 +1019,14 @@ bool CG_DemoCam_Update( void ) {
 /*
 * CG_DemoCam_IsFree
 */
-bool CG_DemoCam_IsFree( void ) {
+bool CG_DemoCam_IsFree() {
 	return CamIsFree;
 }
 
 /*
 * CG_DemoFreeFly_Cmd_f
 */
-static void CG_DemoFreeFly_Cmd_f( void ) {
+static void CG_DemoFreeFly_Cmd_f() {
 	if( Cmd_Argc() > 1 ) {
 		if( !Q_stricmp( Cmd_Argv( 1 ), "on" ) ) {
 			CamIsFree = true;
@@ -1044,14 +1044,14 @@ static void CG_DemoFreeFly_Cmd_f( void ) {
 /*
 * CG_CamSwitch_Cmd_f
 */
-static void CG_CamSwitch_Cmd_f( void ) {
+static void CG_CamSwitch_Cmd_f() {
 
 }
 
 /*
 * CG_AddCam_Cmd_f
 */
-static void CG_AddCam_Cmd_f( void ) {
+static void CG_AddCam_Cmd_f() {
 	int type, i;
 
 	CG_DemoCam_UpdateDemoTime();
@@ -1090,7 +1090,7 @@ static void CG_AddCam_Cmd_f( void ) {
 /*
 * CG_DeleteCam_Cmd_f
 */
-static void CG_DeleteCam_Cmd_f( void ) {
+static void CG_DeleteCam_Cmd_f() {
 	if( !currentcam ) {
 		Com_Printf( "DeleteCam: No current cam to delete\n" );
 		return;
@@ -1111,7 +1111,7 @@ static void CG_DeleteCam_Cmd_f( void ) {
 /*
 * CG_EditCam_Cmd_f
 */
-static void CG_EditCam_Cmd_f( void ) {
+static void CG_EditCam_Cmd_f() {
 	CG_DemoCam_UpdateDemoTime();
 
 	currentcam = CG_Democam_FindCurrent( demo_time );
@@ -1245,7 +1245,7 @@ static void CG_EditCam_Cmd_f( void ) {
 /*
 * CG_SaveCam_Cmd_f
 */
-void CG_SaveCam_Cmd_f( void ) {
+void CG_SaveCam_Cmd_f() {
 	if( !cgs.demoPlaying ) {
 		return;
 	}
@@ -1268,7 +1268,7 @@ void CG_SaveCam_Cmd_f( void ) {
 /*
 * CG_Democam_ImportCams_f
 */
-void CG_Democam_ImportCams_f( void ) {
+void CG_Democam_ImportCams_f() {
 	int name_size;
 	char *customName;
 
@@ -1292,7 +1292,7 @@ void CG_Democam_ImportCams_f( void ) {
 /*
 * CG_DemoEditMode_RemoveCmds
 */
-void CG_DemoEditMode_RemoveCmds( void ) {
+void CG_DemoEditMode_RemoveCmds() {
 	Cmd_RemoveCommand( "addcam" );
 	Cmd_RemoveCommand( "deletecam" );
 	Cmd_RemoveCommand( "editcam" );
@@ -1304,7 +1304,7 @@ void CG_DemoEditMode_RemoveCmds( void ) {
 /*
 * CG_DemoEditMode_Cmd_f
 */
-static void CG_DemoEditMode_Cmd_f( void ) {
+static void CG_DemoEditMode_Cmd_f() {
 	if( !cgs.demoPlaying ) {
 		return;
 	}
@@ -1335,7 +1335,7 @@ static void CG_DemoEditMode_Cmd_f( void ) {
 /*
 * CG_DemocamInit
 */
-void CG_DemocamInit( void ) {
+void CG_DemocamInit() {
 	int name_size;
 
 	democam_editing_mode = false;
@@ -1371,7 +1371,7 @@ void CG_DemocamInit( void ) {
 /*
 * CG_DemocamShutdown
 */
-void CG_DemocamShutdown( void ) {
+void CG_DemocamShutdown() {
 	if( !cgs.demoPlaying ) {
 		return;
 	}
@@ -1392,7 +1392,7 @@ void CG_DemocamShutdown( void ) {
 /*
 * CG_DemocamReset
 */
-void CG_DemocamReset( void ) {
+void CG_DemocamReset() {
 	demo_time = 0;
 	demo_initial_timestamp = 0;
 }

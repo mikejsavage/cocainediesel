@@ -22,10 +22,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 
-void        Sys_NET_Init( void );
-void        Sys_NET_Shutdown( void );
+void        Sys_NET_Init();
+void        Sys_NET_Shutdown();
 
-net_error_t Sys_NET_GetLastError( void );
+net_error_t Sys_NET_GetLastError();
 
 void        Sys_NET_SocketClose( socket_handle_t handle );
 int         Sys_NET_SocketIoctl( socket_handle_t handle, long request, ioctl_param_t* param );

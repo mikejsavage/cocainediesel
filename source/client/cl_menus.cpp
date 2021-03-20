@@ -36,7 +36,8 @@ enum GameMenuState {
 };
 
 enum DemoMenuState {
-
+	DemoMenuState_Menu,
+	DemoMenuState_Settings,
 };
 
 enum SettingsState {
@@ -62,9 +63,11 @@ static int num_servers = 0;
 static UIState uistate;
 
 static MainMenuState mainmenu_state;
+static GameMenuState gamemenu_state;
+static DemoMenuState demomenu_state;
+
 static int selected_server;
 
-static GameMenuState gamemenu_state;
 static WeaponType selected_weapons[ WeaponCategory_Count ];
 
 static SettingsState settings_state;
@@ -182,13 +185,17 @@ static void KeyBindButton( const char * label, const char * command ) {
 	if( ImGui::BeginPopupModal( label, NULL, ImGuiWindowFlags_NoDecoration ) ) {
 		ImGui::Text( "Press a key to set a new bind, or press ESCAPE to cancel." );
 
-		const ImGuiIO & io = ImGui::GetIO();
+		ImGuiIO & io = ImGui::GetIO();
 		for( size_t i = 0; i < ARRAY_COUNT( io.KeysDown ); i++ ) {
 			if( ImGui::IsKeyPressed( i ) ) {
 				if( i != K_ESCAPE ) {
 					Key_SetBinding( i, command );
 				}
 				ImGui::CloseCurrentPopup();
+
+				// consume the escape so we don't close the ingame menu
+				io.KeysDown[ K_ESCAPE ] = false;
+				io.KeysDownDuration[ K_ESCAPE ] = -1.0f;
 			}
 		}
 
@@ -225,7 +232,7 @@ static const char * SelectableMapList() {
 static void SettingsGeneral() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
+	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "", CVAR_USERINFO | CVAR_ARCHIVE );
 
 	CvarCheckbox( "Show chat", "cg_chat", "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CVAR_ARCHIVE );
@@ -272,6 +279,7 @@ static void SettingsControls() {
 			KeyBindButton( "Backup", "weapon 4" );
 			KeyBindButton( "Next weapon", "weapnext" );
 			KeyBindButton( "Previous weapon", "weapprev" );
+			KeyBindButton( "Last weapon", "lastweapon" );
 
 			ImGui::BeginChild( "weapon", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {
@@ -549,7 +557,7 @@ static void SettingsAudio() {
 	}
 
 	if( ImGui::Button( "Test" ) ) {
-		S_StartLocalSound( FindSoundEffect( "sounds/announcer/bomb/ace" ), CHAN_AUTO, 1.0f );
+		S_StartLocalSound( "sounds/announcer/bomb/ace", CHAN_AUTO, 1.0f );
 	}
 
 	ImGui::Separator();
@@ -687,9 +695,6 @@ static void CreateServer() {
 }
 
 static void MainMenu() {
-	static bool change_name_popup = false;
-	static const char * player_name = Cvar_Get( "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE )->string;
-
 	TempAllocator temp = cls.frame_arena.temp();
 
 	ImGui::SetNextWindowPos( ImVec2() );
@@ -699,30 +704,6 @@ static void MainMenu() {
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
 
 	ImGui::Begin( "mainmenu", WindowZOrder_Menu, flags );
-
-	//Set your nickname if its the default one
-	if( !change_name_popup && strcmp( "Player", player_name ) == 0 ) {
-		ImGui::OpenPopup( "change name" );
-	} else {
-		change_name_popup = true;
-	}
-
-	if( ImGui::BeginPopupModal( "change name", NULL, ImGuiWindowFlags_NoDecoration ) ) {
-		ImGui::BeginChild( "nameset", ImVec2( 500, 150 ) );
-		ImGui::Text( "Change your nickname" );
-
-		CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "Player", CVAR_USERINFO | CVAR_ARCHIVE );
-
-		if( ImGui::Button( "Ok", ImVec2( -1, 0 ) ) || ImGui::Hotkey( K_ESCAPE ) ) {
-			change_name_popup = true;
-			ImGui::CloseCurrentPopup();
-		}
-
-		ImGui::EndChild();
-		ImGui::EndPopup();
-	}
-
-
 
 	ImVec2 window_padding = ImGui::GetStyle().WindowPadding;
 
@@ -864,7 +845,7 @@ static void WeaponTooltip( const WeaponDef * def ) {
 
 		ImGui::Text( "%s", temp( "{}Weapon: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->name ) );
 		ImGui::Text( "%s", temp( "{}Type: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->speed == 0 ? "Hitscan" : "Projectile" ) );
-		ImGui::Text( "%s", temp( "{}Damage: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), int( def->damage ) ) );
+		ImGui::Text( "%s", temp( "{}Damage: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), int( def->damage * def->projectile_count ) ) );
 		char * reload = temp( "{.1}s", def->refire_time / 1000.f );
 		RemoveTrailingZeroesFloat( reload );
 		ImGui::Text( "%s", temp( "{}Reload: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), reload ) );
@@ -1080,7 +1061,7 @@ static void GameMenu() {
 		ImGui::RadioButton( "Change map", &e, 1 );
 
 		if( e == 0 ) {
-			GameMenuButton( "Start vote", "callvote allready", &should_close );
+			GameMenuButton( "Start vote", "callvote start", &should_close );
 		}
 
 		if( e == 1 ) {
@@ -1110,19 +1091,44 @@ static void DemoMenu() {
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
 	bool should_close = false;
 
+	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
 	ImVec2 pos = ImGui::GetIO().DisplaySize;
 	pos.x *= 0.5f;
 	pos.y *= 0.8f;
-	ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-	ImGui::SetNextWindowSize( ImVec2( 600, 0 ) );
-	ImGui::Begin( "demomenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+	if( demomenu_state == DemoMenuState_Menu ) {
+		ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowSize( ImVec2( 600, 0 ) );
+		ImGui::Begin( "demomenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
-	GameMenuButton( cls.demo.paused ? "Play" : "Pause", "demopause" );
-	GameMenuButton( "Jump +15s", "demojump +15" );
-	GameMenuButton( "Jump -15s", "demojump -15" );
+		ImGuiStyle & style = ImGui::GetStyle();
+		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
-	GameMenuButton( "Disconnect to main menu", "disconnect", &should_close );
-	GameMenuButton( "Exit to desktop", "quit", &should_close );
+		GameMenuButton( cls.demo.paused ? "Play" : "Pause", "demopause" );
+
+		ImGui::Columns( 2, NULL, false );
+		ImGui::SetColumnWidth( 0, half );
+		ImGui::SetColumnWidth( 1, half );
+
+		GameMenuButton( "-15s", "demojump -15", NULL, 0 );
+		ImGui::NextColumn();
+		GameMenuButton( "+15s", "demojump +15", NULL, 1 );
+		ImGui::NextColumn();
+
+		ImGui::Columns( 1, NULL, false );
+
+		if( ImGui::Button( "Settings", ImVec2( -1, 0 ) ) ) {
+			demomenu_state = DemoMenuState_Settings;
+		}
+
+		GameMenuButton( "Disconnect to main menu", "disconnect", &should_close );
+		GameMenuButton( "Exit to desktop", "quit", &should_close );
+	} else if( demomenu_state == DemoMenuState_Settings ) {
+		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowSize( ImVec2( Max2( 800.f, displaySize.x * 0.65f ), Max2( 600.f, displaySize.y * 0.65f ) ) );
+		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+
+		Settings();
+	}
 
 	if( ImGui::Hotkey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;
@@ -1207,6 +1213,7 @@ void UI_ShowDemoMenu() {
 	ImGui::GetIO().KeysDown[ K_ESCAPE ] = false;
 
 	uistate = UIState_DemoMenu;
+	demomenu_state = DemoMenuState_Menu;
 	CL_SetKeyDest( key_menu );
 }
 

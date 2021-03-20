@@ -80,7 +80,7 @@ void GENERIC_SetUpCountdown()
 
 	// Countdowns should be made entirely client side, because we now can
 
-	uint64 sound = Hash64( "sounds/announcer/countdown/get_ready_to_fight0" + random_uniform( 1, 3 ) );
+	uint64 sound = Hash64( "sounds/announcer/get_ready_to_fight" );
 	G_AnnouncerSound( null, sound, GS_MAX_TEAMS, false, null );
 }
 
@@ -117,7 +117,7 @@ void GENERIC_SetUpMatch()
 	G_RemoveDeadBodies();
 
 	// Countdowns should be made entirely client side, because we now can
-	uint64 sound = Hash64( "sounds/announcer/countdown/fight0" + random_uniform( 1, 3 ) );
+	uint64 sound = Hash64( "sounds/announcer/fight" );
 	G_AnnouncerSound( null, sound, GS_MAX_TEAMS, false, null );
 	G_CenterPrintMsg( null, "FIGHT!" );
 
@@ -151,7 +151,7 @@ void GENERIC_SetUpEndMatch()
 		G_PrintMsg( null, S_COLOR_YELLOW + "Final score: " + match.getScore() + "\n" );
 	}
 
-	uint64 sound = Hash64( "sounds/announcer/postmatch/game_over0" + random_uniform( 1, 3 ) );
+	uint64 sound = Hash64( "sounds/announcer/game_over" );
 	G_AnnouncerSound( null, sound, GS_MAX_TEAMS, true, null );
 }
 

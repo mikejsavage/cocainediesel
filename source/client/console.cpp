@@ -34,13 +34,6 @@ struct Console {
 
 static Console console;
 
-static void Con_ClearScrollback() {
-	Lock( console.log_mutex );
-	defer { Unlock( console.log_mutex ); };
-
-	console.log.clear();
-}
-
 static void Con_ClearInput() {
 	console.input[ 0 ] = '\0';
 	console.history_idx = 0;
@@ -49,7 +42,7 @@ static void Con_ClearInput() {
 void Con_Init() {
 	console.log_mutex = NewMutex();
 
-	Con_ClearScrollback();
+	console.log.clear();
 	Con_ClearInput();
 
 	console.at_bottom = true;
@@ -58,18 +51,10 @@ void Con_Init() {
 
 	console.history_head = 0;
 	console.history_count = 0;
-
-	Cmd_AddCommand( "toggleconsole", Con_ToggleConsole );
-	Cmd_AddCommand( "clear", Con_ClearScrollback );
-	// Cmd_AddCommand( "condump", Con_Dump );
 }
 
 void Con_Shutdown() {
 	DeleteMutex( console.log_mutex );
-
-	Cmd_RemoveCommand( "toggleconsole" );
-	Cmd_RemoveCommand( "clear" );
-	// Cmd_RemoveCommand( "condump" );
 }
 
 void Con_ToggleConsole() {

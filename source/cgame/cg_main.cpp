@@ -94,7 +94,7 @@ static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 	return &cent->current;
 }
 
-static void CG_InitGameShared( void ) {
+static void CG_InitGameShared() {
 	char cstring[MAX_CONFIGSTRING_CHARS];
 	trap_GetConfigString( CS_MAXCLIENTS, cstring, MAX_CONFIGSTRING_CHARS );
 	int maxclients = atoi( cstring );
@@ -120,7 +120,7 @@ char *_CG_CopyString( const char *in, const char *filename, int fileline ) {
 	return out;
 }
 
-static void CG_RegisterClients( void ) {
+static void CG_RegisterClients() {
 	for( int i = 0; i < MAX_CLIENTS; i++ ) {
 		const char * name = cgs.configStrings[CS_PLAYERINFOS + i];
 		if( !name[0] )
@@ -129,7 +129,7 @@ static void CG_RegisterClients( void ) {
 	}
 }
 
-static void CG_RegisterVariables( void ) {
+static void CG_RegisterVariables() {
 	cg_showMiss =       Cvar_Get( "cg_showMiss", "0", 0 );
 
 	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
@@ -165,7 +165,7 @@ static void CG_RegisterVariables( void ) {
 	Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
 }
 
-void CG_Precache( void ) {
+void CG_Precache() {
 	if( cgs.precacheDone ) {
 		return;
 	}
@@ -179,7 +179,7 @@ void CG_Precache( void ) {
 	cgs.precacheDone = true;
 }
 
-static void CG_RegisterConfigStrings( void ) {
+static void CG_RegisterConfigStrings() {
 	for( int i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
 		trap_GetConfigString( i, cgs.configStrings[i], MAX_CONFIGSTRING_CHARS );
 	}
@@ -190,7 +190,7 @@ static void CG_RegisterConfigStrings( void ) {
 	CG_SC_AutoRecordAction( cgs.configStrings[CS_AUTORECORDSTATE] );
 }
 
-void CG_Reset( void ) {
+void CG_Reset() {
 	memcpy( &cgs.configStrings[0][0], &cgs.baseConfigStrings[0][0], MAX_CONFIGSTRINGS*MAX_CONFIGSTRING_CHARS );
 
 	CG_ResetClientInfos();

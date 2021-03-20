@@ -41,7 +41,7 @@ static void SV_Demo_WriteMessage( msg_t *msg ) {
 /*
 * SV_Demo_WriteStartMessages
 */
-static void SV_Demo_WriteStartMessages( void ) {
+static void SV_Demo_WriteStartMessages() {
 	// clear demo meta data, we'll write some keys later
 	svs.demo.meta_data_realsize = SNAP_ClearDemoMeta( svs.demo.meta_data, sizeof( svs.demo.meta_data ) );
 
@@ -51,7 +51,7 @@ static void SV_Demo_WriteStartMessages( void ) {
 /*
 * SV_Demo_WriteSnap
 */
-void SV_Demo_WriteSnap( void ) {
+void SV_Demo_WriteSnap() {
 	ZoneScoped;
 
 	int i;
@@ -91,7 +91,7 @@ void SV_Demo_WriteSnap( void ) {
 /*
 * SV_Demo_InitClient
 */
-static void SV_Demo_InitClient( void ) {
+static void SV_Demo_InitClient() {
 	memset( &svs.demo.client, 0, sizeof( svs.demo.client ) );
 
 	svs.demo.client.mv = true;
@@ -111,7 +111,7 @@ static void SV_Demo_InitClient( void ) {
 *
 * Begins server demo recording.
 */
-void SV_Demo_Start_f( void ) {
+void SV_Demo_Start_f() {
 	int demofilename_size, i;
 
 	if( Cmd_Argc() < 2 ) {
@@ -251,7 +251,7 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 *
 * Console command for stopping server demo recording.
 */
-void SV_Demo_Stop_f( void ) {
+void SV_Demo_Stop_f() {
 	SV_Demo_Stop( false, atoi( Cmd_Argv( 1 ) ) != 0 );
 }
 
@@ -260,7 +260,7 @@ void SV_Demo_Stop_f( void ) {
 *
 * Cancels the server demo recording (stop, remove file)
 */
-void SV_Demo_Cancel_f( void ) {
+void SV_Demo_Cancel_f() {
 	SV_Demo_Stop( true, atoi( Cmd_Argv( 1 ) ) != 0 );
 }
 
@@ -269,7 +269,7 @@ void SV_Demo_Cancel_f( void ) {
 *
 * Removes the server demo files
 */
-void SV_Demo_Purge_f( void ) {
+void SV_Demo_Purge_f() {
 	char *buffer;
 	char *p, *s, num[8];
 	char path[256];

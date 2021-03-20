@@ -91,20 +91,20 @@ extern g_teamlist_t teamlist[GS_MAX_TEAMS];
 //
 void G_Match_RemoveProjectiles( edict_t *owner );
 void G_Match_CleanUpPlayerStats( edict_t *ent );
-void G_Match_FreeBodyQueue( void );
+void G_Match_FreeBodyQueue();
 void G_Match_LaunchState( int matchState );
 
 //
 //	teams
 //
-void G_Teams_Init( void );
+void G_Teams_Init();
 
-void G_Teams_ExecuteChallengersQueue( void );
-void G_Teams_AdvanceChallengersQueue( void );
+void G_Teams_ExecuteChallengersQueue();
+void G_Teams_AdvanceChallengersQueue();
 
-void G_Match_Autorecord_Start( void );
-void G_Match_Autorecord_AltStart( void );
-void G_Match_Autorecord_Stop( void );
-void G_Match_Autorecord_Cancel( void );
-bool G_Match_ScorelimitHit( void );
-bool G_Match_TimelimitHit( void );
+void G_Match_Autorecord_Start();
+void G_Match_Autorecord_AltStart();
+void G_Match_Autorecord_Stop();
+void G_Match_Autorecord_Cancel();
+bool G_Match_ScorelimitHit();
+bool G_Match_TimelimitHit();

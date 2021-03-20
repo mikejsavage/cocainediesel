@@ -55,7 +55,7 @@ typedef struct callvotetype_s
 	int expectedargs;               // -1 = any amount, -2 = any amount except 0
 	bool ( *validate )( callvotedata_t *data, bool first );
 	void ( *execute )( callvotedata_t *vote );
-	const char *( *current )( void );
+	const char *( *current )();
 	void ( *extraHelp )( edict_t *ent );
 	const char *argument_format;
 	const char *help;
@@ -205,7 +205,7 @@ static void G_VoteMapPassed( callvotedata_t *vote ) {
 	G_EndMatch();
 }
 
-static const char *G_VoteMapCurrent( void ) {
+static const char *G_VoteMapCurrent() {
 	return sv.mapname;
 }
 
@@ -246,7 +246,7 @@ static void G_VoteScorelimitPassed( callvotedata_t *vote ) {
 	Cvar_Set( "g_scorelimit", va( "%i", atoi( vote->argv[0] ) ) );
 }
 
-static const char *G_VoteScorelimitCurrent( void ) {
+static const char *G_VoteScorelimitCurrent() {
 	return va( "%i", g_scorelimit->integer );
 }
 
@@ -278,15 +278,15 @@ static void G_VoteWarmupTimelimitPassed( callvotedata_t *vote ) {
 	Cvar_Set( "g_warmup_timelimit", va( "%i", atoi( vote->argv[0] ) ) );
 }
 
-static const char *G_VoteWarmupTimelimitCurrent( void ) {
+static const char *G_VoteWarmupTimelimitCurrent() {
 	return va( "%i", g_warmup_timelimit->integer );
 }
 
 /*
-* allready
+* start
 */
 
-static bool G_VoteAllreadyValidate( callvotedata_t *vote, bool first ) {
+static bool G_VoteStartValidate( callvotedata_t *vote, bool first ) {
 	int notreadys = 0;
 	edict_t *ent;
 
@@ -309,7 +309,7 @@ static bool G_VoteAllreadyValidate( callvotedata_t *vote, bool first ) {
 
 	if( !notreadys ) {
 		if( first ) {
-			G_PrintMsg( vote->caller, "%sEveryone is already ready\n", S_COLOR_RED );
+			G_PrintMsg( vote->caller, "%sMatch is already starting\n", S_COLOR_RED );
 		}
 		return false;
 	}
@@ -317,7 +317,7 @@ static bool G_VoteAllreadyValidate( callvotedata_t *vote, bool first ) {
 	return true;
 }
 
-static void G_VoteAllreadyPassed( callvotedata_t *vote ) {
+static void G_VoteStartPassed( callvotedata_t *vote ) {
 	for( edict_t * ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
 		if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 			continue;
@@ -360,7 +360,7 @@ static void G_VoteMaxTeamplayersPassed( callvotedata_t *vote ) {
 	Cvar_Set( "g_teams_maxplayers", va( "%i", atoi( vote->argv[0] ) ) );
 }
 
-static const char *G_VoteMaxTeamplayersCurrent( void ) {
+static const char *G_VoteMaxTeamplayersCurrent() {
 	return va( "%i", g_teams_maxplayers->integer );
 }
 
@@ -451,10 +451,10 @@ static void G_VoteUnlockPassed( callvotedata_t *vote ) {
 }
 
 /*
-* remove
+* spectate
 */
 
-static void G_VoteRemoveExtraHelp( edict_t *ent ) {
+static void G_VoteSpectateExtraHelp( edict_t *ent ) {
 	int i;
 	edict_t *e;
 	char msg[1024];
@@ -488,7 +488,7 @@ static void G_VoteRemoveExtraHelp( edict_t *ent ) {
 	G_PrintMsg( ent, "%s", msg );
 }
 
-static bool G_VoteRemoveValidate( callvotedata_t *vote, bool first ) {
+static bool G_VoteSpectateValidate( callvotedata_t *vote, bool first ) {
 	int who = -1;
 
 	if( first ) {
@@ -531,7 +531,7 @@ static bool G_VoteRemoveValidate( callvotedata_t *vote, bool first ) {
 	}
 }
 
-static void G_VoteRemovePassed( callvotedata_t *vote ) {
+static void G_VoteSpectatePassed( callvotedata_t *vote ) {
 	int who;
 	edict_t *ent;
 
@@ -543,7 +543,7 @@ static void G_VoteRemovePassed( callvotedata_t *vote ) {
 		return;
 	}
 
-	G_PrintMsg( NULL, "Player %s%s removed from team %s%s.\n", ent->r.client->netname, S_COLOR_WHITE,
+	G_PrintMsg( NULL, "Player %s%s moved to spectators %s%s.\n", ent->r.client->netname, S_COLOR_WHITE,
 				GS_TeamName( ent->s.team ), S_COLOR_WHITE );
 
 	G_Teams_SetTeam( ent, TEAM_SPECTATOR );
@@ -797,20 +797,6 @@ static void G_VoteMutePassed( callvotedata_t *vote ) {
 	ent->r.client->muted |= 1;
 }
 
-// vsay mute
-static void G_VoteVMutePassed( callvotedata_t *vote ) {
-	int who;
-	edict_t *ent;
-
-	memcpy( &who, vote->data, sizeof( int ) );
-	ent = &game.edicts[who + 1];
-	if( !ent->r.inuse || !ent->r.client ) { // may have disconnect along the callvote time
-		return;
-	}
-
-	ent->r.client->muted |= 2;
-}
-
 /*
 * unmute
 */
@@ -884,20 +870,6 @@ static void G_VoteUnmutePassed( callvotedata_t *vote ) {
 	}
 
 	ent->r.client->muted &= ~1;
-}
-
-// vsay unmute
-static void G_VoteVUnmutePassed( callvotedata_t *vote ) {
-	int who;
-	edict_t *ent;
-
-	memcpy( &who, vote->data, sizeof( int ) );
-	ent = &game.edicts[who + 1];
-	if( !ent->r.inuse || !ent->r.client ) { // may have disconnect along the callvote time
-		return;
-	}
-
-	ent->r.client->muted &= ~2;
 }
 
 /*
@@ -976,7 +948,7 @@ static void G_VoteAllowUnevenPassed( callvotedata_t *vote ) {
 	Cvar_Set( "g_teams_allow_uneven", va( "%i", atoi( vote->argv[0] ) ) );
 }
 
-static const char *G_VoteAllowUnevenCurrent( void ) {
+static const char *G_VoteAllowUnevenCurrent() {
 	if( g_teams_allow_uneven->integer ) {
 		return "1";
 	} else {
@@ -1052,7 +1024,7 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 	memset( &callvoteState, 0, sizeof( callvoteState ) );
 }
 
-void G_FreeCallvotes( void ) {
+void G_FreeCallvotes() {
 	callvotetype_t *callvote;
 
 	while( callvotesHeadNode ) {
@@ -1156,7 +1128,7 @@ static const char *G_CallVotes_String( const callvotedata_t *vote ) {
 /*
 * G_CallVotes_CheckState
 */
-static void G_CallVotes_CheckState( void ) {
+static void G_CallVotes_CheckState() {
 	edict_t *ent;
 	int yeses = 0, voters = 0, noes = 0;
 
@@ -1267,7 +1239,7 @@ void G_CallVotes_CmdVote( edict_t *ent ) {
 /*
 * G_CallVotes_Think
 */
-void G_CallVotes_Think( void ) {
+void G_CallVotes_Think() {
 	static int64_t callvotethinktimer = 0;
 
 	if( !callvoteState.vote.callvote ) {
@@ -1519,7 +1491,7 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 /*
 * G_CallVotes_Init
 */
-void G_CallVotes_Init( void ) {
+void G_CallVotes_Init() {
 	callvotetype_t *callvote;
 
 	g_callvote_electpercentage =    Cvar_Get( "g_vote_percent", "55", CVAR_ARCHIVE );
@@ -1600,22 +1572,22 @@ void G_CallVotes_Init( void ) {
 	callvote->argument_type = NULL;
 	callvote->help = "Unlocks teams to allow players joining in mid-game";
 
-	callvote = G_RegisterCallvote( "allready" );
+	callvote = G_RegisterCallvote( "start" );
 	callvote->expectedargs = 0;
-	callvote->validate = G_VoteAllreadyValidate;
-	callvote->execute = G_VoteAllreadyPassed;
+	callvote->validate = G_VoteStartValidate;
+	callvote->execute = G_VoteStartPassed;
 	callvote->current = NULL;
 	callvote->extraHelp = NULL;
 	callvote->argument_format = NULL;
 	callvote->argument_type = NULL;
 	callvote->help = "Sets all players as ready so the match can start";
 
-	callvote = G_RegisterCallvote( "remove" );
+	callvote = G_RegisterCallvote( "spectate" );
 	callvote->expectedargs = 1;
-	callvote->validate = G_VoteRemoveValidate;
-	callvote->execute = G_VoteRemovePassed;
+	callvote->validate = G_VoteSpectateValidate;
+	callvote->execute = G_VoteSpectatePassed;
 	callvote->current = NULL;
-	callvote->extraHelp = G_VoteRemoveExtraHelp;
+	callvote->extraHelp = G_VoteSpectateExtraHelp;
 	callvote->argument_format = "<player>";
 	callvote->argument_type = "option";
 	callvote->help = "Forces player back to spectator mode";
@@ -1650,16 +1622,6 @@ void G_CallVotes_Init( void ) {
 	callvote->argument_type = "option";
 	callvote->help = "Disallows chat messages from the muted player";
 
-	callvote = G_RegisterCallvote( "vmute" );
-	callvote->expectedargs = 1;
-	callvote->validate = G_VoteMuteValidate;
-	callvote->execute = G_VoteVMutePassed;
-	callvote->current = NULL;
-	callvote->extraHelp = G_VoteMuteExtraHelp;
-	callvote->argument_format = "<player>";
-	callvote->argument_type = "option";
-	callvote->help = "Disallows voice chat messages from the muted player";
-
 	callvote = G_RegisterCallvote( "unmute" );
 	callvote->expectedargs = 1;
 	callvote->validate = G_VoteUnmuteValidate;
@@ -1669,16 +1631,6 @@ void G_CallVotes_Init( void ) {
 	callvote->argument_format = "<player>";
 	callvote->argument_type = "option";
 	callvote->help = "Reallows chat messages from the unmuted player";
-
-	callvote = G_RegisterCallvote( "vunmute" );
-	callvote->expectedargs = 1;
-	callvote->validate = G_VoteUnmuteValidate;
-	callvote->execute = G_VoteVUnmutePassed;
-	callvote->current = NULL;
-	callvote->extraHelp = G_VoteUnmuteExtraHelp;
-	callvote->argument_format = "<player>";
-	callvote->argument_type = "option";
-	callvote->help = "Reallows voice chat messages from the unmuted player";
 
 	callvote = G_RegisterCallvote( "timeout" );
 	callvote->expectedargs = 0;

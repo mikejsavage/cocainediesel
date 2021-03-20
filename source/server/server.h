@@ -45,7 +45,6 @@ struct ginfo_t {
 	edict_t *edicts;
 	client_t *clients;
 
-	int edict_size;
 	int num_edicts;         // current number, <= max_edicts
 	int max_edicts;
 	int max_clients;        // <= sv_maxclients, <= max_edicts
@@ -68,8 +67,8 @@ struct server_t {
 	ginfo_t gi;
 };
 
-#define EDICT_NUM( n ) ( (edict_t *)( (uint8_t *)sv.gi.edicts + sv.gi.edict_size * ( n ) ) )
-#define NUM_FOR_EDICT( e ) ( ( (uint8_t *)( e ) - (uint8_t *)sv.gi.edicts ) / sv.gi.edict_size )
+#define EDICT_NUM( n ) ( sv.gi.edicts + ( n ) )
+#define NUM_FOR_EDICT( e ) ( ( e ) - sv.gi.edicts )
 
 struct client_snapshot_t {
 	bool allentities;
@@ -281,13 +280,13 @@ extern cvar_t *sv_demodir;
 //
 void SV_WriteClientdataToMessage( client_t *client, msg_t *msg );
 
-void SV_InitOperatorCommands( void );
-void SV_ShutdownOperatorCommands( void );
+void SV_InitOperatorCommands();
+void SV_ShutdownOperatorCommands();
 
 void SV_SendServerinfo( client_t *client );
 void SV_UserinfoChanged( client_t *cl );
 
-void SV_MasterHeartbeat( void );
+void SV_MasterHeartbeat();
 
 void SVC_MasterInfoResponse( const socket_t *socket, const netadr_t *address );
 int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const char *fakeIP );
@@ -296,15 +295,15 @@ int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const
 // sv_oob.c
 //
 void SV_ConnectionlessPacket( const socket_t *socket, const netadr_t *address, msg_t *msg );
-void SV_InitMaster( void );
-void SV_UpdateMaster( void );
+void SV_InitMaster();
+void SV_UpdateMaster();
 
 //
 // sv_init.c
 //
-void SV_InitGame( void );
+void SV_InitGame();
 void SV_Map( const char *level, bool devmap );
-void SV_SetServerConfigStrings( void );
+void SV_SetServerConfigStrings();
 
 //
 // sv_send.c
@@ -314,10 +313,10 @@ void SV_AddServerCommand( client_t *client, const char *cmd );
 void SV_SendServerCommand( client_t *cl, const char *format, ... );
 void SV_AddGameCommand( client_t *client, const char *cmd );
 void SV_AddReliableCommandsToMessage( client_t *client, msg_t *msg );
-bool SV_SendClientsFragments( void );
+bool SV_SendClientsFragments();
 void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t size );
 bool SV_SendMessageToClient( client_t *client, msg_t *msg );
-void SV_ResetClientFrameCounters( void );
+void SV_ResetClientFrameCounters();
 
 enum redirect_t {
 	RD_NONE,
@@ -334,7 +333,7 @@ struct flush_params_t {
 };
 
 void SV_FlushRedirect( int sv_redirected, const char *outputbuf, const void *extra );
-void SV_SendClientMessages( void );
+void SV_SendClientMessages();
 
 #ifndef _MSC_VER
 void SV_BroadcastCommand( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
@@ -347,7 +346,7 @@ void SV_BroadcastCommand( _Printf_format_string_ const char *format, ... );
 //
 void SV_ParseClientMessage( client_t *client, msg_t *msg );
 bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t *client, char *userinfo,
-	int game_port, int challenge, bool fakeClient );
+	u64 session_id, int challenge, bool fakeClient );
 
 #ifndef _MSC_VER
 void SV_DropClient( client_t *drop, int type, const char *format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );
@@ -362,7 +361,7 @@ void SV_ClientCloseDownload( client_t *client );
 //
 // sv_ccmds.c
 //
-void SV_Status_f( void );
+void SV_Status_f();
 
 //
 // sv_ents.c
@@ -374,24 +373,24 @@ void SV_BuildClientFrameSnap( client_t *client );
 //
 // sv_game.c
 //
-void SV_InitGameProgs( void );
-void SV_ShutdownGameProgs( void );
+void SV_InitGameProgs();
+void SV_ShutdownGameProgs();
 
 void PF_DropClient( edict_t *ent, int type, const char *message );
 int PF_GetClientState( int numClient );
 void PF_GameCmd( edict_t *ent, const char *cmd );
 void PF_ConfigString( int index, const char *val );
 const char *PF_GetConfigString( int index );
-void SV_LocateEntities( edict_t *edicts, size_t edict_size, int num_edicts, int max_edicts );
+void SV_LocateEntities( edict_t *edicts, int num_edicts, int max_edicts );
 
 //
 // sv_demos.c
 //
-void SV_Demo_WriteSnap( void );
-void SV_Demo_Start_f( void );
-void SV_Demo_Stop_f( void );
-void SV_Demo_Cancel_f( void );
-void SV_Demo_Purge_f( void );
+void SV_Demo_WriteSnap();
+void SV_Demo_Start_f();
+void SV_Demo_Stop_f();
+void SV_Demo_Cancel_f();
+void SV_Demo_Purge_f();
 
 void SV_DemoList_f( client_t *client );
 void SV_DemoGet_f( client_t *client );
@@ -406,10 +405,10 @@ bool SV_IsDemoDownloadRequest( const char *request );
 typedef http_response_code_t ( *http_game_query_cb )( http_query_method_t method, const char *resource,
 													  const char *query_string, char **content, size_t *content_length );
 
-void SV_Web_Init( void );
-void SV_Web_Shutdown( void );
-bool SV_Web_Running( void );
-const char *SV_Web_UpstreamBaseUrl( void );
+void SV_Web_Init();
+void SV_Web_Shutdown();
+bool SV_Web_Running();
+const char *SV_Web_UpstreamBaseUrl();
 bool SV_Web_AddGameClient( const char *session, int clientNum, const netadr_t *netAdr );
 void SV_Web_RemoveGameClient( const char *session );
 

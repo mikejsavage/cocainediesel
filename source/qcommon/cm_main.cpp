@@ -577,7 +577,7 @@ int CM_MergeVisSets( CollisionModel *cms, Vec3 org, uint8_t *pvs, uint8_t *areab
 /*
 * CM_Init
 */
-void CM_Init( void ) {
+void CM_Init() {
 	assert( !cm_initialized );
 
 	cm_noAreas = Cvar_Get( "cm_noAreas", "0", CVAR_CHEAT );
@@ -588,7 +588,7 @@ void CM_Init( void ) {
 /*
 * CM_Shutdown
 */
-void CM_Shutdown( void ) {
+void CM_Shutdown() {
 	if( !cm_initialized ) {
 		return;
 	}

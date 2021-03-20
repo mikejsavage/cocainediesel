@@ -63,7 +63,7 @@ struct cgame_import_t {
 	void ( *GetConfigString )( int i, char *str, int size );
 
 	void ( *NET_GetUserCmd )( int frame, usercmd_t *cmd );
-	int ( *NET_GetCurrentUserCmdNum )( void );
+	int ( *NET_GetCurrentUserCmdNum )();
 	void ( *NET_GetCurrentState )( int64_t *incomingAcknowledged, int64_t *outgoingSequence, int64_t *outgoingSent );
 
 	// refresh system
@@ -79,13 +79,13 @@ struct cgame_export_t {
 					bool demoplaying, const char *demoName, unsigned int snapFrameTime );
 
 	// "soft restarts" at demo jumps
-	void ( *Reset )( void );
+	void ( *Reset )();
 
-	void ( *Shutdown )( void );
+	void ( *Shutdown )();
 
 	void ( *ConfigString )( int number, const char *value );
 
-	void ( *EscapeKey )( void );
+	void ( *EscapeKey )();
 
 	void ( *Trace )( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int passent, int contentmask );
 
@@ -101,7 +101,7 @@ struct cgame_export_t {
 	 *
 	 * @return BUTTON_ bitfield with the pressed or simulated actions
 	 */
-	unsigned int ( *GetButtonBits )( void );
+	unsigned int ( *GetButtonBits )();
 };
 
 cgame_export_t *GetCGameAPI( cgame_import_t * import );

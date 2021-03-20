@@ -437,6 +437,46 @@ static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	grenade->think = W_Grenade_Explode;
 }
 
+static void W_Touch_Stake( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
+	if( surfFlags & SURF_NOIMPACT ) {
+		G_FreeEdict( ent );
+		return;
+	}
+
+	if( !CanHit( ent, other ) ) {
+		return;
+	}
+
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_StakeGun );
+
+	if( other->takedamage ) {
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MeanOfDeath_StakeGun );
+		ent->enemy = other;
+		edict_t * event = G_SpawnEvent( EV_STAKE_IMPALE, DirToU64( -SafeNormalize( ent->velocity ) ), &ent->s.origin );
+		event->s.team = ent->s.team;
+		if( !def->pierce ) {
+			G_FreeEdict( ent );
+		}
+	} else {
+		ent->s.type = ET_GENERIC;
+		// ent->think = G_FreeEdict;
+		// ent->nextThink = level.time + def->range;
+		ent->movetype = MOVETYPE_NONE;
+		ent->s.sound = "";
+		edict_t * event = G_SpawnEvent( EV_STAKE_IMPACT, DirToU64( -SafeNormalize( ent->velocity ) ), &ent->s.origin );
+		event->s.team = ent->s.team;
+	}
+}
+
+static void W_Fire_Stake( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	edict_t * stake = FireProjectile( self, start, angles, timeDelta, GS_GetWeaponDef( Weapon_StakeGun ), W_Touch_Stake, ET_STAKE, MASK_SHOT );
+
+	stake->classname = "stake";
+	stake->movetype = MOVETYPE_BOUNCEGRENADE;
+	stake->s.model = "weapons/stake/stake";
+	stake->s.sound = "weapons/stake/trail";
+}
+
 static void W_Touch_Rocket( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
 	if( surfFlags & SURF_NOIMPACT ) {
 		G_FreeEdict( ent );
@@ -474,7 +514,6 @@ static void W_Fire_Plasma( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 	edict_t * plasma = FireLinearProjectile( self, start, angles, timeDelta, GS_GetWeaponDef( Weapon_Plasma ), W_AutoTouch_Plasma, ET_PLASMA, MASK_SHOT );
 
 	plasma->classname = "plasma";
-	plasma->s.model = "weapons/pg/cell";
 	plasma->s.sound = "weapons/pg/trail";
 
 	plasma->think = W_Think_Plasma;
@@ -485,7 +524,6 @@ static void FireBubble( edict_t * owner, Vec3 start, Vec3 angles, const WeaponDe
 	edict_t * bubble = FireLinearProjectile( owner, start, angles, timeDelta, def, W_AutoTouch_Plasma, ET_BUBBLE, MASK_SHOT );
 
 	bubble->classname = "bubble";
-	bubble->s.model = "weapons/bg/cell";
 	bubble->s.sound = "weapons/bg/trail";
 
 	bubble->think = W_Think_Plasma;
@@ -696,6 +734,57 @@ void W_Fire_RifleBullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta 
 	bullet->s.sound = "weapons/bullet_whizz";
 }
 
+static void W_Touch_Blast( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
+	if( surfFlags & SURF_NOIMPACT ) {
+		G_FreeEdict( ent );
+		return;
+	}
+
+	if( !CanHit( ent, other ) ) {
+		return;
+	}
+
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_MasterBlaster );
+
+	if( other->takedamage ) {
+		edict_t * event = G_SpawnEvent( EV_BLAST_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
+		event->s.team = ent->s.team;
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MeanOfDeath_MasterBlaster );
+		ent->enemy = other;
+		if( !def->pierce ) {
+			G_FreeEdict( ent );
+		}
+	} else {
+		edict_t * event = G_SpawnEvent( EV_BLAST_BOUNCE, DirToU64( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
+		event->s.team = ent->s.team;
+	}
+	if( ent->num_bounces >= 5 ) {
+		G_FreeEdict( ent );
+	}
+}
+
+void W_Fire_Blast( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_MasterBlaster );
+	Vec3 dir, right, up;
+	AngleVectors( angles, &dir, &right, &up );
+
+	for( int i = 0; i < def->projectile_count; i++ ) {
+		float fi = i * 2.4f; //magic value creating Fibonacci numbers
+		float r = cosf( fi ) * def->spread * sqrtf( fi );
+		float u = sinf( fi ) * def->spread * sqrtf( fi );
+
+		Vec3 blast_dir = dir * def->range + right * r + up * u;
+		Vec3 blast_angles = VecToAngles( blast_dir );
+
+		edict_t * blast = FireProjectile( self, start, blast_angles, timeDelta, def, W_Touch_Blast, ET_BLAST, MASK_SHOT );
+
+		blast->classname = "blast";
+		blast->movetype = MOVETYPE_BOUNCEGRENADE;
+		blast->stop = G_FreeEdict;
+		blast->s.sound = "weapons/mb/trail";
+	}
+}
+
 void G_FireWeapon( edict_t *ent, u64 weap ) {
 	Vec3 origin, angles;
 	Vec3 viewoffset = { 0, 0, 0 };
@@ -741,6 +830,10 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_AssaultRifle, MeanOfDeath_AssaultRifle );
 			break;
 
+		case Weapon_StakeGun:
+			W_Fire_Stake( ent, origin, angles, timeDelta );
+			break;
+
 		case Weapon_GrenadeLauncher:
 			W_Fire_Grenade( ent, origin, angles, timeDelta );
 			break;
@@ -771,6 +864,10 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 
 		case Weapon_Rifle:
 			W_Fire_RifleBullet( ent, origin, angles, timeDelta );
+			break;
+
+		case Weapon_MasterBlaster:
+			W_Fire_Blast( ent, origin, angles, timeDelta );
 			break;
 	}
 

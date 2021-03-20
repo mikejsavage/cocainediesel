@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/cmodel.h"
 #include "client/renderer/renderer.h"
 
-static void CG_UpdateEntities( void );
+static void CG_UpdateEntities();
 
 static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 	constexpr int MIN_DRAWDISTANCE_FIRSTPERSON = 86;
@@ -176,7 +176,7 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 	}
 }
 
-int CG_LostMultiviewPOV( void ) {
+int CG_LostMultiviewPOV() {
 	int best = client_gs.maxclients;
 	int index = -1;
 	int fallback = -1;
@@ -211,7 +211,7 @@ static void CG_SetFramePlayerState( snapshot_t *frame, int index ) {
 	}
 }
 
-static void CG_UpdatePlayerState( void ) {
+static void CG_UpdatePlayerState() {
 	int index = 0;
 
 	if( cg.frame.multipov ) {
@@ -339,21 +339,21 @@ const cmodel_t *CG_CModelForEntity( int entNum ) {
 
 static void CG_UpdateGenericEnt( centity_t *cent ) {
 	// start from clean
-	memset( &cent->ent, 0, sizeof( cent->ent ) );
-	cent->ent.scale = 1.0f;
-	cent->ent.color = RGBA8( CG_TeamColor( cent->current.team ) );
+	memset( &cent->interpolated, 0, sizeof( cent->interpolated ) );
+	cent->interpolated.scale = 1.0f;
+	cent->interpolated.color = RGBA8( CG_TeamColor( cent->current.team ) );
 
 	// set up the model
-	cent->ent.model = FindModel( cent->current.model );
+	cent->interpolated.model = FindModel( cent->current.model );
 }
 
 void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 	cent->linearProjectileCanDraw = CG_UpdateLinearProjectilePosition( cent );
 
-	cent->ent.origin = cent->current.origin;
-	cent->ent.origin2 = cent->current.origin;
+	cent->interpolated.origin = cent->current.origin;
+	cent->interpolated.origin2 = cent->current.origin;
 
-	AnglesToAxis( cent->current.angles, cent->ent.axis );
+	AnglesToAxis( cent->current.angles, cent->interpolated.axis );
 }
 
 void CG_LerpGenericEnt( centity_t *cent ) {
@@ -367,14 +367,14 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 	}
 
 	if( ent_angles.x || ent_angles.y || ent_angles.z ) {
-		AnglesToAxis( ent_angles, cent->ent.axis );
+		AnglesToAxis( ent_angles, cent->interpolated.axis );
 	} else {
-		Matrix3_Copy( axis_identity, cent->ent.axis );
+		Matrix3_Copy( axis_identity, cent->interpolated.axis );
 	}
 
 	if( ISVIEWERENTITY( cent->current.number ) || cg.view.POVent == cent->current.number ) {
-		cent->ent.origin = cg.predictedPlayerState.pmove.origin;
-		cent->ent.origin2 = cent->ent.origin;
+		cent->interpolated.origin = cg.predictedPlayerState.pmove.origin;
+		cent->interpolated.origin2 = cent->interpolated.origin;
 	} else {
 		if( cgs.extrapolationTime && cent->canExtrapolate ) { // extrapolation
 			Vec3 origin, xorigin1, xorigin2;
@@ -404,11 +404,11 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 
 			if( cent->microSmooth == 2 ) {
 				Vec3 oldsmoothorigin = Lerp( cent->microSmoothOrigin2, 0.65f, cent->microSmoothOrigin );
-				cent->ent.origin = Lerp( origin, 0.5f, oldsmoothorigin );
+				cent->interpolated.origin = Lerp( origin, 0.5f, oldsmoothorigin );
 			} else if( cent->microSmooth == 1 ) {
-				cent->ent.origin = Lerp( origin, 0.5f, cent->microSmoothOrigin );
+				cent->interpolated.origin = Lerp( origin, 0.5f, cent->microSmoothOrigin );
 			} else {
-				cent->ent.origin = origin;
+				cent->interpolated.origin = origin;
 			}
 
 			if( cent->microSmooth ) {
@@ -418,27 +418,27 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 			cent->microSmoothOrigin = origin;
 			cent->microSmooth = Min2( 2, cent->microSmooth + 1 );
 
-			cent->ent.origin2 = cent->ent.origin;
+			cent->interpolated.origin2 = cent->interpolated.origin;
 		} else {   // plain interpolation
-			cent->ent.origin = cent->prev.origin + cg.lerpfrac * ( cent->current.origin - cent->prev.origin );
-			cent->ent.origin2 = cent->ent.origin;
+			cent->interpolated.origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
+			cent->interpolated.origin2 = cent->interpolated.origin;
 		}
 	}
 }
 
 static void DrawEntityModel( centity_t *cent ) {
-	if( !cent->ent.scale ) {
+	if( cent->interpolated.scale == 0.0f ) {
 		return;
 	}
 
-	if( cent->ent.model == NULL ) {
+	if( cent->interpolated.model == NULL ) {
 		return;
 	}
 
-	const Model * model = cent->ent.model;
-	Mat4 transform = FromAxisAndOrigin( cent->ent.axis, cent->ent.origin );
+	const Model * model = cent->interpolated.model;
+	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin );
 
-	Vec4 color = sRGBToLinear( cent->ent.color );
+	Vec4 color = sRGBToLinear( cent->interpolated.color );
 	DrawModel( model, transform, color );
 	DrawModelShadow( model, transform, color );
 
@@ -507,12 +507,12 @@ static void CG_AddPlayerEnt( centity_t *cent ) {
 }
 
 static void CG_LerpLaser( centity_t *cent ) {
-	cent->ent.origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
-	cent->ent.origin2 = Lerp( cent->prev.origin2, cg.lerpfrac, cent->current.origin2 );
+	cent->interpolated.origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
+	cent->interpolated.origin2 = Lerp( cent->prev.origin2, cg.lerpfrac, cent->current.origin2 );
 }
 
 static void CG_AddLaserEnt( centity_t *cent ) {
-	DrawBeam( cent->ent.origin, cent->ent.origin2, cent->current.radius, vec4_white, cgs.media.shaderLaser );
+	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, vec4_white, cgs.media.shaderLaser );
 }
 
 static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
@@ -554,10 +554,8 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	int channel = cent->current.channel & ~CHAN_FIXED;
 	bool fixed = ( cent->current.channel & CHAN_FIXED ) != 0;
 
-	const SoundEffect * sfx = FindSoundEffect( cent->current.sound );
-
 	if( cent->current.svflags & SVF_BROADCAST ) {
-		S_StartGlobalSound( sfx, channel, 1.0f );
+		S_StartGlobalSound( cent->current.sound, channel, 1.0f );
 		return;
 	}
 
@@ -576,13 +574,13 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 
 	if( fixed ) {
-		S_StartFixedSound( sfx, cent->current.origin, channel, 1.0f );
+		S_StartFixedSound( cent->current.sound, cent->current.origin, channel, 1.0f );
 	}
 	else if( ISVIEWERENTITY( owner ) ) {
-		S_StartGlobalSound( sfx, channel, 1.0f );
+		S_StartGlobalSound( cent->current.sound, channel, 1.0f );
 	}
 	else {
-		S_StartEntitySound( sfx, owner, channel, 1.0f );
+		S_StartEntitySound( cent->current.sound, owner, channel, 1.0f );
 	}
 }
 
@@ -620,9 +618,9 @@ static void CG_LerpSpikes( centity_t * cent ) {
 	Vec3 up;
 	AngleVectors( cent->current.angles, NULL, NULL, &up );
 
-	AnglesToAxis( cent->current.angles, cent->ent.axis );
-	cent->ent.origin = cent->current.origin + up * position;
-	cent->ent.origin2 = Vec3( cent->ent.origin );
+	AnglesToAxis( cent->current.angles, cent->interpolated.axis );
+	cent->interpolated.origin = cent->current.origin + up * position;
+	cent->interpolated.origin2 = cent->interpolated.origin;
 }
 
 static void CG_UpdateSpikes( centity_t * cent ) {
@@ -635,32 +633,32 @@ static void CG_UpdateSpikes( centity_t * cent ) {
 	int64_t delta = cg.frame.serverTime - cent->current.linearMovementTimeStamp;
 
 	if( old_delta < 0 && delta >= 0 ) {
-		S_StartEntitySound( cgs.media.sfxSpikesArm, cent->current.number, CHAN_AUTO, 1.0f );
+		S_StartEntitySound( "sounds/spikes/arm", cent->current.number, CHAN_AUTO, 1.0f );
 	}
 	else if( old_delta < 1000 && delta >= 1000 ) {
-		S_StartEntitySound( cgs.media.sfxSpikesDeploy, cent->current.number, CHAN_AUTO, 1.0f );
+		S_StartEntitySound( "sounds/spikes/retract", cent->current.number, CHAN_AUTO, 1.0f );
 	}
 	else if( old_delta < 1050 && delta >= 1050 ) {
-		S_StartEntitySound( cgs.media.sfxSpikesGlint, cent->current.number, CHAN_AUTO, 1.0f );
+		S_StartEntitySound( "sounds/spikes/glint", cent->current.number, CHAN_AUTO, 1.0f );
 	}
 	else if( old_delta < 1500 && delta >= 1500 ) {
-		S_StartEntitySound( cgs.media.sfxSpikesRetract, cent->current.number, CHAN_AUTO, 1.0f );
+		S_StartEntitySound( "sounds/spikes/retract", cent->current.number, CHAN_AUTO, 1.0f );
 	}
 }
 
 void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
-	cent->sound = S_ImmediateEntitySound( FindSoundEffect( state->sound ), state->number, 1.0f, cent->sound );
+	cent->sound = S_ImmediateEntitySound( state->sound, state->number, 1.0f, cent->sound );
 }
 
 static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
 	// didn't move
-	Vec3 vec = cent->ent.origin - cent->trailOrigin;
+	Vec3 vec = cent->interpolated.origin - cent->trailOrigin;
 	float len = Length( vec );
 	if( len == 0 )
 		return;
 
 	Vec4 color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
-	DoVisualEffect( name, cent->ent.origin, cent->trailOrigin, 1.0f, color );
+	DoVisualEffect( name, cent->interpolated.origin, cent->trailOrigin, 1.0f, color );
 }
 
 void DrawEntities() {
@@ -707,6 +705,15 @@ void DrawEntities() {
 				DrawEntityTrail( cent, "weapons/rifle/bullet_trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
+			case ET_STAKE:
+				DrawEntityModel( cent );
+				DrawEntityTrail( cent, "weapons/stake/trail" );
+				CG_EntityLoopSound( cent, state );
+				break;
+			case ET_BLAST:
+				DrawEntityTrail( cent, "weapons/mb/trail" );
+				CG_EntityLoopSound( cent, state );
+				break;
 
 			case ET_PLAYER:
 				CG_AddPlayerEnt( cent );
@@ -751,7 +758,7 @@ void DrawEntities() {
 
 			case ET_LASER:
 				CG_AddLaserEnt( cent );
-				cent->sound = S_ImmediateLineSound( FindSoundEffect( state->sound ), cent->ent.origin, cent->ent.origin2, 1.0f, cent->sound );
+				cent->sound = S_ImmediateLineSound( state->sound, cent->interpolated.origin, cent->interpolated.origin2, 1.0f, cent->sound );
 
 			case ET_SPIKES:
 				DrawEntityModel( cent );
@@ -766,7 +773,7 @@ void DrawEntities() {
 				break;
 		}
 
-		cent->trailOrigin = cent->ent.origin;
+		cent->trailOrigin = cent->interpolated.origin;
 	}
 }
 
@@ -774,7 +781,7 @@ void DrawEntities() {
 * CG_LerpEntities
 * Interpolate the entity states positions into the entity_t structs
 */
-void CG_LerpEntities( void ) {
+void CG_LerpEntities() {
 	ZoneScoped;
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
@@ -789,6 +796,8 @@ void CG_LerpEntities( void ) {
 			case ET_BUBBLE:
 			case ET_GRENADE:
 			case ET_RIFLEBULLET:
+			case ET_STAKE:
+			case ET_BLAST:
 			case ET_PLAYER:
 			case ET_CORPSE:
 			case ET_GHOST:
@@ -842,7 +851,7 @@ void CG_LerpEntities( void ) {
 * CG_UpdateEntities
 * Called at receiving a new serverframe. Sets up the model, type, etc to be drawn later on
 */
-void CG_UpdateEntities( void ) {
+void CG_UpdateEntities() {
 	ZoneScoped;
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
@@ -866,6 +875,8 @@ void CG_UpdateEntities( void ) {
 			case ET_BUBBLE:
 			case ET_GRENADE:
 			case ET_RIFLEBULLET:
+			case ET_STAKE:
+			case ET_BLAST:
 				CG_UpdateGenericEnt( cent );
 				break;
 
@@ -925,13 +936,13 @@ void CG_GetEntitySpatialization( int entNum, Vec3 * origin, Vec3 * velocity ) {
 	const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, cent->current.model );
 	if( cmodel == NULL ) {
 		if( origin != NULL ) {
-			*origin = cent->ent.origin;
+			*origin = cent->interpolated.origin;
 		}
 	}
 	else {
 		Vec3 mins, maxs;
 		CM_InlineModelBounds( cl.cms, cmodel, &mins, &maxs );
 		*origin = maxs + mins;
-		*origin = cent->ent.origin + *origin * 0.5f;
+		*origin = cent->interpolated.origin + *origin * 0.5f;
 	}
 }

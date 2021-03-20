@@ -30,18 +30,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BUTTON_SPECIAL              4
 #define BUTTON_RELOAD               8
 
-enum {
-	KEYICON_FORWARD = 0,
-	KEYICON_BACKWARD,
-	KEYICON_LEFT,
-	KEYICON_RIGHT,
-	KEYICON_FIRE,
-	KEYICON_JUMP,
-	KEYICON_CROUCH,
-	KEYICON_SPECIAL,
-	KEYICON_TOTAL
-};
-
 // user command communications
 #define CMD_BACKUP  64  // allow a lot of command backups for very fast systems
 #define CMD_MASK    ( CMD_BACKUP - 1 )

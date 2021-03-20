@@ -27,16 +27,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/sys_net.h"
 
 static int( WINAPI * pTransmitFile )( SOCKET hSocket,
-									  HANDLE hFile, DWORD nNumberOfBytesToWrite, DWORD nNumberOfBytesPerSend,
-									  LPOVERLAPPED lpOverlapped, LPTRANSMIT_FILE_BUFFERS lpTransmitBuffers, DWORD dwReserved
-									  );
+	HANDLE hFile, DWORD nNumberOfBytesToWrite, DWORD nNumberOfBytesPerSend,
+	LPOVERLAPPED lpOverlapped, LPTRANSMIT_FILE_BUFFERS lpTransmitBuffers, DWORD dwReserved
+	);
 
-//=============================================================================
-
-/*
-* Sys_NET_GetLastError
-*/
-net_error_t Sys_NET_GetLastError( void ) {
+net_error_t Sys_NET_GetLastError() {
 	int error = WSAGetLastError();
 	switch( error ) {
 		case 0:                 return NET_ERR_NONE;
@@ -49,25 +44,14 @@ net_error_t Sys_NET_GetLastError( void ) {
 	}
 }
 
-//=============================================================================
-
-/*
-* Sys_NET_SocketClose
-*/
 void Sys_NET_SocketClose( socket_handle_t handle ) {
 	closesocket( handle );
 }
 
-/*
-* Sys_NET_SocketIoctl
-*/
 int Sys_NET_SocketIoctl( socket_handle_t handle, long request, ioctl_param_t* param ) {
 	return ioctlsocket( handle, request, param );
 }
 
-/*
-* Sys_NET_SendFile
-*/
 int64_t Sys_NET_SendFile( socket_handle_t handle, int fileno, size_t offset, size_t count ) {
 	OVERLAPPED ol = { 0 };
 	HANDLE fhandle = (HANDLE) _get_osfhandle( fileno );
@@ -91,12 +75,7 @@ int64_t Sys_NET_SendFile( socket_handle_t handle, int fileno, size_t offset, siz
 	return sent;
 }
 
-//===================================================================
-
-/*
-* Sys_NET_InitFunctions
-*/
-static void Sys_NET_InitFunctions( void ) {
+static void Sys_NET_InitFunctions() {
 	SOCKET sock;
 	GUID tf_guid = WSAID_TRANSMITFILE;
 	DWORD bytes;
@@ -114,24 +93,27 @@ static void Sys_NET_InitFunctions( void ) {
 	closesocket( sock );
 }
 
-/*
-* Sys_NET_Init
-*/
-void Sys_NET_Init( void ) {
-	WSADATA winsockdata;
+static void WSAError( const char * name ) {
+	int err = WSAGetLastError();
 
-	if( WSAStartup( MAKEWORD( 2, 2 ), &winsockdata ) ) {
-		Com_Error( ERR_FATAL, "Winsock initialization failed" );
+	char buf[ 1024 ];
+	FormatMessageA( FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
+		err, MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), buf, sizeof( buf ), NULL );
+
+	Com_Error( ERR_FATAL, "%s: %s (%d)", name, buf, err );
+}
+
+void Sys_NET_Init() {
+	WSADATA wsa_data;
+	if( WSAStartup( MAKEWORD( 2, 2 ), &wsa_data ) != 0 ) {
+		WSAError( "WSAStartup" );
 	}
 
 	Sys_NET_InitFunctions();
-
-	Com_Printf( "Winsock initialized\n" );
 }
 
-/*
-* Sys_NET_Shutdown
-*/
-void Sys_NET_Shutdown( void ) {
-	WSACleanup();
+void Sys_NET_Shutdown() {
+	if( WSACleanup() != 0 ) {
+		WSAError( "WSACleanup" );
+	}
 }

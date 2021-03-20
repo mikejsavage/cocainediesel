@@ -158,7 +158,7 @@ static void FindPlayerSounds( PlayerModelMetadata * meta, Span< const char > dir
 	for( size_t i = 0; i < ARRAY_COUNT( meta->sounds ); i++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
 		const char * path = temp( "{}/{}", dir, PLAYER_SOUND_NAMES[ i ] );
-		meta->sounds[ i ] = FindSoundEffect( path );
+		meta->sounds[ i ] = StringHash( path );
 	}
 }
 
@@ -204,7 +204,7 @@ const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num ) {
 	return GetPlayerModelMetadata( "players/rigg/model" );
 }
 
-void CG_ResetPModels( void ) {
+void CG_ResetPModels() {
 	for( int i = 0; i < MAX_EDICTS; i++ ) {
 		memset( &cg_entPModels[i].animState, 0, sizeof( pmodel_animationstate_t ) );
 	}
@@ -278,7 +278,7 @@ bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result ) {
 /*
 * CG_OutlineScaleForDist
 */
-static float CG_OutlineScaleForDist( const entity_t * e, float maxdist, float scale ) {
+static float CG_OutlineScaleForDist( const InterpolatedEntity * e, float maxdist, float scale ) {
 	Vec3 dir = e->origin - cg.view.origin;
 	float dist = Length( dir ) * cg.view.fracDistFOV;
 	if( dist > maxdist ) {
@@ -635,12 +635,12 @@ static void CG_UpdatePModelAnimations( centity_t *cent ) {
 */
 void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	// start from clean
-	memset( &cent->ent, 0, sizeof( cent->ent ) );
-	cent->ent.scale = 1.0f;
+	memset( &cent->interpolated, 0, sizeof( cent->interpolated ) );
+	cent->interpolated.scale = 1.0f;
 
 	pmodel_t * pmodel = &cg_entPModels[ cent->current.number ];
 
-	cent->ent.color = RGBA8( CG_TeamColor( cent->current.number ) );
+	cent->interpolated.color = RGBA8( CG_TeamColor( cent->current.number ) );
 
 	// Spawning (teleported bit) forces nobacklerp and the interruption of EVENT_CHANNEL animations
 	if( cent->current.teleported ) {
@@ -764,11 +764,11 @@ void CG_DrawPlayer( centity_t *cent ) {
 			CG_ViewSmoothPredictedSteps( &origin );
 		}
 		else {
-			origin = cent->ent.origin;
+			origin = cent->interpolated.origin;
 		}
 
-		cent->ent.origin = origin;
-		cent->ent.origin2 = origin;
+		cent->interpolated.origin = origin;
+		cent->interpolated.origin2 = origin;
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -794,7 +794,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 			tmpangles = LerpAngles( pmodel->oldangles[LOWER], cg.lerpfrac, pmodel->angles[LOWER] );
 		}
 
-		AnglesToAxis( tmpangles, cent->ent.axis );
+		AnglesToAxis( tmpangles, cent->interpolated.axis );
 
 		// apply UPPER and HEAD angles to rotator nodes
 		// also add rotations from velocity leaning
@@ -815,9 +815,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	MatrixPalettes pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 
-	// CG_AllocPlayerShadow( cent->current.number, cent->ent.origin, playerbox_stand_mins, playerbox_stand_maxs );
-
-	Mat4 transform = FromAxisAndOrigin( cent->ent.axis, cent->ent.origin );
+	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin );
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	if( corpse ) {
@@ -836,8 +834,10 @@ void CG_DrawPlayer( centity_t *cent ) {
 	}
 
 	if( draw_model ) {
-		float outline_height = CG_OutlineScaleForDist( &cent->ent, 4096, 1.0f );
-		DrawOutlinedModel( meta->model, transform, color * 0.5f, outline_height, pose );
+		float outline_height = CG_OutlineScaleForDist( &cent->interpolated, 4096, 1.0f );
+		if( outline_height != 0.0f ) {
+			DrawOutlinedModel( meta->model, transform, color * 0.5f, outline_height, pose );
+		}
 	}
 
 	// add weapon model

@@ -61,7 +61,7 @@ struct centity_t {
 
 	int64_t respawnTime;
 
-	entity_t ent;                   // interpolated, to be added to render list
+	InterpolatedEntity interpolated;
 	unsigned int type;
 	unsigned int effects;
 
@@ -109,52 +109,9 @@ struct centity_t {
 
 struct cgs_media_t {
 	// sounds
-	const SoundEffect * sfxWeaponNoAmmo;
+	StringHash sfxWeaponHit[ 4 ];
 
-	const SoundEffect * sfxWeaponHit[ 4 ];
-	const SoundEffect * sfxWeaponKill;
-
-	const SoundEffect * sfxItemRespawn;
-	const SoundEffect * sfxTeleportIn;
-	const SoundEffect * sfxTeleportOut;
-	const SoundEffect * sfxShellHit;
-
-	const SoundEffect * sfxBladeFleshHit;
-	const SoundEffect * sfxBladeWallHit;
-
-	const SoundEffect * sfxBulletImpact;
-	const SoundEffect * sfxBulletWhizz;
-
-	const SoundEffect * sfxRiotgunHit;
-
-	const SoundEffect * sfxGrenadeBounce;
-	const SoundEffect * sfxGrenadeExplosion;
-
-	const SoundEffect * sfxRocketLauncherHit;
-
-	const SoundEffect * sfxPlasmaHit;
-	const SoundEffect * sfxBubbleHit;
-
-	const SoundEffect * sfxLasergunHum;
-	const SoundEffect * sfxLasergunBeam;
-	const SoundEffect * sfxLasergunStop;
-	const SoundEffect * sfxLasergunHit;
-
-	const SoundEffect * sfxElectroboltHit;
-
-	const SoundEffect * sfxVSaySounds[ Vsay_Total ];
-
-	const SoundEffect * sfxSpikesArm;
-	const SoundEffect * sfxSpikesDeploy;
-	const SoundEffect * sfxSpikesGlint;
-	const SoundEffect * sfxSpikesRetract;
-
-	const SoundEffect * sfxFall;
-
-	const SoundEffect * sfxTbag;
-	const SoundEffect * sfxSpray;
-
-	const SoundEffect * sfxHeadshot;
+	StringHash sfxVSaySounds[ Vsay_Total ];
 
 	// models
 	const Model * modDash;
@@ -166,50 +123,17 @@ struct cgs_media_t {
 	const Model * modBladeWallHit;
 	const Model * modBladeWallExplo;
 
-	const Model * modElectroBoltWallHit;
-
 	const Model * modLasergunWallExplo;
 
-	const Material * shaderParticle;
-	const Material * shaderRocketExplosion;
-	const Material * shaderRocketExplosionRing;
-	const Material * shaderGrenadeExplosion;
-	const Material * shaderGrenadeExplosionRing;
-	const Material * shaderBulletExplosion;
-	const Material * shaderWaterBubble;
-	const Material * shaderSmokePuff;
-
-	const Material * shaderSmokePuff1;
-	const Material * shaderSmokePuff2;
-	const Material * shaderSmokePuff3;
-
-	const Material * shaderRocketFireTrailPuff;
-	const Material * shaderGrenadeTrailSmokePuff;
-	const Material * shaderRocketTrailSmokePuff;
-	const Material * shaderBloodTrailPuff;
-	const Material * shaderBloodTrailLiquidPuff;
-	const Material * shaderBloodImpactPuff;
 	const Material * shaderBombIcon;
-	const Material * shaderTeleporterSmokePuff;
-	const Material * shaderBladeMark;
-	const Material * shaderBulletMark;
-	const Material * shaderExplosionMark;
-	const Material * shaderEnergyMark;
 	const Material * shaderLaser;
 	const Material * shaderNet;
 
-	const Material * shaderPlasmaMark;
 	const Material * shaderEBBeam;
 	const Material * shaderLGBeam;
 	const Material * shaderTracer;
-	const Material * shaderEBImpact;
-
-	const Material * shaderPlayerShadow;
-
-	const Material * shaderTick;
 
 	const Material * shaderWeaponIcon[ Weapon_Count ];
-	const Material * shaderKeyIcon[KEYICON_TOTAL];
 
 	const Material * shaderAlive;
 	const Material * shaderDead;
@@ -338,8 +262,8 @@ struct cg_state_t {
 	float xyspeed;
 
 	bool recoiling;
-	Vec3 recoil;
-	Vec3 recoil_initial;
+	EulerDegrees2 recoil_velocity;
+	EulerDegrees2 recoil_initial_angles;
 
 	float damage_effect;
 
@@ -400,17 +324,17 @@ Vec2 WorldToScreenClamped( Vec3 v, Vec2 screen_border, bool * clamped );
 //
 // cg_media.c
 //
-void CG_RegisterMediaSounds( void );
-void CG_RegisterMediaModels( void );
-void CG_RegisterMediaShaders( void );
-void CG_RegisterFonts( void );
+void CG_RegisterMediaSounds();
+void CG_RegisterMediaModels();
+void CG_RegisterMediaShaders();
+void CG_RegisterFonts();
 
 //
 // cg_players.c
 //
 extern cvar_t *cg_hand;
 
-void CG_ResetClientInfos( void );
+void CG_ResetClientInfos();
 void CG_LoadClientInfo( int client );
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 
@@ -421,9 +345,9 @@ extern cvar_t *cg_showMiss;
 
 void CG_PredictedEvent( int entNum, int ev, u64 parm );
 void CG_PredictedFireWeapon( int entNum, WeaponType weapon );
-void CG_PredictMovement( void );
-void CG_CheckPredictionError( void );
-void CG_BuildSolidList( void );
+void CG_PredictMovement();
+void CG_CheckPredictionError();
+void CG_BuildSolidList();
 void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask );
 int CG_PointContents( Vec3 point );
 void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin );
@@ -433,14 +357,14 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin );
 //
 extern cvar_t *cg_showFPS;
 
-void CG_ScreenInit( void );
-void CG_Draw2D( void );
+void CG_ScreenInit();
+void CG_Draw2D();
 void CG_CenterPrint( const char *str );
 
-void CG_EscapeKey( void );
+void CG_EscapeKey();
 
 void CG_DrawCrosshair();
-void CG_ScreenCrosshairDamageUpdate( void );
+void CG_ScreenCrosshairDamageUpdate();
 
 void CG_DrawKeyState( int x, int y, int w, int h, const char *key );
 
@@ -448,7 +372,7 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border );
 void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color );
 
-void CG_ClearPointedNum( void );
+void CG_ClearPointedNum();
 
 void CG_InitDamageNumbers();
 void CG_AddDamageNumber( SyncEntityState * ent, u64 parm );
@@ -503,7 +427,7 @@ extern cvar_t *cg_particleDebug;
 
 void CG_Init( const char *serverName, unsigned int playerNum,
 			  bool demoplaying, const char *demoName, unsigned snapFrameTime );
-void CG_Shutdown( void );
+void CG_Shutdown();
 
 #ifndef _MSC_VER
 void CG_LocalPrint( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
@@ -511,16 +435,16 @@ void CG_LocalPrint( const char *format, ... ) __attribute__( ( format( printf, 1
 void CG_LocalPrint( _Printf_format_string_ const char *format, ... );
 #endif
 
-void CG_Reset( void );
-void CG_Precache( void );
+void CG_Reset();
+void CG_Precache();
 char *_CG_CopyString( const char *in, const char *filename, int fileline );
 #define CG_CopyString( in ) _CG_CopyString( in, __FILE__, __LINE__ )
 
-void CG_RegisterCGameCommands( void );
-void CG_UnregisterCGameCommands( void );
+void CG_RegisterCGameCommands();
+void CG_UnregisterCGameCommands();
 void CG_AddAward( const char *str );
 
-void CG_StartBackgroundTrack( void );
+void CG_StartBackgroundTrack();
 
 //
 // cg_svcmds.c
@@ -556,28 +480,31 @@ extern cvar_t *cg_thirdPerson;
 extern cvar_t *cg_thirdPersonAngle;
 extern cvar_t *cg_thirdPersonRange;
 
-void CG_ResetKickAngles( void );
+void CG_ResetKickAngles();
 
 void CG_StartFallKickEffect( int bounceTime );
 void CG_ViewSmoothPredictedSteps( Vec3 * vieworg );
-float CG_ViewSmoothFallKick( void );
+float CG_ViewSmoothFallKick();
 float CG_CalcViewFov();
 void CG_RenderView( unsigned extrapolationTime );
 Vec3 CG_GetKickAngles();
 bool CG_ChaseStep( int step );
-bool CG_SwitchChaseCamMode( void );
+bool CG_SwitchChaseCamMode();
 
 //
 // cg_lents.c
 //
 
-void CG_BubbleTrail( Vec3 start, Vec3 end, int dist );
 void CG_RifleBulletTrail( const centity_t * cent );
 void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color );
 void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
 void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_StakeImpact( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_StakeImpale( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_BlastImpact( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_BlastBounce( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color );
 void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color );
 void CG_BladeImpact( Vec3 pos, Vec3 dir );
@@ -618,9 +545,9 @@ void CG_Recoil( WeaponType weapon );
 //
 void CG_FireEvents( bool early );
 void CG_EntityEvent( SyncEntityState *ent, int ev, u64 parm, bool predicted );
-void CG_AddAnnouncerEvent( const SoundEffect *sound, bool queued );
-void CG_ReleaseAnnouncerEvents( void );
-void CG_ClearAnnouncerEvents( void );
+void CG_AddAnnouncerEvent( StringHash sound, bool queued );
+void CG_ReleaseAnnouncerEvents();
+void CG_ClearAnnouncerEvents();
 
 void ResetAnnouncerSpeakers();
 void AddAnnouncerSpeaker( const centity_t * cent );
@@ -642,12 +569,12 @@ void CG_DrawChat();
 // cg_input.cpp
 //
 
-void CG_InitInput( void );
-void CG_ShutdownInput( void );
-void CG_ClearInputState( void );
+void CG_InitInput();
+void CG_ShutdownInput();
+void CG_ClearInputState();
 void CG_MouseMove( int frameTime, Vec2 m );
 float CG_GetSensitivityScale( float sens, float zoomSens );
-unsigned int CG_GetButtonBits( void );
+unsigned int CG_GetButtonBits();
 Vec3 CG_GetDeltaViewAngles();
 Vec3 CG_GetMovement();
 

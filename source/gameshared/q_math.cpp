@@ -55,9 +55,13 @@ Vec3 U64ToDir( u64 u ) {
 	float y = bit_cast< float >( u32( packed.y << 1 ) );
 
 	float sign = packed.zsign == 0 ? 1.0f : -1.0f;
-	float z = sqrtf( 1.0f - x * x - y * y ) * sign;
+	float z = sqrtf( Max2( 1.0f - x * x - y * y, 0.0f ) ) * sign;
 
 	return Vec3( x, y, z );
+}
+
+float SignedOne( float x ) {
+	return copysignf( 1.0f, x );
 }
 
 void ViewVectors( Vec3 forward, Vec3 * right, Vec3 * up ) {
@@ -140,7 +144,7 @@ void AnglesToAxis( Vec3 angles, mat3_t axis ) {
 
 // must match the GLSL OrthonormalBasis
 void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent ) {
-	float s = copysignf( 1.0f, v.z );
+	float s = SignedOne( v.z );
 	float a = -1.0f / ( s + v.z );
 	float b = v.x * v.y * a;
 
@@ -188,33 +192,15 @@ Vec3 LerpAngles( Vec3 a, float t, Vec3 b ) {
 	);
 }
 
-/*
-* AngleNormalize360
-*
-* returns angle normalized to the range [0 <= angle < 360]
-*/
 float AngleNormalize360( float angle ) {
-	return angle - 360.0f * floorf( angle / 360.0f );
+	return PositiveMod( angle, 360.0f );
 }
 
-/*
-* AngleNormalize180
-*
-* returns angle normalized to the range [-180 < angle <= 180]
-*/
 float AngleNormalize180( float angle ) {
 	angle = AngleNormalize360( angle );
-	if( angle > 180.0f ) {
-		angle -= 360.0f;
-	}
-	return angle;
+	return angle > 180.0f ? angle - 360.0f : angle;
 }
 
-/*
-* AngleDelta
-*
-* returns the normalized delta from angle1 to angle2
-*/
 float AngleDelta( float angle1, float angle2 ) {
 	return AngleNormalize180( angle1 - angle2 );
 }
@@ -225,6 +211,10 @@ Vec3 AngleDelta( Vec3 angle1, Vec3 angle2 ) {
 		AngleDelta( angle1.y, angle2.y ),
 		AngleDelta( angle1.z, angle2.z )
 	);
+}
+
+EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b ) {
+	return EulerDegrees2( AngleDelta( a.pitch, b.pitch ), AngleDelta( a.yaw, b.yaw ) );
 }
 
 /*
@@ -368,16 +358,6 @@ void Matrix3_Copy( const mat3_t m1, mat3_t m2 ) {
 	memcpy( m2, m1, sizeof( mat3_t ) );
 }
 
-bool Matrix3_Compare( const mat3_t m1, const mat3_t m2 ) {
-	int i;
-
-	for( i = 0; i < 9; i++ )
-		if( m1[i] != m2[i] ) {
-			return false;
-		}
-	return true;
-}
-
 void Matrix3_Multiply( const mat3_t m1, const mat3_t m2, mat3_t out ) {
 	out[0] = m1[0] * m2[0] + m1[1] * m2[3] + m1[2] * m2[6];
 	out[1] = m1[0] * m2[1] + m1[1] * m2[4] + m1[2] * m2[7];
@@ -394,19 +374,6 @@ void Matrix3_TransformVector( const mat3_t m, Vec3 v, Vec3 * out ) {
 	out->x = m[0] * v.x + m[1] * v.y + m[2] * v.z;
 	out->y = m[3] * v.x + m[4] * v.y + m[5] * v.z;
 	out->z = m[6] * v.x + m[7] * v.y + m[8] * v.z;
-}
-
-void Matrix3_Transpose( const mat3_t in, mat3_t out ) {
-	out[0] = in[0];
-	out[4] = in[4];
-	out[8] = in[8];
-
-	out[1] = in[3];
-	out[2] = in[6];
-	out[3] = in[1];
-	out[5] = in[7];
-	out[6] = in[2];
-	out[7] = in[5];
 }
 
 void Matrix3_FromAngles( Vec3 angles, mat3_t m ) {

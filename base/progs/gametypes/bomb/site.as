@@ -33,7 +33,6 @@ class cBombSite
 
 	Entity @hud;
 
-	bool useExplosionPoints;
 	Vec3[] explosionPoints;
 	bool targetsUsed;
 
@@ -43,7 +42,7 @@ class cBombSite
 
 	cBombSite @next;
 
-	cBombSite( Entity @ent, bool hasTargets, int team ) {
+	cBombSite( Entity @ent, int team ) {
 		if( siteCount >= MAX_SITES ) {
 			G_Print( "Too many bombsites... ignoring\n" );
 
@@ -72,14 +71,7 @@ class cBombSite
 		this.hud.counterNum = letter[0];
 		this.hud.linkEntity();
 
-		if( hasTargets ) {
-			this.useExplosionPoints = false;
-			this.targetsUsed = false;
-		}
-		else {
-			this.useExplosionPoints = true;
-			this.generateExplosionPoints();
-		}
+		this.generateExplosionPoints();
 
 		@this.next = @siteHead;
 		@siteHead = @this;
@@ -99,15 +91,12 @@ class cBombSite
 	}
 
 	void explode() {
-		if( !this.useExplosionPoints )
-			return;
-
 		numPendingExplosions = random_uniform( SITE_EXPLOSION_POINTS / 2, SITE_EXPLOSION_POINTS );
 		numExploded = 0;
 
 		for( int i = 0; i < numPendingExplosions; i++ ) {
 			Vec3 point = explosionPoints[ random_uniform( 0, explosionPoints.length() ) ];
-			int64 time = EXPLOSION_COMEDIC_DELAY + int64( ( float( i ) / float( numPendingExplosions - 1 ) ) * SITE_EXPLOSION_MAX_DELAY );
+			int64 time = int64( ( float( i ) / float( numPendingExplosions - 1 ) ) * SITE_EXPLOSION_MAX_DELAY );
 			pendingExplosions[ i ] = PendingExplosion( point, time );
 		}
 	}
@@ -115,17 +104,7 @@ class cBombSite
 	void stepExplosion() {
 		int64 t = levelTime - bombActionTime;
 
-		if( t >= EXPLOSION_COMEDIC_DELAY ) {
-			hide( @bombModel );
-		}
-
-		if( !this.useExplosionPoints ) {
-			if( !targetsUsed && t >= EXPLOSION_COMEDIC_DELAY ) {
-				this.indicator.useTargets( bombModel );
-				targetsUsed = true;
-			}
-			return;
-		}
+		hide( @bombModel );
 
 		while( numExploded < numPendingExplosions && t >= pendingExplosions[ numExploded ].time ) {
 			Entity @ent = @G_SpawnEntity( "func_explosive" );
@@ -134,7 +113,6 @@ class cBombSite
 			ent.linkEntity();
 
 			ent.explosionEffect( BOMB_EXPLOSION_EFFECT_RADIUS );
-			ent.splashDamage( @ent, 3000, 9001, 100 );
 
 			ent.freeEntity();
 
@@ -181,7 +159,7 @@ void resetBombSites() {
 
 void bomb_site( Entity @ent ) {
 	@ent.think = bomb_site_think;
-	cBombSite( @ent, ent.target != "", defendingTeam );
+	cBombSite( @ent, defendingTeam );
 }
 
 void bomb_site_think( Entity @ent ) {

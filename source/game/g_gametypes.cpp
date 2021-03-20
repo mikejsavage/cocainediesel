@@ -44,7 +44,7 @@ static void G_Match_SetAutorecordState( const char *state ) {
 /*
 * G_Match_Autorecord_Start
 */
-void G_Match_Autorecord_Start( void ) {
+void G_Match_Autorecord_Start() {
 	G_Match_SetAutorecordState( "start" );
 
 	if( !g_autorecord->integer )
@@ -77,14 +77,14 @@ void G_Match_Autorecord_Start( void ) {
 /*
 * G_Match_Autorecord_AltStart
 */
-void G_Match_Autorecord_AltStart( void ) {
+void G_Match_Autorecord_AltStart() {
 	G_Match_SetAutorecordState( "altstart" );
 }
 
 /*
 * G_Match_Autorecord_Stop
 */
-void G_Match_Autorecord_Stop( void ) {
+void G_Match_Autorecord_Stop() {
 	G_Match_SetAutorecordState( "stop" );
 
 	if( g_autorecord->integer ) {
@@ -101,7 +101,7 @@ void G_Match_Autorecord_Stop( void ) {
 /*
 * G_Match_Autorecord_Cancel
 */
-void G_Match_Autorecord_Cancel( void ) {
+void G_Match_Autorecord_Cancel() {
 	G_Match_SetAutorecordState( "cancel" );
 
 	if( g_autorecord->integer ) {
@@ -112,7 +112,7 @@ void G_Match_Autorecord_Cancel( void ) {
 /*
 * G_Match_CheckStateAbort
 */
-static void G_Match_CheckStateAbort( void ) {
+static void G_Match_CheckStateAbort() {
 	bool any = false;
 	bool enough;
 
@@ -252,7 +252,7 @@ void G_Match_LaunchState( int matchState ) {
 /*
 * G_Match_ScorelimitHit
 */
-bool G_Match_ScorelimitHit( void ) {
+bool G_Match_ScorelimitHit() {
 	edict_t *e;
 
 	if( GS_MatchState( &server_gs ) != MATCH_STATE_PLAYTIME ) {
@@ -283,7 +283,7 @@ bool G_Match_ScorelimitHit( void ) {
 /*
 * G_Match_TimelimitHit
 */
-bool G_Match_TimelimitHit( void ) {
+bool G_Match_TimelimitHit() {
 	// check for timelimit hit
 	if( !GS_MatchDuration( &server_gs ) || svs.gametime < GS_MatchEndTime( &server_gs ) ) {
 		return false;
@@ -300,7 +300,7 @@ bool G_Match_TimelimitHit( void ) {
 /*
 * G_EndMatch
 */
-void G_EndMatch( void ) {
+void G_EndMatch() {
 	level.forceExit = true;
 	G_Match_LaunchState( MATCH_STATE_POSTMATCH );
 }
@@ -308,7 +308,7 @@ void G_EndMatch( void ) {
 /*
 * G_Match_CheckReadys
 */
-void G_Match_CheckReadys( void ) {
+void G_Match_CheckReadys() {
 	if( GS_MatchState( &server_gs ) != MATCH_STATE_WARMUP ) {
 		return;
 	}
@@ -437,7 +437,7 @@ void G_Match_RemoveProjectiles( edict_t *owner ) {
 /*
 * G_Match_FreeBodyQueue
 */
-void G_Match_FreeBodyQueue( void ) {
+void G_Match_FreeBodyQueue() {
 	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
 		edict_t * ent = &game.edicts[ i ];
 		if( ent->r.inuse && ent->s.type == ET_CORPSE ) {
@@ -452,7 +452,7 @@ void G_Match_FreeBodyQueue( void ) {
 /*
 * G_EachNewSecond
 */
-static bool G_EachNewSecond( void ) {
+static bool G_EachNewSecond() {
 	static int lastsecond;
 	static int second;
 
@@ -468,7 +468,7 @@ static bool G_EachNewSecond( void ) {
 /*
 * G_CheckNumBots
 */
-static void G_CheckNumBots( void ) {
+static void G_CheckNumBots() {
 	if( level.spawnedTimeStamp + 5000 > svs.realtime ) {
 		return;
 	}
@@ -505,7 +505,7 @@ static void G_CheckNumBots( void ) {
 /*
 * G_EachNewMinute
 */
-static bool G_EachNewMinute( void ) {
+static bool G_EachNewMinute() {
 	static int lastminute;
 	static int minute;
 
@@ -521,7 +521,7 @@ static bool G_EachNewMinute( void ) {
 /*
 * G_CheckEvenTeam
 */
-static void G_CheckEvenTeam( void ) {
+static void G_CheckEvenTeam() {
 	int max = 0;
 	int min = server_gs.maxclients + 1;
 	int uneven_team = TEAM_SPECTATOR;
@@ -577,7 +577,7 @@ void G_Gametype_ScoreEvent( gclient_t *client, const char *score_event, const ch
 /*
 * G_RunGametype
 */
-void G_RunGametype( void ) {
+void G_RunGametype() {
 	ZoneScoped;
 
 	G_Teams_ExecuteChallengersQueue();
@@ -606,7 +606,7 @@ void G_RunGametype( void ) {
 /*
 * G_Gametype_SetDefaults
 */
-void G_Gametype_SetDefaults( void ) {
+void G_Gametype_SetDefaults() {
 	level.gametype.isTeamBased = false;
 	level.gametype.isRace = false;
 	level.gametype.hasChallengersQueue = false;
@@ -648,7 +648,7 @@ static bool IsGladiatorMap() {
 /*
 * G_Gametype_Init
 */
-void G_Gametype_Init( void ) {
+void G_Gametype_Init() {
 	// get the match cvars too
 	g_warmup_timelimit = Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );
 	g_match_extendedtime = Cvar_Get( "g_match_extendedtime", "2", CVAR_ARCHIVE );
@@ -665,6 +665,8 @@ void G_Gametype_Init( void ) {
 	G_Gametype_SetDefaults();
 
 	if( !GT_asLoadScript( gt ) ) {
+#if PUBLIC_BUILD
 		Com_Error( ERR_DROP, "Failed to load %s", gt );
+#endif
 	}
 }

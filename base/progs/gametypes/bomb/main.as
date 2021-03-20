@@ -23,9 +23,9 @@ const uint BOMB_DEAD_CAMERA_DIST = 256;
 const int INITIAL_ATTACKERS = TEAM_ALPHA;
 const int INITIAL_DEFENDERS = TEAM_BETA;
 
-const int SITE_EXPLOSION_POINTS   = 30;
+const int SITE_EXPLOSION_POINTS = 10;
 
-const int SITE_EXPLOSION_MAX_DELAY = 1500; // XXX THIS MUST BE BIGGER THAN BOMB_SPRITE_RESIZE_TIME OR EVERYTHING DIES FIXME?
+const int SITE_EXPLOSION_MAX_DELAY = 1000; // XXX THIS MUST BE BIGGER THAN BOMB_SPRITE_RESIZE_TIME OR EVERYTHING DIES FIXME?
 
 const float SITE_EXPLOSION_MAX_DIST = 512.0f;
 
@@ -432,9 +432,7 @@ void GT_InitGametype() {
 		gametype.setTeamSpawnsystem( t, SPAWNSYSTEM_INSTANT, 0, 0, false );
 	}
 
-	// add commands
 	G_RegisterCommand( "drop" );
-	G_RegisterCommand( "carrier" );
 
 	G_RegisterCommand( "gametypemenu" );
 	G_RegisterCommand( "weapselect" );

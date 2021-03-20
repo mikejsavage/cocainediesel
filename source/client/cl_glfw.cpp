@@ -597,6 +597,7 @@ void GlfwInputFrame() {
 }
 
 void SwapBuffers() {
+	ZoneScoped;
 	glfwSwapBuffers( window );
 }
 

@@ -299,9 +299,25 @@ static void TextureBufferFormatToGL( TextureBufferFormat format, GLenum * intern
 	assert( false );
 }
 
+static void PlotVRAMUsage() {
+#if !PUBLIC_BUILD
+	if( GLAD_GL_NVX_gpu_memory_info != 0 ) {
+		GLint total_vram;
+		glGetIntegerv( GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &total_vram );
+
+		GLint available_vram;
+		glGetIntegerv( GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &available_vram );
+
+		TracyPlot( "VRAM usage", s64( total_vram - available_vram ) );
+	}
+#endif
+}
+
 void RenderBackendInit() {
 	ZoneScoped;
 	TracyGpuContext;
+
+	PlotVRAMUsage();
 
 	render_passes.init( sys_allocator );
 	draw_calls.init( sys_allocator );
@@ -375,6 +391,8 @@ void RenderBackendBeginFrame() {
 		prev_viewport_height = frame_static.viewport_height;
 		glViewport( 0, 0, frame_static.viewport_width, frame_static.viewport_height );
 	}
+
+	PlotVRAMUsage();
 }
 
 static bool operator!=( PipelineState::Scissor a, PipelineState::Scissor b ) {

@@ -198,6 +198,9 @@ struct SyncEntityState {
 	StringHash model;
 	StringHash model2;
 
+	bool animating;
+	float animation_time;
+
 	StringHash material;
 	RGBA8 color;
 
@@ -709,8 +712,7 @@ enum EntityType {
 	ET_EVENT = EVENT_ENTITIES_START,
 	ET_SOUNDEVENT,
 
-	ET_TOTAL_TYPES, // current count
-	MAX_ENTITY_TYPES = 128
+	ET_TOTAL_TYPES // current count
 };
 
 // SyncEntityState->effects

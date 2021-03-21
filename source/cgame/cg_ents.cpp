@@ -424,9 +424,12 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 			cent->interpolated.origin2 = cent->interpolated.origin;
 		}
 	}
+
+	cent->interpolated.animating = cent->current.animating;
+	cent->interpolated.animation_time = Lerp( cent->prev.animation_time, cg.lerpfrac, cent->current.animation_time );
 }
 
-static void DrawEntityModel( centity_t *cent ) {
+static void DrawEntityModel( centity_t * cent ) {
 	if( cent->interpolated.scale == 0.0f ) {
 		return;
 	}
@@ -435,17 +438,26 @@ static void DrawEntityModel( centity_t *cent ) {
 		return;
 	}
 
+	TempAllocator temp = cls.frame_arena.temp();
+
 	const Model * model = cent->interpolated.model;
 	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin );
 
 	Vec4 color = sRGBToLinear( cent->interpolated.color );
-	DrawModel( model, transform, color );
-	DrawModelShadow( model, transform, color );
+
+	MatrixPalettes palettes = { };
+	if( cent->interpolated.animating ) {
+		Span< TRS > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
+		palettes = ComputeMatrixPalettes( &temp, model, pose );
+	}
+
+	DrawModel( model, transform, color, palettes );
+	DrawModelShadow( model, transform, color, palettes );
 
 	if( cent->current.silhouetteColor.a > 0 ) {
 		if( ( cent->current.effects & EF_TEAM_SILHOUETTE ) == 0 || ISREALSPECTATOR() || cent->current.team == cg.predictedPlayerState.team ) {
 			Vec4 silhouette_color = sRGBToLinear( cent->current.silhouetteColor );
-			DrawModelSilhouette( model, transform, silhouette_color );
+			DrawModelSilhouette( model, transform, silhouette_color, palettes );
 		}
 	}
 

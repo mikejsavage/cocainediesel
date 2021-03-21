@@ -39,6 +39,9 @@ struct InterpolatedEntity {
 	RGBA8 color;
 
 	float scale;
+
+	bool animating;
+	float animation_time;
 };
 
 enum XAlignment {

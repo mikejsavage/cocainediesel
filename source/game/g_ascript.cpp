@@ -1283,6 +1283,8 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( int, type ), offsetof( edict_t, s.type ) },
 	{ ASLIB_PROPERTY_DECL( uint64, model ), offsetof( edict_t, s.model.hash ) },
 	{ ASLIB_PROPERTY_DECL( uint64, model2 ), offsetof( edict_t, s.model2.hash ) },
+	{ ASLIB_PROPERTY_DECL( bool, animating ), offsetof( edict_t, s.animating ) },
+	{ ASLIB_PROPERTY_DECL( float, animation_time ), offsetof( edict_t, s.animation_time ) },
 	{ ASLIB_PROPERTY_DECL( int, radius ), offsetof( edict_t, s.radius ) },
 	{ ASLIB_PROPERTY_DECL( int, ownerNum ), offsetof( edict_t, s.ownerNum ) },
 	{ ASLIB_PROPERTY_DECL( int, counterNum ), offsetof( edict_t, s.counterNum ) },

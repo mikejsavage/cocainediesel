@@ -76,6 +76,10 @@ static float asFunc_random_float01() {
 	return random_float01( &svs.rng );
 }
 
+static float asFunc_random_uniform_float( float lo, float hi ) {
+	return random_uniform_float( &svs.rng, lo, hi );
+}
+
 void PreRegisterMathAddon( asIScriptEngine *engine ) {
 }
 
@@ -99,6 +103,7 @@ void RegisterMathAddon( asIScriptEngine *engine ) {
 		{ "uint random_uint()", asFUNCTION( asFunc_random_uint ) },
 		{ "int random_uniform( int lo, int hi )", asFUNCTION( asFunc_random_uniform ) },
 		{ "float random_float01()", asFUNCTION( asFunc_random_float01 ) },
+		{ "float random_uniform_float( float lo, float hi )", asFUNCTION( asFunc_random_uniform_float ) },
 
 		{ NULL, asFUNCTION( 0 ) }
 	}, *func;

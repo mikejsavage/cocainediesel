@@ -177,7 +177,7 @@ void bombStartPlanting( cBombSite @site ) {
 	Trace trace;
 	trace.doTrace( start, BOMB_MINS, BOMB_MAXS, end, bombCarrier.entNum, MASK_SOLID );
 
-	Vec3 angles = Vec3( 0, random_float01() * 360.0f, 0 );
+	Vec3 angles = Vec3( 0, random_uniform_float( 0.0f, 360.0f ), 0 );
 
 	// show stuff
 	bombModel.origin = trace.endPos;

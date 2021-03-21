@@ -36,6 +36,8 @@ uint defuseProgress;
 Entity @bombModel;
 Entity @bombHud;
 
+bool bombExplosionDamage;
+
 void show( Entity @ent ) {
 	ent.svflags &= ~SVF_NOCLIENT;
 	ent.linkEntity();
@@ -254,7 +256,7 @@ void bombExplode() {
 	hide( @bombHud );
 
 	bombSite.explode();
-	bombModel.splashDamage( null, 9999, 1, 400 );
+	bombExplosionDamage = false;
 
 	bombState = BombState_Exploding;
 	@defuser = null;
@@ -262,7 +264,7 @@ void bombExplode() {
 	match.exploding = true;
 	match.explodedAt = gameTime;
 
-	G_Sound( @bombModel, 0, sndComedy );
+	G_Sound( @bombModel, 0, sndExplode );
 }
 
 void resetBomb() {
@@ -344,6 +346,22 @@ void bombThink() {
 				break;
 			}
 		} break;
+
+		case BombState_Exploding:
+			bombSite.stepExplosion();
+
+			if( gameTime - match.explodedAt >= 1000 && !bombExplosionDamage ) {
+				bombModel.splashDamage( null, 9999, 1, 400 );
+
+				Entity @world = G_GetEntity( 0 );
+				for( int i = 0; i < maxClients; i++ ) {
+					Client @client = @G_GetClient( i );
+					client.getEnt().sustainDamage( world, world, Vec3( 0.0f ), 100.0f, 0.0f, MeanOfDeath_Explosion );
+				}
+
+				bombExplosionDamage = true;
+			}
+			break;
 	}
 }
 

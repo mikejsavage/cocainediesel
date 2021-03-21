@@ -350,8 +350,6 @@ void roundThink() {
 		}
 
 		match.setClockOverride( last_time );
-
-		bombThink();
 	}
 	else {
 		if( bombState == BombState_Planting ) {
@@ -366,16 +364,8 @@ void roundThink() {
 		match.setClockOverride( last_time );
 	}
 
-	if( roundState >= RoundState_Finished && bombState == BombState_Exploding ) {
-		bombSite.stepExplosion();
-
-		if( levelTime - roundStateStartTime > 1000 ) {
-			Entity @world = G_GetEntity( 0 );
-			for( int i = 0; i < maxClients; i++ ) {
-				Client @client = @G_GetClient( i );
-				client.getEnt().sustainDamage( world, world, Vec3( 0.0f ), 100.0f, 0.0f, MeanOfDeath_Explosion );
-			}
-		}
+	if( roundState >= RoundState_Round ) {
+		bombThink();
 	}
 }
 

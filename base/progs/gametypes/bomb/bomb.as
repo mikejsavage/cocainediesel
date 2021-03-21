@@ -260,7 +260,7 @@ void bombExplode() {
 	@defuser = null;
 
 	match.exploding = true;
-	match.explodedAt = levelTime;
+	match.explodedAt = gameTime;
 
 	G_Sound( @bombModel, 0, sndComedy );
 }

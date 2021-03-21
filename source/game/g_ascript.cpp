@@ -1760,6 +1760,7 @@ static const asglobproperties_t asGlobProps[] =
 {
 	{ "const int64 levelTime", &level.time },
 	{ "const uint frameTime", &game.frametime },
+	{ "const int64 gameTime", &svs.gametime },
 	{ "const int64 realTime", &svs.realtime },
 
 	{ "const int maxEntities", &game.maxentities },

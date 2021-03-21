@@ -814,6 +814,7 @@ void CG_LerpEntities() {
 			case ET_CORPSE:
 			case ET_GHOST:
 			case ET_SPEAKER:
+			case ET_BOMB:
 				if( state->linearMovement ) {
 					CG_ExtrapolateLinearProjectile( cent );
 				} else {
@@ -836,7 +837,6 @@ void CG_LerpEntities() {
 			case ET_SOUNDEVENT:
 				break;
 
-			case ET_BOMB:
 			case ET_BOMB_SITE:
 				break;
 

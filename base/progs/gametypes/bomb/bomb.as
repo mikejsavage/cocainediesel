@@ -209,6 +209,10 @@ void bombPlanted() {
 	// show to defs too
 	bombHud.svflags &= ~SVF_ONLYTEAM;
 
+	// start fuse animation
+	bombModel.animating = true;
+	bombHud.animating = true;
+
 	announce( Announcement_Planted );
 
 	G_CenterPrintMsg( null, "Bomb planted at " + bombSite.letter + "!" );
@@ -220,6 +224,7 @@ void bombPlanted() {
 
 void bombDefused() {
 	bombModel.sound = 0;
+	bombHud.animating = false;
 
 	hide( @bombHud );
 
@@ -305,6 +310,10 @@ void bombThink() {
 		} break;
 
 		case BombState_Planted: {
+			float animation_time = ( cvarExplodeTime.value - ( bombActionTime - levelTime ) * 0.001f ) / cvarExplodeTime.value;
+			bombModel.animation_time = animation_time;
+			bombHud.animation_time = animation_time;
+
 			if( @defuser == null )
 				@defuser = firstNearbyTeammate( bombModel.origin, defendingTeam );
 

@@ -672,13 +672,29 @@ void CG_AddBomb( centity_t * cent ) {
 	}
 
 	bomb.team = cent->current.team;
-	bomb.origin = cent->current.origin;
+	bomb.origin = cent->interpolated.origin;
 
 	// TODO: this really does not belong here...
-	if( bomb.state == BombState_Planted ) {
-		Mat2 r = Mat2Rotation( cent->current.angles.y );
-		Vec3 origin = bomb.origin + Vec3( r * Vec2( -12.0f, 3.0f ), -12.0f );
-		DoVisualEffect( "models/bomb/fuse", origin );
+	if( cent->interpolated.animating ) {
+		const Model * model = FindModel( "models/bomb/bomb" );
+		if( model == NULL )
+			return;
+
+		u8 tip_node;
+		if( !FindNodeByName( model, Hash32( "a" ), &tip_node ) )
+			return;
+
+		TempAllocator temp = cls.frame_arena.temp();
+
+		Span< TRS > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
+		MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
+
+		Vec3 bomb_origin = cent->interpolated.origin - Vec3( 0.0f, 0.0f, 32.0f ); // BOMB_HUD_OFFSET
+
+		Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, bomb_origin );
+		Vec3 tip = ( transform * model->transform * palettes.node_transforms[ tip_node ] * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
+
+		DoVisualEffect( "models/bomb/fuse", tip );
 	}
 }
 

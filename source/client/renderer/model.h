@@ -39,6 +39,7 @@ struct Model {
 		AnimationChannel< Quaternion > rotations;
 		AnimationChannel< Vec3 > translations;
 		AnimationChannel< float > scales;
+		bool skinned;
 	};
 
 	struct Joint {

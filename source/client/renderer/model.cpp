@@ -108,7 +108,7 @@ void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive
 }
 
 template< typename F >
-static void RenderNode( const Model * model, u8 node_idx, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes, UniformBlock pose_uniforms, F transform_pipeline ) {
+static void DrawNode( const Model * model, u8 node_idx, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes, UniformBlock pose_uniforms, F transform_pipeline ) {
 	if( node_idx == U8_MAX )
 		return;
 
@@ -116,11 +116,14 @@ static void RenderNode( const Model * model, u8 node_idx, const Mat4 & transform
 
 	if( node->primitive != U8_MAX ) {
 		bool animated = palettes.node_transforms.ptr != NULL;
-		bool skinned = palettes.skinning_matrices.ptr != NULL;
+		bool skinned = animated && node->skinned;
 
 		Mat4 primitive_transform;
-		if( animated ) {
-			primitive_transform = skinned ? Mat4::Identity() : palettes.node_transforms[ node_idx ];
+		if( skinned ) {
+			primitive_transform = Mat4::Identity();
+		}
+		else if( animated ) {
+			primitive_transform = palettes.node_transforms[ node_idx ];
 		}
 		else {
 			primitive_transform = node->global_transform;
@@ -139,8 +142,8 @@ static void RenderNode( const Model * model, u8 node_idx, const Mat4 & transform
 		DrawModelPrimitive( model, &model->primitives[ node->primitive ], pipeline );
 	}
 
-	RenderNode( model, node->first_child, transform, color, palettes, pose_uniforms, transform_pipeline );
-	RenderNode( model, node->sibling, transform, color, palettes, pose_uniforms, transform_pipeline );
+	DrawNode( model, node->first_child, transform, color, palettes, pose_uniforms, transform_pipeline );
+	DrawNode( model, node->sibling, transform, color, palettes, pose_uniforms, transform_pipeline );
 }
 
 void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
@@ -151,7 +154,7 @@ void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color,
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		if( model->nodes[ i ].parent == U8_MAX ) {
-			RenderNode( model, i, transform, color, palettes, pose_uniforms, []( PipelineState * pipeline, bool skinned ) { } );
+			DrawNode( model, i, transform, color, palettes, pose_uniforms, []( PipelineState * pipeline, bool skinned ) { } );
 		}
 	}
 }
@@ -163,7 +166,7 @@ static void AddViewWeaponDepthHack( PipelineState * pipeline, bool skinned ) {
 void DrawViewWeapon( const Model * model, const Mat4 & transform ) {
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		if( model->nodes[ i ].parent == U8_MAX ) {
-			RenderNode( model, i, transform, vec4_white, MatrixPalettes(), UniformBlock(), AddViewWeaponDepthHack );
+			DrawNode( model, i, transform, vec4_white, MatrixPalettes(), UniformBlock(), AddViewWeaponDepthHack );
 		}
 	}
 }
@@ -185,7 +188,7 @@ void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		if( model->nodes[ i ].parent == U8_MAX ) {
-			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeOutlinePipeline );
+			DrawNode( model, i, transform, color, palettes, pose_uniforms, MakeOutlinePipeline );
 		}
 	}
 }
@@ -207,7 +210,7 @@ void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		if( model->nodes[ i ].parent == U8_MAX ) {
-			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeSilhouettePipeline );
+			DrawNode( model, i, transform, color, palettes, pose_uniforms, MakeSilhouettePipeline );
 		}
 	}
 }
@@ -237,8 +240,8 @@ void DrawModelShadow( const Model * model, const Mat4 & transform, const Vec4 & 
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		if( model->nodes[ i ].parent == U8_MAX ) {
-			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeNearShadowPipeline );
-			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeFarShadowPipeline );
+			DrawNode( model, i, transform, color, palettes, pose_uniforms, MakeNearShadowPipeline );
+			DrawNode( model, i, transform, color, palettes, pose_uniforms, MakeFarShadowPipeline );
 		}
 	}
 }

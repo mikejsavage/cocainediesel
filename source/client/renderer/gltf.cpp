@@ -170,6 +170,8 @@ static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
 		node->local_transform.scale = gltf_node->scale[ 0 ];
 	}
 
+	node->skinned = gltf_node->skin != NULL;
+
 	// TODO: this will break if multiple nodes share a mesh
 	if( gltf_node->mesh != NULL ) {
 		node->primitive = model->num_primitives;

@@ -234,8 +234,8 @@ static void LoadScaleChannel( const cgltf_animation_channel * chan, Model::Anima
 		float scale[ 3 ];
 		cgltf_accessor_read_float( chan->sampler->output, i, scale, 3 );
 
-		assert( Abs( scale[ 0 ] / scale[ 1 ] - 1.0f ) < 0.001f );
-		assert( Abs( scale[ 0 ] / scale[ 2 ] - 1.0f ) < 0.001f );
+		assert( Abs( scale[ 0 ] - scale[ 1 ] ) < 0.001f );
+		assert( Abs( scale[ 0 ] - scale[ 2 ] ) < 0.001f );
 
 		out_channel->samples[ i ] = scale[ 0 ];
 	}

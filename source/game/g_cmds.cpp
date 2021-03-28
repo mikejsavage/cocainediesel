@@ -34,7 +34,7 @@ static bool G_Teleport( edict_t *ent, Vec3 origin, Vec3 angles ) {
 		trace_t tr;
 
 		G_Trace( &tr, origin, ent->r.mins, ent->r.maxs, origin, ent, MASK_PLAYERSOLID );
-		if( tr.fraction != 1.0f || tr.startsolid ) {
+		if( ( tr.fraction != 1.0f || tr.startsolid ) && ( game.edicts[ tr.ent ].s.team != TEAM_PLAYERS && game.edicts[ tr.ent ].s.team != ent->s.team ) ) {
 			return false;
 		}
 

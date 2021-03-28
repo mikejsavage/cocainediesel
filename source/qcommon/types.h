@@ -184,6 +184,7 @@ struct Span {
 	template< typename S >
 	Span< S > cast() const {
 		assert( num_bytes() % sizeof( S ) == 0 );
+		assert( uintptr_t( ptr ) % alignof( S ) == 0 );
 		return Span< S >( ( S * ) ptr, num_bytes() / sizeof( S ) );
 	}
 };

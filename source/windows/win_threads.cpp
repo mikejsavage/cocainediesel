@@ -82,6 +82,9 @@ void DeleteSemaphore( Semaphore * sem ) {
 }
 
 void Signal( Semaphore * sem, int n ) {
+	if( n == 0 )
+		return;
+
 	if( ReleaseSemaphore( sem->handle, n, NULL ) == 0 ) {
 		DWORD error = GetLastError();
 		if( error != ERROR_TOO_MANY_POSTS ) {

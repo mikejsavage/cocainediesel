@@ -178,7 +178,7 @@ struct Span {
 	Span< T > slice( size_t start, size_t one_past_end ) const {
 		assert( start <= one_past_end );
 		assert( one_past_end <= n );
-		return Span< const T >( ptr + start, one_past_end - start );
+		return Span< T >( ptr + start, one_past_end - start );
 	}
 
 	template< typename S >

@@ -113,6 +113,37 @@ static GLenum PrimitiveTypeToGL( PrimitiveType primitive_type ) {
 	return GL_INVALID_ENUM;
 }
 
+bool CompressedTextureFormat( TextureFormat format ) {
+	switch( format ) {
+		case TextureFormat_BC1_sRGB:
+		case TextureFormat_BC3_sRGB:
+		case TextureFormat_BC4:
+		case TextureFormat_BC5:
+			return true;
+	}
+
+	return false;
+}
+
+u32 BitsPerPixel( TextureFormat format ) {
+	switch( format ) {
+		case TextureFormat_BC1_sRGB:
+			return 4;
+
+		case TextureFormat_BC3_sRGB:
+			return 8;
+
+		case TextureFormat_BC4:
+			return 4;
+
+		case TextureFormat_BC5:
+			return 8;
+	}
+
+	assert( false );
+	return 0;
+}
+
 static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum * channels, GLenum * type ) {
 	switch( format ) {
 		case TextureFormat_R_U8:
@@ -157,6 +188,22 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			*channels = GL_RGBA;
 			*type = GL_UNSIGNED_BYTE;
 			return;
+
+		case TextureFormat_BC1_sRGB:
+			*internal = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
+			break;
+
+		case TextureFormat_BC3_sRGB:
+			*internal = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+			break;
+
+		case TextureFormat_BC4:
+			*internal = GL_COMPRESSED_RED_RGTC1;
+			break;
+
+		case TextureFormat_BC5:
+			*internal = GL_COMPRESSED_RG_RGTC2;
+			break;
 
 		case TextureFormat_Depth:
 			*internal = GL_DEPTH_COMPONENT24;
@@ -986,8 +1033,16 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
 		}
 
-		glTexImage2D( GL_TEXTURE_2D, 0, internal_format,
-			config.width, config.height, 0, channels, type, config.data );
+		if( !CompressedTextureFormat( config.format ) ) {
+			glTexImage2D( GL_TEXTURE_2D, 0, internal_format,
+				config.width, config.height, 0, channels, type, config.data );
+		}
+		else {
+			u32 size = ( BitsPerPixel( config.format ) * config.width * config.height ) / 8;
+			assert( size < S32_MAX );
+			glCompressedTexImage2D( GL_TEXTURE_2D, 0, internal_format,
+				config.width, config.height, 0, size, config.data );
+		}
 	}
 	else {
 		glTexImage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE, msaa_samples,

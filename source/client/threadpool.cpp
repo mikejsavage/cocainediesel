@@ -146,6 +146,8 @@ void ParallelFor( void * datum, size_t n, size_t stride, JobCallback callback ) 
 }
 
 void ThreadPoolFinish() {
+	ZoneScoped;
+
 	Lock( jobs_mutex );
 
 	while( true ) {

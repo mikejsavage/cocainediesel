@@ -458,7 +458,12 @@ Span< const char > FileExtension( const char * path ) {
 	return ext == NULL ? Span< const char >() : MakeSpan( ext );
 }
 
-Span< const char > BaseName( const char * path ) {
+Span< const char > LastFileExtension( const char * path ) {
+	const char * ext = strrchr( path, '.' );
+	return ext == NULL ? Span< const char >() : MakeSpan( ext );
+}
+
+Span< const char > FileName( const char * path ) {
 	const char * filename = strrchr( path, '/' );
 	filename = filename == NULL ? path : filename + 1;
 	return MakeSpan( filename );

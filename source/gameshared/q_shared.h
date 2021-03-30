@@ -94,7 +94,8 @@ bool StartsWith( Span< const char > str, const char * prefix );
 bool StartsWith( const char * str, const char * prefix );
 
 Span< const char > FileExtension( const char * path );
-Span< const char > BaseName( const char * path );
+Span< const char > LastFileExtension( const char * path );
+Span< const char > FileName( const char * path );
 Span< const char > BasePath( const char * path );
 
 const char *COM_RemoveJunkChars( const char *in );

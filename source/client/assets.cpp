@@ -3,19 +3,25 @@
 
 #include "qcommon/qcommon.h"
 #include "qcommon/base.h"
+#include "qcommon/compression.h"
 #include "qcommon/fs.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
+#include "qcommon/threads.h"
 #include "client/assets.h"
+#include "client/threadpool.h"
 
 struct Asset {
 	char * path;
 	Span< char > data;
 	s64 modified_time;
+	bool compressed; // TODO: should use this to give precedence to non-compressed files when both exist
 };
 
 static constexpr u32 MAX_ASSETS = 4096;
+
+static Mutex * assets_mutex;
 
 static Asset assets[ MAX_ASSETS ];
 static const char * asset_paths[ MAX_ASSETS ];
@@ -26,28 +32,12 @@ static u32 num_modified_assets;
 
 static Hashtable< MAX_ASSETS * 2 > assets_hashtable;
 
-static void LoadAsset( const char * game_path, const char * full_path, bool hotloading ) {
-	ZoneScoped;
-
-	u64 hash = Hash64( game_path );
-
-	s64 modified_time = FileLastModifiedTime( full_path );
+static void AddAsset( const char * path, u64 hash, s64 modified_time, Span< char > contents ) {
+	Lock( assets_mutex );
+	defer { Unlock( assets_mutex ); };
 
 	u64 idx;
 	bool exists = assets_hashtable.get( hash, &idx );
-	if( exists ) {
-		if( !hotloading ) {
-			Sys_Error( "Asset hash name collision: %s and %s", game_path, assets[ idx ].path );
-		}
-
-		if( assets[ idx ].modified_time == modified_time ) {
-			return;
-		}
-	}
-
-	Span< char > contents = ReadFileString( sys_allocator, full_path );
-	if( contents.ptr == NULL )
-		return;
 
 	Asset * a;
 	if( exists ) {
@@ -56,7 +46,7 @@ static void LoadAsset( const char * game_path, const char * full_path, bool hotl
 	}
 	else {
 		a = &assets[ num_assets ];
-		a->path = CopyString( sys_allocator, game_path );
+		a->path = CopyString( sys_allocator, path );
 		asset_paths[ num_assets ] = a->path;
 	}
 
@@ -69,6 +59,81 @@ static void LoadAsset( const char * game_path, const char * full_path, bool hotl
 	if( !exists ) {
 		assets_hashtable.add( hash, num_assets );
 		num_assets++;
+	}
+}
+
+struct DecompressAssetJob {
+	char * path;
+	u64 hash;
+	s64 modified_time;
+	Span< char > compressed;
+};
+
+static void DecompressAsset( TempAllocator * temp, void * data ) {
+	ZoneScoped;
+
+	DecompressAssetJob * job = ( DecompressAssetJob * ) data;
+
+	ZoneText( job->path, strlen( job->path ) );
+
+	Span< u8 > decompressed;
+	if( Decompress( job->path, sys_allocator, job->compressed.cast< u8 >(), &decompressed ) ) {
+		AddAsset( job->path, job->hash, job->modified_time, decompressed.cast< char >() );
+	}
+
+	FREE( sys_allocator, job->path );
+	FREE( sys_allocator, job->compressed.ptr );
+	FREE( sys_allocator, job );
+}
+
+static void LoadAsset( const char * game_path, const char * full_path, bool hotloading ) {
+	ZoneScoped;
+	ZoneText( game_path, strlen( game_path ) );
+
+	Span< const char > ext = LastFileExtension( game_path );
+	bool compressed = ext == ".zst";
+
+	Span< const char > game_path_no_zst = MakeSpan( game_path );
+	if( compressed ) {
+		game_path_no_zst.n -= ext.n;
+	}
+
+	u64 hash = Hash64( game_path_no_zst );
+
+	s64 modified_time = FileLastModifiedTime( full_path );
+
+	{
+		Lock( assets_mutex );
+		defer { Unlock( assets_mutex ); };
+
+		u64 idx;
+		bool exists = assets_hashtable.get( hash, &idx );
+		if( exists ) {
+			if( !hotloading ) {
+				Sys_Error( "Asset hash name collision: %s and %s", game_path, assets[ idx ].path );
+			}
+
+			if( assets[ idx ].modified_time == modified_time ) {
+				return;
+			}
+		}
+	}
+
+	Span< char > contents = ReadFileString( sys_allocator, full_path );
+	if( contents.ptr == NULL )
+		return;
+
+	if( compressed ) {
+		DecompressAssetJob * job = ALLOC( sys_allocator, DecompressAssetJob );
+		job->path = ( *sys_allocator )( "{}", game_path_no_zst );
+		job->hash = hash;
+		job->compressed = contents.slice( 0, contents.n - 1 );
+		job->modified_time = modified_time;
+
+		ThreadPoolDo( DecompressAsset, job );
+	}
+	else {
+		AddAsset( game_path, hash, modified_time, contents );
 	}
 }
 
@@ -101,6 +166,8 @@ static void LoadAssetsRecursive( DynamicString * path, size_t skip, bool hotload
 
 void InitAssets( TempAllocator * temp ) {
 	ZoneScoped;
+
+	assets_mutex = NewMutex();
 
 	num_assets = 0;
 	num_modified_assets = 0;
@@ -139,6 +206,8 @@ void ShutdownAssets() {
 		FREE( sys_allocator, assets[ i ].path );
 		FREE( sys_allocator, assets[ i ].data.ptr );
 	}
+
+	DeleteMutex( assets_mutex );
 }
 
 Span< const char > AssetString( StringHash path ) {

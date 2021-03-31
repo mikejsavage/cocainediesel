@@ -352,8 +352,6 @@ void G_AddServerCommands() {
 	Cmd_AddCommand( "removeip", Cmd_RemoveIP_f );
 	Cmd_AddCommand( "listip", Cmd_ListIP_f );
 	Cmd_AddCommand( "writeip", Cmd_WriteIP_f );
-
-	Cmd_AddCommand( "dumpASapi", G_asDumpAPI_f );
 }
 
 /*
@@ -373,6 +371,4 @@ void G_RemoveCommands() {
 	Cmd_RemoveCommand( "removeip" );
 	Cmd_RemoveCommand( "listip" );
 	Cmd_RemoveCommand( "writeip" );
-
-	Cmd_RemoveCommand( "dumpASapi" );
 }

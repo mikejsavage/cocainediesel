@@ -328,7 +328,6 @@ bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent );
 void G_asInitGameModuleEngine();
 void G_asShutdownGameModuleEngine();
 void G_asGarbageCollect( bool force );
-void G_asDumpAPI_f();
 
 #define world game.edicts
 

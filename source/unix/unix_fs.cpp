@@ -308,7 +308,7 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	return false;
 }
 
-s64 FileLastModifiedTime( const char * path ) {
+s64 FileLastModifiedTime( TempAllocator * temp, const char * path ) {
 	struct stat buf;
 	if( stat( path, &buf ) == -1 ) {
 		return 0;

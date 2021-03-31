@@ -4,6 +4,7 @@
 #include "client/client.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/version.h"
+#include "qcommon/maplist.h"
 #include "qcommon/string.h"
 
 #include "cgame/cg_local.h"

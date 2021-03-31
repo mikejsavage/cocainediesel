@@ -4,12 +4,13 @@
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
+#include "qcommon/maplist.h"
 
 static NonRAIIDynamicArray< char * > maps;
 
 void InitMapList() {
 	maps.init( sys_allocator );
-	RefreshMapList();
+	RefreshMapList( sys_allocator );
 }
 
 static void FreeMaps() {
@@ -25,10 +26,10 @@ void ShutdownMapList() {
 	maps.shutdown();
 }
 
-void RefreshMapList() {
+void RefreshMapList( Allocator * a ) {
 	FreeMaps();
 
-	ListDirHandle scan = BeginListDir( "base/maps" );
+	ListDirHandle scan = BeginListDir( a, "base/maps" );
 
 	const char * name;
 	bool dir;
@@ -40,10 +41,8 @@ void RefreshMapList() {
 		if( ext != ".bsp" )
 			continue;
 
-		size_t len = strlen( name ) - strlen( ".bsp" );
-		char * map = ALLOC_MANY( sys_allocator, char, len + 1 );
-		memcpy( map, name, len );
-		map[ len ] = '\0';
+		Span< const char > name_no_ext = Span< const char >( name, strlen( name ) - ext.n );
+		char * map = ( *sys_allocator )( "{}", name_no_ext );
 
 		maps.add( map );
 	}

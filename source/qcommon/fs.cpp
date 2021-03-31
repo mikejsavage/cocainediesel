@@ -17,8 +17,8 @@ const char * FS_RootPath( TempAllocator * a ) {
 	return buf;
 }
 
-Span< char > ReadFileString( Allocator * a, const char * path ) {
-	FILE * file = fopen( path, "rb" );
+Span< char > ReadFileString( Allocator * a, TempAllocator * temp, const char * path ) {
+	FILE * file = OpenFile( temp, path, "rb" );
 	if( file == NULL )
 		return Span< char >();
 
@@ -39,8 +39,8 @@ Span< char > ReadFileString( Allocator * a, const char * path ) {
 	return Span< char >( contents, size + 1 );
 }
 
-bool WriteFile( const char * path, const void * data, size_t len ) {
-	FILE * file = fopen( path, "wb" );
+bool WriteFile( TempAllocator * temp, const char * path, const void * data, size_t len ) {
+	FILE * file = OpenFile( temp, path, "wb" );
 	if( file == NULL )
 		return false;
 

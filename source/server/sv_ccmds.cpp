@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "server/server.h"
+#include "qcommon/maplist.h"
 
 
 //===============================================================================
@@ -103,7 +104,8 @@ static void SV_Map_f() {
 	Com_DPrintf( "SV_GameMap(%s)\n", map );
 
 	if( !MapExists( map ) ) {
-		RefreshMapList();
+		TempAllocator temp = svs.frame_arena.temp();
+		RefreshMapList( &temp );
 		if( !MapExists( map ) ) {
 			Com_Printf( "Couldn't find map: %s\n", map );
 			return;

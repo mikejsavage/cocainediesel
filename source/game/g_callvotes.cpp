@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "qcommon/maplist.h"
 
 static int clientVoted[MAX_CLIENTS];
 static int clientVoteChanges[MAX_CLIENTS];
@@ -87,7 +88,8 @@ static callvotetype_t *callvotesHeadNode = NULL;
 static void G_VoteMapExtraHelp( edict_t *ent ) {
 	char message[MAX_STRING_CHARS / 4 * 3];    // use buffer to send only one print message
 
-	RefreshMapList();
+	TempAllocator temp = svs.frame_arena.temp();
+	RefreshMapList( &temp );
 
 	if( g_enforce_map_pool->integer && strlen( g_map_pool->string ) > 2 ) {
 		G_PrintMsg( ent, "Maps available [map pool enforced]:\n %s\n", g_map_pool->string );

@@ -86,7 +86,7 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 	FREE( sys_allocator, job );
 }
 
-static void LoadAsset( const char * game_path, const char * full_path, bool hotloading ) {
+static void LoadAsset( TempAllocator * temp, const char * game_path, const char * full_path, bool hotloading ) {
 	ZoneScoped;
 	ZoneText( game_path, strlen( game_path ) );
 
@@ -100,7 +100,7 @@ static void LoadAsset( const char * game_path, const char * full_path, bool hotl
 
 	u64 hash = Hash64( game_path_no_zst );
 
-	s64 modified_time = FileLastModifiedTime( full_path );
+	s64 modified_time = FileLastModifiedTime( temp, full_path );
 
 	{
 		Lock( assets_mutex );
@@ -119,7 +119,7 @@ static void LoadAsset( const char * game_path, const char * full_path, bool hotl
 		}
 	}
 
-	Span< char > contents = ReadFileString( sys_allocator, full_path );
+	Span< char > contents = ReadFileString( sys_allocator, temp, full_path );
 	if( contents.ptr == NULL )
 		return;
 
@@ -137,8 +137,8 @@ static void LoadAsset( const char * game_path, const char * full_path, bool hotl
 	}
 }
 
-static void LoadAssetsRecursive( DynamicString * path, size_t skip, bool hotloading ) {
-	ListDirHandle scan = BeginListDir( path->c_str() );
+static void LoadAssetsRecursive( TempAllocator * temp, DynamicString * path, size_t skip, bool hotloading ) {
+	ListDirHandle scan = BeginListDir( temp, path->c_str() );
 
 	const char * name;
 	bool dir;
@@ -155,10 +155,10 @@ static void LoadAssetsRecursive( DynamicString * path, size_t skip, bool hotload
 		size_t old_len = path->length();
 		path->append( "/{}", name );
 		if( dir ) {
-			LoadAssetsRecursive( path, skip, hotloading );
+			LoadAssetsRecursive( temp, path, skip, hotloading );
 		}
 		else {
-			LoadAsset( path->c_str() + skip, path->c_str(), hotloading );
+			LoadAsset( temp, path->c_str() + skip, path->c_str(), hotloading );
 		}
 		path->truncate( old_len );
 	}
@@ -175,7 +175,7 @@ void InitAssets( TempAllocator * temp ) {
 
 	const char * root = FS_RootPath( temp );
 	DynamicString base( temp, "{}/base", root );
-	LoadAssetsRecursive( &base, base.length() + 1, false );
+	LoadAssetsRecursive( temp, &base, base.length() + 1, false );
 
 	num_modified_assets = 0;
 }
@@ -187,7 +187,7 @@ void HotloadAssets( TempAllocator * temp ) {
 
 	const char * root = FS_RootPath( temp );
 	DynamicString base( temp, "{}/base", root );
-	LoadAssetsRecursive( &base, base.length() + 1, true );
+	LoadAssetsRecursive( temp, &base, base.length() + 1, true );
 
 	if( num_modified_assets > 0 ) {
 		Com_Printf( "Hotloading:\n" );

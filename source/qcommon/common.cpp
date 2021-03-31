@@ -20,8 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 #include "qcommon/cmodel.h"
-#include "qcommon/glob.h"
 #include "qcommon/csprng.h"
+#include "qcommon/glob.h"
+#include "qcommon/maplist.h"
 #include "qcommon/threads.h"
 #include "qcommon/version.h"
 

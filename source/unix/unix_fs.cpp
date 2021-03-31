@@ -259,6 +259,10 @@ int Sys_FS_FileNo( FILE *fp ) {
 	return fileno( fp );
 }
 
+FILE * OpenFile( TempAllocator * temp, const char * path, const char * mode ) {
+	return fopen( path, mode );
+}
+
 struct ListDirHandleImpl {
 	DIR * dir;
 };
@@ -277,7 +281,7 @@ static ListDirHandle ImplToOpaque( ListDirHandleImpl impl ) {
 	return opaque;
 }
 
-ListDirHandle BeginListDir( const char * path ) {
+ListDirHandle BeginListDir( Allocator * a, const char * path ) {
 	ListDirHandleImpl handle;
 	handle.dir = opendir( path );
 	return ImplToOpaque( handle );

@@ -732,20 +732,3 @@ void SV_Init();
 void SV_Shutdown( const char *finalmsg );
 void SV_ShutdownGame( const char *finalmsg, bool reconnect );
 void SV_Frame( unsigned realMsec, unsigned gameMsec );
-
-/*
-==============================================================
-
-MAPLIST SUBSYSTEM
-
-==============================================================
-*/
-
-void InitMapList();
-void ShutdownMapList();
-
-void RefreshMapList();
-Span< const char * > GetMapList();
-bool MapExists( const char * name );
-
-const char ** CompleteMapName( const char * prefix );

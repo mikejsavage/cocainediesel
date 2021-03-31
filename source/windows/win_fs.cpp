@@ -233,9 +233,37 @@ int Sys_FS_FileNo( FILE *fp ) {
 	return _fileno( fp );
 }
 
+static wchar_t * UTF8ToWide( Allocator * a, const char * utf8 ) {
+	int len = MultiByteToWideChar( CP_UTF8, 0, utf8, -1, NULL, 0 );
+	assert( len != 0 );
+
+	wchar_t * wide = ALLOC_MANY( a, wchar_t, len );
+	MultiByteToWideChar( CP_UTF8, 0, utf8, -1, wide, len );
+
+	return wide;
+}
+
+static char * WideToUTF8( Allocator * a, const wchar_t * wide ) {
+	int len = WideCharToMultiByte( CP_UTF8, 0, wide, -1, NULL, 0, NULL, NULL );
+	assert( len != 0 );
+
+	char * utf8 = ALLOC_MANY( a, char, len );
+	WideCharToMultiByte( CP_UTF8, 0, wide, -1, utf8, len, NULL, NULL );
+
+	return utf8;
+}
+
+FILE * OpenFile( TempAllocator * temp, const char * path, const char * mode ) {
+	wchar_t * widepath = UTF8ToWide( temp, path );
+	wchar_t * widemode = UTF8ToWide( temp, mode );
+	return _wfopen( widepath, widemode );
+}
+
 struct ListDirHandleImpl {
 	HANDLE handle;
-	WIN32_FIND_DATAA * ffd;
+	Allocator * a;
+	WIN32_FIND_DATAW * ffd;
+	char * utf8_path;
 	bool first;
 };
 
@@ -253,22 +281,21 @@ static ListDirHandle ImplToOpaque( ListDirHandleImpl impl ) {
 	return opaque;
 }
 
-ListDirHandle BeginListDir( const char * path ) {
-	ListDirHandleImpl handle;
-	handle.handle = NULL;
+ListDirHandle BeginListDir( Allocator * a, const char * path ) {
+	ListDirHandleImpl handle = { };
+	handle.a = a;
+	handle.ffd = ALLOC( a, WIN32_FIND_DATAW );
 	handle.first = true;
 
-	if( strlen( path ) > MAX_PATH - 3 )
-		return ImplToOpaque( handle );
+	DynamicString path_and_wildcard( a, "{}/*", path );
 
-	handle.ffd = ( WIN32_FIND_DATAA * ) malloc( sizeof( *handle.ffd ) );
-	if( handle.ffd == NULL )
-		return ImplToOpaque( handle );
+	wchar_t * wide = UTF8ToWide( a, path_and_wildcard.c_str() );
+	defer { FREE( a, wide ); };
 
-	String< MAX_PATH > path_and_wildcard( "{}/*", path );
-	handle.handle = FindFirstFileA( path_and_wildcard.c_str(), handle.ffd );
+	handle.handle = FindFirstFileW( wide, handle.ffd );
 	if( handle.handle == INVALID_HANDLE_VALUE ) {
-		handle.handle = NULL;
+		FREE( handle.a, handle.ffd );
+		handle.ffd = NULL;
 	}
 
 	return ImplToOpaque( handle );
@@ -279,25 +306,31 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	if( handle.handle == NULL )
 		return false;
 
+	FREE( handle.a, handle.utf8_path );
+
 	if( !handle.first ) {
-		if( FindNextFileA( handle.handle, handle.ffd ) == 0 ) {
+		if( FindNextFileW( handle.handle, handle.ffd ) == 0 ) {
 			FindClose( handle.handle );
-			free( handle.ffd );
+			FREE( handle.a, handle.ffd );
 			return false;
 		}
 	}
 
-	*path = handle.ffd->cFileName;
+	handle.utf8_path = WideToUTF8( handle.a, handle.ffd->cFileName );
+	handle.first = false;
+
+	*path = handle.utf8_path;
 	*dir = ( handle.ffd->dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0;
 
-	handle.first = false;
 	*opaque = ImplToOpaque( handle );
 
 	return true;
 }
 
-s64 FileLastModifiedTime( const char * path ) {
-	HANDLE handle = CreateFileA( path, 0, 0, NULL, OPEN_EXISTING, 0, NULL );
+s64 FileLastModifiedTime( TempAllocator * temp, const char * path ) {
+	wchar_t * wide = UTF8ToWide( temp, path );
+
+	HANDLE handle = CreateFileW( wide, 0, 0, NULL, OPEN_EXISTING, 0, NULL );
 	if( handle == INVALID_HANDLE_VALUE ) {
 		return 0;
 	}

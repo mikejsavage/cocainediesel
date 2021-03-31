@@ -285,6 +285,8 @@ void        Cmd_TokenizeString( const char *text );
 void        Cmd_ExecuteString( const char *text );
 void        Cmd_SetCompletionFunc( const char *cmd_name, xcompletionf_t completion_func );
 
+void ExecDefaultCfg();
+
 /*
 ==============================================================
 

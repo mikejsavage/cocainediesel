@@ -1,5 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
+#include "qcommon/fs.h"
 #include "qcommon/string.h"
 #include "client/client.h"
 #include "client/renderer/renderer.h"

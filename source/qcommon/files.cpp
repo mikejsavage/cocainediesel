@@ -1566,12 +1566,7 @@ void FS_Init() {
 	FS_TouchGameDirectory( DEFAULT_BASEGAME );
 
 	fs_base_searchpaths = fs_searchpaths;
-
-	// done
-	Com_Printf( "Using %s for writing\n", FS_WriteDirectory() );
-
 	fs_cursearchfiles = 0;
-
 	fs_initialized = true;
 }
 

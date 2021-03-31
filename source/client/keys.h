@@ -118,10 +118,13 @@ enum {
 void Key_Event( int key, bool down );
 void Key_Init();
 void Key_Shutdown();
-void Key_WriteBindings( int file );
+
 void Key_SetBinding( int keynum, const char *binding );
 const char *Key_GetBindingBuf( int binding );
 void Key_ClearStates();
 
 Span< const char > Key_KeynumToString( int keynum );
 int Key_StringToKeynum( const char *str );
+
+class DynamicString;
+void Key_WriteBindings( DynamicString * config );

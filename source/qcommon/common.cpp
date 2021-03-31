@@ -566,12 +566,12 @@ void Qcommon_Init( int argc, char **argv ) {
 	Cbuf_AddEarlyCommands( false );
 	Cbuf_Execute();
 
-	developer =     Cvar_Get( "developer", "0", 0 );
+	developer = Cvar_Get( "developer", "0", 0 );
 
 	FS_Init();
 
 	if( !is_dedicated_server ) {
-		Cbuf_AddText( "exec default.cfg\n" );
+		ExecDefaultCfg();
 		Cbuf_AddText( "exec config.cfg\n" );
 		Cbuf_AddText( "exec autoexec.cfg\n" );
 	}

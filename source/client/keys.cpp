@@ -215,13 +215,12 @@ static void Key_Bind_f() {
 	Key_SetBinding( b, cmd.c_str() );
 }
 
-void Key_WriteBindings( int file ) {
-	FS_Printf( file, "unbindall\r\n" );
+void Key_WriteBindings( DynamicString * config ) {
+	config->append( "unbindall\r\n" );
 
 	for( int i = 0; i < int( ARRAY_COUNT( keybindings ) ); i++ ) {
 		if( keybindings[i] && keybindings[i][0] ) {
-			String< 128 > keyname( "{}", Key_KeynumToString( i ) );
-			FS_Printf( file, "bind %s \"%s\"\r\n", keyname.c_str(), keybindings[i] );
+			config->append( "bind {} \"{}\"\r\n", Key_KeynumToString( i ), keybindings[ i ] );
 		}
 	}
 }

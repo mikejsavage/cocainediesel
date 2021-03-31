@@ -119,7 +119,7 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 		}
 	}
 
-	Span< char > contents = ReadFileString( sys_allocator, temp, full_path );
+	Span< char > contents = ReadFileString( sys_allocator, full_path );
 	if( contents.ptr == NULL )
 		return;
 

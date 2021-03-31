@@ -211,7 +211,7 @@ bool SV_FilterPacket( char *from ) {
 void SV_ReadIPList() {
 	SV_ResetPacketFiltersTimeouts();
 
-	Cbuf_ExecuteText( EXEC_APPEND, "exec listip.cfg silent\n" );
+	Cbuf_ExecuteText( EXEC_APPEND, "exec listip.cfg\n" );
 }
 
 /*
@@ -225,8 +225,6 @@ void SV_WriteIPList() {
 	int i;
 
 	Q_strncpyz( name, "listip.cfg", sizeof( name ) );
-
-	//Com_Printf( "Writing %s.\n", name );
 
 	if( FS_FOpenFile( name, &file, FS_WRITE ) == -1 ) {
 		Com_Printf( "Couldn't open %s\n", name );

@@ -259,7 +259,7 @@ int Sys_FS_FileNo( FILE *fp ) {
 	return fileno( fp );
 }
 
-FILE * OpenFile( TempAllocator * temp, const char * path, const char * mode ) {
+FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {
 	return fopen( path, mode );
 }
 

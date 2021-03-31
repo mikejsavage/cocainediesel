@@ -19,8 +19,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
+#include "qcommon/fs.h"
+#include "qcommon/string.h"
 #include "qcommon/q_trie.h"
-#include "client/console.h"
 
 #define MAX_ALIAS_NAME      64
 #define ALIAS_LOOP_COUNT    16
@@ -386,51 +387,47 @@ SCRIPT COMMANDS
 ==============================================================================
 */
 
+static void ExecConfig( const char * path ) {
+	Span< char > config = ReadFileString( sys_allocator, path );
+	defer { FREE( sys_allocator, config.ptr ); };
 
-/*
-* Cmd_Exec_f
-*/
+	if( config.ptr == NULL ) {
+		Com_Printf( "Couldn't execute: %s\n", path );
+		return;
+	}
+
+	Cbuf_InsertText( "\n" );
+	Cbuf_InsertText( config.ptr );
+	Cbuf_InsertText( "\n" );
+}
+
 static void Cmd_Exec_f() {
-	const char *arg = Cmd_Argv( 1 );
+	const char * arg = Cmd_Argv( 1 );
 
 	if( Cmd_Argc() < 2 || !arg[0] ) {
 		Com_Printf( "Usage: exec <filename>\n" );
 		return;
 	}
 
-	size_t name_size = sizeof( char ) * ( strlen( arg ) + strlen( ".cfg" ) + 1 );
-	char * name = ( char * ) Mem_TempMalloc( name_size );
-
-	Q_strncpyz( name, arg, name_size );
-	COM_SanitizeFilePath( name );
-
-	if( !COM_ValidateRelativeFilename( name ) ) {
+	if( !COM_ValidateRelativeFilename( arg ) ) {
 		Com_Printf( "Invalid filename\n" );
-		Mem_TempFree( name );
 		return;
 	}
 
-	COM_DefaultExtension( name, ".cfg", name_size );
-
-	const char * basename = FS_BaseNameForFile( name );
-	char * f = NULL;
-	if( basename ) {
-		FS_LoadBaseFile( basename, (void **)&f, NULL, 0 );
+	DynamicString path( sys_allocator, "{}/base/{}", FS_WriteDirectory(), arg );
+	if( FileExtension( path.c_str() ) == "" ) {
+		path += ".cfg";
 	}
 
-	if( !f ) {
-		Com_Printf( "Couldn't execute: %s\n", name );
-		Mem_TempFree( name );
-		return;
-	}
+	ExecConfig( path.c_str() );
+}
 
-	Com_Printf( "Executing: %s\n", name );
+void ExecDefaultCfg() {
+	char * root = FS_RootPath( sys_allocator );
+	defer { FREE( sys_allocator, root ); };
 
-	Cbuf_InsertText( "\n" );
-	Cbuf_InsertText( f );
-
-	FS_FreeFile( f );
-	Mem_TempFree( name );
+	DynamicString path( sys_allocator, "{}/base/default.cfg", root );
+	ExecConfig( path.c_str() );
 }
 
 /*

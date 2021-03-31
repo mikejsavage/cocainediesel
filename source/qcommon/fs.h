@@ -4,12 +4,12 @@
 
 #include "qcommon/types.h"
 
-const char * FS_RootPath( TempAllocator * a );
+char * FS_RootPath( Allocator * a );
 
-FILE * OpenFile( TempAllocator * temp, const char * path, const char * mode );
+FILE * OpenFile( Allocator * a, const char * path, const char * mode );
 
-Span< char > ReadFileString( Allocator * a, TempAllocator * temp, const char * path );
-bool WriteFile( const char * path, const void * data, size_t len );
+Span< char > ReadFileString( Allocator * a, const char * path );
+bool WriteFile( TempAllocator * temp, const char * path, const void * data, size_t len );
 
 struct ListDirHandle {
 	char impl[ 64 ];

@@ -24,9 +24,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/downloads.h"
 #include "client/threadpool.h"
 #include "client/renderer/renderer.h"
-#include "qcommon/version.h"
-#include "qcommon/hash.h"
 #include "qcommon/csprng.h"
+#include "qcommon/hash.h"
+#include "qcommon/fs.h"
+#include "qcommon/string.h"
+#include "qcommon/version.h"
 #include "gameshared/gs_public.h"
 
 cvar_t *rcon_client_password;
@@ -1072,56 +1074,21 @@ void CL_Precache_f() {
 	CL_FinishConnect();
 }
 
-/*
-* CL_WriteConfiguration
-*
-* Writes key bindings, archived cvars and aliases to a config file
-*/
-static void CL_WriteConfiguration( const char *name ) {
-	int file;
-	if( FS_FOpenFile( name, &file, FS_WRITE ) == -1 ) {
-		Com_Printf( "Couldn't write %s.\n", name );
+static void CL_WriteConfiguration() {
+	DynamicString config( sys_allocator );
+
+	config += "// key bindings\r\n";
+	Key_WriteBindings( &config );
+
+	config += "\r\n// variables\r\n";
+	Cvar_WriteVariables( &config );
+
+	TempAllocator temp = cls.frame_arena.temp();
+	DynamicString path( &temp, "{}/base/config.cfg", FS_WriteDirectory() );
+	if( !WriteFile( &temp, path.c_str(), config.c_str(), config.length() ) ) {
+		Com_Printf( "Couldn't write %s.\n", path.c_str() );
 		return;
 	}
-
-	FS_Printf( file, "// key bindings\r\n" );
-	Key_WriteBindings( file );
-
-	FS_Printf( file, "\r\n// variables\r\n" );
-	Cvar_WriteVariables( file );
-
-	FS_FCloseFile( file );
-}
-
-/*
-* CL_WriteConfig_f
-*/
-static void CL_WriteConfig_f() {
-	char *name;
-	int name_size;
-
-	if( Cmd_Argc() != 2 ) {
-		Com_Printf( "Usage: writeconfig <filename>\n" );
-		return;
-	}
-
-	name_size = sizeof( char ) * ( strlen( Cmd_Argv( 1 ) ) + strlen( ".cfg" ) + 1 );
-	name = ( char * ) Mem_TempMalloc( name_size );
-	Q_strncpyz( name, Cmd_Argv( 1 ), name_size );
-	COM_SanitizeFilePath( name );
-
-	if( !COM_ValidateRelativeFilename( name ) ) {
-		Com_Printf( "Invalid filename" );
-		Mem_TempFree( name );
-		return;
-	}
-
-	COM_DefaultExtension( name, ".cfg", name_size );
-
-	Com_Printf( "Writing: %s\n", name );
-	CL_WriteConfiguration( name );
-
-	Mem_TempFree( name );
 }
 
 /*
@@ -1240,7 +1207,6 @@ static void CL_InitLocal() {
 	Cmd_AddCommand( "connect", CL_Connect_f );
 	Cmd_AddCommand( "reconnect", CL_Reconnect_f );
 	Cmd_AddCommand( "rcon", CL_Rcon_f );
-	Cmd_AddCommand( "writeconfig", CL_WriteConfig_f );
 	Cmd_AddCommand( "demo", CL_PlayDemo_f );
 	Cmd_AddCommand( "yolodemo", CL_YoloDemo_f );
 	Cmd_AddCommand( "next", CL_SetNext_f );
@@ -1272,7 +1238,6 @@ static void CL_ShutdownLocal() {
 	Cmd_RemoveCommand( "connect" );
 	Cmd_RemoveCommand( "reconnect" );
 	Cmd_RemoveCommand( "rcon" );
-	Cmd_RemoveCommand( "writeconfig" );
 	Cmd_RemoveCommand( "demo" );
 	Cmd_RemoveCommand( "yolodemo" );
 	Cmd_RemoveCommand( "next" );
@@ -1769,7 +1734,7 @@ void CL_Shutdown() {
 
 	CL_ShutDownServerList();
 
-	CL_WriteConfiguration( "config.cfg" );
+	CL_WriteConfiguration();
 
 	CL_Disconnect( NULL );
 	NET_CloseSocket( &cls.socket_udp );

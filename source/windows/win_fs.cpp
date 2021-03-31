@@ -253,9 +253,11 @@ static char * WideToUTF8( Allocator * a, const wchar_t * wide ) {
 	return utf8;
 }
 
-FILE * OpenFile( TempAllocator * temp, const char * path, const char * mode ) {
-	wchar_t * widepath = UTF8ToWide( temp, path );
-	wchar_t * widemode = UTF8ToWide( temp, mode );
+FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {
+	wchar_t * widepath = UTF8ToWide( a, path );
+	wchar_t * widemode = UTF8ToWide( a, mode );
+	defer { FREE( a, widepath ); };
+	defer { FREE( a, widemode ); };
 	return _wfopen( widepath, widemode );
 }
 

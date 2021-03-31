@@ -36,37 +36,43 @@ static int last_msaa;
 static cvar_t * r_samples;
 
 static void TakeScreenshot() {
-	RGB8 * buf = ALLOC_MANY( sys_allocator, RGB8, frame_static.viewport_width * frame_static.viewport_height );
-	defer { FREE( sys_allocator, buf ); };
-	DownloadFramebuffer( buf );
+	RGB8 * framebuffer = ALLOC_MANY( sys_allocator, RGB8, frame_static.viewport_width * frame_static.viewport_height );
+	defer { FREE( sys_allocator, framebuffer ); };
+	DownloadFramebuffer( framebuffer );
 
-	char date[ 256 ];
-	Sys_FormatTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
-
-	TempAllocator temp = cls.frame_arena.temp();
-	DynamicString filename( &temp );
-	filename.append( "{}/screenshots/{}", FS_WriteDirectory(), date );
-
-	if( strcmp( date, last_screenshot_date ) == 0 ) {
-		same_date_count++;
-		filename.append( "_{}", same_date_count );
-	}
-	else {
-		same_date_count = 0;
-	}
-
-	strcpy( last_screenshot_date, date );
-
-	filename.append( ".png" );
-
-	FS_CreateAbsolutePath( filename.c_str() );
 	stbi_flip_vertically_on_write( 1 );
-	int ok = stbi_write_png( filename.c_str(), frame_static.viewport_width, frame_static.viewport_height, 3, buf, 0 );
-	if( ok != 0 ) {
-		Com_Printf( "Wrote %s\n", filename.c_str() );
-	}
-	else {
-		Com_Printf( "Couldn't write %s\n", filename.c_str() );
+
+	int ok = stbi_write_png_to_func( []( void * context, void * png, int png_size ) {
+		char date[ 256 ];
+		Sys_FormatTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
+
+		TempAllocator temp = cls.frame_arena.temp();
+		DynamicString filename( &temp, "{}/screenshots/{}", FS_WriteDirectory(), date );
+
+		if( strcmp( date, last_screenshot_date ) == 0 ) {
+			same_date_count++;
+			filename.append( "_{}", same_date_count );
+		}
+		else {
+			same_date_count = 0;
+		}
+
+		strcpy( last_screenshot_date, date );
+
+		filename.append( ".png" );
+
+		FS_CreateAbsolutePath( filename.c_str() );
+
+		if( WriteFile( &temp, filename.c_str(), png, png_size ) ) {
+			Com_Printf( "Wrote %s\n", filename.c_str() );
+		}
+		else {
+			Com_Printf( "Couldn't write %s\n", filename.c_str() );
+		}
+	}, NULL, frame_static.viewport_width, frame_static.viewport_height, 3, framebuffer, 0 );
+
+	if( ok == 0 ) {
+		Com_Printf( "Couldn't convert screenshot to PNG\n" );
 	}
 }
 

@@ -650,7 +650,7 @@ void InitMaterials() {
 			// game crashes if we load materials with no texture,
 			// skip editor.shader until we convert asset pointers
 			// to asset hashes
-			if( FileExtension( path ) == ".shader" && BaseName( path ) != "editor.shader" ) {
+			if( FileExtension( path ) == ".shader" && FileName( path ) != "editor.shader" ) {
 				LoadMaterialFile( path, material_names );
 			}
 		}
@@ -689,7 +689,7 @@ void HotloadMaterials() {
 	Span< const char > material_names[ MAX_MATERIALS ] = { };
 
 	for( const char * path : ModifiedAssetPaths() ) {
-		if( FileExtension( path ) == ".shader" && BaseName( path ) != "editor.shader" ) {
+		if( FileExtension( path ) == ".shader" && FileName( path ) != "editor.shader" ) {
 			LoadMaterialFile( path, material_names );
 			changes = true;
 		}

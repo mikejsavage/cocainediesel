@@ -16,7 +16,7 @@ struct Asset {
 	char * path;
 	Span< char > data;
 	s64 modified_time;
-	bool compressed; // TODO: should use this to give precedence to non-compressed files when both exist
+	bool compressed;
 };
 
 static constexpr u32 MAX_ASSETS = 4096;
@@ -32,7 +32,12 @@ static u32 num_modified_assets;
 
 static Hashtable< MAX_ASSETS * 2 > assets_hashtable;
 
-static void AddAsset( const char * path, u64 hash, s64 modified_time, Span< char > contents ) {
+enum IsCompressed {
+	IsCompressed_No,
+	IsCompressed_Yes,
+};
+
+static void AddAsset( const char * path, u64 hash, s64 modified_time, Span< char > contents, IsCompressed compressed ) {
 	Lock( assets_mutex );
 	defer { Unlock( assets_mutex ); };
 
@@ -52,6 +57,7 @@ static void AddAsset( const char * path, u64 hash, s64 modified_time, Span< char
 
 	a->data = contents;
 	a->modified_time = modified_time;
+	a->compressed = compressed == IsCompressed_Yes;
 
 	modified_asset_paths[ num_modified_assets ] = a->path;
 	num_modified_assets++;
@@ -78,7 +84,7 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 
 	Span< u8 > decompressed;
 	if( Decompress( job->path, sys_allocator, job->compressed.cast< u8 >(), &decompressed ) ) {
-		AddAsset( job->path, job->hash, job->modified_time, decompressed.cast< char >() );
+		AddAsset( job->path, job->hash, job->modified_time, decompressed.cast< char >(), IsCompressed_Yes );
 	}
 
 	FREE( sys_allocator, job->path );
@@ -86,7 +92,7 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 	FREE( sys_allocator, job );
 }
 
-static void LoadAsset( TempAllocator * temp, const char * game_path, const char * full_path, bool hotloading ) {
+static void LoadAsset( TempAllocator * temp, const char * game_path, const char * full_path ) {
 	ZoneScoped;
 	ZoneText( game_path, strlen( game_path ) );
 
@@ -109,11 +115,13 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 		u64 idx;
 		bool exists = assets_hashtable.get( hash, &idx );
 		if( exists ) {
-			if( !hotloading ) {
+			if( !StrEqual( game_path_no_zst, asset_paths[ idx ] ) ) {
 				Sys_Error( "Asset hash name collision: %s and %s", game_path, assets[ idx ].path );
 			}
 
-			if( assets[ idx ].modified_time == modified_time ) {
+			bool modified = assets[ idx ].compressed == compressed && assets[ idx ].modified_time != modified_time;
+			bool replaces = assets[ idx ].compressed && !compressed;
+			if( !( modified || replaces ) ) {
 				return;
 			}
 		}
@@ -133,11 +141,11 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 		ThreadPoolDo( DecompressAsset, job );
 	}
 	else {
-		AddAsset( game_path, hash, modified_time, contents );
+		AddAsset( game_path, hash, modified_time, contents, IsCompressed_No );
 	}
 }
 
-static void LoadAssetsRecursive( TempAllocator * temp, DynamicString * path, size_t skip, bool hotloading ) {
+static void LoadAssetsRecursive( TempAllocator * temp, DynamicString * path, size_t skip ) {
 	ListDirHandle scan = BeginListDir( temp, path->c_str() );
 
 	const char * name;
@@ -155,10 +163,10 @@ static void LoadAssetsRecursive( TempAllocator * temp, DynamicString * path, siz
 		size_t old_len = path->length();
 		path->append( "/{}", name );
 		if( dir ) {
-			LoadAssetsRecursive( temp, path, skip, hotloading );
+			LoadAssetsRecursive( temp, path, skip );
 		}
 		else {
-			LoadAsset( temp, path->c_str() + skip, path->c_str(), hotloading );
+			LoadAsset( temp, path->c_str() + skip, path->c_str() );
 		}
 		path->truncate( old_len );
 	}
@@ -175,7 +183,7 @@ void InitAssets( TempAllocator * temp ) {
 
 	const char * root = FS_RootPath( temp );
 	DynamicString base( temp, "{}/base", root );
-	LoadAssetsRecursive( temp, &base, base.length() + 1, false );
+	LoadAssetsRecursive( temp, &base, base.length() + 1 );
 
 	num_modified_assets = 0;
 }
@@ -187,7 +195,7 @@ void HotloadAssets( TempAllocator * temp ) {
 
 	const char * root = FS_RootPath( temp );
 	DynamicString base( temp, "{}/base", root );
-	LoadAssetsRecursive( temp, &base, base.length() + 1, true );
+	LoadAssetsRecursive( temp, &base, base.length() + 1 );
 
 	if( num_modified_assets > 0 ) {
 		Com_Printf( "Hotloading:\n" );

@@ -64,7 +64,6 @@ static int fs_numsearchfiles;
 static int fs_cursearchfiles;
 
 static cvar_t *fs_basepath;
-static cvar_t *fs_cdpath;
 static cvar_t *fs_usehomedir;
 static cvar_t *fs_usedownloadsdir;
 
@@ -1528,7 +1527,6 @@ void FS_Init() {
 	//
 	// set basepaths
 	//
-	fs_cdpath = Cvar_Get( "fs_cdpath", "", CVAR_NOSET );
 	fs_basepath = Cvar_Get( "fs_basepath", ".", CVAR_NOSET );
 	homedir = Sys_FS_GetHomeDirectory();
 #if PUBLIC_BUILD
@@ -1548,10 +1546,6 @@ void FS_Init() {
 
 		FS_AddBasePath( downloadsdir );
 		fs_downloads_searchpath = fs_basepaths;
-	}
-
-	if( fs_cdpath->string[0] ) {
-		FS_AddBasePath( fs_cdpath->string );
 	}
 
 	FS_AddBasePath( fs_basepath->string );

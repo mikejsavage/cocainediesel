@@ -191,19 +191,19 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 
 		case TextureFormat_BC1_sRGB:
 			*internal = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
-			break;
+			return;
 
 		case TextureFormat_BC3_sRGB:
 			*internal = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
-			break;
+			return;
 
 		case TextureFormat_BC4:
 			*internal = GL_COMPRESSED_RED_RGTC1;
-			break;
+			return;
 
 		case TextureFormat_BC5:
 			*internal = GL_COMPRESSED_RG_RGTC2;
-			break;
+			return;
 
 		case TextureFormat_Depth:
 			*internal = GL_DEPTH_COMPONENT24;

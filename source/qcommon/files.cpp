@@ -1531,7 +1531,7 @@ void FS_Init() {
 	fs_cdpath = Cvar_Get( "fs_cdpath", "", CVAR_NOSET );
 	fs_basepath = Cvar_Get( "fs_basepath", ".", CVAR_NOSET );
 	homedir = Sys_FS_GetHomeDirectory();
-#if PUBLIC_BUILD && !DEDICATED
+#if PUBLIC_BUILD
 	fs_usehomedir = Cvar_Get( "fs_usehomedir", homedir == NULL ? "0" : "1", CVAR_NOSET );
 #else
 	fs_usehomedir = Cvar_Get( "fs_usehomedir", "0", CVAR_NOSET );

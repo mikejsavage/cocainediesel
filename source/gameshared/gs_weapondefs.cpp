@@ -387,8 +387,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 175,
 		/* timeout / range      */ 10000,
-		/* max recoil           */ EulerDegrees2( 80.0f, 50.0f ),
-		/* min recoil           */ EulerDegrees2( 50.0f, -50.0f ),
+		/* max recoil           */ EulerDegrees2( 80.0f, 30.0f ),
+		/* min recoil           */ EulerDegrees2( 50.0f, -30.0f ),
 		/* recoil recovery      */ 1350.0f,
 		/* firing mode          */ FiringMode_Auto,
 

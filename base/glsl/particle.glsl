@@ -93,7 +93,7 @@ void main() {
 #if MODEL
 	color = texture( u_BaseTexture, v_TexCoord ) * v_Color;
 #else
-	color = texture( u_DecalAtlases, vec3( v_TexCoord, v_Layer ) ) * v_Color;
+	color = vec4( vec3( 1.0 ), texture( u_DecalAtlases, vec3( v_TexCoord, v_Layer ) ).r ) * v_Color;
 #endif
 	color.a = FogAlpha( color.a, length( v_Position - u_CameraPos ) );
 	color.a = VoidFogAlpha( color.a, v_Position.z );

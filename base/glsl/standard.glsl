@@ -196,11 +196,11 @@ void main() {
 			uv += 0.5;
 			uv = uvwh.xy + uvwh.zw * uv;
 
-			vec4 sample = texture( u_DecalAtlases, vec3( uv, layer ) );
+			float alpha = texture( u_DecalAtlases, vec3( uv, layer ) ).r;
 			float inv_cos_45_degrees = 1.41421356237;
-			float decal_alpha = min( 1.0, sample.a * decal_color.a * max( 0.0, dot( v_Normal, normal ) * inv_cos_45_degrees ) );
-			accumulated_color += sample.rgb * decal_color.rgb * decal_alpha * accumulated_alpha;
-			accumulated_alpha *= ( 1.0 - decal_alpha );
+			float decal_alpha = min( 1.0, alpha * decal_color.a * max( 0.0, dot( v_Normal, normal ) * inv_cos_45_degrees ) );
+			accumulated_color += decal_color.rgb * decal_alpha * accumulated_alpha;
+			accumulated_alpha *= 1.0 - decal_alpha;
 		}
 	}
 

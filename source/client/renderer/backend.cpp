@@ -1041,7 +1041,8 @@ TextureArray NewAtlasTextureArray( const TextureArrayConfig & config ) {
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 
-	glTexImage3D( GL_TEXTURE_2D_ARRAY, 0, GL_SRGB8_ALPHA8, config.width, config.height, config.layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, config.data );
+	u32 size = ( BitsPerPixel( TextureFormat_BC4 ) * config.width * config.height * config.layers ) / 8;
+	glCompressedTexImage3D( GL_TEXTURE_2D_ARRAY, 0, GL_COMPRESSED_RED_RGTC1, config.width, config.height, config.layers, 0, size, config.data );
 
 	return ta;
 }

@@ -33,6 +33,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/renderer.h"
 #include "client/renderer/dds.h"
 
+#include "stb/stb_dxt.h"
 #include "stb/stb_image.h"
 #include "stb/stb_rect_pack.h"
 
@@ -50,6 +51,7 @@ constexpr int DECAL_ATLAS_BLOCK_SIZE = DECAL_ATLAS_SIZE / 4;
 
 static Texture textures[ MAX_TEXTURES ];
 static void * texture_stb_data[ MAX_TEXTURES ];
+static Span2D< const BC4Block > texture_bc4_data[ MAX_TEXTURES ];
 static u32 num_textures;
 static Hashtable< MAX_TEXTURES * 2 > textures_hashtable;
 
@@ -360,7 +362,10 @@ static bool ParseMaterial( Material * material, Span< const char > name, Span< c
 
 static void UnloadTexture( u64 idx ) {
 	stbi_image_free( texture_stb_data[ idx ] );
+
 	texture_stb_data[ idx ] = NULL;
+	texture_bc4_data[ idx ] = Span2D< const BC4Block >();
+
 	DeleteTexture( textures[ idx ] );
 }
 
@@ -538,7 +543,8 @@ static void LoadDDSTexture( const char * path ) {
 		return;
 	}
 
-	AddTexture( Hash64( StripExtension( path ) ), config );
+	size_t idx = AddTexture( Hash64( StripExtension( path ) ), config );
+	texture_bc4_data[ idx ] = Span2D< const BC4Block >( ( const BC4Block * ) config.data, config.width, config.height );
 }
 
 static void LoadMaterialFile( const char * path, Span< const char > * material_names ) {
@@ -581,12 +587,36 @@ struct DecodeTextureJob {
 	} out;
 };
 
-static void CopyImage( Span2D< RGBA8 > dst, int x, int y, const Texture * texture ) {
-	u64 texture_idx = texture - textures;
-	Span2D< const RGBA8 > src( ( const RGBA8 * ) texture_stb_data[ texture_idx ], texture->width, texture->height );
-	for( u32 row = 0; row < texture->height; row++ ) {
-		memcpy( &dst( x, y + row ), &src( 0, row ), sizeof( RGBA8 ) * texture->width );
+struct DecalAtlasLayer {
+	BC4Block blocks[ DECAL_ATLAS_BLOCK_SIZE * DECAL_ATLAS_BLOCK_SIZE ];
+};
+
+static Span2D< BC4Block > RGBAToBC4( const Texture * texture ) {
+	ZoneScoped;
+
+	Span2D< BC4Block > bc4 = ALLOC_SPAN2D( sys_allocator, BC4Block, texture->width / 4, texture->height / 4 );
+
+	size_t texture_idx = texture - textures;
+	Span2D< const RGBA8 > rgba = Span2D< const RGBA8 >( ( const RGBA8 * ) texture_stb_data[ texture_idx ], texture->width, texture->height );
+
+	for( u32 row = 0; row < bc4.h; row++ ) {
+		for( u32 col = 0; col < bc4.w; col++ ) {
+			RGBA8 rgba_block_data[ 16 ];
+			Span2D< RGBA8 > rgba_block( rgba_block_data, 4, 4 );
+
+			CopySpan2D( rgba_block, rgba.slice( col * 4, row * 4, 4, 4 ) );
+
+			u8 alpha_block[ 16 ];
+			for( size_t i = 0; i < ARRAY_COUNT( alpha_block ); i++ ) {
+				alpha_block[ i ] = rgba_block_data[ i ].a;
+			}
+
+			BC4Block * bc4_block = &bc4( col, row );
+			stb_compress_bc4_block( bc4_block->data, alpha_block );
+		}
 	}
+
+	return bc4;
 }
 
 static void PackDecalAtlas( Span< const char > * material_names ) {
@@ -594,15 +624,22 @@ static void PackDecalAtlas( Span< const char > * material_names ) {
 
 	decals_hashtable.clear();
 
+	// make a list of textures to be packed
 	stbrp_rect rects[ MAX_DECALS ];
 	num_decals = 0;
 
 	for( u32 i = 0; i < num_materials; i++ ) {
-		if( !materials[ i ].decal || materials[ i ].texture == NULL )
+		const Texture * texture = materials[ i ].texture;
+		if( !materials[ i ].decal || texture == NULL )
 			continue;
 
-		if( materials[ i ].texture->format != TextureFormat_RGBA_U8_sRGB ) {
-			Com_GGPrint( S_COLOR_YELLOW "Decals must be RGBA ({})", material_names[ i ] );
+		if( texture->format != TextureFormat_RGBA_U8_sRGB && texture->format != TextureFormat_BC4 ) {
+			Com_GGPrint( S_COLOR_YELLOW "Decals must be RGBA or BC4 ({})", material_names[ i ] );
+			continue;
+		}
+
+		if( texture->width % 4 != 0 || texture->height % 4 != 0 ) {
+			Com_GGPrint( S_COLOR_YELLOW "Decal dimensions must be a multiple of 4 ({} is {}x{})", material_names[ i ], texture->width, texture->height );
 			continue;
 		}
 
@@ -612,13 +649,16 @@ static void PackDecalAtlas( Span< const char > * material_names ) {
 		num_decals++;
 
 		rect->id = i;
-		rect->w = materials[ i ].texture->width;
-		rect->h = materials[ i ].texture->height;
+		rect->w = texture->width;
+		rect->h = texture->height;
 	}
 
+	// rect packing
 	u32 num_to_pack = num_decals;
 	u32 num_atlases = 0;
 	while( true ) {
+		ZoneScopedN( "stb_rect_pack iteration" );
+
 		stbrp_node nodes[ MAX_TEXTURES ];
 		stbrp_context packer;
 		stbrp_init_target( &packer, DECAL_ATLAS_SIZE, DECAL_ATLAS_SIZE, nodes, ARRAY_COUNT( nodes ) );
@@ -663,9 +703,10 @@ static void PackDecalAtlas( Span< const char > * material_names ) {
 		}
 	}
 
-	RGBA8 * pixels = ALLOC_MANY( sys_allocator, RGBA8, DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE * num_atlases );
-	memset( pixels, 0, DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE * num_atlases * sizeof( RGBA8 ) );
-	defer { FREE( sys_allocator, pixels ); };
+	// copy texture data into atlases, convert RGBA to BC4 as needed
+	Span< DecalAtlasLayer > layers = ALLOC_SPAN( sys_allocator, DecalAtlasLayer, num_atlases );
+	memset( layers.ptr, 0, layers.num_bytes() );
+	defer { FREE( sys_allocator, layers.ptr ); };
 
 	for( u32 i = 0; i < num_decals; i++ ) {
 		const Material * material = &materials[ rects[ i ].id ];
@@ -674,9 +715,20 @@ static void PackDecalAtlas( Span< const char > * material_names ) {
 		assert( ok );
 
 		u32 layer = u32( decal_uvwhs[ decal_idx ].x );
-		Span2D< RGBA8 > atlas( pixels + DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE * layer, DECAL_ATLAS_SIZE, DECAL_ATLAS_SIZE );
+		Span2D< BC4Block > atlas( layers[ layer ].blocks, DECAL_ATLAS_BLOCK_SIZE, DECAL_ATLAS_BLOCK_SIZE );
 
-		CopyImage( atlas, rects[ i ].x, rects[ i ].y, material->texture );
+		u64 texture_idx = material->texture - textures;
+		Span2D< const BC4Block > bc4 = texture_bc4_data[ texture_idx ];
+		Span2D< BC4Block > bc4_from_rgba;
+		defer { FREE( sys_allocator, bc4_from_rgba.ptr ); };
+
+		if( material->texture->format == TextureFormat_RGBA_U8_sRGB ) {
+			bc4_from_rgba = RGBAToBC4( material->texture );
+			bc4 = bc4_from_rgba;
+		}
+
+		assert( rects[ i ].x % 4 == 0 && rects[ i ].y % 4 == 0 );
+		CopySpan2D( atlas.slice( rects[ i ].x / 4, rects[ i ].y / 4, bc4.w, bc4.h ), bc4 );
 	}
 
 	// upload atlases
@@ -689,7 +741,7 @@ static void PackDecalAtlas( Span< const char > * material_names ) {
 		config.width = DECAL_ATLAS_SIZE;
 		config.height = DECAL_ATLAS_SIZE;
 		config.layers = num_atlases;
-		config.data = pixels;
+		config.data = layers.ptr;
 
 		decals_atlases = NewAtlasTextureArray( config );
 	}

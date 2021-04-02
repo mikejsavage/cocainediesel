@@ -720,7 +720,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	{
 		constexpr float SYSTEM_FONT_TINY_SIZE = 8;
-		constexpr float SYSTEM_FONT_CONSOLE_SIZE = 12;
 		constexpr float SYSTEM_FONT_SMALL_SIZE = 14;
 		constexpr float SYSTEM_FONT_MEDIUM_SIZE = 16;
 		constexpr float SYSTEM_FONT_BIG_SIZE = 24;

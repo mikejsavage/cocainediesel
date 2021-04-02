@@ -486,7 +486,6 @@ static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int ch
 	config.data = pixels;
 	config.format = formats[ channels - 1 ];
 
-	Span< const char > ext = FileExtension( path );
 	size_t idx = AddTexture( Hash64( StripExtension( path ) ), config );
 	texture_stb_data[ idx ] = pixels;
 }

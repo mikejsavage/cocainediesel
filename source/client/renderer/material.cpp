@@ -31,6 +31,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/assets.h"
 #include "client/threadpool.h"
 #include "client/renderer/renderer.h"
+#include "client/renderer/dds.h"
 
 #include "stb/stb_image.h"
 #include "stb/stb_rect_pack.h"
@@ -45,6 +46,7 @@ constexpr u32 MAX_MATERIALS = 4096;
 
 constexpr u32 MAX_DECALS = 4096;
 constexpr int DECAL_ATLAS_SIZE = 2048;
+constexpr int DECAL_ATLAS_BLOCK_SIZE = DECAL_ATLAS_SIZE / 4;
 
 static Texture textures[ MAX_TEXTURES ];
 static void * texture_stb_data[ MAX_TEXTURES ];
@@ -64,6 +66,39 @@ static Vec4 decal_uvwhs[ MAX_DECALS ];
 static u32 num_decals;
 static Hashtable< MAX_DECALS * 2 > decals_hashtable;
 static TextureArray decals_atlases;
+
+bool CompressedTextureFormat( TextureFormat format ) {
+	switch( format ) {
+		case TextureFormat_BC1_sRGB:
+		case TextureFormat_BC3_sRGB:
+		case TextureFormat_BC4:
+		case TextureFormat_BC5:
+			return true;
+
+		default:
+			return false;
+	}
+}
+
+u32 BitsPerPixel( TextureFormat format ) {
+	switch( format ) {
+		case TextureFormat_BC1_sRGB:
+			return 4;
+
+		case TextureFormat_BC3_sRGB:
+			return 8;
+
+		case TextureFormat_BC4:
+			return 4;
+
+		case TextureFormat_BC5:
+			return 8;
+
+		default:
+			assert( false );
+			return 0;
+	}
+}
 
 static u64 HashMaterialName( Span< const char > name ) {
 	// skip leading /
@@ -447,8 +482,63 @@ static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int ch
 	config.format = formats[ channels - 1 ];
 
 	Span< const char > ext = FileExtension( path );
-	size_t idx = AddTexture( Hash64( path, strlen( path ) - ext.n ), config );
+	size_t idx = AddTexture( Hash64( StripExtension( path ) ), config );
 	texture_stb_data[ idx ] = pixels;
+}
+
+static void LoadDDSTexture( const char * path ) {
+	Span< const u8 > dds = AssetBinary( path );
+	if( dds.num_bytes() < sizeof( DDSHeader ) ) {
+		Com_GGPrint( S_COLOR_YELLOW "{} is too small to be a DDS file", path );
+		return;
+	}
+
+	const DDSHeader * header = ( const DDSHeader * ) dds.ptr;
+
+	TextureConfig config;
+	config.width = header->width;
+	config.height = header->height;
+	config.data = dds.ptr + sizeof( header );
+
+	if( header->magic != DDSMagic ) {
+		Com_GGPrint( S_COLOR_YELLOW "{} isn't a DDS file", path );
+		return;
+	}
+
+	if( header->width % 4 != 0 || header->height % 4 != 0 ) {
+		Com_GGPrint( S_COLOR_YELLOW "{} dimensions must be a multiple of 4 ({}x{})", path, header->width, header->height );
+		return;
+	}
+
+	switch( header->format ) {
+		case DDSTextureFormat_BC1:
+			config.format = TextureFormat_BC1_sRGB;
+			break;
+
+		case DDSTextureFormat_BC3:
+			config.format = TextureFormat_BC3_sRGB;
+			break;
+
+		case DDSTextureFormat_BC4:
+			config.format = TextureFormat_BC4;
+			break;
+
+		case DDSTextureFormat_BC5:
+			config.format = TextureFormat_BC5;
+			break;
+
+		default:
+			Com_GGPrint( S_COLOR_YELLOW "{} isn't a BC format ({})", path, header->format );
+			return;
+	}
+
+	size_t expected_data_size = ( BitsPerPixel( config.format ) * header->width * header->height ) / 8;
+	if( dds.num_bytes() - sizeof( DDSHeader ) != expected_data_size ) {
+		Com_GGPrint( S_COLOR_YELLOW "{} has bad data size. Got {}, expected {}", path, dds.num_bytes() - sizeof( DDSHeader ), expected_data_size );
+		return;
+	}
+
+	AddTexture( Hash64( StripExtension( path ) ), config );
 }
 
 static void LoadMaterialFile( const char * path, Span< const char > * material_names ) {
@@ -624,12 +714,17 @@ void InitMaterials() {
 
 			for( const char * path : AssetPaths() ) {
 				Span< const char > ext = FileExtension( path );
+
 				if( ext == ".png" || ext == ".jpg" ) {
 					DecodeTextureJob job;
 					job.in.path = path;
 					job.in.data = AssetBinary( path );
 
 					jobs.add( job );
+				}
+
+				if( ext == ".dds" ) {
+					LoadDDSTexture( path );
 				}
 			}
 
@@ -648,7 +743,7 @@ void InitMaterials() {
 		} );
 
 		for( DecodeTextureJob job : jobs ) {
-			LoadTexture( job.in.path, job.out.pixels, job.out.width, job.out.height, job.out.channels );
+			LoadSTBTexture( job.in.path, job.out.pixels, job.out.width, job.out.height, job.out.channels );
 		}
 	}
 
@@ -680,6 +775,7 @@ void HotloadMaterials() {
 
 	for( const char * path : ModifiedAssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
+
 		if( ext == ".png" || ext == ".jpg" ) {
 			Span< const u8 > data = AssetBinary( path );
 
@@ -691,8 +787,13 @@ void HotloadMaterials() {
 				pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
 			}
 
-			LoadTexture( path, pixels, w, h, channels );
+			LoadSTBTexture( path, pixels, w, h, channels );
 
+			changes = true;
+		}
+
+		if( ext == ".dds" ) {
+			LoadDDSTexture( path );
 			changes = true;
 		}
 	}

@@ -113,37 +113,6 @@ static GLenum PrimitiveTypeToGL( PrimitiveType primitive_type ) {
 	return GL_INVALID_ENUM;
 }
 
-bool CompressedTextureFormat( TextureFormat format ) {
-	switch( format ) {
-		case TextureFormat_BC1_sRGB:
-		case TextureFormat_BC3_sRGB:
-		case TextureFormat_BC4:
-		case TextureFormat_BC5:
-			return true;
-	}
-
-	return false;
-}
-
-u32 BitsPerPixel( TextureFormat format ) {
-	switch( format ) {
-		case TextureFormat_BC1_sRGB:
-			return 4;
-
-		case TextureFormat_BC3_sRGB:
-			return 8;
-
-		case TextureFormat_BC4:
-			return 4;
-
-		case TextureFormat_BC5:
-			return 8;
-	}
-
-	assert( false );
-	return 0;
-}
-
 static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum * channels, GLenum * type ) {
 	switch( format ) {
 		case TextureFormat_R_U8:

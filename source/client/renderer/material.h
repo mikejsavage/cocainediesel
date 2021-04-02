@@ -60,6 +60,9 @@ struct Material {
 
 extern Material world_material;
 
+bool CompressedTextureFormat( TextureFormat format );
+u32 BitsPerPixel( TextureFormat format );
+
 void InitMaterials();
 void HotloadMaterials();
 void ShutdownMaterials();

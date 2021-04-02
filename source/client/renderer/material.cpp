@@ -47,6 +47,7 @@ constexpr u32 MAX_DECALS = 4096;
 constexpr int DECAL_ATLAS_SIZE = 2048;
 
 static Texture textures[ MAX_TEXTURES ];
+static void * texture_stb_data[ MAX_TEXTURES ];
 static u32 num_textures;
 static Hashtable< MAX_TEXTURES * 2 > textures_hashtable;
 
@@ -322,7 +323,13 @@ static bool ParseMaterial( Material * material, Span< const char > name, Span< c
 	return true;
 }
 
-static Texture * AddTexture( u64 hash, const TextureConfig & config ) {
+static void UnloadTexture( u64 idx ) {
+	stbi_image_free( texture_stb_data[ idx ] );
+	texture_stb_data[ idx ] = NULL;
+	DeleteTexture( textures[ idx ] );
+}
+
+static u64 AddTexture( u64 hash, const TextureConfig & config ) {
 	ZoneScoped;
 
 	assert( num_textures < ARRAY_COUNT( textures ) );
@@ -339,12 +346,15 @@ static Texture * AddTexture( u64 hash, const TextureConfig & config ) {
 		num_materials++;
 	}
 	else {
-		DeleteTexture( textures[ idx ] );
-		stbi_image_free( const_cast< void * >( textures[ idx ].data ) );
+		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( textures[ idx ].format ) ) {
+			return U64_MAX;
+		}
+
+		UnloadTexture( idx );
 	}
 
 	textures[ idx ] = NewTexture( config );
-	return &textures[ idx ];
+	return idx;
 }
 
 static void LoadBuiltinTextures() {
@@ -414,7 +424,7 @@ static void LoadBuiltinTextures() {
 	}
 }
 
-static void LoadTexture( const char * path, u8 * pixels, int w, int h, int channels ) {
+static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int channels ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
 
@@ -437,8 +447,8 @@ static void LoadTexture( const char * path, u8 * pixels, int w, int h, int chann
 	config.format = formats[ channels - 1 ];
 
 	Span< const char > ext = FileExtension( path );
-	Texture * texture = AddTexture( Hash64( path, strlen( path ) - ext.n ), config );
-	texture->data = pixels;
+	size_t idx = AddTexture( Hash64( path, strlen( path ) - ext.n ), config );
+	texture_stb_data[ idx ] = pixels;
 }
 
 static void LoadMaterialFile( const char * path, Span< const char > * material_names ) {
@@ -482,7 +492,8 @@ struct DecodeTextureJob {
 };
 
 static void CopyImage( Span2D< RGBA8 > dst, int x, int y, const Texture * texture ) {
-	Span2D< const RGBA8 > src( ( const RGBA8 * ) texture->data, texture->width, texture->height );
+	u64 texture_idx = texture - textures;
+	Span2D< const RGBA8 > src( ( const RGBA8 * ) texture_stb_data[ texture_idx ], texture->width, texture->height );
 	for( u32 row = 0; row < texture->height; row++ ) {
 		memcpy( &dst( x, y + row ), &src( 0, row ), sizeof( RGBA8 ) * texture->width );
 	}
@@ -702,8 +713,7 @@ void HotloadMaterials() {
 
 void ShutdownMaterials() {
 	for( u32 i = 0; i < num_textures; i++ ) {
-		DeleteTexture( textures[ i ] );
-		stbi_image_free( const_cast< void * >( textures[ i ].data ) );
+		UnloadTexture( i );
 	}
 
 	DeleteTexture( missing_texture );

@@ -96,7 +96,6 @@ struct Texture {
 	u32 width, height;
 	bool msaa;
 	TextureFormat format;
-	const void * data;
 };
 
 struct TextureArray {

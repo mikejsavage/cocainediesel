@@ -29,8 +29,9 @@ struct Span2D {
 		return ptr[ y * row_stride + x ];
 	}
 
-	Span2D< T > slice( size_t x, size_t y, size_t width, size_t height ) const {
-		return Span2D< T >( &( *this )( x, y ), width, height, row_stride );
+	Span2D< T > slice( size_t left, size_t top, size_t slice_width, size_t slice_height ) const {
+		assert( left + slice_width <= w && top + slice_height <= h );
+		return Span2D< T >( &( *this )( left, top ), slice_width, slice_height, row_stride );
 	}
 
 	Span< T > row( size_t r ) const {

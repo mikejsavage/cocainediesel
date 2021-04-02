@@ -6,13 +6,13 @@
 char * FS_RootPath( Allocator * a ) {
 	int len = wai_getExecutablePath( NULL, 0, NULL );
 	if( len == -1 )
-		return ".";
+		return CopyString( sys_allocator, "." );
 
 	char * buf = ALLOC_MANY( a, char, len + 1 );
 	int dirlen;
 	if( wai_getExecutablePath( buf, len, &dirlen ) == -1 ) {
 		FREE( a, buf );
-		return ".";
+		return CopyString( sys_allocator, "." );
 	}
 	buf[ dirlen ] = '\0';
 

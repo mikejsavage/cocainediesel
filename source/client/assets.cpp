@@ -84,9 +84,15 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 
 	Span< u8 > decompressed;
 	if( Decompress( job->path, sys_allocator, job->compressed.cast< u8 >(), &decompressed ) ) {
-		AddAsset( job->path, job->hash, job->modified_time, decompressed.cast< char >(), IsCompressed_Yes );
+		// TODO: we need to add a null terminator too so AssetString etc works
+		Span< u8 > decompressed_and_terminated = ALLOC_SPAN( sys_allocator, u8, decompressed.n + 1 );
+		memcpy( decompressed_and_terminated.ptr, decompressed.ptr, decompressed.num_bytes() );
+		decompressed_and_terminated[ decompressed_and_terminated.n - 1 ] = '\0';
+
+		AddAsset( job->path, job->hash, job->modified_time, decompressed_and_terminated.cast< char >(), IsCompressed_Yes );
 	}
 
+	FREE( sys_allocator, decompressed.ptr );
 	FREE( sys_allocator, job->path );
 	FREE( sys_allocator, job->compressed.ptr );
 	FREE( sys_allocator, job );

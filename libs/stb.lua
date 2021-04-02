@@ -1,3 +1,7 @@
+lib( "stb_dxt", { "libs/stb/stb_dxt.cpp" } )
+msvc_obj_cxxflags( "libs/stb/stb_dxt.cpp", "/O2" )
+gcc_obj_cxxflags( "libs/stb/stb_dxt.cpp", "-O2" )
+
 lib( "stb_image", { "libs/stb/stb_image.cpp" } )
 msvc_obj_cxxflags( "libs/stb/stb_image.cpp", "/O2 /wd4244 /wd4456" )
 gcc_obj_cxxflags( "libs/stb/stb_image.cpp", "-O2 -Wno-type-limits" )

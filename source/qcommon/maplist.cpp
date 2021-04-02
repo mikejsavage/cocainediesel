@@ -41,9 +41,7 @@ void RefreshMapList( Allocator * a ) {
 		if( ext != ".bsp" )
 			continue;
 
-		Span< const char > name_no_ext = Span< const char >( name, strlen( name ) - ext.n );
-		char * map = ( *sys_allocator )( "{}", name_no_ext );
-
+		char * map = ( *sys_allocator )( "{}", StripExtension( name ) );
 		maps.add( map );
 	}
 

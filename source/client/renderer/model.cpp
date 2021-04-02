@@ -21,7 +21,7 @@ void InitModels() {
 		if( ext == ".glb" ) {
 			if( !LoadGLTFModel( &models[ num_models ], path ) )
 				continue;
-			models_hashtable.add( Hash64( path, strlen( path ) - ext.n ), num_models );
+			models_hashtable.add( Hash64( StripExtension( path ) ), num_models );
 			num_models++;
 		}
 	}
@@ -59,7 +59,7 @@ void HotloadModels() {
 		if( !LoadGLTFModel( &model, path ) )
 			continue;
 
-		u64 hash = Hash64( path, strlen( path ) - ext.n );
+		u64 hash = Hash64( StripExtension( path ) );
 		u64 idx = num_models;
 		if( models_hashtable.get( hash, &idx ) ) {
 			DeleteModel( &models[ idx ] );

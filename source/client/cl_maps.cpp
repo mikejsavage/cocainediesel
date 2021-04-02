@@ -35,7 +35,7 @@ bool AddMap( Span< const u8 > compressed, const char * path ) {
 	Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
 
 	maps[ num_maps ].name = CopyString( sys_allocator, path );
-	u64 base_hash = Hash64( path, strlen( path ) - ext.n );
+	u64 base_hash = Hash64( StripExtension( path ) );
 
 	if( !LoadBSPRenderData( &maps[ num_maps ], base_hash, data ) )
 		return false;

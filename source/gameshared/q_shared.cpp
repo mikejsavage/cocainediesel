@@ -458,6 +458,11 @@ Span< const char > FileExtension( const char * path ) {
 	return ext == NULL ? Span< const char >() : MakeSpan( ext );
 }
 
+Span< const char > StripExtension( const char * path ) {
+	Span< const char > ext = FileExtension( path );
+	return Span< const char >( path, strlen( path ) - ext.n );
+}
+
 Span< const char > LastFileExtension( const char * path ) {
 	const char * ext = strrchr( path, '.' );
 	return ext == NULL ? Span< const char >() : MakeSpan( ext );

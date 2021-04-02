@@ -173,9 +173,8 @@ void InitPlayerModels() {
 
 		Span< const char > ext = FileExtension( path );
 		if( ext == ".glb" && StartsWith( path, "players/" ) ) {
-			Span< const char > path_no_ext = Span< const char >( path, strlen( path ) - ext.n );
 			Span< const char > dir = BasePath( path );
-			u64 hash = Hash64( path_no_ext );
+			u64 hash = Hash64( StripExtension( path ) );
 
 			PlayerModelMetadata * meta = &player_model_metadatas[ num_player_models ];
 			meta->model = FindModel( StringHash( hash ) );

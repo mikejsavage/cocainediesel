@@ -182,10 +182,15 @@ static void ParseMaskOutlines( Material * material, Span< const char > name, Spa
 	material->mask_outlines = true;
 }
 
+static void ParseShaded( Material * material, Span< const char > name, Span< const char > * data ) {
+	material->shaded = true;
+}
+
 static const MaterialSpecKey shaderkeys[] = {
 	{ "cull", ParseCull },
 	{ "decal", ParseDecal },
 	{ "maskoutlines", ParseMaskOutlines },
+	{ "shaded", ParseShaded },
 
 	{ }
 };
@@ -1027,10 +1032,10 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		pipeline.shader = &shaders.standard_alphatest;
 	}
 	else if( skinned ) {
-		pipeline.shader = &shaders.standard_skinned;
+		pipeline.shader = material->shaded ? &shaders.standard_skinned_shaded : &shaders.standard_skinned;
 	}
 	else {
-		pipeline.shader = &shaders.standard;
+		pipeline.shader = material->shaded ? &shaders.standard_shaded : &shaders.standard;
 	}
 
 	return pipeline;

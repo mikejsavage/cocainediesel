@@ -207,10 +207,16 @@ void main() {
 	diffuse.rgb = diffuse.rgb * accumulated_alpha + accumulated_color;
 #endif
 
-#if APPLY_FOG
+#if SHADED
 	float lambertlight = dot( v_Normal, -u_LightDir ) * 0.5 + 0.5;
-	diffuse.rgb *= lambertlight * 0.5 + 0.5;
+	#if APPLY_DRAWFLAT
+		diffuse.rgb *= lambertlight * 0.5 + 0.5;
+	#else
+		diffuse.rgb *= lambertlight;
+	#endif
+#endif
 
+#if APPLY_FOG
 	float light = 0.0;
 	vec3 light_ndc = v_NearShadowmapPosition.xyz / v_NearShadowmapPosition.w;
 	vec3 light_norm = light_ndc * 0.5 + 0.5;

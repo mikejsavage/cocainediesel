@@ -5,14 +5,14 @@
 
 char * FS_RootPath( Allocator * a ) {
 	int len = wai_getExecutablePath( NULL, 0, NULL );
-	if( len == -1 )
-		return CopyString( sys_allocator, "." );
+	if( len == -1 ) {
+		Com_Error( ERR_FATAL, "wai_getExecutablePath( NULL )" );
+	}
 
 	char * buf = ALLOC_MANY( a, char, len + 1 );
 	int dirlen;
 	if( wai_getExecutablePath( buf, len, &dirlen ) == -1 ) {
-		FREE( a, buf );
-		return CopyString( sys_allocator, "." );
+		Com_Error( ERR_FATAL, "wai_getExecutablePath( buf )" );
 	}
 	buf[ dirlen ] = '\0';
 

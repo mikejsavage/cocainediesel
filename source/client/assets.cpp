@@ -236,10 +236,7 @@ Span< const char > AssetString( const char * path ) {
 }
 
 Span< const u8 > AssetBinary( StringHash path ) {
-	size_t i;
-	if( !assets_hashtable.get( path.hash, &i ) )
-		return Span< const u8 >();
-	return Span< const char >( assets[ i ].data.ptr, assets[ i ].data.n - 1 ).cast< const u8 >();
+	return AssetString( path ).cast< const u8 >();
 }
 
 Span< const u8 > AssetBinary( const char * path ) {

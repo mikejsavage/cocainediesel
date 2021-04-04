@@ -214,14 +214,6 @@ static char *SV_ShortInfoString() {
 
 	len = strlen( string );
 
-	if( Q_stricmp( FS_GameDirectory(), FS_BaseGameDirectory() ) ) {
-		snprintf( entry, sizeof( entry ), "mo\\\\%8s\\\\", FS_GameDirectory() );
-		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {
-			Q_strncatz( string, entry, sizeof( string ) );
-			len = strlen( string );
-		}
-	}
-
 	password = Cvar_String( "password" );
 	if( password[0] != '\0' ) {
 		snprintf( entry, sizeof( entry ), "p\\\\1\\\\" );

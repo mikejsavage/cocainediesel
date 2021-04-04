@@ -605,18 +605,18 @@ static Span2D< BC4Block > RGBAToBC4( const Texture * texture ) {
 
 	for( u32 row = 0; row < bc4.h; row++ ) {
 		for( u32 col = 0; col < bc4.w; col++ ) {
-			RGBA8 rgba_block_data[ 16 ];
-			Span2D< RGBA8 > rgba_block( rgba_block_data, 4, 4 );
-
-			CopySpan2D( rgba_block, rgba.slice( col * 4, row * 4, 4, 4 ) );
+			Span2D< const RGBA8 > rgba_block = rgba.slice( col * 4, row * 4, 4, 4 );
 
 			u8 alpha_block[ 16 ];
 			for( size_t i = 0; i < ARRAY_COUNT( alpha_block ); i++ ) {
-				alpha_block[ i ] = rgba_block_data[ i ].a;
+				alpha_block[ i ] = rgba_block( i % 4, i / 4 ).a;
 			}
 
 			BC4Block * bc4_block = &bc4( col, row );
-			stb_compress_bc4_block( bc4_block->data, alpha_block );
+			{
+				ZoneScopedN( "stb_compress_bc4_block" );
+				stb_compress_bc4_block( bc4_block->data, alpha_block );
+			}
 		}
 	}
 

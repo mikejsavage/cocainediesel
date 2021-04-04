@@ -287,13 +287,6 @@ static void SV_CheckTimeouts() {
 				NET_CloseSocket( &cl->socket );
 			}
 		}
-
-		// timeout downloads left open
-		if( ( cl->state != CS_FREE && cl->state != CS_ZOMBIE ) &&
-			( cl->download.name && cl->download.timeout < svs.realtime ) ) {
-			Com_Printf( "Download of %s to %s%s timed out\n", cl->download.name, cl->name, S_COLOR_WHITE );
-			SV_ClientCloseDownload( cl );
-		}
 	}
 }
 

@@ -46,16 +46,6 @@ void SV_ClientResetCommandBuffers( client_t *client ) {
 	client->lastSentFrameNum = 0;
 }
 
-void SV_ClientCloseDownload( client_t *client ) {
-	if( client->download.file ) {
-		FS_FCloseFile( client->download.file );
-	}
-	if( client->download.name ) {
-		Mem_ZoneFree( client->download.name );
-	}
-	memset( &client->download, 0, sizeof( client->download ) );
-}
-
 /*
 * SV_ClientConnect
 * accept the new client
@@ -182,10 +172,6 @@ void SV_DropClient( client_t *drop, int type, const char *format, ... ) {
 	SNAP_FreeClientFrames( drop );
 
 	SV_Web_RemoveGameClient( drop->session );
-
-	if( drop->download.name ) {
-		SV_ClientCloseDownload( drop );
-	}
 
 	if( drop->individual_socket ) {
 		NET_CloseSocket( &drop->socket );
@@ -484,27 +470,16 @@ static void SV_BeginDownload_f( client_t * client ) {
 		return;
 	}
 
-	// we will just overwrite old download, if any
-	if( client->download.name ) {
-		SV_ClientCloseDownload( client );
-	}
-
-	client->download.size = FS_LoadBaseFile( uploadname, NULL, NULL, 0 );
-	if( client->download.size == -1 ) {
+	int size = FS_LoadBaseFile( uploadname, NULL, NULL, 0 );
+	if( size == -1 ) {
 		Com_Printf( "Error getting size of %s for uploading\n", uploadname );
-		client->download.size = 0;
 		SV_DenyDownload( client, "Error getting file size" );
 		return;
 	}
 
 	checksum = FS_ChecksumBaseFile( uploadname );
-	client->download.timeout = svs.realtime + 1000 * 60 * 60; // this is web download timeout
 
-	alloc_size = sizeof( char ) * ( strlen( uploadname ) + 1 );
-	client->download.name = ( char * ) Mem_ZoneMalloc( alloc_size );
-	Q_strncpyz( client->download.name, uploadname, alloc_size );
-
-	Com_Printf( "Offering %s to %s\n", client->download.name, client->name );
+	Com_Printf( "Offering %s to %s\n", uploadname, client->name );
 
 	if( local_http ) {
 		alloc_size = sizeof( char ) * ( 6 + strlen( uploadname ) * 3 + 1 );
@@ -527,8 +502,7 @@ static void SV_BeginDownload_f( client_t * client ) {
 
 	// start the download
 	SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
-	SV_SendServerCommand( client, "initdownload \"%s\" %i %u %i \"%s\"", client->download.name,
-						  client->download.size, checksum, local_http ? 1 : 0, url );
+	SV_SendServerCommand( client, "initdownload \"%s\" %i %u %i \"%s\"", uploadname, size, checksum, local_http ? 1 : 0, url );
 	SV_AddReliableCommandsToMessage( client, &tmpMessage );
 	SV_SendMessageToClient( client, &tmpMessage );
 

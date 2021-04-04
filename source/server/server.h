@@ -85,14 +85,6 @@ struct client_snapshot_t {
 	SyncGameState gameState;
 };
 
-struct client_download_t {
-	char *name;
-	int file;
-	int size;               // total bytes
-	int64_t timeout;   // so we can free the file being downloaded
-	                        // if client omits sending success or failure message
-};
-
 struct game_command_t {
 	int64_t framenum;
 	char command[MAX_STRING_CHARS];
@@ -146,8 +138,6 @@ struct client_t {
 	char session[HTTP_CLIENT_SESSION_SIZE];  // session id for HTTP requests
 
 	client_snapshot_t snapShots[UPDATE_BACKUP]; // updates can be delta'd from here
-
-	client_download_t download;
 
 	int challenge;                  // challenge of this user, randomly generated
 

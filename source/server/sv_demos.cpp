@@ -360,10 +360,6 @@ void SV_Demo_Purge_f() {
 	Mem_TempFree( buffer );
 }
 
-/*
-* SV_DemoList_f
-*/
-#define DEMOS_PER_VIEW  30
 void SV_DemoList_f( client_t *client ) {
 	if( client->state < CS_SPAWNED ) {
 		return;

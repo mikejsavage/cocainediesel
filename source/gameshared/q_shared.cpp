@@ -479,6 +479,10 @@ Span< const char > BasePath( const char * path ) {
 	return slash == NULL ? MakeSpan( path ) : Span< const char >( path, slash - path );
 }
 
+bool SortCStringsComparator( const char * a, const char * b ) {
+	return strcmp( a, b ) < 0;
+}
+
 /*
 * COM_RemoveJunkChars
 *

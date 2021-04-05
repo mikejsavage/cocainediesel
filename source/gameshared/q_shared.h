@@ -99,6 +99,8 @@ Span< const char > LastFileExtension( const char * path );
 Span< const char > FileName( const char * path );
 Span< const char > BasePath( const char * path );
 
+bool SortCStringsComparator( const char * a, const char * b );
+
 const char *COM_RemoveJunkChars( const char *in );
 bool COM_ValidateConfigstring( const char *string );
 

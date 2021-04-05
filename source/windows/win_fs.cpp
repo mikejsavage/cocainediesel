@@ -297,7 +297,7 @@ ListDirHandle BeginListDir( Allocator * a, const char * path ) {
 	handle.handle = FindFirstFileW( wide, handle.ffd );
 	if( handle.handle == INVALID_HANDLE_VALUE ) {
 		FREE( handle.a, handle.ffd );
-		handle.ffd = NULL;
+		handle.handle = NULL;
 	}
 
 	return ImplToOpaque( handle );

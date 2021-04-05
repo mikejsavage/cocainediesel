@@ -11,7 +11,7 @@ enum MoveFileReplace {
 
 char * FS_RootPath( Allocator * a );
 
-Span< char > ReadFileString( Allocator * a, const char * path );
+char * ReadFileString( Allocator * a, const char * path, size_t * len = NULL );
 
 FILE * OpenFile( Allocator * a, const char * path, const char * mode );
 bool FileExists( Allocator * temp, const char * path );

@@ -14,7 +14,8 @@
 
 struct Asset {
 	char * path;
-	Span< char > data;
+	char * data;
+	size_t len;
 	s64 modified_time;
 	bool compressed;
 };
@@ -37,7 +38,7 @@ enum IsCompressed {
 	IsCompressed_Yes,
 };
 
-static void AddAsset( const char * path, u64 hash, s64 modified_time, Span< char > contents, IsCompressed compressed ) {
+static void AddAsset( const char * path, u64 hash, s64 modified_time, char * contents, size_t len, IsCompressed compressed ) {
 	Lock( assets_mutex );
 	defer { Unlock( assets_mutex ); };
 
@@ -47,7 +48,7 @@ static void AddAsset( const char * path, u64 hash, s64 modified_time, Span< char
 	Asset * a;
 	if( exists ) {
 		a = &assets[ idx ];
-		FREE( sys_allocator, a->data.ptr );
+		FREE( sys_allocator, a->data );
 	}
 	else {
 		a = &assets[ num_assets ];
@@ -56,6 +57,7 @@ static void AddAsset( const char * path, u64 hash, s64 modified_time, Span< char
 	}
 
 	a->data = contents;
+	a->len = len;
 	a->modified_time = modified_time;
 	a->compressed = compressed == IsCompressed_Yes;
 
@@ -72,7 +74,7 @@ struct DecompressAssetJob {
 	char * path;
 	u64 hash;
 	s64 modified_time;
-	Span< char > compressed;
+	Span< u8 > compressed;
 };
 
 static void DecompressAsset( TempAllocator * temp, void * data ) {
@@ -83,13 +85,13 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 	ZoneText( job->path, strlen( job->path ) );
 
 	Span< u8 > decompressed;
-	if( Decompress( job->path, sys_allocator, job->compressed.cast< u8 >(), &decompressed ) ) {
+	if( Decompress( job->path, sys_allocator, job->compressed, &decompressed ) ) {
 		// TODO: we need to add a null terminator too so AssetString etc works
-		Span< u8 > decompressed_and_terminated = ALLOC_SPAN( sys_allocator, u8, decompressed.n + 1 );
-		memcpy( decompressed_and_terminated.ptr, decompressed.ptr, decompressed.num_bytes() );
-		decompressed_and_terminated[ decompressed_and_terminated.n - 1 ] = '\0';
+		char * decompressed_and_terminated = ALLOC_MANY( sys_allocator, char, decompressed.n + 1 );
+		memcpy( decompressed_and_terminated, decompressed.ptr, decompressed.n );
+		decompressed_and_terminated[ decompressed.n ] = '\0';
 
-		AddAsset( job->path, job->hash, job->modified_time, decompressed_and_terminated.cast< char >(), IsCompressed_Yes );
+		AddAsset( job->path, job->hash, job->modified_time, decompressed_and_terminated, decompressed.n, IsCompressed_Yes );
 	}
 
 	FREE( sys_allocator, decompressed.ptr );
@@ -133,21 +135,22 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 		}
 	}
 
-	Span< char > contents = ReadFileString( sys_allocator, full_path );
-	if( contents.ptr == NULL )
+	size_t len;
+	char * contents = ReadFileString( sys_allocator, full_path, &len );
+	if( contents == NULL )
 		return;
 
 	if( compressed ) {
 		DecompressAssetJob * job = ALLOC( sys_allocator, DecompressAssetJob );
 		job->path = ( *sys_allocator )( "{}", game_path_no_zst );
 		job->hash = hash;
-		job->compressed = contents.slice( 0, contents.n - 1 );
+		job->compressed = Span< u8 >( ( u8 * ) contents, len );
 		job->modified_time = modified_time;
 
 		ThreadPoolDo( DecompressAsset, job );
 	}
 	else {
-		AddAsset( game_path, hash, modified_time, contents, IsCompressed_No );
+		AddAsset( game_path, hash, modified_time, contents, len, IsCompressed_No );
 	}
 }
 
@@ -218,7 +221,7 @@ void DoneHotloadingAssets() {
 void ShutdownAssets() {
 	for( u32 i = 0; i < num_assets; i++ ) {
 		FREE( sys_allocator, assets[ i ].path );
-		FREE( sys_allocator, assets[ i ].data.ptr );
+		FREE( sys_allocator, assets[ i ].data );
 	}
 
 	DeleteMutex( assets_mutex );
@@ -228,7 +231,7 @@ Span< const char > AssetString( StringHash path ) {
 	size_t i;
 	if( !assets_hashtable.get( path.hash, &i ) )
 		return Span< const char >();
-	return assets[ i ].data;
+	return Span< const char >( assets[ i ].data, assets[ i ].len );
 }
 
 Span< const char > AssetString( const char * path ) {

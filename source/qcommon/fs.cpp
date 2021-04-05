@@ -20,10 +20,10 @@ char * FS_RootPath( Allocator * a ) {
 	return buf;
 }
 
-Span< char > ReadFileString( Allocator * a, const char * path ) {
+char * ReadFileString( Allocator * a, const char * path, size_t * len ) {
 	FILE * file = OpenFile( a, path, "rb" );
 	if( file == NULL )
-		return Span< char >();
+		return NULL;
 
 	fseek( file, 0, SEEK_END );
 	size_t size = ftell( file );
@@ -34,12 +34,14 @@ Span< char > ReadFileString( Allocator * a, const char * path ) {
 	fclose( file );
 	if( r != size ) {
 		FREE( a, contents );
-		return Span< char >();
+		return NULL;
 	}
 
 	contents[ size ] = '\0';
-
-	return Span< char >( contents, size + 1 );
+	if( len != NULL ) {
+		*len = size;
+	}
+	return contents;
 }
 
 bool FileExists( Allocator * temp, const char * path ) {

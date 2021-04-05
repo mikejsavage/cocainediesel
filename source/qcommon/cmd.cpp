@@ -388,16 +388,15 @@ SCRIPT COMMANDS
 */
 
 static void ExecConfig( const char * path ) {
-	Span< char > config = ReadFileString( sys_allocator, path );
-	defer { FREE( sys_allocator, config.ptr ); };
-
-	if( config.ptr == NULL ) {
+	char * config = ReadFileString( sys_allocator, path );
+	defer { FREE( sys_allocator, config ); };
+	if( config == NULL ) {
 		Com_Printf( "Couldn't execute: %s\n", path );
 		return;
 	}
 
 	Cbuf_InsertText( "\n" );
-	Cbuf_InsertText( config.ptr );
+	Cbuf_InsertText( config );
 	Cbuf_InsertText( "\n" );
 }
 

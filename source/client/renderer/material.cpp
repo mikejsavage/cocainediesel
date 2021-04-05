@@ -548,7 +548,7 @@ static void LoadDDSTexture( const char * path ) {
 	}
 
 	size_t idx = AddTexture( Hash64( StripExtension( path ) ), config );
-	texture_bc4_data[ idx ] = Span2D< const BC4Block >( ( const BC4Block * ) config.data, config.width, config.height );
+	texture_bc4_data[ idx ] = Span2D< const BC4Block >( ( const BC4Block * ) config.data, config.width / 4, config.height / 4 );
 }
 
 static void LoadMaterialFile( const char * path, Span< const char > * material_names ) {

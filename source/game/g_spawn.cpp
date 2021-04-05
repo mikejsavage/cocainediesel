@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "qcommon/compression.h"
 #include "qcommon/cmodel.h"
+#include "qcommon/fs.h"
 #include "game/g_local.h"
 
 enum EntityFieldType {
@@ -461,14 +462,16 @@ void G_LoadMap( const char * name ) {
 
 	Q_strncpyz( sv.mapname, name, sizeof( sv.mapname ) );
 
-	const char * path = temp( "maps/{}.bsp", name );
-	u8 * buf;
-	int length = FS_LoadFile( path, ( void ** ) &buf, NULL, 0 );
-	if( buf == NULL ) {
+	const char * base_path = temp( "base/maps/{}", name );
+	const char * path = temp( "{}/{}.bsp", RootDirPath(), base_path );
+
+	Span< u8 > contents = ReadFileBinary( sys_allocator, path );
+	defer { FREE( sys_allocator, contents.ptr ); };
+	if( contents.ptr == NULL ) {
 		Com_Error( ERR_FATAL, "Couldn't load %s", path );
 	}
 
-	Span< const u8 > compressed = Span< const u8 >( buf, length );
+	Span< const u8 > compressed = contents;
 	Span< u8 > decompressed;
 	defer { FREE( sys_allocator, decompressed.ptr ); };
 	bool ok = Decompress( path, sys_allocator, compressed, &decompressed );
@@ -477,13 +480,11 @@ void G_LoadMap( const char * name ) {
 	}
 
 	Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
-	u64 base_hash = Hash64( path, strlen( path ) - strlen( ".bsp" ) );
+	u64 base_hash = Hash64( base_path );
 	svs.cms = CM_LoadMap( CM_Server, data, base_hash );
 
 	server_gs.gameState.map = StringHash( base_hash );
 	server_gs.gameState.map_checksum = svs.cms->checksum;
-
-	FS_FreeFile( buf );
 }
 
 // TODO: game module init is a mess and I'm not sure how to clean this up

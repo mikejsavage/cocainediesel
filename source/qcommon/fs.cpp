@@ -72,6 +72,26 @@ char * ReadFileString( Allocator * a, const char * path, size_t * len ) {
 	return contents;
 }
 
+Span< u8 > ReadFileBinary( Allocator * a, const char * path ) {
+	FILE * file = OpenFile( a, path, "rb" );
+	if( file == NULL )
+		return Span< u8 >();
+
+	fseek( file, 0, SEEK_END );
+	size_t size = ftell( file );
+	fseek( file, 0, SEEK_SET );
+
+	u8 * contents = ( u8 * ) ALLOC_SIZE( a, size, 16 );
+	size_t r = fread( contents, 1, size, file );
+	fclose( file );
+	if( r != size ) {
+		FREE( a, contents );
+		return Span< u8 >();
+	}
+
+	return Span< u8 >( contents, size );
+}
+
 bool FileExists( Allocator * temp, const char * path ) {
 	FILE * file = OpenFile( temp, path, "rb" );
 	if( file == NULL )

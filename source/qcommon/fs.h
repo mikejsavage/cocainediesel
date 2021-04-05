@@ -9,7 +9,6 @@ enum MoveFileReplace {
 	MoveFile_DontReplace,
 };
 
-
 void InitFS();
 void ShutdownFS();
 
@@ -17,6 +16,7 @@ const char * RootDirPath();
 const char * HomeDirPath();
 
 char * ReadFileString( Allocator * a, const char * path, size_t * len = NULL );
+Span< u8 > ReadFileBinary( Allocator * a, const char * path );
 
 FILE * OpenFile( Allocator * a, const char * path, const char * mode );
 bool FileExists( Allocator * temp, const char * path );

@@ -2051,8 +2051,8 @@ bool G_ExecutionErrorReport( int error ) {
 /*
 * G_LoadGameScript
 */
-asIScriptModule *G_LoadGameScript( const char *moduleName, const char *dir, const char *filename, const char *ext ) {
-	return game.asExport->asLoadScriptProject( game.asEngine, moduleName, GAME_SCRIPTS_DIRECTORY, dir, filename, ext );
+asIScriptModule *G_LoadGameScript( const char *dir, const char *filename, const char *ext ) {
+	return game.asExport->asLoadScriptProject( game.asEngine, GAME_SCRIPTS_DIRECTORY, dir, filename, ext );
 }
 
 /*

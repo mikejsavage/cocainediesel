@@ -485,13 +485,12 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 }
 
 bool GT_asLoadScript( const char *gametypeName ) {
-	const char *moduleName = GAMETYPE_SCRIPTS_MODULE_NAME;
 	asIScriptModule *asModule;
 
 	GT_ResetScriptData();
 
 	// Load the script
-	asModule = G_LoadGameScript( moduleName, GAMETYPE_SCRIPTS_DIRECTORY, gametypeName, GAMETYPE_PROJECT_EXTENSION );
+	asModule = G_LoadGameScript( GAMETYPE_SCRIPTS_DIRECTORY, gametypeName, GAMETYPE_PROJECT_EXTENSION );
 	if( asModule == NULL ) {
 		return false;
 	}

@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "addon/addon_string.h"
 #include "addon/addon_vec3.h"
 #include "addon/addon_cvar.h"
+#include "qcommon/fs.h"
+#include "qcommon/string.h"
 
 #include <list>
 #include <map>
@@ -219,12 +221,7 @@ asIScriptContext *qasGetActiveContext() {
 * qasLoadScriptSection
 */
 static char *qasLoadScriptSection( const char *rootDir, const char *dir, const char *script, int sectionNum ) {
-	char filename[MAX_QPATH];
-	uint8_t *data;
-	int length, filenum;
-	char *sectionName;
-
-	sectionName = COM_ListNameForPosition( script, sectionNum, QAS_SECTIONS_SEPARATOR );
+	char * sectionName = COM_ListNameForPosition( script, sectionNum, QAS_SECTIONS_SEPARATOR );
 	if( !sectionName ) {
 		return NULL;
 	}
@@ -234,32 +231,20 @@ static char *qasLoadScriptSection( const char *rootDir, const char *dir, const c
 	while( *sectionName == '\n' || *sectionName == ' ' || *sectionName == '\r' )
 		sectionName++;
 
-	if( sectionName[0] == '/' ) {
-		snprintf( filename, sizeof( filename ), "%s%s%s", rootDir, sectionName, QAS_FILE_EXTENSION );
-	} else {
-		snprintf( filename, sizeof( filename ), "%s/%s/%s%s", rootDir, dir, sectionName, QAS_FILE_EXTENSION );
-	}
-	Q_strlwr( filename );
-
-	length = FS_FOpenFile( filename, &filenum, FS_READ );
-
-	if( length == -1 ) {
-		Com_Printf( "Couldn't find script section: '%s'\n", filename );
+	DynamicString path( sys_allocator, "{}/base/{}/{}/{}{}", RootDirPath(), rootDir, dir, sectionName, QAS_FILE_EXTENSION );
+	char * contents = ReadFileString( sys_allocator, path.c_str() );
+	if( contents == NULL ) {
+		Com_Printf( "Couldn't find script section: '%s'\n", path.c_str() );
 		return NULL;
 	}
 
-	//load the script data into memory
-	data = ( uint8_t * )qasAlloc( length + 1 );
-	FS_Read( data, length, filenum );
-	FS_FCloseFile( filenum );
-
-	return (char *)data;
+	return contents;
 }
 
 /*
 * qasBuildScriptProject
 */
-static asIScriptModule *qasBuildScriptProject( asIScriptEngine *asEngine, const char *moduleName, const char *rootDir, const char *dir, const char *scriptName, const char *script ) {
+static asIScriptModule *qasBuildScriptProject( asIScriptEngine *asEngine, const char *rootDir, const char *dir, const char *scriptName, const char *script ) {
 	int error;
 	int numSections, sectionNum;
 	char *section;
@@ -280,9 +265,9 @@ static asIScriptModule *qasBuildScriptProject( asIScriptEngine *asEngine, const 
 
 	// load up the script sections
 
-	asModule = asEngine->GetModule( moduleName, asGM_CREATE_IF_NOT_EXISTS );
+	asModule = asEngine->GetModule( GAMETYPE_SCRIPTS_MODULE_NAME, asGM_CREATE_IF_NOT_EXISTS );
 	if( asModule == NULL ) {
-		Com_Printf( S_COLOR_RED "qasBuildGameScript: GetModule '%s' failed\n", moduleName );
+		Com_Printf( S_COLOR_RED "qasBuildGameScript: GetModule '%s' failed\n", GAMETYPE_SCRIPTS_MODULE_NAME );
 		return NULL;
 	}
 
@@ -290,25 +275,25 @@ static asIScriptModule *qasBuildScriptProject( asIScriptEngine *asEngine, const 
 		const char *sectionName = COM_ListNameForPosition( script, sectionNum, QAS_SECTIONS_SEPARATOR );
 		error = asModule->AddScriptSection( sectionName, section, strlen( section ) );
 
-		qasFree( section );
+		FREE( sys_allocator, section );
 
 		if( error ) {
 			Com_Printf( S_COLOR_RED "* Failed to add the script section %s with error %i\n", sectionName, error );
-			asEngine->DiscardModule( moduleName );
+			asEngine->DiscardModule( GAMETYPE_SCRIPTS_MODULE_NAME );
 			return NULL;
 		}
 	}
 
 	if( sectionNum != numSections ) {
 		Com_Printf( S_COLOR_RED "* Error: couldn't load all script sections.\n" );
-		asEngine->DiscardModule( moduleName );
+		asEngine->DiscardModule( GAMETYPE_SCRIPTS_MODULE_NAME );
 		return NULL;
 	}
 
 	error = asModule->Build();
 	if( error ) {
 		Com_Printf( S_COLOR_RED "* Failed to build script '%s'\n", scriptName );
-		asEngine->DiscardModule( moduleName );
+		asEngine->DiscardModule( GAMETYPE_SCRIPTS_MODULE_NAME );
 		return NULL;
 	}
 
@@ -318,42 +303,16 @@ static asIScriptModule *qasBuildScriptProject( asIScriptEngine *asEngine, const 
 /*
 * qasLoadScriptProject
 */
-asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *moduleName, const char *rootDir, const char *dir, const char *filename, const char *ext ) {
-	int length, filenum;
-	char *data;
-	char filepath[MAX_QPATH];
-	asIScriptModule *asModule;
-
-	snprintf( filepath, sizeof( filepath ), "%s/%s/%s", rootDir, dir, filename );
-	COM_DefaultExtension( filepath, ext, sizeof( filepath ) );
-
-	length = FS_FOpenFile( filepath, &filenum, FS_READ );
-
-	if( length == -1 ) {
-		Com_Printf( "qasLoadScriptProject: Couldn't find '%s'.\n", filepath );
+asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *rootDir, const char *dir, const char *filename, const char *ext ) {
+	DynamicString path( sys_allocator, "{}/base/{}/{}/{}{}", RootDirPath(), rootDir, dir, filename, ext );
+	char * contents = ReadFileString( sys_allocator, path.c_str() );
+	defer { FREE( sys_allocator, contents ); };
+	if( contents == NULL ) {
+		Com_Printf( "qasLoadScriptProject: Couldn't find '%s'.\n", path.c_str() );
 		return NULL;
 	}
 
-	if( !length ) {
-		Com_Printf( "qasLoadScriptProject: '%s' is empty.\n", filepath );
-		FS_FCloseFile( filenum );
-		return NULL;
-	}
-
-	//load the script data into memory
-	data = ( char * )qasAlloc( length + 1 );
-	FS_Read( data, length, filenum );
-	FS_FCloseFile( filenum );
-
-	// Initialize the script
-	asModule = qasBuildScriptProject( engine, moduleName, rootDir, dir, filepath, data );
-	if( !asModule ) {
-		qasFree( data );
-		return NULL;
-	}
-
-	qasFree( data );
-	return asModule;
+	return qasBuildScriptProject( engine, rootDir, dir, path.c_str(), contents );
 }
 
 /*************************************

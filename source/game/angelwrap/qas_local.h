@@ -63,4 +63,4 @@ void qasStringRelease( asstring_t *str );
 asstring_t *qasStringAssignString( asstring_t *self, const char *string, unsigned int strlen );
 
 // projects / bundles
-asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *moduleName, const char *rootDir, const char *dir, const char *filename, const char *ext );
+asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *rootDir, const char *dir, const char *filename, const char *ext );

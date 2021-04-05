@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "qcommon/fs.h"
+#include "qcommon/string.h"
 
 /*
 * Cmd_ConsoleSay_f
@@ -218,36 +220,25 @@ void SV_ReadIPList() {
 * SV_WriteIPList
 */
 void SV_WriteIPList() {
-	int file;
-	char name[MAX_QPATH];
-	char string[MAX_STRING_CHARS];
-	uint8_t b[4] = { 0, 0, 0, 0 };
-	int i;
+	DynamicString output( sys_allocator, "set filterban {}\r\n", filterban->integer );
 
-	Q_strncpyz( name, "listip.cfg", sizeof( name ) );
-
-	if( FS_FOpenFile( name, &file, FS_WRITE ) == -1 ) {
-		Com_Printf( "Couldn't open %s\n", name );
-		return;
-	}
-
-	snprintf( string, sizeof( string ), "set filterban %d\r\n", filterban->integer );
-	FS_Write( string, strlen( string ), file );
-
-	for( i = 0; i < numipfilters; i++ ) {
+	for( int i = 0; i < numipfilters; i++ ) {
 		if( ipfilters[i].timeout && ipfilters[i].timeout <= svs.gametime ) {
 			continue;
 		}
-		*(unsigned *)b = ipfilters[i].compare;
-		if( ipfilters[i].timeout ) {
-			snprintf( string, sizeof( string ), "addip %i.%i.%i.%i %.2f\r\n", b[0], b[1], b[2], b[3], ( ipfilters[i].timeout - svs.gametime ) / ( 1000.0f * 60.0f ) );
-		} else {
-			snprintf( string, sizeof( string ), "addip %i.%i.%i.%i\r\n", b[0], b[1], b[2], b[3] );
+
+		const u8 * ip = ( const u8 * ) &ipfilters[ i ].compare;
+		output.append( "addip {}.{}.{}.{}", ip[ 0 ], ip[ 1 ], ip[ 2 ], ip[ 3 ] );
+		if( ipfilters[i].timeout != 0 ) {
+			output.append( " {.2}", ( ipfilters[i].timeout - svs.gametime ) / ( 1000.0f * 60.0f ) );
 		}
-		FS_Write( string, strlen( string ), file );
+		output += "\r\n";
 	}
 
-	FS_FCloseFile( file );
+	TempAllocator temp = svs.frame_arena.temp();
+	if( !WriteFile( &temp, "listip.cfg", output.c_str(), output.length() ) ) {
+		Com_Printf( "Couldn't write listip.cfg\n" );
+	}
 }
 
 /*

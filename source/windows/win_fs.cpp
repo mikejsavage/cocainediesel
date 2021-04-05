@@ -254,11 +254,37 @@ static char * WideToUTF8( Allocator * a, const wchar_t * wide ) {
 }
 
 FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {
-	wchar_t * widepath = UTF8ToWide( a, path );
-	wchar_t * widemode = UTF8ToWide( a, mode );
-	defer { FREE( a, widepath ); };
-	defer { FREE( a, widemode ); };
-	return _wfopen( widepath, widemode );
+	wchar_t * wide_path = UTF8ToWide( a, path );
+	wchar_t * wide_mode = UTF8ToWide( a, mode );
+	defer { FREE( a, wide_path ); };
+	defer { FREE( a, wide_mode ); };
+	return _wfopen( wide_path, wide_mode );
+}
+
+#undef MoveFile
+bool MoveFile( Allocator * a, const char * old_path, const char * new_path, MoveFileReplace replace ) {
+	wchar_t * wide_old_path = UTF8ToWide( a, old_path );
+	wchar_t * wide_new_path = UTF8ToWide( a, new_path );
+	defer { FREE( a, wide_old_path ); };
+	defer { FREE( a, wide_new_path ); };
+
+	DWORD flags = replace == MoveFile_DoReplace ? MOVEFILE_REPLACE_EXISTING : 0;
+
+	return MoveFileExW( wide_old_path, wide_new_path, flags ) != 0;
+}
+
+#undef DeleteFile
+bool DeleteFile( Allocator * a, const char * path ) {
+	wchar_t * wide_path = UTF8ToWide( a, path );
+	defer { FREE( a, wide_path ); };
+	return DeleteFileW( wide_path ) != 0;
+}
+
+#undef CreateDirectory
+bool CreateDirectory( Allocator * a, const char * path ) {
+	wchar_t * wide_path = UTF8ToWide( a, path );
+	defer { FREE( a, wide_path ); };
+	return CreateDirectoryW( wide_path, NULL ) != 0 || GetLastError() == ERROR_ALREADY_EXISTS;
 }
 
 struct ListDirHandleImpl {

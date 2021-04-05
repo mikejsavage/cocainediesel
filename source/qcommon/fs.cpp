@@ -1,5 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/fs.h"
+#include "qcommon/utf8.h"
 
 #include "whereami/whereami.h"
 
@@ -41,6 +42,14 @@ Span< char > ReadFileString( Allocator * a, const char * path ) {
 	return Span< char >( contents, size + 1 );
 }
 
+bool FileExists( Allocator * temp, const char * path ) {
+	FILE * file = OpenFile( temp, path, "rb" );
+	if( file == NULL )
+		return false;
+	fclose( file );
+	return true;
+}
+
 bool WriteFile( TempAllocator * temp, const char * path, const void * data, size_t len ) {
 	FILE * file = OpenFile( temp, path, "wb" );
 	if( file == NULL )
@@ -50,4 +59,19 @@ bool WriteFile( TempAllocator * temp, const char * path, const void * data, size
 	fclose( file );
 
 	return w == len;
+}
+
+bool CreatePath( Allocator * a, const char * path ) {
+	char * mutable_path = CopyString( a, path );
+	defer { FREE( a, mutable_path ); };
+
+	char * cursor = mutable_path;
+	while( ( cursor = StrChrUTF8( cursor, '/' ) ) != NULL ) {
+		*cursor = '\0';
+		if( !CreateDirectory( a, path ) )
+			return false;
+		*cursor = '/';
+	}
+
+	return true;
 }

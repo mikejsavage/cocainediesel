@@ -263,6 +263,26 @@ FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {
 	return fopen( path, mode );
 }
 
+bool MoveFile( Allocator * a, const char * old_path, const char * new_path, MoveFileReplace replace ) {
+	unsigned int flags = replace == MoveFile_DontReplace ? RENAME_NOREPLACE : 0;
+	if( renameat2( -1, old_path, -1, new_path, flags ) == 0 )
+		return true;
+
+	if( errno == EBADF || errno == ENOTDIR ) {
+		Com_Error( ERR_FATAL, "renameat2" );
+	}
+
+	return false;
+}
+
+bool DeleteFile( Allocator * a, const char * path ) {
+	return unlink( path ) == 0;
+}
+
+bool CreateDirectory( Allocator * a, const char * path ) {
+	return mkdir( path, 0755 ) == 0;
+}
+
 struct ListDirHandleImpl {
 	DIR * dir;
 };

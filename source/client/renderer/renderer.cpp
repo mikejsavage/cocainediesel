@@ -61,7 +61,7 @@ static void TakeScreenshot() {
 
 		filename.append( ".png" );
 
-		FS_CreateAbsolutePath( filename.c_str() );
+		CreatePath( &temp, filename.c_str() );
 
 		if( WriteFile( &temp, filename.c_str(), png, png_size ) ) {
 			Com_Printf( "Wrote %s\n", filename.c_str() );

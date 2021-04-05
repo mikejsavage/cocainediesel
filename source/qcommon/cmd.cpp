@@ -413,7 +413,7 @@ static void Cmd_Exec_f() {
 		return;
 	}
 
-	DynamicString path( sys_allocator, "{}/base/{}", FS_WriteDirectory(), arg );
+	DynamicString path( sys_allocator, "{}/base/{}", HomeDirPath(), arg );
 	if( FileExtension( path.c_str() ) == "" ) {
 		path += ".cfg";
 	}
@@ -422,10 +422,7 @@ static void Cmd_Exec_f() {
 }
 
 void ExecDefaultCfg() {
-	char * root = FS_RootPath( sys_allocator );
-	defer { FREE( sys_allocator, root ); };
-
-	DynamicString path( sys_allocator, "{}/base/default.cfg", root );
+	DynamicString path( sys_allocator, "{}/base/default.cfg", RootDirPath() );
 	ExecConfig( path.c_str() );
 }
 

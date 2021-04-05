@@ -1350,19 +1350,6 @@ const char *FS_WriteDirectory() {
 }
 
 /*
-* FS_DownloadsDirectory
-*
-* Returns directory where we can store downloads to, no gamedir attached.
-* Returns NULL if downloads are disabled.
-*/
-const char *FS_DownloadsDirectory() {
-	if( fs_downloads_searchpath ) {
-		return fs_downloads_searchpath->path;
-	}
-	return NULL;
-}
-
-/*
 * FS_CreateAbsolutePath
 *
 * Creates any directories needed to store the given filename

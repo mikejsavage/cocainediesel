@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qcommon.h"
 #include "qcommon/cmodel.h"
 #include "qcommon/csprng.h"
+#include "qcommon/fs.h"
 #include "qcommon/glob.h"
 #include "qcommon/maplist.h"
 #include "qcommon/threads.h"
@@ -569,6 +570,7 @@ void Qcommon_Init( int argc, char **argv ) {
 	developer = Cvar_Get( "developer", "0", 0 );
 
 	FS_Init();
+	InitFS();
 
 	if( !is_dedicated_server ) {
 		ExecDefaultCfg();
@@ -684,6 +686,7 @@ void Qcommon_Shutdown() {
 	Com_CloseConsoleLog( true, true );
 
 	FS_Shutdown();
+	ShutdownFS();
 
 	CSPRNG_Shutdown();
 

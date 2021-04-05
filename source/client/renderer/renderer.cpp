@@ -47,7 +47,7 @@ static void TakeScreenshot() {
 		Sys_FormatTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
 
 		TempAllocator temp = cls.frame_arena.temp();
-		DynamicString filename( &temp, "{}/screenshots/{}", FS_WriteDirectory(), date );
+		DynamicString filename( &temp, "{}/screenshots/{}", HomeDirPath(), date );
 
 		if( strcmp( date, last_screenshot_date ) == 0 ) {
 			same_date_count++;

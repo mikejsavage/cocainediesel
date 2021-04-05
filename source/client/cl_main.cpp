@@ -1039,7 +1039,7 @@ static void CL_WriteConfiguration() {
 	Cvar_WriteVariables( &config );
 
 	TempAllocator temp = cls.frame_arena.temp();
-	DynamicString path( &temp, "{}/base/config.cfg", FS_WriteDirectory() );
+	DynamicString path( &temp, "{}/base/config.cfg", HomeDirPath() );
 	if( !WriteFile( &temp, path.c_str(), config.c_str(), config.length() ) ) {
 		Com_Printf( "Couldn't write %s.\n", path.c_str() );
 		return;

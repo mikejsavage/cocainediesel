@@ -495,7 +495,6 @@ const char *FS_BaseGameDirectory();
 // handling of absolute filenames
 // only to be used if necessary (library not supporting custom file handling functions etc.)
 const char *FS_WriteDirectory();
-const char *FS_DownloadsDirectory();
 void        FS_CreateAbsolutePath( const char *path );
 const char *FS_AbsoluteNameForFile( const char *filename );
 const char *FS_AbsoluteNameForBaseFile( const char *filename );

@@ -5,7 +5,10 @@
 
 #include "whereami/whereami.h"
 
-char * FS_RootPath( Allocator * a ) {
+static char * root_dir_path;
+static const char * home_dir_path;
+
+static char * FindRootDir( Allocator * a ) {
 	int len = wai_getExecutablePath( NULL, 0, NULL );
 	if( len == -1 ) {
 		Com_Error( ERR_FATAL, "wai_getExecutablePath( NULL )" );
@@ -21,6 +24,29 @@ char * FS_RootPath( Allocator * a ) {
 	return buf;
 }
 
+void InitFS() {
+	root_dir_path = FindRootDir( sys_allocator );
+#if PUBLIC_BUILD
+	home_dir_path = Sys_FS_GetHomeDirectory();
+#else
+	home_dir_path = root_dir_path;
+#endif
+	// TODO: replace \ with /? utf-8 aware pls.
+}
+
+void ShutdownFS() {
+	FREE( sys_allocator, root_dir_path );
+	// FREE( sys_allocator, home_dir_path );
+}
+
+const char * RootDirPath() {
+	return root_dir_path;
+}
+
+const char * HomeDirPath() {
+	return home_dir_path;
+}
+
 char * ReadFileString( Allocator * a, const char * path, size_t * len ) {
 	FILE * file = OpenFile( a, path, "rb" );
 	if( file == NULL )
@@ -33,6 +59,7 @@ char * ReadFileString( Allocator * a, const char * path, size_t * len ) {
 	char * contents = ( char * ) ALLOC_SIZE( a, size + 1, 16 );
 	size_t r = fread( contents, 1, size, file );
 	fclose( file );
+
 	if( r != size ) {
 		FREE( a, contents );
 		return NULL;

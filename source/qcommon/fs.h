@@ -9,7 +9,12 @@ enum MoveFileReplace {
 	MoveFile_DontReplace,
 };
 
-char * FS_RootPath( Allocator * a );
+
+void InitFS();
+void ShutdownFS();
+
+const char * RootDirPath();
+const char * HomeDirPath();
 
 char * ReadFileString( Allocator * a, const char * path, size_t * len = NULL );
 

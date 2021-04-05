@@ -18,9 +18,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <algorithm>
+
 #include <time.h>
 
 #include "server/server.h"
+#include "qcommon/array.h"
+#include "qcommon/fs.h"
+#include "qcommon/string.h"
 
 #define SV_DEMO_DIR va( "demos/server%s%s", sv_demodir->string[0] ? "/" : "", sv_demodir->string[0] ? sv_demodir->string : "" )
 
@@ -360,101 +365,46 @@ void SV_Demo_Purge_f() {
 */
 #define DEMOS_PER_VIEW  30
 void SV_DemoList_f( client_t *client ) {
-	char message[MAX_STRING_CHARS];
-	char numpr[16];
-	char buffer[MAX_STRING_CHARS];
-	char *s, *p;
-	size_t j, length, length_escaped, pos, extlen;
-	int numdemos, i, start = -1, end, k;
-
 	if( client->state < CS_SPAWNED ) {
 		return;
 	}
 
-	if( Cmd_Argc() > 2 ) {
-		SV_AddGameCommand( client, "pr \"Usage: demolist [starting position]\n\"" );
-		return;
+	TempAllocator temp = svs.frame_arena.temp();
+
+	ListDirHandle scan = BeginListDir( &temp, SV_DEMO_DIR );
+	DynamicArray< char * > demos( &temp );
+
+	const char * name;
+	bool dir;
+	while( ListDirNext( &scan, &name, &dir ) ) {
+		// skip ., .., .git, etc
+		if( name[ 0 ] == '.' )
+			continue;
+
+		if( dir || FileExtension( name ) != APP_DEMO_EXTENSION_STR )
+			continue;
+
+		demos.add( CopyString( sys_allocator, name ) );
 	}
 
-	if( Cmd_Argc() == 2 ) {
-		start = atoi( Cmd_Argv( 1 ) ) - 1;
-		if( start < 0 ) {
-			SV_AddGameCommand( client, "pr \"Usage: demolist [starting position]\n\"" );
-			return;
-		}
+	std::sort( demos.begin(), demos.end(), SortCStringsComparator );
+
+	DynamicString output( &temp );
+	output += "pr \"Available demos:";
+
+	size_t start = demos.size() - Min2( demos.size(), size_t( 10 ) );
+
+	for( size_t i = start; i < demos.size(); i++ ) {
+		output.append( "\n{}: {}", i + 1, demos[ i ] );
 	}
 
-	Q_strncpyz( message, "pr \"Available demos:\n----------------\n", sizeof( message ) );
+	output += "\"";
 
-	numdemos = FS_GetFileList( SV_DEMO_DIR, APP_DEMO_EXTENSION_STR, NULL, 0, 0, 0 );
-	if( numdemos ) {
-		if( start < 0 ) {
-			start = Max2( 0, numdemos - DEMOS_PER_VIEW );
-		} else if( start > numdemos - 1 ) {
-			start = numdemos - 1;
-		}
+	SV_AddGameCommand( client, output.c_str() );
 
-		if( start > 0 ) {
-			Q_strncatz( message, "...\n", sizeof( message ) );
-		}
-
-		end = start + DEMOS_PER_VIEW;
-		if( end > numdemos ) {
-			end = numdemos;
-		}
-
-		extlen = strlen( APP_DEMO_EXTENSION_STR );
-
-		i = start;
-		do {
-			if( ( k = FS_GetFileList( SV_DEMO_DIR, APP_DEMO_EXTENSION_STR, buffer, sizeof( buffer ), i, end ) ) == 0 ) {
-				i++;
-				continue;
-			}
-
-			for( s = buffer; k > 0; k--, s += length + 1, i++ ) {
-				length = strlen( s );
-
-				length_escaped = length;
-				p = s;
-				while( ( p = strchr( p, '\\' ) ) )
-					length_escaped++;
-
-				snprintf( numpr, sizeof( numpr ), "%i: ", i + 1 );
-				if( strlen( message ) + strlen( numpr ) + length_escaped - extlen + 1 + 5 >= sizeof( message ) ) {
-					Q_strncatz( message, "\"", sizeof( message ) );
-					SV_AddGameCommand( client, message );
-
-					Q_strncpyz( message, "pr \"", sizeof( message ) );
-					if( strlen( "demoget " ) + strlen( numpr ) + length_escaped - extlen + 1 + 5 >= sizeof( message ) ) {
-						continue;
-					}
-				}
-
-				Q_strncatz( message, numpr, sizeof( message ) );
-				pos = strlen( message );
-				for( j = 0; j < length - extlen; j++ ) {
-					assert( s[j] != '\\' );
-					if( s[j] == '"' ) {
-						message[pos++] = '\\';
-					}
-					message[pos++] = s[j];
-				}
-				message[pos++] = '\n';
-				message[pos] = '\0';
-			}
-		} while( i < end );
-
-		if( end < numdemos ) {
-			Q_strncatz( message, "...\n", sizeof( message ) );
-		}
-	} else {
-		Q_strncatz( message, "none\n", sizeof( message ) );
+	for( char * demo : demos ) {
+		FREE( sys_allocator, demo );
 	}
-
-	Q_strncatz( message, "\"", sizeof( message ) );
-
-	SV_AddGameCommand( client, message );
 }
 
 /*

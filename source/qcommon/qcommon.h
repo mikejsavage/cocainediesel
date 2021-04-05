@@ -277,7 +277,7 @@ int         Cmd_CompleteCountPossible( const char *partial );
 const char  **Cmd_CompleteBuildList( const char *partial );
 const char  **Cmd_CompleteBuildArgList( const char *partial );
 const char  **Cmd_CompleteBuildArgListExt( const char *command, const char *arguments );
-const char  **Cmd_CompleteFileList( const char *partial, const char *basedir, const char *extension, bool subdirectories );
+const char  **Cmd_CompleteHomeDirFileList( const char *partial, const char *basedir, const char *extension );
 int         Cmd_Argc();
 const char  *Cmd_Argv( int arg );
 char        *Cmd_Args();

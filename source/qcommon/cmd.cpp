@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
+#include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
 #include "qcommon/q_trie.h"
@@ -426,11 +427,8 @@ void ExecDefaultCfg() {
 	ExecConfig( path.c_str() );
 }
 
-/*
-* CL_CompleteExecBuildList
-*/
 static const char **CL_CompleteExecBuildList( const char *partial ) {
-	return Cmd_CompleteFileList( partial, "", ".cfg", true );
+	return Cmd_CompleteHomeDirFileList( partial, "base", ".cfg" );
 }
 
 /*
@@ -881,152 +879,71 @@ const char **Cmd_CompleteBuildArgList( const char *partial ) {
 	return NULL;
 }
 
-/*
-* Cmd_CompleteFileList
-*
-* Find matching files
-*/
-const char **Cmd_CompleteFileList( const char *partial, const char *basedir, const char *extension, bool subdirectories ) {
-	const char *p;
-	char dir[MAX_QPATH];
-	char subdir[MAX_QPATH];
-	char prefix[MAX_QPATH];
-	int prefix_length;
-	int subdir_length;
-	int total;
-	size_t size;
-	size_t buf_size;
-	size_t total_size;
-	const char **buf;
-	char *list;
-	char *ext;
-	int i, j, len;
-	int numitems;
-	int pass;
-	int numpasses;
-	int numdirs, numdirs_added;
+static void AddMatchingFilesRecursive( DynamicArray< char * > * files, DynamicString * path, Span< const char > prefix, size_t skip, const char * extension ) {
+	ListDirHandle scan = BeginListDir( sys_allocator, path->c_str() );
 
-	// locate the basename (prefix) of the partial name
-	for( p = partial + strlen( partial ); p >= partial && *p != '/'; p-- )
-		;
-	p++;
+	const char * name;
+	bool dir;
+	while( ListDirNext( &scan, &name, &dir ) ) {
+		// skip ., .., .git, etc
+		if( name[ 0 ] == '.' )
+			continue;
 
-	Q_strncpyz( prefix, p, sizeof( prefix ) );
-	prefix_length = strlen( prefix );
-
-	// determine the searching directory
-	// if we are searching in a subdirectory, this subdirectory will have
-	// to be prepended to all results
-	strcpy( dir, basedir );
-	subdir[0] = '\0';
-	if( p > partial ) {
-		size_t subdir_len;
-
-		if( !subdirectories ) {
-			return NULL;
+		size_t old_len = path->length();
+		path->append( "/{}", name );
+		if( dir ) {
+			AddMatchingFilesRecursive( files, path, prefix, skip, extension );
 		}
-		if( dir[0] ) {
-			Q_strncatz( dir, "/", sizeof( dir ) );
-		}
-		Q_strncpyz( subdir, partial, qmin( p - partial, sizeof( subdir ) ) );
-		for( subdir_len = strlen( subdir ); subdir[subdir_len - 1] == '/'; subdir_len-- ) subdir[subdir_len - 1] = '\0';
-		Q_strncatz( dir, subdir, sizeof( dir ) );
-		Q_strncatz( subdir, "/", sizeof( subdir ) );
-	}
-
-	total = 0;
-	total_size = 0;
-	numpasses = 0;
-
-	numdirs = 0;
-	numdirs_added = 0;
-	if( subdirectories ) {
-		// count the total amount of subdirectories in the directory
-		numdirs = FS_GetFileListExt( dir, "/", NULL, &size, 0, 0 );
-		if( numdirs ) {
-			total += numdirs;
-			total_size += size;
-			numpasses++;
-		}
-	}
-
-	// count the total amount of files in the directory
-	numitems = FS_GetFileListExt( dir, extension, NULL, &size, 0, 0 );
-	total += numitems;
-	total_size += size;
-	numpasses++;
-
-	if( !total ) {
-		return NULL;
-	}
-
-	subdir_length = strlen( subdir );
-	buf_size =  ( total + 1 ) * sizeof( char * )    // resulting pointer list with NULL ending
-			   + total_size                         // actual strings
-			   + total * subdir_length;             // extra space to prepend subdirs
-	buf = ( const char ** )Mem_TempMalloc( buf_size );
-	list = ( char * )buf + ( total + 1 ) * sizeof( char * );
-
-	// get all files in the directory
-
-	size = total_size;
-	for( pass = 0; pass < numpasses; pass++ ) {
-		if( pass > 0 ) {
-			// prepend subdirectories
-			j = 0;
-			numitems = FS_GetFileList( dir, "/", list, size, 0, 0 );
-		} else {
-			// take advantage of FS_GetFileList caching
-			j = numdirs;
-			numitems = FS_GetFileList( dir, extension, list, size, 0, 0 );
-		}
-
-		for( i = 0; i < numitems; i++ ) {
-			len = strlen( list );
-			if( !Q_strnicmp( prefix, list, prefix_length ) ) {
-				ext = extension && *extension ? list + len - strlen( extension ) : NULL;
-				if( list[len - 1] == '/' ) {
-					if( !subdirectories || pass == 0 ) {
-						// ignore directories
-						list += len + 1;
-						size -= len + 1;
-						continue;
-					}
-					numdirs_added++;
-				} else if( !ext ) {
-					// do nothing
-				} else if( ext >= list && !Q_stricmp( ext, extension ) ) {
-					// remove the extension
-					*ext = '\0';
-				} else {
-					// ignore other files
-					list += len + 1;
-					size -= len + 1;
-					continue;
-				}
-
-				if( *subdir ) {
-					// searching in a subdirectory, prepend it
-					memmove( list + subdir_length, list, size );
-					memcpy( list, subdir, subdir_length );
-
-					len += subdir_length;
-					size += subdir_length;
-				}
-				buf[j++] = list;
+		else {
+			bool prefix_matches = path->length() >= prefix.n + skip && Q_strnicmp( path->c_str() + skip, prefix.ptr, prefix.n ) == 0;
+			bool ext_matches = StrCaseEqual( FileExtension( path->c_str() ), extension );
+			if( prefix_matches && ext_matches ) {
+				files->add( ( *sys_allocator )( "{}", path->span().slice( skip, path->length() ) ) );
 			}
-
-			list += len + 1;
-			size -= len + 1;
 		}
+		path->truncate( old_len );
 	}
-	buf[total] = NULL;
+}
 
-	if( numdirs > numdirs_added ) {
-		memmove( buf + numdirs_added, buf + numdirs, ( total - numdirs + 1 ) * sizeof( char * ) );
+const char ** Cmd_CompleteHomeDirFileList( const char * partial, const char * search_dir, const char * extension ) {
+	DynamicString base_path( sys_allocator, "{}/{}", HomeDirPath(), search_dir );
+	size_t skip = base_path.length();
+	base_path += BasePath( partial );
+
+	Span< const char > prefix = FileName( partial );
+
+	DynamicArray< char * > files( sys_allocator );
+
+	AddMatchingFilesRecursive( &files, &base_path, prefix, skip + 1, extension );
+
+	std::sort( files.begin(), files.end(), SortCStringsComparator );
+
+	size_t filenames_buffer_size = 0;
+	for( const char * file : files ) {
+		filenames_buffer_size += strlen( file ) + 1;
 	}
 
-	return buf;
+	size_t pointers_buffer_size = ( files.size() + 1 ) * sizeof( char * ); // + 1 for trailing NULL
+	size_t combined_buffer_size =  pointers_buffer_size + filenames_buffer_size;
+
+	void * combined = Mem_TempMalloc( combined_buffer_size );
+	char ** pointers = ( char ** ) combined;
+	char * filenames = ( char * ) combined + pointers_buffer_size;
+
+	size_t filenames_cursor = 0;
+	for( size_t i = 0; i < files.size(); i++ ) {
+		char * file = files[ i ];
+
+		pointers[ i ] = filenames + filenames_cursor;
+		memcpy( pointers[ i ], file, strlen( file ) + 1 );
+		filenames_cursor += strlen( file ) + 1;
+
+		FREE( sys_allocator, file );
+	}
+
+	pointers[ files.size() ] = NULL;
+
+	return ( const char ** ) combined;
 }
 
 /*

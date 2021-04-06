@@ -32,13 +32,14 @@ float edgeDetect( float center, float up, float down_left, float down_right ) {
 }
 
 void main() {
+	float avg_depth = 0.0;
 #if MSAA
 	ivec2 p = ivec2( gl_FragCoord.xy );
 	ivec2 pixel_right = ivec2( 1, 0 );
 	ivec2 pixel_up = ivec2( 0, 1 );
 
 	float edgeness = 0.0;
-	float avg_depth = 0.0;
+	avg_depth = 0.0;
 	for( int i = 0; i < u_Samples; i++ ) {
 		float depth =            texelFetch( u_DepthTexture, p, i ).r;
 		float depth_up =         texelFetch( u_DepthTexture, p + pixel_up, i ).r;
@@ -49,8 +50,6 @@ void main() {
 	}
 	edgeness /= u_Samples;
 	avg_depth /= u_Samples * 4.0;
-	edgeness = FogAlpha( edgeness, LinearizeDepth( avg_depth ) );
-	edgeness = VoidFogAlpha( edgeness, gl_FragCoord.xy, avg_depth );
 #else
 	vec2 pixel_size = 1.0 / u_ViewportSize;
 	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
@@ -62,10 +61,13 @@ void main() {
 	float depth_down_left =  texture( u_DepthTexture, uv - pixel_up - pixel_right ).r;
 	float depth_down_right = texture( u_DepthTexture, uv - pixel_up + pixel_right ).r;
 	float edgeness = edgeDetect( depth, depth_up, depth_down_left, depth_down_right );
-	float avg_depth = ( depth + depth_up + depth_down_left + depth_down_right ) / 4.0;
+	avg_depth = ( depth + depth_up + depth_down_left + depth_down_right ) / 4.0;
+#endif
+	if( edgeness < 0.1 ) {
+		discard;
+	}
 	edgeness = FogAlpha( edgeness, LinearizeDepth( avg_depth ) );
 	edgeness = VoidFogAlpha( edgeness, gl_FragCoord.xy, avg_depth );
-#endif
 	f_Albedo = LinearTosRGB( edgeness * u_OutlineColor );
 }
 

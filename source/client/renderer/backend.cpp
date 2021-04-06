@@ -795,6 +795,8 @@ void RenderBackendSubmitFrame() {
 		FinishRenderPass();
 	}
 
+	glDisable( GL_SCISSOR_TEST ); // TODO: this doesn't really belong here but idk
+
 	{
 		ZoneScopedN( "Deferred mesh deletes" );
 		for( const Mesh & mesh : deferred_mesh_deletes ) {

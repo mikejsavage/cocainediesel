@@ -808,34 +808,8 @@ static Vec4 CG_CalcColorBlend() {
 	return Vec4( 0 );
 }
 
-static void FlashStage( s64 begin, s64 t, s64 end, float scale, bool in, float * flash ) {
-	if( t < begin || t >= end )
-		return;
-
-	float frac = Unlerp01( begin, t, end );
-
-	*flash = in ? frac * scale : scale - frac * scale;
-}
-
 static void CG_SCRDrawViewBlend() {
 	Vec4 color = CG_CalcColorBlend();
-
-	float flash = 0.0f;
-	if( client_gs.gameState.bomb.exploding ) {
-		s64 t = cl.serverTime - client_gs.gameState.bomb.exploded_at;
-
-		FlashStage( 0, t, 100, 0.25f, true, &flash );
-		FlashStage( 100, t, 200, 0.25f, false, &flash );
-
-		FlashStage( 200, t, 300, 0.5f, true, &flash );
-		FlashStage( 300, t, 400, 0.5f, false, &flash );
-
-		FlashStage( 900, t, 1000, 0.8f, true, &flash );
-		if( t >= 1000 && t < 3000 ) flash = 0.8f;
-		FlashStage( 3000, t, 4000, 0.8f, false, &flash );
-	}
-
-	color = Lerp( color, flash, vec4_white );
 
 	if( color.w < 0.01f ) {
 		return;

@@ -131,6 +131,27 @@ static void SCR_RenderView() {
 	}
 }
 
+static void FlashStage( float begin, float t, float end, float from, float to, float * flash ) {
+	if( t < begin || t >= end )
+		return;
+
+	float frac = Unlerp01( begin, t, end );
+
+	*flash = Lerp( from, frac, to );
+}
+
+struct PostprocessUniforms {
+	float time;
+	float damage;
+	float crt;
+	float brightness;
+	float contrast;
+};
+
+static UniformBlock UploadPostprocessUniforms( PostprocessUniforms uniforms ) {
+	return UploadUniformBlock( uniforms.time, uniforms.damage, uniforms.crt, uniforms.brightness, uniforms.contrast );
+}
+
 static void SubmitPostprocessPass() {
 	ZoneScoped;
 
@@ -144,7 +165,38 @@ static void SubmitPostprocessPass() {
 	pipeline.set_texture( "u_Screen", &fb.albedo_texture );
 	pipeline.set_texture( "u_Noise", FindMaterial( "textures/noise" )->texture );
 	float damage_effect = cg.view.type == VIEWDEF_PLAYERVIEW ? cg.damage_effect : 0.0f;
-	pipeline.set_uniform( "u_PostProcess", UploadUniformBlock( float( Sys_Milliseconds() ) * 0.001f, damage_effect ) );
+
+	float contrast = 1.0f;
+	if( client_gs.gameState.bomb.exploding ) {
+		constexpr float duration = 4000.0f;
+		float t = ( cl.serverTime - client_gs.gameState.bomb.exploded_at ) / duration;
+
+		FlashStage( 0.00f, t, 0.05f, 1.0f, -1.0f, &contrast );
+		FlashStage( 0.05f, t, 0.10f, -1.0f, 1.0f, &contrast );
+		FlashStage( 0.10f, t, 0.15f, 1.0f, -1.0f, &contrast );
+		FlashStage( 0.15f, t, 0.50f, -1.0f, -1.0f, &contrast );
+		FlashStage( 0.50f, t, 0.80f, -1.0f, -1.0f, &contrast );
+		FlashStage( 0.80f, t, 1.00f, -1.0f, 1.0f, &contrast );
+	}
+	
+	static float chasing_amount = 0.0f;
+	constexpr float chasing_speed = 4.0f;
+	bool chasing = cg.predictedPlayerState.team != TEAM_SPECTATOR && cg.predictedPlayerState.POVnum != cgs.playerNum + 1;
+	if( chasing ) {
+		chasing_amount += cls.frametime * 0.001f * chasing_speed;
+	} else {
+		chasing_amount -= cls.frametime * 0.001f * chasing_speed;
+	}
+	chasing_amount = Clamp01( chasing_amount );
+
+	PostprocessUniforms uniforms = { };
+	uniforms.time = float( Sys_Milliseconds() ) * 0.001f;
+	uniforms.damage = damage_effect;
+	uniforms.crt = chasing_amount;
+	uniforms.brightness = 0.0f;
+	uniforms.contrast = contrast;
+
+	pipeline.set_uniform( "u_PostProcess", UploadPostprocessUniforms( uniforms ) );
 
 	DrawFullscreenMesh( pipeline );
 }

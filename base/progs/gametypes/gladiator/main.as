@@ -27,8 +27,6 @@ const int CountdownSeconds = 2;
 const int CountdownNumSwitches = 10;
 const float CountdownInitialSwitchDelay = 0.1;
 
-uint64[] endMatchSounds;
-
 uint64 crownModel;
 
 int max( int a, int b ) {
@@ -306,8 +304,6 @@ class cDARound {
 		}
 
 		GENERIC_UpdateMatchScore();
-
-		G_AnnouncerSound( null, endMatchSounds[random_uniform(0,endMatchSounds.size())], GS_MAX_TEAMS, true, null );
 	}
 
 	void newRound() {
@@ -801,23 +797,6 @@ void GT_InitGametype() {
 	// set spawnsystem type to instant while players join
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
 		gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
-
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/perrina_sucks_dicks" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/hashtagpuffdarcrybaby" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/callmemaybe" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/mikecabbage" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/rihanna" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/zorg" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/shazam" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/sanic" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/rlop" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/puffdarquote" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/magnets" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/howdoyoufeel" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/fuckoff" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/fluffle" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/drillbit" ) );
-	endMatchSounds.push_back( Hash64( "sounds/gladiator/demo" ) );
 
 	crownModel = Hash64( "models/objects/crown" );
 

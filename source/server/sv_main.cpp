@@ -551,46 +551,46 @@ void SV_Init() {
 	Cvar_Get( "sv_cheats", "0", CVAR_SERVERINFO | CVAR_LATCH );
 	Cvar_Get( "protocol", va( "%i", APP_PROTOCOL_VERSION ), CVAR_SERVERINFO | CVAR_NOSET );
 
-	sv_ip =             Cvar_Get( "sv_ip", "", CVAR_ARCHIVE | CVAR_LATCH );
-	sv_port =           Cvar_Get( "sv_port", va( "%i", PORT_SERVER ), CVAR_ARCHIVE | CVAR_LATCH );
+	sv_ip = Cvar_Get( "sv_ip", "", CVAR_ARCHIVE | CVAR_LATCH );
+	sv_port = Cvar_Get( "sv_port", va( "%i", PORT_SERVER ), CVAR_ARCHIVE | CVAR_LATCH );
 
-	sv_ip6 =            Cvar_Get( "sv_ip6", "::", CVAR_ARCHIVE | CVAR_LATCH );
-	sv_port6 =          Cvar_Get( "sv_port6", va( "%i", PORT_SERVER ), CVAR_ARCHIVE | CVAR_LATCH );
+	sv_ip6 = Cvar_Get( "sv_ip6", "::", CVAR_ARCHIVE | CVAR_LATCH );
+	sv_port6 = Cvar_Get( "sv_port6", va( "%i", PORT_SERVER ), CVAR_ARCHIVE | CVAR_LATCH );
 
-	sv_http =           Cvar_Get( "sv_http", "1", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_LATCH );
-	sv_http_port =      Cvar_Get( "sv_http_port", sv_port->string, CVAR_ARCHIVE | CVAR_LATCH );
-	sv_http_ip =        Cvar_Get( "sv_http_ip", "", CVAR_ARCHIVE | CVAR_LATCH );
-	sv_http_ipv6 =      Cvar_Get( "sv_http_ipv6", "", CVAR_ARCHIVE | CVAR_LATCH );
+	sv_http = Cvar_Get( "sv_http", "1", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_LATCH );
+	sv_http_port = Cvar_Get( "sv_http_port", sv_port->string, CVAR_ARCHIVE | CVAR_LATCH );
+	sv_http_ip = Cvar_Get( "sv_http_ip", "", CVAR_ARCHIVE | CVAR_LATCH );
+	sv_http_ipv6 = Cvar_Get( "sv_http_ipv6", "", CVAR_ARCHIVE | CVAR_LATCH );
 	sv_http_upstream_baseurl =  Cvar_Get( "sv_http_upstream_baseurl", "", CVAR_ARCHIVE | CVAR_LATCH );
 	sv_http_upstream_realip_header = Cvar_Get( "sv_http_upstream_realip_header", "", CVAR_ARCHIVE );
 	sv_http_upstream_ip = Cvar_Get( "sv_http_upstream_ip", "", CVAR_ARCHIVE );
 
-	rcon_password =         Cvar_Get( "rcon_password", "", 0 );
-	sv_hostname =           Cvar_Get( "sv_hostname", APPLICATION " server", CVAR_SERVERINFO | CVAR_ARCHIVE );
-	sv_timeout =            Cvar_Get( "sv_timeout", "125", 0 );
-	sv_zombietime =         Cvar_Get( "sv_zombietime", "2", 0 );
-	sv_showRcon =           Cvar_Get( "sv_showRcon", "1", 0 );
-	sv_showChallenge =      Cvar_Get( "sv_showChallenge", "0", 0 );
-	sv_showInfoQueries =    Cvar_Get( "sv_showInfoQueries", "0", 0 );
+	rcon_password = Cvar_Get( "rcon_password", "", 0 );
+	sv_hostname = Cvar_Get( "sv_hostname", APPLICATION " server", CVAR_SERVERINFO | CVAR_ARCHIVE );
+	sv_timeout = Cvar_Get( "sv_timeout", "125", 0 );
+	sv_zombietime = Cvar_Get( "sv_zombietime", "2", 0 );
+	sv_showRcon = Cvar_Get( "sv_showRcon", "1", 0 );
+	sv_showChallenge = Cvar_Get( "sv_showChallenge", "0", 0 );
+	sv_showInfoQueries = Cvar_Get( "sv_showInfoQueries", "0", 0 );
 
-	sv_uploads_http =       Cvar_Get( "sv_uploads_http", "1", CVAR_READONLY );
-	sv_uploads_baseurl =    Cvar_Get( "sv_uploads_baseurl", "", CVAR_ARCHIVE );
-	sv_uploads_demos =      Cvar_Get( "sv_uploads_demos", "1", CVAR_ARCHIVE );
+	sv_uploads_http = Cvar_Get( "sv_uploads_http", "1", CVAR_READONLY );
+	sv_uploads_baseurl = Cvar_Get( "sv_uploads_baseurl", "", CVAR_ARCHIVE );
+	sv_uploads_demos = Cvar_Get( "sv_uploads_demos", "1", CVAR_ARCHIVE );
 	sv_uploads_demos_baseurl =  Cvar_Get( "sv_uploads_demos_baseurl", "", CVAR_ARCHIVE );
 	if( is_dedicated_server ) {
 #ifdef PUBLIC_BUILD
-		sv_public =     Cvar_Get( "sv_public", "1", CVAR_LATCH );
+		sv_public = Cvar_Get( "sv_public", "1", CVAR_LATCH );
 #else
-		sv_public =     Cvar_Get( "sv_public", "0", CVAR_LATCH );
+		sv_public = Cvar_Get( "sv_public", "0", CVAR_LATCH );
 #endif
 	} else {
-		sv_public =     Cvar_Get( "sv_public", "0", CVAR_LATCH );
+		sv_public = Cvar_Get( "sv_public", "0", CVAR_LATCH );
 	}
 
 	sv_iplimit = Cvar_Get( "sv_iplimit", "3", CVAR_ARCHIVE );
 
-	sv_defaultmap =         Cvar_Get( "sv_defaultmap", "carfentanil", CVAR_ARCHIVE );
-	sv_maxclients =         Cvar_Get( "sv_maxclients", "16", CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_LATCH );
+	sv_defaultmap = Cvar_Get( "sv_defaultmap", "carfentanil", CVAR_ARCHIVE );
+	sv_maxclients = Cvar_Get( "sv_maxclients", "16", CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_LATCH );
 
 	// fix invalid sv_maxclients values
 	if( sv_maxclients->integer < 1 ) {
@@ -605,7 +605,10 @@ void SV_Init() {
 		Cvar_ForceSet( "sv_demodir", "" );
 	}
 
-	sv_debug_serverCmd =        Cvar_Get( "sv_debug_serverCmd", "0", CVAR_ARCHIVE );
+	g_autorecord = Cvar_Get( "g_autorecord", is_dedicated_server ? "1" : "0", CVAR_ARCHIVE );
+	g_autorecord_maxdemos = Cvar_Get( "g_autorecord_maxdemos", "200", CVAR_ARCHIVE );
+
+	sv_debug_serverCmd = Cvar_Get( "sv_debug_serverCmd", "0", CVAR_ARCHIVE );
 
 	// this is a message holder for shared use
 	MSG_Init( &tmpMessage, tmpMessageData, sizeof( tmpMessageData ) );

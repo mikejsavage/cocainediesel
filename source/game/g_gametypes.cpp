@@ -93,7 +93,7 @@ void G_Match_Autorecord_Stop() {
 
 		// check if we wanna delete some
 		if( g_autorecord_maxdemos->integer > 0 ) {
-			Cbuf_ExecuteText( EXEC_APPEND, va( "serverrecordpurge %i\n", g_autorecord_maxdemos->integer ) );
+			Cbuf_ExecuteText( EXEC_APPEND, "serverrecordpurge\n" );
 		}
 	}
 }

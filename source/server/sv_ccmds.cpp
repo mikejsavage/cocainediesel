@@ -246,7 +246,10 @@ void SV_InitOperatorCommands() {
 	Cmd_AddCommand( "serverrecord", SV_Demo_Start_f );
 	Cmd_AddCommand( "serverrecordstop", SV_Demo_Stop_f );
 	Cmd_AddCommand( "serverrecordcancel", SV_Demo_Cancel_f );
-	Cmd_AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
+
+	if( is_dedicated_server ) {
+		Cmd_AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
+	}
 
 	Cmd_SetCompletionFunc( "map", CompleteMapName );
 	Cmd_SetCompletionFunc( "devmap", CompleteMapName );
@@ -270,5 +273,8 @@ void SV_ShutdownOperatorCommands() {
 	Cmd_RemoveCommand( "serverrecord" );
 	Cmd_RemoveCommand( "serverrecordstop" );
 	Cmd_RemoveCommand( "serverrecordcancel" );
-	Cmd_RemoveCommand( "serverrecordpurge" );
+
+	if( is_dedicated_server ) {
+		Cmd_RemoveCommand( "serverrecordpurge" );
+	}
 }

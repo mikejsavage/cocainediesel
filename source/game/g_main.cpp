@@ -166,14 +166,6 @@ void G_Init( unsigned int framemsec ) {
 
 	g_allow_spectator_voting = Cvar_Get( "g_allow_spectator_voting", "1", CVAR_ARCHIVE );
 
-	if( is_dedicated_server ) {
-		g_autorecord = Cvar_Get( "g_autorecord", "1", CVAR_ARCHIVE );
-		g_autorecord_maxdemos = Cvar_Get( "g_autorecord_maxdemos", "200", CVAR_ARCHIVE );
-	} else {
-		g_autorecord = Cvar_Get( "g_autorecord", "0", CVAR_ARCHIVE );
-		g_autorecord_maxdemos = Cvar_Get( "g_autorecord_maxdemos", "0", CVAR_ARCHIVE );
-	}
-
 	// flood control
 	g_floodprotection_messages = Cvar_Get( "g_floodprotection_messages", "4", 0 );
 	g_floodprotection_messages->modified = true;

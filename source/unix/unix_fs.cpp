@@ -17,19 +17,18 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
+
+#include <dirent.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 #include "qcommon/qcommon.h"
 #include "qcommon/fs.h"
 #include "qcommon/sys_fs.h"
-
-#include <dirent.h>
-
-#include <linux/limits.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
 
 static char *findbase = NULL;
 static size_t findbase_size = 0;

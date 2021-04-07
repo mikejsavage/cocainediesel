@@ -59,10 +59,6 @@ typedef struct {
 	searchpath_t *searchPath;
 } searchfile_t;
 
-static searchfile_t *fs_searchfiles;
-static int fs_numsearchfiles;
-static int fs_cursearchfiles;
-
 static cvar_t *fs_basepath;
 static cvar_t *fs_usehomedir;
 static cvar_t *fs_usedownloadsdir;
@@ -103,52 +99,6 @@ static char *FS_CopyString( const char *in ) {
 	Q_strncpyz( out, in, size );
 
 	return out;
-}
-
-/*
-* FS_ListFiles
-*/
-static char **FS_ListFiles( char *findname, int *numfiles, unsigned musthave, unsigned canthave ) {
-	const char *s;
-	int nfiles = 0;
-	static char **list = NULL;
-
-	s = Sys_FS_FindFirst( findname, musthave, canthave );
-	while( s ) {
-		if( COM_ValidateFilename( s ) ) {
-			nfiles++;
-		}
-		s = Sys_FS_FindNext( musthave, canthave );
-	}
-	Sys_FS_FindClose();
-
-	if( !nfiles ) {
-		return NULL;
-	}
-
-	*numfiles = nfiles;
-	nfiles++; // add space for a guard
-	list = ( char** )Mem_ZoneMalloc( sizeof( char * ) * nfiles );
-
-	s = Sys_FS_FindFirst( findname, musthave, canthave );
-	nfiles = 0;
-	while( s ) {
-		if( !COM_ValidateFilename( s ) ) {
-			continue;
-		}
-
-		list[nfiles] = ZoneCopyString( s );
-
-#ifdef _WIN32
-		Q_strlwr( list[nfiles] );
-#endif
-		nfiles++;
-		s = Sys_FS_FindNext( musthave, canthave );
-	}
-	Sys_FS_FindClose();
-
-	list[nfiles] = NULL;
-	return list;
 }
 
 /*
@@ -1057,272 +1007,6 @@ bool FS_MoveBaseFile( const char *src, const char *dst ) {
 }
 
 /*
-* FS_PathGetFileListExt
-*/
-static int FS_PathGetFileListExt( searchpath_t *search, const char *dir, const char *extension, searchfile_t *files, size_t size ) {
-	int i;
-	unsigned found;
-	size_t dirlen, extlen;
-	char tempname[FS_MAX_PATH];
-
-	assert( search );
-	assert( !dir || dir[strlen( dir ) - 1] != '/' );
-	assert( files );
-	assert( size );
-
-	if( !search || ( dir && dir[strlen( dir ) - 1] == '/' ) || !files || !size ) {
-		return 0;
-	}
-
-	found = 0;
-	dirlen = 0;
-	extlen = 0;
-
-	if( dir ) {
-		dirlen = strlen( dir );
-	}
-
-	if( extension /* && extension[0] != '/'*/ ) {
-		extlen = strlen( extension );
-	} else {
-		extlen = strlen( "*.*" );
-	}
-
-	size_t pathlen;
-	int numfiles = 0;
-	char **filenames, *filepath;
-	const char *filename;
-	unsigned int musthave, canthave;
-
-	musthave = 0;
-	canthave = SFF_HIDDEN | SFF_SYSTEM;
-
-	pathlen = strlen( search->path ) + 1;
-
-	if( extension ) {
-		if( extension[0] != '/' ) {
-			canthave |= SFF_SUBDIR;
-		} else {
-			musthave |= SFF_SUBDIR;
-		}
-	}
-
-	snprintf( tempname, sizeof( tempname ), "%s/%s%s*%s",
-				 search->path, dir, dirlen ? "/" : "", ( extension && ( extension[0] != '/' ) ) ? extension : ".*" );
-	filenames = FS_ListFiles( tempname, &numfiles, musthave, canthave );
-
-	snprintf( tempname, sizeof( tempname ), "%s%s*%s",
-				 dir, dirlen ? "/" : "", ( extension && ( extension[0] != '/' ) ) ? extension : "" );
-
-	for( i = 0; i < numfiles; i++ ) {
-		filepath = filenames[i];
-		filename = filepath + pathlen + ( dirlen ? dirlen + 1 : 0 );
-
-		if( found < size ) {
-			size_t len = strlen( filename );
-
-			if( ( musthave & SFF_SUBDIR ) ) {
-				if( filename[len - 1] != '/' ) {
-					files[found].name = ( char* )Mem_ZoneMalloc( len + 2 );
-					strcpy( files[found].name, filename );
-					files[found].name[len] = '/';
-					files[found].name[len + 1] = 0;
-				} else {
-					files[found].name = ZoneCopyString( filename );
-				}
-			} else {
-				if( extension && ( len <= extlen ) ) {
-					Mem_ZoneFree( filepath );
-					continue;
-				}
-				files[found].name = ZoneCopyString( filename );
-			}
-			files[found].searchPath = search;
-			found++;
-		}
-
-		Mem_ZoneFree( filepath );
-	}
-	Mem_ZoneFree( filenames );
-
-	return found;
-}
-
-#define FS_MIN_SEARCHFILES      0x400
-#define FS_MAX_SEARCHFILES      0xFFFF          // cap
-static int FS_SortFilesCmp( const searchfile_t *file1, const searchfile_t *file2 ) {
-	return Q_stricmp( ( file1 )->name, ( file2 )->name );
-}
-
-/*
-* FS_GetFileListExt_
-*
-* Directory names should not contain a trailing /
-* Directory names, beginning with a '<' only return downloaded files.
-* Directory names, beginning with a '>' only return stock/official files.
-*/
-static int FS_GetFileListExt_( const char *dir, const char *extension, char *buf, size_t *bufsize, int maxFiles, int start, int end ) {
-	int i;
-	int allfound = 0, found, limit;
-	size_t len, alllen;
-	searchpath_t *search;
-	searchfile_t *files;
-	static int maxFilesCache;
-	static char dircache[MAX_QPATH], extcache[MAX_QPATH];
-	bool useCache;
-	bool onlyDownloads = false, skipDownloads = false;
-
-	assert( !dir || dir[strlen( dir ) - 1] != '/' );
-
-	if( dir && dir[strlen( dir ) - 1] == '/' ) {
-		return 0;
-	}
-
-	if( fs_cursearchfiles ) {
-		useCache = ( maxFilesCache == maxFiles ? true : false );
-		if( useCache ) {
-			useCache = dir ? ( !strcmp( dircache, dir ) ? true : false ) : ( dircache[0] == '\0' ? true : false );
-			if( useCache ) {
-				useCache = extension ? ( !strcmp( extcache, extension ) ? true : false ) : ( extcache[0] == '\0' ? true : false );
-			}
-		}
-	} else {
-		useCache = false;
-	}
-
-	maxFilesCache = maxFiles;
-	if( dir ) {
-		Q_strncpyz( dircache, dir, sizeof( dircache ) );
-	} else {
-		dircache[0] = '\0';
-	}
-	if( extension ) {
-		Q_strncpyz( extcache, extension, sizeof( extcache ) );
-	} else {
-		extcache[0] = '\0';
-	}
-
-	if( dir[0] == '<' ) {
-		onlyDownloads = true;
-		dir++;
-	} else if( dir[0] == '>' ) {
-		skipDownloads = true;
-		dir++;
-	}
-
-	files = fs_searchfiles;
-	if( !useCache ) {
-		Lock( fs_searchpaths_mutex );
-
-		search = fs_searchpaths;
-		while( search ) {
-			if( fs_downloads_searchpath ) {
-				if( ( onlyDownloads && search->base != fs_downloads_searchpath ) ||
-					( skipDownloads && search->base == fs_downloads_searchpath ) ) {
-					search = search->next;
-					continue;
-				}
-			}
-
-			limit = maxFiles ? Min2( fs_numsearchfiles, maxFiles ) : fs_numsearchfiles;
-			found = FS_PathGetFileListExt( search, dir, extension, files + allfound,
-										   fs_numsearchfiles - allfound );
-
-			if( allfound + found == fs_numsearchfiles ) {
-				if( limit == maxFiles || fs_numsearchfiles == FS_MAX_SEARCHFILES ) {
-					break; // we are done
-				}
-				fs_numsearchfiles *= 2;
-				if( fs_numsearchfiles > FS_MAX_SEARCHFILES ) {
-					fs_numsearchfiles = FS_MAX_SEARCHFILES;
-				}
-				fs_searchfiles = files = ( searchfile_t* )FS_Realloc( fs_searchfiles, sizeof( searchfile_t ) * fs_numsearchfiles );
-				for( i = 0; i < found; i++ )
-					Mem_ZoneFree( files[allfound + i].name );
-				continue;
-			}
-
-			allfound += found;
-			search = search->next;
-		}
-
-		Unlock( fs_searchpaths_mutex );
-
-		qsort( files, allfound, sizeof( searchfile_t ), ( int ( * )( const void *, const void * ) )FS_SortFilesCmp );
-
-		// remove all duplicates
-		for( i = 1; i < allfound; ) {
-			if( FS_SortFilesCmp( &files[i - 1], &files[i] ) ) {
-				i++;
-				continue;
-			}
-
-			Mem_ZoneFree( files[i - 1].name );
-			memmove( &files[i - 1], &files[i], ( allfound - i ) * sizeof( *files ) );
-			allfound--;
-		}
-	}
-
-	if( !useCache ) {
-		fs_cursearchfiles = allfound;
-	} else {
-		allfound = fs_cursearchfiles;
-	}
-
-	if( start < 0 ) {
-		start = 0;
-	}
-	if( !end ) {
-		end = allfound;
-	} else if( end > allfound ) {
-		end = allfound;
-	}
-
-	if( bufsize ) {
-		found = 0;
-
-		if( buf ) {
-			alllen = 0;
-			for( i = start; i < end; i++ ) {
-				len = strlen( files[i].name );
-				if( *bufsize < len + 1 + alllen + 1 ) {
-					break; // we are done
-				}
-				strcpy( buf + alllen, files[i].name );
-				alllen += len + 1;
-				found++;
-			}
-			buf[alllen] = '\0';
-		} else {
-			*bufsize = 0;
-			for( i = start; i < end; found++, i++ )
-				*bufsize += strlen( files[i].name ) + 1;
-			*bufsize = *bufsize + 1;
-		}
-
-		return found;
-	}
-
-	return allfound;
-}
-
-/*
-* FS_GetFileList
-*/
-int FS_GetFileListExt( const char *dir, const char *extension, char *buf, size_t *bufsize, int start, int end ) {
-	//	return FS_GetFileListExt_( dir, extension, buf, bufsize, buf2, buf2size, 0, 0, 0 );		// 0 - no limit
-	return FS_GetFileListExt_( dir, extension, buf, bufsize, FS_MAX_SEARCHFILES, start, end );
-}
-
-/*
-* FS_GetFileList
-*/
-int FS_GetFileList( const char *dir, const char *extension, char *buf, size_t bufsize, int start, int end ) {
-	//	return FS_GetFileListExt_( dir, extension, buf, &bufsize, 0, start, end );				// 0 - no limit
-	return FS_GetFileListExt_( dir, extension, buf, &bufsize, FS_MAX_SEARCHFILES, start, end );
-}
-
-/*
 * FS_GameDirectory
 *
 * Returns the current game directory, without the path
@@ -1472,17 +1156,6 @@ static void FS_AddBasePath( const char *path ) {
 }
 
 /*
-* FS_FreeSearchFiles
-*/
-static void FS_FreeSearchFiles() {
-	// free temp memory
-	for( int i = 0; i < fs_cursearchfiles; i++ ) {
-		Mem_ZoneFree( fs_searchfiles[i].name );
-	}
-	fs_cursearchfiles = 0;
-}
-
-/*
 * FS_Init
 */
 void FS_Init() {
@@ -1496,9 +1169,6 @@ void FS_Init() {
 	fs_searchpaths_mutex = NewMutex();
 
 	fs_mempool = Mem_AllocPool( NULL, "Filesystem" );
-
-	fs_numsearchfiles = FS_MIN_SEARCHFILES;
-	fs_searchfiles = ( searchfile_t* )FS_Malloc( sizeof( searchfile_t ) * fs_numsearchfiles );
 
 	memset( fs_filehandles, 0, sizeof( fs_filehandles ) );
 
@@ -1547,16 +1217,7 @@ void FS_Init() {
 	FS_TouchGameDirectory( DEFAULT_BASEGAME );
 
 	fs_base_searchpaths = fs_searchpaths;
-	fs_cursearchfiles = 0;
 	fs_initialized = true;
-}
-
-/*
-* FS_Frame
-*/
-void FS_Frame() {
-	ZoneScoped;
-	FS_FreeSearchFiles();
 }
 
 /*
@@ -1568,10 +1229,6 @@ void FS_Shutdown() {
 	if( !fs_initialized ) {
 		return;
 	}
-
-	FS_FreeSearchFiles();
-	FS_Free( fs_searchfiles );
-	fs_numsearchfiles = 0;
 
 	Lock( fs_searchpaths_mutex );
 

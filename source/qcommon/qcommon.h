@@ -486,7 +486,6 @@ FILESYSTEM
 */
 
 void        FS_Init();
-void        FS_Frame();
 void        FS_Shutdown();
 
 const char *FS_GameDirectory();
@@ -543,9 +542,6 @@ unsigned    FS_ChecksumBaseFile( const char *filename );
 
 // // only for game files
 const char *FS_BaseNameForFile( const char *filename );
-
-int         FS_GetFileList( const char *dir, const char *extension, char *buf, size_t bufsize, int start, int end );
-int         FS_GetFileListExt( const char *dir, const char *extension, char *buf, size_t *bufsize, int start, int end );
 
 /*
 ==============================================================

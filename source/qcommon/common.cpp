@@ -653,8 +653,6 @@ void Qcommon_Frame( unsigned int realMsec ) {
 		gameMsec = realMsec;
 	}
 
-	FS_Frame();
-
 	if( is_dedicated_server ) {
 		const char * s;
 		do {

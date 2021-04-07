@@ -250,7 +250,7 @@ static void CG_SC_DemoGet() {
 	demo_requested = false;
 
 	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "No such demo found\n" );
+		Com_Printf( "Invalid demo ID\n" );
 		return;
 	}
 

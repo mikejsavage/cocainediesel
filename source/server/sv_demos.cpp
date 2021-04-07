@@ -327,65 +327,32 @@ void SV_DemoList_f( client_t *client ) {
 }
 
 void SV_DemoGet_f( client_t *client ) {
-	int num, numdemos;
-	char message[MAX_STRING_CHARS];
-	char buffer[MAX_STRING_CHARS];
-	char *s, *p;
-	size_t j, length, length_escaped, pos, pos_bak, msglen;
-
 	if( client->state < CS_SPAWNED ) {
 		return;
 	}
+
 	if( Cmd_Argc() != 2 ) {
 		return;
 	}
 
-	Q_strncpyz( message, "demoget \"", sizeof( message ) );
-	Q_strncatz( message, SV_DEMO_DIR, sizeof( message ) );
-	msglen = strlen( message );
-	message[msglen++] = '/';
+	TempAllocator temp = svs.frame_arena.temp();
 
-	pos = pos_bak = msglen;
-
-	numdemos = FS_GetFileList( SV_DEMO_DIR, APP_DEMO_EXTENSION_STR, NULL, 0, 0, 0 );
-	if( numdemos ) {
-		if( Cmd_Argv( 1 )[0] == '.' ) {
-			num = numdemos - strlen( Cmd_Argv( 1 ) );
-		} else {
-			num = atoi( Cmd_Argv( 1 ) ) - 1;
+	DynamicArray< char * > demos( &temp );
+	GetServerDemos( &demos );
+	defer {
+		for( char * demo : demos ) {
+			FREE( sys_allocator, demo );
 		}
-		num = Clamp( 0, num, numdemos - 1 );
+	};
 
-		numdemos = FS_GetFileList( SV_DEMO_DIR, APP_DEMO_EXTENSION_STR, buffer, sizeof( buffer ), num, num + 1 );
-		if( numdemos ) {
-			s = buffer;
-			length = strlen( buffer );
-
-			length_escaped = length;
-			p = s;
-			while( ( p = strchr( p, '\\' ) ) )
-				length_escaped++;
-
-			if( msglen + length_escaped + 1 + 5 < sizeof( message ) ) {
-				for( j = 0; j < length; j++ ) {
-					assert( s[j] != '\\' );
-					if( s[j] == '"' ) {
-						message[pos++] = '\\';
-					}
-					message[pos++] = s[j];
-				}
-			}
-		}
-	}
-
-	if( pos == pos_bak ) {
+	Span< const char > arg = MakeSpan( Cmd_Argv( 1 ) );
+	int id;
+	if( !TrySpanToInt( arg, &id ) || id <= 0 || id > demos.size() ) {
+		SV_AddGameCommand( client, "demoget" );
 		return;
 	}
 
-	message[pos++] = '"';
-	message[pos] = '\0';
-
-	SV_AddGameCommand( client, message );
+	SV_AddGameCommand( client, temp( "demoget \"{}\"", demos[ id - 1 ] ) );
 }
 
 bool SV_IsDemoDownloadRequest( const char * request ) {

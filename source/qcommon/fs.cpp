@@ -2,6 +2,7 @@
 #include "qcommon/fs.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/utf8.h"
+#include "qcommon/sys_fs.h"
 
 #include "whereami/whereami.h"
 

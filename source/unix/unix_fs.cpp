@@ -17,14 +17,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include <dirent.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 
 #include "qcommon/qcommon.h"
 #include "qcommon/fs.h"
@@ -255,11 +252,14 @@ FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {
 
 bool MoveFile( Allocator * a, const char * old_path, const char * new_path, MoveFileReplace replace ) {
 	unsigned int flags = replace == MoveFile_DontReplace ? RENAME_NOREPLACE : 0;
-	if( renameat2( -1, old_path, -1, new_path, flags ) == 0 )
-		return true;
 
-	if( errno == EBADF || errno == ENOTDIR ) {
-		Com_Error( ERR_FATAL, "renameat2" );
+	// the glibc on appveyor doesn't have renameat2 so call it directly
+	if( syscall( SYS_renameat2, AT_FDCWD, old_path, AT_FDCWD, new_path, flags ) == 0 ) {
+		return true;
+	}
+
+	if( errno == ENOSYS || errno == EINVAL || errno == EFAULT ) {
+		Com_Error( ERR_FATAL, "rename" );
 	}
 
 	return false;

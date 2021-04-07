@@ -273,8 +273,7 @@ bool MoveFile( Allocator * a, const char * old_path, const char * new_path, Move
 	return MoveFileExW( wide_old_path, wide_new_path, flags ) != 0;
 }
 
-#undef DeleteFile
-bool DeleteFile( Allocator * a, const char * path ) {
+bool RemoveFile( Allocator * a, const char * path ) {
 	wchar_t * wide_path = UTF8ToWide( a, path );
 	defer { FREE( a, wide_path ); };
 	return DeleteFileW( wide_path ) != 0;

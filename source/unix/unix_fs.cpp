@@ -267,7 +267,7 @@ bool MoveFile( Allocator * a, const char * old_path, const char * new_path, Move
 	return false;
 }
 
-bool DeleteFile( Allocator * a, const char * path ) {
+bool RemoveFile( Allocator * a, const char * path ) {
 	return unlink( path ) == 0;
 }
 

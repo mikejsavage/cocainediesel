@@ -24,8 +24,4 @@ const char *Sys_FS_GetHomeDirectory();
 
 bool    Sys_FS_CreateDirectory( const char *path );
 
-const char *Sys_FS_FindFirst( const char *path, unsigned musthave, unsigned canthave );
-const char *Sys_FS_FindNext( unsigned musthave, unsigned canthave );
-void        Sys_FS_FindClose();
-
 int         Sys_FS_FileNo( FILE *fp );

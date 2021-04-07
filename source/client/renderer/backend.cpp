@@ -795,7 +795,13 @@ void RenderBackendSubmitFrame() {
 		FinishRenderPass();
 	}
 
-	glDisable( GL_SCISSOR_TEST ); // TODO: this doesn't really belong here but idk
+	{
+		// OBS captures the game with glBlitFramebuffer which gets
+		// nuked by scissor, so turn it off at the end of every frame
+		PipelineState no_scissor_test = prev_pipeline;
+		no_scissor_test.scissor = { };
+		SetPipelineState( no_scissor_test, true );
+	}
 
 	{
 		ZoneScopedN( "Deferred mesh deletes" );

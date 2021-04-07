@@ -17,28 +17,19 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+
+#define _GNU_SOURCE
+
 #include "qcommon/qcommon.h"
 #include "qcommon/fs.h"
-
 #include "qcommon/sys_fs.h"
-
-#define __USE_BSD
 
 #include <dirent.h>
 
-#ifdef __linux__
 #include <linux/limits.h>
-#endif
-
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-
-// Mac OS X and FreeBSD don't know the readdir64 and dirent64
-#if ( defined ( __FreeBSD__ ) || !defined( _LARGEFILE64_SOURCE ) )
-#define readdir64 readdir
-#define dirent64 dirent
-#endif
 
 static char *findbase = NULL;
 static size_t findbase_size = 0;

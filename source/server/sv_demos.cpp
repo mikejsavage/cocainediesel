@@ -313,12 +313,12 @@ void SV_DemoList_f( client_t *client ) {
 		}
 	};
 
-	DynamicString output( &temp, "pr \"Available demos:" );
+	DynamicString output( &temp, "pr \"Available demos:\n" );
 
 	size_t start = demos.size() - Min2( demos.size(), size_t( 10 ) );
 
 	for( size_t i = start; i < demos.size(); i++ ) {
-		output.append( "\n{}: {}", i + 1, demos[ i ] );
+		output.append( "{}: {}\n", i + 1, demos[ i ] );
 	}
 
 	output += "\"";

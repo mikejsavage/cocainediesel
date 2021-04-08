@@ -162,8 +162,10 @@ static void Con_Execute() {
 
 		if( chat ) {
 			char * p = console.input;
-			while( ( p = StrChrUTF8( p, '"' ) ) != NULL )
+			while( ( p = StrChrUTF8( p, '"' ) ) != NULL ) {
 				*p = '\'';
+				p++;
+			}
 			Cbuf_AddText( "say \"" );
 			Cbuf_AddText( console.input );
 			Cbuf_AddText( "\"\n" );

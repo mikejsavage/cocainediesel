@@ -47,27 +47,28 @@ static void TakeScreenshot() {
 		Sys_FormatTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
 
 		TempAllocator temp = cls.frame_arena.temp();
-		DynamicString filename( &temp, "{}/screenshots/{}", HomeDirPath(), date );
+
+		char * dir = temp( "{}/screenshots", HomeDirPath() );
+		DynamicString path( &temp, "{}/{}", dir, date );
 
 		if( strcmp( date, last_screenshot_date ) == 0 ) {
 			same_date_count++;
-			filename.append( "_{}", same_date_count );
+			path.append( "_{}", same_date_count );
 		}
 		else {
 			same_date_count = 0;
 		}
-
 		strcpy( last_screenshot_date, date );
 
-		filename.append( ".png" );
+		path.append( ".png" );
 
-		CreatePath( &temp, filename.c_str() );
+		CreatePath( &temp, dir );
 
-		if( WriteFile( &temp, filename.c_str(), png, png_size ) ) {
-			Com_Printf( "Wrote %s\n", filename.c_str() );
+		if( WriteFile( &temp, path.c_str(), png, png_size ) ) {
+			Com_Printf( "Wrote %s\n", path.c_str() );
 		}
 		else {
-			Com_Printf( "Couldn't write %s\n", filename.c_str() );
+			Com_Printf( "Couldn't write %s\n", path.c_str() );
 		}
 	}, NULL, frame_static.viewport_width, frame_static.viewport_height, 3, framebuffer, 0 );
 

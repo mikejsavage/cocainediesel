@@ -119,10 +119,11 @@ bool CreatePath( Allocator * a, const char * path ) {
 	char * cursor = mutable_path;
 	while( ( cursor = StrChrUTF8( cursor, '/' ) ) != NULL ) {
 		*cursor = '\0';
-		if( !CreateDirectory( a, path ) )
+		if( !CreateDirectory( a, mutable_path ) )
 			return false;
 		*cursor = '/';
+		cursor++;
 	}
 
-	return true;
+	return CreateDirectory( a, mutable_path );
 }

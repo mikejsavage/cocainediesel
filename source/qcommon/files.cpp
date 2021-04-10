@@ -404,19 +404,6 @@ int FS_FOpenAbsoluteFile( const char *filename, int *filenum, int mode ) {
 }
 
 /*
-* FS_IsUrl
-*/
-bool FS_IsUrl( const char *url ) {
-	if( !strncmp( url, "http://", 7 ) ) {
-		return true;
-	}
-	if( !strncmp( url, "https://", 8 ) ) {
-		return true;
-	}
-	return false;
-}
-
-/*
 * _FS_FOpenFile
 *
 * Finds the file in the search path. Returns filesize and an open handle
@@ -615,13 +602,6 @@ int FS_Read( void *buffer, size_t len, int file ) {
 
 	fh->offset += (unsigned)total;
 	return total;
-}
-
-/*
-* FS_Print
-*/
-int FS_Print( int file, const char *msg ) {
-	return ( msg ? FS_Write( msg, strlen( msg ), file ) : 0 );
 }
 
 /*

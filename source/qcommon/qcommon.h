@@ -506,7 +506,6 @@ int     FS_FOpenAbsoluteFile( const char *filename, int *filenum, int mode );
 void    FS_FCloseFile( int file );
 
 int     FS_Read( void *buffer, size_t len, int file );
-int     FS_Print( int file, const char *msg );
 
 #ifndef _MSC_VER
 int FS_Printf( int file, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );

@@ -47,6 +47,13 @@ weapons/gl/icon
   }
   decal
 }
+weapons/rl/icon
+{
+  {
+    map weapons/rl/icon
+  }
+  decal
+}
 weapons/lg/icon
 {
   {

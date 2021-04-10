@@ -33,7 +33,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/renderer.h"
 #include "client/renderer/dds.h"
 
-#include "stb/stb_dxt.h"
 #include "stb/stb_image.h"
 #include "stb/stb_rect_pack.h"
 
@@ -595,28 +594,36 @@ struct DecalAtlasLayer {
 	BC4Block blocks[ DECAL_ATLAS_BLOCK_SIZE * DECAL_ATLAS_BLOCK_SIZE ];
 };
 
-static Span2D< BC4Block > RGBAToBC4( const Texture * texture ) {
+static BC4Block FastBC4( Span2D< const RGBA8 > rgba ) {
 	ZoneScoped;
 
-	Span2D< BC4Block > bc4 = ALLOC_SPAN2D( sys_allocator, BC4Block, texture->width / 4, texture->height / 4 );
+	BC4Block result;
 
-	size_t texture_idx = texture - textures;
-	Span2D< const RGBA8 > rgba = Span2D< const RGBA8 >( ( const RGBA8 * ) texture_stb_data[ texture_idx ], texture->width, texture->height );
+	result.data[ 0 ] = 255;
+	result.data[ 1 ] = 0;
+
+	constexpr u8 selector_lut[] = { 1, 7, 6, 5, 4, 3, 2, 0 };
+
+	u64 selectors = 0;
+	for( size_t i = 0; i < 16; i++ ) {
+		u64 selector = selector_lut[ rgba( i % 4, i / 4 ).a >> 5 ];
+		selectors |= selector << ( i * 3 );
+	}
+
+	memcpy( &result.data[ 2 ], &selectors, 6 );
+
+	return result;
+}
+
+static Span2D< BC4Block > RGBAToBC4( Span2D< const RGBA8 > rgba ) {
+	ZoneScoped;
+
+	Span2D< BC4Block > bc4 = ALLOC_SPAN2D( sys_allocator, BC4Block, rgba.w / 4, rgba.h / 4 );
 
 	for( u32 row = 0; row < bc4.h; row++ ) {
 		for( u32 col = 0; col < bc4.w; col++ ) {
 			Span2D< const RGBA8 > rgba_block = rgba.slice( col * 4, row * 4, 4, 4 );
-
-			u8 alpha_block[ 16 ];
-			for( size_t i = 0; i < ARRAY_COUNT( alpha_block ); i++ ) {
-				alpha_block[ i ] = rgba_block( i % 4, i / 4 ).a;
-			}
-
-			BC4Block * bc4_block = &bc4( col, row );
-			{
-				ZoneScopedN( "stb_compress_bc4_block" );
-				stb_compress_bc4_block( bc4_block->data, alpha_block );
-			}
+			bc4( col, row ) = FastBC4( rgba_block );
 		}
 	}
 
@@ -727,7 +734,8 @@ static void PackDecalAtlas( Span< const char > * material_names ) {
 		defer { FREE( sys_allocator, bc4_from_rgba.ptr ); };
 
 		if( material->texture->format == TextureFormat_RGBA_U8_sRGB ) {
-			bc4_from_rgba = RGBAToBC4( material->texture );
+			Span2D< const RGBA8 > rgba = Span2D< const RGBA8 >( ( const RGBA8 * ) texture_stb_data[ texture_idx ], material->texture->width, material->texture->height );
+			bc4_from_rgba = RGBAToBC4( rgba );
 			bc4 = bc4_from_rgba;
 		}
 

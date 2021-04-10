@@ -17,6 +17,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#include "qcommon/qcommon.h"
+#include "qcommon/fs.h"
+#include "qcommon/sys_fs.h"
+
+// these must come after qcommon because both tracy and one of these defines BLOCK_SIZE
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -24,10 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <linux/fs.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
-
-#include "qcommon/qcommon.h"
-#include "qcommon/fs.h"
-#include "qcommon/sys_fs.h"
 
 /*
 * Sys_FS_GetHomeDirectory

@@ -93,7 +93,6 @@ do
 			"meshoptimizer",
 			"monocypher",
 			"openal",
-			"stb_dxt",
 			"stb_image",
 			"stb_image_write",
 			"stb_rect_pack",

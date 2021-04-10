@@ -429,27 +429,6 @@ static void LoadBuiltinTextures() {
 	}
 
 	{
-		u8 data[ 16 * 16 ];
-		Span2D< u8 > image( data, 16, 16 );
-
-		for( int y = 0; y < 16; y++ ) {
-			for( int x = 0; x < 16; x++ ) {
-				float d = Length( Vec2( x - 7.5f, y - 7.5f ) );
-				float a = Unlerp01( 1.0f, d, 7.0f );
-				image( x, y ) = 255 * ( 1.0f - a );
-			}
-		}
-
-		TextureConfig config;
-		config.width = 16;
-		config.height = 16;
-		config.data = data;
-		config.format = TextureFormat_A_U8;
-
-		AddTexture( Hash64( "$particle" ), config );
-	}
-
-	{
 		constexpr RGB8 pixels[] = {
 			RGB8( 255, 0, 255 ),
 			RGB8( 0, 0, 0 ),

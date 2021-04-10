@@ -7,7 +7,8 @@
 #include "whereami/whereami.h"
 
 static char * root_dir_path;
-static const char * home_dir_path;
+static char * home_dir_path;
+static char * versioned_home_dir_path;
 
 static char * FindRootDir( Allocator * a ) {
 	int len = wai_getExecutablePath( NULL, 0, NULL );
@@ -28,16 +29,24 @@ static char * FindRootDir( Allocator * a ) {
 void InitFS() {
 	root_dir_path = FindRootDir( sys_allocator );
 #if PUBLIC_BUILD
-	home_dir_path = Sys_FS_GetHomeDirectory();
+	home_dir_path = FindHomeDirectory( sys_allocator );
+
+#if PLATFORM_WINDOWS
+	versioned_home_dir_path = ( *sys_allocator )( "{} 0.0" );
 #else
-	home_dir_path = root_dir_path;
+	versioned_home_dir_path = ( *sys_allocator )( "{}-0.0" );
 #endif
-	// TODO: replace \ with /? utf-8 aware pls.
+
+#else
+	home_dir_path = CopyString( sys_allocator, root_dir_path );
+	versioned_home_dir_path = CopyString( sys_allocator, home_dir_path );
+#endif
 }
 
 void ShutdownFS() {
 	FREE( sys_allocator, root_dir_path );
-	// FREE( sys_allocator, home_dir_path );
+	FREE( sys_allocator, home_dir_path );
+	FREE( sys_allocator, versioned_home_dir_path );
 }
 
 const char * RootDirPath() {
@@ -45,6 +54,10 @@ const char * RootDirPath() {
 }
 
 const char * HomeDirPath() {
+	return versioned_home_dir_path;
+}
+
+const char * FutureHomeDirPath() {
 	return home_dir_path;
 }
 

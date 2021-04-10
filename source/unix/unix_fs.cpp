@@ -31,39 +31,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <sys/syscall.h>
 
 /*
-* Sys_FS_GetHomeDirectory
-*/
-const char *Sys_FS_GetHomeDirectory() {
-	static char home[PATH_MAX] = { '\0' };
-
-	if( home[0] == '\0' ) {
-		const char *homeEnv = getenv( "HOME" );
-		const char *base = NULL, *local = "";
-
-#ifdef __MACOSX__
-		base = homeEnv;
-		local = "Library/Application Support/";
-#else
-		base = getenv( "XDG_DATA_HOME" );
-		local = "";
-		if( !base ) {
-			base = homeEnv;
-			local = ".local/share/";
-		}
-#endif
-
-		if( base ) {
-			snprintf( home, sizeof( home ), "%s/%s%s-0.0", base, local, APPLICATION );
-		}
-	}
-
-	if( home[0] == '\0' ) {
-		return NULL;
-	}
-	return home;
-}
-
-/*
 * Sys_FS_CreateDirectory
 */
 bool Sys_FS_CreateDirectory( const char *path ) {
@@ -75,6 +42,20 @@ bool Sys_FS_CreateDirectory( const char *path ) {
 */
 int Sys_FS_FileNo( FILE *fp ) {
 	return fileno( fp );
+}
+
+char * FindHomeDirectory( Allocator * a ) {
+	const char * xdg_data_home = getenv( "XDG_DATA_HOME" );
+	if( xdg_data_home != NULL ) {
+		return ( *a )( "{}/{}", xdg_data_home, APPLICATION );
+	}
+
+	const char * home = getenv( "HOME" );
+	if( home == NULL ) {
+		Com_Error( ERR_FATAL, "Can't find home directory" );
+	}
+
+	return ( *a )( "{}/.local/share/{}", home, APPLICATION );
 }
 
 FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {

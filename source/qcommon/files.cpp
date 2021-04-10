@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/hash.h"
 #include "qcommon/threads.h"
 
+#include "fs.h"
 #include "sys_fs.h"
 
 #include "zlib/zlib.h"
@@ -1185,9 +1186,9 @@ void FS_Init() {
 	// set basepaths
 	//
 	fs_basepath = Cvar_Get( "fs_basepath", ".", CVAR_NOSET );
-	homedir = Sys_FS_GetHomeDirectory();
+	homedir = HomeDirPath();
 #if PUBLIC_BUILD
-	fs_usehomedir = Cvar_Get( "fs_usehomedir", homedir == NULL ? "0" : "1", CVAR_NOSET );
+	fs_usehomedir = Cvar_Get( "fs_usehomedir", "1", CVAR_NOSET );
 #else
 	fs_usehomedir = Cvar_Get( "fs_usehomedir", "0", CVAR_NOSET );
 #endif

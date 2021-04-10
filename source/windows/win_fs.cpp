@@ -20,33 +20,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "windows/miniwindows.h"
 #include <io.h>
 #include <shlobj.h>
+#include <objbase.h>
 
 #include "qcommon/qcommon.h"
 #include "qcommon/string.h"
 #include "qcommon/fs.h"
 #include "qcommon/sys_fs.h"
-
-/*
-* Sys_FS_GetHomeDirectory
-*/
-const char *Sys_FS_GetHomeDirectory() {
-	int csidl = CSIDL_PERSONAL;
-
-	static char home[MAX_PATH] = { '\0' };
-	if( home[0] != '\0' ) {
-		return home;
-	}
-
-	SHGetFolderPath( 0, csidl, 0, 0, home );
-
-	if( home[0] == '\0' ) {
-		return NULL;
-	}
-
-	Q_strncpyz( home, va( "%s/My Games/%s 0.0", COM_SanitizeFilePath( home ), APPLICATION ), sizeof( home ) );
-
-	return home;
-}
+#include "qcommon/utf8.h"
 
 /*
 * Sys_FS_CreateDirectory
@@ -80,6 +60,28 @@ static char * WideToUTF8( Allocator * a, const wchar_t * wide ) {
 	WideCharToMultiByte( CP_UTF8, 0, wide, -1, utf8, len, NULL, NULL );
 
 	return utf8;
+}
+
+static void ReplaceBackslashes( char * path ) {
+	char * cursor = path;
+	while( ( cursor = StrChrUTF8( cursor, '\\' ) ) != NULL ) {
+		*cursor = '/';
+		cursor++;
+	}
+}
+
+char * FindHomeDirectory( Allocator * a ) {
+	wchar_t * wide_documents_path;
+	if( SHGetKnownFolderPath( FOLDERID_Documents, 0, NULL, &wide_documents_path ) != S_OK ) {
+		Com_Error( ERR_FATAL, "SHGetKnownFolderPath" );
+	}
+	defer { CoTaskMemFree( wide_documents_path ); };
+
+	char * documents_path = WideToUTF8( a, wide_documents_path );
+	defer { FREE( a, documents_path ); };
+	ReplaceBackslashes( documents_path );
+
+	return ( *a )( "{}/My Games/{}", documents_path, APPLICATION );
 }
 
 FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {

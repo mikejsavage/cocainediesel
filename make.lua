@@ -159,7 +159,7 @@ do
 		},
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++",
-		msvc_extra_ldflags = "ws2_32.lib crypt32.lib",
+		msvc_extra_ldflags = "ole32.lib ws2_32.lib crypt32.lib",
 	} )
 end
 

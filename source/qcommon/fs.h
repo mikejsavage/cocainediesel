@@ -14,6 +14,7 @@ void ShutdownFS();
 
 const char * RootDirPath();
 const char * HomeDirPath();
+const char * FutureHomeDirPath();
 
 char * ReadFileString( Allocator * a, const char * path, size_t * len = NULL );
 Span< u8 > ReadFileBinary( Allocator * a, const char * path );

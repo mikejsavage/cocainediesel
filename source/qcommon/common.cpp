@@ -569,8 +569,8 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	developer = Cvar_Get( "developer", "0", 0 );
 
-	FS_Init();
 	InitFS();
+	FS_Init();
 
 	if( !is_dedicated_server ) {
 		ExecDefaultCfg();

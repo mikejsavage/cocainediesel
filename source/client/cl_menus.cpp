@@ -280,14 +280,12 @@ static void SettingsControls() {
 			KeyBindButton( "Previous weapon", "weapprev" );
 			KeyBindButton( "Last weapon", "lastweapon" );
 
-			ImGui::BeginChild( "weapon", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {
 				for( int i = Weapon_Knife; i < Weapon_Count; i++ ) {
 					const WeaponDef * weapon = GS_GetWeaponDef( i );
 					KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
 				}
 			}
-			ImGui::EndChild();
 
 			ImGui::EndTabItem();
 		}

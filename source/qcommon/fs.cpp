@@ -32,9 +32,9 @@ void InitFS() {
 	home_dir_path = FindHomeDirectory( sys_allocator );
 
 #if PLATFORM_WINDOWS
-	versioned_home_dir_path = ( *sys_allocator )( "{} 0.0" );
+	versioned_home_dir_path = ( *sys_allocator )( "{} 0.0", home_dir_path );
 #else
-	versioned_home_dir_path = ( *sys_allocator )( "{}-0.0" );
+	versioned_home_dir_path = ( *sys_allocator )( "{}-0.0", home_dir_path );
 #endif
 
 #else

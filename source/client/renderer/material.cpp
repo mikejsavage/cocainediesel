@@ -464,7 +464,7 @@ static void LoadDDSTexture( const char * path ) {
 	TextureConfig config;
 	config.width = header->width;
 	config.height = header->height;
-	config.data = dds.ptr + sizeof( header );
+	config.data = dds.ptr + sizeof( DDSHeader );
 
 	if( header->magic != DDSMagic ) {
 		Com_GGPrint( S_COLOR_YELLOW "{} isn't a DDS file", path );

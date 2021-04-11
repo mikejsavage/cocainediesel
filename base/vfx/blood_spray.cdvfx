@@ -33,7 +33,7 @@
 
     position point
 
-    color 0.95 0.25 1.0 1.0
+    color 0.55 0.15 0.58 1.0
     color_override
 
     speed 20

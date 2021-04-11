@@ -54,39 +54,18 @@ void CG_WeaponBeamEffect( centity_t * cent ) {
 	cent->localEffects[ LOCALEFFECT_EV_WEAPONBEAM ] = 0;
 }
 
-static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_duration_min = 30.0f, float decal_duration_max = 30.0f ) {
-	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, num_particles, color );
-
-	constexpr StringHash decals[] = {
-		"weapons/bullet_impact1",
-		"weapons/bullet_impact2",
-		"weapons/bullet_impact3",
-	};
-
-	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
-	float size = random_uniform_float( &cls.rng, 2.0f, 5.0f );
-	s64 duration = random_uniform_float( &cls.rng, decal_duration_min, decal_duration_max ) * 1000.0f;
-	AddPersistentDecal( trace->endpos, trace->plane.normal, size, angle, random_select( &cls.rng, decals ), vec4_white, duration );
+static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
+	// decal_lifetime_scale is a shitty hack to help reduce decal spam with shotgun
+	DoVisualEffect( "vfx/bullet_impact", trace->endpos, trace->plane.normal, num_particles, color, decal_lifetime_scale );
 }
 
-static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_duration_min = 30.0f, float decal_duration_max = 30.0f ) {
+static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
 	// TODO: should draw on entry/exit of all wallbanged surfaces
 	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
 		return;
 
-	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, num_particles, color );
-	DoVisualEffect( "vfx/wallbangimpact", trace->endpos, trace->plane.normal, num_particles, color );
-
-	constexpr StringHash decals[] = {
-		"weapons/bullet_impact1",
-		"weapons/bullet_impact2",
-		"weapons/bullet_impact3",
-	};
-
-	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
-	float size = random_uniform_float( &cls.rng, 2.0f, 5.0f );
-	s64 duration = random_uniform_float( &cls.rng, decal_duration_min, decal_duration_max ) * 1000.0f;
-	AddPersistentDecal( trace->endpos, trace->plane.normal, size, angle, random_select( &cls.rng, decals ), vec4_white, duration );
+	DoVisualEffect( "vfx/bullet_impact", trace->endpos, trace->plane.normal, num_particles, color, decal_lifetime_scale );
+	DoVisualEffect( "vfx/wallbang_impact", trace->endpos, trace->plane.normal, num_particles, color, decal_lifetime_scale );
 }
 
 void CG_LaserBeamEffect( centity_t * cent ) {
@@ -291,10 +270,10 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 		float decal_p = Lerp( 0.25f, Unlerp( 0.0f, distance, 256.0f ), 0.5f );
 		if( random_p( &cls.rng, decal_p ) ) {
 			if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
-				BulletImpact( &trace, team_color, 4, 5.0f, 15.0f );
+				BulletImpact( &trace, team_color, 4, 0.5f );
 			}
 
-			WallbangImpact( &wallbang, team_color, 2, 5.0f, 15.0f );
+			WallbangImpact( &wallbang, team_color, 2, 0.5f );
 		}
 
 		AddPersistentBeam( projection.origin, trace.endpos, 1.0f, team_color, cgs.media.shaderTracer, 0.2f, 0.1f );

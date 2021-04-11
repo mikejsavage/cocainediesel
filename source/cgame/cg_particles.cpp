@@ -998,8 +998,8 @@ ParticleEmitterPosition ParticleEmitterLine( Vec3 origin, Vec3 end, float radius
 	return pos;
 }
 
-void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color ) {
-	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) );
+void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color, float lifetime_scale ) {
+	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) ) * lifetime_scale;
 	float size = Max2( 0.0f, emitter->size + SampleRandomDistribution( &cls.rng, emitter->size_distribution ) );
 	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
 	StringHash material = emitter->materials[ random_uniform( &cls.rng, 0, emitter->num_materials - 1 ) ];
@@ -1016,7 +1016,7 @@ void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color ) {
 	AddPersistentDecal( origin, normal, size, angle, material, actual_color, lifetime * 1000.0f );
 }
 
-void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec4 color ) {
+void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec4 color, float decal_lifetime_scale ) {
 	VisualEffectGroup * vfx = FindVisualEffectGroup( name );
 	if( vfx == NULL )
 		return;
@@ -1037,14 +1037,14 @@ void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec
 			u64 idx = num_decalEmitters;
 			if( decalEmitters_hashtable.get( e.hash, &idx ) ) {
 				DecalEmitter * emitter = &decalEmitters[ idx ];
-				EmitDecal( emitter, origin, normal, color );
+				EmitDecal( emitter, origin, normal, color, decal_lifetime_scale );
 			}
 		}
 	}
 }
 
-void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal, float count, Vec4 color ) {
-	DoVisualEffect( StringHash( name ), origin, normal, count, color );
+void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal, float count, Vec4 color, float decal_lifetime_scale ) {
+	DoVisualEffect( StringHash( name ), origin, normal, count, color, decal_lifetime_scale );
 }
 
 // enum ParticleEmitterVersion : u32 {

@@ -328,6 +328,32 @@ static const char * void_obituaries[] = {
 	"TOOK",
 };
 
+static const char* void_assist_obituaries[] = {
+	"PUSHED {}{}{} IN",
+	"FED {}{}{} TO",
+	"LAUNCHED {}{}{} BEYOND",
+	"KICKED {}{}{} INTO",
+	"SENT {}{}{} TO",
+	"REDIRECTED {}{}{} TO",
+};
+
+static const char* spike_obituaries[] = {
+	"POKED",
+	"SKEWERED",
+	"SLASHED",
+	"DISEMBOWELED",
+	"IMPALED",
+	"PERFORATED",
+	"GORED",
+};
+
+static const char* spike_assist_obituaries[] = {
+	"STUCK {}{}{} ON",
+	"PERFORATED {}{}{}'S GUTS WITH",
+	"SPITTED {}{}{} ON",
+	"THREW {}{}{} INTO A PIT FULL OF",
+};
+
 static const char * conjunctions[] = {
 	"+",
 	"&",
@@ -359,14 +385,37 @@ static const char * RandomSuicidePrefix( RNG * rng ) {
 	return random_select( rng, suicide_prefixes );
 }
 
-static const char * RandomVoidObituary( RNG * rng ) {
-	return random_select( rng, void_obituaries );
-}
-
 static const char * RandomAssistConjunction( RNG * rng ) {
 	return random_select( rng, conjunctions );
 }
+template< size_t N >
+const void WorldKillObit( const char * (&obits)[ N ], const char * worldkiller, RNG * rng, const char * victim_name, RGB8 victim_color ) {
+	TempAllocator temp = cls.frame_arena.temp();
+	const char * obituary = temp( "{}{}{}", RandomPrefix( rng, 0.05f ), RandomPrefix( rng, 0.5f ), random_select( rng, obits ) );
 
+	CG_AddChat( temp( "{}{} {}{} {}{}",
+		ImGuiColorToken( rgba8_black ), worldkiller,
+		ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+		ImGuiColorToken( victim_color ), victim_name
+	) );
+}
+template< size_t N >
+const void WorldKillAssistObit( const char * (&obits)[ N ], const char * worldkiller, RNG * rng, const char * victim_name, RGB8 victim_color, int assistor ) {
+	TempAllocator temp = cls.frame_arena.temp();
+	RGB8 assistor_color = CG_TeamColor( cg_entities[ assistor ].current.team );
+	char assistor_name[ MAX_NAME_CHARS + 1 ];
+	const cg_clientInfo_t * assistor_ci = &cgs.clientInfo[ assistor - 1 ];
+	Q_strncpyz( assistor_name, assistor_ci->name, sizeof( assistor_name ) );
+	Q_strupr( assistor_name );
+	const char * prefix = temp( "{}{}", RandomPrefix( rng, 0.05f ), RandomPrefix( rng, 0.5f ) );
+	const char * obit = temp( random_select( rng, obits ), ImGuiColorToken( victim_color ), victim_name, ImGuiColorToken( rgba8_diesel_yellow ) );
+
+	CG_AddChat( temp( "{}{} {}{}{} {}{}",
+		ImGuiColorToken( assistor_color ), assistor_name,
+		ImGuiColorToken( rgba8_diesel_yellow ), prefix, obit,
+		ImGuiColorToken( rgba8_black ), worldkiller
+	) );
+}
 
 void CG_SC_Obituary() {
 	int victimNum = atoi( Cmd_Argv( 1 ) );
@@ -378,19 +427,19 @@ void CG_SC_Obituary() {
 	const cg_clientInfo_t * victim = &cgs.clientInfo[ victimNum - 1 ];
 	const cg_clientInfo_t * attacker = attackerNum == 0 ? NULL : &cgs.clientInfo[ attackerNum - 1 ];
 	const cg_clientInfo_t * assistor = topAssistorNum == -1 ? NULL : &cgs.clientInfo[ topAssistorNum - 1 ];
-	cg_obituaries_current = ( cg_obituaries_current + 1 ) % MAX_OBITUARIES;
-	obituary_t * current = &cg_obituaries[cg_obituaries_current];
+	cg_obituaries_current = (cg_obituaries_current + 1) % MAX_OBITUARIES;
+	obituary_t * current = &cg_obituaries[ cg_obituaries_current ];
 
 	RNG rng = new_rng( entropy, 0 );
 
 	current->time = cls.monotonicTime;
 	if( victim != NULL ) {
 		Q_strncpyz( current->victim, victim->name, sizeof( current->victim ) );
-		current->victim_team = cg_entities[victimNum].current.team;
+		current->victim_team = cg_entities[ victimNum ].current.team;
 	}
 	if( attacker != NULL ) {
 		Q_strncpyz( current->attacker, attacker->name, sizeof( current->attacker ) );
-		current->attacker_team = cg_entities[attackerNum].current.team;
+		current->attacker_team = cg_entities[ attackerNum ].current.team;
 	}
 	current->mod = mod;
 
@@ -462,13 +511,20 @@ void CG_SC_Obituary() {
 		current->type = OBITUARY_ACCIDENT;
 
 		if( mod == MeanOfDeath_Void ) {
-			const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomVoidObituary( &rng ) );
-
-			CG_AddChat( temp( "{}THE VOID {}{} {}{}",
-				ImGuiColorToken( rgba8_black ),
-				ImGuiColorToken( rgba8_diesel_yellow ), obituary,
-				ImGuiColorToken( victim_color ), victim_name
-			) );
+			if( assistor == NULL ) {
+				WorldKillObit( void_obituaries, "THE VOID", &rng, victim_name, victim_color );
+			}
+			else {
+				WorldKillAssistObit( void_assist_obituaries, "THE VOID", &rng, victim_name, victim_color, topAssistorNum );
+			}
+		}
+		else if( mod == MeanOfDeath_Spike ) {
+			if( assistor == NULL ) {
+				WorldKillObit( spike_obituaries, "SPIKES", &rng, victim_name, victim_color );
+			}
+			else {
+				WorldKillAssistObit( spike_assist_obituaries, "SPIKES", &rng, victim_name, victim_color, topAssistorNum );
+			}
 		}
 	}
 }

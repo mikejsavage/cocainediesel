@@ -442,9 +442,6 @@ static void CG_Event_Pain( SyncEntityState * state, u64 parm ) {
 	CG_PModel_AddAnimation( state->number, 0, random_select( &cls.rng, animations ), 0, EVENT_CHANNEL );
 }
 
-/*
- * CG_Event_Die
- */
 static void CG_Event_Die( int entNum, u64 parm ) {
 	constexpr struct {
 		int dead, dying;
@@ -453,11 +450,13 @@ static void CG_Event_Die( int entNum, u64 parm ) {
 		{ BOTH_DEAD2, BOTH_DEATH2 },
 		{ BOTH_DEAD3, BOTH_DEATH3 },
 	};
-	parm %= ARRAY_COUNT( animations );
 
-	CG_PlayerSound( entNum, CHAN_AUTO, PlayerSound_Death );
-	CG_PModel_AddAnimation( entNum, animations[ parm ].dead, animations[ parm ].dead, ANIM_NONE, BASE_CHANNEL );
-	CG_PModel_AddAnimation( entNum, animations[ parm ].dying, animations[ parm ].dying, ANIM_NONE, EVENT_CHANNEL );
+	bool void_death = ( parm & 1 ) != 0;
+	u64 animation = ( parm >> 1 ) % ARRAY_COUNT( animations );
+
+	CG_PlayerSound( entNum, CHAN_AUTO, void_death ? PlayerSound_Void : PlayerSound_Death );
+	CG_PModel_AddAnimation( entNum, animations[ animation ].dead, animations[ animation ].dead, ANIM_NONE, BASE_CHANNEL );
+	CG_PModel_AddAnimation( entNum, animations[ animation ].dying, animations[ animation ].dying, ANIM_NONE, EVENT_CHANNEL );
 }
 
 /*

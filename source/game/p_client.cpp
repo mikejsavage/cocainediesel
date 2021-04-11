@@ -120,7 +120,12 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 		body->deadflag = DEAD_DEAD;
 	}
 
-	edict_t * event = G_SpawnEvent( EV_DIE, random_u64( &svs.rng ), NULL );
+	u64 parm = random_u64( &svs.rng ) << 1;
+	if( mod == MeanOfDeath_Void ) {
+		parm |= 1;
+	}
+
+	edict_t * event = G_SpawnEvent( EV_DIE, parm, NULL );
 	event->r.svflags |= SVF_BROADCAST;
 	event->s.ownerNum = body->s.number;
 

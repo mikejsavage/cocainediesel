@@ -151,6 +151,7 @@ struct pmodel_animationstate_t {
 
 enum PlayerSound {
 	PlayerSound_Death,
+	PlayerSound_Void,
 	PlayerSound_Jump,
 	PlayerSound_Pain25,
 	PlayerSound_Pain50,

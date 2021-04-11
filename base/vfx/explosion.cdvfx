@@ -5,6 +5,7 @@
     material weapons/explosion_scorch3
     size 46
     lifetime 30
+    color 0.11 0.11 0.11 1.0
   }
 
   particles {

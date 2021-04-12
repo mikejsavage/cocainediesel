@@ -290,7 +290,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	}
 
 	// dont count self-damage cause it just adds the same to both stats
-	bool statDmg = attacker != targ && mod != MeanOfDeath_Telefrag;
+	bool statDmg = attacker != targ && mod != MeanOfDeath_Telefrag && mod != MeanOfDeath_Explosion;
 
 	// push
 	G_KnockBackPush( targ, attacker, pushdir, knockback, dflags );

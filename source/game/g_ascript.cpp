@@ -940,7 +940,6 @@ static const asProperty_t gameclient_Properties[] =
 	{ ASLIB_PROPERTY_DECL( Stats, stats ), offsetof( gclient_t, level.stats ) },
 	{ ASLIB_PROPERTY_DECL( const bool, connecting ), offsetof( gclient_t, connecting ) },
 	{ ASLIB_PROPERTY_DECL( int, team ), offsetof( gclient_t, team ) },
-	{ ASLIB_PROPERTY_DECL( const int, hand ), offsetof( gclient_t, hand ) },
 	{ ASLIB_PROPERTY_DECL( const bool, isOperator ), offsetof( gclient_t, isoperator ) },
 	{ ASLIB_PROPERTY_DECL( const int64, queueTimeStamp ), offsetof( gclient_t, queueTimeStamp ) },
 	{ ASLIB_PROPERTY_DECL( const int, muted ), offsetof( gclient_t, muted ) },

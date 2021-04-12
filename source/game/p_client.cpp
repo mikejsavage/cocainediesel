@@ -650,7 +650,6 @@ static void G_UpdatePlayerInfoString( int playerNum ) {
 	playerString[0] = 0;
 
 	Info_SetValueForKey( playerString, "name", client->netname );
-	Info_SetValueForKey( playerString, "hand", va( "%i", client->hand ) );
 
 	playerString[MAX_CONFIGSTRING_CHARS - 1] = 0;
 	PF_ConfigString( CS_PLAYERINFOS + playerNum, playerString );
@@ -706,14 +705,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	if( !Info_SetValueForKey( userinfo, "name", cl->netname ) ) {
 		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Couldn't set userinfo (name)" );
 		return;
-	}
-
-	// handedness
-	s = Info_ValueForKey( userinfo, "hand" );
-	if( !s ) {
-		cl->hand = 2;
-	} else {
-		cl->hand = Clamp( atoi( s ), 0, 2 );
 	}
 
 	// save off the userinfo in case we want to check something later

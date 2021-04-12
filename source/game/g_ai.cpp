@@ -31,7 +31,6 @@ static void CreateUserInfo( char * buffer, size_t bufferSize ) {
 	memset( buffer, 0, bufferSize );
 
 	Info_SetValueForKey( buffer, "name", random_select( &svs.rng, bot_names ) );
-	Info_SetValueForKey( buffer, "hand", va( "%i", random_uniform( &svs.rng, 0, 3 ) ) );
 }
 
 static edict_t * ConnectFakeClient() {

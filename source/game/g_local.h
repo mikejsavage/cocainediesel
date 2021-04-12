@@ -794,7 +794,6 @@ struct gclient_t {
 	bool connecting;
 
 	int team;
-	int hand;
 	bool isoperator;
 	int64_t queueTimeStamp;
 	int muted;     // & 1 = chat disabled, & 2 = vsay disabled

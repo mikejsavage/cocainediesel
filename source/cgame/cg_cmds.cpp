@@ -105,50 +105,6 @@ static int ParseIntOr0( const char ** cursor ) {
 	return SpanToInt( token, 0 );
 }
 
-static void CG_SC_PlayerStats() {
-	const char * s = Cmd_Argv( 1 );
-
-	int playerNum = ParseIntOr0( &s );
-	if( playerNum < 0 || playerNum >= client_gs.maxclients ) {
-		return;
-	}
-
-	Com_Printf( "Stats for %s" S_COLOR_WHITE ":\n", cgs.clientInfo[playerNum].name );
-	Com_Printf( "\nWeapon\n" );
-	Com_Printf( "    hit/shot percent\n" );
-
-	for( WeaponType i = Weapon_Knife; i < Weapon_Count; i++ ) {
-		const WeaponDef * weapon = GS_GetWeaponDef( i );
-
-		int shots = ParseIntOr0( &s );
-		if( shots < 1 ) { // only continue with registered shots
-			continue;
-		}
-		int hits = ParseIntOr0( &s );
-
-		// name
-		Com_Printf( S_COLOR_WHITE "%2s: ", weapon->short_name );
-
-#define STATS_PERCENT( hit, total ) ( ( total ) == 0 ? 0 : ( ( hit ) == ( total ) ? 100 : (float)( hit ) * 100.0f / (float)( total ) ) )
-
-		// total
-		Com_Printf( S_COLOR_GREEN "%3i" S_COLOR_WHITE "/" S_COLOR_CYAN "%3i      " S_COLOR_YELLOW "%2.1f\n",
-			   hits, shots, STATS_PERCENT( hits, shots ) );
-	}
-
-	Com_Printf( "\n" );
-
-	int total_damage_given = ParseIntOr0( &s );
-	int total_damage_received = ParseIntOr0( &s );
-
-	Com_Printf( S_COLOR_YELLOW "Damage given/received: " S_COLOR_WHITE "%i/%i " S_COLOR_YELLOW "ratio: %s%3.2f\n",
-		total_damage_given, total_damage_received,
-		total_damage_given > total_damage_received ? S_COLOR_GREEN : S_COLOR_RED,
-		STATS_PERCENT( total_damage_given, total_damage_given + total_damage_received ) );
-
-#undef STATS_PERCENT
-}
-
 static const char *CG_SC_AutoRecordName() {
 	static char name[MAX_STRING_CHARS];
 
@@ -312,7 +268,6 @@ static const ServerCommand server_commands[] = {
 	{ "cp", CG_SC_CenterPrint },
 	{ "obry", CG_SC_Obituary },
 	{ "scb", CG_SC_Scoreboard },
-	{ "plstats", CG_SC_PlayerStats },
 	{ "demoget", CG_SC_DemoGet },
 	{ "aw", CG_SC_AddAward },
 	{ "changeloadout", CG_SC_ChangeLoadout },
@@ -478,15 +433,10 @@ static void CG_SayTeamCmdAdd_f() {
 	Cmd_SetCompletionFunc( "say_team", &CG_TeamPlayerNamesCompletion_f );
 }
 
-static void CG_StatsCmdAdd_f() {
-	Cmd_SetCompletionFunc( "stats", &CG_PlayerNamesCompletion_f );
-}
-
 // server commands
 static const ServerCommand cg_consvcmds[] = {
 	{ "say", CG_SayCmdAdd_f },
 	{ "say_team", CG_SayTeamCmdAdd_f },
-	{ "stats", CG_StatsCmdAdd_f },
 
 	{ NULL, NULL }
 };

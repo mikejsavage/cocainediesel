@@ -733,74 +733,6 @@ static void Cmd_Timein_f( edict_t *ent ) {
 	G_PrintMsg( NULL, "%s%s called a timein\n", ent->r.client->netname, S_COLOR_WHITE );
 }
 
-/*
-* G_StatsMessage
-*
-* Generates stats message for the entity
-* The returned string must be freed by the caller using G_Free
-* Note: This string must never contain " characters
-*/
-char *G_StatsMessage( edict_t *ent ) {
-	static char entry[MAX_TOKEN_CHARS];
-
-	assert( ent && ent->r.client );
-	const gclient_t * client = ent->r.client;
-
-	// message header
-	snprintf( entry, sizeof( entry ), "%d", PLAYERNUM( ent ) );
-
-	for( WeaponType i = Weapon_None + 1; i < Weapon_Count; i++ ) {
-		int hit = client->level.stats.accuracy_hits[ i ];
-		int shot = client->level.stats.accuracy_shots[ i ];
-
-		Q_strncatz( entry, va( " %d", shot ), sizeof( entry ) );
-		if( shot < 1 ) {
-			continue;
-		}
-		Q_strncatz( entry, va( " %d", hit ), sizeof( entry ) );
-	}
-
-	Q_strncatz( entry, va( " %d %d", client->level.stats.total_damage_given, client->level.stats.total_damage_received ), sizeof( entry ) );
-
-	// add enclosing quote
-	Q_strncatz( entry, "\"", sizeof( entry ) );
-
-	return entry;
-}
-
-/*
-* Cmd_ShowStats_f
-*/
-static void Cmd_ShowStats_f( edict_t *ent ) {
-	edict_t *target;
-
-	if( Cmd_Argc() > 2 ) {
-		G_PrintMsg( ent, "Usage: stats [player]\n" );
-		return;
-	}
-
-	if( Cmd_Argc() == 2 ) {
-		target = G_PlayerForText( Cmd_Argv( 1 ) );
-		if( target == NULL ) {
-			G_PrintMsg( ent, "No such player\n" );
-			return;
-		}
-	} else {
-		if( ent->r.client->resp.chase.active && game.edicts[ent->r.client->resp.chase.target].r.client ) {
-			target = &game.edicts[ent->r.client->resp.chase.target];
-		} else {
-			target = ent;
-		}
-	}
-
-	if( target->s.team == TEAM_SPECTATOR ) {
-		G_PrintMsg( ent, "No stats for spectators\n" );
-		return;
-	}
-
-	PF_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( target ) ) );
-}
-
 //===========================================================
 //	client commands
 //===========================================================
@@ -877,7 +809,6 @@ void G_InitGameCommands() {
 	G_AddCommand( "position", Cmd_Position_f );
 	G_AddCommand( "players", Cmd_Players_f );
 	G_AddCommand( "spectators", Cmd_Spectators_f );
-	G_AddCommand( "stats", Cmd_ShowStats_f );
 	G_AddCommand( "say", Cmd_SayCmd_f );
 	G_AddCommand( "say_team", Cmd_SayTeam_f );
 	G_AddCommand( "svscore", Cmd_Score_f );

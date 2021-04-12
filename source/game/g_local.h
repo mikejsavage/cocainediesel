@@ -347,7 +347,6 @@ void G_asGarbageCollect( bool force );
 
 typedef void ( *gamecommandfunc_t )( edict_t * );
 
-char *G_StatsMessage( edict_t *ent );
 bool CheckFlood( edict_t *ent, bool teamonly );
 void G_InitGameCommands();
 void G_PrecacheGameCommands();

@@ -675,19 +675,6 @@ char *Q_trim( char *s ) {
 	return s;
 }
 
-/*
-* Q_isdigit
-*/
-bool Q_isdigit( const char *str ) {
-	if( str && *str ) {
-		while( isdigit( *str ) ) str++;
-		if( !*str ) {
-			return true;
-		}
-	}
-	return false;
-}
-
 void RemoveTrailingZeroesFloat( char * str ) {
 	size_t len = strlen( str );
 	if( len == 0 )

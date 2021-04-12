@@ -142,9 +142,6 @@ static bool G_VoteMapValidate( callvotedata_t *data, bool first ) {
 	if( !first ) { // map can't become invalid while voting
 		return true;
 	}
-	if( Q_isdigit( data->argv[0] ) ) { // FIXME
-		return false;
-	}
 
 	if( strlen( "maps/" ) + strlen( data->argv[0] ) + strlen( ".bsp" ) >= MAX_CONFIGSTRING_CHARS ) {
 		G_PrintMsg( data->caller, "%sToo long map name\n", S_COLOR_RED );

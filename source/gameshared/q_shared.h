@@ -153,7 +153,6 @@ void Q_strncatz( char *dest, const char *src, size_t size );
 char *Q_strupr( char *s );
 char *Q_strlwr( char *s );
 const char *Q_strrstr( const char *s, const char *substr );
-bool Q_isdigit( const char *str );
 char *Q_trim( char *s );
 void RemoveTrailingZeroesFloat( char * str );
 

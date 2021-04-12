@@ -29,8 +29,6 @@ centity_t cg_entities[MAX_EDICTS];
 
 cvar_t *cg_showMiss;
 
-cvar_t *cg_hand;
-
 cvar_t *cg_thirdPerson;
 cvar_t *cg_thirdPersonAngle;
 cvar_t *cg_thirdPersonRange;
@@ -40,9 +38,7 @@ cvar_t *cg_guny;
 cvar_t *cg_gunz;
 cvar_t *cg_gunbob;
 
-cvar_t *cg_handOffset;
 cvar_t *cg_gun_fov;
-cvar_t *cg_voiceChats;
 cvar_t *cg_projectileAntilagOffset;
 cvar_t *cg_chat;
 
@@ -134,25 +130,20 @@ static void CG_RegisterVariables() {
 
 	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
 
-	cg_hand =           Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-
 	cg_thirdPerson =    Cvar_Get( "cg_thirdPerson", "0", CVAR_CHEAT );
 	cg_thirdPersonAngle =   Cvar_Get( "cg_thirdPersonAngle", "0", 0 );
 	cg_thirdPersonRange =   Cvar_Get( "cg_thirdPersonRange", "90", 0 );
 
-	cg_gunx =       Cvar_Get( "cg_gunx", "5", CVAR_CHEAT );
+	cg_gunx =       Cvar_Get( "cg_gunx", "10", CVAR_CHEAT );
 	cg_guny =       Cvar_Get( "cg_guny", "-12", CVAR_CHEAT );
 	cg_gunz =       Cvar_Get( "cg_gunz", "3", CVAR_CHEAT );
 	cg_gunbob =     Cvar_Get( "cg_gunbob", "1", CVAR_ARCHIVE );
 
 	cg_gun_fov =        Cvar_Get( "cg_gun_fov", "90", CVAR_ARCHIVE );
 
-	cg_handOffset =     Cvar_Get( "cg_handOffset", "5", CVAR_ARCHIVE );
 	cg_autoaction_demo =    Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
 	cg_autoaction_screenshot =  Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );
 	cg_autoaction_spectator = Cvar_Get( "cg_autoaction_spectator", "0", CVAR_ARCHIVE );
-
-	cg_voiceChats =     Cvar_Get( "cg_voiceChats", "1", CVAR_ARCHIVE );
 
 	cg_projectileAntilagOffset = Cvar_Get( "cg_projectileAntilagOffset", "1.0", CVAR_ARCHIVE );
 

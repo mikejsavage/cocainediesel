@@ -373,10 +373,6 @@ void CG_ReleaseAnnouncerEvents() {
  * CG_StartVoiceTokenEffect
  */
 static void CG_StartVoiceTokenEffect( int entNum, u64 parm ) {
-	if( !cg_voiceChats->integer ) {
-		return;
-	}
-
 	u32 vsay = parm & 0xffff;
 	u32 entropy = parm >> 16;
 

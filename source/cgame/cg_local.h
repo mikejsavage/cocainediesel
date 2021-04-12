@@ -331,8 +331,6 @@ void CG_RegisterFonts();
 //
 // cg_players.c
 //
-extern cvar_t *cg_hand;
-
 void CG_ResetClientInfos();
 void CG_LoadClientInfo( int client );
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
@@ -415,7 +413,6 @@ extern cvar_t *cg_autoaction_demo;
 extern cvar_t *cg_autoaction_screenshot;
 extern cvar_t *cg_autoaction_spectator;
 
-extern cvar_t *cg_voiceChats;
 extern cvar_t *cg_projectileAntilagOffset;
 extern cvar_t *cg_chat;
 

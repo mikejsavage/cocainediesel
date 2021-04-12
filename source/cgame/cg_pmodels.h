@@ -18,13 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-extern cvar_t *cg_weaponFlashes;
 extern cvar_t *cg_gunx;
 extern cvar_t *cg_guny;
 extern cvar_t *cg_gunz;
 extern cvar_t *cg_gunbob;
 extern cvar_t *cg_gun_fov;
-extern cvar_t *cg_handOffset;
 
 enum {
 	LOWER = 0,

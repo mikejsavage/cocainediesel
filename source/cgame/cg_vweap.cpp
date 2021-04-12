@@ -135,23 +135,6 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	// scale forward gun offset depending on fov and aspect ratio
 	gunOffset.x *= frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV ) ;
 
-	// hand cvar offset
-	float handOffset = 0.0f;
-	if( cgs.demoPlaying ) {
-		if( cg_hand->integer == 0 ) {
-			handOffset = cg_handOffset->value;
-		} else if( cg_hand->integer == 1 ) {
-			handOffset = -cg_handOffset->value;
-		}
-	} else {
-		if( cgs.clientInfo[cg.view.POVent - 1].hand == 0 ) {
-			handOffset = cg_handOffset->value;
-		} else if( cgs.clientInfo[cg.view.POVent - 1].hand == 1 ) {
-			handOffset = -cg_handOffset->value;
-		}
-	}
-
-	gunOffset.y += handOffset;
 	if( cg_gunbob->integer ) {
 		gunOffset.z += CG_ViewSmoothFallKick();
 	}

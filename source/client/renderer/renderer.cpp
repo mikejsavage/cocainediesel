@@ -378,7 +378,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), Vec3() );
 	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
-	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f );
+	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f, 0.0f, 64.0f );
 
 	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
 
@@ -579,6 +579,6 @@ UniformBlock UploadModelUniforms( const Mat4 & M ) {
 	return UploadUniformBlock( M );
 }
 
-UniformBlock UploadMaterialUniforms( const Vec4 & color, const Vec2 & texture_size, float alpha_cutoff, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {
-	return UploadUniformBlock( color, tcmod_row0, tcmod_row1, texture_size, alpha_cutoff );
+UniformBlock UploadMaterialUniforms( const Vec4 & color, const Vec2 & texture_size, float alpha_cutoff, float specular, float shininess, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {
+	return UploadUniformBlock( color, tcmod_row0, tcmod_row1, texture_size, alpha_cutoff, specular, shininess );
 }

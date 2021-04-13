@@ -194,7 +194,7 @@ void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 
 }
 
 void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
-	UniformBlock material_uniforms = UploadMaterialUniforms( color, Vec2( 0 ), 0.0f );
+	UniformBlock material_uniforms = UploadMaterialUniforms( color, Vec2( 0 ), 0.0f, 0.0f, 64.0f );
 
 	auto MakeSilhouettePipeline = [ &material_uniforms ]( PipelineState * pipeline, bool skinned ) {
 		pipeline->shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer;

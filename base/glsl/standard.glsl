@@ -3,6 +3,7 @@
 #include "include/skinning.glsl"
 #include "include/dither.glsl"
 #include "include/fog.glsl"
+#include "include/lighting.glsl"
 
 v2f vec3 v_Position;
 v2f vec3 v_Normal;
@@ -115,17 +116,20 @@ void main() {
 #endif
 
 #if SHADED
-	float lambertlight = dot( normal, -u_LightDir ) * 0.5 + 0.5;
+	float lambertlight = LambertLight( normal, -u_LightDir ) * 0.5 + 0.5;
 	#if APPLY_DRAWFLAT
-		diffuse.rgb *= lambertlight * 0.5 + 0.5;
-	#else
-		diffuse.rgb *= lambertlight;
+		lambertlight = lambertlight * 0.5 + 0.5;
 	#endif
-#endif
 
-#if APPLY_SHADOWS
-	float light = GetLight( normal );
-	diffuse.rgb *= 0.5 + light * 0.5;
+	vec3 viewDir = normalize( u_CameraPos - v_Position );
+	float specularlight = SpecularLight( normal, u_LightDir, viewDir, u_Shininess ) * u_Specular;
+
+	float shadowlight = 1.0;
+	#if APPLY_SHADOWS
+		shadowlight = GetLight( normal ) * 0.5 + 0.5;
+	#endif
+	diffuse.rgb = ( diffuse.rgb + shadowlight * ( lambertlight + specularlight ) ) * diffuse.rgb;
+
 #endif
 
 #if APPLY_FOG

@@ -164,11 +164,21 @@ static void ParseShaded( Material * material, Span< const char > name, Span< con
 	material->shaded = true;
 }
 
+static void ParseSpecular( Material * material, Span< const char > name, Span< const char > * data ) {
+	material->specular = ParseMaterialFloat( data );
+}
+
+static void ParseShininess( Material * material, Span< const char > name, Span< const char > * data ) {
+	material->shininess = ParseMaterialFloat( data );
+}
+
 static const MaterialSpecKey shaderkeys[] = {
 	{ "cull", ParseCull },
 	{ "decal", ParseDecal },
 	{ "maskoutlines", ParseMaskOutlines },
 	{ "shaded", ParseShaded },
+	{ "specular", ParseSpecular },
+	{ "shininess", ParseShininess },
 
 	{ }
 };
@@ -723,7 +733,9 @@ void InitMaterials() {
 	num_textures = 0;
 	num_materials = 0;
 
-	world_material = { };
+	world_material = Material();
+	world_material.specular = 3.0f;
+	world_material.shininess = 8.0f;
 
 	LoadBuiltinTextures();
 
@@ -910,6 +922,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
 		pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
+		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( 0.0f ), material->alpha_cutoff, material->specular, material->shininess, Vec3( 0.0f ), Vec3( 0.0f ) ) );
 		return pipeline;
 	}
 
@@ -992,7 +1005,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	pipeline.set_texture( "u_BaseTexture", material->texture );
-	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->alpha_cutoff, tcmod_row0, tcmod_row1 ) );
+	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->alpha_cutoff, material->specular, material->shininess, tcmod_row0, tcmod_row1 ) );
 
 	if( material->alpha_cutoff > 0 ) {
 		pipeline.shader = &shaders.standard_alphatest;

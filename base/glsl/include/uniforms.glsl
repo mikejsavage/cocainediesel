@@ -21,6 +21,8 @@ layout( std140 ) uniform u_Material {
 	vec3 u_TextureMatrix[ 2 ];
 	vec2 u_TextureSize;
 	float u_AlphaCutoff;
+	float u_Specular;
+	float u_Shininess;
 };
 
 uniform vec2 u_BlendMix;

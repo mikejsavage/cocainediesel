@@ -1,17 +1,4 @@
 {
-  decal {
-    material weapons/bullet_impact1
-    material weapons/bullet_impact2
-    material weapons/bullet_impact3
-    size 1
-    lifetime 20
-    lifetime_distribution uniform 10
-
-    color 1.0 0.15 0.1 1.0
-
-    height -50
-  }
-
   particles {
     material textures/vfx/trace2
     blendfunc add

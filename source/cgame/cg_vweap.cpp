@@ -20,6 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
+static Vec3 hand_pos = Vec3( 3, 12, -10 ); //depth, horizontal, vertical
+
+
 static void CG_ViewWeapon_UpdateProjectionSource( Vec3 hand_origin, const mat3_t hand_axis, Vec3 weap_origin, const mat3_t weap_axis ) {
 	orientation_t *tag_result = &cg.weapon.projectionSource;
 	orientation_t tag_weapon;
@@ -130,7 +133,8 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	// weapon config offsets
 	Vec3 gunAngles = weaponInfo->handpositionAngles + cg.predictedPlayerState.viewangles;
-	Vec3 gunOffset = weaponInfo->handpositionOrigin + Vec3( cg_gunz->value, cg_gunx->value, cg_guny->value );
+	Vec3 gunOffset = weaponInfo->handpositionOrigin + hand_pos;
+;
 
 	// scale forward gun offset depending on fov and aspect ratio
 	gunOffset.x *= frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV ) ;

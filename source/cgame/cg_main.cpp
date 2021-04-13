@@ -33,9 +33,6 @@ cvar_t *cg_thirdPerson;
 cvar_t *cg_thirdPersonAngle;
 cvar_t *cg_thirdPersonRange;
 
-cvar_t *cg_gunx;
-cvar_t *cg_guny;
-cvar_t *cg_gunz;
 cvar_t *cg_gunbob;
 
 cvar_t *cg_gun_fov;
@@ -134,9 +131,6 @@ static void CG_RegisterVariables() {
 	cg_thirdPersonAngle =   Cvar_Get( "cg_thirdPersonAngle", "0", 0 );
 	cg_thirdPersonRange =   Cvar_Get( "cg_thirdPersonRange", "90", 0 );
 
-	cg_gunx =       Cvar_Get( "cg_gunx", "10", CVAR_CHEAT );
-	cg_guny =       Cvar_Get( "cg_guny", "-12", CVAR_CHEAT );
-	cg_gunz =       Cvar_Get( "cg_gunz", "3", CVAR_CHEAT );
 	cg_gunbob =     Cvar_Get( "cg_gunbob", "1", CVAR_ARCHIVE );
 
 	cg_gun_fov =        Cvar_Get( "cg_gun_fov", "90", CVAR_ARCHIVE );

@@ -394,8 +394,9 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	static const tracy::SourceLocationData sky_tracy = TRACY_HACK( "Render sky" );
 	static const tracy::SourceLocationData transparent_tracy = TRACY_HACK( "Render transparent" );
 	static const tracy::SourceLocationData silhouettes_tracy = TRACY_HACK( "Render silhouettes" );
-	static const tracy::SourceLocationData postprocess_tracy = TRACY_HACK( "Postprocess" );
 	static const tracy::SourceLocationData ui_tracy = TRACY_HACK( "Render UI" );
+	static const tracy::SourceLocationData postprocess_tracy = TRACY_HACK( "Postprocess" );
+	static const tracy::SourceLocationData post_ui_tracy = TRACY_HACK( "Render Post UI" );
 #undef TRACY_HACK
 
 	frame_static.particle_update_pass = AddRenderPass( "Particle Update", &particle_update_tracy );
@@ -428,8 +429,9 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	}
 
 	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes", &silhouettes_tracy, frame_static.postprocess_fb );
+	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI", &ui_tracy, frame_static.postprocess_fb );
 	frame_static.postprocess_pass = AddRenderPass( "Postprocess", &postprocess_tracy, ClearColor_Do );
-	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI", &ui_tracy );
+	frame_static.post_ui_pass = AddUnsortedRenderPass( "Render Post UI", &post_ui_tracy );
 }
 
 MinMax3 ShadowMapBounds( float tan_half_fov, float aspect_ratio, Vec3 position, Vec3 fwd, Vec3 right, Vec3 up, Mat4 shadow_view, float near, float far ) {

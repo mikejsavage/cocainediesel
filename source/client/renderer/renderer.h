@@ -59,9 +59,11 @@ struct FrameStatic {
 
 	u8 add_silhouettes_pass;
 
+	u8 ui_pass;
+
 	u8 postprocess_pass;
 
-	u8 ui_pass;
+	u8 post_ui_pass;
 };
 
 struct DynamicMesh {

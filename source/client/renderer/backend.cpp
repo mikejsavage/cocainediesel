@@ -1537,8 +1537,9 @@ u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, Cl
 	return AddRenderPass( name, tracy, target, clear_color, clear_depth );
 }
 
-u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * tracy ) {
+u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target ) {
 	RenderPass pass;
+	pass.target = target;
 	pass.name = name;
 	pass.sorted = false;
 	pass.tracy = tracy;

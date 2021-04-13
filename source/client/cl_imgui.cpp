@@ -149,6 +149,8 @@ static void SubmitDrawCalls() {
 		return;
 	draw_data->ScaleClipRects( io.DisplayFramebufferScale );
 
+	u32 pass = 0;
+
 	ImVec2 pos = draw_data->DisplayPos;
 	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
@@ -173,7 +175,13 @@ static void SubmitDrawCalls() {
 				MinMax2 scissor = MinMax2( Vec2( pcmd->ClipRect.x - pos.x, pcmd->ClipRect.y - pos.y ), Vec2( pcmd->ClipRect.z - pos.x, pcmd->ClipRect.w - pos.y ) );
 				if( scissor.mins.x < fb_width && scissor.mins.y < fb_height && scissor.maxs.x >= 0.0f && scissor.maxs.y >= 0.0f ) {
 					PipelineState pipeline;
-					pipeline.pass = frame_static.ui_pass;
+
+					// TODO: this is a hack to separate drawcalls into 2 passes
+					u32 new_pass = ( u32 ) pcmd->UserCallbackData;
+					if( new_pass != 0 ) {
+						pass = new_pass;
+					}
+					pipeline.pass = pass == 0 ? frame_static.ui_pass : frame_static.post_ui_pass;
 					pipeline.shader = pcmd->TextureId.shader;
 					pipeline.depth_func = DepthFunc_Disabled;
 					pipeline.blend_func = BlendFunc_Blend;
@@ -228,6 +236,7 @@ namespace ImGui {
 	void Begin( const char * name, WindowZOrder z_order, ImGuiWindowFlags flags ) {
 		ImGui::Begin( name, NULL, flags );
 		ImGui::GetCurrentWindow()->BeginOrderWithinContext = z_order;
+		ImGui::GetWindowDrawList()->AddCallback( NULL, ( void * ) 1 ); // TODO: this is a hack to separate drawcalls into 2 passes
 	}
 
 	bool Hotkey( int key ) {

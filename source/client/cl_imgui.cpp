@@ -177,7 +177,7 @@ static void SubmitDrawCalls() {
 					PipelineState pipeline;
 
 					// TODO: this is a hack to separate drawcalls into 2 passes
-					u32 new_pass = ( u32 ) pcmd->UserCallbackData;
+					u32 new_pass = u32( uintptr_t( pcmd->UserCallbackData ) );
 					if( new_pass != 0 ) {
 						pass = new_pass;
 					}

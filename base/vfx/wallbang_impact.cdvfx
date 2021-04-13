@@ -8,6 +8,8 @@
     lifetime_distribution uniform 10
 
     color 1.0 0.15 0.1 1.0
+
+    height -50
   }
 
   particles {

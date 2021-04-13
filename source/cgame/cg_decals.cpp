@@ -16,7 +16,7 @@ struct Decal {
 	Vec3 origin_normal; // floor( origin ) + ( normal * 0.49 + 0.5 )
 	// NOTE(msc): normal can't go to 0.0 or 1.0
 	float radius_angle; // floor( radius ) + ( angle / 2 / PI )
-	Vec4 color_uvwh;    // vec4( u + layer, v + r * 255, w + g * 255, h + b * 255 )
+	Vec4 color_uvwh_height; // vec4( u + layer, v + floor( r * 255 ) + floor( height ) * 256, w + floor( g * 255 ), h + floor( b * 255 ) )
 	// NOTE(msc): uvwh should all be < 1.0
 };
 
@@ -58,7 +58,7 @@ void ShutdownDecals() {
 	DeferDeleteTextureBuffer( decal_count );
 }
 
-void DrawDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color ) {
+void DrawDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color, float height ) {
 	if( num_decals == ARRAY_COUNT( decals ) )
 		return;
 
@@ -71,15 +71,16 @@ void DrawDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash 
 	}
 
 	Vec3 c = Floor( color.xyz() * 255.0f );
+	c.x += floorf( height ) * 256.0f;
 
 	decal->origin_normal = Floor( origin ) + ( normal * 0.49f + 0.5f );
 	decal->radius_angle = floorf( radius ) + angle / 2.0f / PI;
-	decal->color_uvwh = Vec4( uvwh.x, uvwh.y + c.x, uvwh.z + c.y, uvwh.w + c.z );
+	decal->color_uvwh_height = Vec4( uvwh.x, uvwh.y + c.x, uvwh.z + c.y, uvwh.w + c.z );
 
 	num_decals++;
 }
 
-void AddPersistentDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color, s64 duration ) {
+void AddPersistentDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color, s64 duration, float height ) {
 	if( num_persistent_decals == ARRAY_COUNT( persistent_decals ) )
 		return;
 
@@ -92,10 +93,11 @@ void AddPersistentDecal( Vec3 origin, Vec3 normal, float radius, float angle, St
 	}
 
 	Vec3 c = Floor( color.xyz() * 255.0f );
+	c.x += floorf( height ) * 256.0f;
 
 	decal->decal.origin_normal = Floor( origin ) + ( normal * 0.4f + 0.5f );
 	decal->decal.radius_angle = floorf( radius ) + angle / 2.0f / PI;
-	decal->decal.color_uvwh = Vec4( uvwh.x, uvwh.y + c.x, uvwh.z + c.y, uvwh.w + c.z );
+	decal->decal.color_uvwh_height = Vec4( uvwh.x, uvwh.y + c.x, uvwh.z + c.y, uvwh.w + c.z );
 	decal->spawn_time = cl.serverTime;
 	decal->duration = duration;
 

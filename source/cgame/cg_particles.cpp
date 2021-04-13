@@ -405,6 +405,9 @@ static bool ParseDecalEmitter( DecalEmitter * emitter, Span< const char > * data
 			else if( key == "lifetime_distribution" ) {
 				emitter->lifetime_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
 			}
+			else if( key == "height" ) {
+				emitter->height = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+			}
 		}
 	}
 
@@ -1013,7 +1016,7 @@ void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color, fl
 	actual_color.z += SampleRandomDistribution( &cls.rng, emitter->blue_distribution );
 	actual_color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
 	actual_color = Clamp01( actual_color );
-	AddPersistentDecal( origin, normal, size, angle, material, actual_color, lifetime * 1000.0f );
+	AddPersistentDecal( origin, normal, size, angle, material, actual_color, lifetime * 1000.0f, emitter->height );
 }
 
 void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec4 color, float decal_lifetime_scale ) {

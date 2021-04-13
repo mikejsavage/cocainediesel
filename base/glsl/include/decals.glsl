@@ -21,7 +21,7 @@ void OrthonormalBasis( vec3 v, out vec3 tangent, out vec3 bitangent ) {
 }
 
 void applyDecals( inout vec4 diffuse, inout vec3 normal ) {
-  	float tile_size = float( TILE_SIZE );
+	float tile_size = float( TILE_SIZE );
 	int tile_row = int( ( u_ViewportSize.y - gl_FragCoord.y ) / tile_size );
 	int tile_col = int( gl_FragCoord.x / tile_size );
 	int cols = int( u_ViewportSize.x + tile_size - 1 ) / int( tile_size );
@@ -31,6 +31,7 @@ void applyDecals( inout vec4 diffuse, inout vec3 normal ) {
 
 	float accumulated_alpha = 1.0;
 	vec3 accumulated_color = vec3( 0.0 );
+	float accumulated_height = 0.0;
 
 	for( int i = 0; i < count; i++ ) {
 		if( accumulated_alpha < 0.001 ) {
@@ -47,7 +48,8 @@ void applyDecals( inout vec4 diffuse, inout vec3 normal ) {
 		float angle = fract( data1.w ) * M_PI * 2.0;
 
 		vec4 data2 = texelFetch( u_DecalData, idx + 1 );
-		vec4 decal_color = vec4( floor( data2.yzw ) / 255.0, 1.0 );
+		vec4 decal_color = vec4( fract( floor( data2.yzw ) / 256.0 ), 1.0 );
+		float decal_height = ( data2.y - decal_color.x ) / 256.0;
 		vec4 uvwh = vec4( data2.x, fract( data2.yzw ) );
 		float layer = floor( uvwh.x );
 
@@ -74,8 +76,12 @@ void applyDecals( inout vec4 diffuse, inout vec3 normal ) {
 			float decal_alpha = min( 1.0, alpha * decal_color.a * max( 0.0, dot( normal, decal_normal ) * inv_cos_45_degrees ) );
 			accumulated_color += decal_color.rgb * decal_alpha * accumulated_alpha;
 			accumulated_alpha *= 1.0 - decal_alpha;
+			accumulated_height += decal_height * decal_alpha;
 		}
 	}
+	vec3 decal_normal = vec3( dFdx( accumulated_alpha ), dFdy( accumulated_alpha ), 0.0 ) * accumulated_height;
+	decal_normal = mat3( u_InverseV ) * decal_normal;
+	normal = normalize( normal + decal_normal );
 
 	diffuse.rgb = diffuse.rgb * accumulated_alpha + accumulated_color;
 }

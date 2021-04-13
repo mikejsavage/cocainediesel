@@ -205,6 +205,8 @@ struct DecalEmitter {
 
 	float lifetime = 30.0f;
 	RandomDistribution lifetime_distribution;
+
+	float height = 0.0f;
 };
 
 void InitVisualEffects();

@@ -859,7 +859,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 					float min_size = Lerp( 20.0f, Unlerp01( 5, damage, 50 ), 64.0f );
 					float size = min_size * random_uniform_float( &cls.rng, 0.75f, 1.5f );
 
-					AddPersistentDecal( trace.endpos, trace.plane.normal, size, angle, random_select( &cls.rng, decals ), team_color, 30000 );
+					AddPersistentDecal( trace.endpos, trace.plane.normal, size, angle, random_select( &cls.rng, decals ), team_color, 30000, 10.0f );
 				}
 
 				p -= 1.0f;

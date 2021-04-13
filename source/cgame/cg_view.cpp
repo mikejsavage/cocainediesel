@@ -223,7 +223,7 @@ static void CG_CalcViewBob() {
 	if( cg.xyspeed < 5 ) {
 		cg.oldBobTime = 0;  // start at beginning of cycle again
 	}
-	else if( cg_gunbob->integer ) {
+	else {
 		if( !ISVIEWERENTITY( cg.view.POVent ) ) {
 			bobScale = 0.0f;
 		} else if( CG_PointContents( cg.view.origin ) & MASK_WATER ) {

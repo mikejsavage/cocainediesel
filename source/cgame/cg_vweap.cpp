@@ -90,31 +90,29 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 		angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
 	}
 
-	if( cg_gunbob->integer ) {
-		// gun angles from bobbing
-		if( cg.bobCycle & 1 ) {
-			angles->z -= cg.xyspeed * cg.bobFracSin * 0.012f;
-			angles->y -= cg.xyspeed * cg.bobFracSin * 0.006f;
-		} else {
-			angles->z += cg.xyspeed * cg.bobFracSin * 0.012f;
-			angles->y += cg.xyspeed * cg.bobFracSin * 0.006f;
-		}
-		angles->x += cg.xyspeed * cg.bobFracSin * 0.012f;
-
-		// gun angles from delta movement
-		for( int i = 0; i < 3; i++ ) {
-			float delta = AngleNormalize180( ( cg.oldFrame.playerState.viewangles[i] - cg.frame.playerState.viewangles[i] ) * cg.lerpfrac );
-			delta = Clamp( -45.0f, delta, 45.0f );
-
-			if( i == YAW ) {
-				angles->z += 0.001f * delta;
-			}
-			angles->ptr()[i] += 0.002f * delta;
-		}
-
-		// gun angles from kicks
-		*angles += CG_GetKickAngles();
+	// gun angles from bobbing
+	if( cg.bobCycle & 1 ) {
+		angles->z -= cg.xyspeed * cg.bobFracSin * 0.012f;
+		angles->y -= cg.xyspeed * cg.bobFracSin * 0.006f;
+	} else {
+		angles->z += cg.xyspeed * cg.bobFracSin * 0.012f;
+		angles->y += cg.xyspeed * cg.bobFracSin * 0.006f;
 	}
+	angles->x += cg.xyspeed * cg.bobFracSin * 0.012f;
+
+	// gun angles from delta movement
+	for( int i = 0; i < 3; i++ ) {
+		float delta = AngleNormalize180( ( cg.oldFrame.playerState.viewangles[i] - cg.frame.playerState.viewangles[i] ) * cg.lerpfrac );
+		delta = Clamp( -45.0f, delta, 45.0f );
+
+		if( i == YAW ) {
+			angles->z += 0.001f * delta;
+		}
+		angles->ptr()[i] += 0.002f * delta;
+	}
+
+	// gun angles from kicks
+	*angles += CG_GetKickAngles();
 }
 
 void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {
@@ -140,9 +138,8 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	// scale forward gun offset depending on fov and aspect ratio
 	gunOffset.x *= frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV ) ;
 
-	if( cg_gunbob->integer ) {
-		gunOffset.z += CG_ViewSmoothFallKick();
-	}
+	
+	gunOffset.z += CG_ViewSmoothFallKick();
 
 	// apply the offsets
 	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * gunOffset.x;

@@ -33,8 +33,6 @@ cvar_t *cg_thirdPerson;
 cvar_t *cg_thirdPersonAngle;
 cvar_t *cg_thirdPersonRange;
 
-cvar_t *cg_gunbob;
-
 cvar_t *cg_projectileAntilagOffset;
 cvar_t *cg_chat;
 
@@ -129,8 +127,6 @@ static void CG_RegisterVariables() {
 	cg_thirdPerson =    Cvar_Get( "cg_thirdPerson", "0", CVAR_CHEAT );
 	cg_thirdPersonAngle =   Cvar_Get( "cg_thirdPersonAngle", "0", 0 );
 	cg_thirdPersonRange =   Cvar_Get( "cg_thirdPersonRange", "90", 0 );
-
-	cg_gunbob =     Cvar_Get( "cg_gunbob", "1", CVAR_ARCHIVE );
 
 	cg_autoaction_demo =    Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
 	cg_autoaction_screenshot =  Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );

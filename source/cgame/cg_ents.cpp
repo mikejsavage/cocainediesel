@@ -466,15 +466,9 @@ static void DrawEntityModel( centity_t * cent ) {
 		for( u32 i = 0; i < model->num_primitives; i++ ) {
 			if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
 				{
-					PipelineState pipeline;
-					pipeline.pass = frame_static.world_opaque_pass;
-					pipeline.shader = &shaders.world;
+					PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
 					pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 					pipeline.set_uniform( "u_Model", model_uniforms );
-					pipeline.set_texture( "u_NearShadowmapTexture", &frame_static.near_shadowmap_fb.depth_texture );
-					pipeline.set_texture( "u_FarShadowmapTexture", &frame_static.far_shadowmap_fb.depth_texture );
-					pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
-					AddDecalsToPipeline( &pipeline );
 
 					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 				}

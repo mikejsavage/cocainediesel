@@ -351,7 +351,12 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 			dc.base_vertex = face->first_vertex;
 			dc.index_offset = face->first_index;
 			dc.num_vertices = face->num_indices;
-			dc.material = FindMaterial( bsp.materials[ face->material ].name, &world_material );
+			if( bsp.materials[ face->material ].flags & CONTENTS_WALLBANGABLE ) {
+				dc.material = FindMaterial( bsp.materials[ face->material ].name, &wallbang_material );
+			}
+			else {
+				dc.material = FindMaterial( bsp.materials[ face->material ].name, &world_material );
+			}
 
 			dc.patch = face->type == FaceType_Patch;
 			dc.patch_width = face->patch_width;
@@ -368,7 +373,12 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 			dc.base_vertex = face->first_vertex;
 			dc.index_offset = face->first_index;
 			dc.num_vertices = face->num_indices;
-			dc.material = FindMaterial( bsp.materials[ face->material ].name, &world_material );
+			if( bsp.materials[ face->material ].flags & CONTENTS_WALLBANGABLE ) {
+				dc.material = FindMaterial( bsp.materials[ face->material ].name, &wallbang_material );
+			}
+			else {
+				dc.material = FindMaterial( bsp.materials[ face->material ].name, &world_material );
+			}
 
 			dc.patch = face->type == FaceType_Patch;
 			dc.patch_width = face->patch_width;

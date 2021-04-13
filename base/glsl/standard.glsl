@@ -90,7 +90,7 @@ uniform sampler2D u_DepthTexture;
 void main() {
 	vec3 normal = normalize( v_Normal );
 #if APPLY_DRAWFLAT
-	vec4 diffuse = vec4( 0.17, 0.17, 0.17, 1.0 );
+	vec4 diffuse = u_MaterialColor;
 #else
 	vec4 color = u_MaterialColor;
 

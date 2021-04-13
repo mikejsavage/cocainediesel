@@ -41,6 +41,7 @@ static u32 num_materials;
 static Hashtable< MAX_MATERIALS * 2 > materials_hashtable;
 
 Material world_material;
+Material wallbang_material;
 
 static Vec4 decal_uvwhs[ MAX_DECALS ];
 static u32 num_decals;
@@ -734,8 +735,20 @@ void InitMaterials() {
 	num_materials = 0;
 
 	world_material = Material();
+	world_material.rgbgen.args[ 0 ] = 0.17f;
+	world_material.rgbgen.args[ 1 ] = 0.17f;
+	world_material.rgbgen.args[ 2 ] = 0.17f;
+	world_material.rgbgen.args[ 3 ] = 1.0f;
 	world_material.specular = 3.0f;
 	world_material.shininess = 8.0f;
+
+	wallbang_material = Material();
+	wallbang_material.rgbgen.args[ 0 ] = 0.17f * 2.0f;
+	wallbang_material.rgbgen.args[ 1 ] = 0.17f * 2.0f;
+	wallbang_material.rgbgen.args[ 2 ] = 0.17f * 2.0f;
+	wallbang_material.rgbgen.args[ 3 ] = 1.0f;
+	wallbang_material.specular = 3.0f;
+	wallbang_material.shininess = 8.0f;
 
 	LoadBuiltinTextures();
 
@@ -915,13 +928,16 @@ static float EvaluateWaveFunc( Wave wave ) {
 }
 
 PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned ) {
-	if( material == &world_material ) {
+	if( material == &world_material || material == &wallbang_material ) {
 		PipelineState pipeline;
 		pipeline.shader = &shaders.world;
 		pipeline.pass = frame_static.world_opaque_pass;
 		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
 		pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
+		color.x = material->rgbgen.args[ 0 ];
+		color.y = material->rgbgen.args[ 1 ];
+		color.z = material->rgbgen.args[ 2 ];
 		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( 0.0f ), material->alpha_cutoff, material->specular, material->shininess, Vec3( 0.0f ), Vec3( 0.0f ) ) );
 		return pipeline;
 	}

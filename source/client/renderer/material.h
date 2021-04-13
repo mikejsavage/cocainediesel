@@ -62,6 +62,7 @@ struct Material {
 };
 
 extern Material world_material;
+extern Material wallbang_material;
 
 bool CompressedTextureFormat( TextureFormat format );
 u32 BitsPerPixel( TextureFormat format );

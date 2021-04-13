@@ -126,9 +126,10 @@ void main() {
 
 	float shadowlight = 1.0;
 	#if APPLY_SHADOWS
-		shadowlight = GetLight( normal ) * 0.5 + 0.5;
+		shadowlight = GetLight( normal );
 	#endif
-	diffuse.rgb = ( diffuse.rgb + shadowlight * ( lambertlight + specularlight ) ) * diffuse.rgb;
+	shadowlight = shadowlight * 0.5 + 0.5;
+	diffuse.rgb *= shadowlight * ( lambertlight + specularlight );
 
 #endif
 

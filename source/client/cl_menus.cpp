@@ -724,9 +724,14 @@ static void MainMenu() {
 
 	if( Cvar_Get( "cg_colorBlind", "0", CVAR_ARCHIVE )->integer ) {
 		ImGui::PushStyleColor( ImGuiCol_Text, CG_TeamColorVec4( TEAM_BETA ) );
-		ImGui::Text( "COLORBLIND" );
+		if( glitch( cls.monotonicTime / 8 ) )
+			ImGui::Text( "COLOURBLIN" );
+		else
+			ImGui::Text( "COLORBLIN" );
 		ImGui::PopStyleColor();
 
+		ImGui::SameLine();
+		ImGui::Text( "D" );
 		ImGui::SameLine();
 
 		ImGui::PushStyleColor( ImGuiCol_Text, CG_TeamColorVec4( TEAM_ALPHA ) );

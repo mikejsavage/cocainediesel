@@ -50,9 +50,7 @@ bool COM_ValidateFilename( const char *filename );
 bool COM_ValidateRelativeFilename( const char *filename );
 void COM_StripExtension( char *filename );
 void COM_DefaultExtension( char *path, const char *extension, size_t size );
-void COM_ReplaceExtension( char *path, const char *extension, size_t size );
 const char *COM_FileBase( const char *in );
-void COM_StripFilename( char *filename );
 
 enum ParseStopOnNewLine {
 	Parse_DontStopOnNewLine,

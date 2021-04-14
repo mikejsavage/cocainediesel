@@ -127,25 +127,6 @@ void COM_DefaultExtension( char *path, const char *extension, size_t size ) {
 }
 
 /*
-* COM_ReplaceExtension
-* Replaces current extension, if there is none appends one
-* If there is no room for it overwrites the end of the path
-*/
-void COM_ReplaceExtension( char *path, const char *extension, size_t size ) {
-	assert( path );
-	assert( extension && extension[0] && strlen( extension ) < size );
-
-	COM_StripExtension( path );
-	//COM_DefaultExtension( path, extension, size );
-
-	// Vic: using COM_DefaultExtension here breaks filenames with multiple dots
-	// and we have just stripped the extension in COM_StripExtension anyway
-	if( *path && path[strlen( path ) - 1] != '/' ) {
-		Q_strncatz( path, extension, size );
-	}
-}
-
-/*
 * COM_FileBase
 */
 const char *COM_FileBase( const char *in ) {
@@ -157,22 +138,6 @@ const char *COM_FileBase( const char *in ) {
 	}
 
 	return in;
-}
-
-/*
-* COM_StripFilename
-*
-* Cuts the string of, at the last / or erases the whole string if not found
-*/
-void COM_StripFilename( char *filename ) {
-	char *p;
-
-	p = strrchr( filename, '/' );
-	if( !p ) {
-		p = filename;
-	}
-
-	*p = 0;
 }
 
 //============================================================================

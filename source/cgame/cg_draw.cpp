@@ -33,7 +33,7 @@ Vec2 WorldToScreenClamped( Vec3 v, Vec2 screen_border, bool * clamped ) {
 	*clamped = false;
 
 	Vec4 clip = frame_static.P * frame_static.V * Vec4( v, 1.0 );
-	if( clip.z == 0 )
+	if( clip.w == 0 )
 		return Vec2( 0, 0 );
 
 	Vec2 res = clip.xy() / clip.w;

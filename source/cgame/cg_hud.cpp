@@ -469,7 +469,7 @@ void CG_SC_Obituary() {
 		}
 
 		if( ISVIEWERENTITY( attackerNum ) ) {
-			CG_CenterPrint( temp( "{} {}", obituary, victim_name ) );
+			CG_CenterPrint( temp( "{} {}", obituary, Uppercase( &temp, victim->name ) ) );
 		}
 		else if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
 			self_obituary.time = cls.monotonicTime;

@@ -40,6 +40,19 @@ require( "libs.whereami" )
 require( "libs.zlib" )
 require( "libs.zstd" )
 
+dyn( "boiler", {
+		srcs = {
+			"source/boiler/**.cpp",
+			-- platform_srcs
+		},
+
+		libs = {
+		    -- "steam" ?
+		},
+
+		gcc_extra_ldflags = "-lm -lpthread -ldl -static-libstdc++",
+		msvc_extra_ldflags = "ole32.lib ws2_32.lib crypt32.lib",
+    } )
 do
 	local platform_srcs
 	local platform_libs
@@ -81,7 +94,7 @@ do
 
 		libs = {
 			"imgui",
-
+			"boiler",
 			"angelscript",
 			"cgltf",
 			"curl",

@@ -6,6 +6,7 @@ configs[ "windows" ] = {
 	bin_suffix = ".exe",
 	obj_suffix = ".obj",
 	lib_suffix = ".lib",
+	dyn_suffix = ".dll",
 
 	toolchain = "msvc",
 
@@ -32,6 +33,8 @@ configs[ "linux" ] = {
 	obj_suffix = ".o",
 	lib_prefix = "lib",
 	lib_suffix = ".a",
+	dyn_prefix = "lib",
+	dyn_suffix = ".so",
 
 	toolchain = "gcc",
 	cxx = "g++",
@@ -115,6 +118,8 @@ local bin_suffix = rightmost( "bin_suffix" )
 local obj_suffix = rightmost( "obj_suffix" )
 local lib_prefix = rightmost( "lib_prefix" )
 local lib_suffix = rightmost( "lib_suffix" )
+local dyn_prefix = rightmost( "dyn_prefix" )
+local dyn_suffix = rightmost( "dyn_suffix" )
 local prebuilt_lib_dir = rightmost( "prebuilt_lib_dir" )
 prebuilt_lib_dir = prebuilt_lib_dir == "" and OS_config or prebuilt_lib_dir
 local cxxflags = concat( "cxxflags" )
@@ -132,6 +137,10 @@ local objs_extra_flags = { }
 local bins = { }
 local bins_flags = { }
 local bins_extra_flags = { }
+
+local dyns = { }
+local dyns_flags = { }
+local dyns_extra_flags = { }
 
 local libs = { }
 local prebuilt_libs = { }
@@ -250,6 +259,18 @@ function lib( lib_name, srcs )
 	add_srcs( globbed )
 end
 
+function dyn( dyn_name, cfg )
+	assert( type( cfg ) == "table", "cfg should be a table" )
+	assert( type( cfg.srcs ) == "table", "cfg.srcs should be a table" )
+	assert( not cfg.libs or type( cfg.libs ) == "table", "cfg.libs should be a table or nil" )
+	assert( not cfg.prebuilt_libs or type( cfg.prebuilt_libs ) == "table", "cfg.prebuilt_libs should be a table or nil" )
+	assert( not dyns[ dyn_name ] )
+
+	dyns[ dyn_name ] = cfg
+	cfg.srcs = glob( cfg.srcs )
+	add_srcs( cfg.srcs )
+end
+
 function prebuilt_lib( lib_name )
 	assert( not prebuilt_libs[ lib_name ] )
 	prebuilt_libs[ lib_name ] = true
@@ -293,6 +314,10 @@ rule bin
     command = link /OUT:$out $in $ldflags $extra_ldflags
     description = $out
 
+rule dyn
+    command = link /DLL /OUT:$out $in $ldflags $extra_ldflags
+    description = $out
+
 rule lib
     command = lib /NOLOGO /OUT:$out $in
     description = $out
@@ -314,6 +339,10 @@ rule cpp
 
 rule bin
     command = $cpp -o $out $in $ldflags $extra_ldflags
+    description = $out
+
+rule dyn
+    command = $cpp -shared -fPIC -o $out $in $ldflags $extra_ldflags 
     description = $out
 
 rule lib
@@ -358,6 +387,34 @@ local function write_ninja_script()
 
 	for lib_name, srcs in pairs( libs ) do
 		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join_srcs( srcs, obj_suffix ) )
+	end
+
+	for dyn_name, cfg in pairs( dyns ) do
+		local srcs = { cfg.srcs }
+		local name = dyn_prefix .. dyn_name .. dyn_suffix
+
+		-- make the dll
+		printf( "build %s: dyn %s %s",
+			name,
+			join_srcs( srcs, obj_suffix ),
+			join_libs( cfg.libs )
+		)
+
+		local ldflags_key = toolchain .. "_ldflags"
+		local extra_ldflags_key = toolchain .. "_extra_ldflags"
+		if cfg[ ldflags_key ] then
+			printf( "    ldflags = %s", cfg[ ldflags_key ] )
+		end
+		if cfg[ extra_ldflags_key ] then
+			printf( "    extra_ldflags = %s", cfg[ extra_ldflags_key ] )
+		end
+
+		printf( "default %s", name )
+		if OS == "windows" then
+		    -- then the lib
+		    printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, dyn_name, lib_suffix, join_srcs( srcs, obj_suffix ) )
+		end
+
 	end
 
 	for bin_name, cfg in pairs( bins ) do

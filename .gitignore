@@ -24,3 +24,5 @@
 *.lib
 *.pdb
 *.cddemo
+
+boiler.dll

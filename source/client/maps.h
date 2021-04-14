@@ -2,7 +2,7 @@
 
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
-#include "client/renderer/backend.h"
+#include "client/renderer/types.h"
 
 struct CollisionModel;
 
@@ -25,7 +25,7 @@ struct Map {
 void InitMaps();
 void ShutdownMaps();
 
-bool AddMap( Span< const u8 > compressed, const char * path );
+bool AddMap( Span< const u8 > data, const char * path );
 
 const Map * FindMap( StringHash name );
 const Map * FindMap( const char * name );

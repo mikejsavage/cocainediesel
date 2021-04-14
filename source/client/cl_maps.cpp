@@ -13,26 +13,13 @@ static Map maps[ MAX_MAPS ];
 static u32 num_maps;
 static Hashtable< MAX_MAPS * 2 > maps_hashtable;
 
-bool AddMap( Span< const u8 > compressed, const char * path ) {
+bool AddMap( Span< const u8 > data, const char * path ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
 
 	Span< const char > ext = FileExtension( path );
 	if( ext != ".bsp" )
 		return false;
-
-	if( compressed.n < 4 ) {
-		Com_Printf( S_COLOR_RED "BSP too small %s\n", path );
-		return false;
-	}
-
-	Span< u8 > decompressed;
-	defer { FREE( sys_allocator, decompressed.ptr ); };
-	bool ok = Decompress( path, sys_allocator, compressed, &decompressed );
-	if( !ok )
-		return false;
-
-	Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
 
 	maps[ num_maps ].name = CopyString( sys_allocator, path );
 	u64 base_hash = Hash64( StripExtension( path ) );

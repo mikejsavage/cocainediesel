@@ -463,23 +463,28 @@ void G_LoadMap( const char * name ) {
 	Q_strncpyz( sv.mapname, name, sizeof( sv.mapname ) );
 
 	const char * base_path = temp( "maps/{}", name );
-	const char * path = temp( "{}/base/{}.bsp", RootDirPath(), base_path );
 
-	Span< u8 > contents = ReadFileBinary( sys_allocator, path );
-	defer { FREE( sys_allocator, contents.ptr ); };
-	if( contents.ptr == NULL ) {
-		Com_Error( ERR_FATAL, "Couldn't load %s", path );
+	Span< u8 > data;
+	defer { FREE( sys_allocator, data.ptr ); };
+
+	const char * bsp_path = temp( "{}/base/maps/{}.bsp", RootDirPath(), name );
+	data = ReadFileBinary( sys_allocator, bsp_path );
+
+	if( data.ptr == NULL ) {
+		const char * zst_path = temp( "{}.zst", bsp_path );
+		Span< u8 > compressed = ReadFileBinary( sys_allocator, zst_path );
+		defer { FREE( sys_allocator, compressed.ptr ); };
+		if( compressed.ptr == NULL ) {
+			Com_Error( ERR_FATAL, "Couldn't find map %s", name );
+		}
+
+		bool ok = Decompress( zst_path, sys_allocator, compressed, &data );
+		if( !ok ) {
+			Com_Error( ERR_FATAL, "Couldn't decompress %s", zst_path );
+		}
+
 	}
 
-	Span< const u8 > compressed = contents;
-	Span< u8 > decompressed;
-	defer { FREE( sys_allocator, decompressed.ptr ); };
-	bool ok = Decompress( path, sys_allocator, compressed, &decompressed );
-	if( !ok ) {
-		Com_Error( ERR_FATAL, "Couldn't decompress %s", path );
-	}
-
-	Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
 	u64 base_hash = Hash64( base_path );
 	svs.cms = CM_LoadMap( CM_Server, data, base_hash );
 

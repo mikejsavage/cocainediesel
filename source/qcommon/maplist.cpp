@@ -38,11 +38,10 @@ void RefreshMapList( Allocator * a ) {
 			continue;
 
 		Span< const char > ext = FileExtension( name );
-		if( ext != ".bsp" )
-			continue;
-
-		char * map = ( *sys_allocator )( "{}", StripExtension( name ) );
-		maps.add( map );
+		if( ext == ".bsp" || ext == ".bsp.zst" ) {
+			char * map = ( *sys_allocator )( "{}", StripExtension( name ) );
+			maps.add( map );
+		}
 	}
 
 	std::sort( maps.begin(), maps.end(), []( const char * a, const char * b ) {

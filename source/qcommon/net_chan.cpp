@@ -446,7 +446,7 @@ bool Netchan_Transmit( netchan_t *chan, msg_t *msg ) {
 */
 bool Netchan_Process( netchan_t *chan, msg_t *msg ) {
 	int sequence, sequence_ack;
-	u64 session_id;
+	u64 session_id = 0;
 	int fragmentStart, fragmentLength;
 	bool fragmented = false;
 	int headerlength;

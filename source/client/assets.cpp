@@ -84,8 +84,9 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 
 	ZoneText( job->path, strlen( job->path ) );
 
+	char * path_with_zst = ( *temp )( "{}.zst", job->path );
 	Span< u8 > decompressed;
-	if( Decompress( job->path, sys_allocator, job->compressed, &decompressed ) ) {
+	if( Decompress( path_with_zst, sys_allocator, job->compressed, &decompressed ) ) {
 		// TODO: we need to add a null terminator too so AssetString etc works
 		char * decompressed_and_terminated = ALLOC_MANY( sys_allocator, char, decompressed.n + 1 );
 		memcpy( decompressed_and_terminated, decompressed.ptr, decompressed.n );

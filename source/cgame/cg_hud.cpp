@@ -307,7 +307,7 @@ void CG_SC_ResetObituaries() {
 	self_obituary = { };
 }
 
-static const char * obituaries[] = {
+static const char * normal_obituaries[] = {
 #include "obituaries.h"
 };
 
@@ -328,6 +328,16 @@ static const char * void_obituaries[] = {
 	"TOOK",
 };
 
+static const char * spike_obituaries[] = {
+	"DISEMBOWELED",
+	"GORED",
+	"IMPALED",
+	"PERFORATED",
+	"POKED",
+	"SKEWERED",
+	"SLASHED",
+};
+
 static const char * conjunctions[] = {
 	"+",
 	"&",
@@ -346,7 +356,7 @@ static const char * conjunctions[] = {
 };
 
 static const char * RandomObituary( RNG * rng ) {
-	return random_select( rng, obituaries );
+	return random_select( rng, normal_obituaries );
 }
 
 static const char * RandomPrefix( RNG * rng, float p ) {
@@ -359,14 +369,15 @@ static const char * RandomSuicidePrefix( RNG * rng ) {
 	return random_select( rng, suicide_prefixes );
 }
 
-static const char * RandomVoidObituary( RNG * rng ) {
-	return random_select( rng, void_obituaries );
-}
-
-static const char * RandomAssistConjunction( RNG * rng ) {
+static const char * RandomConjunction( RNG * rng ) {
 	return random_select( rng, conjunctions );
 }
 
+static char * Uppercase( Allocator * a, const char * str ) {
+	char * upper = CopyString( a, str );
+	Q_strupr( upper );
+	return upper;
+}
 
 void CG_SC_Obituary() {
 	int victimNum = atoi( Cmd_Argv( 1 ) );
@@ -378,97 +389,91 @@ void CG_SC_Obituary() {
 	const cg_clientInfo_t * victim = &cgs.clientInfo[ victimNum - 1 ];
 	const cg_clientInfo_t * attacker = attackerNum == 0 ? NULL : &cgs.clientInfo[ attackerNum - 1 ];
 	const cg_clientInfo_t * assistor = topAssistorNum == -1 ? NULL : &cgs.clientInfo[ topAssistorNum - 1 ];
+
 	cg_obituaries_current = ( cg_obituaries_current + 1 ) % MAX_OBITUARIES;
-	obituary_t * current = &cg_obituaries[cg_obituaries_current];
-
-	RNG rng = new_rng( entropy, 0 );
-
+	obituary_t * current = &cg_obituaries[ cg_obituaries_current ];
+	current->type = OBITUARY_NORMAL;
 	current->time = cls.monotonicTime;
+	current->mod = mod;
+
 	if( victim != NULL ) {
 		Q_strncpyz( current->victim, victim->name, sizeof( current->victim ) );
-		current->victim_team = cg_entities[victimNum].current.team;
+		current->victim_team = cg_entities[ victimNum ].current.team;
 	}
 	if( attacker != NULL ) {
 		Q_strncpyz( current->attacker, attacker->name, sizeof( current->attacker ) );
-		current->attacker_team = cg_entities[attackerNum].current.team;
+		current->attacker_team = cg_entities[ attackerNum ].current.team;
 	}
-	current->mod = mod;
 
 	if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
 		self_obituary.entropy = 0;
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
+	RNG rng = new_rng( entropy, 0 );
 
-	char victim_name[ MAX_NAME_CHARS + 1 ];
-	Q_strncpyz( victim_name, victim->name, sizeof( victim_name ) );
-	Q_strupr( victim_name );
-	RGB8 victim_color = CG_TeamColor( current->victim_team );
+	const char * attacker_name = attacker == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->attacker_team ) ), Uppercase( &temp, attacker->name ) );
+	const char * victim_name = temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->victim_team ) ), Uppercase( &temp, victim->name ) );
+	const char * assistor_name = assistor == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->attacker_team ) ), Uppercase( &temp, assistor->name ) );
 
-	if( attackerNum ) {
-		const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ) );
+	Span< const char * > obituaries = StaticSpan( normal_obituaries );
 
-		if( attacker == victim ) {
-			const char * suicide_prefix = RandomSuicidePrefix( &rng );
-			current->type = OBITUARY_SUICIDE;
-
-			CG_AddChat( temp( "{}{} {}{}{} {}{}",
-				ImGuiColorToken( victim_color ), victim_name,
-				ImGuiColorToken( rgba8_diesel_yellow ), suicide_prefix, obituary,
-				ImGuiColorToken( victim_color ), victim_name
-			) );
-		}
-		else {
-			current->type = OBITUARY_NORMAL;
-
-			char attacker_name[ MAX_NAME_CHARS + 1 ];
-			Q_strncpyz( attacker_name, attacker->name, sizeof( attacker_name ) );
-			Q_strupr( attacker_name );
-			RGB8 attacker_color = CG_TeamColor( current->attacker_team );
-
-			if( ISVIEWERENTITY( attackerNum ) ) {
-				CG_CenterPrint( temp( "{} {}", obituary, victim_name ) );
-			}
-
-			if( assistor == NULL ) {
-				CG_AddChat( temp( "{}{} {}{} {}{}",
-					ImGuiColorToken( attacker_color ), attacker_name,
-					ImGuiColorToken( rgba8_diesel_yellow ), obituary,
-					ImGuiColorToken( victim_color ), victim_name
-				) );
-			}
-			else {
-				const char * assist_conj = RandomAssistConjunction( &rng );
-				char assistor_name[ MAX_NAME_CHARS + 1 ];
-				Q_strncpyz( assistor_name, assistor->name, sizeof( assistor_name ) );
-				Q_strupr( assistor_name );
-
-				CG_AddChat( temp( "{}{} {}{} {}{} {}{} {}{}",
-					ImGuiColorToken( attacker_color ), attacker_name,
-					ImGuiColorToken( 255, 255, 255, 255 ), assist_conj,
-					ImGuiColorToken( attacker_color ), assistor_name,
-					ImGuiColorToken( rgba8_diesel_yellow ), obituary,
-					ImGuiColorToken( victim_color ), victim_name
-				) );
-			}
-
-			if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
-				self_obituary.time = cls.monotonicTime;
-				self_obituary.entropy = entropy;
-			}
-		}
-	}
-	else {   // world accidents
+	if( attackerNum == 0 ) {
 		current->type = OBITUARY_ACCIDENT;
 
 		if( mod == MeanOfDeath_Void ) {
-			const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomVoidObituary( &rng ) );
+			attacker_name = temp( "{}{}", ImGuiColorToken( rgba8_black ), "THE VOID" );
+			obituaries = StaticSpan( void_obituaries );
+		}
+		else if( mod == MeanOfDeath_Spike ) {
+			attacker_name = temp( "{}{}", ImGuiColorToken( rgba8_black ), "A SPIKE" );
+			obituaries = StaticSpan( spike_obituaries );
+		}
+		else {
+			return;
+		}
+	}
 
-			CG_AddChat( temp( "{}THE VOID {}{} {}{}",
-				ImGuiColorToken( rgba8_black ),
+	// do these in order because arg evaluation order is undefined
+	const char * prefix1 = RandomPrefix( &rng, 0.05f );
+	const char * prefix2 = RandomPrefix( &rng, 0.05f );
+	const char * obituary = temp( "{}{}{}", prefix1, prefix2, obituaries[ random_uniform( &rng, 0, obituaries.n ) ] );
+
+	if( attacker == victim ) {
+		const char * suicide_prefix = RandomSuicidePrefix( &rng );
+		current->type = OBITUARY_SUICIDE;
+
+		CG_AddChat( temp( "{} {}{}{} {}",
+			victim_name,
+			ImGuiColorToken( rgba8_diesel_yellow ), suicide_prefix, obituary,
+			victim_name
+		) );
+	}
+	else {
+		if( assistor == NULL ) {
+			CG_AddChat( temp( "{} {}{} {}",
+				attacker_name,
 				ImGuiColorToken( rgba8_diesel_yellow ), obituary,
-				ImGuiColorToken( victim_color ), victim_name
+				victim_name
 			) );
+		}
+		else {
+			const char * conjugation = RandomConjunction( &rng );
+			CG_AddChat( temp( "{} {}{} {} {}{} {}",
+				attacker_name,
+				ImGuiColorToken( 255, 255, 255, 255 ), conjugation,
+				assistor_name,
+				ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+				victim_name
+			) );
+		}
+
+		if( ISVIEWERENTITY( attackerNum ) ) {
+			CG_CenterPrint( temp( "{} {}", obituary, victim_name ) );
+		}
+		else if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
+			self_obituary.time = cls.monotonicTime;
+			self_obituary.entropy = entropy;
 		}
 	}
 }

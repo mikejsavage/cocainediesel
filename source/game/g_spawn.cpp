@@ -462,8 +462,8 @@ void G_LoadMap( const char * name ) {
 
 	Q_strncpyz( sv.mapname, name, sizeof( sv.mapname ) );
 
-	const char * base_path = temp( "base/maps/{}", name );
-	const char * path = temp( "{}/{}.bsp", RootDirPath(), base_path );
+	const char * base_path = temp( "maps/{}", name );
+	const char * path = temp( "{}/base/{}.bsp", RootDirPath(), base_path );
 
 	Span< u8 > contents = ReadFileBinary( sys_allocator, path );
 	defer { FREE( sys_allocator, contents.ptr ); };

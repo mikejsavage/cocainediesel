@@ -523,6 +523,8 @@ static void SettingsVideo() {
 	}
 
 	CvarCheckbox( "Vsync", "vid_vsync", "0", CVAR_ARCHIVE );
+
+	CvarCheckbox( "Colorblind mode", "cg_colorBlind", "0", CVAR_ARCHIVE );
 }
 
 static const char * CleanAudioDeviceName( const char * name ) {
@@ -719,9 +721,22 @@ static void MainMenu() {
 
 	ImGui::SetCursorPosX( 40.0f * triangel( cls.monotonicTime, 631 ) );
 	ImGui::PushFont( cls.large_font );
-	ImGui::PushStyleColor( ImGuiCol_Text, glitch( cls.monotonicTime ) ? IM_COL32( 255, 255, 255, 255 ) : IM_COL32( 32, 182, 252, 255 ) );
-	ImGui::Text( "VACCAINE PFIZEL" );
-	ImGui::PopStyleColor();
+
+	if( Cvar_Get( "cg_colorBlind", "0", CVAR_ARCHIVE )->integer ) {
+		ImGui::PushStyleColor( ImGuiCol_Text, CG_TeamColorVec4( TEAM_BETA ) );
+		ImGui::Text( "COLORBLIND" );
+		ImGui::PopStyleColor();
+
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor( ImGuiCol_Text, CG_TeamColorVec4( TEAM_ALPHA ) );
+		ImGui::Text( "IESEL" );
+		ImGui::PopStyleColor();
+	} else {
+		ImGui::PushStyleColor( ImGuiCol_Text, glitch( cls.monotonicTime ) ? IM_COL32( 255, 255, 255, 255 ) : IM_COL32( 32, 182, 252, 255 ) );
+		ImGui::Text( "VACCAINE PFIZEL" );
+		ImGui::PopStyleColor();
+	}
 	ImGui::PopFont();
 
 	if( ImGui::Button( "FIND SERVERS" ) ) {

@@ -39,8 +39,15 @@ constexpr float FOV = 107.9f; // chosen to upset everyone equally
 constexpr RGB8 TEAM_COLORS[] = {
 	RGB8( 0, 204, 255 ),
 	RGB8( 255, 24, 96 ),
-	RGB8( 50, 200, 90 ),
-	RGB8( 210, 170, 0 ),
+//	RGB8( 50, 200, 90 ),
+//	RGB8( 210, 170, 0 ),
+};
+
+constexpr RGB8 COLORBLIND_TEAM_COLORS[] = {
+	RGB8( 80, 204, 255 ),
+	RGB8( 255, 150,40 ),
+//	RGB8( 50, 200, 90 ),
+//	RGB8( 210, 170, 0 ),
 };
 
 enum {
@@ -407,6 +414,7 @@ bool CG_ScoreboardShown();
 extern cvar_t *developer;
 extern cvar_t *cg_showClamp;
 extern cvar_t *cg_showHotkeys;
+extern cvar_t *cg_colorBlind;
 
 // wsw
 extern cvar_t *cg_autoaction_demo;

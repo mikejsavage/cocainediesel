@@ -114,18 +114,7 @@ bool FileExists( Allocator * temp, const char * path ) {
 	return true;
 }
 
-bool WriteFile( TempAllocator * temp, const char * path, const void * data, size_t len ) {
-	FILE * file = OpenFile( temp, path, "wb" );
-	if( file == NULL )
-		return false;
-
-	size_t w = fwrite( data, 1, len, file );
-	fclose( file );
-
-	return w == len;
-}
-
-bool CreatePath( Allocator * a, const char * path ) {
+static bool CreatePathForFile( Allocator * a, const char * path ) {
 	char * mutable_path = CopyString( a, path );
 	defer { FREE( a, mutable_path ); };
 
@@ -138,5 +127,19 @@ bool CreatePath( Allocator * a, const char * path ) {
 		cursor++;
 	}
 
-	return CreateDirectory( a, mutable_path );
+	return true;
+}
+
+bool WriteFile( TempAllocator * temp, const char * path, const void * data, size_t len ) {
+	if( !CreatePathForFile( temp, path ) )
+		return false;
+
+	FILE * file = OpenFile( temp, path, "wb" );
+	if( file == NULL )
+		return false;
+
+	size_t w = fwrite( data, 1, len, file );
+	fclose( file );
+
+	return w == len;
 }

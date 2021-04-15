@@ -62,8 +62,6 @@ static void TakeScreenshot() {
 
 		path.append( ".png" );
 
-		CreatePath( &temp, dir );
-
 		if( WriteFile( &temp, path.c_str(), png, png_size ) ) {
 			Com_Printf( "Wrote %s\n", path.c_str() );
 		}

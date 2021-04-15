@@ -29,3 +29,4 @@ bool    Sys_FS_CreateDirectory( const char *path );
 int         Sys_FS_FileNo( FILE *fp );
 
 char * FindHomeDirectory( Allocator * a );
+bool CreateDirectory( Allocator * a, const char * path );

@@ -1030,7 +1030,9 @@ void CL_Precache_f() {
 }
 
 static void CL_WriteConfiguration() {
-	DynamicString config( sys_allocator );
+	TempAllocator temp = cls.frame_arena.temp();
+
+	DynamicString config( &temp );
 
 	config += "// key bindings\r\n";
 	Key_WriteBindings( &config );
@@ -1038,11 +1040,9 @@ static void CL_WriteConfiguration() {
 	config += "\r\n// variables\r\n";
 	Cvar_WriteVariables( &config );
 
-	TempAllocator temp = cls.frame_arena.temp();
 	DynamicString path( &temp, "{}/base/config.cfg", HomeDirPath() );
 	if( !WriteFile( &temp, path.c_str(), config.c_str(), config.length() ) ) {
 		Com_Printf( "Couldn't write %s.\n", path.c_str() );
-		return;
 	}
 }
 

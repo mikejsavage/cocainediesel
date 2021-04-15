@@ -35,6 +35,7 @@ require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
 require( "libs.openal" )
 require( "libs.stb" )
+require( "libs.steam_api" )
 require( "libs.tracy" )
 require( "libs.whereami" )
 require( "libs.zlib" )
@@ -47,7 +48,7 @@ dyn( "boiler", {
 		},
 
 		libs = {
-		    -- "steam" ?
+		    "steam_api",
 		},
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -static-libstdc++",

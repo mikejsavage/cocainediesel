@@ -21,8 +21,9 @@
 *.exe
 *.exp
 *.ilk
-*.lib
+/*.lib
 *.pdb
 *.cddemo
 
 boiler.dll
+/*steam_api*

@@ -144,6 +144,7 @@ local dyns_extra_flags = { }
 
 local libs = { }
 local prebuilt_libs = { }
+local prebuilt_dyns = { }
 
 local function flatten_into( res, t )
 	for _, x in ipairs( t ) do
@@ -274,6 +275,11 @@ end
 function prebuilt_lib( lib_name )
 	assert( not prebuilt_libs[ lib_name ] )
 	prebuilt_libs[ lib_name ] = true
+end
+
+function prebuilt_dyn( dyn_name )
+	assert( not prebuilt_dyns[ dyn_name ] )
+	prebuilt_dyns[ dyn_name ] = true
 end
 
 function obj_cxxflags( pattern, flags )

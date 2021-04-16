@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/string.h"
 #include "qcommon/version.h"
 #include "gameshared/gs_public.h"
+#include "boiler/boiler.h"
 
 cvar_t *rcon_client_password;
 cvar_t *rcon_address;
@@ -1623,6 +1624,8 @@ void CL_Init() {
 	if( !NET_OpenSocket( &cls.socket_udp6, SOCKET_UDP, &address, false ) ) {
 		Com_Printf( "Error: Couldn't open UDP6 socket: %s", NET_ErrorString() );
 	}
+
+	boiler_init();
 
 	SCR_InitScreen();
 

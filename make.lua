@@ -19,7 +19,7 @@ obj_cxxflags( ".*", "-D_LIBCPP_TYPE_TRAITS" )
 if config == "release" then
 	obj_cxxflags( ".*", "-DPUBLIC_BUILD" )
 else
-	obj_cxxflags( ".*", "-DTRACY_ENABLE" )
+	--obj_cxxflags( ".*", "-DTRACY_ENABLE" )
 end
 
 require( "libs.angelscript" )
@@ -41,19 +41,27 @@ require( "libs.whereami" )
 require( "libs.zlib" )
 require( "libs.zstd" )
 
-dyn( "boiler", {
+do
+	local platform_libs
+	if OS == "windows" then
+		platform_libs = {
+			"steam_api",
+		}
+	end
+
+	dyn( "boiler", {
 		srcs = {
 			"source/boiler/**.cpp",
 			-- platform_srcs
 		},
-
 		libs = {
-		    "steam_api",
+			platform_libs
 		},
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -static-libstdc++",
 		msvc_extra_ldflags = "ole32.lib ws2_32.lib crypt32.lib",
     } )
+end
 do
 	local platform_srcs
 	local platform_libs

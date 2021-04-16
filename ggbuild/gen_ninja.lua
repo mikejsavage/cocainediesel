@@ -182,8 +182,11 @@ local function join_libs( names )
 	local joined = { }
 	for _, lib in ipairs( flatten( names ) ) do
 		local prebuilt = prebuilt_libs[ lib ]
+		local dyn = dyns[ lib ]
 		if prebuilt then
 			table.insert( joined, "libs/" .. lib .. "/" .. prebuilt_lib_dir .. "/" .. lib_prefix .. lib .. lib_suffix )
+		elseif dyn then
+			table.insert( joined, lib_prefix .. lib .. lib_suffix)
 		else
 			table.insert( joined, dir .. "/" .. lib_prefix .. lib .. lib_suffix )
 		end
@@ -418,7 +421,7 @@ local function write_ninja_script()
 		printf( "default %s", name )
 		if OS == "windows" then
 		    -- then the lib
-		    printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, dyn_name, lib_suffix, join_srcs( srcs, obj_suffix ) )
+		    --printf( "build %s/%s%s%s: copy %s", dir, lib_prefix, dyn_name, lib_suffix )
 		end
 
 	end

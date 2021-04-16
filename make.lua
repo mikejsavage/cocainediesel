@@ -43,12 +43,12 @@ require( "libs.zstd" )
 
 do
 	local platform_libs
+	local platform_dyns
 	if OS == "windows" then
 		platform_libs = {
 			"steam_api",
 		}
 	end
-
 	dyn( "boiler", {
 		srcs = {
 			"source/boiler/**.cpp",
@@ -57,8 +57,11 @@ do
 		libs = {
 			platform_libs
 		},
+		dyns = {
+			"steam_api"
+		},
 
-		gcc_extra_ldflags = "-lm -lpthread -ldl -static-libstdc++",
+		gcc_extra_ldflags = "-lm -lpthread -ldl -static-libstdc++ -Wl,-rpath=.",
 		msvc_extra_ldflags = "ole32.lib ws2_32.lib crypt32.lib",
     } )
 end
@@ -76,7 +79,7 @@ do
 			"source/windows/win_threads.cpp",
 			"source/windows/win_time.cpp",
 		}
-		platform_libs = { }
+		platform_libs = { "boiler" }
 	else
 		platform_srcs = {
 			"source/unix/unix_client.cpp",
@@ -103,7 +106,6 @@ do
 
 		libs = {
 			"imgui",
-			"boiler",
 			"angelscript",
 			"cgltf",
 			"curl",
@@ -126,9 +128,13 @@ do
 			platform_libs,
 		},
 
+		dyns = {
+			"boiler"
+		},
+
 		rc = "source/windows/client",
 
-		gcc_extra_ldflags = "-lm -lpthread -ldl -lX11 -no-pie -static-libstdc++",
+		gcc_extra_ldflags = "-lm -lpthread -ldl -lX11 -no-pie -static-libstdc++ -Wl,-rpath=.",
 		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS",
 	} )
 
@@ -180,7 +186,7 @@ do
 			"zstd",
 		},
 
-		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++",
+		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++ -Wl,-rpath=.",
 		msvc_extra_ldflags = "ole32.lib ws2_32.lib crypt32.lib",
 	} )
 end

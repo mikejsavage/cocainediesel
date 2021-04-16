@@ -194,6 +194,17 @@ local function join_libs( names )
 	return table.concat( joined, " " )
 end
 
+local function join_dyns ( names )
+	if not names then
+		return ""
+	end
+		local joined = { }
+	for _, lib in ipairs( flatten( names ) ) do
+		table.insert( joined, "-l:" .. dyn_prefix .. lib .. dyn_suffix) --meh, should do this for prebuilts too if we want that but whatevs
+	end
+	return "-L. " .. table.concat( joined, " " )
+end
+
 local function printf( form, ... )
 	print( form:format( ... ) )
 end
@@ -415,6 +426,9 @@ local function write_ninja_script()
 			printf( "    ldflags = %s", cfg[ ldflags_key ] )
 		end
 		if cfg[ extra_ldflags_key ] then
+			if OS == "linux" and cfg.dyns then
+				cfg[ extra_ldflags_key ] = cfg[ extra_ldflags_key ] .. " " .. join_dyns( cfg.dyns )
+			end
 			printf( "    extra_ldflags = %s", cfg[ extra_ldflags_key ] )
 		end
 
@@ -449,6 +463,9 @@ local function write_ninja_script()
 			printf( "    ldflags = %s", cfg[ ldflags_key ] )
 		end
 		if cfg[ extra_ldflags_key ] then
+			if OS == "linux" and cfg.dyns then
+				cfg[ extra_ldflags_key ] = cfg[ extra_ldflags_key ] .. " " .. join_dyns( cfg.dyns )
+			end
 			printf( "    extra_ldflags = %s", cfg[ extra_ldflags_key ] )
 		end
 

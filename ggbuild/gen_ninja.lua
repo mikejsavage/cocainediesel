@@ -435,7 +435,7 @@ local function write_ninja_script()
 		printf( "default %s", name )
 		if OS == "windows" then
 		    -- then the lib
-		    --printf( "build %s/%s%s%s: copy %s", dir, lib_prefix, dyn_name, lib_suffix )
+		    printf( "build %s/%s%s%s: copy %s", dir, lib_prefix, dyn_name, lib_suffix )
 		end
 
 	end

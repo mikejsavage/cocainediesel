@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server/server.h"
 #include "qcommon/version.h"
 #include "qcommon/csprng.h"
+#include "boiler/boiler.h"
 
 static bool sv_initialized = false;
 
@@ -543,6 +544,8 @@ void SV_Init() {
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
 	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+
+	boiler_init();
 
 	SV_InitOperatorCommands();
 

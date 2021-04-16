@@ -43,7 +43,6 @@ require( "libs.zstd" )
 
 do
 	local platform_libs
-	local platform_dyns
 	if OS == "windows" then
 		platform_libs = {
 			"steam_api",
@@ -62,9 +61,10 @@ do
 		},
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -static-libstdc++ -Wl,-rpath=.",
-		msvc_extra_ldflags = "ole32.lib ws2_32.lib crypt32.lib",
+		msvc_extra_ldflags = "ole32.lib ws2_32.lib crypt32.lib", 
     } )
 end
+
 do
 	local platform_srcs
 	local platform_libs
@@ -143,6 +143,7 @@ end
 
 do
 	local platform_srcs
+	local platform_libs
 
 	if OS == "windows" then
 		platform_srcs = {
@@ -154,6 +155,7 @@ do
 			"source/windows/win_threads.cpp",
 			"source/windows/win_time.cpp",
 		}
+		platform_libs = { "boiler" }
 	else
 		platform_srcs = {
 			"source/unix/unix_console.cpp",
@@ -184,6 +186,10 @@ do
 			"whereami",
 			"zlib",
 			"zstd",
+			platform_libs
+		},
+		dyns = {
+			"boiler"
 		},
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++ -Wl,-rpath=.",

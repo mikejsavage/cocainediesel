@@ -7,6 +7,7 @@ configs[ "windows" ] = {
 	obj_suffix = ".obj",
 	lib_suffix = ".lib",
 	dyn_suffix = ".dll",
+	lib_prefix = "",
 
 	toolchain = "msvc",
 
@@ -345,6 +346,10 @@ rule lib
 rule rc
     command = rc /fo$out /nologo $in_rc
     description = $in
+
+rule dummy
+    command = echo hello
+    description = boiler.lib
 ]] )
 
 elseif toolchain == "gcc" then
@@ -431,15 +436,11 @@ local function write_ninja_script()
 			end
 			printf( "    extra_ldflags = %s", cfg[ extra_ldflags_key ] )
 		end
-
-		printf( "default %s", name )
 		if OS == "windows" then
-		    -- then the lib
-		    printf( "build %s/%s%s%s: copy %s", dir, lib_prefix, dyn_name, lib_suffix )
+			printf( "build %s: dummy", lib_prefix .. dyn_name .. lib_suffix )
 		end
-
+		printf( "default %s", name )
 	end
-
 	for bin_name, cfg in pairs( bins ) do
 		local srcs = { cfg.srcs }
 

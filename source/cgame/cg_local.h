@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/client.h"
 #include "cgame/cg_public.h"
 #include "cgame/cg_syscalls.h"
-#include "cgame/cg_decals.h"
+#include "cgame/cg_dynamics.h"
 #include "cgame/cg_particles.h"
 #include "cgame/cg_sprays.h"
 

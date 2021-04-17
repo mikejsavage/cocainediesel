@@ -96,9 +96,11 @@ static void LoadShaders() {
 		"#define APPLY_DRAWFLAT 1\n"
 		"#define APPLY_FOG 1\n"
 		"#define APPLY_DECALS 1\n"
+		"#define APPLY_DLIGHTS 1\n"
 		"#define APPLY_SHADOWS 1\n"
 		"#define SHADED 1\n"
-		"#define TILE_SIZE {}\n", TILE_SIZE );
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
 	BuildShaderSrcs( "glsl/standard.glsl", world_defines, &srcs, &lengths );
 	ReplaceShader( &shaders.world, srcs.span(), lengths.span() );
 

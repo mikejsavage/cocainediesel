@@ -79,8 +79,16 @@ uniform sampler2D u_BaseTexture;
 uniform sampler2D u_DepthTexture;
 #endif
 
+#if APPLY_DECALS || APPLY_DLIGHTS
+uniform isamplerBuffer u_DynamicCount;
+#endif
+
 #if APPLY_DECALS
 #include "include/decals.glsl"
+#endif
+
+#if APPLY_DLIGHTS
+#include "include/dlights.glsl"
 #endif
 
 #if APPLY_SHADOWS
@@ -111,18 +119,26 @@ void main() {
 	diffuse *= mix(vec4(1.0), vec4(softness), u_BlendMix.xxxy);
 #endif
 
+#if APPLY_DECALS || APPLY_DLIGHTS
+	float tile_size = float( TILE_SIZE );
+	int tile_row = int( ( u_ViewportSize.y - gl_FragCoord.y ) / tile_size );
+	int tile_col = int( gl_FragCoord.x / tile_size );
+	int cols = int( u_ViewportSize.x + tile_size - 1 ) / int( tile_size );
+	int tile_index = tile_row * cols + tile_col;
+	ivec2 decal_dlight_count = texelFetch( u_DynamicCount, tile_index ).xy;
+#endif
+
 #if APPLY_DECALS
-	applyDecals( diffuse, normal );
+	applyDecals( decal_dlight_count.x, tile_index, diffuse, normal );
 #endif
 
 #if SHADED
-	float lambertlight = LambertLight( normal, -u_LightDir ) * 0.5 + 0.5;
-	#if APPLY_DRAWFLAT
-		lambertlight = lambertlight * 0.5 + 0.5;
-	#endif
+	const vec3 suncolor = vec3( 1.0 );
 
 	vec3 viewDir = normalize( u_CameraPos - v_Position );
-	float specularlight = SpecularLight( normal, u_LightDir, viewDir, u_Shininess ) * u_Specular;
+
+	vec3 lambertlight = suncolor * LambertLight( normal, -u_LightDir );
+	vec3 specularlight = suncolor * SpecularLight( normal, u_LightDir, viewDir, u_Shininess ) * u_Specular;
 
 	float shadowlight = 1.0;
 	#if APPLY_SHADOWS
@@ -130,6 +146,16 @@ void main() {
 		specularlight = specularlight * shadowlight;
 	#endif
 	shadowlight = shadowlight * 0.5 + 0.5;
+
+#if APPLY_DLIGHTS
+	applyDynamicLights( decal_dlight_count.y, tile_index, v_Position, normal, viewDir, lambertlight, specularlight );
+#endif
+	lambertlight = lambertlight * 0.5 + 0.5;
+
+	#if APPLY_DRAWFLAT
+		lambertlight = lambertlight * 0.5 + 0.5;
+	#endif
+
 	diffuse.rgb *= shadowlight * ( lambertlight + specularlight );
 
 #endif

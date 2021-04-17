@@ -11,7 +11,7 @@
 #include "client/threadpool.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/dds.h"
-#include "cgame/cg_decals.h"
+#include "cgame/cg_dynamics.h"
 
 #include "stb/stb_image.h"
 #include "stb/stb_rect_pack.h"
@@ -943,7 +943,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		pipeline.set_texture( "u_NearShadowmapTexture", &frame_static.near_shadowmap_fb.depth_texture );
 		pipeline.set_texture( "u_FarShadowmapTexture", &frame_static.far_shadowmap_fb.depth_texture );
 		pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
-		AddDecalsToPipeline( &pipeline );
+		AddDynamicsToPipeline( &pipeline );
 		return pipeline;
 	}
 

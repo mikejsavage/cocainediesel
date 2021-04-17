@@ -286,6 +286,10 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 
 static void TextureBufferFormatToGL( TextureBufferFormat format, GLenum * internal_format, u32 * element_size ) {
 	switch( format ) {
+		case TextureBufferFormat_U8x2:
+			*internal_format = GL_RG8UI;
+			*element_size = 2 * sizeof( u8 );
+			return;
 		case TextureBufferFormat_U8x4:
 			*internal_format = GL_RGBA8;
 			*element_size = 4 * sizeof( u8 );

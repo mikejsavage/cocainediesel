@@ -7,7 +7,8 @@
 #include "qcommon/array.h"
 
 static TextureBuffer decal_buffer;
-static TextureBuffer decal_count;
+static TextureBuffer dlight_buffer;
+static TextureBuffer dynamic_count;
 
 static u32 last_viewport_width, last_viewport_height;
 
@@ -29,21 +30,54 @@ struct PersistentDecal {
 STATIC_ASSERT( sizeof( Decal ) == 2 * 4 * sizeof( float ) );
 STATIC_ASSERT( sizeof( Decal ) % alignof( Decal ) == 0 );
 
+// gets copied directly to GPU so packing order is important
+struct DynamicLight {
+	Vec3 origin_color; // floor( origin ) + ( color * 0.9 )
+	float radius;
+};
+
+struct PersistentDynamicLight {
+	DynamicLight dlight;
+	s64 spawn_time;
+	s64 duration;
+};
+
+STATIC_ASSERT( sizeof( DynamicLight ) == 1 * 4 * sizeof( float ) );
+STATIC_ASSERT( sizeof( DynamicLight ) % alignof( DynamicLight ) == 0 );
+
 static constexpr u32 MAX_DECALS = 100000;
-static constexpr u32 MAX_DECALS_PER_SET = 500;
 static constexpr u32 MAX_DECALS_PER_TILE = 50;
+
+static constexpr u32 MAX_DLIGHTS = 100000;
+static constexpr u32 MAX_DLIGHTS_PER_TILE = 50;
+
+static constexpr u32 MAX_DYNAMICS_PER_SET = 500;
 
 static Decal decals[ MAX_DECALS ];
 static u32 num_decals;
 
+static DynamicLight dlights[ MAX_DLIGHTS ];
+static u32 num_dlights;
+
 static PersistentDecal persistent_decals[ MAX_DECALS ];
 static u32 num_persistent_decals;
 
+static PersistentDynamicLight persistent_dlights[ MAX_DLIGHTS ];
+static u32 num_persistent_dlights;
+
 static Span3D< Decal > gpu_decals;
-static Span2D< u32 > gpu_counts;
+static Span3D< DynamicLight > gpu_dlights;
+
+struct DynamicCount {
+	u8 decal_count;
+	u8 dlight_count;
+};
+
+static Span2D< DynamicCount > gpu_dynamic_counts;
 
 void InitDecals() {
 	num_persistent_decals = 0;
+	num_persistent_dlights = 0;
 
 	last_viewport_width = U32_MAX;
 	last_viewport_height = U32_MAX;
@@ -52,10 +86,15 @@ void InitDecals() {
 void ShutdownDecals() {
 	FREE( sys_allocator, gpu_decals.ptr );
 	gpu_decals.ptr = NULL;
-	FREE( sys_allocator, gpu_counts.ptr );
-	gpu_counts.ptr = NULL;
 	DeferDeleteTextureBuffer( decal_buffer );
-	DeferDeleteTextureBuffer( decal_count );
+
+	FREE( sys_allocator, gpu_dlights.ptr );
+	gpu_dlights.ptr = NULL;
+	DeferDeleteTextureBuffer( dlight_buffer );
+
+	FREE( sys_allocator, gpu_dynamic_counts.ptr );
+	gpu_dynamic_counts.ptr = NULL;
+	DeferDeleteTextureBuffer( dynamic_count );
 }
 
 void DrawDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color, float height ) {
@@ -119,6 +158,51 @@ void DrawPersistentDecals() {
 
 		decals[ num_decals ] = decal->decal;
 		num_decals++;
+	}
+}
+
+void DrawDynamicLight( Vec3 origin, Vec4 color, float intensity ) {
+	if( num_dlights == ARRAY_COUNT( dlights ) )
+		return;
+
+	DynamicLight * dlight = &dlights[ num_dlights ];
+
+	dlight->origin_color = Floor( origin ) + color.xyz() * 0.9f;
+	dlight->radius = sqrtf( intensity / DLIGHT_CUTOFF );
+
+	num_dlights++;
+}
+
+void AddPersistentDynamicLight( Vec3 origin, Vec4 color, float intensity, s64 duration ) {
+	if( num_persistent_dlights == ARRAY_COUNT( persistent_dlights ) )
+		return;
+
+	PersistentDynamicLight * dlight = &persistent_dlights[ num_persistent_dlights ];
+
+
+	dlight->dlight.origin_color = Floor( origin ) + color.xyz() * 0.9f;
+	dlight->dlight.radius = sqrtf( intensity / DLIGHT_CUTOFF );
+	dlight->spawn_time = cl.serverTime;
+	dlight->duration = duration;
+
+	num_persistent_dlights++;
+}
+
+void DrawPersistentDynamicLights() {
+	for( u32 i = 0; i < num_persistent_dlights; i++ ) {
+		if( num_dlights == ARRAY_COUNT( dlights ) )
+			break;
+
+		PersistentDynamicLight * dlight = &persistent_dlights[ i ];
+		if( dlight->spawn_time + dlight->duration < cl.serverTime ) {
+			num_persistent_dlights--;
+			Swap2( dlight, &persistent_dlights[ num_persistent_dlights ] );
+			i--;
+			continue;
+		}
+
+		dlights[ num_dlights ] = dlight->dlight;
+		num_dlights++;
 	}
 }
 
@@ -199,25 +283,37 @@ void AllocateDecalBuffers() {
 		ZoneScopedN( "Reallocate TBOs" );
 
 		FREE( sys_allocator, gpu_decals.ptr );
-		FREE( sys_allocator, gpu_counts.ptr );
 		gpu_decals = ALLOC_SPAN3D( sys_allocator, Decal, MAX_DECALS_PER_TILE, cols, rows );
-		gpu_counts = ALLOC_SPAN2D( sys_allocator, u32, cols, rows );
 		decal_buffer = NewTextureBuffer( TextureBufferFormat_Floatx4, rows * cols * MAX_DECALS_PER_TILE * sizeof( Decal ) / sizeof( Vec4 ) );
-		decal_count = NewTextureBuffer( TextureBufferFormat_U32, rows * cols );
+
+		FREE( sys_allocator, gpu_dlights.ptr );
+		gpu_dlights = ALLOC_SPAN3D( sys_allocator, DynamicLight, MAX_DLIGHTS_PER_TILE, cols, rows );
+		dlight_buffer = NewTextureBuffer( TextureBufferFormat_Floatx4, rows * cols * MAX_DLIGHTS_PER_TILE * sizeof( DynamicLight ) / sizeof( Vec4 ) );
+
+		FREE( sys_allocator, gpu_dynamic_counts.ptr );
+		gpu_dynamic_counts = ALLOC_SPAN2D( sys_allocator, DynamicCount, cols, rows );
+		dynamic_count = NewTextureBuffer( TextureBufferFormat_U8x2, rows * cols );
 
 		last_viewport_width = frame_static.viewport_width;
 		last_viewport_height = frame_static.viewport_height;
 	}
 }
 
-struct DecalRect {
-	MinMax2 bounds;
+enum DynamicType {
+	DynamicType_Decal,
+	DynamicType_Light,
+};
+
+struct DynamicRect {
+	DynamicType type;
+	u32 minx, miny, maxx, maxy;
 	u32 idx;
 };
 
-struct DecalSet {
-	u32 indices[ MAX_DECALS_PER_SET ];
-	u32 num_decals;
+struct DynamicSet {
+	u32 indices[ MAX_DYNAMICS_PER_SET ];
+	DynamicType types[ MAX_DYNAMICS_PER_SET ];
+	u32 num;
 };
 
 void UploadDecalBuffers() {
@@ -226,10 +322,11 @@ void UploadDecalBuffers() {
 	u32 rows = ( frame_static.viewport_height + TILE_SIZE - 1 ) / TILE_SIZE;
 	u32 cols = ( frame_static.viewport_width + TILE_SIZE - 1 ) / TILE_SIZE;
 
-	DynamicArray< DecalRect > rects( sys_allocator );
+	DynamicArray< DynamicRect > rects( sys_allocator );
 
-	for( s32 i = num_decals - 1; i >= 0; i-- ) {
-		MinMax2 bounds = SphereScreenSpaceBounds( Floor( decals[ i ].origin_normal ), floorf( decals[ i ].radius_angle ) );
+	for( u32 i = 0; i < num_dlights; i++ ) {
+		u32 index = num_dlights - i - 1;
+		MinMax2 bounds = SphereScreenSpaceBounds( Floor( dlights[ index ].origin_color ), dlights[ index ].radius );
 		bounds.mins.y = -bounds.mins.y;
 		bounds.maxs.y = -bounds.maxs.y;
 		Swap2( &bounds.mins.y, &bounds.maxs.y );
@@ -244,64 +341,104 @@ void UploadDecalBuffers() {
 		Vec2 maxs = ( bounds.maxs + 1.0f ) * 0.5f * frame_static.viewport;
 		maxs = Clamp( Vec2( 0.0f ), maxs, frame_static.viewport - 1.0f ) / float( TILE_SIZE );
 
+		DynamicRect rect;
+		rect.type = DynamicType_Light;
+		rect.minx = mins.x;
+		rect.miny = mins.y;
+		rect.maxx = maxs.x;
+		rect.maxy = maxs.y;
+		rect.idx = num_decals + index;
+		rects.add( rect );
+	}
 
-		DecalRect rect;
-		rect.bounds = MinMax2( Vec2( floorf( mins.x ), floorf( mins.y ) ), Vec2( floorf( maxs.x ), floorf( maxs.y ) ) );
-		rect.idx = i;
+	for( u32 i = 0; i < num_decals; i++ ) {
+		u32 index = num_decals - i - 1;
+		MinMax2 bounds = SphereScreenSpaceBounds( Floor( decals[ index ].origin_normal ), floorf( decals[ index ].radius_angle ) );
+		bounds.mins.y = -bounds.mins.y;
+		bounds.maxs.y = -bounds.maxs.y;
+		Swap2( &bounds.mins.y, &bounds.maxs.y );
+
+		if( bounds.maxs.x <= -1.0f || bounds.maxs.y <= -1.0f || bounds.mins.x >= 1.0f || bounds.mins.y >= 1.0f ) {
+			continue;
+		}
+
+		Vec2 mins = ( bounds.mins + 1.0f ) * 0.5f * frame_static.viewport;
+		mins = Clamp( Vec2( 0.0f ), mins, frame_static.viewport - 1.0f ) / float( TILE_SIZE );
+
+		Vec2 maxs = ( bounds.maxs + 1.0f ) * 0.5f * frame_static.viewport;
+		maxs = Clamp( Vec2( 0.0f ), maxs, frame_static.viewport - 1.0f ) / float( TILE_SIZE );
+
+		DynamicRect rect;
+		rect.type = DynamicType_Decal;
+		rect.minx = mins.x;
+		rect.miny = mins.y;
+		rect.maxx = maxs.x;
+		rect.maxy = maxs.y;
+		rect.idx = index;
 		rects.add( rect );
 	}
 
 	{
 		ZoneScopedN( "Fill buffers" );
 
-		Span< DecalSet > rows_coverage = ALLOC_SPAN( sys_allocator, DecalSet, rows );
-		Span< DecalSet > cols_coverage = ALLOC_SPAN( sys_allocator, DecalSet, cols );
+		Span< DynamicSet > rows_coverage = ALLOC_SPAN( sys_allocator, DynamicSet, rows );
+		Span< DynamicSet > cols_coverage = ALLOC_SPAN( sys_allocator, DynamicSet, cols );
 
 		memset( rows_coverage.ptr, 0, rows_coverage.num_bytes() );
 		memset( cols_coverage.ptr, 0, cols_coverage.num_bytes() );
 
 		for( u32 i = 0; i < rects.size(); i++ ) {
-			DecalRect & rect = rects[ i ];
-			for( u32 x = rect.bounds.mins.x; x <= rect.bounds.maxs.x; x++ ) {
-				DecalSet & set = cols_coverage[ x ];
-				if( set.num_decals < MAX_DECALS_PER_SET ) {
-					set.indices[ set.num_decals ] = rect.idx;
-					set.num_decals++;
+			DynamicRect & rect = rects[ i ];
+			for( u32 x = rect.minx; x <= rect.maxx; x++ ) {
+				DynamicSet & set = cols_coverage[ x ];
+				if( set.num < MAX_DYNAMICS_PER_SET ) {
+					set.indices[ set.num ] = rect.idx;
+					set.types[ set.num ] = rect.type;
+					set.num++;
 				}
 			}
-			for( u32 y = rect.bounds.mins.y; y <= rect.bounds.maxs.y; y++ ) {
-				DecalSet & set = rows_coverage[ y ];
-				if( set.num_decals < MAX_DECALS_PER_SET ) {
-					set.indices[ set.num_decals ] = rect.idx;
-					set.num_decals++;
+			for( u32 y = rect.miny; y <= rect.maxy; y++ ) {
+				DynamicSet & set = rows_coverage[ y ];
+				if( set.num < MAX_DYNAMICS_PER_SET ) {
+					set.indices[ set.num ] = rect.idx;
+					set.types[ set.num ] = rect.type;
+					set.num++;
 				}
 			}
 		}
 
-		memset( gpu_counts.ptr, 0, gpu_counts.num_bytes() );
+		memset( gpu_dynamic_counts.ptr, 0, gpu_dynamic_counts.num_bytes() );
 
 		for( u32 y = 0; y < rows; y++ ) {
-			DecalSet & y_set = rows_coverage[ y ];
+			DynamicSet & y_set = rows_coverage[ y ];
 			for( u32 x = 0; x < cols; x++ ) {
-				DecalSet & x_set = cols_coverage[ x ];
+				DynamicSet & x_set = cols_coverage[ x ];
 				u32 x_idx = 0;
 				u32 y_idx = 0;
 
-				// NOTE(msc): decals guaranteed to be reverse sorted order in set
-				while( x_idx < x_set.num_decals && y_idx < y_set.num_decals ) {
+				// NOTE(msc): decals guaranteed to sorted front to back / high to low
+				while( x_idx < x_set.num && y_idx < y_set.num ) {
 					u32 x_instance = x_set.indices[ x_idx ];
 					u32 y_instance = y_set.indices[ y_idx ];
+					DynamicType type = x_set.types[ x_idx ];
 					// NOTE(msc): instance in both column & row, must be active in this cell
 					if( x_instance == y_instance ) {
-						gpu_decals( gpu_counts( x, y ), x, y ) = decals[ x_instance ];
-						gpu_counts( x, y )++;
-						if( gpu_counts( x, y ) == MAX_DECALS_PER_TILE ) {
-							break;
+						if( type == DynamicType_Decal ) {
+							if( gpu_dynamic_counts( x, y ).decal_count < MAX_DECALS_PER_TILE ) {
+								gpu_decals( gpu_dynamic_counts( x, y ).decal_count, x, y ) = decals[ x_instance ];
+								gpu_dynamic_counts( x, y ).decal_count++;
+							}
+						}
+						else if( type == DynamicType_Light ) {
+							if( gpu_dynamic_counts( x, y ).dlight_count < MAX_DLIGHTS_PER_TILE ) {
+								gpu_dlights( gpu_dynamic_counts( x, y ).dlight_count, x, y ) = dlights[ x_instance - num_decals ];
+								gpu_dynamic_counts( x, y ).dlight_count++;
+							}
 						}
 						x_idx++;
 						y_idx++;
 					} else if( x_instance > y_instance ) {
-						// NOTE(msc): reverse index order
+						// NOTE(msc): indices ordered high to low
 						x_idx++;
 					} else {
 						y_idx++;
@@ -317,14 +454,20 @@ void UploadDecalBuffers() {
 	{
 		ZoneScopedN( "Upload TBOs" );
 		WriteTextureBuffer( decal_buffer, gpu_decals.ptr, gpu_decals.num_bytes() );
-		WriteTextureBuffer( decal_count, gpu_counts.ptr, gpu_counts.num_bytes() );
+		WriteTextureBuffer( dlight_buffer, gpu_dlights.ptr, gpu_dlights.num_bytes() );
+		WriteTextureBuffer( dynamic_count, gpu_dynamic_counts.ptr, gpu_dynamic_counts.num_bytes() );
 	}
 
 	num_decals = 0;
+	num_dlights = 0;
 }
 
-void AddDecalsToPipeline( PipelineState * pipeline ) {
+void AddDynamicsToPipeline( PipelineState * pipeline ) {
 	pipeline->set_uniform( "u_Decal", UploadUniformBlock( s32( num_decals ) ) );
 	pipeline->set_texture_buffer( "u_DecalData", decal_buffer );
-	pipeline->set_texture_buffer( "u_DecalCount", decal_count );
+
+	pipeline->set_uniform( "u_DynamicLight", UploadUniformBlock( s32( num_dlights ) ) );
+	pipeline->set_texture_buffer( "u_DynamicLightData", dlight_buffer );
+
+	pipeline->set_texture_buffer( "u_DynamicCount", dynamic_count );
 }

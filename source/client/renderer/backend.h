@@ -80,6 +80,7 @@ enum VertexFormat : u8 {
 };
 
 enum TextureBufferFormat : u8 {
+	TextureBufferFormat_U8x2,
 	TextureBufferFormat_U8x4,
 
 	TextureBufferFormat_U32,

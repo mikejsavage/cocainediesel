@@ -3,7 +3,6 @@ layout( std140 ) uniform u_Decal {
 };
 
 uniform samplerBuffer u_DecalData;
-uniform isamplerBuffer u_DecalCount;
 uniform sampler2DArray u_DecalAtlases;
 
 float ProjectedScale( vec3 p, vec3 o, vec3 d ) {
@@ -20,15 +19,7 @@ void OrthonormalBasis( vec3 v, out vec3 tangent, out vec3 bitangent ) {
 	bitangent = vec3( b, s + v.y * v.y * a, -v.y );
 }
 
-void applyDecals( inout vec4 diffuse, inout vec3 normal ) {
-	float tile_size = float( TILE_SIZE );
-	int tile_row = int( ( u_ViewportSize.y - gl_FragCoord.y ) / tile_size );
-	int tile_col = int( gl_FragCoord.x / tile_size );
-	int cols = int( u_ViewportSize.x + tile_size - 1 ) / int( tile_size );
-	int tile_index = tile_row * cols + tile_col;
-
-	int count = texelFetch( u_DecalCount, tile_index ).x;
-
+void applyDecals( int count, int tile_index, inout vec4 diffuse, inout vec3 normal ) {
 	float accumulated_alpha = 1.0;
 	vec3 accumulated_color = vec3( 0.0 );
 	float accumulated_height = 0.0;

@@ -209,6 +209,8 @@ struct server_static_t {
 	server_static_demo_t demo;
 
 	CollisionModel *cms;                // passed to CM-functions
+
+	u64 ent_string_checksum;
 };
 
 struct server_constant_t {

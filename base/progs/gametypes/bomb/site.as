@@ -159,7 +159,12 @@ void resetBombSites() {
 
 void bomb_site( Entity @ent ) {
 	@ent.think = bomb_site_think;
+	@ent.die = shits_fucked;
 	cBombSite( @ent, defendingTeam );
+}
+
+void shits_fucked( Entity @dont, Entity @care, Entity @bro ) {
+	G_Print( "shit is fucked\n" );
 }
 
 void bomb_site_think( Entity @ent ) {

@@ -316,6 +316,10 @@ static void G_SpawnEntities() {
 	level.map_parsed_ents[0] = 0;
 	level.map_parsed_len = 0;
 
+	if( Hash64( level.mapString ) != svs.ent_string_checksum ) {
+		Com_Printf( "oh mein gott\n" );
+	}
+
 	Span< const char > cursor = MakeSpan( level.mapString );
 	edict_t * ent = NULL;
 
@@ -339,9 +343,14 @@ static void G_SpawnEntities() {
 		ED_ParseEntity( &cursor, ent );
 
 		bool ok = true;
+		bool rng = random_p( &svs.rng, st.spawn_probability );
 		ok = ok && ent->classname != NULL;
-		ok = ok && random_p( &svs.rng, st.spawn_probability );
+		ok = ok && rng;
 		ok = ok && G_CallSpawn( ent );
+
+		if( !rng ) {
+			Com_Printf( "shit's fucked\n" );
+		}
 
 		if( !ok ) {
 			G_FreeEdict( ent );
@@ -482,11 +491,11 @@ void G_LoadMap( const char * name ) {
 		if( !ok ) {
 			Com_Error( ERR_FATAL, "Couldn't decompress %s", zst_path );
 		}
-
 	}
 
 	u64 base_hash = Hash64( base_path );
 	svs.cms = CM_LoadMap( CM_Server, data, base_hash );
+	svs.ent_string_checksum = Hash64( CM_EntityString( svs.cms ), CM_EntityStringLen( svs.cms ) );
 
 	server_gs.gameState.map = StringHash( base_hash );
 	server_gs.gameState.map_checksum = svs.cms->checksum;

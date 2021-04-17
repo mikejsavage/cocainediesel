@@ -578,7 +578,7 @@ void Qcommon_Init( int argc, char **argv ) {
 		Cbuf_AddText( "exec autoexec.cfg\n" );
 	}
 	else {
-		Cbuf_AddText( "exec dedicated_autoexec.cfg\n" );
+		Cbuf_AddText( "config dedicated_autoexec.cfg\n" );
 	}
 
 	Cbuf_AddEarlyCommands( true );

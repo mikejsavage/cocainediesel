@@ -294,7 +294,7 @@ void Cbuf_Execute() {
 * Adds command line parameters as script statements
 * Commands lead with a +, and continue until another +
 *
-* Set and exec commands are added early, so they are guaranteed to be set before
+* Set/exec/config commands are added early, so they are guaranteed to be set before
 * the client and server initialize for the first time.
 *
 * This command is first run before autoexec.cfg and config.cfg to allow changing
@@ -323,6 +323,11 @@ void Cbuf_AddEarlyCommands( bool second_run ) {
 			i += 2;
 		} else if( second_run && !Q_stricmp( s, "+exec" ) ) {
 			Cbuf_AddText( va( "exec \"%s\"\n", COM_Argv( i + 1 ) ) );
+			COM_ClearArgv( i );
+			COM_ClearArgv( i + 1 );
+			i += 1;
+		} else if( second_run && !Q_stricmp( s, "+config" ) ) {
+			Cbuf_AddText( va( "config \"%s\"\n", COM_Argv( i + 1 ) ) );
 			COM_ClearArgv( i );
 			COM_ClearArgv( i + 1 );
 			i += 1;
@@ -403,19 +408,26 @@ static void ExecConfig( const char * path ) {
 }
 
 static void Cmd_Exec_f() {
-	const char * arg = Cmd_Argv( 1 );
-
-	if( Cmd_Argc() < 2 || !arg[0] ) {
+	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "Usage: exec <filename>\n" );
 		return;
 	}
 
-	if( !COM_ValidateRelativeFilename( arg ) ) {
-		Com_Printf( "Invalid filename\n" );
+	DynamicString path( sys_allocator, "{}/base/{}", HomeDirPath(), Cmd_Argv( 1 ) );
+	if( FileExtension( path.c_str() ) == "" ) {
+		path += ".cfg";
+	}
+
+	ExecConfig( path.c_str() );
+}
+
+static void Cmd_Config_f() {
+	if( Cmd_Argc() < 2 ) {
+		Com_Printf( "Usage: config <filename>\n" );
 		return;
 	}
 
-	DynamicString path( sys_allocator, "{}/base/{}", HomeDirPath(), arg );
+	DynamicString path( sys_allocator, "{}", Cmd_Argv( 1 ) );
 	if( FileExtension( path.c_str() ) == "" ) {
 		path += ".cfg";
 	}
@@ -430,18 +442,6 @@ void ExecDefaultCfg() {
 
 static const char **CL_CompleteExecBuildList( const char *partial ) {
 	return Cmd_CompleteHomeDirFileList( partial, "base", ".cfg" );
-}
-
-/*
-* Cmd_Echo_f
-*
-* Just prints the rest of the line to the console
-*/
-static void Cmd_Echo_f() {
-	int i;
-	for( i = 1; i < Cmd_Argc(); ++i )
-		Com_Printf( "%s ", Cmd_Argv( i ) );
-	Com_Printf( "\n" );
 }
 
 /*
@@ -1141,7 +1141,7 @@ void Cmd_Init() {
 	//
 	Cmd_AddCommand( "cmdlist", Cmd_List_f );
 	Cmd_AddCommand( "exec", Cmd_Exec_f );
-	Cmd_AddCommand( "echo", Cmd_Echo_f );
+	Cmd_AddCommand( "config", Cmd_Config_f );
 	Cmd_AddCommand( "aliaslist", Cmd_AliasList_f );
 	Cmd_AddCommand( "aliasa", Cmd_Aliasa_f );
 	Cmd_AddCommand( "unalias", Cmd_Unalias_f );

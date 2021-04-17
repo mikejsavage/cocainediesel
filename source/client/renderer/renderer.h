@@ -48,6 +48,7 @@ struct FrameStatic {
 	u8 near_shadowmap_pass;
 	u8 far_shadowmap_pass;
 
+	u8 world_opaque_prepass_pass;
 	u8 world_opaque_pass;
 	u8 add_world_outlines_pass;
 

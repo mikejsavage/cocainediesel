@@ -384,6 +384,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	static const tracy::SourceLocationData particle_update_tracy = TRACY_HACK( "Update particles" );
 	static const tracy::SourceLocationData write_near_shadowmap_tracy = TRACY_HACK( "Write near shadowmap" );
 	static const tracy::SourceLocationData write_far_shadowmap_tracy = TRACY_HACK( "Write far shadowmap" );
+	static const tracy::SourceLocationData world_opaque_prepass_tracy = TRACY_HACK( "Render world opaque Prepass" );
 	static const tracy::SourceLocationData world_opaque_tracy = TRACY_HACK( "Render world opaque" );
 	static const tracy::SourceLocationData add_world_outlines_tracy = TRACY_HACK( "Render world outlines" );
 	static const tracy::SourceLocationData write_silhouette_buffer_tracy = TRACY_HACK( "Write silhouette buffer" );
@@ -403,12 +404,14 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.far_shadowmap_pass = AddRenderPass( "Write far shadowmap", &write_far_shadowmap_tracy, frame_static.far_shadowmap_fb, ClearColor_Dont, ClearDepth_Do );
 
 	if( msaa ) {
-		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.world_opaque_prepass_pass = AddRenderPass( "Render world opaque Prepass", &world_opaque_prepass_tracy, frame_static.msaa_fb, ClearColor_Dont, ClearDepth_Do );
+		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.msaa_fb );
 		frame_static.sky_pass = AddRenderPass( "Render sky", &sky_tracy, frame_static.msaa_fb );
 		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", &add_world_outlines_tracy, frame_static.msaa_fb_onlycolor );
 	}
 	else {
-		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.world_opaque_prepass_pass = AddRenderPass( "Render world opaque Prepass", &world_opaque_prepass_tracy, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.postprocess_fb );
 		frame_static.sky_pass = AddRenderPass( "Render sky", &sky_tracy, frame_static.postprocess_fb );
 		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", &add_world_outlines_tracy, frame_static.postprocess_fb_onlycolor );
 	}

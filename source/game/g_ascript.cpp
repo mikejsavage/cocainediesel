@@ -1570,6 +1570,11 @@ static WeaponCategory asFunc_GetWeaponCategory( WeaponType weapon ) {
 	return GS_GetWeaponDef( weapon )->category;
 }
 
+static asstring_t * asFunc_GetWeaponShortName( WeaponType weapon ) {
+	const WeaponDef * def = GS_GetWeaponDef( weapon );
+	return game.asExport->asStringFactoryBuffer( def->short_name, strlen( def->short_name ) );
+}
+
 static u64 asFunc_Hash64( asstring_t *str ) {
 	if( !str || !str->buffer ) {
 		return 0;
@@ -1749,6 +1754,7 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_ConfigString( int index, const String &in )", asFUNCTION( asFunc_SetConfigString ), NULL },
 
 	{ "WeaponCategory GetWeaponCategory( WeaponType )", asFUNCTION( asFunc_GetWeaponCategory ), NULL },
+	{ "const String @GetWeaponShortName( WeaponType )", asFUNCTION( asFunc_GetWeaponShortName ), NULL },
 
 	{ "uint64 Hash64( const String &in )", asFUNCTION( asFunc_Hash64 ), NULL },
 

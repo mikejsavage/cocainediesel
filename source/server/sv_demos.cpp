@@ -155,7 +155,7 @@ void SV_Demo_Start_f() {
 	snprintf( svs.demo.tempname, demofilename_size, "%s.rec", svs.demo.filename );
 
 	// open it
-	if( FS_FOpenFile( svs.demo.tempname, &svs.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
+	if( FS_FOpenBaseFile( svs.demo.tempname, &svs.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
 		Com_Printf( "Error: Couldn't open file: %s\n", svs.demo.tempname );
 		Mem_ZoneFree( svs.demo.filename );
 		svs.demo.filename = NULL;

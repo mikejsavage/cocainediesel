@@ -1166,7 +1166,7 @@ void Cmd_Shutdown() {
 
 		Cmd_RemoveCommand( "cmdlist" );
 		Cmd_RemoveCommand( "exec" );
-		Cmd_RemoveCommand( "echo" );
+		Cmd_RemoveCommand( "config" );
 		Cmd_RemoveCommand( "aliaslist" );
 		Cmd_RemoveCommand( "aliasa" );
 		Cmd_RemoveCommand( "unalias" );

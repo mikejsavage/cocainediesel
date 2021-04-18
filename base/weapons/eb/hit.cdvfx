@@ -1,4 +1,11 @@
 {
+  dlight {
+    intensity 50000
+    lifetime 0.5
+    color 1 1 1 1
+    color_override
+  }
+
   particles {
     material textures/vfx/trace2
     blendfunc add

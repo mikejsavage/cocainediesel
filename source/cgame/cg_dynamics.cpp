@@ -38,6 +38,7 @@ struct DynamicLight {
 
 struct PersistentDynamicLight {
 	DynamicLight dlight;
+	float start_intensity;
 	s64 spawn_time;
 	s64 duration;
 };
@@ -182,6 +183,7 @@ void AddPersistentDynamicLight( Vec3 origin, Vec4 color, float intensity, s64 du
 
 	dlight->dlight.origin_color = Floor( origin ) + color.xyz() * 0.9f;
 	dlight->dlight.radius = sqrtf( intensity / DLIGHT_CUTOFF );
+	dlight->start_intensity = intensity;
 	dlight->spawn_time = cl.serverTime;
 	dlight->duration = duration;
 
@@ -201,6 +203,10 @@ void DrawPersistentDynamicLights() {
 			continue;
 		}
 
+		// TODO: add better curves maybe
+		float fract = float( cl.serverTime - dlight->spawn_time ) / float( dlight->duration );
+		float intensity = Lerp( dlight->start_intensity, fract, 0.0f );
+		dlight->dlight.radius = sqrtf( intensity / DLIGHT_CUTOFF );
 		dlights[ num_dlights ] = dlight->dlight;
 		num_dlights++;
 	}

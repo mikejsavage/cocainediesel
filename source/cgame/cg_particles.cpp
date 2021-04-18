@@ -36,6 +36,10 @@ static DecalEmitter decalEmitters[ MAX_DECAL_EMITTERS ];
 static u32 num_decalEmitters;
 static Hashtable< MAX_DECAL_EMITTERS * 2 > decalEmitters_hashtable;
 
+static DynamicLightEmitter dlightEmitters[ MAX_DECAL_EMITTERS ];
+static u32 num_dlightEmitters;
+static Hashtable< MAX_DLIGHT_EMITTERS * 2 > dlightEmitters_hashtable;
+
 constexpr u32 particles_per_emitter = 10000;
 
 bool ParseParticleEvents( Span< const char > * data, ParticleEvents * event ) {
@@ -414,6 +418,70 @@ static bool ParseDecalEmitter( DecalEmitter * emitter, Span< const char > * data
 	return true;
 }
 
+static bool ParseDynamicLightEmitter( DynamicLightEmitter * emitter, Span< const char > * data ) {
+	while( true ) {
+		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
+		if( opening_brace == "" )
+			break;
+
+		if( opening_brace != "{" ) {
+			Com_Printf( S_COLOR_YELLOW "Expected {" );
+			return false;
+		}
+
+		while( true ) {
+			Span< const char > key = ParseToken( data, Parse_DontStopOnNewLine );
+
+			if( key == "}" ) {
+				return true;
+			}
+
+			if( key == "" ) {
+				Com_Printf( S_COLOR_YELLOW "Missing key" );
+				return false;
+			}
+
+			if( key == "color" ) {
+				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
+				float r = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+				float g = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+				float b = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+				float a = ParseFloat( data, 1.0f, Parse_StopOnNewLine );
+				emitter->color = Vec4( r, g, b, a );
+			}
+			else if( key == "red_distribution" ) {
+				emitter->red_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "green_distribution" ) {
+				emitter->green_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "blue_distribution" ) {
+				emitter->blue_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "alpha_distribution" ) {
+				emitter->alpha_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "color_override" ) {
+				emitter->color_override = true;
+			}
+			else if( key == "intensity" ) {
+				emitter->intensity = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+			}
+			else if( key == "intensity_distribution" ) {
+				emitter->intensity_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+			else if( key == "lifetime" ) {
+				emitter->lifetime = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+			}
+			else if( key == "lifetime_distribution" ) {
+				emitter->lifetime_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			}
+		}
+	}
+
+	return true;
+}
+
 static bool ParseVisualEffectGroup( VisualEffectGroup * group, Span< const char > * data, u64 base_hash ) {
 	while( true ) {
 		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
@@ -472,7 +540,23 @@ static bool ParseVisualEffectGroup( VisualEffectGroup * group, Span< const char 
 					group->num_effects++;
 				}
 			}
+			else if( key == "dlight" ) {
+				e.type = VisualEffectType_DynamicLight;
+				DynamicLightEmitter emitter = { };
+				if( ParseDynamicLightEmitter( &emitter, data ) ) {
+					e.hash = Hash64( ( void * )&group->num_effects, 1, base_hash );
 
+					u64 idx = num_dlightEmitters;
+					if( !dlightEmitters_hashtable.get( e.hash, &idx ) ) {
+						dlightEmitters_hashtable.add( e.hash, idx );
+						num_dlightEmitters++;
+					}
+					dlightEmitters[ idx ] = emitter;
+
+					group->effects[ group->num_effects ] = e;
+					group->num_effects++;
+				}
+			}
 		}
 	}
 
@@ -1019,6 +1103,22 @@ void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color, fl
 	AddPersistentDecal( origin, normal, size, angle, material, actual_color, lifetime * 1000.0f, emitter->height );
 }
 
+void EmitDynamicLight( DynamicLightEmitter * emitter, Vec3 origin, Vec4 color ) {
+	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) );
+	float intensity = Max2( 0.0f, emitter->intensity + SampleRandomDistribution( &cls.rng, emitter->intensity_distribution ) );
+
+	Vec4 actual_color = emitter->color;
+	if( emitter->color_override ) {
+		actual_color *= color;
+	}
+	actual_color.x += SampleRandomDistribution( &cls.rng, emitter->red_distribution );
+	actual_color.y += SampleRandomDistribution( &cls.rng, emitter->green_distribution );
+	actual_color.z += SampleRandomDistribution( &cls.rng, emitter->blue_distribution );
+	actual_color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
+	actual_color = Clamp01( actual_color );
+	AddPersistentDynamicLight( origin, actual_color, intensity, lifetime * 1000.0f );
+}
+
 void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec4 color, float decal_lifetime_scale ) {
 	VisualEffectGroup * vfx = FindVisualEffectGroup( name );
 	if( vfx == NULL )
@@ -1041,6 +1141,13 @@ void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec
 			if( decalEmitters_hashtable.get( e.hash, &idx ) ) {
 				DecalEmitter * emitter = &decalEmitters[ idx ];
 				EmitDecal( emitter, origin, normal, color, decal_lifetime_scale );
+			}
+		}
+		else if( e.type == VisualEffectType_DynamicLight ) {
+			u64 idx = num_dlightEmitters;
+			if( dlightEmitters_hashtable.get( e.hash, &idx ) ) {
+				DynamicLightEmitter * emitter = &dlightEmitters[ idx ];
+				EmitDynamicLight( emitter, origin, color );
 			}
 		}
 	}

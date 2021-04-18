@@ -431,6 +431,7 @@ void CreateWindow( WindowMode mode ) {
 
 	GLFWimage icon;
 	icon.pixels = stbi_load_from_memory( icon_png, icon_png_len, &icon.width, &icon.height, NULL, 4 );
+	assert( icon.pixels != NULL );
 	glfwSetWindowIcon( window, 1, &icon );
 	stbi_image_free( icon.pixels );
 

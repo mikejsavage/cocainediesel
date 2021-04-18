@@ -426,20 +426,24 @@ void UploadDecalBuffers() {
 				while( x_idx < x_set.num && y_idx < y_set.num ) {
 					u32 x_instance = x_set.indices[ x_idx ];
 					u32 y_instance = y_set.indices[ y_idx ];
-					DynamicType type = x_set.types[ x_idx ];
 					// NOTE(msc): instance in both column & row, must be active in this cell
 					if( x_instance == y_instance ) {
+						DynamicType type = x_set.types[ x_idx ];
+						DynamicCount &count = gpu_dynamic_counts( x, y );
 						if( type == DynamicType_Decal ) {
-							if( gpu_dynamic_counts( x, y ).decal_count < MAX_DECALS_PER_TILE ) {
-								gpu_decals( gpu_dynamic_counts( x, y ).decal_count, x, y ) = decals[ x_instance ];
-								gpu_dynamic_counts( x, y ).decal_count++;
+							if( count.decal_count < MAX_DECALS_PER_TILE ) {
+								gpu_decals( count.decal_count, x, y ) = decals[ x_instance ];
+								count.decal_count++;
 							}
 						}
 						else if( type == DynamicType_Light ) {
-							if( gpu_dynamic_counts( x, y ).dlight_count < MAX_DLIGHTS_PER_TILE ) {
-								gpu_dlights( gpu_dynamic_counts( x, y ).dlight_count, x, y ) = dlights[ x_instance - num_decals ];
-								gpu_dynamic_counts( x, y ).dlight_count++;
+							if( count.dlight_count < MAX_DLIGHTS_PER_TILE ) {
+								gpu_dlights( count.dlight_count, x, y ) = dlights[ x_instance - num_decals ];
+								count.dlight_count++;
 							}
+						}
+						if( count.decal_count == MAX_DECALS_PER_TILE && count.dlight_count == MAX_DLIGHTS_PER_TILE ) {
+							break;
 						}
 						x_idx++;
 						y_idx++;

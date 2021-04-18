@@ -299,6 +299,8 @@ static int cg_obituaries_current = -1;
 struct {
 	s64 time;
 	u64 entropy;
+	obituary_type_t type;
+	int mod;
 } self_obituary;
 
 void CG_SC_ResetObituaries() {
@@ -355,28 +357,37 @@ static const char * conjunctions[] = {
 	"X",
 };
 
-static const char * RandomObituary( RNG * rng ) {
-	return random_select( rng, normal_obituaries );
-}
-
 static const char * RandomPrefix( RNG * rng, float p ) {
 	if( !random_p( rng, p ) )
 		return "";
 	return random_select( rng, prefixes );
 }
 
-static const char * RandomSuicidePrefix( RNG * rng ) {
-	return random_select( rng, suicide_prefixes );
-}
-
-static const char * RandomConjunction( RNG * rng ) {
-	return random_select( rng, conjunctions );
-}
-
 static char * Uppercase( Allocator * a, const char * str ) {
 	char * upper = CopyString( a, str );
 	Q_strupr( upper );
 	return upper;
+}
+
+static char * MakeObituary( Allocator * a, RNG * rng, int type, int mod ) {
+	Span< const char * > obituaries = StaticSpan( normal_obituaries );
+	if( mod == MeanOfDeath_Void ) {
+		obituaries = StaticSpan( void_obituaries );
+	}
+	else if( mod == MeanOfDeath_Spike ) {
+		obituaries = StaticSpan( spike_obituaries );
+	}
+
+	const char * prefix1 = "";
+	if( type == OBITUARY_SUICIDE ) {
+		prefix1 = random_select( rng, suicide_prefixes );
+	}
+
+	// do these in order because arg evaluation order is undefined
+	const char * prefix2 = RandomPrefix( rng, 0.05f );
+	const char * prefix3 = RandomPrefix( rng, 0.5f );
+
+	return ( *a )( "{}{}{}{}", prefix1, prefix2, prefix3, obituaries[ random_uniform( rng, 0, obituaries.n ) ] );
 }
 
 void CG_SC_Obituary() {
@@ -416,36 +427,35 @@ void CG_SC_Obituary() {
 	const char * victim_name = temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->victim_team ) ), Uppercase( &temp, victim->name ) );
 	const char * assistor_name = assistor == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->attacker_team ) ), Uppercase( &temp, assistor->name ) );
 
-	Span< const char * > obituaries = StaticSpan( normal_obituaries );
-
 	if( attackerNum == 0 ) {
 		current->type = OBITUARY_ACCIDENT;
 
 		if( mod == MeanOfDeath_Void ) {
 			attacker_name = temp( "{}{}", ImGuiColorToken( rgba8_black ), "THE VOID" );
-			obituaries = StaticSpan( void_obituaries );
 		}
 		else if( mod == MeanOfDeath_Spike ) {
 			attacker_name = temp( "{}{}", ImGuiColorToken( rgba8_black ), "A SPIKE" );
-			obituaries = StaticSpan( spike_obituaries );
 		}
 		else {
 			return;
 		}
 	}
 
-	// do these in order because arg evaluation order is undefined
-	const char * prefix1 = RandomPrefix( &rng, 0.05f );
-	const char * prefix2 = RandomPrefix( &rng, 0.05f );
-	const char * obituary = temp( "{}{}{}", prefix1, prefix2, obituaries[ random_uniform( &rng, 0, obituaries.n ) ] );
+	const char * obituary = MakeObituary( &temp, &rng, current->type, mod );
+
+	if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
+		self_obituary.time = cls.monotonicTime;
+		self_obituary.entropy = entropy;
+		self_obituary.type = current->type;
+		self_obituary.mod = mod;
+	}
 
 	if( attacker == victim ) {
-		const char * suicide_prefix = RandomSuicidePrefix( &rng );
 		current->type = OBITUARY_SUICIDE;
 
-		CG_AddChat( temp( "{} {}{}{} {}",
+		CG_AddChat( temp( "{} {}{} {}",
 			victim_name,
-			ImGuiColorToken( rgba8_diesel_yellow ), suicide_prefix, obituary,
+			ImGuiColorToken( rgba8_diesel_yellow ), obituary,
 			victim_name
 		) );
 	}
@@ -458,7 +468,7 @@ void CG_SC_Obituary() {
 			) );
 		}
 		else {
-			const char * conjugation = RandomConjunction( &rng );
+			const char * conjugation = random_select( &rng, conjunctions );
 			CG_AddChat( temp( "{} {}{} {} {}{} {}",
 				attacker_name,
 				ImGuiColorToken( 255, 255, 255, 255 ), conjugation,
@@ -470,10 +480,6 @@ void CG_SC_Obituary() {
 
 		if( ISVIEWERENTITY( attackerNum ) ) {
 			CG_CenterPrint( temp( "{} {}", obituary, Uppercase( &temp, victim->name ) ) );
-		}
-		else if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
-			self_obituary.time = cls.monotonicTime;
-			self_obituary.entropy = entropy;
 		}
 	}
 }
@@ -628,7 +634,7 @@ static void CG_DrawObituaries(
 				RNG rng = new_rng( self_obituary.entropy, 0 );
 
 				TempAllocator temp = cls.frame_arena.temp();
-				const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ) );
+				const char * obituary = MakeObituary( &temp, &rng, self_obituary.type, self_obituary.mod );
 
 				float size = Lerp( h * 0.5f, Unlerp01( 1.0f, t, 3.0f ), h * 0.75f );
 				Vec4 color = CG_TeamColorVec4( TEAM_ENEMY );

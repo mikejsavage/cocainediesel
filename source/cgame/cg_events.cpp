@@ -773,7 +773,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 			else {
 				// no direction
-				CG_GrenadeExplosion( ent->origin, Vec3( 0.0f ), team_color );
+				CG_GrenadeExplosion( ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), team_color );
 			}
 
 		} break;

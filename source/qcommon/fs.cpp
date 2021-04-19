@@ -10,6 +10,14 @@ static char * root_dir_path;
 static char * home_dir_path;
 static char * versioned_home_dir_path;
 
+static void ReplaceBackslashes( char * path ) {
+	char * cursor = path;
+	while( ( cursor = StrChrUTF8( cursor, '\\' ) ) != NULL ) {
+		*cursor = '/';
+		cursor++;
+	}
+}
+
 static char * FindRootDir( Allocator * a ) {
 	int len = wai_getExecutablePath( NULL, 0, NULL );
 	if( len == -1 ) {
@@ -41,6 +49,10 @@ void InitFS() {
 	home_dir_path = CopyString( sys_allocator, root_dir_path );
 	versioned_home_dir_path = CopyString( sys_allocator, home_dir_path );
 #endif
+
+	ReplaceBackslashes( root_dir_path );
+	ReplaceBackslashes( versioned_home_dir_path );
+	ReplaceBackslashes( home_dir_path );
 }
 
 void ShutdownFS() {

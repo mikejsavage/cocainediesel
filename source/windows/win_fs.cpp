@@ -62,14 +62,6 @@ static char * WideToUTF8( Allocator * a, const wchar_t * wide ) {
 	return utf8;
 }
 
-static void ReplaceBackslashes( char * path ) {
-	char * cursor = path;
-	while( ( cursor = StrChrUTF8( cursor, '\\' ) ) != NULL ) {
-		*cursor = '/';
-		cursor++;
-	}
-}
-
 char * FindHomeDirectory( Allocator * a ) {
 	wchar_t * wide_documents_path;
 	if( SHGetKnownFolderPath( FOLDERID_Documents, 0, NULL, &wide_documents_path ) != S_OK ) {
@@ -79,7 +71,6 @@ char * FindHomeDirectory( Allocator * a ) {
 
 	char * documents_path = WideToUTF8( a, wide_documents_path );
 	defer { FREE( a, documents_path ); };
-	ReplaceBackslashes( documents_path );
 
 	return ( *a )( "{}/My Games/{}", documents_path, APPLICATION );
 }

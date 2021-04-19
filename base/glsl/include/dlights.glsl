@@ -2,13 +2,15 @@ layout( std140 ) uniform u_DynamicLight {
 	int u_NumDynamicLights;
 };
 
+uniform isamplerBuffer u_DynamicLightTiles;
 uniform samplerBuffer u_DynamicLightData;
 
 void applyDynamicLights( int count, int tile_index, vec3 position, vec3 normal, vec3 viewDir, inout vec3 lambertlight, inout vec3 specularlight ) {
 	for( int i = 0; i < count; i++ ) {
 		int idx = tile_index * 50 + i; // NOTE(msc): 50 = MAX_DLIGHTS_PER_TILE
+		int dlight_index = texelFetch( u_DynamicLightTiles, idx ).x;
 
-		vec4 data = texelFetch( u_DynamicLightData, idx );
+		vec4 data = texelFetch( u_DynamicLightData, dlight_index );
 		vec3 origin = floor( data.xyz );
 		vec3 dlight_color = fract( data.xyz ) / 0.9;
 		float radius = data.w;

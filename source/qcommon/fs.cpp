@@ -131,6 +131,18 @@ static bool CreatePathForFile( Allocator * a, const char * path ) {
 	defer { FREE( a, mutable_path ); };
 
 	char * cursor = mutable_path;
+
+	// don't try to create drives on windows or "" on linux
+#if PLATFORM_WINDOWS
+	if( strlen( cursor ) >= 2 && cursor[ 1 ] == ':' ) {
+		cursor += 3;
+	}
+#else
+	if( strlen( cursor ) >= 1 && cursor[ 0 ] == '/' ) {
+		cursor++;
+	}
+#endif
+
 	while( ( cursor = StrChrUTF8( cursor, '/' ) ) != NULL ) {
 		*cursor = '\0';
 		if( !CreateDirectory( a, mutable_path ) )

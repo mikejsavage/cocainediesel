@@ -98,17 +98,6 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 	}
 	angles->x += cg.xyspeed * cg.bobFracSin * 0.012f;
 
-	// gun angles from delta movement
-	for( int i = 0; i < 3; i++ ) {
-		float delta = AngleNormalize180( ( cg.oldFrame.playerState.viewangles[i] - cg.frame.playerState.viewangles[i] ) * cg.lerpfrac );
-		delta = Clamp( -45.0f, delta, 45.0f );
-
-		if( i == YAW ) {
-			angles->z += 0.001f * delta;
-		}
-		angles->ptr()[i] += 0.002f * delta;
-	}
-
 	// gun angles from kicks
 	*angles += CG_GetKickAngles();
 }

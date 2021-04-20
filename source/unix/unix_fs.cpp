@@ -82,7 +82,7 @@ bool RemoveFile( Allocator * a, const char * path ) {
 }
 
 bool CreateDirectory( Allocator * a, const char * path ) {
-	return mkdir( path, 0755 ) == 0;
+	return mkdir( path, 0755 ) == 0 || errno == EEXIST;
 }
 
 struct ListDirHandleImpl {

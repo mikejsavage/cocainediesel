@@ -113,6 +113,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 		centity_t * cent = ( centity_t * ) data;
 
 		Vec4 color = CG_TeamColorVec4( cent->current.team );
+		DrawDynamicLight( trace->endpos, color, 10000.0f );
 		DoVisualEffect( "weapons/lg/tip_hit", trace->endpos, trace->plane.normal, 1.0f, color );
 
 		cent->lg_tip_sound = S_ImmediateFixedSound( "weapons/lg/tip_hit", trace->endpos, 1.0f, cent->lg_tip_sound );

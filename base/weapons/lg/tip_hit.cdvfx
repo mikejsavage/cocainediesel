@@ -1,11 +1,4 @@
 {
-  dlight {
-    intensity 10000
-    lifetime 0.01
-    color 1 1 1 1
-    color_override
-  }
-
   particles {
     material textures/vfx/trace1
     material textures/vfx/trace2

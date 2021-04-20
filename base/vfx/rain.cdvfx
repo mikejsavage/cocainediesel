@@ -16,6 +16,6 @@
 
     lifetime 5
     lifetime_distribution 0.2
-    count 1
+    emission 250
   }
 }

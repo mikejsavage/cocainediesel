@@ -808,7 +808,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 			}
 		} else {
 			for( size_t i = 0; i < ps->num_particles; i++ ) {
-				if( ps->gpu_instances_time[ i ] < cls.monotonicTime ) {
+				if( ps->gpu_instances_time[ i ] < cls.gametime ) {
 					ps->num_particles--;
 					Swap2( &ps->gpu_instances[ i ], &ps->gpu_instances[ ps->num_particles ] );
 					Swap2( &ps->gpu_instances_time[ i ], &ps->gpu_instances_time[ ps->num_particles ] );
@@ -825,7 +825,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 			for( size_t i = 0; i < ps->new_particles; i++ ) {
 				ps->gpu_instances[ ps->num_particles + i ] = ps->num_particles + i;
 				if( !ps->feedback ) {
-					ps->gpu_instances_time[ ps->num_particles + i ] = cls.monotonicTime + ps->particles[ i ].lifetime * 1000.0f;
+					ps->gpu_instances_time[ ps->num_particles + i ] = cls.gametime + ps->particles[ i ].lifetime * 1000.0f;
 				}
 			}
 		}
@@ -847,14 +847,13 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	ps->new_particles = 0;
 }
 
-void DrawParticleSystem( ParticleSystem * ps ) {
+void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	DisableFPEScoped;
 
 	if( ps->num_particles == 0 )
 		return;
 
 	ZoneScoped;
-	float dt = cls.frametime / 1000.0f;
 
 	if( ps->feedback ) {
 		UpdateParticlesFeedback( ps->update_mesh, ps->vb, ps->vb2, ps->vb_feedback, ps->radius, ps->num_particles, dt );
@@ -876,12 +875,20 @@ void DrawParticleSystem( ParticleSystem * ps ) {
 void DrawParticles() {
 	float dt = cls.frametime / 1000.0f;
 
+	s64 total_particles = 0;
+	s64 total_new_particles = 0;
+
 	for( size_t i = 0; i < num_particleSystems; i++ ) {
 		if( particleSystems[ i ].initialized ) {
+			total_particles += particleSystems[ i ].num_particles;
+			total_new_particles += particleSystems[ i ].new_particles;
 			UpdateParticleSystem( &particleSystems[ i ], dt );
-			DrawParticleSystem( &particleSystems[ i ] );
+			DrawParticleSystem( &particleSystems[ i ], dt );
 		}
 	}
+
+	TracyPlot( "Particles", total_particles );
+	TracyPlot( "New Particles", total_new_particles );
 
 	if( cg_particleDebug != NULL && cg_particleDebug->integer ) {
 		const ImGuiIO & io = ImGui::GetIO();

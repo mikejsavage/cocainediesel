@@ -627,7 +627,7 @@ int CG_DemoCam_FreeFly() {
 	const float SPEED = 500;
 
 	if( cgs.demoPlaying && CamIsFree ) {
-		Vec3 wishvel, wishdir, forward, right, up, moveangles;
+		Vec3 wishvel, forward, right, up, moveangles;
 		float fmove, smove, upmove, wishspeed, maxspeed;
 
 		maxspeed = 250;
@@ -654,7 +654,6 @@ int CG_DemoCam_FreeFly() {
 		wishvel.z += upmove;
 
 		wishspeed = Length( wishvel );
-		wishdir = Normalize( wishvel );
 		if( wishspeed > maxspeed ) {
 			wishspeed = maxspeed / wishspeed;
 			wishvel = wishvel * ( wishspeed );

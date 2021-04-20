@@ -98,6 +98,9 @@ void main() {
 	color.a = FogAlpha( color.a, length( v_Position - u_CameraPos ) );
 	color.a = VoidFogAlpha( color.a, v_Position.z );
 
+	if( color.a < 0.01 )
+		discard;
+
 	f_Albedo = LinearTosRGB( color );
 }
 

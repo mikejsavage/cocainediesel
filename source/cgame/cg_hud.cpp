@@ -416,6 +416,8 @@ void CG_SC_Obituary() {
 		current->attacker_team = cg_entities[ attackerNum ].current.team;
 	}
 
+	int assistor_team = assistor == NULL ? -1 : cg_entities[ topAssistorNum ].current.team;
+
 	if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
 		self_obituary.entropy = 0;
 	}
@@ -425,7 +427,7 @@ void CG_SC_Obituary() {
 
 	const char * attacker_name = attacker == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->attacker_team ) ), Uppercase( &temp, attacker->name ) );
 	const char * victim_name = temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->victim_team ) ), Uppercase( &temp, victim->name ) );
-	const char * assistor_name = assistor == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->attacker_team ) ), Uppercase( &temp, assistor->name ) );
+	const char * assistor_name = assistor == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( assistor_team ) ), Uppercase( &temp, assistor->name ) );
 
 	if( attackerNum == 0 ) {
 		current->type = OBITUARY_ACCIDENT;

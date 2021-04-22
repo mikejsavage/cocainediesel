@@ -1196,6 +1196,7 @@
 "WRONG",
 "X AE A-12 ",
 "X-RAY ",
+"XD",
 "XI JIN",
 "XXX",
 "YAY",

@@ -404,7 +404,7 @@ double PositiveMod( double x, double y ) {
 	return res;
 }
 
-Vec3 UniformSampleSphere( RNG * rng ) {
+Vec3 UniformSampleOnSphere( RNG * rng ) {
 	float z = random_float11( rng );
 	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
 	float phi = 2.0f * PI * random_float01( rng );
@@ -412,7 +412,7 @@ Vec3 UniformSampleSphere( RNG * rng ) {
 }
 
 Vec3 UniformSampleInsideSphere( RNG * rng ) {
-	Vec3 p = UniformSampleSphere( rng );
+	Vec3 p = UniformSampleOnSphere( rng );
 	float r = cbrtf( random_float01( rng ) );
 	return p * r;
 }
@@ -425,7 +425,7 @@ Vec3 UniformSampleCone( RNG * rng, float theta ) {
 	return Vec3( r * cosf( phi ), r * sinf( phi ), z );
 }
 
-Vec2 UniformSampleDisk( RNG * rng ) {
+Vec2 UniformSampleInsideCircle( RNG * rng ) {
 	float theta = random_float01( rng ) * 2.0f * PI;
 	float r = sqrtf( random_float01( rng ) );
 	return Vec2( r * cosf( theta ), r * sinf( theta ) );

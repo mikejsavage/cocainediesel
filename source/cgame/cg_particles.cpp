@@ -964,14 +964,14 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 		} break;
 
 		case ParticleEmitterPosition_Disk: {
-			Vec2 p = UniformSampleDisk( &cls.rng );
+			Vec2 p = UniformSampleInsideCircle( &cls.rng );
 			position += pos.radius * Vec3( p, 0.0f );
 			// TODO: pos.normal;
 		} break;
 
 		case ParticleEmitterPosition_Line: {
 			position = Lerp( position, random_float01( &cls.rng ), pos.end );
-			position += ( dir_transform * Vec4( UniformSampleDisk( &cls.rng ) * pos.radius, 0.0f, 0.0f ) ).xyz();
+			position += ( dir_transform * Vec4( UniformSampleInsideCircle( &cls.rng ) * pos.radius, 0.0f, 0.0f ) ).xyz();
 		} break;
 	}
 
@@ -981,7 +981,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 		dir = ( dir_transform * Vec4( UniformSampleCone( &cls.rng, Radians( pos.theta ) ), 0.0f ) ).xyz();
 	}
 	else {
-		dir = UniformSampleSphere( &cls.rng );
+		dir = UniformSampleOnSphere( &cls.rng );
 	}
 
 	float speed = emitter->speed + SampleRandomDistribution( &cls.rng, emitter->speed_distribution );

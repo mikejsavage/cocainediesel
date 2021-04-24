@@ -102,10 +102,10 @@ double PositiveMod( double x, double y );
 
 struct RNG;
 
-Vec3 UniformSampleSphere( RNG * rng );
+Vec3 UniformSampleOnSphere( RNG * rng );
 Vec3 UniformSampleInsideSphere( RNG * rng );
 Vec3 UniformSampleCone( RNG * rng, float theta );
-Vec2 UniformSampleDisk( RNG * rng );
+Vec2 UniformSampleInsideCircle( RNG * rng );
 float SampleNormalDistribution( RNG * rng );
 
 Vec3 Project( Vec3 a, Vec3 b );

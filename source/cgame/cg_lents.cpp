@@ -216,7 +216,7 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 		Gib * gib = &gibs[ num_gibs ];
 		num_gibs++;
 
-		Vec3 dir = Vec3( UniformSampleDisk( &cls.rng ), 0.0f );
+		Vec3 dir = Vec3( UniformSampleInsideCircle( &cls.rng ), 0.0f );
 		gib->origin = origin + dir * radius;
 
 		dir.z = random_float01( &cls.rng );

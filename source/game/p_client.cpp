@@ -21,29 +21,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define PLAYER_MASS 200
 
-/*
-* ClientObituary
-*/
 static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker, int topAssistEntNo ) {
-	char message[64];
-	char message2[64];
-
 	int mod = meansOfDeath;
-
-	GS_Obituary( self, attacker, mod, message, message2 );
 
 	// duplicate message at server console for logging
 	if( attacker && attacker->r.client ) {
 		if( attacker != self ) { // regular death message
 			self->enemy = attacker;
 			if( is_dedicated_server ) {
-				Com_Printf( "%s %s %s%s\n", self->r.client->netname, message,
-						  attacker->r.client->netname, message2 );
+				Com_Printf( "\"%s\" \"%s\" %d\n", self->r.client->netname, attacker->r.client->netname, mod );
 			}
 		} else {      // suicide
 			self->enemy = NULL;
 			if( is_dedicated_server ) {
-				Com_Printf( "%s %s\n", self->r.client->netname, message );
+				Com_Printf( "\"%s\" suicide %d\n", self->r.client->netname, mod );
 			}
 
 			G_PositionedSound( self->s.origin, CHAN_AUTO, "sounds/trombone/sad" );
@@ -53,7 +44,7 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 	} else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
 		if( is_dedicated_server ) {
-			Com_Printf( "%s %s\n", self->r.client->netname, message );
+			Com_Printf( "\"%s\" suicide %d\n", self->r.client->netname, mod );
 		}
 
 		G_Obituary( self, attacker == self ? self : world, topAssistEntNo, mod );
@@ -109,9 +100,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->s.ownerNum = ent->s.number;
 
 	int mod = meansOfDeath;
-	bool gib = mod == MeanOfDeath_Railgun || mod == MeanOfDeath_Trigger || mod == MeanOfDeath_Telefrag
+	bool gib = mod == Weapon_Railgun || mod == MeanOfDeath_Trigger || mod == MeanOfDeath_Telefrag
 		|| mod == MeanOfDeath_Explosion || mod == MeanOfDeath_Spike ||
-		( ( mod == MeanOfDeath_RocketLauncher || mod == MeanOfDeath_GrenadeLauncher ) && damage >= 20 );
+		( ( mod == Weapon_RocketLauncher || mod == Weapon_GrenadeLauncher ) && damage >= 20 );
 
 	if( gib ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );

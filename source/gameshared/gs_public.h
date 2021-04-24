@@ -475,7 +475,6 @@ int GS_TeamFromName( const char *teamname );
 //===============================================================
 
 // gs_misc.c
-void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *message2 );
 Vec3 GS_EvaluateJumppad( const SyncEntityState * jumppad, Vec3 velocity );
 void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, const SyncEntityState * pusher );
 int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec3 maxs );
@@ -508,25 +507,10 @@ static constexpr const char *gs_keyicon_names[] = {
 	"special"
 };
 
-enum MeansOfDeath {
-	MeanOfDeath_Knife,
-	MeanOfDeath_Pistol,
-	MeanOfDeath_MachineGun,
-	MeanOfDeath_Deagle,
-	MeanOfDeath_Shotgun,
-	MeanOfDeath_AssaultRifle,
-	MeanOfDeath_StakeGun,
-	MeanOfDeath_GrenadeLauncher,
-	MeanOfDeath_RocketLauncher,
-	MeanOfDeath_Plasma,
-	MeanOfDeath_BubbleGun,
-	MeanOfDeath_Lasergun,
-	MeanOfDeath_Railgun,
-	MeanOfDeath_Sniper,
-	MeanOfDeath_Rifle,
-	MeanOfDeath_MasterBlaster,
+enum MeanOfDeath {
+	// implicit WeaponType enum at the start
 
-	MeanOfDeath_Slime,
+	MeanOfDeath_Slime = Weapon_Count,
 	MeanOfDeath_Lava,
 	MeanOfDeath_Crush, // moving item blocked by player
 	MeanOfDeath_Telefrag,
@@ -772,7 +756,6 @@ struct WeaponDef {
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
 SyncPlayerState::WeaponInfo * GS_FindWeapon( SyncPlayerState * player, WeaponType weapon );
-WeaponType MODToWeapon( int mod );
 WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, const usercmd_t * cmd, int timeDelta );
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, float r, float u, int range, int ignore, int timeDelta );
 void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * trace, Vec3 dir, void * data ), void * data );

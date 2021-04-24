@@ -24,29 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/q_collision.h"
 #include "gameshared/gs_public.h"
 
-WeaponType MODToWeapon( int mod ) {
-	switch( mod ) {
-		case MeanOfDeath_Knife: return Weapon_Knife;
-		case MeanOfDeath_Pistol: return Weapon_Pistol;
-		case MeanOfDeath_MachineGun: return Weapon_MachineGun;
-		case MeanOfDeath_Deagle: return Weapon_Deagle;
-		case MeanOfDeath_Shotgun: return Weapon_Shotgun;
-		case MeanOfDeath_AssaultRifle: return Weapon_AssaultRifle;
-		case MeanOfDeath_StakeGun: return Weapon_StakeGun;
-		case MeanOfDeath_GrenadeLauncher: return Weapon_GrenadeLauncher;
-		case MeanOfDeath_RocketLauncher: return Weapon_RocketLauncher;
-		case MeanOfDeath_Plasma: return Weapon_Plasma;
-		case MeanOfDeath_BubbleGun: return Weapon_BubbleGun;
-		case MeanOfDeath_Railgun: return Weapon_Railgun;
-		case MeanOfDeath_Lasergun: return Weapon_Laser;
-		case MeanOfDeath_Sniper: return Weapon_Sniper;
-		case MeanOfDeath_Rifle: return Weapon_Rifle;
-		case MeanOfDeath_MasterBlaster: return Weapon_MasterBlaster;
-	}
-
-	return Weapon_None;
-}
-
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, float r, float u, int range, int ignore, int timeDelta ) {
 	Vec3 end = start + dir * range + right * r + up * u;
 

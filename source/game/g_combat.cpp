@@ -309,7 +309,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 		}
 		else if( attacker == targ ) {
 			if( level.gametype.selfDamage ) {
-				take = damage * GS_GetWeaponDef( MODToWeapon( mod ) )->selfdamage;
+				take = damage * GS_GetWeaponDef( mod )->selfdamage;
 			}
 			else {
 				take = 0;
@@ -328,7 +328,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 		// shotgun calls G_Damage for every bullet, so we accumulate damage
 		// in W_Fire_Shotgun and show one number there instead
-		if( mod != MeanOfDeath_Shotgun ) {
+		if( mod != Weapon_Shotgun ) {
 			u64 parm = HEALTH_TO_INT( take ) << 1;
 			if( dflags & DAMAGE_HEADSHOT ) {
 				parm |= 1;
@@ -378,9 +378,9 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	int clamped_takedmg = HEALTH_TO_INT( take );
 
 	// add damage done to stats
-	if( statDmg && MODToWeapon( mod ) != Weapon_None && client && attacker->r.client ) {
-		attacker->r.client->level.stats.accuracy_hits[ MODToWeapon( mod ) ]++;
-		attacker->r.client->level.stats.accuracy_damage[ MODToWeapon( mod ) ] += damage;
+	if( statDmg && mod < Weapon_Count && client && attacker->r.client ) {
+		attacker->r.client->level.stats.accuracy_hits[ mod ]++;
+		attacker->r.client->level.stats.accuracy_damage[ mod ] += damage;
 	}
 
 	// accumulate given damage for hit sounds

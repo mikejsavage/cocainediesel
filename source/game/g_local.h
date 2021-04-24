@@ -662,6 +662,7 @@ struct projectileinfo_t {
 	float maxDamage;
 	float minKnockback;
 	float maxKnockback;
+	MeanOfDeath mod;
 };
 
 struct chasecam_t {

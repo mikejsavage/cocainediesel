@@ -487,9 +487,8 @@ void CG_SC_Obituary() {
 }
 
 static const Material * MODToIcon( int mod ) {
-	int weapon = MODToWeapon( mod );
-	if( weapon != Weapon_None ) {
-		return cgs.media.shaderWeaponIcon[ weapon ];
+	if( mod < Weapon_Count ) {
+		return cgs.media.shaderWeaponIcon[ mod ];
 	}
 
 	switch( mod ) {

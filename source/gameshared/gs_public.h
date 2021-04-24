@@ -32,11 +32,6 @@ constexpr Vec3 playerbox_stand_mins = Vec3( -16, -16, -24 );
 constexpr Vec3 playerbox_stand_maxs = Vec3( 16, 16, 40 );
 constexpr int playerbox_stand_viewheight = 30;
 
-// TODO: crouch temp disabled
-// constexpr Vec3 playerbox_crouch_mins = Vec3( -16, -16, -24 );
-// constexpr Vec3 playerbox_crouch_maxs = Vec3( 16, 16, 16 );
-// constexpr int playerbox_crouch_viewheight = 12;
-
 constexpr Vec3 playerbox_crouch_mins = Vec3( -16, -16, -24 );
 constexpr Vec3 playerbox_crouch_maxs = Vec3( 16, 16, 39 );
 constexpr int playerbox_crouch_viewheight = 30;

@@ -133,9 +133,6 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	return body;
 }
 
-/*
-* player_die
-*/
 void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, int damage, const Vec3 point ) {
 	snap_edict_t snap_backup = ent->snap;
 	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
@@ -841,9 +838,6 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 
 //==============================================================
 
-/*
-* G_PredictedEvent
-*/
 void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 	edict_t *ent = &game.edicts[entNum];
 	switch( ev ) {
@@ -877,9 +871,6 @@ void G_PredictedFireWeapon( int entNum, u64 weapon_and_entropy ) {
 	event->s.team = ent->s.team;
 }
 
-/*
-* ClientThink
-*/
 void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	ZoneScoped;
 

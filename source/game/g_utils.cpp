@@ -902,11 +902,6 @@ void G_ClearCenterPrint( edict_t *ent ) {
 	G_CenterPrintMsg( ent, "%s", "" );
 }
 
-/*
-* G_Obituary
-*
-* Prints death message to all clients
-*/
 void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, int mod ) {
 	TempAllocator temp = svs.frame_arena.temp();
 	PF_GameCmd( NULL, temp( "obry {} {} {} {} {}", ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod, random_u64( &svs.rng ) ) );
@@ -916,9 +911,6 @@ void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, int m
 // SOUNDS
 //==================================================
 
-/*
-* _G_SpawnSound
-*/
 static edict_t *_G_SpawnSound( int channel, StringHash sound ) {
 	edict_t * ent = G_Spawn();
 	ent->r.svflags &= ~SVF_NOCLIENT;
@@ -930,9 +922,6 @@ static edict_t *_G_SpawnSound( int channel, StringHash sound ) {
 	return ent;
 }
 
-/*
-* G_Sound
-*/
 edict_t *G_Sound( edict_t *owner, int channel, StringHash sound ) {
 	if( sound == EMPTY_HASH ) {
 		return NULL;
@@ -957,9 +946,6 @@ edict_t *G_Sound( edict_t *owner, int channel, StringHash sound ) {
 	return ent;
 }
 
-/*
-* G_PositionedSound
-*/
 edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound ) {
 	if( sound == EMPTY_HASH ) {
 		return NULL;
@@ -978,16 +964,10 @@ edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound ) {
 	return ent;
 }
 
-/*
-* G_GlobalSound
-*/
 void G_GlobalSound( int channel, StringHash sound ) {
 	G_PositionedSound( Vec3( 0.0f ), channel, sound );
 }
 
-/*
-* G_LocalSound
-*/
 void G_LocalSound( edict_t * owner, int channel, StringHash sound ) {
 	if( sound == EMPTY_HASH )
 		return;

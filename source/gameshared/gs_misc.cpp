@@ -48,9 +48,6 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 	gs->api.PredictedEvent( playerState->POVnum, EV_JUMP_PAD, 0 );
 }
 
-/*
-* GS_WaterLevel
-*/
 int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec3 maxs ) {
 	int waterlevel = 0;
 

@@ -572,6 +572,76 @@ const WeaponDef gs_weaponDefs[] = {
 		/* speed                */ 3000,
 		/* spread               */ 25,
 	},
+
+	{
+		/* name, short name     */ "Road Gun", "road",
+		/* category             */ WeaponCategory_Backup,
+
+		/* projectile count     */ 1,
+		/* clip size            */ 21,
+		/* reload time          */ 1500,
+		/* staged reloading     */ false,
+
+		// timings (in msecs)
+		/* weapon up time       */ WEAPONUP_TIME_FAST,
+		/* weapon down time     */ WEAPONDOWN_TIME,
+		/* refire time          */ 50,
+		/* timeout / range      */ 5000,
+		/* max recoil           */ EulerDegrees2( 50.0f, 25.0f ),
+		/* min recoil           */ EulerDegrees2( 25.0f, -25.0f ),
+		/* recoil recovery      */ 2000.0f,
+		/* firing mode          */ FiringMode_Auto,
+
+		/* zoom fov             */ 0.0f,
+		/* zoom inaccuracy      */ 0.0f,
+
+		// damages
+		/* damage               */ 7,
+		/* self damage          */ 0,
+		/* knockback            */ 10,
+		/* splash radius        */ 0,
+		/* splash min damage    */ 0,
+		/* splash min knockback */ 0,
+
+		// projectile def
+		/* speed                */ 3000,
+		/* spread               */ 0,
+	},
+
+	{
+		/* name, short name     */ "Minigun", "minigun",
+		/* category             */ WeaponCategory_Backup,
+
+		/* projectile count     */ 1,
+		/* clip size            */ 0,
+		/* reload time          */ 0,
+		/* staged reloading     */ false,
+
+		// timings (in msecs)
+		/* weapon up time       */ WEAPONUP_TIME_VERY_SLOW,
+		/* weapon down time     */ WEAPONDOWN_TIME,
+		/* refire time          */ 75,
+		/* timeout / range      */ HITSCAN_RANGE,
+		/* max recoil           */ EulerDegrees2( 0.0f, 0.0f ),
+		/* min recoil           */ EulerDegrees2( 0.0f, 0.0f ),
+		/* recoil recovery      */ 1000.0f,
+		/* firing mode          */ FiringMode_Auto,
+
+		/* zoom fov             */ 0.0f,
+		/* zoom inaccuracy      */ 0.0f,
+
+		// damages
+		/* damage               */ 9,
+		/* self damage          */ 0,
+		/* knockback            */ 45,
+		/* splash radius        */ 0,
+		/* splash min damage    */ 0,
+		/* splash min knockback */ 0,
+
+		// projectile def
+		/* speed                */ INSTANT,
+		/* spread               */ 250,
+	},
 };
 
 STATIC_ASSERT( ARRAY_COUNT( gs_weaponDefs ) == Weapon_Count );

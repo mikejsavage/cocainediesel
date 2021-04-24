@@ -718,7 +718,16 @@ void W_Fire_Blast( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	}
 }
 
-void G_FireWeapon( edict_t *ent, u64 weap ) {
+void W_Fire_Road( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, Weapon_RoadGun, W_Touch_Blast, ET_BLAST, MASK_SHOT );
+
+	bullet->classname = "zorg";
+	bullet->movetype = MOVETYPE_BOUNCEGRENADE;
+	bullet->stop = G_FreeEdict;
+	bullet->s.sound = "weapons/road/trail";
+}
+
+void G_FireWeapon( edict_t * ent, u64 weap ) {
 	Vec3 origin, angles;
 	Vec3 viewoffset = Vec3( 0.0f );
 	int timeDelta = 0;
@@ -802,6 +811,18 @@ void G_FireWeapon( edict_t *ent, u64 weap ) {
 		case Weapon_MasterBlaster:
 			W_Fire_Blast( ent, origin, angles, timeDelta );
 			break;
+
+		case Weapon_RoadGun:
+			W_Fire_Road( ent, origin, angles, timeDelta );
+			break;
+
+		case Weapon_Minigun: {
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Minigun );
+
+			Vec3 dir;
+			AngleVectors( angles, &dir, NULL, NULL );
+			ent->velocity -= dir * GS_GetWeaponDef( Weapon_Minigun )->knockback;
+		} break;
 	}
 
 	// add stats

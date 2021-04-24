@@ -46,7 +46,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ INSTANT,
 		/* spread               */ 45,
-		/* pierce               */ false,
 	},
 
 	{
@@ -82,7 +81,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ INSTANT,
 		/* spread               */ 0,
-		/* pierce               */ false,
 	},
 
 	{
@@ -118,7 +116,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ INSTANT,
 		/* spread               */ 0,
-		/* pierce               */ false,
 	},
 
 	{
@@ -154,7 +151,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ INSTANT,
 		/* spread               */ 0,
-		/* pierce               */ true,
 	},
 
 	{
@@ -190,7 +186,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ INSTANT,
 		/* spread               */ 50,
-		/* pierce               */ false,
 	},
 
 	{
@@ -226,7 +221,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ INSTANT,
 		/* spread               */ 0,
-		/* pierce               */ true,
 	},
 
 	{
@@ -262,7 +256,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ 2000,
 		/* spread               */ 0,
-		/* pierce               */ false,
 	},
 
 	{
@@ -298,7 +291,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ 1400,
 		/* spread               */ 0,
-		/* pierce               */ false,
 	},
 
 	{
@@ -334,7 +326,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ 1400,
 		/* spread               */ 0,
-		/* pierce               */ false,
 	},
 
 	{
@@ -370,7 +361,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ 3500,
 		/* spread               */ 0.0f,
-		/* pierce               */ false,
 	},
 
 	{
@@ -406,7 +396,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ 650,
 		/* spread               */ 0,
-		/* pierce               */ false,
 	},
 
 	{
@@ -442,7 +431,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ INSTANT,
 		/* spread               */ 0,
-		/* pierce               */ false,
 	},
 
 	{
@@ -478,7 +466,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ INSTANT,
 		/* spread               */ 0,
-		/* pierce               */ true,
 	},
 
 	{
@@ -514,7 +501,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ INSTANT,
 		/* spread               */ 0,
-		/* pierce               */ true,
 	},
 
 	{
@@ -550,7 +536,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ 5500,
 		/* spread               */ 0,
-		/* pierce               */ false,
 	},
 
 	{
@@ -586,7 +571,6 @@ const WeaponDef gs_weaponDefs[] = {
 		// projectile def
 		/* speed                */ 3000,
 		/* spread               */ 25,
-		/* pierce               */ false,
 	},
 };
 

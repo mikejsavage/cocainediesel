@@ -285,67 +285,16 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 		y_spread = random_float11( &svs.rng ) * spread;
 	}
 
-	if( def->pierce ) {
-		Vec3 end = start + dir * def->range;
-		Vec3 from = start;
+	trace_t trace, wallbang;
+	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, x_spread, y_spread, def->range, ENTNUM( self ), timeDelta );
+	if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
+		int dmgflags = DAMAGE_KNOCKBACK_SOFT;
 
-		edict_t * ignore = self;
-
-		trace_t tr;
-		tr.ent = -1;
-
-		while( ignore ) {
-			G_Trace4D( &tr, from, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_WALLBANG, timeDelta );
-
-			from = tr.endpos;
-			ignore = NULL;
-
-			if( tr.ent == -1 ) {
-				break;
-			}
-
-			// some entity was touched
-			edict_t * hit = &game.edicts[tr.ent];
-			int hit_movetype = hit->movetype; // backup the original movetype as the entity may "die"
-			if( hit == world ) { // stop dead if hit the world
-				break;
-			}
-
-			// allow trail to go through BBOX entities (players, gibs, etc)
-			if( !CM_IsBrushModel( CM_Server, hit->s.model ) ) {
-				ignore = hit;
-			}
-
-			if( hit != self && hit->takedamage ) {
-				int dmgflags = DAMAGE_KNOCKBACK_SOFT;
-				if( IsHeadshot( tr.ent, tr.endpos, timeDelta ) ) {
-					dmgflags |= DAMAGE_HEADSHOT;
-				}
-
-				G_Damage( hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, dmgflags, mod );
-
-				// if we hit a teammate stop the trace
-				if( G_IsTeamDamage( &hit->s, &self->s ) ) {
-					break;
-				}
-			}
-
-			if( hit_movetype == MOVETYPE_NONE || hit_movetype == MOVETYPE_PUSH ) {
-				break;
-			}
+		if( IsHeadshot( trace.ent, trace.endpos, timeDelta ) ) {
+			dmgflags |= DAMAGE_HEADSHOT;
 		}
-	} else {
-		trace_t trace, wallbang;
-		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, x_spread, y_spread, def->range, ENTNUM( self ), timeDelta );
-		if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
-			int dmgflags = DAMAGE_KNOCKBACK_SOFT;
 
-			if( IsHeadshot( trace.ent, trace.endpos, timeDelta ) ) {
-				dmgflags |= DAMAGE_HEADSHOT;
-			}
-
-			G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, mod );
-		}
+		G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, mod );
 	}
 }
 
@@ -454,9 +403,6 @@ static void W_Touch_Stake( edict_t *ent, edict_t *other, cplane_t *plane, int su
 		ent->enemy = other;
 		edict_t * event = G_SpawnEvent( EV_STAKE_IMPALE, DirToU64( -SafeNormalize( ent->velocity ) ), &ent->s.origin );
 		event->s.team = ent->s.team;
-		if( !def->pierce ) {
-			G_FreeEdict( ent );
-		}
 	} else {
 		ent->s.type = ET_GENERIC;
 		// ent->think = G_FreeEdict;
@@ -718,9 +664,6 @@ static void W_Touch_RifleBullet( edict_t *ent, edict_t *other, cplane_t *plane, 
 	if( other->takedamage && ent->enemy != other ) {
 		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MeanOfDeath_Rifle );
 		ent->enemy = other;
-		if( !GS_GetWeaponDef( Weapon_Rifle )->pierce ) {
-			G_FreeEdict( ent );
-		}
 	} else {
 		G_FreeEdict( ent );
 	}
@@ -751,9 +694,6 @@ static void W_Touch_Blast( edict_t *ent, edict_t *other, cplane_t *plane, int su
 		event->s.team = ent->s.team;
 		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, MeanOfDeath_MasterBlaster );
 		ent->enemy = other;
-		if( !def->pierce ) {
-			G_FreeEdict( ent );
-		}
 	} else {
 		edict_t * event = G_SpawnEvent( EV_BLAST_BOUNCE, DirToU64( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
 		event->s.team = ent->s.team;

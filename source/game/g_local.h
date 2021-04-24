@@ -169,6 +169,7 @@ extern mempool_t *gamepool;
 
 extern int meansOfDeath;
 extern Vec3 knockbackOfDeath;
+extern int damageFlagsOfDeath;
 
 #define FOFS( x ) offsetof( edict_t,x )
 #define STOFS( x ) offsetof( spawn_temp_t,x )
@@ -406,7 +407,7 @@ void G_CenterPrintMsg( edict_t *ent, _Printf_format_string_ const char *format, 
 #endif
 void G_ClearCenterPrint( edict_t *ent );
 
-void G_Obituary( edict_t *victim, edict_t *attacker, int topAssistEntNo, int mod );
+void G_Obituary( edict_t *victim, edict_t *attacker, int topAssistEntNo, int mod, bool wallbang );
 
 edict_t *G_Sound( edict_t *owner, int channel, StringHash sound );
 edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound );
@@ -502,10 +503,11 @@ void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cpla
 void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edict_t *ignore, int mod );
 
 // damage flags
-#define DAMAGE_RADIUS 0x00000001  // damage was indirect
-#define DAMAGE_NO_PROTECTION 0x00000002
-#define DAMAGE_KNOCKBACK_SOFT 0x00000004
-#define DAMAGE_HEADSHOT 0x00000008
+#define DAMAGE_RADIUS         ( 1 << 0 )  // damage was indirect
+#define DAMAGE_NO_PROTECTION  ( 1 << 1 )
+#define DAMAGE_KNOCKBACK_SOFT ( 1 << 2 )
+#define DAMAGE_HEADSHOT       ( 1 << 3 )
+#define DAMAGE_WALLBANG       ( 1 << 4 )
 
 //
 // g_misc.c

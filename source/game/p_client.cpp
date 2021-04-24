@@ -23,13 +23,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker, int topAssistEntNo ) {
 	int mod = meansOfDeath;
+	bool wallbang = ( damageFlagsOfDeath & DAMAGE_WALLBANG ) != 0;
 
 	// duplicate message at server console for logging
 	if( attacker && attacker->r.client ) {
 		if( attacker != self ) { // regular death message
 			self->enemy = attacker;
 			if( is_dedicated_server ) {
-				Com_Printf( "\"%s\" \"%s\" %d\n", self->r.client->netname, attacker->r.client->netname, mod );
+				Com_Printf( "\"%s\" \"%s\" %d %d\n", self->r.client->netname, attacker->r.client->netname, mod, wallbang ? 1 : 0 );
 			}
 		} else {      // suicide
 			self->enemy = NULL;
@@ -40,14 +41,14 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 			G_PositionedSound( self->s.origin, CHAN_AUTO, "sounds/trombone/sad" );
 		}
 
-		G_Obituary( self, attacker, topAssistEntNo, mod );
+		G_Obituary( self, attacker, topAssistEntNo, mod, wallbang );
 	} else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
 		if( is_dedicated_server ) {
 			Com_Printf( "\"%s\" suicide %d\n", self->r.client->netname, mod );
 		}
 
-		G_Obituary( self, attacker == self ? self : world, topAssistEntNo, mod );
+		G_Obituary( self, attacker == self ? self : world, topAssistEntNo, mod, wallbang );
 	}
 }
 

@@ -277,6 +277,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	}
 
 	meansOfDeath = mod;
+	damageFlagsOfDeath = dflags;
 
 	client = targ->r.client;
 

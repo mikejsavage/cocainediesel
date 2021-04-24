@@ -29,6 +29,7 @@ mempool_t *gamepool;
 
 int meansOfDeath;
 Vec3 knockbackOfDeath;
+int damageFlagsOfDeath;
 
 cvar_t *password;
 cvar_t *g_operator_password;

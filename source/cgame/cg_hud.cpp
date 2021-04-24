@@ -291,6 +291,7 @@ struct obituary_t {
 	char attacker[MAX_INFO_VALUE];
 	int attacker_team;
 	int mod;
+	bool wallbang;
 };
 
 static obituary_t cg_obituaries[MAX_OBITUARIES];
@@ -395,7 +396,8 @@ void CG_SC_Obituary() {
 	int attackerNum = atoi( Cmd_Argv( 2 ) );
 	int topAssistorNum = atoi( Cmd_Argv( 3 ) );
 	int mod = atoi( Cmd_Argv( 4 ) );
-	u64 entropy = StringToU64( Cmd_Argv( 5 ), 0 );
+	bool wallbang = atoi( Cmd_Argv( 5 ) ) == 1;
+	u64 entropy = StringToU64( Cmd_Argv( 6 ), 0 );
 
 	const cg_clientInfo_t * victim = &cgs.clientInfo[ victimNum - 1 ];
 	const cg_clientInfo_t * attacker = attackerNum == 0 ? NULL : &cgs.clientInfo[ attackerNum - 1 ];
@@ -406,6 +408,7 @@ void CG_SC_Obituary() {
 	current->type = OBITUARY_NORMAL;
 	current->time = cls.monotonicTime;
 	current->mod = mod;
+	current->wallbang = wallbang;
 
 	if( victim != NULL ) {
 		Q_strncpyz( current->victim, victim->name, sizeof( current->victim ) );
@@ -592,6 +595,11 @@ static void CG_DrawObituaries(
 		w += icon_padding;
 		w += victim_width;
 
+		if( obr->wallbang ) {
+			w += icon_size;
+			w += icon_padding;
+		}
+
 		if( internal_align == 1 ) {
 			// left
 			xoffset = 0;
@@ -613,8 +621,12 @@ static void CG_DrawObituaries(
 		xoffset += icon_padding;
 
 		Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, pic, AttentionGettingColor() );
-
 		xoffset += icon_size + icon_padding;
+
+		if( obr->wallbang ) {
+			Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, FindMaterial( "weapons/wallbang_icon" ), AttentionGettingColor() );
+			xoffset += icon_size + icon_padding;
+		}
 
 		Vec4 color = CG_TeamColorVec4( obr->victim_team );
 		DrawText( font, layout_cursor_font_size, obr->victim, x + xoffset, obituary_y, color, layout_cursor_font_border );
@@ -649,7 +661,6 @@ static void CG_DrawObituaries(
 //=============================================================================
 
 void CG_ClearAwards() {
-	// reset awards
 	cg.award_head = 0;
 	memset( cg.award_times, 0, sizeof( cg.award_times ) );
 }

@@ -902,9 +902,9 @@ void G_ClearCenterPrint( edict_t *ent ) {
 	G_CenterPrintMsg( ent, "%s", "" );
 }
 
-void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, int mod ) {
+void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, int mod, bool wallbang ) {
 	TempAllocator temp = svs.frame_arena.temp();
-	PF_GameCmd( NULL, temp( "obry {} {} {} {} {}", ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod, random_u64( &svs.rng ) ) );
+	PF_GameCmd( NULL, temp( "obry {} {} {} {} {} {}", ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod, wallbang ? 1 : 0, random_u64( &svs.rng ) ) );
 }
 
 //==================================================

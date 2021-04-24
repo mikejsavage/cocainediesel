@@ -295,6 +295,10 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 			dmgflags |= DAMAGE_HEADSHOT;
 		}
 
+		if( trace.endpos != wallbang.endpos ) {
+			dmgflags |= DAMAGE_WALLBANG;
+		}
+
 		G_Damage( &game.edicts[trace.ent], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, weapon );
 	}
 }
@@ -312,7 +316,8 @@ static void W_Fire_Shotgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 		trace_t trace, wallbang;
 		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM( self ), timeDelta );
 		if( trace.ent != -1 && game.edicts[ trace.ent ].takedamage ) {
-			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, def->damage, def->knockback, 0, Weapon_Shotgun );
+			int dmgflags = trace.endpos == wallbang.endpos ? 0 : DAMAGE_WALLBANG;
+			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, Weapon_Shotgun );
 
 			if( !G_IsTeamDamage( &game.edicts[ trace.ent ].s, &self->s ) && trace.ent <= MAX_CLIENTS ) {
 				damage_dealt[ trace.ent ] += def->damage;

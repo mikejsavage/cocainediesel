@@ -184,6 +184,8 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 		case Weapon_Shotgun:
 		case Weapon_Plasma:
 		case Weapon_BubbleGun:
+		case Weapon_StakeGun:
+		case Weapon_MasterBlaster:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_LIGHTWEAPON, 0, EVENT_CHANNEL );
 			break;
 

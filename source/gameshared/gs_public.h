@@ -323,8 +323,9 @@ struct SyncPlayerState {
 struct usercmd_t {
 	u8 msec;
 	u32 buttons;
+	u16 entropy;
 	s64 serverTimeStamp;
-	s16 angles[3];
+	s16 angles[ 3 ];
 	s8 forwardmove, sidemove, upmove;
 	WeaponType weaponSwitch;
 };
@@ -359,7 +360,7 @@ struct gs_module_api_t {
 	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
 	int ( *PointContents )( Vec3 point, int timeDelta );
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
-	void ( *PredictedFireWeapon )( int entNum, WeaponType weapon );
+	void ( *PredictedFireWeapon )( int entNum, u64 weapon_and_entropy );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, Vec3 previous_origin );
 };
 
@@ -757,6 +758,9 @@ struct WeaponDef {
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
 SyncPlayerState::WeaponInfo * GS_FindWeapon( SyncPlayerState * player, WeaponType weapon );
 WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player, const usercmd_t * cmd, int timeDelta );
-void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, float r, float u, int range, int ignore, int timeDelta );
+void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, Vec2 spread, int range, int ignore, int timeDelta );
+Vec2 RandomSpreadPattern( u16 entropy, float spread );
+float ZoomSpreadness( s16 zoom_time, const WeaponDef * def );
+Vec2 FixedSpreadPattern( int i, float spread );
 void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * trace, Vec3 dir, void * data ), void * data );
 bool GS_CanEquip( SyncPlayerState * player, WeaponType weapon );

@@ -278,17 +278,16 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 	Vec3 dir, right, up;
 	AngleVectors( angles, &dir, &right, &up );
 
-	float x_spread = 0.0f;
-	float y_spread = 0.0f;
-	if( self->r.client != NULL && self->r.client->ps.zoom_time < ZOOMTIME ) {
-		float frac = 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME );
-		float spread = frac * def->range * atanf( Radians( def->zoom_spread ) );
-		x_spread = random_float11( &svs.rng ) * spread;
-		y_spread = random_float11( &svs.rng ) * spread;
+	float spreadness = def->spread;
+
+	if( def->zoom_spread > 0.0f && self->r.client != NULL ) {
+		spreadness += ZoomSpreadness( self->r.client->ps.zoom_time, def );
 	}
 
+	Vec2 spread = RandomSpreadPattern( self->r.client->ucmd.entropy, spreadness );
+
 	trace_t trace, wallbang;
-	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, x_spread, y_spread, def->range, ENTNUM( self ), timeDelta );
+	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM( self ), timeDelta );
 	if( trace.ent != -1 && game.edicts[trace.ent].takedamage ) {
 		int dmgflags = DAMAGE_KNOCKBACK_SOFT;
 
@@ -306,15 +305,12 @@ static void W_Fire_Shotgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	Vec3 dir, right, up;
 	AngleVectors( angles, &dir, &right, &up );
 
-	//Sunflower pattern
 	float damage_dealt[ MAX_CLIENTS + 1 ] = { };
 	for( int i = 0; i < def->projectile_count; i++ ) {
-		float fi = i * 2.4f; //magic value creating Fibonacci numbers
-		float r = cosf( fi ) * def->spread * sqrtf( fi );
-		float u = sinf( fi ) * def->spread * sqrtf( fi );
+		Vec2 spread = FixedSpreadPattern( i, def->spread );
 
 		trace_t trace, wallbang;
-		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, r, u, def->range, ENTNUM( self ), timeDelta );
+		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM( self ), timeDelta );
 		if( trace.ent != -1 && game.edicts[ trace.ent ].takedamage ) {
 			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, def->damage, def->knockback, 0, Weapon_Shotgun );
 
@@ -708,11 +704,9 @@ void W_Fire_Blast( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	AngleVectors( angles, &dir, &right, &up );
 
 	for( int i = 0; i < def->projectile_count; i++ ) {
-		float fi = i * 2.4f; //magic value creating Fibonacci numbers
-		float r = cosf( fi ) * def->spread * sqrtf( fi );
-		float u = sinf( fi ) * def->spread * sqrtf( fi );
+		Vec2 spread = FixedSpreadPattern( i, def->spread );
 
-		Vec3 blast_dir = dir * def->range + right * r + up * u;
+		Vec3 blast_dir = dir * def->range + right * spread.x + up * spread.y;
 		Vec3 blast_angles = VecToAngles( blast_dir );
 
 		edict_t * blast = FireProjectile( self, start, blast_angles, timeDelta, Weapon_MasterBlaster, W_Touch_Blast, ET_BLAST, MASK_SHOT );
@@ -726,7 +720,7 @@ void W_Fire_Blast( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 
 void G_FireWeapon( edict_t *ent, u64 weap ) {
 	Vec3 origin, angles;
-	Vec3 viewoffset = { 0, 0, 0 };
+	Vec3 viewoffset = Vec3( 0.0f );
 	int timeDelta = 0;
 
 	// find this shot projection source

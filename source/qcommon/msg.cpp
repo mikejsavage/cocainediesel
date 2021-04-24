@@ -593,6 +593,7 @@ static void Delta( DeltaBuffer * buf, usercmd_t & cmd, const usercmd_t & baselin
 	Delta( buf, cmd.sidemove, baseline.sidemove );
 	Delta( buf, cmd.upmove, baseline.upmove );
 	Delta( buf, cmd.buttons, baseline.buttons );
+	Delta( buf, cmd.entropy, baseline.entropy );
 	Delta( buf, cmd.weaponSwitch, baseline.weaponSwitch );
 }
 

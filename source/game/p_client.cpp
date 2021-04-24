@@ -862,7 +862,9 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 	}
 }
 
-void G_PredictedFireWeapon( int entNum, WeaponType weapon ) {
+void G_PredictedFireWeapon( int entNum, u64 weapon_and_entropy ) {
+	WeaponType weapon = WeaponType( weapon_and_entropy & 0xFF );
+
 	edict_t * ent = &game.edicts[ entNum ];
 	G_FireWeapon( ent, weapon );
 

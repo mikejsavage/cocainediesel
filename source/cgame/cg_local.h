@@ -348,7 +348,7 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 extern cvar_t *cg_showMiss;
 
 void CG_PredictedEvent( int entNum, int ev, u64 parm );
-void CG_PredictedFireWeapon( int entNum, WeaponType weapon );
+void CG_PredictedFireWeapon( int entNum, u64 weapon_and_entropy );
 void CG_PredictMovement();
 void CG_CheckPredictionError();
 void CG_BuildSolidList();

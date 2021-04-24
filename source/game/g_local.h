@@ -552,7 +552,7 @@ void ClientDisconnect( edict_t *ent, const char *reason );
 void ClientBegin( edict_t *ent );
 void ClientCommand( edict_t *ent );
 void G_PredictedEvent( int entNum, int ev, u64 parm );
-void G_PredictedFireWeapon( int entNum, WeaponType weapon );
+void G_PredictedFireWeapon( int entNum, u64 weapon_and_entropy );
 void G_TeleportPlayer( edict_t *player, edict_t *dest );
 bool G_PlayerCanTeleport( edict_t *player );
 

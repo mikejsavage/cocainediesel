@@ -213,14 +213,17 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 	}
 }
 
-static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, WeaponType weapon, int owner, Vec4 team_color ) {
-	int range = GS_GetWeaponDef( weapon )->range;
+static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_time, WeaponType weapon, int owner, Vec4 team_color ) {
+	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
 	Vec3 right, up;
 	ViewVectors( dir, &right, &up );
 
+	Vec2 spread = RandomSpreadPattern( entropy, def->spread + ZoomSpreadness( zoom_time, def ) );
+	int range = def->range;
+
 	trace_t trace, wallbang;
-	GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, 0, 0, range, owner, 0 );
+	GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, spread, range, owner, 0 );
 
 	if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
 		if( trace.surfFlags & SURF_FLESH || ( trace.ent > 0 && cg_entities[ trace.ent ].current.type == ET_PLAYER ) ) {
@@ -259,14 +262,11 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 		projection.origin = origin;
 	}
 
-	// Sunflower pattern
 	for( int i = 0; i < def->projectile_count; i++ ) {
-		float fi = i * 2.4f; // magic value creating Fibonacci numbers
-		float r = cosf( fi ) * def->spread * sqrtf( fi );
-		float u = sinf( fi ) * def->spread * sqrtf( fi );
+		Vec2 spread = FixedSpreadPattern( i, def->spread );
 
 		trace_t trace, wallbang;
-		GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, r, u, def->range, owner, 0 );
+		GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, spread, def->range, owner, 0 );
 
 		// don't create so many decals if they would all end up overlapping anyway
 		float distance = Length( trace.endpos - origin );
@@ -545,9 +545,6 @@ static void CG_Event_Jump( SyncEntityState * state ) {
 	}
 }
 
-/*
- * CG_EntityEvent
- */
 void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 	bool viewer = ISVIEWERENTITY( ent->number );
 
@@ -600,7 +597,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_FIREWEAPON: {
-			if( parm <= Weapon_None || parm >= Weapon_Count )
+			WeaponType weapon = WeaponType( parm & 0xFF );
+			u16 entropy = parm >> 8;
+			s16 zoom_time = parm >> 24;
+			if( weapon <= Weapon_None || weapon >= Weapon_Count )
 				return;
 
 			// check the owner for predicted case
@@ -609,39 +609,39 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 
 			if( predicted ) {
-				cg_entities[ ent->number ].current.weapon = parm;
+				cg_entities[ ent->number ].current.weapon = weapon;
 			}
 
-			int num;
+			int owner;
 			Vec3 origin, angles;
 			if( predicted ) {
-				num = ent->number;
+				owner = ent->number;
 				origin = cg.predictedPlayerState.pmove.origin;
 				origin.z += cg.predictedPlayerState.viewheight;
 				angles = cg.predictedPlayerState.viewangles;
 			}
 			else {
-				num = ent->ownerNum;
+				owner = ent->ownerNum;
 				origin = ent->origin;
 				angles = ent->origin2;
 			}
 
-			CG_FireWeaponEvent( num, parm );
+			CG_FireWeaponEvent( owner, weapon );
 
 			Vec3 dir;
 			AngleVectors( angles, &dir, NULL, NULL );
 
-			if( parm == Weapon_Railgun ) {
-				CG_Event_WeaponBeam( origin, dir, num );
+			if( weapon == Weapon_Railgun ) {
+				CG_Event_WeaponBeam( origin, dir, owner );
 			}
-			else if( parm == Weapon_Shotgun ) {
-				CG_Event_FireShotgun( origin, dir, num, team_color );
+			else if( weapon == Weapon_Shotgun ) {
+				CG_Event_FireShotgun( origin, dir, owner, team_color );
 			}
-			else if( parm == Weapon_Laser ) {
-				CG_Event_LaserBeam( origin, dir, num );
+			else if( weapon == Weapon_Laser ) {
+				CG_Event_LaserBeam( origin, dir, owner );
 			}
-			else if( parm == Weapon_Pistol || parm == Weapon_MachineGun || parm == Weapon_Deagle || parm == Weapon_AssaultRifle ) {
-				CG_Event_FireBullet( origin, dir, parm, num, team_color );
+			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_AssaultRifle || weapon == Weapon_Sniper ) {
+				CG_Event_FireBullet( origin, dir, entropy, zoom_time, weapon, owner, team_color );
 			}
 		} break;
 
@@ -913,9 +913,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 #define ISEARLYEVENT( ev ) ( ev == EV_WEAPONDROP )
 
-/*
- * CG_FireEvents
- */
 static void CG_FireEntityEvents( bool early ) {
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
 		SyncEntityState * state = &cg.frame.parsedEntities[ pnum & ( MAX_PARSE_ENTITIES - 1 ) ];

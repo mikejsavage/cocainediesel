@@ -18,20 +18,33 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "gameshared/q_arch.h"
-#include "gameshared/q_math.h"
-#include "gameshared/q_shared.h"
-#include "gameshared/q_collision.h"
+#include "qcommon/base.h"
+#include "qcommon/rng.h"
 #include "gameshared/gs_public.h"
 
-void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, float r, float u, int range, int ignore, int timeDelta ) {
-	Vec3 end = start + dir * range + right * r + up * u;
+void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, Vec2 spread, int range, int ignore, int timeDelta ) {
+	Vec3 end = start + dir * range + right * spread.x + up * spread.y;
 
 	gs->api.Trace( trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_WALLBANG, timeDelta );
 
 	if( wallbang_trace != NULL ) {
 		gs->api.Trace( wallbang_trace, start, Vec3( 0.0f ), Vec3( 0.0f ), trace->endpos, ignore, MASK_SHOT, timeDelta );
 	}
+}
+
+Vec2 RandomSpreadPattern( u16 entropy, float spread ) {
+	RNG rng = new_rng( entropy, 0 );
+	return spread * UniformSampleInsideCircle( &rng );
+}
+
+float ZoomSpreadness( s16 zoom_time, const WeaponDef * def ) {
+	float frac = 1.0f - float( zoom_time ) / float( ZOOMTIME );
+	return frac * def->range * atanf( Radians( def->zoom_spread ) );
+}
+
+Vec2 FixedSpreadPattern( int i, float spread ) {
+	float x = i * 2.4f;
+	return Vec2( cosf( x ), sinf( x ) ) * spread * sqrtf( x );
 }
 
 void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * trace, Vec3 dir, void * data ), void * data ) {
@@ -247,7 +260,8 @@ WeaponType GS_ThinkPlayerWeapon( const gs_state_t * gs, SyncPlayerState * player
 					gs->api.PredictedEvent( player->POVnum, EV_SMOOTHREFIREWEAPON, player->weapon );
 				}
 				else {
-					gs->api.PredictedFireWeapon( player->POVnum, player->weapon );
+					u64 parm = player->weapon | ( cmd->entropy << 8 ) | ( u64( player->zoom_time ) << 24 ) ;
+					gs->api.PredictedFireWeapon( player->POVnum, parm );
 				}
 
 				if( def->clip_size > 0 ) {

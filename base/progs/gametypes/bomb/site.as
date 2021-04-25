@@ -180,7 +180,7 @@ void bomb_site_think( Entity @ent ) {
 
 	ent.nextThink = levelTime + 1;
 
-	if( roundState != RoundState_Round ) {
+	if( match.roundState != RoundState_Round ) {
 		return;
 	}
 
@@ -243,7 +243,7 @@ void plant_area_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int s
 		return;
 	}
 
-	if( roundState != RoundState_Round ) {
+	if( match.roundState != RoundState_Round ) {
 		return;
 	}
 

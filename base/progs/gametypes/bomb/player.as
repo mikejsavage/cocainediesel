@@ -93,7 +93,7 @@ class cPlayer {
 			giveInventory();
 		}
 
-		if( match.getState() == MATCH_STATE_PLAYTIME && roundState == RoundState_Pre ) {
+		if( match.getState() == MATCH_STATE_PLAYTIME && match.roundState == RoundState_Countdown ) {
 			giveInventory();
 		}
 	}

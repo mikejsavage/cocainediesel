@@ -1,13 +1,3 @@
-enum RoundState {
-	RoundState_None,
-	RoundState_Pre,
-	RoundState_Round,
-	RoundState_Finished,
-	RoundState_Post,
-}
-
-RoundState roundState = RoundState_None;
-
 bool roundCheckEndTime; // you can check if roundStateEndTime == 0 but roundStateEndTime can overflow
 int64 roundStartTime;
 int64 roundStateStartTime; // XXX: this should be fixed in all gts
@@ -34,7 +24,7 @@ void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
 	if( match.getState() != MATCH_STATE_PLAYTIME )
 		return;
 
-	if( roundState >= RoundState_Finished )
+	if( match.roundState >= RoundState_Finished )
 		return;
 
 	if( @victim == @bombCarrier ) {
@@ -156,7 +146,7 @@ void roundWonBy( int winner ) {
 }
 
 void newRound() {
-	roundNewState( RoundState_Pre );
+	roundNewState( RoundState_Countdown );
 }
 
 void endGame() {
@@ -196,17 +186,17 @@ void setRoundType() {
 
 void roundNewState( RoundState state ) {
 	if( state > RoundState_Post ) {
-		state = RoundState_Pre;
+		state = RoundState_Countdown;
 	}
 
-	roundState = state;
+	match.roundState = state;
 	roundStateStartTime = levelTime;
 
-	switch( roundState ) {
+	switch( match.roundState ) {
 		case RoundState_None:
 			break;
 
-		case RoundState_Pre:
+		case RoundState_Countdown:
 			roundCountDown = COUNTDOWN_MAX;
 
 			setTeams();
@@ -276,11 +266,11 @@ void roundNewState( RoundState state ) {
 int last_time = 0;
 
 void roundThink() {
-	if( roundState == RoundState_None ) {
+	if( match.roundState == RoundState_None ) {
 		return;
 	}
 
-	if( roundState == RoundState_Pre ) {
+	if( match.roundState == RoundState_Countdown ) {
 		int remainingSeconds = int( ( roundStateEndTime - levelTime ) * 0.001f ) + 1;
 
 		if( remainingSeconds < 0 ) {
@@ -311,7 +301,7 @@ void roundThink() {
 
 	// i suppose the following blocks could be merged to save an if or 2
 	if( roundCheckEndTime && levelTime > roundStateEndTime ) {
-		if( roundState == RoundState_Round ) {
+		if( match.roundState == RoundState_Round ) {
 			if( bombState != BombState_Planted ) {
 				roundWonBy( defendingTeam );
 				last_time = 1; // kinda hacky, this shows at 0:00
@@ -323,13 +313,13 @@ void roundThink() {
 			}
 		}
 		else {
-			roundNewState( RoundState( roundState + 1 ) );
+			roundNewState( RoundState( match.roundState + 1 ) );
 
 			return;
 		}
 	}
 
-	if( roundState == RoundState_Round ) {
+	if( match.roundState == RoundState_Round ) {
 		// monitor the bomb's health
 		if( @bombModel == null || bombModel.classname != "bomb" ) {
 			bombModelCreate();
@@ -364,7 +354,7 @@ void roundThink() {
 		match.setClockOverride( last_time );
 	}
 
-	if( roundState >= RoundState_Round ) {
+	if( match.roundState >= RoundState_Round ) {
 		bombThink();
 	}
 }

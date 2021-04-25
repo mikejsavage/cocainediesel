@@ -1112,7 +1112,7 @@ static void PM_AdjustBBox() {
 		pm->playerState->viewheight = playerbox_stand_viewheight;
 	}
 
-	if( pml.upPush < 0 && ( pm->playerState->pmove.features & PMFEAT_CROUCH ) ) {
+	if( pml.upPush < 0 && ( pm->playerState->pmove.features & PMFEAT_CROUCH ) && pmove_gs->gameState.round_state >= RoundState_Finished ) {
 		if( pm->playerState->pmove.crouch_time == 0 ) {
 			pm->playerState->pmove.tbag_time = Min2( pm->playerState->pmove.tbag_time + TBAG_AMOUNT_PER_CROUCH, int( MAX_TBAG_TIME ) );
 

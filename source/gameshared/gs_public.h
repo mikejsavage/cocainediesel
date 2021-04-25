@@ -65,7 +65,7 @@ enum MatchState {
 	MATCH_STATE_TOTAL
 };
 
-typedef u8 WeaponType;
+using WeaponType = u8;
 enum WeaponType_ : WeaponType {
 	Weapon_None,
 
@@ -91,7 +91,7 @@ enum WeaponType_ : WeaponType {
 	Weapon_Count
 };
 
-typedef u8 WeaponState;
+using WeaponState = u8;
 enum WeaponState_ : WeaponState {
 	WeaponState_Ready,
 	WeaponState_SwitchingIn,
@@ -116,12 +116,21 @@ enum ItemType {
 	Item_Count
 };
 
-typedef u8 RoundType;
-enum RoundType_ {
+using RoundType = u8;
+enum RoundType_ : RoundType {
 	RoundType_Normal,
 	RoundType_MatchPoint,
 	RoundType_Overtime,
 	RoundType_OvertimeMatchPoint,
+};
+
+using RoundState = u8;
+enum RoundState_ : RoundState {
+	RoundState_None,
+	RoundState_Countdown,
+	RoundState_Round,
+	RoundState_Finished,
+	RoundState_Post,
 };
 
 enum BombDown {
@@ -166,6 +175,7 @@ struct SyncGameState {
 	int64_t match_start;
 	int64_t match_duration;
 	int64_t clock_override;
+	RoundState round_state;
 	RoundType round_type;
 	u8 max_team_players;
 

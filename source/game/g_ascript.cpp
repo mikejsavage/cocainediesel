@@ -348,6 +348,17 @@ static const asEnumVal_t asBombDownEnumVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
+static const asEnumVal_t asRoundStateEnumVals[] =
+{
+	ASLIB_ENUM_VAL( RoundState_None ),
+	ASLIB_ENUM_VAL( RoundState_Countdown ),
+	ASLIB_ENUM_VAL( RoundState_Round ),
+	ASLIB_ENUM_VAL( RoundState_Finished ),
+	ASLIB_ENUM_VAL( RoundState_Post ),
+
+	ASLIB_ENUM_VAL_NULL
+};
+
 static const asEnumVal_t asRoundTypeEnumVals[] =
 {
 	ASLIB_ENUM_VAL( RoundType_Normal ),
@@ -388,6 +399,7 @@ static const asEnum_t asGameEnums[] =
 
 	{ "BombProgress", asBombProgressEnumVals },
 	{ "BombDown", asBombDownEnumVals },
+	{ "RoundState", asRoundStateEnumVals },
 	{ "RoundType", asRoundTypeEnumVals },
 
 	ASLIB_ENUM_VAL_NULL
@@ -484,6 +496,7 @@ static const asMethod_t match_Methods[] =
 
 static const asProperty_t match_Properties[] =
 {
+	{ ASLIB_PROPERTY_DECL( uint8, roundState ), offsetof( SyncGameState, round_state ) },
 	{ ASLIB_PROPERTY_DECL( uint8, roundType ), offsetof( SyncGameState, round_type ) },
 	{ ASLIB_PROPERTY_DECL( uint8, alphaScore ), offsetof( SyncGameState, bomb.alpha_score ) },
 	{ ASLIB_PROPERTY_DECL( uint8, alphaPlayersTotal ), offsetof( SyncGameState, bomb.alpha_players_total ) },

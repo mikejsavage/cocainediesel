@@ -230,12 +230,12 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 		}
 
 		if( matchState == MATCH_STATE_PLAYTIME ) {
-			if( roundState == RoundState_Round ) {
+			if( match.roundState == RoundState_Round ) {
 				if( old_team != TEAM_SPECTATOR && !ent.isGhosting() ) {
 					checkPlayersAlive( old_team );
 				}
 			}
-			else if( roundState == RoundState_Pre && new_team != TEAM_SPECTATOR ) {
+			else if( match.roundState == RoundState_Countdown && new_team != TEAM_SPECTATOR ) {
 				// respawn during countdown
 				// mark for respawning next frame because
 				// respawning this frame doesn't work
@@ -244,7 +244,7 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 			}
 		}
 	}
-	else if( roundState == RoundState_Pre ) {
+	else if( match.roundState == RoundState_Countdown ) {
 		disableMovementFor( @client );
 	}
 
@@ -308,7 +308,7 @@ void GT_ThinkRules() {
 			continue; // don't bother if they're not ingame
 		}
 
-		client.canChangeLoadout = !client.getEnt().isGhosting() && roundState == RoundState_Pre;
+		client.canChangeLoadout = !client.getEnt().isGhosting() && match.roundState == RoundState_Countdown;
 		client.carryingBomb = false;
 		client.canPlant = false;
 	}

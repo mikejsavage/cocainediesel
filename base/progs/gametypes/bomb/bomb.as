@@ -251,7 +251,7 @@ void bombDefused() {
 
 void bombExplode() {
 	// do this first else the attackers can score 2 points when the explosion kills everyone
-	if( roundState == RoundState_Round ) {
+	if( match.roundState == RoundState_Round ) {
 		roundWonBy( attackingTeam );
 
 		hide( @bombHud );

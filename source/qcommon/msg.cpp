@@ -736,6 +736,7 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.match_start, baseline.match_start );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
+	Delta( buf, state.round_state, baseline.round_state );
 	Delta( buf, state.round_type, baseline.round_type );
 	Delta( buf, state.max_team_players, baseline.max_team_players );
 	Delta( buf, state.map, baseline.map );

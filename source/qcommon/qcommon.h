@@ -489,7 +489,6 @@ void        FS_Init();
 void        FS_Shutdown();
 
 const char *FS_GameDirectory();
-const char *FS_BaseGameDirectory();
 
 // handling of absolute filenames
 // only to be used if necessary (library not supporting custom file handling functions etc.)

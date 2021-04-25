@@ -997,15 +997,6 @@ const char *FS_GameDirectory() {
 }
 
 /*
-* FS_BaseGameDirectory
-*
-* Returns the current base game directory, without the path
-*/
-const char *FS_BaseGameDirectory() {
-	return DEFAULT_BASEGAME;
-}
-
-/*
 * FS_WriteDirectory
 *
 * Returns directory where we can write, no gamedir attached

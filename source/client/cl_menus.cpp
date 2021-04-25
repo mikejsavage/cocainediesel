@@ -307,7 +307,6 @@ static void SettingsControls() {
 			KeyBindButton( "Guyman pack", "vsay guyman" );
 			KeyBindButton( "Helena pack", "vsay helena" );
 
-			ImGui::BeginChild( "voice", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {
 				KeyBindButton( "Sorry", "vsay sorry" );
 				KeyBindButton( "Thanks", "vsay thanks" );
@@ -324,7 +323,7 @@ static void SettingsControls() {
 				KeyBindButton( "Trash smash", "vsay trashsmash" );
 				KeyBindButton( "What the shit", "vsay whattheshit" );
 				KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
-			} ImGui::EndChild();
+			}
 
 			ImGui::EndTabItem();
 		}

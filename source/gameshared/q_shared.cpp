@@ -20,9 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <limits.h>
 
-#include "gameshared/q_arch.h"
-#include "gameshared/q_math.h"
-#include "gameshared/q_shared.h"
+#include "qcommon/qcommon.h"
 #include "qcommon/strtonum.h"
 
 //============================================================================
@@ -1070,68 +1068,4 @@ Span< const char > ParseWorldspawnKey( Span< const char > entities, const char *
 	}
 
 	return Span< const char >();
-}
-
-//=====================================================================
-//
-//  SOUND ATTENUATION
-//
-//=====================================================================
-
-/*
-* Q_GainForAttenuation
-*/
-float Q_GainForAttenuation( int model, float maxdistance, float refdistance, float dist, float attenuation ) {
-	float gain = 0.0f;
-
-	switch( model ) {
-		case 0:
-			//gain = (1 - AL_ROLLOFF_FACTOR * (distance * AL_REFERENCE_DISTANCE) / (AL_MAX_DISTANCE - AL_REFERENCE_DISTANCE))
-			//AL_LINEAR_DISTANCE
-			dist = Min2( dist, maxdistance );
-			gain = ( 1 - attenuation * ( dist - refdistance ) / ( maxdistance - refdistance ) );
-			break;
-		case 1:
-		default:
-			//gain = (1 - AL_ROLLOFF_FACTOR * (distance - AL_REFERENCE_DISTANCE) / (AL_MAX_DISTANCE - AL_REFERENCE_DISTANCE))
-			//AL_LINEAR_DISTANCE_CLAMPED
-			dist = Max2( dist, refdistance );
-			dist = Min2( dist, maxdistance );
-			gain = ( 1 - attenuation * ( dist - refdistance ) / ( maxdistance - refdistance ) );
-			break;
-		case 2:
-			//gain = AL_REFERENCE_DISTANCE / (AL_REFERENCE_DISTANCE + AL_ROLLOFF_FACTOR * (distance - AL_REFERENCE_DISTANCE));
-			//AL_INVERSE_DISTANCE
-			gain = refdistance / ( refdistance + attenuation * ( dist - refdistance ) );
-			break;
-		case 3:
-			//AL_INVERSE_DISTANCE_CLAMPED
-			//gain = AL_REFERENCE_DISTANCE / (AL_REFERENCE_DISTANCE + AL_ROLLOFF_FACTOR * (distance - AL_REFERENCE_DISTANCE));
-			dist = Max2( dist, refdistance );
-			dist = Min2( dist, maxdistance );
-			gain = refdistance / ( refdistance + attenuation * ( dist - refdistance ) );
-			break;
-		case 4:
-			//AL_EXPONENT_DISTANCE
-			//gain = (distance / AL_REFERENCE_DISTANCE) ^ (- AL_ROLLOFF_FACTOR)
-			gain = powf( ( dist / refdistance ), ( -attenuation ) );
-			break;
-		case 5:
-			//AL_EXPONENT_DISTANCE_CLAMPED
-			//gain = (distance / AL_REFERENCE_DISTANCE) ^ (- AL_ROLLOFF_FACTOR)
-			dist = Max2( dist, refdistance );
-			dist = Min2( dist, maxdistance );
-			gain = powf( ( dist / refdistance ), ( -attenuation ) );
-			break;
-		case 6:
-			// qfusion gain
-			dist -= 80;
-			if( dist < 0 ) {
-				dist = 0;
-			}
-			gain = 1.0 - dist * attenuation * 0.0001;
-			break;
-	}
-
-	return gain;
 }

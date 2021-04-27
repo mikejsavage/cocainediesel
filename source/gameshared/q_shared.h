@@ -199,16 +199,8 @@ Span< const char > ParseWorldspawnKey( Span< const char > entities, const char *
 // sound
 //============================================
 
-#define S_DEFAULT_ATTENUATION_MODEL         3
-#define S_DEFAULT_ATTENUATION_MAXDISTANCE   8192
-#define S_DEFAULT_ATTENUATION_REFDISTANCE   250
-
-float Q_GainForAttenuation( int model, float maxdistance, float refdistance, float dist, float attenuation );
-
-//=============================================
-
-constexpr const char *IMAGE_EXTENSIONS[] = { ".jpg", ".png" };
-constexpr size_t NUM_IMAGE_EXTENSIONS = ARRAY_COUNT( IMAGE_EXTENSIONS );
+constexpr float S_DEFAULT_ATTENUATION_MAXDISTANCE = 8192.0f;
+constexpr float S_DEFAULT_ATTENUATION_REFDISTANCE = 250.0f;
 
 //==============================================================
 //
@@ -220,18 +212,6 @@ enum com_error_code_t {
 	ERR_FATAL,      // exit the entire game with a popup window
 	ERR_DROP,       // print to console and disconnect from game
 };
-
-// this is only here so the functions in q_shared.c and q_math.c can link
-
-#ifndef _MSC_VER
-void Sys_Error( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
-void Com_Printf( const char *msg, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-void Com_Error( com_error_code_t code, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) ) __attribute__( ( noreturn ) );
-#else
-__declspec( noreturn ) void Sys_Error( _Printf_format_string_ const char *error, ... );
-void Com_Printf( _Printf_format_string_ const char *msg, ... );
-__declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_string_ const char *format, ... );
-#endif
 
 //==============================================================
 //

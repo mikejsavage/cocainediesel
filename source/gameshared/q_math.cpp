@@ -20,10 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <math.h>
 
-#include "gameshared/q_math.h"
-#include "gameshared/q_shared.h"
-#include "gameshared/q_collision.h"
-#include "qcommon/base.h"
+#include "qcommon/qcommon.h"
 #include "qcommon/rng.h"
 
 struct PackedVec3 {

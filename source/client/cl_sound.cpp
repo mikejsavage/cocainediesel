@@ -85,7 +85,7 @@ static cvar_t * s_muteinbackground;
 
 constexpr u32 MAX_SOUND_ASSETS = 4096;
 constexpr u32 MAX_SOUND_EFFECTS = 4096;
-constexpr u32 MAX_PLAYING_SOUNDS = 128;
+constexpr u32 MAX_PLAYING_SOUNDS = 256;
 
 static Sound sounds[ MAX_SOUND_ASSETS ];
 static u32 num_sounds;
@@ -223,7 +223,12 @@ static bool S_InitAL() {
 		}
 	}
 
-	ALCint attrs[] = { ALC_HRTF_SOFT, ALC_HRTF_ENABLED_SOFT, 0 };
+	ALCint attrs[] = {
+		ALC_HRTF_SOFT, ALC_HRTF_ENABLED_SOFT,
+		ALC_MONO_SOURCES, 256,
+		ALC_STEREO_SOURCES, 16,
+		0
+	};
 	al_context = alcCreateContext( al_device, attrs );
 	if( al_context == NULL ) {
 		alcCloseDevice( al_device );

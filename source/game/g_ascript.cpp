@@ -951,13 +951,13 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, chaseCam, ( const String @, bool teamOnly ) ), asFUNCTION( objectGameClient_ChaseCam ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, set_chaseActive, ( const bool active ) ), asFUNCTION( objectGameClient_SetChaseActive ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, get_chaseActive, ( ) const ), asFUNCTION( objectGameClient_GetChaseActive ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, addScore, ( int ) const ), asFUNCTION( objectGameClient_AddScore ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, setScore, ( int ) const ), asFUNCTION( objectGameClient_SetScore ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, addScore, ( int ) ), asFUNCTION( objectGameClient_AddScore ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, setScore, ( int ) ), asFUNCTION( objectGameClient_SetScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, getScore, ( ) const ), asFUNCTION( objectGameClient_GetScore ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, setState, ( bool ) const ), asFUNCTION( objectGameClient_SetState ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, setState, ( bool ) ), asFUNCTION( objectGameClient_SetState ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, getState, ( ) const ), asFUNCTION( objectGameClient_GetState ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, getKills, ( ) const ), asFUNCTION( objectGameClient_GetKills ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, clearStats, ( ) const ), asFUNCTION( objectGameClient_ClearStats ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, clearStats, ( ) ), asFUNCTION( objectGameClient_ClearStats ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
 };

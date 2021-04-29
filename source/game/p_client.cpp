@@ -431,6 +431,8 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	if( self->r.svflags & SVF_FAKECLIENT ) {
 		AI_Respawn( self );
 	}
+
+	G_ClientGetState( self )->alive = true;
 }
 
 /*

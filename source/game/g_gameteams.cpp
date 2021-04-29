@@ -93,10 +93,9 @@ void G_Teams_UpdateMembersList() {
 
 			if( ent->s.team == team ) {
 				GetTeam( team ).playerIndices[ GetTeam( team ).numplayers++ ] = ENTNUM( ent );
-			}
-
-			if( G_ClientGetState( ent )->alive ) {
-				GetTeam( team ).numalive++;
+				if( G_ClientGetState( ent )->alive ) {
+					GetTeam( team ).numalive++;
+				}
 			}
 		}
 

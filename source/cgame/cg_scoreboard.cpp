@@ -17,7 +17,7 @@ bool CG_ScoreboardShown() {
 }
 
 static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndice, float line_height ) {
-	PlayerState * player = &client_gs.gameState.players[ playerIndice ];
+	PlayerState * player = &client_gs.gameState.players[ playerIndice - 1 ];
 	// icon
 	bool warmup = GS_MatchState( &client_gs ) == MATCH_STATE_WARMUP || GS_MatchState( &client_gs ) == MATCH_STATE_COUNTDOWN;
 	const Material * icon = NULL;
@@ -26,7 +26,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndice, float 
 		icon = player->state ? cgs.media.shaderReady : NULL;
 	}
 	else {
-		bool carrier = player->state && ( ISREALSPECTATOR() || cg_entities[ playerIndice + 1 ].current.team == cg.predictedPlayerState.team );
+		bool carrier = player->state && ( ISREALSPECTATOR() || cg_entities[ playerIndice ].current.team == cg.predictedPlayerState.team );
 		if( player->alive ) {
 			icon = carrier ? cgs.media.shaderBombIcon : cgs.media.shaderAlive;
 		}
@@ -47,7 +47,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndice, float 
 
 	// player name
 	u8 alpha = player->alive ? 255 : 75;
-	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), cgs.clientInfo[ playerIndice ].name );
+	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), cgs.clientInfo[ playerIndice - 1 ].name );
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( "%s", final_name.c_str() );
 	ImGui::NextColumn();
@@ -267,7 +267,7 @@ void CG_DrawScoreboard() {
 		{
 			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 0, 0, alpha ) );
 			for( int i = 0; i < team_info->numplayers; i++ ) {
-				PlayerState * player = &client_gs.gameState.players[ team_info->playerIndices[ i ] ];
+				PlayerState * player = &client_gs.gameState.players[ team_info->playerIndices[ i ] - 1 ];
 
 				RGB8 team_color = TEAM_COLORS[ i % ARRAY_COUNT( TEAM_COLORS ) ];
 
@@ -311,7 +311,7 @@ void CG_DrawScoreboard() {
 		for( int i = 0; i < team_spec->numplayers; i++ ) {
 			if( i > 0 )
 				spectators += ", ";
-			spectators += cgs.clientInfo[ team_spec->playerIndices[ i ] ].name;
+			spectators += cgs.clientInfo[ team_spec->playerIndices[ i ] - 1 ].name;
 		}
 
 		ImGui::Text( "%s", spectators.c_str() );

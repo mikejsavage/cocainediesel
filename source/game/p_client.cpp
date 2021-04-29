@@ -234,7 +234,24 @@ void G_ClientClearStats( edict_t *ent ) {
 		return;
 	}
 
-	memset( &ent->r.client->level.stats, 0, sizeof( ent->r.client->level.stats ) );
+	memset( G_ClientGetState( ent ), 0, sizeof( PlayerState ) );
+	memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
+}
+
+PlayerState * G_ClientGetState( edict_t * ent ) {
+	return &server_gs.gameState.player[ PLAYERNUM( ent ) ];
+}
+
+PlayerState * G_ClientGetState( gclient_t * client ) {
+	return &server_gs.gameState.player[ PLAYERNUM( client ) ];
+}
+
+score_stats_t * G_ClientGetStats( edict_t * ent ) {
+	return &ent->r.client->level.stats;
+}
+
+score_stats_t * G_ClientGetStats( gclient_t * client ) {
+	return &client->level.stats;
 }
 
 /*

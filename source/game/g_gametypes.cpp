@@ -266,7 +266,7 @@ bool G_Match_ScorelimitHit() {
 					continue;
 				}
 
-				if( e->r.client->level.stats.score >= g_scorelimit->integer ) {
+				if( G_ClientGetState( e )->score >= g_scorelimit->integer ) {
 					return true;
 				}
 			}

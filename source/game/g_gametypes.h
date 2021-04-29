@@ -26,22 +26,6 @@ extern cvar_t *g_warmup_timelimit;
 #define G_CHALLENGERS_MIN_JOINTEAM_MAPTIME  9000 // must wait 10 seconds before joining
 #define GAMETYPE_PROJECT_EXTENSION          ".gt"
 
-typedef struct {
-	int score;
-	int deaths;
-	int frags;
-	int suicides;
-
-	int accuracy_shots[ Weapon_Count ];
-	int accuracy_hits[ Weapon_Count ];
-	int accuracy_damage[ Weapon_Count ];
-	int accuracy_frags[ Weapon_Count ];
-	int total_damage_given;
-	int total_damage_received;
-
-	int asFactored;
-	int asRefCount;
-} score_stats_t;
 
 typedef struct {
 	void *initFunc;

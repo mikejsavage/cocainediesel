@@ -165,8 +165,7 @@ extern gs_state_t server_gs;
 extern level_locals_t level;
 extern spawn_temp_t st;
 
-#define GetTeam( team ) server_gs.teams[ team ]
-#define GetPlayer( id ) server_gs.players[ id ]
+#define GetTeam( team ) server_gs.gameState.teams[ team ]
 
 extern mempool_t *gamepool;
 
@@ -548,6 +547,10 @@ void G_Client_UpdateActivity( gclient_t *client );
 void G_Client_InactivityRemove( gclient_t *client );
 void G_ClientRespawn( edict_t *self, bool ghost );
 void G_ClientClearStats( edict_t *ent );
+PlayerState * G_ClientGetState( edict_t * ent );
+PlayerState * G_ClientGetState( gclient_t * client );
+score_stats_t * G_ClientGetStats( edict_t * ent );
+score_stats_t * G_ClientGetStats( gclient_t * client );
 void G_GhostClient( edict_t *self );
 void ClientThink( edict_t *ent, usercmd_t *cmd, int timeDelta );
 void G_ClientThink( edict_t *ent );
@@ -721,6 +724,21 @@ struct moveinfo_t {
 
 #define G_MAX_TIME_DELTAS   8
 #define G_MAX_TIME_DELTAS_MASK ( G_MAX_TIME_DELTAS - 1 )
+
+struct score_stats_t {
+	int deaths;
+	int suicides;
+
+	int accuracy_shots[ Weapon_Count ];
+	int accuracy_hits[ Weapon_Count ];
+	int accuracy_damage[ Weapon_Count ];
+	int accuracy_frags[ Weapon_Count ];
+	int total_damage_given;
+	int total_damage_received;
+
+	int asFactored;
+	int asRefCount;
+};
 
 struct client_snapreset_t {
 	int buttons;

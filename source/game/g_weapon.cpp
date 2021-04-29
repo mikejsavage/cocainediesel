@@ -832,6 +832,6 @@ void G_FireWeapon( edict_t * ent, u64 weap ) {
 
 	// add stats
 	if( ent->r.client != NULL ) {
-		ent->r.client->level.stats.accuracy_shots[ weap ] += GS_GetWeaponDef( weap )->projectile_count;
+		G_ClientGetStats( ent )->accuracy_shots[ weap ] += GS_GetWeaponDef( weap )->projectile_count;
 	}
 }

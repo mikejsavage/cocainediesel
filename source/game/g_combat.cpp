@@ -122,12 +122,12 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int assisto
 
 	// count stats
 	if( GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME ) {
-		targ->r.client->level.stats.deaths++;
+		G_ClientGetStats( targ )->deaths++;
 
 		if( !attacker || !attacker->r.client || attacker == targ || attacker == world ) {
-			targ->r.client->level.stats.suicides++;
+			G_ClientGetStats( targ )->suicides++;
 		} else {
-			attacker->r.client->level.stats.frags++;
+			G_ClientGetState( attacker )->kills++;
 		}
 	}
 
@@ -325,7 +325,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 	// adding damage given/received to stats
 	if( statDmg && attacker->r.client && !targ->deadflag && targ->movetype != MOVETYPE_PUSH && targ->s.type != ET_CORPSE ) {
-		attacker->r.client->level.stats.total_damage_given += take;
+		G_ClientGetStats( attacker )->total_damage_given += take;
 
 		// shotgun calls G_Damage for every bullet, so we accumulate damage
 		// in W_Fire_Shotgun and show one number there instead
@@ -345,7 +345,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	G_Gametype_ScoreEvent( attacker->r.client, "dmg", va( "%i %f %i", targ->s.number, damage, attacker->s.number ) );
 
 	if( statDmg && client ) {
-		client->level.stats.total_damage_received += take;
+		G_ClientGetStats( client )->total_damage_received += take;
 	}
 
 	// accumulate received damage for snapshot effects
@@ -380,8 +380,8 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 	// add damage done to stats
 	if( statDmg && mod < Weapon_Count && client && attacker->r.client ) {
-		attacker->r.client->level.stats.accuracy_hits[ mod ]++;
-		attacker->r.client->level.stats.accuracy_damage[ mod ] += damage;
+		G_ClientGetStats( attacker )->accuracy_hits[ mod ]++;
+		G_ClientGetStats( attacker )->accuracy_damage[ mod ] += damage;
 	}
 
 	// accumulate given damage for hit sounds

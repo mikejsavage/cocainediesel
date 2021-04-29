@@ -373,12 +373,13 @@ void G_Match_Ready( edict_t *ent ) {
 		return;
 	}
 
-	if( level.ready[PLAYERNUM( ent )] ) {
+	if( level.ready[ PLAYERNUM( ent ) ] ) {
 		G_PrintMsg( ent, "You are already ready.\n" );
 		return;
 	}
 
-	level.ready[PLAYERNUM( ent )] = true;
+	level.ready[ PLAYERNUM( ent ) ] = true;
+	G_ClientGetState( ent )->state = true;
 
 	G_PrintMsg( NULL, "%s is ready!\n", ent->r.client->netname );
 
@@ -404,7 +405,8 @@ void G_Match_NotReady( edict_t *ent ) {
 		return;
 	}
 
-	level.ready[PLAYERNUM( ent )] = false;
+	level.ready[ PLAYERNUM( ent ) ] = false;
+	G_ClientGetState( ent )->state = false;
 
 	G_PrintMsg( NULL, "%s is no longer ready.\n", ent->r.client->netname );
 }

@@ -595,11 +595,11 @@ static asstring_t *objectTeamlist_getName( TeamState * obj ) {
 	return game.asExport->asStringFactoryBuffer( name, name ? strlen( name ) : 0 );
 }
 
-static void objectTeamlist_SetScore( TeamState * obj, int score ) {
+static void objectTeamlist_SetScore( int score, TeamState * obj ) {
 	obj->score = score;
 }
 
-static void objectTeamlist_AddScore( TeamState * obj, int add ) {
+static void objectTeamlist_AddScore( int add, TeamState * obj ) {
 	obj->score += add;
 }
 
@@ -893,11 +893,11 @@ static bool objectGameClient_GetChaseActive( gclient_t *self ) {
 	return self->resp.chase.active;
 }
 
-static void objectGameClient_AddScore( gclient_t * self, int add ) {
+static void objectGameClient_AddScore( int add, gclient_t * self ) {
 	G_ClientGetState( self )->score += add;
 }
 
-static void objectGameClient_SetScore( gclient_t * self, int score ) {
+static void objectGameClient_SetScore( int score, gclient_t * self ) {
 	G_ClientGetState( self )->score = score;
 }
 
@@ -905,7 +905,7 @@ static int objectGameClient_GetScore( gclient_t * self ) {
 	return G_ClientGetState( self )->score;
 }
 
-static void objectGameClient_SetState( gclient_t * self, bool state ) {
+static void objectGameClient_SetState( bool state, gclient_t * self ) {
 	G_ClientGetState( self )->state = state;
 }
 

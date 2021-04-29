@@ -299,12 +299,14 @@ void CG_DrawScoreboard() {
 
 	ImGui::Dummy( ImVec2( 0, separator_height ) );
 
-	ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, alpha ) );
-	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 0 ) );
-	ImGui::BeginChild( "spectators", ImVec2( 0, separator_height ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
+	TeamState * team_spec = &client_gs.gameState.teams[ TEAM_SPECTATOR ];
+	
+	if( team_spec->numplayers > 0 ) {
+		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, alpha ) );
+		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 0 ) );
+		ImGui::BeginChild( "spectators", ImVec2( 0, separator_height ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 
-	{
-		TeamState * team_spec = &client_gs.gameState.teams[ TEAM_SPECTATOR ];
+
 		DynamicString spectators( &temp, "Spectating: " );
 		for( int i = 0; i < team_spec->numplayers; i++ ) {
 			if( i > 0 )
@@ -313,11 +315,11 @@ void CG_DrawScoreboard() {
 		}
 
 		ImGui::Text( "%s", spectators.c_str() );
-	}
 
-	ImGui::EndChild();
-	ImGui::PopStyleVar();
-	ImGui::PopStyleColor();
+		ImGui::EndChild();
+		ImGui::PopStyleVar();
+		ImGui::PopStyleColor();
+	}
 }
 
 void CG_ScoresOn_f() {

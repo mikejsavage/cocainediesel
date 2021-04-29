@@ -9,10 +9,6 @@ bool CG_ScoreboardShown() {
 		return true;
 	}
 
-	if( cgs.demoPlaying || cg.frame.multipov ) {
-		return cg.showScoreboard;
-	}
-
 	return cg.showScoreboard;
 }
 

@@ -620,11 +620,9 @@ void G_ClientDamageFeedback( edict_t *ent );
 // p_hud.c
 //
 
-constexpr unsigned int scoreboardInterval = 1000;
 
 void G_SetClientStats( edict_t *ent );
 void G_Snap_UpdateWeaponListMessages();
-void G_ScoreboardMessage_AddSpectators();
 
 //
 // g_phys.c
@@ -769,7 +767,6 @@ struct client_levelreset_t {
 
 	score_stats_t stats;
 	bool showscores;
-	int64_t scoreboard_time;		// when scoreboard was last sent
 
 	// flood protection
 	int64_t flood_locktill;			// locked from talking

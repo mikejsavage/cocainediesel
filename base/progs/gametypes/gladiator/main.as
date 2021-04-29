@@ -266,7 +266,7 @@ class cDARound {
 			// respawn all clients inside the playing teams
 			for( int j = 0; @team.ent( j ) != null; j++ ) {
 				@ent = @team.ent( j );
-				ent.client.stats.clear(); // clear player scores & stats
+				ent.client.clearStats(); // clear player scores & stats
 				ent.client.respawn( true );
 			}
 		}
@@ -280,7 +280,7 @@ class cDARound {
 
 		if( @this.roundWinner != null ) {
 			Cvar scoreLimit( "g_scorelimit", "", 0 );
-			if( this.roundWinner.stats.score == scoreLimit.integer ) {
+			if( this.roundWinner.getScore() == scoreLimit.integer ) {
 				this.roundAnnouncementPrint( S_COLOR_WHITE + this.roundWinner.name + S_COLOR_WHITE + " is a true gladiator!" );
 			}
 		}
@@ -353,7 +353,7 @@ class cDARound {
 				int topscore = 0;
 				for( int j = 0; @team.ent( j ) != null; j++ ) {
 					Client @client = @team.ent( j ).client;
-					topscore = max( client.stats.score, topscore );
+					topscore = max( client.getScore(), topscore );
 				}
 
 				// respawn all clients inside the playing teams
@@ -361,7 +361,7 @@ class cDARound {
 					@ent = @team.ent( j );
 					if( this.isChallenger( ent.client ) ) {
 						ent.client.respawn( false );
-						if( ent.client.stats.score == topscore ) {
+						if( ent.client.getScore() == topscore ) {
 							ent.model2 = crownModel;
 							ent.effects |= EF_HAT;
 						}
@@ -393,7 +393,7 @@ class cDARound {
 				RoundType type = RoundType_Normal;
 				for( int i = 0; @team.ent( i ) != null; i++ ) {
 					Client @client = @team.ent( i ).client;
-					if( client.stats.score == limit - 1 ) {
+					if( client.getScore() == limit - 1 ) {
 						type = RoundType_MatchPoint;
 						break;
 					}
@@ -439,7 +439,7 @@ class cDARound {
 				else {
 					G_AnnouncerSound( winner, Hash64( "sounds/gladiator/score" ), GS_MAX_TEAMS, true, loser );
 
-					winner.stats.addScore( 1 );
+					winner.addScore( 1 );
 				}
 
 				this.roundLosers.reverse();
@@ -525,7 +525,7 @@ class cDARound {
 		}
 
 		if( this.state == DA_ROUNDSTATE_PREROUND ) {
-			target.client.stats.addScore( -1 );
+			target.client.addScore( -1 );
 			G_LocalSound( target.client, CHAN_AUTO, Hash64( "sounds/gladiator/ouch" ) );
 		}
 
@@ -612,57 +612,6 @@ Entity @GT_SelectSpawnPoint( Entity @self ) {
 	@last_spawn = @spawn;
 	if( @spawn == null ) G_Print( "null spawn btw\n" );
 	return spawn;
-}
-
-String @playerScoreboardMessage( Client @client ) {
-	int playerID = client.getEnt().isGhosting() ? -client.playerNum - 1 : client.playerNum;
-	int state = match.getState() == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : 0;
-
-	return " " + playerID
-		+ " " + client.ping
-		+ " " + client.stats.score
-		+ " " + client.stats.frags
-		+ " " + state;
-}
-
-String @GT_ScoreboardMessage() {
-	int challengers = daRound.roundChallengers.size();
-	int loosers = daRound.roundLosers.size();
-
-	Team @team = @G_GetTeam( TEAM_PLAYERS );
-	String scoreboard = daRound.numRounds + " " + team.numPlayers;
-
-	// first add the players in the duel
-	for( int i = 0; i < challengers; i++ ) {
-		Client @client = @daRound.roundChallengers[i];
-		if( @client != null ) {
-			scoreboard += playerScoreboardMessage( client );
-		}
-	}
-
-	// then add the round losers
-	if( daRound.state > DA_ROUNDSTATE_NONE && daRound.state < DA_ROUNDSTATE_POSTROUND && loosers > 0 ) {
-		for( int i = loosers - 1; i >= 0; i-- ) {
-			Client @client = @daRound.roundLosers[i];
-			if( @client != null ) {
-				scoreboard += playerScoreboardMessage( client );
-			}
-		}
-	}
-
-	// then add all the players in the queue
-	for( int i = 0; i < maxClients; i++ ) {
-		if( daRound.daChallengersQueue[i] < 0 || daRound.daChallengersQueue[i] >= maxClients )
-			break;
-
-		Client @client = @G_GetClient( daRound.daChallengersQueue[i] );
-		if( @client == null )
-			break;
-
-		scoreboard += playerScoreboardMessage( client );
-	}
-
-	return scoreboard;
 }
 
 // Some game actions trigger score events. These are events not related to killing

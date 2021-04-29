@@ -595,6 +595,14 @@ static asstring_t *objectTeamlist_getName( TeamState * obj ) {
 	return game.asExport->asStringFactoryBuffer( name, name ? strlen( name ) : 0 );
 }
 
+static void objectTeamlist_SetScore( TeamState * obj, int score ) {
+	obj->score = score;
+}
+
+static void objectTeamlist_AddScore( TeamState * obj, int add ) {
+	obj->score += add;
+}
+
 static bool objectTeamlist_IsLocked( TeamState * obj ) {
 	return G_Teams_TeamIsLocked( obj - server_gs.gameState.teams );
 }
@@ -621,6 +629,8 @@ static const asMethod_t teamlist_Methods[] =
 {
 	{ ASLIB_FUNCTION_DECL( Entity @, ent, ( int index ) ), asFUNCTION( objectTeamlist_GetPlayerEntity ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectTeamlist_getName ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, setScore, ( int ) const ), asFUNCTION( objectTeamlist_SetScore ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, addScore, ( int ) const ), asFUNCTION( objectTeamlist_AddScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, isLocked, ( ) const ), asFUNCTION( objectTeamlist_IsLocked ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, lock, ( ) const ), asFUNCTION( objectTeamlist_Lock ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, unlock, ( ) const ), asFUNCTION( objectTeamlist_Unlock ), asCALL_CDECL_OBJLAST },
@@ -630,8 +640,9 @@ static const asMethod_t teamlist_Methods[] =
 
 static const asProperty_t teamlist_Properties[] =
 {
-	{ ASLIB_PROPERTY_DECL( const u8, numPlayers ), offsetof( TeamState, num_players ) },
-	{ ASLIB_PROPERTY_DECL( const u8, score ), offsetof( TeamState, score ) },
+	{ ASLIB_PROPERTY_DECL( const uint8, score ), offsetof( TeamState, score ) },
+	{ ASLIB_PROPERTY_DECL( const uint8, numPlayers ), offsetof( TeamState, numplayers ) },
+	{ ASLIB_PROPERTY_DECL( const uint8, numAlive ), offsetof( TeamState, numalive ) },
 
 	ASLIB_PROPERTY_NULL
 };
@@ -645,57 +656,6 @@ static const asClassDescriptor_t asTeamListClassDescriptor =
 	teamlist_ObjectBehaviors,   /* object behaviors */
 	teamlist_Methods,           /* methods */
 	teamlist_Properties,        /* properties */
-
-	NULL, NULL                  /* string factory hack */
-};
-
-
-// CLASS: PlayerState
-static void objectPlayerState_Clear( PlayerState * obj ) {
-	memset( obj, 0, sizeof( *obj ) );
-}
-
-static void objectPlayerState_ScoreSet( int newscore, PlayerState * obj ) {
-	obj->score = newscore;
-}
-
-static void objectPlayerState_ScoreAdd( int score, PlayerState * obj ) {
-	obj->score += score;
-}
-
-static const asFuncdef_t playerstate_Funcdefs[] =
-{
-	ASLIB_FUNCDEF_NULL
-};
-
-static const asBehavior_t playerstate_ObjectBehaviors[] =
-{
-	ASLIB_BEHAVIOR_NULL
-};
-
-static const asMethod_t playerstate_Methods[] =
-{
-	{ ASLIB_FUNCTION_DECL( void, clear, ( ) ), asFUNCTION( objectScoreStats_Clear ), asCALL_CDECL_OBJLAST },
-
-	ASLIB_METHOD_NULL
-};
-
-static const asProperty_t playerstate_Properties[] =
-{
-	{ ASLIB_PROPERTY_DECL( const int, score ), offsetof( PlayerState, score ) },
-	{ ASLIB_PROPERTY_DECL( const int, kills ), offsetof( PlayerState, kills ) },
-	ASLIB_PROPERTY_NULL
-};
-
-static const asClassDescriptor_t asPlayerStateClassDescriptor =
-{
-	"PlayerState",                    /* name */
-	asOBJ_REF | asOBJ_NOCOUNT,    /* object type flags */
-	sizeof( PlayerState ),    /* size */
-	playerstate_Funcdefs,        /* funcdefs */
-	playerstate_ObjectBehaviors, /* object behaviors */
-	playerstate_Methods,         /* methods */
-	playerstate_Properties,      /* properties */
 
 	NULL, NULL                  /* string factory hack */
 };
@@ -933,6 +893,10 @@ static bool objectGameClient_GetChaseActive( gclient_t *self ) {
 	return self->resp.chase.active;
 }
 
+static void objectGameClient_AddScore( gclient_t * self, int add ) {
+	G_ClientGetState( self )->score += add;
+}
+
 static void objectGameClient_SetScore( gclient_t * self, int score ) {
 	G_ClientGetState( self )->score = score;
 }
@@ -941,8 +905,20 @@ static int objectGameClient_GetScore( gclient_t * self ) {
 	return G_ClientGetState( self )->score;
 }
 
+static void objectGameClient_SetState( gclient_t * self, bool state ) {
+	G_ClientGetState( self )->state = state;
+}
+
+static bool objectGameClient_GetState( gclient_t * self ) {
+	return G_ClientGetState( self )->state;
+}
+
 static int objectGameClient_GetKills( gclient_t * self ) {
 	return G_ClientGetState( self )->kills;
+}
+
+static void objectGameClient_ClearStats( gclient_t * self ) {
+	G_ClientClearStats( self );
 }
 
 static const asFuncdef_t gameclient_Funcdefs[] =
@@ -975,9 +951,13 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, chaseCam, ( const String @, bool teamOnly ) ), asFUNCTION( objectGameClient_ChaseCam ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, set_chaseActive, ( const bool active ) ), asFUNCTION( objectGameClient_SetChaseActive ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, get_chaseActive, ( ) const ), asFUNCTION( objectGameClient_GetChaseActive ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( int, setScore, ( int ) const ), asFUNCTION( objectGameClient_SetScore ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, addScore, ( int ) const ), asFUNCTION( objectGameClient_AddScore ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, setScore, ( int ) const ), asFUNCTION( objectGameClient_SetScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, getScore, ( ) const ), asFUNCTION( objectGameClient_GetScore ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, setState, ( bool ) const ), asFUNCTION( objectGameClient_SetState ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( bool, getState, ( ) const ), asFUNCTION( objectGameClient_GetState ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, getKills, ( ) const ), asFUNCTION( objectGameClient_GetKills ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, clearStats, ( ) const ), asFUNCTION( objectGameClient_ClearStats ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
 };
@@ -1538,7 +1518,7 @@ static TeamState * asFunc_GetTeamlist( int teamNum ) {
 		return NULL;
 	}
 
-	return &server_gs.teams[ teamNum ];
+	return &server_gs.gameState.teams[ teamNum ];
 }
 
 static void asFunc_G_Match_RemoveProjectiles( edict_t *owner ) {

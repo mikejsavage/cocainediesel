@@ -98,8 +98,8 @@ void GENERIC_SetUpMatch()
 
 	// clear player stats and scores, team scores and respawn clients in team lists
 
-	match.alphaScore = 0;
-	match.betaScore = 0;
+	G_GetTeam( TEAM_ALPHA ).setScore( 0 );
+	G_GetTeam( TEAM_BETA ).setScore( 0 );
 
 	for ( i = TEAM_PLAYERS; i < GS_MAX_TEAMS; i++ )
 	{
@@ -109,7 +109,7 @@ void GENERIC_SetUpMatch()
 		for ( j = 0; @team.ent( j ) != null; j++ )
 		{
 			@ent = @team.ent( j );
-			ent.client.stats.clear(); // clear player scores & stats
+			ent.client.clearStats(); // clear player scores & stats
 			ent.client.respawn( false );
 		}
 	}
@@ -227,7 +227,7 @@ Entity @RandomEntity( String &className )
 void GENERIC_UpdateMatchScore()
 {
 	if( gametype.isTeamBased ) {
-		match.setScore( match.alphaScore + " : " + match.betaScore );
+		match.setScore( G_GetTeam( TEAM_ALPHA ).score + " : " + G_GetTeam( TEAM_BETA ).score );
 		return;
 	}
 

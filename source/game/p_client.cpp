@@ -226,24 +226,13 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 	}
 }
 
-/*
-* G_ClientClearStats
-*/
-void G_ClientClearStats( edict_t *ent ) {
-	if( !ent || !ent->r.client ) {
-		return;
-	}
-
-	memset( G_ClientGetState( ent ), 0, sizeof( PlayerState ) );
-	memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
-}
 
 PlayerState * G_ClientGetState( edict_t * ent ) {
-	return &server_gs.gameState.player[ PLAYERNUM( ent ) ];
+	return &server_gs.gameState.players[ PLAYERNUM( ent ) ];
 }
 
 PlayerState * G_ClientGetState( gclient_t * client ) {
-	return &server_gs.gameState.player[ PLAYERNUM( client ) ];
+	return &server_gs.gameState.players[ PLAYERNUM( client ) ];
 }
 
 score_stats_t * G_ClientGetStats( edict_t * ent ) {
@@ -253,6 +242,25 @@ score_stats_t * G_ClientGetStats( edict_t * ent ) {
 score_stats_t * G_ClientGetStats( gclient_t * client ) {
 	return &client->level.stats;
 }
+
+void G_ClientClearStats( edict_t * ent ) {
+	if( !ent || !ent->r.client ) {
+		return;
+	}
+
+	memset( G_ClientGetState( ent ), 0, sizeof( PlayerState ) );
+	memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
+}
+
+void G_ClientClearStats( gclient_t * client ) {
+	if( !client ) {
+		return;
+	}
+
+	memset( G_ClientGetState( client ), 0, sizeof( PlayerState ) );
+	memset( G_ClientGetStats( client ), 0, sizeof( score_stats_t ) );
+}
+
 
 /*
 * G_GhostClient

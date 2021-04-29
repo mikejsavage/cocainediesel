@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/q_comref.h"
 #include "gameshared/q_collision.h"
 #include "gameshared/q_math.h"
+#include "gameshared/q_shared.h"
 
 //===============================================================
 //		WARSOW player AAboxes sizes
@@ -157,14 +158,41 @@ enum {
 #define GAMESTAT_FLAG_ISRACE ( 1 << 5LL )
 #define GAMESTAT_FLAG_COUNTDOWN ( 1 << 6LL )
 
-struct SyncBombGameState {
-	u8 alpha_score;
-	u8 beta_score;
-	u8 alpha_players_alive;
-	u8 alpha_players_total;
-	u8 beta_players_alive;
-	u8 beta_players_total;
+//===================
+//	GAMETYPES
+//===================
 
+enum {
+	TEAM_SPECTATOR,
+	TEAM_PLAYERS,
+	TEAM_ALPHA,
+	TEAM_BETA,
+
+	GS_MAX_TEAMS,
+
+	TEAM_ALLY,
+	TEAM_ENEMY,
+};
+
+
+
+struct PlayerState {
+	int ping;
+	int score;
+	int kills;
+	bool state;
+	bool alive;
+};
+
+
+struct TeamState {
+	int playerIndices[ MAX_CLIENTS ];
+	u8 score;
+	u8 numplayers;
+	u8 numalive; //useful only for hud actually
+};
+
+struct SyncBombGameState {
 	bool exploding;
 	s64 exploded_at;
 };
@@ -175,9 +203,13 @@ struct SyncGameState {
 	int64_t match_start;
 	int64_t match_duration;
 	int64_t clock_override;
+
 	RoundState round_state;
 	RoundType round_type;
 	u8 max_team_players;
+
+	TeamState teams[ GS_MAX_TEAMS ]; //for more teaminfo, check g_teaminfo_t serverside
+	PlayerState players[ MAX_CLIENTS ]; //for more playerinfo, check score_stats_t serverside
 
 	StringHash map;
 	u32 map_checksum;
@@ -458,22 +490,6 @@ struct Item {
 	RGB8 color;
 	const char * description;
 	int cost;
-};
-
-//===================
-//	GAMETYPES
-//===================
-
-enum {
-	TEAM_SPECTATOR,
-	TEAM_PLAYERS,
-	TEAM_ALPHA,
-	TEAM_BETA,
-
-	GS_MAX_TEAMS,
-
-	TEAM_ALLY,
-	TEAM_ENEMY,
 };
 
 // teams

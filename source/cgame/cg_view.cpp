@@ -151,9 +151,9 @@ static void CG_FlashGameWindow() {
 
 	// notify player of teams scoring in team-based gametypes
 	if( !scoresSet ||
-		( oldAlphaScore != client_gs.gameState.bomb.alpha_score || oldBetaScore != client_gs.gameState.bomb.beta_score ) ) {
-		oldAlphaScore = client_gs.gameState.bomb.alpha_score;
-		oldBetaScore = client_gs.gameState.bomb.beta_score;
+		( oldAlphaScore != client_gs.gameState.teams[ TEAM_ALPHA ].score || oldBetaScore != client_gs.gameState.teams[ TEAM_BETA ].score ) ) {
+		oldAlphaScore = client_gs.gameState.teams[ TEAM_ALPHA ].score;
+		oldBetaScore = client_gs.gameState.teams[ TEAM_BETA ].score;
 
 		flash = scoresSet && GS_TeamBasedGametype( &client_gs ) && !GS_IndividualGameType( &client_gs );
 		scoresSet = true;

@@ -160,6 +160,21 @@ struct spawn_temp_t {
 	float spawn_probability;
 };
 
+struct score_stats_t {
+	int deaths;
+	int suicides;
+
+	int accuracy_shots[ Weapon_Count ];
+	int accuracy_hits[ Weapon_Count ];
+	int accuracy_damage[ Weapon_Count ];
+	int accuracy_frags[ Weapon_Count ];
+	int total_damage_given;
+	int total_damage_received;
+
+	int asFactored;
+	int asRefCount;
+};
+
 extern game_locals_t game;
 extern gs_state_t server_gs;
 extern level_locals_t level;
@@ -311,7 +326,6 @@ void GT_asCallThinkRules();
 void GT_asCallPlayerKilled( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point, int mod );
 void GT_asCallPlayerRespawn( edict_t *ent, int old_team, int new_team );
 void GT_asCallScoreEvent( gclient_t *client, const char *score_event, const char *args );
-void GT_asCallScoreboardMessage( char * buf, size_t buf_size );
 edict_t *GT_asCallSelectSpawnPoint( edict_t *ent );
 bool GT_asCallGameCommand( gclient_t *client, const char *cmd, const char *args, int argc );
 bool GT_asCallBotStatus( edict_t *ent );
@@ -546,11 +560,12 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo );
 void G_Client_UpdateActivity( gclient_t *client );
 void G_Client_InactivityRemove( gclient_t *client );
 void G_ClientRespawn( edict_t *self, bool ghost );
-void G_ClientClearStats( edict_t *ent );
 PlayerState * G_ClientGetState( edict_t * ent );
 PlayerState * G_ClientGetState( gclient_t * client );
 score_stats_t * G_ClientGetStats( edict_t * ent );
 score_stats_t * G_ClientGetStats( gclient_t * client );
+void G_ClientClearStats( edict_t *ent );
+void G_ClientClearStats( gclient_t * client );
 void G_GhostClient( edict_t *self );
 void ClientThink( edict_t *ent, usercmd_t *cmd, int timeDelta );
 void G_ClientThink( edict_t *ent );
@@ -610,7 +625,6 @@ constexpr unsigned int scoreboardInterval = 1000;
 void G_SetClientStats( edict_t *ent );
 void G_Snap_UpdateWeaponListMessages();
 void G_ScoreboardMessage_AddSpectators();
-void G_UpdateScoreBoardMessages();
 
 //
 // g_phys.c
@@ -724,21 +738,6 @@ struct moveinfo_t {
 
 #define G_MAX_TIME_DELTAS   8
 #define G_MAX_TIME_DELTAS_MASK ( G_MAX_TIME_DELTAS - 1 )
-
-struct score_stats_t {
-	int deaths;
-	int suicides;
-
-	int accuracy_shots[ Weapon_Count ];
-	int accuracy_hits[ Weapon_Count ];
-	int accuracy_damage[ Weapon_Count ];
-	int accuracy_frags[ Weapon_Count ];
-	int total_damage_given;
-	int total_damage_received;
-
-	int asFactored;
-	int asRefCount;
-};
 
 struct client_snapreset_t {
 	int buttons;

@@ -40,7 +40,7 @@ void G_Teams_Init() {
 	g_teams_autojoin = Cvar_Get( "g_teams_autojoin", "1", CVAR_ARCHIVE );
 
 	//unlock all teams and clear up team lists
-	memset( server_gs.teams, 0, sizeof( server_gs.teams ) );
+	memset( server_gs.gameState.teams, 0, sizeof( server_gs.gameState.teams ) );
 	memset( teaminfo, 0, sizeof( teaminfo ) );
 
 	for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
@@ -83,6 +83,7 @@ void G_Teams_UpdateMembersList() {
 
 	for( team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ ) {
 		GetTeam( team ).numplayers = 0;
+		GetTeam( team ).numalive = 0;
 
 		//create a temp list with the clients inside this team
 		for( i = 0, ent = game.edicts + 1; i < server_gs.maxclients; i++, ent++ ) {
@@ -92,6 +93,10 @@ void G_Teams_UpdateMembersList() {
 
 			if( ent->s.team == team ) {
 				GetTeam( team ).playerIndices[ GetTeam( team ).numplayers++ ] = ENTNUM( ent );
+			}
+
+			if( G_ClientGetState( ent )->alive ) {
+				GetTeam( team ).numalive++;
 			}
 		}
 
@@ -334,7 +339,7 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 				continue;
 			}
 
-			u8 team_score = i == TEAM_ALPHA ? server_gs.gameState.bomb.alpha_score : server_gs.gameState.bomb.beta_score;
+			u8 team_score = server_gs.gameState.teams[ i ].score;
 			if( team == -1 || GetTeam( i ).numplayers < best_numplayers || ( GetTeam( i ).numplayers == best_numplayers && team_score < best_score ) ) {
 				best_numplayers = GetTeam( i ).numplayers;
 				best_score = team_score;

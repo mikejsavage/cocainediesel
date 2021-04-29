@@ -405,7 +405,6 @@ void CG_ClearAwards();
 void CG_DrawScoreboard();
 void CG_ScoresOn_f();
 void CG_ScoresOff_f();
-void SCR_UpdateScoreboardMessage( const char * string );
 bool CG_ScoreboardShown();
 
 //

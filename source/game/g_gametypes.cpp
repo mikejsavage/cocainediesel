@@ -271,7 +271,7 @@ bool G_Match_ScorelimitHit() {
 				}
 			}
 		} else {
-			u8 high_score = Max2( server_gs.gameState.bomb.alpha_score, server_gs.gameState.bomb.beta_score );
+			u8 high_score = Max2( server_gs.gameState.teams[ TEAM_ALPHA ].score, server_gs.gameState.teams[ TEAM_BETA ].score );
 			if( int( high_score ) >= g_scorelimit->integer )
 				return true;
 		}
@@ -583,8 +583,6 @@ void G_RunGametype() {
 	G_Teams_ExecuteChallengersQueue();
 	G_Teams_UpdateMembersList();
 	G_Match_CheckStateAbort();
-
-	G_UpdateScoreBoardMessages();
 
 	GT_asCallThinkRules();
 

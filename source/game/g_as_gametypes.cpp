@@ -29,7 +29,6 @@ static void GT_ResetScriptData() {
 	level.gametype.thinkRulesFunc = NULL;
 	level.gametype.playerRespawnFunc = NULL;
 	level.gametype.scoreEventFunc = NULL;
-	level.gametype.scoreboardMessageFunc = NULL;
 	level.gametype.selectSpawnPointFunc = NULL;
 	level.gametype.clientCommandFunc = NULL;
 	level.gametype.shutdownFunc = NULL;
@@ -225,36 +224,6 @@ void GT_asCallScoreEvent( gclient_t *client, const char *score_event, const char
 	game.asExport->asStringRelease( s2 );
 }
 
-//"String @GT_ScoreboardMessage()"
-void GT_asCallScoreboardMessage( char * buf, size_t buf_size ) {
-	asstring_t *string;
-	int error;
-	asIScriptContext *ctx;
-
-	if( !level.gametype.scoreboardMessageFunc ) {
-		return;
-	}
-
-	ctx = game.asExport->asAcquireContext( game.asEngine );
-
-	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.scoreboardMessageFunc ) );
-	if( error < 0 ) {
-		return;
-	}
-
-	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
-		GT_asShutdownScript();
-	}
-
-	string = ( asstring_t * )ctx->GetReturnObject();
-	if( !string || !string->len || !string->buffer ) {
-		return;
-	}
-
-	Q_strncpyz( buf, string->buffer, buf_size );
-}
-
 //"Entity @GT_SelectSpawnPoint( Entity @ent )"
 edict_t *GT_asCallSelectSpawnPoint( edict_t *ent ) {
 	int error;
@@ -418,16 +387,6 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	fdeclstr = "void GT_ScoreEvent( Client @client, const String &score_event, const String &args )";
 	level.gametype.scoreEventFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.scoreEventFunc ) {
-		if( developer->integer || sv_cheats->integer ) {
-			Com_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
-		}
-	} else {
-		funcCount++;
-	}
-
-	fdeclstr = "String @GT_ScoreboardMessage()";
-	level.gametype.scoreboardMessageFunc = asModule->GetFunctionByDecl( fdeclstr );
-	if( !level.gametype.scoreboardMessageFunc ) {
 		if( developer->integer || sv_cheats->integer ) {
 			Com_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
 		}

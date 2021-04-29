@@ -4,30 +4,7 @@
 
 #include "imgui/imgui.h"
 
-static char scoreboard_string[ MAX_STRING_CHARS ];
-
-struct ScoreboardTeam {
-	int score;
-	int num_players;
-};
-
-struct ScoreboardPlayer {
-	int id;
-	int ping;
-	int score;
-	int kills;
-	int state;
-};
-
-void SCR_UpdateScoreboardMessage( const char * string ) {
-	Q_strncpyz( scoreboard_string, string, sizeof( scoreboard_string ) );
-}
-
 bool CG_ScoreboardShown() {
-	if( strlen( scoreboard_string ) == 0 ) {
-		return false;
-	}
-
 	if( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME ) {
 		return true;
 	}
@@ -39,43 +16,18 @@ bool CG_ScoreboardShown() {
 	return cg.predictedPlayerState.show_scoreboard;
 }
 
-static bool ParseInt( const char ** cursor, int * x ) {
-	Span< const char > token = ParseToken( cursor, Parse_DontStopOnNewLine );
-	return TrySpanToInt( token, x );
-}
-
-static bool ParseTeam( const char ** cursor, ScoreboardTeam * team ) {
-	bool ok = true;
-	ok = ok && ParseInt( cursor, &team->score );
-	ok = ok && ParseInt( cursor, &team->num_players );
-	return ok;
-}
-
-static bool ParsePlayer( const char ** cursor, ScoreboardPlayer * player ) {
-	bool ok = true;
-	ok = ok && ParseInt( cursor, &player->id );
-	ok = ok && ( ( player->id >= 0 && size_t( player->id ) < ARRAY_COUNT( cg_entities ) ) || ( player->id < 0 && size_t( -( player->id + 1 ) ) < ARRAY_COUNT( cg_entities ) ) );
-	ok = ok && ParseInt( cursor, &player->ping );
-	ok = ok && ParseInt( cursor, &player->score );
-	ok = ok && ParseInt( cursor, &player->kills );
-	ok = ok && ParseInt( cursor, &player->state );
-	return ok;
-}
-
-static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player, const char ** cursor, float line_height ) {
-	bool alive = player.id >= 0;
-	int id = alive ? player.id : -( player.id + 1 );
-
+static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndice, float line_height ) {
+	PlayerState * player = &client_gs.gameState.players[ playerIndice ];
 	// icon
 	bool warmup = GS_MatchState( &client_gs ) == MATCH_STATE_WARMUP || GS_MatchState( &client_gs ) == MATCH_STATE_COUNTDOWN;
 	const Material * icon = NULL;
 
 	if( warmup ) {
-		icon = player.state != 0 ? cgs.media.shaderReady : NULL;
+		icon = player->state ? cgs.media.shaderReady : NULL;
 	}
 	else {
-		bool carrier = player.state != 0 && ( ISREALSPECTATOR() || cg_entities[ id + 1 ].current.team == cg.predictedPlayerState.team );
-		if( alive ) {
+		bool carrier = player->state && ( ISREALSPECTATOR() || cg_entities[ playerIndice + 1 ].current.team == cg.predictedPlayerState.team );
+		if( player->alive ) {
 			icon = carrier ? cgs.media.shaderBombIcon : cgs.media.shaderAlive;
 		}
 		else {
@@ -94,32 +46,30 @@ static void DrawPlayerScoreboard( TempAllocator & temp, ScoreboardPlayer player,
 	ImGui::NextColumn();
 
 	// player name
-	u8 alpha = player.id >= 0 ? 255 : 75;
-	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), cgs.clientInfo[ id ].name );
+	u8 alpha = player->alive ? 255 : 75;
+	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), cgs.clientInfo[ playerIndice ].name );
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( "%s", final_name.c_str() );
 	ImGui::NextColumn();
 
 	// stats
 	ImGui::AlignTextToFramePadding();
-	ColumnCenterText( temp( "{}", player.score ) );
+	ColumnCenterText( temp( "{}", player->score ) );
 	ImGui::NextColumn();
 	ImGui::AlignTextToFramePadding();
-	ColumnCenterText( temp( "{}", player.kills ) );
+	ColumnCenterText( temp( "{}", player->kills ) );
 	ImGui::NextColumn();
 	ImGui::AlignTextToFramePadding();
-	ColumnCenterText( temp( "{}", player.ping ) );
+	ColumnCenterText( temp( "{}", player->ping ) );
 	ImGui::NextColumn();
 }
 
-static void DrawTeamScoreboard( TempAllocator & temp, const char ** cursor, int team, float col_width, u8 alpha ) {
-	ScoreboardTeam team_info;
-	if( !ParseTeam( cursor, &team_info ) )
-		return;
+static void DrawTeamScoreboard( TempAllocator & temp, int team, float col_width, u8 alpha ) {
+	TeamState * team_info = &client_gs.gameState.teams[ team ];
 
 	RGB8 color = CG_TeamColor( team );
 
-	int slots = Max2( team_info.num_players, 5 );
+	int slots = Max2( team_info->numplayers, (u8)5 );
 	ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 0, 0, alpha ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 8 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0, 8 ) );
@@ -131,7 +81,7 @@ static void DrawTeamScoreboard( TempAllocator & temp, const char ** cursor, int 
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r, color.g, color.b, alpha ) );
 		ImGui::BeginChild( temp( "{}score", team ), ImVec2( 5 * line_height, slots * line_height ) );
 		ImGui::PushFont( cls.huge_font );
-		WindowCenterTextXY( temp( "{}", team_info.score ) );
+		WindowCenterTextXY( temp( "{}", team_info->score ) );
 		ImGui::PopFont();
 		ImGui::EndChild();
 		ImGui::PopStyleColor();
@@ -146,7 +96,7 @@ static void DrawTeamScoreboard( TempAllocator & temp, const char ** cursor, int 
 		ImGui::BeginChild( temp( "{}paddedplayers", team ), ImVec2( 0, slots * line_height ) );
 
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( color.r * 0.75f, color.g * 0.75f, color.b * 0.75f, alpha ) );
-		ImGui::BeginChild( temp( "{}players", team ), ImVec2( 0, team_info.num_players * line_height ) );
+		ImGui::BeginChild( temp( "{}players", team ), ImVec2( 0, team_info->numplayers * line_height ) );
 
 		ImGui::Columns( 5, NULL, false );
 		ImGui::SetColumnWidth( 0, line_height );
@@ -155,12 +105,8 @@ static void DrawTeamScoreboard( TempAllocator & temp, const char ** cursor, int 
 		ImGui::SetColumnWidth( 3, col_width );
 		ImGui::SetColumnWidth( 4, col_width );
 
-		for( int i = 0; i < team_info.num_players; i++ ) {
-			ScoreboardPlayer player;
-			if( !ParsePlayer( cursor, &player ) )
-				break;
-
-			DrawPlayerScoreboard( temp, player, cursor, line_height );
+		for( int i = 0; i < team_info->numplayers; i++ ) {
+			DrawPlayerScoreboard( temp, team_info->playerIndices[ i ], line_height );
 		}
 
 		ImGui::EndChild();
@@ -182,8 +128,6 @@ void CG_DrawScoreboard() {
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0, 0 ) );
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 0 ) );
 
-	const char * cursor = scoreboard_string;
-
 	const ImGuiIO & io = ImGui::GetIO();
 	float width_frac = Lerp( 0.8f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.6f );
 	Vec2 size = io.DisplaySize * Vec2( width_frac, 0.8f );
@@ -197,6 +141,8 @@ void CG_DrawScoreboard() {
 	float padding = 4;
 	float separator_height = ImGui::GetTextLineHeight() + 2 * padding;
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, padding ) );
+
+	bool warmup = GS_MatchState( &client_gs ) == MATCH_STATE_WARMUP;
 
 	defer {
 		ImGui::PopStyleVar();
@@ -235,11 +181,7 @@ void CG_DrawScoreboard() {
 			ImGui::PopStyleColor();
 		}
 
-		int round;
-		if( !ParseInt( &cursor, &round ) )
-			return;
-
-		DrawTeamScoreboard( temp, &cursor, TEAM_ALPHA, col_width, alpha );
+		DrawTeamScoreboard( temp, TEAM_ALPHA, col_width, alpha );
 
 		{
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, alpha ) );
@@ -252,7 +194,8 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 3, col_width );
 			ImGui::SetColumnWidth( 4, col_width );
 
-			ColumnCenterText( round == 0 ? "WARMUP" : temp( "ROUND {}", round ) );
+			u8 round = client_gs.gameState.teams[ TEAM_ALPHA ].score + client_gs.gameState.teams[ TEAM_BETA ].score; //hackish but I'm bored
+			ColumnCenterText( warmup ? "WARMUP" : temp( "ROUND {}", round ) );
 			ImGui::NextColumn();
 			ImGui::NextColumn();
 			ImGui::NextColumn();
@@ -263,7 +206,7 @@ void CG_DrawScoreboard() {
 			ImGui::PopStyleColor();
 		}
 
-		DrawTeamScoreboard( temp, &cursor, TEAM_BETA, col_width, alpha );
+		DrawTeamScoreboard( temp, TEAM_BETA, col_width, alpha );
 
 		{
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, alpha ) );
@@ -288,9 +231,7 @@ void CG_DrawScoreboard() {
 		}
 	}
 	else {
-		ScoreboardTeam team_info;
-		if( !ParseTeam( &cursor, &team_info ) )
-			return;
+		TeamState * team_info = &client_gs.gameState.teams[ TEAM_PLAYERS ];
 
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 8 ) );
 		ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0, 16 ) );
@@ -309,7 +250,7 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 4, col_width );
 
 			ImGui::NextColumn();
-			ColumnCenterText( team_info.score == 0 ? "WARMUP" : temp( "ROUND {}", team_info.score) );
+			ColumnCenterText( warmup ? "WARMUP" : temp( "ROUND {}", client_gs.gameState.teams[ TEAM_PLAYERS ].score ) );
 			ImGui::NextColumn();
 			ColumnCenterText( "SCORE" );
 			ImGui::NextColumn();
@@ -325,15 +266,12 @@ void CG_DrawScoreboard() {
 		// players
 		{
 			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 0, 0, alpha ) );
-			for( int i = 0; i < team_info.num_players; i++ ) {
-				ScoreboardPlayer player;
-				if( !ParsePlayer( &cursor, &player ) )
-					break;
+			for( int i = 0; i < team_info->numplayers; i++ ) {
+				PlayerState * player = &client_gs.gameState.players[ team_info->playerIndices[ i ] ];
 
 				RGB8 team_color = TEAM_COLORS[ i % ARRAY_COUNT( TEAM_COLORS ) ];
-				bool alive = player.id >= 0;
 
-				float bg_scale = alive ? 0.75f : 0.5f;
+				float bg_scale = player->alive ? 0.75f : 0.5f;
 				team_color.r *= bg_scale;
 				team_color.g *= bg_scale;
 				team_color.b *= bg_scale;
@@ -348,7 +286,7 @@ void CG_DrawScoreboard() {
 				ImGui::SetColumnWidth( 3, col_width );
 				ImGui::SetColumnWidth( 4, col_width );
 
-				DrawPlayerScoreboard( temp, player, &cursor, line_height );
+				DrawPlayerScoreboard( temp, team_info->playerIndices[ i ], line_height );
 
 				ImGui::EndChild();
 				ImGui::PopStyleColor();
@@ -359,10 +297,6 @@ void CG_DrawScoreboard() {
 		ImGui::PopStyleVar( 2 );
 	}
 
-	int num_spectators;
-	if( !ParseInt( &cursor, &num_spectators ) || num_spectators == 0 )
-		return;
-
 	ImGui::Dummy( ImVec2( 0, separator_height ) );
 
 	ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, alpha ) );
@@ -370,14 +304,12 @@ void CG_DrawScoreboard() {
 	ImGui::BeginChild( "spectators", ImVec2( 0, separator_height ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 
 	{
+		TeamState * team_spec = &client_gs.gameState.teams[ TEAM_SPECTATOR ];
 		DynamicString spectators( &temp, "Spectating: " );
-		for( int i = 0; i < num_spectators; i++ ) {
-			int id;
-			if( !ParseInt( &cursor, &id ) )
-				break;
+		for( int i = 0; i < team_spec->numplayers; i++ ) {
 			if( i > 0 )
 				spectators += ", ";
-			spectators += cgs.clientInfo[ id ].name;
+			spectators += cgs.clientInfo[ team_spec->playerIndices[ i ] ].name;
 		}
 
 		ImGui::Text( "%s", spectators.c_str() );

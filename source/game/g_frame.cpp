@@ -132,8 +132,8 @@ static void G_UpdateServerInfo() {
 	// g_match_score
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_PLAYTIME && level.gametype.isTeamBased ) {
 		String< MAX_INFO_STRING > score( "{}: {} {}: {}",
-			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.bomb.alpha_score,
-			GS_TeamName( TEAM_BETA ), server_gs.gameState.bomb.beta_score );
+			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.teams[ TEAM_ALPHA ].score,
+			GS_TeamName( TEAM_BETA ), server_gs.gameState.teams[ TEAM_BETA ].score );
 
 		Cvar_ForceSet( "g_match_score", score.c_str() );
 	} else {

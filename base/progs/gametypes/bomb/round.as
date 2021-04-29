@@ -36,7 +36,7 @@ void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
 
 		player.killsThisRound++;
 
-		int required_for_ace = attacker.team == TEAM_ALPHA ? match.betaPlayersTotal : match.alphaPlayersTotal;
+		int required_for_ace = attacker.team == TEAM_ALPHA ? G_GetTeam( TEAM_BETA ).numAlive : G_GetTeam( TEAM_ALPHA ).numAlive;
 		if( required_for_ace >= 3 && player.killsThisRound == required_for_ace ) {
 			G_AnnouncerSound( null, sndAce, GS_MAX_TEAMS, false, null );
 		}
@@ -47,7 +47,7 @@ void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
 }
 
 void checkPlayersAlive( int team ) {
-	uint alive = playersAliveOnTeam( team );
+	uint alive = G_GetTeam( team ).numAlive;
 
 	if( alive == 0 ) {
 		if( team == attackingTeam ) {
@@ -63,7 +63,7 @@ void checkPlayersAlive( int team ) {
 	}
 
 	int other = otherTeam( team );
-	uint aliveOther = playersAliveOnTeam( other );
+	uint aliveOther = G_GetTeam( other ).numAlive;
 
 	if( alive == 1 ) {
 		if( aliveOther == 1 ) {
@@ -106,7 +106,7 @@ void newGame() {
 		Team @team = @G_GetTeam( t );
 
 		for( int i = 0; @team.ent( i ) != null; i++ ) {
-			team.ent( i ).client.stats.clear();
+			team.ent( i ).client.clearStats();
 		}
 	}
 
@@ -126,13 +126,7 @@ void roundWonBy( int winner ) {
 	G_AnnouncerSound( null, sound, loser, true, null );
 
 	Team @teamWinner = @G_GetTeam( winner );
-
-	if( winner == TEAM_ALPHA ) {
-		match.alphaScore++;
-	}
-	else {
-		match.betaScore++;
-	}
+	teamWinner.addScore( 1 );
 
 	for( int i = 0; @teamWinner.ent( i ) != null; i++ ) {
 		Entity @ent = @teamWinner.ent( i );
@@ -156,7 +150,7 @@ void endGame() {
 }
 
 bool scoreLimitHit() {
-	return match.scoreLimitHit() && abs( int( match.alphaScore ) - int( match.betaScore ) ) > 1;
+	return match.scoreLimitHit() && abs( int( G_GetTeam( TEAM_ALPHA ).score ) - int( G_GetTeam( TEAM_BETA ).score ) ) > 1;
 }
 
 void setRoundType() {
@@ -164,11 +158,11 @@ void setRoundType() {
 
 	uint limit = cvarScoreLimit.integer;
 
-	bool match_point = match.alphaScore == limit - 1 || match.betaScore == limit - 1;
+	bool match_point = G_GetTeam( TEAM_ALPHA ).score == limit - 1 || G_GetTeam( TEAM_BETA ).score == limit - 1;
 	bool overtime = roundCount > ( limit - 1 ) * 2;
 
 	if( overtime ) {
-		type = match.alphaScore == match.betaScore ? RoundType_Overtime : RoundType_OvertimeMatchPoint;
+		type = G_GetTeam( TEAM_ALPHA ).score == G_GetTeam( TEAM_ALPHA ).score ? RoundType_Overtime : RoundType_OvertimeMatchPoint;
 	}
 	else if( match_point ) {
 		type = RoundType_MatchPoint;
@@ -292,9 +286,6 @@ void roundThink() {
 			}
 		}
 
-		match.alphaPlayersTotal = playersAliveOnTeam( TEAM_ALPHA );
-		match.betaPlayersTotal = playersAliveOnTeam( TEAM_BETA );
-
 		last_time = roundStateEndTime - levelTime + int( cvarRoundTime.value * 1000.0f );
 		match.setClockOverride( last_time );
 	}
@@ -359,25 +350,8 @@ void roundThink() {
 	}
 }
 
-uint playersAliveOnTeam( int teamNum ) {
-	uint alive = 0;
-
-	Team @team = @G_GetTeam( teamNum );
-
-	for( int i = 0; @team.ent( i ) != null; i++ ) {
-		Entity @ent = @team.ent( i );
-
-		// check health incase they died this frame
-		if( !ent.isGhosting() && ent.health > 0 ) {
-			alive++;
-		}
-	}
-
-	return alive;
-}
-
 // loops through players on teamNum and returns Entity of first alive player
-// this is only used when playersAliveOnTeam returns 1
+// this is only used when numAlive returns 1
 // hence the assert
 Client @firstAliveOnTeam( int teamNum ) {
 	Team @team = @G_GetTeam( teamNum );

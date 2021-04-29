@@ -96,10 +96,6 @@ void CG_ConfigString( int i, const char *s ) {
 	}
 }
 
-static void CG_SC_Scoreboard() {
-	SCR_UpdateScoreboardMessage( Cmd_Argv( 1 ) );
-}
-
 static int ParseIntOr0( const char ** cursor ) {
 	Span< const char > token = ParseToken( cursor, Parse_DontStopOnNewLine );
 	return SpanToInt( token, 0 );
@@ -267,7 +263,6 @@ static const ServerCommand server_commands[] = {
 	{ "tch", CG_SC_ChatPrint },
 	{ "cp", CG_SC_CenterPrint },
 	{ "obry", CG_SC_Obituary },
-	{ "scb", CG_SC_Scoreboard },
 	{ "demoget", CG_SC_DemoGet },
 	{ "aw", CG_SC_AddAward },
 	{ "changeloadout", CG_SC_ChangeLoadout },

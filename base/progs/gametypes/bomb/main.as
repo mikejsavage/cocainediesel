@@ -124,40 +124,11 @@ Entity @GT_SelectSpawnPoint( Entity @self ) {
 	return RandomEntity( "team_CTF_alphaspawn" );
 }
 
-String @teamScoreboardMessage( int t ) {
-	Team @team = @G_GetTeam( t );
-
-	String players = "";
-
-	for( int i = 0; @team.ent( i ) != null; i++ ) {
-		Entity @ent = @team.ent( i );
-		Client @client = @ent.client;
-
-		cPlayer @player = @playerFromClient( @client );
-
-		bool warmup = match.getState() == MATCH_STATE_WARMUP;
-		int state = warmup ? ( client.isReady() ? 1 : 0 ) : ( @ent == @bombCarrier ? 1 : 0 );
-		int playerId = ent.isGhosting() ? -( ent.playerNum + 1 ) : ent.playerNum;
-
-		players += " " + playerId
-			+ " " + client.ping
-			+ " " + client.stats.score
-			+ " " + client.stats.frags
-			+ " " + state;
-	}
-
-	return ( t == TEAM_ALPHA ? match.alphaScore : match.betaScore ) + " " + team.numPlayers + players;
-}
-
-String @GT_ScoreboardMessage() {
-	return roundCount + " " + teamScoreboardMessage( TEAM_ALPHA ) + " " + teamScoreboardMessage( TEAM_BETA );
-}
-
 void GT_updateScore( Client @client ) {
 	cPlayer @player = @playerFromClient( @client );
 	Stats @stats = @client.stats;
 
-	client.stats.setScore( int( stats.frags * 0.5 + stats.totalDamageGiven * 0.01 ) );
+	client.setScore( int( client.getKills() * 0.5 + stats.totalDamageGiven * 0.01 ) );
 }
 
 // Some game actions trigger score events. These are events not related to killing
@@ -295,12 +266,6 @@ void GT_ThinkRules() {
 
 	roundThink();
 
-	uint aliveAlpha = playersAliveOnTeam( TEAM_ALPHA );
-	uint aliveBeta  = playersAliveOnTeam( TEAM_BETA );
-
-	match.alphaPlayersAlive = aliveAlpha;
-	match.betaPlayersAlive = aliveBeta;
-
 	for( int i = 0; i < maxClients; i++ ) {
 		Client @client = @G_GetClient( i );
 
@@ -314,7 +279,7 @@ void GT_ThinkRules() {
 	}
 
 	if( bombState == BombState_Planted ) {
-		uint aliveOff = TEAM_ALPHA == attackingTeam ? aliveAlpha : aliveBeta;
+		uint aliveOff = TEAM_ALPHA == attackingTeam ? G_GetTeam( TEAM_ALPHA ).numAlive : G_GetTeam( TEAM_BETA ).numAlive;
 
 		if( aliveOff == 0 ) {
 			Team @team = @G_GetTeam( attackingTeam );

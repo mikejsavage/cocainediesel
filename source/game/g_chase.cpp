@@ -127,8 +127,8 @@ void G_EndServerFrames_UpdateChaseCam() {
 
 	// do it by teams, so spectators can copy the chasecam information from players
 	for( team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		for( i = 0; i < teamlist[team].numplayers; i++ ) {
-			ent = game.edicts + teamlist[team].playerIndices[i];
+		for( i = 0; i < GetTeam( team ).numplayers; i++ ) {
+			ent = game.edicts + GetTeam( team ).playerIndices[i];
 			if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 				G_Chase_SetChaseActive( ent, false );
 				continue;
@@ -139,8 +139,8 @@ void G_EndServerFrames_UpdateChaseCam() {
 	}
 
 	// Do spectators last
-	for( i = 0; i < teamlist[TEAM_SPECTATOR].numplayers; i++ ) {
-		ent = game.edicts + teamlist[TEAM_SPECTATOR].playerIndices[i];
+	for( i = 0; i < GetTeam( TEAM_SPECTATOR ).numplayers; i++ ) {
+		ent = game.edicts + GetTeam( TEAM_SPECTATOR ).playerIndices[i];
 		if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 			G_Chase_SetChaseActive( ent, false );
 			continue;
@@ -263,16 +263,16 @@ void G_ChaseStep( edict_t *ent, int step ) {
 	start = ent->r.client->resp.chase.target;
 	i = -1;
 	player_found = false; // needed to prevent an infinite loop if there are no players
-	// find the team of the previously chased player and his index in the sorted teamlist
+	// find the team of the previously chased player and his index in the sorted list
 	for( team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		for( j = 0; j < teamlist[team].numplayers; j++ ) {
+		for( j = 0; j < GetTeam( team ).numplayers; j++ ) {
 			player_found = true;
-			if( teamlist[team].playerIndices[j] == start ) {
+			if( GetTeam( team ).playerIndices[ j ] == start ) {
 				i = j;
 				break;
 			}
 		}
-		if( j != teamlist[team].numplayers ) {
+		if( j != GetTeam( team ).numplayers ) {
 			break;
 		}
 	}
@@ -302,18 +302,18 @@ void G_ChaseStep( edict_t *ent, int step ) {
 				if( team < TEAM_PLAYERS ) {
 					team = GS_MAX_TEAMS - 1;
 				}
-				i = teamlist[team].numplayers - 1;
+				i = GetTeam( team ).numplayers - 1;
 			}
 
 			// similarly, change to the next team if we skipped past the end of this one
-			while( i >= teamlist[team].numplayers ) {
+			while( i >= GetTeam( team ).numplayers ) {
 				team++;
 				if( team == GS_MAX_TEAMS ) {
 					team = TEAM_PLAYERS;
 				}
 				i = 0;
 			}
-			actual = teamlist[team].playerIndices[i];
+			actual = GetTeam( team ).playerIndices[i];
 			if( actual == start ) {
 				break; // back at the original player, no need to waste time
 			}

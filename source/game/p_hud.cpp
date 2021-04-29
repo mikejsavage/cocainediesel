@@ -33,9 +33,9 @@ void G_UpdateScoreBoardMessages() {
 	String< 1024 > scoreboard( "scb \"{}", as_scoreboard );
 
 	// add spectators
-	scoreboard.append( " {}", teamlist[ TEAM_SPECTATOR ].numplayers );
-	for( int i = 0; i < teamlist[TEAM_SPECTATOR].numplayers; i++ ) {
-		const edict_t * e = game.edicts + teamlist[TEAM_SPECTATOR].playerIndices[i];
+	scoreboard.append( " {}", GetTeam( TEAM_SPECTATOR ).numplayers );
+	for( int i = 0; i < GetTeam( TEAM_SPECTATOR ).numplayers; i++ ) {
+		const edict_t * e = game.edicts + GetTeam( TEAM_SPECTATOR ).playerIndices[ i ];
 		scoreboard.append( " {}", PLAYERNUM( e ) );
 	}
 

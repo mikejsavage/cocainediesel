@@ -1266,12 +1266,12 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 		edict_t *e;
 
 		for( count = 0, team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			if( !teamlist[team].numplayers ) {
+			if( !GetTeam( team ).numplayers ) {
 				continue;
 			}
 
-			for( i = 0; i < teamlist[team].numplayers; i++ ) {
-				e = game.edicts + teamlist[team].playerIndices[i];
+			for( i = 0; i < GetTeam( team ).numplayers; i++ ) {
+				e = game.edicts + GetTeam( team ).playerIndices[ i ];
 				if( e->r.inuse && ( e->r.svflags & SVF_FAKECLIENT ) ) {
 					count++;
 				}

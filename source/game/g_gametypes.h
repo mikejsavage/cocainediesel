@@ -75,16 +75,12 @@ typedef struct {
 } gametype_descriptor_t;
 
 typedef struct {
-	int playerIndices[MAX_CLIENTS];
-	int numplayers;
-	int ping;
 	bool locked;
-
 	int asRefCount;
 	int asFactored;
-} g_teamlist_t;
+} g_teaminfo_t;
 
-extern g_teamlist_t teamlist[GS_MAX_TEAMS];
+extern g_teaminfo_t teaminfo[ GS_MAX_TEAMS ];
 
 //
 //	matches management

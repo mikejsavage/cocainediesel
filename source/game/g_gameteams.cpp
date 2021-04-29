@@ -40,7 +40,8 @@ void G_Teams_Init() {
 	g_teams_autojoin = Cvar_Get( "g_teams_autojoin", "1", CVAR_ARCHIVE );
 
 	//unlock all teams and clear up team lists
-	memset( teamlist, 0, sizeof( teamlist ) );
+	memset( server_gs.teams, 0, sizeof( server_gs.teams ) );
+	memset( teaminfo, 0, sizeof( teaminfo ) );
 
 	for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
 		if( ent->r.inuse ) {
@@ -81,8 +82,7 @@ void G_Teams_UpdateMembersList() {
 	int i, team;
 
 	for( team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ ) {
-		teamlist[team].numplayers = 0;
-		teamlist[team].ping = 0;
+		GetTeam( team ).numplayers = 0;
 
 		//create a temp list with the clients inside this team
 		for( i = 0, ent = game.edicts + 1; i < server_gs.maxclients; i++, ent++ ) {
@@ -91,17 +91,11 @@ void G_Teams_UpdateMembersList() {
 			}
 
 			if( ent->s.team == team ) {
-				teamlist[team].playerIndices[teamlist[team].numplayers++] = ENTNUM( ent );
+				GetTeam( team ).playerIndices[ GetTeam( team ).numplayers++ ] = ENTNUM( ent );
 			}
 		}
 
-		qsort( teamlist[team].playerIndices, teamlist[team].numplayers, sizeof( teamlist[team].playerIndices[0] ), G_Teams_CompareMembers );
-
-		if( teamlist[team].numplayers ) {
-			for( i = 0; i < teamlist[team].numplayers; i++ )
-				teamlist[team].ping += game.edicts[teamlist[team].playerIndices[i]].r.client->r.ping;
-			teamlist[team].ping /= teamlist[team].numplayers;
-		}
+		qsort( GetTeam( team ).playerIndices, GetTeam( team ).numplayers, sizeof( GetTeam( team ).playerIndices[0] ), G_Teams_CompareMembers );
 	}
 }
 
@@ -110,7 +104,7 @@ void G_Teams_UpdateMembersList() {
 */
 bool G_Teams_TeamIsLocked( int team ) {
 	if( team > TEAM_SPECTATOR && team < GS_MAX_TEAMS ) {
-		return teamlist[team].locked;
+		return teaminfo[ team ].locked;
 	} else {
 		return false;
 	}
@@ -124,11 +118,11 @@ bool G_Teams_LockTeam( int team ) {
 		return false;
 	}
 
-	if( !level.teamlock || teamlist[team].locked ) {
+	if( !level.teamlock || teaminfo[ team ].locked ) {
 		return false;
 	}
 
-	teamlist[team].locked = true;
+	teaminfo[ team ].locked = true;
 	return true;
 }
 
@@ -140,11 +134,11 @@ bool G_Teams_UnLockTeam( int team ) {
 		return false;
 	}
 
-	if( !teamlist[team].locked ) {
+	if( !teaminfo[ team ].locked ) {
 		return false;
 	}
 
-	teamlist[team].locked = false;
+	teaminfo[ team ].locked = false;
 	return true;
 }
 
@@ -195,7 +189,7 @@ static bool G_Teams_CanKeepEvenTeam( int leaving, int joining ) {
 	int i;
 
 	for( i = TEAM_ALPHA; i < GS_MAX_TEAMS; i++ ) {
-		numplayers = teamlist[i].numplayers;
+		numplayers = GetTeam( i ).numplayers;
 		if( i == leaving ) {
 			numplayers--;
 		}
@@ -211,7 +205,7 @@ static bool G_Teams_CanKeepEvenTeam( int leaving, int joining ) {
 		}
 	}
 
-	return teamlist[joining].numplayers + 1 == min || Abs( max - min ) <= 1;
+	return GetTeam( joining ).numplayers + 1 == min || Abs( max - min ) <= 1;
 }
 
 /*
@@ -254,7 +248,7 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 		return ER_TEAM_INVALID;
 
 	// see if team is full
-	int count = teamlist[team].numplayers;
+	int count = GetTeam( team ).numplayers;
 
 	if( ( count + 1 > level.gametype.maxPlayersPerTeam &&
 		  level.gametype.maxPlayersPerTeam > 0 ) ||
@@ -340,8 +334,8 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 			}
 
 			u8 team_score = i == TEAM_ALPHA ? server_gs.gameState.bomb.alpha_score : server_gs.gameState.bomb.beta_score;
-			if( team == -1 || teamlist[i].numplayers < best_numplayers || ( teamlist[i].numplayers == best_numplayers && team_score < best_score ) ) {
-				best_numplayers = teamlist[i].numplayers;
+			if( team == -1 || GetTeam( i ).numplayers < best_numplayers || ( GetTeam( i ).numplayers == best_numplayers && team_score < best_score ) ) {
+				best_numplayers = GetTeam( i ).numplayers;
 				best_score = team_score;
 				team = i;
 			}
@@ -537,8 +531,8 @@ static edict_t *G_Teams_BestScoreBelow( int maxscore ) {
 
 	if( level.gametype.isTeamBased ) {
 		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			for( i = 0; i < teamlist[team].numplayers; i++ ) {
-				e = game.edicts + teamlist[team].playerIndices[i];
+			for( i = 0; i < GetTeam( team ).numplayers; i++ ) {
+				e = game.edicts + GetTeam( team ).playerIndices[i];
 				if( e->r.client->level.stats.score > bestScore &&
 					e->r.client->level.stats.score <= maxscore
 					&& !e->r.client->queueTimeStamp ) {
@@ -548,8 +542,8 @@ static edict_t *G_Teams_BestScoreBelow( int maxscore ) {
 			}
 		}
 	} else {
-		for( i = 0; i < teamlist[TEAM_PLAYERS].numplayers; i++ ) {
-			e = game.edicts + teamlist[TEAM_PLAYERS].playerIndices[i];
+		for( i = 0; i < GetTeam( TEAM_PLAYERS ).numplayers; i++ ) {
+			e = game.edicts + GetTeam( TEAM_PLAYERS ).playerIndices[i];
 			if( e->r.client->level.stats.score > bestScore &&
 				e->r.client->level.stats.score <= maxscore
 				&& !e->r.client->queueTimeStamp ) {
@@ -584,7 +578,7 @@ void G_Teams_AdvanceChallengersQueue() {
 
 	// assign new timestamps to all the players inside teams
 	for( team = START_TEAM; team < END_TEAM; team++ ) {
-		playerscount += teamlist[team].numplayers;
+		playerscount += GetTeam( team ).numplayers;
 	}
 
 	if( !playerscount ) {
@@ -599,8 +593,8 @@ void G_Teams_AdvanceChallengersQueue() {
 
 	// put everyone who just played out of the challengers queue
 	for( team = START_TEAM; team < END_TEAM; team++ ) {
-		for( i = 0; i < teamlist[team].numplayers; i++ ) {
-			e = game.edicts + teamlist[team].playerIndices[i];
+		for( i = 0; i < GetTeam( team ).numplayers; i++ ) {
+			e = game.edicts + GetTeam( team ).playerIndices[i];
 			e->r.client->queueTimeStamp = 0;
 		}
 	}

@@ -165,6 +165,9 @@ extern gs_state_t server_gs;
 extern level_locals_t level;
 extern spawn_temp_t st;
 
+#define GetTeam( team ) server_gs.teams[ team ]
+#define GetPlayer( id ) server_gs.players[ id ]
+
 extern mempool_t *gamepool;
 
 extern int meansOfDeath;

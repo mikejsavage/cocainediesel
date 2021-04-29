@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-g_teamlist_t teamlist[GS_MAX_TEAMS];
+g_teaminfo_t teaminfo[ GS_MAX_TEAMS ];
 
 //==========================================================
 //					Matches
@@ -53,8 +53,8 @@ void G_Match_Autorecord_Start() {
 	// do not start autorecording if all playing clients are bots
 	bool has_players = false;
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		for( int i = 0; i < teamlist[team].numplayers; i++ ) {
-			if( game.edicts[ teamlist[team].playerIndices[i] ].r.svflags & SVF_FAKECLIENT ) {
+		for( int i = 0; i < GetTeam( team ).numplayers; i++ ) {
+			if( game.edicts[ GetTeam( team ).playerIndices[i] ].r.svflags & SVF_FAKECLIENT ) {
 				continue;
 			}
 
@@ -126,7 +126,7 @@ static void G_Match_CheckStateAbort() {
 		int team, emptyteams = 0;
 
 		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			if( !teamlist[team].numplayers ) {
+			if( !GetTeam( team ).numplayers ) {
 				emptyteams++;
 			} else {
 				any = true;
@@ -135,8 +135,8 @@ static void G_Match_CheckStateAbort() {
 
 		enough = ( emptyteams == 0 );
 	} else {
-		enough = ( teamlist[TEAM_PLAYERS].numplayers > 1 );
-		any = ( teamlist[TEAM_PLAYERS].numplayers > 0 );
+		enough = ( GetTeam( TEAM_PLAYERS ).numplayers > 1 );
+		any = ( GetTeam( TEAM_PLAYERS ).numplayers > 0 );
 	}
 
 	// if waiting, turn on match states when enough players joined
@@ -317,8 +317,8 @@ void G_Match_CheckReadys() {
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
 		int readys = 0;
 		int notreadys = 0;
-		for( int i = 0; i < teamlist[team].numplayers; i++ ) {
-			const edict_t * e = game.edicts + teamlist[team].playerIndices[i];
+		for( int i = 0; i < GetTeam( team ).numplayers; i++ ) {
+			const edict_t * e = game.edicts + GetTeam( team ).playerIndices[ i ];
 
 			if( !e->r.inuse ) {
 				continue;
@@ -540,18 +540,18 @@ static void G_CheckEvenTeam() {
 	}
 
 	for( i = TEAM_ALPHA; i < GS_MAX_TEAMS; i++ ) {
-		if( max < teamlist[i].numplayers ) {
-			max = teamlist[i].numplayers;
+		if( max < GetTeam( i ).numplayers ) {
+			max = GetTeam( i ).numplayers;
 			uneven_team = i;
 		}
-		if( min > teamlist[i].numplayers ) {
-			min = teamlist[i].numplayers;
+		if( min > GetTeam( i ).numplayers ) {
+			min = GetTeam( i ).numplayers;
 		}
 	}
 
 	if( max - min > 1 ) {
-		for( i = 0; i < teamlist[uneven_team].numplayers; i++ ) {
-			edict_t *e = game.edicts + teamlist[uneven_team].playerIndices[i];
+		for( i = 0; i < GetTeam( uneven_team ).numplayers; i++ ) {
+			edict_t *e = game.edicts + GetTeam( uneven_team ).playerIndices[ i ];
 			if( !e->r.inuse ) {
 				continue;
 			}

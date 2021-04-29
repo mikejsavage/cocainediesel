@@ -498,12 +498,6 @@ static const asProperty_t match_Properties[] =
 {
 	{ ASLIB_PROPERTY_DECL( uint8, roundState ), offsetof( SyncGameState, round_state ) },
 	{ ASLIB_PROPERTY_DECL( uint8, roundType ), offsetof( SyncGameState, round_type ) },
-	{ ASLIB_PROPERTY_DECL( uint8, alphaScore ), offsetof( SyncGameState, bomb.alpha_score ) },
-	{ ASLIB_PROPERTY_DECL( uint8, alphaPlayersTotal ), offsetof( SyncGameState, bomb.alpha_players_total ) },
-	{ ASLIB_PROPERTY_DECL( uint8, alphaPlayersAlive ), offsetof( SyncGameState, bomb.alpha_players_alive ) },
-	{ ASLIB_PROPERTY_DECL( uint8, betaScore ), offsetof( SyncGameState, bomb.beta_score ) },
-	{ ASLIB_PROPERTY_DECL( uint8, betaPlayersTotal ), offsetof( SyncGameState, bomb.beta_players_total ) },
-	{ ASLIB_PROPERTY_DECL( uint8, betaPlayersAlive ), offsetof( SyncGameState, bomb.beta_players_alive ) },
 	{ ASLIB_PROPERTY_DECL( bool, exploding ), offsetof( SyncGameState, bomb.exploding ) },
 	{ ASLIB_PROPERTY_DECL( int64, explodedAt ), offsetof( SyncGameState, bomb.exploded_at ) },
 	ASLIB_PROPERTY_NULL
@@ -583,7 +577,7 @@ static const asClassDescriptor_t asGametypeClassDescriptor =
 };
 
 // CLASS: Team
-static edict_t *objectTeamlist_GetPlayerEntity( int index, g_teamlist_t *obj ) {
+static edict_t *objectTeamlist_GetPlayerEntity( int index, TeamState *obj ) {
 	if( index < 0 || index >= obj->numplayers ) {
 		return NULL;
 	}
@@ -592,25 +586,25 @@ static edict_t *objectTeamlist_GetPlayerEntity( int index, g_teamlist_t *obj ) {
 		return NULL;
 	}
 
-	return &game.edicts[ obj->playerIndices[index] ];
+	return &game.edicts[ obj->playerIndices[ index ] ];
 }
 
-static asstring_t *objectTeamlist_getName( g_teamlist_t *obj ) {
-	const char *name = GS_TeamName( obj - teamlist );
+static asstring_t *objectTeamlist_getName( g_teaminfo_t *obj ) {
+	const char *name = GS_TeamName( obj - teaminfo );
 
 	return game.asExport->asStringFactoryBuffer( name, name ? strlen( name ) : 0 );
 }
 
-static bool objectTeamlist_IsLocked( g_teamlist_t *obj ) {
-	return G_Teams_TeamIsLocked( obj - teamlist );
+static bool objectTeamlist_IsLocked( g_teaminfo_t *obj ) {
+	return G_Teams_TeamIsLocked( obj - teaminfo );
 }
 
-static bool objectTeamlist_Lock( g_teamlist_t *obj ) {
-	return ( obj ? G_Teams_LockTeam( obj - teamlist ) : false );
+static bool objectTeamlist_Lock( g_teaminfo_t *obj ) {
+	return ( obj ? G_Teams_LockTeam( obj - teaminfo ) : false );
 }
 
-static bool objectTeamlist_Unlock( g_teamlist_t *obj ) {
-	return ( obj ? G_Teams_UnLockTeam( obj - teamlist ) : false );
+static bool objectTeamlist_Unlock( g_teaminfo_t *obj ) {
+	return ( obj ? G_Teams_UnLockTeam( obj - teaminfo ) : false );
 }
 
 static const asFuncdef_t teamlist_Funcdefs[] =
@@ -636,8 +630,8 @@ static const asMethod_t teamlist_Methods[] =
 
 static const asProperty_t teamlist_Properties[] =
 {
-	{ ASLIB_PROPERTY_DECL( const int, numPlayers ), offsetof( g_teamlist_t, numplayers ) },
-	{ ASLIB_PROPERTY_DECL( const int, ping ), offsetof( g_teamlist_t, ping ) },
+	{ ASLIB_PROPERTY_DECL( const u8, numPlayers ), offsetof( TeamState, num_players ) },
+	{ ASLIB_PROPERTY_DECL( const u8, score ), offsetof( TeamState, score ) },
 
 	ASLIB_PROPERTY_NULL
 };
@@ -646,7 +640,7 @@ static const asClassDescriptor_t asTeamListClassDescriptor =
 {
 	"Team",                     /* name */
 	asOBJ_REF | asOBJ_NOCOUNT,    /* object type flags */
-	sizeof( g_teamlist_t ),     /* size */
+	sizeof( TeamState ),     /* size */
 	teamlist_Funcdefs,          /* funcdefs */
 	teamlist_ObjectBehaviors,   /* object behaviors */
 	teamlist_Methods,           /* methods */
@@ -1484,12 +1478,12 @@ static gclient_t *asFunc_GetClient( int clientNum ) {
 	return &game.clients[ clientNum ];
 }
 
-static g_teamlist_t *asFunc_GetTeamlist( int teamNum ) {
+static TeamState * asFunc_GetTeamlist( int teamNum ) {
 	if( teamNum < TEAM_SPECTATOR || teamNum >= GS_MAX_TEAMS ) {
 		return NULL;
 	}
 
-	return &teamlist[teamNum];
+	return &server_gs.teams[ teamNum ];
 }
 
 static void asFunc_G_Match_RemoveProjectiles( edict_t *owner ) {

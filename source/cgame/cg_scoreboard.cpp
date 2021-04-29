@@ -13,7 +13,7 @@ bool CG_ScoreboardShown() {
 		return cg.showScoreboard;
 	}
 
-	return cg.predictedPlayerState.show_scoreboard;
+	return cg.showScoreboard;
 }
 
 static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndice, float line_height ) {
@@ -323,19 +323,9 @@ void CG_DrawScoreboard() {
 }
 
 void CG_ScoresOn_f() {
-	if( cgs.demoPlaying || cg.frame.multipov ) {
-		cg.showScoreboard = true;
-	}
-	else {
-		Cbuf_ExecuteText( EXEC_NOW, "svscore 1" );
-	}
+	cg.showScoreboard = true;
 }
 
 void CG_ScoresOff_f() {
-	if( cgs.demoPlaying || cg.frame.multipov ) {
-		cg.showScoreboard = false;
-	}
-	else {
-		Cbuf_ExecuteText( EXEC_NOW, "svscore 0" );
-	}
+	cg.showScoreboard = false;
 }

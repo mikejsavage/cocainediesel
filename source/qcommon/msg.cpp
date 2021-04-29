@@ -665,7 +665,6 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	Delta( buf, player.weapons, baseline.weapons );
 	Delta( buf, player.items, baseline.items );
 
-	Delta( buf, player.show_scoreboard, baseline.show_scoreboard );
 	Delta( buf, player.ready, baseline.ready );
 	Delta( buf, player.voted, baseline.voted );
 	Delta( buf, player.can_change_loadout, baseline.can_change_loadout );

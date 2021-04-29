@@ -332,7 +332,6 @@ struct SyncPlayerState {
 	WeaponInfo weapons[ Weapon_Count - 1 ];
 	bool items[ Item_Count ];
 
-	bool show_scoreboard;
 	bool ready;
 	bool voted;
 	bool can_change_loadout;

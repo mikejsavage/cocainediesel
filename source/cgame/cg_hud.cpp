@@ -321,7 +321,9 @@ static const char * prefixes[] = {
 static const char * suicide_prefixes[] = {
 	"AUTO",
 	"SELF",
+	"SHANKS",
 	"SOLO",
+	"TIMMA",
 };
 
 static const char * void_obituaries[] = {

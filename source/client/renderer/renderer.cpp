@@ -384,7 +384,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	static const tracy::SourceLocationData particle_update_tracy = TRACY_HACK( "Update particles" );
 	static const tracy::SourceLocationData write_near_shadowmap_tracy = TRACY_HACK( "Write near shadowmap" );
 	static const tracy::SourceLocationData write_far_shadowmap_tracy = TRACY_HACK( "Write far shadowmap" );
-	static const tracy::SourceLocationData world_opaque_prepass_tracy = TRACY_HACK( "Render world opaque Prepass" );
+	static const tracy::SourceLocationData world_opaque_prepass_tracy = TRACY_HACK( "World z-prepass" );
 	static const tracy::SourceLocationData world_opaque_tracy = TRACY_HACK( "Render world opaque" );
 	static const tracy::SourceLocationData add_world_outlines_tracy = TRACY_HACK( "Render world outlines" );
 	static const tracy::SourceLocationData write_silhouette_buffer_tracy = TRACY_HACK( "Write silhouette buffer" );
@@ -393,9 +393,9 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	static const tracy::SourceLocationData sky_tracy = TRACY_HACK( "Render sky" );
 	static const tracy::SourceLocationData transparent_tracy = TRACY_HACK( "Render transparent" );
 	static const tracy::SourceLocationData silhouettes_tracy = TRACY_HACK( "Render silhouettes" );
-	static const tracy::SourceLocationData ui_tracy = TRACY_HACK( "Render UI" );
+	static const tracy::SourceLocationData ui_tracy = TRACY_HACK( "Render game HUD" );
 	static const tracy::SourceLocationData postprocess_tracy = TRACY_HACK( "Postprocess" );
-	static const tracy::SourceLocationData post_ui_tracy = TRACY_HACK( "Render Post UI" );
+	static const tracy::SourceLocationData post_ui_tracy = TRACY_HACK( "Render non-game UI" );
 #undef TRACY_HACK
 
 	frame_static.particle_update_pass = AddRenderPass( "Particle Update", &particle_update_tracy );

@@ -14,6 +14,8 @@
     material weapons/rg/icon
     material weapons/rifle/icon
     material weapons/sniper/icon
+    material weapons/road/icon
+    material weapons/minigun/icon
 
     blendfunc blend
 

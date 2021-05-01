@@ -96,3 +96,17 @@ weapons/sniper/icon
   }
   decal
 }
+weapons/road/icon
+{
+  {
+    map weapons/road/icon
+  }
+  decal
+}
+weapons/minigun/icon
+{
+  {
+    map weapons/minigun/icon
+  }
+  decal
+}

@@ -590,8 +590,3 @@ void CG_GetAngularMovement( Vec3 movement );
 
 bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
 int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] );
-
-/**
- * Checks a chat message for local player nick and flashes window on a match
- */
-void CG_FlashChatHighlight( const unsigned int from, const char *text );

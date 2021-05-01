@@ -58,10 +58,6 @@ static void CG_SC_ChatPrint() {
 		prefix,
 		( const char * ) ImGuiColorToken( team_color ).token, name,
 		( const char * ) ImGuiColorToken( rgba8_white ).token, text );
-
-	if( !cgs.demoPlaying ) {
-		CG_FlashChatHighlight( who - 1, text );
-	}
 }
 
 static void CG_SC_CenterPrint() {

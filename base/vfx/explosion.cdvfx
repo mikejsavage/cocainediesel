@@ -1,7 +1,7 @@
 {
   dlight {
     intensity 10000
-    lifetime 2.0
+    lifetime 0.75
     color 1.0 0.15 0.0 1.0
   }
 

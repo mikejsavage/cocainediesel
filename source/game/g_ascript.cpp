@@ -714,38 +714,24 @@ static const asClassDescriptor_t asScoreStatsClassDescriptor =
 
 // CLASS: Client
 static int objectGameClient_PlayerNum( gclient_t *self ) {
-	if( self->asFactored ) {
-		return -1;
-	}
 	return PLAYERNUM( self );
 }
 
 static bool objectGameClient_isReady( gclient_t *self ) {
-	if( self->asFactored ) {
-		return false;
-	}
-
 	return ( level.ready[self - game.clients] || GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME ) ? true : false;
 }
 
 static bool objectGameClient_isBot( gclient_t *self ) {
-	int playerNum;
-	const edict_t *ent;
-
-	playerNum = objectGameClient_PlayerNum( self );
+	int playerNum = objectGameClient_PlayerNum( self );
 	if( playerNum < 0 && playerNum >= server_gs.maxclients ) {
 		return false;
 	}
 
-	ent = PLAYERENT( playerNum );
+	const edict_t * ent = PLAYERENT( playerNum );
 	return ( ent->r.svflags & SVF_FAKECLIENT ) != 0;
 }
 
 static int objectGameClient_ClientState( gclient_t *self ) {
-	if( self->asFactored ) {
-		return CS_FREE;
-	}
-
 	return PF_GetClientState( (int)( self - game.clients ) );
 }
 
@@ -758,13 +744,7 @@ static asstring_t *objectGameClient_getName( gclient_t *self ) {
 }
 
 static void objectGameClient_Respawn( bool ghost, gclient_t *self ) {
-	int playerNum;
-
-	if( self->asFactored ) {
-		return;
-	}
-
-	playerNum = objectGameClient_PlayerNum( self );
+	int playerNum = objectGameClient_PlayerNum( self );
 
 	if( playerNum >= 0 && playerNum < server_gs.maxclients ) {
 		G_ClientRespawn( &game.edicts[playerNum + 1], ghost );
@@ -772,9 +752,7 @@ static void objectGameClient_Respawn( bool ghost, gclient_t *self ) {
 }
 
 static edict_t *objectGameClient_GetEntity( gclient_t *self ) {
-	int playerNum;
-
-	playerNum = objectGameClient_PlayerNum( self );
+	int playerNum = objectGameClient_PlayerNum( self );
 	if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
 		return NULL;
 	}
@@ -1672,7 +1650,7 @@ static void asFunc_G_LocalSound( gclient_t *target, int channel, u64 sound ) {
 		return;
 	}
 
-	if( target && !target->asFactored ) {
+	if( target ) {
 		int playerNum = target - game.clients;
 
 		if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
@@ -1691,7 +1669,7 @@ static void asFunc_G_AnnouncerSound( gclient_t *target, u64 sound, int team, boo
 	edict_t *ent = NULL, *passent = NULL;
 	int playerNum;
 
-	if( target && !target->asFactored ) {
+	if( target ) {
 		playerNum = target - game.clients;
 
 		if( playerNum < 0 || playerNum >= server_gs.maxclients ) {
@@ -1701,7 +1679,7 @@ static void asFunc_G_AnnouncerSound( gclient_t *target, u64 sound, int team, boo
 		ent = game.edicts + playerNum + 1;
 	}
 
-	if( ignore && !ignore->asFactored ) {
+	if( ignore ) {
 		playerNum = ignore - game.clients;
 
 		if( playerNum >= 0 && playerNum < server_gs.maxclients ) {

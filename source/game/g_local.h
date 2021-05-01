@@ -806,8 +806,6 @@ struct gclient_t {
 	int timeDeltasHead;
 
 	pmove_state_t old_pmove;    // for detecting out-of-pmove changes
-
-	int asRefCount, asFactored;
 };
 
 struct snap_edict_t {

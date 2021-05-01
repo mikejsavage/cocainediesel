@@ -38,9 +38,6 @@ typedef struct {
 	int accuracy_frags[ Weapon_Count ];
 	int total_damage_given;
 	int total_damage_received;
-
-	int asFactored;
-	int asRefCount;
 } score_stats_t;
 
 typedef struct {
@@ -79,9 +76,6 @@ typedef struct {
 	int numplayers;
 	int ping;
 	bool locked;
-
-	int asRefCount;
-	int asFactored;
 } g_teamlist_t;
 
 extern g_teamlist_t teamlist[GS_MAX_TEAMS];

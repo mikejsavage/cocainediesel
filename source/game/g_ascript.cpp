@@ -601,18 +601,6 @@ static asstring_t *objectTeamlist_getName( g_teamlist_t *obj ) {
 	return game.asExport->asStringFactoryBuffer( name, name ? strlen( name ) : 0 );
 }
 
-static bool objectTeamlist_IsLocked( g_teamlist_t *obj ) {
-	return G_Teams_TeamIsLocked( obj - teamlist );
-}
-
-static bool objectTeamlist_Lock( g_teamlist_t *obj ) {
-	return ( obj ? G_Teams_LockTeam( obj - teamlist ) : false );
-}
-
-static bool objectTeamlist_Unlock( g_teamlist_t *obj ) {
-	return ( obj ? G_Teams_UnLockTeam( obj - teamlist ) : false );
-}
-
 static const asFuncdef_t teamlist_Funcdefs[] =
 {
 	ASLIB_FUNCDEF_NULL
@@ -627,9 +615,6 @@ static const asMethod_t teamlist_Methods[] =
 {
 	{ ASLIB_FUNCTION_DECL( Entity @, ent, ( int index ) ), asFUNCTION( objectTeamlist_GetPlayerEntity ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectTeamlist_getName ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, isLocked, ( ) const ), asFUNCTION( objectTeamlist_IsLocked ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, lock, ( ) const ), asFUNCTION( objectTeamlist_Lock ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, unlock, ( ) const ), asFUNCTION( objectTeamlist_Unlock ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
 };

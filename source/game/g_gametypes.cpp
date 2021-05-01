@@ -224,7 +224,6 @@ void G_Match_LaunchState( int matchState ) {
 			server_gs.gameState.match_start = svs.gametime;
 
 			G_Timeout_Reset();
-			level.teamlock = false;
 			level.forceExit = false;
 		}
 		break;

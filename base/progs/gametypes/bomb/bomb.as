@@ -422,9 +422,9 @@ bool bombCanPlant() {
 
 void bombGiveToRandom() {
 	Team @team = @G_GetTeam( attackingTeam );
-	int bots = 0;
+	uint bots = 0;
 
-	for( int i = 0; @team.ent( i ) != null; i++ ) {
+	for( uint i = 0; @team.ent( i ) != null; i++ ) {
 		if( ( team.ent( i ).svflags & SVF_FAKECLIENT ) != 0 ) {
 			bots++;
 		}

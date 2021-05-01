@@ -59,8 +59,6 @@ typedef struct {
 
 typedef struct {
 	bool locked;
-	int asRefCount;
-	int asFactored;
 } g_teaminfo_t;
 
 extern g_teaminfo_t teaminfo[ GS_MAX_TEAMS ];

@@ -170,9 +170,6 @@ struct score_stats_t {
 	int accuracy_frags[ Weapon_Count ];
 	int total_damage_given;
 	int total_damage_received;
-
-	int asFactored;
-	int asRefCount;
 };
 
 extern game_locals_t game;
@@ -823,8 +820,6 @@ struct gclient_t {
 	int timeDeltasHead;
 
 	pmove_state_t old_pmove;    // for detecting out-of-pmove changes
-
-	int asRefCount, asFactored;
 };
 
 struct snap_edict_t {

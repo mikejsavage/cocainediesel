@@ -19,37 +19,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void GENERIC_SetUpWarmup()
 {
-	int j;
-	Team @team;
-
 	gametype.shootingDisabled = false;
 	gametype.readyAnnouncementEnabled = true;
 	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = false;
-
-	if ( gametype.isTeamBased )
-	{
-		bool anyone = false;
-		int t;
-
-		for ( t = TEAM_ALPHA; t < GS_MAX_TEAMS; t++ )
-		{
-			@team = @G_GetTeam( t );
-
-			if ( team.unlock() )
-				anyone = true;
-		}
-
-		if ( anyone )
-			G_PrintMsg( null, "Teams unlocked.\n" );
-	}
-	else
-	{
-		@team = @G_GetTeam( TEAM_PLAYERS );
-
-		if ( team.unlock() )
-			G_PrintMsg( null, "Teams unlocked.\n" );
-	}
 }
 
 void GENERIC_SetUpCountdown()
@@ -58,25 +31,6 @@ void GENERIC_SetUpCountdown()
 	gametype.readyAnnouncementEnabled = false;
 	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = true;
-
-	// lock teams
-	bool anyone = false;
-	if ( gametype.isTeamBased )
-	{
-		for ( int team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ )
-		{
-			if ( G_GetTeam( team ).lock() )
-				anyone = true;
-		}
-	}
-	else
-	{
-		if ( G_GetTeam( TEAM_PLAYERS ).lock() )
-			anyone = true;
-	}
-
-	if ( anyone )
-		G_PrintMsg( null, "Teams locked.\n" );
 
 	// Countdowns should be made entirely client side, because we now can
 

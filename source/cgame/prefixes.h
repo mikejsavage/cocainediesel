@@ -899,6 +899,7 @@
 "RETRO",
 "REVENGE",
 "RIGHT",
+"RIIHI",
 "RING",
 "RIOT",
 "RISK",

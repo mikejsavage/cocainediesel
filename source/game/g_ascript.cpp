@@ -603,18 +603,6 @@ static void objectTeamlist_AddScore( int add, TeamState * obj ) {
 	obj->score += add;
 }
 
-static bool objectTeamlist_IsLocked( TeamState * obj ) {
-	return G_Teams_TeamIsLocked( obj - server_gs.gameState.teams );
-}
-
-static bool objectTeamlist_Lock( TeamState * obj ) {
-	return ( obj ? G_Teams_LockTeam( obj - server_gs.gameState.teams ) : false );
-}
-
-static bool objectTeamlist_Unlock( TeamState * obj ) {
-	return ( obj ? G_Teams_UnLockTeam( obj - server_gs.gameState.teams ) : false );
-}
-
 static const asFuncdef_t teamlist_Funcdefs[] =
 {
 	ASLIB_FUNCDEF_NULL
@@ -631,9 +619,6 @@ static const asMethod_t teamlist_Methods[] =
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectTeamlist_getName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setScore, ( int ) const ), asFUNCTION( objectTeamlist_SetScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, addScore, ( int ) const ), asFUNCTION( objectTeamlist_AddScore ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, isLocked, ( ) const ), asFUNCTION( objectTeamlist_IsLocked ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, lock, ( ) const ), asFUNCTION( objectTeamlist_Lock ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, unlock, ( ) const ), asFUNCTION( objectTeamlist_Unlock ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
 };

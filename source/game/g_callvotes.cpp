@@ -364,92 +364,6 @@ static const char *G_VoteMaxTeamplayersCurrent() {
 }
 
 /*
-* lock
-*/
-
-static bool G_VoteLockValidate( callvotedata_t *vote, bool first ) {
-	if( GS_MatchState( &server_gs ) > MATCH_STATE_PLAYTIME ) {
-		if( first ) {
-			G_PrintMsg( vote->caller, "%sCan't lock teams after the match\n", S_COLOR_RED );
-		}
-		return false;
-	}
-
-	if( level.teamlock ) {
-		if( GS_MatchState( &server_gs ) < MATCH_STATE_COUNTDOWN && first ) {
-			G_PrintMsg( vote->caller, "%sTeams are already set to be locked on match start\n", S_COLOR_RED );
-		} else if( first ) {
-			G_PrintMsg( vote->caller, "%sTeams are already locked\n", S_COLOR_RED );
-		}
-		return false;
-	}
-
-	return true;
-}
-
-static void G_VoteLockPassed( callvotedata_t *vote ) {
-	int team;
-
-	level.teamlock = true;
-
-	// if we are inside a match, update the teams state
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_COUNTDOWN && GS_MatchState( &server_gs ) <= MATCH_STATE_PLAYTIME ) {
-		if( level.gametype.isTeamBased ) {
-			for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ )
-				G_Teams_LockTeam( team );
-		} else {
-			G_Teams_LockTeam( TEAM_PLAYERS );
-		}
-		G_PrintMsg( NULL, "Teams locked\n" );
-	} else {
-		G_PrintMsg( NULL, "Teams will be locked when the match starts\n" );
-	}
-}
-
-/*
-* unlock
-*/
-
-static bool G_VoteUnlockValidate( callvotedata_t *vote, bool first ) {
-	if( GS_MatchState( &server_gs ) > MATCH_STATE_PLAYTIME ) {
-		if( first ) {
-			G_PrintMsg( vote->caller, "%sCan't unlock teams after the match\n", S_COLOR_RED );
-		}
-		return false;
-	}
-
-	if( !level.teamlock ) {
-		if( GS_MatchState( &server_gs ) < MATCH_STATE_COUNTDOWN && first ) {
-			G_PrintMsg( vote->caller, "%sTeams are not set to be locked\n", S_COLOR_RED );
-		} else if( first ) {
-			G_PrintMsg( vote->caller, "%sTeams are not locked\n", S_COLOR_RED );
-		}
-		return false;
-	}
-
-	return true;
-}
-
-static void G_VoteUnlockPassed( callvotedata_t *vote ) {
-	int team;
-
-	level.teamlock = false;
-
-	// if we are inside a match, update the teams state
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_COUNTDOWN && GS_MatchState( &server_gs ) <= MATCH_STATE_PLAYTIME ) {
-		if( level.gametype.isTeamBased ) {
-			for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ )
-				G_Teams_UnLockTeam( team );
-		} else {
-			G_Teams_UnLockTeam( TEAM_PLAYERS );
-		}
-		G_PrintMsg( NULL, "Teams unlocked\n" );
-	} else {
-		G_PrintMsg( NULL, "Teams will no longer be locked when the match starts\n" );
-	}
-}
-
-/*
 * spectate
 */
 
@@ -1550,26 +1464,6 @@ void G_CallVotes_Init() {
 	callvote->argument_format = "<number>";
 	callvote->argument_type = "integer";
 	callvote->help = "Sets the maximum number of players in one team";
-
-	callvote = G_RegisterCallvote( "lock" );
-	callvote->expectedargs = 0;
-	callvote->validate = G_VoteLockValidate;
-	callvote->execute = G_VoteLockPassed;
-	callvote->current = NULL;
-	callvote->extraHelp = NULL;
-	callvote->argument_format = NULL;
-	callvote->argument_type = NULL;
-	callvote->help = "Locks teams to disallow players joining in mid-game";
-
-	callvote = G_RegisterCallvote( "unlock" );
-	callvote->expectedargs = 0;
-	callvote->validate = G_VoteUnlockValidate;
-	callvote->execute = G_VoteUnlockPassed;
-	callvote->current = NULL;
-	callvote->extraHelp = NULL;
-	callvote->argument_format = NULL;
-	callvote->argument_type = NULL;
-	callvote->help = "Unlocks teams to allow players joining in mid-game";
 
 	callvote = G_RegisterCallvote( "start" );
 	callvote->expectedargs = 0;

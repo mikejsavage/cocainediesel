@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-g_teaminfo_t teaminfo[ GS_MAX_TEAMS ];
-
 //==========================================================
 //					Matches
 //==========================================================
@@ -224,7 +222,6 @@ void G_Match_LaunchState( int matchState ) {
 			server_gs.gameState.match_start = svs.gametime;
 
 			G_Timeout_Reset();
-			level.teamlock = false;
 			level.forceExit = false;
 		}
 		break;

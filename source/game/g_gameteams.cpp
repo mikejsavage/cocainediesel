@@ -39,9 +39,8 @@ void G_Teams_Init() {
 	g_teams_allow_uneven = Cvar_Get( "g_teams_allow_uneven", "1", CVAR_ARCHIVE );
 	g_teams_autojoin = Cvar_Get( "g_teams_autojoin", "1", CVAR_ARCHIVE );
 
-	//unlock all teams and clear up team lists
+	// clear up team lists
 	memset( server_gs.gameState.teams, 0, sizeof( server_gs.gameState.teams ) );
-	memset( teaminfo, 0, sizeof( teaminfo ) );
 
 	for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
 		if( ent->r.inuse ) {
@@ -104,49 +103,6 @@ void G_Teams_UpdateMembersList() {
 }
 
 /*
-* G_Teams_TeamIsLocked
-*/
-bool G_Teams_TeamIsLocked( int team ) {
-	if( team > TEAM_SPECTATOR && team < GS_MAX_TEAMS ) {
-		return teaminfo[ team ].locked;
-	} else {
-		return false;
-	}
-}
-
-/*
-* G_Teams_LockTeam
-*/
-bool G_Teams_LockTeam( int team ) {
-	if( team <= TEAM_SPECTATOR || team >= GS_MAX_TEAMS ) {
-		return false;
-	}
-
-	if( !level.teamlock || teaminfo[ team ].locked ) {
-		return false;
-	}
-
-	teaminfo[ team ].locked = true;
-	return true;
-}
-
-/*
-* G_Teams_UnLockTeam
-*/
-bool G_Teams_UnLockTeam( int team ) {
-	if( team <= TEAM_SPECTATOR || team >= GS_MAX_TEAMS ) {
-		return false;
-	}
-
-	if( !teaminfo[ team ].locked ) {
-		return false;
-	}
-
-	teaminfo[ team ].locked = false;
-	return true;
-}
-
-/*
 * G_Teams_SetTeam - sets clients team without any checking
 */
 void G_Teams_SetTeam( edict_t *ent, int team ) {
@@ -181,7 +137,6 @@ enum
 	ER_TEAM_OK,
 	ER_TEAM_INVALID,
 	ER_TEAM_FULL,
-	ER_TEAM_LOCKED,
 	ER_TEAM_MATCHSTATE,
 	ER_TEAM_CHALLENGERS,
 	ER_TEAM_UNEVEN
@@ -240,11 +195,6 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 		return ER_TEAM_CHALLENGERS;
 	}
 
-	// see if team is locked
-	if( G_Teams_TeamIsLocked( team ) ) {
-		return ER_TEAM_LOCKED;
-	}
-
 	if( !level.gametype.isTeamBased ) {
 		return team == TEAM_PLAYERS ? ER_TEAM_OK : ER_TEAM_INVALID;
 	}
@@ -288,9 +238,6 @@ bool G_Teams_JoinTeam( edict_t *ent, int team ) {
 			G_Teams_JoinChallengersQueue( ent );
 		} else if( error == ER_TEAM_FULL ) {
 			G_PrintMsg( ent, "Team %s is FULL\n", GS_TeamName( team ) );
-			G_Teams_JoinChallengersQueue( ent );
-		} else if( error == ER_TEAM_LOCKED ) {
-			G_PrintMsg( ent, "Team %s is LOCKED\n", GS_TeamName( team ) );
 			G_Teams_JoinChallengersQueue( ent );
 		} else if( error == ER_TEAM_MATCHSTATE ) {
 			G_PrintMsg( ent, "Can't join %s at this moment\n", GS_TeamName( team ) );

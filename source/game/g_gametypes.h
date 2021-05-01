@@ -57,12 +57,6 @@ typedef struct {
 	int spawnpointRadius;
 } gametype_descriptor_t;
 
-typedef struct {
-	bool locked;
-} g_teaminfo_t;
-
-extern g_teaminfo_t teaminfo[ GS_MAX_TEAMS ];
-
 //
 //	matches management
 //

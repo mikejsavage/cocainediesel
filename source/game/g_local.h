@@ -134,7 +134,6 @@ struct level_locals_t {
 	// gametype definition and execution
 	gametype_descriptor_t gametype;
 
-	bool teamlock;
 	bool ready[MAX_CLIENTS];
 	bool forceExit;     // just exit, ignore extended time checks
 
@@ -237,9 +236,6 @@ extern cvar_t *g_asGC_interval;
 edict_t **G_Teams_ChallengersQueue();
 void G_Teams_Join_Cmd( edict_t *ent );
 bool G_Teams_JoinTeam( edict_t *ent, int team );
-bool G_Teams_TeamIsLocked( int team );
-bool G_Teams_LockTeam( int team );
-bool G_Teams_UnLockTeam( int team );
 void G_Teams_UpdateMembersList();
 bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent );
 void G_Teams_SetTeam( edict_t *ent, int team );

@@ -151,6 +151,18 @@ static void G_UpdateServerInfo() {
 	}
 }
 
+static void G_UpdateClientScoreboard( edict_t * ent ) {
+	score_stats_t * stats = G_ClientGetStats( ent );
+	int plyNum = PLAYERNUM( ent );
+
+	server_gs.gameState.players[ plyNum ].ping = stats->ping;
+	server_gs.gameState.players[ plyNum ].score = stats->score;
+	server_gs.gameState.players[ plyNum ].kills = stats->kills;
+	server_gs.gameState.players[ plyNum ].state = stats->state;
+	server_gs.gameState.players[ plyNum ].alive = stats->alive;
+}
+
+
 /*
 * G_CheckCvars
 * Check for cvars that have been modified and need the game to be updated
@@ -215,7 +227,7 @@ void G_SnapClients() {
 		}
 
 		G_Client_InactivityRemove( ent->r.client );
-
+		G_UpdateClientScoreboard( ent );
 		G_ClientEndSnapFrame( ent );
 	}
 

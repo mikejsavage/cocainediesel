@@ -266,7 +266,7 @@ class cDARound {
 			// respawn all clients inside the playing teams
 			for( int j = 0; @team.ent( j ) != null; j++ ) {
 				@ent = @team.ent( j );
-				ent.client.clearStats(); // clear player scores & stats
+				ent.client.stats.clear(); // clear player scores & stats
 				ent.client.respawn( true );
 			}
 		}
@@ -302,8 +302,6 @@ class cDARound {
 				client.respawn( true ); // ghost them all
 			}
 		}
-
-		GENERIC_UpdateMatchScore();
 	}
 
 	void newRound() {
@@ -439,7 +437,7 @@ class cDARound {
 				else {
 					G_AnnouncerSound( winner, Hash64( "sounds/gladiator/score" ), GS_MAX_TEAMS, true, loser );
 
-					winner.addScore( 1 );
+					winner.stats.addScore( 1 );
 				}
 
 				this.roundLosers.reverse();
@@ -525,7 +523,7 @@ class cDARound {
 		}
 
 		if( this.state == DA_ROUNDSTATE_PREROUND ) {
-			target.client.addScore( -1 );
+			target.client.stats.addScore( -1 );
 			G_LocalSound( target.client, CHAN_AUTO, Hash64( "sounds/gladiator/ouch" ) );
 		}
 
@@ -666,8 +664,6 @@ void GT_ThinkRules() {
 
 	if( match.getState() >= MATCH_STATE_POSTMATCH )
 		return;
-
-	GENERIC_Think();
 
 	daRound.think();
 }

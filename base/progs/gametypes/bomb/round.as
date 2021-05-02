@@ -106,7 +106,7 @@ void newGame() {
 		Team @team = @G_GetTeam( t );
 
 		for( int i = 0; @team.ent( i ) != null; i++ ) {
-			team.ent( i ).client.clearStats();
+			team.ent( i ).client.stats.clear();
 		}
 	}
 

@@ -160,8 +160,14 @@ struct spawn_temp_t {
 };
 
 struct score_stats_t {
+	int kills;
 	int deaths;
 	int suicides;
+	bool alive;
+
+	int ping;
+	int score;
+	bool state;
 
 	int accuracy_shots[ Weapon_Count ];
 	int accuracy_hits[ Weapon_Count ];
@@ -553,8 +559,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo );
 void G_Client_UpdateActivity( gclient_t *client );
 void G_Client_InactivityRemove( gclient_t *client );
 void G_ClientRespawn( edict_t *self, bool ghost );
-SyncScoreboardPlayer * G_ClientGetState( edict_t * ent );
-SyncScoreboardPlayer * G_ClientGetState( gclient_t * client );
 score_stats_t * G_ClientGetStats( edict_t * ent );
 score_stats_t * G_ClientGetStats( gclient_t * client );
 void G_ClientClearStats( edict_t *ent );

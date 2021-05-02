@@ -263,7 +263,7 @@ bool G_Match_ScorelimitHit() {
 					continue;
 				}
 
-				if( G_ClientGetState( e )->score >= g_scorelimit->integer ) {
+				if( G_ClientGetStats( e )->score >= g_scorelimit->integer ) {
 					return true;
 				}
 			}
@@ -376,7 +376,7 @@ void G_Match_Ready( edict_t *ent ) {
 	}
 
 	level.ready[ PLAYERNUM( ent ) ] = true;
-	G_ClientGetState( ent )->state = true;
+	G_ClientGetStats( ent )->state = true;
 
 	G_PrintMsg( NULL, "%s is ready!\n", ent->r.client->netname );
 
@@ -403,7 +403,7 @@ void G_Match_NotReady( edict_t *ent ) {
 	}
 
 	level.ready[ PLAYERNUM( ent ) ] = false;
-	G_ClientGetState( ent )->state = false;
+	G_ClientGetStats( ent )->state = false;
 
 	G_PrintMsg( NULL, "%s is no longer ready.\n", ent->r.client->netname );
 }

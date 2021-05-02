@@ -458,10 +458,6 @@ static asstring_t *objectMatch_getScore( SyncGameState *self ) {
 	return game.asExport->asStringFactoryBuffer( s, strlen( s ) );
 }
 
-static void objectMatch_setScore( asstring_t *name, SyncGameState *self ) {
-	PF_ConfigString( CS_MATCHSCORE, name->buffer );
-}
-
 static void objectMatch_setClockOverride( int64_t time, SyncGameState *self ) {
 	self->clock_override = time;
 }
@@ -488,7 +484,6 @@ static const asMethod_t match_Methods[] =
 	{ ASLIB_FUNCTION_DECL( int64, endTime, ( ) const ), asFUNCTION( objectMatch_endTime ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, getState, ( ) const ), asFUNCTION( objectMatch_getState ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, getScore, ( ) const ), asFUNCTION( objectMatch_getScore ),  asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, setScore, ( String & in ) ), asFUNCTION( objectMatch_setScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setClockOverride, ( int64 milliseconds ) ), asFUNCTION( objectMatch_setClockOverride ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
@@ -646,6 +641,18 @@ static const asClassDescriptor_t asTeamListClassDescriptor =
 };
 
 // CLASS: Stats
+static void objectScoreStats_AddScore( int add, score_stats_t *obj ) {
+	obj->score += add;
+}
+
+static void objectScoreStats_SetScore( int score, score_stats_t *obj ) {
+	obj->score = score;
+}
+
+static void objectScoreStats_SetState( bool state, score_stats_t * obj ) {
+	obj->state = state;
+}
+
 static void objectScoreStats_Clear( score_stats_t *obj ) {
 	memset( obj, 0, sizeof( *obj ) );
 }
@@ -663,6 +670,9 @@ static const asBehavior_t scorestats_ObjectBehaviors[] =
 
 static const asMethod_t scorestats_Methods[] =
 {
+	{ ASLIB_FUNCTION_DECL( void, addScore, ( int ) ), asFUNCTION( objectScoreStats_AddScore ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, setScore, ( int ) ), asFUNCTION( objectScoreStats_SetScore ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, setState, ( bool ) ), asFUNCTION( objectScoreStats_SetState ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, clear, ( ) ), asFUNCTION( objectScoreStats_Clear ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
@@ -670,8 +680,12 @@ static const asMethod_t scorestats_Methods[] =
 
 static const asProperty_t scorestats_Properties[] =
 {
+	{ ASLIB_PROPERTY_DECL( const int, kills ), offsetof( score_stats_t, kills ) },
 	{ ASLIB_PROPERTY_DECL( const int, deaths ), offsetof( score_stats_t, deaths ) },
 	{ ASLIB_PROPERTY_DECL( const int, suicides ), offsetof( score_stats_t, suicides ) },
+	{ ASLIB_PROPERTY_DECL( const bool, alive ), offsetof( score_stats_t, alive ) },
+	{ ASLIB_PROPERTY_DECL( const int, score ), offsetof( score_stats_t, score ) },
+	{ ASLIB_PROPERTY_DECL( const bool, state ), offsetof( score_stats_t, state ) },
 	{ ASLIB_PROPERTY_DECL( const int, totalDamageGiven ), offsetof( score_stats_t, total_damage_given ) },
 	{ ASLIB_PROPERTY_DECL( const int, totalDamageReceived ), offsetof( score_stats_t, total_damage_received ) },
 
@@ -856,34 +870,6 @@ static bool objectGameClient_GetChaseActive( gclient_t *self ) {
 	return self->resp.chase.active;
 }
 
-static void objectGameClient_AddScore( int add, gclient_t * self ) {
-	G_ClientGetState( self )->score += add;
-}
-
-static void objectGameClient_SetScore( int score, gclient_t * self ) {
-	G_ClientGetState( self )->score = score;
-}
-
-static int objectGameClient_GetScore( gclient_t * self ) {
-	return G_ClientGetState( self )->score;
-}
-
-static void objectGameClient_SetState( bool state, gclient_t * self ) {
-	G_ClientGetState( self )->state = state;
-}
-
-static bool objectGameClient_GetState( gclient_t * self ) {
-	return G_ClientGetState( self )->state;
-}
-
-static int objectGameClient_GetKills( gclient_t * self ) {
-	return G_ClientGetState( self )->kills;
-}
-
-static void objectGameClient_ClearStats( gclient_t * self ) {
-	G_ClientClearStats( self );
-}
-
 static const asFuncdef_t gameclient_Funcdefs[] =
 {
 	ASLIB_FUNCDEF_NULL
@@ -914,14 +900,6 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, chaseCam, ( const String @, bool teamOnly ) ), asFUNCTION( objectGameClient_ChaseCam ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, set_chaseActive, ( const bool active ) ), asFUNCTION( objectGameClient_SetChaseActive ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, get_chaseActive, ( ) const ), asFUNCTION( objectGameClient_GetChaseActive ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, addScore, ( int ) ), asFUNCTION( objectGameClient_AddScore ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, setScore, ( int ) ), asFUNCTION( objectGameClient_SetScore ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( int, getScore, ( ) const ), asFUNCTION( objectGameClient_GetScore ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, setState, ( bool ) ), asFUNCTION( objectGameClient_SetState ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, getState, ( ) const ), asFUNCTION( objectGameClient_GetState ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( int, getKills, ( ) const ), asFUNCTION( objectGameClient_GetKills ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, clearStats, ( ) ), asFUNCTION( objectGameClient_ClearStats ), asCALL_CDECL_OBJLAST },
-
 	ASLIB_METHOD_NULL
 };
 

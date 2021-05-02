@@ -59,8 +59,8 @@ void G_Teams_Init() {
 static int G_Teams_CompareMembers( const void *a, const void *b ) {
 	edict_t *edict_a = game.edicts + *(int *)a;
 	edict_t *edict_b = game.edicts + *(int *)b;
-	int score_a = G_ClientGetState( edict_a )->score;
-	int score_b = G_ClientGetState( edict_b )->score;
+	int score_a = G_ClientGetStats( edict_a )->score;
+	int score_b = G_ClientGetStats( edict_b )->score;
 	int result = score_b - score_a;
 	if( !result ) {
 		result = Q_stricmp( edict_a->r.client->netname, edict_b->r.client->netname );
@@ -92,7 +92,7 @@ void G_Teams_UpdateMembersList() {
 
 			if( ent->s.team == team ) {
 				GetTeam( team ).playerIndices[ GetTeam( team ).numplayers++ ] = ENTNUM( ent );
-				if( G_ClientGetState( ent )->alive ) {
+				if( G_ClientGetStats( ent )->alive ) {
 					GetTeam( team ).numalive++;
 				}
 			}
@@ -116,7 +116,6 @@ void G_Teams_SetTeam( edict_t *ent, int team ) {
 		ent->r.client->teamstate.timeStamp = timeStamp;
 	} else {
 		// clear scores at changing team
-		memset( G_ClientGetState( ent ), 0, sizeof( SyncScoreboardPlayer ) );
 		memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
 		memset( &ent->r.client->teamstate, 0, sizeof( ent->r.client->teamstate ) );
 		ent->r.client->teamstate.timeStamp = level.time;
@@ -485,10 +484,11 @@ static edict_t *G_Teams_BestScoreBelow( int maxscore ) {
 		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
 			for( i = 0; i < GetTeam( team ).numplayers; i++ ) {
 				e = game.edicts + GetTeam( team ).playerIndices[i];
-				if( G_ClientGetState( e )->score > bestScore &&
-					G_ClientGetState( e )->score <= maxscore
+				int score = G_ClientGetStats( e )->score;
+				if( score > bestScore &&
+					score <= maxscore
 					&& !e->r.client->queueTimeStamp ) {
-					bestScore = G_ClientGetState( e )->score;
+					bestScore = score;
 					best = e;
 				}
 			}
@@ -496,10 +496,11 @@ static edict_t *G_Teams_BestScoreBelow( int maxscore ) {
 	} else {
 		for( i = 0; i < GetTeam( TEAM_PLAYERS ).numplayers; i++ ) {
 			e = game.edicts + GetTeam( TEAM_PLAYERS ).playerIndices[i];
-			if( G_ClientGetState( e )->score > bestScore &&
-				G_ClientGetState( e )->score <= maxscore
+			int score = G_ClientGetStats( e )->score;
+			if( score > bestScore &&
+				score <= maxscore
 				&& !e->r.client->queueTimeStamp ) {
-				bestScore = G_ClientGetState( e )->score;
+				bestScore = score;
 				best = e;
 			}
 		}
@@ -556,7 +557,7 @@ void G_Teams_AdvanceChallengersQueue() {
 		for( i = 0; i < winnerscount; i++ ) {
 			won = G_Teams_BestScoreBelow( maxscore );
 			if( won ) {
-				maxscore = G_ClientGetState( won )->score;
+				maxscore = G_ClientGetStats( won )->score;
 				won->r.client->queueTimeStamp = 1 + ( winnerscount - i ); // never have 2 players with the same timestamp
 			}
 		}

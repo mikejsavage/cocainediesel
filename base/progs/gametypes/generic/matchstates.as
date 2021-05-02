@@ -63,7 +63,7 @@ void GENERIC_SetUpMatch()
 		for ( j = 0; @team.ent( j ) != null; j++ )
 		{
 			@ent = @team.ent( j );
-			ent.client.clearStats(); // clear player scores & stats
+			ent.client.stats.clear(); // clear player scores & stats
 			ent.client.respawn( false );
 		}
 	}
@@ -96,8 +96,6 @@ void GENERIC_SetUpEndMatch()
 			client.respawn( true ); // ghost them all
 		}
 	}
-
-	GENERIC_UpdateMatchScore();
 
 	// print scores to console
 	if ( gametype.isTeamBased )
@@ -176,19 +174,4 @@ Entity @RandomEntity( String &className )
 	if( spawnents.size() == 0 )
 		return null;
 	return spawnents[ random_uniform( 0, spawnents.size() ) ];
-}
-
-void GENERIC_UpdateMatchScore()
-{
-	if( gametype.isTeamBased ) {
-		match.setScore( G_GetTeam( TEAM_ALPHA ).score + " : " + G_GetTeam( TEAM_BETA ).score );
-		return;
-	}
-
-	match.setScore( "" );
-}
-
-void GENERIC_Think()
-{
-	GENERIC_UpdateMatchScore();
 }

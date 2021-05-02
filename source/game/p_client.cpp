@@ -226,15 +226,6 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 	}
 }
 
-
-SyncScoreboardPlayer * G_ClientGetState( edict_t * ent ) {
-	return &server_gs.gameState.players[ PLAYERNUM( ent ) ];
-}
-
-SyncScoreboardPlayer * G_ClientGetState( gclient_t * client ) {
-	return &server_gs.gameState.players[ PLAYERNUM( client ) ];
-}
-
 score_stats_t * G_ClientGetStats( edict_t * ent ) {
 	return &ent->r.client->level.stats;
 }
@@ -248,7 +239,6 @@ void G_ClientClearStats( edict_t * ent ) {
 		return;
 	}
 
-	memset( G_ClientGetState( ent ), 0, sizeof( SyncScoreboardPlayer ) );
 	memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
 }
 
@@ -257,7 +247,6 @@ void G_ClientClearStats( gclient_t * client ) {
 		return;
 	}
 
-	memset( G_ClientGetState( client ), 0, sizeof( SyncScoreboardPlayer ) );
 	memset( G_ClientGetStats( client ), 0, sizeof( score_stats_t ) );
 }
 
@@ -432,7 +421,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		AI_Respawn( self );
 	}
 
-	G_ClientGetState( self )->alive = true;
+	G_ClientGetStats( self )->alive = true;
 }
 
 /*

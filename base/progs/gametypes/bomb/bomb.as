@@ -91,7 +91,7 @@ void bombPickUp() {
 
 void bombSetCarrier( Entity @ent, bool no_sound ) {
 	if( @bombCarrier != null ) {
-		bombCarrier.client.setState( false );
+		bombCarrier.client.stats.setState( false );
 		bombCarrier.effects &= ~EF_CARRIER;
 		bombCarrier.model2 = 0;
 	}
@@ -100,7 +100,7 @@ void bombSetCarrier( Entity @ent, bool no_sound ) {
 	bombPickUp();
 
 	Client @client = @bombCarrier.client;
-	client.setState( true );
+	client.stats.setState( true );
 	client.addAward( S_COLOR_GREEN + "You've got the bomb!" );
 	if( !no_sound ) {
 		G_AnnouncerSound( @client, sndBombTaken, attackingTeam, true, null );

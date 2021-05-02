@@ -128,7 +128,7 @@ void GT_updateScore( Client @client ) {
 	cPlayer @player = @playerFromClient( @client );
 	Stats @stats = @client.stats;
 
-	client.setScore( int( client.getKills() * 0.5 + stats.totalDamageGiven * 0.01 ) );
+	stats.setScore( int( stats.kills * 0.5 + stats.totalDamageGiven * 0.01 ) );
 }
 
 // Some game actions trigger score events. These are events not related to killing
@@ -299,8 +299,6 @@ void GT_ThinkRules() {
 		bombCarrierLastPos = bombCarrier.origin;
 		bombCarrierLastVel = bombCarrier.velocity;
 	}
-
-	GENERIC_Think();
 }
 
 // The game has detected the end of the match state, but it

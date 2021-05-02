@@ -634,7 +634,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 9,
 		/* self damage          */ 0,
-		/* knockback            */ 15,
+		/* knockback            */ 30,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
 		/* splash min knockback */ 0,

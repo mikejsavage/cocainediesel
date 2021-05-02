@@ -568,6 +568,19 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	}
 }
 
+static void G_Laser_Think( edict_t * ent ) {
+	edict_t * owner = &game.edicts[ent->s.ownerNum];
+
+	if( G_ISGHOSTING( owner ) || owner->s.weapon != Weapon_Laser ||
+		PF_GetClientState( PLAYERNUM( owner ) ) < CS_SPAWNED ||
+		owner->r.client->ps.weapon_state != WeaponState_FiringSmooth ) {
+		G_FreeEdict( ent );
+		return;
+	}
+
+	ent->nextThink = level.time + 1;
+}
+
 struct LaserBeamTraceData {
 	float damage;
 	int knockback;
@@ -628,8 +641,8 @@ static void W_Fire_Lasergun( edict_t * self, Vec3 start, Vec3 angles, int timeDe
 	AngleVectors( angles, &dir, NULL, NULL );
 	laser->s.origin2 = laser->s.origin + dir * def->range;
 
-	laser->think = G_FreeEdict;
-	laser->nextThink = level.time + ( 1000 + def->refire_time - 1 ) / def->refire_time;
+	laser->think = G_Laser_Think;
+	laser->nextThink = level.time + 1;
 
 	// calculate laser's mins and maxs for linkEntity
 	G_SetBoundsForSpanEntity( laser, 8 );

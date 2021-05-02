@@ -377,6 +377,11 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, const usercmd_t
 				ps->weapon_state_time = 0;
 				break;
 		}
+
+		// TODO: hack
+		if( ps->weapon == Weapon_None ) {
+			ps->weapon_state = WeaponState_SwitchingIn;
+		}
 	}
 }
 

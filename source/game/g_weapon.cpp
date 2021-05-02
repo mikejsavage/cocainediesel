@@ -399,8 +399,6 @@ static void W_Touch_Stake( edict_t *ent, edict_t *other, cplane_t *plane, int su
 		return;
 	}
 
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_StakeGun );
-
 	if( other->takedamage ) {
 		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_StakeGun );
 		ent->enemy = other;

@@ -96,11 +96,6 @@ static void CG_SC_Scoreboard() {
 	SCR_UpdateScoreboardMessage( Cmd_Argv( 1 ) );
 }
 
-static int ParseIntOr0( const char ** cursor ) {
-	Span< const char > token = ParseToken( cursor, Parse_DontStopOnNewLine );
-	return SpanToInt( token, 0 );
-}
-
 static const char *CG_SC_AutoRecordName() {
 	static char name[MAX_STRING_CHARS];
 

@@ -681,10 +681,13 @@ static void W_Touch_Blast( edict_t *ent, edict_t *other, cplane_t *plane, int su
 		event->s.team = ent->s.team;
 		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, ent->projectileInfo.mod );
 		ent->enemy = other;
-	} else {
-		edict_t * event = G_SpawnEvent( EV_BLAST_BOUNCE, DirToU64( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
-		event->s.team = ent->s.team;
+		G_FreeEdict( ent );
+		return;
 	}
+
+	edict_t * event = G_SpawnEvent( EV_BLAST_BOUNCE, DirToU64( plane ? plane->normal : Vec3( 0.0f ) ), &ent->s.origin );
+	event->s.team = ent->s.team;
+
 	if( ent->num_bounces >= 5 ) {
 		G_FreeEdict( ent );
 	}

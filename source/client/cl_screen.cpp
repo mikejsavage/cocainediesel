@@ -178,10 +178,10 @@ static void SubmitPostprocessPass() {
 		FlashStage( 0.50f, t, 0.80f, -1.0f, -1.0f, &contrast );
 		FlashStage( 0.80f, t, 1.00f, -1.0f, 1.0f, &contrast );
 	}
-	
+
 	static float chasing_amount = 0.0f;
 	constexpr float chasing_speed = 4.0f;
-	bool chasing = !cls.demo.playing && cg.predictedPlayerState.team != TEAM_SPECTATOR && cg.predictedPlayerState.POVnum != cgs.playerNum + 1;
+	bool chasing = cls.cgameActive && !cls.demo.playing && cg.predictedPlayerState.team != TEAM_SPECTATOR && cg.predictedPlayerState.POVnum != cgs.playerNum + 1;
 	if( chasing ) {
 		chasing_amount += cls.frametime * 0.001f * chasing_speed;
 	} else {

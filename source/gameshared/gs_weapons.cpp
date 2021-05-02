@@ -165,6 +165,21 @@ static void HandleZoom( const gs_state_t * gs, SyncPlayerState * ps, const userc
 	}
 }
 
+static void FireWeapon( const gs_state_t * gs, SyncPlayerState * ps, const usercmd_t * cmd ) {
+	const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+	WeaponSlot * slot = GetSelectedWeapon( ps );
+
+	u64 parm = ps->weapon | ( cmd->entropy << 8 ) | ( u64( ps->zoom_time ) << 24 ) ;
+	gs->api.PredictedFireWeapon( ps->POVnum, parm );
+
+	if( def->clip_size > 0 ) {
+		slot->ammo--;
+		if( slot->ammo == 0 ) {
+			gs->api.PredictedEvent( ps->POVnum, EV_NOAMMOCLICK, 0 );
+		}
+	}
+}
+
 static ItemStateTransition AllowWeaponSwitch( const gs_state_t * gs, SyncPlayerState * ps, ItemStateTransition otherwise ) {
 	if( ps->pending_weapon == Weapon_None || ps->pending_weapon == ps->weapon ) {
 		ps->pending_weapon = Weapon_None;
@@ -212,14 +227,7 @@ static ItemState generic_gun_states[] = {
 		if( !GS_ShootingDisabled( gs ) ) {
 			if( cmd->buttons & BUTTON_ATTACK ) {
 				if( HasAmmo( def, slot ) ) {
-					gs->api.PredictedFireWeapon( ps->POVnum, ps->weapon );
-
-					if( def->clip_size > 0 ) {
-						slot->ammo--;
-						if( slot->ammo == 0 ) {
-							gs->api.PredictedEvent( ps->POVnum, EV_NOAMMOCLICK, 0 );
-						}
-					}
+					FireWeapon( gs, ps, cmd );
 
 					switch( def->firing_mode ) {
 						case FiringMode_Auto: return WeaponState_Firing;
@@ -266,12 +274,7 @@ static ItemState generic_gun_states[] = {
 			return WeaponState_Idle;
 		}
 
-		gs->api.PredictedEvent( ps->POVnum, EV_SMOOTHREFIREWEAPON, ps->weapon );
-
-		slot->ammo--;
-		if( slot->ammo == 0 ) {
-			gs->api.PredictedEvent( ps->POVnum, EV_NOAMMOCLICK, 0 );
-		}
+		FireWeapon( gs, ps, cmd );
 
 		return ForceReset( state );
 	} ),
@@ -287,12 +290,7 @@ static ItemState generic_gun_states[] = {
 			return WeaponState_Idle;
 		}
 
-		gs->api.PredictedFireWeapon( ps->POVnum, ps->weapon );
-
-		slot->ammo--;
-		if( slot->ammo == 0 ) {
-			gs->api.PredictedEvent( ps->POVnum, EV_NOAMMOCLICK, 0 );
-		}
+		FireWeapon( gs, ps, cmd );
 
 		return ForceReset( state );
 	} ),

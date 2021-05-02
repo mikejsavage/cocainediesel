@@ -70,7 +70,6 @@ void PickRandomArena() {
 
 class cDARound {
 	int state;
-	int numRounds;
 	int64 roundStateStartTime;
 	int64 roundStateEndTime;
 	int countDown;
@@ -84,7 +83,6 @@ class cDARound {
 
 	cDARound() {
 		this.state = DA_ROUNDSTATE_NONE;
-		this.numRounds = 0;
 		this.roundStateStartTime = 0;
 		this.countDown = 0;
 		@this.alphaSpawn = null;
@@ -271,7 +269,7 @@ class cDARound {
 			}
 		}
 
-		this.numRounds = 0;
+		match.resetRounds();
 		this.newRound();
 	}
 
@@ -280,7 +278,7 @@ class cDARound {
 
 		if( @this.roundWinner != null ) {
 			Cvar scoreLimit( "g_scorelimit", "", 0 );
-			if( this.roundWinner.getScore() == scoreLimit.integer ) {
+			if( this.roundWinner.stats.score == scoreLimit.integer ) {
 				this.roundAnnouncementPrint( S_COLOR_WHITE + this.roundWinner.name + S_COLOR_WHITE + " is a true gladiator!" );
 			}
 		}
@@ -307,8 +305,8 @@ class cDARound {
 	void newRound() {
 		PickRandomArena();
 
+		match.newRound();
 		this.newRoundState( DA_ROUNDSTATE_PREROUND );
-		this.numRounds++;
 	}
 
 	void newRoundState( int newState ) {
@@ -351,7 +349,7 @@ class cDARound {
 				int topscore = 0;
 				for( int j = 0; @team.ent( j ) != null; j++ ) {
 					Client @client = @team.ent( j ).client;
-					topscore = max( client.getScore(), topscore );
+					topscore = max( client.stats.score, topscore );
 				}
 
 				// respawn all clients inside the playing teams
@@ -359,7 +357,7 @@ class cDARound {
 					@ent = @team.ent( j );
 					if( this.isChallenger( ent.client ) ) {
 						ent.client.respawn( false );
-						if( ent.client.getScore() == topscore ) {
+						if( ent.client.stats.score == topscore ) {
 							ent.model2 = crownModel;
 							ent.effects |= EF_HAT;
 						}
@@ -391,7 +389,7 @@ class cDARound {
 				RoundType type = RoundType_Normal;
 				for( int i = 0; @team.ent( i ) != null; i++ ) {
 					Client @client = @team.ent( i ).client;
-					if( client.getScore() == limit - 1 ) {
+					if( client.stats.score == limit - 1 ) {
 						type = RoundType_MatchPoint;
 						break;
 					}
@@ -574,22 +572,6 @@ void DA_SetUpCountdown() {
 	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = false;
 	G_RemoveAllProjectiles();
-
-	// lock teams
-	bool anyone = false;
-	if( gametype.isTeamBased ) {
-		for( int team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			if( G_GetTeam( team ).lock() )
-				anyone = true;
-		}
-	}
-	else {
-		if( G_GetTeam( TEAM_PLAYERS ).lock() )
-			anyone = true;
-	}
-
-	if( anyone )
-		G_PrintMsg( null, "Teams locked.\n" );
 
 	// Countdowns should be made entirely client side, because we now can
 	G_AnnouncerSound( null, Hash64( "sounds/gladiator/let_the_games_begin" ), GS_MAX_TEAMS, false, null );

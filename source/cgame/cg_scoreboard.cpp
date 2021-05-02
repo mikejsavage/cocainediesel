@@ -190,8 +190,7 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 3, col_width );
 			ImGui::SetColumnWidth( 4, col_width );
 
-			u8 round = client_gs.gameState.teams[ TEAM_ALPHA ].score + client_gs.gameState.teams[ TEAM_BETA ].score; //hackish but I'm bored
-			ColumnCenterText( warmup ? "WARMUP" : temp( "ROUND {}", round ) );
+			ColumnCenterText( warmup ? "WARMUP" : temp( "ROUND {}", client_gs.gameState.round_num ) );
 			ImGui::NextColumn();
 			ImGui::NextColumn();
 			ImGui::NextColumn();
@@ -246,7 +245,7 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 4, col_width );
 
 			ImGui::NextColumn();
-			ColumnCenterText( warmup ? "WARMUP" : temp( "ROUND {}", client_gs.gameState.teams[ TEAM_PLAYERS ].score ) );
+			ColumnCenterText( warmup ? "WARMUP" : temp( "ROUND {}", client_gs.gameState.round_num ) );
 			ImGui::NextColumn();
 			ColumnCenterText( "SCORE" );
 			ImGui::NextColumn();

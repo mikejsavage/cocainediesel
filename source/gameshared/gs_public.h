@@ -204,6 +204,7 @@ struct SyncGameState {
 	int64_t match_duration;
 	int64_t clock_override;
 
+	u8 round_num;
 	RoundState round_state;
 	RoundType round_type;
 	u8 max_team_players;

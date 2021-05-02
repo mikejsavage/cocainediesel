@@ -270,6 +270,7 @@ void G_GhostClient( edict_t *ent ) {
 	ent->s.sound = EMPTY_HASH;
 	ent->viewheight = 0;
 	ent->takedamage = DAMAGE_NO;
+	G_ClientGetStats( ent )->alive = false;
 
 	memset( ent->r.client->ps.weapons, 0, sizeof( ent->r.client->ps.weapons ) );
 	memset( ent->r.client->ps.items, 0, sizeof( ent->r.client->ps.items ) );

@@ -5,8 +5,6 @@ int64 roundStateEndTime; // XXX: this should be fixed in all gts
 
 int roundCountDown;
 
-uint roundCount;
-
 int attackingTeam;
 int defendingTeam;
 
@@ -82,22 +80,22 @@ void checkPlayersAlive( int team ) {
 void setTeams() {
 	uint limit = cvarScoreLimit.integer;
 
-	if( limit == 0 || roundCount > ( limit - 1 ) * 2 ) {
+	if( limit == 0 || match.roundNum > ( limit - 1 ) * 2 ) {
 		// the first overtime round is ( limit - 1 ) * 2 + 1
 		// which is of the form 2n + 1 so is odd
-		bool odd = roundCount % 2 == 1;
+		bool odd = match.roundNum % 2 == 1;
 		attackingTeam = odd ? INITIAL_ATTACKERS : INITIAL_DEFENDERS;
 		defendingTeam = odd ? INITIAL_DEFENDERS : INITIAL_ATTACKERS;
 		return;
 	}
 
-	bool first_half = roundCount < limit;
+	bool first_half = match.roundNum < limit;
 	attackingTeam = first_half ? INITIAL_ATTACKERS : INITIAL_DEFENDERS;
 	defendingTeam = first_half ? INITIAL_DEFENDERS : INITIAL_ATTACKERS;
 }
 
 void newGame() {
-	roundCount = 1;
+	match.resetRounds();
 	setTeams();
 
 	for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {
@@ -140,6 +138,7 @@ void roundWonBy( int winner ) {
 }
 
 void newRound() {
+	match.newRound();
 	roundNewState( RoundState_Countdown );
 }
 
@@ -159,7 +158,7 @@ void setRoundType() {
 	uint limit = cvarScoreLimit.integer;
 
 	bool match_point = G_GetTeam( TEAM_ALPHA ).score == limit - 1 || G_GetTeam( TEAM_BETA ).score == limit - 1;
-	bool overtime = roundCount > ( limit - 1 ) * 2;
+	bool overtime = match.roundNum > ( limit - 1 ) * 2;
 
 	if( overtime ) {
 		type = G_GetTeam( TEAM_ALPHA ).score == G_GetTeam( TEAM_ALPHA ).score ? RoundType_Overtime : RoundType_OvertimeMatchPoint;
@@ -251,8 +250,6 @@ void roundNewState( RoundState state ) {
 
 			roundCheckEndTime = true;
 			roundStateEndTime = levelTime + 3000; // XXX: old bomb did +5s but i don't see the point
-
-			roundCount++;
 			break;
 	}
 }

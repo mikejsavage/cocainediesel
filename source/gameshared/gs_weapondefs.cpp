@@ -576,10 +576,10 @@ const WeaponDef gs_weaponDefs[] = {
 
 	{
 		/* name, short name     */ "Road Gun", "road",
-		/* category             */ WeaponCategory_Backup,
+		/* category             */ WeaponCategory_Secondary,
 
 		/* projectile count     */ 1,
-		/* clip size            */ 21,
+		/* clip size            */ 25,
 		/* reload time          */ 1500,
 		/* staged reloading     */ false,
 
@@ -597,7 +597,7 @@ const WeaponDef gs_weaponDefs[] = {
 		/* zoom inaccuracy      */ 0.0f,
 
 		// damages
-		/* damage               */ 7,
+		/* damage               */ 8,
 		/* self damage          */ 0,
 		/* knockback            */ 10,
 		/* splash radius        */ 0,

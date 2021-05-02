@@ -227,11 +227,11 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 }
 
 
-PlayerState * G_ClientGetState( edict_t * ent ) {
+SyncScoreboardPlayer * G_ClientGetState( edict_t * ent ) {
 	return &server_gs.gameState.players[ PLAYERNUM( ent ) ];
 }
 
-PlayerState * G_ClientGetState( gclient_t * client ) {
+SyncScoreboardPlayer * G_ClientGetState( gclient_t * client ) {
 	return &server_gs.gameState.players[ PLAYERNUM( client ) ];
 }
 
@@ -248,7 +248,7 @@ void G_ClientClearStats( edict_t * ent ) {
 		return;
 	}
 
-	memset( G_ClientGetState( ent ), 0, sizeof( PlayerState ) );
+	memset( G_ClientGetState( ent ), 0, sizeof( SyncScoreboardPlayer ) );
 	memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
 }
 
@@ -257,7 +257,7 @@ void G_ClientClearStats( gclient_t * client ) {
 		return;
 	}
 
-	memset( G_ClientGetState( client ), 0, sizeof( PlayerState ) );
+	memset( G_ClientGetState( client ), 0, sizeof( SyncScoreboardPlayer ) );
 	memset( G_ClientGetStats( client ), 0, sizeof( score_stats_t ) );
 }
 

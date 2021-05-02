@@ -13,7 +13,7 @@ bool CG_ScoreboardShown() {
 }
 
 static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndice, float line_height ) {
-	PlayerState * player = &client_gs.gameState.players[ playerIndice - 1 ];
+	SyncScoreboardPlayer * player = &client_gs.gameState.players[ playerIndice - 1 ];
 	// icon
 	bool warmup = GS_MatchState( &client_gs ) == MATCH_STATE_WARMUP || GS_MatchState( &client_gs ) == MATCH_STATE_COUNTDOWN;
 	const Material * icon = NULL;
@@ -61,7 +61,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndice, float 
 }
 
 static void DrawTeamScoreboard( TempAllocator & temp, int team, float col_width, u8 alpha ) {
-	TeamState * team_info = &client_gs.gameState.teams[ team ];
+	SyncTeamState * team_info = &client_gs.gameState.teams[ team ];
 
 	RGB8 color = CG_TeamColor( team );
 
@@ -227,7 +227,7 @@ void CG_DrawScoreboard() {
 		}
 	}
 	else {
-		TeamState * team_info = &client_gs.gameState.teams[ TEAM_PLAYERS ];
+		SyncTeamState * team_info = &client_gs.gameState.teams[ TEAM_PLAYERS ];
 
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 8 ) );
 		ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0, 16 ) );
@@ -263,7 +263,7 @@ void CG_DrawScoreboard() {
 		{
 			ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 0, 0, 0, alpha ) );
 			for( int i = 0; i < team_info->numplayers; i++ ) {
-				PlayerState * player = &client_gs.gameState.players[ team_info->playerIndices[ i ] - 1 ];
+				SyncScoreboardPlayer * player = &client_gs.gameState.players[ team_info->playerIndices[ i ] - 1 ];
 
 				RGB8 team_color = TEAM_COLORS[ i % ARRAY_COUNT( TEAM_COLORS ) ];
 
@@ -295,7 +295,7 @@ void CG_DrawScoreboard() {
 
 	ImGui::Dummy( ImVec2( 0, separator_height ) );
 
-	TeamState * team_spec = &client_gs.gameState.teams[ TEAM_SPECTATOR ];
+	SyncTeamState * team_spec = &client_gs.gameState.teams[ TEAM_SPECTATOR ];
 	
 	if( team_spec->numplayers > 0 ) {
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, alpha ) );

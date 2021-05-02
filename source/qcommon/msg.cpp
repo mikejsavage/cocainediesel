@@ -718,7 +718,7 @@ void MSG_ReadDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, Sy
 // DELTA GAME STATES
 //==================================================
 
-static void Delta( DeltaBuffer * buf, PlayerState & player, const PlayerState & baseline ) {
+static void Delta( DeltaBuffer * buf, SyncScoreboardPlayer & player, const SyncScoreboardPlayer & baseline ) {
 	Delta( buf, player.ping, baseline.ping );
 	Delta( buf, player.score, baseline.score );
 	Delta( buf, player.kills, baseline.kills );
@@ -726,7 +726,7 @@ static void Delta( DeltaBuffer * buf, PlayerState & player, const PlayerState & 
 	Delta( buf, player.alive, baseline.alive );
 }
 
-static void Delta( DeltaBuffer * buf, TeamState & team, const TeamState & baseline ) {
+static void Delta( DeltaBuffer * buf, SyncTeamState & team, const SyncTeamState & baseline ) {
 	Delta( buf, team.playerIndices, baseline.playerIndices );
 	Delta( buf, team.score, baseline.score );
 	Delta( buf, team.numplayers, baseline.numplayers );

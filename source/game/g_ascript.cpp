@@ -577,7 +577,7 @@ static const asClassDescriptor_t asGametypeClassDescriptor =
 };
 
 // CLASS: Team
-static edict_t *objectTeamlist_GetPlayerEntity( int index, TeamState * obj ) {
+static edict_t *objectTeamlist_GetPlayerEntity( int index, SyncTeamState * obj ) {
 	if( index < 0 || index >= obj->numplayers ) {
 		return NULL;
 	}
@@ -589,17 +589,17 @@ static edict_t *objectTeamlist_GetPlayerEntity( int index, TeamState * obj ) {
 	return &game.edicts[ obj->playerIndices[ index ] ];
 }
 
-static asstring_t *objectTeamlist_getName( TeamState * obj ) {
+static asstring_t *objectTeamlist_getName( SyncTeamState * obj ) {
 	const char *name = GS_TeamName( obj - server_gs.gameState.teams );
 
 	return game.asExport->asStringFactoryBuffer( name, name ? strlen( name ) : 0 );
 }
 
-static void objectTeamlist_SetScore( int score, TeamState * obj ) {
+static void objectTeamlist_SetScore( int score, SyncTeamState * obj ) {
 	obj->score = score;
 }
 
-static void objectTeamlist_AddScore( int add, TeamState * obj ) {
+static void objectTeamlist_AddScore( int add, SyncTeamState * obj ) {
 	obj->score += add;
 }
 
@@ -625,9 +625,9 @@ static const asMethod_t teamlist_Methods[] =
 
 static const asProperty_t teamlist_Properties[] =
 {
-	{ ASLIB_PROPERTY_DECL( const uint8, score ), offsetof( TeamState, score ) },
-	{ ASLIB_PROPERTY_DECL( const uint8, numPlayers ), offsetof( TeamState, numplayers ) },
-	{ ASLIB_PROPERTY_DECL( const uint8, numAlive ), offsetof( TeamState, numalive ) },
+	{ ASLIB_PROPERTY_DECL( const uint8, score ), offsetof( SyncTeamState, score ) },
+	{ ASLIB_PROPERTY_DECL( const uint8, numPlayers ), offsetof( SyncTeamState, numplayers ) },
+	{ ASLIB_PROPERTY_DECL( const uint8, numAlive ), offsetof( SyncTeamState, numalive ) },
 
 	ASLIB_PROPERTY_NULL
 };
@@ -636,7 +636,7 @@ static const asClassDescriptor_t asTeamListClassDescriptor =
 {
 	"Team",                     /* name */
 	asOBJ_REF | asOBJ_NOCOUNT,    /* object type flags */
-	sizeof( TeamState ),     /* size */
+	sizeof( SyncTeamState ),     /* size */
 	teamlist_Funcdefs,          /* funcdefs */
 	teamlist_ObjectBehaviors,   /* object behaviors */
 	teamlist_Methods,           /* methods */
@@ -1476,7 +1476,7 @@ static gclient_t *asFunc_GetClient( int clientNum ) {
 	return &game.clients[ clientNum ];
 }
 
-static TeamState * asFunc_GetTeamlist( int teamNum ) {
+static SyncTeamState * asFunc_GetTeamlist( int teamNum ) {
 	if( teamNum < TEAM_SPECTATOR || teamNum >= GS_MAX_TEAMS ) {
 		return NULL;
 	}

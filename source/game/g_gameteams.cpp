@@ -116,7 +116,7 @@ void G_Teams_SetTeam( edict_t *ent, int team ) {
 		ent->r.client->teamstate.timeStamp = timeStamp;
 	} else {
 		// clear scores at changing team
-		memset( G_ClientGetState( ent ), 0, sizeof( PlayerState ) );
+		memset( G_ClientGetState( ent ), 0, sizeof( SyncScoreboardPlayer ) );
 		memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
 		memset( &ent->r.client->teamstate, 0, sizeof( ent->r.client->teamstate ) );
 		ent->r.client->teamstate.timeStamp = level.time;

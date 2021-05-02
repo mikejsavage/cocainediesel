@@ -176,7 +176,7 @@ enum {
 
 
 
-struct PlayerState {
+struct SyncScoreboardPlayer {
 	int ping;
 	int score;
 	int kills;
@@ -185,7 +185,7 @@ struct PlayerState {
 };
 
 
-struct TeamState {
+struct SyncTeamState {
 	int playerIndices[ MAX_CLIENTS ];
 	u8 score;
 	u8 numplayers;
@@ -208,8 +208,8 @@ struct SyncGameState {
 	RoundType round_type;
 	u8 max_team_players;
 
-	TeamState teams[ GS_MAX_TEAMS ]; //for more teaminfo, check g_teaminfo_t serverside
-	PlayerState players[ MAX_CLIENTS ]; //for more playerinfo, check score_stats_t serverside
+	SyncTeamState teams[ GS_MAX_TEAMS ]; //for more teaminfo, check g_teaminfo_t serverside
+	SyncScoreboardPlayer players[ MAX_CLIENTS ]; //for more playerinfo, check score_stats_t serverside
 
 	StringHash map;
 	u32 map_checksum;

@@ -584,8 +584,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_SMOOTHREFIREWEAPON: // the server never sends this event
 			if( predicted ) {
-				cg_entities[ ent->number ].current.weapon = parm;
-
 				if( parm == Weapon_Laser ) {
 					Vec3 origin = cg.predictedPlayerState.pmove.origin;
 					origin.z += cg.predictedPlayerState.viewheight;
@@ -608,10 +606,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			// check the owner for predicted case
 			if( ISVIEWERENTITY( ent->ownerNum ) && ev < PREDICTABLE_EVENTS_MAX && predicted != cg.view.playerPrediction ) {
 				return;
-			}
-
-			if( predicted ) {
-				cg_entities[ ent->number ].current.weapon = weapon;
 			}
 
 			int owner;

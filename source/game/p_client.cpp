@@ -848,6 +848,11 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 			G_FireWeapon( ent, parm );
 			break; // don't send the event
 
+		case EV_WEAPONACTIVATE:
+			ent->s.weapon = parm >> 1;
+			G_AddEvent( ent, ev, parm, true );
+			break;
+
 		default:
 			G_AddEvent( ent, ev, parm, true );
 			break;

@@ -95,6 +95,7 @@ enum TransitionType {
 	TransitionType_NoReset,
 	TransitionType_ForceReset,
 };
+
 struct ItemStateTransition {
 	TransitionType type;
 	WeaponState state;

@@ -406,7 +406,9 @@ static void W_Touch_Stake( edict_t *ent, edict_t *other, cplane_t *plane, int su
 		ent->enemy = other;
 		edict_t * event = G_SpawnEvent( EV_STAKE_IMPALE, DirToU64( -SafeNormalize( ent->velocity ) ), &ent->s.origin );
 		event->s.team = ent->s.team;
-	} else {
+		G_FreeEdict( ent );
+	}
+	else {
 		ent->s.type = ET_GENERIC;
 		// ent->think = G_FreeEdict;
 		// ent->nextThink = level.time + def->range;

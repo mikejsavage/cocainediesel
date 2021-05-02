@@ -231,8 +231,7 @@ static void G_KnockBackPush( edict_t *targ, edict_t *attacker, Vec3 basedir, int
 		return;
 	}
 
-	int mass = Max2( targ->mass, 75 );
-	float push = 1000.0f * float( knockback ) / float( mass );
+	float push = 1000.0f * float( knockback ) / float( targ->mass );
 	if( push < MIN_KNOCKBACK_SPEED ) {
 		return;
 	}

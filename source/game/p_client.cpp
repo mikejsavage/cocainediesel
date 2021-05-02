@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-#define PLAYER_MASS 200
+constexpr int PLAYER_MASS = 75;
 
 static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker, int topAssistEntNo ) {
 	int mod = meansOfDeath;
@@ -262,8 +262,8 @@ void G_GhostClient( edict_t *ent ) {
 
 	ent->r.client->ps.weapon = Weapon_None;
 	ent->r.client->ps.pending_weapon = Weapon_None;
-	ent->r.client->ps.weapon_state = WeaponState_Ready;
-	ent->r.client->ps.weapon_time = 0;
+	ent->r.client->ps.weapon_state = WeaponState_SwitchingIn;
+	ent->r.client->ps.weapon_state_time = 0;
 
 	GClip_LinkEntity( ent );
 }
@@ -394,7 +394,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	// hold in place briefly
 	client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
 	client->ps.pmove.pm_time = 14;
-	client->ps.pmove.no_control_time = CLIENT_RESPAWN_FREEZE_DELAY;
 
 	G_UseTargets( spawnpoint, self );
 
@@ -840,16 +839,14 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 //==============================================================
 
 void G_PredictedEvent( int entNum, int ev, u64 parm ) {
+	assert( ev != EV_FIREWEAPON );
+
 	edict_t *ent = &game.edicts[entNum];
+
 	switch( ev ) {
 		case EV_SMOOTHREFIREWEAPON: // update the firing
 			G_FireWeapon( ent, parm );
 			break; // don't send the event
-
-		case EV_WEAPONACTIVATE:
-			ent->s.weapon = parm;
-			G_AddEvent( ent, ev, parm, true );
-			break;
 
 		default:
 			G_AddEvent( ent, ev, parm, true );
@@ -992,21 +989,17 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 			// player can't touch projectiles, only projectiles can touch the player
 			G_CallTouch( other, ent, NULL, 0 );
 		}
+	}
+
+	if( ent->movetype != MOVETYPE_NONE ) {
+		UpdateWeapons( &server_gs, &client->ps, ucmd, client->timeDelta );
 
 		if( ent->s.origin.z <= -1024 ) {
 			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin, 1337, 0, 0, MeanOfDeath_Void );
 		}
 	}
 
-	ent->s.weapon = GS_ThinkPlayerWeapon( &server_gs, &client->ps, ucmd, client->timeDelta );
-
-	if( G_IsDead( ent ) ) {
-		if( ent->deathTimeStamp + g_respawn_delay_min->integer <= level.time ) {
-			client->resp.snap.buttons |= ucmd->buttons;
-		}
-	} else if( client->ps.pmove.no_control_time <= 0 ) {
-		client->resp.snap.buttons |= ucmd->buttons;
-	}
+	client->resp.snap.buttons |= ucmd->buttons;
 }
 
 /*
@@ -1063,5 +1056,3 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		}
 	}
 }
-
-#undef PLAYER_MASS

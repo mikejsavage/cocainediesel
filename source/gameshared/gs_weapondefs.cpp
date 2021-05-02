@@ -1,6 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "gameshared/gs_public.h"
+#include "gameshared/gs_weapons.h"
 
 #define INSTANT 0
 
@@ -9,6 +9,7 @@
 #define WEAPONUP_TIME_NORMAL 350
 #define WEAPONUP_TIME_SLOW 750
 #define WEAPONUP_TIME_VERY_SLOW 1000
+#define HITSCAN_RANGE 9001
 
 const WeaponDef gs_weaponDefs[] = {
 	{ "", "", WeaponCategory_Count }, // Weapon_None

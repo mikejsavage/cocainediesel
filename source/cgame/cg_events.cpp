@@ -146,7 +146,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 static void CG_Event_LaserBeam( Vec3 origin, Vec3 dir, int entNum ) {
 	// lasergun's smooth refire
 	// it appears that 64ms is that maximum allowed time interval between prediction events on localhost
-	unsigned int range = Max2( GS_GetWeaponDef( Weapon_Laser )->refire_time + 10, 65u );
+	unsigned int range = Max2( GS_GetWeaponDef( Weapon_Laser )->refire_time + 10, 65 );
 
 	centity_t * cent = &cg_entities[ entNum ];
 	cent->laserOrigin = origin;

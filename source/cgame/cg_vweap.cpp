@@ -61,7 +61,7 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 	const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
 
 	if( cg.predictedPlayerState.weapon_state == WeaponState_Firing || cg.predictedPlayerState.weapon_state == WeaponState_FiringSemiAuto ) {
-		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->refire_time );
+		float frac = float( cg.predictedPlayerState.weapon_state_time ) / float( def->refire_time );
 		if( cg.predictedPlayerState.weapon == Weapon_Knife ) {
 			viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 			angles->z -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
@@ -75,16 +75,16 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 	else if( cg.predictedPlayerState.weapon_state == WeaponState_SwitchingIn || cg.predictedPlayerState.weapon_state == WeaponState_SwitchingOut ) {
 		float frac;
 		if( cg.predictedPlayerState.weapon_state == WeaponState_SwitchingIn ) {
-			frac = float( cg.predictedPlayerState.weapon_time ) / float( def->weaponup_time );
+			frac = 1.0f - float( cg.predictedPlayerState.weapon_state_time ) / float( def->switch_in_time );
 		}
 		else {
-			frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->weapondown_time );
+			frac = float( cg.predictedPlayerState.weapon_state_time ) / float( def->switch_out_time );
 		}
 		frac *= frac; //smoother curve
 		angles->x += Lerp( 0.0f, frac, 60.0f );
 	}
 	else if( cg.predictedPlayerState.weapon_state == WeaponState_Reloading ) {
-		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->reload_time );
+		float frac = float( cg.predictedPlayerState.weapon_state_time ) / float( def->reload_time );
 		angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
 	}
 

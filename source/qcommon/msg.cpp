@@ -630,7 +630,6 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 
 	Delta( buf, pmove.features, baseline.features );
 
-	Delta( buf, pmove.no_control_time, baseline.no_control_time );
 	Delta( buf, pmove.knockback_time, baseline.knockback_time );
 	Delta( buf, pmove.crouch_time, baseline.crouch_time );
 	Delta( buf, pmove.dash_time, baseline.dash_time );
@@ -641,7 +640,7 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 	Delta( buf, pmove.dash_speed, baseline.dash_speed );
 }
 
-static void Delta( DeltaBuffer * buf, SyncPlayerState::WeaponInfo & weapon, const SyncPlayerState::WeaponInfo & baseline ) {
+static void Delta( DeltaBuffer * buf, WeaponSlot & weapon, const WeaponSlot & baseline ) {
 	Delta( buf, weapon.weapon, baseline.weapon );
 	Delta( buf, weapon.ammo, baseline.ammo );
 }
@@ -652,8 +651,6 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	Delta( buf, player.events, baseline.events );
 
 	DeltaAngle( buf, player.viewangles, baseline.viewangles );
-
-	Delta( buf, player.weapon_state, baseline.weapon_state );
 
 	DeltaHalf( buf, player.fov, baseline.fov );
 
@@ -674,10 +671,12 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	Delta( buf, player.health, baseline.health );
 
+	Delta( buf, player.weapon_state, baseline.weapon_state );
+	Delta( buf, player.weapon_state_time, baseline.weapon_state_time );
+
 	Delta( buf, player.weapon, baseline.weapon );
 	Delta( buf, player.pending_weapon, baseline.pending_weapon );
 	Delta( buf, player.last_weapon, baseline.last_weapon );
-	Delta( buf, player.weapon_time, baseline.weapon_time );
 	Delta( buf, player.zoom_time, baseline.zoom_time );
 
 	Delta( buf, player.team, baseline.team );

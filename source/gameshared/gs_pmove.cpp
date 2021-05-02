@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
+#include "gameshared/gs_weapons.h"
 
 #define SPEEDKEY    500.0f
 
@@ -1349,7 +1350,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 		pmove_state_t & pmove = pm->playerState->pmove;
 
-		pmove.no_control_time = Max2( 0, pmove.no_control_time - pm->cmd.msec );
 		pmove.knockback_time = Max2( 0, pmove.knockback_time - pm->cmd.msec );
 		pmove.dash_time = Max2( 0, pmove.dash_time - pm->cmd.msec );
 		pmove.walljump_time = Max2( 0, pmove.walljump_time - pm->cmd.msec );
@@ -1360,13 +1360,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	pml.forwardPush = pm->cmd.forwardmove * SPEEDKEY / 127.0f;
 	pml.sidePush = pm->cmd.sidemove * SPEEDKEY / 127.0f;
 	pml.upPush = pm->cmd.upmove * SPEEDKEY / 127.0f;
-
-	if( pm->playerState->pmove.no_control_time > 0 ) {
-		pml.forwardPush = 0;
-		pml.sidePush = 0;
-		pml.upPush = 0;
-		pm->cmd.buttons = 0;
-	}
 
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
 		if( !GS_MatchPaused( pmove_gs ) ) {

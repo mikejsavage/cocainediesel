@@ -979,7 +979,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 		if( def->clip_size != 0 ) {
 			if( weap == ps->weapon && ps->weapon_state == WeaponState_Reloading ) {
-				ammo_frac = 1.0f - float( ps->weapon_time ) / float( def->reload_time );
+				ammo_frac = float( ps->weapon_state_time ) / float( def->reload_time );
 			}
 			else {
 				color = Vec4( 0.0f, 1.0f, 0.0f, 1.0f );
@@ -993,9 +993,9 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 		const Material * icon = cgs.media.shaderWeaponIcon[ weap ];
 
-		bool selected = weap == ps->pending_weapon;
-		int offset = ( selected ? border_sel : 0 );
-		int pady_sel = ( selected ? pad_sel : 0 );
+		bool selected = ps->pending_weapon != Weapon_None ? weap == ps->pending_weapon : weap == ps->weapon;
+		int offset = selected ? border_sel : 0;
+		int pady_sel = selected ? pad_sel : 0;
 
 		if( ammo_frac < 1.0f ) {
 			Draw2DBox( curx - offset, cury - offset - pady_sel, iw + offset * 2, ih + offset * 2, cls.white_material, light_gray );
@@ -1020,18 +1020,17 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 			DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_CenterMiddle, curx + iw*0.5f, cury - ih * 0.25f - pady_sel, color, layout_cursor_font_border );
 		}
 
-		// weapon slot binds start from index 1, use drawn_weapons for actual loadout index
-		char bind[ 32 ];
 
 		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling. this still doesnt fit
 		const float bind_font_size = font_size * 0.55f;
 
 		// first try the weapon specific bind
+		char bind[ 32 ];
 		if( !CG_GetBoundKeysString( va( "use %s", def->short_name ), bind, sizeof( bind ) ) ) {
 			CG_GetBoundKeysString( va( "weapon %i", i + 1 ), bind, sizeof( bind ) );
 		}
 
-		DrawText( GetHUDFont(), bind_font_size, va( "[ %s ]", bind) , Alignment_CenterMiddle, curx + iw*0.5f, cury + ih * 1.2f - pady_sel, layout_cursor_color, layout_cursor_font_border );
+		DrawText( GetHUDFont(), bind_font_size, va( "[ %s ]", bind) , Alignment_CenterMiddle, curx + iw * 0.5f, cury + ih * 1.2f - pady_sel, layout_cursor_color, layout_cursor_font_border );
 	}
 }
 

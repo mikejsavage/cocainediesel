@@ -166,12 +166,17 @@ static void HandleZoom( const gs_state_t * gs, SyncPlayerState * ps, const userc
 	}
 }
 
-static void FireWeapon( const gs_state_t * gs, SyncPlayerState * ps, const usercmd_t * cmd ) {
+static void FireWeapon( const gs_state_t * gs, SyncPlayerState * ps, const usercmd_t * cmd, bool smooth ) {
 	const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 	WeaponSlot * slot = GetSelectedWeapon( ps );
 
-	u64 parm = ps->weapon | ( cmd->entropy << 8 ) | ( u64( ps->zoom_time ) << 24 ) ;
-	gs->api.PredictedFireWeapon( ps->POVnum, parm );
+	if( smooth ) {
+		gs->api.PredictedEvent( ps->POVnum, EV_SMOOTHREFIREWEAPON, ps->weapon );
+	}
+	else {
+		u64 parm = ps->weapon | ( cmd->entropy << 8 ) | ( u64( ps->zoom_time ) << 24 ) ;
+		gs->api.PredictedFireWeapon( ps->POVnum, parm );
+	}
 
 	if( def->clip_size > 0 ) {
 		slot->ammo--;
@@ -228,7 +233,7 @@ static ItemState generic_gun_states[] = {
 		if( !GS_ShootingDisabled( gs ) ) {
 			if( cmd->buttons & BUTTON_ATTACK ) {
 				if( HasAmmo( def, slot ) ) {
-					FireWeapon( gs, ps, cmd );
+					FireWeapon( gs, ps, cmd, false );
 
 					switch( def->firing_mode ) {
 						case FiringMode_Auto: return WeaponState_Firing;
@@ -275,7 +280,7 @@ static ItemState generic_gun_states[] = {
 			return WeaponState_Idle;
 		}
 
-		FireWeapon( gs, ps, cmd );
+		FireWeapon( gs, ps, cmd, true );
 
 		return ForceReset( state );
 	} ),
@@ -291,7 +296,7 @@ static ItemState generic_gun_states[] = {
 			return WeaponState_Idle;
 		}
 
-		FireWeapon( gs, ps, cmd );
+		FireWeapon( gs, ps, cmd, false );
 
 		return ForceReset( state );
 	} ),

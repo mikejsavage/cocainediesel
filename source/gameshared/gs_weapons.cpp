@@ -184,6 +184,7 @@ static ItemState generic_gun_states[] = {
 
 		if( ps->weapon_state_time == 0 ) {
 			bool just_respawned = ps->weapon != Weapon_None;
+			ps->last_weapon = ps->weapon;
 			ps->weapon = ps->pending_weapon;
 			ps->pending_weapon = Weapon_None;
 

@@ -577,22 +577,6 @@ void DA_SetUpCountdown() {
 	gametype.countdownEnabled = false;
 	G_RemoveAllProjectiles();
 
-	// lock teams
-	bool anyone = false;
-	if( gametype.isTeamBased ) {
-		for( int team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			if( G_GetTeam( team ).lock() )
-				anyone = true;
-		}
-	}
-	else {
-		if( G_GetTeam( TEAM_PLAYERS ).lock() )
-			anyone = true;
-	}
-
-	if( anyone )
-		G_PrintMsg( null, "Teams locked.\n" );
-
 	// Countdowns should be made entirely client side, because we now can
 	G_AnnouncerSound( null, Hash64( "sounds/gladiator/let_the_games_begin" ), GS_MAX_TEAMS, false, null );
 }

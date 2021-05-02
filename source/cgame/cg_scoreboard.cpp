@@ -138,7 +138,7 @@ void CG_DrawScoreboard() {
 	float separator_height = ImGui::GetTextLineHeight() + 2 * padding;
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, padding ) );
 
-	bool warmup = GS_MatchState( &client_gs ) == MATCH_STATE_WARMUP;
+	bool warmup = GS_MatchState( &client_gs ) < MATCH_STATE_PLAYTIME;
 
 	defer {
 		ImGui::PopStyleVar();

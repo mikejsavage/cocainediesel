@@ -1849,6 +1849,9 @@ static void CG_RecurseExecuteLayoutThread( cg_layoutnode_t * node ) {
 
 static bool LoadHUDFile( const char * path, DynamicString & script ) {
 	Span< const char > contents = AssetString( StringHash( path ) );
+	if( contents == "" )
+		return false;
+
 	const char * cursor = contents.ptr;
 
 	while( true ) {
@@ -1885,9 +1888,7 @@ static bool LoadHUDFile( const char * path, DynamicString & script ) {
 	return true;
 }
 
-static void CG_LoadHUD() {
-	CG_RecurseFreeLayoutThread( hud_root );
-
+void CG_InitHUD() {
 	TempAllocator temp = cls.frame_arena.temp();
 	const char * path = "huds/default.hud";
 
@@ -1904,11 +1905,6 @@ static void CG_LoadHUD() {
 	layout_cursor_font_size = cgs.textSizeSmall;
 }
 
-void CG_InitHUD() {
-	hud_root = NULL;
-	CG_LoadHUD();
-}
-
 void CG_ShutdownHUD() {
 	CG_RecurseFreeLayoutThread( hud_root );
 }
@@ -1923,7 +1919,8 @@ void CG_DrawHUD() {
 	}
 
 	if( hotload ) {
-		CG_LoadHUD();
+		CG_ShutdownHUD();
+		CG_InitHUD();
 	}
 
 	ZoneScoped;

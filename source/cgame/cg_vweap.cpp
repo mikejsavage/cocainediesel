@@ -58,6 +58,9 @@ static float SmoothStep( float t ) {
 }
 
 static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * viewweapon ) {
+	if( cg.predictedPlayerState.weapon == Weapon_None )
+		return;
+
 	const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
 
 	if( cg.predictedPlayerState.weapon_state == WeaponState_Firing || cg.predictedPlayerState.weapon_state == WeaponState_FiringSemiAuto ) {

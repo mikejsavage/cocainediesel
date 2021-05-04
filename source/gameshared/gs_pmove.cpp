@@ -807,10 +807,6 @@ static void PM_CheckDash() {
 		return;
 	}
 
-	if( pm->playerState->pmove.dash_time > 0 ) {
-		return;
-	}
-
 	if( pm->playerState->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
 		return;
 	}
@@ -851,23 +847,25 @@ static void PM_CheckDash() {
 		pml.velocity = dashdir;
 		pml.velocity.z = upspeed;
 
-		pm->playerState->pmove.dash_time = PM_DASHJUMP_TIMEDELAY;
-
-		// return sound events
-		if( Abs( pml.sidePush ) >= Abs( pml.forwardPush ) ) {
-			if( pml.sidePush > 0 ) {
-				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 2 );
+		// return sound events only when the dashes weren't too close to each other
+		if( pm->playerState->pmove.dash_time == 0 ) {
+			if( Abs( pml.sidePush ) >= Abs( pml.forwardPush ) ) {
+				if( pml.sidePush > 0 ) {
+					pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 2 );
+				}
+				else {
+					pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 1 );
+				}
+			}
+			else if( pml.forwardPush < 0 ) {
+				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 3 );
 			}
 			else {
-				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 1 );
+				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 0 );
 			}
 		}
-		else if( pml.forwardPush < 0 ) {
-			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 3 );
-		}
-		else {
-			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 0 );
-		}
+
+		pm->playerState->pmove.dash_time = PM_DASHJUMP_TIMEDELAY;
 	} else if( pm->groundentity == -1 ) {
 		pm->playerState->pmove.pm_flags &= ~PMF_DASHING;
 	}

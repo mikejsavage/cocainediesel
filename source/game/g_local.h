@@ -167,7 +167,8 @@ struct score_stats_t {
 
 	int ping;
 	int score;
-	bool state;
+	bool ready;
+	bool has_bomb;
 
 	int accuracy_shots[ Weapon_Count ];
 	int accuracy_hits[ Weapon_Count ];
@@ -181,8 +182,6 @@ extern game_locals_t game;
 extern gs_state_t server_gs;
 extern level_locals_t level;
 extern spawn_temp_t st;
-
-#define GetTeam( team ) server_gs.gameState.teams[ team ]
 
 extern mempool_t *gamepool;
 
@@ -560,9 +559,7 @@ void G_Client_UpdateActivity( gclient_t *client );
 void G_Client_InactivityRemove( gclient_t *client );
 void G_ClientRespawn( edict_t *self, bool ghost );
 score_stats_t * G_ClientGetStats( edict_t * ent );
-score_stats_t * G_ClientGetStats( gclient_t * client );
 void G_ClientClearStats( edict_t *ent );
-void G_ClientClearStats( gclient_t * client );
 void G_GhostClient( edict_t *self );
 void ClientThink( edict_t *ent, usercmd_t *cmd, int timeDelta );
 void G_ClientThink( edict_t *ent );

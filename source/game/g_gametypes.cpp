@@ -51,8 +51,9 @@ void G_Match_Autorecord_Start() {
 	// do not start autorecording if all playing clients are bots
 	bool has_players = false;
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		for( int i = 0; i < GetTeam( team ).numplayers; i++ ) {
-			if( game.edicts[ GetTeam( team ).playerIndices[i] ].r.svflags & SVF_FAKECLIENT ) {
+		SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
+		for( int i = 0; i < current_team->numplayers; i++ ) {
+			if( game.edicts[ current_team->playerIndices[ i ] ].r.svflags & SVF_FAKECLIENT ) {
 				continue;
 			}
 
@@ -124,7 +125,7 @@ static void G_Match_CheckStateAbort() {
 		int team, emptyteams = 0;
 
 		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			if( !GetTeam( team ).numplayers ) {
+			if( server_gs.gameState.teams[ team ].numplayers == 0 ) {
 				emptyteams++;
 			} else {
 				any = true;
@@ -133,8 +134,9 @@ static void G_Match_CheckStateAbort() {
 
 		enough = ( emptyteams == 0 );
 	} else {
-		enough = ( GetTeam( TEAM_PLAYERS ).numplayers > 1 );
-		any = ( GetTeam( TEAM_PLAYERS ).numplayers > 0 );
+		SyncTeamState * team_players = &server_gs.gameState.teams[ TEAM_PLAYERS ];
+		enough = ( team_players->numplayers > 1 );
+		any = ( team_players->numplayers > 0 );
 	}
 
 	// if waiting, turn on match states when enough players joined
@@ -314,8 +316,9 @@ void G_Match_CheckReadys() {
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
 		int readys = 0;
 		int notreadys = 0;
-		for( int i = 0; i < GetTeam( team ).numplayers; i++ ) {
-			const edict_t * e = game.edicts + GetTeam( team ).playerIndices[ i ];
+		SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
+		for( int i = 0; i < current_team->numplayers; i++ ) {
+			const edict_t * e = game.edicts + current_team->playerIndices[ i ];
 
 			if( !e->r.inuse ) {
 				continue;
@@ -376,7 +379,7 @@ void G_Match_Ready( edict_t *ent ) {
 	}
 
 	level.ready[ PLAYERNUM( ent ) ] = true;
-	G_ClientGetStats( ent )->state = true;
+	G_ClientGetStats( ent )->ready = true;
 
 	G_PrintMsg( NULL, "%s is ready!\n", ent->r.client->netname );
 
@@ -403,7 +406,7 @@ void G_Match_NotReady( edict_t *ent ) {
 	}
 
 	level.ready[ PLAYERNUM( ent ) ] = false;
-	G_ClientGetStats( ent )->state = false;
+	G_ClientGetStats( ent )->ready = false;
 
 	G_PrintMsg( NULL, "%s is no longer ready.\n", ent->r.client->netname );
 }
@@ -523,7 +526,7 @@ static bool G_EachNewMinute() {
 static void G_CheckEvenTeam() {
 	int max = 0;
 	int min = server_gs.maxclients + 1;
-	int uneven_team = TEAM_SPECTATOR;
+	int uneven = TEAM_SPECTATOR;
 	int i;
 
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
@@ -539,18 +542,20 @@ static void G_CheckEvenTeam() {
 	}
 
 	for( i = TEAM_ALPHA; i < GS_MAX_TEAMS; i++ ) {
-		if( max < GetTeam( i ).numplayers ) {
-			max = GetTeam( i ).numplayers;
-			uneven_team = i;
+		SyncTeamState * current_team = &server_gs.gameState.teams[ i ];
+		if( max < current_team->numplayers ) {
+			max = current_team->numplayers;
+			uneven = i;
 		}
-		if( min > GetTeam( i ).numplayers ) {
-			min = GetTeam( i ).numplayers;
+		if( min > current_team->numplayers ) {
+			min = current_team->numplayers;
 		}
 	}
 
 	if( max - min > 1 ) {
-		for( i = 0; i < GetTeam( uneven_team ).numplayers; i++ ) {
-			edict_t *e = game.edicts + GetTeam( uneven_team ).playerIndices[ i ];
+		SyncTeamState * uneven_team = &server_gs.gameState.teams[ uneven ];
+		for( i = 0; i < uneven_team->numplayers; i++ ) {
+			edict_t *e = game.edicts + uneven_team->playerIndices[ i ];
 			if( !e->r.inuse ) {
 				continue;
 			}

@@ -1170,29 +1170,29 @@ void G_CallVotes_Think() {
 * G_CallVote
 */
 static void G_CallVote( edict_t *ent, bool isopcall ) {
-	int i;
+	int i, count, team;
 	const char *votename;
 	callvotetype_t *callvote;
 
 	if( !isopcall && ent->s.team == TEAM_SPECTATOR && GS_IndividualGameType( &server_gs )
 		&& GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME && !GS_MatchPaused( &server_gs ) ) {
-		int team, count;
 		edict_t *e;
 
 		for( count = 0, team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			if( !GetTeam( team ).numplayers ) {
+			SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
+			if( current_team->numplayers == 0 ) {
 				continue;
 			}
 
-			for( i = 0; i < GetTeam( team ).numplayers; i++ ) {
-				e = game.edicts + GetTeam( team ).playerIndices[ i ];
+			for( i = 0; i < current_team->numplayers; i++ ) {
+				e = game.edicts + current_team->playerIndices[ i ];
 				if( e->r.inuse && ( e->r.svflags & SVF_FAKECLIENT ) ) {
 					count++;
 				}
 			}
 		}
 
-		if( !count ) {
+		if( count == 0 ) {
 			G_PrintMsg( ent, "%sSpectators cannot start a vote while a match is in progress\n", S_COLOR_RED );
 			return;
 		}

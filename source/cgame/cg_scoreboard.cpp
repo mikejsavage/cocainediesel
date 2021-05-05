@@ -12,17 +12,17 @@ bool CG_ScoreboardShown() {
 	return cg.showScoreboard;
 }
 
-static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndice, float line_height ) {
-	SyncScoreboardPlayer * player = &client_gs.gameState.players[ playerIndice - 1 ];
+static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float line_height ) {
+	SyncScoreboardPlayer * player = &client_gs.gameState.players[ playerIndex - 1 ];
 	// icon
 	bool warmup = GS_MatchState( &client_gs ) == MATCH_STATE_WARMUP || GS_MatchState( &client_gs ) == MATCH_STATE_COUNTDOWN;
 	const Material * icon = NULL;
 
 	if( warmup ) {
-		icon = player->state ? cgs.media.shaderReady : NULL;
+		icon = player->ready ? cgs.media.shaderReady : NULL;
 	}
 	else {
-		bool carrier = player->state && ( ISREALSPECTATOR() || cg_entities[ playerIndice ].current.team == cg.predictedPlayerState.team );
+		bool carrier = player->has_bomb && ( ISREALSPECTATOR() || cg_entities[ playerIndex ].current.team == cg.predictedPlayerState.team );
 		if( player->alive ) {
 			icon = carrier ? cgs.media.shaderBombIcon : cgs.media.shaderAlive;
 		}
@@ -43,7 +43,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndice, float 
 
 	// player name
 	u8 alpha = player->alive ? 255 : 75;
-	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), cgs.clientInfo[ playerIndice - 1 ].name );
+	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), cgs.clientInfo[ playerIndex - 1 ].name );
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( "%s", final_name.c_str() );
 	ImGui::NextColumn();
@@ -61,7 +61,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndice, float 
 }
 
 static void DrawTeamScoreboard( TempAllocator & temp, int team, float col_width, u8 alpha ) {
-	SyncTeamState * team_info = &client_gs.gameState.teams[ team ];
+	const SyncTeamState * team_info = &client_gs.gameState.teams[ team ];
 
 	RGB8 color = CG_TeamColor( team );
 
@@ -226,7 +226,7 @@ void CG_DrawScoreboard() {
 		}
 	}
 	else {
-		SyncTeamState * team_info = &client_gs.gameState.teams[ TEAM_PLAYERS ];
+		const SyncTeamState * team_info = &client_gs.gameState.teams[ TEAM_PLAYERS ];
 
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, 8 ) );
 		ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0, 16 ) );

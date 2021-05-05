@@ -152,14 +152,15 @@ static void G_UpdateServerInfo() {
 }
 
 static void G_UpdateClientScoreboard( edict_t * ent ) {
-	score_stats_t * stats = G_ClientGetStats( ent );
-	int plyNum = PLAYERNUM( ent );
+	const score_stats_t * stats = G_ClientGetStats( ent );
+	SyncScoreboardPlayer * player = &server_gs.gameState.players[ PLAYERNUM( ent ) ];
 
-	server_gs.gameState.players[ plyNum ].ping = stats->ping;
-	server_gs.gameState.players[ plyNum ].score = stats->score;
-	server_gs.gameState.players[ plyNum ].kills = stats->kills;
-	server_gs.gameState.players[ plyNum ].state = stats->state;
-	server_gs.gameState.players[ plyNum ].alive = stats->alive;
+	player->ping = stats->ping;
+	player->score = stats->score;
+	player->kills = stats->kills;
+	player->ready = stats->ready;
+	player->has_bomb = stats->has_bomb;
+	player->alive = stats->alive;
 }
 
 

@@ -458,6 +458,10 @@ static asstring_t *objectMatch_getScore( SyncGameState *self ) {
 	return game.asExport->asStringFactoryBuffer( s, strlen( s ) );
 }
 
+static void objectMatch_setScore( asstring_t *name, SyncGameState *self ) {
+	PF_ConfigString( CS_MATCHSCORE, name->buffer );
+}
+
 static void objectMatch_setClockOverride( int64_t time, SyncGameState *self ) {
 	self->clock_override = time;
 }
@@ -492,6 +496,7 @@ static const asMethod_t match_Methods[] =
 	{ ASLIB_FUNCTION_DECL( int64, endTime, ( ) const ), asFUNCTION( objectMatch_endTime ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, getState, ( ) const ), asFUNCTION( objectMatch_getState ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, getScore, ( ) const ), asFUNCTION( objectMatch_getScore ),  asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, setScore, ( String & in ) ), asFUNCTION( objectMatch_setScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setClockOverride, ( int64 milliseconds ) ), asFUNCTION( objectMatch_setClockOverride ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, newRound, ( ) ), asFUNCTION( objectMatch_NewRound ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, resetRounds, ( ) ), asFUNCTION( objectMatch_ResetRounds ), asCALL_CDECL_OBJLAST },
@@ -660,8 +665,8 @@ static void objectScoreStats_SetScore( int score, score_stats_t *obj ) {
 	obj->score = score;
 }
 
-static void objectScoreStats_SetState( bool state, score_stats_t * obj ) {
-	obj->state = state;
+static void objectScoreStats_SetCarrier( bool has_bomb, score_stats_t * obj ) {
+	obj->has_bomb = has_bomb;
 }
 
 static void objectScoreStats_Clear( score_stats_t *obj ) {
@@ -683,7 +688,7 @@ static const asMethod_t scorestats_Methods[] =
 {
 	{ ASLIB_FUNCTION_DECL( void, addScore, ( int ) ), asFUNCTION( objectScoreStats_AddScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setScore, ( int ) ), asFUNCTION( objectScoreStats_SetScore ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, setState, ( bool ) ), asFUNCTION( objectScoreStats_SetState ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, setCarrier, ( bool ) ), asFUNCTION( objectScoreStats_SetCarrier ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, clear, ( ) ), asFUNCTION( objectScoreStats_Clear ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
@@ -696,7 +701,7 @@ static const asProperty_t scorestats_Properties[] =
 	{ ASLIB_PROPERTY_DECL( const int, suicides ), offsetof( score_stats_t, suicides ) },
 	{ ASLIB_PROPERTY_DECL( const bool, alive ), offsetof( score_stats_t, alive ) },
 	{ ASLIB_PROPERTY_DECL( const int, score ), offsetof( score_stats_t, score ) },
-	{ ASLIB_PROPERTY_DECL( const bool, state ), offsetof( score_stats_t, state ) },
+	{ ASLIB_PROPERTY_DECL( const bool, has_bomb ), offsetof( score_stats_t, has_bomb ) },
 	{ ASLIB_PROPERTY_DECL( const int, totalDamageGiven ), offsetof( score_stats_t, total_damage_given ) },
 	{ ASLIB_PROPERTY_DECL( const int, totalDamageReceived ), offsetof( score_stats_t, total_damage_received ) },
 
@@ -1466,9 +1471,7 @@ static gclient_t *asFunc_GetClient( int clientNum ) {
 }
 
 static SyncTeamState * asFunc_GetTeamlist( int teamNum ) {
-	if( teamNum < TEAM_SPECTATOR || teamNum >= GS_MAX_TEAMS ) {
-		return NULL;
-	}
+	assert( teamNum >= TEAM_SPECTATOR || teamNum < GS_MAX_TEAMS );
 
 	return &server_gs.gameState.teams[ teamNum ];
 }

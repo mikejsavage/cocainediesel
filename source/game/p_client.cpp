@@ -230,24 +230,12 @@ score_stats_t * G_ClientGetStats( edict_t * ent ) {
 	return &ent->r.client->level.stats;
 }
 
-score_stats_t * G_ClientGetStats( gclient_t * client ) {
-	return &client->level.stats;
-}
-
 void G_ClientClearStats( edict_t * ent ) {
 	if( !ent || !ent->r.client ) {
 		return;
 	}
 
 	memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
-}
-
-void G_ClientClearStats( gclient_t * client ) {
-	if( !client ) {
-		return;
-	}
-
-	memset( G_ClientGetStats( client ), 0, sizeof( score_stats_t ) );
 }
 
 

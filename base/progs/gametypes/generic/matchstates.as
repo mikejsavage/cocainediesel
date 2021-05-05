@@ -97,6 +97,8 @@ void GENERIC_SetUpEndMatch()
 		}
 	}
 
+	GENERIC_UpdateMatchScore();
+
 	// print scores to console
 	if ( gametype.isTeamBased )
 	{
@@ -174,4 +176,19 @@ Entity @RandomEntity( String &className )
 	if( spawnents.size() == 0 )
 		return null;
 	return spawnents[ random_uniform( 0, spawnents.size() ) ];
+}
+
+void GENERIC_UpdateMatchScore()
+{
+	if( gametype.isTeamBased ) {
+		match.setScore( G_GetTeam( TEAM_ALPHA ).score + " : " + G_GetTeam( TEAM_BETA ).score );
+		return;
+	}
+
+	match.setScore( "" );
+}
+
+void GENERIC_Think()
+{
+	GENERIC_UpdateMatchScore();
 }

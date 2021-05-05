@@ -180,7 +180,8 @@ struct SyncScoreboardPlayer {
 	int ping;
 	int score;
 	int kills;
-	bool state;
+	bool ready;
+	bool has_bomb;
 	bool alive;
 };
 

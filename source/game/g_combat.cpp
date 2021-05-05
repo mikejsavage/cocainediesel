@@ -132,7 +132,7 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int assisto
 	}
 
 	G_ClientGetStats( targ )->alive = false;
-	GetTeam( targ->s.team ).numalive--;
+	server_gs.gameState.teams[ targ->s.team ].numalive--;
 	G_Gametype_ScoreEvent( attacker ? attacker->r.client : NULL, "kill", va( "%i %i %i %i", targ->s.number, ( inflictor == world ) ? -1 : ENTNUM( inflictor ), ENTNUM( attacker ), mod ) );
 
 	G_CallDie( targ, inflictor, attacker, assistorNo, damage, point );
@@ -346,8 +346,8 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 	G_Gametype_ScoreEvent( attacker->r.client, "dmg", va( "%i %f %i", targ->s.number, damage, attacker->s.number ) );
 
-	if( statDmg && client ) {
-		G_ClientGetStats( client )->total_damage_received += take;
+	if( statDmg ) {
+		G_ClientGetStats( targ )->total_damage_received += take;
 	}
 
 	// accumulate received damage for snapshot effects

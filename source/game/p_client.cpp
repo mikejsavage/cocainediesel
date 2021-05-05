@@ -346,9 +346,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	client->ps.POVnum = ENTNUM( self );
 
 	// set movement info
-	client->ps.pmove.max_speed = DEFAULT_PLAYERSPEED;
-	client->ps.pmove.jump_speed = DEFAULT_JUMPSPEED;
-	client->ps.pmove.dash_speed = DEFAULT_DASHSPEED;
 
 	if( ghost ) {
 		self->s.type = ET_GHOST;

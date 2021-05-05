@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/q_collision.h"
 #include "gameshared/q_math.h"
 #include "gameshared/gs_synctypes.h"
+#include "gameshared/gs_pmove.h"
 
 //===============================================================
 //		WARSOW player AAboxes sizes
@@ -43,13 +44,8 @@ constexpr int playerbox_gib_viewheight = 8;
 
 #define BASEGRAVITY 800
 #define GRAVITY 850
-#define GRAVITY_COMPENSATE ( (float)GRAVITY / (float)BASEGRAVITY )
 
 #define ZOOMTIME 60
-#define CROUCHTIME 100
-#define DEFAULT_PLAYERSPEED 320.0f
-#define DEFAULT_JUMPSPEED 260.0f
-#define DEFAULT_DASHSPEED 550.0f
 #define PROJECTILE_PRESTEP 100
 
 //==================================================================
@@ -60,45 +56,6 @@ enum {
 };
 
 #define MAXTOUCH    32
-
-struct pmove_t {
-	// state (in / out)
-	SyncPlayerState *playerState;
-
-	// command (in)
-	usercmd_t cmd;
-
-	// results (out)
-	int numtouch;
-	int touchents[MAXTOUCH];
-	float step;                 // used for smoothing the player view
-
-	Vec3 mins, maxs;          // bounding box size
-
-	int groundentity;
-	int watertype;
-	int waterlevel;
-
-	int contentmask;
-
-	bool ladder;
-};
-
-struct gs_module_api_t {
-	void ( *Trace )( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta );
-	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
-	int ( *PointContents )( Vec3 point, int timeDelta );
-	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
-	void ( *PredictedFireWeapon )( int entNum, u64 weapon_and_entropy );
-	void ( *PMoveTouchTriggers )( pmove_t *pm, Vec3 previous_origin );
-};
-
-struct gs_state_t {
-	int module;
-	int maxclients;
-	SyncGameState gameState;
-	gs_module_api_t api;
-};
 
 #define GS_ShootingDisabled( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_INHIBITSHOOTING ) != 0 )
 #define GS_HasChallengers( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_HASCHALLENGERS ) != 0 )
@@ -158,9 +115,48 @@ void GS_LinearMovementDelta( const SyncEntityState *ent, int64_t oldTime, int64_
 //
 //==============================================================
 
+struct pmove_t {
+	// state (in / out)
+	SyncPlayerState * playerState;
+
+	// command (in)
+	usercmd_t cmd;
+
+	// results (out)
+	int numtouch;
+	int touchents[ MAXTOUCH ];
+	float step;                 // used for smoothing the player view
+
+	Vec3 mins, maxs;          // bounding box size
+
+	int groundentity;
+	int watertype;
+	int waterlevel;
+
+	int contentmask;
+
+	bool ladder;
+};
+
+void Pmove( const gs_state_t *, pmove_t * );
+
 #define STEPSIZE 18
 
-void Pmove( const gs_state_t * gs, pmove_t *pmove );
+struct gs_module_api_t {
+	void ( *Trace )( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta );
+	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
+	int ( *PointContents )( Vec3 point, int timeDelta );
+	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
+	void ( *PredictedFireWeapon )( int entNum, u64 weapon_and_entropy );
+	void ( *PMoveTouchTriggers )( pmove_t *pm, Vec3 previous_origin );
+};
+
+struct gs_state_t {
+	int module;
+	int maxclients;
+	SyncGameState gameState;
+	gs_module_api_t api;
+};
 
 //===============================================================
 
@@ -202,19 +198,6 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec3 maxs );
 
 //===============================================================
-
-// pmove->pm_features
-#define PMFEAT_CROUCH           ( 1 << 0 )
-#define PMFEAT_WALK             ( 1 << 1 )
-#define PMFEAT_JUMP             ( 1 << 2 )
-#define PMFEAT_SPECIAL          ( 1 << 3 )
-#define PMFEAT_SCOPE            ( 1 << 4 )
-#define PMFEAT_GHOSTMOVE        ( 1 << 5 )
-#define PMFEAT_WEAPONSWITCH     ( 1 << 6 )
-#define PMFEAT_TEAMGHOST        ( 1 << 7 )
-
-#define PMFEAT_ALL              ( 0xFFFF )
-#define PMFEAT_DEFAULT          ( PMFEAT_ALL & ~PMFEAT_GHOSTMOVE & ~PMFEAT_TEAMGHOST )
 
 #define ISGAMETYPESTAT( x ) ( ( x >= GS_GAMETYPE_STATS_START ) && ( x < GS_GAMETYPE_STATS_END ) )
 

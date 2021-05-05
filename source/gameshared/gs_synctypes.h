@@ -54,6 +54,14 @@ enum WeaponState_ : WeaponState {
 	WeaponState_Throwing,
 };
 
+typedef u8 MovementType;
+enum MovementType_ : MovementType {
+	Movement_Dash,
+	Movement_Leap,
+
+	Movement_Count,
+};
+
 enum FiringMode {
 	FiringMode_Auto,
 	FiringMode_Smooth,
@@ -210,7 +218,7 @@ struct pmove_state_t {
 	s16 knockback_time;
 	s16 crouch_time;
 	s16 tbag_time;
-	s16 dash_time;
+	s16 jump_time;
 	s16 walljump_time;
 
 	s16 max_speed;
@@ -243,6 +251,7 @@ struct SyncPlayerState {
 
 	WeaponSlot weapons[ Weapon_Count - 1 ];
 	bool items[ Item_Count ];
+	MovementType movement;
 
 	bool show_scoreboard;
 	bool ready;

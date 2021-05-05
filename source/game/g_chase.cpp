@@ -395,11 +395,6 @@ void G_SpectatorMode( edict_t *ent ) {
 	if( ent->r.client->resp.chase.active ) {
 		ent->r.client->level.showscores = false;
 		G_Chase_SetChaseActive( ent, false );
-
-		// reset movement speeds
-		ent->r.client->ps.pmove.max_speed = DEFAULT_PLAYERSPEED;
-		ent->r.client->ps.pmove.jump_speed = DEFAULT_JUMPSPEED;
-		ent->r.client->ps.pmove.dash_speed = DEFAULT_DASHSPEED;
 	}
 
 	ent->movetype = MOVETYPE_NOCLIP;

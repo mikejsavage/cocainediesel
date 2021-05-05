@@ -181,7 +181,7 @@ struct SyncScoreboardPlayer {
 	int score;
 	int kills;
 	bool ready;
-	bool has_bomb;
+	bool carrier;
 	bool alive;
 };
 

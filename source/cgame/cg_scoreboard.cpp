@@ -22,7 +22,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float l
 		icon = player->ready ? cgs.media.shaderReady : NULL;
 	}
 	else {
-		bool carrier = player->has_bomb && ( ISREALSPECTATOR() || cg_entities[ playerIndex ].current.team == cg.predictedPlayerState.team );
+		bool carrier = player->carrier && ( ISREALSPECTATOR() || cg_entities[ playerIndex ].current.team == cg.predictedPlayerState.team );
 		if( player->alive ) {
 			icon = carrier ? cgs.media.shaderBombIcon : cgs.media.shaderAlive;
 		}

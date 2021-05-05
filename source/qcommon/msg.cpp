@@ -723,7 +723,7 @@ static void Delta( DeltaBuffer * buf, SyncScoreboardPlayer & player, const SyncS
 	Delta( buf, player.score, baseline.score );
 	Delta( buf, player.kills, baseline.kills );
 	Delta( buf, player.ready, baseline.ready );
-	Delta( buf, player.has_bomb, baseline.has_bomb );
+	Delta( buf, player.carrier, baseline.carrier );
 	Delta( buf, player.alive, baseline.alive );
 }
 

@@ -55,8 +55,8 @@ static Mutex *com_print_mutex;
 
 static int log_file = 0;
 
-static int server_state = CA_UNINITIALIZED;
-static int client_state = CA_UNINITIALIZED;
+static server_state_t server_state = ss_dead;
+static connstate_t client_state = CA_UNINITIALIZED;
 static bool demo_playing = false;
 
 /*
@@ -300,25 +300,19 @@ void Com_Quit() {
 	Sys_Quit();
 }
 
-/*
-* Com_ServerState
-*/
-int Com_ServerState() {
+server_state_t Com_ServerState() {
 	return server_state;
 }
 
-/*
-* Com_SetServerState
-*/
-void Com_SetServerState( int state ) {
+void Com_SetServerState( server_state_t state ) {
 	server_state = state;
 }
 
-int Com_ClientState() {
+connstate_t Com_ClientState() {
 	return client_state;
 }
 
-void Com_SetClientState( int state ) {
+void Com_SetClientState( connstate_t state ) {
 	client_state = state;
 }
 
@@ -611,8 +605,6 @@ void Qcommon_Init( int argc, char **argv ) {
 	NET_Init();
 	Netchan_Init();
 
-	CM_Init();
-
 	InitMapList();
 
 	SV_Init();
@@ -673,7 +665,6 @@ void Qcommon_Frame( unsigned int realMsec ) {
 * Qcommon_Shutdown
 */
 void Qcommon_Shutdown() {
-	CM_Shutdown();
 	Netchan_Shutdown();
 	NET_Shutdown();
 	Key_Shutdown();

@@ -10,6 +10,7 @@ struct Map {
 	const char * name;
 	u64 base_hash;
 
+	Model * models;
 	u32 num_models;
 
 	float fog_strength;
@@ -24,6 +25,8 @@ struct Map {
 
 void InitMaps();
 void ShutdownMaps();
+
+void HotloadMaps();
 
 bool AddMap( Span< const u8 > data, const char * path );
 

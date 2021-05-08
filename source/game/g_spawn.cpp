@@ -501,6 +501,12 @@ void G_LoadMap( const char * name ) {
 	server_gs.gameState.map_checksum = svs.cms->checksum;
 }
 
+void G_HotloadMap() {
+	char map[ ARRAY_COUNT( sv.mapname ) ];
+	Q_strncpyz( map, sv.mapname, sizeof( map ) );
+	G_LoadMap( map );
+}
+
 // TODO: game module init is a mess and I'm not sure how to clean this up
 void G_Aasdf() {
 	GClip_ClearWorld(); // clear areas links

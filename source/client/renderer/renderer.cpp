@@ -9,6 +9,7 @@
 #include "client/renderer/srgb.h"
 #include "client/renderer/text.h"
 
+#include "client/maps.h"
 #include "cgame/cg_particles.h"
 
 #include "imgui/imgui.h"
@@ -347,6 +348,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadShaders();
 	HotloadMaterials();
 	HotloadModels();
+	HotloadMaps();
 	HotloadVisualEffects();
 
 	RenderBackendBeginFrame();

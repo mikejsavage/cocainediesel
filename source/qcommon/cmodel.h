@@ -224,6 +224,3 @@ void CM_WriteAreaBits( CollisionModel *cms, uint8_t *buffer );
 bool CM_HeadnodeVisible( CollisionModel *cms, int headnode, uint8_t *visbits );
 
 void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out );
-
-void CM_Init();
-void CM_Shutdown();

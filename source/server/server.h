@@ -31,12 +31,6 @@
 
 #define USERINFO_UPDATE_COOLDOWN_MSEC   2000
 
-enum server_state_t {
-	ss_dead,        // no map loaded
-	ss_loading,     // spawning level edicts
-	ss_game         // actively running
-};
-
 // some commands are only valid before the server has finished
 // initializing (precache commands, static sounds / objects, etc)
 

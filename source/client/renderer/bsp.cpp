@@ -3,7 +3,6 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
-#include "qcommon/string.h"
 #include "qcommon/span2d.h"
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
@@ -335,12 +334,12 @@ static int Order2BezierSubdivisions( Vec3 control0, Vec3 control1, Vec3 control2
 	return Order2BezierSubdivisions( control0, control1, control2, max_error, control0, control2, 0.0f, 1.0f );
 }
 
-static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSpans & bsp, u64 base_hash, size_t model_idx ) {
+static Model LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSpans & bsp, size_t model_idx ) {
 	ZoneScoped;
 
 	const BSPModel & bsp_model = bsp.models[ model_idx ];
 	if( bsp_model.num_faces == 0 )
-		return;
+		return { };
 
 	DynamicArray< BSPDrawCall > draw_calls( sys_allocator );
 	if( bsp.idbsp ) {
@@ -489,14 +488,12 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 
 	// TODO: meshopt
 
-	String< 16 > suffix( "*{}", model_idx );
-	Model * model = NewModel( Hash64( suffix.c_str(), suffix.length(), base_hash ) );
-	*model = { };
-	model->transform = Mat4::Identity();
+	Model model = { };
+	model.transform = Mat4::Identity();
 
-	model->primitives = ALLOC_MANY( sys_allocator, Model::Primitive, primitives.size() );
-	model->num_primitives = primitives.size();
-	memcpy( model->primitives, primitives.ptr(), primitives.num_bytes() );
+	model.primitives = ALLOC_MANY( sys_allocator, Model::Primitive, primitives.size() );
+	model.num_primitives = primitives.size();
+	memcpy( model.primitives, primitives.ptr(), primitives.num_bytes() );
 
 	MeshConfig mesh_config;
 	mesh_config.ccw_winding = false;
@@ -519,7 +516,9 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 		mesh_config.indices_format = IndexFormat_U32;
 	// }
 
-	model->mesh = NewMesh( mesh_config );
+	model.mesh = NewMesh( mesh_config );
+
+	return model;
 }
 
 bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data ) {
@@ -552,13 +551,15 @@ bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data ) {
 		}
 	}
 
-	for( size_t i = 0; i < bsp.models.n; i++ ) {
-		LoadBSPModel( vertices, bsp, base_hash, i );
-	}
-
 	map->base_hash = base_hash;
 	map->num_models = bsp.models.n;
 	map->fog_strength = ParseFogStrength( &bsp );
+
+	map->models = ALLOC_MANY( sys_allocator, Model, bsp.models.n );
+
+	for( size_t i = 0; i < bsp.models.n; i++ ) {
+		map->models[ i ] = LoadBSPModel( vertices, bsp, i );
+	}
 
 	DynamicArray< GPUBSPNode > nodes( sys_allocator, bsp.nodes.n );
 	DynamicArray< GPUBSPLeaf > leaves( sys_allocator, bsp.leaves.n );
@@ -623,4 +624,17 @@ bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data ) {
 	planes.clear();
 
 	return true;
+}
+
+void DeleteBSPRenderData( Map * map ) {
+	for( u32 i = 0; i < map->num_models; i++ ) {
+		DeleteModel( &map->models[ i ] );
+	}
+
+	FREE( sys_allocator, map->models );
+
+	DeleteTextureBuffer( map->nodeBuffer );
+	DeleteTextureBuffer( map->leafBuffer );
+	DeleteTextureBuffer( map->brushBuffer );
+	DeleteTextureBuffer( map->planeBuffer );
 }

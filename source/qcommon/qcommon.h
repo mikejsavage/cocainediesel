@@ -586,14 +586,14 @@ void Com_GGError( com_error_code_t code, const char * fmt, const Rest & ... rest
 
 void        Com_DeferQuit();
 
-int         Com_ClientState();        // this should have just been a cvar...
-void        Com_SetClientState( int state );
+connstate_t Com_ClientState();
+void Com_SetClientState( connstate_t state );
 
 bool		Com_DemoPlaying();
 void        Com_SetDemoPlaying( bool state );
 
-int         Com_ServerState();        // this should have just been a cvar...
-void        Com_SetServerState( int state );
+server_state_t Com_ServerState();
+void Com_SetServerState( server_state_t state );
 
 extern cvar_t *developer;
 extern const bool is_dedicated_server;

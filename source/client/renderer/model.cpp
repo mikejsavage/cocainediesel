@@ -5,29 +5,47 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 
-constexpr u32 MAX_MODEL_ASSETS = 1024;
+constexpr u32 MAX_MODELS = 1024;
 
-static Model models[ MAX_MODEL_ASSETS ];
-static u32 num_models;
-static Hashtable< MAX_MODEL_ASSETS * 2 > models_hashtable;
+static Model gltf_models[ MAX_MODELS ];
+static u32 num_gltf_models;
+static Hashtable< MAX_MODELS * 2 > gltf_models_hashtable;
+
+static void LoadGLTF( const char * path ) {
+	Span< const char > ext = FileExtension( path );
+	if( ext != ".glb" )
+		return;
+
+	Model model;
+	if( !LoadGLTFModel( &model, path ) )
+		return;
+
+	u64 hash = Hash64( StripExtension( path ) );
+
+	u64 idx = num_gltf_models;
+	if( !gltf_models_hashtable.get( hash, &idx ) ) {
+		assert( num_gltf_models < ARRAY_COUNT( gltf_models ) );
+		gltf_models_hashtable.add( hash, num_gltf_models );
+		num_gltf_models++;
+	}
+	else {
+		DeleteModel( &gltf_models[ idx ] );
+	}
+
+	gltf_models[ idx ] = model;
+}
 
 void InitModels() {
 	ZoneScoped;
 
-	num_models = 0;
+	num_gltf_models = 0;
 
 	for( const char * path : AssetPaths() ) {
-		Span< const char > ext = FileExtension( path );
-		if( ext == ".glb" ) {
-			if( !LoadGLTFModel( &models[ num_models ], path ) )
-				continue;
-			models_hashtable.add( Hash64( StripExtension( path ) ), num_models );
-			num_models++;
-		}
+		LoadGLTF( path );
 	}
 }
 
-static void DeleteModel( Model * model ) {
+void DeleteModel( Model * model ) {
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
 		if( model->primitives[ i ].num_vertices == 0 ) {
 			DeleteMesh( model->primitives[ i ].mesh );
@@ -51,46 +69,22 @@ void HotloadModels() {
 	ZoneScoped;
 
 	for( const char * path : ModifiedAssetPaths() ) {
-		Span< const char > ext = FileExtension( path );
-		if( ext != ".glb" )
-			continue;
-
-		Model model;
-		if( !LoadGLTFModel( &model, path ) )
-			continue;
-
-		u64 hash = Hash64( StripExtension( path ) );
-		u64 idx = num_models;
-		if( models_hashtable.get( hash, &idx ) ) {
-			DeleteModel( &models[ idx ] );
-		}
-		else {
-			models_hashtable.add( hash, num_models );
-			num_models++;
-		}
-
-		models[ idx ] = model;
+		LoadGLTF( path );
 	}
 }
 
 void ShutdownModels() {
-	for( u32 i = 0; i < num_models; i++ ) {
-		DeleteModel( &models[ i ] );
+	for( u32 i = 0; i < num_gltf_models; i++ ) {
+		DeleteModel( &gltf_models[ i ] );
 	}
-}
-
-Model * NewModel( u64 hash ) {
-	Model * model = &models[ num_models ];
-	models_hashtable.add( hash, num_models );
-	num_models++;
-	return model;
 }
 
 const Model * FindModel( StringHash name ) {
 	u64 idx;
-	if( !models_hashtable.get( name.hash, &idx ) )
-		return NULL;
-	return &models[ idx ];
+	if( !gltf_models_hashtable.get( name.hash, &idx ) ) {
+		return FindMapModel( name );
+	}
+	return &gltf_models[ idx ];
 }
 
 const Model * FindModel( const char * name ) {

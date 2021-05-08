@@ -28,6 +28,7 @@ const int CountdownNumSwitches = 10;
 const float CountdownInitialSwitchDelay = 0.1;
 
 uint64 crownModel;
+bool randomise;
 
 int max( int a, int b ) {
 	return a > b ? a : b;
@@ -63,10 +64,10 @@ const String[] maps = {
 Entity @ last_spawn;
 
 void PickRandomArena() {
-	G_LoadMap( maps[ random_uniform( 0, maps.size() - 1 ) ] );
-	@last_spawn = null;
+	if( randomise ) {
+		G_LoadMap( maps[ random_uniform( 0, maps.size() - 1 ) ] );
+	}
 }
-
 
 class cDARound {
 	int state;
@@ -307,6 +308,8 @@ class cDARound {
 	}
 
 	void newRound() {
+		@last_spawn = null;
+
 		PickRandomArena();
 
 		this.newRoundState( DA_ROUNDSTATE_PREROUND );
@@ -783,6 +786,9 @@ void GT_InitGametype() {
 		gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
 
 	crownModel = Hash64( "models/objects/crown" );
+	@last_spawn = null;
+
+	randomise = G_GetWorldspawnKey( "randomise_arena" ) != "";
 
 	PickRandomArena();
 }

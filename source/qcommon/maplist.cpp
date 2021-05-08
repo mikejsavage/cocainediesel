@@ -29,7 +29,10 @@ void ShutdownMapList() {
 void RefreshMapList( Allocator * a ) {
 	FreeMaps();
 
-	ListDirHandle scan = BeginListDir( a, "base/maps" );
+	char * path = ( *a )( "{}/base/maps", RootDirPath() );
+	defer { FREE( a, path ); };
+
+	ListDirHandle scan = BeginListDir( a, path );
 
 	const char * name;
 	bool dir;

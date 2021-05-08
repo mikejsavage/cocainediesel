@@ -305,6 +305,8 @@ void GT_ThinkRules() {
 		bombCarrierLastPos = bombCarrier.origin;
 		bombCarrierLastVel = bombCarrier.velocity;
 	}
+
+	GENERIC_UpdateMatchScore();
 }
 
 // The game has detected the end of the match state, but it

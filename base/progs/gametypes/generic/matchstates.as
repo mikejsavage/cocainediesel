@@ -187,8 +187,3 @@ void GENERIC_UpdateMatchScore()
 
 	match.setScore( "" );
 }
-
-void GENERIC_Think()
-{
-	GENERIC_UpdateMatchScore();
-}

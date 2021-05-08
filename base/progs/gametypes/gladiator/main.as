@@ -301,6 +301,8 @@ class cDARound {
 				client.respawn( true ); // ghost them all
 			}
 		}
+
+		GENERIC_UpdateMatchScore();
 	}
 
 	void newRound() {

@@ -232,10 +232,10 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "TEAM", CG_Int, &cg.predictedPlayerState.team },
 
 	{ "TEAMBASED", CG_IsTeamBased, NULL },
-	{ "ALPHA_SCORE", CG_U8, &client_gs.gameState.bomb.alpha_score },
+	{ "ALPHA_SCORE", CG_U8, &client_gs.gameState.teams[ TEAM_ALPHA ].score },
 	{ "ALPHA_PLAYERS_ALIVE", CG_U8, &client_gs.gameState.bomb.alpha_players_alive },
 	{ "ALPHA_PLAYERS_TOTAL", CG_U8, &client_gs.gameState.bomb.alpha_players_total },
-	{ "BETA_SCORE", CG_U8, &client_gs.gameState.bomb.beta_score },
+	{ "BETA_SCORE", CG_U8, &client_gs.gameState.teams[ TEAM_BETA ].score },
 	{ "BETA_PLAYERS_ALIVE", CG_U8, &client_gs.gameState.bomb.beta_players_alive },
 	{ "BETA_PLAYERS_TOTAL", CG_U8, &client_gs.gameState.bomb.beta_players_total },
 

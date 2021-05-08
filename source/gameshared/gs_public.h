@@ -178,18 +178,6 @@ struct Item {
 	int cost;
 };
 
-enum {
-	TEAM_SPECTATOR,
-	TEAM_PLAYERS,
-	TEAM_ALPHA,
-	TEAM_BETA,
-
-	GS_MAX_TEAMS,
-
-	TEAM_ALLY,
-	TEAM_ENEMY,
-};
-
 // teams
 const char *GS_TeamName( int team );
 int GS_TeamFromName( const char *teamname );

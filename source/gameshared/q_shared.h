@@ -187,14 +187,6 @@ bool Info_Validate( const char *s );
 
 Span< const char > ParseWorldspawnKey( Span< const char > entities, const char * name );
 
-//==============================================
-
-//
-// per-level limits
-//
-#define MAX_CLIENTS                 16
-#define MAX_EDICTS                  1024        // must change protocol to increase more
-
 //============================================
 // sound
 //============================================

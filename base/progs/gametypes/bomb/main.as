@@ -124,40 +124,11 @@ Entity @GT_SelectSpawnPoint( Entity @self ) {
 	return RandomEntity( "team_CTF_alphaspawn" );
 }
 
-String @teamScoreboardMessage( int t ) {
-	Team @team = @G_GetTeam( t );
-
-	String players = "";
-
-	for( int i = 0; @team.ent( i ) != null; i++ ) {
-		Entity @ent = @team.ent( i );
-		Client @client = @ent.client;
-
-		cPlayer @player = @playerFromClient( @client );
-
-		bool warmup = match.getState() == MATCH_STATE_WARMUP;
-		int state = warmup ? ( client.isReady() ? 1 : 0 ) : ( @ent == @bombCarrier ? 1 : 0 );
-		int playerId = ent.isGhosting() ? -( ent.playerNum + 1 ) : ent.playerNum;
-
-		players += " " + playerId
-			+ " " + client.ping
-			+ " " + client.stats.score
-			+ " " + client.stats.frags
-			+ " " + state;
-	}
-
-	return ( t == TEAM_ALPHA ? match.alphaScore : match.betaScore ) + " " + team.numPlayers + players;
-}
-
-String @GT_ScoreboardMessage() {
-	return roundCount + " " + teamScoreboardMessage( TEAM_ALPHA ) + " " + teamScoreboardMessage( TEAM_BETA );
-}
-
 void GT_updateScore( Client @client ) {
 	cPlayer @player = @playerFromClient( @client );
 	Stats @stats = @client.stats;
 
-	client.stats.setScore( int( stats.frags * 0.5 + stats.totalDamageGiven * 0.01 ) );
+	stats.setScore( int( stats.kills * 0.5 + stats.totalDamageGiven * 0.01 ) );
 }
 
 // Some game actions trigger score events. These are events not related to killing
@@ -334,8 +305,6 @@ void GT_ThinkRules() {
 		bombCarrierLastPos = bombCarrier.origin;
 		bombCarrierLastVel = bombCarrier.velocity;
 	}
-
-	GENERIC_Think();
 }
 
 // The game has detected the end of the match state, but it

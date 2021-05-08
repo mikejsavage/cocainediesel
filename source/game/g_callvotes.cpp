@@ -1170,29 +1170,29 @@ void G_CallVotes_Think() {
 * G_CallVote
 */
 static void G_CallVote( edict_t *ent, bool isopcall ) {
-	int i;
+	int count, team;
 	const char *votename;
 	callvotetype_t *callvote;
 
 	if( !isopcall && ent->s.team == TEAM_SPECTATOR && GS_IndividualGameType( &server_gs )
 		&& GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME && !GS_MatchPaused( &server_gs ) ) {
-		int team, count;
 		edict_t *e;
 
 		for( count = 0, team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			if( !teamlist[team].numplayers ) {
+			SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
+			if( current_team->num_players == 0 ) {
 				continue;
 			}
 
-			for( i = 0; i < teamlist[team].numplayers; i++ ) {
-				e = game.edicts + teamlist[team].playerIndices[i];
+			for( u8 i = 0; i < current_team->num_players; i++ ) {
+				e = game.edicts + current_team->player_indices[ i ];
 				if( e->r.inuse && ( e->r.svflags & SVF_FAKECLIENT ) ) {
 					count++;
 				}
 			}
 		}
 
-		if( !count ) {
+		if( count == 0 ) {
 			G_PrintMsg( ent, "%sSpectators cannot start a vote while a match is in progress\n", S_COLOR_RED );
 			return;
 		}
@@ -1264,8 +1264,9 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 	}
 
 	callvoteState.vote.argc = Cmd_Argc() - 2;
-	for( i = 0; i < callvoteState.vote.argc; i++ )
+	for( int i = 0; i < callvoteState.vote.argc; i++ ) {
 		callvoteState.vote.argv[i] = G_CopyString( Cmd_Argv( i + 2 ) );
+	}
 
 	callvoteState.vote.callvote = callvote;
 	callvoteState.vote.caller = ent;
@@ -1279,8 +1280,9 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 	}
 
 	//we're done. Proceed launching the election
-	for( i = 0; i < server_gs.maxclients; i++ )
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		G_CallVotes_ResetClient( i );
+	}
 	callvoteState.timeout = svs.realtime + ( g_callvote_electtime->integer * 1000 );
 
 	//caller is assumed to vote YES

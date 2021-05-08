@@ -71,7 +71,6 @@ void PickRandomArena() {
 
 class cDARound {
 	int state;
-	int numRounds;
 	int64 roundStateStartTime;
 	int64 roundStateEndTime;
 	int countDown;
@@ -85,7 +84,6 @@ class cDARound {
 
 	cDARound() {
 		this.state = DA_ROUNDSTATE_NONE;
-		this.numRounds = 0;
 		this.roundStateStartTime = 0;
 		this.countDown = 0;
 		@this.alphaSpawn = null;
@@ -272,7 +270,7 @@ class cDARound {
 			}
 		}
 
-		this.numRounds = 0;
+		match.resetRounds();
 		this.newRound();
 	}
 
@@ -303,8 +301,6 @@ class cDARound {
 				client.respawn( true ); // ghost them all
 			}
 		}
-
-		GENERIC_UpdateMatchScore();
 	}
 
 	void newRound() {
@@ -312,8 +308,8 @@ class cDARound {
 
 		PickRandomArena();
 
+		match.newRound();
 		this.newRoundState( DA_ROUNDSTATE_PREROUND );
-		this.numRounds++;
 	}
 
 	void newRoundState( int newState ) {
@@ -601,57 +597,6 @@ Entity @GT_SelectSpawnPoint( Entity @self ) {
 	return spawn;
 }
 
-String @playerScoreboardMessage( Client @client ) {
-	int playerID = client.getEnt().isGhosting() ? -client.playerNum - 1 : client.playerNum;
-	int state = match.getState() == MATCH_STATE_WARMUP ? ( client.isReady() ? 1 : 0 ) : 0;
-
-	return " " + playerID
-		+ " " + client.ping
-		+ " " + client.stats.score
-		+ " " + client.stats.frags
-		+ " " + state;
-}
-
-String @GT_ScoreboardMessage() {
-	int challengers = daRound.roundChallengers.size();
-	int loosers = daRound.roundLosers.size();
-
-	Team @team = @G_GetTeam( TEAM_PLAYERS );
-	String scoreboard = daRound.numRounds + " " + team.numPlayers;
-
-	// first add the players in the duel
-	for( int i = 0; i < challengers; i++ ) {
-		Client @client = @daRound.roundChallengers[i];
-		if( @client != null ) {
-			scoreboard += playerScoreboardMessage( client );
-		}
-	}
-
-	// then add the round losers
-	if( daRound.state > DA_ROUNDSTATE_NONE && daRound.state < DA_ROUNDSTATE_POSTROUND && loosers > 0 ) {
-		for( int i = loosers - 1; i >= 0; i-- ) {
-			Client @client = @daRound.roundLosers[i];
-			if( @client != null ) {
-				scoreboard += playerScoreboardMessage( client );
-			}
-		}
-	}
-
-	// then add all the players in the queue
-	for( int i = 0; i < maxClients; i++ ) {
-		if( daRound.daChallengersQueue[i] < 0 || daRound.daChallengersQueue[i] >= maxClients )
-			break;
-
-		Client @client = @G_GetClient( daRound.daChallengersQueue[i] );
-		if( @client == null )
-			break;
-
-		scoreboard += playerScoreboardMessage( client );
-	}
-
-	return scoreboard;
-}
-
 // Some game actions trigger score events. These are events not related to killing
 // oponents, like capturing a flag
 // Warning: client can be null
@@ -704,8 +649,6 @@ void GT_ThinkRules() {
 
 	if( match.getState() >= MATCH_STATE_POSTMATCH )
 		return;
-
-	GENERIC_Think();
 
 	daRound.think();
 }

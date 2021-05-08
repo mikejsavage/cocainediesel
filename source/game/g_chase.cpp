@@ -57,21 +57,17 @@ static bool G_Chase_IsValidTarget( edict_t *ent, edict_t *target, bool teamonly 
 	return true;
 }
 
-
-
 /*
 * G_EndFrame_UpdateChaseCam
 */
 static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
-	edict_t *targ;
-
 	// not in chasecam
 	if( !ent->r.client->resp.chase.active ) {
 		return;
 	}
 
 	// is our chase target gone?
-	targ = &game.edicts[ent->r.client->resp.chase.target];
+	edict_t * targ = &game.edicts[ent->r.client->resp.chase.target];
 
 	if( !G_Chase_IsValidTarget( ent, targ, ent->r.client->resp.chase.teamonly ) ) {
 		if( svs.realtime < ent->r.client->resp.chase.timeout ) { // wait for timeout
@@ -98,14 +94,12 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 
 	// copy target playerState to me
 	bool ready = ent->r.client->ps.ready;
-	bool show_scoreboard = ent->r.client->ps.show_scoreboard;
 	bool voted = ent->r.client->ps.voted;
 
 	ent->r.client->ps = targ->r.client->ps;
 
 	// fix some stats we don't want copied from the target
 	ent->r.client->ps.ready = ready;
-	ent->r.client->ps.show_scoreboard = show_scoreboard;
 	ent->r.client->ps.voted = voted;
 	ent->r.client->ps.real_team = ent->s.team;
 
@@ -122,13 +116,11 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 * G_EndServerFrames_UpdateChaseCam
 */
 void G_EndServerFrames_UpdateChaseCam() {
-	int i, team;
-	edict_t *ent;
-
 	// do it by teams, so spectators can copy the chasecam information from players
-	for( team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		for( i = 0; i < teamlist[team].numplayers; i++ ) {
-			ent = game.edicts + teamlist[team].playerIndices[i];
+	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
+		SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
+		for( u8 i = 0; i < current_team->num_players; i++ ) {
+			edict_t * ent = game.edicts + current_team->player_indices[i];
 			if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 				G_Chase_SetChaseActive( ent, false );
 				continue;
@@ -139,8 +131,9 @@ void G_EndServerFrames_UpdateChaseCam() {
 	}
 
 	// Do spectators last
-	for( i = 0; i < teamlist[TEAM_SPECTATOR].numplayers; i++ ) {
-		ent = game.edicts + teamlist[TEAM_SPECTATOR].playerIndices[i];
+	SyncTeamState * spec_team = &server_gs.gameState.teams[ TEAM_SPECTATOR ];
+	for( u8 i = 0; i < spec_team->num_players; i++ ) {
+		edict_t * ent = game.edicts + spec_team->player_indices[ i ];
 		if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 			G_Chase_SetChaseActive( ent, false );
 			continue;
@@ -248,31 +241,30 @@ void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmod
 * ChaseStep
 */
 void G_ChaseStep( edict_t *ent, int step ) {
-	int i, j, team;
-	bool player_found;
-	int actual;
-	int start;
 	edict_t *newtarget = NULL;
 
-	assert( step == -1 || step == 0 || step == 1 );
+	assert( Abs( step ) <= 1 );
 
 	if( !ent->r.client->resp.chase.active ) {
 		return;
 	}
 
-	start = ent->r.client->resp.chase.target;
-	i = -1;
-	player_found = false; // needed to prevent an infinite loop if there are no players
-	// find the team of the previously chased player and his index in the sorted teamlist
+	int start = ent->r.client->resp.chase.target;
+	int i = -1;
+	bool player_found = false; // needed to prevent an infinite loop if there are no players
+	// find the team of the previously chased player and his index in the sorted list
+	int team;
 	for( team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		for( j = 0; j < teamlist[team].numplayers; j++ ) {
+		const SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
+		u8 j;
+		for( j = 0; j < current_team->num_players; j++ ) {
 			player_found = true;
-			if( teamlist[team].playerIndices[j] == start ) {
+			if( current_team->player_indices[ j ] == start ) {
 				i = j;
 				break;
 			}
 		}
-		if( j != teamlist[team].numplayers ) {
+		if( j != current_team->num_players ) {
 			break;
 		}
 	}
@@ -291,7 +283,7 @@ void G_ChaseStep( edict_t *ent, int step ) {
 		if( team == GS_MAX_TEAMS ) {
 			team = TEAM_PLAYERS;
 		}
-		for( j = 0; j < server_gs.maxclients; j++ ) {
+		for( int j = 0; j < server_gs.maxclients; j++ ) {
 			// at this point step is -1 or 1
 			i += step;
 
@@ -302,18 +294,18 @@ void G_ChaseStep( edict_t *ent, int step ) {
 				if( team < TEAM_PLAYERS ) {
 					team = GS_MAX_TEAMS - 1;
 				}
-				i = teamlist[team].numplayers - 1;
+				i = server_gs.gameState.teams[ team ].num_players - 1;
 			}
 
 			// similarly, change to the next team if we skipped past the end of this one
-			while( i >= teamlist[team].numplayers ) {
+			while( i >= server_gs.gameState.teams[ team ].num_players ) {
 				team++;
 				if( team == GS_MAX_TEAMS ) {
 					team = TEAM_PLAYERS;
 				}
 				i = 0;
 			}
-			actual = teamlist[team].playerIndices[i];
+			int actual = server_gs.gameState.teams[ team ].player_indices[i];
 			if( actual == start ) {
 				break; // back at the original player, no need to waste time
 			}

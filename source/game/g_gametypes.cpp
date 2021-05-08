@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-g_teamlist_t teamlist[GS_MAX_TEAMS];
-
 //==========================================================
 //					Matches
 //==========================================================
@@ -53,8 +51,9 @@ void G_Match_Autorecord_Start() {
 	// do not start autorecording if all playing clients are bots
 	bool has_players = false;
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		for( int i = 0; i < teamlist[team].numplayers; i++ ) {
-			if( game.edicts[ teamlist[team].playerIndices[i] ].r.svflags & SVF_FAKECLIENT ) {
+		SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
+		for( u8 i = 0; i < current_team->num_players; i++ ) {
+			if( game.edicts[ current_team->player_indices[ i ] ].r.svflags & SVF_FAKECLIENT ) {
 				continue;
 			}
 
@@ -126,17 +125,20 @@ static void G_Match_CheckStateAbort() {
 		int team, emptyteams = 0;
 
 		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			if( !teamlist[team].numplayers ) {
+			if( server_gs.gameState.teams[ team ].num_players == 0 ) {
 				emptyteams++;
-			} else {
+			}
+			else {
 				any = true;
 			}
 		}
 
-		enough = ( emptyteams == 0 );
-	} else {
-		enough = ( teamlist[TEAM_PLAYERS].numplayers > 1 );
-		any = ( teamlist[TEAM_PLAYERS].numplayers > 0 );
+		enough = emptyteams == 0;
+	}
+	else {
+		SyncTeamState * team_players = &server_gs.gameState.teams[ TEAM_PLAYERS ];
+		enough = team_players->num_players > 1;
+		any = team_players->num_players > 0;
 	}
 
 	// if waiting, turn on match states when enough players joined
@@ -265,12 +267,12 @@ bool G_Match_ScorelimitHit() {
 					continue;
 				}
 
-				if( e->r.client->level.stats.score >= g_scorelimit->integer ) {
+				if( G_ClientGetStats( e )->score >= g_scorelimit->integer ) {
 					return true;
 				}
 			}
 		} else {
-			u8 high_score = Max2( server_gs.gameState.bomb.alpha_score, server_gs.gameState.bomb.beta_score );
+			u8 high_score = Max2( server_gs.gameState.teams[ TEAM_ALPHA ].score, server_gs.gameState.teams[ TEAM_BETA ].score );
 			if( int( high_score ) >= g_scorelimit->integer )
 				return true;
 		}
@@ -316,8 +318,9 @@ void G_Match_CheckReadys() {
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
 		int readys = 0;
 		int notreadys = 0;
-		for( int i = 0; i < teamlist[team].numplayers; i++ ) {
-			const edict_t * e = game.edicts + teamlist[team].playerIndices[i];
+		SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
+		for( u8 i = 0; i < current_team->num_players; i++ ) {
+			const edict_t * e = game.edicts + current_team->player_indices[ i ];
 
 			if( !e->r.inuse ) {
 				continue;
@@ -372,12 +375,13 @@ void G_Match_Ready( edict_t *ent ) {
 		return;
 	}
 
-	if( level.ready[PLAYERNUM( ent )] ) {
+	if( level.ready[ PLAYERNUM( ent ) ] ) {
 		G_PrintMsg( ent, "You are already ready.\n" );
 		return;
 	}
 
-	level.ready[PLAYERNUM( ent )] = true;
+	level.ready[ PLAYERNUM( ent ) ] = true;
+	G_ClientGetStats( ent )->ready = true;
 
 	G_PrintMsg( NULL, "%s is ready!\n", ent->r.client->netname );
 
@@ -403,7 +407,8 @@ void G_Match_NotReady( edict_t *ent ) {
 		return;
 	}
 
-	level.ready[PLAYERNUM( ent )] = false;
+	level.ready[ PLAYERNUM( ent ) ] = false;
+	G_ClientGetStats( ent )->ready = false;
 
 	G_PrintMsg( NULL, "%s is no longer ready.\n", ent->r.client->netname );
 }
@@ -523,8 +528,7 @@ static bool G_EachNewMinute() {
 static void G_CheckEvenTeam() {
 	int max = 0;
 	int min = server_gs.maxclients + 1;
-	int uneven_team = TEAM_SPECTATOR;
-	int i;
+	int uneven = TEAM_SPECTATOR;
 
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
 		return;
@@ -538,19 +542,21 @@ static void G_CheckEvenTeam() {
 		return;
 	}
 
-	for( i = TEAM_ALPHA; i < GS_MAX_TEAMS; i++ ) {
-		if( max < teamlist[i].numplayers ) {
-			max = teamlist[i].numplayers;
-			uneven_team = i;
+	for( int i = TEAM_ALPHA; i < GS_MAX_TEAMS; i++ ) {
+		SyncTeamState * current_team = &server_gs.gameState.teams[ i ];
+		if( max < current_team->num_players ) {
+			max = current_team->num_players;
+			uneven = i;
 		}
-		if( min > teamlist[i].numplayers ) {
-			min = teamlist[i].numplayers;
+		if( min > current_team->num_players ) {
+			min = current_team->num_players;
 		}
 	}
 
 	if( max - min > 1 ) {
-		for( i = 0; i < teamlist[uneven_team].numplayers; i++ ) {
-			edict_t *e = game.edicts + teamlist[uneven_team].playerIndices[i];
+		SyncTeamState * uneven_team = &server_gs.gameState.teams[ uneven ];
+		for( u8 i = 0; i < uneven_team->num_players; i++ ) {
+			edict_t * e = game.edicts + uneven_team->player_indices[ i ];
 			if( !e->r.inuse ) {
 				continue;
 			}
@@ -582,8 +588,6 @@ void G_RunGametype() {
 	G_Teams_ExecuteChallengersQueue();
 	G_Teams_UpdateMembersList();
 	G_Match_CheckStateAbort();
-
-	G_UpdateScoreBoardMessages();
 
 	GT_asCallThinkRules();
 

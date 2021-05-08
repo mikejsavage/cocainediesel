@@ -2,6 +2,9 @@
 
 #include "qcommon/types.h"
 
+#define MAX_CLIENTS                 16
+#define MAX_EDICTS                  1024        // must change protocol to increase more
+
 enum MatchState {
 	MATCH_STATE_NONE,
 	MATCH_STATE_WARMUP,
@@ -104,9 +107,34 @@ enum BombProgress {
 #define GAMESTAT_FLAG_ISRACE ( 1 << 5LL )
 #define GAMESTAT_FLAG_COUNTDOWN ( 1 << 6LL )
 
+enum {
+	TEAM_SPECTATOR,
+	TEAM_PLAYERS,
+	TEAM_ALPHA,
+	TEAM_BETA,
+
+	GS_MAX_TEAMS,
+
+	TEAM_ALLY,
+	TEAM_ENEMY,
+};
+
+struct SyncScoreboardPlayer {
+	int ping;
+	int score;
+	int kills;
+	bool ready;
+	bool carrier;
+	bool alive;
+};
+
+struct SyncTeamState {
+	int player_indices[ MAX_CLIENTS ];
+	u8 num_players;
+	u8 score;
+};
+
 struct SyncBombGameState {
-	u8 alpha_score;
-	u8 beta_score;
 	u8 alpha_players_alive;
 	u8 alpha_players_total;
 	u8 beta_players_alive;
@@ -122,9 +150,14 @@ struct SyncGameState {
 	int64_t match_start;
 	int64_t match_duration;
 	int64_t clock_override;
+
+	u8 round_num;
 	RoundState round_state;
 	RoundType round_type;
 	u8 max_team_players;
+
+	SyncTeamState teams[ GS_MAX_TEAMS ];
+	SyncScoreboardPlayer players[ MAX_CLIENTS ];
 
 	StringHash map;
 	u32 map_checksum;

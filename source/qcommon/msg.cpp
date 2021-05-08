@@ -662,7 +662,6 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	Delta( buf, player.weapons, baseline.weapons );
 	Delta( buf, player.items, baseline.items );
 
-	Delta( buf, player.show_scoreboard, baseline.show_scoreboard );
 	Delta( buf, player.ready, baseline.ready );
 	Delta( buf, player.voted, baseline.voted );
 	Delta( buf, player.can_change_loadout, baseline.can_change_loadout );
@@ -718,9 +717,22 @@ void MSG_ReadDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, Sy
 // DELTA GAME STATES
 //==================================================
 
+static void Delta( DeltaBuffer * buf, SyncScoreboardPlayer & player, const SyncScoreboardPlayer & baseline ) {
+	Delta( buf, player.ping, baseline.ping );
+	Delta( buf, player.score, baseline.score );
+	Delta( buf, player.kills, baseline.kills );
+	Delta( buf, player.ready, baseline.ready );
+	Delta( buf, player.carrier, baseline.carrier );
+	Delta( buf, player.alive, baseline.alive );
+}
+
+static void Delta( DeltaBuffer * buf, SyncTeamState & team, const SyncTeamState & baseline ) {
+	Delta( buf, team.player_indices, baseline.player_indices );
+	Delta( buf, team.score, baseline.score );
+	Delta( buf, team.num_players, baseline.num_players );
+}
+
 static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGameState & baseline ) {
-	Delta( buf, bomb.alpha_score, baseline.alpha_score );
-	Delta( buf, bomb.beta_score, baseline.beta_score );
 	Delta( buf, bomb.alpha_players_alive, baseline.alpha_players_alive );
 	Delta( buf, bomb.alpha_players_total, baseline.alpha_players_total );
 	Delta( buf, bomb.beta_players_alive, baseline.beta_players_alive );
@@ -735,9 +747,12 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.match_start, baseline.match_start );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
+	Delta( buf, state.round_num, baseline.round_num );
 	Delta( buf, state.round_state, baseline.round_state );
 	Delta( buf, state.round_type, baseline.round_type );
 	Delta( buf, state.max_team_players, baseline.max_team_players );
+	Delta( buf, state.teams, baseline.teams );
+	Delta( buf, state.players, baseline.players );
 	Delta( buf, state.map, baseline.map );
 	Delta( buf, state.map_checksum, baseline.map_checksum );
 	Delta( buf, state.bomb, baseline.bomb );

@@ -91,6 +91,7 @@ void bombPickUp() {
 
 void bombSetCarrier( Entity @ent, bool no_sound ) {
 	if( @bombCarrier != null ) {
+		bombCarrier.client.stats.setCarrier( false );
 		bombCarrier.effects &= ~EF_CARRIER;
 		bombCarrier.model2 = 0;
 	}
@@ -99,6 +100,7 @@ void bombSetCarrier( Entity @ent, bool no_sound ) {
 	bombPickUp();
 
 	Client @client = @bombCarrier.client;
+	client.stats.setCarrier( true );
 	client.addAward( S_COLOR_GREEN + "You've got the bomb!" );
 	if( !no_sound ) {
 		G_AnnouncerSound( @client, sndBombTaken, attackingTeam, true, null );
@@ -420,9 +422,9 @@ bool bombCanPlant() {
 
 void bombGiveToRandom() {
 	Team @team = @G_GetTeam( attackingTeam );
-	int bots = 0;
+	uint bots = 0;
 
-	for( int i = 0; @team.ent( i ) != null; i++ ) {
+	for( uint i = 0; @team.ent( i ) != null; i++ ) {
 		if( ( team.ent( i ).svflags & SVF_FAKECLIENT ) != 0 ) {
 			bots++;
 		}

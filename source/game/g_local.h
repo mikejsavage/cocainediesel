@@ -158,6 +158,25 @@ struct spawn_temp_t {
 	float spawn_probability;
 };
 
+struct score_stats_t {
+	int kills;
+	int deaths;
+	int suicides;
+	bool alive;
+
+	int ping;
+	int score;
+	bool ready;
+	bool carrier;
+
+	int accuracy_shots[ Weapon_Count ];
+	int accuracy_hits[ Weapon_Count ];
+	int accuracy_damage[ Weapon_Count ];
+	int accuracy_frags[ Weapon_Count ];
+	int total_damage_given;
+	int total_damage_received;
+};
+
 extern game_locals_t game;
 extern gs_state_t server_gs;
 extern level_locals_t level;
@@ -304,7 +323,6 @@ void GT_asCallThinkRules();
 void GT_asCallPlayerKilled( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point, int mod );
 void GT_asCallPlayerRespawn( edict_t *ent, int old_team, int new_team );
 void GT_asCallScoreEvent( gclient_t *client, const char *score_event, const char *args );
-void GT_asCallScoreboardMessage( char * buf, size_t buf_size );
 edict_t *GT_asCallSelectSpawnPoint( edict_t *ent );
 bool GT_asCallGameCommand( gclient_t *client, const char *cmd, const char *args, int argc );
 bool GT_asCallBotStatus( edict_t *ent );
@@ -539,6 +557,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo );
 void G_Client_UpdateActivity( gclient_t *client );
 void G_Client_InactivityRemove( gclient_t *client );
 void G_ClientRespawn( edict_t *self, bool ghost );
+score_stats_t * G_ClientGetStats( edict_t * ent );
 void G_ClientClearStats( edict_t *ent );
 void G_GhostClient( edict_t *self );
 void ClientThink( edict_t *ent, usercmd_t *cmd, int timeDelta );
@@ -594,12 +613,9 @@ void G_ClientDamageFeedback( edict_t *ent );
 // p_hud.c
 //
 
-constexpr unsigned int scoreboardInterval = 1000;
 
 void G_SetClientStats( edict_t *ent );
 void G_Snap_UpdateWeaponListMessages();
-void G_ScoreboardMessage_AddSpectators();
-void G_UpdateScoreBoardMessages();
 
 //
 // g_phys.c
@@ -744,7 +760,6 @@ struct client_levelreset_t {
 
 	score_stats_t stats;
 	bool showscores;
-	int64_t scoreboard_time;		// when scoreboard was last sent
 
 	// flood protection
 	int64_t flood_locktill;			// locked from talking

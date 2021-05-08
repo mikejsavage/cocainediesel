@@ -132,8 +132,8 @@ static void G_UpdateServerInfo() {
 	// g_match_score
 	if( GS_MatchState( &server_gs ) >= MATCH_STATE_PLAYTIME && level.gametype.isTeamBased ) {
 		String< MAX_INFO_STRING > score( "{}: {} {}: {}",
-			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.bomb.alpha_score,
-			GS_TeamName( TEAM_BETA ), server_gs.gameState.bomb.beta_score );
+			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.teams[ TEAM_ALPHA ].score,
+			GS_TeamName( TEAM_BETA ), server_gs.gameState.teams[ TEAM_BETA ].score );
 
 		Cvar_ForceSet( "g_match_score", score.c_str() );
 	} else {
@@ -150,6 +150,19 @@ static void G_UpdateServerInfo() {
 		password->modified = false;
 	}
 }
+
+static void G_UpdateClientScoreboard( edict_t * ent ) {
+	const score_stats_t * stats = G_ClientGetStats( ent );
+	SyncScoreboardPlayer * player = &server_gs.gameState.players[ PLAYERNUM( ent ) ];
+
+	player->ping = stats->ping;
+	player->score = stats->score;
+	player->kills = stats->kills;
+	player->ready = stats->ready;
+	player->carrier = stats->carrier;
+	player->alive = stats->alive;
+}
+
 
 /*
 * G_CheckCvars
@@ -215,7 +228,7 @@ void G_SnapClients() {
 		}
 
 		G_Client_InactivityRemove( ent->r.client );
-
+		G_UpdateClientScoreboard( ent );
 		G_ClientEndSnapFrame( ent );
 	}
 

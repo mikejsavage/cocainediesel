@@ -226,16 +226,18 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 	}
 }
 
-/*
-* G_ClientClearStats
-*/
-void G_ClientClearStats( edict_t *ent ) {
+score_stats_t * G_ClientGetStats( edict_t * ent ) {
+	return &ent->r.client->level.stats;
+}
+
+void G_ClientClearStats( edict_t * ent ) {
 	if( !ent || !ent->r.client ) {
 		return;
 	}
 
-	memset( &ent->r.client->level.stats, 0, sizeof( ent->r.client->level.stats ) );
+	memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
 }
+
 
 /*
 * G_GhostClient
@@ -256,6 +258,7 @@ void G_GhostClient( edict_t *ent ) {
 	ent->s.sound = EMPTY_HASH;
 	ent->viewheight = 0;
 	ent->takedamage = DAMAGE_NO;
+	G_ClientGetStats( ent )->alive = false;
 
 	memset( ent->r.client->ps.weapons, 0, sizeof( ent->r.client->ps.weapons ) );
 	memset( ent->r.client->ps.items, 0, sizeof( ent->r.client->ps.items ) );
@@ -405,6 +408,8 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	if( self->r.svflags & SVF_FAKECLIENT ) {
 		AI_Respawn( self );
 	}
+
+	G_ClientGetStats( self )->alive = true;
 }
 
 /*
@@ -509,9 +514,6 @@ void ClientBegin( edict_t *ent ) {
 	G_PrintMsg( NULL, "%s entered the game\n", client->netname );
 
 	client->connecting = false;
-
-	// schedule the next scoreboard update
-	client->level.scoreboard_time = svs.realtime + scoreboardInterval - ( svs.realtime % scoreboardInterval );
 
 	G_ClientEndSnapFrame( ent ); // make sure all view stuff is valid
 

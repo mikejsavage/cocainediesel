@@ -166,21 +166,6 @@ void Cmd_ChasePrev_f( edict_t *ent ) {
 }
 
 /*
-* Cmd_Score_f
-*/
-static void Cmd_Score_f( edict_t *ent ) {
-	bool newvalue;
-
-	if( Cmd_Argc() == 2 ) {
-		newvalue = ( atoi( Cmd_Argv( 1 ) ) != 0 ) ? true : false;
-	} else {
-		newvalue = !ent->r.client->level.showscores ? true : false;
-	}
-
-	ent->r.client->level.showscores = newvalue;
-}
-
-/*
 * Cmd_Position_f
 */
 static void Cmd_Position_f( edict_t *ent ) {
@@ -811,7 +796,6 @@ void G_InitGameCommands() {
 	G_AddCommand( "spectators", Cmd_Spectators_f );
 	G_AddCommand( "say", Cmd_SayCmd_f );
 	G_AddCommand( "say_team", Cmd_SayTeam_f );
-	G_AddCommand( "svscore", Cmd_Score_f );
 	G_AddCommand( "god", Cmd_God_f );
 	G_AddCommand( "noclip", Cmd_Noclip_f );
 	G_AddCommand( "kill", Cmd_Kill_f );

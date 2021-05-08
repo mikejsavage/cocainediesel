@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
-static float gun_fov = 90.f;
-
 static void CG_ViewWeapon_UpdateProjectionSource( Vec3 hand_origin, const mat3_t hand_axis, Vec3 weap_origin, const mat3_t weap_axis ) {
 	orientation_t *tag_result = &cg.weapon.projectionSource;
 	orientation_t tag_weapon;
@@ -141,8 +139,9 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	// finish
 	AnglesToAxis( gunAngles, viewweapon->axis );
 
-	if( gun_fov > 0 && cg.predictedPlayerState.zoom_time == 0 ) {
-		float gun_fov_y = WidescreenFov( Clamp( 20.0f, gun_fov, 160.0f ) );
+	if( cg.predictedPlayerState.zoom_time == 0 ) {
+		constexpr float gun_fov = 90.0f;
+		float gun_fov_y = WidescreenFov( gun_fov );
 		float gun_fov_x = CalcHorizontalFov( gun_fov_y, frame_static.viewport_width, frame_static.viewport_height );
 
 		float fracWeapFOV = tanf( Radians( gun_fov_x ) * 0.5f ) / cg.view.fracDistFOV;

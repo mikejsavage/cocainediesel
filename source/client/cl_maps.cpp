@@ -64,6 +64,7 @@ static void FillMapModelsHashtable() {
 			String< 16 > suffix( "*{}", j );
 			u64 hash = Hash64( suffix.c_str(), suffix.length(), map->base_hash );
 
+			assert( map_models_hashtable.size() < MAX_MAP_MODELS );
 			map_models_hashtable.add( hash, uintptr_t( &map->models[ j ] ) );
 		}
 	}

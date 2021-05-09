@@ -193,7 +193,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 		case Weapon_AssaultRifle:
 		case Weapon_RocketLauncher:
 		case Weapon_GrenadeLauncher:
-		case Weapon_Minigun:
+		// case Weapon_Minigun:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_HEAVYWEAPON, 0, EVENT_CHANNEL );
 			break;
 
@@ -636,13 +636,13 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			else if( weapon == Weapon_Laser ) {
 				CG_Event_LaserBeam( origin, dir, owner );
 			}
-			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_AssaultRifle || weapon == Weapon_Sniper || weapon == Weapon_Minigun ) {
+			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_AssaultRifle || weapon == Weapon_Sniper /* || weapon == Weapon_Minigun */ ) {
 				CG_Event_FireBullet( origin, dir, entropy, zoom_time, weapon, owner, team_color );
 			}
 
-			if( predicted && weapon == Weapon_Minigun ) {
-				cg.predictedPlayerState.pmove.velocity -= dir * GS_GetWeaponDef( Weapon_Minigun )->knockback;
-			}
+			// if( predicted && weapon == Weapon_Minigun ) {
+			// 	cg.predictedPlayerState.pmove.velocity -= dir * GS_GetWeaponDef( Weapon_Minigun )->knockback;
+			// }
 		} break;
 
 		case EV_NOAMMOCLICK:

@@ -824,13 +824,13 @@ void G_FireWeapon( edict_t * ent, u64 weap ) {
 			W_Fire_Road( ent, origin, angles, timeDelta );
 			break;
 
-		case Weapon_Minigun: {
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Minigun );
-
-			Vec3 dir;
-			AngleVectors( angles, &dir, NULL, NULL );
-			ent->velocity -= dir * GS_GetWeaponDef( Weapon_Minigun )->knockback;
-		} break;
+		// case Weapon_Minigun: {
+		// 	W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Minigun );
+		//
+		// 	Vec3 dir;
+		// 	AngleVectors( angles, &dir, NULL, NULL );
+		// 	ent->velocity -= dir * GS_GetWeaponDef( Weapon_Minigun )->knockback;
+		// } break;
 	}
 
 	// add stats

@@ -609,6 +609,7 @@ const WeaponDef gs_weaponDefs[] = {
 		/* spread               */ 0,
 	},
 
+#if 0
 	{
 		/* name, short name     */ "Minigun", "minigun",
 		/* category             */ WeaponCategory_Backup,
@@ -643,6 +644,7 @@ const WeaponDef gs_weaponDefs[] = {
 		/* speed                */ INSTANT,
 		/* spread               */ 250,
 	},
+#endif
 };
 
 STATIC_ASSERT( ARRAY_COUNT( gs_weaponDefs ) == Weapon_Count );

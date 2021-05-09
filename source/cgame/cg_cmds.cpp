@@ -301,30 +301,36 @@ static void CG_Cmd_UseItem_f() {
 	}
 }
 
-static WeaponType CG_UseWeaponStep( SyncPlayerState * ps, bool next, WeaponType predicted_equipped_weapon ) {
-	if( predicted_equipped_weapon == Weapon_Count )
-		return Weapon_Count;
+static void ScrollWeapon( int step ) {
+	WeaponType current = cg.predictedPlayerState.weapon;
+	if( cg.predictedPlayerState.pending_weapon != Weapon_None ) {
+		current = cg.predictedPlayerState.pending_weapon;
+	}
+
+	if( current == Weapon_None )
+		return;
+
+	SyncPlayerState * ps = &cg.predictedPlayerState;
 
 	size_t num_weapons = ARRAY_COUNT( ps->weapons );
 
-	int weapon;
-	for( weapon = 0; weapon < num_weapons; weapon++ ) { //find the basis weapon
-		if( ps->weapons[ weapon ].weapon == predicted_equipped_weapon ) {
+	int slot;
+	for( int i = 0; i < num_weapons; i++ ) {
+		if( ps->weapons[ i ].weapon == current ) {
+			slot = i;
 			break;
 		}
 	}
 
-	int step = ( next ? 1 : -1 );
-	weapon += step;
+	slot += step;
 
-	int end = ( next ? num_weapons : -1 );
-	for( int i = weapon; i != end; i += step ) {
-		if( ps->weapons[ i ].weapon != Weapon_None ) {
-			return ps->weapons[ i ].weapon;
-		}
+	if( slot >= num_weapons || slot < 0 )
+		return;
+
+	WeaponType weapon = ps->weapons[ slot ].weapon;
+	if( weapon != Weapon_None && weapon != Weapon_Knife ) {
+		SwitchWeapon( weapon );
 	}
-
-	return Weapon_Count;
 }
 
 static void CG_Cmd_NextWeapon_f() {
@@ -333,10 +339,7 @@ static void CG_Cmd_NextWeapon_f() {
 		return;
 	}
 
-	WeaponType weapon = CG_UseWeaponStep( &cg.frame.playerState, true, cg.predictedPlayerState.pending_weapon );
-	if( weapon != Weapon_Count && weapon != Weapon_Knife ) {
-		SwitchWeapon( weapon );
-	}
+	ScrollWeapon( 1 );
 }
 
 static void CG_Cmd_PrevWeapon_f() {
@@ -345,10 +348,7 @@ static void CG_Cmd_PrevWeapon_f() {
 		return;
 	}
 
-	WeaponType weapon = CG_UseWeaponStep( &cg.frame.playerState, false, cg.predictedPlayerState.pending_weapon );
-	if( weapon != Weapon_Count && weapon != Weapon_Knife ) {
-		SwitchWeapon( weapon );
-	}
+	ScrollWeapon( -1 );
 }
 
 static void CG_Cmd_LastWeapon_f() {

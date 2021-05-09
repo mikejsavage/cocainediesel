@@ -33,7 +33,7 @@ public:
 		u64 i = key % N;
 		u64 dist = 0;
 
-		for( ;; ) {
+		while( true ) {
 			if( entries[ i ].key == key )
 				return false;
 
@@ -127,7 +127,7 @@ private:
 		u64 i = key % N;
 		u64 dist = 0;
 
-		for( ;; ) {
+		while( true ) {
 			if( entries[ i ].key == key ) {
 				*idx = i;
 				return true;

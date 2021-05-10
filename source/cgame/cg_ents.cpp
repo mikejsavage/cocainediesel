@@ -698,9 +698,9 @@ void DrawEntities() {
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_PLASMA:
+			case ET_ARBULLET:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/pg/trail" );
+				DrawEntityTrail( cent, "weapons/ar/trail" );
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
@@ -803,7 +803,7 @@ void CG_LerpEntities() {
 		switch( cent->type ) {
 			case ET_GENERIC:
 			case ET_ROCKET:
-			case ET_PLASMA:
+			case ET_ARBULLET:
 			case ET_BUBBLE:
 			case ET_GRENADE:
 			case ET_RIFLEBULLET:
@@ -882,7 +882,7 @@ void CG_UpdateEntities() {
 		switch( cent->type ) {
 			case ET_GENERIC:
 			case ET_ROCKET:
-			case ET_PLASMA:
+			case ET_ARBULLET:
 			case ET_BUBBLE:
 			case ET_GRENADE:
 			case ET_RIFLEBULLET:

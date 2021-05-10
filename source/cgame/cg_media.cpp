@@ -53,7 +53,7 @@ void CG_RegisterMediaSounds() {
 }
 
 void CG_RegisterMediaModels() {
-	cgs.media.modPlasmaExplosion = FindModel( "weapons/pg/impact" );
+	cgs.media.modARBulletExplosion = FindModel( "weapons/ar/impact" );
 
 	cgs.media.modDash = FindModel( "models/effects/dash_burst" );
 

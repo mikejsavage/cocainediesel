@@ -9,7 +9,7 @@ weapons/9mm/texture
 	}
 }
 
-weapons/ar/texture
+weapons/br/texture
 {
 	shaded
 	specular 10
@@ -109,7 +109,7 @@ weapons/mg/texture
 	}
 }
 
-weapons/pg/texture
+weapons/ar/texture
 {
 	shaded
 	specular 10

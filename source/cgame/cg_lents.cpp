@@ -10,9 +10,9 @@ void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color ) {
 	RailTrailParticles( start, end, team_color );
 }
 
-void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
-	PlasmaImpactParticles( pos, dir, team_color.xyz() );
-	S_StartFixedSound( "weapons/pg/explode", pos, CHAN_AUTO, 1.0f );
+void CG_ARBulletExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
+	ARBulletImpactParticles( pos, dir, team_color.xyz() );
+	S_StartFixedSound( "weapons/ar/explode", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color ) {

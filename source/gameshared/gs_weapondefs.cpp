@@ -196,8 +196,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name                 */ "Assault Rifle",
-		/* short name           */ "ar",
+		/* name                 */ "Burst Rifle",
+		/* short name           */ "br",
 		/* category             */ WeaponCategory_Primary,
 
 		/* projectile count     */ 1,
@@ -340,8 +340,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name                 */ "Plasma",
-		/* short name           */ "pg",
+		/* name                 */ "Assault Rifle",
+		/* short name           */ "ar",
 		/* category             */ WeaponCategory_Primary,
 
 		/* projectile count     */ 1,

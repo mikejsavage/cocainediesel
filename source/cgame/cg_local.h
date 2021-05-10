@@ -124,7 +124,7 @@ struct cgs_media_t {
 	const Model * modDash;
 	const Model * modGib;
 
-	const Model * modPlasmaExplosion;
+	const Model * modARBulletExplosion;
 
 	const Model * modBulletExplode;
 	const Model * modBladeWallHit;
@@ -500,7 +500,7 @@ bool CG_SwitchChaseCamMode();
 //
 
 void CG_RifleBulletTrail( const centity_t * cent );
-void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_ARBulletExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color );
 void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
@@ -524,7 +524,7 @@ void DrawGibs();
 // cg_effects.c
 //
 void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
-void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
+void ARBulletImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
 void BubbleImpactParticles( Vec3 origin, Vec3 team_color );
 void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color );
 

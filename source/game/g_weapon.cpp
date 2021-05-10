@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/cmodel.h"
 #include "game/g_local.h"
 
-#define PLASMAHACK // ffs : hack for the plasmagun
+#define ARBULLETHACK // ffs : hack for the assault rifle
 
 static bool CanHit(const edict_t *projectile, const edict_t *target)
 {
@@ -38,7 +38,7 @@ static bool CanHit(const edict_t *projectile, const edict_t *target)
 	return true;
 }
 
-static void W_Explode_Plasma(edict_t *ent, edict_t *other, cplane_t *plane)
+static void W_Explode_ARBullet(edict_t *ent, edict_t *other, cplane_t *plane)
 {
 	if (other != NULL && other->takedamage)
 	{
@@ -49,14 +49,14 @@ static void W_Explode_Plasma(edict_t *ent, edict_t *other, cplane_t *plane)
 
 	G_RadiusDamage(ent, ent->r.owner, plane, other, ent->projectileInfo.mod);
 
-	edict_t *event = G_SpawnEvent(ent->s.type == ET_PLASMA ? EV_PLASMA_EXPLOSION : EV_BUBBLE_EXPLOSION, DirToU64(plane ? plane->normal : Vec3(0.0f)), &ent->s.origin);
+	edict_t *event = G_SpawnEvent(ent->s.type == ET_ARBULLET ? EV_ARBULLET_EXPLOSION : EV_BUBBLE_EXPLOSION, DirToU64(plane ? plane->normal : Vec3(0.0f)), &ent->s.origin);
 	event->s.weapon = Min2(ent->projectileInfo.radius / 8, 127);
 	event->s.team = ent->s.team;
 
 	G_FreeEdict(ent);
 }
 
-static void W_Touch_Plasma(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
+static void W_Touch_ARBullet(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
 {
 	if (surfFlags & SURF_NOIMPACT)
 	{
@@ -69,10 +69,10 @@ static void W_Touch_Plasma(edict_t *ent, edict_t *other, cplane_t *plane, int su
 		return;
 	}
 
-	W_Explode_Plasma(ent, other, plane);
+	W_Explode_ARBullet(ent, other, plane);
 }
 
-static void W_Plasma_Backtrace(edict_t *ent, Vec3 start)
+static void W_ARBullet_Backtrace(edict_t *ent, Vec3 start)
 {
 	trace_t tr;
 	Vec3 mins(-2.0f), maxs(2.0f);
@@ -98,11 +98,11 @@ static void W_Plasma_Backtrace(edict_t *ent, Vec3 start)
 
 		if (tr.allsolid || tr.startsolid)
 		{
-			W_Touch_Plasma(ent, &game.edicts[tr.ent], NULL, 0);
+			W_Touch_ARBullet(ent, &game.edicts[tr.ent], NULL, 0);
 		}
 		else
 		{
-			W_Touch_Plasma(ent, &game.edicts[tr.ent], &tr.plane, tr.surfFlags);
+			W_Touch_ARBullet(ent, &game.edicts[tr.ent], &tr.plane, tr.surfFlags);
 		}
 
 		iter++;
@@ -114,12 +114,12 @@ static void W_Plasma_Backtrace(edict_t *ent, Vec3 start)
 	}
 }
 
-static void W_Think_Plasma(edict_t *ent)
+static void W_Think_ARBullet(edict_t *ent)
 {
 	if (ent->timeout < level.time)
 	{
 		if (ent->s.type == ET_BUBBLE)
-			W_Explode_Plasma(ent, NULL, NULL);
+			W_Explode_ARBullet(ent, NULL, NULL);
 		else
 			G_FreeEdict(ent);
 		return;
@@ -132,15 +132,15 @@ static void W_Think_Plasma(edict_t *ent)
 
 	Vec3 start = ent->s.origin - ent->velocity * game.frametime * 0.001f;
 
-	W_Plasma_Backtrace(ent, start);
+	W_ARBullet_Backtrace(ent, start);
 }
 
-static void W_AutoTouch_Plasma(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
+static void W_AutoTouch_ARBullet(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
 {
-	W_Think_Plasma(ent);
+	W_Think_ARBullet(ent);
 	if (ent->r.inuse)
 	{
-		W_Touch_Plasma(ent, other, plane, surfFlags);
+		W_Touch_ARBullet(ent, other, plane, surfFlags);
 	}
 }
 
@@ -162,8 +162,8 @@ static void G_ProjectileDistancePrestep(edict_t *projectile, float distance)
 
 	int mask = projectile->r.clipmask;
 
-#ifdef PLASMAHACK
-	Vec3 plasma_hack_start = projectile->s.origin;
+#ifdef ARBULLETHACK
+	Vec3 arbullet_hack_start = projectile->s.origin;
 #endif
 
 	Vec3 dest = projectile->s.origin + dir * distance;
@@ -185,11 +185,11 @@ static void G_ProjectileDistancePrestep(edict_t *projectile, float distance)
 
 	projectile->waterlevel = (G_PointContents4D(projectile->s.origin, projectile->timeDelta) & MASK_WATER) ? true : false;
 
-	// ffs : hack for the plasmagun
-#ifdef PLASMAHACK
-	if (projectile->s.type == ET_PLASMA || projectile->s.type == ET_BUBBLE)
+	// ffs : hack for the assault rifle
+#ifdef ARBULLETHACK
+	if (projectile->s.type == ET_ARBULLET || projectile->s.type == ET_BUBBLE)
 	{
-		W_Plasma_Backtrace(projectile, plasma_hack_start);
+		W_ARBullet_Backtrace(projectile, arbullet_hack_start);
 	}
 #endif
 }
@@ -511,26 +511,26 @@ static void W_Fire_Rocket(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 	rocket->s.sound = "weapons/rl/trail";
 }
 
-static void W_Fire_Plasma(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
+static void W_Fire_ARBullet(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 {
-	edict_t *plasma = FireLinearProjectile(self, start, angles, timeDelta, Weapon_Plasma, W_AutoTouch_Plasma, ET_PLASMA, MASK_SHOT);
+	edict_t *arbullet = FireLinearProjectile(self, start, angles, timeDelta, Weapon_AssaultRifle, W_AutoTouch_ARBullet, ET_ARBULLET, MASK_SHOT);
 
-	plasma->classname = "plasma";
-	plasma->s.model = "weapons/pg/projectile";
-	plasma->s.sound = "weapons/pg/trail";
+	arbullet->classname = "arbullet";
+	arbullet->s.model = "weapons/ar/projectile";
+	arbullet->s.sound = "weapons/ar/trail";
 
-	plasma->think = W_Think_Plasma;
-	plasma->nextThink = level.time + 1;
+	arbullet->think = W_Think_ARBullet;
+	arbullet->nextThink = level.time + 1;
 }
 
 static void FireBubble(edict_t *owner, Vec3 start, Vec3 angles, int timeDelta)
 {
-	edict_t *bubble = FireLinearProjectile(owner, start, angles, timeDelta, Weapon_BubbleGun, W_AutoTouch_Plasma, ET_BUBBLE, MASK_SHOT);
+	edict_t *bubble = FireLinearProjectile(owner, start, angles, timeDelta, Weapon_BubbleGun, W_AutoTouch_ARBullet, ET_BUBBLE, MASK_SHOT);
 
 	bubble->classname = "bubble";
 	bubble->s.sound = "weapons/bg/trail";
 
-	bubble->think = W_Think_Plasma;
+	bubble->think = W_Think_ARBullet;
 	bubble->nextThink = level.time + 1;
 }
 
@@ -871,8 +871,8 @@ void G_FireWeapon(edict_t *ent, u64 weap)
 		W_Fire_Shotgun(ent, origin, angles, timeDelta);
 		break;
 
-	case Weapon_AssaultRifle:
-		W_Fire_Bullet(ent, origin, angles, timeDelta, Weapon_AssaultRifle);
+	case Weapon_BurstRifle:
+		W_Fire_Bullet(ent, origin, angles, timeDelta, Weapon_BurstRifle);
 		break;
 
 	case Weapon_StakeGun:
@@ -887,8 +887,8 @@ void G_FireWeapon(edict_t *ent, u64 weap)
 		W_Fire_Rocket(ent, origin, angles, timeDelta);
 		break;
 
-	case Weapon_Plasma:
-		W_Fire_Plasma(ent, origin, angles, timeDelta);
+	case Weapon_AssaultRifle:
+		W_Fire_ARBullet(ent, origin, angles, timeDelta);
 		break;
 
 	case Weapon_BubbleGun:

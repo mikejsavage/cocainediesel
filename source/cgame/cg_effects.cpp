@@ -5,8 +5,8 @@ void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	DoVisualEffect( "vfx/explosion", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
 }
 
-void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	DoVisualEffect( "weapons/pg/explosion", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
+void ARBulletImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
+	DoVisualEffect( "weapons/ar/explosion", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
 }
 
 void BubbleImpactParticles( Vec3 origin, Vec3 team_color ) {

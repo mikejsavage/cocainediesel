@@ -182,7 +182,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 
 		case Weapon_MachineGun:
 		case Weapon_Shotgun:
-		case Weapon_Plasma:
+		case Weapon_AssaultRifle:
 		case Weapon_BubbleGun:
 		case Weapon_StakeGun:
 		case Weapon_MasterBlaster:
@@ -190,7 +190,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_LIGHTWEAPON, 0, EVENT_CHANNEL );
 			break;
 
-		case Weapon_AssaultRifle:
+		case Weapon_BurstRifle:
 		case Weapon_RocketLauncher:
 		case Weapon_GrenadeLauncher:
 		// case Weapon_Minigun:
@@ -636,7 +636,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			else if( weapon == Weapon_Laser ) {
 				CG_Event_LaserBeam( origin, dir, owner );
 			}
-			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_AssaultRifle || weapon == Weapon_Sniper /* || weapon == Weapon_Minigun */ ) {
+			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_BurstRifle || weapon == Weapon_Sniper /* || weapon == Weapon_Minigun */ ) {
 				CG_Event_FireBullet( origin, dir, entropy, zoom_time, weapon, owner, team_color );
 			}
 
@@ -753,9 +753,9 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			S_StartFixedSound( "sounds/world/tele_in", ent->origin, CHAN_AUTO, 1.0f );
 			break;
 
-		case EV_PLASMA_EXPLOSION: {
+		case EV_ARBULLET_EXPLOSION: {
 			Vec3 dir = U64ToDir( parm );
-			CG_PlasmaExplosion( ent->origin, dir, team_color );
+			CG_ARBulletExplosion( ent->origin, dir, team_color );
 		} break;
 
 		case EV_BUBBLE_EXPLOSION:

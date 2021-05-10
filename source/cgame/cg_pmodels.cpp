@@ -336,10 +336,10 @@ static int CG_MoveFlagsToUpperAnimation( uint32_t moveflags, int carried_weapon 
 		case Weapon_Deagle:
 			return TORSO_HOLD_PISTOL;
 		case Weapon_Shotgun:
-		case Weapon_Plasma:
+		case Weapon_AssaultRifle:
 		case Weapon_BubbleGun:
 			return TORSO_HOLD_LIGHTWEAPON;
-		case Weapon_AssaultRifle:
+		case Weapon_BurstRifle:
 		case Weapon_RocketLauncher:
 		case Weapon_GrenadeLauncher:
 			return TORSO_HOLD_HEAVYWEAPON;

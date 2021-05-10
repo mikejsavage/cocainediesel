@@ -155,14 +155,13 @@ static void G_UpdateClientScoreboard( edict_t * ent ) {
 	const score_stats_t * stats = G_ClientGetStats( ent );
 	SyncScoreboardPlayer * player = &server_gs.gameState.players[ PLAYERNUM( ent ) ];
 
-	player->ping = stats->ping;
+	player->ping = ent->r.client->r.ping;
 	player->score = stats->score;
 	player->kills = stats->kills;
 	player->ready = stats->ready;
 	player->carrier = stats->carrier;
 	player->alive = ent->deadflag != DEAD_DEAD;
 }
-
 
 /*
 * G_CheckCvars

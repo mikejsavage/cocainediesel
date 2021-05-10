@@ -163,7 +163,6 @@ struct score_stats_t {
 	int deaths;
 	int suicides;
 
-	int ping;
 	int score;
 	bool ready;
 	bool carrier;

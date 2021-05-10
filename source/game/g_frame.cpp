@@ -159,7 +159,7 @@ static void G_UpdateClientScoreboard( edict_t * ent ) {
 	player->score = stats->score;
 	player->kills = stats->kills;
 	player->ready = stats->ready;
-	player->carrier = stats->carrier;
+	player->carrier = ent->r.client->ps.carrying_bomb;
 	player->alive = ent->deadflag != DEAD_DEAD;
 }
 

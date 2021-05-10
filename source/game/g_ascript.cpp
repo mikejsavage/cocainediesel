@@ -668,10 +668,6 @@ static void objectScoreStats_SetScore( int score, score_stats_t *obj ) {
 	obj->score = score;
 }
 
-static void objectScoreStats_SetCarrier( bool carrier, score_stats_t * obj ) {
-	obj->carrier = carrier;
-}
-
 static void objectScoreStats_Clear( score_stats_t *obj ) {
 	memset( obj, 0, sizeof( *obj ) );
 }
@@ -691,7 +687,6 @@ static const asMethod_t scorestats_Methods[] =
 {
 	{ ASLIB_FUNCTION_DECL( void, addScore, ( int ) ), asFUNCTION( objectScoreStats_AddScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setScore, ( int ) ), asFUNCTION( objectScoreStats_SetScore ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, setCarrier, ( bool ) ), asFUNCTION( objectScoreStats_SetCarrier ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, clear, ( ) ), asFUNCTION( objectScoreStats_Clear ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
@@ -703,7 +698,6 @@ static const asProperty_t scorestats_Properties[] =
 	{ ASLIB_PROPERTY_DECL( const int, deaths ), offsetof( score_stats_t, deaths ) },
 	{ ASLIB_PROPERTY_DECL( const int, suicides ), offsetof( score_stats_t, suicides ) },
 	{ ASLIB_PROPERTY_DECL( const int, score ), offsetof( score_stats_t, score ) },
-	{ ASLIB_PROPERTY_DECL( const bool, carrier ), offsetof( score_stats_t, carrier ) },
 	{ ASLIB_PROPERTY_DECL( const int, totalDamageGiven ), offsetof( score_stats_t, total_damage_given ) },
 	{ ASLIB_PROPERTY_DECL( const int, totalDamageReceived ), offsetof( score_stats_t, total_damage_received ) },
 

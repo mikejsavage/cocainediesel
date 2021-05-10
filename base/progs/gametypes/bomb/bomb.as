@@ -89,18 +89,21 @@ void bombPickUp() {
 	bombState = BombState_Carried;
 }
 
+void removeCarrier() {
+	if( @bombCarrier == null )
+		return;
+
+	bombCarrier.effects &= ~EF_CARRIER;
+	bombCarrier.model2 = 0;
+}
+
 void bombSetCarrier( Entity @ent, bool no_sound ) {
-	if( @bombCarrier != null ) {
-		bombCarrier.client.stats.setCarrier( false );
-		bombCarrier.effects &= ~EF_CARRIER;
-		bombCarrier.model2 = 0;
-	}
+	removeCarrier();
 
 	@bombCarrier = @ent;
 	bombPickUp();
 
 	Client @client = @bombCarrier.client;
-	client.stats.setCarrier( true );
 	client.addAward( S_COLOR_GREEN + "You've got the bomb!" );
 	if( !no_sound ) {
 		G_AnnouncerSound( @client, sndBombTaken, attackingTeam, true, null );
@@ -158,10 +161,7 @@ void bombDrop( BombDrop drop_reason ) {
 	bombModel.velocity = velocity;
 	show( @bombModel );
 
-	bombCarrier.effects &= ~EF_CARRIER;
-	bombCarrier.model2 = 0;
-
-	@bombCarrier = null;
+	removeCarrier();
 
 	bombState = BombState_Dropped;
 }
@@ -221,7 +221,7 @@ void bombPlanted() {
 
 	G_CenterPrintMsg( null, "Bomb planted at " + bombSite.letter + "!" );
 
-	@bombCarrier = null;
+	removeCarrier();
 	defuseProgress = 0;
 	bombState = BombState_Planted;
 }

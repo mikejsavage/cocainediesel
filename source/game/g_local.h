@@ -165,7 +165,6 @@ struct score_stats_t {
 
 	int score;
 	bool ready;
-	bool carrier;
 
 	int accuracy_shots[ Weapon_Count ];
 	int accuracy_hits[ Weapon_Count ];

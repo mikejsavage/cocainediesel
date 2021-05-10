@@ -95,6 +95,8 @@ void removeCarrier() {
 
 	bombCarrier.effects &= ~EF_CARRIER;
 	bombCarrier.model2 = 0;
+
+	@bombCarrier = null;
 }
 
 void bombSetCarrier( Entity @ent, bool no_sound ) {

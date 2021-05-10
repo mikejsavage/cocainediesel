@@ -11,8 +11,8 @@
 #define WEAPONUP_TIME_VERY_SLOW 1000
 #define HITSCAN_RANGE 9001
 
-const WeaponDef gs_weaponDefs[] = {
-	{"", "", WeaponCategory_Count}, // Weapon_None
+const WeaponDef weapon_defs[] = {
+	{ "", "", WeaponCategory_Count }, // Weapon_None
 
 	{
 		/* name                 */ "Knife",
@@ -29,8 +29,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 600,
 		/* timeout / range      */ 85,
-		/* max recoil           */ EulerDegrees2(0.0f, 0.0f),
-		/* min recoil           */ EulerDegrees2(0.0f, 0.0f),
+		/* max recoil           */ EulerDegrees2( 0.0f, 0.0f ),
+		/* min recoil           */ EulerDegrees2( 0.0f, 0.0f ),
 		/* recoil recovery      */ 0.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -66,8 +66,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 120,
 		/* timeout / range      */ HITSCAN_RANGE,
-		/* max recoil           */ EulerDegrees2(125.0f, 20.0f),
-		/* min recoil           */ EulerDegrees2(100.0f, -20.0f),
+		/* max recoil           */ EulerDegrees2( 125.0f, 20.0f ),
+		/* min recoil           */ EulerDegrees2( 100.0f, -20.0f ),
 		/* recoil recovery      */ 2000.0f,
 		/* firing mode          */ FiringMode_SemiAuto,
 
@@ -104,8 +104,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* refire time          */ 75,
 		/* timeout / range      */ HITSCAN_RANGE,
 
-		/* max recoil           */ EulerDegrees2(80.0f, 25.0f),
-		/* min recoil           */ EulerDegrees2(50.0f, -25.0f),
+		/* max recoil           */ EulerDegrees2( 80.0f, 25.0f ),
+		/* min recoil           */ EulerDegrees2( 50.0f, -25.0f ),
 		/* recoil recovery      */ 1500.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -141,8 +141,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 500,
 		/* timeout / range      */ HITSCAN_RANGE,
-		/* max recoil           */ EulerDegrees2(325.0f, 40.0f),
-		/* min recoil           */ EulerDegrees2(300.0f, -40.0f),
+		/* max recoil           */ EulerDegrees2( 325.0f, 40.0f ),
+		/* min recoil           */ EulerDegrees2( 300.0f, -40.0f ),
 		/* recoil recovery      */ 3250.0f,
 		/* firing mode          */ FiringMode_SemiAuto,
 
@@ -178,8 +178,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 1250,
 		/* timeout / range      */ HITSCAN_RANGE,
-		/* max recoil           */ EulerDegrees2(325.0f, -50.0f),
-		/* min recoil           */ EulerDegrees2(275.0f, -40.0f),
+		/* max recoil           */ EulerDegrees2( 325.0f, -50.0f ),
+		/* min recoil           */ EulerDegrees2( 275.0f, -40.0f ),
 		/* recoil recovery      */ 1500.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -215,8 +215,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 35,
 		/* timeout / range      */ HITSCAN_RANGE,
-		/* max recoil           */ EulerDegrees2(80.0f, -20.0f),
-		/* min recoil           */ EulerDegrees2(70.0f, -10.0f),
+		/* max recoil           */ EulerDegrees2( 80.0f, -20.0f ),
+		/* min recoil           */ EulerDegrees2( 70.0f, -10.0f ),
 		/* recoil recovery      */ 2500.0f,
 		/* firing mode          */ FiringMode_Clip,
 
@@ -252,8 +252,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 500,
 		/* timeout / range      */ 5000,
-		/* max recoil           */ EulerDegrees2(250.0f, 5.0f),
-		/* min recoil           */ EulerDegrees2(250.0f, -5.0f),
+		/* max recoil           */ EulerDegrees2( 250.0f, 5.0f ),
+		/* min recoil           */ EulerDegrees2( 250.0f, -5.0f ),
 		/* recoil recovery      */ 2000.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -289,8 +289,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 1000,
 		/* timeout / range      */ 2000,
-		/* max recoil           */ EulerDegrees2(300.0f, 5.0f),
-		/* min recoil           */ EulerDegrees2(250.0f, -5.0f),
+		/* max recoil           */ EulerDegrees2( 300.0f, 5.0f ),
+		/* min recoil           */ EulerDegrees2( 250.0f, -5.0f ),
 		/* recoil recovery      */ 2000.0f,
 		/* firing mode          */ FiringMode_SemiAuto,
 
@@ -326,8 +326,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 1000,
 		/* timeout / range      */ 10000,
-		/* max recoil           */ EulerDegrees2(300.0f, 5.0f),
-		/* min recoil           */ EulerDegrees2(200.0f, -5.0f),
+		/* max recoil           */ EulerDegrees2( 300.0f, 5.0f ),
+		/* min recoil           */ EulerDegrees2( 200.0f, -5.0f ),
 		/* recoil recovery      */ 2000.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -363,8 +363,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 50,
 		/* timeout / range      */ 10000,
-		/* max recoil           */ EulerDegrees2(80.0f, 25.0f),
-		/* min recoil           */ EulerDegrees2(50.0f, -25.0f),
+		/* max recoil           */ EulerDegrees2( 80.0f, 25.0f ),
+		/* min recoil           */ EulerDegrees2( 50.0f, -25.0f ),
 		/* recoil recovery      */ 1350.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -400,8 +400,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 175,
 		/* timeout / range      */ 10000,
-		/* max recoil           */ EulerDegrees2(80.0f, 25.0f),
-		/* min recoil           */ EulerDegrees2(50.0f, -25.0f),
+		/* max recoil           */ EulerDegrees2( 80.0f, 25.0f ),
+		/* min recoil           */ EulerDegrees2( 50.0f, -25.0f ),
 		/* recoil recovery      */ 1350.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -437,8 +437,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 50,
 		/* timeout / range      */ 900,
-		/* max recoil           */ EulerDegrees2(0.0f, 0.0f),
-		/* min recoil           */ EulerDegrees2(0.0f, 0.0f),
+		/* max recoil           */ EulerDegrees2( 0.0f, 0.0f ),
+		/* min recoil           */ EulerDegrees2( 0.0f, 0.0f ),
 		/* recoil recovery      */ 0.0f,
 		/* firing mode          */ FiringMode_Smooth,
 
@@ -474,8 +474,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 600,
 		/* timeout / range      */ HITSCAN_RANGE,
-		/* max recoil           */ EulerDegrees2(150.0f, 40.0f),
-		/* min recoil           */ EulerDegrees2(100.0f, -40.0f),
+		/* max recoil           */ EulerDegrees2( 150.0f, 40.0f ),
+		/* min recoil           */ EulerDegrees2( 100.0f, -40.0f ),
 		/* recoil recovery      */ 1000.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -511,8 +511,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 500,
 		/* timeout / range      */ HITSCAN_RANGE,
-		/* max recoil           */ EulerDegrees2(275.0f, 5.0f),
-		/* min recoil           */ EulerDegrees2(250.0f, -5.0f),
+		/* max recoil           */ EulerDegrees2( 275.0f, 5.0f ),
+		/* min recoil           */ EulerDegrees2( 250.0f, -5.0f ),
 		/* recoil recovery      */ 1750.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -548,8 +548,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 600,
 		/* timeout / range      */ 10000,
-		/* max recoil           */ EulerDegrees2(200.0f, 5.0f),
-		/* min recoil           */ EulerDegrees2(175.0f, -5.0f),
+		/* max recoil           */ EulerDegrees2( 200.0f, 5.0f ),
+		/* min recoil           */ EulerDegrees2( 175.0f, -5.0f ),
 		/* recoil recovery      */ 1500.0f,
 		/* firing mode          */ FiringMode_SemiAuto,
 
@@ -585,8 +585,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 500,
 		/* timeout / range      */ 5000,
-		/* max recoil           */ EulerDegrees2(300.0f, 25.0f),
-		/* min recoil           */ EulerDegrees2(275.0f, -25.0f),
+		/* max recoil           */ EulerDegrees2( 300.0f, 25.0f ),
+		/* min recoil           */ EulerDegrees2( 275.0f, -25.0f ),
 		/* recoil recovery      */ 2000.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -622,8 +622,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 75,
 		/* timeout / range      */ 5000,
-		/* max recoil           */ EulerDegrees2(80.0f, 25.0f),
-		/* min recoil           */ EulerDegrees2(70.0f, -25.0f),
+		/* max recoil           */ EulerDegrees2( 80.0f, 25.0f ),
+		/* min recoil           */ EulerDegrees2( 70.0f, -25.0f ),
 		/* recoil recovery      */ 1500.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -683,10 +683,9 @@ const WeaponDef gs_weaponDefs[] = {
 #endif
 };
 
-STATIC_ASSERT(ARRAY_COUNT(gs_weaponDefs) == Weapon_Count);
+STATIC_ASSERT( ARRAY_COUNT( weapon_defs ) == Weapon_Count );
 
-const WeaponDef *GS_GetWeaponDef(WeaponType weapon)
-{
-	assert(weapon < Weapon_Count);
-	return &gs_weaponDefs[weapon];
+const WeaponDef * GS_GetWeaponDef( WeaponType weapon ) {
+	assert( weapon < Weapon_Count );
+	return &weapon_defs[ weapon ];
 }

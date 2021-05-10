@@ -238,10 +238,6 @@ void G_ClientClearStats( edict_t * ent ) {
 	memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
 }
 
-
-/*
-* G_GhostClient
-*/
 void G_GhostClient( edict_t *ent ) {
 	ent->movetype = MOVETYPE_NONE;
 	ent->r.solid = SOLID_NOT;
@@ -260,20 +256,11 @@ void G_GhostClient( edict_t *ent ) {
 	ent->takedamage = DAMAGE_NO;
 	G_ClientGetStats( ent )->alive = false;
 
-	memset( ent->r.client->ps.weapons, 0, sizeof( ent->r.client->ps.weapons ) );
-	memset( ent->r.client->ps.items, 0, sizeof( ent->r.client->ps.items ) );
-
-	ent->r.client->ps.weapon = Weapon_None;
-	ent->r.client->ps.pending_weapon = Weapon_None;
-	ent->r.client->ps.weapon_state = WeaponState_SwitchingIn;
-	ent->r.client->ps.weapon_state_time = 0;
+	ClearInventory( &ent->r.client->ps );
 
 	GClip_LinkEntity( ent );
 }
 
-/*
-* G_ClientRespawn
-*/
 void G_ClientRespawn( edict_t *self, bool ghost ) {
 	edict_t *spawnpoint;
 	Vec3 spawn_origin, spawn_angles;
@@ -998,13 +985,13 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 		}
 	}
 
-	if( ent->movetype != MOVETYPE_NONE ) {
-		UpdateWeapons( &server_gs, &client->ps, ucmd, client->timeDelta );
-
+	if( ent->movetype == MOVETYPE_PLAYER ) {
 		if( ent->s.origin.z <= -1024 ) {
 			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin, 1337, 0, 0, MeanOfDeath_Void );
 		}
 	}
+
+	UpdateWeapons( &server_gs, &client->ps, ucmd, client->timeDelta );
 
 	client->resp.snap.buttons |= ucmd->buttons;
 }

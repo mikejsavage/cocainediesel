@@ -402,8 +402,28 @@ static u16 SaturatingAdd(u16 a, u16 b)
 	return Min2(u32(a) + u32(b), u32(U16_MAX));
 }
 
+void ClearInventory( SyncPlayerState * ps ) {
+	memset( ps->weapons, 0, sizeof( ps->weapons ) );
+	memset( ps->items, 0, sizeof( ps->items ) );
+
+	ps->weapon = Weapon_None;
+	ps->pending_weapon = Weapon_None;
+	ps->weapon_state = WeaponState_SwitchingIn;
+	ps->weapon_state_time = 0;
+	ps->zoom_time = 0;
+}
+
 void UpdateWeapons(const gs_state_t *gs, SyncPlayerState *ps, const usercmd_t *cmd, int timeDelta)
 {
+	if( GS_MatchPaused( gs ) ) {
+		return;
+	}
+
+	if( ps->pmove.pm_type != PM_NORMAL ) {
+		ClearInventory( ps );
+		return;
+	}
+
 	ps->weapon_state_time = SaturatingAdd(ps->weapon_state_time, cmd->msec);
 
 	if (cmd->weaponSwitch != Weapon_None && GS_CanEquip(ps, cmd->weaponSwitch))

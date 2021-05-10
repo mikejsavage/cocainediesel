@@ -162,7 +162,6 @@ struct score_stats_t {
 	int kills;
 	int deaths;
 	int suicides;
-	bool alive;
 
 	int ping;
 	int score;

@@ -254,7 +254,6 @@ void G_GhostClient( edict_t *ent ) {
 	ent->s.sound = EMPTY_HASH;
 	ent->viewheight = 0;
 	ent->takedamage = DAMAGE_NO;
-	G_ClientGetStats( ent )->alive = false;
 
 	ClearInventory( &ent->r.client->ps );
 
@@ -395,8 +394,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	if( self->r.svflags & SVF_FAKECLIENT ) {
 		AI_Respawn( self );
 	}
-
-	G_ClientGetStats( self )->alive = true;
 }
 
 /*

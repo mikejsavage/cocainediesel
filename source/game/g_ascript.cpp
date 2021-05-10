@@ -702,7 +702,6 @@ static const asProperty_t scorestats_Properties[] =
 	{ ASLIB_PROPERTY_DECL( const int, kills ), offsetof( score_stats_t, kills ) },
 	{ ASLIB_PROPERTY_DECL( const int, deaths ), offsetof( score_stats_t, deaths ) },
 	{ ASLIB_PROPERTY_DECL( const int, suicides ), offsetof( score_stats_t, suicides ) },
-	{ ASLIB_PROPERTY_DECL( const bool, alive ), offsetof( score_stats_t, alive ) },
 	{ ASLIB_PROPERTY_DECL( const int, score ), offsetof( score_stats_t, score ) },
 	{ ASLIB_PROPERTY_DECL( const bool, carrier ), offsetof( score_stats_t, carrier ) },
 	{ ASLIB_PROPERTY_DECL( const int, totalDamageGiven ), offsetof( score_stats_t, total_damage_given ) },

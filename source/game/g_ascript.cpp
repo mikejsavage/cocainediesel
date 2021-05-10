@@ -791,21 +791,17 @@ static void objectGameClient_GiveWeapon( WeaponType weapon, gclient_t * self ) {
 }
 
 static void objectGameClient_InventoryClear( gclient_t *self ) {
-	memset( self->ps.weapons, 0, sizeof( self->ps.weapons ) );
-
-	self->ps.weapon = Weapon_None;
-	self->ps.pending_weapon = Weapon_None;
-	self->ps.weapon_state = WeaponState_SwitchingIn;
-	self->ps.weapon_state_time = 0;
+	ClearInventory( &self->ps );
 }
 
 static void objectGameClient_SelectWeapon( int index, gclient_t *self ) {
-	if( self->ps.weapons[ index ].weapon != Weapon_None ) {
-		self->ps.weapon = Weapon_None;
-		self->ps.pending_weapon = self->ps.weapons[ index ].weapon;
-		self->ps.weapon_state = WeaponState_SwitchingIn;
-		self->ps.weapon_state_time = 0;
-	}
+	if( self->ps.weapons[ index ].weapon == Weapon_None )
+		return;
+
+	self->ps.weapon = Weapon_None;
+	self->ps.pending_weapon = self->ps.weapons[ index ].weapon;
+	self->ps.weapon_state = WeaponState_DispatchQuiet;
+	self->ps.weapon_state_time = 0;
 }
 
 static void objectGameClient_addAward( asstring_t *msg, gclient_t *self ) {

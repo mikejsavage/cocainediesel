@@ -44,6 +44,9 @@ enum WeaponType_ : WeaponType {
 
 typedef u8 WeaponState;
 enum WeaponState_ : WeaponState {
+	WeaponState_Dispatch,
+	WeaponState_DispatchQuiet,
+
 	WeaponState_SwitchingIn,
 	WeaponState_SwitchingOut,
 	WeaponState_Idle,

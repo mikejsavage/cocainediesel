@@ -324,18 +324,6 @@ void CG_InitInput() {
 	Cmd_AddCommand( "+reload", IN_ReloadDown );
 	Cmd_AddCommand( "-reload", IN_ReloadUp );
 
-	// legacy command names
-	Cmd_AddCommand( "+moveleft", IN_LeftDown );
-	Cmd_AddCommand( "-moveleft", IN_LeftUp );
-	Cmd_AddCommand( "+moveright", IN_RightDown );
-	Cmd_AddCommand( "-moveright", IN_RightUp );
-	Cmd_AddCommand( "+moveup", IN_JumpDown );
-	Cmd_AddCommand( "-moveup", IN_JumpUp );
-	Cmd_AddCommand( "+movedown", IN_CrouchDown );
-	Cmd_AddCommand( "-movedown", IN_CrouchUp );
-	Cmd_AddCommand( "+speed", IN_WalkDown );
-	Cmd_AddCommand( "-speed", IN_WalkUp );
-
 	sensitivity = Cvar_Get( "sensitivity", "3", CVAR_ARCHIVE );
 	horizontalSensScale = Cvar_Get( "horizontalsensscale", "1", CVAR_ARCHIVE );
 	zoomsens = Cvar_Get( "zoomsens", "0", CVAR_ARCHIVE );
@@ -370,16 +358,4 @@ void CG_ShutdownInput() {
 	Cmd_RemoveCommand( "-attack" );
 	Cmd_RemoveCommand( "+reload" );
 	Cmd_RemoveCommand( "-reload" );
-
-	// legacy command names
-	Cmd_RemoveCommand( "+moveleft" );
-	Cmd_RemoveCommand( "-moveleft" );
-	Cmd_RemoveCommand( "+moveright" );
-	Cmd_RemoveCommand( "-moveright" );
-	Cmd_RemoveCommand( "+moveup" );
-	Cmd_RemoveCommand( "-moveup" );
-	Cmd_RemoveCommand( "+movedown" );
-	Cmd_RemoveCommand( "-movedown" );
-	Cmd_RemoveCommand( "+speed" );
-	Cmd_RemoveCommand( "-speed" );
 }

@@ -109,18 +109,7 @@ weapons/mg/texture
 	}
 }
 
-weapons/pg
-{
-	shaded
-	specular 10
-	shininess 8
-	{
-		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
-	}
-}
-
-models/weapons/plasmagun/plasmagun_fx
+weapons/pg/texture
 {
 	shaded
 	specular 10

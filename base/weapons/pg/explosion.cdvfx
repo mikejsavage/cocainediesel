@@ -1,7 +1,7 @@
 {
   dlight {
-    intensity 50000
-    lifetime 0.5
+    intensity 2500
+    lifetime 0.325
     color 1 1 1 1
     color_override
   }
@@ -12,20 +12,21 @@
     rotate
     stretch
 
-    position sphere 8
+    position cone 15 0
 
     acceleration $gravity
 
-    speed 200 0
+    speed 300
+    speed_distribution uniform 150
 
     color 1.0 1.0 1.0 1.0
     color_override
 
-    size 4 0
+    size 2 0
 
-    lifetime 0.25
-    lifetime_distribution uniform 0.5
-    count 92
+    lifetime 0.5
+    lifetime_distribution uniform 0.25
+    count 12
   }
 
   {
@@ -39,10 +40,10 @@
 
     speed 10
 
-    color 0.2 0.2 0.2 1.0
+    color 0.2 0.2 0.2 0.5
     color_override
 
-    size 32 0
+    size 16 0
 
     lifetime 0.45
     count 64
@@ -56,14 +57,14 @@
 
     position sphere 0
 
-    speed 400
+    speed 1400
 
-    color 1.0 1.0 1.0 1.0
+    color 0.0 1.0 1.0 1.0
     color_override
 
     size 8
 
-    lifetime 0.25
+    lifetime 0.025
     count 32
   }
 }

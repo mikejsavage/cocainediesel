@@ -40,6 +40,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 25,
 		/* self damage          */ 0,
+		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 0,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
@@ -76,6 +77,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 12,
 		/* self damage          */ 0,
+		/* wallbang damage      */ 0.5f,
 		/* knockback            */ 20,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
@@ -113,6 +115,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 9,
 		/* self damage          */ 0,
+		/* wallbang damage      */ 0.5f,
 		/* knockback            */ 10,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
@@ -149,6 +152,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 25,
 		/* self damage          */ 0,
+		/* wallbang damage      */ 0.8f,
 		/* knockback            */ 30,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
@@ -185,6 +189,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 2,
 		/* self damage          */ 0,
+		/* wallbang damage      */ 0.5f,
 		/* knockback            */ 6,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
@@ -220,7 +225,8 @@ const WeaponDef gs_weaponDefs[] = {
 
 		// damages
 		/* damage               */ 9,
-		/* self damage          */ 0,
+		/* self damage          */ 0.0f,
+		/* wallbang damage      */ 0.75,
 		/* knockback            */ 10,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
@@ -257,6 +263,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 50,
 		/* self damage          */ 1.0f,
+		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 100,
 		/* splash radius        */ 120,
 		/* splash min damage    */ 15,
@@ -293,6 +300,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 40,
 		/* self damage          */ 1.0f,
+		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 100,
 		/* splash radius        */ 120,
 		/* splash min damage    */ 10,
@@ -329,6 +337,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 40,
 		/* self damage          */ 1.0f,
+		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 100,
 		/* splash radius        */ 120,
 		/* splash min damage    */ 10,
@@ -365,6 +374,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 8,
 		/* self damage          */ 0,
+		/* wallbang damage      */ 1.0f, //not implemented
 		/* knockback            */ 30,
 		/* splash radius        */ 45,
 		/* splash min damage    */ 7,
@@ -401,6 +411,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 15,
 		/* self damage          */ 1,
+		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 45,
 		/* splash radius        */ 80,
 		/* splash min damage    */ 14,
@@ -437,6 +448,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 5,
 		/* self damage          */ 0,
+		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 14,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
@@ -473,6 +485,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 25,
 		/* self damage          */ 0,
+		/* wallbang damage      */ 1.0f, //not implemented
 		/* knockback            */ 45,
 		/* splash radius        */ 70,
 		/* splash min damage    */ 0,
@@ -509,6 +522,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 50,
 		/* self damage          */ 0,
+		/* wallbang damage      */ 1.0f,
 		/* knockback            */ 100,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
@@ -545,6 +559,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 38,
 		/* self damage          */ 0,
+		/* wallbang damage      */ 1.0f, //not implemented
 		/* knockback            */ 50,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
@@ -581,6 +596,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 3,
 		/* self damage          */ 0,
+		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 10,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
@@ -617,6 +633,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 8,
 		/* self damage          */ 0,
+		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 10,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,

@@ -316,6 +316,7 @@ static void W_Fire_Bullet(edict_t *self, Vec3 start, Vec3 angles, int timeDelta,
 	if (trace.ent != -1 && game.edicts[trace.ent].takedamage)
 	{
 		int dmgflags = DAMAGE_KNOCKBACK_SOFT;
+		float damage = def->damage;
 
 		if (IsHeadshot(trace.ent, trace.endpos, timeDelta))
 		{
@@ -325,9 +326,10 @@ static void W_Fire_Bullet(edict_t *self, Vec3 start, Vec3 angles, int timeDelta,
 		if (trace.endpos != wallbang.endpos)
 		{
 			dmgflags |= DAMAGE_WALLBANG;
+			damage *= def->wallbangdamage;
 		}
 
-		G_Damage(&game.edicts[trace.ent], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, weapon);
+		G_Damage(&game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, def->knockback, dmgflags, weapon);
 	}
 }
 
@@ -348,11 +350,19 @@ static void W_Fire_Shotgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta
 		if (trace.ent != -1 && game.edicts[trace.ent].takedamage)
 		{
 			int dmgflags = trace.endpos == wallbang.endpos ? 0 : DAMAGE_WALLBANG;
-			G_Damage(&game.edicts[trace.ent], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, Weapon_Shotgun);
+			float damage = def->damage;
+
+			if (trace.endpos != wallbang.endpos)
+			{
+				dmgflags |= DAMAGE_WALLBANG;
+				damage *= def->wallbangdamage;
+			}
+
+			G_Damage(&game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, def->knockback, dmgflags, Weapon_Shotgun);
 
 			if (!G_IsTeamDamage(&game.edicts[trace.ent].s, &self->s) && trace.ent <= MAX_CLIENTS)
 			{
-				damage_dealt[trace.ent] += def->damage;
+				damage_dealt[trace.ent] += damage;
 			}
 		}
 	}

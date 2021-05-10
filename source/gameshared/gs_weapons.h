@@ -41,6 +41,7 @@ struct WeaponDef {
 
 	float damage;
 	float selfdamage;
+	float wallbangdamage;
 	int knockback;
 	int splash_radius;
 	int mindamage;

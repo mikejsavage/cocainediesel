@@ -137,7 +137,10 @@ class cDARound {
 						break;
 				}
 
-				this.daChallengersQueue[j] = -1;
+				if( j < maxClients ) {
+					this.daChallengersQueue[j] = -1;
+				}
+
 				return true;
 			}
 		}

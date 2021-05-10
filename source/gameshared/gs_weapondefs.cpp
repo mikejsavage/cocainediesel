@@ -12,10 +12,11 @@
 #define HITSCAN_RANGE 9001
 
 const WeaponDef gs_weaponDefs[] = {
-	{ "", "", WeaponCategory_Count }, // Weapon_None
+	{"", "", WeaponCategory_Count}, // Weapon_None
 
 	{
-		/* name, short name     */ "Knife", "gb",
+		/* name                 */ "Knife",
+		/* short name           */ "gb",
 		/* category             */ WeaponCategory_Count,
 
 		/* projectile count     */ 6,
@@ -28,8 +29,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 600,
 		/* timeout / range      */ 85,
-		/* max recoil           */ EulerDegrees2( 0.0f, 0.0f ),
-		/* min recoil           */ EulerDegrees2( 0.0f, 0.0f ),
+		/* max recoil           */ EulerDegrees2(0.0f, 0.0f),
+		/* min recoil           */ EulerDegrees2(0.0f, 0.0f),
 		/* recoil recovery      */ 0.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -50,7 +51,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "9mm", "9mm",
+		/* name                 */ "9mm",
+		/* short name           */ "9mm",
 		/* category             */ WeaponCategory_Backup,
 
 		/* projectile count     */ 1,
@@ -63,8 +65,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 120,
 		/* timeout / range      */ HITSCAN_RANGE,
-		/* max recoil           */ EulerDegrees2( 125.0f, 20.0f ),
-		/* min recoil           */ EulerDegrees2( 100.0f, -20.0f ),
+		/* max recoil           */ EulerDegrees2(125.0f, 20.0f),
+		/* min recoil           */ EulerDegrees2(100.0f, -20.0f),
 		/* recoil recovery      */ 2000.0f,
 		/* firing mode          */ FiringMode_SemiAuto,
 
@@ -85,7 +87,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "SMG", "mg",
+		/* name                 */ "SMG",
+		/* short name           */ "mg",
 		/* category             */ WeaponCategory_Secondary,
 
 		/* projectile count     */ 1,
@@ -98,9 +101,10 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 75,
 		/* timeout / range      */ HITSCAN_RANGE,
-		/* max recoil           */ EulerDegrees2( 80.0f, -30.0f ),
-		/* min recoil           */ EulerDegrees2( 70.0f, 5.0f ),
-		/* recoil recovery      */ 1000.0f,
+
+		/* max recoil           */ EulerDegrees2(80.0f, 25.0f),
+		/* min recoil           */ EulerDegrees2(50.0f, -25.0f),
+		/* recoil recovery      */ 1500.0f,
 		/* firing mode          */ FiringMode_Auto,
 
 		/* zoom fov             */ 0.0f,
@@ -109,7 +113,7 @@ const WeaponDef gs_weaponDefs[] = {
 		// damages
 		/* damage               */ 9,
 		/* self damage          */ 0,
-		/* knockback            */ 15,
+		/* knockback            */ 10,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
 		/* splash min knockback */ 0,
@@ -120,7 +124,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "Deagle", "deagle",
+		/* name                 */ "Deagle",
+		/* short name           */ "deagle",
 		/* category             */ WeaponCategory_Secondary,
 
 		/* projectile count     */ 1,
@@ -133,9 +138,9 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 500,
 		/* timeout / range      */ HITSCAN_RANGE,
-		/* max recoil           */ EulerDegrees2( 525.0f, 30.0f ),
-		/* min recoil           */ EulerDegrees2( 500.0f, -30.0f ),
-		/* recoil recovery      */ 4000.0f,
+		/* max recoil           */ EulerDegrees2(325.0f, 40.0f),
+		/* min recoil           */ EulerDegrees2(300.0f, -40.0f),
+		/* recoil recovery      */ 3250.0f,
 		/* firing mode          */ FiringMode_SemiAuto,
 
 		/* zoom fov             */ 0.0f,
@@ -155,7 +160,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "Shotgun", "rg",
+		/* name                 */ "Shotgun",
+		/* short name           */ "rg",
 		/* category             */ WeaponCategory_Secondary,
 
 		/* projectile count     */ 25,
@@ -168,8 +174,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 1250,
 		/* timeout / range      */ HITSCAN_RANGE,
-		/* max recoil           */ EulerDegrees2( 325.0f, 40.0f ),
-		/* min recoil           */ EulerDegrees2( 275.0f, -40.0f ),
+		/* max recoil           */ EulerDegrees2(325.0f, -50.0f),
+		/* min recoil           */ EulerDegrees2(275.0f, -40.0f),
 		/* recoil recovery      */ 1500.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -190,7 +196,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "Assault Rifle", "ar",
+		/* name                 */ "Assault Rifle",
+		/* short name           */ "ar",
 		/* category             */ WeaponCategory_Primary,
 
 		/* projectile count     */ 1,
@@ -201,11 +208,11 @@ const WeaponDef gs_weaponDefs[] = {
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
 		/* weapon down time     */ WEAPONDOWN_TIME,
-		/* refire time          */ 30,
+		/* refire time          */ 35,
 		/* timeout / range      */ HITSCAN_RANGE,
-		/* max recoil           */ EulerDegrees2( 75.0f, 20.0f ),
-		/* min recoil           */ EulerDegrees2( 50.0f, -20.0f ),
-		/* recoil recovery      */ 1250.0f,
+		/* max recoil           */ EulerDegrees2(80.0f, -20.0f),
+		/* min recoil           */ EulerDegrees2(70.0f, -10.0f),
+		/* recoil recovery      */ 2500.0f,
 		/* firing mode          */ FiringMode_Clip,
 
 		/* zoom fov             */ 0.0f,
@@ -225,7 +232,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "Stakes", "stake",
+		/* name                 */ "Stakes",
+		/* short name           */ "stake",
 		/* category             */ WeaponCategory_Backup,
 
 		/* projectile count     */ 1,
@@ -238,8 +246,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 500,
 		/* timeout / range      */ 5000,
-		/* max recoil           */ EulerDegrees2( 325.0f, 60.0f ),
-		/* min recoil           */ EulerDegrees2( 125.0f, 20.0f ),
+		/* max recoil           */ EulerDegrees2(250.0f, 5.0f),
+		/* min recoil           */ EulerDegrees2(250.0f, -5.0f),
 		/* recoil recovery      */ 2000.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -260,7 +268,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "Grenades", "gl",
+		/* name                 */ "Grenades",
+		/* short name           */ "gl",
 		/* category             */ WeaponCategory_Secondary,
 
 		/* projectile count     */ 1,
@@ -273,8 +282,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 1000,
 		/* timeout / range      */ 2000,
-		/* max recoil           */ EulerDegrees2( 325.0f, 40.0f ),
-		/* min recoil           */ EulerDegrees2( 275.0f, -40.0f ),
+		/* max recoil           */ EulerDegrees2(300.0f, 5.0f),
+		/* min recoil           */ EulerDegrees2(250.0f, -5.0f),
 		/* recoil recovery      */ 2000.0f,
 		/* firing mode          */ FiringMode_SemiAuto,
 
@@ -295,7 +304,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "Rockets", "rl",
+		/* name                 */ "Rockets",
+		/* short name           */ "rl",
 		/* category             */ WeaponCategory_Primary,
 
 		/* projectile count     */ 1,
@@ -308,8 +318,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 1000,
 		/* timeout / range      */ 10000,
-		/* max recoil           */ EulerDegrees2( 325.0f, 40.0f ),
-		/* min recoil           */ EulerDegrees2( 275.0f, -40.0f ),
+		/* max recoil           */ EulerDegrees2(300.0f, 5.0f),
+		/* min recoil           */ EulerDegrees2(200.0f, -5.0f),
 		/* recoil recovery      */ 2000.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -330,11 +340,12 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "Plasma", "pg",
-		/* category             */ WeaponCategory_Secondary,
+		/* name                 */ "Plasma",
+		/* short name           */ "pg",
+		/* category             */ WeaponCategory_Primary,
 
 		/* projectile count     */ 1,
-		/* clip size            */ 35,
+		/* clip size            */ 30,
 		/* reload time          */ 1500,
 		/* staged reloading     */ false,
 
@@ -343,8 +354,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 50,
 		/* timeout / range      */ 10000,
-		/* max recoil           */ EulerDegrees2( 75.0f, 25.0f ),
-		/* min recoil           */ EulerDegrees2( 50.0f, -20.0f ),
+		/* max recoil           */ EulerDegrees2(80.0f, 25.0f),
+		/* min recoil           */ EulerDegrees2(50.0f, -25.0f),
 		/* recoil recovery      */ 1350.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -352,7 +363,7 @@ const WeaponDef gs_weaponDefs[] = {
 		/* zoom inaccuracy      */ 0.0f,
 
 		// damages
-		/* damage               */ 7,
+		/* damage               */ 8,
 		/* self damage          */ 0,
 		/* knockback            */ 30,
 		/* splash radius        */ 45,
@@ -365,7 +376,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "BubbleGun", "bg",
+		/* name                 */ "BubbleGun",
+		/* short name           */ "bg",
 		/* category             */ WeaponCategory_Backup,
 
 		/* projectile count     */ 1,
@@ -378,8 +390,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 175,
 		/* timeout / range      */ 10000,
-		/* max recoil           */ EulerDegrees2( 80.0f, 30.0f ),
-		/* min recoil           */ EulerDegrees2( 50.0f, -30.0f ),
+		/* max recoil           */ EulerDegrees2(80.0f, 25.0f),
+		/* min recoil           */ EulerDegrees2(50.0f, -25.0f),
 		/* recoil recovery      */ 1350.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -400,7 +412,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "Laser", "lg",
+		/* name                 */ "Laser",
+		/* short name           */ "lg",
 		/* category             */ WeaponCategory_Primary,
 
 		/* projectile count     */ 1,
@@ -413,8 +426,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 50,
 		/* timeout / range      */ 900,
-		/* max recoil           */ EulerDegrees2( 0.0f, 0.0f ),
-		/* min recoil           */ EulerDegrees2( 0.0f, 0.0f ),
+		/* max recoil           */ EulerDegrees2(0.0f, 0.0f),
+		/* min recoil           */ EulerDegrees2(0.0f, 0.0f),
 		/* recoil recovery      */ 0.0f,
 		/* firing mode          */ FiringMode_Smooth,
 
@@ -435,7 +448,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "Railgun", "eb",
+		/* name                 */ "Railgun",
+		/* short name           */ "eb",
 		/* category             */ WeaponCategory_Primary,
 
 		/* projectile count     */ 1,
@@ -448,8 +462,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 600,
 		/* timeout / range      */ HITSCAN_RANGE,
-		/* max recoil           */ EulerDegrees2( 150.0f, 40.0f ),
-		/* min recoil           */ EulerDegrees2( 100.0f, -40.0f ),
+		/* max recoil           */ EulerDegrees2(150.0f, 40.0f),
+		/* min recoil           */ EulerDegrees2(100.0f, -40.0f),
 		/* recoil recovery      */ 1000.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -470,7 +484,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "Sniper", "sniper",
+		/* name                 */ "Sniper",
+		/* short name           */ "sniper",
 		/* category             */ WeaponCategory_Primary,
 
 		/* projectile count     */ 1,
@@ -483,9 +498,9 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 500,
 		/* timeout / range      */ HITSCAN_RANGE,
-		/* max recoil           */ EulerDegrees2( 450.0f, 150.0f ),
-		/* min recoil           */ EulerDegrees2( 400.0f, -150.0f ),
-		/* recoil recovery      */ 2500.0f,
+		/* max recoil           */ EulerDegrees2(275.0f, 5.0f),
+		/* min recoil           */ EulerDegrees2(250.0f, -5.0f),
+		/* recoil recovery      */ 1750.0f,
 		/* firing mode          */ FiringMode_Auto,
 
 		/* zoom fov             */ 25.0f,
@@ -505,7 +520,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "Rifle", "rifle",
+		/* name                 */ "Rifle",
+		/* short name           */ "rifle",
 		/* category             */ WeaponCategory_Backup,
 
 		/* projectile count     */ 1,
@@ -518,8 +534,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 600,
 		/* timeout / range      */ 10000,
-		/* max recoil           */ EulerDegrees2( 250.0f, 60.0f ),
-		/* min recoil           */ EulerDegrees2( 125.0f, 20.0f ),
+		/* max recoil           */ EulerDegrees2(200.0f, 5.0f),
+		/* min recoil           */ EulerDegrees2(175.0f, -5.0f),
 		/* recoil recovery      */ 1500.0f,
 		/* firing mode          */ FiringMode_SemiAuto,
 
@@ -540,7 +556,8 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "MasterBlaster", "mb",
+		/* name                 */ "MasterBlaster",
+		/* short name           */ "mb",
 		/* category             */ WeaponCategory_Backup,
 
 		/* projectile count     */ 10,
@@ -553,8 +570,8 @@ const WeaponDef gs_weaponDefs[] = {
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 500,
 		/* timeout / range      */ 5000,
-		/* max recoil           */ EulerDegrees2( 325.0f, 30.0f ),
-		/* min recoil           */ EulerDegrees2( 125.0f, -10.0f ),
+		/* max recoil           */ EulerDegrees2(300.0f, 25.0f),
+		/* min recoil           */ EulerDegrees2(275.0f, -25.0f),
 		/* recoil recovery      */ 2000.0f,
 		/* firing mode          */ FiringMode_Auto,
 
@@ -575,22 +592,23 @@ const WeaponDef gs_weaponDefs[] = {
 	},
 
 	{
-		/* name, short name     */ "Road Gun", "road",
+		/* name                 */ "Road Gun",
+		/* short name           */ "road",
 		/* category             */ WeaponCategory_Secondary,
 
 		/* projectile count     */ 1,
-		/* clip size            */ 25,
+		/* clip size            */ 20,
 		/* reload time          */ 1500,
 		/* staged reloading     */ false,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_FAST,
 		/* weapon down time     */ WEAPONDOWN_TIME,
-		/* refire time          */ 50,
+		/* refire time          */ 75,
 		/* timeout / range      */ 5000,
-		/* max recoil           */ EulerDegrees2( 50.0f, 25.0f ),
-		/* min recoil           */ EulerDegrees2( 25.0f, -25.0f ),
-		/* recoil recovery      */ 2000.0f,
+		/* max recoil           */ EulerDegrees2(80.0f, 25.0f),
+		/* min recoil           */ EulerDegrees2(70.0f, -25.0f),
+		/* recoil recovery      */ 1500.0f,
 		/* firing mode          */ FiringMode_Auto,
 
 		/* zoom fov             */ 0.0f,
@@ -611,7 +629,8 @@ const WeaponDef gs_weaponDefs[] = {
 
 #if 0
 	{
-		/* name, short name     */ "Minigun", "minigun",
+		/* name                 */ "Minigun",
+		/* short name           */ "minigun",
 		/* category             */ WeaponCategory_Backup,
 
 		/* projectile count     */ 1,
@@ -647,9 +666,10 @@ const WeaponDef gs_weaponDefs[] = {
 #endif
 };
 
-STATIC_ASSERT( ARRAY_COUNT( gs_weaponDefs ) == Weapon_Count );
+STATIC_ASSERT(ARRAY_COUNT(gs_weaponDefs) == Weapon_Count);
 
-const WeaponDef * GS_GetWeaponDef( WeaponType weapon ) {
-	assert( weapon < Weapon_Count );
-	return &gs_weaponDefs[ weapon ];
+const WeaponDef *GS_GetWeaponDef(WeaponType weapon)
+{
+	assert(weapon < Weapon_Count);
+	return &gs_weaponDefs[weapon];
 }

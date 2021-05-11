@@ -32,9 +32,7 @@ static void CL_CreateNewUserCommand( int realMsec );
 *
 * Notifies cgame of new frame, refreshes input timings, coordinates and angles
 */
-static void CL_UpdateGameInput( int frameTime ) {
-	Vec2 movement = GetMouseMovement();
-
+static void CL_UpdateGameInput( Vec2 movement, int frameTime ) {
 	if( cls.key_dest == key_game && cls.state == CA_ACTIVE ) {
 		CL_GameModule_MouseMove( frameTime, movement );
 		cl.viewangles += CG_GetDeltaViewAngles();
@@ -47,10 +45,13 @@ static void CL_UpdateGameInput( int frameTime ) {
 void CL_UserInputFrame( int realMsec ) {
 	ZoneScoped;
 
+	// Grab input before possibly resetting it in GlfwInputFrame
+	Vec2 movement = GetMouseMovement();
+
 	GlfwInputFrame();
 
 	// refresh mouse angles and movement velocity
-	CL_UpdateGameInput( realMsec );
+	CL_UpdateGameInput( movement, realMsec );
 
 	// create a new usercmd_t structure for this frame
 	CL_CreateNewUserCommand( realMsec );

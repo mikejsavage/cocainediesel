@@ -584,7 +584,9 @@ void GlfwInputFrame() {
 	}
 	else if( running_in_debugger ) {
 		// don't grab input if we're running a debugger
-		glfwSetCursorPos( window, frame_static.viewport_width / 2, frame_static.viewport_height / 2 );
+		last_mouse_x = frame_static.viewport_width / 2;
+		last_mouse_y = frame_static.viewport_height / 2;
+		glfwSetCursorPos( window, last_mouse_x, last_mouse_y );
 		glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
 	}
 	else {

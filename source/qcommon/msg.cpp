@@ -661,6 +661,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	Delta( buf, player.weapons, baseline.weapons );
 	Delta( buf, player.items, baseline.items );
+	Delta( buf, player.movement_type, baseline.movement_type );
 
 	Delta( buf, player.show_scoreboard, baseline.show_scoreboard );
 	Delta( buf, player.ready, baseline.ready );

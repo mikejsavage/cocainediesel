@@ -213,6 +213,18 @@ static const asEnumVal_t asWeaponTypeEnumVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
+static const asEnumVal_t asMovementTypeEnumVals[] =
+{
+	ASLIB_ENUM_VAL( Movement_None ),
+
+	ASLIB_ENUM_VAL( Movement_Dash ),
+	ASLIB_ENUM_VAL( Movement_Leap ),
+
+	ASLIB_ENUM_VAL( Movement_Count ),
+
+	ASLIB_ENUM_VAL_NULL
+};
+
 static const asEnumVal_t asItemTypeEnumVals[] =
 {
 	ASLIB_ENUM_VAL( Item_Bomb ),
@@ -387,6 +399,7 @@ static const asEnum_t asGameEnums[] =
 
 	{ "WeaponCategory", asWeaponCategoryEnumVals },
 	{ "WeaponType", asWeaponTypeEnumVals },
+	{ "MovementType", asMovementTypeEnumVals },
 	{ "ItemType", asItemTypeEnumVals },
 
 	{ "client_statest_e", asClientStateEnumVals },
@@ -782,6 +795,10 @@ static void objectGameClient_SelectWeapon( int index, gclient_t *self ) {
 	}
 }
 
+static void objectGameClient_SetMovementType( int index, gclient_t *self ) {
+	self->ps.movement_type = index;
+}
+
 static void objectGameClient_addAward( asstring_t *msg, gclient_t *self ) {
 	if( !msg ) {
 		return;
@@ -889,6 +906,7 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, giveWeapon, ( WeaponType weapon ) ), asFUNCTION( objectGameClient_GiveWeapon ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, inventoryClear, ( ) ), asFUNCTION( objectGameClient_InventoryClear ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, selectWeapon, ( int tag ) ), asFUNCTION( objectGameClient_SelectWeapon ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, setMovementType, ( int index ) ), asFUNCTION( objectGameClient_SetMovementType ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, addAward, ( const String &in ) ), asFUNCTION( objectGameClient_addAward ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, execGameCommand, ( const String &in ) ), asFUNCTION( objectGameClient_execGameCommand ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, getUserInfoKey, ( const String &in ) const ), asFUNCTION( objectGameClient_getUserInfoKey ), asCALL_CDECL_OBJLAST },

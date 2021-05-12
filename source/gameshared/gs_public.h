@@ -138,6 +138,7 @@ struct pmove_t {
 	bool ladder;
 };
 
+const MovementDef * GS_GetMovementDef( MovementType );
 void Pmove( const gs_state_t *, pmove_t * );
 
 #define STEPSIZE 18

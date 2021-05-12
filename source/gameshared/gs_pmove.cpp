@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 #include "gameshared/gs_public.h"
+#include "gameshared/gs_movementdef.h"
 
 static constexpr s16 MAX_TBAG_TIME = 2000;
 static constexpr s16 TBAG_THRESHOLD = 1000;
@@ -44,41 +45,12 @@ constexpr float pm_strafebunnyaccel = 60; // forward acceleration when strafe bu
 constexpr float pm_wishspeed = 30;
 
 
-const MovementDef movements[] = {
-	{
-		/* jump type           */ JumpType_Dash,
 
-		/* air speed           */ 320,
-		/* walk speed          */ 160,
-
-		/* jump up speed       */ 164,
-		/* jump forward speed  */ 550,
-		/* jump cooldown       */ 0,
-		/* jump charge time    */ 0,
-
-		/* walljump up speed   */ 300,
-		/* walljump side speed */ 0.5f,
-		/* walljump cooldown   */ 1300,
-	},
-
-	{
-		/* jump type           */ JumpType_Jump,
-
-		/* air speed           */ 320,
-		/* walk speed          */ 160,
-
-		/* jump up speed       */ 275,
-		/* jump forward speed  */ 350,
-		/* jump cooldown       */ 0,
-		/* jump charge time    */ 0,
-
-		/* walljump up speed   */ 350,
-		/* walljump side speed */ 0.3f,
-		/* walljump cooldown   */ 400,
-	},
-};
-
-
+const MovementDef * GS_GetMovementDef( MovementType movement_type ) {
+	assert( movement_type >= Movement_None && movement_type < Movement_Count );
+	
+	return &movements[ movement_type ];
+}
 
 static float pm_wjminspeed() {
 	return ( pml.maxWalkSpeed + pml.maxPlayerSpeed ) * 0.5f;
@@ -751,32 +723,38 @@ static void PM_CheckJump() {
 
 
 	float jumpSpeed = ( pm->waterlevel >= 2 ? pml.jumpUpWater : pml.jumpUp );
+	if( pml.jumpType != JumpType_Jump ) {
+		// ch : we should do explicit forwardPush here, and ignore sidePush ?
+		Vec3 jumpdir;
+		if( pml.jumpType == JumpType_Leap )
+			jumpdir = pml.flatforward * pml.forwardPush;
+		if( pml.jumpType == JumpType_Dash )
+			jumpdir = pml.flatforward * pml.forwardPush + pml.right * pml.sidePush;
+		jumpdir.z = 0.0f;
 
-	// ch : we should do explicit forwardPush here, and ignore sidePush ?
-	Vec3 jumpdir = pml.flatforward * pml.forwardPush;
-	if( pml.jumpType == JumpType_Dash )
-		jumpdir += pml.right * pml.sidePush;
-	jumpdir.z = 0.0f;
+		if( Length( jumpdir ) < 0.01f ) { // if not moving, dash like a "forward dash"
+			jumpdir = pml.flatforward;
+			pml.forwardPush = pml.jumpForward;
+		}
 
-	if( Length( jumpdir ) < 0.01f ) { // if not moving, dash like a "forward dash"
-		jumpdir = pml.flatforward;
-		pml.forwardPush = pml.jumpForward;
+		jumpdir = Normalize( jumpdir );
+
+		float actual_velocity = Normalize2D( &pml.velocity );
+		if( actual_velocity <= pml.jumpForward ) {
+			jumpdir *= pml.jumpForward;
+		} else {
+			jumpdir *= actual_velocity;
+		}
+
+		pml.velocity = jumpdir;
 	}
 
-	jumpdir = Normalize( jumpdir );
-
-	float actual_velocity = Normalize2D( &pml.velocity );
-	if( actual_velocity <= pml.jumpForward ) {
-		jumpdir *= pml.jumpForward;
-	} else {
-		jumpdir *= actual_velocity;
-	}
-
-	pml.velocity = jumpdir;
+	pml.velocity.z = Max2( 0.0f, pml.velocity.z ) + jumpSpeed;
 
 	if( pm->playerState->pmove.jump_time == 0 ) {
 		switch( pml.jumpType ) {
 			case JumpType_Jump:
+			case JumpType_Leap:
 				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
 				break;
 			case JumpType_Dash:
@@ -798,7 +776,6 @@ static void PM_CheckJump() {
 				break;
 		}
 	}
-	pml.velocity.z = Max2( 0.0f, pml.velocity.z ) + jumpSpeed;
 
 	// remove wj count
 	pm->playerState->pmove.pm_flags &= ~PMF_JUMPPAD_TIME;
@@ -812,6 +789,10 @@ static void PM_CheckWallJump() {
 	ZoneScoped;
 
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) {
+		return;
+	}
+
+	if( pml.walljumpCooldown == 0 ) {
 		return;
 	}
 
@@ -829,7 +810,7 @@ static void PM_CheckWallJump() {
 		if( pml.velocity.z > 8 || ( trace.fraction == 1 ) ||
 			( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
 			Vec3 normal( 0.0f );
-			PlayerTouchWall( 12, 0.3f, &normal );
+			PlayerTouchWall( 12, 3.0f, &normal );
 			if( !Length( normal ) ) {
 				return;
 			}
@@ -1132,9 +1113,7 @@ static void PM_BeginMove( MovementType movement_type ) {
 	// save old org in case we get stuck
 	pml.previous_origin = pm->playerState->pmove.origin;
 
-	assert( movement_type >= 0 && movement_type < Movement_Count );
-
-	const MovementDef * m = &movements[ movement_type ];
+	const MovementDef * m = GS_GetMovementDef( movement_type );
 
 	pml.jumpType = m->jumpType;
 
@@ -1152,7 +1131,7 @@ static void PM_BeginMove( MovementType movement_type ) {
 	pml.walljumpBounce = m->walljumpBounce;
 	pml.walljumpCooldown = m->walljumpCooldown;
 
-	pml.movement = movement_type;
+	pml.movement_type = movement_type;
 }
 
 /*
@@ -1179,7 +1158,10 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	pmove_gs = gs;
 
 	// clear all pmove local vars
-	PM_BeginMove( pmove->playerState->movement );
+	if( pmove->playerState->movement_type < Movement_None || pmove->playerState->movement_type >= Movement_Count )
+		return;
+	
+	PM_BeginMove( pmove->playerState->movement_type );
 
 	float fallvelocity = Max2( 0.0f, -pml.velocity.z );
 

@@ -56,6 +56,8 @@ enum WeaponState_ : WeaponState {
 
 typedef u8 MovementType;
 enum MovementType_ : MovementType {
+	Movement_None,
+
 	Movement_Dash,
 	Movement_Leap,
 
@@ -251,7 +253,7 @@ struct SyncPlayerState {
 
 	WeaponSlot weapons[ Weapon_Count - 1 ];
 	bool items[ Item_Count ];
-	MovementType movement;
+	MovementType movement_type;
 
 	bool show_scoreboard;
 	bool ready;

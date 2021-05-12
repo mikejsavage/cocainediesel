@@ -141,6 +141,7 @@ struct cgs_media_t {
 	const Material * shaderTracer;
 
 	const Material * shaderWeaponIcon[ Weapon_Count ];
+	const Material * shaderMovementIcon[ Movement_Count ];
 
 	const Material * shaderAlive;
 	const Material * shaderDead;

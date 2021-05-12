@@ -216,17 +216,26 @@ static void CG_SC_ChangeLoadout() {
 		return;
 
 	int weapons[ WeaponCategory_Count ] = { };
+	int movement_type = Movement_None;
+
+	int i;
 	size_t n = 0;
 
-	if( Cmd_Argc() - 1 > ARRAY_COUNT( weapons ) )
-		return;
-
-	for( int i = 0; i < Cmd_Argc() - 1; i++ ) {
-		weapons[ n ] = atoi( Cmd_Argv( i + 1 ) );
+	for( i = 1; ( i - 1 ) < ARRAY_COUNT( weapons ) && i < Cmd_Argc(); i++ ) {
+		if( !Q_stricmp( Cmd_Argv( i ), "m" ) ) {
+			i--;
+			break;
+		}
+		weapons[ n ] = atoi( Cmd_Argv( i ) ); //will always start with weapons
 		n++;
 	}
 
-	UI_ShowLoadoutMenu( Span< int >( weapons, n ) );
+	i += 2;
+
+	if( i < Cmd_Argc() )
+		movement_type = atoi( Cmd_Argv( i ) );
+
+	UI_ShowLoadoutMenu( Span< int >( weapons, n ), movement_type );
 }
 
 static void CG_SC_SaveLoadout() {

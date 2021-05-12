@@ -5,6 +5,7 @@ class cPlayer {
 	Client @client;
 
 	WeaponType[] loadout( WeaponCategory_Count );
+	MovementType movement_type;
 
 	int killsThisRound;
 
@@ -36,6 +37,8 @@ class cPlayer {
 			}
 		}
 
+		this.client.setMovementType( movement_type );
+
 		this.client.selectWeapon( 0 );
 		this.client.selectWeapon( 1 );
 	}
@@ -46,20 +49,27 @@ class cPlayer {
 		}
 
 		String command = "changeloadout";
+
 		for( uint i = 0; i < loadout.length; i++ ) {
 			if( loadout[ i ] != Weapon_None ) {
 				command += " " + loadout[ i ];
 			}
 		}
+
+		command += " m " + movement_type;
+
 		this.client.execGameCommand( command );
 	}
 
 	void setLoadout( String &cmd ) {
 		WeaponType[] new_loadout( WeaponCategory_Count );
 
-		for( int i = 0; i < WeaponCategory_Count; i++ ) {
-			String token = cmd.getToken( i );
-			if( token == "" )
+		String token;
+		int i;
+
+		for( i = 0; i < WeaponCategory_Count; i++ ) {
+			token = cmd.getToken( i );
+			if( token == "m" )
 				break;
 
 			int weapon = token.toInt();
@@ -75,14 +85,25 @@ class cPlayer {
 			new_loadout[ category ] = WeaponType( weapon );
 		}
 
+		i += 1;
+		token = cmd.getToken( i );
+		if( token == "m" )
+			i += 1;
+
+		int m = cmd.getToken( i ).toInt();
+		if( m >= Movement_None && m < Movement_Count )
+			movement_type = MovementType( m );
+
 		this.loadout = new_loadout;
 
 		String command = "saveloadout";
-		for( uint i = 0; i < this.loadout.length; i++ ) {
-			if( this.loadout[ i ] != Weapon_None ) {
-				command += " " + this.loadout[ i ];
+		for( uint j = 0; j < this.loadout.length; j++ ) {
+			if( this.loadout[ j ] != Weapon_None ) {
+				command += " " + this.loadout[ j ];
 			}
 		}
+		command += " m " + movement_type;
+
 		this.client.execGameCommand( command );
 
 		if( this.client.getEnt().isGhosting() ) {

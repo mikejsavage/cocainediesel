@@ -30,6 +30,7 @@
 enum JumpType {
 	JumpType_Jump,
 	JumpType_Dash,
+	JumpType_Leap,
 };
 
 struct pml_t {
@@ -65,11 +66,13 @@ struct pml_t {
 	int walljumpCooldown;
 
 	JumpType jumpType;
-	MovementType movement;
+	MovementType movement_type;
 };
 
 
 struct MovementDef {
+	const char * short_name;
+	const char * desc;
 	JumpType jumpType;
 
 	float airSpeed;

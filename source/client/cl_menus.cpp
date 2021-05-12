@@ -69,6 +69,7 @@ static DemoMenuState demomenu_state;
 static int selected_server;
 
 static WeaponType selected_weapons[ WeaponCategory_Count ];
+static MovementType selected_movement = Movement_None;
 
 static SettingsState settings_state;
 static bool reset_video_settings;
@@ -866,22 +867,37 @@ static void WeaponTooltip( const WeaponDef * def ) {
 	}
 }
 
+static void MovementTooltip( const MovementDef * def ) {
+	if( ImGui::IsItemHovered() ) {
+		ImGui::BeginTooltip();
+
+		TempAllocator temp = cls.frame_arena.temp();
+
+		ImGui::Text( "%s", temp( "{}{}", ImGuiColorToken( 255, 200, 0, 255 ), def->desc ) );
+
+		ImGui::EndTooltip();
+	}
+}
+
 static void SendLoadout() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	DynamicString loadout( &temp, "weapselect" );
-
+	
 	for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
 		if( selected_weapons[ i ] != Weapon_None ) {
 			loadout.append( " {}", selected_weapons[ i ] );
 		}
 	}
+
+	loadout.append( " m {}", selected_movement );
+
 	loadout += "\n";
 
 	Cbuf_AddText( loadout.c_str() );
 }
 
-static void WeaponButton( WeaponType weapon, Vec2 size ) {
+static bool LoadoutButton( const Material * icon, Vec2 size, bool selected ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
 	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
@@ -891,17 +907,18 @@ static void WeaponButton( WeaponType weapon, Vec2 size ) {
 	ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
 	defer { ImGui::PopStyleVar( 2 ); };
 
-	const WeaponDef * def = GS_GetWeaponDef( weapon );
-	bool selected = selected_weapons[ def->category ] == weapon;
-
-	const Material * icon = cgs.media.shaderWeaponIcon[ weapon ];
 	Vec2 half_pixel = HalfPixelSize( icon );
 	Vec4 color = selected ? vec4_green : vec4_white;
 
 	ImGui::PushStyleColor( ImGuiCol_Border, color );
 	defer { ImGui::PopStyleColor(); };
 
-	bool clicked = ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
+	return ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
+}
+
+static void WeaponButton( WeaponType weapon, Vec2 size, const WeaponDef * def ) {
+	bool selected = selected_weapons[ def->category ] == weapon;
+	bool clicked = LoadoutButton( cgs.media.shaderWeaponIcon[ weapon ], size, selected );
 
 	WeaponTooltip( def );
 
@@ -918,6 +935,22 @@ static void WeaponButton( WeaponType weapon, Vec2 size ) {
 	}
 }
 
+static void MovementTypeButton( MovementType movement_type, Vec2 size, const MovementDef * def ) {
+	bool selected = selected_movement == movement_type;
+	bool clicked = LoadoutButton( cgs.media.shaderMovementIcon[ movement_type ], size, selected );
+
+	MovementTooltip( def );
+
+	ImGui::SameLine();
+	ImGui::Dummy( Vec2( 16, 0 ) );
+	ImGui::SameLine();
+
+	if( clicked ) {
+		selected_movement = selected ? Movement_None : movement_type;
+		SendLoadout();
+	}
+}
+
 static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
 	ImGui::Text( "%s", label );
 	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
@@ -926,7 +959,7 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( i );
 		if( def->category == category ) {
-			WeaponButton( i, icon_size );
+			WeaponButton( i, icon_size, def );
 		}
 	}
 
@@ -949,6 +982,17 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	LoadoutCategory( "Secondary", WeaponCategory_Secondary, icon_size );
 	LoadoutCategory( "Backup", WeaponCategory_Backup, icon_size );
 
+	ImGui::Text( "Movement" );
+	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+	ImGui::NextColumn();
+
+	for( MovementType i = 0; i < Movement_Count; i++ ) {
+		const MovementDef * def = GS_GetMovementDef( i );
+		if( def->short_name != NULL ) {
+			MovementTypeButton( i, icon_size, def );
+		}
+	}
+	ImGui::NextColumn();
 	ImGui::EndColumns();
 
 	int loadoutKeys[ 2 ] = { };
@@ -1260,7 +1304,7 @@ void UI_AddToServerList( const char * address, const char * info ) {
 	}
 }
 
-void UI_ShowLoadoutMenu( Span< int > weapons ) {
+void UI_ShowLoadoutMenu( Span< int > weapons, int movement_type ) {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Loadout;
 
@@ -1277,6 +1321,10 @@ void UI_ShowLoadoutMenu( Span< int > weapons ) {
 			return;
 
 		selected_weapons[ category ] = w;
+	}
+
+	if( movement_type >= Movement_None && movement_type < Movement_Count ) {
+		selected_movement = movement_type;
 	}
 
 	CL_SetKeyDest( key_menu );

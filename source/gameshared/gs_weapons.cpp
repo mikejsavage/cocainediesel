@@ -262,11 +262,11 @@ static ItemState generic_gun_states[] = {
 	} ),
 
 	ItemState( WeaponState_FiringSemiAuto, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const usercmd_t * cmd ) -> ItemStateTransition {
-		if( cmd->buttons & BUTTON_ATTACK )
+		if( cmd->buttons & BUTTON_ATTACK ) {
+			const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+			ps->weapon_state_time = Min2( def->refire_time, ps->weapon_state_time );
 			return state;
-
-		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
-		ps->weapon_state_time = Min2( def->refire_time, ps->weapon_state_time );
+		}
 
 		return NoReset( WeaponState_Firing );
 	} ),

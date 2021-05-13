@@ -222,18 +222,18 @@ static void CG_SC_ChangeLoadout() {
 	size_t n = 0;
 
 	for( i = 1; ( i - 1 ) < ARRAY_COUNT( weapons ) && i < Cmd_Argc(); i++ ) {
-		if( !Q_stricmp( Cmd_Argv( i ), "m" ) ) {
-			i--;
+		if( Q_stricmp( Cmd_Argv( i ), "m" ) == 0 ) {
 			break;
 		}
 		weapons[ n ] = atoi( Cmd_Argv( i ) ); //will always start with weapons
 		n++;
 	}
 
-	i += 2;
+	i++;
 
-	if( i < Cmd_Argc() )
+	if( i < Cmd_Argc() ) {
 		movement_type = atoi( Cmd_Argv( i ) );
+	}
 
 	UI_ShowLoadoutMenu( Span< int >( weapons, n ), movement_type );
 }

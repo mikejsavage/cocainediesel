@@ -86,8 +86,7 @@ class cPlayer {
 		}
 
 		i += 1;
-		token = cmd.getToken( i );
-		if( token == "m" )
+		if( cmd.getToken( i ) == "m" )
 			i += 1;
 
 		int m = cmd.getToken( i ).toInt();

@@ -6,7 +6,7 @@ const MovementDef movements[] = {
 		/* air speed           */ 320.0f,
 		/* walk speed          */ 160.0f,
 
-		/* jump up speed       */ 260.0f,
+		/* jump up speed       */ 270.0f,
 		/* jump forward speed  */ 0.0f,
 		/* jump cooldown       */ 0,
 		/* jump charge time    */ 0,

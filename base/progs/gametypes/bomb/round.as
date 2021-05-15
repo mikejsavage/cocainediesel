@@ -185,6 +185,8 @@ void roundNewState( RoundState state ) {
 			break;
 
 		case RoundState_Countdown:
+			match.newRound();
+
 			roundCountDown = COUNTDOWN_MAX;
 
 			setTeams();
@@ -202,8 +204,6 @@ void roundNewState( RoundState state ) {
 			resetBombSites();
 
 			G_ResetLevel();
-
-			match.newRound();
 
 			resetBomb();
 

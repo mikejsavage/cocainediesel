@@ -2048,16 +2048,12 @@ static void G_ResetGameModuleScriptData() {
 /*
 * G_asRegisterEnums
 */
-static void G_asRegisterEnums( asIScriptEngine *asEngine, const asEnum_t *asEnums, const char *nameSpace ) {
+static void G_asRegisterEnums( asIScriptEngine *asEngine, const asEnum_t *asEnums ) {
 	int i, j;
 	const asEnum_t *asEnum;
 	const asEnumVal_t *asEnumVal;
 
-	if( nameSpace ) {
-		asEngine->SetDefaultNamespace( nameSpace );
-	} else {
-		asEngine->SetDefaultNamespace( "" );
-	}
+	asEngine->SetDefaultNamespace( "" );
 
 	for( i = 0, asEnum = asEnums; asEnum->name != NULL; i++, asEnum++ ) {
 		asEngine->RegisterEnum( asEnum->name );
@@ -2065,25 +2061,17 @@ static void G_asRegisterEnums( asIScriptEngine *asEngine, const asEnum_t *asEnum
 		for( j = 0, asEnumVal = asEnum->values; asEnumVal->name != NULL; j++, asEnumVal++ )
 			asEngine->RegisterEnumValue( asEnum->name, asEnumVal->name, asEnumVal->value );
 	}
-
-	if( nameSpace ) {
-		asEngine->SetDefaultNamespace( "" );
-	}
 }
 
 /*
 * G_asRegisterObjectClassNames
 */
 static void G_asRegisterObjectClassNames( asIScriptEngine *asEngine,
-	const asClassDescriptor_t *const *asClassesDescriptors, const char *nameSpace ) {
+	const asClassDescriptor_t *const *asClassesDescriptors ) {
 	int i;
 	const asClassDescriptor_t *cDescr;
 
-	if( nameSpace ) {
-		asEngine->SetDefaultNamespace( nameSpace );
-	} else {
-		asEngine->SetDefaultNamespace( "" );
-	}
+	asEngine->SetDefaultNamespace( "" );
 
 	for( i = 0; ; i++ ) {
 		if( !( cDescr = asClassesDescriptors[i] ) ) {
@@ -2091,25 +2079,17 @@ static void G_asRegisterObjectClassNames( asIScriptEngine *asEngine,
 		}
 		asEngine->RegisterObjectType( cDescr->name, cDescr->size, cDescr->typeFlags );
 	}
-
-	if( nameSpace ) {
-		asEngine->SetDefaultNamespace( "" );
-	}
 }
 
 /*
 * G_asRegisterObjectClasses
 */
 static void G_asRegisterObjectClasses( asIScriptEngine *asEngine,
-	const asClassDescriptor_t *const *asClassesDescriptors, const char *nameSpace ) {
+	const asClassDescriptor_t *const *asClassesDescriptors ) {
 	int i, j;
 	const asClassDescriptor_t *cDescr;
 
-	if( nameSpace ) {
-		asEngine->SetDefaultNamespace( nameSpace );
-	} else {
-		asEngine->SetDefaultNamespace( "" );
-	}
+	asEngine->SetDefaultNamespace( "" );
 
 	// now register object and global behaviors, then methods and properties
 	for( i = 0; ; i++ ) {
@@ -2168,26 +2148,18 @@ static void G_asRegisterObjectClasses( asIScriptEngine *asEngine,
 			}
 		}
 	}
-
-	if( nameSpace ) {
-		asEngine->SetDefaultNamespace( "" );
-	}
 }
 
 /*
 * G_asRegisterGlobalFunctions
 */
 static void G_asRegisterGlobalFunctions( asIScriptEngine *asEngine,
-	const asglobfuncs_t *funcs, const char *nameSpace ) {
+	const asglobfuncs_t *funcs ) {
 	int error;
 	int count = 0, failedcount = 0;
 	const asglobfuncs_t *func;
 
-	if( nameSpace ) {
-		asEngine->SetDefaultNamespace( nameSpace );
-	} else {
-		asEngine->SetDefaultNamespace( "" );
-	}
+	asEngine->SetDefaultNamespace( "" );
 
 	for( func = funcs; func->declaration; func++ ) {
 		error = asEngine->RegisterGlobalFunction( func->declaration, func->pointer, asCALL_CDECL );
@@ -2206,26 +2178,18 @@ static void G_asRegisterGlobalFunctions( asIScriptEngine *asEngine,
 			*func->asFuncPtr = asEngine->GetGlobalFunctionByDecl( func->declaration );
 		}
 	}
-
-	if( nameSpace ) {
-		asEngine->SetDefaultNamespace( "" );
-	}
 }
 
 /*
 * G_asRegisterGlobalProperties
 */
 static void G_asRegisterGlobalProperties( asIScriptEngine *asEngine,
-	const asglobproperties_t *props, const char *nameSpace ) {
+	const asglobproperties_t *props ) {
 	int error;
 	int count = 0, failedcount = 0;
 	const asglobproperties_t *prop;
 
-	if( nameSpace ) {
-		asEngine->SetDefaultNamespace( nameSpace );
-	} else {
-		asEngine->SetDefaultNamespace( "" );
-	}
+	asEngine->SetDefaultNamespace( "" );
 
 	for( prop = props; prop->declaration; prop++ ) {
 		error = asEngine->RegisterGlobalProperty( prop->declaration, prop->pointer );
@@ -2236,10 +2200,6 @@ static void G_asRegisterGlobalProperties( asIScriptEngine *asEngine,
 
 		count++;
 	}
-
-	if( nameSpace ) {
-		asEngine->SetDefaultNamespace( "" );
-	}
 }
 
 /*
@@ -2247,19 +2207,19 @@ static void G_asRegisterGlobalProperties( asIScriptEngine *asEngine,
 */
 static void G_InitializeGameModuleSyntax( asIScriptEngine *asEngine ) {
 	// register global enums
-	G_asRegisterEnums( asEngine, asGameEnums, NULL );
+	G_asRegisterEnums( asEngine, asGameEnums );
 
 	// first register all class names so methods using custom classes work
-	G_asRegisterObjectClassNames( asEngine, asGameClassesDescriptors, NULL );
+	G_asRegisterObjectClassNames( asEngine, asGameClassesDescriptors );
 
 	// register classes
-	G_asRegisterObjectClasses( asEngine, asGameClassesDescriptors, NULL );
+	G_asRegisterObjectClasses( asEngine, asGameClassesDescriptors );
 
 	// register global functions
-	G_asRegisterGlobalFunctions( asEngine, asGameGlobFuncs, NULL );
+	G_asRegisterGlobalFunctions( asEngine, asGameGlobFuncs );
 
 	// register global properties
-	G_asRegisterGlobalProperties( asEngine, asGlobProps, NULL );
+	G_asRegisterGlobalProperties( asEngine, asGlobProps );
 }
 
 /*

@@ -733,7 +733,7 @@ void GT_InitGametype() {
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
 		gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
 
-	crownModel = Hash64( "models/objects/crown" );
+	crownModel = Hash64( "models/crown/crown" );
 	@last_spawn = null;
 
 	randomise = G_GetWorldspawnKey( "randomise_arena" ) != "";

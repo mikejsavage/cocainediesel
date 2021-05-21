@@ -61,7 +61,7 @@ void CG_RegisterMediaModels() {
 	cgs.media.modLasergunWallExplo = FindModel( "weapons/lg/impact" );
 	cgs.media.modBladeWallHit = FindModel( "weapons/gb/impact" );
 
-	cgs.media.modGib = FindModel( "models/objects/gibs/gib" );
+	cgs.media.modGib = FindModel( "models/gibs/gib" );
 }
 
 void CG_RegisterMediaShaders() {

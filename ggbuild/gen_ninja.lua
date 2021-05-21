@@ -14,7 +14,7 @@ configs[ "windows" ] = {
 }
 
 configs[ "windows-debug" ] = {
-	cxxflags = "/MTd /Z7",
+	cxxflags = "/MTd /Z7 /FC",
 	ldflags = "/DEBUG",
 }
 configs[ "windows-release" ] = {

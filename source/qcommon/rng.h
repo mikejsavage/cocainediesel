@@ -61,7 +61,12 @@ double random_double11( RNG * rng );
 // returns true with probability p
 bool random_p( RNG * rng, float p );
 
+template< typename T >
+T random_select( RNG * rng, const T * arr, size_t n ) {
+	return arr[ random_uniform( rng, 0, n ) ];
+}
+
 template< typename T, size_t N >
-T random_select( RNG * rng, T ( &arr )[ N ] ) {
-	return arr[ random_uniform( rng, 0, N ) ];
+T random_select( RNG * rng, const T ( &arr )[ N ] ) {
+	return random_select( rng, arr, N );
 }

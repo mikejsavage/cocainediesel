@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "qcommon/base.h"
 #include "client/assets.h"
 #include "cgame/cg_local.h"

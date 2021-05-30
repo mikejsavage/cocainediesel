@@ -1539,6 +1539,8 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		return;
 	}
 
+	FrameMark;
+
 	cls.frametime = cls.demo.paused ? 0 : allGameMsec;
 	cls.realFrameTime = allRealMsec;
 	if( allRealMsec < minMsec ) { // is compensating for a too slow frame

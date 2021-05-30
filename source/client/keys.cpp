@@ -82,7 +82,6 @@ static const keyname_t keynames[] = {
 	{ "MOUSE5", K_MOUSE5 },
 	{ "MOUSE6", K_MOUSE6 },
 	{ "MOUSE7", K_MOUSE7 },
-	{ "MOUSE8", K_MOUSE8 },
 
 	{ "KP_HOME", KP_HOME },
 	{ "KP_UPARROW", KP_UPARROW },

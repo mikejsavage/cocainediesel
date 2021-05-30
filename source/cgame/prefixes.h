@@ -185,6 +185,7 @@
 "CHEERS",
 "CHEESE",
 "CHERRY",
+"CHEST",
 "CHICKEN",
 "CHILL",
 "CHIN",

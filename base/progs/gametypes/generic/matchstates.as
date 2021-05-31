@@ -20,16 +20,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void GENERIC_SetUpWarmup()
 {
 	gametype.shootingDisabled = false;
-	gametype.readyAnnouncementEnabled = true;
-	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = false;
 }
 
 void GENERIC_SetUpCountdown()
 {
 	gametype.shootingDisabled = false;
-	gametype.readyAnnouncementEnabled = false;
-	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = true;
 
 	// Countdowns should be made entirely client side, because we now can
@@ -46,8 +42,6 @@ void GENERIC_SetUpMatch()
 
 	G_RemoveAllProjectiles();
 	gametype.shootingDisabled = true;  // avoid shooting before "FIGHT!"
-	gametype.readyAnnouncementEnabled = false;
-	gametype.scoreAnnouncementEnabled = true;
 	gametype.countdownEnabled = true;
 
 	// clear player stats and scores, team scores and respawn clients in team lists
@@ -84,8 +78,6 @@ void GENERIC_SetUpEndMatch()
 	Client @client;
 
 	gametype.shootingDisabled = true;
-	gametype.readyAnnouncementEnabled = false;
-	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = false;
 
 	for ( int i = 0; i < maxClients; i++ )

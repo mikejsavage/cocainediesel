@@ -43,15 +43,11 @@ typedef struct {
 	bool hasChallengersRoulette;
 
 	// few default settings
-	bool readyAnnouncementEnabled;
-	bool scoreAnnouncementEnabled;
 	bool countdownEnabled;
 	bool matchAbortDisabled;
 	bool shootingDisabled;
 	bool removeInactivePlayers;
 	bool selfDamage;
-
-	int spawnpointRadius;
 } gametype_descriptor_t;
 
 //

@@ -249,8 +249,6 @@ class cDARound {
 	}
 
 	void newGame() {
-		gametype.readyAnnouncementEnabled = false;
-		gametype.scoreAnnouncementEnabled = false;
 		gametype.countdownEnabled = false;
 
 		// set spawnsystem type to not respawn the players when they die
@@ -293,8 +291,6 @@ class cDARound {
 	void GLADIATOR_SetUpEndMatch() {
 		Client @client;
 
-		gametype.readyAnnouncementEnabled = false;
-		gametype.scoreAnnouncementEnabled = false;
 		gametype.countdownEnabled = false;
 
 		for( int i = 0; i < maxClients; i++ ) {
@@ -571,13 +567,9 @@ void DA_SetUpWarmup() {
 	// set spawnsystem type to instant while players join
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )
 		gametype.setTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
-
-	gametype.readyAnnouncementEnabled = true;
 }
 
 void DA_SetUpCountdown() {
-	gametype.readyAnnouncementEnabled = false;
-	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = false;
 	G_RemoveAllProjectiles();
 
@@ -717,15 +709,11 @@ void GT_InitGametype() {
 	gametype.isTeamBased = false;
 	gametype.hasChallengersQueue = false;
 
-	gametype.readyAnnouncementEnabled = false;
-	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = false;
 	gametype.matchAbortDisabled = false;
 	gametype.shootingDisabled = false;
 	gametype.removeInactivePlayers = true;
 	gametype.selfDamage = false;
-
-	gametype.spawnpointRadius = 0;
 
 	// set spawnsystem type to instant while players join
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ )

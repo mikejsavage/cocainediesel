@@ -614,15 +614,11 @@ void G_Gametype_SetDefaults() {
 	level.gametype.hasChallengersQueue = false;
 	level.gametype.hasChallengersRoulette = false;
 
-	level.gametype.readyAnnouncementEnabled = false;
-	level.gametype.scoreAnnouncementEnabled = false;
 	level.gametype.countdownEnabled = false;
 	level.gametype.matchAbortDisabled = false;
 	level.gametype.shootingDisabled = false;
 	level.gametype.removeInactivePlayers = true;
 	level.gametype.selfDamage = true;
-
-	level.gametype.spawnpointRadius = 64;
 }
 
 // this is pretty dirty, parse the first entity and grab the gametype key

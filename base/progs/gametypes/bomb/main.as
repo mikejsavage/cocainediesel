@@ -387,14 +387,10 @@ void GT_InitGametype() {
 	gametype.isTeamBased = true;
 	gametype.hasChallengersQueue = false;
 
-	gametype.readyAnnouncementEnabled = false;
-	gametype.scoreAnnouncementEnabled = true;
 	gametype.countdownEnabled = false;
 	gametype.matchAbortDisabled = false;
 	gametype.shootingDisabled = false;
 	gametype.removeInactivePlayers = true;
-
-	gametype.spawnpointRadius = 256;
 
 	// set spawnsystem type to instant while players join
 	for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {

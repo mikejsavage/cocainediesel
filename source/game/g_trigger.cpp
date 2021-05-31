@@ -27,16 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Returns true if the trigger shouldn't be activated
 */
 static bool G_TriggerWait( edict_t *ent, edict_t *other ) {
-	if( GS_RaceGametype( &server_gs ) ) {
-		if( other->trigger_entity == ent && other->trigger_timeout && other->trigger_timeout >= level.time ) {
-			return true;
-		}
-
-		other->trigger_entity = ent;
-		other->trigger_timeout = level.time + 1000 * ent->wait;
-		return false;
-	}
-
 	if( ent->timeStamp >= level.time ) {
 		return true;
 	}

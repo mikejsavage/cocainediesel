@@ -611,7 +611,6 @@ void G_RunGametype() {
 */
 void G_Gametype_SetDefaults() {
 	level.gametype.isTeamBased = false;
-	level.gametype.isRace = false;
 	level.gametype.hasChallengersQueue = false;
 	level.gametype.hasChallengersRoulette = false;
 

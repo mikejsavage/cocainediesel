@@ -385,7 +385,6 @@ void GT_SpawnGametype() {
 // right after the map entities spawning.
 void GT_InitGametype() {
 	gametype.isTeamBased = true;
-	gametype.isRace = false;
 	gametype.hasChallengersQueue = false;
 
 	gametype.readyAnnouncementEnabled = false;

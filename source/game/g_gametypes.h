@@ -39,7 +39,6 @@ typedef struct {
 	void *shutdownFunc;
 
 	bool isTeamBased;
-	bool isRace;
 	bool hasChallengersQueue;
 	bool hasChallengersRoulette;
 

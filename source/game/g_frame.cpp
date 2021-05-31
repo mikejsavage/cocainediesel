@@ -197,13 +197,9 @@ void G_CheckCvars() {
 
 	// FIXME: This should be restructured so gameshared settings are the master settings
 	G_GamestatSetFlag( GAMESTAT_FLAG_HASCHALLENGERS, level.gametype.hasChallengersQueue );
-
 	G_GamestatSetFlag( GAMESTAT_FLAG_ISTEAMBASED, level.gametype.isTeamBased );
-	G_GamestatSetFlag( GAMESTAT_FLAG_ISRACE, level.gametype.isRace );
-
 	G_GamestatSetFlag( GAMESTAT_FLAG_COUNTDOWN, level.gametype.countdownEnabled );
 	G_GamestatSetFlag( GAMESTAT_FLAG_INHIBITSHOOTING, level.gametype.shootingDisabled );
-
 }
 
 //===================================================================

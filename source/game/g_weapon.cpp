@@ -77,11 +77,6 @@ static void W_ARBullet_Backtrace(edict_t *ent, Vec3 start)
 	trace_t tr;
 	Vec3 mins(-2.0f), maxs(2.0f);
 
-	if (GS_RaceGametype(&server_gs))
-	{
-		return;
-	}
-
 	Vec3 oldorigin = ent->s.origin;
 	ent->s.origin = start;
 
@@ -215,7 +210,7 @@ static edict_t *FireProjectile(
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 
 	projectile->r.solid = SOLID_YES;
-	projectile->r.clipmask = !GS_RaceGametype(&server_gs) ? clipmask : MASK_SOLID;
+	projectile->r.clipmask = clipmask;
 	projectile->r.svflags = SVF_PROJECTILE;
 
 	projectile->r.mins = Vec3(0.0f);
@@ -268,13 +263,7 @@ static void W_Fire_Blade(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 	int traces = def->projectile_count;
 	float slash_angle = def->spread;
 
-	int mask = MASK_SHOT;
 	int dmgflags = 0;
-
-	if (GS_RaceGametype(&server_gs))
-	{
-		mask = MASK_SOLID;
-	}
 
 	for (int i = 0; i < traces; i++)
 	{
@@ -286,7 +275,7 @@ static void W_Fire_Blade(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 		Vec3 end = start + dir * def->range;
 
 		trace_t trace;
-		G_Trace4D(&trace, start, Vec3(0.0f), Vec3(0.0f), end, self, mask, timeDelta);
+		G_Trace4D(&trace, start, Vec3(0.0f), Vec3(0.0f), end, self, MASK_SHOT, timeDelta);
 		if (trace.ent != -1 && game.edicts[trace.ent].takedamage)
 		{
 			G_Damage(&game.edicts[trace.ent], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, Weapon_Knife);

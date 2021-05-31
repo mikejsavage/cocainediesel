@@ -259,11 +259,6 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 	client = targ->r.client;
 
-	// Cgg - race mode: players don't interact with one another
-	if( GS_RaceGametype( &server_gs ) && attacker->r.client && targ->r.client && attacker != targ ) {
-		return;
-	}
-
 	if( G_IsTeamDamage( &targ->s, &attacker->s ) ) {
 		return;
 	}

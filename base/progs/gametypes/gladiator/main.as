@@ -715,7 +715,6 @@ void GT_InitGametype() {
 	daRound.init();
 
 	gametype.isTeamBased = false;
-	gametype.isRace = false;
 	gametype.hasChallengersQueue = false;
 
 	gametype.readyAnnouncementEnabled = false;

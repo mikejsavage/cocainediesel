@@ -289,7 +289,7 @@ static bool G_VoteStartValidate( callvotedata_t *vote, bool first ) {
 	int notreadys = 0;
 	edict_t *ent;
 
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_COUNTDOWN ) {
+	if( server_gs.gameState.match_state >= MATCH_STATE_COUNTDOWN ) {
 		if( first ) {
 			G_PrintMsg( vote->caller, "%sThe game is not in warmup mode\n", S_COLOR_RED );
 		}
@@ -327,40 +327,6 @@ static void G_VoteStartPassed( callvotedata_t *vote ) {
 			G_Match_CheckReadys();
 		}
 	}
-}
-
-/*
-* maxteamplayers
-*/
-
-static bool G_VoteMaxTeamplayersValidate( callvotedata_t *vote, bool first ) {
-	int maxteamplayers = atoi( vote->argv[0] );
-
-	if( maxteamplayers < 1 ) {
-		if( first ) {
-			G_PrintMsg( vote->caller, "%sThe maximum number of players in team can't be less than 1\n",
-						S_COLOR_RED );
-		}
-		return false;
-	}
-
-	if( g_teams_maxplayers->integer == maxteamplayers ) {
-		if( first ) {
-			G_PrintMsg( vote->caller, "%sMaximum number of players in team is already %i\n",
-						S_COLOR_RED, maxteamplayers );
-		}
-		return false;
-	}
-
-	return true;
-}
-
-static void G_VoteMaxTeamplayersPassed( callvotedata_t *vote ) {
-	Cvar_Set( "g_teams_maxplayers", va( "%i", atoi( vote->argv[0] ) ) );
-}
-
-static const char *G_VoteMaxTeamplayersCurrent() {
-	return va( "%i", g_teams_maxplayers->integer );
 }
 
 /*
@@ -1170,33 +1136,8 @@ void G_CallVotes_Think() {
 * G_CallVote
 */
 static void G_CallVote( edict_t *ent, bool isopcall ) {
-	int count, team;
 	const char *votename;
 	callvotetype_t *callvote;
-
-	if( !isopcall && ent->s.team == TEAM_SPECTATOR && GS_IndividualGameType( &server_gs )
-		&& GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME && !GS_MatchPaused( &server_gs ) ) {
-		edict_t *e;
-
-		for( count = 0, team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
-			if( current_team->num_players == 0 ) {
-				continue;
-			}
-
-			for( u8 i = 0; i < current_team->num_players; i++ ) {
-				e = game.edicts + current_team->player_indices[ i ];
-				if( e->r.inuse && ( e->r.svflags & SVF_FAKECLIENT ) ) {
-					count++;
-				}
-			}
-		}
-
-		if( count == 0 ) {
-			G_PrintMsg( ent, "%sSpectators cannot start a vote while a match is in progress\n", S_COLOR_RED );
-			return;
-		}
-	}
 
 	if( !g_callvote_enabled->integer ) {
 		G_PrintMsg( ent, "%sCallvoting is disabled on this server\n", S_COLOR_RED );
@@ -1456,16 +1397,6 @@ void G_CallVotes_Init() {
 	callvote->argument_format = "<minutes>";
 	callvote->argument_type = "integer";
 	callvote->help = "Sets the number of minutes after which the warmup ends\nSpecify 0 to disable";
-
-	callvote = G_RegisterCallvote( "maxteamplayers" );
-	callvote->expectedargs = 1;
-	callvote->validate = G_VoteMaxTeamplayersValidate;
-	callvote->execute = G_VoteMaxTeamplayersPassed;
-	callvote->current = G_VoteMaxTeamplayersCurrent;
-	callvote->extraHelp = NULL;
-	callvote->argument_format = "<number>";
-	callvote->argument_type = "integer";
-	callvote->help = "Sets the maximum number of players in one team";
 
 	callvote = G_RegisterCallvote( "start" );
 	callvote->expectedargs = 0;

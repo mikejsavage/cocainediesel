@@ -128,7 +128,6 @@ enum
 {
 	ER_TEAM_OK,
 	ER_TEAM_INVALID,
-	ER_TEAM_FULL,
 	ER_TEAM_MATCHSTATE,
 	ER_TEAM_CHALLENGERS,
 	ER_TEAM_UNEVEN
@@ -171,7 +170,7 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 		return ER_TEAM_OK;
 	}
 
-	if( GS_MatchState( &server_gs ) > MATCH_STATE_PLAYTIME ) {
+	if( server_gs.gameState.match_state > MATCH_STATE_PLAYTIME ) {
 		return ER_TEAM_MATCHSTATE;
 	}
 
@@ -191,16 +190,6 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 
 	if( team != TEAM_ALPHA && team != TEAM_BETA )
 		return ER_TEAM_INVALID;
-
-	// see if team is full
-	u8 count = server_gs.gameState.teams[ team ].num_players;
-
-	if( ( count + 1 > level.gametype.maxPlayersPerTeam &&
-		  level.gametype.maxPlayersPerTeam > 0 ) ||
-		( count + 1 > g_teams_maxplayers->integer &&
-		  g_teams_maxplayers->integer > 0 ) ) {
-		return ER_TEAM_FULL;
-	}
 
 	if( !g_teams_allow_uneven->integer && !G_Teams_CanKeepEvenTeam( ent->s.team, team ) ) {
 		return ER_TEAM_UNEVEN;
@@ -226,9 +215,6 @@ bool G_Teams_JoinTeam( edict_t *ent, int team ) {
 			G_PrintMsg( ent, "Can't join %s\n", GS_TeamName( team ) );
 		} else if( error == ER_TEAM_CHALLENGERS ) {
 			G_Teams_JoinChallengersQueue( ent );
-		} else if( error == ER_TEAM_FULL ) {
-			G_PrintMsg( ent, "Team %s is FULL\n", GS_TeamName( team ) );
-			G_Teams_JoinChallengersQueue( ent );
 		} else if( error == ER_TEAM_MATCHSTATE ) {
 			G_PrintMsg( ent, "Can't join %s at this moment\n", GS_TeamName( team ) );
 		} else if( error == ER_TEAM_UNEVEN ) {
@@ -247,19 +233,10 @@ bool G_Teams_JoinTeam( edict_t *ent, int team ) {
 * G_Teams_JoinAnyTeam - find us a team since we are too lazy to do ourselves
 */
 bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
-	int best_numplayers = server_gs.maxclients + 1;
-	u8 best_score;
-	int i, team = -1;
-	bool wasinqueue = ( ent->r.client->queueTimeStamp != 0 );
-
 	G_Teams_UpdateMembersList(); // make sure we have up-to-date data
 
-	//depending on the gametype, of course
 	if( !level.gametype.isTeamBased ) {
 		if( ent->s.team == TEAM_PLAYERS ) {
-			if( !silent ) {
-				G_PrintMsg( ent, "You are already in %s team\n", GS_TeamName( TEAM_PLAYERS ) );
-			}
 			return false;
 		}
 		if( G_Teams_JoinTeam( ent, TEAM_PLAYERS ) ) {
@@ -268,44 +245,40 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 			}
 		}
 		return true;
-	} else {   //team based
-		//find the available team with smaller player count or worse score
-		for( i = TEAM_ALPHA; i < GS_MAX_TEAMS; i++ ) {
-			if( G_GameTypes_DenyJoinTeam( ent, i ) ) {
-				continue;
-			}
+	}
 
-			u8 team_score = server_gs.gameState.teams[ i ].score;
-			SyncTeamState * current_team = &server_gs.gameState.teams[ i ];
-			if( team == -1 || current_team->num_players < best_numplayers || ( current_team->num_players == best_numplayers && team_score < best_score ) ) {
-				best_numplayers = current_team->num_players;
-				best_score = team_score;
-				team = i;
-			}
-		}
+	const SyncTeamState * alpha = &server_gs.gameState.teams[ TEAM_ALPHA ];
+	const SyncTeamState * beta = &server_gs.gameState.teams[ TEAM_BETA ];
 
-		if( team == ent->s.team ) { // he is at the right team
-			if( !silent ) {
-				G_PrintMsg( ent, "%sCouldn't find a better team than team %s.\n",
-							S_COLOR_WHITE, GS_TeamName( ent->s.team ) );
-			}
-			return false;
-		}
+	int team;
+	if( alpha->num_players != beta->num_players ) {
+		team = alpha->num_players <= beta->num_players ? TEAM_ALPHA : TEAM_BETA;
+	}
+	else {
+		team = alpha->score <= beta->score ? TEAM_ALPHA : TEAM_BETA;
+	}
 
-		if( team != -1 ) {
-			if( G_Teams_JoinTeam( ent, team ) ) {
-				if( !silent ) {
-					G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
-				}
-				return true;
-			}
+	if( team == ent->s.team ) { // he is at the right team
+		if( !silent ) {
+			G_PrintMsg( ent, "%sCouldn't find a better team than team %s.\n",
+						S_COLOR_WHITE, GS_TeamName( ent->s.team ) );
 		}
-		if( GS_MatchState( &server_gs ) <= MATCH_STATE_PLAYTIME && !silent ) {
-			G_Teams_JoinChallengersQueue( ent );
+		return false;
+	}
+
+	if( G_Teams_JoinTeam( ent, team ) ) {
+		if( !silent ) {
+			G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
 		}
+		return true;
+	}
+
+	if( server_gs.gameState.match_state <= MATCH_STATE_PLAYTIME && !silent ) {
+		G_Teams_JoinChallengersQueue( ent );
 	}
 
 	// don't print message if we joined the queue
+	bool wasinqueue = ent->r.client->queueTimeStamp != 0;
 	if( !silent && ( !GS_HasChallengers( &server_gs ) || wasinqueue || !ent->r.client->queueTimeStamp ) ) {
 		G_PrintMsg( ent, "You can't join the game now\n" );
 	}
@@ -417,7 +390,7 @@ void G_Teams_ExecuteChallengersQueue() {
 	bool restartmatch = false;
 
 	// Medar fixme: this is only really makes sense, if playerlimit per team is one
-	if( GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME ) {
+	if( server_gs.gameState.match_state == MATCH_STATE_PLAYTIME ) {
 		return;
 	}
 
@@ -442,16 +415,14 @@ void G_Teams_ExecuteChallengersQueue() {
 	// game until we get the first refused one.
 	challengers = G_Teams_ChallengersQueue();
 	if( challengers ) {
-		int i;
-
-		for( i = 0; challengers[i]; i++ ) {
+		for( int i = 0; challengers[i]; i++ ) {
 			ent = challengers[i];
 			if( !G_Teams_JoinAnyTeam( ent, true ) ) {
 				break;
 			}
 
 			// if we successfully execute the challengers queue during the countdown, revert to warmup
-			if( GS_MatchState( &server_gs ) == MATCH_STATE_COUNTDOWN ) {
+			if( server_gs.gameState.match_state == MATCH_STATE_COUNTDOWN ) {
 				restartmatch = true;
 			}
 		}
@@ -625,7 +596,7 @@ void G_InitChallengersQueue() {
 //======================================================================
 
 void G_Say_Team( edict_t *who, const char *inmsg, bool checkflood ) {
-	if( who->s.team != TEAM_SPECTATOR && ( !level.gametype.isTeamBased || GS_IndividualGameType( &server_gs ) ) ) {
+	if( who->s.team != TEAM_SPECTATOR && !level.gametype.isTeamBased ) {
 		Cmd_Say_f( who, false, true );
 		return;
 	}

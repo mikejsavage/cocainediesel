@@ -108,15 +108,6 @@ struct gs_state_t {
 #define GS_MatchWaiting( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_WAITING ) != 0 )
 #define GS_Countdown( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_COUNTDOWN ) != 0 )
 
-#define GS_MatchState( gs ) ( ( gs )->gameState.match_state )
-#define GS_MaxPlayersInTeam( gs ) ( ( gs )->gameState.max_team_players )
-#define GS_IndividualGameType( gs ) ( GS_MaxPlayersInTeam( gs ) == 1 )
-
-#define GS_MatchDuration( gs ) ( ( gs )->gameState.match_duration )
-#define GS_MatchStartTime( gs ) ( ( gs )->gameState.match_start )
-#define GS_MatchEndTime( gs ) ( ( gs )->gameState.match_duration ? ( gs )->gameState.match_start + ( gs )->gameState.match_duration : 0 )
-#define GS_MatchClockOverride( gs ) ( ( gs )->gameState.clock_override )
-
 //==================================================================
 
 #define ATTN_NONE               0       // full volume the entire level

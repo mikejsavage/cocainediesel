@@ -988,12 +988,9 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	// evaluate tcmod
-	Vec3 tcmod_row0, tcmod_row1;
-	if( material->tcmod.type == TCModFunc_None ) {
-		tcmod_row0 = Vec3( 1, 0, 0 );
-		tcmod_row1 = Vec3( 0, 1, 0 );
-	}
-	else if( material->tcmod.type == TCModFunc_Scroll ) {
+	Vec3 tcmod_row0 = Vec3( 1.0f, 0.0f, 0.0f );
+	Vec3 tcmod_row1 = Vec3( 0.0f, 1.0f, 0.0f );
+	if( material->tcmod.type == TCModFunc_Scroll ) {
 		float s = float( PositiveMod( double( material->tcmod.args[ 0 ] ) * double( cls.gametime / 1000.0 ), 1.0 ) );
 		float t = float( PositiveMod( double( material->tcmod.args[ 1 ] ) * double( cls.gametime / 1000.0 ), 1.0 ) );
 		tcmod_row0 = Vec3( 1, 0, s );

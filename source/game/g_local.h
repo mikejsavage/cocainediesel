@@ -188,7 +188,7 @@ extern int damageFlagsOfDeath;
 #define FOFS( x ) offsetof( edict_t,x )
 #define STOFS( x ) offsetof( spawn_temp_t,x )
 
-extern cvar_t *password;
+extern cvar_t *sv_password;
 extern cvar_t *g_operator_password;
 extern cvar_t *developer;
 

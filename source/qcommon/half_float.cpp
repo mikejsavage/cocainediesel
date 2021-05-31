@@ -32,7 +32,7 @@ uint16_t FloatToHalf(float x) {
 		}
 		else {
 			uint32_t mant_odd = (f.u >> 13) & 1;
-			f.u += ((15 - 127) << 23) + 0xfff;
+			f.u += uint32_t(((15 - 127) << 23) + 0xfff);
 			f.u += mant_odd;
 			o = f.u >> 13;
 		}

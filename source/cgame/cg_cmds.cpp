@@ -314,7 +314,7 @@ static void ScrollWeapon( int step ) {
 
 	size_t num_weapons = ARRAY_COUNT( ps->weapons );
 
-	int slot;
+	int slot = 0;
 	for( int i = 0; i < num_weapons; i++ ) {
 		if( ps->weapons[ i ].weapon == current ) {
 			slot = i;

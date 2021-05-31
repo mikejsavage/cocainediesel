@@ -90,22 +90,22 @@ static void G_Timeout_Update( unsigned int msec ) {
 */
 static void G_UpdateServerInfo() {
 	// g_match_time
-	if( GS_MatchState( &server_gs ) <= MATCH_STATE_WARMUP ) {
+	if( server_gs.gameState.match_state <= MATCH_STATE_WARMUP ) {
 		Cvar_ForceSet( "g_match_time", "Warmup" );
-	} else if( GS_MatchState( &server_gs ) == MATCH_STATE_COUNTDOWN ) {
+	} else if( server_gs.gameState.match_state == MATCH_STATE_COUNTDOWN ) {
 		Cvar_ForceSet( "g_match_time", "Countdown" );
-	} else if( GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME ) {
+	} else if( server_gs.gameState.match_state == MATCH_STATE_PLAYTIME ) {
 		// partly from G_GetMatchState
 		char extra[MAX_INFO_VALUE];
 		int clocktime, timelimit, mins, secs;
 
-		if( GS_MatchDuration( &server_gs ) ) {
-			timelimit = ( ( GS_MatchDuration( &server_gs ) ) * 0.001 ) / 60;
+		if( server_gs.gameState.match_duration ) {
+			timelimit = ( ( server_gs.gameState.match_duration ) * 0.001 ) / 60;
 		} else {
 			timelimit = 0;
 		}
 
-		clocktime = (float)( svs.gametime - GS_MatchStartTime( &server_gs ) ) * 0.001f;
+		clocktime = ( svs.gametime - server_gs.gameState.match_state_start_time ) * 0.001f;
 
 		if( clocktime <= 0 ) {
 			mins = 0;
@@ -130,7 +130,7 @@ static void G_UpdateServerInfo() {
 	}
 
 	// g_match_score
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_PLAYTIME && level.gametype.isTeamBased ) {
+	if( server_gs.gameState.match_state >= MATCH_STATE_PLAYTIME && level.gametype.isTeamBased ) {
 		String< MAX_INFO_STRING > score( "{}: {} {}: {}",
 			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.teams[ TEAM_ALPHA ].score,
 			GS_TeamName( TEAM_BETA ), server_gs.gameState.teams[ TEAM_BETA ].score );
@@ -141,13 +141,13 @@ static void G_UpdateServerInfo() {
 	}
 
 	// g_needpass
-	if( password->modified ) {
-		if( password->string && strlen( password->string ) ) {
+	if( sv_password->modified ) {
+		if( sv_password->string && strlen( sv_password->string ) ) {
 			Cvar_ForceSet( "g_needpass", "1" );
 		} else {
 			Cvar_ForceSet( "g_needpass", "0" );
 		}
-		password->modified = false;
+		sv_password->modified = false;
 	}
 }
 
@@ -187,7 +187,7 @@ void G_CheckCvars() {
 
 	if( g_warmup_timelimit->modified ) {
 		// if we are inside timelimit period, update the endtime
-		if( GS_MatchState( &server_gs ) == MATCH_STATE_WARMUP ) {
+		if( server_gs.gameState.match_state == MATCH_STATE_WARMUP ) {
 			server_gs.gameState.match_duration = (int64_t)Abs( 60.0f * 1000 * g_warmup_timelimit->integer );
 		}
 		g_warmup_timelimit->modified = false;
@@ -203,8 +203,6 @@ void G_CheckCvars() {
 
 	G_GamestatSetFlag( GAMESTAT_FLAG_COUNTDOWN, level.gametype.countdownEnabled );
 	G_GamestatSetFlag( GAMESTAT_FLAG_INHIBITSHOOTING, level.gametype.shootingDisabled );
-
-	server_gs.gameState.max_team_players = Clamp( 0, level.gametype.maxPlayersPerTeam, 255 );
 
 }
 
@@ -461,7 +459,7 @@ void G_RunFrame( unsigned int msec ) {
 	if( GS_MatchPaused( &server_gs ) ) {
 		unsigned int serverTimeDelta = svs.gametime - game.prevServerTime;
 		// freeze match clock and linear projectiles
-		server_gs.gameState.match_start += serverTimeDelta;
+		server_gs.gameState.match_state_start_time += serverTimeDelta;
 		for( edict_t *ent = game.edicts + server_gs.maxclients; ENTNUM( ent ) < game.numentities; ent++ ) {
 			if( ent->s.linearMovement ) {
 				ent->s.linearMovementTimeStamp += serverTimeDelta;
@@ -475,7 +473,7 @@ void G_RunFrame( unsigned int msec ) {
 
 	// reset warmup clock if not enough players
 	if( GS_MatchWaiting( &server_gs ) ) {
-		server_gs.gameState.match_start = svs.gametime;
+		server_gs.gameState.match_state_start_time = svs.gametime;
 	}
 
 	level.framenum++;

@@ -969,10 +969,10 @@ static void GameMenu() {
 	bool spectating = cg.predictedPlayerState.real_team == TEAM_SPECTATOR;
 	bool ready = false;
 
-	if( GS_MatchState( &client_gs ) <= MATCH_STATE_WARMUP ) {
+	if( client_gs.gameState.match_state <= MATCH_STATE_WARMUP ) {
 		ready = cg.predictedPlayerState.ready;
 	}
-	else if( GS_MatchState( &client_gs ) == MATCH_STATE_COUNTDOWN ) {
+	else if( client_gs.gameState.match_state == MATCH_STATE_COUNTDOWN ) {
 		ready = true;
 	}
 
@@ -1016,7 +1016,7 @@ static void GameMenu() {
 			ImGui::Columns( 1 );
 		}
 		else {
-			if( GS_MatchState( &client_gs ) <= MATCH_STATE_COUNTDOWN ) {
+			if( client_gs.gameState.match_state <= MATCH_STATE_COUNTDOWN ) {
 				if( ImGui::Checkbox( ready ? "Ready!" : "Not ready", &ready ) ) {
 					Cbuf_AddText( "toggleready\n" );
 				}

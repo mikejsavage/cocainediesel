@@ -871,7 +871,7 @@ void CG_UpdateEntities() {
 		if( cgs.demoPlaying ) {
 			if( ( state->svflags & SVF_ONLYTEAM ) && cg.predictedPlayerState.team != state->team )
 				continue;
-			if( ( ( state->svflags & SVF_ONLYOWNER ) || ( state->svflags & SVF_OWNERANDCHASERS ) ) && cg.predictedPlayerState.POVnum != state->ownerNum )
+			if( ( ( state->svflags & SVF_ONLYOWNER ) || ( state->svflags & SVF_OWNERANDCHASERS ) ) && checked_cast< int >( cg.predictedPlayerState.POVnum ) != state->ownerNum )
 				continue;
 		}
 

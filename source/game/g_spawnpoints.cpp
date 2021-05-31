@@ -48,7 +48,7 @@ void SelectSpawnPoint( edict_t * ent, edict_t ** spawnpoint, Vec3 * origin, Vec3
 	edict_t * spot;
 	bool cam = false;
 
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
+	if( server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
 		spot = G_FindPostMatchCamera();
 		cam = spot != NULL;
 	}

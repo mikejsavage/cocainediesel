@@ -182,14 +182,10 @@ static char *SV_ShortInfoString() {
 	static char string[MAX_STRING_SVCINFOSTRING];
 	char hostname[64];
 	char entry[20];
-	size_t len;
-	int i, count, bots;
-	int maxcount;
-	const char *password;
 
-	bots = 0;
-	count = 0;
-	for( i = 0; i < sv_maxclients->integer; i++ ) {
+	int bots = 0;
+	int count = 0;
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
 		if( svs.clients[i].state >= CS_CONNECTED ) {
 			if( svs.clients[i].edict->r.svflags & SVF_FAKECLIENT ) {
 				bots++;
@@ -198,7 +194,7 @@ static char *SV_ShortInfoString() {
 			}
 		}
 	}
-	maxcount = sv_maxclients->integer - bots;
+	int maxcount = sv_maxclients->integer - bots;
 
 	//format:
 	//" \377\377\377\377info\\n\\server_name\\m\\map name\\u\\clients/maxclients\\EOT "
@@ -212,9 +208,9 @@ static char *SV_ShortInfoString() {
 				 maxcount > 99 ? 99 : maxcount
 				 );
 
-	len = strlen( string );
+	size_t len = strlen( string );
 
-	password = Cvar_String( "password" );
+	const char * password = Cvar_String( "password" );
 	if( password[0] != '\0' ) {
 		snprintf( entry, sizeof( entry ), "p\\\\1\\\\" );
 		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {

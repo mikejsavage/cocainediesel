@@ -5,7 +5,7 @@
 #include "imgui/imgui.h"
 
 bool CG_ScoreboardShown() {
-	if( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME ) {
+	if( client_gs.gameState.match_state > MATCH_STATE_PLAYTIME ) {
 		return true;
 	}
 
@@ -15,7 +15,7 @@ bool CG_ScoreboardShown() {
 static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float line_height ) {
 	SyncScoreboardPlayer * player = &client_gs.gameState.players[ playerIndex - 1 ];
 	// icon
-	bool warmup = GS_MatchState( &client_gs ) == MATCH_STATE_WARMUP || GS_MatchState( &client_gs ) == MATCH_STATE_COUNTDOWN;
+	bool warmup = client_gs.gameState.match_state == MATCH_STATE_WARMUP || client_gs.gameState.match_state == MATCH_STATE_COUNTDOWN;
 	const Material * icon = NULL;
 
 	if( warmup ) {
@@ -138,7 +138,7 @@ void CG_DrawScoreboard() {
 	float separator_height = ImGui::GetTextLineHeight() + 2 * padding;
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, padding ) );
 
-	bool warmup = GS_MatchState( &client_gs ) < MATCH_STATE_PLAYTIME;
+	bool warmup = client_gs.gameState.match_state < MATCH_STATE_PLAYTIME;
 
 	defer {
 		ImGui::PopStyleVar();

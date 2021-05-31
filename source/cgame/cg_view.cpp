@@ -88,15 +88,15 @@ static void CG_AddLocalSounds() {
 
 	// add local announces
 	if( GS_Countdown( &client_gs ) ) {
-		if( GS_MatchDuration( &client_gs ) ) {
+		if( client_gs.gameState.match_duration ) {
 			s64 curtime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime;
-			s64 duration = GS_MatchDuration( &client_gs );
+			s64 duration = client_gs.gameState.match_duration;
 
-			if( duration + GS_MatchStartTime( &client_gs ) < curtime ) {
-				duration = curtime - GS_MatchStartTime( &client_gs ); // avoid negative results
+			if( duration + client_gs.gameState.match_state_start_time < curtime ) {
+				duration = curtime - client_gs.gameState.match_state_start_time; // avoid negative results
 			}
 
-			float seconds = (float)( GS_MatchStartTime( &client_gs ) + duration - curtime ) * 0.001f;
+			float seconds = (float)( client_gs.gameState.match_state_start_time + duration - curtime ) * 0.001f;
 			unsigned int remainingSeconds = (unsigned int)seconds;
 
 			if( remainingSeconds != lastSecond ) {
@@ -134,7 +134,7 @@ static void CG_FlashGameWindow() {
 	static bool scoresSet = false;
 
 	// notify player of important match states
-	int newState = GS_MatchState( &client_gs );
+	int newState = client_gs.gameState.match_state;
 	if( oldState != newState ) {
 		switch( newState ) {
 			case MATCH_STATE_COUNTDOWN:
@@ -155,7 +155,7 @@ static void CG_FlashGameWindow() {
 		oldAlphaScore = client_gs.gameState.teams[ TEAM_ALPHA ].score;
 		oldBetaScore = client_gs.gameState.teams[ TEAM_BETA ].score;
 
-		flash = scoresSet && GS_TeamBasedGametype( &client_gs ) && !GS_IndividualGameType( &client_gs );
+		flash = scoresSet && GS_TeamBasedGametype( &client_gs );
 		scoresSet = true;
 	}
 

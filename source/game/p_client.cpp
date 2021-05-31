@@ -125,7 +125,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 
 	// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
 	// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
-	if( GS_MatchState( &server_gs ) != MATCH_STATE_PLAYTIME ) {
+	if( server_gs.gameState.match_state != MATCH_STATE_PLAYTIME ) {
 		body->nextThink = level.time + 3500;
 		body->think = G_FreeEdict; // body self destruction countdown
 	}
@@ -208,7 +208,7 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 		return;
 	}
 
-	if( ( GS_MatchState( &server_gs ) != MATCH_STATE_PLAYTIME ) || !level.gametype.removeInactivePlayers ) {
+	if( ( server_gs.gameState.match_state != MATCH_STATE_PLAYTIME ) || !level.gametype.removeInactivePlayers ) {
 		return;
 	}
 
@@ -739,7 +739,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 
 	// check for a password
 	value = Info_ValueForKey( userinfo, "password" );
-	if( !fakeClient && ( *password->string && ( !value || strcmp( password->string, value ) ) ) ) {
+	if( !fakeClient && ( *sv_password->string && ( !value || strcmp( sv_password->string, value ) ) ) ) {
 		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_PASSWORD ) );
 		Info_SetValueForKey( userinfo, "rejflag", va( "%i", 0 ) );
 		if( value && value[0] ) {
@@ -922,7 +922,7 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	client->ps.pmove.velocity = ent->velocity;
 	client->ps.viewangles = ent->s.angles;
 
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH || GS_MatchPaused( &server_gs )
+	if( server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH || GS_MatchPaused( &server_gs )
 		|| ( ent->movetype != MOVETYPE_PLAYER && ent->movetype != MOVETYPE_NOCLIP ) ) {
 		client->ps.pmove.pm_type = PM_FREEZE;
 	} else if( ent->movetype == MOVETYPE_NOCLIP ) {
@@ -1024,7 +1024,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		return;
 	}
 
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
+	if( server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
 		return;
 	}
 

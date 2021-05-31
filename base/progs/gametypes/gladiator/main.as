@@ -717,7 +717,6 @@ void GT_InitGametype() {
 	gametype.isTeamBased = false;
 	gametype.isRace = false;
 	gametype.hasChallengersQueue = false;
-	gametype.maxPlayersPerTeam = 0;
 
 	gametype.readyAnnouncementEnabled = false;
 	gametype.scoreAnnouncementEnabled = false;

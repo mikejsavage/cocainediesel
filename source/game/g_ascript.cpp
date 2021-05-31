@@ -440,16 +440,8 @@ static bool objectMatch_isPaused( SyncGameState *self ) {
 	return GS_MatchPaused( &server_gs );
 }
 
-static int64_t objectMatch_startTime( SyncGameState *self ) {
-	return GS_MatchStartTime( &server_gs );
-}
-
-static int64_t objectMatch_endTime( SyncGameState *self ) {
-	return GS_MatchEndTime( &server_gs );
-}
-
 static int objectMatch_getState( SyncGameState *self ) {
-	return GS_MatchState( &server_gs );
+	return server_gs.gameState.match_state;
 }
 
 static asstring_t *objectMatch_getScore( SyncGameState *self ) {
@@ -492,8 +484,6 @@ static const asMethod_t match_Methods[] =
 	{ ASLIB_FUNCTION_DECL( bool, scoreLimitHit, ( ) const ), asFUNCTION( objectMatch_scoreLimitHit ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, timeLimitHit, ( ) const ), asFUNCTION( objectMatch_timeLimitHit ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, isPaused, ( ) const ), asFUNCTION( objectMatch_isPaused ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( int64, startTime, ( ) const ), asFUNCTION( objectMatch_startTime ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( int64, endTime, ( ) const ), asFUNCTION( objectMatch_endTime ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, getState, ( ) const ), asFUNCTION( objectMatch_getState ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, getScore, ( ) const ), asFUNCTION( objectMatch_getScore ),  asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setScore, ( String & in ) ), asFUNCTION( objectMatch_setScore ), asCALL_CDECL_OBJLAST },
@@ -537,10 +527,6 @@ static void objectGametypeDescriptor_SetTeamSpawnsystem( int team, int spawnsyst
 	G_SpawnQueue_SetTeamSpawnsystem( team, spawnsystem, wave_time, wave_maxcount, spectate_team );
 }
 
-static bool objectGametypeDescriptor_isIndividualGameType( gametype_descriptor_t *self ) {
-	return GS_IndividualGameType( &server_gs );
-}
-
 static const asFuncdef_t gametypedescr_Funcdefs[] =
 {
 	ASLIB_FUNCDEF_NULL
@@ -554,7 +540,6 @@ static const asBehavior_t gametypedescr_ObjectBehaviors[] =
 static const asMethod_t gametypedescr_Methods[] =
 {
 	{ ASLIB_FUNCTION_DECL( void, setTeamSpawnsystem, ( int team, int spawnsystem, int wave_time, int wave_maxcount, bool deadcam ) ), asFUNCTION( objectGametypeDescriptor_SetTeamSpawnsystem ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, get_isIndividualGameType, ( ) const ), asFUNCTION( objectGametypeDescriptor_isIndividualGameType ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
 };
@@ -565,7 +550,6 @@ static const asProperty_t gametypedescr_Properties[] =
 	{ ASLIB_PROPERTY_DECL( bool, isRace ), offsetof( gametype_descriptor_t, isRace ) },
 	{ ASLIB_PROPERTY_DECL( bool, hasChallengersQueue ), offsetof( gametype_descriptor_t, hasChallengersQueue ) },
 	{ ASLIB_PROPERTY_DECL( bool, hasChallengersRoulette ), offsetof( gametype_descriptor_t, hasChallengersRoulette ) },
-	{ ASLIB_PROPERTY_DECL( int, maxPlayersPerTeam ), offsetof( gametype_descriptor_t, maxPlayersPerTeam ) },
 	{ ASLIB_PROPERTY_DECL( bool, readyAnnouncementEnabled ), offsetof( gametype_descriptor_t, readyAnnouncementEnabled ) },
 	{ ASLIB_PROPERTY_DECL( bool, scoreAnnouncementEnabled ), offsetof( gametype_descriptor_t, scoreAnnouncementEnabled ) },
 	{ ASLIB_PROPERTY_DECL( bool, countdownEnabled ), offsetof( gametype_descriptor_t, countdownEnabled ) },
@@ -723,7 +707,7 @@ static int objectGameClient_PlayerNum( gclient_t *self ) {
 }
 
 static bool objectGameClient_isReady( gclient_t *self ) {
-	return ( level.ready[self - game.clients] || GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME ) ? true : false;
+	return ( level.ready[self - game.clients] || server_gs.gameState.match_state == MATCH_STATE_PLAYTIME ) ? true : false;
 }
 
 static bool objectGameClient_isBot( gclient_t *self ) {

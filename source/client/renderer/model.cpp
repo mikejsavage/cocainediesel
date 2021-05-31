@@ -141,7 +141,7 @@ static void DrawNode( const Model * model, u8 node_idx, const Mat4 & transform, 
 }
 
 void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
-	UniformBlock pose_uniforms;
+	UniformBlock pose_uniforms = { };
 	if( palettes.skinning_matrices.ptr != NULL ) {
 		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
 	}
@@ -175,7 +175,7 @@ void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 
 		pipeline->set_uniform( "u_Outline", outline_uniforms );
 	};
 
-	UniformBlock pose_uniforms;
+	UniformBlock pose_uniforms = { };
 	if( palettes.skinning_matrices.ptr != NULL ) {
 		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
 	}
@@ -197,7 +197,7 @@ void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec
 		pipeline->set_uniform( "u_Material", material_uniforms );
 	};
 
-	UniformBlock pose_uniforms;
+	UniformBlock pose_uniforms = { };
 	if( palettes.skinning_matrices.ptr != NULL ) {
 		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
 	}
@@ -227,7 +227,7 @@ void DrawModelShadow( const Model * model, const Mat4 & transform, const Vec4 & 
 		pipeline->set_uniform( "u_View", frame_static.far_shadowmap_view_uniforms );
 	};
 
-	UniformBlock pose_uniforms;
+	UniformBlock pose_uniforms = { };
 	if( palettes.skinning_matrices.ptr != NULL ) {
 		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
 	}

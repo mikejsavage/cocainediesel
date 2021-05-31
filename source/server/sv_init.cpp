@@ -286,11 +286,8 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 * SV_Map
 * command from the console or progs.
 */
-void SV_Map( const char *level, bool devmap ) {
+void SV_Map( const char * map, bool devmap ) {
 	ZoneScoped;
-
-	client_t *cl;
-	int i;
 
 	if( svs.demo.file ) {
 		SV_Demo_Stop_f();
@@ -301,7 +298,8 @@ void SV_Map( const char *level, bool devmap ) {
 	}
 
 	// remove all bots before changing map
-	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		client_t * cl = &svs.clients[ i ];
 		if( cl->state && cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
 			SV_DropClient( cl, DROP_TYPE_GENERAL, NULL );
 		}
@@ -310,7 +308,7 @@ void SV_Map( const char *level, bool devmap ) {
 	// wsw : Medar : this used to be at SV_SpawnServer, but we need to do it before sending changing
 	// so we don't send frames after sending changing command
 	// leave slots at start for clients only
-	for( i = 0; i < sv_maxclients->integer; i++ ) {
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
 		// needs to reconnect
 		if( svs.clients[i].state > CS_CONNECTING ) {
 			svs.clients[i].state = CS_CONNECTING;
@@ -322,6 +320,6 @@ void SV_Map( const char *level, bool devmap ) {
 
 	SV_BroadcastCommand( "changing\n" );
 	SV_SendClientMessages();
-	SV_SpawnServer( level, devmap );
+	SV_SpawnServer( map, devmap );
 	SV_BroadcastCommand( "reconnect\n" );
 }

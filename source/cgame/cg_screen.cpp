@@ -130,19 +130,19 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	int64_t clocktime, startTime, duration, curtime;
 	char string[12];
 
-	if( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME ) {
+	if( client_gs.gameState.match_state > MATCH_STATE_PLAYTIME ) {
 		return;
 	}
 
-	if( GS_MatchClockOverride( &client_gs ) ) {
-		clocktime = GS_MatchClockOverride( &client_gs );
+	if( client_gs.gameState.clock_override != 0 ) {
+		clocktime = client_gs.gameState.clock_override;
 		if( clocktime < 0 )
 			return;
 	}
 	else {
 		curtime = ( GS_MatchWaiting( &client_gs ) || GS_MatchPaused( &client_gs ) ) ? cg.frame.serverTime : cl.serverTime;
-		duration = GS_MatchDuration( &client_gs );
-		startTime = GS_MatchStartTime( &client_gs );
+		duration = client_gs.gameState.match_duration;
+		startTime = client_gs.gameState.match_state_start_time;
 
 		// count downwards when having a duration
 		if( duration ) {
@@ -710,11 +710,11 @@ void CG_AddBombSite( centity_t * cent ) {
 }
 
 void CG_DrawBombHUD() {
-	if( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME )
+	if( client_gs.gameState.match_state > MATCH_STATE_PLAYTIME )
 		return;
 
 	int my_team = cg.predictedPlayerState.team;
-	bool show_labels = my_team != TEAM_SPECTATOR && GS_MatchState( &client_gs ) == MATCH_STATE_PLAYTIME;
+	bool show_labels = my_team != TEAM_SPECTATOR && client_gs.gameState.match_state == MATCH_STATE_PLAYTIME;
 
 	Vec4 yellow = sRGBToLinear( rgba8_diesel_yellow );
 
@@ -749,7 +749,7 @@ void CG_DrawBombHUD() {
 		else {
 			if( show_labels ) {
 				Vec4 color = vec4_white;
-				const char * msg;
+				const char * msg = "";
 
 				if( bomb.state == BombState_Dropped ) {
 					msg = "RETRIEVE";

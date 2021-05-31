@@ -171,7 +171,7 @@ void Cmd_ChasePrev_f( edict_t *ent ) {
 static void Cmd_Position_f( edict_t *ent ) {
 	const char *action;
 
-	if( !sv_cheats->integer && GS_MatchState( &server_gs ) > MATCH_STATE_WARMUP &&
+	if( !sv_cheats->integer && server_gs.gameState.match_state > MATCH_STATE_WARMUP &&
 		ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
 		G_PrintMsg( ent, "Position command is only available in warmup and in spectator mode.\n" );
 		return;
@@ -394,7 +394,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 }
 
 static void Cmd_CoinToss_f( edict_t *ent ) {
-	if( GS_MatchState( &server_gs ) > MATCH_STATE_WARMUP && !GS_MatchPaused( &server_gs ) ) {
+	if( server_gs.gameState.match_state > MATCH_STATE_WARMUP && !GS_MatchPaused( &server_gs ) ) {
 		G_PrintMsg( ent, "You can only toss coins during warmup or timeouts\n" );
 		return;
 	}
@@ -546,22 +546,15 @@ static const g_vsays_t g_vsays[] = {
 	{ NULL, 0 }
 };
 
-/*
-* G_vsay_f
-*/
-static void G_vsay_f( edict_t *ent, bool team ) {
+static void G_vsay_f( edict_t *ent ) {
 	const char *msg = Cmd_Argv( 1 );
 
 	if( ent->r.client && ( ent->r.client->muted & 2 ) ) {
 		return;
 	}
 
-	if( G_ISGHOSTING( ent ) && GS_MatchState( &server_gs ) < MATCH_STATE_POSTMATCH ) {
+	if( G_ISGHOSTING( ent ) && server_gs.gameState.match_state < MATCH_STATE_POSTMATCH ) {
 		return;
-	}
-
-	if( ( !level.gametype.isTeamBased || GS_IndividualGameType( &server_gs ) ) && ent->s.team != TEAM_SPECTATOR ) {
-		team = false;
 	}
 
 	if( !( ent->r.svflags & SVF_FAKECLIENT ) ) { // ignore flood checks on bots
@@ -581,11 +574,6 @@ static void G_vsay_f( edict_t *ent, bool team ) {
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
 		event->r.svflags |= SVF_BROADCAST; // force sending even when not in PVS
 		event->s.ownerNum = ent->s.number;
-
-		if( team ) {
-			event->s.team = ent->s.team;
-			event->r.svflags |= SVF_ONLYTEAM;
-		}
 
 		return;
 	}
@@ -607,23 +595,6 @@ static void G_vsay_f( edict_t *ent, bool team ) {
 	G_PrintMsg( ent, "%s", string );
 }
 
-/*
-* G_vsay_Cmd
-*/
-static void G_vsay_Cmd( edict_t *ent ) {
-	G_vsay_f( ent, false );
-}
-
-/*
-* G_Teams_vsay_Cmd
-*/
-static void G_Teams_vsay_Cmd( edict_t *ent ) {
-	G_vsay_f( ent, true );
-}
-
-/*
-* Cmd_Join_f
-*/
 static void Cmd_Join_f( edict_t *ent ) {
 	if( CheckFlood( ent, false ) ) {
 		return;
@@ -638,7 +609,7 @@ static void Cmd_Join_f( edict_t *ent ) {
 static void Cmd_Timeout_f( edict_t *ent ) {
 	int num;
 
-	if( ent->s.team == TEAM_SPECTATOR || GS_MatchState( &server_gs ) != MATCH_STATE_PLAYTIME ) {
+	if( ent->s.team == TEAM_SPECTATOR || server_gs.gameState.match_state != MATCH_STATE_PLAYTIME ) {
 		return;
 	}
 
@@ -829,8 +800,7 @@ void G_InitGameCommands() {
 
 	G_AddCommand( "spray", Cmd_Spray_f );
 
-	G_AddCommand( "vsay", G_vsay_Cmd );
-	G_AddCommand( "vsay_team", G_Teams_vsay_Cmd );
+	G_AddCommand( "vsay", G_vsay_f );
 }
 
 /*

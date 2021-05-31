@@ -171,11 +171,7 @@ static int CG_GetFPS( const void *parameter ) {
 }
 
 static int CG_GetMatchState( const void *parameter ) {
-	return GS_MatchState( &client_gs );
-}
-
-static int CG_GetMatchDuration( const void *parameter ) {
-	return GS_MatchDuration( &client_gs );
+	return client_gs.gameState.match_state;
 }
 
 static int CG_Paused( const void *parameter ) {
@@ -254,7 +250,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "SPEED_VERTICAL", CG_GetSpeedVertical, NULL },
 	{ "FPS", CG_GetFPS, NULL },
 	{ "MATCH_STATE", CG_GetMatchState, NULL },
-	{ "MATCH_DURATION", CG_GetMatchDuration, NULL },
 	{ "PAUSED", CG_Paused, NULL },
 	{ "VIDWIDTH", CG_GetVidWidth, NULL },
 	{ "VIDHEIGHT", CG_GetVidHeight, NULL },

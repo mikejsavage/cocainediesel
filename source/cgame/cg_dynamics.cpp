@@ -239,7 +239,8 @@ static MinMax3 ScreenSpaceBoundsForAxis( Vec2 axis, Vec3 view_space_origin, floa
 	float tSquared = LengthSquared( C ) - radius * radius;
 	bool camera_outside_sphere = tSquared > 0.0f;
 
-	Vec2 min, max;
+	Vec2 min = Vec2( 0.0f );
+	Vec2 max = Vec2( 0.0f );
 
 	if( camera_outside_sphere ) {
 		float t = sqrtf( tSquared );

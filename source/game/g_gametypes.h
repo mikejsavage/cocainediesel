@@ -42,7 +42,6 @@ typedef struct {
 	bool isRace;
 	bool hasChallengersQueue;
 	bool hasChallengersRoulette;
-	int maxPlayersPerTeam;
 
 	// few default settings
 	bool readyAnnouncementEnabled;

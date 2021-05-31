@@ -103,7 +103,7 @@ static void AI_SpecThink( edict_t * self ) {
 }
 
 static void AI_GameThink( edict_t * self ) {
-	if( GS_MatchState( &server_gs ) <= MATCH_STATE_WARMUP ) {
+	if( server_gs.gameState.match_state <= MATCH_STATE_WARMUP ) {
 		G_Match_Ready( self );
 	}
 

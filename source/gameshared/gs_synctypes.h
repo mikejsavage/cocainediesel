@@ -150,14 +150,13 @@ struct SyncBombGameState {
 struct SyncGameState {
 	u16 flags;
 	int match_state;
-	int64_t match_start;
-	int64_t match_duration;
-	int64_t clock_override;
+	s64 match_state_start_time;
+	s64 match_duration;
+	s64 clock_override;
 
 	u8 round_num;
 	RoundState round_state;
 	RoundType round_type;
-	u8 max_team_players;
 
 	SyncTeamState teams[ GS_MAX_TEAMS ];
 	SyncScoreboardPlayer players[ MAX_CLIENTS ];

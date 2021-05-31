@@ -744,13 +744,12 @@ static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGa
 static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState & baseline ) {
 	Delta( buf, state.flags, baseline.flags );
 	Delta( buf, state.match_state, baseline.match_state );
-	Delta( buf, state.match_start, baseline.match_start );
+	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
 	Delta( buf, state.round_num, baseline.round_num );
 	Delta( buf, state.round_state, baseline.round_state );
 	Delta( buf, state.round_type, baseline.round_type );
-	Delta( buf, state.max_team_players, baseline.max_team_players );
 	Delta( buf, state.teams, baseline.teams );
 	Delta( buf, state.players, baseline.players );
 	Delta( buf, state.map, baseline.map );

@@ -209,79 +209,6 @@ static const char *G_VoteMapCurrent() {
 }
 
 /*
-* nextmap
-*/
-
-static void G_VoteNextMapPassed( callvotedata_t *vote ) {
-	level.callvote_map[0] = 0;
-	G_EndMatch();
-}
-
-/*
-* scorelimit
-*/
-
-static bool G_VoteScorelimitValidate( callvotedata_t *vote, bool first ) {
-	int scorelimit = atoi( vote->argv[0] );
-
-	if( scorelimit < 0 ) {
-		if( first ) {
-			G_PrintMsg( vote->caller, "%sCan't set negative scorelimit\n", S_COLOR_RED );
-		}
-		return false;
-	}
-
-	if( scorelimit == g_scorelimit->integer ) {
-		if( first ) {
-			G_PrintMsg( vote->caller, "%sScorelimit is already set to %i\n", S_COLOR_RED, scorelimit );
-		}
-		return false;
-	}
-
-	return true;
-}
-
-static void G_VoteScorelimitPassed( callvotedata_t *vote ) {
-	Cvar_Set( "g_scorelimit", va( "%i", atoi( vote->argv[0] ) ) );
-}
-
-static const char *G_VoteScorelimitCurrent() {
-	return va( "%i", g_scorelimit->integer );
-}
-
-/*
-* warmup_timelimit
-*/
-
-static bool G_VoteWarmupTimelimitValidate( callvotedata_t *vote, bool first ) {
-	int warmup_timelimit = atoi( vote->argv[0] );
-
-	if( warmup_timelimit < 0 ) {
-		if( first ) {
-			G_PrintMsg( vote->caller, "%sCan't set negative warmup timelimit\n", S_COLOR_RED );
-		}
-		return false;
-	}
-
-	if( warmup_timelimit == g_warmup_timelimit->integer ) {
-		if( first ) {
-			G_PrintMsg( vote->caller, "%sWarmup timelimit is already set to %i\n", S_COLOR_RED, warmup_timelimit );
-		}
-		return false;
-	}
-
-	return true;
-}
-
-static void G_VoteWarmupTimelimitPassed( callvotedata_t *vote ) {
-	Cvar_Set( "g_warmup_timelimit", va( "%i", atoi( vote->argv[0] ) ) );
-}
-
-static const char *G_VoteWarmupTimelimitCurrent() {
-	return va( "%i", g_warmup_timelimit->integer );
-}
-
-/*
 * start
 */
 
@@ -794,45 +721,6 @@ static bool G_VoteTimeinValidate( callvotedata_t *vote, bool first ) {
 
 static void G_VoteTimeinPassed( callvotedata_t *vote ) {
 	level.timeout.endtime = level.timeout.time + TIMEIN_TIME + FRAMETIME;
-}
-
-/*
-* allow_uneven
-*/
-static bool G_VoteAllowUnevenValidate( callvotedata_t *vote, bool first ) {
-	int allow_uneven = atoi( vote->argv[0] );
-
-	if( allow_uneven != 0 && allow_uneven != 1 ) {
-		return false;
-	}
-
-	if( allow_uneven && g_teams_allow_uneven->integer ) {
-		if( first ) {
-			G_PrintMsg( vote->caller, "%sUneven teams is already allowed.\n", S_COLOR_RED );
-		}
-		return false;
-	}
-
-	if( !allow_uneven && !g_teams_allow_uneven->integer ) {
-		if( first ) {
-			G_PrintMsg( vote->caller, "%sUneven teams is already disallowed\n", S_COLOR_RED );
-		}
-		return false;
-	}
-
-	return true;
-}
-
-static void G_VoteAllowUnevenPassed( callvotedata_t *vote ) {
-	Cvar_Set( "g_teams_allow_uneven", va( "%i", atoi( vote->argv[0] ) ) );
-}
-
-static const char *G_VoteAllowUnevenCurrent() {
-	if( g_teams_allow_uneven->integer ) {
-		return "1";
-	} else {
-		return "0";
-	}
 }
 
 //===================================================================
@@ -1350,11 +1238,11 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 void G_CallVotes_Init() {
 	callvotetype_t *callvote;
 
-	g_callvote_electpercentage =    Cvar_Get( "g_vote_percent", "55", CVAR_ARCHIVE );
-	g_callvote_electtime =      Cvar_Get( "g_vote_electtime", "20", CVAR_ARCHIVE );
-	g_callvote_enabled =        Cvar_Get( "g_vote_allowed", "1", CVAR_ARCHIVE );
-	g_callvote_maxchanges =     Cvar_Get( "g_vote_maxchanges", "3", CVAR_ARCHIVE );
-	g_callvote_cooldowntime =   Cvar_Get( "g_vote_cooldowntime", "5", CVAR_ARCHIVE );
+	g_callvote_electpercentage = Cvar_Get( "g_vote_percent", "55", CVAR_ARCHIVE );
+	g_callvote_electtime = Cvar_Get( "g_vote_electtime", "20", CVAR_ARCHIVE );
+	g_callvote_enabled = Cvar_Get( "g_vote_allowed", "1", CVAR_ARCHIVE );
+	g_callvote_maxchanges = Cvar_Get( "g_vote_maxchanges", "3", CVAR_ARCHIVE );
+	g_callvote_cooldowntime = Cvar_Get( "g_vote_cooldowntime", "5", CVAR_ARCHIVE );
 
 	// register all callvotes
 
@@ -1367,36 +1255,6 @@ void G_CallVotes_Init() {
 	callvote->argument_format = "<name>";
 	callvote->argument_type = "option";
 	callvote->help = "Changes map";
-
-	callvote = G_RegisterCallvote( "nextmap" );
-	callvote->expectedargs = 0;
-	callvote->validate = NULL;
-	callvote->execute = G_VoteNextMapPassed;
-	callvote->current = NULL;
-	callvote->extraHelp = NULL;
-	callvote->argument_format = NULL;
-	callvote->argument_type = NULL;
-	callvote->help = "Jumps to the next map";
-
-	callvote = G_RegisterCallvote( "scorelimit" );
-	callvote->expectedargs = 1;
-	callvote->validate = G_VoteScorelimitValidate;
-	callvote->execute = G_VoteScorelimitPassed;
-	callvote->current = G_VoteScorelimitCurrent;
-	callvote->extraHelp = NULL;
-	callvote->argument_format = "<number>";
-	callvote->argument_type = "integer";
-	callvote->help = "Sets the number of frags or caps needed to win the match\nSpecify 0 to disable";
-
-	callvote = G_RegisterCallvote( "warmup_timelimit" );
-	callvote->expectedargs = 1;
-	callvote->validate = G_VoteWarmupTimelimitValidate;
-	callvote->execute = G_VoteWarmupTimelimitPassed;
-	callvote->current = G_VoteWarmupTimelimitCurrent;
-	callvote->extraHelp = NULL;
-	callvote->argument_format = "<minutes>";
-	callvote->argument_type = "integer";
-	callvote->help = "Sets the number of minutes after which the warmup ends\nSpecify 0 to disable";
 
 	callvote = G_RegisterCallvote( "start" );
 	callvote->expectedargs = 0;
@@ -1477,15 +1335,6 @@ void G_CallVotes_Init() {
 	callvote->argument_format = NULL;
 	callvote->argument_type = NULL;
 	callvote->help = "Resumes the game if in timeout";
-
-	callvote = G_RegisterCallvote( "allow_uneven" );
-	callvote->expectedargs = 1;
-	callvote->validate = G_VoteAllowUnevenValidate;
-	callvote->execute = G_VoteAllowUnevenPassed;
-	callvote->current = G_VoteAllowUnevenCurrent;
-	callvote->extraHelp = NULL;
-	callvote->argument_format = "<1 or 0>";
-	callvote->argument_type = "bool";
 
 	// wsw : pb : server admin can now disable a specific callvote command (g_disable_vote_<callvote name>)
 	for( callvote = callvotesHeadNode; callvote != NULL; callvote = callvote->next ) {

@@ -28,12 +28,12 @@ require( "libs.curl" )
 require( "libs.freetype" )
 require( "libs.gg" )
 require( "libs.glad" )
-require( "libs.glfw3" )
 require( "libs.imgui" )
 require( "libs.mbedtls" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
 require( "libs.openal" )
+require( "libs.sdl2" )
 require( "libs.stb" )
 require( "libs.tracy" )
 require( "libs.whereami" )
@@ -89,7 +89,6 @@ do
 			"ggentropy",
 			"ggformat",
 			"glad",
-			"glfw3",
 			"meshoptimizer",
 			"monocypher",
 			"openal",
@@ -97,6 +96,7 @@ do
 			"stb_image_write",
 			"stb_rect_pack",
 			"stb_vorbis",
+			"sdl2",
 			"tracy",
 			"whereami",
 			"zlib",

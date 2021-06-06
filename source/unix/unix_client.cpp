@@ -55,3 +55,7 @@ bool Sys_BeingDebugged() {
 
 	return WEXITSTATUS( status ) == 1;
 }
+
+void FlashWindow() {
+	// TODO
+}

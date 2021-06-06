@@ -27,6 +27,11 @@ bool Sys_OpenInWebBrowser( const char * url ) {
 	return ok > 32;
 }
 
+void FlashWindow() {
+	// TODO
+	// FlashWindowEx( NULL );
+}
+
 int main( int argc, char ** argv );
 int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char * szCmdLine, int iCmdShow ) {
 	return main( __argc, __argv );

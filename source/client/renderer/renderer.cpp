@@ -422,15 +422,13 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	if( msaa ) {
 		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", &nonworld_opaque_tracy, frame_static.msaa_fb );
-		frame_static.transparent_pass = AddRenderPass( "Render transparent", &transparent_tracy, frame_static.msaa_fb );
-
-		AddResolveMSAAPass( frame_static.msaa_fb, frame_static.postprocess_fb, &msaa_tracy );
+		AddResolveMSAAPass( "Resolve MSAA", &msaa_tracy, frame_static.msaa_fb, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
 	}
 	else {
 		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", &nonworld_opaque_tracy, frame_static.postprocess_fb );
-		frame_static.transparent_pass = AddRenderPass( "Render transparent", &transparent_tracy, frame_static.postprocess_fb );
 	}
 
+	frame_static.transparent_pass = AddRenderPass( "Render transparent", &transparent_tracy, frame_static.postprocess_fb );
 	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes", &silhouettes_tracy, frame_static.postprocess_fb );
 	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI", &ui_tracy, frame_static.postprocess_fb );
 	frame_static.postprocess_pass = AddRenderPass( "Postprocess", &postprocess_tracy, ClearColor_Do );

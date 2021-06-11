@@ -270,8 +270,15 @@ struct TextureArrayConfig {
 
 namespace tracy { struct SourceLocationData; }
 
+enum RenderPassType {
+	RenderPass_Normal,
+	RenderPass_Blit,
+};
+
 struct RenderPass {
 	const char * name = NULL;
+
+	RenderPassType type;
 
 	Framebuffer target = { };
 
@@ -283,7 +290,7 @@ struct RenderPass {
 
 	bool sorted = true;
 
-	Framebuffer msaa_source = { };
+	Framebuffer blit_source = { };
 
 	const tracy::SourceLocationData * tracy;
 };
@@ -308,7 +315,8 @@ u8 AddRenderPass( const RenderPass & config );
 u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
 u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
 u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target = { } );
-void AddResolveMSAAPass( Framebuffer src, Framebuffer dst, const tracy::SourceLocationData * tracy );
+void AddBlitPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+void AddResolveMSAAPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 

@@ -725,6 +725,16 @@ static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u
 		glVertexAttribPointer( index, num_components, type, normalized, stride, gl_offset );
 }
 
+static void SubmitFramebufferBlit( const RenderPass & pass ) {
+	Framebuffer src = pass.blit_source;
+	Framebuffer target = pass.target;
+	glBindFramebuffer( GL_READ_FRAMEBUFFER, src.fbo );
+	GLbitfield clear_mask = 0;
+	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
+	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
+	glBlitFramebuffer( 0, 0, src.width, src.height, 0, 0, target.width, target.height, clear_mask, GL_NEAREST );
+}
+
 static void SetupRenderPass( const RenderPass & pass ) {
 	ZoneScoped;
 	ZoneText( pass.name, strlen( pass.name ) );
@@ -749,6 +759,11 @@ static void SetupRenderPass( const RenderPass & pass ) {
 			prev_viewport_height = viewport_height;
 			glViewport( 0, 0, viewport_width, viewport_height );
 		}
+	}
+
+	if( pass.type == RenderPass_Blit ) {
+		SubmitFramebufferBlit( pass );
+		return;
 	}
 
 	GLbitfield clear_mask = 0;
@@ -853,12 +868,6 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	glBindVertexArray( 0 );
 }
 
-static void SubmitResolveMSAA( Framebuffer fb ) {
-	assert( fb.width == frame_static.viewport_width && fb.height == frame_static.viewport_height );
-	glBindFramebuffer( GL_READ_FRAMEBUFFER, fb.fbo );
-	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
-}
-
 void RenderBackendSubmitFrame() {
 	ZoneScoped;
 
@@ -891,12 +900,7 @@ void RenderBackendSubmitFrame() {
 				SetupRenderPass( render_passes[ pass_idx ] );
 			}
 
-			if( dc.pipeline.shader == NULL ) {
-				SubmitResolveMSAA( render_passes[ dc.pipeline.pass ].msaa_source );
-			}
-			else {
-				SubmitDrawCall( dc );
-			}
+			SubmitDrawCall( dc );
 		}
 	}
 
@@ -1637,6 +1641,7 @@ u8 AddRenderPass( const RenderPass & pass ) {
 
 u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color, ClearDepth clear_depth ) {
 	RenderPass pass;
+	pass.type = RenderPass_Normal;
 	pass.target = target;
 	pass.name = name;
 	pass.clear_color = clear_color == ClearColor_Do;
@@ -1652,6 +1657,7 @@ u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, Cl
 
 u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target ) {
 	RenderPass pass;
+	pass.type = RenderPass_Normal;
 	pass.target = target;
 	pass.name = name;
 	pass.sorted = false;
@@ -1659,20 +1665,20 @@ u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * t
 	return AddRenderPass( pass );
 }
 
-void AddResolveMSAAPass( Framebuffer src, Framebuffer dst, const tracy::SourceLocationData * tracy ) {
+void AddBlitPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color, ClearDepth clear_depth ) {
 	RenderPass pass;
-	pass.name = "Resolve MSAA";
-	pass.msaa_source = src;
-	pass.target = dst;
+	pass.type = RenderPass_Blit;
+	pass.name = name;
 	pass.tracy = tracy;
+	pass.blit_source = src;
+	pass.target = dst;
+	pass.clear_color = clear_color;
+	pass.clear_depth = clear_depth;
+	AddRenderPass( pass );
+}
 
-	PipelineState dummy;
-	dummy.pass = AddRenderPass( pass );
-	dummy.shader = NULL;
-
-	DrawCall dc = { };
-	dc.pipeline = dummy;
-	draw_calls.add( dc );
+void AddResolveMSAAPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color, ClearDepth clear_depth ) {
+	AddBlitPass( name, tracy, src, dst, clear_color, clear_depth );
 }
 
 void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, float radius, u32 num_particles, float dt ) {

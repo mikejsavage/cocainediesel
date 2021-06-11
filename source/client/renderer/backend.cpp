@@ -1726,7 +1726,7 @@ void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffe
 	draw_calls.add( dc );
 }
 
-void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material * gradient, BlendFunc blend_func, u32 num_particles ) {
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, BlendFunc blend_func, u32 num_particles ) {
 	assert( in_frame );
 
 	PipelineState pipeline;
@@ -1736,8 +1736,6 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material 
 	pipeline.write_depth = false;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
-	pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( HalfPixelSize( gradient ).x ) );
-	pipeline.set_texture( "u_GradientTexture", gradient->texture );
 	pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
 
 	DrawCall dc = { };
@@ -1758,7 +1756,7 @@ void DownloadFramebuffer( void * buf ) {
 	prev_fbo = 0;
 }
 
-void DrawInstancedParticles( VertexBuffer vb, const Model * model, const Material * gradient, u32 num_particles ) {
+void DrawInstancedParticles( VertexBuffer vb, const Model * model, u32 num_particles ) {
 	assert( in_frame );
 
 	UniformBlock model_uniforms = UploadModelUniforms( model->transform );
@@ -1771,9 +1769,6 @@ void DrawInstancedParticles( VertexBuffer vb, const Model * model, const Materia
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
-		pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( HalfPixelSize( gradient ).x ) );
-		// pipeline.set_texture( "u_BaseTexture", material->texture );
-		pipeline.set_texture( "u_GradientTexture", gradient->texture );
 
 		const Model::Primitive primitive = model->primitives[ i ];
 		DrawCall dc = { };

@@ -86,8 +86,6 @@ struct ParticleSystem {
 
 	const Model * model;
 
-	const Material * gradient;
-
 	BlendFunc blend_func;
 	float radius;
 

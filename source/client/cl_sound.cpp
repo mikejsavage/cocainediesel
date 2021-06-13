@@ -109,6 +109,8 @@ static bool music_playing;
 
 static EntitySound entities[ MAX_EDICTS ];
 
+constexpr float MusicIsWayTooLoud = 0.25f;
+
 const char *ALErrorMessage( ALenum error ) {
 	switch( error ) {
 		case AL_NO_ERROR:
@@ -539,7 +541,7 @@ bool S_Init() {
 	s_device = Cvar_Get( "s_device", "", CVAR_ARCHIVE );
 	s_device->modified = false;
 	s_volume = Cvar_Get( "s_volume", "1", CVAR_ARCHIVE );
-	s_musicvolume = Cvar_Get( "s_musicvolume", "0.5", CVAR_ARCHIVE );
+	s_musicvolume = Cvar_Get( "s_musicvolume", "1", CVAR_ARCHIVE );
 	s_muteinbackground = Cvar_Get( "s_muteinbackground", "1", CVAR_ARCHIVE );
 	s_muteinbackground->modified = true;
 
@@ -766,7 +768,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 	}
 
 	if( ( s_volume->modified || s_musicvolume->modified ) && music_playing ) {
-		CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
+		CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value * MusicIsWayTooLoud );
 	}
 
 	s_volume->modified = false;
@@ -969,7 +971,7 @@ void S_StartMenuMusic() {
 	if( music_playing )
 		return;
 
-	CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
+	CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value * MusicIsWayTooLoud );
 	CheckedALSource( music_source, AL_DIRECT_CHANNELS_SOFT, AL_TRUE );
 	CheckedALSource( music_source, AL_LOOPING, AL_TRUE );
 	CheckedALSource( music_source, AL_BUFFER, sound.buf );

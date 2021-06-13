@@ -93,8 +93,6 @@ void DeleteParticleSystem( Allocator * a, ParticleSystem * ps );
 void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	DeleteParticleSystem( a, ps );
 
-	ps->gradient = FindMaterial( "$whiteimage" );
-
 	ps->particles = ALLOC_SPAN( a, GPUParticle, ps->max_particles );
 	ps->gpu_instances = ALLOC_SPAN( a, u32, ps->max_particles );
 	if( ps->feedback ) {
@@ -791,6 +789,8 @@ bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	ZoneScopedN( "Update particles" );
 
+	size_t previous_num_particles = ps->num_particles;
+
 	{
 		ZoneScopedN( "Despawn expired particles" );
 
@@ -821,9 +821,9 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	{
 		ZoneScopedN( "Spawn new particles" );
 		if( ps->new_particles > 0 ) {
-			WriteVertexBuffer( ps->vb, ps->particles.begin(), ps->new_particles * sizeof( GPUParticle ), ps->num_particles * sizeof( GPUParticle ) );
+			WriteVertexBuffer( ps->vb, ps->particles.begin(), ps->new_particles * sizeof( GPUParticle ), previous_num_particles * sizeof( GPUParticle ) );
 			for( size_t i = 0; i < ps->new_particles; i++ ) {
-				ps->gpu_instances[ ps->num_particles + i ] = ps->num_particles + i;
+				ps->gpu_instances[ ps->num_particles + i ] = previous_num_particles + i;
 				if( !ps->feedback ) {
 					ps->gpu_instances_time[ ps->num_particles + i ] = cls.gametime + ps->particles[ i ].lifetime * 1000.0f;
 				}
@@ -831,9 +831,12 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		}
 	}
 
+	ps->num_particles += ps->new_particles;
+	ps->new_particles = 0;
+
 	{
 		ZoneScopedN( "Upload index buffer" );
-		WriteIndexBuffer( ps->ibo, ps->gpu_instances.begin(), ( ps->num_particles + ps->new_particles ) * sizeof( ps->gpu_instances[ 0 ] ) );
+		WriteIndexBuffer( ps->ibo, ps->gpu_instances.begin(), ps->num_particles * sizeof( ps->gpu_instances[ 0 ] ) );
 	}
 
 	{
@@ -842,9 +845,6 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 			ps->gpu_instances[ i ] = i;
 		}
 	}
-
-	ps->num_particles += ps->new_particles;
-	ps->new_particles = 0;
 }
 
 void DrawParticleSystem( ParticleSystem * ps, float dt ) {
@@ -863,10 +863,10 @@ void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	}
 
 	if( ps->model ) {
-		DrawInstancedParticles( ps->vb2, ps->model, ps->gradient, ps->num_particles );
+		DrawInstancedParticles( ps->vb2, ps->model, ps->num_particles );
 	}
 	else {
-		DrawInstancedParticles( ps->mesh, ps->vb2, ps->gradient, ps->blend_func, ps->num_particles );
+		DrawInstancedParticles( ps->mesh, ps->vb2, ps->blend_func, ps->num_particles );
 	}
 
 	Swap2( &ps->vb, &ps->vb2 );

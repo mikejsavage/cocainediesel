@@ -456,23 +456,25 @@ void GlfwInputFrame() {
 	}
 
 	if( gui_active ) {
-		glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+		SDL_SetRelativeMouseMode( SDL_FALSE );
+		SDL_ShowCursor( SDL_ENABLE );
 	}
 	else if( running_in_debugger ) {
 		// don't grab input if we're running a debugger
 		last_mouse_x = frame_static.viewport_width / 2;
 		last_mouse_y = frame_static.viewport_height / 2;
-		glfwSetCursorPos( window, last_mouse_x, last_mouse_y );
-		glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+		SDL_SetRelativeMouseMode( SDL_FALSE );
+		SDL_ShowCursor( SDL_ENABLE );
 	}
 	else {
-		glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
+		SDL_SetRelativeMouseMode( SDL_TRUE );
 	}
 
-	break1 = glfwGetKey( window, GLFW_KEY_F1 );
-	break2 = glfwGetKey( window, GLFW_KEY_F2 );
-	break3 = glfwGetKey( window, GLFW_KEY_F3 );
-	break4 = glfwGetKey( window, GLFW_KEY_F4 );
+	const u8 * keys = SDL_GetKeyboardState( NULL );
+	break1 = keys[ SDL_SCANCODE_F1 ];
+	break2 = keys[ SDL_SCANCODE_F2 ];
+	break3 = keys[ SDL_SCANCODE_F3 ];
+	break4 = keys[ SDL_SCANCODE_F4 ];
 }
 
 void SwapBuffers() {

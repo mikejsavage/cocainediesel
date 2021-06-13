@@ -1,7 +1,7 @@
 #include <algorithm>
 
 #include "imgui/imgui.h"
-#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_sdl.h"
 #include "imgui/imgui_internal.h"
 #include "imgui/imgui_freetype.h"
 

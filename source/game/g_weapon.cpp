@@ -258,18 +258,17 @@ static edict_t *FireLinearProjectile(
 
 static void W_Fire_Blade(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 {
-	const WeaponDef *def = GS_GetWeaponDef(Weapon_Knife);
+	const WeaponDef *def = GS_GetWeaponDef( Weapon_Knife );
 
 	int traces = def->projectile_count;
 	float slash_angle = def->spread;
 
 	int dmgflags = 0;
 
-	for (int i = 0; i < traces; i++)
+	for( int i = 0; i < traces; i++ )
 	{
 		Vec3 new_angles = angles;
-		angles.y += Lerp(-slash_angle, float(i) / float(traces - 1), slash_angle);
-
+		new_angles.y += Lerp( -slash_angle, float( i ) / float( traces - 1 ), slash_angle );
 		Vec3 dir;
 		AngleVectors(new_angles, &dir, NULL, NULL);
 		Vec3 end = start + dir * def->range;

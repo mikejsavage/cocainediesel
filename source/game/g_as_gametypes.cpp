@@ -18,8 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "g_local.h"
-#include "g_as_local.h"
+#include "game/g_local.h"
+#include "game/g_as_local.h"
 
 static void GT_ResetScriptData() {
 	level.gametype.initFunc = NULL;
@@ -35,22 +35,15 @@ static void GT_ResetScriptData() {
 }
 
 void GT_asShutdownScript() {
-	int i;
-	edict_t *e;
-
 	if( game.asEngine == NULL ) {
 		return;
 	}
 
 	// release the callback and any other objects obtained from the script engine before releasing the engine
-	for( i = 0; i < game.numentities; i++ ) {
-		e = &game.edicts[i];
+	for( int i = 0; i < game.numentities; i++ ) {
+		edict_t * e = &game.edicts[i];
 
-		if( e->scriptSpawned && e->asScriptModule &&
-			!strcmp( ( static_cast<asIScriptModule*>( e->asScriptModule ) )->GetName(), GAMETYPE_SCRIPTS_MODULE_NAME ) ) {
-			G_asReleaseEntityBehaviors( e );
-			e->asScriptModule = NULL;
-		}
+		G_asReleaseEntityBehaviors( e );
 	}
 
 	GT_ResetScriptData();
@@ -60,16 +53,13 @@ void GT_asShutdownScript() {
 
 //"void GT_SpawnGametype()"
 void GT_asCallSpawn() {
-	int error;
-	asIScriptContext *ctx;
-
 	if( !level.gametype.spawnFunc ) {
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( game.asEngine );
+	asIScriptContext * ctx = game.asExport->asAcquireContext( game.asEngine );
 
-	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.spawnFunc ) );
+	int error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.spawnFunc ) );
 	if( error < 0 ) {
 		return;
 	}

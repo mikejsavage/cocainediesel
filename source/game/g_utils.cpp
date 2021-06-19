@@ -59,9 +59,6 @@ typedef struct
 
 static memzone_t *levelzone;
 
-/*
-* G_Z_ClearZone
-*/
 static void G_Z_ClearZone( memzone_t *zone, int size ) {
 	memblock_t  *block;
 
@@ -82,9 +79,6 @@ static void G_Z_ClearZone( memzone_t *zone, int size ) {
 	block->size = size - sizeof( memzone_t );
 }
 
-/*
-* G_Z_Free
-*/
 static void G_Z_Free( void *ptr, const char *filename, int fileline ) {
 	memblock_t *block, *other;
 	memzone_t *zone;
@@ -136,9 +130,6 @@ static void G_Z_Free( void *ptr, const char *filename, int fileline ) {
 	}
 }
 
-/*
-* G_Z_TagMalloc
-*/
 static void *G_Z_TagMalloc( int size, int tag, const char *filename, int fileline ) {
 	int extra;
 	memblock_t *start, *rover, *newb, *base;
@@ -200,9 +191,6 @@ static void *G_Z_TagMalloc( int size, int tag, const char *filename, int filelin
 	return (void *) ( (uint8_t *)base + sizeof( memblock_t ) );
 }
 
-/*
-* G_Z_Malloc
-*/
 static void *G_Z_Malloc( int size, const char *filename, int fileline ) {
 	void    *buf;
 
@@ -217,9 +205,6 @@ static void *G_Z_Malloc( int size, const char *filename, int fileline ) {
 
 //==============================================================================
 
-/*
-* G_LevelInitPool
-*/
 void G_LevelInitPool( size_t size ) {
 	G_LevelFreePool();
 
@@ -227,9 +212,6 @@ void G_LevelInitPool( size_t size ) {
 	G_Z_ClearZone( levelzone, size );
 }
 
-/*
-* G_LevelFreePool
-*/
 void G_LevelFreePool() {
 	if( levelzone ) {
 		G_Free( levelzone );
@@ -237,23 +219,14 @@ void G_LevelFreePool() {
 	}
 }
 
-/*
-* G_LevelMalloc
-*/
 void *_G_LevelMalloc( size_t size, const char *filename, int fileline ) {
 	return G_Z_Malloc( size, filename, fileline );
 }
 
-/*
-* G_LevelFree
-*/
 void _G_LevelFree( void *data, const char *filename, int fileline ) {
 	G_Z_Free( data, filename, fileline );
 }
 
-/*
-* G_LevelCopyString
-*/
 char *_G_LevelCopyString( const char *in, const char *filename, int fileline ) {
 	char *out;
 
@@ -288,9 +261,6 @@ void G_StringPoolInit() {
 	g_stringpool_offset = 0;
 }
 
-/*
-* G_StringPoolHashKey
-*/
 static unsigned int G_StringPoolHashKey( const char *string ) {
 	int i;
 	unsigned int v;
@@ -526,11 +496,6 @@ char *_G_CopyString( const char *in, const char *filename, int fileline ) {
 	return out;
 }
 
-/*
-* G_FreeEdict
-*
-* Marks the edict as free
-*/
 void G_FreeEdict( edict_t *ed ) {
 	bool evt = ISEVENTENTITY( &ed->s );
 
@@ -539,26 +504,20 @@ void G_FreeEdict( edict_t *ed ) {
 	G_asReleaseEntityBehaviors( ed );
 
 	memset( ed, 0, sizeof( *ed ) );
-	ed->r.inuse = false;
 	ed->s.number = ENTNUM( ed );
 	ed->r.svflags = SVF_NOCLIENT;
-	ed->scriptSpawned = false;
 
 	if( !evt && ( level.spawnedTimeStamp != svs.realtime ) ) {
 		ed->freetime = svs.realtime; // ET_EVENT or ET_SOUND don't need to wait to be reused
 	}
 }
 
-/*
-* G_InitEdict
-*/
 void G_InitEdict( edict_t *e ) {
 	e->r.inuse = true;
 	e->classname = NULL;
 	e->timeDelta = 0;
 	e->deadflag = DEAD_NO;
 	e->timeStamp = 0;
-	e->scriptSpawned = false;
 
 	memset( &e->s, 0, sizeof( SyncEntityState ) );
 	e->s.number = ENTNUM( e );
@@ -626,9 +585,6 @@ edict_t *G_Spawn() {
 	return e;
 }
 
-/*
-* G_AddEvent
-*/
 void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority ) {
 	if( !ent || ent == world || !ent->r.inuse ) {
 		return;
@@ -651,9 +607,6 @@ void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority ) {
 	ent->eventPriority[eventNum] = highPriority;
 }
 
-/*
-* G_SpawnEvent
-*/
 edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
 	edict_t * ent = G_Spawn();
 	ent->s.type = ET_EVENT;
@@ -669,9 +622,6 @@ edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
 	return ent;
 }
 
-/*
-* G_MorphEntityIntoEvent
-*/
 void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm ) {
 	ent->s.type = ET_EVENT;
 	ent->r.solid = SOLID_NOT;
@@ -682,9 +632,6 @@ void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm ) {
 	GClip_LinkEntity( ent );
 }
 
-/*
-* G_InitMover
-*/
 void G_InitMover( edict_t *ent ) {
 	ent->r.solid = SOLID_YES;
 	ent->movetype = MOVETYPE_PUSH;
@@ -693,22 +640,16 @@ void G_InitMover( edict_t *ent ) {
 	GClip_SetBrushModel( ent );
 }
 
-/*
-* G_CallThink
-*/
 void G_CallThink( edict_t *ent ) {
 	if( ent->think ) {
 		ent->think( ent );
-	} else if( ent->scriptSpawned && ent->asThinkFunc ) {
+	} else if( ent->asThinkFunc ) {
 		G_asCallMapEntityThink( ent );
 	} else if( developer->integer ) {
 		Com_Printf( "NULL ent->think in %s\n", ent->classname ? ent->classname : va( "'no classname. Entity type is %i", ent->s.type ) );
 	}
 }
 
-/*
-* G_CallTouch
-*/
 void G_CallTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
 	if( self == other ) {
 		return;
@@ -716,51 +657,39 @@ void G_CallTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags 
 
 	if( self->touch ) {
 		self->touch( self, other, plane, surfFlags );
-	} else if( self->scriptSpawned && self->asTouchFunc ) {
+	} else if( self->asTouchFunc ) {
 		G_asCallMapEntityTouch( self, other, plane, surfFlags );
 	}
 }
 
-/*
-* G_CallUse
-*/
 void G_CallUse( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->use ) {
 		self->use( self, other, activator );
-	} else if( self->scriptSpawned && self->asUseFunc ) {
+	} else if( self->asUseFunc ) {
 		G_asCallMapEntityUse( self, other, activator );
 	}
 }
 
-/*
-* G_CallStop
-*/
 void G_CallStop( edict_t *self ) {
 	if( self->stop ) {
 		self->stop( self );
-	} else if( self->scriptSpawned && self->asStopFunc ) {
+	} else if( self->asStopFunc ) {
 		G_asCallMapEntityStop( self );
 	}
 }
 
-/*
-* G_CallPain
-*/
 void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage ) {
 	if( ent->pain ) {
 		ent->pain( ent, attacker, kick, damage );
-	} else if( ent->scriptSpawned && ent->asPainFunc ) {
+	} else if( ent->asPainFunc ) {
 		G_asCallMapEntityPain( ent, attacker, kick, damage );
 	}
 }
 
-/*
-* G_CallDie
-*/
 void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assistorNo, int damage, Vec3 point ) {
 	if( ent->die ) {
 		ent->die( ent, inflictor, attacker, assistorNo, damage, point );
-	} else if( ent->scriptSpawned && ent->asDieFunc ) {
+	} else if( ent->asDieFunc ) {
 		G_asCallMapEntityDie( ent, inflictor, attacker, damage, point );
 	}
 }
@@ -1022,10 +951,6 @@ bool KillBox( edict_t *ent, int mod, Vec3 knockback ) {
 	return telefragged; // all clear
 }
 
-/*
-* LookAtKillerYAW
-* returns the YAW angle to look at our killer
-*/
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
 	Vec3 dir;
 
@@ -1046,9 +971,6 @@ float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
 //
 //==============================================================================
 
-/*
-* G_SpawnTeleportEffect
-*/
 static void G_SpawnTeleportEffect( edict_t *ent, bool respawn, bool in ) {
 	edict_t *event;
 
@@ -1073,16 +995,10 @@ void G_RespawnEffect( edict_t *ent ) {
 	G_SpawnTeleportEffect( ent, true, false );
 }
 
-/*
-* G_SolidMaskForEnt
-*/
 int G_SolidMaskForEnt( edict_t *ent ) {
 	return ent->r.clipmask ? ent->r.clipmask : MASK_SOLID;
 }
 
-/*
-* G_CheckEntGround
-*/
 void G_CheckGround( edict_t *ent ) {
 	trace_t trace;
 
@@ -1121,9 +1037,6 @@ void G_CheckGround( edict_t *ent ) {
 	}
 }
 
-/*
-* G_CategorizePosition
-*/
 void G_CategorizePosition( edict_t *ent ) {
 	int cont;
 
@@ -1172,9 +1085,6 @@ void G_SetBoundsForSpanEntity( edict_t *ent, float size ) {
 	ent->r.maxs = ent->r.absmax - ent->s.origin;
 }
 
-/*
-* G_ReleaseClientPSEvent
-*/
 void G_ReleaseClientPSEvent( gclient_t *client ) {
 	for( int i = 0; i < 2; i++ ) {
 		if( client->resp.eventsCurrent < client->resp.eventsHead ) {
@@ -1201,9 +1111,6 @@ void G_AddPlayerStateEvent( gclient_t *client, int ev, u64 parm ) {
 	event->parm = parm;
 }
 
-/*
-* G_ClearPlayerStateEvents
-*/
 void G_ClearPlayerStateEvents( gclient_t *client ) {
 	if( client ) {
 		memset( client->resp.events, PSEV_NONE, sizeof( client->resp.events ) );

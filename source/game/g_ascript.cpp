@@ -1424,9 +1424,6 @@ static edict_t *asFunc_G_Spawn( asstring_t *classname ) {
 		ent->classname = G_RegisterLevelString( classname->buffer );
 	}
 
-	ent->scriptSpawned = true;
-	ent->asScriptModule = game.asEngine->GetModule( game.asExport->asGetActiveContext()->GetFunction( 0 )->GetModuleName() );
-
 	return ent;
 }
 
@@ -1765,8 +1762,6 @@ bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent ) {
 	// this is in case we might want to call G_asReleaseEntityBehaviors
 	// in the spawn function (an object may release itself, ugh)
 	ent->asSpawnFunc = asSpawnFunc;
-	ent->asScriptModule = asSpawnModule;
-	ent->scriptSpawned = true;
 
 	// call the spawn function
 	asContext = game.asExport->asAcquireContext( asEngine );
@@ -1781,14 +1776,10 @@ bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent ) {
 	error = asContext->Execute();
 	if( G_ExecutionErrorReport( error ) ) {
 		GT_asShutdownScript();
-		ent->asScriptModule = NULL;
 		ent->asSpawnFunc = NULL;
-		ent->scriptSpawned = false;
 		return false;
 	}
 
-	// check the inuse flag because the entity might have been removed at the spawn
-	ent->scriptSpawned = ent->r.inuse;
 	return true;
 }
 
@@ -1810,25 +1801,23 @@ void G_asClearEntityBehaviors( edict_t *ent ) {
 * Release callback function references held by the engine for script spawned entities
 */
 void G_asReleaseEntityBehaviors( edict_t *ent ) {
-	if( ent->scriptSpawned && game.asExport ) {
-		if( ent->asThinkFunc ) {
-			ent->asThinkFunc->Release();
-		}
-		if( ent->asTouchFunc ) {
-			ent->asTouchFunc->Release();
-		}
-		if( ent->asUseFunc ) {
-			ent->asUseFunc->Release();
-		}
-		if( ent->asStopFunc ) {
-			ent->asStopFunc->Release();
-		}
-		if( ent->asPainFunc ) {
-			ent->asPainFunc->Release();
-		}
-		if( ent->asDieFunc ) {
-			ent->asDieFunc->Release();
-		}
+	if( ent->asThinkFunc ) {
+		ent->asThinkFunc->Release();
+	}
+	if( ent->asTouchFunc ) {
+		ent->asTouchFunc->Release();
+	}
+	if( ent->asUseFunc ) {
+		ent->asUseFunc->Release();
+	}
+	if( ent->asStopFunc ) {
+		ent->asStopFunc->Release();
+	}
+	if( ent->asPainFunc ) {
+		ent->asPainFunc->Release();
+	}
+	if( ent->asDieFunc ) {
+		ent->asDieFunc->Release();
 	}
 
 	G_asClearEntityBehaviors( ent );

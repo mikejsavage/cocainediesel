@@ -938,8 +938,6 @@ struct edict_t {
 
 	bool linked;
 
-	bool scriptSpawned;
-	asIScriptModule *asScriptModule;
 	asIScriptFunction *asSpawnFunc, *asThinkFunc, *asUseFunc, *asTouchFunc, *asPainFunc, *asDieFunc, *asStopFunc;
 
 	assistinfo_t recent_attackers[MAX_ASSIST_INFO];

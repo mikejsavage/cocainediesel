@@ -461,56 +461,6 @@ bool entCanSee( Entity @ent, Vec3 point ) {
 	return !trace.doTrace( center, vec3Origin, vec3Origin, point, ent.entNum, MASK_SOLID );
 }
 
-// move the camera around the site?
-void bombLookAt( Entity @ent ) {
-	Entity @target = @bombSite.indicator;
-
-	array<Entity @> @targets = bombSite.indicator.findTargets();
-	for( uint i = 0; i < targets.size(); i++ ) {
-		if( targets[i].classname == "func_explosive" ) {
-			@target = targets[i];
-			break;
-		}
-	}
-
-	Vec3 center = target.origin + getMiddle( @target );
-	center.z -= 50; // this tilts the camera down (not by 50 degrees...)
-
-	Vec3 bombOrigin = bombModel.origin;
-
-	float diff = center.z - bombOrigin.z;
-
-	if( diff > 8 ) {
-		bombOrigin.z += diff / 2;
-	}
-
-	Vec3 dir = bombOrigin - center;
-
-	float dist = dir.length();
-
-	Vec3 end = center + dir.normalize() * ( dist + BOMB_DEAD_CAMERA_DIST );
-
-	Trace trace;
-	bool didHit = trace.doTrace( bombOrigin, vec3Origin, vec3Origin, end, -1, MASK_SOLID );
-
-	Vec3 origin = trace.endPos;
-
-	if( trace.fraction != 1 ) {
-		origin += 8 * trace.planeNormal;
-	}
-
-	Vec3 viewDir = center - origin;
-	Vec3 angles = viewDir.toAngles();
-
-	ent.moveType = MOVETYPE_NONE;
-	ent.origin = origin;
-	ent.angles = angles;
-
-	ent.linkEntity();
-}
-
-// ent stuff
-
 void bomb_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags ) {
 	if( match.getState() != MATCH_STATE_PLAYTIME ) {
 		return;

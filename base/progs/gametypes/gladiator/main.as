@@ -314,7 +314,6 @@ class cDARound {
 	}
 
 	void newRoundState( int newState ) {
-
 		if( newState > DA_ROUNDSTATE_POSTROUND ) {
 			this.newRound();
 			return;

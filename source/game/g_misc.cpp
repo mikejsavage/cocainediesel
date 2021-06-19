@@ -68,16 +68,15 @@ static void path_corner_touch( edict_t *self, edict_t *other, cplane_t *plane, i
 		return;
 	}
 
-	if( self->pathtarget ) {
-		const char *savetarget;
-
+	if( self->pathtarget != EMPTY_HASH ) {
+		StringHash savetarget;
 		savetarget = self->target;
 		self->target = self->pathtarget;
 		G_UseTargets( self, other );
 		self->target = savetarget;
 	}
 
-	if( self->target ) {
+	if( self->target != EMPTY_HASH ) {
 		next = G_PickTarget( self->target );
 	} else {
 		next = NULL;
@@ -98,10 +97,8 @@ static void path_corner_touch( edict_t *self, edict_t *other, cplane_t *plane, i
 }
 
 void SP_path_corner( edict_t *self ) {
-	if( !self->targetname ) {
-		if( developer->integer ) {
-			Com_GGPrint( "path_corner with no targetname at {}", self->s.origin );
-		}
+	if( self->name == EMPTY_HASH ) {
+		Com_GGPrint( "path_corner with no name at {}", self->s.origin );
 		G_FreeEdict( self );
 		return;
 	}
@@ -113,8 +110,6 @@ void SP_path_corner( edict_t *self ) {
 	self->r.svflags |= SVF_NOCLIENT;
 	GClip_LinkEntity( self );
 }
-
-#define START_OFF   64
 
 //========================================================
 //
@@ -274,19 +269,18 @@ void SP_func_explosive( edict_t *self ) {
 		self->r.svflags |= SVF_NOCLIENT;
 		self->r.solid = SOLID_NOT;
 		self->use = func_explosive_spawn;
-	} else {
-		if( self->targetname ) {
-			self->use = func_explosive_use;
-		}
 	}
-
-	if( self->use != func_explosive_use ) {
+	else if( self->name != EMPTY_HASH ) {
+		self->use = func_explosive_use;
+	}
+	else {
 		if( !self->health ) {
 			self->health = 100;
 		}
 		self->die = func_explosive_explode;
 		self->takedamage = DAMAGE_YES;
 	}
+
 	self->max_health = self->health;
 
 	GClip_LinkEntity( self );

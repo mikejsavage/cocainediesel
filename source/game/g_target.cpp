@@ -185,8 +185,8 @@ void target_laser_start( edict_t *self ) {
 	self->s.sound = "sounds/gladiator/laser_hum";
 
 	if( !self->enemy ) {
-		if( self->target ) {
-			edict_t * target = G_Find( NULL, FOFS( targetname ), self->target );
+		if( self->target != EMPTY_HASH ) {
+			edict_t * target = G_Find( NULL, &edict_t::name, self->target );
 			if( !target ) {
 				if( developer->integer ) {
 					Com_GGPrint( "{} at {}: {} is a bad target", self->classname, self->s.origin, self->target );

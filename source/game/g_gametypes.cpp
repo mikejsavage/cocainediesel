@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "qcommon/cmodel.h"
 
 //==========================================================
 //					Matches
@@ -32,16 +33,10 @@ cvar_t *g_scorelimit;
 //					Matches
 //==========================================================
 
-/*
-* G_Match_SetAutorecordState
-*/
 static void G_Match_SetAutorecordState( const char *state ) {
 	PF_ConfigString( CS_AUTORECORDSTATE, state );
 }
 
-/*
-* G_Match_Autorecord_Start
-*/
 void G_Match_Autorecord_Start() {
 	G_Match_SetAutorecordState( "start" );
 
@@ -73,16 +68,10 @@ void G_Match_Autorecord_Start() {
 	Cbuf_ExecuteText( EXEC_APPEND, va( "serverrecord %s\n", level.autorecord_name ) );
 }
 
-/*
-* G_Match_Autorecord_AltStart
-*/
 void G_Match_Autorecord_AltStart() {
 	G_Match_SetAutorecordState( "altstart" );
 }
 
-/*
-* G_Match_Autorecord_Stop
-*/
 void G_Match_Autorecord_Stop() {
 	G_Match_SetAutorecordState( "stop" );
 
@@ -97,9 +86,6 @@ void G_Match_Autorecord_Stop() {
 	}
 }
 
-/*
-* G_Match_Autorecord_Cancel
-*/
 void G_Match_Autorecord_Cancel() {
 	G_Match_SetAutorecordState( "cancel" );
 
@@ -108,9 +94,6 @@ void G_Match_Autorecord_Cancel() {
 	}
 }
 
-/*
-* G_Match_CheckStateAbort
-*/
 static void G_Match_CheckStateAbort() {
 	bool any = false;
 	bool enough;
@@ -166,9 +149,6 @@ static void G_Match_CheckStateAbort() {
 	}
 }
 
-/*
-* G_Match_LaunchState
-*/
 void G_Match_LaunchState( int matchState ) {
 	static bool advance_queue = false;
 
@@ -250,9 +230,6 @@ void G_Match_LaunchState( int matchState ) {
 	GT_asCallMatchStateStarted();
 }
 
-/*
-* G_Match_ScorelimitHit
-*/
 bool G_Match_ScorelimitHit() {
 	edict_t *e;
 
@@ -281,9 +258,6 @@ bool G_Match_ScorelimitHit() {
 	return false;
 }
 
-/*
-* G_Match_TimelimitHit
-*/
 bool G_Match_TimelimitHit() {
 	// check for timelimit hit
 	if( !server_gs.gameState.match_duration || svs.gametime < server_gs.gameState.match_state_start_time + server_gs.gameState.match_duration ) {
@@ -298,17 +272,11 @@ bool G_Match_TimelimitHit() {
 	return true;
 }
 
-/*
-* G_EndMatch
-*/
 void G_EndMatch() {
 	level.forceExit = true;
 	G_Match_LaunchState( MATCH_STATE_POSTMATCH );
 }
 
-/*
-* G_Match_CheckReadys
-*/
 void G_Match_CheckReadys() {
 	if( server_gs.gameState.match_state != MATCH_STATE_WARMUP ) {
 		return;
@@ -355,9 +323,6 @@ void G_Match_CheckReadys() {
 	}
 }
 
-/*
-* G_Match_Ready
-*/
 void G_Match_Ready( edict_t *ent ) {
 	if( ( ent->r.svflags & SVF_FAKECLIENT ) && level.ready[PLAYERNUM( ent )] ) {
 		return;
@@ -388,9 +353,6 @@ void G_Match_Ready( edict_t *ent ) {
 	G_Match_CheckReadys();
 }
 
-/*
-* G_Match_NotReady
-*/
 void G_Match_NotReady( edict_t *ent ) {
 	if( ent->s.team == TEAM_SPECTATOR ) {
 		G_PrintMsg( ent, "Join the game first\n" );
@@ -413,9 +375,6 @@ void G_Match_NotReady( edict_t *ent ) {
 	G_PrintMsg( NULL, "%s is no longer ready.\n", ent->r.client->netname );
 }
 
-/*
-* G_Match_ToggleReady
-*/
 void G_Match_ToggleReady( edict_t *ent ) {
 	if( !level.ready[PLAYERNUM( ent )] ) {
 		G_Match_Ready( ent );
@@ -424,9 +383,6 @@ void G_Match_ToggleReady( edict_t *ent ) {
 	}
 }
 
-/*
-* G_Match_RemoveProjectiles
-*/
 void G_Match_RemoveProjectiles( edict_t *owner ) {
 	edict_t *ent;
 
@@ -438,9 +394,6 @@ void G_Match_RemoveProjectiles( edict_t *owner ) {
 	}
 }
 
-/*
-* G_Match_FreeBodyQueue
-*/
 void G_Match_FreeBodyQueue() {
 	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
 		edict_t * ent = &game.edicts[ i ];
@@ -453,9 +406,6 @@ void G_Match_FreeBodyQueue() {
 //======================================================
 //		Game types
 
-/*
-* G_EachNewSecond
-*/
 static bool G_EachNewSecond() {
 	static int lastsecond;
 	static int second;
@@ -469,9 +419,6 @@ static bool G_EachNewSecond() {
 	return true;
 }
 
-/*
-* G_CheckNumBots
-*/
 static void G_CheckNumBots() {
 	if( level.spawnedTimeStamp + 5000 > svs.realtime ) {
 		return;
@@ -506,9 +453,6 @@ static void G_CheckNumBots() {
 	}
 }
 
-/*
-* G_EachNewMinute
-*/
 static bool G_EachNewMinute() {
 	static int lastminute;
 	static int minute;
@@ -522,9 +466,6 @@ static bool G_EachNewMinute() {
 	return true;
 }
 
-/*
-* G_CheckEvenTeam
-*/
 static void G_CheckEvenTeam() {
 	int max = 0;
 	int min = server_gs.maxclients + 1;
@@ -568,9 +509,6 @@ static void G_CheckEvenTeam() {
 	}
 }
 
-/*
-* G_Gametype_ScoreEvent
-*/
 void G_Gametype_ScoreEvent( gclient_t *client, const char *score_event, const char *args ) {
 	if( !score_event || !score_event[0] ) {
 		return;
@@ -579,9 +517,6 @@ void G_Gametype_ScoreEvent( gclient_t *client, const char *score_event, const ch
 	GT_asCallScoreEvent( client, score_event, args );
 }
 
-/*
-* G_RunGametype
-*/
 void G_RunGametype() {
 	ZoneScoped;
 
@@ -606,9 +541,6 @@ void G_RunGametype() {
 //		Game type registration
 //======================================================
 
-/*
-* G_Gametype_SetDefaults
-*/
 void G_Gametype_SetDefaults() {
 	level.gametype.isTeamBased = false;
 	level.gametype.hasChallengersQueue = false;
@@ -624,7 +556,7 @@ void G_Gametype_SetDefaults() {
 // this is pretty dirty, parse the first entity and grab the gametype key
 // do no validation, G_SpawnEntities will catch it
 static bool IsGladiatorMap() {
-	const char * entities = level.mapString;
+	const char * entities = CM_EntityString( svs.cms );
 	ParseToken( &entities, Parse_DontStopOnNewLine ); // {
 
 	while( true ) {
@@ -642,9 +574,6 @@ static bool IsGladiatorMap() {
 	return false;
 }
 
-/*
-* G_Gametype_Init
-*/
 void G_Gametype_Init() {
 	// get the match cvars too
 	g_warmup_timelimit = Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );

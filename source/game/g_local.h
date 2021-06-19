@@ -116,14 +116,6 @@ struct level_locals_t {
 	char callvote_map[MAX_CONFIGSTRING_CHARS];
 	char autorecord_name[128];
 
-	// backup entities string
-	char *mapString;
-	size_t mapStrlen;
-
-	// string used for parsing entities
-	char *map_parsed_ents;      // string used for storing parsed key values
-	size_t map_parsed_len;
-
 	bool canSpawnEntities; // security check to prevent entities being spawned before map entities
 
 	// intermission state
@@ -145,6 +137,7 @@ struct level_locals_t {
 // can be set from the editor, but aren't actualy present
 // in edict_t during gameplay
 struct spawn_temp_t {
+	Span< const char > classname;
 	int lip;
 	int distance;
 	int height;
@@ -184,9 +177,6 @@ extern mempool_t *gamepool;
 extern int meansOfDeath;
 extern Vec3 knockbackOfDeath;
 extern int damageFlagsOfDeath;
-
-#define FOFS( x ) offsetof( edict_t,x )
-#define STOFS( x ) offsetof( spawn_temp_t,x )
 
 extern cvar_t *sv_password;
 extern cvar_t *g_operator_password;
@@ -333,7 +323,7 @@ void G_asCallMapEntityStop( edict_t *ent );
 void G_asClearEntityBehaviors( edict_t *ent );
 void G_asReleaseEntityBehaviors( edict_t *ent );
 
-bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent );
+bool G_asCallMapEntitySpawnScript( Span< const char > classname, edict_t *ent );
 
 void G_asInitGameModuleEngine();
 void G_asShutdownGameModuleEngine();
@@ -369,8 +359,8 @@ void G_AddCommand( const char *name, gamecommandfunc_t cmdfunc );
 
 bool KillBox( edict_t *ent, int mod, Vec3 knockback );
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );
-edict_t *G_Find( edict_t *from, size_t fieldofs, const char *match );
-edict_t *G_PickTarget( const char *targetname );
+edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash value );
+edict_t * G_PickTarget( StringHash name );
 void G_UseTargets( edict_t *ent, edict_t *activator );
 void G_SetMovedir( Vec3 * angles, Vec3 * movedir );
 void G_InitMover( edict_t *ent );
@@ -378,18 +368,6 @@ void G_InitMover( edict_t *ent );
 void G_InitEdict( edict_t *e );
 edict_t *G_Spawn();
 void G_FreeEdict( edict_t *e );
-
-void G_LevelInitPool( size_t size );
-void G_LevelFreePool();
-void *_G_LevelMalloc( size_t size, const char *filename, int fileline );
-void _G_LevelFree( void *data, const char *filename, int fileline );
-char *_G_LevelCopyString( const char *in, const char *filename, int fileline );
-
-void G_StringPoolInit();
-const char *_G_RegisterLevelString( const char *string, const char *filename, int fileline );
-#define G_RegisterLevelString( in ) _G_RegisterLevelString( in, __FILE__, __LINE__ )
-
-char *G_AllocCreateNamesList( const char *path, const char *extension, const char separator );
 
 char *_G_CopyString( const char *in, const char *filename, int fileline );
 #define G_CopyString( in ) _G_CopyString( in, __FILE__, __LINE__ )
@@ -626,10 +604,6 @@ int G_BoxSlideMove( edict_t *ent, int contentmask, float slideBounce, float fric
 #define G_Malloc( size ) _Mem_AllocExt( gamepool, size, 16, 1, 0, 0, __FILE__, __LINE__ )
 #define G_Free( mem ) Mem_Free( mem )
 
-#define G_LevelMalloc( size ) _G_LevelMalloc( ( size ), __FILE__, __LINE__ )
-#define G_LevelFree( data ) _G_LevelFree( ( data ), __FILE__, __LINE__ )
-#define G_LevelCopyString( in ) _G_LevelCopyString( ( in ), __FILE__, __LINE__ )
-
 void G_Init( unsigned int framemsec );
 void G_Shutdown();
 void G_ExitLevel();
@@ -649,7 +623,6 @@ void G_SnapFrame();
 //
 // g_spawn.c
 //
-bool G_CallSpawn( edict_t *ent );
 void G_RespawnLevel();
 void G_ResetLevel();
 void G_InitLevel( const char *mapname, int64_t levelTime );
@@ -853,7 +826,7 @@ struct edict_t {
 	// only used locally in game, not by server
 	//
 
-	const char *classname;
+	StringHash classname;
 	int spawnflags;
 
 	int64_t nextThink;
@@ -865,10 +838,10 @@ struct edict_t {
 	void ( *die )( edict_t *self, edict_t *inflictor, edict_t *attacker, int assistorNo, int damage, Vec3 point );
 	void ( *stop )( edict_t *self );
 
-	const char *target;
-	const char *targetname;
-	const char *killtarget;
-	const char *pathtarget;
+	StringHash name;
+	StringHash target;
+	StringHash killtarget;
+	StringHash pathtarget;
 	edict_t *target_ent;
 
 	Vec3 velocity;

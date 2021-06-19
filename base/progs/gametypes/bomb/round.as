@@ -309,7 +309,7 @@ void roundThink() {
 
 	if( match.roundState == RoundState_Round ) {
 		// monitor the bomb's health
-		if( @bombModel == null || bombModel.classname != "bomb" ) {
+		if( @bombModel == null || !bombModel.inuse ) {
 			bombModelCreate();
 
 			roundWonBy( defendingTeam );

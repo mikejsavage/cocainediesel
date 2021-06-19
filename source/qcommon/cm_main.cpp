@@ -226,11 +226,11 @@ void CM_InlineModelBounds( const CollisionModel *cms, const cmodel_t *cmodel, Ve
 	}
 }
 
-int CM_EntityStringLen( const CollisionModel *cms ) {
+size_t CM_EntityStringLen( const CollisionModel * cms ) {
 	return cms->numentitychars;
 }
 
-char *CM_EntityString( const CollisionModel *cms ) {
+const char * CM_EntityString( const CollisionModel * cms ) {
 	return cms->map_entitystring;
 }
 

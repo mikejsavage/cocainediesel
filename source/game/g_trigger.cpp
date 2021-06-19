@@ -43,7 +43,6 @@ static void InitTrigger( edict_t *self ) {
 	self->r.svflags = SVF_NOCLIENT;
 }
 
-
 // the trigger was just activated
 // ent->activator should be set to the activator so it can be held through a delay
 // so wait for the delay time before firing
@@ -362,7 +361,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 
 	self->timeStamp = level.time + ( self->wait * 1000 );
 
-	dest = G_Find( NULL, FOFS( targetname ), self->target );
+	dest = G_Find( NULL, &edict_t::name, self->target );
 	if( !dest ) {
 		if( developer->integer ) {
 			Com_Printf( "Couldn't find destination.\n" );
@@ -387,7 +386,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 }
 
 void SP_trigger_teleport( edict_t *ent ) {
-	if( !ent->target ) {
+	if( ent->target == EMPTY_HASH ) {
 		if( developer->integer ) {
 			Com_Printf( "teleporter without a target.\n" );
 		}

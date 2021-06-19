@@ -284,18 +284,6 @@ void GT_ThinkRules() {
 		client.canPlant = false;
 	}
 
-	if( bombState == BombState_Planted ) {
-		uint aliveOff = TEAM_ALPHA == attackingTeam ? aliveAlpha : aliveBeta;
-
-		if( aliveOff == 0 ) {
-			Team @team = @G_GetTeam( attackingTeam );
-
-			for( int i = 0; @team.ent( i ) != null; i++ ) {
-				bombLookAt( @team.ent( i ) );
-			}
-		}
-	}
-
 	if( bombState == BombState_Carried ) {
 		bombCarrier.client.carryingBomb = true;
 

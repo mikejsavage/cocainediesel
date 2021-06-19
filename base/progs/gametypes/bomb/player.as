@@ -148,7 +148,7 @@ void dropSpawnToFloor( Entity @ent ) {
 	trace.doTrace( start, mins, maxs, end, ent.entNum, MASK_SOLID );
 
 	if( trace.startSolid ) {
-		G_Print( ent.classname + " starts inside solid, removing...\n" );
+		G_Print( "Spawn starts inside solid, removing...\n" );
 		ent.freeEntity();
 		return;
 	}

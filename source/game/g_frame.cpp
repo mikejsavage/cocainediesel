@@ -22,9 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/string.h"
 #include "game/g_local.h"
 
-/*
-* G_Timeout_Reset
-*/
 void G_Timeout_Reset() {
 	G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, false );
 	level.timeout = { };
@@ -206,9 +203,6 @@ void G_CheckCvars() {
 //		SNAP FRAMES
 //===================================================================
 
-/*
-* G_SnapClients
-*/
 void G_SnapClients() {
 	int i;
 	edict_t *ent;
@@ -340,12 +334,7 @@ void G_SnapFrame() {
 
 	// set entity bits (prepare entities for being sent in the snap)
 	for( ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
-		if( ent->s.number != ENTNUM( ent ) ) {
-			if( developer->integer ) {
-				Com_Printf( "fixing ent->s.number (etype:%i, classname:%s)\n", ent->s.type, ent->classname ? ent->classname : "noclassname" );
-			}
-			ent->s.number = ENTNUM( ent );
-		}
+		assert( ent->s.number == ENTNUM( ent ) );
 
 		// temporary filter (Q2 system to ensure reliability)
 		// ignore ents without visible models unless they have an effect
@@ -377,11 +366,6 @@ void G_SnapFrame() {
 //		WORLD FRAMES
 //===================================================================
 
-/*
-* G_RunEntities
-* treat each object in turn
-* even the world and clients get a chance to think
-*/
 static void G_RunEntities() {
 	ZoneScoped;
 
@@ -416,9 +400,6 @@ static void G_RunEntities() {
 	}
 }
 
-/*
-* G_RunClients
-*/
 static void G_RunClients() {
 	ZoneScoped;
 
@@ -438,10 +419,6 @@ static void G_RunClients() {
 	}
 }
 
-/*
-* G_RunFrame
-* Advances the world
-*/
 void G_RunFrame( unsigned int msec ) {
 	ZoneScoped;
 

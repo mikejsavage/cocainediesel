@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 #include "game/g_as_local.h"
+#include "qcommon/cmodel.h"
+#include "qcommon/string.h"
 
 #include "game/angelwrap/qas_public.h"
 
@@ -1049,30 +1051,6 @@ static int objectGameEntity_PlayerNum( edict_t *self ) {
 	return ( PLAYERNUM( self ) );
 }
 
-static asstring_t *objectGameEntity_getClassname( edict_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->classname, self->classname ? strlen( self->classname ) : 0 );
-}
-
-static asstring_t *objectGameEntity_getTargetname( edict_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->targetname, self->targetname ? strlen( self->targetname ) : 0 );
-}
-
-static void objectGameEntity_setTargetname( asstring_t *targetname, edict_t *self ) {
-	self->targetname = G_RegisterLevelString( targetname->buffer );
-}
-
-static asstring_t *objectGameEntity_getTarget( edict_t *self ) {
-	return game.asExport->asStringFactoryBuffer( self->target, self->target ? strlen( self->target ) : 0 );
-}
-
-static void objectGameEntity_setTarget( asstring_t *target, edict_t *self ) {
-	self->target = G_RegisterLevelString( target->buffer );
-}
-
-static void objectGameEntity_setClassname( asstring_t *classname, edict_t *self ) {
-	self->classname = G_RegisterLevelString( classname->buffer );
-}
-
 static void objectGameEntity_GhostClient( edict_t *self ) {
 	if( self->r.client ) {
 		G_GhostClient( self );
@@ -1091,27 +1069,10 @@ static CScriptArrayInterface *objectGameEntity_findTargets( edict_t *self ) {
 	asIObjectType *ot = asEntityArrayType();
 	CScriptArrayInterface *arr = game.asExport->asCreateArrayCpp( 0, ot );
 
-	if( self->target && self->target[0] != '\0' ) {
+	if( self->target != EMPTY_HASH ) {
 		int count = 0;
 		edict_t *ent = NULL;
-		while( ( ent = G_Find( ent, FOFS( targetname ), self->target ) ) != NULL ) {
-			arr->Resize( count + 1 );
-			*( (edict_t **)arr->At( count ) ) = ent;
-			count++;
-		}
-	}
-
-	return arr;
-}
-
-static CScriptArrayInterface *objectGameEntity_findTargeting( edict_t *self ) {
-	asIObjectType *ot = asEntityArrayType();
-	CScriptArrayInterface *arr = game.asExport->asCreateArrayCpp( 0, ot );
-
-	if( self->targetname && self->targetname[0] != '\0' ) {
-		int count = 0;
-		edict_t *ent = NULL;
-		while( ( ent = G_Find( ent, FOFS( target ), self->targetname ) ) != NULL ) {
+		while( ( ent = G_Find( ent, &edict_t::name, self->target ) ) != NULL ) {
 			arr->Resize( count + 1 );
 			*( (edict_t **)arr->At( count ) ) = ent;
 			count++;
@@ -1210,20 +1171,12 @@ static const asMethod_t gedict_Methods[] =
 	{ ASLIB_FUNCTION_DECL( bool, isGhosting, ( ) const ), asFUNCTION( objectGameEntity_IsGhosting ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, get_entNum, ( ) const ), asFUNCTION( objectGameEntity_EntNum ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, get_playerNum, ( ) const ), asFUNCTION( objectGameEntity_PlayerNum ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_classname, ( ) const ), asFUNCTION( objectGameEntity_getClassname ), asCALL_CDECL_OBJLAST },
-	//{ ASLIB_FUNCTION_DECL(const String @, getSpawnKey, ( String &in )), asFUNCTION(objectGameEntity_getSpawnKey), NULL, asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_targetname, ( ) const ), asFUNCTION( objectGameEntity_getTargetname ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( const String @, get_target, ( ) const ), asFUNCTION( objectGameEntity_getTarget ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_target, ( const String &in ) ), asFUNCTION( objectGameEntity_setTarget ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_targetname, ( const String &in ) ), asFUNCTION( objectGameEntity_setTargetname ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, set_classname, ( const String &in ) ), asFUNCTION( objectGameEntity_setClassname ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, ghost, ( ) ), asFUNCTION( objectGameEntity_GhostClient ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, spawnqueueAdd, ( ) ), asFUNCTION( G_SpawnQueue_AddClient ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, teleportEffect, ( bool ) ), asFUNCTION( objectGameEntity_TeleportEffect ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, respawnEffect, ( ) ), asFUNCTION( G_RespawnEffect ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setupModel, ( ) ), asFUNCTION( objectGameEntity_SetupModel ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargets, ( ) const ), asFUNCTION( objectGameEntity_findTargets ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargeting, ( ) const ), asFUNCTION( objectGameEntity_findTargeting ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, useTargets, ( const Entity @activator ) ), asFUNCTION( objectGameEntity_UseTargets ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, sustainDamage, ( Entity @inflicter, Entity @attacker, const Vec3 &in dir, float damage, float knockback, MeanOfDeath mod ) ), asFUNCTION( objectGameEntity_sustainDamage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, splashDamage, ( Entity @attacker, int radius, float damage, float knockback ) ), asFUNCTION( objectGameEntity_splashDamage ), asCALL_CDECL_OBJLAST },
@@ -1421,7 +1374,7 @@ static edict_t *asFunc_G_Spawn( asstring_t *classname ) {
 	ent = G_Spawn();
 
 	if( classname && classname->len ) {
-		ent->classname = G_RegisterLevelString( classname->buffer );
+		ent->classname = StringHash( classname->buffer );
 	}
 
 	return ent;
@@ -1579,14 +1532,14 @@ static CScriptArrayInterface *asFunc_G_FindInRadius( asvec3_t *org, float radius
 }
 
 static CScriptArrayInterface *asFunc_G_FindByClassname( asstring_t *str ) {
-	const char *classname = str->buffer;
+	StringHash classname = StringHash( str->buffer );
 
 	asIObjectType *ot = asEntityArrayType();
 	CScriptArrayInterface *arr = game.asExport->asCreateArrayCpp( 0, ot );
 
 	int count = 0;
 	edict_t *ent = NULL;
-	while( ( ent = G_Find( ent, FOFS( classname ), classname ) ) != NULL ) {
+	while( ( ent = G_Find( ent, &edict_t::classname, classname ) ) != NULL ) {
 		arr->Resize( count + 1 );
 		*( (edict_t **)arr->At( count ) ) = ent;
 		count++;
@@ -1595,8 +1548,9 @@ static CScriptArrayInterface *asFunc_G_FindByClassname( asstring_t *str ) {
 	return arr;
 }
 
-static edict_t *asFunc_G_Find( edict_t * last, asstring_t * str ) {
-	return G_Find( last, FOFS( classname ), str->buffer );
+static edict_t * asFunc_G_Find( edict_t * cursor, asstring_t * str ) {
+	StringHash value = StringHash( str->buffer );
+	return G_Find( cursor, &edict_t::classname, value );
 }
 
 void G_Aasdf(); // TODO
@@ -1606,7 +1560,7 @@ static void asFunc_G_LoadMap( asstring_t *str ) {
 }
 
 static asstring_t *asFunc_G_GetWorldspawnKey( asstring_t * key ) {
-	Span< const char > value = ParseWorldspawnKey( Span< const char >( level.mapString, level.mapStrlen ), key->buffer );
+	Span< const char > value = ParseWorldspawnKey( MakeSpan( CM_EntityString( svs.cms ) ), key->buffer );
 	return game.asExport->asStringFactoryBuffer( value.ptr, value.n );
 }
 
@@ -1733,8 +1687,7 @@ static const asglobproperties_t asGlobProps[] =
 };
 
 // map entity spawning
-bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent ) {
-	char fdeclstr[MAX_STRING_CHARS];
+bool G_asCallMapEntitySpawnScript( Span< const char > classname, edict_t *ent ) {
 	int error;
 	asIScriptContext *asContext;
 	asIScriptEngine *asEngine = game.asEngine;
@@ -1745,14 +1698,15 @@ bool G_asCallMapEntitySpawnScript( const char *classname, edict_t *ent ) {
 		return false;
 	}
 
-	snprintf( fdeclstr, sizeof( fdeclstr ), "void %s( Entity @ent )", classname );
+	TempAllocator temp = svs.frame_arena.temp();
+	DynamicString signature( &temp, "void {}( Entity @ ent )", classname );
 
 	// lookup the spawn function in gametype module first, fallback to map script
 	asSpawnModule = asEngine->GetModule( GAMETYPE_SCRIPTS_MODULE_NAME );
-	asSpawnFunc = asSpawnModule ? asSpawnModule->GetFunctionByDecl( fdeclstr ) : NULL;
+	asSpawnFunc = asSpawnModule ? asSpawnModule->GetFunctionByDecl( signature.c_str() ) : NULL;
 	if( !asSpawnFunc ) {
 		asSpawnModule = asEngine->GetModule( MAP_SCRIPTS_MODULE_NAME );
-		asSpawnFunc = asSpawnModule ? asSpawnModule->GetFunctionByDecl( fdeclstr ) : NULL;
+		asSpawnFunc = asSpawnModule ? asSpawnModule->GetFunctionByDecl( signature.c_str() ) : NULL;
 	}
 
 	if( !asSpawnFunc ) {

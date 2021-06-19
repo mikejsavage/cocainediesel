@@ -231,8 +231,6 @@ void G_Shutdown() {
 
 	G_FreeCallvotes();
 
-	G_LevelFreePool();
-
 	for( int i = 0; i < game.numentities; i++ ) {
 		if( game.edicts[i].r.inuse ) {
 			G_FreeEdict( &game.edicts[i] );

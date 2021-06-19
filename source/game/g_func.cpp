@@ -266,7 +266,7 @@ void door_go_down( edict_t *self ) {
 	}
 
 	self->moveinfo.state = STATE_DOWN;
-	if( !Q_stricmp( self->classname, "func_door_rotating" ) ) {
+	if( self->classname == "func_door_rotating" ) {
 		AngleMove_Calc( self, self->moveinfo.start_angles, door_hit_bottom );
 	} else {
 		Move_Calc( self, self->moveinfo.start_origin, door_hit_bottom );
@@ -276,8 +276,8 @@ void door_go_down( edict_t *self ) {
 static void door_go_up( edict_t *self, edict_t *activator ) {
 	if( self->moveinfo.state == STATE_UP ) {
 		return; // already going up
-
 	}
+
 	if( self->moveinfo.state == STATE_TOP ) { // reset top wait time
 		if( self->moveinfo.wait >= 0 ) {
 			self->nextThink = level.time + self->moveinfo.wait * 1000;
@@ -291,7 +291,7 @@ static void door_go_up( edict_t *self, edict_t *activator ) {
 	self->s.sound = self->moveinfo.sound_middle;
 
 	self->moveinfo.state = STATE_UP;
-	if( !Q_stricmp( self->classname, "func_door_rotating" ) ) {
+	if( self->classname == "func_door_rotating" ) {
 		AngleMove_Calc( self, self->moveinfo.end_angles, door_hit_top );
 	} else {
 		Move_Calc( self, self->moveinfo.end_origin, door_hit_top );
@@ -443,7 +443,7 @@ void SP_func_door( edict_t *ent ) {
 	ent->style = -1;
 	door_use_areaportals( ent, ( ent->spawnflags & DOOR_START_OPEN ) != 0 );
 
-	if( !ent->targetname ) {
+	if( ent->name == EMPTY_HASH ) {
 		ent->nextThink = level.time + 1;
 		ent->think = Think_SpawnDoorTrigger;
 	}
@@ -511,7 +511,7 @@ void SP_func_door_rotating( edict_t *ent ) {
 
 	GClip_LinkEntity( ent );
 
-	if( !ent->targetname ) {
+	if( ent->name == EMPTY_HASH ) {
 		ent->nextThink = level.time + 1;
 		ent->think = Think_SpawnDoorTrigger;
 	}
@@ -771,7 +771,7 @@ void SP_func_button( edict_t *ent ) {
 		ent->max_health = ent->health;
 		ent->die = button_killed;
 		ent->takedamage = DAMAGE_YES;
-	} else if( !ent->targetname ) {
+	} else if( ent->name == EMPTY_HASH ) {
 		ent->touch = button_touch;
 	}
 
@@ -815,8 +815,8 @@ static void train_blocked( edict_t *self, edict_t *other ) {
 }
 
 static void train_wait( edict_t *self ) {
-	if( self->target_ent->pathtarget ) {
-		const char *savetarget;
+	if( self->target_ent->pathtarget != EMPTY_HASH ) {
+		StringHash savetarget;
 		edict_t *ent;
 
 		ent = self->target_ent;
@@ -858,8 +858,7 @@ void train_next( edict_t *self ) {
 
 	first = true;
 again:
-	if( !self->target ) {
-		//		Com_Printf ("train_next: no next target\n");
+	if( self->target == EMPTY_HASH ) {
 		return;
 	}
 
@@ -921,7 +920,7 @@ static void train_resume( edict_t *self ) {
 static void func_train_find( edict_t *self ) {
 	edict_t *ent;
 
-	if( !self->target ) {
+	if( self->target == EMPTY_HASH ) {
 		if( developer->integer ) {
 			Com_Printf( "train_find: no target\n" );
 		}
@@ -942,7 +941,7 @@ static void func_train_find( edict_t *self ) {
 	GClip_LinkEntity( self );
 
 	// if not triggered, start immediately
-	if( !self->targetname ) {
+	if( self->name == EMPTY_HASH ) {
 		self->spawnflags |= TRAIN_START_ON;
 	}
 
@@ -996,15 +995,13 @@ void SP_func_train( edict_t *self ) {
 
 	GClip_LinkEntity( self );
 
-	if( self->target ) {
+	if( self->target != EMPTY_HASH ) {
 		// start trains on the second frame, to make sure their targets have had
 		// a chance to spawn
 		self->nextThink = level.time + 1;
 		self->think = func_train_find;
 	} else {
-		if( developer->integer ) {
-			Com_GGPrint( "func_train without a target at {}", self->r.absmin );
-		}
+		Com_GGPrint( "func_train without a target at {}", self->s.origin );
 	}
 }
 

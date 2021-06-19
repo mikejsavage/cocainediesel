@@ -418,6 +418,7 @@ void G_HotloadMap() {
 	char map[ ARRAY_COUNT( sv.mapname ) ];
 	Q_strncpyz( map, sv.mapname, sizeof( map ) );
 	G_LoadMap( map );
+	G_ResetLevel();
 }
 
 // TODO: game module init is a mess and I'm not sure how to clean this up

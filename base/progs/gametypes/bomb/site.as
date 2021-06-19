@@ -158,62 +158,12 @@ void resetBombSites() {
 }
 
 void bomb_site( Entity @ent ) {
-	@ent.think = bomb_site_think;
 	@ent.die = shits_fucked;
 	cBombSite( @ent, defendingTeam );
 }
 
 void shits_fucked( Entity @dont, Entity @care, Entity @bro ) {
 	G_Print( "shit is fucked\n" );
-}
-
-void bomb_site_think( Entity @ent ) {
-	// if AS had static this could be approx 1 bajillion times
-	// faster on subsequent calls
-
-	array<Entity @> @triggers = @ent.findTargeting();
-
-	// we are being targeted, never think again
-	if( !triggers.empty() ) {
-		return;
-	}
-
-	ent.nextThink = levelTime + 1;
-
-	if( match.roundState != RoundState_Round ) {
-		return;
-	}
-
-	if( bombState != BombState_Carried ) {
-		return;
-	}
-
-	if( !bombCanPlant() ) {
-		return;
-	}
-
-	Vec3 origin = ent.origin;
-	Vec3 carrierOrigin = bombCarrier.origin;
-
-	if( origin.distance( carrierOrigin ) > BOMB_AUTODROP_DISTANCE ) {
-		return;
-	}
-
-	origin.z += 96;
-
-	Vec3 center = carrierOrigin + getMiddle( @bombCarrier );
-
-	Trace trace;
-	if( !trace.doTrace( origin, vec3Origin, vec3Origin, center, bombCarrier.entNum, MASK_SOLID ) ) {
-		// let's plant it
-
-		cBombSite @site = @getSiteFromIndicator( @ent );
-
-		// we know site isn't null but for debugging purposes...
-		assert( @site != null, "site.as trigger_capture_area_touch: @site == null" );
-
-		site.carrierTouched();
-	}
 }
 
 void plant_area( Entity @ent ) {

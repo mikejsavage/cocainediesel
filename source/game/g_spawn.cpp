@@ -93,7 +93,6 @@ static void SP_worldspawn( edict_t *ent );
 static spawn_t spawns[] = {
 	{ "post_match_camera", SP_post_match_camera },
 
-	{ "func_plat", SP_func_plat },
 	{ "func_button", SP_func_button },
 	{ "func_door", SP_func_door },
 	{ "func_door_rotating", SP_func_door_rotating },
@@ -109,14 +108,12 @@ static spawn_t spawns[] = {
 	{ "trigger_multiple", SP_trigger_multiple },
 	{ "trigger_push", SP_trigger_push },
 	{ "trigger_hurt", SP_trigger_hurt },
-	{ "trigger_elevator", SP_trigger_elevator },
 
 	{ "target_explosion", SP_target_explosion },
 	{ "target_laser", SP_target_laser },
 	{ "target_position", SP_target_position },
 	{ "target_print", SP_target_print },
 	{ "target_delay", SP_target_delay },
-	{ "target_teleporter", SP_target_teleporter },
 
 	{ "worldspawn", SP_worldspawn },
 

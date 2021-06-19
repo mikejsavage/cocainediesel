@@ -285,7 +285,6 @@ void SP_post_match_camera( edict_t *ent );
 //
 // g_func.c
 //
-void SP_func_plat( edict_t *ent );
 void SP_func_rotating( edict_t *ent );
 void SP_func_button( edict_t *ent );
 void SP_func_door( edict_t *ent );
@@ -463,7 +462,6 @@ void SP_trigger_multiple( edict_t *ent );
 void SP_trigger_push( edict_t *ent );
 void SP_trigger_hurt( edict_t *ent );
 void SP_trigger_key( edict_t *ent );
-void SP_trigger_elevator( edict_t *ent );
 
 //
 // g_clip.c
@@ -587,7 +585,6 @@ void SP_target_laser( edict_t *self );
 void SP_target_position( edict_t *self );
 void SP_target_print( edict_t *self );
 void SP_target_delay( edict_t *ent );
-void SP_target_teleporter( edict_t *self );
 
 //
 // g_svcmds.c

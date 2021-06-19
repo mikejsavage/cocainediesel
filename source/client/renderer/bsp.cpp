@@ -226,6 +226,11 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 	ok = ok && ParseLump( &bsp->leafbrushes, data, BSPLump_LeafBrushes );
 	ok = ok && ParseLump( &bsp->indices, data, BSPLump_Indices );
 
+	// strip trailing null terminator
+	if( bsp->entities.n > 0 ) {
+		bsp->entities.n--;
+	}
+
 	if( bsp->idbsp ) {
 		ok = ok && ParseLump( &bsp->brushsides, data, BSPLump_BrushSides );
 		ok = ok && ParseLump( &bsp->vertices, data, BSPLump_Vertices );

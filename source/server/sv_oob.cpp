@@ -399,7 +399,7 @@ static void SVC_GetChallenge( const socket_t *socket, const netadr_t *address ) 
 
 	if( i == MAX_CHALLENGES ) {
 		// overwrite the oldest
-		svs.challenges[oldest].challenge = random_uniform( &svs.rng, 0, S16_MAX );
+		svs.challenges[oldest].challenge = RandomUniform( &svs.rng, 0, S16_MAX );
 		svs.challenges[oldest].adr = *address;
 		svs.challenges[oldest].time = Sys_Milliseconds();
 		i = oldest;

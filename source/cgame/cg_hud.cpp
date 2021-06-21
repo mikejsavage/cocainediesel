@@ -356,9 +356,9 @@ static const char * conjunctions[] = {
 };
 
 static const char * RandomPrefix( RNG * rng, float p ) {
-	if( !random_p( rng, p ) )
+	if( !Probability( rng, p ) )
 		return "";
-	return random_select( rng, prefixes );
+	return RandomElement( rng, prefixes );
 }
 
 static char * Uppercase( Allocator * a, const char * str ) {
@@ -378,14 +378,14 @@ static char * MakeObituary( Allocator * a, RNG * rng, int type, int mod ) {
 
 	const char * prefix1 = "";
 	if( type == OBITUARY_SUICIDE ) {
-		prefix1 = random_select( rng, suicide_prefixes );
+		prefix1 = RandomElement( rng, suicide_prefixes );
 	}
 
 	// do these in order because arg evaluation order is undefined
 	const char * prefix2 = RandomPrefix( rng, 0.05f );
 	const char * prefix3 = RandomPrefix( rng, 0.5f );
 
-	return ( *a )( "{}{}{}{}", prefix1, prefix2, prefix3, obituaries[ random_uniform( rng, 0, obituaries.n ) ] );
+	return ( *a )( "{}{}{}{}", prefix1, prefix2, prefix3, obituaries[ RandomUniform( rng, 0, obituaries.n ) ] );
 }
 
 void CG_SC_Obituary() {
@@ -423,7 +423,7 @@ void CG_SC_Obituary() {
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
-	RNG rng = new_rng( entropy, 0 );
+	RNG rng = NewRNG( entropy, 0 );
 
 	const char * attacker_name = attacker == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->attacker_team ) ), Uppercase( &temp, attacker->name ) );
 	const char * victim_name = temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->victim_team ) ), Uppercase( &temp, victim->name ) );
@@ -470,7 +470,7 @@ void CG_SC_Obituary() {
 			) );
 		}
 		else {
-			const char * conjugation = random_select( &rng, conjunctions );
+			const char * conjugation = RandomElement( &rng, conjunctions );
 			CG_AddChat( temp( "{} {}{} {} {}{} {}",
 				attacker_name,
 				ImGuiColorToken( 255, 255, 255, 255 ), conjugation,
@@ -641,7 +641,7 @@ static void CG_DrawObituaries(
 			Draw2DBox( 0, yy, frame_static.viewport.x, h, cls.white_material, Vec4( 0, 0, 0, Min2( 0.5f, t * 0.5f ) ) );
 
 			if( t >= 1.0f ) {
-				RNG rng = new_rng( self_obituary.entropy, 0 );
+				RNG rng = NewRNG( self_obituary.entropy, 0 );
 
 				TempAllocator temp = cls.frame_arena.temp();
 				const char * obituary = MakeObituary( &temp, &rng, self_obituary.type, self_obituary.mod );

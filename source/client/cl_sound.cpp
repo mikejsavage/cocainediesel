@@ -599,11 +599,11 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 
 	int idx;
 	if( !ps->has_entropy ) {
-		idx = random_uniform( &cls.rng, 0, config.num_random_sounds );
+		idx = RandomUniform( &cls.rng, 0, config.num_random_sounds );
 	}
 	else {
-		RNG rng = new_rng( ps->entropy, 0 );
-		idx = random_uniform( &rng, 0, config.num_random_sounds );
+		RNG rng = NewRNG( ps->entropy, 0 );
+		idx = RandomUniform( &rng, 0, config.num_random_sounds );
 	}
 
 	Sound sound;

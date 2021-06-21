@@ -116,7 +116,7 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 	// generate session id
 	for( size_t i = 0; i < sizeof( client->session ) - 1; i++ ) {
 		const char symbols[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-		client->session[i] = random_select( &svs.rng, symbols );
+		client->session[i] = RandomElement( &svs.rng, symbols );
 	}
 	client->session[ sizeof( client->session ) - 1 ] = '\0';
 

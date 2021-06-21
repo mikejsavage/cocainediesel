@@ -272,7 +272,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 		// don't create so many decals if they would all end up overlapping anyway
 		float distance = Length( trace.endpos - origin );
 		float decal_p = Lerp( 0.25f, Unlerp( 0.0f, distance, 256.0f ), 0.5f );
-		if( random_p( &cls.rng, decal_p ) ) {
+		if( Probability( &cls.rng, decal_p ) ) {
 			if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
 				BulletImpact( &trace, team_color, 4, 0.5f );
 			}
@@ -439,7 +439,7 @@ static void CG_Event_Pain( SyncEntityState * state, u64 parm ) {
 
 	CG_PlayerSound( state->number, CHAN_AUTO, sounds[ parm ] );
 	constexpr int animations[] = { TORSO_PAIN1, TORSO_PAIN2, TORSO_PAIN3 };
-	CG_PModel_AddAnimation( state->number, 0, random_select( &cls.rng, animations ), 0, EVENT_CHANNEL );
+	CG_PModel_AddAnimation( state->number, 0, RandomElement( &cls.rng, animations ), 0, EVENT_CHANNEL );
 }
 
 static void CG_Event_Die( int entNum, u64 parm ) {
@@ -833,10 +833,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 
 			while( true ) {
-				if( !random_p( &cls.rng, p ) )
+				if( !Probability( &cls.rng, p ) )
 					break;
 
-				Vec3 random_dir = Normalize( dir + tangent * random_float11( &cls.rng ) * 0.1f + bitangent * random_float11( &cls.rng ) * 0.1f );
+				Vec3 random_dir = Normalize( dir + tangent * RandomFloat11( &cls.rng ) * 0.1f + bitangent * RandomFloat11( &cls.rng ) * 0.1f );
 				Vec3 end = ent->origin + random_dir * 256.0f;
 
 				trace_t trace;
@@ -857,11 +857,11 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 						"textures/blood_decals/blood11",
 					};
 
-					float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
+					float angle = RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );
 					float min_size = Lerp( 20.0f, Unlerp01( 5, damage, 50 ), 64.0f );
-					float size = min_size * random_uniform_float( &cls.rng, 0.75f, 1.5f );
+					float size = min_size * RandomUniformFloat( &cls.rng, 0.75f, 1.5f );
 
-					AddPersistentDecal( trace.endpos, trace.plane.normal, size, angle, random_select( &cls.rng, decals ), team_color, 30000, 10.0f );
+					AddPersistentDecal( trace.endpos, trace.plane.normal, size, angle, RandomElement( &cls.rng, decals ), team_color, 30000, 10.0f );
 				}
 
 				p -= 1.0f;

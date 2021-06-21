@@ -402,36 +402,36 @@ double PositiveMod( double x, double y ) {
 }
 
 Vec3 UniformSampleOnSphere( RNG * rng ) {
-	float z = random_float11( rng );
+	float z = RandomFloat11( rng );
 	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
-	float phi = 2.0f * PI * random_float01( rng );
+	float phi = 2.0f * PI * RandomFloat01( rng );
 	return Vec3( r * cosf( phi ), r * sinf( phi ), z );
 }
 
 Vec3 UniformSampleInsideSphere( RNG * rng ) {
 	Vec3 p = UniformSampleOnSphere( rng );
-	float r = cbrtf( random_float01( rng ) );
+	float r = cbrtf( RandomFloat01( rng ) );
 	return p * r;
 }
 
 Vec3 UniformSampleCone( RNG * rng, float theta ) {
 	assert( theta >= 0.0f && theta <= PI );
-	float z = random_uniform_float( rng, cosf( theta ), 1.0f );
+	float z = RandomUniformFloat( rng, cosf( theta ), 1.0f );
 	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
-	float phi = 2.0f * PI * random_float01( rng );
+	float phi = 2.0f * PI * RandomFloat01( rng );
 	return Vec3( r * cosf( phi ), r * sinf( phi ), z );
 }
 
 Vec2 UniformSampleInsideCircle( RNG * rng ) {
-	float theta = random_float01( rng ) * 2.0f * PI;
-	float r = sqrtf( random_float01( rng ) );
+	float theta = RandomFloat01( rng ) * 2.0f * PI;
+	float r = sqrtf( RandomFloat01( rng ) );
 	return Vec2( r * cosf( theta ), r * sinf( theta ) );
 }
 
 float SampleNormalDistribution( RNG * rng ) {
 	// generate a float in (0, 1). works because prev(1) + FLT_MIN == prev(1)
-	float u1 = random_float01( rng ) + FLT_MIN;
-	float u2 = random_float01( rng );
+	float u1 = RandomFloat01( rng ) + FLT_MIN;
+	float u2 = RandomFloat01( rng );
 	return sqrtf( -2.0f * logf( u1 ) ) * cosf( u2 * 2.0f * PI );
 }
 

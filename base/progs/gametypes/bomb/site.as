@@ -19,9 +19,9 @@ float max( float a, float b ) {
 }
 
 Vec3 random_point_on_hemisphere() {
-	float z = random_float01();
+	float z = RandomFloat01();
 	float r = sqrt( max( 0.0f, 1.0f - z * z ) );
-	float phi = 2 * PI * random_float01();
+	float phi = 2 * PI * RandomFloat01();
 	return Vec3( r * cos( phi ), r * sin( phi ), z );
 }
 
@@ -91,11 +91,11 @@ class cBombSite
 	}
 
 	void explode() {
-		numPendingExplosions = random_uniform( SITE_EXPLOSION_POINTS / 2, SITE_EXPLOSION_POINTS );
+		numPendingExplosions = RandomUniform( SITE_EXPLOSION_POINTS / 2, SITE_EXPLOSION_POINTS );
 		numExploded = 0;
 
 		for( int i = 0; i < numPendingExplosions; i++ ) {
-			Vec3 point = explosionPoints[ random_uniform( 0, explosionPoints.length() ) ];
+			Vec3 point = explosionPoints[ RandomUniform( 0, explosionPoints.length() ) ];
 			int64 time = int64( ( float( i ) / float( numPendingExplosions - 1 ) ) * SITE_EXPLOSION_MAX_DELAY );
 			pendingExplosions[ i ] = PendingExplosion( point, time );
 		}
@@ -135,7 +135,7 @@ class cBombSite
 			trace.doTrace( origin, vec3Origin, vec3Origin, end, this.indicator.entNum, MASK_SOLID );
 
 			// pick a random point along the line
-			this.explosionPoints[i] = origin + random_float01() * ( trace.endPos - origin );
+			this.explosionPoints[i] = origin + RandomFloat01() * ( trace.endPos - origin );
 		}
 	}
 }

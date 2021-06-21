@@ -2,7 +2,7 @@
 #include "client/renderer/renderer.h"
 
 static float RandomRadians() {
-	return random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
+	return RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );
 }
 
 void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color ) {
@@ -85,7 +85,7 @@ void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 							vec4_white,
 							0, 0, 0, 0, //dlight
 							cgs.media.modBladeWallHit, NULL );
-		le->ent.rotation = random_float01( &cls.rng ) * 360;
+		le->ent.rotation = RandomFloat01( &cls.rng ) * 360;
 		le->ent.scale = 1.0f;
 
 		S_StartFixedSound( cgs.media.sfxBladeFleshHit, pos, CHAN_AUTO, 1.0f );
@@ -100,14 +100,14 @@ void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 							vec4_white,
 							0, 0, 0, 0, //dlight
 							cgs.media.modBladeWallHit, NULL );
-		le->ent.rotation = random_float01( &cls.rng ) * 360;
+		le->ent.rotation = RandomFloat01( &cls.rng ) * 360;
 		le->ent.scale = 1.0f;
 
 		// CG_ParticleEffect( trace.endpos, trace.plane.normal, 0.30f, 0.30f, 0.25f, 15 );
 
 		S_StartFixedSound( cgs.media.sfxBladeWallHit, pos, CHAN_AUTO, 1.0f );
 		if( !( trace.surfFlags & SURF_NOMARKS ) ) {
-			// CG_SpawnDecal( pos, dir, random_float01( &cls.rng ) * 45, 8, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderBladeMark );
+			// CG_SpawnDecal( pos, dir, RandomFloat01( &cls.rng ) * 45, 8, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderBladeMark );
 		}
 	}
 	*/
@@ -179,7 +179,7 @@ void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count ) {
 	// 	dir_temp = dir_temp + dir_per2 * ( cosf( angle ) );
 	//
 	// 	//dir_temp = dir_temp * ( dir_temp) = Normalize( dir_temp) );
-	// 	dir_temp = dir_temp * ( random_float11( &cls.rng ) * 10 + radius );
+	// 	dir_temp = dir_temp * ( RandomFloat11( &cls.rng ) * 10 + radius );
 	// 	CG_Explosion_Puff_2( pos, dir_temp, 10 );
 	// }
 }
@@ -219,10 +219,10 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 		Vec3 dir = Vec3( UniformSampleInsideCircle( &cls.rng ), 0.0f );
 		gib->origin = origin + dir * radius;
 
-		dir.z = random_float01( &cls.rng );
+		dir.z = RandomFloat01( &cls.rng );
 		gib->velocity = velocity * 0.5f + dir * Length( velocity ) * 0.5f;
 
-		gib->scale = random_uniform_float( &cls.rng, 0.5f, 1.0f );
+		gib->scale = RandomUniformFloat( &cls.rng, 0.5f, 1.0f );
 		gib->lifetime = 10.0f;
 		gib->color = color;
 	}
@@ -246,8 +246,8 @@ static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
 			"textures/blood_decals/blood11",
 		};
 
-		if( random_p( &cls.rng, 0.25f ) ) {
-			AddPersistentDecal( pos, normal, scale * 64.0f, RandomRadians(), random_select( &cls.rng, decals ), color, 30000, 10.0f );
+		if( Probability( &cls.rng, 0.25f ) ) {
+			AddPersistentDecal( pos, normal, scale * 64.0f, RandomRadians(), RandomElement( &cls.rng, decals ), color, 30000, 10.0f );
 		}
 	}
 }

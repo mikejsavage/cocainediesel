@@ -70,8 +70,8 @@ void spinner_think( Entity@ self ) {
 	bool last = switchesSoFar == CountdownNumSwitches + 1;
 	Team @team = @G_GetTeam( TEAM_PLAYERS );
 
-	int weapon1 = random_uniform( Weapon_None + 1, Weapon_Count );
-	int weapon2 = random_uniform( Weapon_None + 1, Weapon_Count - 1 );
+	int weapon1 = RandomUniform( Weapon_None + 1, Weapon_Count );
+	int weapon2 = RandomUniform( Weapon_None + 1, Weapon_Count - 1 );
 	if( weapon2 >= weapon1 )
 		weapon2++;
 

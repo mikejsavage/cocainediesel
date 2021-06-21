@@ -61,7 +61,7 @@ edict_t * G_PickTarget( StringHash name ) {
 		return NULL;
 	}
 
-	return candidates[ random_uniform( &svs.rng, 0, num_candidates ) ];
+	return candidates[ RandomUniform( &svs.rng, 0, num_candidates ) ];
 }
 
 static void Think_Delay( edict_t *ent ) {
@@ -496,7 +496,7 @@ void G_ClearCenterPrint( edict_t *ent ) {
 
 void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, int mod, bool wallbang ) {
 	TempAllocator temp = svs.frame_arena.temp();
-	PF_GameCmd( NULL, temp( "obry {} {} {} {} {} {}", ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod, wallbang ? 1 : 0, random_u64( &svs.rng ) ) );
+	PF_GameCmd( NULL, temp( "obry {} {} {} {} {} {}", ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod, wallbang ? 1 : 0, Random64( &svs.rng ) ) );
 }
 
 //==================================================

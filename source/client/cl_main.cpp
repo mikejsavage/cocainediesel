@@ -1133,7 +1133,7 @@ static void CL_InitLocal() {
 
 	name = Cvar_Get( "name", "", CVAR_USERINFO | CVAR_ARCHIVE );
 	if( !name->string[0] ) {
-		Cvar_Set( name->name, temp( "user{06}", random_uniform( &cls.rng, 0, 1000000 ) ) );
+		Cvar_Set( name->name, temp( "user{06}", RandomUniform( &cls.rng, 0, 1000000 ) ) );
 	}
 
 	Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
@@ -1460,7 +1460,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	cls.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+	cls.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	static int allRealMsec = 0, allGameMsec = 0, extraMsec = 0;
 	static float roundingMsec = 0.0f;
@@ -1583,7 +1583,7 @@ void CL_Init() {
 
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	cls.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+	cls.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	cls.monotonicTime = 0;
 

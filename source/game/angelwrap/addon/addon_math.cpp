@@ -64,20 +64,20 @@ static float asFunc_floor( float x ) {
 	return floorf( x );
 }
 
-static uint32_t asFunc_random_uint() {
-	return random_u32( &svs.rng );
+static uint32_t asFunc_Random32() {
+	return Random32( &svs.rng );
 }
 
-static int asFunc_random_uniform( int lo, int hi ) {
-	return random_uniform( &svs.rng, lo, hi );
+static int asFunc_RandomUniform( int lo, int hi ) {
+	return RandomUniform( &svs.rng, lo, hi );
 }
 
-static float asFunc_random_float01() {
-	return random_float01( &svs.rng );
+static float asFunc_RandomFloat01() {
+	return RandomFloat01( &svs.rng );
 }
 
-static float asFunc_random_uniform_float( float lo, float hi ) {
-	return random_uniform_float( &svs.rng, lo, hi );
+static float asFunc_RandomUniformFloat( float lo, float hi ) {
+	return RandomUniformFloat( &svs.rng, lo, hi );
 }
 
 void PreRegisterMathAddon( asIScriptEngine *engine ) {
@@ -100,10 +100,10 @@ void RegisterMathAddon( asIScriptEngine *engine ) {
 		{ "float sqrt( float x )", asFUNCTION( asFunc_sqrt ) },
 		{ "float ceil( float x )", asFUNCTION( asFunc_ceil ) },
 		{ "float floor( float x )", asFUNCTION( asFunc_floor ) },
-		{ "uint random_uint()", asFUNCTION( asFunc_random_uint ) },
-		{ "int random_uniform( int lo, int hi )", asFUNCTION( asFunc_random_uniform ) },
-		{ "float random_float01()", asFUNCTION( asFunc_random_float01 ) },
-		{ "float random_uniform_float( float lo, float hi )", asFUNCTION( asFunc_random_uniform_float ) },
+		{ "uint Random32()", asFUNCTION( asFunc_Random32 ) },
+		{ "int RandomUniform( int lo, int hi )", asFUNCTION( asFunc_RandomUniform ) },
+		{ "float RandomFloat01()", asFUNCTION( asFunc_RandomFloat01 ) },
+		{ "float RandomUniformFloat( float lo, float hi )", asFUNCTION( asFunc_RandomUniformFloat ) },
 
 		{ NULL, asFUNCTION( 0 ) }
 	}, *func;

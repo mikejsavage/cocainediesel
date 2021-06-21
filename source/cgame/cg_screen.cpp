@@ -575,13 +575,13 @@ void CG_AddDamageNumber( SyncEntityState * ent, u64 parm ) {
 	dn->t = cl.serverTime;
 	dn->damage = parm >> 1;
 	dn->headshot = ( parm & 1 ) != 0;
-	dn->drift = random_float11( &cls.rng ) > 0.0f ? 1.0f : -1.0f;
-	dn->obituary = random_select( &cls.rng, mini_obituaries );
+	dn->drift = RandomFloat11( &cls.rng ) > 0.0f ? 1.0f : -1.0f;
+	dn->obituary = RandomElement( &cls.rng, mini_obituaries );
 
 	float distance_jitter = 4;
 	dn->origin = ent->origin;
-	dn->origin.x += random_float11( &cls.rng ) * distance_jitter;
-	dn->origin.y += random_float11( &cls.rng ) * distance_jitter;
+	dn->origin.x += RandomFloat11( &cls.rng ) * distance_jitter;
+	dn->origin.y += RandomFloat11( &cls.rng ) * distance_jitter;
 	dn->origin.z += 48;
 
 	damage_numbers_head = ( damage_numbers_head + 1 ) % ARRAY_COUNT( damage_numbers );

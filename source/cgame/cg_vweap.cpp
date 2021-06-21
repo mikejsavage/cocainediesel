@@ -173,8 +173,8 @@ void CG_AddRecoil( WeaponType weapon ) {
 	EulerDegrees2 min = GS_GetWeaponDef( weapon )->recoil_min;
 	EulerDegrees2 max = GS_GetWeaponDef( weapon )->recoil_max;
 
-	cg.recoil_velocity.pitch = -random_uniform_float( &cls.rng, min.pitch, max.pitch );
-	cg.recoil_velocity.yaw = random_uniform_float( &cls.rng, min.yaw, max.yaw );
+	cg.recoil_velocity.pitch = -RandomUniformFloat( &cls.rng, min.pitch, max.pitch );
+	cg.recoil_velocity.yaw = RandomUniformFloat( &cls.rng, min.yaw, max.yaw );
 }
 
 static bool SameSign( float x, float y ) {

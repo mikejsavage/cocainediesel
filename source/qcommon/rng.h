@@ -33,40 +33,40 @@ struct RNG {
 	uint64_t inc;
 };
 
-RNG new_rng();
-RNG new_rng( uint64_t state, uint64_t seq );
+RNG NewRNG();
+RNG NewRNG( uint64_t state, uint64_t seq );
 
 // return a random number in [0, 2^32)
-uint32_t random_u32( RNG * rng );
+uint32_t Random32( RNG * rng );
 
 // return a random number in [0, 2^64)
-uint64_t random_u64( RNG * rng );
+uint64_t Random64( RNG * rng );
 
 // return a random number in [lo, hi)
-int random_uniform( RNG * rng, int lo, int hi );
-int random_uniform_exact( RNG * rng, int lo, int hi );
+int RandomUniform( RNG * rng, int lo, int hi );
+int RandomUniformExact( RNG * rng, int lo, int hi );
 
 // return a random float in [0, 1)
-float random_float01( RNG * rng );
+float RandomFloat01( RNG * rng );
 // return a random float in [-1, 1)
-float random_float11( RNG * rng );
+float RandomFloat11( RNG * rng );
 
-float random_uniform_float( RNG * rng, float lo, float hi );
+float RandomUniformFloat( RNG * rng, float lo, float hi );
 
 // return a random double in [0, 1)
-double random_double01( RNG * rng );
+double RandomDouble01( RNG * rng );
 // return a random double in [-1, 1)
-double random_double11( RNG * rng );
+double RandomDouble11( RNG * rng );
 
 // returns true with probability p
-bool random_p( RNG * rng, float p );
+bool Probability( RNG * rng, float p );
 
 template< typename T >
-T random_select( RNG * rng, const T * arr, size_t n ) {
-	return arr[ random_uniform( rng, 0, n ) ];
+T RandomElement( RNG * rng, const T * arr, size_t n ) {
+	return arr[ RandomUniform( rng, 0, n ) ];
 }
 
 template< typename T, size_t N >
-T random_select( RNG * rng, const T ( &arr )[ N ] ) {
-	return random_select( rng, arr, N );
+T RandomElement( RNG * rng, const T ( &arr )[ N ] ) {
+	return RandomElement( rng, arr, N );
 }

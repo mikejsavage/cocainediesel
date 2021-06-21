@@ -543,7 +543,7 @@ void W_Fire_BubbleGun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 	FireBubble(self, start, angles, timeDelta);
 
 	int n = def->projectile_count - 1;
-	float base_angle = random_float01(&svs.rng) * 2.0f * PI;
+	float base_angle = RandomFloat01(&svs.rng) * 2.0f * PI;
 
 	for (int i = 0; i < n; i++)
 	{

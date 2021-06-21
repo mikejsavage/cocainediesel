@@ -65,7 +65,7 @@ Entity @ last_spawn;
 
 void PickRandomArena() {
 	if( randomise ) {
-		G_LoadMap( maps[ random_uniform( 0, maps.size() - 1 ) ] );
+		G_LoadMap( maps[ RandomUniform( 0, maps.size() - 1 ) ] );
 	}
 }
 
@@ -623,8 +623,8 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 		return;
 
 	if( match.getState() != MATCH_STATE_PLAYTIME ) {
-		int weap1 = random_uniform( Weapon_None + 1, Weapon_Count );
-		int weap2 = random_uniform( Weapon_None + 1, Weapon_Count - 1 );
+		int weap1 = RandomUniform( Weapon_None + 1, Weapon_Count );
+		int weap2 = RandomUniform( Weapon_None + 1, Weapon_Count - 1 );
 
 		if( weap2 >= weap1 )
 			weap2++;

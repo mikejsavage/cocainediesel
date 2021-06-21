@@ -98,7 +98,7 @@ void G_SpawnQueue_SetTeamSpawnsystem( int team, int spawnsystem, int wave_time, 
 
 	queue = &g_spawnQueues[team];
 	if( wave_time && wave_time != queue->wave_time ) {
-		queue->nextWaveTime = level.time + random_uniform( &svs.rng, 0, wave_time * 1000 );
+		queue->nextWaveTime = level.time + RandomUniform( &svs.rng, 0, wave_time * 1000 );
 	}
 
 	queue->system = spawnsystem;

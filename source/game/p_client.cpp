@@ -108,11 +108,11 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	if( gib ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );
 
-		body->nextThink = level.time + 3000 + random_float01( &svs.rng ) * 3000;
+		body->nextThink = level.time + 3000 + RandomFloat01( &svs.rng ) * 3000;
 		body->deadflag = DEAD_DEAD;
 	}
 
-	u64 parm = random_u64( &svs.rng ) << 1;
+	u64 parm = Random64( &svs.rng ) << 1;
 	if( mod == MeanOfDeath_Void ) {
 		parm |= 1;
 	}

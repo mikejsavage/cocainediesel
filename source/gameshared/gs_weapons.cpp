@@ -35,7 +35,7 @@ void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_
 }
 
 Vec2 RandomSpreadPattern( u16 entropy, float spread ) {
-	RNG rng = new_rng( entropy, 0 );
+	RNG rng = NewRNG( entropy, 0 );
 	return spread * UniformSampleInsideCircle( &rng );
 }
 

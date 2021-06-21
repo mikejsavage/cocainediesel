@@ -403,7 +403,7 @@ static void Cmd_CoinToss_f( edict_t *ent ) {
 		return;
 	}
 
-	bool won = random_p( &svs.rng, 0.5f );
+	bool won = Probability( &svs.rng, 0.5f );
 	G_PrintMsg( NULL, "%s%s tossed a coin and %s!\n", won ? S_COLOR_GREEN : S_COLOR_RED, ent->r.client->netname, won ? "won" : "lost" );
 }
 
@@ -510,7 +510,7 @@ static void Cmd_Spray_f( edict_t * ent ) {
 
 	ent->r.client->level.last_spray = svs.realtime;
 
-	edict_t * event = G_SpawnEvent( EV_SPRAY, random_u64( &svs.rng ), &trace.endpos );
+	edict_t * event = G_SpawnEvent( EV_SPRAY, Random64( &svs.rng ), &trace.endpos );
 	event->s.angles = ent->r.client->ps.viewangles;
 	event->s.origin2 = trace.plane.normal;
 }
@@ -568,7 +568,7 @@ static void G_vsay_f( edict_t *ent ) {
 		if( Q_stricmp( msg, vsay->name ) != 0 )
 			continue;
 
-		u64 entropy = random_u32( &svs.rng );
+		u64 entropy = Random32( &svs.rng );
 		u64 parm = u64( vsay->id ) | ( entropy << 16 );
 
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );

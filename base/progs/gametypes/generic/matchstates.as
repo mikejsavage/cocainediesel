@@ -167,7 +167,7 @@ Entity @RandomEntity( String &className )
 	array<Entity @> @spawnents = G_FindByClassname( className );
 	if( spawnents.size() == 0 )
 		return null;
-	return spawnents[ random_uniform( 0, spawnents.size() ) ];
+	return spawnents[ RandomUniform( 0, spawnents.size() ) ];
 }
 
 void GENERIC_UpdateMatchScore()

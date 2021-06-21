@@ -183,7 +183,7 @@ void bombStartPlanting( cBombSite @site ) {
 	Trace trace;
 	trace.doTrace( start, BOMB_MINS, BOMB_MAXS, end, bombCarrier.entNum, MASK_SOLID );
 
-	Vec3 angles = Vec3( 0, random_uniform_float( 0.0f, 360.0f ), 0 );
+	Vec3 angles = Vec3( 0, RandomUniformFloat( 0.0f, 360.0f ), 0 );
 
 	// show stuff
 	bombModel.origin = trace.endPos;
@@ -434,7 +434,7 @@ void bombGiveToRandom() {
 
 	bool all_bots = bots == team.numPlayers;
 	int n = all_bots ? team.numPlayers : team.numPlayers - bots;
-	int carrier = random_uniform( 0, n );
+	int carrier = RandomUniform( 0, n );
 	int seen = 0;
 
 	for( int i = 0; @team.ent( i ) != null; i++ ) {

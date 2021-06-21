@@ -134,7 +134,7 @@ void SV_InitGame() {
 
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	svs.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+	svs.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	svs.initialized = true;
 
@@ -145,7 +145,7 @@ void SV_InitGame() {
 		Cvar_FullSet( "sv_maxclients", va( "%i", MAX_CLIENTS ), CVAR_SERVERINFO | CVAR_LATCH, true );
 	}
 
-	svs.spawncount = random_uniform( &svs.rng, 0, S16_MAX );
+	svs.spawncount = RandomUniform( &svs.rng, 0, S16_MAX );
 	svs.clients = ( client_t * ) Mem_Alloc( sv_mempool, sizeof( client_t ) * sv_maxclients->integer );
 	svs.client_entities.num_entities = sv_maxclients->integer * UPDATE_BACKUP * MAX_SNAP_ENTITIES;
 	svs.client_entities.entities = ( SyncEntityState * ) Mem_Alloc( sv_mempool, sizeof( SyncEntityState ) * svs.client_entities.num_entities );

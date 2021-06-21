@@ -44,7 +44,7 @@ void InitSprays() {
 }
 
 void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, u64 entropy ) {
-	RNG rng = new_rng( entropy, 0 );
+	RNG rng = NewRNG( entropy, 0 );
 
 	Vec3 forward, up;
 	AngleVectors( angles, &forward, NULL, &up );
@@ -52,8 +52,8 @@ void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, u64 entropy ) {
 	Spray spray;
 	spray.origin = origin;
 	spray.normal = normal;
-	spray.material = num_spray_assets == 0 ? StringHash( "" ) : random_select( &rng, spray_assets, num_spray_assets );
-	spray.radius = random_uniform_float( &rng, 32.0f, 48.0f );
+	spray.material = num_spray_assets == 0 ? StringHash( "" ) : RandomElement( &rng, spray_assets, num_spray_assets );
+	spray.radius = RandomUniformFloat( &rng, 32.0f, 48.0f );
 	spray.spawn_time = cls.gametime;
 
 	Vec3 left = Cross( normal, up );
@@ -63,7 +63,7 @@ void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, u64 entropy ) {
 	OrthonormalBasis( normal, &tangent, &bitangent );
 
 	spray.angle = -atan2f( Dot( decal_up, tangent ), Dot( decal_up, bitangent ) );
-	spray.angle += random_float11( &rng ) * Radians( 10.0f );
+	spray.angle += RandomFloat11( &rng ) * Radians( 10.0f );
 
 	sprays[ ( sprays_head + num_sprays ) % ARRAY_COUNT( sprays ) ] = spray;
 

@@ -621,7 +621,7 @@ void CreateParticleSystems() {
 				ps.on_frame = emitter->on_frame;
 
 				// TODO(msc): lol
-				u64 hash = random_u64( &cls.rng );
+				u64 hash = Random64( &cls.rng );
 				u64 idx = num_particleSystems;
 				if( !particleSystems_hashtable.get( hash, &idx ) ) {
 					particleSystems_hashtable.add( hash, idx );
@@ -636,7 +636,7 @@ void CreateParticleSystems() {
 			ParticleSystem ps = { };
 			ps.model = FindModel( emitter->model );
 			ps.max_particles += particles_per_emitter;
-			u64 hash = random_u64( &cls.rng );
+			u64 hash = Random64( &cls.rng );
 			if( emitter->feedback ) {
 				ps.blend_func = emitter->blend_func;
 				ps.feedback = true;
@@ -944,7 +944,7 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 
 static float SampleRandomDistribution( RNG * rng, RandomDistribution dist ) {
 	if( dist.type == RandomDistributionType_Uniform ) {
-		return random_float11( rng ) * dist.uniform;
+		return RandomFloat11( rng ) * dist.uniform;
 	}
 
 	return SampleNormalDistribution( rng ) * dist.sigma;
@@ -970,7 +970,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 		} break;
 
 		case ParticleEmitterPosition_Line: {
-			position = Lerp( position, random_float01( &cls.rng ), pos.end );
+			position = Lerp( position, RandomFloat01( &cls.rng ), pos.end );
 			position += ( dir_transform * Vec4( UniformSampleInsideCircle( &cls.rng ) * pos.radius, 0.0f, 0.0f ) ).xyz();
 		} break;
 	}
@@ -999,7 +999,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 		EmitParticle( ps, lifetime, position, dir * speed, angle, rotation, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, start_color, end_color, size, emitter->end_size, emitter->flags );
 	}
 	else if( emitter->num_materials ) {
-		if( TryFindDecal( emitter->materials[ random_uniform( &cls.rng, 0, emitter->num_materials - 1 ) ], &uvwh ) ) {
+		if( TryFindDecal( emitter->materials[ RandomUniform( &cls.rng, 0, emitter->num_materials - 1 ) ], &uvwh ) ) {
 			EmitParticle( ps, lifetime, position, dir * speed, angle, rotation, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, start_color, end_color, size, emitter->end_size, emitter->flags );
 		}
 	}
@@ -1045,7 +1045,7 @@ void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, floa
 		EmitParticle( ps, emitter, pos, t, start_color, end_color, dir_transform );
 	}
 
-	if( random_p( &cls.rng, remaining_p ) ) {
+	if( Probability( &cls.rng, remaining_p ) ) {
 		EmitParticle( ps, emitter, pos, p / ( p + 1.0f ), start_color, end_color, dir_transform );
 	}
 }
@@ -1095,8 +1095,8 @@ ParticleEmitterPosition ParticleEmitterLine( Vec3 origin, Vec3 end, float radius
 void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color, float lifetime_scale ) {
 	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) ) * lifetime_scale;
 	float size = Max2( 0.0f, emitter->size + SampleRandomDistribution( &cls.rng, emitter->size_distribution ) );
-	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
-	StringHash material = emitter->materials[ random_uniform( &cls.rng, 0, emitter->num_materials - 1 ) ];
+	float angle = RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );
+	StringHash material = emitter->materials[ RandomUniform( &cls.rng, 0, emitter->num_materials - 1 ) ];
 
 	Vec4 actual_color = emitter->color;
 	if( emitter->color_override ) {

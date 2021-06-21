@@ -279,7 +279,7 @@ static void SpawnMapEntities() {
 		ED_ParseEntity( &cursor, ent );
 
 		bool ok = true;
-		bool rng = random_p( &svs.rng, st.spawn_probability );
+		bool rng = Probability( &svs.rng, st.spawn_probability );
 		ok = ok && st.classname != "";
 		ok = ok && rng;
 		ok = ok && SpawnEntity( ent );

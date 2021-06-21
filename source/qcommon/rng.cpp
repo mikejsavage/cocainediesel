@@ -26,26 +26,25 @@
 
 #include "qcommon/rng.h"
 #include "qcommon/base.h"
-#include "gameshared/q_math.h"
 
-RNG new_rng() {
+RNG NewRNG() {
 	RNG rng;
 	rng.state = UINT64_C( 0x853c49e6748fea9b );
 	rng.inc = UINT64_C( 0xda3e39cb94b95bdb );
 	return rng;
 }
 
-RNG new_rng( uint64_t state, uint64_t seq ) {
+RNG NewRNG( uint64_t state, uint64_t seq ) {
 	RNG rng;
 	rng.state = 0;
 	rng.inc = ( seq << 1 ) | 1;
-	random_u32( &rng );
+	Random32( &rng );
 	rng.state += state;
-	random_u32( &rng );
+	Random32( &rng );
 	return rng;
 }
 
-uint32_t random_u32( RNG * rng ) {
+uint32_t Random32( RNG * rng ) {
 	uint64_t oldstate = rng->state;
 	rng->state = oldstate * UINT64_C( 6364136223846793005 ) + rng->inc;
 	uint32_t xorshifted = uint32_t( ( ( oldstate >> 18 ) ^ oldstate ) >> 27 );
@@ -53,22 +52,22 @@ uint32_t random_u32( RNG * rng ) {
 	return ( xorshifted >> rot ) | ( xorshifted << ( ( -rot ) & 31 ) );
 }
 
-uint64_t random_u64( RNG * rng ) {
-	uint64_t hi = uint64_t( random_u32( rng ) ) << uint64_t( 32 );
-	return hi | random_u32( rng );
+uint64_t Random64( RNG * rng ) {
+	uint64_t hi = uint64_t( Random32( rng ) ) << uint64_t( 32 );
+	return hi | Random32( rng );
 }
 
-int random_uniform( RNG * rng, int lo, int hi ) {
+int RandomUniform( RNG * rng, int lo, int hi ) {
 	uint32_t range = uint32_t( hi ) - uint32_t( lo );
-	uint32_t x = random_u32( rng );
+	uint32_t x = Random32( rng );
 	return lo + int( ( uint64_t( x ) * range ) >> 32 );
 }
 
 // http://www.rng-random.org/posts/bounded-rands.html
-int random_uniform_exact( RNG * rng, int lo, int hi ) {
+int RandomUniformExact( RNG * rng, int lo, int hi ) {
 	assert( lo <= hi );
 	uint32_t range = uint32_t( hi ) - uint32_t( lo );
-	uint32_t x = random_u32( rng );
+	uint32_t x = Random32( rng );
 
 	uint64_t m = uint64_t( x ) * uint64_t( range );
 	uint32_t l = uint32_t( m );
@@ -80,7 +79,7 @@ int random_uniform_exact( RNG * rng, int lo, int hi ) {
 				t %= range;
 		}
 		while( l < t ) {
-			x = random_u32( rng );
+			x = Random32( rng );
 			m = uint64_t( x ) * uint64_t( range );
 			l = uint32_t( m );
 		}
@@ -88,17 +87,17 @@ int random_uniform_exact( RNG * rng, int lo, int hi ) {
 	return lo + ( m >> 32 );
 }
 
-float random_float01( RNG * rng ) {
-	uint32_t r = random_u32( rng );
+float RandomFloat01( RNG * rng ) {
+	uint32_t r = Random32( rng );
 	return bit_cast< float >( UINT32_C( 0x3F800000 ) | ( r >> 9 ) ) - 1.0f;
 }
 
-float random_float11( RNG * rng ) {
+float RandomFloat11( RNG * rng ) {
 	union {
 		uint32_t u;
 		float f;
 	} x;
-	uint32_t r = random_u32( rng );
+	uint32_t r = Random32( rng );
 	uint32_t sign = ( r & 1 ) << 31;
 	x.u = UINT32_C( 0x3F800000 ) | ( r >> 9 );
 	x.f -= 1.0f;
@@ -106,22 +105,22 @@ float random_float11( RNG * rng ) {
 	return x.f;
 }
 
-float random_uniform_float( RNG * rng, float lo, float hi ) {
-	float t = random_float01( rng );
+float RandomUniformFloat( RNG * rng, float lo, float hi ) {
+	float t = RandomFloat01( rng );
 	return Lerp( lo, t, hi );
 }
 
-double random_double01( RNG * rng ) {
-	uint64_t r = random_u64( rng );
+double RandomDouble01( RNG * rng ) {
+	uint64_t r = Random64( rng );
 	return bit_cast< double >( UINT64_C( 0x3FF0000000000000 ) | ( r >> 12 ) ) - 1.0;
 }
 
-double random_double11( RNG * rng ) {
+double RandomDouble11( RNG * rng ) {
 	union {
 		uint64_t u;
 		double d;
 	} x;
-	uint64_t r = random_u64( rng );
+	uint64_t r = Random64( rng );
 	uint64_t sign = ( r & 1 ) << 63;
 	x.u = UINT64_C( 0x3FF0000000000000 ) | ( r >> 12 );
 	x.d -= 1.0;
@@ -129,6 +128,6 @@ double random_double11( RNG * rng ) {
 	return x.d;
 }
 
-bool random_p( RNG * rng, float p ) {
-	return random_float01( rng ) < p;
+bool Probability( RNG * rng, float p ) {
+	return RandomFloat01( rng ) < p;
 }

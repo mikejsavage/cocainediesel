@@ -273,7 +273,7 @@ static void CL_CreateNewUserCommand( int realMsec ) {
 	cls.ucmdHead++;
 	ucmd = &cl.cmds[cls.ucmdHead & CMD_MASK];
 	memset( ucmd, 0, sizeof( usercmd_t ) );
-	ucmd->entropy = random_u32( &cls.rng );
+	ucmd->entropy = Random32( &cls.rng );
 
 	// start up with the most recent viewangles
 	CL_RefreshUcmd( ucmd, 0, false );

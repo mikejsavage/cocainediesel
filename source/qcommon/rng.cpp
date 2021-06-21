@@ -21,11 +21,8 @@
  *       http://www.rng-random.org
  */
 
-#include <string.h>
-#include <assert.h>
-
-#include "qcommon/rng.h"
 #include "qcommon/base.h"
+#include "qcommon/rng.h"
 
 RNG NewRNG() {
 	RNG rng;

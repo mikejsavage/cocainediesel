@@ -226,9 +226,9 @@ static edict_t *FireProjectile(
 	projectile->s.team = owner->s.team;
 	projectile->s.type = ent_type;
 
-	projectile->projectileInfo.minDamage = Min2(float(def->mindamage), def->damage);
+	projectile->projectileInfo.minDamage = Min2(float(def->min_damage), def->damage);
 	projectile->projectileInfo.maxDamage = def->damage;
-	projectile->projectileInfo.minKnockback = Min2(def->minknockback, def->knockback);
+	projectile->projectileInfo.minKnockback = Min2(def->min_knockback, def->knockback);
 	projectile->projectileInfo.maxKnockback = def->knockback;
 	projectile->projectileInfo.radius = def->splash_radius;
 	projectile->projectileInfo.mod = MeanOfDeath(weapon);
@@ -563,7 +563,7 @@ void W_Fire_BubbleGun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 	}
 }
 
-static void W_Fire_Railgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
+static void W_Fire_Railgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta, u64 parm)
 {
 	const WeaponDef *def = GS_GetWeaponDef(Weapon_Railgun);
 
@@ -576,6 +576,10 @@ static void W_Fire_Railgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta
 
 	trace_t tr;
 	tr.ent = -1;
+
+	float charge = float( parm >> 8 ) / float( def->reload_time );
+	float damage = Lerp( def->min_damage, charge, def->damage );
+	float knockback = Lerp( def->min_knockback, charge, def->knockback );
 
 	while (ignore)
 	{
@@ -612,7 +616,7 @@ static void W_Fire_Railgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta
 				dmgflags |= DAMAGE_HEADSHOT;
 			}
 
-			G_Damage(hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, dmgflags, Weapon_Railgun);
+			G_Damage(hit, self, self, dir, dir, tr.endpos, damage, knockback, dmgflags, Weapon_Railgun);
 
 			// spawn a impact event on each damaged ent
 			edict_t *event = G_SpawnEvent(EV_BOLT_EXPLOSION, DirToU64(tr.plane.normal), &tr.endpos);
@@ -824,8 +828,10 @@ void W_Fire_Road(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 	bullet->s.sound = "weapons/road/trail";
 }
 
-void G_FireWeapon(edict_t *ent, u64 weap)
+void G_FireWeapon(edict_t *ent, u64 parm)
 {
+	WeaponType weapon = WeaponType( parm & 0xFF );
+
 	Vec3 origin, angles;
 	Vec3 viewoffset = Vec3(0.0f);
 	int timeDelta = 0;
@@ -844,7 +850,7 @@ void G_FireWeapon(edict_t *ent, u64 weap)
 
 	origin = ent->s.origin + viewoffset;
 
-	switch (weap)
+	switch (weapon)
 	{
 	default:
 		return;
@@ -902,7 +908,7 @@ void G_FireWeapon(edict_t *ent, u64 weap)
 		break;
 
 	case Weapon_Railgun:
-		W_Fire_Railgun(ent, origin, angles, timeDelta);
+		W_Fire_Railgun(ent, origin, angles, timeDelta, parm);
 		break;
 
 	case Weapon_Rifle:
@@ -929,6 +935,6 @@ void G_FireWeapon(edict_t *ent, u64 weap)
 	// add stats
 	if (ent->r.client != NULL)
 	{
-		G_ClientGetStats(ent)->accuracy_shots[weap] += GS_GetWeaponDef(weap)->projectile_count;
+		G_ClientGetStats(ent)->accuracy_shots[weapon] += GS_GetWeaponDef(weapon)->projectile_count;
 	}
 }

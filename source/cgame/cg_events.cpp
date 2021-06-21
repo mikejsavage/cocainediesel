@@ -17,41 +17,45 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
 #include "cgame/cg_local.h"
 
-static void CG_Event_WeaponBeam( Vec3 origin, Vec3 dir, int ownerNum ) {
-	float range = GS_GetWeaponDef( Weapon_Railgun )->range;
+void RailgunImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 color ) {
+	if( surfFlags & ( SURF_SKY | SURF_NOMARKS | SURF_NOIMPACT ) ) {
+		return;
+	}
+
+	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, color );
+	S_StartFixedSound( "weapons/eb/hit", pos, CHAN_AUTO, 1.0f );
+}
+
+static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, u64 parm ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
+
+	float range = def->range;
 	Vec3 end = origin + dir * range;
 
 	centity_t * owner = &cg_entities[ ownerNum ];
 
-	// retrace to spawn wall impact
+	Vec4 color = CG_TeamColorVec4( owner->current.team );
+
 	trace_t trace;
 	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.view.POVent, MASK_WALLBANG );
 	if( trace.ent != -1 ) {
-		CG_EBImpact( trace.endpos, trace.plane.normal, trace.surfFlags, CG_TeamColorVec4( owner->current.team ) );
+		RailgunImpact( trace.endpos, trace.plane.normal, trace.surfFlags, color );
 	}
 
-	// when it's predicted we have to delay the drawing until the view weapon is calculated
-	owner->localEffects[ LOCALEFFECT_EV_WEAPONBEAM ] = Weapon_Railgun;
-	owner->laserOrigin = origin;
-	owner->laserPoint = trace.endpos;
-}
-
-void CG_WeaponBeamEffect( centity_t * cent ) {
-	if( !cent->localEffects[ LOCALEFFECT_EV_WEAPONBEAM ] ) {
-		return;
-	}
-
-	// now find the projection source for the beam we will draw
 	orientation_t projection;
-	if( !CG_PModel_GetProjectionSource( cent->current.number, &projection ) ) {
-		projection.origin = cent->laserOrigin;
+	if( !CG_PModel_GetProjectionSource( ownerNum, &projection ) ) {
+		projection.origin = origin;
 	}
 
-	CG_EBBeam( projection.origin, cent->laserPoint, CG_TeamColorVec4( cent->current.team ) );
+	float charge = float( parm >> 8 ) / float( def->reload_time );
+	float width = Lerp( 4.0f, charge, 16.0f );
+	float duration = Lerp( 0.2f, charge, 0.4f );
 
-	cent->localEffects[ LOCALEFFECT_EV_WEAPONBEAM ] = 0;
+	AddPersistentBeam( projection.origin, trace.endpos, width, color, cgs.media.shaderEBBeam, duration, duration * 0.5f );
+	RailTrailParticles( projection.origin, trace.endpos, color );
 }
 
 static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
@@ -597,8 +601,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_FIREWEAPON: {
 			WeaponType weapon = WeaponType( parm & 0xFF );
-			u16 entropy = parm >> 8;
-			s16 zoom_time = parm >> 24;
 			if( weapon <= Weapon_None || weapon >= Weapon_Count )
 				return;
 
@@ -627,7 +629,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			AngleVectors( angles, &dir, NULL, NULL );
 
 			if( weapon == Weapon_Railgun ) {
-				CG_Event_WeaponBeam( origin, dir, owner );
+				FireRailgun( origin, dir, owner, parm );
 			}
 			else if( weapon == Weapon_Shotgun ) {
 				CG_Event_FireShotgun( origin, dir, owner, team_color );
@@ -636,6 +638,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				CG_Event_LaserBeam( origin, dir, owner );
 			}
 			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_BurstRifle || weapon == Weapon_Sniper /* || weapon == Weapon_Minigun */ ) {
+				u16 entropy = parm >> 8;
+				s16 zoom_time = parm >> 24;
 				CG_Event_FireBullet( origin, dir, entropy, zoom_time, weapon, owner, team_color );
 			}
 
@@ -763,7 +767,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_BOLT_EXPLOSION: {
 			Vec3 dir = U64ToDir( parm );
-			CG_EBImpact( ent->origin, dir, 0, team_color );
+			RailgunImpact( ent->origin, dir, 0, team_color );
 		} break;
 
 		case EV_GRENADE_EXPLOSION: {
@@ -783,7 +787,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_ROCKET_EXPLOSION: {
 			Vec3 dir = U64ToDir( parm );
 			CG_RocketExplosion( ent->origin, dir, team_color );
-
 		} break;
 
 		case EV_GRENADE_BOUNCE:

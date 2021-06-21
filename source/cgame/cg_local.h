@@ -54,7 +54,6 @@ constexpr RGB8 COLORBLIND_TEAM_COLORS[] = {
 enum {
 	LOCALEFFECT_VSAY_TIMEOUT,
 	LOCALEFFECT_LASERBEAM,
-	LOCALEFFECT_EV_WEAPONBEAM,
 
 	LOCALEFFECT_COUNT
 };
@@ -349,7 +348,7 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 extern cvar_t *cg_showMiss;
 
 void CG_PredictedEvent( int entNum, int ev, u64 parm );
-void CG_PredictedFireWeapon( int entNum, u64 weapon_and_entropy );
+void CG_PredictedFireWeapon( int entNum, u64 parm );
 void CG_PredictMovement();
 void CG_CheckPredictionError();
 void CG_BuildSolidList();
@@ -509,8 +508,6 @@ void CG_StakeImpact( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_StakeImpale( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BlastImpact( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BlastBounce( Vec3 pos, Vec3 dir, Vec4 team_color );
-void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color );
-void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color );
 void CG_BladeImpact( Vec3 pos, Vec3 dir );
 
 void CG_Dash( const SyncEntityState *state );
@@ -557,7 +554,6 @@ void ResetAnnouncerSpeakers();
 void AddAnnouncerSpeaker( const centity_t * cent );
 
 // I don't know where to put these ones
-void CG_WeaponBeamEffect( centity_t *cent );
 void CG_LaserBeamEffect( centity_t *cent );
 
 

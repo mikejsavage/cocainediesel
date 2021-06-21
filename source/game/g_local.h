@@ -511,7 +511,7 @@ void SP_decal( edict_t * ent );
 //
 // g_weapon.c
 //
-void G_FireWeapon( edict_t *ent, u64 parm );
+void G_FireWeapon( edict_t * ent, u64 parm );
 
 //
 // g_chasecam	//newgametypes

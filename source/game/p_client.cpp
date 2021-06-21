@@ -845,16 +845,14 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 	}
 }
 
-void G_PredictedFireWeapon( int entNum, u64 weapon_and_entropy ) {
-	WeaponType weapon = WeaponType( weapon_and_entropy & 0xFF );
-
+void G_PredictedFireWeapon( int entNum, u64 parm ) {
 	edict_t * ent = &game.edicts[ entNum ];
-	G_FireWeapon( ent, weapon );
+	G_FireWeapon( ent, parm );
 
 	Vec3 start = ent->s.origin;
 	start.z += ent->r.client->ps.viewheight;
 
-	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, weapon, &start );
+	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, parm, &start );
 	event->s.ownerNum = entNum;
 	event->s.origin2 = ent->r.client->ps.viewangles;
 	event->s.team = ent->s.team;

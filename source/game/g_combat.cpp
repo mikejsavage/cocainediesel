@@ -430,7 +430,7 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 
 void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cplane_t *plane, int mod, int timeDelta ) {
 	float maxknockback = def->knockback;
-	float minknockback = def->minknockback;
+	float minknockback = def->min_knockback;
 	float radius = def->splash_radius;
 
 	assert( radius >= 0.0f );

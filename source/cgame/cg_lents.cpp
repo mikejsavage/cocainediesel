@@ -5,11 +5,6 @@ static float RandomRadians() {
 	return RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );
 }
 
-void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color ) {
-	AddPersistentBeam( start, end, 16.0f, team_color, cgs.media.shaderEBBeam, 0.25f, 0.1f );
-	RailTrailParticles( start, end, team_color );
-}
-
 void CG_ARBulletExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	ARBulletImpactParticles( pos, dir, team_color.xyz() );
 	S_StartFixedSound( "weapons/ar/explode", pos, CHAN_AUTO, 1.0f );
@@ -18,15 +13,6 @@ void CG_ARBulletExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color ) {
 	BubbleImpactParticles( pos, team_color.xyz() );
 	S_StartFixedSound( "weapons/bg/explode", pos, CHAN_AUTO, 1.0f );
-}
-
-void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color ) {
-	if( surfFlags & ( SURF_SKY | SURF_NOMARKS | SURF_NOIMPACT ) ) {
-		return;
-	}
-
-	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, team_color );
-	S_StartFixedSound( "weapons/eb/hit", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {

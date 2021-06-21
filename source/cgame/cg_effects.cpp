@@ -25,6 +25,9 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 	if( material == NULL )
 		return;
 
+	if( start == end || start == frame_static.position )
+		return;
+
 	Vec3 dir = Normalize( end - start );
 	Vec3 forward = Normalize( start - frame_static.position );
 

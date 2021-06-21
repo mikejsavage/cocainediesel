@@ -89,6 +89,11 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 		float frac = float( ps->weapon_state_time ) / float( def->reload_time );
 		angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
 	}
+	else if( ps->weapon == Weapon_Railgun && ps->weapon_state == WeaponState_Cooking ) {
+		float charge = float( ps->weapon_state_time ) / float( def->reload_time );
+		float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 4.0f;
+		viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_FORWARD ) * pull_back;
+	}
 
 	// gun angles from bobbing
 	if( cg.bobCycle & 1 ) {

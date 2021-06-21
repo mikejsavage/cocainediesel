@@ -42,10 +42,10 @@ struct WeaponDef {
 	float damage;
 	float selfdamage;
 	float wallbangdamage;
-	int knockback;
-	int splash_radius;
-	int mindamage;
-	int minknockback;
+	float knockback;
+	float splash_radius;
+	float min_damage;
+	float min_knockback;
 
 	int speed;
 	float spread;

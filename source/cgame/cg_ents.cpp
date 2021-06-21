@@ -730,7 +730,6 @@ void DrawEntities() {
 				CG_AddPlayerEnt( cent );
 				CG_EntityLoopSound( cent, state );
 				CG_LaserBeamEffect( cent );
-				CG_WeaponBeamEffect( cent );
 				break;
 
 			case ET_CORPSE:

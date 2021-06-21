@@ -45,8 +45,8 @@ void CG_PredictedEvent( int entNum, int ev, u64 parm ) {
 	}
 }
 
-void CG_PredictedFireWeapon( int entNum, u64 weapon_and_entropy ) {
-	CG_PredictedEvent( entNum, EV_FIREWEAPON, weapon_and_entropy );
+void CG_PredictedFireWeapon( int entNum, u64 parm ) {
+	CG_PredictedEvent( entNum, EV_FIREWEAPON, parm );
 }
 
 /*

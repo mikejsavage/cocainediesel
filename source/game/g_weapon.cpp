@@ -598,7 +598,6 @@ static void W_Fire_Railgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta
 		int hit_movetype = hit->movetype; // backup the original movetype as the entity may "die"
 		if (hit == world)
 		{ // stop dead if hit the world
-			G_RadiusKnockback(def, self, tr.endpos, &tr.plane, Weapon_Railgun, timeDelta);
 			break;
 		}
 

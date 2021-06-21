@@ -74,7 +74,7 @@ void main() {
 #else
 
 uniform sampler2D u_BaseTexture;
-lowp uniform sampler2DArray u_DecalAtlases;
+uniform lowp sampler2DArray u_DecalAtlases;
 
 out vec4 f_Albedo;
 

@@ -350,20 +350,14 @@ static ItemState railgun_states[] = {
 	} ),
 
 	ItemState( WeaponState_Cooking, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const usercmd_t * cmd ) -> ItemStateTransition {
-		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
-		ps->weapon_state_time = Min2( def->reload_time, ps->weapon_state_time );
-
-		if( cmd->buttons & BUTTON_ATTACK ) {
-			return state;
+		const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
+		if( ( cmd->buttons & BUTTON_ATTACK ) == 0 && ps->weapon_state_time >= def->reload_time ) {
+			gs->api.PredictedFireWeapon( ps->POVnum, Weapon_Railgun );
+			return WeaponState_Firing;
 		}
 
-		u64 charge = Min2( def->reload_time, ps->weapon_state_time );
-		u64 parm = ps->weapon | ( charge << 8 );
-		gs->api.PredictedFireWeapon( ps->POVnum, parm );
-
-		return WeaponState_Firing;
+		return state;
 	} ),
-
 };
 
 constexpr static Span< const ItemState > dispatch_state_machine = MakeStateMachine( dispatch_states );

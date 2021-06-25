@@ -563,7 +563,7 @@ void W_Fire_BubbleGun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 	}
 }
 
-static void W_Fire_Railgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta, u64 parm)
+static void W_Fire_Railgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 {
 	const WeaponDef *def = GS_GetWeaponDef(Weapon_Railgun);
 
@@ -576,10 +576,6 @@ static void W_Fire_Railgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta
 
 	trace_t tr;
 	tr.ent = -1;
-
-	float charge = float( parm >> 8 ) / float( def->reload_time );
-	float damage = Lerp( def->min_damage, charge, def->damage );
-	float knockback = Lerp( def->min_knockback, charge, def->knockback );
 
 	while (ignore)
 	{
@@ -615,7 +611,7 @@ static void W_Fire_Railgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta
 				dmgflags |= DAMAGE_HEADSHOT;
 			}
 
-			G_Damage(hit, self, self, dir, dir, tr.endpos, damage, knockback, dmgflags, Weapon_Railgun);
+			G_Damage(hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, dmgflags, Weapon_Railgun);
 
 			// spawn a impact event on each damaged ent
 			edict_t *event = G_SpawnEvent(EV_BOLT_EXPLOSION, DirToU64(tr.plane.normal), &tr.endpos);
@@ -907,7 +903,7 @@ void G_FireWeapon(edict_t *ent, u64 parm)
 		break;
 
 	case Weapon_Railgun:
-		W_Fire_Railgun(ent, origin, angles, timeDelta, parm);
+		W_Fire_Railgun(ent, origin, angles, timeDelta);
 		break;
 
 	case Weapon_Rifle:

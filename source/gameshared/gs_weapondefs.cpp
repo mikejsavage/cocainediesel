@@ -483,13 +483,13 @@ const WeaponDef weapon_defs[] = {
 		/* zoom inaccuracy      */ 0.0f,
 
 		// damages
-		/* damage               */ 50,
+		/* damage               */ 38,
 		/* self damage          */ 0,
 		/* wallbang damage      */ 1.0f, //not implemented
-		/* knockback            */ 100,
+		/* knockback            */ 50,
 		/* splash radius        */ 0,
-		/* splash min damage    */ 25,
-		/* splash min knockback */ 45,
+		/* splash min damage    */ 0,
+		/* splash min knockback */ 0,
 
 		// projectile def
 		/* speed                */ INSTANT,

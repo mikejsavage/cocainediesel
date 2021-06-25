@@ -29,7 +29,7 @@ void RailgunImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 color ) {
 	S_StartFixedSound( "weapons/eb/hit", pos, CHAN_AUTO, 1.0f );
 }
 
-static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, u64 parm ) {
+static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
 
 	float range = def->range;
@@ -50,11 +50,7 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, u64 parm ) {
 		projection.origin = origin;
 	}
 
-	float charge = float( parm >> 8 ) / float( def->reload_time );
-	float width = Lerp( 4.0f, charge, 16.0f );
-	float duration = Lerp( 0.2f, charge, 0.4f );
-
-	AddPersistentBeam( projection.origin, trace.endpos, width, color, cgs.media.shaderEBBeam, duration, duration * 0.5f );
+	AddPersistentBeam( projection.origin, trace.endpos, 16.0f, color, cgs.media.shaderEBBeam, 0.25f, 0.1f );
 	RailTrailParticles( projection.origin, trace.endpos, color );
 }
 
@@ -629,7 +625,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			AngleVectors( angles, &dir, NULL, NULL );
 
 			if( weapon == Weapon_Railgun ) {
-				FireRailgun( origin, dir, owner, parm );
+				FireRailgun( origin, dir, owner );
 			}
 			else if( weapon == Weapon_Shotgun ) {
 				CG_Event_FireShotgun( origin, dir, owner, team_color );

@@ -245,24 +245,22 @@ static ItemState generic_gun_states[] = {
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
-		if( !GS_ShootingDisabled( gs ) ) {
-			if( cmd->buttons & BUTTON_ATTACK ) {
-				if( HasAmmo( def, slot ) ) {
-					FireWeapon( gs, ps, cmd, false );
+		if( cmd->buttons & BUTTON_ATTACK ) {
+			if( HasAmmo( def, slot ) ) {
+				FireWeapon( gs, ps, cmd, false );
 
-					switch( def->firing_mode ) {
-						case FiringMode_Auto: return WeaponState_Firing;
-						case FiringMode_SemiAuto: return WeaponState_FiringSemiAuto;
-						case FiringMode_Smooth: return WeaponState_FiringSmooth;
-						case FiringMode_Clip: return WeaponState_FiringEntireClip;
-					}
+				switch( def->firing_mode ) {
+					case FiringMode_Auto: return WeaponState_Firing;
+					case FiringMode_SemiAuto: return WeaponState_FiringSemiAuto;
+					case FiringMode_Smooth: return WeaponState_FiringSmooth;
+					case FiringMode_Clip: return WeaponState_FiringEntireClip;
 				}
 			}
+		}
 
-			bool wants_reload = ( cmd->buttons & BUTTON_RELOAD ) && def->clip_size != 0 && slot->ammo < def->clip_size;
-			if( wants_reload || !HasAmmo( def, slot ) ) {
-				return WeaponState_Reloading;
-			}
+		bool wants_reload = ( cmd->buttons & BUTTON_RELOAD ) && def->clip_size != 0 && slot->ammo < def->clip_size;
+		if( wants_reload || !HasAmmo( def, slot ) ) {
+			return WeaponState_Reloading;
 		}
 
 		return AllowWeaponSwitch( gs, ps, WeaponState_Idle );
@@ -401,7 +399,7 @@ void ClearInventory( SyncPlayerState * ps ) {
 	ps->zoom_time = 0;
 }
 
-void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, const usercmd_t * cmd, int timeDelta ) {
+void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, usercmd_t cmd, int timeDelta ) {
 	if( GS_MatchPaused( gs ) ) {
 		return;
 	}
@@ -411,13 +409,17 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, const usercmd_t
 		return;
 	}
 
-	ps->weapon_state_time = SaturatingAdd( ps->weapon_state_time, cmd->msec );
+	ps->weapon_state_time = SaturatingAdd( ps->weapon_state_time, cmd.msec );
 
-	if( cmd->weaponSwitch != Weapon_None && GS_CanEquip( ps, cmd->weaponSwitch ) ) {
-		ps->pending_weapon = cmd->weaponSwitch;
+	if( cmd.weaponSwitch != Weapon_None && GS_CanEquip( ps, cmd.weaponSwitch ) ) {
+		ps->pending_weapon = cmd.weaponSwitch;
 	}
 
-	HandleZoom( gs, ps, cmd );
+	if( GS_ShootingDisabled( gs ) ) {
+		cmd.buttons = cmd.buttons & ~BUTTON_ATTACK;
+	}
+
+	HandleZoom( gs, ps, &cmd );
 
 	while( true ) {
 		Span< const ItemState > sm = FindItemStateMachine( ps );
@@ -425,7 +427,7 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, const usercmd_t
 		WeaponState old_state = ps->weapon_state;
 		const ItemState * s = FindState( sm, old_state );
 
-		ItemStateTransition transition = s == NULL ? ItemStateTransition( sm[ 0 ].state ) : s->think( gs, old_state, ps, cmd );
+		ItemStateTransition transition = s == NULL ? ItemStateTransition( sm[ 0 ].state ) : s->think( gs, old_state, ps, &cmd );
 
 		switch( transition.type ) {
 			case TransitionType_Normal:

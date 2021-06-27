@@ -90,6 +90,7 @@ struct gs_module_api_t {
 	int ( *PointContents )( Vec3 point, int timeDelta );
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, u64 weapon_and_entropy );
+	void ( *PredictedUseGadget )( int entNum, GadgetType gadget, u64 parm );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, Vec3 previous_origin );
 };
 
@@ -156,18 +157,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove );
 
 #define HEALTH_TO_INT( x )    ( ( x ) < 1.0f ? (int)ceilf( ( x ) ) : (int)floorf( ( x ) + 0.5f ) )
 
-// gs_items - shared items definitions
-
-struct Item {
-	ItemType type;
-
-	const char * name;
-	const char * short_name;
-	RGB8 color;
-	const char * description;
-	int cost;
-};
-
 // teams
 const char *GS_TeamName( int team );
 int GS_TeamFromName( const char *teamname );
@@ -194,22 +183,49 @@ int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec
 #define PMFEAT_ALL              ( 0xFFFF )
 #define PMFEAT_DEFAULT          ( PMFEAT_ALL & ~PMFEAT_GHOSTMOVE & ~PMFEAT_TEAMGHOST )
 
-enum MeanOfDeath {
-	// implicit WeaponType enum at the start
-
-	MeanOfDeath_Slime = Weapon_Count,
-	MeanOfDeath_Lava,
-	MeanOfDeath_Crush, // moving item blocked by player
-	MeanOfDeath_Telefrag,
-	MeanOfDeath_Suicide,
-	MeanOfDeath_Explosion,
-
-	MeanOfDeath_Trigger,
-
-	MeanOfDeath_Laser,
-	MeanOfDeath_Spike,
-	MeanOfDeath_Void,
+enum DamageCategory {
+	DamageCategory_Weapon,
+	DamageCategory_Gadget,
+	DamageCategory_World,
 };
+
+// struct DamageType {
+// 	DamageCategory type;
+// 	union {
+// 		WeaponType weapon;
+// 		GadgetType gadget;
+// 		WorldDamage world;
+// 	};
+// };
+
+enum WorldDamage : u8 {
+	WorldDamage_Slime,
+	WorldDamage_Lava,
+	WorldDamage_Crush,
+	WorldDamage_Telefrag,
+	WorldDamage_Suicide,
+	WorldDamage_Explosion,
+
+	WorldDamage_Trigger,
+
+	WorldDamage_Laser,
+	WorldDamage_Spike,
+	WorldDamage_Void,
+};
+
+struct DamageType {
+	u8 encoded;
+
+	DamageType() = default;
+	DamageType( WeaponType weapon );
+	DamageType( GadgetType gadget );
+	DamageType( WorldDamage world );
+};
+
+bool operator==( DamageType a, DamageType b );
+bool operator!=( DamageType a, DamageType b );
+
+DamageCategory DecodeDamageType( DamageType type, WeaponType * weapon, GadgetType * gadget, WorldDamage * world );
 
 //
 // events, event parms
@@ -261,6 +277,7 @@ enum EventType {
 
 	EV_WEAPONACTIVATE,
 	EV_FIREWEAPON,
+	EV_USEGADGET,
 	EV_SMOOTHREFIREWEAPON,
 	EV_NOAMMOCLICK,
 	EV_ZOOM_IN,
@@ -272,6 +289,10 @@ enum EventType {
 	EV_JUMP,
 	EV_JUMP_PAD,
 	EV_FALL,
+
+	EV_SUICIDE_BOMB_ANNOUNCEMENT,
+	EV_SUICIDE_BOMB_BEEP,
+	EV_SUICIDE_BOMB_EXPLODE,
 
 	// non predictable events
 
@@ -367,6 +388,8 @@ enum EntityType {
 	ET_RIFLEBULLET,
 	ET_STAKE,
 	ET_BLAST,
+
+	ET_THROWING_AXE,
 
 	ET_LASERBEAM,   // for continuous beams
 

@@ -57,20 +57,6 @@ struct snapshot_t {
 //===============================================================
 
 //
-// functions provided by the main engine
-//
-struct cgame_import_t {
-	void ( *GetConfigString )( int i, char *str, int size );
-
-	void ( *NET_GetUserCmd )( int frame, usercmd_t *cmd );
-	int ( *NET_GetCurrentUserCmdNum )();
-	void ( *NET_GetCurrentState )( int64_t *incomingAcknowledged, int64_t *outgoingSequence, int64_t *outgoingSent );
-
-	// refresh system
-	void ( *VID_FlashWindow )();
-};
-
-//
 // functions exported by the client game subsystem
 //
 struct cgame_export_t {
@@ -95,13 +81,8 @@ struct cgame_export_t {
 
 	void ( *MouseMove )( int frameTime, Vec2 m );
 
-	/**
-	 * Gets input command buttons added by cgame.
-	 * May be called multiple times in a frame.
-	 *
-	 * @return BUTTON_ bitfield with the pressed or simulated actions
-	 */
-	unsigned int ( *GetButtonBits )();
+	u8 ( *GetButtonBits )();
+	u8 ( *GetButtonDownEdges )();
 };
 
-cgame_export_t *GetCGameAPI( cgame_import_t * import );
+cgame_export_t *GetCGameAPI();

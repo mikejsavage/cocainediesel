@@ -22,10 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "client/keys.h"
 
-/*
- * keyboard
- */
-
 struct Button {
 	int keys[ 2 ];
 	bool down;
@@ -43,6 +39,7 @@ static Button button_crouch;
 static Button button_walk;
 
 static Button button_attack;
+static Button button_gadget;
 static Button button_reload;
 
 static void ClearButton( Button * b ) {
@@ -84,7 +81,6 @@ static void KeyUp( Button * b ) {
 		b->keys[ 0 ] = 0;
 		b->keys[ 1 ] = 0;
 		b->down = false;
-		b->edge = true;
 		return;
 	}
 
@@ -123,25 +119,28 @@ static void IN_WalkUp() { KeyUp( &button_walk ); }
 
 static void IN_AttackDown() { KeyDown( &button_attack ); }
 static void IN_AttackUp() { KeyUp( &button_attack ); }
+static void IN_GadgetDown() { KeyDown( &button_gadget ); }
+static void IN_GadgetUp() { KeyUp( &button_gadget ); }
 static void IN_ReloadDown() { KeyDown( &button_reload ); }
 static void IN_ReloadUp() { KeyUp( &button_reload ); }
 
-unsigned int CG_GetButtonBits() {
-	unsigned int buttons = 0;
+u8 CG_GetButtonBits() {
+	u8 buttons = 0;
 
-	if( button_attack.down || button_attack.edge ) {
+	if( button_attack.down ) {
 		buttons |= BUTTON_ATTACK;
-		button_attack.edge = false;
 	}
 
-	if( button_special.down || button_special.edge ) {
+	if( button_gadget.down ) {
+		buttons |= BUTTON_GADGET;
+	}
+
+	if( button_special.down ) {
 		buttons |= BUTTON_SPECIAL;
-		button_special.edge = false;
 	}
 
-	if( button_reload.down || button_reload.edge ) {
+	if( button_reload.down ) {
 		buttons |= BUTTON_RELOAD;
-		button_reload.edge = false;
 	}
 
 	if( button_walk.down ) {
@@ -149,6 +148,38 @@ unsigned int CG_GetButtonBits() {
 	}
 
 	return buttons;
+}
+
+u8 CG_GetButtonDownEdges() {
+	u8 edges = 0;
+
+	if( button_attack.down && button_attack.edge ) {
+		edges |= BUTTON_ATTACK;
+	}
+
+	if( button_gadget.down && button_gadget.edge ) {
+		edges |= BUTTON_GADGET;
+	}
+
+	if( button_special.down && button_special.edge ) {
+		edges |= BUTTON_SPECIAL;
+	}
+
+	if( button_reload.down && button_reload.edge ) {
+		edges |= BUTTON_RELOAD;
+	}
+
+	if( button_walk.down && button_walk.edge ) {
+		edges |= BUTTON_WALK;
+	}
+
+	button_attack.edge = false;
+	button_gadget.edge = false;
+	button_special.edge = false;
+	button_reload.edge = false;
+	button_walk.edge = false;
+
+	return edges;
 }
 
 Vec3 CG_GetMovement() {
@@ -294,6 +325,8 @@ void CG_ClearInputState() {
 	ClearButton( &button_walk );
 
 	ClearButton( &button_attack );
+	ClearButton( &button_gadget );
+	ClearButton( &button_reload );
 
 	mouse_movement = Vec2( 0.0f );
 }
@@ -321,6 +354,8 @@ void CG_InitInput() {
 
 	Cmd_AddCommand( "+attack", IN_AttackDown );
 	Cmd_AddCommand( "-attack", IN_AttackUp );
+	Cmd_AddCommand( "+gadget", IN_GadgetDown );
+	Cmd_AddCommand( "-gadget", IN_GadgetUp );
 	Cmd_AddCommand( "+reload", IN_ReloadDown );
 	Cmd_AddCommand( "-reload", IN_ReloadUp );
 
@@ -356,6 +391,8 @@ void CG_ShutdownInput() {
 
 	Cmd_RemoveCommand( "+attack" );
 	Cmd_RemoveCommand( "-attack" );
+	Cmd_RemoveCommand( "+gadget" );
+	Cmd_RemoveCommand( "-gadget" );
 	Cmd_RemoveCommand( "+reload" );
 	Cmd_RemoveCommand( "-reload" );
 }

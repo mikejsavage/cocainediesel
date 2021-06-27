@@ -206,12 +206,12 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	if( waterlevel && ( ent->watertype & ( CONTENTS_LAVA | CONTENTS_SLIME ) ) ) {
 		if( ent->watertype & CONTENTS_LAVA ) {
 			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin,
-					  ( 30 * waterlevel ) * game.snapFrameTime / 1000.0f, 0, 0, MeanOfDeath_Lava );
+					  ( 30 * waterlevel ) * game.snapFrameTime / 1000.0f, 0, 0, WorldDamage_Lava );
 		}
 
 		if( ent->watertype & CONTENTS_SLIME ) {
 			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin,
-					  ( 10 * waterlevel ) * game.snapFrameTime / 1000.0f, 0, 0, MeanOfDeath_Slime );
+					  ( 10 * waterlevel ) * game.snapFrameTime / 1000.0f, 0, 0, WorldDamage_Slime );
 		}
 	}
 }

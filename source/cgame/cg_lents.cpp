@@ -100,6 +100,7 @@ void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 }
 
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
+	// TODO: radius is just ignored?
 	ExplosionParticles( pos, dir, vec4_white.xyz() );
 	S_StartFixedSound( "models/bomb/explode", pos, CHAN_AUTO, 1.0f );
 }

@@ -116,10 +116,9 @@ static void Cmd_Kill_f( edict_t *ent ) {
 	}
 
 	ent->health = 0;
-	meansOfDeath = MeanOfDeath_Suicide;
 
 	// wsw : pb : fix /kill command
-	G_Killed( ent, ent, ent, -1, 100000, Vec3( 0.0f ), MeanOfDeath_Suicide );
+	G_Killed( ent, ent, ent, -1, WorldDamage_Suicide, 100000 );
 }
 
 void Cmd_ChaseNext_f( edict_t *ent ) {

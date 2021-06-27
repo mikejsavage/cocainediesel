@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client/client.h"
 #include "cgame/cg_public.h"
-#include "cgame/cg_syscalls.h"
 #include "cgame/cg_dynamics.h"
 #include "cgame/cg_particles.h"
 #include "cgame/cg_sprays.h"
@@ -140,6 +139,7 @@ struct cgs_media_t {
 	const Material * shaderTracer;
 
 	const Material * shaderWeaponIcon[ Weapon_Count ];
+	const Material * shaderGadgetIcon[ Gadget_Count ];
 
 	const Material * shaderAlive;
 	const Material * shaderDead;
@@ -349,6 +349,7 @@ extern cvar_t *cg_showMiss;
 
 void CG_PredictedEvent( int entNum, int ev, u64 parm );
 void CG_PredictedFireWeapon( int entNum, u64 parm );
+void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm );
 void CG_PredictMovement();
 void CG_CheckPredictionError();
 void CG_BuildSolidList();
@@ -574,7 +575,8 @@ void CG_ShutdownInput();
 void CG_ClearInputState();
 void CG_MouseMove( int frameTime, Vec2 m );
 float CG_GetSensitivityScale( float sens, float zoomSens );
-unsigned int CG_GetButtonBits();
+u8 CG_GetButtonBits();
+u8 CG_GetButtonDownEdges();
 Vec3 CG_GetDeltaViewAngles();
 Vec3 CG_GetMovement();
 

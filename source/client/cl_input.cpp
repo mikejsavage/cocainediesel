@@ -90,6 +90,7 @@ static void CL_RefreshUcmd( usercmd_t *ucmd, int msec, bool ready ) {
 		ucmd->upmove = Clamp( -127, (int)(movement.z * 127.0f), 127 );
 
 		ucmd->buttons |= CL_GameModule_GetButtonBits();
+		ucmd->down_edges |= CL_GameModule_GetButtonDownEdges();
 
 		if( cl.weaponSwitch != 0 ) {
 			ucmd->weaponSwitch = cl.weaponSwitch;

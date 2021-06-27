@@ -20,17 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cgame/cg_local.h"
 
-cgame_import_t CGAME_IMPORT;
-
-/*
-* GetCGameAPI
-*
-* Returns a pointer to the structure with all entry points
-*/
-cgame_export_t * GetCGameAPI( cgame_import_t * import ) {
+cgame_export_t * GetCGameAPI() {
 	static cgame_export_t globals;
-
-	CGAME_IMPORT = *import;
 
 	globals.Init = CG_Init;
 	globals.Reset = CG_Reset;
@@ -46,6 +37,7 @@ cgame_export_t * GetCGameAPI( cgame_import_t * import ) {
 	globals.NewFrameSnapshot = CG_NewFrameSnap;
 
 	globals.GetButtonBits = CG_GetButtonBits;
+	globals.GetButtonDownEdges = CG_GetButtonDownEdges;
 	globals.MouseMove = CG_MouseMove;
 
 	return &globals;

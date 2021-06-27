@@ -87,7 +87,7 @@ static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 
 static void CG_InitGameShared() {
 	char cstring[MAX_CONFIGSTRING_CHARS];
-	trap_GetConfigString( CS_MAXCLIENTS, cstring, MAX_CONFIGSTRING_CHARS );
+	CL_GetConfigString( CS_MAXCLIENTS, cstring, MAX_CONFIGSTRING_CHARS );
 	int maxclients = atoi( cstring );
 	if( maxclients < 1 || maxclients > MAX_CLIENTS ) {
 		maxclients = MAX_CLIENTS;
@@ -99,6 +99,7 @@ static void CG_InitGameShared() {
 
 	client_gs.api.PredictedEvent = CG_PredictedEvent;
 	client_gs.api.PredictedFireWeapon = CG_PredictedFireWeapon;
+	client_gs.api.PredictedUseGadget = CG_PredictedUseGadget;
 	client_gs.api.Trace = CG_GS_Trace;
 	client_gs.api.GetEntityState = CG_GS_GetEntityState;
 	client_gs.api.PointContents = CG_GS_PointContents;
@@ -161,7 +162,7 @@ void CG_Precache() {
 
 static void CG_RegisterConfigStrings() {
 	for( int i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
-		trap_GetConfigString( i, cgs.configStrings[i], MAX_CONFIGSTRING_CHARS );
+		CL_GetConfigString( i, cgs.configStrings[i], MAX_CONFIGSTRING_CHARS );
 	}
 
 	// backup initial configstrings for CG_Reset

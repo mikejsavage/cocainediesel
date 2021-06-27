@@ -601,6 +601,7 @@ static void Delta( DeltaBuffer * buf, usercmd_t & cmd, const usercmd_t & baselin
 	Delta( buf, cmd.sidemove, baseline.sidemove );
 	Delta( buf, cmd.upmove, baseline.upmove );
 	Delta( buf, cmd.buttons, baseline.buttons );
+	Delta( buf, cmd.down_edges, baseline.down_edges );
 	Delta( buf, cmd.entropy, baseline.entropy );
 	Delta( buf, cmd.weaponSwitch, baseline.weaponSwitch );
 }
@@ -666,6 +667,8 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	DeltaHalf( buf, player.viewheight, baseline.viewheight );
 
 	Delta( buf, player.weapons, baseline.weapons );
+	DeltaEnum( buf, player.gadget, baseline.gadget );
+	Delta( buf, player.gadget_ammo, baseline.gadget_ammo );
 
 	Delta( buf, player.ready, baseline.ready );
 	Delta( buf, player.voted, baseline.voted );
@@ -680,6 +683,8 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	Delta( buf, player.weapon, baseline.weapon );
 	Delta( buf, player.pending_weapon, baseline.pending_weapon );
+	Delta( buf, player.using_gadget, baseline.using_gadget );
+	Delta( buf, player.pending_gadget, baseline.pending_gadget );
 	Delta( buf, player.last_weapon, baseline.last_weapon );
 	Delta( buf, player.zoom_time, baseline.zoom_time );
 

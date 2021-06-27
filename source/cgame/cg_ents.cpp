@@ -725,6 +725,11 @@ void DrawEntities() {
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ), 3200.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
+			case ET_THROWING_AXE:
+				DrawEntityModel( cent );
+				DrawEntityTrail( cent, "weapons/axe/trail" );
+				CG_EntityLoopSound( cent, state );
+				break;
 
 			case ET_PLAYER:
 				CG_AddPlayerEnt( cent );
@@ -808,6 +813,7 @@ void CG_LerpEntities() {
 			case ET_RIFLEBULLET:
 			case ET_STAKE:
 			case ET_BLAST:
+			case ET_THROWING_AXE:
 			case ET_PLAYER:
 			case ET_CORPSE:
 			case ET_GHOST:
@@ -887,6 +893,7 @@ void CG_UpdateEntities() {
 			case ET_RIFLEBULLET:
 			case ET_STAKE:
 			case ET_BLAST:
+			case ET_THROWING_AXE:
 				CG_UpdateGenericEnt( cent );
 				break;
 

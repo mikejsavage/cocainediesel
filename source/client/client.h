@@ -264,6 +264,11 @@ size_t CL_GetBaseServerURL( char *buffer, size_t buffer_size );
 //
 // cl_game.c
 //
+void CL_GetConfigString( int i, char *str, int size );
+void CL_GetUserCmd( int frame, usercmd_t *cmd );
+int CL_GetCurrentUserCmdNum();
+void CL_GetCurrentState( int64_t *incomingAcknowledged, int64_t *outgoingSequence, int64_t *outgoingSent );
+
 void CL_GameModule_Init();
 void CL_GameModule_Reset();
 void CL_GameModule_Shutdown();
@@ -272,7 +277,8 @@ void CL_GameModule_EscapeKey();
 bool CL_GameModule_NewSnapshot( int pendingSnapshot );
 void CL_GameModule_RenderView();
 void CL_GameModule_InputFrame( int frameTime );
-unsigned CL_GameModule_GetButtonBits();
+u8 CL_GameModule_GetButtonBits();
+u8 CL_GameModule_GetButtonDownEdges();
 void CL_GameModule_AddViewAngles( Vec3 * viewAngles );
 void CL_GameModule_AddMovement( Vec3 * movement );
 void CL_GameModule_MouseMove( int frameTime, Vec2 m );

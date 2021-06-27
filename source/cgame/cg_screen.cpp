@@ -89,7 +89,7 @@ void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
 	}
 
 	int64_t incomingAcknowledged, outgoingSequence;
-	trap_NET_GetCurrentState( &incomingAcknowledged, &outgoingSequence, NULL );
+	CL_GetCurrentState( &incomingAcknowledged, &outgoingSequence, NULL );
 	if( outgoingSequence - incomingAcknowledged < CMD_BACKUP - 1 ) {
 		return;
 	}

@@ -510,7 +510,7 @@ class cDARound {
 		}
 	}
 
-	void playerKilled( Entity @target, Entity @attacker, Entity @inflictor, int mod ) {
+	void playerKilled( Entity @target, Entity @attacker, Entity @inflictor ) {
 		if( @target == null || @target.client == null )
 			return;
 
@@ -605,10 +605,9 @@ void GT_ScoreEvent( Client @client, const String &score_event, const String &arg
 
 		int arg1 = args.getToken( 0 ).toInt();
 		int arg2 = args.getToken( 1 ).toInt();
-		int mod  = args.getToken( 3 ).toInt();
 
 		// target, attacker, inflictor
-		daRound.playerKilled( G_GetEntity( arg1 ), attacker, G_GetEntity( arg2 ), mod );
+		daRound.playerKilled( G_GetEntity( arg1 ), attacker, G_GetEntity( arg2 ) );
 	}
 }
 

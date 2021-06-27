@@ -496,12 +496,6 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	ent->watertype = G_PointContents( ent->s.origin );
 	isinwater = ent->watertype & MASK_WATER;
 
-	// never allow items in CONTENTS_NODROP
-	if( ent->item && ( ent->watertype & CONTENTS_NODROP ) ) {
-		G_FreeEdict( ent );
-		return;
-	}
-
 	ent->waterlevel = isinwater;
 
 

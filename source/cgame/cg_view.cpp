@@ -160,7 +160,7 @@ static void CG_FlashGameWindow() {
 	}
 
 	if( flash ) {
-		trap_VID_FlashWindow();
+		FlashWindow();
 	}
 }
 
@@ -443,7 +443,7 @@ static void CG_UpdateChaseCam() {
 	}
 
 	usercmd_t cmd;
-	trap_NET_GetUserCmd( trap_NET_GetCurrentUserCmdNum() - 1, &cmd );
+	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 
 	if( chaseCam.key_pressed ) {
 		chaseCam.key_pressed = ( cmd.buttons & ( BUTTON_ATTACK | BUTTON_SPECIAL ) ) != 0 || cmd.upmove != 0 || cmd.sidemove != 0;

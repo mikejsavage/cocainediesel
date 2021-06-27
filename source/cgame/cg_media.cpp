@@ -80,6 +80,10 @@ void CG_RegisterMediaShaders() {
 		cgs.media.shaderWeaponIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GS_GetWeaponDef( i )->short_name ) );
 	}
 
+	for( u8 i = 0; i < Gadget_Count; i++ ) {
+		cgs.media.shaderGadgetIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GetGadgetDef( GadgetType( i ) )->short_name ) );
+	}
+
 	cgs.media.shaderAlive = FindMaterial( "gfx/scoreboard/alive" );
 	cgs.media.shaderDead = FindMaterial( "gfx/scoreboard/dead" );
 	cgs.media.shaderReady = FindMaterial( "gfx/scoreboard/ready" );

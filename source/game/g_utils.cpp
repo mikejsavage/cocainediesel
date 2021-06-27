@@ -349,11 +349,11 @@ void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage ) {
 	}
 }
 
-void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assistorNo, int damage, Vec3 point ) {
+void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assistorNo, DamageType damage_type, int damage ) {
 	if( ent->die ) {
-		ent->die( ent, inflictor, attacker, assistorNo, damage, point );
+		ent->die( ent, inflictor, attacker, assistorNo, damage_type, damage );
 	} else if( ent->asDieFunc ) {
-		G_asCallMapEntityDie( ent, inflictor, attacker, damage, point );
+		G_asCallMapEntityDie( ent, inflictor, attacker, damage );
 	}
 }
 
@@ -494,9 +494,9 @@ void G_ClearCenterPrint( edict_t *ent ) {
 	G_CenterPrintMsg( ent, "%s", "" );
 }
 
-void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, int mod, bool wallbang ) {
+void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, DamageType mod, bool wallbang ) {
 	TempAllocator temp = svs.frame_arena.temp();
-	PF_GameCmd( NULL, temp( "obry {} {} {} {} {} {}", ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod, wallbang ? 1 : 0, Random64( &svs.rng ) ) );
+	PF_GameCmd( NULL, temp( "obry {} {} {} {} {} {}", ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod.encoded, wallbang ? 1 : 0, Random64( &svs.rng ) ) );
 }
 
 //==================================================
@@ -587,7 +587,7 @@ void G_LocalSound( edict_t * owner, int channel, StringHash sound ) {
 * Kills all entities that would touch the proposed new positioning
 * of ent.  Ent should be unlinked before calling this!
 */
-bool KillBox( edict_t *ent, int mod, Vec3 knockback ) {
+bool KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
 	trace_t tr;
 	bool telefragged = false;
 
@@ -602,7 +602,7 @@ bool KillBox( edict_t *ent, int mod, Vec3 knockback ) {
 		}
 
 		// nail it
-		G_Damage( &game.edicts[tr.ent], ent, ent, knockback, Vec3( 0.0f ), ent->s.origin, 100000, Length( knockback ), 0, mod );
+		G_Damage( &game.edicts[tr.ent], ent, ent, knockback, Vec3( 0.0f ), ent->s.origin, 100000, Length( knockback ), 0, damage_type );
 		telefragged = true;
 
 		// if we didn't kill it, fail

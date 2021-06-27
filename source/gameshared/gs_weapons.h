@@ -39,7 +39,7 @@ struct WeaponDef {
 	float zoom_fov;
 	float zoom_spread;
 
-	float damage;
+	int damage;
 	float selfdamage;
 	float wallbangdamage;
 	float knockback;
@@ -51,10 +51,29 @@ struct WeaponDef {
 	float spread;
 };
 
+struct GadgetDef {
+	const char * name;
+	const char * short_name;
+
+	u16 switch_in_time;
+	u16 using_time;
+	u16 cook_time;
+	u16 switch_out_time;
+	int damage;
+	int knockback;
+	int min_damage;
+	int min_knockback;
+	int splash_radius;
+	s64 timeout;
+	int speed;
+	int uses;
+};
+
 void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, usercmd_t cmd, int timeDelta );
 void ClearInventory( SyncPlayerState * ps );
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
+const GadgetDef * GetGadgetDef( GadgetType gadget );
 
 WeaponSlot * GS_FindWeapon( SyncPlayerState * player, WeaponType weapon );
 const WeaponSlot * GS_FindWeapon( const SyncPlayerState * player, WeaponType weapon );

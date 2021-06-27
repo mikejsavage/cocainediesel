@@ -170,7 +170,6 @@ extern spawn_temp_t st;
 
 extern mempool_t *gamepool;
 
-extern int meansOfDeath;
 extern Vec3 knockbackOfDeath;
 extern int damageFlagsOfDeath;
 
@@ -302,19 +301,17 @@ void GT_asCallSpawn();
 void GT_asCallMatchStateStarted();
 bool GT_asCallMatchStateFinished( int incomingMatchState );
 void GT_asCallThinkRules();
-void GT_asCallPlayerKilled( edict_t *targ, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point, int mod );
 void GT_asCallPlayerRespawn( edict_t *ent, int old_team, int new_team );
 void GT_asCallScoreEvent( gclient_t *client, const char *score_event, const char *args );
 edict_t *GT_asCallSelectSpawnPoint( edict_t *ent );
 bool GT_asCallGameCommand( gclient_t *client, const char *cmd, const char *args, int argc );
-bool GT_asCallBotStatus( edict_t *ent );
 void GT_asCallShutdown();
 
 void G_asCallMapEntityThink( edict_t *ent );
 void G_asCallMapEntityTouch( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags );
 void G_asCallMapEntityUse( edict_t *ent, edict_t *other, edict_t *activator );
 void G_asCallMapEntityPain( edict_t *ent, edict_t *other, float kick, float damage );
-void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, int damage, Vec3 point );
+void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, int damage );
 void G_asCallMapEntityStop( edict_t *ent );
 void G_asClearEntityBehaviors( edict_t *ent );
 void G_asReleaseEntityBehaviors( edict_t *ent );
@@ -353,7 +350,7 @@ void G_AddCommand( const char *name, gamecommandfunc_t cmdfunc );
 //
 #define G_LEVELPOOL_BASE_SIZE   45 * 1024 * 1024
 
-bool KillBox( edict_t *ent, int mod, Vec3 knockback );
+bool KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback );
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );
 edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash value );
 edict_t * G_PickTarget( StringHash name );
@@ -377,7 +374,7 @@ void G_CallTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags 
 void G_CallUse( edict_t *self, edict_t *other, edict_t *activator );
 void G_CallStop( edict_t *self );
 void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage );
-void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assistorNo, int damage, Vec3 point );
+void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assistorNo, DamageType damage_type, int damage );
 
 #ifndef _MSC_VER
 void G_PrintMsg( edict_t *ent, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
@@ -390,7 +387,7 @@ void G_CenterPrintMsg( edict_t *ent, _Printf_format_string_ const char *format, 
 #endif
 void G_ClearCenterPrint( edict_t *ent );
 
-void G_Obituary( edict_t *victim, edict_t *attacker, int topAssistEntNo, int mod, bool wallbang );
+void G_Obituary( edict_t *victim, edict_t *attacker, int topAssistEntNo, DamageType mod, bool wallbang );
 
 edict_t *G_Sound( edict_t *owner, int channel, StringHash sound );
 edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound );
@@ -478,11 +475,11 @@ bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t *ent );
 // g_combat.c
 //
 bool G_IsTeamDamage( SyncEntityState *targ, SyncEntityState *attacker );
-void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int topAssistorNo, int damage, Vec3 point, int mod );
+void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int topAssistorNo, DamageType damage_type, int damage );
 void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 point, float maxradius, Vec3 * pushdir, float *frac, bool selfdamage );
-void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, int mod );
-void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cplane_t *plane, int mod, int timeDelta );
-void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edict_t *ignore, int mod );
+void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, DamageType damage_type );
+void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cplane_t *plane, DamageType damage_type, int timeDelta );
+void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edict_t *ignore, DamageType damage_type );
 
 // damage flags
 #define DAMAGE_RADIUS         ( 1 << 0 )  // damage was indirect
@@ -507,6 +504,7 @@ void SP_decal( edict_t * ent );
 // g_weapon.c
 //
 void G_FireWeapon( edict_t * ent, u64 parm );
+void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm );
 
 //
 // g_chasecam	//newgametypes
@@ -537,6 +535,7 @@ void ClientBegin( edict_t *ent );
 void ClientCommand( edict_t *ent );
 void G_PredictedEvent( int entNum, int ev, u64 parm );
 void G_PredictedFireWeapon( int entNum, u64 weapon_and_entropy );
+void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm );
 void G_TeleportPlayer( edict_t *player, edict_t *dest );
 bool G_PlayerCanTeleport( edict_t *player );
 
@@ -544,7 +543,7 @@ bool G_PlayerCanTeleport( edict_t *player );
 // g_player.c
 //
 void player_pain( edict_t *self, edict_t *other, float kick, int damage );
-void player_die( edict_t *self, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, int damage, Vec3 point );
+void player_die( edict_t *self, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, DamageType damage_type, int damage );
 void player_think( edict_t *self );
 
 //
@@ -637,7 +636,7 @@ struct projectileinfo_t {
 	float maxDamage;
 	float minKnockback;
 	float maxKnockback;
-	MeanOfDeath mod;
+	DamageType damage_type;
 };
 
 struct chasecam_t {
@@ -829,7 +828,7 @@ struct edict_t {
 	EdictTouchCallback touch;
 	void ( *use )( edict_t *self, edict_t *other, edict_t *activator );
 	void ( *pain )( edict_t *self, edict_t *other, float kick, int damage );
-	void ( *die )( edict_t *self, edict_t *inflictor, edict_t *attacker, int assistorNo, int damage, Vec3 point );
+	void ( *die )( edict_t *self, edict_t *inflictor, edict_t *attacker, int assistorNo, DamageType damage_type, int damage );
 	void ( *stop )( edict_t *self );
 
 	StringHash name;
@@ -889,8 +888,6 @@ struct edict_t {
 	int waterlevel;
 
 	int style;                  // also used as areaportal number
-
-	const Item *item;       // for bonus items
 
 	// common data blocks
 	moveinfo_t moveinfo;        // func movers movement

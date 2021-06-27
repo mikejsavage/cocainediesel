@@ -1,6 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/asan.h"
+#include "qcommon/string.h"
 
 void * Allocator::allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
 	void * p = try_allocate( size, alignment, func, file, line );
@@ -63,11 +64,26 @@ struct AllocationTracker {
 	}
 
 	~AllocationTracker() {
+		String< 2048 > msg( "Memory leaks:" );
+
+		size_t leaks = 0;
 		for( auto & alloc : allocations ) {
 			const AllocInfo & info = alloc.second;
-			Com_Printf( "Leaked allocation in '%s' (%s:%d)\n", info.func, info.file, info.line );
+			msg.append( "\n{} ({}:{})", info.func, info.file, info.line );
+
+			leaks++;
+			if( leaks == 5 )
+				break;
 		}
-		assert( allocations.empty() );
+
+		if( leaks < allocations.size() ) {
+			msg.append( "\n...and {} more", allocations.size() - leaks );
+		}
+
+		if( leaks > 0 ) {
+			Sys_ShowErrorMessage( msg.c_str() );
+		}
+
 		DeleteMutex( mutex );
 	}
 

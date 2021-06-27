@@ -1,18 +1,21 @@
 {
   particles {
     material weapons/9mm/icon
-    material weapons/ar/icon
+    material weapons/br/icon
     material weapons/bg/icon
     material weapons/deagle/icon
     material weapons/eb/icon
     material weapons/gb/icon
     material weapons/gl/icon
+    material weapons/rl/icon
     material weapons/lg/icon
     material weapons/mg/icon
-    material weapons/pg/icon
+    material weapons/ar/icon
     material weapons/rg/icon
     material weapons/rifle/icon
     material weapons/sniper/icon
+    material weapons/road/icon
+    material weapons/minigun/icon
 
     blendfunc blend
 

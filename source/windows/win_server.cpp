@@ -42,7 +42,9 @@ int main( int argc, char ** argv ) {
 
 	oldtime = Sys_Milliseconds();
 
-	while( 1 ) {
+	while( true ) {
+		FrameMark;
+
 		do {
 			ZoneScopedN( "Interframe" );
 

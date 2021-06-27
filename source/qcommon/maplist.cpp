@@ -4,12 +4,13 @@
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
+#include "qcommon/maplist.h"
 
 static NonRAIIDynamicArray< char * > maps;
 
 void InitMapList() {
 	maps.init( sys_allocator );
-	RefreshMapList();
+	RefreshMapList( sys_allocator );
 }
 
 static void FreeMaps() {
@@ -25,10 +26,13 @@ void ShutdownMapList() {
 	maps.shutdown();
 }
 
-void RefreshMapList() {
+void RefreshMapList( Allocator * a ) {
 	FreeMaps();
 
-	ListDirHandle scan = BeginListDir( "base/maps" );
+	char * path = ( *a )( "{}/base/maps", RootDirPath() );
+	defer { FREE( a, path ); };
+
+	ListDirHandle scan = BeginListDir( a, path );
 
 	const char * name;
 	bool dir;
@@ -37,15 +41,10 @@ void RefreshMapList() {
 			continue;
 
 		Span< const char > ext = FileExtension( name );
-		if( ext != ".bsp" )
-			continue;
-
-		size_t len = strlen( name ) - strlen( ".bsp" );
-		char * map = ALLOC_MANY( sys_allocator, char, len + 1 );
-		memcpy( map, name, len );
-		map[ len ] = '\0';
-
-		maps.add( map );
+		if( ext == ".bsp" || ext == ".bsp.zst" ) {
+			char * map = ( *sys_allocator )( "{}", StripExtension( name ) );
+			maps.add( map );
+		}
 	}
 
 	std::sort( maps.begin(), maps.end(), []( const char * a, const char * b ) {

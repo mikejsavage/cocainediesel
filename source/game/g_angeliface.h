@@ -22,6 +22,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "angelscript/angelscript.h"
 
+constexpr const char * GAMETYPE_SCRIPTS_MODULE_NAME = "gametype";
+
 // public interfaces
 
 typedef struct asstring_s {
@@ -117,7 +119,6 @@ typedef struct angelwrap_api_s {
 	// engine
 	asIScriptEngine *( *asCreateEngine )( bool *asMaxPortability );
 	void ( *asReleaseEngine )( asIScriptEngine *engine );
-	void ( *asWriteEngineDocsToFile )( asIScriptEngine *engine, const char *path, bool markdown, bool singleFile, unsigned andMask, unsigned notMask );
 
 	// context
 	asIScriptContext *( *asAcquireContext )( asIScriptEngine * engine );
@@ -142,5 +143,5 @@ typedef struct angelwrap_api_s {
 	void ( *asReleaseAnyCpp )( CScriptAnyInterface *any );
 
 	// projects
-	asIScriptModule *( *asLoadScriptProject )( asIScriptEngine *engine, const char *moduleName, const char *rootDir, const char *dir, const char *filename, const char *ext );
+	asIScriptModule *( *asLoadScriptProject )( asIScriptEngine *engine, const char *rootDir, const char *dir, const char *filename, const char *ext );
 } angelwrap_api_t;

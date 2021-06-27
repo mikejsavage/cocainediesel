@@ -52,7 +52,6 @@ asIScriptContext *qasAcquireContext( asIScriptEngine *engine );
 void qasReleaseContext( asIScriptContext *ctx );
 void qasReleaseEngine( asIScriptEngine *engine );
 asIScriptContext *qasGetActiveContext();
-void qasWriteEngineDocsToFile( asIScriptEngine *engine, const char *path, bool singleFile, bool markdown, unsigned andMask, unsigned notMask );
 
 // array tools
 CScriptArrayInterface *qasCreateArrayCpp( unsigned int length, void *ot );
@@ -64,4 +63,4 @@ void qasStringRelease( asstring_t *str );
 asstring_t *qasStringAssignString( asstring_t *self, const char *string, unsigned int strlen );
 
 // projects / bundles
-asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *moduleName, const char *rootDir, const char *dir, const char *filename, const char *ext );
+asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *rootDir, const char *dir, const char *filename, const char *ext );

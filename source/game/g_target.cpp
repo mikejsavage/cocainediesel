@@ -185,8 +185,8 @@ void target_laser_start( edict_t *self ) {
 	self->s.sound = "sounds/gladiator/laser_hum";
 
 	if( !self->enemy ) {
-		if( self->target ) {
-			edict_t * target = G_Find( NULL, FOFS( targetname ), self->target );
+		if( self->target != EMPTY_HASH ) {
+			edict_t * target = G_Find( NULL, &edict_t::name, self->target );
 			if( !target ) {
 				if( developer->integer ) {
 					Com_GGPrint( "{} at {}: {} is a bad target", self->classname, self->s.origin, self->target );
@@ -269,7 +269,7 @@ static void target_delay_think( edict_t *ent ) {
 }
 
 static void target_delay_use( edict_t *ent, edict_t *other, edict_t *activator ) {
-	ent->nextThink = level.time + 1000 * ( ent->wait + ent->random * random_float11( &svs.rng ) );
+	ent->nextThink = level.time + 1000 * ( ent->wait + ent->random * RandomFloat11( &svs.rng ) );
 	ent->think = target_delay_think;
 	ent->activator = activator;
 }
@@ -285,50 +285,4 @@ void SP_target_delay( edict_t *ent ) {
 
 	ent->delay = 0;
 	ent->use = target_delay_use;
-}
-
-
-//==========================================================
-
-static void target_teleporter_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	edict_t *dest;
-
-	if( !G_PlayerCanTeleport( activator ) ) {
-		return;
-	}
-
-	if( ( self->s.team != TEAM_SPECTATOR ) && ( self->s.team != activator->s.team ) ) {
-		return;
-	}
-	if( self->spawnflags & 1 && activator->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
-		return;
-	}
-
-	dest = G_Find( NULL, FOFS( targetname ), self->target );
-	if( !dest ) {
-		if( developer->integer ) {
-			Com_Printf( "Couldn't find destination.\n" );
-		}
-		return;
-	}
-
-	G_TeleportPlayer( activator, dest );
-}
-
-void SP_target_teleporter( edict_t *self ) {
-	self->r.svflags |= SVF_NOCLIENT;
-
-	if( !self->targetname ) {
-		if( developer->integer ) {
-			Com_GGPrint( "untargeted {} at {}", self->classname, self->s.origin );
-		}
-	}
-
-	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
-		self->s.team = st.gameteam;
-	} else {
-		self->s.team = TEAM_SPECTATOR;
-	}
-
-	self->use = target_teleporter_use;
 }

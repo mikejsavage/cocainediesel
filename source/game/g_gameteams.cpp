@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "g_local.h"
+#include <algorithm>
 
 
 //==========================================================
@@ -39,8 +40,8 @@ void G_Teams_Init() {
 	g_teams_allow_uneven = Cvar_Get( "g_teams_allow_uneven", "1", CVAR_ARCHIVE );
 	g_teams_autojoin = Cvar_Get( "g_teams_autojoin", "1", CVAR_ARCHIVE );
 
-	//unlock all teams and clear up team lists
-	memset( teamlist, 0, sizeof( teamlist ) );
+	// clear up team lists
+	memset( server_gs.gameState.teams, 0, sizeof( server_gs.gameState.teams ) );
 
 	for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
 		if( ent->r.inuse ) {
@@ -56,19 +57,17 @@ void G_Teams_Init() {
 	}
 }
 
-static int G_Teams_CompareMembers( const void *a, const void *b ) {
-	edict_t *edict_a = game.edicts + *(int *)a;
-	edict_t *edict_b = game.edicts + *(int *)b;
-	int score_a = edict_a->r.client->level.stats.score;
-	int score_b = edict_b->r.client->level.stats.score;
-	int result = score_b - score_a;
+static bool G_Teams_CompareMembers( int a, int b ) {
+	edict_t *edict_a = game.edicts + a;
+	edict_t *edict_b = game.edicts + b;
+	int result = G_ClientGetStats( edict_a )->score - G_ClientGetStats( edict_b )->score;
 	if( !result ) {
 		result = Q_stricmp( edict_a->r.client->netname, edict_b->r.client->netname );
 	}
 	if( !result ) {
 		result = ENTNUM( edict_a ) - ENTNUM( edict_b );
 	}
-	return result;
+	return result > 0;
 }
 
 /*
@@ -77,75 +76,23 @@ static int G_Teams_CompareMembers( const void *a, const void *b ) {
 * creating a quick list each time we need it.
 */
 void G_Teams_UpdateMembersList() {
-	edict_t *ent;
-	int i, team;
+	for( int team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ ) {
+		SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
+		current_team->num_players = 0;
 
-	for( team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ ) {
-		teamlist[team].numplayers = 0;
-		teamlist[team].ping = 0;
-
-		//create a temp list with the clients inside this team
-		for( i = 0, ent = game.edicts + 1; i < server_gs.maxclients; i++, ent++ ) {
+		for( int i = 0; i < server_gs.maxclients; i++ ) {
+			const edict_t * ent = &game.edicts[ i + 1 ];
 			if( !ent->r.client || ( PF_GetClientState( PLAYERNUM( ent ) ) < CS_CONNECTED ) ) {
 				continue;
 			}
 
 			if( ent->s.team == team ) {
-				teamlist[team].playerIndices[teamlist[team].numplayers++] = ENTNUM( ent );
+				current_team->player_indices[ current_team->num_players++ ] = ENTNUM( ent );
 			}
 		}
 
-		qsort( teamlist[team].playerIndices, teamlist[team].numplayers, sizeof( teamlist[team].playerIndices[0] ), G_Teams_CompareMembers );
-
-		if( teamlist[team].numplayers ) {
-			for( i = 0; i < teamlist[team].numplayers; i++ )
-				teamlist[team].ping += game.edicts[teamlist[team].playerIndices[i]].r.client->r.ping;
-			teamlist[team].ping /= teamlist[team].numplayers;
-		}
+		std::sort( current_team->player_indices, current_team->player_indices + current_team->num_players, G_Teams_CompareMembers );
 	}
-}
-
-/*
-* G_Teams_TeamIsLocked
-*/
-bool G_Teams_TeamIsLocked( int team ) {
-	if( team > TEAM_SPECTATOR && team < GS_MAX_TEAMS ) {
-		return teamlist[team].locked;
-	} else {
-		return false;
-	}
-}
-
-/*
-* G_Teams_LockTeam
-*/
-bool G_Teams_LockTeam( int team ) {
-	if( team <= TEAM_SPECTATOR || team >= GS_MAX_TEAMS ) {
-		return false;
-	}
-
-	if( !level.teamlock || teamlist[team].locked ) {
-		return false;
-	}
-
-	teamlist[team].locked = true;
-	return true;
-}
-
-/*
-* G_Teams_UnLockTeam
-*/
-bool G_Teams_UnLockTeam( int team ) {
-	if( team <= TEAM_SPECTATOR || team >= GS_MAX_TEAMS ) {
-		return false;
-	}
-
-	if( !teamlist[team].locked ) {
-		return false;
-	}
-
-	teamlist[team].locked = false;
-	return true;
 }
 
 /*
@@ -162,7 +109,7 @@ void G_Teams_SetTeam( edict_t *ent, int team ) {
 		ent->r.client->teamstate.timeStamp = timeStamp;
 	} else {
 		// clear scores at changing team
-		memset( &ent->r.client->level.stats, 0, sizeof( ent->r.client->level.stats ) );
+		memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
 		memset( &ent->r.client->teamstate, 0, sizeof( ent->r.client->teamstate ) );
 		ent->r.client->teamstate.timeStamp = level.time;
 	}
@@ -181,8 +128,6 @@ enum
 {
 	ER_TEAM_OK,
 	ER_TEAM_INVALID,
-	ER_TEAM_FULL,
-	ER_TEAM_LOCKED,
 	ER_TEAM_MATCHSTATE,
 	ER_TEAM_CHALLENGERS,
 	ER_TEAM_UNEVEN
@@ -191,11 +136,9 @@ enum
 static bool G_Teams_CanKeepEvenTeam( int leaving, int joining ) {
 	int max = 0;
 	int min = server_gs.maxclients + 1;
-	int numplayers;
-	int i;
 
-	for( i = TEAM_ALPHA; i < GS_MAX_TEAMS; i++ ) {
-		numplayers = teamlist[i].numplayers;
+	for( int i = TEAM_ALPHA; i < GS_MAX_TEAMS; i++ ) {
+		u8 numplayers = server_gs.gameState.teams[ i ].num_players;
 		if( i == leaving ) {
 			numplayers--;
 		}
@@ -211,7 +154,7 @@ static bool G_Teams_CanKeepEvenTeam( int leaving, int joining ) {
 		}
 	}
 
-	return teamlist[joining].numplayers + 1 == min || Abs( max - min ) <= 1;
+	return server_gs.gameState.teams[ joining ].num_players + 1 == min || Abs( max - min ) <= 1;
 }
 
 /*
@@ -227,7 +170,7 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 		return ER_TEAM_OK;
 	}
 
-	if( GS_MatchState( &server_gs ) > MATCH_STATE_PLAYTIME ) {
+	if( server_gs.gameState.match_state > MATCH_STATE_PLAYTIME ) {
 		return ER_TEAM_MATCHSTATE;
 	}
 
@@ -241,27 +184,12 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 		return ER_TEAM_CHALLENGERS;
 	}
 
-	// see if team is locked
-	if( G_Teams_TeamIsLocked( team ) ) {
-		return ER_TEAM_LOCKED;
-	}
-
 	if( !level.gametype.isTeamBased ) {
 		return team == TEAM_PLAYERS ? ER_TEAM_OK : ER_TEAM_INVALID;
 	}
 
 	if( team != TEAM_ALPHA && team != TEAM_BETA )
 		return ER_TEAM_INVALID;
-
-	// see if team is full
-	int count = teamlist[team].numplayers;
-
-	if( ( count + 1 > level.gametype.maxPlayersPerTeam &&
-		  level.gametype.maxPlayersPerTeam > 0 ) ||
-		( count + 1 > g_teams_maxplayers->integer &&
-		  g_teams_maxplayers->integer > 0 ) ) {
-		return ER_TEAM_FULL;
-	}
 
 	if( !g_teams_allow_uneven->integer && !G_Teams_CanKeepEvenTeam( ent->s.team, team ) ) {
 		return ER_TEAM_UNEVEN;
@@ -287,12 +215,6 @@ bool G_Teams_JoinTeam( edict_t *ent, int team ) {
 			G_PrintMsg( ent, "Can't join %s\n", GS_TeamName( team ) );
 		} else if( error == ER_TEAM_CHALLENGERS ) {
 			G_Teams_JoinChallengersQueue( ent );
-		} else if( error == ER_TEAM_FULL ) {
-			G_PrintMsg( ent, "Team %s is FULL\n", GS_TeamName( team ) );
-			G_Teams_JoinChallengersQueue( ent );
-		} else if( error == ER_TEAM_LOCKED ) {
-			G_PrintMsg( ent, "Team %s is LOCKED\n", GS_TeamName( team ) );
-			G_Teams_JoinChallengersQueue( ent );
 		} else if( error == ER_TEAM_MATCHSTATE ) {
 			G_PrintMsg( ent, "Can't join %s at this moment\n", GS_TeamName( team ) );
 		} else if( error == ER_TEAM_UNEVEN ) {
@@ -311,19 +233,10 @@ bool G_Teams_JoinTeam( edict_t *ent, int team ) {
 * G_Teams_JoinAnyTeam - find us a team since we are too lazy to do ourselves
 */
 bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
-	int best_numplayers = server_gs.maxclients + 1;
-	u8 best_score;
-	int i, team = -1;
-	bool wasinqueue = ( ent->r.client->queueTimeStamp != 0 );
-
 	G_Teams_UpdateMembersList(); // make sure we have up-to-date data
 
-	//depending on the gametype, of course
 	if( !level.gametype.isTeamBased ) {
 		if( ent->s.team == TEAM_PLAYERS ) {
-			if( !silent ) {
-				G_PrintMsg( ent, "You are already in %s team\n", GS_TeamName( TEAM_PLAYERS ) );
-			}
 			return false;
 		}
 		if( G_Teams_JoinTeam( ent, TEAM_PLAYERS ) ) {
@@ -332,43 +245,40 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 			}
 		}
 		return true;
-	} else {   //team based
-		//find the available team with smaller player count or worse score
-		for( i = TEAM_ALPHA; i < GS_MAX_TEAMS; i++ ) {
-			if( G_GameTypes_DenyJoinTeam( ent, i ) ) {
-				continue;
-			}
+	}
 
-			u8 team_score = i == TEAM_ALPHA ? server_gs.gameState.bomb.alpha_score : server_gs.gameState.bomb.beta_score;
-			if( team == -1 || teamlist[i].numplayers < best_numplayers || ( teamlist[i].numplayers == best_numplayers && team_score < best_score ) ) {
-				best_numplayers = teamlist[i].numplayers;
-				best_score = team_score;
-				team = i;
-			}
-		}
+	const SyncTeamState * alpha = &server_gs.gameState.teams[ TEAM_ALPHA ];
+	const SyncTeamState * beta = &server_gs.gameState.teams[ TEAM_BETA ];
 
-		if( team == ent->s.team ) { // he is at the right team
-			if( !silent ) {
-				G_PrintMsg( ent, "%sCouldn't find a better team than team %s.\n",
-							S_COLOR_WHITE, GS_TeamName( ent->s.team ) );
-			}
-			return false;
-		}
+	int team;
+	if( alpha->num_players != beta->num_players ) {
+		team = alpha->num_players <= beta->num_players ? TEAM_ALPHA : TEAM_BETA;
+	}
+	else {
+		team = alpha->score <= beta->score ? TEAM_ALPHA : TEAM_BETA;
+	}
 
-		if( team != -1 ) {
-			if( G_Teams_JoinTeam( ent, team ) ) {
-				if( !silent ) {
-					G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
-				}
-				return true;
-			}
+	if( team == ent->s.team ) { // he is at the right team
+		if( !silent ) {
+			G_PrintMsg( ent, "%sCouldn't find a better team than team %s.\n",
+						S_COLOR_WHITE, GS_TeamName( ent->s.team ) );
 		}
-		if( GS_MatchState( &server_gs ) <= MATCH_STATE_PLAYTIME && !silent ) {
-			G_Teams_JoinChallengersQueue( ent );
+		return false;
+	}
+
+	if( G_Teams_JoinTeam( ent, team ) ) {
+		if( !silent ) {
+			G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
 		}
+		return true;
+	}
+
+	if( server_gs.gameState.match_state <= MATCH_STATE_PLAYTIME && !silent ) {
+		G_Teams_JoinChallengersQueue( ent );
 	}
 
 	// don't print message if we joined the queue
+	bool wasinqueue = ent->r.client->queueTimeStamp != 0;
 	if( !silent && ( !GS_HasChallengers( &server_gs ) || wasinqueue || !ent->r.client->queueTimeStamp ) ) {
 		G_PrintMsg( ent, "You can't join the game now\n" );
 	}
@@ -425,7 +335,7 @@ static int G_Teams_ChallengersQueueCmp( const edict_t **pe1, const edict_t **pe2
 	if( e2->r.client->queueTimeStamp > e1->r.client->queueTimeStamp ) {
 		return -1;
 	}
-	return random_uniform( &svs.rng, 0, 2 ) == 0 ? -1 : 1;
+	return RandomUniform( &svs.rng, 0, 2 ) == 0 ? -1 : 1;
 }
 
 /*
@@ -480,7 +390,7 @@ void G_Teams_ExecuteChallengersQueue() {
 	bool restartmatch = false;
 
 	// Medar fixme: this is only really makes sense, if playerlimit per team is one
-	if( GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME ) {
+	if( server_gs.gameState.match_state == MATCH_STATE_PLAYTIME ) {
 		return;
 	}
 
@@ -505,16 +415,14 @@ void G_Teams_ExecuteChallengersQueue() {
 	// game until we get the first refused one.
 	challengers = G_Teams_ChallengersQueue();
 	if( challengers ) {
-		int i;
-
-		for( i = 0; challengers[i]; i++ ) {
+		for( int i = 0; challengers[i]; i++ ) {
 			ent = challengers[i];
 			if( !G_Teams_JoinAnyTeam( ent, true ) ) {
 				break;
 			}
 
 			// if we successfully execute the challengers queue during the countdown, revert to warmup
-			if( GS_MatchState( &server_gs ) == MATCH_STATE_COUNTDOWN ) {
+			if( server_gs.gameState.match_state == MATCH_STATE_COUNTDOWN ) {
 				restartmatch = true;
 			}
 		}
@@ -527,33 +435,31 @@ void G_Teams_ExecuteChallengersQueue() {
 }
 
 /*
-*
 * G_Teams_BestScoreBelow
 */
 static edict_t *G_Teams_BestScoreBelow( int maxscore ) {
-	int team, i;
-	edict_t *e, *best = NULL;
 	int bestScore = -9999999;
+	edict_t * best = NULL;
 
 	if( level.gametype.isTeamBased ) {
-		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			for( i = 0; i < teamlist[team].numplayers; i++ ) {
-				e = game.edicts + teamlist[team].playerIndices[i];
-				if( e->r.client->level.stats.score > bestScore &&
-					e->r.client->level.stats.score <= maxscore
-					&& !e->r.client->queueTimeStamp ) {
-					bestScore = e->r.client->level.stats.score;
+		for( int team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
+			SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
+			for( u8 i = 0; i < current_team->num_players; i++ ) {
+				edict_t * e = game.edicts + current_team->player_indices[ i ];
+				int score = G_ClientGetStats( e )->score;
+				if( score > bestScore && score <= maxscore && !e->r.client->queueTimeStamp ) {
+					bestScore = score;
 					best = e;
 				}
 			}
 		}
 	} else {
-		for( i = 0; i < teamlist[TEAM_PLAYERS].numplayers; i++ ) {
-			e = game.edicts + teamlist[TEAM_PLAYERS].playerIndices[i];
-			if( e->r.client->level.stats.score > bestScore &&
-				e->r.client->level.stats.score <= maxscore
-				&& !e->r.client->queueTimeStamp ) {
-				bestScore = e->r.client->level.stats.score;
+		SyncTeamState * team_players = &server_gs.gameState.teams[ TEAM_PLAYERS ];
+		for( u8 i = 0; i < team_players->num_players; i++ ) {
+			edict_t * e = game.edicts + team_players->player_indices[ i ];
+			int score = G_ClientGetStats( e )->score;
+			if( score > bestScore && score <= maxscore && !e->r.client->queueTimeStamp ) {
+				bestScore = score;
 				best = e;
 			}
 		}
@@ -566,9 +472,7 @@ static edict_t *G_Teams_BestScoreBelow( int maxscore ) {
 * G_Teams_AdvanceChallengersQueue
 */
 void G_Teams_AdvanceChallengersQueue() {
-	int i, team, loserscount, winnerscount, playerscount = 0;
 	int maxscore = 999999;
-	edict_t *won, *e;
 	int START_TEAM = TEAM_PLAYERS, END_TEAM = TEAM_PLAYERS + 1;
 
 	if( !GS_HasChallengers( &server_gs ) ) {
@@ -583,34 +487,36 @@ void G_Teams_AdvanceChallengersQueue() {
 	}
 
 	// assign new timestamps to all the players inside teams
-	for( team = START_TEAM; team < END_TEAM; team++ ) {
-		playerscount += teamlist[team].numplayers;
+	int playerscount = 0;
+	for( int team = START_TEAM; team < END_TEAM; team++ ) {
+		playerscount += server_gs.gameState.teams[ team ].num_players;
 	}
 
 	if( !playerscount ) {
 		return;
 	}
 
-	loserscount = 0;
+	int loserscount = 0;
 	if( playerscount > 1 ) {
 		loserscount = (int)( playerscount / 2 );
 	}
-	winnerscount = playerscount - loserscount;
+	int winnerscount = playerscount - loserscount;
 
 	// put everyone who just played out of the challengers queue
-	for( team = START_TEAM; team < END_TEAM; team++ ) {
-		for( i = 0; i < teamlist[team].numplayers; i++ ) {
-			e = game.edicts + teamlist[team].playerIndices[i];
+	for( int team = START_TEAM; team < END_TEAM; team++ ) {
+		SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
+		for( u8 i = 0; i < current_team->num_players; i++ ) {
+			edict_t * e = game.edicts + current_team->player_indices[i];
 			e->r.client->queueTimeStamp = 0;
 		}
 	}
 
 	if( !level.gametype.hasChallengersRoulette ) {
 		// put (back) the best scoring players in first positions of challengers queue
-		for( i = 0; i < winnerscount; i++ ) {
-			won = G_Teams_BestScoreBelow( maxscore );
+		for( int i = 0; i < winnerscount; i++ ) {
+			edict_t * won = G_Teams_BestScoreBelow( maxscore );
 			if( won ) {
-				maxscore = won->r.client->level.stats.score;
+				maxscore = G_ClientGetStats( won )->score;
 				won->r.client->queueTimeStamp = 1 + ( winnerscount - i ); // never have 2 players with the same timestamp
 			}
 		}
@@ -690,7 +596,7 @@ void G_InitChallengersQueue() {
 //======================================================================
 
 void G_Say_Team( edict_t *who, const char *inmsg, bool checkflood ) {
-	if( who->s.team != TEAM_SPECTATOR && ( !level.gametype.isTeamBased || GS_IndividualGameType( &server_gs ) ) ) {
+	if( who->s.team != TEAM_SPECTATOR && !level.gametype.isTeamBased ) {
 		Cmd_Say_f( who, false, true );
 		return;
 	}

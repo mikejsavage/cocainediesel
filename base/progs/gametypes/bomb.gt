@@ -1,5 +1,4 @@
-/shared/constants.as;
-
+generic/constants.as;
 generic/matchstates.as;
 
 bomb/main.as;

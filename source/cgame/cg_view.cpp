@@ -88,15 +88,15 @@ static void CG_AddLocalSounds() {
 
 	// add local announces
 	if( GS_Countdown( &client_gs ) ) {
-		if( GS_MatchDuration( &client_gs ) ) {
+		if( client_gs.gameState.match_duration ) {
 			s64 curtime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime;
-			s64 duration = GS_MatchDuration( &client_gs );
+			s64 duration = client_gs.gameState.match_duration;
 
-			if( duration + GS_MatchStartTime( &client_gs ) < curtime ) {
-				duration = curtime - GS_MatchStartTime( &client_gs ); // avoid negative results
+			if( duration + client_gs.gameState.match_state_start_time < curtime ) {
+				duration = curtime - client_gs.gameState.match_state_start_time; // avoid negative results
 			}
 
-			float seconds = (float)( GS_MatchStartTime( &client_gs ) + duration - curtime ) * 0.001f;
+			float seconds = (float)( client_gs.gameState.match_state_start_time + duration - curtime ) * 0.001f;
 			unsigned int remainingSeconds = (unsigned int)seconds;
 
 			if( remainingSeconds != lastSecond ) {
@@ -134,7 +134,7 @@ static void CG_FlashGameWindow() {
 	static bool scoresSet = false;
 
 	// notify player of important match states
-	int newState = GS_MatchState( &client_gs );
+	int newState = client_gs.gameState.match_state;
 	if( oldState != newState ) {
 		switch( newState ) {
 			case MATCH_STATE_COUNTDOWN:
@@ -151,11 +151,11 @@ static void CG_FlashGameWindow() {
 
 	// notify player of teams scoring in team-based gametypes
 	if( !scoresSet ||
-		( oldAlphaScore != client_gs.gameState.bomb.alpha_score || oldBetaScore != client_gs.gameState.bomb.beta_score ) ) {
-		oldAlphaScore = client_gs.gameState.bomb.alpha_score;
-		oldBetaScore = client_gs.gameState.bomb.beta_score;
+		( oldAlphaScore != client_gs.gameState.teams[ TEAM_ALPHA ].score || oldBetaScore != client_gs.gameState.teams[ TEAM_BETA ].score ) ) {
+		oldAlphaScore = client_gs.gameState.teams[ TEAM_ALPHA ].score;
+		oldBetaScore = client_gs.gameState.teams[ TEAM_BETA ].score;
 
-		flash = scoresSet && GS_TeamBasedGametype( &client_gs ) && !GS_IndividualGameType( &client_gs );
+		flash = scoresSet && GS_TeamBasedGametype( &client_gs );
 		scoresSet = true;
 	}
 
@@ -223,7 +223,7 @@ static void CG_CalcViewBob() {
 	if( cg.xyspeed < 5 ) {
 		cg.oldBobTime = 0;  // start at beginning of cycle again
 	}
-	else if( cg_gunbob->integer ) {
+	else {
 		if( !ISVIEWERENTITY( cg.view.POVent ) ) {
 			bobScale = 0.0f;
 		} else if( CG_PointContents( cg.view.origin ) & MASK_WATER ) {
@@ -309,12 +309,12 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 
 	playerState->zoom_time = Lerp( ops->zoom_time, cg.lerpfrac, ps->zoom_time );
 
-	if( ps->weapon_time <= ops->weapon_time ) {
-		playerState->weapon_time = Lerp( ops->weapon_time, cg.lerpfrac, ps->weapon_time );
+	if( ps->weapon_state_time >= ops->weapon_state_time ) {
+		playerState->weapon_state_time = Lerp( ops->weapon_state_time, cg.lerpfrac, ps->weapon_state_time );
 	}
 	else {
 		s64 dt = cg.frame.serverTime - cg.oldFrame.serverTime;
-		playerState->weapon_time = Max2( 0.0f, ops->weapon_time - cg.lerpfrac * dt );
+		playerState->weapon_state_time = Min2( float( U16_MAX ), ops->weapon_state_time + cg.lerpfrac * dt );
 	}
 }
 
@@ -618,13 +618,21 @@ static void DrawWorld() {
 		}
 
 		{
+			PipelineState pipeline;
+			pipeline.pass = frame_static.world_opaque_prepass_pass;
+			pipeline.shader = &shaders.depth_only;
+			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+
+			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+		}
+
+		{
 			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
 			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-			pipeline.set_texture( "u_NearShadowmapTexture", &frame_static.near_shadowmap_fb.depth_texture );
-			pipeline.set_texture( "u_FarShadowmapTexture", &frame_static.far_shadowmap_fb.depth_texture );
-			pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
-			AddDecalsToPipeline( &pipeline );
+			pipeline.write_depth = false;
+			pipeline.depth_func = DepthFunc_Equal;
 
 			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 		}
@@ -719,7 +727,12 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	cg.lerpfrac = Clamp01( cg.lerpfrac );
 
 	{
-		float scale = ( float )( frame_static.viewport_height ) / 600.0f;
+		constexpr float SYSTEM_FONT_TINY_SIZE = 8;
+		constexpr float SYSTEM_FONT_SMALL_SIZE = 14;
+		constexpr float SYSTEM_FONT_MEDIUM_SIZE = 16;
+		constexpr float SYSTEM_FONT_BIG_SIZE = 24;
+
+		float scale = frame_static.viewport_height / 600.0f;
 
 		cgs.fontSystemTinySize = ceilf( SYSTEM_FONT_TINY_SIZE * scale );
 		cgs.fontSystemSmallSize = ceilf( SYSTEM_FONT_SMALL_SIZE * scale );
@@ -766,6 +779,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawParticles();
 	DrawPersistentBeams();
 	DrawPersistentDecals();
+	DrawPersistentDynamicLights();
 	DrawSkybox();
 	DrawSprays();
 

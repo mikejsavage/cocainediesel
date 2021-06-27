@@ -24,9 +24,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/downloads.h"
 #include "client/threadpool.h"
 #include "client/renderer/renderer.h"
-#include "qcommon/version.h"
-#include "qcommon/hash.h"
 #include "qcommon/csprng.h"
+#include "qcommon/hash.h"
+#include "qcommon/fs.h"
+#include "qcommon/string.h"
+#include "qcommon/version.h"
 #include "gameshared/gs_public.h"
 
 cvar_t *rcon_client_password;
@@ -119,9 +121,6 @@ void CL_UpdateClientCommandsToServer( msg_t *msg ) {
 	}
 }
 
-/*
-* CL_ForwardToServer_f
-*/
 void CL_ForwardToServer_f() {
 	if( cls.demo.playing ) {
 		return;
@@ -138,9 +137,6 @@ void CL_ForwardToServer_f() {
 	}
 }
 
-/*
-* CL_ServerDisconnect_f
-*/
 void CL_ServerDisconnect_f() {
 	char menuparms[MAX_STRING_CHARS];
 	int type;
@@ -163,17 +159,11 @@ void CL_ServerDisconnect_f() {
 	Cbuf_ExecuteText( EXEC_NOW, menuparms );
 }
 
-/*
-* CL_Quit
-*/
 void CL_Quit() {
 	CL_Disconnect( NULL );
 	Com_Quit();
 }
 
-/*
-* CL_Quit_f
-*/
 static void CL_Quit_f() {
 	CL_Quit();
 }
@@ -247,9 +237,6 @@ static void CL_CheckForResend() {
 	}
 }
 
-/*
-* CL_Connect
-*/
 static void CL_Connect( const char *servername, socket_type_t type, netadr_t *address ) {
 	netadr_t socketaddress;
 
@@ -297,9 +284,6 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 	cls.lastPacketReceivedTime = cls.realtime; // reset the timeout limit
 }
 
-/*
-* CL_Connect_Cmd_f
-*/
 static void CL_Connect_Cmd_f( socket_type_t socket ) {
 	netadr_t serveraddress;
 	char *servername, password[64];
@@ -361,9 +345,6 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 	Mem_TempFree( connectstring_base );
 }
 
-/*
-* CL_Connect_f
-*/
 static void CL_Connect_f() {
 	CL_Connect_Cmd_f( SOCKET_UDP );
 }
@@ -441,9 +422,6 @@ static void CL_Rcon_f() {
 	NET_SendPacket( socket, message, (int)strlen( message ) + 1, address );
 }
 
-/*
-* CL_SetKeyDest
-*/
 void CL_SetKeyDest( keydest_t key_dest ) {
 	if( key_dest != cls.key_dest ) {
 		Key_ClearStates();
@@ -451,16 +429,10 @@ void CL_SetKeyDest( keydest_t key_dest ) {
 	}
 }
 
-/*
-* CL_SetOldKeyDest
-*/
 void CL_SetOldKeyDest( keydest_t key_dest ) {
 	cls.old_key_dest = key_dest;
 }
 
-/*
-* CL_GetBaseServerURL
-*/
 size_t CL_GetBaseServerURL( char *buffer, size_t buffer_size ) {
 	const char *web_url = cls.httpbaseurl;
 
@@ -476,16 +448,10 @@ size_t CL_GetBaseServerURL( char *buffer, size_t buffer_size ) {
 	return strlen( web_url );
 }
 
-/*
-* CL_ResetServerCount
-*/
 void CL_ResetServerCount() {
 	cl.servercount = -1;
 }
 
-/*
-* CL_ClearState
-*/
 void CL_ClearState() {
 	// wipe the entire cl structure
 	memset( &cl, 0, sizeof( client_state_t ) );
@@ -900,9 +866,6 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 	Com_Printf( "Unknown connectionless packet from %s\n%s\n", NET_AddressToString( address ), c );
 }
 
-/*
-* CL_ProcessPacket
-*/
 static bool CL_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 	int zerror;
 
@@ -926,9 +889,6 @@ static bool CL_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 	return true;
 }
 
-/*
-* CL_ReadPackets
-*/
 void CL_ReadPackets() {
 	msg_t msg;
 	uint8_t msgData[MAX_MSGLEN];
@@ -1023,9 +983,6 @@ void CL_ReadPackets() {
 
 //=============================================================================
 
-/*
-* CL_Userinfo_f
-*/
 static void CL_Userinfo_f() {
 	Com_Printf( "User info settings:\n" );
 	Info_Print( Cvar_Userinfo() );
@@ -1072,61 +1029,23 @@ void CL_Precache_f() {
 	CL_FinishConnect();
 }
 
-/*
-* CL_WriteConfiguration
-*
-* Writes key bindings, archived cvars and aliases to a config file
-*/
-static void CL_WriteConfiguration( const char *name ) {
-	int file;
-	if( FS_FOpenFile( name, &file, FS_WRITE ) == -1 ) {
-		Com_Printf( "Couldn't write %s.\n", name );
-		return;
+static void CL_WriteConfiguration() {
+	TempAllocator temp = cls.frame_arena.temp();
+
+	DynamicString config( &temp );
+
+	config += "// key bindings\r\n";
+	Key_WriteBindings( &config );
+
+	config += "\r\n// variables\r\n";
+	Cvar_WriteVariables( &config );
+
+	DynamicString path( &temp, "{}/base/config.cfg", HomeDirPath() );
+	if( !WriteFile( &temp, path.c_str(), config.c_str(), config.length() ) ) {
+		Com_Printf( "Couldn't write %s.\n", path.c_str() );
 	}
-
-	FS_Printf( file, "// key bindings\r\n" );
-	Key_WriteBindings( file );
-
-	FS_Printf( file, "\r\n// variables\r\n" );
-	Cvar_WriteVariables( file );
-
-	FS_FCloseFile( file );
 }
 
-/*
-* CL_WriteConfig_f
-*/
-static void CL_WriteConfig_f() {
-	char *name;
-	int name_size;
-
-	if( Cmd_Argc() != 2 ) {
-		Com_Printf( "Usage: writeconfig <filename>\n" );
-		return;
-	}
-
-	name_size = sizeof( char ) * ( strlen( Cmd_Argv( 1 ) ) + strlen( ".cfg" ) + 1 );
-	name = ( char * ) Mem_TempMalloc( name_size );
-	Q_strncpyz( name, Cmd_Argv( 1 ), name_size );
-	COM_SanitizeFilePath( name );
-
-	if( !COM_ValidateRelativeFilename( name ) ) {
-		Com_Printf( "Invalid filename" );
-		Mem_TempFree( name );
-		return;
-	}
-
-	COM_DefaultExtension( name, ".cfg", name_size );
-
-	Com_Printf( "Writing: %s\n", name );
-	CL_WriteConfiguration( name );
-
-	Mem_TempFree( name );
-}
-
-/*
-* CL_SetClientState
-*/
 void CL_SetClientState( connstate_t state ) {
 	cls.state = state;
 	Com_SetClientState( state );
@@ -1173,9 +1092,6 @@ static void CL_ShowServerIP_f() {
 	Com_Printf( "Address: %s\n", NET_AddressToString( &cls.serveraddress ) );
 }
 
-/*
-* CL_InitLocal
-*/
 static void CL_InitLocal() {
 	cvar_t *name;
 	TempAllocator temp = cls.frame_arena.temp();
@@ -1217,7 +1133,7 @@ static void CL_InitLocal() {
 
 	name = Cvar_Get( "name", "", CVAR_USERINFO | CVAR_ARCHIVE );
 	if( !name->string[0] ) {
-		Cvar_Set( name->name, temp( "user{}", random_u64( &cls.rng ) ) );
+		Cvar_Set( name->name, temp( "user{06}", RandomUniform( &cls.rng, 0, 1000000 ) ) );
 	}
 
 	Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
@@ -1240,7 +1156,6 @@ static void CL_InitLocal() {
 	Cmd_AddCommand( "connect", CL_Connect_f );
 	Cmd_AddCommand( "reconnect", CL_Reconnect_f );
 	Cmd_AddCommand( "rcon", CL_Rcon_f );
-	Cmd_AddCommand( "writeconfig", CL_WriteConfig_f );
 	Cmd_AddCommand( "demo", CL_PlayDemo_f );
 	Cmd_AddCommand( "yolodemo", CL_YoloDemo_f );
 	Cmd_AddCommand( "next", CL_SetNext_f );
@@ -1253,9 +1168,6 @@ static void CL_InitLocal() {
 	Cmd_SetCompletionFunc( "yolodemo", CL_DemoComplete );
 }
 
-/*
-* CL_ShutdownLocal
-*/
 static void CL_ShutdownLocal() {
 	cls.state = CA_UNINITIALIZED;
 	Com_SetClientState( CA_UNINITIALIZED );
@@ -1272,7 +1184,6 @@ static void CL_ShutdownLocal() {
 	Cmd_RemoveCommand( "connect" );
 	Cmd_RemoveCommand( "reconnect" );
 	Cmd_RemoveCommand( "rcon" );
-	Cmd_RemoveCommand( "writeconfig" );
 	Cmd_RemoveCommand( "demo" );
 	Cmd_RemoveCommand( "yolodemo" );
 	Cmd_RemoveCommand( "next" );
@@ -1318,9 +1229,6 @@ void CL_AdjustServerTime( unsigned int gameMsec ) {
 	}
 }
 
-/*
-* CL_RestartTimeDeltas
-*/
 void CL_RestartTimeDeltas( int newTimeDelta ) {
 	int i;
 
@@ -1333,9 +1241,6 @@ void CL_RestartTimeDeltas( int newTimeDelta ) {
 	}
 }
 
-/*
-* CL_SmoothTimeDeltas
-*/
 int CL_SmoothTimeDeltas() {
 	int i, count;
 	double delta;
@@ -1417,9 +1322,6 @@ void CL_UpdateSnapshot() {
 	}
 }
 
-/*
-* CL_Netchan_Transmit
-*/
 void CL_Netchan_Transmit( msg_t *msg ) {
 	// if we got here with unsent fragments, fire them all now
 	Netchan_PushAllFragments( &cls.netchan );
@@ -1435,9 +1337,6 @@ void CL_Netchan_Transmit( msg_t *msg ) {
 	cls.lastPacketSentTime = cls.realtime;
 }
 
-/*
-* CL_MaxPacketsReached
-*/
 static bool CL_MaxPacketsReached() {
 	static int64_t lastPacketTime = 0;
 	static float roundingMsec = 0.0f;
@@ -1478,9 +1377,6 @@ static bool CL_MaxPacketsReached() {
 	return true;
 }
 
-/*
-* CL_SendMessagesToServer
-*/
 void CL_SendMessagesToServer( bool sendNow ) {
 	msg_t message;
 	uint8_t messageData[MAX_MSGLEN];
@@ -1529,9 +1425,6 @@ void CL_SendMessagesToServer( bool sendNow ) {
 	}
 }
 
-/*
-* CL_NetFrame
-*/
 static void CL_NetFrame( int realMsec, int gameMsec ) {
 	ZoneScoped;
 
@@ -1559,9 +1452,6 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 	CL_ServerListFrame();
 }
 
-/*
-* CL_Frame
-*/
 void CL_Frame( int realMsec, int gameMsec ) {
 	ZoneScoped;
 
@@ -1570,7 +1460,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	cls.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+	cls.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	static int allRealMsec = 0, allGameMsec = 0, extraMsec = 0;
 	static float roundingMsec = 0.0f;
@@ -1649,7 +1539,9 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		return;
 	}
 
-	cls.frametime = allGameMsec;
+	FrameMark;
+
+	cls.frametime = cls.demo.paused ? 0 : allGameMsec;
 	cls.realFrameTime = allRealMsec;
 	if( allRealMsec < minMsec ) { // is compensating for a too slow frame
 		extraMsec = Clamp( 0, extraMsec - ( minMsec - allRealMsec ), 100 );
@@ -1682,9 +1574,6 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	SwapBuffers();
 }
 
-/*
-* CL_Init
-*/
 void CL_Init() {
 	ZoneScoped;
 
@@ -1694,7 +1583,7 @@ void CL_Init() {
 
 	u64 entropy[ 2 ];
 	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	cls.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+	cls.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	cls.monotonicTime = 0;
 
@@ -1770,7 +1659,7 @@ void CL_Shutdown() {
 
 	CL_ShutDownServerList();
 
-	CL_WriteConfiguration( "config.cfg" );
+	CL_WriteConfiguration();
 
 	CL_Disconnect( NULL );
 	NET_CloseSocket( &cls.socket_udp );

@@ -15,9 +15,12 @@
 /maps/*.srf
 /screenshots
 
+/listip.cfg
+
 .vs/
 .vscode/
 
+*.asd
 *.exe
 *.exp
 *.ilk

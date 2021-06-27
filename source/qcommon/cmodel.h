@@ -192,8 +192,8 @@ bool CM_IsBrushModel( CModelServerOrClient soc, StringHash hash );
 
 int CM_NumClusters( const CollisionModel *cms );
 int CM_NumAreas( const CollisionModel *cms );
-char *CM_EntityString( const CollisionModel *cms );
-int CM_EntityStringLen( const CollisionModel *cms );
+const char * CM_EntityString( const CollisionModel *cms );
+size_t CM_EntityStringLen( const CollisionModel *cms );
 
 // creates a clipping hull for an arbitrary bounding box
 cmodel_t *CM_ModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs );
@@ -224,6 +224,3 @@ void CM_WriteAreaBits( CollisionModel *cms, uint8_t *buffer );
 bool CM_HeadnodeVisible( CollisionModel *cms, int headnode, uint8_t *visbits );
 
 void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out );
-
-void CM_Init();
-void CM_Shutdown();

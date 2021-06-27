@@ -15,21 +15,22 @@ static const char * bot_names[] = {
 	"__mute__",
 
 	// twitch subs
-	"ne0ns0up",
-	"hvaholic",
 	"catman1900",
-	"touchpad timma",
-	"Slice*>",
-	"Scoot",
+	"hvaholic",
+	"ne0ns0up",
+	"notmsc",
+	"prym88",
 	"Quitehatty",
 	"Sam!",
+	"Scoot",
+	"Slice*>",
+	"touchpad timma",
 };
 
 static void CreateUserInfo( char * buffer, size_t bufferSize ) {
 	memset( buffer, 0, bufferSize );
 
-	Info_SetValueForKey( buffer, "name", random_select( &svs.rng, bot_names ) );
-	Info_SetValueForKey( buffer, "hand", va( "%i", random_uniform( &svs.rng, 0, 3 ) ) );
+	Info_SetValueForKey( buffer, "name", RandomElement( &svs.rng, bot_names ) );
 }
 
 static edict_t * ConnectFakeClient() {
@@ -55,7 +56,7 @@ void AI_SpawnBot() {
 		return;
 
 	ent->think = NULL;
-	ent->nextThink = level.time + 500 + random_uniform( &svs.rng, 0, 2000 );
+	ent->nextThink = level.time + 500 + RandomUniform( &svs.rng, 0, 2000 );
 	ent->classname = "bot";
 	ent->die = player_die;
 
@@ -102,7 +103,7 @@ static void AI_SpecThink( edict_t * self ) {
 }
 
 static void AI_GameThink( edict_t * self ) {
-	if( GS_MatchState( &server_gs ) <= MATCH_STATE_WARMUP ) {
+	if( server_gs.gameState.match_state <= MATCH_STATE_WARMUP ) {
 		G_Match_Ready( self );
 	}
 

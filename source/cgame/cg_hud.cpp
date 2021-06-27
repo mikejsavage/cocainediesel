@@ -171,11 +171,7 @@ static int CG_GetFPS( const void *parameter ) {
 }
 
 static int CG_GetMatchState( const void *parameter ) {
-	return GS_MatchState( &client_gs );
-}
-
-static int CG_GetMatchDuration( const void *parameter ) {
-	return GS_MatchDuration( &client_gs );
+	return client_gs.gameState.match_state;
 }
 
 static int CG_Paused( const void *parameter ) {
@@ -232,10 +228,10 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "TEAM", CG_Int, &cg.predictedPlayerState.team },
 
 	{ "TEAMBASED", CG_IsTeamBased, NULL },
-	{ "ALPHA_SCORE", CG_U8, &client_gs.gameState.bomb.alpha_score },
+	{ "ALPHA_SCORE", CG_U8, &client_gs.gameState.teams[ TEAM_ALPHA ].score },
 	{ "ALPHA_PLAYERS_ALIVE", CG_U8, &client_gs.gameState.bomb.alpha_players_alive },
 	{ "ALPHA_PLAYERS_TOTAL", CG_U8, &client_gs.gameState.bomb.alpha_players_total },
-	{ "BETA_SCORE", CG_U8, &client_gs.gameState.bomb.beta_score },
+	{ "BETA_SCORE", CG_U8, &client_gs.gameState.teams[ TEAM_BETA ].score },
 	{ "BETA_PLAYERS_ALIVE", CG_U8, &client_gs.gameState.bomb.beta_players_alive },
 	{ "BETA_PLAYERS_TOTAL", CG_U8, &client_gs.gameState.bomb.beta_players_total },
 
@@ -254,7 +250,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "SPEED_VERTICAL", CG_GetSpeedVertical, NULL },
 	{ "FPS", CG_GetFPS, NULL },
 	{ "MATCH_STATE", CG_GetMatchState, NULL },
-	{ "MATCH_DURATION", CG_GetMatchDuration, NULL },
 	{ "PAUSED", CG_Paused, NULL },
 	{ "VIDWIDTH", CG_GetVidWidth, NULL },
 	{ "VIDHEIGHT", CG_GetVidHeight, NULL },
@@ -291,6 +286,7 @@ struct obituary_t {
 	char attacker[MAX_INFO_VALUE];
 	int attacker_team;
 	int mod;
+	bool wallbang;
 };
 
 static obituary_t cg_obituaries[MAX_OBITUARIES];
@@ -299,6 +295,8 @@ static int cg_obituaries_current = -1;
 struct {
 	s64 time;
 	u64 entropy;
+	obituary_type_t type;
+	int mod;
 } self_obituary;
 
 void CG_SC_ResetObituaries() {
@@ -307,12 +305,37 @@ void CG_SC_ResetObituaries() {
 	self_obituary = { };
 }
 
-static const char * obituaries[] = {
+static const char * normal_obituaries[] = {
 #include "obituaries.h"
 };
 
 static const char * prefixes[] = {
 #include "prefixes.h"
+};
+
+static const char * suicide_prefixes[] = {
+	"AUTO",
+	"SELF",
+	"SHANKS",
+	"SOLO",
+	"TIMMA",
+};
+
+static const char * void_obituaries[] = {
+	"ATE",
+	"HOLED",
+	"RECLAIMED",
+	"TOOK",
+};
+
+static const char * spike_obituaries[] = {
+	"DISEMBOWELED",
+	"GORED",
+	"IMPALED",
+	"PERFORATED",
+	"POKED",
+	"SKEWERED",
+	"SLASHED",
 };
 
 static const char * conjunctions[] = {
@@ -332,18 +355,37 @@ static const char * conjunctions[] = {
 	"X",
 };
 
-static const char * RandomObituary( RNG * rng ) {
-	return random_select( rng, obituaries );
-}
-
 static const char * RandomPrefix( RNG * rng, float p ) {
-	if( !random_p( rng, p ) )
+	if( !Probability( rng, p ) )
 		return "";
-	return random_select( rng, prefixes );
+	return RandomElement( rng, prefixes );
 }
 
-static const char * RandomAssistConjunction( RNG * rng ) {
-	return random_select( rng, conjunctions );
+static char * Uppercase( Allocator * a, const char * str ) {
+	char * upper = CopyString( a, str );
+	Q_strupr( upper );
+	return upper;
+}
+
+static char * MakeObituary( Allocator * a, RNG * rng, int type, int mod ) {
+	Span< const char * > obituaries = StaticSpan( normal_obituaries );
+	if( mod == MeanOfDeath_Void ) {
+		obituaries = StaticSpan( void_obituaries );
+	}
+	else if( mod == MeanOfDeath_Spike ) {
+		obituaries = StaticSpan( spike_obituaries );
+	}
+
+	const char * prefix1 = "";
+	if( type == OBITUARY_SUICIDE ) {
+		prefix1 = RandomElement( rng, suicide_prefixes );
+	}
+
+	// do these in order because arg evaluation order is undefined
+	const char * prefix2 = RandomPrefix( rng, 0.05f );
+	const char * prefix3 = RandomPrefix( rng, 0.5f );
+
+	return ( *a )( "{}{}{}{}", prefix1, prefix2, prefix3, obituaries[ RandomUniform( rng, 0, obituaries.n ) ] );
 }
 
 void CG_SC_Obituary() {
@@ -351,98 +393,102 @@ void CG_SC_Obituary() {
 	int attackerNum = atoi( Cmd_Argv( 2 ) );
 	int topAssistorNum = atoi( Cmd_Argv( 3 ) );
 	int mod = atoi( Cmd_Argv( 4 ) );
-	u64 entropy = StringToU64( Cmd_Argv( 5 ), 0 );
+	bool wallbang = atoi( Cmd_Argv( 5 ) ) == 1;
+	u64 entropy = StringToU64( Cmd_Argv( 6 ), 0 );
 
 	const cg_clientInfo_t * victim = &cgs.clientInfo[ victimNum - 1 ];
 	const cg_clientInfo_t * attacker = attackerNum == 0 ? NULL : &cgs.clientInfo[ attackerNum - 1 ];
 	const cg_clientInfo_t * assistor = topAssistorNum == -1 ? NULL : &cgs.clientInfo[ topAssistorNum - 1 ];
+
 	cg_obituaries_current = ( cg_obituaries_current + 1 ) % MAX_OBITUARIES;
-	obituary_t * current = &cg_obituaries[cg_obituaries_current];
-
-	RNG rng = new_rng( entropy, 0 );
-
+	obituary_t * current = &cg_obituaries[ cg_obituaries_current ];
+	current->type = OBITUARY_NORMAL;
 	current->time = cls.monotonicTime;
+	current->mod = mod;
+	current->wallbang = wallbang;
+
 	if( victim != NULL ) {
 		Q_strncpyz( current->victim, victim->name, sizeof( current->victim ) );
-		current->victim_team = cg_entities[victimNum].current.team;
+		current->victim_team = cg_entities[ victimNum ].current.team;
 	}
 	if( attacker != NULL ) {
 		Q_strncpyz( current->attacker, attacker->name, sizeof( current->attacker ) );
-		current->attacker_team = cg_entities[attackerNum].current.team;
+		current->attacker_team = cg_entities[ attackerNum ].current.team;
 	}
-	current->mod = mod;
+
+	int assistor_team = assistor == NULL ? -1 : cg_entities[ topAssistorNum ].current.team;
 
 	if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
 		self_obituary.entropy = 0;
 	}
 
-	if( attackerNum ) {
-		TempAllocator temp = cls.frame_arena.temp();
-		const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ) );
+	TempAllocator temp = cls.frame_arena.temp();
+	RNG rng = NewRNG( entropy, 0 );
 
-		char victim_name[ MAX_NAME_CHARS + 1 ];
-		Q_strncpyz( victim_name, victim->name, sizeof( victim_name ) );
-		Q_strupr( victim_name );
+	const char * attacker_name = attacker == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->attacker_team ) ), Uppercase( &temp, attacker->name ) );
+	const char * victim_name = temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->victim_team ) ), Uppercase( &temp, victim->name ) );
+	const char * assistor_name = assistor == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( assistor_team ) ), Uppercase( &temp, assistor->name ) );
 
-		RGB8 attacker_color = CG_TeamColor( current->attacker_team );
-		RGB8 victim_color = CG_TeamColor( current->victim_team );
+	if( attackerNum == 0 ) {
+		current->type = OBITUARY_ACCIDENT;
 
-		if( attacker == victim ) {
-			current->type = OBITUARY_SUICIDE;
+		if( mod == MeanOfDeath_Void ) {
+			attacker_name = temp( "{}{}", ImGuiColorToken( rgba8_black ), "THE VOID" );
+		}
+		else if( mod == MeanOfDeath_Spike ) {
+			attacker_name = temp( "{}{}", ImGuiColorToken( rgba8_black ), "A SPIKE" );
+		}
+		else {
+			return;
+		}
+	}
 
-			CG_AddChat( temp( "{}{} {}SELF{}",
-				ImGuiColorToken( victim_color ), victim_name,
-				ImGuiColorToken( rgba8_diesel_yellow ), obituary
+	const char * obituary = MakeObituary( &temp, &rng, current->type, mod );
+
+	if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
+		self_obituary.time = cls.monotonicTime;
+		self_obituary.entropy = entropy;
+		self_obituary.type = current->type;
+		self_obituary.mod = mod;
+	}
+
+	if( attacker == victim ) {
+		current->type = OBITUARY_SUICIDE;
+
+		CG_AddChat( temp( "{} {}{} {}",
+			victim_name,
+			ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+			victim_name
+		) );
+	}
+	else {
+		if( assistor == NULL ) {
+			CG_AddChat( temp( "{} {}{} {}",
+				attacker_name,
+				ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+				victim_name
 			) );
 		}
 		else {
-			current->type = OBITUARY_NORMAL;
-
-			char attacker_name[ MAX_NAME_CHARS + 1 ];
-			Q_strncpyz( attacker_name, attacker->name, sizeof( attacker_name ) );
-			Q_strupr( attacker_name );
-
-			if( ISVIEWERENTITY( attackerNum ) ) {
-				CG_CenterPrint( temp( "{} {}", obituary, victim_name ) );
-			}
-
-			if( assistor == NULL ) {
-				CG_AddChat( temp( "{}{} {}{} {}{}",
-					ImGuiColorToken( attacker_color ), attacker_name,
-					ImGuiColorToken( rgba8_diesel_yellow ), obituary,
-					ImGuiColorToken( victim_color ), victim_name
-				) );
-			}
-			else {
-				const char * assist_conj = RandomAssistConjunction( &rng );
-				char assistor_name[ MAX_NAME_CHARS + 1 ];
-				Q_strncpyz( assistor_name, assistor->name, sizeof( assistor_name ) );
-				Q_strupr( assistor_name );
-
-				CG_AddChat( temp( "{}{} {}{} {}{} {}{} {}{}",
-					ImGuiColorToken( attacker_color ), attacker_name,
-					ImGuiColorToken( 255, 255, 255, 255 ), assist_conj,
-					ImGuiColorToken( attacker_color ), assistor_name,
-					ImGuiColorToken( rgba8_diesel_yellow ), obituary,
-					ImGuiColorToken( victim_color ), victim_name
-				) );
-			}
-
-			if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
-				self_obituary.time = cls.monotonicTime;
-				self_obituary.entropy = entropy;
-			}
+			const char * conjugation = RandomElement( &rng, conjunctions );
+			CG_AddChat( temp( "{} {}{} {} {}{} {}",
+				attacker_name,
+				ImGuiColorToken( 255, 255, 255, 255 ), conjugation,
+				assistor_name,
+				ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+				victim_name
+			) );
 		}
-	}
-	else {   // world accidents
-		current->type = OBITUARY_ACCIDENT;
+
+		if( ISVIEWERENTITY( attackerNum ) ) {
+			CG_CenterPrint( temp( "{} {}", obituary, Uppercase( &temp, victim->name ) ) );
+		}
 	}
 }
 
 static const Material * MODToIcon( int mod ) {
-	int weapon = MODToWeapon( mod );
-	if( weapon != Weapon_None ) {
-		return cgs.media.shaderWeaponIcon[ weapon ];
+	if( mod < Weapon_Count ) {
+		return cgs.media.shaderWeaponIcon[ mod ];
 	}
 
 	switch( mod ) {
@@ -546,6 +592,11 @@ static void CG_DrawObituaries(
 		w += icon_padding;
 		w += victim_width;
 
+		if( obr->wallbang ) {
+			w += icon_size;
+			w += icon_padding;
+		}
+
 		if( internal_align == 1 ) {
 			// left
 			xoffset = 0;
@@ -567,8 +618,12 @@ static void CG_DrawObituaries(
 		xoffset += icon_padding;
 
 		Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, pic, AttentionGettingColor() );
-
 		xoffset += icon_size + icon_padding;
+
+		if( obr->wallbang ) {
+			Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, FindMaterial( "weapons/wallbang_icon" ), AttentionGettingColor() );
+			xoffset += icon_size + icon_padding;
+		}
 
 		Vec4 color = CG_TeamColorVec4( obr->victim_team );
 		DrawText( font, layout_cursor_font_size, obr->victim, x + xoffset, obituary_y, color, layout_cursor_font_border );
@@ -586,10 +641,10 @@ static void CG_DrawObituaries(
 			Draw2DBox( 0, yy, frame_static.viewport.x, h, cls.white_material, Vec4( 0, 0, 0, Min2( 0.5f, t * 0.5f ) ) );
 
 			if( t >= 1.0f ) {
-				RNG rng = new_rng( self_obituary.entropy, 0 );
+				RNG rng = NewRNG( self_obituary.entropy, 0 );
 
 				TempAllocator temp = cls.frame_arena.temp();
-				const char * obituary = temp( "{}{}{}", RandomPrefix( &rng, 0.05f ), RandomPrefix( &rng, 0.5f ), RandomObituary( &rng ) );
+				const char * obituary = MakeObituary( &temp, &rng, self_obituary.type, self_obituary.mod );
 
 				float size = Lerp( h * 0.5f, Unlerp01( 1.0f, t, 3.0f ), h * 0.75f );
 				Vec4 color = CG_TeamColorVec4( TEAM_ENEMY );
@@ -603,7 +658,6 @@ static void CG_DrawObituaries(
 //=============================================================================
 
 void CG_ClearAwards() {
-	// reset awards
 	cg.award_head = 0;
 	memset( cg.award_times, 0, sizeof( cg.award_times ) );
 }
@@ -920,7 +974,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 		if( def->clip_size != 0 ) {
 			if( weap == ps->weapon && ps->weapon_state == WeaponState_Reloading ) {
-				ammo_frac = 1.0f - float( ps->weapon_time ) / float( def->reload_time );
+				ammo_frac = float( ps->weapon_state_time ) / float( def->reload_time );
 			}
 			else {
 				color = Vec4( 0.0f, 1.0f, 0.0f, 1.0f );
@@ -934,9 +988,9 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 		const Material * icon = cgs.media.shaderWeaponIcon[ weap ];
 
-		bool selected = weap == ps->pending_weapon;
-		int offset = ( selected ? border_sel : 0 );
-		int pady_sel = ( selected ? pad_sel : 0 );
+		bool selected = ps->pending_weapon != Weapon_None ? weap == ps->pending_weapon : weap == ps->weapon;
+		int offset = selected ? border_sel : 0;
+		int pady_sel = selected ? pad_sel : 0;
 
 		if( ammo_frac < 1.0f ) {
 			Draw2DBox( curx - offset, cury - offset - pady_sel, iw + offset * 2, ih + offset * 2, cls.white_material, light_gray );
@@ -961,18 +1015,17 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 			DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_CenterMiddle, curx + iw*0.5f, cury - ih * 0.25f - pady_sel, color, layout_cursor_font_border );
 		}
 
-		// weapon slot binds start from index 1, use drawn_weapons for actual loadout index
-		char bind[ 32 ];
 
 		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling. this still doesnt fit
 		const float bind_font_size = font_size * 0.55f;
 
 		// first try the weapon specific bind
+		char bind[ 32 ];
 		if( !CG_GetBoundKeysString( va( "use %s", def->short_name ), bind, sizeof( bind ) ) ) {
 			CG_GetBoundKeysString( va( "weapon %i", i + 1 ), bind, sizeof( bind ) );
 		}
 
-		DrawText( GetHUDFont(), bind_font_size, va( "[ %s ]", bind) , Alignment_CenterMiddle, curx + iw*0.5f, cury + ih * 1.2f - pady_sel, layout_cursor_color, layout_cursor_font_border );
+		DrawText( GetHUDFont(), bind_font_size, va( "[ %s ]", bind) , Alignment_CenterMiddle, curx + iw * 0.5f, cury + ih * 1.2f - pady_sel, layout_cursor_color, layout_cursor_font_border );
 	}
 }
 
@@ -1791,6 +1844,9 @@ static void CG_RecurseExecuteLayoutThread( cg_layoutnode_t * node ) {
 
 static bool LoadHUDFile( const char * path, DynamicString & script ) {
 	Span< const char > contents = AssetString( StringHash( path ) );
+	if( contents == "" )
+		return false;
+
 	const char * cursor = contents.ptr;
 
 	while( true ) {
@@ -1827,9 +1883,7 @@ static bool LoadHUDFile( const char * path, DynamicString & script ) {
 	return true;
 }
 
-static void CG_LoadHUD() {
-	CG_RecurseFreeLayoutThread( hud_root );
-
+void CG_InitHUD() {
 	TempAllocator temp = cls.frame_arena.temp();
 	const char * path = "huds/default.hud";
 
@@ -1846,11 +1900,6 @@ static void CG_LoadHUD() {
 	layout_cursor_font_size = cgs.textSizeSmall;
 }
 
-void CG_InitHUD() {
-	hud_root = NULL;
-	CG_LoadHUD();
-}
-
 void CG_ShutdownHUD() {
 	CG_RecurseFreeLayoutThread( hud_root );
 }
@@ -1865,7 +1914,8 @@ void CG_DrawHUD() {
 	}
 
 	if( hotload ) {
-		CG_LoadHUD();
+		CG_ShutdownHUD();
+		CG_InitHUD();
 	}
 
 	ZoneScoped;

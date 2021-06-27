@@ -1,10 +1,25 @@
 {
+  dlight {
+    intensity 1000000
+    lifetime 4.0
+    color 1 1 1 1
+    color_override
+  }
+
+  dlight {
+    intensity 300000
+    lifetime 0.5
+    color 1 1 1 1
+    color_override
+  }
+
   decal {
     material weapons/explosion_scorch1
     material weapons/explosion_scorch2
     material weapons/explosion_scorch3
     size 46
     lifetime 30
+    color 0.01 0.01 0.01 1.0
   }
 
   particles {
@@ -56,7 +71,7 @@
 
     speed 35
 
-    color 0.1 0.1 0.1 0.25
+    color 0.1 0.1 0.1 0.5
     end_color 0.0 0.0 0.0
 
     size 12 42
@@ -75,7 +90,7 @@
 
     speed 72
 
-    color 0.5 0.5 0.5 1.0
+    color 0.25 0.25 0.25 1.0
     end_color 0.0 0.0 0.0
 
     size 42 12

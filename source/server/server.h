@@ -31,12 +31,6 @@
 
 #define USERINFO_UPDATE_COOLDOWN_MSEC   2000
 
-enum server_state_t {
-	ss_dead,        // no map loaded
-	ss_loading,     // spawning level edicts
-	ss_game         // actively running
-};
-
 // some commands are only valid before the server has finished
 // initializing (precache commands, static sounds / objects, etc)
 
@@ -83,14 +77,6 @@ struct client_snapshot_t {
 	int64_t sentTimeStamp;         // time at what this frame snap was sent to the clients
 	unsigned int UcmdExecuted;
 	SyncGameState gameState;
-};
-
-struct client_download_t {
-	char *name;
-	int file;
-	int size;               // total bytes
-	int64_t timeout;   // so we can free the file being downloaded
-	                        // if client omits sending success or failure message
 };
 
 struct game_command_t {
@@ -146,8 +132,6 @@ struct client_t {
 	char session[HTTP_CLIENT_SESSION_SIZE];  // session id for HTTP requests
 
 	client_snapshot_t snapShots[UPDATE_BACKUP]; // updates can be delta'd from here
-
-	client_download_t download;
 
 	int challenge;                  // challenge of this user, randomly generated
 
@@ -219,6 +203,8 @@ struct server_static_t {
 	server_static_demo_t demo;
 
 	CollisionModel *cms;                // passed to CM-functions
+
+	u64 ent_string_checksum;
 };
 
 struct server_constant_t {

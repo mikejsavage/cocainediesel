@@ -4,9 +4,11 @@
 
 struct Shaders {
 	Shader standard;
+	Shader standard_shaded;
 	Shader standard_vertexcolors;
 
 	Shader standard_skinned;
+	Shader standard_skinned_shaded;
 	Shader standard_skinned_vertexcolors;
 
 	Shader standard_alphatest;

@@ -132,11 +132,16 @@ char * Allocator::operator()( const char * fmt, const Rest & ... rest ) {
 char * CopyString( Allocator * a, const char * str );
 
 /*
- * Span< const char >
+ * Span
  */
 
 Span< const char > MakeSpan( const char * str );
 void format( FormatBuffer * fb, Span< const char > arr, const FormatOpts & opts );
+
+template< typename T, size_t N >
+Span< T > StaticSpan( T ( &arr )[ N ] ) {
+	return Span< T >( arr, N );
+}
 
 /*
  * debug stuff

@@ -45,13 +45,10 @@ void CG_PredictedEvent( int entNum, int ev, u64 parm ) {
 	}
 }
 
-void CG_PredictedFireWeapon( int entNum, WeaponType weapon ) {
-	CG_PredictedEvent( entNum, EV_FIREWEAPON, weapon );
+void CG_PredictedFireWeapon( int entNum, u64 parm ) {
+	CG_PredictedEvent( entNum, EV_FIREWEAPON, parm );
 }
 
-/*
-* CG_CheckPredictionError
-*/
 void CG_CheckPredictionError() {
 	int delta[3];
 	int frame;
@@ -96,9 +93,6 @@ void CG_CheckPredictionError() {
 	}
 }
 
-/*
-* CG_BuildSolidList
-*/
 void CG_BuildSolidList() {
 	cg_numSolids = 0;
 	cg_numTriggers = 0;
@@ -117,7 +111,7 @@ void CG_BuildSolidList() {
 			case ET_GHOST:
 			case ET_ROCKET:
 			case ET_GRENADE:
-			case ET_PLASMA:
+			case ET_ARBULLET:
 			case ET_BUBBLE:
 			case ET_LASERBEAM:
 			case ET_BOMB:
@@ -140,9 +134,6 @@ void CG_BuildSolidList() {
 	}
 }
 
-/*
-* CG_ClipEntityContact
-*/
 static bool CG_ClipEntityContact( Vec3 origin, Vec3 mins, Vec3 maxs, int entNum ) {
 	Vec3 entorigin, entangles;
 	int64_t serverTime = cg.frame.serverTime;
@@ -175,9 +166,6 @@ static bool CG_ClipEntityContact( Vec3 origin, Vec3 mins, Vec3 maxs, int entNum 
 	return tr.startsolid == true || tr.allsolid == true;
 }
 
-/*
-* CG_Predict_TouchTriggers
-*/
 void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	// fixme: more accurate check for being able to touch or not
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) {
@@ -198,9 +186,6 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	}
 }
 
-/*
-* CG_ClipMoveToEntities
-*/
 static void CG_ClipMoveToEntities( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, trace_t *tr ) {
 	int64_t serverTime = cg.frame.serverTime;
 
@@ -253,9 +238,6 @@ static void CG_ClipMoveToEntities( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, i
 	}
 }
 
-/*
-* CG_Trace
-*/
 void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask ) {
 	ZoneScoped;
 
@@ -270,9 +252,6 @@ void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignor
 	CG_ClipMoveToEntities( start, mins, maxs, end, ignore, contentmask, t );
 }
 
-/*
-* CG_PointContents
-*/
 int CG_PointContents( Vec3 point ) {
 	ZoneScoped;
 
@@ -292,9 +271,6 @@ int CG_PointContents( Vec3 point ) {
 
 
 static float predictedSteps[CMD_BACKUP]; // for step smoothing
-/*
-* CG_PredictAddStep
-*/
 static void CG_PredictAddStep( int virtualtime, int predictiontime, float stepSize ) {
 
 	float oldStep;
@@ -312,9 +288,6 @@ static void CG_PredictAddStep( int virtualtime, int predictiontime, float stepSi
 	cg.predictedStepTime = cls.realtime - ( predictiontime - virtualtime );
 }
 
-/*
-* CG_PredictSmoothSteps
-*/
 static void CG_PredictSmoothSteps() {
 	int64_t outgoing;
 	int64_t frame;
@@ -413,7 +386,7 @@ void CG_PredictMovement() {
 		predictedSteps[frame] = pm.step;
 
 		if( ucmdReady ) { // hmm fixme: the wip command may not be run enough time to get proper key presses
-			cg_entities[cg.predictedPlayerState.POVnum].current.weapon = GS_ThinkPlayerWeapon( &client_gs, &cg.predictedPlayerState, &pm.cmd, 0 );
+			UpdateWeapons( &client_gs, &cg.predictedPlayerState, pm.cmd, 0 );
 		}
 
 		// save for debug checking

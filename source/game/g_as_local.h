@@ -25,10 +25,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define GAME_SCRIPTS_DIRECTORY              "progs"
 
-#define GAMETYPE_SCRIPTS_MODULE_NAME        "gametype"
 #define GAMETYPE_SCRIPTS_DIRECTORY          "gametypes"
 
 #define MAP_SCRIPTS_MODULE_NAME             "map"
 
-asIScriptModule *G_LoadGameScript( const char *moduleName, const char *dir, const char *filename, const char *ext );
+asIScriptModule *G_LoadGameScript( const char *dir, const char *filename, const char *ext );
 bool G_ExecutionErrorReport( int error );

@@ -140,6 +140,12 @@ enum connstate_t {
 	CA_ACTIVE,                          // game views should be displayed
 };
 
+enum server_state_t {
+	ss_dead,        // no map loaded
+	ss_loading,     // spawning level edicts
+	ss_game         // actively running
+};
+
 enum {
 	DROP_TYPE_GENERAL,
 	DROP_TYPE_PASSWORD,

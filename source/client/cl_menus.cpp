@@ -4,6 +4,7 @@
 #include "client/client.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/version.h"
+#include "qcommon/maplist.h"
 #include "qcommon/string.h"
 
 #include "cgame/cg_local.h"
@@ -35,7 +36,8 @@ enum GameMenuState {
 };
 
 enum DemoMenuState {
-
+	DemoMenuState_Menu,
+	DemoMenuState_Settings,
 };
 
 enum SettingsState {
@@ -61,14 +63,15 @@ static int num_servers = 0;
 static UIState uistate;
 
 static MainMenuState mainmenu_state;
+static GameMenuState gamemenu_state;
+static DemoMenuState demomenu_state;
+
 static int selected_server;
 
-static GameMenuState gamemenu_state;
 static WeaponType selected_weapons[ WeaponCategory_Count ];
 
 static SettingsState settings_state;
 static bool reset_video_settings;
-static bool just_closed_popup = false;
 
 static void PushButtonColor( ImVec4 color ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, color );
@@ -168,11 +171,6 @@ static void CvarSliderFloat( const char * label, const char * cvar_name, float l
 	Cvar_Set( cvar_name, buf );
 }
 
-static void JustCloseCurrentPopup() {
-	ImGui::CloseCurrentPopup();
-	just_closed_popup = true;
-}
-
 static void KeyBindButton( const char * label, const char * command ) {
 	SettingLabel( label );
 	ImGui::PushID( label );
@@ -186,19 +184,23 @@ static void KeyBindButton( const char * label, const char * command ) {
 	if( ImGui::BeginPopupModal( label, NULL, ImGuiWindowFlags_NoDecoration ) ) {
 		ImGui::Text( "Press a key to set a new bind, or press ESCAPE to cancel." );
 
-		const ImGuiIO & io = ImGui::GetIO();
+		ImGuiIO & io = ImGui::GetIO();
 		for( size_t i = 0; i < ARRAY_COUNT( io.KeysDown ); i++ ) {
 			if( ImGui::IsKeyPressed( i ) ) {
 				if( i != K_ESCAPE ) {
 					Key_SetBinding( i, command );
 				}
-				JustCloseCurrentPopup();
+				ImGui::CloseCurrentPopup();
+
+				// consume the escape so we don't close the ingame menu
+				io.KeysDown[ K_ESCAPE ] = false;
+				io.KeysDownDuration[ K_ESCAPE ] = -1.0f;
 			}
 		}
 
 		if( ImGui::IsKeyReleased( K_MWHEELUP ) || ImGui::IsKeyReleased( K_MWHEELDOWN ) ) {
 			Key_SetBinding( ImGui::IsKeyReleased( K_MWHEELUP ) ? K_MWHEELUP : K_MWHEELDOWN, command );
-			JustCloseCurrentPopup();
+			ImGui::CloseCurrentPopup();
 		}
 
 		ImGui::EndPopup();
@@ -278,14 +280,12 @@ static void SettingsControls() {
 			KeyBindButton( "Previous weapon", "weapprev" );
 			KeyBindButton( "Last weapon", "lastweapon" );
 
-			ImGui::BeginChild( "weapon", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {
 				for( int i = Weapon_Knife; i < Weapon_Count; i++ ) {
 					const WeaponDef * weapon = GS_GetWeaponDef( i );
 					KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
 				}
 			}
-			ImGui::EndChild();
 
 			ImGui::EndTabItem();
 		}
@@ -307,7 +307,6 @@ static void SettingsControls() {
 			KeyBindButton( "Guyman pack", "vsay guyman" );
 			KeyBindButton( "Helena pack", "vsay helena" );
 
-			ImGui::BeginChild( "voice", ImVec2( 400, -1 ) );
 			if( ImGui::CollapsingHeader( "Advanced" ) ) {
 				KeyBindButton( "Sorry", "vsay sorry" );
 				KeyBindButton( "Thanks", "vsay thanks" );
@@ -324,7 +323,7 @@ static void SettingsControls() {
 				KeyBindButton( "Trash smash", "vsay trashsmash" );
 				KeyBindButton( "What the shit", "vsay whattheshit" );
 				KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
-			} ImGui::EndChild();
+			}
 
 			ImGui::EndTabItem();
 		}
@@ -523,6 +522,8 @@ static void SettingsVideo() {
 	}
 
 	CvarCheckbox( "Vsync", "vid_vsync", "0", CVAR_ARCHIVE );
+
+	CvarCheckbox( "Colorblind mode", "cg_colorBlind", "0", CVAR_ARCHIVE );
 }
 
 static const char * CleanAudioDeviceName( const char * name ) {
@@ -719,9 +720,27 @@ static void MainMenu() {
 
 	ImGui::SetCursorPosX( 40.0f * triangel( cls.monotonicTime, 631 ) );
 	ImGui::PushFont( cls.large_font );
-	ImGui::PushStyleColor( ImGuiCol_Text, glitch( cls.monotonicTime ) ? IM_COL32( 255, 255, 255, 255 ) : IM_COL32( 32, 182, 252, 255 ) );
-	ImGui::Text( "VACCAINE PFIZEL" );
-	ImGui::PopStyleColor();
+
+	if( Cvar_Get( "cg_colorBlind", "0", CVAR_ARCHIVE )->integer ) {
+		ImGui::PushStyleColor( ImGuiCol_Text, CG_TeamColorVec4( TEAM_BETA ) );
+		if( glitch( cls.monotonicTime / 8 ) )
+			ImGui::Text( "COLOURBLIN" );
+		else
+			ImGui::Text( "COLORBLIN" );
+		ImGui::PopStyleColor();
+
+		ImGui::SameLine();
+		ImGui::Text( "D" );
+		ImGui::SameLine();
+
+		ImGui::PushStyleColor( ImGuiCol_Text, CG_TeamColorVec4( TEAM_ALPHA ) );
+		ImGui::Text( "IESEL" );
+		ImGui::PopStyleColor();
+	} else {
+		ImGui::PushStyleColor( ImGuiCol_Text, glitch( cls.monotonicTime ) ? IM_COL32( 255, 255, 255, 255 ) : IM_COL32( 32, 182, 252, 255 ) );
+		ImGui::Text( "VACCAINE PFIZEL" );
+		ImGui::PopStyleColor();
+	}
 	ImGui::PopFont();
 
 	if( ImGui::Button( "FIND SERVERS" ) ) {
@@ -950,10 +969,10 @@ static void GameMenu() {
 	bool spectating = cg.predictedPlayerState.real_team == TEAM_SPECTATOR;
 	bool ready = false;
 
-	if( GS_MatchState( &client_gs ) <= MATCH_STATE_WARMUP ) {
+	if( client_gs.gameState.match_state <= MATCH_STATE_WARMUP ) {
 		ready = cg.predictedPlayerState.ready;
 	}
-	else if( GS_MatchState( &client_gs ) == MATCH_STATE_COUNTDOWN ) {
+	else if( client_gs.gameState.match_state == MATCH_STATE_COUNTDOWN ) {
 		ready = true;
 	}
 
@@ -997,7 +1016,7 @@ static void GameMenu() {
 			ImGui::Columns( 1 );
 		}
 		else {
-			if( GS_MatchState( &client_gs ) <= MATCH_STATE_COUNTDOWN ) {
+			if( client_gs.gameState.match_state <= MATCH_STATE_COUNTDOWN ) {
 				if( ImGui::Checkbox( ready ? "Ready!" : "Not ready", &ready ) ) {
 					Cbuf_AddText( "toggleready\n" );
 				}
@@ -1054,7 +1073,7 @@ static void GameMenu() {
 		ImGui::RadioButton( "Change map", &e, 1 );
 
 		if( e == 0 ) {
-			GameMenuButton( "Start vote", "callvote allready", &should_close );
+			GameMenuButton( "Start vote", "callvote start", &should_close );
 		}
 
 		if( e == 1 ) {
@@ -1070,12 +1089,10 @@ static void GameMenu() {
 		Settings();
 	}
 
-	if( ( ImGui::Hotkey( K_ESCAPE ) && !just_closed_popup ) || should_close ) {
+	if( ImGui::Hotkey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;
 		CL_SetKeyDest( key_game );
 	}
-
-	just_closed_popup = false;
 
 	ImGui::End();
 
@@ -1086,19 +1103,44 @@ static void DemoMenu() {
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 192 ) );
 	bool should_close = false;
 
+	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
 	ImVec2 pos = ImGui::GetIO().DisplaySize;
 	pos.x *= 0.5f;
 	pos.y *= 0.8f;
-	ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-	ImGui::SetNextWindowSize( ImVec2( 600, 0 ) );
-	ImGui::Begin( "demomenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+	if( demomenu_state == DemoMenuState_Menu ) {
+		ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowSize( ImVec2( 600, 0 ) );
+		ImGui::Begin( "demomenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
-	GameMenuButton( cls.demo.paused ? "Play" : "Pause", "demopause" );
-	GameMenuButton( "Jump +15s", "demojump +15" );
-	GameMenuButton( "Jump -15s", "demojump -15" );
+		ImGuiStyle & style = ImGui::GetStyle();
+		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
-	GameMenuButton( "Disconnect to main menu", "disconnect", &should_close );
-	GameMenuButton( "Exit to desktop", "quit", &should_close );
+		GameMenuButton( cls.demo.paused ? "Play" : "Pause", "demopause" );
+
+		ImGui::Columns( 2, NULL, false );
+		ImGui::SetColumnWidth( 0, half );
+		ImGui::SetColumnWidth( 1, half );
+
+		GameMenuButton( "-15s", "demojump -15", NULL, 0 );
+		ImGui::NextColumn();
+		GameMenuButton( "+15s", "demojump +15", NULL, 1 );
+		ImGui::NextColumn();
+
+		ImGui::Columns( 1, NULL, false );
+
+		if( ImGui::Button( "Settings", ImVec2( -1, 0 ) ) ) {
+			demomenu_state = DemoMenuState_Settings;
+		}
+
+		GameMenuButton( "Disconnect to main menu", "disconnect", &should_close );
+		GameMenuButton( "Exit to desktop", "quit", &should_close );
+	} else if( demomenu_state == DemoMenuState_Settings ) {
+		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
+		ImGui::SetNextWindowSize( ImVec2( Max2( 800.f, displaySize.x * 0.65f ), Max2( 600.f, displaySize.y * 0.65f ) ) );
+		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+
+		Settings();
+	}
 
 	if( ImGui::Hotkey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;
@@ -1183,6 +1225,7 @@ void UI_ShowDemoMenu() {
 	ImGui::GetIO().KeysDown[ K_ESCAPE ] = false;
 
 	uistate = UIState_DemoMenu;
+	demomenu_state = DemoMenuState_Menu;
 	CL_SetKeyDest( key_menu );
 }
 

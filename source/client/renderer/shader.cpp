@@ -74,11 +74,17 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/standard.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.standard, srcs.span(), lengths.span() );
 
+	BuildShaderSrcs( "glsl/standard.glsl", "#define SHADED 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.standard_shaded, srcs.span(), lengths.span() );
+
 	BuildShaderSrcs( "glsl/standard.glsl", "#define VERTEX_COLORS 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_vertexcolors, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/standard.glsl", "#define SKINNED 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_skinned, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/standard.glsl", "#define SKINNED 1\n#define SHADED 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.standard_skinned_shaded, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/standard.glsl", "#define SKINNED 1\n#define VERTEX_COLORS 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_skinned_vertexcolors, srcs.span(), lengths.span() );
@@ -90,7 +96,11 @@ static void LoadShaders() {
 		"#define APPLY_DRAWFLAT 1\n"
 		"#define APPLY_FOG 1\n"
 		"#define APPLY_DECALS 1\n"
-		"#define TILE_SIZE {}\n", TILE_SIZE );
+		"#define APPLY_DLIGHTS 1\n"
+		"#define APPLY_SHADOWS 1\n"
+		"#define SHADED 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
 	BuildShaderSrcs( "glsl/standard.glsl", world_defines, &srcs, &lengths );
 	ReplaceShader( &shaders.world, srcs.span(), lengths.span() );
 

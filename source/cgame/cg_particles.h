@@ -11,8 +11,10 @@ constexpr u32 MAX_PARTICLE_EMITTER_MATERIALS = 16;
 constexpr u32 MAX_DECAL_EMITTERS = 512;
 constexpr u32 MAX_DECAL_EMITTER_MATERIALS = 8;
 
+constexpr u32 MAX_DLIGHT_EMITTERS = 512;
+
 constexpr u32 MAX_VISUAL_EFFECT_GROUPS = 512;
-constexpr u32 MAX_VISUAL_EFFECTS = 8;
+constexpr u32 MAX_VISUAL_EFFECTS = 16;
 
 enum EasingFunction {
 	EasingFunction_Linear,
@@ -84,8 +86,6 @@ struct ParticleSystem {
 
 	const Model * model;
 
-	const Material * gradient;
-
 	BlendFunc blend_func;
 	float radius;
 
@@ -116,6 +116,7 @@ struct ParticleSystem {
 enum VisualEffectType : u8 {
 	VisualEffectType_Particles,
 	VisualEffectType_Decal,
+	VisualEffectType_DynamicLight,
 };
 
 struct VisualEffect {
@@ -205,6 +206,20 @@ struct DecalEmitter {
 
 	float lifetime = 30.0f;
 	RandomDistribution lifetime_distribution;
+
+	float height = 0.0f;
+};
+
+struct DynamicLightEmitter {
+	Vec4 color = Vec4( 1.0f );
+	RandomDistribution red_distribution, green_distribution, blue_distribution, alpha_distribution;
+	bool color_override;
+
+	float intensity = 3200.0f;
+	RandomDistribution intensity_distribution;
+
+	float lifetime = 5.0f;
+	RandomDistribution lifetime_distribution;
 };
 
 void InitVisualEffects();
@@ -219,8 +234,8 @@ ParticleEmitterPosition ParticleEmitterLine( Vec3 origin, Vec3 end, float radius
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 start_color );
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count );
 
-void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal = Vec3( 0.0f, 0.0f, 1.0f ), float count = 1.0f, Vec4 color = Vec4( 1.0f ) );
-void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal = Vec3( 0.0f, 0.0f, 1.0f ), float count = 1.0f, Vec4 color = Vec4( 1.0f ) );
+void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal = Vec3( 0.0f, 0.0f, 1.0f ), float count = 1.0f, Vec4 color = Vec4( 1.0f ), float decal_lifetime_scale = 1.0f );
+void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal = Vec3( 0.0f, 0.0f, 1.0f ), float count = 1.0f, Vec4 color = Vec4( 1.0f ), float decal_lifetime_scale = 1.0f );
 
 void DrawParticles();
 

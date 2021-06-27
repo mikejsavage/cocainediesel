@@ -424,9 +424,12 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 			cent->interpolated.origin2 = cent->interpolated.origin;
 		}
 	}
+
+	cent->interpolated.animating = cent->current.animating;
+	cent->interpolated.animation_time = Lerp( cent->prev.animation_time, cg.lerpfrac, cent->current.animation_time );
 }
 
-static void DrawEntityModel( centity_t *cent ) {
+static void DrawEntityModel( centity_t * cent ) {
 	if( cent->interpolated.scale == 0.0f ) {
 		return;
 	}
@@ -435,17 +438,26 @@ static void DrawEntityModel( centity_t *cent ) {
 		return;
 	}
 
+	TempAllocator temp = cls.frame_arena.temp();
+
 	const Model * model = cent->interpolated.model;
 	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin );
 
 	Vec4 color = sRGBToLinear( cent->interpolated.color );
-	DrawModel( model, transform, color );
-	DrawModelShadow( model, transform, color );
+
+	MatrixPalettes palettes = { };
+	if( cent->interpolated.animating ) {
+		Span< TRS > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
+		palettes = ComputeMatrixPalettes( &temp, model, pose );
+	}
+
+	DrawModel( model, transform, color, palettes );
+	DrawModelShadow( model, transform, color, palettes );
 
 	if( cent->current.silhouetteColor.a > 0 ) {
 		if( ( cent->current.effects & EF_TEAM_SILHOUETTE ) == 0 || ISREALSPECTATOR() || cent->current.team == cg.predictedPlayerState.team ) {
 			Vec4 silhouette_color = sRGBToLinear( cent->current.silhouetteColor );
-			DrawModelSilhouette( model, transform, silhouette_color );
+			DrawModelSilhouette( model, transform, silhouette_color, palettes );
 		}
 	}
 
@@ -454,15 +466,9 @@ static void DrawEntityModel( centity_t *cent ) {
 		for( u32 i = 0; i < model->num_primitives; i++ ) {
 			if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
 				{
-					PipelineState pipeline;
-					pipeline.pass = frame_static.world_opaque_pass;
-					pipeline.shader = &shaders.world;
+					PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
 					pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 					pipeline.set_uniform( "u_Model", model_uniforms );
-					pipeline.set_texture( "u_NearShadowmapTexture", &frame_static.near_shadowmap_fb.depth_texture );
-					pipeline.set_texture( "u_FarShadowmapTexture", &frame_static.far_shadowmap_fb.depth_texture );
-					pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
-					AddDecalsToPipeline( &pipeline );
 
 					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 				}
@@ -683,21 +689,25 @@ void DrawEntities() {
 			case ET_ROCKET:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/rl/trail" );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ), 25600.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_GRENADE:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/gl/trail" );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
-			case ET_PLASMA:
+			case ET_ARBULLET:
 				DrawEntityModel( cent );
-				DrawEntityTrail( cent, "weapons/pg/trail" );
+				DrawEntityTrail( cent, "weapons/ar/trail" );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_BUBBLE:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/bg/trail" );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_RIFLEBULLET:
@@ -712,6 +722,7 @@ void DrawEntities() {
 				break;
 			case ET_BLAST:
 				DrawEntityTrail( cent, "weapons/mb/trail" );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ), 3200.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 
@@ -719,7 +730,6 @@ void DrawEntities() {
 				CG_AddPlayerEnt( cent );
 				CG_EntityLoopSound( cent, state );
 				CG_LaserBeamEffect( cent );
-				CG_WeaponBeamEffect( cent );
 				break;
 
 			case ET_CORPSE:
@@ -792,7 +802,7 @@ void CG_LerpEntities() {
 		switch( cent->type ) {
 			case ET_GENERIC:
 			case ET_ROCKET:
-			case ET_PLASMA:
+			case ET_ARBULLET:
 			case ET_BUBBLE:
 			case ET_GRENADE:
 			case ET_RIFLEBULLET:
@@ -802,6 +812,7 @@ void CG_LerpEntities() {
 			case ET_CORPSE:
 			case ET_GHOST:
 			case ET_SPEAKER:
+			case ET_BOMB:
 				if( state->linearMovement ) {
 					CG_ExtrapolateLinearProjectile( cent );
 				} else {
@@ -824,7 +835,6 @@ void CG_LerpEntities() {
 			case ET_SOUNDEVENT:
 				break;
 
-			case ET_BOMB:
 			case ET_BOMB_SITE:
 				break;
 
@@ -860,7 +870,7 @@ void CG_UpdateEntities() {
 		if( cgs.demoPlaying ) {
 			if( ( state->svflags & SVF_ONLYTEAM ) && cg.predictedPlayerState.team != state->team )
 				continue;
-			if( ( ( state->svflags & SVF_ONLYOWNER ) || ( state->svflags & SVF_OWNERANDCHASERS ) ) && cg.predictedPlayerState.POVnum != state->ownerNum )
+			if( ( ( state->svflags & SVF_ONLYOWNER ) || ( state->svflags & SVF_OWNERANDCHASERS ) ) && checked_cast< int >( cg.predictedPlayerState.POVnum ) != state->ownerNum )
 				continue;
 		}
 
@@ -871,7 +881,7 @@ void CG_UpdateEntities() {
 		switch( cent->type ) {
 			case ET_GENERIC:
 			case ET_ROCKET:
-			case ET_PLASMA:
+			case ET_ARBULLET:
 			case ET_BUBBLE:
 			case ET_GRENADE:
 			case ET_RIFLEBULLET:

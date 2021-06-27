@@ -530,8 +530,7 @@ void GClip_LinkEntity( edict_t *ent ) {
 			if( ent->r.areanum > -1 && ent->r.areanum != area ) {
 				if( ent->r.areanum2 > -1 && ent->r.areanum2 != area ) {
 					if( developer->integer ) {
-						Com_Printf( "Object %s touching 3 areas at %f %f %f\n",
-								  ( ent->classname ? ent->classname : "" ),
+						Com_Printf( "Object touching 3 areas at %f %f %f\n",
 								  ent->r.absmin.x, ent->r.absmin.y, ent->r.absmin.z );
 					}
 				}

@@ -39,6 +39,7 @@ struct Model {
 		AnimationChannel< Quaternion > rotations;
 		AnimationChannel< Vec3 > translations;
 		AnimationChannel< float > scales;
+		bool skinned;
 	};
 
 	struct Joint {
@@ -67,13 +68,15 @@ void ShutdownModels();
 
 const Model * FindModel( StringHash name );
 const Model * FindModel( const char * name );
+const Model * FindMapModel( StringHash name );
 
-Model * NewModel( u64 hash );
+void DeleteModel( Model * model );
 
 bool LoadGLTFModel( Model * model, const char * path );
 
 struct Map;
 bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data );
+void DeleteBSPRenderData( Map * map );
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline );
 void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );

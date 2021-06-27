@@ -53,7 +53,7 @@ void CG_RegisterMediaSounds() {
 }
 
 void CG_RegisterMediaModels() {
-	cgs.media.modPlasmaExplosion = FindModel( "weapons/pg/impact" );
+	cgs.media.modARBulletExplosion = FindModel( "weapons/ar/impact" );
 
 	cgs.media.modDash = FindModel( "models/effects/dash_burst" );
 
@@ -61,7 +61,7 @@ void CG_RegisterMediaModels() {
 	cgs.media.modLasergunWallExplo = FindModel( "weapons/lg/impact" );
 	cgs.media.modBladeWallHit = FindModel( "weapons/gb/impact" );
 
-	cgs.media.modGib = FindModel( "models/objects/gibs/gib" );
+	cgs.media.modGib = FindModel( "models/gibs/gib" );
 }
 
 void CG_RegisterMediaShaders() {

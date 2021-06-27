@@ -85,7 +85,7 @@ static cvar_t * s_muteinbackground;
 
 constexpr u32 MAX_SOUND_ASSETS = 4096;
 constexpr u32 MAX_SOUND_EFFECTS = 4096;
-constexpr u32 MAX_PLAYING_SOUNDS = 128;
+constexpr u32 MAX_PLAYING_SOUNDS = 256;
 
 static Sound sounds[ MAX_SOUND_ASSETS ];
 static u32 num_sounds;
@@ -108,6 +108,8 @@ static ALuint music_source;
 static bool music_playing;
 
 static EntitySound entities[ MAX_EDICTS ];
+
+constexpr float MusicIsWayTooLoud = 0.25f;
 
 const char *ALErrorMessage( ALenum error ) {
 	switch( error ) {
@@ -223,7 +225,12 @@ static bool S_InitAL() {
 		}
 	}
 
-	ALCint attrs[] = { ALC_HRTF_SOFT, ALC_HRTF_ENABLED_SOFT, 0 };
+	ALCint attrs[] = {
+		ALC_HRTF_SOFT, ALC_HRTF_ENABLED_SOFT,
+		ALC_MONO_SOURCES, 256,
+		ALC_STEREO_SOURCES, 16,
+		0
+	};
 	al_context = alcCreateContext( al_device, attrs );
 	if( al_context == NULL ) {
 		alcCloseDevice( al_device );
@@ -534,7 +541,7 @@ bool S_Init() {
 	s_device = Cvar_Get( "s_device", "", CVAR_ARCHIVE );
 	s_device->modified = false;
 	s_volume = Cvar_Get( "s_volume", "1", CVAR_ARCHIVE );
-	s_musicvolume = Cvar_Get( "s_musicvolume", "0.5", CVAR_ARCHIVE );
+	s_musicvolume = Cvar_Get( "s_musicvolume", "1", CVAR_ARCHIVE );
 	s_muteinbackground = Cvar_Get( "s_muteinbackground", "1", CVAR_ARCHIVE );
 	s_muteinbackground->modified = true;
 
@@ -587,20 +594,16 @@ static const SoundEffect * FindSoundEffect( StringHash name ) {
 	return &sound_effects[ idx ];
 }
 
-static const SoundEffect * FindSoundEffect( const char * name ) {
-	return FindSoundEffect( StringHash( name ) );
-}
-
 static bool StartSound( PlayingSound * ps, u8 i ) {
 	SoundEffect::PlaybackConfig config = ps->sfx->sounds[ i ];
 
 	int idx;
 	if( !ps->has_entropy ) {
-		idx = random_uniform( &cls.rng, 0, config.num_random_sounds );
+		idx = RandomUniform( &cls.rng, 0, config.num_random_sounds );
 	}
 	else {
-		RNG rng = new_rng( ps->entropy, 0 );
-		idx = random_uniform( &rng, 0, config.num_random_sounds );
+		RNG rng = NewRNG( ps->entropy, 0 );
+		idx = RandomUniform( &rng, 0, config.num_random_sounds );
 	}
 
 	Sound sound;
@@ -765,7 +768,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 	}
 
 	if( ( s_volume->modified || s_musicvolume->modified ) && music_playing ) {
-		CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
+		CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value * MusicIsWayTooLoud );
 	}
 
 	s_volume->modified = false;
@@ -968,7 +971,7 @@ void S_StartMenuMusic() {
 	if( music_playing )
 		return;
 
-	CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
+	CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value * MusicIsWayTooLoud );
 	CheckedALSource( music_source, AL_DIRECT_CHANNELS_SOFT, AL_TRUE );
 	CheckedALSource( music_source, AL_LOOPING, AL_TRUE );
 	CheckedALSource( music_source, AL_BUFFER, sound.buf );

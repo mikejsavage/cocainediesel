@@ -1,5 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
+#include "qcommon/fs.h"
 #include "qcommon/string.h"
 #include "client/client.h"
 #include "client/renderer/renderer.h"
@@ -8,6 +9,7 @@
 #include "client/renderer/srgb.h"
 #include "client/renderer/text.h"
 
+#include "client/maps.h"
 #include "cgame/cg_particles.h"
 
 #include "imgui/imgui.h"
@@ -35,37 +37,42 @@ static int last_msaa;
 static cvar_t * r_samples;
 
 static void TakeScreenshot() {
-	RGB8 * buf = ALLOC_MANY( sys_allocator, RGB8, frame_static.viewport_width * frame_static.viewport_height );
-	defer { FREE( sys_allocator, buf ); };
-	DownloadFramebuffer( buf );
+	RGB8 * framebuffer = ALLOC_MANY( sys_allocator, RGB8, frame_static.viewport_width * frame_static.viewport_height );
+	defer { FREE( sys_allocator, framebuffer ); };
+	DownloadFramebuffer( framebuffer );
 
-	char date[ 256 ];
-	Sys_FormatTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
-
-	TempAllocator temp = cls.frame_arena.temp();
-	DynamicString filename( &temp );
-	filename.append( "{}/screenshots/{}", FS_WriteDirectory(), date );
-
-	if( strcmp( date, last_screenshot_date ) == 0 ) {
-		same_date_count++;
-		filename.append( "_{}", same_date_count );
-	}
-	else {
-		same_date_count = 0;
-	}
-
-	strcpy( last_screenshot_date, date );
-
-	filename.append( ".png" );
-
-	FS_CreateAbsolutePath( filename.c_str() );
 	stbi_flip_vertically_on_write( 1 );
-	int ok = stbi_write_png( filename.c_str(), frame_static.viewport_width, frame_static.viewport_height, 3, buf, 0 );
-	if( ok != 0 ) {
-		Com_Printf( "Wrote %s\n", filename.c_str() );
-	}
-	else {
-		Com_Printf( "Couldn't write %s\n", filename.c_str() );
+
+	int ok = stbi_write_png_to_func( []( void * context, void * png, int png_size ) {
+		char date[ 256 ];
+		Sys_FormatTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
+
+		TempAllocator temp = cls.frame_arena.temp();
+
+		char * dir = temp( "{}/screenshots", HomeDirPath() );
+		DynamicString path( &temp, "{}/{}", dir, date );
+
+		if( strcmp( date, last_screenshot_date ) == 0 ) {
+			same_date_count++;
+			path.append( "_{}", same_date_count );
+		}
+		else {
+			same_date_count = 0;
+		}
+		strcpy( last_screenshot_date, date );
+
+		path.append( ".png" );
+
+		if( WriteFile( &temp, path.c_str(), png, png_size ) ) {
+			Com_Printf( "Wrote %s\n", path.c_str() );
+		}
+		else {
+			Com_Printf( "Couldn't write %s\n", path.c_str() );
+		}
+	}, NULL, frame_static.viewport_width, frame_static.viewport_height, 3, framebuffer, 0 );
+
+	if( ok == 0 ) {
+		Com_Printf( "Couldn't convert screenshot to PNG\n" );
 	}
 }
 
@@ -341,6 +348,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadShaders();
 	HotloadMaterials();
 	HotloadModels();
+	HotloadMaps();
 	HotloadVisualEffects();
 
 	RenderBackendBeginFrame();
@@ -370,7 +378,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), Vec3() );
 	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
-	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f );
+	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f, 0.0f, 64.0f );
 
 	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
 
@@ -378,6 +386,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	static const tracy::SourceLocationData particle_update_tracy = TRACY_HACK( "Update particles" );
 	static const tracy::SourceLocationData write_near_shadowmap_tracy = TRACY_HACK( "Write near shadowmap" );
 	static const tracy::SourceLocationData write_far_shadowmap_tracy = TRACY_HACK( "Write far shadowmap" );
+	static const tracy::SourceLocationData world_opaque_prepass_tracy = TRACY_HACK( "World z-prepass" );
 	static const tracy::SourceLocationData world_opaque_tracy = TRACY_HACK( "Render world opaque" );
 	static const tracy::SourceLocationData add_world_outlines_tracy = TRACY_HACK( "Render world outlines" );
 	static const tracy::SourceLocationData write_silhouette_buffer_tracy = TRACY_HACK( "Write silhouette buffer" );
@@ -386,8 +395,9 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	static const tracy::SourceLocationData sky_tracy = TRACY_HACK( "Render sky" );
 	static const tracy::SourceLocationData transparent_tracy = TRACY_HACK( "Render transparent" );
 	static const tracy::SourceLocationData silhouettes_tracy = TRACY_HACK( "Render silhouettes" );
+	static const tracy::SourceLocationData ui_tracy = TRACY_HACK( "Render game HUD" );
 	static const tracy::SourceLocationData postprocess_tracy = TRACY_HACK( "Postprocess" );
-	static const tracy::SourceLocationData ui_tracy = TRACY_HACK( "Render UI" );
+	static const tracy::SourceLocationData post_ui_tracy = TRACY_HACK( "Render non-game UI" );
 	static const tracy::SourceLocationData ultralight_tracy = TRACY_HACK( "Render Ultralight" );
 #undef TRACY_HACK
 
@@ -397,12 +407,14 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.far_shadowmap_pass = AddRenderPass( "Write far shadowmap", &write_far_shadowmap_tracy, frame_static.far_shadowmap_fb, ClearColor_Dont, ClearDepth_Do );
 
 	if( msaa ) {
-		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.world_opaque_prepass_pass = AddRenderPass( "Render world opaque Prepass", &world_opaque_prepass_tracy, frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.msaa_fb );
 		frame_static.sky_pass = AddRenderPass( "Render sky", &sky_tracy, frame_static.msaa_fb );
 		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", &add_world_outlines_tracy, frame_static.msaa_fb_onlycolor );
 	}
 	else {
-		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.world_opaque_prepass_pass = AddRenderPass( "Render world opaque Prepass", &world_opaque_prepass_tracy, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.postprocess_fb );
 		frame_static.sky_pass = AddRenderPass( "Render sky", &sky_tracy, frame_static.postprocess_fb );
 		frame_static.add_world_outlines_pass = AddRenderPass( "Render world outlines", &add_world_outlines_tracy, frame_static.postprocess_fb_onlycolor );
 	}
@@ -411,18 +423,17 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	if( msaa ) {
 		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", &nonworld_opaque_tracy, frame_static.msaa_fb );
-		frame_static.transparent_pass = AddRenderPass( "Render transparent", &transparent_tracy, frame_static.msaa_fb );
-
-		AddResolveMSAAPass( frame_static.msaa_fb, frame_static.postprocess_fb, &msaa_tracy );
+		AddResolveMSAAPass( "Resolve MSAA", &msaa_tracy, frame_static.msaa_fb, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
 	}
 	else {
 		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", &nonworld_opaque_tracy, frame_static.postprocess_fb );
-		frame_static.transparent_pass = AddRenderPass( "Render transparent", &transparent_tracy, frame_static.postprocess_fb );
 	}
 
+	frame_static.transparent_pass = AddRenderPass( "Render transparent", &transparent_tracy, frame_static.postprocess_fb );
 	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes", &silhouettes_tracy, frame_static.postprocess_fb );
+	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI", &ui_tracy, frame_static.postprocess_fb );
 	frame_static.postprocess_pass = AddRenderPass( "Postprocess", &postprocess_tracy, ClearColor_Do );
-	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI", &ui_tracy );
+	frame_static.post_ui_pass = AddUnsortedRenderPass( "Render Post UI", &post_ui_tracy );
 	frame_static.ultralight_pass = AddUnsortedRenderPass( "Render Ultralight", &ultralight_tracy );
 }
 
@@ -573,6 +584,6 @@ UniformBlock UploadModelUniforms( const Mat4 & M ) {
 	return UploadUniformBlock( M );
 }
 
-UniformBlock UploadMaterialUniforms( const Vec4 & color, const Vec2 & texture_size, float alpha_cutoff, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {
-	return UploadUniformBlock( color, tcmod_row0, tcmod_row1, texture_size, alpha_cutoff );
+UniformBlock UploadMaterialUniforms( const Vec4 & color, const Vec2 & texture_size, float alpha_cutoff, float specular, float shininess, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {
+	return UploadUniformBlock( color, tcmod_row0, tcmod_row1, texture_size, alpha_cutoff, specular, shininess );
 }

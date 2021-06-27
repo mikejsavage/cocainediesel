@@ -23,9 +23,9 @@ const uint BOMB_DEAD_CAMERA_DIST = 256;
 const int INITIAL_ATTACKERS = TEAM_ALPHA;
 const int INITIAL_DEFENDERS = TEAM_BETA;
 
-const int SITE_EXPLOSION_POINTS   = 30;
+const int SITE_EXPLOSION_POINTS = 10;
 
-const int SITE_EXPLOSION_MAX_DELAY = 1500; // XXX THIS MUST BE BIGGER THAN BOMB_SPRITE_RESIZE_TIME OR EVERYTHING DIES FIXME?
+const int SITE_EXPLOSION_MAX_DELAY = 1000; // XXX THIS MUST BE BIGGER THAN BOMB_SPRITE_RESIZE_TIME OR EVERYTHING DIES FIXME?
 
 const float SITE_EXPLOSION_MAX_DIST = 512.0f;
 
@@ -124,40 +124,11 @@ Entity @GT_SelectSpawnPoint( Entity @self ) {
 	return RandomEntity( "team_CTF_alphaspawn" );
 }
 
-String @teamScoreboardMessage( int t ) {
-	Team @team = @G_GetTeam( t );
-
-	String players = "";
-
-	for( int i = 0; @team.ent( i ) != null; i++ ) {
-		Entity @ent = @team.ent( i );
-		Client @client = @ent.client;
-
-		cPlayer @player = @playerFromClient( @client );
-
-		bool warmup = match.getState() == MATCH_STATE_WARMUP;
-		int state = warmup ? ( client.isReady() ? 1 : 0 ) : ( @ent == @bombCarrier ? 1 : 0 );
-		int playerId = ent.isGhosting() ? -( ent.playerNum + 1 ) : ent.playerNum;
-
-		players += " " + playerId
-			+ " " + client.ping
-			+ " " + client.stats.score
-			+ " " + client.stats.frags
-			+ " " + state;
-	}
-
-	return ( t == TEAM_ALPHA ? match.alphaScore : match.betaScore ) + " " + team.numPlayers + players;
-}
-
-String @GT_ScoreboardMessage() {
-	return roundCount + " " + teamScoreboardMessage( TEAM_ALPHA ) + " " + teamScoreboardMessage( TEAM_BETA );
-}
-
 void GT_updateScore( Client @client ) {
 	cPlayer @player = @playerFromClient( @client );
 	Stats @stats = @client.stats;
 
-	client.stats.setScore( int( stats.frags * 0.5 + stats.totalDamageGiven * 0.01 ) );
+	stats.setScore( int( stats.kills * 0.5 + stats.totalDamageGiven * 0.01 ) );
 }
 
 // Some game actions trigger score events. These are events not related to killing
@@ -230,12 +201,12 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 		}
 
 		if( matchState == MATCH_STATE_PLAYTIME ) {
-			if( roundState == RoundState_Round ) {
+			if( match.roundState == RoundState_Round ) {
 				if( old_team != TEAM_SPECTATOR && !ent.isGhosting() ) {
 					checkPlayersAlive( old_team );
 				}
 			}
-			else if( roundState == RoundState_Pre && new_team != TEAM_SPECTATOR ) {
+			else if( match.roundState == RoundState_Countdown && new_team != TEAM_SPECTATOR ) {
 				// respawn during countdown
 				// mark for respawning next frame because
 				// respawning this frame doesn't work
@@ -244,7 +215,7 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 			}
 		}
 	}
-	else if( roundState == RoundState_Pre ) {
+	else if( match.roundState == RoundState_Countdown ) {
 		disableMovementFor( @client );
 	}
 
@@ -308,21 +279,9 @@ void GT_ThinkRules() {
 			continue; // don't bother if they're not ingame
 		}
 
-		client.canChangeLoadout = !client.getEnt().isGhosting() && roundState == RoundState_Pre;
+		client.canChangeLoadout = !client.getEnt().isGhosting() && match.roundState == RoundState_Countdown;
 		client.carryingBomb = false;
 		client.canPlant = false;
-	}
-
-	if( bombState == BombState_Planted ) {
-		uint aliveOff = TEAM_ALPHA == attackingTeam ? aliveAlpha : aliveBeta;
-
-		if( aliveOff == 0 ) {
-			Team @team = @G_GetTeam( attackingTeam );
-
-			for( int i = 0; @team.ent( i ) != null; i++ ) {
-				bombLookAt( @team.ent( i ) );
-			}
-		}
 	}
 
 	if( bombState == BombState_Carried ) {
@@ -335,7 +294,7 @@ void GT_ThinkRules() {
 		bombCarrierLastVel = bombCarrier.velocity;
 	}
 
-	GENERIC_Think();
+	GENERIC_UpdateMatchScore();
 }
 
 // The game has detected the end of the match state, but it
@@ -414,18 +373,12 @@ void GT_SpawnGametype() {
 // right after the map entities spawning.
 void GT_InitGametype() {
 	gametype.isTeamBased = true;
-	gametype.isRace = false;
 	gametype.hasChallengersQueue = false;
-	gametype.maxPlayersPerTeam = 0;
 
-	gametype.readyAnnouncementEnabled = false;
-	gametype.scoreAnnouncementEnabled = true;
 	gametype.countdownEnabled = false;
 	gametype.matchAbortDisabled = false;
 	gametype.shootingDisabled = false;
 	gametype.removeInactivePlayers = true;
-
-	gametype.spawnpointRadius = 256;
 
 	// set spawnsystem type to instant while players join
 	for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {

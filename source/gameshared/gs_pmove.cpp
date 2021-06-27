@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
+#include "gameshared/gs_weapons.h"
 
 #define SPEEDKEY    500.0f
 
@@ -516,9 +517,6 @@ static void PM_WaterMove() {
 	PM_StepSlideMove();
 }
 
-/*
-* PM_Move -- Kurim
-*/
 static void PM_Move() {
 	ZoneScoped;
 
@@ -624,9 +622,6 @@ static void PM_GroundTrace( trace_t *trace ) {
 	pmove_gs->api.Trace( trace, pml.origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
 }
 
-/*
-* PM_GoodPosition
-*/
 static bool PM_GoodPosition( Vec3 origin, trace_t *trace ) {
 	if( pm->playerState->pmove.pm_type == PM_SPECTATOR ) {
 		return true;
@@ -637,9 +632,6 @@ static bool PM_GoodPosition( Vec3 origin, trace_t *trace ) {
 	return !trace->allsolid;
 }
 
-/*
-* PM_UnstickPosition
-*/
 static void PM_UnstickPosition( trace_t *trace ) {
 	ZoneScoped;
 
@@ -664,9 +656,6 @@ static void PM_UnstickPosition( trace_t *trace ) {
 	pml.origin = pml.previous_origin;
 }
 
-/*
-* PM_CategorizePosition
-*/
 static void PM_CategorizePosition() {
 	ZoneScoped;
 
@@ -753,9 +742,6 @@ static void PM_ClearWallJump() {
 	pm->playerState->pmove.walljump_time = 0;
 }
 
-/*
-* PM_CheckJump
-*/
 static void PM_CheckJump() {
 	if( pml.upPush < 10 ) {
 		return;
@@ -792,9 +778,6 @@ static void PM_CheckJump() {
 	PM_ClearWallJump();
 }
 
-/*
-* PM_CheckDash -- by Kurim
-*/
 static void PM_CheckDash() {
 	bool pressed = pm->cmd.buttons & BUTTON_SPECIAL;
 
@@ -803,10 +786,6 @@ static void PM_CheckDash() {
 	}
 
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) {
-		return;
-	}
-
-	if( pm->playerState->pmove.dash_time > 0 ) {
 		return;
 	}
 
@@ -850,31 +829,30 @@ static void PM_CheckDash() {
 		pml.velocity = dashdir;
 		pml.velocity.z = upspeed;
 
-		pm->playerState->pmove.dash_time = PM_DASHJUMP_TIMEDELAY;
-
-		// return sound events
-		if( Abs( pml.sidePush ) >= Abs( pml.forwardPush ) ) {
-			if( pml.sidePush > 0 ) {
-				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 2 );
+		// return sound events only when the dashes weren't too close to each other
+		if( pm->playerState->pmove.dash_time == 0 ) {
+			if( Abs( pml.sidePush ) >= Abs( pml.forwardPush ) ) {
+				if( pml.sidePush > 0 ) {
+					pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 2 );
+				}
+				else {
+					pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 1 );
+				}
+			}
+			else if( pml.forwardPush < 0 ) {
+				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 3 );
 			}
 			else {
-				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 1 );
+				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 0 );
 			}
 		}
-		else if( pml.forwardPush < 0 ) {
-			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 3 );
-		}
-		else {
-			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 0 );
-		}
+
+		pm->playerState->pmove.dash_time = PM_DASHJUMP_TIMEDELAY;
 	} else if( pm->groundentity == -1 ) {
 		pm->playerState->pmove.pm_flags &= ~PMF_DASHING;
 	}
 }
 
-/*
-* PM_CheckWallJump -- By Kurim
-*/
 static void PM_CheckWallJump() {
 	ZoneScoped;
 
@@ -970,9 +948,6 @@ static void PM_CheckWallJump() {
 	}
 }
 
-/*
-* PM_CheckSpecialMovement
-*/
 static void PM_CheckSpecialMovement() {
 	int cont;
 
@@ -1018,9 +993,6 @@ static void PM_CheckSpecialMovement() {
 	pm->playerState->pmove.pm_time = 255;
 }
 
-/*
-* PM_FlyMove
-*/
 static void PM_FlyMove( bool doclip ) {
 	trace_t trace;
 
@@ -1092,11 +1064,6 @@ static void PM_FlyMove( bool doclip ) {
 	}
 }
 
-/*
-* PM_AdjustBBox
-*
-* Sets mins, maxs, and pm->viewheight
-*/
 static void PM_AdjustBBox() {
 	float crouchFrac;
 	trace_t trace;
@@ -1113,7 +1080,7 @@ static void PM_AdjustBBox() {
 	}
 
 	if( pml.upPush < 0 && ( pm->playerState->pmove.features & PMFEAT_CROUCH ) ) {
-		if( pm->playerState->pmove.crouch_time == 0 ) {
+		if( pm->playerState->pmove.crouch_time == 0 && pmove_gs->gameState.round_state >= RoundState_Finished ) {
 			pm->playerState->pmove.tbag_time = Min2( pm->playerState->pmove.tbag_time + TBAG_AMOUNT_PER_CROUCH, int( MAX_TBAG_TIME ) );
 
 			if( pm->playerState->pmove.tbag_time >= TBAG_THRESHOLD ) {
@@ -1193,10 +1160,6 @@ static void PM_UpdateDeltaAngles() {
 	}
 }
 
-/*
-* PM_ApplyMouseAnglesClamp
-*
-*/
 static void PM_ApplyMouseAnglesClamp() {
 	for( int i = 0; i < 3; i++ ) {
 		s16 temp = pm->cmd.angles[i] + pm->playerState->pmove.delta_angles[i];
@@ -1219,9 +1182,6 @@ static void PM_ApplyMouseAnglesClamp() {
 	pml.flatforward = Normalize( Vec3( pml.forward.xy(), 0.0f ) );
 }
 
-/*
-* PM_BeginMove
-*/
 static void PM_BeginMove() {
 	// clear results
 	pm->numtouch = 0;
@@ -1240,19 +1200,11 @@ static void PM_BeginMove() {
 	pml.previous_origin = pm->playerState->pmove.origin;
 }
 
-/*
-* PM_EndMove
-*/
 static void PM_EndMove() {
 	pm->playerState->pmove.origin = pml.origin;
 	pm->playerState->pmove.velocity = pml.velocity;
 }
 
-/*
-* Pmove
-*
-* Can be called by either the server or the client
-*/
 void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	ZoneScoped;
 
@@ -1263,6 +1215,8 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	pm = pmove;
 	pmove_gs = gs;
 
+	SyncPlayerState * ps = pm->playerState;
+
 	// clear all pmove local vars
 	PM_BeginMove();
 
@@ -1270,19 +1224,19 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 	pml.frametime = pm->cmd.msec * 0.001;
 
-	pml.maxPlayerSpeed = pm->playerState->pmove.max_speed;
+	pml.maxPlayerSpeed = ps->pmove.max_speed;
 	if( pml.maxPlayerSpeed < 0 ) {
 		pml.maxPlayerSpeed = DEFAULT_PLAYERSPEED;
 	}
 
-	pml.jumpPlayerSpeed = (float)pm->playerState->pmove.jump_speed * GRAVITY_COMPENSATE;
+	pml.jumpPlayerSpeed = (float)ps->pmove.jump_speed * GRAVITY_COMPENSATE;
 	pml.jumpPlayerSpeedWater = pml.jumpPlayerSpeed * 2;
 
 	if( pml.jumpPlayerSpeed < 0 ) {
 		pml.jumpPlayerSpeed = DEFAULT_JUMPSPEED * GRAVITY_COMPENSATE;
 	}
 
-	pml.dashPlayerSpeed = pm->playerState->pmove.dash_speed;
+	pml.dashPlayerSpeed = ps->pmove.dash_speed;
 	if( pml.dashPlayerSpeed < 0 ) {
 		pml.dashPlayerSpeed = DEFAULT_DASHSPEED;
 	}
@@ -1298,18 +1252,18 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	}
 
 	// assign a contentmask for the movement type
-	switch( pm->playerState->pmove.pm_type ) {
+	switch( ps->pmove.pm_type ) {
 		case PM_FREEZE:
 		case PM_CHASECAM:
 			if( pmove_gs->module == GS_MODULE_GAME ) {
-				pm->playerState->pmove.pm_flags |= PMF_NO_PREDICTION;
+				ps->pmove.pm_flags |= PMF_NO_PREDICTION;
 			}
 			pm->contentmask = 0;
 			break;
 
 		case PM_SPECTATOR:
 			if( pmove_gs->module == GS_MODULE_GAME ) {
-				pm->playerState->pmove.pm_flags &= ~PMF_NO_PREDICTION;
+				ps->pmove.pm_flags &= ~PMF_NO_PREDICTION;
 			}
 			pm->contentmask = MASK_DEADSOLID;
 			break;
@@ -1317,12 +1271,12 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		default:
 		case PM_NORMAL:
 			if( pmove_gs->module == GS_MODULE_GAME ) {
-				pm->playerState->pmove.pm_flags &= ~PMF_NO_PREDICTION;
+				ps->pmove.pm_flags &= ~PMF_NO_PREDICTION;
 			}
-			if( pm->playerState->pmove.features & PMFEAT_GHOSTMOVE ) {
+			if( ps->pmove.features & PMFEAT_GHOSTMOVE ) {
 				pm->contentmask = MASK_DEADSOLID;
-			} else if( pm->playerState->pmove.features & PMFEAT_TEAMGHOST ) {
-				int team = pmove_gs->api.GetEntityState( pm->playerState->POVnum, 0 )->team;
+			} else if( ps->pmove.features & PMFEAT_TEAMGHOST ) {
+				int team = pmove_gs->api.GetEntityState( ps->POVnum, 0 )->team;
 				pm->contentmask = team == TEAM_ALPHA ? MASK_ALPHAPLAYERSOLID : MASK_BETAPLAYERSOLID;
 			} else {
 				pm->contentmask = MASK_PLAYERSOLID;
@@ -1332,28 +1286,25 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 	if( !GS_MatchPaused( pmove_gs ) ) {
 		// drop timing counters
-		if( pm->playerState->pmove.pm_time ) {
+		if( ps->pmove.pm_time ) {
 			int msec;
 
 			msec = pm->cmd.msec >> 3;
 			if( !msec ) {
 				msec = 1;
 			}
-			if( msec >= pm->playerState->pmove.pm_time ) {
-				pm->playerState->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT );
-				pm->playerState->pmove.pm_time = 0;
+			if( msec >= ps->pmove.pm_time ) {
+				ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT );
+				ps->pmove.pm_time = 0;
 			} else {
-				pm->playerState->pmove.pm_time -= msec;
+				ps->pmove.pm_time -= msec;
 			}
 		}
 
-		pmove_state_t & pmove = pm->playerState->pmove;
-
-		pmove.no_control_time = Max2( 0, pmove.no_control_time - pm->cmd.msec );
-		pmove.knockback_time = Max2( 0, pmove.knockback_time - pm->cmd.msec );
-		pmove.dash_time = Max2( 0, pmove.dash_time - pm->cmd.msec );
-		pmove.walljump_time = Max2( 0, pmove.walljump_time - pm->cmd.msec );
-		pmove.tbag_time = Max2( 0, pmove.tbag_time - pm->cmd.msec );
+		ps->pmove.knockback_time = Max2( 0, ps->pmove.knockback_time - pm->cmd.msec );
+		ps->pmove.dash_time = Max2( 0, ps->pmove.dash_time - pm->cmd.msec );
+		ps->pmove.walljump_time = Max2( 0, ps->pmove.walljump_time - pm->cmd.msec );
+		ps->pmove.tbag_time = Max2( 0, ps->pmove.tbag_time - pm->cmd.msec );
 		// crouch_time is handled at PM_AdjustBBox
 	}
 
@@ -1361,28 +1312,21 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	pml.sidePush = pm->cmd.sidemove * SPEEDKEY / 127.0f;
 	pml.upPush = pm->cmd.upmove * SPEEDKEY / 127.0f;
 
-	if( pm->playerState->pmove.no_control_time > 0 ) {
-		pml.forwardPush = 0;
-		pml.sidePush = 0;
-		pml.upPush = 0;
-		pm->cmd.buttons = 0;
-	}
-
-	if( pm->playerState->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
+	if( ps->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
 		if( !GS_MatchPaused( pmove_gs ) ) {
 			PM_ClearDash();
 
 			PM_ClearWallJump();
 
-			pm->playerState->pmove.knockback_time = 0;
-			pm->playerState->pmove.crouch_time = 0;
-			pm->playerState->pmove.tbag_time = 0;
-			pm->playerState->pmove.pm_flags &= ~( PMF_JUMPPAD_TIME | PMF_DOUBLEJUMPED | PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT | PMF_SPECIAL_HELD );
+			ps->pmove.knockback_time = 0;
+			ps->pmove.crouch_time = 0;
+			ps->pmove.tbag_time = 0;
+			ps->pmove.pm_flags &= ~( PMF_JUMPPAD_TIME | PMF_DOUBLEJUMPED | PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT | PMF_SPECIAL_HELD );
 
 			PM_AdjustBBox();
 		}
 
-		if( pm->playerState->pmove.pm_type == PM_SPECTATOR ) {
+		if( ps->pmove.pm_type == PM_SPECTATOR ) {
 			PM_ApplyMouseAnglesClamp();
 
 			PM_FlyMove( false );
@@ -1408,15 +1352,15 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 	PM_CheckSpecialMovement();
 
-	if( pm->playerState->pmove.pm_flags & PMF_TIME_TELEPORT ) {
+	if( ps->pmove.pm_flags & PMF_TIME_TELEPORT ) {
 		// teleport pause stays exactly in place
-	} else if( pm->playerState->pmove.pm_flags & PMF_TIME_WATERJUMP ) {
+	} else if( ps->pmove.pm_flags & PMF_TIME_WATERJUMP ) {
 		// waterjump has no control, but falls
 		pml.velocity.z -= GRAVITY * pml.frametime;
 		if( pml.velocity.z < 0 ) {
 			// cancel as soon as we are falling down again
-			pm->playerState->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT );
-			pm->playerState->pmove.pm_time = 0;
+			ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT );
+			ps->pmove.pm_time = 0;
 		}
 
 		PM_StepSlideMove();
@@ -1425,7 +1369,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		// Keep this order !
 		PM_CheckJump();
 
-		if( GS_GetWeaponDef( pm->playerState->weapon )->zoom_fov == 0 || ( pm->playerState->pmove.features & PMFEAT_SCOPE ) == 0 ) {
+		if( GS_GetWeaponDef( ps->weapon )->zoom_fov == 0 || ( ps->pmove.features & PMFEAT_SCOPE ) == 0 ) {
 			PM_CheckDash();
 			PM_CheckWallJump();
 		}
@@ -1435,7 +1379,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		if( pm->waterlevel >= 2 ) {
 			PM_WaterMove();
 		} else {
-			Vec3 angles = pm->playerState->viewangles;
+			Vec3 angles = ps->viewangles;
 			if( angles.x > 180 ) {
 				angles.x -= 360;
 			}
@@ -1472,18 +1416,18 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	PM_UpdateDeltaAngles(); // in case some trigger action has moved the view angles (like teleported).
 
 	// touching triggers may force groundentity off
-	if( !( pm->playerState->pmove.pm_flags & PMF_ON_GROUND ) && pm->groundentity != -1 ) {
+	if( !( ps->pmove.pm_flags & PMF_ON_GROUND ) && pm->groundentity != -1 ) {
 		pm->groundentity = -1;
 		pml.velocity.z = 0;
 	}
 
 	if( pm->groundentity != -1 ) { // remove wall-jump and dash bits when touching ground
 		// always keep the dash flag 50 msecs at least (to prevent being removed at the start of the dash)
-		if( pm->playerState->pmove.dash_time < PM_DASHJUMP_TIMEDELAY - 50 ) {
-			pm->playerState->pmove.pm_flags &= ~PMF_DASHING;
+		if( ps->pmove.dash_time < PM_DASHJUMP_TIMEDELAY - 50 ) {
+			ps->pmove.pm_flags &= ~PMF_DASHING;
 		}
 
-		if( pm->playerState->pmove.walljump_time < PM_WALLJUMP_TIMEDELAY - 50 ) {
+		if( ps->pmove.walljump_time < PM_WALLJUMP_TIMEDELAY - 50 ) {
 			PM_ClearWallJump();
 		}
 	}
@@ -1507,9 +1451,9 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 		float frac = Unlerp01( min_fall_velocity, fall_delta, max_fall_velocity );
 		if( frac > 0 ) {
-			pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_FALL, frac * 255 );
+			pmove_gs->api.PredictedEvent( ps->POVnum, EV_FALL, frac * 255 );
 		}
 
-		pm->playerState->pmove.pm_flags &= ~PMF_JUMPPAD_TIME;
+		ps->pmove.pm_flags &= ~PMF_JUMPPAD_TIME;
 	}
 }

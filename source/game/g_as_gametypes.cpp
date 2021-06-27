@@ -18,8 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "g_local.h"
-#include "g_as_local.h"
+#include "game/g_local.h"
+#include "game/g_as_local.h"
 
 static void GT_ResetScriptData() {
 	level.gametype.initFunc = NULL;
@@ -29,29 +29,21 @@ static void GT_ResetScriptData() {
 	level.gametype.thinkRulesFunc = NULL;
 	level.gametype.playerRespawnFunc = NULL;
 	level.gametype.scoreEventFunc = NULL;
-	level.gametype.scoreboardMessageFunc = NULL;
 	level.gametype.selectSpawnPointFunc = NULL;
 	level.gametype.clientCommandFunc = NULL;
 	level.gametype.shutdownFunc = NULL;
 }
 
 void GT_asShutdownScript() {
-	int i;
-	edict_t *e;
-
 	if( game.asEngine == NULL ) {
 		return;
 	}
 
 	// release the callback and any other objects obtained from the script engine before releasing the engine
-	for( i = 0; i < game.numentities; i++ ) {
-		e = &game.edicts[i];
+	for( int i = 0; i < game.numentities; i++ ) {
+		edict_t * e = &game.edicts[i];
 
-		if( e->scriptSpawned && e->asScriptModule &&
-			!strcmp( ( static_cast<asIScriptModule*>( e->asScriptModule ) )->GetName(), GAMETYPE_SCRIPTS_MODULE_NAME ) ) {
-			G_asReleaseEntityBehaviors( e );
-			e->asScriptModule = NULL;
-		}
+		G_asReleaseEntityBehaviors( e );
 	}
 
 	GT_ResetScriptData();
@@ -61,16 +53,13 @@ void GT_asShutdownScript() {
 
 //"void GT_SpawnGametype()"
 void GT_asCallSpawn() {
-	int error;
-	asIScriptContext *ctx;
-
 	if( !level.gametype.spawnFunc ) {
 		return;
 	}
 
-	ctx = game.asExport->asAcquireContext( game.asEngine );
+	asIScriptContext * ctx = game.asExport->asAcquireContext( game.asEngine );
 
-	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.spawnFunc ) );
+	int error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.spawnFunc ) );
 	if( error < 0 ) {
 		return;
 	}
@@ -223,36 +212,6 @@ void GT_asCallScoreEvent( gclient_t *client, const char *score_event, const char
 
 	game.asExport->asStringRelease( s1 );
 	game.asExport->asStringRelease( s2 );
-}
-
-//"String @GT_ScoreboardMessage()"
-void GT_asCallScoreboardMessage( char * buf, size_t buf_size ) {
-	asstring_t *string;
-	int error;
-	asIScriptContext *ctx;
-
-	if( !level.gametype.scoreboardMessageFunc ) {
-		return;
-	}
-
-	ctx = game.asExport->asAcquireContext( game.asEngine );
-
-	error = ctx->Prepare( static_cast<asIScriptFunction *>( level.gametype.scoreboardMessageFunc ) );
-	if( error < 0 ) {
-		return;
-	}
-
-	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
-		GT_asShutdownScript();
-	}
-
-	string = ( asstring_t * )ctx->GetReturnObject();
-	if( !string || !string->len || !string->buffer ) {
-		return;
-	}
-
-	Q_strncpyz( buf, string->buffer, buf_size );
 }
 
 //"Entity @GT_SelectSpawnPoint( Entity @ent )"
@@ -425,16 +384,6 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 		funcCount++;
 	}
 
-	fdeclstr = "String @GT_ScoreboardMessage()";
-	level.gametype.scoreboardMessageFunc = asModule->GetFunctionByDecl( fdeclstr );
-	if( !level.gametype.scoreboardMessageFunc ) {
-		if( developer->integer || sv_cheats->integer ) {
-			Com_Printf( "* The function '%s' was not present in the script.\n", fdeclstr );
-		}
-	} else {
-		funcCount++;
-	}
-
 	fdeclstr = "Entity @GT_SelectSpawnPoint( Entity @ent )";
 	level.gametype.selectSpawnPointFunc = asModule->GetFunctionByDecl( fdeclstr );
 	if( !level.gametype.selectSpawnPointFunc ) {
@@ -485,13 +434,12 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 }
 
 bool GT_asLoadScript( const char *gametypeName ) {
-	const char *moduleName = GAMETYPE_SCRIPTS_MODULE_NAME;
 	asIScriptModule *asModule;
 
 	GT_ResetScriptData();
 
 	// Load the script
-	asModule = G_LoadGameScript( moduleName, GAMETYPE_SCRIPTS_DIRECTORY, gametypeName, GAMETYPE_PROJECT_EXTENSION );
+	asModule = G_LoadGameScript( GAMETYPE_SCRIPTS_DIRECTORY, gametypeName, GAMETYPE_PROJECT_EXTENSION );
 	if( asModule == NULL ) {
 		return false;
 	}

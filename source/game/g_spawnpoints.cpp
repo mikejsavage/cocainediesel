@@ -30,25 +30,19 @@ void SP_post_match_camera( edict_t *ent ) { }
 //
 //=======================================================================
 
-static edict_t *G_FindPostMatchCamera() {
-	edict_t * ent = G_Find( NULL, FOFS( classname ), "post_match_camera" );
+static edict_t * G_FindPostMatchCamera() {
+	edict_t * ent = G_Find( NULL, &edict_t::classname, "post_match_camera" );
 	if( ent != NULL )
 		return ent;
 
-	return G_Find( NULL, FOFS( classname ), "info_player_intermission" );
+	return G_Find( NULL, &edict_t::classname, "info_player_intermission" );
 }
 
-
-/*
-* SelectSpawnPoint
-*
-* Chooses a player start, deathmatch start, etc
-*/
 void SelectSpawnPoint( edict_t * ent, edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles ) {
 	edict_t * spot;
 	bool cam = false;
 
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
+	if( server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
 		spot = G_FindPostMatchCamera();
 		cam = spot != NULL;
 	}
@@ -63,14 +57,6 @@ void SelectSpawnPoint( edict_t * ent, edict_t ** spawnpoint, Vec3 * origin, Vec3
 	*spawnpoint = spot;
 	*origin = spot->s.origin;
 	*angles = spot->s.angles;
-
-	if( cam && spot->target ) {
-		edict_t * target = G_PickTarget( spot->target );
-		if( target != NULL ) {
-			Vec3 dir = target->s.origin - *origin;
-			*angles = VecToAngles( dir );
-		}
-	}
 
 	// drop to floor
 	trace_t trace;
@@ -103,9 +89,6 @@ typedef struct
 
 g_teamspawnqueue_t g_spawnQueues[GS_MAX_TEAMS];
 
-/*
-* G_SpawnQueue_SetTeamSpawnsystem
-*/
 void G_SpawnQueue_SetTeamSpawnsystem( int team, int spawnsystem, int wave_time, int wave_maxcount, bool spectate_team ) {
 	g_teamspawnqueue_t *queue;
 
@@ -115,7 +98,7 @@ void G_SpawnQueue_SetTeamSpawnsystem( int team, int spawnsystem, int wave_time, 
 
 	queue = &g_spawnQueues[team];
 	if( wave_time && wave_time != queue->wave_time ) {
-		queue->nextWaveTime = level.time + random_uniform( &svs.rng, 0, wave_time * 1000 );
+		queue->nextWaveTime = level.time + RandomUniform( &svs.rng, 0, wave_time * 1000 );
 	}
 
 	queue->system = spawnsystem;
@@ -128,9 +111,6 @@ void G_SpawnQueue_SetTeamSpawnsystem( int team, int spawnsystem, int wave_time, 
 	}
 }
 
-/*
-* G_SpawnQueue_Init
-*/
 void G_SpawnQueue_Init() {
 	int spawnsystem, team;
 	cvar_t *g_spawnsystem;
@@ -159,9 +139,6 @@ void G_SpawnQueue_Init() {
 	}
 }
 
-/*
-* G_RespawnTime
-*/
 int G_SpawnQueue_NextRespawnTime( int team ) {
 	int time;
 
@@ -177,9 +154,6 @@ int G_SpawnQueue_NextRespawnTime( int team ) {
 	return ( time > 0 ) ? time : 0;
 }
 
-/*
-* G_SpawnQueue_RemoveClient - Check all queues for this client and remove it
-*/
 void G_SpawnQueue_RemoveClient( edict_t *ent ) {
 	g_teamspawnqueue_t *queue;
 	int i, team;
@@ -198,9 +172,6 @@ void G_SpawnQueue_RemoveClient( edict_t *ent ) {
 	}
 }
 
-/*
-* G_SpawnQueue_RemoveAllClients
-*/
 void G_SpawnQueue_ResetTeamQueue( int team ) {
 	g_teamspawnqueue_t *queue;
 
@@ -214,9 +185,6 @@ void G_SpawnQueue_ResetTeamQueue( int team ) {
 	queue->nextWaveTime = 0;
 }
 
-/*
-* G_SpawnQueue_GetSystem
-*/
 int G_SpawnQueue_GetSystem( int team ) {
 	if( team < TEAM_SPECTATOR || team >= GS_MAX_TEAMS ) {
 		return SPAWNSYSTEM_INSTANT;
@@ -225,9 +193,6 @@ int G_SpawnQueue_GetSystem( int team ) {
 	return g_spawnQueues[team].system;
 }
 
-/*
-* G_SpawnQueue_ReleaseTeamQueue
-*/
 void G_SpawnQueue_ReleaseTeamQueue( int team ) {
 	g_teamspawnqueue_t *queue;
 	edict_t *ent;
@@ -262,9 +227,6 @@ void G_SpawnQueue_ReleaseTeamQueue( int team ) {
 	}
 }
 
-/*
-* G_SpawnQueue_AddClient
-*/
 void G_SpawnQueue_AddClient( edict_t *ent ) {
 	g_teamspawnqueue_t *queue;
 	int i;
@@ -298,9 +260,6 @@ void G_SpawnQueue_AddClient( edict_t *ent ) {
 	}
 }
 
-/*
-* G_SpawnQueue_Think
-*/
 void G_SpawnQueue_Think() {
 	int team, maxCount, count;
 	g_teamspawnqueue_t *queue;

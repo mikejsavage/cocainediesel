@@ -17,77 +17,54 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
 #include "cgame/cg_local.h"
 
-/*
- * CG_Event_WeaponBeam
- */
-static void CG_Event_WeaponBeam( Vec3 origin, Vec3 dir, int ownerNum ) {
-	float range = GS_GetWeaponDef( Weapon_Railgun )->range;
+void RailgunImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 color ) {
+	if( surfFlags & ( SURF_SKY | SURF_NOMARKS | SURF_NOIMPACT ) ) {
+		return;
+	}
+
+	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, color );
+	S_StartFixedSound( "weapons/eb/hit", pos, CHAN_AUTO, 1.0f );
+}
+
+static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
+
+	float range = def->range;
 	Vec3 end = origin + dir * range;
 
 	centity_t * owner = &cg_entities[ ownerNum ];
 
-	// retrace to spawn wall impact
+	Vec4 color = CG_TeamColorVec4( owner->current.team );
+
 	trace_t trace;
 	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.view.POVent, MASK_WALLBANG );
 	if( trace.ent != -1 ) {
-		CG_EBImpact( trace.endpos, trace.plane.normal, trace.surfFlags, CG_TeamColorVec4( owner->current.team ) );
+		RailgunImpact( trace.endpos, trace.plane.normal, trace.surfFlags, color );
 	}
 
-	// when it's predicted we have to delay the drawing until the view weapon is calculated
-	owner->localEffects[ LOCALEFFECT_EV_WEAPONBEAM ] = Weapon_Railgun;
-	owner->laserOrigin = origin;
-	owner->laserPoint = trace.endpos;
-}
-
-void CG_WeaponBeamEffect( centity_t * cent ) {
-	if( !cent->localEffects[ LOCALEFFECT_EV_WEAPONBEAM ] ) {
-		return;
-	}
-
-	// now find the projection source for the beam we will draw
 	orientation_t projection;
-	if( !CG_PModel_GetProjectionSource( cent->current.number, &projection ) ) {
-		projection.origin = cent->laserOrigin;
+	if( !CG_PModel_GetProjectionSource( ownerNum, &projection ) ) {
+		projection.origin = origin;
 	}
 
-	CG_EBBeam( projection.origin, cent->laserPoint, CG_TeamColorVec4( cent->current.team ) );
-
-	cent->localEffects[ LOCALEFFECT_EV_WEAPONBEAM ] = 0;
+	AddPersistentBeam( projection.origin, trace.endpos, 16.0f, color, cgs.media.shaderEBBeam, 0.25f, 0.1f );
+	RailTrailParticles( projection.origin, trace.endpos, color );
 }
 
-static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles ) {
-	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, num_particles, color );
-
-	constexpr StringHash decals[] = {
-		"weapons/bullet_impact1",
-		"weapons/bullet_impact2",
-		"weapons/bullet_impact3",
-	};
-
-	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
-	float size = random_uniform_float( &cls.rng, 2.0f, 5.0f );
-	AddPersistentDecal( trace->endpos, trace->plane.normal, size, angle, random_select( &cls.rng, decals ), vec4_white, 30000 );
+static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
+	// decal_lifetime_scale is a shitty hack to help reduce decal spam with shotgun
+	DoVisualEffect( "vfx/bullet_impact", trace->endpos, trace->plane.normal, num_particles, color, decal_lifetime_scale );
 }
 
-static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles ) {
+static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
 	// TODO: should draw on entry/exit of all wallbanged surfaces
 	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
 		return;
 
-	DoVisualEffect( "vfx/bulletsparks", trace->endpos, trace->plane.normal, num_particles, color );
-	DoVisualEffect( "vfx/wallbangimpact", trace->endpos, trace->plane.normal, num_particles, color );
-
-	constexpr StringHash decals[] = {
-		"weapons/bullet_impact1",
-		"weapons/bullet_impact2",
-		"weapons/bullet_impact3",
-	};
-
-	float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
-	float size = random_uniform_float( &cls.rng, 2.0f, 5.0f );
-	AddPersistentDecal( trace->endpos, trace->plane.normal, size, angle, random_select( &cls.rng, decals ), vec4_white, 30000 );
+	DoVisualEffect( "vfx/wallbang_impact", trace->endpos, trace->plane.normal, num_particles, color, decal_lifetime_scale );
 }
 
 void CG_LaserBeamEffect( centity_t * cent ) {
@@ -135,6 +112,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 		centity_t * cent = ( centity_t * ) data;
 
 		Vec4 color = CG_TeamColorVec4( cent->current.team );
+		DrawDynamicLight( trace->endpos, color, 10000.0f );
 		DoVisualEffect( "weapons/lg/tip_hit", trace->endpos, trace->plane.normal, 1.0f, color );
 
 		cent->lg_tip_sound = S_ImmediateFixedSound( "weapons/lg/tip_hit", trace->endpos, 1.0f, cent->lg_tip_sound );
@@ -167,7 +145,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 static void CG_Event_LaserBeam( Vec3 origin, Vec3 dir, int entNum ) {
 	// lasergun's smooth refire
 	// it appears that 64ms is that maximum allowed time interval between prediction events on localhost
-	unsigned int range = Max2( GS_GetWeaponDef( Weapon_Laser )->refire_time + 10, 65u );
+	unsigned int range = Max2( GS_GetWeaponDef( Weapon_Laser )->refire_time + 10, 65 );
 
 	centity_t * cent = &cg_entities[ entNum ];
 	cent->laserOrigin = origin;
@@ -178,9 +156,6 @@ static void CG_Event_LaserBeam( Vec3 origin, Vec3 dir, int entNum ) {
 	cent->localEffects[ LOCALEFFECT_LASERBEAM ] = cl.serverTime + range;
 }
 
-/*
- * CG_FireWeaponEvent
- */
 static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 	const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( weapon );
 	StringHash sfx = weaponInfo->fire_sound;
@@ -206,14 +181,18 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 
 		case Weapon_MachineGun:
 		case Weapon_Shotgun:
-		case Weapon_Plasma:
+		case Weapon_AssaultRifle:
 		case Weapon_BubbleGun:
+		case Weapon_StakeGun:
+		case Weapon_MasterBlaster:
+		case Weapon_RoadGun:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_LIGHTWEAPON, 0, EVENT_CHANNEL );
 			break;
 
-		case Weapon_AssaultRifle:
+		case Weapon_BurstRifle:
 		case Weapon_RocketLauncher:
 		case Weapon_GrenadeLauncher:
+		// case Weapon_Minigun:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_HEAVYWEAPON, 0, EVENT_CHANNEL );
 			break;
 
@@ -235,14 +214,17 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 	}
 }
 
-static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, WeaponType weapon, int owner, Vec4 team_color ) {
-	int range = GS_GetWeaponDef( weapon )->range;
+static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_time, WeaponType weapon, int owner, Vec4 team_color ) {
+	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
 	Vec3 right, up;
 	ViewVectors( dir, &right, &up );
 
+	Vec2 spread = RandomSpreadPattern( entropy, def->spread + ZoomSpreadness( zoom_time, def ) );
+	int range = def->range;
+
 	trace_t trace, wallbang;
-	GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, 0, 0, range, owner, 0 );
+	GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, spread, range, owner, 0 );
 
 	if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
 		if( trace.surfFlags & SURF_FLESH || ( trace.ent > 0 && cg_entities[ trace.ent ].current.type == ET_PLAYER ) ) {
@@ -270,9 +252,6 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, WeaponType weapon, int o
 	}
 }
 
-/*
- * CG_Event_FireShotgun
- */
 static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_color ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
 
@@ -284,20 +263,22 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 		projection.origin = origin;
 	}
 
-	// Sunflower pattern
 	for( int i = 0; i < def->projectile_count; i++ ) {
-		float fi = i * 2.4f; // magic value creating Fibonacci numbers
-		float r = cosf( fi ) * def->spread * sqrtf( fi );
-		float u = sinf( fi ) * def->spread * sqrtf( fi );
+		Vec2 spread = FixedSpreadPattern( i, def->spread );
 
 		trace_t trace, wallbang;
-		GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, r, u, def->range, owner, 0 );
+		GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, spread, def->range, owner, 0 );
 
-		if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
-			BulletImpact( &trace, team_color, 4 );
+		// don't create so many decals if they would all end up overlapping anyway
+		float distance = Length( trace.endpos - origin );
+		float decal_p = Lerp( 0.25f, Unlerp( 0.0f, distance, 256.0f ), 0.5f );
+		if( Probability( &cls.rng, decal_p ) ) {
+			if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
+				BulletImpact( &trace, team_color, 4, 0.5f );
+			}
+
+			WallbangImpact( &wallbang, team_color, 2, 0.5f );
 		}
-
-		WallbangImpact( &wallbang, team_color, 2 );
 
 		AddPersistentBeam( projection.origin, trace.endpos, 1.0f, team_color, cgs.media.shaderTracer, 0.2f, 0.1f );
 	}
@@ -396,10 +377,6 @@ void CG_ReleaseAnnouncerEvents() {
  * CG_StartVoiceTokenEffect
  */
 static void CG_StartVoiceTokenEffect( int entNum, u64 parm ) {
-	if( !cg_voiceChats->integer ) {
-		return;
-	}
-
 	u32 vsay = parm & 0xffff;
 	u32 entropy = parm >> 16;
 
@@ -419,7 +396,7 @@ static void CG_StartVoiceTokenEffect( int entNum, u64 parm ) {
 
 	StringHash sound = cgs.media.sfxVSaySounds[ vsay ];
 
-	if( GS_MatchState( &client_gs ) >= MATCH_STATE_POSTMATCH ) {
+	if( client_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
 		S_StartGlobalSound( sound, CHAN_AUTO, 1.0f, entropy );
 	}
 	else {
@@ -462,12 +439,9 @@ static void CG_Event_Pain( SyncEntityState * state, u64 parm ) {
 
 	CG_PlayerSound( state->number, CHAN_AUTO, sounds[ parm ] );
 	constexpr int animations[] = { TORSO_PAIN1, TORSO_PAIN2, TORSO_PAIN3 };
-	CG_PModel_AddAnimation( state->number, 0, random_select( &cls.rng, animations ), 0, EVENT_CHANNEL );
+	CG_PModel_AddAnimation( state->number, 0, RandomElement( &cls.rng, animations ), 0, EVENT_CHANNEL );
 }
 
-/*
- * CG_Event_Die
- */
 static void CG_Event_Die( int entNum, u64 parm ) {
 	constexpr struct {
 		int dead, dying;
@@ -476,11 +450,13 @@ static void CG_Event_Die( int entNum, u64 parm ) {
 		{ BOTH_DEAD2, BOTH_DEATH2 },
 		{ BOTH_DEAD3, BOTH_DEATH3 },
 	};
-	parm %= ARRAY_COUNT( animations );
 
-	CG_PlayerSound( entNum, CHAN_AUTO, PlayerSound_Death );
-	CG_PModel_AddAnimation( entNum, animations[ parm ].dead, animations[ parm ].dead, ANIM_NONE, BASE_CHANNEL );
-	CG_PModel_AddAnimation( entNum, animations[ parm ].dying, animations[ parm ].dying, ANIM_NONE, EVENT_CHANNEL );
+	bool void_death = ( parm & 1 ) != 0;
+	u64 animation = ( parm >> 1 ) % ARRAY_COUNT( animations );
+
+	CG_PlayerSound( entNum, CHAN_AUTO, void_death ? PlayerSound_Void : PlayerSound_Death );
+	CG_PModel_AddAnimation( entNum, animations[ animation ].dead, animations[ animation ].dead, ANIM_NONE, BASE_CHANNEL );
+	CG_PModel_AddAnimation( entNum, animations[ animation ].dying, animations[ animation ].dying, ANIM_NONE, EVENT_CHANNEL );
 }
 
 /*
@@ -570,9 +546,6 @@ static void CG_Event_Jump( SyncEntityState * state ) {
 	}
 }
 
-/*
- * CG_EntityEvent
- */
 void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 	bool viewer = ISVIEWERENTITY( ent->number );
 
@@ -610,8 +583,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_SMOOTHREFIREWEAPON: // the server never sends this event
 			if( predicted ) {
-				cg_entities[ ent->number ].current.weapon = parm;
-
 				if( parm == Weapon_Laser ) {
 					Vec3 origin = cg.predictedPlayerState.pmove.origin;
 					origin.z += cg.predictedPlayerState.viewheight;
@@ -625,7 +596,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_FIREWEAPON: {
-			if( parm <= Weapon_None || parm >= Weapon_Count )
+			WeaponType weapon = WeaponType( parm & 0xFF );
+			if( weapon <= Weapon_None || weapon >= Weapon_Count )
 				return;
 
 			// check the owner for predicted case
@@ -633,41 +605,43 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				return;
 			}
 
-			if( predicted ) {
-				cg_entities[ ent->number ].current.weapon = parm;
-			}
-
-			int num;
+			int owner;
 			Vec3 origin, angles;
 			if( predicted ) {
-				num = ent->number;
+				owner = ent->number;
 				origin = cg.predictedPlayerState.pmove.origin;
 				origin.z += cg.predictedPlayerState.viewheight;
 				angles = cg.predictedPlayerState.viewangles;
 			}
 			else {
-				num = ent->ownerNum;
+				owner = ent->ownerNum;
 				origin = ent->origin;
 				angles = ent->origin2;
 			}
 
-			CG_FireWeaponEvent( num, parm );
+			CG_FireWeaponEvent( owner, weapon );
 
 			Vec3 dir;
 			AngleVectors( angles, &dir, NULL, NULL );
 
-			if( parm == Weapon_Railgun ) {
-				CG_Event_WeaponBeam( origin, dir, num );
+			if( weapon == Weapon_Railgun ) {
+				FireRailgun( origin, dir, owner );
 			}
-			else if( parm == Weapon_Shotgun ) {
-				CG_Event_FireShotgun( origin, dir, num, team_color );
+			else if( weapon == Weapon_Shotgun ) {
+				CG_Event_FireShotgun( origin, dir, owner, team_color );
 			}
-			else if( parm == Weapon_Laser ) {
-				CG_Event_LaserBeam( origin, dir, num );
+			else if( weapon == Weapon_Laser ) {
+				CG_Event_LaserBeam( origin, dir, owner );
 			}
-			else if( parm == Weapon_Pistol || parm == Weapon_MachineGun || parm == Weapon_Deagle || parm == Weapon_AssaultRifle ) {
-				CG_Event_FireBullet( origin, dir, parm, num, team_color );
+			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_BurstRifle || weapon == Weapon_Sniper /* || weapon == Weapon_Minigun */ ) {
+				u16 entropy = parm >> 8;
+				s16 zoom_time = parm >> 24;
+				CG_Event_FireBullet( origin, dir, entropy, zoom_time, weapon, owner, team_color );
 			}
+
+			// if( predicted && weapon == Weapon_Minigun ) {
+			// 	cg.predictedPlayerState.pmove.velocity -= dir * GS_GetWeaponDef( Weapon_Minigun )->knockback;
+			// }
 		} break;
 
 		case EV_NOAMMOCLICK:
@@ -778,9 +752,9 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			S_StartFixedSound( "sounds/world/tele_in", ent->origin, CHAN_AUTO, 1.0f );
 			break;
 
-		case EV_PLASMA_EXPLOSION: {
+		case EV_ARBULLET_EXPLOSION: {
 			Vec3 dir = U64ToDir( parm );
-			CG_PlasmaExplosion( ent->origin, dir, team_color );
+			CG_ARBulletExplosion( ent->origin, dir, team_color );
 		} break;
 
 		case EV_BUBBLE_EXPLOSION:
@@ -789,7 +763,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_BOLT_EXPLOSION: {
 			Vec3 dir = U64ToDir( parm );
-			CG_EBImpact( ent->origin, dir, 0, team_color );
+			RailgunImpact( ent->origin, dir, 0, team_color );
 		} break;
 
 		case EV_GRENADE_EXPLOSION: {
@@ -801,7 +775,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 			else {
 				// no direction
-				CG_GrenadeExplosion( ent->origin, Vec3( 0.0f ), team_color );
+				CG_GrenadeExplosion( ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), team_color );
 			}
 
 		} break;
@@ -809,7 +783,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_ROCKET_EXPLOSION: {
 			Vec3 dir = U64ToDir( parm );
 			CG_RocketExplosion( ent->origin, dir, team_color );
-
 		} break;
 
 		case EV_GRENADE_BOUNCE:
@@ -859,10 +832,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 
 			while( true ) {
-				if( !random_p( &cls.rng, p ) )
+				if( !Probability( &cls.rng, p ) )
 					break;
 
-				Vec3 random_dir = Normalize( dir + tangent * random_float11( &cls.rng ) * 0.1f + bitangent * random_float11( &cls.rng ) * 0.1f );
+				Vec3 random_dir = Normalize( dir + tangent * RandomFloat11( &cls.rng ) * 0.1f + bitangent * RandomFloat11( &cls.rng ) * 0.1f );
 				Vec3 end = ent->origin + random_dir * 256.0f;
 
 				trace_t trace;
@@ -883,11 +856,11 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 						"textures/blood_decals/blood11",
 					};
 
-					float angle = random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
+					float angle = RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );
 					float min_size = Lerp( 20.0f, Unlerp01( 5, damage, 50 ), 64.0f );
-					float size = min_size * random_uniform_float( &cls.rng, 0.75f, 1.5f );
+					float size = min_size * RandomUniformFloat( &cls.rng, 0.75f, 1.5f );
 
-					AddPersistentDecal( trace.endpos, trace.plane.normal, size, angle, random_select( &cls.rng, decals ), team_color, 30000 );
+					AddPersistentDecal( trace.endpos, trace.plane.normal, size, angle, RandomElement( &cls.rng, decals ), team_color, 30000, 10.0f );
 				}
 
 				p -= 1.0f;
@@ -938,9 +911,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 #define ISEARLYEVENT( ev ) ( ev == EV_WEAPONDROP )
 
-/*
- * CG_FireEvents
- */
 static void CG_FireEntityEvents( bool early ) {
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
 		SyncEntityState * state = &cg.frame.parsedEntities[ pnum & ( MAX_PARSE_ENTITIES - 1 ) ];

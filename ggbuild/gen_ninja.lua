@@ -14,7 +14,7 @@ configs[ "windows" ] = {
 }
 
 configs[ "windows-debug" ] = {
-	cxxflags = "/MTd /Z7",
+	cxxflags = "/MTd /Z7 /FC",
 	ldflags = "/DEBUG",
 }
 configs[ "windows-release" ] = {
@@ -46,13 +46,13 @@ configs[ "linux-debug" ] = {
 configs[ "linux-asan" ] = {
 	bin_suffix = "-asan",
 	cxxflags = configs[ "linux-debug" ].cxxflags .. " -fsanitize=address",
-	ldflags = "-fsanitize=address",
+	ldflags = "-fsanitize=address -static-libasan",
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-tsan" ] = {
 	bin_suffix = "-tsan",
 	cxxflags = configs[ "linux-debug" ].cxxflags .. " -fsanitize=thread",
-	ldflags = "-fsanitize=thread",
+	ldflags = "-fsanitize=thread -static-libtsan",
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-release" ] = {

@@ -205,33 +205,3 @@ void CG_DrawChat() {
 	ImGui::End();
 	ImGui::PopStyleVar( 3 );
 }
-
-void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {
-	// dont highlight ourselves
-	if( fromIndex == cgs.playerNum )
-		return;
-
-	// if we've been highlighted recently, dont let people spam it..
-	bool eligible = !chat.lastHighlightTime || chat.lastHighlightTime + GAMECHAT_HIGHLIGHT_TIME < cls.realtime;
-
-	// dont bother doing text match if we've been pinged recently
-	if( !eligible )
-		return;
-
-	// do a case insensitive check for the local player name. remove all crap too
-	char nameLower[MAX_STRING_CHARS];
-	Q_strncpyz( nameLower, cgs.clientInfo[cgs.playerNum].name, MAX_STRING_CHARS );
-	Q_strlwr( nameLower );
-
-	char msgLower[MAX_CHAT_BYTES];
-	Q_strncpyz( msgLower, text, MAX_CHAT_BYTES );
-	Q_strlwr( msgLower );
-
-	// TODO: text match fuzzy ? Levenshtien distance or something might be good here. or at least tokenizing and looking for word
-	// this is probably shitty for some nicks
-	bool hadNick = strstr( msgLower, nameLower ) != NULL;
-	if( hadNick ) {
-		trap_VID_FlashWindow();
-		chat.lastHighlightTime = cls.realtime;
-	}
-}

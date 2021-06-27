@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 #include "qcommon/q_trie.h"
+#include "qcommon/fs.h"
+#include "qcommon/string.h"
 #include "qcommon/threads.h"
 #include "client/console.h"
 
@@ -28,6 +30,10 @@ static bool cvar_preinitialized = false;
 
 static trie_t *cvar_trie = NULL;
 static Mutex *cvar_mutex = NULL;
+
+static bool Cvar_FlagIsSet( cvar_flag_t flags, cvar_flag_t flag ) {
+	return ( bool )( ( flags & flag ) != 0 );
+}
 
 static int Cvar_HasFlags( void *cvar, const void *flags ) {
 	assert( cvar );
@@ -38,6 +44,22 @@ static int Cvar_IsLatched( void *cvar, const void *flags ) {
 	const cvar_t *const var = (cvar_t *) cvar;
 	assert( cvar );
 	return Cvar_FlagIsSet( var->flags, *(const cvar_flag_t *) flags ) && var->latched_string;
+}
+
+static cvar_flag_t Cvar_FlagSet( cvar_flag_t *flags, cvar_flag_t flag ) {
+	return *flags |= flag;
+}
+
+static cvar_flag_t Cvar_FlagUnset( cvar_flag_t *flags, cvar_flag_t flag ) {
+	return *flags &= ~flag;
+}
+
+static cvar_flag_t Cvar_FlagsClear( cvar_flag_t *flags ) {
+	return *flags = 0;
+}
+
+static void Cvar_SetModified( cvar_t *var ) {
+	var->modified = true;
 }
 
 static bool Cvar_CheatsAllowed() {
@@ -515,46 +537,38 @@ static void Cvar_Toggle_f() {
 	}
 }
 
-/*
-* Cvar_WriteVariables
-*
-* Appends lines containing "set variable value" for all variables
-* with the archive flag set to true.
-*/
-void Cvar_WriteVariables( int file ) {
-	char buffer[MAX_PRINTMSG];
+void Cvar_WriteVariables( DynamicString * config ) {
 	trie_dump_t *dump = NULL;
-	unsigned int i;
 	cvar_flag_t cvar_archive = CVAR_ARCHIVE;
 
 	assert( cvar_trie );
 	Lock( cvar_mutex );
 	Trie_DumpIf( cvar_trie, "", TRIE_DUMP_VALUES, Cvar_HasFlags, &cvar_archive, &dump );
 	Unlock( cvar_mutex );
-	for( i = 0; i < dump->size; ++i ) {
+
+	for( unsigned int i = 0; i < dump->size; ++i ) {
 		cvar_t * var = ( cvar_t * ) dump->key_value_vector[i].value;
 		if( ( var->flags & CVAR_FROMCONFIG ) == 0 && strcmp( var->string, var->dvalue ) == 0 )
 			continue;
-		const char *cmd;
 
+		const char * set;
 		if( Cvar_FlagIsSet( var->flags, CVAR_USERINFO ) ) {
-			cmd = "setau";
+			set = "setau";
 		} else if( Cvar_FlagIsSet( var->flags, CVAR_SERVERINFO ) ) {
-			cmd = "setas";
+			set = "setas";
 		} else {
-			cmd = "seta";
+			set = "seta";
 		}
 
-		if( Cvar_FlagIsSet( var->flags, CVAR_LATCH ) ) {
-			if( var->latched_string ) {
-				snprintf( buffer, sizeof( buffer ), "%s %s \"%s\"\r\n", cmd, var->name, var->latched_string );
-			} else {
-				snprintf( buffer, sizeof( buffer ), "%s %s \"%s\"\r\n", cmd, var->name, var->string );
-			}
-		} else {
-			snprintf( buffer, sizeof( buffer ), "%s %s \"%s\"\r\n", cmd, var->name, var->string );
+		const char * value;
+		if( Cvar_FlagIsSet( var->flags, CVAR_LATCH ) && var->latched_string != NULL ) {
+			value = var->latched_string;
 		}
-		FS_Printf( file, "%s", buffer );
+		else {
+			value = var->string;
+		}
+
+		config->append( "{} {} \"{}\"\r\n", set, var->name, value );
 	}
 	Trie_FreeDump( dump );
 }

@@ -23,31 +23,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/hashmap.h"
 #include "qcommon/string.h"
 
-static bool cm_initialized = false;
-
-static cvar_t *cm_noAreas;
-
 static Hashmap< cmodel_t, 4096 > client_cmodels;
 static Hashmap< cmodel_t, 4096 > server_cmodels;
 
 static Hashmap< cmodel_t, 4096 > * GetCModels( CModelServerOrClient soc ) {
-	if( soc == CM_Client )
-		return &client_cmodels;
-	return &server_cmodels;
+	return soc == CM_Client ? &client_cmodels : &server_cmodels;
 }
 
-/*
-* CM_AllocateCheckCounts
-*/
 static void CM_AllocateCheckCounts( CollisionModel *cms ) {
 	cms->checkcount = 0;
 	cms->map_brush_checkcheckouts = ALLOC_MANY( sys_allocator, int, cms->numbrushes );
 	cms->map_face_checkcheckouts = ALLOC_MANY( sys_allocator, int, cms->numfaces );
 }
 
-/*
-* CM_FreeCheckCounts
-*/
 static void CM_FreeCheckCounts( CollisionModel *cms ) {
 	cms->checkcount = 0;
 
@@ -62,9 +50,6 @@ static void CM_FreeCheckCounts( CollisionModel *cms ) {
 	}
 }
 
-/*
-* CM_Clear
-*/
 static void CM_Clear( CModelServerOrClient soc, CollisionModel * cms ) {
 	if( cms->map_shaderrefs ) {
 		FREE( sys_allocator, cms->map_shaderrefs[0].name );
@@ -206,9 +191,6 @@ CollisionModel * CM_LoadMap( CModelServerOrClient soc, Span< const u8 > data, u6
 	return cms;
 }
 
-/*
-* CM_Free
-*/
 void CM_Free( CModelServerOrClient soc, CollisionModel * cms ) {
 	CM_Clear( soc, cms );
 	FREE( sys_allocator, cms );
@@ -234,9 +216,6 @@ bool CM_IsBrushModel( CModelServerOrClient soc, StringHash hash ) {
 	return CM_TryFindCModel( soc, hash ) != NULL;
 }
 
-/*
-* CM_InlineModelBounds
-*/
 void CM_InlineModelBounds( const CollisionModel *cms, const cmodel_t *cmodel, Vec3 * mins, Vec3 * maxs ) {
 	if( cmodel->hash == cms->world_hash ) {
 		*mins = cms->world_mins;
@@ -247,23 +226,14 @@ void CM_InlineModelBounds( const CollisionModel *cms, const cmodel_t *cmodel, Ve
 	}
 }
 
-/*
-* CM_EntityStringLen
-*/
-int CM_EntityStringLen( const CollisionModel *cms ) {
+size_t CM_EntityStringLen( const CollisionModel * cms ) {
 	return cms->numentitychars;
 }
 
-/*
-* CM_EntityString
-*/
-char *CM_EntityString( const CollisionModel *cms ) {
+const char * CM_EntityString( const CollisionModel * cms ) {
 	return cms->map_entitystring;
 }
 
-/*
-* CM_LeafCluster
-*/
 int CM_LeafCluster( const CollisionModel *cms, int leafnum ) {
 	if( leafnum < 0 || leafnum >= cms->numleafs ) {
 		Com_Error( ERR_DROP, "CM_LeafCluster: bad number" );
@@ -271,9 +241,6 @@ int CM_LeafCluster( const CollisionModel *cms, int leafnum ) {
 	return cms->map_leafs[leafnum].cluster;
 }
 
-/*
-* CM_LeafArea
-*/
 int CM_LeafArea( const CollisionModel *cms, int leafnum ) {
 	if( leafnum < 0 || leafnum >= cms->numleafs ) {
 		Com_Error( ERR_DROP, "CM_LeafArea: bad number" );
@@ -289,30 +256,18 @@ PVS
 ===============================================================================
 */
 
-/*
-* CM_ClusterRowSize
-*/
 int CM_ClusterRowSize( const CollisionModel *cms ) {
 	return cms->map_pvs ? cms->map_pvs->rowsize : MAX_CM_LEAFS / 8;
 }
 
-/*
-* CM_ClusterRowLongs
-*/
 static int CM_ClusterRowLongs( const CollisionModel *cms ) {
 	return cms->map_pvs ? ( cms->map_pvs->rowsize + 3 ) / 4 : MAX_CM_LEAFS / 32;
 }
 
-/*
-* CM_NumClusters
-*/
 int CM_NumClusters( const CollisionModel *cms ) {
 	return cms->map_pvs ? cms->map_pvs->numclusters : 0;
 }
 
-/*
-* CM_ClusterPVS
-*/
 static inline const uint8_t *CM_ClusterPVS( const CollisionModel *cms, int cluster ) {
 	const dvis_t *vis = cms->map_pvs;
 
@@ -323,16 +278,10 @@ static inline const uint8_t *CM_ClusterPVS( const CollisionModel *cms, int clust
 	return ( const uint8_t * )vis->data + cluster * vis->rowsize;
 }
 
-/*
-* CM_NumAreas
-*/
 int CM_NumAreas( const CollisionModel *cms ) {
 	return cms->numareas;
 }
 
-/*
-* CM_AreaRowSize
-*/
 int CM_AreaRowSize( const CollisionModel *cms ) {
 	return ( cms->numareas + 7 ) / 8;
 }
@@ -345,9 +294,6 @@ AREAPORTALS
 ===============================================================================
 */
 
-/*
-* CM_FloodArea_r
-*/
 static void CM_FloodArea_r( CollisionModel *cms, int areanum, int floodnum ) {
 	int i;
 	carea_t *area;
@@ -371,9 +317,6 @@ static void CM_FloodArea_r( CollisionModel *cms, int areanum, int floodnum ) {
 	}
 }
 
-/*
-* CM_FloodAreaConnections
-*/
 void CM_FloodAreaConnections( CollisionModel *cms ) {
 	int i;
 	int floodnum;
@@ -390,9 +333,6 @@ void CM_FloodAreaConnections( CollisionModel *cms ) {
 	}
 }
 
-/*
-* CM_SetAreaPortalState
-*/
 void CM_SetAreaPortalState( CollisionModel *cms, int area1, int area2, bool open ) {
 	int row1, row2;
 
@@ -420,14 +360,7 @@ void CM_SetAreaPortalState( CollisionModel *cms, int area1, int area2, bool open
 	CM_FloodAreaConnections( cms );
 }
 
-/*
-* CM_AreasConnected
-*/
 bool CM_AreasConnected( const CollisionModel *cms, int area1, int area2 ) {
-	if( cm_noAreas->integer ) {
-		return true;
-	}
-
 	if( area1 == area2 ) {
 		return true;
 	}
@@ -445,9 +378,6 @@ bool CM_AreasConnected( const CollisionModel *cms, int area1, int area2 ) {
 	return false;
 }
 
-/*
-* CM_MergeAreaBits
-*/
 static int CM_MergeAreaBits( CollisionModel *cms, uint8_t *buffer, int area ) {
 	int i;
 
@@ -464,23 +394,15 @@ static int CM_MergeAreaBits( CollisionModel *cms, uint8_t *buffer, int area ) {
 	return CM_AreaRowSize( cms );
 }
 
-/*
-* CM_WriteAreaBits
-*/
 void CM_WriteAreaBits( CollisionModel *cms, uint8_t *buffer ) {
 	int rowsize = CM_AreaRowSize( cms );
 	int bytes = rowsize * cms->numareas;
 
-	if( cm_noAreas->integer ) {
-		// for debugging, send everything
-		memset( buffer, 255, bytes );
-	} else {
-		memset( buffer, 0, bytes );
+	memset( buffer, 0, bytes );
 
-		for( int i = 0; i < cms->numareas; i++ ) {
-			uint8_t * row = buffer + i * rowsize;
-			CM_MergeAreaBits( cms, row, i );
-		}
+	for( int i = 0; i < cms->numareas; i++ ) {
+		uint8_t * row = buffer + i * rowsize;
+		CM_MergeAreaBits( cms, row, i );
 	}
 }
 
@@ -552,9 +474,6 @@ void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out ) {
 	}
 }
 
-/*
-* CM_MergeVisSets
-*/
 int CM_MergeVisSets( CollisionModel *cms, Vec3 org, uint8_t *pvs, uint8_t *areabits ) {
 	int area;
 
@@ -572,26 +491,4 @@ int CM_MergeVisSets( CollisionModel *cms, Vec3 org, uint8_t *pvs, uint8_t *areab
 	}
 
 	return CM_AreaRowSize( cms ); // areabytes
-}
-
-/*
-* CM_Init
-*/
-void CM_Init() {
-	assert( !cm_initialized );
-
-	cm_noAreas = Cvar_Get( "cm_noAreas", "0", CVAR_CHEAT );
-
-	cm_initialized = true;
-}
-
-/*
-* CM_Shutdown
-*/
-void CM_Shutdown() {
-	if( !cm_initialized ) {
-		return;
-	}
-
-	cm_initialized = false;
 }

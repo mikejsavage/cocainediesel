@@ -27,23 +27,6 @@ extern cvar_t *g_warmup_timelimit;
 #define GAMETYPE_PROJECT_EXTENSION          ".gt"
 
 typedef struct {
-	int score;
-	int deaths;
-	int frags;
-	int suicides;
-
-	int accuracy_shots[ Weapon_Count ];
-	int accuracy_hits[ Weapon_Count ];
-	int accuracy_damage[ Weapon_Count ];
-	int accuracy_frags[ Weapon_Count ];
-	int total_damage_given;
-	int total_damage_received;
-
-	int asFactored;
-	int asRefCount;
-} score_stats_t;
-
-typedef struct {
 	void *initFunc;
 	void *spawnFunc;
 	void *matchStateStartedFunc;
@@ -51,40 +34,21 @@ typedef struct {
 	void *thinkRulesFunc;
 	void *playerRespawnFunc;
 	void *scoreEventFunc;
-	void *scoreboardMessageFunc;
 	void *selectSpawnPointFunc;
 	void *clientCommandFunc;
 	void *shutdownFunc;
 
 	bool isTeamBased;
-	bool isRace;
 	bool hasChallengersQueue;
 	bool hasChallengersRoulette;
-	int maxPlayersPerTeam;
 
 	// few default settings
-	bool readyAnnouncementEnabled;
-	bool scoreAnnouncementEnabled;
 	bool countdownEnabled;
 	bool matchAbortDisabled;
 	bool shootingDisabled;
 	bool removeInactivePlayers;
 	bool selfDamage;
-
-	int spawnpointRadius;
 } gametype_descriptor_t;
-
-typedef struct {
-	int playerIndices[MAX_CLIENTS];
-	int numplayers;
-	int ping;
-	bool locked;
-
-	int asRefCount;
-	int asFactored;
-} g_teamlist_t;
-
-extern g_teamlist_t teamlist[GS_MAX_TEAMS];
 
 //
 //	matches management

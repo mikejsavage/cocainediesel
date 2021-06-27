@@ -1,4 +1,11 @@
 {
+  dlight {
+    intensity 50000
+    lifetime 0.2
+    color 1 1 1 1
+    color_override
+  }
+
   particles {
     material textures/vfx/circle6
     blendfunc add
@@ -32,7 +39,7 @@
 
     speed 10
 
-    color 1.0 1.0 1.0 1.0
+    color 0.2 0.2 0.2 1.0
     color_override
 
     size 32 0

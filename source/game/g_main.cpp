@@ -29,8 +29,9 @@ mempool_t *gamepool;
 
 int meansOfDeath;
 Vec3 knockbackOfDeath;
+int damageFlagsOfDeath;
 
-cvar_t *password;
+cvar_t *sv_password;
 cvar_t *g_operator_password;
 cvar_t *g_select_empty;
 
@@ -148,8 +149,8 @@ void G_Init( unsigned int framemsec ) {
 	// latched vars
 	sv_cheats = Cvar_Get( "sv_cheats", "0", CVAR_SERVERINFO | CVAR_LATCH );
 
-	password = Cvar_Get( "password", "", CVAR_USERINFO );
-	password->modified = true; // force an update of g_needpass in G_UpdateServerInfo
+	sv_password = Cvar_Get( "password", "", CVAR_USERINFO );
+	sv_password->modified = true; // force an update of g_needpass in G_UpdateServerInfo
 	g_operator_password = Cvar_Get( "g_operator_password", "", CVAR_ARCHIVE );
 	filterban = Cvar_Get( "filterban", "1", 0 );
 
@@ -165,14 +166,6 @@ void G_Init( unsigned int framemsec ) {
 	g_antilag_timenudge->modified = true;
 
 	g_allow_spectator_voting = Cvar_Get( "g_allow_spectator_voting", "1", CVAR_ARCHIVE );
-
-	if( is_dedicated_server ) {
-		g_autorecord = Cvar_Get( "g_autorecord", "1", CVAR_ARCHIVE );
-		g_autorecord_maxdemos = Cvar_Get( "g_autorecord_maxdemos", "200", CVAR_ARCHIVE );
-	} else {
-		g_autorecord = Cvar_Get( "g_autorecord", "0", CVAR_ARCHIVE );
-		g_autorecord_maxdemos = Cvar_Get( "g_autorecord_maxdemos", "0", CVAR_ARCHIVE );
-	}
 
 	// flood control
 	g_floodprotection_messages = Cvar_Get( "g_floodprotection_messages", "4", 0 );
@@ -237,8 +230,6 @@ void G_Shutdown() {
 	G_RemoveCommands();
 
 	G_FreeCallvotes();
-
-	G_LevelFreePool();
 
 	for( int i = 0; i < game.numentities; i++ ) {
 		if( game.edicts[i].r.inuse ) {

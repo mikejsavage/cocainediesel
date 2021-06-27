@@ -2,31 +2,17 @@
 #include "client/renderer/renderer.h"
 
 static float RandomRadians() {
-	return random_uniform_float( &cls.rng, 0.0f, Radians( 360.0f ) );
+	return RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );
 }
 
-void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color ) {
-	AddPersistentBeam( start, end, 16.0f, team_color, cgs.media.shaderEBBeam, 0.25f, 0.1f );
-	RailTrailParticles( start, end, team_color );
-}
-
-void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
-	PlasmaImpactParticles( pos, dir, team_color.xyz() );
-	S_StartFixedSound( "weapons/pg/explode", pos, CHAN_AUTO, 1.0f );
+void CG_ARBulletExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
+	ARBulletImpactParticles( pos, dir, team_color.xyz() );
+	S_StartFixedSound( "weapons/ar/explode", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color ) {
 	BubbleImpactParticles( pos, team_color.xyz() );
 	S_StartFixedSound( "weapons/bg/explode", pos, CHAN_AUTO, 1.0f );
-}
-
-void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color ) {
-	if( surfFlags & ( SURF_SKY | SURF_NOMARKS | SURF_NOIMPACT ) ) {
-		return;
-	}
-
-	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, team_color );
-	S_StartFixedSound( "weapons/eb/hit", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
@@ -85,7 +71,7 @@ void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 							vec4_white,
 							0, 0, 0, 0, //dlight
 							cgs.media.modBladeWallHit, NULL );
-		le->ent.rotation = random_float01( &cls.rng ) * 360;
+		le->ent.rotation = RandomFloat01( &cls.rng ) * 360;
 		le->ent.scale = 1.0f;
 
 		S_StartFixedSound( cgs.media.sfxBladeFleshHit, pos, CHAN_AUTO, 1.0f );
@@ -100,50 +86,22 @@ void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 							vec4_white,
 							0, 0, 0, 0, //dlight
 							cgs.media.modBladeWallHit, NULL );
-		le->ent.rotation = random_float01( &cls.rng ) * 360;
+		le->ent.rotation = RandomFloat01( &cls.rng ) * 360;
 		le->ent.scale = 1.0f;
 
 		// CG_ParticleEffect( trace.endpos, trace.plane.normal, 0.30f, 0.30f, 0.25f, 15 );
 
 		S_StartFixedSound( cgs.media.sfxBladeWallHit, pos, CHAN_AUTO, 1.0f );
 		if( !( trace.surfFlags & SURF_NOMARKS ) ) {
-			// CG_SpawnDecal( pos, dir, random_float01( &cls.rng ) * 45, 8, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderBladeMark );
+			// CG_SpawnDecal( pos, dir, RandomFloat01( &cls.rng ) * 45, 8, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderBladeMark );
 		}
 	}
 	*/
 }
 
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
-	/*
-	LocalEntity *le;
-	Vec3 angles;
-	Vec3 decaldir;
-	Vec3 origin, vec;
-	float expvelocity = 8.0f;
-
-	decaldir = dir;
-	angles = VecToAngles( dir );
-
-	//if( CG_PointContents( pos ) & MASK_WATER )
-	//jalfixme: (shouldn't we do the water sound variation?)
-
-	// CG_SpawnDecal( pos, decaldir, random_float01( &cls.rng ) * 360, radius * 0.5, 1, 1, 1, 1, 10, 1, false, cgs.media.shaderExplosionMark );
-
-	// animmap shader of the explosion
-	origin = pos + dir * ( radius * 0.15f );
-	le = CG_AllocSprite( LE_ALPHA_FADE, origin, radius * 0.5f, 8,
-						 vec4_white,
-						 radius * 4, 0.75f, 0.533f, 0, // yellow dlight
-						 cgs.media.shaderRocketExplosion );
-
-	vec = Vec3( random_float11( &cls.rng ) * expvelocity, random_float11( &cls.rng ) * expvelocity, random_float11( &cls.rng ) * expvelocity );
-	le->velocity = dir * expvelocity;
-	le->velocity = le->velocity + vec;
-	le->ent.rotation = random_float01( &cls.rng ) * 360;
-
-	// use the rocket explosion sounds
-	S_StartFixedSound( cgs.media.sfxRocketLauncherHit, pos, CHAN_AUTO, 1.0f );
-	*/
+	ExplosionParticles( pos, dir, vec4_white.xyz() );
+	S_StartFixedSound( "models/bomb/explode", pos, CHAN_AUTO, 1.0f );
 }
 
 void CG_Dash( const SyncEntityState * state ) {
@@ -207,7 +165,7 @@ void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count ) {
 	// 	dir_temp = dir_temp + dir_per2 * ( cosf( angle ) );
 	//
 	// 	//dir_temp = dir_temp * ( dir_temp) = Normalize( dir_temp) );
-	// 	dir_temp = dir_temp * ( random_float11( &cls.rng ) * 10 + radius );
+	// 	dir_temp = dir_temp * ( RandomFloat11( &cls.rng ) * 10 + radius );
 	// 	CG_Explosion_Puff_2( pos, dir_temp, 10 );
 	// }
 }
@@ -244,13 +202,13 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 		Gib * gib = &gibs[ num_gibs ];
 		num_gibs++;
 
-		Vec3 dir = Vec3( UniformSampleDisk( &cls.rng ), 0.0f );
+		Vec3 dir = Vec3( UniformSampleInsideCircle( &cls.rng ), 0.0f );
 		gib->origin = origin + dir * radius;
 
-		dir.z = random_float01( &cls.rng );
+		dir.z = RandomFloat01( &cls.rng );
 		gib->velocity = velocity * 0.5f + dir * Length( velocity ) * 0.5f;
 
-		gib->scale = random_uniform_float( &cls.rng, 0.5f, 1.0f );
+		gib->scale = RandomUniformFloat( &cls.rng, 0.5f, 1.0f );
 		gib->lifetime = 10.0f;
 		gib->color = color;
 	}
@@ -274,8 +232,8 @@ static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
 			"textures/blood_decals/blood11",
 		};
 
-		if( random_p( &cls.rng, 0.25f ) ) {
-			AddPersistentDecal( pos, normal, scale * 64.0f, RandomRadians(), random_select( &cls.rng, decals ), color, 30000 );
+		if( Probability( &cls.rng, 0.25f ) ) {
+			AddPersistentDecal( pos, normal, scale * 64.0f, RandomRadians(), RandomElement( &cls.rng, decals ), color, 30000, 10.0f );
 		}
 	}
 }

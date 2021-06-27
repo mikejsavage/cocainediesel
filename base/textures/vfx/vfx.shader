@@ -1,52 +1,3 @@
-textures/vfx/bubble1
-{
-  {
-    map textures/vfx/bubble1
-  }
-  decal
-}
-textures/vfx/bubble2
-{
-  {
-    map textures/vfx/bubble2
-  }
-  decal
-}
-textures/vfx/bubble3
-{
-  {
-    map textures/vfx/bubble3
-  }
-  decal
-}
-textures/vfx/bubble4
-{
-  {
-    map textures/vfx/bubble4
-  }
-  decal
-}
-textures/vfx/bubble5
-{
-  {
-    map textures/vfx/bubble5
-  }
-  decal
-}
-textures/vfx/bubble6
-{
-  {
-    map textures/vfx/bubble6
-  }
-  decal
-}
-textures/vfx/bubble7
-{
-  {
-    map textures/vfx/bubble7
-  }
-  decal
-}
 textures/vfx/circle1
 {
   {
@@ -222,13 +173,6 @@ textures/vfx/glow2
   }
   decal
 }
-textures/vfx/heart1
-{
-  {
-    map textures/vfx/heart1
-  }
-  decal
-}
 textures/vfx/light1
 {
   {
@@ -366,27 +310,6 @@ textures/vfx/scratch1
 {
   {
     map textures/vfx/scratch1
-  }
-  decal
-}
-textures/vfx/shadow1
-{
-  {
-    map textures/vfx/shadow1
-  }
-  decal
-}
-textures/vfx/skull1
-{
-  {
-    map textures/vfx/skull1
-  }
-  decal
-}
-textures/vfx/skull2
-{
-  {
-    map textures/vfx/skull2
   }
   decal
 }

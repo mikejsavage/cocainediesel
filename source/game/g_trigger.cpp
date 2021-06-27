@@ -27,16 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Returns true if the trigger shouldn't be activated
 */
 static bool G_TriggerWait( edict_t *ent, edict_t *other ) {
-	if( GS_RaceGametype( &server_gs ) ) {
-		if( other->trigger_entity == ent && other->trigger_timeout && other->trigger_timeout >= level.time ) {
-			return true;
-		}
-
-		other->trigger_entity = ent;
-		other->trigger_timeout = level.time + 1000 * ent->wait;
-		return false;
-	}
-
 	if( ent->timeStamp >= level.time ) {
 		return true;
 	}
@@ -52,7 +42,6 @@ static void InitTrigger( edict_t *self ) {
 	GClip_SetBrushModel( self );
 	self->r.svflags = SVF_NOCLIENT;
 }
-
 
 // the trigger was just activated
 // ent->activator should be set to the activator so it can be held through a delay
@@ -372,7 +361,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 
 	self->timeStamp = level.time + ( self->wait * 1000 );
 
-	dest = G_Find( NULL, FOFS( targetname ), self->target );
+	dest = G_Find( NULL, &edict_t::name, self->target );
 	if( !dest ) {
 		if( developer->integer ) {
 			Com_Printf( "Couldn't find destination.\n" );
@@ -397,7 +386,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 }
 
 void SP_trigger_teleport( edict_t *ent ) {
-	if( !ent->target ) {
+	if( ent->target == EMPTY_HASH ) {
 		if( developer->integer ) {
 			Com_Printf( "teleporter without a target.\n" );
 		}

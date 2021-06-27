@@ -328,19 +328,6 @@ static void CL_ParseServerData( msg_t *msg ) {
 	Cvar_ForceSet( "cl_extrapolationTime", va( "%i", (unsigned int)( cl.snapFrameTime * 0.5 ) ) );
 	cl_extrapolationTime->modified = false;
 
-	// base game directory
-	const char * str = MSG_ReadString( msg );
-	if( !str || !str[0] ) {
-		Com_Error( ERR_DROP, "Server sent an empty base game directory" );
-	}
-	if( !COM_ValidateRelativeFilename( str ) || strchr( str, '/' ) ) {
-		Com_Error( ERR_DROP, "Server sent an invalid base game directory: %s", str );
-	}
-	if( strcmp( FS_BaseGameDirectory(), str ) ) {
-		Com_Error( ERR_DROP, "Server has different base game directory (%s) than the client (%s)", str,
-				   FS_BaseGameDirectory() );
-	}
-
 	// parse player entity number
 	cl.playernum = MSG_ReadInt16( msg );
 

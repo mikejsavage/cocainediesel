@@ -1,11 +1,3 @@
-models/weapons/lg
-{
-	{
-		map $whiteimage
-		rgbGen const 0.086 0.086 0.086
-	}
-}
-
 weapons/lg/beam
 {
 	softParticle

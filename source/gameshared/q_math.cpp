@@ -20,10 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <math.h>
 
-#include "gameshared/q_math.h"
-#include "gameshared/q_shared.h"
-#include "gameshared/q_collision.h"
-#include "qcommon/base.h"
+#include "qcommon/qcommon.h"
 #include "qcommon/rng.h"
 
 struct PackedVec3 {
@@ -58,6 +55,10 @@ Vec3 U64ToDir( u64 u ) {
 	float z = sqrtf( Max2( 1.0f - x * x - y * y, 0.0f ) ) * sign;
 
 	return Vec3( x, y, z );
+}
+
+float SignedOne( float x ) {
+	return copysignf( 1.0f, x );
 }
 
 void ViewVectors( Vec3 forward, Vec3 * right, Vec3 * up ) {
@@ -140,7 +141,7 @@ void AnglesToAxis( Vec3 angles, mat3_t axis ) {
 
 // must match the GLSL OrthonormalBasis
 void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent ) {
-	float s = copysignf( 1.0f, v.z );
+	float s = SignedOne( v.z );
 	float a = -1.0f / ( s + v.z );
 	float b = v.x * v.y * a;
 
@@ -188,33 +189,15 @@ Vec3 LerpAngles( Vec3 a, float t, Vec3 b ) {
 	);
 }
 
-/*
-* AngleNormalize360
-*
-* returns angle normalized to the range [0 <= angle < 360]
-*/
 float AngleNormalize360( float angle ) {
-	return angle - 360.0f * floorf( angle / 360.0f );
+	return PositiveMod( angle, 360.0f );
 }
 
-/*
-* AngleNormalize180
-*
-* returns angle normalized to the range [-180 < angle <= 180]
-*/
 float AngleNormalize180( float angle ) {
 	angle = AngleNormalize360( angle );
-	if( angle > 180.0f ) {
-		angle -= 360.0f;
-	}
-	return angle;
+	return angle > 180.0f ? angle - 360.0f : angle;
 }
 
-/*
-* AngleDelta
-*
-* returns the normalized delta from angle1 to angle2
-*/
 float AngleDelta( float angle1, float angle2 ) {
 	return AngleNormalize180( angle1 - angle2 );
 }
@@ -225,6 +208,10 @@ Vec3 AngleDelta( Vec3 angle1, Vec3 angle2 ) {
 		AngleDelta( angle1.y, angle2.y ),
 		AngleDelta( angle1.z, angle2.z )
 	);
+}
+
+EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b ) {
+	return EulerDegrees2( AngleDelta( a.pitch, b.pitch ), AngleDelta( a.yaw, b.yaw ) );
 }
 
 /*
@@ -414,37 +401,37 @@ double PositiveMod( double x, double y ) {
 	return res;
 }
 
-Vec3 UniformSampleSphere( RNG * rng ) {
-	float z = random_float11( rng );
+Vec3 UniformSampleOnSphere( RNG * rng ) {
+	float z = RandomFloat11( rng );
 	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
-	float phi = 2.0f * PI * random_float01( rng );
+	float phi = 2.0f * PI * RandomFloat01( rng );
 	return Vec3( r * cosf( phi ), r * sinf( phi ), z );
 }
 
 Vec3 UniformSampleInsideSphere( RNG * rng ) {
-	Vec3 p = UniformSampleSphere( rng );
-	float r = cbrtf( random_float01( rng ) );
+	Vec3 p = UniformSampleOnSphere( rng );
+	float r = cbrtf( RandomFloat01( rng ) );
 	return p * r;
 }
 
 Vec3 UniformSampleCone( RNG * rng, float theta ) {
 	assert( theta >= 0.0f && theta <= PI );
-	float z = random_uniform_float( rng, cosf( theta ), 1.0f );
+	float z = RandomUniformFloat( rng, cosf( theta ), 1.0f );
 	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
-	float phi = 2.0f * PI * random_float01( rng );
+	float phi = 2.0f * PI * RandomFloat01( rng );
 	return Vec3( r * cosf( phi ), r * sinf( phi ), z );
 }
 
-Vec2 UniformSampleDisk( RNG * rng ) {
-	float theta = random_float01( rng ) * 2.0f * PI;
-	float r = sqrtf( random_float01( rng ) );
+Vec2 UniformSampleInsideCircle( RNG * rng ) {
+	float theta = RandomFloat01( rng ) * 2.0f * PI;
+	float r = sqrtf( RandomFloat01( rng ) );
 	return Vec2( r * cosf( theta ), r * sinf( theta ) );
 }
 
 float SampleNormalDistribution( RNG * rng ) {
 	// generate a float in (0, 1). works because prev(1) + FLT_MIN == prev(1)
-	float u1 = random_float01( rng ) + FLT_MIN;
-	float u2 = random_float01( rng );
+	float u1 = RandomFloat01( rng ) + FLT_MIN;
+	float u2 = RandomFloat01( rng );
 	return sqrtf( -2.0f * logf( u1 ) ) * cosf( u2 * 2.0f * PI );
 }
 

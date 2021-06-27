@@ -5,29 +5,47 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 
-constexpr u32 MAX_MODEL_ASSETS = 1024;
+constexpr u32 MAX_MODELS = 1024;
 
-static Model models[ MAX_MODEL_ASSETS ];
-static u32 num_models;
-static Hashtable< MAX_MODEL_ASSETS * 2 > models_hashtable;
+static Model gltf_models[ MAX_MODELS ];
+static u32 num_gltf_models;
+static Hashtable< MAX_MODELS * 2 > gltf_models_hashtable;
+
+static void LoadGLTF( const char * path ) {
+	Span< const char > ext = FileExtension( path );
+	if( ext != ".glb" )
+		return;
+
+	Model model;
+	if( !LoadGLTFModel( &model, path ) )
+		return;
+
+	u64 hash = Hash64( StripExtension( path ) );
+
+	u64 idx = num_gltf_models;
+	if( !gltf_models_hashtable.get( hash, &idx ) ) {
+		assert( num_gltf_models < ARRAY_COUNT( gltf_models ) );
+		gltf_models_hashtable.add( hash, num_gltf_models );
+		num_gltf_models++;
+	}
+	else {
+		DeleteModel( &gltf_models[ idx ] );
+	}
+
+	gltf_models[ idx ] = model;
+}
 
 void InitModels() {
 	ZoneScoped;
 
-	num_models = 0;
+	num_gltf_models = 0;
 
 	for( const char * path : AssetPaths() ) {
-		Span< const char > ext = FileExtension( path );
-		if( ext == ".glb" ) {
-			if( !LoadGLTFModel( &models[ num_models ], path ) )
-				continue;
-			models_hashtable.add( Hash64( path, strlen( path ) - ext.n ), num_models );
-			num_models++;
-		}
+		LoadGLTF( path );
 	}
 }
 
-static void DeleteModel( Model * model ) {
+void DeleteModel( Model * model ) {
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
 		if( model->primitives[ i ].num_vertices == 0 ) {
 			DeleteMesh( model->primitives[ i ].mesh );
@@ -51,46 +69,22 @@ void HotloadModels() {
 	ZoneScoped;
 
 	for( const char * path : ModifiedAssetPaths() ) {
-		Span< const char > ext = FileExtension( path );
-		if( ext != ".glb" )
-			continue;
-
-		Model model;
-		if( !LoadGLTFModel( &model, path ) )
-			continue;
-
-		u64 hash = Hash64( path, strlen( path ) - ext.n );
-		u64 idx = num_models;
-		if( models_hashtable.get( hash, &idx ) ) {
-			DeleteModel( &models[ idx ] );
-		}
-		else {
-			models_hashtable.add( hash, num_models );
-			num_models++;
-		}
-
-		models[ idx ] = model;
+		LoadGLTF( path );
 	}
 }
 
 void ShutdownModels() {
-	for( u32 i = 0; i < num_models; i++ ) {
-		DeleteModel( &models[ i ] );
+	for( u32 i = 0; i < num_gltf_models; i++ ) {
+		DeleteModel( &gltf_models[ i ] );
 	}
-}
-
-Model * NewModel( u64 hash ) {
-	Model * model = &models[ num_models ];
-	models_hashtable.add( hash, num_models );
-	num_models++;
-	return model;
 }
 
 const Model * FindModel( StringHash name ) {
 	u64 idx;
-	if( !models_hashtable.get( name.hash, &idx ) )
-		return NULL;
-	return &models[ idx ];
+	if( !gltf_models_hashtable.get( name.hash, &idx ) ) {
+		return FindMapModel( name );
+	}
+	return &gltf_models[ idx ];
 }
 
 const Model * FindModel( const char * name ) {
@@ -108,7 +102,7 @@ void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive
 }
 
 template< typename F >
-static void RenderNode( const Model * model, u8 node_idx, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes, UniformBlock pose_uniforms, F transform_pipeline ) {
+static void DrawNode( const Model * model, u8 node_idx, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes, UniformBlock pose_uniforms, F transform_pipeline ) {
 	if( node_idx == U8_MAX )
 		return;
 
@@ -116,11 +110,14 @@ static void RenderNode( const Model * model, u8 node_idx, const Mat4 & transform
 
 	if( node->primitive != U8_MAX ) {
 		bool animated = palettes.node_transforms.ptr != NULL;
-		bool skinned = palettes.skinning_matrices.ptr != NULL;
+		bool skinned = animated && node->skinned;
 
 		Mat4 primitive_transform;
-		if( animated ) {
-			primitive_transform = skinned ? Mat4::Identity() : palettes.node_transforms[ node_idx ];
+		if( skinned ) {
+			primitive_transform = Mat4::Identity();
+		}
+		else if( animated ) {
+			primitive_transform = palettes.node_transforms[ node_idx ];
 		}
 		else {
 			primitive_transform = node->global_transform;
@@ -139,19 +136,19 @@ static void RenderNode( const Model * model, u8 node_idx, const Mat4 & transform
 		DrawModelPrimitive( model, &model->primitives[ node->primitive ], pipeline );
 	}
 
-	RenderNode( model, node->first_child, transform, color, palettes, pose_uniforms, transform_pipeline );
-	RenderNode( model, node->sibling, transform, color, palettes, pose_uniforms, transform_pipeline );
+	DrawNode( model, node->first_child, transform, color, palettes, pose_uniforms, transform_pipeline );
+	DrawNode( model, node->sibling, transform, color, palettes, pose_uniforms, transform_pipeline );
 }
 
 void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
-	UniformBlock pose_uniforms;
+	UniformBlock pose_uniforms = { };
 	if( palettes.skinning_matrices.ptr != NULL ) {
 		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
 	}
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		if( model->nodes[ i ].parent == U8_MAX ) {
-			RenderNode( model, i, transform, color, palettes, pose_uniforms, []( PipelineState * pipeline, bool skinned ) { } );
+			DrawNode( model, i, transform, color, palettes, pose_uniforms, []( PipelineState * pipeline, bool skinned ) { } );
 		}
 	}
 }
@@ -163,7 +160,7 @@ static void AddViewWeaponDepthHack( PipelineState * pipeline, bool skinned ) {
 void DrawViewWeapon( const Model * model, const Mat4 & transform ) {
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		if( model->nodes[ i ].parent == U8_MAX ) {
-			RenderNode( model, i, transform, vec4_white, MatrixPalettes(), UniformBlock(), AddViewWeaponDepthHack );
+			DrawNode( model, i, transform, vec4_white, MatrixPalettes(), UniformBlock(), AddViewWeaponDepthHack );
 		}
 	}
 }
@@ -178,20 +175,20 @@ void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 
 		pipeline->set_uniform( "u_Outline", outline_uniforms );
 	};
 
-	UniformBlock pose_uniforms;
+	UniformBlock pose_uniforms = { };
 	if( palettes.skinning_matrices.ptr != NULL ) {
 		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
 	}
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		if( model->nodes[ i ].parent == U8_MAX ) {
-			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeOutlinePipeline );
+			DrawNode( model, i, transform, color, palettes, pose_uniforms, MakeOutlinePipeline );
 		}
 	}
 }
 
 void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
-	UniformBlock material_uniforms = UploadMaterialUniforms( color, Vec2( 0 ), 0.0f );
+	UniformBlock material_uniforms = UploadMaterialUniforms( color, Vec2( 0 ), 0.0f, 0.0f, 64.0f );
 
 	auto MakeSilhouettePipeline = [ &material_uniforms ]( PipelineState * pipeline, bool skinned ) {
 		pipeline->shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer;
@@ -200,14 +197,14 @@ void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec
 		pipeline->set_uniform( "u_Material", material_uniforms );
 	};
 
-	UniformBlock pose_uniforms;
+	UniformBlock pose_uniforms = { };
 	if( palettes.skinning_matrices.ptr != NULL ) {
 		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
 	}
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		if( model->nodes[ i ].parent == U8_MAX ) {
-			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeSilhouettePipeline );
+			DrawNode( model, i, transform, color, palettes, pose_uniforms, MakeSilhouettePipeline );
 		}
 	}
 }
@@ -230,15 +227,15 @@ void DrawModelShadow( const Model * model, const Mat4 & transform, const Vec4 & 
 		pipeline->set_uniform( "u_View", frame_static.far_shadowmap_view_uniforms );
 	};
 
-	UniformBlock pose_uniforms;
+	UniformBlock pose_uniforms = { };
 	if( palettes.skinning_matrices.ptr != NULL ) {
 		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
 	}
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		if( model->nodes[ i ].parent == U8_MAX ) {
-			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeNearShadowPipeline );
-			RenderNode( model, i, transform, color, palettes, pose_uniforms, MakeFarShadowPipeline );
+			DrawNode( model, i, transform, color, palettes, pose_uniforms, MakeNearShadowPipeline );
+			DrawNode( model, i, transform, color, palettes, pose_uniforms, MakeFarShadowPipeline );
 		}
 	}
 }

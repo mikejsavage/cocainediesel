@@ -164,7 +164,6 @@ void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned in
 	MSG_WriteInt32( &msg, APP_PROTOCOL_VERSION );
 	MSG_WriteInt32( &msg, spawncount );
 	MSG_WriteInt16( &msg, (unsigned short)snapFrameTime );
-	MSG_WriteString( &msg, FS_BaseGameDirectory() );
 	MSG_WriteInt16( &msg, -1 ); // playernum
 	MSG_WriteUint8( &msg, sv_bitflags & ~SV_BITFLAGS_HTTP ); // sv_bitflags
 

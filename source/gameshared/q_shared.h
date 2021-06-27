@@ -39,16 +39,6 @@ short ShortSwap( short l );
 #define EXEC_NOW                    0           // don't return until completed
 #define EXEC_APPEND                 1           // add to end of the command buffer
 
-//=============================================
-// fonts
-//=============================================
-
-#define SYSTEM_FONT_TINY_SIZE       8
-#define SYSTEM_FONT_CONSOLE_SIZE    12
-#define SYSTEM_FONT_SMALL_SIZE      14
-#define SYSTEM_FONT_MEDIUM_SIZE     16
-#define SYSTEM_FONT_BIG_SIZE        24
-
 //==============================================================
 //
 //PATHLIB
@@ -60,9 +50,7 @@ bool COM_ValidateFilename( const char *filename );
 bool COM_ValidateRelativeFilename( const char *filename );
 void COM_StripExtension( char *filename );
 void COM_DefaultExtension( char *path, const char *extension, size_t size );
-void COM_ReplaceExtension( char *path, const char *extension, size_t size );
 const char *COM_FileBase( const char *in );
-void COM_StripFilename( char *filename );
 
 enum ParseStopOnNewLine {
 	Parse_DontStopOnNewLine,
@@ -104,8 +92,12 @@ bool StartsWith( Span< const char > str, const char * prefix );
 bool StartsWith( const char * str, const char * prefix );
 
 Span< const char > FileExtension( const char * path );
-Span< const char > BaseName( const char * path );
+Span< const char > StripExtension( const char * path );
+Span< const char > LastFileExtension( const char * path );
+Span< const char > FileName( const char * path );
 Span< const char > BasePath( const char * path );
+
+bool SortCStringsComparator( const char * a, const char * b );
 
 const char *COM_RemoveJunkChars( const char *in );
 bool COM_ValidateConfigstring( const char *string );
@@ -159,7 +151,6 @@ void Q_strncatz( char *dest, const char *src, size_t size );
 char *Q_strupr( char *s );
 char *Q_strlwr( char *s );
 const char *Q_strrstr( const char *s, const char *substr );
-bool Q_isdigit( const char *str );
 char *Q_trim( char *s );
 void RemoveTrailingZeroesFloat( char * str );
 
@@ -196,28 +187,12 @@ bool Info_Validate( const char *s );
 
 Span< const char > ParseWorldspawnKey( Span< const char > entities, const char * name );
 
-//==============================================
-
-//
-// per-level limits
-//
-#define MAX_CLIENTS                 16
-#define MAX_EDICTS                  1024        // must change protocol to increase more
-
 //============================================
 // sound
 //============================================
 
-#define S_DEFAULT_ATTENUATION_MODEL         3
-#define S_DEFAULT_ATTENUATION_MAXDISTANCE   8192
-#define S_DEFAULT_ATTENUATION_REFDISTANCE   250
-
-float Q_GainForAttenuation( int model, float maxdistance, float refdistance, float dist, float attenuation );
-
-//=============================================
-
-constexpr const char *IMAGE_EXTENSIONS[] = { ".jpg", ".png" };
-constexpr size_t NUM_IMAGE_EXTENSIONS = ARRAY_COUNT( IMAGE_EXTENSIONS );
+constexpr float S_DEFAULT_ATTENUATION_MAXDISTANCE = 8192.0f;
+constexpr float S_DEFAULT_ATTENUATION_REFDISTANCE = 250.0f;
 
 //==============================================================
 //
@@ -229,18 +204,6 @@ enum com_error_code_t {
 	ERR_FATAL,      // exit the entire game with a popup window
 	ERR_DROP,       // print to console and disconnect from game
 };
-
-// this is only here so the functions in q_shared.c and q_math.c can link
-
-#ifndef _MSC_VER
-void Sys_Error( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
-void Com_Printf( const char *msg, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-void Com_Error( com_error_code_t code, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) ) __attribute__( ( noreturn ) );
-#else
-__declspec( noreturn ) void Sys_Error( _Printf_format_string_ const char *error, ... );
-void Com_Printf( _Printf_format_string_ const char *msg, ... );
-__declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_string_ const char *format, ... );
-#endif
 
 //==============================================================
 //

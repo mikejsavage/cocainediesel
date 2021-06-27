@@ -19,9 +19,9 @@ float max( float a, float b ) {
 }
 
 Vec3 random_point_on_hemisphere() {
-	float z = random_float01();
+	float z = RandomFloat01();
 	float r = sqrt( max( 0.0f, 1.0f - z * z ) );
-	float phi = 2 * PI * random_float01();
+	float phi = 2 * PI * RandomFloat01();
 	return Vec3( r * cos( phi ), r * sin( phi ), z );
 }
 
@@ -33,7 +33,6 @@ class cBombSite
 
 	Entity @hud;
 
-	bool useExplosionPoints;
 	Vec3[] explosionPoints;
 	bool targetsUsed;
 
@@ -43,7 +42,7 @@ class cBombSite
 
 	cBombSite @next;
 
-	cBombSite( Entity @ent, bool hasTargets, int team ) {
+	cBombSite( Entity @ent, int team ) {
 		if( siteCount >= MAX_SITES ) {
 			G_Print( "Too many bombsites... ignoring\n" );
 
@@ -72,14 +71,7 @@ class cBombSite
 		this.hud.counterNum = letter[0];
 		this.hud.linkEntity();
 
-		if( hasTargets ) {
-			this.useExplosionPoints = false;
-			this.targetsUsed = false;
-		}
-		else {
-			this.useExplosionPoints = true;
-			this.generateExplosionPoints();
-		}
+		this.generateExplosionPoints();
 
 		@this.next = @siteHead;
 		@siteHead = @this;
@@ -99,15 +91,12 @@ class cBombSite
 	}
 
 	void explode() {
-		if( !this.useExplosionPoints )
-			return;
-
-		numPendingExplosions = random_uniform( SITE_EXPLOSION_POINTS / 2, SITE_EXPLOSION_POINTS );
+		numPendingExplosions = RandomUniform( SITE_EXPLOSION_POINTS / 2, SITE_EXPLOSION_POINTS );
 		numExploded = 0;
 
 		for( int i = 0; i < numPendingExplosions; i++ ) {
-			Vec3 point = explosionPoints[ random_uniform( 0, explosionPoints.length() ) ];
-			int64 time = EXPLOSION_COMEDIC_DELAY + int64( ( float( i ) / float( numPendingExplosions - 1 ) ) * SITE_EXPLOSION_MAX_DELAY );
+			Vec3 point = explosionPoints[ RandomUniform( 0, explosionPoints.length() ) ];
+			int64 time = int64( ( float( i ) / float( numPendingExplosions - 1 ) ) * SITE_EXPLOSION_MAX_DELAY );
 			pendingExplosions[ i ] = PendingExplosion( point, time );
 		}
 	}
@@ -115,17 +104,7 @@ class cBombSite
 	void stepExplosion() {
 		int64 t = levelTime - bombActionTime;
 
-		if( t >= EXPLOSION_COMEDIC_DELAY ) {
-			hide( @bombModel );
-		}
-
-		if( !this.useExplosionPoints ) {
-			if( !targetsUsed && t >= EXPLOSION_COMEDIC_DELAY ) {
-				this.indicator.useTargets( bombModel );
-				targetsUsed = true;
-			}
-			return;
-		}
+		hide( @bombModel );
 
 		while( numExploded < numPendingExplosions && t >= pendingExplosions[ numExploded ].time ) {
 			Entity @ent = @G_SpawnEntity( "func_explosive" );
@@ -134,7 +113,6 @@ class cBombSite
 			ent.linkEntity();
 
 			ent.explosionEffect( BOMB_EXPLOSION_EFFECT_RADIUS );
-			ent.splashDamage( @ent, 3000, 9001, 100 );
 
 			ent.freeEntity();
 
@@ -157,7 +135,7 @@ class cBombSite
 			trace.doTrace( origin, vec3Origin, vec3Origin, end, this.indicator.entNum, MASK_SOLID );
 
 			// pick a random point along the line
-			this.explosionPoints[i] = origin + random_float01() * ( trace.endPos - origin );
+			this.explosionPoints[i] = origin + RandomFloat01() * ( trace.endPos - origin );
 		}
 	}
 }
@@ -180,57 +158,7 @@ void resetBombSites() {
 }
 
 void bomb_site( Entity @ent ) {
-	@ent.think = bomb_site_think;
-	cBombSite( @ent, ent.target != "", defendingTeam );
-}
-
-void bomb_site_think( Entity @ent ) {
-	// if AS had static this could be approx 1 bajillion times
-	// faster on subsequent calls
-
-	array<Entity @> @triggers = @ent.findTargeting();
-
-	// we are being targeted, never think again
-	if( !triggers.empty() ) {
-		return;
-	}
-
-	ent.nextThink = levelTime + 1;
-
-	if( roundState != RoundState_Round ) {
-		return;
-	}
-
-	if( bombState != BombState_Carried ) {
-		return;
-	}
-
-	if( !bombCanPlant() ) {
-		return;
-	}
-
-	Vec3 origin = ent.origin;
-	Vec3 carrierOrigin = bombCarrier.origin;
-
-	if( origin.distance( carrierOrigin ) > BOMB_AUTODROP_DISTANCE ) {
-		return;
-	}
-
-	origin.z += 96;
-
-	Vec3 center = carrierOrigin + getMiddle( @bombCarrier );
-
-	Trace trace;
-	if( !trace.doTrace( origin, vec3Origin, vec3Origin, center, bombCarrier.entNum, MASK_SOLID ) ) {
-		// let's plant it
-
-		cBombSite @site = @getSiteFromIndicator( @ent );
-
-		// we know site isn't null but for debugging purposes...
-		assert( @site != null, "site.as trigger_capture_area_touch: @site == null" );
-
-		site.carrierTouched();
-	}
+	cBombSite( @ent, defendingTeam );
 }
 
 void plant_area( Entity @ent ) {
@@ -260,7 +188,7 @@ void plant_area_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int s
 		return;
 	}
 
-	if( roundState != RoundState_Round ) {
+	if( match.roundState != RoundState_Round ) {
 		return;
 	}
 

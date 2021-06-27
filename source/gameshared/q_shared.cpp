@@ -20,9 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <limits.h>
 
-#include "gameshared/q_arch.h"
-#include "gameshared/q_math.h"
-#include "gameshared/q_shared.h"
+#include "qcommon/qcommon.h"
 #include "qcommon/strtonum.h"
 
 //============================================================================
@@ -127,25 +125,6 @@ void COM_DefaultExtension( char *path, const char *extension, size_t size ) {
 }
 
 /*
-* COM_ReplaceExtension
-* Replaces current extension, if there is none appends one
-* If there is no room for it overwrites the end of the path
-*/
-void COM_ReplaceExtension( char *path, const char *extension, size_t size ) {
-	assert( path );
-	assert( extension && extension[0] && strlen( extension ) < size );
-
-	COM_StripExtension( path );
-	//COM_DefaultExtension( path, extension, size );
-
-	// Vic: using COM_DefaultExtension here breaks filenames with multiple dots
-	// and we have just stripped the extension in COM_StripExtension anyway
-	if( *path && path[strlen( path ) - 1] != '/' ) {
-		Q_strncatz( path, extension, size );
-	}
-}
-
-/*
 * COM_FileBase
 */
 const char *COM_FileBase( const char *in ) {
@@ -157,22 +136,6 @@ const char *COM_FileBase( const char *in ) {
 	}
 
 	return in;
-}
-
-/*
-* COM_StripFilename
-*
-* Cuts the string of, at the last / or erases the whole string if not found
-*/
-void COM_StripFilename( char *filename ) {
-	char *p;
-
-	p = strrchr( filename, '/' );
-	if( !p ) {
-		p = filename;
-	}
-
-	*p = 0;
 }
 
 //============================================================================
@@ -458,7 +421,17 @@ Span< const char > FileExtension( const char * path ) {
 	return ext == NULL ? Span< const char >() : MakeSpan( ext );
 }
 
-Span< const char > BaseName( const char * path ) {
+Span< const char > StripExtension( const char * path ) {
+	Span< const char > ext = FileExtension( path );
+	return Span< const char >( path, strlen( path ) - ext.n );
+}
+
+Span< const char > LastFileExtension( const char * path ) {
+	const char * ext = strrchr( path, '.' );
+	return ext == NULL ? Span< const char >() : MakeSpan( ext );
+}
+
+Span< const char > FileName( const char * path ) {
 	const char * filename = strrchr( path, '/' );
 	filename = filename == NULL ? path : filename + 1;
 	return MakeSpan( filename );
@@ -467,6 +440,10 @@ Span< const char > BaseName( const char * path ) {
 Span< const char > BasePath( const char * path ) {
 	const char * slash = strrchr( path, '/' );
 	return slash == NULL ? MakeSpan( path ) : Span< const char >( path, slash - path );
+}
+
+bool SortCStringsComparator( const char * a, const char * b ) {
+	return strcmp( a, b ) < 0;
 }
 
 /*
@@ -659,19 +636,6 @@ char *Q_trim( char *s ) {
 		s[--len] = '\0';
 
 	return s;
-}
-
-/*
-* Q_isdigit
-*/
-bool Q_isdigit( const char *str ) {
-	if( str && *str ) {
-		while( isdigit( *str ) ) str++;
-		if( !*str ) {
-			return true;
-		}
-	}
-	return false;
 }
 
 void RemoveTrailingZeroesFloat( char * str ) {
@@ -1104,68 +1068,4 @@ Span< const char > ParseWorldspawnKey( Span< const char > entities, const char *
 	}
 
 	return Span< const char >();
-}
-
-//=====================================================================
-//
-//  SOUND ATTENUATION
-//
-//=====================================================================
-
-/*
-* Q_GainForAttenuation
-*/
-float Q_GainForAttenuation( int model, float maxdistance, float refdistance, float dist, float attenuation ) {
-	float gain = 0.0f;
-
-	switch( model ) {
-		case 0:
-			//gain = (1 - AL_ROLLOFF_FACTOR * (distance * AL_REFERENCE_DISTANCE) / (AL_MAX_DISTANCE - AL_REFERENCE_DISTANCE))
-			//AL_LINEAR_DISTANCE
-			dist = Min2( dist, maxdistance );
-			gain = ( 1 - attenuation * ( dist - refdistance ) / ( maxdistance - refdistance ) );
-			break;
-		case 1:
-		default:
-			//gain = (1 - AL_ROLLOFF_FACTOR * (distance - AL_REFERENCE_DISTANCE) / (AL_MAX_DISTANCE - AL_REFERENCE_DISTANCE))
-			//AL_LINEAR_DISTANCE_CLAMPED
-			dist = Max2( dist, refdistance );
-			dist = Min2( dist, maxdistance );
-			gain = ( 1 - attenuation * ( dist - refdistance ) / ( maxdistance - refdistance ) );
-			break;
-		case 2:
-			//gain = AL_REFERENCE_DISTANCE / (AL_REFERENCE_DISTANCE + AL_ROLLOFF_FACTOR * (distance - AL_REFERENCE_DISTANCE));
-			//AL_INVERSE_DISTANCE
-			gain = refdistance / ( refdistance + attenuation * ( dist - refdistance ) );
-			break;
-		case 3:
-			//AL_INVERSE_DISTANCE_CLAMPED
-			//gain = AL_REFERENCE_DISTANCE / (AL_REFERENCE_DISTANCE + AL_ROLLOFF_FACTOR * (distance - AL_REFERENCE_DISTANCE));
-			dist = Max2( dist, refdistance );
-			dist = Min2( dist, maxdistance );
-			gain = refdistance / ( refdistance + attenuation * ( dist - refdistance ) );
-			break;
-		case 4:
-			//AL_EXPONENT_DISTANCE
-			//gain = (distance / AL_REFERENCE_DISTANCE) ^ (- AL_ROLLOFF_FACTOR)
-			gain = powf( ( dist / refdistance ), ( -attenuation ) );
-			break;
-		case 5:
-			//AL_EXPONENT_DISTANCE_CLAMPED
-			//gain = (distance / AL_REFERENCE_DISTANCE) ^ (- AL_ROLLOFF_FACTOR)
-			dist = Max2( dist, refdistance );
-			dist = Min2( dist, maxdistance );
-			gain = powf( ( dist / refdistance ), ( -attenuation ) );
-			break;
-		case 6:
-			// qfusion gain
-			dist -= 80;
-			if( dist < 0 ) {
-				dist = 0;
-			}
-			gain = 1.0 - dist * attenuation * 0.0001;
-			break;
-	}
-
-	return gain;
 }

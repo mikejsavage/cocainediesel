@@ -158,6 +158,22 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			*type = GL_UNSIGNED_BYTE;
 			return;
 
+		case TextureFormat_BC1_sRGB:
+			*internal = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
+			return;
+
+		case TextureFormat_BC3_sRGB:
+			*internal = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+			return;
+
+		case TextureFormat_BC4:
+			*internal = GL_COMPRESSED_RED_RGTC1;
+			return;
+
+		case TextureFormat_BC5:
+			*internal = GL_COMPRESSED_RG_RGTC2;
+			return;
+
 		case TextureFormat_Depth:
 			*internal = GL_DEPTH_COMPONENT24;
 			*channels = GL_DEPTH_COMPONENT;
@@ -276,6 +292,10 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 
 static void TextureBufferFormatToGL( TextureBufferFormat format, GLenum * internal_format, u32 * element_size ) {
 	switch( format ) {
+		case TextureBufferFormat_U8x2:
+			*internal_format = GL_RG8UI;
+			*element_size = 2 * sizeof( u8 );
+			return;
 		case TextureBufferFormat_U8x4:
 			*internal_format = GL_RGBA8;
 			*element_size = 4 * sizeof( u8 );
@@ -305,9 +325,134 @@ static void TextureBufferFormatToGL( TextureBufferFormat format, GLenum * intern
 	assert( false );
 }
 
+static const char * DebugTypeString( GLenum type ) {
+	switch( type ) {
+		case GL_DEBUG_TYPE_ERROR:
+		case GL_DEBUG_CATEGORY_API_ERROR_AMD:
+			return "error";
+		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+		case GL_DEBUG_CATEGORY_DEPRECATION_AMD:
+			return "deprecated";
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+		case GL_DEBUG_CATEGORY_UNDEFINED_BEHAVIOR_AMD:
+			return "undefined";
+		case GL_DEBUG_TYPE_PORTABILITY:
+			return "nonportable";
+		case GL_DEBUG_TYPE_PERFORMANCE:
+		case GL_DEBUG_CATEGORY_PERFORMANCE_AMD:
+			return "performance";
+		case GL_DEBUG_CATEGORY_WINDOW_SYSTEM_AMD:
+			return "window system";
+		case GL_DEBUG_CATEGORY_SHADER_COMPILER_AMD:
+			return "shader compiler";
+		case GL_DEBUG_CATEGORY_APPLICATION_AMD:
+			return "application";
+		case GL_DEBUG_TYPE_OTHER:
+		case GL_DEBUG_CATEGORY_OTHER_AMD:
+			return "other";
+		default:
+			return "idk";
+	}
+}
+
+static const char * DebugSeverityString( GLenum severity ) {
+	switch( severity ) {
+		case GL_DEBUG_SEVERITY_LOW:
+			// case GL_DEBUG_SEVERITY_LOW_AMD:
+			return S_COLOR_GREEN "low" S_COLOR_WHITE;
+		case GL_DEBUG_SEVERITY_MEDIUM:
+			// case GL_DEBUG_SEVERITY_MEDIUM_AMD:
+			return S_COLOR_YELLOW "medium" S_COLOR_WHITE;
+		case GL_DEBUG_SEVERITY_HIGH:
+			// case GL_DEBUG_SEVERITY_HIGH_AMD:
+			return S_COLOR_RED "high" S_COLOR_WHITE;
+		case GL_DEBUG_SEVERITY_NOTIFICATION:
+			return "notice";
+		default:
+			return "idk";
+	}
+}
+
+static void DebugOutputCallback(
+	GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+	const GLchar * message, const void * _
+) {
+	if(
+	    source == 33352 || // shader compliation errors
+	    id == 131169 ||
+	    id == 131185 ||
+	    id == 131201 || // TBO resized
+	    id == 131218 ||
+	    id == 131204
+	) {
+		return;
+	}
+
+	if( severity == GL_DEBUG_SEVERITY_NOTIFICATION || severity == GL_DEBUG_SEVERITY_NOTIFICATION_KHR ) {
+		return;
+	}
+
+	if( type == GL_DEBUG_TYPE_PERFORMANCE ) {
+		return;
+	}
+
+	Com_Printf( "GL [%s - %s]: %s (id:%u source:%d)", DebugTypeString( type ), DebugSeverityString( severity ), message, id, source );
+	size_t len = strlen( message );
+	if( len == 0 || message[ len - 1 ] != '\n' )
+		Com_Printf( "\n" );
+
+	if( severity == GL_DEBUG_SEVERITY_HIGH ) {
+		abort();
+	}
+}
+
+static void DebugOutputCallbackAMD(
+	GLuint id, GLenum type, GLenum severity, GLsizei length,
+	const GLchar * message, const void * _
+) {
+	DebugOutputCallback( GL_DONT_CARE, type, id, severity, length, message, _ );
+}
+
+static void PlotVRAMUsage() {
+#if !PUBLIC_BUILD
+	if( GLAD_GL_NVX_gpu_memory_info != 0 ) {
+		GLint total_vram;
+		glGetIntegerv( GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &total_vram );
+
+		GLint available_vram;
+		glGetIntegerv( GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &available_vram );
+
+		TracyPlot( "VRAM usage", s64( total_vram - available_vram ) );
+	}
+#endif
+}
+
 void RenderBackendInit() {
 	ZoneScoped;
 	TracyGpuContext;
+
+#if !PUBLIC_BUILD
+	if( GLAD_GL_KHR_debug != 0 ) {
+		GLint context_flags;
+		glGetIntegerv( GL_CONTEXT_FLAGS, &context_flags );
+		if( context_flags & GL_CONTEXT_FLAG_DEBUG_BIT ) {
+			Com_Printf( "Initialising debug output\n" );
+
+			glEnable( GL_DEBUG_OUTPUT );
+			glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
+			glDebugMessageCallback( ( GLDEBUGPROC ) DebugOutputCallback, NULL );
+			glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE );
+		}
+	}
+	else if( GLAD_GL_AMD_debug_output != 0 ) {
+		Com_Printf( "Initialising AMD debug output\n" );
+
+		glDebugMessageCallbackAMD( ( GLDEBUGPROCAMD ) DebugOutputCallbackAMD, NULL );
+		glDebugMessageEnableAMD( 0, 0, 0, NULL, GL_TRUE );
+	}
+#endif
+
+	PlotVRAMUsage();
 
 	render_passes.init( sys_allocator );
 	draw_calls.init( sys_allocator );
@@ -381,6 +526,8 @@ void RenderBackendBeginFrame() {
 		prev_viewport_height = frame_static.viewport_height;
 		glViewport( 0, 0, frame_static.viewport_width, frame_static.viewport_height );
 	}
+
+	PlotVRAMUsage();
 }
 
 static bool operator!=( PipelineState::Scissor a, PipelineState::Scissor b ) {
@@ -612,6 +759,16 @@ void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u32 offs
 		glVertexAttribPointer( index, num_components, type, normalized, stride, gl_offset );
 }
 
+static void SubmitFramebufferBlit( const RenderPass & pass ) {
+	Framebuffer src = pass.blit_source;
+	Framebuffer target = pass.target;
+	glBindFramebuffer( GL_READ_FRAMEBUFFER, src.fbo );
+	GLbitfield clear_mask = 0;
+	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
+	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
+	glBlitFramebuffer( 0, 0, src.width, src.height, 0, 0, target.width, target.height, clear_mask, GL_NEAREST );
+}
+
 static void SetupRenderPass( const RenderPass & pass ) {
 	ZoneScoped;
 	ZoneText( pass.name, strlen( pass.name ) );
@@ -636,6 +793,11 @@ static void SetupRenderPass( const RenderPass & pass ) {
 			prev_viewport_height = viewport_height;
 			glViewport( 0, 0, viewport_width, viewport_height );
 		}
+	}
+
+	if( pass.type == RenderPass_Blit ) {
+		SubmitFramebufferBlit( pass );
+		return;
 	}
 
 	GLbitfield clear_mask = 0;
@@ -745,12 +907,6 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	glBindVertexArray( 0 );
 }
 
-static void SubmitResolveMSAA( Framebuffer fb ) {
-	assert( fb.width == frame_static.viewport_width && fb.height == frame_static.viewport_height );
-	glBindFramebuffer( GL_READ_FRAMEBUFFER, fb.fbo );
-	glBlitFramebuffer( 0, 0, fb.width, fb.height, 0, 0, fb.width, fb.height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
-}
-
 void RenderBackendSubmitFrame() {
 	ZoneScoped;
 
@@ -783,12 +939,7 @@ void RenderBackendSubmitFrame() {
 				SetupRenderPass( render_passes[ pass_idx ] );
 			}
 
-			if( dc.pipeline.shader == NULL ) {
-				SubmitResolveMSAA( render_passes[ dc.pipeline.pass ].msaa_source );
-			}
-			else {
-				SubmitDrawCall( dc );
-			}
+			SubmitDrawCall( dc );
 		}
 	}
 
@@ -798,6 +949,14 @@ void RenderBackendSubmitFrame() {
 		pass_idx++;
 		SetupRenderPass( render_passes[ pass_idx ] );
 		FinishRenderPass();
+	}
+
+	{
+		// OBS captures the game with glBlitFramebuffer which gets
+		// nuked by scissor, so turn it off at the end of every frame
+		PipelineState no_scissor_test = prev_pipeline;
+		no_scissor_test.scissor = { };
+		SetPipelineState( no_scissor_test, true );
 	}
 
 	{
@@ -986,29 +1145,37 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 			glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, ( GLfloat * ) &config.border_color );
 		}
 
-		if( channels == GL_RED ) {
-			if( config.format == TextureFormat_A_U8 ) {
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
+		if( !CompressedTextureFormat( config.format ) ) {
+			if( channels == GL_RED ) {
+				if( config.format == TextureFormat_A_U8 ) {
+					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ONE );
+					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_ONE );
+					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_ONE );
+					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
+				}
+				else {
+					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
+					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
+					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
+					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ONE );
+				}
 			}
-			else {
+			else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
 			}
-		}
-		else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
-		}
 
-		glTexImage2D( GL_TEXTURE_2D, 0, internal_format,
-			config.width, config.height, 0, channels, type, config.data );
+			glTexImage2D( GL_TEXTURE_2D, 0, internal_format,
+				config.width, config.height, 0, channels, type, config.data );
+		}
+		else {
+			u32 size = ( BitsPerPixel( config.format ) * config.width * config.height ) / 8;
+			assert( size < S32_MAX );
+			glCompressedTexImage2D( GL_TEXTURE_2D, 0, internal_format,
+				config.width, config.height, 0, size, config.data );
+		}
 	}
 	else {
 		glTexImage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE, msaa_samples,
@@ -1048,7 +1215,8 @@ TextureArray NewAtlasTextureArray( const TextureArrayConfig & config ) {
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 
-	glTexImage3D( GL_TEXTURE_2D_ARRAY, 0, GL_SRGB8_ALPHA8, config.width, config.height, config.layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, config.data );
+	u32 size = ( BitsPerPixel( TextureFormat_BC4 ) * config.width * config.height * config.layers ) / 8;
+	glCompressedTexImage3D( GL_TEXTURE_2D_ARRAY, 0, GL_COMPRESSED_RED_RGTC1, config.width, config.height, config.layers, 0, size, config.data );
 
 	return ta;
 }
@@ -1522,6 +1690,7 @@ u8 AddRenderPass( const RenderPass & pass ) {
 
 u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color, ClearDepth clear_depth ) {
 	RenderPass pass;
+	pass.type = RenderPass_Normal;
 	pass.target = target;
 	pass.name = name;
 	pass.clear_color = clear_color == ClearColor_Do;
@@ -1535,28 +1704,30 @@ u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, Cl
 	return AddRenderPass( name, tracy, target, clear_color, clear_depth );
 }
 
-u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * tracy ) {
+u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target ) {
 	RenderPass pass;
+	pass.type = RenderPass_Normal;
+	pass.target = target;
 	pass.name = name;
 	pass.sorted = false;
 	pass.tracy = tracy;
 	return AddRenderPass( pass );
 }
 
-void AddResolveMSAAPass( Framebuffer src, Framebuffer dst, const tracy::SourceLocationData * tracy ) {
+void AddBlitPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color, ClearDepth clear_depth ) {
 	RenderPass pass;
-	pass.name = "Resolve MSAA";
-	pass.msaa_source = src;
-	pass.target = dst;
+	pass.type = RenderPass_Blit;
+	pass.name = name;
 	pass.tracy = tracy;
+	pass.blit_source = src;
+	pass.target = dst;
+	pass.clear_color = clear_color;
+	pass.clear_depth = clear_depth;
+	AddRenderPass( pass );
+}
 
-	PipelineState dummy;
-	dummy.pass = AddRenderPass( pass );
-	dummy.shader = NULL;
-
-	DrawCall dc = { };
-	dc.pipeline = dummy;
-	draw_calls.add( dc );
+void AddResolveMSAAPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color, ClearDepth clear_depth ) {
+	AddBlitPass( name, tracy, src, dst, clear_color, clear_depth );
 }
 
 void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, float radius, u32 num_particles, float dt ) {
@@ -1610,7 +1781,7 @@ void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffe
 	draw_calls.add( dc );
 }
 
-void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material * gradient, BlendFunc blend_func, u32 num_particles ) {
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, BlendFunc blend_func, u32 num_particles ) {
 	assert( in_frame );
 
 	PipelineState pipeline;
@@ -1620,8 +1791,6 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material 
 	pipeline.write_depth = false;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
-	pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( HalfPixelSize( gradient ).x ) );
-	pipeline.set_texture( "u_GradientTexture", gradient->texture );
 	pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
 
 	DrawCall dc = { };
@@ -1642,7 +1811,7 @@ void DownloadFramebuffer( void * buf ) {
 	prev_fbo = 0;
 }
 
-void DrawInstancedParticles( VertexBuffer vb, const Model * model, const Material * gradient, u32 num_particles ) {
+void DrawInstancedParticles( VertexBuffer vb, const Model * model, u32 num_particles ) {
 	assert( in_frame );
 
 	UniformBlock model_uniforms = UploadModelUniforms( model->transform );
@@ -1655,9 +1824,6 @@ void DrawInstancedParticles( VertexBuffer vb, const Model * model, const Materia
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
-		pipeline.set_uniform( "u_GradientMaterial", UploadUniformBlock( HalfPixelSize( gradient ).x ) );
-		// pipeline.set_texture( "u_BaseTexture", material->texture );
-		pipeline.set_texture( "u_GradientTexture", gradient->texture );
 
 		const Model::Primitive primitive = model->primitives[ i ];
 		DrawCall dc = { };

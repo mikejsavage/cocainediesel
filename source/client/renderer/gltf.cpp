@@ -170,6 +170,8 @@ static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
 		node->local_transform.scale = gltf_node->scale[ 0 ];
 	}
 
+	node->skinned = gltf_node->skin != NULL;
+
 	// TODO: this will break if multiple nodes share a mesh
 	if( gltf_node->mesh != NULL ) {
 		node->primitive = model->num_primitives;
@@ -232,8 +234,8 @@ static void LoadScaleChannel( const cgltf_animation_channel * chan, Model::Anima
 		float scale[ 3 ];
 		cgltf_accessor_read_float( chan->sampler->output, i, scale, 3 );
 
-		assert( Abs( scale[ 0 ] / scale[ 1 ] - 1.0f ) < 0.001f );
-		assert( Abs( scale[ 0 ] / scale[ 2 ] - 1.0f ) < 0.001f );
+		assert( Abs( scale[ 0 ] - scale[ 1 ] ) < 0.001f );
+		assert( Abs( scale[ 0 ] - scale[ 2 ] ) < 0.001f );
 
 		out_channel->samples[ i ] = scale[ 0 ];
 	}

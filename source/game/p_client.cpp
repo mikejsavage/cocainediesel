@@ -19,44 +19,36 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-#define PLAYER_MASS 200
+constexpr int PLAYER_MASS = 200;
 
-/*
-* ClientObituary
-*/
 static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker, int topAssistEntNo ) {
-	char message[64];
-	char message2[64];
-
 	int mod = meansOfDeath;
-
-	GS_Obituary( self, attacker, mod, message, message2 );
+	bool wallbang = ( damageFlagsOfDeath & DAMAGE_WALLBANG ) != 0;
 
 	// duplicate message at server console for logging
 	if( attacker && attacker->r.client ) {
 		if( attacker != self ) { // regular death message
 			self->enemy = attacker;
 			if( is_dedicated_server ) {
-				Com_Printf( "%s %s %s%s\n", self->r.client->netname, message,
-						  attacker->r.client->netname, message2 );
+				Com_Printf( "\"%s\" \"%s\" %d %d\n", self->r.client->netname, attacker->r.client->netname, mod, wallbang ? 1 : 0 );
 			}
 		} else {      // suicide
 			self->enemy = NULL;
 			if( is_dedicated_server ) {
-				Com_Printf( "%s %s\n", self->r.client->netname, message );
+				Com_Printf( "\"%s\" suicide %d\n", self->r.client->netname, mod );
 			}
 
 			G_PositionedSound( self->s.origin, CHAN_AUTO, "sounds/trombone/sad" );
 		}
 
-		G_Obituary( self, attacker, topAssistEntNo, mod );
+		G_Obituary( self, attacker, topAssistEntNo, mod, wallbang );
 	} else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
 		if( is_dedicated_server ) {
-			Com_Printf( "%s %s\n", self->r.client->netname, message );
+			Com_Printf( "\"%s\" suicide %d\n", self->r.client->netname, mod );
 		}
 
-		G_Obituary( self, attacker == self ? self : world, topAssistEntNo, mod );
+		G_Obituary( self, attacker == self ? self : world, topAssistEntNo, mod, wallbang );
 	}
 }
 
@@ -109,18 +101,23 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->s.ownerNum = ent->s.number;
 
 	int mod = meansOfDeath;
-	bool gib = mod == MeanOfDeath_Railgun || mod == MeanOfDeath_Trigger || mod == MeanOfDeath_Telefrag
+	bool gib = mod == Weapon_Railgun || mod == MeanOfDeath_Trigger || mod == MeanOfDeath_Telefrag
 		|| mod == MeanOfDeath_Explosion || mod == MeanOfDeath_Spike ||
-		( ( mod == MeanOfDeath_RocketLauncher || mod == MeanOfDeath_GrenadeLauncher ) && damage >= 20 );
+		( ( mod == Weapon_RocketLauncher || mod == Weapon_GrenadeLauncher ) && damage >= 20 );
 
 	if( gib ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );
 
-		body->nextThink = level.time + 3000 + random_float01( &svs.rng ) * 3000;
+		body->nextThink = level.time + 3000 + RandomFloat01( &svs.rng ) * 3000;
 		body->deadflag = DEAD_DEAD;
 	}
 
-	edict_t * event = G_SpawnEvent( EV_DIE, random_u64( &svs.rng ), NULL );
+	u64 parm = Random64( &svs.rng ) << 1;
+	if( mod == MeanOfDeath_Void ) {
+		parm |= 1;
+	}
+
+	edict_t * event = G_SpawnEvent( EV_DIE, parm, NULL );
 	event->r.svflags |= SVF_BROADCAST;
 	event->s.ownerNum = body->s.number;
 
@@ -128,7 +125,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 
 	// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
 	// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
-	if( GS_MatchState( &server_gs ) != MATCH_STATE_PLAYTIME ) {
+	if( server_gs.gameState.match_state != MATCH_STATE_PLAYTIME ) {
 		body->nextThink = level.time + 3500;
 		body->think = G_FreeEdict; // body self destruction countdown
 	}
@@ -137,9 +134,6 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	return body;
 }
 
-/*
-* player_die
-*/
 void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, int damage, const Vec3 point ) {
 	snap_edict_t snap_backup = ent->snap;
 	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
@@ -214,7 +208,7 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 		return;
 	}
 
-	if( ( GS_MatchState( &server_gs ) != MATCH_STATE_PLAYTIME ) || !level.gametype.removeInactivePlayers ) {
+	if( ( server_gs.gameState.match_state != MATCH_STATE_PLAYTIME ) || !level.gametype.removeInactivePlayers ) {
 		return;
 	}
 
@@ -232,20 +226,18 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 	}
 }
 
-/*
-* G_ClientClearStats
-*/
-void G_ClientClearStats( edict_t *ent ) {
+score_stats_t * G_ClientGetStats( edict_t * ent ) {
+	return &ent->r.client->level.stats;
+}
+
+void G_ClientClearStats( edict_t * ent ) {
 	if( !ent || !ent->r.client ) {
 		return;
 	}
 
-	memset( &ent->r.client->level.stats, 0, sizeof( ent->r.client->level.stats ) );
+	memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
 }
 
-/*
-* G_GhostClient
-*/
 void G_GhostClient( edict_t *ent ) {
 	ent->movetype = MOVETYPE_NONE;
 	ent->r.solid = SOLID_NOT;
@@ -263,20 +255,11 @@ void G_GhostClient( edict_t *ent ) {
 	ent->viewheight = 0;
 	ent->takedamage = DAMAGE_NO;
 
-	memset( ent->r.client->ps.weapons, 0, sizeof( ent->r.client->ps.weapons ) );
-	memset( ent->r.client->ps.items, 0, sizeof( ent->r.client->ps.items ) );
-
-	ent->r.client->ps.weapon = Weapon_None;
-	ent->r.client->ps.pending_weapon = Weapon_None;
-	ent->r.client->ps.weapon_state = WeaponState_Ready;
-	ent->r.client->ps.weapon_time = 0;
+	ClearInventory( &ent->r.client->ps );
 
 	GClip_LinkEntity( ent );
 }
 
-/*
-* G_ClientRespawn
-*/
 void G_ClientRespawn( edict_t *self, bool ghost ) {
 	edict_t *spawnpoint;
 	Vec3 spawn_origin, spawn_angles;
@@ -400,7 +383,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	// hold in place briefly
 	client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
 	client->ps.pmove.pm_time = 14;
-	client->ps.pmove.no_control_time = CLIENT_RESPAWN_FREEZE_DELAY;
 
 	G_UseTargets( spawnpoint, self );
 
@@ -516,9 +498,6 @@ void ClientBegin( edict_t *ent ) {
 	G_PrintMsg( NULL, "%s entered the game\n", client->netname );
 
 	client->connecting = false;
-
-	// schedule the next scoreboard update
-	client->level.scoreboard_time = svs.realtime + scoreboardInterval - ( svs.realtime % scoreboardInterval );
 
 	G_ClientEndSnapFrame( ent ); // make sure all view stuff is valid
 
@@ -645,7 +624,6 @@ static void G_UpdatePlayerInfoString( int playerNum ) {
 	playerString[0] = 0;
 
 	Info_SetValueForKey( playerString, "name", client->netname );
-	Info_SetValueForKey( playerString, "hand", va( "%i", client->hand ) );
 
 	playerString[MAX_CONFIGSTRING_CHARS - 1] = 0;
 	PF_ConfigString( CS_PLAYERINFOS + playerNum, playerString );
@@ -701,14 +679,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	if( !Info_SetValueForKey( userinfo, "name", cl->netname ) ) {
 		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Couldn't set userinfo (name)" );
 		return;
-	}
-
-	// handedness
-	s = Info_ValueForKey( userinfo, "hand" );
-	if( !s ) {
-		cl->hand = 2;
-	} else {
-		cl->hand = Clamp( atoi( s ), 0, 2 );
 	}
 
 	// save off the userinfo in case we want to check something later
@@ -769,7 +739,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 
 	// check for a password
 	value = Info_ValueForKey( userinfo, "password" );
-	if( !fakeClient && ( *password->string && ( !value || strcmp( password->string, value ) ) ) ) {
+	if( !fakeClient && ( *sv_password->string && ( !value || strcmp( sv_password->string, value ) ) ) ) {
 		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_PASSWORD ) );
 		Info_SetValueForKey( userinfo, "rejflag", va( "%i", 0 ) );
 		if( value && value[0] ) {
@@ -854,18 +824,18 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 
 //==============================================================
 
-/*
-* G_PredictedEvent
-*/
 void G_PredictedEvent( int entNum, int ev, u64 parm ) {
+	assert( ev != EV_FIREWEAPON );
+
 	edict_t *ent = &game.edicts[entNum];
+
 	switch( ev ) {
 		case EV_SMOOTHREFIREWEAPON: // update the firing
 			G_FireWeapon( ent, parm );
 			break; // don't send the event
 
 		case EV_WEAPONACTIVATE:
-			ent->s.weapon = parm;
+			ent->s.weapon = parm >> 1;
 			G_AddEvent( ent, ev, parm, true );
 			break;
 
@@ -875,22 +845,19 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 	}
 }
 
-void G_PredictedFireWeapon( int entNum, WeaponType weapon ) {
+void G_PredictedFireWeapon( int entNum, u64 parm ) {
 	edict_t * ent = &game.edicts[ entNum ];
-	G_FireWeapon( ent, weapon );
+	G_FireWeapon( ent, parm );
 
 	Vec3 start = ent->s.origin;
 	start.z += ent->r.client->ps.viewheight;
 
-	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, weapon, &start );
+	edict_t * event = G_SpawnEvent( EV_FIREWEAPON, parm, &start );
 	event->s.ownerNum = entNum;
 	event->s.origin2 = ent->r.client->ps.viewangles;
 	event->s.team = ent->s.team;
 }
 
-/*
-* ClientThink
-*/
 void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	ZoneScoped;
 
@@ -953,7 +920,7 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	client->ps.pmove.velocity = ent->velocity;
 	client->ps.viewangles = ent->s.angles;
 
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH || GS_MatchPaused( &server_gs )
+	if( server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH || GS_MatchPaused( &server_gs )
 		|| ( ent->movetype != MOVETYPE_PLAYER && ent->movetype != MOVETYPE_NOCLIP ) ) {
 		client->ps.pmove.pm_type = PM_FREEZE;
 	} else if( ent->movetype == MOVETYPE_NOCLIP ) {
@@ -1011,21 +978,17 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 			// player can't touch projectiles, only projectiles can touch the player
 			G_CallTouch( other, ent, NULL, 0 );
 		}
+	}
 
+	if( ent->movetype == MOVETYPE_PLAYER ) {
 		if( ent->s.origin.z <= -1024 ) {
 			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin, 1337, 0, 0, MeanOfDeath_Void );
 		}
 	}
 
-	ent->s.weapon = GS_ThinkPlayerWeapon( &server_gs, &client->ps, ucmd, client->timeDelta );
+	UpdateWeapons( &server_gs, &client->ps, *ucmd, client->timeDelta );
 
-	if( G_IsDead( ent ) ) {
-		if( ent->deathTimeStamp + g_respawn_delay_min->integer <= level.time ) {
-			client->resp.snap.buttons |= ucmd->buttons;
-		}
-	} else if( client->ps.pmove.no_control_time <= 0 ) {
-		client->resp.snap.buttons |= ucmd->buttons;
-	}
+	client->resp.snap.buttons |= ucmd->buttons;
 }
 
 /*
@@ -1059,7 +1022,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		return;
 	}
 
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
+	if( server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
 		return;
 	}
 
@@ -1082,5 +1045,3 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		}
 	}
 }
-
-#undef PLAYER_MASS

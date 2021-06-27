@@ -20,12 +20,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/types.h"
 #include "qcommon/qcommon.h"
 #include "gameshared/gs_public.h"
+#include "gameshared/gs_weapons.h"
 #include "cgame/ref.h"
 
 #include "client/client.h"
 #include "cgame/cg_public.h"
 #include "cgame/cg_syscalls.h"
-#include "cgame/cg_decals.h"
+#include "cgame/cg_dynamics.h"
 #include "cgame/cg_particles.h"
 #include "cgame/cg_sprays.h"
 
@@ -37,16 +38,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 constexpr float FOV = 107.9f; // chosen to upset everyone equally
 
 constexpr RGB8 TEAM_COLORS[] = {
-	RGB8( 0, 204, 255 ),
+	RGB8( 40, 204, 255 ),
 	RGB8( 255, 24, 96 ),
-	RGB8( 50, 200, 90 ),
-	RGB8( 210, 170, 0 ),
+//	RGB8( 50, 200, 90 ),
+//	RGB8( 210, 170, 0 ),
+};
+
+constexpr RGB8 COLORBLIND_TEAM_COLORS[] = {
+	RGB8( 80, 204, 255 ),
+	RGB8( 255, 150, 40 ),
+//	RGB8( 50, 200, 90 ),
+//	RGB8( 210, 170, 0 ),
 };
 
 enum {
 	LOCALEFFECT_VSAY_TIMEOUT,
 	LOCALEFFECT_LASERBEAM,
-	LOCALEFFECT_EV_WEAPONBEAM,
 
 	LOCALEFFECT_COUNT
 };
@@ -116,7 +123,7 @@ struct cgs_media_t {
 	const Model * modDash;
 	const Model * modGib;
 
-	const Model * modPlasmaExplosion;
+	const Model * modARBulletExplosion;
 
 	const Model * modBulletExplode;
 	const Model * modBladeWallHit;
@@ -261,8 +268,8 @@ struct cg_state_t {
 	float xyspeed;
 
 	bool recoiling;
-	Vec3 recoil;
-	Vec3 recoil_initial;
+	EulerDegrees2 recoil_velocity;
+	EulerDegrees2 recoil_initial_angles;
 
 	float damage_effect;
 
@@ -331,8 +338,6 @@ void CG_RegisterFonts();
 //
 // cg_players.c
 //
-extern cvar_t *cg_hand;
-
 void CG_ResetClientInfos();
 void CG_LoadClientInfo( int client );
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
@@ -343,7 +348,7 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 extern cvar_t *cg_showMiss;
 
 void CG_PredictedEvent( int entNum, int ev, u64 parm );
-void CG_PredictedFireWeapon( int entNum, WeaponType weapon );
+void CG_PredictedFireWeapon( int entNum, u64 parm );
 void CG_PredictMovement();
 void CG_CheckPredictionError();
 void CG_BuildSolidList();
@@ -400,7 +405,6 @@ void CG_ClearAwards();
 void CG_DrawScoreboard();
 void CG_ScoresOn_f();
 void CG_ScoresOff_f();
-void SCR_UpdateScoreboardMessage( const char * string );
 bool CG_ScoreboardShown();
 
 //
@@ -409,13 +413,13 @@ bool CG_ScoreboardShown();
 extern cvar_t *developer;
 extern cvar_t *cg_showClamp;
 extern cvar_t *cg_showHotkeys;
+extern cvar_t *cg_colorBlind;
 
 // wsw
 extern cvar_t *cg_autoaction_demo;
 extern cvar_t *cg_autoaction_screenshot;
 extern cvar_t *cg_autoaction_spectator;
 
-extern cvar_t *cg_voiceChats;
 extern cvar_t *cg_projectileAntilagOffset;
 extern cvar_t *cg_chat;
 
@@ -495,7 +499,7 @@ bool CG_SwitchChaseCamMode();
 //
 
 void CG_RifleBulletTrail( const centity_t * cent );
-void CG_PlasmaExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
+void CG_ARBulletExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color );
 void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
@@ -504,8 +508,6 @@ void CG_StakeImpact( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_StakeImpale( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BlastImpact( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BlastBounce( Vec3 pos, Vec3 dir, Vec4 team_color );
-void CG_EBBeam( Vec3 start, Vec3 end, Vec4 team_color );
-void CG_EBImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 team_color );
 void CG_BladeImpact( Vec3 pos, Vec3 dir );
 
 void CG_Dash( const SyncEntityState *state );
@@ -519,7 +521,7 @@ void DrawGibs();
 // cg_effects.c
 //
 void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
-void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
+void ARBulletImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
 void BubbleImpactParticles( Vec3 origin, Vec3 team_color );
 void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color );
 
@@ -552,7 +554,6 @@ void ResetAnnouncerSpeakers();
 void AddAnnouncerSpeaker( const centity_t * cent );
 
 // I don't know where to put these ones
-void CG_WeaponBeamEffect( centity_t *cent );
 void CG_LaserBeamEffect( centity_t *cent );
 
 
@@ -585,8 +586,3 @@ void CG_GetAngularMovement( Vec3 movement );
 
 bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize );
 int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] );
-
-/**
- * Checks a chat message for local player nick and flashes window on a match
- */
-void CG_FlashChatHighlight( const unsigned int from, const char *text );

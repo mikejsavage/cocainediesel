@@ -146,6 +146,7 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 
 static constexpr const char * PLAYER_SOUND_NAMES[] = {
 	"death",
+	"void_death",
 	"jump",
 	"pain25", "pain50", "pain75", "pain100",
 	"walljump",
@@ -173,9 +174,8 @@ void InitPlayerModels() {
 
 		Span< const char > ext = FileExtension( path );
 		if( ext == ".glb" && StartsWith( path, "players/" ) ) {
-			Span< const char > path_no_ext = Span< const char >( path, strlen( path ) - ext.n );
 			Span< const char > dir = BasePath( path );
-			u64 hash = Hash64( path_no_ext );
+			u64 hash = Hash64( StripExtension( path ) );
 
 			PlayerModelMetadata * meta = &player_model_metadatas[ num_player_models ];
 			meta->model = FindModel( StringHash( hash ) );
@@ -336,10 +336,10 @@ static int CG_MoveFlagsToUpperAnimation( uint32_t moveflags, int carried_weapon 
 		case Weapon_Deagle:
 			return TORSO_HOLD_PISTOL;
 		case Weapon_Shotgun:
-		case Weapon_Plasma:
+		case Weapon_AssaultRifle:
 		case Weapon_BubbleGun:
 			return TORSO_HOLD_LIGHTWEAPON;
-		case Weapon_AssaultRifle:
+		case Weapon_BurstRifle:
 		case Weapon_RocketLauncher:
 		case Weapon_GrenadeLauncher:
 			return TORSO_HOLD_HEAVYWEAPON;

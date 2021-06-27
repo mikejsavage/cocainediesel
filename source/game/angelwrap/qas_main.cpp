@@ -25,7 +25,6 @@ static angelwrap_api_t angelExport;
 struct angelwrap_api_s *QAS_GetAngelExport() {
 	angelExport.asCreateEngine = qasCreateEngine;
 	angelExport.asReleaseEngine = qasReleaseEngine;
-	angelExport.asWriteEngineDocsToFile = qasWriteEngineDocsToFile;
 
 	angelExport.asAcquireContext = qasAcquireContext;
 	angelExport.asReleaseContext = qasReleaseContext;

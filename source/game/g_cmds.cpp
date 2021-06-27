@@ -34,7 +34,7 @@ static bool G_Teleport( edict_t *ent, Vec3 origin, Vec3 angles ) {
 		trace_t tr;
 
 		G_Trace( &tr, origin, ent->r.mins, ent->r.maxs, origin, ent, MASK_PLAYERSOLID );
-		if( tr.fraction != 1.0f || tr.startsolid ) {
+		if( ( tr.fraction != 1.0f || tr.startsolid ) && ( game.edicts[ tr.ent ].s.team != TEAM_PLAYERS && game.edicts[ tr.ent ].s.team != ent->s.team ) ) {
 			return false;
 		}
 
@@ -166,27 +166,12 @@ void Cmd_ChasePrev_f( edict_t *ent ) {
 }
 
 /*
-* Cmd_Score_f
-*/
-static void Cmd_Score_f( edict_t *ent ) {
-	bool newvalue;
-
-	if( Cmd_Argc() == 2 ) {
-		newvalue = ( atoi( Cmd_Argv( 1 ) ) != 0 ) ? true : false;
-	} else {
-		newvalue = !ent->r.client->level.showscores ? true : false;
-	}
-
-	ent->r.client->level.showscores = newvalue;
-}
-
-/*
 * Cmd_Position_f
 */
 static void Cmd_Position_f( edict_t *ent ) {
 	const char *action;
 
-	if( !sv_cheats->integer && GS_MatchState( &server_gs ) > MATCH_STATE_WARMUP &&
+	if( !sv_cheats->integer && server_gs.gameState.match_state > MATCH_STATE_WARMUP &&
 		ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
 		G_PrintMsg( ent, "Position command is only available in warmup and in spectator mode.\n" );
 		return;
@@ -409,7 +394,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 }
 
 static void Cmd_CoinToss_f( edict_t *ent ) {
-	if( GS_MatchState( &server_gs ) > MATCH_STATE_WARMUP && !GS_MatchPaused( &server_gs ) ) {
+	if( server_gs.gameState.match_state > MATCH_STATE_WARMUP && !GS_MatchPaused( &server_gs ) ) {
 		G_PrintMsg( ent, "You can only toss coins during warmup or timeouts\n" );
 		return;
 	}
@@ -418,7 +403,7 @@ static void Cmd_CoinToss_f( edict_t *ent ) {
 		return;
 	}
 
-	bool won = random_p( &svs.rng, 0.5f );
+	bool won = Probability( &svs.rng, 0.5f );
 	G_PrintMsg( NULL, "%s%s tossed a coin and %s!\n", won ? S_COLOR_GREEN : S_COLOR_RED, ent->r.client->netname, won ? "won" : "lost" );
 }
 
@@ -525,7 +510,7 @@ static void Cmd_Spray_f( edict_t * ent ) {
 
 	ent->r.client->level.last_spray = svs.realtime;
 
-	edict_t * event = G_SpawnEvent( EV_SPRAY, random_u64( &svs.rng ), &trace.endpos );
+	edict_t * event = G_SpawnEvent( EV_SPRAY, Random64( &svs.rng ), &trace.endpos );
 	event->s.angles = ent->r.client->ps.viewangles;
 	event->s.origin2 = trace.plane.normal;
 }
@@ -561,22 +546,15 @@ static const g_vsays_t g_vsays[] = {
 	{ NULL, 0 }
 };
 
-/*
-* G_vsay_f
-*/
-static void G_vsay_f( edict_t *ent, bool team ) {
+static void G_vsay_f( edict_t *ent ) {
 	const char *msg = Cmd_Argv( 1 );
 
 	if( ent->r.client && ( ent->r.client->muted & 2 ) ) {
 		return;
 	}
 
-	if( G_ISGHOSTING( ent ) && GS_MatchState( &server_gs ) < MATCH_STATE_POSTMATCH ) {
+	if( G_ISGHOSTING( ent ) && server_gs.gameState.match_state < MATCH_STATE_POSTMATCH ) {
 		return;
-	}
-
-	if( ( !level.gametype.isTeamBased || GS_IndividualGameType( &server_gs ) ) && ent->s.team != TEAM_SPECTATOR ) {
-		team = false;
 	}
 
 	if( !( ent->r.svflags & SVF_FAKECLIENT ) ) { // ignore flood checks on bots
@@ -590,17 +568,12 @@ static void G_vsay_f( edict_t *ent, bool team ) {
 		if( Q_stricmp( msg, vsay->name ) != 0 )
 			continue;
 
-		u64 entropy = random_u32( &svs.rng );
+		u64 entropy = Random32( &svs.rng );
 		u64 parm = u64( vsay->id ) | ( entropy << 16 );
 
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
 		event->r.svflags |= SVF_BROADCAST; // force sending even when not in PVS
 		event->s.ownerNum = ent->s.number;
-
-		if( team ) {
-			event->s.team = ent->s.team;
-			event->r.svflags |= SVF_ONLYTEAM;
-		}
 
 		return;
 	}
@@ -622,23 +595,6 @@ static void G_vsay_f( edict_t *ent, bool team ) {
 	G_PrintMsg( ent, "%s", string );
 }
 
-/*
-* G_vsay_Cmd
-*/
-static void G_vsay_Cmd( edict_t *ent ) {
-	G_vsay_f( ent, false );
-}
-
-/*
-* G_Teams_vsay_Cmd
-*/
-static void G_Teams_vsay_Cmd( edict_t *ent ) {
-	G_vsay_f( ent, true );
-}
-
-/*
-* Cmd_Join_f
-*/
 static void Cmd_Join_f( edict_t *ent ) {
 	if( CheckFlood( ent, false ) ) {
 		return;
@@ -653,7 +609,7 @@ static void Cmd_Join_f( edict_t *ent ) {
 static void Cmd_Timeout_f( edict_t *ent ) {
 	int num;
 
-	if( ent->s.team == TEAM_SPECTATOR || GS_MatchState( &server_gs ) != MATCH_STATE_PLAYTIME ) {
+	if( ent->s.team == TEAM_SPECTATOR || server_gs.gameState.match_state != MATCH_STATE_PLAYTIME ) {
 		return;
 	}
 
@@ -733,74 +689,6 @@ static void Cmd_Timein_f( edict_t *ent ) {
 	G_PrintMsg( NULL, "%s%s called a timein\n", ent->r.client->netname, S_COLOR_WHITE );
 }
 
-/*
-* G_StatsMessage
-*
-* Generates stats message for the entity
-* The returned string must be freed by the caller using G_Free
-* Note: This string must never contain " characters
-*/
-char *G_StatsMessage( edict_t *ent ) {
-	static char entry[MAX_TOKEN_CHARS];
-
-	assert( ent && ent->r.client );
-	const gclient_t * client = ent->r.client;
-
-	// message header
-	snprintf( entry, sizeof( entry ), "%d", PLAYERNUM( ent ) );
-
-	for( WeaponType i = Weapon_None + 1; i < Weapon_Count; i++ ) {
-		int hit = client->level.stats.accuracy_hits[ i ];
-		int shot = client->level.stats.accuracy_shots[ i ];
-
-		Q_strncatz( entry, va( " %d", shot ), sizeof( entry ) );
-		if( shot < 1 ) {
-			continue;
-		}
-		Q_strncatz( entry, va( " %d", hit ), sizeof( entry ) );
-	}
-
-	Q_strncatz( entry, va( " %d %d", client->level.stats.total_damage_given, client->level.stats.total_damage_received ), sizeof( entry ) );
-
-	// add enclosing quote
-	Q_strncatz( entry, "\"", sizeof( entry ) );
-
-	return entry;
-}
-
-/*
-* Cmd_ShowStats_f
-*/
-static void Cmd_ShowStats_f( edict_t *ent ) {
-	edict_t *target;
-
-	if( Cmd_Argc() > 2 ) {
-		G_PrintMsg( ent, "Usage: stats [player]\n" );
-		return;
-	}
-
-	if( Cmd_Argc() == 2 ) {
-		target = G_PlayerForText( Cmd_Argv( 1 ) );
-		if( target == NULL ) {
-			G_PrintMsg( ent, "No such player\n" );
-			return;
-		}
-	} else {
-		if( ent->r.client->resp.chase.active && game.edicts[ent->r.client->resp.chase.target].r.client ) {
-			target = &game.edicts[ent->r.client->resp.chase.target];
-		} else {
-			target = ent;
-		}
-	}
-
-	if( target->s.team == TEAM_SPECTATOR ) {
-		G_PrintMsg( ent, "No stats for spectators\n" );
-		return;
-	}
-
-	PF_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( target ) ) );
-}
-
 //===========================================================
 //	client commands
 //===========================================================
@@ -877,10 +765,8 @@ void G_InitGameCommands() {
 	G_AddCommand( "position", Cmd_Position_f );
 	G_AddCommand( "players", Cmd_Players_f );
 	G_AddCommand( "spectators", Cmd_Spectators_f );
-	G_AddCommand( "stats", Cmd_ShowStats_f );
 	G_AddCommand( "say", Cmd_SayCmd_f );
 	G_AddCommand( "say_team", Cmd_SayTeam_f );
-	G_AddCommand( "svscore", Cmd_Score_f );
 	G_AddCommand( "god", Cmd_God_f );
 	G_AddCommand( "noclip", Cmd_Noclip_f );
 	G_AddCommand( "kill", Cmd_Kill_f );
@@ -914,8 +800,7 @@ void G_InitGameCommands() {
 
 	G_AddCommand( "spray", Cmd_Spray_f );
 
-	G_AddCommand( "vsay", G_vsay_Cmd );
-	G_AddCommand( "vsay_team", G_Teams_vsay_Cmd );
+	G_AddCommand( "vsay", G_vsay_f );
 }
 
 /*

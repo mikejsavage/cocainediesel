@@ -277,13 +277,15 @@ int         Cmd_CompleteCountPossible( const char *partial );
 const char  **Cmd_CompleteBuildList( const char *partial );
 const char  **Cmd_CompleteBuildArgList( const char *partial );
 const char  **Cmd_CompleteBuildArgListExt( const char *command, const char *arguments );
-const char  **Cmd_CompleteFileList( const char *partial, const char *basedir, const char *extension, bool subdirectories );
+const char  **Cmd_CompleteHomeDirFileList( const char *partial, const char *basedir, const char *extension );
 int         Cmd_Argc();
 const char  *Cmd_Argv( int arg );
 char        *Cmd_Args();
 void        Cmd_TokenizeString( const char *text );
 void        Cmd_ExecuteString( const char *text );
 void        Cmd_SetCompletionFunc( const char *cmd_name, xcompletionf_t completion_func );
+
+void ExecDefaultCfg();
 
 /*
 ==============================================================
@@ -484,16 +486,13 @@ FILESYSTEM
 */
 
 void        FS_Init();
-void        FS_Frame();
 void        FS_Shutdown();
 
 const char *FS_GameDirectory();
-const char *FS_BaseGameDirectory();
 
 // handling of absolute filenames
 // only to be used if necessary (library not supporting custom file handling functions etc.)
 const char *FS_WriteDirectory();
-const char *FS_DownloadsDirectory();
 void        FS_CreateAbsolutePath( const char *path );
 const char *FS_AbsoluteNameForFile( const char *filename );
 const char *FS_AbsoluteNameForBaseFile( const char *filename );
@@ -506,7 +505,6 @@ int     FS_FOpenAbsoluteFile( const char *filename, int *filenum, int mode );
 void    FS_FCloseFile( int file );
 
 int     FS_Read( void *buffer, size_t len, int file );
-int     FS_Print( int file, const char *msg );
 
 #ifndef _MSC_VER
 int FS_Printf( int file, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
@@ -542,9 +540,6 @@ unsigned    FS_ChecksumBaseFile( const char *filename );
 
 // // only for game files
 const char *FS_BaseNameForFile( const char *filename );
-
-int         FS_GetFileList( const char *dir, const char *extension, char *buf, size_t bufsize, int start, int end );
-int         FS_GetFileListExt( const char *dir, const char *extension, char *buf, size_t *bufsize, int start, int end );
 
 /*
 ==============================================================
@@ -591,14 +586,14 @@ void Com_GGError( com_error_code_t code, const char * fmt, const Rest & ... rest
 
 void        Com_DeferQuit();
 
-int         Com_ClientState();        // this should have just been a cvar...
-void        Com_SetClientState( int state );
+connstate_t Com_ClientState();
+void Com_SetClientState( connstate_t state );
 
 bool		Com_DemoPlaying();
 void        Com_SetDemoPlaying( bool state );
 
-int         Com_ServerState();        // this should have just been a cvar...
-void        Com_SetServerState( int state );
+server_state_t Com_ServerState();
+void Com_SetServerState( server_state_t state );
 
 extern cvar_t *developer;
 extern const bool is_dedicated_server;
@@ -732,20 +727,3 @@ void SV_Init();
 void SV_Shutdown( const char *finalmsg );
 void SV_ShutdownGame( const char *finalmsg, bool reconnect );
 void SV_Frame( unsigned realMsec, unsigned gameMsec );
-
-/*
-==============================================================
-
-MAPLIST SUBSYSTEM
-
-==============================================================
-*/
-
-void InitMapList();
-void ShutdownMapList();
-
-void RefreshMapList();
-Span< const char * > GetMapList();
-bool MapExists( const char * name );
-
-const char ** CompleteMapName( const char * prefix );

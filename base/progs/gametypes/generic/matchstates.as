@@ -19,64 +19,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void GENERIC_SetUpWarmup()
 {
-	int j;
-	Team @team;
-
 	gametype.shootingDisabled = false;
-	gametype.readyAnnouncementEnabled = true;
-	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = false;
-
-	if ( gametype.isTeamBased )
-	{
-		bool anyone = false;
-		int t;
-
-		for ( t = TEAM_ALPHA; t < GS_MAX_TEAMS; t++ )
-		{
-			@team = @G_GetTeam( t );
-
-			if ( team.unlock() )
-				anyone = true;
-		}
-
-		if ( anyone )
-			G_PrintMsg( null, "Teams unlocked.\n" );
-	}
-	else
-	{
-		@team = @G_GetTeam( TEAM_PLAYERS );
-
-		if ( team.unlock() )
-			G_PrintMsg( null, "Teams unlocked.\n" );
-	}
 }
 
 void GENERIC_SetUpCountdown()
 {
 	gametype.shootingDisabled = false;
-	gametype.readyAnnouncementEnabled = false;
-	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = true;
-
-	// lock teams
-	bool anyone = false;
-	if ( gametype.isTeamBased )
-	{
-		for ( int team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ )
-		{
-			if ( G_GetTeam( team ).lock() )
-				anyone = true;
-		}
-	}
-	else
-	{
-		if ( G_GetTeam( TEAM_PLAYERS ).lock() )
-			anyone = true;
-	}
-
-	if ( anyone )
-		G_PrintMsg( null, "Teams locked.\n" );
 
 	// Countdowns should be made entirely client side, because we now can
 
@@ -92,14 +42,12 @@ void GENERIC_SetUpMatch()
 
 	G_RemoveAllProjectiles();
 	gametype.shootingDisabled = true;  // avoid shooting before "FIGHT!"
-	gametype.readyAnnouncementEnabled = false;
-	gametype.scoreAnnouncementEnabled = true;
 	gametype.countdownEnabled = true;
 
 	// clear player stats and scores, team scores and respawn clients in team lists
 
-	match.alphaScore = 0;
-	match.betaScore = 0;
+	G_GetTeam( TEAM_ALPHA ).setScore( 0 );
+	G_GetTeam( TEAM_BETA ).setScore( 0 );
 
 	for ( i = TEAM_PLAYERS; i < GS_MAX_TEAMS; i++ )
 	{
@@ -130,8 +78,6 @@ void GENERIC_SetUpEndMatch()
 	Client @client;
 
 	gametype.shootingDisabled = true;
-	gametype.readyAnnouncementEnabled = false;
-	gametype.scoreAnnouncementEnabled = false;
 	gametype.countdownEnabled = false;
 
 	for ( int i = 0; i < maxClients; i++ )
@@ -221,20 +167,15 @@ Entity @RandomEntity( String &className )
 	array<Entity @> @spawnents = G_FindByClassname( className );
 	if( spawnents.size() == 0 )
 		return null;
-	return spawnents[ random_uniform( 0, spawnents.size() ) ];
+	return spawnents[ RandomUniform( 0, spawnents.size() ) ];
 }
 
 void GENERIC_UpdateMatchScore()
 {
 	if( gametype.isTeamBased ) {
-		match.setScore( match.alphaScore + " : " + match.betaScore );
+		match.setScore( G_GetTeam( TEAM_ALPHA ).score + " : " + G_GetTeam( TEAM_BETA ).score );
 		return;
 	}
 
 	match.setScore( "" );
-}
-
-void GENERIC_Think()
-{
-	GENERIC_UpdateMatchScore();
 }

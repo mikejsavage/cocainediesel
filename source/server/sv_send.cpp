@@ -59,6 +59,8 @@ void SV_AddGameCommand( client_t *client, const char *cmd ) {
 		return;
 	}
 
+	assert( strlen( cmd ) < MAX_STRING_CHARS );
+
 	client->gameCommandCurrent++;
 	index = client->gameCommandCurrent & ( MAX_RELIABLE_COMMANDS - 1 );
 	Q_strncpyz( client->gameCommands[index].command, cmd, sizeof( client->gameCommands[index].command ) );

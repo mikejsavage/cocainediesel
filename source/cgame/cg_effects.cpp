@@ -5,8 +5,8 @@ void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
 	DoVisualEffect( "vfx/explosion", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
 }
 
-void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	DoVisualEffect( "weapons/pg/explosion", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
+void ARBulletImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
+	DoVisualEffect( "weapons/ar/explosion", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
 }
 
 void BubbleImpactParticles( Vec3 origin, Vec3 team_color ) {
@@ -23,6 +23,9 @@ void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material ) {
 	if( material == NULL )
+		return;
+
+	if( start == end || start == frame_static.position )
 		return;
 
 	Vec3 dir = Normalize( end - start );

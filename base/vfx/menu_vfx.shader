@@ -5,10 +5,10 @@ weapons/9mm/icon
   }
   decal
 }
-weapons/ar/icon
+weapons/br/icon
 {
   {
-    map weapons/ar/icon
+    map weapons/br/icon
   }
   decal
 }
@@ -47,6 +47,13 @@ weapons/gl/icon
   }
   decal
 }
+weapons/rl/icon
+{
+  {
+    map weapons/rl/icon
+  }
+  decal
+}
 weapons/lg/icon
 {
   {
@@ -61,10 +68,10 @@ weapons/mg/icon
   }
   decal
 }
-weapons/pg/icon
+weapons/ar/icon
 {
   {
-    map weapons/pg/icon
+    map weapons/ar/icon
   }
   decal
 }
@@ -86,6 +93,20 @@ weapons/sniper/icon
 {
   {
     map weapons/sniper/icon
+  }
+  decal
+}
+weapons/road/icon
+{
+  {
+    map weapons/road/icon
+  }
+  decal
+}
+weapons/minigun/icon
+{
+  {
+    map weapons/minigun/icon
   }
   decal
 }

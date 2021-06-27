@@ -58,10 +58,6 @@ static void CG_SC_ChatPrint() {
 		prefix,
 		( const char * ) ImGuiColorToken( team_color ).token, name,
 		( const char * ) ImGuiColorToken( rgba8_white ).token, text );
-
-	if( !cgs.demoPlaying ) {
-		CG_FlashChatHighlight( who - 1, text );
-	}
 }
 
 static void CG_SC_CenterPrint() {
@@ -96,66 +92,13 @@ void CG_ConfigString( int i, const char *s ) {
 	}
 }
 
-static void CG_SC_Scoreboard() {
-	SCR_UpdateScoreboardMessage( Cmd_Argv( 1 ) );
-}
-
-static int ParseIntOr0( const char ** cursor ) {
-	Span< const char > token = ParseToken( cursor, Parse_DontStopOnNewLine );
-	return SpanToInt( token, 0 );
-}
-
-static void CG_SC_PlayerStats() {
-	const char * s = Cmd_Argv( 1 );
-
-	int playerNum = ParseIntOr0( &s );
-	if( playerNum < 0 || playerNum >= client_gs.maxclients ) {
-		return;
-	}
-
-	Com_Printf( "Stats for %s" S_COLOR_WHITE ":\n", cgs.clientInfo[playerNum].name );
-	Com_Printf( "\nWeapon\n" );
-	Com_Printf( "    hit/shot percent\n" );
-
-	for( WeaponType i = Weapon_Knife; i < Weapon_Count; i++ ) {
-		const WeaponDef * weapon = GS_GetWeaponDef( i );
-
-		int shots = ParseIntOr0( &s );
-		if( shots < 1 ) { // only continue with registered shots
-			continue;
-		}
-		int hits = ParseIntOr0( &s );
-
-		// name
-		Com_Printf( S_COLOR_WHITE "%2s: ", weapon->short_name );
-
-#define STATS_PERCENT( hit, total ) ( ( total ) == 0 ? 0 : ( ( hit ) == ( total ) ? 100 : (float)( hit ) * 100.0f / (float)( total ) ) )
-
-		// total
-		Com_Printf( S_COLOR_GREEN "%3i" S_COLOR_WHITE "/" S_COLOR_CYAN "%3i      " S_COLOR_YELLOW "%2.1f\n",
-			   hits, shots, STATS_PERCENT( hits, shots ) );
-	}
-
-	Com_Printf( "\n" );
-
-	int total_damage_given = ParseIntOr0( &s );
-	int total_damage_received = ParseIntOr0( &s );
-
-	Com_Printf( S_COLOR_YELLOW "Damage given/received: " S_COLOR_WHITE "%i/%i " S_COLOR_YELLOW "ratio: %s%3.2f\n",
-		total_damage_given, total_damage_received,
-		total_damage_given > total_damage_received ? S_COLOR_GREEN : S_COLOR_RED,
-		STATS_PERCENT( total_damage_given, total_damage_given + total_damage_received ) );
-
-#undef STATS_PERCENT
-}
-
 static const char *CG_SC_AutoRecordName() {
 	static char name[MAX_STRING_CHARS];
 
 	char date[ 128 ];
 	Sys_FormatTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
-	snprintf( name, sizeof( name ), "%s_%s_%04i", date, cl.map->name, random_uniform( &cls.rng, 0, 10000 ) );
+	snprintf( name, sizeof( name ), "%s_%s_%04i", date, cl.map->name, RandomUniform( &cls.rng, 0, 10000 ) );
 
 	return name;
 }
@@ -250,7 +193,7 @@ static void CG_SC_DemoGet() {
 	demo_requested = false;
 
 	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "No such demo found\n" );
+		Com_Printf( "Invalid demo ID\n" );
 		return;
 	}
 
@@ -311,8 +254,6 @@ static const ServerCommand server_commands[] = {
 	{ "tch", CG_SC_ChatPrint },
 	{ "cp", CG_SC_CenterPrint },
 	{ "obry", CG_SC_Obituary },
-	{ "scb", CG_SC_Scoreboard },
-	{ "plstats", CG_SC_PlayerStats },
 	{ "demoget", CG_SC_DemoGet },
 	{ "aw", CG_SC_AddAward },
 	{ "changeloadout", CG_SC_ChangeLoadout },
@@ -360,30 +301,36 @@ static void CG_Cmd_UseItem_f() {
 	}
 }
 
-static WeaponType CG_UseWeaponStep( SyncPlayerState * ps, bool next, WeaponType predicted_equipped_weapon ) {
-	if( predicted_equipped_weapon == Weapon_Count )
-		return Weapon_Count;
+static void ScrollWeapon( int step ) {
+	WeaponType current = cg.predictedPlayerState.weapon;
+	if( cg.predictedPlayerState.pending_weapon != Weapon_None ) {
+		current = cg.predictedPlayerState.pending_weapon;
+	}
+
+	if( current == Weapon_None )
+		return;
+
+	SyncPlayerState * ps = &cg.predictedPlayerState;
 
 	size_t num_weapons = ARRAY_COUNT( ps->weapons );
 
-	int weapon;
-	for( weapon = 0; weapon < num_weapons; weapon++ ) { //find the basis weapon
-		if( ps->weapons[ weapon ].weapon == predicted_equipped_weapon ) {
+	int slot = 0;
+	for( int i = 0; i < num_weapons; i++ ) {
+		if( ps->weapons[ i ].weapon == current ) {
+			slot = i;
 			break;
 		}
 	}
 
-	int step = ( next ? 1 : -1 );
-	weapon += step;
+	slot += step;
 
-	int end = ( next ? num_weapons : -1 );
-	for( int i = weapon; i != end; i += step ) {
-		if( ps->weapons[ i ].weapon != Weapon_None ) {
-			return ps->weapons[ i ].weapon;
-		}
+	if( slot >= num_weapons || slot < 0 )
+		return;
+
+	WeaponType weapon = ps->weapons[ slot ].weapon;
+	if( weapon != Weapon_None && weapon != Weapon_Knife ) {
+		SwitchWeapon( weapon );
 	}
-
-	return Weapon_Count;
 }
 
 static void CG_Cmd_NextWeapon_f() {
@@ -392,10 +339,7 @@ static void CG_Cmd_NextWeapon_f() {
 		return;
 	}
 
-	WeaponType weapon = CG_UseWeaponStep( &cg.frame.playerState, true, cg.predictedPlayerState.pending_weapon );
-	if( weapon != Weapon_Count && weapon != Weapon_Knife ) {
-		SwitchWeapon( weapon );
-	}
+	ScrollWeapon( 1 );
 }
 
 static void CG_Cmd_PrevWeapon_f() {
@@ -404,10 +348,7 @@ static void CG_Cmd_PrevWeapon_f() {
 		return;
 	}
 
-	WeaponType weapon = CG_UseWeaponStep( &cg.frame.playerState, false, cg.predictedPlayerState.pending_weapon );
-	if( weapon != Weapon_Count && weapon != Weapon_Knife ) {
-		SwitchWeapon( weapon );
-	}
+	ScrollWeapon( -1 );
 }
 
 static void CG_Cmd_LastWeapon_f() {
@@ -478,15 +419,10 @@ static void CG_SayTeamCmdAdd_f() {
 	Cmd_SetCompletionFunc( "say_team", &CG_TeamPlayerNamesCompletion_f );
 }
 
-static void CG_StatsCmdAdd_f() {
-	Cmd_SetCompletionFunc( "stats", &CG_PlayerNamesCompletion_f );
-}
-
 // server commands
 static const ServerCommand cg_consvcmds[] = {
 	{ "say", CG_SayCmdAdd_f },
 	{ "say_team", CG_SayTeamCmdAdd_f },
-	{ "stats", CG_StatsCmdAdd_f },
 
 	{ NULL, NULL }
 };

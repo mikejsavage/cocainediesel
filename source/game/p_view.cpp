@@ -234,7 +234,7 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 * G_SetClientEffects
 */
 static void G_SetClientEffects( edict_t *ent ) {
-	if( G_IsDead( ent ) || GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
+	if( G_IsDead( ent ) || server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
 		return;
 	}
 
@@ -276,7 +276,7 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 
 	// If the end of unit layout is displayed, don't give
 	// the player any normal movement attributes
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
+	if( server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
 		G_SetClientStats( ent );
 	} else {
 		if( G_IsDead( ent ) ) {

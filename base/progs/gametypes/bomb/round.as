@@ -1,20 +1,9 @@
-enum RoundState {
-	RoundState_None,
-	RoundState_Pre,
-	RoundState_Round,
-	RoundState_Finished,
-	RoundState_Post,
-}
-
-RoundState roundState = RoundState_None;
-
 bool roundCheckEndTime; // you can check if roundStateEndTime == 0 but roundStateEndTime can overflow
-int64 roundStartTime;    // roundStartTime because only spawn protection uses it
+int64 roundStartTime;
+int64 roundStateStartTime; // XXX: this should be fixed in all gts
 int64 roundStateEndTime; // XXX: this should be fixed in all gts
 
 int roundCountDown;
-
-uint roundCount;
 
 int attackingTeam;
 int defendingTeam;
@@ -33,7 +22,7 @@ void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
 	if( match.getState() != MATCH_STATE_PLAYTIME )
 		return;
 
-	if( roundState >= RoundState_Finished )
+	if( match.roundState >= RoundState_Finished )
 		return;
 
 	if( @victim == @bombCarrier ) {
@@ -91,22 +80,22 @@ void checkPlayersAlive( int team ) {
 void setTeams() {
 	uint limit = cvarScoreLimit.integer;
 
-	if( limit == 0 || roundCount > ( limit - 1 ) * 2 ) {
+	if( limit == 0 || match.roundNum > ( limit - 1 ) * 2 ) {
 		// the first overtime round is ( limit - 1 ) * 2 + 1
 		// which is of the form 2n + 1 so is odd
-		bool odd = roundCount % 2 == 1;
+		bool odd = match.roundNum % 2 == 1;
 		attackingTeam = odd ? INITIAL_ATTACKERS : INITIAL_DEFENDERS;
 		defendingTeam = odd ? INITIAL_DEFENDERS : INITIAL_ATTACKERS;
 		return;
 	}
 
-	bool first_half = roundCount < limit;
+	bool first_half = match.roundNum < limit;
 	attackingTeam = first_half ? INITIAL_ATTACKERS : INITIAL_DEFENDERS;
 	defendingTeam = first_half ? INITIAL_DEFENDERS : INITIAL_ATTACKERS;
 }
 
 void newGame() {
-	roundCount = 1;
+	match.resetRounds();
 	setTeams();
 
 	for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {
@@ -119,7 +108,7 @@ void newGame() {
 		}
 	}
 
-	newRound();
+	roundNewState( RoundState_Countdown );
 }
 
 // this function doesn't care how the round was won
@@ -135,13 +124,7 @@ void roundWonBy( int winner ) {
 	G_AnnouncerSound( null, sound, loser, true, null );
 
 	Team @teamWinner = @G_GetTeam( winner );
-
-	if( winner == TEAM_ALPHA ) {
-		match.alphaScore++;
-	}
-	else {
-		match.betaScore++;
-	}
+	teamWinner.addScore( 1 );
 
 	for( int i = 0; @teamWinner.ent( i ) != null; i++ ) {
 		Entity @ent = @teamWinner.ent( i );
@@ -154,10 +137,6 @@ void roundWonBy( int winner ) {
 	roundNewState( RoundState_Finished );
 }
 
-void newRound() {
-	roundNewState( RoundState_Pre );
-}
-
 void endGame() {
 	roundNewState( RoundState_None );
 
@@ -165,7 +144,7 @@ void endGame() {
 }
 
 bool scoreLimitHit() {
-	return match.scoreLimitHit() && abs( int( match.alphaScore ) - int( match.betaScore ) ) > 1;
+	return match.scoreLimitHit() && abs( int( G_GetTeam( TEAM_ALPHA ).score ) - int( G_GetTeam( TEAM_BETA ).score ) ) > 1;
 }
 
 void setRoundType() {
@@ -173,11 +152,11 @@ void setRoundType() {
 
 	uint limit = cvarScoreLimit.integer;
 
-	bool match_point = match.alphaScore == limit - 1 || match.betaScore == limit - 1;
-	bool overtime = roundCount > ( limit - 1 ) * 2;
+	bool match_point = G_GetTeam( TEAM_ALPHA ).score == limit - 1 || G_GetTeam( TEAM_BETA ).score == limit - 1;
+	bool overtime = match.roundNum > ( limit - 1 ) * 2;
 
 	if( overtime ) {
-		type = match.alphaScore == match.betaScore ? RoundType_Overtime : RoundType_OvertimeMatchPoint;
+		type = G_GetTeam( TEAM_ALPHA ).score == G_GetTeam( TEAM_ALPHA ).score ? RoundType_Overtime : RoundType_OvertimeMatchPoint;
 	}
 	else if( match_point ) {
 		type = RoundType_MatchPoint;
@@ -195,16 +174,19 @@ void setRoundType() {
 
 void roundNewState( RoundState state ) {
 	if( state > RoundState_Post ) {
-		state = RoundState_Pre;
+		state = RoundState_Countdown;
 	}
 
-	roundState = state;
+	match.roundState = state;
+	roundStateStartTime = levelTime;
 
-	switch( roundState ) {
+	switch( match.roundState ) {
 		case RoundState_None:
 			break;
 
-		case RoundState_Pre:
+		case RoundState_Countdown:
+			match.newRound();
+
 			roundCountDown = COUNTDOWN_MAX;
 
 			setTeams();
@@ -265,8 +247,6 @@ void roundNewState( RoundState state ) {
 
 			roundCheckEndTime = true;
 			roundStateEndTime = levelTime + 3000; // XXX: old bomb did +5s but i don't see the point
-
-			roundCount++;
 			break;
 	}
 }
@@ -274,11 +254,11 @@ void roundNewState( RoundState state ) {
 int last_time = 0;
 
 void roundThink() {
-	if( roundState == RoundState_None ) {
+	if( match.roundState == RoundState_None ) {
 		return;
 	}
 
-	if( roundState == RoundState_Pre ) {
+	if( match.roundState == RoundState_Countdown ) {
 		int remainingSeconds = int( ( roundStateEndTime - levelTime ) * 0.001f ) + 1;
 
 		if( remainingSeconds < 0 ) {
@@ -309,7 +289,7 @@ void roundThink() {
 
 	// i suppose the following blocks could be merged to save an if or 2
 	if( roundCheckEndTime && levelTime > roundStateEndTime ) {
-		if( roundState == RoundState_Round ) {
+		if( match.roundState == RoundState_Round ) {
 			if( bombState != BombState_Planted ) {
 				roundWonBy( defendingTeam );
 				last_time = 1; // kinda hacky, this shows at 0:00
@@ -321,15 +301,15 @@ void roundThink() {
 			}
 		}
 		else {
-			roundNewState( RoundState( roundState + 1 ) );
+			roundNewState( RoundState( match.roundState + 1 ) );
 
 			return;
 		}
 	}
 
-	if( roundState == RoundState_Round ) {
+	if( match.roundState == RoundState_Round ) {
 		// monitor the bomb's health
-		if( @bombModel == null || bombModel.classname != "bomb" ) {
+		if( @bombModel == null || !bombModel.inuse ) {
 			bombModelCreate();
 
 			roundWonBy( defendingTeam );
@@ -348,8 +328,6 @@ void roundThink() {
 		}
 
 		match.setClockOverride( last_time );
-
-		bombThink();
 	}
 	else {
 		if( bombState == BombState_Planting ) {
@@ -362,10 +340,10 @@ void roundThink() {
 		}
 
 		match.setClockOverride( last_time );
+	}
 
-		if( roundState > RoundState_Round ) {
-			bombPostRoundThink();
-		}
+	if( match.roundState >= RoundState_Round ) {
+		bombThink();
 	}
 }
 
@@ -386,9 +364,6 @@ uint playersAliveOnTeam( int teamNum ) {
 	return alive;
 }
 
-// loops through players on teamNum and returns Entity of first alive player
-// this is only used when playersAliveOnTeam returns 1
-// hence the assert
 Client @firstAliveOnTeam( int teamNum ) {
 	Team @team = @G_GetTeam( teamNum );
 

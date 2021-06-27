@@ -4,8 +4,8 @@
 
 v2f vec3 v_Position;
 v2f vec2 v_TexCoord;
-v2f float v_Layer;
-v2f vec4 v_Color;
+flat v2f float v_Layer;
+flat v2f vec4 v_Color;
 
 #if VERTEX_SHADER
 
@@ -26,12 +26,6 @@ in vec2 a_ParticleSize;
 in vec2 a_ParticleAgeLifetime;
 in uint a_ParticleFlags;
 
-uniform sampler2D u_GradientTexture;
-
-layout( std140 ) uniform u_GradientMaterial {
-	float u_GradientHalfPixel;
-};
-
 // must match source
 #define PARTICLE_COLLISION_POINT 1u
 #define PARTICLE_COLLISION_SPHERE 2u
@@ -41,10 +35,7 @@ layout( std140 ) uniform u_GradientMaterial {
 void main() {
 	float fage = a_ParticleAgeLifetime.x / a_ParticleAgeLifetime.y;
 
-	float uv = mix( u_GradientHalfPixel, fage, 1.0 - u_GradientHalfPixel );
-	vec4 gradColor = texture( u_GradientTexture, vec2( uv, 0.5 ) );
-
-	v_Color = sRGBToLinear( mix( a_ParticleStartColor, a_ParticleEndColor, fage ) ) * gradColor;
+	v_Color = sRGBToLinear( mix( a_ParticleStartColor, a_ParticleEndColor, fage ) );
 #if MODEL
 	v_TexCoord = a_TexCoord;
 #else
@@ -83,7 +74,7 @@ void main() {
 #else
 
 uniform sampler2D u_BaseTexture;
-uniform sampler2DArray u_DecalAtlases;
+uniform lowp sampler2DArray u_DecalAtlases;
 
 out vec4 f_Albedo;
 
@@ -93,10 +84,13 @@ void main() {
 #if MODEL
 	color = texture( u_BaseTexture, v_TexCoord ) * v_Color;
 #else
-	color = texture( u_DecalAtlases, vec3( v_TexCoord, v_Layer ) ) * v_Color;
+	color = vec4( vec3( 1.0 ), texture( u_DecalAtlases, vec3( v_TexCoord, v_Layer ) ).r ) * v_Color;
 #endif
 	color.a = FogAlpha( color.a, length( v_Position - u_CameraPos ) );
 	color.a = VoidFogAlpha( color.a, v_Position.z );
+
+	if( color.a < 0.01 )
+		discard;
 
 	f_Albedo = LinearTosRGB( color );
 }

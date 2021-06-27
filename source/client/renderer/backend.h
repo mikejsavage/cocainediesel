@@ -39,6 +39,11 @@ enum TextureFormat : u8 {
 	TextureFormat_RGBA_U8,
 	TextureFormat_RGBA_U8_sRGB,
 
+	TextureFormat_BC1_sRGB,
+	TextureFormat_BC3_sRGB,
+	TextureFormat_BC4,
+	TextureFormat_BC5,
+
 	TextureFormat_Depth,
 
 	TextureFormat_BGRA_U8_sRGB,
@@ -79,6 +84,7 @@ enum VertexFormat : u8 {
 };
 
 enum TextureBufferFormat : u8 {
+	TextureBufferFormat_U8x2,
 	TextureBufferFormat_U8x4,
 
 	TextureBufferFormat_U32,
@@ -95,7 +101,6 @@ struct Texture {
 	u32 width, height;
 	bool msaa;
 	TextureFormat format;
-	const void * data;
 };
 
 struct TextureArray {
@@ -276,8 +281,15 @@ struct TextureArrayConfig {
 
 namespace tracy { struct SourceLocationData; }
 
+enum RenderPassType {
+	RenderPass_Normal,
+	RenderPass_Blit,
+};
+
 struct RenderPass {
 	const char * name = NULL;
+
+	RenderPassType type;
 
 	Framebuffer target = { };
 
@@ -289,7 +301,7 @@ struct RenderPass {
 
 	bool sorted = true;
 
-	Framebuffer msaa_source = { };
+	Framebuffer blit_source = { };
 
 	const tracy::SourceLocationData * tracy;
 };
@@ -313,8 +325,9 @@ void RenderBackendSubmitFrame();
 u8 AddRenderPass( const RenderPass & config );
 u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
 u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
-u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * tracy );
-void AddResolveMSAAPass( Framebuffer src, Framebuffer dst, const tracy::SourceLocationData * tracy );
+u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target = { } );
+void AddBlitPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+void AddResolveMSAAPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 
@@ -367,8 +380,8 @@ void DeferDeleteMesh( const Mesh & mesh );
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0 );
 void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, float radius, u32 num_particles, float dt );
 void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, VertexBuffer vb_feedback, float radius, u32 num_particles, float dt );
-void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material * gradient, BlendFunc blend_func, u32 num_particles );
-void DrawInstancedParticles( VertexBuffer vb, const Model * model, const Material * gradient, u32 num_particles );
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, BlendFunc blend_func, u32 num_particles );
+void DrawInstancedParticles( VertexBuffer vb, const Model * model, u32 num_particles );
 
 void DownloadFramebuffer( void * buf );
 

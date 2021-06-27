@@ -20,8 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 #include "qcommon/cmodel.h"
-#include "qcommon/glob.h"
 #include "qcommon/csprng.h"
+#include "qcommon/fs.h"
+#include "qcommon/glob.h"
+#include "qcommon/maplist.h"
 #include "qcommon/threads.h"
 #include "qcommon/version.h"
 
@@ -53,8 +55,8 @@ static Mutex *com_print_mutex;
 
 static int log_file = 0;
 
-static int server_state = CA_UNINITIALIZED;
-static int client_state = CA_UNINITIALIZED;
+static server_state_t server_state = ss_dead;
+static connstate_t client_state = CA_UNINITIALIZED;
 static bool demo_playing = false;
 
 /*
@@ -298,25 +300,19 @@ void Com_Quit() {
 	Sys_Quit();
 }
 
-/*
-* Com_ServerState
-*/
-int Com_ServerState() {
+server_state_t Com_ServerState() {
 	return server_state;
 }
 
-/*
-* Com_SetServerState
-*/
-void Com_SetServerState( int state ) {
+void Com_SetServerState( server_state_t state ) {
 	server_state = state;
 }
 
-int Com_ClientState() {
+connstate_t Com_ClientState() {
 	return client_state;
 }
 
-void Com_SetClientState( int state ) {
+void Com_SetClientState( connstate_t state ) {
 	client_state = state;
 }
 
@@ -565,17 +561,18 @@ void Qcommon_Init( int argc, char **argv ) {
 	Cbuf_AddEarlyCommands( false );
 	Cbuf_Execute();
 
-	developer =     Cvar_Get( "developer", "0", 0 );
+	developer = Cvar_Get( "developer", "0", 0 );
 
+	InitFS();
 	FS_Init();
 
 	if( !is_dedicated_server ) {
-		Cbuf_AddText( "exec default.cfg\n" );
+		ExecDefaultCfg();
 		Cbuf_AddText( "exec config.cfg\n" );
 		Cbuf_AddText( "exec autoexec.cfg\n" );
 	}
 	else {
-		Cbuf_AddText( "exec dedicated_autoexec.cfg\n" );
+		Cbuf_AddText( "config dedicated_autoexec.cfg\n" );
 	}
 
 	Cbuf_AddEarlyCommands( true );
@@ -608,8 +605,6 @@ void Qcommon_Init( int argc, char **argv ) {
 	NET_Init();
 	Netchan_Init();
 
-	CM_Init();
-
 	InitMapList();
 
 	SV_Init();
@@ -624,7 +619,6 @@ void Qcommon_Init( int argc, char **argv ) {
 * Qcommon_Frame
 */
 void Qcommon_Frame( unsigned int realMsec ) {
-	FrameMark;
 	ZoneScoped;
 
 	static unsigned int gameMsec;
@@ -650,8 +644,6 @@ void Qcommon_Frame( unsigned int realMsec ) {
 		gameMsec = realMsec;
 	}
 
-	FS_Frame();
-
 	if( is_dedicated_server ) {
 		const char * s;
 		do {
@@ -672,7 +664,6 @@ void Qcommon_Frame( unsigned int realMsec ) {
 * Qcommon_Shutdown
 */
 void Qcommon_Shutdown() {
-	CM_Shutdown();
 	Netchan_Shutdown();
 	NET_Shutdown();
 	Key_Shutdown();
@@ -683,6 +674,7 @@ void Qcommon_Shutdown() {
 	Com_CloseConsoleLog( true, true );
 
 	FS_Shutdown();
+	ShutdownFS();
 
 	CSPRNG_Shutdown();
 

@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "server/server.h"
+#include "qcommon/fs.h"
+#include "qcommon/maplist.h"
 
 
 //===============================================================================
@@ -91,23 +93,15 @@ static void SV_Map_f() {
 		return;
 	}
 
-	const char * map;
+	TempAllocator temp = svs.frame_arena.temp();
 
-	// if map "<map>" is used Cmd_Args() will return the "" as well.
-	if( Cmd_Argc() == 2 ) {
-		map = Cmd_Argv( 1 );
-	} else {
-		map = Cmd_Args();
-	}
+	const char * map = Cmd_Argv( 1 );
+	const char * bsp_path = temp( "{}/base/maps/{}.bsp", RootDirPath(), map );
+	const char * zst_path = temp( "{}.zst", bsp_path );
 
-	Com_DPrintf( "SV_GameMap(%s)\n", map );
-
-	if( !MapExists( map ) ) {
-		RefreshMapList();
-		if( !MapExists( map ) ) {
-			Com_Printf( "Couldn't find map: %s\n", map );
-			return;
-		}
+	if( !FileExists( &temp, bsp_path ) && !FileExists( &temp, zst_path ) ) {
+		Com_Printf( "Couldn't find map: %s\n", map );
+		return;
 	}
 
 	if( !Q_stricmp( Cmd_Argv( 0 ), "map" ) || !Q_stricmp( Cmd_Argv( 0 ), "devmap" ) ) {
@@ -244,7 +238,10 @@ void SV_InitOperatorCommands() {
 	Cmd_AddCommand( "serverrecord", SV_Demo_Start_f );
 	Cmd_AddCommand( "serverrecordstop", SV_Demo_Stop_f );
 	Cmd_AddCommand( "serverrecordcancel", SV_Demo_Cancel_f );
-	Cmd_AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
+
+	if( is_dedicated_server ) {
+		Cmd_AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
+	}
 
 	Cmd_SetCompletionFunc( "map", CompleteMapName );
 	Cmd_SetCompletionFunc( "devmap", CompleteMapName );
@@ -268,5 +265,8 @@ void SV_ShutdownOperatorCommands() {
 	Cmd_RemoveCommand( "serverrecord" );
 	Cmd_RemoveCommand( "serverrecordstop" );
 	Cmd_RemoveCommand( "serverrecordcancel" );
-	Cmd_RemoveCommand( "serverrecordpurge" );
+
+	if( is_dedicated_server ) {
+		Cmd_RemoveCommand( "serverrecordpurge" );
+	}
 }

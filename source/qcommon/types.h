@@ -178,12 +178,13 @@ struct Span {
 	Span< T > slice( size_t start, size_t one_past_end ) const {
 		assert( start <= one_past_end );
 		assert( one_past_end <= n );
-		return Span< const T >( ptr + start, one_past_end - start );
+		return Span< T >( ptr + start, one_past_end - start );
 	}
 
 	template< typename S >
 	Span< S > cast() const {
 		assert( num_bytes() % sizeof( S ) == 0 );
+		assert( uintptr_t( ptr ) % alignof( S ) == 0 );
 		return Span< S >( ( S * ) ptr, num_bytes() / sizeof( S ) );
 	}
 };
@@ -359,12 +360,20 @@ struct alignas( 16 ) Mat3x4 {
 	}
 };
 
+struct EulerDegrees2 {
+	float pitch, yaw;
+
+	EulerDegrees2() = default;
+	constexpr EulerDegrees2( float p, float y ) : pitch( p ), yaw( y ) { }
+	explicit constexpr EulerDegrees2( Vec2 v ) : pitch( v.x ), yaw( v.y ) { }
+};
+
 struct EulerDegrees3 {
 	float pitch, yaw, roll;
 
 	EulerDegrees3() = default;
 	constexpr EulerDegrees3( float p, float y, float r ) : pitch( p ), yaw( y ), roll( r ) { }
-	constexpr EulerDegrees3( Vec3 v ) : pitch( v.x ), yaw( v.y ), roll( v.z ) { }
+	explicit constexpr EulerDegrees3( Vec3 v ) : pitch( v.x ), yaw( v.y ), roll( v.z ) { }
 };
 
 struct Quaternion {

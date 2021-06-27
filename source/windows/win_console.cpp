@@ -39,7 +39,7 @@ const char *Sys_ConsoleInput() {
 		houtput = GetStdHandle( STD_OUTPUT_HANDLE );
 	}
 
-	for( ;; ) {
+	while( true ) {
 		if( !GetNumberOfConsoleInputEvents( hinput, &numevents ) ) {
 			Sys_Error( "Error getting # of console events: %d", GetLastError() );
 		}

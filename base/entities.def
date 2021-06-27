@@ -1,7 +1,9 @@
 /*QUAKED worldspawn (0 0 0) ?
 Map settings
 -------- KEYS --------
+_ignoreleaks : Set to 1 to shut up the map compiler
 gametype : Set to gladiator to make this a gladiator map
+randomise_arena : Only for the gladiator shim map
 */
 
 /*QUAKED spawn_gladiator (0 .2 1) (-16 -16 -24) (16 16 40) SUSPENDED

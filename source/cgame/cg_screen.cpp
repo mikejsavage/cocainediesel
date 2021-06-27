@@ -130,19 +130,19 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	int64_t clocktime, startTime, duration, curtime;
 	char string[12];
 
-	if( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME ) {
+	if( client_gs.gameState.match_state > MATCH_STATE_PLAYTIME ) {
 		return;
 	}
 
-	if( GS_MatchClockOverride( &client_gs ) ) {
-		clocktime = GS_MatchClockOverride( &client_gs );
+	if( client_gs.gameState.clock_override != 0 ) {
+		clocktime = client_gs.gameState.clock_override;
 		if( clocktime < 0 )
 			return;
 	}
 	else {
 		curtime = ( GS_MatchWaiting( &client_gs ) || GS_MatchPaused( &client_gs ) ) ? cg.frame.serverTime : cl.serverTime;
-		duration = GS_MatchDuration( &client_gs );
-		startTime = GS_MatchStartTime( &client_gs );
+		duration = client_gs.gameState.match_duration;
+		startTime = client_gs.gameState.match_state_start_time;
 
 		// count downwards when having a duration
 		if( duration ) {
@@ -575,13 +575,13 @@ void CG_AddDamageNumber( SyncEntityState * ent, u64 parm ) {
 	dn->t = cl.serverTime;
 	dn->damage = parm >> 1;
 	dn->headshot = ( parm & 1 ) != 0;
-	dn->drift = random_float11( &cls.rng ) > 0.0f ? 1.0f : -1.0f;
-	dn->obituary = random_select( &cls.rng, mini_obituaries );
+	dn->drift = RandomFloat11( &cls.rng ) > 0.0f ? 1.0f : -1.0f;
+	dn->obituary = RandomElement( &cls.rng, mini_obituaries );
 
 	float distance_jitter = 4;
 	dn->origin = ent->origin;
-	dn->origin.x += random_float11( &cls.rng ) * distance_jitter;
-	dn->origin.y += random_float11( &cls.rng ) * distance_jitter;
+	dn->origin.x += RandomFloat11( &cls.rng ) * distance_jitter;
+	dn->origin.y += RandomFloat11( &cls.rng ) * distance_jitter;
 	dn->origin.z += 48;
 
 	damage_numbers_head = ( damage_numbers_head + 1 ) % ARRAY_COUNT( damage_numbers );
@@ -672,13 +672,29 @@ void CG_AddBomb( centity_t * cent ) {
 	}
 
 	bomb.team = cent->current.team;
-	bomb.origin = cent->current.origin;
+	bomb.origin = cent->interpolated.origin;
 
 	// TODO: this really does not belong here...
-	if( bomb.state == BombState_Planted ) {
-		Mat2 r = Mat2Rotation( cent->current.angles.y );
-		Vec3 origin = bomb.origin + Vec3( r * Vec2( -12.0f, 3.0f ), -12.0f );
-		DoVisualEffect( "models/bomb/fuse", origin );
+	if( cent->interpolated.animating ) {
+		const Model * model = FindModel( "models/bomb/bomb" );
+		if( model == NULL )
+			return;
+
+		u8 tip_node;
+		if( !FindNodeByName( model, Hash32( "a" ), &tip_node ) )
+			return;
+
+		TempAllocator temp = cls.frame_arena.temp();
+
+		Span< TRS > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
+		MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
+
+		Vec3 bomb_origin = cent->interpolated.origin - Vec3( 0.0f, 0.0f, 32.0f ); // BOMB_HUD_OFFSET
+
+		Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, bomb_origin );
+		Vec3 tip = ( transform * model->transform * palettes.node_transforms[ tip_node ] * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
+
+		DoVisualEffect( "models/bomb/fuse", tip );
 	}
 }
 
@@ -694,11 +710,11 @@ void CG_AddBombSite( centity_t * cent ) {
 }
 
 void CG_DrawBombHUD() {
-	if( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME )
+	if( client_gs.gameState.match_state > MATCH_STATE_PLAYTIME )
 		return;
 
 	int my_team = cg.predictedPlayerState.team;
-	bool show_labels = my_team != TEAM_SPECTATOR && GS_MatchState( &client_gs ) == MATCH_STATE_PLAYTIME;
+	bool show_labels = my_team != TEAM_SPECTATOR && client_gs.gameState.match_state == MATCH_STATE_PLAYTIME;
 
 	Vec4 yellow = sRGBToLinear( rgba8_diesel_yellow );
 
@@ -733,7 +749,7 @@ void CG_DrawBombHUD() {
 		else {
 			if( show_labels ) {
 				Vec4 color = vec4_white;
-				const char * msg;
+				const char * msg = "";
 
 				if( bomb.state == BombState_Dropped ) {
 					msg = "RETRIEVE";
@@ -794,12 +810,6 @@ static Vec4 CG_CalcColorBlend() {
 
 static void CG_SCRDrawViewBlend() {
 	Vec4 color = CG_CalcColorBlend();
-
-	float t = 0.0f;
-	if( client_gs.gameState.bomb.exploding ) {
-		t = Unlerp01( client_gs.gameState.bomb.exploded_at, cl.serverTime, client_gs.gameState.bomb.exploded_at + 2000 );
-	}
-	color = Lerp( color, t, vec4_black );
 
 	if( color.w < 0.01f ) {
 		return;

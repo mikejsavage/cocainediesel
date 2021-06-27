@@ -36,6 +36,8 @@ uint defuseProgress;
 Entity @bombModel;
 Entity @bombHud;
 
+bool bombExplosionDamage;
+
 void show( Entity @ent ) {
 	ent.svflags &= ~SVF_NOCLIENT;
 	ent.linkEntity();
@@ -87,11 +89,18 @@ void bombPickUp() {
 	bombState = BombState_Carried;
 }
 
+void removeCarrier() {
+	if( @bombCarrier == null )
+		return;
+
+	bombCarrier.effects &= ~EF_CARRIER;
+	bombCarrier.model2 = 0;
+
+	@bombCarrier = null;
+}
+
 void bombSetCarrier( Entity @ent, bool no_sound ) {
-	if( @bombCarrier != null ) {
-		bombCarrier.effects &= ~EF_CARRIER;
-		bombCarrier.model2 = 0;
-	}
+	removeCarrier();
 
 	@bombCarrier = @ent;
 	bombPickUp();
@@ -154,10 +163,7 @@ void bombDrop( BombDrop drop_reason ) {
 	bombModel.velocity = velocity;
 	show( @bombModel );
 
-	bombCarrier.effects &= ~EF_CARRIER;
-	bombCarrier.model2 = 0;
-
-	@bombCarrier = null;
+	removeCarrier();
 
 	bombState = BombState_Dropped;
 }
@@ -177,7 +183,7 @@ void bombStartPlanting( cBombSite @site ) {
 	Trace trace;
 	trace.doTrace( start, BOMB_MINS, BOMB_MAXS, end, bombCarrier.entNum, MASK_SOLID );
 
-	Vec3 angles = Vec3( 0, random_float01() * 360.0f, 0 );
+	Vec3 angles = Vec3( 0, RandomUniformFloat( 0.0f, 360.0f ), 0 );
 
 	// show stuff
 	bombModel.origin = trace.endPos;
@@ -209,17 +215,22 @@ void bombPlanted() {
 	// show to defs too
 	bombHud.svflags &= ~SVF_ONLYTEAM;
 
+	// start fuse animation
+	bombModel.animating = true;
+	bombHud.animating = true;
+
 	announce( Announcement_Planted );
 
 	G_CenterPrintMsg( null, "Bomb planted at " + bombSite.letter + "!" );
 
-	@bombCarrier = null;
+	removeCarrier();
 	defuseProgress = 0;
 	bombState = BombState_Planted;
 }
 
 void bombDefused() {
 	bombModel.sound = 0;
+	bombHud.animating = false;
 
 	hide( @bombHud );
 
@@ -244,19 +255,22 @@ void bombDefused() {
 
 void bombExplode() {
 	// do this first else the attackers can score 2 points when the explosion kills everyone
-	roundWonBy( attackingTeam );
+	if( match.roundState == RoundState_Round ) {
+		roundWonBy( attackingTeam );
 
-	hide( @bombHud );
+		hide( @bombHud );
+	}
 
 	bombSite.explode();
+	bombExplosionDamage = false;
 
 	bombState = BombState_Exploding;
 	@defuser = null;
 
 	match.exploding = true;
-	match.explodedAt = levelTime;
+	match.explodedAt = gameTime;
 
-	G_Sound( @bombModel, 0, sndComedy );
+	G_Sound( @bombModel, 0, sndExplode );
 }
 
 void resetBomb() {
@@ -304,6 +318,10 @@ void bombThink() {
 		} break;
 
 		case BombState_Planted: {
+			float animation_time = ( cvarExplodeTime.value - ( bombActionTime - levelTime ) * 0.001f ) / cvarExplodeTime.value;
+			bombModel.animation_time = animation_time;
+			bombHud.animation_time = animation_time;
+
 			if( @defuser == null )
 				@defuser = firstNearbyTeammate( bombModel.origin, defendingTeam );
 
@@ -334,13 +352,22 @@ void bombThink() {
 				break;
 			}
 		} break;
-	}
-}
 
-// fixes the exploding animation from stopping
-void bombPostRoundThink() {
-	if( bombState == BombState_Exploding ) {
-		bombSite.stepExplosion();
+		case BombState_Exploding:
+			bombSite.stepExplosion();
+
+			if( gameTime - match.explodedAt >= 1000 && !bombExplosionDamage ) {
+				bombModel.splashDamage( null, 9999, 1, 400 );
+
+				Entity @world = G_GetEntity( 0 );
+				for( int i = 0; i < maxClients; i++ ) {
+					Client @client = @G_GetClient( i );
+					client.getEnt().sustainDamage( world, world, Vec3( 0.0f ), 100.0f, 0.0f, MeanOfDeath_Explosion );
+				}
+
+				bombExplosionDamage = true;
+			}
+			break;
 	}
 }
 
@@ -397,9 +424,9 @@ bool bombCanPlant() {
 
 void bombGiveToRandom() {
 	Team @team = @G_GetTeam( attackingTeam );
-	int bots = 0;
+	uint bots = 0;
 
-	for( int i = 0; @team.ent( i ) != null; i++ ) {
+	for( uint i = 0; @team.ent( i ) != null; i++ ) {
 		if( ( team.ent( i ).svflags & SVF_FAKECLIENT ) != 0 ) {
 			bots++;
 		}
@@ -407,7 +434,7 @@ void bombGiveToRandom() {
 
 	bool all_bots = bots == team.numPlayers;
 	int n = all_bots ? team.numPlayers : team.numPlayers - bots;
-	int carrier = random_uniform( 0, n );
+	int carrier = RandomUniform( 0, n );
 	int seen = 0;
 
 	for( int i = 0; @team.ent( i ) != null; i++ ) {
@@ -433,56 +460,6 @@ bool entCanSee( Entity @ent, Vec3 point ) {
 	Trace trace;
 	return !trace.doTrace( center, vec3Origin, vec3Origin, point, ent.entNum, MASK_SOLID );
 }
-
-// move the camera around the site?
-void bombLookAt( Entity @ent ) {
-	Entity @target = @bombSite.indicator;
-
-	array<Entity @> @targets = bombSite.indicator.findTargets();
-	for( uint i = 0; i < targets.size(); i++ ) {
-		if( targets[i].classname == "func_explosive" ) {
-			@target = targets[i];
-			break;
-		}
-	}
-
-	Vec3 center = target.origin + getMiddle( @target );
-	center.z -= 50; // this tilts the camera down (not by 50 degrees...)
-
-	Vec3 bombOrigin = bombModel.origin;
-
-	float diff = center.z - bombOrigin.z;
-
-	if( diff > 8 ) {
-		bombOrigin.z += diff / 2;
-	}
-
-	Vec3 dir = bombOrigin - center;
-
-	float dist = dir.length();
-
-	Vec3 end = center + dir.normalize() * ( dist + BOMB_DEAD_CAMERA_DIST );
-
-	Trace trace;
-	bool didHit = trace.doTrace( bombOrigin, vec3Origin, vec3Origin, end, -1, MASK_SOLID );
-
-	Vec3 origin = trace.endPos;
-
-	if( trace.fraction != 1 ) {
-		origin += 8 * trace.planeNormal;
-	}
-
-	Vec3 viewDir = center - origin;
-	Vec3 angles = viewDir.toAngles();
-
-	ent.moveType = MOVETYPE_NONE;
-	ent.origin = origin;
-	ent.angles = angles;
-
-	ent.linkEntity();
-}
-
-// ent stuff
 
 void bomb_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags ) {
 	if( match.getState() != MATCH_STATE_PLAYTIME ) {

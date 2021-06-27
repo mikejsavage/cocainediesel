@@ -19,231 +19,16 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 #include "qcommon/fs.h"
-
 #include "qcommon/sys_fs.h"
 
-#define __USE_BSD
-
+// these must come after qcommon because both tracy and one of these defines BLOCK_SIZE
 #include <dirent.h>
-
-#ifdef __linux__
-#include <linux/limits.h>
-#endif
-
+#include <errno.h>
+#include <fcntl.h>
 #include <unistd.h>
+#include <linux/fs.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
-
-// Mac OS X and FreeBSD don't know the readdir64 and dirent64
-#if ( defined ( __FreeBSD__ ) || !defined( _LARGEFILE64_SOURCE ) )
-#define readdir64 readdir
-#define dirent64 dirent
-#endif
-
-static char *findbase = NULL;
-static size_t findbase_size = 0;
-static const char *findpattern = NULL;
-static char *findpath = NULL;
-static size_t findpath_size = 0;
-static DIR *fdir = NULL;
-static int fdots = 0;
-
-/*
-* FS_DirentIsDir
-*/
-static bool FS_DirentIsDir( const struct dirent64 *d, const char *base ) {
-#if defined( _DIRENT_HAVE_D_TYPE ) && defined( DT_DIR )
-	return ( d->d_type == DT_DIR );
-#else
-	size_t pathSize;
-	char *path;
-	struct stat st;
-
-	pathSize = strlen( base ) + 1 + strlen( d->d_name ) + 1;
-	path = alloca( pathSize );
-	snprintf( path, pathSize, "%s/%s", base, d->d_name );
-	if( stat( path, &st ) ) {
-		return false;
-	}
-	return S_ISDIR( st.st_mode ) != 0;
-#endif
-}
-
-/*
-* CompareAttributes
-*/
-static bool CompareAttributes( const struct dirent64 *d, const char *base, unsigned musthave, unsigned canthave ) {
-	bool isDir;
-	bool checkDir;
-
-	assert( d );
-
-	isDir = false;
-	checkDir = ( canthave & SFF_SUBDIR ) || ( musthave & SFF_SUBDIR );
-	if( checkDir ) {
-		isDir = FS_DirentIsDir( d, base );
-	}
-
-	if( isDir && ( canthave & SFF_SUBDIR ) ) {
-		return false;
-	}
-	if( ( musthave & SFF_SUBDIR ) && !isDir ) {
-		return false;
-	}
-
-	return true;
-}
-
-/*
-* CompareAttributesForPath
-*/
-static bool CompareAttributesForPath( const struct dirent64 *d, const char *path, unsigned musthave, unsigned canthave ) {
-	return true;
-}
-
-/*
-* Sys_FS_FindFirst
-*/
-const char *Sys_FS_FindFirst( const char *path, unsigned musthave, unsigned canhave ) {
-	char *p;
-
-	assert( path );
-	assert( !fdir );
-	assert( !findbase && !findpattern && !findpath && !findpath_size );
-
-	if( fdir ) {
-		Sys_Error( "Sys_BeginFind without close" );
-	}
-
-	findbase_size = strlen( path );
-	assert( findbase_size );
-	findbase_size += 1;
-
-	findbase = ( char * ) Mem_TempMalloc( sizeof( char ) * findbase_size );
-	Q_strncpyz( findbase, path, sizeof( char ) * findbase_size );
-
-	if( ( p = strrchr( findbase, '/' ) ) ) {
-		*p = 0;
-		if( !strcmp( p + 1, "*.*" ) ) { // *.* to *
-			*( p + 2 ) = 0;
-		}
-		findpattern = p + 1;
-	} else {
-		findpattern = "*";
-	}
-
-	if( !( fdir = opendir( findbase ) ) ) {
-		return NULL;
-	}
-
-	fdots = 2; // . and ..
-	return Sys_FS_FindNext( musthave, canhave );
-}
-
-/*
-* Sys_FS_FindNext
-*/
-const char *Sys_FS_FindNext( unsigned musthave, unsigned canhave ) {
-	struct dirent64 *d;
-
-	assert( fdir );
-	assert( findbase && findpattern );
-
-	if( !fdir ) {
-		return NULL;
-	}
-
-	while( ( d = readdir64( fdir ) ) != NULL ) {
-		if( !CompareAttributes( d, findbase, musthave, canhave ) ) {
-			continue;
-		}
-
-		if( fdots > 0 ) {
-			// . and .. never match
-			const char *base = COM_FileBase( d->d_name );
-			if( !strcmp( base, "." ) || !strcmp( base, ".." ) ) {
-				fdots--;
-				continue;
-			}
-		}
-
-		if( !*findpattern || Com_GlobMatch( findpattern, d->d_name, 0 ) ) {
-			const char *dname = d->d_name;
-			size_t dname_len = strlen( dname );
-			size_t size = sizeof( char ) * ( findbase_size + dname_len + 1 + 1 );
-			if( findpath_size < size ) {
-				if( findpath ) {
-					Mem_TempFree( findpath );
-				}
-				findpath_size = size * 2; // extra size to reduce reallocs
-				findpath = ( char * ) Mem_TempMalloc( findpath_size );
-			}
-
-			snprintf( findpath, findpath_size, "%s/%s%s", findbase, dname,
-						 dname[dname_len - 1] != '/' && FS_DirentIsDir( d, findbase ) ? "/" : "" );
-			if( CompareAttributesForPath( d, findpath, musthave, canhave ) ) {
-				return findpath;
-			}
-		}
-	}
-
-	return NULL;
-}
-
-void Sys_FS_FindClose() {
-	assert( findbase );
-
-	if( fdir ) {
-		closedir( fdir );
-		fdir = NULL;
-	}
-
-	fdots = 0;
-
-	Mem_TempFree( findbase );
-	findbase = NULL;
-	findbase_size = 0;
-	findpattern = NULL;
-
-	if( findpath ) {
-		Mem_TempFree( findpath );
-		findpath = NULL;
-		findpath_size = 0;
-	}
-}
-
-/*
-* Sys_FS_GetHomeDirectory
-*/
-const char *Sys_FS_GetHomeDirectory() {
-	static char home[PATH_MAX] = { '\0' };
-
-	if( home[0] == '\0' ) {
-		const char *homeEnv = getenv( "HOME" );
-		const char *base = NULL, *local = "";
-
-#ifdef __MACOSX__
-		base = homeEnv;
-		local = "Library/Application Support/";
-#else
-		base = getenv( "XDG_DATA_HOME" );
-		local = "";
-		if( !base ) {
-			base = homeEnv;
-			local = ".local/share/";
-		}
-#endif
-
-		if( base ) {
-			snprintf( home, sizeof( home ), "%s/%s%s-0.0", base, local, APPLICATION );
-		}
-	}
-
-	if( home[0] == '\0' ) {
-		return NULL;
-	}
-	return home;
-}
+#include <sys/syscall.h>
 
 /*
 * Sys_FS_CreateDirectory
@@ -257,6 +42,47 @@ bool Sys_FS_CreateDirectory( const char *path ) {
 */
 int Sys_FS_FileNo( FILE *fp ) {
 	return fileno( fp );
+}
+
+char * FindHomeDirectory( Allocator * a ) {
+	const char * xdg_data_home = getenv( "XDG_DATA_HOME" );
+	if( xdg_data_home != NULL ) {
+		return ( *a )( "{}/{}", xdg_data_home, APPLICATION );
+	}
+
+	const char * home = getenv( "HOME" );
+	if( home == NULL ) {
+		Com_Error( ERR_FATAL, "Can't find home directory" );
+	}
+
+	return ( *a )( "{}/.local/share/{}", home, APPLICATION );
+}
+
+FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {
+	return fopen( path, mode );
+}
+
+bool MoveFile( Allocator * a, const char * old_path, const char * new_path, MoveFileReplace replace ) {
+	unsigned int flags = replace == MoveFile_DontReplace ? RENAME_NOREPLACE : 0;
+
+	// the glibc on appveyor doesn't have renameat2 so call it directly
+	if( syscall( SYS_renameat2, AT_FDCWD, old_path, AT_FDCWD, new_path, flags ) == 0 ) {
+		return true;
+	}
+
+	if( errno == ENOSYS || errno == EINVAL || errno == EFAULT ) {
+		Com_Error( ERR_FATAL, "rename" );
+	}
+
+	return false;
+}
+
+bool RemoveFile( Allocator * a, const char * path ) {
+	return unlink( path ) == 0;
+}
+
+bool CreateDirectory( Allocator * a, const char * path ) {
+	return mkdir( path, 0755 ) == 0 || errno == EEXIST;
 }
 
 struct ListDirHandleImpl {
@@ -277,7 +103,7 @@ static ListDirHandle ImplToOpaque( ListDirHandleImpl impl ) {
 	return opaque;
 }
 
-ListDirHandle BeginListDir( const char * path ) {
+ListDirHandle BeginListDir( Allocator * a, const char * path ) {
 	ListDirHandleImpl handle;
 	handle.dir = opendir( path );
 	return ImplToOpaque( handle );
@@ -304,7 +130,7 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	return false;
 }
 
-s64 FileLastModifiedTime( const char * path ) {
+s64 FileLastModifiedTime( TempAllocator * temp, const char * path ) {
 	struct stat buf;
 	if( stat( path, &buf ) == -1 ) {
 		return 0;

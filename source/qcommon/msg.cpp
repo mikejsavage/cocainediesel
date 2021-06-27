@@ -519,6 +519,8 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.targetNum, baseline.targetNum );
 	Delta( buf, ent.sound, baseline.sound );
 	Delta( buf, ent.model2, baseline.model2 );
+	Delta( buf, ent.animating, baseline.animating );
+	Delta( buf, ent.animation_time, baseline.animation_time );
 	Delta( buf, ent.counterNum, baseline.counterNum );
 	Delta( buf, ent.channel, baseline.channel );
 	Delta( buf, ent.weapon, baseline.weapon );
@@ -591,6 +593,7 @@ static void Delta( DeltaBuffer * buf, usercmd_t & cmd, const usercmd_t & baselin
 	Delta( buf, cmd.sidemove, baseline.sidemove );
 	Delta( buf, cmd.upmove, baseline.upmove );
 	Delta( buf, cmd.buttons, baseline.buttons );
+	Delta( buf, cmd.entropy, baseline.entropy );
 	Delta( buf, cmd.weaponSwitch, baseline.weaponSwitch );
 }
 
@@ -627,7 +630,6 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 
 	Delta( buf, pmove.features, baseline.features );
 
-	Delta( buf, pmove.no_control_time, baseline.no_control_time );
 	Delta( buf, pmove.knockback_time, baseline.knockback_time );
 	Delta( buf, pmove.crouch_time, baseline.crouch_time );
 	Delta( buf, pmove.dash_time, baseline.dash_time );
@@ -638,7 +640,7 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 	Delta( buf, pmove.dash_speed, baseline.dash_speed );
 }
 
-static void Delta( DeltaBuffer * buf, SyncPlayerState::WeaponInfo & weapon, const SyncPlayerState::WeaponInfo & baseline ) {
+static void Delta( DeltaBuffer * buf, WeaponSlot & weapon, const WeaponSlot & baseline ) {
 	Delta( buf, weapon.weapon, baseline.weapon );
 	Delta( buf, weapon.ammo, baseline.ammo );
 }
@@ -650,8 +652,6 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	DeltaAngle( buf, player.viewangles, baseline.viewangles );
 
-	Delta( buf, player.weapon_state, baseline.weapon_state );
-
 	DeltaHalf( buf, player.fov, baseline.fov );
 
 	Delta( buf, player.POVnum, baseline.POVnum );
@@ -662,7 +662,6 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	Delta( buf, player.weapons, baseline.weapons );
 	Delta( buf, player.items, baseline.items );
 
-	Delta( buf, player.show_scoreboard, baseline.show_scoreboard );
 	Delta( buf, player.ready, baseline.ready );
 	Delta( buf, player.voted, baseline.voted );
 	Delta( buf, player.can_change_loadout, baseline.can_change_loadout );
@@ -671,10 +670,12 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	Delta( buf, player.health, baseline.health );
 
+	Delta( buf, player.weapon_state, baseline.weapon_state );
+	Delta( buf, player.weapon_state_time, baseline.weapon_state_time );
+
 	Delta( buf, player.weapon, baseline.weapon );
 	Delta( buf, player.pending_weapon, baseline.pending_weapon );
 	Delta( buf, player.last_weapon, baseline.last_weapon );
-	Delta( buf, player.weapon_time, baseline.weapon_time );
 	Delta( buf, player.zoom_time, baseline.zoom_time );
 
 	Delta( buf, player.team, baseline.team );
@@ -716,9 +717,22 @@ void MSG_ReadDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, Sy
 // DELTA GAME STATES
 //==================================================
 
+static void Delta( DeltaBuffer * buf, SyncScoreboardPlayer & player, const SyncScoreboardPlayer & baseline ) {
+	Delta( buf, player.ping, baseline.ping );
+	Delta( buf, player.score, baseline.score );
+	Delta( buf, player.kills, baseline.kills );
+	Delta( buf, player.ready, baseline.ready );
+	Delta( buf, player.carrier, baseline.carrier );
+	Delta( buf, player.alive, baseline.alive );
+}
+
+static void Delta( DeltaBuffer * buf, SyncTeamState & team, const SyncTeamState & baseline ) {
+	Delta( buf, team.player_indices, baseline.player_indices );
+	Delta( buf, team.score, baseline.score );
+	Delta( buf, team.num_players, baseline.num_players );
+}
+
 static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGameState & baseline ) {
-	Delta( buf, bomb.alpha_score, baseline.alpha_score );
-	Delta( buf, bomb.beta_score, baseline.beta_score );
 	Delta( buf, bomb.alpha_players_alive, baseline.alpha_players_alive );
 	Delta( buf, bomb.alpha_players_total, baseline.alpha_players_total );
 	Delta( buf, bomb.beta_players_alive, baseline.beta_players_alive );
@@ -730,11 +744,14 @@ static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGa
 static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState & baseline ) {
 	Delta( buf, state.flags, baseline.flags );
 	Delta( buf, state.match_state, baseline.match_state );
-	Delta( buf, state.match_start, baseline.match_start );
+	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
+	Delta( buf, state.round_num, baseline.round_num );
+	Delta( buf, state.round_state, baseline.round_state );
 	Delta( buf, state.round_type, baseline.round_type );
-	Delta( buf, state.max_team_players, baseline.max_team_players );
+	Delta( buf, state.teams, baseline.teams );
+	Delta( buf, state.players, baseline.players );
 	Delta( buf, state.map, baseline.map );
 	Delta( buf, state.map_checksum, baseline.map_checksum );
 	Delta( buf, state.bomb, baseline.bomb );

@@ -194,19 +194,6 @@ int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec
 #define PMFEAT_ALL              ( 0xFFFF )
 #define PMFEAT_DEFAULT          ( PMFEAT_ALL & ~PMFEAT_GHOSTMOVE & ~PMFEAT_TEAMGHOST )
 
-#define ISGAMETYPESTAT( x ) ( ( x >= GS_GAMETYPE_STATS_START ) && ( x < GS_GAMETYPE_STATS_END ) )
-
-static constexpr const char *gs_keyicon_names[] = {
-	"forward",
-	"backward",
-	"left",
-	"right",
-	"fire",
-	"jump",
-	"crouch",
-	"special"
-};
-
 enum MeanOfDeath {
 	// implicit WeaponType enum at the start
 

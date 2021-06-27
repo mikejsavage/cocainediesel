@@ -16,7 +16,7 @@ enum MatchState {
 	MATCH_STATE_TOTAL
 };
 
-typedef u8 WeaponType;
+using WeaponType = u8;
 enum WeaponType_ : WeaponType {
 	Weapon_None,
 
@@ -42,8 +42,7 @@ enum WeaponType_ : WeaponType {
 	Weapon_Count
 };
 
-typedef u8 WeaponState;
-enum WeaponState_ : WeaponState {
+enum WeaponState : u8 {
 	WeaponState_Dispatch,
 	WeaponState_DispatchQuiet,
 
@@ -74,16 +73,14 @@ enum ItemType {
 	Item_Count
 };
 
-typedef u8 RoundType;
-enum RoundType_ {
+enum RoundType : u8 {
 	RoundType_Normal,
 	RoundType_MatchPoint,
 	RoundType_Overtime,
 	RoundType_OvertimeMatchPoint,
 };
 
-using RoundState = u8;
-enum RoundState_ : RoundState {
+enum RoundState : u8 {
 	RoundState_None,
 	RoundState_Countdown,
 	RoundState_Round,

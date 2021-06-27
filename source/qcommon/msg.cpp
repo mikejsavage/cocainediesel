@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <type_traits>
+
 #include "qcommon/qcommon.h"
 #include "qcommon/half_float.h"
 #include "qcommon/serialization.h"
@@ -214,6 +216,12 @@ static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 	Delta( buf, rgba.g, baseline.b );
 	Delta( buf, rgba.b, baseline.g );
 	Delta( buf, rgba.a, baseline.a );
+}
+
+template< typename E >
+void DeltaEnum( DeltaBuffer * buf, E & x, const E & baseline ) {
+	using T = std::underlying_type< E >::type;
+	Delta( buf, ( T & ) x, ( const T & ) baseline );
 }
 
 static void DeltaHalf( DeltaBuffer * buf, float & x, const float & baseline ) {
@@ -652,15 +660,12 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	DeltaAngle( buf, player.viewangles, baseline.viewangles );
 
-	DeltaHalf( buf, player.fov, baseline.fov );
-
 	Delta( buf, player.POVnum, baseline.POVnum );
 	Delta( buf, player.playerNum, baseline.playerNum );
 
 	DeltaHalf( buf, player.viewheight, baseline.viewheight );
 
 	Delta( buf, player.weapons, baseline.weapons );
-	Delta( buf, player.items, baseline.items );
 
 	Delta( buf, player.ready, baseline.ready );
 	Delta( buf, player.voted, baseline.voted );
@@ -670,7 +675,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	Delta( buf, player.health, baseline.health );
 
-	Delta( buf, player.weapon_state, baseline.weapon_state );
+	DeltaEnum( buf, player.weapon_state, baseline.weapon_state );
 	Delta( buf, player.weapon_state_time, baseline.weapon_state_time );
 
 	Delta( buf, player.weapon, baseline.weapon );
@@ -748,8 +753,8 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
 	Delta( buf, state.round_num, baseline.round_num );
-	Delta( buf, state.round_state, baseline.round_state );
-	Delta( buf, state.round_type, baseline.round_type );
+	DeltaEnum( buf, state.round_state, baseline.round_state );
+	DeltaEnum( buf, state.round_type, baseline.round_type );
 	Delta( buf, state.teams, baseline.teams );
 	Delta( buf, state.players, baseline.players );
 	Delta( buf, state.map, baseline.map );

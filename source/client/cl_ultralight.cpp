@@ -137,12 +137,14 @@ Vec4 UltralightToDiesel( ul::vec4 v ) {
 
 class GPUDriverGL : public ul::GPUDriver {
 public:
-	GPUDriverGL() :
-		command_list( sys_allocator ),
-		textures( sys_allocator ),
-		framebuffers( sys_allocator ),
-		meshes( sys_allocator ) {};
-	~GPUDriverGL() {
+	void init() {
+		command_list.init( sys_allocator );
+		textures.init( sys_allocator );
+		framebuffers.init( sys_allocator );
+		meshes.init( sys_allocator );
+	}
+
+	void shutdown() {
 		for( Texture tex : textures ) {
 			DeleteTexture( tex );
 		}
@@ -152,11 +154,11 @@ public:
 		for( Mesh mesh : meshes ) {
 			DeleteMesh( mesh );
 		}
-		FREE( sys_allocator, command_list.ptr() );
-		FREE( sys_allocator, textures.ptr() );
-		FREE( sys_allocator, framebuffers.ptr() );
-		FREE( sys_allocator, meshes.ptr() );
-	};
+		command_list.shutdown();
+		textures.shutdown();
+		framebuffers.shutdown();
+		meshes.shutdown();
+	}
 
 	void BeginSynchronize() override {}
 	void EndSynchronize() override {}
@@ -206,7 +208,7 @@ public:
 
 		glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
 		glPixelStorei( GL_UNPACK_ROW_LENGTH, bitmap->row_bytes() / bitmap->bpp() );
-		
+
 		WriteTexture( textures[ texture_id ], bitmap->LockPixels() );
 		bitmap->UnlockPixels();
 
@@ -414,11 +416,11 @@ public:
 	u32 next_texture_id = 1;
 	u32 next_render_buffer_id = 1;
 	u32 next_geometry_id = 1;
-	DynamicArray< ul::Command > command_list;
+	NonRAIIDynamicArray< ul::Command > command_list;
 
-	DynamicArray< Texture > textures;
-	DynamicArray< Framebuffer > framebuffers;
-	DynamicArray< Mesh > meshes;
+	NonRAIIDynamicArray< Texture > textures;
+	NonRAIIDynamicArray< Framebuffer > framebuffers;
+	NonRAIIDynamicArray< Mesh > meshes;
 };
 
 ul::RefPtr< ul::Renderer > renderer;
@@ -440,6 +442,8 @@ void CL_Ultralight_Init() {
 	config.enable_javascript = true;
 	config.font_hinting = ul::FontHinting::kFontHinting_Normal;
 
+	driver.init();
+
 	ul::Platform::instance().set_gpu_driver( &driver );
 	ul::Platform::instance().set_config( config );
 	ul::Platform::instance().set_font_loader( ul::GetPlatformFontLoader() );
@@ -455,11 +459,9 @@ void CL_Ultralight_Init() {
 void CL_Ultralight_Shutdown() {
 	ZoneScoped;
 
-	view->Release();
 	view = nullptr;
-
-	renderer->Release();
 	renderer = nullptr;
+	driver.shutdown();
 
 	DeleteShader( ultralight_shaders[ 0 ] );
 	DeleteShader( ultralight_shaders[ 1 ] );

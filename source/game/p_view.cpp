@@ -21,15 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "game/g_local.h"
 
-float xyspeed;
-
 //====================================================================
 // DEAD VIEW
 //====================================================================
 
-/*
-* G_ProjectThirdPersonView
-*/
 static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t *passent ) {
 	float thirdPersonRange = 60;
 	float thirdPersonAngle = 0;
@@ -76,9 +71,6 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 	*vieworg = chase_dest;
 }
 
-/*
-* G_Client_DeadView
-*/
 static void G_Client_DeadView( edict_t *ent ) {
 	gclient_t * client = ent->r.client;
 	edict_t * body = &game.edicts[ ent->s.ownerNum ];
@@ -116,9 +108,6 @@ static void G_Client_DeadView( edict_t *ent ) {
 // EFFECTS
 //====================================================================
 
-/*
-* G_ClientAddDamageIndicatorImpact
-*/
 void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const Vec3 basedir ) {
 	if( damage < 1 ) {
 		return;
@@ -170,9 +159,6 @@ void G_ClientDamageFeedback( edict_t *ent ) {
 	}
 }
 
-/*
-* G_PlayerWorldEffects
-*/
 static void G_PlayerWorldEffects( edict_t *ent ) {
 	int waterlevel, old_waterlevel;
 	int watertype, old_watertype;
@@ -230,23 +216,6 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	}
 }
 
-/*
-* G_SetClientEffects
-*/
-static void G_SetClientEffects( edict_t *ent ) {
-	if( G_IsDead( ent ) || server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
-		return;
-	}
-
-	// show cheaters!!!
-	if( ent->flags & FL_GODMODE ) {
-		ent->s.effects |= EF_GODMODE;
-	}
-}
-
-/*
-* G_SetClientSound
-*/
 static void G_SetClientSound( edict_t *ent ) {
 	if( ent->waterlevel == 3 ) {
 		if( ent->watertype & CONTENTS_LAVA ) {
@@ -286,7 +255,6 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 		G_PlayerWorldEffects( ent ); // burn from lava, etc
 		G_ClientDamageFeedback( ent ); // show damage taken along the snap
 		G_SetClientStats( ent );
-		G_SetClientEffects( ent );
 		G_SetClientSound( ent );
 	}
 

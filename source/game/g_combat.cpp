@@ -194,10 +194,6 @@ static int G_FindTopAssistor( edict_t* victim, edict_t* attacker ) {
 }
 
 static void G_KnockBackPush( edict_t *targ, edict_t *attacker, Vec3 basedir, int knockback, int dflags ) {
-	if( targ->flags & FL_NO_KNOCKBACK ) {
-		return;
-	}
-
 	if( knockback < 1 ) {
 		return;
 	}
@@ -270,24 +266,12 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	G_KnockBackPush( targ, attacker, pushdir, knockback, dflags );
 
 	float take = damage;
-
-	// check for cases where damage is protected
-	if( !( dflags & DAMAGE_NO_PROTECTION ) ) {
-		// check for godmode
-		if( targ->flags & FL_GODMODE ) {
-			take = 0;
+	if( attacker == targ ) {
+		if( level.gametype.selfDamage ) {
+			take = damage * GS_GetWeaponDef( mod )->selfdamage;
 		}
-		// never damage in timeout
-		else if( GS_MatchPaused( &server_gs ) ) {
+		else {
 			take = 0;
-		}
-		else if( attacker == targ ) {
-			if( level.gametype.selfDamage ) {
-				take = damage * GS_GetWeaponDef( mod )->selfdamage;
-			}
-			else {
-				take = 0;
-			}
 		}
 	}
 
@@ -363,10 +347,6 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	}
 
 	if( G_IsDead( targ ) ) {
-		if( client ) {
-			targ->flags |= FL_NO_KNOCKBACK;
-		}
-
 		if( targ->s.type != ET_CORPSE && attacker != targ ) {
 			edict_t * killed = G_SpawnEvent( EV_DAMAGE, 255 << 1, &targ->s.origin );
 			killed->r.svflags |= SVF_OWNERANDCHASERS;

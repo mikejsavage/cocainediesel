@@ -239,7 +239,7 @@ static void G_SnapEntities() {
 		}
 
 		if( ent->s.type == ET_PLAYER ) {
-			if( ent->snap.damage_taken && !( ent->flags & FL_GODMODE ) ) {
+			if( ent->snap.damage_taken > 0.0f ) {
 				float damage = Min2( ent->snap.damage_taken, 120.0f );
 
 				Vec3 dir = SafeNormalize( ent->snap.damage_dir );

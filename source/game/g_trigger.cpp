@@ -262,9 +262,6 @@ static void hurt_use( edict_t *self, edict_t *other, edict_t *activator ) {
 }
 
 static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
-	int dflags;
-	int damage;
-
 	if( !other->takedamage || G_IsDead( other ) ) {
 		return;
 	}
@@ -277,15 +274,9 @@ static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surf
 		return;
 	}
 
-	damage = self->dmg;
+	int damage = self->dmg;
 	if( self->spawnflags & ( 32 | 64 ) ) {
 		damage = other->health + 1;
-	}
-
-	if( self->spawnflags & 8 ) {
-		dflags = DAMAGE_NO_PROTECTION;
-	} else {
-		dflags = 0;
 	}
 
 	if( self->spawnflags & ( 32 | 64 ) ) { // KILL, FALL
@@ -300,7 +291,7 @@ static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surf
 		}
 	}
 
-	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, damage, damage, dflags, MeanOfDeath_Trigger );
+	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, damage, damage, 0, MeanOfDeath_Trigger );
 }
 
 void SP_trigger_hurt( edict_t *self ) {

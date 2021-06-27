@@ -35,10 +35,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // FIXME: Medar: Remove the spectator test and just make sure they always have health
 #define G_IsDead( ent )       ( ( !( ent )->r.client || ( ent )->s.team != TEAM_SPECTATOR ) && HEALTH_TO_INT( ( ent )->health ) <= 0 )
 
-// edict->flags
-#define FL_GODMODE          0x00000001
-#define FL_NO_KNOCKBACK     0x00000002
-
 #define FRAMETIME ( (float)game.frametime * 0.001f )
 
 #define MAX_FLOOD_MESSAGES 32
@@ -490,10 +486,9 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edi
 
 // damage flags
 #define DAMAGE_RADIUS         ( 1 << 0 )  // damage was indirect
-#define DAMAGE_NO_PROTECTION  ( 1 << 1 )
-#define DAMAGE_KNOCKBACK_SOFT ( 1 << 2 )
-#define DAMAGE_HEADSHOT       ( 1 << 3 )
-#define DAMAGE_WALLBANG       ( 1 << 4 )
+#define DAMAGE_KNOCKBACK_SOFT ( 1 << 1 )
+#define DAMAGE_HEADSHOT       ( 1 << 2 )
+#define DAMAGE_WALLBANG       ( 1 << 3 )
 
 //
 // g_misc.c
@@ -815,7 +810,6 @@ struct edict_t {
 	SyncEntityState olds; // state in the last sent frame snap
 
 	int movetype;
-	int flags;
 
 	int64_t freetime;          // time when the object was freed
 

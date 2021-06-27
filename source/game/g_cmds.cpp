@@ -68,34 +68,6 @@ static bool G_Teleport( edict_t *ent, Vec3 origin, Vec3 angles ) {
 
 //=================================================================================
 
-/*
-* Cmd_God_f
-* Sets client to godmode
-* argv(0) god
-*/
-static void Cmd_God_f( edict_t *ent ) {
-	const char *msg;
-
-	if( !sv_cheats->integer ) {
-		G_PrintMsg( ent, "Cheats are not enabled on this server.\n" );
-		return;
-	}
-
-	ent->flags ^= FL_GODMODE;
-	if( !( ent->flags & FL_GODMODE ) ) {
-		msg = "godmode OFF\n";
-	} else {
-		msg = "godmode ON\n";
-	}
-
-	G_PrintMsg( ent, "%s", msg );
-}
-
-/*
-* Cmd_Noclip_f
-*
-* argv(0) noclip
-*/
 static void Cmd_Noclip_f( edict_t *ent ) {
 	const char *msg;
 
@@ -115,9 +87,6 @@ static void Cmd_Noclip_f( edict_t *ent ) {
 	G_PrintMsg( ent, "%s", msg );
 }
 
-/*
-* Cmd_GameOperator_f
-*/
 static void Cmd_GameOperator_f( edict_t *ent ) {
 	if( !g_operator_password->string[0] ) {
 		G_PrintMsg( ent, "Operator is disabled in this server\n" );
@@ -141,15 +110,11 @@ static void Cmd_GameOperator_f( edict_t *ent ) {
 	G_PrintMsg( ent, "Incorrect operator password.\n" );
 }
 
-/*
-* Cmd_Kill_f
-*/
 static void Cmd_Kill_f( edict_t *ent ) {
 	if( ent->r.solid == SOLID_NOT ) {
 		return;
 	}
 
-	ent->flags &= ~FL_GODMODE;
 	ent->health = 0;
 	meansOfDeath = MeanOfDeath_Suicide;
 
@@ -165,9 +130,6 @@ void Cmd_ChasePrev_f( edict_t *ent ) {
 	G_ChaseStep( ent, -1 );
 }
 
-/*
-* Cmd_Position_f
-*/
 static void Cmd_Position_f( edict_t *ent ) {
 	const char *action;
 
@@ -228,77 +190,6 @@ static void Cmd_Position_f( edict_t *ent ) {
 							 ent->s.origin.z, ent->s.angles.x, ent->s.angles.y ), sizeof( msg ) );
 		G_PrintMsg( ent, "%s", msg );
 	}
-}
-
-/*
-* Cmd_PlayersExt_f
-*/
-static void Cmd_PlayersExt_f( edict_t *ent, bool onlyspecs ) {
-	int i;
-	int count = 0;
-	int start = 0;
-	char line[64];
-	char msg[1024];
-
-	if( Cmd_Argc() > 1 ) {
-		start = Clamp( 0, atoi( Cmd_Argv( 1 ) ), server_gs.maxclients - 1 );
-	}
-
-	// print information
-	msg[0] = 0;
-
-	for( i = start; i < server_gs.maxclients; i++ ) {
-		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
-			edict_t *clientEnt = &game.edicts[i + 1];
-			gclient_t *cl;
-
-			if( onlyspecs && clientEnt->s.team != TEAM_SPECTATOR ) {
-				continue;
-			}
-
-			cl = clientEnt->r.client;
-
-			snprintf( line, sizeof( line ), "%3i %s" S_COLOR_WHITE "%s\n", i, cl->netname, cl->isoperator ? " op" : "" );
-
-			if( strlen( line ) + strlen( msg ) > sizeof( msg ) - 100 ) {
-				// can't print all of them in one packet
-				Q_strncatz( msg, "...\n", sizeof( msg ) );
-				break;
-			}
-
-			if( count == 0 ) {
-				Q_strncatz( msg, "num name\n", sizeof( msg ) );
-				Q_strncatz( msg, "--- ------------------------------\n", sizeof( msg ) );
-			}
-
-			Q_strncatz( msg, line, sizeof( msg ) );
-			count++;
-		}
-	}
-
-	if( count ) {
-		Q_strncatz( msg, "--- ------------------------------\n", sizeof( msg ) );
-	}
-	Q_strncatz( msg, va( "%3i %s\n", count, Cmd_Argv( 0 ) ), sizeof( msg ) );
-	G_PrintMsg( ent, "%s", msg );
-
-	if( i < server_gs.maxclients ) {
-		G_PrintMsg( ent, "Type '%s %i' for more %s\n", Cmd_Argv( 0 ), i, Cmd_Argv( 0 ) );
-	}
-}
-
-/*
-* Cmd_Players_f
-*/
-static void Cmd_Players_f( edict_t *ent ) {
-	Cmd_PlayersExt_f( ent, false );
-}
-
-/*
-* Cmd_Spectators_f
-*/
-static void Cmd_Spectators_f( edict_t *ent ) {
-	Cmd_PlayersExt_f( ent, true );
 }
 
 bool CheckFlood( edict_t *ent, bool teamonly ) {
@@ -763,11 +654,8 @@ void G_InitGameCommands() {
 	memset( g_Commands, 0, sizeof( g_Commands ) );
 
 	G_AddCommand( "position", Cmd_Position_f );
-	G_AddCommand( "players", Cmd_Players_f );
-	G_AddCommand( "spectators", Cmd_Spectators_f );
 	G_AddCommand( "say", Cmd_SayCmd_f );
 	G_AddCommand( "say_team", Cmd_SayTeam_f );
-	G_AddCommand( "god", Cmd_God_f );
 	G_AddCommand( "noclip", Cmd_Noclip_f );
 	G_AddCommand( "kill", Cmd_Kill_f );
 	G_AddCommand( "chase", Cmd_ChaseCam_f );

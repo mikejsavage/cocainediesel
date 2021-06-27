@@ -314,7 +314,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->r.clipmask = MASK_PLAYERSOLID;
 	self->waterlevel = 0;
 	self->watertype = 0;
-	self->flags &= ~FL_NO_KNOCKBACK;
 	self->r.svflags &= ~SVF_CORPSE;
 	self->enemy = NULL;
 	self->r.owner = NULL;

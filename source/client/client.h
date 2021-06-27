@@ -356,7 +356,8 @@ void CL_ImGuiEndFrame();
 //
 void CL_Ultralight_Init();
 void CL_Ultralight_Shutdown();
-void CL_Ultralight_Frame();
+void UltralightBeginFrame();
+void UltralightEndFrame();
 void CL_Ultralight_MouseMove( u32 x, u32 y );
 void CL_Ultralight_MouseScroll( u32 x, u32 y );
 void CL_Ultralight_MouseDown( u32 x, u32 y, s32 button );

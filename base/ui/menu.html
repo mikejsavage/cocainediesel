@@ -8,129 +8,245 @@
 <style>
 * {
 	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+	-webkit-user-select: none;
 }
 
-body {
-	font-family: sans-serif;
-	font-size: calc( 100vh / 700 * 16 );
-}
-
-.health {
-	background: #111;
-	display: flex;
-	flex-direction: row;
-	position: absolute;
-	left: 2em;
-	bottom: 20%;
-	height: 2em;
-	width: 25%;
-}
-
-.health_text {
-	position: absolute;
-	padding: 0.25em 0.5em;
+html {
 	height: 100%;
 }
 
-.health_red {
+body {
+	color: lime;
+	display: flex;
+	flex-flow: column;
+	font-family: sans-serif;
+	font-size: calc( 100vh / 700 * 16 );
+	height: 100%;
+	padding: 1em;
+}
+
+table {
+	border-collapse: collapse;
+	border-spacing: 0;
+}
+
+button {
+	background: purple;
+	border-radius: 0.5em;
+	border: 1px solid white;
+	color: white;
+	font-weight: bold;
+	margin: 1em 1em 0 0;
+	padding: 0.5em 1em;
+}
+
+button:last {
+	margin-right: 0;
+}
+
+button:hover {
+	background: pink;
+}
+
+button.quit {
 	background: red;
+}
+
+button.quit:hover {
+	background: salmon;
+}
+
+main {
+	flex: 1;
+}
+
+footer {
+	text-align: right;
+}
+
+.server-browser {
+	width: 100%;
+}
+
+.server-browser th, .server-browser td {
+	padding: 0.25em 0;
+}
+
+.server-browser tbody tr:hover {
+	background: #123;
+}
+
+.server-browser .server {
+	text-align: left;
+}
+
+.server-browser .map {
+	text-align: center;
+}
+
+.server-browser .players {
+	text-align: center;
+}
+
+.server-browser .ping {
+	text-align: center;
+}
+
+label {
+	display: inline-block;
+	width: 15%;
 }
 </style>
 
-<div id="base"></div>
+<body></body>
 
 <script>
 const html = htm.bind( preact.h );
 
-function HelloSayer( props ) {
-	return html`<h1 style="color: red;">${props.howdy} ${window.navigator.appCodeName}<//>`;
+function ServerBrowserRows( params ) {
+	return params.servers.map( x => html`
+		<tr>
+			<td class="server">${x}</td>
+			<td class="map">carfentanil</td>
+			<td class="players">4/16</td>
+			<td class="ping">123</td>
+		</tr>
+	` );
 }
 
-function QuantizeU8( x ) {
-	return Math.floor( x * 255 + 0.5 );
+function ServerBrowser() {
+	let gg = [ 1, 2, 3, 4 ];
+	return html`
+		<table class="server-browser">
+			<thead>
+				<th class="server">Server</th>
+				<th class="map">Map</th>
+				<th class="players">Players</th>
+				<th class="ping">Ping</th>
+			</thead>
+
+			<tbody>
+				<${ServerBrowserRows} servers=${gg} />
+			</tbody>
+		</table>
+	`;
 }
 
-function LinearTosRGB( linear ) {
-	if( linear <= 0.0031308 )
-		return linear * 12.92;
-	return 1.055 * Math.pow( linear, 1.0 / 2.4 ) - 0.055;
-}
-
-function GetHealthColor( health ) {
-	let r, g, b;
-	if( health > 50 ) {
-		r = 1 - ( health - 50 ) / 50;
-		g = 0.6;
-		b = health / 500;
+function SetCvarText( name ) {
+	return function( e ) {
+		console.log( name, e.target.value );
+		engine.SetCvar( name, e.target.value );
 	}
-	else {
-		r = 1;
-		g = health / ( 50 / 60 ) / 100;
-		b = health / 500;
+}
+
+function SetCvarBool( name ) {
+	return function( e ) {
+		console.log( name, e.target.checked );
+		// cd.SetCvar( name, e.target.checked ? "1" : "0" );
+	}
+}
+
+function GeneralSettings() {
+	return html`
+		<div>
+			<label>Name</label>
+			<input oninput=${SetCvarText("name")} type="text" value="asdf" />
+		</div>
+
+		<div>
+			<label>Show FPS</label>
+			<input onchange=${SetCvarBool("cg_showfps")} type="checkbox" checked />
+		</div>
+	`;
+}
+
+function ControlsSettings() {
+}
+
+function VideoSettings() {
+}
+
+function SoundSettings() {
+}
+
+function Settings() {
+	const [ tab, setTab ] = preactHooks.useState( "general" );
+
+	if( tab == "general" ) {
+		return html`<${GeneralSettings} />`;
+	}
+	else if( tab == "controls" ) {
+		return html`<${ControlsSettings} />`;
+	}
+	else if( tab == "video" ) {
+		return html`<${VideoSettings} />`;
+	}
+	else if( tab == "sound" ) {
+		return html`<${SoundSettings} />`;
+	}
+}
+
+function MainMenu() {
+	const [ state, setState ] = preactHooks.useState( { mode: "server_browser" } );
+
+	function OpenServerBrowser() {
+		setState( state => { return { ...state, mode: "server_browser" }; } );
 	}
 
-	r = QuantizeU8( LinearTosRGB( r ) );
-	g = QuantizeU8( LinearTosRGB( g ) );
-	b = QuantizeU8( LinearTosRGB( b ) );
-
-	return `rgb( ${r}, ${g}, ${b} )`;
-}
-
-let old_state = { };
-let decaying_health = null;
-let decaying_health_time = null;
-
-function TakeDamage() {
-	decaying_health = old_state.health;
-	decaying_health_time = Date.now();
-}
-
-function HealthBar( state ) {
-	if( old_state.health != null && state.health < old_state.health ) {
-		decaying_health = old_state.health;
-		decaying_health_time = Date.now();
+	function RefreshServerBrowser() {
 	}
 
-	console.log( old_state );
-	console.log( state );
-	console.log( decaying_health, decaying_health_time );
-
-	const hold = 1000;
-	const fade = 50;
-	let red_width = decaying_health - state.health;
-	if( decaying_health != null && state.now - decaying_health_time >= hold ) {
-		decaying_health = Math.max( decaying_health - fade * state.dt, state.health );
+	function OpenCreateServer() {
 	}
 
-	return html`<div class="health"><div class="health_text">${state.health}</div><div class="health_bar" style="background: ${GetHealthColor( state.health )}; width: ${state.health}%;"></div><div class="health_red" style="width: ${red_width}%;"></div></div>`
-}
+	function OpenSettings() {
+		setState( state => { return { ...state, mode: "settings" }; } );
+	}
 
-function HUD( state ) {
-	return html`<${HealthBar} ...${state} />`;
-}
+	function Quit() {
+	}
 
-function Clone( obj ) {
-	// TODO: this is shallow copy
-	return { ...obj };
+	let main;
+	if( state.mode == "server_browser" ) {
+		main = html`
+			<button onclick=${RefreshServerBrowser}>Refresh</button>
+			<${ServerBrowser} />
+		`;
+	}
+	else if( state.mode == "settings" ) {
+		main = html`<${Settings} />`;
+	}
+
+	engine.SetCvar( "sup", "bro" );
+
+	return html`
+		<header>
+			<h1>Cocaine Diesel</h1>
+
+			<nav>
+				<button onclick=${OpenServerBrowser}>Find servers</button>
+				<button onclick=${OpenCreateServer}>Create server</button>
+				<button onclick=${OpenSettings}>Settings</button>
+				<button onclick=${Quit} class="quit">Quit</button>
+			</nav>
+		</header>
+
+		<main>${main}</main>
+
+		<footer>
+			Big footer version 1.2.3.4
+		</footer>
+	`;
 }
 
 function OnFrame( state ) {
-	state.now = Date.now();
-	state.dt = old_state.now != null ? ( state.now - old_state.now ) * 0.001 : 0;
-
-	if( state.in_game ) {
-		preact.render( html`<${HelloSayer} howdy=GGGGG${state.howdy} /><${HUD} ...${state} />`, document.getElementById( "base" ) );
-	}
-	else {
-		preact.render( html`<${HelloSayer} howdy=${state.howdy} />`, document.getElementById( "base" ) );
-	}
-
-	old_state = Clone( state );
+	preact.render( html`<${MainMenu} />`, document.body );
 }
 
 if( location.hash != "#ultralight" ) {
-	OnFrame( { in_game: true, howdy: "howdy!", health: 66 } );
-	document.body.style = "background: #222;";
+	OnFrame();
 }
 </script>
 

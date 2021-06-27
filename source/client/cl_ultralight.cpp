@@ -427,6 +427,56 @@ ul::RefPtr< ul::Renderer > renderer;
 ul::RefPtr< ul::View > view;
 GPUDriverGL driver;
 
+static const char * GG( Allocator * a, JSContextRef ctx, JSValueRef str ) {
+	JSStringRef str2 = JSValueToStringCopy( ctx, str, NULL );
+	assert( str2 != NULL );
+
+	size_t buf_size = JSStringGetMaximumUTF8CStringSize( str2 );
+	char * buf = ALLOC_MANY( a, char, buf_size );
+	JSStringGetUTF8CString( str2, buf, buf_size );
+
+	JSStringRelease( str2 );
+
+	return buf;
+}
+
+static JSValueRef HelloFromJS( JSContextRef ctx, JSObjectRef function, JSObjectRef self, size_t num_args, const JSValueRef * args, JSValueRef * exception ) {
+	assert( num_args == 2 );
+	assert( JSValueIsString( ctx, args[ 0 ] ) );
+	assert( JSValueIsString( ctx, args[ 1 ] ) );
+
+	TempAllocator temp = cls.frame_arena.temp();
+
+	const char * cvar = GG( &temp, ctx, args[ 0 ] );
+	const char * value = GG( &temp, ctx, args[ 1 ] );
+
+	Com_GGPrint( "Set {} = {}", cvar, value );
+
+	return JSValueMakeNull( ctx );
+}
+
+static void SetObjectKey( JSContextRef ctx, JSObjectRef obj, const char * key, JSValueRef value ) {
+	JSRetainPtr< JSStringRef > keylol = adopt( JSStringCreateWithUTF8CString( key ) );
+	JSObjectSetPropertyForKey( ctx, obj, JSValueMakeString( ctx, keylol.get() ), value, kJSPropertyAttributeReadOnly, NULL );
+}
+
+static void SetObjectFunction( JSContextRef ctx, JSObjectRef obj, const char * name, JSObjectCallAsFunctionCallback func ) {
+	JSRetainPtr< JSStringRef > namelol = adopt( JSStringCreateWithUTF8CString( name ) );
+	JSObjectRef funclol = JSObjectMakeFunctionWithCallback( ctx, namelol.get(), func );
+	JSObjectSetPropertyForKey( ctx, obj, JSValueMakeString( ctx, namelol.get() ), funclol, kJSPropertyAttributeReadOnly, NULL );
+}
+
+static void RegisterEngineAPI() {
+	ul::Ref< ul::JSContext > context = view->LockJSContext();
+	JSContextRef ctx = context.get();
+
+	JSObjectRef engine = JSObjectMake( ctx, NULL, NULL );
+
+	SetObjectFunction( ctx, engine, "SetCvar", HelloFromJS );
+
+	SetObjectKey( ctx, JSContextGetGlobalObject( ctx ), "engine", engine );
+}
+
 void CL_Ultralight_Init() {
 	ZoneScoped;
 
@@ -454,6 +504,8 @@ void CL_Ultralight_Init() {
 	view = renderer->CreateView( frame_static.viewport_width, frame_static.viewport_height, true, nullptr );
 	view->LoadURL( "file:///base/ui/menu.html#ultralight" );
 	view->Focus();
+
+	RegisterEngineAPI();
 }
 
 void CL_Ultralight_Shutdown() {
@@ -467,19 +519,7 @@ void CL_Ultralight_Shutdown() {
 	DeleteShader( ultralight_shaders[ 1 ] );
 }
 
-static void SetObjectKey( JSContextRef ctx, JSObjectRef obj, const char * key, JSValueRef value ) {
-	JSRetainPtr< JSStringRef > keylol = adopt( JSStringCreateWithUTF8CString( key ) );
-	JSObjectSetPropertyForKey( ctx, obj, JSValueMakeString( ctx, keylol.get() ), value, kJSPropertyAttributeReadOnly, NULL );
-}
-
-void CL_Ultralight_Frame() {
-	ZoneScoped;
-
-	view->Resize( frame_static.viewport_width, frame_static.viewport_height );
-
-	ul::Ref<ul::JSContext> context = view->LockJSContext();
-	JSContextRef ctx = context.get();
-
+static void DrawMenu( JSContextRef ctx ) {
 	JSRetainPtr<JSStringRef> str = adopt(JSStringCreateWithUTF8CString("OnFrame"));
 	JSValueRef func = JSEvaluateScript(ctx, str.get(), 0, 0, 0, 0);
 
@@ -489,14 +529,8 @@ void CL_Ultralight_Frame() {
 		if (JSObjectIsFunction(ctx, funcObj)) {
 			JSObjectRef args = JSObjectMake( ctx, NULL, NULL );
 
-			SetObjectKey( ctx, args, "in_game", JSValueMakeBoolean( ctx, cls.state == CA_ACTIVE ) );
-
 			JSRetainPtr<JSStringRef> msg = adopt(JSStringCreateWithUTF8CString("Howdy!"));
 			SetObjectKey( ctx, args, "howdy", JSValueMakeString( ctx, msg.get() ) );
-
-			if( cls.state == CA_ACTIVE ) {
-				SetObjectKey( ctx, args, "health", JSValueMakeNumber( ctx, cg.predictedPlayerState.health ) );
-			}
 
 			JSValueRef exception = 0;
 			JSObjectCallAsFunction( ctx, funcObj, 0, 1, &args, &exception );
@@ -520,6 +554,19 @@ void CL_Ultralight_Frame() {
 			}
 		}
 	}
+}
+
+void UltralightBeginFrame() {
+	ZoneScoped;
+	view->Resize( frame_static.viewport_width, frame_static.viewport_height );
+}
+
+void UltralightEndFrame() {
+	ul::Ref<ul::JSContext> context = view->LockJSContext();
+	JSContextRef ctx = context.get();
+	DrawMenu( ctx ); // TODO
+
+	ZoneScoped;
 
 	{
 		ZoneScopedN( "renderer->Update()" );

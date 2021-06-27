@@ -206,6 +206,7 @@ void SCR_UpdateScreen() {
 	CL_ForceVsync( cls.state == CA_DISCONNECTED );
 
 	CL_ImGuiBeginFrame();
+	UltralightBeginFrame();
 
 	if( cls.state == CA_CONNECTED || cls.state == CA_ACTIVE ) {
 		SCR_RenderView();
@@ -226,7 +227,6 @@ void SCR_UpdateScreen() {
 
 	UI_Refresh();
 
+	UltralightEndFrame();
 	CL_ImGuiEndFrame();
-
-	CL_Ultralight_Frame();
 }

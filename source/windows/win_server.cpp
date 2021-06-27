@@ -6,6 +6,10 @@ const bool is_dedicated_server = true;
 
 void Sys_InitTime();
 
+void Sys_ShowErrorMessage( const char * msg ) {
+	printf( "%s\n", msg );
+}
+
 void Sys_Error( const char *format, ... ) {
 	va_list argptr;
 	char msg[1024];

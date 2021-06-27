@@ -633,7 +633,7 @@ int CG_DemoCam_FreeFly() {
 		maxspeed = 250;
 
 		// run frame
-		trap_NET_GetUserCmd( trap_NET_GetCurrentUserCmdNum() - 1, &cmd );
+		CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 		cmd.msec = cls.realFrameTime;
 
 		moveangles.x = SHORT2ANGLE( cmd.angles[ 0 ] ) + SHORT2ANGLE( freecam_delta_angles[ 0 ] );
@@ -682,7 +682,7 @@ static void CG_Democam_SetCameraPositionFromView() {
 	if( !CamIsFree ) {
 		usercmd_t cmd;
 
-		trap_NET_GetUserCmd( trap_NET_GetCurrentUserCmdNum() - 1, &cmd );
+		CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 
 		freecam_delta_angles[ 0 ] = ANGLE2SHORT( cam_angles.x ) - cmd.angles[ 0 ];
 		freecam_delta_angles[ 1 ] = ANGLE2SHORT( cam_angles.y ) - cmd.angles[ 1 ];

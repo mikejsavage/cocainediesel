@@ -11,7 +11,7 @@ static void SpikesDeploy( edict_t * self ) {
 		Vec3 dir;
 		AngleVectors( self->s.angles, NULL, NULL, &dir );
 		Vec3 knockback = dir * 30.0f;
-		KillBox( self, MeanOfDeath_Spike, knockback );
+		KillBox( self, WorldDamage_Spike, knockback );
 		self->nextThink = level.time + 1;
 	}
 	else {
@@ -25,7 +25,7 @@ static void SpikesTouched( edict_t * self, edict_t * other, cplane_t * plane, in
 		return;
 
 	if( self->s.radius == 1 ) {
-		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 10000, 0, 0, MeanOfDeath_Spike );
+		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 10000, 0, 0, WorldDamage_Spike );
 		return;
 	}
 

@@ -285,7 +285,7 @@ struct obituary_t {
 	int victim_team;
 	char attacker[MAX_INFO_VALUE];
 	int attacker_team;
-	int mod;
+	DamageType damage_type;
 	bool wallbang;
 };
 
@@ -296,7 +296,7 @@ struct {
 	s64 time;
 	u64 entropy;
 	obituary_type_t type;
-	int mod;
+	DamageType damage_type;
 } self_obituary;
 
 void CG_SC_ResetObituaries() {
@@ -367,12 +367,12 @@ static char * Uppercase( Allocator * a, const char * str ) {
 	return upper;
 }
 
-static char * MakeObituary( Allocator * a, RNG * rng, int type, int mod ) {
+static char * MakeObituary( Allocator * a, RNG * rng, int type, DamageType damage_type ) {
 	Span< const char * > obituaries = StaticSpan( normal_obituaries );
-	if( mod == MeanOfDeath_Void ) {
+	if( damage_type == WorldDamage_Void ) {
 		obituaries = StaticSpan( void_obituaries );
 	}
-	else if( mod == MeanOfDeath_Spike ) {
+	else if( damage_type == WorldDamage_Spike ) {
 		obituaries = StaticSpan( spike_obituaries );
 	}
 
@@ -392,7 +392,8 @@ void CG_SC_Obituary() {
 	int victimNum = atoi( Cmd_Argv( 1 ) );
 	int attackerNum = atoi( Cmd_Argv( 2 ) );
 	int topAssistorNum = atoi( Cmd_Argv( 3 ) );
-	int mod = atoi( Cmd_Argv( 4 ) );
+	DamageType damage_type;
+	damage_type.encoded = atoi( Cmd_Argv( 4 ) );
 	bool wallbang = atoi( Cmd_Argv( 5 ) ) == 1;
 	u64 entropy = StringToU64( Cmd_Argv( 6 ), 0 );
 
@@ -404,7 +405,7 @@ void CG_SC_Obituary() {
 	obituary_t * current = &cg_obituaries[ cg_obituaries_current ];
 	current->type = OBITUARY_NORMAL;
 	current->time = cls.monotonicTime;
-	current->mod = mod;
+	current->damage_type = damage_type;
 	current->wallbang = wallbang;
 
 	if( victim != NULL ) {
@@ -432,10 +433,10 @@ void CG_SC_Obituary() {
 	if( attackerNum == 0 ) {
 		current->type = OBITUARY_ACCIDENT;
 
-		if( mod == MeanOfDeath_Void ) {
+		if( damage_type == WorldDamage_Void ) {
 			attacker_name = temp( "{}{}", ImGuiColorToken( rgba8_black ), "THE VOID" );
 		}
-		else if( mod == MeanOfDeath_Spike ) {
+		else if( damage_type == WorldDamage_Spike ) {
 			attacker_name = temp( "{}{}", ImGuiColorToken( rgba8_black ), "A SPIKE" );
 		}
 		else {
@@ -443,13 +444,13 @@ void CG_SC_Obituary() {
 		}
 	}
 
-	const char * obituary = MakeObituary( &temp, &rng, current->type, mod );
+	const char * obituary = MakeObituary( &temp, &rng, current->type, damage_type );
 
 	if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
 		self_obituary.time = cls.monotonicTime;
 		self_obituary.entropy = entropy;
 		self_obituary.type = current->type;
-		self_obituary.mod = mod;
+		self_obituary.damage_type = damage_type;
 	}
 
 	if( attacker == victim ) {
@@ -486,31 +487,40 @@ void CG_SC_Obituary() {
 	}
 }
 
-static const Material * MODToIcon( int mod ) {
-	if( mod < Weapon_Count ) {
-		return cgs.media.shaderWeaponIcon[ mod ];
+static const Material * DamageTypeToIcon( DamageType type ) {
+	WeaponType weapon;
+	GadgetType gadget;
+	WorldDamage world;
+	DamageCategory category = DecodeDamageType( type, &weapon, &gadget, &world );
+
+	if( category == DamageCategory_Weapon ) {
+		return cgs.media.shaderWeaponIcon[ weapon ];
 	}
 
-	switch( mod ) {
-		case MeanOfDeath_Slime:
+	if( category == DamageCategory_Gadget ) {
+		return cgs.media.shaderGadgetIcon[ gadget ];
+	}
+
+	switch( world ) {
+		case WorldDamage_Slime:
 			return FindMaterial( "gfx/slime" );
-		case MeanOfDeath_Lava:
+		case WorldDamage_Lava:
 			return FindMaterial( "gfx/lava" );
-		case MeanOfDeath_Crush:
+		case WorldDamage_Crush:
 			return FindMaterial( "gfx/crush" );
-		case MeanOfDeath_Telefrag:
+		case WorldDamage_Telefrag:
 			return FindMaterial( "gfx/telefrag" );
-		case MeanOfDeath_Suicide:
+		case WorldDamage_Suicide:
 			return FindMaterial( "gfx/suicide" );
-		case MeanOfDeath_Explosion:
+		case WorldDamage_Explosion:
 			return FindMaterial( "gfx/explosion" );
-		case MeanOfDeath_Trigger:
+		case WorldDamage_Trigger:
 			return FindMaterial( "gfx/trigger" );
-		case MeanOfDeath_Laser:
+		case WorldDamage_Laser:
 			return FindMaterial( "gfx/laser" );
-		case MeanOfDeath_Spike:
+		case WorldDamage_Spike:
 			return FindMaterial( "gfx/spike" );
-		case MeanOfDeath_Void:
+		case WorldDamage_Void:
 			return FindMaterial( "gfx/void" );
 	}
 
@@ -578,7 +588,7 @@ static void CG_DrawObituaries(
 			continue;
 		}
 
-		const Material * pic = MODToIcon( obr->mod );
+		const Material * pic = DamageTypeToIcon( obr->damage_type );
 
 		float attacker_width = TextBounds( font, layout_cursor_font_size, obr->attacker ).maxs.x;
 		float victim_width = TextBounds( font, layout_cursor_font_size, obr->victim ).maxs.x;
@@ -644,7 +654,7 @@ static void CG_DrawObituaries(
 				RNG rng = NewRNG( self_obituary.entropy, 0 );
 
 				TempAllocator temp = cls.frame_arena.temp();
-				const char * obituary = MakeObituary( &temp, &rng, self_obituary.type, self_obituary.mod );
+				const char * obituary = MakeObituary( &temp, &rng, self_obituary.type, self_obituary.damage_type );
 
 				float size = Lerp( h * 0.5f, Unlerp01( 1.0f, t, 3.0f ), h * 0.75f );
 				Vec4 color = CG_TeamColorVec4( TEAM_ENEMY );

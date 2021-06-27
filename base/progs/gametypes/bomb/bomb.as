@@ -362,7 +362,7 @@ void bombThink() {
 				Entity @world = G_GetEntity( 0 );
 				for( int i = 0; i < maxClients; i++ ) {
 					Client @client = @G_GetClient( i );
-					client.getEnt().sustainDamage( world, world, Vec3( 0.0f ), 100.0f, 0.0f, MeanOfDeath_Explosion );
+					client.getEnt().sustainDamage( world, world, Vec3( 0.0f ), 100.0f, 0.0f, WorldDamage_Explosion );
 				}
 
 				bombExplosionDamage = true;

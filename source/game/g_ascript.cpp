@@ -61,20 +61,20 @@ static const asEnumVal_t asDamageEnumVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
-static const asEnumVal_t asMeanOfDeathVals[] =
+static const asEnumVal_t asWorldDamageVals[] =
 {
-	ASLIB_ENUM_VAL( MeanOfDeath_Slime ),
-	ASLIB_ENUM_VAL( MeanOfDeath_Lava ),
-	ASLIB_ENUM_VAL( MeanOfDeath_Crush ),
-	ASLIB_ENUM_VAL( MeanOfDeath_Telefrag ),
-	ASLIB_ENUM_VAL( MeanOfDeath_Suicide ),
-	ASLIB_ENUM_VAL( MeanOfDeath_Explosion ),
+	ASLIB_ENUM_VAL( WorldDamage_Slime ),
+	ASLIB_ENUM_VAL( WorldDamage_Lava ),
+	ASLIB_ENUM_VAL( WorldDamage_Crush ),
+	ASLIB_ENUM_VAL( WorldDamage_Telefrag ),
+	ASLIB_ENUM_VAL( WorldDamage_Suicide ),
+	ASLIB_ENUM_VAL( WorldDamage_Explosion ),
 
-	ASLIB_ENUM_VAL( MeanOfDeath_Trigger ),
+	ASLIB_ENUM_VAL( WorldDamage_Trigger ),
 
-	ASLIB_ENUM_VAL( MeanOfDeath_Laser ),
-	ASLIB_ENUM_VAL( MeanOfDeath_Spike ),
-	ASLIB_ENUM_VAL( MeanOfDeath_Void ),
+	ASLIB_ENUM_VAL( WorldDamage_Laser ),
+	ASLIB_ENUM_VAL( WorldDamage_Spike ),
+	ASLIB_ENUM_VAL( WorldDamage_Void ),
 
 	ASLIB_ENUM_VAL_NULL
 };
@@ -99,9 +99,9 @@ static const asEnumVal_t asEffectEnumVals[] =
 {
 	ASLIB_ENUM_VAL( EF_CARRIER ),
 	ASLIB_ENUM_VAL( EF_TAKEDAMAGE ),
-	ASLIB_ENUM_VAL( EF_GODMODE ),
 	ASLIB_ENUM_VAL( EF_HAT ),
 	ASLIB_ENUM_VAL( EF_TEAM_SILHOUETTE ),
+	ASLIB_ENUM_VAL( EF_WORLD_MODEL ),
 
 	ASLIB_ENUM_VAL_NULL
 };
@@ -215,12 +215,13 @@ static const asEnumVal_t asWeaponTypeEnumVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
-static const asEnumVal_t asItemTypeEnumVals[] =
+static const asEnumVal_t asGadgetTypeEnumVals[] =
 {
-	ASLIB_ENUM_VAL( Item_Bomb ),
-	ASLIB_ENUM_VAL( Item_FakeBomb ),
+	ASLIB_ENUM_VAL( Gadget_None ),
 
-	ASLIB_ENUM_VAL( Item_Count ),
+	ASLIB_ENUM_VAL( Gadget_ThrowingAxe ),
+
+	ASLIB_ENUM_VAL( Gadget_Count ),
 
 	ASLIB_ENUM_VAL_NULL
 };
@@ -377,7 +378,7 @@ static const asEnum_t asGameEnums[] =
 	{ "movetype_e", asMovetypeEnumVals },
 
 	{ "takedamage_e", asDamageEnumVals },
-	{ "MeanOfDeath", asMeanOfDeathVals },
+	{ "WorldDamage", asWorldDamageVals },
 
 	{ "configstrings_e", asConfigstringEnumVals },
 	{ "state_effects_e", asEffectEnumVals },
@@ -389,7 +390,7 @@ static const asEnum_t asGameEnums[] =
 
 	{ "WeaponCategory", asWeaponCategoryEnumVals },
 	{ "WeaponType", asWeaponTypeEnumVals },
-	{ "ItemType", asItemTypeEnumVals },
+	{ "GadgetType", asGadgetTypeEnumVals },
 
 	{ "client_statest_e", asClientStateEnumVals },
 	{ "sound_channels_e", asSoundChannelEnumVals },
@@ -1086,11 +1087,11 @@ static void objectGameEntity_TeleportEffect( bool in, edict_t *self ) {
 	G_TeleportEffect( self, in );
 }
 
-static void objectGameEntity_sustainDamage( edict_t *inflictor, edict_t *attacker, asvec3_t *dir, float damage, float knockback, MeanOfDeath mod, edict_t *self ) {
+static void objectGameEntity_sustainDamage( edict_t *inflictor, edict_t *attacker, asvec3_t *dir, float damage, float knockback, WorldDamage mod, edict_t *self ) {
 	G_Damage( self, inflictor, attacker,
 			  dir ? dir->v : Vec3( 0.0f ), dir ? dir->v : Vec3( 0.0f ),
 			  inflictor ? inflictor->s.origin : self->s.origin,
-			  damage, knockback, 0, mod >= 0 ? mod : 0 );
+			  damage, knockback, 0, mod );
 }
 
 static void objectGameEntity_splashDamage( edict_t *attacker, int radius, float damage, float knockback, edict_t *self ) {
@@ -1104,7 +1105,7 @@ static void objectGameEntity_splashDamage( edict_t *attacker, int radius, float 
 	self->projectileInfo.minKnockback = 1;
 	self->projectileInfo.radius = radius;
 
-	G_RadiusDamage( self, attacker, NULL, self, MeanOfDeath_Explosion );
+	G_RadiusDamage( self, attacker, NULL, self, WorldDamage_Explosion );
 }
 
 static void objectGameEntity_explosionEffect( int radius, edict_t *self ) {
@@ -1178,7 +1179,7 @@ static const asMethod_t gedict_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, setupModel, ( ) ), asFUNCTION( objectGameEntity_SetupModel ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( array<Entity @> @, findTargets, ( ) const ), asFUNCTION( objectGameEntity_findTargets ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, useTargets, ( const Entity @activator ) ), asFUNCTION( objectGameEntity_UseTargets ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, sustainDamage, ( Entity @inflicter, Entity @attacker, const Vec3 &in dir, float damage, float knockback, MeanOfDeath mod ) ), asFUNCTION( objectGameEntity_sustainDamage ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, sustainDamage, ( Entity @inflicter, Entity @attacker, const Vec3 &in dir, float damage, float knockback, WorldDamage mod ) ), asFUNCTION( objectGameEntity_sustainDamage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, splashDamage, ( Entity @attacker, int radius, float damage, float knockback ) ), asFUNCTION( objectGameEntity_splashDamage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, explosionEffect, ( int radius ) ), asFUNCTION( objectGameEntity_explosionEffect ), asCALL_CDECL_OBJLAST },
 
@@ -1893,7 +1894,7 @@ void G_asCallMapEntityPain( edict_t *ent, edict_t *other, float kick, float dama
 }
 
 // "void %s_die( Entity @ent, Entity @inflicter, Entity @attacker )"
-void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, int damage, const Vec3 point ) {
+void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, int damage ) {
 	int error;
 	asIScriptContext *ctx;
 

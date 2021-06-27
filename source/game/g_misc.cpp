@@ -121,7 +121,7 @@ static void func_wall_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->r.solid == SOLID_NOT ) {
 		self->r.solid = SOLID_YES;
 		self->r.svflags &= ~SVF_NOCLIENT;
-		KillBox( self, MeanOfDeath_Crush, Vec3( 0.0f ) );
+		KillBox( self, WorldDamage_Crush, Vec3( 0.0f ) );
 	} else {
 		self->r.solid = SOLID_NOT;
 		self->r.svflags |= SVF_NOCLIENT;
@@ -177,7 +177,7 @@ void SP_func_static( edict_t *ent ) {
 	GClip_LinkEntity( ent );
 }
 
-static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *attacker, int assistor, int damage, Vec3 point ) {
+static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *attacker, int assistor, DamageType damage_type, int damage ) {
 	// do not explode unless visible
 	if( self->r.svflags & SVF_NOCLIENT ) {
 		return;
@@ -191,7 +191,7 @@ static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *
 	self->s.origin = origin;
 
 	if( self->projectileInfo.maxDamage ) {
-		G_RadiusDamage( self, attacker, NULL, NULL, MeanOfDeath_Explosion );
+		G_RadiusDamage( self, attacker, NULL, NULL, WorldDamage_Explosion );
 	}
 
 	self->velocity = self->s.origin - inflictor->s.origin;
@@ -229,7 +229,7 @@ static void func_explosive_explode( edict_t *self, edict_t *inflictor, edict_t *
 }
 
 static void func_explosive_think( edict_t *self ) {
-	func_explosive_explode( self, self, self->enemy, -1, self->count, Vec3( 0.0f ) );
+	func_explosive_explode( self, self, self->enemy, -1, DamageType(), self->count );
 }
 
 static void func_explosive_use( edict_t *self, edict_t *other, edict_t *activator ) {
@@ -242,14 +242,14 @@ static void func_explosive_use( edict_t *self, edict_t *other, edict_t *activato
 		return;
 	}
 
-	func_explosive_explode( self, self, other, -1, self->count, Vec3( 0.0f ) );
+	func_explosive_explode( self, self, other, -1, DamageType(), self->count );
 }
 
 static void func_explosive_spawn( edict_t *self, edict_t *other, edict_t *activator ) {
 	self->r.solid = SOLID_YES;
 	self->r.svflags &= ~SVF_NOCLIENT;
 	self->use = NULL;
-	KillBox( self, MeanOfDeath_Crush, Vec3( 0.0f ) );
+	KillBox( self, WorldDamage_Crush, Vec3( 0.0f ) );
 	GClip_LinkEntity( self );
 }
 

@@ -21,8 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 constexpr int PLAYER_MASS = 200;
 
-static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker, int topAssistEntNo ) {
-	int mod = meansOfDeath;
+static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker, int topAssistEntNo, DamageType damage_type ) {
 	bool wallbang = ( damageFlagsOfDeath & DAMAGE_WALLBANG ) != 0;
 
 	// duplicate message at server console for logging
@@ -30,25 +29,25 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 		if( attacker != self ) { // regular death message
 			self->enemy = attacker;
 			if( is_dedicated_server ) {
-				Com_Printf( "\"%s\" \"%s\" %d %d\n", self->r.client->netname, attacker->r.client->netname, mod, wallbang ? 1 : 0 );
+				Com_GGPrint( "\"{}\" \"{}\" {} {}", self->r.client->netname, attacker->r.client->netname, damage_type.encoded, wallbang ? 1 : 0 );
 			}
 		} else {      // suicide
 			self->enemy = NULL;
 			if( is_dedicated_server ) {
-				Com_Printf( "\"%s\" suicide %d\n", self->r.client->netname, mod );
+				Com_GGPrint( "\"{}\" suicide {}", self->r.client->netname, damage_type.encoded );
 			}
 
 			G_PositionedSound( self->s.origin, CHAN_AUTO, "sounds/trombone/sad" );
 		}
 
-		G_Obituary( self, attacker, topAssistEntNo, mod, wallbang );
+		G_Obituary( self, attacker, topAssistEntNo, damage_type, wallbang );
 	} else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
 		if( is_dedicated_server ) {
-			Com_Printf( "\"%s\" suicide %d\n", self->r.client->netname, mod );
+			Com_GGPrint( "\"{}\" suicide {}", self->r.client->netname, damage_type.encoded );
 		}
 
-		G_Obituary( self, attacker == self ? self : world, topAssistEntNo, mod, wallbang );
+		G_Obituary( self, attacker == self ? self : world, topAssistEntNo, damage_type, wallbang );
 	}
 }
 
@@ -57,7 +56,7 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 // DEAD BODIES
 //=======================================================
 
-static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
+static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage_type, int damage ) {
 	assert( ent->s.type == ET_PLAYER );
 
 	int contents = G_PointContents( ent->s.origin );
@@ -100,10 +99,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	body->s.teleported = true;
 	body->s.ownerNum = ent->s.number;
 
-	int mod = meansOfDeath;
-	bool gib = mod == Weapon_Railgun || mod == MeanOfDeath_Trigger || mod == MeanOfDeath_Telefrag
-		|| mod == MeanOfDeath_Explosion || mod == MeanOfDeath_Spike ||
-		( ( mod == Weapon_RocketLauncher || mod == Weapon_GrenadeLauncher ) && damage >= 20 );
+	bool gib = damage_type == Weapon_Railgun || damage_type == WorldDamage_Trigger || damage_type == WorldDamage_Telefrag
+		|| damage_type == WorldDamage_Explosion || damage_type == WorldDamage_Spike ||
+		( ( damage_type == Weapon_RocketLauncher || damage_type == Weapon_GrenadeLauncher ) && damage >= 20 );
 
 	if( gib ) {
 		ThrowSmallPileOfGibs( body, knockbackOfDeath, damage );
@@ -113,7 +111,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	}
 
 	u64 parm = Random64( &svs.rng ) << 1;
-	if( mod == MeanOfDeath_Void ) {
+	if( damage_type == WorldDamage_Void ) {
 		parm |= 1;
 	}
 
@@ -134,7 +132,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, int damage ) {
 	return body;
 }
 
-void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, int damage, const Vec3 point ) {
+void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, DamageType damage_type, int damage ) {
 	snap_edict_t snap_backup = ent->snap;
 	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
 
@@ -147,10 +145,10 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAss
 	ent->r.solid = SOLID_NOT;
 
 	// player death
-	ClientObituary( ent, inflictor, attacker, topAssistorEntNo );
+	ClientObituary( ent, inflictor, attacker, topAssistorEntNo, damage_type );
 
 	// create a corpse
-	CreateCorpse( ent, attacker, damage );
+	CreateCorpse( ent, attacker, damage_type, damage );
 	ent->enemy = NULL;
 
 	ent->s.angles.y = ent->r.client->ps.viewangles.y = LookAtKillerYAW( ent, inflictor, attacker );
@@ -314,7 +312,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->r.clipmask = MASK_PLAYERSOLID;
 	self->waterlevel = 0;
 	self->watertype = 0;
-	self->flags &= ~FL_NO_KNOCKBACK;
 	self->r.svflags &= ~SVF_CORPSE;
 	self->enemy = NULL;
 	self->r.owner = NULL;
@@ -373,7 +370,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	// don't put spectators in the game
 	if( !ghost ) {
-		KillBox( self, MeanOfDeath_Telefrag, Vec3( 0.0f ) );
+		KillBox( self, WorldDamage_Telefrag, Vec3( 0.0f ) );
 	}
 
 	self->s.teleported = true;
@@ -463,7 +460,7 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	GClip_UnlinkEntity( player );
 
 	// kill anything at the destination
-	KillBox( player, MeanOfDeath_Telefrag, Vec3( 0.0f ) );
+	KillBox( player, WorldDamage_Telefrag, Vec3( 0.0f ) );
 
 	GClip_LinkEntity( player );
 
@@ -839,6 +836,23 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 			G_AddEvent( ent, ev, parm, true );
 			break;
 
+		case EV_SUICIDE_BOMB_EXPLODE: {
+			ent->health = 0;
+
+			edict_t stupid = { };
+			stupid.s.origin = ent->s.origin;
+			stupid.projectileInfo.maxDamage = 100;
+			stupid.projectileInfo.minDamage = 25;
+			stupid.projectileInfo.maxKnockback = 150;
+			stupid.projectileInfo.minKnockback = 75;
+			stupid.projectileInfo.radius = 150;
+
+			G_RadiusDamage( &stupid, ent, NULL, ent, Gadget_SuicideBomb );
+
+			G_Killed( ent, ent, ent, 0, Gadget_SuicideBomb, 10000 );
+			G_AddEvent( ent, ev, parm, true );
+		} break;
+
 		default:
 			G_AddEvent( ent, ev, parm, true );
 			break;
@@ -856,6 +870,11 @@ void G_PredictedFireWeapon( int entNum, u64 parm ) {
 	event->s.ownerNum = entNum;
 	event->s.origin2 = ent->r.client->ps.viewangles;
 	event->s.team = ent->s.team;
+}
+
+void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm ) {
+	edict_t * ent = &game.edicts[ entNum ];
+	G_UseGadget( ent, gadget, parm );
 }
 
 void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
@@ -982,7 +1001,7 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 
 	if( ent->movetype == MOVETYPE_PLAYER ) {
 		if( ent->s.origin.z <= -1024 ) {
-			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin, 1337, 0, 0, MeanOfDeath_Void );
+			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin, 1337, 0, 0, WorldDamage_Void );
 		}
 	}
 

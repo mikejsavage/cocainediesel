@@ -906,6 +906,18 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_VFX:
 			DoVisualEffect( StringHash( parm ), ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1, vec4_white );
 			break;
+
+		case EV_SUICIDE_BOMB_ANNOUNCEMENT:
+			S_StartEntitySound( "sounds/vsay/helena", ent->number, CHAN_AUTO, 1.0f );
+			break;
+
+		case EV_SUICIDE_BOMB_BEEP:
+			S_StartEntitySound( "sounds/beep", ent->number, CHAN_AUTO, 1.0f );
+			break;
+
+		case EV_SUICIDE_BOMB_EXPLODE:
+			CG_RocketExplosion( ent->origin, Vec3( 0.0f ), team_color );
+			break;
 	}
 }
 

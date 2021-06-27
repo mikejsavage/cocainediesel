@@ -183,12 +183,19 @@ static void FireWeapon( const gs_state_t * gs, SyncPlayerState * ps, const userc
 }
 
 static ItemStateTransition Dispatch( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const usercmd_t * cmd ) {
-	if( ps->pending_weapon == Weapon_None ) {
+	if( ps->pending_weapon == Weapon_None && !ps->pending_gadget ) {
 		return state;
 	}
 
-	ps->weapon = ps->pending_weapon;
+	if( ps->pending_gadget ) {
+		ps->using_gadget = true;
+	}
+	else {
+		ps->weapon = ps->pending_weapon;
+	}
+
 	ps->pending_weapon = Weapon_None;
+	ps->pending_gadget = false;
 
 	u64 quiet_bit = state == WeaponState_DispatchQuiet ? 1 : 0;
 	gs->api.PredictedEvent( ps->POVnum, EV_WEAPONACTIVATE, ( ps->weapon << 1 ) | quiet_bit );
@@ -202,8 +209,13 @@ static ItemState dispatch_states[] = {
 };
 
 static WeaponState AllowWeaponSwitch( const gs_state_t * gs, SyncPlayerState * ps, WeaponState otherwise ) {
-	if( ps->pending_weapon == Weapon_None || ps->pending_weapon == ps->weapon ) {
+	bool switching = false;
+	switching = switching || ( ps->pending_weapon != Weapon_None && ps->pending_weapon != ps->weapon );
+	switching = switching || ( ps->pending_gadget && ps->gadget_ammo > 0 && !ps->using_gadget );
+
+	if( !switching ) {
 		ps->pending_weapon = Weapon_None;
+		ps->pending_gadget = false;
 		return otherwise;
 	}
 
@@ -358,13 +370,104 @@ static ItemState railgun_states[] = {
 	} ),
 };
 
+static const ItemState generic_throwable_states[] = {
+	ItemState( WeaponState_SwitchingIn, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const usercmd_t * cmd ) -> ItemStateTransition {
+		const GadgetDef * def = GetGadgetDef( ps->gadget );
+		return AllowWeaponSwitch( gs, ps, GenericDelay( state, ps, def->switch_in_time, WeaponState_Cooking ) );
+	} ),
+
+	ItemState( WeaponState_Cooking, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const usercmd_t * cmd ) -> ItemStateTransition {
+		if( ( cmd->buttons & BUTTON_GADGET ) == 0 ) {
+			gs->api.PredictedUseGadget( ps->POVnum, ps->gadget, ps->weapon_state_time );
+			ps->gadget_ammo--;
+			return WeaponState_Throwing;
+		}
+
+		return AllowWeaponSwitch( gs, ps, state );
+	} ),
+
+	ItemState( WeaponState_Throwing, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const usercmd_t * cmd ) -> ItemStateTransition {
+		const GadgetDef * def = GetGadgetDef( ps->gadget );
+		if( ps->weapon_state_time >= def->using_time ) {
+			ps->using_gadget = false;
+			ps->pending_weapon = ps->last_weapon;
+			return WeaponState_Dispatch;
+		}
+
+		return state;
+	} ),
+
+	ItemState( WeaponState_SwitchingOut, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const usercmd_t * cmd ) -> ItemStateTransition {
+		const GadgetDef * def = GetGadgetDef( ps->gadget );
+		if( ps->weapon_state_time >= def->switch_out_time ) {
+			ps->using_gadget = false;
+			return WeaponState_Dispatch;
+		}
+
+		return state;
+	} ),
+};
+
+static bool SuicideBombStage( SyncPlayerState * ps, int stage, u64 delay ) {
+	if( ps->gadget_ammo >= stage )
+		return false;
+
+	if( ps->weapon_state_time < delay )
+		return false;
+
+	ps->gadget_ammo = stage;
+	return true;
+}
+
+static const ItemState suicide_bomb_states[] = {
+	ItemState( WeaponState_Firing, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const usercmd_t * cmd ) -> ItemStateTransition {
+		if( SuicideBombStage( ps, 2, 0 ) ) {
+			// TODO: randomise
+			gs->api.PredictedEvent( ps->POVnum, EV_SUICIDE_BOMB_ANNOUNCEMENT, 0 );
+		}
+
+		u64 beep_interval = 1024;
+		u64 beep_delay = beep_interval;
+		constexpr int num_beeps = 10;
+
+		for( int beep = 3; beep < 3 + num_beeps; beep++ ) {
+			if( SuicideBombStage( ps, beep, beep_delay ) ) {
+				gs->api.PredictedEvent( ps->POVnum, EV_SUICIDE_BOMB_BEEP, 0 );
+			}
+
+			beep_interval = Max2( u64( 128 ), beep_interval / 2 );
+			beep_delay += beep_interval;
+		}
+
+		if( SuicideBombStage( ps, 100, 2500 ) ) {
+			gs->api.PredictedEvent( ps->POVnum, EV_SUICIDE_BOMB_EXPLODE, 0 );
+		}
+
+		return state;
+	} ),
+};
+
 constexpr static Span< const ItemState > dispatch_state_machine = MakeStateMachine( dispatch_states );
 constexpr static Span< const ItemState > generic_gun_state_machine = MakeStateMachine( generic_gun_states );
 constexpr static Span< const ItemState > railgun_state_machine = MakeStateMachine( railgun_states );
+constexpr static Span< const ItemState > generic_throwable_state_machine = MakeStateMachine( generic_throwable_states );
+constexpr static Span< const ItemState > suicide_bomb_state_machine = MakeStateMachine( suicide_bomb_states );
 
 static Span< const ItemState > FindItemStateMachine( SyncPlayerState * ps ) {
-	if( ps->weapon == Weapon_None ) {
+	if( ps->weapon == Weapon_None && !ps->using_gadget ) {
 		return dispatch_state_machine;
+	}
+
+	if( ps->using_gadget ) {
+		switch( ps->gadget ) {
+			// case Gadget_FragGrenade:
+			// 	return generic_throwable_state_machine;
+			case Gadget_ThrowingAxe:
+				return generic_throwable_state_machine;
+
+			case Gadget_SuicideBomb:
+				return suicide_bomb_state_machine;
+		}
 	}
 
 	if( ps->weapon == Weapon_Railgun ) {
@@ -390,13 +493,17 @@ static u16 SaturatingAdd( u16 a, u16 b ) {
 
 void ClearInventory( SyncPlayerState * ps ) {
 	memset( ps->weapons, 0, sizeof( ps->weapons ) );
-	memset( ps->items, 0, sizeof( ps->items ) );
 
 	ps->weapon = Weapon_None;
 	ps->pending_weapon = Weapon_None;
 	ps->weapon_state = WeaponState_Dispatch;
 	ps->weapon_state_time = 0;
 	ps->zoom_time = 0;
+
+	ps->gadget = Gadget_None;
+	ps->gadget_ammo = 0;
+	ps->using_gadget = false;
+	ps->pending_gadget = false;
 }
 
 void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, usercmd_t cmd, int timeDelta ) {
@@ -417,6 +524,11 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, usercmd_t cmd, 
 
 	if( GS_ShootingDisabled( gs ) ) {
 		cmd.buttons = cmd.buttons & ~BUTTON_ATTACK;
+		cmd.buttons = cmd.buttons & ~BUTTON_GADGET;
+	}
+
+	if( ( cmd.buttons & BUTTON_GADGET ) != 0 && ( cmd.down_edges & BUTTON_GADGET ) != 0 ) {
+		ps->pending_gadget = true;
 	}
 
 	HandleZoom( gs, ps, &cmd );

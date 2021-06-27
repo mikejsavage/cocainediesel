@@ -71,3 +71,44 @@ int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec
 
 	return waterlevel;
 }
+
+DamageType::DamageType( WeaponType weapon ) {
+	encoded = weapon;
+}
+
+DamageType::DamageType( GadgetType gadget ) {
+	encoded = gadget + Weapon_Count;
+}
+
+DamageType::DamageType( WorldDamage world ) {
+	encoded = world + Weapon_Count + Gadget_Count;
+}
+
+bool operator==( DamageType a, DamageType b ) {
+	return a.encoded == b.encoded;
+}
+
+bool operator!=( DamageType a, DamageType b ) {
+	return !( a == b );
+}
+
+DamageCategory DecodeDamageType( DamageType type, WeaponType * weapon, GadgetType * gadget, WorldDamage * world ) {
+	if( type.encoded < Weapon_Count ) {
+		if( weapon != NULL ) {
+			*weapon = WeaponType( type.encoded );
+		}
+		return DamageCategory_Weapon;
+	}
+
+	if( type.encoded < Weapon_Count + Gadget_Count ) {
+		if( gadget != NULL ) {
+			*gadget = GadgetType( type.encoded - Weapon_Count );
+		}
+		return DamageCategory_Gadget;
+	}
+
+	if( world != NULL ) {
+		*world = WorldDamage( type.encoded - Weapon_Count - Gadget_Count );
+	}
+	return DamageCategory_World;
+}

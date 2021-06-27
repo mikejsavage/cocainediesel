@@ -872,27 +872,14 @@ bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t *ent ) {
 	return BoundsOverlap( mins, maxs, ent->r.absmin, ent->r.absmax );
 }
 
+static void CallTouches( edict_t * ent, Vec3 mins, Vec3 maxs ) {
+	int touch[ MAX_EDICTS ];
+	int num = GClip_AreaEdicts( mins, maxs, touch, MAX_EDICTS, AREA_TRIGGERS, 0 );
 
-/*
-* GClip_TouchTriggers
-*/
-void GClip_TouchTriggers( edict_t *ent ) {
-	int touch[MAX_EDICTS];
-
-	if( !ent->r.inuse || ( ent->r.client && G_IsDead( ent ) ) ) {
-		return;
-	}
-
-	Vec3 mins = ent->s.origin + ent->r.mins;
-	Vec3 maxs = ent->s.origin + ent->r.maxs;
-
-	// FIXME: should be s.origin + mins and s.origin + maxs because of absmin and absmax padding?
-	int num = GClip_AreaEdicts( ent->r.absmin, ent->r.absmax, touch, MAX_EDICTS, AREA_TRIGGERS, 0 );
-
-	// be careful, it is possible to have an entity in this
-	// list removed before we get to it (killtriggered)
 	for( int i = 0; i < num; i++ ) {
-		edict_t *hit = &game.edicts[touch[i]];
+		edict_t * hit = &game.edicts[ touch[ i ] ];
+
+		// G_CallTouch can kill entities so we need to check they still exist
 		if( !hit->r.inuse ) {
 			continue;
 		}
@@ -901,12 +888,20 @@ void GClip_TouchTriggers( edict_t *ent ) {
 			continue;
 		}
 
-		if( !hit->item && !GClip_EntityContact( mins, maxs, hit ) ) {
+		if( !GClip_EntityContact( mins, maxs, hit ) ) {
 			continue;
 		}
 
 		G_CallTouch( hit, ent, NULL, 0 );
 	}
+}
+
+void GClip_TouchTriggers( edict_t *ent ) {
+	if( !ent->r.inuse || ( ent->r.client && G_IsDead( ent ) ) ) {
+		return;
+	}
+
+	CallTouches( ent, ent->r.absmin, ent->r.absmax );
 }
 
 void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
@@ -939,38 +934,13 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	GClip_LinkEntity( ent );
 
 	// expand the search bounds to include the space between the previous and current origin
-	Vec3 mins, maxs;
-	for( int i = 0; i < 3; i++ ) {
-		if( previous_origin[i] < pm->playerState->pmove.origin[i] ) {
-			mins[i] = Min2( previous_origin[i] + pm->maxs[i], pm->playerState->pmove.origin[i] + pm->mins[i] );
-			maxs[i] = pm->playerState->pmove.origin[i] + pm->maxs[i];
-		} else {
-			mins[i] = pm->playerState->pmove.origin[i] + pm->mins[i];
-			maxs[i] = Max2( previous_origin[i] + pm->mins[i], pm->playerState->pmove.origin[i] + pm->maxs[i] );
-		}
-	}
+	MinMax3 bounds = MinMax3::Empty();
+	bounds = Extend( bounds, previous_origin + pm->maxs );
+	bounds = Extend( bounds, previous_origin + pm->mins );
+	bounds = Extend( bounds, pm->playerState->pmove.origin + pm->maxs );
+	bounds = Extend( bounds, pm->playerState->pmove.origin + pm->mins );
 
-	int touch[MAX_EDICTS];
-	int num = GClip_AreaEdicts( mins, maxs, touch, MAX_EDICTS, AREA_TRIGGERS, 0 );
-
-	// be careful, it is possible to have an entity in this
-	// list removed before we get to it (killtriggered)
-	for( int i = 0; i < num; i++ ) {
-		edict_t *hit = &game.edicts[touch[i]];
-		if( !hit->r.inuse ) {
-			continue;
-		}
-
-		if( !hit->touch && !hit->asTouchFunc ) {
-			continue;
-		}
-
-		if( !hit->item && !GClip_EntityContact( mins, maxs, hit ) ) {
-			continue;
-		}
-
-		G_CallTouch( hit, ent, NULL, 0 );
-	}
+	CallTouches( ent, bounds.mins, bounds.maxs );
 }
 
 /*

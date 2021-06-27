@@ -27,7 +27,7 @@ spawn_temp_t st;
 
 mempool_t *gamepool;
 
-int meansOfDeath;
+DamageType meansOfDeath;
 Vec3 knockbackOfDeath;
 int damageFlagsOfDeath;
 
@@ -105,6 +105,7 @@ static void G_InitGameShared() {
 
 	server_gs.api.PredictedEvent = G_PredictedEvent;
 	server_gs.api.PredictedFireWeapon = G_PredictedFireWeapon;
+	server_gs.api.PredictedUseGadget = G_PredictedUseGadget;
 	server_gs.api.Trace = G_GS_Trace;
 	server_gs.api.GetEntityState = G_GetEntityStateForDeltaTime;
 	server_gs.api.PointContents = G_PointContents4D;

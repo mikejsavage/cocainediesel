@@ -16,7 +16,7 @@ enum MatchState {
 	MATCH_STATE_TOTAL
 };
 
-typedef u8 WeaponType;
+using WeaponType = u8;
 enum WeaponType_ : WeaponType {
 	Weapon_None,
 
@@ -42,13 +42,22 @@ enum WeaponType_ : WeaponType {
 	Weapon_Count
 };
 
-typedef u8 WeaponState;
-enum WeaponState_ : WeaponState {
+enum GadgetType : u8 {
+	Gadget_None,
+
+	Gadget_ThrowingAxe,
+	Gadget_SuicideBomb,
+
+	Gadget_Count
+};
+
+enum WeaponState : u8 {
 	WeaponState_Dispatch,
 	WeaponState_DispatchQuiet,
 
 	WeaponState_SwitchingIn,
 	WeaponState_SwitchingOut,
+
 	WeaponState_Idle,
 	WeaponState_Firing,
 	WeaponState_FiringSemiAuto,
@@ -67,23 +76,14 @@ enum FiringMode {
 	FiringMode_Clip,
 };
 
-enum ItemType {
-	Item_Bomb,
-	Item_FakeBomb,
-
-	Item_Count
-};
-
-typedef u8 RoundType;
-enum RoundType_ {
+enum RoundType : u8 {
 	RoundType_Normal,
 	RoundType_MatchPoint,
 	RoundType_Overtime,
 	RoundType_OvertimeMatchPoint,
 };
 
-using RoundState = u8;
-enum RoundState_ : RoundState {
+enum RoundState : u8 {
 	RoundState_None,
 	RoundState_Countdown,
 	RoundState_Round,
@@ -258,27 +258,20 @@ struct WeaponSlot {
 };
 
 struct SyncPlayerState {
-	pmove_state_t pmove;        // for prediction
+	pmove_state_t pmove;
 
-	// these fields do not need to be communicated bit-precise
-
-	Vec3 viewangles;          // for fixed views
+	Vec3 viewangles;
 
 	SyncEvent events[ 2 ];
 	unsigned int POVnum;        // entity number of the player in POV
 	unsigned int playerNum;     // client number
 	float viewheight;
-	float fov;                  // horizontal field of view (unused)
-
-	// BitArray items;
-	//
-	// struct GrenadeInfo { short count; };
-	// struct RechargableCloakingDeviceInfo { float energy; };
 
 	WeaponSlot weapons[ Weapon_Count - 1 ];
-	bool items[ Item_Count ];
 
-	bool show_scoreboard;
+	GadgetType gadget;
+	u8 gadget_ammo;
+
 	bool ready;
 	bool voted;
 	bool can_change_loadout;
@@ -289,11 +282,15 @@ struct SyncPlayerState {
 
 	WeaponState weapon_state;
 	u16 weapon_state_time;
+	s16 zoom_time;
 
 	WeaponType weapon;
+	bool using_gadget;
+
 	WeaponType pending_weapon;
+	bool pending_gadget;
+
 	WeaponType last_weapon;
-	s16 zoom_time;
 
 	int team;
 	int real_team;
@@ -308,7 +305,7 @@ struct SyncPlayerState {
 // usercmd_t is sent to the server each client frame
 struct usercmd_t {
 	u8 msec;
-	u32 buttons;
+	u8 buttons, down_edges;
 	u16 entropy;
 	s64 serverTimeStamp;
 	s16 angles[ 3 ];

@@ -49,6 +49,9 @@ void CG_PredictedFireWeapon( int entNum, u64 parm ) {
 	CG_PredictedEvent( entNum, EV_FIREWEAPON, parm );
 }
 
+void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm ) {
+}
+
 void CG_CheckPredictionError() {
 	int delta[3];
 	int frame;
@@ -298,7 +301,7 @@ static void CG_PredictSmoothSteps() {
 	cg.predictedStepTime = 0;
 	cg.predictedStep = 0;
 
-	trap_NET_GetCurrentState( NULL, &outgoing, NULL );
+	CL_GetCurrentState( NULL, &outgoing, NULL );
 
 	i = outgoing;
 	while( predictiontime < PREDICTED_STEP_TIME ) {
@@ -307,7 +310,7 @@ static void CG_PredictSmoothSteps() {
 		}
 
 		frame = i & CMD_MASK;
-		trap_NET_GetUserCmd( frame, &cmd );
+		CL_GetUserCmd( frame, &cmd );
 		predictiontime += cmd.msec;
 		i--;
 	}
@@ -315,7 +318,7 @@ static void CG_PredictSmoothSteps() {
 	// run frames
 	while( ++i <= outgoing ) {
 		frame = i & CMD_MASK;
-		trap_NET_GetUserCmd( frame, &cmd );
+		CL_GetUserCmd( frame, &cmd );
 		virtualtime += cmd.msec;
 
 		if( predictedSteps[frame] ) {
@@ -336,7 +339,7 @@ void CG_PredictMovement() {
 	int64_t frame;
 	pmove_t pm;
 
-	trap_NET_GetCurrentState( NULL, &ucmdHead, NULL );
+	CL_GetCurrentState( NULL, &ucmdHead, NULL );
 	ucmdExecuted = cg.frame.ucmdExecuted;
 
 	if( ucmdHead - cg.predictFrom >= CMD_BACKUP ) {
@@ -373,7 +376,7 @@ void CG_PredictMovement() {
 	// run frames
 	while( ++ucmdExecuted <= ucmdHead ) {
 		frame = ucmdExecuted & CMD_MASK;
-		trap_NET_GetUserCmd( frame, &pm.cmd );
+		CL_GetUserCmd( frame, &pm.cmd );
 
 		ucmdReady = ( pm.cmd.serverTimeStamp != 0 );
 		if( ucmdReady ) {

@@ -689,3 +689,36 @@ const WeaponDef * GS_GetWeaponDef( WeaponType weapon ) {
 	assert( weapon < Weapon_Count );
 	return &weapon_defs[ weapon ];
 }
+
+const GadgetDef gadget_defs[] = {
+	{ },
+
+	{
+		/* name             */ "Throwing axe",
+		/* short name       */ "axe",
+		/* switch_in_time   */ WEAPONUP_TIME_NORMAL,
+		/* using_time       */ 500,
+		/* cook_time        */ 1000,
+		/* switch_out_time  */ WEAPONDOWN_TIME,
+		/* damage           */ 50,
+		/* knockback        */ 100,
+		/* mindamage        */ 25,
+		/* minknockback     */ 0,
+		/* splash_radius    */ 0,
+		/* timeout          */ 5000,
+		/* speed            */ 1500,
+		/* uses             */ 1,
+	},
+
+	{
+		"Suicide vest",
+		"suicidevest",
+	},
+};
+
+STATIC_ASSERT( ARRAY_COUNT( gadget_defs ) == Gadget_Count );
+
+const GadgetDef * GetGadgetDef( GadgetType gadget ) {
+	assert( gadget < Gadget_Count );
+	return &gadget_defs[ gadget ];
+}

@@ -370,6 +370,8 @@ static void W_Fire_Shotgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta
 	AngleVectors(angles, &dir, &right, &up);
 
 	float damage_dealt[MAX_CLIENTS + 1] = {};
+	Vec3 hit_locations[MAX_CLIENTS + 1] = {}; // arbitrary trace end pos to use as blood origin
+
 	for (int i = 0; i < def->projectile_count; i++)
 	{
 		Vec2 spread = FixedSpreadPattern(i, def->spread);
@@ -392,6 +394,7 @@ static void W_Fire_Shotgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta
 			if (!G_IsTeamDamage(&game.edicts[trace.ent].s, &self->s) && trace.ent <= MAX_CLIENTS)
 			{
 				damage_dealt[trace.ent] += damage;
+				hit_locations[trace.ent] = trace.endpos;
 			}
 		}
 	}
@@ -400,10 +403,7 @@ static void W_Fire_Shotgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta
 	{
 		if (damage_dealt[i] == 0)
 			continue;
-		edict_t *target = &game.edicts[i];
-		edict_t *ev = G_SpawnEvent(EV_DAMAGE, HEALTH_TO_INT(damage_dealt[i]) << 1, &target->s.origin);
-		ev->r.svflags |= SVF_OWNERANDCHASERS;
-		ev->s.ownerNum = ENTNUM(self);
+		SpawnDamageEvents(self, &game.edicts[i], damage_dealt[i], false, hit_locations[i], dir);
 	}
 }
 

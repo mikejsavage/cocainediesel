@@ -237,28 +237,6 @@ static void G_SnapEntities() {
 			// this is pretty hackish
 			ent->s.origin2 = ent->velocity;
 		}
-
-		if( ent->s.type == ET_PLAYER ) {
-			if( ent->snap.damage_taken > 0.0f ) {
-				float damage = Min2( ent->snap.damage_taken, 120.0f );
-
-				Vec3 dir = SafeNormalize( ent->snap.damage_dir );
-				Vec3 origin = ent->s.origin + ent->snap.damage_at;
-
-				edict_t * event = G_SpawnEvent( EV_BLOOD, DirToU64( dir ), &origin );
-				event->s.radius = HEALTH_TO_INT( damage );
-				event->s.ownerNum = ent->s.number;
-				event->s.team = ent->s.team;
-
-				if( !G_IsDead( ent ) ) {
-					// play an apropriate pain sound
-					if( level.time >= ent->pain_debounce_time ) {
-						G_AddEvent( ent, EV_PAIN, ent->health <= 25 ? PAIN_20 : PAIN_100, true );
-						ent->pain_debounce_time = level.time + 400;
-					}
-				}
-			}
-		}
 	}
 }
 

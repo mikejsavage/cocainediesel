@@ -122,31 +122,6 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int assisto
 	G_CallDie( targ, inflictor, attacker, assistorNo, damage_type, damage );
 }
 
-static void G_BlendFrameDamage( edict_t *ent, float damage, float *old_damage, const Vec3 * point, Vec3 basedir, Vec3 * old_point, Vec3 * old_dir ) {
-	Vec3 offset;
-
-	if( !point ) {
-		offset = Vec3( 0, 0, ent->viewheight );
-	} else {
-		offset = *point - ent->s.origin;
-	}
-
-	Vec3 dir = SafeNormalize( basedir );
-
-	if( *old_damage == 0 ) {
-		*old_point = offset;
-		*old_dir = dir;
-		*old_damage = damage;
-		return;
-	}
-
-	float frac = damage / ( damage + *old_damage );
-	*old_point = Lerp( *old_point, frac, offset );
-	*old_dir = Lerp( *old_dir, frac, dir );
-
-	*old_damage += damage;
-}
-
 static void G_AddAssistDamage( edict_t* targ, edict_t* attacker, int amount ) {
 	if( attacker == world || attacker == targ ) {
 		return;
@@ -223,6 +198,27 @@ static void G_KnockBackPush( edict_t *targ, edict_t *attacker, Vec3 basedir, int
 	knockbackOfDeath = dir * push;
 }
 
+void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage, bool headshot, Vec3 pos, Vec3 dir ) {
+	u64 parm = HEALTH_TO_INT( damage ) << 1;
+	if( headshot ) {
+		parm |= 1;
+		G_SpawnEvent( EV_HEADSHOT, 0, &victim->s.origin );
+	}
+
+	edict_t * damage_number = G_SpawnEvent( EV_DAMAGE, parm, &victim->s.origin );
+	damage_number->r.svflags |= SVF_OWNERANDCHASERS;
+	damage_number->s.ownerNum = ENTNUM( attacker );
+
+	edict_t * blood = G_SpawnEvent( EV_BLOOD, HEALTH_TO_INT( damage ), &pos );
+	blood->s.origin2 = dir;
+	blood->s.team = victim->s.team;
+
+	if( !G_IsDead( victim ) && level.time >= victim->pain_debounce_time ) {
+		G_AddEvent( victim, EV_PAIN, victim->health <= 25 ? PAIN_20 : PAIN_100, true );
+		victim->pain_debounce_time = level.time + 400;
+	}
+}
+
 /*
 * G_Damage
 * targ		entity that is being damaged
@@ -287,17 +283,10 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 		G_ClientGetStats( attacker )->total_damage_given += take;
 
 		// shotgun calls G_Damage for every bullet, so we accumulate damage
-		// in W_Fire_Shotgun and show one number there instead
+		// in W_Fire_Shotgun and send events from there instead
 		if( damage_type != Weapon_Shotgun ) {
-			u64 parm = HEALTH_TO_INT( take ) << 1;
-			if( dflags & DAMAGE_HEADSHOT ) {
-				parm |= 1;
-				G_SpawnEvent( EV_HEADSHOT, 0, &targ->s.origin );
-			}
-
-			edict_t * ev = G_SpawnEvent( EV_DAMAGE, parm, &targ->s.origin );
-			ev->r.svflags |= SVF_OWNERANDCHASERS;
-			ev->s.ownerNum = ENTNUM( attacker );
+			bool headshot = dflags & DAMAGE_HEADSHOT;
+			SpawnDamageEvents( attacker, targ, take, headshot, point, dmgdir );
 		}
 	}
 
@@ -317,8 +306,6 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 			dorigin = targ->s.origin;
 			dorigin.z += targ->viewheight;
 		}
-
-		G_BlendFrameDamage( targ, take, &targ->snap.damage_taken, &dorigin, dmgdir, &targ->snap.damage_at, &targ->snap.damage_dir );
 
 		if( targ->r.client && damage_type != WorldDamage_Telefrag && damage_type != WorldDamage_Suicide ) {
 			if( inflictor == world || attacker == world ) {

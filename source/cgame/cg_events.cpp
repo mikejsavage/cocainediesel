@@ -396,7 +396,7 @@ static void CG_StartVoiceTokenEffect( int entNum, u64 parm ) {
 
 	StringHash sound = cgs.media.sfxVSaySounds[ vsay ];
 
-	if( client_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
+	if( client_gs.gameState.match_state >= MatchState_PostMatch ) {
 		S_StartGlobalSound( sound, CHAN_AUTO, 1.0f, entropy );
 	}
 	else {

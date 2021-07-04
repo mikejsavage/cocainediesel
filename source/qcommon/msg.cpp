@@ -517,7 +517,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 
 	Delta( buf, ent.teleported, baseline.teleported );
 
-	Delta( buf, ent.type, baseline.type );
+	DeltaEnum( buf, ent.type, baseline.type );
 	Delta( buf, ent.model, baseline.model );
 	Delta( buf, ent.material, baseline.material );
 	Delta( buf, ent.color, baseline.color );
@@ -753,7 +753,7 @@ static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGa
 
 static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState & baseline ) {
 	Delta( buf, state.flags, baseline.flags );
-	Delta( buf, state.match_state, baseline.match_state );
+	DeltaEnum( buf, state.match_state, baseline.match_state );
 	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );

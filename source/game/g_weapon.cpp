@@ -236,7 +236,7 @@ static edict_t *FireProjectile(
 	edict_t *owner,
 	Vec3 start, Vec3 angles,
 	int timeDelta,
-	ProjectileStats stats, EdictTouchCallback touch, int ent_type, int clipmask)
+	ProjectileStats stats, EdictTouchCallback touch, EntityType ent_type, int clipmask)
 {
 	edict_t *projectile = G_Spawn();
 	projectile->s.origin = start;
@@ -283,7 +283,7 @@ static edict_t *FireLinearProjectile(
 	edict_t *owner,
 	Vec3 start, Vec3 angles,
 	int timeDelta,
-	ProjectileStats stats, EdictTouchCallback touch, int ent_type, int clipmask)
+	ProjectileStats stats, EdictTouchCallback touch, EntityType ent_type, int clipmask)
 {
 	edict_t *projectile = FireProjectile(owner, start, angles, timeDelta, stats, touch, ent_type, clipmask);
 

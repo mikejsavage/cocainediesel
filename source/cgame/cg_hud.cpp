@@ -93,12 +93,11 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "HEIGHT", 600 },
 
 	// match states
-	{ "MATCH_STATE_NONE", MATCH_STATE_NONE },
-	{ "MATCH_STATE_WARMUP", MATCH_STATE_WARMUP },
-	{ "MATCH_STATE_COUNTDOWN", MATCH_STATE_COUNTDOWN },
-	{ "MATCH_STATE_PLAYTIME", MATCH_STATE_PLAYTIME },
-	{ "MATCH_STATE_POSTMATCH", MATCH_STATE_POSTMATCH },
-	{ "MATCH_STATE_WAITEXIT", MATCH_STATE_WAITEXIT },
+	{ "MatchState_Warmup", MatchState_Warmup },
+	{ "MatchState_Countdown", MatchState_Countdown },
+	{ "MatchState_Playing", MatchState_Playing },
+	{ "MatchState_PostMatch", MatchState_PostMatch },
+	{ "MatchState_WaitExit", MatchState_WaitExit },
 
 	{ "CS_CALLVOTE", CS_CALLVOTE },
 	{ "CS_CALLVOTE_REQUIRED_VOTES", CS_CALLVOTE_REQUIRED_VOTES },

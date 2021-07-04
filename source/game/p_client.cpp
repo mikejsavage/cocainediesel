@@ -123,7 +123,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 
 	// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
 	// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
-	if( server_gs.gameState.match_state != MATCH_STATE_PLAYTIME ) {
+	if( server_gs.gameState.match_state != MatchState_Playing ) {
 		body->nextThink = level.time + 3500;
 		body->think = G_FreeEdict; // body self destruction countdown
 	}
@@ -206,7 +206,7 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 		return;
 	}
 
-	if( ( server_gs.gameState.match_state != MATCH_STATE_PLAYTIME ) || !level.gametype.removeInactivePlayers ) {
+	if( ( server_gs.gameState.match_state != MatchState_Playing ) || !level.gametype.removeInactivePlayers ) {
 		return;
 	}
 
@@ -939,7 +939,7 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	client->ps.pmove.velocity = ent->velocity;
 	client->ps.viewangles = ent->s.angles;
 
-	if( server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH || GS_MatchPaused( &server_gs )
+	if( server_gs.gameState.match_state >= MatchState_PostMatch || GS_MatchPaused( &server_gs )
 		|| ( ent->movetype != MOVETYPE_PLAYER && ent->movetype != MOVETYPE_NOCLIP ) ) {
 		client->ps.pmove.pm_type = PM_FREEZE;
 	} else if( ent->movetype == MOVETYPE_NOCLIP ) {
@@ -1041,7 +1041,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		return;
 	}
 
-	if( server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
+	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
 		return;
 	}
 

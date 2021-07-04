@@ -132,7 +132,7 @@ void Cmd_ChasePrev_f( edict_t *ent ) {
 static void Cmd_Position_f( edict_t *ent ) {
 	const char *action;
 
-	if( !sv_cheats->integer && server_gs.gameState.match_state > MATCH_STATE_WARMUP &&
+	if( !sv_cheats->integer && server_gs.gameState.match_state > MatchState_Warmup &&
 		ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
 		G_PrintMsg( ent, "Position command is only available in warmup and in spectator mode.\n" );
 		return;
@@ -284,7 +284,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 }
 
 static void Cmd_CoinToss_f( edict_t *ent ) {
-	if( server_gs.gameState.match_state > MATCH_STATE_WARMUP && !GS_MatchPaused( &server_gs ) ) {
+	if( server_gs.gameState.match_state > MatchState_Warmup && !GS_MatchPaused( &server_gs ) ) {
 		G_PrintMsg( ent, "You can only toss coins during warmup or timeouts\n" );
 		return;
 	}
@@ -443,7 +443,7 @@ static void G_vsay_f( edict_t *ent ) {
 		return;
 	}
 
-	if( G_ISGHOSTING( ent ) && server_gs.gameState.match_state < MATCH_STATE_POSTMATCH ) {
+	if( G_ISGHOSTING( ent ) && server_gs.gameState.match_state < MatchState_PostMatch ) {
 		return;
 	}
 
@@ -499,7 +499,7 @@ static void Cmd_Join_f( edict_t *ent ) {
 static void Cmd_Timeout_f( edict_t *ent ) {
 	int num;
 
-	if( ent->s.team == TEAM_SPECTATOR || server_gs.gameState.match_state != MATCH_STATE_PLAYTIME ) {
+	if( ent->s.team == TEAM_SPECTATOR || server_gs.gameState.match_state != MatchState_Playing ) {
 		return;
 	}
 

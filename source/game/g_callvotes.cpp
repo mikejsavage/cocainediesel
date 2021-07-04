@@ -216,7 +216,7 @@ static bool G_VoteStartValidate( callvotedata_t *vote, bool first ) {
 	int notreadys = 0;
 	edict_t *ent;
 
-	if( server_gs.gameState.match_state >= MATCH_STATE_COUNTDOWN ) {
+	if( server_gs.gameState.match_state >= MatchState_Countdown ) {
 		if( first ) {
 			G_PrintMsg( vote->caller, "%sThe game is not in warmup mode\n", S_COLOR_RED );
 		}

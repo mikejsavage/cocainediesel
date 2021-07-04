@@ -347,7 +347,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 
 	// always start in warmup match state and let the thinking code
 	// revert it to wait state if empty ( so gametype based item masks are setup )
-	G_Match_LaunchState( MATCH_STATE_WARMUP );
+	G_Match_LaunchState( MatchState_Warmup );
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		if( game.edicts[ i + 1 ].r.inuse ) {

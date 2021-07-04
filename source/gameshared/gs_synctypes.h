@@ -5,15 +5,50 @@
 #define MAX_CLIENTS                 16
 #define MAX_EDICTS                  1024        // must change protocol to increase more
 
-enum MatchState {
-	MATCH_STATE_NONE,
-	MATCH_STATE_WARMUP,
-	MATCH_STATE_COUNTDOWN,
-	MATCH_STATE_PLAYTIME,
-	MATCH_STATE_POSTMATCH,
-	MATCH_STATE_WAITEXIT,
+enum MatchState : u8 {
+	MatchState_Warmup,
+	MatchState_Countdown,
+	MatchState_Playing,
+	MatchState_PostMatch,
+	MatchState_WaitExit,
+};
 
-	MATCH_STATE_TOTAL
+#define EVENT_ENTITIES_START    96 // entity types above this index will get event treatment
+
+enum EntityType : u8 {
+	ET_GENERIC,
+	ET_PLAYER,
+	ET_CORPSE,
+	ET_GHOST,
+	ET_JUMPPAD,
+	ET_PAINKILLER_JUMPPAD,
+
+	ET_ROCKET,      // redlight + trail
+	ET_GRENADE,
+	ET_ARBULLET,
+	ET_BUBBLE,
+	ET_RIFLEBULLET,
+	ET_STAKE,
+	ET_BLAST,
+
+	ET_THROWING_AXE,
+
+	ET_LASERBEAM,   // for continuous beams
+
+	ET_DECAL,
+
+	ET_BOMB,
+	ET_BOMB_SITE,
+
+	ET_LASER,
+	ET_SPIKES,
+	ET_SPEAKER,
+
+	// eventual entities: types below this will get event treatment
+	ET_EVENT = EVENT_ENTITIES_START,
+	ET_SOUNDEVENT,
+
+	ET_TOTAL_TYPES // current count
 };
 
 using WeaponType = u8;
@@ -148,7 +183,7 @@ struct SyncBombGameState {
 
 struct SyncGameState {
 	u16 flags;
-	int match_state;
+	MatchState match_state;
 	s64 match_state_start_time;
 	s64 match_duration;
 	s64 clock_override;
@@ -176,7 +211,7 @@ struct SyncEntityState {
 
 	unsigned int svflags;
 
-	int type;                           // ET_GENERIC, ET_BEAM, etc
+	EntityType type;
 
 	Vec3 origin;
 	Vec3 angles;

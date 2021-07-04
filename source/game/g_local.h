@@ -246,12 +246,10 @@ void G_RunGametype();
 //
 // g_spawnpoints.c
 //
-enum {
+enum SpawnSystem {
 	SPAWNSYSTEM_INSTANT,
 	SPAWNSYSTEM_WAVES,
 	SPAWNSYSTEM_HOLD,
-
-	SPAWNSYSTEM_TOTAL
 };
 
 void G_SpawnQueue_Init();

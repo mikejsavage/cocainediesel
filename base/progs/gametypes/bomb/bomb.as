@@ -462,7 +462,7 @@ bool entCanSee( Entity @ent, Vec3 point ) {
 }
 
 void bomb_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags ) {
-	if( match.getState() != MATCH_STATE_PLAYTIME ) {
+	if( match.matchState != MatchState_Playing ) {
 		return;
 	}
 

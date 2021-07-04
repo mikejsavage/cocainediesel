@@ -2,7 +2,7 @@ setCursor #WIDTH / 2, 4
 setAlignment center top
 setFontBorder on
 
-if %MATCH_STATE < #MATCH_STATE_PLAYTIME
+if %MATCH_STATE < #MatchState_Playing
 	// background
 	setSize 120 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 32
 	if %TEAM != #TEAM_SPECTATOR
@@ -18,12 +18,12 @@ if %MATCH_STATE < #MATCH_STATE_PLAYTIME
 	if %TEAM != #TEAM_SPECTATOR
 		moveCursor 0, 17
 
-		if %READY || %MATCH_STATE == #MATCH_STATE_COUNTDOWN
+		if %READY || %MATCH_STATE == #MatchState_Countdown
 			setColorsRGB 0.32, 0.99, 0.37, 1
 			drawString "READY"
 		endif
 
-		ifnot %READY || %MATCH_STATE == #MATCH_STATE_COUNTDOWN
+		ifnot %READY || %MATCH_STATE == #MatchState_Countdown
 			setAttentionGettingColor
 			drawBindString "Press [ %s ] to ready up" "toggleready"
 		endif
@@ -32,7 +32,7 @@ if %MATCH_STATE < #MATCH_STATE_PLAYTIME
 	setFontStyle normal
 endif
 
-if %MATCH_STATE == #MATCH_STATE_PLAYTIME
+if %MATCH_STATE == #MatchState_Playing
 	// background
 	setSize 120 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 32
 	if %ROUND_TYPE != #RoundType_Normal

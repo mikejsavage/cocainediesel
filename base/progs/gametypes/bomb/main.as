@@ -189,9 +189,9 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 
 	client.pmoveFeatures = client.pmoveFeatures | PMFEAT_TEAMGHOST;
 
-	int matchState = match.getState();
+	int matchState = match.matchState;
 
-	if( matchState <= MATCH_STATE_WARMUP ) {
+	if( matchState <= MatchState_Warmup ) {
 		client.canChangeLoadout = new_team >= TEAM_ALPHA;
 	}
 
@@ -200,7 +200,7 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 			bombDrop( BombDrop_Team );
 		}
 
-		if( matchState == MATCH_STATE_PLAYTIME ) {
+		if( matchState == MatchState_Playing ) {
 			if( match.roundState == RoundState_Round ) {
 				if( old_team != TEAM_SPECTATOR && !ent.isGhosting() ) {
 					checkPlayersAlive( old_team );
@@ -228,7 +228,7 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 
 	ent.svflags |= SVF_FORCETEAM;
 
-	if( match.getState() == MATCH_STATE_WARMUP ) {
+	if( match.matchState == MatchState_Warmup ) {
 		ent.respawnEffect();
 	}
 }
@@ -237,7 +237,7 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 void GT_ThinkRules() {
 	// XXX: old bomb would let the current round finish before doing this
 	if( match.timeLimitHit() ) {
-		match.launchState( match.getState() + 1 );
+		match.launchState( MatchState( match.matchState + 1 ) );
 		G_ClearCenterPrint( null );
 	}
 
@@ -260,7 +260,7 @@ void GT_ThinkRules() {
 		}
 	}
 
-	if( match.getState() < MATCH_STATE_PLAYTIME ) {
+	if( match.matchState < MatchState_Playing ) {
 		return;
 	}
 
@@ -302,11 +302,11 @@ void GT_ThinkRules() {
 // This function must give permission to move into the next
 // state by returning true.
 bool GT_MatchStateFinished( int incomingMatchState ) {
-	if( match.getState() <= MATCH_STATE_WARMUP && incomingMatchState > MATCH_STATE_WARMUP && incomingMatchState < MATCH_STATE_POSTMATCH ) {
+	if( match.matchState <= MatchState_Warmup && incomingMatchState > MatchState_Warmup && incomingMatchState < MatchState_PostMatch ) {
 		match.startAutorecord();
 	}
 
-	if( match.getState() == MATCH_STATE_POSTMATCH ) {
+	if( match.matchState == MatchState_PostMatch ) {
 		match.stopAutorecord();
 	}
 
@@ -315,8 +315,8 @@ bool GT_MatchStateFinished( int incomingMatchState ) {
 
 // the match state has just moved into a new state. Here is the
 void GT_MatchStateStarted() {
-	switch( match.getState() ) {
-		case MATCH_STATE_WARMUP:
+	switch( match.matchState ) {
+		case MatchState_Warmup:
 			GENERIC_SetUpWarmup();
 
 			attackingTeam = INITIAL_ATTACKERS;
@@ -328,7 +328,7 @@ void GT_MatchStateStarted() {
 
 			break;
 
-		case MATCH_STATE_COUNTDOWN:
+		case MatchState_Countdown:
 			// XXX: old bomb had its own function to do pretty much
 			//      exactly the same thing
 			//      the only difference i can see is that bomb's
@@ -338,12 +338,12 @@ void GT_MatchStateStarted() {
 
 			break;
 
-		case MATCH_STATE_PLAYTIME:
+		case MatchState_Playing:
 			newGame();
 
 			break;
 
-		case MATCH_STATE_POSTMATCH:
+		case MatchState_PostMatch:
 			endGame();
 
 			break;

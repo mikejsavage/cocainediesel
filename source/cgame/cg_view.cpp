@@ -137,9 +137,9 @@ static void CG_FlashGameWindow() {
 	int newState = client_gs.gameState.match_state;
 	if( oldState != newState ) {
 		switch( newState ) {
-			case MATCH_STATE_COUNTDOWN:
-			case MATCH_STATE_PLAYTIME:
-			case MATCH_STATE_POSTMATCH:
+			case MatchState_Countdown:
+			case MatchState_Playing:
+			case MatchState_PostMatch:
 				flash = true;
 				break;
 			default:

@@ -87,11 +87,11 @@ static void G_Timeout_Update( unsigned int msec ) {
 */
 static void G_UpdateServerInfo() {
 	// g_match_time
-	if( server_gs.gameState.match_state <= MATCH_STATE_WARMUP ) {
+	if( server_gs.gameState.match_state <= MatchState_Warmup ) {
 		Cvar_ForceSet( "g_match_time", "Warmup" );
-	} else if( server_gs.gameState.match_state == MATCH_STATE_COUNTDOWN ) {
+	} else if( server_gs.gameState.match_state == MatchState_Countdown ) {
 		Cvar_ForceSet( "g_match_time", "Countdown" );
-	} else if( server_gs.gameState.match_state == MATCH_STATE_PLAYTIME ) {
+	} else if( server_gs.gameState.match_state == MatchState_Playing ) {
 		// partly from G_GetMatchState
 		char extra[MAX_INFO_VALUE];
 		int clocktime, timelimit, mins, secs;
@@ -127,7 +127,7 @@ static void G_UpdateServerInfo() {
 	}
 
 	// g_match_score
-	if( server_gs.gameState.match_state >= MATCH_STATE_PLAYTIME && level.gametype.isTeamBased ) {
+	if( server_gs.gameState.match_state >= MatchState_Playing && level.gametype.isTeamBased ) {
 		String< MAX_INFO_STRING > score( "{}: {} {}: {}",
 			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.teams[ TEAM_ALPHA ].score,
 			GS_TeamName( TEAM_BETA ), server_gs.gameState.teams[ TEAM_BETA ].score );
@@ -184,7 +184,7 @@ void G_CheckCvars() {
 
 	if( g_warmup_timelimit->modified ) {
 		// if we are inside timelimit period, update the endtime
-		if( server_gs.gameState.match_state == MATCH_STATE_WARMUP ) {
+		if( server_gs.gameState.match_state == MatchState_Warmup ) {
 			server_gs.gameState.match_duration = (int64_t)Abs( 60.0f * 1000 * g_warmup_timelimit->integer );
 		}
 		g_warmup_timelimit->modified = false;

@@ -108,12 +108,11 @@ static const asEnumVal_t asEffectEnumVals[] =
 
 static const asEnumVal_t asMatchStateEnumVals[] =
 {
-	ASLIB_ENUM_VAL( MATCH_STATE_NONE ),
-	ASLIB_ENUM_VAL( MATCH_STATE_WARMUP ),
-	ASLIB_ENUM_VAL( MATCH_STATE_COUNTDOWN ),
-	ASLIB_ENUM_VAL( MATCH_STATE_PLAYTIME ),
-	ASLIB_ENUM_VAL( MATCH_STATE_POSTMATCH ),
-	ASLIB_ENUM_VAL( MATCH_STATE_WAITEXIT ),
+	ASLIB_ENUM_VAL( MatchState_Warmup ),
+	ASLIB_ENUM_VAL( MatchState_Countdown ),
+	ASLIB_ENUM_VAL( MatchState_Playing ),
+	ASLIB_ENUM_VAL( MatchState_PostMatch ),
+	ASLIB_ENUM_VAL( MatchState_WaitExit ),
 
 	ASLIB_ENUM_VAL_NULL
 };
@@ -382,7 +381,7 @@ static const asEnum_t asGameEnums[] =
 
 	{ "configstrings_e", asConfigstringEnumVals },
 	{ "state_effects_e", asEffectEnumVals },
-	{ "matchstates_e", asMatchStateEnumVals },
+	{ "MatchState", asMatchStateEnumVals },
 	{ "teams_e", asTeamEnumVals },
 	{ "entitytype_e", asEntityTypeEnumVals },
 	{ "solid_e", asSolidEnumVals },
@@ -417,10 +416,8 @@ static asIObjectType *asEntityArrayType() {
 
 // CLASS: Match
 
-static void objectMatch_launchState( int state, SyncGameState *self ) {
-	if( state >= MATCH_STATE_NONE && state < MATCH_STATE_TOTAL ) {
-		G_Match_LaunchState( state );
-	}
+static void objectMatch_launchState( MatchState state, SyncGameState *self ) {
+	G_Match_LaunchState( state );
 }
 
 static void objectMatch_startAutorecord( SyncGameState *self ) {
@@ -443,10 +440,6 @@ static bool objectMatch_isPaused( SyncGameState *self ) {
 	return GS_MatchPaused( &server_gs );
 }
 
-static int objectMatch_getState( SyncGameState *self ) {
-	return server_gs.gameState.match_state;
-}
-
 static asstring_t *objectMatch_getScore( SyncGameState *self ) {
 	const char *s = PF_GetConfigString( CS_MATCHSCORE );
 
@@ -461,14 +454,6 @@ static void objectMatch_setClockOverride( int64_t time, SyncGameState *self ) {
 	self->clock_override = time;
 }
 
-static void objectMatch_NewRound( SyncGameState *self ) {
-	self->round_num++;
-}
-
-static void objectMatch_ResetRounds( SyncGameState *self ) {
-	self->round_num = 0;
-}
-
 static const asFuncdef_t match_Funcdefs[] =
 {
 	ASLIB_FUNCDEF_NULL
@@ -481,18 +466,15 @@ static const asBehavior_t match_ObjectBehaviors[] =
 
 static const asMethod_t match_Methods[] =
 {
-	{ ASLIB_FUNCTION_DECL( void, launchState, (int state) const ), asFUNCTION( objectMatch_launchState ), asCALL_CDECL_OBJLAST },
+	{ ASLIB_FUNCTION_DECL( void, launchState, (MatchState state) const ), asFUNCTION( objectMatch_launchState ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, startAutorecord, ( ) const ), asFUNCTION( objectMatch_startAutorecord ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, stopAutorecord, ( ) const ), asFUNCTION( objectMatch_stopAutorecord ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, scoreLimitHit, ( ) const ), asFUNCTION( objectMatch_scoreLimitHit ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, timeLimitHit, ( ) const ), asFUNCTION( objectMatch_timeLimitHit ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, isPaused, ( ) const ), asFUNCTION( objectMatch_isPaused ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( int, getState, ( ) const ), asFUNCTION( objectMatch_getState ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, getScore, ( ) const ), asFUNCTION( objectMatch_getScore ),  asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setScore, ( String & in ) ), asFUNCTION( objectMatch_setScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setClockOverride, ( int64 milliseconds ) ), asFUNCTION( objectMatch_setClockOverride ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, newRound, ( ) ), asFUNCTION( objectMatch_NewRound ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( void, resetRounds, ( ) ), asFUNCTION( objectMatch_ResetRounds ), asCALL_CDECL_OBJLAST },
 
 	ASLIB_METHOD_NULL
 };
@@ -500,8 +482,9 @@ static const asMethod_t match_Methods[] =
 static const asProperty_t match_Properties[] =
 {
 	{ ASLIB_PROPERTY_DECL( uint8, roundNum ), offsetof( SyncGameState, round_num ) },
-	{ ASLIB_PROPERTY_DECL( uint8, roundState ), offsetof( SyncGameState, round_state ) },
-	{ ASLIB_PROPERTY_DECL( uint8, roundType ), offsetof( SyncGameState, round_type ) },
+	{ ASLIB_PROPERTY_DECL( MatchState, matchState ), offsetof( SyncGameState, match_state ) },
+	{ ASLIB_PROPERTY_DECL( RoundState, roundState ), offsetof( SyncGameState, round_state ) },
+	{ ASLIB_PROPERTY_DECL( RoundType, roundType ), offsetof( SyncGameState, round_type ) },
 	{ ASLIB_PROPERTY_DECL( uint8, alphaPlayersTotal ), offsetof( SyncGameState, bomb.alpha_players_total ) },
 	{ ASLIB_PROPERTY_DECL( uint8, alphaPlayersAlive ), offsetof( SyncGameState, bomb.alpha_players_alive ) },
 	{ ASLIB_PROPERTY_DECL( uint8, betaPlayersTotal ), offsetof( SyncGameState, bomb.beta_players_total ) },
@@ -705,10 +688,6 @@ static int objectGameClient_PlayerNum( gclient_t *self ) {
 	return PLAYERNUM( self );
 }
 
-static bool objectGameClient_isReady( gclient_t *self ) {
-	return ( level.ready[self - game.clients] || server_gs.gameState.match_state == MATCH_STATE_PLAYTIME ) ? true : false;
-}
-
 static bool objectGameClient_isBot( gclient_t *self ) {
 	int playerNum = objectGameClient_PlayerNum( self );
 	if( playerNum < 0 && playerNum >= server_gs.maxclients ) {
@@ -878,7 +857,6 @@ static const asBehavior_t gameclient_ObjectBehaviors[] =
 static const asMethod_t gameclient_Methods[] =
 {
 	{ ASLIB_FUNCTION_DECL( int, get_playerNum, ( ) const ), asFUNCTION( objectGameClient_PlayerNum ), asCALL_CDECL_OBJLAST },
-	{ ASLIB_FUNCTION_DECL( bool, isReady, ( ) const ), asFUNCTION( objectGameClient_isReady ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, isBot, ( ) const ), asFUNCTION( objectGameClient_isBot ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, state, ( ) const ), asFUNCTION( objectGameClient_ClientState ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, respawn, ( bool ghost ) ), asFUNCTION( objectGameClient_Respawn ), asCALL_CDECL_OBJLAST },

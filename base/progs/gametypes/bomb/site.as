@@ -196,7 +196,7 @@ void plant_area_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int s
 		return;
 	}
 
-	if( match.getState() != MATCH_STATE_PLAYTIME ) {
+	if( match.matchState != MatchState_Playing ) {
 		return;
 	}
 

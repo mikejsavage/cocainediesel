@@ -130,7 +130,7 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	int64_t clocktime, startTime, duration, curtime;
 	char string[12];
 
-	if( client_gs.gameState.match_state > MATCH_STATE_PLAYTIME ) {
+	if( client_gs.gameState.match_state > MatchState_Playing ) {
 		return;
 	}
 
@@ -710,11 +710,11 @@ void CG_AddBombSite( centity_t * cent ) {
 }
 
 void CG_DrawBombHUD() {
-	if( client_gs.gameState.match_state > MATCH_STATE_PLAYTIME )
+	if( client_gs.gameState.match_state > MatchState_Playing )
 		return;
 
 	int my_team = cg.predictedPlayerState.team;
-	bool show_labels = my_team != TEAM_SPECTATOR && client_gs.gameState.match_state == MATCH_STATE_PLAYTIME;
+	bool show_labels = my_team != TEAM_SPECTATOR && client_gs.gameState.match_state == MatchState_Playing;
 
 	Vec4 yellow = sRGBToLinear( rgba8_diesel_yellow );
 

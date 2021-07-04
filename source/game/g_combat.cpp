@@ -107,7 +107,7 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int assisto
 	}
 
 	// count stats
-	if( server_gs.gameState.match_state == MATCH_STATE_PLAYTIME ) {
+	if( server_gs.gameState.match_state == MatchState_Playing ) {
 		G_ClientGetStats( targ )->deaths++;
 
 		if( !attacker || !attacker->r.client || attacker == targ || attacker == world ) {

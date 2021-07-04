@@ -89,11 +89,11 @@ class cPlayer {
 			return;
 		}
 
-		if( match.getState() == MATCH_STATE_WARMUP || match.getState() == MATCH_STATE_COUNTDOWN ) {
+		if( match.matchState == MatchState_Warmup || match.matchState == MatchState_Countdown ) {
 			giveInventory();
 		}
 
-		if( match.getState() == MATCH_STATE_PLAYTIME && match.roundState == RoundState_Countdown ) {
+		if( match.matchState == MatchState_Playing && match.roundState == RoundState_Countdown ) {
 			giveInventory();
 		}
 	}

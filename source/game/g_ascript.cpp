@@ -79,22 +79,6 @@ static const asEnumVal_t asWorldDamageVals[] =
 	ASLIB_ENUM_VAL_NULL
 };
 
-static const asEnumVal_t asConfigstringEnumVals[] =
-{
-	ASLIB_ENUM_VAL( CS_HOSTNAME ),
-	ASLIB_ENUM_VAL( CS_AUTORECORDSTATE ),
-	ASLIB_ENUM_VAL( CS_MAXCLIENTS ),
-	ASLIB_ENUM_VAL( CS_MATCHSCORE ),
-	ASLIB_ENUM_VAL( CS_CALLVOTE ),
-	ASLIB_ENUM_VAL( CS_CALLVOTE_REQUIRED_VOTES ),
-	ASLIB_ENUM_VAL( CS_CALLVOTE_YES_VOTES ),
-	ASLIB_ENUM_VAL( CS_CALLVOTE_NO_VOTES ),
-	ASLIB_ENUM_VAL( CS_PLAYERINFOS ),
-	ASLIB_ENUM_VAL( CS_GAMECOMMANDS ),
-
-	ASLIB_ENUM_VAL_NULL
-};
-
 static const asEnumVal_t asEffectEnumVals[] =
 {
 	ASLIB_ENUM_VAL( EF_CARRIER ),
@@ -378,7 +362,6 @@ static const asEnum_t asGameEnums[] =
 	{ "takedamage_e", asDamageEnumVals },
 	{ "WorldDamage", asWorldDamageVals },
 
-	{ "configstrings_e", asConfigstringEnumVals },
 	{ "state_effects_e", asEffectEnumVals },
 	{ "MatchState", asMatchStateEnumVals },
 	{ "teams_e", asTeamEnumVals },
@@ -1477,25 +1460,6 @@ static void asFunc_RegisterCommand( asstring_t *str ) {
 	G_AddCommand( str->buffer, NULL );
 }
 
-static asstring_t *asFunc_GetConfigString( int index ) {
-	const char *cs = PF_GetConfigString( index );
-	return game.asExport->asStringFactoryBuffer( (char *)cs, cs ? strlen( cs ) : 0 );
-}
-
-static void asFunc_SetConfigString( int index, asstring_t *str ) {
-	if( !str || !str->buffer ) {
-		return;
-	}
-
-	// write protect some configstrings
-	if( index <= SERVER_PROTECTED_CONFIGSTRINGS ) {
-		Com_Printf( "WARNING: ConfigString %i is write protected\n", index );
-		return;
-	}
-
-	PF_ConfigString( index, str->buffer );
-}
-
 static CScriptArrayInterface *asFunc_G_FindInRadius( asvec3_t *org, float radius ) {
 	asIObjectType *ot = asEntityArrayType();
 
@@ -1637,8 +1601,6 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 	{ "void G_CmdExecute( const String & )", asFUNCTION( asFunc_Cbuf_ExecuteText ), NULL },
 
 	{ "void G_RegisterCommand( const String &in )", asFUNCTION( asFunc_RegisterCommand ), NULL },
-	{ "const String @G_ConfigString( int index )", asFUNCTION( asFunc_GetConfigString ), NULL },
-	{ "void G_ConfigString( int index, const String &in )", asFUNCTION( asFunc_SetConfigString ), NULL },
 
 	{ "WeaponCategory GetWeaponCategory( WeaponType )", asFUNCTION( asFunc_GetWeaponCategory ), NULL },
 	{ "const String @GetWeaponShortName( WeaponType )", asFUNCTION( asFunc_GetWeaponShortName ), NULL },

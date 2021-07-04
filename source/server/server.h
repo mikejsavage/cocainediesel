@@ -114,7 +114,7 @@ struct client_t {
 	int64_t UcmdTime;
 	int64_t UcmdExecuted;          // last client-command we executed
 	int64_t UcmdReceived;          // last client-command we received
-	usercmd_t ucmds[CMD_BACKUP];        // each message will send several old cmds
+	UserCommand ucmds[CMD_BACKUP];        // each message will send several old cmds
 
 	int64_t lastPacketSentTime;    // time when we sent the last message to this client
 	int64_t lastPacketReceivedTime; // time when we received the last message from this client

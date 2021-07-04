@@ -877,7 +877,7 @@ void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm ) {
 	G_UseGadget( ent, gadget, parm );
 }
 
-void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
+void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	ZoneScoped;
 
 	gclient_t *client;

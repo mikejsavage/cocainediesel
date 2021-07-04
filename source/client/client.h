@@ -51,7 +51,7 @@ struct client_state_t {
 	int timeoutcount;
 
 	int cmdNum;                     // current cmd
-	usercmd_t cmds[CMD_BACKUP];     // each mesage will send several old cmds
+	UserCommand cmds[CMD_BACKUP];     // each mesage will send several old cmds
 	int cmd_time[CMD_BACKUP];       // time sent, for calculating pings
 
 	WeaponType weaponSwitch;
@@ -265,7 +265,7 @@ size_t CL_GetBaseServerURL( char *buffer, size_t buffer_size );
 // cl_game.c
 //
 void CL_GetConfigString( int i, char *str, int size );
-void CL_GetUserCmd( int frame, usercmd_t *cmd );
+void CL_GetUserCmd( int frame, UserCommand *cmd );
 int CL_GetCurrentUserCmdNum();
 void CL_GetCurrentState( int64_t *incomingAcknowledged, int64_t *outgoingSequence, int64_t *outgoingSent );
 

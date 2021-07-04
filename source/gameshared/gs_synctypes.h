@@ -23,7 +23,7 @@ enum EntityType : u8 {
 	ET_JUMPPAD,
 	ET_PAINKILLER_JUMPPAD,
 
-	ET_ROCKET,      // redlight + trail
+	ET_ROCKET,
 	ET_GRENADE,
 	ET_ARBULLET,
 	ET_BUBBLE,
@@ -33,7 +33,7 @@ enum EntityType : u8 {
 
 	ET_THROWING_AXE,
 
-	ET_LASERBEAM,   // for continuous beams
+	ET_LASERBEAM,
 
 	ET_DECAL,
 
@@ -259,10 +259,6 @@ struct SyncEntityState {
 	int team;                           // team in the game
 };
 
-// SyncPlayerState is the information needed in addition to pmove_state_t
-// to rendered a view.  There will only be 10 SyncPlayerState sent each second,
-// but the number of pmove_state_t changes will be relative to client
-// frame rates
 struct pmove_state_t {
 	int pm_type;
 
@@ -337,8 +333,7 @@ struct SyncPlayerState {
 	int pointed_health;
 };
 
-// usercmd_t is sent to the server each client frame
-struct usercmd_t {
+struct UserCommand {
 	u8 msec;
 	u8 buttons, down_edges;
 	u16 entropy;

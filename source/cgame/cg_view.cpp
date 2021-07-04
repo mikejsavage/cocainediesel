@@ -442,7 +442,7 @@ static void CG_UpdateChaseCam() {
 		chaseCam.mode = CAM_INEYES;
 	}
 
-	usercmd_t cmd;
+	UserCommand cmd;
 	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 
 	if( chaseCam.key_pressed ) {

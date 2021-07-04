@@ -525,7 +525,7 @@ void G_ClientRespawn( edict_t *self, bool ghost );
 score_stats_t * G_ClientGetStats( edict_t * ent );
 void G_ClientClearStats( edict_t *ent );
 void G_GhostClient( edict_t *self );
-void ClientThink( edict_t *ent, usercmd_t *cmd, int timeDelta );
+void ClientThink( edict_t *ent, UserCommand *cmd, int timeDelta );
 void G_ClientThink( edict_t *ent );
 void G_CheckClientRespawnClick( edict_t *ent );
 bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient );
@@ -770,7 +770,7 @@ struct gclient_t {
 	int64_t queueTimeStamp;
 	int muted;     // & 1 = chat disabled, & 2 = vsay disabled
 
-	usercmd_t ucmd;
+	UserCommand ucmd;
 	int timeDelta;              // time offset to adjust for shots collision (antilag)
 	int timeDeltas[G_MAX_TIME_DELTAS];
 	int timeDeltasHead;

@@ -622,10 +622,10 @@ USER CMD EXECUTION
 */
 
 /*
-* SV_FindNextUserCommand - Returns the next valid usercmd_t in execution list
+* SV_FindNextUserCommand - Returns the next valid UserCommand in execution list
 */
-usercmd_t *SV_FindNextUserCommand( client_t *client ) {
-	usercmd_t *ucmd;
+UserCommand *SV_FindNextUserCommand( client_t *client ) {
+	UserCommand *ucmd;
 	int64_t higherTime = 0;
 	unsigned int i;
 
@@ -649,14 +649,14 @@ usercmd_t *SV_FindNextUserCommand( client_t *client ) {
 }
 
 /*
-* SV_ExecuteClientThinks - Execute all pending usercmd_t
+* SV_ExecuteClientThinks - Execute all pending UserCommand
 */
 void SV_ExecuteClientThinks( int clientNum ) {
 	unsigned int msec;
 	int64_t minUcmdTime;
 	int timeDelta;
 	client_t *client;
-	usercmd_t *ucmd;
+	UserCommand *ucmd;
 
 	if( clientNum >= sv_maxclients->integer || clientNum < 0 ) {
 		return;
@@ -699,7 +699,7 @@ void SV_ExecuteClientThinks( int clientNum ) {
 */
 static void SV_ParseMoveCommand( client_t *client, msg_t *msg ) {
 	unsigned int i, ucmdHead, ucmdFirst, ucmdCount;
-	usercmd_t nullcmd;
+	UserCommand nullcmd;
 	int lastframe;
 
 	lastframe = MSG_ReadInt32( msg );

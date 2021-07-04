@@ -595,7 +595,7 @@ void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEnt
 // DELTA USER CMDS
 //==================================================
 
-static void Delta( DeltaBuffer * buf, usercmd_t & cmd, const usercmd_t & baseline ) {
+static void Delta( DeltaBuffer * buf, UserCommand & cmd, const UserCommand & baseline ) {
 	Delta( buf, cmd.angles, baseline.angles );
 	Delta( buf, cmd.forwardmove, baseline.forwardmove );
 	Delta( buf, cmd.sidemove, baseline.sidemove );
@@ -606,17 +606,17 @@ static void Delta( DeltaBuffer * buf, usercmd_t & cmd, const usercmd_t & baselin
 	Delta( buf, cmd.weaponSwitch, baseline.weaponSwitch );
 }
 
-void MSG_WriteDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, const usercmd_t * cmd ) {
+void MSG_WriteDeltaUsercmd( msg_t * msg, const UserCommand * baseline, const UserCommand * cmd ) {
 	u8 buf[ MAX_MSGLEN ];
 	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
 
-	Delta( &delta, *const_cast< usercmd_t * >( cmd ), *baseline );
+	Delta( &delta, *const_cast< UserCommand * >( cmd ), *baseline );
 
 	MSG_WriteDeltaBuffer( msg, delta );
 	MSG_WriteIntBase128( msg, cmd->serverTimeStamp );
 }
 
-void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, usercmd_t * cmd ) {
+void MSG_ReadDeltaUsercmd( msg_t * msg, const UserCommand * baseline, UserCommand * cmd ) {
 	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
 	Delta( &delta, *cmd, *baseline );
 	MSG_FinishReadingDeltaBuffer( msg, delta );

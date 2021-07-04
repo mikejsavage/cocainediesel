@@ -66,7 +66,7 @@ struct pmove_t {
 	SyncPlayerState *playerState;
 
 	// command (in)
-	usercmd_t cmd;
+	UserCommand cmd;
 
 	// results (out)
 	int numtouch;

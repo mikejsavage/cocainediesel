@@ -91,8 +91,8 @@ static void AI_SpecThink( edict_t * self ) {
 		return;
 	}
 
-	usercmd_t ucmd;
-	memset( &ucmd, 0, sizeof( usercmd_t ) );
+	UserCommand ucmd;
+	memset( &ucmd, 0, sizeof( UserCommand ) );
 
 	// set approximate ping and show values
 	ucmd.serverTimeStamp = svs.gametime;
@@ -106,8 +106,8 @@ static void AI_GameThink( edict_t * self ) {
 		G_Match_Ready( self );
 	}
 
-	usercmd_t ucmd;
-	memset( &ucmd, 0, sizeof( usercmd_t ) );
+	UserCommand ucmd;
+	memset( &ucmd, 0, sizeof( UserCommand ) );
 
 	// set up for pmove
 	ucmd.angles[ 0 ] = (short)ANGLE2SHORT( self->s.angles.x ) - self->r.client->ps.pmove.delta_angles[ 0 ];

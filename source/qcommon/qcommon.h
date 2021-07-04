@@ -77,7 +77,7 @@ int MSG_SkipData( msg_t *sb, size_t length );
 
 //============================================================================
 
-struct usercmd_t;
+struct UserCommand;
 
 void MSG_WriteInt8( msg_t *sb, int c );
 void MSG_WriteUint8( msg_t *sb, int c );
@@ -89,7 +89,7 @@ void MSG_WriteUint64( msg_t *sb, uint64_t c );
 void MSG_WriteUintBase128( msg_t *msg, uint64_t c );
 void MSG_WriteIntBase128( msg_t *msg, int64_t c );
 void MSG_WriteString( msg_t *sb, const char *s );
-void MSG_WriteDeltaUsercmd( msg_t * msg, const usercmd_t * baseline , const usercmd_t * cmd );
+void MSG_WriteDeltaUsercmd( msg_t * msg, const UserCommand * baseline , const UserCommand * cmd );
 void MSG_WriteEntityNumber( msg_t * msg, int number, bool remove );
 void MSG_WriteDeltaEntity( msg_t * msg, const SyncEntityState * baseline, const SyncEntityState * ent, bool force );
 void MSG_WriteDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, const SyncPlayerState * player );
@@ -107,7 +107,7 @@ uint64_t MSG_ReadUintBase128( msg_t *msg );
 int64_t MSG_ReadIntBase128( msg_t *msg );
 char *MSG_ReadString( msg_t *sb );
 char *MSG_ReadStringLine( msg_t *sb );
-void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, usercmd_t * cmd );
+void MSG_ReadDeltaUsercmd( msg_t * msg, const UserCommand * baseline, UserCommand * cmd );
 int MSG_ReadEntityNumber( msg_t * msg, bool * remove );
 void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEntityState * ent );
 void MSG_ReadDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, SyncPlayerState * player );
@@ -207,7 +207,7 @@ enum svc_ops_e {
 // client to server
 //
 enum clc_ops_e {
-	clc_move,               // [[usercmd_t]
+	clc_move,               // [[UserCommand]
 	clc_svcack,
 	clc_clientcommand,      // [string] message
 };

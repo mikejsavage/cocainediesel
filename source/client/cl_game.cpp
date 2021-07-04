@@ -40,7 +40,7 @@ void CL_GetConfigString( int i, char *str, int size ) {
 	Q_strncpyz( str, cl.configstrings[i], size );
 }
 
-void CL_GetUserCmd( int frame, usercmd_t *cmd ) {
+void CL_GetUserCmd( int frame, UserCommand *cmd ) {
 	if( cmd ) {
 		if( frame < 0 ) {
 			frame = 0;

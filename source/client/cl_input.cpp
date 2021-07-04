@@ -53,7 +53,7 @@ void CL_UserInputFrame( int realMsec ) {
 	// refresh mouse angles and movement velocity
 	CL_UpdateGameInput( movement, realMsec );
 
-	// create a new usercmd_t structure for this frame
+	// create a new UserCommand structure for this frame
 	CL_CreateNewUserCommand( realMsec );
 
 	// process console commands
@@ -79,7 +79,7 @@ void CL_InitInput() {
 *
 * Updates ucmd to use the most recent viewangles.
 */
-static void CL_RefreshUcmd( usercmd_t *ucmd, int msec, bool ready ) {
+static void CL_RefreshUcmd( UserCommand *ucmd, int msec, bool ready ) {
 	ucmd->msec += msec;
 
 	if( ucmd->msec && cls.key_dest == key_game ) {
@@ -183,12 +183,12 @@ void CL_WriteUcmdsToMessage( msg_t *msg ) {
 	MSG_WriteInt32( msg, ucmdHead );
 	MSG_WriteUint8( msg, (uint8_t)( ucmdHead - ucmdFirst ) );
 
-	usercmd_t nullcmd = { };
-	const usercmd_t * oldcmd = &nullcmd;
+	UserCommand nullcmd = { };
+	const UserCommand * oldcmd = &nullcmd;
 
 	// write the ucmds
 	for( unsigned int i = ucmdFirst; i < ucmdHead; i++ ) {
-		const usercmd_t * cmd = &cl.cmds[i & CMD_MASK];
+		const UserCommand * cmd = &cl.cmds[i & CMD_MASK];
 		MSG_WriteDeltaUsercmd( msg, oldcmd, cmd );
 		oldcmd = cmd;
 	}
@@ -255,7 +255,7 @@ static bool CL_NextUserCommandTimeReached( int realMsec ) {
 * CL_CreateNewUserCommand
 */
 static void CL_CreateNewUserCommand( int realMsec ) {
-	usercmd_t *ucmd;
+	UserCommand *ucmd;
 
 	if( !CL_NextUserCommandTimeReached( realMsec ) ) {
 		// refresh current command with up to date data for movement prediction
@@ -273,7 +273,7 @@ static void CL_CreateNewUserCommand( int realMsec ) {
 	// advance head and init the new command
 	cls.ucmdHead++;
 	ucmd = &cl.cmds[cls.ucmdHead & CMD_MASK];
-	memset( ucmd, 0, sizeof( usercmd_t ) );
+	memset( ucmd, 0, sizeof( UserCommand ) );
 	ucmd->entropy = Random32( &cls.rng );
 
 	// start up with the most recent viewangles

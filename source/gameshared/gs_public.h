@@ -372,7 +372,6 @@ enum playerstate_event_t {
 
 // SyncEntityState->effects
 #define EF_CARRIER                  ( 1 << 0 )
-#define EF_TAKEDAMAGE               ( 1 << 1 )
-#define EF_HAT                      ( 1 << 2 )
-#define EF_TEAM_SILHOUETTE          ( 1 << 3 )
-#define EF_WORLD_MODEL              ( 1 << 4 )
+#define EF_HAT                      ( 1 << 1 )
+#define EF_TEAM_SILHOUETTE          ( 1 << 2 )
+#define EF_WORLD_MODEL              ( 1 << 3 )

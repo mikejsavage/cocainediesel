@@ -1015,10 +1015,6 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 * Client frame think, and call to execute its usercommands thinking
 */
 void G_ClientThink( edict_t *ent ) {
-	if( !ent || !ent->r.client ) {
-		return;
-	}
-
 	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return;
 	}

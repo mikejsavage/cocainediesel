@@ -98,7 +98,6 @@ static const asEnumVal_t asConfigstringEnumVals[] =
 static const asEnumVal_t asEffectEnumVals[] =
 {
 	ASLIB_ENUM_VAL( EF_CARRIER ),
-	ASLIB_ENUM_VAL( EF_TAKEDAMAGE ),
 	ASLIB_ENUM_VAL( EF_HAT ),
 	ASLIB_ENUM_VAL( EF_TEAM_SILHOUETTE ),
 	ASLIB_ENUM_VAL( EF_WORLD_MODEL ),

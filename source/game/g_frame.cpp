@@ -319,17 +319,6 @@ void G_SnapFrame() {
 		if( !ent->r.inuse ) {
 			ent->r.svflags |= SVF_NOCLIENT;
 			continue;
-		} else if( ent->s.type >= ET_TOTAL_TYPES || ent->s.type < 0 ) {
-			if( developer->integer ) {
-				Com_Printf( "'G_SnapFrame': Inhibiting invalid entity type %i\n", ent->s.type );
-			}
-			ent->r.svflags |= SVF_NOCLIENT;
-			continue;
-		}
-
-		ent->s.effects &= ~EF_TAKEDAMAGE;
-		if( ent->takedamage ) {
-			ent->s.effects |= EF_TAKEDAMAGE;
 		}
 
 		if( GS_MatchPaused( &server_gs ) ) {
@@ -369,12 +358,6 @@ static void G_RunEntities() {
 		}
 
 		G_RunEntity( ent );
-
-		if( ent->takedamage ) {
-			ent->s.effects |= EF_TAKEDAMAGE;
-		} else {
-			ent->s.effects &= ~EF_TAKEDAMAGE;
-		}
 	}
 }
 
@@ -383,17 +366,10 @@ static void G_RunClients() {
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t *ent = game.edicts + 1 + i;
-		if( !ent->r.inuse ) {
+		if( !ent->r.inuse )
 			continue;
-		}
 
 		G_ClientThink( ent );
-
-		if( ent->takedamage ) {
-			ent->s.effects |= EF_TAKEDAMAGE;
-		} else {
-			ent->s.effects &= ~EF_TAKEDAMAGE;
-		}
 	}
 }
 

@@ -47,8 +47,6 @@ enum EntityType : u8 {
 	// eventual entities: types below this will get event treatment
 	ET_EVENT = EVENT_ENTITIES_START,
 	ET_SOUNDEVENT,
-
-	ET_TOTAL_TYPES // current count
 };
 
 using WeaponType = u8;

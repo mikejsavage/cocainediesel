@@ -25,19 +25,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/angelwrap/qas_public.h"
 
-void asemptyfunc() {}
-
-static const asEnumVal_t asSpawnSystemEnumVals[] =
-{
+static const asEnumVal_t asSpawnSystemEnumVals[] = {
 	ASLIB_ENUM_VAL( SPAWNSYSTEM_INSTANT ),
 	ASLIB_ENUM_VAL( SPAWNSYSTEM_WAVES ),
 	ASLIB_ENUM_VAL( SPAWNSYSTEM_HOLD ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asMovetypeEnumVals[] =
-{
+static const asEnumVal_t asMovetypeEnumVals[] = {
 	ASLIB_ENUM_VAL( MOVETYPE_NONE ),
 	ASLIB_ENUM_VAL( MOVETYPE_PLAYER ),
 	ASLIB_ENUM_VAL( MOVETYPE_NOCLIP ),
@@ -49,20 +45,18 @@ static const asEnumVal_t asMovetypeEnumVals[] =
 	ASLIB_ENUM_VAL( MOVETYPE_BOUNCE ),
 	ASLIB_ENUM_VAL( MOVETYPE_BOUNCEGRENADE ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asDamageEnumVals[] =
-{
+static const asEnumVal_t asDamageEnumVals[] = {
 	ASLIB_ENUM_VAL( DAMAGE_NO ),
 	ASLIB_ENUM_VAL( DAMAGE_YES ),
 	ASLIB_ENUM_VAL( DAMAGE_AIM ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asWorldDamageVals[] =
-{
+static const asEnumVal_t asWorldDamageVals[] = {
 	ASLIB_ENUM_VAL( WorldDamage_Slime ),
 	ASLIB_ENUM_VAL( WorldDamage_Lava ),
 	ASLIB_ENUM_VAL( WorldDamage_Crush ),
@@ -76,43 +70,39 @@ static const asEnumVal_t asWorldDamageVals[] =
 	ASLIB_ENUM_VAL( WorldDamage_Spike ),
 	ASLIB_ENUM_VAL( WorldDamage_Void ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asEffectEnumVals[] =
-{
+static const asEnumVal_t asEffectEnumVals[] = {
 	ASLIB_ENUM_VAL( EF_CARRIER ),
 	ASLIB_ENUM_VAL( EF_HAT ),
 	ASLIB_ENUM_VAL( EF_TEAM_SILHOUETTE ),
 	ASLIB_ENUM_VAL( EF_WORLD_MODEL ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asMatchStateEnumVals[] =
-{
+static const asEnumVal_t asMatchStateEnumVals[] = {
 	ASLIB_ENUM_VAL( MatchState_Warmup ),
 	ASLIB_ENUM_VAL( MatchState_Countdown ),
 	ASLIB_ENUM_VAL( MatchState_Playing ),
 	ASLIB_ENUM_VAL( MatchState_PostMatch ),
 	ASLIB_ENUM_VAL( MatchState_WaitExit ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asTeamEnumVals[] =
-{
+static const asEnumVal_t asTeamEnumVals[] = {
 	ASLIB_ENUM_VAL( TEAM_SPECTATOR ),
 	ASLIB_ENUM_VAL( TEAM_PLAYERS ),
 	ASLIB_ENUM_VAL( TEAM_ALPHA ),
 	ASLIB_ENUM_VAL( TEAM_BETA ),
 	ASLIB_ENUM_VAL( GS_MAX_TEAMS ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asEntityTypeEnumVals[] =
-{
+static const asEnumVal_t asEntityTypeEnumVals[] = {
 	ASLIB_ENUM_VAL( ET_GENERIC ),
 	ASLIB_ENUM_VAL( ET_PLAYER ),
 	ASLIB_ENUM_VAL( ET_CORPSE ),
@@ -130,20 +120,18 @@ static const asEnumVal_t asEntityTypeEnumVals[] =
 	ASLIB_ENUM_VAL( ET_EVENT ),
 	ASLIB_ENUM_VAL( ET_SOUNDEVENT ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asSolidEnumVals[] =
-{
+static const asEnumVal_t asSolidEnumVals[] = {
 	ASLIB_ENUM_VAL( SOLID_NOT ),
 	ASLIB_ENUM_VAL( SOLID_TRIGGER ),
 	ASLIB_ENUM_VAL( SOLID_YES ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asPMoveFeaturesVals[] =
-{
+static const asEnumVal_t asPMoveFeaturesVals[] = {
 	ASLIB_ENUM_VAL( PMFEAT_CROUCH ),
 	ASLIB_ENUM_VAL( PMFEAT_WALK ),
 	ASLIB_ENUM_VAL( PMFEAT_JUMP ),
@@ -155,22 +143,20 @@ static const asEnumVal_t asPMoveFeaturesVals[] =
 	ASLIB_ENUM_VAL( PMFEAT_ALL ),
 	ASLIB_ENUM_VAL( PMFEAT_DEFAULT ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asWeaponCategoryEnumVals[] =
-{
+static const asEnumVal_t asWeaponCategoryEnumVals[] = {
 	ASLIB_ENUM_VAL( WeaponCategory_Primary ),
 	ASLIB_ENUM_VAL( WeaponCategory_Secondary ),
 	ASLIB_ENUM_VAL( WeaponCategory_Backup ),
 
 	ASLIB_ENUM_VAL( WeaponCategory_Count ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asWeaponTypeEnumVals[] =
-{
+static const asEnumVal_t asWeaponTypeEnumVals[] = {
 	ASLIB_ENUM_VAL( Weapon_None ),
 
 	ASLIB_ENUM_VAL( Weapon_Knife ),
@@ -194,41 +180,37 @@ static const asEnumVal_t asWeaponTypeEnumVals[] =
 
 	ASLIB_ENUM_VAL( Weapon_Count ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asGadgetTypeEnumVals[] =
-{
+static const asEnumVal_t asGadgetTypeEnumVals[] = {
 	ASLIB_ENUM_VAL( Gadget_None ),
 
 	ASLIB_ENUM_VAL( Gadget_ThrowingAxe ),
 
 	ASLIB_ENUM_VAL( Gadget_Count ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asClientStateEnumVals[] =
-{
+static const asEnumVal_t asClientStateEnumVals[] = {
 	ASLIB_ENUM_VAL( CS_FREE ),
 	ASLIB_ENUM_VAL( CS_ZOMBIE ),
 	ASLIB_ENUM_VAL( CS_CONNECTING ),
 	ASLIB_ENUM_VAL( CS_CONNECTED ),
 	ASLIB_ENUM_VAL( CS_SPAWNED ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asSoundChannelEnumVals[] =
-{
+static const asEnumVal_t asSoundChannelEnumVals[] = {
 	ASLIB_ENUM_VAL( CHAN_AUTO ),
 	ASLIB_ENUM_VAL( CHAN_BODY ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asContentsEnumVals[] =
-{
+static const asEnumVal_t asContentsEnumVals[] = {
 	ASLIB_ENUM_VAL( CONTENTS_SOLID ),
 	ASLIB_ENUM_VAL( CONTENTS_LAVA ),
 	ASLIB_ENUM_VAL( CONTENTS_SLIME ),
@@ -262,11 +244,10 @@ static const asEnumVal_t asContentsEnumVals[] =
 	ASLIB_ENUM_VAL( MASK_ALPHAPLAYERSOLID ),
 	ASLIB_ENUM_VAL( MASK_BETAPLAYERSOLID ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asSurfFlagEnumVals[] =
-{
+static const asEnumVal_t asSurfFlagEnumVals[] = {
 	ASLIB_ENUM_VAL( SURF_NODAMAGE ),
 	ASLIB_ENUM_VAL( SURF_SLICK ),
 	ASLIB_ENUM_VAL( SURF_SKY ),
@@ -287,11 +268,10 @@ static const asEnumVal_t asSurfFlagEnumVals[] =
 	ASLIB_ENUM_VAL( SURF_NODLIGHT ),
 	ASLIB_ENUM_VAL( SURF_DUST ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asSVFlagEnumVals[] =
-{
+static const asEnumVal_t asSVFlagEnumVals[] = {
 	ASLIB_ENUM_VAL( SVF_NOCLIENT ),
 	ASLIB_ENUM_VAL( SVF_TRANSMITORIGIN2 ),
 	ASLIB_ENUM_VAL( SVF_SOUNDCULL ),
@@ -304,58 +284,52 @@ static const asEnumVal_t asSVFlagEnumVals[] =
 	ASLIB_ENUM_VAL( SVF_ONLYOWNER ),
 	ASLIB_ENUM_VAL( SVF_FORCETEAM ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asAxisEnumVals[] =
-{
+static const asEnumVal_t asAxisEnumVals[] = {
 	ASLIB_ENUM_VAL( PITCH ),
 	ASLIB_ENUM_VAL( YAW ),
 	ASLIB_ENUM_VAL( ROLL ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asBombProgressEnumVals[] =
-{
+static const asEnumVal_t asBombProgressEnumVals[] = {
 	ASLIB_ENUM_VAL( BombProgress_Nothing ),
 	ASLIB_ENUM_VAL( BombProgress_Planting ),
 	ASLIB_ENUM_VAL( BombProgress_Defusing ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asBombDownEnumVals[] =
-{
+static const asEnumVal_t asBombDownEnumVals[] = {
 	ASLIB_ENUM_VAL( BombDown_Dropped ),
 	ASLIB_ENUM_VAL( BombDown_Planting ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asRoundStateEnumVals[] =
-{
+static const asEnumVal_t asRoundStateEnumVals[] = {
 	ASLIB_ENUM_VAL( RoundState_None ),
 	ASLIB_ENUM_VAL( RoundState_Countdown ),
 	ASLIB_ENUM_VAL( RoundState_Round ),
 	ASLIB_ENUM_VAL( RoundState_Finished ),
 	ASLIB_ENUM_VAL( RoundState_Post ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnumVal_t asRoundTypeEnumVals[] =
-{
+static const asEnumVal_t asRoundTypeEnumVals[] = {
 	ASLIB_ENUM_VAL( RoundType_Normal ),
 	ASLIB_ENUM_VAL( RoundType_MatchPoint ),
 	ASLIB_ENUM_VAL( RoundType_Overtime ),
 	ASLIB_ENUM_VAL( RoundType_OvertimeMatchPoint ),
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
-static const asEnum_t asGameEnums[] =
-{
+static const asEnum_t asGameEnums[] = {
 	{ "spawnsystem_e", asSpawnSystemEnumVals },
 	{ "movetype_e", asMovetypeEnumVals },
 
@@ -386,7 +360,7 @@ static const asEnum_t asGameEnums[] =
 	{ "RoundState", asRoundStateEnumVals },
 	{ "RoundType", asRoundTypeEnumVals },
 
-	ASLIB_ENUM_VAL_NULL
+	{ }
 };
 
 static asIObjectType *asEntityArrayType() {
@@ -436,18 +410,15 @@ static void objectMatch_setClockOverride( int64_t time, SyncGameState *self ) {
 	self->clock_override = time;
 }
 
-static const asFuncdef_t match_Funcdefs[] =
-{
-	ASLIB_FUNCDEF_NULL
+static const asFuncdef_t match_Funcdefs[] = {
+	{ }
 };
 
-static const asBehavior_t match_ObjectBehaviors[] =
-{
-	ASLIB_BEHAVIOR_NULL
+static const asBehavior_t match_ObjectBehaviors[] = {
+	{ }
 };
 
-static const asMethod_t match_Methods[] =
-{
+static const asMethod_t match_Methods[] = {
 	{ ASLIB_FUNCTION_DECL( void, launchState, (MatchState state) const ), asFUNCTION( objectMatch_launchState ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, startAutorecord, ( ) const ), asFUNCTION( objectMatch_startAutorecord ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, stopAutorecord, ( ) const ), asFUNCTION( objectMatch_stopAutorecord ), asCALL_CDECL_OBJLAST },
@@ -458,11 +429,10 @@ static const asMethod_t match_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, setScore, ( String & in ) ), asFUNCTION( objectMatch_setScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setClockOverride, ( int64 milliseconds ) ), asFUNCTION( objectMatch_setClockOverride ), asCALL_CDECL_OBJLAST },
 
-	ASLIB_METHOD_NULL
+	{ }
 };
 
-static const asProperty_t match_Properties[] =
-{
+static const asProperty_t match_Properties[] = {
 	{ ASLIB_PROPERTY_DECL( uint8, roundNum ), offsetof( SyncGameState, round_num ) },
 	{ ASLIB_PROPERTY_DECL( MatchState, matchState ), offsetof( SyncGameState, match_state ) },
 	{ ASLIB_PROPERTY_DECL( RoundState, roundState ), offsetof( SyncGameState, round_state ) },
@@ -473,11 +443,11 @@ static const asProperty_t match_Properties[] =
 	{ ASLIB_PROPERTY_DECL( uint8, betaPlayersAlive ), offsetof( SyncGameState, bomb.beta_players_alive ) },
 	{ ASLIB_PROPERTY_DECL( bool, exploding ), offsetof( SyncGameState, bomb.exploding ) },
 	{ ASLIB_PROPERTY_DECL( int64, explodedAt ), offsetof( SyncGameState, bomb.exploded_at ) },
-	ASLIB_PROPERTY_NULL
+
+	{ }
 };
 
-static const asClassDescriptor_t asMatchClassDescriptor =
-{
+static const asClassDescriptor_t asMatchClassDescriptor = {
 	"Match",                    /* name */
 	static_cast<asEObjTypeFlags>( asOBJ_REF | asOBJ_NOHANDLE ), /* object type flags */
 	sizeof( SyncGameState ),          /* size */
@@ -485,8 +455,6 @@ static const asClassDescriptor_t asMatchClassDescriptor =
 	match_ObjectBehaviors,      /* object behaviors */
 	match_Methods,              /* methods */
 	match_Properties,           /* properties */
-
-	NULL, NULL                  /* string factory hack */
 };
 
 // CLASS: GametypeDesc
@@ -495,25 +463,21 @@ static void objectGametypeDescriptor_SetTeamSpawnsystem( int team, int spawnsyst
 	G_SpawnQueue_SetTeamSpawnsystem( team, spawnsystem, wave_time, wave_maxcount, spectate_team );
 }
 
-static const asFuncdef_t gametypedescr_Funcdefs[] =
-{
-	ASLIB_FUNCDEF_NULL
+static const asFuncdef_t gametypedescr_Funcdefs[] = {
+	{ }
 };
 
-static const asBehavior_t gametypedescr_ObjectBehaviors[] =
-{
-	ASLIB_BEHAVIOR_NULL
+static const asBehavior_t gametypedescr_ObjectBehaviors[] = {
+	{ }
 };
 
-static const asMethod_t gametypedescr_Methods[] =
-{
+static const asMethod_t gametypedescr_Methods[] = {
 	{ ASLIB_FUNCTION_DECL( void, setTeamSpawnsystem, ( int team, int spawnsystem, int wave_time, int wave_maxcount, bool deadcam ) ), asFUNCTION( objectGametypeDescriptor_SetTeamSpawnsystem ), asCALL_CDECL_OBJLAST },
 
-	ASLIB_METHOD_NULL
+	{ }
 };
 
-static const asProperty_t gametypedescr_Properties[] =
-{
+static const asProperty_t gametypedescr_Properties[] = {
 	{ ASLIB_PROPERTY_DECL( bool, isTeamBased ), offsetof( gametype_descriptor_t, isTeamBased ) },
 	{ ASLIB_PROPERTY_DECL( bool, hasChallengersQueue ), offsetof( gametype_descriptor_t, hasChallengersQueue ) },
 	{ ASLIB_PROPERTY_DECL( bool, hasChallengersRoulette ), offsetof( gametype_descriptor_t, hasChallengersRoulette ) },
@@ -523,11 +487,10 @@ static const asProperty_t gametypedescr_Properties[] =
 	{ ASLIB_PROPERTY_DECL( bool, removeInactivePlayers ), offsetof( gametype_descriptor_t, removeInactivePlayers ) },
 	{ ASLIB_PROPERTY_DECL( bool, selfDamage ), offsetof( gametype_descriptor_t, selfDamage ) },
 
-	ASLIB_PROPERTY_NULL
+	{ }
 };
 
-static const asClassDescriptor_t asGametypeClassDescriptor =
-{
+static const asClassDescriptor_t asGametypeClassDescriptor = {
 	"GametypeDesc",                 /* name */
 	asOBJ_REF | asOBJ_NOHANDLE,       /* object type flags */
 	sizeof( gametype_descriptor_t ),/* size */
@@ -535,8 +498,6 @@ static const asClassDescriptor_t asGametypeClassDescriptor =
 	gametypedescr_ObjectBehaviors,  /* object behaviors */
 	gametypedescr_Methods,          /* methods */
 	gametypedescr_Properties,       /* properties */
-
-	NULL, NULL                      /* string factory hack */
 };
 
 // CLASS: Team
@@ -566,36 +527,31 @@ static void objectTeamlist_AddScore( int add, SyncTeamState * obj ) {
 	obj->score += add;
 }
 
-static const asFuncdef_t teamlist_Funcdefs[] =
-{
-	ASLIB_FUNCDEF_NULL
+static const asFuncdef_t teamlist_Funcdefs[] = {
+	{ }
 };
 
-static const asBehavior_t teamlist_ObjectBehaviors[] =
-{
-	ASLIB_BEHAVIOR_NULL
+static const asBehavior_t teamlist_ObjectBehaviors[] = {
+	{ }
 };
 
-static const asMethod_t teamlist_Methods[] =
-{
+static const asMethod_t teamlist_Methods[] = {
 	{ ASLIB_FUNCTION_DECL( Entity @, ent, ( int index ) ), asFUNCTION( objectTeamlist_GetPlayerEntity ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( const String @, get_name, ( ) const ), asFUNCTION( objectTeamlist_getName ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setScore, ( int ) const ), asFUNCTION( objectTeamlist_SetScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, addScore, ( int ) const ), asFUNCTION( objectTeamlist_AddScore ), asCALL_CDECL_OBJLAST },
 
-	ASLIB_METHOD_NULL
+	{ }
 };
 
-static const asProperty_t teamlist_Properties[] =
-{
+static const asProperty_t teamlist_Properties[] = {
 	{ ASLIB_PROPERTY_DECL( const uint8, score ), offsetof( SyncTeamState, score ) },
 	{ ASLIB_PROPERTY_DECL( const uint8, numPlayers ), offsetof( SyncTeamState, num_players ) },
 
-	ASLIB_PROPERTY_NULL
+	{ }
 };
 
-static const asClassDescriptor_t asTeamListClassDescriptor =
-{
+static const asClassDescriptor_t asTeamListClassDescriptor = {
 	"Team",                     /* name */
 	asOBJ_REF | asOBJ_NOCOUNT,  /* object type flags */
 	sizeof( SyncTeamState ),    /* size */
@@ -603,8 +559,6 @@ static const asClassDescriptor_t asTeamListClassDescriptor =
 	teamlist_ObjectBehaviors,   /* object behaviors */
 	teamlist_Methods,           /* methods */
 	teamlist_Properties,        /* properties */
-
-	NULL, NULL                  /* string factory hack */
 };
 
 // CLASS: Stats
@@ -621,27 +575,23 @@ static void objectScoreStats_Clear( score_stats_t *obj ) {
 }
 
 
-static const asFuncdef_t scorestats_Funcdefs[] =
-{
-	ASLIB_FUNCDEF_NULL
+static const asFuncdef_t scorestats_Funcdefs[] = {
+	{ }
 };
 
-static const asBehavior_t scorestats_ObjectBehaviors[] =
-{
-	ASLIB_BEHAVIOR_NULL
+static const asBehavior_t scorestats_ObjectBehaviors[] = {
+	{ }
 };
 
-static const asMethod_t scorestats_Methods[] =
-{
+static const asMethod_t scorestats_Methods[] = {
 	{ ASLIB_FUNCTION_DECL( void, addScore, ( int ) ), asFUNCTION( objectScoreStats_AddScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, setScore, ( int ) ), asFUNCTION( objectScoreStats_SetScore ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, clear, ( ) ), asFUNCTION( objectScoreStats_Clear ), asCALL_CDECL_OBJLAST },
 
-	ASLIB_METHOD_NULL
+	{ }
 };
 
-static const asProperty_t scorestats_Properties[] =
-{
+static const asProperty_t scorestats_Properties[] = {
 	{ ASLIB_PROPERTY_DECL( const int, kills ), offsetof( score_stats_t, kills ) },
 	{ ASLIB_PROPERTY_DECL( const int, deaths ), offsetof( score_stats_t, deaths ) },
 	{ ASLIB_PROPERTY_DECL( const int, suicides ), offsetof( score_stats_t, suicides ) },
@@ -649,11 +599,10 @@ static const asProperty_t scorestats_Properties[] =
 	{ ASLIB_PROPERTY_DECL( const int, totalDamageGiven ), offsetof( score_stats_t, total_damage_given ) },
 	{ ASLIB_PROPERTY_DECL( const int, totalDamageReceived ), offsetof( score_stats_t, total_damage_received ) },
 
-	ASLIB_PROPERTY_NULL
+	{ }
 };
 
-static const asClassDescriptor_t asScoreStatsClassDescriptor =
-{
+static const asClassDescriptor_t asScoreStatsClassDescriptor = {
 	"Stats",                    /* name */
 	asOBJ_REF | asOBJ_NOCOUNT,    /* object type flags */
 	sizeof( score_stats_t ),    /* size */
@@ -661,8 +610,6 @@ static const asClassDescriptor_t asScoreStatsClassDescriptor =
 	scorestats_ObjectBehaviors, /* object behaviors */
 	scorestats_Methods,         /* methods */
 	scorestats_Properties,      /* properties */
-
-	NULL, NULL                  /* string factory hack */
 };
 
 // CLASS: Client
@@ -826,18 +773,15 @@ static bool objectGameClient_GetChaseActive( gclient_t *self ) {
 	return self->resp.chase.active;
 }
 
-static const asFuncdef_t gameclient_Funcdefs[] =
-{
-	ASLIB_FUNCDEF_NULL
+static const asFuncdef_t gameclient_Funcdefs[] = {
+	{ }
 };
 
-static const asBehavior_t gameclient_ObjectBehaviors[] =
-{
-	ASLIB_BEHAVIOR_NULL
+static const asBehavior_t gameclient_ObjectBehaviors[] = {
+	{ }
 };
 
-static const asMethod_t gameclient_Methods[] =
-{
+static const asMethod_t gameclient_Methods[] = {
 	{ ASLIB_FUNCTION_DECL( int, get_playerNum, ( ) const ), asFUNCTION( objectGameClient_PlayerNum ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, isBot, ( ) const ), asFUNCTION( objectGameClient_isBot ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( int, state, ( ) const ), asFUNCTION( objectGameClient_ClientState ), asCALL_CDECL_OBJLAST },
@@ -855,11 +799,11 @@ static const asMethod_t gameclient_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, chaseCam, ( const String @, bool teamOnly ) ), asFUNCTION( objectGameClient_ChaseCam ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, set_chaseActive, ( const bool active ) ), asFUNCTION( objectGameClient_SetChaseActive ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, get_chaseActive, ( ) const ), asFUNCTION( objectGameClient_GetChaseActive ), asCALL_CDECL_OBJLAST },
-	ASLIB_METHOD_NULL
+
+	{ }
 };
 
-static const asProperty_t gameclient_Properties[] =
-{
+static const asProperty_t gameclient_Properties[] = {
 	{ ASLIB_PROPERTY_DECL( Stats, stats ), offsetof( gclient_t, level.stats ) },
 	{ ASLIB_PROPERTY_DECL( const bool, connecting ), offsetof( gclient_t, connecting ) },
 	{ ASLIB_PROPERTY_DECL( int, team ), offsetof( gclient_t, team ) },
@@ -885,11 +829,10 @@ static const asProperty_t gameclient_Properties[] =
 	{ ASLIB_PROPERTY_DECL( int16, pmoveJumpSpeed ), offsetof( gclient_t, ps.pmove.jump_speed ) },
 	{ ASLIB_PROPERTY_DECL( int16, pmoveDashSpeed ), offsetof( gclient_t, ps.pmove.dash_speed ) },
 
-	ASLIB_PROPERTY_NULL
+	{ }
 };
 
-static const asClassDescriptor_t asGameClientDescriptor =
-{
+static const asClassDescriptor_t asGameClientDescriptor = {
 	"Client",                   /* name */
 	asOBJ_REF | asOBJ_NOCOUNT,    /* object type flags */
 	sizeof( gclient_t ),        /* size */
@@ -897,8 +840,6 @@ static const asClassDescriptor_t asGameClientDescriptor =
 	gameclient_ObjectBehaviors, /* object behaviors */
 	gameclient_Methods,         /* methods */
 	gameclient_Properties,      /* properties */
-
-	NULL, NULL                  /* string factory hack */
 };
 
 // CLASS: Entity
@@ -1093,8 +1034,7 @@ static void objectGameEntity_explosionEffect( int radius, edict_t *self ) {
 	G_SpawnEvent( eventType, eventRadius, &center );
 }
 
-static const asFuncdef_t gedict_Funcdefs[] =
-{
+static const asFuncdef_t gedict_Funcdefs[] = {
 	{ ASLIB_FUNCTION_DECL( void, entThink, ( Entity @ent ) ) },
 	{ ASLIB_FUNCTION_DECL( void, entTouch, ( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags ) ) },
 	{ ASLIB_FUNCTION_DECL( void, entUse, ( Entity @ent, Entity @other, Entity @activator ) ) },
@@ -1102,16 +1042,14 @@ static const asFuncdef_t gedict_Funcdefs[] =
 	{ ASLIB_FUNCTION_DECL( void, entDie, ( Entity @ent, Entity @inflicter, Entity @attacker ) ) },
 	{ ASLIB_FUNCTION_DECL( void, entStop, ( Entity @ent ) ) },
 
-	ASLIB_FUNCDEF_NULL
+	{ }
 };
 
-static const asBehavior_t gedict_ObjectBehaviors[] =
-{
-	ASLIB_BEHAVIOR_NULL
+static const asBehavior_t gedict_ObjectBehaviors[] = {
+	{ }
 };
 
-static const asMethod_t gedict_Methods[] =
-{
+static const asMethod_t gedict_Methods[] = {
 	{ ASLIB_FUNCTION_DECL( Vec3, get_velocity, ( ) const ), asFUNCTION( objectGameEntity_GetVelocity ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, set_velocity, ( const Vec3 &in ) ), asFUNCTION( objectGameEntity_SetVelocity ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( Vec3, get_avelocity, ( ) const ), asFUNCTION( objectGameEntity_GetAVelocity ), asCALL_CDECL_OBJLAST },
@@ -1143,11 +1081,10 @@ static const asMethod_t gedict_Methods[] =
 	{ ASLIB_FUNCTION_DECL( void, splashDamage, ( Entity @attacker, int radius, float damage, float knockback ) ), asFUNCTION( objectGameEntity_splashDamage ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( void, explosionEffect, ( int radius ) ), asFUNCTION( objectGameEntity_explosionEffect ), asCALL_CDECL_OBJLAST },
 
-	ASLIB_METHOD_NULL
+	{ }
 };
 
-static const asProperty_t gedict_Properties[] =
-{
+static const asProperty_t gedict_Properties[] = {
 	{ ASLIB_PROPERTY_DECL( Client @, client ), offsetof( edict_t, r.client ) },
 	{ ASLIB_PROPERTY_DECL( Entity @, groundEntity ), offsetof( edict_t, groundentity ) },
 	{ ASLIB_PROPERTY_DECL( Entity @, owner ), offsetof( edict_t, r.owner ) },
@@ -1199,11 +1136,10 @@ static const asProperty_t gedict_Properties[] =
 	{ ASLIB_PROPERTY_DECL( entDie @, die ), offsetof( edict_t, asDieFunc ) },
 	{ ASLIB_PROPERTY_DECL( entStop @, stop ), offsetof( edict_t, asStopFunc ) },
 
-	ASLIB_PROPERTY_NULL
+	{ }
 };
 
-static const asClassDescriptor_t asGameEntityClassDescriptor =
-{
+static const asClassDescriptor_t asGameEntityClassDescriptor = {
 	"Entity",                   /* name */
 	asOBJ_REF | asOBJ_NOCOUNT,  /* object type flags */
 	sizeof( edict_t ),          /* size */
@@ -1211,8 +1147,6 @@ static const asClassDescriptor_t asGameEntityClassDescriptor =
 	gedict_ObjectBehaviors,     /* object behaviors */
 	gedict_Methods,             /* methods */
 	gedict_Properties,          /* properties */
-
-	NULL, NULL                  /* string factory hack */
 };
 
 // CLASS: Trace
@@ -1262,31 +1196,27 @@ static asvec3_t objectTrace_getPlaneNormal( astrace_t *self ) {
 	return asvec;
 }
 
-static const asFuncdef_t astrace_Funcdefs[] =
-{
-	ASLIB_FUNCDEF_NULL
+static const asFuncdef_t astrace_Funcdefs[] = {
+	{ }
 };
 
-static const asBehavior_t astrace_ObjectBehaviors[] =
-{
+static const asBehavior_t astrace_ObjectBehaviors[] = {
 	{ asBEHAVE_CONSTRUCT, ASLIB_FUNCTION_DECL( void, f, ( ) ), asFUNCTION( objectTrace_DefaultConstructor ), asCALL_CDECL_OBJLAST },
 	{ asBEHAVE_CONSTRUCT, ASLIB_FUNCTION_DECL( void, f, ( const Trace &in ) ), asFUNCTION( objectTrace_CopyConstructor ), asCALL_CDECL_OBJLAST },
 
-	ASLIB_BEHAVIOR_NULL
+	{ }
 };
 
-static const asMethod_t astrace_Methods[] =
-{
+static const asMethod_t astrace_Methods[] = {
 	{ ASLIB_FUNCTION_DECL( bool, doTrace, ( const Vec3 &in, const Vec3 &in, const Vec3 &in, const Vec3 &in, int ignore, int contentMask ) const ), asFUNCTION( objectTrace_doTrace ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( bool, doTrace4D, ( const Vec3 &in, const Vec3 &in, const Vec3 &in, const Vec3 &in, int ignore, int contentMask, int timeDelta ) const ), asFUNCTION( objectTrace_doTrace4D ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( Vec3, get_endPos, ( ) const ), asFUNCTION( objectTrace_getEndPos ), asCALL_CDECL_OBJLAST },
 	{ ASLIB_FUNCTION_DECL( Vec3, get_planeNormal, ( ) const ), asFUNCTION( objectTrace_getPlaneNormal ), asCALL_CDECL_OBJLAST },
 
-	ASLIB_METHOD_NULL
+	{ }
 };
 
-static const asProperty_t astrace_Properties[] =
-{
+static const asProperty_t astrace_Properties[] = {
 	{ ASLIB_PROPERTY_DECL( const bool, allSolid ), offsetof( astrace_t, trace.allsolid ) },
 	{ ASLIB_PROPERTY_DECL( const bool, startSolid ), offsetof( astrace_t, trace.startsolid ) },
 	{ ASLIB_PROPERTY_DECL( const float, fraction ), offsetof( astrace_t, trace.fraction ) },
@@ -1295,11 +1225,10 @@ static const asProperty_t astrace_Properties[] =
 	{ ASLIB_PROPERTY_DECL( const int, entNum ), offsetof( astrace_t, trace.ent ) },
 	{ ASLIB_PROPERTY_DECL( const float, planeDist ), offsetof( astrace_t, trace.plane.dist ) },
 
-	ASLIB_PROPERTY_NULL
+	{ }
 };
 
-static const asClassDescriptor_t asTraceClassDescriptor =
-{
+static const asClassDescriptor_t asTraceClassDescriptor = {
 	"Trace",                    /* name */
 	asOBJ_VALUE | asOBJ_POD | asOBJ_APP_CLASS_CK,   /* object type flags */
 	sizeof( astrace_t ),        /* size */
@@ -1307,12 +1236,9 @@ static const asClassDescriptor_t asTraceClassDescriptor =
 	astrace_ObjectBehaviors,    /* object behaviors */
 	astrace_Methods,            /* methods */
 	astrace_Properties,         /* properties */
-
-	NULL, NULL                  /* string factory hack */
 };
 
-static const asClassDescriptor_t * const asGameClassesDescriptors[] =
-{
+static const asClassDescriptor_t * const asGameClassesDescriptors[] = {
 	&asMatchClassDescriptor,
 	&asGametypeClassDescriptor,
 	&asTeamListClassDescriptor,
@@ -1566,8 +1492,7 @@ static void asFunc_G_AnnouncerSound( gclient_t *target, u64 sound, int team, boo
 	G_AnnouncerSound( ent, StringHash( sound ), team, queued, passent );
 }
 
-static const asglobfuncs_t asGameGlobFuncs[] =
-{
+static const asglobfuncs_t asGameGlobFuncs[] = {
 	{ "Entity @G_SpawnEntity( const String &in )", asFUNCTION( asFunc_G_Spawn ), NULL },
 	{ "Entity @G_GetEntity( int entNum )", asFUNCTION( asFunc_GetEntity ), NULL },
 	{ "Client @G_GetClient( int clientNum )", asFUNCTION( asFunc_GetClient ), NULL },
@@ -1607,11 +1532,10 @@ static const asglobfuncs_t asGameGlobFuncs[] =
 
 	{ "uint64 Hash64( const String &in )", asFUNCTION( asFunc_Hash64 ), NULL },
 
-	{ NULL }
+	{ }
 };
 
-static const asglobproperties_t asGlobProps[] =
-{
+static const asglobproperties_t asGlobProps[] = {
 	{ "const int64 levelTime", &level.time },
 	{ "const uint frameTime", &game.frametime },
 	{ "const int64 gameTime", &svs.gametime },
@@ -1623,7 +1547,7 @@ static const asglobproperties_t asGlobProps[] =
 	{ "GametypeDesc gametype", &level.gametype },
 	{ "Match match", &server_gs.gameState },
 
-	{ NULL }
+	{ }
 };
 
 // map entity spawning

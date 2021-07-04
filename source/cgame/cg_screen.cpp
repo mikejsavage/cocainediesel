@@ -234,7 +234,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 		// Kill if behind the view
 		Vec3 dir = cent->interpolated.origin - cg.view.origin;
 		float dist = Length( dir ) * cg.view.fracDistFOV;
-		dir = Normalize( dir );
+		dir = SafeNormalize( dir );
 
 		if( Dot( dir, FromQFAxis( cg.view.axis, AXIS_FORWARD ) ) < 0 ) {
 			continue;

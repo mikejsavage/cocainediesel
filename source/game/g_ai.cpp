@@ -34,12 +34,11 @@ static void CreateUserInfo( char * buffer, size_t bufferSize ) {
 }
 
 static edict_t * ConnectFakeClient() {
-	char userInfo[MAX_INFO_STRING];
-	static char fakeSocketType[] = "loopback";
-	static char fakeIP[] = "127.0.0.1";
-	CreateUserInfo( userInfo, sizeof( userInfo ) );
-	int entNum = SVC_FakeConnect( userInfo, fakeSocketType, fakeIP );
-	if( entNum < 1 ) {
+	char userInfo[ MAX_INFO_STRING ] = "";
+	Info_SetValueForKey( userInfo, "name", RandomElement( &svs.rng, bot_names ) );
+
+	int entNum = SVC_FakeConnect( userInfo, "loopback", "127.0.0.1" );
+	if( entNum == -1 ) {
 		Com_Printf( "AI: Can't spawn the fake client\n" );
 		return NULL;
 	}
@@ -120,7 +119,7 @@ static void AI_GameThink( edict_t * self ) {
 	self->r.client->ps.pmove.delta_angles[ 2 ] = 0;
 
 	// set approximate ping and show values
-	ucmd.msec = (uint8_t)game.frametime;
+	ucmd.msec = u8( game.frametime );
 	ucmd.serverTimeStamp = svs.gametime;
 
 	ClientThink( self, &ucmd, 0 );

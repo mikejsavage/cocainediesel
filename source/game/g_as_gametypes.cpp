@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
-#include "game/g_as_local.h"
+#include "game/g_ascript.h"
 
 static void GT_ResetScriptData() {
 	level.gametype.initFunc = NULL;
@@ -65,7 +65,7 @@ void GT_asCallSpawn() {
 	}
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 }
@@ -87,7 +87,7 @@ void GT_asCallMatchStateStarted() {
 	}
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 }
@@ -113,7 +113,7 @@ bool GT_asCallMatchStateFinished( int incomingMatchState ) {
 	ctx->SetArgDWord( 0, incomingMatchState );
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 
@@ -140,7 +140,7 @@ void GT_asCallThinkRules() {
 	}
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 }
@@ -167,7 +167,7 @@ void GT_asCallPlayerRespawn( edict_t *ent, int old_team, int new_team ) {
 	ctx->SetArgDWord( 2, new_team );
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 }
@@ -206,7 +206,7 @@ void GT_asCallScoreEvent( gclient_t *client, const char *score_event, const char
 	ctx->SetArgObject( 2, s2 );
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 
@@ -233,7 +233,7 @@ edict_t *GT_asCallSelectSpawnPoint( edict_t *ent ) {
 	ctx->SetArgObject( 0, ent );
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 
@@ -273,7 +273,7 @@ bool GT_asCallGameCommand( gclient_t *client, const char *cmd, const char *args,
 	ctx->SetArgDWord( 3, argc );
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 
@@ -301,7 +301,7 @@ void GT_asCallShutdown() {
 	}
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 }
@@ -426,7 +426,7 @@ static bool G_asInitializeGametypeScript( asIScriptModule *asModule ) {
 	}
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		return false;
 	}
 
@@ -439,7 +439,7 @@ bool GT_asLoadScript( const char *gametypeName ) {
 	GT_ResetScriptData();
 
 	// Load the script
-	asModule = G_LoadGameScript( GAMETYPE_SCRIPTS_DIRECTORY, gametypeName, GAMETYPE_PROJECT_EXTENSION );
+	asModule = game.asExport->asLoadScriptProject( game.asEngine, "progs", "gametypes", gametypeName, ".gt" );
 	if( asModule == NULL ) {
 		return false;
 	}

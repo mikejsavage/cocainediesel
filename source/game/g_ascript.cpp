@@ -19,7 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
-#include "game/g_as_local.h"
+#include "game/g_ascript.h"
 #include "qcommon/cmodel.h"
 #include "qcommon/string.h"
 
@@ -1680,13 +1680,8 @@ bool G_asCallMapEntitySpawnScript( Span< const char > classname, edict_t *ent ) 
 	TempAllocator temp = svs.frame_arena.temp();
 	DynamicString signature( &temp, "void {}( Entity @ ent )", classname );
 
-	// lookup the spawn function in gametype module first, fallback to map script
 	asSpawnModule = asEngine->GetModule( GAMETYPE_SCRIPTS_MODULE_NAME );
 	asSpawnFunc = asSpawnModule ? asSpawnModule->GetFunctionByDecl( signature.c_str() ) : NULL;
-	if( !asSpawnFunc ) {
-		asSpawnModule = asEngine->GetModule( MAP_SCRIPTS_MODULE_NAME );
-		asSpawnFunc = asSpawnModule ? asSpawnModule->GetFunctionByDecl( signature.c_str() ) : NULL;
-	}
 
 	if( !asSpawnFunc ) {
 		return false;
@@ -1707,7 +1702,7 @@ bool G_asCallMapEntitySpawnScript( Span< const char > classname, edict_t *ent ) 
 	asContext->SetArgObject( 0, ent );
 
 	error = asContext->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 		ent->asSpawnFunc = NULL;
 		return false;
@@ -1776,7 +1771,7 @@ void G_asCallMapEntityThink( edict_t *ent ) {
 	ctx->SetArgObject( 0, ent );
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 }
@@ -1811,7 +1806,7 @@ void G_asCallMapEntityTouch( edict_t *ent, edict_t *other, cplane_t *plane, int 
 	ctx->SetArgDWord( 3, surfFlags );
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 }
@@ -1838,7 +1833,7 @@ void G_asCallMapEntityUse( edict_t *ent, edict_t *other, edict_t *activator ) {
 	ctx->SetArgObject( 2, activator );
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 }
@@ -1866,7 +1861,7 @@ void G_asCallMapEntityPain( edict_t *ent, edict_t *other, float kick, float dama
 	ctx->SetArgFloat( 3, damage );
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 }
@@ -1893,7 +1888,7 @@ void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, 
 	ctx->SetArgObject( 2, attacker );
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
 }
@@ -1918,26 +1913,9 @@ void G_asCallMapEntityStop( edict_t *ent ) {
 	ctx->SetArgObject( 0, ent );
 
 	error = ctx->Execute();
-	if( G_ExecutionErrorReport( error ) ) {
+	if( error != asEXECUTION_FINISHED ) {
 		GT_asShutdownScript();
 	}
-}
-
-/*
-* G_ExecutionErrorReport
-*/
-bool G_ExecutionErrorReport( int error ) {
-	if( error == asEXECUTION_FINISHED ) {
-		return false;
-	}
-	return true;
-}
-
-/*
-* G_LoadGameScript
-*/
-asIScriptModule *G_LoadGameScript( const char *dir, const char *filename, const char *ext ) {
-	return game.asExport->asLoadScriptProject( game.asEngine, GAME_SCRIPTS_DIRECTORY, dir, filename, ext );
 }
 
 /*

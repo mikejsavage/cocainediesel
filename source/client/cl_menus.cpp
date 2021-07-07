@@ -72,6 +72,8 @@ static WeaponType selected_weapons[ WeaponCategory_Count ];
 
 static SettingsState settings_state;
 static bool reset_video_settings;
+static float sensivity_range[] = { 0.25f, 10.f };
+
 
 static void PushButtonColor( ImVec4 color ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, color );
@@ -291,7 +293,7 @@ static void SettingsControls() {
 		}
 
 		if( ImGui::BeginTabItem( "Mouse" ) ) {
-			CvarSliderFloat( "Sensitivity", "sensitivity", 1.0f, 10.0f, "3", CVAR_ARCHIVE );
+			CvarSliderFloat( "Sensitivity", "sensitivity", sensivity_range[ 0 ], sensivity_range[ 1 ], "3", CVAR_ARCHIVE );
 			CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f, "1", CVAR_ARCHIVE );
 			CvarSliderFloat( "Acceleration", "m_accel", 0.0f, 1.0f, "0", CVAR_ARCHIVE );
 			CvarCheckbox( "Invert Y axis", "m_invertY", "0", CVAR_ARCHIVE );

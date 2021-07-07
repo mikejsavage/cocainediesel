@@ -1,7 +1,5 @@
 if %MATCH_STATE < #MatchState_PostMatch
 
-#include callvote
-
 #include bomb_indicators
 
 #include topinfo
@@ -29,5 +27,7 @@ endif
 #include crosshair
 
 endif //if %MATCH_STATE < #MatchState_PostMatch
+
+#include callvote
 
 #include awards

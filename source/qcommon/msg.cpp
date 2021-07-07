@@ -220,7 +220,7 @@ static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 
 template< typename E >
 void DeltaEnum( DeltaBuffer * buf, E & x, const E & baseline ) {
-	using T = std::underlying_type< E >::type;
+	using T = typename std::underlying_type< E >::type;
 	Delta( buf, ( T & ) x, ( const T & ) baseline );
 }
 

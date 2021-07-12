@@ -124,7 +124,7 @@ void MSG_ReadData( msg_t *sb, void *buffer, size_t length );
 void SNAP_RecordDemoMessage( int demofile, msg_t *msg, int offset );
 int SNAP_ReadDemoMessage( int demofile, msg_t *msg );
 void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned int snapFrameTime,
-	unsigned int sv_bitflags, char *configstrings, SyncEntityState *baselines );
+	const char *configstrings, SyncEntityState *baselines );
 void SNAP_StopDemoRecording( int demofile );
 void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t meta_data_realsize );
 size_t SNAP_ClearDemoMeta( char *meta_data, size_t meta_data_max_size );
@@ -213,11 +213,6 @@ enum clc_ops_e {
 };
 
 //==============================================
-
-// serverdata flags
-#define SV_BITFLAGS_RELIABLE        ( 1 << 0 )
-#define SV_BITFLAGS_HTTP            ( 1 << 1 )
-#define SV_BITFLAGS_HTTP_BASEURL    ( 1 << 2 )
 
 // framesnap flags
 #define FRAMESNAP_FLAG_DELTA        ( 1 << 0 )

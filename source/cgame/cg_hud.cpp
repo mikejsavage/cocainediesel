@@ -197,16 +197,6 @@ static int CG_IsActiveCallvote( const void * parameter ) {
 	return strcmp( cgs.configStrings[ CS_CALLVOTE ], "" ) != 0;
 }
 
-static int CG_DownloadInProgress( const void *parameter ) {
-	const char *str;
-
-	str = Cvar_String( "cl_download_name" );
-	if( str[0] ) {
-		return 1;
-	}
-	return 0;
-}
-
 static int CG_GetScoreboardShown( const void *parameter ) {
 	return CG_ScoreboardShown() ? 1 : 0;
 }
@@ -261,9 +251,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "SHOW_POINTED_PLAYER", CG_GetCvar, "cg_showPointedPlayer" },
 	{ "SHOW_SPEED", CG_GetCvar, "cg_showSpeed" },
 	{ "SHOW_HOTKEYS", CG_GetCvar, "cg_showHotkeys" },
-
-	{ "DOWNLOAD_IN_PROGRESS", CG_DownloadInProgress, NULL },
-	{ "DOWNLOAD_PERCENT", CG_GetCvar, "cl_download_percent" },
 };
 
 //=============================================================================

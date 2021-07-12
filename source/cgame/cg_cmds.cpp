@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cgame/cg_local.h"
 #include "client/ui.h"
+#include "qcommon/fs.h"
 
 static void CG_SC_Print() {
 	CG_LocalPrint( "%s", Cmd_Argv( 1 ) );
@@ -204,7 +205,22 @@ static void CG_SC_DemoGet() {
 		return;
 	}
 
-	CL_DownloadFile( filename, true );
+	CL_DownloadFile( filename, []( const char * filename, Span< const u8 > data ) {
+		if( data.ptr == NULL )
+			return;
+
+		TempAllocator temp = cls.frame_arena.temp();
+		const char * path = temp( "{}/demos/server/{}", HomeDirPath(), FileName( filename ) ); // TODO: check this FileName is really needed
+
+		if( FileExists( &temp, path ) ) {
+			Com_Printf( "%s already exists!\n", path );
+			return;
+		}
+
+		if( !WriteFile( &temp, path, data.ptr, data.num_bytes() ) ) {
+			Com_Printf( "Couldn't write to %s\n", path );
+		}
+	} );
 }
 
 static void CG_SC_ChangeLoadout() {

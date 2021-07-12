@@ -167,3 +167,7 @@ bool WriteFile( TempAllocator * temp, const char * path, const void * data, size
 
 	return w == len;
 }
+
+bool WritePartialFile( FILE * file, const void * data, size_t len ) {
+	return fwrite( data, 1, len, file ) == len;
+}

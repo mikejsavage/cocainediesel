@@ -161,32 +161,3 @@ enum {
 };
 
 #define DROP_FLAG_AUTORECONNECT 1       // it's okay try reconnectting automatically
-
-enum downloadtype_t {
-	DOWNLOADTYPE_NONE,
-	DOWNLOADTYPE_SERVER,
-	DOWNLOADTYPE_WEB
-};
-
-//==============================================
-
-enum http_query_method_t {
-	HTTP_METHOD_BAD = -1,
-	HTTP_METHOD_NONE = 0,
-	HTTP_METHOD_GET  = 1,
-	HTTP_METHOD_POST = 2,
-	HTTP_METHOD_PUT  = 3,
-	HTTP_METHOD_HEAD = 4,
-};
-
-enum http_response_code_t {
-	HTTP_RESP_NONE = 0,
-	HTTP_RESP_OK = 200,
-	HTTP_RESP_PARTIAL_CONTENT = 206,
-	HTTP_RESP_BAD_REQUEST = 400,
-	HTTP_RESP_FORBIDDEN = 403,
-	HTTP_RESP_NOT_FOUND = 404,
-	HTTP_RESP_REQUEST_TOO_LARGE = 413,
-	HTTP_RESP_REQUESTED_RANGE_NOT_SATISFIABLE = 416,
-	HTTP_RESP_SERVICE_UNAVAILABLE = 503,
-};

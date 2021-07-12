@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/downloads.h"
 #include "client/threadpool.h"
 #include "client/renderer/renderer.h"
+#include "qcommon/compression.h"
 #include "qcommon/csprng.h"
 #include "qcommon/hash.h"
 #include "qcommon/fs.h"
@@ -109,16 +110,11 @@ void CL_UpdateClientCommandsToServer( msg_t *msg ) {
 		}
 
 		MSG_WriteUint8( msg, clc_clientcommand );
-		if( !cls.reliable ) {
-			MSG_WriteIntBase128( msg, i );
-		}
+		MSG_WriteIntBase128( msg, i );
 		MSG_WriteString( msg, cls.reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )] );
 	}
 
 	cls.reliableSent = cls.reliableSequence;
-	if( cls.reliable ) {
-		cls.reliableAcknowledge = cls.reliableSent;
-	}
 }
 
 void CL_ForwardToServer_f() {
@@ -212,7 +208,7 @@ static void CL_CheckForResend() {
 	}
 
 	// resend if we haven't gotten a reply yet
-	if( cls.state == CA_CONNECTING && !cls.reliable ) {
+	if( cls.state == CA_CONNECTING ) {
 		if( realtime - cls.connect_time < 3000 ) {
 			return;
 		}
@@ -226,14 +222,6 @@ static void CL_CheckForResend() {
 		Com_Printf( "Connecting to %s...\n", cls.servername );
 
 		Netchan_OutOfBandPrint( cls.socket, &cls.serveraddress, "getchallenge\n" );
-	}
-
-	if( cls.state == CA_CONNECTING && cls.reliable ) {
-		if( realtime - cls.connect_time < 10000 ) {
-			return;
-		}
-
-		CL_Disconnect( "Connection timed out" );
 	}
 }
 
@@ -250,12 +238,10 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 				return;
 			}
 			cls.socket = &cls.socket_loopback;
-			cls.reliable = false;
 			break;
 
 		case SOCKET_UDP:
 			cls.socket = ( address->type == NA_IP6 ?  &cls.socket_udp6 :  &cls.socket_udp );
-			cls.reliable = false;
 			break;
 
 		default:
@@ -433,21 +419,6 @@ void CL_SetOldKeyDest( keydest_t key_dest ) {
 	cls.old_key_dest = key_dest;
 }
 
-size_t CL_GetBaseServerURL( char *buffer, size_t buffer_size ) {
-	const char *web_url = cls.httpbaseurl;
-
-	if( !buffer || !buffer_size ) {
-		return 0;
-	}
-	if( !web_url || !*web_url ) {
-		*buffer = '\0';
-		return 0;
-	}
-
-	Q_strncpyz( buffer, web_url, buffer_size );
-	return strlen( web_url );
-}
-
 void CL_ResetServerCount() {
 	cl.servercount = -1;
 }
@@ -512,11 +483,7 @@ static void CL_Disconnect_SendCommand() {
 * This is also called on Com_Error, so it shouldn't cause any errors
 */
 void CL_Disconnect( const char *message ) {
-	// We have to shut down webdownloading first
-	if( CL_IsDownloading() ) {
-		CL_CancelDownload();
-		return;
-	}
+	CancelDownload(); // TODO: maybe shouldn't cancel when downloading a demo
 
 	if( cls.state == CA_UNINITIALIZED ) {
 		return;
@@ -549,12 +516,9 @@ void CL_Disconnect( const char *message ) {
 	}
 
 	cls.socket = NULL;
-	cls.reliable = false;
 
-	if( cls.httpbaseurl ) {
-		Mem_Free( cls.httpbaseurl );
-		cls.httpbaseurl = NULL;
-	}
+	FREE( sys_allocator, cls.download_url );
+	cls.download_url = NULL;
 
 	S_StopAllSounds( false );
 
@@ -583,11 +547,6 @@ void CL_Disconnect_f() {
 * drop to full console
 */
 void CL_Changing_f() {
-	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if( CL_IsDownloading() ) {
-		return;
-	}
-
 	if( cls.demo.recording ) {
 		CL_Stop_f();
 	}
@@ -612,16 +571,12 @@ void CL_ServerReconnect_f() {
 		return;
 	}
 
-	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if( CL_IsDownloading() ) {
-		CL_ReconnectAfterDownload();
-		return;
-	}
-
 	if( cls.state < CA_CONNECTED ) {
 		Com_Printf( "Error: CL_ServerReconnect_f while not connected\n" );
 		return;
 	}
+
+	CancelDownload();
 
 	if( cls.demo.recording ) {
 		CL_Stop_f();
@@ -911,9 +866,6 @@ void CL_ReadPackets() {
 		while( socket->open && ( ret = NET_GetPacket( socket, &address, &msg ) ) != 0 ) {
 			if( ret == -1 ) {
 				Com_Printf( "Error receiving packet with %s: %s\n", NET_SocketToString( socket ), NET_ErrorString() );
-				if( cls.reliable && cls.socket == socket ) {
-					CL_Disconnect( va( "Error receiving packet: %s\n", NET_ErrorString() ) );
-				}
 
 				continue;
 			}
@@ -995,6 +947,26 @@ void CL_FinishConnect() {
 	CL_AddReliableCommand( va( "begin %i\n", precache_spawncount ) );
 }
 
+static bool AddDownloadedMap( const char * filename, Span< const u8 > compressed ) {
+	if( compressed.ptr == NULL )
+		return false;
+
+	Span< u8 > data;
+	defer { FREE( sys_allocator, data.ptr ); };
+
+	if( !Decompress( filename, sys_allocator, compressed, &data ) ) {
+		Com_Printf( "Downloaded map is corrupt.\n" );
+		return false;
+	}
+
+	if( !AddMap( data, filename + strlen( "base/" ) ) ) {
+		Com_Printf( "Downloaded map is corrupt.\n" );
+		return false;
+	}
+
+	return true;
+}
+
 /*
 * CL_Precache_f
 *
@@ -1022,7 +994,15 @@ void CL_Precache_f() {
 
 	if( FindMap( StringHash( hash ) ) == NULL ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		CL_DownloadFile( temp( "maps/{}.bsp", Cmd_Argv( 2 ) ), false );
+		CL_DownloadFile( temp( "base/maps/{}.bsp.zst", Cmd_Argv( 2 ) ), []( const char * filename, Span< const u8 > data ) {
+			if( AddDownloadedMap( filename, data ) ) {
+				CL_FinishConnect();
+			}
+			else {
+				CL_Disconnect( NULL );
+			}
+		} );
+
 		return;
 	}
 
@@ -1137,9 +1117,6 @@ static void CL_InitLocal() {
 	}
 
 	Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-
-	Cvar_Get( "cl_download_name", "", CVAR_READONLY );
-	Cvar_Get( "cl_download_percent", "0", CVAR_READONLY );
 
 	//
 	// register our commands
@@ -1396,10 +1373,8 @@ void CL_SendMessagesToServer( bool sendNow ) {
 	if( cls.state < CA_ACTIVE ) {
 		if( sendNow || cls.realtime > 100 + cls.lastPacketSentTime ) {
 			// write the command ack
-			if( !cls.reliable ) {
-				MSG_WriteUint8( &message, clc_svcack );
-				MSG_WriteIntBase128( &message, cls.lastExecutedServerCommand );
-			}
+			MSG_WriteUint8( &message, clc_svcack );
+			MSG_WriteIntBase128( &message, cls.lastExecutedServerCommand );
 			//write up the clc commands
 			CL_UpdateClientCommandsToServer( &message );
 			if( message.cursize > 0 ) {
@@ -1408,10 +1383,8 @@ void CL_SendMessagesToServer( bool sendNow ) {
 		}
 	} else if( sendNow || CL_MaxPacketsReached() ) {
 		// write the command ack
-		if( !cls.reliable ) {
-			MSG_WriteUint8( &message, clc_svcack );
-			MSG_WriteIntBase128( &message, cls.lastExecutedServerCommand );
-		}
+		MSG_WriteUint8( &message, clc_svcack );
+		MSG_WriteIntBase128( &message, cls.lastExecutedServerCommand );
 		// send a userinfo update if needed
 		if( userinfo_modified ) {
 			userinfo_modified = false;
@@ -1447,7 +1420,6 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 
 	// resend a connection request if necessary
 	CL_CheckForResend();
-	CL_CheckDownloadTimeout();
 
 	CL_ServerListFrame();
 }

@@ -32,6 +32,27 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define HTTP_SERVER_SLEEP_TIME                  50 // milliseconds
 
+enum http_query_method_t {
+	HTTP_METHOD_BAD = -1,
+	HTTP_METHOD_NONE = 0,
+	HTTP_METHOD_GET  = 1,
+	HTTP_METHOD_POST = 2,
+	HTTP_METHOD_PUT  = 3,
+	HTTP_METHOD_HEAD = 4,
+};
+
+enum http_response_code_t {
+	HTTP_RESP_NONE = 0,
+	HTTP_RESP_OK = 200,
+	HTTP_RESP_PARTIAL_CONTENT = 206,
+	HTTP_RESP_BAD_REQUEST = 400,
+	HTTP_RESP_FORBIDDEN = 403,
+	HTTP_RESP_NOT_FOUND = 404,
+	HTTP_RESP_REQUEST_TOO_LARGE = 413,
+	HTTP_RESP_REQUESTED_RANGE_NOT_SATISFIABLE = 416,
+	HTTP_RESP_SERVICE_UNAVAILABLE = 503,
+};
+
 enum sv_http_connstate_t {
 	HTTP_CONN_STATE_NONE = 0,
 	HTTP_CONN_STATE_RECV = 1,
@@ -671,8 +692,6 @@ static void SV_Web_AnalyzeHeader( sv_http_request_t *request, const char *key, c
 		request->clientNum = atoi( value );
 	} else if( !Q_stricmp( key, "X-Session" ) ) {
 		request->clientSession = ZoneCopyString( value );
-	} else if( !Q_stricmp( key, sv_http_upstream_realip_header->string ) ) {
-		NET_StringToAddress( value, &request->realAddr );
 	}
 }
 
@@ -794,11 +813,7 @@ static void SV_Web_ReceiveRequest( socket_t *socket, sv_http_connection_t *con )
 
 		// request must come from a connected client with a valid session id
 		if( !request->error && request->stream.header_done ) {
-			// check real IP header value for upstream HTTP connections
-			if( con->is_upstream &&
-				( request->realAddr.type == NA_NOTRANSMIT || SV_Web_ConnectionLimitReached( &request->realAddr ) ) ) {
-				request->error = HTTP_RESP_SERVICE_UNAVAILABLE;
-			} else if( !SV_Web_FindGameClientBySession( request->clientSession, request->clientNum ) ) {
+			if( !SV_Web_FindGameClientBySession( request->clientSession, request->clientNum ) ) {
 				request->error = HTTP_RESP_FORBIDDEN;
 			}
 		}
@@ -897,43 +912,40 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 	*content_length = 0;
 
 	response->request_id = request->id;
-	if( !resource ) {
-		response->code = HTTP_RESP_BAD_REQUEST;
-	} else if( !Q_strnicmp( resource, "files/", 6 ) ) {
-		const char *filename;
 
-		filename = resource + 6;
-		response->filename = ZoneCopyString( filename );
+	response->filename = ZoneCopyString( request->resource );
 
-		if( request->method == HTTP_METHOD_GET || request->method == HTTP_METHOD_HEAD ) {
-			// check for malicious URL's
-			if( !sv_uploads_http->integer || !COM_ValidateRelativeFilename( filename ) ) {
-				response->code = HTTP_RESP_FORBIDDEN;
-				return;
-			}
-
-			Span< const char > ext = FileExtension( filename );
-			if( ext != ".bsp" && ext != APP_DEMO_EXTENSION_STR ) {
-				response->code = HTTP_RESP_FORBIDDEN;
-				return;
-			}
-
-			*content_length = FS_FOpenBaseFile( filename, &response->file, FS_READ );
-			response->fileno = -1;
-			if( response->file ) {
-				response->fileno = FS_FileNo( response->file );
-			}
-			if( response->fileno == -1 ) {
-				response->code = HTTP_RESP_NOT_FOUND;
-				*content_length = 0;
-			} else {
-				response->code = HTTP_RESP_OK;
-			}
-		} else {
-			response->code = HTTP_RESP_BAD_REQUEST;
+	if( request->method == HTTP_METHOD_GET || request->method == HTTP_METHOD_HEAD ) {
+		// check for malicious URL's
+		if( !COM_ValidateRelativeFilename( request->resource ) ) {
+			response->code = HTTP_RESP_FORBIDDEN;
+			return;
 		}
-	} else {
-		response->code = HTTP_RESP_NOT_FOUND;
+
+		Com_Printf( "downloaded %s\n", request->resource );
+
+		Span< const char > ext = FileExtension( request->resource );
+		if( ext != ".bsp.zst" && !SV_IsDemoDownloadRequest( request->resource ) ) {
+			response->code = HTTP_RESP_FORBIDDEN;
+			return;
+		}
+
+		*content_length = FS_FOpenBaseFile( request->resource, &response->file, FS_READ );
+		response->fileno = -1;
+		if( response->file ) {
+			response->fileno = FS_FileNo( response->file );
+		}
+		if( response->fileno == -1 ) {
+			Com_Printf( "does not exist\n" );
+			response->code = HTTP_RESP_NOT_FOUND;
+			*content_length = 0;
+		}
+		else {
+			response->code = HTTP_RESP_OK;
+		}
+	}
+	else {
+		response->code = HTTP_RESP_BAD_REQUEST;
 	}
 }
 
@@ -1171,7 +1183,7 @@ static void SV_Web_InitSocket( const char *addrstr, netadrtype_t adrtype, socket
 	address.type = NA_NOTRANSMIT;
 
 	NET_StringToAddress( addrstr, &address );
-	NET_SetAddressPort( &address, sv_http_port->integer );
+	NET_SetAddressPort( &address, sv_port->integer );
 
 	if( address.type == adrtype ) {
 		if( !NET_OpenSocket( socket, SOCKET_TCP, &address, true ) ) {
@@ -1197,20 +1209,17 @@ static void SV_Web_Listen( socket_t *socket ) {
 	// accept new connections
 	while( ( ret = NET_Accept( socket, &newsocket, &newaddress ) ) ) {
 		bool block;
-		bool is_upstream;
 
 		if( ret == -1 ) {
 			Com_Printf( "NET_Accept: Error: %s\n", NET_ErrorString() );
 			continue;
 		}
 
-		is_upstream = sv_web_upstream_addr.type != NA_NOTRANSMIT
-					  && NET_CompareBaseAddress( &newaddress, &sv_web_upstream_addr );
 		block = false;
 
-		if( !NET_IsLocalAddress( &newaddress ) && !is_upstream ) {
+		if( !NET_IsLocalAddress( &newaddress ) ) {
 			// only accept connections from connected clients
-			block = SV_Web_FindGameClientByAddress( &newaddress ) == false;
+			block = !SV_Web_FindGameClientByAddress( &newaddress );
 			if( !block ) {
 				block = SV_Web_ConnectionLimitReached( &newaddress );
 			}
@@ -1227,7 +1236,6 @@ static void SV_Web_Listen( socket_t *socket ) {
 			con->last_active = Sys_Milliseconds();
 			con->open = true;
 			con->state = HTTP_CONN_STATE_RECV;
-			con->is_upstream = is_upstream;
 			continue;
 		}
 
@@ -1246,12 +1254,12 @@ void SV_Web_Init() {
 
 	SV_Web_InitConnections();
 
-	if( !sv_http->integer ) {
+	if( strlen( sv_downloadurl->string ) > 0 ) {
 		return;
 	}
 
-	SV_Web_InitSocket( sv_http_ip->string[0] == '\0' ? sv_ip->string : sv_http_ip->string, NA_IP, &sv_socket_http );
-	SV_Web_InitSocket( sv_http_ipv6->string[0] == '\0' ? sv_ip6->string : sv_http_ipv6->string, NA_IP6, &sv_socket_http6 );
+	SV_Web_InitSocket( sv_ip->string, NA_IP, &sv_socket_http );
+	SV_Web_InitSocket( sv_ip6->string, NA_IP6, &sv_socket_http6 );
 
 	sv_http_initialized = ( sv_socket_http.address.type == NA_IP || sv_socket_http6.address.type == NA_IP6 );
 
@@ -1274,22 +1282,9 @@ static void SV_Web_Frame() {
 	socket_t *sockets[MAX_INCOMING_HTTP_CONNECTIONS + 1];
 	void *connections[MAX_INCOMING_HTTP_CONNECTIONS];
 	int num_sockets = 0;
-	bool upstream_is_set;
 
 	if( !sv_http_initialized ) {
 		return;
-	}
-
-	upstream_is_set = sv_http_upstream_ip->string[0] != '\0' && sv_http_upstream_baseurl->string[0] != '\0';
-	if( upstream_is_set ) {
-		if( sv_http_upstream_ip->modified ) {
-			NET_StringToAddress( sv_http_upstream_ip->string, &sv_web_upstream_addr );
-			sv_http_upstream_ip->modified = false;
-		}
-	} else {
-		if( sv_web_upstream_addr.type != NA_NOTRANSMIT ) {
-			NET_InitAddress( &sv_web_upstream_addr, NA_NOTRANSMIT );
-		}
 	}
 
 	// accept new connections
@@ -1403,11 +1398,4 @@ void SV_Web_Shutdown() {
 	NET_CloseSocket( &sv_socket_http6 );
 
 	sv_http_initialized = false;
-}
-
-/*
-* SV_Web_UpstreamBaseUrl
-*/
-const char *SV_Web_UpstreamBaseUrl() {
-	return sv_http_upstream_baseurl->string;
 }

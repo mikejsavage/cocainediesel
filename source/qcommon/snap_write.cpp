@@ -232,8 +232,8 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 	// this is the frame we are creating
 	frame = &client->snapShots[frameNum & UPDATE_MASK];
 
-	// for non-reliable clients we need to send nodelta frame until the client responds
-	if( client->nodelta && !client->reliable ) {
+	// we need to send nodelta frame until the client responds
+	if( client->nodelta ) {
 		if( !client->nodelta_frame ) {
 			client->nodelta_frame = frameNum;
 		} else if( client->lastframe >= client->nodelta_frame ) {
@@ -255,10 +255,6 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 		if( oldframe->multipov != frame->multipov ) {
 			oldframe = NULL;        // don't delta compress a frame of different POV type
 		}
-	}
-
-	if( client->nodelta && client->reliable ) {
-		client->nodelta = false;
 	}
 
 	MSG_WriteUint8( msg, svc_frame );

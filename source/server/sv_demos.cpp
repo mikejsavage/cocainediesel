@@ -43,7 +43,7 @@ static void SV_Demo_WriteStartMessages() {
 	// clear demo meta data, we'll write some keys later
 	svs.demo.meta_data_realsize = SNAP_ClearDemoMeta( svs.demo.meta_data, sizeof( svs.demo.meta_data ) );
 
-	SNAP_BeginDemoRecording( svs.demo.file, svs.spawncount, svc.snapFrameTime, SV_BITFLAGS_RELIABLE, sv.configstrings[0], sv.baselines );
+	SNAP_BeginDemoRecording( svs.demo.file, svs.spawncount, svc.snapFrameTime, sv.configstrings[0], sv.baselines );
 }
 
 void SV_Demo_WriteSnap() {
@@ -87,7 +87,6 @@ static void SV_Demo_InitClient() {
 	memset( &svs.demo.client, 0, sizeof( svs.demo.client ) );
 
 	svs.demo.client.mv = true;
-	svs.demo.client.reliable = true;
 
 	svs.demo.client.reliableAcknowledge = 0;
 	svs.demo.client.reliableSequence = 0;
@@ -352,7 +351,7 @@ void SV_DemoGet_f( client_t *client ) {
 		return;
 	}
 
-	SV_AddGameCommand( client, temp( "demoget \"{}\"", demos[ id - 1 ] ) );
+	SV_AddGameCommand( client, temp( "demoget \"{}/{}\"", SV_DEMO_DIR, demos[ id - 1 ] ) );
 }
 
 bool SV_IsDemoDownloadRequest( const char * request ) {

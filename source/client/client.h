@@ -157,12 +157,11 @@ struct client_static_t {
 	int connect_count;
 
 	socket_t *socket;               // socket used by current connection
-	bool reliable;
 
 	netadr_t rconaddress;       // address where we are sending rcon messages, to ignore other print packets
 
-	netadr_t httpaddress;           // address of the builtin HTTP server
-	char *httpbaseurl;              // http://<httpaddress>/
+	char * download_url;              // http://<httpaddress>/
+	bool download_url_is_game_server;
 
 	bool rejected;          // these are used when the server rejects our connection
 	int rejecttype;
@@ -259,8 +258,6 @@ void CL_ServerDisconnect_f();
 
 void CL_ForceVsync( bool force );
 
-size_t CL_GetBaseServerURL( char *buffer, size_t buffer_size );
-
 //
 // cl_game.c
 //
@@ -328,11 +325,11 @@ const char **CL_DemoComplete( const char *partial );
 void CL_ParseServerMessage( msg_t *msg );
 #define SHOWNET( msg,s ) _SHOWNET( msg,s,cl_shownet->integer );
 
-bool CL_DownloadFile( const char * filename, bool save_to_disk );
+using DownloadCompleteCallback = void ( * )( const char * filename, Span< const u8 > data );
+
+bool CL_DownloadFile( const char * filename, DownloadCompleteCallback cb );
 bool CL_IsDownloading();
 void CL_CancelDownload();
-void CL_ReconnectAfterDownload();
-void CL_CheckDownloadTimeout();
 
 //
 // cl_screen.c

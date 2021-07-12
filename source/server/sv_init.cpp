@@ -49,8 +49,8 @@ static void SV_CreateBaseline() {
 * SV_SetServerConfigStrings
 */
 void SV_SetServerConfigStrings() {
-	snprintf( sv.configstrings[CS_MAXCLIENTS], sizeof( sv.configstrings[0] ), "%i", sv_maxclients->integer );
-	Q_strncpyz( sv.configstrings[CS_HOSTNAME], Cvar_String( "sv_hostname" ), sizeof( sv.configstrings[0] ) );
+	snprintf( sv.configstrings[CS_MAXCLIENTS], sizeof( sv.configstrings[CS_MAXCLIENTS] ), "%i", sv_maxclients->integer );
+	Q_strncpyz( sv.configstrings[CS_HOSTNAME], Cvar_String( "sv_hostname" ), sizeof( sv.configstrings[CS_HOSTNAME] ) );
 }
 
 /*

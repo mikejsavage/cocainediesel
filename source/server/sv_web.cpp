@@ -154,8 +154,6 @@ static sv_http_connection_t sv_http_connection_headnode, *sv_free_http_connectio
 static socket_t sv_socket_http;
 static socket_t sv_socket_http6;
 
-static netadr_t sv_web_upstream_addr;
-
 static uint64_t sv_http_request_autoicr;
 
 static trie_t *sv_http_clients = NULL;
@@ -906,8 +904,6 @@ static const char *SV_Web_ResponseCodeMessage( http_response_code_t code ) {
 */
 static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_response_t *response,
 								 char **content, size_t *content_length ) {
-	const char *resource = request->resource;
-
 	*content = NULL;
 	*content_length = 0;
 

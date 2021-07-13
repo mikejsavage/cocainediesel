@@ -223,7 +223,6 @@ static void SV_New_f( client_t *client ) {
 	// game server
 	//
 	if( sv.state == ss_game ) {
-		int sv_bitflags = 0;
 		// set up the entity for the client
 		edict_t * ent = EDICT_NUM( playernum + 1 );
 		ent->s.number = playernum + 1;

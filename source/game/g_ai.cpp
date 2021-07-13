@@ -27,12 +27,6 @@ static const char * bot_names[] = {
 	"touchpad timma",
 };
 
-static void CreateUserInfo( char * buffer, size_t bufferSize ) {
-	memset( buffer, 0, bufferSize );
-
-	Info_SetValueForKey( buffer, "name", RandomElement( &svs.rng, bot_names ) );
-}
-
 static edict_t * ConnectFakeClient() {
 	char userInfo[ MAX_INFO_STRING ] = "";
 	Info_SetValueForKey( userInfo, "name", RandomElement( &svs.rng, bot_names ) );

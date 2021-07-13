@@ -865,7 +865,7 @@ again:
 	ent = G_PickTarget( self->target );
 	if( !ent ) {
 		if( developer->integer ) {
-			Com_Printf( "train_next: bad target %s\n", self->target );
+			Com_GGPrint( "train_next: bad target {}\n", self->target );
 		}
 		return;
 	}
@@ -930,7 +930,7 @@ static void func_train_find( edict_t *self ) {
 	ent = G_PickTarget( self->target );
 	if( !ent ) {
 		if( developer->integer ) {
-			Com_Printf( "train_find: target %s not found\n", self->target );
+			Com_GGPrint( "train_find: target {} not found\n", self->target );
 		}
 		return;
 	}

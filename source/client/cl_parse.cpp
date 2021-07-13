@@ -44,7 +44,7 @@ static void OnDownloadDone( int http_status, Span< const u8 > data ) {
 
 bool CL_DownloadFile( const char * filename, DownloadCompleteCallback callback ) {
 	if( download.path ) {
-		Com_Printf( "Download already in progress.\n", filename );
+		Com_Printf( "Already downloading something.\n" );
 		return false;
 	}
 
@@ -54,7 +54,7 @@ bool CL_DownloadFile( const char * filename, DownloadCompleteCallback callback )
 	}
 
 	if( cls.socket->type == SOCKET_LOOPBACK ) {
-		Com_Printf( "Can't download from a local server.\n", filename );
+		Com_Printf( "Can't download from a local server.\n" );
 		return false;
 	}
 

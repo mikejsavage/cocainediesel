@@ -555,13 +555,13 @@ void        Com_DeferConsoleLogReopen();
 void Com_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 void Com_DPrintf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 void Com_Error( com_error_code_t code, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) ) __attribute__( ( noreturn ) );
-void Com_Quit() __attribute__( ( noreturn ) );
 #else
 void Com_Printf( _Printf_format_string_ const char *format, ... );
 void Com_DPrintf( _Printf_format_string_ const char *format, ... );
 __declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_string_ const char *format, ... );
-__declspec( noreturn ) void Com_Quit();
 #endif
+
+void Com_Quit();
 
 template< typename... Rest >
 void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
@@ -698,11 +698,11 @@ bool Sys_BeingDebugged();
 
 #ifndef _MSC_VER
 void Sys_Error( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
-void Sys_Quit() __attribute__( ( noreturn ) );
 #else
 __declspec( noreturn ) void Sys_Error( _Printf_format_string_ const char *error, ... );
-__declspec( noreturn ) void Sys_Quit();
 #endif
+
+void Sys_Quit();
 
 /*
 ==============================================================

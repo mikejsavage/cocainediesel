@@ -53,7 +53,7 @@ static cvar_t *com_showtrace;
 
 static Mutex *com_print_mutex;
 
-static int log_file = 0;
+static FILE * log_file = NULL;
 
 static server_state_t server_state = ss_dead;
 static connstate_t client_state = CA_UNINITIALIZED;
@@ -121,9 +121,9 @@ static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 		Lock( com_print_mutex );
 	}
 
-	if( log_file ) {
-		FS_FCloseFile( log_file );
-		log_file = 0;
+	if( log_file != NULL ) {
+		fclose( log_file );
+		log_file = NULL;
 	}
 
 	if( shutdown ) {
@@ -143,20 +143,11 @@ static void Com_ReopenConsoleLog() {
 	Com_CloseConsoleLog( false, false );
 
 	if( logconsole && logconsole->string && logconsole->string[0] ) {
-		size_t name_size;
-		char *name;
-
-		name_size = strlen( logconsole->string ) + strlen( ".log" ) + 1;
-		name = ( char* )Mem_TempMalloc( name_size );
-		Q_strncpyz( name, logconsole->string, name_size );
-		COM_DefaultExtension( name, ".log", name_size );
-
-		if( FS_FOpenFile( name, &log_file, ( logconsole_append && logconsole_append->integer ? FS_APPEND : FS_WRITE ) ) == -1 ) {
-			log_file = 0;
-			snprintf( errmsg, MAX_PRINTMSG, "Couldn't open: %s\n", name );
+		const char * mode = logconsole_append && logconsole_append->integer ? "a" : "w";
+		log_file = OpenFile( sys_allocator, logconsole->string, mode );
+		if( log_file == NULL ) {
+			snprintf( errmsg, sizeof( errmsg ), "Couldn't open log file: %s (%s)\n", logconsole->string, strerror( errno ) );
 		}
-
-		Mem_TempFree( name );
 	}
 
 	Unlock( com_print_mutex );
@@ -199,15 +190,15 @@ void Com_Printf( const char *format, ... ) {
 
 	TracyMessage( msg, strlen( msg ) );
 
-	if( log_file ) {
+	if( log_file != NULL ) {
 		if( logconsole_timestamp && logconsole_timestamp->integer ) {
 			char timestamp[MAX_PRINTMSG];
 			Sys_FormatTime( timestamp, sizeof( timestamp ), "%Y-%m-%dT%H:%M:%SZ " );
-			FS_Printf( log_file, "%s", timestamp );
+			WritePartialFile( log_file, timestamp, strlen( timestamp ) );
 		}
-		FS_Printf( log_file, "%s", msg );
+		bool ok = WritePartialFile( log_file, msg, strlen( msg ) );
 		if( logconsole_flush && logconsole_flush->integer ) {
-			FS_Flush( log_file ); // force it to save every time
+			fflush( log_file );
 		}
 	}
 }
@@ -271,9 +262,9 @@ void Com_Error( com_error_code_t code, const char *format, ... ) {
 		CL_Shutdown();
 	}
 
-	if( log_file ) {
-		FS_FCloseFile( log_file );
-		log_file = 0;
+	if( log_file != NULL ) {
+		fclose( log_file );
+		log_file = NULL;
 	}
 
 	Sys_Error( "%s", msg );

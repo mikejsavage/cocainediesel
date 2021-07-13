@@ -1436,8 +1436,6 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	static int allRealMsec = 0, allGameMsec = 0, extraMsec = 0;
 	static float roundingMsec = 0.0f;
-	int minMsec;
-	float maxFps;
 
 	cls.monotonicTime += realMsec;
 	cls.realtime += realMsec;
@@ -1492,8 +1490,8 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	if( cl_maxfps->integer < absMinFps ) {
 		Cvar_ForceSet( "cl_maxfps", va( "%i", absMinFps ) );
 	}
-	maxFps = IsWindowFocused() ? cl_maxfps->value : absMinFps;
-	minMsec = Max2( 1000.0f / maxFps, 1.0f );
+	float maxFps = IsWindowFocused() ? cl_maxfps->value : absMinFps;
+	int minMsec = Max2( 1000.0f / maxFps, 1.0f );
 	roundingMsec += Max2( 1000.0f / maxFps, 1.0f ) - minMsec;
 
 	if( roundingMsec >= 1.0f ) {

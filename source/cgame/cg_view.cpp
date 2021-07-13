@@ -309,11 +309,13 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 
 	playerState->zoom_time = Lerp( ops->zoom_time, cg.lerpfrac, ps->zoom_time );
 
+	// TODO: this should probably go through UpdateWeapons
 	if( ps->weapon_state_time >= ops->weapon_state_time ) {
 		playerState->weapon_state_time = Lerp( ops->weapon_state_time, cg.lerpfrac, ps->weapon_state_time );
 	}
 	else {
 		s64 dt = cg.frame.serverTime - cg.oldFrame.serverTime;
+		playerState->weapon_state = ops->weapon_state;
 		playerState->weapon_state_time = Min2( float( U16_MAX ), ops->weapon_state_time + cg.lerpfrac * dt );
 	}
 }

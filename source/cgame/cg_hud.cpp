@@ -970,7 +970,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 		if( def->clip_size != 0 ) {
 			if( weap == ps->weapon && ps->weapon_state == WeaponState_Reloading ) {
-				ammo_frac = float( ps->weapon_state_time ) / float( def->reload_time );
+				ammo_frac = Min2( 1.0f, float( ps->weapon_state_time ) / float( def->reload_time ) );
 			}
 			else {
 				color = Vec4( 0.0f, 1.0f, 0.0f, 1.0f );

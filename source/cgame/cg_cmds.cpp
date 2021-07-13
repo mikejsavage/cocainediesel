@@ -210,7 +210,7 @@ static void CG_SC_DemoGet() {
 			return;
 
 		TempAllocator temp = cls.frame_arena.temp();
-		const char * path = temp( "{}/demos/server/{}", HomeDirPath(), FileName( filename ) ); // TODO: check this FileName is really needed
+		const char * path = temp( "{}/demos/server/{}", HomeDirPath(), FileName( filename ) );
 
 		if( FileExists( &temp, path ) ) {
 			Com_Printf( "%s already exists!\n", path );

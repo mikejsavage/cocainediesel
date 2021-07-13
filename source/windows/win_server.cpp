@@ -24,13 +24,7 @@ void Sys_Error( const char *format, ... ) {
 }
 
 void Sys_Quit() {
-	SV_Shutdown( "Server quit\n" );
-	CL_Shutdown();
-
-	FreeConsole();
-
 	Qcommon_Shutdown();
-
 	exit( 0 );
 }
 

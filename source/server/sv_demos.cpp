@@ -213,7 +213,8 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 
 		SNAP_WriteDemoMetaData( svs.demo.tempname, svs.demo.meta_data, svs.demo.meta_data_realsize );
 
-		if( !FS_MoveFile( svs.demo.tempname, svs.demo.filename ) ) {
+		TempAllocator temp = svs.frame_arena.temp();
+		if( !MoveFile( &temp, svs.demo.tempname, svs.demo.filename, MoveFile_DoReplace ) ) {
 			Com_Printf( "Error: Failed to rename the server demo file\n" );
 		}
 	}

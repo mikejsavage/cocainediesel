@@ -565,8 +565,6 @@ struct DecalAtlasLayer {
 };
 
 static BC4Block FastBC4( Span2D< const RGBA8 > rgba ) {
-	ZoneScoped;
-
 	BC4Block result;
 
 	result.data[ 0 ] = 255;

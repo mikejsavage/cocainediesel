@@ -89,9 +89,6 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/standard.glsl", "#define SKINNED 1\n#define VERTEX_COLORS 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_skinned_vertexcolors, srcs.span(), lengths.span() );
 
-	BuildShaderSrcs( "glsl/standard.glsl", "#define ALPHA_TEST 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.standard_alphatest, srcs.span(), lengths.span() );
-
 	const char * world_defines = temp(
 		"#define APPLY_DRAWFLAT 1\n"
 		"#define APPLY_FOG 1\n"

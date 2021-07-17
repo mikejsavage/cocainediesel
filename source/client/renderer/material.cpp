@@ -185,10 +185,6 @@ static const MaterialSpecKey shaderkeys[] = {
 	{ }
 };
 
-static void ParseAlphaTest( Material * material, Span< const char > name, Span< const char > * data ) {
-	material->alpha_cutoff = ParseMaterialFloat( data );
-}
-
 static void ParseBlendFunc( Material * material, Span< const char > name, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "blend" ) {
@@ -285,7 +281,6 @@ static void ParseTCMod( Material * material, Span< const char > name, Span< cons
 
 static const MaterialSpecKey shaderpasskeys[] = {
 	{ "alphagen", ParseAlphaGen },
-	{ "alphatest", ParseAlphaTest },
 	{ "blendfunc", ParseBlendFunc },
 	{ "map", ParseMap },
 	{ "rgbgen", ParseRGBGen },
@@ -937,7 +932,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		color.x = material->rgbgen.args[ 0 ];
 		color.y = material->rgbgen.args[ 1 ];
 		color.z = material->rgbgen.args[ 2 ];
-		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( 0.0f ), material->alpha_cutoff, material->specular, material->shininess, Vec3( 0.0f ), Vec3( 0.0f ) ) );
+		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( 0.0f ), material->specular, material->shininess, Vec3( 0.0f ), Vec3( 0.0f ) ) );
 		pipeline.set_texture( "u_NearShadowmapTexture", &frame_static.near_shadowmap_fb.depth_texture );
 		pipeline.set_texture( "u_FarShadowmapTexture", &frame_static.far_shadowmap_fb.depth_texture );
 		pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
@@ -1021,12 +1016,9 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	pipeline.set_texture( "u_BaseTexture", material->texture );
-	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->alpha_cutoff, material->specular, material->shininess, tcmod_row0, tcmod_row1 ) );
+	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->specular, material->shininess, tcmod_row0, tcmod_row1 ) );
 
-	if( material->alpha_cutoff > 0 ) {
-		pipeline.shader = &shaders.standard_alphatest;
-	}
-	else if( skinned ) {
+	if( skinned ) {
 		pipeline.shader = material->shaded ? &shaders.standard_skinned_shaded : &shaders.standard_skinned;
 	}
 	else {

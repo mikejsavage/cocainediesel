@@ -7,18 +7,17 @@
 #include "monocypher/monocypher.h"
 
 static Mutex * mtx;
-static crypto_chacha_ctx chacha;
+
+static u8 entropy[ 40 ];
+static u64 ctr;
+
 static s64 time_of_last_stir;
 static size_t bytes_since_stir;
 
 static bool InitChacha() {
-	u8 entropy[ 32 + 8 ];
 	if( !ggentropy( entropy, sizeof( entropy ) ) )
 		return false;
-
-	crypto_chacha20_init( &chacha, entropy, entropy + 32 );
-	crypto_wipe( entropy, sizeof( entropy ) );
-
+	ctr = 0;
 	return true;
 }
 
@@ -34,7 +33,8 @@ void InitCSPRNG() {
 }
 
 void ShutdownCSPRNG() {
-	crypto_wipe( &chacha, sizeof( chacha ) );
+	crypto_wipe( &entropy, sizeof( entropy ) );
+	ctr = 0;
 	DeleteMutex( mtx );
 }
 
@@ -62,7 +62,7 @@ void CSPRNG( void * buf, size_t n ) {
 	Stir();
 	bytes_since_stir += n;
 
-	crypto_chacha20_stream( &chacha, ( u8 * ) buf, n );
+	ctr = crypto_chacha20_ctr( ( u8 * ) buf, NULL, n, entropy, entropy + 32, ctr );
 
 	Unlock( mtx );
 }

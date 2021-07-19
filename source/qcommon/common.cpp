@@ -591,7 +591,7 @@ void Qcommon_Init( int argc, char **argv ) {
 	Cvar_Get( "gamename", APPLICATION_NOSPACES, CVAR_SERVERINFO | CVAR_READONLY );
 	versioncvar = Cvar_Get( "version", APP_VERSION " " ARCH " " OSNAME, CVAR_SERVERINFO | CVAR_READONLY );
 
-	CSPRNG_Init();
+	InitCSPRNG();
 
 	NET_Init();
 	Netchan_Init();
@@ -667,7 +667,7 @@ void Qcommon_Shutdown() {
 	FS_Shutdown();
 	ShutdownFS();
 
-	CSPRNG_Shutdown();
+	ShutdownCSPRNG();
 
 	Cvar_Shutdown();
 	Cmd_Shutdown();

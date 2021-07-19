@@ -426,7 +426,7 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 	svs.frame_arena.clear();
 
 	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	CSPRNG( entropy, sizeof( entropy ) );
 	svs.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	// if server is not active, do nothing
@@ -527,7 +527,7 @@ void SV_Init() {
 	svs.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 
 	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	CSPRNG( entropy, sizeof( entropy ) );
 	svs.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	SV_InitOperatorCommands();

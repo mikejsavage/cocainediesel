@@ -1431,7 +1431,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	cls.frame_arena.clear();
 
 	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	CSPRNG( entropy, sizeof( entropy ) );
 	cls.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	static int allRealMsec = 0, allGameMsec = 0, extraMsec = 0;
@@ -1552,7 +1552,7 @@ void CL_Init() {
 	cls.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 
 	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	CSPRNG( entropy, sizeof( entropy ) );
 	cls.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	cls.monotonicTime = 0;

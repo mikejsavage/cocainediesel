@@ -614,7 +614,7 @@ u64 Netchan_ClientSessionID() {
 * Netchan_Init
 */
 void Netchan_Init() {
-	CSPRNG_Bytes( &client_session_id, sizeof( client_session_id ) );
+	CSPRNG( &client_session_id, sizeof( client_session_id ) );
 
 	showpackets = Cvar_Get( "showpackets", "0", 0 );
 	showdrop = Cvar_Get( "showdrop", "0", 0 );

@@ -133,7 +133,7 @@ void SV_InitGame() {
 	}
 
 	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	CSPRNG( entropy, sizeof( entropy ) );
 	svs.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	svs.initialized = true;

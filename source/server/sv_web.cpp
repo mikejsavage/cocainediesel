@@ -44,12 +44,10 @@ enum http_query_method_t {
 enum http_response_code_t {
 	HTTP_RESP_NONE = 0,
 	HTTP_RESP_OK = 200,
-	HTTP_RESP_PARTIAL_CONTENT = 206,
 	HTTP_RESP_BAD_REQUEST = 400,
 	HTTP_RESP_FORBIDDEN = 403,
 	HTTP_RESP_NOT_FOUND = 404,
 	HTTP_RESP_REQUEST_TOO_LARGE = 413,
-	HTTP_RESP_REQUESTED_RANGE_NOT_SATISFIABLE = 416,
 	HTTP_RESP_SERVICE_UNAVAILABLE = 503,
 };
 
@@ -66,11 +64,6 @@ enum sv_http_content_state_t {
 	CONTENT_STATE_RECEIVED = 2,
 };
 
-struct sv_http_content_range_t {
-	long begin;
-	long end;
-};
-
 struct sv_http_stream_t {
 	size_t header_length;
 	char header_buf[0x4000];
@@ -80,7 +73,6 @@ struct sv_http_stream_t {
 	char *content;
 	size_t content_p;
 	size_t content_length;
-	sv_http_content_range_t content_range;
 };
 
 struct sv_http_request_t {
@@ -97,9 +89,6 @@ struct sv_http_request_t {
 	int clientNum;
 	char *clientSession;
 	netadr_t realAddr;
-
-	bool partial;
-	sv_http_content_range_t partial_content_range;
 
 	bool got_start_line;
 	bool close_after_resp;
@@ -178,8 +167,6 @@ static void SV_Web_ResetStream( sv_http_stream_t *stream ) {
 		Mem_Free( stream->content );
 	}
 
-	stream->content_range.begin = stream->content_range.end = 0;
-
 	stream->content = NULL;
 	stream->content_length = 0;
 	stream->content_p = 0;
@@ -213,7 +200,6 @@ static void SV_Web_ResetRequest( sv_http_request_t *request ) {
 	NET_InitAddress( &request->realAddr, NA_NOTRANSMIT );
 
 	request->id = 0;
-	request->partial = false;
 	request->close_after_resp = false;
 	request->got_start_line = false;
 	request->error = HTTP_RESP_NONE;
@@ -603,57 +589,6 @@ static void SV_Web_AnalyzeHeader( sv_http_request_t *request, const char *key, c
 		if( !value || !*value ) {
 			request->error = HTTP_RESP_BAD_REQUEST;
 		}
-	} else if( !Q_stricmp( key, "Range" )
-			   && ( request->method == HTTP_METHOD_GET || request->method == HTTP_METHOD_HEAD ) ) {
-		const char *delim = strchr( value, '-' );
-
-		if( Q_strnicmp( value, "bytes=", 6 ) || !delim ) {
-			request->error = HTTP_RESP_BAD_REQUEST;
-		} else {
-			bool neg_end = false;
-			const char *p = value;
-
-			// first byte pos
-			while( *p && p < delim ) {
-				if( *p >= '0' && *p <= '9' ) {
-					stream->content_range.begin = stream->content_range.begin * 10 + *p - '0';
-				}
-				p++;
-			}
-			p++;
-
-			// last byte pos
-			if( *p == '-' ) {
-				if( value != delim ) {
-					request->error = HTTP_RESP_REQUESTED_RANGE_NOT_SATISFIABLE;
-					return;
-				}
-				neg_end = true;
-				p++;
-			}
-			while( *p ) {
-				if( *p >= '0' && *p <= '9' ) {
-					stream->content_range.end = stream->content_range.end * 10 + *p++ - '0';
-				}
-			}
-
-			// partial content request
-			if( neg_end && stream->content_range.end ) {
-				// bytes=-100
-				request->partial = true;
-				stream->content_range.end = -stream->content_range.end;
-			} else if( stream->content_range.end >= stream->content_range.begin ) {
-				// bytes=200-300
-				request->partial = true;
-			} else if( stream->content_range.begin >= 0 && *( delim + 1 ) == '\0' ) {
-				// bytes=200-
-				request->partial = true;
-			}
-
-			if( request->partial ) {
-				request->partial_content_range = stream->content_range;
-			}
-		}
 	} else if( !Q_stricmp( key, "X-Client" ) ) {
 		request->clientNum = atoi( value );
 	} else if( !Q_stricmp( key, "X-Session" ) ) {
@@ -856,12 +791,10 @@ static void SV_Web_ReceiveRequest( socket_t *socket, sv_http_connection_t *con )
 static const char *SV_Web_ResponseCodeMessage( http_response_code_t code ) {
 	switch( code ) {
 		case HTTP_RESP_OK: return "OK";
-		case HTTP_RESP_PARTIAL_CONTENT: return "Partial Content";
 		case HTTP_RESP_BAD_REQUEST: return "Bad Request";
 		case HTTP_RESP_FORBIDDEN: return "Forbidden";
 		case HTTP_RESP_NOT_FOUND: return "Not Found";
 		case HTTP_RESP_REQUEST_TOO_LARGE: return "Request Entity Too Large";
-		case HTTP_RESP_REQUESTED_RANGE_NOT_SATISFIABLE: return "Requested range not satisfiable";
 		case HTTP_RESP_SERVICE_UNAVAILABLE: return "Service unavailable";
 		default: return "Unknown Error";
 	}
@@ -946,28 +879,6 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 			Com_Printf( "HTTP serving file '%s' to '%s'\n", response->filename, NET_AddressToString( &con->address ) );
 		}
 
-		// serve range requests
-		if( request->partial && response->file ) {
-			// seek to first byte pos and clamp the last byte pos to content length
-			if( request->partial_content_range.begin > 0 ) {
-				FS_Seek( response->file, request->partial_content_range.begin, FS_SEEK_SET );
-				// range.end may be set to 0 for 'bytes=100-' style requests
-				response->stream.content_range.end = request->partial_content_range.end
-													 ? request->partial_content_range.end : content_length;
-
-			} else if( request->partial_content_range.end < 0 ) {
-				// seek to N last bytes in the file
-				FS_Seek( response->file, request->partial_content_range.end, FS_SEEK_END );
-				response->stream.content_range.end = -request->partial_content_range.end;
-			}
-
-			// Content-Range header values
-			response->file_send_pos = FS_Tell( response->file );
-			response->stream.content_range.begin = response->file_send_pos;
-			response->stream.content_range.end = qmin( content_length, response->stream.content_range.end );
-			response->code = HTTP_RESP_PARTIAL_CONTENT;
-		}
-
 		if( request->method == HTTP_METHOD_HEAD && response->file ) {
 			FS_FCloseFile( response->file );
 			response->file = 0;
@@ -979,28 +890,6 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 	snprintf( resp_stream->header_buf, sizeof( resp_stream->header_buf ),
 				 "%s %i %s\r\nServer: " APPLICATION "\r\n",
 				 request->http_ver, response->code, SV_Web_ResponseCodeMessage( response->code ) );
-
-	Q_strncatz( resp_stream->header_buf, "Accept-Ranges: bytes\r\n",
-				sizeof( resp_stream->header_buf ) );
-
-	if( response->code == HTTP_RESP_REQUESTED_RANGE_NOT_SATISFIABLE ) {
-		int file_length = FS_FOpenBaseFile( request->resource, NULL, FS_READ );
-
-		// in accordance with RFC 2616, send the Content-Range entity header,
-		// specifying the length of the resource
-		if( file_length < 0 ) {
-			Q_strncatz( resp_stream->header_buf, "Content-Range: bytes */*\r\n",
-						sizeof( resp_stream->header_buf ) );
-		} else {
-			snprintf( vastr, sizeof( vastr ), "Content-Range: bytes */%" PRIuPTR "\r\n", (uintptr_t)content_length );
-			Q_strncatz( resp_stream->header_buf, vastr, sizeof( resp_stream->header_buf ) );
-		}
-	} else if( response->code == HTTP_RESP_PARTIAL_CONTENT ) {
-		snprintf( vastr, sizeof( vastr ), "Content-Range: bytes %" PRIuPTR "-%" PRIuPTR "/%" PRIuPTR "\r\n",
-					(uintptr_t)response->stream.content_range.begin, (uintptr_t)response->stream.content_range.end, (uintptr_t)content_length );
-		Q_strncatz( resp_stream->header_buf, vastr, sizeof( resp_stream->header_buf ) );
-		content_length = response->stream.content_range.end - response->stream.content_range.begin;
-	}
 
 	if( response->code >= HTTP_RESP_BAD_REQUEST || !content_length ) {
 		// error response or empty response: just return response code + description

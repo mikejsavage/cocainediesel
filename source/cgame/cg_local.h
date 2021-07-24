@@ -429,8 +429,6 @@ void CG_LocalPrint( _Printf_format_string_ const char *format, ... );
 
 void CG_Reset();
 void CG_Precache();
-char *_CG_CopyString( const char *in, const char *filename, int fileline );
-#define CG_CopyString( in ) _CG_CopyString( in, __FILE__, __LINE__ )
 
 void CG_RegisterCGameCommands();
 void CG_UnregisterCGameCommands();

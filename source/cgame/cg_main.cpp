@@ -106,12 +106,6 @@ static void CG_InitGameShared() {
 	client_gs.api.PMoveTouchTriggers = CG_Predict_TouchTriggers;
 }
 
-char *_CG_CopyString( const char *in, const char *filename, int fileline ) {
-	char * out = ( char * )_Mem_AllocExt( cg_mempool, strlen( in ) + 1, 16, 1, 0, 0, filename, fileline );
-	strcpy( out, in );
-	return out;
-}
-
 static void CG_RegisterVariables() {
 	cg_showMiss =       Cvar_Get( "cg_showMiss", "0", 0 );
 
@@ -213,7 +207,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	memset( cg_entities, 0, sizeof( cg_entities ) );
 
 	// save server name
-	cgs.serverName = CG_CopyString( serverName );
+	cgs.serverName = CopyString( sys_allocator, serverName );
 
 	// save local player number
 	cgs.playerNum = playerNum;
@@ -271,7 +265,7 @@ void CG_Shutdown() {
 	CG_ShutdownHUD();
 	ShutdownDecals();
 
-	CG_Free( const_cast< char * >( cgs.serverName ) );
+	FREE( sys_allocator, const_cast< char * >( cgs.serverName ) );
 
 	Mem_FreePool( &cg_mempool );
 

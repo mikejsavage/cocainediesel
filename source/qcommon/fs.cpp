@@ -36,19 +36,17 @@ static char * FindRootDir( Allocator * a ) {
 
 void InitFS() {
 	root_dir_path = FindRootDir( sys_allocator );
-#if PUBLIC_BUILD
-	home_dir_path = FindHomeDirectory( sys_allocator );
 
-#if PLATFORM_WINDOWS
-	versioned_home_dir_path = ( *sys_allocator )( "{} 0.0", home_dir_path );
-#else
-	versioned_home_dir_path = ( *sys_allocator )( "{}-0.0", home_dir_path );
-#endif
+	if( !is_public_build ) {
+		home_dir_path = CopyString( sys_allocator, root_dir_path );
+		versioned_home_dir_path = CopyString( sys_allocator, home_dir_path );
+	}
+	else {
+		home_dir_path = FindHomeDirectory( sys_allocator );
 
-#else
-	home_dir_path = CopyString( sys_allocator, root_dir_path );
-	versioned_home_dir_path = CopyString( sys_allocator, home_dir_path );
-#endif
+		const char * fmt = IFDEF( PLATFORM_WINDOWS ) ? "{} 0.0" : "{}-0.0";
+		versioned_home_dir_path = ( *sys_allocator )( fmt, home_dir_path );
+	}
 
 	ReplaceBackslashes( root_dir_path );
 	ReplaceBackslashes( versioned_home_dir_path );
@@ -133,15 +131,16 @@ static bool CreatePathForFile( Allocator * a, const char * path ) {
 	char * cursor = mutable_path;
 
 	// don't try to create drives on windows or "" on linux
-#if PLATFORM_WINDOWS
-	if( strlen( cursor ) >= 2 && cursor[ 1 ] == ':' ) {
-		cursor += 3;
+	if( IFDEF( PLATFORM_WINDOWS ) ) {
+		if( strlen( cursor ) >= 2 && cursor[ 1 ] == ':' ) {
+			cursor += 3;
+		}
 	}
-#else
-	if( strlen( cursor ) >= 1 && cursor[ 0 ] == '/' ) {
-		cursor++;
+	else {
+		if( strlen( cursor ) >= 1 && cursor[ 0 ] == '/' ) {
+			cursor++;
+		}
 	}
-#endif
 
 	while( ( cursor = StrChrUTF8( cursor, '/' ) ) != NULL ) {
 		*cursor = '\0';

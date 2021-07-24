@@ -16,10 +16,16 @@
  * helpers
  */
 
+#define STRINGIFY_HELPER( a ) #a
+#define STRINGIFY( a ) STRINGIFY_HELPER( a )
 #define CONCAT_HELPER( a, b ) a##b
 #define CONCAT( a, b ) CONCAT_HELPER( a, b )
 #define COUNTER_NAME( x ) CONCAT( x, __COUNTER__ )
 #define LINE_NAME( x ) CONCAT( x, __LINE__ )
+
+#define IFDEF( x ) ( STRINGIFY( x )[ 0 ] == '1' && STRINGIFY( x )[ 1 ] == '0' )
+
+constexpr bool is_public_build = IFDEF( PUBLIC_BUILD );
 
 template< typename To, typename From >
 inline To bit_cast( const From & from ) {

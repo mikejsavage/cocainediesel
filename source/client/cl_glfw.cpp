@@ -312,11 +312,12 @@ void CreateWindow( WindowMode mode ) {
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
 
-#if PUBLIC_BUILD
-	glfwWindowHint( GLFW_CONTEXT_NO_ERROR, GLFW_TRUE );
-#else
-	glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
-#endif
+	if( is_public_build ) {
+		glfwWindowHint( GLFW_CONTEXT_NO_ERROR, GLFW_TRUE );
+	}
+	else {
+		glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
+	}
 
 	glfwWindowHint( GLFW_RESIZABLE, GLFW_TRUE );
 
@@ -496,11 +497,7 @@ void SwapBuffers() {
 }
 
 int main( int argc, char ** argv ) {
-#if PUBLIC_BUILD
-	running_in_debugger = false;
-#else
-	running_in_debugger = Sys_BeingDebugged();
-#endif
+	running_in_debugger = !is_public_build && Sys_BeingDebugged();
 
 	{
 		ZoneScopedN( "Init GLFW" );

@@ -1079,48 +1079,33 @@ static void CL_InitLocal() {
 	cls.state = CA_DISCONNECTED;
 	Com_SetClientState( CA_DISCONNECTED );
 
-	//
-	// register our variables
-	//
-	cl_maxfps =     Cvar_Get( "cl_maxfps", "250", CVAR_ARCHIVE );
-	cl_pps =        Cvar_Get( "cl_pps", "40", CVAR_ARCHIVE );
+	cl_maxfps = Cvar_Get( "cl_maxfps", "250", CVAR_ARCHIVE );
+	cl_pps = Cvar_Get( "cl_pps", "40", CVAR_ARCHIVE );
 
-	cl_extrapolationTime =  Cvar_Get( "cl_extrapolationTime", "0", CVAR_DEVELOPER );
+	cl_extrapolationTime = Cvar_Get( "cl_extrapolationTime", "0", CVAR_DEVELOPER );
 	cl_extrapolate = Cvar_Get( "cl_extrapolate", "1", CVAR_ARCHIVE );
 
-#if PUBLIC_BUILD
-	cl_hotloadAssets = Cvar_Get( "cl_hotloadAssets", "0", CVAR_ARCHIVE );
-#else
-	cl_hotloadAssets = Cvar_Get( "cl_hotloadAssets", "1", CVAR_ARCHIVE );
-#endif
+	cl_hotloadAssets = Cvar_Get( "cl_hotloadAssets", is_public_build ? "0" : "1", CVAR_ARCHIVE );
 
-	cl_shownet =        Cvar_Get( "cl_shownet", "0", 0 );
-	cl_timeout =        Cvar_Get( "cl_timeout", "120", 0 );
+	cl_shownet = Cvar_Get( "cl_shownet", "0", 0 );
+	cl_timeout = Cvar_Get( "cl_timeout", "120", 0 );
 
-	rcon_client_password =  Cvar_Get( "rcon_password", "", 0 );
-	rcon_address =      Cvar_Get( "rcon_address", "", 0 );
+	rcon_client_password = Cvar_Get( "rcon_password", "", 0 );
+	rcon_address = Cvar_Get( "rcon_address", "", 0 );
 
 	// wsw : debug netcode
-	cl_debug_serverCmd =    Cvar_Get( "cl_debug_serverCmd", "0", CVAR_ARCHIVE | CVAR_CHEAT );
-	cl_debug_timeDelta =    Cvar_Get( "cl_debug_timeDelta", "0", CVAR_ARCHIVE /*|CVAR_CHEAT*/ );
+	cl_debug_serverCmd = Cvar_Get( "cl_debug_serverCmd", "0", CVAR_ARCHIVE | CVAR_CHEAT );
+	cl_debug_timeDelta = Cvar_Get( "cl_debug_timeDelta", "0", CVAR_ARCHIVE /*|CVAR_CHEAT*/ );
 
 	cl_devtools = Cvar_Get( "cl_devtools", "0", CVAR_ARCHIVE );
 
-	//
-	// userinfo
-	//
-	info_password =     Cvar_Get( "password", "", CVAR_USERINFO );
+	info_password = Cvar_Get( "password", "", CVAR_USERINFO );
 
 	name = Cvar_Get( "name", "", CVAR_USERINFO | CVAR_ARCHIVE );
 	if( !name->string[0] ) {
 		Cvar_Set( name->name, temp( "user{06}", RandomUniform( &cls.rng, 0, 1000000 ) ) );
 	}
 
-	Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-
-	//
-	// register our commands
-	//
 	Cmd_AddCommand( "cmd", CL_ForwardToServer_f );
 	Cmd_AddCommand( "requestservers", CL_GetServers_f );
 	Cmd_AddCommand( "getinfo", CL_QueryGetInfoMessage_f ); // wsw : jal : ask for server info

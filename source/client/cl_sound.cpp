@@ -137,11 +137,12 @@ static void CheckALErrors( const char * fmt, const Rest & ... rest ) {
 		char buf[ 1024 ];
 		ggformat( buf, sizeof( buf ), fmt, rest... );
 
-#if !PUBLIC_BUILD
-		Sys_Error( "AL error: %s", buf );
-#else
-		Com_Printf( S_COLOR_RED "AL error: %s\n", buf );
-#endif
+		if( is_public_build ) {
+			Com_Printf( S_COLOR_RED "AL error: %s\n", buf );
+		}
+		else {
+			Sys_Error( "AL error: %s", buf );
+		}
 	}
 }
 

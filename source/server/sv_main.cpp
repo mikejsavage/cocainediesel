@@ -555,15 +555,7 @@ void SV_Init() {
 	sv_showChallenge = Cvar_Get( "sv_showChallenge", "0", 0 );
 	sv_showInfoQueries = Cvar_Get( "sv_showInfoQueries", "0", 0 );
 
-	if( is_dedicated_server ) {
-#ifdef PUBLIC_BUILD
-		sv_public = Cvar_Get( "sv_public", "1", CVAR_LATCH );
-#else
-		sv_public = Cvar_Get( "sv_public", "0", CVAR_LATCH );
-#endif
-	} else {
-		sv_public = Cvar_Get( "sv_public", "0", CVAR_LATCH );
-	}
+	sv_public = Cvar_Get( "sv_public", is_public_build && is_dedicated_server ? "1" : "0", CVAR_LATCH );
 
 	sv_iplimit = Cvar_Get( "sv_iplimit", "3", CVAR_ARCHIVE );
 

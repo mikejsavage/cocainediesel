@@ -501,12 +501,6 @@ void    FS_FCloseFile( int file );
 
 int     FS_Read( void *buffer, size_t len, int file );
 
-#ifndef _MSC_VER
-int FS_Printf( int file, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
-#else
-int FS_Printf( int file, _Printf_format_string_ const char *format, ... );
-#endif
-
 int     FS_Write( const void *buffer, size_t len, int file );
 int     FS_Tell( int file );
 int     FS_Seek( int file, int offset, int whence );
@@ -526,12 +520,8 @@ void    FS_FreeBaseFile( void *buffer );
 
 // util functions
 bool    FS_MoveFile( const char *src, const char *dst );
-bool    FS_MoveBaseFile( const char *src, const char *dst );
 bool    FS_RemoveFile( const char *filename );
-bool    FS_RemoveBaseFile( const char *filename );
 bool    FS_RemoveAbsoluteFile( const char *filename );
-unsigned    FS_ChecksumAbsoluteFile( const char *filename );
-unsigned    FS_ChecksumBaseFile( const char *filename );
 
 // // only for game files
 const char *FS_BaseNameForFile( const char *filename );

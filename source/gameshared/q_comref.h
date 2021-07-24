@@ -71,14 +71,12 @@ enum pmtype_t {
 //
 // config strings are a general means of communication from
 // the server to all connected clients.
-// Each config string can be at most MAX_QPATH characters.
 //
+
 #define CS_HOSTNAME         0
 #define CS_MAXCLIENTS       1
 
-#define SERVER_PROTECTED_CONFIGSTRINGS 4
-
-#define CS_AUTORECORDSTATE  4
+#define CS_AUTORECORDSTATE  2
 
 #define CS_MATCHSCORE       5
 

@@ -1043,12 +1043,6 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 		return;
 	}
 
-	if( strlen( votename ) > MAX_QPATH ) {
-		G_PrintMsg( ent, "%sInvalid vote\n", S_COLOR_RED );
-		G_CallVotes_PrintUsagesToPlayer( ent );
-		return;
-	}
-
 	//find the actual callvote command
 	for( callvote = callvotesHeadNode; callvote != NULL; callvote = callvote->next ) {
 		if( callvote->name && !Q_stricmp( callvote->name, votename ) ) {

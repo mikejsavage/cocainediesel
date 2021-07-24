@@ -146,11 +146,6 @@ struct cgs_media_t {
 	const Material * shaderReady;
 };
 
-struct cg_clientInfo_t {
-	char name[MAX_QPATH];
-	int hand;
-};
-
 #define MAX_ANGLES_KICKS 3
 
 struct cg_kickangles_t {
@@ -220,11 +215,6 @@ struct cg_static_t {
 	// locally derived information from server state
 	//
 	char configStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
-	char baseConfigStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
-
-	cg_clientInfo_t clientInfo[MAX_CLIENTS];
-
-	char checkname[MAX_QPATH];
 };
 
 struct cg_state_t {
@@ -338,8 +328,6 @@ void CG_RegisterFonts();
 //
 // cg_players.c
 //
-void CG_ResetClientInfos();
-void CG_LoadClientInfo( int client );
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 
 //
@@ -448,7 +436,7 @@ void CG_RegisterCGameCommands();
 void CG_UnregisterCGameCommands();
 void CG_AddAward( const char *str );
 
-void CG_StartBackgroundTrack();
+const char * PlayerName( int i );
 
 //
 // cg_svcmds.c

@@ -50,7 +50,7 @@ struct server_t {
 	int64_t nextSnapTime;              // always sv.framenum * svc.snapFrameTime msec
 	int64_t framenum;
 
-	char mapname[MAX_QPATH];               // map name
+	char mapname[MAX_CONFIGSTRING_CHARS];               // map name
 
 	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	SyncEntityState baselines[MAX_EDICTS];

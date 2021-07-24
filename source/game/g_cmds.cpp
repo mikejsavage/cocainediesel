@@ -585,7 +585,7 @@ static void Cmd_Timein_f( edict_t *ent ) {
 
 typedef struct
 {
-	char name[MAX_QPATH];
+	char name[MAX_CONFIGSTRING_CHARS];
 	gamecommandfunc_t func;
 } g_gamecommands_t;
 
@@ -605,7 +605,7 @@ void G_PrecacheGameCommands() {
 */
 void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 	int i;
-	char temp[MAX_QPATH];
+	char temp[MAX_CONFIGSTRING_CHARS];
 	static const char *blacklist[] = { "callvotevalidate", "callvotepassed", NULL };
 
 	Q_strncpyz( temp, name, sizeof( temp ) );

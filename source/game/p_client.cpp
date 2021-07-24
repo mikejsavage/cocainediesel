@@ -607,23 +607,9 @@ static void G_SetName( edict_t *ent, const char *original_name ) {
 	Q_strncpyz( ent->r.client->netname, name, sizeof( ent->r.client->netname ) );
 }
 
-/*
-* G_UpdatePlayerInfoString
-*/
 static void G_UpdatePlayerInfoString( int playerNum ) {
-	char playerString[MAX_INFO_STRING];
-	gclient_t *client;
-
-	assert( playerNum >= 0 && playerNum < server_gs.maxclients );
-	client = &game.clients[playerNum];
-
-	// update client information in cgame
-	playerString[0] = 0;
-
-	Info_SetValueForKey( playerString, "name", client->netname );
-
-	playerString[MAX_CONFIGSTRING_CHARS - 1] = 0;
-	PF_ConfigString( CS_PLAYERINFOS + playerNum, playerString );
+	const gclient_t * client = &game.clients[ playerNum ];
+	PF_ConfigString( CS_PLAYERINFOS + playerNum, client->netname );
 }
 
 /*

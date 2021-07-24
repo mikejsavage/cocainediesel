@@ -209,7 +209,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 	CG_UpdatePointedNum();
 
 	for( int i = 0; i < client_gs.maxclients; i++ ) {
-		if( !cgs.clientInfo[i].name[0] || ISVIEWERENTITY( i + 1 ) ) {
+		if( strlen( PlayerName( i ) ) == 0 || ISVIEWERENTITY( i + 1 ) ) {
 			continue;
 		}
 
@@ -274,7 +274,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		DrawText( font, font_size, cgs.clientInfo[i].name, Alignment_CenterBottom, coords.x, coords.y, tmpcolor, border );
+		DrawText( font, font_size, PlayerName( i ), Alignment_CenterBottom, coords.x, coords.y, tmpcolor, border );
 	}
 }
 

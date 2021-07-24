@@ -43,37 +43,3 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
 		S_StartEntitySound( sfx, entnum, entchannel, 1.0f );
 	}
 }
-
-static void CG_ParseClientInfo( cg_clientInfo_t *ci, const char *info ) {
-	assert( ci );
-	assert( info );
-
-	if( !Info_Validate( info ) ) {
-		Com_Error( ERR_DROP, "Invalid client info" );
-	}
-
-	char *s = Info_ValueForKey( info, "name" );
-	Q_strncpyz( ci->name, s && s[0] ? s : "badname", sizeof( ci->name ) );
-
-	s = Info_ValueForKey( info, "hand" );
-	ci->hand = s && s[0] ? atoi( s ) : 2;
-}
-
-/*
-* CG_LoadClientInfo
-* Updates cached client info from the current CS_PLAYERINFOS configstring value
-*/
-void CG_LoadClientInfo( int client ) {
-	assert( client >= 0 && client < client_gs.maxclients );
-	CG_ParseClientInfo( &cgs.clientInfo[client], cgs.configStrings[CS_PLAYERINFOS + client] );
-}
-
-void CG_ResetClientInfos() {
-	memset( cgs.clientInfo, 0, sizeof( cgs.clientInfo ) );
-
-	for( int i = 0; i < MAX_CLIENTS; i++ ) {
-		if( strlen( cgs.configStrings[ CS_PLAYERINFOS + i ] ) > 0 ) {
-			CG_LoadClientInfo( i );
-		}
-	}
-}

@@ -383,9 +383,9 @@ void CG_SC_Obituary() {
 	bool wallbang = atoi( Cmd_Argv( 5 ) ) == 1;
 	u64 entropy = StringToU64( Cmd_Argv( 6 ), 0 );
 
-	const cg_clientInfo_t * victim = &cgs.clientInfo[ victimNum - 1 ];
-	const cg_clientInfo_t * attacker = attackerNum == 0 ? NULL : &cgs.clientInfo[ attackerNum - 1 ];
-	const cg_clientInfo_t * assistor = topAssistorNum == -1 ? NULL : &cgs.clientInfo[ topAssistorNum - 1 ];
+	const char * victim = PlayerName( victimNum - 1 );
+	const char * attacker = attackerNum == 0 ? NULL : PlayerName( attackerNum - 1 );
+	const char * assistor = topAssistorNum == -1 ? NULL : PlayerName( topAssistorNum - 1 );
 
 	cg_obituaries_current = ( cg_obituaries_current + 1 ) % MAX_OBITUARIES;
 	obituary_t * current = &cg_obituaries[ cg_obituaries_current ];
@@ -395,11 +395,11 @@ void CG_SC_Obituary() {
 	current->wallbang = wallbang;
 
 	if( victim != NULL ) {
-		Q_strncpyz( current->victim, victim->name, sizeof( current->victim ) );
+		Q_strncpyz( current->victim, victim, sizeof( current->victim ) );
 		current->victim_team = cg_entities[ victimNum ].current.team;
 	}
 	if( attacker != NULL ) {
-		Q_strncpyz( current->attacker, attacker->name, sizeof( current->attacker ) );
+		Q_strncpyz( current->attacker, attacker, sizeof( current->attacker ) );
 		current->attacker_team = cg_entities[ attackerNum ].current.team;
 	}
 
@@ -412,9 +412,9 @@ void CG_SC_Obituary() {
 	TempAllocator temp = cls.frame_arena.temp();
 	RNG rng = NewRNG( entropy, 0 );
 
-	const char * attacker_name = attacker == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->attacker_team ) ), Uppercase( &temp, attacker->name ) );
-	const char * victim_name = temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->victim_team ) ), Uppercase( &temp, victim->name ) );
-	const char * assistor_name = assistor == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( assistor_team ) ), Uppercase( &temp, assistor->name ) );
+	const char * attacker_name = attacker == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->attacker_team ) ), Uppercase( &temp, attacker ) );
+	const char * victim_name = temp( "{}{}", ImGuiColorToken( CG_TeamColor( current->victim_team ) ), Uppercase( &temp, victim ) );
+	const char * assistor_name = assistor == NULL ? NULL : temp( "{}{}", ImGuiColorToken( CG_TeamColor( assistor_team ) ), Uppercase( &temp, assistor ) );
 
 	if( attackerNum == 0 ) {
 		current->type = OBITUARY_ACCIDENT;
@@ -468,7 +468,7 @@ void CG_SC_Obituary() {
 		}
 
 		if( ISVIEWERENTITY( attackerNum ) ) {
-			CG_CenterPrint( temp( "{} {}", obituary, Uppercase( &temp, victim->name ) ) );
+			CG_CenterPrint( temp( "{} {}", obituary, Uppercase( &temp, victim ) ) );
 		}
 	}
 }
@@ -1278,8 +1278,8 @@ static bool CG_LFuncDrawBindString( cg_layoutnode_t *argumentnode ) {
 static bool CG_LFuncDrawPlayerName( cg_layoutnode_t *argumentnode ) {
 	int index = (int)CG_GetNumericArg( &argumentnode ) - 1;
 
-	if( index >= 0 && index < client_gs.maxclients && cgs.clientInfo[index].name[0] ) {
-		DrawText( GetHUDFont(), layout_cursor_font_size, cgs.clientInfo[ index ].name, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
+	if( index >= 0 && index < client_gs.maxclients ) {
+		DrawText( GetHUDFont(), layout_cursor_font_size, PlayerName( index ), layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 		return true;
 	}
 

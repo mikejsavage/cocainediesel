@@ -43,7 +43,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float l
 
 	// player name
 	u8 alpha = player->alive ? 255 : 75;
-	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), cgs.clientInfo[ playerIndex - 1 ].name );
+	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), PlayerName( playerIndex - 1 ) );
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( "%s", final_name.c_str() );
 	ImGui::NextColumn();
@@ -306,7 +306,7 @@ void CG_DrawScoreboard() {
 		for( u8 i = 0; i < team_spec->num_players; i++ ) {
 			if( i > 0 )
 				spectators += ", ";
-			spectators += cgs.clientInfo[ team_spec->player_indices[ i ] - 1 ].name;
+			spectators += PlayerName( team_spec->player_indices[ i ] - 1 );
 		}
 
 		ImGui::Text( "%s", spectators.c_str() );

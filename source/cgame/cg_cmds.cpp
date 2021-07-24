@@ -45,7 +45,7 @@ static void CG_SC_ChatPrint() {
 		return;
 	}
 
-	const char * name = cgs.clientInfo[ who - 1 ].name;
+	const char * name = PlayerName( who - 1 );
 	int team = cg_entities[ who ].current.team;
 	RGB8 team_color = team == TEAM_SPECTATOR ? RGB8( 128, 128, 128 ) : CG_TeamColor( team );
 
@@ -81,11 +81,9 @@ void CG_ConfigString( int i, const char *s ) {
 
 	Q_strncpyz( cgs.configStrings[i], s, sizeof( cgs.configStrings[i] ) );
 
-	// do something apropriate
+	// do something appropriate
 	if( i == CS_AUTORECORDSTATE ) {
 		CG_SC_AutoRecordAction( cgs.configStrings[i] );
-	} else if( i >= CS_PLAYERINFOS && i < CS_PLAYERINFOS + MAX_CLIENTS ) {
-		CG_LoadClientInfo( i - CS_PLAYERINFOS );
 	} else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
 		if( !cgs.demoPlaying ) {
 			Cmd_AddCommand( cgs.configStrings[i], NULL );
@@ -402,15 +400,15 @@ static const char **CG_PlayerNamesCompletionExt_f( const char *partial, bool tea
 
 		matches = (const char **) CG_Malloc( sizeof( char * ) * ( client_gs.maxclients + 1 ) );
 		for( i = 0; i < client_gs.maxclients; i++ ) {
-			cg_clientInfo_t *info = cgs.clientInfo + i;
-			if( !info->name[0] ) {
+			const char * name = PlayerName( i );
+			if( strlen( name ) == 0 ) {
 				continue;
 			}
 			if( teamOnly && ( cg_entities[i + 1].current.team != team ) ) {
 				continue;
 			}
-			if( !Q_strnicmp( info->name, partial, partial_len ) ) {
-				matches[num_matches++] = info->name;
+			if( !Q_strnicmp( name, partial, partial_len ) ) {
+				matches[num_matches++] = name;
 			}
 		}
 		matches[num_matches] = NULL;

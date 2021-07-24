@@ -110,14 +110,13 @@ char *COM_ListNameForPosition( const char *namesList, int position, const char s
 //
 //==============================================================
 
-#define MAX_QPATH                   64          // max length of a quake game pathname
-
 #define MAX_STRING_CHARS            1024        // max length of a string passed to Cmd_TokenizeString
 #define MAX_STRING_TOKENS           256         // max tokens resulting from Cmd_TokenizeString
 #define MAX_TOKEN_CHARS             1024        // max length of an individual token
-#define MAX_CONFIGSTRING_CHARS      MAX_QPATH   // max length of a configstring string
+#define MAX_CONFIGSTRING_CHARS      64          // max length of a configstring string
 
-#define MAX_NAME_CHARS              32          // max length of a player name, including trailing \0
+#define MAX_NAME_CHARS              32          // max length of a player name, not including trailing \0
+STATIC_ASSERT( MAX_NAME_CHARS <= MAX_CONFIGSTRING_CHARS );
 
 #define MAX_CHAT_BYTES              151         // max length of a chat message, including color tokens and trailing \0
 

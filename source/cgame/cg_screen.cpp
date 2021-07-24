@@ -46,9 +46,9 @@ CENTER PRINTING
 ===============================================================================
 */
 
-char scr_centerstring[1024];
-int scr_centertime_off;
-int scr_erase_center;
+static char scr_centerstring[1024];
+static int scr_centertime_off;
+static int scr_erase_center;
 
 /*
 * CG_CenterPrint

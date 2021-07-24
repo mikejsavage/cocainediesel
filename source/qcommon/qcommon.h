@@ -554,11 +554,11 @@ void        Com_DeferConsoleLogReopen();
 #ifndef _MSC_VER
 void Com_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 void Com_DPrintf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-void Com_Error( com_error_code_t code, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) ) __attribute__( ( noreturn ) );
+void Com_Error( com_error_code_t code, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
 #else
 void Com_Printf( _Printf_format_string_ const char *format, ... );
 void Com_DPrintf( _Printf_format_string_ const char *format, ... );
-__declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_string_ const char *format, ... );
+void Com_Error( com_error_code_t code, _Printf_format_string_ const char *format, ... );
 #endif
 
 void Com_Quit();
@@ -697,9 +697,9 @@ bool Sys_OpenInWebBrowser( const char * url );
 bool Sys_BeingDebugged();
 
 #ifndef _MSC_VER
-void Sys_Error( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
+void Sys_Error( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 #else
-__declspec( noreturn ) void Sys_Error( _Printf_format_string_ const char *error, ... );
+void Sys_Error( _Printf_format_string_ const char *error, ... );
 #endif
 
 void Sys_Quit();

@@ -63,8 +63,13 @@ enum pmtype_t {
 // note that Q_rint was causing problems here
 // (spawn looking straight up\down at delta_angles wrapping)
 
-#define ANGLE2SHORT( x )    ( (int)( ( x ) * 65536 / 360 ) & 65535 )
-#define SHORT2ANGLE( x )    ( ( x ) * ( 360.0 / 65536 ) )
+inline u16 ANGLE2SHORT( float a ) {
+	return u16( ( a / 360.0f ) * 65535.0f + 0.5f );
+}
+
+inline float SHORT2ANGLE( u16 a ) {
+	return ( a / 65535.0f ) * 360.0f;
+}
 
 #define MAX_GAMECOMMANDS    256     // command names for command completion
 
@@ -101,19 +106,18 @@ constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "excalibur
 // need to render in some way
 
 // edict->svflags
-#define SVF_NOCLIENT            0x00000001      // don't send entity to clients, even if it has effects
-#define SVF_TRANSMITORIGIN2     0x00000008      // always send old_origin (beams, etc)
-#define SVF_SOUNDCULL           0x00000010      // distance culling
-#define SVF_FAKECLIENT          0x00000020      // do not try to send anything to this client
-#define SVF_BROADCAST           0x00000040      // always transmit
-#define SVF_CORPSE              0x00000080      // treat as CONTENTS_CORPSE for collision
-#define SVF_PROJECTILE          0x00000100      // sets s.solid to SOLID_NOT for prediction
-#define SVF_ONLYTEAM            0x00000200      // this entity is only transmited to clients with the same ent->s.team value
-#define SVF_FORCEOWNER          0x00000400      // this entity forces the entity at s.ownerNum to be included in the snapshot
-#define SVF_ONLYOWNER           0x00000800      // this entity is only transmitted to its owner
-#define SVF_OWNERANDCHASERS     0x00001000      // this entity is only transmitted to its owner and people spectating them
-#define SVF_FORCETEAM           0x00002000      // this entity is always transmitted to clients with the same ent->s.team value
-#define SVF_NEVEROWNER          0x00004000      // this entity is tramitted to everyone but its owner
+#define SVF_NOCLIENT         ( 1 << 0 )      // don't send entity to clients, even if it has effects
+#define SVF_SOUNDCULL        ( 1 << 1 )      // distance culling
+#define SVF_FAKECLIENT       ( 1 << 2 )      // do not try to send anything to this client
+#define SVF_BROADCAST        ( 1 << 3 )      // always transmit
+#define SVF_CORPSE           ( 1 << 4 )      // treat as CONTENTS_CORPSE for collision
+#define SVF_PROJECTILE       ( 1 << 5 )      // sets s.solid to SOLID_NOT for prediction
+#define SVF_ONLYTEAM         ( 1 << 6 )      // this entity is only transmited to clients with the same ent->s.team value
+#define SVF_FORCEOWNER       ( 1 << 7 )      // this entity forces the entity at s.ownerNum to be included in the snapshot
+#define SVF_ONLYOWNER        ( 1 << 8 )      // this entity is only transmitted to its owner
+#define SVF_OWNERANDCHASERS  ( 1 << 9 )      // this entity is only transmitted to its owner and people spectating them
+#define SVF_FORCETEAM        ( 1 << 10 )      // this entity is always transmitted to clients with the same ent->s.team value
+#define SVF_NEVEROWNER       ( 1 << 11 )      // this entity is tramitted to everyone but its owner
 
 // edict->solid values
 enum solid_t {

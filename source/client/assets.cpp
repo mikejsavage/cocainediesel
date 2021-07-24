@@ -16,7 +16,7 @@ struct Asset {
 	char * path;
 	char * data;
 	size_t len;
-	s64 modified_time;
+	FileMetadata metadata;
 	bool compressed;
 };
 
@@ -38,7 +38,7 @@ enum IsCompressed {
 	IsCompressed_Yes,
 };
 
-static void AddAsset( const char * path, u64 hash, s64 modified_time, char * contents, size_t len, IsCompressed compressed ) {
+static void AddAsset( const char * path, u64 hash, FileMetadata metadata, char * contents, size_t len, IsCompressed compressed ) {
 	Lock( assets_mutex );
 	defer { Unlock( assets_mutex ); };
 
@@ -58,7 +58,7 @@ static void AddAsset( const char * path, u64 hash, s64 modified_time, char * con
 
 	a->data = contents;
 	a->len = len;
-	a->modified_time = modified_time;
+	a->metadata = metadata;
 	a->compressed = compressed == IsCompressed_Yes;
 
 	modified_asset_paths[ num_modified_assets ] = a->path;
@@ -73,7 +73,7 @@ static void AddAsset( const char * path, u64 hash, s64 modified_time, char * con
 struct DecompressAssetJob {
 	char * path;
 	u64 hash;
-	s64 modified_time;
+	FileMetadata metadata;
 	Span< u8 > compressed;
 };
 
@@ -92,7 +92,7 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 		memcpy( decompressed_and_terminated, decompressed.ptr, decompressed.n );
 		decompressed_and_terminated[ decompressed.n ] = '\0';
 
-		AddAsset( job->path, job->hash, job->modified_time, decompressed_and_terminated, decompressed.n, IsCompressed_Yes );
+		AddAsset( job->path, job->hash, job->metadata, decompressed_and_terminated, decompressed.n, IsCompressed_Yes );
 	}
 
 	FREE( sys_allocator, decompressed.ptr );
@@ -115,7 +115,7 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 
 	u64 hash = Hash64( game_path_no_zst );
 
-	s64 modified_time = FileLastModifiedTime( temp, full_path );
+	FileMetadata metadata = FileMetadataOrZeroes( temp, full_path );
 
 	{
 		Lock( assets_mutex );
@@ -128,9 +128,12 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 				Sys_Error( "Asset hash name collision: %s and %s", game_path, assets[ idx ].path );
 			}
 
-			bool modified = assets[ idx ].compressed == compressed && assets[ idx ].modified_time != modified_time;
+			bool same_file = assets[ idx ].compressed == compressed;
+			bool modified = assets[ idx ].metadata.modified_time != metadata.modified_time || assets[ idx ].metadata.size != metadata.size;
 			bool replaces = assets[ idx ].compressed && !compressed;
-			if( !( modified || replaces ) ) {
+
+			bool hotload = ( same_file && modified ) || replaces;
+			if( !hotload ) {
 				return;
 			}
 		}
@@ -146,12 +149,12 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 		job->path = ( *sys_allocator )( "{}", game_path_no_zst );
 		job->hash = hash;
 		job->compressed = Span< u8 >( ( u8 * ) contents, len );
-		job->modified_time = modified_time;
+		job->metadata = metadata;
 
 		ThreadPoolDo( DecompressAsset, job );
 	}
 	else {
-		AddAsset( game_path, hash, modified_time, contents, len, IsCompressed_No );
+		AddAsset( game_path, hash, metadata, contents, len, IsCompressed_No );
 	}
 }
 

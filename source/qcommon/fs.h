@@ -34,4 +34,9 @@ struct ListDirHandle {
 ListDirHandle BeginListDir( Allocator * a, const char * path );
 bool ListDirNext( ListDirHandle * handle, const char ** path, bool * dir );
 
-s64 FileLastModifiedTime( TempAllocator * temp, const char * path );
+struct FileMetadata {
+	u64 size;
+	s64 modified_time;
+};
+
+FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path );

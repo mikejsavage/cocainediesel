@@ -176,22 +176,33 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	return true;
 }
 
-s64 FileLastModifiedTime( TempAllocator * temp, const char * path ) {
+FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path ) {
 	wchar_t * wide = UTF8ToWide( temp, path );
 
 	HANDLE handle = CreateFileW( wide, 0, 0, NULL, OPEN_EXISTING, 0, NULL );
 	if( handle == INVALID_HANDLE_VALUE ) {
-		return 0;
+		return { };
 	}
 
 	defer { CloseHandle( handle ); };
 
+	LARGE_INTEGER size;
+	if( GetFileSizeEx( handle, &size ) == 0 ) {
+		return { };
+	}
+
 	FILETIME modified;
 	if( GetFileTime( handle, NULL, NULL, &modified ) == 0 ) {
-		return 0;
+		return { };
 	}
+
+	FileMetadata metadata;
 
 	ULARGE_INTEGER modified64;
 	memcpy( &modified64, &modified, sizeof( modified ) );
-	return modified64.QuadPart;
+
+	metadata.size = size.QuadPart;
+	metadata.modified_time = modified64.QuadPart;
+
+	return metadata;
 }

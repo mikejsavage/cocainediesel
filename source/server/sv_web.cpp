@@ -515,38 +515,6 @@ static int64_t SV_Web_SendFile( sv_http_connection_t *con, int fileno, size_t *p
 	return sent;
 }
 
-// ============================================================================
-// Inter-threading communication
-// Passes queries and responses from the web thread to the main thread and back.
-
-enum {
-	CMD_QUERY_IN
-};
-
-enum {
-	CMD_QUERY_OUT
-};
-
-typedef struct {
-	int id;
-	sv_http_response_t *response;
-	uint64_t request_id;
-	http_query_method_t method;
-	char *resource;
-	const char *query_string;
-} queryInCmd_t;
-
-typedef struct {
-	int id;
-	sv_http_response_t *response;
-	uint64_t request_id;
-	http_response_code_t code;
-	char *content;
-	size_t content_length;
-} queryOutCmd_t;
-
-// ============================================================================
-
 /*
 * SV_Web_ParseStartLine
 */

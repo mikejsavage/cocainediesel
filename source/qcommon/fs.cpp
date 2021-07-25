@@ -71,15 +71,20 @@ const char * FutureHomeDirPath() {
 	return home_dir_path;
 }
 
+// TODO: some kind of better handling
+size_t FileSize( FILE * file ) {
+	fseek( file, 0, SEEK_END );
+	size_t size = ftell( file );
+	fseek( file, 0, SEEK_SET );
+	return size;
+}
+
 char * ReadFileString( Allocator * a, const char * path, size_t * len ) {
 	FILE * file = OpenFile( a, path, "rb" );
 	if( file == NULL )
 		return NULL;
 
-	fseek( file, 0, SEEK_END );
-	size_t size = ftell( file );
-	fseek( file, 0, SEEK_SET );
-
+	size_t size = FileSize( file );
 	char * contents = ( char * ) ALLOC_SIZE( a, size + 1, 16 );
 	size_t r = fread( contents, 1, size, file );
 	fclose( file );
@@ -101,10 +106,7 @@ Span< u8 > ReadFileBinary( Allocator * a, const char * path ) {
 	if( file == NULL )
 		return Span< u8 >();
 
-	fseek( file, 0, SEEK_END );
-	size_t size = ftell( file );
-	fseek( file, 0, SEEK_SET );
-
+	size_t size = FileSize( file );
 	u8 * contents = ( u8 * ) ALLOC_SIZE( a, size, 16 );
 	size_t r = fread( contents, 1, size, file );
 	fclose( file );

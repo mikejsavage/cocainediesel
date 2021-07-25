@@ -1530,41 +1530,6 @@ int NET_Monitor( int msec, socket_t *sockets[], void ( *read_cb )( socket_t *, v
 }
 
 /*
-* NET_SendFile
-*/
-int64_t NET_SendFile( const socket_t *socket, int file, size_t offset, size_t count, const netadr_t *address ) {
-	int ret, err;
-
-	assert( socket->open );
-
-	if( !socket->open ) {
-		return -1;
-	}
-
-	if( address->type == NA_NOTRANSMIT ) {
-		return -1;
-	}
-
-	if( socket->type != SOCKET_TCP ) {
-		return -1;
-	}
-
-	ret = Sys_NET_SendFile( socket->handle, file, offset, count );
-	if( ret == SOCKET_ERROR ) {
-		NET_SetErrorStringFromLastError( "sendfile" );
-
-		err = Sys_NET_GetLastError();
-		if( err == NET_ERR_WOULDBLOCK || err == NET_ERR_CONNRESET ) { // would block
-			return 0;
-		}
-
-		return -1;
-	}
-
-	return ret;
-}
-
-/*
 * NET_Init
 */
 void NET_Init() {

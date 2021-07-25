@@ -717,22 +717,6 @@ int FS_Flush( int file ) {
 }
 
 /*
-* FS_FileNo
-*
-* Returns the file handle that can be used in system calls.
-*/
-int FS_FileNo( int file ) {
-	filehandle_t *fh;
-
-	fh = FS_FileHandleForNum( file );
-	if( fh->fstream && !fh->gzstream ) {
-		return Sys_FS_FileNo( fh->fstream );
-	}
-
-	return -1;
-}
-
-/*
 * FS_SetCompressionLevel
 */
 void FS_SetCompressionLevel( int file, int level ) {

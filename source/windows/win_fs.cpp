@@ -35,13 +35,6 @@ bool Sys_FS_CreateDirectory( const char *path ) {
 	return CreateDirectoryA( path, NULL ) != 0 || GetLastError() == ERROR_ALREADY_EXISTS;
 }
 
-/*
-* Sys_FS_FileNo
-*/
-int Sys_FS_FileNo( FILE *fp ) {
-	return _fileno( fp );
-}
-
 static wchar_t * UTF8ToWide( Allocator * a, const char * utf8 ) {
 	int len = MultiByteToWideChar( CP_UTF8, 0, utf8, -1, NULL, 0 );
 	assert( len != 0 );

@@ -37,13 +37,6 @@ bool Sys_FS_CreateDirectory( const char *path ) {
 	return ( !mkdir( path, 0777 ) );
 }
 
-/*
-* Sys_FS_FileNo
-*/
-int Sys_FS_FileNo( FILE *fp ) {
-	return fileno( fp );
-}
-
 char * FindHomeDirectory( Allocator * a ) {
 	const char * xdg_data_home = getenv( "XDG_DATA_HOME" );
 	if( xdg_data_home != NULL ) {

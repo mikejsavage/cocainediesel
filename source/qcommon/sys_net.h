@@ -29,5 +29,3 @@ net_error_t Sys_NET_GetLastError();
 
 void        Sys_NET_SocketClose( socket_handle_t handle );
 int         Sys_NET_SocketIoctl( socket_handle_t handle, long request, ioctl_param_t* param );
-
-int64_t     Sys_NET_SendFile( socket_handle_t handle, int fileno, size_t offset, size_t count );

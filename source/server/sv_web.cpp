@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server/server.h"
 #include "qcommon/q_trie.h"
 #include "qcommon/fs.h"
+#include "qcommon/string.h"
 #include "qcommon/threads.h"
 
 #define MAX_INCOMING_HTTP_CONNECTIONS           48
@@ -57,12 +58,6 @@ enum sv_http_connstate_t {
 	HTTP_CONN_STATE_SEND,
 };
 
-enum sv_http_content_state_t {
-	CONTENT_STATE_DEFAULT,
-	CONTENT_STATE_AWAITING,
-	CONTENT_STATE_RECEIVED,
-};
-
 struct sv_http_stream_t {
 	size_t header_length;
 	char header_buf[256];
@@ -93,9 +88,6 @@ struct sv_http_request_t {
 struct sv_http_response_t {
 	http_response_code_t code;
 	sv_http_stream_t stream;
-
-	sv_http_content_state_t content_state;
-	size_t content_length;
 
 	FILE * file;
 	char * filename;
@@ -188,9 +180,6 @@ static void SV_Web_ResetResponse( sv_http_response_t *response ) {
 		fclose( response->file );
 		response->file = NULL;
 	}
-
-	response->content_state = CONTENT_STATE_DEFAULT;
-	response->content_length = 0;
 
 	SV_Web_ResetStream( &response->stream );
 
@@ -618,8 +607,6 @@ static const char *SV_Web_ResponseCodeMessage( http_response_code_t code ) {
 }
 
 static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_response_t *response, size_t *content_length ) {
-	*content_length = 0;
-
 	response->filename = CopyString( sys_allocator, request->resource );
 
 	if( request->method != HTTP_METHOD_GET && request->method != HTTP_METHOD_HEAD ) {
@@ -650,28 +637,16 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 }
 
 static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
-	char vastr[1024];
-	char err_body[1024] = "";
-	size_t header_length = 0;
 	size_t content_length = 0;
 	sv_http_request_t *request = &con->request;
 	sv_http_response_t *response = &con->response;
 	sv_http_stream_t *resp_stream = &response->stream;
 
-	if( request->error ) {
+	if( request->error != 0 ) {
 		response->code = request->error;
-	} else if( response->content_state == CONTENT_STATE_AWAITING ) {
-		return;
-	} else if( response->content_state == CONTENT_STATE_RECEIVED ) {
-		content_length = response->content_length;
-	} else {
+	}
+	else {
 		SV_Web_RouteRequest( request, response, &content_length );
-
-		if( response->content_state == CONTENT_STATE_AWAITING ) {
-			// later
-			con->last_active = Sys_Milliseconds();
-			return;
-		}
 
 		if( response->file ) {
 			Com_Printf( "HTTP serving file '%s' to '%s'\n", response->filename, NET_AddressToString( &con->address ) );
@@ -685,37 +660,27 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 
 	con->state = HTTP_CONN_STATE_SEND;
 
-	snprintf( resp_stream->header_buf, sizeof( resp_stream->header_buf ),
-				 "%s %i %s\r\nServer: " APPLICATION "\r\n",
-				 request->http_ver, response->code, SV_Web_ResponseCodeMessage( response->code ) );
+	String< sizeof( resp_stream->header_buf ) - 1 > headers;
+	headers.append( "{} {} {}\r\n", request->http_ver, response->code, SV_Web_ResponseCodeMessage( response->code ) );
+	headers.append( "Server: " APPLICATION "\r\n" );
 
-	if( response->code >= HTTP_RESP_BAD_REQUEST || !content_length ) {
-		// error response or empty response: just return response code + description
-		Q_strncatz( resp_stream->header_buf, "Content-Type: text/plain\r\n",
-					sizeof( resp_stream->header_buf ) );
+	if( response->code == HTTP_RESP_OK ) {
+		headers.append( "Content-Length: {}\r\n", content_length );
+		headers.append( "Content-Disposition: attachment; filename=\"{}\"\r\n", FileName( response->filename ) );
+		headers += "\r\n";
+	}
+	else {
+		String< 64 > error( "{} {}\n", response->code, SV_Web_ResponseCodeMessage( response->code ) );;
 
-		snprintf( err_body, sizeof( err_body ), "%i %s\n",
-					 response->code, SV_Web_ResponseCodeMessage( response->code ) );
+		headers.append( "Content-Type: text/plain\r\n" );
+		headers.append( "Content-Length: {}\r\n", error.length() );
+		headers += "\r\n";
+		headers += error;
 	}
 
-	// resource length
-	Q_strncatz( resp_stream->header_buf, va( "Content-Length: %" PRIuPTR "\r\n", (uintptr_t)content_length ),
-				sizeof( resp_stream->header_buf ) );
+	ggformat( resp_stream->header_buf, sizeof( resp_stream->header_buf ), "{}", headers );
 
-	if( response->file ) {
-		snprintf( vastr, sizeof( vastr ), "Content-Disposition: attachment; filename=\"%s\"\r\n",
-					 COM_FileBase( response->filename ) );
-		Q_strncatz( resp_stream->header_buf, vastr, sizeof( resp_stream->header_buf ) );
-	}
-
-	Q_strncatz( resp_stream->header_buf, "\r\n", sizeof( resp_stream->header_buf ) );
-
-	header_length = strlen( resp_stream->header_buf );
-	if( strlen( err_body ) > 0 ) {
-		Q_strncatz( resp_stream->header_buf, err_body, sizeof( resp_stream->header_buf ) );
-		content_length = strlen( err_body );
-	}
-	resp_stream->header_length = header_length;
+	resp_stream->header_length = headers.length();
 	resp_stream->content_length = content_length;
 }
 

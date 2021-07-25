@@ -74,7 +74,6 @@ struct sv_http_stream_t {
 };
 
 struct sv_http_request_t {
-	uint64_t id;
 	http_query_method_t method;
 	http_response_code_t error;
 	sv_http_stream_t stream;
@@ -92,7 +91,6 @@ struct sv_http_request_t {
 };
 
 struct sv_http_response_t {
-	uint64_t request_id;
 	http_response_code_t code;
 	sv_http_stream_t stream;
 
@@ -172,7 +170,6 @@ static void SV_Web_ResetRequest( sv_http_request_t *request ) {
 
 	NET_InitAddress( &request->realAddr, NA_NOTRANSMIT );
 
-	request->id = 0;
 	request->got_start_line = false;
 	request->error = HTTP_RESP_NONE;
 	request->clientNum = -1;
@@ -585,8 +582,6 @@ static void SV_Web_ReceiveRequest( socket_t *socket, sv_http_connection_t *con )
 		}
 	}
 
-	request->id = SV_Web_GetNewRequestId();
-
 	if( !sv_http_running ) {
 		return;
 	}
@@ -624,8 +619,6 @@ static const char *SV_Web_ResponseCodeMessage( http_response_code_t code ) {
 
 static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_response_t *response, size_t *content_length ) {
 	*content_length = 0;
-
-	response->request_id = request->id;
 
 	response->filename = CopyString( sys_allocator, request->resource );
 

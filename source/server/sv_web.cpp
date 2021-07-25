@@ -65,7 +65,7 @@ enum sv_http_content_state_t {
 
 struct sv_http_stream_t {
 	size_t header_length;
-	char header_buf[0x4000];
+	char header_buf[256];
 	size_t header_buf_p;
 	bool header_done;
 

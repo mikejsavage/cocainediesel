@@ -33,12 +33,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define HTTP_SERVER_SLEEP_TIME                  50 // milliseconds
 
 enum http_query_method_t {
-	HTTP_METHOD_BAD = -1,
-	HTTP_METHOD_NONE = 0,
-	HTTP_METHOD_GET  = 1,
-	HTTP_METHOD_POST = 2,
-	HTTP_METHOD_PUT  = 3,
-	HTTP_METHOD_HEAD = 4,
+	HTTP_METHOD_NONE,
+	HTTP_METHOD_GET,
+	HTTP_METHOD_HEAD,
 };
 
 enum http_response_code_t {
@@ -383,10 +380,6 @@ static void SV_Web_ParseStartLine( sv_http_request_t *request, char *line ) {
 
 	if( !Q_stricmp( token, "GET" ) ) {
 		request->method = HTTP_METHOD_GET;
-	} else if( !Q_stricmp( token, "POST" ) ) {
-		request->method = HTTP_METHOD_POST;
-	} else if( !Q_stricmp( token, "PUT" ) ) {
-		request->method = HTTP_METHOD_PUT;
 	} else if( !Q_stricmp( token, "HEAD" ) ) {
 		request->method = HTTP_METHOD_HEAD;
 	} else {

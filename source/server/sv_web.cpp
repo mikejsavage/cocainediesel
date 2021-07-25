@@ -48,7 +48,6 @@ enum http_response_code_t {
 	HTTP_RESP_FORBIDDEN = 403,
 	HTTP_RESP_NOT_FOUND = 404,
 	HTTP_RESP_REQUEST_TOO_LARGE = 413,
-	HTTP_RESP_SERVICE_UNAVAILABLE = 503,
 };
 
 enum sv_http_connstate_t {
@@ -601,7 +600,6 @@ static const char *SV_Web_ResponseCodeMessage( http_response_code_t code ) {
 		case HTTP_RESP_FORBIDDEN: return "Forbidden";
 		case HTTP_RESP_NOT_FOUND: return "Not Found";
 		case HTTP_RESP_REQUEST_TOO_LARGE: return "Request Entity Too Large";
-		case HTTP_RESP_SERVICE_UNAVAILABLE: return "Service unavailable";
 		default: return "Unknown Error";
 	}
 }

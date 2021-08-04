@@ -1,6 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/hash.h"
+#include "client/client.h"
 #include "client/renderer/renderer.h"
 #include "client/assets.h"
 #include "cgame/ref.h"
@@ -67,10 +68,13 @@ static VertexFormat VertexFormatFromGLTF( cgltf_type dim, cgltf_component_type c
 	return VertexFormat_Floatx4; // TODO: actual error handling
 }
 
-static void LoadGeometry( Model * model, const cgltf_node * node, const Mat4 & transform ) {
+static void LoadGeometry( const char * filename, Model * model, const cgltf_node * node, const Mat4 & transform ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	const cgltf_primitive & prim = node->mesh->primitives[ 0 ];
 
 	MeshConfig mesh_config;
+	mesh_config.name = temp( "{} - {}", filename, node->name );
 
 	for( size_t i = 0; i < prim.attributes_count; i++ ) {
 		const cgltf_attribute & attr = prim.attributes[ i ];
@@ -130,7 +134,7 @@ static void LoadGeometry( Model * model, const cgltf_node * node, const Mat4 & t
 	primitive->material = FindMaterial( material_name );
 }
 
-static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
+static void LoadNode( const char * filename, Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
 	u8 idx = *node_idx;
 	*node_idx += 1;
 	SetNodeIdx( gltf_node, idx );
@@ -175,11 +179,11 @@ static void LoadNode( Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
 	// TODO: this will break if multiple nodes share a mesh
 	if( gltf_node->mesh != NULL ) {
 		node->primitive = model->num_primitives;
-		LoadGeometry( model, gltf_node, node->global_transform );
+		LoadGeometry( filename, model, gltf_node, node->global_transform );
 	}
 
 	for( size_t i = 0; i < gltf_node->children_count; i++ ) {
-		LoadNode( model, gltf_node->children[ i ], node_idx );
+		LoadNode( filename, model, gltf_node->children[ i ], node_idx );
 	}
 
 	if( gltf_node->children_count == 0 ) {
@@ -344,7 +348,7 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 
 	u8 node_idx = 0;
 	for( size_t i = 0; i < gltf->scene->nodes_count; i++ ) {
-		LoadNode( model, gltf->scene->nodes[ i ], &node_idx );
+		LoadNode( path, model, gltf->scene->nodes[ i ], &node_idx );
 		model->nodes[ GetNodeIdx( gltf->scene->nodes[ i ] ) ].sibling = U8_MAX;
 	}
 

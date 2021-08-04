@@ -111,6 +111,7 @@ void InitRenderer() {
 		};
 
 		MeshConfig config;
+		config.name = "Fullscreen triangle";
 		config.positions = NewVertexBuffer( positions, sizeof( positions ) );
 		config.num_vertices = 3;
 		fullscreen_mesh = NewMesh( config );
@@ -118,6 +119,7 @@ void InitRenderer() {
 
 	{
 		MeshConfig config;
+		config.name = "Dynamic geometry";
 		config.positions = NewVertexBuffer( sizeof( Vec3 ) * 4 * MaxDynamicVerts );
 		config.tex_coords = NewVertexBuffer( sizeof( Vec2 ) * 4 * MaxDynamicVerts );
 		config.colors = NewVertexBuffer( sizeof( RGBA8 ) * 4 * MaxDynamicVerts );

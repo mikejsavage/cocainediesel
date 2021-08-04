@@ -407,6 +407,13 @@ static void DebugOutputCallbackAMD(
 	DebugOutputCallback( GL_DONT_CARE, type, id, severity, length, message, _ );
 }
 
+static void DebugLabel( GLenum type, GLuint object, const char * label ) {
+	assert( label != NULL );
+	if( GLAD_GL_KHR_debug != 0 ) {
+		glObjectLabel( type, object, -1, label );
+	}
+}
+
 static void PlotVRAMUsage() {
 #if !PUBLIC_BUILD
 	if( GLAD_GL_NVX_gpu_memory_info != 0 ) {
@@ -1506,6 +1513,7 @@ Mesh NewMesh( MeshConfig config ) {
 	GLuint vao;
 	glGenVertexArrays( 1, &vao );
 	glBindVertexArray( vao );
+	DebugLabel( GL_VERTEX_ARRAY, vao, config.name );
 
 	if( config.unified_buffer.vbo == 0 ) {
 		assert( config.positions.vbo != 0 );

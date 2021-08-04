@@ -4,6 +4,7 @@
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/span2d.h"
+#include "client/client.h"
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/maps.h"
@@ -339,7 +340,7 @@ static int Order2BezierSubdivisions( Vec3 control0, Vec3 control1, Vec3 control2
 	return Order2BezierSubdivisions( control0, control1, control2, max_error, control0, control2, 0.0f, 1.0f );
 }
 
-static Model LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSpans & bsp, size_t model_idx ) {
+static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex > & vertices, const BSPSpans & bsp, size_t model_idx ) {
 	ZoneScoped;
 
 	const BSPModel & bsp_model = bsp.models[ model_idx ];
@@ -500,7 +501,10 @@ static Model LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPS
 	model.num_primitives = primitives.size();
 	memcpy( model.primitives, primitives.ptr(), primitives.num_bytes() );
 
+	TempAllocator temp = cls.frame_arena.temp();
+
 	MeshConfig mesh_config;
+	mesh_config.name = temp( "{} - {}", filename, model_idx );
 	mesh_config.ccw_winding = false;
 	mesh_config.unified_buffer = NewVertexBuffer( vertices.ptr(), vertices.num_bytes() );
 	mesh_config.stride = sizeof( vertices[ 0 ] );
@@ -526,7 +530,7 @@ static Model LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPS
 	return model;
 }
 
-bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data ) {
+bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< const u8 > data ) {
 	ZoneScoped;
 
 	BSPSpans bsp;
@@ -563,7 +567,7 @@ bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data ) {
 	map->models = ALLOC_MANY( sys_allocator, Model, bsp.models.n );
 
 	for( size_t i = 0; i < bsp.models.n; i++ ) {
-		map->models[ i ] = LoadBSPModel( vertices, bsp, i );
+		map->models[ i ] = LoadBSPModel( filename, vertices, bsp, i );
 	}
 
 	DynamicArray< GPUBSPNode > nodes( sys_allocator, bsp.nodes.n );

@@ -542,11 +542,11 @@ void        Com_DeferConsoleLogReopen();
 #ifndef _MSC_VER
 void Com_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 void Com_DPrintf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-void Com_Error( com_error_code_t code, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
+void Com_Error( const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
 #else
 void Com_Printf( _Printf_format_string_ const char *format, ... );
 void Com_DPrintf( _Printf_format_string_ const char *format, ... );
-void Com_Error( com_error_code_t code, _Printf_format_string_ const char *format, ... );
+void Com_Error( _Printf_format_string_ const char *format, ... );
 #endif
 
 void Com_Quit();
@@ -561,10 +561,10 @@ void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
 #define Com_GGPrint( fmt, ... ) Com_GGPrintNL( fmt "\n", ##__VA_ARGS__ )
 
 template< typename... Rest >
-void Com_GGError( com_error_code_t code, const char * fmt, const Rest & ... rest ) {
+void Com_GGError( const char * fmt, const Rest & ... rest ) {
 	char buf[ 4096 ];
 	ggformat( buf, sizeof( buf ), fmt, rest... );
-	Com_Error( code, "%s", buf );
+	Com_Error( "%s", buf );
 }
 
 void        Com_DeferQuit();

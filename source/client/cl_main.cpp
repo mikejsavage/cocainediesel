@@ -88,7 +88,7 @@ void CL_AddReliableCommand( const char *cmd ) {
 	// we must drop the connection
 	if( cls.reliableSequence > cls.reliableAcknowledge + MAX_RELIABLE_COMMANDS ) {
 		cls.reliableAcknowledge = cls.reliableSequence; // try to avoid loops
-		Com_Error( ERR_DROP, "Client command overflow %" PRIi64 " %" PRIi64, cls.reliableAcknowledge, cls.reliableSequence );
+		Com_Error( "Client command overflow %" PRIi64 " %" PRIi64, cls.reliableAcknowledge, cls.reliableSequence );
 	}
 	cls.reliableSequence++;
 	index = cls.reliableSequence & ( MAX_RELIABLE_COMMANDS - 1 );
@@ -201,7 +201,7 @@ static void CL_CheckForResend() {
 		cls.servertype = SOCKET_LOOPBACK;
 		NET_InitAddress( &cls.serveraddress, NA_LOOPBACK );
 		if( !NET_OpenSocket( &cls.socket_loopback, cls.servertype, &cls.serveraddress, false ) ) {
-			Com_Error( ERR_FATAL, "Couldn't open the loopback socket\n" );
+			Sys_Error( "Couldn't open the loopback socket\n" );
 			return;
 		}
 		cls.socket = &cls.socket_loopback;
@@ -234,7 +234,7 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 		case SOCKET_LOOPBACK:
 			NET_InitAddress( &socketaddress, NA_LOOPBACK );
 			if( !NET_OpenSocket( &cls.socket_loopback, SOCKET_LOOPBACK, &socketaddress, false ) ) {
-				Com_Error( ERR_FATAL, "Couldn't open the loopback socket: %s\n", NET_ErrorString() ); // FIXME
+				Sys_Error( "Couldn't open the loopback socket: %s\n", NET_ErrorString() ); // FIXME
 				return;
 			}
 			cls.socket = &cls.socket_loopback;
@@ -1572,7 +1572,7 @@ void CL_Init() {
 	// IPv4
 	NET_InitAddress( &address, NA_IP );
 	if( !NET_OpenSocket( &cls.socket_udp, SOCKET_UDP, &address, false ) ) {
-		Com_Error( ERR_FATAL, "Couldn't open UDP socket: %s", NET_ErrorString() );
+		Sys_Error( "Couldn't open UDP socket: %s", NET_ErrorString() );
 	}
 
 	// IPv6

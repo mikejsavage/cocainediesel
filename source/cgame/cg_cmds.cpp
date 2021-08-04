@@ -75,7 +75,7 @@ void CG_ConfigString( int i, const char *s ) {
 	}
 
 	if( i < 0 || i >= MAX_CONFIGSTRINGS ) {
-		Com_Error( ERR_DROP, "configstring > MAX_CONFIGSTRINGS" );
+		Com_Error( "configstring > MAX_CONFIGSTRINGS" );
 		return;
 	}
 

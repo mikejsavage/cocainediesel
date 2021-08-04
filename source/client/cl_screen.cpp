@@ -125,7 +125,7 @@ static void SCR_RenderView() {
 		cl.cms = cl.map->cms;
 		if( cl.cms->checksum != client_gs.gameState.map_checksum ) {
 			// TODO: hotloading breaks this because server checksum doesn't get updated until the next server frame
-			// Com_Error( ERR_DROP, "Local map version differs from server: %u != '%u'", cl.cms->checksum, client_gs.gameState.map_checksum );
+			// Com_Error( "Local map version differs from server: %u != '%u'", cl.cms->checksum, client_gs.gameState.map_checksum );
 		}
 
 		CL_GameModule_RenderView();

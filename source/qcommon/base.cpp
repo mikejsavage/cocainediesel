@@ -1,4 +1,7 @@
+#include <stdarg.h>
+
 #include "qcommon/base.h"
+#include "qcommon/qcommon.h"
 
 bool break1 = false;
 bool break2 = false;
@@ -20,4 +23,17 @@ char * CopyString( Allocator * a, const char * str ) {
 
 Span< const char > MakeSpan( const char * str ) {
 	return Span< const char >( str, strlen( str ) );
+}
+
+void Sys_Error( const char * format, ... ) {
+	va_list argptr;
+	char msg[ 1024 ];
+
+	va_start( argptr, format );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
+	va_end( argptr );
+
+	Sys_ShowErrorMessage( msg );
+
+	abort();
 }

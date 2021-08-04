@@ -519,10 +519,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 				}
 			}
 		}
-	} else if( view->type == VIEWDEF_DEMOCAM ) {
-		CG_DemoCam_GetViewDef( view );
 	} else {
-		Com_Error( ERR_DROP, "CG_SetupView: Invalid view type %i\n", view->type );
+		CG_DemoCam_GetViewDef( view );
 	}
 
 	if( view->type == VIEWDEF_PLAYERVIEW ) {

@@ -92,7 +92,7 @@ void PF_ConfigString( int index, const char *val ) {
 	}
 
 	if( index < 0 || index >= MAX_CONFIGSTRINGS ) {
-		Com_Error( ERR_DROP, "configstring: bad index %i", index );
+		Sys_Error( "configstring: bad index %i", index );
 	}
 
 	size_t len = strlen( val );

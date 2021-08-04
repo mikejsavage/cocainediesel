@@ -45,7 +45,7 @@ char * FindHomeDirectory( Allocator * a ) {
 
 	const char * home = getenv( "HOME" );
 	if( home == NULL ) {
-		Com_Error( ERR_FATAL, "Can't find home directory" );
+		Sys_Error( "Can't find home directory" );
 	}
 
 	return ( *a )( "{}/.local/share/{}", home, APPLICATION );
@@ -64,7 +64,7 @@ bool MoveFile( Allocator * a, const char * old_path, const char * new_path, Move
 	}
 
 	if( errno == ENOSYS || errno == EINVAL || errno == EFAULT ) {
-		Com_Error( ERR_FATAL, "rename" );
+		Sys_Error( "rename" );
 	}
 
 	return false;

@@ -961,7 +961,7 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	}
 
 	if( ubo == NULL )
-		Com_Error( ERR_FATAL, "Ran out of UBO space" );
+		Sys_Error( "Ran out of UBO space" );
 
 	UniformBlock block;
 	block.ubo = ubo->ubo;

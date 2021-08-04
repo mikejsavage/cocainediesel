@@ -382,7 +382,7 @@ bool Netchan_Transmit( netchan_t *chan, msg_t *msg ) {
 	assert( msg );
 
 	if( msg->cursize > MAX_MSGLEN ) {
-		Com_Error( ERR_DROP, "Netchan_Transmit: Excessive length = %li", msg->cursize );
+		Com_Error( "Netchan_Transmit: Excessive length = %li", msg->cursize );
 		return false;
 	}
 	chan->unsentFragmentStart = 0;

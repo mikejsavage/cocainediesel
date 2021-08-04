@@ -66,15 +66,15 @@ int SNAP_ReadDemoMessage( int demofile, msg_t *msg ) {
 	}
 
 	if( msglen > MAX_MSGLEN ) {
-		Com_Error( ERR_DROP, "Error reading demo file: msglen > MAX_MSGLEN" );
+		Com_Error( "Error reading demo file: msglen > MAX_MSGLEN" );
 	}
 	if( (size_t )msglen > msg->maxsize ) {
-		Com_Error( ERR_DROP, "Error reading demo file: msglen > msg->maxsize" );
+		Com_Error( "Error reading demo file: msglen > msg->maxsize" );
 	}
 
 	read = FS_Read( msg->data, msglen, demofile );
 	if( read != msglen ) {
-		Com_Error( ERR_DROP, "Error reading demo file: End of file" );
+		Com_Error( "Error reading demo file: End of file" );
 	}
 
 	msg->cursize = msglen;

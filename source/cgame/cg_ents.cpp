@@ -530,7 +530,7 @@ static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
 
 	owner = &cg_entities[cent->current.ownerNum];
 	if( owner->serverFrame != cg.frame.serverFrame ) {
-		Com_Error( ERR_DROP, "CG_UpdateLaserbeamEnt: owner is not in the snapshot\n" );
+		Com_Error( "CG_UpdateLaserbeamEnt: owner is not in the snapshot\n" );
 	}
 
 	owner->localEffects[LOCALEFFECT_LASERBEAM] = cl.serverTime + 10;
@@ -784,7 +784,7 @@ void DrawEntities() {
 				break;
 
 			default:
-				Com_Error( ERR_DROP, "DrawEntities: unknown entity type" );
+				Com_Error( "DrawEntities: unknown entity type" );
 				break;
 		}
 
@@ -853,7 +853,7 @@ void CG_LerpEntities() {
 				break;
 
 			default:
-				Com_Error( ERR_DROP, "CG_LerpEntities: unknown entity type" );
+				Com_Error( "CG_LerpEntities: unknown entity type" );
 				break;
 		}
 
@@ -937,7 +937,7 @@ void CG_UpdateEntities() {
 				break;
 
 			default:
-				Com_Error( ERR_DROP, "CG_UpdateEntities: unknown entity type %i", cent->type );
+				Com_Error( "CG_UpdateEntities: unknown entity type %i", cent->type );
 				break;
 		}
 	}

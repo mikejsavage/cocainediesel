@@ -238,7 +238,7 @@ edict_t *G_Spawn() {
 			G_InitEdict( freed );
 			return freed;
 		}
-		Com_Error( ERR_DROP, "G_Spawn: no free edicts" );
+		Sys_Error( "G_Spawn: no free edicts" );
 	}
 
 	game.numentities++;

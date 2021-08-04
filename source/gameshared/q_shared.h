@@ -195,17 +195,6 @@ constexpr float S_DEFAULT_ATTENUATION_REFDISTANCE = 250.0f;
 
 //==============================================================
 //
-//SYSTEM SPECIFIC
-//
-//==============================================================
-
-enum com_error_code_t {
-	ERR_FATAL,      // exit the entire game with a popup window
-	ERR_DROP,       // print to console and disconnect from game
-};
-
-//==============================================================
-//
 //FILESYSTEM
 //
 //==============================================================

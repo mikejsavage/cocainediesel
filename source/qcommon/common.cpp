@@ -224,51 +224,25 @@ void Com_DPrintf( const char *format, ... ) {
 	Com_Printf( "%s", msg );
 }
 
-
 /*
-* Com_Error
-*
-* Both client and server can use this, and it will
-* do the apropriate things.
-*/
-void Com_Error( com_error_code_t code, const char *format, ... ) {
+ * Quit when run on the server, disconnect when run on the client
+ */
+void Com_Error( const char *format, ... ) {
 	va_list argptr;
-	char *msg = com_errormsg;
-	const size_t sizeof_msg = sizeof( com_errormsg );
-	static bool recursive = false;
-
-	if( recursive ) {
-		Com_Printf( "recursive error after: %s", msg ); // wsw : jal : log it
-		Sys_Error( "recursive error after: %s", msg );
-	}
-	recursive = true;
+	char msg[ MAX_PRINTMSG ];
 
 	va_start( argptr, format );
-	vsnprintf( msg, sizeof_msg, format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
-	if( code == ERR_DROP ) {
-		Com_Printf( "********************\nERROR: %s\n********************\n", msg );
-		SV_ShutdownGame( va( "Server crashed: %s\n", msg ), false );
-		CL_Disconnect( msg );
-		recursive = false;
+	Com_Printf( "********************\nERROR: %s\n********************\n", msg );
+	SV_ShutdownGame( "Server crashed", false );
+	CL_Disconnect( msg );
 #if PUBLIC_BUILD
-		longjmp( abortframe, -1 );
+	longjmp( abortframe, -1 );
 #else
-		abort();
+	abort();
 #endif
-	} else {
-		Com_Printf( "********************\nERROR: %s\n********************\n", msg );
-		SV_Shutdown( va( "Server fatal crashed: %s\n", msg ) );
-		CL_Shutdown();
-	}
-
-	if( log_file != NULL ) {
-		fclose( log_file );
-		log_file = NULL;
-	}
-
-	Sys_Error( "%s", msg );
 }
 
 /*
@@ -362,7 +336,7 @@ void COM_InitArgv( int argc, char **argv ) {
 	int i;
 
 	if( argc > MAX_NUM_ARGVS ) {
-		Com_Error( ERR_FATAL, "argc > MAX_NUM_ARGVS" );
+		Sys_Error( "argc > MAX_NUM_ARGVS" );
 	}
 	com_argc = argc;
 	for( i = 0; i < argc; i++ ) {
@@ -381,7 +355,7 @@ void COM_InitArgv( int argc, char **argv ) {
 */
 void COM_AddParm( char *parm ) {
 	if( com_argc == MAX_NUM_ARGVS ) {
-		Com_Error( ERR_FATAL, "COM_AddParm: MAX_NUM_ARGVS" );
+		Sys_Error( "COM_AddParm: MAX_NUM_ARGVS" );
 	}
 	com_argv[com_argc++] = parm;
 }
@@ -520,10 +494,6 @@ void Qcommon_Init( int argc, char **argv ) {
 #endif
 
 	Sys_Init();
-
-	if( setjmp( abortframe ) ) {
-		Sys_Error( "Error during initialization: %s", com_errormsg );
-	}
 
 	com_print_mutex = NewMutex();
 

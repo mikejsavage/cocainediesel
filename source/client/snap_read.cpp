@@ -126,10 +126,10 @@ static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot
 	while( true ) {
 		newnum = MSG_ReadEntityNumber( msg, &remove );
 		if( newnum >= MAX_EDICTS ) {
-			Com_Error( ERR_DROP, "CL_ParsePacketEntities: bad number:%i", newnum );
+			Com_Error( "CL_ParsePacketEntities: bad number:%i", newnum );
 		}
 		if( msg->readcount > msg->cursize ) {
-			Com_Error( ERR_DROP, "CL_ParsePacketEntities: end of message" );
+			Com_Error( "CL_ParsePacketEntities: end of message" );
 		}
 
 		if( !newnum ) {
@@ -315,7 +315,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *back
 	// read game commands
 	int cmd = MSG_ReadUint8( msg );
 	if( cmd != svc_gamecommands ) {
-		Com_Error( ERR_DROP, "SNAP_ParseFrame: not gamecommands" );
+		Com_Error( "SNAP_ParseFrame: not gamecommands" );
 	}
 
 	size_t numtargets = 0;
@@ -327,10 +327,10 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *back
 			( !lastFrame || !lastFrame->valid || newframe->serverFrame > lastFrame->serverFrame + framediff ) ) {
 			newframe->numgamecommands++;
 			if( newframe->numgamecommands > MAX_PARSE_GAMECOMMANDS ) {
-				Com_Error( ERR_DROP, "SNAP_ParseFrame: too many gamecommands" );
+				Com_Error( "SNAP_ParseFrame: too many gamecommands" );
 			}
 			if( newframe->gamecommandsDataHead + strlen( text ) >= sizeof( newframe->gamecommandsData ) ) {
-				Com_Error( ERR_DROP, "SNAP_ParseFrame: too much gamecommands" );
+				Com_Error( "SNAP_ParseFrame: too much gamecommands" );
 			}
 
 			gcmd = &newframe->gamecommands[newframe->numgamecommands - 1];
@@ -345,7 +345,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *back
 				numtargets = MSG_ReadUint8( msg );
 				if( numtargets ) {
 					if( numtargets > sizeof( gcmd->targets ) ) {
-						Com_Error( ERR_DROP, "SNAP_ParseFrame: too many gamecommand targets" );
+						Com_Error( "SNAP_ParseFrame: too many gamecommand targets" );
 					}
 					gcmd->all = false;
 					MSG_ReadData( msg, gcmd->targets, numtargets );
@@ -361,7 +361,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *back
 	cmd = MSG_ReadUint8( msg );
 	_SHOWNET( msg, svc_strings[cmd], showNet );
 	if( cmd != svc_match ) {
-		Com_Error( ERR_DROP, "SNAP_ParseFrame: not match info" );
+		Com_Error( "SNAP_ParseFrame: not match info" );
 	}
 	SNAP_ParseDeltaGameState( msg, deltaframe, newframe );
 
@@ -370,7 +370,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *back
 	while( ( cmd = MSG_ReadUint8( msg ) ) ) {
 		_SHOWNET( msg, svc_strings[cmd], showNet );
 		if( cmd != svc_playerinfo ) {
-			Com_Error( ERR_DROP, "SNAP_ParseFrame: not playerinfo" );
+			Com_Error( "SNAP_ParseFrame: not playerinfo" );
 		}
 		if( deltaframe && deltaframe->numplayers >= numplayers ) {
 			SNAP_ParsePlayerstate( msg, &deltaframe->playerStates[numplayers], &newframe->playerStates[numplayers] );
@@ -386,7 +386,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *back
 	cmd = MSG_ReadUint8( msg );
 	_SHOWNET( msg, svc_strings[cmd], showNet );
 	if( cmd != svc_packetentities ) {
-		Com_Error( ERR_DROP, "SNAP_ParseFrame: not packetentities" );
+		Com_Error( "SNAP_ParseFrame: not packetentities" );
 	}
 	SNAP_ParsePacketEntities( msg, deltaframe, newframe, baselines, showNet );
 

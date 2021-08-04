@@ -66,22 +66,6 @@ void Sys_Quit() {
 	exit( 0 );
 }
 
-void Sys_Error( const char *format, ... ) {
-	va_list argptr;
-	char string[1024];
-
-	// change stdin to non blocking
-	fcntl( 0, F_SETFL, fcntl( 0, F_GETFL, 0 ) & ~O_NONBLOCK );
-
-	va_start( argptr, format );
-	vsnprintf( string, sizeof( string ), format, argptr );
-	va_end( argptr );
-
-	fprintf( stderr, "Error: %s\n", string );
-
-	_exit( 1 );
-}
-
 int main( int argc, char **argv ) {
 	unsigned int oldtime, newtime, time;
 

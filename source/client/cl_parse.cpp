@@ -106,11 +106,11 @@ static void CL_ParseServerData( msg_t *msg ) {
 		if( cls.demo.playing ) {
 			Com_Printf( S_COLOR_YELLOW "This demo was recorded with an old version of the game and may be broken!\n" );
 			if( !cls.demo.yolo ) {
-				Com_Error( ERR_DROP, "Run yolodemo %s to force load it", cls.demo.name );
+				Com_Error( "Run yolodemo %s to force load it", cls.demo.name );
 			}
 		}
 		else {
-			Com_GGError( ERR_DROP, "Server returned version {}, not {}", i, APP_PROTOCOL_VERSION );
+			Com_GGError( "Server returned version {}, not {}", i, APP_PROTOCOL_VERSION );
 		}
 	}
 
@@ -213,7 +213,7 @@ static void CL_UpdateConfigString( int idx, const char *s ) {
 	}
 
 	if( idx < 0 || idx >= MAX_CONFIGSTRINGS ) {
-		Com_Error( ERR_DROP, "configstring > MAX_CONFIGSTRINGS" );
+		Com_Error( "configstring > MAX_CONFIGSTRINGS" );
 	}
 
 	// wsw : jal : warn if configstring overflow
@@ -329,14 +329,13 @@ void CL_ParseServerMessage( msg_t *msg ) {
 		// other commands
 		switch( cmd ) {
 			default:
-				Com_Error( ERR_DROP, "CL_ParseServerMessage: Illegible server message" );
+				Com_Error( "CL_ParseServerMessage: Illegible server message" );
 				break;
 
 			case svc_servercmd: {
 				int cmdNum = MSG_ReadInt32( msg );
 				if( cmdNum < 0 ) {
-					Com_Error( ERR_DROP, "CL_ParseServerMessage: Invalid cmdNum value received: %i\n",
-							   cmdNum );
+					Com_Error( "CL_ParseServerMessage: Invalid cmdNum value received: %i\n", cmdNum );
 					return;
 				}
 				if( cmdNum <= cls.lastExecutedServerCommand ) {
@@ -399,13 +398,13 @@ void CL_ParseServerMessage( msg_t *msg ) {
 			case svc_playerinfo:
 			case svc_packetentities:
 			case svc_match:
-				Com_Error( ERR_DROP, "Out of place frame data" );
+				Com_Error( "Out of place frame data" );
 				break;
 		}
 	}
 
 	if( msg->readcount > msg->cursize ) {
-		Com_Error( ERR_DROP, "CL_ParseServerMessage: Bad server message" );
+		Com_Error( "CL_ParseServerMessage: Bad server message" );
 		return;
 	}
 

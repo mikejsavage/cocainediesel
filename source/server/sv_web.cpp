@@ -59,9 +59,6 @@ struct sv_http_stream_t {
 	char header_buf[256];
 	size_t header_buf_p;
 	bool header_done;
-
-	size_t content_p;
-	size_t content_length;
 };
 
 struct sv_http_request_t {
@@ -87,6 +84,8 @@ struct sv_http_response_t {
 
 	FILE * file;
 	char * filename;
+	size_t filesize;
+	size_t filesent;
 };
 
 struct sv_http_connection_t {
@@ -130,8 +129,6 @@ static void SV_Web_ResetStream( sv_http_stream_t *stream ) {
 	stream->header_done = false;
 	stream->header_length = 0;
 	stream->header_buf_p = 0;
-	stream->content_length = 0;
-	stream->content_p = 0;
 }
 
 static void SV_Web_ResetRequest( sv_http_request_t *request ) {
@@ -176,6 +173,9 @@ static void SV_Web_ResetResponse( sv_http_response_t *response ) {
 		fclose( response->file );
 		response->file = NULL;
 	}
+
+	response->filesize = 0;
+	response->filesent = 0;
 
 	SV_Web_ResetStream( &response->stream );
 
@@ -424,23 +424,22 @@ static void SV_Web_ParseStartLine( sv_http_request_t *request, char *line ) {
 }
 
 static void SV_Web_AnalyzeHeader( sv_http_request_t *request, const char *key, const char *value ) {
-	sv_http_stream_t *stream = &request->stream;
+	const sv_http_stream_t * stream = &request->stream;
 
-	//
-	// store valuable information for quicker access
 	if( !Q_stricmp( key, "Content-Length" ) ) {
-		stream->content_length = atoi( value );
-		if( stream->content_length != 0 ) {
-			request->error = HTTP_RESP_REQUEST_TOO_LARGE;
-		}
-	} else if( !Q_stricmp( key, "Host" ) ) {
-		// valid HTTP 1.1 request must contain Host header
-		if( !value || !*value ) {
+		u64 length;
+		bool ok = TryStringToU64( value, &length );
+		if( !ok ) {
 			request->error = HTTP_RESP_BAD_REQUEST;
 		}
-	} else if( !Q_stricmp( key, "X-Client" ) ) {
+		else if( length > 0 ) {
+			request->error = HTTP_RESP_REQUEST_TOO_LARGE;
+		}
+	}
+	else if( !Q_stricmp( key, "X-Client" ) ) {
 		request->clientNum = atoi( value );
-	} else if( !Q_stricmp( key, "X-Session" ) ) {
+	}
+	else if( !Q_stricmp( key, "X-Session" ) ) {
 		request->clientSession = ZoneCopyString( value );
 	}
 }
@@ -571,10 +570,7 @@ static void SV_Web_ReceiveRequest( socket_t *socket, sv_http_connection_t *con )
 		con->last_active = Sys_Milliseconds();
 	}
 
-	if( request->error ) {
-		con->state = HTTP_CONN_STATE_RESP;
-	} else if( request->stream.header_done && request->stream.content_p >= request->stream.content_length ) {
-		// yay, fully got the request
+	if( request->error || request->stream.header_done ) {
 		con->state = HTTP_CONN_STATE_RESP;
 	}
 
@@ -597,7 +593,7 @@ static const char *SV_Web_ResponseCodeMessage( http_response_code_t code ) {
 	}
 }
 
-static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_response_t *response, size_t *content_length ) {
+static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_response_t *response ) {
 	response->filename = CopyString( sys_allocator, request->resource );
 
 	if( request->method != HTTP_METHOD_GET && request->method != HTTP_METHOD_HEAD ) {
@@ -623,12 +619,11 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 		return;
 	}
 
-	*content_length = FileSize( response->file );
+	response->filesize = FileSize( response->file );
 	response->code = HTTP_RESP_OK;
 }
 
 static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
-	size_t content_length = 0;
 	sv_http_request_t *request = &con->request;
 	sv_http_response_t *response = &con->response;
 	sv_http_stream_t *resp_stream = &response->stream;
@@ -637,7 +632,7 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 		response->code = request->error;
 	}
 	else {
-		SV_Web_RouteRequest( request, response, &content_length );
+		SV_Web_RouteRequest( request, response );
 
 		if( response->file ) {
 			Com_Printf( "HTTP serving file '%s' to '%s'\n", response->filename, NET_AddressToString( &con->address ) );
@@ -656,7 +651,7 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 	headers.append( "Server: " APPLICATION "\r\n" );
 
 	if( response->code == HTTP_RESP_OK ) {
-		headers.append( "Content-Length: {}\r\n", content_length );
+		headers.append( "Content-Length: {}\r\n", response->filesize );
 		headers.append( "Content-Disposition: attachment; filename=\"{}\"\r\n", FileName( response->filename ) );
 		headers += "\r\n";
 	}
@@ -672,36 +667,33 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 	ggformat( resp_stream->header_buf, sizeof( resp_stream->header_buf ), "{}", headers );
 
 	resp_stream->header_length = headers.length();
-	resp_stream->content_length = content_length;
 }
 
-static size_t SV_Web_SendResponse( sv_http_connection_t *con ) {
+static void SV_Web_SendResponse( sv_http_connection_t *con ) {
 	size_t total_sent = 0;
 	sv_http_response_t *response = &con->response;
 	sv_http_stream_t *stream = &response->stream;
 
-	while( !stream->header_done && sv_http_running ) {
+	while( sv_http_running ) {
 		const char * sendbuf = stream->header_buf + stream->header_buf_p;
 		size_t sendbuf_size = stream->header_length - stream->header_buf_p;
-
 		int sent = SV_Web_Send( con, sendbuf, sendbuf_size );
-		if( sent <= 0 ) {
+		if( sent <= 0 )
 			break;
-		}
 
 		stream->header_buf_p += sent;
-		if( stream->header_buf_p >= stream->header_length ) {
-			stream->header_done = true;
-		}
-
 		total_sent += sent;
+
+		if( stream->header_buf_p >= stream->header_length ) {
+			break;
+		}
 	}
 
-	while( stream->content_p < stream->content_length && sv_http_running ) {
+	while( response->filesent < response->filesize && sv_http_running ) {
 		int sent = SendFileChunk( con, response->file );
 		if( sent <= 0 )
 			break;
-		stream->content_p += sent;
+		response->filesent += sent;
 		total_sent += sent;
 	}
 
@@ -709,11 +701,7 @@ static size_t SV_Web_SendResponse( sv_http_connection_t *con ) {
 		con->last_active = Sys_Milliseconds();
 	}
 
-	if( stream->header_done && stream->content_p >= stream->content_length ) {
-		con->open = false;
-	}
-
-	return total_sent;
+	con->open = false;
 }
 
 static void SV_Web_WriteResponse( socket_t *socket, sv_http_connection_t *con ) {

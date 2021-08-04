@@ -33,6 +33,21 @@ inline float Square( float x ) {
 	return x * x;
 }
 
+template< typename T >
+T Lerp( T a, float t, T b ) {
+	return a * ( 1.0f - t ) + b * t;
+}
+
+template< typename T >
+float Unlerp( T lo, T x, T hi ) {
+	return float( x - lo ) / float( hi - lo );
+}
+
+template< typename T >
+float Unlerp01( T lo, T x, T hi ) {
+	return Clamp01( Unlerp( lo, x, hi ) );
+}
+
 // some stubs to catch accidental double usage
 void sinf( double );
 void cosf( double );

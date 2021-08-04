@@ -519,7 +519,7 @@ static void CG_DrawObituaries(
 ) {
 	const int icon_padding = 4;
 
-	unsigned line_height = Max3( 1u, unsigned( layout_cursor_font_size ), icon_size );
+	unsigned line_height = Max2( 1u, Max2( unsigned( layout_cursor_font_size ), icon_size ) );
 	int num_max = height / line_height;
 
 	if( width < (int)icon_size || !num_max ) {

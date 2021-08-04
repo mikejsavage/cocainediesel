@@ -36,7 +36,6 @@ static bool commands_intialized = false;
 
 static int com_argc;
 static char *com_argv[MAX_NUM_ARGVS + 1];
-static char com_errormsg[MAX_PRINTMSG];
 
 static bool com_quit;
 

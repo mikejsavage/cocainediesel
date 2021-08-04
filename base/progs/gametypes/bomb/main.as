@@ -46,14 +46,6 @@ const uint MAX_SITES = 26;
 
 const int COUNTDOWN_MAX = 6; // was 4, but this gives people more time to change weapons
 
-// this should really kill the program
-// but i'm mostly using it as an indicator that it's about to die anyway
-void assert( const bool test, const String msg ) {
-	if( !test ) {
-		G_Print( S_COLOR_RED + "assert failed: " + msg + "\n" );
-	}
-}
-
 uint min( uint a, uint b ) {
 	return a < b ? a : b;
 }

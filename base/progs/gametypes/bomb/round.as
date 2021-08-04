@@ -377,7 +377,7 @@ Client @firstAliveOnTeam( int teamNum ) {
 		}
 	}
 
-	assert( false, "round.as firstAliveOnTeam: found nobody" );
+	Sys_Error( "round.as firstAliveOnTeam: found nobody" );
 
 	return null; // shut up compiler
 }

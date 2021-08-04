@@ -335,7 +335,7 @@ void COM_InitArgv( int argc, char **argv ) {
 	int i;
 
 	if( argc > MAX_NUM_ARGVS ) {
-		Sys_Error( "argc > MAX_NUM_ARGVS" );
+		Fatal( "argc > MAX_NUM_ARGVS" );
 	}
 	com_argc = argc;
 	for( i = 0; i < argc; i++ ) {
@@ -354,7 +354,7 @@ void COM_InitArgv( int argc, char **argv ) {
 */
 void COM_AddParm( char *parm ) {
 	if( com_argc == MAX_NUM_ARGVS ) {
-		Sys_Error( "COM_AddParm: MAX_NUM_ARGVS" );
+		Fatal( "COM_AddParm: MAX_NUM_ARGVS" );
 	}
 	com_argv[com_argc++] = parm;
 }
@@ -426,7 +426,7 @@ void *Q_malloc( size_t size ) {
 	void *buf = malloc( size );
 
 	if( !buf ) {
-		Sys_Error( "Q_malloc: failed on allocation of %" PRIuPTR " bytes.\n", (uintptr_t)size );
+		Fatal( "Q_malloc: failed on allocation of %" PRIuPTR " bytes.\n", (uintptr_t)size );
 	}
 
 	return buf;
@@ -441,7 +441,7 @@ void *Q_realloc( void *buf, size_t newsize ) {
 	void *newbuf = realloc( buf, newsize );
 
 	if( !newbuf && newsize ) {
-		Sys_Error( "Q_realloc: failed on allocation of %" PRIuPTR " bytes.\n", (uintptr_t)newsize );
+		Fatal( "Q_realloc: failed on allocation of %" PRIuPTR " bytes.\n", (uintptr_t)newsize );
 	}
 
 	return newbuf;

@@ -260,7 +260,7 @@ static void OnGlfwError( int code, const char * message ) {
 	if( code == GLFW_FORMAT_UNAVAILABLE && strstr( message, "Failed to convert" ) )
 		return;
 
-	Sys_Error( "GLFW error %d: %s", code, message );
+	Fatal( "GLFW error %d: %s", code, message );
 }
 
 static GLFWmonitor * GetMonitorByIdx( int i ) {
@@ -326,7 +326,7 @@ void CreateWindow( WindowMode mode ) {
 	}
 
 	if( window == NULL ) {
-		Sys_Error( "glfwCreateWindow" );
+		Fatal( "glfwCreateWindow" );
 	}
 
 	GLFWimage icon;
@@ -349,7 +349,7 @@ void CreateWindow( WindowMode mode ) {
 	glfwMakeContextCurrent( window );
 
 	if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
-		Sys_Error( "Couldn't load GL" );
+		Fatal( "Couldn't load GL" );
 	}
 }
 
@@ -492,7 +492,7 @@ int main( int argc, char ** argv ) {
 		glfwSetErrorCallback( OnGlfwError );
 
 		if( !glfwInit() ) {
-			Sys_Error( "glfwInit" );
+			Fatal( "glfwInit" );
 		}
 
 		glfwSetMonitorCallback( OnMonitorConfigChange );

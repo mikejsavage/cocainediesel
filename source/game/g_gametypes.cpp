@@ -591,7 +591,7 @@ void G_Gametype_Init() {
 
 	if( !GT_asLoadScript( gt ) ) {
 #if PUBLIC_BUILD
-		Sys_Error( "Failed to load %s", gt );
+		Fatal( "Failed to load %s", gt );
 #endif
 	}
 }

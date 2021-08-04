@@ -24,13 +24,13 @@ struct CurlRequestContext {
 
 static void CheckEasyError( const char * func, CURLcode err ) {
 	if( err != CURLE_OK ) {
-		Sys_Error( "Curl error in %s: %s (%d)", func, curl_easy_strerror( err ), err );
+		Fatal( "Curl error in %s: %s (%d)", func, curl_easy_strerror( err ), err );
 	}
 }
 
 static void CheckMultiError( const char * func, CURLMcode err ) {
 	if( err != CURLM_OK ) {
-		Sys_Error( "Curl error in %s: %s (%d)", func, curl_multi_strerror( err ), err );
+		Fatal( "Curl error in %s: %s (%d)", func, curl_multi_strerror( err ), err );
 	}
 }
 
@@ -38,7 +38,7 @@ void InitDownloads() {
 	curl_global_init( CURL_GLOBAL_DEFAULT );
 	curl = curl_multi_init();
 	if( curl == NULL ) {
-		Sys_Error( "Couldn't init curl" );
+		Fatal( "Couldn't init curl" );
 	}
 
 	CheckMultiError( "curl_multi_setopt", curl_multi_setopt( curl, CURLMOPT_MAX_TOTAL_CONNECTIONS, 8l ) );
@@ -81,7 +81,7 @@ static size_t CurlDataCallback( char * data, size_t size, size_t nmemb, void * u
 void StartDownload( const char * url, CurlDoneCallback done_callback, const char ** headers, size_t num_headers ) {
 	request = curl_easy_init();
 	if( request == NULL ) {
-		Sys_Error( "curl_easy_init" );
+		Fatal( "curl_easy_init" );
 	}
 
 	CurlRequestContext * context = ALLOC( sys_allocator, CurlRequestContext );
@@ -92,7 +92,7 @@ void StartDownload( const char * url, CurlDoneCallback done_callback, const char
 	for( size_t i = 0; i < num_headers; i++ ) {
 		context->headers = curl_slist_append( context->headers, headers[ i ] );
 		if( context->headers == NULL ) {
-			Sys_Error( "curl_slist_append" );
+			Fatal( "curl_slist_append" );
 		}
 	}
 

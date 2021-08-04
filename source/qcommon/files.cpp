@@ -221,7 +221,7 @@ static int FS_OpenFileHandle() {
 
 	if( !fs_free_filehandles ) {
 		Unlock( fs_fh_mutex );
-		Sys_Error( "FS_OpenFileHandle: no free file handles" );
+		Fatal( "FS_OpenFileHandle: no free file handles" );
 	}
 
 	fh = fs_free_filehandles;
@@ -244,7 +244,7 @@ static int FS_OpenFileHandle() {
 */
 static inline filehandle_t *FS_FileHandleForNum( int file ) {
 	if( file < 1 || file > FS_MAX_HANDLES ) {
-		Sys_Error( "FS_FileHandleForNum: bad handle: %i", file );
+		Fatal( "FS_FileHandleForNum: bad handle: %i", file );
 	}
 	return &fs_filehandles[file - 1];
 }
@@ -257,7 +257,7 @@ static inline int FS_FileNumForHandle( filehandle_t *fh ) {
 
 	file = ( fh - fs_filehandles ) + 1;
 	if( file < 1 || file > FS_MAX_HANDLES ) {
-		Sys_Error( "FS_FileHandleForNum: bad handle: %i", file );
+		Fatal( "FS_FileHandleForNum: bad handle: %i", file );
 	}
 	return file;
 }
@@ -631,7 +631,7 @@ int FS_Write( const void *buffer, size_t len, int file ) {
 
 	written = fwrite( buf, 1, len, fh->fstream );
 	if( written != len ) {
-		Sys_Error( "FS_Write: can't write %" PRIuPTR " bytes", (uintptr_t)len );
+		Fatal( "FS_Write: can't write %" PRIuPTR " bytes", (uintptr_t)len );
 	}
 
 	fh->offset += written;

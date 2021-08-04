@@ -28,7 +28,7 @@ void InitCSPRNG() {
 	bytes_since_stir = 0;
 
 	if( !InitChacha() ) {
-		Sys_Error( "InitChacha" );
+		Fatal( "InitChacha" );
 	}
 }
 

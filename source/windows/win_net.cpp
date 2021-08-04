@@ -54,7 +54,7 @@ static void WSAError( const char * name ) {
 	FormatMessageA( FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL,
 		err, MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), buf, sizeof( buf ), NULL );
 
-	Sys_Error( "%s: %s (%d)", name, buf, err );
+	Fatal( "%s: %s (%d)", name, buf, err );
 }
 
 void Sys_NET_Init() {

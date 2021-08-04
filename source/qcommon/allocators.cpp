@@ -6,26 +6,26 @@
 void * Allocator::allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
 	void * p = try_allocate( size, alignment, func, file, line );
 	if( p == NULL )
-		Sys_Error( "Allocation failed in '%s' (%s:%d)", func, file, line );
+		Fatal( "Allocation failed in '%s' (%s:%d)", func, file, line );
 	return p;
 }
 
 void * Allocator::reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
 	void * new_p = try_reallocate( ptr, current_size, new_size, alignment, func, file, line );
 	if( new_p == NULL )
-		Sys_Error( "Reallocation failed in '%s' (%s:%d)", func, file, line );
+		Fatal( "Reallocation failed in '%s' (%s:%d)", func, file, line );
 	return new_p;
 }
 
 void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
 	if( n != 0 && SIZE_MAX / n < size )
-		Sys_Error( "allocation too large" );
+		Fatal( "allocation too large" );
 	return a->allocate( n * size, alignment, func, file, line );
 }
 
 void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
 	if( SIZE_MAX / new_n < size )
-		Sys_Error( "allocation too large" );
+		Fatal( "allocation too large" );
 	return a->reallocate( ptr, current_n * size, new_n * size, alignment, func, file, line );
 }
 
@@ -100,7 +100,7 @@ struct AllocationTracker {
 			return;
 		Lock( mutex );
 		if( allocations.erase( ptr ) == 0 )
-			Sys_Error( "Stray free in '%s' (%s:%d)", func, file, line );
+			Fatal( "Stray free in '%s' (%s:%d)", func, file, line );
 		Unlock( mutex );
 	};
 };

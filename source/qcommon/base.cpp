@@ -25,7 +25,7 @@ Span< const char > MakeSpan( const char * str ) {
 	return Span< const char >( str, strlen( str ) );
 }
 
-void Sys_Error( const char * format, ... ) {
+void Fatal( const char * format, ... ) {
 	va_list argptr;
 	char msg[ 1024 ];
 

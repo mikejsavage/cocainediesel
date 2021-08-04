@@ -30,7 +30,7 @@ Thread * NewThread( void ( *callback )( void * ), void * data ) {
 	DWORD id;
 	HANDLE handle = CreateThread( 0, 0, ThreadWrapper, tsd, 0, &id );
 	if( handle == NULL ) {
-		Sys_Error( "CreateThread" );
+		Fatal( "CreateThread" );
 	}
 
 	// can't use sys_allocator because serverlist leaks its threads
@@ -68,7 +68,7 @@ Semaphore * NewSemaphore() {
 	LONG max = 8192;
 	HANDLE handle = CreateSemaphoreA( NULL, 0, max, NULL );
 	if( handle == NULL ) {
-		Sys_Error( "CreateSemaphoreA" );
+		Fatal( "CreateSemaphoreA" );
 	}
 
 	Semaphore * sem = ALLOC( sys_allocator, Semaphore );
@@ -88,7 +88,7 @@ void Signal( Semaphore * sem, int n ) {
 	if( ReleaseSemaphore( sem->handle, n, NULL ) == 0 ) {
 		DWORD error = GetLastError();
 		if( error != ERROR_TOO_MANY_POSTS ) {
-			Sys_Error( "ReleaseSemaphore" );
+			Fatal( "ReleaseSemaphore" );
 		}
 	}
 }

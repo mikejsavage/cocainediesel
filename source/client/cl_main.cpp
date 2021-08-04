@@ -201,7 +201,7 @@ static void CL_CheckForResend() {
 		cls.servertype = SOCKET_LOOPBACK;
 		NET_InitAddress( &cls.serveraddress, NA_LOOPBACK );
 		if( !NET_OpenSocket( &cls.socket_loopback, cls.servertype, &cls.serveraddress, false ) ) {
-			Sys_Error( "Couldn't open the loopback socket\n" );
+			Fatal( "Couldn't open the loopback socket\n" );
 			return;
 		}
 		cls.socket = &cls.socket_loopback;
@@ -234,7 +234,7 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 		case SOCKET_LOOPBACK:
 			NET_InitAddress( &socketaddress, NA_LOOPBACK );
 			if( !NET_OpenSocket( &cls.socket_loopback, SOCKET_LOOPBACK, &socketaddress, false ) ) {
-				Sys_Error( "Couldn't open the loopback socket: %s\n", NET_ErrorString() ); // FIXME
+				Fatal( "Couldn't open the loopback socket: %s\n", NET_ErrorString() ); // FIXME
 				return;
 			}
 			cls.socket = &cls.socket_loopback;
@@ -1572,7 +1572,7 @@ void CL_Init() {
 	// IPv4
 	NET_InitAddress( &address, NA_IP );
 	if( !NET_OpenSocket( &cls.socket_udp, SOCKET_UDP, &address, false ) ) {
-		Sys_Error( "Couldn't open UDP socket: %s", NET_ErrorString() );
+		Fatal( "Couldn't open UDP socket: %s", NET_ErrorString() );
 	}
 
 	// IPv6

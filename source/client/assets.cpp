@@ -125,7 +125,7 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 		bool exists = assets_hashtable.get( hash, &idx );
 		if( exists ) {
 			if( !StrEqual( game_path_no_zst, asset_paths[ idx ] ) ) {
-				Sys_Error( "Asset hash name collision: %s and %s", game_path, assets[ idx ].path );
+				Fatal( "Asset hash name collision: %s and %s", game_path, assets[ idx ].path );
 			}
 
 			bool same_file = assets[ idx ].compressed == compressed;

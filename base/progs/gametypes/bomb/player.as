@@ -130,7 +130,7 @@ cPlayer @playerFromClient( Client @client ) {
 
 	// XXX: as of 0.18 this check shouldn't be needed as playersInit works
 	if( @player == null ) {
-		Sys_Error( "player.as playerFromClient: no player exists for client - state: " + client.state() );
+		Fatal( "player.as playerFromClient: no player exists for client - state: " + client.state() );
 
 		return cPlayer( @client );
 	}

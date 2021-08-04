@@ -230,7 +230,7 @@ void Cbuf_ExecuteText( int exec_when, const char *text ) {
 			Cbuf_AddText( text );
 			break;
 		default:
-			Sys_Error( "Cbuf_ExecuteText: bad exec_when" );
+			Fatal( "Cbuf_ExecuteText: bad exec_when" );
 	}
 }
 

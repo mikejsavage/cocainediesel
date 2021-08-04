@@ -685,9 +685,9 @@ bool Sys_OpenInWebBrowser( const char * url );
 bool Sys_BeingDebugged();
 
 #ifndef _MSC_VER
-void Sys_Error( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
+void Fatal( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 #else
-void Sys_Error( _Printf_format_string_ const char *error, ... );
+void Fatal( _Printf_format_string_ const char *error, ... );
 #endif
 
 void Sys_Quit();

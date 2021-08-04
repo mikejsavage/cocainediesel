@@ -58,7 +58,7 @@ static char * WideToUTF8( Allocator * a, const wchar_t * wide ) {
 char * FindHomeDirectory( Allocator * a ) {
 	wchar_t * wide_documents_path;
 	if( SHGetKnownFolderPath( FOLDERID_Documents, 0, NULL, &wide_documents_path ) != S_OK ) {
-		Sys_Error( "SHGetKnownFolderPath" );
+		Fatal( "SHGetKnownFolderPath" );
 	}
 	defer { CoTaskMemFree( wide_documents_path ); };
 

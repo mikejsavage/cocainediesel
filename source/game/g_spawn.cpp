@@ -217,15 +217,15 @@ static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent ) {
 		if( key == "}" )
 			break;
 		if( key.ptr == NULL ) {
-			Sys_Error( "ED_ParseEntity: EOF without closing brace" );
+			Fatal( "ED_ParseEntity: EOF without closing brace" );
 		}
 
 		Span< const char > value = ParseToken( cursor, Parse_StopOnNewLine );
 		if( value.ptr == NULL ) {
-			Sys_Error( "ED_ParseEntity: EOF without closing brace" );
+			Fatal( "ED_ParseEntity: EOF without closing brace" );
 		}
 		if( value == "}" ) {
-			Sys_Error( "ED_ParseEntity: closing brace without data" );
+			Fatal( "ED_ParseEntity: closing brace without data" );
 		}
 
 		ED_ParseField( key, value, ent );
@@ -265,7 +265,7 @@ static void SpawnMapEntities() {
 		if( brace == "" )
 			break;
 		if( brace != "{" ) {
-			Sys_Error( "SpawnMapEntities: entity string doesn't begin with {" );
+			Fatal( "SpawnMapEntities: entity string doesn't begin with {" );
 		}
 
 		if( ent == NULL ) {
@@ -397,12 +397,12 @@ void G_LoadMap( const char * name ) {
 		Span< u8 > compressed = ReadFileBinary( sys_allocator, zst_path );
 		defer { FREE( sys_allocator, compressed.ptr ); };
 		if( compressed.ptr == NULL ) {
-			Sys_Error( "Couldn't find map %s", name );
+			Fatal( "Couldn't find map %s", name );
 		}
 
 		bool ok = Decompress( zst_path, sys_allocator, compressed, &data );
 		if( !ok ) {
-			Sys_Error( "Couldn't decompress %s", zst_path );
+			Fatal( "Couldn't decompress %s", zst_path );
 		}
 	}
 

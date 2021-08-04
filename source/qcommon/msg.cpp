@@ -44,7 +44,7 @@ void *MSG_GetSpace( msg_t *msg, size_t length ) {
 
 	assert( msg->cursize + length <= msg->maxsize );
 	if( msg->cursize + length > msg->maxsize ) {
-		Sys_Error( "MSG_GetSpace: overflowed" );
+		Fatal( "MSG_GetSpace: overflowed" );
 	}
 
 	ptr = msg->data + msg->cursize;

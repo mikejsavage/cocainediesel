@@ -1332,8 +1332,8 @@ static void asFunc_ClearCenterPrint( edict_t *ent ) {
 	G_ClearCenterPrint( ent );
 }
 
-static void asFunc_Error( const asstring_t *str ) {
-	Sys_Error( "%s", str->buffer );
+static void asFunc_Fatal( const asstring_t *str ) {
+	Fatal( "%s", str->buffer );
 }
 
 static void asFunc_G_Sound( edict_t *owner, int channel, u64 sound ) {
@@ -1514,7 +1514,7 @@ static const asglobfuncs_t asGameGlobFuncs[] = {
 	{ "void G_PrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_PrintMsg ), NULL },
 	{ "void G_CenterPrintMsg( Entity @, const String &in )", asFUNCTION( asFunc_CenterPrintMsg ), NULL },
 	{ "void G_ClearCenterPrint( Entity @ )", asFUNCTION( asFunc_ClearCenterPrint ), NULL },
-	{ "void Sys_Error( const String &in )", asFUNCTION( asFunc_Error ), NULL },
+	{ "void Fatal( const String &in )", asFUNCTION( asFunc_Fatal ), NULL },
 	{ "void G_Sound( Entity @, int channel, uint64 sound )", asFUNCTION( asFunc_G_Sound ), NULL },
 	{ "void G_PositionedSound( const Vec3 &in, int channel, uint64 sound )", asFUNCTION( asFunc_PositionedSound ), NULL },
 	{ "void G_GlobalSound( int channel, uint64 sound )", asFUNCTION( asFunc_G_GlobalSound ), NULL },

@@ -147,7 +147,7 @@ cBombSite @getSiteFromIndicator( Entity @ent ) {
 		}
 	}
 
-	Sys_Error( "site.as getSiteFromIndicator: couldn't find a site" );
+	Fatal( "site.as getSiteFromIndicator: couldn't find a site" );
 
 	return null; // shut up compiler
 }

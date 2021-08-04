@@ -158,7 +158,7 @@ void SV_InitGame() {
 	if( !is_dedicated_server ) {
 		NET_InitAddress( &address, NA_LOOPBACK );
 		if( !NET_OpenSocket( &svs.socket_loopback, SOCKET_LOOPBACK, &address, true ) ) {
-			Sys_Error( "Couldn't open loopback socket: %s\n", NET_ErrorString() );
+			Fatal( "Couldn't open loopback socket: %s\n", NET_ErrorString() );
 		}
 	}
 
@@ -187,7 +187,7 @@ void SV_InitGame() {
 	}
 
 	if( is_dedicated_server && !socket_opened ) {
-		Sys_Error( "Couldn't open any socket\n" );
+		Fatal( "Couldn't open any socket\n" );
 	}
 
 	// init game

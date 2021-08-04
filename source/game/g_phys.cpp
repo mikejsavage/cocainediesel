@@ -335,7 +335,7 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 	}
 
 	if( pushed_p > &pushed[MAX_EDICTS] ) {
-		Sys_Error( "pushed_p > &pushed[MAX_EDICTS], memory corrupted" );
+		Fatal( "pushed_p > &pushed[MAX_EDICTS], memory corrupted" );
 	}
 
 	if( blocked ) {
@@ -584,6 +584,6 @@ void G_RunEntity( edict_t *ent ) {
 			SV_Physics_LinearProjectile( ent );
 			break;
 		default:
-			Sys_Error( "SV_Physics: bad movetype %i", (int)ent->movetype );
+			Fatal( "SV_Physics: bad movetype %i", (int)ent->movetype );
 	}
 }

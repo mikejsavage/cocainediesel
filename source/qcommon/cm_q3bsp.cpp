@@ -425,11 +425,11 @@ static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
 
 	in = ( dshaderref_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMod_LoadSurfaces: funny lump size" );
+		Fatal( "CMod_LoadSurfaces: funny lump size" );
 	}
 	count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "CMod_LoadSurfaces: map with no shaders" );
+		Fatal( "CMod_LoadSurfaces: map with no shaders" );
 	}
 
 	out = cms->map_shaderrefs = ALLOC_MANY( sys_allocator, cshaderref_t, count );
@@ -469,11 +469,11 @@ static void CMod_LoadVertexes( CollisionModel *cms, lump_t *l ) {
 
 	in = ( dvertex_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMOD_LoadVertexes: funny lump size" );
+		Fatal( "CMOD_LoadVertexes: funny lump size" );
 	}
 	count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "Map with no vertexes" );
+		Fatal( "Map with no vertexes" );
 	}
 
 	out = cms->map_verts = ALLOC_MANY( sys_allocator, Vec3, count );
@@ -494,11 +494,11 @@ static void CMod_LoadVertexes_RBSP( CollisionModel *cms, lump_t *l ) {
 
 	in = ( rdvertex_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMod_LoadVertexes_RBSP: funny lump size" );
+		Fatal( "CMod_LoadVertexes_RBSP: funny lump size" );
 	}
 	count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "Map with no vertexes" );
+		Fatal( "Map with no vertexes" );
 	}
 
 	out = cms->map_verts = ALLOC_MANY( sys_allocator, Vec3, count );
@@ -545,11 +545,11 @@ static void CMod_LoadFaces( CollisionModel *cms, lump_t *l ) {
 
 	in = ( dface_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMod_LoadFaces: funny lump size" );
+		Fatal( "CMod_LoadFaces: funny lump size" );
 	}
 	count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "Map with no faces" );
+		Fatal( "Map with no faces" );
 	}
 
 	out = cms->map_faces = ALLOC_MANY( sys_allocator, cface_t, count );
@@ -573,11 +573,11 @@ static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 
 	in = ( rdface_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMod_LoadFaces_RBSP: funny lump size" );
+		Fatal( "CMod_LoadFaces_RBSP: funny lump size" );
 	}
 	count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "Map with no faces" );
+		Fatal( "Map with no faces" );
 	}
 
 	out = cms->map_faces = ALLOC_MANY( sys_allocator, cface_t, count );
@@ -597,11 +597,11 @@ static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, lump_t *l ) {
 	const dmodel_t * in = ( dmodel_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMod_LoadSubmodels: funny lump size" );
+		Fatal( "CMod_LoadSubmodels: funny lump size" );
 	}
 	int count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "Map with no models" );
+		Fatal( "Map with no models" );
 	}
 
 	cms->num_models = count;
@@ -650,11 +650,11 @@ static void CMod_LoadNodes( CollisionModel *cms, lump_t *l ) {
 
 	in = ( dnode_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMod_LoadNodes: funny lump size" );
+		Fatal( "CMod_LoadNodes: funny lump size" );
 	}
 	count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "Map has no nodes" );
+		Fatal( "Map has no nodes" );
 	}
 
 	out = cms->map_nodes = ALLOC_MANY( sys_allocator, cnode_t, count );
@@ -680,11 +680,11 @@ static void CMod_LoadMarkFaces( CollisionModel *cms, lump_t *l ) {
 
 	in = ( int * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMod_LoadMarkFaces: funny lump size" );
+		Fatal( "CMod_LoadMarkFaces: funny lump size" );
 	}
 	count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "Map with no leaffaces" );
+		Fatal( "Map with no leaffaces" );
 	}
 
 	out = cms->map_markfaces = ALLOC_MANY( sys_allocator, int, count );
@@ -693,7 +693,7 @@ static void CMod_LoadMarkFaces( CollisionModel *cms, lump_t *l ) {
 	for( i = 0; i < count; i++ ) {
 		j = LittleLong( in[i] );
 		if( j < 0 || j >= cms->numfaces ) {
-			Sys_Error( "CMod_LoadMarkFaces: bad surface number" );
+			Fatal( "CMod_LoadMarkFaces: bad surface number" );
 		}
 		out[i] = j;
 	}
@@ -707,11 +707,11 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 
 	in = ( dleaf_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMod_LoadLeafs: funny lump size" );
+		Fatal( "CMod_LoadLeafs: funny lump size" );
 	}
 	count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "Map with no leafs" );
+		Fatal( "Map with no leafs" );
 	}
 
 	out = cms->map_leafs = ALLOC_MANY( sys_allocator, cleaf_t, count );
@@ -759,11 +759,11 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 static void CMod_LoadPlanes( CollisionModel *cms, lump_t *l ) {
 	dplane_t * in = ( dplane_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMod_LoadPlanes: funny lump size" );
+		Fatal( "CMod_LoadPlanes: funny lump size" );
 	}
 	int count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "Map with no planes" );
+		Fatal( "Map with no planes" );
 	}
 
 	cplane_t * out = cms->map_planes = ALLOC_MANY( sys_allocator, cplane_t, count );
@@ -786,11 +786,11 @@ static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
 
 	in = ( int * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMod_LoadMarkBrushes: funny lump size" );
+		Fatal( "CMod_LoadMarkBrushes: funny lump size" );
 	}
 	count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "Map with no leafbrushes" );
+		Fatal( "Map with no leafbrushes" );
 	}
 
 	out = cms->map_markbrushes = ALLOC_MANY( sys_allocator, int, count );
@@ -803,11 +803,11 @@ static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
 static void CMod_LoadBrushSides( CollisionModel *cms, lump_t *l ) {
 	dbrushside_t * in = ( dbrushside_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMod_LoadBrushSides: funny lump size" );
+		Fatal( "CMod_LoadBrushSides: funny lump size" );
 	}
 	int count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "Map with no brushsides" );
+		Fatal( "Map with no brushsides" );
 	}
 
 	cbrushside_t * out = cms->map_brushsides = ALLOC_MANY( sys_allocator, cbrushside_t, count );
@@ -817,7 +817,7 @@ static void CMod_LoadBrushSides( CollisionModel *cms, lump_t *l ) {
 		cplane_t *plane = cms->map_planes + LittleLong( in->planenum );
 		int j = LittleLong( in->shadernum );
 		if( j >= cms->numshaderrefs ) {
-			Sys_Error( "Bad brushside texinfo" );
+			Fatal( "Bad brushside texinfo" );
 		}
 		out->plane = *plane;
 		out->surfFlags = cms->map_shaderrefs[j].flags;
@@ -832,11 +832,11 @@ static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
 
 	in = ( rdbrushside_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMod_LoadBrushSides_RBSP: funny lump size" );
+		Fatal( "CMod_LoadBrushSides_RBSP: funny lump size" );
 	}
 	count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "Map with no brushsides" );
+		Fatal( "Map with no brushsides" );
 	}
 
 	out = cms->map_brushsides = ALLOC_MANY( sys_allocator, cbrushside_t, count );
@@ -846,7 +846,7 @@ static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
 		cplane_t *plane = cms->map_planes + LittleLong( in->planenum );
 		j = LittleLong( in->shadernum );
 		if( j >= cms->numshaderrefs ) {
-			Sys_Error( "Bad brushside texinfo" );
+			Fatal( "Bad brushside texinfo" );
 		}
 		out->plane = *plane;
 		out->surfFlags = cms->map_shaderrefs[j].flags;
@@ -869,11 +869,11 @@ static void CMod_LoadBrushes( CollisionModel *cms, lump_t *l ) {
 
 	in = ( dbrush_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
-		Sys_Error( "CMod_LoadBrushes: funny lump size" );
+		Fatal( "CMod_LoadBrushes: funny lump size" );
 	}
 	count = l->filelen / sizeof( *in );
 	if( count < 1 ) {
-		Sys_Error( "Map with no brushes" );
+		Fatal( "Map with no brushes" );
 	}
 
 	out = cms->map_brushes = ALLOC_MANY( sys_allocator, cbrush_t, count );

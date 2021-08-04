@@ -141,7 +141,7 @@ static void CheckALErrors( const char * fmt, const Rest & ... rest ) {
 			Com_Printf( S_COLOR_RED "AL error: %s\n", buf );
 		}
 		else {
-			Sys_Error( "AL error: %s", buf );
+			Fatal( "AL error: %s", buf );
 		}
 	}
 }

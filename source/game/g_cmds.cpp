@@ -632,7 +632,7 @@ void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 	}
 
 	if( i == MAX_GAMECOMMANDS ) {
-		Sys_Error( "G_AddCommand: Couldn't find a free g_Commands spot for the new command. (increase MAX_GAMECOMMANDS)\n" );
+		Fatal( "G_AddCommand: Couldn't find a free g_Commands spot for the new command. (increase MAX_GAMECOMMANDS)\n" );
 		return;
 	}
 

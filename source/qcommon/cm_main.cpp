@@ -207,7 +207,7 @@ cmodel_t * CM_TryFindCModel( CModelServerOrClient soc, StringHash hash ) {
 cmodel_t * CM_FindCModel( CModelServerOrClient soc, StringHash hash ) {
 	cmodel_t * cmodel = CM_TryFindCModel( soc, hash );
 	if( cmodel == NULL ) {
-		Sys_Error( "FindCModel failed" );
+		Fatal( "FindCModel failed" );
 	}
 	return cmodel;
 }
@@ -236,14 +236,14 @@ const char * CM_EntityString( const CollisionModel * cms ) {
 
 int CM_LeafCluster( const CollisionModel *cms, int leafnum ) {
 	if( leafnum < 0 || leafnum >= cms->numleafs ) {
-		Sys_Error( "CM_LeafCluster: bad number" );
+		Fatal( "CM_LeafCluster: bad number" );
 	}
 	return cms->map_leafs[leafnum].cluster;
 }
 
 int CM_LeafArea( const CollisionModel *cms, int leafnum ) {
 	if( leafnum < 0 || leafnum >= cms->numleafs ) {
-		Sys_Error( "CM_LeafArea: bad number" );
+		Fatal( "CM_LeafArea: bad number" );
 	}
 	return cms->map_leafs[leafnum].area;
 }
@@ -304,7 +304,7 @@ static void CM_FloodArea_r( CollisionModel *cms, int areanum, int floodnum ) {
 		if( area->floodnum == floodnum ) {
 			return;
 		}
-		Sys_Error( "FloodArea_r: reflooded" );
+		Fatal( "FloodArea_r: reflooded" );
 	}
 
 	area->floodnum = floodnum;
@@ -369,7 +369,7 @@ bool CM_AreasConnected( const CollisionModel *cms, int area1, int area2 ) {
 	}
 
 	if( area1 >= cms->numareas || area2 >= cms->numareas ) {
-		Sys_Error( "CM_AreasConnected: area >= numareas" );
+		Fatal( "CM_AreasConnected: area >= numareas" );
 	}
 
 	if( cms->map_areas[area1].floodnum == cms->map_areas[area2].floodnum ) {
@@ -450,7 +450,7 @@ void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out ) {
 
 	count = CM_BoxLeafnums( cms, mins, maxs, leafs, sizeof( leafs ) / sizeof( int ), NULL );
 	if( count < 1 ) {
-		Sys_Error( "CM_MergePVS: count < 1" );
+		Fatal( "CM_MergePVS: count < 1" );
 	}
 	longs = CM_ClusterRowLongs( cms );
 

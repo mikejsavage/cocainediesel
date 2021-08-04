@@ -663,7 +663,7 @@ static void PackDecalAtlas( Span< const char > * material_names ) {
 			break;
 
 		if( none_packed ) {
-			Sys_Error( "Can't pack decals" );
+			Fatal( "Can't pack decals" );
 		}
 
 		// repack rects array

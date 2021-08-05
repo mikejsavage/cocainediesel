@@ -66,7 +66,6 @@ struct sv_http_request_t {
 	http_response_code_t error;
 	sv_http_stream_t stream;
 
-	char *method_str;
 	char *resource;
 	const char *query_string;
 
@@ -131,10 +130,6 @@ static void SV_Web_ResetStream( sv_http_stream_t *stream ) {
 }
 
 static void SV_Web_ResetRequest( sv_http_request_t *request ) {
-	if( request->method_str ) {
-		Mem_Free( request->method_str );
-		request->method_str = NULL;
-	}
 	if( request->resource ) {
 		Mem_Free( request->resource );
 		request->resource = NULL;
@@ -380,8 +375,6 @@ static void SV_Web_ParseStartLine( sv_http_request_t *request, char *line ) {
 	} else {
 		request->error = HTTP_RESP_BAD_REQUEST;
 	}
-
-	request->method_str = ZoneCopyString( token );
 
 	token = ptr + 1;
 	while( *token <= ' ' || *token == '/' ) {

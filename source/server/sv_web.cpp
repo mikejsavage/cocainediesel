@@ -69,7 +69,6 @@ struct sv_http_request_t {
 	char *method_str;
 	char *resource;
 	const char *query_string;
-	char *http_ver;
 
 	int clientNum;
 	char *clientSession;
@@ -139,10 +138,6 @@ static void SV_Web_ResetRequest( sv_http_request_t *request ) {
 	if( request->resource ) {
 		Mem_Free( request->resource );
 		request->resource = NULL;
-	}
-	if( request->http_ver ) {
-		Mem_Free( request->http_ver );
-		request->http_ver = NULL;
 	}
 
 	if( request->clientSession ) {
@@ -413,12 +408,8 @@ static void SV_Web_ParseStartLine( sv_http_request_t *request, char *line ) {
 	while( *token <= ' ' ) {
 		token++;
 	}
-	request->http_ver = ZoneCopyString( token );
 
-	// check for HTTP/1.1 and greater
-	if( strncmp( request->http_ver, "HTTP/", 5 ) ) {
-		request->error = HTTP_RESP_BAD_REQUEST;
-	} else if( (int)( atof( request->http_ver + 5 ) * 10 ) < 11 ) {
+	if( strcmp( token, "HTTP/1.1" ) != 0 ) {
 		request->error = HTTP_RESP_BAD_REQUEST;
 	}
 }
@@ -647,7 +638,7 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 	con->state = HTTP_CONN_STATE_SEND;
 
 	String< sizeof( resp_stream->header_buf ) - 1 > headers;
-	headers.append( "{} {} {}\r\n", request->http_ver, response->code, SV_Web_ResponseCodeMessage( response->code ) );
+	headers.append( "HTTP/1.1 {} {}\r\n", response->code, SV_Web_ResponseCodeMessage( response->code ) );
 	headers.append( "Server: " APPLICATION "\r\n" );
 
 	if( response->code == HTTP_RESP_OK ) {

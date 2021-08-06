@@ -25,26 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/string.h"
 #include "qcommon/q_trie.h"
 
-#define MAX_ALIAS_NAME      64
-#define ALIAS_LOOP_COUNT    16
-
-struct cmd_alias_t {
-	char *name;
-	char *value;
-	bool archive;
-};
-
 static bool cmd_preinitialized = false;
 static bool cmd_initialized = false;
-
-static trie_t *cmd_alias_trie = NULL;
-
-static int alias_count;    // for detecting runaway loops
-
-static int Cmd_PatternMatchesAlias( void *alias, const void *pattern ) {
-	assert( alias );
-	return !pattern || Com_GlobMatch( (const char *) pattern, ( (cmd_alias_t *) alias )->name, false );
-}
 
 /*
 =============================================================================
@@ -247,8 +229,6 @@ void Cbuf_Execute() {
 	char line[MAX_STRING_CHARS];
 	bool quotes, quoteskip;
 
-	alias_count = 0;    // don't allow infinite alias loops
-
 	while( cbuf_text_tail != cbuf_text_head ) {
 		// find a \n or ; line break
 		i = 0;
@@ -271,7 +251,7 @@ void Cbuf_Execute() {
 
 			cbuf_text_tail = ( cbuf_text_tail + 1 ) % cbuf_text_size;
 
-			if( ( c == '\n' ) || ( !quotes && c == ';' ) ) {
+			if( c == '\n' ) {
 				break;
 			}
 
@@ -442,161 +422,6 @@ void ExecDefaultCfg() {
 
 static const char **CL_CompleteExecBuildList( const char *partial ) {
 	return Cmd_CompleteHomeDirFileList( partial, "base", ".cfg" );
-}
-
-/*
-* Cmd_AliasList_f
-*/
-static void Cmd_AliasList_f() {
-	char *pattern;
-	unsigned int size;
-	unsigned int i;
-	trie_dump_t *dump = NULL;
-
-	assert( cmd_alias_trie );
-
-	Trie_GetSize( cmd_alias_trie, &size );
-	if( !size ) {
-		Com_Printf( "No alias commands\n" );
-		return;
-	}
-
-	if( Cmd_Argc() == 1 ) {
-		pattern = NULL; // no wildcard
-	} else {
-		pattern = Cmd_Args();
-	}
-
-	Com_Printf( "\nAlias commands:\n" );
-	Trie_DumpIf( cmd_alias_trie, "", TRIE_DUMP_VALUES, Cmd_PatternMatchesAlias, pattern, &dump );
-	for( i = 0; i < dump->size; ++i ) {
-		cmd_alias_t *const a = (cmd_alias_t *) dump->key_value_vector[i].value;
-		Com_Printf( "%s : %s\n", a->name, a->value );
-	}
-	Trie_FreeDump( dump );
-	Com_Printf( "%i commands\n", i );
-}
-
-/*
-* Cmd_Alias_f
-*
-* Creates a new command that executes a command string (possibly ; separated)
-*/
-static void Cmd_Alias_f_( bool archive ) {
-	cmd_alias_t *a;
-	char cmd[1024];
-	int i, c;
-	size_t len;
-	const char *s;
-
-	if( Cmd_Argc() == 1 ) {
-		Com_Printf( "usage: alias <name> <command>\n" );
-		return;
-	}
-
-	s = Cmd_Argv( 1 );
-	len = strlen( s );
-	if( len >= MAX_ALIAS_NAME ) {
-		Com_Printf( "Alias name is too long\n" );
-		return;
-	}
-
-	assert( cmd_alias_trie );
-	Trie_Find( cmd_alias_trie, s, TRIE_EXACT_MATCH, (void **)&a );
-	if( a ) {
-		if( Cmd_Argc() == 2 ) {
-			if( archive ) {
-				a->archive = true;
-			}
-			Com_Printf( "alias \"%s\" is \"%s" S_COLOR_WHITE "\"\n", a->name, a->value );
-			return;
-		}
-		Mem_ZoneFree( a->value );
-	} else {
-		a = ( cmd_alias_t * ) Mem_ZoneMalloc( (int) ( sizeof( cmd_alias_t ) + len + 1 ) );
-		a->name = (char *) ( (uint8_t *)a + sizeof( cmd_alias_t ) );
-		strcpy( a->name, s );
-		Trie_Insert( cmd_alias_trie, s, a );
-	}
-
-	if( archive ) {
-		a->archive = true;
-	}
-
-	// copy the rest of the command line
-	cmd[0] = 0; // start out with a null string
-	c = Cmd_Argc();
-	for( i = 2; i < c; i++ ) {
-		Q_strncatz( cmd, Cmd_Argv( i ), sizeof( cmd ) );
-		if( i != ( c - 1 ) ) {
-			Q_strncatz( cmd, " ", sizeof( cmd ) );
-		}
-	}
-
-	a->value = ZoneCopyString( cmd );
-}
-
-/*
-* Cmd_Alias_f
-*/
-static void Cmd_Alias_f() {
-	Cmd_Alias_f_( false );
-}
-
-/*
-* Cmd_Aliasa_f
-*/
-static void Cmd_Aliasa_f() {
-	Cmd_Alias_f_( true );
-}
-
-/*
-* Cmd_Unalias_f
-*
-* Removes an alias command
-*/
-static void Cmd_Unalias_f() {
-	const char *s;
-	cmd_alias_t *a;
-
-	if( Cmd_Argc() == 1 ) {
-		Com_Printf( "usage: unalias <name>\n" );
-		return;
-	}
-
-	s = Cmd_Argv( 1 );
-	if( strlen( s ) >= MAX_ALIAS_NAME ) {
-		Com_Printf( "Alias name is too long\n" );
-		return;
-	}
-
-	assert( cmd_alias_trie );
-	if( Trie_Remove( cmd_alias_trie, s, (void **)&a ) == TRIE_OK ) {
-		Mem_ZoneFree( a->value );
-		Mem_ZoneFree( a );
-	} else {
-		Com_Printf( "Cmd_Unalias_f: %s not added\n", s );
-	}
-}
-
-/*
-* Cmd_UnaliasAll_f
-*
-* Removes an alias command
-*/
-static void Cmd_UnaliasAll_f() {
-	trie_dump_t *dump;
-	unsigned int i;
-
-	assert( cmd_alias_trie );
-	Trie_Dump( cmd_alias_trie, "", TRIE_DUMP_VALUES, &dump );
-	for( i = 0; i < dump->size; ++i ) {
-		cmd_alias_t *const a = (cmd_alias_t *) dump->key_value_vector[i].value;
-		Mem_ZoneFree( a->value );
-		Mem_ZoneFree( a );
-	}
-	Trie_FreeDump( dump );
-	Trie_Clear( cmd_alias_trie );
 }
 
 /*
@@ -948,84 +773,30 @@ const char ** Cmd_CompleteHomeDirFileList( const char * partial, const char * se
 }
 
 /*
-Cmd_CompleteAlias
-*/
-char *Cmd_CompleteAlias( const char *partial ) {
-	size_t len;
-	cmd_alias_t *a;
-
-	assert( partial );
-	len = strlen( partial );
-	assert( cmd_alias_trie );
-	if( len && ( Trie_Find( cmd_alias_trie, partial, TRIE_PREFIX_MATCH, (void **)&a ) == TRIE_OK ) ) {
-		return a->name;
-	} else {
-		return NULL;
-	}
-}
-
-/*
-Cmd_CompleteAliasCountPossible
-*/
-int Cmd_CompleteAliasCountPossible( const char *partial ) {
-	assert( partial );
-	if( !strlen( partial ) ) {
-		return 0;
-	} else {
-		unsigned int matches;
-		assert( cmd_alias_trie );
-		Trie_NoOfMatches( cmd_alias_trie, partial, &matches );
-		return matches;
-	}
-}
-
-/*
-Cmd_CompleteAliasBuildList
-*/
-const char **Cmd_CompleteAliasBuildList( const char *partial ) {
-	trie_dump_t *dump;
-	const char **buf;
-	unsigned int i;
-
-	assert( cmd_alias_trie );
-	assert( partial );
-	Trie_Dump( cmd_alias_trie, partial, TRIE_DUMP_VALUES, &dump );
-	buf = (const char **) Mem_TempMalloc( sizeof( char * ) * ( dump->size + 1 ) );
-	for( i = 0; i < dump->size; ++i )
-		buf[i] = ( (cmd_alias_t *) ( dump->key_value_vector[i].value ) )->name;
-	buf[dump->size] = NULL;
-	Trie_FreeDump( dump );
-	return buf;
-}
-
-/*
 * Cmd_CheckForCommand
 *
-* Used by console code to check if text typed is a command/cvar/alias or chat
+* Used by console code to check if text typed is a command/cvar
 */
 bool Cmd_CheckForCommand( char *text ) {
 	char cmd[MAX_STRING_CHARS];
-	cmd_alias_t *a;
 	int i;
 
 	// this is not exactly what cbuf does when extracting lines
 	// for execution, but it works unless you do weird things like
 	// putting the command in quotes
-	for( i = 0; i < MAX_STRING_CHARS - 1; i++ )
-		if( (unsigned char)text[i] <= ' ' || text[i] == ';' ) {
+	for( i = 0; i < MAX_STRING_CHARS - 1; i++ ) {
+		if( (unsigned char)text[i] <= ' ' ) {
 			break;
 		} else {
 			cmd[i] = text[i];
 		}
+	}
 	cmd[i] = 0;
 
 	if( Cmd_Exists( cmd ) ) {
 		return true;
 	}
 	if( Cvar_Find( cmd ) ) {
-		return true;
-	}
-	if( Trie_Find( cmd_alias_trie, cmd, TRIE_EXACT_MATCH, (void **)&a ) == TRIE_OK ) {
 		return true;
 	}
 
@@ -1041,7 +812,6 @@ bool Cmd_CheckForCommand( char *text ) {
 void Cmd_ExecuteString( const char *text ) {
 	char *str;
 	cmd_function_t *cmd;
-	cmd_alias_t *a;
 
 	Cmd_TokenizeString( text );
 
@@ -1054,13 +824,12 @@ void Cmd_ExecuteString( const char *text ) {
 
 	// FIXME: This routine defines the order in which identifiers are looked-up, but
 	// there are no checks for name-clashes. If a user sets a cvar with the name of
-	// an existing command or alias, that cvar becomes shadowed!
+	// an existing command, that cvar becomes shadowed!
 	// We need a global namespace data-structure and a way to check for name-clashes
 	// that does not break seperation of concerns.
 	// Aiwa, 07-14-2006
 
 	assert( cmd_function_trie );
-	assert( cmd_alias_trie );
 	if( Trie_Find( cmd_function_trie, str, TRIE_EXACT_MATCH, (void **)&cmd ) == TRIE_OK ) {
 		// check functions
 		if( !cmd->function ) {
@@ -1069,15 +838,6 @@ void Cmd_ExecuteString( const char *text ) {
 		} else {
 			cmd->function();
 		}
-	} else if( Trie_Find( cmd_alias_trie, str, TRIE_EXACT_MATCH, (void **)&a ) == TRIE_OK ) {
-		// check alias
-		if( ++alias_count == ALIAS_LOOP_COUNT ) {
-			Com_Printf( "ALIAS_LOOP_COUNT\n" );
-			alias_count = 0;
-			return;
-		}
-		Cbuf_InsertText( "\n" );
-		Cbuf_InsertText( a->value );
 	} else if( Cvar_Command() ) {
 		// check cvars
 	} else {
@@ -1117,10 +877,8 @@ void Cmd_PreInit() {
 	assert( !cmd_preinitialized );
 	assert( !cmd_initialized );
 
-	assert( !cmd_alias_trie );
 	assert( !cmd_function_trie );
 
-	Trie_Create( TRIE_CASE_INSENSITIVE, &cmd_alias_trie );
 	Trie_Create( TRIE_CASE_INSENSITIVE, &cmd_function_trie );
 
 	cmd_preinitialized = true;
@@ -1133,7 +891,6 @@ void Cmd_Init() {
 	assert( !cmd_initialized );
 	assert( cmd_preinitialized );
 
-	assert( cmd_alias_trie );
 	assert( cmd_function_trie );
 
 	//
@@ -1142,15 +899,7 @@ void Cmd_Init() {
 	Cmd_AddCommand( "cmdlist", Cmd_List_f );
 	Cmd_AddCommand( "exec", Cmd_Exec_f );
 	Cmd_AddCommand( "config", Cmd_Config_f );
-	Cmd_AddCommand( "aliaslist", Cmd_AliasList_f );
-	Cmd_AddCommand( "aliasa", Cmd_Aliasa_f );
-	Cmd_AddCommand( "unalias", Cmd_Unalias_f );
-	Cmd_AddCommand( "unaliasall", Cmd_UnaliasAll_f );
-	Cmd_AddCommand( "alias", Cmd_Alias_f );
 
-	Cmd_SetCompletionFunc( "alias", Cmd_CompleteAliasBuildList );
-	Cmd_SetCompletionFunc( "aliasa", Cmd_CompleteAliasBuildList );
-	Cmd_SetCompletionFunc( "unalias", Cmd_CompleteAliasBuildList );
 	Cmd_SetCompletionFunc( "exec", CL_CompleteExecBuildList );
 
 	cmd_initialized = true;
@@ -1161,17 +910,11 @@ void Cmd_Shutdown() {
 		unsigned int i;
 		trie_dump_t *dump;
 
-		assert( cmd_alias_trie );
 		assert( cmd_function_trie );
 
 		Cmd_RemoveCommand( "cmdlist" );
 		Cmd_RemoveCommand( "exec" );
 		Cmd_RemoveCommand( "config" );
-		Cmd_RemoveCommand( "aliaslist" );
-		Cmd_RemoveCommand( "aliasa" );
-		Cmd_RemoveCommand( "unalias" );
-		Cmd_RemoveCommand( "unaliasall" );
-		Cmd_RemoveCommand( "alias" );
 
 		// this is somewhat ugly IMO
 		for( i = 0; i < MAX_STRING_TOKENS && cmd_argv_sizes[i]; i++ ) {
@@ -1193,13 +936,7 @@ void Cmd_Shutdown() {
 	}
 
 	if( cmd_preinitialized ) {
-		assert( cmd_alias_trie );
-		assert( cmd_function_trie );
-
-		Trie_Destroy( cmd_alias_trie );
-		cmd_alias_trie = NULL;
 		Trie_Destroy( cmd_function_trie );
-		cmd_function_trie = NULL;
 
 		cmd_preinitialized = false;
 	}

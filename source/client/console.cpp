@@ -143,30 +143,29 @@ static void TabCompletion( char * buf, int buf_size ) {
 	// Count number of possible matches
 	int c = Cmd_CompleteCountPossible( input );
 	int v = Cvar_CompleteCountPossible( input );
-	int a = Cmd_CompleteAliasCountPossible( input );
 	int ca = 0;
 
-	const char ** completion_lists[ 4 ] = { };
+	const char ** completion_lists[ 3 ] = { };
 
 	const char * completion = NULL;
 
-	if( !( c + v + a ) ) {
+	if( c + v == 0 ) {
 		// now see if there's any valid cmd in there, providing
 		// a list of matching arguments
-		completion_lists[3] = Cmd_CompleteBuildArgList( input );
-		if( !completion_lists[3] ) {
+		completion_lists[2] = Cmd_CompleteBuildArgList( input );
+		if( !completion_lists[2] ) {
 			// No possible matches, let the user know they're insane
-			Com_Printf( "\nNo matching aliases, commands, or cvars were found.\n" );
+			Com_Printf( "\nNo matching commands or cvars were found.\n" );
 			return;
 		}
 
 		// count the number of matching arguments
-		while( completion_lists[3][ca] != NULL )
+		while( completion_lists[2][ca] != NULL )
 			ca++;
 		if( ca == 0 ) {
 			// the list is empty, although non-NULL list pointer suggests that the command
 			// exists, so clean up and exit without printing anything
-			Mem_TempFree( completion_lists[3] );
+			Mem_TempFree( completion_lists[2] );
 			return;
 		}
 	}
@@ -179,13 +178,9 @@ static void TabCompletion( char * buf, int buf_size ) {
 		completion_lists[1] = Cvar_CompleteBuildList( input );
 		completion = *completion_lists[1];
 	}
-	if( a != 0 ) {
-		completion_lists[2] = Cmd_CompleteAliasBuildList( input );
-		completion = *completion_lists[2];
-	}
 	if( ca != 0 ) {
 		input = StrChrUTF8( input, ' ' ) + 1;
-		completion = *completion_lists[3];
+		completion = *completion_lists[2];
 	}
 
 	size_t common_prefix_len = SIZE_MAX;
@@ -199,7 +194,7 @@ static void TabCompletion( char * buf, int buf_size ) {
 		}
 	}
 
-	int total_candidates = c + v + a + ca;
+	int total_candidates = c + v + ca;
 	if( total_candidates > 1 ) {
 		if( c != 0 ) {
 			Com_Printf( S_COLOR_RED "%i possible command%s%s\n", c, ( c > 1 ) ? "s: " : ":", S_COLOR_WHITE );
@@ -209,13 +204,9 @@ static void TabCompletion( char * buf, int buf_size ) {
 			Com_Printf( S_COLOR_CYAN "%i possible variable%s%s\n", v, ( v > 1 ) ? "s: " : ":", S_COLOR_WHITE );
 			PrintCompletionList( completion_lists[1] );
 		}
-		if( a != 0 ) {
-			Com_Printf( S_COLOR_MAGENTA "%i possible alias%s%s\n", a, ( a > 1 ) ? "es: " : ":", S_COLOR_WHITE );
-			PrintCompletionList( completion_lists[2] );
-		}
 		if( ca != 0 ) {
 			Com_Printf( S_COLOR_GREEN "%i possible argument%s%s\n", ca, ( ca > 1 ) ? "s: " : ":", S_COLOR_WHITE );
-			PrintCompletionList( completion_lists[3] );
+			PrintCompletionList( completion_lists[2] );
 		}
 	}
 

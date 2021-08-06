@@ -63,12 +63,12 @@ enum pmtype_t {
 // note that Q_rint was causing problems here
 // (spawn looking straight up\down at delta_angles wrapping)
 
-inline u16 ANGLE2SHORT( float a ) {
-	return u16( ( a / 360.0f ) * 65535.0f + 0.5f );
+inline s16 ANGLE2SHORT( float x ) {
+	return s16( ( x / 360.0f ) * 65535.0f + 0.5f );
 }
 
-inline float SHORT2ANGLE( u16 a ) {
-	return ( a / 65535.0f ) * 360.0f;
+inline float SHORT2ANGLE( s16 x ) {
+	return ( x / 65535.0f ) * 360.0f;
 }
 
 #define MAX_GAMECOMMANDS    256     // command names for command completion

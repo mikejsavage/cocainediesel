@@ -352,7 +352,7 @@ static bool Intersect3PlanesPoint( Vec3 * p, Plane plane1, Plane plane2, Plane p
 	Vec3 n2xn3 = Cross( plane2.normal, plane3.normal );
 	float n1_n2xn3 = Dot( plane1.normal, n2xn3 );
 
-	if( fabsf( n1_n2xn3 ) < epsilon )
+	if( Abs( n1_n2xn3 ) < epsilon )
 		return false;
 
 	Vec3 n3xn1 = Cross( plane3.normal, plane1.normal );

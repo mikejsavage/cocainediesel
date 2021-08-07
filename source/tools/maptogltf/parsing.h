@@ -3,6 +3,8 @@
 #include "qcommon/types.h"
 #include "qcommon/array.h"
 
+#include <string.h>
+
 constexpr Span< const char > NullSpan( NULL, 0 );
 
 inline Span< const char > PEGLiteral( Span< const char > str, const char * lit ) {

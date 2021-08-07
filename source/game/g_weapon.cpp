@@ -1081,10 +1081,10 @@ static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 
 	ProjectileStats stats = GadgetProjectileStats( Gadget_StunGrenade );
 
-	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, stats, TouchStunGrenade, ET_THROWING_AXE, MASK_SHOT );
+	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, stats, TouchStunGrenade, ET_GENERIC, MASK_SHOT );
 	grenade->classname = "stun grenade";
 	grenade->movetype = MOVETYPE_BOUNCE;
-	grenade->s.model = "weapons/axe/model";
+	grenade->s.model = "weapons/stungrenade/model";
 	grenade->avelocity = Vec3( 360.0f, 0.0f, 0.0f );
 	grenade->think = ExplodeStunGrenade;
 }

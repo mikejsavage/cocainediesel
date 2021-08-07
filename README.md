@@ -1,4 +1,4 @@
-# ___C O C A I N E D I E S E L___ ![mwaga](https://cdn.discordapp.com/emojis/456007735197171712.png)
+# <img src="https://cdn.discordapp.com/attachments/784554619627110400/873509311010201610/icon.png" style="height:1em"> ___C O C A I N E D I E S E L___ <img src="https://cdn.discordapp.com/attachments/784554619627110400/873509311010201610/icon.png" style="height:1em">
 
 [![qfusion](https://i.imgur.com/XGsXu5w.png)](https://github.com/qfusion)
 

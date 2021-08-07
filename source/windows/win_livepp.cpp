@@ -12,8 +12,10 @@ static HMODULE livepp;
 static F livepp_Frame = NULL;
 
 void InitLivePP() {
-	ZoneScoped;
+	if( is_public_build )
+		return;
 
+	ZoneScoped;
 	livepp = LoadLibraryW( L"livepp_shim.dll" );
 	if( livepp == NULL )
 		return;

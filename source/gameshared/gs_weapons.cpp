@@ -366,6 +366,8 @@ static ItemState railgun_states[] = {
 			return WeaponState_Firing;
 		}
 
+		ps->weapon_state_time = Min2( def->reload_time, ps->weapon_state_time );
+
 		return state;
 	} ),
 };

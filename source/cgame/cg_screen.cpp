@@ -797,15 +797,9 @@ void CG_EscapeKey() {
 }
 
 static Vec4 CG_CalcColorBlend() {
-	int contents = CG_PointContents( cg.view.origin );
-	if( contents & CONTENTS_WATER )
-		return Vec4( 0.0f, 0.1f, 1.0f, 0.2f );
-	if( contents & CONTENTS_LAVA )
-		return Vec4( 1.0f, 0.3f, 0.0f, 0.6f );
-	if( contents & CONTENTS_SLIME )
-		return Vec4( 0.0f, 0.1f, 0.05f, 0.6f );
-
-	return Vec4( 0 );
+	const SyncPlayerState * ps = &cg.predictedPlayerState;
+	float flashed = Unlerp01( u16( 0 ), ps->flashed, u16( U16_MAX * 0.75f ) );
+	return Vec4( Vec3( 1.0f ), flashed * flashed );
 }
 
 static void CG_SCRDrawViewBlend() {

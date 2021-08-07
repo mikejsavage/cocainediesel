@@ -463,6 +463,7 @@ static Span< const ItemState > FindItemStateMachine( SyncPlayerState * ps ) {
 			// case Gadget_FragGrenade:
 			// 	return generic_throwable_state_machine;
 			case Gadget_ThrowingAxe:
+			case Gadget_StunGrenade:
 				return generic_throwable_state_machine;
 
 			case Gadget_SuicideBomb:
@@ -532,6 +533,7 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd
 	}
 
 	HandleZoom( gs, ps, &cmd );
+	ps->flashed -= Min2( ps->flashed, u16( cmd.msec * 0.001f * U16_MAX / 3.0f ) );
 
 	while( true ) {
 		Span< const ItemState > sm = FindItemStateMachine( ps );

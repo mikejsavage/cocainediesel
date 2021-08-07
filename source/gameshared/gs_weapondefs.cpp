@@ -714,6 +714,23 @@ const GadgetDef gadget_defs[] = {
 		"Suicide vest",
 		"suicidevest",
 	},
+
+	{
+		/* name             */ "Flash bang",
+		/* short name       */ "flashbang",
+		/* switch_in_time   */ WEAPONUP_TIME_NORMAL,
+		/* using_time       */ 500,
+		/* cook_time        */ 0,
+		/* switch_out_time  */ WEAPONDOWN_TIME,
+		/* damage           */ 5,
+		/* knockback        */ 0,
+		/* mindamage        */ 120,
+		/* minknockback     */ 0,
+		/* splash_radius    */ 300,
+		/* timeout          */ 2500,
+		/* speed            */ 750,
+		/* uses             */ 1,
+	},
 };
 
 STATIC_ASSERT( ARRAY_COUNT( gadget_defs ) == Gadget_Count );

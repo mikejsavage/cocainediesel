@@ -918,6 +918,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_SUICIDE_BOMB_EXPLODE:
 			CG_RocketExplosion( ent->origin, Vec3( 0.0f ), team_color );
 			break;
+
+		case EV_STUN_GRENADE_EXPLOSION:
+			S_StartFixedSound( "sounds/vsay/goodgame", ent->origin, CHAN_AUTO, 1.0f );
+			break;
 	}
 }
 

@@ -80,6 +80,7 @@ enum GadgetType : u8 {
 
 	Gadget_ThrowingAxe,
 	Gadget_SuicideBomb,
+	Gadget_StunGrenade,
 
 	Gadget_Count
 };
@@ -308,6 +309,7 @@ struct SyncPlayerState {
 	bool can_plant;
 
 	s16 health;
+	u16 flashed;
 
 	WeaponState weapon_state;
 	u16 weapon_state_time;

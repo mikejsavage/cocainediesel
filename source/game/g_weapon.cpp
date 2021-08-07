@@ -1013,6 +1013,72 @@ static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	axe->avelocity = Vec3( 360.0f * 4, 0.0f, 0.0f );
 }
 
+static void TouchStunGrenade(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags) {
+	if (surfFlags & SURF_NOIMPACT)
+	{
+		G_FreeEdict(ent);
+		return;
+	}
+
+	if (!CanHit(ent, other))
+	{
+		return;
+	}
+
+	if (other->takedamage)
+	{
+		G_Damage(other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_None);
+	}
+}
+
+static void ExplodeStunGrenade( edict_t * grenade ) {
+	const GadgetDef * def = GetGadgetDef( Gadget_StunGrenade );
+
+	edict_t * event = G_SpawnEvent( EV_STUN_GRENADE_EXPLOSION, 0, &grenade->s.origin );
+	event->s.team = grenade->s.team;
+
+	int touch[ MAX_EDICTS ];
+	int numtouch = GClip_FindInRadius4D( grenade->s.origin, def->splash_radius + playerbox_stand_viewheight, touch, ARRAY_COUNT( touch ), grenade->timeDelta );
+
+	for( int i = 0; i < numtouch; i++ ) {
+		edict_t * other = &game.edicts[ touch[ i ] ];
+		if( other->s.type != ET_PLAYER )
+			 continue;
+
+		SyncPlayerState * ps = &other->r.client->ps;
+		Vec3 eye = other->s.origin + Vec3( 0.0f, 0.0f, ps->viewheight );
+
+		trace_t grenade_to_eye;
+		G_Trace4D( &grenade_to_eye, grenade->s.origin, Vec3( 0.0f ), Vec3( 0.0f ), eye, grenade, MASK_SOLID, grenade->timeDelta );
+		if( grenade_to_eye.fraction == 1.0f ) {
+			float distance = Length( eye - grenade->s.origin );
+			u16 distance_flash = Lerp( u16( 0 ), Unlerp01( float( def->splash_radius ), distance, float( def->min_damage ) ), U16_MAX );
+
+			Vec3 forward;
+			AngleVectors( ps->viewangles, &forward, NULL, NULL );
+			float theta = Dot( SafeNormalize( grenade->s.origin - eye ), forward );
+			float angle_scale = Lerp( 0.25f, Unlerp( -1.0f, theta, 1.0f ), 1.0f );
+
+			ps->flashed = Min2( u32( ps->flashed ) + u32( distance_flash * angle_scale ), u32( U16_MAX ) );
+		}
+	}
+
+	G_FreeEdict( grenade );
+}
+
+static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	const GadgetDef * def = GetGadgetDef( Gadget_StunGrenade );
+
+	ProjectileStats stats = GadgetProjectileStats( Gadget_StunGrenade );
+
+	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, stats, TouchStunGrenade, ET_THROWING_AXE, MASK_SHOT );
+	grenade->classname = "stun grenade";
+	grenade->movetype = MOVETYPE_BOUNCE;
+	grenade->s.model = "weapons/axe/model";
+	grenade->avelocity = Vec3( 360.0f, 0.0f, 0.0f );
+	grenade->think = ExplodeStunGrenade;
+}
+
 void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm ) {
 	Vec3 origin = ent->s.origin;
 	origin.z += ent->r.client->ps.viewheight;
@@ -1024,6 +1090,10 @@ void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm ) {
 	switch( gadget ) {
 		case Gadget_ThrowingAxe:
 			UseThrowingAxe( ent, origin, angles, timeDelta, parm );
+			break;
+
+		case Gadget_StunGrenade:
+			UseStunGrenade( ent, origin, angles, timeDelta );
 			break;
 	}
 }

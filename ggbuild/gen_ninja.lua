@@ -15,7 +15,7 @@ configs[ "windows" ] = {
 
 configs[ "windows-debug" ] = {
 	cxxflags = "/MTd /Z7 /FC",
-	ldflags = "/DEBUG",
+	ldflags = "/DEBUG /DEBUG:FULL /FUNCTIONPADMIN /OPT:NOREF /OPT:NOICF",
 }
 configs[ "windows-release" ] = {
 	cxxflags = "/O2 /MT /DNDEBUG",

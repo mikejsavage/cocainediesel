@@ -216,7 +216,7 @@ static bool G_VoteStartValidate( callvotedata_t *vote, bool first ) {
 	int notreadys = 0;
 	edict_t *ent;
 
-	if( server_gs.gameState.match_state >= MATCH_STATE_COUNTDOWN ) {
+	if( server_gs.gameState.match_state >= MatchState_Countdown ) {
 		if( first ) {
 			G_PrintMsg( vote->caller, "%sThe game is not in warmup mode\n", S_COLOR_RED );
 		}
@@ -1039,12 +1039,6 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 
 	votename = Cmd_Argv( 1 );
 	if( !votename || !votename[0] ) {
-		G_CallVotes_PrintUsagesToPlayer( ent );
-		return;
-	}
-
-	if( strlen( votename ) > MAX_QPATH ) {
-		G_PrintMsg( ent, "%sInvalid vote\n", S_COLOR_RED );
 		G_CallVotes_PrintUsagesToPlayer( ent );
 		return;
 	}

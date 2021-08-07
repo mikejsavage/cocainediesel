@@ -87,7 +87,7 @@ void G_SetClientStats( edict_t * ent ) {
 	gclient_t * client = ent->r.client;
 	SyncPlayerState * ps = &client->ps;
 
-	ps->ready = server_gs.gameState.match_state <= MATCH_STATE_WARMUP && level.ready[ PLAYERNUM( ent ) ];
+	ps->ready = server_gs.gameState.match_state <= MatchState_Warmup && level.ready[ PLAYERNUM( ent ) ];
 	ps->voted = G_Callvotes_HasVoted( ent );
 	ps->team = ent->s.team;
 	ps->real_team = ent->s.team;

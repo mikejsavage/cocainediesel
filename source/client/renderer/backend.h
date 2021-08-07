@@ -243,6 +243,8 @@ struct MeshConfig {
 		};
 	};
 
+	const char * name = NULL;
+
 	VertexFormat positions_format = VertexFormat_Floatx3;
 	VertexFormat normals_format = VertexFormat_Floatx3;
 	VertexFormat tex_coords_format = VertexFormat_Floatx2;

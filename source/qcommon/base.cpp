@@ -1,9 +1,25 @@
+#include <stdarg.h>
+
 #include "qcommon/base.h"
+#include "qcommon/qcommon.h"
 
 bool break1 = false;
 bool break2 = false;
 bool break3 = false;
 bool break4 = false;
+
+void Fatal( const char * format, ... ) {
+	va_list argptr;
+	char msg[ 1024 ];
+
+	va_start( argptr, format );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
+	va_end( argptr );
+
+	Sys_ShowErrorMessage( msg );
+
+	abort();
+}
 
 void format( FormatBuffer * fb, Span< const char > span, const FormatOpts & opts ) {
 	if( fb->capacity > 0 && fb->len < fb->capacity - 1 ) {

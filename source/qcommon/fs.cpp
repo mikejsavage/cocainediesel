@@ -21,13 +21,13 @@ static void ReplaceBackslashes( char * path ) {
 static char * FindRootDir( Allocator * a ) {
 	int len = wai_getExecutablePath( NULL, 0, NULL );
 	if( len == -1 ) {
-		Com_Error( ERR_FATAL, "wai_getExecutablePath( NULL )" );
+		Fatal( "wai_getExecutablePath( NULL )" );
 	}
 
 	char * buf = ALLOC_MANY( a, char, len + 1 );
 	int dirlen;
 	if( wai_getExecutablePath( buf, len, &dirlen ) == -1 ) {
-		Com_Error( ERR_FATAL, "wai_getExecutablePath( buf )" );
+		Fatal( "wai_getExecutablePath( buf )" );
 	}
 	buf[ dirlen ] = '\0';
 
@@ -36,19 +36,17 @@ static char * FindRootDir( Allocator * a ) {
 
 void InitFS() {
 	root_dir_path = FindRootDir( sys_allocator );
-#if PUBLIC_BUILD
-	home_dir_path = FindHomeDirectory( sys_allocator );
 
-#if PLATFORM_WINDOWS
-	versioned_home_dir_path = ( *sys_allocator )( "{} 0.0", home_dir_path );
-#else
-	versioned_home_dir_path = ( *sys_allocator )( "{}-0.0", home_dir_path );
-#endif
+	if( !is_public_build ) {
+		home_dir_path = CopyString( sys_allocator, root_dir_path );
+		versioned_home_dir_path = CopyString( sys_allocator, home_dir_path );
+	}
+	else {
+		home_dir_path = FindHomeDirectory( sys_allocator );
 
-#else
-	home_dir_path = CopyString( sys_allocator, root_dir_path );
-	versioned_home_dir_path = CopyString( sys_allocator, home_dir_path );
-#endif
+		const char * fmt = IFDEF( PLATFORM_WINDOWS ) ? "{} 0.0" : "{}-0.0";
+		versioned_home_dir_path = ( *sys_allocator )( fmt, home_dir_path );
+	}
 
 	ReplaceBackslashes( root_dir_path );
 	ReplaceBackslashes( versioned_home_dir_path );
@@ -73,15 +71,20 @@ const char * FutureHomeDirPath() {
 	return home_dir_path;
 }
 
+// TODO: some kind of better handling
+size_t FileSize( FILE * file ) {
+	fseek( file, 0, SEEK_END );
+	size_t size = ftell( file );
+	fseek( file, 0, SEEK_SET );
+	return size;
+}
+
 char * ReadFileString( Allocator * a, const char * path, size_t * len ) {
 	FILE * file = OpenFile( a, path, "rb" );
 	if( file == NULL )
 		return NULL;
 
-	fseek( file, 0, SEEK_END );
-	size_t size = ftell( file );
-	fseek( file, 0, SEEK_SET );
-
+	size_t size = FileSize( file );
 	char * contents = ( char * ) ALLOC_SIZE( a, size + 1, 16 );
 	size_t r = fread( contents, 1, size, file );
 	fclose( file );
@@ -103,10 +106,7 @@ Span< u8 > ReadFileBinary( Allocator * a, const char * path ) {
 	if( file == NULL )
 		return Span< u8 >();
 
-	fseek( file, 0, SEEK_END );
-	size_t size = ftell( file );
-	fseek( file, 0, SEEK_SET );
-
+	size_t size = FileSize( file );
 	u8 * contents = ( u8 * ) ALLOC_SIZE( a, size, 16 );
 	size_t r = fread( contents, 1, size, file );
 	fclose( file );
@@ -133,15 +133,16 @@ static bool CreatePathForFile( Allocator * a, const char * path ) {
 	char * cursor = mutable_path;
 
 	// don't try to create drives on windows or "" on linux
-#if PLATFORM_WINDOWS
-	if( strlen( cursor ) >= 2 && cursor[ 1 ] == ':' ) {
-		cursor += 3;
+	if( IFDEF( PLATFORM_WINDOWS ) ) {
+		if( strlen( cursor ) >= 2 && cursor[ 1 ] == ':' ) {
+			cursor += 3;
+		}
 	}
-#else
-	if( strlen( cursor ) >= 1 && cursor[ 0 ] == '/' ) {
-		cursor++;
+	else {
+		if( strlen( cursor ) >= 1 && cursor[ 0 ] == '/' ) {
+			cursor++;
+		}
 	}
-#endif
 
 	while( ( cursor = StrChrUTF8( cursor, '/' ) ) != NULL ) {
 		*cursor = '\0';
@@ -166,4 +167,8 @@ bool WriteFile( TempAllocator * temp, const char * path, const void * data, size
 	fclose( file );
 
 	return w == len;
+}
+
+bool WritePartialFile( FILE * file, const void * data, size_t len ) {
+	return fwrite( data, 1, len, file ) == len;
 }

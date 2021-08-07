@@ -31,7 +31,7 @@ Thread * NewThread( void ( *callback )( void * ), void * data ) {
 
 	pthread_t t;
 	if( pthread_create( &t, NULL, ThreadWrapper, tsd ) == -1 ) {
-		Com_Error( ERR_FATAL, "pthread_create" );
+		Fatal( "pthread_create" );
 	}
 
 	// can't use sys_allocator because serverlist leaks its threads
@@ -42,7 +42,7 @@ Thread * NewThread( void ( *callback )( void * ), void * data ) {
 
 void JoinThread( Thread * thread ) {
 	if( pthread_join( thread->thread, NULL ) == -1 ) {
-		Com_Error( ERR_FATAL, "pthread_join" );
+		Fatal( "pthread_join" );
 	}
 
 	delete thread;
@@ -52,34 +52,34 @@ Mutex * NewMutex() {
 	// can't use sys_allocator because sys_allocator itself calls NewMutex
 	Mutex * mutex = new Mutex;
 	if( pthread_mutex_init( &mutex->mutex, NULL ) != 0 ) {
-		Com_Error( ERR_FATAL, "pthread_mutex_init" );
+		Fatal( "pthread_mutex_init" );
 	}
 	return mutex;
 }
 
 void DeleteMutex( Mutex * mutex ) {
 	if( pthread_mutex_destroy( &mutex->mutex ) != 0 ) {
-		Com_Error( ERR_FATAL, "pthread_mutex_destroy" );
+		Fatal( "pthread_mutex_destroy" );
 	}
 	delete mutex;
 }
 
 void Lock( Mutex * mutex ) {
 	if( pthread_mutex_lock( &mutex->mutex ) != 0 ) {
-		Com_Error( ERR_FATAL, "pthread_mutex_lock" );
+		Fatal( "pthread_mutex_lock" );
 	}
 }
 
 void Unlock( Mutex * mutex ) {
 	if( pthread_mutex_unlock( &mutex->mutex ) != 0 ) {
-		Com_Error( ERR_FATAL, "pthread_mutex_unlock" );
+		Fatal( "pthread_mutex_unlock" );
 	}
 }
 
 Semaphore * NewSemaphore() {
 	sem_t s;
 	if( sem_init( &s, 0, 0 ) != 0 ) {
-		Com_Error( ERR_FATAL, "sem_init" );
+		Fatal( "sem_init" );
 	}
 
 	Semaphore * sem = ALLOC( sys_allocator, Semaphore );
@@ -89,7 +89,7 @@ Semaphore * NewSemaphore() {
 
 void DeleteSemaphore( Semaphore * sem ) {
 	if( sem_destroy( &sem->sem ) != 0 ) {
-		Com_Error( ERR_FATAL, "sem_destroy" );
+		Fatal( "sem_destroy" );
 	}
 	FREE( sys_allocator, sem );
 }
@@ -97,7 +97,7 @@ void DeleteSemaphore( Semaphore * sem ) {
 void Signal( Semaphore * sem, int n ) {
 	for( int i = 0; i < n; i++ ) {
 		if( sem_post( &sem->sem ) != 0 && errno != EOVERFLOW ) {
-			Com_Error( ERR_FATAL, "sem_post" );
+			Fatal( "sem_post" );
 		}
 	}
 }
@@ -108,14 +108,14 @@ void Wait( Semaphore * sem ) {
 			break;
 		if( errno == EINTR )
 			continue;
-		Com_Error( ERR_FATAL, "sem_wait" );
+		Fatal( "sem_wait" );
 	}
 }
 
 u32 GetCoreCount() {
 	long ok = sysconf( _SC_NPROCESSORS_ONLN );
 	if( ok == -1 ) {
-		Com_Error( ERR_FATAL, "sysconf( _SC_NPROCESSORS_ONLN )" );
+		Fatal( "sysconf( _SC_NPROCESSORS_ONLN )" );
 	}
 	return checked_cast< u32 >( ok );
 }

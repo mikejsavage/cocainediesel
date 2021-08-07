@@ -2,12 +2,11 @@
 
 #include "qcommon/types.h"
 
-using DownloadDataCallback = bool ( * )( const void * data, size_t n );
-using DownloadDoneCallback = void ( * )( bool success, int http_status );
+using CurlDoneCallback = void ( * )( int http_status, Span< const u8 > data );
 
 void InitDownloads();
 void ShutdownDownloads();
 
-void StartDownload( const char * url, DownloadDataCallback data_callback, DownloadDoneCallback done_callback, const char ** headers, size_t num_headers );
+void StartDownload( const char * url, CurlDoneCallback done_callback, const char ** headers, size_t num_headers );
+void CancelDownload();
 void PumpDownloads();
-void CancelDownloads();

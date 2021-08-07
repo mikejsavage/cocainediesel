@@ -44,7 +44,7 @@ void *MSG_GetSpace( msg_t *msg, size_t length ) {
 
 	assert( msg->cursize + length <= msg->maxsize );
 	if( msg->cursize + length > msg->maxsize ) {
-		Com_Error( ERR_FATAL, "MSG_GetSpace: overflowed" );
+		Fatal( "MSG_GetSpace: overflowed" );
 	}
 
 	ptr = msg->data + msg->cursize;
@@ -220,7 +220,7 @@ static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 
 template< typename E >
 void DeltaEnum( DeltaBuffer * buf, E & x, const E & baseline ) {
-	using T = std::underlying_type< E >::type;
+	using T = typename std::underlying_type< E >::type;
 	Delta( buf, ( T & ) x, ( const T & ) baseline );
 }
 
@@ -517,7 +517,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 
 	Delta( buf, ent.teleported, baseline.teleported );
 
-	Delta( buf, ent.type, baseline.type );
+	DeltaEnum( buf, ent.type, baseline.type );
 	Delta( buf, ent.model, baseline.model );
 	Delta( buf, ent.material, baseline.material );
 	Delta( buf, ent.color, baseline.color );
@@ -595,7 +595,7 @@ void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEnt
 // DELTA USER CMDS
 //==================================================
 
-static void Delta( DeltaBuffer * buf, usercmd_t & cmd, const usercmd_t & baseline ) {
+static void Delta( DeltaBuffer * buf, UserCommand & cmd, const UserCommand & baseline ) {
 	Delta( buf, cmd.angles, baseline.angles );
 	Delta( buf, cmd.forwardmove, baseline.forwardmove );
 	Delta( buf, cmd.sidemove, baseline.sidemove );
@@ -606,17 +606,17 @@ static void Delta( DeltaBuffer * buf, usercmd_t & cmd, const usercmd_t & baselin
 	Delta( buf, cmd.weaponSwitch, baseline.weaponSwitch );
 }
 
-void MSG_WriteDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, const usercmd_t * cmd ) {
+void MSG_WriteDeltaUsercmd( msg_t * msg, const UserCommand * baseline, const UserCommand * cmd ) {
 	u8 buf[ MAX_MSGLEN ];
 	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
 
-	Delta( &delta, *const_cast< usercmd_t * >( cmd ), *baseline );
+	Delta( &delta, *const_cast< UserCommand * >( cmd ), *baseline );
 
 	MSG_WriteDeltaBuffer( msg, delta );
 	MSG_WriteIntBase128( msg, cmd->serverTimeStamp );
 }
 
-void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, usercmd_t * cmd ) {
+void MSG_ReadDeltaUsercmd( msg_t * msg, const UserCommand * baseline, UserCommand * cmd ) {
 	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
 	Delta( &delta, *cmd, *baseline );
 	MSG_FinishReadingDeltaBuffer( msg, delta );
@@ -753,7 +753,7 @@ static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGa
 
 static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState & baseline ) {
 	Delta( buf, state.flags, baseline.flags );
-	Delta( buf, state.match_state, baseline.match_state );
+	DeltaEnum( buf, state.match_state, baseline.match_state );
 	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );

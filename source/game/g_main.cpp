@@ -96,7 +96,7 @@ static void G_GS_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end,
 static void G_InitGameShared() {
 	int maxclients = atoi( PF_GetConfigString( CS_MAXCLIENTS ) );
 	if( maxclients < 1 || maxclients > MAX_EDICTS ) {
-		Com_Error( ERR_DROP, "Invalid maxclients value %i\n", maxclients );
+		Fatal( "Invalid maxclients value %i\n", maxclients );
 	}
 
 	server_gs = { };

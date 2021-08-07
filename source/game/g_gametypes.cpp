@@ -98,8 +98,7 @@ static void G_Match_CheckStateAbort() {
 	bool any = false;
 	bool enough;
 
-	if( server_gs.gameState.match_state <= MATCH_STATE_NONE || server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH
-		|| level.gametype.matchAbortDisabled ) {
+	if( server_gs.gameState.match_state >= MatchState_PostMatch || level.gametype.matchAbortDisabled ) {
 		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
 		return;
 	}
@@ -129,18 +128,18 @@ static void G_Match_CheckStateAbort() {
 		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
 	}
 	// turn off active match states if not enough players left
-	else if( server_gs.gameState.match_state == MATCH_STATE_WARMUP && !enough && server_gs.gameState.match_duration ) {
+	else if( server_gs.gameState.match_state == MatchState_Warmup && !enough && server_gs.gameState.match_duration ) {
 		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, true );
-	} else if( server_gs.gameState.match_state == MATCH_STATE_COUNTDOWN && !enough ) {
+	} else if( server_gs.gameState.match_state == MatchState_Countdown && !enough ) {
 		if( any ) {
 			G_ClearCenterPrint( NULL );
 		}
 		G_Match_Autorecord_Cancel();
-		G_Match_LaunchState( MATCH_STATE_WARMUP );
+		G_Match_LaunchState( MatchState_Warmup );
 		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, true );
 	}
 	// match running, but not enough players left
-	else if( server_gs.gameState.match_state == MATCH_STATE_PLAYTIME && !enough ) {
+	else if( server_gs.gameState.match_state == MatchState_Playing && !enough ) {
 		if( any ) {
 			G_PrintMsg( NULL, "Not enough players left. Match aborted.\n" );
 			G_CenterPrintMsg( NULL, "MATCH ABORTED" );
@@ -159,49 +158,49 @@ void G_Match_LaunchState( int matchState ) {
 
 	G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
 
-	if( matchState == MATCH_STATE_POSTMATCH ) {
+	if( matchState == MatchState_PostMatch ) {
 		level.finalMatchDuration = svs.gametime - server_gs.gameState.match_state_start_time;
 	}
 
 	switch( matchState ) {
 		default:
-		case MATCH_STATE_WARMUP:
+		case MatchState_Warmup:
 		{
 			advance_queue = false;
 
-			server_gs.gameState.match_state = MATCH_STATE_WARMUP;
+			server_gs.gameState.match_state = MatchState_Warmup;
 			server_gs.gameState.match_duration = (int64_t)( Abs( g_warmup_timelimit->value * 60 ) * 1000 );
 			server_gs.gameState.match_state_start_time = svs.gametime;
 
 			break;
 		}
 
-		case MATCH_STATE_COUNTDOWN:
+		case MatchState_Countdown:
 		{
 			advance_queue = true;
 
-			server_gs.gameState.match_state = MATCH_STATE_COUNTDOWN;
+			server_gs.gameState.match_state = MatchState_Countdown;
 			server_gs.gameState.match_duration = 5000;
 			server_gs.gameState.match_state_start_time = svs.gametime;
 
 			break;
 		}
 
-		case MATCH_STATE_PLAYTIME:
+		case MatchState_Playing:
 		{
 			// ch : should clear some statcollection memory from warmup?
 
 			advance_queue = true; // shouldn't be needed here
 
-			server_gs.gameState.match_state = MATCH_STATE_PLAYTIME;
+			server_gs.gameState.match_state = MatchState_Playing;
 			server_gs.gameState.match_duration = 0;
 			server_gs.gameState.match_state_start_time = svs.gametime;
 		}
 		break;
 
-		case MATCH_STATE_POSTMATCH:
+		case MatchState_PostMatch:
 		{
-			server_gs.gameState.match_state = MATCH_STATE_POSTMATCH;
+			server_gs.gameState.match_state = MatchState_PostMatch;
 			server_gs.gameState.match_duration = 4000; // postmatch time in seconds
 			server_gs.gameState.match_state_start_time = svs.gametime;
 
@@ -210,14 +209,14 @@ void G_Match_LaunchState( int matchState ) {
 		}
 		break;
 
-		case MATCH_STATE_WAITEXIT:
+		case MatchState_WaitExit:
 		{
 			if( advance_queue ) {
 				G_Teams_AdvanceChallengersQueue();
 				advance_queue = true;
 			}
 
-			server_gs.gameState.match_state = MATCH_STATE_WAITEXIT;
+			server_gs.gameState.match_state = MatchState_WaitExit;
 			server_gs.gameState.match_duration = 3000;
 			server_gs.gameState.match_state_start_time = svs.gametime;
 
@@ -233,7 +232,7 @@ void G_Match_LaunchState( int matchState ) {
 bool G_Match_ScorelimitHit() {
 	edict_t *e;
 
-	if( server_gs.gameState.match_state != MATCH_STATE_PLAYTIME ) {
+	if( server_gs.gameState.match_state != MatchState_Playing ) {
 		return false;
 	}
 
@@ -264,7 +263,7 @@ bool G_Match_TimelimitHit() {
 		return false;
 	}
 
-	if( server_gs.gameState.match_state == MATCH_STATE_WAITEXIT ) {
+	if( server_gs.gameState.match_state == MatchState_WaitExit ) {
 		level.exitNow = true;
 		return false; // don't advance into next state. The match will be restarted
 	}
@@ -274,11 +273,11 @@ bool G_Match_TimelimitHit() {
 
 void G_EndMatch() {
 	level.forceExit = true;
-	G_Match_LaunchState( MATCH_STATE_POSTMATCH );
+	G_Match_LaunchState( MatchState_PostMatch );
 }
 
 void G_Match_CheckReadys() {
-	if( server_gs.gameState.match_state != MATCH_STATE_WARMUP ) {
+	if( server_gs.gameState.match_state != MatchState_Warmup ) {
 		return;
 	}
 
@@ -319,7 +318,7 @@ void G_Match_CheckReadys() {
 
 	if( allready ) {
 		G_PrintMsg( NULL, "All players are ready. Match starting!\n" );
-		G_Match_LaunchState( MATCH_STATE_COUNTDOWN );
+		G_Match_LaunchState( MatchState_Countdown );
 	}
 }
 
@@ -333,7 +332,7 @@ void G_Match_Ready( edict_t *ent ) {
 		return;
 	}
 
-	if( server_gs.gameState.match_state != MATCH_STATE_WARMUP ) {
+	if( server_gs.gameState.match_state != MatchState_Warmup ) {
 		if( !( ent->r.svflags & SVF_FAKECLIENT ) ) {
 			G_PrintMsg( ent, "We're not in warmup.\n" );
 		}
@@ -359,7 +358,7 @@ void G_Match_NotReady( edict_t *ent ) {
 		return;
 	}
 
-	if( server_gs.gameState.match_state != MATCH_STATE_WARMUP ) {
+	if( server_gs.gameState.match_state != MatchState_Warmup ) {
 		G_PrintMsg( ent, "A match is not being setup.\n" );
 		return;
 	}
@@ -471,7 +470,7 @@ static void G_CheckEvenTeam() {
 	int min = server_gs.maxclients + 1;
 	int uneven = TEAM_SPECTATOR;
 
-	if( server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
+	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
 		return;
 	}
 
@@ -592,7 +591,7 @@ void G_Gametype_Init() {
 
 	if( !GT_asLoadScript( gt ) ) {
 #if PUBLIC_BUILD
-		Com_Error( ERR_DROP, "Failed to load %s", gt );
+		Fatal( "Failed to load %s", gt );
 #endif
 	}
 }

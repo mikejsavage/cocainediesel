@@ -65,8 +65,6 @@ typedef struct asClassDescriptor_s {
 	const asBehavior_t * objBehaviors;
 	const asMethod_t * objMethods;
 	const asProperty_t * objProperties;
-	const void * stringFactory;
-	const void * stringFactory_asGeneric;
 } asClassDescriptor_t;
 
 typedef struct asglobfuncs_s {
@@ -80,21 +78,8 @@ typedef struct asglobproperties_s {
 	void *pointer;
 } asglobproperties_t;
 
-void asemptyfunc();
-
-#define ASLIB_LOCAL_CLASS_DESCR( x )
-
 #define ASLIB_ENUM_VAL( name )                    { #name,(int)name }
-#define ASLIB_ENUM_VAL_NULL                     { NULL, 0 }
-
-#define ASLIB_ENUM_NULL                         { NULL, NULL }
 
 #define ASLIB_FUNCTION_DECL( type,name,params )   (#type " " #name #params )
 
 #define ASLIB_PROPERTY_DECL( type,name )          #type " " #name
-
-#define ASLIB_FUNCTION_NULL                     NULL
-#define ASLIB_FUNCDEF_NULL                      { ASLIB_FUNCTION_NULL }
-#define ASLIB_BEHAVIOR_NULL                     { asBEHAVE_CONSTRUCT, ASLIB_FUNCTION_NULL, asFUNCTION( asemptyfunc ), asCALL_CDECL }
-#define ASLIB_METHOD_NULL                       { ASLIB_FUNCTION_NULL, asFUNCTION( asemptyfunc ), asCALL_CDECL }
-#define ASLIB_PROPERTY_NULL                     { NULL, 0 }

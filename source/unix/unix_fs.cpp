@@ -37,13 +37,6 @@ bool Sys_FS_CreateDirectory( const char *path ) {
 	return ( !mkdir( path, 0777 ) );
 }
 
-/*
-* Sys_FS_FileNo
-*/
-int Sys_FS_FileNo( FILE *fp ) {
-	return fileno( fp );
-}
-
 char * FindHomeDirectory( Allocator * a ) {
 	const char * xdg_data_home = getenv( "XDG_DATA_HOME" );
 	if( xdg_data_home != NULL ) {
@@ -52,7 +45,7 @@ char * FindHomeDirectory( Allocator * a ) {
 
 	const char * home = getenv( "HOME" );
 	if( home == NULL ) {
-		Com_Error( ERR_FATAL, "Can't find home directory" );
+		Fatal( "Can't find home directory" );
 	}
 
 	return ( *a )( "{}/.local/share/{}", home, APPLICATION );
@@ -71,7 +64,7 @@ bool MoveFile( Allocator * a, const char * old_path, const char * new_path, Move
 	}
 
 	if( errno == ENOSYS || errno == EINVAL || errno == EFAULT ) {
-		Com_Error( ERR_FATAL, "rename" );
+		Fatal( "rename" );
 	}
 
 	return false;
@@ -130,11 +123,15 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	return false;
 }
 
-s64 FileLastModifiedTime( TempAllocator * temp, const char * path ) {
+FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path ) {
 	struct stat buf;
 	if( stat( path, &buf ) == -1 ) {
-		return 0;
+		return { };
 	}
 
-	return checked_cast< s64 >( buf.st_mtim.tv_sec ) * 1000 + checked_cast< s64 >( buf.st_mtim.tv_nsec ) / 1000000;
+	FileMetadata metadata;
+	metadata.size = checked_cast< u64 >( buf.st_size );
+	metadata.modified_time = checked_cast< s64 >( buf.st_mtim.tv_sec ) * 1000 + checked_cast< s64 >( buf.st_mtim.tv_nsec ) / 1000000;
+
+	return metadata;
 }

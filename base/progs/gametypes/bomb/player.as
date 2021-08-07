@@ -89,11 +89,11 @@ class cPlayer {
 			return;
 		}
 
-		if( match.getState() == MATCH_STATE_WARMUP || match.getState() == MATCH_STATE_COUNTDOWN ) {
+		if( match.matchState == MatchState_Warmup || match.matchState == MatchState_Countdown ) {
 			giveInventory();
 		}
 
-		if( match.getState() == MATCH_STATE_PLAYTIME && match.roundState == RoundState_Countdown ) {
+		if( match.matchState == MatchState_Playing && match.roundState == RoundState_Countdown ) {
 			giveInventory();
 		}
 	}
@@ -130,7 +130,7 @@ cPlayer @playerFromClient( Client @client ) {
 
 	// XXX: as of 0.18 this check shouldn't be needed as playersInit works
 	if( @player == null ) {
-		assert( false, "player.as playerFromClient: no player exists for client - state: " + client.state() );
+		Fatal( "player.as playerFromClient: no player exists for client - state: " + client.state() );
 
 		return cPlayer( @client );
 	}

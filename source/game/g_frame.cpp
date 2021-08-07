@@ -87,11 +87,11 @@ static void G_Timeout_Update( unsigned int msec ) {
 */
 static void G_UpdateServerInfo() {
 	// g_match_time
-	if( server_gs.gameState.match_state <= MATCH_STATE_WARMUP ) {
+	if( server_gs.gameState.match_state <= MatchState_Warmup ) {
 		Cvar_ForceSet( "g_match_time", "Warmup" );
-	} else if( server_gs.gameState.match_state == MATCH_STATE_COUNTDOWN ) {
+	} else if( server_gs.gameState.match_state == MatchState_Countdown ) {
 		Cvar_ForceSet( "g_match_time", "Countdown" );
-	} else if( server_gs.gameState.match_state == MATCH_STATE_PLAYTIME ) {
+	} else if( server_gs.gameState.match_state == MatchState_Playing ) {
 		// partly from G_GetMatchState
 		char extra[MAX_INFO_VALUE];
 		int clocktime, timelimit, mins, secs;
@@ -127,7 +127,7 @@ static void G_UpdateServerInfo() {
 	}
 
 	// g_match_score
-	if( server_gs.gameState.match_state >= MATCH_STATE_PLAYTIME && level.gametype.isTeamBased ) {
+	if( server_gs.gameState.match_state >= MatchState_Playing && level.gametype.isTeamBased ) {
 		String< MAX_INFO_STRING > score( "{}: {} {}: {}",
 			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.teams[ TEAM_ALPHA ].score,
 			GS_TeamName( TEAM_BETA ), server_gs.gameState.teams[ TEAM_BETA ].score );
@@ -184,7 +184,7 @@ void G_CheckCvars() {
 
 	if( g_warmup_timelimit->modified ) {
 		// if we are inside timelimit period, update the endtime
-		if( server_gs.gameState.match_state == MATCH_STATE_WARMUP ) {
+		if( server_gs.gameState.match_state == MatchState_Warmup ) {
 			server_gs.gameState.match_duration = (int64_t)Abs( 60.0f * 1000 * g_warmup_timelimit->integer );
 		}
 		g_warmup_timelimit->modified = false;
@@ -236,28 +236,6 @@ static void G_SnapEntities() {
 		if( ent->s.type == ET_PLAYER || ent->s.type == ET_CORPSE ) {
 			// this is pretty hackish
 			ent->s.origin2 = ent->velocity;
-		}
-
-		if( ent->s.type == ET_PLAYER ) {
-			if( ent->snap.damage_taken > 0.0f ) {
-				float damage = Min2( ent->snap.damage_taken, 120.0f );
-
-				Vec3 dir = SafeNormalize( ent->snap.damage_dir );
-				Vec3 origin = ent->s.origin + ent->snap.damage_at;
-
-				edict_t * event = G_SpawnEvent( EV_BLOOD, DirToU64( dir ), &origin );
-				event->s.radius = HEALTH_TO_INT( damage );
-				event->s.ownerNum = ent->s.number;
-				event->s.team = ent->s.team;
-
-				if( !G_IsDead( ent ) ) {
-					// play an apropriate pain sound
-					if( level.time >= ent->pain_debounce_time ) {
-						G_AddEvent( ent, EV_PAIN, ent->health <= 25 ? PAIN_20 : PAIN_100, true );
-						ent->pain_debounce_time = level.time + 400;
-					}
-				}
-			}
 		}
 	}
 }
@@ -341,17 +319,6 @@ void G_SnapFrame() {
 		if( !ent->r.inuse ) {
 			ent->r.svflags |= SVF_NOCLIENT;
 			continue;
-		} else if( ent->s.type >= ET_TOTAL_TYPES || ent->s.type < 0 ) {
-			if( developer->integer ) {
-				Com_Printf( "'G_SnapFrame': Inhibiting invalid entity type %i\n", ent->s.type );
-			}
-			ent->r.svflags |= SVF_NOCLIENT;
-			continue;
-		}
-
-		ent->s.effects &= ~EF_TAKEDAMAGE;
-		if( ent->takedamage ) {
-			ent->s.effects |= EF_TAKEDAMAGE;
 		}
 
 		if( GS_MatchPaused( &server_gs ) ) {
@@ -391,12 +358,6 @@ static void G_RunEntities() {
 		}
 
 		G_RunEntity( ent );
-
-		if( ent->takedamage ) {
-			ent->s.effects |= EF_TAKEDAMAGE;
-		} else {
-			ent->s.effects &= ~EF_TAKEDAMAGE;
-		}
 	}
 }
 
@@ -405,17 +366,10 @@ static void G_RunClients() {
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t *ent = game.edicts + 1 + i;
-		if( !ent->r.inuse ) {
+		if( !ent->r.inuse )
 			continue;
-		}
 
 		G_ClientThink( ent );
-
-		if( ent->takedamage ) {
-			ent->s.effects |= EF_TAKEDAMAGE;
-		} else {
-			ent->s.effects &= ~EF_TAKEDAMAGE;
-		}
 	}
 }
 

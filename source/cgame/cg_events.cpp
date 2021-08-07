@@ -396,7 +396,7 @@ static void CG_StartVoiceTokenEffect( int entNum, u64 parm ) {
 
 	StringHash sound = cgs.media.sfxVSaySounds[ vsay ];
 
-	if( client_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
+	if( client_gs.gameState.match_state >= MatchState_PostMatch ) {
 		S_StartGlobalSound( sound, CHAN_AUTO, 1.0f, entropy );
 	}
 	else {
@@ -820,11 +820,11 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		} break;
 
 		case EV_BLOOD: {
-			Vec3 dir = U64ToDir( parm );
+			Vec3 dir = ent->origin2;
 			Vec3 tangent, bitangent;
 			OrthonormalBasis( dir, &tangent, &bitangent );
 
-			int damage = ent->radius;
+			int damage = parm;
 			float p = damage / 20.0f;
 
 			if( !ISVIEWERENTITY( ent->ownerNum ) ) {

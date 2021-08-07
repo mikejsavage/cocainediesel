@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cgame/cg_local.h"
 #include "client/ui.h"
+#include "qcommon/fs.h"
 
 static void CG_SC_Print() {
 	CG_LocalPrint( "%s", Cmd_Argv( 1 ) );
@@ -44,7 +45,7 @@ static void CG_SC_ChatPrint() {
 		return;
 	}
 
-	const char * name = cgs.clientInfo[ who - 1 ].name;
+	const char * name = PlayerName( who - 1 );
 	int team = cg_entities[ who ].current.team;
 	RGB8 team_color = team == TEAM_SPECTATOR ? RGB8( 128, 128, 128 ) : CG_TeamColor( team );
 
@@ -74,17 +75,15 @@ void CG_ConfigString( int i, const char *s ) {
 	}
 
 	if( i < 0 || i >= MAX_CONFIGSTRINGS ) {
-		Com_Error( ERR_DROP, "configstring > MAX_CONFIGSTRINGS" );
+		Com_Error( "configstring > MAX_CONFIGSTRINGS" );
 		return;
 	}
 
 	Q_strncpyz( cgs.configStrings[i], s, sizeof( cgs.configStrings[i] ) );
 
-	// do something apropriate
+	// do something appropriate
 	if( i == CS_AUTORECORDSTATE ) {
 		CG_SC_AutoRecordAction( cgs.configStrings[i] );
-	} else if( i >= CS_PLAYERINFOS && i < CS_PLAYERINFOS + MAX_CLIENTS ) {
-		CG_LoadClientInfo( i - CS_PLAYERINFOS );
 	} else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
 		if( !cgs.demoPlaying ) {
 			Cmd_AddCommand( cgs.configStrings[i], NULL );
@@ -204,7 +203,22 @@ static void CG_SC_DemoGet() {
 		return;
 	}
 
-	CL_DownloadFile( filename, true );
+	CL_DownloadFile( filename, []( const char * filename, Span< const u8 > data ) {
+		if( data.ptr == NULL )
+			return;
+
+		TempAllocator temp = cls.frame_arena.temp();
+		const char * path = temp( "{}/demos/server/{}", HomeDirPath(), FileName( filename ) );
+
+		if( FileExists( &temp, path ) ) {
+			Com_Printf( "%s already exists!\n", path );
+			return;
+		}
+
+		if( !WriteFile( &temp, path, data.ptr, data.num_bytes() ) ) {
+			Com_Printf( "Couldn't write to %s\n", path );
+		}
+	} );
 }
 
 static void CG_SC_ChangeLoadout() {
@@ -386,15 +400,15 @@ static const char **CG_PlayerNamesCompletionExt_f( const char *partial, bool tea
 
 		matches = (const char **) CG_Malloc( sizeof( char * ) * ( client_gs.maxclients + 1 ) );
 		for( i = 0; i < client_gs.maxclients; i++ ) {
-			cg_clientInfo_t *info = cgs.clientInfo + i;
-			if( !info->name[0] ) {
+			const char * name = PlayerName( i );
+			if( strlen( name ) == 0 ) {
 				continue;
 			}
 			if( teamOnly && ( cg_entities[i + 1].current.team != team ) ) {
 				continue;
 			}
-			if( !Q_strnicmp( info->name, partial, partial_len ) ) {
-				matches[num_matches++] = info->name;
+			if( !Q_strnicmp( name, partial, partial_len ) ) {
+				matches[num_matches++] = name;
 			}
 		}
 		matches[num_matches] = NULL;

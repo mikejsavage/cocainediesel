@@ -46,9 +46,9 @@ CENTER PRINTING
 ===============================================================================
 */
 
-char scr_centerstring[1024];
-int scr_centertime_off;
-int scr_erase_center;
+static char scr_centerstring[1024];
+static int scr_centertime_off;
+static int scr_erase_center;
 
 /*
 * CG_CenterPrint
@@ -130,7 +130,7 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	int64_t clocktime, startTime, duration, curtime;
 	char string[12];
 
-	if( client_gs.gameState.match_state > MATCH_STATE_PLAYTIME ) {
+	if( client_gs.gameState.match_state > MatchState_Playing ) {
 		return;
 	}
 
@@ -209,7 +209,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 	CG_UpdatePointedNum();
 
 	for( int i = 0; i < client_gs.maxclients; i++ ) {
-		if( !cgs.clientInfo[i].name[0] || ISVIEWERENTITY( i + 1 ) ) {
+		if( strlen( PlayerName( i ) ) == 0 || ISVIEWERENTITY( i + 1 ) ) {
 			continue;
 		}
 
@@ -234,7 +234,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 		// Kill if behind the view
 		Vec3 dir = cent->interpolated.origin - cg.view.origin;
 		float dist = Length( dir ) * cg.view.fracDistFOV;
-		dir = Normalize( dir );
+		dir = SafeNormalize( dir );
 
 		if( Dot( dir, FromQFAxis( cg.view.axis, AXIS_FORWARD ) ) < 0 ) {
 			continue;
@@ -274,7 +274,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		DrawText( font, font_size, cgs.clientInfo[i].name, Alignment_CenterBottom, coords.x, coords.y, tmpcolor, border );
+		DrawText( font, font_size, PlayerName( i ), Alignment_CenterBottom, coords.x, coords.y, tmpcolor, border );
 	}
 }
 
@@ -710,11 +710,11 @@ void CG_AddBombSite( centity_t * cent ) {
 }
 
 void CG_DrawBombHUD() {
-	if( client_gs.gameState.match_state > MATCH_STATE_PLAYTIME )
+	if( client_gs.gameState.match_state > MatchState_Playing )
 		return;
 
 	int my_team = cg.predictedPlayerState.team;
-	bool show_labels = my_team != TEAM_SPECTATOR && client_gs.gameState.match_state == MATCH_STATE_PLAYTIME;
+	bool show_labels = my_team != TEAM_SPECTATOR && client_gs.gameState.match_state == MatchState_Playing;
 
 	Vec4 yellow = sRGBToLinear( rgba8_diesel_yellow );
 

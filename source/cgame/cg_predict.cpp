@@ -60,7 +60,7 @@ void CG_CheckPredictionError() {
 		return;
 	}
 
-	// calculate the last usercmd_t we sent that the server has processed
+	// calculate the last UserCommand we sent that the server has processed
 	frame = cg.frame.ucmdExecuted & CMD_MASK;
 
 	// compare what the server returned with what we had predicted it to be
@@ -294,7 +294,7 @@ static void CG_PredictAddStep( int virtualtime, int predictiontime, float stepSi
 static void CG_PredictSmoothSteps() {
 	int64_t outgoing;
 	int64_t frame;
-	usercmd_t cmd;
+	UserCommand cmd;
 	int i;
 	int virtualtime = 0, predictiontime = 0;
 

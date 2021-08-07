@@ -170,7 +170,7 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 		return ER_TEAM_OK;
 	}
 
-	if( server_gs.gameState.match_state > MATCH_STATE_PLAYTIME ) {
+	if( server_gs.gameState.match_state > MatchState_Playing ) {
 		return ER_TEAM_MATCHSTATE;
 	}
 
@@ -273,7 +273,7 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 		return true;
 	}
 
-	if( server_gs.gameState.match_state <= MATCH_STATE_PLAYTIME && !silent ) {
+	if( server_gs.gameState.match_state <= MatchState_Playing && !silent ) {
 		G_Teams_JoinChallengersQueue( ent );
 	}
 
@@ -390,7 +390,7 @@ void G_Teams_ExecuteChallengersQueue() {
 	bool restartmatch = false;
 
 	// Medar fixme: this is only really makes sense, if playerlimit per team is one
-	if( server_gs.gameState.match_state == MATCH_STATE_PLAYTIME ) {
+	if( server_gs.gameState.match_state == MatchState_Playing ) {
 		return;
 	}
 
@@ -422,7 +422,7 @@ void G_Teams_ExecuteChallengersQueue() {
 			}
 
 			// if we successfully execute the challengers queue during the countdown, revert to warmup
-			if( server_gs.gameState.match_state == MATCH_STATE_COUNTDOWN ) {
+			if( server_gs.gameState.match_state == MatchState_Countdown ) {
 				restartmatch = true;
 			}
 		}
@@ -430,7 +430,7 @@ void G_Teams_ExecuteChallengersQueue() {
 
 	if( restartmatch == true ) {
 		G_Match_Autorecord_Cancel();
-		G_Match_LaunchState( MATCH_STATE_WARMUP );
+		G_Match_LaunchState( MatchState_Warmup );
 	}
 }
 

@@ -5,7 +5,7 @@
 #include "imgui/imgui.h"
 
 bool CG_ScoreboardShown() {
-	if( client_gs.gameState.match_state > MATCH_STATE_PLAYTIME ) {
+	if( client_gs.gameState.match_state > MatchState_Playing ) {
 		return true;
 	}
 
@@ -15,7 +15,7 @@ bool CG_ScoreboardShown() {
 static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float line_height ) {
 	SyncScoreboardPlayer * player = &client_gs.gameState.players[ playerIndex - 1 ];
 	// icon
-	bool warmup = client_gs.gameState.match_state == MATCH_STATE_WARMUP || client_gs.gameState.match_state == MATCH_STATE_COUNTDOWN;
+	bool warmup = client_gs.gameState.match_state == MatchState_Warmup || client_gs.gameState.match_state == MatchState_Countdown;
 	const Material * icon = NULL;
 
 	if( warmup ) {
@@ -43,7 +43,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float l
 
 	// player name
 	u8 alpha = player->alive ? 255 : 75;
-	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), cgs.clientInfo[ playerIndex - 1 ].name );
+	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), PlayerName( playerIndex - 1 ) );
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( "%s", final_name.c_str() );
 	ImGui::NextColumn();
@@ -138,7 +138,7 @@ void CG_DrawScoreboard() {
 	float separator_height = ImGui::GetTextLineHeight() + 2 * padding;
 	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0, padding ) );
 
-	bool warmup = client_gs.gameState.match_state < MATCH_STATE_PLAYTIME;
+	bool warmup = client_gs.gameState.match_state < MatchState_Playing;
 
 	defer {
 		ImGui::PopStyleVar();
@@ -306,7 +306,7 @@ void CG_DrawScoreboard() {
 		for( u8 i = 0; i < team_spec->num_players; i++ ) {
 			if( i > 0 )
 				spectators += ", ";
-			spectators += cgs.clientInfo[ team_spec->player_indices[ i ] - 1 ].name;
+			spectators += PlayerName( team_spec->player_indices[ i ] - 1 );
 		}
 
 		ImGui::Text( "%s", spectators.c_str() );

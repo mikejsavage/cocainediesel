@@ -108,7 +108,6 @@ static const keyname_t keynames[] = {
 
 	{ "PAUSE", K_PAUSE },
 
-	{ "SEMICOLON", ';' }, // because a raw semicolon separates commands
 	{ nullptr, 0 }
 };
 

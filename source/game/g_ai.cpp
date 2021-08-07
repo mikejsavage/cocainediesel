@@ -27,19 +27,12 @@ static const char * bot_names[] = {
 	"touchpad timma",
 };
 
-static void CreateUserInfo( char * buffer, size_t bufferSize ) {
-	memset( buffer, 0, bufferSize );
-
-	Info_SetValueForKey( buffer, "name", RandomElement( &svs.rng, bot_names ) );
-}
-
 static edict_t * ConnectFakeClient() {
-	char userInfo[MAX_INFO_STRING];
-	static char fakeSocketType[] = "loopback";
-	static char fakeIP[] = "127.0.0.1";
-	CreateUserInfo( userInfo, sizeof( userInfo ) );
-	int entNum = SVC_FakeConnect( userInfo, fakeSocketType, fakeIP );
-	if( entNum < 1 ) {
+	char userInfo[ MAX_INFO_STRING ] = "";
+	Info_SetValueForKey( userInfo, "name", RandomElement( &svs.rng, bot_names ) );
+
+	int entNum = SVC_FakeConnect( userInfo, "loopback", "127.0.0.1" );
+	if( entNum == -1 ) {
 		Com_Printf( "AI: Can't spawn the fake client\n" );
 		return NULL;
 	}
@@ -92,8 +85,8 @@ static void AI_SpecThink( edict_t * self ) {
 		return;
 	}
 
-	usercmd_t ucmd;
-	memset( &ucmd, 0, sizeof( usercmd_t ) );
+	UserCommand ucmd;
+	memset( &ucmd, 0, sizeof( UserCommand ) );
 
 	// set approximate ping and show values
 	ucmd.serverTimeStamp = svs.gametime;
@@ -103,12 +96,12 @@ static void AI_SpecThink( edict_t * self ) {
 }
 
 static void AI_GameThink( edict_t * self ) {
-	if( server_gs.gameState.match_state <= MATCH_STATE_WARMUP ) {
+	if( server_gs.gameState.match_state <= MatchState_Warmup ) {
 		G_Match_Ready( self );
 	}
 
-	usercmd_t ucmd;
-	memset( &ucmd, 0, sizeof( usercmd_t ) );
+	UserCommand ucmd;
+	memset( &ucmd, 0, sizeof( UserCommand ) );
 
 	// set up for pmove
 	ucmd.angles[ 0 ] = (short)ANGLE2SHORT( self->s.angles.x ) - self->r.client->ps.pmove.delta_angles[ 0 ];
@@ -120,7 +113,7 @@ static void AI_GameThink( edict_t * self ) {
 	self->r.client->ps.pmove.delta_angles[ 2 ] = 0;
 
 	// set approximate ping and show values
-	ucmd.msec = (uint8_t)game.frametime;
+	ucmd.msec = u8( game.frametime );
 	ucmd.serverTimeStamp = svs.gametime;
 
 	ClientThink( self, &ucmd, 0 );

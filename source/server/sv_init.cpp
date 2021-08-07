@@ -49,8 +49,8 @@ static void SV_CreateBaseline() {
 * SV_SetServerConfigStrings
 */
 void SV_SetServerConfigStrings() {
-	snprintf( sv.configstrings[CS_MAXCLIENTS], sizeof( sv.configstrings[0] ), "%i", sv_maxclients->integer );
-	Q_strncpyz( sv.configstrings[CS_HOSTNAME], Cvar_String( "sv_hostname" ), sizeof( sv.configstrings[0] ) );
+	snprintf( sv.configstrings[CS_MAXCLIENTS], sizeof( sv.configstrings[CS_MAXCLIENTS] ), "%i", sv_maxclients->integer );
+	Q_strncpyz( sv.configstrings[CS_HOSTNAME], Cvar_String( "sv_hostname" ), sizeof( sv.configstrings[CS_HOSTNAME] ) );
 }
 
 /*
@@ -133,7 +133,7 @@ void SV_InitGame() {
 	}
 
 	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	CSPRNG( entropy, sizeof( entropy ) );
 	svs.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	svs.initialized = true;
@@ -158,7 +158,7 @@ void SV_InitGame() {
 	if( !is_dedicated_server ) {
 		NET_InitAddress( &address, NA_LOOPBACK );
 		if( !NET_OpenSocket( &svs.socket_loopback, SOCKET_LOOPBACK, &address, true ) ) {
-			Com_Error( ERR_FATAL, "Couldn't open loopback socket: %s\n", NET_ErrorString() );
+			Fatal( "Couldn't open loopback socket: %s\n", NET_ErrorString() );
 		}
 	}
 
@@ -187,7 +187,7 @@ void SV_InitGame() {
 	}
 
 	if( is_dedicated_server && !socket_opened ) {
-		Com_Error( ERR_FATAL, "Couldn't open any socket\n" );
+		Fatal( "Couldn't open any socket\n" );
 	}
 
 	// init game

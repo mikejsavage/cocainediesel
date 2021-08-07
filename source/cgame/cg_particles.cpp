@@ -126,6 +126,7 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 			constexpr u16 indices[] = { 0, 1, 2, 3 };
 
 			MeshConfig mesh_config;
+			mesh_config.name = "Particle quad";
 			mesh_config.positions = NewVertexBuffer( verts, sizeof( verts ) );
 			mesh_config.positions_format = VertexFormat_Floatx2;
 			mesh_config.tex_coords = NewVertexBuffer( uvs, sizeof( uvs ) );
@@ -138,7 +139,8 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	}
 
 	{
-		MeshConfig mesh_config = { };
+		MeshConfig mesh_config;
+		mesh_config.name = "???";
 		mesh_config.positions = NewVertexBuffer( NULL, 0 );
 		mesh_config.indices = ps->ibo;
 		mesh_config.indices_format = IndexFormat_U32;

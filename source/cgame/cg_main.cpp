@@ -106,21 +106,6 @@ static void CG_InitGameShared() {
 	client_gs.api.PMoveTouchTriggers = CG_Predict_TouchTriggers;
 }
 
-char *_CG_CopyString( const char *in, const char *filename, int fileline ) {
-	char * out = ( char * )_Mem_AllocExt( cg_mempool, strlen( in ) + 1, 16, 1, 0, 0, filename, fileline );
-	strcpy( out, in );
-	return out;
-}
-
-static void CG_RegisterClients() {
-	for( int i = 0; i < MAX_CLIENTS; i++ ) {
-		const char * name = cgs.configStrings[CS_PLAYERINFOS + i];
-		if( !name[0] )
-			continue;
-		CG_LoadClientInfo( i );
-	}
-}
-
 static void CG_RegisterVariables() {
 	cg_showMiss =       Cvar_Get( "cg_showMiss", "0", 0 );
 
@@ -155,9 +140,17 @@ void CG_Precache() {
 	CG_RegisterMediaSounds();
 	CG_RegisterMediaSounds();
 	CG_RegisterMediaShaders();
-	CG_RegisterClients();
 
 	cgs.precacheDone = true;
+}
+
+const char * PlayerName( int i ) {
+	if( i < 0 || i >= client_gs.maxclients ) {
+		return "";
+	}
+
+	Span< const char[ MAX_CONFIGSTRING_CHARS ] > names( cgs.configStrings + CS_PLAYERINFOS, client_gs.maxclients );
+	return names[ i ];
 }
 
 static void CG_RegisterConfigStrings() {
@@ -165,17 +158,10 @@ static void CG_RegisterConfigStrings() {
 		CL_GetConfigString( i, cgs.configStrings[i], MAX_CONFIGSTRING_CHARS );
 	}
 
-	// backup initial configstrings for CG_Reset
-	memcpy( &cgs.baseConfigStrings[0][0], &cgs.configStrings[0][0], MAX_CONFIGSTRINGS*MAX_CONFIGSTRING_CHARS );
-
 	CG_SC_AutoRecordAction( cgs.configStrings[CS_AUTORECORDSTATE] );
 }
 
 void CG_Reset() {
-	memcpy( &cgs.configStrings[0][0], &cgs.baseConfigStrings[0][0], MAX_CONFIGSTRINGS*MAX_CONFIGSTRING_CHARS );
-
-	CG_ResetClientInfos();
-
 	CG_ResetPModels();
 
 	CG_ResetKickAngles();
@@ -221,7 +207,7 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	memset( cg_entities, 0, sizeof( cg_entities ) );
 
 	// save server name
-	cgs.serverName = CG_CopyString( serverName );
+	cgs.serverName = CopyString( sys_allocator, serverName );
 
 	// save local player number
 	cgs.playerNum = playerNum;
@@ -259,7 +245,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	CG_InitChat();
 
-	// start up announcer events queue from clean
 	CG_ClearAnnouncerEvents();
 
 	cg.firstFrame = true; // think of the next frame in CG_NewFrameSnap as of the first one
@@ -280,7 +265,7 @@ void CG_Shutdown() {
 	CG_ShutdownHUD();
 	ShutdownDecals();
 
-	CG_Free( const_cast< char * >( cgs.serverName ) );
+	FREE( sys_allocator, const_cast< char * >( cgs.serverName ) );
 
 	Mem_FreePool( &cg_mempool );
 

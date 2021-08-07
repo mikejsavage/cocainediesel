@@ -221,7 +221,7 @@ static int FS_OpenFileHandle() {
 
 	if( !fs_free_filehandles ) {
 		Unlock( fs_fh_mutex );
-		Sys_Error( "FS_OpenFileHandle: no free file handles" );
+		Fatal( "FS_OpenFileHandle: no free file handles" );
 	}
 
 	fh = fs_free_filehandles;
@@ -244,7 +244,7 @@ static int FS_OpenFileHandle() {
 */
 static inline filehandle_t *FS_FileHandleForNum( int file ) {
 	if( file < 1 || file > FS_MAX_HANDLES ) {
-		Sys_Error( "FS_FileHandleForNum: bad handle: %i", file );
+		Fatal( "FS_FileHandleForNum: bad handle: %i", file );
 	}
 	return &fs_filehandles[file - 1];
 }
@@ -257,7 +257,7 @@ static inline int FS_FileNumForHandle( filehandle_t *fh ) {
 
 	file = ( fh - fs_filehandles ) + 1;
 	if( file < 1 || file > FS_MAX_HANDLES ) {
-		Sys_Error( "FS_FileHandleForNum: bad handle: %i", file );
+		Fatal( "FS_FileHandleForNum: bad handle: %i", file );
 	}
 	return file;
 }
@@ -605,24 +605,6 @@ int FS_Read( void *buffer, size_t len, int file ) {
 }
 
 /*
-* FS_Printf
-*/
-int FS_Printf( int file, const char *format, ... ) {
-	char msg[8192];
-	size_t len;
-	va_list argptr;
-
-	va_start( argptr, format );
-	if( ( len = vsnprintf( msg, sizeof( msg ), format, argptr ) ) >= sizeof( msg ) - 1 ) {
-		msg[sizeof( msg ) - 1] = '\0';
-		Com_Printf( "FS_Printf: Buffer overflow" );
-	}
-	va_end( argptr );
-
-	return FS_Write( msg, len, file );
-}
-
-/*
 * FS_Write
 *
 * Properly handles partial writes
@@ -649,7 +631,7 @@ int FS_Write( const void *buffer, size_t len, int file ) {
 
 	written = fwrite( buf, 1, len, fh->fstream );
 	if( written != len ) {
-		Sys_Error( "FS_Write: can't write %" PRIuPTR " bytes", (uintptr_t)len );
+		Fatal( "FS_Write: can't write %" PRIuPTR " bytes", (uintptr_t)len );
 	}
 
 	fh->offset += written;
@@ -732,22 +714,6 @@ int FS_Flush( int file ) {
 	}
 
 	return fflush( fh->fstream );
-}
-
-/*
-* FS_FileNo
-*
-* Returns the file handle that can be used in system calls.
-*/
-int FS_FileNo( int file ) {
-	filehandle_t *fh;
-
-	fh = FS_FileHandleForNum( file );
-	if( fh->fstream && !fh->gzstream ) {
-		return Sys_FS_FileNo( fh->fstream );
-	}
-
-	return -1;
 }
 
 /*
@@ -847,50 +813,6 @@ void FS_FreeBaseFile( void *buffer ) {
 }
 
 /*
-* FS_ChecksumAbsoluteFile
-*/
-unsigned FS_ChecksumAbsoluteFile( const char *filename ) {
-	Com_DPrintf( "Calculating checksum for file: %s\n", filename );
-
-	uint32_t hash = Hash32( NULL, 0 );
-
-	int filenum;
-	int left = FS_FOpenAbsoluteFile( filename, &filenum, FS_READ );
-	if( left == -1 ) {
-		return 0;
-	}
-
-	int length;
-	uint8_t buffer[FS_MAX_BLOCK_SIZE];
-	while( ( length = FS_Read( buffer, sizeof( buffer ), filenum ) ) ) {
-		left -= length;
-		hash = Hash32( buffer, length, hash );
-	}
-
-	FS_FCloseFile( filenum );
-
-	if( left != 0 ) {
-		return 0;
-	}
-
-	return hash;
-}
-
-/*
-* FS_ChecksumBaseFile
-*/
-unsigned FS_ChecksumBaseFile( const char *filename ) {
-	const char *fullname;
-
-	fullname = FS_AbsoluteNameForBaseFile( filename );
-	if( !fullname ) {
-		return false;
-	}
-
-	return FS_ChecksumAbsoluteFile( fullname );
-}
-
-/*
 * FS_RemoveAbsoluteFile
 */
 bool FS_RemoveAbsoluteFile( const char *filename ) {
@@ -924,13 +846,6 @@ static bool _FS_RemoveFile( const char *filename, bool base ) {
 	}
 
 	return ( FS_RemoveAbsoluteFile( fullname ) );
-}
-
-/*
-* FS_RemoveBaseFile
-*/
-bool FS_RemoveBaseFile( const char *filename ) {
-	return _FS_RemoveFile( filename, true );
 }
 
 /*
@@ -978,13 +893,6 @@ bool _FS_MoveFile( const char *src, const char *dst, bool base, const char *dir 
 */
 bool FS_MoveFile( const char *src, const char *dst ) {
 	return _FS_MoveFile( src, dst, false, FS_WriteDirectory() );
-}
-
-/*
-* FS_MoveBaseFile
-*/
-bool FS_MoveBaseFile( const char *src, const char *dst ) {
-	return _FS_MoveFile( src, dst, true, FS_WriteDirectory() );
 }
 
 /*

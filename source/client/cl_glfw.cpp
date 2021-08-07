@@ -22,19 +22,6 @@ GLFWwindow * window = NULL;
 static bool running_in_debugger = false;
 const bool is_dedicated_server = false;
 
-void Sys_Error( const char * format, ... ) {
-	va_list argptr;
-	char msg[ 1024 ];
-
-	va_start( argptr, format );
-	vsnprintf( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	Sys_ShowErrorMessage( msg );
-
-	abort();
-}
-
 void Sys_Quit() {
 	Qcommon_Shutdown();
 	glfwTerminate();
@@ -456,7 +443,7 @@ static void OnGlfwError( int code, const char * message ) {
 	if( code == GLFW_FORMAT_UNAVAILABLE && strstr( message, "Failed to convert" ) )
 		return;
 
-	Com_Error( ERR_FATAL, "GLFW error %d: %s", code, message );
+	Fatal( "GLFW error %d: %s", code, message );
 }
 
 static GLFWmonitor * GetMonitorByIdx( int i ) {
@@ -495,11 +482,12 @@ void CreateWindow( WindowMode mode ) {
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 );
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
 
-#if PUBLIC_BUILD
-	glfwWindowHint( GLFW_CONTEXT_NO_ERROR, GLFW_TRUE );
-#else
-	glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
-#endif
+	if( is_public_build ) {
+		glfwWindowHint( GLFW_CONTEXT_NO_ERROR, GLFW_TRUE );
+	}
+	else {
+		glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
+	}
 
 	glfwWindowHint( GLFW_RESIZABLE, GLFW_TRUE );
 
@@ -521,7 +509,7 @@ void CreateWindow( WindowMode mode ) {
 	}
 
 	if( window == NULL ) {
-		Com_Error( ERR_FATAL, "glfwCreateWindow" );
+		Fatal( "glfwCreateWindow" );
 	}
 
 	GLFWimage icon;
@@ -545,7 +533,7 @@ void CreateWindow( WindowMode mode ) {
 	glfwMakeContextCurrent( window );
 
 	if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
-		Com_Error( ERR_FATAL, "Couldn't load GL" );
+		Fatal( "Couldn't load GL" );
 	}
 }
 
@@ -680,11 +668,7 @@ void SwapBuffers() {
 }
 
 int main( int argc, char ** argv ) {
-#if PUBLIC_BUILD
-	running_in_debugger = false;
-#else
-	running_in_debugger = Sys_BeingDebugged();
-#endif
+	running_in_debugger = !is_public_build && Sys_BeingDebugged();
 
 	{
 		ZoneScopedN( "Init GLFW" );
@@ -692,7 +676,7 @@ int main( int argc, char ** argv ) {
 		glfwSetErrorCallback( OnGlfwError );
 
 		if( !glfwInit() ) {
-			Sys_Error( "glfwInit" );
+			Fatal( "glfwInit" );
 		}
 
 		glfwSetMonitorCallback( OnMonitorConfigChange );

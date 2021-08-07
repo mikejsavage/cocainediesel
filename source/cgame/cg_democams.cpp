@@ -378,7 +378,7 @@ static bool CG_LoadRecamScriptFile( const char *filename ) {
 				cam->fov = SpanToInt( token, 0 );
 				break;
 			default:
-				Com_Error( ERR_DROP, "CG_LoadRecamScriptFile: bad switch\n" );
+				Com_Error( "CG_LoadRecamScriptFile: bad switch\n" );
 		}
 
 		linecount++;
@@ -623,7 +623,7 @@ float CG_DemoCam_GetOrientation( Vec3 * origin, Vec3 * angles, Vec3 * velocity )
 static short freecam_delta_angles[3];
 
 int CG_DemoCam_FreeFly() {
-	usercmd_t cmd;
+	UserCommand cmd;
 	const float SPEED = 500;
 
 	if( cgs.demoPlaying && CamIsFree ) {
@@ -680,7 +680,7 @@ static void CG_Democam_SetCameraPositionFromView() {
 	}
 
 	if( !CamIsFree ) {
-		usercmd_t cmd;
+		UserCommand cmd;
 
 		CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 
@@ -1204,7 +1204,7 @@ void CG_DemocamInit() {
 	}
 
 	if( !*cgs.demoName ) {
-		Com_Error( ERR_DROP, "CG_DemocamInit: no demo name string\n" );
+		Com_Error( "CG_DemocamInit: no demo name string\n" );
 	}
 
 	// see if there is any script for this demo, and load it

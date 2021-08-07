@@ -123,7 +123,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 
 	// bit of a hack, if we're not in warmup, leave the body with no think. think self destructs
 	// after a timeout, but if we leave, next bomb round will call G_ResetLevel() cleaning up
-	if( server_gs.gameState.match_state != MATCH_STATE_PLAYTIME ) {
+	if( server_gs.gameState.match_state != MatchState_Playing ) {
 		body->nextThink = level.time + 3500;
 		body->think = G_FreeEdict; // body self destruction countdown
 	}
@@ -206,7 +206,7 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 		return;
 	}
 
-	if( ( server_gs.gameState.match_state != MATCH_STATE_PLAYTIME ) || !level.gametype.removeInactivePlayers ) {
+	if( ( server_gs.gameState.match_state != MatchState_Playing ) || !level.gametype.removeInactivePlayers ) {
 		return;
 	}
 
@@ -607,23 +607,9 @@ static void G_SetName( edict_t *ent, const char *original_name ) {
 	Q_strncpyz( ent->r.client->netname, name, sizeof( ent->r.client->netname ) );
 }
 
-/*
-* G_UpdatePlayerInfoString
-*/
 static void G_UpdatePlayerInfoString( int playerNum ) {
-	char playerString[MAX_INFO_STRING];
-	gclient_t *client;
-
-	assert( playerNum >= 0 && playerNum < server_gs.maxclients );
-	client = &game.clients[playerNum];
-
-	// update client information in cgame
-	playerString[0] = 0;
-
-	Info_SetValueForKey( playerString, "name", client->netname );
-
-	playerString[MAX_CONFIGSTRING_CHARS - 1] = 0;
-	PF_ConfigString( CS_PLAYERINFOS + playerNum, playerString );
+	const gclient_t * client = &game.clients[ playerNum ];
+	PF_ConfigString( CS_PLAYERINFOS + playerNum, client->netname );
 }
 
 /*
@@ -877,7 +863,7 @@ void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm ) {
 	G_UseGadget( ent, gadget, parm );
 }
 
-void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
+void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	ZoneScoped;
 
 	gclient_t *client;
@@ -939,7 +925,7 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 	client->ps.pmove.velocity = ent->velocity;
 	client->ps.viewangles = ent->s.angles;
 
-	if( server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH || GS_MatchPaused( &server_gs )
+	if( server_gs.gameState.match_state >= MatchState_PostMatch || GS_MatchPaused( &server_gs )
 		|| ( ent->movetype != MOVETYPE_PLAYER && ent->movetype != MOVETYPE_NOCLIP ) ) {
 		client->ps.pmove.pm_type = PM_FREEZE;
 	} else if( ent->movetype == MOVETYPE_NOCLIP ) {
@@ -1015,10 +1001,6 @@ void ClientThink( edict_t *ent, usercmd_t *ucmd, int timeDelta ) {
 * Client frame think, and call to execute its usercommands thinking
 */
 void G_ClientThink( edict_t *ent ) {
-	if( !ent || !ent->r.client ) {
-		return;
-	}
-
 	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return;
 	}
@@ -1041,7 +1023,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		return;
 	}
 
-	if( server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
+	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
 		return;
 	}
 

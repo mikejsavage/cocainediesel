@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/threads.h"
 #include "qcommon/version.h"
 
+#include <errno.h>
 #include <setjmp.h>
 
 #define MAX_NUM_ARGVS   50
@@ -35,7 +36,6 @@ static bool commands_intialized = false;
 
 static int com_argc;
 static char *com_argv[MAX_NUM_ARGVS + 1];
-static char com_errormsg[MAX_PRINTMSG];
 
 static bool com_quit;
 
@@ -53,7 +53,7 @@ static cvar_t *com_showtrace;
 
 static Mutex *com_print_mutex;
 
-static int log_file = 0;
+static FILE * log_file = NULL;
 
 static server_state_t server_state = ss_dead;
 static connstate_t client_state = CA_UNINITIALIZED;
@@ -121,9 +121,9 @@ static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 		Lock( com_print_mutex );
 	}
 
-	if( log_file ) {
-		FS_FCloseFile( log_file );
-		log_file = 0;
+	if( log_file != NULL ) {
+		fclose( log_file );
+		log_file = NULL;
 	}
 
 	if( shutdown ) {
@@ -143,20 +143,11 @@ static void Com_ReopenConsoleLog() {
 	Com_CloseConsoleLog( false, false );
 
 	if( logconsole && logconsole->string && logconsole->string[0] ) {
-		size_t name_size;
-		char *name;
-
-		name_size = strlen( logconsole->string ) + strlen( ".log" ) + 1;
-		name = ( char* )Mem_TempMalloc( name_size );
-		Q_strncpyz( name, logconsole->string, name_size );
-		COM_DefaultExtension( name, ".log", name_size );
-
-		if( FS_FOpenFile( name, &log_file, ( logconsole_append && logconsole_append->integer ? FS_APPEND : FS_WRITE ) ) == -1 ) {
-			log_file = 0;
-			snprintf( errmsg, MAX_PRINTMSG, "Couldn't open: %s\n", name );
+		const char * mode = logconsole_append && logconsole_append->integer ? "a" : "w";
+		log_file = OpenFile( sys_allocator, logconsole->string, mode );
+		if( log_file == NULL ) {
+			snprintf( errmsg, sizeof( errmsg ), "Couldn't open log file: %s (%s)\n", logconsole->string, strerror( errno ) );
 		}
-
-		Mem_TempFree( name );
 	}
 
 	Unlock( com_print_mutex );
@@ -199,15 +190,15 @@ void Com_Printf( const char *format, ... ) {
 
 	TracyMessage( msg, strlen( msg ) );
 
-	if( log_file ) {
+	if( log_file != NULL ) {
 		if( logconsole_timestamp && logconsole_timestamp->integer ) {
 			char timestamp[MAX_PRINTMSG];
 			Sys_FormatTime( timestamp, sizeof( timestamp ), "%Y-%m-%dT%H:%M:%SZ " );
-			FS_Printf( log_file, "%s", timestamp );
+			WritePartialFile( log_file, timestamp, strlen( timestamp ) );
 		}
-		FS_Printf( log_file, "%s", msg );
+		bool ok = WritePartialFile( log_file, msg, strlen( msg ) );
 		if( logconsole_flush && logconsole_flush->integer ) {
-			FS_Flush( log_file ); // force it to save every time
+			fflush( log_file );
 		}
 	}
 }
@@ -232,51 +223,25 @@ void Com_DPrintf( const char *format, ... ) {
 	Com_Printf( "%s", msg );
 }
 
-
 /*
-* Com_Error
-*
-* Both client and server can use this, and it will
-* do the apropriate things.
-*/
-void Com_Error( com_error_code_t code, const char *format, ... ) {
+ * Quit when run on the server, disconnect when run on the client
+ */
+void Com_Error( const char *format, ... ) {
 	va_list argptr;
-	char *msg = com_errormsg;
-	const size_t sizeof_msg = sizeof( com_errormsg );
-	static bool recursive = false;
-
-	if( recursive ) {
-		Com_Printf( "recursive error after: %s", msg ); // wsw : jal : log it
-		Sys_Error( "recursive error after: %s", msg );
-	}
-	recursive = true;
+	char msg[ MAX_PRINTMSG ];
 
 	va_start( argptr, format );
-	vsnprintf( msg, sizeof_msg, format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
-	if( code == ERR_DROP ) {
-		Com_Printf( "********************\nERROR: %s\n********************\n", msg );
-		SV_ShutdownGame( va( "Server crashed: %s\n", msg ), false );
-		CL_Disconnect( msg );
-		recursive = false;
+	Com_Printf( "********************\nERROR: %s\n********************\n", msg );
+	SV_ShutdownGame( "Server crashed", false );
+	CL_Disconnect( msg );
 #if PUBLIC_BUILD
-		longjmp( abortframe, -1 );
+	longjmp( abortframe, -1 );
 #else
-		abort();
+	abort();
 #endif
-	} else {
-		Com_Printf( "********************\nERROR: %s\n********************\n", msg );
-		SV_Shutdown( va( "Server fatal crashed: %s\n", msg ) );
-		CL_Shutdown();
-	}
-
-	if( log_file ) {
-		FS_FCloseFile( log_file );
-		log_file = 0;
-	}
-
-	Sys_Error( "%s", msg );
 }
 
 /*
@@ -370,7 +335,7 @@ void COM_InitArgv( int argc, char **argv ) {
 	int i;
 
 	if( argc > MAX_NUM_ARGVS ) {
-		Com_Error( ERR_FATAL, "argc > MAX_NUM_ARGVS" );
+		Fatal( "argc > MAX_NUM_ARGVS" );
 	}
 	com_argc = argc;
 	for( i = 0; i < argc; i++ ) {
@@ -389,7 +354,7 @@ void COM_InitArgv( int argc, char **argv ) {
 */
 void COM_AddParm( char *parm ) {
 	if( com_argc == MAX_NUM_ARGVS ) {
-		Com_Error( ERR_FATAL, "COM_AddParm: MAX_NUM_ARGVS" );
+		Fatal( "COM_AddParm: MAX_NUM_ARGVS" );
 	}
 	com_argv[com_argc++] = parm;
 }
@@ -461,7 +426,7 @@ void *Q_malloc( size_t size ) {
 	void *buf = malloc( size );
 
 	if( !buf ) {
-		Sys_Error( "Q_malloc: failed on allocation of %" PRIuPTR " bytes.\n", (uintptr_t)size );
+		Fatal( "Q_malloc: failed on allocation of %" PRIuPTR " bytes.\n", (uintptr_t)size );
 	}
 
 	return buf;
@@ -476,7 +441,7 @@ void *Q_realloc( void *buf, size_t newsize ) {
 	void *newbuf = realloc( buf, newsize );
 
 	if( !newbuf && newsize ) {
-		Sys_Error( "Q_realloc: failed on allocation of %" PRIuPTR " bytes.\n", (uintptr_t)newsize );
+		Fatal( "Q_realloc: failed on allocation of %" PRIuPTR " bytes.\n", (uintptr_t)newsize );
 	}
 
 	return newbuf;
@@ -528,10 +493,6 @@ void Qcommon_Init( int argc, char **argv ) {
 #endif
 
 	Sys_Init();
-
-	if( setjmp( abortframe ) ) {
-		Sys_Error( "Error during initialization: %s", com_errormsg );
-	}
 
 	com_print_mutex = NewMutex();
 
@@ -600,7 +561,7 @@ void Qcommon_Init( int argc, char **argv ) {
 	Cvar_Get( "gamename", APPLICATION_NOSPACES, CVAR_SERVERINFO | CVAR_READONLY );
 	versioncvar = Cvar_Get( "version", APP_VERSION " " ARCH " " OSNAME, CVAR_SERVERINFO | CVAR_READONLY );
 
-	CSPRNG_Init();
+	InitCSPRNG();
 
 	NET_Init();
 	Netchan_Init();
@@ -676,7 +637,7 @@ void Qcommon_Shutdown() {
 	FS_Shutdown();
 	ShutdownFS();
 
-	CSPRNG_Shutdown();
+	ShutdownCSPRNG();
 
 	Cvar_Shutdown();
 	Cmd_Shutdown();

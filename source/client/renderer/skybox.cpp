@@ -22,6 +22,7 @@ void InitSkybox() {
 	constexpr u16 indices[] = { 7, 6, 3, 2, 0, 6, 4, 7, 5, 3, 1, 0, 5, 4 };
 
 	MeshConfig mesh_config;
+	mesh_config.name = "Skybox";
 	mesh_config.positions = NewVertexBuffer( verts, sizeof( verts ) );
 	mesh_config.positions_format = VertexFormat_Floatx4;
 	mesh_config.indices = NewIndexBuffer( indices, sizeof( indices ) );

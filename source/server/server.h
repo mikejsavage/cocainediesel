@@ -50,7 +50,7 @@ struct server_t {
 	int64_t nextSnapTime;              // always sv.framenum * svc.snapFrameTime msec
 	int64_t framenum;
 
-	char mapname[MAX_QPATH];               // map name
+	char mapname[MAX_CONFIGSTRING_CHARS];               // map name
 
 	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	SyncEntityState baselines[MAX_EDICTS];
@@ -95,7 +95,6 @@ struct client_t {
 	char userinfoLatched[MAX_INFO_STRING];  // flood prevention - actual userinfo updates are delayed
 	int64_t userinfoLatchTimeout;
 
-	bool reliable;                  // no need for acks, connection is reliable
 	bool mv;                        // send multiview data to the client
 	bool individual_socket;         // client has it's own socket that has to be checked separately
 
@@ -114,7 +113,7 @@ struct client_t {
 	int64_t UcmdTime;
 	int64_t UcmdExecuted;          // last client-command we executed
 	int64_t UcmdReceived;          // last client-command we received
-	usercmd_t ucmds[CMD_BACKUP];        // each message will send several old cmds
+	UserCommand ucmds[CMD_BACKUP];        // each message will send several old cmds
 
 	int64_t lastPacketSentTime;    // time when we sent the last message to this client
 	int64_t lastPacketReceivedTime; // time when we received the last message from this client
@@ -233,13 +232,7 @@ extern cvar_t *sv_port;
 extern cvar_t *sv_ip6;
 extern cvar_t *sv_port6;
 
-extern cvar_t *sv_http;
-extern cvar_t *sv_http_ip;
-extern cvar_t *sv_http_ipv6;
-extern cvar_t *sv_http_port;
-extern cvar_t *sv_http_upstream_baseurl;
-extern cvar_t *sv_http_upstream_ip;
-extern cvar_t *sv_http_upstream_realip_header;
+extern cvar_t *sv_downloadurl;
 
 extern cvar_t *sv_maxclients;
 
@@ -251,11 +244,6 @@ extern cvar_t *sv_public;         // should heartbeats be sent
 
 // wsw : debug netcode
 extern cvar_t *sv_debug_serverCmd;
-
-extern cvar_t *sv_uploads_http;
-extern cvar_t *sv_uploads_baseurl;
-extern cvar_t *sv_uploads_demos;
-extern cvar_t *sv_uploads_demos_baseurl;
 
 extern cvar_t *sv_demodir;
 
@@ -388,13 +376,9 @@ bool SV_IsDemoDownloadRequest( const char *request );
 //
 // sv_web.c
 //
-typedef http_response_code_t ( *http_game_query_cb )( http_query_method_t method, const char *resource,
-													  const char *query_string, char **content, size_t *content_length );
-
 void SV_Web_Init();
 void SV_Web_Shutdown();
 bool SV_Web_Running();
-const char *SV_Web_UpstreamBaseUrl();
 bool SV_Web_AddGameClient( const char *session, int clientNum, const netadr_t *netAdr );
 void SV_Web_RemoveGameClient( const char *session );
 

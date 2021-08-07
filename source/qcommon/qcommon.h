@@ -77,7 +77,7 @@ int MSG_SkipData( msg_t *sb, size_t length );
 
 //============================================================================
 
-struct usercmd_t;
+struct UserCommand;
 
 void MSG_WriteInt8( msg_t *sb, int c );
 void MSG_WriteUint8( msg_t *sb, int c );
@@ -89,7 +89,7 @@ void MSG_WriteUint64( msg_t *sb, uint64_t c );
 void MSG_WriteUintBase128( msg_t *msg, uint64_t c );
 void MSG_WriteIntBase128( msg_t *msg, int64_t c );
 void MSG_WriteString( msg_t *sb, const char *s );
-void MSG_WriteDeltaUsercmd( msg_t * msg, const usercmd_t * baseline , const usercmd_t * cmd );
+void MSG_WriteDeltaUsercmd( msg_t * msg, const UserCommand * baseline , const UserCommand * cmd );
 void MSG_WriteEntityNumber( msg_t * msg, int number, bool remove );
 void MSG_WriteDeltaEntity( msg_t * msg, const SyncEntityState * baseline, const SyncEntityState * ent, bool force );
 void MSG_WriteDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, const SyncPlayerState * player );
@@ -107,7 +107,7 @@ uint64_t MSG_ReadUintBase128( msg_t *msg );
 int64_t MSG_ReadIntBase128( msg_t *msg );
 char *MSG_ReadString( msg_t *sb );
 char *MSG_ReadStringLine( msg_t *sb );
-void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, usercmd_t * cmd );
+void MSG_ReadDeltaUsercmd( msg_t * msg, const UserCommand * baseline, UserCommand * cmd );
 int MSG_ReadEntityNumber( msg_t * msg, bool * remove );
 void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEntityState * ent );
 void MSG_ReadDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, SyncPlayerState * player );
@@ -124,7 +124,7 @@ void MSG_ReadData( msg_t *sb, void *buffer, size_t length );
 void SNAP_RecordDemoMessage( int demofile, msg_t *msg, int offset );
 int SNAP_ReadDemoMessage( int demofile, msg_t *msg );
 void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned int snapFrameTime,
-	unsigned int sv_bitflags, char *configstrings, SyncEntityState *baselines );
+	const char *configstrings, SyncEntityState *baselines );
 void SNAP_StopDemoRecording( int demofile );
 void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t meta_data_realsize );
 size_t SNAP_ClearDemoMeta( char *meta_data, size_t meta_data_max_size );
@@ -207,17 +207,12 @@ enum svc_ops_e {
 // client to server
 //
 enum clc_ops_e {
-	clc_move,               // [[usercmd_t]
+	clc_move,               // [[UserCommand]
 	clc_svcack,
 	clc_clientcommand,      // [string] message
 };
 
 //==============================================
-
-// serverdata flags
-#define SV_BITFLAGS_RELIABLE        ( 1 << 0 )
-#define SV_BITFLAGS_HTTP            ( 1 << 1 )
-#define SV_BITFLAGS_HTTP_BASEURL    ( 1 << 2 )
 
 // framesnap flags
 #define FRAMESNAP_FLAG_DELTA        ( 1 << 0 )
@@ -271,8 +266,6 @@ void        Cmd_AddCommand( const char *cmd_name, xcommand_t function );
 void        Cmd_RemoveCommand( const char *cmd_name );
 bool    Cmd_Exists( const char *cmd_name );
 bool    Cmd_CheckForCommand( char *text );
-int         Cmd_CompleteAliasCountPossible( const char *partial );
-const char  **Cmd_CompleteAliasBuildList( const char *partial );
 int         Cmd_CompleteCountPossible( const char *partial );
 const char  **Cmd_CompleteBuildList( const char *partial );
 const char  **Cmd_CompleteBuildArgList( const char *partial );
@@ -394,7 +387,6 @@ bool        NET_SendPacket( const socket_t *socket, const void *data, size_t len
 
 int         NET_Get( const socket_t *socket, netadr_t *address, void *data, size_t length );
 int         NET_Send( const socket_t *socket, const void *data, size_t length, const netadr_t *address );
-int64_t     NET_SendFile( const socket_t *socket, int file, size_t offset, size_t count, const netadr_t *address );
 
 void        NET_Sleep( int msec, socket_t *sockets[] );
 int         NET_Monitor( int msec, socket_t *sockets[],
@@ -506,17 +498,10 @@ void    FS_FCloseFile( int file );
 
 int     FS_Read( void *buffer, size_t len, int file );
 
-#ifndef _MSC_VER
-int FS_Printf( int file, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
-#else
-int FS_Printf( int file, _Printf_format_string_ const char *format, ... );
-#endif
-
 int     FS_Write( const void *buffer, size_t len, int file );
 int     FS_Tell( int file );
 int     FS_Seek( int file, int offset, int whence );
 int     FS_Flush( int file );
-int     FS_FileNo( int file );
 
 void    FS_SetCompressionLevel( int file, int level );
 int     FS_GetCompressionLevel( int file );
@@ -531,12 +516,8 @@ void    FS_FreeBaseFile( void *buffer );
 
 // util functions
 bool    FS_MoveFile( const char *src, const char *dst );
-bool    FS_MoveBaseFile( const char *src, const char *dst );
 bool    FS_RemoveFile( const char *filename );
-bool    FS_RemoveBaseFile( const char *filename );
 bool    FS_RemoveAbsoluteFile( const char *filename );
-unsigned    FS_ChecksumAbsoluteFile( const char *filename );
-unsigned    FS_ChecksumBaseFile( const char *filename );
 
 // // only for game files
 const char *FS_BaseNameForFile( const char *filename );
@@ -559,14 +540,14 @@ void        Com_DeferConsoleLogReopen();
 #ifndef _MSC_VER
 void Com_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 void Com_DPrintf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-void Com_Error( com_error_code_t code, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) ) __attribute__( ( noreturn ) );
-void Com_Quit() __attribute__( ( noreturn ) );
+void Com_Error( const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
 #else
 void Com_Printf( _Printf_format_string_ const char *format, ... );
 void Com_DPrintf( _Printf_format_string_ const char *format, ... );
-__declspec( noreturn ) void Com_Error( com_error_code_t code, _Printf_format_string_ const char *format, ... );
-__declspec( noreturn ) void Com_Quit();
+void Com_Error( _Printf_format_string_ const char *format, ... );
 #endif
+
+void Com_Quit();
 
 template< typename... Rest >
 void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
@@ -578,10 +559,10 @@ void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
 #define Com_GGPrint( fmt, ... ) Com_GGPrintNL( fmt "\n", ##__VA_ARGS__ )
 
 template< typename... Rest >
-void Com_GGError( com_error_code_t code, const char * fmt, const Rest & ... rest ) {
+void Com_GGError( const char * fmt, const Rest & ... rest ) {
 	char buf[ 4096 ];
 	ggformat( buf, sizeof( buf ), fmt, rest... );
-	Com_Error( code, "%s", buf );
+	Com_Error( "%s", buf );
 }
 
 void        Com_DeferQuit();
@@ -701,13 +682,7 @@ bool Sys_OpenInWebBrowser( const char * url );
 
 bool Sys_BeingDebugged();
 
-#ifndef _MSC_VER
-void Sys_Error( const char *error, ... ) __attribute__( ( format( printf, 1, 2 ) ) ) __attribute__( ( noreturn ) );
-void Sys_Quit() __attribute__( ( noreturn ) );
-#else
-__declspec( noreturn ) void Sys_Error( _Printf_format_string_ const char *error, ... );
-__declspec( noreturn ) void Sys_Quit();
-#endif
+void Sys_Quit();
 
 /*
 ==============================================================

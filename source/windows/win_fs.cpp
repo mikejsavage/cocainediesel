@@ -35,13 +35,6 @@ bool Sys_FS_CreateDirectory( const char *path ) {
 	return CreateDirectoryA( path, NULL ) != 0 || GetLastError() == ERROR_ALREADY_EXISTS;
 }
 
-/*
-* Sys_FS_FileNo
-*/
-int Sys_FS_FileNo( FILE *fp ) {
-	return _fileno( fp );
-}
-
 static wchar_t * UTF8ToWide( Allocator * a, const char * utf8 ) {
 	int len = MultiByteToWideChar( CP_UTF8, 0, utf8, -1, NULL, 0 );
 	assert( len != 0 );
@@ -65,7 +58,7 @@ static char * WideToUTF8( Allocator * a, const wchar_t * wide ) {
 char * FindHomeDirectory( Allocator * a ) {
 	wchar_t * wide_documents_path;
 	if( SHGetKnownFolderPath( FOLDERID_Documents, 0, NULL, &wide_documents_path ) != S_OK ) {
-		Com_Error( ERR_FATAL, "SHGetKnownFolderPath" );
+		Fatal( "SHGetKnownFolderPath" );
 	}
 	defer { CoTaskMemFree( wide_documents_path ); };
 
@@ -176,22 +169,33 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	return true;
 }
 
-s64 FileLastModifiedTime( TempAllocator * temp, const char * path ) {
+FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path ) {
 	wchar_t * wide = UTF8ToWide( temp, path );
 
 	HANDLE handle = CreateFileW( wide, 0, 0, NULL, OPEN_EXISTING, 0, NULL );
 	if( handle == INVALID_HANDLE_VALUE ) {
-		return 0;
+		return { };
 	}
 
 	defer { CloseHandle( handle ); };
 
+	LARGE_INTEGER size;
+	if( GetFileSizeEx( handle, &size ) == 0 ) {
+		return { };
+	}
+
 	FILETIME modified;
 	if( GetFileTime( handle, NULL, NULL, &modified ) == 0 ) {
-		return 0;
+		return { };
 	}
+
+	FileMetadata metadata;
 
 	ULARGE_INTEGER modified64;
 	memcpy( &modified64, &modified, sizeof( modified ) );
-	return modified64.QuadPart;
+
+	metadata.size = size.QuadPart;
+	metadata.modified_time = modified64.QuadPart;
+
+	return metadata;
 }

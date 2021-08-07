@@ -195,9 +195,7 @@ void SV_AddReliableCommandsToMessage( client_t *client, msg_t *msg ) {
 			continue;
 		}
 		MSG_WriteUint8( msg, svc_servercmd );
-		if( !client->reliable ) {
-			MSG_WriteInt32( msg, i );
-		}
+		MSG_WriteInt32( msg, i );
 		MSG_WriteString( msg, client->reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )] );
 		if( sv_debug_serverCmd->integer ) {
 			Com_Printf( "SV_AddServerCommandsToMessage(%i):%s\n", i,
@@ -205,9 +203,6 @@ void SV_AddReliableCommandsToMessage( client_t *client, msg_t *msg ) {
 		}
 	}
 	client->reliableSent = client->reliableSequence;
-	if( client->reliable ) {
-		client->reliableAcknowledge = client->reliableSent;
-	}
 }
 
 //=============================================================================
@@ -272,9 +267,6 @@ bool SV_SendClientsFragments() {
 		if( !Netchan_TransmitNextFragment( &client->netchan ) ) {
 			Com_Printf( "Error sending fragment to %s: %s\n", NET_AddressToString( &client->netchan.remoteAddress ),
 						NET_ErrorString() );
-			if( client->reliable ) {
-				SV_DropClient( client, DROP_TYPE_GENERAL, "Error sending fragment: %s\n", NET_ErrorString() );
-			}
 			continue;
 		}
 
@@ -315,11 +307,9 @@ void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t s
 	MSG_Clear( msg );
 
 	// write the last client-command we received so it's acknowledged
-	if( !client->reliable ) {
-		MSG_WriteUint8( msg, svc_clcack );
-		MSG_WriteUintBase128( msg, client->clientCommandExecuted );
-		MSG_WriteUintBase128( msg, client->UcmdReceived ); // acknowledge the last ucmd
-	}
+	MSG_WriteUint8( msg, svc_clcack );
+	MSG_WriteUintBase128( msg, client->clientCommandExecuted );
+	MSG_WriteUintBase128( msg, client->UcmdReceived ); // acknowledge the last ucmd
 }
 
 /*
@@ -415,9 +405,6 @@ void SV_SendClientMessages() {
 		if( client->state == CS_SPAWNED ) {
 			if( !SV_SendClientDatagram( client ) ) {
 				Com_Printf( "Error sending message to %s: %s\n", client->name, NET_ErrorString() );
-				if( client->reliable ) {
-					SV_DropClient( client, DROP_TYPE_GENERAL, "Error sending message: %s\n", NET_ErrorString() );
-				}
 			}
 		} else {
 			// send pending reliable commands, or send heartbeats for not timing out
@@ -427,9 +414,6 @@ void SV_SendClientMessages() {
 				SV_AddReliableCommandsToMessage( client, &tmpMessage );
 				if( !SV_SendMessageToClient( client, &tmpMessage ) ) {
 					Com_Printf( "Error sending message to %s: %s\n", client->name, NET_ErrorString() );
-					if( client->reliable ) {
-						SV_DropClient( client, DROP_TYPE_GENERAL, "Error sending message: %s\n", NET_ErrorString() );
-					}
 				}
 			}
 		}

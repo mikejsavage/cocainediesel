@@ -26,7 +26,5 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 bool    Sys_FS_CreateDirectory( const char *path );
 
-int         Sys_FS_FileNo( FILE *fp );
-
 char * FindHomeDirectory( Allocator * a );
 bool CreateDirectory( Allocator * a, const char * path );

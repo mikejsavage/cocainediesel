@@ -41,7 +41,7 @@ const char *Sys_ConsoleInput() {
 
 	while( true ) {
 		if( !GetNumberOfConsoleInputEvents( hinput, &numevents ) ) {
-			Sys_Error( "Error getting # of console events: %d", GetLastError() );
+			Fatal( "Error getting # of console events: %d", GetLastError() );
 		}
 
 		if( numevents <= 0 ) {
@@ -49,11 +49,11 @@ const char *Sys_ConsoleInput() {
 		}
 
 		if( !ReadConsoleInput( hinput, &rec, 1, &numread ) ) {
-			Sys_Error( "Error reading console input" );
+			Fatal( "Error reading console input" );
 		}
 
 		if( numread != 1 ) {
-			Sys_Error( "Couldn't read console input" );
+			Fatal( "Couldn't read console input" );
 		}
 
 		if( rec.EventType == KEY_EVENT ) {

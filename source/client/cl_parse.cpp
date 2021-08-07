@@ -22,40 +22,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client/client.h"
 #include "client/downloads.h"
-#include "qcommon/array.h"
+#include "qcommon/fs.h"
+#include "qcommon/string.h"
 #include "qcommon/version.h"
 
 struct DownloadInProgress {
-	char * requestname;
-	int64_t timeout;
-
-	char * name; // name of the file in download, relative to base path
-	char * tempname; // temporary location, relative to base path
-	size_t expected_size;
-	u32 expected_checksum;
-
-	size_t bytes_downloaded;
-	u32 checksum;
-
-	bool cancelled; // player pressed escape, disconnect after
-	bool reconnect; // server has changed maps while downloading
-
-	bool save_to_disk;
-	int filenum;
+	char * path;
+	DownloadCompleteCallback callback;
 };
 
 static DownloadInProgress download;
-static NonRAIIDynamicArray< u8 > download_data;
 
-static void DownloadRejected() {
-	FREE( sys_allocator, download.requestname );
-	download.requestname = NULL;
-	download.timeout = 0;
+static void OnDownloadDone( int http_status, Span< const u8 > data ) {
+	Com_Printf( "Download %s: %s (%i)\n", data.ptr != NULL ? "successful" : "failed", download.path, http_status );
+
+	download.callback( download.path, data );
+
+	FREE( sys_allocator, download.path );
+	download.path = NULL;
 }
 
-bool CL_DownloadFile( const char * filename, bool save_to_disk ) {
-	if( download.requestname ) {
-		Com_Printf( "Can't download: %s. Download already in progress.\n", filename );
+bool CL_DownloadFile( const char * filename, DownloadCompleteCallback callback ) {
+	if( download.path ) {
+		Com_Printf( "Already downloading something.\n" );
 		return false;
 	}
 
@@ -64,230 +53,34 @@ bool CL_DownloadFile( const char * filename, bool save_to_disk ) {
 		return false;
 	}
 
-	if( save_to_disk && FS_FOpenFile( filename, NULL, FS_READ ) != -1 ) {
-		Com_Printf( "Can't download: %s. File already exists.\n", filename );
-		return false;
-	}
-
 	if( cls.socket->type == SOCKET_LOOPBACK ) {
-		Com_DPrintf( "Can't download: %s. Loopback server.\n", filename );
+		Com_Printf( "Can't download from a local server.\n" );
 		return false;
 	}
 
 	Com_Printf( "Asking to download: %s\n", filename );
 
 	download = { };
-	download.requestname = CopyString( sys_allocator, filename );
-	download.timeout = Sys_Milliseconds() + 5000;
-	download.save_to_disk = save_to_disk;
-
-	CL_AddReliableCommand( va( "download \"%s\"", filename ) );
-
-	return true;
-}
-
-bool CL_IsDownloading() {
-	return download.requestname != NULL;
-}
-
-void CL_CancelDownload() {
-	download.cancelled = true;
-}
-
-void CL_ReconnectAfterDownload() {
-	download.reconnect = true;
-}
-
-static void FinishDownload() {
-	if( download.bytes_downloaded != download.expected_size || download.checksum != download.expected_checksum ) {
-		Com_Printf( "Downloaded file doesn't match what we expected.\n" );
-		if( download.save_to_disk ) {
-			FS_RemoveBaseFile( download.tempname );
-		}
-		return;
-	}
-
-	if( !download.save_to_disk ) {
-		if( !AddMap( download_data.span(), download.requestname ) ) {
-			Com_Printf( "Downloaded map is corrupt.\n" );
-		}
-
-		return;
-	}
-
-	FS_FCloseFile( download.filenum );
-
-	if( !FS_MoveBaseFile( download.tempname, download.name ) ) {
-		Com_Printf( "Failed to rename the downloaded file\n" );
-	}
-}
-
-static void OnDownloadDone( bool ok, int http_status ) {
-	Com_Printf( "Download %s: %s (%i)\n", ok ? "successful" : "failed", download.name, http_status );
-
-	if( ok ) {
-		FinishDownload();
-	}
-
-	FREE( sys_allocator, download.requestname );
-	FREE( sys_allocator, download.name );
-	FREE( sys_allocator, download.tempname );
-	download.requestname = NULL;
-
-	if( !download.save_to_disk ) {
-		download_data.shutdown();
-	}
-
-	if( download.cancelled ) {
-		CL_Disconnect( NULL );
-	}
-	else if( download.reconnect ) {
-		CL_ServerReconnect_f();
-	}
-	else if( !download.save_to_disk ) {
-		// map download
-		if( ok ) {
-			CL_FinishConnect();
-		}
-		else {
-			CL_Disconnect( NULL );
-		}
-	}
-
-	Cvar_ForceSet( "cl_download_name", "" );
-	Cvar_ForceSet( "cl_download_percent", "0" );
-}
-
-static bool OnDownloadData( const void * data, size_t n ) {
-	if( download.cancelled ) {
-		return false;
-	}
-
-	if( download.save_to_disk ) {
-		FS_Write( data, n, download.filenum );
-	}
-	else {
-		size_t old_size = download_data.extend( n );
-		memcpy( download_data.ptr() + old_size, data, n );
-	}
-
-	download.checksum = Hash32( data, n, download.checksum );
-	download.bytes_downloaded += n;
-
-	float progress = double( download.bytes_downloaded ) / double( download.expected_size );
-	Cvar_ForceSet( "cl_download_percent", va( "%.1f", progress ) );
-
-	download.timeout = 0;
-
-	return true;
-}
-
-static void CL_InitDownload_f() {
-	// ignore download commands coming from demo files
-	if( cls.demo.playing ) {
-		return;
-	}
-
-	// read the data
-	const char * filename = Cmd_Argv( 1 );
-	int size = atoi( Cmd_Argv( 2 ) );
-	u32 checksum = strtoul( Cmd_Argv( 3 ), NULL, 10 );
-	bool not_external_server = atoi( Cmd_Argv( 4 ) ) != 0 && cls.httpbaseurl != NULL;
-	const char * url = Cmd_Argv( 5 );
-
-	if( download.requestname == NULL ) {
-		Com_Printf( "Got init download message without request\n" );
-		return;
-	}
-
-	if( download.name != NULL ) {
-		Com_Printf( "Got init download message while already downloading\n" );
-		return;
-	}
-
-	if( size == -1 ) {
-		// means that download was refused
-		Com_Printf( "Server refused download request: %s\n", url ); // if it's refused, url field holds the reason
-		DownloadRejected();
-		return;
-	}
-
-	if( size <= 0 ) {
-		Com_Printf( "Server gave invalid size, not downloading\n" );
-		DownloadRejected();
-		return;
-	}
-
-	if( checksum == 0 ) {
-		Com_Printf( "Server didn't provide checksum, not downloading\n" );
-		DownloadRejected();
-		return;
-	}
-
-	if( !COM_ValidateRelativeFilename( filename ) ) {
-		Com_Printf( "Not downloading, invalid filename: %s\n", filename );
-		DownloadRejected();
-		return;
-	}
-
-	if( strchr( filename, '/' ) == NULL || strcmp( download.requestname, strchr( filename, '/' ) + 1 ) ) {
-		Com_Printf( "Can't download, got different file than requested: %s\n", filename );
-		DownloadRejected();
-		return;
-	}
+	download.path = CopyString( sys_allocator, filename );
+	download.callback = callback;
 
 	TempAllocator temp = cls.frame_arena.temp();
-	char * tempname = temp( "{}.tmp", filename );
 
-	if( download.save_to_disk ) {
-		FS_FOpenBaseFile( tempname, &download.filenum, FS_WRITE );
-
-		if( !download.filenum ) {
-			Com_Printf( "Can't download, couldn't open %s for writing\n", tempname );
-			DownloadRejected();
-			return;
-		}
-
-		download.tempname = CopyString( sys_allocator, tempname );
-	}
-	else {
-		download_data.init( sys_allocator );
-	}
-
-	download.timeout = 0;
-	download.name = CopyString( sys_allocator, filename );
-	download.expected_size = size;
-	download.expected_checksum = checksum;
-	download.checksum = Hash32( "" );
-
-	Cvar_ForceSet( "cl_download_name", COM_FileBase( filename ) );
-	Cvar_ForceSet( "cl_download_percent", "0" );
-
-	const char * fullurl;
-	if( not_external_server ) {
-		fullurl = temp( "{}/{}", cls.httpbaseurl, url );
+	const char * url = temp( "{}/{}", cls.download_url, filename );
+	if( cls.download_url_is_game_server ) {
 		const char * headers[] = {
 			temp( "X-Client: {}", cl.playernum ),
 			temp( "X-Session: {}", cls.session ),
 		};
-
-		StartDownload( fullurl, OnDownloadData, OnDownloadDone, headers, ARRAY_COUNT( headers ) );
+		StartDownload( url, OnDownloadDone, headers, ARRAY_COUNT( headers ) );
 	}
 	else {
-		fullurl = temp( "{}/{}", url, filename );
-		StartDownload( fullurl, OnDownloadData, OnDownloadDone, NULL, 0 );
+		StartDownload( url, OnDownloadDone, NULL, 0 );
 	}
 
-	Com_Printf( "Downloading %s\n", fullurl );
-}
+	Com_Printf( "Downloading %s\n", url );
 
-void CL_CheckDownloadTimeout() {
-	if( download.timeout == 0 || download.timeout > Sys_Milliseconds() ) {
-		return;
-	}
-
-	Com_Printf( "Download request timed out.\n" );
-	DownloadRejected();
+	return true;
 }
 
 /*
@@ -313,64 +106,38 @@ static void CL_ParseServerData( msg_t *msg ) {
 		if( cls.demo.playing ) {
 			Com_Printf( S_COLOR_YELLOW "This demo was recorded with an old version of the game and may be broken!\n" );
 			if( !cls.demo.yolo ) {
-				Com_Error( ERR_DROP, "Run yolodemo %s to force load it", cls.demo.name );
+				Com_Error( "Run yolodemo %s to force load it", cls.demo.name );
 			}
 		}
 		else {
-			Com_GGError( ERR_DROP, "Server returned version {}, not {}", i, APP_PROTOCOL_VERSION );
+			Com_GGError( "Server returned version {}, not {}", i, APP_PROTOCOL_VERSION );
 		}
 	}
 
 	cl.servercount = MSG_ReadInt32( msg );
 	cl.snapFrameTime = (unsigned int)MSG_ReadInt16( msg );
 
+	TempAllocator temp = cls.frame_arena.temp();
+
 	// set extrapolation time to half snapshot time
-	Cvar_ForceSet( "cl_extrapolationTime", va( "%i", (unsigned int)( cl.snapFrameTime * 0.5 ) ) );
+	Cvar_ForceSet( "cl_extrapolationTime", temp( "{}", cl.snapFrameTime / 2 ) );
 	cl_extrapolationTime->modified = false;
 
 	// parse player entity number
 	cl.playernum = MSG_ReadInt16( msg );
 
-	int sv_bitflags = MSG_ReadUint8( msg );
-
-	if( cls.demo.playing ) {
-		cls.reliable = ( sv_bitflags & SV_BITFLAGS_RELIABLE );
-	} else {
-		if( cls.reliable != ( ( sv_bitflags & SV_BITFLAGS_RELIABLE ) != 0 ) ) {
-			Com_Error( ERR_DROP, "Server and client disagree about connection reliability" );
-		}
+	const char * download_url = MSG_ReadString( msg );
+	if( strlen( download_url ) > 0 ) {
+		cls.download_url = CopyString( sys_allocator, download_url );
+		cls.download_url_is_game_server = false;
 	}
-
-	// builting HTTP server port
-	if( cls.httpbaseurl ) {
-		Mem_Free( cls.httpbaseurl );
-		cls.httpbaseurl = NULL;
-	}
-
-	if( ( sv_bitflags & SV_BITFLAGS_HTTP ) != 0 ) {
-		if( ( sv_bitflags & SV_BITFLAGS_HTTP_BASEURL ) != 0 ) {
-			// read base upstream url
-			cls.httpbaseurl = ZoneCopyString( MSG_ReadString( msg ) );
-		} else {
-			int http_portnum = MSG_ReadInt16( msg ) & 0xffff;
-			cls.httpaddress = cls.serveraddress;
-			if( cls.httpaddress.type == NA_IP6 ) {
-				cls.httpaddress.address.ipv6.port = BigShort( http_portnum );
-			} else {
-				cls.httpaddress.address.ipv4.port = BigShort( http_portnum );
-			}
-			if( http_portnum ) {
-				if( cls.httpaddress.type == NA_LOOPBACK ) {
-					cls.httpbaseurl = ZoneCopyString( va( "http://localhost:%hu/", http_portnum ) );
-				} else {
-					cls.httpbaseurl = ZoneCopyString( va( "http://%s/", NET_AddressToString( &cls.httpaddress ) ) );
-				}
-			}
-		}
+	else if( cls.serveraddress.type != NA_LOOPBACK ) {
+		cls.download_url = CopyString( sys_allocator, temp( "http://{}", NET_AddressToString( &cls.serveraddress ) ) );
+		cls.download_url_is_game_server = true;
 	}
 
 	// get the configstrings request
-	CL_AddReliableCommand( va( "configstrings %i 0", cl.servercount ) );
+	CL_AddReliableCommand( temp( "configstrings {} 0", cl.servercount ) );
 }
 
 static void CL_ParseBaseline( msg_t *msg ) {
@@ -398,7 +165,6 @@ static void CL_ParseFrame( msg_t *msg ) {
 
 				// write out messages to hold the startup information
 				SNAP_BeginDemoRecording( cls.demo.file, 0x10000 + cl.servercount, cl.snapFrameTime,
-										 cls.reliable ? SV_BITFLAGS_RELIABLE : 0,
 										 cl.configstrings[0], cl_baselines );
 
 				// the rest of the demo file will be individual frames
@@ -447,7 +213,7 @@ static void CL_UpdateConfigString( int idx, const char *s ) {
 	}
 
 	if( idx < 0 || idx >= MAX_CONFIGSTRINGS ) {
-		Com_Error( ERR_DROP, "configstring > MAX_CONFIGSTRINGS" );
+		Com_Error( "configstring > MAX_CONFIGSTRINGS" );
 	}
 
 	// wsw : jal : warn if configstring overflow
@@ -498,7 +264,6 @@ static svcmd_t svcmds[] = {
 	{ "cmd", CL_ForwardToServer_f },
 	{ "cs", CL_ParseConfigstringCommand },
 	{ "disconnect", CL_ServerDisconnect_f },
-	{ "initdownload", CL_InitDownload_f },
 
 	{ NULL, NULL }
 };
@@ -564,23 +329,22 @@ void CL_ParseServerMessage( msg_t *msg ) {
 		// other commands
 		switch( cmd ) {
 			default:
-				Com_Error( ERR_DROP, "CL_ParseServerMessage: Illegible server message" );
+				Com_Error( "CL_ParseServerMessage: Illegible server message" );
 				break;
 
-			case svc_servercmd:
-				if( !cls.reliable ) {
-					int cmdNum = MSG_ReadInt32( msg );
-					if( cmdNum < 0 ) {
-						Com_Error( ERR_DROP, "CL_ParseServerMessage: Invalid cmdNum value received: %i\n",
-								   cmdNum );
-						return;
-					}
-					if( cmdNum <= cls.lastExecutedServerCommand ) {
-						MSG_ReadString( msg ); // read but ignore
-						break;
-					}
-					cls.lastExecutedServerCommand = cmdNum;
+			case svc_servercmd: {
+				int cmdNum = MSG_ReadInt32( msg );
+				if( cmdNum < 0 ) {
+					Com_Error( "CL_ParseServerMessage: Invalid cmdNum value received: %i\n", cmdNum );
+					return;
 				}
+				if( cmdNum <= cls.lastExecutedServerCommand ) {
+					MSG_ReadString( msg ); // read but ignore
+					break;
+				}
+				cls.lastExecutedServerCommand = cmdNum;
+			}
+
 			// fall through
 			case svc_servercs: // configstrings from demo files. they don't have acknowledge
 				CL_ParseServerCommand( msg );
@@ -600,10 +364,6 @@ void CL_ParseServerMessage( msg_t *msg ) {
 				break;
 
 			case svc_clcack:
-				if( cls.reliable ) {
-					Com_Error( ERR_DROP, "CL_ParseServerMessage: clack message for reliable client\n" );
-					return;
-				}
 				cls.reliableAcknowledge = MSG_ReadUintBase128( msg );
 				cls.ucmdAcknowledged = MSG_ReadUintBase128( msg );
 				if( cl_debug_serverCmd->integer & 4 ) {
@@ -638,13 +398,13 @@ void CL_ParseServerMessage( msg_t *msg ) {
 			case svc_playerinfo:
 			case svc_packetentities:
 			case svc_match:
-				Com_Error( ERR_DROP, "Out of place frame data" );
+				Com_Error( "Out of place frame data" );
 				break;
 		}
 	}
 
 	if( msg->readcount > msg->cursize ) {
-		Com_Error( ERR_DROP, "CL_ParseServerMessage: Bad server message" );
+		Com_Error( "CL_ParseServerMessage: Bad server message" );
 		return;
 	}
 

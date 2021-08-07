@@ -147,7 +147,7 @@ cBombSite @getSiteFromIndicator( Entity @ent ) {
 		}
 	}
 
-	assert( false, "site.as getSiteFromIndicator: couldn't find a site" );
+	Fatal( "site.as getSiteFromIndicator: couldn't find a site" );
 
 	return null; // shut up compiler
 }
@@ -196,7 +196,7 @@ void plant_area_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int s
 		return;
 	}
 
-	if( match.getState() != MATCH_STATE_PLAYTIME ) {
+	if( match.matchState != MatchState_Playing ) {
 		return;
 	}
 

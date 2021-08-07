@@ -228,7 +228,7 @@ float CalcHorizontalFov( float fov_y, float width, float height ) {
 	float x;
 
 	if( fov_y < 1 || fov_y > 179 ) {
-		Sys_Error( "Bad vertical fov: %f", fov_y );
+		Fatal( "Bad vertical fov: %f", fov_y );
 	}
 
 	x = width;

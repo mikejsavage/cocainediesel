@@ -75,7 +75,7 @@ void DeleteModel( Model * model );
 bool LoadGLTFModel( Model * model, const char * path );
 
 struct Map;
-bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data );
+bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< const u8 > data );
 void DeleteBSPRenderData( Map * map );
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline );

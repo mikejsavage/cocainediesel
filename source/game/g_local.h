@@ -246,12 +246,10 @@ void G_RunGametype();
 //
 // g_spawnpoints.c
 //
-enum {
+enum SpawnSystem {
 	SPAWNSYSTEM_INSTANT,
 	SPAWNSYSTEM_WAVES,
 	SPAWNSYSTEM_HOLD,
-
-	SPAWNSYSTEM_TOTAL
 };
 
 void G_SpawnQueue_Init();
@@ -478,6 +476,7 @@ bool G_IsTeamDamage( SyncEntityState *targ, SyncEntityState *attacker );
 void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int topAssistorNo, DamageType damage_type, int damage );
 void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 point, float maxradius, Vec3 * pushdir, float *frac, bool selfdamage );
 void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, DamageType damage_type );
+void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage, bool headshot, Vec3 pos, Vec3 dir );
 void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cplane_t *plane, DamageType damage_type, int timeDelta );
 void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edict_t *ignore, DamageType damage_type );
 
@@ -526,7 +525,7 @@ void G_ClientRespawn( edict_t *self, bool ghost );
 score_stats_t * G_ClientGetStats( edict_t * ent );
 void G_ClientClearStats( edict_t *ent );
 void G_GhostClient( edict_t *self );
-void ClientThink( edict_t *ent, usercmd_t *cmd, int timeDelta );
+void ClientThink( edict_t *ent, UserCommand *cmd, int timeDelta );
 void G_ClientThink( edict_t *ent );
 void G_CheckClientRespawnClick( edict_t *ent );
 bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient );
@@ -771,7 +770,7 @@ struct gclient_t {
 	int64_t queueTimeStamp;
 	int muted;     // & 1 = chat disabled, & 2 = vsay disabled
 
-	usercmd_t ucmd;
+	UserCommand ucmd;
 	int timeDelta;              // time offset to adjust for shots collision (antilag)
 	int timeDeltas[G_MAX_TIME_DELTAS];
 	int timeDeltasHead;
@@ -780,14 +779,8 @@ struct gclient_t {
 };
 
 struct snap_edict_t {
-	// whether we have killed anyone this snap
 	bool kill;
-
-	// ents can accumulate damage along the frame, so they spawn less events
-	float damage_taken;
-	Vec3 damage_dir;
-	Vec3 damage_at;
-	float damage_given;             // for hitsounds
+	float damage_given;
 };
 
 using EdictTouchCallback = void ( * )( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags );

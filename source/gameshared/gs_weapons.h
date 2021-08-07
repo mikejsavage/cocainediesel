@@ -4,7 +4,7 @@
 
 struct gs_state_t;
 struct SyncPlayerState;
-struct usercmd_t;
+struct UserCommand;
 
 enum WeaponCategory {
 	WeaponCategory_Primary,
@@ -69,7 +69,7 @@ struct GadgetDef {
 	int uses;
 };
 
-void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, usercmd_t cmd, int timeDelta );
+void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd, int timeDelta );
 void ClearInventory( SyncPlayerState * ps );
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );

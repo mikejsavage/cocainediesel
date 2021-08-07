@@ -87,22 +87,15 @@ void PF_GameCmd( edict_t *ent, const char *cmd ) {
 }
 
 void PF_ConfigString( int index, const char *val ) {
-	size_t len;
-
 	if( !val ) {
 		return;
 	}
 
 	if( index < 0 || index >= MAX_CONFIGSTRINGS ) {
-		Com_Error( ERR_DROP, "configstring: bad index %i", index );
+		Fatal( "configstring: bad index %i", index );
 	}
 
-	if( index < SERVER_PROTECTED_CONFIGSTRINGS ) {
-		Com_Printf( "WARNING: 'PF_Configstring', configstring %i is server protected\n", index );
-		return;
-	}
-
-	len = strlen( val );
+	size_t len = strlen( val );
 	if( len >= sizeof( sv.configstrings[0] ) ) {
 		Com_Printf( "WARNING: 'PF_Configstring', configstring %i overflowed (%" PRIuPTR ")\n", index, (uintptr_t)strlen( val ) );
 		len = sizeof( sv.configstrings[0] ) - 1;

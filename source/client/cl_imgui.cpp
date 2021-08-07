@@ -153,9 +153,12 @@ static void SubmitDrawCalls() {
 
 	ImVec2 pos = draw_data->DisplayPos;
 	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
+		TempAllocator temp = cls.frame_arena.temp();
+
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
 
 		MeshConfig config;
+		config.name = temp( "ImGui - {}", n );
 		config.unified_buffer = NewVertexBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ) );
 		config.positions_offset = offsetof( ImDrawVert, pos );
 		config.tex_coords_offset = offsetof( ImDrawVert, uv );

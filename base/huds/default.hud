@@ -1,6 +1,4 @@
-if %MATCH_STATE < #MATCH_STATE_POSTMATCH
-
-#include callvote
+if %MATCH_STATE < #MatchState_PostMatch
 
 #include bomb_indicators
 
@@ -28,6 +26,8 @@ endif
 
 #include crosshair
 
-endif //if %MATCH_STATE < #MATCH_STATE_POSTMATCH
+endif //if %MATCH_STATE < #MatchState_PostMatch
+
+#include callvote
 
 #include awards

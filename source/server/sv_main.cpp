@@ -34,25 +34,14 @@ cvar_t *sv_port;
 cvar_t *sv_ip6;
 cvar_t *sv_port6;
 
+cvar_t *sv_downloadurl;
+
 cvar_t *sv_timeout;            // seconds without any message
 cvar_t *sv_zombietime;         // seconds to sink messages after disconnect
 
 cvar_t *rcon_password;         // password for remote server commands
 
-cvar_t *sv_uploads_http;
-cvar_t *sv_uploads_baseurl;
-cvar_t *sv_uploads_demos;
-cvar_t *sv_uploads_demos_baseurl;
-
 cvar_t *sv_maxclients;
-
-cvar_t *sv_http;
-cvar_t *sv_http_ip;
-cvar_t *sv_http_ipv6;
-cvar_t *sv_http_port;
-cvar_t *sv_http_upstream_baseurl;
-cvar_t *sv_http_upstream_ip;
-cvar_t *sv_http_upstream_realip_header;
 
 cvar_t *sv_showRcon;
 cvar_t *sv_showChallenge;
@@ -229,9 +218,6 @@ static void SV_ReadPackets() {
 			if( ret == -1 ) {
 				Com_Printf( "Error receiving packet from %s: %s\n", NET_AddressToString( &cl->netchan.remoteAddress ),
 							NET_ErrorString() );
-				if( cl->reliable ) {
-					SV_DropClient( cl, DROP_TYPE_GENERAL, "Error receiving packet: %s", NET_ErrorString() );
-				}
 			} else {
 				if( SV_ProcessPacket( &cl->netchan, &msg ) ) {
 					// this is a valid, sequenced packet, so process it
@@ -440,7 +426,7 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 	svs.frame_arena.clear();
 
 	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	CSPRNG( entropy, sizeof( entropy ) );
 	svs.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	// if server is not active, do nothing
@@ -541,7 +527,7 @@ void SV_Init() {
 	svs.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 
 	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
+	CSPRNG( entropy, sizeof( entropy ) );
 	svs.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	SV_InitOperatorCommands();
@@ -551,19 +537,15 @@ void SV_Init() {
 	Cvar_Get( "sv_cheats", "0", CVAR_SERVERINFO | CVAR_LATCH );
 	Cvar_Get( "protocol", va( "%i", APP_PROTOCOL_VERSION ), CVAR_SERVERINFO | CVAR_NOSET );
 
+	// sv_port = 12345
+
 	sv_ip = Cvar_Get( "sv_ip", "", CVAR_ARCHIVE | CVAR_LATCH );
 	sv_port = Cvar_Get( "sv_port", va( "%i", PORT_SERVER ), CVAR_ARCHIVE | CVAR_LATCH );
 
 	sv_ip6 = Cvar_Get( "sv_ip6", "::", CVAR_ARCHIVE | CVAR_LATCH );
 	sv_port6 = Cvar_Get( "sv_port6", va( "%i", PORT_SERVER ), CVAR_ARCHIVE | CVAR_LATCH );
 
-	sv_http = Cvar_Get( "sv_http", "1", CVAR_SERVERINFO | CVAR_ARCHIVE | CVAR_LATCH );
-	sv_http_port = Cvar_Get( "sv_http_port", sv_port->string, CVAR_ARCHIVE | CVAR_LATCH );
-	sv_http_ip = Cvar_Get( "sv_http_ip", "", CVAR_ARCHIVE | CVAR_LATCH );
-	sv_http_ipv6 = Cvar_Get( "sv_http_ipv6", "", CVAR_ARCHIVE | CVAR_LATCH );
-	sv_http_upstream_baseurl =  Cvar_Get( "sv_http_upstream_baseurl", "", CVAR_ARCHIVE | CVAR_LATCH );
-	sv_http_upstream_realip_header = Cvar_Get( "sv_http_upstream_realip_header", "", CVAR_ARCHIVE );
-	sv_http_upstream_ip = Cvar_Get( "sv_http_upstream_ip", "", CVAR_ARCHIVE );
+	sv_downloadurl = Cvar_Get( "sv_downloadurl", "", CVAR_ARCHIVE | CVAR_LATCH );
 
 	rcon_password = Cvar_Get( "rcon_password", "", 0 );
 	sv_hostname = Cvar_Get( "sv_hostname", APPLICATION " server", CVAR_SERVERINFO | CVAR_ARCHIVE );
@@ -573,19 +555,7 @@ void SV_Init() {
 	sv_showChallenge = Cvar_Get( "sv_showChallenge", "0", 0 );
 	sv_showInfoQueries = Cvar_Get( "sv_showInfoQueries", "0", 0 );
 
-	sv_uploads_http = Cvar_Get( "sv_uploads_http", "1", CVAR_READONLY );
-	sv_uploads_baseurl = Cvar_Get( "sv_uploads_baseurl", "", CVAR_ARCHIVE );
-	sv_uploads_demos = Cvar_Get( "sv_uploads_demos", "1", CVAR_ARCHIVE );
-	sv_uploads_demos_baseurl =  Cvar_Get( "sv_uploads_demos_baseurl", "", CVAR_ARCHIVE );
-	if( is_dedicated_server ) {
-#ifdef PUBLIC_BUILD
-		sv_public = Cvar_Get( "sv_public", "1", CVAR_LATCH );
-#else
-		sv_public = Cvar_Get( "sv_public", "0", CVAR_LATCH );
-#endif
-	} else {
-		sv_public = Cvar_Get( "sv_public", "0", CVAR_LATCH );
-	}
+	sv_public = Cvar_Get( "sv_public", is_public_build && is_dedicated_server ? "1" : "0", CVAR_LATCH );
 
 	sv_iplimit = Cvar_Get( "sv_iplimit", "3", CVAR_ARCHIVE );
 
@@ -600,10 +570,6 @@ void SV_Init() {
 	}
 
 	sv_demodir = Cvar_Get( "sv_demodir", "", CVAR_NOSET );
-	if( sv_demodir->string[0] && Com_GlobMatch( "*[^0-9a-zA-Z_@]*", sv_demodir->string, false ) ) {
-		Com_Printf( "Invalid demo prefix string: %s\n", sv_demodir->string );
-		Cvar_ForceSet( "sv_demodir", "" );
-	}
 
 	g_autorecord = Cvar_Get( "g_autorecord", is_dedicated_server ? "1" : "0", CVAR_ARCHIVE );
 	g_autorecord_maxdemos = Cvar_Get( "g_autorecord_maxdemos", "200", CVAR_ARCHIVE );

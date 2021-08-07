@@ -271,7 +271,7 @@ class cDARound {
 			}
 		}
 
-		match.resetRounds();
+		match.roundNum = 0;
 		this.newRound();
 	}
 
@@ -309,7 +309,7 @@ class cDARound {
 
 		PickRandomArena();
 
-		match.newRound();
+		match.roundNum++;
 		this.newRoundState( DA_ROUNDSTATE_PREROUND );
 	}
 
@@ -458,7 +458,7 @@ class cDARound {
 		if( this.state == DA_ROUNDSTATE_NONE )
 			return;
 
-		if( match.getState() != MATCH_STATE_PLAYTIME ) {
+		if( match.matchState != MatchState_Playing ) {
 			this.endGame();
 			return;
 		}
@@ -621,7 +621,7 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 	if( ent.isGhosting() )
 		return;
 
-	if( match.getState() != MATCH_STATE_PLAYTIME ) {
+	if( match.matchState != MatchState_Playing ) {
 		int weap1 = RandomUniform( Weapon_None + 1, Weapon_Count );
 		int weap2 = RandomUniform( Weapon_None + 1, Weapon_Count - 1 );
 
@@ -638,11 +638,11 @@ void GT_PlayerRespawn( Entity @ent, int old_team, int new_team ) {
 // Thinking function. Called each frame
 void GT_ThinkRules() {
 	if( match.scoreLimitHit() || match.timeLimitHit() ) {
-		match.launchState( match.getState() + 1 );
+		match.launchState( MatchState( match.matchState + 1 ) );
 		G_ClearCenterPrint( null );
 	}
 
-	if( match.getState() >= MATCH_STATE_POSTMATCH )
+	if( match.matchState >= MatchState_PostMatch )
 		return;
 
 	daRound.think();
@@ -655,11 +655,11 @@ void GT_ThinkRules() {
 bool GT_MatchStateFinished( int incomingMatchState ) {
 	// ** MISSING EXTEND PLAYTIME CHECK **
 
-	if( match.getState() <= MATCH_STATE_WARMUP && incomingMatchState > MATCH_STATE_WARMUP
-	    && incomingMatchState < MATCH_STATE_POSTMATCH )
+	if( match.matchState <= MatchState_Warmup && incomingMatchState > MatchState_Warmup
+	    && incomingMatchState < MatchState_PostMatch )
 		match.startAutorecord();
 
-	if( match.getState() == MATCH_STATE_POSTMATCH )
+	if( match.matchState == MatchState_PostMatch )
 		match.stopAutorecord();
 
 	return true;
@@ -668,20 +668,20 @@ bool GT_MatchStateFinished( int incomingMatchState ) {
 // the match state has just moved into a new state. Here is the
 // place to set up the new state rules
 void GT_MatchStateStarted() {
-	switch ( match.getState() ) {
-		case MATCH_STATE_WARMUP:
+	switch ( match.matchState ) {
+		case MatchState_Warmup:
 			DA_SetUpWarmup();
 			break;
 
-		case MATCH_STATE_COUNTDOWN:
+		case MatchState_Countdown:
 			DA_SetUpCountdown();
 			break;
 
-		case MATCH_STATE_PLAYTIME:
+		case MatchState_Playing:
 			daRound.newGame();
 			break;
 
-		case MATCH_STATE_POSTMATCH:
+		case MatchState_PostMatch:
 			daRound.endGame();
 			break;
 	}

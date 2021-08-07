@@ -10,27 +10,8 @@ void Sys_ShowErrorMessage( const char * msg ) {
 	printf( "%s\n", msg );
 }
 
-void Sys_Error( const char *format, ... ) {
-	va_list argptr;
-	char msg[1024];
-
-	va_start( argptr, format );
-	vsnprintf( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	Sys_ConsoleOutput( msg );
-
-	exit( 1 );
-}
-
 void Sys_Quit() {
-	SV_Shutdown( "Server quit\n" );
-	CL_Shutdown();
-
-	FreeConsole();
-
 	Qcommon_Shutdown();
-
 	exit( 0 );
 }
 

@@ -217,15 +217,15 @@ static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent ) {
 		if( key == "}" )
 			break;
 		if( key.ptr == NULL ) {
-			Com_Error( ERR_DROP, "ED_ParseEntity: EOF without closing brace" );
+			Fatal( "ED_ParseEntity: EOF without closing brace" );
 		}
 
 		Span< const char > value = ParseToken( cursor, Parse_StopOnNewLine );
 		if( value.ptr == NULL ) {
-			Com_Error( ERR_DROP, "ED_ParseEntity: EOF without closing brace" );
+			Fatal( "ED_ParseEntity: EOF without closing brace" );
 		}
 		if( value == "}" ) {
-			Com_Error( ERR_DROP, "ED_ParseEntity: closing brace without data" );
+			Fatal( "ED_ParseEntity: closing brace without data" );
 		}
 
 		ED_ParseField( key, value, ent );
@@ -265,7 +265,7 @@ static void SpawnMapEntities() {
 		if( brace == "" )
 			break;
 		if( brace != "{" ) {
-			Com_Error( ERR_DROP, "SpawnMapEntities: entity string doesn't begin with {" );
+			Fatal( "SpawnMapEntities: entity string doesn't begin with {" );
 		}
 
 		if( ent == NULL ) {
@@ -347,7 +347,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 
 	// always start in warmup match state and let the thinking code
 	// revert it to wait state if empty ( so gametype based item masks are setup )
-	G_Match_LaunchState( MATCH_STATE_WARMUP );
+	G_Match_LaunchState( MatchState_Warmup );
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		if( game.edicts[ i + 1 ].r.inuse ) {
@@ -397,12 +397,12 @@ void G_LoadMap( const char * name ) {
 		Span< u8 > compressed = ReadFileBinary( sys_allocator, zst_path );
 		defer { FREE( sys_allocator, compressed.ptr ); };
 		if( compressed.ptr == NULL ) {
-			Com_Error( ERR_FATAL, "Couldn't find map %s", name );
+			Fatal( "Couldn't find map %s", name );
 		}
 
 		bool ok = Decompress( zst_path, sys_allocator, compressed, &data );
 		if( !ok ) {
-			Com_Error( ERR_FATAL, "Couldn't decompress %s", zst_path );
+			Fatal( "Couldn't decompress %s", zst_path );
 		}
 	}
 

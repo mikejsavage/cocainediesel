@@ -245,7 +245,7 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 
 	// If the end of unit layout is displayed, don't give
 	// the player any normal movement attributes
-	if( server_gs.gameState.match_state >= MATCH_STATE_POSTMATCH ) {
+	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
 		G_SetClientStats( ent );
 	} else {
 		if( G_IsDead( ent ) ) {

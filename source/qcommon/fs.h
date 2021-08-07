@@ -20,6 +20,9 @@ char * ReadFileString( Allocator * a, const char * path, size_t * len = NULL );
 Span< u8 > ReadFileBinary( Allocator * a, const char * path );
 
 FILE * OpenFile( Allocator * a, const char * path, const char * mode );
+bool WritePartialFile( FILE * file, const void * data, size_t len );
+size_t FileSize( FILE * file );
+
 bool FileExists( Allocator * temp, const char * path );
 bool WriteFile( TempAllocator * temp, const char * path, const void * data, size_t len );
 bool MoveFile( Allocator * a, const char * old_path, const char * new_path, MoveFileReplace replace );
@@ -32,4 +35,9 @@ struct ListDirHandle {
 ListDirHandle BeginListDir( Allocator * a, const char * path );
 bool ListDirNext( ListDirHandle * handle, const char ** path, bool * dir );
 
-s64 FileLastModifiedTime( TempAllocator * temp, const char * path );
+struct FileMetadata {
+	u64 size;
+	s64 modified_time;
+};
+
+FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path );

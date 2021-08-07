@@ -66,7 +66,7 @@ struct pmove_t {
 	SyncPlayerState *playerState;
 
 	// command (in)
-	usercmd_t cmd;
+	UserCommand cmd;
 
 	// results (out)
 	int numtouch;
@@ -370,48 +370,8 @@ enum playerstate_event_t {
 
 //===============================================================
 
-#define EVENT_ENTITIES_START    96 // entity types above this index will get event treatment
-
-// SyncEntityState->type values
-enum EntityType {
-	ET_GENERIC,
-	ET_PLAYER,
-	ET_CORPSE,
-	ET_GHOST,
-	ET_JUMPPAD,
-	ET_PAINKILLER_JUMPPAD,
-
-	ET_ROCKET,      // redlight + trail
-	ET_GRENADE,
-	ET_ARBULLET,
-	ET_BUBBLE,
-	ET_RIFLEBULLET,
-	ET_STAKE,
-	ET_BLAST,
-
-	ET_THROWING_AXE,
-
-	ET_LASERBEAM,   // for continuous beams
-
-	ET_DECAL,
-
-	ET_BOMB,
-	ET_BOMB_SITE,
-
-	ET_LASER,
-	ET_SPIKES,
-	ET_SPEAKER,
-
-	// eventual entities: types below this will get event treatment
-	ET_EVENT = EVENT_ENTITIES_START,
-	ET_SOUNDEVENT,
-
-	ET_TOTAL_TYPES // current count
-};
-
 // SyncEntityState->effects
 #define EF_CARRIER                  ( 1 << 0 )
-#define EF_TAKEDAMAGE               ( 1 << 1 )
-#define EF_HAT                      ( 1 << 2 )
-#define EF_TEAM_SILHOUETTE          ( 1 << 3 )
-#define EF_WORLD_MODEL              ( 1 << 4 )
+#define EF_HAT                      ( 1 << 1 )
+#define EF_TEAM_SILHOUETTE          ( 1 << 2 )
+#define EF_WORLD_MODEL              ( 1 << 3 )

@@ -19,7 +19,7 @@ void playerKilled( Entity @victim, Entity @attacker, Entity @inflictor ) {
 	// ch :
 	cPlayer @pVictim = @playerFromClient( @victim.client );
 
-	if( match.getState() != MATCH_STATE_PLAYTIME )
+	if( match.matchState != MatchState_Playing )
 		return;
 
 	if( match.roundState >= RoundState_Finished )
@@ -95,7 +95,7 @@ void setTeams() {
 }
 
 void newGame() {
-	match.resetRounds();
+	match.roundNum = 0;
 	setTeams();
 
 	for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {
@@ -185,7 +185,7 @@ void roundNewState( RoundState state ) {
 			break;
 
 		case RoundState_Countdown:
-			match.newRound();
+			match.roundNum++;
 
 			roundCountDown = COUNTDOWN_MAX;
 
@@ -240,7 +240,7 @@ void roundNewState( RoundState state ) {
 
 		case RoundState_Post:
 			if( scoreLimitHit() ) {
-				match.launchState( match.getState() + 1 );
+				match.launchState( MatchState( match.matchState + 1 ) );
 
 				return;
 			}
@@ -377,7 +377,7 @@ Client @firstAliveOnTeam( int teamNum ) {
 		}
 	}
 
-	assert( false, "round.as firstAliveOnTeam: found nobody" );
+	Fatal( "round.as firstAliveOnTeam: found nobody" );
 
 	return null; // shut up compiler
 }

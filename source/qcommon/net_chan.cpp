@@ -382,7 +382,7 @@ bool Netchan_Transmit( netchan_t *chan, msg_t *msg ) {
 	assert( msg );
 
 	if( msg->cursize > MAX_MSGLEN ) {
-		Com_Error( ERR_DROP, "Netchan_Transmit: Excessive length = %li", msg->cursize );
+		Com_Error( "Netchan_Transmit: Excessive length = %li", msg->cursize );
 		return false;
 	}
 	chan->unsentFragmentStart = 0;
@@ -614,7 +614,7 @@ u64 Netchan_ClientSessionID() {
 * Netchan_Init
 */
 void Netchan_Init() {
-	CSPRNG_Bytes( &client_session_id, sizeof( client_session_id ) );
+	CSPRNG( &client_session_id, sizeof( client_session_id ) );
 
 	showpackets = Cvar_Get( "showpackets", "0", 0 );
 	showdrop = Cvar_Get( "showdrop", "0", 0 );

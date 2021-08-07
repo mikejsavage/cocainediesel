@@ -137,9 +137,9 @@ static void CG_FlashGameWindow() {
 	int newState = client_gs.gameState.match_state;
 	if( oldState != newState ) {
 		switch( newState ) {
-			case MATCH_STATE_COUNTDOWN:
-			case MATCH_STATE_PLAYTIME:
-			case MATCH_STATE_POSTMATCH:
+			case MatchState_Countdown:
+			case MatchState_Playing:
+			case MatchState_PostMatch:
 				flash = true;
 				break;
 			default:
@@ -309,11 +309,13 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 
 	playerState->zoom_time = Lerp( ops->zoom_time, cg.lerpfrac, ps->zoom_time );
 
+	// TODO: this should probably go through UpdateWeapons
 	if( ps->weapon_state_time >= ops->weapon_state_time ) {
 		playerState->weapon_state_time = Lerp( ops->weapon_state_time, cg.lerpfrac, ps->weapon_state_time );
 	}
 	else {
 		s64 dt = cg.frame.serverTime - cg.oldFrame.serverTime;
+		playerState->weapon_state = ops->weapon_state;
 		playerState->weapon_state_time = Min2( float( U16_MAX ), ops->weapon_state_time + cg.lerpfrac * dt );
 	}
 }
@@ -442,7 +444,7 @@ static void CG_UpdateChaseCam() {
 		chaseCam.mode = CAM_INEYES;
 	}
 
-	usercmd_t cmd;
+	UserCommand cmd;
 	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 
 	if( chaseCam.key_pressed ) {
@@ -517,10 +519,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 				}
 			}
 		}
-	} else if( view->type == VIEWDEF_DEMOCAM ) {
-		CG_DemoCam_GetViewDef( view );
 	} else {
-		Com_Error( ERR_DROP, "CG_SetupView: Invalid view type %i\n", view->type );
+		CG_DemoCam_GetViewDef( view );
 	}
 
 	if( view->type == VIEWDEF_PLAYERVIEW ) {

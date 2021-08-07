@@ -42,7 +42,7 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 	maps[ idx ].name = CopyString( sys_allocator, path );
 
 	// TODO: need more map validation because they can be downloaded from the server
-	if( !LoadBSPRenderData( &maps[ idx ], hash, data ) ) {
+	if( !LoadBSPRenderData( path, &maps[ idx ], hash, data ) ) {
 		return false;
 	}
 

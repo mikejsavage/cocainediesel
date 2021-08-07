@@ -41,6 +41,8 @@ require( "libs.whereami" )
 require( "libs.zlib" )
 require( "libs.zstd" )
 
+require( "source.tools.maptogltf" )
+
 do
 	local platform_srcs
 	local platform_libs

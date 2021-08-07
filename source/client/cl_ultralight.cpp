@@ -5,10 +5,10 @@
 #include <Ultralight/JavaScript.h>
 #include <JavaScriptCore/JSRetainPtr.h>
 
-#include <glsl/shader_fill_frag.h>
-#include <glsl/shader_fill_path_frag.h>
-#include <glsl/shader_v2f_c4f_t2f_t2f_d28f_vert.h>
-#include <glsl/shader_v2f_c4f_t2f_vert.h>
+#include "glsl/shader_fill_frag.h"
+#include "glsl/shader_fill_path_frag.h"
+#include "glsl/shader_v2f_c4f_t2f_t2f_d28f_vert.h"
+#include "glsl/shader_v2f_c4f_t2f_vert.h"
 
 #include "qcommon/base.h"
 #include "qcommon/types.h"

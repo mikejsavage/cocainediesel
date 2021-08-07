@@ -8,6 +8,9 @@
 /server
 /server-*
 
+/livepp_shim.*
+/libs/LivePP
+
 /demos
 /maps/*.bak
 /maps/*.map

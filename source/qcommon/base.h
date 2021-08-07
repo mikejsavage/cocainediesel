@@ -6,9 +6,9 @@
 
 #include "qcommon/platform.h"
 #include "qcommon/types.h"
-#include "qcommon/allocators.h"
 #include "qcommon/math.h"
 #include "gg/ggformat.h"
+#include "qcommon/allocators.h"
 #include "qcommon/linear_algebra.h"
 
 #include "tracy/Tracy.hpp"

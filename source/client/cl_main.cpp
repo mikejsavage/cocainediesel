@@ -28,6 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/csprng.h"
 #include "qcommon/hash.h"
 #include "qcommon/fs.h"
+#include "qcommon/livepp.h"
 #include "qcommon/string.h"
 #include "qcommon/version.h"
 #include "gameshared/gs_public.h"
@@ -1412,6 +1413,8 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 void CL_Frame( int realMsec, int gameMsec ) {
 	ZoneScoped;
 
+	LivePPFrame();
+
 	TracyPlot( "Client frame arena max utilisation", cls.frame_arena.max_utilisation() );
 	cls.frame_arena.clear();
 
@@ -1531,6 +1534,8 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 void CL_Init() {
 	ZoneScoped;
+
+	InitLivePP();
 
 	constexpr size_t frame_arena_size = 1024 * 1024; // 1MB
 	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size, 16 );

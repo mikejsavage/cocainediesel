@@ -1,0 +1,2 @@
+void InitLivePP() { }
+void LivePPFrame() { }

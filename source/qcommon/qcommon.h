@@ -540,7 +540,7 @@ void        Com_DeferConsoleLogReopen();
 #ifndef _MSC_VER
 void Com_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 void Com_DPrintf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-void Com_Error( const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
+void Com_Error( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 #else
 void Com_Printf( _Printf_format_string_ const char *format, ... );
 void Com_DPrintf( _Printf_format_string_ const char *format, ... );

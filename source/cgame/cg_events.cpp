@@ -785,9 +785,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			CG_RocketExplosion( ent->origin, dir, team_color );
 		} break;
 
-		case EV_GRENADE_BOUNCE:
-			S_StartEntitySound( "weapons/gl/bounce", ent->number, CHAN_AUTO, 1.0f );
-			break;
+		case EV_GRENADE_BOUNCE: {
+			float volume = Min2( 1.0f, parm / float( U16_MAX ) );
+			S_StartEntitySound( "weapons/gl/bounce", ent->number, CHAN_AUTO, volume );
+		} break;
 
 		case EV_BLADE_IMPACT:
 			CG_BladeImpact( ent->origin, ent->origin2 );

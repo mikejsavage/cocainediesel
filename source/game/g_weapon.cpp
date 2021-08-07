@@ -428,6 +428,8 @@ static void W_Grenade_Explode(edict_t *ent)
 
 static void W_Touch_Grenade(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
 {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_GrenadeLauncher );
+
 	if (surfFlags & SURF_NOIMPACT)
 	{
 		G_FreeEdict(ent);
@@ -442,7 +444,15 @@ static void W_Touch_Grenade(edict_t *ent, edict_t *other, cplane_t *plane, int s
 	// don't explode on doors and plats that take damage
 	if (!other->takedamage || CM_IsBrushModel(CM_Server, other->s.model))
 	{
-		G_AddEvent(ent, EV_GRENADE_BOUNCE, 0, true);
+		Vec3 parallel = Project( ent->velocity, plane->normal );
+		Vec3 perpendicular = ent->velocity - parallel;
+
+		float friction = 0.1f;
+		float velocity = Length( parallel ) + Length( perpendicular ) * friction;
+
+		u16 volume = Lerp( u16( 0 ), Unlerp01( 0.0f, velocity, float( def->speed ) ), U16_MAX );
+		G_AddEvent(ent, EV_GRENADE_BOUNCE, volume, true);
+
 		return;
 	}
 

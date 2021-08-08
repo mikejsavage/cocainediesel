@@ -283,20 +283,6 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 	return false;
 }
 
-static void Cmd_CoinToss_f( edict_t *ent ) {
-	if( server_gs.gameState.match_state > MatchState_Warmup && !GS_MatchPaused( &server_gs ) ) {
-		G_PrintMsg( ent, "You can only toss coins during warmup or timeouts\n" );
-		return;
-	}
-
-	if( CheckFlood( ent, false ) ) {
-		return;
-	}
-
-	bool won = Probability( &svs.rng, 0.5f );
-	G_PrintMsg( NULL, "%s%s tossed a coin and %s!\n", won ? S_COLOR_GREEN : S_COLOR_RED, ent->r.client->netname, won ? "won" : "lost" );
-}
-
 /*
 * Cmd_Say_f
 */
@@ -665,7 +651,6 @@ void G_InitGameCommands() {
 	G_AddCommand( "camswitch", Cmd_SwitchChaseCamMode_f );
 	G_AddCommand( "timeout", Cmd_Timeout_f );
 	G_AddCommand( "timein", Cmd_Timein_f );
-	G_AddCommand( "cointoss", Cmd_CoinToss_f );
 
 	// callvotes commands
 	G_AddCommand( "callvote", G_CallVote_Cmd );

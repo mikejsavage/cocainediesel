@@ -521,7 +521,7 @@ int main() {
 	TempAllocator temp = arena.temp();
 
 	size_t carfentanil_len;
-	char * carfentanil = ReadFileString( sys_allocator, "source/tools/maptogltf/carfentanil.map", &carfentanil_len );
+	char * carfentanil = ReadFileString( sys_allocator, "source/tools/dieselmap/carfentanil.map", &carfentanil_len );
 	assert( carfentanil != NULL );
 	defer { FREE( sys_allocator, carfentanil ); };
 

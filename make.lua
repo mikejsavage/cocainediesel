@@ -42,7 +42,7 @@ require( "libs.whereami" )
 require( "libs.zlib" )
 require( "libs.zstd" )
 
-require( "source.tools.maptogltf" )
+require( "source.tools.dieselmap" )
 
 do
 	local platform_srcs

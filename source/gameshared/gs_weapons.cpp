@@ -134,7 +134,7 @@ struct ItemState {
 	}
 };
 
-static WeaponState GenericDelay( WeaponState state, SyncPlayerState * ps, s64 delay, WeaponState next ) {
+static ItemStateTransition GenericDelay( WeaponState state, SyncPlayerState * ps, s64 delay, ItemStateTransition next ) {
 	return ps->weapon_state_time >= delay ? next : state;
 }
 
@@ -208,7 +208,7 @@ static ItemState dispatch_states[] = {
 	ItemState( WeaponState_DispatchQuiet, Dispatch ),
 };
 
-static WeaponState AllowWeaponSwitch( const gs_state_t * gs, SyncPlayerState * ps, WeaponState otherwise ) {
+static ItemStateTransition AllowWeaponSwitch( const gs_state_t * gs, SyncPlayerState * ps, ItemStateTransition otherwise ) {
 	bool switching = false;
 	switching = switching || ( ps->pending_weapon != Weapon_None && ps->pending_weapon != ps->weapon );
 	switching = switching || ( ps->pending_gadget && ps->gadget_ammo > 0 && !ps->using_gadget );
@@ -282,6 +282,11 @@ static ItemState generic_gun_states[] = {
 		if( cmd->buttons & BUTTON_ATTACK ) {
 			const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 			ps->weapon_state_time = Min2( def->refire_time, ps->weapon_state_time );
+
+			if( ps->weapon_state_time >= def->refire_time ) {
+				return AllowWeaponSwitch( gs, ps, state );
+			}
+
 			return state;
 		}
 
@@ -302,7 +307,7 @@ static ItemState generic_gun_states[] = {
 
 		FireWeapon( gs, ps, cmd, true );
 
-		return ForceReset( state );
+		return AllowWeaponSwitch( gs, ps, ForceReset( state ) );
 	} ),
 
 	ItemState( WeaponState_FiringEntireClip, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {

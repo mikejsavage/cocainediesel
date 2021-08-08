@@ -252,6 +252,7 @@ struct MeshConfig {
 struct TextureConfig {
 	u32 width = 0;
 	u32 height = 0;
+	u32 num_mipmaps = 1;
 
 	const void * data = NULL;
 

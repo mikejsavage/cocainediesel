@@ -82,6 +82,16 @@ u32 BitsPerPixel( TextureFormat format ) {
 	}
 }
 
+static u32 MipmappedByteSize( u32 w, u32 h, u32 levels, TextureFormat format ) {
+	u32 size = 0;
+
+	for( u32 i = 0; i < levels; i++ ) {
+		size += ( ( w >> i ) * ( h >> i ) * BitsPerPixel( format ) ) / 8;
+	}
+
+	return size;
+}
+
 static u64 HashMaterialName( Span< const char > name ) {
 	// skip leading /
 	while( name != "" && name[ 0 ] == '/' )
@@ -433,12 +443,12 @@ static void LoadBuiltinTextures() {
 	}
 }
 
-static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int channels ) {
+static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int channels, const char * failure_reason ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
 
 	if( pixels == NULL ) {
-		Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load texture from %s\n", path );
+		Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load texture from %s: %s\n", path, failure_reason );
 		return;
 	}
 
@@ -505,7 +515,8 @@ static void LoadDDSTexture( const char * path ) {
 			return;
 	}
 
-	size_t expected_data_size = ( BitsPerPixel( config.format ) * header->width * header->height ) / 8;
+	config.num_mipmaps = Max2( header->mipmap_count, u32( 1 ) );
+	size_t expected_data_size = MipmappedByteSize( config.width, config.height, config.num_mipmaps, config.format );
 	if( dds.num_bytes() - sizeof( DDSHeader ) != expected_data_size ) {
 		Com_GGPrint( S_COLOR_YELLOW "{} has bad data size. Got {}, expected {}", path, dds.num_bytes() - sizeof( DDSHeader ), expected_data_size );
 		return;
@@ -542,7 +553,7 @@ static void LoadMaterialFile( const char * path, Span< const char > * material_n
 	}
 }
 
-struct DecodeTextureJob {
+struct DecodeSTBTextureJob {
 	struct {
 		const char * path;
 		Span< const u8 > data;
@@ -552,6 +563,7 @@ struct DecodeTextureJob {
 		int width, height;
 		int channels;
 		u8 * pixels;
+		const char * failure_reason;
 	} out;
 };
 
@@ -749,7 +761,7 @@ void InitMaterials() {
 	{
 		ZoneScopedN( "Load disk textures" );
 
-		DynamicArray< DecodeTextureJob > jobs( sys_allocator );
+		DynamicArray< DecodeSTBTextureJob > jobs( sys_allocator );
 		{
 			ZoneScopedN( "Build job list" );
 
@@ -757,7 +769,7 @@ void InitMaterials() {
 				Span< const char > ext = FileExtension( path );
 
 				if( ext == ".png" || ext == ".jpg" ) {
-					DecodeTextureJob job;
+					DecodeSTBTextureJob job;
 					job.in.path = path;
 					job.in.data = AssetBinary( path );
 
@@ -769,13 +781,13 @@ void InitMaterials() {
 				}
 			}
 
-			std::sort( jobs.begin(), jobs.end(), []( const DecodeTextureJob & a, const DecodeTextureJob & b ) {
+			std::sort( jobs.begin(), jobs.end(), []( const DecodeSTBTextureJob & a, const DecodeSTBTextureJob & b ) {
 				return a.in.data.n > b.in.data.n;
 			} );
 		}
 
 		ParallelFor( jobs.span(), []( TempAllocator * temp, void * data ) {
-			DecodeTextureJob * job = ( DecodeTextureJob * ) data;
+			DecodeSTBTextureJob * job = ( DecodeSTBTextureJob * ) data;
 
 			ZoneScopedN( "stbi_load_from_memory" );
 			ZoneText( job->in.path, strlen( job->in.path ) );
@@ -783,8 +795,8 @@ void InitMaterials() {
 			job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
 		} );
 
-		for( DecodeTextureJob job : jobs ) {
-			LoadSTBTexture( job.in.path, job.out.pixels, job.out.width, job.out.height, job.out.channels );
+		for( DecodeSTBTextureJob job : jobs ) {
+			LoadSTBTexture( job.in.path, job.out.pixels, job.out.width, job.out.height, job.out.channels, stbi_failure_reason() );
 		}
 	}
 
@@ -828,7 +840,7 @@ void HotloadMaterials() {
 				pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
 			}
 
-			LoadSTBTexture( path, pixels, w, h, channels );
+			LoadSTBTexture( path, pixels, w, h, channels, stbi_failure_reason() );
 
 			changes = true;
 		}

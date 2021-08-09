@@ -589,9 +589,7 @@ void G_Gametype_Init() {
 
 	G_Gametype_SetDefaults();
 
-	if( !GT_asLoadScript( gt ) ) {
-#if PUBLIC_BUILD
+	if( !GT_asLoadScript( gt ) && !is_public_build ) {
 		Fatal( "Failed to load %s", gt );
-#endif
 	}
 }

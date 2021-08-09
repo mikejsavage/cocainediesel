@@ -419,8 +419,7 @@ static void DebugLabel( GLenum type, GLuint object, const char * label ) {
 }
 
 static void PlotVRAMUsage() {
-#if !PUBLIC_BUILD
-	if( GLAD_GL_NVX_gpu_memory_info != 0 ) {
+	if( !is_public_build && GLAD_GL_NVX_gpu_memory_info != 0 ) {
 		GLint total_vram;
 		glGetIntegerv( GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &total_vram );
 
@@ -429,33 +428,32 @@ static void PlotVRAMUsage() {
 
 		TracyPlot( "VRAM usage", s64( total_vram - available_vram ) );
 	}
-#endif
 }
 
 void RenderBackendInit() {
 	ZoneScoped;
 	TracyGpuContext;
 
-#if !PUBLIC_BUILD
-	if( GLAD_GL_KHR_debug != 0 ) {
-		GLint context_flags;
-		glGetIntegerv( GL_CONTEXT_FLAGS, &context_flags );
-		if( context_flags & GL_CONTEXT_FLAG_DEBUG_BIT ) {
-			Com_Printf( "Initialising debug output\n" );
+	if( !is_public_build ) {
+		if( GLAD_GL_KHR_debug != 0 ) {
+			GLint context_flags;
+			glGetIntegerv( GL_CONTEXT_FLAGS, &context_flags );
+			if( context_flags & GL_CONTEXT_FLAG_DEBUG_BIT ) {
+				Com_Printf( "Initialising debug output\n" );
 
-			glEnable( GL_DEBUG_OUTPUT );
-			glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
-			glDebugMessageCallback( ( GLDEBUGPROC ) DebugOutputCallback, NULL );
-			glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE );
+				glEnable( GL_DEBUG_OUTPUT );
+				glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
+				glDebugMessageCallback( ( GLDEBUGPROC ) DebugOutputCallback, NULL );
+				glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE );
+			}
+		}
+		else if( GLAD_GL_AMD_debug_output != 0 ) {
+			Com_Printf( "Initialising AMD debug output\n" );
+
+			glDebugMessageCallbackAMD( ( GLDEBUGPROCAMD ) DebugOutputCallbackAMD, NULL );
+			glDebugMessageEnableAMD( 0, 0, 0, NULL, GL_TRUE );
 		}
 	}
-	else if( GLAD_GL_AMD_debug_output != 0 ) {
-		Com_Printf( "Initialising AMD debug output\n" );
-
-		glDebugMessageCallbackAMD( ( GLDEBUGPROCAMD ) DebugOutputCallbackAMD, NULL );
-		glDebugMessageEnableAMD( 0, 0, 0, NULL, GL_TRUE );
-	}
-#endif
 
 	PlotVRAMUsage();
 

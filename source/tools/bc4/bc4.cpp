@@ -5,11 +5,7 @@
 #include "client/renderer/dds.h"
 
 #include "rgbcx/rgbcx.h"
-
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_FAILURE_USERMSG
 #include "stb/stb_image.h"
-
 #include "stb/stb_image_resize.h"
 
 static Span< const char > FileExtension( const char * path ) {

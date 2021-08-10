@@ -297,10 +297,6 @@ void Cmd_Say_f( edict_t *ent, bool arg0, bool checkflood ) {
 		}
 	}
 
-	if( ent->r.client && ( ent->r.client->muted & 1 ) ) {
-		return;
-	}
-
 	if( Cmd_Argc() < 2 && !arg0 ) {
 		return;
 	}
@@ -424,10 +420,6 @@ static const g_vsays_t g_vsays[] = {
 
 static void G_vsay_f( edict_t *ent ) {
 	const char *msg = Cmd_Argv( 1 );
-
-	if( ent->r.client && ( ent->r.client->muted & 2 ) ) {
-		return;
-	}
 
 	if( G_ISGHOSTING( ent ) && server_gs.gameState.match_state < MatchState_PostMatch ) {
 		return;

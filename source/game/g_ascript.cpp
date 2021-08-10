@@ -808,7 +808,6 @@ static const asProperty_t gameclient_Properties[] = {
 	{ ASLIB_PROPERTY_DECL( int, team ), offsetof( gclient_t, team ) },
 	{ ASLIB_PROPERTY_DECL( const bool, isOperator ), offsetof( gclient_t, isoperator ) },
 	{ ASLIB_PROPERTY_DECL( const int64, queueTimeStamp ), offsetof( gclient_t, queueTimeStamp ) },
-	{ ASLIB_PROPERTY_DECL( const int, muted ), offsetof( gclient_t, muted ) },
 	{ ASLIB_PROPERTY_DECL( const bool, chaseActive ), offsetof( gclient_t, resp.chase.active ) },
 	{ ASLIB_PROPERTY_DECL( int, chaseTarget ), offsetof( gclient_t, resp.chase.target ) },
 	{ ASLIB_PROPERTY_DECL( bool, chaseTeamonly ), offsetof( gclient_t, resp.chase.teamonly ) },

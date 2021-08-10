@@ -566,7 +566,19 @@ int main() {
 
 	WriteFile( &temp, "source/tools/maptogltf/test.obj", obj.c_str(), obj.length() );
 
-	FREE( sys_allocator, arena.get_memory() );
+	// TODO: generate render geometry
+	// - create meshes by material/entity
+	// - convert patches to meshes
+	// - figure out what postprocessing we need e.g. welding
+	// - meshopt
+	// - save as bsp for now so we can load + test
+	//
+	// TODO: generate collision geometry
+	// - make a kd tree like pbrt
+	// - save as bsp for now so we can load + test
+	//
+	// TODO: new map format
+	// - see bsp2.cpp
 
 	// if( ok ) {
 	// 	for( Entity & entity : entities ) {
@@ -584,6 +596,8 @@ int main() {
 	// 		}
 	// 	}
 	// }
+
+	FREE( sys_allocator, arena.get_memory() );
 
 	return 0;
 }

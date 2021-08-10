@@ -237,11 +237,13 @@ void Com_Error( const char *format, ... ) {
 	Com_Printf( "********************\nERROR: %s\n********************\n", msg );
 	SV_ShutdownGame( "Server crashed", false );
 	CL_Disconnect( msg );
-#if PUBLIC_BUILD
-	longjmp( abortframe, -1 );
-#else
-	abort();
-#endif
+
+	if( is_public_build ) {
+		longjmp( abortframe, -1 );
+	}
+	else {
+		abort();
+	}
 }
 
 /*
@@ -488,9 +490,9 @@ void Qcommon_ShutdownCommands() {
 void Qcommon_Init( int argc, char **argv ) {
 	ZoneScoped;
 
-#if !PUBLIC_BUILD
-	EnableFPE();
-#endif
+	if( !is_public_build ) {
+		EnableFPE();
+	}
 
 	Sys_Init();
 

@@ -308,7 +308,6 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 
 	CG_FireEvents( true );
 
-	cg.firstFrame = false; // not the first frame anymore
 	return true;
 }
 

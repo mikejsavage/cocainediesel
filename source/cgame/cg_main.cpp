@@ -247,8 +247,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	CG_ClearAnnouncerEvents();
 
-	cg.firstFrame = true; // think of the next frame in CG_NewFrameSnap as of the first one
-
 	// now that we're done with precaching, let the autorecord actions do something
 	CG_ConfigString( CS_AUTORECORDSTATE, cgs.configStrings[CS_AUTORECORDSTATE] );
 

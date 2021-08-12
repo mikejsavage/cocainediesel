@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <math.h>
 
 #include "parsing.h"
 
@@ -25,7 +26,9 @@ struct StaticArray {
 	}
 
 	void add( const T & x ) {
-		assert( !full() );
+		if( full() ) {
+			Fatal( "StaticArray::add" );
+		}
 		elems[ n ] = x;
 		n++;
 	}
@@ -447,7 +450,22 @@ void AddFace( ObjWriter * writer, Vec3 normal, size_t num_verts ) {
 	writer->normal_id++;
 }
 
-static bool BrushToVerts( ObjWriter * writer, const Brush & brush ) {
+// TODO: use the shared versions
+MinMax3 Union( MinMax3 bounds, Vec3 p ) {
+	return MinMax3(
+		Vec3( Min2( bounds.mins.x, p.x ), Min2( bounds.mins.y, p.y ), Min2( bounds.mins.z, p.z ) ),
+		Vec3( Max2( bounds.maxs.x, p.x ), Max2( bounds.maxs.y, p.y ), Max2( bounds.maxs.z, p.z ) )
+	);
+}
+
+MinMax3 Union( MinMax3 a, MinMax3 b ) {
+	return MinMax3(
+		Vec3( Min2( a.mins.x, b.mins.x ), Min2( a.mins.y, b.mins.y ), Min2( a.mins.z, b.mins.z ) ),
+		Vec3( Max2( a.maxs.x, b.maxs.x ), Max2( a.maxs.y, b.maxs.y ), Max2( a.maxs.z, b.maxs.z ) )
+	);
+}
+
+static bool BrushToVerts( ObjWriter * writer, const Brush & brush, MinMax3 * bounds ) {
 	AddBrush( writer );
 
 	Plane planes[ MAX_BRUSH_FACES ];
@@ -495,6 +513,7 @@ static bool BrushToVerts( ObjWriter * writer, const Brush & brush ) {
 		for( size_t j = 0; j < verts.n; j++ ) {
 			Vec3 unprojected = centroid + projected[ j ].pos.x * tangent + projected[ j ].pos.y * bitangent;
 			AddVertex( writer, unprojected );
+			*bounds = Union( *bounds, unprojected );
 		}
 
 		AddFace( writer, planes[ i ].normal, verts.n );
@@ -511,6 +530,176 @@ Span< const char > ParseComment( Span< const char > * comment, Span< const char 
 		} );
 		return str;
 	} );
+}
+
+struct KDTreeNode {
+	bool leaf;
+
+	// node stuff
+	u8 axis;
+	float distance;
+	u32 back_child;
+
+	// leaf stuff
+
+};
+
+struct CandidatePlane {
+	float distance;
+	u32 brush_id;
+	bool start_edge;
+};
+
+struct CandidatePlanes {
+	Span< CandidatePlane > axes[ 3 ];
+};
+
+int MaxAxis( MinMax3 bounds ) {
+	Vec3 dims = bounds.maxs - bounds.mins;
+	if( dims.x > dims.y && dims.x > dims.z )
+		return 0;
+	return dims.y > dims.z ? 1 : 2;
+}
+
+float SurfaceArea( MinMax3 bounds ) {
+	Vec3 dims = bounds.maxs - bounds.mins;
+	return 2.0f * ( dims.x * dims.y + dims.x * dims.z + dims.y * dims.z );
+}
+
+CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const MinMax3 > brush_bounds ) {
+	CandidatePlanes planes;
+
+	for( int i = 0; i < 3; i++ ) {
+		Span< CandidatePlane > axis = ALLOC_SPAN( a, CandidatePlane, brush_bounds.n * 2 );
+		planes.axes[ i ] = axis;
+
+		for( u32 j = 0; j < axis.n; j++ ) {
+			axis[ j * 2 + 0 ] = { brush_bounds[ j ].mins[ i ], j, true };
+			axis[ j * 2 + 1 ] = { brush_bounds[ j ].maxs[ i ], j, true };
+		}
+
+		std::sort( axis.begin(), axis.end(), []( const CandidatePlane & a, const CandidatePlane & b ) {
+			if( a.distance == b.distance )
+				return a.start_edge < b.start_edge;
+			return a.distance < b.distance;
+		} );
+	}
+
+	return planes;
+}
+
+void Split( MinMax3 bounds, int axis, float distance, MinMax3 * below, MinMax3 * above ) {
+	*below = bounds;
+	*above = bounds;
+
+	below->maxs[ axis ] = distance;
+	above->mins[ axis ] = distance;
+}
+
+size_t BuildKDTreeRecursive( DynamicArray< KDTreeNode > * nodes, Span< const Brush > brushes, Span< const MinMax3 > brush_bounds, const CandidatePlanes & planes, MinMax3 node_bounds, u32 max_depth ) {
+	if( brushes.n <= 2 || max_depth == 0 ) {
+		// TODO: make leaf
+		return 0;
+	}
+
+	float best_cost = INFINITY;
+	int best_axis = 0;
+	size_t best_plane = 0;
+
+	float node_surface_area = SurfaceArea( node_bounds );
+
+	for( int i = 0; i < 3; i++ ) {
+		int axis = ( MaxAxis( node_bounds ) + i ) % 3;
+
+		size_t num_below = 0;
+		size_t num_above = brush_bounds.n;
+
+		for( size_t j = 0; j < planes.axes[ axis ].n; j++ ) {
+			const CandidatePlane & plane = planes.axes[ axis ][ j ];
+
+			if( !plane.start_edge ) {
+				num_above--;
+			}
+
+			if( plane.distance >= node_bounds.mins[ axis ] && plane.distance <= node_bounds.maxs[ axis ] ) {
+				MinMax3 below_bounds, above_bounds;
+				Split( node_bounds, axis, plane.distance, &below_bounds, &above_bounds );
+
+				float frac_below = SurfaceArea( below_bounds ) / node_surface_area;
+				float frac_above = SurfaceArea( above_bounds ) / node_surface_area;
+
+				float empty_bonus = num_below == 0 || num_above == 0 ? 0.5f : 1.0f;
+
+				constexpr float traversal_cost = 1.0f;
+				constexpr float intersect_cost = 80.0f;
+				float cost = traversal_cost + intersect_cost * empty_bonus * ( frac_below * num_below + frac_above * num_above );
+
+				if( cost < best_cost ) {
+					best_cost = cost;
+					best_axis = axis;
+					best_plane = j;
+				}
+			}
+
+			if( plane.start_edge ) {
+				num_below++;
+			}
+		}
+	}
+
+	if( best_cost == INFINITY ) {
+		// TODO: make leaf
+		return 0;
+	}
+
+	// make node
+	float distance = planes.axes[ best_axis ][ best_plane ].distance;
+
+	KDTreeNode node;
+	node.leaf = false;
+	node.axis = best_axis;
+	node.distance = distance;
+
+	size_t idx = nodes->add( node );
+
+	MinMax3 below_bounds, above_bounds;
+	Split( node_bounds, best_axis, distance, &below_bounds, &above_bounds );
+
+	// TODO: classify brushes as above/below
+
+	BuildKDTreeRecursive( nodes, brushes, brush_bounds, planes, above_bounds, max_depth - 1 );
+	node.back_child = BuildKDTreeRecursive( nodes, brushes, brush_bounds, planes, below_bounds, max_depth - 1 );
+
+	return idx;
+}
+
+u32 Log2( u64 x ) {
+	u32 log = 0;
+	x >>= 1;
+
+	while( x > 0 ) {
+		x >>= 1;
+		log++;
+	}
+
+	return log;
+}
+
+void BuildKDTree( DynamicArray< KDTreeNode > * nodes, Span< const Brush > brushes, Span< const MinMax3 > brush_bounds ) {
+	MinMax3 tree_bounds = MinMax3::Empty();
+	for( MinMax3 bounds : brush_bounds ) {
+		tree_bounds = Union( bounds, tree_bounds );
+	}
+
+	CandidatePlanes planes = BuildCandidatePlanes( sys_allocator, brush_bounds );
+
+	u32 max_depth = roundf( 8.0f + 1.3f * Log2( brushes.n ) );
+
+	BuildKDTreeRecursive( nodes, brushes, brush_bounds, planes, tree_bounds, max_depth );
+
+	for( int i = 0; i < 3; i++ ) {
+		FREE( sys_allocator, planes.axes[ i ].ptr );
+	}
 }
 
 int main() {
@@ -545,7 +734,7 @@ int main() {
 		}
 	};
 
-	map = CaptureNOrMore( &entities, map, 0, ParseEntity );
+	map = CaptureNOrMore( &entities, map, 1, ParseEntity );
 	map = SkipWhitespace( map );
 
 	bool ok = map.ptr != NULL && map.n == 0;
@@ -557,25 +746,38 @@ int main() {
 	DynamicString obj( sys_allocator );
 	ObjWriter writer = NewObjectWriter( &obj );
 
+	Span< MinMax3 > brush_bounds = ALLOC_SPAN( sys_allocator, MinMax3, entities[ 0 ].brushes.size() );
+	defer { FREE( sys_allocator, brush_bounds.ptr ); };
+
+	size_t brush_id = 0;
 	for( const Entity & entity : entities ) {
 		for( const Brush & brush : entity.brushes.span() ) {
-			bool asd = BrushToVerts( &writer, brush );
+			MinMax3 bounds = MinMax3::Empty();
+			bool asd = BrushToVerts( &writer, brush, &bounds );
 			ggprint( "{}\n", asd );
+
+			if( brush_id < entities[ 0 ].brushes.size() ) {
+				brush_bounds[ brush_id ] = bounds;
+				brush_id++;
+			}
 		}
 	}
 
 	WriteFile( &temp, "source/tools/maptogltf/test.obj", obj.c_str(), obj.length() );
 
+	DynamicArray< KDTreeNode > nodes( sys_allocator );
+	BuildKDTree( &nodes, entities[ 0 ].brushes.span(), brush_bounds );
+
 	// TODO: generate render geometry
-	// - create meshes by material/entity
 	// - convert patches to meshes
+	// - convert brushes to meshes
+	// - merge meshes by material/entity
 	// - figure out what postprocessing we need e.g. welding
 	// - meshopt
-	// - save as bsp for now so we can load + test
 	//
 	// TODO: generate collision geometry
+	// - find brush aabbs
 	// - make a kd tree like pbrt
-	// - save as bsp for now so we can load + test
 	//
 	// TODO: new map format
 	// - see bsp2.cpp

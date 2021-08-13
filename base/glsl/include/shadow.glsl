@@ -131,7 +131,7 @@ float GetLight( vec3 normal ) {
 		return light;
 	}
 	else if( view_distance <= u_CascadePlaneC && u_ShadowCascades > 2 ) {
-		light = ShadowCascade( v_Position, normal, u_CascadeOffsetC, u_CascadeScaleC, u_ShadowmapCTexture );
+		float light = ShadowCascade( v_Position, normal, u_CascadeOffsetC, u_CascadeScaleC, u_ShadowmapCTexture );
 		#if FILTER_ACROSS_CASCADES
 		if( u_ShadowCascades > 3 ) {
 			float fade_factor = ( u_CascadePlaneC - view_distance ) / u_CascadePlaneC;

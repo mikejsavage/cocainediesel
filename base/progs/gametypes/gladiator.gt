@@ -1,5 +1,5 @@
-generic/constants.as;
-generic/matchstates.as;
+generic/constants.as
+generic/matchstates.as
 
-gladiator/main.as;
-gladiator/spinner.as;
+gladiator/main.as
+gladiator/spinner.as

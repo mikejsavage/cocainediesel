@@ -1342,7 +1342,7 @@ static GLuint CompileShader( GLenum type, Span< const char * > srcs, Span< int >
 	full_lens[ n ] = -1;
 	n++;
 
-	full_srcs[ n ] = "#define MAX_JOINTS " STR_TOSTR( MAX_GLSL_UNIFORM_JOINTS ) "\n";
+	full_srcs[ n ] = "#define MAX_JOINTS " STRINGIFY( MAX_GLSL_UNIFORM_JOINTS ) "\n";
 	full_lens[ n ] = -1;
 	n++;
 

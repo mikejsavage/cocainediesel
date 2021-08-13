@@ -439,7 +439,7 @@ bool GT_asLoadScript( const char *gametypeName ) {
 	GT_ResetScriptData();
 
 	// Load the script
-	asModule = game.asExport->asLoadScriptProject( game.asEngine, "progs", "gametypes", gametypeName, ".gt" );
+	asModule = game.asExport->asLoadScriptProject( game.asEngine, gametypeName );
 	if( asModule == NULL ) {
 		return false;
 	}

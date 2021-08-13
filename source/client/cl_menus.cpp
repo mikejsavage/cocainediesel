@@ -12,6 +12,8 @@
 #define GLFW_INCLUDE_NONE
 #include "glfw3/GLFW/glfw3.h"
 
+#include "glad/glad.h"
+
 enum UIState {
 	UIState_Hidden,
 	UIState_MainMenu,
@@ -764,7 +766,14 @@ static void MainMenu() {
 		ImGui::Text( "VACCAINE PFIZEL" );
 		ImGui::PopStyleColor();
 	}
+
 	ImGui::PopFont();
+
+	if( !GLAD_GL_VERSION_4_6 ) {
+		ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 0, 0, 255 ) );
+		ImGui::Text( "You don't have GL 4.6, you have %d.%d, please tell us in the discord so we don't break your shit", GLVersion.major, GLVersion.minor );
+		ImGui::PopStyleColor();
+	}
 
 	if( ImGui::Button( "FIND SERVERS" ) ) {
 		mainmenu_state = MainMenuState_ServerBrowser;

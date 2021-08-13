@@ -64,7 +64,7 @@ void PF_GameCmd( edict_t * ent, const char * cmd ) {
 	}
 
 	for( int i = 0; i < sv_maxclients->integer; i++ ) {
-		client_t * client = &svs.clients[ i - 1 ];
+		client_t * client = &svs.clients[ i ];
 		SV_AddGameCommand( client, cmd );
 	}
 }

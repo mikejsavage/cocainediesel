@@ -595,27 +595,17 @@ static void DrawWorld() {
 
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
 		if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
-			PipelineState pipeline;
-			pipeline.pass = frame_static.near_shadowmap_pass;
-			pipeline.shader = &shaders.depth_only;
-			pipeline.clamp_depth = true;
-			pipeline.cull_face = CullFace_Disabled;
-			pipeline.set_uniform( "u_View", frame_static.near_shadowmap_view_uniforms );
-			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+			for( u32 j = 0; j < frame_static.shadow_settings.num_cascades; j++ ) {
+				PipelineState pipeline;
+				pipeline.pass = frame_static.shadowmap_pass[ j ];
+				pipeline.shader = &shaders.depth_only;
+				pipeline.clamp_depth = true;
+				// pipeline.cull_face = CullFace_Disabled;
+				pipeline.set_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
+				pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 
-			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-		}
-
-		if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
-			PipelineState pipeline;
-			pipeline.pass = frame_static.far_shadowmap_pass;
-			pipeline.shader = &shaders.depth_only;
-			pipeline.clamp_depth = true;
-			pipeline.cull_face = CullFace_Disabled;
-			pipeline.set_uniform( "u_View", frame_static.far_shadowmap_view_uniforms );
-			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-
-			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+				DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+			}
 		}
 
 		{

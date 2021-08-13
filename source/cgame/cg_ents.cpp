@@ -471,24 +471,13 @@ static void DrawEntityModel( centity_t * cent ) {
 
 					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 				}
-				{
+				for( u32 j = 0; j < frame_static.shadow_settings.num_cascades; j++ ) {
 					PipelineState pipeline;
-					pipeline.pass = frame_static.near_shadowmap_pass;
+					pipeline.pass = frame_static.shadowmap_pass[ j ];
 					pipeline.shader = &shaders.depth_only;
 					pipeline.clamp_depth = true;
-					pipeline.cull_face = CullFace_Disabled;
-					pipeline.set_uniform( "u_View", frame_static.near_shadowmap_view_uniforms );
-					pipeline.set_uniform( "u_Model", model_uniforms );
-
-					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-				}
-				{
-					PipelineState pipeline;
-					pipeline.pass = frame_static.far_shadowmap_pass;
-					pipeline.shader = &shaders.depth_only;
-					pipeline.clamp_depth = true;
-					pipeline.cull_face = CullFace_Disabled;
-					pipeline.set_uniform( "u_View", frame_static.far_shadowmap_view_uniforms );
+					// pipeline.cull_face = CullFace_Disabled;
+					pipeline.set_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
 					pipeline.set_uniform( "u_Model", model_uniforms );
 
 					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );

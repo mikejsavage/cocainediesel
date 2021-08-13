@@ -500,6 +500,27 @@ static void SettingsVideo() {
 	}
 
 	{
+		SettingLabel( "Shadow Quality" );
+
+		cvar_t * cvar = Cvar_Get( "r_shadows", "1", CVAR_ARCHIVE );
+		ShadowMode shadow_mode = ShadowMode( cvar->integer );
+
+		ImGui::PushItemWidth( 150 );
+		if( ImGui::BeginCombo( "##r_shadows", ShadowModeToString( shadow_mode ) ) ) {
+			for( int s = ShadowMode_Low; s <= ShadowMode_Ultra; s++ ) {
+				if( ImGui::Selectable( ShadowModeToString( ShadowMode( s ) ), shadow_mode == s ) )
+					shadow_mode = ShadowMode( s );
+				if( s == shadow_mode )
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::PopItemWidth();
+
+		Cvar_Set( "r_shadows", temp( "{}", shadow_mode ) );
+	}
+
+	{
 		SettingLabel( "Max FPS" );
 
 		constexpr int values[] = { 60, 75, 120, 144, 165, 180, 200, 240, 333, 500, 1000 };

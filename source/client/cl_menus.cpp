@@ -12,6 +12,8 @@
 #define GLFW_INCLUDE_NONE
 #include "glfw3/GLFW/glfw3.h"
 
+#include "glad/glad.h"
+
 enum UIState {
 	UIState_Hidden,
 	UIState_MainMenu,
@@ -282,13 +284,6 @@ static void SettingsControls() {
 			KeyBindButton( "Previous weapon", "weapprev" );
 			KeyBindButton( "Last weapon", "lastweapon" );
 
-			if( ImGui::CollapsingHeader( "Advanced" ) ) {
-				for( int i = Weapon_Knife; i < Weapon_Count; i++ ) {
-					const WeaponDef * weapon = GS_GetWeaponDef( i );
-					KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
-				}
-			}
-
 			ImGui::EndTabItem();
 		}
 
@@ -308,24 +303,6 @@ static void SettingsControls() {
 			KeyBindButton( "User pack", "vsay user" );
 			KeyBindButton( "Guyman pack", "vsay guyman" );
 			KeyBindButton( "Helena pack", "vsay helena" );
-
-			if( ImGui::CollapsingHeader( "Advanced" ) ) {
-				KeyBindButton( "Sorry", "vsay sorry" );
-				KeyBindButton( "Thanks", "vsay thanks" );
-				KeyBindButton( "Good game", "vsay goodgame" );
-				KeyBindButton( "Boomstick", "vsay boomstick" );
-				KeyBindButton( "Shut up", "vsay shutup" );
-				KeyBindButton( "Bruh", "vsay bruh" );
-				KeyBindButton( "Cya", "vsay cya" );
-				KeyBindButton( "Get good", "vsay getgood" );
-				KeyBindButton( "Hit the showers", "vsay hittheshowers" );
-				KeyBindButton( "Lads", "vsay lads" );
-				KeyBindButton( "She doesn't even", "vsay shedoesnteven" );
-				KeyBindButton( "Shit son", "vsay shitson" );
-				KeyBindButton( "Trash smash", "vsay trashsmash" );
-				KeyBindButton( "What the shit", "vsay whattheshit" );
-				KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
-			}
 
 			ImGui::EndTabItem();
 		}
@@ -497,6 +474,27 @@ static void SettingsVideo() {
 		}
 
 		Cvar_Set( "r_samples", temp( "{}", samples ) );
+	}
+
+	{
+		SettingLabel( "Shadow Quality" );
+
+		cvar_t * cvar = Cvar_Get( "r_shadows", "1", CVAR_ARCHIVE );
+		ShadowMode shadow_mode = ShadowMode( cvar->integer );
+
+		ImGui::PushItemWidth( 150 );
+		if( ImGui::BeginCombo( "##r_shadows", ShadowModeToString( shadow_mode ) ) ) {
+			for( int s = ShadowMode_Low; s <= ShadowMode_Ultra; s++ ) {
+				if( ImGui::Selectable( ShadowModeToString( ShadowMode( s ) ), shadow_mode == s ) )
+					shadow_mode = ShadowMode( s );
+				if( s == shadow_mode )
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::PopItemWidth();
+
+		Cvar_Set( "r_shadows", temp( "{}", shadow_mode ) );
 	}
 
 	{
@@ -743,7 +741,14 @@ static void MainMenu() {
 		ImGui::Text( "VACCAINE PFIZEL" );
 		ImGui::PopStyleColor();
 	}
+
 	ImGui::PopFont();
+
+	if( !GLAD_GL_VERSION_4_6 ) {
+		ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 0, 0, 255 ) );
+		ImGui::Text( "You don't have GL 4.6, you have %d.%d, please tell us in the discord so we don't break your shit", GLVersion.major, GLVersion.minor );
+		ImGui::PopStyleColor();
+	}
 
 	if( ImGui::Button( "FIND SERVERS" ) ) {
 		mainmenu_state = MainMenuState_ServerBrowser;

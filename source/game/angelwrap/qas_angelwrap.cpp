@@ -217,102 +217,57 @@ asIScriptContext *qasGetActiveContext() {
 * Scripts
 **************************************/
 
-/*
-* qasLoadScriptSection
-*/
-static char *qasLoadScriptSection( const char *rootDir, const char *dir, const char *script, int sectionNum ) {
-	char * sectionName = COM_ListNameForPosition( script, sectionNum, QAS_SECTIONS_SEPARATOR );
-	if( !sectionName ) {
-		return NULL;
-	}
-
-	COM_StripExtension( sectionName );
-
-	while( *sectionName == '\n' || *sectionName == ' ' || *sectionName == '\r' )
-		sectionName++;
-
-	DynamicString path( sys_allocator, "{}/base/{}/{}/{}{}", RootDirPath(), rootDir, dir, sectionName, QAS_FILE_EXTENSION );
+asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *filename ) {
+	DynamicString path( sys_allocator, "{}/base/progs/gametypes/{}.gt", RootDirPath(), filename );
 	char * contents = ReadFileString( sys_allocator, path.c_str() );
+	defer { FREE( sys_allocator, contents ); };
 	if( contents == NULL ) {
-		Com_Printf( "Couldn't find script section: '%s'\n", path.c_str() );
+		Com_Printf( "qasLoadScriptProject: Couldn't read '%s'.\n", path.c_str() );
 		return NULL;
 	}
 
-	return contents;
-}
-
-/*
-* qasBuildScriptProject
-*/
-static asIScriptModule *qasBuildScriptProject( asIScriptEngine *asEngine, const char *rootDir, const char *dir, const char *scriptName, const char *script ) {
-	int error;
-	int numSections, sectionNum;
-	char *section;
-	asIScriptModule *asModule;
-
-	if( asEngine == NULL ) {
-		Com_Printf( S_COLOR_RED "qasBuildGameScript: Angelscript API unavailable\n" );
-		return NULL;
-	}
-
-	// count referenced script sections
-	for( numSections = 0; ( section = COM_ListNameForPosition( script, numSections, QAS_SECTIONS_SEPARATOR ) ) != NULL; numSections++ ) ;
-
-	if( !numSections ) {
-		Com_Printf( S_COLOR_RED "* Error: script '%s' has no sections\n", scriptName );
-		return NULL;
-	}
-
-	// load up the script sections
-
-	asModule = asEngine->GetModule( GAMETYPE_SCRIPTS_MODULE_NAME, asGM_CREATE_IF_NOT_EXISTS );
-	if( asModule == NULL ) {
+	asIScriptModule * mod = engine->GetModule( GAMETYPE_SCRIPTS_MODULE_NAME, asGM_CREATE_IF_NOT_EXISTS );
+	if( mod == NULL ) {
 		Com_Printf( S_COLOR_RED "qasBuildGameScript: GetModule '%s' failed\n", GAMETYPE_SCRIPTS_MODULE_NAME );
 		return NULL;
 	}
 
-	for( sectionNum = 0; ( section = qasLoadScriptSection( rootDir, dir, script, sectionNum ) ) != NULL; sectionNum++ ) {
-		const char *sectionName = COM_ListNameForPosition( script, sectionNum, QAS_SECTIONS_SEPARATOR );
-		error = asModule->AddScriptSection( sectionName, section, strlen( section ) );
+	bool ok = false;
+	defer {
+		if( !ok ) {
+			engine->DiscardModule( GAMETYPE_SCRIPTS_MODULE_NAME );
+		}
+	};
 
-		FREE( sys_allocator, section );
+	Span< const char > cursor = MakeSpan( contents );
+	while( true ) {
+		Span< const char > section = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		if( section.ptr == NULL )
+			break;
 
-		if( error ) {
-			Com_Printf( S_COLOR_RED "* Failed to add the script section %s with error %i\n", sectionName, error );
-			asEngine->DiscardModule( GAMETYPE_SCRIPTS_MODULE_NAME );
+		DynamicString section_path( sys_allocator, "{}/base/progs/gametypes/{}", RootDirPath(), section );
+		char * section_contents = ReadFileString( sys_allocator, section_path.c_str() );
+		defer { FREE( sys_allocator, section_contents ); };
+		if( section_contents == NULL ) {
+			Com_Printf( "Couldn't read script section: '%s'\n", section_path.c_str() );
+			return NULL;
+		}
+
+		int error = mod->AddScriptSection( section_path.c_str(), section_contents );
+		if( error != 0 ) {
+			Com_GGPrint( S_COLOR_RED "* Failed to add the script section {} with error {}\n", section, error );
 			return NULL;
 		}
 	}
 
-	if( sectionNum != numSections ) {
-		Com_Printf( S_COLOR_RED "* Error: couldn't load all script sections.\n" );
-		asEngine->DiscardModule( GAMETYPE_SCRIPTS_MODULE_NAME );
+	int error = mod->Build();
+	if( error != 0 ) {
+		Com_Printf( S_COLOR_RED "* Failed to build script '%s'\n", filename );
 		return NULL;
 	}
 
-	error = asModule->Build();
-	if( error ) {
-		Com_Printf( S_COLOR_RED "* Failed to build script '%s'\n", scriptName );
-		asEngine->DiscardModule( GAMETYPE_SCRIPTS_MODULE_NAME );
-		return NULL;
-	}
-
-	return asModule;
-}
-
-/*
-* qasLoadScriptProject
-*/
-asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *rootDir, const char *dir, const char *filename, const char *ext ) {
-	DynamicString path( sys_allocator, "{}/base/{}/{}/{}{}", RootDirPath(), rootDir, dir, filename, ext );
-	char * contents = ReadFileString( sys_allocator, path.c_str() );
-	defer { FREE( sys_allocator, contents ); };
-	if( contents == NULL ) {
-		Com_Printf( "qasLoadScriptProject: Couldn't find '%s'.\n", path.c_str() );
-		return NULL;
-	}
-
-	return qasBuildScriptProject( engine, rootDir, dir, path.c_str(), contents );
+	ok = true;
+	return mod;
 }
 
 /*************************************

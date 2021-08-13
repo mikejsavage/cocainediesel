@@ -768,7 +768,6 @@ struct gclient_t {
 	int team;
 	bool isoperator;
 	int64_t queueTimeStamp;
-	int muted;     // & 1 = chat disabled, & 2 = vsay disabled
 
 	UserCommand ucmd;
 	int timeDelta;              // time offset to adjust for shots collision (antilag)

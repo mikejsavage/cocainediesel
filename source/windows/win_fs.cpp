@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/string.h"
 #include "qcommon/fs.h"
 #include "qcommon/sys_fs.h"
-#include "qcommon/utf8.h"
 
 /*
 * Sys_FS_CreateDirectory

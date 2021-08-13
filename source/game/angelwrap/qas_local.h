@@ -37,9 +37,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <new>
 #include <string>
 
-#define QAS_SECTIONS_SEPARATOR ';'
-#define QAS_FILE_EXTENSION     ".as"
-
 #define QAS_NEW( x )        new( G_Malloc( sizeof( x ) ) )( x )
 #define QAS_DELETE( ptr,x ) {void *tmp = ptr; ( ptr )->~x(); G_Free( tmp );}
 
@@ -63,4 +60,4 @@ void qasStringRelease( asstring_t *str );
 asstring_t *qasStringAssignString( asstring_t *self, const char *string, unsigned int strlen );
 
 // projects / bundles
-asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *rootDir, const char *dir, const char *filename, const char *ext );
+asIScriptModule *qasLoadScriptProject( asIScriptEngine *engine, const char *filename );

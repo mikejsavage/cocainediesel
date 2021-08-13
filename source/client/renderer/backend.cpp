@@ -175,6 +175,7 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			return;
 
 		case TextureFormat_Depth:
+		case TextureFormat_Shadow:
 			*internal = GL_DEPTH_COMPONENT24;
 			*channels = GL_DEPTH_COMPONENT;
 			*type = GL_FLOAT;
@@ -1117,6 +1118,11 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 			glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, ( GLfloat * ) &config.border_color );
 		}
 
+		if( config.format == TextureFormat_Shadow ) {
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
+		}
+
 		if( !CompressedTextureFormat( config.format ) ) {
 			assert( config.num_mipmaps == 1 );
 
@@ -1336,7 +1342,7 @@ static GLuint CompileShader( GLenum type, Span< const char * > srcs, Span< int >
 	full_lens[ n ] = -1;
 	n++;
 
-	full_srcs[ n ] = "#define MAX_JOINTS " STR_TOSTR( MAX_GLSL_UNIFORM_JOINTS ) "\n";
+	full_srcs[ n ] = "#define MAX_JOINTS " STRINGIFY( MAX_GLSL_UNIFORM_JOINTS ) "\n";
 	full_lens[ n ] = -1;
 	n++;
 
@@ -1453,7 +1459,7 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 		GLenum type;
 		glGetActiveUniform( program, i, sizeof( name ), &len, &size, &type, name );
 
-		if( type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_MULTISAMPLE ) {
+		if( type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_MULTISAMPLE || type == GL_SAMPLER_2D_SHADOW ) {
 			if( num_textures == ARRAY_COUNT( shader->textures ) ) {
 				glDeleteProgram( program );
 				Com_Printf( S_COLOR_YELLOW "Too many samplers in shader\n" );

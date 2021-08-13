@@ -43,6 +43,7 @@ enum TextureFormat : u8 {
 	TextureFormat_BC5,
 
 	TextureFormat_Depth,
+	TextureFormat_Shadow,
 };
 
 enum TextureWrap : u8 {

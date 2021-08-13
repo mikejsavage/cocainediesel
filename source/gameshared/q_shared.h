@@ -99,10 +99,7 @@ Span< const char > BasePath( const char * path );
 
 bool SortCStringsComparator( const char * a, const char * b );
 
-const char *COM_RemoveJunkChars( const char *in );
 bool COM_ValidateConfigstring( const char *string );
-
-char *COM_ListNameForPosition( const char *namesList, int position, const char separator );
 
 //==============================================================
 //
@@ -119,11 +116,6 @@ char *COM_ListNameForPosition( const char *namesList, int position, const char s
 STATIC_ASSERT( MAX_NAME_CHARS <= MAX_CONFIGSTRING_CHARS );
 
 #define MAX_CHAT_BYTES              151         // max length of a chat message, including color tokens and trailing \0
-
-#ifndef STR_HELPER
-#define STR_HELPER( s )                 # s
-#define STR_TOSTR( x )                  STR_HELPER( x )
-#endif
 
 //=============================================
 // string colors

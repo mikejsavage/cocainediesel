@@ -59,6 +59,10 @@ void SV_AddGameCommand( client_t *client, const char *cmd ) {
 		return;
 	}
 
+	if( client->state < CS_SPAWNED ) {
+		return;
+	}
+
 	assert( strlen( cmd ) < MAX_STRING_CHARS );
 
 	client->gameCommandCurrent++;

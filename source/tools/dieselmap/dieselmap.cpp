@@ -7,12 +7,169 @@
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
+#include "qcommon/qfiles.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
 
 void Sys_ShowErrorMessage( const char * msg ) {
 	printf( "%s\n", msg );
 }
+
+struct Plane {
+	Vec3 normal;
+	float distance;
+};
+
+enum BSPLump {
+	BSPLump_Entities,
+	BSPLump_Materials,
+	BSPLump_Planes,
+	BSPLump_Nodes,
+	BSPLump_Leaves,
+	BSPLump_LeafFaces_Unused,
+	BSPLump_LeafBrushes,
+	BSPLump_Models,
+	BSPLump_Brushes,
+	BSPLump_BrushSides,
+	BSPLump_Vertices,
+	BSPLump_Indices,
+	BSPLump_Fogs_Unused,
+	BSPLump_Faces,
+	BSPLump_Lighting_Unused,
+	BSPLump_LightGrid_Unused,
+	BSPLump_Visibility,
+	BSPLump_LightArray_Unused,
+
+	BSPLump_Count
+};
+
+static const char * lump_names[] = {
+	"BSPLump_Entities",
+	"BSPLump_Materials",
+	"BSPLump_Planes",
+	"BSPLump_Nodes",
+	"BSPLump_Leaves",
+	"BSPLump_LeafFaces_Unused",
+	"BSPLump_LeafBrushes",
+	"BSPLump_Models",
+	"BSPLump_Brushes",
+	"BSPLump_BrushSides",
+	"BSPLump_Vertices",
+	"BSPLump_Indices",
+	"BSPLump_Fogs_Unused",
+	"BSPLump_Faces",
+	"BSPLump_Lighting_Unused",
+	"BSPLump_LightGrid_Unused",
+	"BSPLump_Visibility",
+	"BSPLump_LightArray_Unused",
+};
+
+struct BSPLumpLocation {
+	u32 offset;
+	u32 length;
+};
+
+struct BSPHeader {
+	u32 magic;
+	u32 version;
+	BSPLumpLocation lumps[ BSPLump_Count ];
+};
+
+struct BSPMaterial {
+	char name[ 64 ];
+	u32 flags;
+	u32 contents;
+};
+
+struct BSPPlane {
+	Vec3 normal;
+	float dist;
+};
+
+struct BSPNode {
+	int planenum;
+	int children[2];
+	MinMax3 bounds;
+};
+
+struct BSPLeaf {
+	int cluster;
+	int area;
+	MinMax3 bounds;
+	int firstLeafFace;
+	int numLeafFaces;
+	int firstLeafBrush;
+	int numLeafBrushes;
+};
+
+struct BSPModel {
+	MinMax3 bounds;
+	u32 first_face;
+	u32 num_faces;
+	u32 first_brush;
+	u32 num_brushes;
+};
+
+struct BSPBrush {
+	u32 first_face;
+	u32 num_faces;
+	u32 material;
+};
+
+struct BSPBrushFace {
+	u32 planenum;
+	u32 material;
+};
+
+struct BSPVertex {
+	Vec3 position;
+	Vec2 uv;
+	Vec2 lightmap_uv;
+	Vec3 normal;
+	RGBA8 vertex_light;
+};
+
+struct BSPFace {
+	u32 material;
+	s32 fog;
+	s32 type;
+
+	u32 first_vertex;
+	u32 num_vertices;
+	u32 first_index;
+	u32 num_indices;
+
+	s32 lightmap;
+	s32 lightmap_offset[ 2 ];
+	s32 lightmap_size[ 2 ];
+
+	Vec3 origin;
+
+	MinMax3 bounds;
+	Vec3 normal;
+
+	u32 patch_width;
+	u32 patch_height;
+};
+
+struct BSP {
+	DynamicString * entities;
+	DynamicArray< BSPMaterial > * materials;
+	DynamicArray< BSPVertex > * vertices;
+	DynamicArray< u32 > * indices;
+	DynamicArray< BSPFace > * faces;
+	DynamicArray< BSPModel > * models;
+
+	DynamicArray< Plane > * planes;
+
+	DynamicArray< BSPNode > * nodes;
+	DynamicArray< BSPLeaf > * leaves;
+
+	DynamicArray< BSPBrush > * brushes;
+	DynamicArray< u32 > * brush_ids;
+
+	DynamicArray< BSPBrushFace > * brush_faces;
+};
 
 constexpr const char * whitespace_chars = " \r\n\t";
 
@@ -35,6 +192,10 @@ struct StaticArray {
 
 	Span< T > span() {
 		return Span< T >( elems, n );
+	}
+
+	Span< const T > span() const {
+		return Span< const T >( elems, n );
 	}
 };
 
@@ -321,11 +482,6 @@ static Span< const char > ParseEntity( Entity * entity, Span< const char > str )
 	return str;
 }
 
-struct Plane {
-	Vec3 normal;
-	float distance;
-};
-
 struct FaceVert {
 	Vec3 pos;
 	Vec2 uv;
@@ -443,8 +599,8 @@ void AddFace( ObjWriter * writer, Vec3 normal, size_t num_verts ) {
 	for( size_t i = 0; i < num_verts - 2; i++ ) {
 		writer->str->append( "f {}//{} {}//{} {}/{}\n",
 			base_vert, writer->normal_id,
-			base_vert + i + 2, writer->normal_id,
-			base_vert + i + 1, writer->normal_id
+			base_vert + i + 1, writer->normal_id,
+			base_vert + i + 2, writer->normal_id
 		);
 	}
 	writer->normal_id++;
@@ -465,10 +621,10 @@ MinMax3 Union( MinMax3 a, MinMax3 b ) {
 	);
 }
 
-static bool BrushToVerts( ObjWriter * writer, const Brush & brush, MinMax3 * bounds ) {
+static bool BrushToVerts( BSP * bsp, const Brush & brush, MinMax3 * bounds ) {
 	ZoneScoped;
 
-	AddBrush( writer );
+	// AddBrush( writer );
 
 	Plane planes[ MAX_BRUSH_FACES ];
 
@@ -514,11 +670,25 @@ static bool BrushToVerts( ObjWriter * writer, const Brush & brush, MinMax3 * bou
 
 		for( size_t j = 0; j < verts.n; j++ ) {
 			Vec3 unprojected = centroid + projected[ j ].pos.x * tangent + projected[ j ].pos.y * bitangent;
-			AddVertex( writer, unprojected );
+
+			BSPVertex vertex = { };
+			vertex.position = unprojected;
+			vertex.normal = planes[ i ].normal;
+			bsp->vertices->add( vertex );
+
+			// AddVertex( writer, unprojected );
+
 			*bounds = Union( *bounds, unprojected );
 		}
 
-		AddFace( writer, planes[ i ].normal, verts.n );
+		size_t base_vert = bsp->vertices->size() - verts.n;
+		for( size_t j = 0; j < verts.n - 2; j++ ) {
+			bsp->indices->add( base_vert );
+			bsp->indices->add( base_vert + j + 1 );
+			bsp->indices->add( base_vert + j + 2 );
+		}
+
+		// AddFace( writer, planes[ i ].normal, verts.n );
 	}
 
 	return true;
@@ -600,16 +770,44 @@ void Split( MinMax3 bounds, int axis, float distance, MinMax3 * below, MinMax3 *
 	above->mins[ axis ] = distance;
 }
 
-size_t MakeLeaf( DynamicArray< KDTreeNode > * nodes, Span< const u32 > brushes ) {
+s32 MakeLeaf( BSP * bsp, Span< const Brush > brushes, Span< const u32 > brush_ids ) {
+	BSPLeaf leaf = { };
+	leaf.bounds = MinMax3::Empty();
+	leaf.firstLeafFace = bsp->brush_ids->size();
+	leaf.numLeafBrushes = brush_ids.n;
+	size_t leaf_id = bsp->leaves->add( leaf );
+
+	for( u32 brush_id : brush_ids ) {
+		const Brush & brush = brushes[ brush_id ];
+
+		BSPBrush bspbrush;
+		bspbrush.first_face = bsp->brush_faces->size();
+		bspbrush.num_faces = brush.faces.n;
+		bspbrush.material = 0;
+		size_t bsp_brush_id = bsp->brushes->add( bspbrush );
+		bsp->brush_ids->add( bsp_brush_id );
+
+		for( const Face & face : brush.faces.span() ) {
+			BSPBrushFace bspface;
+			bspface.planenum = bsp->planes->size();
+			bspface.material = 0;
+			bsp->brush_faces->add( bspface );
+
+			Plane plane;
+			PlaneFrom3Points( &plane, face.plane[ 0 ], face.plane[ 1 ], face.plane[ 2 ] );
+			bsp->planes->add( plane );
+		}
+	}
+
+	return -s32( leaf_id + 1 );
 }
 
-size_t BuildKDTreeRecursive( DynamicArray< KDTreeNode > * nodes, Span< const Brush > brushes, Span< const MinMax3 > brush_bounds, Span< const u32 > node_brushes, MinMax3 node_bounds, u32 max_depth ) {
+s32 BuildKDTreeRecursive( BSP * bsp, Span< const Brush > brushes, Span< const MinMax3 > brush_bounds, Span< const u32 > node_brushes, MinMax3 node_bounds, u32 max_depth ) {
 	ZoneScoped;
 
 	if( node_brushes.n <= 1 || max_depth == 0 ) {
 		ZoneScopedN( "leaf time" );
-		// TODO: make leaf
-		return 0;
+		return MakeLeaf( bsp, brushes, node_brushes );
 	}
 
 	float best_cost = INFINITY;
@@ -670,19 +868,21 @@ size_t BuildKDTreeRecursive( DynamicArray< KDTreeNode > * nodes, Span< const Bru
 
 	if( best_cost == INFINITY ) {
 		ZoneScopedN( "other leaf time" );
-		// TODO: make leaf
-		return 0;
+		return MakeLeaf( bsp, brushes, node_brushes );
 	}
 
 	// make node
 	float distance = candidate_planes.axes[ best_axis ][ best_plane ].distance;
 
-	KDTreeNode node;
-	node.leaf = false;
-	node.axis = best_axis;
-	node.distance = distance;
+	Plane split;
+	split.normal = Vec3( 0.0f );
+	split.normal[ best_axis ] = 1.0f;
+	split.distance = distance;
+	size_t split_id = bsp->planes->add( split );
 
-	size_t idx = nodes->add( node );
+	BSPNode node;
+	node.planenum = split_id;
+	node.bounds = MinMax3::Empty();
 
 	MinMax3 below_bounds, above_bounds;
 	Split( node_bounds, best_axis, distance, &below_bounds, &above_bounds );
@@ -701,10 +901,10 @@ size_t BuildKDTreeRecursive( DynamicArray< KDTreeNode > * nodes, Span< const Bru
 		}
 	}
 
-	BuildKDTreeRecursive( nodes, brushes, brush_bounds, below_brushes.span(), below_bounds, max_depth - 1 );
-	node.above_child = BuildKDTreeRecursive( nodes, brushes, brush_bounds, above_brushes.span(), above_bounds, max_depth - 1 );
+	node.children[ 1 ] = BuildKDTreeRecursive( bsp, brushes, brush_bounds, below_brushes.span(), below_bounds, max_depth - 1 );
+	node.children[ 0 ] = BuildKDTreeRecursive( bsp, brushes, brush_bounds, above_brushes.span(), above_bounds, max_depth - 1 );
 
-	return idx;
+	return bsp->nodes->add( node );
 }
 
 u32 Log2( u64 x ) {
@@ -719,7 +919,7 @@ u32 Log2( u64 x ) {
 	return log;
 }
 
-void BuildKDTree( DynamicArray< KDTreeNode > * nodes, Span< const Brush > brushes, Span< const MinMax3 > brush_bounds ) {
+void BuildKDTree( BSP * bsp, Span< const Brush > brushes, Span< const MinMax3 > brush_bounds ) {
 	ZoneScoped;
 
 	MinMax3 tree_bounds = MinMax3::Empty();
@@ -736,7 +936,53 @@ void BuildKDTree( DynamicArray< KDTreeNode > * nodes, Span< const Brush > brushe
 		}
 	}
 
-	BuildKDTreeRecursive( nodes, brushes, brush_bounds, all_brushes.span(), tree_bounds, max_depth );
+	BuildKDTreeRecursive( bsp, brushes, brush_bounds, all_brushes.span(), tree_bounds, max_depth );
+}
+
+template< typename T >
+void Pack( DynamicArray< u8 > & packed, BSPHeader * header, BSPLump lump, Span< T > data ) {
+	size_t padding = packed.num_bytes() % alignof( T );
+	if( padding != 0 )
+		padding = alignof( T ) - padding;
+	size_t before_padding = packed.extend( padding );
+	if( padding != 0 ) {
+		memset( &packed[ before_padding ], 0, padding );
+	}
+
+	// packed.align
+	size_t offset = packed.extend( data.num_bytes() );
+	memcpy( &packed[ offset ], data.ptr, data.num_bytes() );
+
+	header->lumps[ lump ].offset = offset;
+	header->lumps[ lump ].length = data.num_bytes();
+
+	ggprint( "lump {-20} is size {10}\n", lump_names[ lump ], data.num_bytes() );
+}
+
+static void WriteBSP( TempAllocator * temp, BSP * bsp ) {
+	DynamicArray< u8 > packed( sys_allocator );
+
+	BSPHeader header = { };
+	memcpy( &header.magic, "IBSP", 4 );
+
+	size_t header_offset = packed.extend( sizeof( header ) );
+
+	Pack( packed, &header, BSPLump_Entities, bsp->entities->span() );
+	Pack( packed, &header, BSPLump_Materials, bsp->materials->span() );
+	Pack( packed, &header, BSPLump_Planes, bsp->planes->span() );
+	Pack( packed, &header, BSPLump_Nodes, bsp->nodes->span() );
+	Pack( packed, &header, BSPLump_Leaves, bsp->leaves->span() );
+	Pack( packed, &header, BSPLump_LeafBrushes, bsp->brush_ids->span() );
+	Pack( packed, &header, BSPLump_Models, bsp->models->span() );
+	Pack( packed, &header, BSPLump_Brushes, bsp->brushes->span() );
+	Pack( packed, &header, BSPLump_BrushSides, bsp->brush_faces->span() );
+	Pack( packed, &header, BSPLump_Vertices, bsp->vertices->span() );
+	Pack( packed, &header, BSPLump_Indices, bsp->indices->span() );
+	Pack( packed, &header, BSPLump_Faces, bsp->faces->span() );
+
+	memcpy( &packed[ header_offset ], &header, sizeof( header ) );
+
+	WriteFile( temp, "gg.bsp", packed.ptr(), packed.num_bytes() );
 }
 
 int main() {
@@ -780,6 +1026,33 @@ int main() {
 
 	FrameMark;
 
+	DynamicString entstr( sys_allocator );
+	DynamicArray< BSPMaterial > materials( sys_allocator );
+	DynamicArray< Plane > planes( sys_allocator );
+	DynamicArray< BSPVertex > vertices( sys_allocator );
+	DynamicArray< u32 > indices( sys_allocator );
+	DynamicArray< BSPFace > faces( sys_allocator );
+	DynamicArray< BSPModel > models( sys_allocator );
+	DynamicArray< BSPNode > nodes( sys_allocator );
+	DynamicArray< BSPLeaf > leaves( sys_allocator );
+	DynamicArray< BSPBrush > brushes( sys_allocator );
+	DynamicArray< u32 > brush_ids( sys_allocator );
+	DynamicArray< BSPBrushFace > brush_faces( sys_allocator );
+
+	BSP bsp;
+	bsp.entities = &entstr;
+	bsp.materials = &materials;
+	bsp.planes = &planes;
+	bsp.vertices = &vertices;
+	bsp.indices = &indices;
+	bsp.faces = &faces;
+	bsp.models = &models;
+	bsp.nodes = &nodes;
+	bsp.leaves = &leaves;
+	bsp.brushes = &brushes;
+	bsp.brush_ids = &brush_ids;
+	bsp.brush_faces = &brush_faces;
+
 	DynamicString obj( sys_allocator );
 	ObjWriter writer = NewObjectWriter( &obj );
 
@@ -790,7 +1063,7 @@ int main() {
 	for( const Entity & entity : entities ) {
 		for( const Brush & brush : entity.brushes.span() ) {
 			MinMax3 bounds = MinMax3::Empty();
-			bool asd = BrushToVerts( &writer, brush, &bounds );
+			bool asd = BrushToVerts( &bsp, brush, &bounds );
 			// ggprint( "{}\n", asd );
 
 			if( brush_id < entities[ 0 ].brushes.size() ) {
@@ -804,8 +1077,38 @@ int main() {
 
 	FrameMark;
 
-	DynamicArray< KDTreeNode > nodes( sys_allocator );
-	BuildKDTree( &nodes, entities[ 0 ].brushes.span(), brush_bounds );
+	BuildKDTree( &bsp, entities[ 0 ].brushes.span(), brush_bounds );
+
+	bsp.entities->append( R"#({{ "classname" "worldspawn" }})#" );
+
+	{
+		BSPMaterial material = { };
+		material.contents = 1;
+		bsp.materials->add( material );
+	}
+
+	{
+		BSPFace face = { };
+		face.type = s32( FaceType_Mesh );
+		face.bounds = MinMax3::Empty();
+		face.first_vertex = 0;
+		face.num_vertices = bsp.vertices->size();
+		face.first_index = 0;
+		face.num_indices = bsp.indices->size();
+		bsp.faces->add( face );
+	}
+
+	{
+		BSPModel model;
+		model.bounds = MinMax3::Empty();
+		model.first_face = 0;
+		model.num_faces = bsp.faces->size();
+		model.first_brush = 0;
+		model.num_brushes = bsp.brushes->size();
+		bsp.models->add( model );
+	}
+
+	WriteBSP( &temp, &bsp );
 
 	// TODO: generate render geometry
 	// - convert patches to meshes

@@ -683,9 +683,9 @@ static void CMod_LoadMarkFaces( CollisionModel *cms, lump_t *l ) {
 		Fatal( "CMod_LoadMarkFaces: funny lump size" );
 	}
 	count = l->filelen / sizeof( *in );
-	if( count < 1 ) {
-		Fatal( "Map with no leaffaces" );
-	}
+	// if( count < 1 ) {
+	// 	Fatal( "Map with no leaffaces" );
+	// }
 
 	out = cms->map_markfaces = ALLOC_MANY( sys_allocator, int, count );
 	cms->nummarkfaces = count;

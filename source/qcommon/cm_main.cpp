@@ -85,12 +85,6 @@ static void CM_Clear( CModelServerOrClient soc, CollisionModel * cms ) {
 		cms->numnodes = 0;
 	}
 
-	if( cms->map_markfaces ) {
-		FREE( sys_allocator, cms->map_markfaces );
-		cms->map_markfaces = NULL;
-		cms->nummarkfaces = 0;
-	}
-
 	if( cms->map_leafs != &cms->map_leaf_empty ) {
 		FREE( sys_allocator, cms->map_leafs );
 		cms->map_leafs = &cms->map_leaf_empty;

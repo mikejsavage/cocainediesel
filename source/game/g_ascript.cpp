@@ -433,9 +433,9 @@ static const asMethod_t match_Methods[] = {
 
 static const asProperty_t match_Properties[] = {
 	{ ASLIB_PROPERTY_DECL( uint8, roundNum ), offsetof( SyncGameState, round_num ) },
-	{ ASLIB_PROPERTY_DECL( MatchState, matchState ), offsetof( SyncGameState, match_state ) },
-	{ ASLIB_PROPERTY_DECL( RoundState, roundState ), offsetof( SyncGameState, round_state ) },
-	{ ASLIB_PROPERTY_DECL( RoundType, roundType ), offsetof( SyncGameState, round_type ) },
+	{ ASLIB_PROPERTY_DECL( uint8, matchState ), offsetof( SyncGameState, match_state ) },
+	{ ASLIB_PROPERTY_DECL( uint8, roundState ), offsetof( SyncGameState, round_state ) },
+	{ ASLIB_PROPERTY_DECL( uint8, roundType ), offsetof( SyncGameState, round_type ) },
 	{ ASLIB_PROPERTY_DECL( uint8, alphaPlayersTotal ), offsetof( SyncGameState, bomb.alpha_players_total ) },
 	{ ASLIB_PROPERTY_DECL( uint8, alphaPlayersAlive ), offsetof( SyncGameState, bomb.alpha_players_alive ) },
 	{ ASLIB_PROPERTY_DECL( uint8, betaPlayersTotal ), offsetof( SyncGameState, bomb.beta_players_total ) },
@@ -1088,7 +1088,7 @@ static const asProperty_t gedict_Properties[] = {
 	{ ASLIB_PROPERTY_DECL( Entity @, owner ), offsetof( edict_t, r.owner ) },
 	{ ASLIB_PROPERTY_DECL( Entity @, enemy ), offsetof( edict_t, enemy ) },
 	{ ASLIB_PROPERTY_DECL( Entity @, activator ), offsetof( edict_t, activator ) },
-	{ ASLIB_PROPERTY_DECL( int, type ), offsetof( edict_t, s.type ) },
+	{ ASLIB_PROPERTY_DECL( uint8, type ), offsetof( edict_t, s.type ) },
 	{ ASLIB_PROPERTY_DECL( uint64, model ), offsetof( edict_t, s.model.hash ) },
 	{ ASLIB_PROPERTY_DECL( uint64, model2 ), offsetof( edict_t, s.model2.hash ) },
 	{ ASLIB_PROPERTY_DECL( bool, animating ), offsetof( edict_t, s.animating ) },

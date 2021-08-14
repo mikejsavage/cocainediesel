@@ -479,22 +479,22 @@ static void SettingsVideo() {
 	{
 		SettingLabel( "Shadow Quality" );
 
-		cvar_t * cvar = Cvar_Get( "r_shadows", "1", CVAR_ARCHIVE );
-		ShadowMode shadow_mode = ShadowMode( cvar->integer );
+		cvar_t * cvar = Cvar_Get( "r_shadow_quality", "1", CVAR_ARCHIVE );
+		ShadowQuality quality = ShadowQuality( cvar->integer );
 
 		ImGui::PushItemWidth( 150 );
-		if( ImGui::BeginCombo( "##r_shadows", ShadowModeToString( shadow_mode ) ) ) {
-			for( int s = ShadowMode_Low; s <= ShadowMode_Ultra; s++ ) {
-				if( ImGui::Selectable( ShadowModeToString( ShadowMode( s ) ), shadow_mode == s ) )
-					shadow_mode = ShadowMode( s );
-				if( s == shadow_mode )
+		if( ImGui::BeginCombo( "##r_shadow_quality", ShadowQualityToString( quality ) ) ) {
+			for( int s = ShadowQuality_Low; s <= ShadowQuality_Ultra; s++ ) {
+				if( ImGui::Selectable( ShadowQualityToString( ShadowQuality( s ) ), quality == s ) )
+					quality = ShadowQuality( s );
+				if( s == quality )
 					ImGui::SetItemDefaultFocus();
 			}
 			ImGui::EndCombo();
 		}
 		ImGui::PopItemWidth();
 
-		Cvar_Set( "r_shadows", temp( "{}", shadow_mode ) );
+		Cvar_Set( "r_shadow_quality", temp( "{}", quality ) );
 	}
 
 	{

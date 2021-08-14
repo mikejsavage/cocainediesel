@@ -217,7 +217,7 @@ void DrawModelShadow( const Model * model, const Mat4 & transform, const Vec4 & 
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		if( model->nodes[ i ].parent == U8_MAX ) {
-			for( u32 j = 0; j < frame_static.shadow_settings.entity_cascades; j++ ) {
+			for( u32 j = 0; j < frame_static.shadow_parameters.entity_cascades; j++ ) {
 				DrawNode( model, i, transform, color, palettes, pose_uniforms, [ j ]( PipelineState * pipeline, bool skinned ) {
 					pipeline->shader = skinned ? &shaders.depth_only_skinned : &shaders.depth_only;
 					pipeline->pass = frame_static.shadowmap_pass[ j ];

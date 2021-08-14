@@ -33,10 +33,10 @@ static int same_date_count;
 
 static u32 last_viewport_width, last_viewport_height;
 static int last_msaa;
-static ShadowMode last_shadowmode;
+static ShadowQuality last_shadow_quality;
 
 static cvar_t * r_samples;
-static cvar_t * r_shadows;
+static cvar_t * r_shadow_quality;
 
 static void TakeScreenshot() {
 	RGB8 * framebuffer = ALLOC_MANY( sys_allocator, RGB8, frame_static.viewport_width * frame_static.viewport_height );
@@ -78,59 +78,26 @@ static void TakeScreenshot() {
 	}
 }
 
-const char * ShadowModeToString( ShadowMode mode ) {
+const char * ShadowQualityToString( ShadowQuality mode ) {
 	switch( mode ) {
-		case ShadowMode_Low: return "Rookie";
-		case ShadowMode_Medium: return "Regular";
-		case ShadowMode_High: return "Made Man";
-		case ShadowMode_Ultra: return "Murica";
+		case ShadowQuality_Low: return "Rookie";
+		case ShadowQuality_Medium: return "Regular";
+		case ShadowQuality_High: return "Made Man";
+		case ShadowQuality_Ultra: return "Murica";
 		default: return "";
 	};
 }
 
-void SetShadowMode( ShadowMode mode ) {
+static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 	switch( mode ) {
-		case ShadowMode_Low: {
-			frame_static.shadow_settings.num_cascades = 2;
-			frame_static.shadow_settings.cascade_dists[ 0 ] = 256.0f;
-			frame_static.shadow_settings.cascade_dists[ 1 ] = 2048.0f;
-			frame_static.shadow_settings.cascade_dists[ 2 ] = 2048.0f;
-			frame_static.shadow_settings.cascade_dists[ 3 ] = 2048.0f;
-			frame_static.shadow_settings.shadowmap_res = 1024;
-			frame_static.shadow_settings.entity_cascades = 2;
-			return;
-		}
-		case ShadowMode_Medium: {
-			frame_static.shadow_settings.num_cascades = 4;
-			frame_static.shadow_settings.cascade_dists[ 0 ] = 256.0f;
-			frame_static.shadow_settings.cascade_dists[ 1 ] = 768.0f;
-			frame_static.shadow_settings.cascade_dists[ 2 ] = 2304.0f;
-			frame_static.shadow_settings.cascade_dists[ 3 ] = 6912.0f;
-			frame_static.shadow_settings.shadowmap_res = 1024;
-			frame_static.shadow_settings.entity_cascades = 2;
-			return;
-		}
-		case ShadowMode_High: {
-			frame_static.shadow_settings.num_cascades = 4;
-			frame_static.shadow_settings.cascade_dists[ 0 ] = 256.0f;
-			frame_static.shadow_settings.cascade_dists[ 1 ] = 768.0f;
-			frame_static.shadow_settings.cascade_dists[ 2 ] = 2304.0f;
-			frame_static.shadow_settings.cascade_dists[ 3 ] = 6912.0f;
-			frame_static.shadow_settings.shadowmap_res = 2048;
-			frame_static.shadow_settings.entity_cascades = 4;
-			return;
-		}
-		case ShadowMode_Ultra: {
-			frame_static.shadow_settings.num_cascades = 4;
-			frame_static.shadow_settings.cascade_dists[ 0 ] = 256.0f;
-			frame_static.shadow_settings.cascade_dists[ 1 ] = 768.0f;
-			frame_static.shadow_settings.cascade_dists[ 2 ] = 2304.0f;
-			frame_static.shadow_settings.cascade_dists[ 3 ] = 6912.0f;
-			frame_static.shadow_settings.shadowmap_res = 4096;
-			frame_static.shadow_settings.entity_cascades = 4;
-			return;
-		}
+		case ShadowQuality_Low:    return { 2, 256.0f, 2048.0f, 2048.0f, 2048.0f, 1024, 2 };
+		case ShadowQuality_Medium: return { 4, 256.0f, 768.0f, 2304.0f, 6912.0f, 1024, 2 };
+		case ShadowQuality_High:   return { 4, 256.0f, 768.0f, 2304.0f, 6912.0f, 2048, 4 };
+		case ShadowQuality_Ultra:  return { 4, 256.0f, 768.0f, 2304.0f, 6912.0f, 4096, 4 };
 	}
+
+	assert( false );
+	return { };
 }
 
 void InitRenderer() {
@@ -139,7 +106,7 @@ void InitRenderer() {
 	RenderBackendInit();
 
 	r_samples = Cvar_Get( "r_samples", "0", CVAR_ARCHIVE );
-	r_shadows = Cvar_Get( "r_shadows", "1", CVAR_ARCHIVE );
+	r_shadow_quality = Cvar_Get( "r_shadow_quality", "1", CVAR_ARCHIVE );
 
 	frame_static = { };
 	last_viewport_width = U32_MAX;
@@ -390,7 +357,7 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb;
 
-		u32 shadowmap_res = frame_static.shadow_settings.shadowmap_res;
+		u32 shadowmap_res = frame_static.shadow_parameters.shadowmap_res;
 		texture_config.width = shadowmap_res;
 		texture_config.height = shadowmap_res;
 		texture_config.format = TextureFormat_Shadow;
@@ -428,12 +395,12 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
-		Cvar_Set( "r_samples", "0" );
+		Cvar_Set( "r_samples", r_samples->dvalue );
 	}
 
-	if( r_shadows->integer < 0 || r_shadows->integer > 3 ) {
-		Com_Printf( "Invalid r_shadows value (%d), resetting\n", r_shadows->integer );
-		Cvar_Set( "r_shadows", "1" );
+	if( r_shadow_quality->integer < ShadowQuality_Low || r_shadow_quality->integer > ShadowQuality_Ultra ) {
+		Com_Printf( "Invalid r_shadow_quality value (%d), resetting\n", r_shadow_quality->integer );
+		Cvar_Set( "r_shadow_quality", r_shadow_quality->dvalue );
 	}
 
 	frame_static.viewport_width = Max2( u32( 1 ), viewport_width );
@@ -441,15 +408,15 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.viewport = Vec2( frame_static.viewport_width, frame_static.viewport_height );
 	frame_static.aspect_ratio = float( viewport_width ) / float( viewport_height );
 	frame_static.msaa_samples = r_samples->integer;
-	frame_static.shadow_mode = ShadowMode( r_shadows->integer );
-	SetShadowMode( frame_static.shadow_mode );
+	frame_static.shadow_quality = ShadowQuality( r_shadow_quality->integer );
+	frame_static.shadow_parameters = GetShadowParameters( frame_static.shadow_quality );
 
-	if( viewport_width != last_viewport_width || viewport_height != last_viewport_height || frame_static.msaa_samples != last_msaa || frame_static.shadow_mode != last_shadowmode ) {
+	if( viewport_width != last_viewport_width || viewport_height != last_viewport_height || frame_static.msaa_samples != last_msaa || frame_static.shadow_quality != last_shadow_quality ) {
 		CreateFramebuffers();
 		last_viewport_width = viewport_width;
 		last_viewport_height = viewport_height;
 		last_msaa = frame_static.msaa_samples;
-		last_shadowmode = frame_static.shadow_mode;
+		last_shadow_quality = frame_static.shadow_quality;
 	}
 
 	bool msaa = frame_static.msaa_samples;
@@ -479,7 +446,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.particle_update_pass = AddRenderPass( "Particle Update", &particle_update_tracy );
 
-	for( u32 i = 0; i < frame_static.shadow_settings.num_cascades; i++ ) {
+	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
 		frame_static.shadowmap_pass[ i ] = AddRenderPass( "Write shadowmap", &write_shadowmap_tracy, frame_static.shadowmap_fb[ i ], ClearColor_Dont, ClearDepth_Do );
 	}
 
@@ -532,8 +499,8 @@ void SetupShadowCascades() {
 	float cascade_dist[ 5 ];
 
 	cascade_dist[ 0 ] = near_plane;
-	for( u32 i = 0; i < frame_static.shadow_settings.num_cascades; i++ ) {
-		cascade_dist[ i + 1 ] = frame_static.shadow_settings.cascade_dists[ i ];
+	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
+		cascade_dist[ i + 1 ] = frame_static.shadow_parameters.cascade_dists[ i ];
 	}
 
 	const u32 num_planes = ARRAY_COUNT( cascade_dist );
@@ -621,7 +588,7 @@ void SetupShadowCascades() {
 	}
 
 	frame_static.shadow_uniforms = UploadUniformBlock(
-		s32( frame_static.shadow_settings.num_cascades ), shadow_views[ 0 ],
+		s32( frame_static.shadow_parameters.num_cascades ), shadow_views[ 0 ],
 		cascade_dist[ 1 ], cascade_dist[ 2 ], cascade_dist[ 3 ], cascade_dist[ 4 ],
 		cascade_offsets[ 0 ], cascade_offsets[ 1 ], cascade_offsets[ 2 ], cascade_offsets[ 3 ],
 		cascade_scales[ 0 ], cascade_scales[ 1 ], cascade_scales[ 2 ], cascade_scales[ 3 ]

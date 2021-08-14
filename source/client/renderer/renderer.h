@@ -8,11 +8,18 @@
 #include "client/renderer/srgb.h"
 #include "cgame/ref.h"
 
-enum ShadowMode {
-	ShadowMode_Low,
-	ShadowMode_Medium,
-	ShadowMode_High,
-	ShadowMode_Ultra,
+enum ShadowQuality {
+	ShadowQuality_Low,
+	ShadowQuality_Medium,
+	ShadowQuality_High,
+	ShadowQuality_Ultra,
+};
+
+struct ShadowParameters {
+	u32 num_cascades;
+	float cascade_dists[ 4 ];
+	u32 shadowmap_res;
+	u32 entity_cascades;
 };
 
 /*
@@ -24,14 +31,8 @@ struct FrameStatic {
 	Vec2 viewport;
 	float aspect_ratio;
 	int msaa_samples;
-	ShadowMode shadow_mode;
-
-	struct {
-		u32 num_cascades;
-		float cascade_dists[ 4 ];
-		u32 shadowmap_res;
-		u32 entity_cascades;
-	} shadow_settings;
+	ShadowQuality shadow_quality;
+	ShadowParameters shadow_parameters;
 
 	UniformBlock view_uniforms;
 	UniformBlock ortho_view_uniforms;
@@ -111,4 +112,4 @@ void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh )
 UniformBlock UploadModelUniforms( const Mat4 & M );
 UniformBlock UploadMaterialUniforms( const Vec4 & color, const Vec2 & texture_size, float specular, float shininess, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
 
-const char * ShadowModeToString( ShadowMode mode );
+const char * ShadowQualityToString( ShadowQuality mode );

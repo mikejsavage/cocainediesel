@@ -162,14 +162,7 @@ void setRoundType() {
 		type = RoundType_MatchPoint;
 	}
 
-	for( int t = TEAM_ALPHA; t < GS_MAX_TEAMS; t++ ) {
-		Team @team = @G_GetTeam( t );
-
-		for( int i = 0; @team.ent( i ) != null; i++ ) {
-			Client @client = @team.ent( i ).client;
-			match.roundType = type;
-		}
-	}
+	match.roundType = type;
 }
 
 void roundNewState( RoundState state ) {

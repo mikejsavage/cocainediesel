@@ -406,7 +406,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.viewport_width = Max2( u32( 1 ), viewport_width );
 	frame_static.viewport_height = Max2( u32( 1 ), viewport_height );
 	frame_static.viewport = Vec2( frame_static.viewport_width, frame_static.viewport_height );
-	frame_static.aspect_ratio = float( viewport_width ) / float( viewport_height );
+	frame_static.aspect_ratio = float( frame_static.viewport_width ) / float( frame_static.viewport_height );
 	frame_static.msaa_samples = r_samples->integer;
 	frame_static.shadow_quality = ShadowQuality( r_shadow_quality->integer );
 	frame_static.shadow_parameters = GetShadowParameters( frame_static.shadow_quality );

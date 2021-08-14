@@ -148,7 +148,7 @@ void G_Init( unsigned int framemsec ) {
 	developer = Cvar_Get( "developer", "0", 0 );
 
 	// latched vars
-	sv_cheats = Cvar_Get( "sv_cheats", "0", CVAR_SERVERINFO | CVAR_LATCH );
+	sv_cheats = Cvar_Get( "sv_cheats", is_public_build ? "0" : "1", CVAR_SERVERINFO | CVAR_LATCH );
 
 	sv_password = Cvar_Get( "password", "", CVAR_USERINFO );
 	sv_password->modified = true; // force an update of g_needpass in G_UpdateServerInfo

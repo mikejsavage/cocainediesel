@@ -87,8 +87,60 @@ float SampleShadowMapOptimizedPCF( vec3 shadowPos, vec3 shadowPosDX, vec3 shadow
 	return sum * 1.0 / 144;
 }
 
-float ShadowCascade( vec3 position, vec3 normal, vec3 cascadeOffset, vec3 cascadeScale, sampler2DShadow shadowmap ) {
-	vec3 offset = GetShadowPosOffset( shadowmap, dot( normal, u_LightDir ), normal ) / abs( cascadeScale.z );
+void GetCascadeOffsetScale( int cascadeIdx, out vec3 cascadeOffset, out vec3 cascadeScale ) {
+	switch( cascadeIdx ) {
+		case 0:
+			cascadeOffset = u_CascadeOffsetA;
+			cascadeScale = u_CascadeScaleA;
+			return;
+		case 1:
+			cascadeOffset = u_CascadeOffsetB;
+			cascadeScale = u_CascadeScaleB;
+			return;
+		case 2:
+			cascadeOffset = u_CascadeOffsetC;
+			cascadeScale = u_CascadeScaleC;
+			return;
+		case 3:
+			cascadeOffset = u_CascadeOffsetD;
+			cascadeScale = u_CascadeScaleD;
+			return;
+	}
+}
+
+sampler2DShadow GetCascadeSampler( int cascadeIdx ) {
+	switch( cascadeIdx ) {
+		case 0:
+			return u_ShadowmapATexture;
+		case 1:
+			return u_ShadowmapBTexture;
+		case 2:
+			return u_ShadowmapCTexture;
+		case 3:
+		default:
+			return u_ShadowmapDTexture;
+	}
+}
+
+float GetCascadePlane( int cascadeIdx ) {
+	switch( cascadeIdx ) {
+		case 0:
+			return u_CascadePlaneA;
+		case 1:
+			return u_CascadePlaneB;
+		case 2:
+			return u_CascadePlaneC;
+		case 3:
+		default:
+			return u_CascadePlaneD;
+	}
+}
+
+float ShadowCascade( vec3 position, vec3 normal, int cascadeIdx ) {
+	vec3 cascadeOffset, cascadeScale;
+	GetCascadeOffsetScale( cascadeIdx, cascadeOffset, cascadeScale );
+
+	vec3 offset = GetShadowPosOffset( GetCascadeSampler( cascadeIdx ), dot( normal, u_LightDir ), normal ) / abs( cascadeScale.z );
 	vec3 shadowPos = ( u_ShadowMatrix * vec4( position + offset, 1.0 ) ).xyz;
 	vec3 shadowPosDX = dFdx( shadowPos ) * cascadeScale;
 	vec3 shadowPosDY = dFdy( shadowPos ) * cascadeScale;
@@ -96,56 +148,29 @@ float ShadowCascade( vec3 position, vec3 normal, vec3 cascadeOffset, vec3 cascad
 	shadowPos *= cascadeScale;
 	shadowPos.z = shadowPos.z * 0.5 + 0.5;
 
-	return SampleShadowMapOptimizedPCF( shadowPos, shadowPosDX, shadowPosDY, shadowmap );
+	return SampleShadowMapOptimizedPCF( shadowPos, shadowPosDX, shadowPosDY, GetCascadeSampler( cascadeIdx ) );
 }
 
 float GetLight( vec3 normal ) {
 	float view_distance = length( u_CameraPos - v_Position );
 
-	if( view_distance <= u_CascadePlaneA && u_ShadowCascades > 0 ) {
-		float light = ShadowCascade( v_Position, normal, u_CascadeOffsetA, u_CascadeScaleA, u_ShadowmapATexture );
-		#if FILTER_ACROSS_CASCADES
-		if( u_ShadowCascades > 1 ) {
-			float fade_factor = ( u_CascadePlaneA - view_distance ) / u_CascadePlaneA;
-			if( fade_factor < blend_threshold ) {
-				float next_light = ShadowCascade( v_Position, normal, u_CascadeOffsetB, u_CascadeScaleB, u_ShadowmapBTexture );
-				float lerp_amt = smoothstep( 0.0, blend_threshold, fade_factor );
-				light = mix( next_light, light, lerp_amt );
-			}
+	for( int i = 0; i < u_ShadowCascades; i++ ) {
+		float plane = GetCascadePlane( i );
+		if( view_distance <= plane ) {
+			float light = ShadowCascade( v_Position, normal, i );
+			#if FILTER_ACROSS_CASCADES
+				float fade_factor = ( plane - view_distance ) / plane;
+				if( fade_factor < blend_threshold ) {
+					float next_light = 1.0; // fade to nothing if we're on last cascade
+					if( i + 1 < u_ShadowCascades ) {
+						next_light = ShadowCascade( v_Position, normal, i + 1 );
+					}
+					float lerp_amt = smoothstep( 0.0, blend_threshold, fade_factor );
+					light = mix( next_light, light, lerp_amt );
+				}
+			#endif
+			return light;
 		}
-		#endif
-		return light;
-	}
-	else if( view_distance <= u_CascadePlaneB && u_ShadowCascades > 1 ) {
-		float light = ShadowCascade( v_Position, normal, u_CascadeOffsetB, u_CascadeScaleB, u_ShadowmapBTexture );
-		#if FILTER_ACROSS_CASCADES
-		if( u_ShadowCascades > 2 ) {
-			float fade_factor = ( u_CascadePlaneB - view_distance ) / u_CascadePlaneB;
-			if( fade_factor < blend_threshold ) {
-				float next_light = ShadowCascade( v_Position, normal, u_CascadeOffsetC, u_CascadeScaleC, u_ShadowmapCTexture );
-				float lerp_amt = smoothstep( 0.0, blend_threshold, fade_factor );
-				light = mix( next_light, light, lerp_amt );
-			}
-		}
-		#endif
-		return light;
-	}
-	else if( view_distance <= u_CascadePlaneC && u_ShadowCascades > 2 ) {
-		float light = ShadowCascade( v_Position, normal, u_CascadeOffsetC, u_CascadeScaleC, u_ShadowmapCTexture );
-		#if FILTER_ACROSS_CASCADES
-		if( u_ShadowCascades > 3 ) {
-			float fade_factor = ( u_CascadePlaneC - view_distance ) / u_CascadePlaneC;
-			if( fade_factor < blend_threshold ) {
-				float next_light = ShadowCascade( v_Position, normal, u_CascadeOffsetD, u_CascadeScaleD, u_ShadowmapDTexture );
-				float lerp_amt = smoothstep( 0.0, blend_threshold, fade_factor );
-				light = mix( next_light, light, lerp_amt );
-			}
-		}
-		#endif
-		return light;
-	}
-	else if( view_distance <= u_CascadePlaneD && u_ShadowCascades > 3 ) {
-		return ShadowCascade( v_Position, normal, u_CascadeOffsetD, u_CascadeScaleD, u_ShadowmapDTexture );
 	}
 
 	return 1.0;

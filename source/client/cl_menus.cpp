@@ -744,12 +744,6 @@ static void MainMenu() {
 
 	ImGui::PopFont();
 
-	if( !GLAD_GL_VERSION_4_6 ) {
-		ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 0, 0, 255 ) );
-		ImGui::Text( "We're thinking about bumping the game's required OpenGL version. Your GPU supports up to GL %d.%d. Please let us know on discord so we don't break your shit!", GLVersion.major, GLVersion.minor );
-		ImGui::PopStyleColor();
-	}
-
 	if( ImGui::Button( "FIND SERVERS" ) ) {
 		mainmenu_state = MainMenuState_ServerBrowser;
 	}
@@ -789,6 +783,19 @@ static void MainMenu() {
 
 	if( parteditor_wason && mainmenu_state != MainMenuState_ParticleEditor ) {
 		// ResetParticleMenuEffect();
+	}
+
+	ImGui::Separator();
+
+	if( !GLAD_GL_VERSION_4_6 ) {
+		ImGui::Text( "%s", temp(
+			"Diesel news 14th August 2021:\n"
+			"    {}We're thinking about bumping the game's required OpenGL version. Your GPU supports up to {}GL {}.{}{}.\n"
+			"    Please let us know on discord so we don't break your shit!",
+			ImGuiColorToken( 255, 0, 0, 255 ),
+			ImGuiColorToken( 255, 255, 0, 255 ),
+			GLVersion.major, GLVersion.minor,
+			ImGuiColorToken( 255, 0, 0, 255 ) ) );
 	}
 
 	ImGui::Separator();

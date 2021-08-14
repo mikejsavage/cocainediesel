@@ -471,7 +471,7 @@ static void DrawEntityModel( centity_t * cent ) {
 
 					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 				}
-				for( u32 j = 0; j < frame_static.shadow_settings.num_cascades; j++ ) {
+				for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
 					PipelineState pipeline;
 					pipeline.pass = frame_static.shadowmap_pass[ j ];
 					pipeline.shader = &shaders.depth_only;
@@ -488,10 +488,6 @@ static void DrawEntityModel( centity_t * cent ) {
 }
 
 static void CG_AddPlayerEnt( centity_t *cent ) {
-	if( ISVIEWERENTITY( cent->current.number ) ) {
-		cg.effects = cent->effects;
-	}
-
 	// if set to invisible, skip
 	if( cent->current.team == TEAM_SPECTATOR ) { // TODO remove?
 		return;

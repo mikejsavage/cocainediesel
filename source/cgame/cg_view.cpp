@@ -595,7 +595,7 @@ static void DrawWorld() {
 
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
 		if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
-			for( u32 j = 0; j < frame_static.shadow_settings.num_cascades; j++ ) {
+			for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
 				PipelineState pipeline;
 				pipeline.pass = frame_static.shadowmap_pass[ j ];
 				pipeline.shader = &shaders.depth_only;

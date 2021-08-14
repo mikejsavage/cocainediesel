@@ -244,8 +244,6 @@ struct cg_state_t {
 	float oldXerpTime;
 	float xerpSmoothFrac;
 
-	int effects;
-
 	bool showScoreboard;            // demos and multipov
 
 	unsigned int multiviewPlayerNum;       // for multipov chasing, takes effect on next snap

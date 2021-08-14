@@ -479,22 +479,22 @@ static void SettingsVideo() {
 	{
 		SettingLabel( "Shadow Quality" );
 
-		cvar_t * cvar = Cvar_Get( "r_shadows", "1", CVAR_ARCHIVE );
-		ShadowMode shadow_mode = ShadowMode( cvar->integer );
+		cvar_t * cvar = Cvar_Get( "r_shadow_quality", "1", CVAR_ARCHIVE );
+		ShadowQuality quality = ShadowQuality( cvar->integer );
 
 		ImGui::PushItemWidth( 150 );
-		if( ImGui::BeginCombo( "##r_shadows", ShadowModeToString( shadow_mode ) ) ) {
-			for( int s = ShadowMode_Low; s <= ShadowMode_Ultra; s++ ) {
-				if( ImGui::Selectable( ShadowModeToString( ShadowMode( s ) ), shadow_mode == s ) )
-					shadow_mode = ShadowMode( s );
-				if( s == shadow_mode )
+		if( ImGui::BeginCombo( "##r_shadow_quality", ShadowQualityToString( quality ) ) ) {
+			for( int s = ShadowQuality_Low; s <= ShadowQuality_Ultra; s++ ) {
+				if( ImGui::Selectable( ShadowQualityToString( ShadowQuality( s ) ), quality == s ) )
+					quality = ShadowQuality( s );
+				if( s == quality )
 					ImGui::SetItemDefaultFocus();
 			}
 			ImGui::EndCombo();
 		}
 		ImGui::PopItemWidth();
 
-		Cvar_Set( "r_shadows", temp( "{}", shadow_mode ) );
+		Cvar_Set( "r_shadow_quality", temp( "{}", quality ) );
 	}
 
 	{
@@ -744,12 +744,6 @@ static void MainMenu() {
 
 	ImGui::PopFont();
 
-	if( !GLAD_GL_VERSION_4_6 ) {
-		ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 0, 0, 255 ) );
-		ImGui::Text( "You don't have GL 4.6, you have %d.%d, please tell us in the discord so we don't break your shit", GLVersion.major, GLVersion.minor );
-		ImGui::PopStyleColor();
-	}
-
 	if( ImGui::Button( "FIND SERVERS" ) ) {
 		mainmenu_state = MainMenuState_ServerBrowser;
 	}
@@ -789,6 +783,19 @@ static void MainMenu() {
 
 	if( parteditor_wason && mainmenu_state != MainMenuState_ParticleEditor ) {
 		// ResetParticleMenuEffect();
+	}
+
+	ImGui::Separator();
+
+	if( !GLAD_GL_VERSION_4_6 ) {
+		ImGui::Text( "%s", temp(
+			"Diesel news 14th August 2021:\n"
+			"    {}We're thinking about bumping the game's required OpenGL version. Your GPU supports up to {}GL {}.{}{}.\n"
+			"    Please let us know on discord so we don't break your shit!",
+			ImGuiColorToken( 255, 0, 0, 255 ),
+			ImGuiColorToken( 255, 255, 0, 255 ),
+			GLVersion.major, GLVersion.minor,
+			ImGuiColorToken( 255, 0, 0, 255 ) ) );
 	}
 
 	ImGui::Separator();

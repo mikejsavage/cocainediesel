@@ -336,7 +336,7 @@ static Span< const char > ParseQ1Face( Face * face, Span< const char > str ) {
 
 	// TODO: convert to transform
 
-	str = SkipFlags( str );
+	str = PEGOptional( str, SkipFlags );
 
 	return str;
 }
@@ -774,10 +774,18 @@ static MinMax3 HugeBounds() {
 	return MinMax3( Vec3( -FLT_MAX ), Vec3( FLT_MAX ) );
 }
 
-s32 MakeLeaf( BSP * bsp, Span< const Brush > brushes, Span< const u32 > brush_ids ) {
+static void AddBSPPlane( BSP * bsp, Plane plane ) {
+	BSPBrushFace bspface;
+	bspface.planenum = bsp->planes->size();
+	bspface.material = 0;
+	bsp->brush_faces->add( bspface );
+	bsp->planes->add( plane );
+}
+
+static s32 MakeLeaf( BSP * bsp, Span< const Brush > brushes, Span< const MinMax3 > brush_bounds, Span< const u32 > brush_ids ) {
 	BSPLeaf leaf = { };
 	leaf.bounds = HugeBounds();
-	leaf.firstLeafFace = bsp->brush_ids->size();
+	leaf.firstLeafBrush = bsp->brush_ids->size();
 	leaf.numLeafBrushes = brush_ids.n;
 	size_t leaf_id = bsp->leaves->add( leaf );
 
@@ -786,20 +794,23 @@ s32 MakeLeaf( BSP * bsp, Span< const Brush > brushes, Span< const u32 > brush_id
 
 		BSPBrush bspbrush;
 		bspbrush.first_face = bsp->brush_faces->size();
-		bspbrush.num_faces = brush.faces.n;
+		bspbrush.num_faces = brush.faces.n + 6;
 		bspbrush.material = 0;
 		size_t bsp_brush_id = bsp->brushes->add( bspbrush );
 		bsp->brush_ids->add( bsp_brush_id );
 
-		for( const Face & face : brush.faces.span() ) {
-			BSPBrushFace bspface;
-			bspface.planenum = bsp->planes->size();
-			bspface.material = 0;
-			bsp->brush_faces->add( bspface );
+		for( int i = 0; i < 6; i++ ) {
+			Plane plane = { };
+			float sign = i % 2 == 0 ? -1.0f : 1.0f;
+			plane.normal[ i / 2 ] = sign;
+			plane.distance = sign * ( i % 2 == 0 ? brush_bounds[ brush_id ].mins : brush_bounds[ brush_id ].maxs )[ i / 2 ];
+			AddBSPPlane( bsp, plane );
+		}
 
+		for( const Face & face : brush.faces.span() ) {
 			Plane plane;
 			PlaneFrom3Points( &plane, face.plane[ 0 ], face.plane[ 1 ], face.plane[ 2 ] );
-			bsp->planes->add( plane );
+			AddBSPPlane( bsp, plane );
 		}
 	}
 
@@ -811,7 +822,7 @@ s32 BuildKDTreeRecursive( BSP * bsp, Span< const Brush > brushes, Span< const Mi
 
 	if( node_brushes.n <= 1 || max_depth == 0 ) {
 		ZoneScopedN( "leaf time" );
-		return MakeLeaf( bsp, brushes, node_brushes );
+		return MakeLeaf( bsp, brushes, brush_bounds, node_brushes );
 	}
 
 	float best_cost = INFINITY;
@@ -872,7 +883,7 @@ s32 BuildKDTreeRecursive( BSP * bsp, Span< const Brush > brushes, Span< const Mi
 
 	if( best_cost == INFINITY ) {
 		ZoneScopedN( "other leaf time" );
-		return MakeLeaf( bsp, brushes, node_brushes );
+		return MakeLeaf( bsp, brushes, brush_bounds, node_brushes );
 	}
 
 	// make node
@@ -883,6 +894,8 @@ s32 BuildKDTreeRecursive( BSP * bsp, Span< const Brush > brushes, Span< const Mi
 	split.normal[ best_axis ] = 1.0f;
 	split.distance = distance;
 	size_t split_id = bsp->planes->add( split );
+
+	size_t node_id = bsp->nodes->add( { } );
 
 	BSPNode node;
 	node.planenum = split_id;
@@ -908,7 +921,9 @@ s32 BuildKDTreeRecursive( BSP * bsp, Span< const Brush > brushes, Span< const Mi
 	node.children[ 1 ] = BuildKDTreeRecursive( bsp, brushes, brush_bounds, below_brushes.span(), below_bounds, max_depth - 1 );
 	node.children[ 0 ] = BuildKDTreeRecursive( bsp, brushes, brush_bounds, above_brushes.span(), above_bounds, max_depth - 1 );
 
-	return bsp->nodes->add( node );
+	( *bsp->nodes )[ node_id ] = node;
+
+	return node_id;
 }
 
 u32 Log2( u64 x ) {
@@ -941,6 +956,20 @@ void BuildKDTree( BSP * bsp, Span< const Brush > brushes, Span< const MinMax3 > 
 	}
 
 	BuildKDTreeRecursive( bsp, brushes, brush_bounds, all_brushes.span(), tree_bounds, max_depth );
+
+	if( bsp->nodes->size() == 0 ) {
+		Plane split;
+		split.normal = Vec3( 0.0f, 0.0f, 1.0f );
+		split.distance = 1.0f;
+		size_t split_id = bsp->planes->add( split );
+
+		BSPNode node = { };
+		node.planenum = split_id;
+		node.bounds = HugeBounds();
+		node.children[ 0 ] = -1;
+		node.children[ 1 ] = -1;
+		bsp->nodes->add( node );
+	}
 }
 
 template< typename T >
@@ -953,7 +982,6 @@ void Pack( DynamicArray< u8 > & packed, BSPHeader * header, BSPLump lump, Span< 
 		memset( &packed[ before_padding ], 0, padding );
 	}
 
-	// packed.align
 	size_t offset = packed.extend( data.num_bytes() );
 	memcpy( &packed[ offset ], data.ptr, data.num_bytes() );
 
@@ -1083,7 +1111,7 @@ int main() {
 
 	BuildKDTree( &bsp, entities[ 0 ].brushes.span(), brush_bounds );
 
-	bsp.entities->append( R"#({{ "classname" "worldspawn" }}{{ "classname" "spawn_bomb_attacking" "origin" "0 0 1000" }}{{ "classname" "spawn_bomb_defending" "origin" "64 64 1000" }})#" );
+	bsp.entities->append( R"#({{ "classname" "worldspawn" }} {{ "classname" "spawn_bomb_attacking" "origin" "0 0 1000" }} {{ "classname" "spawn_bomb_defending" "origin" "64 64 1000" }})#" );
 
 	{
 		BSPMaterial material = { };

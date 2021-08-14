@@ -488,10 +488,6 @@ static void DrawEntityModel( centity_t * cent ) {
 }
 
 static void CG_AddPlayerEnt( centity_t *cent ) {
-	if( ISVIEWERENTITY( cent->current.number ) ) {
-		cg.effects = cent->effects;
-	}
-
 	// if set to invisible, skip
 	if( cent->current.team == TEAM_SPECTATOR ) { // TODO remove?
 		return;

@@ -62,9 +62,7 @@ static void Cvar_SetModified( cvar_t *var ) {
 	var->modified = true;
 }
 
-static bool Cvar_CheatsAllowed() {
-	if( !is_public_build )
-		return true;
+bool Cvar_CheatsAllowed() {
 	return Com_ClientState() < CA_CONNECTED || Com_DemoPlaying() || ( Com_ServerState() && Cvar_Value( "sv_cheats" ) );
 }
 

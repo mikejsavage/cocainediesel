@@ -24,6 +24,8 @@ void Cvar_GetLatchedVars( cvar_flag_t flags );
 void Cvar_FixCheatVars();
 bool Cvar_Command();
 
+bool Cvar_CheatsAllowed();
+
 class DynamicString;
 void        Cvar_WriteVariables( DynamicString * config );
 

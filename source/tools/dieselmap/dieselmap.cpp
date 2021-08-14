@@ -599,8 +599,8 @@ void AddFace( ObjWriter * writer, Vec3 normal, size_t num_verts ) {
 	for( size_t i = 0; i < num_verts - 2; i++ ) {
 		writer->str->append( "f {}//{} {}//{} {}/{}\n",
 			base_vert, writer->normal_id,
-			base_vert + i + 1, writer->normal_id,
-			base_vert + i + 2, writer->normal_id
+			base_vert + i + 2, writer->normal_id,
+			base_vert + i + 1, writer->normal_id
 		);
 	}
 	writer->normal_id++;
@@ -684,8 +684,8 @@ static bool BrushToVerts( BSP * bsp, const Brush & brush, MinMax3 * bounds ) {
 		size_t base_vert = bsp->vertices->size() - verts.n;
 		for( size_t j = 0; j < verts.n - 2; j++ ) {
 			bsp->indices->add( base_vert );
-			bsp->indices->add( base_vert + j + 1 );
 			bsp->indices->add( base_vert + j + 2 );
+			bsp->indices->add( base_vert + j + 1 );
 		}
 
 		// AddFace( writer, planes[ i ].normal, verts.n );
@@ -770,9 +770,13 @@ void Split( MinMax3 bounds, int axis, float distance, MinMax3 * below, MinMax3 *
 	above->mins[ axis ] = distance;
 }
 
+static MinMax3 HugeBounds() {
+	return MinMax3( Vec3( -FLT_MAX ), Vec3( FLT_MAX ) );
+}
+
 s32 MakeLeaf( BSP * bsp, Span< const Brush > brushes, Span< const u32 > brush_ids ) {
 	BSPLeaf leaf = { };
-	leaf.bounds = MinMax3::Empty();
+	leaf.bounds = HugeBounds();
 	leaf.firstLeafFace = bsp->brush_ids->size();
 	leaf.numLeafBrushes = brush_ids.n;
 	size_t leaf_id = bsp->leaves->add( leaf );
@@ -882,7 +886,7 @@ s32 BuildKDTreeRecursive( BSP * bsp, Span< const Brush > brushes, Span< const Mi
 
 	BSPNode node;
 	node.planenum = split_id;
-	node.bounds = MinMax3::Empty();
+	node.bounds = HugeBounds();
 
 	MinMax3 below_bounds, above_bounds;
 	Split( node_bounds, best_axis, distance, &below_bounds, &above_bounds );
@@ -982,7 +986,7 @@ static void WriteBSP( TempAllocator * temp, BSP * bsp ) {
 
 	memcpy( &packed[ header_offset ], &header, sizeof( header ) );
 
-	WriteFile( temp, "gg.bsp", packed.ptr(), packed.num_bytes() );
+	WriteFile( temp, "base/maps/gg.bsp", packed.ptr(), packed.num_bytes() );
 }
 
 int main() {
@@ -1079,7 +1083,7 @@ int main() {
 
 	BuildKDTree( &bsp, entities[ 0 ].brushes.span(), brush_bounds );
 
-	bsp.entities->append( R"#({{ "classname" "worldspawn" }})#" );
+	bsp.entities->append( R"#({{ "classname" "worldspawn" }}{{ "classname" "spawn_bomb_attacking" "origin" "0 0 1000" }}{{ "classname" "spawn_bomb_defending" "origin" "64 64 1000" }})#" );
 
 	{
 		BSPMaterial material = { };
@@ -1090,7 +1094,7 @@ int main() {
 	{
 		BSPFace face = { };
 		face.type = s32( FaceType_Mesh );
-		face.bounds = MinMax3::Empty();
+		face.bounds = HugeBounds();
 		face.first_vertex = 0;
 		face.num_vertices = bsp.vertices->size();
 		face.first_index = 0;
@@ -1100,7 +1104,7 @@ int main() {
 
 	{
 		BSPModel model;
-		model.bounds = MinMax3::Empty();
+		model.bounds = HugeBounds();
 		model.first_face = 0;
 		model.num_faces = bsp.faces->size();
 		model.first_brush = 0;
@@ -1120,6 +1124,8 @@ int main() {
 	// TODO: generate collision geometry
 	// - find brush aabbs
 	// - make a kd tree like pbrt
+	//
+	// TODO: parse materials and set solid bits etc
 	//
 	// TODO: new map format
 	// - see bsp2.cpp

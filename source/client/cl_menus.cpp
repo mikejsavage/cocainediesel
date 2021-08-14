@@ -746,7 +746,7 @@ static void MainMenu() {
 
 	if( !GLAD_GL_VERSION_4_6 ) {
 		ImGui::PushStyleColor( ImGuiCol_Text, IM_COL32( 255, 0, 0, 255 ) );
-		ImGui::Text( "You don't have GL 4.6, you have %d.%d, please tell us in the discord so we don't break your shit", GLVersion.major, GLVersion.minor );
+		ImGui::Text( "We're thinking about bumping the game's required OpenGL version. Your GPU supports up to GL %d.%d. Please let us know on discord so we don't break your shit!", GLVersion.major, GLVersion.minor );
 		ImGui::PopStyleColor();
 	}
 

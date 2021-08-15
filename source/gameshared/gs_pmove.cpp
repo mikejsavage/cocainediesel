@@ -687,7 +687,7 @@ static void PM_CategorizePosition() {
 
 			// hitting solid ground will end a waterjump
 			if( pm->playerState->pmove.pm_flags & PMF_TIME_WATERJUMP ) {
-				pm->playerState->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT );
+				pm->playerState->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_TELEPORT );
 				pm->playerState->pmove.pm_time = 0;
 			}
 
@@ -773,7 +773,6 @@ static void PM_CheckJump() {
 	pml.velocity.z = Max2( 0.0f, pml.velocity.z ) + jumpSpeed;
 
 	// remove wj count
-	pm->playerState->pmove.pm_flags &= ~PMF_JUMPPAD_TIME;
 	PM_ClearDash();
 	PM_ClearWallJump();
 }
@@ -794,7 +793,6 @@ static void PM_CheckDash() {
 	}
 
 	if( pm->groundentity != -1 && pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) ) {
-		pm->playerState->pmove.pm_flags &= ~PMF_JUMPPAD_TIME;
 		PM_ClearWallJump();
 
 		pm->playerState->pmove.pm_flags |= PMF_DASHING;
@@ -930,7 +928,6 @@ static void PM_CheckWallJump() {
 
 				// set the walljumping state
 				PM_ClearDash();
-				pm->playerState->pmove.pm_flags &= ~PMF_JUMPPAD_TIME;
 
 				pm->playerState->pmove.pm_flags |= PMF_WALLJUMPING;
 				pm->playerState->pmove.pm_flags |= PMF_SPECIAL_HELD;
@@ -1294,7 +1291,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 				msec = 1;
 			}
 			if( msec >= ps->pmove.pm_time ) {
-				ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT );
+				ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_TELEPORT );
 				ps->pmove.pm_time = 0;
 			} else {
 				ps->pmove.pm_time -= msec;
@@ -1321,7 +1318,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 			ps->pmove.knockback_time = 0;
 			ps->pmove.crouch_time = 0;
 			ps->pmove.tbag_time = 0;
-			ps->pmove.pm_flags &= ~( PMF_JUMPPAD_TIME | PMF_DOUBLEJUMPED | PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT | PMF_SPECIAL_HELD );
+			ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_TELEPORT | PMF_SPECIAL_HELD );
 
 			PM_AdjustBBox();
 		}
@@ -1359,7 +1356,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		pml.velocity.z -= GRAVITY * pml.frametime;
 		if( pml.velocity.z < 0 ) {
 			// cancel as soon as we are falling down again
-			ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_TELEPORT );
+			ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_TELEPORT );
 			ps->pmove.pm_time = 0;
 		}
 
@@ -1453,7 +1450,5 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		if( frac > 0 ) {
 			pmove_gs->api.PredictedEvent( ps->POVnum, EV_FALL, frac * 255 );
 		}
-
-		ps->pmove.pm_flags &= ~PMF_JUMPPAD_TIME;
 	}
 }

@@ -57,7 +57,7 @@ static char * WideToUTF8( Allocator * a, const wchar_t * wide ) {
 char * FindHomeDirectory( Allocator * a ) {
 	wchar_t * wide_documents_path;
 	if( SHGetKnownFolderPath( FOLDERID_Documents, 0, NULL, &wide_documents_path ) != S_OK ) {
-		Fatal( "SHGetKnownFolderPath" );
+		FatalGLE( "SHGetKnownFolderPath" );
 	}
 	defer { CoTaskMemFree( wide_documents_path ); };
 
@@ -207,7 +207,7 @@ char * ExecutablePath( Allocator * a ) {
 	while( true ) {
 		DWORD n = GetModuleFileNameW( NULL, wide_buf, buf_size );
 		if( n == 0 ) {
-			Fatal( "GetModuleFileNameW" );
+			FatalGLE( "GetModuleFileNameW" );
 		}
 
 		if( n < buf_size )

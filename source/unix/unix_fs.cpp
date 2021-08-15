@@ -64,7 +64,7 @@ bool MoveFile( Allocator * a, const char * old_path, const char * new_path, Move
 	}
 
 	if( errno == ENOSYS || errno == EINVAL || errno == EFAULT ) {
-		Fatal( "rename" );
+		FatalErrno( "rename" );
 	}
 
 	return false;
@@ -143,7 +143,7 @@ char * ExecutablePath( Allocator * a ) {
 	while( true ) {
 		ssize_t n = readlink( "/proc/self/exe", buf, buf_size );
 		if( n == -1 ) {
-			Fatal( "readlink" );
+			FatalErrno( "readlink" );
 		}
 
 		if( size_t( n ) < buf_size ) {

@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <errno.h>
 
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
@@ -19,6 +20,10 @@ void Fatal( const char * format, ... ) {
 	Sys_ShowErrorMessage( msg );
 
 	abort();
+}
+
+void FatalErrno( const char * msg ) {
+	Fatal( "%s: %s (%d)", msg, strerror( errno ), errno );
 }
 
 void format( FormatBuffer * fb, Span< const char > span, const FormatOpts & opts ) {

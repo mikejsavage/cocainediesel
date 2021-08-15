@@ -41,6 +41,7 @@ void Fatal( const char * format, ... ) __attribute__( ( format( printf, 1, 2 ) )
 #else
 void Fatal( _Printf_format_string_ const char * format, ... );
 #endif
+void FatalErrno( const char * msg );
 
 /*
  * defer

@@ -29,7 +29,6 @@ bin( "dieselmap", {
 	libs = {
 		"ggformat",
 		"tracy",
-		"whereami",
 	},
 
 	msvc_extra_ldflags = "ole32.lib",

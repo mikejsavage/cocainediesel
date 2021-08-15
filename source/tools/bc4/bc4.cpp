@@ -8,17 +8,6 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_resize.h"
 
-static Span< const char > FileExtension( const char * path ) {
-	const char * filename = strrchr( path, '/' );
-	const char * ext = strchr( filename == NULL ? path : filename, '.' );
-	return ext == NULL ? Span< const char >() : MakeSpan( ext );
-}
-
-static Span< const char > StripExtension( const char * path ) {
-	Span< const char > ext = FileExtension( path );
-	return Span< const char >( path, strlen( path ) - ext.n );
-}
-
 void Sys_ShowErrorMessage( const char * msg ) {
 	printf( "%s\n", msg );
 }
@@ -128,7 +117,7 @@ int main( int argc, char ** argv ) {
 	dds_header.mipmap_count = num_levels;
 	dds_header.format = DDSTextureFormat_BC4;
 
-	DynamicString dds_path( sys_allocator, "{}.dds", StripExtension( argv[ 1 ] ) );
+	DynamicString dds_path( sys_allocator, "{}.dds", argv[ 1 ] );
 
 	FILE * dds = OpenFile( sys_allocator, dds_path.c_str(), "wb" );
 	if( dds == NULL ) {

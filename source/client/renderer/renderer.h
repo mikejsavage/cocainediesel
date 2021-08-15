@@ -57,6 +57,8 @@ struct FrameStatic {
 	Framebuffer postprocess_fb_onlycolor;
 	Framebuffer shadowmap_fb[ 4 ];
 
+	TextureArray shadowmap_texture_array;
+
 	u8 particle_update_pass;
 	u8 shadowmap_pass[ 4 ];
 	u8 world_opaque_prepass_pass;

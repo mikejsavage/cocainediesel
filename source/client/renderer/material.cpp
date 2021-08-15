@@ -729,8 +729,9 @@ static void PackDecalAtlas( Span< const char > * material_names ) {
 		config.height = DECAL_ATLAS_SIZE;
 		config.layers = num_atlases;
 		config.data = layers.ptr;
+		config.format = TextureFormat_BC4;
 
-		decals_atlases = NewAtlasTextureArray( config );
+		decals_atlases = NewTextureArray( config );
 	}
 }
 
@@ -945,10 +946,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		color.y = material->rgbgen.args[ 1 ];
 		color.z = material->rgbgen.args[ 2 ];
 		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( 0.0f ), material->specular, material->shininess, Vec3( 0.0f ), Vec3( 0.0f ) ) );
-		pipeline.set_texture( "u_ShadowmapATexture", &frame_static.shadowmap_fb[ 0 ].depth_texture );
-		pipeline.set_texture( "u_ShadowmapBTexture", &frame_static.shadowmap_fb[ 1 ].depth_texture );
-		pipeline.set_texture( "u_ShadowmapCTexture", &frame_static.shadowmap_fb[ 2 ].depth_texture );
-		pipeline.set_texture( "u_ShadowmapDTexture", &frame_static.shadowmap_fb[ 3 ].depth_texture );
+		pipeline.set_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
 		pipeline.set_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
 		pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
 		AddDynamicsToPipeline( &pipeline );

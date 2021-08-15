@@ -173,6 +173,7 @@ static void DeleteFramebuffers() {
 	for( u32 i = 0; i < 4; i++ ) {
 		DeleteFramebuffer( frame_static.shadowmap_fb[ i ] );
 	}
+	DeleteTextureArray( frame_static.shadowmap_texture_array );
 }
 
 void ShutdownRenderer() {
@@ -358,13 +359,20 @@ static void CreateFramebuffers() {
 		FramebufferConfig fb;
 
 		u32 shadowmap_res = frame_static.shadow_parameters.shadowmap_res;
+		TextureArrayConfig config;
+		config.width = shadowmap_res;
+		config.height = shadowmap_res;
+		config.format = TextureFormat_Shadow;
+		config.layers = frame_static.shadow_parameters.num_cascades;
+		frame_static.shadowmap_texture_array = NewAtlasTextureArray( config );
+
 		texture_config.width = shadowmap_res;
 		texture_config.height = shadowmap_res;
 		texture_config.format = TextureFormat_Shadow;
-		fb.depth_attachment = texture_config;
+		fb.albedo_attachment = texture_config;
 
 		for( u32 i = 0; i < 4; i++ ) {
-			frame_static.shadowmap_fb[ i ] = NewFramebuffer( fb );
+			frame_static.shadowmap_fb[ i ] = NewShadowFramebuffer( &frame_static.shadowmap_texture_array, i );
 		}
 	}
 }
@@ -497,15 +505,14 @@ void SetupShadowCascades() {
 	// const float cascade_dist[ 5 ] = { near_plane, 256.0f, 768.0f, 2304.0f, 6912.0f };
 	// const float cascade_dist[ 5 ] = { near_plane, 16.0f, 64.0f, 512.0f, 4096.0f };
 	float cascade_dist[ 5 ];
-
-	cascade_dist[ 0 ] = near_plane;
-	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-		cascade_dist[ i + 1 ] = frame_static.shadow_parameters.cascade_dists[ i ];
-	}
-
 	const u32 num_planes = ARRAY_COUNT( cascade_dist );
 	const u32 num_cascades = num_planes - 1;
 	const u32 num_corners = 4;
+
+	cascade_dist[ 0 ] = near_plane;
+	for( u32 i = 0; i < num_cascades; i++ ) {
+		cascade_dist[ i + 1 ] = frame_static.shadow_parameters.cascade_dists[ i ];
+	}
 
 	const Vec4 frustum_direction_corners[] = {
 		Vec4( -1.0f,  1.0f, 1.0f, 1.0f ),
@@ -562,7 +569,7 @@ void SetupShadowCascades() {
 		Mat4 shadow_matrix = shadow_projection * shadow_view;
 
 		{
-			u32 shadowmap_size = frame_static.shadowmap_fb[ i ].width;
+			u32 shadowmap_size = frame_static.shadow_parameters.shadowmap_res;
 			Vec2 shadow_origin = ( shadow_matrix * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xy();
 			shadow_origin *= shadowmap_size / 2.0f;
 			Vec2 rounded_origin = Vec2( roundf( shadow_origin.x ), roundf( shadow_origin.y ) );

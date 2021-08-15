@@ -6,8 +6,9 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
-#include "qcommon/string.h"
 #include "qcommon/qfiles.h"
+#include "qcommon/span2d.h"
+#include "qcommon/string.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
 
@@ -296,7 +297,15 @@ struct Brush {
 	StaticArray< Face, MAX_BRUSH_FACES > faces;
 };
 
+struct ControlPoint {
+	Vec3 position;
+	Vec2 uv;
+};
+
 struct Patch {
+	Span< const char > material;
+	int w, h;
+	ControlPoint control_points[ 1024 ];
 };
 
 struct Entity {
@@ -376,38 +385,43 @@ static Span< const char > ParseQ3Brush( Brush * brush, Span< const char > str ) 
 	return brush->faces.n >= 4 ? str : NullSpan;
 }
 
-static Span< const char > ParsePatchDef( Span< const char > str ) {
+static Span< const char > ParsePatch( Patch * patch, Span< const char > str ) {
 	str = SkipToken( str, "{" );
 	str = SkipToken( str, "patchDef2" );
 	str = SkipToken( str, "{" );
 
-	Span< const char > material;
-	str = ParseWord( &material, str );
+	str = ParseWord( &patch->material, str );
 
 	str = SkipToken( str, "(" );
 
-	int w = 0;
-	int h = 0;
 	str = SkipWhitespace( str );
-	str = PEGCapture( &w, str );
+	str = PEGCapture( &patch->w, str );
 	str = SkipWhitespace( str );
-	str = PEGCapture( &h, str );
+	str = PEGCapture( &patch->h, str );
 	str = SkipFlags( str );
 
 	str = SkipToken( str, ")" );
 
 	str = SkipToken( str, "(" );
 
-	for( int x = 0; x < w; x++ ) {
+	Span2D< ControlPoint > control_points( patch->control_points, patch->w, patch->h );
+
+	for( int x = 0; x < patch->w; x++ ) {
 		str = SkipToken( str, "(" );
-		for( int y = 0; y < h; y++ ) {
+		for( int y = 0; y < patch->h; y++ ) {
 			str = SkipToken( str, "(" );
 
-			float dont_care;
-			for( int i = 0; i < 5; i++ ) {
-				str = SkipWhitespace( str );
-				str = PEGCapture( &dont_care, str );
+			ControlPoint cp;
+
+			for( int i = 0; i < 3; i++ ) {
+				str = ParseFloat( &cp.position[ i ], str );
 			}
+
+			for( int i = 0; i < 2; i++ ) {
+				str = ParseFloat( &cp.uv[ i ], str );
+			}
+
+			control_points( x, y ) = cp;
 
 			str = SkipToken( str, ")" );
 		}
@@ -455,17 +469,29 @@ static Span< const char > ParseEntity( Entity * entity, Span< const char > str )
 
 	while( true ) {
 		Brush brush;
+		Patch patch;
+		bool is_patch = false;
+
 		Span< const char > res = PEGOr( str,
 			[&]( Span< const char > str ) { return ParseQ1Brush( &brush, str ); },
 			[&]( Span< const char > str ) { return ParseQ3Brush( &brush, str ); },
-			[]( Span< const char > str ) { return ParsePatchDef( str ); }
+			[&]( Span< const char > str ) {
+				is_patch = true;
+				return ParsePatch( &patch, str );
+			}
 		);
 
 		if( res.ptr == NULL )
 			break;
 
 		str = res;
-		entity->brushes.add( brush );
+
+		if( is_patch ) {
+			entity->patches.add( patch );
+		}
+		else {
+			entity->brushes.add( brush );
+		}
 	}
 
 	str = SkipToken( str, "}" );
@@ -595,6 +621,113 @@ static bool BrushToVerts( BSP * bsp, const Brush & brush, MinMax3 * bounds ) {
 	}
 
 	return true;
+}
+
+static BSPVertex Lerp( const BSPVertex & a, float t, const BSPVertex & b ) {
+	BSPVertex v;
+	v.position = Lerp( a.position, t, b.position );
+	v.uv = Lerp( a.uv, t, b.uv );
+	v.normal = Normalize( Lerp( a.normal, t, b.normal ) );
+	return v;
+}
+
+template< typename T >
+static T Order2Bezier( float t, const T & a, const T & b, const T & c ) {
+	T d = Lerp( a, t, b );
+	T e = Lerp( b, t, c );
+	return Lerp( d, t, e );
+}
+
+template< typename T >
+static T Order2Bezier2D( float tx, float ty, Span2D< const T > control ) {
+	T a = Order2Bezier( ty, control( 0, 0 ), control( 0, 1 ), control( 0, 2 ) );
+	T b = Order2Bezier( ty, control( 1, 0 ), control( 1, 1 ), control( 1, 2 ) );
+	T c = Order2Bezier( ty, control( 2, 0 ), control( 2, 1 ), control( 2, 2 ) );
+	return Order2Bezier( tx, a, b, c );
+}
+
+static float PointSegmentDistance( Vec3 start, Vec3 end, Vec3 p ) {
+	return Length( p - ClosestPointOnSegment( start, end, p ) );
+}
+
+static int Order2BezierSubdivisions( Vec3 control0, Vec3 control1, Vec3 control2, float max_error, Vec3 p0, Vec3 p1, float t0, float t1 ) {
+	float midpoint_t0t1 = ( t0 + t1 ) * 0.5f;
+	Vec3 p = Order2Bezier( midpoint_t0t1, control0, control1, control2 );
+	if( PointSegmentDistance( p0, p1, p ) <= max_error )
+		return 1;
+
+	int l = Order2BezierSubdivisions( control0, control1, control2, max_error, p0, p, t0, midpoint_t0t1 );
+	int r = Order2BezierSubdivisions( control0, control1, control2, max_error, p, p1, midpoint_t0t1, t1 );
+	return 1 + Max2( l, r );
+}
+
+static int Order2BezierSubdivisions( Vec3 control0, Vec3 control1, Vec3 control2, float max_error ) {
+	if( control0 == control1 || control1 == control2 || control0 == control2 )
+		return 1;
+	return Order2BezierSubdivisions( control0, control1, control2, max_error, control0, control2, 0.0f, 1.0f );
+}
+
+static void PatchToVerts( BSP * bsp, const Patch & patch ) {
+	u32 num_patches_x = ( patch.w - 1 ) / 2;
+	u32 num_patches_y = ( patch.h - 1 ) / 2;
+
+	float max_error = 1.0f;
+	s32 tess_x = 2;
+	s32 tess_y = 2;
+
+	Span2D< const ControlPoint > control_points( patch.control_points, patch.w, patch.h );
+
+	for( u32 patch_y = 0; patch_y < num_patches_y; patch_y++ ) {
+		for( u32 patch_x = 0; patch_x < num_patches_x; patch_x++ ) {
+			Span2D< const ControlPoint > points = control_points.slice( patch_x * 2, patch_y * 2, 3, 3 );
+			for( int j = 0; j < 3; j++ ) {
+				tess_x = Max2( tess_x, Order2BezierSubdivisions( points( 0, j ).position, points( 1, j ).position, points( 2, j ).position, max_error ) );
+				tess_y = Max2( tess_y, Order2BezierSubdivisions( points( j, 0 ).position, points( j, 1 ).position, points( j, 2 ).position, max_error ) );
+			}
+		}
+	}
+
+	for( u32 patch_y = 0; patch_y < num_patches_y; patch_y++ ) {
+		for( u32 patch_x = 0; patch_x < num_patches_x; patch_x++ ) {
+			Span2D< const ControlPoint > points = control_points.slice( patch_x * 2, patch_y * 2, 3, 3 );
+
+			Vec3 tangents_data[ 9 ];
+			Vec3 bitangents_data[ 9 ];
+			Span2D< Vec3 > tangents( tangents_data, 3, 3 );
+			Span2D< Vec3 > bitangents( bitangents_data, 3, 3 );
+
+			for( int axis = 0; axis < 3; axis++ ) {
+				tangents( 0, axis ) = Normalize( points( 1, axis ).position - points( 0, axis ).position );
+				tangents( 2, axis ) = Normalize( points( 2, axis ).position - points( 1, axis ).position );
+				tangents( 1, axis ) = Normalize( tangents( 0, axis ) + tangents( 2, axis ) );
+
+				bitangents( axis, 0 ) = Normalize( points( axis, 1 ).position - points( axis, 0 ).position );
+				bitangents( axis, 2 ) = Normalize( points( axis, 2 ).position - points( axis, 1 ).position );
+				bitangents( 1, axis ) = Normalize( bitangents( 0, axis ) + bitangents( 2, axis ) );
+			}
+
+			BSPVertex points_with_normals_data[ 9 ];
+			Span2D< BSPVertex > points_with_normals( points_with_normals_data, 3, 3 );
+			for( int y = 0; y < 3; y++ ) {
+				for( int x = 0; x < 3; x++ ) {
+					BSPVertex v = { };
+					v.position = points( x, y ).position;
+					v.uv = points( x, y ).uv;
+					v.normal = Cross( tangents( x, y ), bitangents( x, y ) );
+					points_with_normals( x, y ) = v;
+				}
+			}
+
+			for( int y = 0; y <= tess_y; y++ ) {
+				for( int x = 0; x <= tess_x; x++ ) {
+					float tx = float( x ) / float( tess_x );
+					float ty = float( y ) / float( tess_y );
+					bsp->vertices->add( Order2Bezier2D( tx, ty, Span2D< const BSPVertex >( points_with_normals_data, 3, 3 ) ) );
+				}
+			}
+		}
+	}
+
 }
 
 Span< const char > ParseComment( Span< const char > * comment, Span< const char > str ) {
@@ -995,7 +1128,7 @@ int main() {
 
 	size_t brush_id = 0;
 	for( const Entity & entity : entities ) {
-		for( const Brush & brush : entity.brushes.span() ) {
+		for( const Brush & brush : entity.brushes ) {
 			MinMax3 bounds = MinMax3::Empty();
 			bool asd = BrushToVerts( &bsp, brush, &bounds );
 			// ggprint( "{}\n", asd );
@@ -1004,6 +1137,11 @@ int main() {
 				brush_bounds[ brush_id ] = bounds;
 				brush_id++;
 			}
+		}
+
+		for( const Patch & patch : entity.patches ) {
+			PatchToVerts( &bsp, patch );
+			// TODO: convert to brushes
 		}
 	}
 

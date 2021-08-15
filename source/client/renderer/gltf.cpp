@@ -89,8 +89,8 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 				max[ j ] = attr.data->max[ j ];
 			}
 
-			model->bounds = Extend( model->bounds, ( transform * Vec4( min, 1.0f ) ).xyz() );
-			model->bounds = Extend( model->bounds, ( transform * Vec4( max, 1.0f ) ).xyz() );
+			model->bounds = Union( model->bounds, ( transform * Vec4( min, 1.0f ) ).xyz() );
+			model->bounds = Union( model->bounds, ( transform * Vec4( max, 1.0f ) ).xyz() );
 		}
 
 		if( attr.type == cgltf_attribute_type_normal ) {

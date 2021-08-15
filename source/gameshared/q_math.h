@@ -114,4 +114,5 @@ Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p );
 
 Mat4 TransformKToDir( Vec3 dir );
 
-MinMax3 Extend( MinMax3 bounds, Vec3 p );
+MinMax3 Union( MinMax3 bounds, Vec3 p );
+MinMax3 Union( MinMax3 a, MinMax3 b );

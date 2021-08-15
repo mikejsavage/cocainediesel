@@ -549,8 +549,6 @@ static bool FaceToVerts( FaceVerts * verts, const Brush & brush, const Plane * p
 			if( !Intersect3PlanesPoint( &p, planes[ face ], planes[ i ], planes[ j ] ) )
 				continue;
 
-			// ggprint( "{} x {} x {} = {}\n", planes[ face ], planes[ i ], planes[ j ], p );
-
 			if( !PointInsideBrush( Span< const Plane >( planes, brush.faces.n ), p ) )
 				continue;
 
@@ -566,65 +564,8 @@ static Vec2 ProjectFaceVert( Vec3 centroid, Vec3 tangent, Vec3 bitangent, Vec3 p
 	return Vec2( Dot( d, tangent ), Dot( d, bitangent ) );
 }
 
-struct ObjWriter {
-	DynamicString * str;
-	size_t brush_id;
-	size_t vertex_id;
-	size_t normal_id;
-};
-
-ObjWriter NewObjectWriter( DynamicString * str ) {
-	return { str, 0, 1, 1 };
-}
-
-void AddBrush( ObjWriter * writer ) {
-	writer->str->append( "# Brush {}\n", writer->brush_id );
-	writer->brush_id++;
-}
-
-void AddVertex( ObjWriter * writer, Vec3 pos ) {
-	pos *= 0.01f;
-	writer->str->append( "v {} {} {} # vertex ID {}\n", pos.x, -pos.z, pos.y, writer->vertex_id );
-	writer->vertex_id++;
-}
-
-void AddFace( ObjWriter * writer, Vec3 normal, size_t num_verts ) {
-	// if( num_verts < 3 ) {
-	// 	ggprint( "rej\n" );
-	// 	return;
-	// }
-
-	writer->str->append( "vn {} {} {} # normal ID {}\n", normal.x, -normal.z, normal.y, writer->normal_id );
-	size_t base_vert = writer->vertex_id - num_verts;
-	for( size_t i = 0; i < num_verts - 2; i++ ) {
-		writer->str->append( "f {}//{} {}//{} {}/{}\n",
-			base_vert, writer->normal_id,
-			base_vert + i + 2, writer->normal_id,
-			base_vert + i + 1, writer->normal_id
-		);
-	}
-	writer->normal_id++;
-}
-
-// TODO: use the shared versions
-MinMax3 Union( MinMax3 bounds, Vec3 p ) {
-	return MinMax3(
-		Vec3( Min2( bounds.mins.x, p.x ), Min2( bounds.mins.y, p.y ), Min2( bounds.mins.z, p.z ) ),
-		Vec3( Max2( bounds.maxs.x, p.x ), Max2( bounds.maxs.y, p.y ), Max2( bounds.maxs.z, p.z ) )
-	);
-}
-
-MinMax3 Union( MinMax3 a, MinMax3 b ) {
-	return MinMax3(
-		Vec3( Min2( a.mins.x, b.mins.x ), Min2( a.mins.y, b.mins.y ), Min2( a.mins.z, b.mins.z ) ),
-		Vec3( Max2( a.maxs.x, b.maxs.x ), Max2( a.maxs.y, b.maxs.y ), Max2( a.maxs.z, b.maxs.z ) )
-	);
-}
-
 static bool BrushToVerts( BSP * bsp, const Brush & brush, MinMax3 * bounds ) {
 	ZoneScoped;
-
-	// AddBrush( writer );
 
 	Plane planes[ MAX_BRUSH_FACES ];
 
@@ -676,8 +617,6 @@ static bool BrushToVerts( BSP * bsp, const Brush & brush, MinMax3 * bounds ) {
 			vertex.normal = planes[ i ].normal;
 			bsp->vertices->add( vertex );
 
-			// AddVertex( writer, unprojected );
-
 			*bounds = Union( *bounds, unprojected );
 		}
 
@@ -687,8 +626,6 @@ static bool BrushToVerts( BSP * bsp, const Brush & brush, MinMax3 * bounds ) {
 			bsp->indices->add( base_vert + j + 2 );
 			bsp->indices->add( base_vert + j + 1 );
 		}
-
-		// AddFace( writer, planes[ i ].normal, verts.n );
 	}
 
 	return true;
@@ -1086,7 +1023,6 @@ int main() {
 	bsp.brush_faces = &brush_faces;
 
 	DynamicString obj( sys_allocator );
-	ObjWriter writer = NewObjectWriter( &obj );
 
 	Span< MinMax3 > brush_bounds = ALLOC_SPAN( sys_allocator, MinMax3, entities[ 0 ].brushes.size() );
 	defer { FREE( sys_allocator, brush_bounds.ptr ); };
@@ -1157,23 +1093,6 @@ int main() {
 	//
 	// TODO: new map format
 	// - see bsp2.cpp
-
-	// if( ok ) {
-	// 	for( Entity & entity : entities ) {
-	// 		ggprint( "entity\n" );
-	// 		for( size_t i = 0; i < entity.num_kvs; i++ ) {
-	// 			ggprint( "  {} = {}\n", entity.kvs[ i ].key, entity.kvs[ i ].value );
-	// 		}
-        //
-	// 		for( const Brush & brush : entity.brushes ) {
-	// 			ggprint( "  brush\n" );
-	// 			for( size_t i = 0; i < brush.num_faces; i++ ) {
-	// 				const Face & face = brush.faces[ i ];
-	// 				ggprint( "    face {.1} {.1} {.1} {}\n", face.plane[ 0 ], face.plane[ 1 ], face.plane[ 2 ], face.material );
-	// 			}
-	// 		}
-	// 	}
-	// }
 
 	FREE( sys_allocator, arena.get_memory() );
 

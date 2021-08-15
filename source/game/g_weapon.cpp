@@ -1077,8 +1077,6 @@ static void ExplodeStunGrenade( edict_t * grenade ) {
 }
 
 static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	const GadgetDef * def = GetGadgetDef( Gadget_StunGrenade );
-
 	ProjectileStats stats = GadgetProjectileStats( Gadget_StunGrenade );
 
 	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, stats, TouchStunGrenade, ET_GENERIC, MASK_SHOT );

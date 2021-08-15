@@ -4,8 +4,6 @@
 #include "qcommon/utf8.h"
 #include "qcommon/sys_fs.h"
 
-#include "whereami/whereami.h"
-
 static char * root_dir_path;
 static char * home_dir_path;
 static char * versioned_home_dir_path;
@@ -19,19 +17,10 @@ static void ReplaceBackslashes( char * path ) {
 }
 
 static char * FindRootDir( Allocator * a ) {
-	int len = wai_getExecutablePath( NULL, 0, NULL );
-	if( len == -1 ) {
-		Fatal( "wai_getExecutablePath( NULL )" );
-	}
-
-	char * buf = ALLOC_MANY( a, char, len + 1 );
-	int dirlen;
-	if( wai_getExecutablePath( buf, len, &dirlen ) == -1 ) {
-		Fatal( "wai_getExecutablePath( buf )" );
-	}
-	buf[ dirlen ] = '\0';
-
-	return buf;
+	char * root = ExecutablePath( a );
+	ReplaceBackslashes( root );
+	root[ BasePath( root ).n ] = '\0';
+	return root;
 }
 
 void InitFS() {
@@ -48,7 +37,6 @@ void InitFS() {
 		versioned_home_dir_path = ( *sys_allocator )( fmt, home_dir_path );
 	}
 
-	ReplaceBackslashes( root_dir_path );
 	ReplaceBackslashes( versioned_home_dir_path );
 	ReplaceBackslashes( home_dir_path );
 }

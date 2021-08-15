@@ -198,3 +198,24 @@ FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path ) {
 
 	return metadata;
 }
+
+char * ExecutablePath( Allocator * a ) {
+	DWORD buf_size = 1024;
+	wchar_t * wide_buf = ALLOC_MANY( a, wchar_t, buf_size );
+	defer { FREE( a, wide_buf ); };
+
+	while( true ) {
+		DWORD n = GetModuleFileNameW( NULL, wide_buf, buf_size );
+		if( n == 0 ) {
+			Fatal( "GetModuleFileNameW" );
+		}
+
+		if( n < buf_size )
+			break;
+
+		wide_buf = REALLOC_MANY( a, wchar_t, wide_buf, buf_size, buf_size * 2 );
+		buf_size *= 2;
+	}
+
+	return WideToUTF8( a, wide_buf );
+}

@@ -26,7 +26,7 @@ bool G_IsTeamDamage( SyncEntityState *targ, SyncEntityState *attacker ) {
 	return targ->number != attacker->number && targ->team == attacker->team;
 }
 
-static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, cplane_t *plane, Vec3 pos, int timeDelta ) {
+static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, Plane *plane, Vec3 pos, int timeDelta ) {
 	constexpr float SPLASH_DAMAGE_TRACE_FRAC_EPSILON = 1.0f / 32.0f;
 
 	trace_t trace;
@@ -397,7 +397,7 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 	*pushdir = Normalize( center_of_mass - point );
 }
 
-void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cplane_t *plane, DamageType damage_type, int timeDelta ) {
+void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, Plane *plane, DamageType damage_type, int timeDelta ) {
 	float maxknockback = def->knockback;
 	float minknockback = def->min_knockback;
 	float radius = def->splash_radius;
@@ -426,7 +426,7 @@ void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cpla
 	}
 }
 
-void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edict_t *ignore, DamageType damage_type ) {
+void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Plane *plane, edict_t *ignore, DamageType damage_type ) {
 	assert( inflictor );
 
 	float maxdamage = inflictor->projectileInfo.maxDamage;

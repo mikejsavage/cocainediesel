@@ -48,7 +48,7 @@ typedef struct {
 	float frametime;
 
 	int groundsurfFlags;
-	cplane_t groundplane;
+	Plane groundplane;
 	int groundcontents;
 
 	Vec3 previous_origin;

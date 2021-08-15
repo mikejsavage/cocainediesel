@@ -67,7 +67,7 @@ static void Use_Multi( edict_t *ent, edict_t *other, edict_t *activator ) {
 	multi_trigger( ent );
 }
 
-static void Touch_Multi( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+static void Touch_Multi( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	if( other->r.client ) {
 		if( self->spawnflags & 2 ) {
 			return;
@@ -167,7 +167,7 @@ static void G_JumpPadSound( edict_t *ent ) {
 
 #define MIN_TRIGGER_PUSH_REBOUNCE_TIME 100
 
-static void trigger_push_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+static void trigger_push_touch( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	if( self->s.team && self->s.team != other->s.team ) {
 		return;
 	}
@@ -261,7 +261,7 @@ static void hurt_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	}
 }
 
-static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+static void hurt_touch( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	if( !other->takedamage || G_IsDead( other ) ) {
 		return;
 	}
@@ -331,7 +331,7 @@ void SP_trigger_hurt( edict_t *self ) {
 	}
 }
 
-static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+static void TeleporterTouch( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	edict_t *dest;
 
 	if( !G_PlayerCanTeleport( other ) ) {

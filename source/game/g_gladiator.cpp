@@ -20,7 +20,7 @@ static void SpikesDeploy( edict_t * self ) {
 	}
 }
 
-static void SpikesTouched( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags ) {
+static void SpikesTouched( edict_t * self, edict_t * other, Plane * plane, int surfFlags ) {
 	if( other->s.type != ET_PLAYER )
 		return;
 

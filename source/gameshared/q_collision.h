@@ -73,7 +73,7 @@ typedef struct {
 	bool startsolid;        // if true, the initial point was in a solid area
 	float fraction;             // time completed, 1.0 = didn't hit anything
 	Vec3 endpos;              // final position
-	cplane_t plane;             // surface normal at impact
+	Plane plane;             // surface normal at impact
 	int surfFlags;              // surface hit
 	int contents;               // contents on other side of surface hit
 	int ent;                    // not set by CM_*() functions

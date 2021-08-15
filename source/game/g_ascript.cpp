@@ -1221,7 +1221,7 @@ static const asProperty_t astrace_Properties[] = {
 	{ ASLIB_PROPERTY_DECL( const int, surfFlags ), offsetof( astrace_t, trace.surfFlags ) },
 	{ ASLIB_PROPERTY_DECL( const int, contents ), offsetof( astrace_t, trace.contents ) },
 	{ ASLIB_PROPERTY_DECL( const int, entNum ), offsetof( astrace_t, trace.ent ) },
-	{ ASLIB_PROPERTY_DECL( const float, planeDist ), offsetof( astrace_t, trace.plane.dist ) },
+	{ ASLIB_PROPERTY_DECL( const float, planeDist ), offsetof( astrace_t, trace.plane.distance ) },
 
 	{ }
 };
@@ -1660,7 +1660,7 @@ void G_asCallMapEntityThink( edict_t *ent ) {
 }
 
 // "void %s_touch( Entity @ent, Entity @other, const Vec3 planeNormal, int surfFlags )"
-void G_asCallMapEntityTouch( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
+void G_asCallMapEntityTouch( edict_t *ent, edict_t *other, Plane *plane, int surfFlags ) {
 	int error;
 	asIScriptContext *ctx;
 	asvec3_t normal;

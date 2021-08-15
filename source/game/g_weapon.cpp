@@ -38,7 +38,7 @@ static bool CanHit(const edict_t *projectile, const edict_t *target)
 	return true;
 }
 
-static void W_Explode_ARBullet(edict_t *ent, edict_t *other, cplane_t *plane)
+static void W_Explode_ARBullet(edict_t *ent, edict_t *other, Plane *plane)
 {
 	if (other != NULL && other->takedamage)
 	{
@@ -56,7 +56,7 @@ static void W_Explode_ARBullet(edict_t *ent, edict_t *other, cplane_t *plane)
 	G_FreeEdict(ent);
 }
 
-static void W_Touch_ARBullet(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
+static void W_Touch_ARBullet(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
 	if (surfFlags & SURF_NOIMPACT)
 	{
@@ -130,7 +130,7 @@ static void W_Think_ARBullet(edict_t *ent)
 	W_ARBullet_Backtrace(ent, start);
 }
 
-static void W_AutoTouch_ARBullet(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
+static void W_AutoTouch_ARBullet(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
 	W_Think_ARBullet(ent);
 	if (ent->r.inuse)
@@ -426,7 +426,7 @@ static void W_Grenade_Explode(edict_t *ent)
 	W_Grenade_ExplodeDir(ent, Vec3(0.0f));
 }
 
-static void W_Touch_Grenade(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
+static void W_Touch_Grenade(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_GrenadeLauncher );
 
@@ -479,7 +479,7 @@ static void W_Fire_Grenade(edict_t *self, Vec3 start, Vec3 angles, int timeDelta
 	grenade->think = W_Grenade_Explode;
 }
 
-static void W_Touch_Stake(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
+static void W_Touch_Stake(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
 	if (surfFlags & SURF_NOIMPACT)
 	{
@@ -522,7 +522,7 @@ static void W_Fire_Stake(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 	stake->s.sound = "weapons/stake/trail";
 }
 
-static void W_Touch_Rocket(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
+static void W_Touch_Rocket(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
 	if (surfFlags & SURF_NOIMPACT)
 	{
@@ -774,7 +774,7 @@ static void W_Fire_Lasergun(edict_t *self, Vec3 start, Vec3 angles, int timeDelt
 	GClip_LinkEntity(laser);
 }
 
-static void W_Touch_RifleBullet(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
+static void W_Touch_RifleBullet(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
 	if (surfFlags & SURF_NOIMPACT)
 	{
@@ -810,7 +810,7 @@ void W_Fire_RifleBullet(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 	bullet->s.sound = "weapons/bullet_whizz";
 }
 
-static void W_Touch_Blast(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
+static void W_Touch_Blast(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
 	if (surfFlags & SURF_NOIMPACT)
 	{
@@ -985,7 +985,7 @@ void G_FireWeapon(edict_t *ent, u64 parm)
 	}
 }
 
-static void TouchThrowingAxe(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
+static void TouchThrowingAxe(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
 	if (surfFlags & SURF_NOIMPACT)
 	{
@@ -1023,7 +1023,7 @@ static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	axe->avelocity = Vec3( 360.0f * 4, 0.0f, 0.0f );
 }
 
-static void TouchStunGrenade(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags) {
+static void TouchStunGrenade(edict_t *ent, edict_t *other, Plane *plane, int surfFlags) {
 	if (surfFlags & SURF_NOIMPACT)
 	{
 		G_FreeEdict(ent);

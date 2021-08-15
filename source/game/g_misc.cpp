@@ -57,7 +57,7 @@ void BecomeExplosion1( edict_t *self ) {
 	self->r.svflags &= ~SVF_NOCLIENT;
 }
 
-static void path_corner_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+static void path_corner_touch( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	Vec3 v;
 	edict_t *next;
 

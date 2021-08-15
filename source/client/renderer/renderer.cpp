@@ -364,7 +364,7 @@ static void CreateFramebuffers() {
 		config.height = shadowmap_res;
 		config.format = TextureFormat_Shadow;
 		config.layers = frame_static.shadow_parameters.num_cascades;
-		frame_static.shadowmap_texture_array = NewAtlasTextureArray( config );
+		frame_static.shadowmap_texture_array = NewTextureArray( config );
 
 		texture_config.width = shadowmap_res;
 		texture_config.height = shadowmap_res;
@@ -372,7 +372,7 @@ static void CreateFramebuffers() {
 		fb.albedo_attachment = texture_config;
 
 		for( u32 i = 0; i < 4; i++ ) {
-			frame_static.shadowmap_fb[ i ] = NewShadowFramebuffer( &frame_static.shadowmap_texture_array, i );
+			frame_static.shadowmap_fb[ i ] = NewShadowFramebuffer( frame_static.shadowmap_texture_array, i );
 		}
 	}
 }

@@ -731,7 +731,7 @@ static void PackDecalAtlas( Span< const char > * material_names ) {
 		config.data = layers.ptr;
 		config.format = TextureFormat_BC4;
 
-		decals_atlases = NewAtlasTextureArray( config );
+		decals_atlases = NewTextureArray( config );
 	}
 }
 

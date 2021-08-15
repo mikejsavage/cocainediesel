@@ -1191,7 +1191,7 @@ void DeleteTexture( Texture texture ) {
 	glDeleteTextures( 1, &texture.texture );
 }
 
-TextureArray NewAtlasTextureArray( const TextureArrayConfig & config ) {
+TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 	TextureArray ta;
 
 	glGenTextures( 1, &ta.texture );
@@ -1348,7 +1348,7 @@ Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, 
 	return fb;
 }
 
-Framebuffer NewShadowFramebuffer( TextureArray * texture_array, u32 layer ) {
+Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer ) {
 	GLuint fbo;
 	glGenFramebuffers( 1, &fbo );
 	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
@@ -1356,9 +1356,7 @@ Framebuffer NewShadowFramebuffer( TextureArray * texture_array, u32 layer ) {
 	Framebuffer fb = { };
 	fb.fbo = fbo;
 
-	if( texture_array != NULL ) {
-		glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_array->texture, 0, layer );
-	}
+	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_array.texture, 0, layer );
 
 	assert( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );

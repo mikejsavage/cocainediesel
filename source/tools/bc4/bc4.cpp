@@ -84,8 +84,8 @@ int main( int argc, char ** argv ) {
 
 	u8 * resized = ALLOC_MANY( sys_allocator, u8, w * h );
 
-	defer { free( bc4.ptr ); };
-	defer { free( resized ); };
+	defer { FREE( sys_allocator, bc4.ptr ); };
+	defer { FREE( sys_allocator, resized ); };
 
 	rgbcx::init();
 
@@ -128,7 +128,7 @@ int main( int argc, char ** argv ) {
 	dds_header.mipmap_count = num_levels;
 	dds_header.format = DDSTextureFormat_BC4;
 
-	DynamicString dds_path( sys_allocator, "{}.dds", argv[ 1 ] );
+	DynamicString dds_path( sys_allocator, "{}.dds", StripExtension( argv[ 1 ] ) );
 
 	FILE * dds = OpenFile( sys_allocator, dds_path.c_str(), "wb" );
 	if( dds == NULL ) {

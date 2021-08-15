@@ -38,7 +38,6 @@ require( "libs.openal" )
 require( "libs.rgbcx" )
 require( "libs.stb" )
 require( "libs.tracy" )
-require( "libs.whereami" )
 require( "libs.zlib" )
 require( "libs.zstd" )
 
@@ -105,7 +104,6 @@ do
 			"stb_rect_pack",
 			"stb_vorbis",
 			"tracy",
-			"whereami",
 			"zlib",
 			"zstd",
 			platform_libs,
@@ -160,7 +158,6 @@ do
 			"ggformat",
 			"monocypher",
 			"tracy",
-			"whereami",
 			"zlib",
 			"zstd",
 		},

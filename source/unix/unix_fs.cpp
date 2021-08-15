@@ -64,7 +64,7 @@ bool MoveFile( Allocator * a, const char * old_path, const char * new_path, Move
 	}
 
 	if( errno == ENOSYS || errno == EINVAL || errno == EFAULT ) {
-		Fatal( "rename" );
+		FatalErrno( "rename" );
 	}
 
 	return false;
@@ -134,4 +134,26 @@ FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path ) {
 	metadata.modified_time = checked_cast< s64 >( buf.st_mtim.tv_sec ) * 1000 + checked_cast< s64 >( buf.st_mtim.tv_nsec ) / 1000000;
 
 	return metadata;
+}
+
+char * ExecutablePath( Allocator * a ) {
+	size_t buf_size = 1024;
+	char * buf = ALLOC_MANY( a, char, buf_size );
+
+	while( true ) {
+		ssize_t n = readlink( "/proc/self/exe", buf, buf_size );
+		if( n == -1 ) {
+			FatalErrno( "readlink" );
+		}
+
+		if( size_t( n ) < buf_size ) {
+			buf[ n ] = '\0';
+			break;
+		}
+
+		buf = REALLOC_MANY( a, char, buf, buf_size, buf_size * 2 );
+		buf_size *= 2;
+	}
+
+	return buf;
 }

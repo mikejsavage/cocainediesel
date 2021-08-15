@@ -40,11 +40,9 @@ static edict_t * G_FindPostMatchCamera() {
 
 void SelectSpawnPoint( edict_t * ent, edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles ) {
 	edict_t * spot;
-	bool cam = false;
 
 	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
 		spot = G_FindPostMatchCamera();
-		cam = spot != NULL;
 	}
 	else {
 		spot = GT_asCallSelectSpawnPoint( ent );

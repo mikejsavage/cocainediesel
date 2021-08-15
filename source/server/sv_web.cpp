@@ -113,8 +113,6 @@ static sv_http_connection_t sv_http_connections[MAX_INCOMING_HTTP_CONNECTIONS];
 static socket_t sv_socket_http;
 static socket_t sv_socket_http6;
 
-static uint64_t sv_http_request_autoicr;
-
 static trie_t *sv_http_clients = NULL;
 static Mutex *sv_http_clients_mutex = NULL;
 
@@ -148,10 +146,6 @@ static void SV_Web_ResetRequest( sv_http_request_t *request ) {
 	request->got_start_line = false;
 	request->error = HTTP_RESP_NONE;
 	request->clientNum = -1;
-}
-
-static uint64_t SV_Web_GetNewRequestId() {
-	return sv_http_request_autoicr++;
 }
 
 static void SV_Web_ResetResponse( sv_http_response_t *response ) {
@@ -408,8 +402,6 @@ static void SV_Web_ParseStartLine( sv_http_request_t *request, char *line ) {
 }
 
 static void SV_Web_AnalyzeHeader( sv_http_request_t *request, const char *key, const char *value ) {
-	const sv_http_stream_t * stream = &request->stream;
-
 	if( !Q_stricmp( key, "Content-Length" ) ) {
 		u64 length;
 		bool ok = TryStringToU64( value, &length );
@@ -779,7 +771,6 @@ static void SV_Web_Listen( socket_t *socket ) {
 void SV_Web_Init() {
 	sv_http_initialized = false;
 	sv_http_running = false;
-	sv_http_request_autoicr = 1;
 
 	SV_Web_InitConnections();
 

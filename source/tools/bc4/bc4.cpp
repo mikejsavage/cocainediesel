@@ -8,8 +8,9 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_resize.h"
 
-void Sys_ShowErrorMessage( const char * msg ) {
+void ShowErrorAndAbortImpl( const char * msg, const char * file, int line ) {
 	printf( "%s\n", msg );
+	abort();
 }
 
 static u32 BlockFormatMipLevels( u32 w, u32 h ) {

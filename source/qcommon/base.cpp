@@ -16,9 +16,7 @@ void Fatal( const char * format, ... ) {
 	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
-	Sys_ShowErrorMessage( msg );
-
-	abort();
+	ShowErrorAndAbort( msg );
 }
 
 void format( FormatBuffer * fb, Span< const char > span, const FormatOpts & opts ) {

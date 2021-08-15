@@ -81,7 +81,7 @@ struct AllocationTracker {
 		}
 
 		if( leaks > 0 ) {
-			Sys_ShowErrorMessage( msg.c_str() );
+			ShowErrorAndAbort( msg.c_str() );
 		}
 
 		DeleteMutex( mutex );

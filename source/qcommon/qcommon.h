@@ -668,7 +668,8 @@ NON-PORTABLE SYSTEM SERVICES
 #define SFF_SYSTEM  0x10
 
 void Sys_Init();
-void Sys_ShowErrorMessage( const char * msg );
+void ShowErrorAndAbortImpl( const char * msg, const char * file, int line );
+#define ShowErrorAndAbort( msg ) ShowErrorAndAbortImpl( msg, __FILE__, __LINE__ )
 
 int64_t Sys_Milliseconds();
 uint64_t Sys_Microseconds();

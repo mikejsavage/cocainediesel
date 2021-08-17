@@ -1104,6 +1104,16 @@ static void WriteBSP( TempAllocator * temp, BSP * bsp ) {
 	WriteFile( temp, "base/maps/gg.bsp", packed.ptr(), packed.num_bytes() );
 }
 
+Span< const char > GetKey( Span< const KeyValue > kvs, const char * key ) {
+	for( KeyValue kv : kvs ) {
+		if( StrCaseEqual( kv.key, key ) ) {
+			return kv.value;
+		}
+	}
+
+	return Span< const char >( NULL, 0 );
+}
+
 int main() {
 	constexpr size_t arena_size = 1024 * 1024;
 	ArenaAllocator arena( ALLOC_SIZE( sys_allocator, arena_size, 16 ), arena_size );
@@ -1141,6 +1151,18 @@ int main() {
 	if( !ok ) {
 		ggprint( "failed\n" );
 		return 1;
+	}
+
+	FrameMark;
+
+	for( Entity & entity : entities ) {
+		if( GetKey( entity.kvs.span(), "classname" ) == "func_group" ) {
+			entities[ 0 ].brushes.add_many( entity.brushes.span() );
+			entities[ 0 ].patches.add_many( entity.patches.span() );
+
+			entity.brushes.clear();
+			entity.patches.clear();
+		}
 	}
 
 	FrameMark;

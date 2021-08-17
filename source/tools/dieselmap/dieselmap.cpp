@@ -1256,17 +1256,14 @@ int main() {
 	WriteBSP( &temp, &bsp );
 
 	// TODO: generate render geometry
-	// - convert patches to meshes
-	// - convert brushes to meshes
 	// - merge meshes by material/entity
 	// - figure out what postprocessing we need e.g. welding
 	// - meshopt
 	//
-	// TODO: generate collision geometry
-	// - find brush aabbs
-	// - make a kd tree like pbrt
-	//
 	// TODO: parse materials and set solid bits etc
+	//
+	// - generate shit for all map models
+	// - merge func_group into worldspawn
 	//
 	// TODO: new map format
 	// - see bsp2.cpp

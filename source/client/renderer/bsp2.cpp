@@ -49,6 +49,7 @@ struct MapMesh {
 struct MapModel {
 	u16 first_mesh;
 	u16 num_meshes;
+	u32 root_node;
 };
 
 struct MapVertex {
@@ -91,7 +92,7 @@ struct MapBrush {
 };
 
 STATIC_ASSERT( sizeof( MapMesh ) == 2 * sizeof( u64 ) );
-STATIC_ASSERT( sizeof( MapModel ) == 2 * sizeof( u16 ) );
+// STATIC_ASSERT( sizeof( MapModel ) == 2 * sizeof( u16 ) );
 STATIC_ASSERT( sizeof( MapNode ) == sizeof( MapNodeOrLeaf ) );
 STATIC_ASSERT( sizeof( MapLeaf ) == sizeof( MapNodeOrLeaf ) );
 STATIC_ASSERT( sizeof( MapFace ) == 3 * sizeof( u64 ) );

@@ -623,12 +623,11 @@ static bool BrushToVerts( BSP * bsp, const Brush & brush, MinMax3 * bounds ) {
 	return true;
 }
 
-static BSPVertex Lerp( const BSPVertex & a, float t, const BSPVertex & b ) {
-	BSPVertex v;
-	v.position = Lerp( a.position, t, b.position );
-	v.uv = Lerp( a.uv, t, b.uv );
-	v.normal = Normalize( Lerp( a.normal, t, b.normal ) );
-	return v;
+static ControlPoint Lerp( const ControlPoint & a, float t, const ControlPoint & b ) {
+	ControlPoint res;
+	res.position = Lerp( a.position, t, b.position );
+	res.uv = Lerp( a.uv, t, b.uv );
+	return res;
 }
 
 template< typename T >
@@ -667,11 +666,53 @@ static int Order2BezierSubdivisions( Vec3 control0, Vec3 control1, Vec3 control2
 	return Order2BezierSubdivisions( control0, control1, control2, max_error, control0, control2, 0.0f, 1.0f );
 }
 
+static BSPVertex SampleBezierSurface( float tx, float ty, Span2D< const ControlPoint > control ) {
+	/*
+	 * there are useful bezier surfaces with singularities at (0,0) and
+	 * (1,1), we couldn't find a nice way to solve this so just +/- epsilon
+	 */
+	float ctx = Clamp( 0.000001f, tx, 0.999999f );
+	float cty = Clamp( 0.000001f, ty, 0.999999f );
+
+	// https://www.gamedev.net/tutorials/programming/math-and-physics/practical-guide-to-bezier-surfaces-r3170/
+	constexpr Mat3 M(
+		1.0f, -2.0f, 1.0f,
+		-2.0f, 2.0f, 0.0f,
+		1.0f, 0.0f, 0.0f
+	);
+	Vec3 powers_cx( ctx * ctx, ctx, 1.0f );
+	Vec3 powers_cy( cty * cty, cty, 1.0f );
+	Vec3 powers_dcx( 2.0f * ctx, 1.0f, 0.0f );
+	Vec3 powers_dcy( 2.0f * cty, 1.0f, 0.0f );
+	Vec3 tangent( 0.0f );
+	Vec3 bitangent( 0.0f );
+	for( u8 i = 0; i < 3; i++ ) {
+		Mat3 curve(
+			control( 0, 0 ).position[ i ], control( 1, 0 ).position[ i ], control( 2, 0 ).position[ i ],
+			control( 0, 1 ).position[ i ], control( 1, 1 ).position[ i ], control( 2, 1 ).position[ i ],
+			control( 0, 2 ).position[ i ], control( 1, 2 ).position[ i ], control( 2, 2 ).position[ i ]
+		);
+		Vec3 res_dx = ( M * curve * M * powers_dcx ) * powers_cy;
+		Vec3 res_dy = ( M * curve * M * powers_cx ) * powers_dcy;
+		tangent[ i ] = res_dx.x + res_dx.y + res_dx.z;
+		bitangent[ i ] = res_dy.x + res_dy.y + res_dy.z;
+	}
+
+	ControlPoint cp = Order2Bezier2D( tx, ty, control );
+
+	BSPVertex v = { };
+	v.position = cp.position;
+	v.uv = cp.uv;
+	v.normal = Normalize( Cross( tangent, bitangent ) );
+
+	return v;
+}
+
 static void PatchToVerts( BSP * bsp, const Patch & patch ) {
 	u32 num_patches_x = ( patch.w - 1 ) / 2;
 	u32 num_patches_y = ( patch.h - 1 ) / 2;
 
-	float max_error = 1.0f;
+	constexpr float max_error = 0.5f;
 	s32 tess_x = 2;
 	s32 tess_y = 2;
 
@@ -690,39 +731,30 @@ static void PatchToVerts( BSP * bsp, const Patch & patch ) {
 	for( u32 patch_y = 0; patch_y < num_patches_y; patch_y++ ) {
 		for( u32 patch_x = 0; patch_x < num_patches_x; patch_x++ ) {
 			Span2D< const ControlPoint > points = control_points.slice( patch_x * 2, patch_y * 2, 3, 3 );
-
-			Vec3 tangents_data[ 9 ];
-			Vec3 bitangents_data[ 9 ];
-			Span2D< Vec3 > tangents( tangents_data, 3, 3 );
-			Span2D< Vec3 > bitangents( bitangents_data, 3, 3 );
-
-			for( int axis = 0; axis < 3; axis++ ) {
-				tangents( 0, axis ) = Normalize( points( 1, axis ).position - points( 0, axis ).position );
-				tangents( 2, axis ) = Normalize( points( 2, axis ).position - points( 1, axis ).position );
-				tangents( 1, axis ) = Normalize( tangents( 0, axis ) + tangents( 2, axis ) );
-
-				bitangents( axis, 0 ) = Normalize( points( axis, 1 ).position - points( axis, 0 ).position );
-				bitangents( axis, 2 ) = Normalize( points( axis, 2 ).position - points( axis, 1 ).position );
-				bitangents( 1, axis ) = Normalize( bitangents( 0, axis ) + bitangents( 2, axis ) );
-			}
-
-			BSPVertex points_with_normals_data[ 9 ];
-			Span2D< BSPVertex > points_with_normals( points_with_normals_data, 3, 3 );
-			for( int y = 0; y < 3; y++ ) {
-				for( int x = 0; x < 3; x++ ) {
-					BSPVertex v = { };
-					v.position = points( x, y ).position;
-					v.uv = points( x, y ).uv;
-					v.normal = Cross( tangents( x, y ), bitangents( x, y ) );
-					points_with_normals( x, y ) = v;
-				}
-			}
+			u32 base_vert = bsp->vertices->size();
 
 			for( int y = 0; y <= tess_y; y++ ) {
 				for( int x = 0; x <= tess_x; x++ ) {
 					float tx = float( x ) / float( tess_x );
 					float ty = float( y ) / float( tess_y );
-					bsp->vertices->add( Order2Bezier2D( tx, ty, Span2D< const BSPVertex >( points_with_normals_data, 3, 3 ) ) );
+					bsp->vertices->add( SampleBezierSurface( tx, ty, points ) );
+				}
+			}
+
+			for( int y = 0; y < tess_y; y++ ) {
+				for( int x = 0; x < tess_x; x++ ) {
+					u32 bl = ( y + 0 ) * ( tess_x + 1 ) + x + 0 + base_vert;
+					u32 br = ( y + 0 ) * ( tess_x + 1 ) + x + 1 + base_vert;
+					u32 tl = ( y + 1 ) * ( tess_x + 1 ) + x + 0 + base_vert;
+					u32 tr = ( y + 1 ) * ( tess_x + 1 ) + x + 1 + base_vert;
+
+					bsp->indices->add( bl );
+					bsp->indices->add( tl );
+					bsp->indices->add( br );
+
+					bsp->indices->add( br );
+					bsp->indices->add( tl );
+					bsp->indices->add( tr );
 				}
 			}
 		}

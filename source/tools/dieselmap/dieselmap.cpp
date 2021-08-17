@@ -532,6 +532,46 @@ static void format( FormatBuffer * fb, const Plane & plane, const FormatOpts & o
 	ggformat_impl( fb, "{.5}.X = {.1}", plane.normal, plane.distance );
 }
 
+static bool IsAxial( Vec3 v ) {
+	for( int i = 0; i < 3; i++ ) {
+		if( Abs( v[ i ] ) == 1.0f ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static void AddBSPPlane( BSP * bsp, Plane plane, bool bevel = false ) {
+	if( !bevel && IsAxial( plane.normal ) )
+		return;
+
+	BSPBrushFace bspface;
+	bspface.planenum = bsp->planes->size();
+	bspface.material = 0;
+	bsp->brush_faces->add( bspface );
+	bsp->planes->add( plane );
+}
+
+static void AddBevelPlanes( BSP * bsp, const MinMax3 & bounds ) {
+	for( int i = 0; i < 6; i++ ) {
+		Plane plane = { };
+		float sign = i % 2 == 0 ? -1.0f : 1.0f;
+		plane.normal[ i / 2 ] = sign;
+		plane.distance = sign * ( i % 2 == 0 ? bounds.mins : bounds.maxs )[ i / 2 ];
+		AddBSPPlane( bsp, plane, true );
+	}
+}
+
+static void AddBrush( BSP * bsp, size_t first_face ) {
+	BSPBrush bspbrush;
+	bspbrush.first_face = first_face;
+	bspbrush.material = 0;
+	bspbrush.num_faces = bsp->brush_faces->size() - first_face;
+	size_t bsp_brush_id = bsp->brushes->add( bspbrush );
+	bsp->brush_ids->add( bsp_brush_id );
+}
+
 static bool FaceToVerts( FaceVerts * verts, const Brush & brush, const Plane * planes, size_t face ) {
 	for( size_t i = 0; i < brush.faces.n; i++ ) {
 		if( i == face )
@@ -839,14 +879,6 @@ static MinMax3 HugeBounds() {
 	return MinMax3( Vec3( -FLT_MAX ), Vec3( FLT_MAX ) );
 }
 
-static void AddBSPPlane( BSP * bsp, Plane plane ) {
-	BSPBrushFace bspface;
-	bspface.planenum = bsp->planes->size();
-	bspface.material = 0;
-	bsp->brush_faces->add( bspface );
-	bsp->planes->add( plane );
-}
-
 static s32 MakeLeaf( BSP * bsp, Span< const Brush > brushes, Span< const MinMax3 > brush_bounds, Span< const u32 > brush_ids ) {
 	BSPLeaf leaf = { };
 	leaf.bounds = HugeBounds();
@@ -856,27 +888,17 @@ static s32 MakeLeaf( BSP * bsp, Span< const Brush > brushes, Span< const MinMax3
 
 	for( u32 brush_id : brush_ids ) {
 		const Brush & brush = brushes[ brush_id ];
+		size_t first_face = bsp->brush_faces->size();
 
-		BSPBrush bspbrush;
-		bspbrush.first_face = bsp->brush_faces->size();
-		bspbrush.num_faces = brush.faces.n + 6;
-		bspbrush.material = 0;
-		size_t bsp_brush_id = bsp->brushes->add( bspbrush );
-		bsp->brush_ids->add( bsp_brush_id );
-
-		for( int i = 0; i < 6; i++ ) {
-			Plane plane = { };
-			float sign = i % 2 == 0 ? -1.0f : 1.0f;
-			plane.normal[ i / 2 ] = sign;
-			plane.distance = sign * ( i % 2 == 0 ? brush_bounds[ brush_id ].mins : brush_bounds[ brush_id ].maxs )[ i / 2 ];
-			AddBSPPlane( bsp, plane );
-		}
+		AddBevelPlanes( bsp, brush_bounds[ brush_id ] );
 
 		for( const Face & face : brush.faces.span() ) {
 			Plane plane;
 			PlaneFrom3Points( &plane, face.plane[ 0 ], face.plane[ 1 ], face.plane[ 2 ] );
 			AddBSPPlane( bsp, plane );
 		}
+
+		AddBrush( bsp, first_face );
 	}
 
 	return -s32( leaf_id + 1 );

@@ -126,6 +126,10 @@ struct BSPVertex {
 	RGBA8 vertex_light;
 };
 
+struct BSPTriangle {
+	u32 a, b, c;
+};
+
 struct BSPFace {
 	u32 material;
 	s32 fog;
@@ -153,7 +157,7 @@ struct BSP {
 	DynamicString * entities;
 	DynamicArray< BSPMaterial > * materials;
 	DynamicArray< BSPVertex > * vertices;
-	DynamicArray< u32 > * indices;
+	DynamicArray< BSPTriangle > * triangles;
 	DynamicArray< BSPFace > * faces;
 	DynamicArray< BSPModel > * models;
 
@@ -614,9 +618,7 @@ static bool BrushToVerts( BSP * bsp, const Brush & brush, MinMax3 * bounds ) {
 
 		size_t base_vert = bsp->vertices->size() - verts.n;
 		for( size_t j = 0; j < verts.n - 2; j++ ) {
-			bsp->indices->add( base_vert );
-			bsp->indices->add( base_vert + j + 2 );
-			bsp->indices->add( base_vert + j + 1 );
+			bsp->triangles->add( { u32( base_vert ), u32( base_vert + j + 2 ), u32( base_vert + j + 1 ) } );
 		}
 	}
 
@@ -748,13 +750,8 @@ static void PatchToVerts( BSP * bsp, const Patch & patch ) {
 					u32 tl = ( y + 1 ) * ( tess_x + 1 ) + x + 0 + base_vert;
 					u32 tr = ( y + 1 ) * ( tess_x + 1 ) + x + 1 + base_vert;
 
-					bsp->indices->add( bl );
-					bsp->indices->add( tl );
-					bsp->indices->add( br );
-
-					bsp->indices->add( br );
-					bsp->indices->add( tl );
-					bsp->indices->add( tr );
+					bsp->triangles->add( { bl, tl, br } );
+					bsp->triangles->add( { br, tl, tr } );
 				}
 			}
 		}
@@ -1077,7 +1074,7 @@ static void WriteBSP( TempAllocator * temp, BSP * bsp ) {
 	Pack( packed, &header, BSPLump_Brushes, bsp->brushes->span() );
 	Pack( packed, &header, BSPLump_BrushSides, bsp->brush_faces->span() );
 	Pack( packed, &header, BSPLump_Vertices, bsp->vertices->span() );
-	Pack( packed, &header, BSPLump_Indices, bsp->indices->span() );
+	Pack( packed, &header, BSPLump_Indices, bsp->triangles->span() );
 	Pack( packed, &header, BSPLump_Faces, bsp->faces->span() );
 
 	memcpy( &packed[ header_offset ], &header, sizeof( header ) );
@@ -1130,7 +1127,7 @@ int main() {
 	DynamicArray< BSPMaterial > materials( sys_allocator );
 	DynamicArray< Plane > planes( sys_allocator );
 	DynamicArray< BSPVertex > vertices( sys_allocator );
-	DynamicArray< u32 > indices( sys_allocator );
+	DynamicArray< BSPTriangle > triangles( sys_allocator );
 	DynamicArray< BSPFace > faces( sys_allocator );
 	DynamicArray< BSPModel > models( sys_allocator );
 	DynamicArray< BSPNode > nodes( sys_allocator );
@@ -1144,7 +1141,7 @@ int main() {
 	bsp.materials = &materials;
 	bsp.planes = &planes;
 	bsp.vertices = &vertices;
-	bsp.indices = &indices;
+	bsp.triangles = &triangles;
 	bsp.faces = &faces;
 	bsp.models = &models;
 	bsp.nodes = &nodes;
@@ -1198,7 +1195,7 @@ int main() {
 		face.first_vertex = 0;
 		face.num_vertices = bsp.vertices->size();
 		face.first_index = 0;
-		face.num_indices = bsp.indices->size();
+		face.num_indices = bsp.triangles->size() * 3;
 		bsp.faces->add( face );
 	}
 

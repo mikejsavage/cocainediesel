@@ -1156,13 +1156,14 @@ int main() {
 	FrameMark;
 
 	for( Entity & entity : entities ) {
-		if( GetKey( entity.kvs.span(), "classname" ) == "func_group" ) {
-			entities[ 0 ].brushes.add_many( entity.brushes.span() );
-			entities[ 0 ].patches.add_many( entity.patches.span() );
+		if( GetKey( entity.kvs.span(), "classname" ) != "func_group" )
+			continue;
 
-			entity.brushes.clear();
-			entity.patches.clear();
-		}
+		entities[ 0 ].brushes.add_many( entity.brushes.span() );
+		entities[ 0 ].patches.add_many( entity.patches.span() );
+
+		entity.brushes.clear();
+		entity.patches.clear();
 	}
 
 	FrameMark;
@@ -1263,7 +1264,6 @@ int main() {
 	// TODO: parse materials and set solid bits etc
 	//
 	// - generate shit for all map models
-	// - merge func_group into worldspawn
 	//
 	// TODO: new map format
 	// - see bsp2.cpp

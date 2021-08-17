@@ -686,7 +686,7 @@ static BSPVertex SampleBezierSurface( float tx, float ty, Span2D< const ControlP
 	Vec3 powers_dcy( 2.0f * cty, 1.0f, 0.0f );
 	Vec3 tangent( 0.0f );
 	Vec3 bitangent( 0.0f );
-	for( u8 i = 0; i < 3; i++ ) {
+	for( int i = 0; i < 3; i++ ) {
 		Mat3 curve(
 			control( 0, 0 ).position[ i ], control( 1, 0 ).position[ i ], control( 2, 0 ).position[ i ],
 			control( 0, 1 ).position[ i ], control( 1, 1 ).position[ i ], control( 2, 1 ).position[ i ],

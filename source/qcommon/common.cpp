@@ -196,7 +196,7 @@ void Com_Printf( const char *format, ... ) {
 			Sys_FormatTime( timestamp, sizeof( timestamp ), "%Y-%m-%dT%H:%M:%SZ " );
 			WritePartialFile( log_file, timestamp, strlen( timestamp ) );
 		}
-		bool ok = WritePartialFile( log_file, msg, strlen( msg ) );
+		WritePartialFile( log_file, msg, strlen( msg ) );
 		if( logconsole_flush && logconsole_flush->integer ) {
 			fflush( log_file );
 		}

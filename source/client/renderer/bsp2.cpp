@@ -2,7 +2,7 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/backend.h"
 
-constexpr u32 MAP_MAGIC_BYTES = U32( 133769420 );
+constexpr u32 MAP_MAGIC = U32( 133769420 );
 
 struct Lump {
 	u32 offset;
@@ -47,6 +47,7 @@ struct MapMesh {
 };
 
 struct MapModel {
+	MinMax3 bounds;
 	u16 first_mesh;
 	u16 num_meshes;
 	u32 root_node;
@@ -92,7 +93,6 @@ struct MapBrush {
 };
 
 STATIC_ASSERT( sizeof( MapMesh ) == 2 * sizeof( u64 ) );
-// STATIC_ASSERT( sizeof( MapModel ) == 2 * sizeof( u16 ) );
 STATIC_ASSERT( sizeof( MapNode ) == sizeof( MapNodeOrLeaf ) );
 STATIC_ASSERT( sizeof( MapLeaf ) == sizeof( MapNodeOrLeaf ) );
 STATIC_ASSERT( sizeof( MapFace ) == 3 * sizeof( u64 ) );
@@ -116,7 +116,7 @@ struct MapSpans {
 template< typename T >
 bool ParseLump( Span< T > * span, Span< const u8 > data, Lump lump ) {
 	size_t one_past_end = lump.offset + lump.n * sizeof( T );
-	if( one_past_end > data.n )
+	if( one_past_end > data.n || lump.offset % alignof( T ) != 0 )
 		return false;
 
 	*span = data.slice( lump.offset, one_past_end ).cast< T >();
@@ -134,7 +134,7 @@ bool ParseMap( MapSpans * spans, Span< const u8 > data ) {
 		return false;
 
 	const MapHeader * header = ( const MapHeader * ) data.ptr;
-	if( header->magic != MAP_MAGIC_BYTES )
+	if( header->magic != MAP_MAGIC )
 		return false;
 
 	bool ok = true;

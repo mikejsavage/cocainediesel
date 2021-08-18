@@ -639,6 +639,7 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 
 	Delta( buf, pmove.features, baseline.features );
 
+	Delta( buf, pmove.no_shooting_time, baseline.no_shooting_time );
 	Delta( buf, pmove.knockback_time, baseline.knockback_time );
 	Delta( buf, pmove.crouch_time, baseline.crouch_time );
 	Delta( buf, pmove.dash_time, baseline.dash_time );

@@ -139,9 +139,8 @@ enum BombProgress {
 #define GAMESTAT_FLAG_PAUSED ( 1 << 0 )
 #define GAMESTAT_FLAG_WAITING ( 1 << 1 )
 #define GAMESTAT_FLAG_HASCHALLENGERS ( 1 << 2 )
-#define GAMESTAT_FLAG_INHIBITSHOOTING ( 1 << 3 )
-#define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 4 )
-#define GAMESTAT_FLAG_COUNTDOWN ( 1 << 5 )
+#define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 3 )
+#define GAMESTAT_FLAG_COUNTDOWN ( 1 << 4 )
 
 enum {
 	TEAM_SPECTATOR,
@@ -270,6 +269,8 @@ struct pmove_state_t {
 	int pm_time;
 
 	u16 features;
+
+	s16 no_shooting_time;
 
 	s16 knockback_time;
 	s16 crouch_time;

@@ -187,7 +187,6 @@ void roundNewState( RoundState state ) {
 			roundCheckEndTime = true;
 			roundStateEndTime = levelTime + 5000;
 
-			gametype.shootingDisabled = true;
 			gametype.removeInactivePlayers = false;
 
 			match.exploding = false;
@@ -214,7 +213,6 @@ void roundNewState( RoundState state ) {
 			roundStartTime = levelTime;
 			roundStateEndTime = levelTime + int( cvarRoundTime.value * 1000.0f );
 
-			gametype.shootingDisabled = false;
 			gametype.removeInactivePlayers = true;
 
 			enableMovement();
@@ -226,8 +224,6 @@ void roundNewState( RoundState state ) {
 		case RoundState_Finished:
 			roundCheckEndTime = true;
 			roundStateEndTime = levelTime + 1500; // magic numbers are awesome
-
-			gametype.shootingDisabled = false;
 
 			break;
 
@@ -407,6 +403,7 @@ void disableMovementFor( Client @client ) {
 	client.pmoveMaxSpeed = 100;
 	client.pmoveDashSpeed = 0;
 	client.pmoveFeatures = client.pmoveFeatures & ~( PMFEAT_JUMP | PMFEAT_SPECIAL );
+	client.noShootingTime = 5000;
 }
 
 void disableMovement() {

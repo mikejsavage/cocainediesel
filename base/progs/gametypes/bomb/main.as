@@ -369,7 +369,6 @@ void GT_InitGametype() {
 
 	gametype.countdownEnabled = false;
 	gametype.matchAbortDisabled = false;
-	gametype.shootingDisabled = false;
 	gametype.removeInactivePlayers = true;
 
 	// set spawnsystem type to instant while players join

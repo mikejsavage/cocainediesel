@@ -45,7 +45,6 @@ typedef struct {
 	// few default settings
 	bool countdownEnabled;
 	bool matchAbortDisabled;
-	bool shootingDisabled;
 	bool removeInactivePlayers;
 	bool selfDamage;
 } gametype_descriptor_t;

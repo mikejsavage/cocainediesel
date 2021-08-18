@@ -482,7 +482,6 @@ static const asProperty_t gametypedescr_Properties[] = {
 	{ ASLIB_PROPERTY_DECL( bool, hasChallengersRoulette ), offsetof( gametype_descriptor_t, hasChallengersRoulette ) },
 	{ ASLIB_PROPERTY_DECL( bool, countdownEnabled ), offsetof( gametype_descriptor_t, countdownEnabled ) },
 	{ ASLIB_PROPERTY_DECL( bool, matchAbortDisabled ), offsetof( gametype_descriptor_t, matchAbortDisabled ) },
-	{ ASLIB_PROPERTY_DECL( bool, shootingDisabled ), offsetof( gametype_descriptor_t, shootingDisabled ) },
 	{ ASLIB_PROPERTY_DECL( bool, removeInactivePlayers ), offsetof( gametype_descriptor_t, removeInactivePlayers ) },
 	{ ASLIB_PROPERTY_DECL( bool, selfDamage ), offsetof( gametype_descriptor_t, selfDamage ) },
 
@@ -826,6 +825,7 @@ static const asProperty_t gameclient_Properties[] = {
 	{ ASLIB_PROPERTY_DECL( int16, pmoveMaxSpeed ), offsetof( gclient_t, ps.pmove.max_speed ) },
 	{ ASLIB_PROPERTY_DECL( int16, pmoveJumpSpeed ), offsetof( gclient_t, ps.pmove.jump_speed ) },
 	{ ASLIB_PROPERTY_DECL( int16, pmoveDashSpeed ), offsetof( gclient_t, ps.pmove.dash_speed ) },
+	{ ASLIB_PROPERTY_DECL( int16, noShootingTime ), offsetof( gclient_t, ps.pmove.no_shooting_time ) },
 
 	{ }
 };

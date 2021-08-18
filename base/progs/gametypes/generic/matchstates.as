@@ -19,13 +19,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void GENERIC_SetUpWarmup()
 {
-	gametype.shootingDisabled = false;
 	gametype.countdownEnabled = false;
 }
 
 void GENERIC_SetUpCountdown()
 {
-	gametype.shootingDisabled = false;
 	gametype.countdownEnabled = true;
 
 	// Countdowns should be made entirely client side, because we now can
@@ -36,12 +34,7 @@ void GENERIC_SetUpCountdown()
 
 void GENERIC_SetUpMatch()
 {
-	int i, j;
-	Entity @ent;
-	Team @team;
-
 	G_RemoveAllProjectiles();
-	gametype.shootingDisabled = true;  // avoid shooting before "FIGHT!"
 	gametype.countdownEnabled = true;
 
 	// clear player stats and scores, team scores and respawn clients in team lists
@@ -49,14 +42,14 @@ void GENERIC_SetUpMatch()
 	G_GetTeam( TEAM_ALPHA ).setScore( 0 );
 	G_GetTeam( TEAM_BETA ).setScore( 0 );
 
-	for ( i = TEAM_PLAYERS; i < GS_MAX_TEAMS; i++ )
+	for ( int i = TEAM_PLAYERS; i < GS_MAX_TEAMS; i++ )
 	{
-		@team = @G_GetTeam( i );
+		Team @team = @G_GetTeam( i );
 
 		// respawn all clients inside the playing teams
-		for ( j = 0; @team.ent( j ) != null; j++ )
+		for ( int j = 0; @team.ent( j ) != null; j++ )
 		{
-			@ent = @team.ent( j );
+			Entity @ent = @team.ent( j );
 			ent.client.stats.clear(); // clear player scores & stats
 			ent.client.respawn( false );
 		}
@@ -68,16 +61,12 @@ void GENERIC_SetUpMatch()
 	uint64 sound = Hash64( "sounds/announcer/fight" );
 	G_AnnouncerSound( null, sound, GS_MAX_TEAMS, false, null );
 	G_CenterPrintMsg( null, "FIGHT!" );
-
-	// now we can enable shooting
-	gametype.shootingDisabled = false;
 }
 
 void GENERIC_SetUpEndMatch()
 {
 	Client @client;
 
-	gametype.shootingDisabled = true;
 	gametype.countdownEnabled = false;
 
 	for ( int i = 0; i < maxClients; i++ )

@@ -199,7 +199,7 @@ FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path ) {
 	return metadata;
 }
 
-char * ExecutablePath( Allocator * a ) {
+char * GetExePath( Allocator * a ) {
 	DWORD buf_size = 1024;
 	wchar_t * wide_buf = ALLOC_MANY( a, wchar_t, buf_size );
 	defer { FREE( a, wide_buf ); };

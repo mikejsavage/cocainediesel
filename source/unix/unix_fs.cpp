@@ -136,7 +136,7 @@ FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path ) {
 	return metadata;
 }
 
-char * ExecutablePath( Allocator * a ) {
+char * GetExePath( Allocator * a ) {
 	size_t buf_size = 1024;
 	char * buf = ALLOC_MANY( a, char, buf_size );
 

@@ -41,5 +41,3 @@ struct FileMetadata {
 };
 
 FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path );
-
-char * ExecutablePath( Allocator * a );

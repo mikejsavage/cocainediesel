@@ -20,11 +20,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include <stdio.h>
-
 #include "qcommon/types.h"
 
 bool    Sys_FS_CreateDirectory( const char *path );
 
+
+char * GetExePath( Allocator * a );
 char * FindHomeDirectory( Allocator * a );
 bool CreateDirectory( Allocator * a, const char * path );

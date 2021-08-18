@@ -17,7 +17,7 @@ static void ReplaceBackslashes( char * path ) {
 }
 
 static char * FindRootDir( Allocator * a ) {
-	char * root = ExecutablePath( a );
+	char * root = GetExePath( a );
 	ReplaceBackslashes( root );
 	root[ BasePath( root ).n ] = '\0';
 	return root;

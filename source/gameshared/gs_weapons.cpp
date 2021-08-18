@@ -530,7 +530,7 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd
 		ps->pending_weapon = cmd.weaponSwitch;
 	}
 
-	if( GS_ShootingDisabled( gs ) ) {
+	if( ps->pmove.no_shooting_time > 0 ) {
 		cmd.buttons = cmd.buttons & ~BUTTON_ATTACK;
 		cmd.buttons = cmd.buttons & ~BUTTON_GADGET;
 	}

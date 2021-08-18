@@ -1298,6 +1298,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 			}
 		}
 
+		ps->pmove.no_shooting_time = Max2( 0, ps->pmove.no_shooting_time - pm->cmd.msec );
 		ps->pmove.knockback_time = Max2( 0, ps->pmove.knockback_time - pm->cmd.msec );
 		ps->pmove.dash_time = Max2( 0, ps->pmove.dash_time - pm->cmd.msec );
 		ps->pmove.walljump_time = Max2( 0, ps->pmove.walljump_time - pm->cmd.msec );

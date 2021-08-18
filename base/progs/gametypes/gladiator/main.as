@@ -333,7 +333,6 @@ class cDARound {
 				this.countDown = 4;
 
 				// respawn everyone and disable shooting
-				gametype.shootingDisabled = true;
 				gametype.removeInactivePlayers = false;
 
 				Entity @ent;
@@ -360,6 +359,7 @@ class cDARound {
 					@ent = @team.ent( j );
 					if( this.isChallenger( ent.client ) ) {
 						ent.client.respawn( false );
+						ent.client.noShootingTime = CountdownSeconds * 1000;
 						if( ent.client.stats.score == topscore ) {
 							ent.model2 = crownModel;
 							ent.effects |= EF_HAT;
@@ -405,7 +405,6 @@ class cDARound {
 			} break;
 
 			case DA_ROUNDSTATE_ROUND: {
-				gametype.shootingDisabled = false;
 				gametype.removeInactivePlayers = true;
 				this.countDown = 0;
 				this.roundStateEndTime = 0;
@@ -414,7 +413,6 @@ class cDARound {
 			} break;
 
 			case DA_ROUNDSTATE_ROUNDFINISHED:
-				gametype.shootingDisabled = false;
 				this.roundStateEndTime = levelTime + 500;
 				this.countDown = 0;
 				break;
@@ -709,7 +707,6 @@ void GT_InitGametype() {
 
 	gametype.countdownEnabled = false;
 	gametype.matchAbortDisabled = false;
-	gametype.shootingDisabled = false;
 	gametype.removeInactivePlayers = true;
 	gametype.selfDamage = false;
 

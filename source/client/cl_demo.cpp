@@ -327,7 +327,7 @@ static void CL_StartDemo( const char *demoname, bool yolo ) {
 	}
 
 	if( filename ) {
-		tempdemofilelen = FS_FOpenFile( filename, &tempdemofilehandle, FS_READ | SNAP_DEMO_GZ );  // open the demo file
+		tempdemofilelen = FS_FOpenBaseFile( filename, &tempdemofilehandle, FS_READ | SNAP_DEMO_GZ );  // open the demo file
 	}
 
 	if( !tempdemofilehandle ) {
@@ -379,7 +379,7 @@ static void CL_StartDemo( const char *demoname, bool yolo ) {
 * CL_DemoComplete
 */
 const char **CL_DemoComplete( const char *partial ) {
-	return Cmd_CompleteHomeDirFileList( partial, "base/demos", APP_DEMO_EXTENSION_STR );
+	return Cmd_CompleteHomeDirFileList( partial, "demos", APP_DEMO_EXTENSION_STR );
 }
 
 /*

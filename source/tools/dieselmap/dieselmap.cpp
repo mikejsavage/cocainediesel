@@ -299,6 +299,7 @@ constexpr size_t MAX_BRUSH_FACES = 32;
 
 struct Brush {
 	StaticArray< Face, MAX_BRUSH_FACES > faces;
+	MinMax3 bounds;
 };
 
 struct ControlPoint {
@@ -572,12 +573,12 @@ static void AddBrush( BSP * bsp, size_t first_face ) {
 	bsp->brush_ids->add( bsp_brush_id );
 }
 
-static bool FaceToVerts( FaceVerts * verts, const Brush & brush, const Plane * planes, size_t face ) {
-	for( size_t i = 0; i < brush.faces.n; i++ ) {
+static bool FaceToVerts( FaceVerts * verts, const Brush * brush, const Plane * planes, size_t face ) {
+	for( size_t i = 0; i < brush->faces.n; i++ ) {
 		if( i == face )
 			continue;
 
-		for( size_t j = i + 1; j < brush.faces.n; j++ ) {
+		for( size_t j = i + 1; j < brush->faces.n; j++ ) {
 			if( j == face )
 				continue;
 
@@ -585,7 +586,7 @@ static bool FaceToVerts( FaceVerts * verts, const Brush & brush, const Plane * p
 			if( !Intersect3PlanesPoint( &p, planes[ face ], planes[ i ], planes[ j ] ) )
 				continue;
 
-			if( !PointInsideBrush( Span< const Plane >( planes, brush.faces.n ), p ) )
+			if( !PointInsideBrush( Span< const Plane >( planes, brush->faces.n ), p ) )
 				continue;
 
 			verts->add( { p, Vec2() } );
@@ -600,19 +601,20 @@ static Vec2 ProjectFaceVert( Vec3 centroid, Vec3 tangent, Vec3 bitangent, Vec3 p
 	return Vec2( Dot( d, tangent ), Dot( d, bitangent ) );
 }
 
-static bool BrushToVerts( BSP * bsp, const Brush & brush, MinMax3 * bounds ) {
+static bool BrushToVerts( BSP * bsp, Brush * brush ) {
 	ZoneScoped;
 
 	Plane planes[ MAX_BRUSH_FACES ];
+	brush->bounds = MinMax3::Empty();
 
-	for( size_t i = 0; i < brush.faces.n; i++ ) {
-		const Face & face = brush.faces.elems[ i ];
+	for( size_t i = 0; i < brush->faces.n; i++ ) {
+		const Face & face = brush->faces.elems[ i ];
 		if( !PlaneFrom3Points( &planes[ i ], face.plane[ 0 ], face.plane[ 1 ], face.plane[ 2 ] ) ) {
 			return false;
 		}
 	}
 
-	for( size_t i = 0; i < brush.faces.n; i++ ) {
+	for( size_t i = 0; i < brush->faces.n; i++ ) {
 		// generate arbitrary list of points
 		FaceVerts verts = { };
 		if( !FaceToVerts( &verts, brush, planes, i ) ) {
@@ -653,7 +655,7 @@ static bool BrushToVerts( BSP * bsp, const Brush & brush, MinMax3 * bounds ) {
 			vertex.normal = planes[ i ].normal;
 			bsp->vertices->add( vertex );
 
-			*bounds = Union( *bounds, unprojected );
+			brush->bounds = Union( brush->bounds, unprojected );
 		}
 
 		size_t base_vert = bsp->vertices->size() - verts.n;
@@ -844,17 +846,17 @@ float SurfaceArea( MinMax3 bounds ) {
 	return 2.0f * ( dims.x * dims.y + dims.x * dims.z + dims.y * dims.z );
 }
 
-CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const MinMax3 > brush_bounds, Span< const u32 > brushes ) {
+CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const Brush > brushes, Span< const u32 > brush_ids ) {
 	CandidatePlanes planes;
 
 	for( int i = 0; i < 3; i++ ) {
-		Span< CandidatePlane > axis = ALLOC_SPAN( a, CandidatePlane, brushes.n * 2 );
+		Span< CandidatePlane > axis = ALLOC_SPAN( a, CandidatePlane, brush_ids.n * 2 );
 		planes.axes[ i ] = axis;
 
-		for( u32 j = 0; j < brushes.n; j++ ) {
-			u32 brush = brushes[ j ];
-			axis[ j * 2 + 0 ] = { brush_bounds[ brush ].mins[ i ], brush, true };
-			axis[ j * 2 + 1 ] = { brush_bounds[ brush ].maxs[ i ], brush, false };
+		for( u32 j = 0; j < brush_ids.n; j++ ) {
+			u32 brush_id = brush_ids[ j ];
+			axis[ j * 2 + 0 ] = { brushes[ brush_id ].bounds.mins[ i ], brush_id, true };
+			axis[ j * 2 + 1 ] = { brushes[ brush_id ].bounds.maxs[ i ], brush_id, false };
 		}
 
 		std::sort( axis.begin(), axis.end(), []( const CandidatePlane & a, const CandidatePlane & b ) {
@@ -879,7 +881,7 @@ static MinMax3 HugeBounds() {
 	return MinMax3( Vec3( -FLT_MAX ), Vec3( FLT_MAX ) );
 }
 
-static s32 MakeLeaf( BSP * bsp, Span< const Brush > brushes, Span< const MinMax3 > brush_bounds, Span< const u32 > brush_ids ) {
+static s32 MakeLeaf( BSP * bsp, Span< const Brush > brushes, Span< const u32 > brush_ids ) {
 	BSPLeaf leaf = { };
 	leaf.bounds = HugeBounds();
 	leaf.firstLeafBrush = bsp->brush_ids->size();
@@ -890,7 +892,7 @@ static s32 MakeLeaf( BSP * bsp, Span< const Brush > brushes, Span< const MinMax3
 		const Brush & brush = brushes[ brush_id ];
 		size_t first_face = bsp->brush_faces->size();
 
-		AddBevelPlanes( bsp, brush_bounds[ brush_id ] );
+		AddBevelPlanes( bsp, brushes[ brush_id ].bounds );
 
 		for( const Face & face : brush.faces.span() ) {
 			Plane plane;
@@ -904,12 +906,12 @@ static s32 MakeLeaf( BSP * bsp, Span< const Brush > brushes, Span< const MinMax3
 	return -s32( leaf_id + 1 );
 }
 
-s32 BuildKDTreeRecursive( BSP * bsp, Span< const Brush > brushes, Span< const MinMax3 > brush_bounds, Span< const u32 > node_brushes, MinMax3 node_bounds, u32 max_depth ) {
+s32 BuildKDTreeRecursive( BSP * bsp, Span< const Brush > brushes, Span< const u32 > node_brushes, MinMax3 node_bounds, u32 max_depth ) {
 	ZoneScoped;
 
 	if( node_brushes.n <= 1 || max_depth == 0 ) {
 		ZoneScopedN( "leaf time" );
-		return MakeLeaf( bsp, brushes, brush_bounds, node_brushes );
+		return MakeLeaf( bsp, brushes, node_brushes );
 	}
 
 	float best_cost = INFINITY;
@@ -918,7 +920,7 @@ s32 BuildKDTreeRecursive( BSP * bsp, Span< const Brush > brushes, Span< const Mi
 
 	float node_surface_area = SurfaceArea( node_bounds );
 
-	CandidatePlanes candidate_planes = BuildCandidatePlanes( sys_allocator, brush_bounds, node_brushes );
+	CandidatePlanes candidate_planes = BuildCandidatePlanes( sys_allocator, brushes, node_brushes );
 	defer {
 		for( int i = 0; i < 3; i++ ) {
 			FREE( sys_allocator, candidate_planes.axes[ i ].ptr );
@@ -929,7 +931,7 @@ s32 BuildKDTreeRecursive( BSP * bsp, Span< const Brush > brushes, Span< const Mi
 		int axis = ( MaxAxis( node_bounds ) + i ) % 3;
 
 		size_t num_below = 0;
-		size_t num_above = brush_bounds.n;
+		size_t num_above = brushes.n;
 
 		for( size_t j = 0; j < candidate_planes.axes[ axis ].n; j++ ) {
 			const CandidatePlane & plane = candidate_planes.axes[ axis ][ j ];
@@ -970,7 +972,7 @@ s32 BuildKDTreeRecursive( BSP * bsp, Span< const Brush > brushes, Span< const Mi
 
 	if( best_cost == INFINITY ) {
 		ZoneScopedN( "other leaf time" );
-		return MakeLeaf( bsp, brushes, brush_bounds, node_brushes );
+		return MakeLeaf( bsp, brushes, node_brushes );
 	}
 
 	// make node
@@ -1005,8 +1007,8 @@ s32 BuildKDTreeRecursive( BSP * bsp, Span< const Brush > brushes, Span< const Mi
 		}
 	}
 
-	node.children[ 1 ] = BuildKDTreeRecursive( bsp, brushes, brush_bounds, below_brushes.span(), below_bounds, max_depth - 1 );
-	node.children[ 0 ] = BuildKDTreeRecursive( bsp, brushes, brush_bounds, above_brushes.span(), above_bounds, max_depth - 1 );
+	node.children[ 1 ] = BuildKDTreeRecursive( bsp, brushes, below_brushes.span(), below_bounds, max_depth - 1 );
+	node.children[ 0 ] = BuildKDTreeRecursive( bsp, brushes, above_brushes.span(), above_bounds, max_depth - 1 );
 
 	( *bsp->nodes )[ node_id ] = node;
 
@@ -1025,12 +1027,12 @@ u32 Log2( u64 x ) {
 	return log;
 }
 
-void BuildKDTree( BSP * bsp, Span< const Brush > brushes, Span< const MinMax3 > brush_bounds ) {
+void BuildKDTree( BSP * bsp, Span< const Brush > brushes ) {
 	ZoneScoped;
 
 	MinMax3 tree_bounds = MinMax3::Empty();
-	for( MinMax3 bounds : brush_bounds ) {
-		tree_bounds = Union( bounds, tree_bounds );
+	for( const Brush & brush : brushes ) {
+		tree_bounds = Union( brush.bounds, tree_bounds );
 	}
 
 	u32 max_depth = roundf( 8.0f + 1.3f * Log2( brushes.n ) );
@@ -1042,7 +1044,7 @@ void BuildKDTree( BSP * bsp, Span< const Brush > brushes, Span< const MinMax3 > 
 		}
 	}
 
-	BuildKDTreeRecursive( bsp, brushes, brush_bounds, all_brushes.span(), tree_bounds, max_depth );
+	BuildKDTreeRecursive( bsp, brushes, all_brushes.span(), tree_bounds, max_depth );
 
 	if( bsp->nodes->size() == 0 ) {
 		Plane split;
@@ -1195,22 +1197,11 @@ int main() {
 	bsp.brush_ids = &brush_ids;
 	bsp.brush_faces = &brush_faces;
 
-	DynamicString obj( sys_allocator );
-
-	Span< MinMax3 > brush_bounds = ALLOC_SPAN( sys_allocator, MinMax3, entities[ 0 ].brushes.size() );
-	defer { FREE( sys_allocator, brush_bounds.ptr ); };
-
-	size_t brush_id = 0;
-	for( const Entity & entity : entities ) {
-		for( const Brush & brush : entity.brushes ) {
-			MinMax3 bounds = MinMax3::Empty();
-			bool asd = BrushToVerts( &bsp, brush, &bounds );
+	for( Entity & entity : entities ) {
+		for( Brush & brush : entity.brushes ) {
+			bool asd = BrushToVerts( &bsp, &brush );
+			assert( asd );
 			// ggprint( "{}\n", asd );
-
-			if( brush_id < entities[ 0 ].brushes.size() ) {
-				brush_bounds[ brush_id ] = bounds;
-				brush_id++;
-			}
 		}
 
 		for( const Patch & patch : entity.patches ) {
@@ -1219,11 +1210,9 @@ int main() {
 		}
 	}
 
-	WriteFile( &temp, "source/tools/maptogltf/test.obj", obj.c_str(), obj.length() );
-
 	FrameMark;
 
-	BuildKDTree( &bsp, entities[ 0 ].brushes.span(), brush_bounds );
+	BuildKDTree( &bsp, entities[ 0 ].brushes.span() );
 
 	for( const Entity & entity : entities ) {
 		if( GetKey( entity.kvs.span(), "classname" ) == "func_group" )

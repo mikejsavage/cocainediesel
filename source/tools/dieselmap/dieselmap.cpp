@@ -565,12 +565,12 @@ static void AddBevelPlanes( BSP * bsp, const MinMax3 & bounds ) {
 }
 
 static void AddBrush( BSP * bsp, size_t first_face ) {
-	BSPBrush bspbrush;
-	bspbrush.first_face = first_face;
-	bspbrush.material = 0;
-	bspbrush.num_faces = bsp->brush_faces->size() - first_face;
-	size_t bsp_brush_id = bsp->brushes->add( bspbrush );
-	bsp->brush_ids->add( bsp_brush_id );
+	BSPBrush brush;
+	brush.first_face = first_face;
+	brush.material = 0;
+	brush.num_faces = bsp->brush_faces->size() - first_face;
+	size_t brush_id = bsp->brushes->add( brush );
+	bsp->brush_ids->add( brush_id );
 }
 
 static bool FaceToVerts( FaceVerts * verts, const Brush * brush, const Plane * planes, size_t face ) {
@@ -798,7 +798,44 @@ static void PatchToVerts( BSP * bsp, const Patch & patch ) {
 			}
 		}
 	}
+}
 
+static void AddPatchBrushes( BSP * bsp, size_t first_patch_tri ) {
+	ZoneScoped;
+
+	for( size_t i = first_patch_tri; i < bsp->triangles->size(); i++ ) {
+		BSPTriangle tri = ( *bsp->triangles )[ i ];
+		Vec3 p0 = ( *bsp->vertices )[ tri.a ].position;
+		Vec3 p1 = ( *bsp->vertices )[ tri.b ].position;
+		Vec3 p2 = ( *bsp->vertices )[ tri.c ].position;
+
+		Plane plane;
+		if( !PlaneFrom3Points( &plane, p0, p1, p2 ) )
+			continue;
+
+		size_t first_face = bsp->brush_faces->size();
+
+		MinMax3 bounds = MinMax3::Empty();
+		bounds = Union( bounds, p0 );
+		bounds = Union( bounds, p1 );
+		bounds = Union( bounds, p2 );
+		AddBevelPlanes( bsp, bounds );
+
+		// AddBSPPlane( bsp, plane );
+                //
+		// Plane back_plane = { -plane.normal, -plane.distance - 1.0f };
+		// AddBSPPlane( bsp, back_plane );
+                //
+		// Vec3 points[] = { p0, p1, p2 };
+		// for( int e = 0; e < 3; e++ ) {
+		// 	Vec3 edge = points[ ( e + 1 ) % 3 ] - points[ e ];
+		// 	Vec3 edge_normal = Normalize( Cross( edge, plane.normal ) );
+		// 	Plane edge_plane = { edge_normal, Dot( points[ e ], edge_normal ) };
+		// 	AddBSPPlane( bsp, edge_plane );
+		// }
+
+		AddBrush( bsp, first_face );
+	}
 }
 
 Span< const char > ParseComment( Span< const char > * comment, Span< const char > str ) {
@@ -1039,9 +1076,7 @@ void BuildKDTree( BSP * bsp, Span< const Brush > brushes ) {
 
 	DynamicArray< u32 > all_brushes( sys_allocator );
 	for( u32 i = 0; i < brushes.n; i++ ) {
-		if( brushes[ i ].faces.n > 0 ) {
-			all_brushes.add( i );
-		}
+		all_brushes.add( i );
 	}
 
 	BuildKDTreeRecursive( bsp, brushes, all_brushes.span(), tree_bounds, max_depth );
@@ -1197,6 +1232,7 @@ int main() {
 	bsp.brush_ids = &brush_ids;
 	bsp.brush_faces = &brush_faces;
 
+	// TODO: model per entity
 	for( Entity & entity : entities ) {
 		for( Brush & brush : entity.brushes ) {
 			bool asd = BrushToVerts( &bsp, &brush );
@@ -1204,10 +1240,13 @@ int main() {
 			// ggprint( "{}\n", asd );
 		}
 
+		size_t patch_first_tri = bsp.triangles->size();
+
 		for( const Patch & patch : entity.patches ) {
 			PatchToVerts( &bsp, patch );
-			// TODO: convert to brushes
 		}
+
+		AddPatchBrushes( &bsp, patch_first_tri );
 	}
 
 	FrameMark;

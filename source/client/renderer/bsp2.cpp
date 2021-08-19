@@ -33,10 +33,9 @@ struct MapEntity {
 };
 
 struct MapKeyValue {
-	u16 key_offset;
-	u16 key_length;
-	u16 value_offset;
-	u16 value_length;
+	u16 key_start;
+	u16 value_start;
+	u16 value_one_past_end;
 };
 
 struct MapMesh {
@@ -125,8 +124,8 @@ bool ParseLump( Span< T > * span, Span< const u8 > data, Lump lump ) {
 
 void GetMapKeyValue( const MapSpans & spans, size_t i, Span< const char > * key, Span< const char > * value ) {
 	const MapKeyValue & kv = spans.keyvalues[ i ];
-	*key = spans.chars.slice( kv.key_offset, kv.key_offset + kv.key_length );
-	*value = spans.chars.slice( kv.value_offset, kv.value_offset + kv.value_length );
+	*key = spans.chars.slice( kv.key_start, kv.value_start );
+	*value = spans.chars.slice( kv.value_start, kv.value_one_past_end );
 }
 
 bool ParseMap( MapSpans * spans, Span< const u8 > data ) {

@@ -1225,7 +1225,16 @@ int main() {
 
 	BuildKDTree( &bsp, entities[ 0 ].brushes.span(), brush_bounds );
 
-	bsp.entities->append( R"#({{ "classname" "worldspawn" }} {{ "classname" "spawn_bomb_attacking" "origin" "0 0 1000" }} {{ "classname" "spawn_bomb_defending" "origin" "64 64 1000" }})#" );
+	for( const Entity & entity : entities ) {
+		if( GetKey( entity.kvs.span(), "classname" ) == "func_group" )
+			continue;
+
+		bsp.entities->append( "{{\n" );
+		for( KeyValue kv : entity.kvs.span() ) {
+			bsp.entities->append( "\t\"{}\" \"{}\"\n", kv.key, kv.value );
+		}
+		bsp.entities->append( "}}\n" );
+	}
 
 	{
 		BSPMaterial material = { };

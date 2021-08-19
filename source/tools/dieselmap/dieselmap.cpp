@@ -1244,11 +1244,18 @@ int main() {
 
 	{
 		BSPModel model;
-		model.bounds = HugeBounds();
+		model.bounds = MinMax3::Empty();
 		model.first_face = 0;
 		model.num_faces = bsp.faces->size();
 		model.first_brush = 0;
 		model.num_brushes = bsp.brushes->size();
+
+		for( const Entity & entity : entities ) {
+			for( const Brush & brush : entity.brushes.span() ) {
+				model.bounds = Union( brush.bounds, model.bounds );
+			}
+		}
+
 		bsp.models->add( model );
 	}
 

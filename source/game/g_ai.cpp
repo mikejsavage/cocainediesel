@@ -15,6 +15,7 @@ static const char * bot_names[] = {
 	"__mute__",
 
 	// twitch subs
+	"bes1337",
 	"catman1900",
 	"hvaholic",
 	"ne0ns0up",

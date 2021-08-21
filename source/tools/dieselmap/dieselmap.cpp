@@ -895,9 +895,12 @@ float SurfaceArea( MinMax3 bounds ) {
 }
 
 CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds ) {
+	ZoneScoped;
+
 	CandidatePlanes planes;
 
 	for( int i = 0; i < 3; i++ ) {
+		ZoneScopedN( "iter" );
 		Span< CandidatePlane > axis = ALLOC_SPAN( a, CandidatePlane, brush_ids.n * 2 );
 		planes.axes[ i ] = axis;
 
@@ -907,11 +910,14 @@ CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const u32 > brush_ids
 			axis[ j * 2 + 1 ] = { brush_bounds[ brush_id ].maxs[ i ], brush_id, false };
 		}
 
-		std::sort( axis.begin(), axis.end(), []( const CandidatePlane & a, const CandidatePlane & b ) {
-			if( a.distance == b.distance )
-				return a.start_edge < b.start_edge;
-			return a.distance < b.distance;
-		} );
+		{
+			ZoneScopedN( "sort" );
+			std::sort( axis.begin(), axis.end(), []( const CandidatePlane & a, const CandidatePlane & b ) {
+				if( a.distance == b.distance )
+					return a.start_edge < b.start_edge;
+				return a.distance < b.distance;
+			} );
+		}
 	}
 
 	return planes;
@@ -930,6 +936,8 @@ static MinMax3 HugeBounds() {
 }
 
 static s32 MakeLeaf( BSP * bsp, Span< const u32 > brush_ids ) {
+	ZoneScoped;
+
 	BSPLeaf leaf = { };
 	leaf.bounds = HugeBounds();
 	leaf.firstLeafBrush = bsp->brush_ids->size();
@@ -941,11 +949,10 @@ static s32 MakeLeaf( BSP * bsp, Span< const u32 > brush_ids ) {
 	return -s32( leaf_id + 1 );
 }
 
-s32 BuildKDTreeRecursive( BSP * bsp, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds, MinMax3 node_bounds, u32 max_depth ) {
+s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds, MinMax3 node_bounds, u32 max_depth ) {
 	ZoneScoped;
 
 	if( brush_ids.n <= 1 || max_depth == 0 ) {
-		ZoneScopedN( "leaf time" );
 		return MakeLeaf( bsp, brush_ids );
 	}
 
@@ -955,58 +962,56 @@ s32 BuildKDTreeRecursive( BSP * bsp, Span< const u32 > brush_ids, Span< const Mi
 
 	float node_surface_area = SurfaceArea( node_bounds );
 
-	CandidatePlanes candidate_planes = BuildCandidatePlanes( sys_allocator, brush_ids, brush_bounds );
-	defer {
+	CandidatePlanes candidate_planes = BuildCandidatePlanes( temp, brush_ids, brush_bounds );
+
+	{
+		ZoneScopedN( "Find best split" );
+
 		for( int i = 0; i < 3; i++ ) {
-			FREE( sys_allocator, candidate_planes.axes[ i ].ptr );
-		}
-	};
+			int axis = ( MaxAxis( node_bounds ) + i ) % 3;
 
-	for( int i = 0; i < 3; i++ ) {
-		int axis = ( MaxAxis( node_bounds ) + i ) % 3;
+			size_t num_below = 0;
+			size_t num_above = brush_ids.n;
 
-		size_t num_below = 0;
-		size_t num_above = brush_ids.n;
+			for( size_t j = 0; j < candidate_planes.axes[ axis ].n; j++ ) {
+				const CandidatePlane & plane = candidate_planes.axes[ axis ][ j ];
 
-		for( size_t j = 0; j < candidate_planes.axes[ axis ].n; j++ ) {
-			const CandidatePlane & plane = candidate_planes.axes[ axis ][ j ];
+				if( !plane.start_edge ) {
+					num_above--;
+				}
 
-			if( !plane.start_edge ) {
-				num_above--;
-			}
+				if( plane.distance > node_bounds.mins[ axis ] && plane.distance < node_bounds.maxs[ axis ] ) {
+					MinMax3 below_bounds, above_bounds;
+					Split( node_bounds, axis, plane.distance, &below_bounds, &above_bounds );
 
-			if( plane.distance > node_bounds.mins[ axis ] && plane.distance < node_bounds.maxs[ axis ] ) {
-				MinMax3 below_bounds, above_bounds;
-				Split( node_bounds, axis, plane.distance, &below_bounds, &above_bounds );
+					float frac_below = SurfaceArea( below_bounds ) / node_surface_area;
+					float frac_above = SurfaceArea( above_bounds ) / node_surface_area;
 
-				float frac_below = SurfaceArea( below_bounds ) / node_surface_area;
-				float frac_above = SurfaceArea( above_bounds ) / node_surface_area;
+					float empty_bonus = num_below == 0 || num_above == 0 ? 0.5f : 1.0f;
 
-				float empty_bonus = num_below == 0 || num_above == 0 ? 0.5f : 1.0f;
+					constexpr float traversal_cost = 1.0f;
+					constexpr float intersect_cost = 80.0f;
+					float cost = traversal_cost + intersect_cost * empty_bonus * ( frac_below * num_below + frac_above * num_above );
 
-				constexpr float traversal_cost = 1.0f;
-				constexpr float intersect_cost = 80.0f;
-				float cost = traversal_cost + intersect_cost * empty_bonus * ( frac_below * num_below + frac_above * num_above );
+					if( cost < best_cost ) {
+						best_cost = cost;
+						best_axis = axis;
+						best_plane = j;
+					}
+				}
 
-				if( cost < best_cost ) {
-					best_cost = cost;
-					best_axis = axis;
-					best_plane = j;
+				if( plane.start_edge ) {
+					num_below++;
 				}
 			}
 
-			if( plane.start_edge ) {
-				num_below++;
+			if( best_cost != INFINITY ) {
+				break;
 			}
-		}
-
-		if( best_cost != INFINITY ) {
-			break;
 		}
 	}
 
 	if( best_cost == INFINITY ) {
-		ZoneScopedN( "other leaf time" );
 		return MakeLeaf( bsp, brush_ids );
 	}
 
@@ -1028,22 +1033,27 @@ s32 BuildKDTreeRecursive( BSP * bsp, Span< const u32 > brush_ids, Span< const Mi
 	MinMax3 below_bounds, above_bounds;
 	Split( node_bounds, best_axis, distance, &below_bounds, &above_bounds );
 
-	DynamicArray< u32 > below_brushes( sys_allocator );
-	for( size_t i = 0; i < best_plane; i++ ) {
-		if( candidate_planes.axes[ best_axis ][ i ].start_edge ) {
-			below_brushes.add( candidate_planes.axes[ best_axis ][ i ].brush_id );
+	DynamicArray< u32 > below_brushes( temp );
+	DynamicArray< u32 > above_brushes( temp );
+
+	{
+		ZoneScopedN( "Classify above/below" );
+
+		for( size_t i = 0; i < best_plane; i++ ) {
+			if( candidate_planes.axes[ best_axis ][ i ].start_edge ) {
+				below_brushes.add( candidate_planes.axes[ best_axis ][ i ].brush_id );
+			}
+		}
+
+		for( size_t i = best_plane + 1; i < candidate_planes.axes[ best_axis ].n; i++ ) {
+			if( !candidate_planes.axes[ best_axis ][ i ].start_edge ) {
+				above_brushes.add( candidate_planes.axes[ best_axis ][ i ].brush_id );
+			}
 		}
 	}
 
-	DynamicArray< u32 > above_brushes( sys_allocator );
-	for( size_t i = best_plane + 1; i < candidate_planes.axes[ best_axis ].n; i++ ) {
-		if( !candidate_planes.axes[ best_axis ][ i ].start_edge ) {
-			above_brushes.add( candidate_planes.axes[ best_axis ][ i ].brush_id );
-		}
-	}
-
-	node.children[ 1 ] = BuildKDTreeRecursive( bsp, below_brushes.span(), brush_bounds, below_bounds, max_depth - 1 );
-	node.children[ 0 ] = BuildKDTreeRecursive( bsp, above_brushes.span(), brush_bounds, above_bounds, max_depth - 1 );
+	node.children[ 1 ] = BuildKDTreeRecursive( temp, bsp, below_brushes.span(), brush_bounds, below_bounds, max_depth - 1 );
+	node.children[ 0 ] = BuildKDTreeRecursive( temp, bsp, above_brushes.span(), brush_bounds, above_bounds, max_depth - 1 );
 
 	( *bsp->nodes )[ node_id ] = node;
 
@@ -1062,7 +1072,7 @@ u32 Log2( u64 x ) {
 	return log;
 }
 
-void BuildKDTree( BSP * bsp, Span< const MinMax3 > brush_bounds ) {
+void BuildKDTree( TempAllocator * temp, BSP * bsp, Span< const MinMax3 > brush_bounds ) {
 	ZoneScoped;
 
 	MinMax3 tree_bounds = MinMax3::Empty();
@@ -1072,12 +1082,12 @@ void BuildKDTree( BSP * bsp, Span< const MinMax3 > brush_bounds ) {
 
 	u32 max_depth = roundf( 8.0f + 1.3f * Log2( bsp->brushes->size() ) );
 
-	DynamicArray< u32 > all_brushes( sys_allocator );
+	DynamicArray< u32 > all_brushes( temp );
 	for( u32 i = 0; i < bsp->brushes->size(); i++ ) {
 		all_brushes.add( i );
 	}
 
-	BuildKDTreeRecursive( bsp, all_brushes.span(), brush_bounds, tree_bounds, max_depth );
+	BuildKDTreeRecursive( temp, bsp, all_brushes.span(), brush_bounds, tree_bounds, max_depth );
 
 	if( bsp->nodes->size() == 0 ) {
 		Plane split;
@@ -1114,7 +1124,9 @@ void Pack( DynamicArray< u8 > & packed, BSPHeader * header, BSPLump lump, Span< 
 }
 
 static void WriteBSP( TempAllocator * temp, BSP * bsp ) {
-	DynamicArray< u8 > packed( sys_allocator );
+	ZoneScoped;
+
+	DynamicArray< u8 > packed( temp );
 
 	BSPHeader header = { };
 	memcpy( &header.magic, "IBSP", 4 );
@@ -1150,7 +1162,7 @@ Span< const char > GetKey( Span< const KeyValue > kvs, const char * key ) {
 }
 
 int main() {
-	constexpr size_t arena_size = 1024 * 1024;
+	constexpr size_t arena_size = 1024 * 1024 * 1024; // 1GB
 	ArenaAllocator arena( ALLOC_SIZE( sys_allocator, arena_size, 16 ), arena_size );
 	TempAllocator temp = arena.temp();
 
@@ -1252,7 +1264,7 @@ int main() {
 
 	FrameMark;
 
-	BuildKDTree( &bsp, brush_bounds.span() );
+	BuildKDTree( &temp, &bsp, brush_bounds.span() );
 
 	for( const Entity & entity : entities ) {
 		if( GetKey( entity.kvs.span(), "classname" ) == "func_group" )
@@ -1301,6 +1313,9 @@ int main() {
 
 	WriteBSP( &temp, &bsp );
 
+	// TODO: perf
+	// - remove sorts
+	//
 	// TODO: generate render geometry
 	// - merge meshes by material/entity
 	// - figure out what postprocessing we need e.g. welding
@@ -1312,6 +1327,7 @@ int main() {
 	//
 	// TODO: new map format
 	// - see bsp2.cpp
+	// - flip CW to CCW winding. q3 bsp was CW lol
 
 	FREE( sys_allocator, arena.get_memory() );
 

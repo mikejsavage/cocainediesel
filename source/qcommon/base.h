@@ -81,12 +81,3 @@ extern bool break1;
 extern bool break2;
 extern bool break3;
 extern bool break4;
-
-void EnableFPE();
-void DisableFPE();
-
-#if PUBLIC_BUILD
-#define DisableFPEScoped
-#else
-#define DisableFPEScoped DisableFPE(); defer { EnableFPE(); }
-#endif

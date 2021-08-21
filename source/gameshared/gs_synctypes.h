@@ -67,6 +67,7 @@ enum WeaponType_ : WeaponType {
 	Weapon_Laser,
 	Weapon_Railgun,
 	Weapon_Sniper,
+	Weapon_AutoSniper,
 	Weapon_Rifle,
 	Weapon_MasterBlaster,
 	Weapon_RoadGun,

@@ -144,10 +144,12 @@ constexpr static Span< const ItemState > MakeStateMachine( const ItemState ( &st
 }
 
 static void HandleZoom( const gs_state_t * gs, SyncPlayerState * ps, const UserCommand * cmd ) {
-	s16 last_zoom_time = ps->zoom_time;
-	bool can_zoom = ps->weapon_state == WeaponState_Idle && ( ps->pmove.features & PMFEAT_SCOPE );
-
 	const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+	const WeaponSlot * slot = GetSelectedWeapon( ps );
+
+	s16 last_zoom_time = ps->zoom_time;
+	bool can_zoom = ( ps->weapon_state == WeaponState_Idle || ( ps->weapon_state == WeaponState_Firing && HasAmmo( def, slot ) ) ) && ( ps->pmove.features & PMFEAT_SCOPE );
+
 	if( can_zoom && def->zoom_fov != 0 && ( cmd->buttons & BUTTON_SPECIAL ) != 0 ) {
 		ps->zoom_time = Min2( ps->zoom_time + cmd->msec, ZOOMTIME );
 		if( last_zoom_time == 0 ) {

@@ -90,67 +90,6 @@ void GENERIC_SetUpEndMatch()
 	G_AnnouncerSound( null, sound, GS_MAX_TEAMS, true, null );
 }
 
-///*****************************************************************
-/// MISC UTILS (this should get its own generic file
-///*****************************************************************
-
-// returns false if the target wasn't visible
-bool GENERIC_LookAtEntity( Vec3 &in origin, Vec3 &in angles, Entity @lookTarget, int ignoreNum, bool lockPitch, int backOffset, int upOffset, Vec3 &out lookOrigin, Vec3 &out lookAngles )
-{
-	if ( @lookTarget == null )
-		return false;
-
-	bool visible = true;
-
-	Vec3 start, end, mins, maxs, dir;
-	Trace trace;
-
-	start = end = origin;
-	if ( upOffset != 0 )
-	{
-		end.z += upOffset;
-		trace.doTrace( start, vec3Origin, vec3Origin, end, ignoreNum, MASK_OPAQUE );
-		if ( trace.fraction < 1.0f )
-		{
-			start = trace.endPos + ( trace.planeNormal * 0.1f );
-		}
-	}
-
-	lookTarget.getSize( mins, maxs );
-	end = lookTarget.origin + ( 0.5 * ( maxs + mins ) );
-
-	if ( !trace.doTrace( start, vec3Origin, vec3Origin, end, ignoreNum, MASK_OPAQUE ) )
-	{
-		if ( trace.entNum != lookTarget.entNum )
-			visible = false;
-	}
-
-	if ( lockPitch )
-		end.z = lookOrigin.z;
-
-	if ( backOffset != 0 )
-	{
-		// trace backwards from dest to origin projected to backoffset
-		dir = start - end;
-		dir.normalize();
-		Vec3 newStart = start + ( dir * backOffset );
-
-		trace.doTrace( start, vec3Origin, vec3Origin, newStart, ignoreNum, MASK_OPAQUE );
-		start = trace.endPos;
-		if ( trace.fraction < 1.0f )
-		{
-			start += ( trace.planeNormal * 0.1f );
-		}
-	}
-
-	dir = end - start;
-
-	lookOrigin = start;
-	lookAngles = dir.toAngles();
-
-	return visible;
-}
-
 Entity @RandomEntity( String &className )
 {
 	array<Entity @> @spawnents = G_FindByClassname( className );

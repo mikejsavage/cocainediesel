@@ -810,6 +810,71 @@ void W_Fire_RifleBullet(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 	bullet->s.sound = "weapons/bullet_whizz";
 }
 
+static void StickyBulletExplodeNormal( edict_t * ent, Vec3 normal ) {
+	Vec3 dir = normal != Vec3( 0.0f ) ? normal : Vec3( 0.0f, 0.0f, 1.0f );
+
+	G_RadiusDamage(ent, ent->r.owner, NULL, ent->enemy, Weapon_AutoSniper);
+
+	int radius = ((ent->projectileInfo.radius * 1 / 8) > 127) ? 127 : (ent->projectileInfo.radius * 1 / 8);
+	edict_t *event = G_SpawnEvent(EV_GRENADE_EXPLOSION, DirToU64(dir), &ent->s.origin);
+	event->s.weapon = radius;
+	event->s.team = ent->s.team;
+
+	G_FreeEdict(ent);
+}
+
+static void StickyBulletExplode( edict_t * ent ) {
+	StickyBulletExplodeNormal( ent, Vec3( 0.0f ) );
+}
+
+static void W_Touch_StickyBullet(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
+{
+	if (surfFlags & SURF_NOIMPACT)
+	{
+		G_FreeEdict(ent);
+		return;
+	}
+
+	if (!CanHit(ent, other))
+	{
+		return;
+	}
+
+	if (other->takedamage)
+	{
+		Vec3 push_dir;
+		G_SplashFrac4D(other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false);
+		G_Damage(other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_AutoSniper);
+		ent->enemy = other;
+
+		StickyBulletExplodeNormal( ent, plane ? plane->normal : Vec3( 0.0f ) );
+	}
+	else
+	{
+		const WeaponDef * def = GS_GetWeaponDef( Weapon_AutoSniper );
+		ent->s.linearMovementBegin = ent->s.origin;
+		ent->s.linearMovementVelocity = Vec3( 0.0f );
+		ent->nextThink = level.time + def->spread;
+	}
+}
+
+void W_Fire_StickyBullet( edict_t *self, Vec3 start, Vec3 angles, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_AutoSniper );
+
+	float spreadness = def->zoom_spread * ( 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME ) );
+	Vec2 spread = UniformSampleInsideCircle( &svs.rng ) * spreadness;
+	angles.x += spread.x;
+	angles.y += spread.y;
+
+	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_AutoSniper ), W_Touch_StickyBullet, ET_ROCKET, MASK_SHOT );
+
+	bullet->classname = "stickybullet";
+	bullet->s.model = "weapons/autosniper/bullet";
+	bullet->s.sound = "weapons/autosniper/fuse";
+
+	bullet->think = StickyBulletExplode;
+}
+
 static void W_Touch_Blast(edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags)
 {
 	if (surfFlags & SURF_NOIMPACT)
@@ -951,6 +1016,10 @@ void G_FireWeapon(edict_t *ent, u64 parm)
 
 	case Weapon_Sniper:
 		W_Fire_Bullet(ent, origin, angles, timeDelta, Weapon_Sniper);
+		break;
+
+	case Weapon_AutoSniper:
+		W_Fire_StickyBullet(ent, origin, angles, timeDelta);
 		break;
 
 	case Weapon_Railgun:

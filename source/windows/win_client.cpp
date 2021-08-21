@@ -11,7 +11,7 @@ extern "C" __declspec( dllexport ) int AmdPowerXpressRequestHighPerformance = 1;
 void Sys_InitTime();
 
 void ShowErrorAndAbortImpl( const char * msg, const char * file, int line ) {
-#if PUBLIC_BUILD
+#if NDEBUG
 	MessageBoxA( NULL, msg, "Error", MB_OK );
 #else
 	if( _CrtDbgReport( _CRT_ERROR, file, line, NULL, msg ) == 1 ) {

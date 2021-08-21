@@ -825,24 +825,34 @@ static void AddPatchBrushes( BSP * bsp, DynamicArray< MinMax3 > * brush_bounds, 
 
 		size_t first_face = bsp->brush_faces->size();
 
+		/*
+		 * for axis aligned brushes the back facing plane will get
+		 * rejected, and we need to make sure the brush has non-zero
+		 * volume to make sure it's not inside-out. so extend the
+		 * initial bounds by 1 unit backwards to make sure the bounding
+		 * box has non-zero volume
+		 */
+		Vec3 back_face_point = p0 - plane.normal;
+
 		MinMax3 bounds = MinMax3::Empty();
 		bounds = Union( bounds, p0 );
 		bounds = Union( bounds, p1 );
 		bounds = Union( bounds, p2 );
+		bounds = Union( bounds, back_face_point );
 		AddBevelPlanes( bsp, bounds );
 
-		// AddBSPPlane( bsp, plane );
-                //
-		// Plane back_plane = { -plane.normal, -plane.distance - 1.0f };
-		// AddBSPPlane( bsp, back_plane );
-                //
-		// Vec3 points[] = { p0, p1, p2 };
-		// for( int e = 0; e < 3; e++ ) {
-		// 	Vec3 edge = points[ ( e + 1 ) % 3 ] - points[ e ];
-		// 	Vec3 edge_normal = Normalize( Cross( edge, plane.normal ) );
-		// 	Plane edge_plane = { edge_normal, Dot( points[ e ], edge_normal ) };
-		// 	AddBSPPlane( bsp, edge_plane );
-		// }
+		AddBSPPlane( bsp, plane );
+
+		Plane back_plane = { -plane.normal, -plane.distance + 1.0f };
+		AddBSPPlane( bsp, back_plane );
+
+		Vec3 points[] = { p0, p1, p2 };
+		for( int e = 0; e < 3; e++ ) {
+			Vec3 edge = points[ ( e + 1 ) % 3 ] - points[ e ];
+			Vec3 edge_normal = Normalize( Cross( edge, plane.normal ) );
+			Plane edge_plane = { -edge_normal, -Dot( points[ e ], edge_normal ) }; // TODO: flip these when we switch to CCW
+			AddBSPPlane( bsp, edge_plane );
+		}
 
 		AddBrush( bsp, first_face );
 		brush_bounds->add( bounds );

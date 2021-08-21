@@ -836,7 +836,7 @@ static void W_Touch_Blast(edict_t *ent, edict_t *other, cplane_t *plane, int sur
 	edict_t *event = G_SpawnEvent(EV_BLAST_BOUNCE, DirToU64(plane ? plane->normal : Vec3(0.0f)), &ent->s.origin);
 	event->s.team = ent->s.team;
 
-	if (ent->num_bounces >= 2)
+	if (ent->num_bounces >= 5)
 	{
 		G_FreeEdict(ent);
 	}

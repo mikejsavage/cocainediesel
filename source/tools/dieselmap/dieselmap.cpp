@@ -532,9 +532,9 @@ static void format( FormatBuffer * fb, const Plane & plane, const FormatOpts & o
 	ggformat_impl( fb, "{.5}.X = {.1}", plane.normal, plane.distance );
 }
 
-static bool IsAxial( Vec3 v ) {
+static bool IsNearlyAxial( Vec3 v ) {
 	for( int i = 0; i < 3; i++ ) {
-		if( Abs( v[ i ] ) == 1.0f ) {
+		if( Abs( v[ i ] ) >= 0.99999f ) {
 			return true;
 		}
 	}
@@ -543,7 +543,7 @@ static bool IsAxial( Vec3 v ) {
 }
 
 static void AddBSPPlane( BSP * bsp, Plane plane, bool bevel = false ) {
-	if( !bevel && IsAxial( plane.normal ) )
+	if( !bevel && IsNearlyAxial( plane.normal ) )
 		return;
 
 	BSPBrushFace bspface;

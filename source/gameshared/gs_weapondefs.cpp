@@ -536,7 +536,7 @@ const WeaponDef weapon_defs[] = {
 	{
 		/* name                 */ "Rifle",
 		/* short name           */ "rifle",
-		/* category             */ WeaponCategory_Backup,
+		/* category             */ WeaponCategory_Secondary,
 
 		/* projectile count     */ 1,
 		/* clip size            */ 5,
@@ -557,7 +557,7 @@ const WeaponDef weapon_defs[] = {
 		/* zoom inaccuracy      */ 0.0f,
 
 		// damages
-		/* damage               */ 38,
+		/* damage               */ 40,
 		/* self damage          */ 0,
 		/* wallbang damage      */ 1.0f, //not implemented
 		/* knockback            */ 50,

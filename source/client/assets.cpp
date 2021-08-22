@@ -42,6 +42,11 @@ static void AddAsset( const char * path, u64 hash, FileMetadata metadata, char *
 	Lock( assets_mutex );
 	defer { Unlock( assets_mutex ); };
 
+	if( num_assets == MAX_ASSETS ) {
+		Com_Printf( S_COLOR_YELLOW "Too many assets\n" );
+		return;
+	}
+
 	u64 idx;
 	bool exists = assets_hashtable.get( hash, &idx );
 
@@ -164,11 +169,6 @@ static void LoadAssetsRecursive( TempAllocator * temp, DynamicString * path, siz
 	const char * name;
 	bool dir;
 	while( ListDirNext( &scan, &name, &dir ) ) {
-		if( num_assets == MAX_ASSETS ) {
-			Com_Printf( S_COLOR_YELLOW "Too many assets\n" );
-			return;
-		}
-
 		// skip ., .., .git, etc
 		if( name[ 0 ] == '.' )
 			continue;

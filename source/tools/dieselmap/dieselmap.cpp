@@ -2,6 +2,7 @@
 #include <math.h>
 
 #include "parsing.h"
+#include "materials.h"
 
 #include "qcommon/base.h"
 #include "qcommon/array.h"
@@ -74,8 +75,8 @@ struct BSPHeader {
 
 struct BSPMaterial {
 	char name[ 64 ];
-	u32 flags;
-	u32 contents;
+	u32 surface_flags;
+	u32 content_flags;
 };
 
 struct BSPPlane {
@@ -532,6 +533,20 @@ static void format( FormatBuffer * fb, const Plane & plane, const FormatOpts & o
 	ggformat_impl( fb, "{.5}.X = {.1}", plane.normal, plane.distance );
 }
 
+static u32 AddMaterial( BSP * bsp, Span< const char > name ) {
+	for( size_t i = 0; i < bsp->materials->size(); i++ ) {
+		if( StrEqual( name, ( *bsp->materials )[ i ].name ) ) {
+			return i;
+		}
+	}
+
+	BSPMaterial material = { };
+	GetMaterialFlags( name, &material.surface_flags, &material.content_flags );
+	assert( name.n + 1 < sizeof( material.name ) );
+	memcpy( material.name, name.ptr, name.n );
+	return bsp->materials->add( material );
+}
+
 static bool IsNearlyAxial( Vec3 v ) {
 	for( int i = 0; i < 3; i++ ) {
 		if( Abs( v[ i ] ) >= 0.99999f ) {
@@ -542,41 +557,41 @@ static bool IsNearlyAxial( Vec3 v ) {
 	return false;
 }
 
-static void AddBSPPlane( BSP * bsp, Plane plane, bool bevel = false ) {
+static void AddBSPPlane( BSP * bsp, Plane plane, u32 material, bool bevel = false ) {
 	if( !bevel && IsNearlyAxial( plane.normal ) )
 		return;
 
 	BSPBrushFace bspface;
 	bspface.planenum = bsp->planes->size();
-	bspface.material = 0;
+	bspface.material = material;
 	bsp->brush_faces->add( bspface );
 	bsp->planes->add( plane );
 }
 
-static void AddBevelPlanes( BSP * bsp, const MinMax3 & bounds ) {
+static void AddBevelPlanes( BSP * bsp, const MinMax3 & bounds, u32 material ) {
 	for( int i = 0; i < 6; i++ ) {
 		Plane plane = { };
 		float sign = i % 2 == 0 ? -1.0f : 1.0f;
 		plane.normal[ i / 2 ] = sign;
 		plane.distance = sign * ( i % 2 == 0 ? bounds.mins : bounds.maxs )[ i / 2 ];
-		AddBSPPlane( bsp, plane, true );
+		AddBSPPlane( bsp, plane, material, true );
 	}
 }
 
-static void AddBrush( BSP * bsp, size_t first_face ) {
+static void AddBrush( BSP * bsp, size_t first_face, u32 material ) {
 	BSPBrush brush;
 	brush.first_face = first_face;
-	brush.material = 0;
+	brush.material = material;
 	brush.num_faces = bsp->brush_faces->size() - first_face;
 	bsp->brushes->add( brush );
 }
 
-static bool FaceToVerts( FaceVerts * verts, const Brush & brush, const Plane * planes, size_t face ) {
-	for( size_t i = 0; i < brush.faces.n; i++ ) {
+static bool FaceToVerts( FaceVerts * verts, Span< const Plane > planes, size_t face ) {
+	for( size_t i = 0; i < planes.n; i++ ) {
 		if( i == face )
 			continue;
 
-		for( size_t j = i + 1; j < brush.faces.n; j++ ) {
+		for( size_t j = i + 1; j < planes.n; j++ ) {
 			if( j == face )
 				continue;
 
@@ -584,7 +599,7 @@ static bool FaceToVerts( FaceVerts * verts, const Brush & brush, const Plane * p
 			if( !Intersect3PlanesPoint( &p, planes[ face ], planes[ i ], planes[ j ] ) )
 				continue;
 
-			if( !PointInsideBrush( Span< const Plane >( planes, brush.faces.n ), p ) )
+			if( !PointInsideBrush( planes, p ) )
 				continue;
 
 			verts->add( { p, Vec2() } );
@@ -615,7 +630,7 @@ static bool ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush ) {
 	for( size_t i = 0; i < brush.faces.n; i++ ) {
 		// generate arbitrary list of points
 		FaceVerts verts = { };
-		if( !FaceToVerts( &verts, brush, planes, i ) ) {
+		if( !FaceToVerts( &verts, Span< const Plane >( planes, brush.faces.n ), i ) ) {
 			return false;
 		}
 
@@ -648,30 +663,50 @@ static bool ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush ) {
 		for( size_t j = 0; j < verts.n; j++ ) {
 			Vec3 unprojected = centroid + projected[ j ].pos.x * tangent + projected[ j ].pos.y * bitangent;
 
-			BSPVertex vertex = { };
-			vertex.position = unprojected;
-			vertex.normal = planes[ i ].normal;
-			bsp->vertices->add( vertex );
+			if( !IsNodrawMaterial( brush.faces.span()[ i ].material ) ) {
+				BSPVertex vertex = { };
+				vertex.position = unprojected;
+				vertex.normal = planes[ i ].normal;
+				bsp->vertices->add( vertex );
+			}
 
 			*bounds = Union( *bounds, unprojected );
 		}
 
-		size_t base_vert = bsp->vertices->size() - verts.n;
-		for( size_t j = 0; j < verts.n - 2; j++ ) {
-			bsp->triangles->add( { u32( base_vert ), u32( base_vert + j + 2 ), u32( base_vert + j + 1 ) } );
+		if( !IsNodrawMaterial( brush.faces.span()[ i ].material ) ) {
+			size_t base_vert = bsp->vertices->size() - verts.n;
+			for( size_t j = 0; j < verts.n - 2; j++ ) {
+				bsp->triangles->add( { u32( base_vert ), u32( base_vert + j + 2 ), u32( base_vert + j + 1 ) } );
+			}
 		}
 	}
 
 	{
 		size_t first_face = bsp->brush_faces->size();
 
-		AddBevelPlanes( bsp, *bounds );
+		u32 brush_material = 0;
+		u32 content_flags = 0;
 
 		for( size_t i = 0; i < brush.faces.n; i++ ) {
-			AddBSPPlane( bsp, planes[ i ] );
+			brush_material = AddMaterial( bsp, brush.faces.span()[ i ].material );
+			u32 face_flags = ( *bsp->materials )[ brush_material ].content_flags;
+			if( i == 0 ) {
+				content_flags = face_flags;
+				break; // TODO
+			}
+			else if( face_flags != content_flags ) {
+				Fatal( "no" );
+			}
 		}
 
-		AddBrush( bsp, first_face );
+		AddBevelPlanes( bsp, *bounds, brush_material );
+
+		for( size_t i = 0; i < brush.faces.n; i++ ) {
+			u32 material = AddMaterial( bsp, brush.faces.span()[ i ].material );
+			AddBSPPlane( bsp, planes[ i ], material );
+		}
+
+		AddBrush( bsp, first_face, brush_material );
 	}
 
 	return true;
@@ -810,7 +845,7 @@ static void PatchToVerts( BSP * bsp, const Patch & patch ) {
 	}
 }
 
-static void AddPatchBrushes( BSP * bsp, DynamicArray< MinMax3 > * brush_bounds, size_t first_patch_tri ) {
+static void AddPatchBrushes( BSP * bsp, DynamicArray< MinMax3 > * brush_bounds, u32 material, size_t first_patch_tri ) {
 	ZoneScoped;
 
 	for( size_t i = first_patch_tri; i < bsp->triangles->size(); i++ ) {
@@ -839,22 +874,22 @@ static void AddPatchBrushes( BSP * bsp, DynamicArray< MinMax3 > * brush_bounds, 
 		bounds = Union( bounds, p1 );
 		bounds = Union( bounds, p2 );
 		bounds = Union( bounds, back_face_point );
-		AddBevelPlanes( bsp, bounds );
+		AddBevelPlanes( bsp, bounds, material );
 
-		AddBSPPlane( bsp, plane );
+		AddBSPPlane( bsp, plane, material );
 
 		Plane back_plane = { -plane.normal, -plane.distance + 1.0f };
-		AddBSPPlane( bsp, back_plane );
+		AddBSPPlane( bsp, back_plane, material );
 
 		Vec3 points[] = { p0, p1, p2 };
 		for( int e = 0; e < 3; e++ ) {
 			Vec3 edge = points[ ( e + 1 ) % 3 ] - points[ e ];
 			Vec3 edge_normal = Normalize( Cross( edge, plane.normal ) );
 			Plane edge_plane = { -edge_normal, -Dot( points[ e ], edge_normal ) }; // TODO: flip these when we switch to CCW
-			AddBSPPlane( bsp, edge_plane );
+			AddBSPPlane( bsp, edge_plane, material );
 		}
 
-		AddBrush( bsp, first_face );
+		AddBrush( bsp, first_face, material );
 		brush_bounds->add( bounds );
 	}
 }
@@ -1130,7 +1165,7 @@ void Pack( DynamicArray< u8 > & packed, BSPHeader * header, BSPLump lump, Span< 
 	header->lumps[ lump ].offset = offset;
 	header->lumps[ lump ].length = data.num_bytes();
 
-	ggprint( "lump {-20} is size {10}\n", lump_names[ lump ], data.num_bytes() );
+	ggprint( "lump {-20} is size {.2}MB\n", lump_names[ lump ], data.num_bytes() / 1000.0f / 1000.0f );
 }
 
 static void WriteBSP( TempAllocator * temp, BSP * bsp ) {
@@ -1176,21 +1211,28 @@ int main() {
 	ArenaAllocator arena( ALLOC_SIZE( sys_allocator, arena_size, 16 ), arena_size );
 	TempAllocator temp = arena.temp();
 
+	InitFS();
+	InitMaterials();
+
 	size_t carfentanil_len;
-	char * carfentanil = ReadFileString( sys_allocator, "source/tools/dieselmap/carfentanil.map", &carfentanil_len );
+	char * carfentanil = ReadFileString( sys_allocator, "source/tools/dieselmap/trivial.map", &carfentanil_len );
 	assert( carfentanil != NULL );
 	defer { FREE( sys_allocator, carfentanil ); };
 
 	Span< const char > map( carfentanil, carfentanil_len );
 
-	for( size_t i = 0; i < map.n; i++ ) {
-		Span< const char > comment;
-		Span< const char > res = ParseComment( &comment, map + i );
-		if( res.ptr == NULL )
-			continue;
+	{
+		ZoneScopedN( "Erase comments" );
 
-		memset( const_cast< char * >( comment.ptr ), ' ', comment.n );
-		i += comment.n;
+		for( size_t i = 0; i < map.n; i++ ) {
+			Span< const char > comment;
+			Span< const char > res = ParseComment( &comment, map + i );
+			if( res.ptr == NULL )
+				continue;
+
+			memset( const_cast< char * >( comment.ptr ), ' ', comment.n );
+			i += comment.n;
+		}
 	}
 
 	DynamicArray< Entity > entities( sys_allocator );
@@ -1201,8 +1243,11 @@ int main() {
 		}
 	};
 
-	map = CaptureNOrMore( &entities, map, 1, ParseEntity );
-	map = SkipWhitespace( map );
+	{
+		ZoneScopedN( "Parsing" );
+		map = CaptureNOrMore( &entities, map, 1, ParseEntity );
+		map = SkipWhitespace( map );
+	}
 
 	bool ok = map.ptr != NULL && map.n == 0;
 	if( !ok ) {
@@ -1212,15 +1257,19 @@ int main() {
 
 	FrameMark;
 
-	for( Entity & entity : entities ) {
-		if( GetKey( entity.kvs.span(), "classname" ) != "func_group" )
-			continue;
+	{
+		ZoneScopedN( "Flatten func_groups" );
 
-		entities[ 0 ].brushes.add_many( entity.brushes.span() );
-		entities[ 0 ].patches.add_many( entity.patches.span() );
+		for( Entity & entity : entities ) {
+			if( GetKey( entity.kvs.span(), "classname" ) != "func_group" )
+				continue;
 
-		entity.brushes.clear();
-		entity.patches.clear();
+			entities[ 0 ].brushes.add_many( entity.brushes.span() );
+			entities[ 0 ].patches.add_many( entity.patches.span() );
+
+			entity.brushes.clear();
+			entity.patches.clear();
+		}
 	}
 
 	FrameMark;
@@ -1258,18 +1307,18 @@ int main() {
 	for( Entity & entity : entities ) {
 		for( Brush & brush : entity.brushes ) {
 			MinMax3 bounds;
+			ggprint( "brush id {}\n", brush_bounds.size() + 1 );
 			bool asd = ProcessBrush( &bsp, &bounds, brush );
 			assert( asd );
 			brush_bounds.add( bounds );
 		}
 
-		size_t patch_first_tri = bsp.triangles->size();
-
 		for( const Patch & patch : entity.patches ) {
+			u32 material = AddMaterial( &bsp, patch.material );
+			size_t patch_first_tri = bsp.triangles->size();
 			PatchToVerts( &bsp, patch );
+			AddPatchBrushes( &bsp, &brush_bounds, material, patch_first_tri );
 		}
-
-		AddPatchBrushes( &bsp, &brush_bounds, patch_first_tri );
 	}
 
 	FrameMark;
@@ -1285,12 +1334,6 @@ int main() {
 			bsp.entities->append( "\t\"{}\" \"{}\"\n", kv.key, kv.value );
 		}
 		bsp.entities->append( "}}\n" );
-	}
-
-	{
-		BSPMaterial material = { };
-		material.contents = 1;
-		bsp.materials->add( material );
 	}
 
 	{
@@ -1340,6 +1383,9 @@ int main() {
 	// - flip CW to CCW winding. q3 bsp was CW lol
 
 	FREE( sys_allocator, arena.get_memory() );
+
+	ShutdownMaterials();
+	ShutdownFS();
 
 	return 0;
 }

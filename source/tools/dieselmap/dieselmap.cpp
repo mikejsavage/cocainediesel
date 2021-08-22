@@ -173,8 +173,6 @@ struct BSP {
 	DynamicArray< BSPBrushFace > * brush_faces;
 };
 
-constexpr const char * whitespace_chars = " \r\n\t";
-
 template< typename T, size_t N >
 struct StaticArray {
 	T elems[ N ];
@@ -209,21 +207,6 @@ Span< const char > ParseUpToN( StaticArray< T, N > * array, Span< const char > s
 static Span< const char > ParseNOrMoreDigits( size_t n, Span< const char > str ) {
 	return PEGNOrMore( str, n, []( Span< const char > str ) {
 		return PEGRange( str, '0', '9' );
-	} );
-}
-
-static Span< const char > SkipWhitespace( Span< const char > str ) {
-	return PEGNOrMore( str, 0, []( Span< const char > str ) {
-		return PEGSet( str, whitespace_chars );
-	} );
-}
-
-static Span< const char > ParseWord( Span< const char > * capture, Span< const char > str ) {
-	str = SkipWhitespace( str );
-	return PEGCapture( capture, str, []( Span< const char > str ) {
-		return PEGNOrMore( str, 1, []( Span< const char > str ) {
-			return PEGNotSet( str, whitespace_chars );
-		} );
 	} );
 }
 
@@ -262,12 +245,6 @@ static Span< const char > PEGCapture( float * capture, Span< const char > str ) 
 		return NullSpan;
 
 	return res;
-}
-
-static Span< const char > SkipToken( Span< const char > str, const char * token ) {
-	str = SkipWhitespace( str );
-	str = PEGLiteral( str, token );
-	return str;
 }
 
 static Span< const char > ParseFloat( float * x, Span< const char > str ) {

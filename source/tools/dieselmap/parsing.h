@@ -127,3 +127,26 @@ Span< const char > ParseUpToN( T * array, size_t * num_parsed, size_t n, Span< c
 		str = res;
 	}
 }
+
+constexpr const char * whitespace_chars = " \r\n\t";
+
+inline Span< const char > SkipWhitespace( Span< const char > str ) {
+	return PEGNOrMore( str, 0, []( Span< const char > str ) {
+		return PEGSet( str, whitespace_chars );
+	} );
+}
+
+static Span< const char > SkipToken( Span< const char > str, const char * token ) {
+	str = SkipWhitespace( str );
+	str = PEGLiteral( str, token );
+	return str;
+}
+
+inline Span< const char > ParseWord( Span< const char > * capture, Span< const char > str ) {
+	str = SkipWhitespace( str );
+	return PEGCapture( capture, str, []( Span< const char > str ) {
+		return PEGNOrMore( str, 1, []( Span< const char > str ) {
+			return PEGNotSet( str, whitespace_chars );
+		} );
+	} );
+}

@@ -22,29 +22,6 @@ static u32 num_shader_files;
 static Material materials[ 1024 ];
 static u32 num_materials;
 
-constexpr const char * whitespace_chars = " \r\n\t";
-
-static Span< const char > SkipWhitespace( Span< const char > str ) {
-	return PEGNOrMore( str, 0, []( Span< const char > str ) {
-		return PEGSet( str, whitespace_chars );
-	} );
-}
-
-static Span< const char > SkipToken( Span< const char > str, const char * token ) {
-	str = SkipWhitespace( str );
-	str = PEGLiteral( str, token );
-	return str;
-}
-
-static Span< const char > ParseWord( Span< const char > * capture, Span< const char > str ) {
-	str = SkipWhitespace( str );
-	return PEGCapture( capture, str, []( Span< const char > str ) {
-		return PEGNOrMore( str, 1, []( Span< const char > str ) {
-			return PEGNotSet( str, whitespace_chars );
-		} );
-	} );
-}
-
 static Span< const char > ParseLine( Span< const char > * line, Span< const char > str ) {
 	return PEGCapture( line, str, []( Span< const char > str ) {
 		str = SkipWhitespace( str );

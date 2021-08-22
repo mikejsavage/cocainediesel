@@ -58,12 +58,6 @@ static void W_Explode_ARBullet(edict_t *ent, edict_t *other, Plane *plane)
 
 static void W_Touch_ARBullet(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
-	if (surfFlags & SURF_NOIMPACT)
-	{
-		G_FreeEdict(ent);
-		return;
-	}
-
 	if (!CanHit(ent, other))
 	{
 		return;
@@ -430,12 +424,6 @@ static void W_Touch_Grenade(edict_t *ent, edict_t *other, Plane *plane, int surf
 {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_GrenadeLauncher );
 
-	if (surfFlags & SURF_NOIMPACT)
-	{
-		G_FreeEdict(ent);
-		return;
-	}
-
 	if (!CanHit(ent, other))
 	{
 		return;
@@ -481,12 +469,6 @@ static void W_Fire_Grenade(edict_t *self, Vec3 start, Vec3 angles, int timeDelta
 
 static void W_Touch_Stake(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
-	if (surfFlags & SURF_NOIMPACT)
-	{
-		G_FreeEdict(ent);
-		return;
-	}
-
 	if (!CanHit(ent, other))
 	{
 		return;
@@ -524,12 +506,6 @@ static void W_Fire_Stake(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 
 static void W_Touch_Rocket(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
-	if (surfFlags & SURF_NOIMPACT)
-	{
-		G_FreeEdict(ent);
-		return;
-	}
-
 	if (!CanHit(ent, other))
 	{
 		return;
@@ -776,12 +752,6 @@ static void W_Fire_Lasergun(edict_t *self, Vec3 start, Vec3 angles, int timeDelt
 
 static void W_Touch_RifleBullet(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
-	if (surfFlags & SURF_NOIMPACT)
-	{
-		G_FreeEdict(ent);
-		return;
-	}
-
 	if (!CanHit(ent, other))
 	{
 		return;
@@ -829,12 +799,6 @@ static void StickyBulletExplode( edict_t * ent ) {
 
 static void W_Touch_StickyBullet(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
-	if (surfFlags & SURF_NOIMPACT)
-	{
-		G_FreeEdict(ent);
-		return;
-	}
-
 	if (!CanHit(ent, other))
 	{
 		return;
@@ -877,12 +841,6 @@ void W_Fire_StickyBullet( edict_t *self, Vec3 start, Vec3 angles, int timeDelta 
 
 static void W_Touch_Blast(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
-	if (surfFlags & SURF_NOIMPACT)
-	{
-		G_FreeEdict(ent);
-		return;
-	}
-
 	if (!CanHit(ent, other))
 	{
 		return;
@@ -1056,12 +1014,6 @@ void G_FireWeapon(edict_t *ent, u64 parm)
 
 static void TouchThrowingAxe(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
 {
-	if (surfFlags & SURF_NOIMPACT)
-	{
-		G_FreeEdict(ent);
-		return;
-	}
-
 	if (!CanHit(ent, other))
 	{
 		return;
@@ -1093,12 +1045,6 @@ static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 }
 
 static void TouchStunGrenade(edict_t *ent, edict_t *other, Plane *plane, int surfFlags) {
-	if (surfFlags & SURF_NOIMPACT)
-	{
-		G_FreeEdict(ent);
-		return;
-	}
-
 	if (!CanHit(ent, other))
 	{
 		return;

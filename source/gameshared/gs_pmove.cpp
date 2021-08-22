@@ -138,7 +138,7 @@ static void PlayerTouchWall( int nbTestDir, float maxZnormal, Vec3 * normal ) {
 		if( trace.fraction == 1 )
 			continue; // no wall in this direction
 
-		if( trace.surfFlags & ( SURF_SKY | SURF_NOWALLJUMP ) )
+		if( trace.surfFlags & SURF_NOWALLJUMP )
 			continue;
 
 		if( trace.ent > 0 ) {
@@ -408,7 +408,7 @@ static void PM_Friction() {
 	float drop = 0.0f;
 
 	// apply ground friction
-	if( ( pm->groundentity != -1 && !( pml.groundsurfFlags & SURF_SLICK ) ) || pml.ladder ) {
+	if( pm->groundentity != -1 || pml.ladder ) {
 		if( pm->playerState->pmove.knockback_time <= 0 ) {
 			float friction = pm_friction;
 			float control = speed < pm_decelerate ? pm_decelerate : speed;

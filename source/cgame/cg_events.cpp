@@ -21,10 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 
 void RailgunImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 color ) {
-	if( surfFlags & ( SURF_SKY | SURF_NOMARKS | SURF_NOIMPACT ) ) {
-		return;
-	}
-
 	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, color );
 	S_StartFixedSound( "weapons/eb/hit", pos, CHAN_AUTO, 1.0f );
 }
@@ -226,8 +222,8 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 	trace_t trace, wallbang;
 	GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, spread, range, owner, 0 );
 
-	if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
-		if( trace.surfFlags & SURF_FLESH || ( trace.ent > 0 && cg_entities[ trace.ent ].current.type == ET_PLAYER ) ) {
+	if( trace.ent != -1 ) {
+		if( trace.ent > 0 && cg_entities[ trace.ent ].current.type == ET_PLAYER ) {
 			// flesh impact sound
 		}
 		else {
@@ -273,7 +269,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 		float distance = Length( trace.endpos - origin );
 		float decal_p = Lerp( 0.25f, Unlerp( 0.0f, distance, 256.0f ), 0.5f );
 		if( Probability( &cls.rng, decal_p ) ) {
-			if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
+			if( trace.ent != -1 ) {
 				BulletImpact( &trace, team_color, 4, 0.5f );
 			}
 
@@ -289,7 +285,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	trace_t trace;
 	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, owner, MASK_SHOT );
 
-	if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
+	if( trace.ent != -1 ) {
 		S_StartFixedSound( "weapons/rg/hit", trace.endpos, CHAN_AUTO, 1.0f );
 	}
 }

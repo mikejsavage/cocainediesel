@@ -21,11 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_local.h"
 
 void ThrowSmallPileOfGibs( edict_t *self, Vec3 knockback, int damage ) {
-	int contents = G_PointContents( self->s.origin );
-	if( contents & CONTENTS_NODROP ) {
-		return;
-	}
-
 	Vec3 origin = self->s.origin;
 	self->s.origin.z += 4;
 

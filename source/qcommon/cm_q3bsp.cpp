@@ -523,7 +523,7 @@ static inline void CMod_LoadFace( CollisionModel *cms, cface_t *out, int shadern
 	}
 
 	shaderref = &cms->map_shaderrefs[shadernum];
-	if( !shaderref->contents || ( shaderref->flags & SURF_NONSOLID ) ) {
+	if( !shaderref->contents ) {
 		return;
 	}
 

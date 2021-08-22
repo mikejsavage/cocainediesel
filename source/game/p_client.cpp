@@ -59,11 +59,6 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage_type, int damage ) {
 	assert( ent->s.type == ET_PLAYER );
 
-	int contents = G_PointContents( ent->s.origin );
-	if( contents & CONTENTS_NODROP ) {
-		return NULL;
-	}
-
 	edict_t * body = G_Spawn();
 
 	body->classname = "body";

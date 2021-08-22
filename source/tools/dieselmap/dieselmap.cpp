@@ -563,7 +563,7 @@ static void AddBrush( BSP * bsp, size_t first_face, u32 material ) {
 	bsp->brushes->add( brush );
 }
 
-static bool FaceToVerts( FaceVerts * verts, Span< const Plane > planes, size_t face ) {
+static void FaceToVerts( FaceVerts * verts, Span< const Plane > planes, size_t face ) {
 	for( size_t i = 0; i < planes.n; i++ ) {
 		if( i == face )
 			continue;
@@ -582,8 +582,6 @@ static bool FaceToVerts( FaceVerts * verts, Span< const Plane > planes, size_t f
 			verts->add( { p, Vec2() } );
 		}
 	}
-
-	return true;
 }
 
 static Vec2 ProjectFaceVert( Vec3 centroid, Vec3 tangent, Vec3 bitangent, Vec3 p ) {
@@ -591,7 +589,7 @@ static Vec2 ProjectFaceVert( Vec3 centroid, Vec3 tangent, Vec3 bitangent, Vec3 p
 	return Vec2( Dot( d, tangent ), Dot( d, bitangent ) );
 }
 
-static bool ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush ) {
+static void ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush, u32 entity_id, u32 brush_id ) {
 	ZoneScoped;
 
 	Plane planes[ MAX_BRUSH_FACES ];
@@ -600,16 +598,14 @@ static bool ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush ) {
 	for( size_t i = 0; i < brush.faces.n; i++ ) {
 		const Face & face = brush.faces.elems[ i ];
 		if( !PlaneFrom3Points( &planes[ i ], face.plane[ 0 ], face.plane[ 1 ], face.plane[ 2 ] ) ) {
-			return false;
+			Fatal( "[entity {} brush {}/line XXX] has a non-planar face", entity_id, brush_id );
 		}
 	}
 
 	for( size_t i = 0; i < brush.faces.n; i++ ) {
 		// generate arbitrary list of points
 		FaceVerts verts = { };
-		if( !FaceToVerts( &verts, Span< const Plane >( planes, brush.faces.n ), i ) ) {
-			return false;
-		}
+		FaceToVerts( &verts, Span< const Plane >( planes, brush.faces.n ), i );
 
 		// find centroid and project verts into 2d
 		Vec3 centroid = Vec3( 0.0f );
@@ -665,14 +661,15 @@ static bool ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush ) {
 		u32 content_flags = 0;
 
 		for( size_t i = 0; i < brush.faces.n; i++ ) {
-			brush_material = AddMaterial( bsp, brush.faces.span()[ i ].material );
-			u32 face_flags = ( *bsp->materials )[ brush_material ].content_flags;
+			u32 face_material = AddMaterial( bsp, brush.faces.span()[ i ].material );
+			u32 face_flags = ( *bsp->materials )[ face_material ].content_flags;
 			if( i == 0 ) {
+				brush_material = face_material;
 				content_flags = face_flags;
-				break; // TODO
 			}
 			else if( face_flags != content_flags ) {
-				Fatal( "no" );
+				ggprint( "[entity {} brush {}/line XXX] has inconsistent solidity, check all the brush faces have similar materials.\n", entity_id, brush_id );
+				break;
 			}
 		}
 
@@ -685,8 +682,6 @@ static bool ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush ) {
 
 		AddBrush( bsp, first_face, brush_material );
 	}
-
-	return true;
 }
 
 static ControlPoint Lerp( const ControlPoint & a, float t, const ControlPoint & b ) {
@@ -1192,7 +1187,7 @@ int main() {
 	InitMaterials();
 
 	size_t carfentanil_len;
-	char * carfentanil = ReadFileString( sys_allocator, "source/tools/dieselmap/trivial.map", &carfentanil_len );
+	char * carfentanil = ReadFileString( sys_allocator, "source/tools/dieselmap/carfentanil.map", &carfentanil_len );
 	assert( carfentanil != NULL );
 	defer { FREE( sys_allocator, carfentanil ); };
 
@@ -1284,9 +1279,7 @@ int main() {
 	for( Entity & entity : entities ) {
 		for( Brush & brush : entity.brushes ) {
 			MinMax3 bounds;
-			ggprint( "brush id {}\n", brush_bounds.size() + 1 );
-			bool asd = ProcessBrush( &bsp, &bounds, brush );
-			assert( asd );
+			ProcessBrush( &bsp, &bounds, brush, &entity - entities.ptr(), &brush - entity.brushes.ptr() );
 			brush_bounds.add( bounds );
 		}
 

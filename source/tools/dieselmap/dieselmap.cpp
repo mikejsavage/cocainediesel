@@ -1344,9 +1344,9 @@ int main() {
 	// - figure out what postprocessing we need e.g. welding
 	// - meshopt
 	//
-	// TODO: parse materials and set solid bits etc
-	//
-	// - generate shit for all map models
+	// TODO: generate all models
+	// - meshes per model
+	// - kdtree per model after new format
 	//
 	// TODO: new map format
 	// - see bsp2.cpp

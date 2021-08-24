@@ -98,7 +98,7 @@ void Sys_ConsoleOutput( const char * str ) {
 	printf( "%s\033[0m", print_from );
 }
 
-void ShowErrorAndAbort( const char * msg, const char * file, int line ) {
+void ShowErrorAndAbortImpl( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
 	abort();
 }

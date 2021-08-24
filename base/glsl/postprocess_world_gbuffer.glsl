@@ -52,6 +52,8 @@ void main() {
 #if MSAA
 	edgeness /= u_Samples;
 	avg_depth /= u_Samples * 4.0;
+#else
+	avg_depth /= 4.0;
 #endif
 	if( edgeness < 0.1 ) {
 		discard;

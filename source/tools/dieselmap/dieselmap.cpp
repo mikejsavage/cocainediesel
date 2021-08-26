@@ -1342,7 +1342,9 @@ int main() {
 	// TODO: generate render geometry
 	// - merge meshes by material/entity
 	// - figure out what postprocessing we need e.g. welding
-	// - meshopt
+	// - meshopt, before patch brushes
+	// - extend void render geometry
+	// - extend void brushes
 	//
 	// TODO: generate all models
 	// - meshes per model

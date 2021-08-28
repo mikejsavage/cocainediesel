@@ -312,7 +312,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Rockets",
+		/* name                 */ "Bazooka",
 		/* short name           */ "rl",
 		/* category             */ WeaponCategory_Primary,
 

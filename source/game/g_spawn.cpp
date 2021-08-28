@@ -311,6 +311,8 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	GClip_ClearWorld(); // clear areas links
 
 	memset( &level, 0, sizeof( level_locals_t ) );
+	level.time = levelTime;
+
 	memset( &server_gs.gameState, 0, sizeof( server_gs.gameState ) );
 
 	const char * path = temp( "maps/{}", mapname );

@@ -102,8 +102,8 @@ struct BSPLeaf {
 
 struct BSPModel {
 	MinMax3 bounds;
-	u32 first_face;
-	u32 num_faces;
+	u32 first_mesh;
+	u32 num_meshes;
 	u32 first_brush;
 	u32 num_brushes;
 };
@@ -131,7 +131,7 @@ struct BSPTriangle {
 	u32 a, b, c;
 };
 
-struct BSPFace {
+struct BSPMesh {
 	u32 material;
 	s32 fog;
 	s32 type;
@@ -159,7 +159,7 @@ struct BSP {
 	DynamicArray< BSPMaterial > * materials;
 	DynamicArray< BSPVertex > * vertices;
 	DynamicArray< BSPTriangle > * triangles;
-	DynamicArray< BSPFace > * faces;
+	DynamicArray< BSPMesh > * meshes;
 	DynamicArray< BSPModel > * models;
 
 	DynamicArray< Plane > * planes;
@@ -538,10 +538,10 @@ static void AddBSPPlane( BSP * bsp, Plane plane, u32 material, bool bevel = fals
 	if( !bevel && IsNearlyAxial( plane.normal ) )
 		return;
 
-	BSPBrushFace bspface;
-	bspface.planenum = bsp->planes->size();
-	bspface.material = material;
-	bsp->brush_faces->add( bspface );
+	BSPBrushFace face;
+	face.planenum = bsp->planes->size();
+	face.material = material;
+	bsp->brush_faces->add( face );
 	bsp->planes->add( plane );
 }
 
@@ -602,7 +602,10 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush, u32 
 		}
 	}
 
+	// render geomtry and bounds
 	for( size_t i = 0; i < brush.faces.n; i++ ) {
+		bool generate_render_geometry = !IsNodrawMaterial( brush.faces.span()[ i ].material );
+
 		// generate arbitrary list of points
 		FaceVerts verts = { };
 		FaceToVerts( &verts, Span< const Plane >( planes, brush.faces.n ), i );
@@ -629,6 +632,7 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush, u32 
 			projected[ j ].theta = atan2f( projected[ j ].pos.y, projected[ j ].pos.x );
 		}
 
+		// sort CCW around the centroid
 		std::sort( projected, projected + verts.n, []( ProjectedVert a, ProjectedVert b ) {
 			return a.theta < b.theta;
 		} );
@@ -636,7 +640,7 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush, u32 
 		for( size_t j = 0; j < verts.n; j++ ) {
 			Vec3 unprojected = centroid + projected[ j ].pos.x * tangent + projected[ j ].pos.y * bitangent;
 
-			if( !IsNodrawMaterial( brush.faces.span()[ i ].material ) ) {
+			if( generate_render_geometry ) {
 				BSPVertex vertex = { };
 				vertex.position = unprojected;
 				vertex.normal = planes[ i ].normal;
@@ -646,7 +650,7 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush, u32 
 			*bounds = Union( *bounds, unprojected );
 		}
 
-		if( !IsNodrawMaterial( brush.faces.span()[ i ].material ) ) {
+		if( generate_render_geometry ) {
 			size_t base_vert = bsp->vertices->size() - verts.n;
 			for( size_t j = 0; j < verts.n - 2; j++ ) {
 				bsp->triangles->add( { u32( base_vert ), u32( base_vert + j + 2 ), u32( base_vert + j + 1 ) } );
@@ -654,6 +658,7 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush, u32 
 		}
 	}
 
+	// collision geometry
 	{
 		size_t first_face = bsp->brush_faces->size();
 
@@ -1161,7 +1166,7 @@ static void WriteBSP( TempAllocator * temp, BSP * bsp ) {
 	Pack( packed, &header, BSPLump_BrushSides, bsp->brush_faces->span() );
 	Pack( packed, &header, BSPLump_Vertices, bsp->vertices->span() );
 	Pack( packed, &header, BSPLump_Indices, bsp->triangles->span() );
-	Pack( packed, &header, BSPLump_Faces, bsp->faces->span() );
+	Pack( packed, &header, BSPLump_Faces, bsp->meshes->span() );
 
 	memcpy( &packed[ header_offset ], &header, sizeof( header ) );
 
@@ -1176,6 +1181,28 @@ Span< const char > GetKey( Span< const KeyValue > kvs, const char * key ) {
 	}
 
 	return Span< const char >( NULL, 0 );
+}
+
+struct MaterialMesh {
+	u32 material;
+	NonRAIIDynamicArray< BSPVertex > vertices;
+	NonRAIIDynamicArray< BSPTriangle > triangles;
+};
+
+static MaterialMesh * GetMaterialMesh( DynamicArray< MaterialMesh > * meshes, u32 material ) {
+	for( MaterialMesh & mesh : meshes->span() ) {
+		if( mesh.material == material ) {
+			return &mesh;
+		}
+	}
+
+	MaterialMesh mesh;
+	mesh.material = material;
+	mesh.vertices.init( sys_allocator );
+	mesh.triangles.init( sys_allocator );
+	meshes->add( mesh );
+
+	return &( *meshes )[ meshes->size() - 1 ];
 }
 
 int main() {
@@ -1251,7 +1278,7 @@ int main() {
 	DynamicArray< Plane > planes( sys_allocator );
 	DynamicArray< BSPVertex > vertices( sys_allocator );
 	DynamicArray< BSPTriangle > triangles( sys_allocator );
-	DynamicArray< BSPFace > faces( sys_allocator );
+	DynamicArray< BSPMesh > meshes( sys_allocator );
 	DynamicArray< BSPModel > models( sys_allocator );
 	DynamicArray< BSPNode > nodes( sys_allocator );
 	DynamicArray< BSPLeaf > leaves( sys_allocator );
@@ -1265,7 +1292,7 @@ int main() {
 	bsp.planes = &planes;
 	bsp.vertices = &vertices;
 	bsp.triangles = &triangles;
-	bsp.faces = &faces;
+	bsp.meshes = &meshes;
 	bsp.models = &models;
 	bsp.nodes = &nodes;
 	bsp.leaves = &leaves;
@@ -1275,8 +1302,15 @@ int main() {
 
 	DynamicArray< MinMax3 > brush_bounds( sys_allocator );
 
-	// TODO: model per entity
 	for( Entity & entity : entities ) {
+		DynamicArray< MaterialMesh > entity_meshes( sys_allocator );
+		defer {
+			for( MaterialMesh & mesh : entity_meshes.span() ) {
+				mesh.vertices.shutdown();
+				mesh.triangles.shutdown();
+			}
+		};
+
 		for( Brush & brush : entity.brushes ) {
 			MinMax3 bounds;
 			ProcessBrush( &bsp, &bounds, brush, &entity - entities.ptr(), &brush - entity.brushes.ptr() );
@@ -1307,21 +1341,21 @@ int main() {
 	}
 
 	{
-		BSPFace face = { };
-		face.type = s32( FaceType_Mesh );
-		face.bounds = HugeBounds();
-		face.first_vertex = 0;
-		face.num_vertices = bsp.vertices->size();
-		face.first_index = 0;
-		face.num_indices = bsp.triangles->size() * 3;
-		bsp.faces->add( face );
+		BSPMesh mesh = { };
+		mesh.type = s32( FaceType_Mesh );
+		mesh.bounds = HugeBounds();
+		mesh.first_vertex = 0;
+		mesh.num_vertices = bsp.vertices->size();
+		mesh.first_index = 0;
+		mesh.num_indices = bsp.triangles->size() * 3;
+		bsp.meshes->add( mesh );
 	}
 
 	{
 		BSPModel model;
 		model.bounds = HugeBounds();
-		model.first_face = 0;
-		model.num_faces = bsp.faces->size();
+		model.first_mesh = 0;
+		model.num_meshes = bsp.meshes->size();
 		model.first_brush = 0;
 		model.num_brushes = bsp.brushes->size();
 

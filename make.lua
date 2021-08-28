@@ -13,17 +13,12 @@ gcc_obj_cxxflags( ".*", "-Wall -Wextra -Wcast-align -Wvla -Wformat-security" ) -
 gcc_obj_cxxflags( ".*", "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-implicit-fallthrough -Wno-format-truncation" )
 gcc_obj_cxxflags( ".*", "-Werror=vla -Werror=format-security -Werror=unused-value" )
 
-gcc_obj_cxxflags( "source/game/angelwrap/addon/addon_scriptarray.cpp", "-Wno-cast-function-type" )
-
-obj_cxxflags( ".*", "-D_LIBCPP_TYPE_TRAITS" )
-
 if config == "release" then
 	obj_cxxflags( ".*", "-DPUBLIC_BUILD" )
 else
 	obj_cxxflags( ".*", "-DTRACY_ENABLE" )
 end
 
-require( "libs.angelscript" )
 require( "libs.cgltf" )
 require( "libs.curl" )
 require( "libs.freetype" )
@@ -88,7 +83,6 @@ do
 		libs = {
 			"imgui",
 
-			"angelscript",
 			"cgltf",
 			"curl",
 			"freetype",
@@ -153,7 +147,6 @@ do
 		},
 
 		libs = {
-			"angelscript",
 			"ggentropy",
 			"ggformat",
 			"monocypher",
@@ -166,7 +159,3 @@ do
 		msvc_extra_ldflags = "ole32.lib ws2_32.lib crypt32.lib",
 	} )
 end
-
-obj_cxxflags( "source/game/angelwrap/.+", "-I third-party/angelscript/sdk/angelscript/include" )
-obj_cxxflags( "source/.+_as_.+", "-I third-party/angelscript/sdk/angelscript/include" )
-obj_cxxflags( "source/.+_ascript.cpp", "-I third-party/angelscript/sdk/angelscript/include" )

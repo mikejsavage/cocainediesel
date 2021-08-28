@@ -1,9 +1,0 @@
-generic/constants.as
-generic/matchstates.as
-
-bomb/main.as
-bomb/player.as
-bomb/bomb.as
-bomb/site.as
-bomb/round.as
-bomb/media.as

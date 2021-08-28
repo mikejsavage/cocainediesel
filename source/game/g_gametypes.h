@@ -1,69 +1,36 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-
 #pragma once
 
-//g_gametypes.c
 extern cvar_t *g_warmup_timelimit;
 
-#define G_CHALLENGERS_MIN_JOINTEAM_MAPTIME  9000 // must wait 10 seconds before joining
-#define GAMETYPE_PROJECT_EXTENSION          ".gt"
-
-typedef struct {
-	void *initFunc;
-	void *spawnFunc;
-	void *matchStateStartedFunc;
-	void *matchStateFinishedFunc;
-	void *thinkRulesFunc;
-	void *playerRespawnFunc;
-	void *scoreEventFunc;
-	void *selectSpawnPointFunc;
-	void *clientCommandFunc;
-	void *shutdownFunc;
+struct Gametype {
+	void ( *Init )();
+	void ( *Init2 )();
+	void ( *MatchStateStarted )();
+	bool ( *MatchStateFinished )( MatchState incomingMatchState );
+	void ( *Think )();
+	void ( *PlayerRespawning )( edict_t * ent );
+	void ( *PlayerRespawned )( edict_t * ent, int old_team, int new_team );
+	void ( *PlayerConnected )( edict_t * ent );
+	void ( *PlayerDisconnected )( edict_t * ent );
+	void ( *PlayerKilled )( edict_t * victim, edict_t * attacker, edict_t * inflictor );
+	edict_t * ( *SelectSpawnPoint )( edict_t * ent );
+	bool ( *Command )( gclient_t * client, const char * cmd, const char * args, int argc );
+	void ( *Shutdown )();
+	bool ( *SpawnEntity )( StringHash classname, edict_t * ent );
 
 	bool isTeamBased;
-	bool hasChallengersQueue;
-	bool hasChallengersRoulette;
-
-	// few default settings
 	bool countdownEnabled;
-	bool matchAbortDisabled;
 	bool removeInactivePlayers;
 	bool selfDamage;
-} gametype_descriptor_t;
+};
 
-//
-//	matches management
-//
-void G_Match_RemoveProjectiles( edict_t *owner );
+Gametype GetBombGametype();
+Gametype GetGladiatorGametype();
+
 void G_Match_CleanUpPlayerStats( edict_t *ent );
-void G_Match_FreeBodyQueue();
-void G_Match_LaunchState( int matchState );
+void G_Match_LaunchState( MatchState matchState );
 
-//
-//	teams
-//
 void G_Teams_Init();
-
-void G_Teams_ExecuteChallengersQueue();
-void G_Teams_AdvanceChallengersQueue();
 
 void G_Match_Autorecord_Start();
 void G_Match_Autorecord_AltStart();
@@ -71,3 +38,17 @@ void G_Match_Autorecord_Stop();
 void G_Match_Autorecord_Cancel();
 bool G_Match_ScorelimitHit();
 bool G_Match_TimelimitHit();
+
+void GT_CallSpawn();
+void GT_CallMatchStateStarted();
+bool GT_CallMatchStateFinished( MatchState incomingMatchState );
+void GT_CallThinkRules();
+void GT_CallPlayerConnected( edict_t * ent );
+void GT_CallPlayerRespawning( edict_t * ent );
+void GT_CallPlayerRespawned( edict_t * ent, int old_team, int new_team );
+void GT_CallPlayerKilled( edict_t * victim, edict_t * attacker, edict_t * inflictor );
+edict_t *GT_CallSelectSpawnPoint( edict_t *ent );
+bool GT_CallGameCommand( gclient_t *client, const char *cmd, const char *args, int argc );
+void GT_CallShutdown();
+
+Span< const char > G_GetWorldspawnKey( const char * key );

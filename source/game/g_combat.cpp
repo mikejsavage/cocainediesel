@@ -117,7 +117,7 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int assisto
 		}
 	}
 
-	G_Gametype_ScoreEvent( attacker ? attacker->r.client : NULL, "kill", va( "%i %i %i", targ->s.number, ( inflictor == world ) ? -1 : ENTNUM( inflictor ), ENTNUM( attacker ) ) );
+	GT_CallPlayerKilled( targ, attacker, inflictor );
 
 	G_CallDie( targ, inflictor, attacker, assistorNo, damage_type, damage );
 }
@@ -289,8 +289,6 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 			SpawnDamageEvents( attacker, targ, take, headshot, point, dmgdir );
 		}
 	}
-
-	G_Gametype_ScoreEvent( attacker->r.client, "dmg", va( "%i %f %i", targ->s.number, damage, attacker->s.number ) );
 
 	if( statDmg ) {
 		G_ClientGetStats( targ )->total_damage_received += take;

@@ -210,21 +210,12 @@ void G_Init( unsigned int framemsec ) {
 
 	// server console commands
 	G_AddServerCommands();
-
-	// init AS engine
-	G_asInitGameModuleEngine();
 }
 
-/*
-* G_Shutdown
-*/
 void G_Shutdown() {
 	Com_Printf( "==== G_Shutdown ====\n" );
 
-	GT_asCallShutdown();
-
-	GT_asShutdownScript();
-	G_asShutdownGameModuleEngine();
+	GT_CallShutdown();
 
 	SV_WriteIPList();
 
@@ -332,9 +323,6 @@ static void G_UpdateMapRotation() {
 	}
 }
 
-/*
-* G_MapRotationNormal
-*/
 static const char *G_MapRotationNormal() {
 	G_UpdateMapRotation();
 
@@ -364,9 +352,6 @@ static const char *G_NextMap() {
 	return next ? next : sv.mapname;
 }
 
-/*
-* G_ExitLevel
-*/
 void G_ExitLevel() {
 	bool loadmap = true;
 
@@ -393,12 +378,6 @@ void G_ExitLevel() {
 		edict_t *ent = game.edicts + 1 + i;
 		if( !ent->r.inuse ) {
 			continue;
-		}
-
-		ent->r.client->level.showscores = false;
-
-		if( ent->health > ent->max_health ) {
-			ent->health = ent->max_health;
 		}
 
 		if( loadmap ) {

@@ -416,9 +416,6 @@ static void SV_CheckDefaultMap() {
 	}
 }
 
-/*
-* SV_Frame
-*/
 void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 	ZoneScoped;
 

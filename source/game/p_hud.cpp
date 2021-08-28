@@ -80,9 +80,6 @@ static unsigned int G_FindPointedPlayer( edict_t *self ) {
 	return best;
 }
 
-/*
-* G_SetClientStats
-*/
 void G_SetClientStats( edict_t * ent ) {
 	gclient_t * client = ent->r.client;
 	SyncPlayerState * ps = &client->ps;

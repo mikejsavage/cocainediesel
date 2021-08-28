@@ -17,6 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
 #include "game/g_local.h"
 
 /*
@@ -283,9 +284,6 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 	return false;
 }
 
-/*
-* Cmd_Say_f
-*/
 void Cmd_Say_f( edict_t *ent, bool arg0, bool checkflood ) {
 	char *p;
 	char text[2048];
@@ -326,9 +324,6 @@ void Cmd_Say_f( edict_t *ent, bool arg0, bool checkflood ) {
 	G_ChatMsg( NULL, ent, false, "%s", text );
 }
 
-/*
-* Cmd_SayCmd_f
-*/
 static void Cmd_SayCmd_f( edict_t * ent ) {
 	if( !G_ISGHOSTING( ent ) ) {
 		edict_t * event = G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/typewriter/return" );
@@ -338,9 +333,6 @@ static void Cmd_SayCmd_f( edict_t * ent ) {
 	Cmd_Say_f( ent, false, true );
 }
 
-/*
-* Cmd_SayTeam_f
-*/
 static void Cmd_SayTeam_f( edict_t * ent ) {
 	if( !G_ISGHOSTING( ent ) ) {
 		edict_t * event = G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/typewriter/return" );
@@ -460,9 +452,6 @@ static void Cmd_Join_f( edict_t *ent ) {
 	G_Teams_Join_Cmd( ent );
 }
 
-/*
-* Cmd_Timeout_f
-*/
 static void Cmd_Timeout_f( edict_t *ent ) {
 	int num;
 
@@ -504,9 +493,6 @@ static void Cmd_Timeout_f( edict_t *ent ) {
 	level.timeout.endtime = level.timeout.time + TIMEOUT_TIME + FRAMETIME;
 }
 
-/*
-* Cmd_Timeout_f
-*/
 static void Cmd_Timein_f( edict_t *ent ) {
 	int num;
 
@@ -558,38 +544,20 @@ typedef struct
 
 g_gamecommands_t g_Commands[MAX_GAMECOMMANDS];
 
-/*
-* G_PrecacheGameCommands
-*/
 void G_PrecacheGameCommands() {
 	for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
 		PF_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
 	}
 }
 
-/*
-* G_AddCommand
-*/
 void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
-	int i;
-	char temp[MAX_CONFIGSTRING_CHARS];
-	static const char *blacklist[] = { "callvotevalidate", "callvotepassed", NULL };
-
-	Q_strncpyz( temp, name, sizeof( temp ) );
-
-	for( i = 0; blacklist[i] != NULL; i++ ) {
-		if( !Q_stricmp( blacklist[i], temp ) ) {
-			Com_Printf( "WARNING: G_AddCommand: command name '%s' is write protected\n", temp );
-			return;
-		}
-	}
-
 	// see if we already had it in game side
+	int i;
 	for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
 		if( !g_Commands[i].name[0] ) {
 			break;
 		}
-		if( !Q_stricmp( g_Commands[i].name, temp ) ) {
+		if( !Q_stricmp( g_Commands[i].name, name ) ) {
 			// update func if different
 			if( g_Commands[i].func != callback ) {
 				g_Commands[i].func = ( gamecommandfunc_t )callback;
@@ -598,14 +566,11 @@ void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 		}
 	}
 
-	if( i == MAX_GAMECOMMANDS ) {
-		Fatal( "G_AddCommand: Couldn't find a free g_Commands spot for the new command. (increase MAX_GAMECOMMANDS)\n" );
-		return;
-	}
+	assert( i < MAX_GAMECOMMANDS );
 
 	// we don't have it, add it
 	g_Commands[i].func = ( gamecommandfunc_t )callback;
-	Q_strncpyz( g_Commands[i].name, temp, sizeof( g_Commands[i].name ) );
+	Q_strncpyz( g_Commands[i].name, name, sizeof( g_Commands[i].name ) );
 
 	// add the configstring if the precache process was already done
 	if( level.canSpawnEntities ) {
@@ -613,9 +578,6 @@ void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 	}
 }
 
-/*
-* G_InitGameCommands
-*/
 void G_InitGameCommands() {
 	memset( g_Commands, 0, sizeof( g_Commands ) );
 
@@ -627,8 +589,6 @@ void G_InitGameCommands() {
 	G_AddCommand( "chase", Cmd_ChaseCam_f );
 	G_AddCommand( "chasenext", Cmd_ChaseNext_f );
 	G_AddCommand( "chaseprev", Cmd_ChasePrev_f );
-	G_AddCommand( "enterqueue", G_Teams_JoinChallengersQueue );
-	G_AddCommand( "leavequeue", G_Teams_LeaveChallengersQueue );
 	G_AddCommand( "camswitch", Cmd_SwitchChaseCamMode_f );
 	G_AddCommand( "timeout", Cmd_Timeout_f );
 	G_AddCommand( "timein", Cmd_Timein_f );
@@ -656,9 +616,6 @@ void G_InitGameCommands() {
 	G_AddCommand( "vsay", G_vsay_f );
 }
 
-/*
-* ClientCommand
-*/
 void ClientCommand( edict_t *ent ) {
 	if( !ent->r.client || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return; // not fully in game yet
@@ -677,7 +634,7 @@ void ClientCommand( edict_t *ent ) {
 			if( g_Commands[i].func ) {
 				g_Commands[i].func( ent );
 			} else {
-				GT_asCallGameCommand( ent->r.client, cmd, Cmd_Args(), Cmd_Argc() - 1 );
+				GT_CallGameCommand( ent->r.client, cmd, Cmd_Args(), Cmd_Argc() - 1 );
 			}
 			return;
 		}

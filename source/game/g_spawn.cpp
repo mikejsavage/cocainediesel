@@ -217,15 +217,15 @@ static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent ) {
 		if( key == "}" )
 			break;
 		if( key.ptr == NULL ) {
-			Fatal( "ED_ParseEntity: EOF without closing brace" );
+			Com_Error( "ED_ParseEntity: EOF without closing brace" );
 		}
 
 		Span< const char > value = ParseToken( cursor, Parse_StopOnNewLine );
 		if( value.ptr == NULL ) {
-			Fatal( "ED_ParseEntity: EOF without closing brace" );
+			Com_Error( "ED_ParseEntity: EOF without closing brace" );
 		}
 		if( value == "}" ) {
-			Fatal( "ED_ParseEntity: closing brace without data" );
+			Com_Error( "ED_ParseEntity: closing brace without data" );
 		}
 
 		ED_ParseField( key, value, ent );
@@ -265,7 +265,7 @@ static void SpawnMapEntities() {
 		if( brace == "" )
 			break;
 		if( brace != "{" ) {
-			Fatal( "SpawnMapEntities: entity string doesn't begin with {" );
+			Com_Error( "SpawnMapEntities: entity string doesn't begin with {" );
 		}
 
 		if( ent == NULL ) {

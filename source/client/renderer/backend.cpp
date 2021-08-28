@@ -1118,7 +1118,8 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
 
-		GLenum min_filter, mag_filter;
+		GLenum min_filter = GL_NONE;
+		GLenum mag_filter = GL_NONE;
 		TextureFilterToGL( config.filter, &min_filter, &mag_filter );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter );

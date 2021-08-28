@@ -193,7 +193,6 @@ void G_CheckCvars() {
 	// update gameshared server settings
 
 	// FIXME: This should be restructured so gameshared settings are the master settings
-	G_GamestatSetFlag( GAMESTAT_FLAG_HASCHALLENGERS, level.gametype.hasChallengersQueue );
 	G_GamestatSetFlag( GAMESTAT_FLAG_ISTEAMBASED, level.gametype.isTeamBased );
 	G_GamestatSetFlag( GAMESTAT_FLAG_COUNTDOWN, level.gametype.countdownEnabled );
 }
@@ -203,12 +202,9 @@ void G_CheckCvars() {
 //===================================================================
 
 void G_SnapClients() {
-	int i;
-	edict_t *ent;
-
 	// calc the player views now that all pushing and damage has been added
-	for( i = 0; i < server_gs.maxclients; i++ ) {
-		ent = game.edicts + 1 + i;
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		edict_t * ent = game.edicts + 1 + i;
 		if( !ent->r.inuse || !ent->r.client ) {
 			continue;
 		}

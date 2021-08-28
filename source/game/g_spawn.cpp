@@ -90,6 +90,8 @@ struct EntitySpawnCallback {
 };
 
 static constexpr EntitySpawnCallback spawn_callbacks[] = {
+	{ "worldspawn", SP_worldspawn },
+
 	{ "post_match_camera", SP_post_match_camera },
 
 	{ "func_button", SP_func_button },
@@ -114,8 +116,6 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 	{ "target_print", SP_target_print },
 	{ "target_delay", SP_target_delay },
 
-	{ "worldspawn", SP_worldspawn },
-
 	{ "path_corner", SP_path_corner },
 
 	{ "trigger_teleport", SP_trigger_teleport },
@@ -138,7 +138,7 @@ static bool SpawnEntity( edict_t * ent ) {
 		}
 	}
 
-	if( G_asCallMapEntitySpawnScript( st.classname, ent ) ) {
+	if( level.gametype.SpawnEntity != NULL && level.gametype.SpawnEntity( ent->classname, ent ) ) {
 		return true;
 	}
 
@@ -302,12 +302,6 @@ static void SpawnMapEntities() {
 void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	TempAllocator temp = svs.frame_arena.temp();
 
-	G_asGarbageCollect( true );
-
-	GT_asCallShutdown();
-
-	GT_asShutdownScript();
-
 	GClip_ClearWorld(); // clear areas links
 
 	memset( &level, 0, sizeof( level_locals_t ) );
@@ -345,7 +339,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	// start spawning entities
 	SpawnMapEntities();
 
-	GT_asCallSpawn();
+	GT_CallSpawn();
 
 	// always start in warmup match state and let the thinking code
 	// revert it to wait state if empty ( so gametype based item masks are setup )
@@ -356,8 +350,6 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 			G_Teams_JoinAnyTeam( &game.edicts[ i + 1 ], true );
 		}
 	}
-
-	G_asGarbageCollect( true );
 }
 
 void G_ResetLevel() {
@@ -370,7 +362,7 @@ void G_ResetLevel() {
 
 	SpawnMapEntities();
 
-	GT_asCallSpawn();
+	GT_CallSpawn();
 }
 
 void G_RespawnLevel() {
@@ -432,7 +424,7 @@ void G_Aasdf() {
 static void SP_worldspawn( edict_t *ent ) {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.solid = SOLID_YES;
-	ent->r.inuse = true;       // since the world doesn't use G_Spawn()
+	ent->r.inuse = true; // since the world doesn't use G_Spawn()
 	ent->s.origin = Vec3( 0.0f );
 	ent->s.angles = Vec3( 0.0f );
 

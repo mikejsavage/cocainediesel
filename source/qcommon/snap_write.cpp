@@ -470,7 +470,7 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 		return false;
 	}
 
-	if( ( ent->r.svflags & SVF_FORCETEAM ) && ( clent && ent->s.team == clent->s.team ) ) {
+	if( ( ent->r.svflags & SVF_FORCETEAM ) && ( clent && ent->s.team == clent->s.team && ent->s.team >= TEAM_ALPHA ) ) {
 		return false;
 	}
 

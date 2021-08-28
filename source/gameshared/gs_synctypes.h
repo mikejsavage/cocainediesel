@@ -139,9 +139,8 @@ enum BombProgress {
 
 #define GAMESTAT_FLAG_PAUSED ( 1 << 0 )
 #define GAMESTAT_FLAG_WAITING ( 1 << 1 )
-#define GAMESTAT_FLAG_HASCHALLENGERS ( 1 << 2 )
-#define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 3 )
-#define GAMESTAT_FLAG_COUNTDOWN ( 1 << 4 )
+#define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 2 )
+#define GAMESTAT_FLAG_COUNTDOWN ( 1 << 3 )
 
 enum {
 	TEAM_SPECTATOR,

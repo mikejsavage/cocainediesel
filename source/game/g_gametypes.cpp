@@ -21,17 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_local.h"
 #include "qcommon/cmodel.h"
 
-//==========================================================
-//					Matches
-//==========================================================
-
 cvar_t *g_warmup_timelimit;
-cvar_t *g_match_extendedtime;
 cvar_t *g_scorelimit;
-
-//==========================================================
-//					Matches
-//==========================================================
 
 static void G_Match_SetAutorecordState( const char *state ) {
 	PF_ConfigString( CS_AUTORECORDSTATE, state );
@@ -98,7 +89,7 @@ static void G_Match_CheckStateAbort() {
 	bool any = false;
 	bool enough;
 
-	if( server_gs.gameState.match_state >= MatchState_PostMatch || level.gametype.matchAbortDisabled ) {
+	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
 		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
 		return;
 	}
@@ -148,11 +139,9 @@ static void G_Match_CheckStateAbort() {
 	}
 }
 
-void G_Match_LaunchState( int matchState ) {
-	static bool advance_queue = false;
-
+void G_Match_LaunchState( MatchState matchState ) {
 	// give the gametype a chance to refuse the state change, or to set up things for it
-	if( !GT_asCallMatchStateFinished( matchState ) ) {
+	if( !GT_CallMatchStateFinished( matchState ) ) {
 		return;
 	}
 
@@ -165,68 +154,43 @@ void G_Match_LaunchState( int matchState ) {
 	switch( matchState ) {
 		default:
 		case MatchState_Warmup:
-		{
-			advance_queue = false;
-
 			server_gs.gameState.match_state = MatchState_Warmup;
 			server_gs.gameState.match_duration = (int64_t)( Abs( g_warmup_timelimit->value * 60 ) * 1000 );
 			server_gs.gameState.match_state_start_time = svs.gametime;
-
 			break;
-		}
 
 		case MatchState_Countdown:
-		{
-			advance_queue = true;
-
 			server_gs.gameState.match_state = MatchState_Countdown;
 			server_gs.gameState.match_duration = 5000;
 			server_gs.gameState.match_state_start_time = svs.gametime;
-
 			break;
-		}
 
 		case MatchState_Playing:
-		{
-			// ch : should clear some statcollection memory from warmup?
-
-			advance_queue = true; // shouldn't be needed here
-
 			server_gs.gameState.match_state = MatchState_Playing;
 			server_gs.gameState.match_duration = 0;
 			server_gs.gameState.match_state_start_time = svs.gametime;
-		}
-		break;
+			break;
 
 		case MatchState_PostMatch:
-		{
 			server_gs.gameState.match_state = MatchState_PostMatch;
-			server_gs.gameState.match_duration = 4000; // postmatch time in seconds
+			server_gs.gameState.match_duration = 4000;
 			server_gs.gameState.match_state_start_time = svs.gametime;
 
 			G_Timeout_Reset();
 			level.forceExit = false;
-		}
-		break;
+			break;
 
 		case MatchState_WaitExit:
-		{
-			if( advance_queue ) {
-				G_Teams_AdvanceChallengersQueue();
-				advance_queue = true;
-			}
-
 			server_gs.gameState.match_state = MatchState_WaitExit;
 			server_gs.gameState.match_duration = 3000;
 			server_gs.gameState.match_state_start_time = svs.gametime;
 
 			level.exitNow = false;
-		}
-		break;
+			break;
 	}
 
 	// give the gametype the chance to setup for the new state
-	GT_asCallMatchStateStarted();
+	GT_CallMatchStateStarted();
 }
 
 bool G_Match_ScorelimitHit() {
@@ -382,26 +346,6 @@ void G_Match_ToggleReady( edict_t *ent ) {
 	}
 }
 
-void G_Match_RemoveProjectiles( edict_t *owner ) {
-	edict_t *ent;
-
-	for( ent = game.edicts + server_gs.maxclients; ENTNUM( ent ) < game.numentities; ent++ ) {
-		if( ent->r.inuse && !ent->r.client && ent->r.svflags & SVF_PROJECTILE && ent->r.solid != SOLID_NOT &&
-			( owner == NULL || ent->r.owner->s.number == owner->s.number ) ) {
-			G_FreeEdict( ent );
-		}
-	}
-}
-
-void G_Match_FreeBodyQueue() {
-	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
-		edict_t * ent = &game.edicts[ i ];
-		if( ent->r.inuse && ent->s.type == ET_CORPSE ) {
-			G_FreeEdict( ent );
-		}
-	}
-}
-
 //======================================================
 //		Game types
 
@@ -508,22 +452,13 @@ static void G_CheckEvenTeam() {
 	}
 }
 
-void G_Gametype_ScoreEvent( gclient_t *client, const char *score_event, const char *args ) {
-	if( !score_event || !score_event[0] ) {
-		return;
-	}
-
-	GT_asCallScoreEvent( client, score_event, args );
-}
-
 void G_RunGametype() {
 	ZoneScoped;
 
-	G_Teams_ExecuteChallengersQueue();
 	G_Teams_UpdateMembersList();
 	G_Match_CheckStateAbort();
 
-	GT_asCallThinkRules();
+	GT_CallThinkRules();
 
 	if( G_EachNewSecond() ) {
 		G_CheckNumBots();
@@ -532,63 +467,78 @@ void G_RunGametype() {
 	if( G_EachNewMinute() ) {
 		G_CheckEvenTeam();
 	}
+}
 
-	G_asGarbageCollect( false );
+Span< const char > G_GetWorldspawnKey( const char * key ) {
+	return ParseWorldspawnKey( MakeSpan( CM_EntityString( svs.cms ) ), key );
 }
 
 //======================================================
 //		Game type registration
 //======================================================
 
-void G_Gametype_SetDefaults() {
-	level.gametype.isTeamBased = false;
-	level.gametype.hasChallengersQueue = false;
-	level.gametype.hasChallengersRoulette = false;
-
-	level.gametype.countdownEnabled = false;
-	level.gametype.matchAbortDisabled = false;
-	level.gametype.removeInactivePlayers = true;
-	level.gametype.selfDamage = true;
-}
-
 // this is pretty dirty, parse the first entity and grab the gametype key
 // do no validation, G_SpawnEntities will catch it
 static bool IsGladiatorMap() {
-	const char * entities = CM_EntityString( svs.cms );
-	ParseToken( &entities, Parse_DontStopOnNewLine ); // {
+	return G_GetWorldspawnKey( "gametype" ) == "gladiator";
+}
 
-	while( true ) {
-		Span< const char > key = ParseToken( &entities, Parse_DontStopOnNewLine );
-		Span< const char > value = ParseToken( &entities, Parse_DontStopOnNewLine );
-
-		if( entities == NULL || key == "}" )
-			break;
-
-		if( key == "gametype" ) {
-			return value == "gladiator";
-		}
+void GT_CallSpawn() {
+	if( level.gametype.Init2 != NULL ) {
+		level.gametype.Init2();
+		return;
 	}
+}
 
+void GT_CallMatchStateStarted() {
+	level.gametype.MatchStateStarted();
+}
+
+bool GT_CallMatchStateFinished( MatchState incomingMatchState ) {
+	return level.gametype.MatchStateFinished( incomingMatchState );
+}
+
+void GT_CallThinkRules() {
+	level.gametype.Think();
+}
+
+void GT_CallPlayerConnected( edict_t * ent ) {
+	level.gametype.PlayerConnected( ent );
+}
+
+void GT_CallPlayerRespawning( edict_t * ent ) {
+	if( level.gametype.PlayerRespawning != NULL ) {
+		level.gametype.PlayerRespawning( ent );
+	}
+}
+
+void GT_CallPlayerRespawned( edict_t * ent, int old_team, int new_team ) {
+	level.gametype.PlayerRespawned( ent, old_team, new_team );
+}
+
+void GT_CallPlayerKilled( edict_t * victim, edict_t * attacker, edict_t * inflictor ) {
+	level.gametype.PlayerKilled( victim, attacker, inflictor );
+}
+
+edict_t * GT_CallSelectSpawnPoint( edict_t * ent ) {
+	return level.gametype.SelectSpawnPoint( ent );
+}
+
+bool GT_CallGameCommand( gclient_t * client, const char * cmd, const char * args, int argc ) {
+	if( level.gametype.Command != NULL ) {
+		return level.gametype.Command( client, cmd, args, argc );
+	}
 	return false;
 }
 
-void G_Gametype_Init() {
-	// get the match cvars too
-	g_warmup_timelimit = Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );
-	g_match_extendedtime = Cvar_Get( "g_match_extendedtime", "2", CVAR_ARCHIVE );
+void GT_CallShutdown() {
+	level.gametype.Shutdown();
+}
 
-	// game settings
+void G_Gametype_Init() {
+	g_warmup_timelimit = Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );
 	g_scorelimit = Cvar_Get( "g_scorelimit", "10", CVAR_ARCHIVE );
 
-	const char * gt = IsGladiatorMap() ? "gladiator" : "bomb";
-
-	G_InitChallengersQueue();
-
-	G_CheckCvars();
-
-	G_Gametype_SetDefaults();
-
-	if( !GT_asLoadScript( gt ) && !is_public_build ) {
-		Fatal( "Failed to load %s", gt );
-	}
+	level.gametype = IsGladiatorMap() ? GetGladiatorGametype() : GetBombGametype();
+	level.gametype.Init();
 }

@@ -353,7 +353,6 @@ static void G_VoteSpectatePassed( callvotedata_t *vote ) {
 				GS_TeamName( ent->s.team ), S_COLOR_WHITE );
 
 	G_Teams_SetTeam( ent, TEAM_SPECTATOR );
-	ent->r.client->queueTimeStamp = 0;
 }
 
 

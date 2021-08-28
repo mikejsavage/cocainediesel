@@ -167,8 +167,6 @@ void G_FreeEdict( edict_t *ed ) {
 
 	GClip_UnlinkEntity( ed );   // unlink from world
 
-	G_asReleaseEntityBehaviors( ed );
-
 	memset( ed, 0, sizeof( *ed ) );
 	ed->s.number = ENTNUM( ed );
 	ed->r.svflags = SVF_NOCLIENT;
@@ -186,8 +184,6 @@ void G_InitEdict( edict_t *e ) {
 
 	memset( &e->s, 0, sizeof( SyncEntityState ) );
 	e->s.number = ENTNUM( e );
-
-	G_asClearEntityBehaviors( e );
 
 	// mark all entities to not be sent by default
 	e->r.svflags = SVF_NOCLIENT | (e->r.svflags & SVF_FAKECLIENT);
@@ -308,8 +304,6 @@ void G_InitMover( edict_t *ent ) {
 void G_CallThink( edict_t *ent ) {
 	if( ent->think ) {
 		ent->think( ent );
-	} else if( ent->asThinkFunc ) {
-		G_asCallMapEntityThink( ent );
 	}
 }
 
@@ -320,40 +314,30 @@ void G_CallTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags 
 
 	if( self->touch ) {
 		self->touch( self, other, plane, surfFlags );
-	} else if( self->asTouchFunc ) {
-		G_asCallMapEntityTouch( self, other, plane, surfFlags );
 	}
 }
 
 void G_CallUse( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->use ) {
 		self->use( self, other, activator );
-	} else if( self->asUseFunc ) {
-		G_asCallMapEntityUse( self, other, activator );
 	}
 }
 
 void G_CallStop( edict_t *self ) {
 	if( self->stop ) {
 		self->stop( self );
-	} else if( self->asStopFunc ) {
-		G_asCallMapEntityStop( self );
 	}
 }
 
 void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage ) {
 	if( ent->pain ) {
 		ent->pain( ent, attacker, kick, damage );
-	} else if( ent->asPainFunc ) {
-		G_asCallMapEntityPain( ent, attacker, kick, damage );
 	}
 }
 
 void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assistorNo, DamageType damage_type, int damage ) {
 	if( ent->die ) {
 		ent->die( ent, inflictor, attacker, assistorNo, damage_type, damage );
-	} else if( ent->asDieFunc ) {
-		G_asCallMapEntityDie( ent, inflictor, attacker, damage );
 	}
 }
 

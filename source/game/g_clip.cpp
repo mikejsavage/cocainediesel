@@ -884,7 +884,7 @@ static void CallTouches( edict_t * ent, Vec3 mins, Vec3 maxs ) {
 			continue;
 		}
 
-		if( !hit->touch && !hit->asTouchFunc ) {
+		if( !hit->touch ) {
 			continue;
 		}
 

@@ -166,9 +166,6 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAss
 	GClip_LinkEntity( ent );
 }
 
-/*
-* G_Client_UpdateActivity
-*/
 void G_Client_UpdateActivity( gclient_t *client ) {
 	if( !client ) {
 		return;
@@ -176,9 +173,6 @@ void G_Client_UpdateActivity( gclient_t *client ) {
 	client->level.last_activity = level.time;
 }
 
-/*
-* G_Client_InactivityRemove
-*/
 void G_Client_InactivityRemove( gclient_t *client ) {
 	if( !client ) {
 		return;
@@ -215,9 +209,7 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 		if( client->team >= TEAM_PLAYERS && client->team < GS_MAX_TEAMS ) {
 			edict_t *ent = &game.edicts[ client - game.clients + 1 ];
 
-			// move to spectators and reset the queue time, effectively removing from the challengers queue
 			G_Teams_SetTeam( ent, TEAM_SPECTATOR );
-			client->queueTimeStamp = 0;
 
 			G_PrintMsg( NULL, "%s has been moved to spectator after %.1f seconds of inactivity\n", client->netname, g_inactivity_maxtime->value );
 		}
@@ -259,10 +251,7 @@ void G_GhostClient( edict_t *ent ) {
 }
 
 void G_ClientRespawn( edict_t *self, bool ghost ) {
-	edict_t *spawnpoint;
-	Vec3 spawn_origin, spawn_angles;
-	gclient_t *client;
-	int old_team;
+	GT_CallPlayerRespawning( self );
 
 	G_SpawnQueue_RemoveClient( self );
 
@@ -278,11 +267,11 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		ghost = true;
 	}
 
-	old_team = self->s.team;
+	int old_team = self->s.team;
 
 	GClip_UnlinkEntity( self );
 
-	client = self->r.client;
+	gclient_t * client = self->r.client;
 
 	memset( &client->resp, 0, sizeof( client->resp ) );
 	memset( &client->ps, 0, sizeof( client->ps ) );
@@ -338,10 +327,12 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	if( ghost ) {
 		self->s.type = ET_GHOST;
+		self->s.svflags &= ~SVF_FORCETEAM;
 		self->r.solid = SOLID_NOT;
 		self->movetype = MOVETYPE_NOCLIP;
 	} else {
 		self->s.type = ET_PLAYER;
+		self->s.svflags |= SVF_FORCETEAM;
 		self->r.solid = SOLID_YES;
 		self->movetype = MOVETYPE_PLAYER;
 		client->ps.pmove.features = PMFEAT_DEFAULT;
@@ -353,6 +344,8 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		G_Teams_UpdateMembersList();
 	}
 
+	edict_t * spawnpoint;
+	Vec3 spawn_origin, spawn_angles;
 	SelectSpawnPoint( self, &spawnpoint, &spawn_origin, &spawn_angles );
 	client->ps.pmove.origin = spawn_origin;
 	self->s.origin = spawn_origin;
@@ -377,27 +370,17 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	memset( self->recent_attackers, 0, sizeof(self->recent_attackers) );
 
-	// hold in place briefly
-	client->ps.pmove.pm_flags = PMF_TIME_TELEPORT;
-	client->ps.pmove.pm_time = 14;
-
 	G_UseTargets( spawnpoint, self );
 
 	GClip_LinkEntity( self );
 
-	// let the gametypes perform their changes
-	GT_asCallPlayerRespawn( self, old_team, self->s.team );
-
 	if( self->r.svflags & SVF_FAKECLIENT ) {
 		AI_Respawn( self );
 	}
+
+	GT_CallPlayerRespawned( self, old_team, self->s.team );
 }
 
-/*
-* G_PlayerCanTeleport
-*
-* Checks if the player can be teleported.
-*/
 bool G_PlayerCanTeleport( edict_t *player ) {
 	if( !player->r.client ) {
 		return false;
@@ -408,9 +391,6 @@ bool G_PlayerCanTeleport( edict_t *player ) {
 	return true;
 }
 
-/*
-* G_TeleportPlayer
-*/
 void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	gclient_t *client = player->r.client;
 
@@ -497,9 +477,6 @@ void ClientBegin( edict_t *ent ) {
 	client->connecting = false;
 
 	G_ClientEndSnapFrame( ent ); // make sure all view stuff is valid
-
-	// let the gametype scripts now this client just entered the level
-	G_Gametype_ScoreEvent( client, "enterGame", NULL );
 }
 
 /*
@@ -516,9 +493,6 @@ static void strip_highchars( char *in ) {
 	*out = 0;
 }
 
-/*
-* G_SanitizeUserString
-*/
 static int G_SanitizeUserString( char *string, size_t size ) {
 	// life is hard, UTF-8 will have to go
 	strip_highchars( string );
@@ -539,9 +513,6 @@ static int G_SanitizeUserString( char *string, size_t size ) {
 	return c_ascii;
 }
 
-/*
-* G_SetName
-*/
 static void G_SetName( edict_t *ent, const char *original_name ) {
 	const char *invalid_prefixes[] = { "console", "[team]", "[spec]", "[bot]", NULL };
 	edict_t *other;
@@ -668,8 +639,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	Q_strncpyz( cl->userinfo, userinfo, sizeof( cl->userinfo ) );
 
 	G_UpdatePlayerInfoString( PLAYERNUM( ent ) );
-
-	G_Gametype_ScoreEvent( cl, "userinfochanged", oldname );
 }
 
 
@@ -757,8 +726,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 		Com_Printf( "%s connected from %s\n", ent->r.client->netname, ent->r.client->ip );
 	}
 
-	// let the gametype scripts know this client just connected
-	G_Gametype_ScoreEvent( ent->r.client, "connect", NULL );
+	GT_CallPlayerConnected( ent );
 
 	G_CallVotes_ResetClient( PLAYERNUM( ent ) );
 
@@ -789,9 +757,6 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 	ent->r.client->team = TEAM_SPECTATOR;
 	G_ClientRespawn( ent, true ); // respawn as ghost
 	ent->movetype = MOVETYPE_NOCLIP; // allow freefly
-
-	// let the gametype scripts know this client just disconnected
-	G_Gametype_ScoreEvent( ent->r.client, "disconnect", NULL );
 
 	ent->r.inuse = false;
 	ent->r.svflags = SVF_NOCLIENT;
@@ -861,6 +826,31 @@ void G_PredictedFireWeapon( int entNum, u64 parm ) {
 void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm ) {
 	edict_t * ent = &game.edicts[ entNum ];
 	G_UseGadget( ent, gadget, parm );
+}
+
+void G_GiveWeapon( edict_t * ent, WeaponType weapon ) {
+	SyncPlayerState * ps = &ent->r.client->ps;
+
+	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {
+		if( ps->weapons[ i ].weapon == weapon || ps->weapons[ i ].weapon == Weapon_None ) {
+			ps->weapons[ i ].weapon = weapon;
+			ps->weapons[ i ].ammo = GS_GetWeaponDef( weapon )->clip_size;
+			break;
+		}
+	}
+}
+
+void G_SelectWeapon( edict_t * ent, int index ) {
+	SyncPlayerState * ps = &ent->r.client->ps;
+
+	if( ps->weapons[ index ].weapon == Weapon_None ) {
+		return;
+	}
+
+	ps->weapon = Weapon_None;
+	ps->pending_weapon = ps->weapons[ index ].weapon;
+	ps->weapon_state = WeaponState_DispatchQuiet;
+	ps->weapon_state_time = 0;
 }
 
 void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
@@ -996,10 +986,6 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	client->resp.snap.buttons |= ucmd->buttons;
 }
 
-/*
-* G_ClientThink
-* Client frame think, and call to execute its usercommands thinking
-*/
 void G_ClientThink( edict_t *ent ) {
 	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return;
@@ -1015,9 +1001,6 @@ void G_ClientThink( edict_t *ent ) {
 	SV_ExecuteClientThinks( PLAYERNUM( ent ) );
 }
 
-/*
-* G_CheckClientRespawnClick
-*/
 void G_CheckClientRespawnClick( edict_t *ent ) {
 	if( !ent->r.inuse || !ent->r.client || !G_IsDead( ent ) ) {
 		return;

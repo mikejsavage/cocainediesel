@@ -329,6 +329,13 @@ static void NewRoundState( GladiatorRoundState newState ) {
 			}
 
 			// respawn all clients
+			for( int i = 0; i < MAX_CLIENTS; i++ ) {
+				edict_t * ent = PLAYERENT( i );
+				if( PF_GetClientState( i ) >= CS_SPAWNED ) {
+					GClip_UnlinkEntity( ent );
+				}
+			}
+
 			for( size_t i = 0; i < num_players; i++ ) {
 				s32 player_num = server_gs.gameState.teams[ TEAM_PLAYERS ].player_indices[ i ] - 1;
 				edict_t * ent = PLAYERENT( player_num );

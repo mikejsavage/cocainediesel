@@ -718,6 +718,13 @@ static void RespawnAllPlayers( bool ghost = false ) {
 	for( int i = 0; i < MAX_CLIENTS; i++ ) {
 		edict_t * ent = PLAYERENT( i );
 		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
+			GClip_UnlinkEntity( ent );
+		}
+	}
+
+	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+		edict_t * ent = PLAYERENT( i );
+		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
 			G_ClientRespawn( ent, ghost );
 		}
 	}

@@ -11,8 +11,8 @@
 #include "glsl/shader_v2f_c4f_t2f_vert.h"
 
 #include "qcommon/base.h"
-#include "qcommon/types.h"
 #include "qcommon/array.h"
+#include "qcommon/fs.h"
 #include "client/renderer/renderer.h"
 #include "cgame/cg_local.h"
 
@@ -423,9 +423,10 @@ public:
 	NonRAIIDynamicArray< Mesh > meshes;
 };
 
-ul::RefPtr< ul::Renderer > renderer;
-ul::RefPtr< ul::View > view;
-GPUDriverGL driver;
+static ul::RefPtr< ul::Renderer > renderer;
+static ul::RefPtr< ul::View > view;
+static GPUDriverGL driver;
+static bool show_inspector;
 
 static const char * GG( Allocator * a, JSContextRef ctx, JSValueRef str ) {
 	JSStringRef str2 = JSValueToStringCopy( ctx, str, NULL );
@@ -477,8 +478,16 @@ static void RegisterEngineAPI() {
 	SetObjectKey( ctx, JSContextGetGlobalObject( ctx ), "engine", engine );
 }
 
+static void ToggleInspector() {
+	show_inspector = !show_inspector;
+}
+
 void CL_Ultralight_Init() {
 	ZoneScoped;
+
+	show_inspector = false;
+
+	Cmd_AddCommand( "toggleinspector", ToggleInspector );
 
 	CL_Ultralight_LoadShaders();
 
@@ -494,15 +503,17 @@ void CL_Ultralight_Init() {
 
 	driver.init();
 
+	TempAllocator temp = cls.frame_arena.temp();
+
 	ul::Platform::instance().set_gpu_driver( &driver );
 	ul::Platform::instance().set_config( config );
 	ul::Platform::instance().set_font_loader( ul::GetPlatformFontLoader() );
-	ul::Platform::instance().set_file_system( ul::GetPlatformFileSystem( "." ) );
+	ul::Platform::instance().set_file_system( ul::GetPlatformFileSystem( temp( "{}/base/ui", RootDirPath() ) ) );
 	ul::Platform::instance().set_logger( ul::GetDefaultLogger( "ultralight.log" ) );
 
 	renderer = ul::Renderer::Create();
 	view = renderer->CreateView( frame_static.viewport_width, frame_static.viewport_height, true, nullptr );
-	view->LoadURL( "file:///base/ui/menu.html#ultralight" );
+	view->LoadURL( "file:///menu.html#ultralight" );
 	view->Focus();
 
 	RegisterEngineAPI();
@@ -517,6 +528,8 @@ void CL_Ultralight_Shutdown() {
 
 	DeleteShader( ultralight_shaders[ 0 ] );
 	DeleteShader( ultralight_shaders[ 1 ] );
+
+	Cmd_RemoveCommand( "toggleinspector" );
 }
 
 static void DrawMenu( JSContextRef ctx ) {
@@ -559,12 +572,16 @@ static void DrawMenu( JSContextRef ctx ) {
 void UltralightBeginFrame() {
 	ZoneScoped;
 	view->Resize( frame_static.viewport_width, frame_static.viewport_height );
+	view->inspector()->Resize( frame_static.viewport_width, frame_static.viewport_height / 3 );
 }
 
-void UltralightEndFrame() {
+static void RenderUltralightView( ul::RefPtr< ul::View > view, bool is_inspector ) {
 	ul::Ref<ul::JSContext> context = view->LockJSContext();
 	JSContextRef ctx = context.get();
-	DrawMenu( ctx ); // TODO
+
+	if( !is_inspector ) {
+		DrawMenu( ctx ); // TODO
+	}
 
 	ZoneScoped;
 
@@ -598,9 +615,9 @@ void UltralightEndFrame() {
 
 		Vec3 positions[] = {
 			Vec3( 0, 0, 0 ),
-			Vec3( frame_static.viewport_width, 0, 0 ),
-			Vec3( 0, frame_static.viewport_height, 0 ),
-			Vec3( frame_static.viewport_width, frame_static.viewport_height, 0 ),
+			Vec3( view->width(), 0, 0 ),
+			Vec3( 0, view->height(), 0 ),
+			Vec3( view->width(), view->height(), 0 ),
 		};
 
 		Vec2 half_pixel = 0.5f / frame_static.viewport;
@@ -627,6 +644,14 @@ void UltralightEndFrame() {
 		mesh.num_indices = 6;
 
 		DrawDynamicMesh( pipeline, mesh );
+	}
+}
+
+void UltralightEndFrame() {
+	RenderUltralightView( view, false );
+
+	if( show_inspector ) {
+		RenderUltralightView( view->inspector(), true );
 	}
 }
 

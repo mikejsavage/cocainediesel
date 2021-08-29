@@ -56,7 +56,9 @@ struct DrawCall {
 static NonRAIIDynamicArray< RenderPass > render_passes;
 static NonRAIIDynamicArray< DrawCall > draw_calls;
 static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
+static NonRAIIDynamicArray< Framebuffer > deferred_framebuffer_deletes;
 static NonRAIIDynamicArray< TextureBuffer > deferred_tb_deletes;
+static NonRAIIDynamicArray< Texture > deferred_texture_deletes;
 
 #if TRACY_ENABLE
 alignas( tracy::GpuCtxScope ) static char renderpass_zone_memory[ sizeof( tracy::GpuCtxScope ) ];
@@ -407,7 +409,7 @@ static void DebugOutputCallback(
 		Com_Printf( "\n" );
 
 	if( severity == GL_DEBUG_SEVERITY_HIGH ) {
-		Fatal( "GL high severity: {}", message );
+		Fatal( "GL high severity: %s", message );
 	}
 }
 
@@ -467,7 +469,9 @@ void RenderBackendInit() {
 	render_passes.init( sys_allocator );
 	draw_calls.init( sys_allocator );
 	deferred_mesh_deletes.init( sys_allocator );
+	deferred_framebuffer_deletes.init( sys_allocator );
 	deferred_tb_deletes.init( sys_allocator );
+	deferred_texture_deletes.init( sys_allocator );
 
 	glEnable( GL_DEPTH_TEST );
 	glDepthFunc( GL_LESS );
@@ -510,7 +514,9 @@ void RenderBackendShutdown() {
 	render_passes.shutdown();
 	draw_calls.shutdown();
 	deferred_mesh_deletes.shutdown();
+	deferred_framebuffer_deletes.shutdown();
 	deferred_tb_deletes.shutdown();
+	deferred_texture_deletes.shutdown();
 }
 
 void RenderBackendBeginFrame() {
@@ -520,7 +526,9 @@ void RenderBackendBeginFrame() {
 	render_passes.clear();
 	draw_calls.clear();
 	deferred_mesh_deletes.clear();
+	deferred_framebuffer_deletes.clear();
 	deferred_tb_deletes.clear();
+	deferred_texture_deletes.clear();
 
 	num_vertices_this_frame = 0;
 
@@ -622,7 +630,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	// texture arrays
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->texture_arrays ); i++ ) {
 		glActiveTexture( GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + ARRAY_COUNT( pipeline.shader->texture_buffers ) + i );
-		
+
 		bool found = false;
 		for( size_t j = 0; j < pipeline.num_texture_arrays; j++ ) {
 			if( pipeline.texture_arrays[ j ].name_hash == pipeline.shader->texture_arrays[ i ] ) {
@@ -631,7 +639,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 				break;
 			}
 		}
-		
+
 
 		if( !found ) {
 			glBindTexture( GL_TEXTURE_2D_ARRAY, 0 );
@@ -987,9 +995,23 @@ void RenderBackendSubmitFrame() {
 	}
 
 	{
+		ZoneScopedN( "Deferred framebuffer deletes" );
+		for( const Framebuffer & fb : deferred_framebuffer_deletes ) {
+			DeleteFramebuffer( fb );
+		}
+	}
+
+	{
 		ZoneScopedN( "Deferred texturebuffer deletes" );
 		for( const TextureBuffer & tb : deferred_tb_deletes ) {
 			DeleteTextureBuffer( tb );
+		}
+	}
+
+	{
+		ZoneScopedN( "Deferred texture deletes" );
+		for( const Texture & texture : deferred_texture_deletes ) {
+			DeleteTexture( texture );
 		}
 	}
 
@@ -1240,6 +1262,10 @@ void DeleteTexture( Texture texture ) {
 	if( texture.texture == 0 )
 		return;
 	glDeleteTextures( 1, &texture.texture );
+}
+
+void DeferDeleteTexture( Texture texture ) {
+	deferred_texture_deletes.add( texture );
 }
 
 TextureArray NewTextureArray( const TextureArrayConfig & config ) {
@@ -1766,6 +1792,10 @@ void DeleteMesh( const Mesh & mesh ) {
 
 void DeferDeleteMesh( const Mesh & mesh ) {
 	deferred_mesh_deletes.add( mesh );
+}
+
+void DeferDeleteFramebuffer( const Framebuffer & fb ) {
+	deferred_framebuffer_deletes.add( fb );
 }
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 index_offset ) {

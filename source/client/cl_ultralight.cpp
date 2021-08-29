@@ -201,7 +201,7 @@ public:
 	}
 	void DestroyTexture( u32 texture_id ) override {
 		ZoneScoped;
-		DeleteTexture( textures[ texture_id ] );
+		DeferDeleteTexture( textures[ texture_id ] );
 	}
 	void UpdateTexture( u32 texture_id, ul::Ref< ul::Bitmap > bitmap ) override {
 		ZoneScoped;
@@ -222,7 +222,6 @@ public:
 	}
 	void CreateRenderBuffer( u32 render_buffer_id, const ul::RenderBuffer & buffer ) override {
 		ZoneScoped;
-		FramebufferConfig fb;
 
 		Texture tex = textures[ buffer.texture_id ];
 
@@ -232,7 +231,8 @@ public:
 	}
 	void DestroyRenderBuffer( u32 render_buffer_id ) override {
 		ZoneScoped;
-		DeleteFramebuffer( framebuffers[ render_buffer_id ] );
+		DeferDeleteFramebuffer( framebuffers[ render_buffer_id ] );
+		framebuffers[ render_buffer_id ] = { };
 	}
 	void ClearRenderBuffer( u32 render_buffer_id ) {
 		ZoneScoped;
@@ -254,7 +254,7 @@ public:
 	}
 	void CreateGeometry( u32 geometry_id, const ul::VertexBuffer & vertices, const ul::IndexBuffer & indices ) override {
 		ZoneScoped;
-		Mesh mesh;
+		Mesh mesh = { };
 
 		mesh.primitive_type = PrimitiveType_Triangles;
 		mesh.indices_format = IndexFormat_U32;
@@ -297,7 +297,7 @@ public:
 	void DestroyGeometry( u32 geometry_id ) override {
 		ZoneScoped;
 		Mesh mesh = meshes[ geometry_id ];
-		DeleteMesh( mesh );
+		DeferDeleteMesh( mesh );
 	}
 	void UpdateGeometry( u32 geometry_id, const ul::VertexBuffer & vertices, const ul::IndexBuffer & indices ) override {
 		ZoneScoped;
@@ -305,7 +305,7 @@ public:
 		glBindBuffer( GL_ARRAY_BUFFER, mesh.positions.vbo );
 		glBufferData( GL_ARRAY_BUFFER, vertices.size, vertices.data, GL_DYNAMIC_DRAW );
 		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, mesh.indices.ebo );
-		glBufferData( GL_ELEMENT_ARRAY_BUFFER, indices.size, indices.data, GL_STATIC_DRAW );
+		glBufferData( GL_ELEMENT_ARRAY_BUFFER, indices.size, indices.data, GL_DYNAMIC_DRAW );
 	}
 	void DrawGeometry( u32 geometry_id, u32 indices_count, u32 indices_offset, const ul::GPUState & state ) {
 		ZoneScoped;
@@ -451,7 +451,7 @@ static JSValueRef HelloFromJS( JSContextRef ctx, JSObjectRef function, JSObjectR
 	const char * cvar = GG( &temp, ctx, args[ 0 ] );
 	const char * value = GG( &temp, ctx, args[ 1 ] );
 
-	Com_GGPrint( "Set {} = {}", cvar, value );
+	// Com_GGPrint( "Set {} = {}", cvar, value );
 
 	return JSValueMakeNull( ctx );
 }
@@ -485,15 +485,16 @@ static void ToggleInspector() {
 void CL_Ultralight_Init() {
 	ZoneScoped;
 
-	show_inspector = false;
+	TempAllocator temp = cls.frame_arena.temp();
 
+	show_inspector = false;
 	Cmd_AddCommand( "toggleinspector", ToggleInspector );
 
 	CL_Ultralight_LoadShaders();
 
 	ul::Config config;
 
-	config.resource_path = "./resources/";
+	config.resource_path = temp( "{}/base/ui/resources", RootDirPath() );
 	config.use_gpu_renderer = true;
 	config.device_scale = 1.0;
 	config.enable_images = true;
@@ -502,8 +503,6 @@ void CL_Ultralight_Init() {
 	config.font_hinting = ul::FontHinting::kFontHinting_Normal;
 
 	driver.init();
-
-	TempAllocator temp = cls.frame_arena.temp();
 
 	ul::Platform::instance().set_gpu_driver( &driver );
 	ul::Platform::instance().set_config( config );
@@ -571,8 +570,13 @@ static void DrawMenu( JSContextRef ctx ) {
 
 void UltralightBeginFrame() {
 	ZoneScoped;
-	view->Resize( frame_static.viewport_width, frame_static.viewport_height );
-	view->inspector()->Resize( frame_static.viewport_width, frame_static.viewport_height / 3 );
+	if( show_inspector ) {
+		view->Resize( frame_static.viewport_width, frame_static.viewport_height - frame_static.viewport_height / 3 );
+		view->inspector()->Resize( frame_static.viewport_width, frame_static.viewport_height / 3 );
+	}
+	else {
+		view->Resize( frame_static.viewport_width, frame_static.viewport_height );
+	}
 }
 
 static void RenderUltralightView( ul::RefPtr< ul::View > view, bool is_inspector ) {
@@ -613,11 +617,12 @@ static void RenderUltralightView( ul::RefPtr< ul::View > view, bool is_inspector
 		pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
 		pipeline.set_texture( "u_BaseTexture", &driver.textures[ view->render_target().texture_id ] );
 
+		float top = is_inspector ? frame_static.viewport_height - view->height() : 0;
 		Vec3 positions[] = {
-			Vec3( 0, 0, 0 ),
-			Vec3( view->width(), 0, 0 ),
-			Vec3( 0, view->height(), 0 ),
-			Vec3( view->width(), view->height(), 0 ),
+			Vec3( 0, top, 0 ),
+			Vec3( view->width(), top, 0 ),
+			Vec3( 0, top + view->height(), 0 ),
+			Vec3( view->width(), top + view->height(), 0 ),
 		};
 
 		Vec2 half_pixel = 0.5f / frame_static.viewport;
@@ -655,6 +660,11 @@ void UltralightEndFrame() {
 	}
 }
 
+static void AAAAAaaaaaaaaaa( ul::MouseEvent * evt ) {
+	float top = frame_static.viewport_height - frame_static.viewport_height / 3;
+	evt->y -= top;
+}
+
 void CL_Ultralight_MouseMove( u32 x, u32 y ) {
 	ul::MouseEvent evt;
 	evt.type = ul::MouseEvent::kType_MouseMoved;
@@ -663,6 +673,10 @@ void CL_Ultralight_MouseMove( u32 x, u32 y ) {
 	evt.button = ul::MouseEvent::kButton_None;
 
 	view->FireMouseEvent( evt );
+	if( show_inspector ) {
+		AAAAAaaaaaaaaaa( &evt );
+		view->inspector()->FireMouseEvent( evt );
+	}
 }
 
 void CL_Ultralight_MouseScroll( u32 x, u32 y ) {
@@ -672,6 +686,9 @@ void CL_Ultralight_MouseScroll( u32 x, u32 y ) {
 	evt.delta_y = y;
 
 	view->FireScrollEvent( evt );
+	if( show_inspector ) {
+		view->inspector()->FireScrollEvent( evt );
+	}
 }
 
 void CL_Ultralight_MouseDown( u32 x, u32 y, s32 button ) {
@@ -682,6 +699,10 @@ void CL_Ultralight_MouseDown( u32 x, u32 y, s32 button ) {
 	evt.button = ul::MouseEvent::Button( button );
 
 	view->FireMouseEvent( evt );
+	if( show_inspector ) {
+		AAAAAaaaaaaaaaa( &evt );
+		view->inspector()->FireMouseEvent( evt );
+	}
 }
 
 void CL_Ultralight_MouseUp( u32 x, u32 y, s32 button ) {
@@ -692,6 +713,10 @@ void CL_Ultralight_MouseUp( u32 x, u32 y, s32 button ) {
 	evt.button = ul::MouseEvent::Button( button );
 
 	view->FireMouseEvent( evt );
+	if( show_inspector ) {
+		AAAAAaaaaaaaaaa( &evt );
+		view->inspector()->FireMouseEvent( evt );
+	}
 }
 
 void CL_Ultralight_KeyDown( s32 virtual_key, s32 native_key, s32 mods ) {
@@ -702,6 +727,9 @@ void CL_Ultralight_KeyDown( s32 virtual_key, s32 native_key, s32 mods ) {
 	evt.modifiers = mods;
 
 	view->FireKeyEvent( evt );
+	if( show_inspector ) {
+		view->inspector()->FireKeyEvent( evt );
+	}
 }
 
 void CL_Ultralight_KeyUp( s32 virtual_key, s32 native_key, s32 mods ) {
@@ -712,6 +740,9 @@ void CL_Ultralight_KeyUp( s32 virtual_key, s32 native_key, s32 mods ) {
 	evt.modifiers = mods;
 
 	view->FireKeyEvent( evt );
+	if( show_inspector ) {
+		view->inspector()->FireKeyEvent( evt );
+	}
 }
 
 void CL_Ultralight_Char( u32 codepoint ) {
@@ -722,4 +753,7 @@ void CL_Ultralight_Char( u32 codepoint ) {
 	evt.unmodified_text = text;
 
 	view->FireKeyEvent( evt );
+	if( show_inspector ) {
+		view->inspector()->FireKeyEvent( evt );
+	}
 }

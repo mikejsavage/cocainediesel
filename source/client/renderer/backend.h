@@ -378,6 +378,7 @@ void DeferDeleteTextureBuffer( TextureBuffer tb );
 Texture NewTexture( const TextureConfig & config );
 void WriteTexture( Texture texture, const void * data );
 void DeleteTexture( Texture texture );
+void DeferDeleteTexture( Texture texture );
 
 TextureArray NewTextureArray( const TextureArrayConfig & config );
 void DeleteTextureArray( TextureArray ta );
@@ -386,6 +387,7 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config );
 Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, Texture * depth_texture );
 Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer );
 void DeleteFramebuffer( Framebuffer fb );
+void DeferDeleteFramebuffer( const Framebuffer & fb );
 
 bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths, Span< const char * > feedback_varyings = Span< const char * >() );
 void DeleteShader( Shader shader );

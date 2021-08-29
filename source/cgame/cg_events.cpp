@@ -785,9 +785,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			CG_RocketExplosion( ent->origin, dir, team_color );
 		} break;
 
-		case EV_GRENADE_BOUNCE:
-			S_StartEntitySound( "weapons/gl/bounce", ent->number, CHAN_AUTO, 1.0f );
-			break;
+		case EV_GRENADE_BOUNCE: {
+			float volume = Min2( 1.0f, parm / float( U16_MAX ) );
+			S_StartEntitySound( "weapons/gl/bounce", ent->number, CHAN_AUTO, volume );
+		} break;
 
 		case EV_BLADE_IMPACT:
 			CG_BladeImpact( ent->origin, ent->origin2 );
@@ -917,6 +918,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_SUICIDE_BOMB_EXPLODE:
 			CG_RocketExplosion( ent->origin, Vec3( 0.0f ), team_color );
+			break;
+
+		case EV_STUN_GRENADE_EXPLOSION:
+			S_StartFixedSound( "sounds/vsay/goodgame", ent->origin, CHAN_AUTO, 1.0f );
 			break;
 	}
 }

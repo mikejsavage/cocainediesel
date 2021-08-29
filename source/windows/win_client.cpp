@@ -1,6 +1,7 @@
 #define _WIN32_WINNT 0x4000
 #include "windows/miniwindows.h"
 #include <stdlib.h>
+#include <crtdbg.h>
 #include <shellapi.h>
 
 // video drivers pick these up and make sure the game runs on the good GPU
@@ -9,8 +10,15 @@ extern "C" __declspec( dllexport ) int AmdPowerXpressRequestHighPerformance = 1;
 
 void Sys_InitTime();
 
-void Sys_ShowErrorMessage( const char * msg ) {
+void ShowErrorAndAbortImpl( const char * msg, const char * file, int line ) {
+#if NDEBUG
 	MessageBoxA( NULL, msg, "Error", MB_OK );
+#else
+	if( _CrtDbgReport( _CRT_ERROR, file, line, NULL, msg ) == 1 ) {
+		_CrtDbgBreak();
+	}
+#endif
+	abort();
 }
 
 void Sys_Init() {

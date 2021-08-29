@@ -33,17 +33,6 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxVSaySounds[ Vsay_Thanks ] = "sounds/vsay/thanks";
 	cgs.media.sfxVSaySounds[ Vsay_GoodGame ] = "sounds/vsay/goodgame";
 	cgs.media.sfxVSaySounds[ Vsay_BoomStick ] = "sounds/vsay/boomstick";
-	cgs.media.sfxVSaySounds[ Vsay_ShutUp ] = "sounds/vsay/mike/shutup";
-	cgs.media.sfxVSaySounds[ Vsay_Bruh ] = "sounds/vsay/mike/bruh";
-	cgs.media.sfxVSaySounds[ Vsay_Cya ] = "sounds/vsay/mike/cya";
-	cgs.media.sfxVSaySounds[ Vsay_GetGood ] = "sounds/vsay/mike/getgood";
-	cgs.media.sfxVSaySounds[ Vsay_HitTheShowers ] = "sounds/vsay/mike/hittheshowers";
-	cgs.media.sfxVSaySounds[ Vsay_Lads ] = "sounds/vsay/mike/lads";
-	cgs.media.sfxVSaySounds[ Vsay_SheDoesntEvenGoHere ] = "sounds/vsay/shedoesntevengohere";
-	cgs.media.sfxVSaySounds[ Vsay_ShitSon ] = "sounds/vsay/mike/shitson";
-	cgs.media.sfxVSaySounds[ Vsay_TrashSmash ] = "sounds/vsay/mike/trashsmash";
-	cgs.media.sfxVSaySounds[ Vsay_WhatTheShit ] = "sounds/vsay/mike/whattheshit";
-	cgs.media.sfxVSaySounds[ Vsay_WowYourTerrible ] = "sounds/vsay/mike/wowyourterrible";
 	cgs.media.sfxVSaySounds[ Vsay_Acne ] = "sounds/vsay/acne";
 	cgs.media.sfxVSaySounds[ Vsay_Valley ] = "sounds/vsay/valley";
 	cgs.media.sfxVSaySounds[ Vsay_Mike ] = "sounds/vsay/mike";

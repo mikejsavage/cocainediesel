@@ -175,6 +175,7 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			return;
 
 		case TextureFormat_Depth:
+		case TextureFormat_Shadow:
 			*internal = GL_DEPTH_COMPONENT24;
 			*channels = GL_DEPTH_COMPONENT;
 			*type = GL_FLOAT;
@@ -206,16 +207,20 @@ static GLenum TextureWrapToGL( TextureWrap wrap ) {
 	return GL_INVALID_ENUM;
 }
 
-static GLenum TextureFilterToGL( TextureFilter filter ) {
+static void TextureFilterToGL( TextureFilter filter, GLenum * min, GLenum * mag ) {
 	switch( filter ) {
 		case TextureFilter_Linear:
-			return GL_LINEAR;
+			*min = GL_LINEAR_MIPMAP_LINEAR;
+			*mag = GL_LINEAR;
+			return;
+
 		case TextureFilter_Point:
-			return GL_NEAREST;
+			*min = GL_NEAREST_MIPMAP_NEAREST;
+			*mag = GL_NEAREST;
+			return;
 	}
 
 	assert( false );
-	return GL_INVALID_ENUM;
 }
 
 static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_components, bool * integral, GLboolean * normalized ) {
@@ -402,7 +407,7 @@ static void DebugOutputCallback(
 		Com_Printf( "\n" );
 
 	if( severity == GL_DEBUG_SEVERITY_HIGH ) {
-		abort();
+		Fatal( "GL high severity: {}", message );
 	}
 }
 
@@ -421,8 +426,7 @@ static void DebugLabel( GLenum type, GLuint object, const char * label ) {
 }
 
 static void PlotVRAMUsage() {
-#if !PUBLIC_BUILD
-	if( GLAD_GL_NVX_gpu_memory_info != 0 ) {
+	if( !is_public_build && GLAD_GL_NVX_gpu_memory_info != 0 ) {
 		GLint total_vram;
 		glGetIntegerv( GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &total_vram );
 
@@ -431,33 +435,32 @@ static void PlotVRAMUsage() {
 
 		TracyPlot( "VRAM usage", s64( total_vram - available_vram ) );
 	}
-#endif
 }
 
 void RenderBackendInit() {
 	ZoneScoped;
 	TracyGpuContext;
 
-#if !PUBLIC_BUILD
-	if( GLAD_GL_KHR_debug != 0 ) {
-		GLint context_flags;
-		glGetIntegerv( GL_CONTEXT_FLAGS, &context_flags );
-		if( context_flags & GL_CONTEXT_FLAG_DEBUG_BIT ) {
-			Com_Printf( "Initialising debug output\n" );
+	if( !is_public_build ) {
+		if( GLAD_GL_KHR_debug != 0 ) {
+			GLint context_flags;
+			glGetIntegerv( GL_CONTEXT_FLAGS, &context_flags );
+			if( context_flags & GL_CONTEXT_FLAG_DEBUG_BIT ) {
+				Com_Printf( "Initialising debug output\n" );
 
-			glEnable( GL_DEBUG_OUTPUT );
-			glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
-			glDebugMessageCallback( ( GLDEBUGPROC ) DebugOutputCallback, NULL );
-			glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE );
+				glEnable( GL_DEBUG_OUTPUT );
+				glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
+				glDebugMessageCallback( ( GLDEBUGPROC ) DebugOutputCallback, NULL );
+				glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE );
+			}
+		}
+		else if( GLAD_GL_AMD_debug_output != 0 ) {
+			Com_Printf( "Initialising AMD debug output\n" );
+
+			glDebugMessageCallbackAMD( ( GLDEBUGPROCAMD ) DebugOutputCallbackAMD, NULL );
+			glDebugMessageEnableAMD( 0, 0, 0, NULL, GL_TRUE );
 		}
 	}
-	else if( GLAD_GL_AMD_debug_output != 0 ) {
-		Com_Printf( "Initialising AMD debug output\n" );
-
-		glDebugMessageCallbackAMD( ( GLDEBUGPROCAMD ) DebugOutputCallbackAMD, NULL );
-		glDebugMessageEnableAMD( 0, 0, 0, NULL, GL_TRUE );
-	}
-#endif
 
 	PlotVRAMUsage();
 
@@ -616,13 +619,23 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		}
 	}
 
-	// texture array
-	glActiveTexture( GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + ARRAY_COUNT( pipeline.shader->texture_buffers ) );
-	if( pipeline.texture_array.name_hash == pipeline.shader->texture_array ) {
-		glBindTexture( GL_TEXTURE_2D_ARRAY, pipeline.texture_array.ta.texture );
-	}
-	else {
-		glBindTexture( GL_TEXTURE_2D_ARRAY, 0 );
+	// texture arrays
+	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->texture_arrays ); i++ ) {
+		glActiveTexture( GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + ARRAY_COUNT( pipeline.shader->texture_buffers ) + i );
+		
+		bool found = false;
+		for( size_t j = 0; j < pipeline.num_texture_arrays; j++ ) {
+			if( pipeline.texture_arrays[ j ].name_hash == pipeline.shader->texture_arrays[ i ] ) {
+				glBindTexture( GL_TEXTURE_2D_ARRAY, pipeline.texture_arrays[ j ].ta.texture );
+				found = true;
+				break;
+			}
+		}
+		
+
+		if( !found ) {
+			glBindTexture( GL_TEXTURE_2D_ARRAY, 0 );
+		}
 	}
 
 	// alpha blending
@@ -1144,15 +1157,20 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
 
-		GLenum filter = TextureFilterToGL( config.filter );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter );
+		GLenum min_filter = GL_NONE;
+		GLenum mag_filter = GL_NONE;
+		TextureFilterToGL( config.filter, &min_filter, &mag_filter );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
 
 		if( config.wrap == TextureWrap_Border ) {
 			glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, ( GLfloat * ) &config.border_color );
 		}
 
 		if( !CompressedTextureFormat( config.format ) ) {
+			assert( config.num_mipmaps == 1 );
+
 			if( channels == GL_RED ) {
 				if( config.format == TextureFormat_A_U8 ) {
 					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ONE );
@@ -1178,10 +1196,21 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 				config.width, config.height, 0, channels, type, config.data );
 		}
 		else {
-			u32 size = ( BitsPerPixel( config.format ) * config.width * config.height ) / 8;
-			assert( size < S32_MAX );
-			glCompressedTexImage2D( GL_TEXTURE_2D, 0, internal_format,
-				config.width, config.height, 0, size, config.data );
+			if( config.format == TextureFormat_BC4 ) {
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
+			}
+
+			u32 mipmap_cursor = 0;
+			for( u32 i = 0; i < config.num_mipmaps; i++ ) {
+				u32 size = ( BitsPerPixel( config.format ) * ( config.width >> i ) * ( config.height >> i ) ) / 8;
+				assert( size < S32_MAX );
+				glCompressedTexImage2D( GL_TEXTURE_2D, i, internal_format,
+					config.width >> i, config.height >> i, 0, size, ( ( const u8 * ) config.data ) + mipmap_cursor );
+				mipmap_cursor += size;
+			}
 		}
 	}
 	else {
@@ -1212,7 +1241,7 @@ void DeleteTexture( Texture texture ) {
 	glDeleteTextures( 1, &texture.texture );
 }
 
-TextureArray NewAtlasTextureArray( const TextureArrayConfig & config ) {
+TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 	TextureArray ta;
 
 	glGenTextures( 1, &ta.texture );
@@ -1222,8 +1251,42 @@ TextureArray NewAtlasTextureArray( const TextureArrayConfig & config ) {
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 
-	u32 size = ( BitsPerPixel( TextureFormat_BC4 ) * config.width * config.height * config.layers ) / 8;
-	glCompressedTexImage3D( GL_TEXTURE_2D_ARRAY, 0, GL_COMPRESSED_RED_RGTC1, config.width, config.height, config.layers, 0, size, config.data );
+	GLenum internal_format, channels, type;
+	TextureFormatToGL( config.format, &internal_format, &channels, &type );
+
+	if( config.format == TextureFormat_Shadow ) {
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
+		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
+	}
+
+	if( !CompressedTextureFormat( config.format ) ) {
+		if( channels == GL_RED ) {
+			if( config.format == TextureFormat_A_U8 ) {
+				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_R, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_G, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_B, GL_ONE );
+				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_A, GL_RED );
+			}
+			else {
+				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_R, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_G, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_B, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_A, GL_ONE );
+			}
+		}
+		else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
+			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_R, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_G, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_B, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
+		}
+
+		glTexImage3D( GL_TEXTURE_2D_ARRAY, 0, internal_format, config.width, config.height, config.layers, 0, channels, type, config.data );
+	}
+	else {
+		u32 size = ( BitsPerPixel( config.format ) * config.width * config.height * config.layers ) / 8;
+		glCompressedTexImage3D( GL_TEXTURE_2D_ARRAY, 0, internal_format, config.width, config.height, config.layers, 0, size, config.data );
+	}
 
 	return ta;
 }
@@ -1335,6 +1398,25 @@ Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, 
 	return fb;
 }
 
+Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer ) {
+	GLuint fbo;
+	glGenFramebuffers( 1, &fbo );
+	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
+
+	Framebuffer fb = { };
+	fb.fbo = fbo;
+
+	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_array.texture, 0, layer );
+
+	assert( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+
+	fb.width = frame_static.shadow_parameters.shadowmap_res;
+	fb.height = frame_static.shadow_parameters.shadowmap_res;
+
+	return fb;
+}
+
 void DeleteFramebuffer( Framebuffer fb ) {
 	if( fb.fbo == 0 )
 		return;
@@ -1368,7 +1450,7 @@ static GLuint CompileShader( GLenum type, Span< const char * > srcs, Span< int >
 	full_lens[ n ] = -1;
 	n++;
 
-	full_srcs[ n ] = "#define MAX_JOINTS " STR_TOSTR( MAX_GLSL_UNIFORM_JOINTS ) "\n";
+	full_srcs[ n ] = "#define MAX_JOINTS " STRINGIFY( MAX_GLSL_UNIFORM_JOINTS ) "\n";
 	full_lens[ n ] = -1;
 	n++;
 
@@ -1479,6 +1561,7 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 
 	size_t num_textures = 0;
 	size_t num_texture_buffers = 0;
+	size_t num_texture_arrays = 0;
 	for( GLint i = 0; i < count; i++ ) {
 		char name[ 128 ];
 		GLint size, len;
@@ -1509,9 +1592,16 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 			num_texture_buffers++;
 		}
 
-		if( type == GL_SAMPLER_2D_ARRAY ) {
-			glUniform1i( glGetUniformLocation( program, name ), ARRAY_COUNT( &Shader::textures ) + ARRAY_COUNT( &Shader::texture_buffers ) );
-			shader->texture_array = Hash64( name, len );
+		if( type == GL_SAMPLER_2D_ARRAY || type == GL_SAMPLER_2D_ARRAY_SHADOW ) {
+			if( num_texture_arrays == ARRAY_COUNT( shader->texture_arrays ) ) {
+				glDeleteProgram( program );
+				Com_Printf( S_COLOR_YELLOW "Too many samplers in shader\n" );
+				return false;
+			}
+
+			glUniform1i( glGetUniformLocation( program, name ), ARRAY_COUNT( &Shader::textures ) + ARRAY_COUNT( &Shader::texture_buffers ) + num_texture_arrays );
+			shader->texture_arrays[ num_texture_arrays ] = Hash64( name, len );
+			num_texture_arrays++;
 		}
 	}
 

@@ -24,11 +24,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void SP_post_match_camera( edict_t *ent ) { }
 
-//=======================================================================
-//
-// SelectSpawnPoints
-//
-//=======================================================================
+void DropSpawnToFloor( edict_t * ent ) {
+	Vec3 mins = playerbox_stand_mins;
+	Vec3 maxs = playerbox_stand_maxs;
+
+	Vec3 start = ent->s.origin + Vec3( 0.0f, 0.0f, 16.0f );
+	Vec3 end = ent->s.origin - Vec3( 0.0f, 0.0f, 1024.0f );
+
+	trace_t tr;
+	G_Trace( &tr, start, mins, maxs, end, ent, MASK_SOLID );
+
+	if( tr.startsolid ) {
+		Com_GGPrint( "Spawn starts inside solid, removing..." );
+		G_FreeEdict( ent );
+		return;
+	}
+	// move it 1 unit away from the plane
+	ent->s.origin = tr.endpos + tr.plane.normal;
+}
 
 static edict_t * G_FindPostMatchCamera() {
 	edict_t * ent = G_Find( NULL, &edict_t::classname, "post_match_camera" );
@@ -40,14 +53,12 @@ static edict_t * G_FindPostMatchCamera() {
 
 void SelectSpawnPoint( edict_t * ent, edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles ) {
 	edict_t * spot;
-	bool cam = false;
 
 	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
 		spot = G_FindPostMatchCamera();
-		cam = spot != NULL;
 	}
 	else {
-		spot = GT_asCallSelectSpawnPoint( ent );
+		spot = GT_CallSelectSpawnPoint( ent );
 	}
 
 	if( spot == NULL ) {

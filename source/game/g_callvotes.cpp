@@ -353,7 +353,6 @@ static void G_VoteSpectatePassed( callvotedata_t *vote ) {
 				GS_TeamName( ent->s.team ), S_COLOR_WHITE );
 
 	G_Teams_SetTeam( ent, TEAM_SPECTATOR );
-	ent->r.client->queueTimeStamp = 0;
 }
 
 
@@ -526,156 +525,6 @@ static void G_VoteKickBanPassed( callvotedata_t *vote ) {
 
 	Cbuf_ExecuteText( EXEC_APPEND, va( "addip %s %i\n", ent->r.client->ip, 15 ) );
 	PF_DropClient( ent, DROP_TYPE_NORECONNECT, "Kicked" );
-}
-
-/*
-* mute
-*/
-
-static void G_VoteMuteExtraHelp( edict_t *ent ) {
-	int i;
-	edict_t *e;
-	char msg[1024];
-
-	msg[0] = 0;
-	Q_strncatz( msg, "- List of current players:\n", sizeof( msg ) );
-
-	for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
-		if( !e->r.inuse ) {
-			continue;
-		}
-
-		Q_strncatz( msg, va( "%3i: %s\n", PLAYERNUM( e ), e->r.client->netname ), sizeof( msg ) );
-	}
-
-	G_PrintMsg( ent, "%s", msg );
-}
-
-static bool G_VoteMuteValidate( callvotedata_t *vote, bool first ) {
-	int who = -1;
-
-	if( first ) {
-		edict_t *tomute = G_PlayerForText( vote->argv[0] );
-
-		if( tomute ) {
-			who = PLAYERNUM( tomute );
-		} else {
-			who = -1;
-		}
-
-		if( who != -1 ) {
-			// we save the player id to be kicked, so we don't later get confused by new ids or players changing names
-			vote->data = G_Malloc( sizeof( int ) );
-			memcpy( vote->data, &who, sizeof( int ) );
-		} else {
-			G_PrintMsg( vote->caller, "%sNo such player\n", S_COLOR_RED );
-			return false;
-		}
-	} else {
-		memcpy( &who, vote->data, sizeof( int ) );
-	}
-
-	if( !game.edicts[who + 1].r.inuse ) {
-		return false;
-	} else {
-		if( !vote->string || Q_stricmp( vote->string, game.edicts[who + 1].r.client->netname ) ) {
-			if( vote->string ) {
-				G_Free( vote->string );
-			}
-			vote->string = G_CopyString( game.edicts[who + 1].r.client->netname );
-		}
-
-		return true;
-	}
-}
-
-// chat mute
-static void G_VoteMutePassed( callvotedata_t *vote ) {
-	int who;
-	edict_t *ent;
-
-	memcpy( &who, vote->data, sizeof( int ) );
-	ent = &game.edicts[who + 1];
-	if( !ent->r.inuse || !ent->r.client ) { // may have disconnect along the callvote time
-		return;
-	}
-
-	ent->r.client->muted |= 1;
-}
-
-/*
-* unmute
-*/
-
-static void G_VoteUnmuteExtraHelp( edict_t *ent ) {
-	int i;
-	edict_t *e;
-	char msg[1024];
-
-	msg[0] = 0;
-	Q_strncatz( msg, "- List of current players:\n", sizeof( msg ) );
-
-	for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
-		if( !e->r.inuse ) {
-			continue;
-		}
-
-		Q_strncatz( msg, va( "%3i: %s\n", PLAYERNUM( e ), e->r.client->netname ), sizeof( msg ) );
-	}
-
-	G_PrintMsg( ent, "%s", msg );
-}
-
-static bool G_VoteUnmuteValidate( callvotedata_t *vote, bool first ) {
-	int who = -1;
-
-	if( first ) {
-		edict_t *tomute = G_PlayerForText( vote->argv[0] );
-
-		if( tomute ) {
-			who = PLAYERNUM( tomute );
-		} else {
-			who = -1;
-		}
-
-		if( who != -1 ) {
-			// we save the player id to be kicked, so we don't later get confused by new ids or players changing names
-			vote->data = G_Malloc( sizeof( int ) );
-			memcpy( vote->data, &who, sizeof( int ) );
-		} else {
-			G_PrintMsg( vote->caller, "%sNo such player\n", S_COLOR_RED );
-			return false;
-		}
-	} else {
-		memcpy( &who, vote->data, sizeof( int ) );
-	}
-
-	if( !game.edicts[who + 1].r.inuse ) {
-		return false;
-	} else {
-		if( !vote->string || Q_stricmp( vote->string, game.edicts[who + 1].r.client->netname ) ) {
-			if( vote->string ) {
-				G_Free( vote->string );
-			}
-			vote->string = G_CopyString( game.edicts[who + 1].r.client->netname );
-		}
-
-		return true;
-	}
-}
-
-// chat unmute
-static void G_VoteUnmutePassed( callvotedata_t *vote ) {
-	int who;
-	edict_t *ent;
-
-	memcpy( &who, vote->data, sizeof( int ) );
-	ent = &game.edicts[who + 1];
-	if( !ent->r.inuse || !ent->r.client ) { // may have disconnect along the callvote time
-		return;
-	}
-
-	ent->r.client->muted &= ~1;
 }
 
 /*
@@ -1289,26 +1138,6 @@ void G_CallVotes_Init() {
 	callvote->argument_format = "<player>";
 	callvote->argument_type = "option";
 	callvote->help = "Removes player from the server and bans his IP-address for 15 minutes";
-
-	callvote = G_RegisterCallvote( "mute" );
-	callvote->expectedargs = 1;
-	callvote->validate = G_VoteMuteValidate;
-	callvote->execute = G_VoteMutePassed;
-	callvote->current = NULL;
-	callvote->extraHelp = G_VoteMuteExtraHelp;
-	callvote->argument_format = "<player>";
-	callvote->argument_type = "option";
-	callvote->help = "Disallows chat messages from the muted player";
-
-	callvote = G_RegisterCallvote( "unmute" );
-	callvote->expectedargs = 1;
-	callvote->validate = G_VoteUnmuteValidate;
-	callvote->execute = G_VoteUnmutePassed;
-	callvote->current = NULL;
-	callvote->extraHelp = G_VoteUnmuteExtraHelp;
-	callvote->argument_format = "<player>";
-	callvote->argument_type = "option";
-	callvote->help = "Reallows chat messages from the unmuted player";
 
 	callvote = G_RegisterCallvote( "timeout" );
 	callvote->expectedargs = 0;

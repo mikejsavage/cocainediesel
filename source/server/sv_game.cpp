@@ -56,32 +56,15 @@ int PF_GetClientState( int numClient ) {
 * Sends the server command to clients.
 * If ent is NULL the command will be sent to all connected clients
 */
-void PF_GameCmd( edict_t *ent, const char *cmd ) {
-	int i;
-	client_t *client;
-
-	if( !cmd || !cmd[0] ) {
+void PF_GameCmd( edict_t * ent, const char * cmd ) {
+	if( ent != NULL ) {
+		client_t * client = &svs.clients[ NUM_FOR_EDICT( ent ) - 1 ];
+		SV_AddGameCommand( client, cmd );
 		return;
 	}
 
-	if( !ent ) {
-		for( i = 0, client = svs.clients; i < sv_maxclients->integer; i++, client++ ) {
-			if( client->state < CS_SPAWNED ) {
-				continue;
-			}
-			SV_AddGameCommand( client, cmd );
-		}
-	} else {
-		i = NUM_FOR_EDICT( ent );
-		if( i < 1 || i > sv_maxclients->integer ) {
-			return;
-		}
-
-		client = svs.clients + ( i - 1 );
-		if( client->state < CS_SPAWNED ) {
-			return;
-		}
-
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		client_t * client = &svs.clients[ i ];
 		SV_AddGameCommand( client, cmd );
 	}
 }

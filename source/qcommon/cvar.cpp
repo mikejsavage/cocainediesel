@@ -62,14 +62,8 @@ static void Cvar_SetModified( cvar_t *var ) {
 	var->modified = true;
 }
 
-static bool Cvar_CheatsAllowed() {
-#if PUBLIC_BUILD
-	return ( Com_ClientState() < CA_CONNECTED ) ||          // not connected
-		   Com_DemoPlaying() ||                          // playing demo
-		   ( Com_ServerState() && Cvar_Value( "sv_cheats" ) ); // local server, sv_cheats
-#else
-	return true;
-#endif
+bool Cvar_CheatsAllowed() {
+	return Com_ClientState() < CA_CONNECTED || Com_DemoPlaying() || ( Com_ServerState() && Cvar_Value( "sv_cheats" ) );
 }
 
 static int Cvar_PatternMatches( void *cvar, const void *pattern ) {
@@ -184,11 +178,11 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, cvar_flag_t flags
 			}
 		}
 
-#ifdef PUBLIC_BUILD
-		reset = reset || ( Cvar_FlagIsSet( flags, CVAR_READONLY ) || Cvar_FlagIsSet( flags, CVAR_DEVELOPER ) );
-#else
-		reset = reset || ( Cvar_FlagIsSet( flags, CVAR_READONLY ) );
-#endif
+		reset = reset || Cvar_FlagIsSet( flags, CVAR_READONLY );
+		if( is_public_build ) {
+			reset = reset || Cvar_FlagIsSet( flags, CVAR_DEVELOPER );
+		}
+
 		if( reset ) {
 			if( !var->string || strcmp( var->string, var_value ) ) {
 				if( var->string ) {
@@ -595,11 +589,9 @@ static void Cvar_List_f() {
 	Com_Printf( "\nConsole variables:\n" );
 	for( i = 0; i < dump->size; ++i ) {
 		cvar_t * var = ( cvar_t * ) dump->key_value_vector[i].value;
-#ifdef PUBLIC_BUILD
-		if( Cvar_FlagIsSet( var->flags, CVAR_DEVELOPER ) ) {
+		if( is_public_build && Cvar_FlagIsSet( var->flags, CVAR_DEVELOPER ) ) {
 			continue;
 		}
-#endif
 		if( Cvar_FlagIsSet( var->flags, CVAR_ARCHIVE ) ) {
 			Com_Printf( "*" );
 		} else {
@@ -633,34 +625,6 @@ static void Cvar_List_f() {
 
 	Trie_FreeDump( dump );
 }
-
-#ifndef PUBLIC_BUILD
-/*
-* Cvar_ArchiveList_f
-*/
-static void Cvar_ArchiveList_f() {
-	trie_dump_t *dump;
-	unsigned int i;
-
-	assert( cvar_trie );
-	Lock( cvar_mutex );
-	Trie_Dump( cvar_trie, "", TRIE_DUMP_VALUES, &dump );
-	Unlock( cvar_mutex );
-
-	for( i = 0; i < dump->size; ++i ) {
-		cvar_t * var = ( cvar_t * ) dump->key_value_vector[i].value;
-		if( Cvar_FlagIsSet( var->flags, CVAR_DEVELOPER ) ) {
-			continue;
-		}
-		if( !Cvar_FlagIsSet( var->flags, CVAR_ARCHIVE ) ) {
-			continue;
-		}
-		Com_Printf( "set %s \"%s\"\n", var->name, var->dvalue );
-	}
-
-	Trie_FreeDump( dump );
-}
-#endif
 
 bool userinfo_modified;
 
@@ -844,10 +808,6 @@ void Cvar_Init() {
 	Cmd_SetCompletionFunc( "setu", Cvar_CompleteBuildListUser );
 	Cmd_SetCompletionFunc( "sets", Cvar_CompleteBuildListServer );
 
-#ifndef PUBLIC_BUILD
-	Cmd_AddCommand( "cvararchivelist", Cvar_ArchiveList_f );
-#endif
-
 	cvar_initialized = true;
 }
 
@@ -879,9 +839,6 @@ void Cvar_Shutdown() {
 		Cmd_RemoveCommand( "reset" );
 		Cmd_RemoveCommand( "toggle" );
 		Cmd_RemoveCommand( "cvarlist" );
-#ifndef PUBLIC_BUILD
-		Cmd_RemoveCommand( "cvararchivelist" );
-#endif
 
 		Lock( cvar_mutex );
 		Trie_Dump( cvar_trie, "", TRIE_DUMP_VALUES, &dump );

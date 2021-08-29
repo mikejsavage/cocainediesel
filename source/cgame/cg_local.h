@@ -222,7 +222,6 @@ struct cg_state_t {
 
 	snapshot_t frame, oldFrame;
 	bool fireEvents;
-	bool firstFrame;
 
 	Vec3 predictedOrigins[CMD_BACKUP];              // for debug comparing against server
 
@@ -244,8 +243,6 @@ struct cg_state_t {
 	float xerpTime;
 	float oldXerpTime;
 	float xerpSmoothFrac;
-
-	int effects;
 
 	bool showScoreboard;            // demos and multipov
 

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qcommon.h"
 #include "qcommon/cmodel.h"
 #include "qcommon/csprng.h"
+#include "qcommon/fpe.h"
 #include "qcommon/fs.h"
 #include "qcommon/glob.h"
 #include "qcommon/maplist.h"
@@ -196,7 +197,7 @@ void Com_Printf( const char *format, ... ) {
 			Sys_FormatTime( timestamp, sizeof( timestamp ), "%Y-%m-%dT%H:%M:%SZ " );
 			WritePartialFile( log_file, timestamp, strlen( timestamp ) );
 		}
-		bool ok = WritePartialFile( log_file, msg, strlen( msg ) );
+		WritePartialFile( log_file, msg, strlen( msg ) );
 		if( logconsole_flush && logconsole_flush->integer ) {
 			fflush( log_file );
 		}
@@ -237,11 +238,13 @@ void Com_Error( const char *format, ... ) {
 	Com_Printf( "********************\nERROR: %s\n********************\n", msg );
 	SV_ShutdownGame( "Server crashed", false );
 	CL_Disconnect( msg );
-#if PUBLIC_BUILD
-	longjmp( abortframe, -1 );
-#else
-	abort();
-#endif
+
+	if( is_public_build ) {
+		longjmp( abortframe, -1 );
+	}
+	else {
+		abort();
+	}
 }
 
 /*
@@ -488,9 +491,9 @@ void Qcommon_ShutdownCommands() {
 void Qcommon_Init( int argc, char **argv ) {
 	ZoneScoped;
 
-#if !PUBLIC_BUILD
-	EnableFPE();
-#endif
+	if( !is_public_build ) {
+		EnableFPE();
+	}
 
 	Sys_Init();
 

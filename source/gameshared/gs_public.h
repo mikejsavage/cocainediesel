@@ -101,8 +101,6 @@ struct gs_state_t {
 	gs_module_api_t api;
 };
 
-#define GS_ShootingDisabled( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_INHIBITSHOOTING ) != 0 )
-#define GS_HasChallengers( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_HASCHALLENGERS ) != 0 )
 #define GS_TeamBasedGametype( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_ISTEAMBASED ) != 0 )
 #define GS_MatchPaused( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_PAUSED ) != 0 )
 #define GS_MatchWaiting( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_WAITING ) != 0 )
@@ -245,19 +243,8 @@ enum {
 	Vsay_Sorry,
 	Vsay_Thanks,
 	Vsay_GoodGame,
-	Vsay_ShutUp,
 	Vsay_BoomStick,
 
-	Vsay_Bruh,
-	Vsay_Cya,
-	Vsay_GetGood,
-	Vsay_HitTheShowers,
-	Vsay_Lads,
-	Vsay_SheDoesntEvenGoHere,
-	Vsay_ShitSon,
-	Vsay_TrashSmash,
-	Vsay_WhatTheShit,
-	Vsay_WowYourTerrible,
 	Vsay_Acne,
 	Vsay_Valley,
 	Vsay_Mike,
@@ -320,6 +307,8 @@ enum EventType {
 	EV_STAKE_IMPACT,
 	EV_BLAST_BOUNCE,
 	EV_BLAST_IMPACT,
+
+	EV_STUN_GRENADE_EXPLOSION,
 
 	EV_EXPLOSION1,
 	EV_EXPLOSION2,

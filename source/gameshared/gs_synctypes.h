@@ -67,6 +67,7 @@ enum WeaponType_ : WeaponType {
 	Weapon_Laser,
 	Weapon_Railgun,
 	Weapon_Sniper,
+	Weapon_AutoSniper,
 	Weapon_Rifle,
 	Weapon_MasterBlaster,
 	Weapon_RoadGun,
@@ -80,6 +81,7 @@ enum GadgetType : u8 {
 
 	Gadget_ThrowingAxe,
 	Gadget_SuicideBomb,
+	Gadget_StunGrenade,
 
 	Gadget_Count
 };
@@ -137,10 +139,8 @@ enum BombProgress {
 
 #define GAMESTAT_FLAG_PAUSED ( 1 << 0 )
 #define GAMESTAT_FLAG_WAITING ( 1 << 1 )
-#define GAMESTAT_FLAG_HASCHALLENGERS ( 1 << 2 )
-#define GAMESTAT_FLAG_INHIBITSHOOTING ( 1 << 3 )
-#define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 4 )
-#define GAMESTAT_FLAG_COUNTDOWN ( 1 << 5 )
+#define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 2 )
+#define GAMESTAT_FLAG_COUNTDOWN ( 1 << 3 )
 
 enum {
 	TEAM_SPECTATOR,
@@ -270,6 +270,8 @@ struct pmove_state_t {
 
 	u16 features;
 
+	s16 no_shooting_time;
+
 	s16 knockback_time;
 	s16 crouch_time;
 	s16 tbag_time;
@@ -308,6 +310,7 @@ struct SyncPlayerState {
 	bool can_plant;
 
 	s16 health;
+	u16 flashed;
 
 	WeaponState weapon_state;
 	u16 weapon_state_time;

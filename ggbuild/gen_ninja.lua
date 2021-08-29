@@ -1,3 +1,5 @@
+package.path = ( "./?.lua;./?/make.lua" ):gsub( "/", package.config:sub( 1, 1 ) )
+
 local lfs = require( "INTERNAL_LFS" )
 
 local configs = { }

@@ -416,9 +416,6 @@ static void SV_CheckDefaultMap() {
 	}
 }
 
-/*
-* SV_Frame
-*/
 void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 	ZoneScoped;
 
@@ -534,7 +531,6 @@ void SV_Init() {
 
 	sv_mempool = Mem_AllocPool( NULL, "Server" );
 
-	Cvar_Get( "sv_cheats", "0", CVAR_SERVERINFO | CVAR_LATCH );
 	Cvar_Get( "protocol", va( "%i", APP_PROTOCOL_VERSION ), CVAR_SERVERINFO | CVAR_NOSET );
 
 	// sv_port = 12345

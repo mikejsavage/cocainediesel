@@ -28,8 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_ai.h"
 #include "server/server.h"
 
-#include "angelscript/angelscript.h"
-
 //==================================================================
 
 // FIXME: Medar: Remove the spectator test and just make sure they always have health
@@ -79,10 +77,6 @@ struct game_locals_t {
 	// cross level triggers
 	int serverflags;
 
-	// AngelScript engine object
-	struct angelwrap_api_s *asExport;
-	asIScriptEngine *asEngine;
-
 	unsigned int frametime;         // in milliseconds
 	int snapFrameTime;              // in milliseconds
 	int64_t prevServerTime;         // last frame's server time
@@ -119,7 +113,7 @@ struct level_locals_t {
 	bool hardReset;
 
 	// gametype definition and execution
-	gametype_descriptor_t gametype;
+	Gametype gametype;
 
 	bool ready[MAX_CLIENTS];
 	bool forceExit;     // just exit, ignore extended time checks
@@ -219,7 +213,6 @@ extern cvar_t *g_allow_spectator_voting;
 extern cvar_t *g_asGC_stats;
 extern cvar_t *g_asGC_interval;
 
-edict_t **G_Teams_ChallengersQueue();
 void G_Teams_Join_Cmd( edict_t *ent );
 bool G_Teams_JoinTeam( edict_t *ent, int team );
 void G_Teams_UpdateMembersList();
@@ -235,12 +228,7 @@ void G_Match_ToggleReady( edict_t *ent );
 void G_Match_CheckReadys();
 void G_EndMatch();
 
-void G_Teams_JoinChallengersQueue( edict_t *ent );
-void G_Teams_LeaveChallengersQueue( edict_t *ent );
-void G_InitChallengersQueue();
-
 void G_Gametype_Init();
-void G_Gametype_ScoreEvent( gclient_t *client, const char *score_event, const char *args );
 void G_RunGametype();
 
 //
@@ -262,6 +250,7 @@ void G_SpawnQueue_AddClient( edict_t *ent );
 void G_SpawnQueue_RemoveClient( edict_t *ent );
 void G_SpawnQueue_Think();
 
+void DropSpawnToFloor( edict_t * ent );
 void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, Vec3 * origin, Vec3 * angles );
 void SP_post_match_camera( edict_t *ent );
 
@@ -289,36 +278,6 @@ void SP_spikes( edict_t * ent );
 //
 
 void SP_speaker_wall( edict_t * ent );
-
-//
-// g_ascript.c
-//
-bool GT_asLoadScript( const char *gametypeName );
-void GT_asShutdownScript();
-void GT_asCallSpawn();
-void GT_asCallMatchStateStarted();
-bool GT_asCallMatchStateFinished( int incomingMatchState );
-void GT_asCallThinkRules();
-void GT_asCallPlayerRespawn( edict_t *ent, int old_team, int new_team );
-void GT_asCallScoreEvent( gclient_t *client, const char *score_event, const char *args );
-edict_t *GT_asCallSelectSpawnPoint( edict_t *ent );
-bool GT_asCallGameCommand( gclient_t *client, const char *cmd, const char *args, int argc );
-void GT_asCallShutdown();
-
-void G_asCallMapEntityThink( edict_t *ent );
-void G_asCallMapEntityTouch( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags );
-void G_asCallMapEntityUse( edict_t *ent, edict_t *other, edict_t *activator );
-void G_asCallMapEntityPain( edict_t *ent, edict_t *other, float kick, float damage );
-void G_asCallMapEntityDie( edict_t *ent, edict_t *inflicter, edict_t *attacker, int damage );
-void G_asCallMapEntityStop( edict_t *ent );
-void G_asClearEntityBehaviors( edict_t *ent );
-void G_asReleaseEntityBehaviors( edict_t *ent );
-
-bool G_asCallMapEntitySpawnScript( Span< const char > classname, edict_t *ent );
-
-void G_asInitGameModuleEngine();
-void G_asShutdownGameModuleEngine();
-void G_asGarbageCollect( bool force );
 
 #define world game.edicts
 
@@ -535,6 +494,8 @@ void ClientCommand( edict_t *ent );
 void G_PredictedEvent( int entNum, int ev, u64 parm );
 void G_PredictedFireWeapon( int entNum, u64 weapon_and_entropy );
 void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm );
+void G_SelectWeapon( edict_t * ent, int index );
+void G_GiveWeapon( edict_t * ent, WeaponType weapon );
 void G_TeleportPlayer( edict_t *player, edict_t *dest );
 bool G_PlayerCanTeleport( edict_t *player );
 
@@ -719,7 +680,6 @@ struct client_levelreset_t {
 	int64_t last_spray;
 
 	score_stats_t stats;
-	bool showscores;
 
 	// flood protection
 	int64_t flood_locktill;			// locked from talking
@@ -767,8 +727,6 @@ struct gclient_t {
 
 	int team;
 	bool isoperator;
-	int64_t queueTimeStamp;
-	int muted;     // & 1 = chat disabled, & 2 = vsay disabled
 
 	UserCommand ucmd;
 	int timeDelta;              // time offset to adjust for shots collision (antilag)
@@ -891,8 +849,6 @@ struct edict_t {
 	int64_t trigger_timeout;
 
 	bool linked;
-
-	asIScriptFunction *asSpawnFunc, *asThinkFunc, *asUseFunc, *asTouchFunc, *asPainFunc, *asDieFunc, *asStopFunc;
 
 	assistinfo_t recent_attackers[MAX_ASSIST_INFO];
 	u32 num_bounces;

@@ -43,7 +43,6 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 
 	// reset walljump counter
 	playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;
-	playerState->pmove.pm_flags |= PMF_JUMPPAD_TIME;
 	playerState->pmove.pm_flags &= ~PMF_ON_GROUND;
 	gs->api.PredictedEvent( playerState->POVnum, EV_JUMP_PAD, 0 );
 }

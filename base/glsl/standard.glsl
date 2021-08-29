@@ -8,10 +8,6 @@
 v2f vec3 v_Position;
 v2f vec3 v_Normal;
 v2f vec2 v_TexCoord;
-#if APPLY_SHADOWS
-v2f vec4 v_NearShadowmapPosition;
-v2f vec4 v_FarShadowmapPosition;
-#endif
 
 #if VERTEX_COLORS
 v2f vec4 v_Color;
@@ -51,10 +47,6 @@ void main() {
 	v_Normal = m * Normal;
 
 	v_TexCoord = ApplyTCMod( a_TexCoord );
-#if APPLY_SHADOWS
-	v_NearShadowmapPosition = u_NearWorldToShadowmap * vec4( v_Position, 1.0 );
-	v_FarShadowmapPosition = u_FarWorldToShadowmap * vec4( v_Position, 1.0 );
-#endif
 
 #if VERTEX_COLORS
 	v_Color = sRGBToLinear( a_Color );

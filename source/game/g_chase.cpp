@@ -17,18 +17,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
 #include "game/g_local.h"
 
-/*
-* G_Chase_SetChaseActive
-*/
 static void G_Chase_SetChaseActive( edict_t *ent, bool active ) {
 	ent->r.client->resp.chase.active = active;
 }
 
-/*
-* G_Chase_IsValidTarget
-*/
 static bool G_Chase_IsValidTarget( edict_t *ent, edict_t *target, bool teamonly ) {
 	if( !ent || !target ) {
 		return false;
@@ -57,9 +52,6 @@ static bool G_Chase_IsValidTarget( edict_t *ent, edict_t *target, bool teamonly 
 	return true;
 }
 
-/*
-* G_EndFrame_UpdateChaseCam
-*/
 static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 	// not in chasecam
 	if( !ent->r.client->resp.chase.active ) {
@@ -112,9 +104,6 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 	GClip_LinkEntity( ent );
 }
 
-/*
-* G_EndServerFrames_UpdateChaseCam
-*/
 void G_EndServerFrames_UpdateChaseCam() {
 	// do it by teams, so spectators can copy the chasecam information from players
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
@@ -143,9 +132,6 @@ void G_EndServerFrames_UpdateChaseCam() {
 	}
 }
 
-/*
-* G_ChasePlayer
-*/
 void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmode ) {
 	int i;
 	edict_t *e;
@@ -232,14 +218,10 @@ void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmod
 		if( !teamonly ) {
 			ent->movetype = MOVETYPE_NOCLIP;
 		}
-		client->level.showscores = false;
 		G_Chase_SetChaseActive( ent, false );
 	}
 }
 
-/*
-* ChaseStep
-*/
 void G_ChaseStep( edict_t *ent, int step ) {
 	edict_t *newtarget = NULL;
 
@@ -323,9 +305,6 @@ void G_ChaseStep( edict_t *ent, int step ) {
 	}
 }
 
-/*
-* Cmd_ChaseCam_f
-*/
 void Cmd_ChaseCam_f( edict_t *ent ) {
 	if( ent->s.team != TEAM_SPECTATOR ) {
 		G_Teams_JoinTeam( ent, TEAM_SPECTATOR );
@@ -368,13 +347,8 @@ void Cmd_ChaseCam_f( edict_t *ent ) {
 	} else {
 		G_ChasePlayer( ent, arg1, false, 0 );
 	}
-
-	G_Teams_LeaveChallengersQueue( ent );
 }
 
-/*
-* G_SpectatorMode
-*/
 void G_SpectatorMode( edict_t *ent ) {
 	// join spectator team
 	if( ent->s.team != TEAM_SPECTATOR ) {
@@ -385,7 +359,6 @@ void G_SpectatorMode( edict_t *ent ) {
 
 	// was in chasecam
 	if( ent->r.client->resp.chase.active ) {
-		ent->r.client->level.showscores = false;
 		G_Chase_SetChaseActive( ent, false );
 
 		// reset movement speeds
@@ -397,9 +370,6 @@ void G_SpectatorMode( edict_t *ent ) {
 	ent->movetype = MOVETYPE_NOCLIP;
 }
 
-/*
-* Cmd_SwitchChaseCamMode_f
-*/
 void Cmd_SwitchChaseCamMode_f( edict_t *ent ) {
 	if( ent->s.team == TEAM_SPECTATOR ) {
 		if( ent->r.client->resp.chase.active ) {

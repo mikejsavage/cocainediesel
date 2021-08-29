@@ -850,8 +850,6 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 }
 
 void DrawParticleSystem( ParticleSystem * ps, float dt ) {
-	DisableFPEScoped;
-
 	if( ps->num_particles == 0 )
 		return;
 

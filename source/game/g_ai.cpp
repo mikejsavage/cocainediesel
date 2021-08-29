@@ -15,6 +15,7 @@ static const char * bot_names[] = {
 	"__mute__",
 
 	// twitch subs
+	"bes1337",
 	"catman1900",
 	"hvaholic",
 	"ne0ns0up",
@@ -73,9 +74,7 @@ static void AI_SpecThink( edict_t * self ) {
 
 	if( self->r.client->team == TEAM_SPECTATOR ) {
 		// try to join a team
-		if( !self->r.client->queueTimeStamp ) {
-			G_Teams_JoinAnyTeam( self, false );
-		}
+		G_Teams_JoinAnyTeam( self, false );
 
 		if( self->r.client->team == TEAM_SPECTATOR ) { // couldn't join, delay the next think
 			self->nextThink = level.time + 100;

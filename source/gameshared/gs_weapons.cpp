@@ -134,7 +134,7 @@ struct ItemState {
 	}
 };
 
-static WeaponState GenericDelay( WeaponState state, SyncPlayerState * ps, s64 delay, WeaponState next ) {
+static ItemStateTransition GenericDelay( WeaponState state, SyncPlayerState * ps, s64 delay, ItemStateTransition next ) {
 	return ps->weapon_state_time >= delay ? next : state;
 }
 
@@ -144,10 +144,12 @@ constexpr static Span< const ItemState > MakeStateMachine( const ItemState ( &st
 }
 
 static void HandleZoom( const gs_state_t * gs, SyncPlayerState * ps, const UserCommand * cmd ) {
-	s16 last_zoom_time = ps->zoom_time;
-	bool can_zoom = ps->weapon_state == WeaponState_Idle && ( ps->pmove.features & PMFEAT_SCOPE );
-
 	const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+	const WeaponSlot * slot = GetSelectedWeapon( ps );
+
+	s16 last_zoom_time = ps->zoom_time;
+	bool can_zoom = ( ps->weapon_state == WeaponState_Idle || ( ps->weapon_state == WeaponState_Firing && HasAmmo( def, slot ) ) ) && ( ps->pmove.features & PMFEAT_SCOPE );
+
 	if( can_zoom && def->zoom_fov != 0 && ( cmd->buttons & BUTTON_SPECIAL ) != 0 ) {
 		ps->zoom_time = Min2( ps->zoom_time + cmd->msec, ZOOMTIME );
 		if( last_zoom_time == 0 ) {
@@ -208,7 +210,7 @@ static ItemState dispatch_states[] = {
 	ItemState( WeaponState_DispatchQuiet, Dispatch ),
 };
 
-static WeaponState AllowWeaponSwitch( const gs_state_t * gs, SyncPlayerState * ps, WeaponState otherwise ) {
+static ItemStateTransition AllowWeaponSwitch( const gs_state_t * gs, SyncPlayerState * ps, ItemStateTransition otherwise ) {
 	bool switching = false;
 	switching = switching || ( ps->pending_weapon != Weapon_None && ps->pending_weapon != ps->weapon );
 	switching = switching || ( ps->pending_gadget && ps->gadget_ammo > 0 && !ps->using_gadget );
@@ -282,6 +284,11 @@ static ItemState generic_gun_states[] = {
 		if( cmd->buttons & BUTTON_ATTACK ) {
 			const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 			ps->weapon_state_time = Min2( def->refire_time, ps->weapon_state_time );
+
+			if( ps->weapon_state_time >= def->refire_time ) {
+				return AllowWeaponSwitch( gs, ps, state );
+			}
+
 			return state;
 		}
 
@@ -302,7 +309,7 @@ static ItemState generic_gun_states[] = {
 
 		FireWeapon( gs, ps, cmd, true );
 
-		return ForceReset( state );
+		return AllowWeaponSwitch( gs, ps, ForceReset( state ) );
 	} ),
 
 	ItemState( WeaponState_FiringEntireClip, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
@@ -365,6 +372,8 @@ static ItemState railgun_states[] = {
 			gs->api.PredictedFireWeapon( ps->POVnum, Weapon_Railgun );
 			return WeaponState_Firing;
 		}
+
+		ps->weapon_state_time = Min2( def->reload_time, ps->weapon_state_time );
 
 		return state;
 	} ),
@@ -463,6 +472,7 @@ static Span< const ItemState > FindItemStateMachine( SyncPlayerState * ps ) {
 			// case Gadget_FragGrenade:
 			// 	return generic_throwable_state_machine;
 			case Gadget_ThrowingAxe:
+			case Gadget_StunGrenade:
 				return generic_throwable_state_machine;
 
 			case Gadget_SuicideBomb:
@@ -522,7 +532,7 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd
 		ps->pending_weapon = cmd.weaponSwitch;
 	}
 
-	if( GS_ShootingDisabled( gs ) ) {
+	if( ps->pmove.no_shooting_time > 0 ) {
 		cmd.buttons = cmd.buttons & ~BUTTON_ATTACK;
 		cmd.buttons = cmd.buttons & ~BUTTON_GADGET;
 	}
@@ -532,6 +542,7 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd
 	}
 
 	HandleZoom( gs, ps, &cmd );
+	ps->flashed -= Min2( ps->flashed, u16( cmd.msec * 0.001f * U16_MAX / 3.0f ) );
 
 	while( true ) {
 		Span< const ItemState > sm = FindItemStateMachine( ps );

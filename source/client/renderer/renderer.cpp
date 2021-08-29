@@ -33,8 +33,10 @@ static int same_date_count;
 
 static u32 last_viewport_width, last_viewport_height;
 static int last_msaa;
+static ShadowQuality last_shadow_quality;
 
 static cvar_t * r_samples;
+static cvar_t * r_shadow_quality;
 
 static void TakeScreenshot() {
 	RGB8 * framebuffer = ALLOC_MANY( sys_allocator, RGB8, frame_static.viewport_width * frame_static.viewport_height );
@@ -76,12 +78,35 @@ static void TakeScreenshot() {
 	}
 }
 
+const char * ShadowQualityToString( ShadowQuality mode ) {
+	switch( mode ) {
+		case ShadowQuality_Low: return "Rookie";
+		case ShadowQuality_Medium: return "Regular";
+		case ShadowQuality_High: return "Made Man";
+		case ShadowQuality_Ultra: return "Murica";
+		default: return "";
+	};
+}
+
+static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
+	switch( mode ) {
+		case ShadowQuality_Low:    return { 2, 256.0f, 2048.0f, 2048.0f, 2048.0f, 1024, 2 };
+		case ShadowQuality_Medium: return { 4, 256.0f, 768.0f, 2304.0f, 6912.0f, 1024, 2 };
+		case ShadowQuality_High:   return { 4, 256.0f, 768.0f, 2304.0f, 6912.0f, 2048, 4 };
+		case ShadowQuality_Ultra:  return { 4, 256.0f, 768.0f, 2304.0f, 6912.0f, 4096, 4 };
+	}
+
+	assert( false );
+	return { };
+}
+
 void InitRenderer() {
 	ZoneScoped;
 
 	RenderBackendInit();
 
 	r_samples = Cvar_Get( "r_samples", "0", CVAR_ARCHIVE );
+	r_shadow_quality = Cvar_Get( "r_shadow_quality", "1", CVAR_ARCHIVE );
 
 	frame_static = { };
 	last_viewport_width = U32_MAX;
@@ -145,8 +170,10 @@ static void DeleteFramebuffers() {
 	DeleteFramebuffer( frame_static.msaa_fb );
 	DeleteFramebuffer( frame_static.postprocess_fb_onlycolor );
 	DeleteFramebuffer( frame_static.msaa_fb_onlycolor );
-	DeleteFramebuffer( frame_static.near_shadowmap_fb );
-	DeleteFramebuffer( frame_static.far_shadowmap_fb );
+	for( u32 i = 0; i < 4; i++ ) {
+		DeleteFramebuffer( frame_static.shadowmap_fb[ i ] );
+	}
+	DeleteTextureArray( frame_static.shadowmap_texture_array );
 }
 
 void ShutdownRenderer() {
@@ -253,6 +280,18 @@ static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 	return rotation * Mat4Translation( -position );
 }
 
+static Mat4 ViewMatrix( Vec3 position, Vec3 forward ) {
+	Vec3 right, up;
+	ViewVectors( forward, &right, &up );
+	Mat4 rotation(
+		right.x, right.y, right.z, 0,
+		up.x, up.y, up.z, 0,
+		-forward.x, -forward.y, -forward.z, 0,
+		0, 0, 0, 1
+	);
+	return rotation * Mat4Translation( -position );
+}
+
 static Mat4 InvertViewMatrix( const Mat4 & V, Vec3 position ) {
 	return Mat4(
 		// transpose rotation part
@@ -264,8 +303,8 @@ static Mat4 InvertViewMatrix( const Mat4 & V, Vec3 position ) {
 	);
 }
 
-static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, Vec3 camera_pos, Vec2 viewport_size, float near_plane, int samples, Mat4 S, Mat4 S2, Vec3 light_dir ) {
-	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane, samples, S, S2, light_dir );
+static UniformBlock UploadViewUniforms( const Mat4 & V, const Mat4 & inverse_V, const Mat4 & P, const Mat4 & inverse_P, Vec3 camera_pos, Vec2 viewport_size, float near_plane, int samples, Vec3 light_dir ) {
+	return UploadUniformBlock( V, inverse_V, P, inverse_P, camera_pos, viewport_size, near_plane, samples, light_dir );
 }
 
 static void CreateFramebuffers() {
@@ -319,18 +358,22 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb;
 
-		constexpr u32 near_shadowmap_res = 1024;
-		texture_config.width = near_shadowmap_res;
-		texture_config.height = near_shadowmap_res;
-		texture_config.format = TextureFormat_Depth;
-		fb.depth_attachment = texture_config;
+		u32 shadowmap_res = frame_static.shadow_parameters.shadowmap_res;
+		TextureArrayConfig config;
+		config.width = shadowmap_res;
+		config.height = shadowmap_res;
+		config.format = TextureFormat_Shadow;
+		config.layers = frame_static.shadow_parameters.num_cascades;
+		frame_static.shadowmap_texture_array = NewTextureArray( config );
 
-		frame_static.near_shadowmap_fb = NewFramebuffer( fb );
+		texture_config.width = shadowmap_res;
+		texture_config.height = shadowmap_res;
+		texture_config.format = TextureFormat_Shadow;
+		fb.albedo_attachment = texture_config;
 
-		constexpr u32 far_shadowmap_res = 2048;
-		texture_config.width = far_shadowmap_res;
-		texture_config.height = far_shadowmap_res;
-		frame_static.far_shadowmap_fb = NewFramebuffer( fb );
+		for( u32 i = 0; i < 4; i++ ) {
+			frame_static.shadowmap_fb[ i ] = NewShadowFramebuffer( frame_static.shadowmap_texture_array, i );
+		}
 	}
 }
 
@@ -360,25 +403,33 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
-		Cvar_Set( "r_samples", "0" );
+		Cvar_Set( "r_samples", r_samples->dvalue );
+	}
+
+	if( r_shadow_quality->integer < ShadowQuality_Low || r_shadow_quality->integer > ShadowQuality_Ultra ) {
+		Com_Printf( "Invalid r_shadow_quality value (%d), resetting\n", r_shadow_quality->integer );
+		Cvar_Set( "r_shadow_quality", r_shadow_quality->dvalue );
 	}
 
 	frame_static.viewport_width = Max2( u32( 1 ), viewport_width );
 	frame_static.viewport_height = Max2( u32( 1 ), viewport_height );
 	frame_static.viewport = Vec2( frame_static.viewport_width, frame_static.viewport_height );
-	frame_static.aspect_ratio = float( viewport_width ) / float( viewport_height );
+	frame_static.aspect_ratio = float( frame_static.viewport_width ) / float( frame_static.viewport_height );
 	frame_static.msaa_samples = r_samples->integer;
+	frame_static.shadow_quality = ShadowQuality( r_shadow_quality->integer );
+	frame_static.shadow_parameters = GetShadowParameters( frame_static.shadow_quality );
 
-	if( viewport_width != last_viewport_width || viewport_height != last_viewport_height || frame_static.msaa_samples != last_msaa ) {
+	if( viewport_width != last_viewport_width || viewport_height != last_viewport_height || frame_static.msaa_samples != last_msaa || frame_static.shadow_quality != last_shadow_quality ) {
 		CreateFramebuffers();
 		last_viewport_width = viewport_width;
 		last_viewport_height = viewport_height;
 		last_msaa = frame_static.msaa_samples;
+		last_shadow_quality = frame_static.shadow_quality;
 	}
 
 	bool msaa = frame_static.msaa_samples;
 
-	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), Vec3() );
+	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Vec3() );
 	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
 	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f, 64.0f );
 
@@ -386,8 +437,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 #define TRACY_HACK( name ) { name, __FUNCTION__, __FILE__, uint32_t( __LINE__ ), 0 }
 	static const tracy::SourceLocationData particle_update_tracy = TRACY_HACK( "Update particles" );
-	static const tracy::SourceLocationData write_near_shadowmap_tracy = TRACY_HACK( "Write near shadowmap" );
-	static const tracy::SourceLocationData write_far_shadowmap_tracy = TRACY_HACK( "Write far shadowmap" );
+	static const tracy::SourceLocationData write_shadowmap_tracy = TRACY_HACK( "Write shadowmap" );
 	static const tracy::SourceLocationData world_opaque_prepass_tracy = TRACY_HACK( "World z-prepass" );
 	static const tracy::SourceLocationData world_opaque_tracy = TRACY_HACK( "Render world opaque" );
 	static const tracy::SourceLocationData add_world_outlines_tracy = TRACY_HACK( "Render world outlines" );
@@ -405,8 +455,9 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.particle_update_pass = AddRenderPass( "Particle Update", &particle_update_tracy );
 
-	frame_static.near_shadowmap_pass = AddRenderPass( "Write near shadowmap", &write_near_shadowmap_tracy, frame_static.near_shadowmap_fb, ClearColor_Dont, ClearDepth_Do );
-	frame_static.far_shadowmap_pass = AddRenderPass( "Write far shadowmap", &write_far_shadowmap_tracy, frame_static.far_shadowmap_fb, ClearColor_Dont, ClearDepth_Do );
+	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
+		frame_static.shadowmap_pass[ i ] = AddRenderPass( "Write shadowmap", &write_shadowmap_tracy, frame_static.shadowmap_fb[ i ], ClearColor_Dont, ClearDepth_Do );
+	}
 
 	if( msaa ) {
 		frame_static.world_opaque_prepass_pass = AddRenderPass( "Render world opaque Prepass", &world_opaque_prepass_tracy, frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
@@ -439,53 +490,118 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.ultralight_pass = AddUnsortedRenderPass( "Render Ultralight", &ultralight_tracy );
 }
 
-MinMax3 ShadowMapBounds( float tan_half_fov, float aspect_ratio, Vec3 position, Vec3 fwd, Vec3 right, Vec3 up, Mat4 shadow_view, float near, float far ) {
-	float far_plane_h = far * tan_half_fov;
-	float far_plane_w = far_plane_h * frame_static.aspect_ratio;
-	float near_plane_h = near * tan_half_fov;
-	float near_plane_w = near_plane_h * frame_static.aspect_ratio;
-
-	Vec3 verts[ 8 ];
-	verts[ 0 ] = position + fwd * near + right * near_plane_w + up * near_plane_h;
-	verts[ 1 ] = position + fwd * near - right * near_plane_w + up * near_plane_h;
-	verts[ 2 ] = position + fwd * near + right * near_plane_w - up * near_plane_h;
-	verts[ 3 ] = position + fwd * near - right * near_plane_w - up * near_plane_h;
-
-	verts[ 4 ] = position + fwd * far + right * far_plane_w + up * far_plane_h;
-	verts[ 5 ] = position + fwd * far - right * far_plane_w + up * far_plane_h;
-	verts[ 6 ] = position + fwd * far + right * far_plane_w - up * far_plane_h;
-	verts[ 7 ] = position + fwd * far - right * far_plane_w - up * far_plane_h;
-
-	Vec3 frustum_center = Vec3( 0.0f );
-
-	for ( u32 i = 0; i < ARRAY_COUNT( verts ); i++ ) {
-		verts[ i ] = ( shadow_view * Vec4( verts[ i ], 1.0f ) ).xyz();
-		frustum_center += verts[ i ];
-	}
-	frustum_center /= 8.0f;
-
-	float radius = 0.0f;
-	for ( u32 i = 0; i < ARRAY_COUNT( verts ); i++ ) {
-		float dist = Length( verts[ i ] - frustum_center );
-		radius = Max2( radius, dist );
-	}
-	radius = roundf( radius * 16.0f ) / 16.0f;
-
-	return MinMax3( frustum_center - Vec3( radius ), frustum_center + Vec3( radius ) );
+static Mat4 InverseScaleTranslation( Mat4 m ) {
+	Mat4 inv = Mat4::Identity();
+	inv.col0.x = 1.0f / m.col0.x;
+	inv.col1.y = 1.0f / m.col1.y;
+	inv.col2.z = 1.0f / m.col2.z;
+	inv.col3.x = -m.col3.x * inv.col0.x;
+	inv.col3.y = -m.col3.y * inv.col1.y;
+	inv.col3.z = -m.col3.z * inv.col2.z;
+	return inv;
 }
 
-Mat4 ShadowProjection( MinMax3 bounds, float near, float far, Mat4 view, u32 map_size ) {
-	Mat4 proj = OrthographicProjection( bounds.mins.x, bounds.maxs.y, bounds.maxs.x, bounds.mins.y, near, far );
-	Mat4 VP = proj * view;
+void SetupShadowCascades() {
+	ZoneScoped;
+	const float near_plane = 4.0f;
+	// const float cascade_dist[ 5 ] = { near_plane, 256.0f, 768.0f, 2304.0f, 6912.0f };
+	// const float cascade_dist[ 5 ] = { near_plane, 16.0f, 64.0f, 512.0f, 4096.0f };
+	float cascade_dist[ 5 ];
+	const u32 num_planes = ARRAY_COUNT( cascade_dist );
+	const u32 num_cascades = num_planes - 1;
+	const u32 num_corners = 4;
 
-	Vec2 origin = ( VP * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xy();
-	origin *= map_size / 2.0f;
-	Vec2 rounded_origin = Vec2( roundf( origin.x ), roundf( origin.y ) );
-	Vec2 rounded_offset = ( rounded_origin - origin ) * ( 2.0f / map_size );
-	proj.col3.x += rounded_offset.x;
-	proj.col3.y += rounded_offset.y;
+	cascade_dist[ 0 ] = near_plane;
+	for( u32 i = 0; i < num_cascades; i++ ) {
+		cascade_dist[ i + 1 ] = frame_static.shadow_parameters.cascade_dists[ i ];
+	}
 
-	return proj;
+	const Vec4 frustum_direction_corners[] = {
+		Vec4( -1.0f,  1.0f, 1.0f, 1.0f ),
+		Vec4(  1.0f,  1.0f, 1.0f, 1.0f ),
+		Vec4(  1.0f, -1.0f, 1.0f, 1.0f ),
+		Vec4( -1.0f, -1.0f, 1.0f, 1.0f ),
+	};
+
+	Vec3 frustum_directions[ num_corners ];
+	for( u32 i = 0; i < num_corners; i++ ) {
+		Vec4 corner = frame_static.inverse_V * frame_static.inverse_P * frustum_direction_corners[ i ];
+		frustum_directions[ i ] = Normalize( frame_static.position - corner.xyz() / corner.w );
+	}
+
+	Vec3 frustum_corners[ num_planes ][ 4 ];
+	Vec3 frustum_centers[ num_planes ] = { };
+	u32 counts[ num_planes ] = { };
+	for( u32 i = 0; i < num_planes; i++ ) {
+		for( u32 j = 0; j < num_corners; j++ ) {
+			Vec3 corner = frame_static.position + frustum_directions[ j ] * cascade_dist[ i ];
+			frustum_corners[ i ][ j ] = corner;
+			frustum_centers[ i ] += corner;
+			counts[ i ]++;
+			frustum_centers[ ( i + 1 ) % num_planes ] += corner;
+			counts[ ( i + 1 ) % num_planes ]++;
+		}
+	}
+
+	Vec3 shadow_camera_positions[ num_planes ];
+	Mat4 shadow_views[ num_planes ];
+	Mat4 shadow_projections[ num_planes ];
+	for( u32 i = 0; i < num_planes; i++ ) {
+		frustum_centers[ i ] /= num_corners * 2;
+		float radius = 0.0f;
+		for( u32 j = 0; j < num_corners; j++ ) {
+			float dist = Length( frustum_corners[ i ][ j ] - frustum_centers[ i ] );
+			radius = Max2( radius, dist );
+			dist = Length( frustum_corners[ ( i - 1 ) % num_planes ][ j ] - frustum_centers[ i ] );
+			radius = Max2( radius, dist );
+		}
+		radius = roundf( radius * 16.0f ) / 16.0f;
+		shadow_camera_positions[ i ] = frustum_centers[ i ] - frame_static.light_direction * radius;
+
+		shadow_views[ i ] = ViewMatrix( shadow_camera_positions[ i ], frame_static.light_direction );
+		shadow_projections[ i ] = OrthographicProjection( -radius, radius, radius, -radius, 0.0f, radius * 2.0f );
+	}
+
+	Vec3 cascade_offsets[ num_cascades ];
+	Vec3 cascade_scales[ num_cascades ];
+	for( u32 i = 0; i < num_cascades; i++ ) {
+		Mat4 & shadow_projection = shadow_projections[ i + 1 ];
+		Mat4 & shadow_view = shadow_views[ i + 1 ];
+		Vec3 & shadow_camera_position = shadow_camera_positions[ i + 1 ];
+		Mat4 shadow_matrix = shadow_projection * shadow_view;
+
+		{
+			u32 shadowmap_size = frame_static.shadow_parameters.shadowmap_res;
+			Vec2 shadow_origin = ( shadow_matrix * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xy();
+			shadow_origin *= shadowmap_size / 2.0f;
+			Vec2 rounded_origin = Vec2( roundf( shadow_origin.x ), roundf( shadow_origin.y ) );
+			Vec2 rounded_offset = ( rounded_origin - shadow_origin ) * ( 2.0f / shadowmap_size );
+			shadow_projection.col3.x += rounded_offset.x;
+			shadow_projection.col3.y += rounded_offset.y;
+		}
+
+		frame_static.shadowmap_view_uniforms[ i ] = UploadViewUniforms( shadow_view, Mat4::Identity(), shadow_projection, Mat4::Identity(), shadow_camera_position, Vec2(), cascade_dist[ i ], 0, frame_static.light_direction );
+
+		Mat4 inv_shadow_view = InvertViewMatrix( shadow_view, shadow_camera_position );
+		Mat4 inv_shadow_projection = InverseScaleTranslation( shadow_projection );
+
+		Mat4 tex_scale_bias = Mat4Translation( 0.5f, 0.5f, 0.0f ) * Mat4Scale( 0.5f, 0.5f, 1.0f );
+		Mat4 inv_tex_scale_bias = InverseScaleTranslation( tex_scale_bias );
+
+		Mat4 inv_cascade = shadow_views[ 0 ] * inv_shadow_view * inv_shadow_projection * inv_tex_scale_bias;
+		Vec3 cascade_corner = ( inv_cascade * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
+		Vec3 other_corner = ( inv_cascade * Vec4( 1.0f, 1.0f, 1.0f, 1.0f ) ).xyz();
+
+		cascade_offsets[ i ] = -cascade_corner;
+		cascade_scales[ i ] = 1.0f / ( other_corner - cascade_corner );
+	}
+
+	frame_static.shadow_uniforms = UploadUniformBlock(
+		s32( frame_static.shadow_parameters.num_cascades ), shadow_views[ 0 ],
+		cascade_dist[ 1 ], cascade_dist[ 2 ], cascade_dist[ 3 ], cascade_dist[ 4 ],
+		cascade_offsets[ 0 ], cascade_offsets[ 1 ], cascade_offsets[ 2 ], cascade_offsets[ 3 ],
+		cascade_scales[ 0 ], cascade_scales[ 1 ], cascade_scales[ 2 ], cascade_scales[ 3 ]
+	);
 }
 
 void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) {
@@ -499,41 +615,14 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	frame_static.vertical_fov = vertical_fov;
 	frame_static.near_plane = near_plane;
 
-	// MESS INCOMING
-
-	constexpr float near_shadow_dist = 256.0f;
-	constexpr float far_shadow_dist = 2048.0f;
-
-	Vec3 fwd, right, up;
-	AngleVectors( Vec3( angles.pitch, angles.yaw, angles.roll ), &fwd, &right, &up );
-
 	frame_static.light_direction = Normalize( Vec3( 1.0f, 2.0f, -3.0f ) );
 	// frame_static.light_direction.x = cosf( float( cls.monotonicTime ) * 0.0001f ) * 2.0f;
 	// frame_static.light_direction.y = sinf( float( cls.monotonicTime ) * 0.0001f ) * 2.0f;
 	// frame_static.light_direction = Normalize( frame_static.light_direction );
 
-	Vec3 light_angles = VecToAngles( frame_static.light_direction );
-	Mat4 shadow_view = ViewMatrix( Vec3( 0.0f ), EulerDegrees3( light_angles ) );
+	SetupShadowCascades();
 
-	float tan_half_fov = tanf( Radians( vertical_fov ) * 0.5f );
-	MinMax3 near_bounds = ShadowMapBounds( tan_half_fov, frame_static.aspect_ratio, position, fwd, right, up, shadow_view, near_plane, near_shadow_dist );
-	MinMax3 far_bounds = ShadowMapBounds( tan_half_fov, frame_static.aspect_ratio, position, fwd, right, up, shadow_view, near_plane, far_shadow_dist );
-
-	float shadow_near = Min2( -near_bounds.maxs.z, -far_bounds.maxs.z );
-	float shadow_far = Max2( -near_bounds.mins.z, -far_bounds.mins.z );
-
-	Mat4 near_shadow_projection = ShadowProjection( near_bounds, shadow_near, shadow_far, shadow_view, frame_static.near_shadowmap_fb.width );
-	Mat4 far_shadow_projection = ShadowProjection( far_bounds, shadow_near, shadow_far, shadow_view, frame_static.far_shadowmap_fb.width );
-
-	frame_static.near_shadowmap_VP = near_shadow_projection * shadow_view;
-	frame_static.far_shadowmap_VP = far_shadow_projection * shadow_view;
-
-	frame_static.near_shadowmap_view_uniforms = UploadViewUniforms( shadow_view, Mat4::Identity(), near_shadow_projection, Mat4::Identity(), Vec3(), frame_static.viewport, near_plane, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), frame_static.light_direction );
-	frame_static.far_shadowmap_view_uniforms = UploadViewUniforms( shadow_view, Mat4::Identity(), far_shadow_projection, Mat4::Identity(), Vec3(), frame_static.viewport, near_plane, frame_static.msaa_samples, Mat4::Identity(), Mat4::Identity(), frame_static.light_direction );
-
-	// END MESS
-
-	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.inverse_V, frame_static.P, frame_static.inverse_P, position, frame_static.viewport, near_plane, frame_static.msaa_samples, frame_static.near_shadowmap_VP, frame_static.far_shadowmap_VP, frame_static.light_direction );
+	frame_static.view_uniforms = UploadViewUniforms( frame_static.V, frame_static.inverse_V, frame_static.P, frame_static.inverse_P, position, frame_static.viewport, near_plane, frame_static.msaa_samples, frame_static.light_direction );
 }
 
 void RendererSubmitFrame() {

@@ -45,6 +45,7 @@ enum TextureFormat : u8 {
 	TextureFormat_BC5,
 
 	TextureFormat_Depth,
+	TextureFormat_Shadow,
 
 	TextureFormat_BGRA_U8_sRGB,
 };
@@ -112,6 +113,7 @@ struct Framebuffer {
 	Texture albedo_texture;
 	Texture normal_texture;
 	Texture depth_texture;
+	TextureArray texture_array;
 	u32 width, height;
 };
 
@@ -143,10 +145,11 @@ struct PipelineState {
 	UniformBinding uniforms[ ARRAY_COUNT( &Shader::uniforms ) ];
 	TextureBinding textures[ ARRAY_COUNT( &Shader::textures ) ];
 	TextureBufferBinding texture_buffers[ ARRAY_COUNT( &Shader::texture_buffers ) ];
-	TextureArrayBinding texture_array = { };
+	TextureArrayBinding texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ];
 	size_t num_uniforms = 0;
 	size_t num_textures = 0;
 	size_t num_texture_buffers = 0;
+	size_t num_texture_arrays = 0;
 
 	u8 pass = U8_MAX;
 	const Shader * shader = NULL;
@@ -206,8 +209,16 @@ struct PipelineState {
 	}
 
 	void set_texture_array( StringHash name, TextureArray ta ) {
-		texture_array.name_hash = name.hash;
-		texture_array.ta = ta;
+		for( size_t i = 0; i < num_texture_arrays; i++ ) {
+			if( texture_arrays[ i ].name_hash == name.hash ) {
+				texture_arrays[ i ].ta = ta;
+				return;
+			}
+		}
+
+		texture_arrays[ num_texture_arrays ].name_hash = name.hash;
+		texture_arrays[ num_texture_arrays ].ta = ta;
+		num_texture_arrays++;
 	}
 };
 
@@ -263,6 +274,7 @@ struct MeshConfig {
 struct TextureConfig {
 	u32 width = 0;
 	u32 height = 0;
+	u32 num_mipmaps = 1;
 
 	const void * data = NULL;
 
@@ -279,6 +291,8 @@ struct TextureArrayConfig {
 	u32 layers = 0;
 
 	const void * data = NULL;
+
+	TextureFormat format;
 };
 
 namespace tracy { struct SourceLocationData; }
@@ -365,11 +379,12 @@ Texture NewTexture( const TextureConfig & config );
 void WriteTexture( Texture texture, const void * data );
 void DeleteTexture( Texture texture );
 
-TextureArray NewAtlasTextureArray( const TextureArrayConfig & config );
+TextureArray NewTextureArray( const TextureArrayConfig & config );
 void DeleteTextureArray( TextureArray ta );
 
 Framebuffer NewFramebuffer( const FramebufferConfig & config );
 Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, Texture * depth_texture );
+Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer );
 void DeleteFramebuffer( Framebuffer fb );
 
 bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths, Span< const char * > feedback_varyings = Span< const char * >() );

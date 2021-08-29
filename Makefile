@@ -41,5 +41,5 @@ clean:
 	@$(NINJA) -t clean || true
 	@rm -f source/qcommon/gitversion.h
 	@rm -rf build release
-	@rm -f *.exp *.ilk *.ilp *.lib *.pdb
+	@rm -f -- *.exp *.ilk *.ilp *.lib *.pdb
 	@rm -f build.ninja

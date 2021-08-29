@@ -113,6 +113,8 @@ void CG_DrawCrosshair() {
 	WeaponType weapon = cg.predictedPlayerState.weapon;
 	if( weapon == Weapon_Knife || weapon == Weapon_Sniper )
 		return;
+	if( weapon == Weapon_AutoSniper && cg.predictedPlayerState.zoom_time > 0 )
+		return;
 
 	Vec4 color = cls.monotonicTime - scr_damagetime <= 300 ? vec4_red : vec4_white;
 
@@ -399,6 +401,7 @@ static const char * mini_obituaries[] = {
 	"ICKY",
 	"ITCH",
 	"JINGLE",
+	"kill -9",
 	"KLOK",
 	"KLUNK",
 	"KNOCK",
@@ -463,6 +466,8 @@ static const char * mini_obituaries[] = {
 	"SHOO",
 	"SHOOP",
 	"SIGH",
+	"SIGSEGV",
+	"SIGTERM",
 	"SKRA",
 	"SKRRT",
 	"SLAM",
@@ -797,15 +802,9 @@ void CG_EscapeKey() {
 }
 
 static Vec4 CG_CalcColorBlend() {
-	int contents = CG_PointContents( cg.view.origin );
-	if( contents & CONTENTS_WATER )
-		return Vec4( 0.0f, 0.1f, 1.0f, 0.2f );
-	if( contents & CONTENTS_LAVA )
-		return Vec4( 1.0f, 0.3f, 0.0f, 0.6f );
-	if( contents & CONTENTS_SLIME )
-		return Vec4( 0.0f, 0.1f, 0.05f, 0.6f );
-
-	return Vec4( 0 );
+	const SyncPlayerState * ps = &cg.predictedPlayerState;
+	float flashed = Unlerp01( u16( 0 ), ps->flashed, u16( U16_MAX * 0.75f ) );
+	return Vec4( Vec3( 1.0f ), flashed * flashed );
 }
 
 static void CG_SCRDrawViewBlend() {
@@ -827,7 +826,8 @@ void AddDamageEffect( float x ) {
 }
 
 static void CG_DrawScope() {
-	if( cg.predictedPlayerState.weapon == Weapon_Sniper && cg.predictedPlayerState.zoom_time > 0 ) {
+	const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
+	if( def->zoom_fov != 0 && cg.predictedPlayerState.zoom_time > 0 ) {
 		PipelineState pipeline;
 		pipeline.pass = frame_static.ui_pass;
 		pipeline.shader = &shaders.scope;

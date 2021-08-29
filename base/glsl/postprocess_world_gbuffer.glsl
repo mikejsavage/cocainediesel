@@ -32,36 +32,28 @@ float edgeDetect( float center, float up, float down_left, float down_right ) {
 }
 
 void main() {
+	ivec2 p = ivec2( gl_FragCoord.xy );
+	ivec3 pixel = ivec3( 0, 1, -1 );
+	float edgeness = 0.0;
 	float avg_depth = 0.0;
 #if MSAA
-	ivec2 p = ivec2( gl_FragCoord.xy );
-	ivec2 pixel_right = ivec2( 1, 0 );
-	ivec2 pixel_up = ivec2( 0, 1 );
-
-	float edgeness = 0.0;
-	avg_depth = 0.0;
-	for( int i = 0; i < u_Samples; i++ ) {
+	for( int i = 0; i < u_Samples; i++ )
+#else
+	const int i = 0;
+#endif
+	{
 		float depth =            texelFetch( u_DepthTexture, p, i ).r;
-		float depth_up =         texelFetch( u_DepthTexture, p + pixel_up, i ).r;
-		float depth_down_left =  texelFetch( u_DepthTexture, p - pixel_up - pixel_right, i ).r;
-		float depth_down_right = texelFetch( u_DepthTexture, p - pixel_up + pixel_right, i ).r;
+		float depth_up =         texelFetch( u_DepthTexture, p + pixel.xz, i ).r;
+		float depth_down_left =  texelFetch( u_DepthTexture, p + pixel.yy, i ).r;
+		float depth_down_right = texelFetch( u_DepthTexture, p + pixel.zy, i ).r;
 		edgeness += edgeDetect( depth, depth_up, depth_down_left, depth_down_right );
 		avg_depth += depth + depth_up + depth_down_left + depth_down_right;
 	}
+#if MSAA
 	edgeness /= u_Samples;
 	avg_depth /= u_Samples * 4.0;
 #else
-	vec2 pixel_size = 1.0 / u_ViewportSize;
-	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
-	vec2 pixel_right = vec2( pixel_size.x, 0.0 );
-	vec2 pixel_up = vec2( 0.0, pixel_size.y );
-
-	float depth =            texture( u_DepthTexture, uv ).r;
-	float depth_up =         texture( u_DepthTexture, uv + pixel_up ).r;
-	float depth_down_left =  texture( u_DepthTexture, uv - pixel_up - pixel_right ).r;
-	float depth_down_right = texture( u_DepthTexture, uv - pixel_up + pixel_right ).r;
-	float edgeness = edgeDetect( depth, depth_up, depth_down_left, depth_down_right );
-	avg_depth = ( depth + depth_up + depth_down_left + depth_down_right ) / 4.0;
+	avg_depth /= 4.0;
 #endif
 	if( edgeness < 0.1 ) {
 		discard;

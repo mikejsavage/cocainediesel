@@ -350,6 +350,14 @@ textures/sprays/boobs
 	decal
 }
 
+textures/sprays/bradhere
+{
+	{
+		map textures/sprays/bradhere
+	}
+	decal
+}
+
 textures/sprays/brb
 {
 	{
@@ -1058,6 +1066,14 @@ textures/sprays/goteem
 {
 	{
 		map textures/sprays/goteem
+	}
+	decal
+}
+
+textures/sprays/gotfraggon
+{
+	{
+		map textures/sprays/gotfraggon
 	}
 	decal
 }
@@ -2326,6 +2342,14 @@ textures/sprays/quakelove
 	decal
 }
 
+textures/sprays/quirt
+{
+	{
+		map textures/sprays/quirt
+	}
+	decal
+}
+
 textures/sprays/random
 {
 	{
@@ -2370,6 +2394,14 @@ textures/sprays/remember
 {
 	{
 		map textures/sprays/remember
+	}
+	decal
+}
+
+textures/sprays/respectthenest
+{
+	{
+		map textures/sprays/respectthenest
 	}
 	decal
 }

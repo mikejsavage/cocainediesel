@@ -312,7 +312,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Rockets",
+		/* name                 */ "Bazooka",
 		/* short name           */ "rl",
 		/* category             */ WeaponCategory_Primary,
 
@@ -534,9 +534,46 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
+		/* name                 */ "Auto sniper",
+		/* short name           */ "autosniper",
+		/* category             */ WeaponCategory_Backup,
+
+		/* projectile count     */ 1,
+		/* clip size            */ 5,
+		/* reload time          */ 2000,
+		/* staged reloading     */ false,
+
+		// timings (in msecs)
+		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
+		/* weapon down time     */ WEAPONDOWN_TIME,
+		/* refire time          */ 420,
+		/* timeout / range      */ 6969,
+		/* max recoil           */ EulerDegrees2( 200.0f, 5.0f ),
+		/* min recoil           */ EulerDegrees2( 175.0f, -5.0f ),
+		/* recoil recovery      */ 1750.0f,
+		/* firing mode          */ FiringMode_Auto,
+
+		/* zoom fov             */ 40.0f,
+		/* zoom inaccuracy      */ 5.0f,
+
+		// damages
+		/* damage               */ 25,
+		/* self damage          */ 0,
+		/* wallbang damage      */ 1.0f,
+		/* knockback            */ 50,
+		/* splash radius        */ 80,
+		/* splash min damage    */ 5,
+		/* splash min knockback */ 20,
+
+		// projectile def
+		/* speed                */ 4000,
+		/* spread               */ 2000, // fuse time
+	},
+
+	{
 		/* name                 */ "Rifle",
 		/* short name           */ "rifle",
-		/* category             */ WeaponCategory_Backup,
+		/* category             */ WeaponCategory_Secondary,
 
 		/* projectile count     */ 1,
 		/* clip size            */ 5,
@@ -557,7 +594,7 @@ const WeaponDef weapon_defs[] = {
 		/* zoom inaccuracy      */ 0.0f,
 
 		// damages
-		/* damage               */ 38,
+		/* damage               */ 40,
 		/* self damage          */ 0,
 		/* wallbang damage      */ 1.0f, //not implemented
 		/* knockback            */ 50,
@@ -713,6 +750,23 @@ const GadgetDef gadget_defs[] = {
 	{
 		"Suicide vest",
 		"suicidevest",
+	},
+
+	{
+		/* name             */ "Flash bang",
+		/* short name       */ "flashbang",
+		/* switch_in_time   */ WEAPONUP_TIME_NORMAL,
+		/* using_time       */ 500,
+		/* cook_time        */ 0,
+		/* switch_out_time  */ WEAPONDOWN_TIME,
+		/* damage           */ 5,
+		/* knockback        */ 0,
+		/* mindamage        */ 120,
+		/* minknockback     */ 0,
+		/* splash_radius    */ 300,
+		/* timeout          */ 2500,
+		/* speed            */ 750,
+		/* uses             */ 1,
 	},
 };
 

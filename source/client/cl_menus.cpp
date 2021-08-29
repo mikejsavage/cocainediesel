@@ -12,6 +12,8 @@
 #define GLFW_INCLUDE_NONE
 #include "glfw3/GLFW/glfw3.h"
 
+#include "glad/glad.h"
+
 enum UIState {
 	UIState_Hidden,
 	UIState_MainMenu,
@@ -282,13 +284,6 @@ static void SettingsControls() {
 			KeyBindButton( "Previous weapon", "weapprev" );
 			KeyBindButton( "Last weapon", "lastweapon" );
 
-			if( ImGui::CollapsingHeader( "Advanced" ) ) {
-				for( int i = Weapon_Knife; i < Weapon_Count; i++ ) {
-					const WeaponDef * weapon = GS_GetWeaponDef( i );
-					KeyBindButton( weapon->name, temp( "use {}", weapon->short_name ) );
-				}
-			}
-
 			ImGui::EndTabItem();
 		}
 
@@ -308,24 +303,6 @@ static void SettingsControls() {
 			KeyBindButton( "User pack", "vsay user" );
 			KeyBindButton( "Guyman pack", "vsay guyman" );
 			KeyBindButton( "Helena pack", "vsay helena" );
-
-			if( ImGui::CollapsingHeader( "Advanced" ) ) {
-				KeyBindButton( "Sorry", "vsay sorry" );
-				KeyBindButton( "Thanks", "vsay thanks" );
-				KeyBindButton( "Good game", "vsay goodgame" );
-				KeyBindButton( "Boomstick", "vsay boomstick" );
-				KeyBindButton( "Shut up", "vsay shutup" );
-				KeyBindButton( "Bruh", "vsay bruh" );
-				KeyBindButton( "Cya", "vsay cya" );
-				KeyBindButton( "Get good", "vsay getgood" );
-				KeyBindButton( "Hit the showers", "vsay hittheshowers" );
-				KeyBindButton( "Lads", "vsay lads" );
-				KeyBindButton( "She doesn't even", "vsay shedoesnteven" );
-				KeyBindButton( "Shit son", "vsay shitson" );
-				KeyBindButton( "Trash smash", "vsay trashsmash" );
-				KeyBindButton( "What the shit", "vsay whattheshit" );
-				KeyBindButton( "Wow your terrible", "vsay wowyourterrible" );
-			}
 
 			ImGui::EndTabItem();
 		}
@@ -497,6 +474,27 @@ static void SettingsVideo() {
 		}
 
 		Cvar_Set( "r_samples", temp( "{}", samples ) );
+	}
+
+	{
+		SettingLabel( "Shadow Quality" );
+
+		cvar_t * cvar = Cvar_Get( "r_shadow_quality", "1", CVAR_ARCHIVE );
+		ShadowQuality quality = ShadowQuality( cvar->integer );
+
+		ImGui::PushItemWidth( 150 );
+		if( ImGui::BeginCombo( "##r_shadow_quality", ShadowQualityToString( quality ) ) ) {
+			for( int s = ShadowQuality_Low; s <= ShadowQuality_Ultra; s++ ) {
+				if( ImGui::Selectable( ShadowQualityToString( ShadowQuality( s ) ), quality == s ) )
+					quality = ShadowQuality( s );
+				if( s == quality )
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::PopItemWidth();
+
+		Cvar_Set( "r_shadow_quality", temp( "{}", quality ) );
 	}
 
 	{
@@ -743,6 +741,7 @@ static void MainMenu() {
 		ImGui::Text( "VACCAINE PFIZEL" );
 		ImGui::PopStyleColor();
 	}
+
 	ImGui::PopFont();
 
 	if( ImGui::Button( "FIND SERVERS" ) ) {
@@ -784,6 +783,19 @@ static void MainMenu() {
 
 	if( parteditor_wason && mainmenu_state != MainMenuState_ParticleEditor ) {
 		// ResetParticleMenuEffect();
+	}
+
+	ImGui::Separator();
+
+	if( !GLAD_GL_VERSION_4_6 ) {
+		ImGui::Text( "%s", temp(
+			"Diesel news 14th August 2021:\n"
+			"    {}We're thinking about bumping the game's required OpenGL version. Your GPU supports up to {}GL {}.{}{}.\n"
+			"    Please let us know on discord so we don't break your shit!",
+			ImGuiColorToken( 255, 0, 0, 255 ),
+			ImGuiColorToken( 255, 255, 0, 255 ),
+			GLVersion.major, GLVersion.minor,
+			ImGuiColorToken( 255, 0, 0, 255 ) ) );
 	}
 
 	ImGui::Separator();

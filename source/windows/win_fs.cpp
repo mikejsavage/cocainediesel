@@ -26,7 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/string.h"
 #include "qcommon/fs.h"
 #include "qcommon/sys_fs.h"
-#include "qcommon/utf8.h"
 
 /*
 * Sys_FS_CreateDirectory
@@ -58,7 +57,7 @@ static char * WideToUTF8( Allocator * a, const wchar_t * wide ) {
 char * FindHomeDirectory( Allocator * a ) {
 	wchar_t * wide_documents_path;
 	if( SHGetKnownFolderPath( FOLDERID_Documents, 0, NULL, &wide_documents_path ) != S_OK ) {
-		Fatal( "SHGetKnownFolderPath" );
+		FatalGLE( "SHGetKnownFolderPath" );
 	}
 	defer { CoTaskMemFree( wide_documents_path ); };
 
@@ -198,4 +197,25 @@ FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path ) {
 	metadata.modified_time = modified64.QuadPart;
 
 	return metadata;
+}
+
+char * GetExePath( Allocator * a ) {
+	DWORD buf_size = 1024;
+	wchar_t * wide_buf = ALLOC_MANY( a, wchar_t, buf_size );
+	defer { FREE( a, wide_buf ); };
+
+	while( true ) {
+		DWORD n = GetModuleFileNameW( NULL, wide_buf, buf_size );
+		if( n == 0 ) {
+			FatalGLE( "GetModuleFileNameW" );
+		}
+
+		if( n < buf_size )
+			break;
+
+		wide_buf = REALLOC_MANY( a, wchar_t, wide_buf, buf_size, buf_size * 2 );
+		buf_size *= 2;
+	}
+
+	return WideToUTF8( a, wide_buf );
 }

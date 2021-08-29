@@ -6,9 +6,9 @@
 
 #include "qcommon/platform.h"
 #include "qcommon/types.h"
-#include "qcommon/allocators.h"
 #include "qcommon/math.h"
 #include "gg/ggformat.h"
+#include "qcommon/allocators.h"
 #include "qcommon/linear_algebra.h"
 
 #include "tracy/Tracy.hpp"
@@ -24,7 +24,7 @@
 #define COUNTER_NAME( x ) CONCAT( x, __COUNTER__ )
 #define LINE_NAME( x ) CONCAT( x, __LINE__ )
 
-#define IFDEF( x ) ( STRINGIFY( x )[ 0 ] == '1' && STRINGIFY( x )[ 1 ] == '0' )
+#define IFDEF( x ) ( STRINGIFY( x )[ 0 ] == '1' && STRINGIFY( x )[ 1 ] == '\0' )
 
 constexpr bool is_public_build = IFDEF( PUBLIC_BUILD );
 
@@ -41,6 +41,7 @@ void Fatal( const char * format, ... ) __attribute__( ( format( printf, 1, 2 ) )
 #else
 void Fatal( _Printf_format_string_ const char * format, ... );
 #endif
+void FatalErrno( const char * msg );
 
 /*
  * defer
@@ -80,12 +81,3 @@ extern bool break1;
 extern bool break2;
 extern bool break3;
 extern bool break4;
-
-void EnableFPE();
-void DisableFPE();
-
-#if PUBLIC_BUILD
-#define DisableFPEScoped
-#else
-#define DisableFPEScoped DisableFPE(); defer { EnableFPE(); }
-#endif

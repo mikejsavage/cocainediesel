@@ -446,101 +446,6 @@ bool SortCStringsComparator( const char * a, const char * b ) {
 	return strcmp( a, b ) < 0;
 }
 
-/*
-* COM_RemoveJunkChars
-*
-* Remove junk chars from a string (created for autoaction filenames)
-*/
-const char *COM_RemoveJunkChars( const char *in ) {
-	static char cleanString[MAX_STRING_CHARS];
-	char *out = cleanString, *end = cleanString + sizeof( cleanString ) - 1;
-
-	if( in ) {
-		while( *in && ( out < end ) ) {
-			if( isalpha( *in ) || isdigit( *in ) ) {
-				// keep it
-				*out = *in;
-				in++;
-				out++;
-			} else if( *in == '<' || *in == '[' || *in == '{' ) {
-				*out = '(';
-				in++;
-				out++;
-			} else if( *in == '>' || *in == ']' || *in == '}' ) {
-				*out = ')';
-				in++;
-				out++;
-			} else if( *in == '.' || *in == '/' || *in == '_' ) {
-				*out = '_';
-				in++;
-				out++;
-			} else {
-				// another char
-				// skip it
-				in++;
-			}
-		}
-	}
-
-	*out = '\0';
-	return cleanString;
-}
-
-/*
-* COM_ListNameForPosition
-*/
-char *COM_ListNameForPosition( const char *namesList, int position, const char separator ) {
-	static char buf[MAX_STRING_CHARS];
-	const char *s, *t;
-	char *b;
-	int count, len;
-
-	if( !namesList ) {
-		return NULL;
-	}
-
-	// set up the tittle from the spinner names
-	s = namesList;
-	t = s;
-	count = 0;
-	buf[0] = 0;
-	b = buf;
-	while( *s && ( s = strchr( s, separator ) ) ) {
-		if( count == position ) {
-			len = s - t;
-			if( len <= 0 ) {
-				return NULL;
-			}
-			if( len > MAX_STRING_CHARS - 1 ) {
-				len = MAX_STRING_CHARS - 1;
-			}
-			s = t + len;
-			while( t <= s ) {
-				if( *t == separator || t == s ) {
-					*b = 0;
-					break;
-				}
-
-				*b = *t;
-				t++;
-				b++;
-			}
-
-			break;
-		}
-
-		count++;
-		s++;
-		t = s;
-	}
-
-	if( buf[0] == 0 ) {
-		return NULL;
-	}
-
-	return buf;
-}
-
 //============================================================================
 //
 //					LIBRARY REPLACEMENT FUNCTIONS
@@ -1053,7 +958,7 @@ Span< const char > ParseWorldspawnKey( Span< const char > entities, const char *
 	Span< const char > cursor = entities;
 
 	if( ParseToken( &cursor, Parse_DontStopOnNewLine ) != "{" ) {
-		Fatal( "Entity string doesn't start with {" );
+		Com_Error( "Entity string doesn't start with {" );
 	}
 
 	while( true ) {

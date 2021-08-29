@@ -401,7 +401,7 @@ static void DebugOutputCallback(
 		Com_Printf( "\n" );
 
 	if( severity == GL_DEBUG_SEVERITY_HIGH ) {
-		Fatal( "GL high severity: {}", message );
+		Fatal( "GL high severity: %s", message );
 	}
 }
 

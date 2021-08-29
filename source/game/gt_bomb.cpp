@@ -152,6 +152,8 @@ static void Announce( BombAnnouncement announcement ) {
 // player.as
 
 static void GiveInventory( edict_t * ent ) {
+	ClearInventory( &ent->r.client->ps );
+
 	G_GiveWeapon( ent, Weapon_Knife );
 	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
 		WeaponType weapon = bomb_state.loadouts[ PLAYERNUM( ent ) ][ i ];

@@ -135,7 +135,7 @@ static void CheckALErrors( const char * fmt, const Rest & ... rest ) {
 	ALenum err = alGetError();
 	if( err != AL_NO_ERROR ) {
 		char buf[ 1024 ];
-		ggformat( buf, sizeof( buf ), fmt, rest... );
+		ggformat( buf, fmt, rest... );
 
 		if( is_public_build ) {
 			Com_Printf( S_COLOR_RED "AL error: %s\n", buf );

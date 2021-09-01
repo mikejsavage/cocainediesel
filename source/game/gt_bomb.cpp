@@ -533,6 +533,8 @@ static void BombDefused() {
 	bomb_state.bomb.model->s.sound = EMPTY_HASH;
 	bomb_state.bomb.hud->s.animating = false;
 
+	Hide( bomb_state.bomb.hud );
+
 	Announce( BombAnnouncement_Defused );
 
 	bomb_state.bomb.state = BombState_Idle;

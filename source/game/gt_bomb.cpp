@@ -132,10 +132,10 @@ static bool EntCanSee( edict_t * ent, Vec3 point ) {
 
 static s32 FirstNearbyTeammate( Vec3 origin, int team ) {
 	int touch[ MAX_EDICTS ];
-	int num_touch = GClip_FindInRadius( origin, bomb_arm_defuse_radius, touch, MAX_EDICTS );
+	int num_touch = GClip_FindInRadius( origin, bomb_arm_defuse_radius, touch, ARRAY_COUNT( touch ) );
 	for( int i = 0; i < num_touch; i++ ) {
 		edict_t * ent = &game.edicts[ touch[ i ] ];
-		if( ent->r.client == NULL || ent->s.team != team || G_ISGHOSTING( ent ) || EntCanSee( ent, origin ) ) {
+		if( ent->s.type != ET_PLAYER || ent->s.team != team || G_ISGHOSTING( ent ) || !EntCanSee( ent, origin ) ) {
 			continue;
 		}
 

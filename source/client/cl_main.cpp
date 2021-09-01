@@ -29,6 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/hash.h"
 #include "qcommon/fs.h"
 #include "qcommon/livepp.h"
+#include "qcommon/discord.h"
 #include "qcommon/string.h"
 #include "qcommon/version.h"
 #include "gameshared/gs_public.h"
@@ -1414,6 +1415,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	ZoneScoped;
 
 	LivePPFrame();
+	DiscordFrame();
 
 	TracyPlot( "Client frame arena max utilisation", cls.frame_arena.max_utilisation() );
 	cls.frame_arena.clear();
@@ -1591,6 +1593,7 @@ void CL_Init() {
 	CL_InitLocal();
 	CL_InitInput();
 
+	InitDiscord();
 	InitDownloads();
 
 	CL_InitImGui();
@@ -1628,6 +1631,8 @@ void CL_Shutdown() {
 		Mem_ZoneFree( cls.servername );
 		cls.servername = NULL;
 	}
+
+	ShutdownDiscord();
 
 	UI_Shutdown();
 	CL_ShutdownImGui();

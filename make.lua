@@ -21,6 +21,7 @@ end
 
 require( "libs.cgltf" )
 require( "libs.curl" )
+require( "libs.discord" )
 require( "libs.freetype" )
 require( "libs.gg" )
 require( "libs.glad" )
@@ -84,6 +85,7 @@ do
 
 			"cgltf",
 			"curl",
+			"discord",
 			"freetype",
 			"ggentropy",
 			"ggformat",

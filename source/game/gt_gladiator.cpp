@@ -562,18 +562,15 @@ static bool GT_Gladiator_SpawnEntity( StringHash classname, edict_t * ent ) {
 }
 
 Gametype GetGladiatorGametype() {
-	Gametype gt;
+	Gametype gt = { };
 
 	gt.Init = GT_Gladiator_InitGametype;
-	gt.Init2 = NULL;
 	gt.MatchStateStarted = GT_Gladiator_MatchStateStarted;
 	gt.MatchStateFinished = GT_Gladiator_MatchStateFinished;
 	gt.Think = GT_Gladiator_ThinkRules;
-	gt.PlayerRespawning = NULL;
 	gt.PlayerRespawned = GT_Gladiator_PlayerRespawned;
 	gt.PlayerKilled = GT_Gladiator_PlayerKilled;
 	gt.SelectSpawnPoint = GT_Gladiator_SelectSpawnPoint;
-	gt.Command = NULL;
 	gt.Shutdown = GT_Gladiator_Shutdown;
 	gt.SpawnEntity = GT_Gladiator_SpawnEntity;
 

@@ -503,7 +503,9 @@ void GT_CallThinkRules() {
 }
 
 void GT_CallPlayerConnected( edict_t * ent ) {
-	level.gametype.PlayerConnected( ent );
+	if( level.gametype.PlayerConnected != NULL ) {
+		level.gametype.PlayerConnected( ent );
+	}
 }
 
 void GT_CallPlayerRespawning( edict_t * ent ) {

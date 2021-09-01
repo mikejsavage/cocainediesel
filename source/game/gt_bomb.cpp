@@ -1316,7 +1316,7 @@ static bool GT_Bomb_SpawnEntity( StringHash classname, edict_t * ent ) {
 }
 
 Gametype GetBombGametype() {
-	Gametype gt;
+	Gametype gt = { };
 
 	gt.Init = GT_Bomb_InitGametype;
 	gt.Init2 = GT_Bomb_SpawnGametype;

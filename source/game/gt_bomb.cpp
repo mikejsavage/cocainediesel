@@ -1086,19 +1086,15 @@ static bool GT_Bomb_Command( gclient_t * client, const char * cmd_, const char *
 }
 
 static edict_t * GT_Bomb_SelectSpawnPoint( edict_t * ent ) {
-	edict_t * spawn = RandomEntity( "spawn_gladiator" );
-	if( spawn != NULL ) {
-		return spawn;
-	}
 	if( ent->s.team == bomb_state.attacking_team ) {
-		spawn = RandomEntity( "spawn_bomb_attacking" );
+		edict_t * spawn = RandomEntity( "spawn_bomb_attacking" );
 		if( spawn != NULL ) {
 			return spawn;
 		}
 		return RandomEntity( "team_CTF_betaspawn" );
 	}
 
-	spawn = RandomEntity( "spawn_bomb_defending" );
+	edict_t * spawn = RandomEntity( "spawn_bomb_defending" );
 	if( spawn != NULL ) {
 		return spawn;
 	}

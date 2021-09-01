@@ -65,6 +65,12 @@ static cvar_t * g_bomb_defusetime;
 static const u32 max_sites = 26;
 static const int countdown_max = 6;
 
+struct BombSite {
+	edict_t * indicator;
+	edict_t * hud;
+	char letter;
+};
+
 static struct {
 	bool round_check_end;
 	s64 round_start_time;
@@ -96,11 +102,7 @@ static struct {
 		bool killed_everyone;
 	} bomb;
 
-	struct {
-		edict_t * indicator;
-		edict_t * hud;
-		char letter;
-	} sites[ max_sites ];
+	BombSite sites[ max_sites ];
 	u32 num_sites;
 	u32 site;
 } bomb_state;
@@ -270,20 +272,24 @@ static void SpawnBombSite( edict_t * ent ) {
 
 	char letter = 'A' + i;
 
-	bomb_state.sites[ i ].indicator = ent;
-	bomb_state.sites[ i ].indicator->s.model = EMPTY_HASH;
-	bomb_state.sites[ i ].indicator->nextThink = level.time + 1;
-	bomb_state.sites[ i ].indicator->s.team = 0;
-	GClip_LinkEntity( bomb_state.sites[ i ].indicator );
+	BombSite * site = &bomb_state.sites[ i ];
 
-	bomb_state.sites[ i ].hud = G_Spawn();
-	bomb_state.sites[ i ].hud->classname = "hud_bomb_site";
-	bomb_state.sites[ i ].hud->s.type = ET_BOMB_SITE;
-	bomb_state.sites[ i ].hud->r.solid = SOLID_NOT;
-	bomb_state.sites[ i ].hud->s.origin = bomb_state.sites[ i ].indicator->s.origin;
-	bomb_state.sites[ i ].hud->r.svflags = SVF_BROADCAST;
-	bomb_state.sites[ i ].hud->s.counterNum = letter;
-	GClip_LinkEntity( bomb_state.sites[ i ].hud );
+	site->indicator = ent;
+	site->indicator->s.model = EMPTY_HASH;
+	site->indicator->nextThink = level.time + 1;
+	site->indicator->s.team = 0;
+	GClip_LinkEntity( site->indicator );
+
+	site->hud = G_Spawn();
+	site->hud->classname = "hud_bomb_site";
+	site->hud->s.type = ET_BOMB_SITE;
+	site->hud->r.solid = SOLID_NOT;
+	site->hud->s.origin = bomb_state.sites[ i ].indicator->s.origin;
+	site->hud->r.svflags = SVF_BROADCAST;
+	site->hud->s.counterNum = letter;
+	GClip_LinkEntity( site->hud );
+
+	site->letter = letter;
 
 	bomb_state.num_sites++;
 }

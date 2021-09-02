@@ -156,15 +156,24 @@ static void Announce( BombAnnouncement announcement ) {
 static void GiveInventory( edict_t * ent ) {
 	ClearInventory( &ent->r.client->ps );
 
+	const int player_num = PLAYERNUM( ent );
+
 	G_GiveWeapon( ent, Weapon_Knife );
-	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		WeaponType weapon = bomb_state.loadouts[ PLAYERNUM( ent ) ][ i ];
+	for( u32 category = 0; category < WeaponCategory_Count; category++ ) {
+		WeaponType weapon = bomb_state.loadouts[ player_num ][ category ];
 		if( weapon != Weapon_None ) {
 			G_GiveWeapon( ent, weapon );
+		} else { //default to giving players some weapons
+			for( u32 weap = Weapon_None + 1; weap < Weapon_Count; weap++ ) {
+				if( GS_GetWeaponDef( weap )->category == category ) {
+					bomb_state.loadouts[ player_num ][ category ] = weap;
+					G_GiveWeapon( ent, weap );
+					break;
+				}
+			}
 		}
 	}
 
-	G_SelectWeapon( ent, 0 );
 	G_SelectWeapon( ent, 1 );
 }
 
@@ -674,6 +683,8 @@ static void BombThink() {
 				bomb_state.bomb.killed_everyone = true;
 			}
 		} break;
+
+		default: break;
 	}
 }
 

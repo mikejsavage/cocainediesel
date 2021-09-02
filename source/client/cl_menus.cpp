@@ -927,7 +927,7 @@ static void WeaponButton( WeaponType weapon, Vec2 size ) {
 	CG_GetBoundKeycodes( va( "use %s", def->short_name ), weaponBinds );
 
 	if( clicked || ImGui::Hotkey( weaponBinds[ 0 ] ) || ImGui::Hotkey( weaponBinds[ 1 ] ) ) {
-		selected_weapons[ def->category ] = selected ? WeaponType( Weapon_None ) : weapon;
+		selected_weapons[ def->category ] = weapon;
 		SendLoadout();
 	}
 }

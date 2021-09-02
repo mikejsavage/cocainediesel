@@ -3,7 +3,7 @@
 #include "cgame/cg_local.h"
 #include "windows/miniwindows.h"
 #include <time.h>
-#include "discord_game_sdk.h"
+#include "discord/discord_game_sdk.h"
 
 #define CLIENT_ID 882369979406753812
 
@@ -68,6 +68,8 @@ static IDiscordActivityEvents activities_events = {};
 void InitDiscord()
 {
 	ZoneScoped;
+
+	SetEnvironmentVariableA("DISCORD_INSTANCE_ID", "1");
 
 	discord_sdk = LoadLibraryW(L"discord_game_sdk.dll");
 	if (discord_sdk == NULL)

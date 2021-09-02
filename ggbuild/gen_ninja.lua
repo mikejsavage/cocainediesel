@@ -134,6 +134,7 @@ local objs_extra_flags = { }
 local bins = { }
 local bins_flags = { }
 local bins_extra_flags = { }
+local prebuilt_bins = { }
 
 local libs = { }
 local prebuilt_libs = { }
@@ -172,14 +173,26 @@ local function join_libs( names )
 	end
 
 	local joined = { }
+	local extra_deps = { }
 	for _, lib in ipairs( flatten( names ) ) do
 		local prebuilt = prebuilt_libs[ lib ]
+		local prebuilt_bin = prebuilt_bins[ lib ]
+
 		if prebuilt then
 			table.insert( joined, "libs/" .. lib .. "/" .. prebuilt_lib_dir .. "/" .. lib_prefix .. lib .. lib_suffix )
+		elseif prebuilt_bin then
+			flatten_into( extra_deps, prebuilt_bin.deps )
 		else
 			table.insert( joined, dir .. "/" .. lib_prefix .. lib .. lib_suffix )
 		end
 	end
+
+	-- Add any non-code rules as dependencies (copy..)
+	if extra_deps then
+		table.insert( joined, "|" )
+		flatten_into( joined, extra_deps )
+	end
+
 	return table.concat( joined, " " )
 end
 
@@ -243,6 +256,14 @@ function bin( bin_name, cfg )
 	add_srcs( cfg.srcs )
 end
 
+function prebuilt_bin( bin_name, cfg )
+	assert( not prebuilt_bins[ bin_name ] )
+	assert( type( cfg ) == "table", "cfg should be a table" )
+	assert( not cfg.windows_bins or type( cfg.windows_bins ) == "table", "cfg.windows_bins should be a table or nil" )
+	assert( not cfg.linux_bins or type( cfg.linux_bins ) == "table", "cfg.linux_bins should be a table or nil" )
+	prebuilt_bins[ bin_name ] = cfg
+end
+
 function lib( lib_name, srcs )
 	assert( type( srcs ) == "table", "srcs should be a table" )
 	assert( not libs[ lib_name ] )
@@ -302,6 +323,10 @@ rule lib
 rule rc
     command = rc /fo$out /nologo $in_rc
     description = $in
+
+rule copy
+    command = cmd /c copy /Y $in $out
+    description = $in
 ]] )
 
 elseif toolchain == "gcc" then
@@ -360,6 +385,19 @@ local function write_ninja_script()
 
 	for lib_name, srcs in pairs( libs ) do
 		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join_srcs( srcs, obj_suffix ) )
+	end
+
+	for lib_name, cfg in pairs( prebuilt_bins ) do
+		local bins = OS == "windows" and cfg.windows_bins or cfg.linux_bins
+		cfg.deps = { }
+		for _, name in ipairs( bins ) do
+			local filename = name:match("^.+/(.+)$")
+			if OS == "windows" then
+				name = name:gsub("/", "\\")	-- copy goes beserk without this
+			end
+			printf( "build %s: copy %s", filename, name )
+			table.insert(cfg.deps, filename)
+		end
 	end
 
 	for bin_name, cfg in pairs( bins ) do

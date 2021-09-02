@@ -346,6 +346,10 @@ rule bin
 rule lib
     command = ar rs $out $in
     description = $out
+
+rule copy
+    command = cp $in $out
+    description = $in
 ]] )
 
 end

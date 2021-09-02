@@ -1,7 +1,7 @@
 
 //#include "qcommon/qcommon.h"
 #include "cgame/cg_local.h"
-#include "windows/miniwindows.h"
+#include "qcommon/sys_library.h"
 #include <time.h>
 #include "discord/discord_game_sdk.h"
 
@@ -9,7 +9,7 @@
 
 using tDiscordCreate = decltype(&DiscordCreate);
 
-static HMODULE discord_sdk;
+static void* discord_sdk_module;
 static tDiscordCreate pDiscordCreate = nullptr;
 
 struct Application {
@@ -69,13 +69,11 @@ void InitDiscord()
 {
 	ZoneScoped;
 
-	SetEnvironmentVariableA("DISCORD_INSTANCE_ID", "1");
-
-	discord_sdk = LoadLibraryW(L"discord_game_sdk.dll");
-	if (discord_sdk == NULL)
+	discord_sdk_module = Sys_Library_Open("discord_game_sdk");
+	if (discord_sdk_module == NULL)
 		return;
 
-	pDiscordCreate = (tDiscordCreate)GetProcAddress(discord_sdk, "DiscordCreate");
+	pDiscordCreate = (tDiscordCreate)Sys_Library_ProcAddress(discord_sdk_module, "DiscordCreate");
 	if (pDiscordCreate == NULL)
 		return;
 

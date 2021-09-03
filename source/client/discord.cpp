@@ -40,7 +40,9 @@ void OnUserUpdated(void* data)
 
 void UpdateActivityCallback(void* data, EDiscordResult result)
 {
-	Com_GGPrint("Discord: ActivityCallback: {}", result);
+	if (result != DiscordResult_Ok) {
+		Com_GGPrint("Discord: ActivityCallback: {}", result);
+	}
 }
 
 const char* log2str(EDiscordLogLevel level)
@@ -77,7 +79,6 @@ void InitDiscord()
 	if (pDiscordCreate == NULL)
 		return;
 
-
 	users_events.on_current_user_update = OnUserUpdated;
 
 	DiscordCreateParams params;
@@ -101,11 +102,7 @@ void InitDiscord()
 }
 
 
-static connstate_t old_state = CA_UNINITIALIZED;
-static int old_team = -1;
-static int old_match_state = -1;
-static int old_round = -1;
-
+static DiscordActivity old_activity = {};
 
 void DiscordFrame()
 {
@@ -115,69 +112,66 @@ void DiscordFrame()
 	{
 		if( (cls.state == CA_CONNECTED || cls.state == CA_ACTIVE) && client_gs.module )
 		{
+			DiscordActivity activity = {};
 
-			if (old_state != cls.state ||
-				old_team != cg.predictedPlayerState.real_team ||
-				old_match_state != client_gs.gameState.match_state ||
-				old_round != client_gs.gameState.round_num)
+			if (cg.predictedPlayerState.real_team == TEAM_SPECTATOR) {
+				Q_strncpyz(activity.details, "SPECTATING");
+			} else if (client_gs.gameState.match_state <= MatchState_Warmup) {
+				Q_strncpyz(activity.details, "WARMUP");
+			} else if (client_gs.gameState.match_state <= MatchState_Playing) {
+				ggformat(activity.details, "ROUND {}", client_gs.gameState.round_num);
+			}
+
+			bool is_bomb = GS_TeamBasedGametype( &client_gs );
+			if (is_bomb) {
+				auto& alpha = client_gs.gameState.teams[ TEAM_ALPHA ];
+				auto& beta = client_gs.gameState.teams[ TEAM_BETA ];
+				ggformat(activity.state, "bomb: {}-{}", alpha.score, beta.score );
+			} else {
+				Q_strncpyz(activity.state, "gladiator" );
+			}
+
+			auto curtime = ( GS_MatchWaiting( &client_gs ) || GS_MatchPaused( &client_gs ) ) ? cg.frame.serverTime : cl.serverTime;
+			auto startTime = client_gs.gameState.match_state_start_time;
+
+			if( curtime >= startTime ) { // avoid negative results
+				auto clocktime = curtime - startTime;
+				time_t now = time( NULL );
+				activity.timestamps.start = now - clocktime / 1000;
+			}
+
+			if (cl.map && !Q_strnicmp(cl.map->name, "maps/", 5))
 			{
-				old_state = cls.state;
-				old_team = cg.predictedPlayerState.real_team;
-				old_match_state = client_gs.gameState.match_state;
-				old_round = client_gs.gameState.round_num;
-
-				DiscordActivity activity = {};
-				//activity.type = DiscordActivityType_Playing;
-
-				if (cg.predictedPlayerState.real_team == TEAM_SPECTATOR) {
-					Q_strncpyz(activity.details, "SPECTATING");
-				} else if (client_gs.gameState.match_state <= MatchState_Warmup) {
-					Q_strncpyz(activity.details, "WARMUP");
-				} else if (client_gs.gameState.match_state <= MatchState_Playing) {
-					ggformat(activity.details, "ROUND {}", client_gs.gameState.round_num);
+				char tmpmap[128];
+				ggformat(tmpmap, cl.map->name + 5);
+				COM_StripExtension(tmpmap);
+				if (!Q_strnicmp(tmpmap, "gladiator/", 10)) {
+					tmpmap[9] = 0;	// Cut off the '/013' part
 				}
+				ggformat(activity.assets.large_image, "map-{}", tmpmap);
+				ggformat(activity.assets.large_text, "Playing on map {}", tmpmap);
+			}
+			auto gt = is_bomb ? "bomb" : "gladiator";
+			ggformat(activity.assets.small_image, "gt-{}", is_bomb ? "bomb" : "gladiator");
+			ggformat(activity.assets.small_text, "Gametype: {}", gt);
+			activity.instance = 1;
 
-				bool is_bomb = GS_TeamBasedGametype( &client_gs );
-				if (is_bomb) {
-					auto& alpha = client_gs.gameState.teams[ TEAM_ALPHA ];
-					auto& beta = client_gs.gameState.teams[ TEAM_BETA ];
-					ggformat(activity.state, "bomb: {}-{}", alpha.score, beta.score );
-				} else {
-					Q_strncpyz(activity.state, "gladiator" );
-				}
-
-				if (client_gs.gameState.match_state_start_time) {
-					time_t now = time( NULL );
-					activity.timestamps.start = now - client_gs.gameState.match_state_start_time / 1000;
-				}
-
-				if (cl.map && !Q_strnicmp(cl.map->name, "maps/", 5))
-				{
-					char tmpmap[128];
-					ggformat(tmpmap, cl.map->name + 5);
-					COM_StripExtension(tmpmap);
-					ggformat(activity.assets.large_image, "map-{}", tmpmap);
-					ggformat(activity.assets.large_text, "Playing on map {}", tmpmap);
-				}
-				auto gt = is_bomb ? "bomb" : "gladiator";
-				ggformat(activity.assets.small_image, "gt-{}", is_bomb ? "bomb" : "gladiator");
-				ggformat(activity.assets.small_text, "Gametype: {}", gt);
-				activity.instance = 1;
-
+			if (Q_stricmp(old_activity.details, activity.details) ||
+				Q_stricmp(old_activity.state, activity.state) ||
+				memcmp(&old_activity.assets, &activity.assets, sizeof(activity.assets)))
+			{
+				old_activity = activity;
 				Com_GGPrint("Discord update: {}, {}, {}, {}", activity.details, activity.state, activity.assets.large_text, activity.assets.small_text);
 				app.activities->update_activity(app.activities, &activity, &app, UpdateActivityCallback);
 			}
 		}
-		else if (old_state != CA_DISCONNECTED) {
-			old_state = CA_DISCONNECTED;
-			old_team = -1;
-			old_match_state = -1;
-			old_round = -1;
-
+		else if (Q_stricmp(old_activity.details, "MENU"))
+		{
 			DiscordActivity activity = {};
 			Q_strncpyz(activity.details, "MENU");
 			Q_strncpyz(activity.assets.large_image, "mainmenu");
 
+			old_activity = activity;
 			Com_GGPrint("Discord update: {}", activity.details);
 			app.activities->update_activity(app.activities, &activity, &app, UpdateActivityCallback);
 		}

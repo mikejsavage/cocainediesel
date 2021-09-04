@@ -1,14 +1,11 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
+#include "qcommon/fs.h"
 #include "qcommon/string.h"
-#include "qcommon/maplist.h"
 
 #include "game/g_local.h"
 
 #include "qcommon/cmodel.h"
-
-
-static NonRAIIDynamicArray< char * > maps;
 
 enum GladiatorRoundState {
 	GladiatorRoundState_None,
@@ -27,6 +24,7 @@ static struct GladiatorState {
 	NonRAIIDynamicArray< s32 > round_challengers;
 	NonRAIIDynamicArray< s32 > round_losers;
 	s32 round_winner;
+	bool randomise;
 	edict_t * last_spawn;
 } gladiator_state;
 
@@ -231,8 +229,30 @@ static void EndGame() {
 
 void G_Aasdf(); // TODO
 static void PickRandomArena() {
-	G_LoadMap( RandomElement( &svs.rng, maps.begin(), maps.size() ) );
-	G_Aasdf();
+	if( gladiator_state.randomise ) {
+		TempAllocator temp = svs.frame_arena.temp();
+
+		const char * maps_dir = temp( "{}/base/maps/gladiator", RootDirPath() );
+		DynamicArray< const char * > maps( &temp );
+
+		ListDirHandle scan = BeginListDir( sys_allocator, maps_dir );
+
+		const char * name;
+		bool dir;
+		while( ListDirNext( &scan, &name, &dir ) ) {
+			// skip ., .., .git, etc
+			if( name[ 0 ] == '.' || dir )
+				continue;
+
+			if( FileExtension( name ) != ".bsp" && FileExtension( name ) != ".bsp.zst" )
+				continue;
+
+			maps.add( temp( "gladiator/{}", StripExtension( name ) ) );
+		}
+
+		G_LoadMap( RandomElement( &svs.rng, maps.begin(), maps.size() ) );
+		G_Aasdf();
+	}
 }
 
 static void DoSpinner() {
@@ -502,9 +522,6 @@ static void GT_Gladiator_MatchStateStarted() {
 }
 
 static void GT_Gladiator_InitGametype() {
-	maps.init( sys_allocator );
-	GetFolderMapList( sys_allocator, "gladiator", &maps );
-
 	gladiator_state = { };
 
 	gladiator_state.challengers_queue.init( sys_allocator, MAX_CLIENTS );
@@ -522,13 +539,12 @@ static void GT_Gladiator_InitGametype() {
 	}
 	gladiator_state.last_spawn = NULL;
 
+	gladiator_state.randomise = G_GetWorldspawnKey( "randomise_arena" ) != "";
+
 	PickRandomArena();
 }
 
 static void GT_Gladiator_Shutdown() {
-	FreeMaps( &maps );
-	maps.shutdown();
-
 	gladiator_state.challengers_queue.shutdown();
 	gladiator_state.round_challengers.shutdown();
 	gladiator_state.round_losers.shutdown();

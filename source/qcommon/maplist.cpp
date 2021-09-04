@@ -2,6 +2,7 @@
 
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
+#include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/maplist.h"
 
@@ -12,28 +13,23 @@ void InitMapList() {
 	RefreshMapList( sys_allocator );
 }
 
-void FreeMaps( NonRAIIDynamicArray< char * > * list ) {
-	for( char * map : *list ) {
+static void FreeMaps() {
+	for( char * map : maps ) {
 		FREE( sys_allocator, map );
 	}
 
-	list->clear();
+	maps.clear();
 }
 
 void ShutdownMapList() {
-	FreeMaps( &maps );
+	FreeMaps();
 	maps.shutdown();
 }
 
 void RefreshMapList( Allocator * a ) {
-	FreeMaps( &maps );
+	FreeMaps();
 
-	GetFolderMapList( a, "", &maps );
-}
-
-void GetFolderMapList( Allocator * a, const char * folder, NonRAIIDynamicArray< char * > * list ) {
-	char * folder_tmp = ( *a )( "{}{}", folder, strlen( folder ) != 0 && folder[ strlen( folder ) - 1 ] != '/' ? "/" : "" ); //add missing "/" in folder path
-	char * path = ( *a )( "{}/base/maps/{}", RootDirPath(), folder_tmp );
+	char * path = ( *a )( "{}/base/maps", RootDirPath() );
 	defer { FREE( a, path ); };
 
 	ListDirHandle scan = BeginListDir( a, path );
@@ -46,12 +42,12 @@ void GetFolderMapList( Allocator * a, const char * folder, NonRAIIDynamicArray< 
 
 		Span< const char > ext = FileExtension( name );
 		if( ext == ".bsp" || ext == ".bsp.zst" ) {
-			char * map = ( *a )( "{}{}", folder_tmp, StripExtension( name ) );
-			list->add( map );
+			char * map = ( *sys_allocator )( "{}", StripExtension( name ) );
+			maps.add( map );
 		}
 	}
 
-	std::sort( list->begin(), list->end(), []( const char * a, const char * b ) {
+	std::sort( maps.begin(), maps.end(), []( const char * a, const char * b ) {
 		return strcmp( a, b ) < 0;
 	} );
 }

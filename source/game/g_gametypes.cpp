@@ -277,7 +277,7 @@ void G_Match_CheckReadys() {
 		allready = teamsready == GS_MAX_TEAMS - TEAM_ALPHA;
 	}
 	else {
-		allready = teamsready == 1;
+		allready = teamsready == 1 && server_gs.gameState.teams[ TEAM_PLAYERS ].num_players != 1; //the team is ready and there's more than 1 player
 	}
 
 	if( allready ) {

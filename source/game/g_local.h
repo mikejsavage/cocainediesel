@@ -228,7 +228,6 @@ void G_Match_ToggleReady( edict_t *ent );
 void G_Match_CheckReadys();
 void G_EndMatch();
 
-void G_Gametype_Init();
 void G_RunGametype();
 
 //

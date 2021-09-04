@@ -215,7 +215,7 @@ void G_Init( unsigned int framemsec ) {
 void G_Shutdown() {
 	Com_Printf( "==== G_Shutdown ====\n" );
 
-	GT_CallShutdown();
+	ShutdownGametype();
 
 	SV_WriteIPList();
 

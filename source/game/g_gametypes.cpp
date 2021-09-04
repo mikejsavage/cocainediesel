@@ -458,7 +458,7 @@ void G_RunGametype() {
 	G_Teams_UpdateMembersList();
 	G_Match_CheckStateAbort();
 
-	GT_CallThinkRules();
+	level.gametype.Think();
 
 	if( G_EachNewSecond() ) {
 		G_CheckNumBots();
@@ -498,10 +498,6 @@ bool GT_CallMatchStateFinished( MatchState incomingMatchState ) {
 	return level.gametype.MatchStateFinished( incomingMatchState );
 }
 
-void GT_CallThinkRules() {
-	level.gametype.Think();
-}
-
 void GT_CallPlayerConnected( edict_t * ent ) {
 	if( level.gametype.PlayerConnected != NULL ) {
 		level.gametype.PlayerConnected( ent );
@@ -533,14 +529,15 @@ bool GT_CallGameCommand( gclient_t * client, const char * cmd, const char * args
 	return false;
 }
 
-void GT_CallShutdown() {
-	level.gametype.Shutdown();
-}
-
-void G_Gametype_Init() {
+void InitGametype() {
 	g_warmup_timelimit = Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );
 	g_scorelimit = Cvar_Get( "g_scorelimit", "10", CVAR_ARCHIVE );
 
 	level.gametype = IsGladiatorMap() ? GetGladiatorGametype() : GetBombGametype();
 	level.gametype.Init();
+}
+
+void ShutdownGametype() {
+	level.gametype.Shutdown();
+	level.gametype = { };
 }

@@ -548,6 +548,11 @@ static void GT_Gladiator_Shutdown() {
 	gladiator_state.challengers_queue.shutdown();
 	gladiator_state.round_challengers.shutdown();
 	gladiator_state.round_losers.shutdown();
+
+	if( gladiator_state.randomise ) {
+		G_LoadMap( "gladiator" );
+		G_Aasdf();
+	}
 }
 
 static bool GT_Gladiator_SpawnEntity( StringHash classname, edict_t * ent ) {

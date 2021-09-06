@@ -626,7 +626,7 @@ static void CG_UpdateSpikes( centity_t * cent ) {
 		S_StartEntitySound( "sounds/spikes/arm", cent->current.number, CHAN_AUTO, 1.0f );
 	}
 	else if( old_delta < 1000 && delta >= 1000 ) {
-		S_StartEntitySound( "sounds/spikes/retract", cent->current.number, CHAN_AUTO, 1.0f );
+		S_StartEntitySound( "sounds/spikes/deploy", cent->current.number, CHAN_AUTO, 1.0f );
 	}
 	else if( old_delta < 1050 && delta >= 1050 ) {
 		S_StartEntitySound( "sounds/spikes/glint", cent->current.number, CHAN_AUTO, 1.0f );

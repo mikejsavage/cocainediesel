@@ -367,24 +367,18 @@ static void G_CheckNumBots() {
 		return;
 	}
 
-	// check sanity of g_numbots
-	if( g_numbots->integer < 0 ) {
-		Cvar_Set( "g_numbots", "0" );
-	}
-
 	if( g_numbots->integer > server_gs.maxclients ) {
 		Cvar_Set( "g_numbots", va( "%i", server_gs.maxclients ) );
 	}
 
 	int desiredNumBots = g_numbots->integer;
 	if( desiredNumBots < game.numBots ) {
-		for( edict_t *ent = game.edicts + server_gs.maxclients; PLAYERNUM( ent ) >= 0; ent-- ) {
+		for( edict_t *ent = game.edicts + server_gs.maxclients; PLAYERNUM( ent ) >= 0 && desiredNumBots < game.numBots; ent-- ) {
 			if( !ent->r.inuse || !( ent->r.svflags & SVF_FAKECLIENT ) ) {
 				continue;
 			}
 			PF_DropClient( ent, DROP_TYPE_GENERAL, NULL );
 			game.numBots--;
-			break;
 		}
 	}
 	else if( desiredNumBots > game.numBots ) {

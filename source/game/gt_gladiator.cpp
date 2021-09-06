@@ -425,17 +425,33 @@ static void NewRoundState( GladiatorRoundState newState ) {
 // --------------
 
 static edict_t * GT_Gladiator_SelectSpawnPoint( edict_t * ent ) {
-	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
-		return NULL;
+	edict_t * spawn = NULL;
+	edict_t * cursor = NULL;
+	float max_dist = 0.0f;
+
+	while( ( cursor = G_Find( cursor, &edict_t::classname, "spawn_gladiator" ) ) != NULL ) {
+		float min_dist = -1.0f;
+		for( edict_t * player = game.edicts + 1; PLAYERNUM( player ) < server_gs.maxclients; player++ ) {
+			if( PF_GetClientState( PLAYERNUM( player ) ) < CS_SPAWNED || player->s.type <= TEAM_SPECTATOR ) {
+				continue;
+			}
+
+			float dist = Distance( cursor->s.origin, player->s.origin );
+			if( min_dist == -1.0f || dist < min_dist ) {
+				min_dist = dist;
+			}
+		}
+
+		if( spawn == NULL || max_dist < min_dist ) {
+			max_dist = min_dist;
+			spawn = cursor;
+		}
 	}
-	edict_t * spawn = G_Find( gladiator_state.last_spawn, &edict_t::classname, "spawn_gladiator" );
-	if( spawn == NULL ) {
-		spawn = G_Find( NULL, &edict_t::classname, "spawn_gladiator" );
-	}
-	gladiator_state.last_spawn = spawn;
+
 	if( spawn == NULL ) {
 		Com_GGPrint( "null spawn btw" );
 	}
+
 	return spawn;
 }
 

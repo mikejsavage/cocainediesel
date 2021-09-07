@@ -85,7 +85,6 @@ float CalcHorizontalFov( float fov_y, float width, float height );
 
 bool PlaneFromPoints( Vec3 verts[3], cplane_t *plane );
 
-float Distance( Vec3 a, Vec3 b );
 bool ComparePlanes( Vec3 p1normal, float p1dist, Vec3 p2normal, float p2dist );
 void SnapVector( Vec3 * normal );
 void SnapPlane( Vec3 * normal, float *dist );

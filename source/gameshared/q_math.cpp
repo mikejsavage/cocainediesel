@@ -245,13 +245,6 @@ bool PlaneFromPoints( Vec3 verts[3], cplane_t *plane ) {
 #define PLANE_NORMAL_EPSILON    0.00001
 #define PLANE_DIST_EPSILON  0.01
 
-float Distance( Vec3 a, Vec3 b ) {
-	float x = b.x - a.x;
-	float y = b.y - a.y;
-	float z = b.z - a.z;
-	return sqrtf( x * x + y * y + z * z );
-}
-
 /*
 * ComparePlanes
 */

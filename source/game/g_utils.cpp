@@ -41,17 +41,35 @@ edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash valu
 	return NULL;
 }
 
+edict_t * G_PickRandomEnt( StringHash edict_t::* field, StringHash value ) {
+	size_t num_ents = 0;
+	edict_t * cursor = NULL;
+
+	while( ( cursor = G_Find( cursor, field, value ) ) != NULL ) {
+		num_ents++;
+	}
+
+	if( num_ents == 0 ) { //no ents with this field and this value
+		return NULL;
+	}
+
+	const size_t index = RandomUniform( &svs.rng, 0, num_ents );
+	cursor = NULL;
+
+	for( size_t i = 0; i < index; i++ ) {
+		cursor = G_Find( cursor, field, value );
+	}
+
+	return cursor;
+}
+
 edict_t * G_PickTarget( StringHash name ) {
 	edict_t * cursor = NULL;
 
 	edict_t * candidates[ MAX_EDICTS ];
 	size_t num_candidates = 0;
 
-	while( 1 ) {
-		cursor = G_Find( cursor, &edict_t::name, name );
-		if( cursor == NULL )
-			break;
-
+	while( ( cursor = G_Find( cursor, &edict_t::name, name ) ) != NULL ) {
 		candidates[ num_candidates ] = cursor;
 		num_candidates++;
 	}

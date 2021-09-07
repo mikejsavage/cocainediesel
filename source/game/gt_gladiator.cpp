@@ -25,7 +25,6 @@ static struct GladiatorState {
 	NonRAIIDynamicArray< s32 > round_losers;
 	s32 round_winner;
 	bool randomise;
-	edict_t * last_spawn;
 } gladiator_state;
 
 static constexpr int countdown_seconds = 2;
@@ -283,7 +282,6 @@ static void DoSpinner() {
 }
 
 static void NewRound() {
-	gladiator_state.last_spawn = NULL;
 	PickRandomArena();
 	server_gs.gameState.round_num++;
 	NewRoundState( GladiatorRoundState_Pre );
@@ -432,14 +430,19 @@ static edict_t * GT_Gladiator_SelectSpawnPoint( edict_t * ent ) {
 	while( ( cursor = G_Find( cursor, &edict_t::classname, "spawn_gladiator" ) ) != NULL ) {
 		float min_dist = -1.0f;
 		for( edict_t * player = game.edicts + 1; PLAYERNUM( player ) < server_gs.maxclients; player++ ) {
-			if( PF_GetClientState( PLAYERNUM( player ) ) < CS_SPAWNED || player->s.type <= TEAM_SPECTATOR ) {
+			if( player == ent || G_IsDead( player ) || player->s.type <= TEAM_SPECTATOR || PF_GetClientState( PLAYERNUM( player ) ) < CS_SPAWNED ) {
 				continue;
 			}
 
-			float dist = Distance( cursor->s.origin, player->s.origin );
+			float dist = Length( player->s.origin - cursor->s.origin );
 			if( min_dist == -1.0f || dist < min_dist ) {
 				min_dist = dist;
 			}
+		}
+
+		if( min_dist == -1.0 ) { //If no player is spawned, pick a random spawn
+			spawn = G_PickRandomEnt( &edict_t::classname, "spawn_gladiator" );
+			break;
 		}
 
 		if( spawn == NULL || max_dist < min_dist ) {
@@ -553,8 +556,6 @@ static void GT_Gladiator_InitGametype() {
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
 		G_SpawnQueue_SetTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
 	}
-	gladiator_state.last_spawn = NULL;
-
 	gladiator_state.randomise = G_GetWorldspawnKey( "randomise_arena" ) != "";
 
 	PickRandomArena();

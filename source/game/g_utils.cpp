@@ -56,7 +56,7 @@ edict_t * G_PickRandomEnt( StringHash edict_t::* field, StringHash value ) {
 	const size_t index = RandomUniform( &svs.rng, 0, num_ents );
 	cursor = NULL;
 
-	for( size_t i = 0; i < index; i++ ) {
+	for( size_t i = 0; i <= index; i++ ) {
 		cursor = G_Find( cursor, field, value );
 	}
 

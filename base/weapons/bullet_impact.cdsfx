@@ -1,6 +1,6 @@
 {
 	attenuation idle
-	pitch_random 0.25
+	pitch_random 0.1
 	sound ./bullet_impact1
 	sound ./bullet_impact2
 }

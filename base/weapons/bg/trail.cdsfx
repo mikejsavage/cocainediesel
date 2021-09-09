@@ -1,5 +1,5 @@
 {
-	pitch_random 0.125
+	pitch_random 0.05
 	sound ./trail1
 	sound ./trail2
 	sound ./trail3

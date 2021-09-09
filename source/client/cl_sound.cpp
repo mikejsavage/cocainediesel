@@ -300,8 +300,8 @@ static void AddSound( const char * path, int num_samples, int channels, int samp
 		SoundEffect sfx = { };
 		sfx.sounds[ 0 ].sounds[ 0 ] = StringHash( hash );
 		sfx.sounds[ 0 ].volume = 1;
-		sfx.sounds[ 0 ].pitch = 1;
-		sfx.sounds[ 0 ].pitch_random = 0;
+		sfx.sounds[ 0 ].pitch = 1.0f;
+		sfx.sounds[ 0 ].pitch_random = 0.0f;
 		sfx.sounds[ 0 ].attenuation = ATTN_NORM;
 		sfx.sounds[ 0 ].num_random_sounds = 1;
 		sfx.num_sounds = 1;
@@ -398,9 +398,10 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 			break;
 
 		if( opening_brace != "{" ) {
-			Com_Printf( S_COLOR_YELLOW "Expected {" );
+			Com_Printf( S_COLOR_YELLOW "Expected {\n" );
 			return false;
 		}
+
 
 		SoundEffect::PlaybackConfig * config = &sfx->sounds[ sfx->num_sounds ];
 		config->volume = 1.0f;
@@ -645,7 +646,8 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 
 	CheckedALSource( source, AL_BUFFER, sound.buf );
 	CheckedALSource( source, AL_GAIN, ps->volume * config.volume * s_volume->value );
-	CheckedALSource( source, AL_PITCH, config.pitch * ( 1.0f + ( RandomFloat01( &cls.rng ) - 0.5f ) * config.pitch_random ) );
+	if( config.pitch != 1.0f || config.pitch_random != 0.0f ) //do we want to call random for each sound ?
+		CheckedALSource( source, AL_PITCH, config.pitch + ( RandomFloat11( &cls.rng ) * config.pitch_random * config.pitch ) );
 	CheckedALSource( source, AL_REFERENCE_DISTANCE, S_DEFAULT_ATTENUATION_REFDISTANCE );
 	CheckedALSource( source, AL_MAX_DISTANCE, S_DEFAULT_ATTENUATION_MAXDISTANCE );
 	CheckedALSource( source, AL_ROLLOFF_FACTOR, config.attenuation );

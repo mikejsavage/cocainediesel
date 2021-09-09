@@ -1,7 +1,7 @@
 {
 	attenuation static
 	volume 0.2
-	pitch_random 0.125
+	pitch_random 0.1
 	sound ./whizz1
 	sound ./whizz2
 	sound ./whizz3

@@ -622,7 +622,7 @@ static void CG_UpdateSpikes( centity_t * cent ) {
 	int64_t old_delta = cg.oldFrame.serverTime - cent->current.linearMovementTimeStamp;
 	int64_t delta = cg.frame.serverTime - cent->current.linearMovementTimeStamp;
 
-	if( old_delta < 0 && delta >= 0 ) {
+	if( old_delta <= 0 && delta >= 0 ) {
 		S_StartEntitySound( "sounds/spikes/arm", cent->current.number, CHAN_AUTO, 1.0f );
 	}
 	else if( old_delta < 1000 && delta >= 1000 ) {

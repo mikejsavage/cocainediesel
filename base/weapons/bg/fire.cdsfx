@@ -1,6 +1,7 @@
 {
 	attenuation distant
 	volume 0.75
+	pitch_random 0.0625
 	sound ./fire1
 	sound ./fire2
 	sound ./fire3

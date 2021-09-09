@@ -31,6 +31,8 @@ struct SoundEffect {
 
 		float delay;
 		float volume;
+		float pitch;
+		float pitch_random;
 		float attenuation;
 	};
 
@@ -298,6 +300,8 @@ static void AddSound( const char * path, int num_samples, int channels, int samp
 		SoundEffect sfx = { };
 		sfx.sounds[ 0 ].sounds[ 0 ] = StringHash( hash );
 		sfx.sounds[ 0 ].volume = 1;
+		sfx.sounds[ 0 ].pitch = 1;
+		sfx.sounds[ 0 ].pitch_random = 0;
 		sfx.sounds[ 0 ].attenuation = ATTN_NORM;
 		sfx.sounds[ 0 ].num_random_sounds = 1;
 		sfx.num_sounds = 1;
@@ -400,6 +404,8 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 
 		SoundEffect::PlaybackConfig * config = &sfx->sounds[ sfx->num_sounds ];
 		config->volume = 1.0f;
+		config->pitch = 1.0f;
+		config->pitch_random = 0.0f;
 		config->attenuation = ATTN_NORM;
 
 		while( true ) {
@@ -438,6 +444,18 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 			else if( key == "volume" ) {
 				if( !TrySpanToFloat( value, &config->volume ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to volume should be a number\n" );
+					return false;
+				}
+			}
+			else if( key == "pitch" ) {
+				if( !TrySpanToFloat( value, &config->pitch ) ) {
+					Com_Printf( S_COLOR_YELLOW "Argument to pitch should be a number\n" );
+					return false;
+				}
+			}
+			else if( key == "pitch_random" ) {
+				if( !TrySpanToFloat( value, &config->pitch_random ) ) {
+					Com_Printf( S_COLOR_YELLOW "Argument to pitch_random should be a number\n" );
 					return false;
 				}
 			}
@@ -627,6 +645,7 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 
 	CheckedALSource( source, AL_BUFFER, sound.buf );
 	CheckedALSource( source, AL_GAIN, ps->volume * config.volume * s_volume->value );
+	CheckedALSource( source, AL_PITCH, config.pitch * ( 1.0f + ( RandomFloat01( &cls.rng ) - 0.5f ) * config.pitch_random ) );
 	CheckedALSource( source, AL_REFERENCE_DISTANCE, S_DEFAULT_ATTENUATION_REFDISTANCE );
 	CheckedALSource( source, AL_MAX_DISTANCE, S_DEFAULT_ATTENUATION_MAXDISTANCE );
 	CheckedALSource( source, AL_ROLLOFF_FACTOR, config.attenuation );

@@ -7,42 +7,42 @@ static float RandomRadians() {
 
 void CG_ARBulletExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	ARBulletImpactParticles( pos, dir, team_color.xyz() );
-	S_StartFixedSound( "weapons/ar/explode", pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/ar/explode", pos, CHAN_AUTO, 1.0f, 1.0f );
 }
 
 void CG_BubbleExplosion( Vec3 pos, Vec4 team_color ) {
 	BubbleImpactParticles( pos, team_color.xyz() );
-	S_StartFixedSound( "weapons/bg/explode", pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/bg/explode", pos, CHAN_AUTO, 1.0f, 1.0f );
 }
 
 void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	ExplosionParticles( pos, dir, team_color.xyz() );
-	S_StartFixedSound( "weapons/rl/explode", pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/rl/explode", pos, CHAN_AUTO, 1.0f, 1.0f );
 }
 
 void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	ExplosionParticles( pos, dir, team_color.xyz() );
-	S_StartFixedSound( "weapons/gl/explode", pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/gl/explode", pos, CHAN_AUTO, 1.0f, 1.0f );
 }
 
 void CG_StakeImpact( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	DoVisualEffect( "weapons/stake/hit", pos, dir, 1.0f, team_color );
-	S_StartFixedSound( "weapons/stake/hit", pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/stake/hit", pos, CHAN_AUTO, 1.0f, 1.0f );
 }
 
 void CG_StakeImpale( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	DoVisualEffect( "weapons/stake/impale", pos, dir, 1.0f, team_color );
-	S_StartFixedSound( "weapons/stake/impale", pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/stake/impale", pos, CHAN_AUTO, 1.0f, 1.0f );
 }
 
 void CG_BlastImpact( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	DoVisualEffect( "weapons/mb/hit", pos, dir, 1.0f, team_color );
-	S_StartFixedSound( "weapons/mb/hit", pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/mb/hit", pos, CHAN_AUTO, 1.0f, 1.0f );
 }
 
 void CG_BlastBounce( Vec3 pos, Vec3 dir, Vec4 team_color ) {
 	DoVisualEffect( "weapons/mb/bounce", pos, dir, 1.0f, team_color );
-	S_StartFixedSound( "weapons/mb/bounce", pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "weapons/mb/bounce", pos, CHAN_AUTO, 1.0f, 1.0f );
 }
 
 void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
@@ -102,7 +102,7 @@ void CG_BladeImpact( Vec3 pos, Vec3 dir ) {
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
 	// TODO: radius is just ignored?
 	ExplosionParticles( pos, dir, vec4_white.xyz() );
-	S_StartFixedSound( "models/bomb/explode", pos, CHAN_AUTO, 1.0f );
+	S_StartFixedSound( "models/bomb/explode", pos, CHAN_AUTO, 1.0f, 1.0f );
 }
 
 void CG_Dash( const SyncEntityState * state ) {

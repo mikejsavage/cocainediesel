@@ -253,6 +253,7 @@ struct SyncEntityState {
 	bool teleported;
 
 	StringHash sound;                          // for looping sounds, to guarantee shutoff
+	float pitch;
 
 	int team;                           // team in the game
 };

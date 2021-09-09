@@ -400,6 +400,7 @@ extern cvar_t *developer;
 extern cvar_t *cg_showClamp;
 extern cvar_t *cg_showHotkeys;
 extern cvar_t *cg_colorBlind;
+extern cvar_t *cg_voicePitch;
 
 // wsw
 extern cvar_t *cg_autoaction_demo;

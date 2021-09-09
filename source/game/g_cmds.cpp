@@ -401,6 +401,7 @@ static const g_vsays_t g_vsays[] = {
 
 static void G_vsay_f( edict_t *ent ) {
 	const char *msg = Cmd_Argv( 1 );
+	float pitch = atof( Cmd_Argv( 2 ) );
 
 	if( G_ISGHOSTING( ent ) && server_gs.gameState.match_state < MatchState_PostMatch ) {
 		return;
@@ -423,6 +424,7 @@ static void G_vsay_f( edict_t *ent ) {
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
 		event->r.svflags |= SVF_BROADCAST; // force sending even when not in PVS
 		event->s.ownerNum = ent->s.number;
+		event->s.pitch = pitch;
 
 		return;
 	}
@@ -613,7 +615,7 @@ void G_InitGameCommands() {
 
 	G_AddCommand( "spray", Cmd_Spray_f );
 
-	G_AddCommand( "vsay", G_vsay_f );
+	G_AddCommand( "g_vsay", G_vsay_f );
 }
 
 void ClientCommand( edict_t *ent ) {

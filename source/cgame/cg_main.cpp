@@ -38,6 +38,7 @@ cvar_t *cg_chat;
 
 cvar_t *cg_showHotkeys;
 cvar_t *cg_colorBlind;
+cvar_t *cg_voicePitch;
 
 cvar_t *cg_autoaction_demo;
 cvar_t *cg_autoaction_screenshot;
@@ -107,10 +108,11 @@ static void CG_InitGameShared() {
 }
 
 static void CG_RegisterVariables() {
-	cg_showMiss =       Cvar_Get( "cg_showMiss", "0", 0 );
+	cg_showMiss    = Cvar_Get( "cg_showMiss", "0", 0 );
 
 	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
 	cg_colorBlind  = Cvar_Get( "cg_colorBlind", "0", CVAR_ARCHIVE );
+	cg_voicePitch  = Cvar_Get( "cg_voicePitch", "1", CVAR_ARCHIVE );
 
 	cg_thirdPerson =    Cvar_Get( "cg_thirdPerson", "0", CVAR_CHEAT );
 	cg_thirdPersonAngle =   Cvar_Get( "cg_thirdPersonAngle", "0", 0 );

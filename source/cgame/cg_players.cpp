@@ -34,12 +34,12 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
 
 	StringHash sfx = GetPlayerSound( entnum, ps );
 	if( fixed ) {
-		S_StartFixedSound( sfx, cg_entities[entnum].current.origin, entchannel, 1.0f );
+		S_StartFixedSound( sfx, cg_entities[entnum].current.origin, entchannel, 1.0f, 1.0f );
 	}
 	else if( ISVIEWERENTITY( entnum ) ) {
-		S_StartGlobalSound( sfx, entchannel, 1.0f );
+		S_StartGlobalSound( sfx, entchannel, 1.0f, 1.0f );
 	}
 	else {
-		S_StartEntitySound( sfx, entnum, entchannel, 1.0f );
+		S_StartEntitySound( sfx, entnum, entchannel, 1.0f, 1.0f );
 	}
 }

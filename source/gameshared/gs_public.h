@@ -119,6 +119,7 @@ struct gs_state_t {
 enum {
 	CHAN_AUTO,
 	CHAN_BODY,
+	CHAN_VSAY,
 
 	CHAN_TOTAL,
 

@@ -386,21 +386,21 @@ static void CG_StartVoiceTokenEffect( int entNum, u64 parm, float pitch ) {
 
 	centity_t * cent = &cg_entities[ entNum ];
 
-	// ignore repeated/flooded events
-	// TODO: this should really look at how long the vsay is...
-	if( cent->localEffects[ LOCALEFFECT_VSAY_TIMEOUT ] > cl.serverTime ) {
-		return;
+	if( cent->lastVsay != NULL && cent->lastVsay->channel == CHAN_VSAY && cent->lastVsay->ent_num == entNum ) {
+		for( u8 i = 0; i < cent->lastVsay->sfx->num_sounds; i++ ) {
+			if( cent->lastVsay->started[ i ] && !cent->lastVsay->stopped[ i ] ) {
+				return;
+			}
+		}
 	}
-
-	cent->localEffects[ LOCALEFFECT_VSAY_TIMEOUT ] = cl.serverTime + VSAY_TIMEOUT;
 
 	StringHash sound = cgs.media.sfxVSaySounds[ vsay ];
 
 	if( client_gs.gameState.match_state >= MatchState_PostMatch ) {
-		S_StartGlobalSound( sound, CHAN_AUTO, 1.0f, pitch, entropy );
+		cent->lastVsay = S_StartGlobalSound( sound, CHAN_VSAY, 1.0f, pitch, entropy );
 	}
 	else {
-		S_StartEntitySound( sound, entNum, CHAN_AUTO, 1.0f, pitch, entropy );
+		cent->lastVsay = S_StartEntitySound( sound, entNum, CHAN_VSAY, 1.0f, pitch, entropy );
 	}
 }
 

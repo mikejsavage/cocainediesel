@@ -435,7 +435,7 @@ static void CG_SayTeamCmdAdd_f() {
 
 static void CG_vsay_f() {
 	TempAllocator temp = cls.frame_arena.temp();
-	Cbuf_ExecuteText( EXEC_NOW, temp( "g_vsay {} {}", Cmd_Argv( 1 ), Min2( 1.1f, Max2( 0.9f, cg_voicePitch->value ) ) ) );
+	Cbuf_ExecuteText( EXEC_NOW, temp( "g_vsay {} {}", Cmd_Argv( 1 ), cg_voicePitch->value ) );
 }
 
 // server commands

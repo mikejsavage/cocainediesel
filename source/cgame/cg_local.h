@@ -85,7 +85,6 @@ struct centity_t {
 
 	// local effects from events timers
 	int64_t localEffects[LOCALEFFECT_COUNT];
-	PlayingSound * lastVsay;
 
 	// attached laser beam
 	Vec3 laserOrigin;

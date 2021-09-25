@@ -291,7 +291,6 @@ const cmodel_t *CG_CModelForEntity( int entNum );
 
 void CG_SoundEntityNewState( centity_t *cent );
 void DrawEntities();
-void CG_GetEntitySpatialization( int entNum, Vec3 * origin, Vec3 * velocity );
 void CG_LerpEntities();
 void CG_LerpGenericEnt( centity_t *cent );
 

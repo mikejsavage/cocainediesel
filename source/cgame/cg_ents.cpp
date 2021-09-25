@@ -845,10 +845,6 @@ void CG_LerpEntities() {
 				Com_Error( "CG_LerpEntities: unknown entity type" );
 				break;
 		}
-
-		Vec3 origin, velocity;
-		CG_GetEntitySpatialization( number, &origin, &velocity );
-		S_UpdateEntity( number, origin, velocity );
 	}
 }
 
@@ -929,26 +925,5 @@ void CG_UpdateEntities() {
 				Com_Error( "CG_UpdateEntities: unknown entity type %i", cent->type );
 				break;
 		}
-	}
-}
-
-void CG_GetEntitySpatialization( int entNum, Vec3 * origin, Vec3 * velocity ) {
-	const centity_t * cent = &cg_entities[ entNum ];
-
-	if( velocity != NULL ) {
-		*velocity = cent->velocity;
-	}
-
-	const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, cent->current.model );
-	if( cmodel == NULL ) {
-		if( origin != NULL ) {
-			*origin = cent->interpolated.origin;
-		}
-	}
-	else {
-		Vec3 mins, maxs;
-		CM_InlineModelBounds( cl.cms, cmodel, &mins, &maxs );
-		*origin = maxs + mins;
-		*origin = cent->interpolated.origin + *origin * 0.5f;
 	}
 }

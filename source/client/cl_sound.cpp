@@ -9,6 +9,7 @@
 #include "client/assets.h"
 #include "client/sound.h"
 #include "client/threadpool.h"
+#include "cgame/cg_local.h"
 #include "gameshared/gs_public.h"
 
 #define AL_LIBTYPE_STATIC
@@ -71,11 +72,6 @@ struct PlayingSound {
 	bool stopped[ ARRAY_COUNT( &SoundEffect::sounds ) ];
 };
 
-struct EntitySound {
-	Vec3 origin;
-	Vec3 velocity;
-};
-
 static ALCdevice * al_device;
 static ALCcontext * al_context;
 
@@ -110,8 +106,6 @@ static u64 immediate_sounds_autoinc;
 
 static ALuint music_source;
 static bool music_playing;
-
-static EntitySound entities[ MAX_EDICTS ];
 
 constexpr float MusicIsWayTooLoud = 0.25f;
 
@@ -558,8 +552,6 @@ bool S_Init() {
 	music_playing = false;
 	initialized = false;
 
-	memset( entities, 0, sizeof( entities ) );
-
 	s_device = Cvar_Get( "s_device", "", CVAR_ARCHIVE );
 	s_device->modified = false;
 	s_volume = Cvar_Get( "s_volume", "1", CVAR_ARCHIVE );
@@ -670,8 +662,8 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 			break;
 
 		case PlayingSoundType_Entity:
-			CheckedALSource( source, AL_POSITION, entities[ ps->ent_num ].origin );
-			CheckedALSource( source, AL_VELOCITY, entities[ ps->ent_num ].velocity );
+			CheckedALSource( source, AL_POSITION, cg_entities[ ps->ent_num ].interpolated.origin );
+			CheckedALSource( source, AL_VELOCITY, cg_entities[ ps->ent_num ].velocity );
 			CheckedALSource( source, AL_SOURCE_RELATIVE, AL_FALSE );
 			break;
 
@@ -780,8 +772,8 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 			}
 
 			if( ps->type == PlayingSoundType_Entity ) {
-				CheckedALSource( ps->sources[ j ], AL_POSITION, entities[ ps->ent_num ].origin );
-				CheckedALSource( ps->sources[ j ], AL_VELOCITY, entities[ ps->ent_num ].velocity );
+				CheckedALSource( ps->sources[ j ], AL_POSITION, cg_entities[ ps->ent_num ].interpolated.origin );
+				CheckedALSource( ps->sources[ j ], AL_VELOCITY, cg_entities[ ps->ent_num ].velocity );
 			}
 			else if( ps->type == PlayingSoundType_Position ) {
 				CheckedALSource( ps->sources[ j ], AL_POSITION, ps->origin );
@@ -799,14 +791,6 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 
 	s_volume->modified = false;
 	s_musicvolume->modified = false;
-}
-
-void S_UpdateEntity( int ent_num, Vec3 origin, Vec3 velocity ) {
-	if( !initialized )
-		return;
-
-	entities[ ent_num ].origin  = origin;
-	entities[ ent_num ].velocity = velocity;
 }
 
 static PlayingSound * FindEmptyPlayingSound( int ent_num, int channel ) {

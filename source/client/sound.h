@@ -14,7 +14,6 @@ void S_Shutdown();
 const char * GetAudioDevicesAsSequentialStrings();
 
 void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis );
-void S_UpdateEntity( int ent_num, Vec3 origin, Vec3 velocity );
 
 void S_StartFixedSound( StringHash name, Vec3 origin, int channel, float volume, float pitch );
 void S_StartEntitySound( StringHash name, int ent_num, int channel, float volume, float pitch );

@@ -871,11 +871,9 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_DOOR_START_MOVING:
 		case EV_BUTTON_FIRE:
 		case EV_TRAIN_STOP:
-		case EV_TRAIN_START: {
-			Vec3 so;
-			CG_GetEntitySpatialization( ent->number, &so, NULL );
-			S_StartFixedSound( StringHash( parm ), so, CHAN_AUTO, 1.0f, 1.0f );
-		} break;
+		case EV_TRAIN_START:
+			S_StartFixedSound( StringHash( parm ), ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			break;
 
 		case EV_VSAY:
 			CG_StartVsay( ent->ownerNum, parm );

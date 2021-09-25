@@ -401,7 +401,6 @@ static const g_vsays_t g_vsays[] = {
 
 static void G_vsay_f( edict_t *ent ) {
 	const char *msg = Cmd_Argv( 1 );
-	float pitch = Min2( 1.1f, Max2( 0.9f, float( atof( Cmd_Argv( 2 ) ) ) ) );
 
 	if( G_ISGHOSTING( ent ) && server_gs.gameState.match_state < MatchState_PostMatch ) {
 		return;
@@ -614,7 +613,7 @@ void G_InitGameCommands() {
 
 	G_AddCommand( "spray", Cmd_Spray_f );
 
-	G_AddCommand( "g_vsay", G_vsay_f );
+	G_AddCommand( "vsay", G_vsay_f );
 }
 
 void ClientCommand( edict_t *ent ) {

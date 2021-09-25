@@ -433,11 +433,6 @@ static void CG_SayTeamCmdAdd_f() {
 	Cmd_SetCompletionFunc( "say_team", &CG_TeamPlayerNamesCompletion_f );
 }
 
-static void CG_vsay_f() {
-	TempAllocator temp = cls.frame_arena.temp();
-	Cbuf_ExecuteText( EXEC_NOW, temp( "g_vsay {} {}", Cmd_Argv( 1 ), cg_voicePitch->value ) );
-}
-
 // server commands
 static const ServerCommand cg_consvcmds[] = {
 	{ "say", CG_SayCmdAdd_f },
@@ -466,7 +461,6 @@ static const cgcmd_t cgcmds[] = {
 	{ "viewpos", CG_Viewpos_f, true },
 	{ "players", NULL, false },
 	{ "spectators", NULL, false },
-	{ "vsay", CG_vsay_f, false },
 
 	{ NULL, NULL, false }
 };

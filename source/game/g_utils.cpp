@@ -204,7 +204,7 @@ void G_InitEdict( edict_t *e ) {
 	e->s.number = ENTNUM( e );
 
 	// mark all entities to not be sent by default
-	e->r.svflags = SVF_NOCLIENT | (e->r.svflags & SVF_FAKECLIENT);
+	e->r.svflags = SVF_NOCLIENT;
 
 	// clear the old state data
 	memset( &e->olds, 0, sizeof( e->olds ) );

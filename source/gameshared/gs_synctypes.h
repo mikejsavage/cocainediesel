@@ -86,6 +86,14 @@ enum GadgetType : u8 {
 	Gadget_Count
 };
 
+enum PerkType : u8 {
+	Perk_None,
+
+	Perk_Midget,
+
+	Perk_Count
+};
+
 enum WeaponState : u8 {
 	WeaponState_Dispatch,
 	WeaponState_DispatchQuiet,
@@ -250,6 +258,7 @@ struct SyncEntityState {
 
 	WeaponType weapon;
 	bool teleported;
+	float scale;
 
 	StringHash sound;
 

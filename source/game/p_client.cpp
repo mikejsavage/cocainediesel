@@ -72,6 +72,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->mass = ent->mass;
 	body->r.owner = ent->r.owner;
 	body->s.team = ent->s.team;
+	body->s.scale = ent->s.scale;
 	body->r.svflags = SVF_CORPSE | SVF_BROADCAST;
 	body->activator = ent;
 	if( g_deadbody_followkiller->integer ) {
@@ -374,6 +375,8 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 
 	GT_CallPlayerRespawned( self, old_team, self->s.team );
+
+	self->mass = PLAYER_MASS * self->s.scale;
 }
 
 bool G_PlayerCanTeleport( edict_t *player ) {
@@ -923,6 +926,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	memset( &pm, 0, sizeof( pmove_t ) );
 	pm.playerState = &client->ps;
 	pm.cmd = *ucmd;
+	pm.scale = ent->s.scale;
 
 	// perform a pmove
 	Pmove( &server_gs, &pm );

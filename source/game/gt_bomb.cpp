@@ -71,6 +71,12 @@ struct BombSite {
 	char letter;
 };
 
+struct Loadout {
+	WeaponType weapons[ WeaponCategory_Count ];
+	GadgetType gadget;
+	PerkType perk;
+};
+
 static struct {
 	bool round_check_end;
 	s64 round_start_time;
@@ -85,7 +91,7 @@ static struct {
 
 	// TODO: player.as
 	u32 kills_this_round[ MAX_CLIENTS ];
-	WeaponType loadouts[ MAX_CLIENTS ][ WeaponCategory_Count ];
+	Loadout loadouts[ MAX_CLIENTS ];
 
 	s32 carrier;
 	s64 carrier_can_plant_time;
@@ -156,25 +162,20 @@ static void Announce( BombAnnouncement announcement ) {
 static void GiveInventory( edict_t * ent ) {
 	ClearInventory( &ent->r.client->ps );
 
-	const int player_num = PLAYERNUM( ent );
+	const Loadout & loadout = bomb_state.loadouts[ PLAYERNUM( ent ) ];
 
 	G_GiveWeapon( ent, Weapon_Knife );
 	for( u32 category = 0; category < WeaponCategory_Count; category++ ) {
-		WeaponType weapon = bomb_state.loadouts[ player_num ][ category ];
-		if( weapon != Weapon_None ) {
-			G_GiveWeapon( ent, weapon );
-		} else { //default to giving players some weapons
-			for( u32 weap = Weapon_None + 1; weap < Weapon_Count; weap++ ) {
-				if( GS_GetWeaponDef( weap )->category == category ) {
-					bomb_state.loadouts[ player_num ][ category ] = weap;
-					G_GiveWeapon( ent, weap );
-					break;
-				}
-			}
-		}
+		WeaponType weapon = loadout.weapons[ category ];
+		G_GiveWeapon( ent, weapon );
 	}
 
 	G_SelectWeapon( ent, 1 );
+
+	if( loadout.perk == Perk_Midget ) {
+		ent->s.scale = 0.625f;
+		ent->health = 62.5f;
+	}
 }
 
 static void ShowShop( s32 player_num ) {
@@ -186,7 +187,7 @@ static void ShowShop( s32 player_num ) {
 	DynamicString command( &temp, "changeloadout" );
 
 	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		WeaponType weapon = bomb_state.loadouts[ player_num ][ i ];
+		WeaponType weapon = bomb_state.loadouts[ player_num ].weapons[ i ];
 		if( weapon != Weapon_None ) {
 			command.append( " {}", weapon );
 		}
@@ -195,32 +196,38 @@ static void ShowShop( s32 player_num ) {
 	PF_GameCmd( PLAYERENT( player_num ), command.c_str() );
 }
 
-static void SetLoadout( edict_t * ent, Span< const char > loadout ) {
-	int player_num = PLAYERNUM( ent );
+static void SetLoadout( edict_t * ent, Span< const char > loadout_string ) {
+	Loadout loadout = { };
 
 	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		int weapon = ParseInt( &loadout, 0, Parse_DontStopOnNewLine );
+		int weapon = ParseInt( &loadout_string, 0, Parse_DontStopOnNewLine );
 		if( weapon == Weapon_None ) {
 			break;
 		}
 
-		if( weapon < Weapon_None || weapon >= Weapon_Count || weapon == Weapon_Knife ) {
+		if( weapon <= Weapon_None || weapon >= Weapon_Count || weapon == Weapon_Knife ) {
 			return;
 		}
+
 		WeaponCategory category = GS_GetWeaponDef( WeaponType( weapon ) )->category;
 
-		bomb_state.loadouts[ player_num ][ category ] = WeaponType( weapon );
+		loadout.weapons[ category ] = WeaponType( weapon );
 	}
+
+	loadout.gadget = Gadget_None;
+	loadout.perk = Perk_None;
 
 	TempAllocator temp = svs.frame_arena.temp();
 	DynamicString command( &temp, "saveloadout" );
 
 	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		WeaponType weapon = bomb_state.loadouts[ player_num ][ i ];
+		WeaponType weapon = loadout.weapons[ i ];
 		if( weapon != Weapon_None ) {
 			command.append( " {}", weapon );
 		}
 	}
+
+	bomb_state.loadouts[ PLAYERNUM( ent ) ] = loadout;
 
 	PF_GameCmd( ent, command.c_str() );
 
@@ -1120,9 +1127,26 @@ static edict_t * GT_Bomb_SelectSpawnPoint( edict_t * ent ) {
 	return RandomEntity( "team_CTF_alphaspawn" );
 }
 
+static Loadout DefaultLoadout() {
+	Loadout loadout = { };
+	for( size_t category = 0; category < WeaponCategory_Count; category++ ) {
+		for( u32 weap = Weapon_None + 1; weap < Weapon_Count; weap++ ) {
+			if( GS_GetWeaponDef( weap )->category == category ) {
+				loadout.weapons[ category ] = weap;
+			}
+		}
+	}
+
+	return loadout;
+}
+
 static void GT_Bomb_PlayerConnected( edict_t * ent ) {
-	char * loadout = Info_ValueForKey( ent->r.client->userinfo, "cg_loadout" );
-	if( loadout != NULL ) {
+	const char * loadout = Info_ValueForKey( ent->r.client->userinfo, "cg_loadout" );
+	if( loadout == NULL ) {
+		String< 128 > easy_loadout( "{} {} {}", Weapon_RocketLauncher, Weapon_Shotgun, Weapon_StakeGun );
+		SetLoadout( ent, easy_loadout.span() );
+	}
+	else {
 		SetLoadout( ent, MakeSpan( loadout ) );
 	}
 }

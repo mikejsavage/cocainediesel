@@ -202,6 +202,7 @@ void G_InitEdict( edict_t *e ) {
 
 	memset( &e->s, 0, sizeof( SyncEntityState ) );
 	e->s.number = ENTNUM( e );
+	e->s.scale = 1.0f;
 
 	// mark all entities to not be sent by default
 	e->r.svflags = SVF_NOCLIENT;

@@ -618,6 +618,7 @@ int GClip_AreaEdicts( Vec3 mins, Vec3 maxs, int *list, int maxcount, int areatyp
 * Returns a collision model that can be used for testing or clipping an
 * object of mins/maxs size.
 */
+
 static cmodel_t *GClip_CollisionModelForEntity( SyncEntityState *s, entity_shared_t *r ) {
 	cmodel_t * model = CM_TryFindCModel( CM_Server, s->model );
 	if( model != NULL ) {

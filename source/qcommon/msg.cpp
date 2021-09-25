@@ -524,7 +524,6 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.svflags, baseline.svflags );
 	Delta( buf, ent.effects, baseline.effects );
 	Delta( buf, ent.ownerNum, baseline.ownerNum );
-	Delta( buf, ent.targetNum, baseline.targetNum );
 	Delta( buf, ent.sound, baseline.sound );
 	Delta( buf, ent.model2, baseline.model2 );
 	Delta( buf, ent.animating, baseline.animating );

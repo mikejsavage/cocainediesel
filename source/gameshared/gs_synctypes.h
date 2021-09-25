@@ -205,7 +205,7 @@ struct SyncEvent {
 };
 
 struct SyncEntityState {
-	int number;                         // edict index
+	int number;
 
 	unsigned int svflags;
 
@@ -237,24 +237,23 @@ struct SyncEntityState {
 	SyncEvent events[ 2 ];
 
 	int counterNum;                 // ET_GENERIC
-	int targetNum;                  // ET_EVENT specific
 	RGBA8 silhouetteColor;
-	int radius;                     // ET_GLADIATOR always extended, ET_BOMB state, EV_BLOOD damage, ...
+	int radius;                     // spikes always extended, BombDown stuff, EV_BLOOD damage, ...
 
 	bool linearMovement;
-	Vec3 linearMovementVelocity;      // this is transmitted instead of origin when linearProjectile is true
-	Vec3 linearMovementEnd;           // the end movement point for brush models
-	Vec3 linearMovementBegin;			// the starting movement point for brush models
+	Vec3 linearMovementVelocity;
+	Vec3 linearMovementEnd;
+	Vec3 linearMovementBegin;
 	unsigned int linearMovementDuration;
 	int64_t linearMovementTimeStamp;
 	int linearMovementTimeDelta;
 
-	WeaponType weapon;                  // WEAP_ for players
+	WeaponType weapon;
 	bool teleported;
 
-	StringHash sound;                          // for looping sounds, to guarantee shutoff
+	StringHash sound;
 
-	int team;                           // team in the game
+	int team;
 };
 
 struct pmove_state_t {

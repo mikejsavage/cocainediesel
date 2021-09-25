@@ -637,7 +637,11 @@ static void CG_UpdateSpikes( centity_t * cent ) {
 }
 
 void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
-	cent->sound = S_ImmediateEntitySound( state->sound, state->number, 1.0f, 1.0f, cent->sound );
+	cent->sound = S_ImmediateEntitySound( state->sound, state->number, 1.0f, 1.0f, true, cent->sound );
+}
+
+static void CG_PlayVsay( centity_t * cent ) {
+	cent->vsay_sound = S_ImmediateEntitySound( EMPTY_HASH, cent->current.number, 1.0f, 1.0f, false, cent->vsay_sound );
 }
 
 static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
@@ -719,6 +723,7 @@ void DrawEntities() {
 				CG_AddPlayerEnt( cent );
 				CG_EntityLoopSound( cent, state );
 				CG_LaserBeamEffect( cent );
+				CG_PlayVsay( cent );
 				break;
 
 			case ET_CORPSE:

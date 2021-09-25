@@ -61,6 +61,7 @@ struct PlayingSound {
 
 	ImmediateSoundHandle immediate_handle;
 	bool touched_since_last_update;
+	bool loop;
 
 	Vec3 origin;
 	Vec3 end;
@@ -114,7 +115,7 @@ static EntitySound entities[ MAX_EDICTS ];
 
 constexpr float MusicIsWayTooLoud = 0.25f;
 
-const char *ALErrorMessage( ALenum error ) {
+const char * ALErrorMessage( ALenum error ) {
 	switch( error ) {
 		case AL_NO_ERROR:
 			return "No error";
@@ -681,7 +682,7 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 			break;
 	}
 
-	CheckedALSource( source, AL_LOOPING, ps->immediate_handle.x == 0 ? AL_FALSE : AL_TRUE );
+	CheckedALSource( source, AL_LOOPING, ps->immediate_handle.x != 0 && ps->loop ? AL_TRUE : AL_FALSE );
 	CheckedALSourcePlay( source );
 
 	return true;
@@ -900,10 +901,8 @@ void S_StartLineSound( StringHash name, Vec3 start, Vec3 end, int channel, float
 	ps->end = end;
 }
 
-static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, float volume, float pitch, PlayingSoundType type, ImmediateSoundHandle handle ) {
+static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, float volume, float pitch, bool loop, u32 sfx_entropy, PlayingSoundType type, ImmediateSoundHandle handle ) {
 	const SoundEffect * sfx = FindSoundEffect( name );
-	if( sfx == NULL )
-		return { 0 };
 
 	u64 idx;
 	if( handle.x != 0 && immediate_sounds_hashtable.get( handle.x, &idx ) ) {
@@ -921,6 +920,8 @@ static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, f
 			immediate_sounds_autoinc++;
 
 		ps->immediate_handle = handle;
+		ps->loop = loop;
+		ps->entropy = sfx_entropy;
 		idx = ps - playing_sound_effects;
 
 		immediate_sounds_hashtable.add( handle.x, idx );
@@ -929,12 +930,16 @@ static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, f
 	return handle;
 }
 
-ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, ImmediateSoundHandle handle ) {
-	return StartImmediateSound( name, ent_num, volume, pitch, PlayingSoundType_Entity, handle );
+ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, bool loop, ImmediateSoundHandle handle ) {
+	return StartImmediateSound( name, ent_num, volume, pitch, loop, 0, PlayingSoundType_Entity, handle );
+}
+
+ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, bool loop, u32 sfx_entropy, ImmediateSoundHandle handle ) {
+	return StartImmediateSound( name, ent_num, volume, pitch, loop, sfx_entropy, PlayingSoundType_Entity, handle );
 }
 
 ImmediateSoundHandle S_ImmediateFixedSound( StringHash name, Vec3 origin, float volume, float pitch, ImmediateSoundHandle handle ) {
-	handle = StartImmediateSound( name, -1, volume, pitch, PlayingSoundType_Position, handle );
+	handle = StartImmediateSound( name, -1, volume, pitch, true, 0, PlayingSoundType_Position, handle );
 	if( handle.x == 0 )
 		return handle;
 
@@ -949,7 +954,7 @@ ImmediateSoundHandle S_ImmediateFixedSound( StringHash name, Vec3 origin, float 
 }
 
 ImmediateSoundHandle S_ImmediateLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch, ImmediateSoundHandle handle ) {
-	handle = StartImmediateSound( name, -1, volume, pitch, PlayingSoundType_Line, handle );
+	handle = StartImmediateSound( name, -1, volume, pitch, true, 0, PlayingSoundType_Line, handle );
 	if( handle.x == 0 )
 		return handle;
 

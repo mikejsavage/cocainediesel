@@ -127,10 +127,10 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 	Vec3 end = trace.endpos;
 	DrawBeam( start, end, 16.0f, color, cgs.media.shaderLGBeam );
 
-	cent->lg_hum_sound = S_ImmediateEntitySound( "weapons/lg/hum", cent->current.number, 1.0f, 1.0f, cent->lg_hum_sound );
+	cent->lg_hum_sound = S_ImmediateEntitySound( "weapons/lg/hum", cent->current.number, 1.0f, 1.0f, true, cent->lg_hum_sound );
 
 	if( ISVIEWERENTITY( cent->current.number ) ) {
-		cent->lg_beam_sound = S_ImmediateEntitySound( "weapons/lg/beam", cent->current.number, 1.0f, 1.0f, cent->lg_beam_sound );
+		cent->lg_beam_sound = S_ImmediateEntitySound( "weapons/lg/beam", cent->current.number, 1.0f, 1.0f, true, cent->lg_beam_sound );
 	}
 	else {
 		cent->lg_beam_sound = S_ImmediateLineSound( "weapons/lg/beam", start, end, 1.0f, 1.0f, cent->lg_beam_sound );
@@ -373,12 +373,9 @@ void CG_ReleaseAnnouncerEvents() {
 	}
 }
 
-/*
- * CG_StartVoiceTokenEffect
- */
-static void CG_StartVoiceTokenEffect( int entNum, u64 parm, float pitch ) {
+static void CG_StartVsay( int entNum, u64 parm ) {
 	u32 vsay = parm & 0xffff;
-	u16 entropy = parm >> 16;
+	u32 entropy = parm >> 16;
 
 	if( vsay >= Vsay_Total ) {
 		return;
@@ -397,18 +394,15 @@ static void CG_StartVoiceTokenEffect( int entNum, u64 parm, float pitch ) {
 	StringHash sound = cgs.media.sfxVSaySounds[ vsay ];
 
 	if( client_gs.gameState.match_state >= MatchState_PostMatch ) {
-		S_StartGlobalSound( sound, CHAN_AUTO, 1.0f, pitch, entropy );
+		S_StartGlobalSound( sound, CHAN_AUTO, 1.0f, 1.0f, entropy );
 	}
 	else {
-		S_StartEntitySound( sound, entNum, CHAN_AUTO, 1.0f, pitch, entropy );
+		cent->vsay_sound = S_ImmediateEntitySound( sound, entNum, 1.0f, 1.0f, false, entropy, cent->vsay_sound );
 	}
 }
 
 //==================================================================
 
-/*
- * CG_Event_Fall
- */
 void CG_Event_Fall( const SyncEntityState * state, u64 parm ) {
 	if( ISVIEWERENTITY( state->number ) ) {
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
@@ -739,7 +733,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_PLAYER_RESPAWN:
 			if( ( unsigned ) ent->ownerNum == cgs.playerNum + 1 ) {
-				CG_ResetKickAngles();
 				cg.recoiling = false;
 				cg.damage_effect = 0.0f;
 			}
@@ -885,7 +878,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		} break;
 
 		case EV_VSAY:
-			CG_StartVoiceTokenEffect( ent->ownerNum, parm, ent->pitch );
+			CG_StartVsay( ent->ownerNum, parm );
 			break;
 
 		case EV_TBAG:

@@ -24,7 +24,8 @@ void S_StartGlobalSound( StringHash name, int channel, float volume, float pitch
 void S_StartLocalSound( StringHash name, int channel, float volume, float pitch );
 void S_StartLineSound( StringHash name, Vec3 start, Vec3 end, int channel, float volume, float pitch );
 
-ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, ImmediateSoundHandle handle );
+ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, bool loop, ImmediateSoundHandle handle );
+ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, bool loop, u32 sfx_entropy, ImmediateSoundHandle handle );
 ImmediateSoundHandle S_ImmediateFixedSound( StringHash name, Vec3 pos, float volume, float pitch, ImmediateSoundHandle handle );
 ImmediateSoundHandle S_ImmediateLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch, ImmediateSoundHandle handle );
 

@@ -166,8 +166,6 @@ static void CG_RegisterConfigStrings() {
 void CG_Reset() {
 	CG_ResetPModels();
 
-	CG_ResetKickAngles();
-
 	CG_SC_ResetObituaries();
 
 	// start up announcer events queue from clean

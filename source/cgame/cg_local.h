@@ -95,6 +95,8 @@ struct centity_t {
 	ImmediateSoundHandle lg_beam_sound;
 	ImmediateSoundHandle lg_tip_sound;
 
+	ImmediateSoundHandle vsay_sound;
+
 	bool linearProjectileCanDraw;
 	Vec3 linearProjectileViewerSource;
 	Vec3 linearProjectileViewerVelocity;
@@ -144,14 +146,6 @@ struct cgs_media_t {
 	const Material * shaderAlive;
 	const Material * shaderDead;
 	const Material * shaderReady;
-};
-
-#define MAX_ANGLES_KICKS 3
-
-struct cg_kickangles_t {
-	int64_t timestamp;
-	int64_t kicktime;
-	float v_roll, v_pitch;
 };
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
@@ -264,11 +258,6 @@ struct cg_state_t {
 	int bobCycle;                   // odd cycles are right foot going forward
 	float bobFracSin;               // sin(bobfrac*M_PI)
 
-	//
-	// kick angles and color blend effects
-	//
-
-	cg_kickangles_t kickangles[MAX_ANGLES_KICKS];
 	int64_t fallEffectTime;
 	int64_t fallEffectRebounceTime;
 
@@ -468,14 +457,11 @@ extern cvar_t *cg_thirdPerson;
 extern cvar_t *cg_thirdPersonAngle;
 extern cvar_t *cg_thirdPersonRange;
 
-void CG_ResetKickAngles();
-
 void CG_StartFallKickEffect( int bounceTime );
 void CG_ViewSmoothPredictedSteps( Vec3 * vieworg );
 float CG_ViewSmoothFallKick();
 float CG_CalcViewFov();
 void CG_RenderView( unsigned extrapolationTime );
-Vec3 CG_GetKickAngles();
 bool CG_ChaseStep( int step );
 bool CG_SwitchChaseCamMode();
 

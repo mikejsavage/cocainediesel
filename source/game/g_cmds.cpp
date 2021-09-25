@@ -424,7 +424,6 @@ static void G_vsay_f( edict_t *ent ) {
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
 		event->r.svflags |= SVF_BROADCAST; // force sending even when not in PVS
 		event->s.ownerNum = ent->s.number;
-		event->s.pitch = pitch;
 
 		return;
 	}

@@ -430,7 +430,7 @@ static edict_t * GT_Gladiator_SelectSpawnPoint( edict_t * ent ) {
 	while( ( cursor = G_Find( cursor, &edict_t::classname, "spawn_gladiator" ) ) != NULL ) {
 		float min_dist = -1.0f;
 		for( edict_t * player = game.edicts + 1; PLAYERNUM( player ) < server_gs.maxclients; player++ ) {
-			if( player == ent || G_IsDead( player ) || player->s.type <= TEAM_SPECTATOR || PF_GetClientState( PLAYERNUM( player ) ) < CS_SPAWNED ) {
+			if( player == ent || G_IsDead( player ) || player->s.team <= TEAM_SPECTATOR || PF_GetClientState( PLAYERNUM( player ) ) < CS_SPAWNED ) {
 				continue;
 			}
 

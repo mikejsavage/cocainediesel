@@ -1127,19 +1127,6 @@ static edict_t * GT_Bomb_SelectSpawnPoint( edict_t * ent ) {
 	return RandomEntity( "team_CTF_alphaspawn" );
 }
 
-static Loadout DefaultLoadout() {
-	Loadout loadout = { };
-	for( size_t category = 0; category < WeaponCategory_Count; category++ ) {
-		for( u32 weap = Weapon_None + 1; weap < Weapon_Count; weap++ ) {
-			if( GS_GetWeaponDef( weap )->category == category ) {
-				loadout.weapons[ category ] = weap;
-			}
-		}
-	}
-
-	return loadout;
-}
-
 static void GT_Bomb_PlayerConnected( edict_t * ent ) {
 	const char * loadout = Info_ValueForKey( ent->r.client->userinfo, "cg_loadout" );
 	if( loadout == NULL ) {

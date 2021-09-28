@@ -119,7 +119,6 @@ static void BombSetCarrier( s32 player_num, bool no_sound );
 static void RoundWonBy( int winner );
 static void RoundNewState( RoundState state );
 static void SetTeamProgress( int team, int percent, BombProgress type );
-static edict_t * RandomEntity( StringHash classname );
 static void UpdateScore( s32 player_num );
 
 static void Show( edict_t * ent ) {
@@ -604,7 +603,7 @@ static void BombThink() {
 		case BombState_Dropped: {
 			// respawn bomb if it falls in the void
 			if( bomb_state.bomb.model->s.origin.z < -1024.0f ) {
-				bomb_state.bomb.model->s.origin = RandomEntity( "spawn_bomb_attacking" )->s.origin;
+				bomb_state.bomb.model->s.origin = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" )->s.origin;
 				bomb_state.bomb.model->velocity = Vec3( 0.0f );
 				bomb_state.bomb.model->s.teleported = true;
 
@@ -1047,22 +1046,6 @@ static void RoundThink() {
 	}
 }
 
-static edict_t * RandomEntity( StringHash classname ) {
-	edict_t * ent = NULL;
-	DynamicArray< edict_t * > ent_list( sys_allocator );
-	while( true ) {
-		ent = G_Find( ent, &edict_t::classname, classname );
-		if( ent == NULL ) {
-			break;
-		}
-		ent_list.add( ent );
-	}
-	if( ent_list.size() == 0 ) {
-		return NULL;
-	}
-	return RandomElement( &svs.rng, ent_list.ptr(), ent_list.size() );
-}
-
 // main.as
 
 static void UpdateScore( s32 player_num ) {
@@ -1113,18 +1096,18 @@ static bool GT_Bomb_Command( gclient_t * client, const char * cmd_, const char *
 
 static edict_t * GT_Bomb_SelectSpawnPoint( edict_t * ent ) {
 	if( ent->s.team == bomb_state.attacking_team ) {
-		edict_t * spawn = RandomEntity( "spawn_bomb_attacking" );
+		edict_t * spawn = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" );
 		if( spawn != NULL ) {
 			return spawn;
 		}
-		return RandomEntity( "team_CTF_betaspawn" );
+		return G_PickRandomEnt( &edict_t::classname, "team_CTF_betaspawn" );
 	}
 
-	edict_t * spawn = RandomEntity( "spawn_bomb_defending" );
+	edict_t * spawn = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_defending" );
 	if( spawn != NULL ) {
 		return spawn;
 	}
-	return RandomEntity( "team_CTF_alphaspawn" );
+	return G_PickRandomEnt( &edict_t::classname, "team_CTF_alphaspawn" );
 }
 
 static void GT_Bomb_PlayerConnected( edict_t * ent ) {

@@ -173,8 +173,6 @@ void CG_Reset() {
 
 	CG_ClearPointedNum();
 
-	CG_ClearAwards();
-
 	CG_InitDamageNumbers();
 	InitDecals();
 	InitPersistentBeams();

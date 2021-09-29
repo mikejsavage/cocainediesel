@@ -243,20 +243,6 @@ static void CG_SC_SaveLoadout() {
 	Cvar_Set( "cg_loadout", Cmd_Args() );
 }
 
-void CG_AddAward( const char * str ) {
-	if( !str || !str[0] ) {
-		return;
-	}
-
-	Q_strncpyz( cg.award_lines[cg.award_head % MAX_AWARD_LINES], str, MAX_CONFIGSTRING_CHARS );
-	cg.award_times[cg.award_head % MAX_AWARD_LINES] = cl.serverTime;
-	cg.award_head++;
-}
-
-static void CG_SC_AddAward() {
-	CG_AddAward( Cmd_Argv( 1 ) );
-}
-
 struct ServerCommand {
 	const char * name;
 	void ( *func )();
@@ -269,7 +255,6 @@ static const ServerCommand server_commands[] = {
 	{ "cp", CG_SC_CenterPrint },
 	{ "obry", CG_SC_Obituary },
 	{ "demoget", CG_SC_DemoGet },
-	{ "aw", CG_SC_AddAward },
 	{ "changeloadout", CG_SC_ChangeLoadout },
 	{ "saveloadout", CG_SC_SaveLoadout },
 };

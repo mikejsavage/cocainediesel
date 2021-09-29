@@ -149,8 +149,6 @@ struct cgs_media_t {
 };
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
-#define MAX_AWARD_LINES 3
-#define MAX_AWARD_DISPLAYTIME 5000
 
 // view types
 enum {
@@ -261,11 +259,6 @@ struct cg_state_t {
 	int64_t fallEffectTime;
 	int64_t fallEffectRebounceTime;
 
-	// awards
-	char award_lines[MAX_AWARD_LINES][MAX_CONFIGSTRING_CHARS];
-	int64_t award_times[MAX_AWARD_LINES];
-	int award_head;
-
 	cg_viewweapon_t weapon;
 	cg_viewdef_t view;
 };
@@ -371,7 +364,6 @@ void CG_ShutdownHUD();
 void CG_SC_ResetObituaries();
 void CG_SC_Obituary();
 void CG_DrawHUD();
-void CG_ClearAwards();
 
 //
 // cg_scoreboard.c
@@ -418,7 +410,6 @@ void CG_Precache();
 
 void CG_RegisterCGameCommands();
 void CG_UnregisterCGameCommands();
-void CG_AddAward( const char *str );
 
 const char * PlayerName( int i );
 

@@ -580,12 +580,6 @@ void G_ResetLevel();
 void G_InitLevel( const char *mapname, int64_t levelTime );
 void G_LoadMap( const char * name );
 
-//
-// g_awards.c
-//
-void G_PlayerAward( edict_t *ent, const char *awardMsg );
-void G_AwardRaceRecord( edict_t *self );
-
 //============================================================================
 
 struct projectileinfo_t {

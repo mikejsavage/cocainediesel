@@ -230,7 +230,7 @@ void ShutdownAssets() {
 }
 
 Span< const char > AssetString( StringHash path ) {
-	size_t i;
+	u64 i;
 	if( !assets_hashtable.get( path.hash, &i ) )
 		return Span< const char >();
 	return Span< const char >( assets[ i ].data, assets[ i ].len );

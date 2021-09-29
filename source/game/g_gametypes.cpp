@@ -471,12 +471,6 @@ Span< const char > G_GetWorldspawnKey( const char * key ) {
 //		Game type registration
 //======================================================
 
-// this is pretty dirty, parse the first entity and grab the gametype key
-// do no validation, G_SpawnEntities will catch it
-static bool IsGladiatorMap() {
-	return G_GetWorldspawnKey( "gametype" ) == "gladiator";
-}
-
 void GT_CallSpawn() {
 	if( level.gametype.Init2 != NULL ) {
 		level.gametype.Init2();
@@ -521,6 +515,10 @@ bool GT_CallGameCommand( gclient_t * client, const char * cmd, const char * args
 		return level.gametype.Command( client, cmd, args, argc );
 	}
 	return false;
+}
+
+static bool IsGladiatorMap() {
+	return G_GetWorldspawnKey( "gametype" ) == "gladiator";
 }
 
 void InitGametype() {

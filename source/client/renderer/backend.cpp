@@ -78,18 +78,17 @@ struct UBO {
 static UBO ubos[ 16 ]; // 1MB of uniform space
 static u32 ubo_offset_alignment;
 
-static PipelineState prev_pipeline;
-static GLuint prev_fbo;
-static u32 prev_viewport_width;
-static u32 prev_viewport_height;
-static u32 prev_vao;
+struct {
+	PipelineState pipeline;
+	GLuint fbo;
+	u32 viewport_width;
+	u32 viewport_height;
 
-static struct {
 	UniformBlock uniforms[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
 	const Texture * textures[ ARRAY_COUNT( &Shader::textures ) ] = { };
 	TextureBuffer texture_buffers[ ARRAY_COUNT( &Shader::texture_buffers ) ] = { };
 	TextureArray texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ] = { };
-} prev_bindings;
+} previous_state;
 
 static GLenum DepthFuncToGL( DepthFunc depth_func ) {
 	switch( depth_func ) {
@@ -508,10 +507,8 @@ void RenderBackendInit() {
 
 	in_frame = false;
 
-	prev_pipeline = PipelineState();
-	prev_fbo = 0;
-	prev_viewport_width = 0;
-	prev_viewport_height = 0;
+	previous_state = { };
+	previous_state.pipeline = PipelineState();
 }
 
 void RenderBackendShutdown() {
@@ -547,9 +544,9 @@ void RenderBackendBeginFrame() {
 		ubo.bytes_used = 0;
 	}
 
-	if( frame_static.viewport_width != prev_viewport_width || frame_static.viewport_height != prev_viewport_height ) {
-		prev_viewport_width = frame_static.viewport_width;
-		prev_viewport_height = frame_static.viewport_height;
+	if( frame_static.viewport_width != previous_state.viewport_width || frame_static.viewport_height != previous_state.viewport_height ) {
+		previous_state.viewport_width = frame_static.viewport_width;
+		previous_state.viewport_height = frame_static.viewport_height;
 		glViewport( 0, 0, frame_static.viewport_width, frame_static.viewport_height );
 	}
 
@@ -564,7 +561,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	TracyGpuZone( "Set pipeline state" );
 
 	// overwrite fbo
-	if( pipeline.target.fbo != prev_pipeline.target.fbo ) {
+	if( pipeline.target.fbo != previous_state.pipeline.target.fbo ) {
 		if( pipeline.target.fbo == 0 ) {
 			glBindFramebuffer( GL_DRAW_FRAMEBUFFER, render_passes[ pipeline.pass ].target.fbo );
 		}
@@ -573,14 +570,14 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		}
 	}
 
-	if( pipeline.shader != NULL && ( prev_pipeline.shader == NULL || pipeline.shader->program != prev_pipeline.shader->program ) ) {
+	if( pipeline.shader != NULL && ( previous_state.pipeline.shader == NULL || pipeline.shader->program != previous_state.pipeline.shader->program ) ) {
 		glUseProgram( pipeline.shader->program );
 	}
 
 	// uniforms
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->uniforms ); i++ ) {
 		u64 name_hash = pipeline.shader->uniforms[ i ];
-		UniformBlock prev_block = prev_bindings.uniforms[ i ];
+		UniformBlock prev_block = previous_state.uniforms[ i ];
 
 		bool found = prev_block.size == 0;
 		if( name_hash != 0 ) {
@@ -589,7 +586,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 					UniformBlock block = pipeline.uniforms[ j ].block;
 					if( block.offset != prev_block.offset || block.size != prev_block.size || block.ubo != prev_block.ubo ) {
 						glBindBufferRange( GL_UNIFORM_BUFFER, i, block.ubo, block.offset, block.size );
-						prev_bindings.uniforms[ i ] = block;
+						previous_state.uniforms[ i ] = block;
 					}
 					found = true;
 					break;
@@ -599,7 +596,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 
 		if( !found ) {
 			glBindBufferBase( GL_UNIFORM_BUFFER, i, 0 );
-			prev_bindings.uniforms[ i ] = { };
+			previous_state.uniforms[ i ] = { };
 		}
 	}
 
@@ -607,7 +604,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->textures ); i++ ) {
 		u64 name_hash = pipeline.shader->textures[ i ];
 		GLenum tex_unit = GL_TEXTURE0 + i;
-		const Texture * prev_texture = prev_bindings.textures[ i ];
+		const Texture * prev_texture = previous_state.textures[ i ];
 
 		bool found = prev_texture == NULL;
 		if( name_hash != 0 ) {
@@ -622,7 +619,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 						if( prev_texture != NULL && texture->msaa != prev_texture->msaa ) {
 							glBindTexture( other_target, 0 );
 						}
-						prev_bindings.textures[ i ] = texture;
+						previous_state.textures[ i ] = texture;
 					}
 					found = true;
 					break;
@@ -634,7 +631,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 			glActiveTexture( tex_unit );
 			glBindTexture( GL_TEXTURE_2D, 0 );
 			glBindTexture( GL_TEXTURE_2D_MULTISAMPLE, 0 );
-			prev_bindings.textures[ i ] = { };
+			previous_state.textures[ i ] = { };
 		}
 	}
 
@@ -642,7 +639,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->texture_buffers ); i++ ) {
 		u64 name_hash = pipeline.shader->texture_buffers[ i ];
 		GLenum tex_unit = GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + i;
-		TextureBuffer prev_texture = prev_bindings.texture_buffers[ i ];
+		TextureBuffer prev_texture = previous_state.texture_buffers[ i ];
 
 		bool found = prev_texture.texture == 0;
 		if( name_hash != 0 ) {
@@ -652,7 +649,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 					if( texture.texture != prev_texture.texture ) {
 						glActiveTexture( tex_unit );
 						glBindTexture( GL_TEXTURE_BUFFER, texture.texture );
-						prev_bindings.texture_buffers[ i ] = texture;
+						previous_state.texture_buffers[ i ] = texture;
 					}
 					found = true;
 					break;
@@ -663,7 +660,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		if( !found ) {
 			glActiveTexture( tex_unit );
 			glBindTexture( GL_TEXTURE_BUFFER, 0 );
-			prev_bindings.texture_buffers[ i ] = { };
+			previous_state.texture_buffers[ i ] = { };
 		}
 	}
 
@@ -671,7 +668,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->texture_arrays ); i++ ) {
 		u64 name_hash = pipeline.shader->texture_arrays[ i ];
 		GLenum tex_unit = GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + ARRAY_COUNT( pipeline.shader->texture_buffers ) + i;
-		TextureArray prev_texture = prev_bindings.texture_arrays[ i ];
+		TextureArray prev_texture = previous_state.texture_arrays[ i ];
 
 		bool found = prev_texture.texture == 0;
 		if( name_hash != 0 ) {
@@ -681,7 +678,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 					if( texture.texture != prev_texture.texture ) {
 						glActiveTexture( tex_unit );
 						glBindTexture( GL_TEXTURE_2D_ARRAY, texture.texture );
-						prev_bindings.texture_arrays[ i ] = texture;
+						previous_state.texture_arrays[ i ] = texture;
 					}
 					found = true;
 					break;
@@ -692,17 +689,17 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		if( !found ) {
 			glActiveTexture( tex_unit );
 			glBindTexture( GL_TEXTURE_2D_ARRAY, 0 );
-			prev_bindings.texture_arrays[ i ] = { };
+			previous_state.texture_arrays[ i ] = { };
 		}
 	}
 
 	// alpha blending
-	if( pipeline.blend_func != prev_pipeline.blend_func ) {
+	if( pipeline.blend_func != previous_state.pipeline.blend_func ) {
 		if( pipeline.blend_func == BlendFunc_Disabled ) {
 			glDisable( GL_BLEND );
 		}
 		else {
-			if( prev_pipeline.blend_func == BlendFunc_Disabled ) {
+			if( previous_state.pipeline.blend_func == BlendFunc_Disabled ) {
 				glEnable( GL_BLEND );
 			}
 			if( pipeline.blend_func == BlendFunc_Blend ) {
@@ -718,12 +715,12 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	}
 
 	// depth testing
-	if( pipeline.depth_func != prev_pipeline.depth_func ) {
+	if( pipeline.depth_func != previous_state.pipeline.depth_func ) {
 		if( pipeline.depth_func == DepthFunc_Disabled ) {
 			glDisable( GL_DEPTH_TEST );
 		}
 		else {
-			if( prev_pipeline.depth_func == DepthFunc_Disabled ) {
+			if( previous_state.pipeline.depth_func == DepthFunc_Disabled ) {
 				glEnable( GL_DEPTH_TEST );
 			}
 			glDepthFunc( DepthFuncToGL( pipeline.depth_func ) );
@@ -735,12 +732,12 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		pipeline.cull_face = pipeline.cull_face == CullFace_Front ? CullFace_Back : CullFace_Front;
 	}
 
-	if( pipeline.cull_face != prev_pipeline.cull_face ) {
+	if( pipeline.cull_face != previous_state.pipeline.cull_face ) {
 		if( pipeline.cull_face == CullFace_Disabled ) {
 			glDisable( GL_CULL_FACE );
 		}
 		else {
-			if( prev_pipeline.cull_face == CullFace_Disabled ) {
+			if( previous_state.pipeline.cull_face == CullFace_Disabled ) {
 				glEnable( GL_CULL_FACE );
 			}
 			glCullFace( pipeline.cull_face == CullFace_Front ? GL_FRONT : GL_BACK );
@@ -750,7 +747,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	// viewport
 	u32 viewport_width = frame_static.viewport_width;
 	u32 viewport_height = frame_static.viewport_height;
-	if( pipeline.viewport_width != prev_pipeline.viewport_width || pipeline.viewport_height != prev_pipeline.viewport_height ) {
+	if( pipeline.viewport_width != previous_state.pipeline.viewport_width || pipeline.viewport_height != previous_state.pipeline.viewport_height ) {
 		if( pipeline.viewport_width != 0 || pipeline.viewport_height != 0 ) {
 			viewport_width = pipeline.viewport_width;
 			viewport_height = pipeline.viewport_height;
@@ -759,13 +756,13 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	}
 
 	// scissor
-	if( pipeline.scissor != prev_pipeline.scissor ) {
+	if( pipeline.scissor != previous_state.pipeline.scissor ) {
 		PipelineState::Scissor s = pipeline.scissor;
 		if( s.x == 0 && s.y == 0 && s.w == 0 && s.h == 0 ) {
 			glDisable( GL_SCISSOR_TEST );
 		}
 		else {
-			PipelineState::Scissor old = prev_pipeline.scissor;
+			PipelineState::Scissor old = previous_state.pipeline.scissor;
 			if( old.x == 0 && old.y == 0 && old.w == 0 && old.h == 0 ) {
 				glEnable( GL_SCISSOR_TEST );
 			}
@@ -778,12 +775,12 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	}
 
 	// depth writing
-	if( pipeline.write_depth != prev_pipeline.write_depth ) {
+	if( pipeline.write_depth != previous_state.pipeline.write_depth ) {
 		glDepthMask( pipeline.write_depth ? GL_TRUE : GL_FALSE );
 	}
 
 	// depth clamping
-	if( pipeline.clamp_depth != prev_pipeline.clamp_depth ) {
+	if( pipeline.clamp_depth != previous_state.pipeline.clamp_depth ) {
 		if( pipeline.clamp_depth ) {
 			glEnable( GL_DEPTH_CLAMP );
 		} else {
@@ -792,13 +789,13 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	}
 
 	// view weapon depth hack
-	if( pipeline.view_weapon_depth_hack != prev_pipeline.view_weapon_depth_hack ) {
+	if( pipeline.view_weapon_depth_hack != previous_state.pipeline.view_weapon_depth_hack ) {
 		float far = pipeline.view_weapon_depth_hack ? 0.3f : 1.0f;
 		glDepthRange( 0.0f, far );
 	}
 
 	// polygon fill mode
-	if( pipeline.wireframe != prev_pipeline.wireframe ) {
+	if( pipeline.wireframe != previous_state.pipeline.wireframe ) {
 		if( pipeline.wireframe ) {
 			glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 			glEnable( GL_POLYGON_OFFSET_LINE );
@@ -810,7 +807,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		}
 	}
 
-	prev_pipeline = pipeline;
+	previous_state.pipeline = pipeline;
 }
 
 static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
@@ -861,16 +858,16 @@ static void SetupRenderPass( const RenderPass & pass ) {
 	}
 
 	const Framebuffer & fb = pass.target;
-	if( fb.fbo != prev_fbo ) {
+	if( fb.fbo != previous_state.fbo ) {
 		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, fb.fbo );
-		prev_fbo = fb.fbo;
+		previous_state.fbo = fb.fbo;
 
 		u32 viewport_width = fb.fbo == 0 ? frame_static.viewport_width : fb.width;
 		u32 viewport_height = fb.fbo == 0 ? frame_static.viewport_height : fb.height;
 
-		if( viewport_width != prev_viewport_width || viewport_height != prev_viewport_height ) {
-			prev_viewport_width = viewport_width;
-			prev_viewport_height = viewport_height;
+		if( viewport_width != previous_state.viewport_width || viewport_height != previous_state.viewport_height ) {
+			previous_state.viewport_width = viewport_width;
+			previous_state.viewport_height = viewport_height;
 			glViewport( 0, 0, viewport_width, viewport_height );
 		}
 	}
@@ -884,10 +881,10 @@ static void SetupRenderPass( const RenderPass & pass ) {
 	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
 	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
 	if( clear_mask != 0 ) {
-		PipelineState::Scissor scissor = prev_pipeline.scissor;
+		PipelineState::Scissor scissor = previous_state.pipeline.scissor;
 		if( scissor.x != 0 || scissor.y != 0 || scissor.w != 0 || scissor.h != 0 ) {
 			glDisable( GL_SCISSOR_TEST );
-			prev_pipeline.scissor = { };
+			previous_state.pipeline.scissor = { };
 		}
 
 		if( pass.clear_color ) {
@@ -895,9 +892,9 @@ static void SetupRenderPass( const RenderPass & pass ) {
 		}
 
 		if( pass.clear_depth ) {
-			if( !prev_pipeline.write_depth ) {
+			if( !previous_state.pipeline.write_depth ) {
 				glDepthMask( GL_TRUE );
-				prev_pipeline.write_depth = true;
+				previous_state.pipeline.write_depth = true;
 			}
 			glClearDepth( pass.depth );
 		}
@@ -926,10 +923,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		return;
 	}
 
-	if( prev_vao != dc.mesh.vao ) {
-		glBindVertexArray( dc.mesh.vao );
-		prev_vao = dc.mesh.vao;
-	}
+	glBindVertexArray( dc.mesh.vao );
 	GLenum primitive = PrimitiveTypeToGL( dc.mesh.primitive_type );
 
 	if( dc.num_instances != 0 ) {
@@ -986,6 +980,8 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	else {
 		glDrawArrays( primitive, dc.index_offset, dc.num_vertices );
 	}
+
+	glBindVertexArray( 0 );
 }
 
 void RenderBackendSubmitFrame() {
@@ -1035,7 +1031,7 @@ void RenderBackendSubmitFrame() {
 	{
 		// OBS captures the game with glBlitFramebuffer which gets
 		// nuked by scissor, so turn it off at the end of every frame
-		PipelineState no_scissor_test = prev_pipeline;
+		PipelineState no_scissor_test = previous_state.pipeline;
 		no_scissor_test.scissor = { };
 		SetPipelineState( no_scissor_test, true );
 	}
@@ -1696,7 +1692,7 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 		shader->uniforms[ i ] = Hash64( name, len );
 	}
 
-	prev_pipeline.shader = NULL;
+	previous_state.pipeline.shader = NULL;
 	glUseProgram( 0 );
 
 	return true;
@@ -1706,8 +1702,8 @@ void DeleteShader( Shader shader ) {
 	if( shader.program == 0 )
 		return;
 
-	if( prev_pipeline.shader != NULL && prev_pipeline.shader->program == shader.program ) {
-		prev_pipeline.shader = NULL;
+	if( previous_state.pipeline.shader != NULL && previous_state.pipeline.shader->program == shader.program ) {
+		previous_state.pipeline.shader = NULL;
 		glUseProgram( 0 );
 	}
 
@@ -1990,7 +1986,7 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, BlendFunc blend
 void DownloadFramebuffer( void * buf ) {
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 	glReadPixels( 0, 0, frame_static.viewport_width, frame_static.viewport_height, GL_RGB, GL_UNSIGNED_BYTE, buf );
-	prev_fbo = 0;
+	previous_state.fbo = 0;
 }
 
 void DrawInstancedParticles( VertexBuffer vb, const Model * model, u32 num_particles ) {

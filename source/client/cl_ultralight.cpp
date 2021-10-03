@@ -252,6 +252,7 @@ public:
 	u32 NextGeometryId() override {
 		return next_geometry_id++;
 	}
+
 	void CreateGeometry( u32 geometry_id, const ul::VertexBuffer & vertices, const ul::IndexBuffer & indices ) override {
 		ZoneScoped;
 		Mesh mesh = { };
@@ -625,13 +626,7 @@ static void RenderUltralightView( ul::RefPtr< ul::View > view, bool is_inspector
 			Vec3( view->width(), top + view->height(), 0 ),
 		};
 
-		Vec2 half_pixel = 0.5f / frame_static.viewport;
-		Vec2 uvs[] = {
-			Vec2( half_pixel.x, half_pixel.y ),
-			Vec2( 1.0f - half_pixel.x, half_pixel.y ),
-			Vec2( half_pixel.x, 1.0f - half_pixel.y ),
-			Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
-		};
+		constexpr Vec2 uvs[] = { Vec2( 0.0f, 0.0f ), Vec2( 1.0f, 0.0f ), Vec2( 0.0f, 1.0f ), Vec2( 1.0f, 1.0f ) };
 		constexpr RGBA8 colors[] = { rgba8_white, rgba8_white, rgba8_white, rgba8_white };
 
 		u16 base_index = DynamicMeshBaseIndex();

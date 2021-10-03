@@ -33,13 +33,19 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
 	entchannel &= ~CHAN_FIXED;
 
 	StringHash sfx = GetPlayerSound( entnum, ps );
+
+	float pitch = 1.0f;
+	if( ps == PlayerSound_Death || ps == PlayerSound_Pain25 || ps == PlayerSound_Pain50 || ps == PlayerSound_Pain75 || ps == PlayerSound_Pain100 || ps == PlayerSound_WallJump ) {
+		pitch = 1.0f / cg_entities[ entnum ].current.scale;
+	}
+
 	if( fixed ) {
-		S_StartFixedSound( sfx, cg_entities[entnum].current.origin, entchannel, 1.0f );
+		S_StartFixedSound( sfx, cg_entities[entnum].current.origin, entchannel, 1.0f, pitch );
 	}
 	else if( ISVIEWERENTITY( entnum ) ) {
-		S_StartGlobalSound( sfx, entchannel, 1.0f );
+		S_StartGlobalSound( sfx, entchannel, 1.0f, pitch );
 	}
 	else {
-		S_StartEntitySound( sfx, entnum, entchannel, 1.0f );
+		S_StartEntitySound( sfx, entnum, entchannel, 1.0f, pitch );
 	}
 }

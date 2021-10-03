@@ -6,7 +6,7 @@ const bool is_dedicated_server = true;
 
 void Sys_InitTime();
 
-void ShowErrorAndAbortImpl( const char * msg, const char * file, int line ) {
+void ShowErrorAndAbort( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
 	abort();
 }

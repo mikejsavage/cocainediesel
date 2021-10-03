@@ -72,6 +72,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->mass = ent->mass;
 	body->r.owner = ent->r.owner;
 	body->s.team = ent->s.team;
+	body->s.scale = ent->s.scale;
 	body->r.svflags = SVF_CORPSE | SVF_BROADCAST;
 	body->activator = ent;
 	if( g_deadbody_followkiller->integer ) {
@@ -278,12 +279,9 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	client->resp.timeStamp = level.time;
 	client->ps.playerNum = PLAYERNUM( self );
 
-	// clear entity values
-	memset( &self->snap, 0, sizeof( self->snap ) );
-	memset( &self->s, 0, sizeof( self->s ) );
-	memset( &self->olds, 0, sizeof( self->olds ) );
-
-	self->s.number = self->olds.number = ENTNUM( self );
+	int old_svflags = self->r.svflags;
+	G_InitEdict( self );
+	self->r.svflags = old_svflags;
 
 	// relink client struct
 	self->r.client = &game.clients[PLAYERNUM( self )];
@@ -291,13 +289,11 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	// update team
 	self->s.team = client->team;
 
-	self->deadflag = DEAD_NO;
 	self->groundentity = NULL;
 	self->takedamage = DAMAGE_AIM;
 	self->die = player_die;
 	self->viewheight = playerbox_stand_viewheight;
 	self->r.inuse = true;
-	self->mass = PLAYER_MASS;
 	self->r.clipmask = MASK_PLAYERSOLID;
 	self->waterlevel = 0;
 	self->watertype = 0;
@@ -379,6 +375,8 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 
 	GT_CallPlayerRespawned( self, old_team, self->s.team );
+
+	self->mass = PLAYER_MASS * self->s.scale;
 }
 
 bool G_PlayerCanTeleport( edict_t *player ) {
@@ -928,6 +926,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	memset( &pm, 0, sizeof( pmove_t ) );
 	pm.playerState = &client->ps;
 	pm.cmd = *ucmd;
+	pm.scale = ent->s.scale;
 
 	// perform a pmove
 	Pmove( &server_gs, &pm );

@@ -653,48 +653,6 @@ static void CG_DrawObituaries(
 
 //=============================================================================
 
-void CG_ClearAwards() {
-	cg.award_head = 0;
-	memset( cg.award_times, 0, sizeof( cg.award_times ) );
-}
-
-static void CG_DrawAwards( int x, int y, Alignment alignment, float font_size, Vec4 color, bool border ) {
-	if( !cg.award_head ) {
-		return;
-	}
-
-	int count;
-	for( count = 0; count < MAX_AWARD_LINES; count++ ) {
-		int current = ( ( cg.award_head - 1 ) - count );
-		if( current < 0 ) {
-			break;
-		}
-
-		if( cg.award_times[current % MAX_AWARD_LINES] + MAX_AWARD_DISPLAYTIME < cl.serverTime ) {
-			break;
-		}
-
-		if( !cg.award_lines[current % MAX_AWARD_LINES][0] ) {
-			break;
-		}
-	}
-
-	if( !count ) {
-		return;
-	}
-
-	y = CG_VerticalAlignForHeight( y, alignment, font_size * MAX_AWARD_LINES );
-
-	for( int i = count; i > 0; i-- ) {
-		int current = ( cg.award_head - i ) % MAX_AWARD_LINES;
-		const char *str = cg.award_lines[ current ];
-
-		int yoffset = font_size * ( MAX_AWARD_LINES - i );
-
-		DrawText( GetHUDFont(), font_size, str, alignment, x, y + yoffset, color, border );
-	}
-}
-
 static bool CG_LFuncDrawCallvote( cg_layoutnode_t *argumentnode ) {
 	const char * vote = cgs.configStrings[ CS_CALLVOTE ];
 	if( strlen( vote ) == 0 )
@@ -1192,11 +1150,6 @@ static bool CG_LFuncDrawObituaries( cg_layoutnode_t *argumentnode ) {
 	return true;
 }
 
-static bool CG_LFuncDrawAwards( cg_layoutnode_t *argumentnode ) {
-	CG_DrawAwards( layout_cursor_x, layout_cursor_y, layout_cursor_alignment, layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
-	return true;
-}
-
 static bool CG_LFuncDrawClock( cg_layoutnode_t *argumentnode ) {
 	CG_DrawClock( layout_cursor_x, layout_cursor_y, layout_cursor_alignment, GetHUDFont(), layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
 	return true;
@@ -1423,13 +1376,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 		CG_LFuncDrawObituaries,
 		2,
 		"Draws graphical death messages",
-	},
-
-	{
-		"drawAwards",
-		CG_LFuncDrawAwards,
-		0,
-		"Draws award messages",
 	},
 
 	{

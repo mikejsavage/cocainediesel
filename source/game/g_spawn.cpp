@@ -332,7 +332,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	G_SpawnQueue_Init();
 	G_Teams_Init();
 
-	G_Gametype_Init();
+	InitGametype();
 
 	G_PrecacheGameCommands(); // adding commands after this point won't update them to the client
 
@@ -366,6 +366,7 @@ void G_ResetLevel() {
 }
 
 void G_RespawnLevel() {
+	ShutdownGametype();
 	G_InitLevel( sv.mapname, level.time );
 }
 

@@ -65,6 +65,18 @@ static cvar_t * g_bomb_defusetime;
 static const u32 max_sites = 26;
 static const int countdown_max = 6;
 
+struct BombSite {
+	edict_t * indicator;
+	edict_t * hud;
+	char letter;
+};
+
+struct Loadout {
+	WeaponType weapons[ WeaponCategory_Count ];
+	GadgetType gadget;
+	PerkType perk;
+};
+
 static struct {
 	bool round_check_end;
 	s64 round_start_time;
@@ -79,7 +91,7 @@ static struct {
 
 	// TODO: player.as
 	u32 kills_this_round[ MAX_CLIENTS ];
-	WeaponType loadouts[ MAX_CLIENTS ][ WeaponCategory_Count ];
+	Loadout loadouts[ MAX_CLIENTS ];
 
 	s32 carrier;
 	s64 carrier_can_plant_time;
@@ -96,11 +108,7 @@ static struct {
 		bool killed_everyone;
 	} bomb;
 
-	struct {
-		edict_t * indicator;
-		edict_t * hud;
-		char letter;
-	} sites[ max_sites ];
+	BombSite sites[ max_sites ];
 	u32 num_sites;
 	u32 site;
 } bomb_state;
@@ -111,7 +119,6 @@ static void BombSetCarrier( s32 player_num, bool no_sound );
 static void RoundWonBy( int winner );
 static void RoundNewState( RoundState state );
 static void SetTeamProgress( int team, int percent, BombProgress type );
-static edict_t * RandomEntity( StringHash classname );
 static void UpdateScore( s32 player_num );
 
 static void Show( edict_t * ent ) {
@@ -132,10 +139,10 @@ static bool EntCanSee( edict_t * ent, Vec3 point ) {
 
 static s32 FirstNearbyTeammate( Vec3 origin, int team ) {
 	int touch[ MAX_EDICTS ];
-	int num_touch = GClip_FindInRadius( origin, bomb_arm_defuse_radius, touch, MAX_EDICTS );
+	int num_touch = GClip_FindInRadius( origin, bomb_arm_defuse_radius, touch, ARRAY_COUNT( touch ) );
 	for( int i = 0; i < num_touch; i++ ) {
 		edict_t * ent = &game.edicts[ touch[ i ] ];
-		if( ent->r.client == NULL || ent->s.team != team || G_ISGHOSTING( ent ) || EntCanSee( ent, origin ) ) {
+		if( ent->s.type != ET_PLAYER || ent->s.team != team || G_ISGHOSTING( ent ) || !EntCanSee( ent, origin ) ) {
 			continue;
 		}
 
@@ -152,16 +159,22 @@ static void Announce( BombAnnouncement announcement ) {
 // player.as
 
 static void GiveInventory( edict_t * ent ) {
+	ClearInventory( &ent->r.client->ps );
+
+	const Loadout & loadout = bomb_state.loadouts[ PLAYERNUM( ent ) ];
+
 	G_GiveWeapon( ent, Weapon_Knife );
-	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		WeaponType weapon = bomb_state.loadouts[ PLAYERNUM( ent ) ][ i ];
-		if( weapon != Weapon_None ) {
-			G_GiveWeapon( ent, weapon );
-		}
+	for( u32 category = 0; category < WeaponCategory_Count; category++ ) {
+		WeaponType weapon = loadout.weapons[ category ];
+		G_GiveWeapon( ent, weapon );
 	}
 
-	G_SelectWeapon( ent, 0 );
 	G_SelectWeapon( ent, 1 );
+
+	if( loadout.perk == Perk_Midget ) {
+		ent->s.scale = 0.625f;
+		ent->health = 62.5f;
+	}
 }
 
 static void ShowShop( s32 player_num ) {
@@ -173,7 +186,7 @@ static void ShowShop( s32 player_num ) {
 	DynamicString command( &temp, "changeloadout" );
 
 	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		WeaponType weapon = bomb_state.loadouts[ player_num ][ i ];
+		WeaponType weapon = bomb_state.loadouts[ player_num ].weapons[ i ];
 		if( weapon != Weapon_None ) {
 			command.append( " {}", weapon );
 		}
@@ -182,32 +195,38 @@ static void ShowShop( s32 player_num ) {
 	PF_GameCmd( PLAYERENT( player_num ), command.c_str() );
 }
 
-static void SetLoadout( edict_t * ent, Span< const char > loadout ) {
-	int player_num = PLAYERNUM( ent );
+static void SetLoadout( edict_t * ent, Span< const char > loadout_string ) {
+	Loadout loadout = { };
 
 	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		int weapon = ParseInt( &loadout, 0, Parse_DontStopOnNewLine );
+		int weapon = ParseInt( &loadout_string, 0, Parse_DontStopOnNewLine );
 		if( weapon == Weapon_None ) {
 			break;
 		}
 
-		if( weapon < Weapon_None || weapon >= Weapon_Count || weapon == Weapon_Knife ) {
+		if( weapon <= Weapon_None || weapon >= Weapon_Count || weapon == Weapon_Knife ) {
 			return;
 		}
+
 		WeaponCategory category = GS_GetWeaponDef( WeaponType( weapon ) )->category;
 
-		bomb_state.loadouts[ player_num ][ category ] = WeaponType( weapon );
+		loadout.weapons[ category ] = WeaponType( weapon );
 	}
+
+	loadout.gadget = Gadget_None;
+	loadout.perk = Perk_None;
 
 	TempAllocator temp = svs.frame_arena.temp();
 	DynamicString command( &temp, "saveloadout" );
 
 	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		WeaponType weapon = bomb_state.loadouts[ player_num ][ i ];
+		WeaponType weapon = loadout.weapons[ i ];
 		if( weapon != Weapon_None ) {
 			command.append( " {}", weapon );
 		}
 	}
+
+	bomb_state.loadouts[ PLAYERNUM( ent ) ] = loadout;
 
 	PF_GameCmd( ent, command.c_str() );
 
@@ -268,20 +287,24 @@ static void SpawnBombSite( edict_t * ent ) {
 
 	char letter = 'A' + i;
 
-	bomb_state.sites[ i ].indicator = ent;
-	bomb_state.sites[ i ].indicator->s.model = EMPTY_HASH;
-	bomb_state.sites[ i ].indicator->nextThink = level.time + 1;
-	bomb_state.sites[ i ].indicator->s.team = 0;
-	GClip_LinkEntity( bomb_state.sites[ i ].indicator );
+	BombSite * site = &bomb_state.sites[ i ];
 
-	bomb_state.sites[ i ].hud = G_Spawn();
-	bomb_state.sites[ i ].hud->classname = "hud_bomb_site";
-	bomb_state.sites[ i ].hud->s.type = ET_BOMB_SITE;
-	bomb_state.sites[ i ].hud->r.solid = SOLID_NOT;
-	bomb_state.sites[ i ].hud->s.origin = bomb_state.sites[ i ].indicator->s.origin;
-	bomb_state.sites[ i ].hud->r.svflags = SVF_BROADCAST;
-	bomb_state.sites[ i ].hud->s.counterNum = letter;
-	GClip_LinkEntity( bomb_state.sites[ i ].hud );
+	site->indicator = ent;
+	site->indicator->s.model = EMPTY_HASH;
+	site->indicator->nextThink = level.time + 1;
+	site->indicator->s.team = 0;
+	GClip_LinkEntity( site->indicator );
+
+	site->hud = G_Spawn();
+	site->hud->classname = "hud_bomb_site";
+	site->hud->s.type = ET_BOMB_SITE;
+	site->hud->r.solid = SOLID_NOT;
+	site->hud->s.origin = bomb_state.sites[ i ].indicator->s.origin;
+	site->hud->r.svflags = SVF_BROADCAST;
+	site->hud->s.counterNum = letter;
+	GClip_LinkEntity( site->hud );
+
+	site->letter = letter;
 
 	bomb_state.num_sites++;
 }
@@ -525,12 +548,14 @@ static void BombDefused() {
 	bomb_state.bomb.model->s.sound = EMPTY_HASH;
 	bomb_state.bomb.hud->s.animating = false;
 
+	Hide( bomb_state.bomb.hud );
+
 	Announce( BombAnnouncement_Defused );
 
 	bomb_state.bomb.state = BombState_Idle;
 
 	TempAllocator temp = svs.frame_arena.temp();
-	G_PrintMsg( NULL, "%s defused the bomb!", PLAYERENT( bomb_state.defuser )->r.client->netname );
+	G_PrintMsg( NULL, "%s defused the bomb!\n", PLAYERENT( bomb_state.defuser )->r.client->netname );
 
 	G_Sound( bomb_state.bomb.model, CHAN_AUTO, "models/bomb/tss" );
 
@@ -578,7 +603,7 @@ static void BombThink() {
 		case BombState_Dropped: {
 			// respawn bomb if it falls in the void
 			if( bomb_state.bomb.model->s.origin.z < -1024.0f ) {
-				bomb_state.bomb.model->s.origin = RandomEntity( "spawn_bomb_attacking" )->s.origin;
+				bomb_state.bomb.model->s.origin = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" )->s.origin;
 				bomb_state.bomb.model->velocity = Vec3( 0.0f );
 				bomb_state.bomb.model->s.teleported = true;
 
@@ -647,7 +672,7 @@ static void BombThink() {
 
 		case BombState_Exploding: {
 			// BombSiteStepExplosion( bomb_state.site );
-			if( level.time - server_gs.gameState.bomb.exploded_at >= 1000 && bomb_state.bomb.killed_everyone ) {
+			if( level.time - server_gs.gameState.bomb.exploded_at >= 1000 && !bomb_state.bomb.killed_everyone ) {
 				bomb_state.bomb.model->projectileInfo.maxDamage = 1.0f;
 				bomb_state.bomb.model->projectileInfo.minDamage = 1.0f;
 				bomb_state.bomb.model->projectileInfo.maxKnockback = 400.0f;
@@ -664,6 +689,8 @@ static void BombThink() {
 				bomb_state.bomb.killed_everyone = true;
 			}
 		} break;
+
+		default: break;
 	}
 }
 
@@ -713,6 +740,13 @@ static void BombGiveToRandom() {
 // round.as
 
 static void RespawnAllPlayers( bool ghost = false ) {
+	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+		edict_t * ent = PLAYERENT( i );
+		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
+			GClip_UnlinkEntity( ent );
+		}
+	}
+
 	for( int i = 0; i < MAX_CLIENTS; i++ ) {
 		edict_t * ent = PLAYERENT( i );
 		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
@@ -1012,22 +1046,6 @@ static void RoundThink() {
 	}
 }
 
-static edict_t * RandomEntity( StringHash classname ) {
-	edict_t * ent = NULL;
-	DynamicArray< edict_t * > ent_list( sys_allocator );
-	while( true ) {
-		ent = G_Find( ent, &edict_t::classname, classname );
-		if( ent == NULL ) {
-			break;
-		}
-		ent_list.add( ent );
-	}
-	if( ent_list.size() == 0 ) {
-		return NULL;
-	}
-	return RandomElement( &svs.rng, ent_list.ptr(), ent_list.size() );
-}
-
 // main.as
 
 static void UpdateScore( s32 player_num ) {
@@ -1077,28 +1095,28 @@ static bool GT_Bomb_Command( gclient_t * client, const char * cmd_, const char *
 }
 
 static edict_t * GT_Bomb_SelectSpawnPoint( edict_t * ent ) {
-	edict_t * spawn = RandomEntity( "spawn_gladiator" );
-	if( spawn != NULL ) {
-		return spawn;
-	}
 	if( ent->s.team == bomb_state.attacking_team ) {
-		spawn = RandomEntity( "spawn_bomb_attacking" );
+		edict_t * spawn = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" );
 		if( spawn != NULL ) {
 			return spawn;
 		}
-		return RandomEntity( "team_CTF_betaspawn" );
+		return G_PickRandomEnt( &edict_t::classname, "team_CTF_betaspawn" );
 	}
 
-	spawn = RandomEntity( "spawn_bomb_defending" );
+	edict_t * spawn = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_defending" );
 	if( spawn != NULL ) {
 		return spawn;
 	}
-	return RandomEntity( "team_CTF_alphaspawn" );
+	return G_PickRandomEnt( &edict_t::classname, "team_CTF_alphaspawn" );
 }
 
 static void GT_Bomb_PlayerConnected( edict_t * ent ) {
-	char * loadout = Info_ValueForKey( ent->r.client->userinfo, "cg_loadout" );
-	if( loadout != NULL ) {
+	const char * loadout = Info_ValueForKey( ent->r.client->userinfo, "cg_loadout" );
+	if( loadout == NULL ) {
+		String< 128 > easy_loadout( "{} {} {}", Weapon_RocketLauncher, Weapon_Shotgun, Weapon_StakeGun );
+		SetLoadout( ent, easy_loadout.span() );
+	}
+	else {
 		SetLoadout( ent, MakeSpan( loadout ) );
 	}
 }
@@ -1307,7 +1325,7 @@ static bool GT_Bomb_SpawnEntity( StringHash classname, edict_t * ent ) {
 }
 
 Gametype GetBombGametype() {
-	Gametype gt;
+	Gametype gt = { };
 
 	gt.Init = GT_Bomb_InitGametype;
 	gt.Init2 = GT_Bomb_SpawnGametype;

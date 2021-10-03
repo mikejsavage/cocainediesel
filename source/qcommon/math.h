@@ -33,6 +33,10 @@ inline float Square( float x ) {
 	return x * x;
 }
 
+inline float Cube( float x ) {
+	return x * x * x;
+}
+
 template< typename T >
 T Lerp( T a, float t, T b ) {
 	return a * ( 1.0f - t ) + b * t;

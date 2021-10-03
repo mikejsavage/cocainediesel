@@ -50,7 +50,7 @@ void AI_SpawnBot() {
 		return;
 
 	ent->think = NULL;
-	ent->nextThink = level.time + 500 + RandomUniform( &svs.rng, 0, 2000 );
+	ent->nextThink = level.time;
 	ent->classname = "bot";
 	ent->die = player_die;
 

@@ -67,6 +67,7 @@ struct pmove_t {
 
 	// command (in)
 	UserCommand cmd;
+	float scale;
 
 	// results (out)
 	int numtouch;

@@ -107,7 +107,7 @@ static void CG_InitGameShared() {
 }
 
 static void CG_RegisterVariables() {
-	cg_showMiss =       Cvar_Get( "cg_showMiss", "0", 0 );
+	cg_showMiss    = Cvar_Get( "cg_showMiss", "0", 0 );
 
 	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
 	cg_colorBlind  = Cvar_Get( "cg_colorBlind", "0", CVAR_ARCHIVE );
@@ -164,8 +164,6 @@ static void CG_RegisterConfigStrings() {
 void CG_Reset() {
 	CG_ResetPModels();
 
-	CG_ResetKickAngles();
-
 	CG_SC_ResetObituaries();
 
 	// start up announcer events queue from clean
@@ -174,8 +172,6 @@ void CG_Reset() {
 	CG_ClearInputState();
 
 	CG_ClearPointedNum();
-
-	CG_ClearAwards();
 
 	CG_InitDamageNumbers();
 	InitDecals();

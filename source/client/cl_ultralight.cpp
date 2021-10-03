@@ -13,6 +13,7 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
+#include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "cgame/cg_local.h"
 
@@ -483,6 +484,13 @@ static void ToggleInspector() {
 	show_inspector = !show_inspector;
 }
 
+struct ShitFucker : public ul::LoadListener {
+	void OnFinishLoading( ul::View * caller, uint64_t frame_id, bool is_main_frame, const ul::String & url ) {
+		RegisterEngineAPI();
+	}
+};
+static ShitFucker shitfucker;
+
 void CL_Ultralight_Init() {
 	ZoneScoped;
 
@@ -513,10 +521,9 @@ void CL_Ultralight_Init() {
 
 	renderer = ul::Renderer::Create();
 	view = renderer->CreateView( frame_static.viewport_width, frame_static.viewport_height, true, nullptr );
+	view->set_load_listener( &shitfucker );
 	view->LoadURL( "file:///menu.html#ultralight" );
 	view->Focus();
-
-	RegisterEngineAPI();
 }
 
 void CL_Ultralight_Shutdown() {
@@ -571,12 +578,26 @@ static void DrawMenu( JSContextRef ctx ) {
 
 void UltralightBeginFrame() {
 	ZoneScoped;
+
+	bool hotload = false;
+	for( const char * path : ModifiedAssetPaths() ) {
+		Span< const char > ext = FileExtension( path );
+
+		if( ext == ".html" || ext == ".css" || ext == ".js" ) {
+			hotload = true;
+		}
+	}
+
 	if( show_inspector ) {
 		view->Resize( frame_static.viewport_width, frame_static.viewport_height - frame_static.viewport_height / 3 );
 		view->inspector()->Resize( frame_static.viewport_width, frame_static.viewport_height / 3 );
 	}
 	else {
 		view->Resize( frame_static.viewport_width, frame_static.viewport_height );
+	}
+
+	if( hotload ) {
+		view->Reload();
 	}
 }
 

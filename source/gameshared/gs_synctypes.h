@@ -2,8 +2,8 @@
 
 #include "qcommon/types.h"
 
-#define MAX_CLIENTS                 16
-#define MAX_EDICTS                  1024        // must change protocol to increase more
+constexpr int MAX_CLIENTS = 16;
+constexpr int MAX_EDICTS = 1024; // must change protocol to increase more
 
 enum MatchState : u8 {
 	MatchState_Warmup,

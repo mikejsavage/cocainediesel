@@ -11,29 +11,29 @@
  * ints
  */
 
-typedef int8_t s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
+using s8 = int8_t;
+using s16 = int16_t;
+using s32 = int32_t;
+using s64 = int64_t;
 
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
+using u8 = uint8_t;
+using u16 = uint16_t;
+using u32 = uint32_t;
+using u64 = uint64_t;
 
-#define S8_MAX s8( INT8_MAX )
-#define S16_MAX s16( INT16_MAX )
-#define S32_MAX s32( INT32_MAX )
-#define S64_MAX s64( INT64_MAX )
-#define S8_MIN s8( INT8_MIN )
-#define S16_MIN s16( INT16_MIN )
-#define S32_MIN s32( INT32_MIN )
-#define S64_MIN s64( INT64_MIN )
+constexpr s8 S8_MAX = INT8_MAX;
+constexpr s16 S16_MAX = INT16_MAX;
+constexpr s32 S32_MAX = INT32_MAX;
+constexpr s64 S64_MAX = INT64_MAX;
+constexpr s8 S8_MIN = INT8_MIN;
+constexpr s16 S16_MIN = INT16_MIN;
+constexpr s32 S32_MIN = INT32_MIN;
+constexpr s64 S64_MIN = INT64_MIN;
 
-#define U8_MAX u8( UINT8_MAX )
-#define U16_MAX u16( UINT16_MAX )
-#define U32_MAX u32( UINT32_MAX )
-#define U64_MAX u64( UINT64_MAX )
+constexpr u8 U8_MAX = UINT8_MAX;
+constexpr u16 U16_MAX = UINT16_MAX;
+constexpr u32 U32_MAX = UINT32_MAX;
+constexpr u64 U64_MAX = UINT64_MAX;
 
 #define S8 INT8_C
 #define S16 INT16_C

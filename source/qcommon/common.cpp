@@ -421,43 +421,6 @@ void Key_Init();
 void Key_Shutdown();
 
 /*
-* Q_malloc
-*
-* Just like malloc(), but die if allocation fails
-*/
-void *Q_malloc( size_t size ) {
-	void *buf = malloc( size );
-
-	if( !buf ) {
-		Fatal( "Q_malloc: failed on allocation of %" PRIuPTR " bytes.\n", (uintptr_t)size );
-	}
-
-	return buf;
-}
-
-/*
-* Q_realloc
-*
-* Just like realloc(), but die if reallocation fails
-*/
-void *Q_realloc( void *buf, size_t newsize ) {
-	void *newbuf = realloc( buf, newsize );
-
-	if( !newbuf && newsize ) {
-		Fatal( "Q_realloc: failed on allocation of %" PRIuPTR " bytes.\n", (uintptr_t)newsize );
-	}
-
-	return newbuf;
-}
-
-/*
-* Q_free
-*/
-void Q_free( void *buf ) {
-	free( buf );
-}
-
-/*
 * Qcommon_InitCommands
 */
 void Qcommon_InitCommands() {

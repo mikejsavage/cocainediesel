@@ -644,10 +644,6 @@ extern mempool_t *zoneMemPool;
 #define Mem_TempMalloc( size ) Mem_Alloc( tempMemPool, size )
 #define Mem_TempFree( data ) Mem_Free( data )
 
-void *Q_malloc( size_t size );
-void *Q_realloc( void *buf, size_t newsize );
-void Q_free( void *buf );
-
 void Qcommon_Init( int argc, char **argv );
 void Qcommon_Frame( unsigned int realMsec );
 void Qcommon_Shutdown();
@@ -659,13 +655,6 @@ NON-PORTABLE SYSTEM SERVICES
 
 ==============================================================
 */
-
-// directory searching
-#define SFF_ARCH    0x01
-#define SFF_HIDDEN  0x02
-#define SFF_RDONLY  0x04
-#define SFF_SUBDIR  0x08
-#define SFF_SYSTEM  0x10
 
 void Sys_Init();
 void ShowErrorAndAbort( const char * msg, const char * file, int line );

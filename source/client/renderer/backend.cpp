@@ -80,7 +80,6 @@ static PipelineState prev_pipeline;
 static GLuint prev_fbo;
 static u32 prev_viewport_width;
 static u32 prev_viewport_height;
-static u32 prev_vao;
 
 static struct {
 	UniformBlock uniforms[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
@@ -776,9 +775,7 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 		return a.pipeline.pass < b.pipeline.pass;
 	if( !render_passes[ a.pipeline.pass ].sorted )
 		return false;
-	if( a.pipeline.shader != b.pipeline.shader )
-		return a.pipeline.shader < b.pipeline.shader;
-	return a.mesh.vao < b.mesh.vao;
+	return a.pipeline.shader < b.pipeline.shader;
 }
 
 static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
@@ -879,10 +876,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 
 	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
 
-	if( prev_vao != dc.mesh.vao ) {
-		glBindVertexArray( dc.mesh.vao );
-		prev_vao = dc.mesh.vao;
-	}
+	glBindVertexArray( dc.mesh.vao );
 	GLenum primitive = PrimitiveTypeToGL( dc.mesh.primitive_type );
 
 	if( dc.num_instances != 0 ) {
@@ -939,6 +933,8 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	else {
 		glDrawArrays( primitive, dc.index_offset, dc.num_vertices );
 	}
+
+	glBindVertexArray( 0 );
 }
 
 void RenderBackendSubmitFrame() {

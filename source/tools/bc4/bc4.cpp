@@ -8,7 +8,7 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_resize.h"
 
-void ShowErrorAndAbortImpl( const char * msg, const char * file, int line ) {
+void ShowErrorAndAbort( const char * msg, const char * file, int line ) {
 	printf( "%s\n", msg );
 	abort();
 }

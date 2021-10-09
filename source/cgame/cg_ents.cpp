@@ -545,7 +545,7 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	bool fixed = ( cent->current.channel & CHAN_FIXED ) != 0;
 
 	if( cent->current.svflags & SVF_BROADCAST ) {
-		S_StartGlobalSound( cent->current.sound, channel, 1.0f );
+		S_StartGlobalSound( cent->current.sound, channel, 1.0f, 1.0f );
 		return;
 	}
 
@@ -564,13 +564,13 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 
 	if( fixed ) {
-		S_StartFixedSound( cent->current.sound, cent->current.origin, channel, 1.0f );
+		S_StartFixedSound( cent->current.sound, cent->current.origin, channel, 1.0f, 1.0f );
 	}
 	else if( ISVIEWERENTITY( owner ) ) {
-		S_StartGlobalSound( cent->current.sound, channel, 1.0f );
+		S_StartGlobalSound( cent->current.sound, channel, 1.0f, 1.0f );
 	}
 	else {
-		S_StartEntitySound( cent->current.sound, owner, channel, 1.0f );
+		S_StartEntitySound( cent->current.sound, owner, channel, 1.0f, 1.0f );
 	}
 }
 
@@ -622,22 +622,26 @@ static void CG_UpdateSpikes( centity_t * cent ) {
 	int64_t old_delta = cg.oldFrame.serverTime - cent->current.linearMovementTimeStamp;
 	int64_t delta = cg.frame.serverTime - cent->current.linearMovementTimeStamp;
 
-	if( old_delta < 0 && delta >= 0 ) {
-		S_StartEntitySound( "sounds/spikes/arm", cent->current.number, CHAN_AUTO, 1.0f );
+	if( old_delta <= 0 && delta >= 0 ) {
+		S_StartEntitySound( "sounds/spikes/arm", cent->current.number, CHAN_AUTO, 1.0f, 1.0f );
 	}
 	else if( old_delta < 1000 && delta >= 1000 ) {
-		S_StartEntitySound( "sounds/spikes/retract", cent->current.number, CHAN_AUTO, 1.0f );
+		S_StartEntitySound( "sounds/spikes/deploy", cent->current.number, CHAN_AUTO, 1.0f, 1.0f );
 	}
 	else if( old_delta < 1050 && delta >= 1050 ) {
-		S_StartEntitySound( "sounds/spikes/glint", cent->current.number, CHAN_AUTO, 1.0f );
+		S_StartEntitySound( "sounds/spikes/glint", cent->current.number, CHAN_AUTO, 1.0f, 1.0f );
 	}
 	else if( old_delta < 1500 && delta >= 1500 ) {
-		S_StartEntitySound( "sounds/spikes/retract", cent->current.number, CHAN_AUTO, 1.0f );
+		S_StartEntitySound( "sounds/spikes/retract", cent->current.number, CHAN_AUTO, 1.0f, 1.0f );
 	}
 }
 
 void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
-	cent->sound = S_ImmediateEntitySound( state->sound, state->number, 1.0f, cent->sound );
+	cent->sound = S_ImmediateEntitySound( state->sound, state->number, 1.0f, 1.0f, true, cent->sound );
+}
+
+static void CG_PlayVsay( centity_t * cent ) {
+	cent->vsay_sound = S_ImmediateEntitySound( EMPTY_HASH, cent->current.number, 1.0f, 1.0f, false, cent->vsay_sound );
 }
 
 static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
@@ -719,6 +723,7 @@ void DrawEntities() {
 				CG_AddPlayerEnt( cent );
 				CG_EntityLoopSound( cent, state );
 				CG_LaserBeamEffect( cent );
+				CG_PlayVsay( cent );
 				break;
 
 			case ET_CORPSE:
@@ -757,7 +762,7 @@ void DrawEntities() {
 
 			case ET_LASER:
 				CG_AddLaserEnt( cent );
-				cent->sound = S_ImmediateLineSound( state->sound, cent->interpolated.origin, cent->interpolated.origin2, 1.0f, cent->sound );
+				cent->sound = S_ImmediateLineSound( state->sound, cent->interpolated.origin, cent->interpolated.origin2, 1.0f, 1.0f, cent->sound );
 
 			case ET_SPIKES:
 				DrawEntityModel( cent );
@@ -840,10 +845,6 @@ void CG_LerpEntities() {
 				Com_Error( "CG_LerpEntities: unknown entity type" );
 				break;
 		}
-
-		Vec3 origin, velocity;
-		CG_GetEntitySpatialization( number, &origin, &velocity );
-		S_UpdateEntity( number, origin, velocity );
 	}
 }
 
@@ -924,26 +925,5 @@ void CG_UpdateEntities() {
 				Com_Error( "CG_UpdateEntities: unknown entity type %i", cent->type );
 				break;
 		}
-	}
-}
-
-void CG_GetEntitySpatialization( int entNum, Vec3 * origin, Vec3 * velocity ) {
-	const centity_t * cent = &cg_entities[ entNum ];
-
-	if( velocity != NULL ) {
-		*velocity = cent->velocity;
-	}
-
-	const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, cent->current.model );
-	if( cmodel == NULL ) {
-		if( origin != NULL ) {
-			*origin = cent->interpolated.origin;
-		}
-	}
-	else {
-		Vec3 mins, maxs;
-		CM_InlineModelBounds( cl.cms, cmodel, &mins, &maxs );
-		*origin = maxs + mins;
-		*origin = cent->interpolated.origin + *origin * 0.5f;
 	}
 }

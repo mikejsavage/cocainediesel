@@ -1062,7 +1062,6 @@ static void PM_FlyMove( bool doclip ) {
 }
 
 static void PM_AdjustBBox() {
-	float crouchFrac;
 	trace_t trace;
 
 	if( pm->playerState->pmove.pm_type >= PM_FREEZE ) {
@@ -1088,10 +1087,10 @@ static void PM_AdjustBBox() {
 
 		pm->playerState->pmove.crouch_time = Clamp( 0, pm->playerState->pmove.crouch_time + pm->cmd.msec, CROUCHTIME );
 
-		crouchFrac = (float)pm->playerState->pmove.crouch_time / (float)CROUCHTIME;
-		pm->mins = Lerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins );
-		pm->maxs = Lerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs );
-		pm->playerState->viewheight = playerbox_stand_viewheight - ( crouchFrac * ( playerbox_stand_viewheight - playerbox_crouch_viewheight ) );
+		float crouchFrac = (float)pm->playerState->pmove.crouch_time / (float)CROUCHTIME;
+		pm->mins = pm->scale * Lerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins );
+		pm->maxs = pm->scale * Lerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs );
+		pm->playerState->viewheight = pm->scale * Lerp( playerbox_stand_viewheight, crouchFrac, playerbox_crouch_viewheight );
 
 		// it's going down, so, no need of checking for head-chomping
 		return;
@@ -1099,15 +1098,11 @@ static void PM_AdjustBBox() {
 
 	// it's crouched, but not pressing the crouch button anymore, try to stand up
 	if( pm->playerState->pmove.crouch_time != 0 ) {
-		Vec3 curmins, curmaxs, wishmins, wishmaxs;
-		float curviewheight, wishviewheight;
-		int newcrouchtime;
-
 		// find the current size
-		crouchFrac = (float)pm->playerState->pmove.crouch_time / (float)CROUCHTIME;
-		curmins = Lerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins );
-		curmaxs = Lerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs );
-		curviewheight = playerbox_stand_viewheight - ( crouchFrac * ( playerbox_stand_viewheight - playerbox_crouch_viewheight ) );
+		float crouchFrac = (float)pm->playerState->pmove.crouch_time / (float)CROUCHTIME;
+		Vec3 curmins = pm->scale * Lerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins );
+		Vec3 curmaxs = pm->scale * Lerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs );
+		float curviewheight = pm->scale * Lerp( playerbox_stand_viewheight, crouchFrac, playerbox_crouch_viewheight );
 
 		if( !pm->cmd.msec ) { // no need to continue
 			pm->mins = curmins;
@@ -1117,11 +1112,11 @@ static void PM_AdjustBBox() {
 		}
 
 		// find the desired size
-		newcrouchtime = Clamp( 0, pm->playerState->pmove.crouch_time - pm->cmd.msec, CROUCHTIME );
+		int newcrouchtime = Clamp( 0, pm->playerState->pmove.crouch_time - pm->cmd.msec, CROUCHTIME );
 		crouchFrac = (float)newcrouchtime / (float)CROUCHTIME;
-		wishmins = Lerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins );
-		wishmaxs = Lerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs );
-		wishviewheight = playerbox_stand_viewheight - ( crouchFrac * ( playerbox_stand_viewheight - playerbox_crouch_viewheight ) );
+		Vec3 wishmins = pm->scale * Lerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins );
+		Vec3 wishmaxs = pm->scale * Lerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs );
+		float wishviewheight = pm->scale * Lerp( playerbox_stand_viewheight, crouchFrac, playerbox_crouch_viewheight );
 
 		// check that the head is not blocked
 		pmove_gs->api.Trace( &trace, pml.origin, wishmins, wishmaxs, pml.origin, pm->playerState->POVnum, pm->contentmask, 0 );
@@ -1142,9 +1137,9 @@ static void PM_AdjustBBox() {
 	}
 
 	// the player is not crouching at all
-	pm->mins = playerbox_stand_mins;
-	pm->maxs = playerbox_stand_maxs;
-	pm->playerState->viewheight = playerbox_stand_viewheight;
+	pm->mins = pm->scale * playerbox_stand_mins;
+	pm->maxs = pm->scale * playerbox_stand_maxs;
+	pm->playerState->viewheight = pm->scale * playerbox_stand_viewheight;
 }
 
 static void PM_UpdateDeltaAngles() {

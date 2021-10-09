@@ -1,33 +1,11 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
+#include "qcommon/fs.h"
 #include "qcommon/string.h"
 
 #include "game/g_local.h"
 
 #include "qcommon/cmodel.h"
-
-static const char * maps[] = {
-	"gladiator/001",
-	"gladiator/002",
-	"gladiator/003",
-	"gladiator/004",
-	"gladiator/005",
-	"gladiator/006",
-	"gladiator/007",
-	// "gladiator/008",
-	"gladiator/009",
-	"gladiator/010",
-	"gladiator/011",
-	"gladiator/012",
-	"gladiator/013",
-	"gladiator/014",
-	"gladiator/015",
-	"gladiator/016",
-	"gladiator/017",
-	"gladiator/018",
-	"gladiator/019",
-	// "gladiator/020",
-};
 
 enum GladiatorRoundState {
 	GladiatorRoundState_None,
@@ -47,7 +25,6 @@ static struct GladiatorState {
 	NonRAIIDynamicArray< s32 > round_losers;
 	s32 round_winner;
 	bool randomise;
-	edict_t * last_spawn;
 } gladiator_state;
 
 static constexpr int countdown_seconds = 2;
@@ -252,7 +229,27 @@ static void EndGame() {
 void G_Aasdf(); // TODO
 static void PickRandomArena() {
 	if( gladiator_state.randomise ) {
-		G_LoadMap( RandomElement( &svs.rng, maps ) );
+		TempAllocator temp = svs.frame_arena.temp();
+
+		const char * maps_dir = temp( "{}/base/maps/gladiator", RootDirPath() );
+		DynamicArray< const char * > maps( &temp );
+
+		ListDirHandle scan = BeginListDir( sys_allocator, maps_dir );
+
+		const char * name;
+		bool dir;
+		while( ListDirNext( &scan, &name, &dir ) ) {
+			// skip ., .., .git, etc
+			if( name[ 0 ] == '.' || dir )
+				continue;
+
+			if( FileExtension( name ) != ".bsp" && FileExtension( name ) != ".bsp.zst" )
+				continue;
+
+			maps.add( temp( "gladiator/{}", StripExtension( name ) ) );
+		}
+
+		G_LoadMap( RandomElement( &svs.rng, maps.begin(), maps.size() ) );
 		G_Aasdf();
 	}
 }
@@ -285,7 +282,6 @@ static void DoSpinner() {
 }
 
 static void NewRound() {
-	gladiator_state.last_spawn = NULL;
 	PickRandomArena();
 	server_gs.gameState.round_num++;
 	NewRoundState( GladiatorRoundState_Pre );
@@ -329,6 +325,13 @@ static void NewRoundState( GladiatorRoundState newState ) {
 			}
 
 			// respawn all clients
+			for( int i = 0; i < MAX_CLIENTS; i++ ) {
+				edict_t * ent = PLAYERENT( i );
+				if( PF_GetClientState( i ) >= CS_SPAWNED ) {
+					GClip_UnlinkEntity( ent );
+				}
+			}
+
 			for( size_t i = 0; i < num_players; i++ ) {
 				s32 player_num = server_gs.gameState.teams[ TEAM_PLAYERS ].player_indices[ i ] - 1;
 				edict_t * ent = PLAYERENT( player_num );
@@ -420,17 +423,38 @@ static void NewRoundState( GladiatorRoundState newState ) {
 // --------------
 
 static edict_t * GT_Gladiator_SelectSpawnPoint( edict_t * ent ) {
-	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
-		return NULL;
+	edict_t * spawn = NULL;
+	edict_t * cursor = NULL;
+	float max_dist = 0.0f;
+
+	while( ( cursor = G_Find( cursor, &edict_t::classname, "spawn_gladiator" ) ) != NULL ) {
+		float min_dist = -1.0f;
+		for( edict_t * player = game.edicts + 1; PLAYERNUM( player ) < server_gs.maxclients; player++ ) {
+			if( player == ent || G_IsDead( player ) || player->s.team <= TEAM_SPECTATOR || PF_GetClientState( PLAYERNUM( player ) ) < CS_SPAWNED ) {
+				continue;
+			}
+
+			float dist = Length( player->s.origin - cursor->s.origin );
+			if( min_dist == -1.0f || dist < min_dist ) {
+				min_dist = dist;
+			}
+		}
+
+		if( min_dist == -1.0 ) { //If no player is spawned, pick a random spawn
+			spawn = G_PickRandomEnt( &edict_t::classname, "spawn_gladiator" );
+			break;
+		}
+
+		if( spawn == NULL || max_dist < min_dist ) {
+			max_dist = min_dist;
+			spawn = cursor;
+		}
 	}
-	edict_t * spawn = G_Find( gladiator_state.last_spawn, &edict_t::classname, "spawn_gladiator" );
-	if( spawn == NULL ) {
-		spawn = G_Find( NULL, &edict_t::classname, "spawn_gladiator" );
-	}
-	gladiator_state.last_spawn = spawn;
+
 	if( spawn == NULL ) {
 		Com_GGPrint( "null spawn btw" );
 	}
+
 	return spawn;
 }
 
@@ -532,8 +556,6 @@ static void GT_Gladiator_InitGametype() {
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
 		G_SpawnQueue_SetTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
 	}
-	gladiator_state.last_spawn = NULL;
-
 	gladiator_state.randomise = G_GetWorldspawnKey( "randomise_arena" ) != "";
 
 	PickRandomArena();
@@ -543,6 +565,11 @@ static void GT_Gladiator_Shutdown() {
 	gladiator_state.challengers_queue.shutdown();
 	gladiator_state.round_challengers.shutdown();
 	gladiator_state.round_losers.shutdown();
+
+	if( gladiator_state.randomise ) {
+		G_LoadMap( "gladiator" );
+		G_Aasdf();
+	}
 }
 
 static bool GT_Gladiator_SpawnEntity( StringHash classname, edict_t * ent ) {
@@ -555,18 +582,15 @@ static bool GT_Gladiator_SpawnEntity( StringHash classname, edict_t * ent ) {
 }
 
 Gametype GetGladiatorGametype() {
-	Gametype gt;
+	Gametype gt = { };
 
 	gt.Init = GT_Gladiator_InitGametype;
-	gt.Init2 = NULL;
 	gt.MatchStateStarted = GT_Gladiator_MatchStateStarted;
 	gt.MatchStateFinished = GT_Gladiator_MatchStateFinished;
 	gt.Think = GT_Gladiator_ThinkRules;
-	gt.PlayerRespawning = NULL;
 	gt.PlayerRespawned = GT_Gladiator_PlayerRespawned;
 	gt.PlayerKilled = GT_Gladiator_PlayerKilled;
 	gt.SelectSpawnPoint = GT_Gladiator_SelectSpawnPoint;
-	gt.Command = NULL;
 	gt.Shutdown = GT_Gladiator_Shutdown;
 	gt.SpawnEntity = GT_Gladiator_SpawnEntity;
 

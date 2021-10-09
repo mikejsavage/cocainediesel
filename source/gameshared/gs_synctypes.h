@@ -2,8 +2,8 @@
 
 #include "qcommon/types.h"
 
-#define MAX_CLIENTS                 16
-#define MAX_EDICTS                  1024        // must change protocol to increase more
+constexpr int MAX_CLIENTS = 16;
+constexpr int MAX_EDICTS = 1024; // must change protocol to increase more
 
 enum MatchState : u8 {
 	MatchState_Warmup,
@@ -84,6 +84,14 @@ enum GadgetType : u8 {
 	Gadget_StunGrenade,
 
 	Gadget_Count
+};
+
+enum PerkType : u8 {
+	Perk_None,
+
+	Perk_Midget,
+
+	Perk_Count
 };
 
 enum WeaponState : u8 {
@@ -205,7 +213,7 @@ struct SyncEvent {
 };
 
 struct SyncEntityState {
-	int number;                         // edict index
+	int number;
 
 	unsigned int svflags;
 
@@ -237,24 +245,24 @@ struct SyncEntityState {
 	SyncEvent events[ 2 ];
 
 	int counterNum;                 // ET_GENERIC
-	int targetNum;                  // ET_EVENT specific
 	RGBA8 silhouetteColor;
-	int radius;                     // ET_GLADIATOR always extended, ET_BOMB state, EV_BLOOD damage, ...
+	int radius;                     // spikes always extended, BombDown stuff, EV_BLOOD damage, ...
 
 	bool linearMovement;
-	Vec3 linearMovementVelocity;      // this is transmitted instead of origin when linearProjectile is true
-	Vec3 linearMovementEnd;           // the end movement point for brush models
-	Vec3 linearMovementBegin;			// the starting movement point for brush models
+	Vec3 linearMovementVelocity;
+	Vec3 linearMovementEnd;
+	Vec3 linearMovementBegin;
 	unsigned int linearMovementDuration;
 	int64_t linearMovementTimeStamp;
 	int linearMovementTimeDelta;
 
-	WeaponType weapon;                  // WEAP_ for players
+	WeaponType weapon;
 	bool teleported;
+	float scale;
 
-	StringHash sound;                          // for looping sounds, to guarantee shutoff
+	StringHash sound;
 
-	int team;                           // team in the game
+	int team;
 };
 
 struct pmove_state_t {

@@ -228,9 +228,6 @@ void G_Match_ToggleReady( edict_t *ent );
 void G_Match_CheckReadys();
 void G_EndMatch();
 
-void G_Gametype_Init();
-void G_RunGametype();
-
 //
 // g_spawnpoints.c
 //
@@ -310,6 +307,7 @@ void G_AddCommand( const char *name, gamecommandfunc_t cmdfunc );
 bool KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback );
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );
 edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash value );
+edict_t * G_PickRandomEnt( StringHash edict_t::* field, StringHash value );
 edict_t * G_PickTarget( StringHash name );
 void G_UseTargets( edict_t *ent, edict_t *activator );
 void G_SetMovedir( Vec3 * angles, Vec3 * movedir );
@@ -581,12 +579,6 @@ void G_RespawnLevel();
 void G_ResetLevel();
 void G_InitLevel( const char *mapname, int64_t levelTime );
 void G_LoadMap( const char * name );
-
-//
-// g_awards.c
-//
-void G_PlayerAward( edict_t *ent, const char *awardMsg );
-void G_AwardRaceRecord( edict_t *self );
 
 //============================================================================
 

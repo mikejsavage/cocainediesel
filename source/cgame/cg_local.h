@@ -95,6 +95,8 @@ struct centity_t {
 	ImmediateSoundHandle lg_beam_sound;
 	ImmediateSoundHandle lg_tip_sound;
 
+	ImmediateSoundHandle vsay_sound;
+
 	bool linearProjectileCanDraw;
 	Vec3 linearProjectileViewerSource;
 	Vec3 linearProjectileViewerVelocity;
@@ -146,17 +148,7 @@ struct cgs_media_t {
 	const Material * shaderReady;
 };
 
-#define MAX_ANGLES_KICKS 3
-
-struct cg_kickangles_t {
-	int64_t timestamp;
-	int64_t kicktime;
-	float v_roll, v_pitch;
-};
-
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
-#define MAX_AWARD_LINES 3
-#define MAX_AWARD_DISPLAYTIME 5000
 
 // view types
 enum {
@@ -264,18 +256,8 @@ struct cg_state_t {
 	int bobCycle;                   // odd cycles are right foot going forward
 	float bobFracSin;               // sin(bobfrac*M_PI)
 
-	//
-	// kick angles and color blend effects
-	//
-
-	cg_kickangles_t kickangles[MAX_ANGLES_KICKS];
 	int64_t fallEffectTime;
 	int64_t fallEffectRebounceTime;
-
-	// awards
-	char award_lines[MAX_AWARD_LINES][MAX_CONFIGSTRING_CHARS];
-	int64_t award_times[MAX_AWARD_LINES];
-	int award_head;
 
 	cg_viewweapon_t weapon;
 	cg_viewdef_t view;
@@ -302,7 +284,6 @@ const cmodel_t *CG_CModelForEntity( int entNum );
 
 void CG_SoundEntityNewState( centity_t *cent );
 void DrawEntities();
-void CG_GetEntitySpatialization( int entNum, Vec3 * origin, Vec3 * velocity );
 void CG_LerpEntities();
 void CG_LerpGenericEnt( centity_t *cent );
 
@@ -383,7 +364,6 @@ void CG_ShutdownHUD();
 void CG_SC_ResetObituaries();
 void CG_SC_Obituary();
 void CG_DrawHUD();
-void CG_ClearAwards();
 
 //
 // cg_scoreboard.c
@@ -400,6 +380,7 @@ extern cvar_t *developer;
 extern cvar_t *cg_showClamp;
 extern cvar_t *cg_showHotkeys;
 extern cvar_t *cg_colorBlind;
+extern cvar_t *cg_voicePitch;
 
 // wsw
 extern cvar_t *cg_autoaction_demo;
@@ -429,7 +410,6 @@ void CG_Precache();
 
 void CG_RegisterCGameCommands();
 void CG_UnregisterCGameCommands();
-void CG_AddAward( const char *str );
 
 const char * PlayerName( int i );
 
@@ -467,14 +447,11 @@ extern cvar_t *cg_thirdPerson;
 extern cvar_t *cg_thirdPersonAngle;
 extern cvar_t *cg_thirdPersonRange;
 
-void CG_ResetKickAngles();
-
 void CG_StartFallKickEffect( int bounceTime );
 void CG_ViewSmoothPredictedSteps( Vec3 * vieworg );
 float CG_ViewSmoothFallKick();
 float CG_CalcViewFov();
 void CG_RenderView( unsigned extrapolationTime );
-Vec3 CG_GetKickAngles();
 bool CG_ChaseStep( int step );
 bool CG_SwitchChaseCamMode();
 

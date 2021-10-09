@@ -9,7 +9,7 @@ bool break2 = false;
 bool break3 = false;
 bool break4 = false;
 
-void Fatal( const char * format, ... ) {
+void FatalImpl( const char * file, int line, const char * format, ... ) {
 	va_list argptr;
 	char msg[ 1024 ];
 
@@ -17,7 +17,7 @@ void Fatal( const char * format, ... ) {
 	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
-	ShowErrorAndAbort( msg );
+	ShowErrorAndAbort( msg, file, line );
 }
 
 void FatalErrno( const char * msg ) {

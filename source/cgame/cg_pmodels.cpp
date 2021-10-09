@@ -744,7 +744,7 @@ static Mat4 TransformTag( const Model * model, const Mat4 & transform, const Mat
 	return transform * model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
 }
 
-void CG_DrawPlayer( centity_t *cent ) {
+void CG_DrawPlayer( centity_t * cent ) {
 	pmodel_t * pmodel = &cg_entPModels[ cent->current.number ];
 	const PlayerModelMetadata * meta = GetPlayerModelMetadata( cent->current.number );
 	if( meta == NULL )
@@ -815,7 +815,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	MatrixPalettes pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 
-	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin );
+	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->current.scale );
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	if( corpse ) {
@@ -844,7 +844,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 	if( cent->current.weapon != Weapon_None ) {
 		const Model * weapon_model = GetWeaponModelMetadata( cent->current.weapon )->model;
 		if( weapon_model != NULL ) {
-			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon );
+			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon ) * Mat4Scale( 1.0f / cent->current.scale );
 
 			if( draw_model )
 				DrawModel( weapon_model, tag_transform, vec4_white );

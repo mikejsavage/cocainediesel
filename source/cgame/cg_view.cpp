@@ -164,33 +164,6 @@ static void CG_FlashGameWindow() {
 	}
 }
 
-Vec3 CG_GetKickAngles() {
-	Vec3 angles = Vec3( 0.0f );
-
-	for( int i = 0; i < MAX_ANGLES_KICKS; i++ ) {
-		if( cl.serverTime > cg.kickangles[i].timestamp + cg.kickangles[i].kicktime ) {
-			continue;
-		}
-
-		float time = (float)( ( cg.kickangles[i].timestamp + cg.kickangles[i].kicktime ) - cl.serverTime );
-		float uptime = ( (float)cg.kickangles[i].kicktime ) * 0.5f;
-		float delta = 1.0f - ( Abs( time - uptime ) / uptime );
-
-		//CG_Printf("Kick Delta:%f\n", delta );
-		if( delta > 1.0f ) {
-			delta = 1.0f;
-		}
-		if( delta <= 0.0f ) {
-			continue;
-		}
-
-		angles.x += cg.kickangles[i].v_pitch * delta;
-		angles.z += cg.kickangles[i].v_roll * delta;
-	}
-
-	return angles;
-}
-
 /*
 * CG_CalcViewFov
 */
@@ -251,13 +224,6 @@ static void CG_CalcViewBob() {
 
 	cg.bobCycle = (int)bobTime;
 	cg.bobFracSin = Abs( sinf( bobTime * PI ) );
-}
-
-/*
-* CG_ResetKickAngles
-*/
-void CG_ResetKickAngles() {
-	memset( cg.kickangles, 0, sizeof( cg.kickangles ) );
 }
 
 /*

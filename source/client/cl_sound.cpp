@@ -9,6 +9,7 @@
 #include "client/assets.h"
 #include "client/sound.h"
 #include "client/threadpool.h"
+#include "cgame/cg_local.h"
 #include "gameshared/gs_public.h"
 
 #define AL_LIBTYPE_STATIC
@@ -31,6 +32,8 @@ struct SoundEffect {
 
 		float delay;
 		float volume;
+		float pitch;
+		float pitch_random;
 		float attenuation;
 	};
 
@@ -52,12 +55,14 @@ struct PlayingSound {
 	int ent_num;
 	int channel;
 	float volume;
+	float pitch;
 
 	u32 entropy;
 	bool has_entropy;
 
 	ImmediateSoundHandle immediate_handle;
 	bool touched_since_last_update;
+	bool loop;
 
 	Vec3 origin;
 	Vec3 end;
@@ -65,11 +70,6 @@ struct PlayingSound {
 	ALuint sources[ ARRAY_COUNT( &SoundEffect::sounds ) ];
 	bool started[ ARRAY_COUNT( &SoundEffect::sounds ) ];
 	bool stopped[ ARRAY_COUNT( &SoundEffect::sounds ) ];
-};
-
-struct EntitySound {
-	Vec3 origin;
-	Vec3 velocity;
 };
 
 static ALCdevice * al_device;
@@ -107,11 +107,9 @@ static u64 immediate_sounds_autoinc;
 static ALuint music_source;
 static bool music_playing;
 
-static EntitySound entities[ MAX_EDICTS ];
-
 constexpr float MusicIsWayTooLoud = 0.25f;
 
-const char *ALErrorMessage( ALenum error ) {
+const char * ALErrorMessage( ALenum error ) {
 	switch( error ) {
 		case AL_NO_ERROR:
 			return "No error";
@@ -298,6 +296,8 @@ static void AddSound( const char * path, int num_samples, int channels, int samp
 		SoundEffect sfx = { };
 		sfx.sounds[ 0 ].sounds[ 0 ] = StringHash( hash );
 		sfx.sounds[ 0 ].volume = 1;
+		sfx.sounds[ 0 ].pitch = 1.0f;
+		sfx.sounds[ 0 ].pitch_random = 0.0f;
 		sfx.sounds[ 0 ].attenuation = ATTN_NORM;
 		sfx.sounds[ 0 ].num_random_sounds = 1;
 		sfx.num_sounds = 1;
@@ -394,12 +394,15 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 			break;
 
 		if( opening_brace != "{" ) {
-			Com_Printf( S_COLOR_YELLOW "Expected {" );
+			Com_Printf( S_COLOR_YELLOW "Expected {\n" );
 			return false;
 		}
 
+
 		SoundEffect::PlaybackConfig * config = &sfx->sounds[ sfx->num_sounds ];
 		config->volume = 1.0f;
+		config->pitch = 1.0f;
+		config->pitch_random = 0.0f;
 		config->attenuation = ATTN_NORM;
 
 		while( true ) {
@@ -438,6 +441,18 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 			else if( key == "volume" ) {
 				if( !TrySpanToFloat( value, &config->volume ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to volume should be a number\n" );
+					return false;
+				}
+			}
+			else if( key == "pitch" ) {
+				if( !TrySpanToFloat( value, &config->pitch ) ) {
+					Com_Printf( S_COLOR_YELLOW "Argument to pitch should be a number\n" );
+					return false;
+				}
+			}
+			else if( key == "pitch_random" ) {
+				if( !TrySpanToFloat( value, &config->pitch_random ) ) {
+					Com_Printf( S_COLOR_YELLOW "Argument to pitch_random should be a number\n" );
 					return false;
 				}
 			}
@@ -537,8 +552,6 @@ bool S_Init() {
 	music_playing = false;
 	initialized = false;
 
-	memset( entities, 0, sizeof( entities ) );
-
 	s_device = Cvar_Get( "s_device", "", CVAR_ARCHIVE );
 	s_device->modified = false;
 	s_volume = Cvar_Get( "s_volume", "1", CVAR_ARCHIVE );
@@ -627,6 +640,10 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 
 	CheckedALSource( source, AL_BUFFER, sound.buf );
 	CheckedALSource( source, AL_GAIN, ps->volume * config.volume * s_volume->value );
+	if( config.pitch_random != 0.0f ) //do we want to call random for each sound ?
+		CheckedALSource( source, AL_PITCH, ps->pitch * config.pitch + ( RandomFloat11( &cls.rng ) * config.pitch_random * config.pitch * ps->pitch ) );
+	else
+		CheckedALSource( source, AL_PITCH, ps->pitch * config.pitch );
 	CheckedALSource( source, AL_REFERENCE_DISTANCE, S_DEFAULT_ATTENUATION_REFDISTANCE );
 	CheckedALSource( source, AL_MAX_DISTANCE, S_DEFAULT_ATTENUATION_MAXDISTANCE );
 	CheckedALSource( source, AL_ROLLOFF_FACTOR, config.attenuation );
@@ -645,8 +662,8 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 			break;
 
 		case PlayingSoundType_Entity:
-			CheckedALSource( source, AL_POSITION, entities[ ps->ent_num ].origin );
-			CheckedALSource( source, AL_VELOCITY, entities[ ps->ent_num ].velocity );
+			CheckedALSource( source, AL_POSITION, cg_entities[ ps->ent_num ].interpolated.origin );
+			CheckedALSource( source, AL_VELOCITY, cg_entities[ ps->ent_num ].velocity );
 			CheckedALSource( source, AL_SOURCE_RELATIVE, AL_FALSE );
 			break;
 
@@ -657,7 +674,7 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 			break;
 	}
 
-	CheckedALSource( source, AL_LOOPING, ps->immediate_handle.x == 0 ? AL_FALSE : AL_TRUE );
+	CheckedALSource( source, AL_LOOPING, ps->immediate_handle.x != 0 && ps->loop ? AL_TRUE : AL_FALSE );
 	CheckedALSourcePlay( source );
 
 	return true;
@@ -755,8 +772,8 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 			}
 
 			if( ps->type == PlayingSoundType_Entity ) {
-				CheckedALSource( ps->sources[ j ], AL_POSITION, entities[ ps->ent_num ].origin );
-				CheckedALSource( ps->sources[ j ], AL_VELOCITY, entities[ ps->ent_num ].velocity );
+				CheckedALSource( ps->sources[ j ], AL_POSITION, cg_entities[ ps->ent_num ].interpolated.origin );
+				CheckedALSource( ps->sources[ j ], AL_VELOCITY, cg_entities[ ps->ent_num ].velocity );
 			}
 			else if( ps->type == PlayingSoundType_Position ) {
 				CheckedALSource( ps->sources[ j ], AL_POSITION, ps->origin );
@@ -774,14 +791,6 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 
 	s_volume->modified = false;
 	s_musicvolume->modified = false;
-}
-
-void S_UpdateEntity( int ent_num, Vec3 origin, Vec3 velocity ) {
-	if( !initialized )
-		return;
-
-	entities[ ent_num ].origin  = origin;
-	entities[ ent_num ].velocity = velocity;
 }
 
 static PlayingSound * FindEmptyPlayingSound( int ent_num, int channel ) {
@@ -806,7 +815,7 @@ static PlayingSound * FindEmptyPlayingSound( int ent_num, int channel ) {
 	return &playing_sound_effects[ num_playing_sound_effects - 1 ];
 }
 
-static PlayingSound * StartSoundEffect( StringHash name, int ent_num, int channel, float volume, PlayingSoundType type ) {
+static PlayingSound * StartSoundEffect( StringHash name, int ent_num, int channel, float volume, float pitch, PlayingSoundType type ) {
 	if( !initialized )
 		return NULL;
 
@@ -827,65 +836,62 @@ static PlayingSound * StartSoundEffect( StringHash name, int ent_num, int channe
 	ps->ent_num = ent_num;
 	ps->channel = channel;
 	ps->volume = volume;
+	ps->pitch = pitch;
 	ps->touched_since_last_update = true;
 
 	return ps;
 }
 
-void S_StartFixedSound( StringHash name, Vec3 origin, int channel, float volume ) {
-	PlayingSound * ps = StartSoundEffect( name, 0, channel, volume, PlayingSoundType_Position );
+void S_StartFixedSound( StringHash name, Vec3 origin, int channel, float volume, float pitch ) {
+	PlayingSound * ps = StartSoundEffect( name, 0, channel, volume, pitch, PlayingSoundType_Position );
 	if( ps == NULL )
 		return;
 	ps->origin = origin;
 }
 
-void S_StartEntitySound( StringHash name, int ent_num, int channel, float volume ) {
-	StartSoundEffect( name, ent_num, channel, volume, PlayingSoundType_Entity );
+void S_StartEntitySound( StringHash name, int ent_num, int channel, float volume, float pitch ) {
+	StartSoundEffect( name, ent_num, channel, volume, pitch, PlayingSoundType_Entity );
 }
 
-void S_StartEntitySound( StringHash name, int ent_num, int channel, float volume, u32 sfx_entropy ) {
-	PlayingSound * ps = StartSoundEffect( name, ent_num, channel, volume, PlayingSoundType_Entity );
+void S_StartEntitySound( StringHash name, int ent_num, int channel, float volume, float pitch, u32 sfx_entropy ) {
+	PlayingSound * ps = StartSoundEffect( name, ent_num, channel, volume, pitch, PlayingSoundType_Entity );
 	if( ps == NULL )
 		return;
 	ps->entropy = sfx_entropy;
 	ps->has_entropy = true;
 }
 
-void S_StartGlobalSound( StringHash name, int channel, float volume ) {
-	StartSoundEffect( name, 0, channel, volume, PlayingSoundType_Global );
+void S_StartGlobalSound( StringHash name, int channel, float volume, float pitch ) {
+	StartSoundEffect( name, 0, channel, volume, pitch, PlayingSoundType_Global );
 }
 
-void S_StartGlobalSound( StringHash name, int channel, float volume, u32 sfx_entropy ) {
-	PlayingSound * ps = StartSoundEffect( name, 0, channel, volume, PlayingSoundType_Global );
+void S_StartGlobalSound( StringHash name, int channel, float volume, float pitch, u32 sfx_entropy ) {
+	PlayingSound * ps = StartSoundEffect( name, 0, channel, volume, pitch, PlayingSoundType_Global );
 	if( ps == NULL )
 		return;
 	ps->entropy = sfx_entropy;
 	ps->has_entropy = true;
 }
 
-void S_StartLocalSound( StringHash name, int channel, float volume ) {
-	StartSoundEffect( name, -1, channel, volume, PlayingSoundType_Global );
+void S_StartLocalSound( StringHash name, int channel, float volume, float pitch ) {
+	StartSoundEffect( name, -1, channel, volume, pitch, PlayingSoundType_Global );
 }
 
-void S_StartLineSound( StringHash name, Vec3 start, Vec3 end, int channel, float volume ) {
-	PlayingSound * ps = StartSoundEffect( name, -1, channel, volume, PlayingSoundType_Line );
+void S_StartLineSound( StringHash name, Vec3 start, Vec3 end, int channel, float volume, float pitch) {
+	PlayingSound * ps = StartSoundEffect( name, -1, channel, volume, pitch, PlayingSoundType_Line );
 	if( ps == NULL )
 		return;
 	ps->origin = start;
 	ps->end = end;
 }
 
-static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, float volume, PlayingSoundType type, ImmediateSoundHandle handle ) {
-	const SoundEffect * sfx = FindSoundEffect( name );
-	if( sfx == NULL )
-		return { 0 };
-
+static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, float volume, float pitch, bool loop, u32 sfx_entropy, PlayingSoundType type, ImmediateSoundHandle handle ) {
 	u64 idx;
 	if( handle.x != 0 && immediate_sounds_hashtable.get( handle.x, &idx ) ) {
 		playing_sound_effects[ idx ].touched_since_last_update = true;
 	}
 	else {
-		PlayingSound * ps = StartSoundEffect( name, ent_num, CHAN_AUTO, volume, type );
+		PlayingSound * ps = StartSoundEffect( name, ent_num, CHAN_AUTO, volume, pitch, type );
 		if( ps == NULL )
 			return { 0 };
 
@@ -896,6 +902,8 @@ static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, f
 			immediate_sounds_autoinc++;
 
 		ps->immediate_handle = handle;
+		ps->loop = loop;
+		ps->entropy = sfx_entropy;
 		idx = ps - playing_sound_effects;
 
 		immediate_sounds_hashtable.add( handle.x, idx );
@@ -904,12 +912,16 @@ static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, f
 	return handle;
 }
 
-ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, ImmediateSoundHandle handle ) {
-	return StartImmediateSound( name, ent_num, volume, PlayingSoundType_Entity, handle );
+ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, bool loop, ImmediateSoundHandle handle ) {
+	return StartImmediateSound( name, ent_num, volume, pitch, loop, 0, PlayingSoundType_Entity, handle );
 }
 
-ImmediateSoundHandle S_ImmediateFixedSound( StringHash name, Vec3 origin, float volume, ImmediateSoundHandle handle ) {
-	handle = StartImmediateSound( name, -1, volume, PlayingSoundType_Position, handle );
+ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, bool loop, u32 sfx_entropy, ImmediateSoundHandle handle ) {
+	return StartImmediateSound( name, ent_num, volume, pitch, loop, sfx_entropy, PlayingSoundType_Entity, handle );
+}
+
+ImmediateSoundHandle S_ImmediateFixedSound( StringHash name, Vec3 origin, float volume, float pitch, ImmediateSoundHandle handle ) {
+	handle = StartImmediateSound( name, -1, volume, pitch, true, 0, PlayingSoundType_Position, handle );
 	if( handle.x == 0 )
 		return handle;
 
@@ -923,8 +935,8 @@ ImmediateSoundHandle S_ImmediateFixedSound( StringHash name, Vec3 origin, float 
 	return handle;
 }
 
-ImmediateSoundHandle S_ImmediateLineSound( StringHash name, Vec3 start, Vec3 end, float volume, ImmediateSoundHandle handle ) {
-	handle = StartImmediateSound( name, -1, volume, PlayingSoundType_Line, handle );
+ImmediateSoundHandle S_ImmediateLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch, ImmediateSoundHandle handle ) {
+	handle = StartImmediateSound( name, -1, volume, pitch, true, 0, PlayingSoundType_Line, handle );
 	if( handle.x == 0 )
 		return handle;
 

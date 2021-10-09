@@ -80,6 +80,14 @@ static PipelineState prev_pipeline;
 static GLuint prev_fbo;
 static u32 prev_viewport_width;
 static u32 prev_viewport_height;
+static u32 prev_vao;
+
+static struct {
+	UniformBlock uniforms[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
+	const Texture * textures[ ARRAY_COUNT( &Shader::textures ) ] = { };
+	TextureBuffer texture_buffers[ ARRAY_COUNT( &Shader::texture_buffers ) ] = { };
+	TextureArray texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ] = { };
+} prev_bindings;
 
 static GLenum DepthFuncToGL( DepthFunc depth_func ) {
 	switch( depth_func ) {
@@ -401,7 +409,7 @@ static void DebugOutputCallback(
 		Com_Printf( "\n" );
 
 	if( severity == GL_DEBUG_SEVERITY_HIGH ) {
-		Fatal( "GL high severity: {}", message );
+		Fatal( "GL high severity: %s", message );
 	}
 }
 
@@ -546,79 +554,121 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	}
 
 	// uniforms
-	// TODO: maybe these shouldn't always get rebound
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->uniforms ); i++ ) {
-		bool found = false;
-		for( size_t j = 0; j < pipeline.num_uniforms; j++ ) {
-			UniformBlock block = pipeline.uniforms[ j ].block;
-			if( pipeline.uniforms[ j ].name_hash == pipeline.shader->uniforms[ i ] && block.size > 0 ) {
-				glBindBufferRange( GL_UNIFORM_BUFFER, i, block.ubo, block.offset, block.size );
-				found = true;
-				break;
+		u64 name_hash = pipeline.shader->uniforms[ i ];
+		UniformBlock prev_block = prev_bindings.uniforms[ i ];
+
+		bool found = prev_block.size == 0;
+		if( name_hash != 0 ) {
+			for( size_t j = 0; j < pipeline.num_uniforms; j++ ) {
+				if( pipeline.uniforms[ j ].name_hash == name_hash ) {
+					UniformBlock block = pipeline.uniforms[ j ].block;
+					if( block.offset != prev_block.offset || block.size != prev_block.size || block.ubo != prev_block.ubo ) {
+						glBindBufferRange( GL_UNIFORM_BUFFER, i, block.ubo, block.offset, block.size );
+						prev_bindings.uniforms[ i ] = block;
+					}
+					found = true;
+					break;
+				}
 			}
 		}
 
 		if( !found ) {
 			glBindBufferBase( GL_UNIFORM_BUFFER, i, 0 );
+			prev_bindings.uniforms[ i ] = { };
 		}
 	}
 
 	// textures
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->textures ); i++ ) {
-		glActiveTexture( GL_TEXTURE0 + i );
+		u64 name_hash = pipeline.shader->textures[ i ];
+		GLenum tex_unit = GL_TEXTURE0 + i;
+		const Texture * prev_texture = prev_bindings.textures[ i ];
 
-		bool found = false;
-		for( size_t j = 0; j < pipeline.num_textures; j++ ) {
-			if( pipeline.textures[ j ].name_hash == pipeline.shader->textures[ i ] ) {
-				GLenum target = pipeline.textures[ j ].texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-				GLenum other_target = pipeline.textures[ j ].texture->msaa ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
-				glBindTexture( other_target, 0 );
-				glBindTexture( target, pipeline.textures[ j ].texture->texture );
-				found = true;
-				break;
+		bool found = prev_texture == NULL;
+		if( name_hash != 0 ) {
+			for( size_t j = 0; j < pipeline.num_textures; j++ ) {
+				if( pipeline.textures[ j ].name_hash == name_hash ) {
+					const Texture * texture = pipeline.textures[ j ].texture;
+					GLenum target = texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+					GLenum other_target = texture->msaa ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+					if( texture != prev_texture ) {
+						glActiveTexture( tex_unit );
+						glBindTexture( target, texture->texture );
+						if( prev_texture != NULL && texture->msaa != prev_texture->msaa ) {
+							glBindTexture( other_target, 0 );
+						}
+						prev_bindings.textures[ i ] = texture;
+					}
+					found = true;
+					break;
+				}
 			}
 		}
 
 		if( !found ) {
+			glActiveTexture( tex_unit );
 			glBindTexture( GL_TEXTURE_2D, 0 );
 			glBindTexture( GL_TEXTURE_2D_MULTISAMPLE, 0 );
+			prev_bindings.textures[ i ] = { };
 		}
 	}
 
 	// texture buffers
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->texture_buffers ); i++ ) {
-		glActiveTexture( GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + i );
-
-		bool found = false;
-		for( size_t j = 0; j < pipeline.num_texture_buffers; j++ ) {
-			if( pipeline.texture_buffers[ j ].name_hash == pipeline.shader->texture_buffers[ i ] ) {
-				glBindTexture( GL_TEXTURE_BUFFER, pipeline.texture_buffers[ j ].tb.texture );
-				found = true;
-				break;
+		u64 name_hash = pipeline.shader->texture_buffers[ i ];
+		GLenum tex_unit = GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + i;
+		TextureBuffer prev_texture = prev_bindings.texture_buffers[ i ];
+		
+		bool found = prev_texture.texture == 0;
+		if( name_hash != 0 ) {
+			for( size_t j = 0; j < pipeline.num_texture_buffers; j++ ) {
+				if( pipeline.texture_buffers[ j ].name_hash == name_hash ) {
+					TextureBuffer texture = pipeline.texture_buffers[ j ].tb;
+					if( texture.texture != prev_texture.texture ) {
+						glActiveTexture( tex_unit );
+						glBindTexture( GL_TEXTURE_BUFFER, texture.texture );
+						prev_bindings.texture_buffers[ i ] = texture;
+					}
+					found = true;
+					break;
+				}
 			}
 		}
 
 		if( !found ) {
+			glActiveTexture( tex_unit );
 			glBindTexture( GL_TEXTURE_BUFFER, 0 );
+			prev_bindings.texture_buffers[ i ] = { };
 		}
 	}
 
 	// texture arrays
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->texture_arrays ); i++ ) {
-		glActiveTexture( GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + ARRAY_COUNT( pipeline.shader->texture_buffers ) + i );
+		u64 name_hash = pipeline.shader->texture_arrays[ i ];
+		GLenum tex_unit = GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + ARRAY_COUNT( pipeline.shader->texture_buffers ) + i;
+		TextureArray prev_texture = prev_bindings.texture_arrays[ i ];
 		
-		bool found = false;
-		for( size_t j = 0; j < pipeline.num_texture_arrays; j++ ) {
-			if( pipeline.texture_arrays[ j ].name_hash == pipeline.shader->texture_arrays[ i ] ) {
-				glBindTexture( GL_TEXTURE_2D_ARRAY, pipeline.texture_arrays[ j ].ta.texture );
-				found = true;
-				break;
+		bool found = prev_texture.texture == 0;
+		if( name_hash != 0 ) {
+			for( size_t j = 0; j < pipeline.num_texture_arrays; j++ ) {
+				if( pipeline.texture_arrays[ j ].name_hash == name_hash ) {
+					TextureArray texture = pipeline.texture_arrays[ j ].ta;
+					if( texture.texture != prev_texture.texture ) {
+						glActiveTexture( tex_unit );
+						glBindTexture( GL_TEXTURE_2D_ARRAY, texture.texture );
+						prev_bindings.texture_arrays[ i ] = texture;
+					}
+					found = true;
+					break;
+				}
 			}
 		}
-		
 
 		if( !found ) {
+			glActiveTexture( tex_unit );
 			glBindTexture( GL_TEXTURE_2D_ARRAY, 0 );
+			prev_bindings.texture_arrays[ i ] = { };
 		}
 	}
 
@@ -726,7 +776,9 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 		return a.pipeline.pass < b.pipeline.pass;
 	if( !render_passes[ a.pipeline.pass ].sorted )
 		return false;
-	return a.pipeline.shader < b.pipeline.shader;
+	if( a.pipeline.shader != b.pipeline.shader )
+		return a.pipeline.shader < b.pipeline.shader;
+	return a.mesh.vao < b.mesh.vao;
 }
 
 static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
@@ -827,7 +879,10 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 
 	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
 
-	glBindVertexArray( dc.mesh.vao );
+	if( prev_vao != dc.mesh.vao ) {
+		glBindVertexArray( dc.mesh.vao );
+		prev_vao = dc.mesh.vao;
+	}
 	GLenum primitive = PrimitiveTypeToGL( dc.mesh.primitive_type );
 
 	if( dc.num_instances != 0 ) {
@@ -884,8 +939,6 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	else {
 		glDrawArrays( primitive, dc.index_offset, dc.num_vertices );
 	}
-
-	glBindVertexArray( 0 );
 }
 
 void RenderBackendSubmitFrame() {

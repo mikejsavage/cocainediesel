@@ -296,7 +296,11 @@ static void SettingsControls() {
 			ImGui::EndTabItem();
 		}
 
-		if( ImGui::BeginTabItem( "Voice lines" ) ) {
+		if( ImGui::BeginTabItem( "Voices" ) ) {
+			CvarSliderFloat( "Voice pitch", "cg_voicePitch", 0.9f, 1.1f, "1", CVAR_ARCHIVE );
+
+			ImGui::Separator();
+
 			KeyBindButton( "Acne pack", "vsay acne" );
 			KeyBindButton( "Valley pack", "vsay valley" );
 			KeyBindButton( "Mike pack", "vsay mike" );
@@ -555,7 +559,7 @@ static void SettingsAudio() {
 	}
 
 	if( ImGui::Button( "Test" ) ) {
-		S_StartLocalSound( "sounds/announcer/bomb/ace", CHAN_AUTO, 1.0f );
+		S_StartLocalSound( "sounds/announcer/bomb/ace", CHAN_AUTO, 1.0f, 1.0f );
 	}
 
 	ImGui::Separator();
@@ -927,7 +931,7 @@ static void WeaponButton( WeaponType weapon, Vec2 size ) {
 	CG_GetBoundKeycodes( va( "use %s", def->short_name ), weaponBinds );
 
 	if( clicked || ImGui::Hotkey( weaponBinds[ 0 ] ) || ImGui::Hotkey( weaponBinds[ 1 ] ) ) {
-		selected_weapons[ def->category ] = selected ? WeaponType( Weapon_None ) : weapon;
+		selected_weapons[ def->category ] = weapon;
 		SendLoadout();
 	}
 }

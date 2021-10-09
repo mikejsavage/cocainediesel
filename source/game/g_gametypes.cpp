@@ -277,7 +277,7 @@ void G_Match_CheckReadys() {
 		allready = teamsready == GS_MAX_TEAMS - TEAM_ALPHA;
 	}
 	else {
-		allready = teamsready == 1;
+		allready = teamsready == 1 && server_gs.gameState.teams[ TEAM_PLAYERS ].num_players != 1; //the team is ready and there's more than 1 player
 	}
 
 	if( allready ) {
@@ -367,24 +367,18 @@ static void G_CheckNumBots() {
 		return;
 	}
 
-	// check sanity of g_numbots
-	if( g_numbots->integer < 0 ) {
-		Cvar_Set( "g_numbots", "0" );
-	}
-
 	if( g_numbots->integer > server_gs.maxclients ) {
 		Cvar_Set( "g_numbots", va( "%i", server_gs.maxclients ) );
 	}
 
 	int desiredNumBots = g_numbots->integer;
 	if( desiredNumBots < game.numBots ) {
-		for( edict_t *ent = game.edicts + server_gs.maxclients; PLAYERNUM( ent ) >= 0; ent-- ) {
+		for( edict_t *ent = game.edicts + server_gs.maxclients; PLAYERNUM( ent ) >= 0 && desiredNumBots < game.numBots; ent-- ) {
 			if( !ent->r.inuse || !( ent->r.svflags & SVF_FAKECLIENT ) ) {
 				continue;
 			}
 			PF_DropClient( ent, DROP_TYPE_GENERAL, NULL );
 			game.numBots--;
-			break;
 		}
 	}
 	else if( desiredNumBots > game.numBots ) {
@@ -458,7 +452,7 @@ void G_RunGametype() {
 	G_Teams_UpdateMembersList();
 	G_Match_CheckStateAbort();
 
-	GT_CallThinkRules();
+	level.gametype.Think();
 
 	if( G_EachNewSecond() ) {
 		G_CheckNumBots();
@@ -477,12 +471,6 @@ Span< const char > G_GetWorldspawnKey( const char * key ) {
 //		Game type registration
 //======================================================
 
-// this is pretty dirty, parse the first entity and grab the gametype key
-// do no validation, G_SpawnEntities will catch it
-static bool IsGladiatorMap() {
-	return G_GetWorldspawnKey( "gametype" ) == "gladiator";
-}
-
 void GT_CallSpawn() {
 	if( level.gametype.Init2 != NULL ) {
 		level.gametype.Init2();
@@ -498,12 +486,10 @@ bool GT_CallMatchStateFinished( MatchState incomingMatchState ) {
 	return level.gametype.MatchStateFinished( incomingMatchState );
 }
 
-void GT_CallThinkRules() {
-	level.gametype.Think();
-}
-
 void GT_CallPlayerConnected( edict_t * ent ) {
-	level.gametype.PlayerConnected( ent );
+	if( level.gametype.PlayerConnected != NULL ) {
+		level.gametype.PlayerConnected( ent );
+	}
 }
 
 void GT_CallPlayerRespawning( edict_t * ent ) {
@@ -531,14 +517,19 @@ bool GT_CallGameCommand( gclient_t * client, const char * cmd, const char * args
 	return false;
 }
 
-void GT_CallShutdown() {
-	level.gametype.Shutdown();
+static bool IsGladiatorMap() {
+	return G_GetWorldspawnKey( "gametype" ) == "gladiator";
 }
 
-void G_Gametype_Init() {
+void InitGametype() {
 	g_warmup_timelimit = Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );
 	g_scorelimit = Cvar_Get( "g_scorelimit", "10", CVAR_ARCHIVE );
 
 	level.gametype = IsGladiatorMap() ? GetGladiatorGametype() : GetBombGametype();
 	level.gametype.Init();
+}
+
+void ShutdownGametype() {
+	level.gametype.Shutdown();
+	level.gametype = { };
 }

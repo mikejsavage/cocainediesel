@@ -104,9 +104,6 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 		angles->y += cg.xyspeed * cg.bobFracSin * 0.006f;
 	}
 	angles->x += cg.xyspeed * cg.bobFracSin * 0.012f;
-
-	// gun angles from kicks
-	*angles += CG_GetKickAngles();
 }
 
 void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {

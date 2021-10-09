@@ -51,7 +51,7 @@ static struct {
 	{ "nodraw", SURF_NODRAW, 0, 0 },
 	{ "nonsolid", 0, 0, CONTENTS_SOLID },
 	{ "playerclip", 0, CONTENTS_PLAYERCLIP, CONTENTS_SOLID },
-	{ "wallbangable", 0, CONTENTS_WALLBANGABLE, CONTENTS_SOLID },
+	{ "wallbangable", CONTENTS_WALLBANGABLE, CONTENTS_WALLBANGABLE, CONTENTS_SOLID },
 	{ "ladder", SURF_LADDER, 0, 0 },
 	{ "nowalljump", SURF_NOWALLJUMP, 0, 0 },
 };

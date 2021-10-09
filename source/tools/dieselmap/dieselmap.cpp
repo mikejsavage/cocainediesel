@@ -294,6 +294,7 @@ struct Entity {
 	StaticArray< KeyValue, 16 > kvs;
 	NonRAIIDynamicArray< Brush > brushes;
 	NonRAIIDynamicArray< Patch > patches;
+	u32 model_id;
 };
 
 static Span< const char > ParsePlane( Vec3 * points, Span< const char > str ) {
@@ -368,6 +369,9 @@ static Span< const char > ParseQ3Brush( Brush * brush, Span< const char > str ) 
 }
 
 static Span< const char > ParsePatch( Patch * patch, Span< const char > str ) {
+	patch->w = 0;
+	patch->h = 0;
+
 	str = SkipToken( str, "{" );
 	str = SkipToken( str, "patchDef2" );
 	str = SkipToken( str, "{" );
@@ -524,6 +528,28 @@ static u32 AddMaterial( BSP * bsp, Span< const char > name ) {
 	return bsp->materials->add( material );
 }
 
+struct MaterialMesh {
+	Span< const char > material; // TODO: u32?
+	NonRAIIDynamicArray< BSPVertex > vertices;
+	NonRAIIDynamicArray< BSPTriangle > triangles;
+};
+
+static MaterialMesh * GetMaterialMesh( DynamicArray< MaterialMesh > * meshes, Span< const char > material ) {
+	for( MaterialMesh & mesh : meshes->span() ) {
+		if( StrEqual( mesh.material, material ) ) {
+			return &mesh;
+		}
+	}
+
+	MaterialMesh mesh;
+	mesh.material = material;
+	mesh.vertices.init( sys_allocator );
+	mesh.triangles.init( sys_allocator );
+	meshes->add( mesh );
+
+	return &( *meshes )[ meshes->size() - 1 ];
+}
+
 static bool IsNearlyAxial( Vec3 v ) {
 	for( int i = 0; i < 3; i++ ) {
 		if( Abs( v[ i ] ) >= 0.99999f ) {
@@ -589,7 +615,7 @@ static Vec2 ProjectFaceVert( Vec3 centroid, Vec3 tangent, Vec3 bitangent, Vec3 p
 	return Vec2( Dot( d, tangent ), Dot( d, bitangent ) );
 }
 
-static void ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush, u32 entity_id, u32 brush_id ) {
+static void ProcessBrush( BSP * bsp, MinMax3 * bounds, DynamicArray< MaterialMesh > * meshes, const Brush & brush, u32 entity_id, u32 brush_id ) {
 	ZoneScoped;
 
 	Plane planes[ MAX_BRUSH_FACES ];
@@ -602,13 +628,21 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush, u32 
 		}
 	}
 
-	// render geomtry and bounds
+	// render geometry and bounds
 	for( size_t i = 0; i < brush.faces.n; i++ ) {
 		bool generate_render_geometry = !IsNodrawMaterial( brush.faces.span()[ i ].material );
+		MaterialMesh * mesh = GetMaterialMesh( meshes, brush.faces.span()[ i ].material );
 
 		// generate arbitrary list of points
 		FaceVerts verts = { };
 		FaceToVerts( &verts, Span< const Plane >( planes, brush.faces.n ), i );
+
+		// TODO
+		// for( FaceVert & v : verts.span() ) {
+		// 	if( v.pos.z <= -0.0f ) {
+		// 		v.pos.z = -999999.0f;
+		// 	}
+		// }
 
 		// find centroid and project verts into 2d
 		Vec3 centroid = Vec3( 0.0f );
@@ -644,16 +678,17 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, const Brush & brush, u32 
 				BSPVertex vertex = { };
 				vertex.position = unprojected;
 				vertex.normal = planes[ i ].normal;
-				bsp->vertices->add( vertex );
+
+				mesh->vertices.add( vertex );
 			}
 
 			*bounds = Union( *bounds, unprojected );
 		}
 
 		if( generate_render_geometry ) {
-			size_t base_vert = bsp->vertices->size() - verts.n;
+			size_t base_vert = mesh->vertices.size() - verts.n;
 			for( size_t j = 0; j < verts.n - 2; j++ ) {
-				bsp->triangles->add( { u32( base_vert ), u32( base_vert + j + 2 ), u32( base_vert + j + 1 ) } );
+				mesh->triangles.add( { u32( base_vert ), u32( base_vert + j + 2 ), u32( base_vert + j + 1 ) } );
 			}
 		}
 	}
@@ -774,7 +809,7 @@ static BSPVertex SampleBezierSurface( float tx, float ty, Span2D< const ControlP
 	return v;
 }
 
-static void PatchToVerts( BSP * bsp, const Patch & patch ) {
+static void PatchToVerts( MaterialMesh * mesh, const Patch & patch ) {
 	u32 num_patches_x = ( patch.w - 1 ) / 2;
 	u32 num_patches_y = ( patch.h - 1 ) / 2;
 
@@ -797,13 +832,13 @@ static void PatchToVerts( BSP * bsp, const Patch & patch ) {
 	for( u32 patch_y = 0; patch_y < num_patches_y; patch_y++ ) {
 		for( u32 patch_x = 0; patch_x < num_patches_x; patch_x++ ) {
 			Span2D< const ControlPoint > points = control_points.slice( patch_x * 2, patch_y * 2, 3, 3 );
-			u32 base_vert = bsp->vertices->size();
+			u32 base_vert = mesh->vertices.size();
 
 			for( int y = 0; y <= tess_y; y++ ) {
 				for( int x = 0; x <= tess_x; x++ ) {
 					float tx = float( x ) / float( tess_x );
 					float ty = float( y ) / float( tess_y );
-					bsp->vertices->add( SampleBezierSurface( tx, ty, points ) );
+					mesh->vertices.add( SampleBezierSurface( tx, ty, points ) );
 				}
 			}
 
@@ -814,22 +849,22 @@ static void PatchToVerts( BSP * bsp, const Patch & patch ) {
 					u32 tl = ( y + 1 ) * ( tess_x + 1 ) + x + 0 + base_vert;
 					u32 tr = ( y + 1 ) * ( tess_x + 1 ) + x + 1 + base_vert;
 
-					bsp->triangles->add( { bl, tl, br } );
-					bsp->triangles->add( { br, tl, tr } );
+					mesh->triangles.add( { bl, tl, br } );
+					mesh->triangles.add( { br, tl, tr } );
 				}
 			}
 		}
 	}
 }
 
-static void AddPatchBrushes( BSP * bsp, DynamicArray< MinMax3 > * brush_bounds, u32 material, size_t first_patch_tri ) {
+static void AddPatchBrushes( BSP * bsp, DynamicArray< MinMax3 > * brush_bounds, u32 material, const MaterialMesh * mesh, size_t first_patch_tri ) {
 	ZoneScoped;
 
-	for( size_t i = first_patch_tri; i < bsp->triangles->size(); i++ ) {
-		BSPTriangle tri = ( *bsp->triangles )[ i ];
-		Vec3 p0 = ( *bsp->vertices )[ tri.a ].position;
-		Vec3 p1 = ( *bsp->vertices )[ tri.b ].position;
-		Vec3 p2 = ( *bsp->vertices )[ tri.c ].position;
+	for( size_t i = first_patch_tri; i < mesh->triangles.size(); i++ ) {
+		BSPTriangle tri = mesh->triangles[ i ];
+		Vec3 p0 = mesh->vertices[ tri.a ].position;
+		Vec3 p1 = mesh->vertices[ tri.b ].position;
+		Vec3 p2 = mesh->vertices[ tri.c ].position;
 
 		Plane plane;
 		if( !PlaneFrom3Points( &plane, p0, p1, p2 ) )
@@ -1105,7 +1140,7 @@ void BuildKDTree( TempAllocator * temp, BSP * bsp, Span< const MinMax3 > brush_b
 	u32 max_depth = roundf( 8.0f + 1.3f * Log2( bsp->brushes->size() ) );
 
 	DynamicArray< u32 > all_brushes( temp );
-	for( u32 i = 0; i < bsp->brushes->size(); i++ ) {
+	for( u32 i = 0; i < ( *bsp->models )[ 0 ].num_brushes; i++ ) {
 		all_brushes.add( i );
 	}
 
@@ -1183,28 +1218,6 @@ Span< const char > GetKey( Span< const KeyValue > kvs, const char * key ) {
 	return Span< const char >( NULL, 0 );
 }
 
-struct MaterialMesh {
-	u32 material;
-	NonRAIIDynamicArray< BSPVertex > vertices;
-	NonRAIIDynamicArray< BSPTriangle > triangles;
-};
-
-static MaterialMesh * GetMaterialMesh( DynamicArray< MaterialMesh > * meshes, u32 material ) {
-	for( MaterialMesh & mesh : meshes->span() ) {
-		if( mesh.material == material ) {
-			return &mesh;
-		}
-	}
-
-	MaterialMesh mesh;
-	mesh.material = material;
-	mesh.vertices.init( sys_allocator );
-	mesh.triangles.init( sys_allocator );
-	meshes->add( mesh );
-
-	return &( *meshes )[ meshes->size() - 1 ];
-}
-
 int main() {
 	constexpr size_t arena_size = 1024 * 1024 * 1024; // 1GB
 	ArenaAllocator arena( ALLOC_SIZE( sys_allocator, arena_size, 16 ), arena_size );
@@ -1214,7 +1227,7 @@ int main() {
 	InitMaterials();
 
 	size_t carfentanil_len;
-	char * carfentanil = ReadFileString( sys_allocator, "source/tools/dieselmap/carfentanil.map", &carfentanil_len );
+	char * carfentanil = ReadFileString( sys_allocator, "source/tools/dieselmap/002.map", &carfentanil_len );
 	assert( carfentanil != NULL );
 	defer { FREE( sys_allocator, carfentanil ); };
 
@@ -1311,17 +1324,70 @@ int main() {
 			}
 		};
 
+		u32 base_brush = bsp.brushes->size();
 		for( Brush & brush : entity.brushes ) {
 			MinMax3 bounds;
-			ProcessBrush( &bsp, &bounds, brush, &entity - entities.ptr(), &brush - entity.brushes.ptr() );
+			ProcessBrush( &bsp, &bounds, &entity_meshes, brush, &entity - entities.ptr(), &brush - entity.brushes.ptr() );
 			brush_bounds.add( bounds );
 		}
 
 		for( const Patch & patch : entity.patches ) {
+			MaterialMesh * mesh = GetMaterialMesh( &entity_meshes, patch.material );
+			size_t patch_first_tri = mesh->triangles.size();
+
+			PatchToVerts( mesh, patch );
+
 			u32 material = AddMaterial( &bsp, patch.material );
-			size_t patch_first_tri = bsp.triangles->size();
-			PatchToVerts( &bsp, patch );
-			AddPatchBrushes( &bsp, &brush_bounds, material, patch_first_tri );
+			AddPatchBrushes( &bsp, &brush_bounds, material, mesh, patch_first_tri ); // TODO
+		}
+
+		u32 base_mesh = bsp.meshes->size();
+		for( MaterialMesh & mesh : entity_meshes ) {
+			if( mesh.vertices.size() == 0 )
+				continue;
+
+			u32 base_vertex = bsp.vertices->size();
+			u32 base_triangle = bsp.triangles->size();
+
+			// for( BSPTriangle & tri : mesh.triangles ) {
+			// 	tri.a += base_vertex;
+			// 	tri.b += base_vertex;
+			// 	tri.c += base_vertex;
+			// }
+
+			bsp.vertices->add_many( mesh.vertices.span() );
+			bsp.triangles->add_many( mesh.triangles.span() );
+
+			BSPMesh bsp_mesh = { };
+			bsp_mesh.material = AddMaterial( &bsp, mesh.material );
+			bsp_mesh.type = s32( FaceType_Mesh );
+			bsp_mesh.bounds = HugeBounds();
+			bsp_mesh.first_vertex = base_vertex;
+			bsp_mesh.num_vertices = bsp.vertices->size() - base_vertex;
+			bsp_mesh.first_index = base_triangle * 3;
+			bsp_mesh.num_indices = ( bsp.triangles->size() - base_triangle ) * 3;
+			bsp.meshes->add( bsp_mesh );
+		}
+
+		u32 num_meshes = bsp.meshes->size() - base_mesh;
+		u32 num_brushes = bsp.brushes->size() - base_brush;
+
+		if( num_meshes > 0 || num_brushes > 0 ) {
+			BSPModel model;
+			model.bounds = HugeBounds();
+			model.first_mesh = base_mesh;
+			model.num_meshes = num_meshes;
+			model.first_brush = base_brush;
+			model.num_brushes = num_brushes;
+
+			// for( const Entity & entity : entities ) {
+			// 	for( const Brush & brush : entity.brushes.span() ) {
+			// 		model.bounds = Union( brush.bounds, model.bounds );
+			// 	}
+			// }
+
+			entity.model_id = bsp.models->size();
+			bsp.models->add( model );
 		}
 	}
 
@@ -1337,51 +1403,24 @@ int main() {
 		for( KeyValue kv : entity.kvs.span() ) {
 			bsp.entities->append( "\t\"{}\" \"{}\"\n", kv.key, kv.value );
 		}
-		bsp.entities->append( "}}\n" );
-	}
-
-	{
-		BSPMesh mesh = { };
-		mesh.type = s32( FaceType_Mesh );
-		mesh.bounds = HugeBounds();
-		mesh.first_vertex = 0;
-		mesh.num_vertices = bsp.vertices->size();
-		mesh.first_index = 0;
-		mesh.num_indices = bsp.triangles->size() * 3;
-		bsp.meshes->add( mesh );
-	}
-
-	{
-		BSPModel model;
-		model.bounds = HugeBounds();
-		model.first_mesh = 0;
-		model.num_meshes = bsp.meshes->size();
-		model.first_brush = 0;
-		model.num_brushes = bsp.brushes->size();
-
-		for( const Entity & entity : entities ) {
-			for( const Brush & brush : entity.brushes.span() ) {
-				// model.bounds = Union( brush.bounds, model.bounds );
-			}
+		if( entity.brushes.size() > 0 ) {
+			bsp.entities->append( "\t\"model\" \"*{}\"\n", entity.model_id );
 		}
-
-		bsp.models->add( model );
+		bsp.entities->append( "}}\n" );
 	}
 
 	WriteBSP( &temp, &bsp );
 
 	// TODO: perf
-	// - remove sorts
+	// - remove sorts and optimise sorts for debug
 	//
 	// TODO: generate render geometry
-	// - merge meshes by material/entity
 	// - figure out what postprocessing we need e.g. welding
 	// - meshopt, before patch brushes
 	// - extend void render geometry
 	// - extend void brushes
 	//
 	// TODO: generate all models
-	// - meshes per model
 	// - kdtree per model after new format
 	//
 	// TODO: new map format

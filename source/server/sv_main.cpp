@@ -305,8 +305,6 @@ static void SV_CheckLatchedUserinfoChanges() {
 	}
 }
 
-//#define WORLDFRAMETIME 25 // 40fps
-//#define WORLDFRAMETIME 20 // 50fps
 #define WORLDFRAMETIME 16 // 62.5fps
 /*
 * SV_RunGameFrame

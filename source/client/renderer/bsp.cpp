@@ -631,11 +631,6 @@ bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< c
 	WriteTextureBuffer( planeBuffer, planes.ptr(), planes.size() * sizeof( GPUBSPPlane ) );
 	map->planeBuffer = planeBuffer;
 
-	nodes.clear();
-	leaves.clear();
-	leafbrushes.clear();
-	planes.clear();
-
 	return true;
 }
 

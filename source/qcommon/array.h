@@ -11,8 +11,6 @@ class NonRAIIDynamicArray {
 	T * elems;
 
 public:
-	virtual ~NonRAIIDynamicArray() = default;
-
 	void init( Allocator * a_, size_t initial_capacity = 0 ) {
 		a = a_;
 		capacity = initial_capacity;

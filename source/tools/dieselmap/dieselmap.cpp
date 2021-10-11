@@ -980,7 +980,7 @@ CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const u32 > brush_ids
 	return planes;
 }
 
-void Split( MinMax3 bounds, int axis, float distance, MinMax3 * below, MinMax3 * above ) {
+static void Split( MinMax3 bounds, int axis, float distance, MinMax3 * below, MinMax3 * above ) {
 	*below = bounds;
 	*above = bounds;
 
@@ -1006,7 +1006,7 @@ static s32 MakeLeaf( BSP * bsp, Span< const u32 > brush_ids ) {
 	return -s32( leaf_id + 1 );
 }
 
-s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds, MinMax3 node_bounds, u32 max_depth ) {
+static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds, MinMax3 node_bounds, u32 max_depth ) {
 	ZoneScoped;
 
 	if( brush_ids.n <= 1 || max_depth == 0 ) {

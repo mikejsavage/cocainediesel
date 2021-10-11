@@ -319,7 +319,7 @@ static void PlantAreaThink( edict_t * ent ) {
 	G_FreeEdict( ent );
 }
 
-static void PlantAreaTouch( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags ) {
+static void PlantAreaTouch( edict_t * self, edict_t * other, Plane * plane, int surfFlags ) {
 	if( other->r.client == NULL ) {
 		return;
 	}
@@ -347,7 +347,7 @@ static void SpawnPlantArea( edict_t * ent ) {
 
 // bomb.as
 
-static void BombTouch( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags ) {
+static void BombTouch( edict_t * self, edict_t * other, Plane * plane, int surfFlags ) {
 	if( server_gs.gameState.match_state != MatchState_Playing ) {
 		return;
 	}

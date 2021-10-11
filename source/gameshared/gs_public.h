@@ -128,7 +128,7 @@ enum {
 
 //==================================================================
 
-#define ISWALKABLEPLANE( x ) ( ( (cplane_t *)x )->normal.z >= 0.7f )
+#define ISWALKABLEPLANE( x ) ( ( (Plane *)x )->normal.z >= 0.7f )
 
 #define SLIDEMOVE_PLANEINTERACT_EPSILON 0.05
 #define SLIDEMOVEFLAG_WALL_BLOCKED  8

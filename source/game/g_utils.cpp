@@ -326,7 +326,7 @@ void G_CallThink( edict_t *ent ) {
 	}
 }
 
-void G_CallTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+void G_CallTouch( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	if( self == other ) {
 		return;
 	}

@@ -958,7 +958,7 @@ Span< const char > ParseWorldspawnKey( Span< const char > entities, const char *
 	Span< const char > cursor = entities;
 
 	if( ParseToken( &cursor, Parse_DontStopOnNewLine ) != "{" ) {
-		Com_Error( "Entity string doesn't start with {" );
+		Fatal( "Entity string doesn't start with {" );
 	}
 
 	while( true ) {

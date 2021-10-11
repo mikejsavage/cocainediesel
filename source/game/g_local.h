@@ -325,7 +325,7 @@ edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin );
 void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm );
 
 void G_CallThink( edict_t *ent );
-void G_CallTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags );
+void G_CallTouch( edict_t *self, edict_t *other, Plane *plane, int surfFlags );
 void G_CallUse( edict_t *self, edict_t *other, edict_t *activator );
 void G_CallStop( edict_t *self );
 void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage );
@@ -434,8 +434,8 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int topAssi
 void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 point, float maxradius, Vec3 * pushdir, float *frac, bool selfdamage );
 void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, DamageType damage_type );
 void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage, bool headshot, Vec3 pos, Vec3 dir );
-void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cplane_t *plane, DamageType damage_type, int timeDelta );
-void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edict_t *ignore, DamageType damage_type );
+void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, Plane *plane, DamageType damage_type, int timeDelta );
+void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Plane *plane, edict_t *ignore, DamageType damage_type );
 
 // damage flags
 #define DAMAGE_RADIUS         ( 1 << 0 )  // damage was indirect
@@ -733,7 +733,7 @@ struct snap_edict_t {
 	float damage_given;
 };
 
-using EdictTouchCallback = void ( * )( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags );
+using EdictTouchCallback = void ( * )( edict_t * self, edict_t * other, Plane * plane, int surfFlags );
 
 struct edict_t {
 	SyncEntityState s;

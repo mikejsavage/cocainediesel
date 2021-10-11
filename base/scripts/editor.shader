@@ -1,58 +1,46 @@
-textures/editor/discard
+editor/discard
 {
 	qer_editorimage textures/editor/discard
 	surfaceparm nodraw
-	surfaceparm nomarks
 }
 
-textures/editor/fullclip
+editor/fullclip
 {
 	qer_trans 0.40
 	qer_editorimage textures/editor/fullclip
 	surfaceparm nodraw
-	surfaceparm trans
-	surfaceparm nomarks
 }
 
-textures/editor/ladder
+editor/ladder
 {
 	qer_trans 0.40
 	qer_editorimage textures/editor/ladder
 	surfaceparm nodraw
 	surfaceparm nonsolid
-	surfaceparm trans
-	surfaceparm nomarks
-	surfaceparm noimpact
 	surfaceparm playerclip
 	surfaceparm ladder
 }
 
-textures/editor/no_walljump
+editor/no_walljump
 {
 	qer_trans 0.40
 	qer_editorimage textures/editor/no_walljump
 	surfaceparm nodraw
 	surfaceparm nonsolid
-	surfaceparm trans
-	surfaceparm nomarks
-	surfaceparm noimpact
 	surfaceparm playerclip
 	surfaceparm nowalljump
 }
 
-textures/editor/playerclip
+editor/playerclip
 {
 	qer_trans 0.40
 	qer_editorimage textures/editor/playerclip
 	surfaceparm nodraw
 	surfaceparm nonsolid
-	surfaceparm trans
-	surfaceparm nomarks
-	surfaceparm noimpact
 	surfaceparm playerclip
 }
 
-textures/editor/trigger
+editor/trigger
 {
 	qer_trans 0.40
 	qer_editorimage textures/editor/trigger
@@ -60,14 +48,14 @@ textures/editor/trigger
 	surfaceparm nodraw
 }
 
-textures/editor/wallbangable
+editor/wallbangable
 {
 	qer_editorimage textures/editor/trigger
 	surfaceparm nonsolid
 	surfaceparm wallbangable
 }
 
-textures/editor/door
+editor/door
 {
 	qer_editorimage textures/editor/trigger
 	surfaceparm nonsolid

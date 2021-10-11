@@ -936,10 +936,10 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 
 	// expand the search bounds to include the space between the previous and current origin
 	MinMax3 bounds = MinMax3::Empty();
-	bounds = Extend( bounds, previous_origin + pm->maxs );
-	bounds = Extend( bounds, previous_origin + pm->mins );
-	bounds = Extend( bounds, pm->playerState->pmove.origin + pm->maxs );
-	bounds = Extend( bounds, pm->playerState->pmove.origin + pm->mins );
+	bounds = Union( bounds, previous_origin + pm->maxs );
+	bounds = Union( bounds, previous_origin + pm->mins );
+	bounds = Union( bounds, pm->playerState->pmove.origin + pm->maxs );
+	bounds = Union( bounds, pm->playerState->pmove.origin + pm->mins );
 
 	CallTouches( ent, bounds.mins, bounds.maxs );
 }

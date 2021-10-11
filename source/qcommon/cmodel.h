@@ -33,12 +33,12 @@ struct cshaderref_t {
 
 struct cnode_t {
 	int children[2];            // negative numbers are leafs
-	cplane_t *plane;
+	Plane *plane;
 };
 
 struct cbrushside_t {
 	int surfFlags;
-	cplane_t plane;
+	Plane plane;
 };
 
 struct cbrush_t {
@@ -114,7 +114,7 @@ struct CollisionModel {
 	cshaderref_t *map_shaderrefs;
 
 	int numplanes;
-	cplane_t *map_planes;
+	Plane *map_planes;
 
 	int numnodes;
 	cnode_t *map_nodes;

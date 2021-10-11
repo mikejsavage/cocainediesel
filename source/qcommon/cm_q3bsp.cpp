@@ -84,7 +84,7 @@ struct rdvertex_t {
 // planes (x&~1) and (x&~1)+1 are always opposites
 struct dplane_t {
 	float normal[3];
-	float dist;
+	float distance;
 };
 
 struct dnode_t {
@@ -180,10 +180,10 @@ struct dbrush_t {
 	int shadernum;
 };
 
-static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 *verts, int numverts, cshaderref_t *shaderref, cplane_t *brushplanes ) {
+static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 *verts, int numverts, cshaderref_t *shaderref, Plane *brushplanes ) {
 	Vec3 normal;
-	float dist;
-	cplane_t mainplane;
+	float distance;
+	Plane mainplane;
 	Vec3 vec, vec2;
 	int numbrushplanes;
 
@@ -203,7 +203,7 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 
 	// test a quad case
 	if( numverts > 3 ) {
-		float d = Dot( verts[3], mainplane.normal ) - mainplane.dist;
+		float d = Dot( verts[3], mainplane.normal ) - mainplane.distance;
 		if( d < -0.1f || d > 0.1f ) {
 			return 0;
 		}
@@ -212,9 +212,10 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 	numbrushplanes = 0;
 
 	// add front plane
-	SnapPlane( &mainplane.normal, &mainplane.dist );
+	SnapPlane( &mainplane.normal, &mainplane.distance );
 	brushplanes[numbrushplanes].normal = mainplane.normal;
-	brushplanes[numbrushplanes].dist = mainplane.dist; numbrushplanes++;
+	brushplanes[numbrushplanes].distance = mainplane.distance;
+	numbrushplanes++;
 
 	// calculate mins & maxs
 	for( int i = 0; i < numverts; i++ ) {
@@ -235,13 +236,14 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 				normal = Vec3( 0.0f );
 				normal[axis] = dir;
 				if( dir == 1 ) {
-					dist = facet->maxs[axis];
+					distance = facet->maxs[axis];
 				} else {
-					dist = -facet->mins[axis];
+					distance = -facet->mins[axis];
 				}
 
 				brushplanes[numbrushplanes].normal = normal;
-				brushplanes[numbrushplanes].dist = dist; numbrushplanes++;
+				brushplanes[numbrushplanes].distance = distance;
+				numbrushplanes++;
 			}
 		}
 	}
@@ -277,11 +279,11 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 					continue;
 				}
 				normal = Normalize( normal );
-				dist = Dot( verts[i], normal );
+				distance = Dot( verts[i], normal );
 
 				for( j = 0; j < numbrushplanes; j++ ) {
 					// if this plane has already been used, skip it
-					if( ComparePlanes( brushplanes[j].normal, brushplanes[j].dist, normal, dist ) ) {
+					if( ComparePlanes( brushplanes[j].normal, brushplanes[j].distance, normal, distance ) ) {
 						break;
 					}
 				}
@@ -292,7 +294,7 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 				// if all other points are behind this plane, it is a proper edge bevel
 				for( j = 0; j < numverts; j++ ) {
 					if( j != i ) {
-						float d = Dot( verts[j], normal ) - dist;
+						float d = Dot( verts[j], normal ) - distance;
 						if( d > 0.1f ) {
 							break; // point in front: this plane isn't part of the outer hull
 						}
@@ -304,7 +306,8 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 
 				// add this plane
 				brushplanes[numbrushplanes].normal = normal;
-				brushplanes[numbrushplanes].dist = dist; numbrushplanes++;
+				brushplanes[numbrushplanes].distance = distance;
+				numbrushplanes++;
 				if( numbrushplanes == MAX_FACET_PLANES ) {
 					break;
 				}
@@ -340,7 +343,7 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *s
 	Patch_RemoveLinearColumnsRows( points, 1, &size[0], &size[1], 0, NULL, NULL );
 
 	cbrush_t * facets = ALLOC_MANY( sys_allocator, cbrush_t, ( size[0] - 1 ) * ( size[1] - 1 ) * 2 );
-	cplane_t * brushplanes = ALLOC_MANY( sys_allocator, cplane_t, ( size[0] - 1 ) * ( size[1] - 1 ) * 2 * MAX_FACET_PLANES );
+	Plane * brushplanes = ALLOC_MANY( sys_allocator, Plane, ( size[0] - 1 ) * ( size[1] - 1 ) * 2 * MAX_FACET_PLANES );
 
 	defer {
 		FREE( sys_allocator, points );
@@ -391,7 +394,7 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *s
 	}
 
 	if( patch->numfacets ) {
-		u8 * fdata = ( u8 * ) ALLOC_SIZE( sys_allocator, patch->numfacets * sizeof( cbrush_t ) + totalsides * ( sizeof( cbrushside_t ) + sizeof( cplane_t ) ), 16 );
+		u8 * fdata = ( u8 * ) ALLOC_SIZE( sys_allocator, patch->numfacets * sizeof( cbrush_t ) + totalsides * ( sizeof( cbrushside_t ) + sizeof( Plane ) ), 16 );
 
 		patch->facets = ( cbrush_t * )fdata; fdata += patch->numfacets * sizeof( cbrush_t );
 		memcpy( patch->facets, facets, patch->numfacets * sizeof( cbrush_t ) );
@@ -405,7 +408,7 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *s
 			for( int j = 0; j < facet->numsides; j++ ) {
 				cbrushside_t * s = &facet->brushsides[ j ];
 				s->plane = brushplanes[k++];
-				SnapPlane( &s->plane.normal, &s->plane.dist );
+				SnapPlane( &s->plane.normal, &s->plane.distance );
 				s->surfFlags = shaderref->flags;
 			}
 		}
@@ -530,7 +533,7 @@ static inline void CMod_LoadFace( CollisionModel *cms, cface_t *out, int shadern
 	}
 
 	shaderref = &cms->map_shaderrefs[shadernum];
-	if( !shaderref->contents || ( shaderref->flags & SURF_NONSOLID ) ) {
+	if( !shaderref->contents ) {
 		return;
 	}
 
@@ -703,9 +706,9 @@ static void CMod_LoadMarkFaces( CollisionModel *cms, lump_t *l ) {
 		Fatal( "CMod_LoadMarkFaces: funny lump size" );
 	}
 	count = l->filelen / sizeof( *in );
-	if( count < 1 ) {
-		Fatal( "Map with no leaffaces" );
-	}
+	// if( count < 1 ) {
+	// 	Fatal( "Map with no leaffaces" );
+	// }
 
 	out = cms->map_markfaces = ALLOC_MANY( sys_allocator, int, count );
 	cms->nummarkfaces = count;
@@ -790,7 +793,7 @@ static void CMod_LoadPlanes( CollisionModel *cms, lump_t *l ) {
 		Fatal( "Map with no planes" );
 	}
 
-	cplane_t * out = cms->map_planes = ALLOC_MANY( sys_allocator, cplane_t, count );
+	Plane * out = cms->map_planes = ALLOC_MANY( sys_allocator, Plane, count );
 	cms->numplanes = count;
 
 	for( int i = 0; i < count; i++, in++, out++ ) {
@@ -798,7 +801,7 @@ static void CMod_LoadPlanes( CollisionModel *cms, lump_t *l ) {
 			out->normal[j] = LittleFloat( in->normal[j] );
 		}
 
-		out->dist = LittleFloat( in->dist );
+		out->distance = LittleFloat( in->distance );
 	}
 }
 
@@ -842,7 +845,7 @@ static void CMod_LoadBrushSides( CollisionModel *cms, lump_t *l ) {
 	cms->numbrushsides = count;
 
 	for( int i = 0; i < count; i++, in++, out++ ) {
-		cplane_t *plane = cms->map_planes + LittleLong( in->planenum );
+		Plane *plane = cms->map_planes + LittleLong( in->planenum );
 		int j = LittleLong( in->shadernum );
 		if( j >= cms->numshaderrefs ) {
 			Fatal( "Bad brushside texinfo" );
@@ -873,7 +876,7 @@ static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
 	cms->numbrushsides = count;
 
 	for( i = 0; i < count; i++, in++, out++ ) {
-		cplane_t *plane = cms->map_planes + LittleLong( in->planenum );
+		Plane *plane = cms->map_planes + LittleLong( in->planenum );
 		j = LittleLong( in->shadernum );
 		if( j >= cms->numshaderrefs ) {
 			Fatal( "Bad brushside texinfo" );
@@ -885,8 +888,8 @@ static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
 
 static void CM_BoundBrush( cbrush_t *brush ) {
 	for( int i = 0; i < 3; i++ ) {
-		brush->mins[i] = -brush->brushsides[i * 2 + 0].plane.dist;
-		brush->maxs[i] = +brush->brushsides[i * 2 + 1].plane.dist;
+		brush->mins[i] = -brush->brushsides[i * 2 + 0].plane.distance;
+		brush->maxs[i] = +brush->brushsides[i * 2 + 1].plane.distance;
 	}
 }
 

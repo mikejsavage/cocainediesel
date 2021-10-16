@@ -251,7 +251,7 @@ const WeaponDef weapon_defs[] = {
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 500,
-		/* timeout / range      */ 5000,
+		/* timeout / range      */ 10000,
 		/* max recoil           */ EulerDegrees2( 250.0f, 5.0f ),
 		/* min recoil           */ EulerDegrees2( 250.0f, -5.0f ),
 		/* recoil recovery      */ 2000.0f,
@@ -536,38 +536,38 @@ const WeaponDef weapon_defs[] = {
 	{
 		/* name                 */ "Auto sniper",
 		/* short name           */ "autosniper",
-		/* category             */ WeaponCategory_Backup,
+		/* category             */ WeaponCategory_Secondary,
 
 		/* projectile count     */ 1,
-		/* clip size            */ 5,
-		/* reload time          */ 2000,
+		/* clip size            */ 8,
+		/* reload time          */ 1500,
 		/* staged reloading     */ false,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
 		/* weapon down time     */ WEAPONDOWN_TIME,
 		/* refire time          */ 420,
-		/* timeout / range      */ 6969,
-		/* max recoil           */ EulerDegrees2( 200.0f, 5.0f ),
-		/* min recoil           */ EulerDegrees2( 175.0f, -5.0f ),
-		/* recoil recovery      */ 1750.0f,
+		/* timeout / range      */ HITSCAN_RANGE,
+		/* max recoil           */ EulerDegrees2( 110.0f, 5.0f ),
+		/* min recoil           */ EulerDegrees2( 90.0f, -5.0f ),
+		/* recoil recovery      */ 900.0f,
 		/* firing mode          */ FiringMode_Auto,
 
 		/* zoom fov             */ 40.0f,
 		/* zoom inaccuracy      */ 5.0f,
 
 		// damages
-		/* damage               */ 25,
+		/* damage               */ 20,
 		/* self damage          */ 0,
 		/* wallbang damage      */ 1.0f,
-		/* knockback            */ 50,
-		/* splash radius        */ 80,
-		/* splash min damage    */ 5,
-		/* splash min knockback */ 20,
+		/* knockback            */ 30,
+		/* splash radius        */ 0,
+		/* splash min damage    */ 0,
+		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ 4000,
-		/* spread               */ 2000, // fuse time
+		/* speed                */ INSTANT,
+		/* spread               */ 0, // fuse time
 	},
 
 	{

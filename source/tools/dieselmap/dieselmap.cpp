@@ -1180,7 +1180,7 @@ void Pack( DynamicArray< u8 > & packed, BSPHeader * header, BSPLump lump, Span< 
 	ggprint( "lump {-20} is size {.2}MB\n", lump_names[ lump ], data.num_bytes() / 1000.0f / 1000.0f );
 }
 
-static void WriteBSP( TempAllocator * temp, BSP * bsp ) {
+static void WriteBSP( TempAllocator * temp, const char * path, BSP * bsp ) {
 	ZoneScoped;
 
 	DynamicArray< u8 > packed( temp );
@@ -1205,7 +1205,14 @@ static void WriteBSP( TempAllocator * temp, BSP * bsp ) {
 
 	memcpy( &packed[ header_offset ], &header, sizeof( header ) );
 
-	WriteFile( temp, "base/maps/gg.bsp", packed.ptr(), packed.num_bytes() );
+	if( WriteFile( temp, path, packed.ptr(), packed.num_bytes() ) ) {
+		printf( "Wrote %s\n", path );
+	}
+	else {
+		char * msg = ( *sys_allocator )( "Can't write {}", path );
+		perror( msg );
+		FREE( sys_allocator, msg );
+	}
 }
 
 Span< const char > GetKey( Span< const KeyValue > kvs, const char * key ) {
@@ -1218,18 +1225,30 @@ Span< const char > GetKey( Span< const KeyValue > kvs, const char * key ) {
 	return Span< const char >( NULL, 0 );
 }
 
-int main() {
+int main( int argc, char ** argv ) {
+	if( argc != 2 ) {
+		printf( "Usage: %s <file.map>\n", argv[ 0 ] );
+		return 1;
+	}
+
+	DynamicString bsp_path( sys_allocator, "{}.bsp", StripLastExtension( argv[ 1 ] ) );
+
+	size_t carfentanil_len;
+	char * carfentanil = ReadFileString( sys_allocator, argv[ 1 ], &carfentanil_len );
+	if( carfentanil == NULL ) {
+		char * msg = ( *sys_allocator )( "Can't read {}", argv[ 1 ] );
+		perror( msg );
+		FREE( sys_allocator, msg );
+		return 1;
+	}
+	defer { FREE( sys_allocator, carfentanil ); };
+
 	constexpr size_t arena_size = 1024 * 1024 * 1024; // 1GB
 	ArenaAllocator arena( ALLOC_SIZE( sys_allocator, arena_size, 16 ), arena_size );
 	TempAllocator temp = arena.temp();
 
 	InitFS();
 	InitMaterials();
-
-	size_t carfentanil_len;
-	char * carfentanil = ReadFileString( sys_allocator, "source/tools/dieselmap/002.map", &carfentanil_len );
-	assert( carfentanil != NULL );
-	defer { FREE( sys_allocator, carfentanil ); };
 
 	Span< const char > map( carfentanil, carfentanil_len );
 
@@ -1409,7 +1428,7 @@ int main() {
 		bsp.entities->append( "}}\n" );
 	}
 
-	WriteBSP( &temp, &bsp );
+	WriteBSP( &temp, bsp_path.c_str(), &bsp );
 
 	// TODO: perf
 	// - remove sorts and optimise sorts for debug

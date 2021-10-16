@@ -647,7 +647,7 @@ const WeaponDef weapon_defs[] = {
 	{
 		/* name                 */ "Road Gun",
 		/* short name           */ "road",
-		/* category             */ WeaponCategory_Secondary,
+		/* category             */ WeaponCategory_Backup,
 
 		/* projectile count     */ 1,
 		/* clip size            */ 20,

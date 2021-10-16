@@ -467,6 +467,8 @@ void ClientBegin( edict_t *ent ) {
 
 	G_PrintMsg( NULL, "%s entered the game\n", client->netname );
 
+	GT_CallPlayerConnected( ent );
+
 	client->connecting = false;
 
 	G_ClientEndSnapFrame( ent ); // make sure all view stuff is valid
@@ -718,8 +720,6 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 
 		Com_Printf( "%s connected from %s\n", ent->r.client->netname, ent->r.client->ip );
 	}
-
-	GT_CallPlayerConnected( ent );
 
 	G_CallVotes_ResetClient( PLAYERNUM( ent ) );
 

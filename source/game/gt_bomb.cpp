@@ -692,7 +692,8 @@ static void BombThink() {
 			}
 		} break;
 
-		default: break;
+		default:
+			break;
 	}
 }
 

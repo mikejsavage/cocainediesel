@@ -681,6 +681,43 @@ const WeaponDef weapon_defs[] = {
 		/* spread               */ 0,
 	},
 
+	{
+		/* name                 */ "Sticky Banger",
+		/* short name           */ "sticky",
+		/* category             */ WeaponCategory_Backup,
+
+		/* projectile count     */ 1,
+		/* clip size            */ 15,
+		/* reload time          */ 2000,
+		/* staged reloading     */ false,
+
+		// timings (in msecs)
+		/* weapon up time       */ WEAPONUP_TIME_FAST,
+		/* weapon down time     */ WEAPONDOWN_TIME,
+		/* refire time          */ 250,
+		/* timeout / range      */ 5000,
+		/* max recoil           */ EulerDegrees2( 125.0f, 5.0f ),
+		/* min recoil           */ EulerDegrees2( 100.0f, -5.0f ),
+		/* recoil recovery      */ 1750.0f,
+		/* firing mode          */ FiringMode_Auto,
+
+		/* zoom fov             */ 0.0f,
+		/* zoom inaccuracy      */ 0.0f,
+
+		// damages
+		/* damage               */ 10,
+		/* self damage          */ 0,
+		/* wallbang damage      */ 0.0f,
+		/* knockback            */ 20,
+		/* splash radius        */ 50,
+		/* splash min damage    */ 10,
+		/* splash min knockback */ 25,
+
+		// projectile def
+		/* speed                */ 3000,
+		/* spread               */ 3000,
+	},
+
 #if 0
 	{
 		/* name                 */ "Minigun",

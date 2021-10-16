@@ -71,6 +71,7 @@ enum WeaponType_ : WeaponType {
 	Weapon_Rifle,
 	Weapon_MasterBlaster,
 	Weapon_RoadGun,
+	Weapon_StickyGun,
 	// Weapon_Minigun,
 
 	Weapon_Count

@@ -463,16 +463,11 @@ bool CG_SwitchChaseCamMode();
 //
 
 void CG_RifleBulletTrail( const centity_t * cent );
-void CG_ARBulletExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
-void CG_BubbleExplosion( Vec3 pos, Vec4 team_color );
-void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
-void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_StakeImpact( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_StakeImpale( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BlastImpact( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_BlastBounce( Vec3 pos, Vec3 dir, Vec4 team_color );
-void CG_BladeImpact( Vec3 pos, Vec3 dir );
 
 void CG_Dash( const SyncEntityState *state );
 void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count );
@@ -484,9 +479,7 @@ void DrawGibs();
 //
 // cg_effects.c
 //
-void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
-void ARBulletImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
-void BubbleImpactParticles( Vec3 origin, Vec3 team_color );
+void ExplosionParticles( Vec3 origin, Vec3 normal, Vec4 team_color );
 void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color );
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );

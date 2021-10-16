@@ -403,18 +403,18 @@ void G_PrintMsg( edict_t *ent, const char *format, ... ) {
 void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, ... ) {
 	char msg[1024];
 	va_list argptr;
-	char *s, *p;
 
 	va_start( argptr, format );
 	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	// double quotes are bad
-	p = msg;
+	char * p = msg;
 	while( ( p = strchr( p, '\"' ) ) != NULL )
 		*p = '\'';
 
-	s = va( "%s %i \"%s\"", ( who && teamonly ? "tch" : "ch" ), ( who ? ENTNUM( who ) : 0 ), msg );
+	char cmd[ MAX_STRING_CHARS ];
+	snprintf( cmd, sizeof( cmd ), "%s %d \"%s\"", ( who && teamonly ? "tch" : "ch" ), ( who ? ENTNUM( who ) : 0 ), msg );
 
 	if( !ent ) {
 		// mirror at server console
@@ -439,17 +439,17 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 
 				if( ent->r.inuse && ent->r.client && PF_GetClientState( i ) >= CS_CONNECTED ) {
 					if( ent->s.team == who->s.team ) {
-						PF_GameCmd( ent, s );
+						PF_GameCmd( ent, cmd );
 					}
 				}
 			}
 		} else {
-			PF_GameCmd( NULL, s );
+			PF_GameCmd( NULL, cmd );
 		}
 	} else {
 		if( ent->r.inuse && ent->r.client && PF_GetClientState( PLAYERNUM( ent ) ) >= CS_CONNECTED ) {
 			if( !who || !teamonly || ent->s.team == who->s.team ) {
-				PF_GameCmd( ent, s );
+				PF_GameCmd( ent, cmd );
 			}
 		}
 	}
@@ -495,6 +495,26 @@ void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) {
 
 void G_ClearCenterPrint( edict_t *ent ) {
 	G_CenterPrintMsg( ent, "%s", "" );
+}
+
+void G_DebugPrint( const char * format, ... ) {
+	char msg[128];
+	va_list argptr;
+
+	va_start( argptr, format );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
+	va_end( argptr );
+
+	// double quotes are bad
+	char * p = msg;
+	while( ( p = strchr( p, '\"' ) ) != NULL )
+		*p = '\'';
+
+	char cmd[MAX_STRING_CHARS];
+	snprintf( cmd, sizeof( cmd ), "debug \"%s\"", msg );
+	PF_GameCmd( NULL, cmd );
+
+	Com_Printf( "Debug: %s\n", msg );
 }
 
 void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, DamageType mod, bool wallbang ) {

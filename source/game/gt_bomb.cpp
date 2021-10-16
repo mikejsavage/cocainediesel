@@ -559,6 +559,7 @@ static void BombDefused() {
 
 	G_Sound( bomb_state.bomb.model, CHAN_AUTO, "models/bomb/tss" );
 
+	G_DebugPrint( "defenders defused" );
 	RoundWonBy( bomb_state.defending_team );
 
 	bomb_state.defuser = -1;
@@ -566,6 +567,7 @@ static void BombDefused() {
 
 static void BombExplode() {
 	if( server_gs.gameState.round_state == RoundState_Round ) {
+		G_DebugPrint( "bomb exploded" );
 		RoundWonBy( bomb_state.attacking_team );
 	}
 
@@ -804,10 +806,12 @@ static void CheckPlayersAlive( int team ) {
 	if( alive == 0 ) {
 		if( team == bomb_state.attacking_team ) {
 			if( bomb_state.bomb.state != BombState_Planted ) {
+				G_DebugPrint( "all attackers died" );
 				RoundWonBy( bomb_state.defending_team );
 			}
 		}
 		else {
+			G_DebugPrint( "all defenders died" );
 			RoundWonBy( bomb_state.attacking_team );
 		}
 		return;
@@ -1001,6 +1005,7 @@ static void RoundThink() {
 
 	if( bomb_state.round_check_end && level.time > bomb_state.round_state_end ) {
 		if( server_gs.gameState.round_state == RoundState_Round && bomb_state.bomb.state != BombState_Planted ) {
+			G_DebugPrint( "ran out of time" );
 			RoundWonBy( bomb_state.defending_team );
 			bomb_state.last_time = 1; // kinda hacky, this shows at 0:00
 			G_CenterPrintMsg( NULL, S_COLOR_RED "Timelimit Hit!" );
@@ -1016,6 +1021,7 @@ static void RoundThink() {
 		// monitor the bomb's health
 		if( bomb_state.bomb.model == NULL || !bomb_state.bomb.model->r.inuse ) {
 			BombModelCreate();
+			G_DebugPrint( "bomb was destroyed" );
 			RoundWonBy( bomb_state.defending_team );
 			G_CenterPrintMsg( NULL, S_COLOR_RED "The attacking team has lost the bomb!!!" );
 			return;

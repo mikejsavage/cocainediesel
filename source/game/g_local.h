@@ -342,6 +342,8 @@ void G_CenterPrintMsg( edict_t *ent, _Printf_format_string_ const char *format, 
 #endif
 void G_ClearCenterPrint( edict_t *ent );
 
+void G_DebugPrint( const char * format, ... );
+
 void G_Obituary( edict_t *victim, edict_t *attacker, int topAssistEntNo, DamageType mod, bool wallbang );
 
 edict_t *G_Sound( edict_t *owner, int channel, StringHash sound );

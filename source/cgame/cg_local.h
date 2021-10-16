@@ -392,6 +392,8 @@ extern cvar_t *cg_chat;
 
 extern cvar_t *cg_particleDebug;
 
+extern cvar_t *cg_showServerDebugPrints;
+
 #define CG_Malloc( size ) _Mem_AllocExt( cg_mempool, size, 16, 1, 0, 0, __FILE__, __LINE__ );
 #define CG_Free( data ) Mem_Free( data )
 

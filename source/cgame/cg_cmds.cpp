@@ -65,6 +65,12 @@ static void CG_SC_CenterPrint() {
 	CG_CenterPrint( Cmd_Argv( 1 ) );
 }
 
+static void CG_SC_Debug() {
+	if( cg_showServerDebugPrints->integer != 0 ) {
+		Com_Printf( S_COLOR_ORANGE "Debug: %s\n", Cmd_Argv( 1 ) );
+	}
+}
+
 void CG_ConfigString( int i, const char *s ) {
 	size_t len;
 
@@ -254,6 +260,7 @@ static const ServerCommand server_commands[] = {
 	{ "tch", CG_SC_ChatPrint },
 	{ "cp", CG_SC_CenterPrint },
 	{ "obry", CG_SC_Obituary },
+	{ "debug", CG_SC_Debug },
 	{ "demoget", CG_SC_DemoGet },
 	{ "changeloadout", CG_SC_ChangeLoadout },
 	{ "saveloadout", CG_SC_SaveLoadout },

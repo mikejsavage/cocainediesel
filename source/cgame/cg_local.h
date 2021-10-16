@@ -192,8 +192,8 @@ struct cg_static_t {
 
 	const Font * fontNormal;
 	const Font * fontNormalBold;
-	const Font * fontNormalItalic;
-	const Font * fontNormalBoldItalic;
+	const Font * fontItalic;
+	const Font * fontBoldItalic;
 
 	cgs_media_t media;
 
@@ -329,6 +329,7 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin );
 extern cvar_t *cg_showFPS;
 
 void CG_ScreenInit();
+void CG_DrawScope();
 void CG_Draw2D();
 void CG_CenterPrint( const char *str );
 

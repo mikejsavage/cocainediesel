@@ -557,20 +557,6 @@ void AddDamageEffect( float x ) {
 	cg.damage_effect = Min2( max, cg.damage_effect + x );
 }
 
-static void CG_DrawScope() {
-	const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
-	if( def->zoom_fov != 0 && cg.predictedPlayerState.zoom_time > 0 ) {
-		PipelineState pipeline;
-		pipeline.pass = frame_static.ui_pass;
-		pipeline.shader = &shaders.scope;
-		pipeline.depth_func = DepthFunc_Disabled;
-		pipeline.blend_func = BlendFunc_Blend;
-		pipeline.write_depth = false;
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		DrawFullscreenMesh( pipeline );
-	}
-}
-
 void CG_Draw2DView() {
 	ZoneScoped;
 

@@ -1,16 +1,8 @@
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
-void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	DoVisualEffect( "vfx/explosion", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
-}
-
-void ARBulletImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	DoVisualEffect( "weapons/ar/explosion", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
-}
-
-void BubbleImpactParticles( Vec3 origin, Vec3 team_color ) {
-	DoVisualEffect( "weapons/bg/explosion", origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, Vec4( team_color, 1.0f ) );
+void ExplosionParticles( Vec3 origin, Vec3 normal, Vec4 team_color ) {
+	DoVisualEffect( "vfx/explosion", origin, normal, 1.0f, team_color );
 }
 
 void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {

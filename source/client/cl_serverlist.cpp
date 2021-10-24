@@ -18,9 +18,103 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "client/client.h"
+#include "qcommon/base.h"
+#include "qcommon/array.h"
 #include "qcommon/threads.h"
 #include "qcommon/version.h"
+#include "client/client.h"
+#include "client/server_browser.h"
+
+struct MasterServer {
+	netadr_t address;
+	bool query_next_frame;
+};
+
+static Mutex * mutex;
+static MasterServer master_servers[ ARRAY_COUNT( MASTER_SERVERS ) ];
+static size_t num_dns_queries_in_flight;
+
+static NonRAIIDynamicArray< ServerBrowserEntry > servers;
+
+void InitServerBrowser() {
+	servers.init( sys_allocator );
+
+	memset( master_servers, 0, sizeof( master_servers ) );
+	num_dns_queries_in_flight = 0;
+
+	mutex = NewMutex();
+}
+
+void ShutdownServerBrowser() {
+	servers.shutdown();
+
+	// leak the mutex and resolver threads because we can't shut them down
+	// quickly and reliably
+}
+
+Span< ServerBrowserEntry > GetServerBrowserEntries() {
+	return servers.span();
+}
+
+static void GetMasterServerAddress( void * data ) {
+	size_t idx = size_t( uintptr_t( data ) );
+
+	netadr_t thread_local_address;
+	NET_StringToAddress( MASTER_SERVERS[ idx ], &thread_local_address );
+	NET_SetAddressPort( &thread_local_address, PORT_MASTER );
+
+	if( thread_local_address.type == NA_NOTRANSMIT ) {
+		Com_Printf( "Failed to resolve master server address: %s\n", MASTER_SERVERS[ idx ] );
+	}
+
+	Lock( mutex );
+	master_servers[ idx ].address = thread_local_address;
+	master_servers[ idx ].query_next_frame = true;
+	num_dns_queries_in_flight--;
+	Unlock( mutex );
+}
+
+static void QueryMasterServer( MasterServer * master ) {
+	const char * command;
+	socket_t * socket;
+
+	if( master->address.type == NA_IP ) {
+		command = "getservers";
+		socket = &cls.socket_udp;
+	}
+	else {
+		command = "getserversExt";
+		socket = &cls.socket_udp6;
+	}
+
+	Netchan_OutOfBandPrint( socket, &master->address, "%s %s %s full empty", command, APPLICATION_NOSPACES, APP_PROTOCOL_VERSION );
+	master->query_next_frame = false;
+}
+
+void ServerBrowserFrame() {
+	for( MasterServer & master : master_servers ) {
+		if( master.query_next_frame ) {
+			QueryMasterServer( &master );
+		}
+	}
+}
+
+void RefreshServerBrowser() {
+	servers.clear();
+
+	for( MasterServer & master : master_servers ) {
+		QueryMasterServer( &master );
+	}
+
+	if( num_dns_queries_in_flight == 0 ) {
+		for( size_t i = 0; i < ARRAY_COUNT( MASTER_SERVERS ); i++ ) {
+			if( master_servers[ i ].address.type == NA_NOTRANSMIT ) {
+				NewThread( GetMasterServerAddress, ( void * ) uintptr_t( i ) );
+			}
+		}
+	}
+}
+
 
 struct serverlist_t {
 	char address[48];

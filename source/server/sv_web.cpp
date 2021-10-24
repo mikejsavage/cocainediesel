@@ -632,7 +632,7 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 		headers += "\r\n";
 	}
 	else {
-		String< 64 > error( "{} {}\n", response->code, SV_Web_ResponseCodeMessage( response->code ) );;
+		String< 64 > error( "{} {}\n", response->code, SV_Web_ResponseCodeMessage( response->code ) );
 
 		headers.append( "Content-Type: text/plain\r\n" );
 		headers.append( "Content-Length: {}\r\n", error.length() );

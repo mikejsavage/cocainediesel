@@ -21,11 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_local.h"
 
 void ThrowSmallPileOfGibs( edict_t *self, Vec3 knockback, int damage ) {
-	int contents = G_PointContents( self->s.origin );
-	if( contents & CONTENTS_NODROP ) {
-		return;
-	}
-
 	Vec3 origin = self->s.origin;
 	self->s.origin.z += 4;
 
@@ -57,7 +52,7 @@ void BecomeExplosion1( edict_t *self ) {
 	self->r.svflags &= ~SVF_NOCLIENT;
 }
 
-static void path_corner_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+static void path_corner_touch( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	Vec3 v;
 	edict_t *next;
 

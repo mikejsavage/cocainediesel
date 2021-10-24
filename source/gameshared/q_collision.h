@@ -31,28 +31,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define CONTENTS_WALLBANGABLE   0x4000
 
-#define CONTENTS_AREAPORTAL     0x8000
-
 #define CONTENTS_PLAYERCLIP     0x10000
 #define CONTENTS_WEAPONCLIP     0x20000
-
-#define CONTENTS_TELEPORTER     0x40000
-#define CONTENTS_JUMPPAD        0x80000
-#define CONTENTS_CLUSTERPORTAL  0x100000
-#define CONTENTS_DONOTENTER     0x200000
 
 #define CONTENTS_TEAMALPHA      0x400000
 #define CONTENTS_TEAMBETA       0x800000
 
-#define CONTENTS_ORIGIN         0x1000000   // removed before bsping an entity
-
 #define CONTENTS_BODY           0x2000000   // should never be on a brush, only in game
 #define CONTENTS_CORPSE         0x4000000
-#define CONTENTS_DETAIL         0x8000000   // brushes not used for the bsp
-#define CONTENTS_STRUCTURAL     0x10000000  // brushes used for the bsp
-#define CONTENTS_TRANSLUCENT    0x20000000  // don't consume surface fragments inside
 #define CONTENTS_TRIGGER        0x40000000
-#define CONTENTS_NODROP         0x80000000  // don't leave bodies or items (death fog, lava)
 
 // content masks
 #define MASK_ALL            ( -1 )
@@ -73,7 +60,7 @@ typedef struct {
 	bool startsolid;        // if true, the initial point was in a solid area
 	float fraction;             // time completed, 1.0 = didn't hit anything
 	Vec3 endpos;              // final position
-	cplane_t plane;             // surface normal at impact
+	Plane plane;             // surface normal at impact
 	int surfFlags;              // surface hit
 	int contents;               // contents on other side of surface hit
 	int ent;                    // not set by CM_*() functions

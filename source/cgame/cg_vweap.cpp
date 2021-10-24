@@ -192,7 +192,7 @@ void CG_Recoil( WeaponType weapon ) {
 	EulerDegrees2 recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
 
 	cg.recoil_initial_angles.pitch += Min2( 0.0f, cl.viewangles[ PITCH ] - cl.prevviewangles[ PITCH ] );
-	cg.recoil_initial_angles.yaw += AngleDelta( cl.viewangles[ YAW ], cl.prevviewangles[ YAW ] );;
+	cg.recoil_initial_angles.yaw += AngleDelta( cl.viewangles[ YAW ], cl.prevviewangles[ YAW ] );
 
 	recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
 

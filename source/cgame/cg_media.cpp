@@ -81,6 +81,6 @@ void CG_RegisterMediaShaders() {
 void CG_RegisterFonts() {
 	cgs.fontNormal = RegisterFont( "fonts/Decalotype-Bold" );
 	cgs.fontNormalBold = RegisterFont( "fonts/Decalotype-Black" );
-	cgs.fontNormalItalic = RegisterFont( "fonts/Decalotype-BoldItalic" );
-	cgs.fontNormalBoldItalic = RegisterFont( "fonts/Decalotype-BlackItalic" );
+	cgs.fontItalic = RegisterFont( "fonts/Decalotype-BoldItalic" );
+	cgs.fontBoldItalic = RegisterFont( "fonts/Decalotype-BlackItalic" );
 }

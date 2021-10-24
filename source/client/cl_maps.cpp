@@ -100,9 +100,8 @@ void HotloadMaps() {
 		hotloaded_anything = true;
 	}
 
-	FillMapModelsHashtable();
-
 	if( hotloaded_anything && Com_ServerState() != ss_dead ) {
+		FillMapModelsHashtable();
 		G_HotloadMap();
 	}
 }

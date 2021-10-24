@@ -430,30 +430,68 @@ static ul::RefPtr< ul::View > view;
 static GPUDriverGL driver;
 static bool show_inspector;
 
-static const char * GG( Allocator * a, JSContextRef ctx, JSValueRef str ) {
-	JSStringRef str2 = JSValueToStringCopy( ctx, str, NULL );
-	assert( str2 != NULL );
+static const char * GetArgString( Allocator * a, JSContextRef ctx, JSValueRef val ) {
+	JSStringRef str = JSValueToStringCopy( ctx, val, NULL );
+	assert( str != NULL );
 
-	size_t buf_size = JSStringGetMaximumUTF8CStringSize( str2 );
+	size_t buf_size = JSStringGetMaximumUTF8CStringSize( str );
 	char * buf = ALLOC_MANY( a, char, buf_size );
-	JSStringGetUTF8CString( str2, buf, buf_size );
+	JSStringGetUTF8CString( str, buf, buf_size );
 
-	JSStringRelease( str2 );
+	JSStringRelease( str );
 
 	return buf;
 }
 
-static JSValueRef HelloFromJS( JSContextRef ctx, JSObjectRef function, JSObjectRef self, size_t num_args, const JSValueRef * args, JSValueRef * exception ) {
+static float GetArgFloat( JSContextRef ctx, JSValueRef val ) {
+	return JSValueToNumber( ctx, val, NULL );
+}
+
+static JSValueRef SetCvar( JSContextRef ctx, JSObjectRef function, JSObjectRef self, size_t num_args, const JSValueRef * args, JSValueRef * exception ) {
 	assert( num_args == 2 );
 	assert( JSValueIsString( ctx, args[ 0 ] ) );
 	assert( JSValueIsString( ctx, args[ 1 ] ) );
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	const char * cvar = GG( &temp, ctx, args[ 0 ] );
-	const char * value = GG( &temp, ctx, args[ 1 ] );
+	const char * cvar = GetArgString( &temp, ctx, args[ 0 ] );
+	const char * value = GetArgString( &temp, ctx, args[ 1 ] );
 
-	// Com_GGPrint( "Set {} = {}", cvar, value );
+	Cvar_Set( cvar, value );
+
+	return JSValueMakeNull( ctx );
+}
+
+static JSValueRef GetCvar( JSContextRef ctx, JSObjectRef function, JSObjectRef self, size_t num_args, const JSValueRef * args, JSValueRef * exception ) {
+	assert( num_args == 1 );
+	assert( JSValueIsString( ctx, args[ 0 ] ) );
+
+	TempAllocator temp = cls.frame_arena.temp();
+
+	const char * cvar = GetArgString( &temp, ctx, args[ 0 ] );
+
+	return JSValueMakeString( ctx, JSStringCreateWithUTF8CString( Cvar_String( cvar ) ) );
+}
+
+static JSValueRef PlaySound( JSContextRef ctx, JSObjectRef function, JSObjectRef self, size_t num_args, const JSValueRef * args, JSValueRef * exception ) {
+	assert( num_args == 1 || num_args == 2 );
+	assert( JSValueIsString( ctx, args[ 0 ] ) );
+	assert( num_args == 1 || JSValueIsNumber( ctx, args[ 1 ] ) );
+
+	TempAllocator temp = cls.frame_arena.temp();
+
+	const char * sound = GetArgString( &temp, ctx, args[ 0 ] );
+	float volume = num_args == 1 ? 1.0f : GetArgFloat( ctx, args[ 1 ] );
+
+	S_StartGlobalSound( StringHash( sound ), CHAN_AUTO, volume, 1.0f );
+
+	return JSValueMakeNull( ctx );
+}
+
+static JSValueRef Quit( JSContextRef ctx, JSObjectRef function, JSObjectRef self, size_t num_args, const JSValueRef * args, JSValueRef * exception ) {
+	assert( num_args == 0 );
+
+	Cbuf_AddText( "quit\n" );
 
 	return JSValueMakeNull( ctx );
 }
@@ -475,7 +513,10 @@ static void RegisterEngineAPI() {
 
 	JSObjectRef engine = JSObjectMake( ctx, NULL, NULL );
 
-	SetObjectFunction( ctx, engine, "SetCvar", HelloFromJS );
+	SetObjectFunction( ctx, engine, "SetCvar", SetCvar );
+	SetObjectFunction( ctx, engine, "GetCvar", GetCvar );
+	SetObjectFunction( ctx, engine, "PlaySound", PlaySound );
+	SetObjectFunction( ctx, engine, "Quit", Quit );
 
 	SetObjectKey( ctx, JSContextGetGlobalObject( ctx ), "engine", engine );
 }
@@ -484,12 +525,12 @@ static void ToggleInspector() {
 	show_inspector = !show_inspector;
 }
 
-struct ShitFucker : public ul::LoadListener {
+struct EngineAPILoader : public ul::LoadListener {
 	void OnFinishLoading( ul::View * caller, uint64_t frame_id, bool is_main_frame, const ul::String & url ) {
 		RegisterEngineAPI();
 	}
 };
-static ShitFucker shitfucker;
+static EngineAPILoader engine_api_loader;
 
 void CL_Ultralight_Init() {
 	ZoneScoped;
@@ -521,7 +562,7 @@ void CL_Ultralight_Init() {
 
 	renderer = ul::Renderer::Create();
 	view = renderer->CreateView( frame_static.viewport_width, frame_static.viewport_height, true, nullptr );
-	view->set_load_listener( &shitfucker );
+	view->set_load_listener( &engine_api_loader );
 	view->LoadURL( "file:///menu.html#ultralight" );
 	view->Focus();
 }

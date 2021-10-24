@@ -48,8 +48,8 @@ static const Font * GetHUDFont() {
 	switch( layout_cursor_font_style ) {
 		case FontStyle_Normal: return cgs.fontNormal;
 		case FontStyle_Bold: return cgs.fontNormalBold;
-		case FontStyle_Italic: return cgs.fontNormalItalic;
-		case FontStyle_BoldItalic: return cgs.fontNormalBoldItalic;
+		case FontStyle_Italic: return cgs.fontItalic;
+		case FontStyle_BoldItalic: return cgs.fontBoldItalic;
 	}
 	return NULL;
 }
@@ -652,6 +652,67 @@ static void CG_DrawObituaries(
 }
 
 //=============================================================================
+
+static void GlitchText( Span< char > msg ) {
+	constexpr const char glitches[] = { '#', '@', '~', '$' };
+
+	RNG rng = NewRNG( cls.monotonicTime / 67, 0 );
+
+	for( char & c : msg ) {
+		if( Probability( &rng, 0.03f ) ) {
+			c = RandomElement( &rng, glitches );
+		}
+	}
+}
+
+void CG_DrawScope() {
+	const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
+	if( def->zoom_fov != 0 && cg.predictedPlayerState.zoom_time > 0 ) {
+		float frac = cg.predictedPlayerState.zoom_time / float( ZOOMTIME );
+
+		PipelineState pipeline;
+		pipeline.pass = frame_static.ui_pass;
+		pipeline.shader = &shaders.scope;
+		pipeline.depth_func = DepthFunc_Disabled;
+		pipeline.blend_func = BlendFunc_Blend;
+		pipeline.write_depth = false;
+		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		DrawFullscreenMesh( pipeline );
+
+		if( cg.predictedPlayerState.weapon == Weapon_Sniper ) {
+			trace_t trace;
+			Vec3 forward = -frame_static.V.row2().xyz();
+			Vec3 end = cg.view.origin + forward * 10000.0f;
+			CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), end, 0, MASK_SHOT );
+
+			TempAllocator temp = cls.frame_arena.temp();
+			float offset = Min2( frame_static.viewport_width, frame_static.viewport_height ) * 0.1f;
+
+			{
+				float distance = Length( trace.endpos - cg.view.origin ) + sinf( float( cls.monotonicTime ) / 128.0f ) * 0.5f + sinf( float( cls.monotonicTime ) / 257.0f ) * 0.25f;
+
+				char * msg = temp( "{.2}m", distance / 32.0f );
+				GlitchText( Span< char >( msg + strlen( msg ) - 3, 2 ) );
+
+				Vec4 color = Lerp( vec4_red, Square( RandomFloat01( &cls.rng ) ), vec4_white );
+				color.w = frac;
+
+				DrawText( cgs.fontItalic, cgs.textSizeSmall, msg, Alignment_RightTop, frame_static.viewport_width / 2 - offset, frame_static.viewport_height / 2 + offset, vec4_red );
+			}
+
+			if( trace.ent > 0 && trace.ent <= MAX_CLIENTS ) {
+				Vec4 color = AttentionGettingColor();
+				color.w = frac;
+
+				RNG obituary_rng = NewRNG( cls.monotonicTime / 1000, 0 );
+				char * msg = temp( "{}?", RandomElement( &obituary_rng, normal_obituaries ) );
+				GlitchText( Span< char >( msg, strlen( msg ) - 1 ) );
+
+				DrawText( cgs.fontItalic, cgs.textSizeSmall, msg, Alignment_LeftTop, frame_static.viewport_width / 2 + offset, frame_static.viewport_height / 2 + offset, color, vec4_black );
+			}
+		}
+	}
+}
 
 static bool CG_LFuncDrawCallvote( cg_layoutnode_t *argumentnode ) {
 	const char * vote = cgs.configStrings[ CS_CALLVOTE ];

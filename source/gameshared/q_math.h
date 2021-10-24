@@ -43,16 +43,16 @@ enum {
 
 typedef float mat3_t[9];
 
-struct cplane_t {
+struct Plane {
 	Vec3 normal;
-	float dist;
+	float distance;
 };
 
 constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 
 #define qmin( a, b ) ( ( a ) < ( b ) ? ( a ) : ( b ) )
 
-#define PlaneDiff( point, plane ) ( Dot( ( point ), ( plane )->normal ) - ( plane )->dist )
+#define PlaneDiff( point, plane ) ( Dot( ( point ), ( plane )->normal ) - ( plane )->distance )
 
 void ClearBounds( Vec3 * mins, Vec3 * maxs );
 void AddPointToBounds( Vec3 v, Vec3 * mins, Vec3 * maxs );
@@ -83,7 +83,7 @@ float CalcHorizontalFov( float fov_y, float width, float height );
 
 #define Q_rint( x ) ( ( x ) < 0 ? ( (int)( ( x ) - 0.5f ) ) : ( (int)( ( x ) + 0.5f ) ) )
 
-bool PlaneFromPoints( Vec3 verts[3], cplane_t *plane );
+bool PlaneFromPoints( Vec3 verts[3], Plane *plane );
 
 bool ComparePlanes( Vec3 p1normal, float p1dist, Vec3 p2normal, float p2dist );
 void SnapVector( Vec3 * normal );
@@ -114,4 +114,8 @@ Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p );
 
 Mat4 TransformKToDir( Vec3 dir );
 
-MinMax3 Extend( MinMax3 bounds, Vec3 p );
+MinMax3 Union( MinMax3 bounds, Vec3 p );
+MinMax3 Union( MinMax3 a, MinMax3 b );
+
+bool PlaneFrom3Points( Plane * plane, Vec3 a, Vec3 b, Vec3 c );
+bool Intersect3PlanesPoint( Vec3 * p, Plane plane1, Plane plane2, Plane plane3 );

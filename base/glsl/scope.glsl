@@ -17,7 +17,7 @@ void main() {
 	const vec4 crosshair_color = vec4( 1.0, 0.0, 0.0, 1.0 );
 	const vec4 crosshair_lines_color = vec4( 0.0, 0.0, 0.0, 1.0 );
 	const vec4 vignette_color = vec4( 0.0, 0.0, 0.0, 1.0 );
-	
+
 	vec2 p = gl_FragCoord.xy - u_ViewportSize * 0.5;
 
 	float radial_frac = length( p ) * 2.0 / min( u_ViewportSize.x, u_ViewportSize.y );

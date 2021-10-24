@@ -285,7 +285,7 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 	connectstring_base = TempCopyString( Cmd_Argv( 1 ) );
 	connectstring = connectstring_base;
 
-	if( !Q_strnicmp( connectstring, APP_URI_SCHEME, strlen( APP_URI_SCHEME ) ) ) {
+	if( StrCaseEqual( connectstring, APP_URI_SCHEME ) ) {
 		connectstring += strlen( APP_URI_SCHEME );
 	}
 
@@ -294,7 +294,7 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 		size_t temp_size;
 		const char *http_scheme = "http://";
 
-		if( !Q_strnicmp( connectstring, http_scheme, strlen( http_scheme ) ) ) {
+		if( StrCaseEqual( connectstring, http_scheme ) ) {
 			connectstring += strlen( http_scheme );
 		}
 
@@ -627,44 +627,41 @@ void CL_Reconnect_f() {
 * Responses to broadcasts, etc
 */
 static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *address, msg_t *msg ) {
-	char *s;
-	const char *c;
-
 	MSG_BeginReading( msg );
 	MSG_ReadInt32( msg ); // skip the -1
 
-	s = MSG_ReadStringLine( msg );
+	const char * s = MSG_ReadStringLine( msg );
 
-	if( !strncmp( s, "getserversResponse\\", 19 ) ) {
+	if( StartsWith( s, "getserversResponse\\" ) ) {
 		Com_DPrintf( "%s: %s\n", NET_AddressToString( address ), "getserversResponse" );
 		CL_ParseGetServersResponse( socket, address, msg, false );
 		return;
 	}
 
-	if( !strncmp( s, "getserversExtResponse", 21 ) ) {
+	if( StartsWith( s, "getserversExtResponse\\" ) ) {
 		Com_DPrintf( "%s: %s\n", NET_AddressToString( address ), "getserversExtResponse" );
 		CL_ParseGetServersResponse( socket, address, msg, true );
 		return;
 	}
 
 	Cmd_TokenizeString( s );
-	c = Cmd_Argv( 0 );
+	const char * c = Cmd_Argv( 0 );
 
 	Com_DPrintf( "%s: %s\n", NET_AddressToString( address ), s );
 
 	// server responding to a status broadcast
-	if( !strcmp( c, "info" ) ) {
+	if( strcmp( c, "info" ) == 0 ) {
 		CL_ParseStatusMessage( socket, address, msg );
 		return;
 	}
 
 	// jal : wsw
 	// server responding to a detailed info broadcast
-	if( !strcmp( c, "infoResponse" ) ) {
+	if( strcmp( c, "infoResponse" ) == 0 ) {
 		CL_ParseGetInfoResponse( socket, address, msg );
 		return;
 	}
-	if( !strcmp( c, "statusResponse" ) ) {
+	if( strcmp( c, "statusResponse" ) == 0 ) {
 		CL_ParseGetStatusResponse( socket, address, msg );
 		return;
 	}

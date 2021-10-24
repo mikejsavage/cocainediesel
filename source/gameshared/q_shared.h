@@ -73,11 +73,13 @@ float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine sto
 
 bool StrEqual( Span< const char > lhs, Span< const char > rhs );
 bool StrEqual( Span< const char > lhs, const char * rhs );
-bool StrEqual( const char * rhs, Span< const char > lhs );
+bool StrEqual( const char * lhs, Span< const char > rhs );
+bool StrEqual( const char * lhs, const char * rhs );
 
 bool StrCaseEqual( Span< const char > lhs, Span< const char > rhs );
 bool StrCaseEqual( Span< const char > lhs, const char * rhs );
-bool StrCaseEqual( const char * rhs, Span< const char > lhs );
+bool StrCaseEqual( const char * lhs, Span< const char > rhs );
+bool StrCaseEqual( const char * lhs, const char * rhs );
 
 template< size_t N >
 bool operator==( Span< const char > span, const char ( &str )[ N ] ) {
@@ -94,6 +96,7 @@ bool StartsWith( const char * str, const char * prefix );
 Span< const char > FileExtension( const char * path );
 Span< const char > StripExtension( const char * path );
 Span< const char > LastFileExtension( const char * path );
+Span< const char > StripLastExtension( const char * path );
 Span< const char > FileName( const char * path );
 Span< const char > BasePath( const char * path );
 

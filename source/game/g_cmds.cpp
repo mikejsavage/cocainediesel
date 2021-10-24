@@ -369,7 +369,7 @@ static void Cmd_Spray_f( edict_t * ent ) {
 	trace_t trace;
 	G_Trace( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ent, MASK_OPAQUE );
 
-	if( trace.ent != 0 || ( trace.surfFlags & ( SURF_SKY | SURF_NOMARKS ) ) )
+	if( trace.ent != 0 )
 		return;
 
 	ent->r.client->level.last_spray = svs.realtime;

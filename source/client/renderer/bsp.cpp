@@ -503,29 +503,33 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	MeshConfig mesh_config;
-	mesh_config.name = temp( "{} - {}", filename, model_idx );
-	mesh_config.ccw_winding = false;
-	mesh_config.unified_buffer = NewVertexBuffer( vertices.ptr(), vertices.num_bytes() );
-	mesh_config.stride = sizeof( vertices[ 0 ] );
-	mesh_config.positions_offset = offsetof( BSPModelVertex, position );
-	mesh_config.normals_offset = offsetof( BSPModelVertex, normal );
-	mesh_config.tex_coords_offset = offsetof( BSPModelVertex, uv );
-	mesh_config.num_vertices = indices.size();
+	{
+		ZoneScopedN( "Upload to GPU" );
 
-	// if( num_verts <= U16_MAX ) {
-	// 	DynamicArray< u16 > indices_u16( sys_allocator, indices.size() );
-	// 	for( u32 i = 0; i < indices.size(); i++ ) {
-	// 		indices_u16.add( indices[ i ] );
-	// 	}
-	// 	mesh_config.indices = NewIndexBuffer( indices.ptr(), indices.num_bytes() );
-	// }
-	// else {
-		mesh_config.indices = NewIndexBuffer( indices.ptr(), indices.num_bytes() );
-		mesh_config.indices_format = IndexFormat_U32;
-	// }
+		MeshConfig mesh_config;
+		mesh_config.name = temp( "{} - {}", filename, model_idx );
+		mesh_config.ccw_winding = false;
+		mesh_config.unified_buffer = NewVertexBuffer( vertices.ptr(), vertices.num_bytes() );
+		mesh_config.stride = sizeof( vertices[ 0 ] );
+		mesh_config.positions_offset = offsetof( BSPModelVertex, position );
+		mesh_config.normals_offset = offsetof( BSPModelVertex, normal );
+		mesh_config.tex_coords_offset = offsetof( BSPModelVertex, uv );
+		mesh_config.num_vertices = indices.size();
 
-	model.mesh = NewMesh( mesh_config );
+		// if( num_verts <= U16_MAX ) {
+		// 	DynamicArray< u16 > indices_u16( sys_allocator, indices.size() );
+		// 	for( u32 i = 0; i < indices.size(); i++ ) {
+		// 		indices_u16.add( indices[ i ] );
+		// 	}
+		// 	mesh_config.indices = NewIndexBuffer( indices.ptr(), indices.num_bytes() );
+		// }
+		// else {
+			mesh_config.indices = NewIndexBuffer( indices.ptr(), indices.num_bytes() );
+			mesh_config.indices_format = IndexFormat_U32;
+		// }
+
+		model.mesh = NewMesh( mesh_config );
+	}
 
 	return model;
 }
@@ -626,11 +630,6 @@ bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< c
 	TextureBuffer planeBuffer = NewTextureBuffer( TextureBufferFormat_Floatx4, planes.size() );
 	WriteTextureBuffer( planeBuffer, planes.ptr(), planes.size() * sizeof( GPUBSPPlane ) );
 	map->planeBuffer = planeBuffer;
-
-	nodes.clear();
-	leaves.clear();
-	leafbrushes.clear();
-	planes.clear();
 
 	return true;
 }

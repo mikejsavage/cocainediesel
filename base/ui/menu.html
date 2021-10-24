@@ -144,7 +144,7 @@ function SetCvarText( name ) {
 function SetCvarBool( name ) {
 	return function( e ) {
 		console.log( name, e.target.checked );
-		// cd.SetCvar( name, e.target.checked ? "1" : "0" );
+		engine.SetCvar( name, e.target.checked ? "1" : "0" );
 	}
 }
 
@@ -152,12 +152,12 @@ function GeneralSettings() {
 	return html`
 		<div>
 			<label>Name</label>
-			<input oninput=${SetCvarText("name")} type="text" value="asdf" />
+			<input oninput=${SetCvarText("name")} type="text" value=${engine.GetCvar("name")} />
 		</div>
 
 		<div>
 			<label>Show FPS</label>
-			<input onchange=${SetCvarBool("cg_showfps")} type="checkbox" checked />
+			<input onchange=${SetCvarBool("cg_showfps")} type="checkbox" checked=${engine.GetCvar("cg_showfps") != 0} />
 		</div>
 	`;
 }
@@ -202,10 +202,8 @@ function MainMenu() {
 	}
 
 	function OpenSettings() {
+		engine.PlaySound( "sounds/vsay/mike" );
 		setState( state => { return { ...state, mode: "settings" }; } );
-	}
-
-	function Quit() {
 	}
 
 	let main;
@@ -219,8 +217,6 @@ function MainMenu() {
 		main = html`<${Settings} />`;
 	}
 
-	engine.SetCvar( "sup", "bro" );
-
 	return html`
 		<header>
 			<h1>Cocaine Diesel</h1>
@@ -229,7 +225,7 @@ function MainMenu() {
 				<button onclick=${OpenServerBrowser}>Find servers</button>
 				<button onclick=${OpenCreateServer}>Create server</button>
 				<button onclick=${OpenSettings}>Settings</button>
-				<button onclick=${Quit} class="quit">Quit</button>
+				<button onclick=${() => engine.Quit()} class="quit">Quit</button>
 			</nav>
 		</header>
 

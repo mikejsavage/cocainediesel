@@ -38,6 +38,7 @@ require( "libs.zstd" )
 require( "libs.ultralight" )
 
 require( "source.tools.bc4" )
+require( "source.tools.dieselmap" )
 
 do
 	local platform_srcs

@@ -20,7 +20,7 @@ static void SpikesDeploy( edict_t * self ) {
 	}
 }
 
-static void SpikesTouched( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags ) {
+static void SpikesTouched( edict_t * self, edict_t * other, Plane * plane, int surfFlags ) {
 	if( other->s.type != ET_PLAYER )
 		return;
 
@@ -46,8 +46,8 @@ void SP_spike( edict_t * spike ) {
 	AngleVectors( spike->s.angles, &forward, &right, &up );
 
 	MinMax3 bounds = MinMax3::Empty();
-	bounds = Extend( bounds, -( forward + right ) * 8.0f + up * 48.0f );
-	bounds = Extend( bounds, ( forward + right ) * 8.0f );
+	bounds = Union( bounds, -( forward + right ) * 8.0f + up * 48.0f );
+	bounds = Union( bounds, ( forward + right ) * 8.0f );
 	spike->r.mins = bounds.mins;
 	spike->r.maxs = bounds.maxs;
 
@@ -78,8 +78,8 @@ void SP_spikes( edict_t * spikes ) {
 	AngleVectors( spikes->s.angles, &forward, &right, &up );
 
 	MinMax3 bounds = MinMax3::Empty();
-	bounds = Extend( bounds, -( forward + right ) * 64.0f + up * 48.0f );
-	bounds = Extend( bounds, ( forward + right ) * 64.0f );
+	bounds = Union( bounds, -( forward + right ) * 64.0f + up * 48.0f );
+	bounds = Union( bounds, ( forward + right ) * 64.0f );
 	spikes->r.mins = bounds.mins;
 	spikes->r.maxs = bounds.maxs;
 

@@ -46,6 +46,8 @@ cvar_t *cg_showClamp;
 
 cvar_t *cg_particleDebug;
 
+cvar_t *cg_showServerDebugPrints;
+
 void CG_LocalPrint( const char *format, ... ) {
 	va_list argptr;
 	char msg[ 1024 ];
@@ -107,26 +109,28 @@ static void CG_InitGameShared() {
 }
 
 static void CG_RegisterVariables() {
-	cg_showMiss    = Cvar_Get( "cg_showMiss", "0", 0 );
+	cg_showMiss = Cvar_Get( "cg_showMiss", "0", 0 );
 
 	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
 	cg_colorBlind  = Cvar_Get( "cg_colorBlind", "0", CVAR_ARCHIVE );
 
-	cg_thirdPerson =    Cvar_Get( "cg_thirdPerson", "0", CVAR_CHEAT );
-	cg_thirdPersonAngle =   Cvar_Get( "cg_thirdPersonAngle", "0", 0 );
-	cg_thirdPersonRange =   Cvar_Get( "cg_thirdPersonRange", "90", 0 );
+	cg_thirdPerson = Cvar_Get( "cg_thirdPerson", "0", CVAR_CHEAT );
+	cg_thirdPersonAngle = Cvar_Get( "cg_thirdPersonAngle", "0", 0 );
+	cg_thirdPersonRange = Cvar_Get( "cg_thirdPersonRange", "90", 0 );
 
-	cg_autoaction_demo =    Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
-	cg_autoaction_screenshot =  Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );
+	cg_autoaction_demo = Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
+	cg_autoaction_screenshot = Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );
 	cg_autoaction_spectator = Cvar_Get( "cg_autoaction_spectator", "0", CVAR_ARCHIVE );
 
 	cg_projectileAntilagOffset = Cvar_Get( "cg_projectileAntilagOffset", "1.0", CVAR_ARCHIVE );
 
-	cg_chat =           Cvar_Get( "cg_chat", "1", CVAR_ARCHIVE );
+	cg_chat = Cvar_Get( "cg_chat", "1", CVAR_ARCHIVE );
 
-	cg_showClamp =      Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
+	cg_showClamp = Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
 
-	cg_particleDebug =  Cvar_Get( "cg_particleDebug", "0", CVAR_DEVELOPER );
+	cg_particleDebug = Cvar_Get( "cg_particleDebug", "0", CVAR_DEVELOPER );
+
+	cg_showServerDebugPrints = Cvar_Get( "cg_showServerDebugPrints", "0", CVAR_ARCHIVE );
 
 	Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
 }

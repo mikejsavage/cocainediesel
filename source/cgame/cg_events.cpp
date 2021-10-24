@@ -21,10 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 
 void RailgunImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 color ) {
-	if( surfFlags & ( SURF_SKY | SURF_NOMARKS | SURF_NOIMPACT ) ) {
-		return;
-	}
-
 	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, color );
 	S_StartFixedSound( "weapons/eb/hit", pos, CHAN_AUTO, 1.0f, 1.0f );
 }
@@ -226,8 +222,8 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 	trace_t trace, wallbang;
 	GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, spread, range, owner, 0 );
 
-	if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
-		if( trace.surfFlags & SURF_FLESH || ( trace.ent > 0 && cg_entities[ trace.ent ].current.type == ET_PLAYER ) ) {
+	if( trace.ent != -1 ) {
+		if( trace.ent > 0 && cg_entities[ trace.ent ].current.type == ET_PLAYER ) {
 			// flesh impact sound
 		}
 		else {
@@ -273,7 +269,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 		float distance = Length( trace.endpos - origin );
 		float decal_p = Lerp( 0.25f, Unlerp( 0.0f, distance, 256.0f ), 0.5f );
 		if( Probability( &cls.rng, decal_p ) ) {
-			if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
+			if( trace.ent != -1 ) {
 				BulletImpact( &trace, team_color, 4, 0.5f );
 			}
 
@@ -289,7 +285,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	trace_t trace;
 	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, owner, MASK_SHOT );
 
-	if( trace.ent != -1 && !( trace.surfFlags & SURF_NOIMPACT ) ) {
+	if( trace.ent != -1 ) {
 		S_StartFixedSound( "weapons/rg/hit", trace.endpos, CHAN_AUTO, 1.0f, 1.0f );
 	}
 }
@@ -629,7 +625,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			else if( weapon == Weapon_Laser ) {
 				CG_Event_LaserBeam( origin, dir, owner );
 			}
-			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_BurstRifle || weapon == Weapon_Sniper /* || weapon == Weapon_Minigun */ ) {
+			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_BurstRifle || weapon == Weapon_Sniper || weapon == Weapon_AutoSniper /* || weapon == Weapon_Minigun */ ) {
 				u16 entropy = parm >> 8;
 				s16 zoom_time = parm >> 24;
 				CG_Event_FireBullet( origin, dir, entropy, zoom_time, weapon, owner, team_color );
@@ -749,11 +745,13 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_ARBULLET_EXPLOSION: {
 			Vec3 dir = U64ToDir( parm );
-			CG_ARBulletExplosion( ent->origin, dir, team_color );
+			DoVisualEffect( "weapons/ar/explosion", ent->origin, dir, 1.0f, team_color );
+			S_StartFixedSound( "weapons/ar/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
 		case EV_BUBBLE_EXPLOSION:
-			CG_BubbleExplosion( ent->origin, team_color );
+			DoVisualEffect( "weapons/bg/explosion", ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, team_color );
+			S_StartFixedSound( "weapons/bg/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 			break;
 
 		case EV_BOLT_EXPLOSION: {
@@ -762,22 +760,23 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		} break;
 
 		case EV_GRENADE_EXPLOSION: {
-			Vec3 dir;
-			if( parm ) {
-				// we have a direction
-				dir = U64ToDir( parm );
-				CG_GrenadeExplosion( ent->origin, dir, team_color );
-			}
-			else {
-				// no direction
-				CG_GrenadeExplosion( ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), team_color );
-			}
+			Vec3 dir = U64ToDir( parm );
+			ExplosionParticles( ent->origin, dir, team_color );
+			S_StartFixedSound( "weapons/gl/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+		} break;
 
+		case EV_STICKY_EXPLOSION: {
+			Vec3 dir = U64ToDir( parm );
+			ExplosionParticles( ent->origin, dir, team_color );
+			if( parm == 0 ) {
+				S_StartFixedSound( "weapons/sticky/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			}
 		} break;
 
 		case EV_ROCKET_EXPLOSION: {
 			Vec3 dir = U64ToDir( parm );
-			CG_RocketExplosion( ent->origin, dir, team_color );
+			ExplosionParticles( ent->origin, dir, team_color );
+			S_StartFixedSound( "weapons/rl/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
 		case EV_GRENADE_BOUNCE: {
@@ -786,7 +785,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		} break;
 
 		case EV_BLADE_IMPACT:
-			CG_BladeImpact( ent->origin, ent->origin2 );
+			// CG_BladeImpact( ent->origin, ent->origin2 );
 			break;
 
 		case EV_RIFLEBULLET_IMPACT: {
@@ -797,22 +796,26 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_STAKE_IMPACT: {
 			Vec3 dir = U64ToDir( parm );
-			CG_StakeImpact( ent->origin, dir, team_color );
+			DoVisualEffect( "weapons/stake/hit", ent->origin, dir, 1.0f, team_color );
+			S_StartFixedSound( "weapons/stake/hit", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
 		case EV_STAKE_IMPALE: {
 			Vec3 dir = U64ToDir( parm );
-			CG_StakeImpale( ent->origin, dir, team_color );
+			DoVisualEffect( "weapons/stake/impale", ent->origin, dir, 1.0f, team_color );
+			S_StartFixedSound( "weapons/stake/impale", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
 		case EV_BLAST_IMPACT: {
 			Vec3 dir = U64ToDir( parm );
-			CG_BlastImpact( ent->origin, dir, team_color );
+			DoVisualEffect( "weapons/mb/hit", ent->origin, dir, 1.0f, team_color );
+			S_StartFixedSound( "weapons/mb/hit", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
 		case EV_BLAST_BOUNCE: {
 			Vec3 dir = U64ToDir( parm );
-			CG_BlastBounce( ent->origin, dir, team_color );
+			DoVisualEffect( "weapons/mb/bounce", ent->origin, dir, 1.0f, team_color );
+			S_StartFixedSound( "weapons/mb/bounce", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
 		case EV_BLOOD: {
@@ -910,7 +913,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_SUICIDE_BOMB_EXPLODE:
-			CG_RocketExplosion( ent->origin, Vec3( 0.0f ), team_color );
+			ExplosionParticles( ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), team_color );
+			S_StartFixedSound( "weapons/rl/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 			break;
 
 		case EV_STUN_GRENADE_EXPLOSION:

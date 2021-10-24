@@ -383,8 +383,12 @@ bool StrEqual( Span< const char > lhs, const char * rhs ) {
 	return StrEqual( lhs, MakeSpan( rhs ) );
 }
 
-bool StrEqual( const char * rhs, Span< const char > lhs ) {
-	return StrEqual( lhs, rhs );
+bool StrEqual( const char * lhs, Span< const char > rhs ) {
+	return StrEqual( MakeSpan( lhs ), rhs );
+}
+
+bool StrEqual( const char * lhs, const char * rhs ) {
+	return StrEqual( MakeSpan( lhs ), MakeSpan( rhs ) );
 }
 
 bool StrCaseEqual( Span< const char > lhs, Span< const char > rhs ) {
@@ -397,8 +401,12 @@ bool StrCaseEqual( Span< const char > lhs, const char * rhs ) {
 	return StrCaseEqual( lhs, MakeSpan( rhs ) );
 }
 
-bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
-	return StrCaseEqual( lhs, rhs );
+bool StrCaseEqual( const char * lhs, Span< const char > rhs ) {
+	return StrCaseEqual( MakeSpan( lhs ), rhs );
+}
+
+bool StrCaseEqual( const char * lhs, const char * rhs ) {
+	return StrCaseEqual( MakeSpan( lhs ), MakeSpan( rhs ) );
 }
 
 bool StartsWith( Span< const char > str, const char * prefix ) {
@@ -427,8 +435,14 @@ Span< const char > StripExtension( const char * path ) {
 }
 
 Span< const char > LastFileExtension( const char * path ) {
-	const char * ext = strrchr( path, '.' );
+	const char * filename = strrchr( path, '/' );
+	const char * ext = strrchr( filename == NULL ? path : filename, '.' );
 	return ext == NULL ? Span< const char >() : MakeSpan( ext );
+}
+
+Span< const char > StripLastExtension( const char * path ) {
+	Span< const char > ext = LastFileExtension( path );
+	return Span< const char >( path, strlen( path ) - ext.n );
 }
 
 Span< const char > FileName( const char * path ) {
@@ -958,7 +972,7 @@ Span< const char > ParseWorldspawnKey( Span< const char > entities, const char *
 	Span< const char > cursor = entities;
 
 	if( ParseToken( &cursor, Parse_DontStopOnNewLine ) != "{" ) {
-		Com_Error( "Entity string doesn't start with {" );
+		Fatal( "Entity string doesn't start with {" );
 	}
 
 	while( true ) {

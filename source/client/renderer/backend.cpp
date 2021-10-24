@@ -815,9 +815,7 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 		return a.pipeline.pass < b.pipeline.pass;
 	if( !render_passes[ a.pipeline.pass ].sorted )
 		return false;
-	if( a.pipeline.shader != b.pipeline.shader )
-		return a.pipeline.shader < b.pipeline.shader;
-	return a.mesh.vao < b.mesh.vao;
+	return a.pipeline.shader < b.pipeline.shader;
 }
 
 void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
@@ -917,6 +915,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	TracyGpuZone( "Draw call" );
 
 	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
+
 	if( dc.pipeline.clear_target ) {
 		glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
 		glClear( GL_COLOR_BUFFER_BIT );

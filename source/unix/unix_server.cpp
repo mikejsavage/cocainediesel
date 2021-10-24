@@ -66,7 +66,7 @@ void Sys_Quit() {
 	exit( 0 );
 }
 
-int main( int argc, char **argv ) {
+int main( int argc, char ** argv ) {
 	unsigned int oldtime, newtime, time;
 
 	InitSig();

@@ -195,26 +195,53 @@ static void ShowShop( s32 player_num ) {
 	PF_GameCmd( PLAYERENT( player_num ), command.c_str() );
 }
 
-static void SetLoadout( edict_t * ent, Span< const char > loadout_string ) {
+static Loadout DefaultLoadout() {
 	Loadout loadout = { };
+	loadout.weapons[ WeaponCategory_Primary ] = Weapon_RocketLauncher;
+	loadout.weapons[ WeaponCategory_Secondary ] = Weapon_Shotgun;
+	loadout.weapons[ WeaponCategory_Backup ] = Weapon_StakeGun;
 
-	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		int weapon = ParseInt( &loadout_string, 0, Parse_DontStopOnNewLine );
-		if( weapon == Weapon_None ) {
-			break;
-		}
-
-		if( weapon <= Weapon_None || weapon >= Weapon_Count || weapon == Weapon_Knife ) {
-			return;
-		}
-
-		WeaponCategory category = GS_GetWeaponDef( WeaponType( weapon ) )->category;
-
-		loadout.weapons[ category ] = WeaponType( weapon );
+	for( int i = 0; i < WeaponCategory_Count; i++ ) {
+		assert( loadout.weapons[ i ] != Weapon_None );
 	}
 
-	loadout.gadget = Gadget_None;
-	loadout.perk = Perk_None;
+	return loadout;
+}
+
+static bool ParseLoadout( Loadout * loadout, const char * loadout_string ) {
+	if( loadout_string == NULL )
+		return false;
+
+	*loadout = { };
+
+	Span< const char > cursor = MakeSpan( loadout_string );
+
+	for( int i = 0; i < WeaponCategory_Count; i++ ) {
+		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		int weapon;
+		if( !TrySpanToInt( token, &weapon ) )
+			return false;
+
+		if( weapon <= Weapon_None || weapon >= Weapon_Count || weapon == Weapon_Knife )
+			return false;
+
+		WeaponCategory category = GS_GetWeaponDef( WeaponType( weapon ) )->category;
+		if( category != i )
+			return false;
+
+		loadout->weapons[ category ] = WeaponType( weapon );
+	}
+
+	return true;
+}
+
+static void SetLoadout( edict_t * ent, const char * loadout_string, bool fallback_to_default ) {
+	Loadout loadout;
+	if( !ParseLoadout( &loadout, loadout_string ) ) {
+		if( !fallback_to_default )
+			return;
+		loadout = DefaultLoadout();
+	}
 
 	TempAllocator temp = svs.frame_arena.temp();
 	DynamicString command( &temp, "saveloadout" );
@@ -319,7 +346,7 @@ static void PlantAreaThink( edict_t * ent ) {
 	G_FreeEdict( ent );
 }
 
-static void PlantAreaTouch( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags ) {
+static void PlantAreaTouch( edict_t * self, edict_t * other, Plane * plane, int surfFlags ) {
 	if( other->r.client == NULL ) {
 		return;
 	}
@@ -347,7 +374,7 @@ static void SpawnPlantArea( edict_t * ent ) {
 
 // bomb.as
 
-static void BombTouch( edict_t * self, edict_t * other, cplane_t * plane, int surfFlags ) {
+static void BombTouch( edict_t * self, edict_t * other, Plane * plane, int surfFlags ) {
 	if( server_gs.gameState.match_state != MatchState_Playing ) {
 		return;
 	}
@@ -559,6 +586,7 @@ static void BombDefused() {
 
 	G_Sound( bomb_state.bomb.model, CHAN_AUTO, "models/bomb/tss" );
 
+	G_DebugPrint( "defenders defused" );
 	RoundWonBy( bomb_state.defending_team );
 
 	bomb_state.defuser = -1;
@@ -566,6 +594,7 @@ static void BombDefused() {
 
 static void BombExplode() {
 	if( server_gs.gameState.round_state == RoundState_Round ) {
+		G_DebugPrint( "bomb exploded" );
 		RoundWonBy( bomb_state.attacking_team );
 	}
 
@@ -690,7 +719,8 @@ static void BombThink() {
 			}
 		} break;
 
-		default: break;
+		default:
+			break;
 	}
 }
 
@@ -804,10 +834,12 @@ static void CheckPlayersAlive( int team ) {
 	if( alive == 0 ) {
 		if( team == bomb_state.attacking_team ) {
 			if( bomb_state.bomb.state != BombState_Planted ) {
+				G_DebugPrint( "all attackers died" );
 				RoundWonBy( bomb_state.defending_team );
 			}
 		}
 		else {
+			G_DebugPrint( "all defenders died" );
 			RoundWonBy( bomb_state.attacking_team );
 		}
 		return;
@@ -1001,6 +1033,7 @@ static void RoundThink() {
 
 	if( bomb_state.round_check_end && level.time > bomb_state.round_state_end ) {
 		if( server_gs.gameState.round_state == RoundState_Round && bomb_state.bomb.state != BombState_Planted ) {
+			G_DebugPrint( "ran out of time" );
 			RoundWonBy( bomb_state.defending_team );
 			bomb_state.last_time = 1; // kinda hacky, this shows at 0:00
 			G_CenterPrintMsg( NULL, S_COLOR_RED "Timelimit Hit!" );
@@ -1016,6 +1049,7 @@ static void RoundThink() {
 		// monitor the bomb's health
 		if( bomb_state.bomb.model == NULL || !bomb_state.bomb.model->r.inuse ) {
 			BombModelCreate();
+			G_DebugPrint( "bomb was destroyed" );
 			RoundWonBy( bomb_state.defending_team );
 			G_CenterPrintMsg( NULL, S_COLOR_RED "The attacking team has lost the bomb!!!" );
 			return;
@@ -1067,12 +1101,11 @@ static void SetTeamProgress( int team, int percent, BombProgress type ) {
 	}
 }
 
-static bool GT_Bomb_Command( gclient_t * client, const char * cmd_, const char * args_, int argc ) {
-	if( cmd_ == NULL || args_ == NULL ) {
+static bool GT_Bomb_Command( gclient_t * client, const char * cmd_, const char * args, int argc ) {
+	if( cmd_ == NULL || args == NULL ) {
 		return false;
 	}
 	Span< const char > cmd = MakeSpan( cmd_ );
-	Span< const char > args = MakeSpan( args_ );
 
 	if( cmd == "drop" ) {
 		if( PLAYERNUM( client ) == bomb_state.carrier && bomb_state.bomb.state == BombState_Carried ) {
@@ -1087,7 +1120,7 @@ static bool GT_Bomb_Command( gclient_t * client, const char * cmd_, const char *
 	}
 
 	if( cmd == "weapselect" ) {
-		SetLoadout( PLAYERENT( PLAYERNUM( client ) ), args );
+		SetLoadout( PLAYERENT( PLAYERNUM( client ) ), args, false );
 		return true;
 	}
 
@@ -1111,14 +1144,7 @@ static edict_t * GT_Bomb_SelectSpawnPoint( edict_t * ent ) {
 }
 
 static void GT_Bomb_PlayerConnected( edict_t * ent ) {
-	const char * loadout = Info_ValueForKey( ent->r.client->userinfo, "cg_loadout" );
-	if( loadout == NULL ) {
-		String< 128 > easy_loadout( "{} {} {}", Weapon_RocketLauncher, Weapon_Shotgun, Weapon_StakeGun );
-		SetLoadout( ent, easy_loadout.span() );
-	}
-	else {
-		SetLoadout( ent, MakeSpan( loadout ) );
-	}
+	SetLoadout( ent, Info_ValueForKey( ent->r.client->userinfo, "cg_loadout" ), true );
 }
 
 static void GT_Bomb_PlayerRespawning( edict_t * ent ) {

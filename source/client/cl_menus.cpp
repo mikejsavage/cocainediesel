@@ -706,6 +706,8 @@ static void MainMenu() {
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
 
 	ImGui::Begin( "mainmenu", WindowZOrder_Menu, flags );
+	ImGui::End();
+	return;
 
 	ImVec2 window_padding = ImGui::GetStyle().WindowPadding;
 

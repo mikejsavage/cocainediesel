@@ -281,21 +281,6 @@ void CL_GameModule_AddMovement( Vec3 * movement );
 void CL_GameModule_MouseMove( int frameTime, Vec2 m );
 
 //
-// cl_serverlist.c
-//
-void CL_ParseGetInfoResponse( const socket_t *socket, const netadr_t *address, msg_t *msg );
-void CL_ParseGetStatusResponse( const socket_t *socket, const netadr_t *address, msg_t *msg );
-void CL_QueryGetInfoMessage_f();
-void CL_QueryGetStatusMessage_f();
-void CL_ParseStatusMessage( const socket_t *socket, const netadr_t *address, msg_t *msg );
-void CL_ParseGetServersResponse( const socket_t *socket, const netadr_t *address, msg_t *msg, bool extended );
-void CL_GetServers_f();
-void CL_PingServer_f();
-void CL_ServerListFrame();
-void CL_InitServerList();
-void CL_ShutDownServerList();
-
-//
 // cl_input.c
 //
 void CL_InitInput();

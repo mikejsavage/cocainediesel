@@ -5,6 +5,7 @@
 struct ServerBrowserEntry {
 	netadr_t address;
 
+	bool have_details;
 	char name[ 128 ];
 	char map[ 64 ];
 	int ping;
@@ -15,7 +16,11 @@ struct ServerBrowserEntry {
 void InitServerBrowser();
 void ShutdownServerBrowser();
 
-Span< ServerBrowserEntry > GetServerBrowserEntries();
+Span< const ServerBrowserEntry > GetServerBrowserEntries();
 void RefreshServerBrowser();
 
 void ServerBrowserFrame();
+
+struct msg_t;
+void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 );
+void ParseServerInfoResponse( msg_t * msg, netadr_t address );

@@ -778,10 +778,10 @@ void SV_Web_Init() {
 		return;
 	}
 
-	SV_Web_InitSocket( sv_ip->string, NA_IP, &sv_socket_http );
-	SV_Web_InitSocket( sv_ip6->string, NA_IP6, &sv_socket_http6 );
+	SV_Web_InitSocket( sv_ip->string, NA_IPv4, &sv_socket_http );
+	SV_Web_InitSocket( sv_ip6->string, NA_IPv6, &sv_socket_http6 );
 
-	sv_http_initialized = ( sv_socket_http.address.type == NA_IP || sv_socket_http6.address.type == NA_IP6 );
+	sv_http_initialized = ( sv_socket_http.address.type == NA_IPv4 || sv_socket_http6.address.type == NA_IPv6 );
 
 	if( !sv_http_initialized ) {
 		return;
@@ -803,10 +803,10 @@ static void SV_Web_Frame() {
 	}
 
 	// accept new connections
-	if( sv_socket_http.address.type == NA_IP ) {
+	if( sv_socket_http.address.type == NA_IPv4 ) {
 		SV_Web_Listen( &sv_socket_http );
 	}
-	if( sv_socket_http6.address.type == NA_IP6 ) {
+	if( sv_socket_http6.address.type == NA_IPv6 ) {
 		SV_Web_Listen( &sv_socket_http6 );
 	}
 
@@ -828,10 +828,10 @@ static void SV_Web_Frame() {
 					 NULL, connections );
 	} else {
 		// sleep on network sockets if got nothing else to do
-		if( sv_socket_http.address.type == NA_IP ) {
+		if( sv_socket_http.address.type == NA_IPv4 ) {
 			sockets[num_sockets++] = &sv_socket_http;
 		}
-		if( sv_socket_http6.address.type == NA_IP6 ) {
+		if( sv_socket_http6.address.type == NA_IPv6 ) {
 			sockets[num_sockets++] = &sv_socket_http6;
 		}
 		sockets[num_sockets] = NULL;

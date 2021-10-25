@@ -52,7 +52,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #   define MSG_NOSIGNAL 0
 #endif
 
-
 typedef struct {
 	uint8_t data[MAX_MSGLEN];
 	int datalen;
@@ -99,27 +98,26 @@ static bool AddressToSockaddress( const netadr_t *address, struct sockaddr_stora
 	assert( sadr );
 
 	switch( address->type ) {
-		case NA_IP:
+		case NA_IPv4:
 		{
-			const netadr_ipv4_t *na4 = &address->address.ipv4;
+			const IPv4 *na4 = &address->ipv4;
 			struct sockaddr_in *sadr_in = (struct sockaddr_in *)sadr;
 
 			memset( sadr_in, 0, sizeof( *sadr_in ) );
 			sadr_in->sin_family = AF_INET;
-			sadr_in->sin_port = na4->port;
+			sadr_in->sin_port = address->port;
 			sadr_in->sin_addr.s_addr = *(int *)&na4->ip;
 			return true;
 		}
 
-		case NA_IP6:
+		case NA_IPv6:
 		{
-			const netadr_ipv6_t *na6 = &address->address.ipv6;
+			const IPv6 *na6 = &address->ipv6;
 			struct sockaddr_in6 *sadr_in6 = (struct sockaddr_in6 *)sadr;
 
 			memset( sadr_in6, 0, sizeof( *sadr_in6 ) );
 			sadr_in6->sin6_family = AF_INET6;
-			sadr_in6->sin6_port = na6->port;
-			sadr_in6->sin6_scope_id = na6->scope_id;
+			sadr_in6->sin6_port = address->port;
 			memcpy( &sadr_in6->sin6_addr, na6->ip, sizeof( sadr_in6->sin6_addr ) );
 			return true;
 		}
@@ -141,23 +139,22 @@ static bool SockaddressToAddress( const struct sockaddr *s, netadr_t *address ) 
 		case AF_INET:
 		{
 			const struct sockaddr_in *sadr_in = (const struct sockaddr_in *)s;
-			netadr_ipv4_t *na4 = &address->address.ipv4;
+			IPv4 *na4 = &address->ipv4;
 
-			address->type = NA_IP;
+			address->type = NA_IPv4;
 			*(int*)na4->ip = sadr_in->sin_addr.s_addr;
-			na4->port = sadr_in->sin_port;
+			address->port = sadr_in->sin_port;
 			return true;
 		}
 
 		case AF_INET6:
 		{
 			const struct sockaddr_in6 *sadr_in6 = (const struct sockaddr_in6 *)s;
-			netadr_ipv6_t *na6 = &address->address.ipv6;
+			IPv6 *na6 = &address->ipv6;
 
-			address->type = NA_IP6;
+			address->type = NA_IPv6;
 			memcpy( na6->ip, &sadr_in6->sin6_addr, sizeof( na6->ip ) );
-			na6->port = sadr_in6->sin6_port;
-			na6->scope_id = sadr_in6->sin6_scope_id;
+			address->port = sadr_in6->sin6_port;
 			return true;
 		}
 
@@ -343,10 +340,10 @@ static bool NET_IP_OpenSocket( socket_t *sock, const netadr_t *address, socket_t
 
 	assert( sock && !sock->open );
 	assert( address );
-	assert( address->type == NA_IP || address->type == NA_IP6 );
+	assert( address->type == NA_IPv4 || address->type == NA_IPv6 );
 	assert( socktype == SOCKET_UDP || socktype == SOCKET_TCP );
 
-	if( ( newsocket = OpenSocket( socktype, address->type == NA_IP6 ) ) == INVALID_SOCKET ) {
+	if( ( newsocket = OpenSocket( socktype, address->type == NA_IPv6 ) ) == INVALID_SOCKET ) {
 		return false;
 	}
 
@@ -745,6 +742,10 @@ PUBLIC FUNCTIONS
 =============================================================================
 */
 
+bool operator==( const netadr_t & a, const netadr_t & b ) {
+	return NET_CompareAddress( &a, &b );
+}
+
 /*
 * NET_GetPacket
 *
@@ -880,19 +881,19 @@ char *NET_AddressToString( const netadr_t *a ) {
 		case NA_LOOPBACK:
 			Q_strncpyz( s, "loopback", sizeof( s ) );
 			break;
-		case NA_IP:
+		case NA_IPv4:
 		{
-			const netadr_ipv4_t *adr4 = &a->address.ipv4;
-			snprintf( s, sizeof( s ), "%i.%i.%i.%i:%hu", adr4->ip[0], adr4->ip[1], adr4->ip[2], adr4->ip[3], BigShort( adr4->port ) );
+			const IPv4 *adr4 = &a->ipv4;
+			snprintf( s, sizeof( s ), "%i.%i.%i.%i:%hu", adr4->ip[0], adr4->ip[1], adr4->ip[2], adr4->ip[3], BigShort( a->port ) );
 			break;
 		}
-		case NA_IP6:
+		case NA_IPv6:
 		{
-			const netadr_ipv6_t *adr6 = &a->address.ipv6;
+			const IPv6 *adr6 = &a->ipv6;
 			snprintf( s, sizeof( s ), "[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]:%hu",
 						 adr6->ip[ 0], adr6->ip[ 1], adr6->ip[ 2], adr6->ip[ 3], adr6->ip[ 4], adr6->ip[ 5], adr6->ip[ 6], adr6->ip[ 7],
 						 adr6->ip[ 8], adr6->ip[ 9], adr6->ip[10], adr6->ip[11], adr6->ip[12], adr6->ip[13], adr6->ip[14], adr6->ip[15],
-						 BigShort( adr6->port ) );
+						 BigShort( a->port ) );
 			break;
 		}
 		default:
@@ -918,21 +919,21 @@ bool NET_CompareBaseAddress( const netadr_t *a, const netadr_t *b ) {
 		case NA_LOOPBACK:
 			return true;
 
-		case NA_IP:
+		case NA_IPv4:
 		{
-			const netadr_ipv4_t *addr1 = &a->address.ipv4;
-			const netadr_ipv4_t *addr2 = &b->address.ipv4;
+			const IPv4 *addr1 = &a->ipv4;
+			const IPv4 *addr2 = &b->ipv4;
 			if( addr1->ip[0] == addr2->ip[0] && addr1->ip[1] == addr2->ip[1] && addr1->ip[2] == addr2->ip[2] && addr1->ip[3] == addr2->ip[3] ) {
 				return true;
 			}
 			return false;
 		}
 
-		case NA_IP6:
+		case NA_IPv6:
 		{
-			const netadr_ipv6_t *addr1 = &a->address.ipv6;
-			const netadr_ipv6_t *addr2 = &b->address.ipv6;
-			return ( ( memcmp( addr1->ip, addr2->ip, sizeof( addr1->ip ) ) == 0 && addr1->scope_id == addr2->scope_id ) ? true : false );
+			const IPv6 *addr1 = &a->ipv6;
+			const IPv6 *addr2 = &b->ipv6;
+			return memcmp( addr1->ip, addr2->ip, sizeof( addr1->ip ) ) == 0;
 		}
 
 		default:
@@ -947,16 +948,7 @@ bool NET_CompareBaseAddress( const netadr_t *a, const netadr_t *b ) {
 * Return the port of the network address (if relevant), or 0
 */
 unsigned short NET_GetAddressPort( const netadr_t *address ) {
-	switch( address->type ) {
-		case NA_IP:
-			return BigShort( address->address.ipv4.port );
-
-		case NA_IP6:
-			return BigShort( address->address.ipv6.port );
-
-		default:
-			return 0;
-	}
+	return address->type == NA_IPv4 || address->type == NA_IPv6 ? address->port : 0;
 }
 
 /*
@@ -965,18 +957,7 @@ unsigned short NET_GetAddressPort( const netadr_t *address ) {
 * Set the port of the network address
 */
 void NET_SetAddressPort( netadr_t *address, unsigned short port ) {
-	switch( address->type ) {
-		case NA_IP:
-			address->address.ipv4.port = BigShort( port );
-			break;
-
-		case NA_IP6:
-			address->address.ipv6.port = BigShort( port );
-			break;
-
-		default:
-			break;
-	}
+	address->port = BigShort( port );
 }
 
 /*
@@ -985,44 +966,7 @@ void NET_SetAddressPort( netadr_t *address, unsigned short port ) {
 * Compares with the port
 */
 bool NET_CompareAddress( const netadr_t *a, const netadr_t *b ) {
-	if( a->type != b->type ) {
-		return false;
-	}
-
-	switch( a->type ) {
-		case NA_LOOPBACK:
-			return true;
-
-		case NA_IP:
-		{
-			const netadr_ipv4_t *addr1 = &a->address.ipv4;
-			const netadr_ipv4_t *addr2 = &b->address.ipv4;
-
-			if( addr1->ip[0] == addr2->ip[0] && addr1->ip[1] == addr2->ip[1] && addr1->ip[2] == addr2->ip[2] && addr1->ip[3] == addr2->ip[3] &&
-				BigShort( addr1->port ) == BigShort( addr2->port ) ) {
-				return true;
-			}
-			return false;
-		}
-
-		case NA_IP6:
-		{
-			const netadr_ipv6_t *addr1 = &a->address.ipv6;
-			const netadr_ipv6_t *addr2 = &b->address.ipv6;
-
-			if( memcmp( addr1->ip, addr2->ip, sizeof( addr1->ip ) ) == 0 &&
-				addr1->scope_id == addr2->scope_id &&
-				BigShort( addr1->port ) == BigShort( addr2->port ) ) {
-				return true;
-			}
-
-			return false;
-		}
-
-		default:
-			assert( false );
-			return false;
-	}
+	return NET_CompareBaseAddress( a, b ) && a->port == b->port;
 }
 
 /*
@@ -1038,9 +982,9 @@ void NET_InitAddress( netadr_t *address, netadrtype_t type ) {
 */
 void NET_BroadcastAddress( netadr_t *address, int port ) {
 	memset( address, 0, sizeof( *address ) );
-	address->type = NA_IP;
-	*(int*)address->address.ipv4.ip = htonl( INADDR_BROADCAST );
-	address->address.ipv4.port = BigShort( port );
+	address->type = NA_IPv4;
+	*(int*)address->ipv4.ip = htonl( INADDR_BROADCAST );
+	address->port = BigShort( port );
 }
 
 /*
@@ -1192,15 +1136,15 @@ bool NET_IsLocalAddress( const netadr_t *address ) {
 		case NA_LOOPBACK:
 			return true;
 
-		case NA_IP:
-			if( address->address.ipv4.ip[0] == 127 && address->address.ipv4.ip[1] == 0 ) {
+		case NA_IPv4:
+			if( address->ipv4.ip[0] == 127 && address->ipv4.ip[1] == 0 ) {
 				return true;
 			}
 			// TODO: Check for own external IP address?
 			return false;
 
-		case NA_IP6:
-			return ( memcmp( address->address.ipv6.ip, &in6addr_loopback.s6_addr, sizeof( address->address.ipv6.ip ) ) == 0 ) ? true : false;
+		case NA_IPv6:
+			return ( memcmp( address->ipv6.ip, &in6addr_loopback.s6_addr, sizeof( address->ipv6.ip ) ) == 0 ) ? true : false;
 
 		default:
 			return false;
@@ -1218,9 +1162,9 @@ bool NET_IsLANAddress( const netadr_t *address ) {
 	}
 
 	switch( address->type ) {
-		case NA_IP:
+		case NA_IPv4:
 		{
-			const netadr_ipv4_t *addr4 = &address->address.ipv4;
+			const IPv4 *addr4 = &address->ipv4;
 
 			// RFC1918:
 			// 10.0.0.0        -   10.255.255.255  (10/8 prefix)
@@ -1237,9 +1181,9 @@ bool NET_IsLANAddress( const netadr_t *address ) {
 			}
 		}
 
-		case NA_IP6:
+		case NA_IPv6:
 		{
-			const netadr_ipv6_t *addr6 = &address->address.ipv6;
+			const IPv6 *addr6 = &address->ipv6;
 
 			// Local addresses are either the loopback adress (tested earlier), or fe80::/10
 			if( addr6->ip[0] == 0xFE && ( addr6->ip[1] & 0xC0 ) == 0x80 ) {

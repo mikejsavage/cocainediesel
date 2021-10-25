@@ -105,7 +105,7 @@ void SV_MasterHeartbeat() {
 	// send to group master
 	for( const netadr_t & master : sv_masters ) {
 		if( master.type != NA_NOTRANSMIT ) {
-			socket_t * socket = master.type == NA_IP6 ? &svs.socket_udp6 : &svs.socket_udp;
+			socket_t * socket = master.type == NA_IPv6 ? &svs.socket_udp6 : &svs.socket_udp;
 			// warning: "DarkPlaces" is a protocol name here, not a game name. Do not replace it.
 			Netchan_OutOfBandPrint( socket, &master, "heartbeat DarkPlaces\n" );
 		}
@@ -240,23 +240,6 @@ static char *SV_ShortInfoString() {
 //
 //==============================================================================
 
-
-/*
-* SVC_Ack
-*/
-static void SVC_Ack( const socket_t *socket, const netadr_t *address ) {
-	Com_Printf( "Ping acknowledge from %s\n", NET_AddressToString( address ) );
-}
-
-/*
-* SVC_Ping
-* Just responds with an acknowledgement
-*/
-static void SVC_Ping( const socket_t *socket, const netadr_t *address ) {
-	// send any arguments back with ack
-	Netchan_OutOfBandPrint( socket, address, "ack %s", Cmd_Args() );
-}
-
 /*
 * SVC_InfoResponse
 *
@@ -321,14 +304,9 @@ static void SVC_InfoResponse( const socket_t *socket, const netadr_t *address ) 
 	}
 }
 
-/*
-* SVC_SendInfoString
-*/
-static void SVC_SendInfoString( const socket_t *socket, const netadr_t *address, const char *requestType, const char *responseType, bool fullStatus ) {
-	char *string;
-
+static void SVC_GetStatusResponse( const socket_t *socket, const netadr_t *address ) {
 	if( sv_showInfoQueries->integer ) {
-		Com_Printf( "%s Packet %s\n", requestType, NET_AddressToString( address ) );
+		Com_Printf( "getstatus Packet %s\n", NET_AddressToString( address ) );
 	}
 
 	// KoFFiE: When not public and coming from a LAN address
@@ -344,24 +322,10 @@ static void SVC_SendInfoString( const socket_t *socket, const netadr_t *address,
 	}
 
 	// send the same string that we would give for a status OOB command
-	string = SV_LongInfoString( fullStatus );
+	char * string = SV_LongInfoString( true );
 	if( string ) {
-		Netchan_OutOfBandPrint( socket, address, "%s\n\\challenge\\%s%s", responseType, Cmd_Argv( 1 ), string );
+		Netchan_OutOfBandPrint( socket, address, "statusResponse\n\\challenge\\%s%s", Cmd_Argv( 1 ), string );
 	}
-}
-
-/*
-* SVC_GetInfoResponse
-*/
-static void SVC_GetInfoResponse( const socket_t *socket, const netadr_t *address ) {
-	SVC_SendInfoString( socket, address, "GetInfo", "infoResponse", false );
-}
-
-/*
-* SVC_GetStatusResponse
-*/
-static void SVC_GetStatusResponse( const socket_t *socket, const netadr_t *address ) {
-	SVC_SendInfoString( socket, address, "GetStatus", "statusResponse", true );
 }
 
 
@@ -677,10 +641,7 @@ struct connectionless_cmd_t {
 };
 
 static connectionless_cmd_t connectionless_cmds[] = {
-	{ "ping", SVC_Ping },
-	{ "ack", SVC_Ack },
 	{ "info", SVC_InfoResponse },
-	{ "getinfo", SVC_GetInfoResponse },
 	{ "getstatus", SVC_GetStatusResponse },
 	{ "getchallenge", SVC_GetChallenge },
 	{ "connect", SVC_DirectConnect },

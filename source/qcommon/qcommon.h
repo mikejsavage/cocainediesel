@@ -314,28 +314,28 @@ NET
 enum netadrtype_t {
 	NA_NOTRANSMIT,      // wsw : jal : fakeclients
 	NA_LOOPBACK,
-	NA_IP,
-	NA_IP6,
+	NA_IPv4,
+	NA_IPv6,
 };
 
-struct netadr_ipv4_t {
-	uint8_t ip [4];
-	unsigned short port;
+struct IPv4 {
+	u8 ip[ 4 ];
 };
 
-struct netadr_ipv6_t {
-	uint8_t ip [16];
-	unsigned short port;
-	unsigned long scope_id;
+struct IPv6 {
+	u8 ip[ 16 ];
 };
 
 struct netadr_t {
 	netadrtype_t type;
 	union {
-		netadr_ipv4_t ipv4;
-		netadr_ipv6_t ipv6;
-	} address;
+		IPv4 ipv4;
+		IPv6 ipv6;
+	};
+	u16 port;
 };
+
+bool operator==( const netadr_t & a, const netadr_t & b );
 
 enum socket_type_t {
 	SOCKET_LOOPBACK,

@@ -2,6 +2,7 @@
 #include "imgui/imgui_internal.h"
 
 #include "client/client.h"
+#include "client/server_browser.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/version.h"
 #include "qcommon/maplist.h"
@@ -49,19 +50,6 @@ enum SettingsState {
 	SettingsState_Audio,
 };
 
-struct Server {
-	const char * address;
-
-	const char * name;
-	const char * map;
-	int ping;
-	int num_players;
-	int max_players;
-};
-
-static Server servers[ 1024 ];
-static int num_servers = 0;
-
 static UIState uistate;
 
 static MainMenuState mainmenu_state;
@@ -84,28 +72,12 @@ static void PushButtonColor( ImVec4 color ) {
 }
 
 static void ResetServerBrowser() {
-	for( int i = 0; i < num_servers; i++ ) {
-		FREE( sys_allocator, const_cast< char * >( servers[ i ].address ) );
-		FREE( sys_allocator, const_cast< char * >( servers[ i ].name ) );
-		FREE( sys_allocator, const_cast< char * >( servers[ i ].map ) );
-	}
-
-	memset( servers, 0, sizeof( servers ) );
-
-	num_servers = 0;
 	selected_server = -1;
 }
 
-static void RefreshServerBrowser() {
-	TempAllocator temp = cls.frame_arena.temp();
-
+static void RefreshServerBrowserAsdf() {
 	ResetServerBrowser();
-
-	for( const char * masterserver : MASTER_SERVERS ) {
-		Cbuf_AddText( temp( "requestservers global {} {} full empty\n", masterserver, APPLICATION_NOSPACES ) );
-	}
-
-	Cbuf_AddText( "requestservers local full empty\n" );
+	RefreshServerBrowser();
 }
 
 void UI_Init() {
@@ -615,7 +587,7 @@ static void ServerBrowser() {
 
 	char server_filter[ 256 ] = { };
 	if( ImGui::Button( "Refresh" ) ) {
-		RefreshServerBrowser();
+		RefreshServerBrowserAsdf();
 	}
 	ImGui::AlignTextToFramePadding();
 	ImGui::SameLine(); ImGui::Text( "Search");
@@ -634,12 +606,13 @@ static void ServerBrowser() {
 	ImGui::Text( "Ping" );
 	ImGui::NextColumn();
 
-	for( int i = 0; i < num_servers; i++ ) {
-		const char * name = servers[ i ].name != NULL ? servers[ i ].name : servers[ i ].address;
+	Span< const ServerBrowserEntry > servers = GetServerBrowserEntries();
+	for( int i = 0; i < servers.n; i++ ) {
+		const char * name = strlen( servers[ i ].name ) > 0 ? servers[ i ].name : "haha";
 		if( strstr( name, server_filter ) != NULL ) {
 			if( ImGui::Selectable( name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
 				if( ImGui::IsMouseDoubleClicked( 0 ) ) {
-					Cbuf_AddText( temp( "connect \"{}\"\n", servers[ i ].address ) );
+					Cbuf_AddText( temp( "connect \"{}\"\n", NET_AddressToString( &servers[ i ].address ) ) );
 				}
 				selected_server = i;
 			}
@@ -706,8 +679,8 @@ static void MainMenu() {
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
 
 	ImGui::Begin( "mainmenu", WindowZOrder_Menu, flags );
-	ImGui::End();
-	return;
+	// ImGui::End();
+	// return;
 
 	ImVec2 window_padding = ImGui::GetStyle().WindowPadding;
 
@@ -1228,7 +1201,7 @@ void UI_ShowMainMenu() {
 	uistate = UIState_MainMenu;
 	mainmenu_state = MainMenuState_ServerBrowser;
 	S_StartMenuMusic();
-	RefreshServerBrowser();
+	RefreshServerBrowserAsdf();
 }
 
 void UI_ShowGameMenu() {
@@ -1251,33 +1224,6 @@ void UI_ShowDemoMenu() {
 
 void UI_HideMenu() {
 	uistate = UIState_Hidden;
-}
-
-void UI_AddToServerList( const char * address, const char * info ) {
-	for( int i = 0; i < num_servers; i++ ) {
-		if( strcmp( address, servers[ i ].address ) == 0 ) {
-			char name[ 128 ];
-			char map[ 32 ];
-			int parsed = sscanf( info, "\\\\ping\\\\%d\\\\n\\\\%127[^\\]\\\\m\\\\ %31[^\\]\\\\u\\\\%d/%d\\\\EOT", &servers[ i ].ping, name, map, &servers[ i ].num_players, &servers[ i ].max_players );
-
-			if( parsed == 5 ) {
-				servers[ i ].name = CopyString( sys_allocator, name );
-				servers[ i ].map = CopyString( sys_allocator, map );
-			}
-
-			return;
-		}
-	}
-
-	if( size_t( num_servers ) < ARRAY_COUNT( servers ) ) {
-		servers[ num_servers ].address = CopyString( sys_allocator, address );
-		num_servers++;
-
-		if( strcmp( info, "\\\\EOT" ) == 0 ) {
-			TempAllocator temp = cls.frame_arena.temp();
-			Cbuf_AddText( temp( "pingserver {}\n", address ) );
-		}
-	}
 }
 
 void UI_ShowLoadoutMenu( Span< int > weapons ) {

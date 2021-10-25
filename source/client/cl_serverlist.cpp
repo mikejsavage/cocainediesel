@@ -1,6 +1,3 @@
-// TODO: send info queries to servers we get in master server response
-// TODO: add ping
-
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/threads.h"
@@ -153,7 +150,7 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 
 		ServerBrowserEntry server = { };
 		server.address = addr;
-		servers.add( server );
+		servers.add( server ); // TODO: send info query
 	}
 
 	if( !ok ) {
@@ -162,14 +159,13 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 }
 
 void ParseServerInfoResponse( msg_t * msg, netadr_t address ) {
-	int ping = 0;
+	int ping = 0; // TODO
 	char name[ 128 ];
 	char map[ 32 ];
 	int num_players;
 	int max_players;
 
 	const char * info = MSG_ReadString( msg );
-	// int parsed = sscanf( info, "\\\\ping\\\\%d\\\\n\\\\%127[^\\]\\\\m\\\\ %31[^\\]\\\\u\\\\%d/%d\\\\EOT", &ping, name, map, &num_players, &max_players );
 	int parsed = sscanf( info, "\\\\n\\\\%127[^\\]\\\\m\\\\ %31[^\\]\\\\u\\\\%d/%d\\\\EOT", name, map, &num_players, &max_players );
 	if( parsed != 4 ) {
 		return;

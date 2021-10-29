@@ -1,6 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/threads.h"
+#include "qcommon/locked.h"
 #include "qcommon/version.h"
 #include "client/client.h"
 #include "client/server_browser.h"
@@ -10,19 +11,19 @@ struct MasterServer {
 	bool query_next_frame;
 };
 
-static Mutex * mutex;
-static MasterServer master_servers[ ARRAY_COUNT( MASTER_SERVERS ) ];
-static size_t num_dns_queries_in_flight;
+struct MasterServers {
+	MasterServer servers[ ARRAY_COUNT( MASTER_SERVERS ) ];
+	size_t num_dns_queries_in_flight;
+};
 
+static Locked< MasterServers > locked_master_servers;
 static NonRAIIDynamicArray< ServerBrowserEntry > servers;
 
 void InitServerBrowser() {
+	locked_master_servers.data = { };
+	locked_master_servers.mutex = NewMutex();
+
 	servers.init( sys_allocator );
-
-	memset( master_servers, 0, sizeof( master_servers ) );
-	num_dns_queries_in_flight = 0;
-
-	mutex = NewMutex();
 }
 
 void ShutdownServerBrowser() {
@@ -47,11 +48,11 @@ static void GetMasterServerAddress( void * data ) {
 		Com_Printf( "Failed to resolve master server address: %s\n", MASTER_SERVERS[ idx ] );
 	}
 
-	Lock( mutex );
-	master_servers[ idx ].address = thread_local_address;
-	master_servers[ idx ].query_next_frame = true;
-	num_dns_queries_in_flight--;
-	Unlock( mutex );
+	DoUnderLock( &locked_master_servers, [ idx, thread_local_address ]( MasterServers * master_servers ) {
+		master_servers->servers[ idx ].address = thread_local_address;
+		master_servers->servers[ idx ].query_next_frame = true;
+		master_servers->num_dns_queries_in_flight--;
+	} );
 }
 
 static void QueryMasterServer( MasterServer * master ) {
@@ -74,16 +75,19 @@ static void QueryMasterServer( MasterServer * master ) {
 }
 
 void ServerBrowserFrame() {
-	for( MasterServer & master : master_servers ) {
-		if( master.query_next_frame ) {
-			QueryMasterServer( &master );
+	DoUnderLock( &locked_master_servers, []( MasterServers * master_servers ) {
+		for( MasterServer & master : master_servers->servers ) {
+			if( master.query_next_frame ) {
+				QueryMasterServer( &master );
+			}
 		}
-	}
+	} );
 }
 
 void RefreshServerBrowser() {
 	servers.clear();
 
+	// query LAN servers
 	{
 		TempAllocator temp = cls.frame_arena.temp();
 		const char * query = temp( "info {} full empty", APP_PROTOCOL_VERSION );
@@ -93,17 +97,20 @@ void RefreshServerBrowser() {
 		Netchan_OutOfBandPrint( &cls.socket_udp, &broadcast, "%s", query );
 	}
 
-	for( MasterServer & master : master_servers ) {
-		QueryMasterServer( &master );
-	}
+	// query master servers
+	DoUnderLock( &locked_master_servers, []( MasterServers * master_servers ) {
+		for( MasterServer & master : master_servers->servers ) {
+			QueryMasterServer( &master );
+		}
 
-	if( num_dns_queries_in_flight == 0 ) {
-		for( size_t i = 0; i < ARRAY_COUNT( MASTER_SERVERS ); i++ ) {
-			if( master_servers[ i ].address.type == NA_NOTRANSMIT ) {
-				NewThread( GetMasterServerAddress, ( void * ) uintptr_t( i ) );
+		if( master_servers->num_dns_queries_in_flight == 0 ) {
+			for( size_t i = 0; i < ARRAY_COUNT( MASTER_SERVERS ); i++ ) {
+				if( master_servers->servers[ i ].address.type == NA_NOTRANSMIT ) {
+					NewThread( GetMasterServerAddress, ( void * ) uintptr_t( i ) );
+				}
 			}
 		}
-	}
+	} );
 }
 
 void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {

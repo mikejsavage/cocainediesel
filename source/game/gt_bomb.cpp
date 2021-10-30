@@ -264,10 +264,11 @@ static void SetLoadout( edict_t * ent, const char * loadout_string, bool fallbac
 			command.append( " {}", weapon );
 		}
 	}
-
-	bomb_state.loadouts[ PLAYERNUM( ent ) ] = loadout;
+	command.append( " {}", loadout.perk );
 
 	PF_GameCmd( ent, command.c_str() );
+
+	bomb_state.loadouts[ PLAYERNUM( ent ) ] = loadout;
 
 	if( G_ISGHOSTING( ent ) ) {
 		return;

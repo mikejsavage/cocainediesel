@@ -634,13 +634,11 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 	const char * s = MSG_ReadStringLine( msg );
 
 	if( StartsWith( s, "getserversResponse" ) ) {
-		// CL_ParseGetServersResponse( socket, address, msg, false );
 		ParseMasterServerResponse( msg, false );
 		return;
 	}
 
 	if( StartsWith( s, "getserversExtResponse" ) ) {
-		// CL_ParseGetServersResponse( socket, address, msg, true );
 		ParseMasterServerResponse( msg, true );
 		return;
 	}
@@ -651,8 +649,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 	Com_DPrintf( "%s: %s\n", NET_AddressToString( address ), s );
 
 	if( strcmp( c, "info" ) == 0 ) {
-		// CL_ParseStatusMessage( socket, address, msg );
-		ParseServerInfoResponse( msg, *address );
+		ParseGameServerResponse( msg, *address );
 		return;
 	}
 
@@ -1542,14 +1539,13 @@ void CL_Init() {
 	CL_InitInput();
 
 	InitDownloads();
+	InitServerBrowser();
 
 	CL_InitImGui();
 	CL_Ultralight_Init();
 	UI_Init();
 
 	UI_ShowMainMenu();
-
-	InitServerBrowser();
 
 	Mem_DebugCheckSentinelsGlobal();
 }
@@ -1566,8 +1562,6 @@ void CL_Shutdown() {
 	}
 
 	S_StopAllSounds( true );
-
-	ShutdownServerBrowser();
 
 	CL_WriteConfiguration();
 
@@ -1590,6 +1584,7 @@ void CL_Shutdown() {
 	ShutdownRenderer();
 	DestroyWindow();
 
+	ShutdownServerBrowser();
 	ShutdownDownloads();
 
 	CL_ShutdownLocal();

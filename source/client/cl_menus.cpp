@@ -608,9 +608,11 @@ static void ServerBrowser() {
 
 	Span< const ServerBrowserEntry > servers = GetServerBrowserEntries();
 	for( int i = 0; i < servers.n; i++ ) {
-		const char * name = strlen( servers[ i ].name ) > 0 ? servers[ i ].name : "haha";
-		if( strstr( name, server_filter ) != NULL ) {
-			if( ImGui::Selectable( name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
+		if( strlen( servers[ i ].name ) == 0 )
+			continue;
+
+		if( strstr( servers[ i ].name, server_filter ) != NULL ) {
+			if( ImGui::Selectable( servers[ i ].name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
 				if( ImGui::IsMouseDoubleClicked( 0 ) ) {
 					Cbuf_AddText( temp( "connect \"{}\"\n", NET_AddressToString( &servers[ i ].address ) ) );
 				}
@@ -618,19 +620,12 @@ static void ServerBrowser() {
 			}
 			ImGui::NextColumn();
 
-			if( servers[ i ].name == NULL ) {
-				ImGui::NextColumn();
-				ImGui::NextColumn();
-				ImGui::NextColumn();
-			}
-			else {
-				ImGui::Text( "%s", servers[ i ].map );
-				ImGui::NextColumn();
-				ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
-				ImGui::NextColumn();
-				ImGui::Text( "%d", servers[ i ].ping );
-				ImGui::NextColumn();
-			}
+			ImGui::Text( "%s", servers[ i ].map );
+			ImGui::NextColumn();
+			ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
+			ImGui::NextColumn();
+			ImGui::Text( "%d", servers[ i ].ping );
+			ImGui::NextColumn();
 		}
 	}
 

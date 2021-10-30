@@ -204,8 +204,8 @@ static char *SV_ShortInfoString() {
 				 "\\\\n\\\\%s\\\\m\\\\%8s\\\\u\\\\%2i/%2i\\\\",
 				 hostname,
 				 sv.mapname,
-				 count > 99 ? 99 : count,
-				 maxcount > 99 ? 99 : maxcount
+				 Min2( count, 99 ),
+				 Min2( maxcount, 99 )
 				 );
 
 	size_t len = strlen( string );
@@ -220,7 +220,7 @@ static char *SV_ShortInfoString() {
 	}
 
 	if( bots ) {
-		snprintf( entry, sizeof( entry ), "b\\\\%2i\\\\", bots > 99 ? 99 : bots );
+		snprintf( entry, sizeof( entry ), "b\\\\%2i\\\\", Min2( bots, 99 ) );
 		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {
 			Q_strncatz( string, entry, sizeof( string ) );
 			len = strlen( string );
@@ -240,68 +240,12 @@ static char *SV_ShortInfoString() {
 //
 //==============================================================================
 
-/*
-* SVC_InfoResponse
-*
-* Responds with short info for broadcast scans
-* The second parameter should be the current protocol version number.
-*/
 static void SVC_InfoResponse( const socket_t *socket, const netadr_t *address ) {
-	int i, count;
-	char *string;
-	bool allow_empty = false, allow_full = false;
-
 	if( sv_showInfoQueries->integer ) {
 		Com_Printf( "Info Packet %s\n", NET_AddressToString( address ) );
 	}
 
-	// KoFFiE: When not public and coming from a LAN address
-	//         assume broadcast and respond anyway, otherwise ignore
-	if( ( ( !sv_public->integer ) && ( !NET_IsLANAddress( address ) ) ) ||
-		( sv_maxclients->integer == 1 ) ) {
-		return;
-	}
-
-	// ignore when in invalid server state
-	if( sv.state < ss_loading || sv.state > ss_game ) {
-		return;
-	}
-
-	// different protocol version
-	if( atoi( Cmd_Argv( 1 ) ) != APP_PROTOCOL_VERSION ) {
-		return;
-	}
-
-	// check for full/empty filtered states
-	for( i = 0; i < Cmd_Argc(); i++ ) {
-		if( !Q_stricmp( Cmd_Argv( i ), "full" ) ) {
-			allow_full = true;
-		}
-
-		if( !Q_stricmp( Cmd_Argv( i ), "empty" ) ) {
-			allow_empty = true;
-		}
-	}
-
-	count = 0;
-	for( i = 0; i < sv_maxclients->integer; i++ ) {
-		if( svs.clients[i].state >= CS_CONNECTED ) {
-			count++;
-		}
-	}
-
-	if( ( count == sv_maxclients->integer ) && !allow_full ) {
-		return;
-	}
-
-	if( ( count == 0 ) && !allow_empty ) {
-		return;
-	}
-
-	string = SV_ShortInfoString();
-	if( string ) {
-		Netchan_OutOfBandPrint( socket, address, "info\n%s", string );
-	}
+	Netchan_OutOfBandPrint( socket, address, "info\n%s%s", Cmd_Argv( 1 ), SV_ShortInfoString() );
 }
 
 static void SVC_GetStatusResponse( const socket_t *socket, const netadr_t *address ) {
@@ -309,23 +253,12 @@ static void SVC_GetStatusResponse( const socket_t *socket, const netadr_t *addre
 		Com_Printf( "getstatus Packet %s\n", NET_AddressToString( address ) );
 	}
 
-	// KoFFiE: When not public and coming from a LAN address
-	//         assume broadcast and respond anyway, otherwise ignore
-	if( ( ( !sv_public->integer ) && ( !NET_IsLANAddress( address ) ) ) ||
-		( sv_maxclients->integer == 1 ) ) {
-		return;
-	}
-
 	// ignore when in invalid server state
 	if( sv.state < ss_loading || sv.state > ss_game ) {
 		return;
 	}
 
-	// send the same string that we would give for a status OOB command
-	char * string = SV_LongInfoString( true );
-	if( string ) {
-		Netchan_OutOfBandPrint( socket, address, "statusResponse\n\\challenge\\%s%s", Cmd_Argv( 1 ), string );
-	}
+	Netchan_OutOfBandPrint( socket, address, "statusResponse\n\\challenge\\%s%s", Cmd_Argv( 1 ), SV_LongInfoString( true ) );
 }
 
 

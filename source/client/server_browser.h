@@ -1,6 +1,7 @@
 #pragma once
 
 #include "qcommon/types.h"
+#include "qcommon/qcommon.h"
 
 struct ServerBrowserEntry {
 	netadr_t address;
@@ -23,4 +24,4 @@ void ServerBrowserFrame();
 
 struct msg_t;
 void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 );
-void ParseServerInfoResponse( msg_t * msg, netadr_t address );
+void ParseGameServerResponse( msg_t * msg, netadr_t address );

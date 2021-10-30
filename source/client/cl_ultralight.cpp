@@ -1,6 +1,7 @@
 #include <Ultralight/Ultralight.h>
 #include <Ultralight/platform/GPUDriver.h>
 #include <AppCore/Platform.h>
+#include <AppCore/JSHelpers.h>
 
 #include <Ultralight/JavaScript.h>
 #include <JavaScriptCore/JSRetainPtr.h>
@@ -14,6 +15,7 @@
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "client/assets.h"
+#include "client/server_browser.h"
 #include "client/renderer/renderer.h"
 #include "cgame/cg_local.h"
 
@@ -447,10 +449,25 @@ static float GetArgFloat( JSContextRef ctx, JSValueRef val ) {
 	return JSValueToNumber( ctx, val, NULL );
 }
 
+static JSValueRef JSThrow( JSContextRef ctx, JSValueRef * exception, const char * message ) {
+	JSValueRef gg = JSValueMakeString( ctx, JSStringCreateWithUTF8CString( message ) );
+	*exception = JSObjectMakeError( ctx, 1, &gg, NULL );
+	return JSValueMakeNull( ctx );
+
+}
+
 static JSValueRef SetCvar( JSContextRef ctx, JSObjectRef function, JSObjectRef self, size_t num_args, const JSValueRef * args, JSValueRef * exception ) {
-	assert( num_args == 2 );
-	assert( JSValueIsString( ctx, args[ 0 ] ) );
-	assert( JSValueIsString( ctx, args[ 1 ] ) );
+	if( num_args != 2 ) {
+		return JSThrow( ctx, exception, "expects 2 argument" );
+	}
+
+	if( !JSValueIsString( ctx, args[ 0 ] ) ) {
+		return JSThrow( ctx, exception, "first argument should be a string" );
+	}
+
+	if( !JSValueIsString( ctx, args[ 1 ] ) ) {
+		return JSThrow( ctx, exception, "second argument should be a string" );
+	}
 
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -463,8 +480,13 @@ static JSValueRef SetCvar( JSContextRef ctx, JSObjectRef function, JSObjectRef s
 }
 
 static JSValueRef GetCvar( JSContextRef ctx, JSObjectRef function, JSObjectRef self, size_t num_args, const JSValueRef * args, JSValueRef * exception ) {
-	assert( num_args == 1 );
-	assert( JSValueIsString( ctx, args[ 0 ] ) );
+	if( num_args != 1 ) {
+		return JSThrow( ctx, exception, "expects 1 argument" );
+	}
+
+	if( !JSValueIsString( ctx, args[ 0 ] ) ) {
+		return JSThrow( ctx, exception, "first argument should be a string" );
+	}
 
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -474,9 +496,17 @@ static JSValueRef GetCvar( JSContextRef ctx, JSObjectRef function, JSObjectRef s
 }
 
 static JSValueRef PlaySound( JSContextRef ctx, JSObjectRef function, JSObjectRef self, size_t num_args, const JSValueRef * args, JSValueRef * exception ) {
-	assert( num_args == 1 || num_args == 2 );
-	assert( JSValueIsString( ctx, args[ 0 ] ) );
-	assert( num_args == 1 || JSValueIsNumber( ctx, args[ 1 ] ) );
+	if( num_args != 1 && num_args != 2 ) {
+		return JSThrow( ctx, exception, "expects 1 or 2 arguments" );
+	}
+
+	if( !JSValueIsString( ctx, args[ 0 ] ) ) {
+		return JSThrow( ctx, exception, "first argument should be a string" );
+	}
+
+	if( num_args == 2 && !JSValueIsString( ctx, args[ 0 ] ) ) {
+		return JSThrow( ctx, exception, "second argument should be a number" );
+	}
 
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -489,11 +519,49 @@ static JSValueRef PlaySound( JSContextRef ctx, JSObjectRef function, JSObjectRef
 }
 
 static JSValueRef Quit( JSContextRef ctx, JSObjectRef function, JSObjectRef self, size_t num_args, const JSValueRef * args, JSValueRef * exception ) {
-	assert( num_args == 0 );
+	if( num_args != 0 ) {
+		return JSThrow( ctx, exception, "expects 0 arguments" );
+	}
 
 	Cbuf_AddText( "quit\n" );
 
 	return JSValueMakeNull( ctx );
+}
+
+static JSValueRef Refresh( JSContextRef ctx, JSObjectRef function, JSObjectRef self, size_t num_args, const JSValueRef * args, JSValueRef * exception ) {
+	if( num_args != 0 ) {
+		return JSThrow( ctx, exception, "expects 0 arguments" );
+	}
+
+	RefreshServerBrowser();
+
+	return JSValueMakeNull( ctx );
+}
+
+static JSValueRef GSBE( JSContextRef ctx, JSObjectRef function, JSObjectRef self, size_t num_args, const JSValueRef * args, JSValueRef * exception ) {
+	if( num_args != 0 ) {
+		return JSThrow( ctx, exception, "expects 0 arguments" );
+	}
+
+	using namespace ultralight;
+
+	JSArray servers;
+
+	for( const ServerBrowserEntry & server : GetServerBrowserEntries() ) {
+		if( !server.have_details )
+			continue;
+
+		JSObject js;
+		js[ JSString( "name" ) ] = JSString( server.name );
+		js[ JSString( "map" ) ] = JSString( server.map );
+		js[ JSString( "ping" ) ] = JSValue( server.ping );
+		js[ JSString( "numPlayers" ) ] = JSValue( server.num_players );
+		js[ JSString( "maxPlayers" ) ] = JSValue( server.max_players );
+
+		servers.push( JSValue( js ) );
+	}
+
+	return servers;
 }
 
 static void SetObjectKey( JSContextRef ctx, JSObjectRef obj, const char * key, JSValueRef value ) {
@@ -517,6 +585,8 @@ static void RegisterEngineAPI() {
 	SetObjectFunction( ctx, engine, "GetCvar", GetCvar );
 	SetObjectFunction( ctx, engine, "PlaySound", PlaySound );
 	SetObjectFunction( ctx, engine, "Quit", Quit );
+	SetObjectFunction( ctx, engine, "RefreshServerBrowser", Refresh );
+	SetObjectFunction( ctx, engine, "GetServerBrowserEntries", GSBE );
 
 	SetObjectKey( ctx, JSContextGetGlobalObject( ctx ), "engine", engine );
 }
@@ -645,6 +715,7 @@ void UltralightBeginFrame() {
 static void RenderUltralightView( ul::RefPtr< ul::View > view, bool is_inspector ) {
 	ul::Ref<ul::JSContext> context = view->LockJSContext();
 	JSContextRef ctx = context.get();
+	ultralight::SetJSContext( ctx );
 
 	if( !is_inspector ) {
 		DrawMenu( ctx ); // TODO

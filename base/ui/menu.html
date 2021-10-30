@@ -105,19 +105,19 @@ label {
 <script>
 const html = htm.bind( preact.h );
 
-function ServerBrowserRows( params ) {
-	return params.servers.map( x => html`
+function ServerBrowserRows() {
+	let servers = engine.GetServerBrowserEntries();
+	return servers.map( server => html`
 		<tr>
-			<td class="server">${x}</td>
-			<td class="map">carfentanil</td>
-			<td class="players">4/16</td>
-			<td class="ping">123</td>
+			<td class="server">${server.name}</td>
+			<td class="map">${server.map}</td>
+			<td class="players">${server.numPlayers}/${server.maxPlayers}</td>
+			<td class="ping">${server.ping}</td>
 		</tr>
 	` );
 }
 
 function ServerBrowser() {
-	let gg = [ 1, 2, 3, 4 ];
 	return html`
 		<table class="server-browser">
 			<thead>
@@ -128,7 +128,7 @@ function ServerBrowser() {
 			</thead>
 
 			<tbody>
-				<${ServerBrowserRows} servers=${gg} />
+				<${ServerBrowserRows} />
 			</tbody>
 		</table>
 	`;
@@ -196,6 +196,7 @@ function MainMenu() {
 	}
 
 	function RefreshServerBrowser() {
+		engine.RefreshServerBrowser();
 	}
 
 	function OpenCreateServer() {

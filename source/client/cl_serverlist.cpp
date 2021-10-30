@@ -90,7 +90,7 @@ void RefreshServerBrowser() {
 	// query LAN servers
 	{
 		TempAllocator temp = cls.frame_arena.temp();
-		const char * query = temp( "info {} full empty", APP_PROTOCOL_VERSION );
+		const char * query = temp( "info {}", cls.monotonicTime );
 
 		netadr_t broadcast;
 		NET_BroadcastAddress( &broadcast, PORT_SERVER );
@@ -155,26 +155,47 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 			break;
 		}
 
-		ServerBrowserEntry server = { };
-		server.address = addr;
-		servers.add( server ); // TODO: send info query
+		bool is_new = true;
+		for( const ServerBrowserEntry & server : servers ) {
+			if( server.address == addr ) {
+				is_new = false;
+				break;
+			}
+		}
+
+		if( is_new ) {
+			ServerBrowserEntry server = { };
+			server.address = addr;
+			servers.add( server );
+		}
 	}
 
-	if( !ok ) {
+	if( ok ) {
+		// query game servers
+		TempAllocator temp = cls.frame_arena.temp();
+		const char * query = temp( "info {}", cls.monotonicTime );
+
+		for( size_t i = old_num_servers; i < servers.size(); i++ ) {
+			netadr_t address = servers[ i ].address;
+			socket_t * socket = address.type == NA_IPv4 ? &cls.socket_udp : &cls.socket_udp6;
+			Netchan_OutOfBandPrint( socket, &address, "%s", query );
+		}
+	}
+	else {
 		servers.resize( old_num_servers );
 	}
 }
 
-void ParseServerInfoResponse( msg_t * msg, netadr_t address ) {
-	int ping = 0; // TODO
+void ParseGameServerResponse( msg_t * msg, netadr_t address ) {
+	s64 timestamp;
 	char name[ 128 ];
 	char map[ 32 ];
 	int num_players;
 	int max_players;
 
 	const char * info = MSG_ReadString( msg );
-	int parsed = sscanf( info, "\\\\n\\\\%127[^\\]\\\\m\\\\ %31[^\\]\\\\u\\\\%d/%d\\\\EOT", name, map, &num_players, &max_players );
-	if( parsed != 4 ) {
+	int parsed = sscanf( info, "%lld\\\\n\\\\%127[^\\]\\\\m\\\\ %31[^\\]\\\\u\\\\%d/%d\\\\EOT", &timestamp, name, map, &num_players, &max_players );
+	if( parsed != 5 ) {
 		return;
 	}
 
@@ -194,47 +215,7 @@ void ParseServerInfoResponse( msg_t * msg, netadr_t address ) {
 	server->have_details = true;
 	Q_strncpyz( server->name, name, sizeof( server->name ) );
 	Q_strncpyz( server->map, map, sizeof( server->map ) );
-	server->ping = ping;
+	server->ping = cls.monotonicTime - timestamp;
 	server->num_players = num_players;
 	server->max_players = max_players;
 }
-
-/*
- * TODO: query individual servers
-void CL_PingServer_f() {
-	const char *address_string;
-	char requestString[64];
-	netadr_t adr;
-	serverlist_t *pingserver;
-	socket_t *socket;
-
-	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "Usage: pingserver [ip:port]\n" );
-	}
-
-	address_string = Cmd_Argv( 1 );
-
-	if( !NET_StringToAddress( address_string, &adr ) ) {
-		return;
-	}
-
-	pingserver = CL_ServerFindInList( masterList, address_string );
-	if( !pingserver ) {
-		return;
-	}
-
-	// never request a second ping while awaiting for a ping reply
-	if( pingserver->pingTimeStamp + SERVER_PINGING_TIMEOUT > Sys_Milliseconds() ) {
-		return;
-	}
-
-	pingserver->pingTimeStamp = Sys_Milliseconds();
-
-	snprintf( requestString, sizeof( requestString ), "info %i %s %s", APP_PROTOCOL_VERSION,
-				 filter_allow_full ? "full" : "",
-				 filter_allow_empty ? "empty" : "" );
-
-	socket = adr.type == NA_IPv6 ? &cls.socket_udp6 : &cls.socket_udp;
-	Netchan_OutOfBandPrint( socket, &adr, "%s", requestString );
-}
-*/

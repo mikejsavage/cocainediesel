@@ -174,7 +174,7 @@ void SV_InitGame() {
 
 		// IPv6
 		NET_StringToAddress( sv_ip6->string, &ipv6_address );
-		if( ipv6_address.type == NA_IP6 ) {
+		if( ipv6_address.type == NA_IPv6 ) {
 			NET_SetAddressPort( &ipv6_address, sv_port6->integer );
 			if( !NET_OpenSocket( &svs.socket_udp6, SOCKET_UDP, &ipv6_address, true ) ) {
 				Com_Printf( "Error: Couldn't open UDP6 socket: %s\n", NET_ErrorString() );

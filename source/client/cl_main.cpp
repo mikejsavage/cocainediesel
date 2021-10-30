@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/assets.h"
 #include "client/downloads.h"
 #include "client/threadpool.h"
+#include "client/server_browser.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/compression.h"
 #include "qcommon/csprng.h"
@@ -242,7 +243,7 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 			break;
 
 		case SOCKET_UDP:
-			cls.socket = ( address->type == NA_IP6 ?  &cls.socket_udp6 :  &cls.socket_udp );
+			cls.socket = address->type == NA_IPv6 ? &cls.socket_udp6 : &cls.socket_udp;
 			break;
 
 		default:
@@ -285,7 +286,7 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 	connectstring_base = TempCopyString( Cmd_Argv( 1 ) );
 	connectstring = connectstring_base;
 
-	if( !Q_strnicmp( connectstring, APP_URI_SCHEME, strlen( APP_URI_SCHEME ) ) ) {
+	if( StrCaseEqual( connectstring, APP_URI_SCHEME ) ) {
 		connectstring += strlen( APP_URI_SCHEME );
 	}
 
@@ -294,7 +295,7 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 		size_t temp_size;
 		const char *http_scheme = "http://";
 
-		if( !Q_strnicmp( connectstring, http_scheme, strlen( http_scheme ) ) ) {
+		if( StrCaseEqual( connectstring, http_scheme ) ) {
 			connectstring += strlen( http_scheme );
 		}
 
@@ -402,7 +403,7 @@ static void CL_Rcon_f() {
 			rcon_address->modified = false;
 		}
 
-		socket = ( cls.rconaddress.type == NA_IP6 ? &cls.socket_udp6 : &cls.socket_udp );
+		socket = cls.rconaddress.type == NA_IPv6 ? &cls.socket_udp6 : &cls.socket_udp;
 		address = &cls.rconaddress;
 	}
 
@@ -627,45 +628,28 @@ void CL_Reconnect_f() {
 * Responses to broadcasts, etc
 */
 static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *address, msg_t *msg ) {
-	char *s;
-	const char *c;
-
 	MSG_BeginReading( msg );
 	MSG_ReadInt32( msg ); // skip the -1
 
-	s = MSG_ReadStringLine( msg );
+	const char * s = MSG_ReadStringLine( msg );
 
-	if( !strncmp( s, "getserversResponse\\", 19 ) ) {
-		Com_DPrintf( "%s: %s\n", NET_AddressToString( address ), "getserversResponse" );
-		CL_ParseGetServersResponse( socket, address, msg, false );
+	if( StartsWith( s, "getserversResponse" ) ) {
+		ParseMasterServerResponse( msg, false );
 		return;
 	}
 
-	if( !strncmp( s, "getserversExtResponse", 21 ) ) {
-		Com_DPrintf( "%s: %s\n", NET_AddressToString( address ), "getserversExtResponse" );
-		CL_ParseGetServersResponse( socket, address, msg, true );
+	if( StartsWith( s, "getserversExtResponse" ) ) {
+		ParseMasterServerResponse( msg, true );
 		return;
 	}
 
 	Cmd_TokenizeString( s );
-	c = Cmd_Argv( 0 );
+	const char * c = Cmd_Argv( 0 );
 
 	Com_DPrintf( "%s: %s\n", NET_AddressToString( address ), s );
 
-	// server responding to a status broadcast
-	if( !strcmp( c, "info" ) ) {
-		CL_ParseStatusMessage( socket, address, msg );
-		return;
-	}
-
-	// jal : wsw
-	// server responding to a detailed info broadcast
-	if( !strcmp( c, "infoResponse" ) ) {
-		CL_ParseGetInfoResponse( socket, address, msg );
-		return;
-	}
-	if( !strcmp( c, "statusResponse" ) ) {
-		CL_ParseGetStatusResponse( socket, address, msg );
+	if( strcmp( c, "info" ) == 0 ) {
+		ParseGameServerResponse( msg, *address );
 		return;
 	}
 
@@ -675,7 +659,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 	}
 
 	// server connection
-	if( !strcmp( c, "client_connect" ) ) {
+	if( strcmp( c, "client_connect" ) == 0 ) {
 		if( cls.state == CA_CONNECTED ) {
 			Com_Printf( "Dup connect received.  Ignored.\n" );
 			return;
@@ -704,7 +688,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 	}
 
 	// reject packet, used to inform the client that connection attemp didn't succeed
-	if( !strcmp( c, "reject" ) ) {
+	if( strcmp( c, "reject" ) == 0 ) {
 		int rejectflag;
 
 		if( cls.state != CA_CONNECTING ) {
@@ -752,19 +736,8 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 		return;
 	}
 
-	// remote command from gui front end
-	if( !strcmp( c, "cmd" ) ) {
-		if( !NET_IsLocalAddress( address ) ) {
-			Com_Printf( "Command packet from remote host, ignored\n" );
-			return;
-		}
-		s = MSG_ReadString( msg );
-		Cbuf_AddText( s );
-		Cbuf_AddText( "\n" );
-		return;
-	}
 	// print command from somewhere
-	if( !strcmp( c, "print" ) ) {
+	if( strcmp( c, "print" ) == 0 ) {
 		// CA_CONNECTING is allowed, because old servers send protocol mismatch connection error message with it
 		if( ( ( cls.state != CA_UNINITIALIZED && cls.state != CA_DISCONNECTED ) &&
 			  NET_CompareAddress( address, &cls.serveraddress ) ) ||
@@ -776,18 +749,6 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 			Com_Printf( "Print packet from unknown host, ignored\n" );
 			return;
 		}
-	}
-
-	// ping from somewhere
-	if( !strcmp( c, "ping" ) ) {
-		// send any args back with the acknowledgement
-		Netchan_OutOfBandPrint( socket, address, "ack %s", Cmd_Args() );
-		return;
-	}
-
-	// ack from somewhere
-	if( !strcmp( c, "ack" ) ) {
-		return;
 	}
 
 	// challenge from the server we are connecting to
@@ -810,12 +771,6 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 		cls.connect_time = Sys_Milliseconds();
 		//wsw : r1q2[end]
 		CL_SendConnectPacket();
-		return;
-	}
-
-	// echo request from server
-	if( !strcmp( c, "echo" ) ) {
-		Netchan_OutOfBandPrint( socket, address, "%s", Cmd_Argv( 1 ) );
 		return;
 	}
 
@@ -1108,9 +1063,6 @@ static void CL_InitLocal() {
 	}
 
 	Cmd_AddCommand( "cmd", CL_ForwardToServer_f );
-	Cmd_AddCommand( "requestservers", CL_GetServers_f );
-	Cmd_AddCommand( "getinfo", CL_QueryGetInfoMessage_f ); // wsw : jal : ask for server info
-	Cmd_AddCommand( "getstatus", CL_QueryGetStatusMessage_f ); // wsw : jal : ask for server info
 	Cmd_AddCommand( "userinfo", CL_Userinfo_f );
 	Cmd_AddCommand( "disconnect", CL_Disconnect_f );
 	Cmd_AddCommand( "record", CL_Record_f );
@@ -1122,7 +1074,6 @@ static void CL_InitLocal() {
 	Cmd_AddCommand( "demo", CL_PlayDemo_f );
 	Cmd_AddCommand( "yolodemo", CL_YoloDemo_f );
 	Cmd_AddCommand( "next", CL_SetNext_f );
-	Cmd_AddCommand( "pingserver", CL_PingServer_f );
 	Cmd_AddCommand( "demopause", CL_PauseDemo_f );
 	Cmd_AddCommand( "demojump", CL_DemoJump_f );
 	Cmd_AddCommand( "showserverip", CL_ShowServerIP_f );
@@ -1136,9 +1087,6 @@ static void CL_ShutdownLocal() {
 	Com_SetClientState( CA_UNINITIALIZED );
 
 	Cmd_RemoveCommand( "cmd" );
-	Cmd_RemoveCommand( "requestservers" );
-	Cmd_RemoveCommand( "getinfo" );
-	Cmd_RemoveCommand( "getstatus" );
 	Cmd_RemoveCommand( "userinfo" );
 	Cmd_RemoveCommand( "disconnect" );
 	Cmd_RemoveCommand( "record" );
@@ -1150,7 +1098,6 @@ static void CL_ShutdownLocal() {
 	Cmd_RemoveCommand( "demo" );
 	Cmd_RemoveCommand( "yolodemo" );
 	Cmd_RemoveCommand( "next" );
-	Cmd_RemoveCommand( "pingserver" );
 	Cmd_RemoveCommand( "demopause" );
 	Cmd_RemoveCommand( "demojump" );
 	Cmd_RemoveCommand( "showserverip" );
@@ -1407,7 +1354,7 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 	// resend a connection request if necessary
 	CL_CheckForResend();
 
-	CL_ServerListFrame();
+	ServerBrowserFrame();
 }
 
 void CL_Frame( int realMsec, int gameMsec ) {
@@ -1575,13 +1522,13 @@ void CL_Init() {
 	CL_ClearState();
 
 	// IPv4
-	NET_InitAddress( &address, NA_IP );
+	NET_InitAddress( &address, NA_IPv4 );
 	if( !NET_OpenSocket( &cls.socket_udp, SOCKET_UDP, &address, false ) ) {
 		Fatal( "Couldn't open UDP socket: %s", NET_ErrorString() );
 	}
 
 	// IPv6
-	NET_InitAddress( &address, NA_IP6 );
+	NET_InitAddress( &address, NA_IPv6 );
 	if( !NET_OpenSocket( &cls.socket_udp6, SOCKET_UDP, &address, false ) ) {
 		Com_Printf( "Error: Couldn't open UDP6 socket: %s", NET_ErrorString() );
 	}
@@ -1592,13 +1539,12 @@ void CL_Init() {
 	CL_InitInput();
 
 	InitDownloads();
+	InitServerBrowser();
 
 	CL_InitImGui();
 	UI_Init();
 
 	UI_ShowMainMenu();
-
-	CL_InitServerList();
 
 	Mem_DebugCheckSentinelsGlobal();
 }
@@ -1615,8 +1561,6 @@ void CL_Shutdown() {
 	}
 
 	S_StopAllSounds( true );
-
-	CL_ShutDownServerList();
 
 	CL_WriteConfiguration();
 
@@ -1638,6 +1582,7 @@ void CL_Shutdown() {
 	ShutdownRenderer();
 	DestroyWindow();
 
+	ShutdownServerBrowser();
 	ShutdownDownloads();
 
 	CL_ShutdownLocal();

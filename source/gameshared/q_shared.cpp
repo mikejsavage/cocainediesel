@@ -383,8 +383,12 @@ bool StrEqual( Span< const char > lhs, const char * rhs ) {
 	return StrEqual( lhs, MakeSpan( rhs ) );
 }
 
-bool StrEqual( const char * rhs, Span< const char > lhs ) {
-	return StrEqual( lhs, rhs );
+bool StrEqual( const char * lhs, Span< const char > rhs ) {
+	return StrEqual( MakeSpan( lhs ), rhs );
+}
+
+bool StrEqual( const char * lhs, const char * rhs ) {
+	return StrEqual( MakeSpan( lhs ), MakeSpan( rhs ) );
 }
 
 bool StrCaseEqual( Span< const char > lhs, Span< const char > rhs ) {
@@ -397,8 +401,12 @@ bool StrCaseEqual( Span< const char > lhs, const char * rhs ) {
 	return StrCaseEqual( lhs, MakeSpan( rhs ) );
 }
 
-bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
-	return StrCaseEqual( lhs, rhs );
+bool StrCaseEqual( const char * lhs, Span< const char > rhs ) {
+	return StrCaseEqual( MakeSpan( lhs ), rhs );
+}
+
+bool StrCaseEqual( const char * lhs, const char * rhs ) {
+	return StrCaseEqual( MakeSpan( lhs ), MakeSpan( rhs ) );
 }
 
 bool StartsWith( Span< const char > str, const char * prefix ) {

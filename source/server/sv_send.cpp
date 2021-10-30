@@ -17,9 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// sv_main.c -- server main program
 
-#include "server.h"
+#include "server/server.h"
 
 // shared message buffer to be used for occasional messages
 msg_t tmpMessage;
@@ -101,16 +100,13 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 	// we batch them here. On incoming "cs" command, we'll trackback the queue
 	// to find a pending "cs" command that has space in it. If we'll find one,
 	// we'll batch this there, if not, we'll create a new one.
-	if( !strncmp( cmd, "cs ", 3 ) ) {
+	if( StrEqual( cmd, "cs " ) ) {
 		// length of the index/value (leave room for one space and null char)
 		size_t len = strlen( cmd ) - 1;
 		for( i = client->reliableSequence; i > client->reliableSent; i-- ) {
-			size_t otherLen;
-			char *otherCmd;
-
-			otherCmd = client->reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )];
-			if( !strncmp( otherCmd, "cs ", 3 ) ) {
-				otherLen = strlen( otherCmd );
+			char * otherCmd = client->reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )];
+			if( StrEqual( otherCmd, "cs " ) ) {
+				size_t otherLen = strlen( otherCmd );
 				// is there any room? (should check for sizeof client->reliableCommands[0]?)
 				if( ( otherLen + len ) < MAX_STRING_CHARS ) {
 					// yahoo, put it in here

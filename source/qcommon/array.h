@@ -22,6 +22,11 @@ public:
 		FREE( a, elems );
 	}
 
+	T * add() {
+		size_t idx = extend( 1 );
+		return &elems[ idx ];
+	}
+
 	size_t add( const T & x ) {
 		size_t idx = extend( 1 );
 		elems[ idx ] = x;

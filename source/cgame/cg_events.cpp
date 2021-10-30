@@ -348,9 +348,6 @@ void CG_AddAnnouncerEvent( StringHash sound, bool queued ) {
 	cg_announcerEventsHead++;
 }
 
-/*
- * CG_ReleaseAnnouncerEvents
- */
 void CG_ReleaseAnnouncerEvents() {
 	// see if enough time has passed
 	cg_announcerEventsDelay -= cls.realFrameTime;
@@ -421,9 +418,6 @@ void CG_Event_Fall( const SyncEntityState * state, u64 parm ) {
 	}
 }
 
-/*
- * CG_Event_Pain
- */
 static void CG_Event_Pain( SyncEntityState * state, u64 parm ) {
 	constexpr PlayerSound sounds[] = { PlayerSound_Pain25, PlayerSound_Pain50, PlayerSound_Pain75, PlayerSound_Pain100 };
 	if( parm >= ARRAY_COUNT( sounds ) )
@@ -451,9 +445,6 @@ static void CG_Event_Die( int entNum, u64 parm ) {
 	CG_PModel_AddAnimation( entNum, animations[ animation ].dying, animations[ animation ].dying, ANIM_NONE, EVENT_CHANNEL );
 }
 
-/*
- * CG_Event_Dash
- */
 void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
 	constexpr int animations[] = { LEGS_DASH, LEGS_DASH_LEFT, LEGS_DASH_RIGHT, LEGS_DASH_BACK };
 	if( parm >= ARRAY_COUNT( animations ) )
@@ -467,9 +458,6 @@ void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
 	cg_entities[ state->number ].jumpedLeft = true;
 }
 
-/*
- * CG_Event_WallJump
- */
 void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
 	Vec3 normal = U64ToDir( parm );
 
@@ -500,9 +488,6 @@ static void CG_PlayJumpSound( const SyncEntityState * state ) {
 	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Jump );
 }
 
-/*
- * CG_Event_Jump
- */
 static void CG_Event_Jump( SyncEntityState * state ) {
 	CG_PlayJumpSound( state );
 
@@ -1005,9 +990,6 @@ static void CG_FirePlayerStateEvents() {
 	}
 }
 
-/*
- * CG_FireEvents
- */
 void CG_FireEvents( bool early ) {
 	if( !cg.fireEvents ) {
 		return;

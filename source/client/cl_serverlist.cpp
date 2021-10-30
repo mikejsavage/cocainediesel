@@ -58,7 +58,6 @@ static void GetMasterServerAddress( void * data ) {
 static void QueryMasterServer( MasterServer * master ) {
 	const char * command;
 	socket_t * socket;
-
 	if( master->address.type == NA_IPv4 ) {
 		command = "getservers";
 		socket = &cls.socket_udp;

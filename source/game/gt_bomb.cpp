@@ -185,12 +185,16 @@ static void ShowShop( s32 player_num ) {
 	TempAllocator temp = svs.frame_arena.temp();
 	DynamicString command( &temp, "changeloadout" );
 
+	const Loadout & loadout = bomb_state.loadouts[ player_num ];
+
 	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		WeaponType weapon = bomb_state.loadouts[ player_num ].weapons[ i ];
+		WeaponType weapon = loadout.weapons[ i ];
 		if( weapon != Weapon_None ) {
 			command.append( " {}", weapon );
 		}
 	}
+
+	command.append( " {}", loadout.perk );
 
 	PF_GameCmd( PLAYERENT( player_num ), command.c_str() );
 }
@@ -232,7 +236,15 @@ static bool ParseLoadout( Loadout * loadout, const char * loadout_string ) {
 		loadout->weapons[ category ] = WeaponType( weapon );
 	}
 
-	return true;
+	{
+		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		int perk;
+		if( !TrySpanToInt( token, &perk ) || perk < Perk_None || perk >= Perk_Count )
+			return false;
+		loadout->perk = PerkType( perk );
+	}
+
+	return cursor.ptr != NULL && cursor.n == 0;
 }
 
 static void SetLoadout( edict_t * ent, const char * loadout_string, bool fallback_to_default ) {

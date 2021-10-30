@@ -873,7 +873,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_SPRAY:
-			AddSpray( ent->origin, ent->origin2, ent->angles, parm );
+			AddSpray( ent->origin, ent->origin2, ent->angles, ent->scale, parm );
 			S_StartFixedSound( "sounds/spray/spray", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 			break;
 

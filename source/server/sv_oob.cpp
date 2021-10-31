@@ -232,8 +232,6 @@ static char *SV_ShortInfoString() {
 	return string;
 }
 
-
-
 //==============================================================================
 //
 //OUT OF BAND COMMANDS
@@ -248,19 +246,21 @@ static void SVC_InfoResponse( const socket_t *socket, const netadr_t *address ) 
 	Netchan_OutOfBandPrint( socket, address, "info\n%s%s", Cmd_Argv( 1 ), SV_ShortInfoString() );
 }
 
-static void SVC_GetStatusResponse( const socket_t *socket, const netadr_t *address ) {
+static void MasterOrLivesowResponse( const socket_t * socket, const netadr_t * address, const char * command, bool include_players ) {
 	if( sv_showInfoQueries->integer ) {
-		Com_Printf( "getstatus Packet %s\n", NET_AddressToString( address ) );
+		Com_Printf( "getstatus %s\n", NET_AddressToString( address ) );
 	}
 
-	// ignore when in invalid server state
-	if( sv.state < ss_loading || sv.state > ss_game ) {
-		return;
-	}
-
-	Netchan_OutOfBandPrint( socket, address, "statusResponse\n\\challenge\\%s%s", Cmd_Argv( 1 ), SV_LongInfoString( true ) );
+	Netchan_OutOfBandPrint( socket, address, "%s\n\\challenge\\%s%s", command, Cmd_Argv( 1 ), SV_LongInfoString( include_players ) );
 }
 
+static void SVC_GetStatusResponse( const socket_t *socket, const netadr_t *address ) {
+	MasterOrLivesowResponse( socket, address, "statusResponse", true );
+}
+
+static void SVC_MasterServerResponse( const socket_t *socket, const netadr_t *address ) {
+	MasterOrLivesowResponse( socket, address, "infoResponse", false );
+}
 
 /*
 * SVC_GetChallenge
@@ -575,6 +575,7 @@ struct connectionless_cmd_t {
 
 static connectionless_cmd_t connectionless_cmds[] = {
 	{ "info", SVC_InfoResponse },
+	{ "getinfo", SVC_MasterServerResponse },
 	{ "getstatus", SVC_GetStatusResponse },
 	{ "getchallenge", SVC_GetChallenge },
 	{ "connect", SVC_DirectConnect },

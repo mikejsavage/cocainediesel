@@ -43,7 +43,7 @@ void InitSprays() {
 	num_sprays = 0;
 }
 
-void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, u64 entropy ) {
+void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, float scale, u64 entropy ) {
 	RNG rng = NewRNG( entropy, 0 );
 
 	Vec3 forward, up;
@@ -53,7 +53,7 @@ void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, u64 entropy ) {
 	spray.origin = origin;
 	spray.normal = normal;
 	spray.material = num_spray_assets == 0 ? StringHash( "" ) : RandomElement( &rng, spray_assets, num_spray_assets );
-	spray.radius = RandomUniformFloat( &rng, 32.0f, 48.0f );
+	spray.radius = RandomUniformFloat( &rng, 32.0f, 48.0f ) * scale;
 	spray.spawn_time = cls.gametime;
 
 	Vec3 left = Cross( normal, up );

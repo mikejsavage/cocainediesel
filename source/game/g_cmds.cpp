@@ -376,6 +376,7 @@ static void Cmd_Spray_f( edict_t * ent ) {
 
 	edict_t * event = G_SpawnEvent( EV_SPRAY, Random64( &svs.rng ), &trace.endpos );
 	event->s.angles = ent->r.client->ps.viewangles;
+	event->s.scale = ent->s.scale;
 	event->s.origin2 = trace.plane.normal;
 }
 

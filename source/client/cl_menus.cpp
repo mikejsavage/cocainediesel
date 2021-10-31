@@ -59,6 +59,7 @@ static DemoMenuState demomenu_state;
 static int selected_server;
 
 static WeaponType selected_weapons[ WeaponCategory_Count ];
+static PerkType selected_perk;
 
 static SettingsState settings_state;
 static bool reset_video_settings;
@@ -75,7 +76,7 @@ static void ResetServerBrowser() {
 	selected_server = -1;
 }
 
-static void RefreshServerBrowserAsdf() {
+static void Refresh() {
 	ResetServerBrowser();
 	RefreshServerBrowser();
 }
@@ -587,7 +588,7 @@ static void ServerBrowser() {
 
 	char server_filter[ 256 ] = { };
 	if( ImGui::Button( "Refresh" ) ) {
-		RefreshServerBrowserAsdf();
+		Refresh();
 	}
 	ImGui::AlignTextToFramePadding();
 	ImGui::SameLine(); ImGui::Text( "Search");
@@ -608,7 +609,7 @@ static void ServerBrowser() {
 
 	Span< const ServerBrowserEntry > servers = GetServerBrowserEntries();
 	for( int i = 0; i < servers.n; i++ ) {
-		if( strlen( servers[ i ].name ) == 0 )
+		if( !servers[ i ].have_details )
 			continue;
 
 		if( strstr( servers[ i ].name, server_filter ) != NULL ) {
@@ -864,6 +865,7 @@ static void SendLoadout() {
 			loadout.append( " {}", selected_weapons[ i ] );
 		}
 	}
+	loadout.append( " {}", selected_perk );
 	loadout += "\n";
 
 	Cbuf_AddText( loadout.c_str() );
@@ -921,6 +923,35 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 	ImGui::NextColumn();
 }
 
+static void Perks( Vec2 icon_size ) {
+	ImGui::Text( "Do you want to be small" );
+	ImGui::NextColumn();
+
+	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
+	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
+	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
+	defer { ImGui::PopStyleColor( 3 ); };
+
+	ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 2 );
+	ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
+	defer { ImGui::PopStyleVar( 2 ); };
+
+	const Material * icon = FindMaterial( "perks/midget" );
+	Vec2 half_pixel = HalfPixelSize( icon );
+	Vec4 color = selected_perk == Perk_Midget ? vec4_green : vec4_white;
+
+	ImGui::PushStyleColor( ImGuiCol_Border, color );
+	defer { ImGui::PopStyleColor(); };
+
+	bool clicked = ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
+	if( clicked ) {
+		selected_perk = selected_perk == Perk_Midget ? Perk_None : Perk_Midget;
+		SendLoadout();
+	}
+
+	ImGui::NextColumn();
+}
+
 static bool LoadoutMenu( Vec2 displaySize ) {
 	ImGui::PushFont( cls.medium_font );
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
@@ -936,6 +967,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	LoadoutCategory( "Primary", WeaponCategory_Primary, icon_size );
 	LoadoutCategory( "Secondary", WeaponCategory_Secondary, icon_size );
 	LoadoutCategory( "Backup", WeaponCategory_Backup, icon_size );
+	Perks( icon_size );
 
 	ImGui::EndColumns();
 
@@ -1196,7 +1228,7 @@ void UI_ShowMainMenu() {
 	uistate = UIState_MainMenu;
 	mainmenu_state = MainMenuState_ServerBrowser;
 	S_StartMenuMusic();
-	RefreshServerBrowserAsdf();
+	Refresh();
 }
 
 void UI_ShowGameMenu() {
@@ -1221,7 +1253,7 @@ void UI_HideMenu() {
 	uistate = UIState_Hidden;
 }
 
-void UI_ShowLoadoutMenu( Span< int > weapons ) {
+void UI_ShowLoadoutMenu( Span< int > weapons, PerkType perk ) {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Loadout;
 
@@ -1239,6 +1271,11 @@ void UI_ShowLoadoutMenu( Span< int > weapons ) {
 
 		selected_weapons[ category ] = w;
 	}
+
+	if( perk < Perk_None || perk >= Perk_Count )
+		return;
+
+	selected_perk = perk;
 
 	CL_SetKeyDest( key_menu );
 }

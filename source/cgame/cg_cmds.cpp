@@ -232,17 +232,17 @@ static void CG_SC_ChangeLoadout() {
 		return;
 
 	int weapons[ WeaponCategory_Count ] = { };
-	size_t n = 0;
 
-	if( Cmd_Argc() - 1 > ARRAY_COUNT( weapons ) )
+	if( Cmd_Argc() != ARRAY_COUNT( weapons ) + 2 )
 		return;
 
-	for( int i = 0; i < Cmd_Argc() - 1; i++ ) {
-		weapons[ n ] = atoi( Cmd_Argv( i + 1 ) );
-		n++;
+	for( size_t i = 0; i < ARRAY_COUNT( weapons ); i++ ) {
+		weapons[ i ] = atoi( Cmd_Argv( i + 1 ) );
 	}
 
-	UI_ShowLoadoutMenu( Span< int >( weapons, n ) );
+	PerkType perk = PerkType( atoi( Cmd_Argv( ARRAY_COUNT( weapons ) + 1 ) ) );
+
+	UI_ShowLoadoutMenu( Span< int >( weapons, ARRAY_COUNT( weapons ) ), perk );
 }
 
 static void CG_SC_SaveLoadout() {

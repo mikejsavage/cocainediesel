@@ -185,12 +185,16 @@ static void ShowShop( s32 player_num ) {
 	TempAllocator temp = svs.frame_arena.temp();
 	DynamicString command( &temp, "changeloadout" );
 
+	const Loadout & loadout = bomb_state.loadouts[ player_num ];
+
 	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		WeaponType weapon = bomb_state.loadouts[ player_num ].weapons[ i ];
+		WeaponType weapon = loadout.weapons[ i ];
 		if( weapon != Weapon_None ) {
 			command.append( " {}", weapon );
 		}
 	}
+
+	command.append( " {}", loadout.perk );
 
 	PF_GameCmd( PLAYERENT( player_num ), command.c_str() );
 }
@@ -232,7 +236,15 @@ static bool ParseLoadout( Loadout * loadout, const char * loadout_string ) {
 		loadout->weapons[ category ] = WeaponType( weapon );
 	}
 
-	return true;
+	{
+		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		int perk;
+		if( !TrySpanToInt( token, &perk ) || perk < Perk_None || perk >= Perk_Count )
+			return false;
+		loadout->perk = PerkType( perk );
+	}
+
+	return cursor.ptr != NULL && cursor.n == 0;
 }
 
 static void SetLoadout( edict_t * ent, const char * loadout_string, bool fallback_to_default ) {
@@ -252,10 +264,11 @@ static void SetLoadout( edict_t * ent, const char * loadout_string, bool fallbac
 			command.append( " {}", weapon );
 		}
 	}
-
-	bomb_state.loadouts[ PLAYERNUM( ent ) ] = loadout;
+	command.append( " {}", loadout.perk );
 
 	PF_GameCmd( ent, command.c_str() );
+
+	bomb_state.loadouts[ PLAYERNUM( ent ) ] = loadout;
 
 	if( G_ISGHOSTING( ent ) ) {
 		return;
@@ -285,8 +298,7 @@ static void BombSiteCarrierTouched( u32 site ) {
 		Vec3 maxs = carrier_ent->r.maxs;
 		Vec3 velocity = carrier_ent->velocity;
 
-		// TODO: this is checking for crouching by checking maxs.z, dno
-		if( maxs.z < 40 && level.time - bomb_state.bomb.action_time >= 1000 && Length( velocity ) < bomb_max_plant_speed ) {
+		if( carrier_ent->r.client->ps.pmove.crouch_time > 0 && level.time - bomb_state.bomb.action_time >= 1000 && Length( velocity ) < bomb_max_plant_speed ) {
 			BombStartPlanting( site );
 		}
 	}
@@ -469,10 +481,10 @@ static void BombSetCarrier( s32 player_num, bool no_sound ) {
 	}
 }
 
-static void BombDrop( BombDropReason reason ) {
+static void DropBomb( BombDropReason reason ) {
 	SetTeamProgress( bomb_state.attacking_team, 0, BombProgress_Nothing );
 	edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
-	Vec3 start = carrier_ent->s.origin;
+	Vec3 start = carrier_ent->s.origin + Vec3( 0.0f, 0.0f, carrier_ent->viewheight );
 	Vec3 end( 0.0f );
 	Vec3 velocity( 0.0f );
 
@@ -481,7 +493,6 @@ static void BombDrop( BombDropReason reason ) {
 		case BombDropReason_Killed: {
 			bomb_state.bomb.pick_time = level.time + bomb_drop_retake_delay;
 			bomb_state.bomb.dropper = bomb_state.carrier;
-			start.z += carrier_ent->viewheight;
 			Vec3 forward, right, up;
 			AngleVectors( carrier_ent->s.angles, &forward, &right, &up );
 
@@ -520,7 +531,7 @@ static void BombStartPlanting( u32 site ) {
 	bomb_state.site = site;
 
 	edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
-	Vec3 start = carrier_ent->s.origin;
+	Vec3 start = carrier_ent->s.origin + Vec3( 0.0f, 0.0f, carrier_ent->viewheight );
 
 	Vec3 end = start;
 	end.z -= 512.0f;
@@ -1109,7 +1120,7 @@ static bool GT_Bomb_Command( gclient_t * client, const char * cmd_, const char *
 
 	if( cmd == "drop" ) {
 		if( PLAYERNUM( client ) == bomb_state.carrier && bomb_state.bomb.state == BombState_Carried ) {
-			BombDrop( BombDropReason_Normal );
+			DropBomb( BombDropReason_Normal );
 		}
 		return true;
 	}
@@ -1149,7 +1160,7 @@ static void GT_Bomb_PlayerConnected( edict_t * ent ) {
 
 static void GT_Bomb_PlayerRespawning( edict_t * ent ) {
 	if( PLAYERNUM( ent ) == bomb_state.carrier ) {
-		BombDrop( BombDropReason_ChangingTeam );
+		DropBomb( BombDropReason_ChangingTeam );
 	}
 }
 
@@ -1196,7 +1207,7 @@ static void GT_Bomb_PlayerKilled( edict_t * victim, edict_t * attacker, edict_t 
 	}
 
 	if( PLAYERNUM( victim ) == bomb_state.carrier ) {
-		BombDrop( BombDropReason_Killed );
+		DropBomb( BombDropReason_Killed );
 	}
 
 	if( attacker != NULL && attacker->r.client != NULL && attacker->s.team != victim->s.team ) {

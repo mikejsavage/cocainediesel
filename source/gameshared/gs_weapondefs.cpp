@@ -687,14 +687,14 @@ const WeaponDef weapon_defs[] = {
 		/* category             */ WeaponCategory_Backup,
 
 		/* projectile count     */ 1,
-		/* clip size            */ 15,
-		/* reload time          */ 2000,
+		/* clip size            */ 10,
+		/* reload time          */ 1500,
 		/* staged reloading     */ false,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_FAST,
 		/* weapon down time     */ WEAPONDOWN_TIME,
-		/* refire time          */ 250,
+		/* refire time          */ 75,
 		/* timeout / range      */ 5000,
 		/* max recoil           */ EulerDegrees2( 125.0f, 5.0f ),
 		/* min recoil           */ EulerDegrees2( 100.0f, -5.0f ),
@@ -706,16 +706,16 @@ const WeaponDef weapon_defs[] = {
 
 		// damages
 		/* damage               */ 10,
-		/* self damage          */ 0,
+		/* self damage          */ 1,
 		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 20,
-		/* splash radius        */ 50,
-		/* splash min damage    */ 10,
+		/* splash radius        */ 120,
+		/* splash min damage    */ 1,
 		/* splash min knockback */ 25,
 
 		// projectile def
 		/* speed                */ 3000,
-		/* spread               */ 3000,
+		/* spread               */ 1750,
 	},
 
 #if 0

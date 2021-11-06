@@ -181,6 +181,9 @@ static void GiveInventory( edict_t * ent ) {
 	if( loadout.perk == Perk_Midget ) {
 		ent->s.scale = 0.625f;
 		ent->health = 62.5f;
+	} else {
+		ent->s.scale = 1.0f;
+		ent->health = 100.f;
 	}
 }
 

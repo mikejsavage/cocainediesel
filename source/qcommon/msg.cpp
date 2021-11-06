@@ -678,6 +678,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	Delta( buf, player.carrying_bomb, baseline.carrying_bomb );
 
 	Delta( buf, player.health, baseline.health );
+	Delta( buf, player.max_health, baseline.max_health );
 	Delta( buf, player.flashed, baseline.flashed );
 
 	DeltaEnum( buf, player.weapon_state, baseline.weapon_state );

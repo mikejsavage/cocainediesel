@@ -321,6 +321,7 @@ struct SyncPlayerState {
 	bool can_plant;
 
 	s16 health;
+	s16 max_health;
 	u16 flashed;
 
 	WeaponState weapon_state;

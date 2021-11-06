@@ -144,6 +144,10 @@ static int CG_GetSpeed( const void *parameter ) {
 	return Length( cg.predictedPlayerState.pmove.velocity.xy() );
 }
 
+static int CG_HealthPercent( const void * parameter ) {
+	return cg.predictedPlayerState.health * 100 / cg.predictedPlayerState.max_health;
+}
+
 static int CG_GetSpeedVertical( const void *parameter ) {
 	return cg.predictedPlayerState.pmove.velocity.z;
 }
@@ -210,6 +214,7 @@ struct reference_numeric_t {
 static const reference_numeric_t cg_numeric_references[] = {
 	// stats
 	{ "HEALTH", CG_S16, &cg.predictedPlayerState.health },
+	{ "HEALTH_PERCENT", CG_HealthPercent, NULL },
 	{ "WEAPON_ITEM", CG_U8, &cg.predictedPlayerState.weapon },
 
 	{ "READY", CG_Bool, &cg.predictedPlayerState.ready },

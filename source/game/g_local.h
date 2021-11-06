@@ -806,7 +806,7 @@ struct edict_t {
 	int64_t pain_debounce_time;
 
 	float health;
-	int max_health;
+	float max_health;
 	int deadflag;
 
 	int viewheight;				// height above origin where eyesight is determined

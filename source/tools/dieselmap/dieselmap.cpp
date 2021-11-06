@@ -305,7 +305,10 @@ static Span< const char > ParsePlane( Vec3 * points, Span< const char > str ) {
 }
 
 static Span< const char > SkipFlags( Span< const char > str ) {
-	str = SkipToken( str, "0" );
+	str = PEGOr( str,
+		[]( Span< const char > str ) { return SkipToken( str, "0" ); },
+		[]( Span< const char > str ) { return SkipToken( str, "134217728" ); } // detail bit
+	);
 	str = SkipToken( str, "0" );
 	str = SkipToken( str, "0" );
 	return str;
@@ -1282,8 +1285,7 @@ int main( int argc, char ** argv ) {
 
 	bool ok = map.ptr != NULL && map.n == 0;
 	if( !ok ) {
-		ggprint( "failed\n" );
-		return 1;
+		Fatal( "Can't parse the map" );
 	}
 
 	FrameMark;

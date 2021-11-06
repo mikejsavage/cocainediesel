@@ -179,6 +179,8 @@ struct SyncTeamState {
 };
 
 struct SyncBombGameState {
+	int attacking_team;
+
 	u8 alpha_players_alive;
 	u8 alpha_players_total;
 	u8 beta_players_alive;

@@ -379,7 +379,6 @@ void CG_DrawDamageNumbers() {
 
 struct BombSite {
 	Vec3 origin;
-	int team;
 	char letter;
 };
 
@@ -393,7 +392,6 @@ enum BombState {
 struct Bomb {
 	BombState state;
 	Vec3 origin;
-	int team;
 };
 
 static BombSite bomb_sites[ 26 ];
@@ -408,7 +406,6 @@ void CG_AddBomb( centity_t * cent ) {
 		bomb.state = BombState_Planted;
 	}
 
-	bomb.team = cent->current.team;
 	bomb.origin = cent->interpolated.origin;
 
 	// TODO: this really does not belong here...
@@ -440,7 +437,6 @@ void CG_AddBombSite( centity_t * cent ) {
 
 	BombSite * site = &bomb_sites[ num_bomb_sites ];
 	site->origin = cent->current.origin;
-	site->team = cent->current.team;
 	site->letter = cent->current.counterNum;
 
 	num_bomb_sites++;
@@ -468,7 +464,7 @@ void CG_DrawBombHUD() {
 			DrawText( cgs.fontNormal, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
-				const char * msg = my_team == site->team ? "DEFEND" : "ATTACK";
+				const char * msg = my_team == client_gs.gameState.bomb.attacking_team ? "ATTACK" : "DEFEND";
 				coords.y += ( cgs.fontSystemMediumSize * 7 ) / 8;
 				DrawText( cgs.fontNormal, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 			}
@@ -500,7 +496,7 @@ void CG_DrawBombHUD() {
 					color = AttentionGettingColor();
 				}
 				else if( bomb.state == BombState_Planted ) {
-					if( my_team == bomb.team ) {
+					if( my_team == client_gs.gameState.bomb.attacking_team ) {
 						msg = "PROTECT";
 					}
 					else {

@@ -745,6 +745,7 @@ static void Delta( DeltaBuffer * buf, SyncTeamState & team, const SyncTeamState 
 }
 
 static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGameState & baseline ) {
+	Delta( buf, bomb.attacking_team, baseline.attacking_team );
 	Delta( buf, bomb.alpha_players_alive, baseline.alpha_players_alive );
 	Delta( buf, bomb.alpha_players_total, baseline.alpha_players_total );
 	Delta( buf, bomb.beta_players_alive, baseline.beta_players_alive );

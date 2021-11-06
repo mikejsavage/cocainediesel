@@ -86,9 +86,6 @@ static struct {
 	s32 last_time;
 	bool was_1vx;
 
-	int attacking_team;
-	int defending_team;
-
 	// TODO: player.as
 	u32 kills_this_round[ MAX_CLIENTS ];
 	Loadout loadouts[ MAX_CLIENTS ];
@@ -151,9 +148,21 @@ static s32 FirstNearbyTeammate( Vec3 origin, int team ) {
 	return -1;
 }
 
+static int OtherTeam( int team ) {
+	return team == initial_attackers ? initial_defenders : initial_attackers;
+}
+
+static int AttackingTeam() {
+	return server_gs.gameState.bomb.attacking_team;
+}
+
+static int DefendingTeam() {
+	return OtherTeam( AttackingTeam() );
+}
+
 static void Announce( BombAnnouncement announcement ) {
-	G_AnnouncerSound( NULL, snd_announcements_off[ announcement ], bomb_state.attacking_team, true, NULL );
-	G_AnnouncerSound( NULL, snd_announcements_def[ announcement ], bomb_state.defending_team, true, NULL );
+	G_AnnouncerSound( NULL, snd_announcements_off[ announcement ], AttackingTeam(), true, NULL );
+	G_AnnouncerSound( NULL, snd_announcements_def[ announcement ], DefendingTeam(), true, NULL );
 }
 
 // player.as
@@ -331,7 +340,6 @@ static void SpawnBombSite( edict_t * ent ) {
 	site->indicator = ent;
 	site->indicator->s.model = EMPTY_HASH;
 	site->indicator->nextThink = level.time + 1;
-	site->indicator->s.team = 0;
 	GClip_LinkEntity( site->indicator );
 
 	site->hud = G_Spawn();
@@ -399,7 +407,7 @@ static void BombTouch( edict_t * self, edict_t * other, Plane * plane, int surfF
 		return;
 	}
 
-	if( other->s.team != bomb_state.attacking_team ) {
+	if( other->s.team != AttackingTeam() ) {
 		return;
 	}
 
@@ -477,12 +485,12 @@ static void BombSetCarrier( s32 player_num, bool no_sound ) {
 	BombPickup();
 
 	if( !no_sound ) {
-		G_AnnouncerSound( PLAYERENT( player_num ), "sounds/announcer/bomb/offense/taken", bomb_state.attacking_team, true, NULL );
+		G_AnnouncerSound( PLAYERENT( player_num ), "sounds/announcer/bomb/offense/taken", AttackingTeam(), true, NULL );
 	}
 }
 
 static void DropBomb( BombDropReason reason ) {
-	SetTeamProgress( bomb_state.attacking_team, 0, BombProgress_Nothing );
+	SetTeamProgress( AttackingTeam(), 0, BombProgress_Nothing );
 	edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
 	Vec3 start = carrier_ent->s.origin + Vec3( 0.0f, 0.0f, carrier_ent->viewheight );
 	Vec3 end( 0.0f );
@@ -598,7 +606,7 @@ static void BombDefused() {
 	G_Sound( bomb_state.bomb.model, CHAN_AUTO, "models/bomb/tss" );
 
 	G_DebugPrint( "defenders defused" );
-	RoundWonBy( bomb_state.defending_team );
+	RoundWonBy( DefendingTeam() );
 
 	bomb_state.defuser = -1;
 }
@@ -606,7 +614,7 @@ static void BombDefused() {
 static void BombExplode() {
 	if( server_gs.gameState.round_state == RoundState_Round ) {
 		G_DebugPrint( "bomb exploded" );
-		RoundWonBy( bomb_state.attacking_team );
+		RoundWonBy( AttackingTeam() );
 	}
 
 	Hide( bomb_state.bomb.hud );
@@ -629,8 +637,8 @@ static void ResetBomb() {
 	Hide( bomb_state.bomb.model );
 	bomb_state.bomb.model->s.effects |= EF_TEAM_SILHOUETTE;
 
-	bomb_state.bomb.model->s.team = bomb_state.attacking_team;
-	bomb_state.bomb.hud->s.team = bomb_state.attacking_team;
+	bomb_state.bomb.model->s.team = AttackingTeam();
+	bomb_state.bomb.hud->s.team = AttackingTeam();
 
 	bomb_state.bomb.state = BombState_Idle;
 }
@@ -657,20 +665,20 @@ static void BombThink() {
 		case BombState_Planting: {
 			edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
 			if( !EntCanSee( carrier_ent, bomb_state.bomb.model->s.origin ) || Length( carrier_ent->s.origin - bomb_state.bomb.model->s.origin ) > bomb_arm_defuse_radius ) {
-				SetTeamProgress( bomb_state.attacking_team, 0, BombProgress_Nothing );
+				SetTeamProgress( AttackingTeam(), 0, BombProgress_Nothing );
 				BombPickup();
 				break;
 			}
 
 			float frac = float( level.time - bomb_state.bomb.action_time ) / ( g_bomb_armtime->value * 1000.0f );
 			if( frac >= 1.0f ) {
-				SetTeamProgress( bomb_state.attacking_team, 0, BombProgress_Nothing );
+				SetTeamProgress( AttackingTeam(), 0, BombProgress_Nothing );
 				BombPlanted();
 				break;
 			}
 
 			if( frac != 0.0f ) {
-				SetTeamProgress( bomb_state.attacking_team, int( frac * 100.0f ), BombProgress_Planting );
+				SetTeamProgress( AttackingTeam(), int( frac * 100.0f ), BombProgress_Planting );
 			}
 		} break;
 
@@ -680,7 +688,7 @@ static void BombThink() {
 			bomb_state.bomb.hud->s.animation_time = animation_time; // dno if this is needed?
 
 			if( bomb_state.defuser == -1 ) {
-				bomb_state.defuser = FirstNearbyTeammate( bomb_state.bomb.model->s.origin, bomb_state.defending_team );
+				bomb_state.defuser = FirstNearbyTeammate( bomb_state.bomb.model->s.origin, DefendingTeam() );
 			}
 
 			if( bomb_state.defuser != -1 ) {
@@ -692,17 +700,17 @@ static void BombThink() {
 
 			if( bomb_state.defuser == -1 && bomb_state.defuse_progress > 0 ) {
 				bomb_state.defuse_progress = 0;
-				SetTeamProgress( bomb_state.defending_team, 0, BombProgress_Nothing );
+				SetTeamProgress( DefendingTeam(), 0, BombProgress_Nothing );
 			}
 			else {
 				bomb_state.defuse_progress += game.frametime;
 				float frac = bomb_state.defuse_progress / ( g_bomb_defusetime->value * 1000.0f );
 				if( frac >= 1.0f ) {
 					BombDefused();
-					SetTeamProgress( bomb_state.defending_team, 100, BombProgress_Defusing );
+					SetTeamProgress( DefendingTeam(), 100, BombProgress_Defusing );
 					break;
 				}
-				SetTeamProgress( bomb_state.defending_team, int( frac * 100.0f ), BombProgress_Defusing );
+				SetTeamProgress( DefendingTeam(), int( frac * 100.0f ), BombProgress_Defusing );
 			}
 
 			if( level.time >= bomb_state.bomb.action_time ) {
@@ -751,9 +759,9 @@ static bool BombCanPlant() {
 
 static void BombGiveToRandom() {
 	int num_bots = 0;
-	int num_players = server_gs.gameState.teams[ bomb_state.attacking_team ].num_players;
+	int num_players = server_gs.gameState.teams[ AttackingTeam() ].num_players;
 	for( int i = 0; i < num_players; i++ ) {
-		s32 player_num = server_gs.gameState.teams[ bomb_state.attacking_team ].player_indices[ i ] - 1;
+		s32 player_num = server_gs.gameState.teams[ AttackingTeam() ].player_indices[ i ] - 1;
 		edict_t * ent = PLAYERENT( player_num );
 		if( ( ent->r.svflags & SVF_FAKECLIENT ) != 0 ) {
 			num_bots++;
@@ -766,7 +774,7 @@ static void BombGiveToRandom() {
 	s32 seen = 0;
 
 	for( int i = 0; i < num_players; i++ ) {
-		s32 player_num = server_gs.gameState.teams[ bomb_state.attacking_team ].player_indices[ i ] - 1;
+		s32 player_num = server_gs.gameState.teams[ AttackingTeam() ].player_indices[ i ] - 1;
 		edict_t * ent = PLAYERENT( player_num );
 		if( all_bots || ( ent->r.svflags & SVF_FAKECLIENT ) == 0 ) {
 			if( seen == carrier ) {
@@ -843,20 +851,20 @@ static void DisableMovement() {
 static void CheckPlayersAlive( int team ) {
 	u32 alive = PlayersAliveOnTeam( team );
 	if( alive == 0 ) {
-		if( team == bomb_state.attacking_team ) {
+		if( team == AttackingTeam() ) {
 			if( bomb_state.bomb.state != BombState_Planted ) {
 				G_DebugPrint( "all attackers died" );
-				RoundWonBy( bomb_state.defending_team );
+				RoundWonBy( DefendingTeam() );
 			}
 		}
 		else {
 			G_DebugPrint( "all defenders died" );
-			RoundWonBy( bomb_state.attacking_team );
+			RoundWonBy( AttackingTeam() );
 		}
 		return;
 	}
 
-	int other_team = team == bomb_state.attacking_team ? bomb_state.attacking_team : bomb_state.defending_team;
+	int other_team = OtherTeam( team );
 	u32 alive_other_team = PlayersAliveOnTeam( other_team );
 
 	if( alive == 1 ) {
@@ -878,19 +886,16 @@ static void SetTeams() {
 	u8 round_num = server_gs.gameState.round_num;
 	if( limit == 0 || round_num > ( limit - 1 ) * 2 ) {
 		bool odd = round_num % 2 == 1;
-		bomb_state.attacking_team = odd ? initial_attackers : initial_defenders;
-		bomb_state.defending_team = odd ? initial_defenders : initial_attackers;
+		server_gs.gameState.bomb.attacking_team = odd ? initial_attackers : initial_defenders;
 		return;
 	}
 
 	bool first_half = round_num < limit;
-	bomb_state.attacking_team = first_half ? initial_attackers : initial_defenders;
-	bomb_state.defending_team = first_half ? initial_defenders : initial_attackers;
+	server_gs.gameState.bomb.attacking_team = first_half ? initial_attackers : initial_defenders;
 }
 
 static void NewGame() {
 	server_gs.gameState.round_num = 0;
-	SetTeams();
 
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
 		G_SpawnQueue_SetTeamSpawnsystem( team, SPAWNSYSTEM_HOLD, 0, 0, true );
@@ -906,9 +911,9 @@ static void NewGame() {
 }
 
 static void RoundWonBy( int winner ) {
-	int loser = winner == bomb_state.attacking_team ? bomb_state.defending_team : bomb_state.attacking_team;
+	int loser = winner == AttackingTeam() ? DefendingTeam() : AttackingTeam();
 	TempAllocator temp = svs.frame_arena.temp();
-	G_CenterPrintMsg( NULL, S_COLOR_CYAN "%s", winner == bomb_state.attacking_team ? "OFFENSE WINS!" : "DEFENSE WINS!" );
+	G_CenterPrintMsg( NULL, S_COLOR_CYAN "%s", winner == AttackingTeam() ? "OFFENSE WINS!" : "DEFENSE WINS!" );
 
 	G_AnnouncerSound( NULL, "sounds/announcer/bomb/team_scored", winner, true, NULL );
 	G_AnnouncerSound( NULL, "sounds/announcer/bomb/enemy_scored", loser, true, NULL );
@@ -1046,7 +1051,7 @@ static void RoundThink() {
 		if( server_gs.gameState.round_state == RoundState_Round ) {
 			if( bomb_state.bomb.state != BombState_Planted ) {
 				G_DebugPrint( "ran out of time" );
-				RoundWonBy( bomb_state.defending_team );
+				RoundWonBy( DefendingTeam() );
 				bomb_state.last_time = 1; // kinda hacky, this shows at 0:00
 				G_CenterPrintMsg( NULL, S_COLOR_RED "Timelimit Hit!" );
 				return;
@@ -1063,7 +1068,7 @@ static void RoundThink() {
 		if( bomb_state.bomb.model == NULL || !bomb_state.bomb.model->r.inuse ) {
 			BombModelCreate();
 			G_DebugPrint( "bomb was destroyed" );
-			RoundWonBy( bomb_state.defending_team );
+			RoundWonBy( DefendingTeam() );
 			G_CenterPrintMsg( NULL, S_COLOR_RED "The attacking team has lost the bomb!!!" );
 			return;
 		}
@@ -1078,11 +1083,11 @@ static void RoundThink() {
 	}
 	else {
 		if( bomb_state.bomb.state == BombState_Planting ) {
-			SetTeamProgress( bomb_state.attacking_team, 0, BombProgress_Nothing );
+			SetTeamProgress( AttackingTeam(), 0, BombProgress_Nothing );
 			BombPickup();
 		}
 		if( bomb_state.defuse_progress > 0 ) {
-			SetTeamProgress( bomb_state.defending_team, 0, BombProgress_Defusing );
+			SetTeamProgress( DefendingTeam(), 0, BombProgress_Defusing );
 		}
 
 		server_gs.gameState.clock_override = bomb_state.last_time;
@@ -1141,7 +1146,7 @@ static bool GT_Bomb_Command( gclient_t * client, const char * cmd_, const char *
 }
 
 static edict_t * GT_Bomb_SelectSpawnPoint( edict_t * ent ) {
-	if( ent->s.team == bomb_state.attacking_team ) {
+	if( ent->s.team == AttackingTeam() ) {
 		edict_t * spawn = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" );
 		if( spawn != NULL ) {
 			return spawn;
@@ -1284,9 +1289,6 @@ static void GT_Bomb_MatchStateStarted() {
 		case MatchState_Warmup:
 			level.gametype.countdownEnabled = false;
 
-			bomb_state.attacking_team = initial_attackers;
-			bomb_state.defending_team = initial_defenders;
-
 			for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {
 				G_SpawnQueue_SetTeamSpawnsystem( t, SPAWNSYSTEM_INSTANT, 0, 0, false );
 			}
@@ -1322,6 +1324,8 @@ static void GT_Bomb_SpawnGametype() {
 }
 
 static void GT_Bomb_InitGametype() {
+	server_gs.gameState.bomb.attacking_team = initial_attackers;
+
 	bomb_state = { };
 
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {

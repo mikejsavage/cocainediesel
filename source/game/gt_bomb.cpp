@@ -830,23 +830,10 @@ static void DisableMovement() {
 	}
 }
 
-static void CheckPlayersAlive( int team ) {
-	u32 alive = PlayersAliveOnTeam( team );
-	if( alive == 0 ) {
-		if( team == AttackingTeam() ) {
-			if( bomb_state.bomb.state != BombState_Planted ) {
-				G_DebugPrint( "all attackers died" );
-				RoundWonBy( DefendingTeam() );
-			}
-		}
-		else {
-			G_DebugPrint( "all defenders died" );
-			RoundWonBy( AttackingTeam() );
-		}
-		return;
-	}
+static void PlayXvXSound( int team_that_died ) {
+	u32 alive = PlayersAliveOnTeam( team_that_died );
 
-	int other_team = OtherTeam( team );
+	int other_team = OtherTeam( team_that_died );
 	u32 alive_other_team = PlayersAliveOnTeam( other_team );
 
 	if( alive == 1 ) {
@@ -856,7 +843,7 @@ static void CheckPlayersAlive( int team ) {
 			}
 		}
 		else if( alive_other_team >= 3 ) {
-			G_AnnouncerSound( NULL, "sounds/announcer/bomb/1vx", team, false, NULL );
+			G_AnnouncerSound( NULL, "sounds/announcer/bomb/1vx", team_that_died, false, NULL );
 			G_AnnouncerSound( NULL, "sounds/announcer/bomb/xv1", other_team, false, NULL );
 			bomb_state.was_1vx = true;
 		}
@@ -1065,6 +1052,18 @@ static void RoundThink() {
 			return;
 		}
 
+		// check if everyone on one team died
+		u32 attackers_alive = PlayersAliveOnTeam( AttackingTeam() );
+		u32 defenders_alive = PlayersAliveOnTeam( DefendingTeam() );
+
+		if( defenders_alive == 0 ) {
+			RoundWonBy( AttackingTeam() );
+		}
+		else if( attackers_alive == 0 && bomb_state.bomb.state != BombState_Planted ) {
+			RoundWonBy( DefendingTeam() );
+		}
+
+		// set the clock
 		if( bomb_state.bomb.state == BombState_Planted ) {
 			bomb_state.last_time = -1;
 		}
@@ -1176,10 +1175,9 @@ static void GT_Bomb_PlayerRespawned( edict_t * ent, int old_team, int new_team )
 	}
 
 	if( new_team != old_team && match_state == MatchState_Playing ) {
-		if( old_team != TEAM_SPECTATOR && server_gs.gameState.match_state == MatchState_Playing && server_gs.gameState.round_state < RoundState_Finished ) {
-			CheckPlayersAlive( old_team );
+		if( old_team != TEAM_SPECTATOR ) {
+			PlayXvXSound( old_team );
 		}
-
 		if( round_state == RoundState_Countdown && new_team != TEAM_SPECTATOR ) {
 			G_ClientRespawn( ent, false ); // TODO: why does this not really respawn them?
 			return;
@@ -1219,7 +1217,7 @@ static void GT_Bomb_PlayerKilled( edict_t * victim, edict_t * attacker, edict_t 
 		}
 	}
 
-	CheckPlayersAlive( victim->s.team );
+	PlayXvXSound( victim->s.team );
 }
 
 static void GT_Bomb_Think() {

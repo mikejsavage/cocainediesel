@@ -641,7 +641,7 @@ void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
 }
 
 static void CG_PlayVsay( centity_t * cent ) {
-	cent->vsay_sound = S_ImmediateEntitySound( EMPTY_HASH, cent->current.number, 1.0f, 1.0f, false, cent->vsay_sound );
+	cent->vsay_sound = S_ImmediateEntitySound( "", cent->current.number, 1.0f, 1.0f, false, cent->vsay_sound );
 }
 
 static void DrawEntityTrail( const centity_t * cent, StringHash name ) {

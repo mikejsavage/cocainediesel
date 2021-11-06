@@ -886,9 +886,9 @@ void S_StartLineSound( StringHash name, Vec3 start, Vec3 end, int channel, float
 }
 
 static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, float volume, float pitch, bool loop, u32 sfx_entropy, PlayingSoundType type, ImmediateSoundHandle handle ) {
-	const SoundEffect * sfx = FindSoundEffect( name );
-	if( sfx == NULL )
+	if( name == EMPTY_HASH ) {
 		return { 0 };
+	}
 
 	u64 idx;
 	if( handle.x != 0 && immediate_sounds_hashtable.get( handle.x, &idx ) ) {

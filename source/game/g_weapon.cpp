@@ -485,7 +485,7 @@ static void W_Touch_Stake(edict_t *ent, edict_t *other, Plane *plane, int surfFl
 		// ent->think = G_FreeEdict;
 		// ent->nextThink = level.time + def->range;
 		ent->movetype = MOVETYPE_NONE;
-		ent->s.sound = "";
+		ent->s.sound = EMPTY_HASH;
 		edict_t *event = G_SpawnEvent(EV_STAKE_IMPACT, DirToU64(-SafeNormalize(ent->velocity)), &ent->s.origin);
 		event->s.team = ent->s.team;
 	}

@@ -270,10 +270,6 @@ static void SettingsControls() {
 		}
 
 		if( ImGui::BeginTabItem( "Voices" ) ) {
-			CvarSliderFloat( "Voice pitch", "cg_voicePitch", 0.9f, 1.1f, "1", CVAR_ARCHIVE );
-
-			ImGui::Separator();
-
 			KeyBindButton( "Acne pack", "vsay acne" );
 			KeyBindButton( "Valley pack", "vsay valley" );
 			KeyBindButton( "Mike pack", "vsay mike" );

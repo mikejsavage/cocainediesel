@@ -257,6 +257,10 @@ inline Mat4 Mat4Scale( float s ) {
 	return Mat4Scale( s, s, s );
 }
 
+inline Mat4 Mat4Scale( Vec3 v ) {
+	return Mat4Scale( v.x, v.y, v.z );
+}
+
 inline Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	return Mat4(
 		Dot( lhs.row0(), rhs.col0 ),

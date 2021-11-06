@@ -261,7 +261,7 @@ struct SyncEntityState {
 
 	WeaponType weapon;
 	bool teleported;
-	float scale;
+	Vec3 scale;
 
 	StringHash sound;
 

@@ -36,7 +36,7 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
 
 	float pitch = 1.0f;
 	if( ps == PlayerSound_Death || ps == PlayerSound_Void || ps == PlayerSound_Pain25 || ps == PlayerSound_Pain50 || ps == PlayerSound_Pain75 || ps == PlayerSound_Pain100 || ps == PlayerSound_WallJump ) {
-		pitch = 1.0f / cg_entities[ entnum ].current.scale;
+		pitch = 1.0f / cg_entities[ entnum ].current.scale.z;
 	}
 
 	if( fixed ) {

@@ -390,7 +390,7 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 		S_StartGlobalSound( sound, CHAN_AUTO, 1.0f, 1.0f, entropy );
 	}
 	else {
-		float pitch = 1.0f / cent->current.scale;
+		float pitch = 1.0f / cent->current.scale.z;
 		cent->vsay_sound = S_ImmediateEntitySound( sound, entNum, 1.0f, pitch, false, entropy, cent->vsay_sound );
 	}
 }
@@ -873,7 +873,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_SPRAY:
-			AddSpray( ent->origin, ent->origin2, ent->angles, ent->scale, parm );
+			AddSpray( ent->origin, ent->origin2, ent->angles, ent->scale.z, parm );
 			S_StartFixedSound( "sounds/spray/spray", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 			break;
 

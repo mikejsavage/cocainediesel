@@ -40,10 +40,7 @@ void main() {
 
 	v_Position = ( u_M * Position ).xyz;
 
-	// TODO: this fixes models that don't have 1,1,1 scale
-	mat3 m = mat3( u_M );
-	m = mat3( normalize( m[ 0 ] ), normalize( m[ 1 ] ), normalize( m[ 2 ] ) );
-	m *= sign( determinant( m ) );
+	mat3 m = transpose( inverse( mat3( u_M ) ) );
 	v_Normal = m * Normal;
 
 	v_TexCoord = ApplyTCMod( a_TexCoord );

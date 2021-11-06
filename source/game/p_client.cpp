@@ -371,7 +371,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	GT_CallPlayerRespawned( self, old_team, self->s.team );
 
-	self->mass = PLAYER_MASS * self->s.scale;
+	self->mass = PLAYER_MASS * self->s.scale.z;
 }
 
 bool G_PlayerCanTeleport( edict_t *player ) {

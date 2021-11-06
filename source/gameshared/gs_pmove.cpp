@@ -1090,7 +1090,7 @@ static void PM_AdjustBBox() {
 		float crouchFrac = (float)pm->playerState->pmove.crouch_time / (float)CROUCHTIME;
 		pm->mins = pm->scale * Lerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins );
 		pm->maxs = pm->scale * Lerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs );
-		pm->playerState->viewheight = pm->scale * Lerp( playerbox_stand_viewheight, crouchFrac, playerbox_crouch_viewheight );
+		pm->playerState->viewheight = pm->scale.z * Lerp( playerbox_stand_viewheight, crouchFrac, playerbox_crouch_viewheight );
 
 		// it's going down, so, no need of checking for head-chomping
 		return;
@@ -1102,7 +1102,7 @@ static void PM_AdjustBBox() {
 		float crouchFrac = (float)pm->playerState->pmove.crouch_time / (float)CROUCHTIME;
 		Vec3 curmins = pm->scale * Lerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins );
 		Vec3 curmaxs = pm->scale * Lerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs );
-		float curviewheight = pm->scale * Lerp( playerbox_stand_viewheight, crouchFrac, playerbox_crouch_viewheight );
+		float curviewheight = pm->scale.z * Lerp( playerbox_stand_viewheight, crouchFrac, playerbox_crouch_viewheight );
 
 		if( !pm->cmd.msec ) { // no need to continue
 			pm->mins = curmins;
@@ -1116,7 +1116,7 @@ static void PM_AdjustBBox() {
 		crouchFrac = (float)newcrouchtime / (float)CROUCHTIME;
 		Vec3 wishmins = pm->scale * Lerp( playerbox_stand_mins, crouchFrac, playerbox_crouch_mins );
 		Vec3 wishmaxs = pm->scale * Lerp( playerbox_stand_maxs, crouchFrac, playerbox_crouch_maxs );
-		float wishviewheight = pm->scale * Lerp( playerbox_stand_viewheight, crouchFrac, playerbox_crouch_viewheight );
+		float wishviewheight = pm->scale.z * Lerp( playerbox_stand_viewheight, crouchFrac, playerbox_crouch_viewheight );
 
 		// check that the head is not blocked
 		pmove_gs->api.Trace( &trace, pml.origin, wishmins, wishmaxs, pml.origin, pm->playerState->POVnum, pm->contentmask, 0 );
@@ -1139,7 +1139,7 @@ static void PM_AdjustBBox() {
 	// the player is not crouching at all
 	pm->mins = pm->scale * playerbox_stand_mins;
 	pm->maxs = pm->scale * playerbox_stand_maxs;
-	pm->playerState->viewheight = pm->scale * playerbox_stand_viewheight;
+	pm->playerState->viewheight = pm->scale.z * playerbox_stand_viewheight;
 }
 
 static void PM_UpdateDeltaAngles() {

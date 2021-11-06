@@ -683,7 +683,7 @@ void CG_DrawScope() {
 			trace_t trace;
 			Vec3 forward = -frame_static.V.row2().xyz();
 			Vec3 end = cg.view.origin + forward * 10000.0f;
-			CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), end, 0, MASK_SHOT );
+			CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.predictedPlayerState.POVnum, MASK_SHOT );
 
 			TempAllocator temp = cls.frame_arena.temp();
 			float offset = Min2( frame_static.viewport_width, frame_static.viewport_height ) * 0.1f;

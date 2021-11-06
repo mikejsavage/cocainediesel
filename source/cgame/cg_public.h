@@ -73,8 +73,6 @@ struct cgame_export_t {
 
 	void ( *EscapeKey )();
 
-	void ( *Trace )( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int passent, int contentmask );
-
 	void ( *RenderView )( unsigned extrapolationTime );
 
 	bool ( *NewFrameSnapshot )( snapshot_t *newSnapshot, snapshot_t *currentSnapshot );

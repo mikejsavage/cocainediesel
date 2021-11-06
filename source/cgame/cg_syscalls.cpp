@@ -31,7 +31,6 @@ cgame_export_t * GetCGameAPI() {
 
 	globals.EscapeKey = CG_EscapeKey;
 
-	globals.Trace = CG_Trace;
 	globals.RenderView = CG_RenderView;
 
 	globals.NewFrameSnapshot = CG_NewFrameSnap;

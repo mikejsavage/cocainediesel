@@ -1176,7 +1176,7 @@ static void GT_Bomb_PlayerRespawned( edict_t * ent, int old_team, int new_team )
 	}
 
 	if( new_team != old_team && match_state == MatchState_Playing ) {
-		if( old_team != TEAM_SPECTATOR ) {
+		if( old_team != TEAM_SPECTATOR && server_gs.gameState.match_state == MatchState_Playing && server_gs.gameState.round_state < RoundState_Finished ) {
 			CheckPlayersAlive( old_team );
 		}
 

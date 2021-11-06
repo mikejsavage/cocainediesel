@@ -255,7 +255,6 @@ void SP_post_match_camera( edict_t *ent );
 // g_func.c
 //
 void SP_func_rotating( edict_t *ent );
-void SP_func_button( edict_t *ent );
 void SP_func_door( edict_t *ent );
 void SP_func_door_rotating( edict_t *ent );
 void SP_func_train( edict_t *ent );

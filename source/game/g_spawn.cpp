@@ -94,7 +94,6 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 
 	{ "post_match_camera", SP_post_match_camera },
 
-	{ "func_button", SP_func_button },
 	{ "func_door", SP_func_door },
 	{ "func_door_rotating", SP_func_door_rotating },
 	{ "func_rotating", SP_func_rotating },

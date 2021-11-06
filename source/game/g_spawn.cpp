@@ -336,10 +336,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 
 	G_PrecacheGameCommands(); // adding commands after this point won't update them to the client
 
-	// start spawning entities
 	SpawnMapEntities();
-
-	GT_CallSpawn();
 
 	// always start in warmup match state and let the thinking code
 	// revert it to wait state if empty ( so gametype based item masks are setup )
@@ -355,14 +352,10 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 void G_ResetLevel() {
 	G_FreeEdict( world );
 	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
-		if( game.edicts[i].r.inuse ) {
-			G_FreeEdict( game.edicts + i );
-		}
+		G_FreeEdict( game.edicts + i );
 	}
 
 	SpawnMapEntities();
-
-	GT_CallSpawn();
 }
 
 void G_RespawnLevel() {

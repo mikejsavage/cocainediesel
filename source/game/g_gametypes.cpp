@@ -471,13 +471,6 @@ Span< const char > G_GetWorldspawnKey( const char * key ) {
 //		Game type registration
 //======================================================
 
-void GT_CallSpawn() {
-	if( level.gametype.Init2 != NULL ) {
-		level.gametype.Init2();
-		return;
-	}
-}
-
 void GT_CallMatchStateStarted() {
 	level.gametype.MatchStateStarted();
 }

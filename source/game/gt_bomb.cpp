@@ -5,12 +5,12 @@
 #include "game/g_local.h"
 
 enum BombState {
-	BombState_Idle,
 	BombState_Carried,
 	BombState_Dropped,
 	BombState_Planting,
 	BombState_Planted,
 	BombState_Exploding,
+	BombState_Defused,
 };
 
 enum BombDropReason {
@@ -19,14 +19,12 @@ enum BombDropReason {
 	BombDropReason_ChangingTeam,
 };
 
-static constexpr u32 bomb_max_plant_speed = 50;
-static constexpr u32 bomb_max_plant_height = 100;
+static constexpr float bomb_max_plant_speed = 50.0f;
+static constexpr float bomb_max_plant_height = 100.0f;
 static constexpr u32 bomb_drop_retake_delay = 1000;
 static constexpr float bomb_arm_defuse_radius = 36.0f;
-static constexpr u32 bomb_autodrop_distance = 400;
-static constexpr u32 bomb_throw_speed = 550;
+static constexpr float bomb_throw_speed = 550.0f;
 static constexpr u32 bomb_explosion_effect_radius = 256;
-static constexpr u32 bomb_dead_camera_dist = 256;
 static constexpr int initial_attackers = TEAM_ALPHA;
 static constexpr int initial_defenders = TEAM_BETA;
 static constexpr int site_explosion_points = 10;
@@ -431,29 +429,30 @@ static void BombStop( edict_t * self ) {
 	}
 }
 
-static void BombModelCreate() {
+static void SpawnBomb() {
 	bomb_state.bomb.model = G_Spawn();
 	bomb_state.bomb.model->classname = "bomb";
 	bomb_state.bomb.model->s.type = ET_GENERIC;
+	bomb_state.bomb.model->s.team = AttackingTeam();
 	bomb_state.bomb.model->r.mins = bomb_bounds.mins;
 	bomb_state.bomb.model->r.maxs = bomb_bounds.maxs;
 	bomb_state.bomb.model->r.solid = SOLID_TRIGGER;
 	bomb_state.bomb.model->s.model = model_bomb;
+	bomb_state.bomb.model->s.effects |= EF_TEAM_SILHOUETTE;
 	bomb_state.bomb.model->s.silhouetteColor = RGBA8( 255, 255, 255, 255 );
-	bomb_state.bomb.model->r.svflags |= SVF_BROADCAST;
 	bomb_state.bomb.model->touch = BombTouch;
 	bomb_state.bomb.model->stop = BombStop;
+
+	bomb_state.bomb.action_time = -1;
 }
 
-static void BombInit() {
-	BombModelCreate();
-
+static void SpawnBombHUD() {
 	bomb_state.bomb.hud = G_Spawn();
 	bomb_state.bomb.hud->classname = "hud_bomb";
 	bomb_state.bomb.hud->s.type = ET_BOMB;
+	bomb_state.bomb.hud->s.team = AttackingTeam();
 	bomb_state.bomb.hud->r.solid = SOLID_NOT;
 	bomb_state.bomb.hud->r.svflags |= SVF_BROADCAST;
-	bomb_state.bomb.action_time = -1;
 }
 
 static void BombPickup() {
@@ -598,7 +597,7 @@ static void BombDefused() {
 
 	Announce( BombAnnouncement_Defused );
 
-	bomb_state.bomb.state = BombState_Idle;
+	bomb_state.bomb.state = BombState_Defused;
 
 	TempAllocator temp = svs.frame_arena.temp();
 	G_PrintMsg( NULL, "%s defused the bomb!\n", PLAYERENT( bomb_state.defuser )->r.client->netname );
@@ -633,32 +632,15 @@ static void BombExplode() {
 	G_Sound( bomb_state.bomb.model, CHAN_AUTO, "models/bomb/explode" );
 }
 
-static void ResetBomb() {
-	Hide( bomb_state.bomb.model );
-	bomb_state.bomb.model->s.effects |= EF_TEAM_SILHOUETTE;
-
-	bomb_state.bomb.model->s.team = AttackingTeam();
-	bomb_state.bomb.hud->s.team = AttackingTeam();
-
-	bomb_state.bomb.state = BombState_Idle;
-}
-
 static void BombThink() {
 	switch( bomb_state.bomb.state ) {
-		case BombState_Idle:
-			break;
+		case BombState_Carried:
+			return;
 
 		case BombState_Dropped: {
 			// respawn bomb if it falls in the void
 			if( bomb_state.bomb.model->s.origin.z < -1024.0f ) {
-				bomb_state.bomb.model->s.origin = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" )->s.origin;
-				bomb_state.bomb.model->velocity = Vec3( 0.0f );
-				bomb_state.bomb.model->s.teleported = true;
-
-				constexpr StringHash vfx_bomb_respawn = "models/bomb/respawn";
-
-				G_Sound( bomb_state.bomb.model, CHAN_AUTO, "models/bomb/respawn" );
-				G_SpawnEvent( EV_VFX, vfx_bomb_respawn.hash, &bomb_state.bomb.model->s.origin );
+				G_FreeEdict( bomb_state.bomb.model );
 			}
 		} break;
 
@@ -738,7 +720,7 @@ static void BombThink() {
 			}
 		} break;
 
-		default:
+		case BombState_Defused:
 			break;
 	}
 }
@@ -981,7 +963,8 @@ static void RoundNewState( RoundState state ) {
 			bomb_state.was_1vx = false;
 			ResetBombSites();
 			G_ResetLevel();
-			ResetBomb();
+			SpawnBomb();
+			SpawnBombHUD();
 			ResetKillCounters();
 			RespawnAllPlayers();
 			DisableMovement();
@@ -1064,14 +1047,24 @@ static void RoundThink() {
 	}
 
 	if( server_gs.gameState.round_state == RoundState_Round ) {
-		// monitor the bomb's health
-		if( bomb_state.bomb.model == NULL || !bomb_state.bomb.model->r.inuse ) {
-			BombModelCreate();
-			G_DebugPrint( "bomb was destroyed" );
-			RoundWonBy( DefendingTeam() );
-			G_CenterPrintMsg( NULL, S_COLOR_RED "The attacking team has lost the bomb!!!" );
+		// respawn the bomb if it died
+		if( !bomb_state.bomb.model->r.inuse ) {
+			SpawnBomb();
+			Show( bomb_state.bomb.model );
+			bomb_state.bomb.state = BombState_Dropped;
+
+			bomb_state.bomb.model->movetype = MOVETYPE_TOSS;
+			bomb_state.bomb.model->s.origin = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" )->s.origin;
+			bomb_state.bomb.model->velocity = Vec3( 0.0f, 0.0f, bomb_throw_speed );
+
+			constexpr StringHash vfx_bomb_respawn = "models/bomb/respawn";
+
+			G_Sound( bomb_state.bomb.model, CHAN_AUTO, "models/bomb/respawn" );
+			G_SpawnEvent( EV_VFX, vfx_bomb_respawn.hash, &bomb_state.bomb.model->s.origin );
+
 			return;
 		}
+
 		if( bomb_state.bomb.state == BombState_Planted ) {
 			bomb_state.last_time = -1;
 		}
@@ -1292,6 +1285,7 @@ static void GT_Bomb_MatchStateStarted() {
 			for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {
 				G_SpawnQueue_SetTeamSpawnsystem( t, SPAWNSYSTEM_INSTANT, 0, 0, false );
 			}
+
 			break;
 
 		case MatchState_Countdown:
@@ -1312,21 +1306,12 @@ static void GT_Bomb_MatchStateStarted() {
 	}
 }
 
-static void GT_Bomb_SpawnGametype() {
-	BombInit();
-
-	for( int i = 0; i < server_gs.maxclients; i++ ) {
-		edict_t * ent = PLAYERENT( i );
-		if( ent->r.inuse ) {
-			GT_Bomb_PlayerConnected( ent );
-		}
-	}
-}
-
 static void GT_Bomb_InitGametype() {
 	server_gs.gameState.bomb.attacking_team = initial_attackers;
 
 	bomb_state = { };
+	bomb_state.carrier = -1;
+	bomb_state.defuser = -1;
 
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
 		G_SpawnQueue_SetTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
@@ -1335,9 +1320,6 @@ static void GT_Bomb_InitGametype() {
 	G_AddCommand( "drop", NULL ); // TODO: this sucks
 	G_AddCommand( "gametypemenu", NULL );
 	G_AddCommand( "weapselect", NULL );
-
-	bomb_state.carrier = -1;
-	bomb_state.defuser = -1;
 
 	g_bomb_roundtime = Cvar_Get( "g_bomb_roundtime", "61", CVAR_ARCHIVE );
 	g_bomb_bombtimer = Cvar_Get( "g_bomb_bombtimer", "30", CVAR_ARCHIVE );
@@ -1371,7 +1353,6 @@ Gametype GetBombGametype() {
 	Gametype gt = { };
 
 	gt.Init = GT_Bomb_InitGametype;
-	gt.Init2 = GT_Bomb_SpawnGametype;
 	gt.MatchStateStarted = GT_Bomb_MatchStateStarted;
 	gt.MatchStateFinished = GT_Bomb_MatchStateFinished;
 	gt.Think = GT_Bomb_Think;

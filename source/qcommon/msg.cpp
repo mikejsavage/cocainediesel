@@ -648,6 +648,8 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 	Delta( buf, pmove.max_speed, baseline.max_speed );
 	Delta( buf, pmove.jump_speed, baseline.jump_speed );
 	Delta( buf, pmove.dash_speed, baseline.dash_speed );
+
+	Delta( buf, pmove.midget_jump_charge, baseline.midget_jump_charge );
 }
 
 static void Delta( DeltaBuffer * buf, WeaponSlot & weapon, const WeaponSlot & baseline ) {
@@ -670,6 +672,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	Delta( buf, player.weapons, baseline.weapons );
 	DeltaEnum( buf, player.gadget, baseline.gadget );
 	Delta( buf, player.gadget_ammo, baseline.gadget_ammo );
+	DeltaEnum( buf, player.perk, baseline.perk );
 
 	Delta( buf, player.ready, baseline.ready );
 	Delta( buf, player.voted, baseline.voted );

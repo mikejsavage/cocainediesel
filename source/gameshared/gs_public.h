@@ -83,6 +83,8 @@ struct pmove_t {
 	int waterlevel;
 
 	int contentmask;
+
+	StringHash sound;
 };
 
 struct gs_module_api_t {
@@ -277,6 +279,8 @@ enum EventType {
 	EV_JUMP,
 	EV_JUMP_PAD,
 	EV_FALL,
+
+	EV_MIDGET_CHARGE,
 
 	EV_SUICIDE_BOMB_ANNOUNCEMENT,
 	EV_SUICIDE_BOMB_BEEP,

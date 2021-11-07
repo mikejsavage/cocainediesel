@@ -397,13 +397,11 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 
 	// from racesow - use old pmove velocity
 	Vec3 velocity = client->old_pmove.velocity;
-
-	velocity.z = 0; // ignore vertical velocity
-	float speed = Length( velocity );
+	float speed = Length( velocity.xy() );
 
 	mat3_t axis;
 	AnglesToAxis( dest->s.angles, axis );
-	client->ps.pmove.velocity = FromQFAxis( axis, AXIS_FORWARD ) * ( speed );
+	client->ps.pmove.velocity = FromQFAxis( axis, AXIS_FORWARD ) * speed;
 
 	client->ps.viewangles = dest->s.angles;
 	client->ps.pmove.origin = dest->s.origin;
@@ -919,6 +917,8 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 		ent->groundentity = &game.edicts[pm.groundentity];
 		ent->groundentity_linkcount = ent->groundentity->linkcount;
 	}
+
+	// ent->s.sound = pm.sound;
 
 	GClip_LinkEntity( ent );
 

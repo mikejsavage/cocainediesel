@@ -32,15 +32,15 @@ static constexpr s16 MAX_TBAG_TIME = 2000;
 static constexpr s16 TBAG_THRESHOLD = 1000;
 static constexpr s16 TBAG_AMOUNT_PER_CROUCH = 500;
 
+static constexpr s16 MIDGET_JUMP_CHARGE_TIME = 2000;
+
 //===============================================================
 
-// all of the locals will be zeroed before each
-// pmove, just to make damn sure we don't have
-// any differences when running on client or server
-
 typedef struct {
-	Vec3 origin;          // full float precision
-	Vec3 velocity;        // full float precision
+	PerkType perk;
+
+	Vec3 origin;
+	Vec3 velocity;
 
 	Vec3 forward, right, up;
 	Vec3 flatforward;     // normalized forward without z component, saved here because it needs
@@ -74,15 +74,15 @@ static const gs_state_t * pmove_gs;
 #define DEFAULT_CROUCHEDSPEED 100.0f
 #define DEFAULT_LADDERSPEED 300.0f
 
-constexpr float pm_friction = 16; //  ( initially 6 )
+constexpr float pm_friction = 16;
 constexpr float pm_waterfriction = 16;
-constexpr float pm_wateraccelerate = 12; // user intended acceleration when swimming ( initially 6 )
+constexpr float pm_wateraccelerate = 12;
 
-constexpr float pm_accelerate = 16; // user intended acceleration when on ground or fly movement ( initially 10 )
-constexpr float pm_decelerate = 16; // user intended deceleration when on ground
+constexpr float pm_accelerate = 16;
+constexpr float pm_decelerate = 16;
 
-constexpr float pm_airaccelerate = 0.5f; // user intended aceleration when on air
-constexpr float pm_airdecelerate = 1.0f; // air deceleration (not +strafe one, just at normal moving).
+constexpr float pm_airaccelerate = 0.5f;
+constexpr float pm_airdecelerate = 1.0f;
 
 // special movement parameters
 
@@ -743,19 +743,43 @@ static void PM_ClearWallJump() {
 }
 
 static void PM_CheckJump() {
-	if( pml.upPush < 10 ) {
-		return;
-	}
+	pm->sound = EMPTY_HASH;
 
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) {
 		return;
 	}
 
-	if( pm->groundentity == -1 ) {
+	if( !( pm->playerState->pmove.features & PMFEAT_JUMP ) ) {
 		return;
 	}
 
-	if( !( pm->playerState->pmove.features & PMFEAT_JUMP ) ) {
+	float jumpSpeed = ( pm->waterlevel >= 2 ? pml.jumpPlayerSpeedWater : pml.jumpPlayerSpeed );
+
+	if( pml.perk == Perk_None ) {
+		if( pml.upPush < 10 ) {
+			return;
+		}
+	}
+	else if( pml.perk == Perk_Midget ) {
+		if( pml.upPush > 0 ) {
+			if( pm->playerState->pmove.midget_jump_charge == 0 ) {
+				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_MIDGET_CHARGE, 0 );
+			}
+			pm->playerState->pmove.midget_jump_charge = Clamp( 0, pm->playerState->pmove.midget_jump_charge + pm->cmd.msec, int( MIDGET_JUMP_CHARGE_TIME ) );
+			return;
+		}
+		else {
+			float t = 3.0f * Unlerp01( s16( 0 ), pm->playerState->pmove.midget_jump_charge, MIDGET_JUMP_CHARGE_TIME );
+			if( t == 0.0f )
+				return;
+			jumpSpeed *= 1.0f + t;
+			// pm->sound = "sounds/midget/charge_jump";
+		}
+	}
+
+	pm->playerState->pmove.midget_jump_charge = 0;
+
+	if( pm->groundentity == -1 ) {
 		return;
 	}
 
@@ -766,9 +790,6 @@ static void PM_CheckJump() {
 		pml.velocity = GS_ClipVelocity( pml.velocity, pml.groundplane.normal, PM_OVERBOUNCE );
 	}
 
-
-	float jumpSpeed = ( pm->waterlevel >= 2 ? pml.jumpPlayerSpeedWater : pml.jumpPlayerSpeed );
-
 	pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
 	pml.velocity.z = Max2( 0.0f, pml.velocity.z ) + jumpSpeed;
 
@@ -778,6 +799,10 @@ static void PM_CheckJump() {
 }
 
 static void PM_CheckDash() {
+	if( pml.perk == Perk_Midget ) {
+		return;
+	}
+
 	bool pressed = pm->cmd.buttons & BUTTON_SPECIAL;
 
 	if( !pressed ) {
@@ -1182,6 +1207,7 @@ static void PM_BeginMove() {
 	// clear all pmove local vars
 	memset( &pml, 0, sizeof( pml ) );
 
+	pml.perk = pm->playerState->perk;
 	pml.origin = pm->playerState->pmove.origin;
 	pml.velocity = pm->playerState->pmove.velocity;
 

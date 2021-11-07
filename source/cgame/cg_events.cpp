@@ -661,6 +661,16 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			CG_Event_Fall( ent, parm );
 			break;
 
+		case EV_MIDGET_CHARGE: {
+			StringHash sfx = "sounds/midget/charge_jump";
+			if( ISVIEWERENTITY( ent->number ) ) {
+				S_StartGlobalSound( sfx, CHAN_BODY, 1.0f, 1.0f );
+			}
+			else {
+				S_StartEntitySound( sfx, ent->number, CHAN_BODY, 1.0f, 1.0f );
+			}
+		} break;
+
 			//  NON PREDICTABLE EVENTS
 
 		case EV_WEAPONDROP: // deactivate is not predictable

@@ -29,9 +29,6 @@ static StringHash GetPlayerSound( int entnum, PlayerSound ps ) {
 }
 
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
-	bool fixed = ( entchannel & CHAN_FIXED ) != 0;
-	entchannel &= ~CHAN_FIXED;
-
 	StringHash sfx = GetPlayerSound( entnum, ps );
 
 	float pitch = 1.0f;
@@ -39,10 +36,7 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
 		pitch = 1.0f / cg_entities[ entnum ].current.scale.z;
 	}
 
-	if( fixed ) {
-		S_StartFixedSound( sfx, cg_entities[entnum].current.origin, entchannel, 1.0f, pitch );
-	}
-	else if( ISVIEWERENTITY( entnum ) ) {
+	if( ISVIEWERENTITY( entnum ) ) {
 		S_StartGlobalSound( sfx, entchannel, 1.0f, pitch );
 	}
 	else {

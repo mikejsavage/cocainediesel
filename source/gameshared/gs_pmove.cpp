@@ -948,8 +948,6 @@ static void PM_CheckWallJump() {
 static void PM_CheckSpecialMovement() {
 	int cont;
 
-	pm->ladder = false;
-
 	if( pm->playerState->pmove.pm_time ) {
 		return;
 	}
@@ -962,7 +960,6 @@ static void PM_CheckSpecialMovement() {
 	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
 	if( trace.fraction < 1 && ( trace.surfFlags & SURF_LADDER ) ) {
 		pml.ladder = true;
-		pm->ladder = true;
 	}
 
 	// check for water jump

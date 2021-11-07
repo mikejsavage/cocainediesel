@@ -81,8 +81,6 @@ struct pmove_t {
 	int waterlevel;
 
 	int contentmask;
-
-	bool ladder;
 };
 
 struct gs_module_api_t {

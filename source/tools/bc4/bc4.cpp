@@ -49,9 +49,9 @@ int main( int argc, char ** argv ) {
 	}
 	defer { stbi_image_free( pixels ); };
 
-	if( !IsPowerOf2( w ) || !IsPowerOf2( h ) ) {
-		printf( "Image must be power of 2 dimensions\n" );
-		return 1;
+	bool generate_mipmaps = IsPowerOf2( w ) && IsPowerOf2( h );
+	if( generate_mipmaps ) {
+		printf( "Image isn't a pow2 sized so we aren't computing mipmaps: %s\n", argv[ 1 ] );
 	}
 
 	if( comp != 1 ) {
@@ -59,7 +59,7 @@ int main( int argc, char ** argv ) {
 		return 1;
 	}
 
-	u32 num_levels = BlockFormatMipLevels( w, h );
+	u32 num_levels = generate_mipmaps ? BlockFormatMipLevels( w, h ) : 1;
 	u32 total_size = 0;
 	for( u32 i = 0; i < num_levels; i++ ) {
 		total_size += MipSize( w, h, i );

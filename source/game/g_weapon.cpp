@@ -840,8 +840,8 @@ void W_Fire_StickyBullet( edict_t *self, Vec3 start, Vec3 angles, int timeDelta 
 	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_StickyGun ), W_Touch_StickyBullet, ET_ROCKET, MASK_SHOT );
 
 	bullet->classname = "stickybullet";
-	bullet->s.model = "weapons/autosniper/bullet";
-	bullet->s.sound = "weapons/autosniper/fuse";
+	bullet->s.model = "weapons/sticky/bullet";
+	bullet->s.sound = "weapons/sticky/fuse";
 
 	bullet->think = StickyBulletExplode;
 }

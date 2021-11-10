@@ -157,10 +157,10 @@ static void AddViewWeaponDepthHack( PipelineState * pipeline, bool skinned ) {
 	pipeline->view_weapon_depth_hack = true;
 }
 
-void DrawViewWeapon( const Model * model, const Mat4 & transform ) {
+void DrawViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & color ) {
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		if( model->nodes[ i ].parent == U8_MAX ) {
-			DrawNode( model, i, transform, vec4_white, MatrixPalettes(), UniformBlock(), AddViewWeaponDepthHack );
+			DrawNode( model, i, transform, color, MatrixPalettes(), UniformBlock(), AddViewWeaponDepthHack );
 		}
 	}
 }

@@ -88,9 +88,6 @@ models/weapons/lg
 
 models/weapons/lg_glow
 {
-	shaded
-	specular 10
-	shininess 8
 	{
 		map $whiteimage
 		rgbGen entity

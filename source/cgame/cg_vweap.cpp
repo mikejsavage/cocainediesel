@@ -163,7 +163,7 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	const Model * model = GetWeaponModelMetadata( cg.predictedPlayerState.weapon )->model;
 	Mat4 transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
-	DrawViewWeapon( model, transform );
+	DrawViewWeapon( model, transform, CG_TeamColorVec4( cg.predictedPlayerState.team ) );
 }
 
 void CG_AddRecoil( WeaponType weapon ) {

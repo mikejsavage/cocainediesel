@@ -825,7 +825,8 @@ static void W_Touch_StickyBullet(edict_t *ent, edict_t *other, Plane *plane, int
 		const WeaponDef * def = GS_GetWeaponDef( Weapon_StickyGun );
 		ent->s.linearMovementBegin = ent->s.origin;
 		ent->s.linearMovementVelocity = Vec3( 0.0f );
-		ent->nextThink = level.time + def->spread;
+		ent->nextThink = level.time + def->spread; //gg
+		edict_t *event = G_SpawnEvent(EV_STICKY_IMPACT, DirToU64(plane ? plane->normal : Vec3(0.0f)), &ent->s.origin);
 	}
 }
 

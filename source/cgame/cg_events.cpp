@@ -758,6 +758,12 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 		} break;
 
+		case EV_STICKY_IMPACT: {
+			Vec3 dir = U64ToDir( parm );
+			DoVisualEffect( "weapons/sticky/impact", ent->origin, dir, 24, team_color );
+			S_StartFixedSound( "weapons/sticky/impact", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+		} break;
+
 		case EV_ROCKET_EXPLOSION: {
 			Vec3 dir = U64ToDir( parm );
 			ExplosionParticles( ent->origin, dir, team_color );

@@ -181,15 +181,16 @@ char *_G_CopyString( const char *in, const char *filename, int fileline ) {
 }
 
 void G_FreeEdict( edict_t *ed ) {
-	bool evt = ISEVENTENTITY( &ed->s );
+	if( ed == NULL )
+		return;
 
-	GClip_UnlinkEntity( ed );   // unlink from world
+	GClip_UnlinkEntity( ed );
 
 	memset( ed, 0, sizeof( *ed ) );
 	ed->s.number = ENTNUM( ed );
 	ed->r.svflags = SVF_NOCLIENT;
 
-	if( !evt && ( level.spawnedTimeStamp != svs.realtime ) ) {
+	if( !ISEVENTENTITY( &ed->s ) && level.spawnedTimeStamp != svs.realtime ) {
 		ed->freetime = svs.realtime; // ET_EVENT or ET_SOUND don't need to wait to be reused
 	}
 }

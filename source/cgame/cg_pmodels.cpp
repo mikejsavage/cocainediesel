@@ -847,8 +847,8 @@ void CG_DrawPlayer( centity_t * cent ) {
 			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon ) * Mat4Scale( 1.0f / cent->current.scale );
 
 			if( draw_model )
-				DrawModel( weapon_model, tag_transform, vec4_white );
-			DrawModelShadow( weapon_model, tag_transform, vec4_white );
+				DrawModel( weapon_model, tag_transform, color );
+			DrawModelShadow( weapon_model, tag_transform, color );
 
 			if( draw_silhouette ) {
 				DrawModelSilhouette( weapon_model, tag_transform, color );

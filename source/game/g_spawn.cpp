@@ -360,6 +360,13 @@ void G_ResetLevel() {
 void G_RespawnLevel() {
 	ShutdownGametype();
 	G_InitLevel( sv.mapname, level.time );
+
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		edict_t * ent = &game.edicts[ i + 1 ];
+		if( !ent->r.inuse )
+			continue;
+		GT_CallPlayerConnected( ent );
+	}
 }
 
 void G_LoadMap( const char * name ) {

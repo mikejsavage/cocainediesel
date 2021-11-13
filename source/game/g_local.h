@@ -61,29 +61,6 @@ enum movetype_t {
 	MOVETYPE_BOUNCEGRENADE,
 };
 
-//
-// this structure is left intact through an entire game
-// it should be initialized at dll load time, and read/written to
-// the server.ssv file for savegames
-//
-struct game_locals_t {
-	edict_t *edicts;        // [maxentities]
-	gclient_t *clients;     // [maxclients]
-
-	// store latched cvars here that we want to get at often
-	int maxentities;
-	int numentities;
-
-	// cross level triggers
-	int serverflags;
-
-	unsigned int frametime;         // in milliseconds
-	int snapFrameTime;              // in milliseconds
-	int64_t prevServerTime;         // last frame's server time
-
-	int numBots;
-};
-
 #define TIMEOUT_TIME                    180000
 #define TIMEIN_TIME                     5000
 
@@ -157,7 +134,6 @@ struct score_stats_t {
 	int total_damage_received;
 };
 
-extern game_locals_t game;
 extern gs_state_t server_gs;
 extern level_locals_t level;
 extern spawn_temp_t st;
@@ -250,8 +226,6 @@ void SP_spikes( edict_t * ent );
 //
 
 void SP_speaker_wall( edict_t * ent );
-
-#define world game.edicts
 
 // item spawnflags
 #define ITEM_TRIGGER_SPAWN  0x00000001
@@ -817,6 +791,28 @@ struct edict_t {
 	assistinfo_t recent_attackers[MAX_ASSIST_INFO];
 	u32 num_bounces;
 };
+
+struct game_locals_t {
+	edict_t edicts[ MAX_EDICTS ];
+	gclient_t clients[ MAX_CLIENTS ];
+
+	// store latched cvars here that we want to get at often
+	int maxentities;
+	int numentities;
+
+	// cross level triggers
+	int serverflags;
+
+	unsigned int frametime;         // in milliseconds
+	int snapFrameTime;              // in milliseconds
+	int64_t prevServerTime;         // last frame's server time
+
+	int numBots;
+};
+
+extern game_locals_t game;
+
+#define world game.edicts
 
 static inline int ENTNUM( const edict_t *x ) { return x - game.edicts; }
 static inline int ENTNUM( const gclient_t *x ) { return x - game.clients + 1; }

@@ -186,12 +186,9 @@ void G_Init( unsigned int framemsec ) {
 	g_asGC_stats = Cvar_Get( "g_asGC_stats", "0", CVAR_ARCHIVE );
 	g_asGC_interval = Cvar_Get( "g_asGC_interval", "10", CVAR_ARCHIVE );
 
-	// initialize all entities for this game
 	game.maxentities = MAX_EDICTS;
-	game.edicts = ( edict_t * )G_Malloc( game.maxentities * sizeof( game.edicts[0] ) );
-
-	// initialize all clients for this game
-	game.clients = ( gclient_t * )G_Malloc( server_gs.maxclients * sizeof( game.clients[0] ) );
+	memset( game.edicts, 0, sizeof( game.edicts ) );
+	memset( game.clients, 0, sizeof( game.clients ) );
 
 	game.numentities = server_gs.maxclients + 1;
 
@@ -217,9 +214,6 @@ void G_Shutdown() {
 			G_FreeEdict( &game.edicts[i] );
 		}
 	}
-
-	G_Free( game.edicts );
-	G_Free( game.clients );
 
 	Mem_FreePool( &gamepool );
 }

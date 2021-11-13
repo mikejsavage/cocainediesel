@@ -98,9 +98,7 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 	{ "func_door_rotating", SP_func_door_rotating },
 	{ "func_rotating", SP_func_rotating },
 	{ "func_train", SP_func_train },
-	{ "func_timer", SP_func_timer },
 	{ "func_wall", SP_func_wall },
-	{ "func_explosive", SP_func_explosive },
 	{ "func_static", SP_func_static },
 
 	{ "trigger_always", SP_trigger_always },
@@ -109,10 +107,8 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 	{ "trigger_push", SP_trigger_push },
 	{ "trigger_hurt", SP_trigger_hurt },
 
-	{ "target_explosion", SP_target_explosion },
 	{ "target_laser", SP_target_laser },
 	{ "target_position", SP_target_position },
-	{ "target_print", SP_target_print },
 	{ "target_delay", SP_target_delay },
 
 	{ "path_corner", SP_path_corner },

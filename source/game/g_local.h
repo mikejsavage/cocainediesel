@@ -239,9 +239,7 @@ void SP_func_rotating( edict_t *ent );
 void SP_func_door( edict_t *ent );
 void SP_func_door_rotating( edict_t *ent );
 void SP_func_train( edict_t *ent );
-void SP_func_timer( edict_t *self );
 void SP_func_wall( edict_t *self );
-void SP_func_explosive( edict_t *self );
 void SP_func_static( edict_t *ent );
 
 //
@@ -430,8 +428,6 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Plane *plane, edict_
 //
 void ThrowSmallPileOfGibs( edict_t *self, Vec3 knockback, int damage );
 
-void BecomeExplosion1( edict_t *self );
-
 void SP_path_corner( edict_t *self );
 
 void SP_model( edict_t *ent );
@@ -491,11 +487,8 @@ void player_think( edict_t *self );
 //
 void target_laser_start( edict_t *self );
 
-void SP_target_temp_entity( edict_t *ent );
-void SP_target_explosion( edict_t *ent );
 void SP_target_laser( edict_t *self );
 void SP_target_position( edict_t *self );
-void SP_target_print( edict_t *self );
 void SP_target_delay( edict_t *ent );
 
 //

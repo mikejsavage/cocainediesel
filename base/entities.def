@@ -196,25 +196,6 @@ TRIGGER_SPAWN : &1 spawn this entity when target is fired
 model2 is not supported in func_objects, only map brushes can be safely used as model
 */
 
-/*QUAKED func_explosive (0 .5 .8) ? TRIGGER_SPAWN - -
-Any brush that you want to explode or break apart.  If you want an
-ex0plosion, set dmg and it will do a radius explosion of that amount
-at the center of the bursh. If targeted it will not be shootable.
--------- KEYS --------
-health : defaults to 100.
-mass : defaults to 75.  This determines how much debris is emitted when it explodes.  You get one large chunk per 100 of mass (up to 8) and one small chunk per 25 of mass (up to 16).  So 800 gives the most.
-model2 : a md3 model.
-origin : alternate method of setting XYZ origin of .md3 model included with entity (See Notes).
-light : constantLight radius of .md3 model included with entity. Has no effect on the entity's brushes (default 0).
-color : constantLight color of .md3 model included with entity. Has no effect on the entity's brushes (default 1 1 1).
-target : fire targets with this name at being used.
-targetname : name to be targeted with.
--------- SPAWNFLAGS --------
-TRIGGER_SPAWN : &1 spawn this entity when target is fired
--------- NOTES --------
-Untested: model2 models might not collide perfectly if used with a brush origin
-*/
-
 /*QUAKED path_corner (.5 .3 0) (-8 -8 -8) (8 8 8) TELEPORT
 Path corner entity that func_trains can be made to follow.
 -------- KEYS --------

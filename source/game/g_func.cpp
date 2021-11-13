@@ -360,11 +360,7 @@ static void door_blocked( edict_t *self, edict_t *other ) {
 	if( !other->r.client ) {
 		// give it a chance to go away on its own terms (like gibs)
 		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, WorldDamage_Crush );
-
-		// if it's still there, nuke it
-		if( other->r.inuse ) {
-			BecomeExplosion1( other );
-		}
+		G_FreeEdict( other );
 		return;
 	}
 
@@ -682,11 +678,7 @@ static void train_blocked( edict_t *self, edict_t *other ) {
 	if( !other->r.client ) {
 		// give it a chance to go away on its own terms (like gibs)
 		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, WorldDamage_Crush );
-
-		// if it's still there, nuke it
-		if( other->r.inuse ) {
-			BecomeExplosion1( other );
-		}
+		G_FreeEdict( other );
 		return;
 	}
 
@@ -889,49 +881,5 @@ void SP_func_train( edict_t *self ) {
 		self->think = func_train_find;
 	} else {
 		Com_GGPrint( "func_train without a target at {}", self->s.origin );
-	}
-}
-
-void func_timer_think( edict_t *self ) {
-	G_UseTargets( self, self->activator );
-	self->nextThink = level.time + 1000 * ( self->wait + RandomFloat11( &svs.rng ) * self->random );
-}
-
-void func_timer_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	self->activator = activator;
-
-	// if on, turn it off
-	if( self->nextThink ) {
-		self->nextThink = 0;
-		return;
-	}
-
-	// turn it on
-	if( self->delay ) {
-		self->nextThink = level.time + self->delay * 1000;
-	} else {
-		func_timer_think( self );
-	}
-}
-
-void SP_func_timer( edict_t *self ) {
-	if( !self->wait ) {
-		self->wait = 1.0;
-	}
-
-	self->use = func_timer_use;
-	self->think = func_timer_think;
-
-	if( self->random >= self->wait ) {
-		self->random = self->wait - 0.1;
-		if( developer->integer ) {
-			Com_GGPrint( "func_timer at {} has random >= wait\n", self->s.origin );
-		}
-	}
-
-	if( self->spawnflags & 1 ) {
-		self->nextThink = level.time + 1000 *
-						  ( 1.0f + st.pausetime + self->delay + self->wait + RandomFloat11( &svs.rng ) * self->random );
-		self->activator = self;
 	}
 }

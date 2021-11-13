@@ -68,13 +68,4 @@ void SelectSpawnPoint( edict_t * ent, edict_t ** spawnpoint, Vec3 * origin, Vec3
 	*spawnpoint = spot;
 	*origin = spot->s.origin;
 	*angles = spot->s.angles;
-
-	// drop to floor
-	trace_t trace;
-	Vec3 start = *origin + Vec3( 0.0f, 0.0f, 16.0f );
-	Vec3 end = *origin - Vec3( 0.0f, 0.0f, 512.0f );
-
-	G_Trace( &trace, start, playerbox_stand_mins, playerbox_stand_maxs, end, ent, MASK_PLAYERSOLID );
-
-	*origin = trace.endpos + trace.plane.normal;
 }

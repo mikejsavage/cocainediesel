@@ -187,9 +187,6 @@ extern cvar_t *g_inactivity_maxtime;
 extern cvar_t *g_maplist;
 extern cvar_t *g_maprotation;
 
-extern cvar_t *g_enforce_map_pool;
-extern cvar_t *g_map_pool;
-
 extern cvar_t *g_scorelimit;
 
 extern cvar_t *g_projectile_prestep;

@@ -44,9 +44,6 @@ cvar_t *sv_cheats;
 cvar_t *g_maplist;
 cvar_t *g_maprotation;
 
-cvar_t *g_enforce_map_pool;
-cvar_t *g_map_pool;
-
 cvar_t *g_floodprotection_messages;
 cvar_t *g_floodprotection_team;
 cvar_t *g_floodprotection_seconds;
@@ -180,10 +177,6 @@ void G_Init( unsigned int framemsec ) {
 	// map list
 	g_maplist = Cvar_Get( "g_maplist", "", CVAR_ARCHIVE );
 	g_maprotation = Cvar_Get( "g_maprotation", "1", CVAR_ARCHIVE );
-
-	// map pool
-	g_enforce_map_pool = Cvar_Get( "g_enforce_map_pool", "0", CVAR_ARCHIVE );
-	g_map_pool = Cvar_Get( "g_map_pool", "", CVAR_ARCHIVE );
 
 	// helper cvars to show current status in serverinfo reply
 	Cvar_Get( "g_match_time", "", CVAR_SERVERINFO | CVAR_READONLY );

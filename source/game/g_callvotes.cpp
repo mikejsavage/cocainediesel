@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 #include "qcommon/maplist.h"
+#include "qcommon/string.h"
 
 static int clientVoted[MAX_CLIENTS];
 static int clientVoteChanges[MAX_CLIENTS];
@@ -46,8 +47,8 @@ typedef struct
 	struct callvotetype_s *callvote;
 	int argc;
 	char *argv[MAX_STRING_TOKENS];
-	char *string;               // can be used to overwrite the displayed vote string
-	int data;                   // some data vote wants to carry over multiple calls of validate and to execute
+	String< MAX_CONFIGSTRING_CHARS > string; // can be used to overwrite the displayed vote string
+	int target;
 } callvotedata_t;
 
 typedef struct callvotetype_s
@@ -90,11 +91,6 @@ static void G_VoteMapExtraHelp( edict_t *ent ) {
 
 	TempAllocator temp = svs.frame_arena.temp();
 	RefreshMapList( &temp );
-
-	if( g_enforce_map_pool->integer && strlen( g_map_pool->string ) > 2 ) {
-		G_PrintMsg( ent, "Maps available [map pool enforced]:\n %s\n", g_map_pool->string );
-		return;
-	}
 
 	// don't use Q_strncatz and Q_strncpyz below because we
 	// check length of the message string manually
@@ -162,35 +158,7 @@ static bool G_VoteMapValidate( callvotedata_t *data, bool first ) {
 	}
 
 	if( MapExists( mapname ) ) {
-		// check if valid map is in map pool when on
-		if( g_enforce_map_pool->integer ) {
-			char *s, *tok;
-
-			// if map pool is empty, basically turn it off
-			if( strlen( g_map_pool->string ) < 2 ) {
-				return true;
-			}
-
-			s = G_CopyString( g_map_pool->string );
-			tok = strtok( s, MAPLIST_SEPS );
-			while( tok != NULL ) {
-				if( !Q_stricmp( tok, mapname ) ) {
-					G_Free( s );
-					goto valid_map;
-				} else {
-					tok = strtok( NULL, MAPLIST_SEPS );
-				}
-			}
-			G_Free( s );
-			G_PrintMsg( data->caller, "%sMap is not in map pool.\n", S_COLOR_RED );
-			return false;
-		}
-
-valid_map:
-		if( data->string ) {
-			G_Free( data->string );
-		}
-		data->string = G_CopyString( mapname );
+		data->string.format( "{}", mapname );
 		return true;
 	}
 
@@ -316,28 +284,22 @@ static bool G_VoteSpectateValidate( callvotedata_t *vote, bool first ) {
 			return false;
 		} else {
 			// we save the player id to be removed, so we don't later get confused by new ids or players changing names
-			vote->data = who;
+			vote->target = who;
 		}
 	} else {
-		who = vote->data;
+		who = vote->target;
 	}
 
 	if( !game.edicts[who + 1].r.inuse || game.edicts[who + 1].s.team == TEAM_SPECTATOR ) {
 		return false;
-	} else {
-		if( !vote->string || Q_stricmp( vote->string, game.edicts[who + 1].r.client->netname ) ) {
-			if( vote->string ) {
-				G_Free( vote->string );
-			}
-			vote->string = G_CopyString( game.edicts[who + 1].r.client->netname );
-		}
-
-		return true;
 	}
+
+	vote->string.format( "{}", game.edicts[who + 1].r.client->netname );
+	return true;
 }
 
 static void G_VoteSpectatePassed( callvotedata_t *vote ) {
-	edict_t * ent = &game.edicts[vote->data + 1];
+	edict_t * ent = &game.edicts[vote->target + 1];
 
 	// may have disconnect along the callvote time
 	if( !ent->r.inuse || !ent->r.client || ent->s.team == TEAM_SPECTATOR ) {
@@ -394,32 +356,24 @@ static bool G_VoteKickValidate( callvotedata_t *vote, bool first ) {
 
 			// we save the player id to be kicked, so we don't later get
 			//confused by new ids or players changing names
-			vote->data = who;
+			vote->target = who;
 		} else {
 			G_PrintMsg( vote->caller, "%sNo such player\n", S_COLOR_RED );
 			return false;
 		}
 	} else {
-		who = vote->data;
+		who = vote->target;
 	}
 
-	if( !game.edicts[who + 1].r.inuse ) {
+	if( !game.edicts[who + 1].r.inuse )
 		return false;
-	} else {
-		if( !vote->string || Q_stricmp( vote->string, game.edicts[who + 1].r.client->netname ) ) {
-			if( vote->string ) {
-				G_Free( vote->string );
-			}
 
-			vote->string = G_CopyString( game.edicts[who + 1].r.client->netname );
-		}
-
-		return true;
-	}
+	vote->string.format( "{}", game.edicts[who + 1].r.client->netname );
+	return true;
 }
 
 static void G_VoteKickPassed( callvotedata_t *vote ) {
-	edict_t * ent = &game.edicts[vote->data + 1];
+	edict_t * ent = &game.edicts[vote->target + 1];
 	if( !ent->r.inuse || !ent->r.client ) { // may have disconnected along the callvote time
 		return;
 	}
@@ -476,32 +430,24 @@ static bool G_VoteKickBanValidate( callvotedata_t *vote, bool first ) {
 
 			// we save the player id to be kicked, so we don't later get
 			// confused by new ids or players changing names
-			vote->data = who;
+			vote->target = who;
 		} else {
 			G_PrintMsg( vote->caller, "%sNo such player\n", S_COLOR_RED );
 			return false;
 		}
 	} else {
-		who = vote->data;
+		who = vote->target;
 	}
 
-	if( !game.edicts[who + 1].r.inuse ) {
+	if( !game.edicts[who + 1].r.inuse )
 		return false;
-	} else {
-		if( !vote->string || Q_stricmp( vote->string, game.edicts[who + 1].r.client->netname ) ) {
-			if( vote->string ) {
-				G_Free( vote->string );
-			}
 
-			vote->string = G_CopyString( game.edicts[who + 1].r.client->netname );
-		}
-
-		return true;
-	}
+	vote->string.format( "{}", game.edicts[who + 1].r.client->netname );
+	return true;
 }
 
 static void G_VoteKickBanPassed( callvotedata_t *vote ) {
-	edict_t * ent = &game.edicts[vote->data + 1];
+	edict_t * ent = &game.edicts[vote->target + 1];
 	if( !ent->r.inuse || !ent->r.client ) { // may have disconnected along the callvote time
 		return;
 	}
@@ -597,10 +543,8 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 	callvoteState.timeout = 0;
 
 	callvoteState.vote.caller = NULL;
-	if( callvoteState.vote.string ) {
-		G_Free( callvoteState.vote.string );
-	}
-	callvoteState.vote.data = 0;
+	callvoteState.vote.string.clear();
+	callvoteState.vote.target = 0;
 	for( int i = 0; i < callvoteState.vote.argc; i++ ) {
 		if( callvoteState.vote.argv[i] ) {
 			G_Free( callvoteState.vote.argv[i] );
@@ -681,8 +625,8 @@ static const char *G_CallVotes_ArgsToString( const callvotedata_t *vote ) {
 
 static const char *G_CallVotes_Arguments( const callvotedata_t *vote ) {
 	const char *arguments;
-	if( vote->string ) {
-		arguments = vote->string;
+	if( vote->string.length() > 0 ) {
+		arguments = vote->string.c_str();
 	} else {
 		arguments = G_CallVotes_ArgsToString( vote );
 	}

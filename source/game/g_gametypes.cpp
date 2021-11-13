@@ -176,6 +176,8 @@ void G_Match_LaunchState( MatchState matchState ) {
 			server_gs.gameState.match_duration = 4000;
 			server_gs.gameState.match_state_start_time = svs.gametime;
 
+			level.gametype.countdownEnabled = false;
+
 			G_Timeout_Reset();
 			level.forceExit = false;
 			break;

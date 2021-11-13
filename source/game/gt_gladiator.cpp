@@ -174,23 +174,15 @@ static void Think() {
 	}
 }
 
-static void SetUpWarmup() {
-	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		G_SpawnQueue_SetTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
-	}
-}
-
 static void SetUpCountdown() {
 	StringHash sound = "sounds/gladiator/let_the_games_begin";
 	G_AnnouncerSound( NULL, sound, GS_MAX_TEAMS, false, NULL );
 }
 
 static void NewGame() {
-	level.gametype.countdownEnabled = false;
+	level.gametype.autoRespawn = false;
 
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		G_SpawnQueue_SetTeamSpawnsystem( team, SPAWNSYSTEM_HOLD, 0, 0, true );
-
 		for( int i = 0; i < server_gs.gameState.teams[ team ].num_players; i++ ) {
 			s32 player_num = server_gs.gameState.teams[ team ].player_indices[ i ] - 1;
 			*G_ClientGetStats( PLAYERENT( player_num ) ) = { };
@@ -212,7 +204,6 @@ static void EndGame() {
 		}
 	}
 
-	level.gametype.countdownEnabled = false;
 	for( int i = 0; i < MAX_CLIENTS; i++ ) {
 		edict_t * ent = PLAYERENT( i );
 		if( G_ISGHOSTING( ent ) || PF_GetClientState( i ) < CS_SPAWNED ) {
@@ -524,7 +515,6 @@ static bool GT_Gladiator_MatchStateFinished( MatchState incomingMatchState ) {
 static void GT_Gladiator_MatchStateStarted() {
 	switch( server_gs.gameState.match_state ) {
 		case MatchState_Warmup:
-			SetUpWarmup();
 			break;
 		case MatchState_Countdown:
 			SetUpCountdown();
@@ -548,14 +538,6 @@ static void GT_Gladiator_InitGametype() {
 	gladiator_state.round_losers.init( sys_allocator, MAX_CLIENTS );
 	ChallengersQueueClear();
 
-	level.gametype.isTeamBased = false;
-	level.gametype.countdownEnabled = false;
-	level.gametype.removeInactivePlayers = true;
-	level.gametype.selfDamage = false;
-
-	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		G_SpawnQueue_SetTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
-	}
 	gladiator_state.randomise = G_GetWorldspawnKey( "randomise_arena" ) != "";
 
 	PickRandomArena();
@@ -598,6 +580,7 @@ Gametype GetGladiatorGametype() {
 	gt.countdownEnabled = false;
 	gt.removeInactivePlayers = true;
 	gt.selfDamage = false;
+	gt.autoRespawn = true;
 
 	return gt;
 }

@@ -872,10 +872,9 @@ static void SetTeams() {
 
 static void NewGame() {
 	server_gs.gameState.round_num = 0;
+	level.gametype.autoRespawn = false;
 
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		G_SpawnQueue_SetTeamSpawnsystem( team, SPAWNSYSTEM_HOLD, 0, 0, true );
-
 		for( int i = 0; i < server_gs.gameState.teams[ team ].num_players; i++ ) {
 			int entnum = server_gs.gameState.teams[ team ].player_indices[ i ];
 			*G_ClientGetStats( PLAYERENT( entnum - 1 ) ) = { };
@@ -900,7 +899,6 @@ static void RoundWonBy( int winner ) {
 static void EndGame() {
 	RoundNewState( RoundState_None );
 
-	level.gametype.countdownEnabled = false;
 	RespawnAllPlayers( true );
 
 	// GENERIC_UpdateMatchScore();
@@ -1283,12 +1281,6 @@ static bool GT_Bomb_MatchStateFinished( MatchState incomingMatchState ) {
 static void GT_Bomb_MatchStateStarted() {
 	switch( server_gs.gameState.match_state ) {
 		case MatchState_Warmup:
-			level.gametype.countdownEnabled = false;
-
-			for( int t = TEAM_PLAYERS; t < GS_MAX_TEAMS; t++ ) {
-				G_SpawnQueue_SetTeamSpawnsystem( t, SPAWNSYSTEM_INSTANT, 0, 0, false );
-			}
-
 			break;
 
 		case MatchState_Countdown:
@@ -1315,10 +1307,6 @@ static void GT_Bomb_InitGametype() {
 	bomb_state = { };
 	bomb_state.carrier = -1;
 	bomb_state.defuser = -1;
-
-	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		G_SpawnQueue_SetTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
-	}
 
 	G_AddCommand( "drop", NULL ); // TODO: this sucks
 	G_AddCommand( "gametypemenu", NULL );
@@ -1372,6 +1360,7 @@ Gametype GetBombGametype() {
 	gt.countdownEnabled = false;
 	gt.removeInactivePlayers = true;
 	gt.selfDamage = true;
+	gt.autoRespawn = true;
 
 	return gt;
 }

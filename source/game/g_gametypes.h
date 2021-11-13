@@ -21,6 +21,7 @@ struct Gametype {
 	bool countdownEnabled;
 	bool removeInactivePlayers;
 	bool selfDamage;
+	bool autoRespawn;
 };
 
 void InitGametype();

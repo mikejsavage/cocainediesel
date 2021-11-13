@@ -247,8 +247,6 @@ void G_GhostClient( edict_t *ent ) {
 void G_ClientRespawn( edict_t *self, bool ghost ) {
 	GT_CallPlayerRespawning( self );
 
-	G_SpawnQueue_RemoveClient( self );
-
 	self->r.svflags &= ~SVF_NOCLIENT;
 
 	//if invalid be spectator
@@ -453,13 +451,9 @@ void ClientBegin( edict_t *ent ) {
 	client->level.timeStamp = level.time;
 	G_Client_UpdateActivity( client ); // activity detected
 
-	client->team = TEAM_SPECTATOR;
-	if( g_teams_autojoin->integer ) {
-		G_Teams_JoinAnyTeam( ent, true ); // auto respawn in a team
-	} else {
-		G_ClientRespawn( ent, true ); // respawn as ghost
+	if( !G_Teams_JoinAnyTeam( ent, true ) ) {
+		G_Teams_JoinTeam( ent, TEAM_SPECTATOR );
 	}
-	ent->movetype = MOVETYPE_NOCLIP; // allow freefly
 
 	G_PrintMsg( NULL, "%s entered the game\n", client->netname );
 
@@ -745,7 +739,6 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 
 	ent->r.client->team = TEAM_SPECTATOR;
 	G_ClientRespawn( ent, true ); // respawn as ghost
-	ent->movetype = MOVETYPE_NOCLIP; // allow freefly
 
 	ent->r.inuse = false;
 	ent->r.svflags = SVF_NOCLIENT;
@@ -1000,22 +993,20 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		return;
 	}
 
-	if( PF_GetClientState( PLAYERNUM( ent ) ) >= CS_SPAWNED ) {
-		// if the spawnsystem doesn't require to click
-		if( G_SpawnQueue_GetSystem( ent->s.team ) != SPAWNSYSTEM_INSTANT ) {
-			if( level.time >= ent->deathTimeStamp + 3000 ) {
-				G_SpawnQueue_AddClient( ent );
-			}
+	if( level.gametype.autoRespawn ) {
+		constexpr int min_delay = 600;
+		constexpr int max_delay = 6000;
+
+		bool clicked = level.time > ent->deathTimeStamp + min_delay && ( ent->r.client->resp.snap.buttons & BUTTON_ATTACK );
+		bool timeout = level.time > ent->deathTimeStamp + max_delay;
+		if( clicked || timeout ) {
+			G_ClientRespawn( ent, false );
 		}
-		// clicked
-		else if( ent->r.client->resp.snap.buttons & BUTTON_ATTACK ) {
-			if( level.time > ent->deathTimeStamp + g_respawn_delay_min->integer ) {
-				G_SpawnQueue_AddClient( ent );
-			}
-		}
-		// didn't click, but too much time passed
-		else if( g_respawn_delay_max->integer && level.time > ent->deathTimeStamp + g_respawn_delay_max->integer ) {
-			G_SpawnQueue_AddClient( ent );
+	}
+	else {
+		if( level.time >= ent->deathTimeStamp + 3000 ) {
+			G_ClientRespawn( ent, false );
+			G_ChasePlayer( ent, NULL, level.gametype.isTeamBased, 0 );
 		}
 	}
 }

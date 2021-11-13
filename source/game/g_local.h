@@ -196,15 +196,12 @@ extern cvar_t *g_projectile_prestep;
 extern cvar_t *g_numbots;
 extern cvar_t *g_maxtimeouts;
 
-extern cvar_t *g_respawn_delay_min;
-extern cvar_t *g_respawn_delay_max;
 extern cvar_t *g_deadbody_followkiller;
 extern cvar_t *g_antilag_timenudge;
 extern cvar_t *g_antilag_maxtimedelta;
 
 extern cvar_t *g_teams_maxplayers;
 extern cvar_t *g_teams_allow_uneven;
-extern cvar_t *g_teams_autojoin;
 
 extern cvar_t *g_autorecord;
 extern cvar_t *g_autorecord_maxdemos;
@@ -231,22 +228,6 @@ void G_EndMatch();
 //
 // g_spawnpoints.c
 //
-enum SpawnSystem {
-	SPAWNSYSTEM_INSTANT,
-	SPAWNSYSTEM_WAVES,
-	SPAWNSYSTEM_HOLD,
-};
-
-void G_SpawnQueue_Init();
-void G_SpawnQueue_SetTeamSpawnsystem( int team, int spawnsystem, int wave_time, int wave_maxcount, bool spectate_team );
-int G_SpawnQueue_NextRespawnTime( int team );
-void G_SpawnQueue_ResetTeamQueue( int team );
-int G_SpawnQueue_GetSystem( int team );
-void G_SpawnQueue_ReleaseTeamQueue( int team );
-void G_SpawnQueue_AddClient( edict_t *ent );
-void G_SpawnQueue_RemoveClient( edict_t *ent );
-void G_SpawnQueue_Think();
-
 void DropSpawnToFloor( edict_t * ent );
 void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, Vec3 * origin, Vec3 * angles );
 void SP_post_match_camera( edict_t *ent );

@@ -63,8 +63,6 @@ cvar_t *g_antilag_timenudge;
 cvar_t *g_autorecord;
 cvar_t *g_autorecord_maxdemos;
 
-cvar_t *g_respawn_delay_min;
-cvar_t *g_respawn_delay_max;
 cvar_t *g_deadbody_followkiller;
 
 cvar_t *g_allow_spectator_voting;
@@ -156,8 +154,6 @@ void G_Init( unsigned int framemsec ) {
 	filterban = Cvar_Get( "filterban", "1", 0 );
 
 	g_projectile_prestep = Cvar_Get( "g_projectile_prestep", va( "%i", PROJECTILE_PRESTEP ), CVAR_DEVELOPER );
-	g_respawn_delay_min = Cvar_Get( "g_respawn_delay_min", "600", CVAR_DEVELOPER );
-	g_respawn_delay_max = Cvar_Get( "g_respawn_delay_max", "6000", CVAR_DEVELOPER );
 	g_numbots = Cvar_Get( "g_numbots", "0", CVAR_ARCHIVE );
 	g_deadbody_followkiller = Cvar_Get( "g_deadbody_followkiller", "1", CVAR_DEVELOPER );
 	g_maxtimeouts = Cvar_Get( "g_maxtimeouts", "2", CVAR_ARCHIVE );

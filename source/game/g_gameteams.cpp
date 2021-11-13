@@ -21,33 +21,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_local.h"
 #include <algorithm>
 
-#define G_CHALLENGERS_MIN_JOINTEAM_MAPTIME  9000 // must wait 10 seconds before joining
-
 cvar_t *g_teams_maxplayers;
 cvar_t *g_teams_allow_uneven;
-cvar_t *g_teams_autojoin;
 
 void G_Teams_Init() {
-	edict_t *ent;
-
 	g_teams_maxplayers = Cvar_Get( "g_teams_maxplayers", "0", CVAR_ARCHIVE );
 	g_teams_allow_uneven = Cvar_Get( "g_teams_allow_uneven", "1", CVAR_ARCHIVE );
-	g_teams_autojoin = Cvar_Get( "g_teams_autojoin", "1", CVAR_ARCHIVE );
 
 	memset( server_gs.gameState.teams, 0, sizeof( server_gs.gameState.teams ) );
-
-	for( ent = game.edicts + 1; PLAYERNUM( ent ) < server_gs.maxclients; ent++ ) {
-		if( ent->r.inuse ) {
-			memset( &ent->r.client->teamstate, 0, sizeof( ent->r.client->teamstate ) );
-			memset( &ent->r.client->resp, 0, sizeof( ent->r.client->resp ) );
-
-			ent->s.team = ent->r.client->team = TEAM_SPECTATOR;
-			G_GhostClient( ent );
-			ent->movetype = MOVETYPE_NOCLIP; // allow freefly
-			ent->r.client->teamstate.timeStamp = level.time;
-			ent->r.client->resp.timeStamp = level.time;
-		}
-	}
 }
 
 static bool G_Teams_CompareMembers( int a, int b ) {
@@ -110,8 +91,13 @@ void G_Teams_SetTeam( edict_t *ent, int team ) {
 
 	ent->r.client->team = team;
 
-	G_ClientRespawn( ent, true );
-	G_SpawnQueue_AddClient( ent );
+	if( team == TEAM_SPECTATOR ) {
+		G_ClientRespawn( ent, true );
+		G_ChasePlayer( ent, NULL, false, 0 );
+	}
+	else {
+		G_ClientRespawn( ent, false );
+	}
 }
 
 enum {

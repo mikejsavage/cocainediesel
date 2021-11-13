@@ -328,7 +328,6 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 
 	G_InitGameCommands();
 
-	G_SpawnQueue_Init();
 	G_Teams_Init();
 
 	InitGametype();

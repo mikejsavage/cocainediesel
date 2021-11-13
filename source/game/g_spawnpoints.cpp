@@ -43,19 +43,11 @@ void DropSpawnToFloor( edict_t * ent ) {
 	ent->s.origin = tr.endpos + tr.plane.normal;
 }
 
-static edict_t * G_FindPostMatchCamera() {
-	edict_t * ent = G_Find( NULL, &edict_t::classname, "post_match_camera" );
-	if( ent != NULL )
-		return ent;
-
-	return G_Find( NULL, &edict_t::classname, "info_player_intermission" );
-}
-
 void SelectSpawnPoint( edict_t * ent, edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles ) {
 	edict_t * spot;
 
 	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
-		spot = G_FindPostMatchCamera();
+		spot = G_Find( NULL, &edict_t::classname, "post_match_camera" );
 	}
 	else {
 		spot = GT_CallSelectSpawnPoint( ent );

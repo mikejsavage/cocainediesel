@@ -47,7 +47,7 @@ typedef struct
 	int argc;
 	char *argv[MAX_STRING_TOKENS];
 	char *string;               // can be used to overwrite the displayed vote string
-	void *data;                 // any data vote wants to carry over multiple calls of validate and to execute
+	int data;                   // some data vote wants to carry over multiple calls of validate and to execute
 } callvotedata_t;
 
 typedef struct callvotetype_s
@@ -316,11 +316,10 @@ static bool G_VoteSpectateValidate( callvotedata_t *vote, bool first ) {
 			return false;
 		} else {
 			// we save the player id to be removed, so we don't later get confused by new ids or players changing names
-			vote->data = G_Malloc( sizeof( int ) );
-			memcpy( vote->data, &who, sizeof( int ) );
+			vote->data = who;
 		}
 	} else {
-		memcpy( &who, vote->data, sizeof( int ) );
+		who = vote->data;
 	}
 
 	if( !game.edicts[who + 1].r.inuse || game.edicts[who + 1].s.team == TEAM_SPECTATOR ) {
@@ -338,11 +337,7 @@ static bool G_VoteSpectateValidate( callvotedata_t *vote, bool first ) {
 }
 
 static void G_VoteSpectatePassed( callvotedata_t *vote ) {
-	int who;
-	edict_t *ent;
-
-	memcpy( &who, vote->data, sizeof( int ) );
-	ent = &game.edicts[who + 1];
+	edict_t * ent = &game.edicts[vote->data + 1];
 
 	// may have disconnect along the callvote time
 	if( !ent->r.inuse || !ent->r.client || ent->s.team == TEAM_SPECTATOR ) {
@@ -399,15 +394,13 @@ static bool G_VoteKickValidate( callvotedata_t *vote, bool first ) {
 
 			// we save the player id to be kicked, so we don't later get
 			//confused by new ids or players changing names
-
-			vote->data = G_Malloc( sizeof( int ) );
-			memcpy( vote->data, &who, sizeof( int ) );
+			vote->data = who;
 		} else {
 			G_PrintMsg( vote->caller, "%sNo such player\n", S_COLOR_RED );
 			return false;
 		}
 	} else {
-		memcpy( &who, vote->data, sizeof( int ) );
+		who = vote->data;
 	}
 
 	if( !game.edicts[who + 1].r.inuse ) {
@@ -426,11 +419,7 @@ static bool G_VoteKickValidate( callvotedata_t *vote, bool first ) {
 }
 
 static void G_VoteKickPassed( callvotedata_t *vote ) {
-	int who;
-	edict_t *ent;
-
-	memcpy( &who, vote->data, sizeof( int ) );
-	ent = &game.edicts[who + 1];
+	edict_t * ent = &game.edicts[vote->data + 1];
 	if( !ent->r.inuse || !ent->r.client ) { // may have disconnected along the callvote time
 		return;
 	}
@@ -487,15 +476,13 @@ static bool G_VoteKickBanValidate( callvotedata_t *vote, bool first ) {
 
 			// we save the player id to be kicked, so we don't later get
 			// confused by new ids or players changing names
-
-			vote->data = G_Malloc( sizeof( int ) );
-			memcpy( vote->data, &who, sizeof( int ) );
+			vote->data = who;
 		} else {
 			G_PrintMsg( vote->caller, "%sNo such player\n", S_COLOR_RED );
 			return false;
 		}
 	} else {
-		memcpy( &who, vote->data, sizeof( int ) );
+		who = vote->data;
 	}
 
 	if( !game.edicts[who + 1].r.inuse ) {
@@ -514,11 +501,7 @@ static bool G_VoteKickBanValidate( callvotedata_t *vote, bool first ) {
 }
 
 static void G_VoteKickBanPassed( callvotedata_t *vote ) {
-	int who;
-	edict_t *ent;
-
-	memcpy( &who, vote->data, sizeof( int ) );
-	ent = &game.edicts[who + 1];
+	edict_t * ent = &game.edicts[vote->data + 1];
 	if( !ent->r.inuse || !ent->r.client ) { // may have disconnected along the callvote time
 		return;
 	}
@@ -595,9 +578,6 @@ callvotetype_t *G_RegisterCallvote( const char *name ) {
 	return callvote;
 }
 
-/*
-* G_CallVotes_ResetClient
-*/
 void G_CallVotes_ResetClient( int n ) {
 	clientVoted[n] = VOTED_NOTHING;
 	clientVoteChanges[n] = g_callvote_maxchanges->integer;
@@ -606,9 +586,6 @@ void G_CallVotes_ResetClient( int n ) {
 	}
 }
 
-/*
-* G_CallVotes_Reset
-*/
 static void G_CallVotes_Reset( bool vote_happened ) {
 	if( vote_happened && callvoteState.vote.caller && callvoteState.vote.caller->r.client ) {
 		callvoteState.vote.caller->r.client->level.callvote_when = svs.realtime;
@@ -623,9 +600,7 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 	if( callvoteState.vote.string ) {
 		G_Free( callvoteState.vote.string );
 	}
-	if( callvoteState.vote.data ) {
-		G_Free( callvoteState.vote.data );
-	}
+	callvoteState.vote.data = 0;
 	for( int i = 0; i < callvoteState.vote.argc; i++ ) {
 		if( callvoteState.vote.argv[i] ) {
 			G_Free( callvoteState.vote.argv[i] );
@@ -655,9 +630,6 @@ void G_FreeCallvotes() {
 	G_CallVotes_Reset( false );
 }
 
-/*
-* G_CallVotes_PrintUsagesToPlayer
-*/
 static void G_CallVotes_PrintUsagesToPlayer( edict_t *ent ) {
 	callvotetype_t *callvote;
 
@@ -675,9 +647,6 @@ static void G_CallVotes_PrintUsagesToPlayer( edict_t *ent ) {
 	}
 }
 
-/*
-* G_CallVotes_PrintHelpToPlayer
-*/
 static void G_CallVotes_PrintHelpToPlayer( edict_t *ent, callvotetype_t *callvote ) {
 
 	if( !callvote ) {
@@ -693,9 +662,6 @@ static void G_CallVotes_PrintHelpToPlayer( edict_t *ent, callvotetype_t *callvot
 	}
 }
 
-/*
-* G_CallVotes_ArgsToString
-*/
 static const char *G_CallVotes_ArgsToString( const callvotedata_t *vote ) {
 	static char argstring[MAX_STRING_CHARS];
 	int i;
@@ -713,9 +679,6 @@ static const char *G_CallVotes_ArgsToString( const callvotedata_t *vote ) {
 	return argstring;
 }
 
-/*
-* G_CallVotes_Arguments
-*/
 static const char *G_CallVotes_Arguments( const callvotedata_t *vote ) {
 	const char *arguments;
 	if( vote->string ) {
@@ -726,9 +689,6 @@ static const char *G_CallVotes_Arguments( const callvotedata_t *vote ) {
 	return arguments;
 }
 
-/*
-* G_CallVotes_String
-*/
 static const char *G_CallVotes_String( const callvotedata_t *vote ) {
 	const char *arguments;
 	static char string[MAX_CONFIGSTRING_CHARS];
@@ -741,9 +701,6 @@ static const char *G_CallVotes_String( const callvotedata_t *vote ) {
 	return vote->callvote->name;
 }
 
-/*
-* G_CallVotes_CheckState
-*/
 static void G_CallVotes_CheckState() {
 	edict_t *ent;
 	int yeses = 0, voters = 0, noes = 0;
@@ -805,9 +762,6 @@ static void G_CallVotes_CheckState() {
 	PF_ConfigString( CS_CALLVOTE_NO_VOTES, va( "%d", noes ) );
 }
 
-/*
-* G_CallVotes_CmdVote
-*/
 void G_CallVotes_CmdVote( edict_t *ent ) {
 	const char *vote;
 	int vote_id;
@@ -852,9 +806,6 @@ void G_CallVotes_CmdVote( edict_t *ent ) {
 	G_CallVotes_CheckState();
 }
 
-/*
-* G_CallVotes_Think
-*/
 void G_CallVotes_Think() {
 	static int64_t callvotethinktimer = 0;
 
@@ -869,9 +820,6 @@ void G_CallVotes_Think() {
 	}
 }
 
-/*
-* G_CallVote
-*/
 static void G_CallVote( edict_t *ent, bool isopcall ) {
 	const char *votename;
 	callvotetype_t *callvote;
@@ -975,9 +923,6 @@ bool G_Callvotes_HasVoted( edict_t * ent ) {
 	return clientVoted[ PLAYERNUM( ent ) ] != VOTED_NOTHING;
 }
 
-/*
-* G_CallVote_Cmd
-*/
 void G_CallVote_Cmd( edict_t *ent ) {
 	if( ent->r.svflags & SVF_FAKECLIENT ) {
 		return;
@@ -985,9 +930,6 @@ void G_CallVote_Cmd( edict_t *ent ) {
 	G_CallVote( ent, false );
 }
 
-/*
-* G_OperatorVote_Cmd
-*/
 void G_OperatorVote_Cmd( edict_t *ent ) {
 	edict_t *other;
 	int forceVote;
@@ -1075,9 +1017,6 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 	G_CallVote( ent, true );
 }
 
-/*
-* G_CallVotes_Init
-*/
 void G_CallVotes_Init() {
 	callvotetype_t *callvote;
 

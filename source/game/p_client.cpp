@@ -19,8 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-constexpr int PLAYER_MASS = 200;
-
 static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker, int topAssistEntNo, DamageType damage_type ) {
 	bool wallbang = ( damageFlagsOfDeath & DAMAGE_WALLBANG ) != 0;
 
@@ -370,8 +368,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 
 	GT_CallPlayerRespawned( self, old_team, self->s.team );
-
-	self->mass = PLAYER_MASS * self->s.scale.z;
 }
 
 bool G_PlayerCanTeleport( edict_t *player ) {

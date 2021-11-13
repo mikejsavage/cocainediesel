@@ -188,6 +188,7 @@ static void GiveInventory( edict_t * ent ) {
 	}
 
 	ent->max_health = ent->health;
+	ent->mass = PLAYER_MASS * ent->s.scale.z;
 }
 
 static void ShowShop( s32 player_num ) {

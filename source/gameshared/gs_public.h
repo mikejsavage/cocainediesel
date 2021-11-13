@@ -45,6 +45,8 @@ constexpr int playerbox_gib_viewheight = 8;
 #define GRAVITY 850
 #define GRAVITY_COMPENSATE ( (float)GRAVITY / (float)BASEGRAVITY )
 
+constexpr int PLAYER_MASS = 200;
+
 #define ZOOMTIME 60
 #define CROUCHTIME 100
 #define DEFAULT_PLAYERSPEED 320.0f

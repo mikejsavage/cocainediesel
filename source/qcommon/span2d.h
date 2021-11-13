@@ -15,6 +15,14 @@ struct Span2D {
 	constexpr Span2D( T * ptr_, size_t w_, size_t h_ ) : Span2D( ptr_, w_, h_, w_ ) { }
 	constexpr Span2D( T * ptr_, size_t w_, size_t h_, size_t row_stride_ ) : ptr( ptr_ ), w( w_ ), h( h_ ), row_stride( row_stride_ ) { }
 
+	Span2D( Span< T > span, size_t w_, size_t h_ ) {
+		assert( w_ * h_ <= span.n );
+		ptr = span.ptr;
+		w = w_;
+		h = h_;
+		row_stride = w_;
+	}
+
 	// allow implicit conversion to Span2D< const T >
 	operator Span2D< const T >() const { return Span2D< const T >( ptr, w, h, row_stride ); }
 

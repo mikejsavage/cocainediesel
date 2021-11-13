@@ -518,3 +518,15 @@ bool Intersect3PlanesPoint( Vec3 * p, Plane plane1, Plane plane2, Plane plane3 )
 	*p = ( plane1.distance * n2xn3 + plane2.distance * n3xn1 + plane3.distance * n1xn2 ) / n1_n2xn3;
 	return true;
 }
+
+u32 Log2( u64 x ) {
+	u32 log = 0;
+	x >>= 1;
+
+	while( x > 0 ) {
+		x >>= 1;
+		log++;
+	}
+
+	return log;
+}

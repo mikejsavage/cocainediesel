@@ -96,6 +96,7 @@ enum TextureBufferFormat : u8 {
 struct Texture {
 	u32 texture;
 	u32 width, height;
+	u32 num_mipmaps;
 	bool msaa;
 	TextureFormat format;
 };
@@ -277,6 +278,7 @@ struct TextureConfig {
 struct TextureArrayConfig {
 	u32 width = 0;
 	u32 height = 0;
+	u32 num_mipmaps = 1;
 	u32 layers = 0;
 
 	const void * data = NULL;

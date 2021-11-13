@@ -1151,6 +1151,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	Texture texture = { };
 	texture.width = config.width;
 	texture.height = config.height;
+	texture.num_mipmaps = config.num_mipmaps;
 	texture.msaa = msaa_samples > 1;
 	texture.format = config.format;
 
@@ -1213,13 +1214,18 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
 			}
 
-			u32 mipmap_cursor = 0;
+
+			const char * cursor = ( const char * ) config.data;
 			for( u32 i = 0; i < config.num_mipmaps; i++ ) {
-				u32 size = ( BitsPerPixel( config.format ) * ( config.width >> i ) * ( config.height >> i ) ) / 8;
+				u32 w = config.width >> i;
+				u32 h = config.height >> i;
+				u32 size = ( BitsPerPixel( config.format ) * w * h ) / 8;
 				assert( size < S32_MAX );
+
 				glCompressedTexImage2D( GL_TEXTURE_2D, i, internal_format,
-					config.width >> i, config.height >> i, 0, size, ( ( const u8 * ) config.data ) + mipmap_cursor );
-				mipmap_cursor += size;
+					w, h, 0, size, cursor );
+
+				cursor += size;
 			}
 		}
 	}
@@ -1248,8 +1254,9 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 	glBindTexture( GL_TEXTURE_2D_ARRAY, ta.texture );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
 
 	GLenum internal_format, channels, type;
 	TextureFormatToGL( config.format, &internal_format, &channels, &type );
@@ -1260,6 +1267,8 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 	}
 
 	if( !CompressedTextureFormat( config.format ) ) {
+		assert( config.num_mipmaps == 1 );
+
 		if( channels == GL_RED ) {
 			if( config.format == TextureFormat_A_U8 ) {
 				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_R, GL_ONE );
@@ -1284,8 +1293,18 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 		glTexImage3D( GL_TEXTURE_2D_ARRAY, 0, internal_format, config.width, config.height, config.layers, 0, channels, type, config.data );
 	}
 	else {
-		u32 size = ( BitsPerPixel( config.format ) * config.width * config.height * config.layers ) / 8;
-		glCompressedTexImage3D( GL_TEXTURE_2D_ARRAY, 0, internal_format, config.width, config.height, config.layers, 0, size, config.data );
+		const char * cursor = ( const char * ) config.data;
+		for( u32 i = 0; i < config.num_mipmaps; i++ ) {
+			u32 w = config.width >> i;
+			u32 h = config.height >> i;
+			u32 size = ( BitsPerPixel( config.format ) * w * h * config.layers ) / 8;
+			assert( size < S32_MAX );
+
+			glCompressedTexImage3D( GL_TEXTURE_2D_ARRAY, i, internal_format,
+				w, h, config.layers, 0, size, cursor );
+
+			cursor += size;
+		}
 	}
 
 	return ta;

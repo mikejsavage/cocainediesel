@@ -1120,18 +1120,6 @@ static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u3
 	return node_id;
 }
 
-u32 Log2( u64 x ) {
-	u32 log = 0;
-	x >>= 1;
-
-	while( x > 0 ) {
-		x >>= 1;
-		log++;
-	}
-
-	return log;
-}
-
 void BuildKDTree( TempAllocator * temp, BSP * bsp, Span< const MinMax3 > brush_bounds ) {
 	ZoneScoped;
 

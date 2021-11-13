@@ -166,6 +166,10 @@ struct Span {
 		return Span< T >( ptr + i, n - i );
 	}
 
+	void operator+=( size_t i ) {
+		*this = *this + i;
+	}
+
 	void operator++( int ) {
 		assert( n > 0 );
 		ptr++;

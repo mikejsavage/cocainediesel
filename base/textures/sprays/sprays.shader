@@ -350,6 +350,14 @@ textures/sprays/boobs
 	decal
 }
 
+textures/sprays/boobs2
+{
+	{
+		map textures/sprays/boobs2
+	}
+	decal
+}
+
 textures/sprays/bradhere
 {
 	{
@@ -2062,6 +2070,14 @@ textures/sprays/ok
 	decal
 }
 
+textures/sprays/omarmatuer
+{
+	{
+		map textures/sprays/omarmatuer
+	}
+	decal
+}
+
 textures/sprays/onion
 {
 	{
@@ -2698,6 +2714,22 @@ textures/sprays/sonik
 {
 	{
 		map textures/sprays/sonik
+	}
+	decal
+}
+
+textures/sprays/soundsystem
+{
+	{
+		map textures/sprays/soundsystem
+	}
+	decal
+}
+
+textures/sprays/spaceinvader
+{
+	{
+		map textures/sprays/spaceinvader
 	}
 	decal
 }

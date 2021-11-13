@@ -14,7 +14,7 @@ void ShowErrorAndAbort( const char * msg, const char * file, int line ) {
 }
 
 static u32 BlockFormatMipLevels( u32 w, u32 h ) {
-	u32 dim = Max2( w, h );
+	u32 dim = Min2( w, h );
 	u32 levels = 0;
 
 	while( dim >= 4 ) {
@@ -50,8 +50,8 @@ int main( int argc, char ** argv ) {
 	defer { stbi_image_free( pixels ); };
 
 	bool generate_mipmaps = IsPowerOf2( w ) && IsPowerOf2( h );
-	if( generate_mipmaps ) {
-		printf( "Image isn't a pow2 sized so we aren't computing mipmaps: %s\n", argv[ 1 ] );
+	if( !generate_mipmaps ) {
+		printf( "Image isn't pow2 sized so we aren't computing mipmaps: %s\n", argv[ 1 ] );
 	}
 
 	if( comp != 1 ) {

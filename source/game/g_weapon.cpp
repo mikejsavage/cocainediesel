@@ -24,127 +24,109 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define ARBULLETHACK // ffs : hack for the assault rifle
 
-static bool CanHit(const edict_t *projectile, const edict_t *target)
-{
-	if (target == world)
+static bool CanHit( const edict_t * projectile, const edict_t * target ) {
+	if( target == world )
 		return true;
-	if (target == projectile->r.owner)
+	if( target == projectile->r.owner )
 		return false;
 
 	constexpr s64 projectile_ignore_teammates_time = 50;
-	if (projectile->s.team != TEAM_PLAYERS && projectile->s.team == target->s.team && level.time - projectile->timeStamp < projectile_ignore_teammates_time)
+	if( projectile->s.team != TEAM_PLAYERS && projectile->s.team == target->s.team && level.time - projectile->timeStamp < projectile_ignore_teammates_time )
 		return false;
 
 	return true;
 }
 
-static void W_Explode_ARBullet(edict_t *ent, edict_t *other, Plane *plane)
-{
-	if (other != NULL && other->takedamage)
-	{
+static void W_Explode_ARBullet( edict_t * ent, edict_t * other, Plane * plane ) {
+	if( other != NULL && other->takedamage ) {
 		Vec3 push_dir;
-		G_SplashFrac4D(other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false);
-		G_Damage(other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, DAMAGE_KNOCKBACK_SOFT, ent->projectileInfo.damage_type);
+		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false );
+		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, DAMAGE_KNOCKBACK_SOFT, ent->projectileInfo.damage_type );
 	}
 
-	G_RadiusDamage(ent, ent->r.owner, plane, other, ent->projectileInfo.damage_type);
+	G_RadiusDamage( ent, ent->r.owner, plane, other, ent->projectileInfo.damage_type );
 
-	edict_t *event = G_SpawnEvent(ent->s.type == ET_ARBULLET ? EV_ARBULLET_EXPLOSION : EV_BUBBLE_EXPLOSION, DirToU64(plane ? plane->normal : Vec3(0.0f)), &ent->s.origin);
+	edict_t * event = G_SpawnEvent( ent->s.type == ET_ARBULLET ? EV_ARBULLET_EXPLOSION : EV_BUBBLE_EXPLOSION, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
 	event->s.team = ent->s.team;
 
-	G_FreeEdict(ent);
+	G_FreeEdict( ent );
 }
 
-static void W_Touch_ARBullet(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
-{
-	if (!CanHit(ent, other))
-	{
+static void W_Touch_ARBullet( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+	if( !CanHit( ent, other ) ) {
 		return;
 	}
 
-	W_Explode_ARBullet(ent, other, plane);
+	W_Explode_ARBullet( ent, other, plane );
 }
 
-static void W_ARBullet_Backtrace(edict_t *ent, Vec3 start)
-{
+static void W_ARBullet_Backtrace( edict_t * ent, Vec3 start ) {
 	trace_t tr;
-	Vec3 mins(-2.0f), maxs(2.0f);
+	Vec3 mins( -2.0f ), maxs( 2.0f );
 
 	Vec3 oldorigin = ent->s.origin;
 	ent->s.origin = start;
 
 	// workaround to stop this hanging when you shoot a teammate
 	int iter = 0;
-	do
-	{
-		G_Trace4D(&tr, ent->s.origin, mins, maxs, oldorigin, ent, CONTENTS_BODY, ent->timeDelta);
+	do {
+		G_Trace4D( &tr, ent->s.origin, mins, maxs, oldorigin, ent, CONTENTS_BODY, ent->timeDelta );
 
 		ent->s.origin = tr.endpos;
 
-		if (tr.fraction == 1.0f)
+		if( tr.fraction == 1.0f )
 			break;
 
-		if (tr.allsolid || tr.startsolid)
-		{
-			W_Touch_ARBullet(ent, &game.edicts[tr.ent], NULL, 0);
+		if( tr.allsolid || tr.startsolid ) {
+			W_Touch_ARBullet( ent, &game.edicts[ tr.ent ], NULL, 0 );
 		}
-		else
-		{
-			W_Touch_ARBullet(ent, &game.edicts[tr.ent], &tr.plane, tr.surfFlags);
+		else {
+			W_Touch_ARBullet( ent, &game.edicts[ tr.ent ], &tr.plane, tr.surfFlags );
 		}
 
 		iter++;
-	} while (ent->r.inuse && ent->s.origin != oldorigin && iter < 5);
+	} while( ent->r.inuse && ent->s.origin != oldorigin && iter < 5 );
 
-	if (ent->r.inuse)
-	{
+	if( ent->r.inuse ) {
 		ent->s.origin = oldorigin;
 	}
 }
 
-static void W_Think_ARBullet(edict_t *ent)
-{
-	if (ent->timeout < level.time)
-	{
-		if (ent->s.type == ET_BUBBLE)
-			W_Explode_ARBullet(ent, NULL, NULL);
+static void W_Think_ARBullet( edict_t * ent ) {
+	if( ent->timeout < level.time ) {
+		if( ent->s.type == ET_BUBBLE )
+			W_Explode_ARBullet( ent, NULL, NULL );
 		else
-			G_FreeEdict(ent);
+			G_FreeEdict( ent );
 		return;
 	}
 
-	if (ent->r.inuse)
-	{
+	if( ent->r.inuse ) {
 		ent->nextThink = level.time + 1;
 	}
 
 	Vec3 start = ent->s.origin - ent->velocity * game.frametime * 0.001f;
 
-	W_ARBullet_Backtrace(ent, start);
+	W_ARBullet_Backtrace( ent, start );
 }
 
-static void W_AutoTouch_ARBullet(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
-{
-	W_Think_ARBullet(ent);
-	if (ent->r.inuse)
-	{
-		W_Touch_ARBullet(ent, other, plane, surfFlags);
+static void W_AutoTouch_ARBullet( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+	W_Think_ARBullet( ent );
+	if( ent->r.inuse ) {
+		W_Touch_ARBullet( ent, other, plane, surfFlags );
 	}
 }
 
-static void G_ProjectileDistancePrestep(edict_t *projectile, float distance)
-{
-	assert(projectile->movetype == MOVETYPE_TOSS || projectile->movetype == MOVETYPE_LINEARPROJECTILE || projectile->movetype == MOVETYPE_BOUNCE || projectile->movetype == MOVETYPE_BOUNCEGRENADE);
+static void G_ProjectileDistancePrestep( edict_t * projectile, float distance ) {
+	assert( projectile->movetype == MOVETYPE_TOSS || projectile->movetype == MOVETYPE_LINEARPROJECTILE || projectile->movetype == MOVETYPE_BOUNCE || projectile->movetype == MOVETYPE_BOUNCEGRENADE );
 
-	if (!distance)
-	{
+	if( !distance ) {
 		return;
 	}
 
-	float speed = Length(projectile->velocity);
-	Vec3 dir = Normalize(projectile->velocity);
-	if (speed == 0.0f)
-	{
+	float speed = Length( projectile->velocity );
+	Vec3 dir = Normalize( projectile->velocity );
+	if( speed == 0.0f ) {
 		return;
 	}
 
@@ -157,27 +139,25 @@ static void G_ProjectileDistancePrestep(edict_t *projectile, float distance)
 	Vec3 dest = projectile->s.origin + dir * distance;
 
 	trace_t trace;
-	G_Trace4D(&trace, projectile->s.origin, projectile->r.mins, projectile->r.maxs, dest, projectile->r.owner, mask, projectile->timeDelta);
+	G_Trace4D( &trace, projectile->s.origin, projectile->r.mins, projectile->r.maxs, dest, projectile->r.owner, mask, projectile->timeDelta );
 
 	projectile->s.origin = trace.endpos;
 	projectile->olds.origin = trace.endpos;
 
-	GClip_LinkEntity(projectile);
-	SV_Impact(projectile, &trace);
+	GClip_LinkEntity( projectile );
+	SV_Impact( projectile, &trace );
 
 	// set initial water state
-	if (!projectile->r.inuse)
-	{
+	if( !projectile->r.inuse ) {
 		return;
 	}
 
-	projectile->waterlevel = (G_PointContents4D(projectile->s.origin, projectile->timeDelta) & MASK_WATER) ? true : false;
+	projectile->waterlevel = ( G_PointContents4D( projectile->s.origin, projectile->timeDelta ) & MASK_WATER ) ? true : false;
 
 	// ffs : hack for the assault rifle
 #ifdef ARBULLETHACK
-	if (projectile->s.type == ET_ARBULLET || projectile->s.type == ET_BUBBLE)
-	{
-		W_ARBullet_Backtrace(projectile, arbullet_hack_start);
+	if( projectile->s.type == ET_ARBULLET || projectile->s.type == ET_BUBBLE ) {
+		W_ARBullet_Backtrace( projectile, arbullet_hack_start );
 	}
 #endif
 }
@@ -225,19 +205,18 @@ static ProjectileStats GadgetProjectileStats( GadgetType gadget ) {
 	return stats;
 }
 
-static edict_t *FireProjectile(
-	edict_t *owner,
+static edict_t * FireProjectile(
+	edict_t * owner,
 	Vec3 start, Vec3 angles,
 	int timeDelta,
-	ProjectileStats stats, EdictTouchCallback touch, EntityType ent_type, int clipmask)
-{
-	edict_t *projectile = G_Spawn();
+	ProjectileStats stats, EdictTouchCallback touch, EntityType ent_type, int clipmask ) {
+	edict_t * projectile = G_Spawn();
 	projectile->s.origin = start;
 	projectile->olds.origin = start;
 	projectile->s.angles = angles;
 
 	Vec3 dir;
-	AngleVectors(angles, &dir, NULL, NULL);
+	AngleVectors( angles, &dir, NULL, NULL );
 
 	projectile->velocity = dir * stats.speed;
 
@@ -247,8 +226,8 @@ static edict_t *FireProjectile(
 	projectile->r.clipmask = clipmask;
 	projectile->r.svflags = SVF_PROJECTILE;
 
-	projectile->r.mins = Vec3(0.0f);
-	projectile->r.maxs = Vec3(0.0f);
+	projectile->r.mins = Vec3( 0.0f );
+	projectile->r.maxs = Vec3( 0.0f );
 
 	projectile->r.owner = owner;
 	projectile->touch = touch;
@@ -267,168 +246,149 @@ static edict_t *FireProjectile(
 	projectile->projectileInfo.radius = stats.splash_radius;
 	projectile->projectileInfo.damage_type = stats.damage_type;
 
-	G_ProjectileDistancePrestep(projectile, g_projectile_prestep->value);
+	G_ProjectileDistancePrestep( projectile, g_projectile_prestep->value );
 
 	return projectile;
 }
 
-static edict_t *FireLinearProjectile(
-	edict_t *owner,
+static edict_t * FireLinearProjectile(
+	edict_t * owner,
 	Vec3 start, Vec3 angles,
 	int timeDelta,
-	ProjectileStats stats, EdictTouchCallback touch, EntityType ent_type, int clipmask)
-{
-	edict_t *projectile = FireProjectile(owner, start, angles, timeDelta, stats, touch, ent_type, clipmask);
+	ProjectileStats stats, EdictTouchCallback touch, EntityType ent_type, int clipmask
+) {
+	edict_t * projectile = FireProjectile( owner, start, angles, timeDelta, stats, touch, ent_type, clipmask );
 
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 	projectile->s.linearMovement = true;
 	projectile->s.linearMovementBegin = projectile->s.origin;
 	projectile->s.linearMovementVelocity = projectile->velocity;
 	projectile->s.linearMovementTimeStamp = svs.gametime;
-	projectile->s.linearMovementTimeDelta = Min2(Abs(timeDelta), 255);
+	projectile->s.linearMovementTimeDelta = Min2( Abs( timeDelta ), 255 );
 
 	return projectile;
 }
 
-static void W_Fire_Blade(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
-{
-	const WeaponDef *def = GS_GetWeaponDef( Weapon_Knife );
+static void W_Fire_Blade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Knife );
 
 	int traces = def->projectile_count;
 	float slash_angle = def->spread;
 
 	int dmgflags = 0;
 
-	for( int i = 0; i < traces; i++ )
-	{
+	for( int i = 0; i < traces; i++ ) {
 		Vec3 new_angles = angles;
 		new_angles.y += Lerp( -slash_angle, float( i ) / float( traces - 1 ), slash_angle );
 		Vec3 dir;
-		AngleVectors(new_angles, &dir, NULL, NULL);
+		AngleVectors( new_angles, &dir, NULL, NULL );
 		Vec3 end = start + dir * def->range;
 
 		trace_t trace;
-		G_Trace4D(&trace, start, Vec3(0.0f), Vec3(0.0f), end, self, MASK_SHOT, timeDelta);
-		if (trace.ent != -1 && game.edicts[trace.ent].takedamage)
-		{
-			G_Damage(&game.edicts[trace.ent], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, Weapon_Knife);
+		G_Trace4D( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, self, MASK_SHOT, timeDelta );
+		if( trace.ent != -1 && game.edicts[ trace.ent ].takedamage ) {
+			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, Weapon_Knife );
 			break;
 		}
 	}
 }
 
-static void W_Fire_Bullet(edict_t *self, Vec3 start, Vec3 angles, int timeDelta, WeaponType weapon)
-{
-	const WeaponDef *def = GS_GetWeaponDef(weapon);
+static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, WeaponType weapon ) {
+	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
 	Vec3 dir, right, up;
-	AngleVectors(angles, &dir, &right, &up);
+	AngleVectors( angles, &dir, &right, &up );
 
 	float spreadness = def->spread;
 
-	if (def->zoom_spread > 0.0f && self->r.client != NULL)
-	{
-		spreadness += ZoomSpreadness(self->r.client->ps.zoom_time, def);
+	if( def->zoom_spread > 0.0f && self->r.client != NULL ) {
+		spreadness += ZoomSpreadness( self->r.client->ps.zoom_time, def );
 	}
 
-	Vec2 spread = RandomSpreadPattern(self->r.client->ucmd.entropy, spreadness);
+	Vec2 spread = RandomSpreadPattern( self->r.client->ucmd.entropy, spreadness );
 
 	trace_t trace, wallbang;
-	GS_TraceBullet(&server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM(self), timeDelta);
-	if (trace.ent != -1 && game.edicts[trace.ent].takedamage)
-	{
+	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM( self ), timeDelta );
+	if( trace.ent != -1 && game.edicts[ trace.ent ].takedamage ) {
 		int dmgflags = DAMAGE_KNOCKBACK_SOFT;
 		float damage = def->damage;
 
-		if (IsHeadshot(trace.ent, trace.endpos, timeDelta))
-		{
+		if( IsHeadshot( trace.ent, trace.endpos, timeDelta ) ) {
 			dmgflags |= DAMAGE_HEADSHOT;
 		}
 
-		if (trace.endpos != wallbang.endpos)
-		{
+		if( trace.endpos != wallbang.endpos ) {
 			dmgflags |= DAMAGE_WALLBANG;
 			damage *= def->wallbangdamage;
 		}
 
-		G_Damage(&game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, def->knockback, dmgflags, weapon);
+		G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, def->knockback, dmgflags, weapon );
 	}
 }
 
-static void W_Fire_Shotgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
-{
-	const WeaponDef *def = GS_GetWeaponDef(Weapon_Shotgun);
+static void W_Fire_Shotgun( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
 
 	Vec3 dir, right, up;
-	AngleVectors(angles, &dir, &right, &up);
+	AngleVectors( angles, &dir, &right, &up );
 
-	float damage_dealt[MAX_CLIENTS + 1] = {};
-	Vec3 hit_locations[MAX_CLIENTS + 1] = {}; // arbitrary trace end pos to use as blood origin
+	float damage_dealt[ MAX_CLIENTS + 1 ] = { };
+	Vec3 hit_locations[ MAX_CLIENTS + 1 ] = { }; // arbitrary trace end pos to use as blood origin
 
-	for (int i = 0; i < def->projectile_count; i++)
-	{
-		Vec2 spread = FixedSpreadPattern(i, def->spread);
+	for( int i = 0; i < def->projectile_count; i++ ) {
+		Vec2 spread = FixedSpreadPattern( i, def->spread );
 
 		trace_t trace, wallbang;
-		GS_TraceBullet(&server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM(self), timeDelta);
-		if (trace.ent != -1 && game.edicts[trace.ent].takedamage)
-		{
+		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM( self ), timeDelta );
+		if( trace.ent != -1 && game.edicts[ trace.ent ].takedamage ) {
 			int dmgflags = trace.endpos == wallbang.endpos ? 0 : DAMAGE_WALLBANG;
 			float damage = def->damage;
 
-			if (trace.endpos != wallbang.endpos)
-			{
+			if( trace.endpos != wallbang.endpos ) {
 				dmgflags |= DAMAGE_WALLBANG;
 				damage *= def->wallbangdamage;
 			}
 
-			G_Damage(&game.edicts[trace.ent], self, self, dir, dir, trace.endpos, damage, def->knockback, dmgflags, Weapon_Shotgun);
+			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, def->knockback, dmgflags, Weapon_Shotgun );
 
-			if (!G_IsTeamDamage(&game.edicts[trace.ent].s, &self->s) && trace.ent <= MAX_CLIENTS)
-			{
-				damage_dealt[trace.ent] += damage;
-				hit_locations[trace.ent] = trace.endpos;
+			if( !G_IsTeamDamage( &game.edicts[ trace.ent ].s, &self->s ) && trace.ent <= MAX_CLIENTS ) {
+				damage_dealt[ trace.ent ] += damage;
+				hit_locations[ trace.ent ] = trace.endpos;
 			}
 		}
 	}
 
-	for (int i = 1; i <= MAX_CLIENTS; i++)
-	{
-		if (damage_dealt[i] == 0)
+	for( int i = 1; i <= MAX_CLIENTS; i++ ) {
+		if( damage_dealt[ i ] == 0 )
 			continue;
-		SpawnDamageEvents(self, &game.edicts[i], damage_dealt[i], false, hit_locations[i], dir);
+		SpawnDamageEvents( self, &game.edicts[ i ], damage_dealt[ i ], false, hit_locations[ i ], dir );
 	}
 }
 
-static void W_Grenade_ExplodeDir(edict_t *ent, Vec3 normal)
-{
-	Vec3 dir = normal != Vec3(0.0f) ? normal : Vec3(0.0f, 0.0f, 1.0f);
+static void W_Grenade_ExplodeDir( edict_t * ent, Vec3 normal ) {
+	Vec3 dir = normal != Vec3( 0.0f ) ? normal : Vec3( 0.0f, 0.0f, 1.0f );
 
-	G_RadiusDamage(ent, ent->r.owner, NULL, ent->enemy, Weapon_GrenadeLauncher);
+	G_RadiusDamage( ent, ent->r.owner, NULL, ent->enemy, Weapon_GrenadeLauncher );
 
-	edict_t *event = G_SpawnEvent(EV_GRENADE_EXPLOSION, DirToU64(dir), &ent->s.origin);
+	edict_t * event = G_SpawnEvent( EV_GRENADE_EXPLOSION, DirToU64( dir ), &ent->s.origin );
 	event->s.team = ent->s.team;
 
-	G_FreeEdict(ent);
+	G_FreeEdict( ent );
 }
 
-static void W_Grenade_Explode(edict_t *ent)
-{
-	W_Grenade_ExplodeDir(ent, Vec3(0.0f));
+static void W_Grenade_Explode( edict_t * ent ) {
+	W_Grenade_ExplodeDir( ent, Vec3( 0.0f ));
 }
 
-static void W_Touch_Grenade(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
-{
+static void W_Touch_Grenade( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_GrenadeLauncher );
 
-	if (!CanHit(ent, other))
-	{
+	if( !CanHit( ent, other ) ) {
 		return;
 	}
 
 	// don't explode on doors and plats that take damage
-	if (!other->takedamage || CM_IsBrushModel(CM_Server, other->s.model))
-	{
+	if( !other->takedamage || CM_IsBrushModel( CM_Server, other->s.model ) ) {
 		Vec3 parallel = Project( ent->velocity, plane->normal );
 		Vec3 perpendicular = ent->velocity - parallel;
 
@@ -436,25 +396,23 @@ static void W_Touch_Grenade(edict_t *ent, edict_t *other, Plane *plane, int surf
 		float velocity = Length( parallel ) + Length( perpendicular ) * friction;
 
 		u16 volume = Lerp( u16( 0 ), Unlerp01( 0.0f, velocity, float( def->speed ) ), U16_MAX );
-		G_AddEvent(ent, EV_GRENADE_BOUNCE, volume, true);
+		G_AddEvent( ent, EV_GRENADE_BOUNCE, volume, true );
 
 		return;
 	}
 
-	if (other->takedamage)
-	{
+	if( other->takedamage ) {
 		Vec3 push_dir;
-		G_SplashFrac4D(other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false);
-		G_Damage(other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_GrenadeLauncher);
+		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false );
+		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_GrenadeLauncher );
 	}
 
 	ent->enemy = other;
-	W_Grenade_ExplodeDir(ent, plane ? plane->normal : Vec3(0.0f));
+	W_Grenade_ExplodeDir( ent, plane ? plane->normal : Vec3( 0.0f ));
 }
 
-static void W_Fire_Grenade(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
-{
-	edict_t *grenade = FireProjectile(self, start, angles, timeDelta, WeaponProjectileStats(Weapon_GrenadeLauncher), W_Touch_Grenade, ET_GRENADE, MASK_SHOT);
+static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_GrenadeLauncher ), W_Touch_Grenade, ET_GRENADE, MASK_SHOT );
 
 	grenade->classname = "grenade";
 	grenade->movetype = MOVETYPE_BOUNCEGRENADE;
@@ -464,36 +422,31 @@ static void W_Fire_Grenade(edict_t *self, Vec3 start, Vec3 angles, int timeDelta
 	grenade->think = W_Grenade_Explode;
 }
 
-static void W_Touch_Stake(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
-{
-	if (!CanHit(ent, other))
-	{
+static void W_Touch_Stake( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+	if( !CanHit( ent, other ) ) {
 		return;
 	}
 
-	if (other->takedamage)
-	{
-		G_Damage(other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_StakeGun);
+	if( other->takedamage ) {
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_StakeGun );
 		ent->enemy = other;
-		edict_t *event = G_SpawnEvent(EV_STAKE_IMPALE, DirToU64(-SafeNormalize(ent->velocity)), &ent->s.origin);
+		edict_t * event = G_SpawnEvent( EV_STAKE_IMPALE, DirToU64( -SafeNormalize( ent->velocity )), &ent->s.origin );
 		event->s.team = ent->s.team;
-		G_FreeEdict(ent);
+		G_FreeEdict( ent );
 	}
-	else
-	{
+	else {
 		ent->s.type = ET_GENERIC;
 		// ent->think = G_FreeEdict;
 		// ent->nextThink = level.time + def->range;
 		ent->movetype = MOVETYPE_NONE;
 		ent->s.sound = EMPTY_HASH;
-		edict_t *event = G_SpawnEvent(EV_STAKE_IMPACT, DirToU64(-SafeNormalize(ent->velocity)), &ent->s.origin);
+		edict_t * event = G_SpawnEvent( EV_STAKE_IMPACT, DirToU64( -SafeNormalize( ent->velocity )), &ent->s.origin );
 		event->s.team = ent->s.team;
 	}
 }
 
-static void W_Fire_Stake(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
-{
-	edict_t *stake = FireProjectile(self, start, angles, timeDelta, WeaponProjectileStats(Weapon_StakeGun), W_Touch_Stake, ET_STAKE, MASK_SHOT);
+static void W_Fire_Stake( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	edict_t * stake = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_StakeGun ), W_Touch_Stake, ET_STAKE, MASK_SHOT );
 
 	stake->classname = "stake";
 	stake->movetype = MOVETYPE_BOUNCEGRENADE;
@@ -501,40 +454,35 @@ static void W_Fire_Stake(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 	stake->s.sound = "weapons/stake/trail";
 }
 
-static void W_Touch_Rocket(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
-{
-	if (!CanHit(ent, other))
-	{
+static void W_Touch_Rocket( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+	if( !CanHit( ent, other ) ) {
 		return;
 	}
 
-	if (other->takedamage)
-	{
+	if( other->takedamage ) {
 		Vec3 push_dir;
-		G_SplashFrac4D(other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false);
-		G_Damage(other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_RocketLauncher);
+		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false );
+		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_RocketLauncher );
 	}
 
-	G_RadiusDamage(ent, ent->r.owner, plane, other, Weapon_RocketLauncher);
+	G_RadiusDamage( ent, ent->r.owner, plane, other, Weapon_RocketLauncher );
 
-	edict_t *event = G_SpawnEvent(EV_ROCKET_EXPLOSION, DirToU64(plane ? plane->normal : Vec3(0.0f)), &ent->s.origin);
+	edict_t * event = G_SpawnEvent( EV_ROCKET_EXPLOSION, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
 	event->s.team = ent->s.team;
 
-	G_FreeEdict(ent);
+	G_FreeEdict( ent );
 }
 
-static void W_Fire_Rocket(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
-{
-	edict_t *rocket = FireLinearProjectile(self, start, angles, timeDelta, WeaponProjectileStats(Weapon_RocketLauncher), W_Touch_Rocket, ET_ROCKET, MASK_SHOT);
+static void W_Fire_Rocket( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	edict_t * rocket = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RocketLauncher ), W_Touch_Rocket, ET_ROCKET, MASK_SHOT );
 
 	rocket->classname = "rocket";
 	rocket->s.model = "weapons/rl/rocket";
 	rocket->s.sound = "weapons/rl/trail";
 }
 
-static void W_Fire_ARBullet(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
-{
-	edict_t *arbullet = FireLinearProjectile(self, start, angles, timeDelta, WeaponProjectileStats(Weapon_AssaultRifle), W_AutoTouch_ARBullet, ET_ARBULLET, MASK_SHOT);
+static void W_Fire_ARBullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	edict_t * arbullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_AssaultRifle ), W_AutoTouch_ARBullet, ET_ARBULLET, MASK_SHOT );
 
 	arbullet->classname = "arbullet";
 	arbullet->s.model = "weapons/ar/projectile";
@@ -544,9 +492,8 @@ static void W_Fire_ARBullet(edict_t *self, Vec3 start, Vec3 angles, int timeDelt
 	arbullet->nextThink = level.time + 1;
 }
 
-static void FireBubble(edict_t *owner, Vec3 start, Vec3 angles, int timeDelta)
-{
-	edict_t *bubble = FireLinearProjectile(owner, start, angles, timeDelta, WeaponProjectileStats(Weapon_BubbleGun), W_AutoTouch_ARBullet, ET_BUBBLE, MASK_SHOT);
+static void FireBubble( edict_t * owner, Vec3 start, Vec3 angles, int timeDelta ) {
+	edict_t * bubble = FireLinearProjectile( owner, start, angles, timeDelta, WeaponProjectileStats( Weapon_BubbleGun ), W_AutoTouch_ARBullet, ET_BUBBLE, MASK_SHOT );
 
 	bubble->classname = "bubble";
 	bubble->s.sound = "weapons/bg/trail";
@@ -555,159 +502,139 @@ static void FireBubble(edict_t *owner, Vec3 start, Vec3 angles, int timeDelta)
 	bubble->nextThink = level.time + 1;
 }
 
-void W_Fire_BubbleGun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
-{
+void W_Fire_BubbleGun( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	constexpr int bubble_spacing = 0;
-	const WeaponDef *def = GS_GetWeaponDef(Weapon_BubbleGun);
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_BubbleGun );
 
 	Vec3 dir, right, up;
-	AngleVectors(angles, &dir, &right, &up);
+	AngleVectors( angles, &dir, &right, &up );
 
-	FireBubble(self, start, angles, timeDelta);
+	FireBubble( self, start, angles, timeDelta );
 
 	int n = def->projectile_count - 1;
-	float base_angle = RandomFloat01(&svs.rng) * 2.0f * PI;
+	float base_angle = RandomFloat01( &svs.rng ) * 2.0f * PI;
 
-	for (int i = 0; i < n; i++)
-	{
-		float angle = base_angle + 2.0f * PI * float(i) / float(n);
+	for( int i = 0; i < n; i++ ) {
+		float angle = base_angle + 2.0f * PI * float( i ) / float( n );
 
 		Vec3 pos = start;
-		pos += right * cosf(angle) * bubble_spacing;
-		pos += up * sinf(angle) * bubble_spacing;
+		pos += right * cosf( angle ) * bubble_spacing;
+		pos += up * sinf( angle ) * bubble_spacing;
 
 		Vec3 new_dir = dir;
-		new_dir += right * cosf(angle + 0.5f * PI) * def->spread;
-		new_dir += up * sinf(angle + 0.5f * PI) * def->spread;
-		new_dir = Normalize(new_dir);
+		new_dir += right * cosf( angle + 0.5f * PI ) * def->spread;
+		new_dir += up * sinf( angle + 0.5f * PI ) * def->spread;
+		new_dir = Normalize( new_dir );
 
-		Vec3 new_angles = VecToAngles(new_dir);
-		FireBubble(self, pos, new_angles, timeDelta);
+		Vec3 new_angles = VecToAngles( new_dir );
+		FireBubble( self, pos, new_angles, timeDelta );
 	}
 }
 
-static void W_Fire_Railgun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
-{
-	const WeaponDef *def = GS_GetWeaponDef(Weapon_Railgun);
+static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
 
 	Vec3 dir;
-	AngleVectors(angles, &dir, NULL, NULL);
+	AngleVectors( angles, &dir, NULL, NULL );
 	Vec3 end = start + dir * def->range;
 	Vec3 from = start;
 
-	edict_t *ignore = self;
+	edict_t * ignore = self;
 
 	trace_t tr;
 	tr.ent = -1;
 
-	while (ignore)
-	{
-		G_Trace4D(&tr, from, Vec3(0.0f), Vec3(0.0f), end, ignore, MASK_WALLBANG, timeDelta);
+	while( ignore ) {
+		G_Trace4D( &tr, from, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_WALLBANG, timeDelta );
 
 		from = tr.endpos;
 		ignore = NULL;
 
-		if (tr.ent == -1)
-		{
+		if( tr.ent == -1 ) {
 			break;
 		}
 
 		// some entity was touched
-		edict_t *hit = &game.edicts[tr.ent];
+		edict_t * hit = &game.edicts[ tr.ent ];
 		int hit_movetype = hit->movetype; // backup the original movetype as the entity may "die"
-		if (hit == world)
-		{ // stop dead if hit the world
+		if( hit == world ) { // stop dead if hit the world
 			break;
 		}
 
-		// allow trail to go through BBOX entities (players, gibs, etc)
-		if (!CM_IsBrushModel(CM_Server, hit->s.model))
-		{
+		// allow trail to go through BBOX entities ( players, gibs, etc )
+		if( !CM_IsBrushModel( CM_Server, hit->s.model ) ) {
 			ignore = hit;
 		}
 
-		if (hit != self && hit->takedamage)
-		{
+		if( hit != self && hit->takedamage ) {
 			int dmgflags = 0;
-			if (IsHeadshot(tr.ent, tr.endpos, timeDelta))
-			{
+			if( IsHeadshot( tr.ent, tr.endpos, timeDelta ) ) {
 				dmgflags |= DAMAGE_HEADSHOT;
 			}
 
-			G_Damage(hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, dmgflags, Weapon_Railgun);
+			G_Damage( hit, self, self, dir, dir, tr.endpos, def->damage, def->knockback, dmgflags, Weapon_Railgun );
 
 			// spawn a impact event on each damaged ent
-			edict_t *event = G_SpawnEvent(EV_BOLT_EXPLOSION, DirToU64(tr.plane.normal), &tr.endpos);
+			edict_t * event = G_SpawnEvent( EV_BOLT_EXPLOSION, DirToU64( tr.plane.normal ), &tr.endpos );
 			event->s.team = self->s.team;
 
 			// if we hit a teammate stop the trace
-			if (G_IsTeamDamage(&hit->s, &self->s))
-			{
+			if( G_IsTeamDamage( &hit->s, &self->s ) ) {
 				break;
 			}
 		}
 
-		if (hit_movetype == MOVETYPE_NONE || hit_movetype == MOVETYPE_PUSH)
-		{
+		if( hit_movetype == MOVETYPE_NONE || hit_movetype == MOVETYPE_PUSH ) {
 			break;
 		}
 	}
 }
 
-static void G_Laser_Think(edict_t *ent)
-{
-	edict_t *owner = &game.edicts[ent->s.ownerNum];
+static void G_Laser_Think( edict_t * ent ) {
+	edict_t * owner = &game.edicts[ ent->s.ownerNum ];
 
-	if (G_ISGHOSTING(owner) || owner->s.weapon != Weapon_Laser ||
-		PF_GetClientState(PLAYERNUM(owner)) < CS_SPAWNED ||
-		owner->r.client->ps.weapon_state != WeaponState_FiringSmooth)
-	{
-		G_FreeEdict(ent);
+	if( G_ISGHOSTING( owner ) || owner->s.weapon != Weapon_Laser ||
+		PF_GetClientState( PLAYERNUM( owner )) < CS_SPAWNED ||
+		owner->r.client->ps.weapon_state != WeaponState_FiringSmooth ) {
+		G_FreeEdict( ent );
 		return;
 	}
 
 	ent->nextThink = level.time + 1;
 }
 
-struct LaserBeamTraceData
-{
+struct LaserBeamTraceData {
 	float damage;
 	int knockback;
 	int attacker;
 };
 
-static void LaserImpact(const trace_t *trace, Vec3 dir, void *data)
-{
-	LaserBeamTraceData *beam = (LaserBeamTraceData *)data;
+static void LaserImpact( const trace_t * trace, Vec3 dir, void * data ) {
+	LaserBeamTraceData * beam = ( LaserBeamTraceData * )data;
 
-	if (trace->ent == beam->attacker)
-	{
+	if( trace->ent == beam->attacker ) {
 		return; // should not be possible theoretically but happened at least once in practice
 	}
 
-	edict_t *attacker = &game.edicts[beam->attacker];
-	G_Damage(&game.edicts[trace->ent], attacker, attacker, dir, dir, trace->endpos, beam->damage, beam->knockback, DAMAGE_KNOCKBACK_SOFT, Weapon_Laser);
+	edict_t * attacker = &game.edicts[ beam->attacker ];
+	G_Damage( &game.edicts[ trace->ent ], attacker, attacker, dir, dir, trace->endpos, beam->damage, beam->knockback, DAMAGE_KNOCKBACK_SOFT, Weapon_Laser );
 }
 
-static edict_t *FindOrSpawnLaser(edict_t *owner)
-{
-	int ownerNum = ENTNUM(owner);
+static edict_t * FindOrSpawnLaser( edict_t * owner ) {
+	int ownerNum = ENTNUM( owner );
 
-	for (int i = server_gs.maxclients + 1; i < game.maxentities; i++)
-	{
-		edict_t *e = &game.edicts[i];
-		if (!e->r.inuse)
-		{
+	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+		edict_t * e = &game.edicts[ i ];
+		if( !e->r.inuse ) {
 			continue;
 		}
 
-		if (e->s.ownerNum == ownerNum && e->s.type == ET_LASERBEAM)
-		{
+		if( e->s.ownerNum == ownerNum && e->s.type == ET_LASERBEAM ) {
 			return e;
 		}
 	}
 
-	edict_t *laser = G_Spawn();
+	edict_t * laser = G_Spawn();
 	laser->s.type = ET_LASERBEAM;
 	laser->s.ownerNum = ownerNum;
 	laser->movetype = MOVETYPE_NONE;
@@ -716,60 +643,54 @@ static edict_t *FindOrSpawnLaser(edict_t *owner)
 	return laser;
 }
 
-static void W_Fire_Lasergun(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
-{
-	const WeaponDef *def = GS_GetWeaponDef(Weapon_Laser);
+static void W_Fire_Lasergun( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Laser );
 
-	edict_t *laser = FindOrSpawnLaser(self);
+	edict_t * laser = FindOrSpawnLaser( self );
 
 	LaserBeamTraceData data;
 	data.damage = def->damage;
 	data.knockback = def->knockback;
-	data.attacker = ENTNUM(self);
+	data.attacker = ENTNUM( self );
 
 	trace_t tr;
-	GS_TraceLaserBeam(&server_gs, &tr, start, angles, def->range, ENTNUM(self), timeDelta, LaserImpact, &data);
+	GS_TraceLaserBeam( &server_gs, &tr, start, angles, def->range, ENTNUM( self ), timeDelta, LaserImpact, &data );
 
 	laser->r.svflags |= SVF_FORCEOWNER;
 
 	Vec3 dir;
 	laser->s.origin = start;
-	AngleVectors(angles, &dir, NULL, NULL);
+	AngleVectors( angles, &dir, NULL, NULL );
 	laser->s.origin2 = laser->s.origin + dir * def->range;
 
 	laser->think = G_Laser_Think;
 	laser->nextThink = level.time + 1;
 
 	// calculate laser's mins and maxs for linkEntity
-	G_SetBoundsForSpanEntity(laser, 8);
+	G_SetBoundsForSpanEntity( laser, 8 );
 
-	GClip_LinkEntity(laser);
+	GClip_LinkEntity( laser );
 }
 
-static void W_Touch_RifleBullet(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
-{
-	if (!CanHit(ent, other))
-	{
+static void W_Touch_RifleBullet( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+	if( !CanHit( ent, other ) ) {
 		return;
 	}
 
-	edict_t *event = G_SpawnEvent(EV_RIFLEBULLET_IMPACT, DirToU64(plane ? plane->normal : Vec3(0.0f)), &ent->s.origin);
+	edict_t * event = G_SpawnEvent( EV_RIFLEBULLET_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
 	event->s.team = ent->s.team;
 
-	if (other->takedamage && ent->enemy != other)
-	{
-		G_Damage(other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_Rifle);
+	if( other->takedamage && ent->enemy != other ) {
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_Rifle );
 		ent->enemy = other;
 	}
-	else
-	{
-		G_FreeEdict(ent);
+	else {
+		G_FreeEdict( ent );
 	}
 }
 
-void W_Fire_RifleBullet(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
-{
-	edict_t *bullet = FireLinearProjectile(self, start, angles, timeDelta, WeaponProjectileStats(Weapon_Rifle), W_Touch_RifleBullet, ET_RIFLEBULLET, MASK_WALLBANG);
+void W_Fire_RifleBullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Rifle ), W_Touch_RifleBullet, ET_RIFLEBULLET, MASK_WALLBANG );
 
 	bullet->classname = "riflebullet";
 	bullet->s.model = "weapons/rifle/bullet";
@@ -779,18 +700,18 @@ void W_Fire_RifleBullet(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 static void StickyBulletExplodeNormal( edict_t * ent, Vec3 normal, bool silent ) {
 	Vec3 dir = normal != Vec3( 0.0f ) ? normal : Vec3( 0.0f, 0.0f, 1.0f );
 
-	G_RadiusDamage(ent, ent->r.owner, NULL, ent->enemy, Weapon_StickyGun);
+	G_RadiusDamage( ent, ent->r.owner, NULL, ent->enemy, Weapon_StickyGun );
 
-	edict_t *event = G_SpawnEvent(EV_STICKY_EXPLOSION, silent ? 1 : 0, &ent->s.origin);
+	edict_t * event = G_SpawnEvent( EV_STICKY_EXPLOSION, silent ? 1 : 0, &ent->s.origin );
 	event->s.team = ent->s.team;
 
 	float radius = ent->projectileInfo.radius;
 	Vec3 origin = ent->s.origin;
 	int timeDelta = ent->timeDelta;
 
-	G_FreeEdict(ent);
+	G_FreeEdict( ent );
 
-	int nearby[MAX_EDICTS];
+	int nearby[ MAX_EDICTS ];
 	int n = GClip_FindInRadius4D( origin, radius, nearby, ARRAY_COUNT( nearby ), timeDelta );
 	for( int i = 0; i < n; i++ ) {
 		edict_t * other = game.edicts + nearby[ i ];
@@ -804,33 +725,29 @@ static void StickyBulletExplode( edict_t * ent ) {
 	StickyBulletExplodeNormal( ent, Vec3( 0.0f ), false );
 }
 
-static void W_Touch_StickyBullet(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
-{
-	if (!CanHit(ent, other))
-	{
+static void W_Touch_StickyBullet( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+	if( !CanHit( ent, other ) ) {
 		return;
 	}
 
-	if (other->takedamage)
-	{
+	if( other->takedamage ) {
 		Vec3 push_dir;
-		G_SplashFrac4D(other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false);
-		G_Damage(other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_StickyGun);
+		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false );
+		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_StickyGun );
 		ent->enemy = other;
 
 		StickyBulletExplodeNormal( ent, plane ? plane->normal : Vec3( 0.0f ), false );
 	}
-	else
-	{
+	else {
 		const WeaponDef * def = GS_GetWeaponDef( Weapon_StickyGun );
 		ent->s.linearMovementBegin = ent->s.origin;
 		ent->s.linearMovementVelocity = Vec3( 0.0f );
 		ent->nextThink = level.time + def->spread; //gg
-		edict_t *event = G_SpawnEvent(EV_STICKY_IMPACT, DirToU64(plane ? plane->normal : Vec3(0.0f)), &ent->s.origin);
+		edict_t * event = G_SpawnEvent( EV_STICKY_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
 	}
 }
 
-void W_Fire_StickyBullet( edict_t *self, Vec3 start, Vec3 angles, int timeDelta ) {
+void W_Fire_StickyBullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_StickyGun );
 
 	float spreadness = def->zoom_spread * ( 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME ) );
@@ -847,46 +764,40 @@ void W_Fire_StickyBullet( edict_t *self, Vec3 start, Vec3 angles, int timeDelta 
 	bullet->think = StickyBulletExplode;
 }
 
-static void W_Touch_Blast(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
-{
-	if (!CanHit(ent, other))
-	{
+static void W_Touch_Blast( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+	if( !CanHit( ent, other ) ) {
 		return;
 	}
 
-	if (other->takedamage)
-	{
-		edict_t *event = G_SpawnEvent(EV_BLAST_IMPACT, DirToU64(plane ? plane->normal : Vec3(0.0f)), &ent->s.origin);
+	if( other->takedamage ) {
+		edict_t * event = G_SpawnEvent( EV_BLAST_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
 		event->s.team = ent->s.team;
-		G_Damage(other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, ent->projectileInfo.damage_type);
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, ent->projectileInfo.damage_type );
 		ent->enemy = other;
-		G_FreeEdict(ent);
+		G_FreeEdict( ent );
 		return;
 	}
 
-	edict_t *event = G_SpawnEvent(EV_BLAST_BOUNCE, DirToU64(plane ? plane->normal : Vec3(0.0f)), &ent->s.origin);
+	edict_t * event = G_SpawnEvent( EV_BLAST_BOUNCE, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
 	event->s.team = ent->s.team;
 
-	if (ent->num_bounces >= 5)
-	{
-		G_FreeEdict(ent);
+	if( ent->num_bounces >= 5 ) {
+		G_FreeEdict( ent );
 	}
 }
 
-void W_Fire_Blast(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
-{
-	const WeaponDef *def = GS_GetWeaponDef(Weapon_MasterBlaster);
+void W_Fire_Blast( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_MasterBlaster );
 	Vec3 dir, right, up;
-	AngleVectors(angles, &dir, &right, &up);
+	AngleVectors( angles, &dir, &right, &up );
 
-	for (int i = 0; i < def->projectile_count; i++)
-	{
-		Vec2 spread = FixedSpreadPattern(i, def->spread);
+	for( int i = 0; i < def->projectile_count; i++ ) {
+		Vec2 spread = FixedSpreadPattern( i, def->spread );
 
 		Vec3 blast_dir = dir * def->range + right * spread.x + up * spread.y;
-		Vec3 blast_angles = VecToAngles(blast_dir);
+		Vec3 blast_angles = VecToAngles( blast_dir );
 
-		edict_t *blast = FireProjectile(self, start, blast_angles, timeDelta, WeaponProjectileStats(Weapon_MasterBlaster), W_Touch_Blast, ET_BLAST, MASK_SHOT);
+		edict_t * blast = FireProjectile( self, start, blast_angles, timeDelta, WeaponProjectileStats( Weapon_MasterBlaster ), W_Touch_Blast, ET_BLAST, MASK_SHOT );
 
 		blast->classname = "blast";
 		blast->movetype = MOVETYPE_BOUNCEGRENADE;
@@ -895,9 +806,8 @@ void W_Fire_Blast(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 	}
 }
 
-void W_Fire_Road(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
-{
-	edict_t *bullet = FireProjectile(self, start, angles, timeDelta, WeaponProjectileStats(Weapon_RoadGun), W_Touch_Blast, ET_BLAST, MASK_SHOT);
+void W_Fire_Road( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RoadGun ), W_Touch_Blast, ET_BLAST, MASK_SHOT );
 
 	bullet->classname = "zorg";
 	bullet->movetype = MOVETYPE_BOUNCEGRENADE;
@@ -905,141 +815,133 @@ void W_Fire_Road(edict_t *self, Vec3 start, Vec3 angles, int timeDelta)
 	bullet->s.sound = "weapons/road/trail";
 }
 
-void G_FireWeapon(edict_t *ent, u64 parm)
-{
+void G_FireWeapon( edict_t * ent, u64 parm ) {
 	WeaponType weapon = WeaponType( parm & 0xFF );
 
 	Vec3 origin, angles;
-	Vec3 viewoffset = Vec3(0.0f);
+	Vec3 viewoffset = Vec3( 0.0f );
 	int timeDelta = 0;
 
 	// find this shot projection source
-	if (ent->r.client != NULL)
-	{
+	if( ent->r.client != NULL ) {
 		viewoffset.z += ent->r.client->ps.viewheight;
 		timeDelta = ent->r.client->timeDelta;
 		angles = ent->r.client->ps.viewangles;
 	}
-	else
-	{
+	else {
 		angles = ent->s.angles;
 	}
 
 	origin = ent->s.origin + viewoffset;
 
-	switch (weapon)
-	{
-	default:
-		return;
+	switch( weapon ) {
+		default:
+			return;
 
-	case Weapon_Knife:
-		W_Fire_Blade(ent, origin, angles, timeDelta);
-		break;
+		case Weapon_Knife:
+			W_Fire_Blade( ent, origin, angles, timeDelta );
+			break;
 
-	case Weapon_Pistol:
-		W_Fire_Bullet(ent, origin, angles, timeDelta, Weapon_Pistol);
-		break;
+		case Weapon_Pistol:
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Pistol );
+			break;
 
-	case Weapon_MachineGun:
-		W_Fire_Bullet(ent, origin, angles, timeDelta, Weapon_MachineGun);
-		break;
+		case Weapon_MachineGun:
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_MachineGun );
+			break;
 
-	case Weapon_Deagle:
-		W_Fire_Bullet(ent, origin, angles, timeDelta, Weapon_Deagle);
-		break;
+		case Weapon_Deagle:
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Deagle );
+			break;
 
-	case Weapon_Shotgun:
-		W_Fire_Shotgun(ent, origin, angles, timeDelta);
-		break;
+		case Weapon_Shotgun:
+			W_Fire_Shotgun( ent, origin, angles, timeDelta );
+			break;
 
-	case Weapon_BurstRifle:
-		W_Fire_Bullet(ent, origin, angles, timeDelta, Weapon_BurstRifle);
-		break;
+		case Weapon_BurstRifle:
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_BurstRifle );
+			break;
 
-	case Weapon_StakeGun:
-		W_Fire_Stake(ent, origin, angles, timeDelta);
-		break;
+		case Weapon_StakeGun:
+			W_Fire_Stake( ent, origin, angles, timeDelta );
+			break;
 
-	case Weapon_GrenadeLauncher:
-		W_Fire_Grenade(ent, origin, angles, timeDelta);
-		break;
+		case Weapon_GrenadeLauncher:
+			W_Fire_Grenade( ent, origin, angles, timeDelta );
+			break;
 
-	case Weapon_RocketLauncher:
-		W_Fire_Rocket(ent, origin, angles, timeDelta);
-		break;
+		case Weapon_RocketLauncher:
+			W_Fire_Rocket( ent, origin, angles, timeDelta );
+			break;
 
-	case Weapon_AssaultRifle:
-		W_Fire_ARBullet(ent, origin, angles, timeDelta);
-		break;
+		case Weapon_AssaultRifle:
+			W_Fire_ARBullet( ent, origin, angles, timeDelta );
+			break;
 
-	case Weapon_BubbleGun:
-		W_Fire_BubbleGun(ent, origin, angles, timeDelta);
-		break;
+		case Weapon_BubbleGun:
+			W_Fire_BubbleGun( ent, origin, angles, timeDelta );
+			break;
 
-	case Weapon_Laser:
-		W_Fire_Lasergun(ent, origin, angles, timeDelta);
-		break;
+		case Weapon_Laser:
+			W_Fire_Lasergun( ent, origin, angles, timeDelta );
+			break;
 
-	case Weapon_Sniper:
-		W_Fire_Bullet(ent, origin, angles, timeDelta, Weapon_Sniper);
-		break;
+		case Weapon_Sniper:
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Sniper );
+			break;
 
-	case Weapon_AutoSniper:
-		W_Fire_Bullet(ent, origin, angles, timeDelta, Weapon_AutoSniper);
-		break;
+		case Weapon_AutoSniper:
+			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_AutoSniper );
+			break;
 
-	case Weapon_Railgun:
-		W_Fire_Railgun(ent, origin, angles, timeDelta);
-		break;
+		case Weapon_Railgun:
+			W_Fire_Railgun( ent, origin, angles, timeDelta );
+			break;
 
-	case Weapon_Rifle:
-		W_Fire_RifleBullet(ent, origin, angles, timeDelta);
-		break;
+		case Weapon_Rifle:
+			W_Fire_RifleBullet( ent, origin, angles, timeDelta );
+			break;
 
-	case Weapon_MasterBlaster:
-		W_Fire_Blast(ent, origin, angles, timeDelta);
-		break;
+		case Weapon_MasterBlaster:
+			W_Fire_Blast( ent, origin, angles, timeDelta );
+			break;
 
-	case Weapon_RoadGun:
-		W_Fire_Road(ent, origin, angles, timeDelta);
-		break;
+		case Weapon_RoadGun:
+			W_Fire_Road( ent, origin, angles, timeDelta );
+			break;
 
-	case Weapon_StickyGun:
-		W_Fire_StickyBullet(ent, origin, angles, timeDelta);
-		break;
+		case Weapon_StickyGun:
+			W_Fire_StickyBullet( ent, origin, angles, timeDelta );
+			break;
 
-		// case Weapon_Minigun: {
-		// 	W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Minigun );
-		//
-		// 	Vec3 dir;
-		// 	AngleVectors( angles, &dir, NULL, NULL );
-		// 	ent->velocity -= dir * GS_GetWeaponDef( Weapon_Minigun )->knockback;
-		// } break;
+			// case Weapon_Minigun: {
+			// 	W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Minigun );
+			//
+			// 	Vec3 dir;
+			// 	AngleVectors( angles, &dir, NULL, NULL );
+			// 	ent->velocity -= dir * GS_GetWeaponDef( Weapon_Minigun )->knockback;
+			// } break;
 	}
 
 	// add stats
-	if (ent->r.client != NULL)
-	{
-		G_ClientGetStats(ent)->accuracy_shots[weapon] += GS_GetWeaponDef(weapon)->projectile_count;
+	if( ent->r.client != NULL ) {
+		G_ClientGetStats( ent )->accuracy_shots[ weapon ] += GS_GetWeaponDef( weapon )->projectile_count;
 	}
 }
 
-static void TouchThrowingAxe(edict_t *ent, edict_t *other, Plane *plane, int surfFlags)
-{
-	if (!CanHit(ent, other))
-	{
+static void TouchThrowingAxe( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+	if( !CanHit( ent, other ) ) {
 		return;
 	}
 
-	// edict_t *event = G_SpawnEvent(EV_AXE_IMPACT, DirToU64(plane ? plane->normal : Vec3(0.0f)), &ent->s.origin);
+	// edict_t * event = G_SpawnEvent( EV_AXE_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
 	// event->s.team = ent->s.team;
 
-	if (other->takedamage)
-	{
-		G_Damage(other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_None);
+	if( other->takedamage ) {
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_None );
 	}
 
-	G_FreeEdict(ent);
+	G_FreeEdict( ent );
 }
 
 static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, u64 charge_time ) {
@@ -1056,15 +958,13 @@ static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	axe->avelocity = Vec3( 360.0f * 4, 0.0f, 0.0f );
 }
 
-static void TouchStunGrenade(edict_t *ent, edict_t *other, Plane *plane, int surfFlags) {
-	if (!CanHit(ent, other))
-	{
+static void TouchStunGrenade( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+	if( !CanHit( ent, other ) ) {
 		return;
 	}
 
-	if (other->takedamage)
-	{
-		G_Damage(other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_None);
+	if( other->takedamage ) {
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_None );
 	}
 }
 

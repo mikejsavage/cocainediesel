@@ -172,9 +172,9 @@ struct server_static_demo_t {
 };
 
 struct client_entities_t {
-	unsigned num_entities;              // maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
-	unsigned next_entities;             // next client_entity to use
-	SyncEntityState entities[ MAX_EDICTS * UPDATE_BACKUP * MAX_SNAP_ENTITIES ];
+	unsigned num_entities;      // maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
+	unsigned next_entities;     // next client_entity to use
+	SyncEntityState * entities; // [num_entities]
 };
 
 struct server_static_t {
@@ -193,7 +193,7 @@ struct server_static_t {
 	int spawncount;                     // incremented each server start
 	                                    // used to check late spawns
 
-	client_t clients[ MAX_CLIENTS ];
+	client_t * clients;
 	client_entities_t client_entities;
 
 	challenge_t challenges[MAX_CHALLENGES]; // to prevent invalid IPs from connecting

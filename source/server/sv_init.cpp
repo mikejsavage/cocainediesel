@@ -146,9 +146,13 @@ void SV_InitGame() {
 	}
 
 	svs.spawncount = RandomUniform( &svs.rng, 0, S16_MAX );
-	memset( svs.clients, 0, sizeof( svs.clients ) );
+
+	svs.clients = ALLOC_MANY( sys_allocator, client_t, sv_maxclients->integer );
+	memset( svs.clients, 0, sizeof( svs.clients[ 0 ] ) * sv_maxclients->integer );
+
 	svs.client_entities.num_entities = sv_maxclients->integer * UPDATE_BACKUP * MAX_SNAP_ENTITIES;
-	memset( svs.client_entities.entities, 0, sizeof( svs.client_entities.entities ) );
+	svs.client_entities.entities = ALLOC_MANY( sys_allocator, SyncEntityState, svs.client_entities.num_entities );
+	memset( svs.client_entities.entities, 0, sizeof( svs.client_entities.entities[ 0 ] ) * svs.client_entities.num_entities );
 
 	// init network stuff
 
@@ -208,10 +212,8 @@ void SV_InitGame() {
 * to totally exit after returning from this function.
 */
 static void SV_FinalMessage( const char *message, bool reconnect ) {
-	int i, j;
-	client_t *cl;
-
-	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		client_t * cl = &svs.clients[ i ];
 		if( cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
 			continue;
 		}
@@ -226,8 +228,9 @@ static void SV_FinalMessage( const char *message, bool reconnect ) {
 			SV_AddReliableCommandsToMessage( cl, &tmpMessage );
 
 			// send it twice
-			for( j = 0; j < 2; j++ )
+			for( int j = 0; j < 2; j++ ) {
 				SV_SendMessageToClient( cl, &tmpMessage );
+			}
 		}
 	}
 }
@@ -246,9 +249,7 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 		SV_Demo_Stop_f();
 	}
 
-	if( svs.clients ) {
-		SV_FinalMessage( finalmsg, reconnect );
-	}
+	SV_FinalMessage( finalmsg, reconnect );
 
 	SV_ShutdownGameProgs();
 
@@ -259,9 +260,12 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 	// get any latched variable changes (sv_maxclients, etc)
 	Cvar_GetLatchedVars( CVAR_LATCH );
 
-	for( client_t & client : svs.clients ) {
-		SNAP_FreeClientFrames( &client );
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		SNAP_FreeClientFrames( &svs.clients[ i ] );
 	}
+
+	FREE( sys_allocator, svs.clients );
+	FREE( sys_allocator, svs.client_entities.entities );
 
 	if( svs.cms ) {
 		CM_Free( CM_Server, svs.cms );

@@ -888,8 +888,6 @@ static void NewGame() {
 
 static void RoundWonBy( int winner ) {
 	int loser = winner == AttackingTeam() ? DefendingTeam() : AttackingTeam();
-	TempAllocator temp = svs.frame_arena.temp();
-	G_CenterPrintMsg( NULL, S_COLOR_CYAN "%s", winner == AttackingTeam() ? "OFFENSE WINS!" : "DEFENSE WINS!" );
 
 	G_AnnouncerSound( NULL, "sounds/announcer/bomb/team_scored", winner, true, NULL );
 	G_AnnouncerSound( NULL, "sounds/announcer/bomb/enemy_scored", loser, true, NULL );

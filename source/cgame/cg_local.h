@@ -266,8 +266,6 @@ struct cg_state_t {
 extern cg_static_t cgs;
 extern cg_state_t cg;
 
-extern mempool_t *cg_mempool;
-
 #define ISVIEWERENTITY( entNum )  ( cg.predictedPlayerState.POVnum > 0 && (int)cg.predictedPlayerState.POVnum == ( entNum ) && cg.view.type == VIEWDEF_PLAYERVIEW )
 
 #define ISREALSPECTATOR()       ( cg.frame.playerState.real_team == TEAM_SPECTATOR )
@@ -394,9 +392,6 @@ extern cvar_t *cg_chat;
 extern cvar_t *cg_particleDebug;
 
 extern cvar_t *cg_showServerDebugPrints;
-
-#define CG_Malloc( size ) _Mem_AllocExt( cg_mempool, size, 16, 1, 0, 0, __FILE__, __LINE__ );
-#define CG_Free( data ) Mem_Free( data )
 
 void CG_Init( const char *serverName, unsigned int playerNum,
 			  bool demoplaying, const char *demoName, unsigned snapFrameTime );

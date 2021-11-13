@@ -23,8 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 cg_static_t cgs;
 cg_state_t cg;
 
-mempool_t *cg_mempool;
-
 centity_t cg_entities[MAX_EDICTS];
 
 cvar_t *cg_showMiss;
@@ -197,8 +195,6 @@ static void PrintMap() {
 void CG_Init( const char *serverName, unsigned int playerNum,
 			  bool demoplaying, const char *demoName,
 			  unsigned snapFrameTime ) {
-	cg_mempool = _Mem_AllocPool( NULL, "CGame", MEMPOOL_CLIENTGAME, __FILE__, __LINE__ );
-
 	CG_InitGameShared();
 
 	memset( &cg, 0, sizeof( cg_state_t ) );
@@ -264,8 +260,6 @@ void CG_Shutdown() {
 	ShutdownDecals();
 
 	FREE( sys_allocator, const_cast< char * >( cgs.serverName ) );
-
-	Mem_FreePool( &cg_mempool );
 
 	Cmd_RemoveCommand( "printmap" );
 }

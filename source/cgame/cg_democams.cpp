@@ -135,7 +135,7 @@ static cg_democam_t *CG_Democam_RegisterCam( int type ) {
 	}
 
 	if( cam == NULL ) {
-		cam = ( cg_democam_t * )CG_Malloc( sizeof( cg_democam_t ) );
+		cam = ALLOC( sys_allocator, cg_democam_t );
 		cam->next = cg_cams_headnode;
 		cg_cams_headnode = cam;
 	}
@@ -166,7 +166,7 @@ static void CG_Democam_UnregisterCam( cg_democam_t *cam ) {
 	// headnode shortcut
 	if( cg_cams_headnode == cam ) {
 		cg_cams_headnode = cg_cams_headnode->next;
-		CG_Free( cam );
+		FREE( sys_allocator, cam );
 		return;
 	}
 
@@ -175,8 +175,7 @@ static void CG_Democam_UnregisterCam( cg_democam_t *cam ) {
 	while( tcam != NULL ) {
 		if( tcam->next == cam ) {
 			tcam->next = cam->next;
-
-			CG_Free( cam );
+			FREE( sys_allocator, cam );
 			break;
 		}
 		tcam = tcam->next;

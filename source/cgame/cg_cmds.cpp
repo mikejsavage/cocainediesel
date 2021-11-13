@@ -374,65 +374,6 @@ static void CG_Viewpos_f() {
 	Com_Printf( "\"angles\" \"%i %i %i\"\n", (int)cg.view.angles.x, (int)cg.view.angles.y, (int)cg.view.angles.z );
 }
 
-// ======================================================================
-
-/*
-* CG_PlayerNamesCompletionExt_f
-*
-* Helper function
-*/
-static const char **CG_PlayerNamesCompletionExt_f( const char *partial, bool teamOnly ) {
-	int i;
-	int team = cg_entities[cgs.playerNum + 1].current.team;
-	const char **matches = NULL;
-	int num_matches = 0;
-
-	if( partial ) {
-		size_t partial_len = strlen( partial );
-
-		matches = (const char **) CG_Malloc( sizeof( char * ) * ( client_gs.maxclients + 1 ) );
-		for( i = 0; i < client_gs.maxclients; i++ ) {
-			const char * name = PlayerName( i );
-			if( strlen( name ) == 0 ) {
-				continue;
-			}
-			if( teamOnly && ( cg_entities[i + 1].current.team != team ) ) {
-				continue;
-			}
-			if( !Q_strnicmp( name, partial, partial_len ) ) {
-				matches[num_matches++] = name;
-			}
-		}
-		matches[num_matches] = NULL;
-	}
-
-	return matches;
-}
-
-static const char **CG_PlayerNamesCompletion_f( const char *partial ) {
-	return CG_PlayerNamesCompletionExt_f( partial, false );
-}
-
-static const char **CG_TeamPlayerNamesCompletion_f( const char *partial ) {
-	return CG_PlayerNamesCompletionExt_f( partial, true );
-}
-
-static void CG_SayCmdAdd_f() {
-	Cmd_SetCompletionFunc( "say", &CG_PlayerNamesCompletion_f );
-}
-
-static void CG_SayTeamCmdAdd_f() {
-	Cmd_SetCompletionFunc( "say_team", &CG_TeamPlayerNamesCompletion_f );
-}
-
-// server commands
-static const ServerCommand cg_consvcmds[] = {
-	{ "say", CG_SayCmdAdd_f },
-	{ "say_team", CG_SayTeamCmdAdd_f },
-
-	{ NULL, NULL }
-};
-
 // local cgame commands
 struct cgcmd_t {
 	const char *name;
@@ -458,11 +399,7 @@ static const cgcmd_t cgcmds[] = {
 };
 
 void CG_RegisterCGameCommands() {
-	const cgcmd_t *cmd;
-
 	if( !cgs.demoPlaying ) {
-		const ServerCommand *svcmd;
-
 		// add game side commands
 		for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
 			const char * name = cgs.configStrings[CS_GAMECOMMANDS + i];
@@ -471,6 +408,7 @@ void CG_RegisterCGameCommands() {
 			}
 
 			// check for local command overrides
+			const cgcmd_t * cmd;
 			for( cmd = cgcmds; cmd->name; cmd++ ) {
 				if( !Q_stricmp( cmd->name, name ) ) {
 					break;
@@ -481,21 +419,11 @@ void CG_RegisterCGameCommands() {
 			}
 
 			Cmd_AddCommand( name, NULL );
-
-			// check for server commands we might want to do some special things for..
-			for( svcmd = cg_consvcmds; svcmd->name; svcmd++ ) {
-				if( !Q_stricmp( svcmd->name, name ) ) {
-					if( svcmd->func ) {
-						svcmd->func();
-					}
-					break;
-				}
-			}
 		}
 	}
 
 	// add local commands
-	for( cmd = cgcmds; cmd->name; cmd++ ) {
+	for( const cgcmd_t * cmd = cgcmds; cmd->name; cmd++ ) {
 		if( cgs.demoPlaying && !cmd->allowdemo ) {
 			continue;
 		}

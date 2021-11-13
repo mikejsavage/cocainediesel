@@ -308,8 +308,7 @@ static void ResetKillCounters() {
 static void BombSiteCarrierTouched( u32 site ) {
 	bomb_state.carrier_can_plant_time = level.time;
 	if( BombCanPlant() ) {
-		edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
-		Vec3 maxs = carrier_ent->r.maxs;
+		const edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
 		Vec3 velocity = carrier_ent->velocity;
 
 		if( carrier_ent->r.client->ps.pmove.crouch_time > 0 && level.time - bomb_state.bomb.action_time >= 1000 && Length( velocity ) < bomb_max_plant_speed ) {

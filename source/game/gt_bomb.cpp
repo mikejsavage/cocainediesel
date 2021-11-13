@@ -1236,7 +1236,7 @@ static void GT_Bomb_Think() {
 		UpdateScore( i );
 	}
 
-	if( server_gs.gameState.match_state < MatchState_Playing ) {
+	if( server_gs.gameState.match_state != MatchState_Playing ) {
 		return;
 	}
 

@@ -59,19 +59,12 @@ static void SV_ResolveMaster() {
 	svc.lastMasterResolve = Sys_Milliseconds();
 }
 
-/*
-* SV_InitMaster
-* Set up the main master server
-*/
 void SV_InitMaster() {
 	SV_ResolveMaster();
 
 	svc.nextHeartbeat = Sys_Milliseconds();
 }
 
-/*
-* SV_UpdateMaster
-*/
 void SV_UpdateMaster() {
 	// refresh master server IP addresses periodically
 	if( svc.lastMasterResolve + TTL_MASTERS < Sys_Milliseconds() ) {
@@ -79,11 +72,6 @@ void SV_UpdateMaster() {
 	}
 }
 
-/*
-* SV_MasterHeartbeat
-* Send a message to the master every few minutes to
-* let it know we are alive, and log information
-*/
 void SV_MasterHeartbeat() {
 	int64_t time = Sys_Milliseconds();
 
@@ -508,9 +496,6 @@ int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const
 	return NUM_FOR_EDICT( newcl->edict );
 }
 
-/*
-* Rcon_Validate
-*/
 static int Rcon_Validate() {
 	if( !strlen( rcon_password->string ) ) {
 		return 0;

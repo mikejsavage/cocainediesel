@@ -60,11 +60,6 @@ cvar_t *sv_demodir;
 
 //============================================================================
 
-/*
-* SV_CalcPings
-*
-* Updates the cl->ping variables
-*/
 static void SV_CalcPings() {
 	unsigned int i, j;
 	client_t *cl;
@@ -105,9 +100,6 @@ static void SV_CalcPings() {
 	}
 }
 
-/*
-* SV_ProcessPacket
-*/
 static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 	if( !Netchan_Process( netchan, msg ) ) {
 		return false; // wasn't accepted for some reason
@@ -130,9 +122,6 @@ static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 	return true;
 }
 
-/*
-* SV_ReadPackets
-*/
 static void SV_ReadPackets() {
 	ZoneScoped;
 
@@ -306,9 +295,6 @@ static void SV_CheckLatchedUserinfoChanges() {
 }
 
 #define WORLDFRAMETIME 16 // 62.5fps
-/*
-* SV_RunGameFrame
-*/
 static bool SV_RunGameFrame( int msec ) {
 	ZoneScoped;
 
@@ -505,9 +491,6 @@ void SV_UserinfoChanged( client_t *client ) {
 
 //============================================================================
 
-/*
-* SV_Init
-*/
 void SV_Init() {
 	ZoneScoped;
 
@@ -588,11 +571,6 @@ void SV_Init() {
 	sv_initialized = true;
 }
 
-/*
-* SV_Shutdown
-*
-* Called once when the program is shutting down
-*/
 void SV_Shutdown( const char *finalmsg ) {
 	if( !sv_initialized ) {
 		return;

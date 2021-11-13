@@ -46,11 +46,6 @@ void SV_ClientResetCommandBuffers( client_t *client ) {
 	client->lastSentFrameNum = 0;
 }
 
-/*
-* SV_ClientConnect
-* accept the new client
-* this is the only place a client_t is ever initialized
-*/
 bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t *client, char *userinfo,
 					   u64 session_id, int challenge, bool fakeClient ) {
 	edict_t *ent;
@@ -240,9 +235,6 @@ static void SV_New_f( client_t *client ) {
 	client->state = CS_CONNECTING;
 }
 
-/*
-* SV_Configstrings_f
-*/
 static void SV_Configstrings_f( client_t *client ) {
 	int start;
 
@@ -287,9 +279,6 @@ static void SV_Configstrings_f( client_t *client ) {
 	}
 }
 
-/*
-* SV_Baselines_f
-*/
 static void SV_Baselines_f( client_t *client ) {
 	int start;
 	SyncEntityState nullstate;
@@ -339,9 +328,6 @@ static void SV_Baselines_f( client_t *client ) {
 	SV_SendMessageToClient( client, &tmpMessage );
 }
 
-/*
-* SV_Begin_f
-*/
 static void SV_Begin_f( client_t *client ) {
 	Com_DPrintf( "Begin() from %s\n", client->name );
 
@@ -371,26 +357,15 @@ static void SV_Begin_f( client_t *client ) {
 
 //=============================================================================
 
-/*
-* SV_Disconnect_f
-* The client is going to disconnect, so remove the connection immediately
-*/
 static void SV_Disconnect_f( client_t *client ) {
 	SV_DropClient( client, DROP_TYPE_GENERAL, NULL );
 }
 
 
-/*
-* SV_ShowServerinfo_f
-* Dumps the serverinfo info string
-*/
 static void SV_ShowServerinfo_f( client_t *client ) {
 	Info_Print( Cvar_Serverinfo() );
 }
 
-/*
-* SV_UserinfoCommand_f
-*/
 static void SV_UserinfoCommand_f( client_t *client ) {
 	const char *info;
 	int64_t time;
@@ -414,9 +389,6 @@ static void SV_UserinfoCommand_f( client_t *client ) {
 	}
 }
 
-/*
-* SV_NoDelta_f
-*/
 static void SV_NoDelta_f( client_t *client ) {
 	client->nodelta = true;
 	client->nodelta_frame = 0;
@@ -450,9 +422,6 @@ ucmd_t ucmds[] =
 	{ NULL, NULL }
 };
 
-/*
-* SV_ExecuteUserCommand
-*/
 static void SV_ExecuteUserCommand( client_t *client, const char *s ) {
 	ucmd_t *u;
 
@@ -552,9 +521,6 @@ void SV_ExecuteClientThinks( int clientNum ) {
 	client->UcmdExecuted = client->UcmdReceived;
 }
 
-/*
-* SV_ParseMoveCommand
-*/
 static void SV_ParseMoveCommand( client_t *client, msg_t *msg ) {
 	unsigned int i, ucmdHead, ucmdFirst, ucmdCount;
 	UserCommand nullcmd;
@@ -603,10 +569,6 @@ static void SV_ParseMoveCommand( client_t *client, msg_t *msg ) {
 	}
 }
 
-/*
-* SV_ParseClientMessage
-* The current message is parsed for the given client
-*/
 void SV_ParseClientMessage( client_t *client, msg_t *msg ) {
 	char *s;
 	bool move_issued;

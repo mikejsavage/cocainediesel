@@ -48,9 +48,6 @@ void SV_FlushRedirect( int sv_redirected, const char *outputbuf, const void *ext
 //
 //=============================================================================
 
-/*
-* SV_AddGameCommand
-*/
 void SV_AddGameCommand( client_t *client, const char *cmd ) {
 	int index;
 
@@ -244,9 +241,6 @@ void SV_BroadcastCommand( const char *format, ... ) {
 //
 //===============================================================================
 
-/*
-* SV_SendClientsFragments
-*/
 bool SV_SendClientsFragments() {
 	client_t *client;
 	int i;
@@ -276,9 +270,6 @@ bool SV_SendClientsFragments() {
 	return sent;
 }
 
-/*
-* SV_Netchan_Transmit
-*/
 bool SV_Netchan_Transmit( netchan_t *netchan, msg_t *msg ) {
 	// if we got here with unsent fragments, fire them all now
 	if( !Netchan_PushAllFragments( netchan ) ) {
@@ -293,9 +284,6 @@ bool SV_Netchan_Transmit( netchan_t *netchan, msg_t *msg ) {
 	return Netchan_Transmit( netchan, msg );
 }
 
-/*
-* SV_InitClientMessage
-*/
 void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t size ) {
 	if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
 		return;
@@ -312,9 +300,6 @@ void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t s
 	MSG_WriteUintBase128( msg, client->UcmdReceived ); // acknowledge the last ucmd
 }
 
-/*
-* SV_SendMessageToClient
-*/
 bool SV_SendMessageToClient( client_t *client, msg_t *msg ) {
 	assert( client );
 
@@ -346,24 +331,15 @@ void SV_ResetClientFrameCounters() {
 	}
 }
 
-/*
-* SV_WriteFrameSnapToClient
-*/
 void SV_WriteFrameSnapToClient( client_t *client, msg_t *msg ) {
 	SNAP_WriteFrameSnapToClient( &sv.gi, client, msg, sv.framenum, svs.gametime, sv.baselines, &svs.client_entities );
 }
 
-/*
-* SV_BuildClientFrameSnap
-*/
 void SV_BuildClientFrameSnap( client_t *client ) {
 	SNAP_BuildClientFrameSnap( svs.cms, &sv.gi, sv.framenum, svs.gametime,
 		client, &server_gs.gameState, &svs.client_entities, sv_mempool );
 }
 
-/*
-* SV_SendClientDatagram
-*/
 static bool SV_SendClientDatagram( client_t *client ) {
 	if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
 		return true;
@@ -382,9 +358,6 @@ static bool SV_SendClientDatagram( client_t *client ) {
 	return SV_SendMessageToClient( client, &tmpMessage );
 }
 
-/*
-* SV_SendClientMessages
-*/
 void SV_SendClientMessages() {
 	ZoneScoped;
 

@@ -116,9 +116,6 @@ static void SV_Map_f() {
 
 //===============================================================
 
-/*
-* SV_Status_f
-*/
 void SV_Status_f() {
 	int i, j, l;
 	client_t *cl;
@@ -170,9 +167,6 @@ void SV_Status_f() {
 	Com_Printf( "\n" );
 }
 
-/*
-* SV_Heartbeat_f
-*/
 static void SV_Heartbeat_f() {
 	svc.nextHeartbeat = Sys_Milliseconds();
 }
@@ -221,9 +215,6 @@ static void SV_KillServer_f() {
 
 //===========================================================
 
-/*
-* SV_InitOperatorCommands
-*/
 void SV_InitOperatorCommands() {
 	Cmd_AddCommand( "heartbeat", SV_Heartbeat_f );
 	Cmd_AddCommand( "status", SV_Status_f );
@@ -248,9 +239,6 @@ void SV_InitOperatorCommands() {
 	Cmd_SetCompletionFunc( "gamemap", CompleteMapName );
 }
 
-/*
-* SV_ShutdownOperatorCommands
-*/
 void SV_ShutdownOperatorCommands() {
 	Cmd_RemoveCommand( "heartbeat" );
 	Cmd_RemoveCommand( "status" );

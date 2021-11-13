@@ -146,9 +146,9 @@ void SV_InitGame() {
 	}
 
 	svs.spawncount = RandomUniform( &svs.rng, 0, S16_MAX );
-	svs.clients = ( client_t * ) Mem_Alloc( sv_mempool, sizeof( client_t ) * sv_maxclients->integer );
+	memset( svs.clients, 0, sizeof( svs.clients ) );
 	svs.client_entities.num_entities = sv_maxclients->integer * UPDATE_BACKUP * MAX_SNAP_ENTITIES;
-	svs.client_entities.entities = ( SyncEntityState * ) Mem_Alloc( sv_mempool, sizeof( SyncEntityState ) * svs.client_entities.num_entities );
+	memset( svs.client_entities.entities, 0, sizeof( svs.client_entities.entities ) );
 
 	// init network stuff
 
@@ -259,14 +259,8 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 	// get any latched variable changes (sv_maxclients, etc)
 	Cvar_GetLatchedVars( CVAR_LATCH );
 
-	if( svs.clients ) {
-		Mem_Free( svs.clients );
-		svs.clients = NULL;
-	}
-
-	if( svs.client_entities.entities ) {
-		Mem_Free( svs.client_entities.entities );
-		memset( &svs.client_entities, 0, sizeof( svs.client_entities ) );
+	for( client_t & client : svs.clients ) {
+		SNAP_FreeClientFrames( &client );
 	}
 
 	if( svs.cms ) {
@@ -276,10 +270,6 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 
 	Com_SetServerState( ss_dead );
 	svs.initialized = false;
-
-	if( sv_mempool ) {
-		Mem_EmptyPool( sv_mempool );
-	}
 }
 
 /*

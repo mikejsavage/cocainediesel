@@ -24,8 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static bool sv_initialized = false;
 
-mempool_t *sv_mempool;
-
 // IPv4
 cvar_t *sv_ip;
 cvar_t *sv_port;
@@ -510,8 +508,6 @@ void SV_Init() {
 
 	SV_InitOperatorCommands();
 
-	sv_mempool = Mem_AllocPool( NULL, "Server" );
-
 	Cvar_Get( "protocol", va( "%i", APP_PROTOCOL_VERSION ), CVAR_SERVERINFO | CVAR_NOSET );
 
 	// sv_port = 12345
@@ -581,8 +577,6 @@ void SV_Shutdown( const char *finalmsg ) {
 	SV_ShutdownGame( finalmsg, false );
 
 	SV_ShutdownOperatorCommands();
-
-	Mem_FreePool( &sv_mempool );
 
 	FREE( sys_allocator, svs.frame_arena.get_memory() );
 }

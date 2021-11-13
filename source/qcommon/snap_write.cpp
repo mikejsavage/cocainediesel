@@ -98,25 +98,16 @@ static void SNAP_EmitPacketEntities( ginfo_t *gi, client_snapshot_t *from, clien
 	MSG_WriteEntityNumber( msg, 0, false ); // end of packetentities
 }
 
-/*
-* SNAP_WriteDeltaGameStateToClient
-*/
 static void SNAP_WriteDeltaGameStateToClient( client_snapshot_t *from, client_snapshot_t *to, msg_t *msg ) {
 	MSG_WriteUint8( msg, svc_match );
 	MSG_WriteDeltaGameState( msg, from ? &from->gameState : NULL, &to->gameState );
 }
 
-/*
-* SNAP_WritePlayerstateToClient
-*/
 static void SNAP_WritePlayerstateToClient( msg_t *msg, const SyncPlayerState *ops, SyncPlayerState *ps ) {
 	MSG_WriteUint8( msg, svc_playerinfo );
 	MSG_WriteDeltaPlayerState( msg, ops, ps );
 }
 
-/*
-* SNAP_WriteMultiPOVCommands
-*/
 static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum ) {
 	int i, index;
 	client_t *cl;
@@ -221,9 +212,6 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 	} while( command );
 }
 
-/*
-* SNAP_WriteFrameSnapToClient
-*/
 void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
 								  SyncEntityState *baselines, client_entities_t *client_entities ) {
 	client_snapshot_t *frame, *oldframe;
@@ -341,9 +329,6 @@ static void SNAP_FatPVS( CollisionModel *cms, Vec3 org, uint8_t *fatpvs ) {
 	CM_MergePVS( cms, org, fatpvs );
 }
 
-/*
-* SNAP_BitsCullEntity
-*/
 static bool SNAP_PVSCullEntity( CollisionModel *cms, edict_t *ent, uint8_t *bits ) {
 	// too many leafs for individual check, go by headnode
 	if( ent->r.num_clusters == -1 ) {
@@ -373,9 +358,6 @@ typedef struct {
 	uint8_t entityAddedToSnapList[MAX_EDICTS / 8];
 } snapshotEntityNumbers_t;
 
-/*
-* SNAP_AddEntNumToSnapList
-*/
 static bool SNAP_AddEntNumToSnapList( int entNum, snapshotEntityNumbers_t *entList ) {
 	if( entNum >= MAX_EDICTS ) {
 		return false;
@@ -394,9 +376,6 @@ static bool SNAP_AddEntNumToSnapList( int entNum, snapshotEntityNumbers_t *entLi
 	return true;
 }
 
-/*
-* SNAP_SortSnapList
-*/
 static void SNAP_SortSnapList( snapshotEntityNumbers_t *entsList ) {
 	int i;
 
@@ -410,18 +389,12 @@ static void SNAP_SortSnapList( snapshotEntityNumbers_t *entsList ) {
 	}
 }
 
-/*
-* SNAP_GainForAttenuation
-*/
 static float SNAP_GainForAttenuation( float dist ) {
 	dist = Max2( dist, S_DEFAULT_ATTENUATION_REFDISTANCE );
 	dist = Min2( dist, S_DEFAULT_ATTENUATION_MAXDISTANCE );
 	return S_DEFAULT_ATTENUATION_REFDISTANCE / ( S_DEFAULT_ATTENUATION_REFDISTANCE + ATTN_DISTANT * ( dist - S_DEFAULT_ATTENUATION_REFDISTANCE ) );
 }
 
-/*
-* SNAP_SnapCullSoundEntity
-*/
 static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, Vec3 listener_origin ) {
 	// extend the influence sphere cause the player could be moving
 	float dist = Length( listener_origin - ent->s.origin ) - 128;
@@ -429,9 +402,6 @@ static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, Vec3 li
 	return gain <= 0.05f;
 }
 
-/*
-* SNAP_SnapCullEntity
-*/
 static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *clent, client_snapshot_t *frame,
 								Vec3 vieworg, int viewarea, uint8_t *fatpvs ) {
 	// filters: this entity has been disabled for comunication
@@ -516,9 +486,6 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 	return snd_culled && SNAP_PVSCullEntity( cms, ent, fatpvs );    // cull by PVS
 }
 
-/*
-* SNAP_AddEntitiesVisibleAtOrigin
-*/
 static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, edict_t *clent, Vec3 vieworg,
 											int viewarea, client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	uint8_t * pvs = ( uint8_t * ) alloca( CM_ClusterRowSize( cms ) );
@@ -556,9 +523,6 @@ static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, e
 	}
 }
 
-/*
-* SNAP_BuildSnapEntitiesList
-*/
 static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_t *clent, Vec3 vieworg,
 										client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	int entNum;
@@ -597,9 +561,9 @@ static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_
 * copies off the playerstat and areabits.
 */
 void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
-								client_t *client,
-								SyncGameState *gameState, client_entities_t *client_entities,
-								mempool_t *mempool ) {
+	client_t *client,
+	SyncGameState *gameState, client_entities_t *client_entities
+) {
 	int e, i, ne;
 	Vec3 org;
 	edict_t *ent, *clent;
@@ -643,10 +607,10 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 
 		numareas *= CM_AreaRowSize( cms );
 		if( frame->areabits ) {
-			Mem_Free( frame->areabits );
+			FREE( sys_allocator, frame->areabits );
 			frame->areabits = NULL;
 		}
-		frame->areabits = (uint8_t*)Mem_Alloc( mempool, numareas );
+		frame->areabits = ALLOC_MANY( sys_allocator, uint8_t, numareas );
 	}
 
 	// grab the current SyncPlayerState
@@ -660,16 +624,6 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 		}
 	} else {
 		frame->numplayers = 1;
-	}
-
-	if( frame->ps_size < frame->numplayers ) {
-		if( frame->ps ) {
-			Mem_Free( frame->ps );
-			frame->ps = NULL;
-		}
-
-		frame->ps = ( SyncPlayerState* )Mem_Alloc( mempool, sizeof( SyncPlayerState ) * frame->numplayers );
-		frame->ps_size = frame->numplayers;
 	}
 
 	if( frame->multipov ) {
@@ -723,22 +677,12 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 */
 static void SNAP_FreeClientFrame( client_snapshot_t *frame ) {
 	if( frame->areabits ) {
-		Mem_Free( frame->areabits );
+		FREE( sys_allocator, frame->areabits );
 		frame->areabits = NULL;
 	}
 	frame->numareas = 0;
-
-	if( frame->ps ) {
-		Mem_Free( frame->ps );
-		frame->ps = NULL;
-	}
-	frame->ps_size = 0;
 }
 
-/*
-* SNAP_FreeClientFrames
-*
-*/
 void SNAP_FreeClientFrames( client_t *client ) {
 	for( int i = 0; i < UPDATE_BACKUP; i++ ) {
 		client_snapshot_t * frame = &client->snapShots[i];

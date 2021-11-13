@@ -70,8 +70,7 @@ struct client_snapshot_t {
 	int numareas;
 	uint8_t *areabits;                  // portalarea visibility bits
 	int numplayers;
-	int ps_size;
-	SyncPlayerState *ps;                 // [numplayers]
+	SyncPlayerState ps[ MAX_CLIENTS ];
 	int num_entities;
 	int first_entity;                   // into the circular sv.client_entities[]
 	int64_t sentTimeStamp;         // time at what this frame snap was sent to the clients
@@ -175,7 +174,7 @@ struct server_static_demo_t {
 struct client_entities_t {
 	unsigned num_entities;              // maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	unsigned next_entities;             // next client_entity to use
-	SyncEntityState *entities;           // [num_entities]
+	SyncEntityState entities[ MAX_EDICTS * UPDATE_BACKUP * MAX_SNAP_ENTITIES ];
 };
 
 struct server_static_t {
@@ -194,7 +193,7 @@ struct server_static_t {
 	int spawncount;                     // incremented each server start
 	                                    // used to check late spawns
 
-	client_t *clients;                  // [sv_maxclients->integer];
+	client_t clients[ MAX_CLIENTS ];
 	client_entities_t client_entities;
 
 	challenge_t challenges[MAX_CHALLENGES]; // to prevent invalid IPs from connecting
@@ -219,8 +218,6 @@ struct server_constant_t {
 // shared message buffer to be used for occasional messages
 extern msg_t tmpMessage;
 extern uint8_t tmpMessageData[MAX_MSGLEN];
-
-extern mempool_t *sv_mempool;
 
 extern server_constant_t svc;              // constant server info (trully persistant since sv_init)
 extern server_static_t svs;                // persistant server info
@@ -390,6 +387,5 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 
 void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
 	client_t *client,
-	SyncGameState *gameState, client_entities_t *client_entities,
-	mempool_t *mempool );
+	SyncGameState *gameState, client_entities_t *client_entities );
 void SNAP_FreeClientFrames( client_t * client );

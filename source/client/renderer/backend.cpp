@@ -76,6 +76,8 @@ struct UBO {
 static UBO ubos[ 16 ]; // 1MB of uniform space
 static u32 ubo_offset_alignment;
 
+static float max_anisotropic_filtering;
+
 static PipelineState prev_pipeline;
 static GLuint prev_fbo;
 static u32 prev_viewport_width;
@@ -484,6 +486,8 @@ void RenderBackendInit() {
 	GLint alignment;
 	glGetIntegerv( GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &alignment );
 	ubo_offset_alignment = checked_cast< u32 >( alignment );
+
+	glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropic_filtering );
 
 	GLint max_ubo_size;
 	glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &max_ubo_size );
@@ -1214,6 +1218,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
 			}
 
+			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
 
 			const char * cursor = ( const char * ) config.data;
 			for( u32 i = 0; i < config.num_mipmaps; i++ ) {
@@ -1293,6 +1298,8 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 		glTexImage3D( GL_TEXTURE_2D_ARRAY, 0, internal_format, config.width, config.height, config.layers, 0, channels, type, config.data );
 	}
 	else {
+		glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
+
 		const char * cursor = ( const char * ) config.data;
 		for( u32 i = 0; i < config.num_mipmaps; i++ ) {
 			u32 w = config.width >> i;

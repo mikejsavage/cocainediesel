@@ -479,7 +479,6 @@ void DrawGibs();
 //
 // cg_effects.c
 //
-void ExplosionParticles( Vec3 origin, Vec3 normal, Vec4 team_color );
 void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color );
 
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );

@@ -1,0 +1,70 @@
+{
+  dlight {
+    intensity 500000
+    lifetime 0.25
+    color 1 1 1 1
+    color_override
+  }
+
+  dlight {
+    intensity 150000
+    lifetime 0.5
+    color 1 1 1 1
+    color_override
+  }
+
+  particles {
+    material textures/vfx/trace2
+    blendfunc add
+    rotate
+    stretch
+
+    position sphere 48
+
+    acceleration $gravity
+
+    speed 500
+
+    color 1.0 0.15 0.0 1.0
+    end_color 0.0 0.0 0.0
+
+    size 32
+    size_distribution uniform 0
+
+    lifetime 0.3
+    count 128
+  }
+
+  particles {
+    material textures/vfx/glow2
+    blendfunc add
+
+    position sphere 42
+
+    speed 5
+
+    color 1.0 0.25 0.0 1.0
+	end_color 0.0 0.0 0.0
+
+    size 32 0
+    size_distribution uniform 4
+
+    lifetime 0.125
+    lifetime_distribution uniform 0.05
+    count 128
+  }
+
+  particles {
+    material textures/vfx/circle5
+    blendfunc add
+
+    color 1.0 1.0 1.0 1.0
+    end_color 1.0 1.0 1.0
+    color_override
+
+    size 1 96
+
+    lifetime 0.3
+    count 1
+  }
+}

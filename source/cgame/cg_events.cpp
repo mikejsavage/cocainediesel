@@ -729,8 +729,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_ARBULLET_EXPLOSION: {
-			Vec3 dir = U64ToDir( parm );
-			DoVisualEffect( "weapons/ar/explosion", ent->origin, dir, 1.0f, team_color );
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "weapons/ar/explosion", ent->origin, normal, 1.0f, team_color );
 			S_StartFixedSound( "weapons/ar/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
@@ -740,33 +740,33 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_BOLT_EXPLOSION: {
-			Vec3 dir = U64ToDir( parm );
-			RailgunImpact( ent->origin, dir, 0, team_color );
+			Vec3 normal = U64ToDir( parm );
+			RailgunImpact( ent->origin, normal, 0, team_color );
 		} break;
 
 		case EV_GRENADE_EXPLOSION: {
-			Vec3 dir = U64ToDir( parm );
-			ExplosionParticles( ent->origin, dir, team_color );
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "vfx/explosion", ent->origin, normal, 1.0f, team_color );
 			S_StartFixedSound( "weapons/gl/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
 		case EV_STICKY_EXPLOSION: {
-			Vec3 dir = U64ToDir( parm );
-			ExplosionParticles( ent->origin, dir, team_color );
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "weapons/sticky/explosion", ent->origin, normal, 1.0f, team_color );
 			if( parm == 0 ) {
 				S_StartFixedSound( "weapons/sticky/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 			}
 		} break;
 
 		case EV_STICKY_IMPACT: {
-			Vec3 dir = U64ToDir( parm );
-			DoVisualEffect( "weapons/sticky/impact", ent->origin, dir, 24, team_color );
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "weapons/sticky/impact", ent->origin, normal, 24, team_color );
 			S_StartFixedSound( "weapons/sticky/impact", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
 		case EV_ROCKET_EXPLOSION: {
-			Vec3 dir = U64ToDir( parm );
-			ExplosionParticles( ent->origin, dir, team_color );
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "vfx/explosion", ent->origin, normal, 1.0f, team_color );
 			S_StartFixedSound( "weapons/rl/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
@@ -780,32 +780,32 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_RIFLEBULLET_IMPACT: {
-			Vec3 dir = U64ToDir( parm );
-			DoVisualEffect( "vfx/bulletsparks", ent->origin, dir, 24, team_color );
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "vfx/bulletsparks", ent->origin, normal, 24, team_color );
 			S_StartFixedSound( "weapons/bullet_impact", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
 		case EV_STAKE_IMPACT: {
-			Vec3 dir = U64ToDir( parm );
-			DoVisualEffect( "weapons/stake/hit", ent->origin, dir, 1.0f, team_color );
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "weapons/stake/hit", ent->origin, normal, 1.0f, team_color );
 			S_StartFixedSound( "weapons/stake/hit", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
 		case EV_STAKE_IMPALE: {
-			Vec3 dir = U64ToDir( parm );
-			DoVisualEffect( "weapons/stake/impale", ent->origin, dir, 1.0f, team_color );
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "weapons/stake/impale", ent->origin, normal, 1.0f, team_color );
 			S_StartFixedSound( "weapons/stake/impale", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
 		case EV_BLAST_IMPACT: {
-			Vec3 dir = U64ToDir( parm );
-			DoVisualEffect( "weapons/mb/hit", ent->origin, dir, 1.0f, team_color );
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "weapons/mb/hit", ent->origin, normal, 1.0f, team_color );
 			S_StartFixedSound( "weapons/mb/hit", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
 		case EV_BLAST_BOUNCE: {
-			Vec3 dir = U64ToDir( parm );
-			DoVisualEffect( "weapons/mb/bounce", ent->origin, dir, 1.0f, team_color );
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "weapons/mb/bounce", ent->origin, normal, 1.0f, team_color );
 			S_StartFixedSound( "weapons/mb/bounce", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 		} break;
 
@@ -903,10 +903,11 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			S_StartEntitySound( "sounds/beep", ent->number, CHAN_AUTO, 1.0f, 1.0f );
 			break;
 
-		case EV_SUICIDE_BOMB_EXPLODE:
-			ExplosionParticles( ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), team_color );
+		case EV_SUICIDE_BOMB_EXPLODE: {
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "vfx/explosion", ent->origin, normal, 1.0f, team_color );
 			S_StartFixedSound( "weapons/rl/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
-			break;
+		} break;
 
 		case EV_STUN_GRENADE_EXPLOSION:
 			S_StartFixedSound( "sounds/vsay/goodgame", ent->origin, CHAN_AUTO, 1.0f, 1.0f );

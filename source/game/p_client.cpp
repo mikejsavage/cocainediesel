@@ -285,6 +285,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->die = player_die;
 	self->viewheight = playerbox_stand_viewheight;
 	self->r.inuse = true;
+	self->mass = PLAYER_MASS;
 	self->r.clipmask = MASK_PLAYERSOLID;
 	self->waterlevel = 0;
 	self->watertype = 0;

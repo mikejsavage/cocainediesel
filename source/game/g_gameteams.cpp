@@ -91,9 +91,9 @@ void G_Teams_SetTeam( edict_t *ent, int team ) {
 
 	ent->r.client->team = team;
 
-	if( team == TEAM_SPECTATOR ) {
+	if( team == TEAM_SPECTATOR || !level.gametype.autoRespawn ) {
 		G_ClientRespawn( ent, true );
-		G_ChasePlayer( ent, NULL, false, 0 );
+		G_ChasePlayer( ent, NULL, team != TEAM_SPECTATOR, 0 );
 	}
 	else {
 		G_ClientRespawn( ent, false );

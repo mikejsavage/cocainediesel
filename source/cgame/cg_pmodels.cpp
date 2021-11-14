@@ -840,11 +840,13 @@ void CG_DrawPlayer( centity_t * cent ) {
 		}
 	}
 
+	Mat4 inverse_scale = Mat4Scale( 1.0f / cent->current.scale );
+
 	// add weapon model
 	if( cent->current.weapon != Weapon_None ) {
 		const Model * weapon_model = GetWeaponModelMetadata( cent->current.weapon )->model;
 		if( weapon_model != NULL ) {
-			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon ) * Mat4Scale( 1.0f / cent->current.scale );
+			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon ) * inverse_scale;
 
 			if( draw_model )
 				DrawModel( weapon_model, tag_transform, color );
@@ -862,7 +864,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		PlayerModelMetadata::Tag tag = meta->tag_bomb;
 		if( cent->current.effects & EF_HAT )
 			tag = meta->tag_hat;
-		Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
+		Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag ) * inverse_scale;
 		if ( draw_model )
 			DrawModel( attached_model, tag_transform, vec4_white );
 		DrawModelShadow( attached_model, tag_transform, vec4_white );

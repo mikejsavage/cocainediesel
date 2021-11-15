@@ -116,27 +116,42 @@ void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {
 }
 
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
+	if( cg.predictedPlayerState.weapon == Weapon_None )
+		return;
+
 	const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( cg.predictedPlayerState.weapon );
+	const Model * model = weaponInfo->model;
 
-	// calculate the entity position
-	viewweapon->origin = cg.view.origin;
+	Vec3 gunAngles, gunOffset;
+	if( model->camera == U8_MAX ) {
+		// calculate the entity position
+		// weapon config offsets
+		gunAngles = weaponInfo->handpositionAngles;
 
-	// weapon config offsets
-	Vec3 gunAngles = weaponInfo->handpositionAngles + cg.predictedPlayerState.viewangles;
+		constexpr Vec3 old_gunpos_cvars = Vec3( 3, 10, -12 ); // depth, horizontal, vertical
+		gunOffset = weaponInfo->handpositionOrigin + old_gunpos_cvars;
+		gunOffset = Vec3( gunOffset.y, gunOffset.z, -gunOffset.x );
+	}
+	else {
+		constexpr Mat4 y_up_to_camera_space = Mat4(
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			-1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
+		);
 
-	constexpr Vec3 old_gunpos_cvars = Vec3( 3, 10, -12 ); // depth, horizontal, vertical
-	Vec3 gunOffset = weaponInfo->handpositionOrigin + old_gunpos_cvars;
+		gunOffset = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera ].global_transform.col3.xyz(), 1.0f ) ).xyz();
+		gunAngles = Vec3( 0.0f );
+	}
 
 	// scale forward gun offset depending on fov and aspect ratio
-	gunOffset.x *= frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV ) ;
+	gunOffset.x *= frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV );
 	gunOffset.z += CG_ViewSmoothFallKick();
 
-	// apply the offsets
-	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * gunOffset.x;
-	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_RIGHT ) * gunOffset.y;
-	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_UP ) * gunOffset.z;
+	viewweapon->origin = ( frame_static.inverse_V * Vec4( gunOffset, 1.0 ) ).xyz();
 
 	// add angles effects
+	gunAngles += cg.predictedPlayerState.viewangles;
 	CG_ViewWeapon_AddAngleEffects( &gunAngles, viewweapon );
 
 	// finish

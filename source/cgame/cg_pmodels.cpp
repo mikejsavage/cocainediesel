@@ -243,18 +243,11 @@ void CG_MoveToTag( Vec3 * move_origin,
 * It asumes the player entity is up to date
 */
 bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result ) {
-	centity_t *cent;
-	pmodel_t *pmodel;
-
-	if( !tag_result ) {
-		return false;
-	}
-
 	if( entnum < 1 || entnum >= MAX_EDICTS ) {
 		return false;
 	}
 
-	cent = &cg_entities[entnum];
+	centity_t * cent = &cg_entities[entnum];
 	if( cent->serverFrame != cg.frame.serverFrame ) {
 		return false;
 	}
@@ -269,15 +262,12 @@ bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result ) {
 	return false;
 
 	// it's a 3rd person model
-	pmodel = &cg_entPModels[entnum];
+	pmodel_t * pmodel = &cg_entPModels[entnum];
 	tag_result->origin = pmodel->projectionSource.origin;
 	Matrix3_Copy( pmodel->projectionSource.axis, tag_result->axis );
 	return true;
 }
 
-/*
-* CG_OutlineScaleForDist
-*/
 static float CG_OutlineScaleForDist( const InterpolatedEntity * e, float maxdist, float scale ) {
 	Vec3 dir = e->origin - cg.view.origin;
 	float dist = Length( dir ) * cg.view.fracDistFOV;

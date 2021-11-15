@@ -60,6 +60,8 @@ struct Model {
 
 	Joint * skin;
 	u8 num_joints;
+
+	u8 camera;
 };
 
 void InitModels();

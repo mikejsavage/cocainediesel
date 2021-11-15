@@ -25,11 +25,11 @@ static bool LoadBinaryBuffers( cgltf_data * data ) {
 }
 
 static u8 GetNodeIdx( const cgltf_node * node ) {
-	return u8( uintptr_t( node->camera ) - 1 );
+	return u8( uintptr_t( node->light ) - 1 );
 }
 
 static void SetNodeIdx( cgltf_node * node, u8 idx ) {
-	node->camera = ( cgltf_camera * ) uintptr_t( idx + 1 );
+	node->light = ( cgltf_light * ) uintptr_t( idx + 1 );
 }
 
 static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
@@ -322,6 +322,11 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 		return false;
 	}
 
+	if( gltf->lights_count != 0 ) {
+		Com_Printf( S_COLOR_YELLOW "We can't load models that have lights in them (%s)\n", path );
+		return false;
+	}
+
 	for( size_t i = 0; i < gltf->meshes_count; i++ ) {
 		if( gltf->meshes[ i ].primitives_count != 1 ) {
 			Com_Printf( S_COLOR_YELLOW "Meshes with multiple primitives are unsupported (%s)\n", path );
@@ -358,6 +363,13 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 		}
 
 		LoadAnimation( model, &gltf->animations[ 0 ] );
+	}
+
+	model->camera = U8_MAX;
+	for( size_t i = 0; i < gltf->nodes_count; i++ ) {
+		if( gltf->nodes[ i ].camera != NULL ) {
+			model->camera = GetNodeIdx( &gltf->nodes[ i ] );
+		}
 	}
 
 	return true;

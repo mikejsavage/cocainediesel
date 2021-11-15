@@ -42,7 +42,7 @@ void applyDecals( int count, int tile_index, inout vec4 diffuse, inout vec3 norm
 
 		vec4 data2 = texelFetch( u_DecalData, decal_index + 1 );
 		vec4 decal_color = vec4( fract( floor( data2.yzw ) / 256.0 ), 1.0 );
-		float decal_height = ( data2.y - decal_color.x ) / 256.0;
+		float decal_height = floor( data2.y / 256.0 );
 		vec4 uvwh = vec4( data2.x, fract( data2.yzw ) );
 		float layer = floor( uvwh.x );
 

@@ -1088,10 +1088,22 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->specular, material->shininess, tcmod_row0, tcmod_row1 ) );
 
 	if( skinned ) {
-		pipeline.shader = material->shaded ? &shaders.standard_skinned_shaded : &shaders.standard_skinned;
+		if( material->shaded ) {
+			pipeline.shader = &shaders.standard_skinned_shaded;
+			AddDynamicsToPipeline( &pipeline );
+		}
+		else {
+			pipeline.shader = &shaders.standard_skinned;
+		}
 	}
 	else {
-		pipeline.shader = material->shaded ? &shaders.standard_shaded : &shaders.standard;
+		if( material->shaded ) {
+			pipeline.shader = &shaders.standard_shaded;
+			AddDynamicsToPipeline( &pipeline );
+		}
+		else {
+			pipeline.shader = &shaders.standard;
+		}
 	}
 
 	return pipeline;

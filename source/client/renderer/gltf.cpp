@@ -317,7 +317,7 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 		return false;
 	}
 
-	if( gltf->scenes_count != 1 || gltf->animations_count > 1 || gltf->skins_count > 1 ) {
+	if( gltf->scenes_count != 1 || gltf->animations_count > 1 || gltf->skins_count > 1 || gltf->cameras_count > 1 ) {
 		Com_Printf( S_COLOR_YELLOW "Trivial models only please (%s)\n", path );
 		return false;
 	}

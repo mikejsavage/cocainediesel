@@ -187,11 +187,13 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 		return;
 	}
 
-	if( cancel ) {
-		Com_Printf( "Canceled server demo recording: %s\n", svs.demo.filename );
-	} else {
-		SNAP_StopDemoRecording( svs.demo.file );
+	TempAllocator temp = svs.frame_arena.temp();
 
+	if( cancel ) {
+		Com_Printf( "Cancelled server demo recording: %s\n", svs.demo.filename );
+	}
+	else {
+		SNAP_StopDemoRecording( svs.demo.file );
 		Com_Printf( "Stopped server demo recording: %s\n", svs.demo.filename );
 	}
 
@@ -199,10 +201,11 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 	svs.demo.file = 0;
 
 	if( cancel ) {
-		if( !FS_RemoveFile( svs.demo.tempname ) ) {
+		if( !RemoveFile( &temp, svs.demo.tempname ) ) {
 			Com_Printf( "Error: Failed to delete the temporary server demo file\n" );
 		}
-	} else {
+	}
+	else {
 		// write some meta information about the match/demo
 		SV_SetDemoMetaKeyValue( "hostname", sv.configstrings[CS_HOSTNAME] );
 		SV_SetDemoMetaKeyValue( "localtime", va( "%" PRIi64, (int64_t)svs.demo.localtime ) );
@@ -213,7 +216,6 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 
 		SNAP_WriteDemoMetaData( svs.demo.tempname, svs.demo.meta_data, svs.demo.meta_data_realsize );
 
-		TempAllocator temp = svs.frame_arena.temp();
 		if( !MoveFile( &temp, svs.demo.tempname, svs.demo.filename, MoveFile_DoReplace ) ) {
 			Com_Printf( "Error: Failed to rename the server demo file\n" );
 		}

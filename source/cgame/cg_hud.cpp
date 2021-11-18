@@ -1002,7 +1002,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		Draw2DBox( curx + border, cury + border, innerw, innerh, cls.white_material, dark_gray );
 
 		Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, cgs.media.shaderBombIcon, color );
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemTinySize, va( "BOMB" ), Alignment_CenterMiddle, curx + iw * 0.5f, cury - ih * 0.25f, vec4_white, layout_cursor_font_border );
+		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, va( "BOMB" ), Alignment_CenterTop, curx + iw * 0.5f, cury + ih * 1.075f, selected_weapon_color, layout_cursor_font_border );
 	}
 
 	for( int i = 0; i < num_weapons; i++ ) {

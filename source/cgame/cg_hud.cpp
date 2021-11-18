@@ -637,7 +637,7 @@ static void CG_DrawObituaries(
 			float h = 128.0f;
 			float yy = frame_static.viewport.y * 0.5f - h * 0.5f;
 
-			float t = float( cls.monotonicTime - self_obituary.time ) / 1000.0f;
+			float t = float( cls.monotonicTime - self_obituary.time ) / 500.0f;
 
 			Draw2DBox( 0, yy, frame_static.viewport.x, h, cls.white_material, Vec4( 0, 0, 0, Min2( 0.5f, t * 0.5f ) ) );
 
@@ -647,8 +647,8 @@ static void CG_DrawObituaries(
 				TempAllocator temp = cls.frame_arena.temp();
 				const char * obituary = MakeObituary( &temp, &rng, self_obituary.type, self_obituary.damage_type );
 
-				float size = Lerp( h * 0.5f, Unlerp01( 1.0f, t, 3.0f ), h * 0.75f );
-				Vec4 color = CG_TeamColorVec4( TEAM_ENEMY );
+				float size = Lerp( h * 0.5f, Unlerp01( 1.0f, t, 20.0f ), h * 5.0f );
+				Vec4 color = AttentionGettingColor();
 				color.w = Unlerp01( 1.0f, t, 2.0f );
 				DrawText( cgs.fontNormal, size, obituary, Alignment_CenterMiddle, frame_static.viewport.x * 0.5f, frame_static.viewport.y * 0.5f, color );
 			}
@@ -940,8 +940,8 @@ enum {
 
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	Vec4 light_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
-	Vec4 dark_gray = sRGBToLinear( RGBA8( 51, 51, 51, 255 ) );
+	Vec4 dark_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
+	Vec4 light_gray = sRGBToLinear( RGBA8( 51, 51, 51, 255 ) );
 	Vec4 color_ammo_max = sRGBToLinear( rgba8_diesel_yellow );
 	Vec4 color_ammo_min = sRGBToLinear( RGBA8( 255, 56, 97, 255 ) );
 
@@ -961,13 +961,37 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 	int total_width = Max2( 0, ( num_weapons + bomb ) * offx - padx );
 	int total_height = Max2( 0, ( num_weapons + bomb ) * offy - pady );
 
-	int border = iw * 0.04f;
+	int border = iw * 0.015f;
 	int border_sel = border * 0.25f;
+	int padding = iw * 0.05f;
 	int pad_sel = border * 2;
 	int innerw = iw - border * 2;
 	int innerh = ih - border * 2;
-	int iconw = iw - border * 2;
-	int iconh = ih - border * 2 ;
+	int iconw = iw - border * 2 - padding * 2;
+	int iconh = ih - border * 2 - padding * 2;
+
+	char *weapons[20] = {
+		"None",
+		"KNIFE",
+		"9MM",
+		"SMG",
+		".50 AE",
+		"SHOTGUN",
+		"BURST",
+		"CROSSBOW",
+		"MORTAR",
+		"BAZOOKA",
+		"ASSAULT",
+		"BUBBLE",
+		"LASER",
+		"RAILGUN",
+		"SNIPER",
+		"SCOUT",
+		"RIFLE",
+		"BLASTER",
+		"ROADGUN",
+		"STICKY",
+	}; //lol
 
 	if( bomb != 0 ) {
 		int curx = CG_HorizontalAlignForWidth( x, alignment, total_width );
@@ -977,7 +1001,8 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		Draw2DBox( curx, cury, iw, ih, cls.white_material, color );
 		Draw2DBox( curx + border, cury + border, innerw, innerh, cls.white_material, dark_gray );
 
-		Draw2DBox( curx + border, cury + border, iconw, iconh, cgs.media.shaderBombIcon, color );
+		Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, cgs.media.shaderBombIcon, color );
+		DrawText( cgs.fontBoldItalic, cgs.fontSystemTinySize, va( "BOMB" ), Alignment_CenterMiddle, curx + iw * 0.5f, cury - ih * 0.25f, vec4_white, layout_cursor_font_border );
 	}
 
 	for( int i = 0; i < num_weapons; i++ ) {
@@ -987,6 +1012,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		WeaponType weap = ps->weapons[ i ].weapon;
 		int ammo = ps->weapons[ i ].ammo;
 		const WeaponDef * def = GS_GetWeaponDef( weap );
+
 
 		Vec4 color = Vec4( 1.0f );
 		float ammo_frac = 1.0f;
@@ -1003,35 +1029,39 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 		color = Lerp( color_ammo_min, Unlerp( 0.0f, ammo_frac, 1.0f ), color_ammo_max );
 
-		Vec4 color_bg = Vec4( color.xyz() * 0.33f, 1.0f );
+		Vec4 color_bg = Vec4( color.xyz(), 1.0f );
 
 		const Material * icon = cgs.media.shaderWeaponIcon[ weap ];
 
-		bool selected = ps->pending_weapon != Weapon_None ? weap == ps->pending_weapon : weap == ps->weapon;
+		bool selected = false;
 		int offset = selected ? border_sel : 0;
 		int pady_sel = selected ? pad_sel : 0;
 
+		Draw2DBox( curx - offset, cury - offset - pady_sel, iw + offset * 2, ih + offset * 2, cls.white_material, light_gray );
+
 		if( ammo_frac < 1.0f ) {
-			Draw2DBox( curx - offset, cury - offset - pady_sel, iw + offset * 2, ih + offset * 2, cls.white_material, light_gray );
-			Draw2DBox( curx + border, cury + border - pady_sel, innerw, innerh, cls.white_material, dark_gray );
-			Draw2DBox( curx + border, cury + border - pady_sel, iconw, iconh, icon, light_gray );
+			Draw2DBox( curx + border, cury + border - pady_sel, innerw, innerh, cls.white_material, light_gray );
+			Draw2DBox( curx + border + padding, cury + border + padding - pady_sel, iconw, iconh, icon, dark_gray );
 		}
 
 		Vec2 half_pixel = HalfPixelSize( icon );
 
 		if( def->clip_size == 0 || ammo_frac != 0 ) {
-			Draw2DBox( curx - offset, cury + ih * ( 1.0f - ammo_frac ) - offset - pady_sel, iw + offset * 2, ih * ammo_frac + offset * 2, cls.white_material, color );
 			Draw2DBox( curx + border, cury + ih * ( 1.0f - ammo_frac ) + border - pady_sel, innerw, ih * ammo_frac - border * 2, cls.white_material, color_bg );
 		}
 
-		Draw2DBoxUV( curx + border, cury + border + ih * ( 1.0f - ammo_frac ) - pady_sel,
+		Draw2DBoxUV( curx + border + padding, cury + border + ih * ( 1.0f - ammo_frac ) + padding - pady_sel,
 			iconw, iconh - ih * ( 1.0f - ammo_frac ),
 			Vec2( half_pixel.x, Lerp( half_pixel.y, ih * ( 1.0f - ammo_frac ) / iconh, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
-			cgs.media.shaderWeaponIcon[ weap ], color );
+			cgs.media.shaderWeaponIcon[ weap ], Vec4( 0.02f, 0.02f, 0.02f, 1.0f ) ); // weapon icon top
 
 		if( def->clip_size != 0 ) {
-			DrawText( GetHUDFont(), font_size, va( "%i", ammo ), Alignment_CenterMiddle, curx + iw*0.5f, cury - ih * 0.25f - pady_sel, color, layout_cursor_font_border );
+			DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, va( "%i", ammo ), Alignment_LeftTop, curx + iw * 0.05f, cury + ih * 0.05f, color, layout_cursor_font_border ); //current ammo
 		}
+
+		bool selected_weapon =  ps->pending_weapon != Weapon_None ? weap == ps->pending_weapon : weap == ps->weapon;
+		Vec4 selected_weapon_color = selected_weapon ? vec4_white : Vec4( 0.5f, 0.5f, 0.5f, 1.0f );
+		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, va( "%s", weapons[ weap ] ), Alignment_CenterTop, curx + iw * 0.5f, cury + ih * 1.075f, selected_weapon_color, layout_cursor_font_border ); //weapon name
 
 
 		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling. this still doesnt fit
@@ -1043,7 +1073,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 			CG_GetBoundKeysString( va( "weapon %i", i + 1 ), bind, sizeof( bind ) );
 		}
 
-		DrawText( GetHUDFont(), bind_font_size, va( "[ %s ]", bind) , Alignment_CenterMiddle, curx + iw * 0.5f, cury + ih * 1.2f - pady_sel, layout_cursor_color, layout_cursor_font_border );
+		DrawText( cgs.fontNormalBold, cgs.fontSystemTinySize, va( "%s", bind) , Alignment_CenterMiddle, curx + iw * 0.5f, cury + ih * 1.35f - pady_sel, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), layout_cursor_font_border );
 	}
 }
 

@@ -963,12 +963,11 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 
 	int border = iw * 0.04f;
 	int border_sel = border * 0.25f;
-	int padding = iw * 0.1f;
 	int pad_sel = border * 2;
 	int innerw = iw - border * 2;
 	int innerh = ih - border * 2;
-	int iconw = iw - border * 2 - padding * 2;
-	int iconh = ih - border * 2 - padding * 2;
+	int iconw = iw - border * 2;
+	int iconh = ih - border * 2 ;
 
 	if( bomb != 0 ) {
 		int curx = CG_HorizontalAlignForWidth( x, alignment, total_width );
@@ -978,7 +977,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		Draw2DBox( curx, cury, iw, ih, cls.white_material, color );
 		Draw2DBox( curx + border, cury + border, innerw, innerh, cls.white_material, dark_gray );
 
-		Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, cgs.media.shaderBombIcon, color );
+		Draw2DBox( curx + border, cury + border, iconw, iconh, cgs.media.shaderBombIcon, color );
 	}
 
 	for( int i = 0; i < num_weapons; i++ ) {
@@ -1015,7 +1014,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		if( ammo_frac < 1.0f ) {
 			Draw2DBox( curx - offset, cury - offset - pady_sel, iw + offset * 2, ih + offset * 2, cls.white_material, light_gray );
 			Draw2DBox( curx + border, cury + border - pady_sel, innerw, innerh, cls.white_material, dark_gray );
-			Draw2DBox( curx + border + padding, cury + border + padding - pady_sel, iconw, iconh, icon, light_gray );
+			Draw2DBox( curx + border, cury + border - pady_sel, iconw, iconh, icon, light_gray );
 		}
 
 		Vec2 half_pixel = HalfPixelSize( icon );
@@ -1025,10 +1024,9 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 			Draw2DBox( curx + border, cury + ih * ( 1.0f - ammo_frac ) + border - pady_sel, innerw, ih * ammo_frac - border * 2, cls.white_material, color_bg );
 		}
 
-		float asdf = Max2( ih * ( 1.0f - ammo_frac ), float( padding ) ) - padding;
-		Draw2DBoxUV( curx + border + padding, cury + border + padding + asdf - pady_sel,
-			iconw, iconh - asdf,
-			Vec2( half_pixel.x, Lerp( half_pixel.y, asdf / iconh, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
+		Draw2DBoxUV( curx + border, cury + border + ih * ( 1.0f - ammo_frac ) - pady_sel,
+			iconw, iconh - ih * ( 1.0f - ammo_frac ),
+			Vec2( half_pixel.x, Lerp( half_pixel.y, ih * ( 1.0f - ammo_frac ) / iconh, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
 			cgs.media.shaderWeaponIcon[ weap ], color );
 
 		if( def->clip_size != 0 ) {

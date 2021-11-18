@@ -285,3 +285,9 @@ Vec4 AttentionGettingColor() {
 	float t = sinf( cls.monotonicTime / 20.0f ) * 0.5f + 1.0f;
 	return Lerp( vec4_red, t, sRGBToLinear( rgba8_diesel_yellow ) );
 }
+
+
+Vec4 PlantableColor() {
+	float t = sinf( cls.monotonicTime / 20.0f ) * 0.5f + 1.0f;
+	return Lerp( vec4_dark, t, sRGBToLinear( rgba8_diesel_green ) );
+}

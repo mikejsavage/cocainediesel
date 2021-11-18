@@ -74,6 +74,7 @@ constexpr Alignment Alignment_RightBottom = { XAlignment_Right, YAlignment_Botto
 
 constexpr Vec4 vec4_white = Vec4( 1, 1, 1, 1 );
 constexpr Vec4 vec4_black = Vec4( 0, 0, 0, 1 );
+constexpr Vec4 vec4_dark = Vec4( 0.02f, 0.02f, 0.02f, 1.0f );
 constexpr Vec4 vec4_red = Vec4( 1, 0, 0, 1 );
 constexpr Vec4 vec4_green = Vec4( 0, 1, 0, 1 );
 constexpr Vec4 vec4_yellow = Vec4( 1, 1, 0, 1 );

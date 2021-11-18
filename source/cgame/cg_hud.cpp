@@ -941,7 +941,7 @@ enum {
 static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih, Alignment alignment, float font_size ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
 	Vec4 dark_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
-	Vec4 light_gray = sRGBToLinear( RGBA8( 51, 51, 51, 255 ) );
+	Vec4 light_gray = vec4_dark;
 	Vec4 color_ammo_max = sRGBToLinear( rgba8_diesel_yellow );
 	Vec4 color_ammo_min = sRGBToLinear( RGBA8( 255, 56, 97, 255 ) );
 
@@ -996,13 +996,16 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 	if( bomb != 0 ) {
 		int curx = CG_HorizontalAlignForWidth( x, alignment, total_width );
 		int cury = CG_VerticalAlignForHeight( y, alignment, total_height );
-		Vec4 color = ps->can_plant ? AttentionGettingColor() : light_gray;
+		Vec4 bg_color = ps->can_plant ? PlantableColor() : light_gray;
+		Vec4 border_color = light_gray;
+		Vec4 bomb_color = ps->can_plant ? light_gray : vec4_white;
+		Vec4 text_color = ps->can_plant ? PlantableColor() : vec4_white;
 
-		Draw2DBox( curx, cury, iw, ih, cls.white_material, color );
-		Draw2DBox( curx + border, cury + border, innerw, innerh, cls.white_material, dark_gray );
+		Draw2DBox( curx, cury, iw, ih, cls.white_material, border_color );
+		Draw2DBox( curx + border, cury + border, innerw, innerh, cls.white_material, bg_color );
 
-		Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, cgs.media.shaderBombIcon, color );
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, va( "BOMB" ), Alignment_CenterTop, curx + iw * 0.5f, cury + ih * 1.075f, vec4_white, layout_cursor_font_border );
+		Draw2DBox( curx + border + padding, cury + border + padding, iconw, iconh, cgs.media.shaderBombIcon, bomb_color );
+		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, va( "BOMB" ), Alignment_CenterTop, curx + iw * 0.5f, cury + ih * 1.075f, text_color, layout_cursor_font_border );
 	}
 
 	for( int i = 0; i < num_weapons; i++ ) {
@@ -1053,7 +1056,7 @@ static void CG_DrawWeaponIcons( int x, int y, int offx, int offy, int iw, int ih
 		Draw2DBoxUV( curx + border + padding, cury + border + ih * ( 1.0f - ammo_frac ) + padding - pady_sel,
 			iconw, iconh - ih * ( 1.0f - ammo_frac ),
 			Vec2( half_pixel.x, Lerp( half_pixel.y, ih * ( 1.0f - ammo_frac ) / iconh, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
-			cgs.media.shaderWeaponIcon[ weap ], Vec4( 0.02f, 0.02f, 0.02f, 1.0f ) ); // weapon icon top
+			cgs.media.shaderWeaponIcon[ weap ], vec4_dark ); // weapon icon top
 
 		if( def->clip_size != 0 ) {
 			DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, va( "%i", ammo ), Alignment_LeftTop, curx + iw * 0.05f, cury + ih * 0.05f, color, layout_cursor_font_border ); //current ammo

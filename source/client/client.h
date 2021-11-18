@@ -37,6 +37,7 @@ struct ImFont;
 struct snapshot_t;
 
 constexpr RGBA8 rgba8_diesel_yellow = RGBA8( 255, 204, 38, 255 );
+constexpr RGBA8 rgba8_diesel_green = RGBA8( 44, 209, 89, 255 ); //yolo
 
 //=============================================================================
 

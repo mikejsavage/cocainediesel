@@ -30,3 +30,4 @@ void ColumnRightText( const char * str );
 void WindowCenterTextXY( const char * str );
 
 Vec4 AttentionGettingColor();
+Vec4 PlantableColor();

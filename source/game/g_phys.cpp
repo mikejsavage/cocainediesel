@@ -541,6 +541,8 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	} else if( wasinwater && !ent->waterlevel ) {
 		G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/misc/hit_water" );
 	}
+	
+	ent->s.angles += ent->avelocity * FRAMETIME;
 }
 
 //============================================================================

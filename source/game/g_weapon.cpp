@@ -742,6 +742,7 @@ static void W_Touch_Sticky( edict_t * ent, edict_t * other, Plane * plane, int s
 		const WeaponDef * def = GS_GetWeaponDef( Weapon_StickyGun );
 		ent->s.linearMovementBegin = ent->s.origin;
 		ent->s.linearMovementVelocity = Vec3( 0.0f );
+		ent->avelocity = Vec3( 0.0f );
 		ent->nextThink = level.time + def->spread; //gg
 		edict_t * event = G_SpawnEvent( EV_STICKY_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
 	}
@@ -760,6 +761,7 @@ void W_Fire_Sticky( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	bullet->classname = "stickybullet";
 	bullet->s.model = "weapons/sticky/bullet";
 	bullet->s.sound = "weapons/sticky/fuse";
+	bullet->avelocity = UniformSampleInsideSphere( &svs.rng ) * 1800.0f;
 
 	bullet->think = StickyExplode;
 }

@@ -124,14 +124,6 @@ struct cgs_media_t {
 	const Model * modDash;
 	const Model * modGib;
 
-	const Model * modARBulletExplosion;
-
-	const Model * modBulletExplode;
-	const Model * modBladeWallHit;
-	const Model * modBladeWallExplo;
-
-	const Model * modLasergunWallExplo;
-
 	const Material * shaderBombIcon;
 	const Material * shaderLaser;
 	const Material * shaderNet;

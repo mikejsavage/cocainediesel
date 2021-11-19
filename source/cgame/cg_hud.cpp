@@ -988,7 +988,7 @@ static void CG_DrawWeaponIcons( int ix, int iy, int offx, int offy, int iw, int 
 	float h = ih;
 	float border = w * 0.015f;
 
-	char *weapons[20] = {
+	const char * weapon_names[] = {
 		"None",
 		"KNIFE",
 		"9MM",
@@ -1009,7 +1009,8 @@ static void CG_DrawWeaponIcons( int ix, int iy, int offx, int offy, int iw, int 
 		"BLASTER",
 		"ROADGUN",
 		"STICKY",
-	}; //lol
+	};
+	STATIC_ASSERT( ARRAY_COUNT( weapon_names ) == Weapon_Count );
 
 	if( bomb != 0 ) {
 		float x = CG_HorizontalAlignForWidth( ix, alignment, total_width );
@@ -1068,7 +1069,7 @@ static void CG_DrawWeaponIcons( int ix, int iy, int offx, int offy, int iw, int 
 		// weapon name
 		bool selected_weapon =  ps->pending_weapon != Weapon_None ? weap == ps->pending_weapon : weap == ps->weapon;
 		Vec4 selected_weapon_color = selected_weapon ? vec4_white : Vec4( 0.5f, 0.5f, 0.5f, 1.0f );
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, va( "%s", weapons[ weap ] ), Alignment_CenterTop, x + w * 0.5f, y + h * 1.075f, selected_weapon_color, layout_cursor_font_border );
+		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, weapon_names[ weap ], Alignment_CenterTop, x + w * 0.5f, y + h * 1.075f, selected_weapon_color, layout_cursor_font_border );
 
 		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling. this still doesnt fit
 		const float bind_font_size = font_size * 0.55f;
@@ -1080,7 +1081,7 @@ static void CG_DrawWeaponIcons( int ix, int iy, int offx, int offy, int iw, int 
 		}
 
 		// weapon bind
-		DrawText( cgs.fontNormalBold, cgs.fontSystemTinySize, va( "%s", bind) , Alignment_CenterMiddle, x + w * 0.5f, y + h * 1.35f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), layout_cursor_font_border );
+		DrawText( cgs.fontNormalBold, cgs.fontSystemTinySize, bind, Alignment_CenterMiddle, x + w * 0.5f, y + h * 1.35f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), layout_cursor_font_border );
 	}
 }
 

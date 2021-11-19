@@ -15,7 +15,7 @@ const WeaponDef weapon_defs[] = {
 	{ "", "", WeaponCategory_Count }, // Weapon_None
 
 	{
-		/* name                 */ "Knife",
+		/* name                 */ "KNIFE",
 		/* short name           */ "gb",
 		/* category             */ WeaponCategory_Count,
 
@@ -52,7 +52,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "9mm",
+		/* name                 */ "9MM",
 		/* short name           */ "9mm",
 		/* category             */ WeaponCategory_Backup,
 
@@ -127,7 +127,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Deagle",
+		/* name                 */ "DEAGLE",
 		/* short name           */ "deagle",
 		/* category             */ WeaponCategory_Secondary,
 
@@ -164,7 +164,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Shotgun",
+		/* name                 */ "SHOTGUN",
 		/* short name           */ "rg",
 		/* category             */ WeaponCategory_Secondary,
 
@@ -201,7 +201,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Burst Rifle",
+		/* name                 */ "BURST",
 		/* short name           */ "br",
 		/* category             */ WeaponCategory_Primary,
 
@@ -238,7 +238,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Stakes",
+		/* name                 */ "CROSSBOW",
 		/* short name           */ "stake",
 		/* category             */ WeaponCategory_Backup,
 
@@ -275,7 +275,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Grenades",
+		/* name                 */ "MORTAR",
 		/* short name           */ "gl",
 		/* category             */ WeaponCategory_Secondary,
 
@@ -312,7 +312,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Bazooka",
+		/* name                 */ "BAZOOKA",
 		/* short name           */ "rl",
 		/* category             */ WeaponCategory_Primary,
 
@@ -349,7 +349,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Assault Rifle",
+		/* name                 */ "ASSAULT",
 		/* short name           */ "ar",
 		/* category             */ WeaponCategory_Primary,
 
@@ -386,7 +386,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "BubbleGun",
+		/* name                 */ "BUBBLE",
 		/* short name           */ "bg",
 		/* category             */ WeaponCategory_Backup,
 
@@ -423,7 +423,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Laser",
+		/* name                 */ "LASER",
 		/* short name           */ "lg",
 		/* category             */ WeaponCategory_Primary,
 
@@ -460,7 +460,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Railgun",
+		/* name                 */ "RAIL",
 		/* short name           */ "eb",
 		/* category             */ WeaponCategory_Primary,
 
@@ -497,7 +497,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Sniper",
+		/* name                 */ "SNIPER",
 		/* short name           */ "sniper",
 		/* category             */ WeaponCategory_Primary,
 
@@ -534,9 +534,9 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Auto sniper",
+		/* name                 */ "SCOUT",
 		/* short name           */ "autosniper",
-		/* category             */ WeaponCategory_Secondary,
+		/* category             */ WeaponCategory_Backup,
 
 		/* projectile count     */ 1,
 		/* clip size            */ 8,
@@ -571,7 +571,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Rifle",
+		/* name                 */ "RIFLE",
 		/* short name           */ "rifle",
 		/* category             */ WeaponCategory_Secondary,
 
@@ -608,7 +608,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "MasterBlaster",
+		/* name                 */ "BLASTER",
 		/* short name           */ "mb",
 		/* category             */ WeaponCategory_Backup,
 
@@ -645,7 +645,7 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Road Gun",
+		/* name                 */ "ROADGUN",
 		/* short name           */ "road",
 		/* category             */ WeaponCategory_Backup,
 
@@ -682,12 +682,12 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "Sticky Banger",
+		/* name                 */ "STICKY",
 		/* short name           */ "sticky",
-		/* category             */ WeaponCategory_Backup,
+		/* category             */ WeaponCategory_Secondary,
 
 		/* projectile count     */ 1,
-		/* clip size            */ 10,
+		/* clip size            */ 12,
 		/* reload time          */ 1500,
 		/* staged reloading     */ false,
 
@@ -720,7 +720,7 @@ const WeaponDef weapon_defs[] = {
 
 #if 0
 	{
-		/* name                 */ "Minigun",
+		/* name                 */ "MINIGUN",
 		/* short name           */ "minigun",
 		/* category             */ WeaponCategory_Backup,
 
@@ -768,7 +768,7 @@ const GadgetDef gadget_defs[] = {
 	{ },
 
 	{
-		/* name             */ "Throwing axe",
+		/* name             */ "AXE",
 		/* short name       */ "axe",
 		/* switch_in_time   */ WEAPONUP_TIME_NORMAL,
 		/* using_time       */ 500,
@@ -790,7 +790,7 @@ const GadgetDef gadget_defs[] = {
 	},
 
 	{
-		/* name             */ "Flash bang",
+		/* name             */ "FLASH",
 		/* short name       */ "flashbang",
 		/* switch_in_time   */ WEAPONUP_TIME_NORMAL,
 		/* using_time       */ 500,

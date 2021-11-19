@@ -697,7 +697,7 @@ void W_Fire_RifleBullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta 
 	bullet->s.sound = "weapons/bullet_whizz";
 }
 
-static void StickyBulletExplodeNormal( edict_t * ent, Vec3 normal, bool silent ) {
+static void StickyExplodeNormal( edict_t * ent, Vec3 normal, bool silent ) {
 	Vec3 dir = normal != Vec3( 0.0f ) ? normal : Vec3( 0.0f, 0.0f, 1.0f );
 
 	G_RadiusDamage( ent, ent->r.owner, NULL, ent->enemy, Weapon_StickyGun );
@@ -715,17 +715,17 @@ static void StickyBulletExplodeNormal( edict_t * ent, Vec3 normal, bool silent )
 	int n = GClip_FindInRadius4D( origin, radius, nearby, ARRAY_COUNT( nearby ), timeDelta );
 	for( int i = 0; i < n; i++ ) {
 		edict_t * other = game.edicts + nearby[ i ];
-		if( other->classname == "stickybullet" ) {
-			StickyBulletExplodeNormal( other, Vec3( 0.0f ), true );
+		if( other->classname == "sticky" ) {
+			StickyExplodeNormal( other, Vec3( 0.0f ), true );
 		}
 	}
 }
 
-static void StickyBulletExplode( edict_t * ent ) {
-	StickyBulletExplodeNormal( ent, Vec3( 0.0f ), false );
+static void StickyExplode( edict_t * ent ) {
+	StickyExplodeNormal( ent, Vec3( 0.0f ), false );
 }
 
-static void W_Touch_StickyBullet( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static void W_Touch_Sticky( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
 	if( !CanHit( ent, other ) ) {
 		return;
 	}
@@ -736,7 +736,7 @@ static void W_Touch_StickyBullet( edict_t * ent, edict_t * other, Plane * plane,
 		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_StickyGun );
 		ent->enemy = other;
 
-		StickyBulletExplodeNormal( ent, plane ? plane->normal : Vec3( 0.0f ), false );
+		StickyExplodeNormal( ent, plane ? plane->normal : Vec3( 0.0f ), false );
 	}
 	else {
 		const WeaponDef * def = GS_GetWeaponDef( Weapon_StickyGun );
@@ -747,7 +747,7 @@ static void W_Touch_StickyBullet( edict_t * ent, edict_t * other, Plane * plane,
 	}
 }
 
-void W_Fire_StickyBullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+void W_Fire_Sticky( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_StickyGun );
 
 	float spreadness = def->zoom_spread * ( 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME ) );
@@ -755,13 +755,13 @@ void W_Fire_StickyBullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta
 	angles.x += spread.x;
 	angles.y += spread.y;
 
-	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_StickyGun ), W_Touch_StickyBullet, ET_ROCKET, MASK_SHOT );
+	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_StickyGun ), W_Touch_Sticky, ET_ROCKET, MASK_SHOT );
 
 	bullet->classname = "stickybullet";
 	bullet->s.model = "weapons/sticky/bullet";
 	bullet->s.sound = "weapons/sticky/fuse";
 
-	bullet->think = StickyBulletExplode;
+	bullet->think = StickyExplode;
 }
 
 static void W_Touch_Blast( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
@@ -911,7 +911,7 @@ void G_FireWeapon( edict_t * ent, u64 parm ) {
 			break;
 
 		case Weapon_StickyGun:
-			W_Fire_StickyBullet( ent, origin, angles, timeDelta );
+			W_Fire_Sticky( ent, origin, angles, timeDelta );
 			break;
 
 			// case Weapon_Minigun: {

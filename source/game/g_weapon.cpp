@@ -758,7 +758,7 @@ void W_Fire_Sticky( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 
 	edict_t * bullet = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_StickyGun ), W_Touch_Sticky, ET_ROCKET, MASK_SHOT );
 
-	bullet->classname = "stickybullet";
+	bullet->classname = "sticky";
 	bullet->s.model = "weapons/sticky/bullet";
 	bullet->s.sound = "weapons/sticky/fuse";
 	bullet->avelocity = UniformSampleInsideSphere( &svs.rng ) * 1800.0f;

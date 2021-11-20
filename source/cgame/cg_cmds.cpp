@@ -392,8 +392,6 @@ static const cgcmd_t cgcmds[] = {
 	{ "weapprev", CG_Cmd_PrevWeapon_f, false },
 	{ "weapon", CG_Cmd_Weapon_f, false },
 	{ "viewpos", CG_Viewpos_f, true },
-	{ "players", NULL, false },
-	{ "spectators", NULL, false },
 
 	{ NULL, NULL, false }
 };

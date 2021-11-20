@@ -352,11 +352,15 @@ void CreateWindow( WindowMode mode ) {
 		Fatal( "glfwCreateWindow" );
 	}
 
-	GLFWimage icon;
-	icon.pixels = stbi_load_from_memory( icon_png, icon_png_len, &icon.width, &icon.height, NULL, 4 );
-	assert( icon.pixels != NULL );
-	glfwSetWindowIcon( window, 1, &icon );
-	stbi_image_free( icon.pixels );
+	{
+		ZoneScopedN( "Set window icon" );
+
+		GLFWimage icon;
+		icon.pixels = stbi_load_from_memory( icon_png, icon_png_len, &icon.width, &icon.height, NULL, 4 );
+		assert( icon.pixels != NULL );
+		glfwSetWindowIcon( window, 1, &icon );
+		stbi_image_free( icon.pixels );
+	}
 
 	if( glfwRawMouseMotionSupported() ) {
 		glfwSetInputMode( window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE );
@@ -371,8 +375,11 @@ void CreateWindow( WindowMode mode ) {
 
 	glfwMakeContextCurrent( window );
 
-	if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
-		Fatal( "Couldn't load GL" );
+	{
+		ZoneScopedN( "Load OpenGL" );
+		if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
+			Fatal( "Couldn't load GL" );
+		}
 	}
 }
 

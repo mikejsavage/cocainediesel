@@ -93,11 +93,12 @@ void G_Teams_SetTeam( edict_t *ent, int team ) {
 
 	if( team == TEAM_SPECTATOR || !level.gametype.autoRespawn ) {
 		G_ClientRespawn( ent, true );
-		G_ChasePlayer( ent, NULL, team != TEAM_SPECTATOR, 0 );
 	}
 	else {
 		G_ClientRespawn( ent, false );
 	}
+
+	G_Match_CheckReadys(); // TODO: just do this every frame
 }
 
 enum {

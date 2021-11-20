@@ -414,8 +414,7 @@ void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm );
 //
 // g_chasecam	//newgametypes
 //
-void G_SpectatorMode( edict_t *ent );
-void G_ChasePlayer( edict_t *ent, const char *name, bool teamonly, int followmode );
+void G_ChasePlayer( edict_t *ent );
 void G_ChaseStep( edict_t *ent, int step );
 void Cmd_SwitchChaseCamMode_f( edict_t *ent );
 void Cmd_ChaseCam_f( edict_t *ent );
@@ -541,10 +540,7 @@ struct chasecam_t {
 	bool active;
 	int target;
 	int mode;                   //3rd or 1st person
-	int range;
-	bool teamonly;
 	int64_t timeout;           //delay after loosing target
-	int followmode;
 };
 
 #define MAX_ASSIST_INFO 4

@@ -156,10 +156,6 @@ static void Cmd_Position_f( edict_t *ent ) {
 		if( !ent->r.client->teamstate.position_saved ) {
 			G_PrintMsg( ent, "No position saved.\n" );
 		} else {
-			if( ent->r.client->resp.chase.active ) {
-				G_SpectatorMode( ent );
-			}
-
 			if( G_Teleport( ent, ent->r.client->teamstate.position_origin, ent->r.client->teamstate.position_angles ) ) {
 				G_PrintMsg( ent, "Position loaded.\n" );
 			} else {
@@ -169,10 +165,6 @@ static void Cmd_Position_f( edict_t *ent ) {
 	} else if( !Q_stricmp( action, "set" ) && Cmd_Argc() == 7 ) {
 		Vec3 origin = Vec3( atof( Cmd_Argv( 2 ) ), atof( Cmd_Argv( 3 ) ), atof( Cmd_Argv( 4 ) ) );
 		Vec3 angles = Vec3( atof( Cmd_Argv( 5 ) ), atof( Cmd_Argv( 6 ) ), 0.0f );
-
-		if( ent->r.client->resp.chase.active ) {
-			G_SpectatorMode( ent );
-		}
 
 		if( G_Teleport( ent, origin, angles ) ) {
 			G_PrintMsg( ent, "Position not available.\n" );

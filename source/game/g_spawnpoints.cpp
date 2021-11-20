@@ -25,15 +25,7 @@ void DropSpawnToFloor( edict_t * ent ) {
 }
 
 void SelectSpawnPoint( edict_t * ent, edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles ) {
-	edict_t * spot;
-
-	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
-		spot = G_Find( NULL, &edict_t::classname, "post_match_camera" );
-	}
-	else {
-		spot = GT_CallSelectSpawnPoint( ent );
-	}
-
+	edict_t * spot = GT_CallSelectSpawnPoint( ent );
 	if( spot == NULL ) {
 		spot = world;
 	}

@@ -338,6 +338,12 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		if( game.edicts[ i + 1 ].r.inuse ) {
+			G_Teams_SetTeam( &game.edicts[ i + 1 ], TEAM_SPECTATOR );
+		}
+	}
+
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		if( game.edicts[ i + 1 ].r.inuse ) {
 			G_Teams_JoinAnyTeam( &game.edicts[ i + 1 ], true );
 		}
 	}

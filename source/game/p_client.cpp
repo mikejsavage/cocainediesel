@@ -234,7 +234,6 @@ void G_GhostClient( edict_t *ent ) {
 
 	ent->s.type = ET_GHOST;
 	ent->s.effects = 0;
-	ent->s.weapon = 0;
 	ent->s.sound = EMPTY_HASH;
 	ent->viewheight = 0;
 	ent->takedamage = DAMAGE_NO;
@@ -314,11 +313,11 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	client->ps.pmove.dash_speed = DEFAULT_DASHSPEED;
 
 	if( ghost ) {
-		self->s.type = ET_GHOST;
+		G_GhostClient( self );
 		self->s.svflags &= ~SVF_FORCETEAM;
-		self->r.solid = SOLID_NOT;
 		self->movetype = MOVETYPE_NOCLIP;
-	} else {
+	}
+	else {
 		self->s.type = ET_PLAYER;
 		self->s.svflags |= SVF_FORCETEAM;
 		self->r.solid = SOLID_YES;
@@ -332,33 +331,33 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		G_Teams_UpdateMembersList();
 	}
 
-	edict_t * spawnpoint;
-	Vec3 spawn_origin, spawn_angles;
-	SelectSpawnPoint( self, &spawnpoint, &spawn_origin, &spawn_angles );
-	client->ps.pmove.origin = spawn_origin;
-	self->s.origin = spawn_origin;
+	if( !ghost ) {
+		edict_t * spawnpoint;
+		Vec3 spawn_origin, spawn_angles;
+		SelectSpawnPoint( self, &spawnpoint, &spawn_origin, &spawn_angles );
+		client->ps.pmove.origin = spawn_origin;
+		self->s.origin = spawn_origin;
 
-	// set angles
-	self->s.angles.x = 0.0f;
-	self->s.angles.y = AngleNormalize360( spawn_angles.y );
-	self->s.angles.z = 0.0f;
-	client->ps.viewangles = Vec3( self->s.angles );
+		// set angles
+		self->s.angles.x = 0.0f;
+		self->s.angles.y = AngleNormalize360( spawn_angles.y );
+		self->s.angles.z = 0.0f;
+		client->ps.viewangles = Vec3( self->s.angles );
+
+		KillBox( self, WorldDamage_Telefrag, Vec3( 0.0f ) );
+	}
+	else {
+		G_ChasePlayer( self );
+	}
 
 	// set the delta angle
 	client->ps.pmove.delta_angles[ 0 ] = ANGLE2SHORT( client->ps.viewangles.x ) - client->ucmd.angles[ 0 ];
 	client->ps.pmove.delta_angles[ 1 ] = ANGLE2SHORT( client->ps.viewangles.y ) - client->ucmd.angles[ 1 ];
 	client->ps.pmove.delta_angles[ 2 ] = ANGLE2SHORT( client->ps.viewangles.z ) - client->ucmd.angles[ 2 ];
 
-	// don't put spectators in the game
-	if( !ghost ) {
-		KillBox( self, WorldDamage_Telefrag, Vec3( 0.0f ) );
-	}
-
 	self->s.teleported = true;
 
-	memset( self->recent_attackers, 0, sizeof(self->recent_attackers) );
-
-	G_UseTargets( spawnpoint, self );
+	memset( self->recent_attackers, 0, sizeof( self->recent_attackers ) );
 
 	GClip_LinkEntity( self );
 
@@ -1006,8 +1005,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 	}
 	else {
 		if( level.time >= ent->deathTimeStamp + 3000 ) {
-			G_ClientRespawn( ent, false );
-			G_ChasePlayer( ent, NULL, level.gametype.isTeamBased, 0 );
+			G_ClientRespawn( ent, true );
 		}
 	}
 }

@@ -878,7 +878,6 @@ static void NewGame() {
 		for( int i = 0; i < server_gs.gameState.teams[ team ].num_players; i++ ) {
 			int entnum = server_gs.gameState.teams[ team ].player_indices[ i ];
 			*G_ClientGetStats( PLAYERENT( entnum - 1 ) ) = { };
-			G_ClientRespawn( &game.edicts[ entnum ], true );
 		}
 	}
 

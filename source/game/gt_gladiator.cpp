@@ -340,8 +340,6 @@ static void NewRoundState( GladiatorRoundState newState ) {
 				}
 				else {
 					G_ClientRespawn( ent, true );
-					G_ChasePlayer( ent, NULL, false, 0 );
-					ent->r.client->resp.chase.active = true;
 				}
 			}
 

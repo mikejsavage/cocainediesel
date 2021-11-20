@@ -109,8 +109,6 @@ struct WeaponModelMetadata {
 
 	const Model * model;
 
-	orientation_t tag_projectionsource;
-
 	Vec3 handpositionOrigin;
 	Vec3 handpositionAngles;
 
@@ -182,14 +180,12 @@ struct PlayerModelMetadata {
 };
 
 struct pmodel_t {
-	// dynamic
 	pmodel_animationstate_t animState;
 
 	Vec3 angles[PMODEL_PARTS];                // for rotations
 	Vec3 oldangles[PMODEL_PARTS];             // for rotations
 
-	// effects
-	orientation_t projectionSource;     // for projectiles
+	Mat4 muzzle_transform;
 };
 
 extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_entity
@@ -212,7 +208,6 @@ const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num );
 void CG_ResetPModels();
 
 void CG_DrawPlayer( centity_t * cent );
-bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result );
 void CG_UpdatePlayerModelEnt( centity_t *cent );
 void CG_PModel_AddAnimation( int entNum, int loweranim, int upperanim, int headanim, int channel );
 void CG_PModel_ClearEventAnimations( int entNum );
@@ -231,12 +226,10 @@ struct cg_viewweapon_t {
 	mat3_t axis;
 	Vec3 origin;
 
-	// animation
 	int baseAnim;
 	int64_t baseAnimStartTime;
 	int eventAnim;
 	int64_t eventAnimStartTime;
 
-	// other effects
-	orientation_t projectionSource;
+	Mat4 muzzle_transform;
 };

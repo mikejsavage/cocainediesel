@@ -42,9 +42,6 @@ static WeaponModelMetadata LoadWeaponModel( WeaponType weapon ) {
 	metadata.zoom_in_sound = StringHash( temp( "weapons/{}/zoom_in", name ) );
 	metadata.zoom_out_sound = StringHash( temp( "weapons/{}/zoom_out", name ) );
 
-	metadata.tag_projectionsource.origin = Vec3( 16, 0, 8 );
-	Matrix3_Identity( metadata.tag_projectionsource.axis );
-
 	return metadata;
 }
 

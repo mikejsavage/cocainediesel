@@ -238,36 +238,6 @@ void CG_MoveToTag( Vec3 * move_origin,
 	Matrix3_Multiply( tmpAxis, space_axis, move_axis );
 }
 
-/*
-* CG_PModel_GetProjectionSource
-* It asumes the player entity is up to date
-*/
-bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result ) {
-	if( entnum < 1 || entnum >= MAX_EDICTS ) {
-		return false;
-	}
-
-	centity_t * cent = &cg_entities[entnum];
-	if( cent->serverFrame != cg.frame.serverFrame ) {
-		return false;
-	}
-
-	// see if it's the view weapon
-	if( ISVIEWERENTITY( entnum ) && !cg.view.thirdperson ) {
-		tag_result->origin = cg.weapon.projectionSource.origin;
-		Matrix3_Copy( cg.weapon.projectionSource.axis, tag_result->axis );
-		return true;
-	}
-
-	return false;
-
-	// it's a 3rd person model
-	pmodel_t * pmodel = &cg_entPModels[entnum];
-	tag_result->origin = pmodel->projectionSource.origin;
-	Matrix3_Copy( pmodel->projectionSource.axis, tag_result->axis );
-	return true;
-}
-
 static float CG_OutlineScaleForDist( const InterpolatedEntity * e, float maxdist, float scale ) {
 	Vec3 dir = e->origin - cg.view.origin;
 	float dist = Length( dir ) * cg.view.fracDistFOV;
@@ -845,6 +815,14 @@ void CG_DrawPlayer( centity_t * cent ) {
 			if( draw_silhouette ) {
 				DrawModelSilhouette( weapon_model, tag_transform, color );
 			}
+
+			u8 muzzle;
+			if( FindNodeByName( weapon_model, Hash32( "muzzle" ), &muzzle ) ) {
+				pmodel->muzzle_transform = tag_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
+			}
+			else {
+				pmodel->muzzle_transform = tag_transform;
+			}
 		}
 	}
 
@@ -854,8 +832,10 @@ void CG_DrawPlayer( centity_t * cent ) {
 		PlayerModelMetadata::Tag tag = meta->tag_bomb;
 		if( cent->current.effects & EF_HAT )
 			tag = meta->tag_hat;
+
 		Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag ) * inverse_scale;
-		if ( draw_model )
+
+		if( draw_model )
 			DrawModel( attached_model, tag_transform, vec4_white );
 		DrawModelShadow( attached_model, tag_transform, vec4_white );
 

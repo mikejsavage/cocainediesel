@@ -20,37 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
-static void CG_ViewWeapon_UpdateProjectionSource( Vec3 hand_origin, const mat3_t hand_axis, Vec3 weap_origin, const mat3_t weap_axis ) {
-	orientation_t *tag_result = &cg.weapon.projectionSource;
-	orientation_t tag_weapon;
-
-	tag_weapon.origin = Vec3( 0.0f );
-	Matrix3_Copy( axis_identity, tag_weapon.axis );
-
-	// move to tag_weapon
-	CG_MoveToTag( &tag_weapon.origin, tag_weapon.axis,
-				  hand_origin, hand_axis,
-				  weap_origin, weap_axis );
-
-	const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( cg.predictedPlayerState.weapon );
-
-	// move to projectionSource tag
-	if( weaponInfo ) {
-		tag_result->origin = Vec3( 0.0f );
-		Matrix3_Copy( axis_identity, tag_result->axis );
-		CG_MoveToTag( &tag_result->origin, tag_result->axis,
-					  tag_weapon.origin, tag_weapon.axis,
-					  weaponInfo->tag_projectionsource.origin, weaponInfo->tag_projectionsource.axis );
-		return;
-	}
-
-	// fall back: copy gun origin and move it front by 16 units and 8 up
-	tag_result->origin = tag_weapon.origin;
-	Matrix3_Copy( tag_weapon.axis, tag_result->axis );
-	tag_result->origin += FromQFAxis( tag_result->axis, AXIS_FORWARD ) * 16.0f;
-	tag_result->origin += FromQFAxis( tag_result->axis, AXIS_UP ) * 8.0f;
-}
-
 static float SmoothStep( float t ) {
 	return t * t * ( 3.0f - 2.0f * t );
 }
@@ -169,7 +138,15 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 		viewweapon->axis[AXIS_FORWARD + 2] *= fracWeapFOV;
 	}
 
-	CG_ViewWeapon_UpdateProjectionSource( viewweapon->origin, viewweapon->axis, Vec3( 0.0f ), axis_identity );
+	Mat4 gun_transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
+	u8 muzzle;
+	if( FindNodeByName( model, Hash32( "muzzle" ), &muzzle ) ) {
+		viewweapon->muzzle_transform = gun_transform * model->transform * model->nodes[ muzzle ].global_transform;
+	}
+	else {
+		Mat4 hardcoded_offset = Mat4Translation( Vec3( 16, 0, 8 ) );
+		viewweapon->muzzle_transform = gun_transform * hardcoded_offset;
+	}
 }
 
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {

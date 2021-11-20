@@ -25,6 +25,30 @@ void RailgunImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 color ) {
 	S_StartFixedSound( "weapons/eb/hit", pos, CHAN_AUTO, 1.0f, 1.0f );
 }
 
+static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
+	// decal_lifetime_scale is a shitty hack to help reduce decal spam with shotgun
+	DoVisualEffect( "vfx/bullet_impact", trace->endpos, trace->plane.normal, num_particles, color, decal_lifetime_scale );
+}
+
+static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
+	// TODO: should draw on entry/exit of all wallbanged surfaces
+	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
+		return;
+
+	DoVisualEffect( "vfx/wallbang_impact", trace->endpos, trace->plane.normal, num_particles, color, decal_lifetime_scale );
+}
+
+static Mat4 GetMuzzleTransform( int ent ) {
+	if( ent < 1 || ent > client_gs.maxclients )
+		return Mat4::Identity();
+
+	if( ISVIEWERENTITY( ent ) && !cg.view.thirdperson ) {
+		return cg.weapon.muzzle_transform;
+	}
+
+	return cg_entPModels[ ent ].muzzle_transform;
+}
+
 static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
 
@@ -41,31 +65,14 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum ) {
 		RailgunImpact( trace.endpos, trace.plane.normal, trace.surfFlags, color );
 	}
 
-	orientation_t projection;
-	if( !CG_PModel_GetProjectionSource( ownerNum, &projection ) ) {
-		projection.origin = origin;
-	}
+	Mat4 muzzle_transform = GetMuzzleTransform( ownerNum );
 
-	AddPersistentBeam( projection.origin, trace.endpos, 16.0f, color, cgs.media.shaderEBBeam, 0.25f, 0.1f );
-	RailTrailParticles( projection.origin, trace.endpos, color );
-}
-
-static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
-	// decal_lifetime_scale is a shitty hack to help reduce decal spam with shotgun
-	DoVisualEffect( "vfx/bullet_impact", trace->endpos, trace->plane.normal, num_particles, color, decal_lifetime_scale );
-}
-
-static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
-	// TODO: should draw on entry/exit of all wallbanged surfaces
-	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
-		return;
-
-	DoVisualEffect( "vfx/wallbang_impact", trace->endpos, trace->plane.normal, num_particles, color, decal_lifetime_scale );
+	AddPersistentBeam( muzzle_transform.col3.xyz(), trace.endpos, 16.0f, color, cgs.media.shaderEBBeam, 0.25f, 0.1f );
+	RailTrailParticles( muzzle_transform.col3.xyz(), trace.endpos, color );
 }
 
 void CG_LaserBeamEffect( centity_t * cent ) {
 	trace_t trace;
-	orientation_t projectsource;
 	Vec3 laserOrigin, laserAngles, laserPoint;
 
 	if( cent->localEffects[ LOCALEFFECT_LASERBEAM ] <= cl.serverTime ) {
@@ -114,14 +121,11 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 		cent->lg_tip_sound = S_ImmediateFixedSound( "weapons/lg/tip_hit", trace->endpos, 1.0f, 1.0f, cent->lg_tip_sound );
 	}, cent );
 
-	// draw the beam: for drawing we use the weapon projection source (already handles the case of viewer entity)
-	if( CG_PModel_GetProjectionSource( cent->current.number, &projectsource ) ) {
-		laserOrigin = projectsource.origin;
-	}
+	Mat4 muzzle_transform = GetMuzzleTransform( cent->current.number );
 
-	Vec3 start = laserOrigin;
+	Vec3 start = muzzle_transform.col3.xyz();
 	Vec3 end = trace.endpos;
-	DrawBeam( start, end, 16.0f, color, cgs.media.shaderLGBeam );
+	DrawBeam( start, end, 8.0f, color, cgs.media.shaderLGBeam );
 
 	cent->lg_hum_sound = S_ImmediateEntitySound( "weapons/lg/hum", cent->current.number, 1.0f, 1.0f, true, cent->lg_hum_sound );
 
@@ -238,13 +242,10 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 		WallbangImpact( &wallbang, team_color, 12 );
 	}
 
-	orientation_t projection;
-	if( !CG_PModel_GetProjectionSource( owner, &projection ) ) {
-		projection.origin = origin;
-	}
+	Mat4 muzzle_transform = GetMuzzleTransform( owner );
 
 	if( weapon != Weapon_Pistol ) {
-		AddPersistentBeam( projection.origin, trace.endpos, 1.0f, team_color, cgs.media.shaderTracer, 0.2f, 0.1f );
+		AddPersistentBeam( muzzle_transform.col3.xyz(), trace.endpos, 1.0f, team_color, cgs.media.shaderTracer, 0.2f, 0.1f );
 	}
 }
 
@@ -254,10 +255,8 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	Vec3 right, up;
 	ViewVectors( dir, &right, &up );
 
-	orientation_t projection;
-	if( !CG_PModel_GetProjectionSource( owner, &projection ) ) {
-		projection.origin = origin;
-	}
+	Mat4 muzzle_transform = GetMuzzleTransform( owner );
+	Vec3 muzzle = muzzle_transform.col3.xyz();
 
 	for( int i = 0; i < def->projectile_count; i++ ) {
 		Vec2 spread = FixedSpreadPattern( i, def->spread );
@@ -276,7 +275,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 			WallbangImpact( &wallbang, team_color, 2, 0.5f );
 		}
 
-		AddPersistentBeam( projection.origin, trace.endpos, 1.0f, team_color, cgs.media.shaderTracer, 0.2f, 0.1f );
+		AddPersistentBeam( muzzle, trace.endpos, 1.0f, team_color, cgs.media.shaderTracer, 0.2f, 0.1f );
 	}
 
 	// spawn a single sound at the impact

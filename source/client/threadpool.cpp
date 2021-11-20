@@ -19,7 +19,7 @@ static Semaphore * jobs_sem;
 static Semaphore * completion_sem;
 static bool shutting_down;
 static size_t jobs_head;
-static size_t jobs_length;
+static size_t jobs_not_started;
 static size_t jobs_done;
 
 static Worker workers[ 32 ];
@@ -41,14 +41,14 @@ static void ThreadPoolWorker( void * data ) {
 			break;
 		}
 
-		if( jobs_length == 0 ) {
+		if( jobs_not_started == 0 ) {
 			Unlock( jobs_mutex );
 			continue;
 		}
 
 		Job * job = &jobs[ jobs_head % ARRAY_COUNT( jobs ) ];
 		jobs_head++;
-		jobs_length--;
+		jobs_not_started--;
 
 		Unlock( jobs_mutex );
 
@@ -70,7 +70,7 @@ void InitThreadPool() {
 
 	shutting_down = false;
 	jobs_head = 0;
-	jobs_length = 0;
+	jobs_not_started = 0;
 	jobs_done = 0;
 	jobs_mutex = NewMutex();
 	jobs_sem = NewSemaphore();
@@ -112,13 +112,13 @@ void ThreadPoolDo( JobCallback callback, void * data ) {
 
 	Lock( jobs_mutex );
 
-	assert( jobs_length < ARRAY_COUNT( jobs ) );
+	assert( jobs_not_started < ARRAY_COUNT( jobs ) );
 
-	Job * job = &jobs[ ( jobs_head + jobs_length ) % ARRAY_COUNT( jobs ) ];
+	Job * job = &jobs[ ( jobs_head + jobs_not_started ) % ARRAY_COUNT( jobs ) ];
 	job->callback = callback;
 	job->data = data;
 
-	jobs_length++;
+	jobs_not_started++;
 
 	Unlock( jobs_mutex );
 	Signal( jobs_sem );
@@ -129,14 +129,14 @@ void ParallelFor( void * datum, size_t n, size_t stride, JobCallback callback ) 
 
 	Lock( jobs_mutex );
 
-	assert( ARRAY_COUNT( jobs ) - jobs_length >= n );
+	assert( n <= ARRAY_COUNT( jobs ) - jobs_not_started );
 
 	for( size_t i = 0; i < n; i++ ) {
-		Job * job = &jobs[ ( jobs_head + jobs_length ) % ARRAY_COUNT( jobs ) ];
+		Job * job = &jobs[ ( jobs_head + jobs_not_started ) % ARRAY_COUNT( jobs ) ];
 		job->callback = callback;
 		job->data = ( ( char * ) datum ) + stride * i;
 
-		jobs_length++;
+		jobs_not_started++;
 	}
 
 	Unlock( jobs_mutex );
@@ -151,7 +151,7 @@ void ThreadPoolFinish() {
 	Lock( jobs_mutex );
 
 	while( true ) {
-		if( jobs_length == 0 ) {
+		if( jobs_not_started == 0 ) {
 			while( jobs_done != jobs_head ) {
 				Unlock( jobs_mutex );
 				Wait( completion_sem );
@@ -162,7 +162,7 @@ void ThreadPoolFinish() {
 
 		Job * job = &jobs[ jobs_head % ARRAY_COUNT( jobs ) ];
 		jobs_head++;
-		jobs_length--;
+		jobs_not_started--;
 
 		Unlock( jobs_mutex );
 

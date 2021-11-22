@@ -7,6 +7,10 @@
 /client-*
 /server
 /server-*
+/bc4
+/bc4-*
+/dieselmap
+/dieselmap-*
 
 /livepp_shim.*
 /libs/LivePP

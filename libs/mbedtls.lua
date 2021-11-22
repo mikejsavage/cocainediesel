@@ -1,1 +1,1 @@
-prebuilt_lib( "mbedtls", { "mbedcrypto", "mbedtls", "mbedx509" } )
+prebuilt_lib( "mbedtls", { "mbedtls", "mbedcrypto", "mbedx509" } )

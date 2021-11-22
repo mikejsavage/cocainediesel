@@ -698,8 +698,6 @@ void W_Fire_RifleBullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta 
 }
 
 static void StickyExplodeNormal( edict_t * ent, Vec3 normal, bool silent ) {
-	Vec3 dir = normal != Vec3( 0.0f ) ? normal : Vec3( 0.0f, 0.0f, 1.0f );
-
 	G_RadiusDamage( ent, ent->r.owner, NULL, ent->enemy, Weapon_StickyGun );
 
 	edict_t * event = G_SpawnEvent( EV_STICKY_EXPLOSION, silent ? 1 : 0, &ent->s.origin );
@@ -744,7 +742,7 @@ static void W_Touch_Sticky( edict_t * ent, edict_t * other, Plane * plane, int s
 		ent->s.linearMovementVelocity = Vec3( 0.0f );
 		ent->avelocity = Vec3( 0.0f );
 		ent->nextThink = level.time + def->spread; //gg
-		edict_t * event = G_SpawnEvent( EV_STICKY_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
+		G_SpawnEvent( EV_STICKY_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
 	}
 }
 

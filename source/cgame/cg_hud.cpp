@@ -1071,9 +1071,6 @@ static void CG_DrawWeaponIcons( int ix, int iy, int offx, int offy, int iw, int 
 		Vec4 selected_weapon_color = selected_weapon ? vec4_white : Vec4( 0.5f, 0.5f, 0.5f, 1.0f );
 		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, weapon_names[ weap ], Alignment_CenterTop, x + w * 0.5f, y + h * 1.075f, selected_weapon_color, layout_cursor_font_border );
 
-		// UNBOUND can look real stupid so bump size down a bit in case someone is scrolling. this still doesnt fit
-		const float bind_font_size = font_size * 0.55f;
-
 		// first try the weapon specific bind
 		char bind[ 32 ];
 		if( !CG_GetBoundKeysString( va( "use %s", def->short_name ), bind, sizeof( bind ) ) ) {

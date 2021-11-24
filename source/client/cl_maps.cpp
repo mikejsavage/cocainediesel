@@ -76,7 +76,7 @@ void InitMaps() {
 	num_maps = 0;
 
 	for( const char * path : AssetPaths() ) {
-		Span< const char > ext = FileExtension( path );
+		Span< const char > ext = LastFileExtension( path );
 		if( ext != ".bsp" )
 			continue;
 
@@ -92,7 +92,7 @@ void HotloadMaps() {
 	bool hotloaded_anything = false;
 
 	for( const char * path : ModifiedAssetPaths() ) {
-		Span< const char > ext = FileExtension( path );
+		Span< const char > ext = LastFileExtension( path );
 		if( ext != ".bsp" )
 			continue;
 

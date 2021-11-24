@@ -640,10 +640,7 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 
 	CheckedALSource( source, AL_BUFFER, sound.buf );
 	CheckedALSource( source, AL_GAIN, ps->volume * config.volume * s_volume->value );
-	if( config.pitch_random != 0.0f ) //do we want to call random for each sound ?
-		CheckedALSource( source, AL_PITCH, ps->pitch * config.pitch + ( RandomFloat11( &cls.rng ) * config.pitch_random * config.pitch * ps->pitch ) );
-	else
-		CheckedALSource( source, AL_PITCH, ps->pitch * config.pitch );
+	CheckedALSource( source, AL_PITCH, ps->pitch * config.pitch + ( RandomFloat11( &cls.rng ) * config.pitch_random * config.pitch * ps->pitch ) );
 	CheckedALSource( source, AL_REFERENCE_DISTANCE, S_DEFAULT_ATTENUATION_REFDISTANCE );
 	CheckedALSource( source, AL_MAX_DISTANCE, S_DEFAULT_ATTENUATION_MAXDISTANCE );
 	CheckedALSource( source, AL_ROLLOFF_FACTOR, config.attenuation );

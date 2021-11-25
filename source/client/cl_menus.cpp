@@ -214,6 +214,7 @@ static void SettingsGeneral() {
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CVAR_ARCHIVE );
 	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
 	CvarCheckbox( "Show speed", "cg_showSpeed", "0", CVAR_ARCHIVE );
+	CvarCheckbox( "Right handed", "righthand", "1", CVAR_ARCHIVE );
 }
 
 static void SettingsControls() {

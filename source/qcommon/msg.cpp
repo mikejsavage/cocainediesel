@@ -761,13 +761,19 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
+	Delta( buf, state.callvote_required_votes, baseline.callvote_required_votes );
+	Delta( buf, state.callvote_yes_votes, baseline.callvote_yes_votes );
+
 	Delta( buf, state.round_num, baseline.round_num );
 	DeltaEnum( buf, state.round_state, baseline.round_state );
 	DeltaEnum( buf, state.round_type, baseline.round_type );
+
 	Delta( buf, state.teams, baseline.teams );
 	Delta( buf, state.players, baseline.players );
+
 	Delta( buf, state.map, baseline.map );
 	Delta( buf, state.map_checksum, baseline.map_checksum );
+
 	Delta( buf, state.bomb, baseline.bomb );
 }
 

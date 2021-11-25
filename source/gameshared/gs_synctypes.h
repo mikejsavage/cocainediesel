@@ -196,6 +196,8 @@ struct SyncGameState {
 	s64 match_state_start_time;
 	s64 match_duration;
 	s64 clock_override;
+	u8 callvote_required_votes;
+	u8 callvote_yes_votes;
 
 	u8 round_num;
 	RoundState round_state;

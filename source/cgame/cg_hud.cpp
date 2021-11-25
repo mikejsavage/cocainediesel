@@ -81,28 +81,19 @@ struct constant_numeric_t {
 static const constant_numeric_t cg_numeric_constants[] = {
 	{ "NOTSET", 9999 },
 
-	// teams
 	{ "TEAM_SPECTATOR", TEAM_SPECTATOR },
 	{ "TEAM_PLAYERS", TEAM_PLAYERS },
 	{ "TEAM_ALPHA", TEAM_ALPHA },
 	{ "TEAM_BETA", TEAM_BETA },
-	{ "TEAM_ALLY", TEAM_ALLY },
-	{ "TEAM_ENEMY", TEAM_ENEMY },
 
 	{ "WIDTH", 800 },
 	{ "HEIGHT", 600 },
 
-	// match states
 	{ "MatchState_Warmup", MatchState_Warmup },
 	{ "MatchState_Countdown", MatchState_Countdown },
 	{ "MatchState_Playing", MatchState_Playing },
 	{ "MatchState_PostMatch", MatchState_PostMatch },
 	{ "MatchState_WaitExit", MatchState_WaitExit },
-
-	{ "CS_CALLVOTE", CS_CALLVOTE },
-	{ "CS_CALLVOTE_REQUIRED_VOTES", CS_CALLVOTE_REQUIRED_VOTES },
-	{ "CS_CALLVOTE_YES_VOTES", CS_CALLVOTE_YES_VOTES },
-	{ "CS_CALLVOTE_NO_VOTES", CS_CALLVOTE_NO_VOTES },
 
 	{ "BombProgress_Nothing", BombProgress_Nothing },
 	{ "BombProgress_Planting", BombProgress_Planting },
@@ -727,8 +718,8 @@ static bool CG_LFuncDrawCallvote( cg_layoutnode_t *argumentnode ) {
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	const char * yeses = cgs.configStrings[ CS_CALLVOTE_YES_VOTES ];
-	const char * required = cgs.configStrings[ CS_CALLVOTE_REQUIRED_VOTES ];
+	u8 required = client_gs.gameState.callvote_required_votes;
+	u8 yeses = client_gs.gameState.callvote_yes_votes;
 
 	bool voted = cg.predictedPlayerState.voted;
 	float padding = layout_cursor_font_size * 0.5f;

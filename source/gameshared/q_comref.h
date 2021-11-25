@@ -78,9 +78,6 @@ enum pmtype_t {
 #define CS_MATCHSCORE       5
 
 #define CS_CALLVOTE 6
-#define CS_CALLVOTE_YES_VOTES 7
-#define CS_CALLVOTE_NO_VOTES 8
-#define CS_CALLVOTE_REQUIRED_VOTES 9
 
 //precache stuff begins here
 #define CS_PLAYERINFOS      32

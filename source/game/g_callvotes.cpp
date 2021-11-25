@@ -615,9 +615,9 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 	}
 
 	PF_ConfigString( CS_CALLVOTE, "" );
-	PF_ConfigString( CS_CALLVOTE_REQUIRED_VOTES, "" );
-	PF_ConfigString( CS_CALLVOTE_YES_VOTES, "" );
-	PF_ConfigString( CS_CALLVOTE_NO_VOTES, "" );
+
+	server_gs.gameState.callvote_required_votes = 0;
+	server_gs.gameState.callvote_yes_votes = 0;
 
 	memset( &callvoteState, 0, sizeof( callvoteState ) );
 }
@@ -747,9 +747,8 @@ static void G_CallVotes_CheckState() {
 		return;
 	}
 
-	PF_ConfigString( CS_CALLVOTE_REQUIRED_VOTES, va( "%d", needvotes ) );
-	PF_ConfigString( CS_CALLVOTE_YES_VOTES, va( "%d", yeses ) );
-	PF_ConfigString( CS_CALLVOTE_NO_VOTES, va( "%d", noes ) );
+	server_gs.gameState.callvote_required_votes = needvotes;
+	server_gs.gameState.callvote_yes_votes = yeses;
 }
 
 void G_CallVotes_CmdVote( edict_t *ent ) {

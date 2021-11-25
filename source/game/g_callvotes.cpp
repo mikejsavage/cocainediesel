@@ -32,27 +32,26 @@ cvar_t *g_callvote_enabled;
 cvar_t *g_callvote_maxchanges;
 cvar_t *g_callvote_cooldowntime;
 
-enum
-{
+enum {
 	VOTED_NOTHING = 0,
 	VOTED_YES,
 	VOTED_NO
 };
 
 // Data that can be used by the vote specific functions
-typedef struct
-{
+struct callvotetype_t;
+
+struct callvotedata_t {
 	edict_t *caller;
 	bool operatorcall;
-	struct callvotetype_s *callvote;
+	const callvotetype_t *callvote;
 	int argc;
 	char *argv[MAX_STRING_TOKENS];
 	String< MAX_CONFIGSTRING_CHARS > string; // can be used to overwrite the displayed vote string
 	int target;
-} callvotedata_t;
+};
 
-typedef struct callvotetype_s
-{
+struct callvotetype_t {
 	const char *name;
 	int expectedargs;               // -1 = any amount, -2 = any amount except 0
 	bool ( *validate )( callvotedata_t *data, bool first );
@@ -62,19 +61,15 @@ typedef struct callvotetype_s
 	const char *argument_format;
 	const char *help;
 	const char *argument_type;
-	struct callvotetype_s *next;
-} callvotetype_t;
+};
 
 // Data that will only be used by the common callvote functions
-typedef struct
-{
+struct callvotestate_t {
 	int64_t timeout;           // time to finish
 	callvotedata_t vote;
-} callvotestate_t;
+};
 
 static callvotestate_t callvoteState;
-
-static callvotetype_t *callvotesHeadNode = NULL;
 
 //==============================================
 //		Vote specifics
@@ -505,24 +500,91 @@ static void G_VoteTimeinPassed( callvotedata_t *vote ) {
 // Common functions
 //===================================================================
 
-callvotetype_t *G_RegisterCallvote( const char *name ) {
-	callvotetype_t *callvote;
+static callvotetype_t votes[] = {
+	{
+		"map",
+		1,
+		G_VoteMapValidate,
+		G_VoteMapPassed,
+		G_VoteMapCurrent,
+		G_VoteMapExtraHelp,
+		"<name>",
+		"option",
+		"Changes map",
+	},
 
-	for( callvote = callvotesHeadNode; callvote != NULL; callvote = callvote->next ) {
-		if( !Q_stricmp( callvote->name, name ) ) {
-			return callvote;
-		}
-	}
+	{
+		"start",
+		0,
+		G_VoteStartValidate,
+		G_VoteStartPassed,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		"Sets all players as ready so the match can start",
+	},
 
-	// create a new callvote
-	callvote = ( callvotetype_t * )G_Malloc( sizeof( callvotetype_t ) );
-	memset( callvote, 0, sizeof( callvotetype_t ) );
-	callvote->next = callvotesHeadNode;
-	callvotesHeadNode = callvote;
+	{
+		"spectate",
+		1,
+		G_VoteSpectateValidate,
+		G_VoteSpectatePassed,
+		NULL,
+		G_VoteSpectateExtraHelp,
+		"<player>",
+		"option",
+		"Forces player back to spectator mode",
+	},
 
-	callvote->name = name;
-	return callvote;
-}
+	{
+		"kick",
+		1,
+		G_VoteKickValidate,
+		G_VoteKickPassed,
+		NULL,
+		G_VoteKickExtraHelp,
+		"<player>",
+		"option",
+		"Removes player from the server",
+	},
+
+	{
+		"kickban",
+		1,
+		G_VoteKickBanValidate,
+		G_VoteKickBanPassed,
+		NULL,
+		G_VoteKickBanExtraHelp,
+		"<player>",
+		"option",
+		"Removes player from the server and bans his IP-address for 15 minutes",
+	},
+
+	{
+		"timeout",
+		0,
+		G_VoteTimeoutValidate,
+		G_VoteTimeoutPassed,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		"Pauses the game",
+	},
+
+	{
+		"timein",
+		0,
+		G_VoteTimeinValidate,
+		G_VoteTimeinPassed,
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+		"Resumes the game if in timeout",
+	},
+};
 
 void G_CallVotes_ResetClient( int n ) {
 	clientVoted[n] = VOTED_NOTHING;
@@ -538,8 +600,9 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 	}
 
 	callvoteState.vote.callvote = NULL;
-	for( int i = 0; i < server_gs.maxclients; i++ )
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		G_CallVotes_ResetClient( i );
+	}
 	callvoteState.timeout = 0;
 
 	callvoteState.vote.caller = NULL;
@@ -560,38 +623,21 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 }
 
 void G_FreeCallvotes() {
-	callvotetype_t *callvote;
-
-	while( callvotesHeadNode ) {
-		callvote = callvotesHeadNode->next;
-
-		G_Free( callvotesHeadNode );
-		callvotesHeadNode = callvote;
-	}
-
-	callvotesHeadNode = NULL;
-
 	G_CallVotes_Reset( false );
 }
 
 static void G_CallVotes_PrintUsagesToPlayer( edict_t *ent ) {
-	callvotetype_t *callvote;
-
 	G_PrintMsg( ent, "Available votes:\n" );
-	for( callvote = callvotesHeadNode; callvote != NULL; callvote = callvote->next ) {
-		if( Cvar_Value( va( "g_disable_vote_%s", callvote->name ) ) ) {
-			continue;
-		}
-
-		if( callvote->argument_format ) {
-			G_PrintMsg( ent, " %s %s\n", callvote->name, callvote->argument_format );
+	for( callvotetype_t callvote : votes ) {
+		if( callvote.argument_format ) {
+			G_PrintMsg( ent, " %s %s\n", callvote.name, callvote.argument_format );
 		} else {
-			G_PrintMsg( ent, " %s\n", callvote->name );
+			G_PrintMsg( ent, " %s\n", callvote.name );
 		}
 	}
 }
 
-static void G_CallVotes_PrintHelpToPlayer( edict_t *ent, callvotetype_t *callvote ) {
+static void G_CallVotes_PrintHelpToPlayer( edict_t *ent, const callvotetype_t *callvote ) {
 
 	if( !callvote ) {
 		return;
@@ -765,9 +811,6 @@ void G_CallVotes_Think() {
 }
 
 static void G_CallVote( edict_t *ent, bool isopcall ) {
-	const char *votename;
-	callvotetype_t *callvote;
-
 	if( !g_callvote_enabled->integer ) {
 		G_PrintMsg( ent, "%sCallvoting is disabled on this server\n", S_COLOR_RED );
 		return;
@@ -778,15 +821,17 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 		return;
 	}
 
-	votename = Cmd_Argv( 1 );
+	const char * votename = Cmd_Argv( 1 );
 	if( !votename || !votename[0] ) {
 		G_CallVotes_PrintUsagesToPlayer( ent );
 		return;
 	}
 
 	//find the actual callvote command
-	for( callvote = callvotesHeadNode; callvote != NULL; callvote = callvote->next ) {
-		if( callvote->name && !Q_stricmp( callvote->name, votename ) ) {
+	const callvotetype_t * callvote = NULL;
+	for( const callvotetype_t & vote : votes ) {
+		if( StrCaseEqual( vote.name, votename ) ) {
+			callvote = &vote;
 			break;
 		}
 	}
@@ -795,19 +840,6 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 	if( callvote == NULL ) {
 		G_PrintMsg( ent, "%sUnrecognized vote: %s\n", S_COLOR_RED, votename );
 		G_CallVotes_PrintUsagesToPlayer( ent );
-		return;
-	}
-
-	// wsw : pb : server admin can now disable a specific vote command (g_disable_vote_<vote name>)
-	// check if vote is disabled
-	if( !isopcall && Cvar_Value( va( "g_disable_vote_%s", callvote->name ) ) ) {
-		G_PrintMsg( ent, "%sCallvote %s is disabled on this server\n", S_COLOR_RED, callvote->name );
-		return;
-	}
-
-	// allow a second cvar specific for opcall
-	if( isopcall && Cvar_Value( va( "g_disable_opcall_%s", callvote->name ) ) ) {
-		G_PrintMsg( ent, "%sOpcall %s is disabled on this server\n", S_COLOR_RED, callvote->name );
 		return;
 	}
 
@@ -962,90 +994,11 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 }
 
 void G_CallVotes_Init() {
-	callvotetype_t *callvote;
-
 	g_callvote_electpercentage = Cvar_Get( "g_vote_percent", "55", CVAR_ARCHIVE );
 	g_callvote_electtime = Cvar_Get( "g_vote_electtime", "20", CVAR_ARCHIVE );
 	g_callvote_enabled = Cvar_Get( "g_vote_allowed", "1", CVAR_ARCHIVE );
 	g_callvote_maxchanges = Cvar_Get( "g_vote_maxchanges", "3", CVAR_ARCHIVE );
 	g_callvote_cooldowntime = Cvar_Get( "g_vote_cooldowntime", "5", CVAR_ARCHIVE );
-
-	// register all callvotes
-
-	callvote = G_RegisterCallvote( "map" );
-	callvote->expectedargs = 1;
-	callvote->validate = G_VoteMapValidate;
-	callvote->execute = G_VoteMapPassed;
-	callvote->current = G_VoteMapCurrent;
-	callvote->extraHelp = G_VoteMapExtraHelp;
-	callvote->argument_format = "<name>";
-	callvote->argument_type = "option";
-	callvote->help = "Changes map";
-
-	callvote = G_RegisterCallvote( "start" );
-	callvote->expectedargs = 0;
-	callvote->validate = G_VoteStartValidate;
-	callvote->execute = G_VoteStartPassed;
-	callvote->current = NULL;
-	callvote->extraHelp = NULL;
-	callvote->argument_format = NULL;
-	callvote->argument_type = NULL;
-	callvote->help = "Sets all players as ready so the match can start";
-
-	callvote = G_RegisterCallvote( "spectate" );
-	callvote->expectedargs = 1;
-	callvote->validate = G_VoteSpectateValidate;
-	callvote->execute = G_VoteSpectatePassed;
-	callvote->current = NULL;
-	callvote->extraHelp = G_VoteSpectateExtraHelp;
-	callvote->argument_format = "<player>";
-	callvote->argument_type = "option";
-	callvote->help = "Forces player back to spectator mode";
-
-	callvote = G_RegisterCallvote( "kick" );
-	callvote->expectedargs = 1;
-	callvote->validate = G_VoteKickValidate;
-	callvote->execute = G_VoteKickPassed;
-	callvote->current = NULL;
-	callvote->extraHelp = G_VoteKickExtraHelp;
-	callvote->argument_format = "<player>";
-	callvote->argument_type = "option";
-	callvote->help = "Removes player from the server";
-
-	callvote = G_RegisterCallvote( "kickban" );
-	callvote->expectedargs = 1;
-	callvote->validate = G_VoteKickBanValidate;
-	callvote->execute = G_VoteKickBanPassed;
-	callvote->current = NULL;
-	callvote->extraHelp = G_VoteKickBanExtraHelp;
-	callvote->argument_format = "<player>";
-	callvote->argument_type = "option";
-	callvote->help = "Removes player from the server and bans his IP-address for 15 minutes";
-
-	callvote = G_RegisterCallvote( "timeout" );
-	callvote->expectedargs = 0;
-	callvote->validate = G_VoteTimeoutValidate;
-	callvote->execute = G_VoteTimeoutPassed;
-	callvote->current = NULL;
-	callvote->extraHelp = NULL;
-	callvote->argument_format = NULL;
-	callvote->argument_type = NULL;
-	callvote->help = "Pauses the game";
-
-	callvote = G_RegisterCallvote( "timein" );
-	callvote->expectedargs = 0;
-	callvote->validate = G_VoteTimeinValidate;
-	callvote->execute = G_VoteTimeinPassed;
-	callvote->current = NULL;
-	callvote->extraHelp = NULL;
-	callvote->argument_format = NULL;
-	callvote->argument_type = NULL;
-	callvote->help = "Resumes the game if in timeout";
-
-	// wsw : pb : server admin can now disable a specific callvote command (g_disable_vote_<callvote name>)
-	for( callvote = callvotesHeadNode; callvote != NULL; callvote = callvote->next ) {
-		Cvar_Get( va( "g_disable_vote_%s", callvote->name ), "0", CVAR_ARCHIVE );
-	}
 
 	G_CallVotes_Reset( true );
 }

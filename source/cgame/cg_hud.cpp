@@ -699,9 +699,6 @@ void CG_DrawScope() {
 				char * msg = temp( "{.2}m", distance / 32.0f );
 				GlitchText( Span< char >( msg + strlen( msg ) - 3, 2 ) );
 
-				Vec4 color = Lerp( vec4_red, Square( RandomFloat01( &cls.rng ) ), vec4_white );
-				color.w = frac;
-
 				DrawText( cgs.fontItalic, cgs.textSizeSmall, msg, Alignment_RightTop, frame_static.viewport_width / 2 - offset, frame_static.viewport_height / 2 + offset, vec4_red );
 			}
 

@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
-static Vec3 gunpos;
-
 static float SmoothStep( float t ) {
 	return t * t * ( 3.0f - 2.0f * t );
 }
@@ -95,16 +93,12 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	Vec3 gunAngles, gunOffset;
 	if( model->camera == U8_MAX ) {
-		if( righthand->modified )
-		{
-			righthand->modified = false;
-			gunpos = Vec3( 3, righthand->integer != 0 ? 10 : -10 , -12 ); // depth, horizontal, vertical
-		}
-
 		// calculate the entity position
 		// weapon config offsets
 		gunAngles = weaponInfo->handpositionAngles;
-		gunOffset = weaponInfo->handpositionOrigin + gunpos;
+
+		constexpr Vec3 old_gunpos_cvars = Vec3( 3, 10, -12 ); // depth, horizontal, vertical
+		gunOffset = weaponInfo->handpositionOrigin + old_gunpos_cvars;
 		gunOffset = Vec3( gunOffset.y, gunOffset.z, -gunOffset.x );
 	}
 	else {

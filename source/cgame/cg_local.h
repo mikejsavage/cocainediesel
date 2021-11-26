@@ -513,7 +513,7 @@ void CG_DrawChat();
 //
 // cg_input.cpp
 //
-extern cvar_t* righthand;
+
 void CG_InitInput();
 void CG_ShutdownInput();
 void CG_ClearInputState();

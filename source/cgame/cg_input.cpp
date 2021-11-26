@@ -240,7 +240,6 @@ static cvar_t *m_accelOffset;
 static cvar_t *m_accelPow;
 static cvar_t *m_sensCap;
 static cvar_t *m_invertY;
-cvar_t *righthand;
 
 static Vec2 mouse_movement;
 
@@ -360,7 +359,6 @@ void CG_InitInput() {
 	Cmd_AddCommand( "+reload", IN_ReloadDown );
 	Cmd_AddCommand( "-reload", IN_ReloadUp );
 
-	righthand = Cvar_Get( "righthand", "1", CVAR_ARCHIVE );
 	sensitivity = Cvar_Get( "sensitivity", "3", CVAR_ARCHIVE );
 	horizontalSensScale = Cvar_Get( "horizontalsensscale", "1", CVAR_ARCHIVE );
 	zoomsens = Cvar_Get( "zoomsens", "0", CVAR_ARCHIVE );

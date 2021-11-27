@@ -438,7 +438,6 @@ float CG_ViewSmoothFallKick();
 float CG_CalcViewFov();
 void CG_RenderView( unsigned extrapolationTime );
 bool CG_ChaseStep( int step );
-bool CG_SwitchChaseCamMode();
 
 //
 // cg_lents.c

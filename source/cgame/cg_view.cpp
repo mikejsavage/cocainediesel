@@ -80,9 +80,6 @@ bool CG_ChaseStep( int step ) {
 	return false;
 }
 
-/*
-* CG_AddLocalSounds
-*/
 static void CG_AddLocalSounds() {
 	static unsigned lastSecond = 0;
 
@@ -164,11 +161,8 @@ static void CG_FlashGameWindow() {
 	}
 }
 
-/*
-* CG_CalcViewFov
-*/
 float CG_CalcViewFov() {
-	float hardcoded_fov = 107.9f; // TODO: temp hardcoded fov
+	float hardcoded_fov = 107.9f;
 
 	WeaponType weapon = cg.predictedPlayerState.weapon;
 	if( weapon == Weapon_None )
@@ -179,9 +173,6 @@ float CG_CalcViewFov() {
 	return Lerp( hardcoded_fov, frac, float( zoom_fov ) );
 }
 
-/*
-* CG_CalcViewBob
-*/
 static void CG_CalcViewBob() {
 	float bobMove, bobTime, bobScale;
 
@@ -226,9 +217,6 @@ static void CG_CalcViewBob() {
 	cg.bobFracSin = Abs( sinf( bobTime * PI ) );
 }
 
-/*
-* CG_StartFallKickEffect
-*/
 void CG_StartFallKickEffect( int bounceTime ) {
 	if( cg.fallEffectTime > cl.serverTime ) {
 		cg.fallEffectRebounceTime = 0;
@@ -246,9 +234,6 @@ void CG_StartFallKickEffect( int bounceTime ) {
 
 //============================================================================
 
-/*
-* CG_InterpolatePlayerState
-*/
 static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 	const SyncPlayerState * ps = &cg.frame.playerState;
 	const SyncPlayerState * ops = &cg.oldFrame.playerState;
@@ -287,9 +272,6 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 	}
 }
 
-/*
-* CG_ThirdPersonOffsetView
-*/
 static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	float dist, f, r;
 	trace_t trace;
@@ -337,9 +319,6 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	view->origin = chase_dest;
 }
 
-/*
-* CG_ViewSmoothPredictedSteps
-*/
 void CG_ViewSmoothPredictedSteps( Vec3 * vieworg ) {
 	int timeDelta;
 
@@ -350,9 +329,6 @@ void CG_ViewSmoothPredictedSteps( Vec3 * vieworg ) {
 	}
 }
 
-/*
-* CG_ViewSmoothFallKick
-*/
 float CG_ViewSmoothFallKick() {
 	// fallkick offset
 	if( cg.fallEffectTime > cl.serverTime ) {
@@ -365,20 +341,6 @@ float CG_ViewSmoothFallKick() {
 	return 0.0f;
 }
 
-/*
-* CG_SwitchChaseCamMode
-*
-* Returns whether the mode was actually switched.
-*/
-bool CG_SwitchChaseCamMode() {
-	if( cgs.demoPlaying || ISREALSPECTATOR() ) {
-		Cbuf_ExecuteText( EXEC_NOW, "camswitch" );
-		return true;
-	}
-
-	return false;
-}
-
 static void CG_UpdateChaseCam() {
 	UserCommand cmd;
 	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
@@ -389,7 +351,9 @@ static void CG_UpdateChaseCam() {
 	}
 
 	if( cmd.buttons & BUTTON_ATTACK ) {
-		CG_SwitchChaseCamMode();
+		if( cgs.demoPlaying || ISREALSPECTATOR() ) {
+			Cbuf_ExecuteText( EXEC_NOW, "camswitch" );
+		}
 		chaseCam.key_pressed = true;
 	}
 
@@ -410,9 +374,6 @@ static void CG_UpdateChaseCam() {
 	}
 }
 
-/*
-* CG_SetupViewDef
-*/
 static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	memset( view, 0, sizeof( cg_viewdef_t ) );
 

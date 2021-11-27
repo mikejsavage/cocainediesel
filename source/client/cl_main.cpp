@@ -310,13 +310,13 @@ static void CL_Connect_Cmd_f( socket_type_t socket ) {
 		return;
 	}
 
-	if( ( tmp = Q_strrstr( connectstring, "@" ) ) != NULL ) {
+	if( ( tmp = strrchr( connectstring, '@' ) ) != NULL ) {
 		Q_strncpyz( password, connectstring, qmin( sizeof( password ), tmp - connectstring + 1 ) );
 		Cvar_Set( "password", password );
 		connectstring += ( tmp - connectstring ) + 1;
 	}
 
-	if( ( tmp = Q_strrstr( connectstring, "/" ) ) != NULL ) {
+	if( ( tmp = strrchr( connectstring, '/' ) ) != NULL ) {
 		connectstring[tmp - connectstring] = '\0';
 	}
 

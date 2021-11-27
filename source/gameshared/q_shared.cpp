@@ -46,9 +46,6 @@ char *COM_SanitizeFilePath( char *path ) {
 	return path;
 }
 
-/*
-* COM_ValidateFilename
-*/
 bool COM_ValidateFilename( const char *filename ) {
 	assert( filename );
 
@@ -64,9 +61,6 @@ bool COM_ValidateFilename( const char *filename ) {
 	return true;
 }
 
-/*
-* COM_ValidateRelativeFilename
-*/
 bool COM_ValidateRelativeFilename( const char *filename ) {
 	// TODO: should probably use PathIsRelative on windows
 	// https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisrelativea?redirectedfrom=MSDN
@@ -85,9 +79,6 @@ bool COM_ValidateRelativeFilename( const char *filename ) {
 	return true;
 }
 
-/*
-* COM_StripExtension
-*/
 void COM_StripExtension( char *filename ) {
 	char *src, *last = NULL;
 
@@ -124,9 +115,6 @@ void COM_DefaultExtension( char *path, const char *extension, size_t size ) {
 	Q_strncatz( path, extension, size );
 }
 
-/*
-* COM_FileBase
-*/
 const char *COM_FileBase( const char *in ) {
 	const char *s;
 
@@ -466,9 +454,6 @@ bool SortCStringsComparator( const char * a, const char * b ) {
 //
 //============================================================================
 
-/*
-* Q_strncpyz
-*/
 void Q_strncpyz( char *dest, const char *src, size_t size ) {
 	if( size ) {
 		while( --size && ( *dest++ = *src++ ) ) ;
@@ -476,9 +461,6 @@ void Q_strncpyz( char *dest, const char *src, size_t size ) {
 	}
 }
 
-/*
-* Q_strncatz
-*/
 void Q_strncatz( char *dest, const char *src, size_t size ) {
 	if( size ) {
 		while( --size && *dest++ ) ;
@@ -490,9 +472,6 @@ void Q_strncatz( char *dest, const char *src, size_t size ) {
 	}
 }
 
-/*
-* Q_strupr
-*/
 char *Q_strupr( char *s ) {
 	char *p;
 
@@ -505,9 +484,6 @@ char *Q_strupr( char *s ) {
 	return NULL;
 }
 
-/*
-* Q_strlwr
-*/
 char *Q_strlwr( char *s ) {
 	char *p;
 
@@ -520,24 +496,6 @@ char *Q_strlwr( char *s ) {
 	return NULL;
 }
 
-/*
-* Q_strrstr
-*/
-const char *Q_strrstr( const char *s, const char *substr ) {
-	const char *p;
-
-	s = p = strstr( s, substr );
-	while( s != NULL ) {
-		p = s;
-		s = strstr( s + 1, substr );
-	}
-
-	return p;
-}
-
-/*
-* Q_trim
-*/
 #define IS_TRIMMED_CHAR( s ) ( ( s ) == ' ' || ( s ) == '\t' || ( s ) == '\r' || ( s ) == '\n' )
 char *Q_trim( char *s ) {
 	char *t = s;
@@ -578,53 +536,6 @@ void RemoveTrailingZeroesFloat( char * str ) {
 	str[ len + 1 ] = '\0';
 }
 
-/*
-* Q_urlencode_unsafechars
-*/
-void Q_urlencode_unsafechars( const char *src, char *dst, size_t dst_size ) {
-	size_t i, n, len;
-
-	assert( src );
-	assert( dst );
-
-	if( !src || !dst || !dst_size ) {
-		return;
-	}
-
-	len = strlen( src );
-	if( len >= dst_size ) {
-		len = dst_size - 1;
-	}
-
-	// urlencode
-	n = 0;
-	for( i = 0; i < len && n < dst_size - 1; i++ ) {
-		char c = src[i];
-
-		if( c == ' ' || c == '#' || c == '%' ||
-			c == '<' || c == '>' || c == '{' || c == '}' ||
-			c == '|' || c == '\\' || c == '^' || c == '~' ||
-			c == '[' || c == ']' ) {
-			// urlencode
-			if( n + 3 >= dst_size ) {
-				// not enough space
-				break;
-			}
-
-			dst[n  ] = '%';
-			sprintf( &dst[n + 1], "%02x", (int)c );
-			n += 3;
-		} else {
-			dst[n] = src[i];
-			n++;
-		}
-	}
-	dst[n] = '\0';
-}
-
-/*
-* Q_urldecode
-*/
 #define hex2dec( x ) ( ( ( x ) <= '9' ? ( x ) - '0' : ( ( x ) <= 'F' ) ? ( x ) - 'A' + 10 : ( x ) - 'a' + 10 ) )
 size_t Q_urldecode( const char *src, char *dst, size_t dst_size ) {
 	char *dst_start = dst, *dst_end = dst + dst_size - 1;
@@ -659,9 +570,6 @@ size_t Q_urldecode( const char *src, char *dst, size_t dst_size ) {
 //=====================================================================
 
 
-/*
-* COM_ValidateConfigstring
-*/
 bool COM_ValidateConfigstring( const char *string ) {
 	const char *p;
 	bool opened = false;
@@ -692,9 +600,6 @@ bool COM_ValidateConfigstring( const char *string ) {
 	return true;
 }
 
-/*
-* Info_ValidateValue
-*/
 static bool Info_ValidateValue( const char *value ) {
 	assert( value );
 
@@ -721,9 +626,6 @@ static bool Info_ValidateValue( const char *value ) {
 	return true;
 }
 
-/*
-* Info_ValidateKey
-*/
 static bool Info_ValidateKey( const char *key ) {
 	assert( key );
 
@@ -904,9 +806,6 @@ char *Info_ValueForKey( const char *info, const char *key ) {
 	return value[valueindex];
 }
 
-/*
-* Info_RemoveKey
-*/
 void Info_RemoveKey( char *info, const char *key ) {
 	assert( info && Info_Validate( info ) );
 	assert( key && Info_ValidateKey( key ) );
@@ -941,9 +840,6 @@ void Info_RemoveKey( char *info, const char *key ) {
 	}
 }
 
-/*
-* Info_SetValueForKey
-*/
 bool Info_SetValueForKey( char *info, const char *key, const char *value ) {
 	char pair[MAX_INFO_KEY + MAX_INFO_VALUE + 1];
 

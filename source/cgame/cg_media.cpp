@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/renderer.h"
 #include "client/renderer/text.h"
 
-void CG_RegisterMediaSounds() {
+void CG_RegisterMedia() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	for( int i = 0; i < 4; i++ ) {
@@ -39,24 +39,6 @@ void CG_RegisterMediaSounds() {
 	cgs.media.sfxVSaySounds[ Vsay_User ] = "sounds/vsay/user";
 	cgs.media.sfxVSaySounds[ Vsay_Guyman ] = "sounds/vsay/guyman";
 	cgs.media.sfxVSaySounds[ Vsay_Helena ] = "sounds/vsay/helena";
-}
-
-void CG_RegisterMediaModels() {
-	cgs.media.modDash = FindModel( "models/effects/dash_burst" );
-	cgs.media.modGib = FindModel( "models/gibs/gib" );
-}
-
-void CG_RegisterMediaShaders() {
-	TempAllocator temp = cls.frame_arena.temp();
-
-	cgs.media.shaderNet = FindMaterial( "gfx/hud/net" );
-
-	cgs.media.shaderBombIcon = FindMaterial( "gfx/bomb" );
-
-	cgs.media.shaderEBBeam = FindMaterial( "weapons/eb/beam" );
-	cgs.media.shaderLGBeam = FindMaterial( "weapons/lg/beam" );
-	cgs.media.shaderTracer = FindMaterial( "weapons/tracer" );
-	cgs.media.shaderLaser = FindMaterial( "gfx/misc/laser" );
 
 	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 		cgs.media.shaderWeaponIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GS_GetWeaponDef( i )->short_name ) );
@@ -66,12 +48,6 @@ void CG_RegisterMediaShaders() {
 		cgs.media.shaderGadgetIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GetGadgetDef( GadgetType( i ) )->short_name ) );
 	}
 
-	cgs.media.shaderAlive = FindMaterial( "gfx/scoreboard/alive" );
-	cgs.media.shaderDead = FindMaterial( "gfx/scoreboard/dead" );
-	cgs.media.shaderReady = FindMaterial( "gfx/scoreboard/ready" );
-}
-
-void CG_RegisterFonts() {
 	cgs.fontNormal = RegisterFont( "fonts/Decalotype-Bold" );
 	cgs.fontNormalBold = RegisterFont( "fonts/Decalotype-Black" );
 	cgs.fontItalic = RegisterFont( "fonts/Decalotype-BoldItalic" );

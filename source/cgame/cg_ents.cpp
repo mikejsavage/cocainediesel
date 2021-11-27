@@ -286,7 +286,7 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 		CG_NewPacketEntityState( &frame->parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )] );
 	}
 
-	if( !cgs.precacheDone || !cg.frame.valid ) {
+	if( !cg.frame.valid || !cgs.rendered_a_frame ) {
 		return false;
 	}
 
@@ -502,7 +502,7 @@ static void CG_LerpLaser( centity_t *cent ) {
 }
 
 static void CG_AddLaserEnt( centity_t *cent ) {
-	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, vec4_white, cgs.media.shaderLaser );
+	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, vec4_white, "gfx/misc/laser" );
 }
 
 static void CG_UpdateLaserbeamEnt( centity_t *cent ) {

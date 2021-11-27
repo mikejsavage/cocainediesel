@@ -67,7 +67,7 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum ) {
 
 	Mat4 muzzle_transform = GetMuzzleTransform( ownerNum );
 
-	AddPersistentBeam( muzzle_transform.col3.xyz(), trace.endpos, 16.0f, color, cgs.media.shaderEBBeam, 0.25f, 0.1f );
+	AddPersistentBeam( muzzle_transform.col3.xyz(), trace.endpos, 16.0f, color, "weapons/eb/beam", 0.25f, 0.1f );
 	RailTrailParticles( muzzle_transform.col3.xyz(), trace.endpos, color );
 }
 
@@ -125,7 +125,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 
 	Vec3 start = muzzle_transform.col3.xyz();
 	Vec3 end = trace.endpos;
-	DrawBeam( start, end, 8.0f, color, cgs.media.shaderLGBeam );
+	DrawBeam( start, end, 8.0f, color, "weapons/lg/beam" );
 
 	cent->lg_hum_sound = S_ImmediateEntitySound( "weapons/lg/hum", cent->current.number, 1.0f, 1.0f, true, cent->lg_hum_sound );
 
@@ -245,7 +245,7 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 	Mat4 muzzle_transform = GetMuzzleTransform( owner );
 
 	if( weapon != Weapon_Pistol ) {
-		AddPersistentBeam( muzzle_transform.col3.xyz(), trace.endpos, 1.0f, team_color, cgs.media.shaderTracer, 0.2f, 0.1f );
+		AddPersistentBeam( muzzle_transform.col3.xyz(), trace.endpos, 1.0f, team_color, "weapons/tracer", 0.2f, 0.1f );
 	}
 }
 
@@ -275,7 +275,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 			WallbangImpact( &wallbang, team_color, 2, 0.5f );
 		}
 
-		AddPersistentBeam( muzzle, trace.endpos, 1.0f, team_color, cgs.media.shaderTracer, 0.2f, 0.1f );
+		AddPersistentBeam( muzzle, trace.endpos, 1.0f, team_color, "weapons/tracer", 0.2f, 0.1f );
 	}
 
 	// spawn a single sound at the impact
@@ -451,7 +451,6 @@ void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
 
 	CG_PModel_AddAnimation( state->number, animations[ parm ], 0, 0, EVENT_CHANNEL );
 	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Dash );
-	CG_Dash( state ); // Dash smoke effect
 
 	// since most dash animations jump with right leg, reset the jump to start with left leg after a dash
 	cg_entities[ state->number ].jumpedLeft = true;
@@ -477,10 +476,6 @@ void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
 	}
 
 	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump );
-
-	Vec3 pos = state->origin;
-	pos.z += 15;
-	CG_DustCircle( pos, normal, 65, 12 );
 }
 
 static void CG_PlayJumpSound( const SyncEntityState * state ) {

@@ -1011,7 +1011,7 @@ static void CG_DrawWeaponIcons( int ix, int iy, int offx, int offy, int iw, int 
 
 		Draw2DBoxPadded( x, y, w, h, border, cls.white_material, border_color );
 		Draw2DBox( x, y, w, h, cls.white_material, bg_color );
-		Draw2DBox( x, y, w, h, cgs.media.shaderBombIcon, bomb_color );
+		Draw2DBox( x, y, w, h, FindMaterial( "gfx/bomb" ), bomb_color );
 		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, "BOMB", Alignment_CenterTop, x + w * 0.5f, y + h * 1.075f, text_color, layout_cursor_font_border );
 	}
 

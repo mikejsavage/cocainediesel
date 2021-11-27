@@ -11,72 +11,6 @@ void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius ) {
 	S_StartFixedSound( "models/bomb/explode", pos, CHAN_AUTO, 1.0f, 1.0f );
 }
 
-void CG_Dash( const SyncEntityState * state ) {
-	/*
-	LocalEntity *le;
-	Vec3 pos, dvect, angle = { 0, 0, 0 };
-
-	// KoFFiE: Calculate angle based on relative position of the previous origin state of the player entity
-	dvect = state->origin - cg_entities[state->number].prev.origin;
-
-	// ugly inline define -> Ignore when difference between 2 positions was less than this value.
-#define IGNORE_DASH 6.0
-
-	if( ( dvect.x > -IGNORE_DASH ) && ( dvect.x < IGNORE_DASH ) &&
-		( dvect.y > -IGNORE_DASH ) && ( dvect.y < IGNORE_DASH ) ) {
-		return;
-	}
-
-	angle = VecToAngles( dvect );
-	pos = state->origin;
-	angle.y += 270; // Adjust angle
-	pos.z -= 24; // Adjust the position to ground height
-
-	if( CG_PointContents( pos ) & MASK_WATER ) {
-		return; // no smoke under water :)
-	}
-
-	le = CG_AllocModel( LE_DASH_SCALE, pos, angle, 7,
-						Vec4( 1.0f, 1.0f, 1.0f, 0.2f ),
-						0, 0, 0, 0,
-						cgs.media.modDash,
-						NULL
-						);
-	le->ent.scale = 0.01f;
-	le->ent.axis[AXIS_UP + 2] *= 2.0f;
-	*/
-}
-
-void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count ) {
-	// Vec3 dir_per1;
-	// Vec3 dir_per2;
-	// Vec3 dir_temp = { 0.0f, 0.0f, 0.0f };
-	// int i;
-	// float angle;
-	//
-	// if( CG_PointContents( pos ) & MASK_WATER ) {
-	// 	return; // no smoke under water :)
-	// }
-	// PerpendicularVector( &dir_per2, dir );
-	// dir_per1 = Cross( dir, dir_per2 );
-	//
-	// dir_per1 *= Length( dir_per1 );
-	// dir_per2 *= Length( dir_per2 );
-	// Normalize( dir_per1 );
-	// Normalize( dir_per2 );
-	//
-	// for( i = 0; i < count; i++ ) {
-	// 	angle = (float)( PI * 2.0f / count * i );
-	// 	dir_temp = Vec3( 0.0f, 0.0f, 0.0f );
-	// 	dir_temp = dir_temp + dir_per1 * ( sinf( angle ) );
-	// 	dir_temp = dir_temp + dir_per2 * ( cosf( angle ) );
-	//
-	// 	//dir_temp = dir_temp * ( dir_temp) = Normalize( dir_temp) );
-	// 	dir_temp = dir_temp * ( RandomFloat11( &cls.rng ) * 10 + radius );
-	// 	CG_Explosion_Puff_2( pos, dir_temp, 10 );
-	// }
-}
-
 struct Gib {
 	Vec3 origin;
 	Vec3 velocity;
@@ -98,7 +32,10 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 	int count = Min2( damage * 3 / 2, 60 );
 
 	float player_radius = playerbox_stand_maxs.x;
-	float gib_radius = cgs.media.modGib->bounds.maxs.x;
+
+	const Model * model = FindModel( "models/gibs/gib" );
+	float gib_radius = model->bounds.maxs.x;
+
 	constexpr float epsilon = 0.1f;
 	float radius = player_radius - gib_radius - epsilon;
 
@@ -150,7 +87,7 @@ void DrawGibs() {
 
 	float dt = cls.frametime * 0.001f;
 
-	const Model * model = cgs.media.modGib;
+	const Model * model = FindModel( "models/gibs/gib" );
 	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
 
 	for( u32 i = 0; i < num_gibs; i++ ) {

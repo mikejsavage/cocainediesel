@@ -115,29 +115,11 @@ struct centity_t {
 #include "cgame/cg_pmodels.h"
 
 struct cgs_media_t {
-	// sounds
 	StringHash sfxWeaponHit[ 4 ];
-
 	StringHash sfxVSaySounds[ Vsay_Total ];
-
-	// models
-	const Model * modDash;
-	const Model * modGib;
-
-	const Material * shaderBombIcon;
-	const Material * shaderLaser;
-	const Material * shaderNet;
-
-	const Material * shaderEBBeam;
-	const Material * shaderLGBeam;
-	const Material * shaderTracer;
 
 	const Material * shaderWeaponIcon[ Weapon_Count ];
 	const Material * shaderGadgetIcon[ Gadget_Count ];
-
-	const Material * shaderAlive;
-	const Material * shaderDead;
-	const Material * shaderReady;
 };
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
@@ -191,7 +173,7 @@ struct cg_static_t {
 
 	cgs_media_t media;
 
-	bool precacheDone;
+	bool rendered_a_frame;
 
 	bool demoPlaying;
 	unsigned snapFrameTime;
@@ -290,10 +272,7 @@ Vec2 WorldToScreenClamped( Vec3 v, Vec2 screen_border, bool * clamped );
 //
 // cg_media.c
 //
-void CG_RegisterMediaSounds();
-void CG_RegisterMediaModels();
-void CG_RegisterMediaShaders();
-void CG_RegisterFonts();
+void CG_RegisterMedia();
 
 //
 // cg_players.c
@@ -443,15 +422,7 @@ bool CG_ChaseStep( int step );
 // cg_lents.c
 //
 
-void CG_RifleBulletTrail( const centity_t * cent );
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
-void CG_StakeImpact( Vec3 pos, Vec3 dir, Vec4 team_color );
-void CG_StakeImpale( Vec3 pos, Vec3 dir, Vec4 team_color );
-void CG_BlastImpact( Vec3 pos, Vec3 dir, Vec4 team_color );
-void CG_BlastBounce( Vec3 pos, Vec3 dir, Vec4 team_color );
-
-void CG_Dash( const SyncEntityState *state );
-void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count );
 
 void InitGibs();
 void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 team_color );
@@ -462,10 +433,10 @@ void DrawGibs();
 //
 void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color );
 
-void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );
+void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material );
 
 void InitPersistentBeams();
-void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material, float duration, float fade_time );
+void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material, float duration, float fade_time );
 void DrawPersistentBeams();
 
 //

@@ -567,10 +567,11 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	cg.frameCount++;
 
-	if( !cgs.precacheDone || !cg.frame.valid ) {
-		CG_Precache();
+	if( !cg.frame.valid ) {
 		return;
 	}
+
+	cgs.rendered_a_frame = true;
 
 	{
 		// moved this from CG_Init here

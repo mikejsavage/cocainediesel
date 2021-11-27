@@ -14,20 +14,21 @@ bool CG_ScoreboardShown() {
 
 static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float line_height ) {
 	SyncScoreboardPlayer * player = &client_gs.gameState.players[ playerIndex - 1 ];
+
 	// icon
 	bool warmup = client_gs.gameState.match_state == MatchState_Warmup || client_gs.gameState.match_state == MatchState_Countdown;
 	const Material * icon = NULL;
 
 	if( warmup ) {
-		icon = player->ready ? cgs.media.shaderReady : NULL;
+		icon = player->ready ? FindMaterial( "gfx/scoreboard/ready" ) : NULL;
 	}
 	else {
 		bool carrier = player->carrier && ( ISREALSPECTATOR() || cg_entities[ playerIndex ].current.team == cg.predictedPlayerState.team );
 		if( player->alive ) {
-			icon = carrier ? cgs.media.shaderBombIcon : cgs.media.shaderAlive;
+			icon = carrier ? FindMaterial( "gfx/bomb" ) : FindMaterial( "gfx/scoreboard/alive" );
 		}
 		else {
-			icon = cgs.media.shaderDead;
+			icon = FindMaterial( "gfx/scoreboard/dead" );
 		}
 	}
 

@@ -371,28 +371,7 @@ float CG_ViewSmoothFallKick() {
 * Returns whether the mode was actually switched.
 */
 bool CG_SwitchChaseCamMode() {
-	bool chasecam = ( cg.frame.playerState.pmove.pm_type == PM_CHASECAM )
-					&& ( cg.frame.playerState.POVnum != (unsigned)( cgs.playerNum + 1 ) );
-	bool realSpec = cgs.demoPlaying || ISREALSPECTATOR();
-
-	if( ( cg.frame.multipov || chasecam ) && !CG_DemoCam_IsFree() ) {
-		if( chasecam ) {
-			if( realSpec ) {
-				if( ++chaseCam.mode >= CAM_MODES ) {
-					// if exceeds the cycle, start free fly
-					Cbuf_ExecuteText( EXEC_NOW, "camswitch" );
-					chaseCam.mode = 0;
-				}
-				return true;
-			}
-			return false;
-		}
-
-		chaseCam.mode = ( ( chaseCam.mode != CAM_THIRDPERSON ) ? CAM_THIRDPERSON : CAM_INEYES );
-		return true;
-	}
-
-	if( realSpec && ( CG_DemoCam_IsFree() || cg.frame.playerState.pmove.pm_type == PM_SPECTATOR ) ) {
+	if( cgs.demoPlaying || ISREALSPECTATOR() ) {
 		Cbuf_ExecuteText( EXEC_NOW, "camswitch" );
 		return true;
 	}
@@ -400,17 +379,7 @@ bool CG_SwitchChaseCamMode() {
 	return false;
 }
 
-/*
-* CG_UpdateChaseCam
-*/
 static void CG_UpdateChaseCam() {
-	bool chasecam = ( cg.frame.playerState.pmove.pm_type == PM_CHASECAM )
-					&& ( cg.frame.playerState.POVnum != (unsigned)( cgs.playerNum + 1 ) );
-
-	if( !( cg.frame.multipov || chasecam ) || CG_DemoCam_IsFree() ) {
-		chaseCam.mode = CAM_INEYES;
-	}
-
 	UserCommand cmd;
 	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 
@@ -461,8 +430,6 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		// set up third-person
 		if( cgs.demoPlaying ) {
 			view->thirdperson = CG_DemoCam_GetThirdPerson();
-		} else if( chaseCam.mode == CAM_THIRDPERSON ) {
-			view->thirdperson = true;
 		} else {
 			view->thirdperson = ( cg_thirdPerson->integer != 0 );
 		}

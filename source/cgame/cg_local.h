@@ -422,14 +422,7 @@ Vec4 CG_TeamColorVec4( int team );
 //
 // cg_view.c
 //
-enum {
-	CAM_INEYES,
-	CAM_THIRDPERSON,
-	CAM_MODES
-};
-
 struct ChasecamState {
-	int mode;
 	bool key_pressed;
 };
 

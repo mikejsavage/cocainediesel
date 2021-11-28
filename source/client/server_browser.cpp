@@ -8,6 +8,7 @@
 
 struct MasterServer {
 	netadr_t address;
+	Thread * resolver_thread;
 	bool query_next_frame;
 };
 
@@ -77,6 +78,7 @@ void ServerBrowserFrame() {
 	DoUnderLock( &locked_master_servers, []( MasterServers * master_servers ) {
 		for( MasterServer & master : master_servers->servers ) {
 			if( master.query_next_frame ) {
+				JoinThread( master.resolver_thread );
 				QueryMasterServer( &master );
 			}
 		}
@@ -105,7 +107,7 @@ void RefreshServerBrowser() {
 		if( master_servers->num_dns_queries_in_flight == 0 ) {
 			for( size_t i = 0; i < ARRAY_COUNT( MASTER_SERVERS ); i++ ) {
 				if( master_servers->servers[ i ].address.type == NA_NOTRANSMIT ) {
-					NewThread( GetMasterServerAddress, ( void * ) uintptr_t( i ) );
+					master_servers->servers[ i ].resolver_thread = NewThread( GetMasterServerAddress, ( void * ) uintptr_t( i ) );
 				}
 			}
 		}

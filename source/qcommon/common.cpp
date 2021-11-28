@@ -239,12 +239,7 @@ void Com_Error( const char *format, ... ) {
 	SV_ShutdownGame( "Server crashed", false );
 	CL_Disconnect( msg );
 
-	if( is_public_build ) {
-		longjmp( abortframe, -1 );
-	}
-	else {
-		abort();
-	}
+	longjmp( abortframe, -1 );
 }
 
 /*

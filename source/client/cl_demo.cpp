@@ -303,9 +303,6 @@ void CL_LatchedDemoJump() {
 	cls.demo.play_jump_latched = false;
 }
 
-/*
-* CL_StartDemo
-*/
 static void CL_StartDemo( const char *demoname, bool yolo ) {
 	size_t name_size;
 	char *name, *servername;
@@ -375,18 +372,10 @@ static void CL_StartDemo( const char *demoname, bool yolo ) {
 	Mem_TempFree( servername );
 }
 
-/*
-* CL_DemoComplete
-*/
 const char **CL_DemoComplete( const char *partial ) {
 	return Cmd_CompleteHomeDirFileList( partial, "demos", APP_DEMO_EXTENSION_STR );
 }
 
-/*
-* CL_PlayDemo_f
-*
-* demo <demoname>
-*/
 void CL_PlayDemo_f() {
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "demo <demoname>\n" );
@@ -403,16 +392,10 @@ void CL_YoloDemo_f() {
 	CL_StartDemo( Cmd_Argv( 1 ), true );
 }
 
-/*
-* CL_PauseDemo
-*/
 static void CL_PauseDemo( bool paused ) {
 	cls.demo.paused = paused;
 }
 
-/*
-* CL_PauseDemo_f
-*/
 void CL_PauseDemo_f() {
 	if( !cls.demo.playing ) {
 		Com_Printf( "Can only demopause when playing a demo.\n" );
@@ -431,9 +414,6 @@ void CL_PauseDemo_f() {
 	CL_PauseDemo( !cls.demo.paused );
 }
 
-/*
-* CL_DemoJump_f
-*/
 void CL_DemoJump_f() {
 	bool relative;
 	int time;
@@ -478,9 +458,6 @@ void CL_DemoJump_f() {
 	cls.demo.play_jump_latched = true;
 }
 
-/*
-* CL_ReadDemoMetaData
-*/
 size_t CL_ReadDemoMetaData( const char *demopath, char *meta_data, size_t meta_data_size ) {
 	char *servername;
 	size_t meta_data_realsize = 0;

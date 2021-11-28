@@ -94,7 +94,7 @@ void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
 	}
 	x = CG_HorizontalAlignForWidth( x, alignment, w );
 	y = CG_VerticalAlignForHeight( y, alignment, h );
-	Draw2DBox( x, y, w, h, cgs.media.shaderNet, color );
+	Draw2DBox( x, y, w, h, FindMaterial( "gfx/hud/net" ), color );
 }
 
 void CG_ScreenCrosshairDamageUpdate() {
@@ -477,7 +477,7 @@ void CG_DrawBombHUD() {
 
 		if( clamped ) {
 			int icon_size = ( cgs.fontSystemMediumSize * frame_static.viewport_height ) / 600;
-			Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, cgs.media.shaderBombIcon );
+			Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, FindMaterial( "gfx/bomb" ) );
 		}
 		else {
 			if( show_labels ) {

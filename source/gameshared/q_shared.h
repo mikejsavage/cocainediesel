@@ -144,15 +144,9 @@ void Q_strncatz( char *dest, const char *src, size_t size );
 
 char *Q_strupr( char *s );
 char *Q_strlwr( char *s );
-const char *Q_strrstr( const char *s, const char *substr );
 char *Q_trim( char *s );
 void RemoveTrailingZeroesFloat( char * str );
 
-/**
- * Converts the given null-terminated string to an URL encoded null-terminated string.
- * Only "unsafe" subset of characters are encoded.
- */
-void Q_urlencode_unsafechars( const char *src, char *dst, size_t dst_size );
 /**
  * Converts the given URL-encoded string to a null-terminated plain string. Returns
  * total (untruncated) length of the resulting string.

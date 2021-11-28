@@ -122,11 +122,6 @@ void CG_SC_AutoRecordAction( const char *action ) {
 		return;
 	}
 
-	// let configstrings and other stuff arrive before taking any action
-	if( !cgs.precacheDone ) {
-		return;
-	}
-
 	if( cg.frame.playerState.pmove.pm_type == PM_SPECTATOR || cg.frame.playerState.pmove.pm_type == PM_CHASECAM ) {
 		spectator = true;
 	} else {

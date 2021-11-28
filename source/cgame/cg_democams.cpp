@@ -593,9 +593,6 @@ int CG_DemoCam_GetViewType() {
 }
 
 bool CG_DemoCam_GetThirdPerson() {
-	if( !currentcam ) {
-		return ( chaseCam.mode == CAM_THIRDPERSON );
-	}
 	return ( cam_viewtype == VIEWDEF_PLAYERVIEW && cam_3dPerson );
 }
 

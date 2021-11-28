@@ -9,10 +9,7 @@ void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 	DoVisualEffect( "weapons/eb/trail", start, end, count, color );
 }
 
-void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material ) {
-	if( material == NULL )
-		return;
-
+void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material_name ) {
 	if( start == end || start == frame_static.position )
 		return;
 
@@ -43,6 +40,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 		end - end_width * beam_across * 0.5f,
 	};
 
+	const Material * material = FindMaterial( material_name );
 	float texture_aspect_ratio = float( material->texture->width ) / float( material->texture->height );
 	float beam_aspect_ratio = Length( end - start ) / width;
 	float repetitions = beam_aspect_ratio / texture_aspect_ratio;
@@ -89,7 +87,7 @@ struct PersistentBeam {
 	Vec3 start, end;
 	float width;
 	Vec4 color;
-	const Material * material;
+	StringHash material;
 
 	s64 spawn_time;
 	float duration;
@@ -104,7 +102,7 @@ void InitPersistentBeams() {
 	num_persistent_beams = 0;
 }
 
-void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material, float duration, float fade_time ) {
+void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material, float duration, float fade_time ) {
 	if( num_persistent_beams == ARRAY_COUNT( persistent_beams ) )
 		return;
 

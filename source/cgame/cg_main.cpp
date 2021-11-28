@@ -133,19 +133,6 @@ static void CG_RegisterVariables() {
 	Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
 }
 
-void CG_Precache() {
-	if( cgs.precacheDone ) {
-		return;
-	}
-
-	CG_RegisterMediaModels();
-	CG_RegisterMediaSounds();
-	CG_RegisterMediaSounds();
-	CG_RegisterMediaShaders();
-
-	cgs.precacheDone = true;
-}
-
 const char * PlayerName( int i ) {
 	if( i < 0 || i >= client_gs.maxclients ) {
 		return "";
@@ -224,13 +211,11 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	CG_InitDamageNumbers();
 
-	// get configstrings
 	CG_RegisterConfigStrings();
 
-	// register fonts here so loading screen works
-	CG_RegisterFonts();
-
 	CG_RegisterCGameCommands();
+
+	CG_RegisterMedia();
 
 	CG_InitHUD();
 

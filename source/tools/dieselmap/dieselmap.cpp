@@ -1009,7 +1009,7 @@ static s32 MakeLeaf( BSP * bsp, Span< const u32 > brush_ids ) {
 	return -s32( leaf_id + 1 );
 }
 
-static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds, MinMax3 node_bounds, u32 max_depth ) {
+static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds, CandidatePlanes candidate_planes, MinMax3 node_bounds, u32 max_depth ) {
 	ZoneScoped;
 
 	if( brush_ids.n <= 1 || max_depth == 0 ) {
@@ -1021,8 +1021,6 @@ static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u3
 	size_t best_plane = 0;
 
 	float node_surface_area = SurfaceArea( node_bounds );
-
-	CandidatePlanes candidate_planes = BuildCandidatePlanes( temp, brush_ids, brush_bounds );
 
 	{
 		ZoneScopedN( "Find best split" );
@@ -1112,8 +1110,34 @@ static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u3
 		}
 	}
 
-	node.children[ 1 ] = BuildKDTreeRecursive( temp, bsp, below_brushes.span(), brush_bounds, below_bounds, max_depth - 1 );
-	node.children[ 0 ] = BuildKDTreeRecursive( temp, bsp, above_brushes.span(), brush_bounds, above_bounds, max_depth - 1 );
+	CandidatePlanes below_planes;
+	CandidatePlanes above_planes;
+	{
+		ZoneScopedN( "Split candidate planes" );
+
+		for( int i = 0; i < 3; i++ ) {
+			Span< CandidatePlane > axis_below = ALLOC_SPAN( temp, CandidatePlane, below_brushes.size() * 2 );
+			size_t below_count = 0;
+			Span< CandidatePlane > axis_above = ALLOC_SPAN( temp, CandidatePlane, above_brushes.size() * 2 );
+			size_t above_count = 0;
+
+			for( size_t j = 0; j < candidate_planes.axes[ i ].n; j++ ) {
+				CandidatePlane & plane = candidate_planes.axes[ i ][ j ];
+				const MinMax3 & curr_brush_bounds = brush_bounds[ plane.brush_id ];
+				
+				if( curr_brush_bounds.mins[ best_axis ] < distance )
+					axis_below[ below_count++ ] = plane;
+				if( curr_brush_bounds.maxs[ best_axis ] > distance )
+					axis_above[ above_count++ ] = plane;
+			}
+
+			below_planes.axes[ i ] = axis_below;
+			above_planes.axes[ i ] = axis_above;
+		}
+	}
+
+	node.children[ 1 ] = BuildKDTreeRecursive( temp, bsp, below_brushes.span(), brush_bounds, below_planes, below_bounds, max_depth - 1 );
+	node.children[ 0 ] = BuildKDTreeRecursive( temp, bsp, above_brushes.span(), brush_bounds, above_planes, above_bounds, max_depth - 1 );
 
 	( *bsp->nodes )[ node_id ] = node;
 
@@ -1135,7 +1159,9 @@ void BuildKDTree( TempAllocator * temp, BSP * bsp, Span< const MinMax3 > brush_b
 		all_brushes.add( i );
 	}
 
-	BuildKDTreeRecursive( temp, bsp, all_brushes.span(), brush_bounds, tree_bounds, max_depth );
+	CandidatePlanes candidate_planes = BuildCandidatePlanes( temp, all_brushes.span(), brush_bounds );
+
+	BuildKDTreeRecursive( temp, bsp, all_brushes.span(), brush_bounds, candidate_planes, tree_bounds, max_depth );
 
 	if( bsp->nodes->size() == 0 ) {
 		Plane split;

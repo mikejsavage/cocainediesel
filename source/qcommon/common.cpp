@@ -289,24 +289,6 @@ void Com_SetDemoPlaying( bool state ) {
 
 //============================================================================
 
-/*
-* COM_CheckParm
-*
-* Returns the position (1 to argc-1) in the program's argument list
-* where the given parameter apears, or 0 if not present
-*/
-int COM_CheckParm( char *parm ) {
-	int i;
-
-	for( i = 1; i < com_argc; i++ ) {
-		if( !strcmp( parm, com_argv[i] ) ) {
-			return i;
-		}
-	}
-
-	return 0;
-}
-
 int COM_Argc() {
 	return com_argc;
 }
@@ -343,18 +325,6 @@ void COM_InitArgv( int argc, char **argv ) {
 			com_argv[i] = argv[i];
 		}
 	}
-}
-
-/*
-* COM_AddParm
-*
-* Adds the given string at the end of the current argument list
-*/
-void COM_AddParm( char *parm ) {
-	if( com_argc == MAX_NUM_ARGVS ) {
-		Fatal( "COM_AddParm: MAX_NUM_ARGVS" );
-	}
-	com_argv[com_argc++] = parm;
 }
 
 int Com_GlobMatch( const char *pattern, const char *text, const bool casecmp ) {

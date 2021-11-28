@@ -136,8 +136,6 @@ size_t SNAP_SetDemoMetaKeyValue( char *meta_data, size_t meta_data_max_size, siz
 int COM_Argc();
 const char *COM_Argv( int arg );  // range and null checked
 void COM_ClearArgv( int arg );
-int COM_CheckParm( char *parm );
-void COM_AddParm( char *parm );
 
 void COM_Init();
 void COM_InitArgv( int argc, char **argv );

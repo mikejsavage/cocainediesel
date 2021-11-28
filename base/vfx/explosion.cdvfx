@@ -17,7 +17,6 @@
     intensity 1000000
     lifetime 0.1
     color 1 1 1 1
-
   }
 
   decal {
@@ -87,8 +86,8 @@
     size 32 0
     size_distribution uniform 32
 
-    lifetime 0.6
-    lifetime_distribution uniform 0.2
+    lifetime 1.0
+    lifetime_distribution uniform 0.5
     count 128
   }
 
@@ -121,6 +120,7 @@
 
     color 0.02 0.02 0.02 0.25
     end_color 0.0 0.0 0.0 0.5
+
 
     size 42 12
     size_distribution uniform 12

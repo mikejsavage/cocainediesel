@@ -1,22 +1,9 @@
 {
-  dlight {
-    intensity 500000
-    lifetime 0.25
-    color 1 0.35 0 1
-    color_override
-  }
-
- dlight {
+   dlight {
     intensity 1000000
-    lifetime 0.5
+    lifetime 0.55
     color 1 1 1 0
     color_override
-  }
-
- dlight {
-    intensity 1000000
-    lifetime 0.1
-    color 1 1 1 1
   }
 
   decal {
@@ -79,16 +66,38 @@
 
     acceleration $gravity
 
-    speed 1100
+    speed 1500
 
     color 1.0 0.15 0.0 1.0
 
-    size 32 0
+    size 128 0
     size_distribution uniform 32
 
-    lifetime 1.0
+    lifetime 0.25
+    lifetime_distribution uniform 0.25
+    count 64
+  }
+
+   particles {
+    material textures/vfx/trace2
+    blendfunc add
+    rotate
+    stretch
+
+    position sphere 20
+
+    acceleration $gravity
+
+    speed 700
+
+    color 1.0 0.15 0.0 1.0
+
+    size 64 0
+    size_distribution uniform 32
+
+    lifetime 0.75
     lifetime_distribution uniform 0.5
-    count 128
+    count 64
   }
 
   particles {
@@ -126,6 +135,25 @@
     size_distribution uniform 12
 
     lifetime 0.7
+    lifetime_distribution uniform 0.05
+    count 128
+  }
+
+  particles {
+    material textures/vfx/smoke9
+    blendfunc add
+
+    position sphere 0
+
+    speed 200
+
+    color 1.0 0.15 0.0 1.0
+    end_color 0.0 0.0 0.0 0.5
+
+    size 42 0
+    size_distribution uniform 12
+
+    lifetime 0.3
     lifetime_distribution uniform 0.05
     count 128
   }

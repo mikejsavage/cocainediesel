@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 #include "qcommon/version.h"
+#include "qcommon/fs.h"
 
 #define DEMO_SAFEWRITE( demofile,msg,force ) \
 	if( force || ( msg )->cursize > ( msg )->maxsize / 2 ) \
@@ -52,9 +53,6 @@ void SNAP_RecordDemoMessage( int demofile, msg_t *msg, int offset ) {
 	FS_Write( msg->data + offset, len, demofile );
 }
 
-/*
-* SNAP_ReadDemoMessage
-*/
 int SNAP_ReadDemoMessage( int demofile, msg_t *msg ) {
 	int read = 0, msglen = -1;
 
@@ -83,9 +81,6 @@ int SNAP_ReadDemoMessage( int demofile, msg_t *msg ) {
 	return read;
 }
 
-/*
-* SNAP_DemoMetaDataMessage
-*/
 static void SNAP_DemoMetaDataMessage( msg_t *msg, const char *meta_data, size_t meta_data_realsize ) {
 	int demoinfo_len, demoinfo_len_pos, demoinfo_end;
 	int meta_data_ofs, meta_data_ofs_pos;
@@ -125,9 +120,6 @@ static void SNAP_DemoMetaDataMessage( msg_t *msg, const char *meta_data, size_t 
 	msg->cursize = demoinfo_end;
 }
 
-/*
-* SNAP_RecordDemoMetaDataMessage
-*/
 static void SNAP_RecordDemoMetaDataMessage( int demofile, msg_t *msg ) {
 	int complevel;
 
@@ -143,9 +135,6 @@ static void SNAP_RecordDemoMetaDataMessage( int demofile, msg_t *msg ) {
 	FS_Flush( demofile );
 }
 
-/*
-* SNAP_BeginDemoRecording
-*/
 void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned int snapFrameTime,
 		const char *configstrings, SyncEntityState *baselines ) {
 	msg_t msg;
@@ -200,9 +189,6 @@ void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned in
 	DEMO_SAFEWRITE( demofile, &msg, true );
 }
 
-/*
-* SNAP_ClearDemoMeta
-*/
 size_t SNAP_ClearDemoMeta( char *meta_data, size_t meta_data_max_size ) {
 	memset( meta_data, 0, meta_data_max_size );
 	return 0;
@@ -280,9 +266,6 @@ done:
 	return meta_data_realsize;
 }
 
-/*
-* SNAP_StopDemoRecording
-*/
 void SNAP_StopDemoRecording( int demofile ) {
 	int i;
 
@@ -291,28 +274,18 @@ void SNAP_StopDemoRecording( int demofile ) {
 	FS_Write( &i, 4, demofile );
 }
 
-/*
-* SNAP_WriteDemoMetaData
-*/
 void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t meta_data_realsize ) {
-	unsigned i;
-	unsigned v;
-	char tmpn[256];
-	int filenum, filelen;
 	msg_t msg;
 	uint8_t msg_buffer[MAX_MSGLEN];
-	void *compressed_msg;
-
 	MSG_Init( &msg, msg_buffer, sizeof( msg_buffer ) );
 
 	// write to a temp file
-	v = 0;
-	for( i = 0; filename[i]; i++ ) {
-		v = ( v + i ) * 37 + tolower( filename[i] ); // case insensitivity
-	}
-	snprintf( tmpn, sizeof( tmpn ), "%u.tmp", v );
+	char tmpn[256];
+	u32 hash = Hash32( filename );
+	ggformat( tmpn, sizeof( tmpn ), "{}.tmp", hash );
 
-	if( FS_FOpenFile( tmpn, &filenum, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
+	int filenum;
+	if( FS_FOpenBaseFile( tmpn, &filenum, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
 		return;
 	}
 
@@ -324,12 +297,13 @@ void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t
 	// important note: we need to the load the temp file before closing it
 	// because in the case of gz compression, closing the file may actually
 	// write some data we don't want to copy
-	filelen = FS_LoadFile( tmpn, &compressed_msg, NULL, 0 );
+	void *compressed_msg;
+	int filelen = FS_LoadBaseFile( tmpn, &compressed_msg, NULL, 0 );
 
 	if( compressed_msg ) {
 		int origfile;
 
-		if( FS_FOpenFile( filename, &origfile, FS_READ | FS_UPDATE ) != -1 ) {
+		if( FS_FOpenBaseFile( filename, &origfile, FS_READ | FS_UPDATE ) != -1 ) {
 			FS_Write( compressed_msg, filelen, origfile );
 			FS_FCloseFile( origfile );
 		}
@@ -338,5 +312,8 @@ void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t
 
 	FS_FCloseFile( filenum );
 
-	FS_RemoveFile( tmpn );
+	ggformat( tmpn, sizeof( tmpn ), "{}/{}.tmp", HomeDirPath(), hash );
+	if( !RemoveFile( sys_allocator, tmpn ) ) {
+		Com_Printf( "Couldn't remove temp demo file: %s\n", tmpn );
+	}
 }

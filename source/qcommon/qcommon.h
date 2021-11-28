@@ -130,7 +130,6 @@ void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t
 size_t SNAP_ClearDemoMeta( char *meta_data, size_t meta_data_max_size );
 size_t SNAP_SetDemoMetaKeyValue( char *meta_data, size_t meta_data_max_size, size_t meta_data_realsize,
 								 const char *key, const char *value );
-size_t SNAP_ReadDemoMetaData( int demofile, char *meta_data, size_t meta_data_size );
 
 //============================================================================
 
@@ -662,7 +661,8 @@ void ShowErrorAndAbort( const char * msg, const char * file, int line );
 int64_t Sys_Milliseconds();
 uint64_t Sys_Microseconds();
 void Sys_Sleep( unsigned int millis );
-bool Sys_FormatTime( char * buf, size_t buf_size, const char * fmt );
+bool Sys_FormatTimestamp( char * buf, size_t buf_size, const char * fmt, s64 time );
+bool Sys_FormatCurrentTime( char * buf, size_t buf_size, const char * fmt );
 
 const char * Sys_ConsoleInput();
 void Sys_ConsoleOutput( const char * string );

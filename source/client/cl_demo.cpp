@@ -199,7 +199,7 @@ static int demofilelen, demofilelentotal;
 /*
 * CL_DemoCompleted
 *
-* Close the demo file and disable demo state. Called from disconnection proccess
+* Close the demo file and disable demo state. Called from disconnection process
 */
 void CL_DemoCompleted() {
 	if( demofilehandle ) {
@@ -456,56 +456,4 @@ void CL_DemoJump_f() {
 		cls.demo.play_jump_time = time; // gametime always starts from 0
 	}
 	cls.demo.play_jump_latched = true;
-}
-
-size_t CL_ReadDemoMetaData( const char *demopath, char *meta_data, size_t meta_data_size ) {
-	char *servername;
-	size_t meta_data_realsize = 0;
-
-	if( !demopath || !*demopath ) {
-		return 0;
-	}
-
-	// have to copy the argument now, since next actions will lose it
-	servername = TempCopyString( demopath );
-	COM_SanitizeFilePath( servername );
-
-	// hack:
-	if( cls.demo.playing && !Q_stricmp( cls.demo.name, servername ) && cls.demo.meta_data_realsize > 0 ) {
-		if( meta_data && meta_data_size ) {
-			meta_data_realsize = cls.demo.meta_data_realsize;
-			memcpy( meta_data, cls.demo.meta_data, Min2( meta_data_size, cls.demo.meta_data_realsize ) );
-			meta_data[Min2( meta_data_size - 1, cls.demo.meta_data_realsize )] = '\0';
-		}
-	} else {
-		char *name;
-		size_t name_size;
-		int demofile, demolength;
-
-		name_size = sizeof( char ) * ( strlen( "demos/" ) + strlen( servername ) + strlen( APP_DEMO_EXTENSION_STR ) + 1 );
-		name = ( char * ) Mem_TempMalloc( name_size );
-
-		snprintf( name, name_size, "demos/%s", servername );
-		COM_DefaultExtension( name, APP_DEMO_EXTENSION_STR, name_size );
-
-		demolength = FS_FOpenFile( name, &demofile, FS_READ | SNAP_DEMO_GZ );
-
-		if( !demofile || demolength < 1 ) {
-			// relative filename didn't work, try launching a demo from absolute path
-			snprintf( name, name_size, "%s", servername );
-			COM_DefaultExtension( name, APP_DEMO_EXTENSION_STR, name_size );
-			demolength = FS_FOpenAbsoluteFile( name, &demofile, FS_READ );
-		}
-
-		if( demolength > 0 ) {
-			meta_data_realsize = SNAP_ReadDemoMetaData( demofile, meta_data, meta_data_size );
-		}
-		FS_FCloseFile( demofile );
-
-		Mem_TempFree( name );
-	}
-
-	Mem_TempFree( servername );
-
-	return meta_data_realsize;
 }

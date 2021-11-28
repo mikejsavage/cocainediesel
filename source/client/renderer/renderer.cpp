@@ -47,7 +47,7 @@ static void TakeScreenshot() {
 
 	int ok = stbi_write_png_to_func( []( void * context, void * png, int png_size ) {
 		char date[ 256 ];
-		Sys_FormatTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
+		Sys_FormatCurrentTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
 
 		TempAllocator temp = cls.frame_arena.temp();
 

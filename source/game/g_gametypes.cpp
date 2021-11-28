@@ -52,7 +52,7 @@ void G_Match_Autorecord_Start() {
 		return;
 
 	char date[ 128 ];
-	Sys_FormatTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
+	Sys_FormatCurrentTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
 	snprintf( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s_auto%04i", date, sv.mapname, RandomUniform( &svs.rng, 1, 10000 ) );
 

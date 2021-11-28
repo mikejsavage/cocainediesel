@@ -316,7 +316,6 @@ void CL_Stop_f();
 void CL_Record_f();
 void CL_PauseDemo_f();
 void CL_DemoJump_f();
-size_t CL_ReadDemoMetaData( const char *demopath, char *meta_data, size_t meta_data_size );
 const char **CL_DemoComplete( const char *partial );
 #define CL_SetDemoMetaKeyValue( k,v ) cls.demo.meta_data_realsize = SNAP_SetDemoMetaKeyValue( cls.demo.meta_data, sizeof( cls.demo.meta_data ), cls.demo.meta_data_realsize, k, v )
 

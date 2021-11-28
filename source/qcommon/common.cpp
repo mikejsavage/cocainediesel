@@ -194,7 +194,7 @@ void Com_Printf( const char *format, ... ) {
 	if( log_file != NULL ) {
 		if( logconsole_timestamp && logconsole_timestamp->integer ) {
 			char timestamp[MAX_PRINTMSG];
-			Sys_FormatTime( timestamp, sizeof( timestamp ), "%Y-%m-%dT%H:%M:%SZ " );
+			Sys_FormatCurrentTime( timestamp, sizeof( timestamp ), "%Y-%m-%dT%H:%M:%SZ " );
 			WritePartialFile( log_file, timestamp, strlen( timestamp ) );
 		}
 		WritePartialFile( log_file, msg, strlen( msg ) );

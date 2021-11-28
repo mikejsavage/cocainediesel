@@ -157,6 +157,15 @@ bool WriteFile( TempAllocator * temp, const char * path, const void * data, size
 	return w == len;
 }
 
+bool ReadPartialFile( FILE * file, void * data, size_t len, size_t * bytes_read ) {
+	*bytes_read = fread( data, 1, len, file );
+	return *bytes_read >= 0 && ferror( file ) == 0;
+}
+
 bool WritePartialFile( FILE * file, const void * data, size_t len ) {
 	return fwrite( data, 1, len, file ) == len;
+}
+
+bool Seek( FILE * file, size_t cursor ) {
+	return fseek( file, checked_cast< long >( cursor ), SEEK_SET );
 }

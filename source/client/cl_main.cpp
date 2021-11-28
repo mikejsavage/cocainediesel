@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/assets.h"
 #include "client/downloads.h"
 #include "client/threadpool.h"
+#include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/compression.h"
@@ -1540,6 +1541,7 @@ void CL_Init() {
 
 	InitDownloads();
 	InitServerBrowser();
+	InitDemoBrowser();
 
 	CL_InitImGui();
 	UI_Init();
@@ -1582,6 +1584,7 @@ void CL_Shutdown() {
 	ShutdownRenderer();
 	DestroyWindow();
 
+	ShutdownDemoBrowser();
 	ShutdownServerBrowser();
 	ShutdownDownloads();
 

@@ -2,6 +2,7 @@
 #include "imgui/imgui_internal.h"
 
 #include "client/client.h"
+#include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/version.h"
@@ -25,6 +26,7 @@ enum UIState {
 
 enum MainMenuState {
 	MainMenuState_ServerBrowser,
+	MainMenuState_DemoBrowser,
 	MainMenuState_CreateServer,
 	MainMenuState_Settings,
 
@@ -58,13 +60,14 @@ static DemoMenuState demomenu_state;
 
 static int selected_server;
 
+static bool yolodemo;
+
 static WeaponType selected_weapons[ WeaponCategory_Count ];
 static PerkType selected_perk;
 
 static SettingsState settings_state;
 static bool reset_video_settings;
 static float sensivity_range[] = { 0.25f, 10.f };
-
 
 static void PushButtonColor( ImVec4 color ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, color );
@@ -83,6 +86,7 @@ static void Refresh() {
 
 void UI_Init() {
 	ResetServerBrowser();
+	yolodemo = false;
 	// InitParticleMenuEffect();
 
 	uistate = UIState_MainMenu;
@@ -590,7 +594,6 @@ static void ServerBrowser() {
 	ImGui::SameLine(); ImGui::Text( "Search");
 	ImGui::SameLine(); ImGui::InputText( "", server_filter, sizeof( server_filter ) );
 
-
 	ImGui::BeginChild( "servers" );
 	ImGui::Columns( 4, "serverbrowser", false );
 
@@ -623,6 +626,48 @@ static void ServerBrowser() {
 			ImGui::NextColumn();
 			ImGui::Text( "%d", servers[ i ].ping );
 			ImGui::NextColumn();
+		}
+	}
+
+	ImGui::Columns( 1 );
+	ImGui::EndChild();
+}
+
+static void DemoBrowser() {
+	TempAllocator temp = cls.frame_arena.temp();
+
+	DemoBrowserFrame();
+
+	ImGui::Checkbox( "Try to force load demos from old versions. Comes with no warranty", &yolodemo );
+
+	ImGui::Columns( 4, "demobrowser", false );
+
+	ImGui::Text( "Filename" );
+	ImGui::NextColumn();
+	ImGui::Text( "Server" );
+	ImGui::NextColumn();
+	ImGui::Text( "Map" );
+	ImGui::NextColumn();
+	ImGui::Text( "Date" );
+	ImGui::NextColumn();
+
+	ImGui::Columns( 1 );
+	ImGui::BeginChild( "demos" );
+	ImGui::Columns( 4 );
+
+	for( const DemoBrowserEntry & demo : GetDemoBrowserEntries() ) {
+		bool clicked = ImGui::Selectable( demo.path, false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick );
+		ImGui::NextColumn();
+		ImGui::Text( "%s", demo.server );
+		ImGui::NextColumn();
+		ImGui::Text( "%s", demo.map );
+		ImGui::NextColumn();
+		ImGui::Text( "%s", demo.date );
+		ImGui::NextColumn();
+
+		if( clicked && ImGui::IsMouseDoubleClicked( 0 ) ) {
+			const char * cmd = yolodemo ? "yolodemo" : "demo";
+			Cbuf_AddText( temp( "{} \"{}\"\n", cmd, demo.path ) );
 		}
 	}
 
@@ -715,6 +760,15 @@ static void MainMenu() {
 
 	if( ImGui::Button( "FIND SERVERS" ) ) {
 		mainmenu_state = MainMenuState_ServerBrowser;
+		selected_server = -1;
+	}
+
+	ImGui::SameLine();
+
+	if( ImGui::Button( "REPLAYS" ) ) {
+		mainmenu_state = MainMenuState_DemoBrowser;
+		RefreshDemoBrowser();
+		yolodemo = false;
 	}
 
 	ImGui::SameLine();
@@ -771,6 +825,7 @@ static void MainMenu() {
 
 	switch( mainmenu_state ) {
 		case MainMenuState_ServerBrowser: ServerBrowser(); break;
+		case MainMenuState_DemoBrowser: DemoBrowser(); break;
 		case MainMenuState_CreateServer: CreateServer(); break;
 		case MainMenuState_Settings: Settings(); break;
 		// case MainMenuState_ParticleEditor: DrawParticleEditor(); break;

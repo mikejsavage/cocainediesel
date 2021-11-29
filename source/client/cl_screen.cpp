@@ -163,7 +163,7 @@ static void SubmitPostprocessPass() {
 
 	const Framebuffer & fb = frame_static.postprocess_fb;
 	pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
-	pipeline.set_texture( "u_Screen", &fb.albedo_texture );
+	pipeline.set_texture( "u_Screen", &fb.albedo_target.texture );
 	pipeline.set_texture( "u_Noise", FindMaterial( "textures/noise" )->texture );
 	float damage_effect = cg.view.type == VIEWDEF_PLAYERVIEW ? cg.damage_effect : 0.0f;
 

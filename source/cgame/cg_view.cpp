@@ -536,7 +536,7 @@ static void DrawWorld() {
 		constexpr RGBA8 gray = RGBA8( 30, 30, 30, 255 );
 
 		const Framebuffer & fb = msaa ? frame_static.msaa_fb : frame_static.postprocess_fb;
-		pipeline.set_texture( "u_DepthTexture", &fb.depth_texture );
+		pipeline.set_texture( "u_DepthTexture", &fb.depth_target.texture );
 		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
@@ -556,7 +556,7 @@ static void DrawSilhouettes() {
 		pipeline.write_depth = false;
 
 		const Framebuffer & fb = frame_static.silhouette_gbuffer;
-		pipeline.set_texture( "u_SilhouetteTexture", &fb.albedo_texture );
+		pipeline.set_texture( "u_SilhouetteTexture", &fb.albedo_target.texture );
 		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 		DrawFullscreenMesh( pipeline );
 	}

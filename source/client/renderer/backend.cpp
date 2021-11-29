@@ -849,8 +849,8 @@ static void SetupRenderPass( const RenderPass & pass ) {
 
 	if( pass.clear_color ) {
 		for( u32 i = 0; i < MAX_RENDER_TARGETS; i++ ) {
-			if( fb.textures[ i ].texture != 0 ) {
-				glClearBufferfv( GL_COLOR, i, fb.color[ i ].ptr() );
+			if( fb.targets[ i ].texture.texture != 0 ) {
+				glClearBufferfv( GL_COLOR, i, fb.targets[ i ].clear_color.ptr() );
 			}
 		}
 	}
@@ -860,7 +860,7 @@ static void SetupRenderPass( const RenderPass & pass ) {
 			glDepthMask( GL_TRUE );
 			prev_pipeline.write_depth = true;
 		}
-		glClearBufferfv( GL_DEPTH, 0, &fb.depth );
+		glClearBufferfv( GL_DEPTH, 0, &fb.depth_target.clear_depth );
 	}
 }
 
@@ -1322,6 +1322,19 @@ void DeleteTextureArray( TextureArray ta ) {
 	glDeleteTextures( 1, &ta.texture );
 }
 
+static FramebufferTarget NewFramebufferTarget( const FramebufferTargetConfig & config, int msaa_samples ) {
+	if( config.target != NULL ) {
+		return *config.target;
+	}
+	FramebufferTarget target = { };
+	target.clear_color = config.clear_color;
+	target.clear_depth = config.clear_depth;
+	if( config.config.width != 0 ) {
+		target.texture = NewTextureSamples( config.config, msaa_samples );
+	}
+	return target;
+}
+
 Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 	GLuint fbo;
 	glGenFramebuffers( 1, &fbo );
@@ -1332,45 +1345,28 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 
 	u32 width = 0;
 	u32 height = 0;
-	GLenum target = config.msaa_samples <= 1 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
-	GLenum bufs[ MAX_RENDER_TARGETS ];
+	GLenum textarget = config.msaa_samples <= 1 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
+	GLenum bufs[ MAX_RENDER_TARGETS ] = { };
 
 	for( u32 i = 0; i < MAX_RENDER_TARGETS; i++ ) {
-		if( config.attachments[ i ].config.width == 0 && config.attachments[ i ].texture == NULL ) {
-			bufs[ i ] = GL_NONE;
-			continue;
-		}
+		FramebufferTarget target = NewFramebufferTarget( config.attachments[ i ], config.msaa_samples );
+		if( target.texture.texture != 0 ) {
+			glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, textarget, target.texture.texture, 0 );
+			bufs[ i ] = GL_COLOR_ATTACHMENT0 + i;
+			fb.targets[ i ] = target;
 
-		Texture texture;
-		if( config.attachments[ i ].texture != NULL ) {
-			texture = *config.attachments[ i ].texture;
+			width = target.texture.width;
+			height = target.texture.height;
 		}
-		else {
-			texture = NewTextureSamples( config.attachments[ i ].config, config.msaa_samples );
-		}
-		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, target, texture.texture, 0 );
-		bufs[ i ] = GL_COLOR_ATTACHMENT0 + i;
-		fb.textures[ i ] = texture;
-
-		width = texture.width;
-		height = texture.height;
 	}
+	
+	FramebufferTarget target = NewFramebufferTarget( config.depth_attachment, config.msaa_samples );
+	if( target.texture.texture != 0 ) {
+		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, textarget, target.texture.texture, 0 );
+		fb.depth_target = target;
 
-	if( config.depth_attachment.config.width != 0 || config.depth_attachment.texture != NULL ) {
-		Texture texture;
-		if( config.depth_attachment.texture != NULL ) {
-			texture = *config.depth_attachment.texture;
-		}
-		else {
-			texture = NewTextureSamples( config.depth_attachment.config, config.msaa_samples );
-		}
-		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, texture.texture, 0 );
-
-		fb.depth_texture = texture;
-		fb.depth = 1.0f;
-
-		width = texture.width;
-		height = texture.height;
+		width = target.texture.width;
+		height = target.texture.height;
 	}
 
 	glDrawBuffers( ARRAY_COUNT( bufs ), bufs );
@@ -1392,7 +1388,7 @@ Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer ) {
 
 	Framebuffer fb = { };
 	fb.fbo = fbo;
-	fb.depth = 1.0f;
+	fb.depth_target.clear_depth = 1.0f;
 
 	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_array.texture, 0, layer );
 
@@ -1411,9 +1407,9 @@ void DeleteFramebuffer( Framebuffer fb ) {
 
 	glDeleteFramebuffers( 1, &fb.fbo );
 	for( u32 i = 0; i < MAX_RENDER_TARGETS; i++ ) {
-		DeleteTexture( fb.textures[ i ] );
+		DeleteTexture( fb.targets[ i ].texture );
 	}
-	DeleteTexture( fb.depth_texture );
+	DeleteTexture( fb.depth_target.texture );
 }
 
 #define MAX_GLSL_UNIFORM_JOINTS 100

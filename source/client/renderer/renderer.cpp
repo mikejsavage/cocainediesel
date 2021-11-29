@@ -353,7 +353,7 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb = { };
 
-		fb.albedo_attachment.texture = &frame_static.postprocess_fb.albedo_texture;
+		fb.albedo_attachment.target = &frame_static.postprocess_fb.albedo_target;
 
 		frame_static.postprocess_fb_onlycolor = NewFramebuffer( fb );
 	}
@@ -361,7 +361,7 @@ static void CreateFramebuffers() {
 	if( frame_static.msaa_samples > 1 ) {
 		FramebufferConfig fb = { };
 
-		fb.albedo_attachment.texture = &frame_static.msaa_fb.albedo_texture;
+		fb.albedo_attachment.target = &frame_static.msaa_fb.albedo_target;
 
 		frame_static.msaa_fb_onlycolor = NewFramebuffer( fb );
 	}

@@ -107,18 +107,22 @@ struct TextureArray {
 	u32 texture;
 };
 
+struct FramebufferTarget {
+	Texture texture;
+	Vec4 clear_color = Vec4( 0.0f );
+	float clear_depth = 1.0f;
+};
+
 struct Framebuffer {
 	u32 fbo;
 	union {
 		struct {
-			Texture albedo_texture;
+			FramebufferTarget albedo_target;
 		};
-		Texture textures[ MAX_RENDER_TARGETS ];
+		FramebufferTarget targets[ MAX_RENDER_TARGETS ] = { };
 	};
-	Vec4 color[ MAX_RENDER_TARGETS ];
-	Texture depth_texture;
-	float depth;
-	TextureArray texture_array;
+	FramebufferTarget depth_target = { };
+	TextureArray texture_array = { };
 	u32 width, height;
 };
 
@@ -318,20 +322,22 @@ struct RenderPass {
 	const tracy::SourceLocationData * tracy;
 };
 
-struct FramebufferTextureConfig {
+struct FramebufferTargetConfig {
 	TextureConfig config;
-	Texture * texture = NULL;
+	FramebufferTarget * target = NULL;
+	Vec4 clear_color = Vec4( 0.0f );
+	float clear_depth = 1.0f;
 };
 
 struct FramebufferConfig {
 	union {
-		FramebufferTextureConfig attachments[ MAX_RENDER_TARGETS ];
 		struct {
-			FramebufferTextureConfig albedo_attachment;
+			FramebufferTargetConfig albedo_attachment;
 		};
+		FramebufferTargetConfig attachments[ MAX_RENDER_TARGETS ];
 	};
-	FramebufferTextureConfig depth_attachment;
-	int msaa_samples;
+	FramebufferTargetConfig depth_attachment;
+	int msaa_samples = 0;
 };
 
 enum ClearColor { ClearColor_Dont, ClearColor_Do };

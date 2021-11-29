@@ -92,7 +92,7 @@ void main() {
 	if( color.a < 0.01 )
 		discard;
 
-	f_Albedo = LinearTosRGB( color );
+	f_Albedo = color;
 }
 
 #endif

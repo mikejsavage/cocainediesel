@@ -480,6 +480,8 @@ void RenderBackendInit() {
 
 	glDisable( GL_BLEND );
 
+	glEnable( GL_FRAMEBUFFER_SRGB );
+
 	glPixelStorei( GL_PACK_ALIGNMENT, 1 );
 	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
 

@@ -60,7 +60,7 @@ void main() {
 	}
 	edgeness = FogAlpha( edgeness, LinearizeDepth( avg_depth ) );
 	edgeness = VoidFogAlpha( edgeness, gl_FragCoord.xy, avg_depth );
-	f_Albedo = LinearTosRGB( edgeness * u_OutlineColor );
+	f_Albedo = edgeness * u_OutlineColor;
 }
 
 #endif

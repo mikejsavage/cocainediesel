@@ -157,7 +157,7 @@ void main() {
 	diffuse.rgb = VoidFog( diffuse.rgb, v_Position.z );
 	diffuse.a = VoidFogAlpha( diffuse.a, v_Position.z );
 
-	f_Albedo = LinearTosRGB( diffuse );
+	f_Albedo = diffuse;
 }
 
 #endif

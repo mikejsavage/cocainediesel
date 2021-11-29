@@ -40,7 +40,7 @@ void main() {
 	vec4 color = v_Color;
 	color.rgb = VoidFog( color.rgb, v_Position.z );
 	color.a = VoidFogAlpha( color.a, v_Position.z );
-	f_Albedo = LinearTosRGB( color );
+	f_Albedo = color;
 }
 
 #endif

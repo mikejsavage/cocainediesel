@@ -316,22 +316,22 @@ static void CreateFramebuffers() {
 	texture_config.wrap = TextureWrap_Clamp;
 
 	{
-		FramebufferConfig fb;
+		FramebufferConfig fb = { };
 
 		texture_config.format = TextureFormat_RGBA_U8_sRGB;
-		fb.albedo_attachment = texture_config;
+		fb.albedo_attachment.config = texture_config;
 
 		frame_static.silhouette_gbuffer = NewFramebuffer( fb );
 	}
 
 	if( frame_static.msaa_samples > 1 ) {
-		FramebufferConfig fb;
+		FramebufferConfig fb = { };
 
 		texture_config.format = TextureFormat_RGB_U8_sRGB;
-		fb.albedo_attachment = texture_config;
+		fb.albedo_attachment.config = texture_config;
 
 		texture_config.format = TextureFormat_Depth;
-		fb.depth_attachment = texture_config;
+		fb.depth_attachment.config = texture_config;
 
 		fb.msaa_samples = frame_static.msaa_samples;
 
@@ -339,24 +339,35 @@ static void CreateFramebuffers() {
 	}
 
 	{
-		FramebufferConfig fb;
+		FramebufferConfig fb = { };
 
 		texture_config.format = TextureFormat_RGB_U8_sRGB;
-		fb.albedo_attachment = texture_config;
+		fb.albedo_attachment.config = texture_config;
 
 		texture_config.format = TextureFormat_Depth;
-		fb.depth_attachment = texture_config;
+		fb.depth_attachment.config = texture_config;
 
 		frame_static.postprocess_fb = NewFramebuffer( fb );
 	}
 
-	frame_static.postprocess_fb_onlycolor = NewFramebuffer( &frame_static.postprocess_fb.albedo_texture, NULL, NULL );
+	{
+		FramebufferConfig fb = { };
+
+		fb.albedo_attachment.texture = &frame_static.postprocess_fb.albedo_texture;
+
+		frame_static.postprocess_fb_onlycolor = NewFramebuffer( fb );
+	}
+
 	if( frame_static.msaa_samples > 1 ) {
-		frame_static.msaa_fb_onlycolor = NewFramebuffer( &frame_static.msaa_fb.albedo_texture, NULL, NULL );
+		FramebufferConfig fb = { };
+
+		fb.albedo_attachment.texture = &frame_static.msaa_fb.albedo_texture;
+
+		frame_static.msaa_fb_onlycolor = NewFramebuffer( fb );
 	}
 
 	{
-		FramebufferConfig fb;
+		FramebufferConfig fb = { };
 
 		u32 shadowmap_res = frame_static.shadow_parameters.shadowmap_res;
 		TextureArrayConfig config;
@@ -369,7 +380,7 @@ static void CreateFramebuffers() {
 		texture_config.width = shadowmap_res;
 		texture_config.height = shadowmap_res;
 		texture_config.format = TextureFormat_Shadow;
-		fb.albedo_attachment = texture_config;
+		fb.albedo_attachment.config = texture_config;
 
 		for( u32 i = 0; i < 4; i++ ) {
 			frame_static.shadowmap_fb[ i ] = NewShadowFramebuffer( frame_static.shadowmap_texture_array, i );

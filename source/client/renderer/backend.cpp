@@ -1336,32 +1336,37 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 	u32 width = 0;
 	u32 height = 0;
 	GLenum target = config.msaa_samples <= 1 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
-	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
+	GLenum bufs[ MAX_RENDER_TARGETS ];
 
-	if( config.albedo_attachment.width != 0 ) {
-		Texture texture = NewTextureSamples( config.albedo_attachment, config.msaa_samples );
-		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, texture.texture, 0 );
-		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
+	for( u32 i = 0; i < MAX_RENDER_TARGETS; i++ ) {
+		if( config.attachments[ i ].config.width == 0 && config.attachments[ i ].texture == NULL ) {
+			bufs[ i ] = GL_NONE;
+			continue;
+		}
 
-		fb.albedo_texture = texture;
+		Texture texture;
+		if( config.attachments[ i ].texture != NULL ) {
+			texture = *config.attachments[ i ].texture;
+		}
+		else {
+			texture = NewTextureSamples( config.attachments[ i ].config, config.msaa_samples );
+		}
+		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, target, texture.texture, 0 );
+		bufs[ i ] = GL_COLOR_ATTACHMENT0 + i;
+		fb.textures[ i ] = texture;
 
 		width = texture.width;
 		height = texture.height;
 	}
 
-	if( config.normal_attachment.width != 0 ) {
-		Texture texture = NewTextureSamples( config.normal_attachment, config.msaa_samples );
-		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, target, texture.texture, 0 );
-		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
-
-		fb.normal_texture = texture;
-
-		width = texture.width;
-		height = texture.height;
-	}
-
-	if( config.depth_attachment.width != 0 ) {
-		Texture texture = NewTextureSamples( config.depth_attachment, config.msaa_samples );
+	if( config.depth_attachment.config.width != 0 || config.depth_attachment.texture != NULL ) {
+		Texture texture;
+		if( config.depth_attachment.texture != NULL ) {
+			texture = *config.depth_attachment.texture;
+		}
+		else {
+			texture = NewTextureSamples( config.depth_attachment.config, config.msaa_samples );
+		}
 		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, texture.texture, 0 );
 
 		fb.depth_texture = texture;
@@ -1370,50 +1375,6 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 		height = texture.height;
 	}
 
-	glDrawBuffers( ARRAY_COUNT( bufs ), bufs );
-
-	assert( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
-	assert( width > 0 && height > 0 );
-	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-
-	fb.width = width;
-	fb.height = height;
-
-	return fb;
-}
-
-Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, Texture * depth_texture ) {
-	GLuint fbo;
-	glGenFramebuffers( 1, &fbo );
-	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
-
-	Framebuffer fb = { };
-	fb.fbo = fbo;
-
-	u32 width = 0;
-	u32 height = 0;
-	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
-	if( albedo_texture != NULL ) {
-		GLenum target = albedo_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, albedo_texture->texture, 0 );
-		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
-		width = albedo_texture->width;
-		height = albedo_texture->height;
-	}
-	if( normal_texture != NULL ) {
-		GLenum target = normal_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, target, normal_texture->texture, 0 );
-		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
-		width = normal_texture->width;
-		height = normal_texture->height;
-	}
-	if( depth_texture != NULL ) {
-		GLenum target = depth_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, depth_texture->texture, 0 );
-		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
-		width = depth_texture->width;
-		height = depth_texture->height;
-	}
 	glDrawBuffers( ARRAY_COUNT( bufs ), bufs );
 
 	assert( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
@@ -1450,8 +1411,9 @@ void DeleteFramebuffer( Framebuffer fb ) {
 		return;
 
 	glDeleteFramebuffers( 1, &fb.fbo );
-	DeleteTexture( fb.albedo_texture );
-	DeleteTexture( fb.normal_texture );
+	for( u32 i = 0; i < MAX_RENDER_TARGETS; i++ ) {
+		DeleteTexture( fb.textures[ i ] );
+	}
 	DeleteTexture( fb.depth_texture );
 }
 
@@ -1559,7 +1521,6 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 
 	if( !feedback ) {
 		glBindFragDataLocation( program, 0, "f_Albedo" );
-		glBindFragDataLocation( program, 1, "f_Normal" );
 	}
 	else {
 		glTransformFeedbackVaryings( program, feedback_varyings.n, feedback_varyings.begin(), GL_INTERLEAVED_ATTRIBS );

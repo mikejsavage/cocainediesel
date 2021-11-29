@@ -6,6 +6,8 @@
 #include "qcommon/hash.h"
 #include "client/renderer/types.h"
 
+constexpr u32 MAX_RENDER_TARGETS = 4;
+
 enum CullFace : u8 {
 	CullFace_Back,
 	CullFace_Front,
@@ -107,8 +109,12 @@ struct TextureArray {
 
 struct Framebuffer {
 	u32 fbo;
-	Texture albedo_texture;
-	Texture normal_texture;
+	union {
+		struct {
+			Texture albedo_texture;
+		};
+		Texture textures[ MAX_RENDER_TARGETS ];
+	};
 	Texture depth_texture;
 	TextureArray texture_array;
 	u32 width, height;
@@ -313,11 +319,20 @@ struct RenderPass {
 	const tracy::SourceLocationData * tracy;
 };
 
+struct FramebufferTextureConfig {
+	TextureConfig config;
+	Texture * texture = NULL;
+};
+
 struct FramebufferConfig {
-	TextureConfig albedo_attachment = { };
-	TextureConfig normal_attachment = { };
-	TextureConfig depth_attachment = { };
-	int msaa_samples = 0;
+	union {
+		FramebufferTextureConfig attachments[ MAX_RENDER_TARGETS ];
+		struct {
+			FramebufferTextureConfig albedo_attachment;
+		};
+	};
+	FramebufferTextureConfig depth_attachment;
+	int msaa_samples;
 };
 
 enum ClearColor { ClearColor_Dont, ClearColor_Do };
@@ -373,7 +388,6 @@ TextureArray NewTextureArray( const TextureArrayConfig & config );
 void DeleteTextureArray( TextureArray ta );
 
 Framebuffer NewFramebuffer( const FramebufferConfig & config );
-Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, Texture * depth_texture );
 Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer );
 void DeleteFramebuffer( Framebuffer fb );
 

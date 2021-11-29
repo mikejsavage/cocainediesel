@@ -35,7 +35,7 @@ in uint a_ParticleFlags;
 void main() {
 	float fage = a_ParticleAgeLifetime.x / a_ParticleAgeLifetime.y;
 
-	v_Color = sRGBToLinear( mix( a_ParticleStartColor, a_ParticleEndColor, fage ) );
+	v_Color = mix( a_ParticleStartColor, a_ParticleEndColor, fage );
 #if MODEL
 	v_TexCoord = a_TexCoord;
 #else

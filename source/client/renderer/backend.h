@@ -115,7 +115,9 @@ struct Framebuffer {
 		};
 		Texture textures[ MAX_RENDER_TARGETS ];
 	};
+	Vec4 color[ MAX_RENDER_TARGETS ];
 	Texture depth_texture;
+	float depth;
 	TextureArray texture_array;
 	u32 width, height;
 };
@@ -307,10 +309,7 @@ struct RenderPass {
 	Framebuffer target = { };
 
 	bool clear_color = false;
-	Vec4 color = Vec4( 0 );
-
 	bool clear_depth = false;
-	float depth = 1.0f;
 
 	bool sorted = true;
 

@@ -841,29 +841,26 @@ static void SetupRenderPass( const RenderPass & pass ) {
 		return;
 	}
 
-	GLbitfield clear_mask = 0;
-	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
-	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
-	if( clear_mask != 0 ) {
-		PipelineState::Scissor scissor = prev_pipeline.scissor;
-		if( scissor.x != 0 || scissor.y != 0 || scissor.w != 0 || scissor.h != 0 ) {
-			glDisable( GL_SCISSOR_TEST );
-			prev_pipeline.scissor = { };
-		}
+	PipelineState::Scissor & scissor = prev_pipeline.scissor;
+	if( scissor.x != 0 || scissor.y != 0 || scissor.w != 0 || scissor.h != 0 ) {
+		glDisable( GL_SCISSOR_TEST );
+		prev_pipeline.scissor = { };
+	}
 
-		if( pass.clear_color ) {
-			glClearColor( pass.color.x, pass.color.y, pass.color.z, pass.color.w );
-		}
-
-		if( pass.clear_depth ) {
-			if( !prev_pipeline.write_depth ) {
-				glDepthMask( GL_TRUE );
-				prev_pipeline.write_depth = true;
+	if( pass.clear_color ) {
+		for( u32 i = 0; i < MAX_RENDER_TARGETS; i++ ) {
+			if( fb.textures[ i ].texture != 0 ) {
+				glClearBufferfv( GL_COLOR, i, fb.color[ i ].ptr() );
 			}
-			glClearDepth( pass.depth );
 		}
+	}
 
-		glClear( clear_mask );
+	if( pass.clear_depth ) {
+		if( !prev_pipeline.write_depth ) {
+			glDepthMask( GL_TRUE );
+			prev_pipeline.write_depth = true;
+		}
+		glClearBufferfv( GL_DEPTH, 0, &fb.depth );
 	}
 }
 
@@ -1370,6 +1367,7 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, texture.texture, 0 );
 
 		fb.depth_texture = texture;
+		fb.depth = 1.0f;
 
 		width = texture.width;
 		height = texture.height;
@@ -1394,6 +1392,7 @@ Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer ) {
 
 	Framebuffer fb = { };
 	fb.fbo = fbo;
+	fb.depth = 1.0f;
 
 	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_array.texture, 0, layer );
 

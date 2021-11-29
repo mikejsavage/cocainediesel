@@ -122,6 +122,12 @@ void CG_SC_AutoRecordAction( const char *action ) {
 		return;
 	}
 
+	// TODO: AutoRecordName segfaults without this because sometimes we
+	// receive configstrings before the map when connecting
+	if( !cgs.rendered_a_frame ) {
+		return;
+	}
+
 	if( cg.frame.playerState.pmove.pm_type == PM_SPECTATOR || cg.frame.playerState.pmove.pm_type == PM_CHASECAM ) {
 		spectator = true;
 	} else {

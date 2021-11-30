@@ -76,7 +76,11 @@ void main() {
 uniform sampler2D u_BaseTexture;
 uniform lowp sampler2DArray u_DecalAtlases;
 
+#if TRANSPARENT
+#include "include/oit.glsl"
+#else
 out vec4 f_Albedo;
+#endif
 
 void main() {
 	// TODO: soft particles
@@ -92,7 +96,11 @@ void main() {
 	if( color.a < 0.01 )
 		discard;
 
+#if TRANSPARENT
+	WritePixel( color.rgb, color.a );
+#else
 	f_Albedo = color;
+#endif
 }
 
 #endif

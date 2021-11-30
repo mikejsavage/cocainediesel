@@ -187,8 +187,8 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			}
 			else if( key == "blendfunc" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				if( value == "blend" ) {
-					emitter->blend_func = BlendFunc_Blend;
+				if( value == "blend" || value == "transparent" ) {
+					emitter->blend_func = BlendFunc_Transparent;
 				}
 				else if( value == "add" ) {
 					emitter->blend_func = BlendFunc_Add;
@@ -608,7 +608,7 @@ void CreateParticleSystems() {
 					emitter->particle_system = addSystem_hash;
 					addSystem->max_particles += particles_per_emitter;
 				}
-				else if( emitter->blend_func == BlendFunc_Blend ) {
+				else if( emitter->blend_func == BlendFunc_Blend || emitter->blend_func == BlendFunc_Transparent ) {
 					emitter->particle_system = blendSystem_hash;
 					blendSystem->max_particles += particles_per_emitter;
 				}

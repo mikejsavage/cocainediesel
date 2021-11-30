@@ -59,7 +59,11 @@ void main() {
 
 #else
 
+#if TRANSPARENT
+#include "include/oit.glsl"
+#else
 out vec4 f_Albedo;
+#endif
 
 uniform sampler2D u_BaseTexture;
 
@@ -157,7 +161,11 @@ void main() {
 	diffuse.rgb = VoidFog( diffuse.rgb, v_Position.z );
 	diffuse.a = VoidFogAlpha( diffuse.a, v_Position.z );
 
+#if TRANSPARENT
+	WritePixel( diffuse.rgb, diffuse.a );
+#else
 	f_Albedo = diffuse;
+#endif
 }
 
 #endif

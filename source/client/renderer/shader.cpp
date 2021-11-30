@@ -100,6 +100,37 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/standard.glsl", "#define SKINNED 1\n#define VERTEX_COLORS 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_skinned_vertexcolors, srcs.span(), lengths.span() );
 
+	BuildShaderSrcs( "glsl/standard.glsl", "#define TRANSPARENT 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.standard_oit, srcs.span(), lengths.span() );
+
+	const char * standard_oit_shaded_defines = temp(
+		"#define TRANSPARENT 1\n"
+		"#define APPLY_DLIGHTS 1\n"
+		"#define SHADED 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+	BuildShaderSrcs( "glsl/standard.glsl", standard_oit_shaded_defines, &srcs, &lengths );
+	ReplaceShader( &shaders.standard_oit_shaded, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/standard.glsl", "#define TRANSPARENT 1\n#define VERTEX_COLORS 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.standard_oit_vertexcolors, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/standard.glsl", "#define TRANSPARENT 1\n#define SKINNED 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.standard_oit_skinned, srcs.span(), lengths.span() );
+
+	const char * standard_oit_skinned_shaded_defines = temp(
+		"#define TRANSPARENT 1\n"
+		"#define SKINNED 1\n"
+		"#define APPLY_DLIGHTS 1\n"
+		"#define SHADED 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+	BuildShaderSrcs( "glsl/standard.glsl", standard_oit_skinned_shaded_defines, &srcs, &lengths );
+	ReplaceShader( &shaders.standard_oit_skinned_shaded, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/standard.glsl", "#define TRANSPARENT 1\n#define SKINNED 1\n#define VERTEX_COLORS 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.standard_oit_skinned_vertexcolors, srcs.span(), lengths.span() );
+
 	const char * world_defines = temp(
 		"#define APPLY_DRAWFLAT 1\n"
 		"#define APPLY_FOG 1\n"
@@ -176,8 +207,14 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/particle.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.particle, srcs.span(), lengths.span() );
 
+	BuildShaderSrcs( "glsl/particle.glsl", "#define TRANSPARENT 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.particle_oit, srcs.span(), lengths.span() );
+
 	BuildShaderSrcs( "glsl/particle.glsl", "#define MODEL 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.particle_model, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/oit_composite.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.oit_composite, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/skybox.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.skybox, srcs.span(), lengths.span() );

@@ -6,6 +6,7 @@ enum BlendFunc : u8 {
 	BlendFunc_Disabled,
 	BlendFunc_Blend,
 	BlendFunc_Add,
+	BlendFunc_Transparent,
 };
 
 enum PrimitiveType : u8 {

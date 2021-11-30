@@ -167,6 +167,12 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			*type = GL_UNSIGNED_BYTE;
 			return;
 
+		case TextureFormat_RGBA_Half:
+			*internal = GL_RGBA16F;
+			*channels = GL_RGBA;
+			*type = GL_HALF_FLOAT;
+			return;
+
 		case TextureFormat_BC1_sRGB:
 			*internal = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
 			return;
@@ -688,6 +694,10 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 			}
 			if( pipeline.blend_func == BlendFunc_Blend ) {
 				glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+			}
+			else if( pipeline.blend_func == BlendFunc_Transparent ) {
+				glBlendFunc( GL_ONE, GL_ONE );
+				glBlendFuncSeparatei( 1, GL_ZERO, GL_ONE_MINUS_SRC_COLOR, GL_ONE, GL_ONE );
 			}
 			else {
 				glBlendFunc( GL_SRC_ALPHA, GL_ONE );
@@ -1867,8 +1877,8 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, BlendFunc blend
 	assert( in_frame );
 
 	PipelineState pipeline;
-	pipeline.pass = frame_static.transparent_pass;
-	pipeline.shader = &shaders.particle;
+	pipeline.pass = blend_func == BlendFunc_Transparent ? frame_static.oit_pass : frame_static.transparent_pass;
+	pipeline.shader = blend_func == BlendFunc_Transparent ? &shaders.particle_oit : &shaders.particle;
 	pipeline.blend_func = blend_func;
 	pipeline.write_depth = false;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );

@@ -170,6 +170,7 @@ static void DeleteFramebuffers() {
 	DeleteFramebuffer( frame_static.msaa_fb );
 	DeleteFramebuffer( frame_static.postprocess_fb_onlycolor );
 	DeleteFramebuffer( frame_static.msaa_fb_onlycolor );
+	DeleteFramebuffer( frame_static.oit_fb );
 	for( u32 i = 0; i < 4; i++ ) {
 		DeleteFramebuffer( frame_static.shadowmap_fb[ i ] );
 	}
@@ -369,6 +370,23 @@ static void CreateFramebuffers() {
 	{
 		FramebufferConfig fb = { };
 
+		texture_config.format = TextureFormat_RGBA_Half;
+		fb.attachments[ 0 ].config = texture_config;
+
+		texture_config.format = TextureFormat_RGBA_U8;
+		fb.attachments[ 1 ].config = texture_config;
+
+		fb.depth_attachment.target = &frame_static.postprocess_fb.depth_target;
+
+		fb.attachments[ 0 ].clear_color = Vec4( 0.0f );
+		fb.attachments[ 1 ].clear_color = Vec4( 1.0f, 1.0f, 1.0f, 0.0f );
+
+		frame_static.oit_fb = NewFramebuffer( fb );
+	}
+
+	{
+		FramebufferConfig fb = { };
+
 		u32 shadowmap_res = frame_static.shadow_parameters.shadowmap_res;
 		TextureArrayConfig config;
 		config.width = shadowmap_res;
@@ -386,6 +404,20 @@ static void CreateFramebuffers() {
 			frame_static.shadowmap_fb[ i ] = NewShadowFramebuffer( frame_static.shadowmap_texture_array, i );
 		}
 	}
+}
+
+static void RenderOitComposite() {
+	PipelineState pipeline;
+	pipeline.pass = frame_static.oit_composite_pass;
+	pipeline.shader = &shaders.oit_composite;
+	pipeline.depth_func = DepthFunc_Disabled;
+	pipeline.blend_func = BlendFunc_Disabled;
+	pipeline.write_depth = false;
+
+	pipeline.set_texture( "u_Background", &frame_static.postprocess_fb.albedo_target.texture );
+	pipeline.set_texture( "u_Accum", &frame_static.oit_fb.targets[ 0 ].texture );
+	pipeline.set_texture( "u_Modulate", &frame_static.oit_fb.targets[ 1 ].texture );
+	DrawFullscreenMesh( pipeline );
 }
 
 #if !TRACY_ENABLE
@@ -408,6 +440,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadVisualEffects();
 
 	RenderBackendBeginFrame();
+
+	RenderOitComposite();
 
 	dynamic_geometry_num_vertices = 0;
 	dynamic_geometry_num_indices = 0;
@@ -456,6 +490,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	static const tracy::SourceLocationData nonworld_opaque_tracy = TRACY_HACK( "Render nonworld opaque" );
 	static const tracy::SourceLocationData msaa_tracy = TRACY_HACK( "Resolve MSAA" );
 	static const tracy::SourceLocationData sky_tracy = TRACY_HACK( "Render sky" );
+	static const tracy::SourceLocationData oit_tracy = TRACY_HACK( "Render Order Independent Transparency" );
+	static const tracy::SourceLocationData oit_composite_tracy = TRACY_HACK( "Render Order Independent Transparency Composite" );
 	static const tracy::SourceLocationData transparent_tracy = TRACY_HACK( "Render transparent" );
 	static const tracy::SourceLocationData silhouettes_tracy = TRACY_HACK( "Render silhouettes" );
 	static const tracy::SourceLocationData ui_tracy = TRACY_HACK( "Render game HUD" );
@@ -491,6 +527,9 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	else {
 		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", &nonworld_opaque_tracy, frame_static.postprocess_fb );
 	}
+
+	frame_static.oit_pass = AddRenderPass( "Render Order Independent Transparency", &oit_tracy, frame_static.oit_fb, ClearColor_Do, ClearDepth_Dont );
+	frame_static.oit_composite_pass = AddRenderPass( "Render Order Independent Transparency Composite", &oit_composite_tracy, frame_static.postprocess_fb );
 
 	frame_static.transparent_pass = AddRenderPass( "Render transparent", &transparent_tracy, frame_static.postprocess_fb );
 	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes", &silhouettes_tracy, frame_static.postprocess_fb );

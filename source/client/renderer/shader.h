@@ -11,6 +11,14 @@ struct Shaders {
 	Shader standard_skinned_shaded;
 	Shader standard_skinned_vertexcolors;
 
+	Shader standard_oit;
+	Shader standard_oit_shaded;
+	Shader standard_oit_vertexcolors;
+
+	Shader standard_oit_skinned;
+	Shader standard_oit_skinned_shaded;
+	Shader standard_oit_skinned_vertexcolors;
+
 	Shader depth_only;
 	Shader depth_only_skinned;
 
@@ -30,7 +38,10 @@ struct Shaders {
 	Shader particle_update;
 	Shader particle_update_feedback;
 	Shader particle;
+	Shader particle_oit;
 	Shader particle_model;
+
+	Shader oit_composite;
 
 	Shader skybox;
 

@@ -203,6 +203,9 @@ static void ParseBlendFunc( Material * material, Span< const char > name, Span< 
 	else if( token == "add" ) {
 		material->blend_func = BlendFunc_Add;
 	}
+	else if( token == "transparent" ) {
+		material->blend_func = BlendFunc_Transparent;
+	}
 	SkipToEndOfLine( data );
 }
 
@@ -1037,10 +1040,10 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	if( material->alphagen.type == ColorGenType_Constant ) {
-		color.w = material->rgbgen.args[ 0 ];
+		color.w = material->alphagen.args[ 0 ];
 	}
 	else if( material->alphagen.type == ColorGenType_Wave || material->alphagen.type == ColorGenType_EntityWave ) {
-		float wave = EvaluateWaveFunc( material->rgbgen.wave );
+		float wave = EvaluateWaveFunc( material->alphagen.wave );
 		if( material->alphagen.type == ColorGenType_EntityWave ) {
 			color.w += wave;
 		}
@@ -1076,33 +1079,42 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	PipelineState pipeline;
-	pipeline.pass = material->blend_func == BlendFunc_Disabled ? frame_static.nonworld_opaque_pass : frame_static.transparent_pass;
-	pipeline.cull_face = material->double_sided ? CullFace_Disabled : CullFace_Back;
-	pipeline.blend_func = material->blend_func;
 
-	if( material->blend_func != BlendFunc_Disabled ) {
+	if( material->blend_func == BlendFunc_Disabled ) {
+		pipeline.pass = frame_static.nonworld_opaque_pass;
+		pipeline.write_depth = true;
+	}
+	else if( material->blend_func == BlendFunc_Transparent ) {
+		pipeline.pass = frame_static.oit_pass;
 		pipeline.write_depth = false;
 	}
+	else {
+		pipeline.pass = frame_static.transparent_pass;
+		pipeline.write_depth = false;
+	}
+
+	pipeline.cull_face = material->double_sided ? CullFace_Disabled : CullFace_Back;
+	pipeline.blend_func = material->blend_func;
 
 	pipeline.set_texture( "u_BaseTexture", material->texture );
 	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->specular, material->shininess, tcmod_row0, tcmod_row1 ) );
 
 	if( skinned ) {
 		if( material->shaded ) {
-			pipeline.shader = &shaders.standard_skinned_shaded;
+			pipeline.shader = material->blend_func == BlendFunc_Transparent ? &shaders.standard_oit_skinned_shaded : &shaders.standard_skinned_shaded;
 			AddDynamicsToPipeline( &pipeline );
 		}
 		else {
-			pipeline.shader = &shaders.standard_skinned;
+			pipeline.shader = material->blend_func == BlendFunc_Transparent ? &shaders.standard_oit_skinned : &shaders.standard_skinned;
 		}
 	}
 	else {
 		if( material->shaded ) {
-			pipeline.shader = &shaders.standard_shaded;
+			pipeline.shader = material->blend_func == BlendFunc_Transparent ? &shaders.standard_oit_shaded : &shaders.standard_shaded;
 			AddDynamicsToPipeline( &pipeline );
 		}
 		else {
-			pipeline.shader = &shaders.standard;
+			pipeline.shader = material->blend_func == BlendFunc_Transparent ? &shaders.standard_oit : &shaders.standard;
 		}
 	}
 

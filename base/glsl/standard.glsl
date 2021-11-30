@@ -3,7 +3,6 @@
 #include "include/skinning.glsl"
 #include "include/dither.glsl"
 #include "include/fog.glsl"
-#include "include/lighting.glsl"
 
 v2f vec3 v_Position;
 v2f vec3 v_Normal;
@@ -65,6 +64,8 @@ void main() {
 out vec4 f_Albedo;
 #endif
 
+#include "include/lighting.glsl"
+
 uniform sampler2D u_BaseTexture;
 
 #if APPLY_SOFT_PARTICLE
@@ -78,10 +79,6 @@ uniform isamplerBuffer u_DynamicCount;
 
 #if APPLY_DECALS
 #include "include/decals.glsl"
-#endif
-
-#if APPLY_DLIGHTS
-#include "include/dlights.glsl"
 #endif
 
 #if APPLY_SHADOWS
@@ -125,36 +122,24 @@ void main() {
 	applyDecals( decal_dlight_count.x, tile_index, diffuse, normal );
 #endif
 
+#if APPLY_FOG
+	diffuse.rgb = Fog( diffuse.rgb, length( v_Position - u_CameraPos ) );
+#endif
+
 #if SHADED
 	const vec3 suncolor = vec3( 1.0 );
 
 	vec3 viewDir = normalize( u_CameraPos - v_Position );
 
-	vec3 lambertlight = suncolor * LambertLight( normal, -u_LightDir );
-	vec3 specularlight = suncolor * SpecularLight( normal, u_LightDir, viewDir, u_Shininess ) * u_Specular;
-
 	float shadowlight = 1.0;
 	#if APPLY_SHADOWS
 		shadowlight = GetLight( normal );
-		specularlight = specularlight * shadowlight;
-	#endif
-	shadowlight = shadowlight * 0.5 + 0.5;
-
-#if APPLY_DLIGHTS
-	applyDynamicLights( decal_dlight_count.y, tile_index, v_Position, normal, viewDir, lambertlight, specularlight );
-#endif
-	lambertlight = lambertlight * 0.5 + 0.5;
-
-	#if APPLY_DRAWFLAT
-		lambertlight = lambertlight * 0.5 + 0.5;
 	#endif
 
-	diffuse.rgb *= shadowlight * ( lambertlight + specularlight );
-
+	diffuse.rgb = BRDF( normal, viewDir, -u_LightDir, suncolor, diffuse.rgb, u_Roughness, u_Metallic, u_Anisotropic, shadowlight, decal_dlight_count.y, tile_index );
 #endif
 
 #if APPLY_FOG
-	diffuse.rgb = Fog( diffuse.rgb, length( v_Position - u_CameraPos ) );
 	diffuse.rgb += Dither();
 #endif
 

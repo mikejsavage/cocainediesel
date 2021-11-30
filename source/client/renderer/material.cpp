@@ -176,12 +176,16 @@ static void ParseShaded( Material * material, Span< const char > name, Span< con
 	material->shaded = true;
 }
 
-static void ParseSpecular( Material * material, Span< const char > name, Span< const char > * data ) {
-	material->specular = ParseMaterialFloat( data );
+static void ParseRoughness( Material * material, Span< const char > name, Span< const char > * data ) {
+	material->roughness = ParseMaterialFloat( data );
 }
 
-static void ParseShininess( Material * material, Span< const char > name, Span< const char > * data ) {
-	material->shininess = ParseMaterialFloat( data );
+static void ParseMetallic( Material * material, Span< const char > name, Span< const char > * data ) {
+	material->metallic = ParseMaterialFloat( data );
+}
+
+static void ParseAnisotropic( Material * material, Span< const char > name, Span< const char > * data ) {
+	material->anisotropic = ParseMaterialFloat( data );
 }
 
 static const MaterialSpecKey shaderkeys[] = {
@@ -189,8 +193,9 @@ static const MaterialSpecKey shaderkeys[] = {
 	{ "decal", ParseDecal },
 	{ "maskoutlines", ParseMaskOutlines },
 	{ "shaded", ParseShaded },
-	{ "specular", ParseSpecular },
-	{ "shininess", ParseShininess },
+	{ "roughness", ParseRoughness },
+	{ "metallic", ParseMetallic },
+	{ "anisotropic", ParseAnisotropic },
 
 	{ }
 };
@@ -805,16 +810,14 @@ void InitMaterials() {
 	world_material.rgbgen.args[ 1 ] = 0.17f;
 	world_material.rgbgen.args[ 2 ] = 0.17f;
 	world_material.rgbgen.args[ 3 ] = 1.0f;
-	world_material.specular = 3.0f;
-	world_material.shininess = 8.0f;
+	world_material.roughness = 0.7f;
 
 	wallbang_material = Material();
 	wallbang_material.rgbgen.args[ 0 ] = 0.17f * 2.0f;
 	wallbang_material.rgbgen.args[ 1 ] = 0.17f * 2.0f;
 	wallbang_material.rgbgen.args[ 2 ] = 0.17f * 2.0f;
 	wallbang_material.rgbgen.args[ 3 ] = 1.0f;
-	wallbang_material.specular = 3.0f;
-	wallbang_material.shininess = 8.0f;
+	wallbang_material.roughness = 0.7f;
 
 	LoadBuiltinTextures();
 
@@ -1004,7 +1007,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		color.x = material->rgbgen.args[ 0 ];
 		color.y = material->rgbgen.args[ 1 ];
 		color.z = material->rgbgen.args[ 2 ];
-		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( 0.0f ), material->specular, material->shininess, Vec3( 0.0f ), Vec3( 0.0f ) ) );
+		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( 0.0f ), material->roughness, material->metallic, material->anisotropic, Vec3( 0.0f ), Vec3( 0.0f ) ) );
 		pipeline.set_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
 		pipeline.set_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
 		pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
@@ -1097,7 +1100,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	pipeline.blend_func = material->blend_func;
 
 	pipeline.set_texture( "u_BaseTexture", material->texture );
-	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->specular, material->shininess, tcmod_row0, tcmod_row1 ) );
+	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->roughness, material->metallic, material->anisotropic, tcmod_row0, tcmod_row1 ) );
 
 	if( skinned ) {
 		if( material->shaded ) {

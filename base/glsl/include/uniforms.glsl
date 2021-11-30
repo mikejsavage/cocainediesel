@@ -18,8 +18,9 @@ layout( std140 ) uniform u_Material {
 	vec4 u_MaterialColor;
 	vec3 u_TextureMatrix[ 2 ];
 	vec2 u_TextureSize;
-	float u_Specular;
-	float u_Shininess;
+	float u_Roughness;
+	float u_Metallic;
+	float u_Anisotropic;
 };
 
 layout( std140 ) uniform u_ShadowMaps {

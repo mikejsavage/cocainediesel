@@ -1,11 +1,12 @@
 weapons/sticky/spikes
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.3
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.2 0.2 0.2
 	}
 }
 

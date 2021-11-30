@@ -1,8 +1,9 @@
 models/players/rigg
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.6
+	metallic 0
+	anisotropic 0
 	{
 		map $whiteimage
 		rgbgen entity

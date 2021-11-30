@@ -1,88 +1,96 @@
 weapons/9mm/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/br/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/bg
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/deagle/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/eb/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/gb/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 models/weapons/gl
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 models/weapons/lg
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
@@ -97,8 +105,9 @@ models/weapons/lg_glow
 models/weapons/lg_cables
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.4
+	metallic 0
+	anisotropic 0
 	{
 		map $whiteimage
 		rgbGen const 0.8 0.8 0.8
@@ -108,133 +117,145 @@ models/weapons/lg_cables
 weapons/mb/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/mg/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	cull disable
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/ar/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/pg
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/rg/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/rifle/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/rl/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/sniper/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	cull disable
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/stake/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/road
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/stickybanger/texture
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }
 
 weapons/minigun
 {
 	shaded
-	specular 10
-	shininess 8
+	roughness 0.2
+	metallic 1
+	anisotropic 0.5
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.19 0.20 0.21
 	}
 }

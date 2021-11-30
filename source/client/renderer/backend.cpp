@@ -1336,7 +1336,7 @@ static FramebufferTarget NewFramebufferTarget( const FramebufferTargetConfig & c
 	if( config.target != NULL ) {
 		return *config.target;
 	}
-	FramebufferTarget target = { };
+	FramebufferTarget target;
 	target.clear_color = config.clear_color;
 	target.clear_depth = config.clear_depth;
 	if( config.config.width != 0 ) {
@@ -1350,7 +1350,7 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 	glGenFramebuffers( 1, &fbo );
 	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
 
-	Framebuffer fb = { };
+	Framebuffer fb;
 	fb.fbo = fbo;
 
 	u32 width = 0;
@@ -1396,9 +1396,8 @@ Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer ) {
 	glGenFramebuffers( 1, &fbo );
 	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
 
-	Framebuffer fb = { };
+	Framebuffer fb;
 	fb.fbo = fbo;
-	fb.depth_target.clear_depth = 1.0f;
 
 	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_array.texture, 0, layer );
 
@@ -1792,7 +1791,7 @@ u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, Fr
 }
 
 u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, ClearColor clear_color, ClearDepth clear_depth ) {
-	Framebuffer target = { };
+	Framebuffer target;
 	return AddRenderPass( name, tracy, target, clear_color, clear_depth );
 }
 

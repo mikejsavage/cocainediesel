@@ -110,22 +110,17 @@ struct TextureArray {
 };
 
 struct FramebufferTarget {
-	Texture texture;
+	Texture texture = { };
 	Vec4 clear_color = Vec4( 0.0f );
 	float clear_depth = 1.0f;
 };
 
 struct Framebuffer {
-	u32 fbo;
-	union {
-		struct {
-			FramebufferTarget albedo_target;
-		};
-		FramebufferTarget targets[ MAX_RENDER_TARGETS ] = { };
-	};
+	u32 fbo = 0;
+	FramebufferTarget targets[ MAX_RENDER_TARGETS ] = { };
 	FramebufferTarget depth_target = { };
 	TextureArray texture_array = { };
-	u32 width, height;
+	u32 width, height = 0;
 };
 
 struct PipelineState {
@@ -332,13 +327,8 @@ struct FramebufferTargetConfig {
 };
 
 struct FramebufferConfig {
-	union {
-		struct {
-			FramebufferTargetConfig albedo_attachment;
-		};
-		FramebufferTargetConfig attachments[ MAX_RENDER_TARGETS ];
-	};
-	FramebufferTargetConfig depth_attachment;
+	FramebufferTargetConfig attachments[ MAX_RENDER_TARGETS ] = { };
+	FramebufferTargetConfig depth_attachment = { };
 	int msaa_samples = 0;
 };
 

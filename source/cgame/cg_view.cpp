@@ -556,7 +556,7 @@ static void DrawSilhouettes() {
 		pipeline.write_depth = false;
 
 		const Framebuffer & fb = frame_static.silhouette_gbuffer;
-		pipeline.set_texture( "u_SilhouetteTexture", &fb.albedo_target.texture );
+		pipeline.set_texture( "u_SilhouetteTexture", &fb.targets[ 0 ].texture );
 		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 		DrawFullscreenMesh( pipeline );
 	}

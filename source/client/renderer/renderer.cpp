@@ -317,19 +317,19 @@ static void CreateFramebuffers() {
 	texture_config.wrap = TextureWrap_Clamp;
 
 	{
-		FramebufferConfig fb = { };
+		FramebufferConfig fb;
 
 		texture_config.format = TextureFormat_RGBA_U8_sRGB;
-		fb.albedo_attachment.config = texture_config;
+		fb.attachments[ 0 ].config = texture_config;
 
 		frame_static.silhouette_gbuffer = NewFramebuffer( fb );
 	}
 
 	if( frame_static.msaa_samples > 1 ) {
-		FramebufferConfig fb = { };
+		FramebufferConfig fb;
 
 		texture_config.format = TextureFormat_RGB_U8_sRGB;
-		fb.albedo_attachment.config = texture_config;
+		fb.attachments[ 0 ].config = texture_config;
 
 		texture_config.format = TextureFormat_Depth;
 		fb.depth_attachment.config = texture_config;
@@ -340,10 +340,10 @@ static void CreateFramebuffers() {
 	}
 
 	{
-		FramebufferConfig fb = { };
+		FramebufferConfig fb;
 
 		texture_config.format = TextureFormat_RGB_U8_sRGB;
-		fb.albedo_attachment.config = texture_config;
+		fb.attachments[ 0 ].config = texture_config;
 
 		texture_config.format = TextureFormat_Depth;
 		fb.depth_attachment.config = texture_config;
@@ -352,17 +352,17 @@ static void CreateFramebuffers() {
 	}
 
 	{
-		FramebufferConfig fb = { };
+		FramebufferConfig fb;
 
-		fb.albedo_attachment.target = &frame_static.postprocess_fb.albedo_target;
+		fb.attachments[ 0 ].target = &frame_static.postprocess_fb.targets[ 0 ];
 
 		frame_static.postprocess_fb_onlycolor = NewFramebuffer( fb );
 	}
 
 	if( frame_static.msaa_samples > 1 ) {
-		FramebufferConfig fb = { };
+		FramebufferConfig fb;
 
-		fb.albedo_attachment.target = &frame_static.msaa_fb.albedo_target;
+		fb.attachments[ 0 ].target = &frame_static.msaa_fb.targets[ 0 ];
 
 		fb.msaa_samples = frame_static.msaa_samples;
 
@@ -370,7 +370,7 @@ static void CreateFramebuffers() {
 	}
 
 	{
-		FramebufferConfig fb = { };
+		FramebufferConfig fb;
 
 		texture_config.format = TextureFormat_RGBA_Half;
 		fb.attachments[ 0 ].config = texture_config;
@@ -387,7 +387,7 @@ static void CreateFramebuffers() {
 	}
 
 	{
-		FramebufferConfig fb = { };
+		FramebufferConfig fb;
 
 		u32 shadowmap_res = frame_static.shadow_parameters.shadowmap_res;
 		TextureArrayConfig config;
@@ -400,7 +400,7 @@ static void CreateFramebuffers() {
 		texture_config.width = shadowmap_res;
 		texture_config.height = shadowmap_res;
 		texture_config.format = TextureFormat_Shadow;
-		fb.albedo_attachment.config = texture_config;
+		fb.attachments[ 0 ].config = texture_config;
 
 		for( u32 i = 0; i < 4; i++ ) {
 			frame_static.shadowmap_fb[ i ] = NewShadowFramebuffer( frame_static.shadowmap_texture_array, i );
@@ -416,7 +416,7 @@ static void RenderOitComposite() {
 	pipeline.blend_func = BlendFunc_Disabled;
 	pipeline.write_depth = false;
 
-	pipeline.set_texture( "u_Background", &frame_static.postprocess_fb.albedo_target.texture );
+	pipeline.set_texture( "u_Background", &frame_static.postprocess_fb.targets[ 0 ].texture );
 	pipeline.set_texture( "u_Accum", &frame_static.oit_fb.targets[ 0 ].texture );
 	pipeline.set_texture( "u_Modulate", &frame_static.oit_fb.targets[ 1 ].texture );
 	DrawFullscreenMesh( pipeline );

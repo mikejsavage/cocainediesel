@@ -364,6 +364,8 @@ static void CreateFramebuffers() {
 
 		fb.albedo_attachment.target = &frame_static.msaa_fb.albedo_target;
 
+		fb.msaa_samples = frame_static.msaa_samples;
+
 		frame_static.msaa_fb_onlycolor = NewFramebuffer( fb );
 	}
 

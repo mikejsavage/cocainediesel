@@ -5,18 +5,22 @@
 struct Shaders {
 	Shader standard;
 	Shader standard_shaded;
+	Shader standard_shaded_fake_shadow;
 	Shader standard_vertexcolors;
 
 	Shader standard_skinned;
 	Shader standard_skinned_shaded;
+	Shader standard_skinned_shaded_fake_shadow;
 	Shader standard_skinned_vertexcolors;
 
 	Shader standard_oit;
 	Shader standard_oit_shaded;
+	Shader standard_oit_shaded_fake_shadow;
 	Shader standard_oit_vertexcolors;
 
 	Shader standard_oit_skinned;
 	Shader standard_oit_skinned_shaded;
+	Shader standard_oit_skinned_shaded_fake_shadow;
 	Shader standard_oit_skinned_vertexcolors;
 
 	Shader depth_only;

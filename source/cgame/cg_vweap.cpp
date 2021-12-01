@@ -155,7 +155,12 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	const Model * model = GetWeaponModelMetadata( cg.predictedPlayerState.weapon )->model;
 	Mat4 transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
-	DrawViewWeapon( model, transform, CG_TeamColorVec4( cg.predictedPlayerState.team ) );
+
+	trace_t trace;
+	CG_Trace( &trace, viewweapon->origin, Vec3( 0.0f ), Vec3( 0.0f ), viewweapon->origin - frame_static.light_direction * 1024.0f, cg.view.POVent, MASK_OPAQUE );
+	float in_light = trace.fraction == 1.0f ? 1.0f : 0.0f;
+
+	DrawViewWeapon( model, transform, CG_TeamColorVec4( cg.predictedPlayerState.team ), in_light );
 }
 
 void CG_AddRecoil( WeaponType weapon ) {

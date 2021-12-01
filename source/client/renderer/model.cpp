@@ -102,7 +102,7 @@ void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive
 }
 
 template< typename F >
-static void DrawNode( const Model * model, u8 node_idx, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes, UniformBlock pose_uniforms, F transform_pipeline ) {
+static void DrawNode( const Model * model, u8 node_idx, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes, UniformBlock pose_uniforms, F transform_pipeline, bool fake_shadow = false, float in_light = 1.0f ) {
 	if( node_idx == U8_MAX )
 		return;
 
@@ -125,7 +125,7 @@ static void DrawNode( const Model * model, u8 node_idx, const Mat4 & transform, 
 
 		UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform * primitive_transform );
 
-		PipelineState pipeline = MaterialToPipelineState( model->primitives[ node->primitive ].material, color, skinned );
+		PipelineState pipeline = MaterialToPipelineState( model->primitives[ node->primitive ].material, color, skinned, fake_shadow, in_light );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 		pipeline.set_uniform( "u_Model", model_uniforms );
 		if( skinned ) {
@@ -136,8 +136,8 @@ static void DrawNode( const Model * model, u8 node_idx, const Mat4 & transform, 
 		DrawModelPrimitive( model, &model->primitives[ node->primitive ], pipeline );
 	}
 
-	DrawNode( model, node->first_child, transform, color, palettes, pose_uniforms, transform_pipeline );
-	DrawNode( model, node->sibling, transform, color, palettes, pose_uniforms, transform_pipeline );
+	DrawNode( model, node->first_child, transform, color, palettes, pose_uniforms, transform_pipeline, fake_shadow, in_light );
+	DrawNode( model, node->sibling, transform, color, palettes, pose_uniforms, transform_pipeline, fake_shadow, in_light );
 }
 
 void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
@@ -157,10 +157,10 @@ static void AddViewWeaponDepthHack( PipelineState * pipeline, bool skinned ) {
 	pipeline->view_weapon_depth_hack = true;
 }
 
-void DrawViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & color ) {
+void DrawViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & color, float in_light ) {
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		if( model->nodes[ i ].parent == U8_MAX ) {
-			DrawNode( model, i, transform, color, MatrixPalettes(), UniformBlock(), AddViewWeaponDepthHack );
+			DrawNode( model, i, transform, color, MatrixPalettes(), UniformBlock(), AddViewWeaponDepthHack, true, in_light );
 		}
 	}
 }
@@ -188,7 +188,7 @@ void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 
 }
 
 void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
-	UniformBlock material_uniforms = UploadMaterialUniforms( color, Vec2( 0 ), 0.0f, 0.0f, 0.0f );
+	UniformBlock material_uniforms = UploadMaterialUniforms( color, Vec2( 0 ), 0.0f, 0.0f, 0.0f, 1.0f );
 
 	auto MakeSilhouettePipeline = [ &material_uniforms ]( PipelineState * pipeline, bool skinned ) {
 		pipeline->shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer;

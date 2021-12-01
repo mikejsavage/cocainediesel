@@ -21,6 +21,7 @@ layout( std140 ) uniform u_Material {
 	float u_Roughness;
 	float u_Metallic;
 	float u_Anisotropic;
+	float u_InLight;
 };
 
 layout( std140 ) uniform u_ShadowMaps {

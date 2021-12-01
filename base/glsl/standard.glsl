@@ -135,6 +135,9 @@ void main() {
 	#if APPLY_SHADOWS
 		shadowlight = GetLight( normal );
 	#endif
+	#if FAKE_SHADOW
+		shadowlight = u_InLight;
+	#endif
 
 	diffuse.rgb = BRDF( normal, viewDir, -u_LightDir, suncolor, diffuse.rgb, u_Roughness, u_Metallic, u_Anisotropic, shadowlight, decal_dlight_count.y, tile_index );
 #endif

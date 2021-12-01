@@ -996,7 +996,7 @@ static float EvaluateWaveFunc( Wave wave ) {
 	return wave.args[ 0 ] + wave.args[ 1 ] * v;
 }
 
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned ) {
+PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned, bool fake_shadow, float in_light ) {
 	if( material == &world_material || material == &wallbang_material ) {
 		PipelineState pipeline;
 		pipeline.shader = &shaders.world;
@@ -1007,7 +1007,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		color.x = material->rgbgen.args[ 0 ];
 		color.y = material->rgbgen.args[ 1 ];
 		color.z = material->rgbgen.args[ 2 ];
-		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( 0.0f ), material->roughness, material->metallic, material->anisotropic, Vec3( 0.0f ), Vec3( 0.0f ) ) );
+		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( 0.0f ), material->roughness, material->metallic, material->anisotropic, 1.0f, Vec3( 0.0f ), Vec3( 0.0f ) ) );
 		pipeline.set_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
 		pipeline.set_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
 		pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
@@ -1100,24 +1100,36 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	pipeline.blend_func = material->blend_func;
 
 	pipeline.set_texture( "u_BaseTexture", material->texture );
-	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->roughness, material->metallic, material->anisotropic, tcmod_row0, tcmod_row1 ) );
+	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->roughness, material->metallic, material->anisotropic, in_light, tcmod_row0, tcmod_row1 ) );
 
 	if( skinned ) {
-		if( material->shaded ) {
+		if( material->shaded && fake_shadow ) {
+			pipeline.shader = material->blend_func == BlendFunc_Transparent ? &shaders.standard_oit_skinned_shaded_fake_shadow : &shaders.standard_skinned_shaded_fake_shadow;
+		}
+		else if( material->shaded ) {
 			pipeline.shader = material->blend_func == BlendFunc_Transparent ? &shaders.standard_oit_skinned_shaded : &shaders.standard_skinned_shaded;
-			AddDynamicsToPipeline( &pipeline );
 		}
 		else {
 			pipeline.shader = material->blend_func == BlendFunc_Transparent ? &shaders.standard_oit_skinned : &shaders.standard_skinned;
 		}
 	}
 	else {
-		if( material->shaded ) {
+		if( material->shaded && fake_shadow ) {
+			pipeline.shader = material->blend_func == BlendFunc_Transparent ? &shaders.standard_oit_shaded_fake_shadow : &shaders.standard_shaded_fake_shadow;
+		}
+		else if( material->shaded ) {
 			pipeline.shader = material->blend_func == BlendFunc_Transparent ? &shaders.standard_oit_shaded : &shaders.standard_shaded;
-			AddDynamicsToPipeline( &pipeline );
 		}
 		else {
 			pipeline.shader = material->blend_func == BlendFunc_Transparent ? &shaders.standard_oit : &shaders.standard;
+		}
+	}
+
+	if( material->shaded ) {
+		AddDynamicsToPipeline( &pipeline );
+		if( !fake_shadow ) {
+			pipeline.set_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
+			pipeline.set_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
 		}
 	}
 

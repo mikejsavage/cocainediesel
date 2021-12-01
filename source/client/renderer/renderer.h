@@ -107,7 +107,7 @@ void RendererSubmitFrame();
 const Texture * BlueNoiseTexture();
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false );
+PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false, bool fake_shadow = false, float in_light = 1.0f );
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color = vec4_white );
 void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color );
@@ -117,6 +117,6 @@ u16 DynamicMeshBaseIndex();
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh );
 
 UniformBlock UploadModelUniforms( const Mat4 & M );
-UniformBlock UploadMaterialUniforms( const Vec4 & color, const Vec2 & texture_size, float roughness, float metallic, float anisotropic, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
+UniformBlock UploadMaterialUniforms( const Vec4 & color, const Vec2 & texture_size, float roughness, float metallic, float anisotropic, float in_light, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
 
 const char * ShadowQualityToString( ShadowQuality mode );

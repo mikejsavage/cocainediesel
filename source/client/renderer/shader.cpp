@@ -77,10 +77,20 @@ static void LoadShaders() {
 	const char * standard_shaded_defines = temp(
 		"#define APPLY_DLIGHTS 1\n"
 		"#define SHADED 1\n"
+		"#define APPLY_SHADOWS 1\n"
 		"#define TILE_SIZE {}\n"
 		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
 	BuildShaderSrcs( "glsl/standard.glsl", standard_shaded_defines, &srcs, &lengths );
 	ReplaceShader( &shaders.standard_shaded, srcs.span(), lengths.span() );
+
+	const char * standard_shaded_fake_shadow_defines = temp(
+		"#define APPLY_DLIGHTS 1\n"
+		"#define SHADED 1\n"
+		"#define FAKE_SHADOW 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+	BuildShaderSrcs( "glsl/standard.glsl", standard_shaded_fake_shadow_defines, &srcs, &lengths );
+	ReplaceShader( &shaders.standard_shaded_fake_shadow, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/standard.glsl", "#define VERTEX_COLORS 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_vertexcolors, srcs.span(), lengths.span() );
@@ -92,10 +102,21 @@ static void LoadShaders() {
 		"#define SKINNED 1\n"
 		"#define APPLY_DLIGHTS 1\n"
 		"#define SHADED 1\n"
+		"#define APPLY_SHADOWS 1\n"
 		"#define TILE_SIZE {}\n"
 		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
 	BuildShaderSrcs( "glsl/standard.glsl", standard_skinned_shaded_defines, &srcs, &lengths );
 	ReplaceShader( &shaders.standard_skinned_shaded, srcs.span(), lengths.span() );
+
+	const char * standard_skinned_shaded_fake_shadow_defines = temp(
+		"#define SKINNED 1\n"
+		"#define APPLY_DLIGHTS 1\n"
+		"#define SHADED 1\n"
+		"#define FAKE_SHADOW 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+	BuildShaderSrcs( "glsl/standard.glsl", standard_skinned_shaded_fake_shadow_defines, &srcs, &lengths );
+	ReplaceShader( &shaders.standard_skinned_shaded_fake_shadow, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/standard.glsl", "#define SKINNED 1\n#define VERTEX_COLORS 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_skinned_vertexcolors, srcs.span(), lengths.span() );
@@ -107,10 +128,21 @@ static void LoadShaders() {
 		"#define TRANSPARENT 1\n"
 		"#define APPLY_DLIGHTS 1\n"
 		"#define SHADED 1\n"
+		"#define APPLY_SHADOWS 1\n"
 		"#define TILE_SIZE {}\n"
 		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
 	BuildShaderSrcs( "glsl/standard.glsl", standard_oit_shaded_defines, &srcs, &lengths );
 	ReplaceShader( &shaders.standard_oit_shaded, srcs.span(), lengths.span() );
+
+	const char * standard_oit_shaded_fake_shadow_defines = temp(
+		"#define TRANSPARENT 1\n"
+		"#define APPLY_DLIGHTS 1\n"
+		"#define SHADED 1\n"
+		"#define FAKE_SHADOW 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+	BuildShaderSrcs( "glsl/standard.glsl", standard_oit_shaded_fake_shadow_defines, &srcs, &lengths );
+	ReplaceShader( &shaders.standard_oit_shaded_fake_shadow, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/standard.glsl", "#define TRANSPARENT 1\n#define VERTEX_COLORS 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_oit_vertexcolors, srcs.span(), lengths.span() );
@@ -123,10 +155,22 @@ static void LoadShaders() {
 		"#define SKINNED 1\n"
 		"#define APPLY_DLIGHTS 1\n"
 		"#define SHADED 1\n"
+		"#define APPLY_SHADOWS 1\n"
 		"#define TILE_SIZE {}\n"
 		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
 	BuildShaderSrcs( "glsl/standard.glsl", standard_oit_skinned_shaded_defines, &srcs, &lengths );
 	ReplaceShader( &shaders.standard_oit_skinned_shaded, srcs.span(), lengths.span() );
+
+	const char * standard_oit_skinned_shaded_fake_shadow_defines = temp(
+		"#define TRANSPARENT 1\n"
+		"#define SKINNED 1\n"
+		"#define APPLY_DLIGHTS 1\n"
+		"#define SHADED 1\n"
+		"#define FAKE_SHADOW 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+	BuildShaderSrcs( "glsl/standard.glsl", standard_oit_skinned_shaded_fake_shadow_defines, &srcs, &lengths );
+	ReplaceShader( &shaders.standard_oit_skinned_shaded_fake_shadow, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/standard.glsl", "#define TRANSPARENT 1\n#define SKINNED 1\n#define VERTEX_COLORS 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_oit_skinned_vertexcolors, srcs.span(), lengths.span() );
@@ -136,8 +180,8 @@ static void LoadShaders() {
 		"#define APPLY_FOG 1\n"
 		"#define APPLY_DECALS 1\n"
 		"#define APPLY_DLIGHTS 1\n"
-		"#define APPLY_SHADOWS 1\n"
 		"#define SHADED 1\n"
+		"#define APPLY_SHADOWS 1\n"
 		"#define TILE_SIZE {}\n"
 		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
 	BuildShaderSrcs( "glsl/standard.glsl", world_defines, &srcs, &lengths );

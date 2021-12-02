@@ -393,21 +393,17 @@ static const g_vsays_t g_vsays[] = {
 };
 
 static void G_vsay_f( edict_t *ent ) {
-	const char *msg = Cmd_Argv( 1 );
-
 	if( G_ISGHOSTING( ent ) && server_gs.gameState.match_state < MatchState_PostMatch ) {
 		return;
 	}
 
-	if( !( ent->r.svflags & SVF_FAKECLIENT ) ) { // ignore flood checks on bots
-		if( ent->r.client->level.last_vsay > svs.realtime - 500 ) {
-			return; // ignore silently vsays in that come in rapid succession
-		}
-		ent->r.client->level.last_vsay = svs.realtime;
+	if( ent->r.client->level.last_vsay > svs.realtime - 500 ) {
+		return;
 	}
+	ent->r.client->level.last_vsay = svs.realtime;
 
 	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {
-		if( Q_stricmp( msg, vsay->name ) != 0 )
+		if( Q_stricmp( Cmd_Argv( 1 ), vsay->name ) != 0 )
 			continue;
 
 		u64 entropy = Random32( &svs.rng );
@@ -420,21 +416,7 @@ static void G_vsay_f( edict_t *ent ) {
 		return;
 	}
 
-	// unknown token, print help
-	char string[MAX_STRING_CHARS];
-
-	string[0] = 0;
-	if( msg && msg[0] != '\0' ) {
-		Q_strncatz( string, va( "%sUnknown vsay token%s \"%s\"\n", S_COLOR_YELLOW, S_COLOR_WHITE, msg ), sizeof( string ) );
-	}
-	Q_strncatz( string, va( "%svsays:%s\n", S_COLOR_YELLOW, S_COLOR_WHITE ), sizeof( string ) );
-	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {
-		if( strlen( vsay->name ) + strlen( string ) < sizeof( string ) - 6 ) {
-			Q_strncatz( string, va( "%s ", vsay->name ), sizeof( string ) );
-		}
-	}
-	Q_strncatz( string, "\n", sizeof( string ) );
-	G_PrintMsg( ent, "%s", string );
+	G_PrintMsg( ent, "Unknown vsay %s", Cmd_Argv( 1 ) );
 }
 
 static void Cmd_Join_f( edict_t *ent ) {

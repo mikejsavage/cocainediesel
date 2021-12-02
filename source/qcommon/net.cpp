@@ -1084,7 +1084,7 @@ static bool StringToSockaddress( const char *s, struct sockaddr_storage *sadr ) 
 		int err;
 
 		memset( &hints, 0, sizeof( hints ) );
-		hints.ai_family = addr_family;
+		hints.ai_family = addr_family == AF_UNSPEC ? AF_INET : addr_family;
 		hints.ai_socktype = SOCK_DGRAM;
 		//hints.ai_flags = AI_NUMERICHOST;
 

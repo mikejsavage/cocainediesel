@@ -45,74 +45,103 @@ void basis( vec3 n, out vec3 tangent, out vec3 bitangent ){
 	uniform samplerBuffer u_DynamicLightData;
 #endif
 
+struct Surface {
+	vec3 color;
+	float roughness_squared;
+	vec3 f0;
+	float roughness;
+	vec2 anisotropy;
+	vec3 normal;
+	vec3 tangent, bitangent;
+};
+
+Surface CreateSurface( vec3 normal, vec3 albedo, float roughness, float metallic, float anisotropic ) {
+	Surface surface;
+	surface.color = albedo * ( 1.0 - metallic * 0.8 );
+	surface.roughness_squared = roughness * roughness;
+	float reflectance = 1.0 - roughness;
+	// surface.f0 = albedo * metallic + 0.16 * reflectance * reflectance * ( 1.0 - metallic );
+	surface.f0 = albedo * metallic + reflectance * ( 1.0 - metallic );
+	surface.roughness = roughness;
+	surface.anisotropy = max( roughness * vec2( 1.0 + anisotropic, 1.0 - anisotropic), vec2( 0.001 ) );
+	surface.normal = normal;
+	basis( normal, surface.tangent, surface.bitangent );
+	return surface;
+}
+
+struct Light {
+	vec3 color;
+	vec3 direction;
+	float attenuation;
+};
+
+Light GetSunLight() {
+	Light light;
+	light.color = vec3( 1.0 );
+	light.direction = -u_LightDir;
+	light.attenuation = 1.0;
+	return light;
+}
+
+#if APPLY_DLIGHTS
+Light GetDynamicLight( int index, vec3 normal ) {
+	vec4 data = texelFetch( u_DynamicLightData, index );
+	vec3 origin = floor( data.xyz );
+	float radius = data.w;
+	float intensity = DLIGHT_CUTOFF * radius * radius;
+	vec3 dir = v_Position - origin;
+	float dist_squared = dot( dir, dir );
+
+	Light light;
+	light.color = fract( data.xyz ) / 0.9;
+	light.direction = -normalize( dir - normal ); // - normal to prevent 0,0,0
+	light.attenuation = max( 0.0, intensity / dist_squared - DLIGHT_CUTOFF );
+	return light;
+}
+#endif
+
+vec3 ShadePixel( Surface surface, Light light, float occlusion, vec3 v, float NoV, float ToV, float BoV ) {
+	vec3 h = normalize( v + light.direction );
+	float NoL = dot( surface.normal, light.direction );
+	float half_NoL = NoL * 0.5 + 0.5;
+	NoL = clamp( NoL, 0.0, 1.0 );
+	float NoH = clamp( dot( surface.normal, h ), 0.0, 1.0 );
+	float LoH = clamp( dot( light.direction, h ), 0.0, 1.0 );
+
+	float ToL = dot( surface.tangent, light.direction );
+	float ToH = dot( surface.tangent, h );
+	float BoL = dot( surface.bitangent, light.direction );
+	float BoH = dot( surface.bitangent, h );
+
+	float D = DistributionGGXAniso( ToH, BoH, NoH, surface.anisotropy ) * NoL;
+	float G = GeometryDistributionGGXAniso( ToV, BoV, ToL, BoL, NoV, NoL, surface.anisotropy );
+	vec3 F = FresnelSchlick( surface.f0, NoV );
+
+	vec3 specular = D * G * F;
+	float diffuse = M_PI * Diffuse_Burley( NoV, NoL, LoH, surface.roughness ); // random scaling factor, dunno aha
+	// float diffuse = 1.0;
+
+	return ( surface.color * diffuse * ( occlusion * 0.5 + 0.5 ) + specular * occlusion ) * light.color * light.attenuation * half_NoL;
+}
+
 vec3 BRDF( vec3 n, vec3 v, vec3 l, vec3 light_color, vec3 albedo, float roughness, float metallic, float aniso, float shadow, int dlight_count, int tile_index ) {
-	float roughness_squared = roughness * roughness;
-	float reflectance = 1.0 - roughness_squared;
-	vec3 f0 = 0.16 * reflectance * reflectance * ( 1.0 - metallic ) + albedo * metallic;
-
-	albedo = ( 1.0 - metallic * 0.8 ) * albedo;
-
-	// vec2 a = max( roughness_squared * vec2( 1.0 + aniso, 1.0 - aniso ), vec2( 0.001 ) );
-	vec2 a = max( roughness * vec2( 1.0 + aniso, 1.0 - aniso ), vec2( 0.001 ) );
-	vec3 t, b;
-	basis( n, t, b );
-
-	vec3 h = normalize( v + l );
+	Surface surface = CreateSurface( n, albedo, roughness, metallic, aniso );
+	Light light = GetSunLight();
 
 	float NoV = max( dot( n, v ), 1e-4 );
-	float NoL = clamp( dot( n, l ), 0.0, 1.0 );
-	float NoH = clamp( dot( n, h ), 0.0, 1.0 );
-	float LoH = clamp( dot( l, h ), 0.0, 1.0 );
+	float ToV = dot( surface.tangent, v );
+	float BoV = dot( surface.bitangent, v );
 
-	float ToV = dot( t, v );
-	float BoV = dot( b, v );
-	float ToL = dot( t, l );
-	float BoL = dot( b, l );
-	float ToH = dot( t, h );
-	float BoH = dot( b, h );
-
-	float D = DistributionGGXAniso( ToH, BoH, NoH, a ) * NoL;
-	float G = GeometryDistributionGGXAniso( ToV, BoV, ToL, BoL, NoV, NoL, a );
-	vec3 F = FresnelSchlick( f0, NoV );
-
-	vec3 specular = D * F * G * light_color * shadow;
-	// vec3 diffuse = Diffuse_Burley( NoV, NoL, LoH, roughness ) * albedo * ( shadow * 0.5 + 0.5 );
-	vec3 diffuse = ( NoL * 0.5 + 0.5 ) * albedo * ( shadow * 0.5 + 0.5 );
+	vec3 color = ShadePixel( surface, light, shadow, v, NoV, ToV, BoV );
 
 #if APPLY_DLIGHTS
 	for( int i = 0; i < dlight_count; i++ ) {
 		int idx = tile_index * 50 + i; // NOTE(msc): 50 = MAX_DLIGHTS_PER_TILE
 		int dlight_index = texelFetch( u_DynamicLightTiles, idx ).x;
-
-		vec4 data = texelFetch( u_DynamicLightData, dlight_index );
-		vec3 origin = floor( data.xyz );
-		light_color = fract( data.xyz ) / 0.9;
-		float radius = data.w;
-
-		float intensity = DLIGHT_CUTOFF * radius * radius;
-		float dist = distance( v_Position, origin );
-		l = -normalize( v_Position - origin - n ); // - normal to prevent 0,0,0
-
-		float dlight_intensity = max( 0.0, intensity / ( dist * dist ) - DLIGHT_CUTOFF );
-
-		h = normalize( v + l );
-		NoL = clamp( dot( n, l ), 0.0, 1.0 );
-		NoH = clamp( dot( n, h ), 0.0, 1.0 );
-		LoH = clamp( dot( l, h ), 0.0, 1.0 );
-		ToL = dot( t, l );
-		BoL = dot( b, l );
-		ToH = dot( t, h );
-		BoH = dot( b, h );
-
-		D = DistributionGGXAniso( ToH, BoH, NoH, a ) * NoL;
-		G = GeometryDistributionGGXAniso( ToV, BoV, ToL, BoL, NoV, NoL, a );
-		F = FresnelSchlick( f0, NoV );
-
-		specular += D * F * G * light_color * dlight_intensity;
-		// diffuse += Diffuse_Burley( NoV, NoL, LoH, roughness ) * light_color * dlight_intensity;
-		diffuse += NoL * light_color * dlight_intensity;
+		light = GetDynamicLight( dlight_index, n );
+		color += ShadePixel( surface, light, 1.0, v, NoV, ToV, BoV );
 	}
 #endif
 
-	return diffuse + specular;
+	return color;
 }

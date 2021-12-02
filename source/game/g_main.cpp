@@ -25,8 +25,6 @@ gs_state_t server_gs;
 level_locals_t level;
 spawn_temp_t st;
 
-mempool_t *gamepool;
-
 DamageType meansOfDeath;
 Vec3 knockbackOfDeath;
 int damageFlagsOfDeath;
@@ -40,9 +38,6 @@ cvar_t *filterban;
 cvar_t *g_maxvelocity;
 
 cvar_t *sv_cheats;
-
-cvar_t *g_maplist;
-cvar_t *g_maprotation;
 
 cvar_t *g_floodprotection_messages;
 cvar_t *g_floodprotection_team;
@@ -66,11 +61,6 @@ cvar_t *g_allow_spectator_voting;
 
 cvar_t *g_asGC_stats;
 cvar_t *g_asGC_interval;
-
-static char *map_rotation_s = NULL;
-static char **map_rotation_p = NULL;
-static int map_rotation_current = -1;
-static int map_rotation_count = 0;
 
 /*
 * G_GS_Trace - Used only for gameshared linking
@@ -123,8 +113,6 @@ void G_GamestatSetFlag( int flag, bool b ) {
 * only happens when a new game is started or a save game is loaded.
 */
 void G_Init( unsigned int framemsec ) {
-	gamepool = _Mem_AllocPool( NULL, "Game", MEMPOOL_GAME, __FILE__, __LINE__ );
-
 	Com_Printf( "==== G_Init ====\n" );
 
 	G_InitGameShared();
@@ -174,10 +162,6 @@ void G_Init( unsigned int framemsec ) {
 	g_inactivity_maxtime = Cvar_Get( "g_inactivity_maxtime", "90.0", 0 );
 	g_inactivity_maxtime->modified = true;
 
-	// map list
-	g_maplist = Cvar_Get( "g_maplist", "", CVAR_ARCHIVE );
-	g_maprotation = Cvar_Get( "g_maprotation", "1", CVAR_ARCHIVE );
-
 	// helper cvars to show current status in serverinfo reply
 	Cvar_Get( "g_match_time", "", CVAR_SERVERINFO | CVAR_READONLY );
 	Cvar_Get( "g_match_score", "", CVAR_SERVERINFO | CVAR_READONLY );
@@ -214,125 +198,16 @@ void G_Shutdown() {
 			G_FreeEdict( &game.edicts[i] );
 		}
 	}
-
-	Mem_FreePool( &gamepool );
 }
 
 //======================================================================
-
-/*
-* G_UpdateMapRotation
-*
-* Reads current map rotation into internal list
-*/
-static void G_UpdateMapRotation() {
-	int count, i;
-	bool thiswhitespace, lastwhitespace, found;
-	char *p, *start;
-	static const char *seps = " ,\n\r";
-
-	if( g_maplist->modified || !map_rotation_s || !map_rotation_p ) {
-		g_maplist->modified = false;
-
-		// reread the maplist
-		if( map_rotation_s ) {
-			G_Free( map_rotation_s );
-		}
-		if( map_rotation_p ) {
-			G_Free( map_rotation_p );
-		}
-
-		map_rotation_s = G_CopyString( g_maplist->string );
-		map_rotation_p = NULL;
-		map_rotation_current = -1;  // reset the mapcounter too
-		map_rotation_count = 0;
-
-		// count the number of tokens
-		p = map_rotation_s;
-		count = 0;
-		lastwhitespace = true;
-		start = NULL;
-		found = false;
-		while( *p ) {
-			thiswhitespace = ( strchr( seps, *p ) != NULL ) ? true : false;
-			if( lastwhitespace && !thiswhitespace ) {
-				start = p;
-				count++;
-			} else if( thiswhitespace && !lastwhitespace && !found && start ) {
-				found = true;
-				for( i = 0; start + i < p; i++ ) {
-					if( tolower( start[i] ) != tolower( sv.mapname[i] ) ) {
-						found = false;
-					}
-				}
-				if( found ) {
-					map_rotation_current = count - 1;
-				}
-			}
-
-			lastwhitespace = thiswhitespace;
-			p++;
-		}
-
-		if( !count ) {
-			return;
-		}
-
-		// allocate the array of pointers
-		map_rotation_p = ( char ** )G_Malloc( ( count + 1 ) * sizeof( *map_rotation_p ) );
-
-		// now convert the string to tokens by nulling the separators
-		p = map_rotation_s;
-		count = 0;
-		lastwhitespace = true;
-		while( *p ) {
-			thiswhitespace = ( strchr( seps, *p ) != NULL ) ? true : false;
-			if( lastwhitespace && !thiswhitespace ) {
-				map_rotation_p[count++] = p;
-			}
-
-			if( thiswhitespace ) {
-				*p = 0;
-			}
-
-			lastwhitespace = thiswhitespace;
-			p++;
-		}
-
-		// final null pointer to mark the end
-		map_rotation_p[count] = NULL;
-
-		map_rotation_count = count;
-	}
-}
-
-static const char *G_MapRotationNormal() {
-	G_UpdateMapRotation();
-
-	if( !map_rotation_count ) {
-		return NULL;
-	}
-
-	map_rotation_current++;
-
-	if( map_rotation_current >= map_rotation_count || map_rotation_p[map_rotation_current] == NULL ) {
-		map_rotation_current = 0;
-	}
-
-	return map_rotation_p[map_rotation_current];
-}
 
 static const char *G_NextMap() {
 	if( strlen( level.callvote_map ) > 0 )
 		return level.callvote_map;
 
-	if( !( *g_maplist->string ) || g_maplist->string[0] == '\0' || g_maprotation->integer == 0 ) {
-		// same map again
-		return sv.mapname;
-	}
-
-	const char *next = G_MapRotationNormal();
-	return next ? next : sv.mapname;
+	// same map again
+	return sv.mapname;
 }
 
 void G_ExitLevel() {

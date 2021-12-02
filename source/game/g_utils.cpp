@@ -174,12 +174,6 @@ void G_SetMovedir( Vec3 * angles, Vec3 * movedir ) {
 	*angles = Vec3( 0.0f );
 }
 
-char *_G_CopyString( const char *in, const char *filename, int fileline ) {
-	char * out = ( char * )_Mem_AllocExt( gamepool, strlen( in ) + 1, 16, 1, 0, 0, filename, fileline );
-	strcpy( out, in );
-	return out;
-}
-
 void G_FreeEdict( edict_t *ed ) {
 	if( ed == NULL )
 		return;

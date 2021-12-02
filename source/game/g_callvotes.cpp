@@ -610,7 +610,7 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 	callvoteState.vote.target = 0;
 	for( int i = 0; i < callvoteState.vote.argc; i++ ) {
 		if( callvoteState.vote.argv[i] ) {
-			G_Free( callvoteState.vote.argv[i] );
+			FREE( sys_allocator, callvoteState.vote.argv[i] );
 		}
 	}
 
@@ -654,14 +654,13 @@ static void G_CallVotes_PrintHelpToPlayer( edict_t *ent, const callvotetype_t *c
 
 static const char *G_CallVotes_ArgsToString( const callvotedata_t *vote ) {
 	static char argstring[MAX_STRING_CHARS];
-	int i;
 
 	argstring[0] = 0;
 
 	if( vote->argc > 0 ) {
 		Q_strncatz( argstring, vote->argv[0], sizeof( argstring ) );
 	}
-	for( i = 1; i < vote->argc; i++ ) {
+	for( int i = 1; i < vote->argc; i++ ) {
 		Q_strncatz( argstring, " ", sizeof( argstring ) );
 		Q_strncatz( argstring, vote->argv[i], sizeof( argstring ) );
 	}
@@ -860,7 +859,7 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 
 	callvoteState.vote.argc = Cmd_Argc() - 2;
 	for( int i = 0; i < callvoteState.vote.argc; i++ ) {
-		callvoteState.vote.argv[i] = G_CopyString( Cmd_Argv( i + 2 ) );
+		callvoteState.vote.argv[i] = CopyString( sys_allocator, Cmd_Argv( i + 2 ) );
 	}
 
 	callvoteState.vote.callvote = callvote;

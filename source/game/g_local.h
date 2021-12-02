@@ -138,8 +138,6 @@ extern gs_state_t server_gs;
 extern level_locals_t level;
 extern spawn_temp_t st;
 
-extern mempool_t *gamepool;
-
 extern Vec3 knockbackOfDeath;
 extern int damageFlagsOfDeath;
 
@@ -159,9 +157,6 @@ extern cvar_t *g_floodprotection_seconds;
 extern cvar_t *g_floodprotection_penalty;
 
 extern cvar_t *g_inactivity_maxtime;
-
-extern cvar_t *g_maplist;
-extern cvar_t *g_maprotation;
 
 extern cvar_t *g_scorelimit;
 
@@ -265,9 +260,6 @@ void G_InitMover( edict_t *ent );
 void G_InitEdict( edict_t *e );
 edict_t *G_Spawn();
 void G_FreeEdict( edict_t *e );
-
-char *_G_CopyString( const char *in, const char *filename, int fileline );
-#define G_CopyString( in ) _G_CopyString( in, __FILE__, __LINE__ )
 
 void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority );
 edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin );
@@ -496,10 +488,6 @@ int G_BoxSlideMove( edict_t *ent, int contentmask, float slideBounce, float fric
 //
 // g_main.c
 //
-
-// memory management
-#define G_Malloc( size ) _Mem_AllocExt( gamepool, size, 16, 1, 0, 0, __FILE__, __LINE__ )
-#define G_Free( mem ) Mem_Free( mem )
 
 void G_Init( unsigned int framemsec );
 void G_Shutdown();

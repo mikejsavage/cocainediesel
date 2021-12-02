@@ -147,12 +147,12 @@ Span< const char > Key_KeynumToString( int keynum ) {
 
 void Key_SetBinding( int keynum, const char *binding ) {
 	if( keybindings[keynum] ) {
-		Mem_ZoneFree( keybindings[keynum] );
+		FREE( sys_allocator, keybindings[keynum] );
 		keybindings[keynum] = NULL;
 	}
 
 	if( binding != NULL ) {
-		keybindings[keynum] = ZoneCopyString( binding );
+		keybindings[keynum] = CopyString( sys_allocator, binding );
 	}
 }
 

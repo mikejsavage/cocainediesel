@@ -140,7 +140,7 @@ void SV_Demo_Start_f() {
 	svs.demo.tempname = ( *sys_allocator )( "{}.rec", svs.demo.filename );
 
 	// open it
-	if( FS_FOpenBaseFile( svs.demo.tempname, &svs.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
+	if( FS_FOpenAbsoluteFile( svs.demo.tempname, &svs.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
 		Com_Printf( "Error: Couldn't open file: %s\n", svs.demo.tempname );
 		FREE( sys_allocator, svs.demo.filename );
 		svs.demo.filename = NULL;

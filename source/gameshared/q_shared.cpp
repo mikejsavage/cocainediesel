@@ -85,15 +85,6 @@ bool COM_ValidateRelativeFilename( const char *filename ) {
 //
 //============================================================================
 
-short ShortSwap( short l ) {
-	uint8_t b1, b2;
-
-	b1 = l & 255;
-	b2 = ( l >> 8 ) & 255;
-
-	return ( b1 << 8 ) + b2;
-}
-
 /*
 * va_r
 *

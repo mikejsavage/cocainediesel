@@ -99,7 +99,7 @@ static bool AddressToSockaddress( const netadr_t *address, struct sockaddr_stora
 
 			memset( sadr_in, 0, sizeof( *sadr_in ) );
 			sadr_in->sin_family = AF_INET;
-			sadr_in->sin_port = address->port;
+			sadr_in->sin_port = htons( address->port );
 			sadr_in->sin_addr.s_addr = *(int *)&na4->ip;
 			return true;
 		}
@@ -111,7 +111,7 @@ static bool AddressToSockaddress( const netadr_t *address, struct sockaddr_stora
 
 			memset( sadr_in6, 0, sizeof( *sadr_in6 ) );
 			sadr_in6->sin6_family = AF_INET6;
-			sadr_in6->sin6_port = address->port;
+			sadr_in6->sin6_port = htons( address->port );
 			memcpy( &sadr_in6->sin6_addr, na6->ip, sizeof( sadr_in6->sin6_addr ) );
 			return true;
 		}
@@ -134,7 +134,7 @@ static bool SockaddressToAddress( const struct sockaddr *s, netadr_t *address ) 
 
 			address->type = NA_IPv4;
 			*(int*)na4->ip = sadr_in->sin_addr.s_addr;
-			address->port = sadr_in->sin_port;
+			address->port = ntohs( sadr_in->sin_port );
 			return true;
 		}
 
@@ -145,7 +145,7 @@ static bool SockaddressToAddress( const struct sockaddr *s, netadr_t *address ) 
 
 			address->type = NA_IPv6;
 			memcpy( na6->ip, &sadr_in6->sin6_addr, sizeof( na6->ip ) );
-			address->port = sadr_in6->sin6_port;
+			address->port = ntohs( sadr_in6->sin6_port );
 			return true;
 		}
 
@@ -812,7 +812,7 @@ char *NET_AddressToString( const netadr_t *a ) {
 		case NA_IPv4:
 		{
 			const IPv4 *adr4 = &a->ipv4;
-			snprintf( s, sizeof( s ), "%i.%i.%i.%i:%hu", adr4->ip[0], adr4->ip[1], adr4->ip[2], adr4->ip[3], BigShort( a->port ) );
+			snprintf( s, sizeof( s ), "%i.%i.%i.%i:%hu", adr4->ip[0], adr4->ip[1], adr4->ip[2], adr4->ip[3], a->port );
 			break;
 		}
 		case NA_IPv6:
@@ -821,7 +821,7 @@ char *NET_AddressToString( const netadr_t *a ) {
 			snprintf( s, sizeof( s ), "[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]:%hu",
 						 adr6->ip[ 0], adr6->ip[ 1], adr6->ip[ 2], adr6->ip[ 3], adr6->ip[ 4], adr6->ip[ 5], adr6->ip[ 6], adr6->ip[ 7],
 						 adr6->ip[ 8], adr6->ip[ 9], adr6->ip[10], adr6->ip[11], adr6->ip[12], adr6->ip[13], adr6->ip[14], adr6->ip[15],
-						 BigShort( a->port ) );
+						 a->port );
 			break;
 		}
 		default:
@@ -885,7 +885,7 @@ unsigned short NET_GetAddressPort( const netadr_t *address ) {
 * Set the port of the network address
 */
 void NET_SetAddressPort( netadr_t *address, unsigned short port ) {
-	address->port = BigShort( port );
+	address->port = port;
 }
 
 /*
@@ -902,11 +902,11 @@ void NET_InitAddress( netadr_t *address, netadrtype_t type ) {
 	address->type = type;
 }
 
-void NET_BroadcastAddress( netadr_t *address, int port ) {
+void NET_BroadcastAddress( netadr_t *address, u16 port ) {
 	memset( address, 0, sizeof( *address ) );
 	address->type = NA_IPv4;
 	*(int*)address->ipv4.ip = htonl( INADDR_BROADCAST );
-	address->port = BigShort( port );
+	address->port = port;
 }
 
 static bool ParseAddressString( const char *str, char* addr_buff, size_t addr_buff_size, char* port_buff, size_t port_buff_size, int *addr_family  ) {

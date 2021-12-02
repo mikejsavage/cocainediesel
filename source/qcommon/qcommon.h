@@ -159,13 +159,8 @@ PROTOCOL
 ==============================================================
 */
 
-// protocol.h -- communications protocols
-
-//=========================================
-
-#define PORT_MASTER         27950
-#define PORT_SERVER         44400
-#define NUM_BROADCAST_PORTS 5
+constexpr u16 PORT_MASTER = 27950;
+constexpr u16 PORT_SERVER = 44400;
 
 //=========================================
 
@@ -412,7 +407,7 @@ bool    NET_CompareBaseAddress( const netadr_t *a, const netadr_t *b );
 bool    NET_IsLANAddress( const netadr_t *address );
 bool    NET_IsLocalAddress( const netadr_t *address );
 void    NET_InitAddress( netadr_t *address, netadrtype_t type );
-void    NET_BroadcastAddress( netadr_t *address, int port );
+void    NET_BroadcastAddress( netadr_t *address, u16 port );
 
 //============================================================================
 

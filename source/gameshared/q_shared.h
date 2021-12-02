@@ -25,11 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //==============================================
 
-short ShortSwap( short l );
-
 // little endian
-#define BigShort( l ) ShortSwap( l )
-#define LittleShort( l ) ( l )
 #define LittleLong( l ) ( l )
 #define LittleFloat( l ) ( l )
 

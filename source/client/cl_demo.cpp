@@ -44,24 +44,8 @@ void CL_WriteDemoMessage( msg_t *msg ) {
 * stop recording a demo
 */
 void CL_Stop_f() {
-	int arg;
-	bool silent, cancel;
-
-	// look through all the args
-	silent = false;
-	cancel = false;
-	for( arg = 1; arg < Cmd_Argc(); arg++ ) {
-		if( !Q_stricmp( Cmd_Argv( arg ), "silent" ) ) {
-			silent = true;
-		} else if( !Q_stricmp( Cmd_Argv( arg ), "cancel" ) ) {
-			cancel = true;
-		}
-	}
-
 	if( !cls.demo.recording ) {
-		if( !silent ) {
-			Com_Printf( "Not recording a demo.\n" );
-		}
+		Com_Printf( "Not recording a demo.\n" );
 		return;
 	}
 
@@ -80,20 +64,7 @@ void CL_Stop_f() {
 
 	SNAP_WriteDemoMetaData( cls.demo.filename, cls.demo.meta_data, cls.demo.meta_data_realsize );
 
-	// cancel the demos
-	if( cancel ) {
-		// remove the file that correspond to cls.demo.file
-		if( !silent ) {
-			Com_Printf( "Canceling demo: %s\n", cls.demo.filename );
-		}
-		if( !FS_RemoveFile( cls.demo.filename ) && !silent ) {
-			Com_Printf( "Error canceling demo." );
-		}
-	}
-
-	if( !silent ) {
-		Com_Printf( "Stopped demo: %s\n", cls.demo.filename );
-	}
+	Com_Printf( "Stopped demo: %s\n", cls.demo.filename );
 
 	cls.demo.file = 0; // file id
 	FREE( sys_allocator, cls.demo.filename );

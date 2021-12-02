@@ -40,8 +40,8 @@ static void SV_Demo_WriteMessage( msg_t *msg ) {
 }
 
 static void SV_Demo_WriteStartMessages() {
-	// clear demo meta data, we'll write some keys later
-	svs.demo.meta_data_realsize = SNAP_ClearDemoMeta( svs.demo.meta_data, sizeof( svs.demo.meta_data ) );
+	memset( svs.demo.meta_data, 0, sizeof( svs.demo.meta_data ) );
+	svs.demo.meta_data_realsize = 0;
 
 	SNAP_BeginDemoRecording( svs.demo.file, svs.spawncount, svc.snapFrameTime, sv.configstrings[0], sv.baselines );
 }
@@ -98,8 +98,6 @@ static void SV_Demo_InitClient() {
 }
 
 void SV_Demo_Start_f() {
-	int demofilename_size, i;
-
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "Usage: serverrecord <demoname>\n" );
 		return;
@@ -115,13 +113,14 @@ void SV_Demo_Start_f() {
 		return;
 	}
 
-	for( i = 0; i < sv_maxclients->integer; i++ ) {
-		if( svs.clients[i].state >= CS_SPAWNED && svs.clients[i].edict &&
-			!( svs.clients[i].edict->r.svflags & SVF_NOCLIENT ) ) {
+	bool any_players = false;
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		if( svs.clients[i].state >= CS_SPAWNED && svs.clients[i].edict && !( svs.clients[i].edict->r.svflags & SVF_NOCLIENT ) ) {
+			any_players = true;
 			break;
 		}
 	}
-	if( i == sv_maxclients->integer ) {
+	if( !any_players ) {
 		Com_Printf( "No players in game, can't record a demo\n" );
 		return;
 	}
@@ -130,35 +129,22 @@ void SV_Demo_Start_f() {
 	// open the demo file
 	//
 
-	// real name
-	demofilename_size =
-		sizeof( char ) * ( strlen( SV_DEMO_DIR ) + 1 + strlen( Cmd_Args() ) + strlen( APP_DEMO_EXTENSION_STR ) + 1 );
-	svs.demo.filename = ( char * ) Mem_ZoneMalloc( demofilename_size );
-
-	snprintf( svs.demo.filename, demofilename_size, "%s/%s", SV_DEMO_DIR, Cmd_Args() );
-
-	COM_SanitizeFilePath( svs.demo.filename );
-
-	if( !COM_ValidateRelativeFilename( svs.demo.filename ) ) {
-		Mem_ZoneFree( svs.demo.filename );
-		svs.demo.filename = NULL;
+	if( !COM_ValidateRelativeFilename( Cmd_Argv( 1 ) ) ) {
 		Com_Printf( "Invalid filename.\n" );
 		return;
 	}
 
-	COM_DefaultExtension( svs.demo.filename, APP_DEMO_EXTENSION_STR, demofilename_size );
+	svs.demo.filename = ( *sys_allocator )( "{}/{}" APP_DEMO_EXTENSION_STR, SV_DEMO_DIR, Cmd_Argv( 1 ) );
+	COM_SanitizeFilePath( svs.demo.filename );
 
-	// temp name
-	demofilename_size = sizeof( char ) * ( strlen( svs.demo.filename ) + strlen( ".rec" ) + 1 );
-	svs.demo.tempname = ( char * ) Mem_ZoneMalloc( demofilename_size );
-	snprintf( svs.demo.tempname, demofilename_size, "%s.rec", svs.demo.filename );
+	svs.demo.tempname = ( *sys_allocator )( "{}.rec", svs.demo.filename );
 
 	// open it
 	if( FS_FOpenBaseFile( svs.demo.tempname, &svs.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
 		Com_Printf( "Error: Couldn't open file: %s\n", svs.demo.tempname );
-		Mem_ZoneFree( svs.demo.filename );
+		FREE( sys_allocator, svs.demo.filename );
 		svs.demo.filename = NULL;
-		Mem_ZoneFree( svs.demo.tempname );
+		FREE( sys_allocator, svs.demo.tempname );
 		svs.demo.tempname = NULL;
 		return;
 	}
@@ -226,9 +212,9 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 
 	SNAP_FreeClientFrames( &svs.demo.client );
 
-	Mem_ZoneFree( svs.demo.filename );
+	FREE( sys_allocator, svs.demo.filename );
 	svs.demo.filename = NULL;
-	Mem_ZoneFree( svs.demo.tempname );
+	FREE( sys_allocator, svs.demo.tempname );
 	svs.demo.tempname = NULL;
 }
 

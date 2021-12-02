@@ -179,7 +179,7 @@ static void PrintMap() {
 	Com_Printf( "Current map: %s\n", cl.map == NULL ? "null" : cl.map->name );
 }
 
-void CG_Init( const char *serverName, unsigned int playerNum,
+void CG_Init( unsigned int playerNum,
 			  bool demoplaying, const char *demoName,
 			  unsigned snapFrameTime ) {
 	CG_InitGameShared();
@@ -188,9 +188,6 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	memset( &cgs, 0, sizeof( cg_static_t ) );
 
 	memset( cg_entities, 0, sizeof( cg_entities ) );
-
-	// save server name
-	cgs.serverName = CopyString( sys_allocator, serverName );
 
 	// save local player number
 	cgs.playerNum = playerNum;
@@ -243,8 +240,6 @@ void CG_Shutdown() {
 	CG_ShutdownInput();
 	CG_ShutdownHUD();
 	ShutdownDecals();
-
-	FREE( sys_allocator, const_cast< char * >( cgs.serverName ) );
 
 	Cmd_RemoveCommand( "printmap" );
 }

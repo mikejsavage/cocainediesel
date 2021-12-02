@@ -160,8 +160,8 @@ static void CL_ParseFrame( msg_t *msg ) {
 				cls.demo.basetime = snap->serverTime;
 				cls.demo.localtime = time( NULL );
 
-				// clear demo meta data, we'll write some keys later
-				cls.demo.meta_data_realsize = SNAP_ClearDemoMeta( cls.demo.meta_data, sizeof( cls.demo.meta_data ) );
+				memset( cls.demo.meta_data, 0, sizeof( cls.demo.meta_data ) );
+				cls.demo.meta_data_realsize = 0;
 
 				// write out messages to hold the startup information
 				SNAP_BeginDemoRecording( cls.demo.file, 0x10000 + cl.servercount, cl.snapFrameTime,

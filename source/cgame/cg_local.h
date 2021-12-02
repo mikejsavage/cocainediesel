@@ -149,7 +149,6 @@ struct cg_viewdef_t {
 
 // this is not exactly "static" but still...
 struct cg_static_t {
-	const char *serverName;
 	const char *demoName;
 	unsigned int playerNum;
 
@@ -366,8 +365,7 @@ extern cvar_t *cg_particleDebug;
 
 extern cvar_t *cg_showServerDebugPrints;
 
-void CG_Init( const char *serverName, unsigned int playerNum,
-			  bool demoplaying, const char *demoName, unsigned snapFrameTime );
+void CG_Init( unsigned int playerNum, bool demoplaying, const char *demoName, unsigned snapFrameTime );
 void CG_Shutdown();
 
 #ifndef _MSC_VER

@@ -48,9 +48,6 @@ short ShortSwap( short l );
 char *COM_SanitizeFilePath( char *filename );
 bool COM_ValidateFilename( const char *filename );
 bool COM_ValidateRelativeFilename( const char *filename );
-void COM_StripExtension( char *filename );
-void COM_DefaultExtension( char *path, const char *extension, size_t size );
-const char *COM_FileBase( const char *in );
 
 enum ParseStopOnNewLine {
 	Parse_DontStopOnNewLine,

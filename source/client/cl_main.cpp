@@ -198,9 +198,9 @@ static void CL_CheckForResend() {
 	if( cls.state == CA_DISCONNECTED && Com_ServerState() ) {
 		CL_SetClientState( CA_CONNECTING );
 		if( cls.servername ) {
-			Mem_ZoneFree( cls.servername );
+			FREE( sys_allocator, cls.servername );
 		}
-		cls.servername = ZoneCopyString( "localhost" );
+		cls.servername = CopyString( sys_allocator, "localhost" );
 		cls.servertype = SOCKET_LOOPBACK;
 		NET_InitAddress( &cls.serveraddress, NA_LOOPBACK );
 		if( !NET_OpenSocket( &cls.socket_loopback, cls.servertype, &cls.serveraddress, false ) ) {
@@ -259,9 +259,9 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 	}
 
 	if( cls.servername ) {
-		Mem_ZoneFree( cls.servername );
+		FREE( sys_allocator, cls.servername );
 	}
-	cls.servername = ZoneCopyString( servername );
+	cls.servername = CopyString( sys_allocator, servername );
 
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 
@@ -1015,20 +1015,6 @@ void CL_SetClientState( connstate_t state ) {
 	}
 }
 
-/*
-* CL_ShowServerIP_f - wsw : pb : show the ip:port of the server the client is connected to
-*/
-static void CL_ShowServerIP_f() {
-	if( cls.state != CA_CONNECTED && cls.state != CA_ACTIVE ) {
-		Com_Printf( "Not connected to a server\n" );
-		return;
-	}
-
-	Com_Printf( "Connected to server:\n" );
-	Com_Printf( "Name: %s\n", cls.servername );
-	Com_Printf( "Address: %s\n", NET_AddressToString( &cls.serveraddress ) );
-}
-
 static void CL_InitLocal() {
 	cvar_t *name;
 	TempAllocator temp = cls.frame_arena.temp();
@@ -1077,7 +1063,6 @@ static void CL_InitLocal() {
 	Cmd_AddCommand( "next", CL_SetNext_f );
 	Cmd_AddCommand( "demopause", CL_PauseDemo_f );
 	Cmd_AddCommand( "demojump", CL_DemoJump_f );
-	Cmd_AddCommand( "showserverip", CL_ShowServerIP_f );
 
 	Cmd_SetCompletionFunc( "demo", CL_DemoComplete );
 	Cmd_SetCompletionFunc( "yolodemo", CL_DemoComplete );
@@ -1571,7 +1556,7 @@ void CL_Shutdown() {
 	NET_CloseSocket( &cls.socket_udp6 );
 	// TOCHECK: Shouldn't we close the TCP socket too?
 	if( cls.servername ) {
-		Mem_ZoneFree( cls.servername );
+		FREE( sys_allocator, cls.servername );
 		cls.servername = NULL;
 	}
 

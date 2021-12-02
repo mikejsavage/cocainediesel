@@ -79,53 +79,6 @@ bool COM_ValidateRelativeFilename( const char *filename ) {
 	return true;
 }
 
-void COM_StripExtension( char *filename ) {
-	char *src, *last = NULL;
-
-	last = strrchr( filename, '/' );
-	src = strrchr( last ? last : filename, '.' );
-	if( src && *( src + 1 ) ) {
-		*src = 0;
-	}
-}
-
-/*
-* COM_DefaultExtension
-* If path doesn't have extension, appends one to it
-* If there is no room for it overwrites the end of the path
-*/
-void COM_DefaultExtension( char *path, const char *extension, size_t size ) {
-	const char *src, *last;
-	size_t extlen;
-
-	assert( extension && extension[0] && strlen( extension ) < size );
-
-	extlen = strlen( extension );
-
-	// if path doesn't have a .EXT, append extension
-	// (extension should include the .)
-	last = strrchr( path, '/' );
-	src = strrchr( last ? last : path, '.' );
-	if( src && *( src + 1 ) ) {
-		return;             // it has an extension
-	}
-	if( strlen( path ) + extlen >= size ) {
-		path[size - extlen - 1] = 0;
-	}
-	Q_strncatz( path, extension, size );
-}
-
-const char *COM_FileBase( const char *in ) {
-	const char *s;
-
-	s = strrchr( in, '/' );
-	if( s ) {
-		return s + 1;
-	}
-
-	return in;
-}
-
 //============================================================================
 //
 //					BYTE ORDER FUNCTIONS

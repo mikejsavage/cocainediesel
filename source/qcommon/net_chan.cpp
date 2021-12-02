@@ -206,9 +206,6 @@ static int Netchan_ZLibDecompressChunk( const uint8_t *source, unsigned long sou
 	return result;
 }
 
-/*
-* Netchan_CompressMessage
-*/
 int Netchan_CompressMessage( msg_t *msg ) {
 	int length;
 
@@ -239,9 +236,6 @@ int Netchan_CompressMessage( msg_t *msg ) {
 	return length; // return the new size
 }
 
-/*
-* Netchan_DecompressMessage
-*/
 int Netchan_DecompressMessage( msg_t *msg ) {
 	int length;
 
@@ -610,9 +604,6 @@ u64 Netchan_ClientSessionID() {
 	return client_session_id;
 }
 
-/*
-* Netchan_Init
-*/
 void Netchan_Init() {
 	CSPRNG( &client_session_id, sizeof( client_session_id ) );
 
@@ -621,8 +612,5 @@ void Netchan_Init() {
 	net_showfragments = Cvar_Get( "net_showfragments", "0", 0 );
 }
 
-/*
-* Netchan_Shutdown
-*/
 void Netchan_Shutdown() {
 }

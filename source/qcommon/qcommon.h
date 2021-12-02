@@ -476,47 +476,25 @@ FILESYSTEM
 void        FS_Init();
 void        FS_Shutdown();
 
-const char *FS_GameDirectory();
-
 // handling of absolute filenames
 // only to be used if necessary (library not supporting custom file handling functions etc.)
-const char *FS_WriteDirectory();
 void        FS_CreateAbsolutePath( const char *path );
 const char *FS_AbsoluteNameForFile( const char *filename );
 const char *FS_AbsoluteNameForBaseFile( const char *filename );
 
 // // game and base files
 // file streaming
-int     FS_FOpenFile( const char *filename, int *filenum, int mode );
-int     FS_FOpenBaseFile( const char *filename, int *filenum, int mode );
 int     FS_FOpenAbsoluteFile( const char *filename, int *filenum, int mode );
 void    FS_FCloseFile( int file );
 
 int     FS_Read( void *buffer, size_t len, int file );
 
 int     FS_Write( const void *buffer, size_t len, int file );
-int     FS_Tell( int file );
 int     FS_Seek( int file, int offset, int whence );
 int     FS_Flush( int file );
 
 void    FS_SetCompressionLevel( int file, int level );
 int     FS_GetCompressionLevel( int file );
-
-// file loading
-int     FS_LoadFileExt( const char *path, int flags, void **buffer, void *stack, size_t stackSize, const char *filename, int fileline );
-int     FS_LoadBaseFileExt( const char *path, int flags, void **buffer, void *stack, size_t stackSize, const char *filename, int fileline );
-void    FS_FreeFile( void *buffer );
-void    FS_FreeBaseFile( void *buffer );
-#define FS_LoadFile( path,buffer,stack,stacksize ) FS_LoadFileExt( path,0,buffer,stack,stacksize,__FILE__,__LINE__ )
-#define FS_LoadBaseFile( path,buffer,stack,stacksize ) FS_LoadBaseFileExt( path,0,buffer,stack,stacksize,__FILE__,__LINE__ )
-
-// util functions
-bool    FS_MoveFile( const char *src, const char *dst );
-bool    FS_RemoveFile( const char *filename );
-bool    FS_RemoveAbsoluteFile( const char *filename );
-
-// // only for game files
-const char *FS_BaseNameForFile( const char *filename );
 
 /*
 ==============================================================

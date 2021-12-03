@@ -72,7 +72,7 @@ static bool G_Teleport( edict_t *ent, Vec3 origin, Vec3 angles ) {
 static void Cmd_Noclip_f( edict_t *ent ) {
 	const char *msg;
 
-	if( !Cvar_CheatsAllowed() ) {
+	if( sv_cheats->integer == 0 ) {
 		G_PrintMsg( ent, "Cheats are not enabled on this server.\n" );
 		return;
 	}

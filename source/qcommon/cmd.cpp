@@ -53,9 +53,6 @@ static mempool_t *cbuf_pool;
 #define Cbuf_Malloc( size ) Mem_Alloc( cbuf_pool, size )
 #define Cbuf_Free( data ) Mem_Free( data )
 
-/*
-* Cbuf_Init
-*/
 void Cbuf_Init() {
 	assert( !cbuf_initialized );
 
@@ -69,9 +66,6 @@ void Cbuf_Init() {
 	cbuf_initialized = true;
 }
 
-/*
-* Cbuf_Shutdown
-*/
 void Cbuf_Shutdown() {
 	if( !cbuf_initialized ) {
 		return;
@@ -123,9 +117,6 @@ static void Cbuf_FreeSpace() {
 	}
 }
 
-/*
-* Cbuf_EnsureSpace
-*/
 static void Cbuf_EnsureSpace( size_t size ) {
 	size_t free;
 	size_t diff;
@@ -455,16 +446,10 @@ static int Cmd_PatternMatchesFunction( void *cmd, const void *pattern ) {
 // functions. Cmd_Argv () will return an empty string, not a NULL
 // if arg > argc, so string operations are always safe.
 
-/*
-* Cmd_Argc
-*/
 int Cmd_Argc() {
 	return cmd_argc;
 }
 
-/*
-* Cmd_Argv
-*/
 const char *Cmd_Argv( int arg ) {
 	if( arg >= cmd_argc ) {
 		return cmd_null_string;
@@ -587,9 +572,6 @@ void Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
 	Trie_Insert( cmd_function_trie, cmd_name, cmd );
 }
 
-/*
-* Cmd_RemoveCommand
-*/
 void Cmd_RemoveCommand( const char *cmd_name ) {
 	cmd_function_t *cmd;
 
@@ -618,9 +600,6 @@ bool Cmd_Exists( const char *cmd_name ) {
 	return Trie_Find( cmd_function_trie, cmd_name, TRIE_EXACT_MATCH, (void **)&cmd ) == TRIE_OK;
 }
 
-/*
-* Cmd_SetCompletionFunc
-*/
 void Cmd_SetCompletionFunc( const char *cmd_name, xcompletionf_t completion_func ) {
 	cmd_function_t *cmd;
 
@@ -637,9 +616,6 @@ void Cmd_SetCompletionFunc( const char *cmd_name, xcompletionf_t completion_func
 	Com_DPrintf( "Cmd_SetCompletionFunc: %s already does not exist\n", cmd_name );
 }
 
-/*
-* Cmd_CompleteCountPossible
-*/
 int Cmd_CompleteCountPossible( const char *partial ) {
 	assert( partial );
 	if( !partial[0] ) {
@@ -652,9 +628,6 @@ int Cmd_CompleteCountPossible( const char *partial ) {
 	}
 }
 
-/*
-* Cmd_CompleteBuildList
-*/
 const char **Cmd_CompleteBuildList( const char *partial ) {
 	trie_dump_t *dump;
 	const char **buf;
@@ -845,9 +818,6 @@ void Cmd_ExecuteString( const char *text ) {
 	}
 }
 
-/*
-* Cmd_List_f
-*/
 static void Cmd_List_f() {
 	trie_dump_t *dump = NULL;
 	unsigned int i;
@@ -870,9 +840,6 @@ static void Cmd_List_f() {
 	Com_Printf( "%i commands\n", i );
 }
 
-/*
-* Cmd_PreInit
-*/
 void Cmd_PreInit() {
 	assert( !cmd_preinitialized );
 	assert( !cmd_initialized );
@@ -884,9 +851,6 @@ void Cmd_PreInit() {
 	cmd_preinitialized = true;
 }
 
-/*
-* Cmd_Init
-*/
 void Cmd_Init() {
 	assert( !cmd_initialized );
 	assert( cmd_preinitialized );

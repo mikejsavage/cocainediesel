@@ -1379,26 +1379,6 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	allRealMsec += realMsec;
 	allGameMsec += gameMsec;
 
-	DoneHotloadingAssets();
-
-	if( cl_hotloadAssets->integer != 0 ) {
-		static s64 last_hotload_time = 0;
-		static bool last_focused = true;
-
-		bool focused = IsWindowFocused();
-		bool just_became_focused = focused && !last_focused;
-
-		// hotload assets when the window regains focus or every 1 second when not focused
-		if( just_became_focused || ( !focused && cls.monotonicTime - last_hotload_time >= 1000 ) ) {
-			TempAllocator temp = cls.frame_arena.temp();
-			HotloadAssets( &temp );
-
-			last_hotload_time = cls.monotonicTime;
-		}
-
-		last_focused = focused;
-	}
-
 	CL_UpdateSnapshot();
 	CL_AdjustServerTime( gameMsec );
 	CL_UserInputFrame( realMsec );
@@ -1431,6 +1411,26 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	}
 
 	FrameMark;
+
+	DoneHotloadingAssets();
+
+	if( cl_hotloadAssets->integer != 0 ) {
+		static s64 last_hotload_time = 0;
+		static bool last_focused = true;
+
+		bool focused = IsWindowFocused();
+		bool just_became_focused = focused && !last_focused;
+
+		// hotload assets when the window regains focus or every 1 second when not focused
+		if( just_became_focused || ( !focused && cls.monotonicTime - last_hotload_time >= 1000 ) ) {
+			TempAllocator temp = cls.frame_arena.temp();
+			HotloadAssets( &temp );
+
+			last_hotload_time = cls.monotonicTime;
+		}
+
+		last_focused = focused;
+	}
 
 	cls.frametime = cls.demo.paused ? 0 : allGameMsec;
 	cls.realFrameTime = allRealMsec;

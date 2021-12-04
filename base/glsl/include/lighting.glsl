@@ -73,6 +73,7 @@ struct Light {
 	vec3 color;
 	vec3 direction;
 	float attenuation;
+	float ambient;
 };
 
 Light GetSunLight() {
@@ -80,6 +81,7 @@ Light GetSunLight() {
 	light.color = vec3( 1.0 );
 	light.direction = -u_LightDir;
 	light.attenuation = 1.0;
+	light.ambient = 0.75;
 	return light;
 }
 
@@ -96,6 +98,7 @@ Light GetDynamicLight( int index, vec3 normal ) {
 	light.color = fract( data.xyz ) / 0.9;
 	light.direction = -normalize( dir - normal ); // - normal to prevent 0,0,0
 	light.attenuation = max( 0.0, intensity / dist_squared - DLIGHT_CUTOFF );
+	light.ambient = 0.0;
 	return light;
 }
 #endif
@@ -103,7 +106,7 @@ Light GetDynamicLight( int index, vec3 normal ) {
 vec3 ShadePixel( Surface surface, Light light, float occlusion, vec3 v, float NoV, float ToV, float BoV ) {
 	vec3 h = normalize( v + light.direction );
 	float NoL = dot( surface.normal, light.direction );
-	float half_NoL = NoL * 0.5 + 0.5;
+	float ambient_NoL = clamp( NoL * ( 1.0 - light.ambient ) + light.ambient, 0.0, 1.0 );
 	NoL = clamp( NoL, 0.0, 1.0 );
 	float NoH = clamp( dot( surface.normal, h ), 0.0, 1.0 );
 	float LoH = clamp( dot( light.direction, h ), 0.0, 1.0 );
@@ -121,7 +124,7 @@ vec3 ShadePixel( Surface surface, Light light, float occlusion, vec3 v, float No
 	float diffuse = M_PI * Diffuse_Burley( NoV, NoL, LoH, surface.roughness ); // random scaling factor, dunno aha
 	// float diffuse = 1.0;
 
-	return ( surface.color * diffuse * ( occlusion * 0.5 + 0.5 ) + specular * occlusion ) * light.color * light.attenuation * half_NoL;
+	return ( surface.color * diffuse * ( occlusion * 0.5 + 0.5 ) + specular * occlusion ) * light.color * light.attenuation * ambient_NoL;
 }
 
 vec3 BRDF( vec3 n, vec3 v, vec3 l, vec3 light_color, vec3 albedo, float roughness, float metallic, float aniso, float shadow, int dlight_count, int tile_index ) {

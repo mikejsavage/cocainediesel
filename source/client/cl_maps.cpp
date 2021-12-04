@@ -30,6 +30,12 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 
 	u64 hash = Hash64( StripExtension( path ) );
 
+	Map map = { };
+	// TODO: need more map validation because they can be downloaded from the server
+	if( !LoadBSPRenderData( path, &map, hash, data ) ) {
+		return false;
+	}
+
 	u64 idx = num_maps;
 	if( !maps_hashtable.get( hash, &idx ) ) {
 		maps_hashtable.add( hash, num_maps );
@@ -39,18 +45,14 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 		DeleteMap( &maps[ idx ] );
 	}
 
-	maps[ idx ].name = CopyString( sys_allocator, path );
+	map.name = CopyString( sys_allocator, path );
 
-	// TODO: need more map validation because they can be downloaded from the server
-	if( !LoadBSPRenderData( path, &maps[ idx ], hash, data ) ) {
-		return false;
+	map.cms = CM_LoadMap( CM_Client, data, hash );
+	if( map.cms == NULL ) {
+		Fatal( "CM_LoadMap" );
 	}
 
-	maps[ idx ].cms = CM_LoadMap( CM_Client, data, hash );
-	if( maps[ idx ].cms == NULL ) {
-		// TODO: free render data
-		return false;
-	}
+	maps[ idx ] = map;
 
 	return true;
 }

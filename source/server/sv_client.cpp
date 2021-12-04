@@ -358,10 +358,6 @@ static void SV_Disconnect_f( client_t *client ) {
 }
 
 
-static void SV_ShowServerinfo_f( client_t *client ) {
-	Info_Print( Cvar_Serverinfo() );
-}
-
 static void SV_UserinfoCommand_f( client_t *client ) {
 	const char *info;
 	int64_t time;
@@ -407,9 +403,6 @@ ucmd_t ucmds[] =
 	{ "usri", SV_UserinfoCommand_f },
 
 	{ "nodelta", SV_NoDelta_f },
-
-	// issued by hand at client consoles
-	{ "info", SV_ShowServerinfo_f },
 
 	// server demo downloads
 	{ "demolist", SV_DemoList_f },

@@ -892,11 +892,6 @@ void CL_ReadPackets() {
 
 //=============================================================================
 
-static void CL_Userinfo_f() {
-	Com_Printf( "User info settings:\n" );
-	Info_Print( Cvar_Userinfo() );
-}
-
 static int precache_spawncount;
 
 void CL_FinishConnect() {
@@ -1050,7 +1045,6 @@ static void CL_InitLocal() {
 	}
 
 	Cmd_AddCommand( "cmd", CL_ForwardToServer_f );
-	Cmd_AddCommand( "userinfo", CL_Userinfo_f );
 	Cmd_AddCommand( "disconnect", CL_Disconnect_f );
 	Cmd_AddCommand( "record", CL_Record_f );
 	Cmd_AddCommand( "stop", CL_Stop_f );

@@ -144,8 +144,6 @@ char *_TempCopyString( const char *str, const char *filename, int fileline );
 
 int Com_GlobMatch( const char *pattern, const char *text, const bool casecmp );
 
-void Info_Print( char *s );
-
 /*
 ==============================================================
 

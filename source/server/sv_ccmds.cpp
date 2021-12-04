@@ -85,7 +85,6 @@ found_player:
 * User command to change the map
 * map: restart game, and start map
 * devmap: restart game, enable cheats, and start map
-* gamemap: just start the map
 */
 static void SV_Map_f() {
 	if( Cmd_Argc() < 2 ) {
@@ -172,36 +171,6 @@ static void SV_Heartbeat_f() {
 }
 
 /*
-* SV_Serverinfo_f
-* Examine or change the serverinfo string
-*/
-static void SV_Serverinfo_f() {
-	Com_Printf( "Server info settings:\n" );
-	Info_Print( Cvar_Serverinfo() );
-}
-
-/*
-* SV_DumpUser_f
-* Examine all a users info strings
-*/
-static void SV_DumpUser_f() {
-	client_t *client;
-	if( Cmd_Argc() != 2 ) {
-		Com_Printf( "Usage: info <userid>\n" );
-		return;
-	}
-
-	client = SV_FindPlayer( Cmd_Argv( 1 ) );
-	if( !client ) {
-		return;
-	}
-
-	Com_Printf( "userinfo\n" );
-	Com_Printf( "--------\n" );
-	Info_Print( client->userinfo );
-}
-
-/*
 * SV_KillServer_f
 * Kick everyone off, possibly in preparation for a new game
 */
@@ -218,12 +187,9 @@ static void SV_KillServer_f() {
 void SV_InitOperatorCommands() {
 	Cmd_AddCommand( "heartbeat", SV_Heartbeat_f );
 	Cmd_AddCommand( "status", SV_Status_f );
-	Cmd_AddCommand( "serverinfo", SV_Serverinfo_f );
-	Cmd_AddCommand( "dumpuser", SV_DumpUser_f );
 
 	Cmd_AddCommand( "map", SV_Map_f );
 	Cmd_AddCommand( "devmap", SV_Map_f );
-	Cmd_AddCommand( "gamemap", SV_Map_f );
 	Cmd_AddCommand( "killserver", SV_KillServer_f );
 
 	Cmd_AddCommand( "serverrecord", SV_Demo_Start_f );
@@ -236,7 +202,6 @@ void SV_InitOperatorCommands() {
 
 	Cmd_SetCompletionFunc( "map", CompleteMapName );
 	Cmd_SetCompletionFunc( "devmap", CompleteMapName );
-	Cmd_SetCompletionFunc( "gamemap", CompleteMapName );
 }
 
 void SV_ShutdownOperatorCommands() {
@@ -247,7 +212,6 @@ void SV_ShutdownOperatorCommands() {
 
 	Cmd_RemoveCommand( "map" );
 	Cmd_RemoveCommand( "devmap" );
-	Cmd_RemoveCommand( "gamemap" );
 	Cmd_RemoveCommand( "killserver" );
 
 	Cmd_RemoveCommand( "serverrecord" );

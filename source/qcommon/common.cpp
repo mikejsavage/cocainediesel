@@ -242,9 +242,6 @@ void Com_Error( const char *format, ... ) {
 	longjmp( abortframe, -1 );
 }
 
-/*
-* Com_DeferQuit
-*/
 void Com_DeferQuit() {
 	com_quit = true;
 }
@@ -287,8 +284,6 @@ void Com_SetDemoPlaying( bool state ) {
 	demo_playing = state;
 }
 
-//============================================================================
-
 int COM_Argc() {
 	return com_argc;
 }
@@ -307,10 +302,6 @@ void COM_ClearArgv( int arg ) {
 	com_argv[arg][0] = '\0';
 }
 
-
-/*
-* COM_InitArgv
-*/
 void COM_InitArgv( int argc, char **argv ) {
 	int i;
 
@@ -335,55 +326,11 @@ char *_TempCopyString( const char *str, const char *filename, int fileline ) {
 	return _Mem_CopyString( tempMemPool, str, filename, fileline );
 }
 
-void Info_Print( char *s ) {
-	char key[512];
-	char value[512];
-	char *o;
-	int l;
-
-	if( *s == '\\' ) {
-		s++;
-	}
-	while( *s ) {
-		o = key;
-		while( *s && *s != '\\' )
-			*o++ = *s++;
-
-		l = o - key;
-		if( l < 20 ) {
-			memset( o, ' ', 20 - l );
-			key[20] = 0;
-		} else {
-			*o = 0;
-		}
-		Com_Printf( "%s", key );
-
-		if( !*s ) {
-			Com_Printf( "MISSING VALUE\n" );
-			return;
-		}
-
-		o = value;
-		s++;
-		while( *s && *s != '\\' )
-			*o++ = *s++;
-		*o = 0;
-
-		if( *s ) {
-			s++;
-		}
-		Com_Printf( "%s\n", value );
-	}
-}
-
 //============================================================================
 
 void Key_Init();
 void Key_Shutdown();
 
-/*
-* Qcommon_InitCommands
-*/
 void Qcommon_InitCommands() {
 	assert( !commands_intialized );
 
@@ -394,9 +341,6 @@ void Qcommon_InitCommands() {
 	commands_intialized = true;
 }
 
-/*
-* Qcommon_ShutdownCommands
-*/
 void Qcommon_ShutdownCommands() {
 	if( !commands_intialized ) {
 		return;
@@ -409,9 +353,6 @@ void Qcommon_ShutdownCommands() {
 	commands_intialized = false;
 }
 
-/*
-* Qcommon_Init
-*/
 void Qcommon_Init( int argc, char **argv ) {
 	ZoneScoped;
 
@@ -503,9 +444,6 @@ void Qcommon_Init( int argc, char **argv ) {
 	Cbuf_Execute();
 }
 
-/*
-* Qcommon_Frame
-*/
 void Qcommon_Frame( unsigned int realMsec ) {
 	ZoneScoped;
 
@@ -548,9 +486,6 @@ void Qcommon_Frame( unsigned int realMsec ) {
 	CL_Frame( realMsec, gameMsec );
 }
 
-/*
-* Qcommon_Shutdown
-*/
 void Qcommon_Shutdown() {
 	Netchan_Shutdown();
 	NET_Shutdown();

@@ -54,7 +54,7 @@ static void OnWindowMoved( GLFWwindow *, int x, int y ) {
 }
 
 static void OnWindowResized( GLFWwindow *, int w, int h ) {
-	if( IsWindowFocused() ) {
+	if( w > 0 && h > 0 ) {
 		UpdateVidModeCvar();
 		glfwGetFramebufferSize( window, &framebuffer_width, &framebuffer_height );
 	}

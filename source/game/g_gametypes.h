@@ -16,6 +16,7 @@ struct Gametype {
 	bool ( *Command )( gclient_t * client, const char * cmd, const char * args, int argc );
 	void ( *Shutdown )();
 	bool ( *SpawnEntity )( StringHash classname, edict_t * ent );
+	void ( *MapHotloaded )();
 
 	bool isTeamBased;
 	bool countdownEnabled;

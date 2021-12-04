@@ -1353,6 +1353,7 @@ Gametype GetBombGametype() {
 	gt.SelectSpawnPoint = GT_Bomb_SelectSpawnPoint;
 	gt.Command = GT_Bomb_Command;
 	gt.Shutdown = GT_Bomb_Shutdown;
+	gt.MapHotloaded = ResetBombSites;
 	gt.SpawnEntity = GT_Bomb_SpawnEntity;
 
 	gt.isTeamBased = true;

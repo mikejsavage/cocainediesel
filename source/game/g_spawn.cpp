@@ -414,6 +414,10 @@ void G_HotloadMap() {
 	Q_strncpyz( map, sv.mapname, sizeof( map ) );
 	G_LoadMap( map );
 	G_ResetLevel();
+
+	if( level.gametype.MapHotloaded != NULL ) {
+		level.gametype.MapHotloaded();
+	}
 }
 
 // TODO: game module init is a mess and I'm not sure how to clean this up

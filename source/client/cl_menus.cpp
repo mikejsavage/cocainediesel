@@ -681,8 +681,7 @@ static void CreateServer() {
 	CvarTextbox< 128 >( "Server name", "sv_hostname", APPLICATION " server", CVAR_SERVERINFO | CVAR_ARCHIVE );
 
 	{
-		cvar_t * cvar = Cvar_Get( "sv_maxclients", "16", CVAR_SERVERINFO | CVAR_LATCH );
-		int maxclients = cvar->integer;
+		int maxclients = Cvar_Integer( "sv_maxclients" );
 
 		SettingLabel( "Max players" );
 		ImGui::PushItemWidth( 150 );

@@ -541,13 +541,6 @@ void Cmd_TokenizeString( const char *text ) {
 * as a clc_clientcommand instead of executed locally
 */
 void Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
-	cmd_function_t *cmd;
-
-	if( !cmd_name || !cmd_name[0] ) {
-		Com_DPrintf( "Cmd_AddCommand: empty name pass as an argument\n" );
-		return;
-	}
-
 	// fail if the command is a variable name
 	if( Cvar_String( cmd_name )[0] ) {
 		Com_Printf( "Cmd_AddCommand: %s already defined as a var\n", cmd_name );
@@ -557,6 +550,7 @@ void Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
 	// fail if the command already exists
 	assert( cmd_function_trie );
 	assert( cmd_name );
+	cmd_function_t * cmd;
 	if( Trie_Find( cmd_function_trie, cmd_name, TRIE_EXACT_MATCH, (void **)&cmd ) == TRIE_OK ) {
 		cmd->function = function;
 		cmd->completion_func = NULL;
@@ -564,9 +558,8 @@ void Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
 		return;
 	}
 
-	cmd = ( cmd_function_t * ) Mem_ZoneMalloc( (int)( sizeof( cmd_function_t ) + strlen( cmd_name ) + 1 ) );
-	cmd->name = (char *) ( (uint8_t *)cmd + sizeof( cmd_function_t ) );
-	strcpy( cmd->name, cmd_name );
+	cmd = ALLOC( sys_allocator, cmd_function_t );
+	cmd->name = CopyString( sys_allocator, cmd_name );
 	cmd->function = function;
 	cmd->completion_func = NULL;
 	Trie_Insert( cmd_function_trie, cmd_name, cmd );
@@ -582,8 +575,10 @@ void Cmd_RemoveCommand( const char *cmd_name ) {
 	assert( cmd_function_trie );
 	assert( cmd_name );
 	if( Trie_Remove( cmd_function_trie, cmd_name, (void **)&cmd ) == TRIE_OK ) {
-		Mem_ZoneFree( cmd );
-	} else {
+		FREE( sys_allocator, cmd->name );
+		FREE( sys_allocator, cmd );
+	}
+	else {
 		Com_Printf( "Cmd_RemoveCommand: %s not added\n", cmd_name );
 	}
 }

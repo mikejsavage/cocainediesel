@@ -104,9 +104,6 @@ static mempool_t *poolChain = NULL;
 // considered a leak
 mempool_t *tempMemPool;
 
-// only for zone
-mempool_t *zoneMemPool;
-
 static Mutex *memMutex;
 
 static bool memory_initialized = false;
@@ -675,7 +672,6 @@ void Memory_Init() {
 
 	memMutex = NewMutex();
 
-	zoneMemPool = Mem_AllocPool( NULL, "Zone" );
 	tempMemPool = Mem_AllocTempPool( "Temporary Memory" );
 
 	memory_initialized = true;
@@ -712,7 +708,6 @@ void Memory_Shutdown() {
 
 	Mem_CheckSentinelsGlobal();
 
-	Mem_FreePool( &zoneMemPool );
 	Mem_FreePool( &tempMemPool );
 
 	for( pool = poolChain; pool; pool = next ) {

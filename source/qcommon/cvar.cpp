@@ -70,9 +70,6 @@ static int Cvar_PatternMatches( void *cvar, const void *pattern ) {
 	return !pattern || Com_GlobMatch( (const char *) pattern, ( (cvar_t *) cvar )->name, false );
 }
 
-/*
-* Cvar_InfoValidate
-*/
 static bool Cvar_InfoValidate( const char *s, bool name ) {
 	return !( ( strlen( s ) >= (unsigned)( name ? MAX_INFO_KEY : MAX_INFO_VALUE ) ) ||
 			  ( strchr( s, '\\' ) ) ||
@@ -80,16 +77,10 @@ static bool Cvar_InfoValidate( const char *s, bool name ) {
 			  ( strchr( s, ';' ) ) );
 }
 
-/*
-* Cvar_Initialized
-*/
 bool Cvar_Initialized() {
 	return cvar_initialized;
 }
 
-/*
-* Cvar_Find
-*/
 cvar_t *Cvar_Find( const char *var_name ) {
 	cvar_t *cvar;
 	assert( cvar_trie );
@@ -99,38 +90,20 @@ cvar_t *Cvar_Find( const char *var_name ) {
 	return cvar;
 }
 
-/*
-* Cvar_Value
-* Returns 0 if not defined or non numeric
-*/
-float Cvar_Value( const char *var_name ) {
-	const cvar_t *const var = Cvar_Find( var_name );
-	return var
-		   ? atof( var->string )
-		   : 0;
+float Cvar_Value( const char * var_name ) {
+	const cvar_t * var = Cvar_Find( var_name );
+	return var != NULL ? atof( var->string ) : 0;
 }
 
 
-/*
-* Cvar_String
-* Returns an empty string if not defined
-*/
-const char *Cvar_String( const char *var_name ) {
-	const cvar_t *const var = Cvar_Find( var_name );
-	return var
-		   ? var->string
-		   : "";
+const char * Cvar_String( const char * var_name ) {
+	const cvar_t * var = Cvar_Find( var_name );
+	return var != NULL ? var->string : "";
 }
 
-/*
-* Cvar_Integer
-* Returns 0 if not defined or non numeric
-*/
-int Cvar_Integer( const char *var_name ) {
-	const cvar_t *const var = Cvar_Find( var_name );
-	return var
-		   ? var->integer
-		   : 0;
+int Cvar_Integer( const char * var_name ) {
+	const cvar_t * var = Cvar_Find( var_name );
+	return var != NULL ? var->integer : 0;
 }
 
 /*
@@ -167,9 +140,9 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, cvar_flag_t flags
 
 		if( !var->dvalue || strcmp( var->dvalue, var_value ) ) {
 			if( var->dvalue ) {
-				Mem_ZoneFree( var->dvalue ); // free the old default value string
+				FREE( sys_allocator, var->dvalue ); // free the old default value string
 			}
-			var->dvalue = ZoneCopyString( (char *) var_value );
+			var->dvalue = CopyString( sys_allocator, var_value );
 		}
 
 		if( Cvar_FlagIsSet( flags, CVAR_USERINFO ) || Cvar_FlagIsSet( flags, CVAR_SERVERINFO ) ) {
@@ -186,9 +159,9 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, cvar_flag_t flags
 		if( reset ) {
 			if( !var->string || strcmp( var->string, var_value ) ) {
 				if( var->string ) {
-					Mem_ZoneFree( var->string );
+					FREE( sys_allocator, var->string );
 				}
-				var->string = ZoneCopyString( (char *) var_value );
+				var->string = CopyString( sys_allocator, var_value );
 				var->value = atof( var->string );
 				var->integer = Q_rint( var->value );
 			}
@@ -210,11 +183,11 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, cvar_flag_t flags
 		}
 	}
 
-	var = ( cvar_t * ) Mem_ZoneMalloc( (int)( sizeof( *var ) + strlen( var_name ) + 1 ) );
-	var->name = (char *)( (uint8_t *)var + sizeof( *var ) );
-	strcpy( var->name, var_name );
-	var->dvalue = ZoneCopyString( (char *) var_value );
-	var->string = ZoneCopyString( (char *) var_value );
+	var = ALLOC( sys_allocator, cvar_t );
+	var->name = CopyString( sys_allocator, var_name );
+	var->dvalue = CopyString( sys_allocator, var_value );
+	var->string = CopyString( sys_allocator, var_value );
+	var->latched_string = NULL;
 	var->value = atof( var->string );
 	var->integer = Q_rint( var->value );
 	var->flags = flags;
@@ -227,9 +200,6 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, cvar_flag_t flags
 	return var;
 }
 
-/*
-* Cvar_Set2
-*/
 static cvar_t *Cvar_Set2( const char *var_name, const char *value, bool force ) {
 	cvar_t *var = Cvar_Find( var_name );
 
@@ -267,7 +237,7 @@ static cvar_t *Cvar_Set2( const char *var_name, const char *value, bool force ) 
 				if( !strcmp( value, var->latched_string ) ) {
 					return var;
 				}
-				Mem_ZoneFree( var->latched_string );
+				FREE( sys_allocator, var->latched_string );
 			} else {
 				if( !strcmp( value, var->string ) ) {
 					return var;
@@ -276,10 +246,10 @@ static cvar_t *Cvar_Set2( const char *var_name, const char *value, bool force ) 
 
 			if( Com_ServerState() ) {
 				Com_Printf( "%s will be changed upon restarting.\n", var->name );
-				var->latched_string = ZoneCopyString( (char *) value );
+				var->latched_string = CopyString( sys_allocator, value );
 			} else {
-				Mem_ZoneFree( var->string ); // free the old value string
-				var->string = ZoneCopyString( value );
+				FREE( sys_allocator, var->string );
+				var->string = CopyString( sys_allocator, value );
 				var->value = atof( var->string );
 				var->integer = Q_rint( var->value );
 				Cvar_SetModified( var );
@@ -288,7 +258,7 @@ static cvar_t *Cvar_Set2( const char *var_name, const char *value, bool force ) 
 		}
 	} else {
 		if( var->latched_string ) {
-			Mem_ZoneFree( var->latched_string );
+			FREE( sys_allocator, var->latched_string );
 			var->latched_string = NULL;
 		}
 	}
@@ -301,9 +271,9 @@ static cvar_t *Cvar_Set2( const char *var_name, const char *value, bool force ) 
 		userinfo_modified = true; // transmit at next oportunity
 
 	}
-	Mem_ZoneFree( var->string ); // free the old value string
+	FREE( sys_allocator, var->string ); // free the old value string
 
-	var->string = ZoneCopyString( (char *) value );
+	var->string = CopyString( sys_allocator, value );
 	var->value = atof( var->string );
 	var->integer = Q_rint( var->value );
 	Cvar_SetModified( var );
@@ -385,7 +355,7 @@ void Cvar_GetLatchedVars( cvar_flag_t flags ) {
 	Unlock( cvar_mutex );
 	for( i = 0; i < dump->size; ++i ) {
 		cvar_t * var = ( cvar_t * ) dump->key_value_vector[i].value;
-		Mem_ZoneFree( var->string );
+		FREE( sys_allocator, var->string );
 		var->string = var->latched_string;
 		var->latched_string = NULL;
 		var->value = atof( var->string );
@@ -847,12 +817,13 @@ void Cvar_Shutdown() {
 			cvar_t * var = ( cvar_t * ) dump->key_value_vector[i].value;
 
 			if( var->string ) {
-				Mem_ZoneFree( var->string );
+				FREE( sys_allocator, var->string );
 			}
 			if( var->dvalue ) {
-				Mem_ZoneFree( var->dvalue );
+				FREE( sys_allocator, var->dvalue );
 			}
-			Mem_ZoneFree( var );
+			FREE( sys_allocator, var->name );
+			FREE( sys_allocator, var );
 		}
 		Trie_FreeDump( dump );
 

@@ -331,10 +331,6 @@ int Com_GlobMatch( const char *pattern, const char *text, const bool casecmp ) {
 	return glob_match( pattern, text, casecmp );
 }
 
-char *_ZoneCopyString( const char *str, const char *filename, int fileline ) {
-	return _Mem_CopyString( zoneMemPool, str, filename, fileline );
-}
-
 char *_TempCopyString( const char *str, const char *filename, int fileline ) {
 	return _Mem_CopyString( tempMemPool, str, filename, fileline );
 }

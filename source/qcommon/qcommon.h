@@ -139,11 +139,6 @@ void COM_ClearArgv( int arg );
 void COM_Init();
 void COM_InitArgv( int argc, char **argv );
 
-// some hax, because we want to save the file and line where the copy was called
-// from, not the file and line from ZoneCopyString function
-char *_ZoneCopyString( const char *str, const char *filename, int fileline );
-#define ZoneCopyString( str ) _ZoneCopyString( str, __FILE__, __LINE__ )
-
 char *_TempCopyString( const char *str, const char *filename, int fileline );
 #define TempCopyString( str ) _TempCopyString( str, __FILE__, __LINE__ )
 
@@ -603,11 +598,6 @@ size_t Mem_PoolTotalSize( mempool_t *pool );
 
 // used for temporary allocations
 extern mempool_t *tempMemPool;
-extern mempool_t *zoneMemPool;
-
-#define Mem_ZoneMallocExt( size, z ) Mem_AllocExt( zoneMemPool, size, z )
-#define Mem_ZoneMalloc( size ) Mem_Alloc( zoneMemPool, size )
-#define Mem_ZoneFree( data ) Mem_Free( data )
 
 #define Mem_TempMallocExt( size, z ) Mem_AllocExt( tempMemPool, size, z )
 #define Mem_TempMalloc( size ) Mem_Alloc( tempMemPool, size )

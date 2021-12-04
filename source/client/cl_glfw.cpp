@@ -17,6 +17,8 @@ GLFWwindow * window = NULL;
 static bool running_in_debugger = false;
 const bool is_dedicated_server = false;
 
+static int framebuffer_width, framebuffer_height;
+
 void Sys_Quit() {
 	Qcommon_Shutdown();
 	glfwTerminate();
@@ -54,6 +56,7 @@ static void OnWindowMoved( GLFWwindow *, int x, int y ) {
 static void OnWindowResized( GLFWwindow *, int w, int h ) {
 	if( IsWindowFocused() ) {
 		UpdateVidModeCvar();
+		glfwGetFramebufferSize( window, &framebuffer_width, &framebuffer_height );
 	}
 }
 
@@ -352,6 +355,8 @@ void CreateWindow( WindowMode mode ) {
 		Fatal( "glfwCreateWindow" );
 	}
 
+	glfwGetFramebufferSize( window, &framebuffer_width, &framebuffer_height );
+
 	{
 		ZoneScopedN( "Set window icon" );
 
@@ -388,7 +393,8 @@ void DestroyWindow() {
 }
 
 void GetFramebufferSize( int * width, int * height ) {
-	glfwGetFramebufferSize( window, width, height );
+	*width = framebuffer_width;
+	*height = framebuffer_height;
 }
 
 void FlashWindow() {

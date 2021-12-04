@@ -1,4 +1,5 @@
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 #include "qcommon/string.h"
 
 #include "imgui/imgui.h"
@@ -118,8 +119,8 @@ void CG_DrawChat() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const ImGuiIO & io = ImGui::GetIO();
-	float width_frac = Lerp( 0.5f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.3f );
-	Vec2 size = io.DisplaySize * Vec2( width_frac, 0.25f );
+	float width_frac = Lerp( 0.5f, Unlerp01( 1024.0f, float( frame_static.viewport_width ), 1920.0f ), 0.3f );
+	Vec2 size = frame_static.viewport * Vec2( width_frac, 0.25f );
 
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground;
 	ImGuiWindowFlags log_flags = ImGuiWindowFlags_AlwaysUseWindowPadding;

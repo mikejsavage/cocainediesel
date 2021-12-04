@@ -376,8 +376,6 @@ bool SV_IsDemoDownloadRequest( const char *request );
 void SV_Web_Init();
 void SV_Web_Shutdown();
 bool SV_Web_Running();
-bool SV_Web_AddGameClient( const char *session, int clientNum, const netadr_t *netAdr );
-void SV_Web_RemoveGameClient( const char *session );
 
 //
 // snap_write

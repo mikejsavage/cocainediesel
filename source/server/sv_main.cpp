@@ -486,9 +486,6 @@ void SV_UserinfoChanged( client_t *client ) {
 
 }
 
-
-//============================================================================
-
 void SV_Init() {
 	ZoneScoped;
 

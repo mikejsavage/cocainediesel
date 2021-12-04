@@ -113,8 +113,6 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 	}
 	client->session[ sizeof( client->session ) - 1 ] = '\0';
 
-	SV_Web_AddGameClient( client->session, client - svs.clients, &client->netchan.remoteAddress );
-
 	return true;
 }
 
@@ -163,8 +161,6 @@ void SV_DropClient( client_t *drop, int type, const char *format, ... ) {
 	}
 
 	SNAP_FreeClientFrames( drop );
-
-	SV_Web_RemoveGameClient( drop->session );
 
 	if( drop->individual_socket ) {
 		NET_CloseSocket( &drop->socket );

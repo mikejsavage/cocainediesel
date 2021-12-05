@@ -140,9 +140,10 @@ ListDirHandle BeginListDir( Allocator * a, const char * path ) {
 	handle.ffd = ALLOC( a, WIN32_FIND_DATAW );
 	handle.first = true;
 
-	DynamicString path_and_wildcard( a, "{}/*", path );
+	char * path_and_wildcard = ( *a )( "{}/*", path );
+	defer { FREE( a, path_and_wildcard ); };
 
-	wchar_t * wide = UTF8ToWide( a, path_and_wildcard.c_str() );
+	wchar_t * wide = UTF8ToWide( a, path_and_wildcard );
 	defer { FREE( a, wide ); };
 
 	handle.handle = FindFirstFileW( wide, handle.ffd );

@@ -37,9 +37,8 @@ struct ListDirHandle {
 ListDirHandle BeginListDir( Allocator * a, const char * path );
 bool ListDirNext( ListDirHandle * handle, const char ** path, bool * dir );
 
-struct FileMetadata {
-	u64 size;
-	s64 modified_time;
-};
+struct FSChangeMonitor;
 
-FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path );
+FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path );
+void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor );
+Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n );

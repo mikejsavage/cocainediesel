@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -16,7 +18,6 @@ struct Asset {
 	char * path;
 	char * data;
 	size_t len;
-	FileMetadata metadata;
 	bool compressed;
 };
 
@@ -28,6 +29,8 @@ static Asset assets[ MAX_ASSETS ];
 static const char * asset_paths[ MAX_ASSETS ];
 static u32 num_assets;
 
+static FSChangeMonitor * fs_change_monitor;
+
 static const char * modified_asset_paths[ MAX_ASSETS ];
 static u32 num_modified_assets;
 
@@ -38,7 +41,7 @@ enum IsCompressed {
 	IsCompressed_Yes,
 };
 
-static void AddAsset( const char * path, u64 hash, FileMetadata metadata, char * contents, size_t len, IsCompressed compressed ) {
+static void AddAsset( const char * path, u64 hash, char * contents, size_t len, IsCompressed compressed ) {
 	Lock( assets_mutex );
 	defer { Unlock( assets_mutex ); };
 
@@ -63,7 +66,6 @@ static void AddAsset( const char * path, u64 hash, FileMetadata metadata, char *
 
 	a->data = contents;
 	a->len = len;
-	a->metadata = metadata;
 	a->compressed = compressed == IsCompressed_Yes;
 
 	modified_asset_paths[ num_modified_assets ] = a->path;
@@ -78,7 +80,6 @@ static void AddAsset( const char * path, u64 hash, FileMetadata metadata, char *
 struct DecompressAssetJob {
 	char * path;
 	u64 hash;
-	FileMetadata metadata;
 	Span< u8 > compressed;
 };
 
@@ -97,7 +98,7 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 		memcpy( decompressed_and_terminated, decompressed.ptr, decompressed.n );
 		decompressed_and_terminated[ decompressed.n ] = '\0';
 
-		AddAsset( job->path, job->hash, job->metadata, decompressed_and_terminated, decompressed.n, IsCompressed_Yes );
+		AddAsset( job->path, job->hash, decompressed_and_terminated, decompressed.n, IsCompressed_Yes );
 	}
 
 	FREE( sys_allocator, decompressed.ptr );
@@ -120,8 +121,6 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 
 	u64 hash = Hash64( game_path_no_zst );
 
-	FileMetadata metadata = FileMetadataOrZeroes( temp, full_path );
-
 	{
 		Lock( assets_mutex );
 		defer { Unlock( assets_mutex ); };
@@ -133,12 +132,7 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 				Fatal( "Asset hash name collision: %s and %s", game_path, assets[ idx ].path );
 			}
 
-			bool same_file = assets[ idx ].compressed == compressed;
-			bool modified = assets[ idx ].metadata.modified_time != metadata.modified_time || assets[ idx ].metadata.size != metadata.size;
-			bool replaces = assets[ idx ].compressed && !compressed;
-
-			bool hotload = ( same_file && modified ) || replaces;
-			if( !hotload ) {
+			if( compressed && !assets[ idx ].compressed ) {
 				return;
 			}
 		}
@@ -154,12 +148,11 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 		job->path = ( *sys_allocator )( "{}", game_path_no_zst );
 		job->hash = hash;
 		job->compressed = Span< u8 >( ( u8 * ) contents, len );
-		job->metadata = metadata;
 
 		ThreadPoolDo( DecompressAsset, job );
 	}
 	else {
-		AddAsset( game_path, hash, metadata, contents, len, IsCompressed_No );
+		AddAsset( game_path, hash, contents, len, IsCompressed_No );
 	}
 }
 
@@ -195,6 +188,7 @@ void InitAssets( TempAllocator * temp ) {
 	assets_hashtable.clear();
 
 	DynamicString base( temp, "{}/base", RootDirPath() );
+	fs_change_monitor = NewFSChangeMonitor( sys_allocator, base.c_str() );
 	LoadAssetsRecursive( temp, &base, base.length() + 1 );
 
 	num_modified_assets = 0;
@@ -203,10 +197,18 @@ void InitAssets( TempAllocator * temp ) {
 void HotloadAssets( TempAllocator * temp ) {
 	ZoneScoped;
 
-	num_modified_assets = 0;
+	const char * buf[ 1024 ];
+	Span< const char * > changes = PollFSChangeMonitor( temp, fs_change_monitor, buf, ARRAY_COUNT( buf ) );
+	std::sort( changes.begin(), changes.end(), SortCStringsComparator );
 
-	DynamicString base( temp, "{}/base", RootDirPath() );
-	LoadAssetsRecursive( temp, &base, base.length() + 1 );
+	for( size_t i = 0; i < changes.n; i++ ) {
+		if( i > 0 && StrEqual( changes[ i ], changes[ i - 1 ] ) )
+			continue;
+		char * full_path = ( *temp )( "{}/base/{}", RootDirPath(), changes[ i ] );
+		LoadAsset( temp, changes[ i ], full_path );
+	}
+
+	ThreadPoolFinish();
 
 	if( num_modified_assets > 0 ) {
 		Com_Printf( "Hotloading:\n" );
@@ -225,6 +227,8 @@ void ShutdownAssets() {
 		FREE( sys_allocator, assets[ i ].path );
 		FREE( sys_allocator, assets[ i ].data );
 	}
+
+	DeleteFSChangeMonitor( sys_allocator, fs_change_monitor );
 
 	DeleteMutex( assets_mutex );
 }

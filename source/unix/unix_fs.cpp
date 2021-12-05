@@ -51,6 +51,28 @@ char * FindHomeDirectory( Allocator * a ) {
 	return ( *a )( "{}/.local/share/{}", home, APPLICATION );
 }
 
+char * GetExePath( Allocator * a ) {
+	size_t buf_size = 1024;
+	char * buf = ALLOC_MANY( a, char, buf_size );
+
+	while( true ) {
+		ssize_t n = readlink( "/proc/self/exe", buf, buf_size );
+		if( n == -1 ) {
+			FatalErrno( "readlink" );
+		}
+
+		if( size_t( n ) < buf_size ) {
+			buf[ n ] = '\0';
+			break;
+		}
+
+		buf = REALLOC_MANY( a, char, buf, buf_size, buf_size * 2 );
+		buf_size *= 2;
+	}
+
+	return buf;
+}
+
 FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {
 	return fopen( path, mode );
 }
@@ -123,37 +145,15 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	return false;
 }
 
-FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path ) {
-	struct stat buf;
-	if( stat( path, &buf ) == -1 ) {
-		return { };
-	}
+struct FSChangeMonitor { };
 
-	FileMetadata metadata;
-	metadata.size = checked_cast< u64 >( buf.st_size );
-	metadata.modified_time = checked_cast< s64 >( buf.st_mtim.tv_sec ) * 1000 + checked_cast< s64 >( buf.st_mtim.tv_nsec ) / 1000000;
-
-	return metadata;
+FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path ) {
+	return NULL;
 }
 
-char * GetExePath( Allocator * a ) {
-	size_t buf_size = 1024;
-	char * buf = ALLOC_MANY( a, char, buf_size );
+void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor ) {
+}
 
-	while( true ) {
-		ssize_t n = readlink( "/proc/self/exe", buf, buf_size );
-		if( n == -1 ) {
-			FatalErrno( "readlink" );
-		}
-
-		if( size_t( n ) < buf_size ) {
-			buf[ n ] = '\0';
-			break;
-		}
-
-		buf = REALLOC_MANY( a, char, buf, buf_size, buf_size * 2 );
-		buf_size *= 2;
-	}
-
-	return buf;
+Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n ) {
+	return Span< const char * >();
 }

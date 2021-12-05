@@ -8,17 +8,8 @@ static char * root_dir_path;
 static char * home_dir_path;
 static char * versioned_home_dir_path;
 
-static void ReplaceBackslashes( char * path ) {
-	char * cursor = path;
-	while( ( cursor = StrChrUTF8( cursor, '\\' ) ) != NULL ) {
-		*cursor = '/';
-		cursor++;
-	}
-}
-
 static char * FindRootDir( Allocator * a ) {
 	char * root = GetExePath( a );
-	ReplaceBackslashes( root );
 	root[ BasePath( root ).n ] = '\0';
 	return root;
 }
@@ -36,9 +27,6 @@ void InitFS() {
 		const char * fmt = IFDEF( PLATFORM_WINDOWS ) ? "{} 0.0" : "{}-0.0";
 		versioned_home_dir_path = ( *sys_allocator )( fmt, home_dir_path );
 	}
-
-	ReplaceBackslashes( versioned_home_dir_path );
-	ReplaceBackslashes( home_dir_path );
 }
 
 void ShutdownFS() {

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <io.h>
 #include <shlobj.h>
 #include <objbase.h>
+#include <wchar.h>
 
 #include "qcommon/qcommon.h"
 #include "qcommon/string.h"
@@ -34,6 +35,15 @@ bool Sys_FS_CreateDirectory( const char *path ) {
 	return CreateDirectoryA( path, NULL ) != 0 || GetLastError() == ERROR_ALREADY_EXISTS;
 }
 
+static char * ReplaceBackslashes( char * path ) {
+	char * cursor = path;
+	while( ( cursor = strchr( cursor, '\\' ) ) != NULL ) {
+		*cursor = '/';
+		cursor++;
+	}
+	return path;
+}
+
 static wchar_t * UTF8ToWide( Allocator * a, const char * utf8 ) {
 	int len = MultiByteToWideChar( CP_UTF8, 0, utf8, -1, NULL, 0 );
 	assert( len != 0 );
@@ -44,14 +54,19 @@ static wchar_t * UTF8ToWide( Allocator * a, const char * utf8 ) {
 	return wide;
 }
 
-static char * WideToUTF8( Allocator * a, const wchar_t * wide ) {
-	int len = WideCharToMultiByte( CP_UTF8, 0, wide, -1, NULL, 0, NULL, NULL );
+static char * WideToUTF8( Allocator * a, Span< const wchar_t > wide ) {
+	int len = WideCharToMultiByte( CP_UTF8, 0, wide.ptr, wide.n, NULL, 0, NULL, NULL );
 	assert( len != 0 );
 
-	char * utf8 = ALLOC_MANY( a, char, len );
-	WideCharToMultiByte( CP_UTF8, 0, wide, -1, utf8, len, NULL, NULL );
+	char * utf8 = ALLOC_MANY( a, char, len + 1 );
+	WideCharToMultiByte( CP_UTF8, 0, wide.ptr, wide.n, utf8, len, NULL, NULL );
+	utf8[ len ] = '\0';
 
 	return utf8;
+}
+
+static char * WideToUTF8( Allocator * a, const wchar_t * wide ) {
+	return WideToUTF8( a, Span< const wchar_t >( wide, wcslen( wide ) ) );
 }
 
 char * FindHomeDirectory( Allocator * a ) {
@@ -64,7 +79,28 @@ char * FindHomeDirectory( Allocator * a ) {
 	char * documents_path = WideToUTF8( a, wide_documents_path );
 	defer { FREE( a, documents_path ); };
 
-	return ( *a )( "{}/My Games/{}", documents_path, APPLICATION );
+	return ReplaceBackslashes( ( *a )( "{}/My Games/{}", documents_path, APPLICATION ) );
+}
+
+char * GetExePath( Allocator * a ) {
+	DWORD buf_size = 1024;
+	wchar_t * wide_buf = ALLOC_MANY( a, wchar_t, buf_size );
+	defer { FREE( a, wide_buf ); };
+
+	while( true ) {
+		DWORD n = GetModuleFileNameW( NULL, wide_buf, buf_size );
+		if( n == 0 ) {
+			FatalGLE( "GetModuleFileNameW" );
+		}
+
+		if( n < buf_size )
+			break;
+
+		wide_buf = REALLOC_MANY( a, wchar_t, wide_buf, buf_size, buf_size * 2 );
+		buf_size *= 2;
+	}
+
+	return ReplaceBackslashes( WideToUTF8( a, wide_buf ) );
 }
 
 FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {
@@ -168,54 +204,69 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	return true;
 }
 
-FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path ) {
-	wchar_t * wide = UTF8ToWide( temp, path );
+struct FSChangeMonitor {
+	HANDLE dir;
+	HANDLE event;
+	OVERLAPPED overlapped;
+	u8 buf[ 16384 ];
+	bool poll_again;
+};
 
-	HANDLE handle = CreateFileW( wide, 0, 0, NULL, OPEN_EXISTING, 0, NULL );
-	if( handle == INVALID_HANDLE_VALUE ) {
-		return { };
-	}
+FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path ) {
+	FSChangeMonitor * monitor = ALLOC( a, FSChangeMonitor );
 
-	defer { CloseHandle( handle ); };
+	wchar_t * wide_path = UTF8ToWide( a, path );
+	defer { FREE( a, wide_path ); };
+	monitor->dir = CreateFileW( wide_path, FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL );
 
-	LARGE_INTEGER size;
-	if( GetFileSizeEx( handle, &size ) == 0 ) {
-		return { };
-	}
+	monitor->event = CreateEvent( NULL, FALSE, FALSE, NULL );
+	monitor->overlapped.hEvent = monitor->event;
+	monitor->poll_again = true;
 
-	FILETIME modified;
-	if( GetFileTime( handle, NULL, NULL, &modified ) == 0 ) {
-		return { };
-	}
-
-	FileMetadata metadata;
-
-	ULARGE_INTEGER modified64;
-	memcpy( &modified64, &modified, sizeof( modified ) );
-
-	metadata.size = size.QuadPart;
-	metadata.modified_time = modified64.QuadPart;
-
-	return metadata;
+	return monitor;
 }
 
-char * GetExePath( Allocator * a ) {
-	DWORD buf_size = 1024;
-	wchar_t * wide_buf = ALLOC_MANY( a, wchar_t, buf_size );
-	defer { FREE( a, wide_buf ); };
+void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor ) {
+	CloseHandle( monitor->event );
+	CloseHandle( monitor->dir );
+	FREE( a, monitor );
+}
 
-	while( true ) {
-		DWORD n = GetModuleFileNameW( NULL, wide_buf, buf_size );
-		if( n == 0 ) {
-			FatalGLE( "GetModuleFileNameW" );
+Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n ) {
+	if( monitor->poll_again ) {
+		DWORD filter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE;
+		BOOL ok = ReadDirectoryChangesW( monitor->dir, monitor->buf, sizeof( monitor->buf ), true, filter, NULL, &monitor->overlapped, NULL );
+		if( ok == FALSE ) {
+			FatalGLE( "ReadDirectoryChangesW" );
 		}
-
-		if( n < buf_size )
-			break;
-
-		wide_buf = REALLOC_MANY( a, wchar_t, wide_buf, buf_size, buf_size * 2 );
-		buf_size *= 2;
+		monitor->poll_again = false;
 	}
 
-	return WideToUTF8( a, wide_buf );
+	DWORD dont_care;
+	BOOL ok = GetOverlappedResult( monitor->dir, &monitor->overlapped, &dont_care, FALSE );
+	if( ok == FALSE ) {
+		if( GetLastError() == ERROR_IO_INCOMPLETE ) {
+			return Span< const char * >();
+		}
+		FatalGLE( "GetOverlappedResult" );
+	}
+
+	monitor->poll_again = true;
+
+	size_t num_results = 0;
+	const FILE_NOTIFY_INFORMATION * entry = ( const FILE_NOTIFY_INFORMATION * ) monitor->buf;
+	while( num_results < n ) {
+		if( entry->Action == FILE_ACTION_ADDED || entry->Action == FILE_ACTION_MODIFIED || entry->Action == FILE_ACTION_RENAMED_NEW_NAME ) {
+			Span< const wchar_t > wide_path = Span< const wchar_t >( entry->FileName, entry->FileNameLength / 2 );
+			results[ num_results ] = ReplaceBackslashes( WideToUTF8( temp, wide_path ) );
+			num_results++;
+		}
+
+		if( entry->NextEntryOffset == 0 )
+			break;
+
+		entry = ( const FILE_NOTIFY_INFORMATION * ) ( ( ( const char * ) entry ) + entry->NextEntryOffset );
+	}
+
+	return Span< const char * >( results, num_results );
 }

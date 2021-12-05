@@ -507,8 +507,6 @@ void SV_Init() {
 
 	Cvar_Get( "protocol", va( "%i", APP_PROTOCOL_VERSION ), CVAR_SERVERINFO | CVAR_NOSET );
 
-	// sv_port = 12345
-
 	sv_ip = Cvar_Get( "sv_ip", "", CVAR_ARCHIVE | CVAR_LATCH );
 	sv_port = Cvar_Get( "sv_port", va( "%i", PORT_SERVER ), CVAR_ARCHIVE | CVAR_LATCH );
 

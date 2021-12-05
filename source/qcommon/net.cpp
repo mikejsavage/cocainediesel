@@ -875,7 +875,7 @@ bool NET_CompareBaseAddress( const netadr_t *a, const netadr_t *b ) {
 *
 * Return the port of the network address (if relevant), or 0
 */
-unsigned short NET_GetAddressPort( const netadr_t *address ) {
+u16 NET_GetAddressPort( const netadr_t *address ) {
 	return address->type == NA_IPv4 || address->type == NA_IPv6 ? address->port : 0;
 }
 
@@ -884,8 +884,12 @@ unsigned short NET_GetAddressPort( const netadr_t *address ) {
 *
 * Set the port of the network address
 */
-void NET_SetAddressPort( netadr_t *address, unsigned short port ) {
+void NET_SetAddressPort( netadr_t *address, u16 port ) {
 	address->port = port;
+}
+
+u16 NET_ntohs( u16 x ) {
+	return ntohs( x );
 }
 
 /*

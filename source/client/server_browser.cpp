@@ -144,7 +144,7 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 			break;
 		}
 
-		addr.port = MSG_ReadUint16( msg );
+		addr.port = NET_ntohs( MSG_ReadUint16( msg ) );
 
 		if( addr.port == 0 && msg->readcount == msg->cursize ) {
 			ok = true;

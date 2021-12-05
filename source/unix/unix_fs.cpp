@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <poll.h>
+#include <linux/fs.h>
 #include <sys/inotify.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>

@@ -102,7 +102,7 @@ bool FileExists( Allocator * temp, const char * path ) {
 	return true;
 }
 
-static bool CreatePathForFile( Allocator * a, const char * path ) {
+bool CreatePathForFile( Allocator * a, const char * path ) {
 	char * mutable_path = CopyString( a, path );
 	defer { FREE( a, mutable_path ); };
 

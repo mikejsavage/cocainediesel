@@ -149,6 +149,7 @@ static void FS_FileModeStr( int mode, char *modestr, size_t size ) {
 /*
 * FS_FOpenAbsoluteFile
 */
+bool CreatePathForFile( Allocator * a, const char * path );
 int FS_FOpenAbsoluteFile( const char *filename, int *filenum, int mode ) {
 	FILE *f = NULL;
 	gzFile gzf = NULL;
@@ -179,7 +180,7 @@ int FS_FOpenAbsoluteFile( const char *filename, int *filenum, int mode ) {
 	}
 
 	if( mode == FS_WRITE || mode == FS_APPEND ) {
-		FS_CreateAbsolutePath( filename );
+		CreatePathForFile( sys_allocator, filename );
 	}
 
 	FS_FileModeStr( realmode, modestr, sizeof( modestr ) );
@@ -393,24 +394,6 @@ int FS_GetCompressionLevel( int file ) {
 		return fh->gzlevel;
 	}
 	return 0;
-}
-
-/*
-* FS_CreateAbsolutePath
-*
-* Creates any directories needed to store the given filename
-*/
-void FS_CreateAbsolutePath( const char *path ) {
-	char *ofs;
-
-	for( ofs = ( char * )path + 1; *ofs; ofs++ ) {
-		if( *ofs == '/' ) {
-			// create the directory
-			*ofs = 0;
-			Sys_FS_CreateDirectory( path );
-			*ofs = '/';
-		}
-	}
 }
 
 /*

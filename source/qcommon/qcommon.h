@@ -464,12 +464,6 @@ FILESYSTEM
 void        FS_Init();
 void        FS_Shutdown();
 
-// handling of absolute filenames
-// only to be used if necessary (library not supporting custom file handling functions etc.)
-void        FS_CreateAbsolutePath( const char *path );
-const char *FS_AbsoluteNameForFile( const char *filename );
-const char *FS_AbsoluteNameForBaseFile( const char *filename );
-
 // // game and base files
 // file streaming
 int     FS_FOpenAbsoluteFile( const char *filename, int *filenum, int mode );

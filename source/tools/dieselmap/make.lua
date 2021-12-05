@@ -16,6 +16,7 @@ bin( "dieselmap", {
 		"source/qcommon/allocators.cpp",
 		"source/qcommon/base.cpp",
 		"source/qcommon/fs.cpp",
+		"source/qcommon/hash.cpp",
 		"source/qcommon/utf8.cpp",
 
 		"source/gameshared/q_math.cpp",

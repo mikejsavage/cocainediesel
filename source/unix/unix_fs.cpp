@@ -1,14 +1,19 @@
-#include "qcommon/qcommon.h"
-#include "qcommon/array.h"
+#include "qcommon/base.h"
+#include "qcommon/application.h"
 #include "qcommon/fs.h"
 #include "qcommon/sys_fs.h"
+#include "qcommon/array.h"
+#include "qcommon/hash.h"
+#include "qcommon/hashtable.h"
+#include "qcommon/string.h"
 
 // these must come after qcommon because both tracy and one of these defines BLOCK_SIZE
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <linux/fs.h>
+#include <poll.h>
+#include <sys/inotify.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 
@@ -120,15 +125,104 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	return false;
 }
 
-struct FSChangeMonitor { };
+constexpr size_t MAX_INOTIFY_WATCHES = 4096;
+struct FSChangeMonitor {
+	int fd;
+	char * wd_paths[ MAX_INOTIFY_WATCHES ];
+	size_t num_wd_paths;
+	Hashtable< MAX_INOTIFY_WATCHES * 2 > wd_to_path;
+};
+
+static void AddInotifyWatchesRecursive( Allocator * a, FSChangeMonitor * monitor, DynamicString * path, size_t skip ) {
+	u32 filter = IN_CREATE | IN_MODIFY | IN_MOVED_TO;
+	int wd = inotify_add_watch( monitor->fd, path->c_str(), filter );
+	if( wd == -1 ) {
+		FatalErrno( "inotify_add_watch" );
+	}
+
+	monitor->wd_paths[ monitor->num_wd_paths ] = ( *a )( ".{}", path->c_str() + skip );
+	monitor->wd_to_path.add( Hash64( wd ), monitor->num_wd_paths );
+	monitor->num_wd_paths++;
+
+	ListDirHandle scan = BeginListDir( a, path->c_str() );
+
+	const char * name;
+	bool dir;
+	while( ListDirNext( &scan, &name, &dir ) ) {
+		// skip ., .., .git, etc
+		if( name[ 0 ] == '.' || !dir )
+			continue;
+
+		size_t old_len = path->length();
+		path->append( "/{}", name );
+		AddInotifyWatchesRecursive( a, monitor, path, skip );
+		path->truncate( old_len );
+	}
+}
 
 FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path ) {
-	return NULL;
+	FSChangeMonitor * monitor = ALLOC( a, FSChangeMonitor );
+	monitor->fd = inotify_init();
+	if( monitor->fd == -1 ) {
+		FatalErrno( "inotify_init" );
+	}
+
+	monitor->num_wd_paths = 0;
+	monitor->wd_to_path.clear();
+
+	DynamicString base( a, "{}", path );
+	AddInotifyWatchesRecursive( a, monitor, &base, base.length() );
+
+	return monitor;
 }
 
 void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor ) {
+	for( size_t i = 0; i < monitor->num_wd_paths; i++ ) {
+		FREE( a, monitor->wd_paths[ i ] );
+	}
+	close( monitor->fd );
+	FREE( a, monitor );
 }
 
 Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n ) {
-	return Span< const char * >();
+	{
+		pollfd fd = { };
+		fd.fd = monitor->fd;
+		fd.events = POLLIN;
+
+		int res = poll( &fd, 1, 0 );
+		if( res == -1 ) {
+			FatalErrno( "poll" );
+		}
+		if( res == 0 ) {
+			return Span< const char * >();
+		}
+	}
+
+	alignas( inotify_event ) char buf[ 16384 ];
+	ssize_t bytes_read = read( monitor->fd, buf, sizeof( buf ) );
+	if( bytes_read == -1 ) {
+		if( errno == EINTR ) {
+			return Span< const char * >();
+		}
+		FatalErrno( "read" );
+	}
+
+	size_t num_results = 0;
+	const inotify_event * cursor = ( const inotify_event * ) buf;
+	while( ( const char * ) cursor < buf + bytes_read ) {
+		if( ( cursor->mask & IN_ISDIR ) == 0 ) {
+			u64 idx;
+			bool ok = monitor->wd_to_path.get( Hash64( cursor->wd ), &idx );
+			assert( ok );
+
+			results[ num_results ] = ( *temp )( "{}/{}", monitor->wd_paths[ idx ], cursor->name );
+			num_results++;
+		}
+
+		cursor = ( const inotify_event * ) ( ( ( const char * ) cursor ) + sizeof( *cursor ) + cursor->len );
+
+	}
+
+	return Span< const char * >( results, num_results );
 }

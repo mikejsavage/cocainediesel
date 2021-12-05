@@ -4,7 +4,8 @@
 #include <objbase.h>
 #include <wchar.h>
 
-#include "qcommon/qcommon.h"
+#include "qcommon/base.h"
+#include "qcommon/application.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/sys_fs.h"

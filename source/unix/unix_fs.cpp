@@ -140,7 +140,18 @@ static void AddInotifyWatchesRecursive( Allocator * a, FSChangeMonitor * monitor
 		FatalErrno( "inotify_add_watch" );
 	}
 
-	monitor->wd_paths[ monitor->num_wd_paths ] = ( *a )( "{}{}", path->length() == skip ? "" : "/", path->c_str() + skip );
+	/*
+	 * we want wd_path to "" when path is "base". we also don't do {}/{}
+	 * when building the full path so we don't accidentally add a leading
+	 * slash to the "base" case, so add the trailing slash here for
+	 * non-base paths
+	 */
+	if( path->length() == skip ) {
+		monitor->wd_paths[ monitor->num_wd_paths ] = CopyString( a, "" );
+	}
+	else {
+		monitor->wd_paths[ monitor->num_wd_paths ] = ( *a )( "{}/", path->c_str() + skip + 1 );
+	}
 	monitor->wd_to_path.add( Hash64( wd ), monitor->num_wd_paths );
 	monitor->num_wd_paths++;
 

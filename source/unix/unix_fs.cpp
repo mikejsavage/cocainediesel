@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
+#include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/sys_fs.h"
 
@@ -53,7 +54,8 @@ char * FindHomeDirectory( Allocator * a ) {
 
 char * GetExePath( Allocator * a ) {
 	NonRAIIDynamicArray< char > buf;
-	buf.init( a, 1024 );
+	buf.init( a );
+	buf.resize( 1024 );
 
 	while( true ) {
 		ssize_t n = readlink( "/proc/self/exe", buf.ptr(), buf.size() );

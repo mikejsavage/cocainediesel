@@ -83,7 +83,8 @@ char * FindHomeDirectory( Allocator * a ) {
 }
 
 char * GetExePath( Allocator * a ) {
-	DynamicArray< wchar_t > buf( a, 1024 );
+	DynamicArray< wchar_t > buf( a );
+	buf.resize( 1024 );
 
 	while( true ) {
 		DWORD n = GetModuleFileNameW( NULL, buf.ptr(), buf.size() );

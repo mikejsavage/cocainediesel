@@ -140,7 +140,7 @@ static void AddInotifyWatchesRecursive( Allocator * a, FSChangeMonitor * monitor
 		FatalErrno( "inotify_add_watch" );
 	}
 
-	monitor->wd_paths[ monitor->num_wd_paths ] = ( *a )( "{}{}", path->c_str() == skip ? "" : "/", path->c_str() + skip );
+	monitor->wd_paths[ monitor->num_wd_paths ] = ( *a )( "{}{}", path->length() == skip ? "" : "/", path->c_str() + skip );
 	monitor->wd_to_path.add( Hash64( wd ), monitor->num_wd_paths );
 	monitor->num_wd_paths++;
 

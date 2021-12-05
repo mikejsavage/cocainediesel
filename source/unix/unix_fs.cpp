@@ -140,7 +140,7 @@ static void AddInotifyWatchesRecursive( Allocator * a, FSChangeMonitor * monitor
 		FatalErrno( "inotify_add_watch" );
 	}
 
-	monitor->wd_paths[ monitor->num_wd_paths ] = ( *a )( ".{}", path->c_str() + skip );
+	monitor->wd_paths[ monitor->num_wd_paths ] = ( *a )( "{}{}", path->c_str() == skip ? "" : "/", path->c_str() + skip );
 	monitor->wd_to_path.add( Hash64( wd ), monitor->num_wd_paths );
 	monitor->num_wd_paths++;
 
@@ -216,7 +216,7 @@ Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor 
 			bool ok = monitor->wd_to_path.get( Hash64( cursor->wd ), &idx );
 			assert( ok );
 
-			results[ num_results ] = ( *temp )( "{}/{}", monitor->wd_paths[ idx ], cursor->name );
+			results[ num_results ] = ( *temp )( "{}{}", monitor->wd_paths[ idx ], cursor->name );
 			num_results++;
 		}
 

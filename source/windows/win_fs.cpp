@@ -83,24 +83,21 @@ char * FindHomeDirectory( Allocator * a ) {
 }
 
 char * GetExePath( Allocator * a ) {
-	DWORD buf_size = 1024;
-	wchar_t * wide_buf = ALLOC_MANY( a, wchar_t, buf_size );
-	defer { FREE( a, wide_buf ); };
+	DynamicArray< wchar_t > buf( a, 1024 );
 
 	while( true ) {
-		DWORD n = GetModuleFileNameW( NULL, wide_buf, buf_size );
+		DWORD n = GetModuleFileNameW( NULL, buf.ptr(), buf.size() );
 		if( n == 0 ) {
 			FatalGLE( "GetModuleFileNameW" );
 		}
 
-		if( n < buf_size )
+		if( n < buf.size() )
 			break;
 
-		wide_buf = REALLOC_MANY( a, wchar_t, wide_buf, buf_size, buf_size * 2 );
-		buf_size *= 2;
+		buf.resize( buf.size() * 2 );
 	}
 
-	return ReplaceBackslashes( WideToUTF8( a, wide_buf ) );
+	return ReplaceBackslashes( WideToUTF8( a, buf.ptr() ) );
 }
 
 FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {

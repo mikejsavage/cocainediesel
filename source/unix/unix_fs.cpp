@@ -52,25 +52,24 @@ char * FindHomeDirectory( Allocator * a ) {
 }
 
 char * GetExePath( Allocator * a ) {
-	size_t buf_size = 1024;
-	char * buf = ALLOC_MANY( a, char, buf_size );
+	NonRAIIDynamicArray< char > buf;
+	buf.init( a, 1024 );
 
 	while( true ) {
-		ssize_t n = readlink( "/proc/self/exe", buf, buf_size );
+		ssize_t n = readlink( "/proc/self/exe", buf.ptr(), buf.size() );
 		if( n == -1 ) {
 			FatalErrno( "readlink" );
 		}
 
-		if( size_t( n ) < buf_size ) {
+		if( size_t( n ) < buf.size() ) {
 			buf[ n ] = '\0';
 			break;
 		}
 
-		buf = REALLOC_MANY( a, char, buf, buf_size, buf_size * 2 );
-		buf_size *= 2;
+		buf.resize( buf.size() * 2 );
 	}
 
-	return buf;
+	return buf.ptr();
 }
 
 FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {

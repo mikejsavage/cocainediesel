@@ -207,8 +207,6 @@ void SV_InitOperatorCommands() {
 void SV_ShutdownOperatorCommands() {
 	Cmd_RemoveCommand( "heartbeat" );
 	Cmd_RemoveCommand( "status" );
-	Cmd_RemoveCommand( "serverinfo" );
-	Cmd_RemoveCommand( "dumpuser" );
 
 	Cmd_RemoveCommand( "map" );
 	Cmd_RemoveCommand( "devmap" );

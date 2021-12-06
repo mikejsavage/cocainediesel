@@ -189,7 +189,7 @@ static char *SV_ShortInfoString() {
 
 	Q_strncpyz( hostname, sv_hostname->string, sizeof( hostname ) );
 	snprintf( string, sizeof( string ),
-				 "\\\\n\\\\%s\\\\m\\\\%8s\\\\u\\\\%2i/%2i\\\\",
+				 "\\\\n\\\\%s\\\\m\\\\%s\\\\u\\\\%2i/%2i\\\\",
 				 hostname,
 				 sv.mapname,
 				 Min2( count, 99 ),

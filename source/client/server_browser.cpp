@@ -195,7 +195,7 @@ void ParseGameServerResponse( msg_t * msg, netadr_t address ) {
 	int max_players;
 
 	const char * info = MSG_ReadString( msg );
-	int parsed = sscanf( info, "%" SCNi64 "\\\\n\\\\%127[^\\]\\\\m\\\\ %31[^\\]\\\\u\\\\%d/%d\\\\EOT", &timestamp, name, map, &num_players, &max_players );
+	int parsed = sscanf( info, "%" SCNi64 "\\\\n\\\\%127[^\\]\\\\m\\\\%31[^\\]\\\\u\\\\%d/%d\\\\EOT", &timestamp, name, map, &num_players, &max_players );
 	if( parsed != 5 ) {
 		return;
 	}

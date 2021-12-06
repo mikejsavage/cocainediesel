@@ -127,8 +127,6 @@ void main() {
 #endif
 
 #if SHADED
-	const vec3 suncolor = vec3( 1.0 );
-
 	vec3 viewDir = normalize( u_CameraPos - v_Position );
 
 	float shadowlight = 1.0;
@@ -139,7 +137,7 @@ void main() {
 		shadowlight = u_InLight;
 	#endif
 
-	diffuse.rgb = BRDF( normal, viewDir, -u_LightDir, suncolor, diffuse.rgb, u_Roughness, u_Metallic, u_Anisotropic, shadowlight, decal_dlight_count.y, tile_index );
+	diffuse.rgb = BRDF( normal, viewDir, diffuse.rgb, u_Roughness, u_Metallic, u_Anisotropic, shadowlight, decal_dlight_count.y, tile_index );
 #endif
 
 #if APPLY_FOG

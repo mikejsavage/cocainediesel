@@ -40,10 +40,6 @@ void basis( vec3 n, out vec3 tangent, out vec3 bitangent ){
 		bitangent = vec3( b, 1. - n.y * n.y * a , -n.y );
 	}
 }
-#if APPLY_DLIGHTS
-	uniform isamplerBuffer u_DynamicLightTiles;
-	uniform samplerBuffer u_DynamicLightData;
-#endif
 
 struct Surface {
 	vec3 color;
@@ -86,6 +82,9 @@ Light GetSunLight() {
 }
 
 #if APPLY_DLIGHTS
+uniform isamplerBuffer u_DynamicLightTiles;
+uniform samplerBuffer u_DynamicLightData;
+
 Light GetDynamicLight( int index, vec3 normal ) {
 	vec4 data = texelFetch( u_DynamicLightData, index );
 	vec3 origin = floor( data.xyz );
@@ -104,10 +103,13 @@ Light GetDynamicLight( int index, vec3 normal ) {
 #endif
 
 vec3 ShadePixel( Surface surface, Light light, float occlusion, vec3 v, float NoV, float ToV, float BoV ) {
-	vec3 h = normalize( v + light.direction );
 	float NoL = dot( surface.normal, light.direction );
 	float ambient_NoL = clamp( NoL * ( 1.0 - light.ambient ) + light.ambient, 0.0, 1.0 );
+	if( ambient_NoL * light.attenuation <= 1.0 / 256.0 ) {
+		return vec3( 0.0 );
+	}
 	NoL = clamp( NoL, 0.0, 1.0 );
+	vec3 h = normalize( v + light.direction );
 	float NoH = clamp( dot( surface.normal, h ), 0.0, 1.0 );
 	float LoH = clamp( dot( light.direction, h ), 0.0, 1.0 );
 
@@ -127,7 +129,7 @@ vec3 ShadePixel( Surface surface, Light light, float occlusion, vec3 v, float No
 	return ( surface.color * diffuse * ( occlusion * 0.5 + 0.5 ) + specular * occlusion ) * light.color * light.attenuation * ambient_NoL;
 }
 
-vec3 BRDF( vec3 n, vec3 v, vec3 l, vec3 light_color, vec3 albedo, float roughness, float metallic, float aniso, float shadow, int dlight_count, int tile_index ) {
+vec3 BRDF( vec3 n, vec3 v, vec3 albedo, float roughness, float metallic, float aniso, float shadow, int dlight_count, int tile_index ) {
 	Surface surface = CreateSurface( n, albedo, roughness, metallic, aniso );
 	Light light = GetSunLight();
 

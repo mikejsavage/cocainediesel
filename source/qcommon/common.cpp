@@ -50,7 +50,6 @@ static cvar_t *logconsole = NULL;
 static cvar_t *logconsole_append;
 static cvar_t *logconsole_flush;
 static cvar_t *logconsole_timestamp;
-static cvar_t *com_showtrace;
 
 static Mutex *com_print_mutex;
 
@@ -423,8 +422,6 @@ void Qcommon_Init( int argc, char **argv ) {
 	logconsole_append = Cvar_Get( "logconsole_append", "1", CVAR_ARCHIVE );
 	logconsole_flush =  Cvar_Get( "logconsole_flush", "0", CVAR_ARCHIVE );
 	logconsole_timestamp =  Cvar_Get( "logconsole_timestamp", "0", CVAR_ARCHIVE );
-
-	com_showtrace =     Cvar_Get( "com_showtrace", "0", 0 );
 
 	Cvar_Get( "gamename", APPLICATION_NOSPACES, CVAR_SERVERINFO | CVAR_READONLY );
 	versioncvar = Cvar_Get( "version", APP_VERSION " " ARCH " " OSNAME, CVAR_SERVERINFO | CVAR_READONLY );

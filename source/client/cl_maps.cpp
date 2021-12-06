@@ -24,6 +24,23 @@ static void DeleteMap( Map * map ) {
 	DeleteBSPRenderData( map );
 }
 
+static void FillMapModelsHashtable() {
+	ZoneScoped;
+
+	map_models_hashtable.clear();
+
+	for( u32 i = 0; i < num_maps; i++ ) {
+		const Map * map = &maps[ i ];
+		for( u32 j = 0; j < map->num_models; j++ ) {
+			String< 16 > suffix( "*{}", j );
+			u64 hash = Hash64( suffix.c_str(), suffix.length(), map->base_hash );
+
+			assert( map_models_hashtable.size() < MAX_MAP_MODELS );
+			map_models_hashtable.add( hash, uintptr_t( &map->models[ j ] ) );
+		}
+	}
+}
+
 bool AddMap( Span< const u8 > data, const char * path ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
@@ -54,22 +71,9 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 
 	maps[ idx ] = map;
 
+	FillMapModelsHashtable();
+
 	return true;
-}
-
-static void FillMapModelsHashtable() {
-	map_models_hashtable.clear();
-
-	for( u32 i = 0; i < num_maps; i++ ) {
-		const Map * map = &maps[ i ];
-		for( u32 j = 0; j < map->num_models; j++ ) {
-			String< 16 > suffix( "*{}", j );
-			u64 hash = Hash64( suffix.c_str(), suffix.length(), map->base_hash );
-
-			assert( map_models_hashtable.size() < MAX_MAP_MODELS );
-			map_models_hashtable.add( hash, uintptr_t( &map->models[ j ] ) );
-		}
-	}
 }
 
 void InitMaps() {
@@ -84,8 +88,6 @@ void InitMaps() {
 
 		AddMap( AssetBinary( path ), path );
 	}
-
-	FillMapModelsHashtable();
 }
 
 void HotloadMaps() {
@@ -102,8 +104,9 @@ void HotloadMaps() {
 		hotloaded_anything = true;
 	}
 
+	// if we hotload a map while playing a local game just assume we're
+	// playing on it and always hotload
 	if( hotloaded_anything && Com_ServerState() != ss_dead ) {
-		FillMapModelsHashtable();
 		G_HotloadMap();
 	}
 }

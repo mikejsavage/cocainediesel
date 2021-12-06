@@ -96,7 +96,6 @@ void UI_Init() {
 }
 
 void UI_Shutdown() {
-	ResetServerBrowser();
 	// ShutdownParticleEditor();
 }
 
@@ -787,7 +786,7 @@ static void MainMenu() {
 
 	PushButtonColor( ImVec4( 0.375f, 0.f, 0.f, 0.75f ) );
 	if( ImGui::Button( "QUIT" ) ) {
-		CL_Quit();
+		Com_DeferQuit();
 	} ImGui::PopStyleColor( 3 );
 
 	if( cl_devtools->integer != 0 ) {

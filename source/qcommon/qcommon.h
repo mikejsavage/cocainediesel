@@ -598,7 +598,7 @@ extern mempool_t *tempMemPool;
 #define Mem_TempFree( data ) Mem_Free( data )
 
 void Qcommon_Init( int argc, char **argv );
-void Qcommon_Frame( unsigned int realMsec );
+bool Qcommon_Frame( unsigned int realMsec );
 void Qcommon_Shutdown();
 
 /*
@@ -624,8 +624,6 @@ void Sys_ConsoleOutput( const char * string );
 bool Sys_OpenInWebBrowser( const char * url );
 
 bool Sys_BeingDebugged();
-
-void Sys_Quit();
 
 /*
 ==============================================================

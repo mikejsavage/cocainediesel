@@ -19,12 +19,6 @@ const bool is_dedicated_server = false;
 
 static int framebuffer_width, framebuffer_height;
 
-void Sys_Quit() {
-	Qcommon_Shutdown();
-	glfwTerminate();
-	exit( 0 );
-}
-
 // TODO
 extern cvar_t * vid_mode;
 
@@ -389,6 +383,7 @@ void CreateWindow( WindowMode mode ) {
 }
 
 void DestroyWindow() {
+	ZoneScoped;
 	glfwDestroyWindow( window );
 }
 
@@ -555,10 +550,14 @@ int main( int argc, char ** argv ) {
 
 		glfwPollEvents();
 
-		Qcommon_Frame( dt );
+		if( !Qcommon_Frame( dt ) ) {
+			break;
+		}
 	}
 
 	Com_Quit();
+
+	glfwTerminate();
 
 	return 0;
 }

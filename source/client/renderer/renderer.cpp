@@ -177,6 +177,8 @@ static void DeleteFramebuffers() {
 }
 
 void ShutdownRenderer() {
+	ZoneScoped;
+
 	ShutdownModels();
 	ShutdownSkybox();
 	ShutdownText();

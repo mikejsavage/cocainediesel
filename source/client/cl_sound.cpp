@@ -571,6 +571,8 @@ bool S_Init() {
 }
 
 void S_Shutdown() {
+	ZoneScoped;
+
 	if( !initialized )
 		return;
 

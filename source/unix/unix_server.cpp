@@ -58,22 +58,12 @@ static void InitSig() {
 	catchsig( SIGUSR1, sigusr_handler );
 }
 
-void Sys_Quit() {
-	fcntl( 0, F_SETFL, fcntl( 0, F_GETFL, 0 ) & ~O_NONBLOCK );
-
-	Qcommon_Shutdown();
-
-	exit( 0 );
-}
-
 int main( int argc, char ** argv ) {
 	unsigned int oldtime, newtime, time;
 
 	InitSig();
 
 	Qcommon_Init( argc, argv );
-
-	fcntl( 0, F_SETFL, fcntl( 0, F_GETFL, 0 ) | O_NONBLOCK );
 
 	oldtime = Sys_Milliseconds();
 	while( true ) {
@@ -91,7 +81,13 @@ int main( int argc, char ** argv ) {
 		} while( 1 );
 		oldtime = newtime;
 
-		Qcommon_Frame( time );
+		if( !Qcommon_Frame( time ) ) {
+			break;
+		}
 	}
+
+	Com_Quit();
+
+	return 0;
 }
 

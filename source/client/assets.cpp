@@ -223,6 +223,8 @@ void DoneHotloadingAssets() {
 }
 
 void ShutdownAssets() {
+	ZoneScoped;
+
 	for( u32 i = 0; i < num_assets; i++ ) {
 		FREE( sys_allocator, assets[ i ].path );
 		FREE( sys_allocator, assets[ i ].data );

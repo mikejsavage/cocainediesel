@@ -563,6 +563,8 @@ void SV_Init() {
 }
 
 void SV_Shutdown( const char *finalmsg ) {
+	ZoneScoped;
+
 	if( !sv_initialized ) {
 		return;
 	}

@@ -245,18 +245,13 @@ void Com_DeferQuit() {
 	com_quit = true;
 }
 
-/*
-* Com_Quit
-*
-* Both client and server can use this, and it will
-* do the apropriate things.
-*/
 void Com_Quit() {
+	ZoneScoped;
+
 	SV_Shutdown( "Server quit\n" );
 	CL_Shutdown();
 	ShutdownMapList();
-
-	Sys_Quit();
+	Qcommon_Shutdown();
 }
 
 server_state_t Com_ServerState() {
@@ -330,28 +325,6 @@ char *_TempCopyString( const char *str, const char *filename, int fileline ) {
 void Key_Init();
 void Key_Shutdown();
 
-void Qcommon_InitCommands() {
-	assert( !commands_intialized );
-
-	if( is_dedicated_server ) {
-		Cmd_AddCommand( "quit", Com_Quit );
-	}
-
-	commands_intialized = true;
-}
-
-void Qcommon_ShutdownCommands() {
-	if( !commands_intialized ) {
-		return;
-	}
-
-	if( is_dedicated_server ) {
-		Cmd_RemoveCommand( "quit" );
-	}
-
-	commands_intialized = false;
-}
-
 void Qcommon_Init( int argc, char **argv ) {
 	ZoneScoped;
 
@@ -411,7 +384,7 @@ void Qcommon_Init( int argc, char **argv ) {
 	//
 	Memory_InitCommands();
 
-	Qcommon_InitCommands();
+	Cmd_AddCommand( "quit", Com_DeferQuit );
 
 	timescale =     Cvar_Get( "timescale", "1.0", CVAR_CHEAT );
 	if( is_dedicated_server ) {
@@ -441,17 +414,13 @@ void Qcommon_Init( int argc, char **argv ) {
 	Cbuf_Execute();
 }
 
-void Qcommon_Frame( unsigned int realMsec ) {
+bool Qcommon_Frame( unsigned int realMsec ) {
 	ZoneScoped;
 
 	static unsigned int gameMsec;
 
-	if( com_quit ) {
-		Com_Quit();
-	}
-
 	if( setjmp( abortframe ) ) {
-		return; // an ERR_DROP was thrown
+		return true; // an ERR_DROP was thrown
 	}
 
 	if( logconsole && logconsole->modified ) {
@@ -481,6 +450,8 @@ void Qcommon_Frame( unsigned int realMsec ) {
 
 	SV_Frame( realMsec, gameMsec );
 	CL_Frame( realMsec, gameMsec );
+
+	return !com_quit;
 }
 
 void Qcommon_Shutdown() {
@@ -488,7 +459,8 @@ void Qcommon_Shutdown() {
 	NET_Shutdown();
 	Key_Shutdown();
 
-	Qcommon_ShutdownCommands();
+	Cmd_RemoveCommand( "quit" );
+
 	Memory_ShutdownCommands();
 
 	Com_CloseConsoleLog( true, true );

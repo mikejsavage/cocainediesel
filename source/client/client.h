@@ -232,7 +232,6 @@ extern SyncEntityState cl_baselines[MAX_EDICTS];
 // cl_main.c
 //
 void CL_Init();
-void CL_Quit();
 
 void CL_UpdateClientCommandsToServer( msg_t *msg );
 void CL_AddReliableCommand( const char *cmd );

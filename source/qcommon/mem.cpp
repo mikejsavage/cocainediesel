@@ -107,7 +107,6 @@ mempool_t *tempMemPool;
 static Mutex *memMutex;
 
 static bool memory_initialized = false;
-static bool commands_initialized = false;
 
 static void _Mem_Error( const char *format, ... ) {
 	va_list argptr;
@@ -681,14 +680,10 @@ void Memory_Init() {
 * Memory_InitCommands
 */
 void Memory_InitCommands() {
-	assert( !commands_initialized );
-
 	developer_memory = Cvar_Get( "developer_memory", "0", 0 );
 
 	Cmd_AddCommand( "memlist", MemList_f );
 	Cmd_AddCommand( "memstats", MemStats_f );
-
-	commands_initialized = true;
 }
 
 /*
@@ -729,10 +724,6 @@ void Memory_Shutdown() {
 * Memory_ShutdownCommands
 */
 void Memory_ShutdownCommands() {
-	if( !commands_initialized ) {
-		return;
-	}
-
 	Cmd_RemoveCommand( "memlist" );
 	Cmd_RemoveCommand( "memstats" );
 }

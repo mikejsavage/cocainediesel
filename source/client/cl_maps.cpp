@@ -112,6 +112,8 @@ void HotloadMaps() {
 }
 
 void ShutdownMaps() {
+	ZoneScoped;
+
 	for( u32 i = 0; i < num_maps; i++ ) {
 		DeleteMap( &maps[ i ] );
 	}

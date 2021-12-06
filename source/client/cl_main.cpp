@@ -158,15 +158,6 @@ void CL_ServerDisconnect_f() {
 	Cbuf_ExecuteText( EXEC_NOW, menuparms );
 }
 
-void CL_Quit() {
-	CL_Disconnect( NULL );
-	Com_Quit();
-}
-
-static void CL_Quit_f() {
-	CL_Quit();
-}
-
 /*
 * CL_SendConnectPacket
 *
@@ -1048,7 +1039,6 @@ static void CL_InitLocal() {
 	Cmd_AddCommand( "disconnect", CL_Disconnect_f );
 	Cmd_AddCommand( "record", CL_Record_f );
 	Cmd_AddCommand( "stop", CL_Stop_f );
-	Cmd_AddCommand( "quit", CL_Quit_f );
 	Cmd_AddCommand( "connect", CL_Connect_f );
 	Cmd_AddCommand( "reconnect", CL_Reconnect_f );
 	Cmd_AddCommand( "rcon", CL_Rcon_f );
@@ -1071,7 +1061,6 @@ static void CL_ShutdownLocal() {
 	Cmd_RemoveCommand( "disconnect" );
 	Cmd_RemoveCommand( "record" );
 	Cmd_RemoveCommand( "stop" );
-	Cmd_RemoveCommand( "quit" );
 	Cmd_RemoveCommand( "connect" );
 	Cmd_RemoveCommand( "reconnect" );
 	Cmd_RemoveCommand( "rcon" );
@@ -1516,13 +1505,9 @@ void CL_Init() {
 	Mem_DebugCheckSentinelsGlobal();
 }
 
-/*
-* CL_Shutdown
-*
-* FIXME: this is a callback from Sys_Quit and Com_Error.  It would be better
-* to run quit through here before the final handoff to the sys code.
-*/
 void CL_Shutdown() {
+	ZoneScoped;
+
 	if( !cl_initialized ) {
 		return;
 	}
@@ -1532,6 +1517,7 @@ void CL_Shutdown() {
 	CL_WriteConfiguration();
 
 	CL_Disconnect( NULL );
+	NET_CloseSocket( &cls.socket_loopback );
 	NET_CloseSocket( &cls.socket_udp );
 	NET_CloseSocket( &cls.socket_udp6 );
 	// TOCHECK: Shouldn't we close the TCP socket too?

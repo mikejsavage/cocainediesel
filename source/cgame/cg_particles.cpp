@@ -1164,6 +1164,15 @@ void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal, float count, V
 	DoVisualEffect( StringHash( name ), origin, normal, count, color, decal_lifetime_scale );
 }
 
+void ClearParticles() {
+	for( size_t i = 0; i < num_particleSystems; i++ ) {
+		if( particleSystems[ i ].initialized ) {
+			particleSystems[ i ].num_particles = 0;
+			particleSystems[ i ].new_particles = 0;
+		}
+	}
+}
+
 void DrawParticleMenuEffect() {
 	ImVec2 mouse_pos = ImGui::GetMousePos();
 	Vec2 pos = Clamp( Vec2( 0.0f ), Vec2( mouse_pos.x, mouse_pos.y ), frame_static.viewport ) - frame_static.viewport * 0.5f;

@@ -166,6 +166,7 @@ void CG_Reset() {
 	InitDecals();
 	InitPersistentBeams();
 	InitSprays();
+	ClearParticles();
 
 	chaseCam.key_pressed = false;
 
@@ -220,6 +221,7 @@ void CG_Init( unsigned int playerNum,
 	InitSprays();
 	InitPersistentBeams();
 	InitGibs();
+	ClearParticles();
 
 	CG_InitChat();
 

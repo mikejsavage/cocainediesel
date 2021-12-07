@@ -499,7 +499,6 @@ static int G_SanitizeUserString( char *string, size_t size ) {
 }
 
 static void G_SetName( edict_t *ent, const char *original_name ) {
-	const char *invalid_prefixes[] = { "console", "[team]", "[spec]", "[bot]", NULL };
 	edict_t *other;
 	char name[MAX_NAME_CHARS + 1];
 	int i, trynum, trylen;
@@ -519,15 +518,6 @@ static void G_SetName( edict_t *ent, const char *original_name ) {
 	c_ascii = G_SanitizeUserString( name, sizeof( name ) );
 	if( !c_ascii ) {
 		Q_strncpyz( name, "Player", sizeof( name ) );
-	}
-
-	if( !( ent->r.svflags & SVF_FAKECLIENT ) ) {
-		for( i = 0; invalid_prefixes[i] != NULL; i++ ) {
-			if( !Q_strnicmp( name, invalid_prefixes[i], strlen( invalid_prefixes[i] ) ) ) {
-				Q_strncpyz( name, "Player", sizeof( name ) );
-				break;
-			}
-		}
 	}
 
 	trynum = 1;

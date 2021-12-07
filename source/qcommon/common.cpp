@@ -106,12 +106,6 @@ void Com_EndRedirect() {
 	Unlock( com_print_mutex );
 }
 
-void Com_DeferConsoleLogReopen() {
-	if( logconsole != NULL ) {
-		logconsole->modified = true;
-	}
-}
-
 static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	if( shutdown ) {
 		lock = true;

@@ -118,7 +118,6 @@ static int InputCallback( ImGuiInputTextCallbackData * data ) {
 void CG_DrawChat() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	const ImGuiIO & io = ImGui::GetIO();
 	float width_frac = Lerp( 0.5f, Unlerp01( 1024.0f, float( frame_static.viewport_width ), 1920.0f ), 0.3f );
 	Vec2 size = frame_static.viewport * Vec2( width_frac, 0.25f );
 

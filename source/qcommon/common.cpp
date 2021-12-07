@@ -33,8 +33,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MAX_NUM_ARGVS   50
 
-static bool commands_intialized = false;
-
 static int com_argc;
 static char *com_argv[MAX_NUM_ARGVS + 1];
 

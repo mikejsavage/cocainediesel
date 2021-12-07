@@ -34,8 +34,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define OSNAME "Windows"
 
-#include <malloc.h>
-
 typedef int socklen_t;
 
 typedef unsigned long ioctl_param_t;
@@ -49,8 +47,6 @@ typedef uintptr_t socket_handle_t;
 #if defined ( __linux__ )
 
 #define OSNAME "Linux"
-
-#include <alloca.h>
 
 typedef int ioctl_param_t;
 

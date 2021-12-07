@@ -120,7 +120,7 @@ bool CreatePathForFile( Allocator * a, const char * path ) {
 		}
 	}
 
-	while( ( cursor = StrChrUTF8( cursor, '/' ) ) != NULL ) {
+	while( ( cursor = strchr( cursor, '/' ) ) != NULL ) {
 		*cursor = '\0';
 		if( !CreateDirectory( a, mutable_path ) )
 			return false;

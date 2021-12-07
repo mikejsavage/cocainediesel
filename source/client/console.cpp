@@ -97,7 +97,7 @@ void Con_Print( const char * str ) {
 	size_t len = strlen( str );
 	size_t trim = 0;
 	while( console.log.length() - trim + len >= CONSOLE_LOG_SIZE ) {
-		const char * newline = StrChrUTF8( console.log.c_str() + trim, '\n' );
+		const char * newline = strchr( console.log.c_str() + trim, '\n' );
 		if( newline == NULL ) {
 			trim = console.log.length();
 			break;
@@ -179,7 +179,7 @@ static void TabCompletion( char * buf, int buf_size ) {
 		completion = *completion_lists[1];
 	}
 	if( ca != 0 ) {
-		input = StrChrUTF8( input, ' ' ) + 1;
+		input = strchr( input, ' ' ) + 1;
 		completion = *completion_lists[2];
 	}
 
@@ -267,7 +267,7 @@ static void Con_Execute() {
 
 		if( chat ) {
 			char * p = console.input;
-			while( ( p = StrChrUTF8( p, '"' ) ) != NULL ) {
+			while( ( p = strchr( p, '"' ) ) != NULL ) {
 				*p = '\'';
 				p++;
 			}

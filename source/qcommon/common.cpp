@@ -308,10 +308,6 @@ int Com_GlobMatch( const char *pattern, const char *text, const bool casecmp ) {
 	return glob_match( pattern, text, casecmp );
 }
 
-char *_TempCopyString( const char *str, const char *filename, int fileline ) {
-	return _Mem_CopyString( tempMemPool, str, filename, fileline );
-}
-
 //============================================================================
 
 void Key_Init();

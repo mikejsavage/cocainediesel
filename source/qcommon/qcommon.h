@@ -139,9 +139,6 @@ void COM_ClearArgv( int arg );
 void COM_Init();
 void COM_InitArgv( int argc, char **argv );
 
-char *_TempCopyString( const char *str, const char *filename, int fileline );
-#define TempCopyString( str ) _TempCopyString( str, __FILE__, __LINE__ )
-
 int Com_GlobMatch( const char *pattern, const char *text, const bool casecmp );
 
 /*

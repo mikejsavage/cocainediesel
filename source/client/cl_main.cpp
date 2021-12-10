@@ -249,10 +249,12 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 		NET_SetAddressPort( &cls.serveraddress, PORT_SERVER );
 	}
 
-	if( cls.servername ) {
-		FREE( sys_allocator, cls.servername );
+	if( servername != cls.servername ) {
+		if( cls.servername != NULL ) {
+			FREE( sys_allocator, cls.servername );
+		}
+		cls.servername = CopyString( sys_allocator, servername );
 	}
-	cls.servername = CopyString( sys_allocator, servername );
 
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 
@@ -264,69 +266,33 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 	cls.lastPacketReceivedTime = cls.realtime; // reset the timeout limit
 }
 
-static void CL_Connect_Cmd_f( socket_type_t socket ) {
-	netadr_t serveraddress;
-	char *servername, password[64];
-	char *connectstring, *connectstring_base;
-	const char *tmp;
-
+static void CL_Connect_f() {
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "Usage: %s <server>\n", Cmd_Argv( 0 ) );
 		return;
 	}
 
-	connectstring_base = TempCopyString( Cmd_Argv( 1 ) );
-	connectstring = connectstring_base;
+	TempAllocator temp = cls.frame_arena.temp();
 
-	if( StrCaseEqual( connectstring, APP_URI_SCHEME ) ) {
-		connectstring += strlen( APP_URI_SCHEME );
+	const char * arg = Cmd_Argv( 1 );
+	if( StartsWith( arg, APP_URI_SCHEME ) ) {
+		arg += strlen( APP_URI_SCHEME );
 	}
 
-	if( FileExtension( connectstring ) == APP_DEMO_EXTENSION_STR ) {
-		char *temp;
-		size_t temp_size;
-		const char *http_scheme = "http://";
-
-		if( StrCaseEqual( connectstring, http_scheme ) ) {
-			connectstring += strlen( http_scheme );
-		}
-
-		temp_size = strlen( "demo " ) + strlen( http_scheme ) + strlen( connectstring ) + 1;
-		temp = ( char * ) Mem_TempMalloc( temp_size );
-		snprintf( temp, temp_size, "demo %s%s", http_scheme, connectstring );
-
-		Cbuf_ExecuteText( EXEC_NOW, temp );
-
-		Mem_TempFree( temp );
-		Mem_TempFree( connectstring_base );
-		return;
+	const char * at = strchr( arg, '@' );
+	if( at != NULL ) {
+		Span< const char > password = Span< const char >( arg, at - arg );
+		Cvar_Set( "password", temp( "{}", password ) );
+		arg += password.n + 1;
 	}
 
-	if( ( tmp = strrchr( connectstring, '@' ) ) != NULL ) {
-		Q_strncpyz( password, connectstring, qmin( sizeof( password ), tmp - connectstring + 1 ) );
-		Cvar_Set( "password", password );
-		connectstring += ( tmp - connectstring ) + 1;
-	}
-
-	if( ( tmp = strrchr( connectstring, '/' ) ) != NULL ) {
-		connectstring[tmp - connectstring] = '\0';
-	}
-
-	if( !NET_StringToAddress( connectstring, &serveraddress ) ) {
-		Mem_TempFree( connectstring_base );
+	netadr_t address;
+	if( !NET_StringToAddress( arg, &address ) ) {
 		Com_Printf( "Bad server address\n" );
 		return;
 	}
 
-	servername = TempCopyString( connectstring );
-	CL_Connect( servername, ( serveraddress.type == NA_LOOPBACK ? SOCKET_LOOPBACK : socket ), &serveraddress );
-
-	Mem_TempFree( servername );
-	Mem_TempFree( connectstring_base );
-}
-
-static void CL_Connect_f() {
-	CL_Connect_Cmd_f( SOCKET_UDP );
+	CL_Connect( Cmd_Argv( 1 ), address.type == NA_LOOPBACK ? SOCKET_LOOPBACK : SOCKET_UDP, &address );
 }
 
 
@@ -597,21 +563,14 @@ void CL_ServerReconnect_f() {
 * User reconnect command.
 */
 void CL_Reconnect_f() {
-	char *servername;
-	socket_type_t servertype;
-	netadr_t serveraddress;
-
-	if( !cls.servername ) {
+	if( cls.servername == NULL ) {
 		Com_Printf( "Can't reconnect, never connected\n" );
 		return;
 	}
 
-	servername = TempCopyString( cls.servername );
-	servertype = cls.servertype;
-	serveraddress = cls.serveraddress;
+	netadr_t serveraddress = cls.serveraddress;
 	CL_Disconnect( NULL );
-	CL_Connect( servername, servertype, &serveraddress );
-	Mem_TempFree( servername );
+	CL_Connect( cls.servername, cls.servertype, &serveraddress );
 }
 
 /*

@@ -88,15 +88,15 @@ uniform samplerBuffer u_DynamicLightData;
 Light GetDynamicLight( int index, vec3 normal ) {
 	vec4 data = texelFetch( u_DynamicLightData, index );
 	vec3 origin = floor( data.xyz );
-	float radius = data.w;
-	float intensity = DLIGHT_CUTOFF * radius * radius;
+	float radius_squared = data.w * data.w;
 	vec3 dir = v_Position - origin;
 	float dist_squared = dot( dir, dir );
+	float attenuation = u_DynamicLightCutoff * ( ( radius_squared + 1.0 ) / ( dist_squared + 1.0 ) - 1.0 );
 
 	Light light;
 	light.color = fract( data.xyz ) / 0.9;
 	light.direction = -normalize( dir - normal ); // - normal to prevent 0,0,0
-	light.attenuation = max( 0.0, intensity / dist_squared - DLIGHT_CUTOFF );
+	light.attenuation = max( 0.0, attenuation );
 	light.ambient = 0.0;
 	return light;
 }

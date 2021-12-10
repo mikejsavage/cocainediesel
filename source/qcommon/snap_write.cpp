@@ -22,6 +22,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/cmodel.h"
 #include "server/server.h"
 
+#if PLATFORM_WINDOWS
+#include <malloc.h> // alloca
+#endif
+
 /*
 =========================================================================
 

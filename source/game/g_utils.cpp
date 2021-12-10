@@ -190,21 +190,14 @@ void G_FreeEdict( edict_t *ed ) {
 }
 
 void G_InitEdict( edict_t *e ) {
-	e->r.inuse = true;
-	e->timeDelta = 0;
-	e->deadflag = DEAD_NO;
-	e->timeStamp = 0;
-
-	memset( &e->s, 0, sizeof( SyncEntityState ) );
+	memset( e, 0, sizeof( *e ) );
 	e->s.number = ENTNUM( e );
+	e->r.inuse = true;
+
 	e->s.scale = Vec3( 1.0f );
 
 	// mark all entities to not be sent by default
 	e->r.svflags = SVF_NOCLIENT;
-
-	// clear the old state data
-	memset( &e->olds, 0, sizeof( e->olds ) );
-	memset( &e->snap, 0, sizeof( e->snap ) );
 }
 
 /*

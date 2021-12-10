@@ -25,26 +25,26 @@ cg_state_t cg;
 
 centity_t cg_entities[MAX_EDICTS];
 
-cvar_t *cg_showMiss;
+Cvar *cg_showMiss;
 
-cvar_t *cg_thirdPerson;
-cvar_t *cg_thirdPersonAngle;
-cvar_t *cg_thirdPersonRange;
+Cvar *cg_thirdPerson;
+Cvar *cg_thirdPersonAngle;
+Cvar *cg_thirdPersonRange;
 
-cvar_t *cg_projectileAntilagOffset;
-cvar_t *cg_chat;
+Cvar *cg_projectileAntilagOffset;
+Cvar *cg_chat;
 
-cvar_t *cg_showHotkeys;
-cvar_t *cg_colorBlind;
+Cvar *cg_showHotkeys;
+Cvar *cg_colorBlind;
 
-cvar_t *cg_autoaction_demo;
-cvar_t *cg_autoaction_screenshot;
-cvar_t *cg_autoaction_spectator;
-cvar_t *cg_showClamp;
+Cvar *cg_autoaction_demo;
+Cvar *cg_autoaction_screenshot;
+Cvar *cg_autoaction_spectator;
+Cvar *cg_showClamp;
 
-cvar_t *cg_particleDebug;
+Cvar *cg_particleDebug;
 
-cvar_t *cg_showServerDebugPrints;
+Cvar *cg_showServerDebugPrints;
 
 void CG_LocalPrint( const char *format, ... ) {
 	va_list argptr;
@@ -107,30 +107,30 @@ static void CG_InitGameShared() {
 }
 
 static void CG_RegisterVariables() {
-	cg_showMiss = Cvar_Get( "cg_showMiss", "0", 0 );
+	cg_showMiss = NewCvar( "cg_showMiss", "0", 0 );
 
-	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
-	cg_colorBlind  = Cvar_Get( "cg_colorBlind", "0", CVAR_ARCHIVE );
+	cg_showHotkeys = NewCvar( "cg_showHotkeys", "1", CvarFlag_Archive );
+	cg_colorBlind  = NewCvar( "cg_colorBlind", "0", CvarFlag_Archive );
 
-	cg_thirdPerson = Cvar_Get( "cg_thirdPerson", "0", CVAR_CHEAT );
-	cg_thirdPersonAngle = Cvar_Get( "cg_thirdPersonAngle", "0", 0 );
-	cg_thirdPersonRange = Cvar_Get( "cg_thirdPersonRange", "90", 0 );
+	cg_thirdPerson = NewCvar( "cg_thirdPerson", "0", CvarFlag_Cheat );
+	cg_thirdPersonAngle = NewCvar( "cg_thirdPersonAngle", "0", 0 );
+	cg_thirdPersonRange = NewCvar( "cg_thirdPersonRange", "90", 0 );
 
-	cg_autoaction_demo = Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
-	cg_autoaction_screenshot = Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );
-	cg_autoaction_spectator = Cvar_Get( "cg_autoaction_spectator", "0", CVAR_ARCHIVE );
+	cg_autoaction_demo = NewCvar( "cg_autoaction_demo", "0", CvarFlag_Archive );
+	cg_autoaction_screenshot = NewCvar( "cg_autoaction_screenshot", "0", CvarFlag_Archive );
+	cg_autoaction_spectator = NewCvar( "cg_autoaction_spectator", "0", CvarFlag_Archive );
 
-	cg_projectileAntilagOffset = Cvar_Get( "cg_projectileAntilagOffset", "1.0", CVAR_ARCHIVE );
+	cg_projectileAntilagOffset = NewCvar( "cg_projectileAntilagOffset", "1.0", CvarFlag_Archive );
 
-	cg_chat = Cvar_Get( "cg_chat", "1", CVAR_ARCHIVE );
+	cg_chat = NewCvar( "cg_chat", "1", CvarFlag_Archive );
 
-	cg_showClamp = Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
+	cg_showClamp = NewCvar( "cg_showClamp", "0", CvarFlag_Developer );
 
-	cg_particleDebug = Cvar_Get( "cg_particleDebug", "0", CVAR_DEVELOPER );
+	cg_particleDebug = NewCvar( "cg_particleDebug", "0", CvarFlag_Developer );
 
-	cg_showServerDebugPrints = Cvar_Get( "cg_showServerDebugPrints", "0", CVAR_ARCHIVE );
+	cg_showServerDebugPrints = NewCvar( "cg_showServerDebugPrints", "0", CvarFlag_Archive );
 
-	Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
+	NewCvar( "cg_loadout", "", CvarFlag_Archive | CvarFlag_UserInfo );
 }
 
 const char * PlayerName( int i ) {

@@ -81,9 +81,9 @@ unacknowledged reliable
 
 static u64 client_session_id;
 
-static cvar_t *showpackets;
-static cvar_t *showdrop;
-static cvar_t *net_showfragments;
+static Cvar *showpackets;
+static Cvar *showdrop;
+static Cvar *net_showfragments;
 
 /*
 * Netchan_OutOfBand
@@ -607,9 +607,9 @@ u64 Netchan_ClientSessionID() {
 void Netchan_Init() {
 	CSPRNG( &client_session_id, sizeof( client_session_id ) );
 
-	showpackets = Cvar_Get( "showpackets", "0", 0 );
-	showdrop = Cvar_Get( "showdrop", "0", 0 );
-	net_showfragments = Cvar_Get( "net_showfragments", "0", 0 );
+	showpackets = NewCvar( "showpackets", "0", 0 );
+	showdrop = NewCvar( "showdrop", "0", 0 );
+	net_showfragments = NewCvar( "net_showfragments", "0", 0 );
 }
 
 void Netchan_Shutdown() {

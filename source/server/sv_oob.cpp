@@ -23,9 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static netadr_t sv_masters[ ARRAY_COUNT( MASTER_SERVERS ) ];
 
-extern cvar_t *sv_hostname;
-extern cvar_t *rcon_password;         // password for remote server commands
-extern cvar_t *sv_iplimit;
+extern Cvar *sv_hostname;
+extern Cvar *rcon_password;         // password for remote server commands
+extern Cvar *sv_iplimit;
 
 
 //==============================================================================
@@ -114,7 +114,7 @@ static char *SV_LongInfoString( bool fullStatus ) {
 	size_t statusLength;
 	size_t tempstrLength;
 
-	Q_strncpyz( status, Cvar_Serverinfo(), sizeof( status ) );
+	Q_strncpyz( status, Cvar_GetServerInfo(), sizeof( status ) );
 
 	statusLength = strlen( status );
 
@@ -187,7 +187,7 @@ static char *SV_ShortInfoString() {
 	//format:
 	//" \377\377\377\377info\\n\\server_name\\m\\map name\\u\\clients/maxclients\\EOT "
 
-	Q_strncpyz( hostname, sv_hostname->string, sizeof( hostname ) );
+	Q_strncpyz( hostname, sv_hostname->value, sizeof( hostname ) );
 	snprintf( string, sizeof( string ),
 				 "\\\\n\\\\%s\\\\m\\\\%s\\\\u\\\\%2i/%2i\\\\",
 				 hostname,
@@ -198,7 +198,7 @@ static char *SV_ShortInfoString() {
 
 	size_t len = strlen( string );
 
-	const char * password = Cvar_String( "password" );
+	const char * password = Cvar_String( "sv_password" );
 	if( password[0] != '\0' ) {
 		snprintf( entry, sizeof( entry ), "p\\\\1\\\\" );
 		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {
@@ -408,27 +408,11 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 
 	// get the game a chance to reject this connection or modify the userinfo
 	if( !SV_ClientConnect( socket, address, newcl, userinfo, session_id, challenge, false ) ) {
-		const char *rejtype, *rejflag, *rejtypeflag, *rejmsg;
+		const char * rejtype = Info_ValueForKey( userinfo, "rejtype" );
+		const char * rejmsg = Info_ValueForKey( userinfo, "rejmsg" );
 
-		rejtype = Info_ValueForKey( userinfo, "rejtype" );
-		if( !rejtype ) {
-			rejtype = "0";
-		}
-		rejflag = Info_ValueForKey( userinfo, "rejflag" );
-		if( !rejflag ) {
-			rejflag = "0";
-		}
-		// hax because Info_ValueForKey can only be called twice in a row
-		rejtypeflag = va( "%s\n%s", rejtype, rejflag );
+		Netchan_OutOfBandPrint( socket, address, "reject\n%s\n%s\n", rejtype, rejmsg );
 
-		rejmsg = Info_ValueForKey( userinfo, "rejmsg" );
-		if( !rejmsg ) {
-			rejmsg = "Game module rejected connection";
-		}
-
-		Netchan_OutOfBandPrint( socket, address, "reject\n%s\n%s\n", rejtypeflag, rejmsg );
-
-		Com_DPrintf( "Game rejected a connection.\n" );
 		return;
 	}
 
@@ -496,16 +480,8 @@ int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const
 	return NUM_FOR_EDICT( newcl->edict );
 }
 
-static int Rcon_Validate() {
-	if( !strlen( rcon_password->string ) ) {
-		return 0;
-	}
-
-	if( strcmp( Cmd_Argv( 1 ), rcon_password->string ) ) {
-		return 0;
-	}
-
-	return 1;
+static bool Rcon_Validate() {
+	return StrEqual( rcon_password->value, "" ) || StrEqual( Cmd_Argv( 1 ), rcon_password->value );
 }
 
 /*
@@ -516,15 +492,13 @@ static int Rcon_Validate() {
 * Redirect all printfs
 */
 static void SVC_RemoteCommand( const socket_t *socket, const netadr_t *address ) {
-	int i;
 	char remaining[1024];
 	flush_params_t extra;
 
-	i = Rcon_Validate();
-
-	if( i == 0 ) {
+	if( Rcon_Validate() ) {
 		Com_Printf( "Bad rcon from %s:\n%s\n", NET_AddressToString( address ), Cmd_Args() );
-	} else {
+	}
+	else {
 		Com_Printf( "Rcon from %s:\n%s\n", NET_AddressToString( address ), Cmd_Args() );
 	}
 
@@ -538,10 +512,11 @@ static void SVC_RemoteCommand( const socket_t *socket, const netadr_t *address )
 
 	if( !Rcon_Validate() ) {
 		Com_Printf( "Bad rcon_password.\n" );
-	} else {
+	}
+	else {
 		remaining[0] = 0;
 
-		for( i = 2; i < Cmd_Argc(); i++ ) {
+		for( int i = 2; i < Cmd_Argc(); i++ ) {
 			Q_strncatz( remaining, "\"", sizeof( remaining ) );
 			Q_strncatz( remaining, Cmd_Argv( i ), sizeof( remaining ) );
 			Q_strncatz( remaining, "\" ", sizeof( remaining ) );

@@ -278,18 +278,13 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	Vec3 mins( -4.0f );
 	Vec3 maxs( 4.0f );
 
-	if( !cg_thirdPersonAngle || !cg_thirdPersonRange ) {
-		cg_thirdPersonAngle = Cvar_Get( "cg_thirdPersonAngle", "0", CVAR_ARCHIVE );
-		cg_thirdPersonRange = Cvar_Get( "cg_thirdPersonRange", "70", CVAR_ARCHIVE );
-	}
-
 	// calc exact destination
 	Vec3 chase_dest = view->origin;
-	r = Radians( cg_thirdPersonAngle->value );
+	r = Radians( cg_thirdPersonAngle->number );
 	f = -cosf( r );
 	r = -sinf( r );
-	chase_dest += FromQFAxis( view->axis, AXIS_FORWARD ) * ( cg_thirdPersonRange->value * f );
-	chase_dest += FromQFAxis( view->axis, AXIS_RIGHT ) * ( cg_thirdPersonRange->value * r );
+	chase_dest += FromQFAxis( view->axis, AXIS_FORWARD ) * ( cg_thirdPersonRange->number * f );
+	chase_dest += FromQFAxis( view->axis, AXIS_RIGHT ) * ( cg_thirdPersonRange->number * r );
 	chase_dest.z += 8;
 
 	// find the spot the player is looking at
@@ -303,7 +298,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 		dist = 1;
 	}
 	view->angles.x = Degrees( -atan2f( stop.z, dist ) );
-	view->angles.y -= cg_thirdPersonAngle->value;
+	view->angles.y -= cg_thirdPersonAngle->number;
 	Matrix3_FromAngles( view->angles, view->axis );
 
 	// move towards destination

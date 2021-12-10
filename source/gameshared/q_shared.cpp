@@ -344,15 +344,17 @@ bool StrCaseEqual( const char * lhs, const char * rhs ) {
 bool StartsWith( Span< const char > str, const char * prefix ) {
 	if( str.n < strlen( prefix ) )
 		return false;
-
 	return memcmp( str.ptr, prefix, strlen( prefix ) ) == 0;
 }
 
 bool StartsWith( const char * str, const char * prefix ) {
+	return StartsWith( MakeSpan( str ), prefix );
+}
+
+bool CaseStartsWith( const char * str, const char * prefix ) {
 	if( strlen( str ) < strlen( prefix ) )
 		return false;
-
-	return memcmp( str, prefix, strlen( prefix ) ) == 0;
+	return StrCaseEqual( Span< const char >( str, strlen( prefix ) ), prefix );
 }
 
 Span< const char > FileExtension( const char * path ) {

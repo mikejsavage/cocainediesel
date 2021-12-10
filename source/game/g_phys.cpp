@@ -44,13 +44,10 @@ static bool EntityOverlapsAnything( edict_t *ent ) {
 	return trace.startsolid;
 }
 
-/*
-* SV_CheckVelocity
-*/
 static void SV_CheckVelocity( edict_t *ent ) {
 	float velocity = Length( ent->velocity );
-	if( velocity > g_maxvelocity->value && velocity != 0.0f ) {
-		ent->velocity = ent->velocity * g_maxvelocity->value / velocity;
+	if( velocity > g_maxvelocity->number && velocity != 0.0f ) {
+		ent->velocity = ent->velocity * g_maxvelocity->number / velocity;
 	}
 }
 
@@ -541,16 +538,12 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	} else if( wasinwater && !ent->waterlevel ) {
 		G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/misc/hit_water" );
 	}
-	
+
 	ent->s.angles += ent->avelocity * FRAMETIME;
 }
 
 //============================================================================
 
-/*
-* G_RunEntity
-*
-*/
 void G_RunEntity( edict_t *ent ) {
 	if( !level.canSpawnEntities ) { // don't try to think before map entities are spawned
 		return;

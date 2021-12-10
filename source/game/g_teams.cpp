@@ -21,12 +21,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_local.h"
 #include <algorithm>
 
-cvar_t *g_teams_maxplayers;
-cvar_t *g_teams_allow_uneven;
+Cvar *g_teams_maxplayers;
+Cvar *g_teams_allow_uneven;
 
 void G_Teams_Init() {
-	g_teams_maxplayers = Cvar_Get( "g_teams_maxplayers", "0", CVAR_ARCHIVE );
-	g_teams_allow_uneven = Cvar_Get( "g_teams_allow_uneven", "1", CVAR_ARCHIVE );
+	g_teams_maxplayers = NewCvar( "g_teams_maxplayers", "0", CvarFlag_Archive );
+	g_teams_allow_uneven = NewCvar( "g_teams_allow_uneven", "1", CvarFlag_Archive );
 
 	memset( server_gs.gameState.teams, 0, sizeof( server_gs.gameState.teams ) );
 }

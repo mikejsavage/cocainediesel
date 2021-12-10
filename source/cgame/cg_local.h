@@ -281,7 +281,7 @@ void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 //
 // cg_predict.c
 //
-extern cvar_t *cg_showMiss;
+extern Cvar *cg_showMiss;
 
 void CG_PredictedEvent( int entNum, int ev, u64 parm );
 void CG_PredictedFireWeapon( int entNum, u64 parm );
@@ -296,7 +296,7 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin );
 //
 // cg_screen.c
 //
-extern cvar_t *cg_showFPS;
+extern Cvar *cg_showFPS;
 
 void CG_ScreenInit();
 void CG_DrawScope();
@@ -347,23 +347,23 @@ bool CG_ScoreboardShown();
 //
 // cg_main.c
 //
-extern cvar_t *developer;
-extern cvar_t *cg_showClamp;
-extern cvar_t *cg_showHotkeys;
-extern cvar_t *cg_colorBlind;
-extern cvar_t *cg_voicePitch;
+extern Cvar *developer;
+extern Cvar *cg_showClamp;
+extern Cvar *cg_showHotkeys;
+extern Cvar *cg_colorBlind;
+extern Cvar *cg_voicePitch;
 
 // wsw
-extern cvar_t *cg_autoaction_demo;
-extern cvar_t *cg_autoaction_screenshot;
-extern cvar_t *cg_autoaction_spectator;
+extern Cvar *cg_autoaction_demo;
+extern Cvar *cg_autoaction_screenshot;
+extern Cvar *cg_autoaction_spectator;
 
-extern cvar_t *cg_projectileAntilagOffset;
-extern cvar_t *cg_chat;
+extern Cvar *cg_projectileAntilagOffset;
+extern Cvar *cg_chat;
 
-extern cvar_t *cg_particleDebug;
+extern Cvar *cg_particleDebug;
 
-extern cvar_t *cg_showServerDebugPrints;
+extern Cvar *cg_showServerDebugPrints;
 
 void CG_Init( unsigned int playerNum, bool demoplaying, const char *demoName, unsigned snapFrameTime );
 void CG_Shutdown();
@@ -405,9 +405,9 @@ struct ChasecamState {
 
 extern ChasecamState chaseCam;
 
-extern cvar_t *cg_thirdPerson;
-extern cvar_t *cg_thirdPersonAngle;
-extern cvar_t *cg_thirdPersonRange;
+extern Cvar *cg_thirdPerson;
+extern Cvar *cg_thirdPersonAngle;
+extern Cvar *cg_thirdPersonRange;
 
 void CG_StartFallKickEffect( int bounceTime );
 void CG_ViewSmoothPredictedSteps( Vec3 * vieworg );

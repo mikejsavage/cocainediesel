@@ -11,6 +11,8 @@ u64 Hash64( const char * str );
 
 u64 Hash64( u64 x );
 
+u64 CaseHash64( const char * str );
+
 template< typename T >
 u32 Hash32( Span< const T > data ) {
 	return Hash32( data.ptr, data.num_bytes() );

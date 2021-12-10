@@ -219,7 +219,7 @@ static void SV_New_f( client_t *client ) {
 		ent->s.number = playernum + 1;
 		client->edict = ent;
 
-		MSG_WriteString( &tmpMessage, sv_downloadurl->string );
+		MSG_WriteString( &tmpMessage, sv_downloadurl->value );
 	}
 
 	SV_ClientResetCommandBuffers( client );

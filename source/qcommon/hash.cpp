@@ -36,6 +36,15 @@ u64 Hash64( u64 x ) {
 	return x;
 }
 
+u64 CaseHash64( const char * str ) {
+	u64 hash = Hash64( "" );
+	for( char c : MakeSpan( str ) ) {
+		c = tolower( c );
+		hash = Hash64( &c, 1, hash );
+	}
+	return hash;
+}
+
 #ifdef PUBLIC_BUILD
 StringHash::StringHash( const char * s ) {
 	hash = Hash64( s );

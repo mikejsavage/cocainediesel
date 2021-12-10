@@ -35,8 +35,8 @@ static u32 last_viewport_width, last_viewport_height;
 static int last_msaa;
 static ShadowQuality last_shadow_quality;
 
-static cvar_t * r_samples;
-static cvar_t * r_shadow_quality;
+static Cvar * r_samples;
+static Cvar * r_shadow_quality;
 
 static void TakeScreenshot() {
 	RGB8 * framebuffer = ALLOC_MANY( sys_allocator, RGB8, frame_static.viewport_width * frame_static.viewport_height );
@@ -105,8 +105,8 @@ void InitRenderer() {
 
 	RenderBackendInit();
 
-	r_samples = Cvar_Get( "r_samples", "0", CVAR_ARCHIVE );
-	r_shadow_quality = Cvar_Get( "r_shadow_quality", "1", CVAR_ARCHIVE );
+	r_samples = NewCvar( "r_samples", "0", CvarFlag_Archive );
+	r_shadow_quality = NewCvar( "r_shadow_quality", "1", CvarFlag_Archive );
 
 	frame_static = { };
 	last_viewport_width = U32_MAX;
@@ -405,12 +405,12 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
-		Cvar_Set( "r_samples", r_samples->dvalue );
+		Cvar_Set( "r_samples", r_samples->default_value );
 	}
 
 	if( r_shadow_quality->integer < ShadowQuality_Low || r_shadow_quality->integer > ShadowQuality_Ultra ) {
 		Com_Printf( "Invalid r_shadow_quality value (%d), resetting\n", r_shadow_quality->integer );
-		Cvar_Set( "r_shadow_quality", r_shadow_quality->dvalue );
+		Cvar_Set( "r_shadow_quality", r_shadow_quality->default_value );
 	}
 
 	frame_static.viewport_width = Max2( u32( 1 ), viewport_width );

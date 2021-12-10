@@ -6,7 +6,7 @@ struct ImmediateSoundHandle {
 	u64 x;
 };
 
-extern cvar_t * s_device;
+extern Cvar * s_device;
 
 bool S_Init();
 void S_Shutdown();

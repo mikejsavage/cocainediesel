@@ -86,46 +86,6 @@ static void G_Timeout_Update( unsigned int msec ) {
 * update the cvars which show the match state at server browsers
 */
 static void G_UpdateServerInfo() {
-	// g_match_time
-	if( server_gs.gameState.match_state <= MatchState_Warmup ) {
-		Cvar_ForceSet( "g_match_time", "Warmup" );
-	} else if( server_gs.gameState.match_state == MatchState_Countdown ) {
-		Cvar_ForceSet( "g_match_time", "Countdown" );
-	} else if( server_gs.gameState.match_state == MatchState_Playing ) {
-		// partly from G_GetMatchState
-		char extra[MAX_INFO_VALUE];
-		int clocktime, timelimit, mins, secs;
-
-		if( server_gs.gameState.match_duration ) {
-			timelimit = ( ( server_gs.gameState.match_duration ) * 0.001 ) / 60;
-		} else {
-			timelimit = 0;
-		}
-
-		clocktime = ( svs.gametime - server_gs.gameState.match_state_start_time ) * 0.001f;
-
-		if( clocktime <= 0 ) {
-			mins = 0;
-			secs = 0;
-		} else {
-			mins = clocktime / 60;
-			secs = clocktime - mins * 60;
-		}
-
-		extra[0] = 0;
-		if( GS_MatchPaused( &server_gs ) ) {
-			Q_strncatz( extra, " (in timeout)", sizeof( extra ) );
-		}
-
-		if( timelimit ) {
-			Cvar_ForceSet( "g_match_time", va( "%02i:%02i / %02i:00%s", mins, secs, timelimit, extra ) );
-		} else {
-			Cvar_ForceSet( "g_match_time", va( "%02i:%02i%s", mins, secs, extra ) );
-		}
-	} else {
-		Cvar_ForceSet( "g_match_time", "Finished" );
-	}
-
 	// g_match_score
 	if( server_gs.gameState.match_state >= MatchState_Playing && level.gametype.isTeamBased ) {
 		String< MAX_INFO_STRING > score( "{}: {} {}: {}",
@@ -138,14 +98,7 @@ static void G_UpdateServerInfo() {
 	}
 
 	// g_needpass
-	if( sv_password->modified ) {
-		if( sv_password->string && strlen( sv_password->string ) ) {
-			Cvar_ForceSet( "g_needpass", "1" );
-		} else {
-			Cvar_ForceSet( "g_needpass", "0" );
-		}
-		sv_password->modified = false;
-	}
+	Cvar_ForceSet( "g_needpass", StrEqual( sv_password->value, "" ) ? "0" : "1" );
 }
 
 static void G_UpdateClientScoreboard( edict_t * ent ) {
@@ -167,7 +120,7 @@ static void G_UpdateClientScoreboard( edict_t * ent ) {
 void G_CheckCvars() {
 	if( g_antilag_maxtimedelta->modified ) {
 		if( g_antilag_maxtimedelta->integer < 0 ) {
-			Cvar_SetValue( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
+			Cvar_SetInteger( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
 		}
 		g_antilag_maxtimedelta->modified = false;
 		g_antilag_timenudge->modified = true;
@@ -175,9 +128,9 @@ void G_CheckCvars() {
 
 	if( g_antilag_timenudge->modified ) {
 		if( g_antilag_timenudge->integer > g_antilag_maxtimedelta->integer ) {
-			Cvar_SetValue( "g_antilag_timenudge", g_antilag_maxtimedelta->integer );
+			Cvar_SetInteger( "g_antilag_timenudge", g_antilag_maxtimedelta->integer );
 		} else if( g_antilag_timenudge->integer < -g_antilag_maxtimedelta->integer ) {
-			Cvar_SetValue( "g_antilag_timenudge", -g_antilag_maxtimedelta->integer );
+			Cvar_SetInteger( "g_antilag_timenudge", -g_antilag_maxtimedelta->integer );
 		}
 		g_antilag_timenudge->modified = false;
 	}

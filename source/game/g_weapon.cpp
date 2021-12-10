@@ -246,7 +246,7 @@ static edict_t * FireProjectile(
 	projectile->projectileInfo.radius = stats.splash_radius;
 	projectile->projectileInfo.damage_type = stats.damage_type;
 
-	G_ProjectileDistancePrestep( projectile, g_projectile_prestep->value );
+	G_ProjectileDistancePrestep( projectile, g_projectile_prestep->number );
 
 	return projectile;
 }

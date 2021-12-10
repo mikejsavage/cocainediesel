@@ -181,16 +181,16 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 	}
 
 	if( g_inactivity_maxtime->modified ) {
-		if( g_inactivity_maxtime->value <= 0.0f ) {
+		if( g_inactivity_maxtime->number <= 0.0f ) {
 			Cvar_ForceSet( "g_inactivity_maxtime", "0.0" );
-		} else if( g_inactivity_maxtime->value < 15.0f ) {
+		} else if( g_inactivity_maxtime->number < 15.0f ) {
 			Cvar_ForceSet( "g_inactivity_maxtime", "15.0" );
 		}
 
 		g_inactivity_maxtime->modified = false;
 	}
 
-	if( g_inactivity_maxtime->value == 0.0f ) {
+	if( g_inactivity_maxtime->number == 0.0f ) {
 		return;
 	}
 
@@ -199,13 +199,13 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 	}
 
 	// inactive for too long
-	if( client->level.last_activity && client->level.last_activity + ( g_inactivity_maxtime->value * 1000 ) < level.time ) {
+	if( client->level.last_activity && client->level.last_activity + ( g_inactivity_maxtime->number * 1000 ) < level.time ) {
 		if( client->team >= TEAM_PLAYERS && client->team < GS_MAX_TEAMS ) {
 			edict_t *ent = &game.edicts[ client - game.clients + 1 ];
 
 			G_Teams_SetTeam( ent, TEAM_SPECTATOR );
 
-			G_PrintMsg( NULL, "%s has been moved to spectator after %.1f seconds of inactivity\n", client->netname, g_inactivity_maxtime->value );
+			G_PrintMsg( NULL, "%s has been moved to spectator after %.1f seconds of inactivity\n", client->netname, g_inactivity_maxtime->number );
 		}
 	}
 }
@@ -636,21 +636,18 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 	// verify that server gave us valid data
 	if( !Info_Validate( userinfo ) ) {
 		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_GENERAL ) );
-		Info_SetValueForKey( userinfo, "rejflag", va( "%i", 0 ) );
 		Info_SetValueForKey( userinfo, "rejmsg", "Invalid userinfo" );
 		return false;
 	}
 
 	if( !Info_ValueForKey( userinfo, "ip" ) ) {
 		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_GENERAL ) );
-		Info_SetValueForKey( userinfo, "rejflag", va( "%i", 0 ) );
 		Info_SetValueForKey( userinfo, "rejmsg", "Error: Server didn't provide client IP" );
 		return false;
 	}
 
 	if( !Info_ValueForKey( userinfo, "ip" ) ) {
 		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_GENERAL ) );
-		Info_SetValueForKey( userinfo, "rejflag", va( "%i", 0 ) );
 		Info_SetValueForKey( userinfo, "rejmsg", "Error: Server didn't provide client socket" );
 		return false;
 	}
@@ -659,16 +656,14 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 	value = Info_ValueForKey( userinfo, "ip" );
 	if( SV_FilterPacket( value ) ) {
 		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_GENERAL ) );
-		Info_SetValueForKey( userinfo, "rejflag", va( "%i", 0 ) );
 		Info_SetValueForKey( userinfo, "rejmsg", "You're banned from this server" );
 		return false;
 	}
 
 	// check for a password
 	value = Info_ValueForKey( userinfo, "password" );
-	if( !fakeClient && ( *sv_password->string && ( !value || strcmp( sv_password->string, value ) ) ) ) {
+	if( !fakeClient && ( *sv_password->value && ( !value || strcmp( sv_password->value, value ) ) ) ) {
 		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_PASSWORD ) );
-		Info_SetValueForKey( userinfo, "rejflag", va( "%i", 0 ) );
 		if( value && value[0] ) {
 			Info_SetValueForKey( userinfo, "rejmsg", "Incorrect password" );
 		} else {

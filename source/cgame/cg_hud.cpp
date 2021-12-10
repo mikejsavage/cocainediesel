@@ -181,7 +181,7 @@ static int CG_GetVidHeight( const void *parameter ) {
 }
 
 static int CG_GetCvar( const void *parameter ) {
-	return Cvar_Value( (const char *)parameter );
+	return Cvar_Integer( (const char *)parameter );
 }
 
 static int CG_IsDemoPlaying( const void *parameter ) {

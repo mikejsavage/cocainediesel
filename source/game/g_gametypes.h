@@ -1,6 +1,6 @@
 #pragma once
 
-extern cvar_t *g_warmup_timelimit;
+extern Cvar *g_warmup_timelimit;
 
 struct Gametype {
 	void ( *Init )();

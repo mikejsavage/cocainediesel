@@ -212,16 +212,16 @@ extern gs_state_t client_gs;
 //
 // cvars
 //
-extern cvar_t *cl_shownet;
+extern Cvar *cl_shownet;
 
-extern cvar_t *cl_extrapolationTime;
-extern cvar_t *cl_extrapolate;
+extern Cvar *cl_extrapolationTime;
+extern Cvar *cl_extrapolate;
 
 // wsw : debug netcode
-extern cvar_t *cl_debug_serverCmd;
-extern cvar_t *cl_debug_timeDelta;
+extern Cvar *cl_debug_serverCmd;
+extern Cvar *cl_debug_timeDelta;
 
-extern cvar_t *cl_devtools;
+extern Cvar *cl_devtools;
 
 // delta from this if not from a previous frame
 extern SyncEntityState cl_baselines[MAX_EDICTS];

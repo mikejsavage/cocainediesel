@@ -55,10 +55,10 @@ static constexpr StringHash snd_announcements_def[ BombAnnouncement_Count ] = {
 	"sounds/announcer/bomb/defense/defused",
 };
 
-static cvar_t * g_bomb_roundtime;
-static cvar_t * g_bomb_bombtimer;
-static cvar_t * g_bomb_armtime;
-static cvar_t * g_bomb_defusetime;
+static Cvar * g_bomb_roundtime;
+static Cvar * g_bomb_bombtimer;
+static Cvar * g_bomb_armtime;
+static Cvar * g_bomb_defusetime;
 
 static const u32 max_sites = 26;
 static const int countdown_max = 6;
@@ -575,7 +575,7 @@ static void BombStartPlanting( u32 site ) {
 }
 
 static void BombPlanted() {
-	bomb_state.bomb.action_time = level.time + int( g_bomb_bombtimer->value * 1000.0f );
+	bomb_state.bomb.action_time = level.time + int( g_bomb_bombtimer->number * 1000.0f );
 	bomb_state.bomb.model->s.sound = "models/bomb/fuse";
 	bomb_state.bomb.model->s.effects &= ~EF_TEAM_SILHOUETTE;
 
@@ -659,7 +659,7 @@ static void BombThink() {
 				break;
 			}
 
-			float frac = float( level.time - bomb_state.bomb.action_time ) / ( g_bomb_armtime->value * 1000.0f );
+			float frac = float( level.time - bomb_state.bomb.action_time ) / ( g_bomb_armtime->number * 1000.0f );
 			if( frac >= 1.0f ) {
 				SetTeamProgress( AttackingTeam(), 0, BombProgress_Nothing );
 				BombPlanted();
@@ -672,7 +672,7 @@ static void BombThink() {
 		} break;
 
 		case BombState_Planted: {
-			float animation_time = ( g_bomb_bombtimer->value - ( bomb_state.bomb.action_time - level.time ) * 0.001f ) / g_bomb_bombtimer->value;
+			float animation_time = ( g_bomb_bombtimer->number - ( bomb_state.bomb.action_time - level.time ) * 0.001f ) / g_bomb_bombtimer->number;
 			bomb_state.bomb.model->s.animation_time = animation_time;
 			bomb_state.bomb.hud->s.animation_time = animation_time; // dno if this is needed?
 
@@ -693,7 +693,7 @@ static void BombThink() {
 			}
 			else {
 				bomb_state.defuse_progress += game.frametime;
-				float frac = bomb_state.defuse_progress / ( g_bomb_defusetime->value * 1000.0f );
+				float frac = bomb_state.defuse_progress / ( g_bomb_defusetime->number * 1000.0f );
 				if( frac >= 1.0f ) {
 					BombDefused();
 					SetTeamProgress( DefendingTeam(), 100, BombProgress_Defusing );
@@ -963,7 +963,7 @@ static void RoundNewState( RoundState state ) {
 
 		case RoundState_Round: {
 			bomb_state.round_check_end = true;
-			bomb_state.round_state_end = level.time + int( g_bomb_roundtime->value * 1000.0f );
+			bomb_state.round_state_end = level.time + int( g_bomb_roundtime->number * 1000.0f );
 			level.gametype.removeInactivePlayers = true;
 			EnableMovement();
 			Announce( BombAnnouncement_RoundStarted );
@@ -1015,7 +1015,7 @@ static void RoundThink() {
 		server_gs.gameState.bomb.alpha_players_total = PlayersAliveOnTeam( TEAM_ALPHA );
 		server_gs.gameState.bomb.beta_players_total = PlayersAliveOnTeam( TEAM_BETA );
 
-		bomb_state.last_time = bomb_state.round_state_end - level.time + int( g_bomb_roundtime->value * 1000.0f );
+		bomb_state.last_time = bomb_state.round_state_end - level.time + int( g_bomb_roundtime->number * 1000.0f );
 		server_gs.gameState.clock_override = bomb_state.last_time;
 	}
 
@@ -1311,10 +1311,10 @@ static void GT_Bomb_InitGametype() {
 	G_AddCommand( "gametypemenu", NULL );
 	G_AddCommand( "weapselect", NULL );
 
-	g_bomb_roundtime = Cvar_Get( "g_bomb_roundtime", "61", CVAR_ARCHIVE );
-	g_bomb_bombtimer = Cvar_Get( "g_bomb_bombtimer", "30", CVAR_ARCHIVE );
-	g_bomb_armtime = Cvar_Get( "g_bomb_armtime", "1", CVAR_ARCHIVE );
-	g_bomb_defusetime = Cvar_Get( "g_bomb_defusetime", "4", CVAR_ARCHIVE );
+	g_bomb_roundtime = NewCvar( "g_bomb_roundtime", "61", CvarFlag_Archive );
+	g_bomb_bombtimer = NewCvar( "g_bomb_bombtimer", "30", CvarFlag_Archive );
+	g_bomb_armtime = NewCvar( "g_bomb_armtime", "1", CvarFlag_Archive );
+	g_bomb_defusetime = NewCvar( "g_bomb_defusetime", "4", CvarFlag_Archive );
 }
 
 static void GT_Bomb_Shutdown() {

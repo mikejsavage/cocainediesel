@@ -21,8 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_local.h"
 #include "qcommon/cmodel.h"
 
-cvar_t *g_warmup_timelimit;
-cvar_t *g_scorelimit;
+Cvar *g_warmup_timelimit;
+Cvar *g_scorelimit;
 
 static void G_Match_SetAutorecordState( const char *state ) {
 	PF_ConfigString( CS_AUTORECORDSTATE, state );
@@ -155,7 +155,7 @@ void G_Match_LaunchState( MatchState matchState ) {
 		default:
 		case MatchState_Warmup:
 			server_gs.gameState.match_state = MatchState_Warmup;
-			server_gs.gameState.match_duration = (int64_t)( Abs( g_warmup_timelimit->value * 60 ) * 1000 );
+			server_gs.gameState.match_duration = (int64_t)( Abs( g_warmup_timelimit->number * 60 ) * 1000 );
 			server_gs.gameState.match_state_start_time = svs.gametime;
 			break;
 
@@ -517,8 +517,8 @@ static bool IsGladiatorMap() {
 }
 
 void InitGametype() {
-	g_warmup_timelimit = Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );
-	g_scorelimit = Cvar_Get( "g_scorelimit", "10", CVAR_ARCHIVE );
+	g_warmup_timelimit = NewCvar( "g_warmup_timelimit", "5", CvarFlag_Archive );
+	g_scorelimit = NewCvar( "g_scorelimit", "10", CvarFlag_Archive );
 
 	level.gametype = IsGladiatorMap() ? GetGladiatorGametype() : GetBombGametype();
 	level.gametype.Init();

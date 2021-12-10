@@ -78,10 +78,10 @@ static ALCcontext * al_context;
 // so we don't crash when some other application is running in exclusive playback mode (WASAPI/JACK/etc)
 static bool initialized;
 
-cvar_t * s_device;
-static cvar_t * s_volume;
-static cvar_t * s_musicvolume;
-static cvar_t * s_muteinbackground;
+Cvar * s_device;
+static Cvar * s_volume;
+static Cvar * s_musicvolume;
+static Cvar * s_muteinbackground;
 
 constexpr u32 MAX_SOUND_ASSETS = 4096;
 constexpr u32 MAX_SOUND_EFFECTS = 4096;
@@ -208,10 +208,10 @@ static bool S_InitAL() {
 
 	al_device = NULL;
 
-	if( strcmp( s_device->string, "" ) != 0 ) {
-		al_device = alcOpenDevice( s_device->string );
+	if( !StrEqual( s_device->value, "" ) ) {
+		al_device = alcOpenDevice( s_device->value );
 		if( al_device == NULL ) {
-			Com_Printf( S_COLOR_YELLOW "Failed to open sound device %s, trying default\n", s_device->string );
+			Com_Printf( S_COLOR_YELLOW "Failed to open sound device %s, trying default\n", s_device->value );
 		}
 	}
 
@@ -552,12 +552,11 @@ bool S_Init() {
 	music_playing = false;
 	initialized = false;
 
-	s_device = Cvar_Get( "s_device", "", CVAR_ARCHIVE );
+	s_device = NewCvar( "s_device", "", CvarFlag_Archive );
 	s_device->modified = false;
-	s_volume = Cvar_Get( "s_volume", "1", CVAR_ARCHIVE );
-	s_musicvolume = Cvar_Get( "s_musicvolume", "1", CVAR_ARCHIVE );
-	s_muteinbackground = Cvar_Get( "s_muteinbackground", "1", CVAR_ARCHIVE );
-	s_muteinbackground->modified = true;
+	s_volume = NewCvar( "s_volume", "1", CvarFlag_Archive );
+	s_musicvolume = NewCvar( "s_musicvolume", "1", CvarFlag_Archive );
+	s_muteinbackground = NewCvar( "s_muteinbackground", "1", CvarFlag_Archive );
 
 	if( !S_InitAL() )
 		return false;
@@ -641,7 +640,7 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 	ps->sources[ i ] = source;
 
 	CheckedALSource( source, AL_BUFFER, sound.buf );
-	CheckedALSource( source, AL_GAIN, ps->volume * config.volume * s_volume->value );
+	CheckedALSource( source, AL_GAIN, ps->volume * config.volume * s_volume->number );
 	CheckedALSource( source, AL_PITCH, ps->pitch * config.pitch + ( RandomFloat11( &cls.rng ) * config.pitch_random * config.pitch * ps->pitch ) );
 	CheckedALSource( source, AL_REFERENCE_DISTANCE, S_DEFAULT_ATTENUATION_REFDISTANCE );
 	CheckedALSource( source, AL_MAX_DISTANCE, S_DEFAULT_ATTENUATION_MAXDISTANCE );
@@ -767,7 +766,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 				continue;
 
 			if( s_volume->modified ) {
-				CheckedALSource( ps->sources[ j ], AL_GAIN, ps->volume * ps->sfx->sounds[ j ].volume * s_volume->value );
+				CheckedALSource( ps->sources[ j ], AL_GAIN, ps->volume * ps->sfx->sounds[ j ].volume * s_volume->number );
 			}
 
 			if( ps->type == PlayingSoundType_Entity ) {
@@ -785,7 +784,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 	}
 
 	if( ( s_volume->modified || s_musicvolume->modified ) && music_playing ) {
-		CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value * MusicIsWayTooLoud );
+		CheckedALSource( music_source, AL_GAIN, s_volume->number * s_musicvolume->number * MusicIsWayTooLoud );
 	}
 
 	s_volume->modified = false;
@@ -987,7 +986,7 @@ void S_StartMenuMusic() {
 	if( music_playing )
 		return;
 
-	CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value * MusicIsWayTooLoud );
+	CheckedALSource( music_source, AL_GAIN, s_volume->number * s_musicvolume->number * MusicIsWayTooLoud );
 	CheckedALSource( music_source, AL_DIRECT_CHANNELS_SOFT, AL_TRUE );
 	CheckedALSource( music_source, AL_LOOPING, AL_TRUE );
 	CheckedALSource( music_source, AL_BUFFER, sound.buf );

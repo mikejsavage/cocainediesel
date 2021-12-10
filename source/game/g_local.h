@@ -141,42 +141,42 @@ extern spawn_temp_t st;
 extern Vec3 knockbackOfDeath;
 extern int damageFlagsOfDeath;
 
-extern cvar_t *sv_password;
-extern cvar_t *g_operator_password;
-extern cvar_t *developer;
+extern Cvar *sv_password;
+extern Cvar *g_operator_password;
+extern Cvar *developer;
 
-extern cvar_t *filterban;
+extern Cvar *filterban;
 
-extern cvar_t *g_maxvelocity;
+extern Cvar *g_maxvelocity;
 
-extern cvar_t *sv_cheats;
+extern Cvar *sv_cheats;
 
-extern cvar_t *g_floodprotection_messages;
-extern cvar_t *g_floodprotection_team;
-extern cvar_t *g_floodprotection_seconds;
-extern cvar_t *g_floodprotection_penalty;
+extern Cvar *g_floodprotection_messages;
+extern Cvar *g_floodprotection_team;
+extern Cvar *g_floodprotection_seconds;
+extern Cvar *g_floodprotection_penalty;
 
-extern cvar_t *g_inactivity_maxtime;
+extern Cvar *g_inactivity_maxtime;
 
-extern cvar_t *g_scorelimit;
+extern Cvar *g_scorelimit;
 
-extern cvar_t *g_projectile_prestep;
-extern cvar_t *g_numbots;
-extern cvar_t *g_maxtimeouts;
+extern Cvar *g_projectile_prestep;
+extern Cvar *g_numbots;
+extern Cvar *g_maxtimeouts;
 
-extern cvar_t *g_deadbody_followkiller;
-extern cvar_t *g_antilag_timenudge;
-extern cvar_t *g_antilag_maxtimedelta;
+extern Cvar *g_deadbody_followkiller;
+extern Cvar *g_antilag_timenudge;
+extern Cvar *g_antilag_maxtimedelta;
 
-extern cvar_t *g_teams_maxplayers;
-extern cvar_t *g_teams_allow_uneven;
+extern Cvar *g_teams_maxplayers;
+extern Cvar *g_teams_allow_uneven;
 
-extern cvar_t *g_autorecord;
-extern cvar_t *g_autorecord_maxdemos;
-extern cvar_t *g_allow_spectator_voting;
+extern Cvar *g_autorecord;
+extern Cvar *g_autorecord_maxdemos;
+extern Cvar *g_allow_spectator_voting;
 
-extern cvar_t *g_asGC_stats;
-extern cvar_t *g_asGC_interval;
+extern Cvar *g_asGC_stats;
+extern Cvar *g_asGC_interval;
 
 void G_Teams_Join_Cmd( edict_t *ent );
 bool G_Teams_JoinTeam( edict_t *ent, int team );

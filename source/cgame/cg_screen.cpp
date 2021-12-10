@@ -22,19 +22,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/renderer.h"
 #include "client/renderer/text.h"
 
-cvar_t *cg_centerTime;
-cvar_t *cg_showFPS;
-cvar_t *cg_showPointedPlayer;
-cvar_t *cg_draw2D;
+Cvar *cg_centerTime;
+Cvar *cg_showFPS;
+Cvar *cg_showPointedPlayer;
+Cvar *cg_draw2D;
 
-cvar_t *cg_crosshair_size;
+Cvar *cg_crosshair_size;
 
-cvar_t *cg_showSpeed;
+Cvar *cg_showSpeed;
 
-cvar_t *cg_showPlayerNames;
-cvar_t *cg_showPlayerNames_alpha;
-cvar_t *cg_showPlayerNames_zfar;
-cvar_t *cg_showPlayerNames_barWidth;
+Cvar *cg_showPlayerNames;
+Cvar *cg_showPlayerNames_alpha;
+Cvar *cg_showPlayerNames_zfar;
+Cvar *cg_showPlayerNames_barWidth;
 
 static int64_t scr_damagetime = 0;
 
@@ -57,7 +57,7 @@ static int scr_centertime_off;
 */
 void CG_CenterPrint( const char *str ) {
 	Q_strncpyz( scr_centerstring, str, sizeof( scr_centerstring ) );
-	scr_centertime_off = cg_centerTime->value * 1000.0f;
+	scr_centertime_off = cg_centerTime->number * 1000.0f;
 }
 
 static void CG_DrawCenterString() {
@@ -67,19 +67,19 @@ static void CG_DrawCenterString() {
 //============================================================================
 
 void CG_ScreenInit() {
-	cg_showFPS =        Cvar_Get( "cg_showFPS", "0", CVAR_ARCHIVE );
-	cg_draw2D =     Cvar_Get( "cg_draw2D", "1", 0 );
-	cg_centerTime =     Cvar_Get( "cg_centerTime", "2.5", 0 );
+	cg_showFPS =        NewCvar( "cg_showFPS", "0", CvarFlag_Archive );
+	cg_draw2D =     NewCvar( "cg_draw2D", "1", 0 );
+	cg_centerTime =     NewCvar( "cg_centerTime", "2.5", 0 );
 
-	cg_crosshair_size = Cvar_Get( "cg_crosshair_size", "3", CVAR_ARCHIVE );
+	cg_crosshair_size = NewCvar( "cg_crosshair_size", "3", CvarFlag_Archive );
 
-	cg_showSpeed =      Cvar_Get( "cg_showSpeed", "0", CVAR_ARCHIVE );
-	cg_showPointedPlayer =  Cvar_Get( "cg_showPointedPlayer", "1", CVAR_ARCHIVE );
+	cg_showSpeed =      NewCvar( "cg_showSpeed", "0", CvarFlag_Archive );
+	cg_showPointedPlayer =  NewCvar( "cg_showPointedPlayer", "1", CvarFlag_Archive );
 
-	cg_showPlayerNames =        Cvar_Get( "cg_showPlayerNames", "2", CVAR_ARCHIVE );
-	cg_showPlayerNames_alpha =  Cvar_Get( "cg_showPlayerNames_alpha", "0.4", CVAR_ARCHIVE );
-	cg_showPlayerNames_zfar =   Cvar_Get( "cg_showPlayerNames_zfar", "1024", CVAR_ARCHIVE );
-	cg_showPlayerNames_barWidth =   Cvar_Get( "cg_showPlayerNames_barWidth", "8", CVAR_ARCHIVE );
+	cg_showPlayerNames =        NewCvar( "cg_showPlayerNames", "2", CvarFlag_Archive );
+	cg_showPlayerNames_alpha =  NewCvar( "cg_showPlayerNames_alpha", "0.4", CvarFlag_Archive );
+	cg_showPlayerNames_zfar =   NewCvar( "cg_showPlayerNames_zfar", "1024", CvarFlag_Archive );
+	cg_showPlayerNames_barWidth =   NewCvar( "cg_showPlayerNames_barWidth", "8", CvarFlag_Archive );
 }
 
 void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
@@ -245,13 +245,13 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 
 		float fadeFrac;
 		if( cent->current.number != cg.pointedNum ) {
-			if( dist > cg_showPlayerNames_zfar->value ) {
+			if( dist > cg_showPlayerNames_zfar->number ) {
 				continue;
 			}
 
-			fadeFrac = Clamp01( ( cg_showPlayerNames_zfar->value - dist ) / ( cg_showPlayerNames_zfar->value * 0.25f ) );
+			fadeFrac = Clamp01( ( cg_showPlayerNames_zfar->number - dist ) / ( cg_showPlayerNames_zfar->number * 0.25f ) );
 
-			tmpcolor.w = cg_showPlayerNames_alpha->value * color.w * fadeFrac;
+			tmpcolor.w = cg_showPlayerNames_alpha->number * color.w * fadeFrac;
 		} else {
 			fadeFrac = Clamp01( ( cg.pointRemoveTime - cl.serverTime ) / 150.0f );
 

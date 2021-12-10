@@ -141,7 +141,7 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 	backTime = Abs( deltaTime );
 	if( g_antilag_maxtimedelta->integer ) {
 		if( g_antilag_maxtimedelta->integer < 0 ) {
-			Cvar_SetValue( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
+			Cvar_SetInteger( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
 		}
 		if( backTime > (int64_t)g_antilag_maxtimedelta->integer ) {
 			backTime = (int64_t)g_antilag_maxtimedelta->integer;

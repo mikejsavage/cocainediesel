@@ -20,7 +20,7 @@ const bool is_dedicated_server = false;
 static int framebuffer_width, framebuffer_height;
 
 // TODO
-extern cvar_t * vid_mode;
+extern Cvar * vid_mode;
 
 static void UpdateVidModeCvar() {
 	TempAllocator temp = cls.frame_arena.temp();

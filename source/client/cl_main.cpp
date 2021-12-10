@@ -35,29 +35,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/version.h"
 #include "gameshared/gs_public.h"
 
-cvar_t *rcon_client_password;
-cvar_t *rcon_address;
+Cvar *rcon_client_password;
+Cvar *rcon_address;
 
-cvar_t *cl_timeout;
-cvar_t *cl_maxfps;
-cvar_t *cl_pps;
-cvar_t *cl_shownet;
+Cvar *cl_timeout;
+Cvar *cl_maxfps;
+Cvar *cl_pps;
+Cvar *cl_shownet;
 
-cvar_t *cl_extrapolationTime;
-cvar_t *cl_extrapolate;
+Cvar *cl_extrapolationTime;
+Cvar *cl_extrapolate;
 
-static cvar_t *cl_hotloadAssets;
-
-//
-// userinfo
-//
-cvar_t *info_password;
+static Cvar *cl_hotloadAssets;
 
 // wsw : debug netcode
-cvar_t *cl_debug_serverCmd;
-cvar_t *cl_debug_timeDelta;
+Cvar *cl_debug_serverCmd;
+Cvar *cl_debug_timeDelta;
 
-cvar_t *cl_devtools;
+Cvar *cl_devtools;
 
 client_static_t cls;
 client_state_t cl;
@@ -169,7 +164,7 @@ static void CL_SendConnectPacket() {
 
 	TempAllocator temp = cls.frame_arena.temp();
 	Netchan_OutOfBandPrint( cls.socket, &cls.serveraddress, "%s", temp( "connect {} {} {} \"{}\"\n",
-							APP_PROTOCOL_VERSION, Netchan_ClientSessionID(), cls.challenge, Cvar_Userinfo() ) );
+		APP_PROTOCOL_VERSION, Netchan_ClientSessionID(), cls.challenge, Cvar_GetUserInfo() ) );
 }
 
 /*
@@ -312,13 +307,13 @@ static void CL_Rcon_f() {
 		return;
 	}
 
-	if( rcon_client_password->string[0] == '\0' ) {
+	if( rcon_client_password->value[0] == '\0' ) {
 		Com_Printf( "You must set 'rcon_password' before issuing an rcon command.\n" );
 		return;
 	}
 
 	// wsw : jal : check for msg len abuse (thx to r1Q2)
-	if( strlen( Cmd_Args() ) + strlen( rcon_client_password->string ) + 16 >= sizeof( message ) ) {
+	if( strlen( Cmd_Args() ) + strlen( rcon_client_password->value ) + 16 >= sizeof( message ) ) {
 		Com_Printf( "Length of password + command exceeds maximum allowed length.\n" );
 		return;
 	}
@@ -331,7 +326,7 @@ static void CL_Rcon_f() {
 
 	Q_strncatz( message, "rcon ", sizeof( message ) );
 
-	Q_strncatz( message, rcon_client_password->string, sizeof( message ) );
+	Q_strncatz( message, rcon_client_password->value, sizeof( message ) );
 	Q_strncatz( message, " ", sizeof( message ) );
 
 	for( i = 1; i < Cmd_Argc(); i++ ) {
@@ -344,13 +339,13 @@ static void CL_Rcon_f() {
 		socket = cls.netchan.socket;
 		address = &cls.netchan.remoteAddress;
 	} else {
-		if( !strlen( rcon_address->string ) ) {
+		if( !strlen( rcon_address->value ) ) {
 			Com_Printf( "You must be connected, or set the 'rcon_address' cvar to issue rcon commands\n" );
 			return;
 		}
 
 		if( rcon_address->modified ) {
-			if( !NET_StringToAddress( rcon_address->string, &cls.rconaddress ) ) {
+			if( !NET_StringToAddress( rcon_address->value, &cls.rconaddress ) ) {
 				Com_Printf( "Bad rcon_address.\n" );
 				return; // we don't clear modified, so it will whine the next time too
 			}
@@ -692,7 +687,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 		// CA_CONNECTING is allowed, because old servers send protocol mismatch connection error message with it
 		if( ( ( cls.state != CA_UNINITIALIZED && cls.state != CA_DISCONNECTED ) &&
 			  NET_CompareAddress( address, &cls.serveraddress ) ) ||
-			( rcon_address->string[0] != '\0' && NET_CompareAddress( address, &cls.rconaddress ) ) ) {
+			( rcon_address->value[0] != '\0' && NET_CompareAddress( address, &cls.rconaddress ) ) ) {
 			s = MSG_ReadString( msg );
 			Com_Printf( "%s", s );
 			return;
@@ -828,7 +823,7 @@ void CL_ReadPackets() {
 
 	// check timeout
 	if( cls.state >= CA_HANDSHAKE && cls.lastPacketReceivedTime ) {
-		if( cls.lastPacketReceivedTime + cl_timeout->value * 1000 < cls.realtime ) {
+		if( cls.lastPacketReceivedTime + cl_timeout->number * 1000 < cls.realtime ) {
 			if( ++cl.timeoutcount > 5 ) { // timeoutcount saves debugger
 				Com_Printf( "\nServer connection timed out.\n" );
 				CL_Disconnect( "Connection timed out" );
@@ -947,7 +942,7 @@ void CL_SetClientState( connstate_t state ) {
 		case CA_CONNECTED:
 			cls.cgameActive = false;
 			Con_Close();
-			Cvar_FixCheatVars();
+			ResetCheatCvars();
 			break;
 		case CA_ACTIVE:
 			Con_Close();
@@ -961,36 +956,36 @@ void CL_SetClientState( connstate_t state ) {
 }
 
 static void CL_InitLocal() {
-	cvar_t *name;
+	Cvar *name;
 	TempAllocator temp = cls.frame_arena.temp();
 
 	cls.state = CA_DISCONNECTED;
 	Com_SetClientState( CA_DISCONNECTED );
 
-	cl_maxfps = Cvar_Get( "cl_maxfps", "250", CVAR_ARCHIVE );
-	cl_pps = Cvar_Get( "cl_pps", "40", CVAR_ARCHIVE );
+	cl_maxfps = NewCvar( "cl_maxfps", "250", CvarFlag_Archive );
+	cl_pps = NewCvar( "cl_pps", "40", CvarFlag_Archive );
 
-	cl_extrapolationTime = Cvar_Get( "cl_extrapolationTime", "0", CVAR_DEVELOPER );
-	cl_extrapolate = Cvar_Get( "cl_extrapolate", "1", CVAR_ARCHIVE );
+	cl_extrapolationTime = NewCvar( "cl_extrapolationTime", "0", CvarFlag_Developer );
+	cl_extrapolate = NewCvar( "cl_extrapolate", "1", CvarFlag_Archive );
 
-	cl_hotloadAssets = Cvar_Get( "cl_hotloadAssets", is_public_build ? "0" : "1", CVAR_ARCHIVE );
+	cl_hotloadAssets = NewCvar( "cl_hotloadAssets", is_public_build ? "0" : "1", CvarFlag_Archive );
 
-	cl_shownet = Cvar_Get( "cl_shownet", "0", 0 );
-	cl_timeout = Cvar_Get( "cl_timeout", "120", 0 );
+	cl_shownet = NewCvar( "cl_shownet", "0", 0 );
+	cl_timeout = NewCvar( "cl_timeout", "120", 0 );
 
-	rcon_client_password = Cvar_Get( "rcon_password", "", 0 );
-	rcon_address = Cvar_Get( "rcon_address", "", 0 );
+	rcon_client_password = NewCvar( "rcon_password", "", 0 );
+	rcon_address = NewCvar( "rcon_address", "", 0 );
 
 	// wsw : debug netcode
-	cl_debug_serverCmd = Cvar_Get( "cl_debug_serverCmd", "0", CVAR_ARCHIVE | CVAR_CHEAT );
-	cl_debug_timeDelta = Cvar_Get( "cl_debug_timeDelta", "0", CVAR_ARCHIVE /*|CVAR_CHEAT*/ );
+	cl_debug_serverCmd = NewCvar( "cl_debug_serverCmd", "0", CvarFlag_Archive | CvarFlag_Cheat );
+	cl_debug_timeDelta = NewCvar( "cl_debug_timeDelta", "0", CvarFlag_Archive /*|CvarFlag_Cheat*/ );
 
-	cl_devtools = Cvar_Get( "cl_devtools", "0", CVAR_ARCHIVE );
+	cl_devtools = NewCvar( "cl_devtools", "0", CvarFlag_Archive );
 
-	info_password = Cvar_Get( "password", "", CVAR_USERINFO );
+	NewCvar( "password", "", CvarFlag_UserInfo );
 
-	name = Cvar_Get( "name", "", CVAR_USERINFO | CVAR_ARCHIVE );
-	if( !name->string[0] ) {
+	name = NewCvar( "name", "", CvarFlag_UserInfo | CvarFlag_Archive );
+	if( StrEqual( name->value, "" ) ) {
 		Cvar_Set( name->name, temp( "user{06}", RandomUniform( &cls.rng, 0, 1000000 ) ) );
 	}
 
@@ -1187,11 +1182,11 @@ static bool CL_MaxPacketsReached() {
 
 	if( cl_pps->integer > 62 || cl_pps->integer < 40 ) {
 		Com_Printf( "'cl_pps' value is out of valid range, resetting to default\n" );
-		Cvar_ForceSet( "cl_pps", va( "%s", cl_pps->dvalue ) );
+		Cvar_ForceSet( "cl_pps", cl_pps->default_value );
 	}
 
 	elapsedTime = cls.realtime - lastPacketTime;
-	float minTime = ( 1000.0f / cl_pps->value );
+	float minTime = ( 1000.0f / cl_pps->number );
 
 	// don't let cl_pps be smaller than sv_pps
 	if( cls.state == CA_ACTIVE && !cls.demo.playing && cl.snapFrameTime ) {
@@ -1249,7 +1244,7 @@ void CL_SendMessagesToServer( bool sendNow ) {
 		// send a userinfo update if needed
 		if( userinfo_modified ) {
 			userinfo_modified = false;
-			CL_AddReliableCommand( va( "usri \"%s\"", Cvar_Userinfo() ) );
+			CL_AddReliableCommand( va( "usri \"%s\"", Cvar_GetUserInfo() ) );
 		}
 		CL_UpdateClientCommandsToServer( &message );
 		CL_WriteUcmdsToMessage( &message );
@@ -1333,7 +1328,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	if( cl_maxfps->integer < absMinFps ) {
 		Cvar_ForceSet( "cl_maxfps", va( "%i", absMinFps ) );
 	}
-	float maxFps = IsWindowFocused() ? cl_maxfps->value : absMinFps;
+	float maxFps = IsWindowFocused() ? cl_maxfps->number : absMinFps;
 	int minMsec = Max2( 1000.0f / maxFps, 1.0f );
 	roundingMsec += Max2( 1000.0f / maxFps, 1.0f ) - minMsec;
 

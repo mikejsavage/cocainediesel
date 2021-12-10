@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/q_arch.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
-#include "gameshared/q_cvar.h"
 #include "gameshared/q_collision.h"
 #include "gameshared/gs_public.h"
 
@@ -219,11 +218,9 @@ servers can also send across commands and entire text files can be execed.
 The + command line options are also added to the command buffer.
 */
 
-void Cbuf_Init();
-void Cbuf_Shutdown();
 void Cbuf_AddText( const char *text );
 void Cbuf_ExecuteText( int exec_when, const char *text );
-void Cbuf_AddEarlyCommands( bool clear );
+void Cbuf_AddEarlyCommands();
 bool Cbuf_AddLateCommands();
 void Cbuf_Execute();
 
@@ -240,7 +237,6 @@ then searches for a command or variable that matches the first token.
 typedef void ( *xcommand_t )();
 typedef const char ** ( *xcompletionf_t )( const char *partial );
 
-void        Cmd_PreInit();
 void        Cmd_Init();
 void        Cmd_Shutdown();
 void        Cmd_AddCommand( const char *cmd_name, xcommand_t function );
@@ -530,9 +526,9 @@ void        Com_SetDemoPlaying( bool state );
 server_state_t Com_ServerState();
 void Com_SetServerState( server_state_t state );
 
-extern cvar_t *developer;
+extern Cvar *developer;
 extern const bool is_dedicated_server;
-extern cvar_t *versioncvar;
+extern Cvar *versioncvar;
 
 /*
 ==============================================================

@@ -95,7 +95,7 @@ struct mempool_t {
 
 //#define SHOW_NONFREED
 
-cvar_t *developer_memory;
+Cvar *developer_memory;
 
 static mempool_t *poolChain = NULL;
 
@@ -680,7 +680,7 @@ void Memory_Init() {
 * Memory_InitCommands
 */
 void Memory_InitCommands() {
-	developer_memory = Cvar_Get( "developer_memory", "0", 0 );
+	developer_memory = NewCvar( "developer_memory", "0", 0 );
 
 	Cmd_AddCommand( "memlist", MemList_f );
 	Cmd_AddCommand( "memstats", MemStats_f );

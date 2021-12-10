@@ -26,11 +26,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static int clientVoted[MAX_CLIENTS];
 static int clientVoteChanges[MAX_CLIENTS];
 
-cvar_t *g_callvote_electpercentage;
-cvar_t *g_callvote_electtime;          // in seconds
-cvar_t *g_callvote_enabled;
-cvar_t *g_callvote_maxchanges;
-cvar_t *g_callvote_cooldowntime;
+Cvar *g_callvote_electpercentage;
+Cvar *g_callvote_electtime;          // in seconds
+Cvar *g_callvote_enabled;
+Cvar *g_callvote_maxchanges;
+Cvar *g_callvote_cooldowntime;
 
 enum {
 	VOTED_NOTHING = 0,
@@ -716,8 +716,8 @@ static void G_CallVotes_CheckState() {
 		}
 
 		// ignore inactive players unless they have voted
-		if( g_inactivity_maxtime->value > 0 ) {
-			bool inactive = client->level.last_activity + g_inactivity_maxtime->value * 1000 < level.time;
+		if( g_inactivity_maxtime->number > 0 ) {
+			bool inactive = client->level.last_activity + g_inactivity_maxtime->number * 1000 < level.time;
 			if( inactive && clientVoted[PLAYERNUM( ent )] == VOTED_NOTHING )
 				continue;
 		}
@@ -730,7 +730,7 @@ static void G_CallVotes_CheckState() {
 		}
 	}
 
-	int needvotes = int( voters * g_callvote_electpercentage->value / 100.0f ) + 1;
+	int needvotes = int( voters * g_callvote_electpercentage->number / 100.0f ) + 1;
 	if( yeses >= needvotes || callvoteState.vote.operatorcall ) {
 		G_PrintMsg( NULL, "Vote %s%s%s passed\n", S_COLOR_YELLOW, G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
 		if( callvoteState.vote.callvote->execute != NULL ) {
@@ -992,11 +992,11 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 }
 
 void G_CallVotes_Init() {
-	g_callvote_electpercentage = Cvar_Get( "g_vote_percent", "55", CVAR_ARCHIVE );
-	g_callvote_electtime = Cvar_Get( "g_vote_electtime", "20", CVAR_ARCHIVE );
-	g_callvote_enabled = Cvar_Get( "g_vote_allowed", "1", CVAR_ARCHIVE );
-	g_callvote_maxchanges = Cvar_Get( "g_vote_maxchanges", "3", CVAR_ARCHIVE );
-	g_callvote_cooldowntime = Cvar_Get( "g_vote_cooldowntime", "5", CVAR_ARCHIVE );
+	g_callvote_electpercentage = NewCvar( "g_vote_percent", "55", CvarFlag_Archive );
+	g_callvote_electtime = NewCvar( "g_vote_electtime", "20", CvarFlag_Archive );
+	g_callvote_enabled = NewCvar( "g_vote_allowed", "1", CvarFlag_Archive );
+	g_callvote_maxchanges = NewCvar( "g_vote_maxchanges", "3", CvarFlag_Archive );
+	g_callvote_cooldowntime = NewCvar( "g_vote_cooldowntime", "5", CvarFlag_Archive );
 
 	G_CallVotes_Reset( true );
 }

@@ -50,8 +50,6 @@ struct Plane {
 
 constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 
-#define qmin( a, b ) ( ( a ) < ( b ) ? ( a ) : ( b ) )
-
 #define PlaneDiff( point, plane ) ( Dot( ( point ), ( plane )->normal ) - ( plane )->distance )
 
 void ClearBounds( Vec3 * mins, Vec3 * maxs );

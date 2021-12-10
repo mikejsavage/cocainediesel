@@ -106,13 +106,13 @@ static void SettingLabel( const char * label ) {
 }
 
 template< size_t maxlen >
-static void CvarTextbox( const char * label, const char * cvar_name, const char * def, cvar_flag_t flags ) {
+static void CvarTextbox( const char * label, const char * cvar_name, const char * def, u32 flags ) {
 	SettingLabel( label );
 
-	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
+	Cvar * cvar = NewCvar( cvar_name, def, flags );
 
 	char buf[ maxlen + 1 ];
-	Q_strncpyz( buf, cvar->string, sizeof( buf ) );
+	Q_strncpyz( buf, cvar->value, sizeof( buf ) );
 
 	ImGui::PushID( cvar_name );
 	ImGui::InputText( "", buf, sizeof( buf ) );
@@ -121,10 +121,10 @@ static void CvarTextbox( const char * label, const char * cvar_name, const char 
 	Cvar_Set( cvar_name, buf );
 }
 
-static void CvarCheckbox( const char * label, const char * cvar_name, const char * def, cvar_flag_t flags ) {
+static void CvarCheckbox( const char * label, const char * cvar_name, const char * def, u32 flags ) {
 	SettingLabel( label );
 
-	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
+	Cvar * cvar = NewCvar( cvar_name, def, flags );
 
 	bool val = cvar->integer != 0;
 	ImGui::PushID( cvar_name );
@@ -134,14 +134,14 @@ static void CvarCheckbox( const char * label, const char * cvar_name, const char
 	Cvar_Set( cvar_name, val ? "1" : "0" );
 }
 
-static void CvarSliderFloat( const char * label, const char * cvar_name, float lo, float hi, const char * def, cvar_flag_t flags ) {
+static void CvarSliderFloat( const char * label, const char * cvar_name, float lo, float hi, const char * def, u32 flags ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	SettingLabel( label );
 
-	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
+	Cvar * cvar = NewCvar( cvar_name, def, flags );
 
-	float val = cvar->value;
+	float val = cvar->number;
 	ImGui::PushID( cvar_name );
 	ImGui::SliderFloat( "", &val, lo, hi, "%.2f" );
 	ImGui::PopID();
@@ -211,12 +211,12 @@ static const char * SelectableMapList() {
 static void SettingsGeneral() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "", CVAR_USERINFO | CVAR_ARCHIVE );
+	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "", CvarFlag_UserInfo | CvarFlag_Archive );
 
-	CvarCheckbox( "Show chat", "cg_chat", "1", CVAR_ARCHIVE );
-	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CVAR_ARCHIVE );
-	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
-	CvarCheckbox( "Show speed", "cg_showSpeed", "0", CVAR_ARCHIVE );
+	CvarCheckbox( "Show chat", "cg_chat", "1", CvarFlag_Archive );
+	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CvarFlag_Archive );
+	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CvarFlag_Archive );
+	CvarCheckbox( "Show speed", "cg_showSpeed", "0", CvarFlag_Archive );
 }
 
 static void SettingsControls() {
@@ -264,10 +264,10 @@ static void SettingsControls() {
 		}
 
 		if( ImGui::BeginTabItem( "Mouse" ) ) {
-			CvarSliderFloat( "Sensitivity", "sensitivity", sensivity_range[ 0 ], sensivity_range[ 1 ], "3", CVAR_ARCHIVE );
-			CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f, "1", CVAR_ARCHIVE );
-			CvarSliderFloat( "Acceleration", "m_accel", 0.0f, 1.0f, "0", CVAR_ARCHIVE );
-			CvarCheckbox( "Invert Y axis", "m_invertY", "0", CVAR_ARCHIVE );
+			CvarSliderFloat( "Sensitivity", "sensitivity", sensivity_range[ 0 ], sensivity_range[ 1 ], "3", CvarFlag_Archive );
+			CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f, "1", CvarFlag_Archive );
+			CvarSliderFloat( "Acceleration", "m_accel", 0.0f, 1.0f, "0", CvarFlag_Archive );
+			CvarCheckbox( "Invert Y axis", "m_invertY", "0", CvarFlag_Archive );
 
 			ImGui::EndTabItem();
 		}
@@ -423,7 +423,7 @@ static void SettingsVideo() {
 	{
 		SettingLabel( "Anti-aliasing" );
 
-		cvar_t * cvar = Cvar_Get( "r_samples", "0", CVAR_ARCHIVE );
+		Cvar * cvar = NewCvar( "r_samples", "0", CvarFlag_Archive );
 		int samples = cvar->integer;
 
 		ImGui::PushItemWidth( 100 );
@@ -455,7 +455,7 @@ static void SettingsVideo() {
 	{
 		SettingLabel( "Shadow Quality" );
 
-		cvar_t * cvar = Cvar_Get( "r_shadow_quality", "1", CVAR_ARCHIVE );
+		Cvar * cvar = NewCvar( "r_shadow_quality", "1", CvarFlag_Archive );
 		ShadowQuality quality = ShadowQuality( cvar->integer );
 
 		ImGui::PushItemWidth( 150 );
@@ -478,7 +478,7 @@ static void SettingsVideo() {
 
 		constexpr int values[] = { 60, 75, 120, 144, 165, 180, 200, 240, 333, 500, 1000 };
 
-		cvar_t * cvar = Cvar_Get( "cl_maxfps", "250", CVAR_ARCHIVE );
+		Cvar * cvar = NewCvar( "cl_maxfps", "250", CvarFlag_Archive );
 		int maxfps = cvar->integer;
 
 		ImGui::PushItemWidth( 100 );
@@ -497,9 +497,9 @@ static void SettingsVideo() {
 		Cvar_Set( "cl_maxfps", temp( "{}", maxfps ) );
 	}
 
-	CvarCheckbox( "Vsync", "vid_vsync", "0", CVAR_ARCHIVE );
+	CvarCheckbox( "Vsync", "vid_vsync", "0", CvarFlag_Archive );
 
-	CvarCheckbox( "Colorblind mode", "cg_colorBlind", "0", CVAR_ARCHIVE );
+	CvarCheckbox( "Colorblind mode", "cg_colorBlind", "0", CvarFlag_Archive );
 }
 
 static const char * CleanAudioDeviceName( const char * name ) {
@@ -514,15 +514,15 @@ static void SettingsAudio() {
 	SettingLabel( "Audio device" );
 	ImGui::PushItemWidth( 400 );
 
-	const char * current = strcmp( s_device->string, "" ) == 0 ? "Default" : s_device->string;
+	const char * current = StrEqual( s_device->value, "" ) ? "Default" : s_device->value;
 	if( ImGui::BeginCombo( "##audio_device", CleanAudioDeviceName( current ) ) ) {
-		if( ImGui::Selectable( "Default", strcmp( s_device->string, "" ) == 0 ) ) {
+		if( ImGui::Selectable( "Default", StrEqual( s_device->value, "" ) ) ) {
 			Cvar_Set( "s_device", "" );
 		}
 
 		const char * device = GetAudioDevicesAsSequentialStrings();
-		while( strcmp( device, "" ) != 0 ) {
-			if( ImGui::Selectable( CleanAudioDeviceName( device ), strcmp( device, s_device->string ) == 0 ) ) {
+		while( !StrEqual( device, "" ) ) {
+			if( ImGui::Selectable( CleanAudioDeviceName( device ), StrEqual( device, s_device->value ) ) ) {
 				Cvar_Set( "s_device", device );
 			}
 			device += strlen( device ) + 1;
@@ -536,9 +536,9 @@ static void SettingsAudio() {
 
 	ImGui::Separator();
 
-	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
-	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "0.5", CVAR_ARCHIVE );
-	CvarCheckbox( "Mute when alt-tabbed", "s_muteinbackground", "1", CVAR_ARCHIVE );
+	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f, "1", CvarFlag_Archive );
+	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "0.5", CvarFlag_Archive );
+	CvarCheckbox( "Mute when alt-tabbed", "s_muteinbackground", "1", CvarFlag_Archive );
 }
 
 static void Settings() {
@@ -677,7 +677,7 @@ static void DemoBrowser() {
 static void CreateServer() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	CvarTextbox< 128 >( "Server name", "sv_hostname", APPLICATION " server", CVAR_SERVERINFO | CVAR_ARCHIVE );
+	CvarTextbox< 128 >( "Server name", "sv_hostname", APPLICATION " server", CvarFlag_ServerInfo | CvarFlag_Archive );
 
 	{
 		int maxclients = Cvar_Integer( "sv_maxclients" );
@@ -697,7 +697,7 @@ static void CreateServer() {
 
 	const char * map_name = SelectableMapList();
 
-	CvarCheckbox( "Public", "sv_public", "0", CVAR_LATCH );
+	CvarCheckbox( "Public", "sv_public", "0", CvarFlag_ServerReadOnly );
 
 	if( ImGui::Button( "Create server" ) ) {
 		Cbuf_AddText( temp( "map \"{}\"\n", map_name ) );
@@ -733,7 +733,7 @@ static void MainMenu() {
 	ImGui::SetCursorPosX( 40.0f * triangel( cls.monotonicTime, 631 ) );
 	ImGui::PushFont( cls.large_font );
 
-	if( Cvar_Get( "cg_colorBlind", "0", CVAR_ARCHIVE )->integer ) {
+	if( NewCvar( "cg_colorBlind", "0", CvarFlag_Archive )->integer ) {
 		ImGui::PushStyleColor( ImGuiCol_Text, CG_TeamColorVec4( TEAM_BETA ) );
 		if( glitch( cls.monotonicTime / 8 ) )
 			ImGui::Text( "COLOURBLIN" );

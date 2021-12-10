@@ -29,38 +29,38 @@ DamageType meansOfDeath;
 Vec3 knockbackOfDeath;
 int damageFlagsOfDeath;
 
-cvar_t *sv_password;
-cvar_t *g_operator_password;
-cvar_t *g_select_empty;
+Cvar *sv_password;
+Cvar *g_operator_password;
+Cvar *g_select_empty;
 
-cvar_t *filterban;
+Cvar *filterban;
 
-cvar_t *g_maxvelocity;
+Cvar *g_maxvelocity;
 
-cvar_t *sv_cheats;
+Cvar *sv_cheats;
 
-cvar_t *g_floodprotection_messages;
-cvar_t *g_floodprotection_team;
-cvar_t *g_floodprotection_seconds;
-cvar_t *g_floodprotection_penalty;
+Cvar *g_floodprotection_messages;
+Cvar *g_floodprotection_team;
+Cvar *g_floodprotection_seconds;
+Cvar *g_floodprotection_penalty;
 
-cvar_t *g_inactivity_maxtime;
+Cvar *g_inactivity_maxtime;
 
-cvar_t *g_projectile_prestep;
-cvar_t *g_numbots;
-cvar_t *g_maxtimeouts;
-cvar_t *g_antilag;
-cvar_t *g_antilag_maxtimedelta;
-cvar_t *g_antilag_timenudge;
-cvar_t *g_autorecord;
-cvar_t *g_autorecord_maxdemos;
+Cvar *g_projectile_prestep;
+Cvar *g_numbots;
+Cvar *g_maxtimeouts;
+Cvar *g_antilag;
+Cvar *g_antilag_maxtimedelta;
+Cvar *g_antilag_timenudge;
+Cvar *g_autorecord;
+Cvar *g_autorecord_maxdemos;
 
-cvar_t *g_deadbody_followkiller;
+Cvar *g_deadbody_followkiller;
 
-cvar_t *g_allow_spectator_voting;
+Cvar *g_allow_spectator_voting;
 
-cvar_t *g_asGC_stats;
-cvar_t *g_asGC_interval;
+Cvar *g_asGC_stats;
+Cvar *g_asGC_interval;
 
 /*
 * G_GS_Trace - Used only for gameshared linking
@@ -123,52 +123,49 @@ void G_Init( unsigned int framemsec ) {
 	game.frametime = game.snapFrameTime;
 	game.numBots = 0;
 
-	g_maxvelocity = Cvar_Get( "g_maxvelocity", "16000", 0 );
-	if( g_maxvelocity->value < 20 ) {
-		Cvar_SetValue( "g_maxvelocity", 20 );
+	g_maxvelocity = NewCvar( "g_maxvelocity", "16000", 0 );
+	if( g_maxvelocity->integer < 20 ) {
+		Cvar_SetInteger( "g_maxvelocity", 20 );
 	}
 
-	developer = Cvar_Get( "developer", "0", 0 );
+	sv_cheats = NewCvar( "sv_cheats", is_public_build ? "0" : "1", CvarFlag_ServerInfo | CvarFlag_ServerReadOnly );
 
-	// latched vars
-	sv_cheats = Cvar_Get( "sv_cheats", is_public_build ? "0" : "1", CVAR_SERVERINFO | CVAR_LATCH );
-
-	sv_password = Cvar_Get( "password", "", CVAR_USERINFO );
+	sv_password = NewCvar( "sv_password", "", CvarFlag_UserInfo );
 	sv_password->modified = true; // force an update of g_needpass in G_UpdateServerInfo
-	g_operator_password = Cvar_Get( "g_operator_password", "", CVAR_ARCHIVE );
-	filterban = Cvar_Get( "filterban", "1", 0 );
+	g_operator_password = NewCvar( "g_operator_password", "", CvarFlag_Archive );
+	filterban = NewCvar( "filterban", "1", 0 );
 
-	g_projectile_prestep = Cvar_Get( "g_projectile_prestep", va( "%i", PROJECTILE_PRESTEP ), CVAR_DEVELOPER );
-	g_numbots = Cvar_Get( "g_numbots", "0", CVAR_ARCHIVE );
-	g_deadbody_followkiller = Cvar_Get( "g_deadbody_followkiller", "1", CVAR_DEVELOPER );
-	g_maxtimeouts = Cvar_Get( "g_maxtimeouts", "2", CVAR_ARCHIVE );
-	g_antilag_maxtimedelta = Cvar_Get( "g_antilag_maxtimedelta", "200", CVAR_ARCHIVE );
+	g_projectile_prestep = NewCvar( "g_projectile_prestep", va( "%i", PROJECTILE_PRESTEP ), CvarFlag_Developer );
+	g_numbots = NewCvar( "g_numbots", "0", CvarFlag_Archive );
+	g_deadbody_followkiller = NewCvar( "g_deadbody_followkiller", "1", CvarFlag_Developer );
+	g_maxtimeouts = NewCvar( "g_maxtimeouts", "2", CvarFlag_Archive );
+	g_antilag_maxtimedelta = NewCvar( "g_antilag_maxtimedelta", "200", CvarFlag_Archive );
 	g_antilag_maxtimedelta->modified = true;
-	g_antilag_timenudge = Cvar_Get( "g_antilag_timenudge", "0", CVAR_ARCHIVE );
+	g_antilag_timenudge = NewCvar( "g_antilag_timenudge", "0", CvarFlag_Archive );
 	g_antilag_timenudge->modified = true;
 
-	g_allow_spectator_voting = Cvar_Get( "g_allow_spectator_voting", "1", CVAR_ARCHIVE );
+	g_allow_spectator_voting = NewCvar( "g_allow_spectator_voting", "1", CvarFlag_Archive );
 
 	// flood control
-	g_floodprotection_messages = Cvar_Get( "g_floodprotection_messages", "4", 0 );
+	g_floodprotection_messages = NewCvar( "g_floodprotection_messages", "4", 0 );
 	g_floodprotection_messages->modified = true;
-	g_floodprotection_team = Cvar_Get( "g_floodprotection_team", "0", 0 );
+	g_floodprotection_team = NewCvar( "g_floodprotection_team", "0", 0 );
 	g_floodprotection_team->modified = true;
-	g_floodprotection_seconds = Cvar_Get( "g_floodprotection_seconds", "4", 0 );
+	g_floodprotection_seconds = NewCvar( "g_floodprotection_seconds", "4", 0 );
 	g_floodprotection_seconds->modified = true;
-	g_floodprotection_penalty = Cvar_Get( "g_floodprotection_delay", "2", 0 );
+	g_floodprotection_penalty = NewCvar( "g_floodprotection_delay", "2", 0 );
 	g_floodprotection_penalty->modified = true;
 
-	g_inactivity_maxtime = Cvar_Get( "g_inactivity_maxtime", "90.0", 0 );
+	g_inactivity_maxtime = NewCvar( "g_inactivity_maxtime", "90.0", 0 );
 	g_inactivity_maxtime->modified = true;
 
 	// helper cvars to show current status in serverinfo reply
-	Cvar_Get( "g_match_time", "", CVAR_SERVERINFO | CVAR_READONLY );
-	Cvar_Get( "g_match_score", "", CVAR_SERVERINFO | CVAR_READONLY );
-	Cvar_Get( "g_needpass", "", CVAR_SERVERINFO | CVAR_READONLY );
+	NewCvar( "g_match_time", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
+	NewCvar( "g_match_score", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
+	NewCvar( "g_needpass", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
-	g_asGC_stats = Cvar_Get( "g_asGC_stats", "0", CVAR_ARCHIVE );
-	g_asGC_interval = Cvar_Get( "g_asGC_interval", "10", CVAR_ARCHIVE );
+	g_asGC_stats = NewCvar( "g_asGC_stats", "0", CvarFlag_Archive );
+	g_asGC_interval = NewCvar( "g_asGC_interval", "10", CvarFlag_Archive );
 
 	game.maxentities = MAX_EDICTS;
 	memset( game.edicts, 0, sizeof( game.edicts ) );

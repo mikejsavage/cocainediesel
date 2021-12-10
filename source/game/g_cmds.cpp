@@ -89,7 +89,7 @@ static void Cmd_Noclip_f( edict_t *ent ) {
 }
 
 static void Cmd_GameOperator_f( edict_t *ent ) {
-	if( !g_operator_password->string[0] ) {
+	if( StrEqual( g_operator_password->value, "" ) ) {
 		G_PrintMsg( ent, "Operator is disabled in this server\n" );
 		return;
 	}
@@ -99,7 +99,7 @@ static void Cmd_GameOperator_f( edict_t *ent ) {
 		return;
 	}
 
-	if( !Q_stricmp( Cmd_Argv( 1 ), g_operator_password->string ) ) {
+	if( StrEqual( Cmd_Argv( 1 ), g_operator_password->value ) ) {
 		if( !ent->r.client->isoperator ) {
 			G_PrintMsg( NULL, "%s" S_COLOR_WHITE " is now a game operator\n", ent->r.client->netname );
 		}
@@ -246,7 +246,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 
 			if( client->level.flood_team_when[i] && client->level.flood_team_when[i] <= svs.realtime &&
 				( svs.realtime < client->level.flood_team_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
-				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->value * 1000;
+				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->integer * 1000;
 				G_PrintMsg( ent, "Flood protection: You can't talk for %d seconds.\n", g_floodprotection_penalty->integer );
 				return true;
 			}
@@ -263,7 +263,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 
 			if( client->level.flood_when[i] && client->level.flood_when[i] <= svs.realtime &&
 				( svs.realtime < client->level.flood_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
-				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->value * 1000;
+				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->integer * 1000;
 				G_PrintMsg( ent, "Flood protection: You can't talk for %d seconds.\n", g_floodprotection_penalty->integer );
 				return true;
 			}

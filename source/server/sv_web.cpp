@@ -630,14 +630,14 @@ void SV_Web_Init() {
 
 	SV_Web_InitConnections();
 
-	if( strlen( sv_downloadurl->string ) > 0 ) {
+	if( !StrEqual( sv_downloadurl->value, "" ) ) {
 		return;
 	}
 
-	SV_Web_InitSocket( sv_ip->string, NA_IPv4, &sv_socket_http );
-	SV_Web_InitSocket( sv_ip6->string, NA_IPv6, &sv_socket_http6 );
+	SV_Web_InitSocket( sv_ip->value, NA_IPv4, &sv_socket_http );
+	SV_Web_InitSocket( sv_ip6->value, NA_IPv6, &sv_socket_http6 );
 
-	sv_http_initialized = ( sv_socket_http.address.type == NA_IPv4 || sv_socket_http6.address.type == NA_IPv6 );
+	sv_http_initialized = sv_socket_http.address.type == NA_IPv4 || sv_socket_http6.address.type == NA_IPv6;
 
 	if( !sv_http_initialized ) {
 		return;

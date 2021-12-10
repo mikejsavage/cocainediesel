@@ -223,26 +223,26 @@ extern server_constant_t svc;              // constant server info (trully persi
 extern server_static_t svs;                // persistant server info
 extern server_t sv;                 // local server
 
-extern cvar_t *sv_ip;
-extern cvar_t *sv_port;
+extern Cvar *sv_ip;
+extern Cvar *sv_port;
 
-extern cvar_t *sv_ip6;
-extern cvar_t *sv_port6;
+extern Cvar *sv_ip6;
+extern Cvar *sv_port6;
 
-extern cvar_t *sv_downloadurl;
+extern Cvar *sv_downloadurl;
 
-extern cvar_t *sv_maxclients;
+extern Cvar *sv_maxclients;
 
-extern cvar_t *sv_showRcon;
-extern cvar_t *sv_showChallenge;
-extern cvar_t *sv_showInfoQueries;
+extern Cvar *sv_showRcon;
+extern Cvar *sv_showChallenge;
+extern Cvar *sv_showInfoQueries;
 
-extern cvar_t *sv_public;         // should heartbeats be sent
+extern Cvar *sv_public;         // should heartbeats be sent
 
 // wsw : debug netcode
-extern cvar_t *sv_debug_serverCmd;
+extern Cvar *sv_debug_serverCmd;
 
-extern cvar_t *sv_demodir;
+extern Cvar *sv_demodir;
 
 //===========================================================
 

@@ -86,6 +86,8 @@ template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char
 bool StartsWith( Span< const char > str, const char * prefix );
 bool StartsWith( const char * str, const char * prefix );
 
+bool CaseStartsWith( const char * str, const char * prefix );
+
 Span< const char > FileExtension( const char * path );
 Span< const char > StripExtension( const char * path );
 Span< const char > LastFileExtension( const char * path );

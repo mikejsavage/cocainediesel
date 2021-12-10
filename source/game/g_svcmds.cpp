@@ -171,7 +171,7 @@ void SV_ReadIPList() {
 }
 
 void SV_WriteIPList() {
-	DynamicString output( sys_allocator, "set filterban {}\r\n", filterban->integer );
+	DynamicString output( sys_allocator, "filterban {}\r\n", filterban->integer );
 
 	for( int i = 0; i < numipfilters; i++ ) {
 		if( ipfilters[i].timeout && ipfilters[i].timeout <= svs.gametime ) {

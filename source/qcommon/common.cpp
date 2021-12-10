@@ -40,14 +40,14 @@ static bool com_quit;
 
 static jmp_buf abortframe;     // an ERR_DROP occured, exit the entire frame
 
-cvar_t *developer;
-cvar_t *timescale;
-cvar_t *versioncvar;
+Cvar *developer;
+Cvar *timescale;
+Cvar *versioncvar;
 
-static cvar_t *logconsole = NULL;
-static cvar_t *logconsole_append;
-static cvar_t *logconsole_flush;
-static cvar_t *logconsole_timestamp;
+static Cvar *logconsole = NULL;
+static Cvar *logconsole_append;
+static Cvar *logconsole_flush;
+static Cvar *logconsole_timestamp;
 
 static Mutex *com_print_mutex;
 
@@ -134,11 +134,11 @@ static void Com_ReopenConsoleLog() {
 
 	Com_CloseConsoleLog( false, false );
 
-	if( logconsole && logconsole->string && logconsole->string[0] ) {
+	if( logconsole && logconsole->value && logconsole->value[0] ) {
 		const char * mode = logconsole_append && logconsole_append->integer ? "a" : "w";
-		log_file = OpenFile( sys_allocator, logconsole->string, mode );
+		log_file = OpenFile( sys_allocator, logconsole->value, mode );
 		if( log_file == NULL ) {
-			snprintf( errmsg, sizeof( errmsg ), "Couldn't open log file: %s (%s)\n", logconsole->string, strerror( errno ) );
+			snprintf( errmsg, sizeof( errmsg ), "Couldn't open log file: %s (%s)\n", logconsole->value, strerror( errno ) );
 		}
 	}
 
@@ -324,36 +324,18 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	com_print_mutex = NewMutex();
 
-	// initialize memory manager
 	Memory_Init();
+	InitFS();
+	FS_Init();
 
 	// prepare enough of the subsystems to handle
 	// cvar and command buffer management
 	COM_InitArgv( argc, argv );
-
-	Cbuf_Init();
-
-	// initialize cmd/cvar tries
-	Cmd_PreInit();
-	Cvar_PreInit();
-
-	// create basic commands and cvars
 	Cmd_Init();
-	Cvar_Init();
+	Cvar_PreInit();
+	Key_Init(); // need to be able to bind keys before running configs
 
-	Key_Init();
-
-	// we need to add the early commands twice, because
-	// a basepath or cdpath needs to be set before execing
-	// config files, but we want other parms to override
-	// the settings of the config files
-	Cbuf_AddEarlyCommands( false );
-	Cbuf_Execute();
-
-	developer = Cvar_Get( "developer", "0", 0 );
-
-	InitFS();
-	FS_Init();
+	developer = NewCvar( "developer", "0", 0 );
 
 	if( !is_dedicated_server ) {
 		ExecDefaultCfg();
@@ -364,8 +346,10 @@ void Qcommon_Init( int argc, char **argv ) {
 		Cbuf_AddText( "config dedicated_autoexec.cfg\n" );
 	}
 
-	Cbuf_AddEarlyCommands( true );
+	Cbuf_AddEarlyCommands();
 	Cbuf_Execute();
+
+	Cvar_Init();
 
 	//
 	// init commands and vars
@@ -374,18 +358,19 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	Cmd_AddCommand( "quit", Com_DeferQuit );
 
-	timescale =     Cvar_Get( "timescale", "1.0", CVAR_CHEAT );
+	timescale = NewCvar( "timescale", "1.0", CvarFlag_Cheat );
 	if( is_dedicated_server ) {
-		logconsole =        Cvar_Get( "logconsole", "server.log", CVAR_ARCHIVE );
-	} else {
-		logconsole =        Cvar_Get( "logconsole", "", CVAR_ARCHIVE );
+		logconsole = NewCvar( "logconsole", "server.log", CvarFlag_Archive );
 	}
-	logconsole_append = Cvar_Get( "logconsole_append", "1", CVAR_ARCHIVE );
-	logconsole_flush =  Cvar_Get( "logconsole_flush", "0", CVAR_ARCHIVE );
-	logconsole_timestamp =  Cvar_Get( "logconsole_timestamp", "0", CVAR_ARCHIVE );
+	else {
+		logconsole = NewCvar( "logconsole", "", CvarFlag_Archive );
+	}
+	logconsole_append = NewCvar( "logconsole_append", "1", CvarFlag_Archive );
+	logconsole_flush =  NewCvar( "logconsole_flush", "0", CvarFlag_Archive );
+	logconsole_timestamp =  NewCvar( "logconsole_timestamp", "0", CvarFlag_Archive );
 
-	Cvar_Get( "gamename", APPLICATION_NOSPACES, CVAR_SERVERINFO | CVAR_READONLY );
-	versioncvar = Cvar_Get( "version", APP_VERSION " " ARCH " " OSNAME, CVAR_SERVERINFO | CVAR_READONLY );
+	NewCvar( "gamename", APPLICATION_NOSPACES, CvarFlag_ServerInfo | CvarFlag_ReadOnly );
+	versioncvar = NewCvar( "version", APP_VERSION " " ARCH " " OSNAME, CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
 	InitCSPRNG();
 
@@ -416,10 +401,10 @@ bool Qcommon_Frame( unsigned int realMsec ) {
 		Com_ReopenConsoleLog();
 	}
 
-	if( timescale->value >= 0 ) {
+	if( timescale->number >= 0 ) {
 		static float extratime = 0.0f;
-		gameMsec = extratime + (float)realMsec * timescale->value;
-		extratime = ( extratime + (float)realMsec * timescale->value ) - (float)gameMsec;
+		gameMsec = extratime + (float)realMsec * timescale->number;
+		extratime = ( extratime + (float)realMsec * timescale->number ) - (float)gameMsec;
 	} else {
 		gameMsec = realMsec;
 	}
@@ -460,7 +445,6 @@ void Qcommon_Shutdown() {
 
 	Cvar_Shutdown();
 	Cmd_Shutdown();
-	Cbuf_Shutdown();
 	Memory_Shutdown();
 
 	DeleteMutex( com_print_mutex );

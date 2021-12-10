@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/string.h"
 #include "qcommon/q_trie.h"
 
-static bool cmd_preinitialized = false;
 static bool cmd_initialized = false;
 
 /*
@@ -42,8 +41,6 @@ COMMAND BUFFER
 * position in the buffer
 */
 
-static bool cbuf_initialized = false;
-
 #define MIN_CMD_TEXT_SIZE 1024
 
 static size_t cbuf_text_size, cbuf_text_head, cbuf_text_tail;
@@ -53,24 +50,16 @@ static mempool_t *cbuf_pool;
 #define Cbuf_Malloc( size ) Mem_Alloc( cbuf_pool, size )
 #define Cbuf_Free( data ) Mem_Free( data )
 
-void Cbuf_Init() {
-	assert( !cbuf_initialized );
-
+static void Cbuf_Init() {
 	cbuf_pool = Mem_AllocPool( NULL, "Command buffer" );
 
 	cbuf_text_size = MIN_CMD_TEXT_SIZE;
 	cbuf_text = ( char * ) Cbuf_Malloc( cbuf_text_size );
 	cbuf_text_head = 0;
 	cbuf_text_tail = 0;
-
-	cbuf_initialized = true;
 }
 
-void Cbuf_Shutdown() {
-	if( !cbuf_initialized ) {
-		return;
-	}
-
+static void Cbuf_Shutdown() {
 	Cbuf_Free( cbuf_text );
 	cbuf_text = NULL;
 	cbuf_text_size = 0;
@@ -78,8 +67,6 @@ void Cbuf_Shutdown() {
 	cbuf_text_tail = 0;
 
 	Mem_FreePool( &cbuf_pool );
-
-	cbuf_initialized = false;
 }
 
 /*
@@ -274,30 +261,23 @@ void Cbuf_Execute() {
 *
 * Other commands are added late, after all initialization is complete.
 */
-void Cbuf_AddEarlyCommands( bool second_run ) {
-	int i;
-	const char *s;
-
-	for( i = 1; i < COM_Argc(); ++i ) {
-		s = COM_Argv( i );
-		if( !Q_stricmp( s, "+set" ) ) {
-			if( strlen( s ) > 4 ) {
-				Cbuf_AddText( va( "\"set%s\" \"%s\" \"%s\"\n", s + 4, COM_Argv( i + 1 ), COM_Argv( i + 2 ) ) );
-			} else {
-				Cbuf_AddText( va( "\"set\" \"%s\" \"%s\"\n", COM_Argv( i + 1 ), COM_Argv( i + 2 ) ) );
-			}
-			if( second_run ) {
-				COM_ClearArgv( i );
-				COM_ClearArgv( i + 1 );
-				COM_ClearArgv( i + 2 );
-			}
+void Cbuf_AddEarlyCommands() {
+	for( int i = 1; i < COM_Argc(); ++i ) {
+		const char * s = COM_Argv( i );
+		if( StrCaseEqual( s, "+set" ) ) {
+			Cbuf_AddText( va( "\"set\" \"%s\" \"%s\"\n", COM_Argv( i + 1 ), COM_Argv( i + 2 ) ) );
+			COM_ClearArgv( i );
+			COM_ClearArgv( i + 1 );
+			COM_ClearArgv( i + 2 );
 			i += 2;
-		} else if( second_run && !Q_stricmp( s, "+exec" ) ) {
+		}
+		else if( StrCaseEqual( s, "+exec" ) ) {
 			Cbuf_AddText( va( "exec \"%s\"\n", COM_Argv( i + 1 ) ) );
 			COM_ClearArgv( i );
 			COM_ClearArgv( i + 1 );
 			i += 1;
-		} else if( second_run && !Q_stricmp( s, "+config" ) ) {
+		}
+		else if( StrCaseEqual( s, "+config" ) ) {
 			Cbuf_AddText( va( "config \"%s\"\n", COM_Argv( i + 1 ) ) );
 			COM_ClearArgv( i );
 			COM_ClearArgv( i + 1 );
@@ -542,7 +522,7 @@ void Cmd_TokenizeString( const char *text ) {
 */
 void Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
 	// fail if the command is a variable name
-	if( Cvar_String( cmd_name )[0] ) {
+	if( IsCvar( cmd_name ) ) {
 		Com_Printf( "Cmd_AddCommand: %s already defined as a var\n", cmd_name );
 		return;
 	}
@@ -764,7 +744,7 @@ bool Cmd_CheckForCommand( char *text ) {
 	if( Cmd_Exists( cmd ) ) {
 		return true;
 	}
-	if( Cvar_Find( cmd ) ) {
+	if( IsCvar( cmd ) ) {
 		return true;
 	}
 
@@ -835,68 +815,49 @@ static void Cmd_List_f() {
 	Com_Printf( "%i commands\n", i );
 }
 
-void Cmd_PreInit() {
-	assert( !cmd_preinitialized );
+void Cmd_Init() {
 	assert( !cmd_initialized );
-
-	assert( !cmd_function_trie );
 
 	Trie_Create( TRIE_CASE_INSENSITIVE, &cmd_function_trie );
 
-	cmd_preinitialized = true;
-}
-
-void Cmd_Init() {
-	assert( !cmd_initialized );
-	assert( cmd_preinitialized );
-
-	assert( cmd_function_trie );
-
-	//
-	// register our commands
-	//
 	Cmd_AddCommand( "cmdlist", Cmd_List_f );
 	Cmd_AddCommand( "exec", Cmd_Exec_f );
 	Cmd_AddCommand( "config", Cmd_Config_f );
 
 	Cmd_SetCompletionFunc( "exec", CL_CompleteExecBuildList );
 
+	Cbuf_Init();
+
 	cmd_initialized = true;
 }
 
 void Cmd_Shutdown() {
-	if( cmd_initialized ) {
-		unsigned int i;
-		trie_dump_t *dump;
+	assert( cmd_initialized );
 
-		assert( cmd_function_trie );
+	Cmd_RemoveCommand( "cmdlist" );
+	Cmd_RemoveCommand( "exec" );
+	Cmd_RemoveCommand( "config" );
 
-		Cmd_RemoveCommand( "cmdlist" );
-		Cmd_RemoveCommand( "exec" );
-		Cmd_RemoveCommand( "config" );
+	// this is somewhat ugly IMO
+	for( unsigned int i = 0; i < MAX_STRING_TOKENS && cmd_argv_sizes[i]; i++ ) {
+		FREE( sys_allocator, cmd_argv[i] );
+		cmd_argv_sizes[i] = 0;
+	}
 
-		// this is somewhat ugly IMO
-		for( i = 0; i < MAX_STRING_TOKENS && cmd_argv_sizes[i]; i++ ) {
-			FREE( sys_allocator, cmd_argv[i] );
-			cmd_argv_sizes[i] = 0;
-		}
-
-		Trie_Dump( cmd_function_trie, "", TRIE_DUMP_VALUES, &dump );
-		for( i = 0; i < dump->size; ++i ) {
-#ifndef PUBLIC_BUILD
+	trie_dump_t *dump;
+	Trie_Dump( cmd_function_trie, "", TRIE_DUMP_VALUES, &dump );
+	for( unsigned int i = 0; i < dump->size; ++i ) {
+		if( !is_public_build ) {
 			Com_Printf( "Warning: Command %s was never removed\n",
-						( (cmd_function_t *)dump->key_value_vector[i].value )->name );
-#endif
-			Cmd_RemoveCommand( ( (cmd_function_t *)dump->key_value_vector[i].value )->name );
+				( (cmd_function_t *)dump->key_value_vector[i].value )->name );
 		}
-		Trie_FreeDump( dump );
-
-		cmd_initialized = false;
+		Cmd_RemoveCommand( ( (cmd_function_t *)dump->key_value_vector[i].value )->name );
 	}
+	Trie_FreeDump( dump );
 
-	if( cmd_preinitialized ) {
-		Trie_Destroy( cmd_function_trie );
+	Trie_Destroy( cmd_function_trie );
 
-		cmd_preinitialized = false;
-	}
+	Cbuf_Shutdown();
+
+	cmd_initialized = false;
 }

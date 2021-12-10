@@ -45,9 +45,6 @@ static void SV_CreateBaseline() {
 	}
 }
 
-/*
-* SV_SetServerConfigStrings
-*/
 void SV_SetServerConfigStrings() {
 	snprintf( sv.configstrings[CS_MAXCLIENTS], sizeof( sv.configstrings[CS_MAXCLIENTS] ), "%i", sv_maxclients->integer );
 	Q_strncpyz( sv.configstrings[CS_HOSTNAME], Cvar_String( "sv_hostname" ), sizeof( sv.configstrings[CS_HOSTNAME] ) );
@@ -61,7 +58,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	if( devmap ) {
 		Cvar_ForceSet( "sv_cheats", "1" );
 	}
-	Cvar_FixCheatVars();
+	ResetCheatCvars();
 
 	Com_Printf( "SpawnServer: %s\n", mapname );
 
@@ -82,8 +79,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 
 	G_LoadMap( mapname );
 
-	// set serverinfo variable
-	Cvar_FullSet( "mapname", sv.mapname, CVAR_SERVERINFO | CVAR_READONLY, true );
+	Cvar_ForceSet( "mapname", sv.mapname );
 
 	//
 	// spawn the rest of the entities on the map
@@ -125,11 +121,6 @@ void SV_InitGame() {
 	if( svs.initialized ) {
 		// cause any connected clients to reconnect
 		SV_ShutdownGame( "Server restarted", true );
-
-		// SV_ShutdownGame will also call Cvar_GetLatchedVars
-	} else {
-		// get any latched variable changes (sv_maxclients, etc)
-		Cvar_GetLatchedVars( CVAR_LATCH );
 	}
 
 	u64 entropy[ 2 ];
@@ -140,9 +131,9 @@ void SV_InitGame() {
 
 	// init clients
 	if( sv_maxclients->integer < 1 ) {
-		Cvar_FullSet( "sv_maxclients", "8", CVAR_SERVERINFO | CVAR_LATCH, true );
+		Cvar_ForceSet( "sv_maxclients", "8" );
 	} else if( sv_maxclients->integer > MAX_CLIENTS ) {
-		Cvar_FullSet( "sv_maxclients", va( "%i", MAX_CLIENTS ), CVAR_SERVERINFO | CVAR_LATCH, true );
+		Cvar_ForceSet( "sv_maxclients", va( "%i", MAX_CLIENTS ) );
 	}
 
 	svs.spawncount = RandomUniform( &svs.rng, 0, S16_MAX );
@@ -168,7 +159,7 @@ void SV_InitGame() {
 
 	if( is_dedicated_server || sv_maxclients->integer > 1 ) {
 		// IPv4
-		NET_StringToAddress( sv_ip->string, &address );
+		NET_StringToAddress( sv_ip->value, &address );
 		NET_SetAddressPort( &address, sv_port->integer );
 		if( !NET_OpenSocket( &svs.socket_udp, SOCKET_UDP, &address, true ) ) {
 			Com_Printf( "Error: Couldn't open UDP socket: %s\n", NET_ErrorString() );
@@ -177,7 +168,7 @@ void SV_InitGame() {
 		}
 
 		// IPv6
-		NET_StringToAddress( sv_ip6->string, &ipv6_address );
+		NET_StringToAddress( sv_ip6->value, &ipv6_address );
 		if( ipv6_address.type == NA_IPv6 ) {
 			NET_SetAddressPort( &ipv6_address, sv_port6->integer );
 			if( !NET_OpenSocket( &svs.socket_udp6, SOCKET_UDP, &ipv6_address, true ) ) {
@@ -186,7 +177,7 @@ void SV_InitGame() {
 				socket_opened = true;
 			}
 		} else {
-			Com_Printf( "Error: invalid IPv6 address: %s\n", sv_ip6->string );
+			Com_Printf( "Error: invalid IPv6 address: %s\n", sv_ip6->value );
 		}
 	}
 
@@ -256,9 +247,6 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 	NET_CloseSocket( &svs.socket_loopback );
 	NET_CloseSocket( &svs.socket_udp );
 	NET_CloseSocket( &svs.socket_udp6 );
-
-	// get any latched variable changes (sv_maxclients, etc)
-	Cvar_GetLatchedVars( CVAR_LATCH );
 
 	for( int i = 0; i < sv_maxclients->integer; i++ ) {
 		SNAP_FreeClientFrames( &svs.clients[ i ] );

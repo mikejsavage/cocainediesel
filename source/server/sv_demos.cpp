@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
 
-#define SV_DEMO_DIR va( "demos/server%s%s", sv_demodir->string[0] ? "/" : "", sv_demodir->string[0] ? sv_demodir->string : "" )
+#define SV_DEMO_DIR va( "demos/server%s%s", sv_demodir->value[0] ? "/" : "", sv_demodir->value[0] ? sv_demodir->value : "" )
 
 static void SV_Demo_WriteMessage( msg_t *msg ) {
 	assert( svs.demo.file );

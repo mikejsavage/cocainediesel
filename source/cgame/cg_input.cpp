@@ -231,15 +231,15 @@ int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] ) {
  * mouse
  */
 
-static cvar_t *sensitivity;
-static cvar_t *horizontalSensScale;
-static cvar_t *zoomsens;
-static cvar_t *m_accel;
-static cvar_t *m_accelStyle;
-static cvar_t *m_accelOffset;
-static cvar_t *m_accelPow;
-static cvar_t *m_sensCap;
-static cvar_t *m_invertY;
+static Cvar *sensitivity;
+static Cvar *horizontalSensScale;
+static Cvar *zoomsens;
+static Cvar *m_accel;
+static Cvar *m_accelStyle;
+static Cvar *m_accelOffset;
+static Cvar *m_accelPow;
+static Cvar *m_sensCap;
+static Cvar *m_invertY;
 
 static Vec2 mouse_movement;
 
@@ -269,42 +269,42 @@ static Vec2 Pow( Vec2 v, float e ) {
 }
 
 void CG_MouseMove( int frameTime, Vec2 m ) {
-	float sens = sensitivity->value;
+	float sens = sensitivity->number;
 
-	if( m_accel->value != 0.0f && frameTime != 0 ) {
+	if( m_accel->number != 0.0f && frameTime != 0 ) {
 		// QuakeLive-style mouse acceleration, ported from ioquake3
 		// original patch by Gabriel Schnoering and TTimo
 		if( m_accelStyle->integer == 1 ) {
 			Vec2 base = Abs( m ) / float( frameTime );
-			Vec2 power = Pow( base / m_accelOffset->value, m_accel->value );
-			m += SignedOne( m ) * power * m_accelOffset->value;
+			Vec2 power = Pow( base / m_accelOffset->number, m_accel->number );
+			m += SignedOne( m ) * power * m_accelOffset->number;
 		} else if( m_accelStyle->integer == 2 ) {
 			// ch : similar to normal acceleration with offset and variable pow mechanisms
 
 			// sanitize values
-			float accelPow = Max2( m_accelPow->value, 1.0f );
-			float accelOffset = Max2( m_accelOffset->value, 0.0f );
+			float accelPow = Max2( m_accelPow->number, 1.0f );
+			float accelOffset = Max2( m_accelOffset->number, 0.0f );
 
 			float rate = Max2( Length( m ) / float( frameTime ) - accelOffset, 0.0f );
-			sens += powf( rate * m_accel->value, accelPow - 1.0f );
+			sens += powf( rate * m_accel->number, accelPow - 1.0f );
 
-			if( m_sensCap->value > 0 ) {
-				sens = Min2( sens, m_sensCap->value );
+			if( m_sensCap->number > 0 ) {
+				sens = Min2( sens, m_sensCap->number );
 			}
 		} else {
 			float rate = Length( m ) / float( frameTime );
-			sens += rate * m_accel->value;
+			sens += rate * m_accel->number;
 		}
 	}
 
-	sens *= CG_GetSensitivityScale( sensitivity->value, zoomsens->value );
+	sens *= CG_GetSensitivityScale( sensitivity->number, zoomsens->number );
 
 	mouse_movement = m * sens;
 }
 
 Vec3 CG_GetDeltaViewAngles() {
 	// m_pitch/m_yaw used to default to 0.022
-	float x = horizontalSensScale->value;
+	float x = horizontalSensScale->number;
 	float y = m_invertY->integer == 0 ? 1.0f : -1.0f;
 	return Vec3(
 		0.022f * y * mouse_movement.y,
@@ -359,15 +359,15 @@ void CG_InitInput() {
 	Cmd_AddCommand( "+reload", IN_ReloadDown );
 	Cmd_AddCommand( "-reload", IN_ReloadUp );
 
-	sensitivity = Cvar_Get( "sensitivity", "3", CVAR_ARCHIVE );
-	horizontalSensScale = Cvar_Get( "horizontalsensscale", "1", CVAR_ARCHIVE );
-	zoomsens = Cvar_Get( "zoomsens", "0", CVAR_ARCHIVE );
-	m_accel = Cvar_Get( "m_accel", "0", CVAR_ARCHIVE );
-	m_accelStyle = Cvar_Get( "m_accelStyle", "0", CVAR_ARCHIVE );
-	m_accelOffset = Cvar_Get( "m_accelOffset", "0", CVAR_ARCHIVE );
-	m_accelPow = Cvar_Get( "m_accelPow", "2", CVAR_ARCHIVE );
-	m_sensCap = Cvar_Get( "m_sensCap", "0", CVAR_ARCHIVE );
-	m_invertY = Cvar_Get( "m_invertY", "0", CVAR_ARCHIVE );
+	sensitivity = NewCvar( "sensitivity", "3", CvarFlag_Archive );
+	horizontalSensScale = NewCvar( "horizontalsensscale", "1", CvarFlag_Archive );
+	zoomsens = NewCvar( "zoomsens", "0", CvarFlag_Archive );
+	m_accel = NewCvar( "m_accel", "0", CvarFlag_Archive );
+	m_accelStyle = NewCvar( "m_accelStyle", "0", CvarFlag_Archive );
+	m_accelOffset = NewCvar( "m_accelOffset", "0", CvarFlag_Archive );
+	m_accelPow = NewCvar( "m_accelPow", "2", CvarFlag_Archive );
+	m_sensCap = NewCvar( "m_sensCap", "0", CvarFlag_Archive );
+	m_invertY = NewCvar( "m_invertY", "0", CvarFlag_Archive );
 }
 
 void CG_ShutdownInput() {

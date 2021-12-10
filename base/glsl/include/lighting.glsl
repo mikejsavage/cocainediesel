@@ -91,7 +91,7 @@ Light GetDynamicLight( int index, vec3 normal ) {
 	float radius_squared = data.w * data.w;
 	vec3 dir = v_Position - origin;
 	float dist_squared = dot( dir, dir );
-	float attenuation = u_DynamicLightCutoff * ( ( radius_squared + 1.0 ) / ( dist_squared + 1.0 ) - 1.0 );
+	float attenuation = DLIGHT_CUTOFF * ( ( radius_squared + 1.0 ) / ( dist_squared + 1.0 ) - 1.0 );
 
 	Light light;
 	light.color = fract( data.xyz ) / 0.9;

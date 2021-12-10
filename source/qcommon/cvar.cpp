@@ -297,9 +297,6 @@ cvar_t *Cvar_Set( const char *var_name, const char *value ) {
 	return Cvar_Set2( var_name, value, false );
 }
 
-/*
-* Cvar_FullSet
-*/
 cvar_t *Cvar_FullSet( const char *var_name, const char *value, cvar_flag_t flags, bool overwrite_flags ) {
 	cvar_t *var;
 
@@ -479,28 +476,6 @@ static void Cvar_Reset_f() {
 	Cvar_Set( v->name, v->dvalue );
 }
 
-/*
-* Cvar_Toggle_f
-*/
-static void Cvar_Toggle_f() {
-	int i;
-	cvar_t *var;
-
-	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "Usage: toggle <list of variables>\n" );
-		return;
-	}
-
-	for( i = 1; i < Cmd_Argc(); i++ ) {
-		var = Cvar_Find( Cmd_Argv( i ) );
-		if( !var ) {
-			Com_Printf( "No such variable: \"%s\"\n", Cmd_Argv( i ) );
-			return;
-		}
-		Cvar_Set( var->name, var->integer ? "0" : "1" );
-	}
-}
-
 void Cvar_WriteVariables( DynamicString * config ) {
 	trie_dump_t *dump = NULL;
 	cvar_flag_t cvar_archive = CVAR_ARCHIVE;
@@ -537,9 +512,6 @@ void Cvar_WriteVariables( DynamicString * config ) {
 	Trie_FreeDump( dump );
 }
 
-/*
-* Cvar_List_f
-*/
 static void Cvar_List_f() {
 	trie_dump_t *dump = NULL;
 	unsigned int i;
@@ -648,18 +620,12 @@ char *Cvar_Serverinfo() {
 	return Cvar_BitInfo( CVAR_SERVERINFO );
 }
 
-/*
-* Cvar_NotDeveloper
-*/
 #ifdef PUBLIC_BUILD
 static int Cvar_NotDeveloper( void *cvar, const void *nothing ) {
 	return !Cvar_FlagIsSet( ( (cvar_t *)cvar )->flags, CVAR_DEVELOPER );
 }
 #endif
 
-/*
-* CVar_CompleteCountPossible
-*/
 int Cvar_CompleteCountPossible( const char *partial ) {
 	unsigned int matches;
 	assert( cvar_trie );
@@ -674,9 +640,6 @@ int Cvar_CompleteCountPossible( const char *partial ) {
 	return matches;
 }
 
-/*
-* CVar_CompleteBuildList
-*/
 const char **Cvar_CompleteBuildList( const char *partial ) {
 	trie_dump_t *dump = NULL;
 	const char **buf;
@@ -698,9 +661,6 @@ const char **Cvar_CompleteBuildList( const char *partial ) {
 	return buf;
 }
 
-/*
-* Cvar_CompleteBuildListWithFlag
-*/
 const char **Cvar_CompleteBuildListWithFlag( const char *partial, cvar_flag_t flag ) {
 	trie_dump_t *dump = NULL;
 	const char **buf;
@@ -718,23 +678,14 @@ const char **Cvar_CompleteBuildListWithFlag( const char *partial, cvar_flag_t fl
 	return buf;
 }
 
-/*
-* Cvar_CompleteBuildListUser
-*/
 const char **Cvar_CompleteBuildListUser( const char *partial ) {
 	return Cvar_CompleteBuildListWithFlag( partial, CVAR_USERINFO );
 }
 
-/*
-* Cvar_CompleteBuildListServer
-*/
 const char **Cvar_CompleteBuildListServer( const char *partial ) {
 	return Cvar_CompleteBuildListWithFlag( partial, CVAR_SERVERINFO );
 }
 
-/*
-* Cvar_PreInit
-*/
 void Cvar_PreInit() {
 	assert( !cvar_initialized );
 	assert( !cvar_preinitialized );
@@ -766,13 +717,11 @@ void Cvar_Init() {
 	Cmd_AddCommand( "setu", Cvar_Setu_f );
 	Cmd_AddCommand( "sets", Cvar_Sets_f );
 	Cmd_AddCommand( "reset", Cvar_Reset_f );
-	Cmd_AddCommand( "toggle", Cvar_Toggle_f );
 	Cmd_AddCommand( "cvarlist", Cvar_List_f );
 
 	Cmd_SetCompletionFunc( "set", Cvar_CompleteBuildList );
 	Cmd_SetCompletionFunc( "seta", Cvar_CompleteBuildList );
 	Cmd_SetCompletionFunc( "reset", Cvar_CompleteBuildList );
-	Cmd_SetCompletionFunc( "toggle", Cvar_CompleteBuildList );
 	Cmd_SetCompletionFunc( "setau", Cvar_CompleteBuildListUser );
 	Cmd_SetCompletionFunc( "setas", Cvar_CompleteBuildListServer );
 	Cmd_SetCompletionFunc( "setu", Cvar_CompleteBuildListUser );
@@ -807,7 +756,6 @@ void Cvar_Shutdown() {
 		Cmd_RemoveCommand( "setu" );
 		Cmd_RemoveCommand( "sets" );
 		Cmd_RemoveCommand( "reset" );
-		Cmd_RemoveCommand( "toggle" );
 		Cmd_RemoveCommand( "cvarlist" );
 
 		Lock( cvar_mutex );

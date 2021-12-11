@@ -128,7 +128,7 @@ void G_Init( unsigned int framemsec ) {
 		Cvar_SetInteger( "g_maxvelocity", 20 );
 	}
 
-	sv_cheats = NewCvar( "sv_cheats", is_public_build ? "0" : "1", CvarFlag_ServerInfo | CvarFlag_ServerReadOnly );
+	sv_cheats = NewCvar( "sv_cheats", is_public_build ? "0" : "1", CvarFlag_ServerReadOnly );
 
 	sv_password = NewCvar( "sv_password", "", CvarFlag_UserInfo );
 	sv_password->modified = true; // force an update of g_needpass in G_UpdateServerInfo
@@ -160,7 +160,6 @@ void G_Init( unsigned int framemsec ) {
 	g_inactivity_maxtime->modified = true;
 
 	// helper cvars to show current status in serverinfo reply
-	NewCvar( "g_match_time", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 	NewCvar( "g_match_score", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 	NewCvar( "g_needpass", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 

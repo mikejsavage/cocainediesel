@@ -42,7 +42,6 @@ static jmp_buf abortframe;     // an ERR_DROP occured, exit the entire frame
 
 Cvar *developer;
 Cvar *timescale;
-Cvar *versioncvar;
 
 static Cvar *logconsole = NULL;
 static Cvar *logconsole_append;
@@ -370,7 +369,6 @@ void Qcommon_Init( int argc, char **argv ) {
 	logconsole_timestamp =  NewCvar( "logconsole_timestamp", "0", CvarFlag_Archive );
 
 	NewCvar( "gamename", APPLICATION_NOSPACES, CvarFlag_ServerInfo | CvarFlag_ReadOnly );
-	versioncvar = NewCvar( "version", APP_VERSION " " ARCH " " OSNAME, CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
 	InitCSPRNG();
 

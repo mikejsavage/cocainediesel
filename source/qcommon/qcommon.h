@@ -528,7 +528,6 @@ void Com_SetServerState( server_state_t state );
 
 extern Cvar *developer;
 extern const bool is_dedicated_server;
-extern Cvar *versioncvar;
 
 /*
 ==============================================================

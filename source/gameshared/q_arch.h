@@ -24,15 +24,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ctype.h>
 #include <inttypes.h>
 
-#define ARCH "x86_64"
-
 //==============================================
 
 #ifdef _WIN32
 
 #define HAVE__STRICMP
-
-#define OSNAME "Windows"
 
 typedef int socklen_t;
 
@@ -40,13 +36,14 @@ typedef unsigned long ioctl_param_t;
 
 typedef uintptr_t socket_handle_t;
 
+#define Q_stricmp( s1, s2 ) _stricmp( ( s1 ), ( s2 ) )
+#define Q_strnicmp( s1, s2, n ) _strnicmp( ( s1 ), ( s2 ), ( n ) )
+
 #endif
 
 //==============================================
 
 #if defined ( __linux__ )
-
-#define OSNAME "Linux"
 
 typedef int ioctl_param_t;
 
@@ -55,17 +52,12 @@ typedef int socket_handle_t;
 #define SOCKET_ERROR ( -1 )
 #define INVALID_SOCKET ( -1 )
 
+#define Q_stricmp( s1, s2 ) strcasecmp( ( s1 ), ( s2 ) )
+#define Q_strnicmp( s1, s2, n ) strncasecmp( ( s1 ), ( s2 ), ( n ) )
+
 #endif
 
 //==============================================
-
-#ifdef HAVE__STRICMP
-#define Q_stricmp( s1, s2 ) _stricmp( ( s1 ), ( s2 ) )
-#define Q_strnicmp( s1, s2, n ) _strnicmp( ( s1 ), ( s2 ), ( n ) )
-#else
-#define Q_stricmp( s1, s2 ) strcasecmp( ( s1 ), ( s2 ) )
-#define Q_strnicmp( s1, s2, n ) strncasecmp( ( s1 ), ( s2 ), ( n ) )
-#endif
 
 // The `malloc' attribute is used to tell the compiler that a function
 // may be treated as if it were the malloc function.  The compiler

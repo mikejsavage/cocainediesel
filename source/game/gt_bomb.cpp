@@ -299,7 +299,7 @@ static void SetLoadout( edict_t * ent, const char * loadout_string, bool fallbac
 }
 
 static void ResetKillCounters() {
-	for( u32 i = 0; i < MAX_CLIENTS; i++ ) {
+	for( u32 i = 0; i < server_gs.maxclients; i++ ) {
 		bomb_state.kills_this_round[ i ] = 0;
 	}
 }
@@ -719,7 +719,7 @@ static void BombThink() {
 				// apply a 1 damage explosion just for the kb
 				G_RadiusDamage( bomb_state.bomb.model, NULL, NULL, bomb_state.bomb.model, WorldDamage_Explosion );
 
-				for( int i = 0; i < MAX_CLIENTS; i++ ) {
+				for( int i = 0; i < server_gs.maxclients; i++ ) {
 					G_Damage( PLAYERENT( i ), world, world, Vec3( 0.0f ), Vec3( 0.0f ), bomb_state.bomb.model->s.origin, 100.0f, 0.0f, 0, WorldDamage_Explosion );
 				}
 
@@ -778,14 +778,14 @@ static void BombGiveToRandom() {
 // round.as
 
 static void RespawnAllPlayers( bool ghost = false ) {
-	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = PLAYERENT( i );
 		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
 			GClip_UnlinkEntity( ent );
 		}
 	}
 
-	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = PLAYERENT( i );
 		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
 			G_ClientRespawn( ent, ghost );
@@ -812,7 +812,7 @@ static void EnableMovementFor( s32 playernum ) {
 }
 
 static void EnableMovement() {
-	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = PLAYERENT( i );
 		if( PF_GetClientState( i ) >= CS_SPAWNED && ent->s.team != TEAM_SPECTATOR ) {
 			EnableMovementFor( i );
@@ -829,7 +829,7 @@ static void DisableMovementFor( s32 playernum ) {
 }
 
 static void DisableMovement() {
-	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = PLAYERENT( i );
 		if( PF_GetClientState( i ) >= CS_SPAWNED && ent->s.team != TEAM_SPECTATOR ) {
 			DisableMovementFor( i );
@@ -1228,7 +1228,7 @@ static void GT_Bomb_Think() {
 		G_ClearCenterPrint( NULL );
 	}
 
-	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		UpdateScore( i );
 	}
 
@@ -1244,7 +1244,7 @@ static void GT_Bomb_Think() {
 	server_gs.gameState.bomb.alpha_players_alive = aliveAlpha;
 	server_gs.gameState.bomb.beta_players_alive = aliveBeta;
 
-	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = PLAYERENT( i );
 		gclient_t * client = ent->r.client;
 		if( PF_GetClientState( i ) != CS_SPAWNED ) {

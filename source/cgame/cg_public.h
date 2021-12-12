@@ -68,7 +68,7 @@ struct cgame_export_t {
 
 	void ( *Shutdown )();
 
-	void ( *ConfigString )( int number, const char *value );
+	void ( *ConfigString )( int number );
 
 	void ( *EscapeKey )();
 

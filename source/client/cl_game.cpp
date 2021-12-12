@@ -27,19 +27,6 @@ static cgame_export_t *cge;
 
 gs_state_t client_gs;
 
-void CL_GetConfigString( int i, char *str, int size ) {
-	if( i < 0 || i >= MAX_CONFIGSTRINGS ) {
-		Com_DPrintf( S_COLOR_RED "CL_GameModule_GetConfigString: i > MAX_CONFIGSTRINGS" );
-		return;
-	}
-	if( !str || size <= 0 ) {
-		Com_DPrintf( S_COLOR_RED "CL_GameModule_GetConfigString: NULL string" );
-		return;
-	}
-
-	Q_strncpyz( str, cl.configstrings[i], size );
-}
-
 void CL_GetUserCmd( int frame, UserCommand *cmd ) {
 	if( cmd ) {
 		if( frame < 0 ) {
@@ -100,9 +87,9 @@ void CL_GameModule_EscapeKey() {
 	}
 }
 
-void CL_GameModule_ConfigString( int number, const char *value ) {
+void CL_GameModule_ConfigString( int number ) {
 	if( cge ) {
-		cge->ConfigString( number, value );
+		cge->ConfigString( number );
 	}
 }
 

@@ -71,28 +71,13 @@ static void CG_SC_Debug() {
 	}
 }
 
-void CG_ConfigString( int i, const char *s ) {
-	size_t len;
-
-	// wsw : jal : warn if configstring overflow
-	len = strlen( s );
-	if( len >= MAX_CONFIGSTRING_CHARS ) {
-		Com_Printf( "%sWARNING:%s Configstring %i overflowed\n", S_COLOR_YELLOW, S_COLOR_WHITE, i );
-	}
-
-	if( i < 0 || i >= MAX_CONFIGSTRINGS ) {
-		Com_Error( "configstring > MAX_CONFIGSTRINGS" );
-		return;
-	}
-
-	Q_strncpyz( cgs.configStrings[i], s, sizeof( cgs.configStrings[i] ) );
-
-	// do something appropriate
+void CG_ConfigString( int i ) {
 	if( i == CS_AUTORECORDSTATE ) {
-		CG_SC_AutoRecordAction( cgs.configStrings[i] );
-	} else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
-		if( !cgs.demoPlaying ) {
-			Cmd_AddCommand( cgs.configStrings[i], NULL );
+		CG_SC_AutoRecordAction( cl.configstrings[ i ] );
+	}
+	else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
+		if( !cgs.demoPlaying && !StrEqual( cl.configstrings[ i ], "" ) ) {
+			Cmd_AddCommand( cl.configstrings[ i ], NULL );
 		}
 	}
 }
@@ -398,69 +383,30 @@ static const cgcmd_t cgcmds[] = {
 };
 
 void CG_RegisterCGameCommands() {
-	if( !cgs.demoPlaying ) {
-		// add game side commands
-		for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
-			const char * name = cgs.configStrings[CS_GAMECOMMANDS + i];
-			if( !name[0] ) {
-				continue;
-			}
-
-			// check for local command overrides
-			const cgcmd_t * cmd;
-			for( cmd = cgcmds; cmd->name; cmd++ ) {
-				if( !Q_stricmp( cmd->name, name ) ) {
-					break;
-				}
-			}
-			if( cmd->name ) {
-				continue;
-			}
-
-			Cmd_AddCommand( name, NULL );
-		}
-	}
-
-	// add local commands
-	for( const cgcmd_t * cmd = cgcmds; cmd->name; cmd++ ) {
-		if( cgs.demoPlaying && !cmd->allowdemo ) {
+	for( const cgcmd_t & cmd : cgcmds ) {
+		if( cgs.demoPlaying && !cmd.allowdemo ) {
 			continue;
 		}
-		Cmd_AddCommand( cmd->name, cmd->func );
+		Cmd_AddCommand( cmd.name, cmd.func );
 	}
 }
 
 void CG_UnregisterCGameCommands() {
-	const cgcmd_t *cmd;
-
 	if( !cgs.demoPlaying ) {
 		// remove game commands
 		for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
-			const char * name = cgs.configStrings[CS_GAMECOMMANDS + i];
-			if( !name[0] ) {
-				continue;
+			const char * name = cl.configstrings[CS_GAMECOMMANDS + i];
+			if( !StrEqual( name, "" ) ) {
+				Cmd_RemoveCommand( name );
 			}
-
-			// check for local command overrides so we don't try
-			// to unregister them twice
-			for( cmd = cgcmds; cmd->name; cmd++ ) {
-				if( !Q_stricmp( cmd->name, name ) ) {
-					break;
-				}
-			}
-			if( cmd->name ) {
-				continue;
-			}
-
-			Cmd_RemoveCommand( name );
 		}
 	}
 
 	// remove local commands
-	for( cmd = cgcmds; cmd->name; cmd++ ) {
-		if( cgs.demoPlaying && !cmd->allowdemo ) {
+	for( const cgcmd_t & cmd : cgcmds ) {
+		if( cgs.demoPlaying && !cmd.allowdemo ) {
 			continue;
 		}
-		Cmd_RemoveCommand( cmd->name );
+		Cmd_RemoveCommand( cmd.name );
 	}
 }

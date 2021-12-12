@@ -189,7 +189,7 @@ static int CG_IsDemoPlaying( const void *parameter ) {
 }
 
 static int CG_IsActiveCallvote( const void * parameter ) {
-	return strcmp( cgs.configStrings[ CS_CALLVOTE ], "" ) != 0;
+	return !StrEqual( cl.configstrings[ CS_CALLVOTE ], "" );
 }
 
 static int CG_GetScoreboardShown( const void *parameter ) {
@@ -708,7 +708,7 @@ void CG_DrawScope() {
 }
 
 static bool CG_LFuncDrawCallvote( cg_layoutnode_t *argumentnode ) {
-	const char * vote = cgs.configStrings[ CS_CALLVOTE ];
+	const char * vote = cl.configstrings[ CS_CALLVOTE ];
 	if( strlen( vote ) == 0 )
 		return true;
 

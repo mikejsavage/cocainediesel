@@ -86,9 +86,7 @@ static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 }
 
 static void CG_InitGameShared() {
-	char cstring[MAX_CONFIGSTRING_CHARS];
-	CL_GetConfigString( CS_MAXCLIENTS, cstring, MAX_CONFIGSTRING_CHARS );
-	int maxclients = atoi( cstring );
+	int maxclients = atoi( cl.configstrings[ CS_MAXCLIENTS ] );
 	if( maxclients < 1 || maxclients > MAX_CLIENTS ) {
 		maxclients = MAX_CLIENTS;
 	}
@@ -138,16 +136,14 @@ const char * PlayerName( int i ) {
 		return "";
 	}
 
-	Span< const char[ MAX_CONFIGSTRING_CHARS ] > names( cgs.configStrings + CS_PLAYERINFOS, client_gs.maxclients );
+	Span< const char[ MAX_CONFIGSTRING_CHARS ] > names( cl.configstrings + CS_PLAYERINFOS, client_gs.maxclients );
 	return names[ i ];
 }
 
 static void CG_RegisterConfigStrings() {
 	for( int i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
-		CL_GetConfigString( i, cgs.configStrings[i], MAX_CONFIGSTRING_CHARS );
+		CG_ConfigString( i );
 	}
-
-	CG_SC_AutoRecordAction( cgs.configStrings[CS_AUTORECORDSTATE] );
 }
 
 void CG_Reset() {
@@ -183,12 +179,14 @@ static void PrintMap() {
 void CG_Init( unsigned int playerNum,
 			  bool demoplaying, const char *demoName,
 			  unsigned snapFrameTime ) {
-	CG_InitGameShared();
-
 	memset( &cg, 0, sizeof( cg_state_t ) );
 	memset( &cgs, 0, sizeof( cg_static_t ) );
 
 	memset( cg_entities, 0, sizeof( cg_entities ) );
+
+	CG_RegisterConfigStrings();
+
+	CG_InitGameShared();
 
 	// save local player number
 	cgs.playerNum = playerNum;
@@ -209,8 +207,6 @@ void CG_Init( unsigned int playerNum,
 
 	CG_InitDamageNumbers();
 
-	CG_RegisterConfigStrings();
-
 	CG_RegisterCGameCommands();
 
 	CG_RegisterMedia();
@@ -226,9 +222,6 @@ void CG_Init( unsigned int playerNum,
 	CG_InitChat();
 
 	CG_ClearAnnouncerEvents();
-
-	// now that we're done with precaching, let the autorecord actions do something
-	CG_ConfigString( CS_AUTORECORDSTATE, cgs.configStrings[CS_AUTORECORDSTATE] );
 
 	CG_DemocamInit();
 

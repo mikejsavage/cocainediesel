@@ -177,11 +177,6 @@ struct cg_static_t {
 	bool demoPlaying;
 	unsigned snapFrameTime;
 	unsigned extrapolationTime;
-
-	//
-	// locally derived information from server state
-	//
-	char configStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 };
 
 struct cg_state_t {
@@ -385,7 +380,7 @@ const char * PlayerName( int i );
 //
 // cg_svcmds.c
 //
-void CG_ConfigString( int i, const char *s );
+void CG_ConfigString( int idx );
 void CG_GameCommand( const char *command );
 void CG_SC_AutoRecordAction( const char *action );
 

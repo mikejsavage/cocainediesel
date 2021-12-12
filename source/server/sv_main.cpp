@@ -563,8 +563,7 @@ void SV_Init() {
 	sv_initialized = true;
 
 	if( is_dedicated_server ) {
-		Cbuf_ExecuteText( EXEC_APPEND, temp( "map {}\n", sv_defaultmap->value ) );
-		// TODO: abort if not there
+		SV_Map( sv_defaultmap->value, false );
 	}
 }
 

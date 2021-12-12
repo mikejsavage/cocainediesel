@@ -310,9 +310,16 @@ bool StrEqual( const char * lhs, const char * rhs ) {
 }
 
 bool StrCaseEqual( Span< const char > lhs, Span< const char > rhs ) {
-	if( lhs.n == 0 && rhs.n == 0 )
-		return true;
-	return lhs.n == rhs.n && Q_strnicmp( lhs.ptr, rhs.ptr, lhs.n ) == 0;
+	if( lhs.n != rhs.n )
+		return false;
+
+	for( size_t i = 0; i < lhs.n; i++ ) {
+		if( tolower( lhs[ i ] ) != tolower( rhs[ i ] ) ) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 bool StrCaseEqual( Span< const char > lhs, const char * rhs ) {

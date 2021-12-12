@@ -613,7 +613,7 @@ static void ServerBrowser() {
 		if( strstr( servers[ i ].name, server_filter ) != NULL ) {
 			if( ImGui::Selectable( servers[ i ].name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
 				if( ImGui::IsMouseDoubleClicked( 0 ) ) {
-					Cbuf_AddText( temp( "connect \"{}\"\n", NET_AddressToString( &servers[ i ].address ) ) );
+					CL_Connect( &servers[ i ].address );
 				}
 				selected_server = i;
 			}

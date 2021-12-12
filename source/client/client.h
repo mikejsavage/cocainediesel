@@ -151,8 +151,6 @@ struct client_static_t {
 	bool cgameActive;
 
 	// connection information
-	char *servername;               // name of server from original connect
-	socket_type_t servertype;       // socket type used to connect to the server
 	netadr_t serveraddress;         // address of that server
 	int64_t connect_time;               // for connection retransmits
 	int connect_count;
@@ -248,6 +246,7 @@ void CL_ClearState();
 void CL_ReadPackets();
 void CL_Disconnect_f();
 
+void CL_Connect( const netadr_t * address );
 void CL_Reconnect_f();
 void CL_FinishConnect();
 void CL_ServerReconnect_f();

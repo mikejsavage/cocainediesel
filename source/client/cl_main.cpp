@@ -147,8 +147,8 @@ void CL_ServerDisconnect_f() {
 
 	Com_Printf( "Connection was closed by server: %s\n", reason );
 
-	snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
-				 DROP_REASON_CONNTERMINATED, cls.servername, type, reason );
+	snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
+				 DROP_REASON_CONNTERMINATED, type, reason );
 
 	Cbuf_ExecuteText( EXEC_NOW, menuparms );
 }
@@ -182,18 +182,9 @@ static void CL_CheckForResend() {
 
 	// if the local server is running and we aren't then connect
 	if( cls.state == CA_DISCONNECTED && Com_ServerState() ) {
-		CL_SetClientState( CA_CONNECTING );
-		if( cls.servername ) {
-			FREE( sys_allocator, cls.servername );
-		}
-		cls.servername = CopyString( sys_allocator, "localhost" );
-		cls.servertype = SOCKET_LOOPBACK;
-		NET_InitAddress( &cls.serveraddress, NA_LOOPBACK );
-		if( !NET_OpenSocket( &cls.socket_loopback, cls.servertype, &cls.serveraddress, false ) ) {
-			Fatal( "Couldn't open the loopback socket\n" );
-			return;
-		}
-		cls.socket = &cls.socket_loopback;
+		netadr_t address;
+		NET_InitAddress( &address, NA_LOOPBACK );
+		CL_Connect( &address );
 	}
 
 	// resend if we haven't gotten a reply yet
@@ -208,47 +199,25 @@ static void CL_CheckForResend() {
 		cls.connect_count++;
 		cls.connect_time = realtime; // for retransmit requests
 
-		Com_Printf( "Connecting to %s...\n", cls.servername );
+		Com_Printf( "Connecting to %s...\n", NET_AddressToString( &cls.serveraddress ) );
 
 		Netchan_OutOfBandPrint( cls.socket, &cls.serveraddress, "getchallenge\n" );
 	}
 }
 
-static void CL_Connect( const char *servername, socket_type_t type, netadr_t *address ) {
-	netadr_t socketaddress;
-
+void CL_Connect( const netadr_t * address ) {
 	CL_Disconnect( NULL );
 
-	switch( type ) {
-		case SOCKET_LOOPBACK:
-			NET_InitAddress( &socketaddress, NA_LOOPBACK );
-			if( !NET_OpenSocket( &cls.socket_loopback, SOCKET_LOOPBACK, &socketaddress, false ) ) {
-				Fatal( "Couldn't open the loopback socket: %s\n", NET_ErrorString() ); // FIXME
-				return;
-			}
-			cls.socket = &cls.socket_loopback;
-			break;
-
-		case SOCKET_UDP:
-			cls.socket = address->type == NA_IPv6 ? &cls.socket_udp6 : &cls.socket_udp;
-			break;
-
-		default:
-			assert( false );
-			return;
-	}
-
-	cls.servertype = type;
 	cls.serveraddress = *address;
-	if( NET_GetAddressPort( &cls.serveraddress ) == 0 ) {
-		NET_SetAddressPort( &cls.serveraddress, PORT_SERVER );
-	}
 
-	if( servername != cls.servername ) {
-		if( cls.servername != NULL ) {
-			FREE( sys_allocator, cls.servername );
+	if( address->type == NA_LOOPBACK ) {
+		cls.socket = &cls.socket_loopback;
+	}
+	else {
+		cls.socket = address->type == NA_IPv6 ? &cls.socket_udp6 : &cls.socket_udp;
+		if( NET_GetAddressPort( &cls.serveraddress ) == 0 ) {
+			NET_SetAddressPort( &cls.serveraddress, PORT_SERVER );
 		}
-		cls.servername = CopyString( sys_allocator, servername );
 	}
 
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
@@ -287,7 +256,7 @@ static void CL_Connect_f() {
 		return;
 	}
 
-	CL_Connect( Cmd_Argv( 1 ), address.type == NA_LOOPBACK ? SOCKET_LOOPBACK : SOCKET_UDP, &address );
+	CL_Connect( &address );
 }
 
 
@@ -465,11 +434,6 @@ void CL_Disconnect( const char *message ) {
 		CL_Disconnect_SendCommand(); // send a disconnect message to the server
 	}
 
-	// udp is kept open all the time, for connectionless messages
-	if( cls.socket && cls.socket->type != SOCKET_UDP ) {
-		NET_CloseSocket( cls.socket );
-	}
-
 	cls.socket = NULL;
 
 	FREE( sys_allocator, cls.download_url );
@@ -558,14 +522,14 @@ void CL_ServerReconnect_f() {
 * User reconnect command.
 */
 void CL_Reconnect_f() {
-	if( cls.servername == NULL ) {
+	if( cls.serveraddress.type == NA_NOTRANSMIT ) {
 		Com_Printf( "Can't reconnect, never connected\n" );
 		return;
 	}
 
 	netadr_t serveraddress = cls.serveraddress;
 	CL_Disconnect( NULL );
-	CL_Connect( cls.servername, cls.servertype, &serveraddress );
+	CL_Connect( &serveraddress );
 }
 
 /*
@@ -673,8 +637,8 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 			Com_Printf( "Automatic reconnecting not allowed.\n" );
 
 			CL_Disconnect( NULL );
-			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
-						 DROP_REASON_CONNFAILED, cls.servername, cls.rejecttype, cls.rejectmessage );
+			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
+						 DROP_REASON_CONNFAILED, cls.rejecttype, cls.rejectmessage );
 
 			Cbuf_ExecuteText( EXEC_NOW, menuparms );
 		}
@@ -706,8 +670,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 		}
 		if( !NET_CompareAddress( address, &cls.serveraddress ) ) {
 			Com_Printf( "challenge from a different address, ignored\n" );
-			Com_Printf( "Was %s", NET_AddressToString( address ) );
-			Com_Printf( " should have been %s\n", NET_AddressToString( &cls.serveraddress ) );
+			Com_Printf( "Was %s should have been %s\n", NET_AddressToString( address ), NET_AddressToString( &cls.serveraddress ) );
 			return;
 		}
 
@@ -1403,8 +1366,6 @@ void CL_Init() {
 
 	cls.monotonicTime = 0;
 
-	netadr_t address;
-
 	assert( !cl_initialized );
 
 	cl_initialized = true;
@@ -1429,6 +1390,13 @@ void CL_Init() {
 	}
 
 	CL_ClearState();
+
+	// loopback
+	netadr_t address;
+	NET_InitAddress( &address, NA_LOOPBACK );
+	if( !NET_OpenSocket( &cls.socket_loopback, SOCKET_LOOPBACK, &address, false ) ) {
+		Fatal( "Couldn't open the loopback socket: %s\n", NET_ErrorString() );
+	}
 
 	// IPv4
 	NET_InitAddress( &address, NA_IPv4 );
@@ -1474,11 +1442,6 @@ void CL_Shutdown() {
 	NET_CloseSocket( &cls.socket_loopback );
 	NET_CloseSocket( &cls.socket_udp );
 	NET_CloseSocket( &cls.socket_udp6 );
-	// TOCHECK: Shouldn't we close the TCP socket too?
-	if( cls.servername ) {
-		FREE( sys_allocator, cls.servername );
-		cls.servername = NULL;
-	}
 
 	UI_Shutdown();
 	CL_ShutdownImGui();

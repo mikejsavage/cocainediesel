@@ -424,6 +424,12 @@ void G_HotloadMap() {
 void G_Aasdf() {
 	GClip_ClearWorld(); // clear areas links
 	G_ResetLevel();
+	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+		edict_t * ent = &game.edicts[ i ];
+		if( ent->r.inuse ) {
+			ent->s.teleported = true;
+		}
+	}
 }
 
 static void SP_worldspawn( edict_t *ent ) {

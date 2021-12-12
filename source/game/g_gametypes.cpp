@@ -56,23 +56,17 @@ void G_Match_Autorecord_Start() {
 
 	snprintf( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s_auto%04i", date, sv.mapname, RandomUniform( &svs.rng, 1, 10000 ) );
 
-	Cbuf_ExecuteText( EXEC_APPEND, va( "serverrecord %s\n", level.autorecord_name ) );
-}
-
-void G_Match_Autorecord_AltStart() {
-	G_Match_SetAutorecordState( "altstart" );
+	Cbuf_Add( "serverrecord {}", level.autorecord_name );
 }
 
 void G_Match_Autorecord_Stop() {
 	G_Match_SetAutorecordState( "stop" );
 
 	if( g_autorecord->integer ) {
-		// stop it
-		Cbuf_ExecuteText( EXEC_APPEND, "serverrecordstop 1\n" );
+		Cbuf_Add( "{}", "serverrecordstop 1" );
 
-		// check if we wanna delete some
 		if( g_autorecord_maxdemos->integer > 0 ) {
-			Cbuf_ExecuteText( EXEC_APPEND, "serverrecordpurge\n" );
+			Cbuf_Add( "{}", "serverrecordpurge" );
 		}
 	}
 }
@@ -81,7 +75,7 @@ void G_Match_Autorecord_Cancel() {
 	G_Match_SetAutorecordState( "cancel" );
 
 	if( g_autorecord->integer ) {
-		Cbuf_ExecuteText( EXEC_APPEND, "serverrecordcancel 1\n" );
+		Cbuf_Add( "{}", "serverrecordcancel 1" );
 	}
 }
 

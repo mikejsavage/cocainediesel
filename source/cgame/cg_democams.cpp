@@ -1153,12 +1153,12 @@ void CG_Democam_ImportCams_f() {
 }
 
 void CG_DemoEditMode_RemoveCmds() {
-	Cmd_RemoveCommand( "addcam" );
-	Cmd_RemoveCommand( "deletecam" );
-	Cmd_RemoveCommand( "editcam" );
-	Cmd_RemoveCommand( "saverecam" );
-	Cmd_RemoveCommand( "clearcams" );
-	Cmd_RemoveCommand( "importcams" );
+	RemoveCommand( "addcam" );
+	RemoveCommand( "deletecam" );
+	RemoveCommand( "editcam" );
+	RemoveCommand( "saverecam" );
+	RemoveCommand( "clearcams" );
+	RemoveCommand( "importcams" );
 }
 
 static void CG_DemoEditMode_Cmd_f() {
@@ -1178,12 +1178,12 @@ static void CG_DemoEditMode_Cmd_f() {
 
 	Com_Printf( "demo cam editing mode %s\n", democam_editing_mode ? "on" : "off" );
 	if( democam_editing_mode ) {
-		Cmd_AddCommand( "addcam", CG_AddCam_Cmd_f );
-		Cmd_AddCommand( "deletecam", CG_DeleteCam_Cmd_f );
-		Cmd_AddCommand( "editcam", CG_EditCam_Cmd_f );
-		Cmd_AddCommand( "saverecam", CG_SaveCam_Cmd_f );
-		Cmd_AddCommand( "clearcams", CG_Democam_FreeCams );
-		Cmd_AddCommand( "importcams", CG_Democam_ImportCams_f );
+		AddCommand( "addcam", CG_AddCam_Cmd_f );
+		AddCommand( "deletecam", CG_DeleteCam_Cmd_f );
+		AddCommand( "editcam", CG_EditCam_Cmd_f );
+		AddCommand( "saverecam", CG_SaveCam_Cmd_f );
+		AddCommand( "clearcams", CG_Democam_FreeCams );
+		AddCommand( "importcams", CG_Democam_ImportCams_f );
 	} else {
 		CG_DemoEditMode_RemoveCmds();
 	}
@@ -1209,9 +1209,9 @@ void CG_DemocamInit() {
 	Com_Printf( "cam: %s\n", path );
 
 	// add console commands
-	Cmd_AddCommand( "demoEditMode", CG_DemoEditMode_Cmd_f );
-	Cmd_AddCommand( "demoFreeFly", CG_DemoFreeFly_Cmd_f );
-	Cmd_AddCommand( "camswitch", CG_CamSwitch_Cmd_f );
+	AddCommand( "demoEditMode", CG_DemoEditMode_Cmd_f );
+	AddCommand( "demoFreeFly", CG_DemoFreeFly_Cmd_f );
+	AddCommand( "camswitch", CG_CamSwitch_Cmd_f );
 
 	if( CG_LoadRecamScriptFile( path ) ) {
 		Com_Printf( "Loaded demo cam script\n" );
@@ -1224,9 +1224,9 @@ void CG_DemocamShutdown() {
 	}
 
 	// remove console commands
-	Cmd_RemoveCommand( "demoEditMode" );
-	Cmd_RemoveCommand( "demoFreeFly" );
-	Cmd_RemoveCommand( "camswitch" );
+	RemoveCommand( "demoEditMode" );
+	RemoveCommand( "demoFreeFly" );
+	RemoveCommand( "camswitch" );
 	if( democam_editing_mode ) {
 		CG_DemoEditMode_RemoveCmds();
 	}

@@ -36,7 +36,7 @@ static Chat chat;
 
 static void OpenChat() {
 	if( !cls.demo.playing ) {
-		bool team = Q_stricmp( Cmd_Argv( 0 ), "messagemode2" ) == 0 &&  Cmd_Exists( "say_team" );
+		bool team = Q_stricmp( Cmd_Argv( 0 ), "messagemode2" ) == 0;
 		chat.mode = team ? ChatMode_SayTeam : ChatMode_Say;
 		chat.input[ 0 ] = '\0';
 		chat.scroll_to_bottom = true;
@@ -52,13 +52,13 @@ static void CloseChat() {
 void CG_InitChat() {
 	chat = { };
 
-	Cmd_AddCommand( "messagemode", OpenChat );
-	Cmd_AddCommand( "messagemode2", OpenChat );
+	AddCommand( "messagemode", OpenChat );
+	AddCommand( "messagemode2", OpenChat );
 }
 
 void CG_ShutdownChat() {
-	Cmd_RemoveCommand( "messagemode" );
-	Cmd_RemoveCommand( "messagemode2" );
+	RemoveCommand( "messagemode" );
+	RemoveCommand( "messagemode2" );
 }
 
 void CG_AddChat( const char * str ) {
@@ -85,17 +85,10 @@ void CG_AddChat( const char * str ) {
 
 static void SendChat() {
 	if( strlen( chat.input ) > 0 ) {
-		// convert double quotes to single quotes
-		for( char * p = chat.input; *p != '\0'; p++ ) {
-			if( *p == '"' ) {
-				*p = '\'';
-			}
-		}
-
 		TempAllocator temp = cls.frame_arena.temp();
 
-		const char * cmd = chat.mode == ChatMode_SayTeam && Cmd_Exists( "say_team" ) ? "say_team" : "say";
-		Cbuf_AddText( temp( "{} \"{}\"\n", cmd, chat.input ) );
+		const char * cmd = chat.mode == ChatMode_SayTeam ? "say_team" : "say";
+		Cbuf_Add( "{} {}", cmd, chat.input );
 
 		S_StartGlobalSound( "sounds/typewriter/return", CHAN_AUTO, 1.0f, 1.0f );
 	}
@@ -106,11 +99,11 @@ static void SendChat() {
 static int InputCallback( ImGuiInputTextCallbackData * data ) {
 	if( data->EventChar == ' ' ) {
 		S_StartGlobalSound( "sounds/typewriter/space", CHAN_AUTO, 1.0f, 1.0f );
-		Cbuf_AddText( "cmd typewriterspace\n" );
+		Cbuf_Add( "typewriterspace" );
 	}
 	else {
 		S_StartGlobalSound( "sounds/typewriter/clack", CHAN_AUTO, 1.0f, 1.0f );
-		Cbuf_AddText( "cmd typewriterclack\n" );
+		Cbuf_Add( "typewriterclack" );
 	}
 	return 0;
 }

@@ -167,7 +167,7 @@ bool SV_FilterPacket( char *from ) {
 void SV_ReadIPList() {
 	SV_ResetPacketFiltersTimeouts();
 
-	Cbuf_ExecuteText( EXEC_APPEND, "exec listip.cfg\n" );
+	Cbuf_Add( "exec listip.cfg" );
 }
 
 void SV_WriteIPList() {
@@ -267,24 +267,24 @@ static void Cmd_WriteIP_f() {
 
 void G_AddServerCommands() {
 	if( is_dedicated_server ) {
-		Cmd_AddCommand( "say", Cmd_ConsoleSay_f );
+		AddCommand( "say", Cmd_ConsoleSay_f );
 	}
-	Cmd_AddCommand( "kick", Cmd_ConsoleKick_f );
+	AddCommand( "kick", Cmd_ConsoleKick_f );
 
-	Cmd_AddCommand( "addip", Cmd_AddIP_f );
-	Cmd_AddCommand( "removeip", Cmd_RemoveIP_f );
-	Cmd_AddCommand( "listip", Cmd_ListIP_f );
-	Cmd_AddCommand( "writeip", Cmd_WriteIP_f );
+	AddCommand( "addip", Cmd_AddIP_f );
+	AddCommand( "removeip", Cmd_RemoveIP_f );
+	AddCommand( "listip", Cmd_ListIP_f );
+	AddCommand( "writeip", Cmd_WriteIP_f );
 }
 
 void G_RemoveCommands() {
 	if( is_dedicated_server ) {
-		Cmd_RemoveCommand( "say" );
+		RemoveCommand( "say" );
 	}
-	Cmd_RemoveCommand( "kick" );
+	RemoveCommand( "kick" );
 
-	Cmd_RemoveCommand( "addip" );
-	Cmd_RemoveCommand( "removeip" );
-	Cmd_RemoveCommand( "listip" );
-	Cmd_RemoveCommand( "writeip" );
+	RemoveCommand( "addip" );
+	RemoveCommand( "removeip" );
+	RemoveCommand( "listip" );
+	RemoveCommand( "writeip" );
 }

@@ -334,30 +334,30 @@ void CG_ClearInputState() {
 void CG_InitInput() {
 	CG_ClearInputState();
 
-	Cmd_AddCommand( "+forward", IN_ForwardDown );
-	Cmd_AddCommand( "-forward", IN_ForwardUp );
-	Cmd_AddCommand( "+back", IN_BackDown );
-	Cmd_AddCommand( "-back", IN_BackUp );
-	Cmd_AddCommand( "+left", IN_LeftDown );
-	Cmd_AddCommand( "-left", IN_LeftUp );
-	Cmd_AddCommand( "+right", IN_RightDown );
-	Cmd_AddCommand( "-right", IN_RightUp );
+	AddCommand( "+forward", IN_ForwardDown );
+	AddCommand( "-forward", IN_ForwardUp );
+	AddCommand( "+back", IN_BackDown );
+	AddCommand( "-back", IN_BackUp );
+	AddCommand( "+left", IN_LeftDown );
+	AddCommand( "-left", IN_LeftUp );
+	AddCommand( "+right", IN_RightDown );
+	AddCommand( "-right", IN_RightUp );
 
-	Cmd_AddCommand( "+jump", IN_JumpDown );
-	Cmd_AddCommand( "-jump", IN_JumpUp );
-	Cmd_AddCommand( "+special", IN_SpecialDown );
-	Cmd_AddCommand( "-special", IN_SpecialUp );
-	Cmd_AddCommand( "+crouch", IN_CrouchDown );
-	Cmd_AddCommand( "-crouch", IN_CrouchUp );
-	Cmd_AddCommand( "+walk", IN_WalkDown );
-	Cmd_AddCommand( "-walk", IN_WalkUp );
+	AddCommand( "+jump", IN_JumpDown );
+	AddCommand( "-jump", IN_JumpUp );
+	AddCommand( "+special", IN_SpecialDown );
+	AddCommand( "-special", IN_SpecialUp );
+	AddCommand( "+crouch", IN_CrouchDown );
+	AddCommand( "-crouch", IN_CrouchUp );
+	AddCommand( "+walk", IN_WalkDown );
+	AddCommand( "-walk", IN_WalkUp );
 
-	Cmd_AddCommand( "+attack", IN_AttackDown );
-	Cmd_AddCommand( "-attack", IN_AttackUp );
-	Cmd_AddCommand( "+gadget", IN_GadgetDown );
-	Cmd_AddCommand( "-gadget", IN_GadgetUp );
-	Cmd_AddCommand( "+reload", IN_ReloadDown );
-	Cmd_AddCommand( "-reload", IN_ReloadUp );
+	AddCommand( "+attack", IN_AttackDown );
+	AddCommand( "-attack", IN_AttackUp );
+	AddCommand( "+gadget", IN_GadgetDown );
+	AddCommand( "-gadget", IN_GadgetUp );
+	AddCommand( "+reload", IN_ReloadDown );
+	AddCommand( "-reload", IN_ReloadUp );
 
 	sensitivity = NewCvar( "sensitivity", "3", CvarFlag_Archive );
 	horizontalSensScale = NewCvar( "horizontalsensscale", "1", CvarFlag_Archive );
@@ -371,28 +371,28 @@ void CG_InitInput() {
 }
 
 void CG_ShutdownInput() {
-	Cmd_RemoveCommand( "+forward" );
-	Cmd_RemoveCommand( "-forward" );
-	Cmd_RemoveCommand( "+back" );
-	Cmd_RemoveCommand( "-back" );
-	Cmd_RemoveCommand( "+left" );
-	Cmd_RemoveCommand( "-left" );
-	Cmd_RemoveCommand( "+right" );
-	Cmd_RemoveCommand( "-right" );
+	RemoveCommand( "+forward" );
+	RemoveCommand( "-forward" );
+	RemoveCommand( "+back" );
+	RemoveCommand( "-back" );
+	RemoveCommand( "+left" );
+	RemoveCommand( "-left" );
+	RemoveCommand( "+right" );
+	RemoveCommand( "-right" );
 
-	Cmd_RemoveCommand( "+jump" );
-	Cmd_RemoveCommand( "-jump" );
-	Cmd_RemoveCommand( "+special" );
-	Cmd_RemoveCommand( "-special" );
-	Cmd_RemoveCommand( "+crouch" );
-	Cmd_RemoveCommand( "-crouch" );
-	Cmd_RemoveCommand( "+walk" );
-	Cmd_RemoveCommand( "-walk" );
+	RemoveCommand( "+jump" );
+	RemoveCommand( "-jump" );
+	RemoveCommand( "+special" );
+	RemoveCommand( "-special" );
+	RemoveCommand( "+crouch" );
+	RemoveCommand( "-crouch" );
+	RemoveCommand( "+walk" );
+	RemoveCommand( "-walk" );
 
-	Cmd_RemoveCommand( "+attack" );
-	Cmd_RemoveCommand( "-attack" );
-	Cmd_RemoveCommand( "+gadget" );
-	Cmd_RemoveCommand( "-gadget" );
-	Cmd_RemoveCommand( "+reload" );
-	Cmd_RemoveCommand( "-reload" );
+	RemoveCommand( "+attack" );
+	RemoveCommand( "-attack" );
+	RemoveCommand( "+gadget" );
+	RemoveCommand( "-gadget" );
+	RemoveCommand( "+reload" );
+	RemoveCommand( "-reload" );
 }

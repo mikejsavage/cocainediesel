@@ -37,7 +37,6 @@ void G_Match_LaunchState( MatchState matchState );
 void G_Teams_Init();
 
 void G_Match_Autorecord_Start();
-void G_Match_Autorecord_AltStart();
 void G_Match_Autorecord_Stop();
 void G_Match_Autorecord_Cancel();
 bool G_Match_ScorelimitHit();

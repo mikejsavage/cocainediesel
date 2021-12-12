@@ -220,9 +220,7 @@ void G_ExitLevel() {
 	}
 
 	if( loadmap ) {
-		char command[256];
-		snprintf( command, sizeof( command ), "map \"%s\"\n", nextmapname );
-		Cbuf_ExecuteText( EXEC_APPEND, command );
+		Cbuf_Add( "map \"{}\"", nextmapname );
 	}
 
 	G_SnapClients();

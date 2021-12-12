@@ -269,40 +269,6 @@ void Com_SetDemoPlaying( bool state ) {
 	demo_playing = state;
 }
 
-int COM_Argc() {
-	return com_argc;
-}
-
-const char *COM_Argv( int arg ) {
-	if( arg < 0 || arg >= com_argc || !com_argv[arg] ) {
-		return "";
-	}
-	return com_argv[arg];
-}
-
-void COM_ClearArgv( int arg ) {
-	if( arg < 0 || arg >= com_argc || !com_argv[arg] ) {
-		return;
-	}
-	com_argv[arg][0] = '\0';
-}
-
-void COM_InitArgv( int argc, char **argv ) {
-	int i;
-
-	if( argc > MAX_NUM_ARGVS ) {
-		Fatal( "argc > MAX_NUM_ARGVS" );
-	}
-	com_argc = argc;
-	for( i = 0; i < argc; i++ ) {
-		if( !argv[i] || strlen( argv[i] ) >= MAX_TOKEN_CHARS ) {
-			com_argv[i][0] = '\0';
-		} else {
-			com_argv[i] = argv[i];
-		}
-	}
-}
-
 int Com_GlobMatch( const char *pattern, const char *text, const bool casecmp ) {
 	return glob_match( pattern, text, casecmp );
 }
@@ -312,7 +278,7 @@ int Com_GlobMatch( const char *pattern, const char *text, const bool casecmp ) {
 void Key_Init();
 void Key_Shutdown();
 
-void Qcommon_Init( int argc, char **argv ) {
+void Qcommon_Init( int argc, char ** argv ) {
 	ZoneScoped;
 
 	if( !is_public_build ) {
@@ -329,7 +295,6 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	// prepare enough of the subsystems to handle
 	// cvar and command buffer management
-	COM_InitArgv( argc, argv );
 	Cmd_Init();
 	Cvar_PreInit();
 	Key_Init(); // need to be able to bind keys before running configs
@@ -338,24 +303,20 @@ void Qcommon_Init( int argc, char **argv ) {
 
 	if( !is_dedicated_server ) {
 		ExecDefaultCfg();
-		Cbuf_AddText( "exec config.cfg\n" );
-		Cbuf_AddText( "exec autoexec.cfg\n" );
+		Cbuf_ExecuteLine( "exec config.cfg" );
+		Cbuf_ExecuteLine( "exec autoexec.cfg" );
 	}
 	else {
-		Cbuf_AddText( "config dedicated_autoexec.cfg\n" );
+		Cbuf_ExecuteLine( "config dedicated_autoexec.cfg" );
 	}
 
-	Cbuf_AddEarlyCommands();
-	Cbuf_Execute();
+	Cbuf_AddEarlyCommands( argc, argv );
 
 	Cvar_Init();
 
-	//
-	// init commands and vars
-	//
 	Memory_InitCommands();
 
-	Cmd_AddCommand( "quit", Com_DeferQuit );
+	AddCommand( "quit", Com_DeferQuit );
 
 	timescale = NewCvar( "timescale", "1.0", CvarFlag_Cheat );
 	if( is_dedicated_server ) {
@@ -380,9 +341,7 @@ void Qcommon_Init( int argc, char **argv ) {
 	SV_Init();
 	CL_Init();
 
-	Cbuf_AddLateCommands();
-
-	Cbuf_Execute();
+	Cbuf_AddLateCommands( argc, argv );
 }
 
 bool Qcommon_Frame( unsigned int realMsec ) {
@@ -408,15 +367,12 @@ bool Qcommon_Frame( unsigned int realMsec ) {
 	}
 
 	if( is_dedicated_server ) {
-		const char * s;
-		do {
-			s = Sys_ConsoleInput();
-			if( s ) {
-				Cbuf_AddText( va( "%s\n", s ) );
-			}
-		} while( s );
-
-		Cbuf_Execute();
+		while( true ) {
+			const char * s = Sys_ConsoleInput();
+			if( s == NULL )
+				break;
+			Cbuf_ExecuteLine( s );
+		}
 	}
 
 	SV_Frame( realMsec, gameMsec );
@@ -430,7 +386,7 @@ void Qcommon_Shutdown() {
 	NET_Shutdown();
 	Key_Shutdown();
 
-	Cmd_RemoveCommand( "quit" );
+	RemoveCommand( "quit" );
 
 	Memory_ShutdownCommands();
 

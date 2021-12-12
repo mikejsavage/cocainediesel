@@ -252,7 +252,6 @@ void CL_FinishConnect();
 void CL_ServerReconnect_f();
 void CL_Changing_f();
 void CL_Precache_f();
-void CL_ForwardToServer_f();
 void CL_ServerDisconnect_f();
 
 void CL_ForceVsync( bool force );
@@ -313,7 +312,7 @@ void CL_Stop_f();
 void CL_Record_f();
 void CL_PauseDemo_f();
 void CL_DemoJump_f();
-const char **CL_DemoComplete( const char *partial );
+Span< const char * > CompleteDemoName( TempAllocator * a, const char * prefix );
 #define CL_SetDemoMetaKeyValue( k,v ) cls.demo.meta_data_realsize = SNAP_SetDemoMetaKeyValue( cls.demo.meta_data, sizeof( cls.demo.meta_data ), cls.demo.meta_data_realsize, k, v )
 
 //

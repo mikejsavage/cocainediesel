@@ -131,12 +131,7 @@ size_t SNAP_SetDemoMetaKeyValue( char *meta_data, size_t meta_data_max_size, siz
 
 //============================================================================
 
-int COM_Argc();
-const char *COM_Argv( int arg );  // range and null checked
-void COM_ClearArgv( int arg );
-
 void COM_Init();
-void COM_InitArgv( int argc, char **argv );
 
 int Com_GlobMatch( const char *pattern, const char *text, const bool casecmp );
 
@@ -209,51 +204,37 @@ Command text buffering and command execution
 ==============================================================
 */
 
-/*
-
-Any number of commands can be added in a frame, from several different sources.
-Most commands come from either keybindings or console line input, but remote
-servers can also send across commands and entire text files can be execed.
-
-The + command line options are also added to the command buffer.
-*/
-
-void Cbuf_AddText( const char *text );
-void Cbuf_ExecuteText( int exec_when, const char *text );
-void Cbuf_AddEarlyCommands();
-bool Cbuf_AddLateCommands();
+void Cbuf_AddLine( const char * text );
 void Cbuf_Execute();
+bool Cbuf_ExecuteLine( Span< const char > line, bool warn_on_invalid );
+void Cbuf_ExecuteLine( const char * line );
 
+void Cbuf_AddEarlyCommands( int argc, char ** argv );
+void Cbuf_AddLateCommands( int argc, char ** argv );
 
-//===========================================================================
+template< typename... Rest >
+void Cbuf_Add( const char * fmt, const Rest & ... rest ) {
+	char buf[ 1024 ];
+	ggformat( buf, sizeof( buf ), fmt, rest... );
+	Cbuf_AddLine( buf );
+}
 
-/*
+using ConsoleCommandCallback = void ( * )();
+using TabCompletionCallback = Span< const char * > ( * )( TempAllocator * a, const char * partial );
 
-Command execution takes a null terminated string, breaks it into tokens,
-then searches for a command or variable that matches the first token.
+void Cmd_Init();
+void Cmd_Shutdown();
 
-*/
+void AddCommand( const char * name, ConsoleCommandCallback function );
+void SetTabCompletionCallback( const char * name, TabCompletionCallback callback );
+void RemoveCommand( const char * name );
 
-typedef void ( *xcommand_t )();
-typedef const char ** ( *xcompletionf_t )( const char *partial );
+Span< const char * > Cmd_TabComplete( TempAllocator * a, const char * partial );
 
-void        Cmd_Init();
-void        Cmd_Shutdown();
-void        Cmd_AddCommand( const char *cmd_name, xcommand_t function );
-void        Cmd_RemoveCommand( const char *cmd_name );
-bool    Cmd_Exists( const char *cmd_name );
-bool    Cmd_CheckForCommand( char *text );
-int         Cmd_CompleteCountPossible( const char *partial );
-const char  **Cmd_CompleteBuildList( const char *partial );
-const char  **Cmd_CompleteBuildArgList( const char *partial );
-const char  **Cmd_CompleteBuildArgListExt( const char *command, const char *arguments );
-const char  **Cmd_CompleteHomeDirFileList( const char *partial, const char *basedir, const char *extension );
-int         Cmd_Argc();
-const char  *Cmd_Argv( int arg );
-char        *Cmd_Args();
-void        Cmd_TokenizeString( const char *text );
-void        Cmd_ExecuteString( const char *text );
-void        Cmd_SetCompletionFunc( const char *cmd_name, xcompletionf_t completion_func );
+int Cmd_Argc();
+const char * Cmd_Argv( int arg );
+char * Cmd_Args();
+void Cmd_TokenizeString( const char * text );
 
 void ExecDefaultCfg();
 

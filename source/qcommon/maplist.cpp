@@ -66,23 +66,15 @@ bool MapExists( const char * name ) {
 	return false;
 }
 
-const char ** CompleteMapName( const char * prefix ) {
-	size_t n = 0;
+Span< const char * > CompleteMapName( TempAllocator * a, const char * prefix ) {
+	NonRAIIDynamicArray< const char * > completions;
+	completions.init( a );
+
 	for( const char * map : maps ) {
-		if( Q_strnicmp( prefix, map, strlen( prefix ) ) == 0 ) {
-			n++;
+		if( CaseStartsWith( map, prefix ) ) {
+			completions.add( map );
 		}
 	}
 
-	const char ** buf = ( const char ** ) Mem_TempMalloc( sizeof( const char * ) * ( n + 1 ) );
-
-	size_t i = 0;
-	for( const char * map : maps ) {
-		if( Q_strnicmp( prefix, map, strlen( prefix ) ) == 0 ) {
-			buf[ i ] = map;
-			i++;
-		}
-	}
-
-	return buf;
+	return completions.span();
 }

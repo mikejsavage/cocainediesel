@@ -682,8 +682,8 @@ void Memory_Init() {
 void Memory_InitCommands() {
 	developer_memory = NewCvar( "developer_memory", "0", 0 );
 
-	Cmd_AddCommand( "memlist", MemList_f );
-	Cmd_AddCommand( "memstats", MemStats_f );
+	AddCommand( "memlist", MemList_f );
+	AddCommand( "memstats", MemStats_f );
 }
 
 /*
@@ -724,6 +724,6 @@ void Memory_Shutdown() {
 * Memory_ShutdownCommands
 */
 void Memory_ShutdownCommands() {
-	Cmd_RemoveCommand( "memlist" );
-	Cmd_RemoveCommand( "memstats" );
+	RemoveCommand( "memlist" );
+	RemoveCommand( "memstats" );
 }

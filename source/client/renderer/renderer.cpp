@@ -152,7 +152,7 @@ void InitRenderer() {
 		dynamic_geometry_mesh = NewMesh( config );
 	}
 
-	Cmd_AddCommand( "screenshot", TakeScreenshot );
+	AddCommand( "screenshot", TakeScreenshot );
 	strcpy( last_screenshot_date, "" );
 	same_date_count = 0;
 
@@ -190,7 +190,7 @@ void ShutdownRenderer() {
 	DeleteMesh( fullscreen_mesh );
 	DeleteFramebuffers();
 
-	Cmd_RemoveCommand( "screenshot" );
+	RemoveCommand( "screenshot" );
 
 	RenderBackendShutdown();
 }

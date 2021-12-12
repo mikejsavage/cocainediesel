@@ -300,13 +300,6 @@ void Cmd_Say_f( edict_t *ent, bool arg0, bool checkflood ) {
 		Q_strncatz( text, Cmd_Args(), sizeof( text ) );
 	} else {
 		p = Cmd_Args();
-
-		if( *p == '"' ) {
-			if( p[strlen( p ) - 1] == '"' ) {
-				p[strlen( p ) - 1] = 0;
-			}
-			p++;
-		}
 		Q_strncatz( text, p, sizeof( text ) );
 	}
 
@@ -567,6 +560,8 @@ void G_InitGameCommands() {
 	G_AddCommand( "camswitch", Cmd_SwitchChaseCamMode_f );
 	G_AddCommand( "timeout", Cmd_Timeout_f );
 	G_AddCommand( "timein", Cmd_Timein_f );
+	G_AddCommand( "demolist", SV_DemoList_f );
+	G_AddCommand( "demogeturl", SV_DemoGetUrl_f );
 
 	// callvotes commands
 	G_AddCommand( "callvote", G_CallVote_Cmd );

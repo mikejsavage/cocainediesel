@@ -115,22 +115,6 @@ void CL_UpdateClientCommandsToServer( msg_t *msg ) {
 	cls.reliableSent = cls.reliableSequence;
 }
 
-void CL_ForwardToServer_f() {
-	if( cls.demo.playing ) {
-		return;
-	}
-
-	if( cls.state != CA_CONNECTED && cls.state != CA_ACTIVE ) {
-		Com_Printf( "Can't \"%s\", not connected\n", Cmd_Argv( 0 ) );
-		return;
-	}
-
-	// don't forward the first argument
-	if( Cmd_Argc() > 1 ) {
-		CL_AddReliableCommand( Cmd_Args() );
-	}
-}
-
 void CL_ServerDisconnect_f() {
 	char menuparms[MAX_STRING_CHARS];
 	int type;
@@ -150,7 +134,7 @@ void CL_ServerDisconnect_f() {
 	snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
 				 DROP_REASON_CONNTERMINATED, type, reason );
 
-	Cbuf_ExecuteText( EXEC_NOW, menuparms );
+	Cbuf_ExecuteLine( menuparms );
 }
 
 /*
@@ -173,8 +157,7 @@ static void CL_SendConnectPacket() {
 * Resend a connect message if the last one has timed out
 */
 static void CL_CheckForResend() {
-	// FIXME: should use cls.realtime, but it can be old here after starting a server
-	int64_t realtime = Sys_Milliseconds();
+	int64_t realtime = cls.monotonicTime;
 
 	if( cls.demo.playing ) {
 		return;
@@ -448,10 +431,10 @@ void CL_Disconnect( const char *message ) {
 
 	if( message != NULL ) {
 		char menuparms[MAX_STRING_CHARS];
-		snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
-					 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), cls.servername, DROP_TYPE_GENERAL, message );
+		snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
+					 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), DROP_TYPE_GENERAL, message );
 
-		Cbuf_ExecuteText( EXEC_NOW, menuparms );
+		Cbuf_ExecuteLine( menuparms );
 	}
 }
 
@@ -640,7 +623,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
 						 DROP_REASON_CONNFAILED, cls.rejecttype, cls.rejectmessage );
 
-			Cbuf_ExecuteText( EXEC_NOW, menuparms );
+			Cbuf_ExecuteLine( menuparms );
 		}
 
 		return;
@@ -952,41 +935,37 @@ static void CL_InitLocal() {
 		Cvar_Set( name->name, temp( "user{06}", RandomUniform( &cls.rng, 0, 1000000 ) ) );
 	}
 
-	Cmd_AddCommand( "cmd", CL_ForwardToServer_f );
-	Cmd_AddCommand( "disconnect", CL_Disconnect_f );
-	Cmd_AddCommand( "record", CL_Record_f );
-	Cmd_AddCommand( "stop", CL_Stop_f );
-	Cmd_AddCommand( "connect", CL_Connect_f );
-	Cmd_AddCommand( "reconnect", CL_Reconnect_f );
-	Cmd_AddCommand( "rcon", CL_Rcon_f );
-	Cmd_AddCommand( "demo", CL_PlayDemo_f );
-	Cmd_AddCommand( "yolodemo", CL_YoloDemo_f );
-	Cmd_AddCommand( "next", CL_SetNext_f );
-	Cmd_AddCommand( "demopause", CL_PauseDemo_f );
-	Cmd_AddCommand( "demojump", CL_DemoJump_f );
+	AddCommand( "disconnect", CL_Disconnect_f );
+	AddCommand( "record", CL_Record_f );
+	AddCommand( "stop", CL_Stop_f );
+	AddCommand( "connect", CL_Connect_f );
+	AddCommand( "reconnect", CL_Reconnect_f );
+	AddCommand( "rcon", CL_Rcon_f );
+	AddCommand( "demo", CL_PlayDemo_f );
+	AddCommand( "yolodemo", CL_YoloDemo_f );
+	AddCommand( "next", CL_SetNext_f );
+	AddCommand( "demopause", CL_PauseDemo_f );
+	AddCommand( "demojump", CL_DemoJump_f );
 
-	Cmd_SetCompletionFunc( "demo", CL_DemoComplete );
-	Cmd_SetCompletionFunc( "yolodemo", CL_DemoComplete );
+	SetTabCompletionCallback( "demo", CompleteDemoName );
+	SetTabCompletionCallback( "yolodemo", CompleteDemoName );
 }
 
 static void CL_ShutdownLocal() {
 	cls.state = CA_UNINITIALIZED;
 	Com_SetClientState( CA_UNINITIALIZED );
 
-	Cmd_RemoveCommand( "cmd" );
-	Cmd_RemoveCommand( "userinfo" );
-	Cmd_RemoveCommand( "disconnect" );
-	Cmd_RemoveCommand( "record" );
-	Cmd_RemoveCommand( "stop" );
-	Cmd_RemoveCommand( "connect" );
-	Cmd_RemoveCommand( "reconnect" );
-	Cmd_RemoveCommand( "rcon" );
-	Cmd_RemoveCommand( "demo" );
-	Cmd_RemoveCommand( "yolodemo" );
-	Cmd_RemoveCommand( "next" );
-	Cmd_RemoveCommand( "demopause" );
-	Cmd_RemoveCommand( "demojump" );
-	Cmd_RemoveCommand( "showserverip" );
+	RemoveCommand( "disconnect" );
+	RemoveCommand( "record" );
+	RemoveCommand( "stop" );
+	RemoveCommand( "connect" );
+	RemoveCommand( "reconnect" );
+	RemoveCommand( "rcon" );
+	RemoveCommand( "demo" );
+	RemoveCommand( "yolodemo" );
+	RemoveCommand( "next" );
+	RemoveCommand( "demopause" );
+	RemoveCommand( "demojump" );
 }
 
 //============================================================================

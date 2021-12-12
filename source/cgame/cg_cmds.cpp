@@ -71,13 +71,23 @@ static void CG_SC_Debug() {
 	}
 }
 
+static void SendServerCommand() {
+	if( cls.demo.playing ) {
+		return;
+	}
+
+	char buf[ 1024 ];
+	snprintf( buf, sizeof( buf ), "%s %s", Cmd_Argv( 0 ), Cmd_Args() );
+	CL_AddReliableCommand( buf );
+}
+
 void CG_ConfigString( int i ) {
 	if( i == CS_AUTORECORDSTATE ) {
 		CG_SC_AutoRecordAction( cl.configstrings[ i ] );
 	}
 	else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
 		if( !cgs.demoPlaying && !StrEqual( cl.configstrings[ i ], "" ) ) {
-			Cmd_AddCommand( cl.configstrings[ i ], NULL );
+			AddCommand( cl.configstrings[ i ], SendServerCommand );
 		}
 	}
 }
@@ -121,29 +131,26 @@ void CG_SC_AutoRecordAction( const char *action ) {
 
 	name = CG_SC_AutoRecordName();
 
+	TempAllocator temp = cls.frame_arena.temp();
+
 	if( !Q_stricmp( action, "start" ) ) {
 		if( cg_autoaction_demo->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			Cbuf_ExecuteText( EXEC_NOW, "stop silent" );
-			Cbuf_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
-			autorecording = true;
-		}
-	} else if( !Q_stricmp( action, "altstart" ) ) {
-		if( cg_autoaction_demo->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			Cbuf_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
+			Cbuf_ExecuteLine( "stop silent" );
+			Cbuf_ExecuteLine( temp( "record autorecord/{} silent", name ) );
 			autorecording = true;
 		}
 	} else if( !Q_stricmp( action, "stop" ) ) {
 		if( autorecording ) {
-			Cbuf_ExecuteText( EXEC_NOW, "stop silent" );
+			Cbuf_ExecuteLine( "stop silent" );
 			autorecording = false;
 		}
 
 		if( cg_autoaction_screenshot->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			Cbuf_ExecuteText( EXEC_NOW, va( "screenshot autorecord/%s silent", name ) );
+			Cbuf_ExecuteLine( temp( "screenshot autorecord/{} silent", name ) );
 		}
 	} else if( !Q_stricmp( action, "cancel" ) ) {
 		if( autorecording ) {
-			Cbuf_ExecuteText( EXEC_NOW, "stop cancel silent" );
+			Cbuf_ExecuteLine( "stop cancel silent" );
 			autorecording = false;
 		}
 	} else if( developer->integer ) {
@@ -158,19 +165,13 @@ static void CG_Cmd_DemoGet_f() {
 		return;
 	}
 
-	if( Cmd_Argc() != 2 || ( atoi( Cmd_Argv( 1 ) ) <= 0 && Cmd_Argv( 1 )[0] != '.' ) ) {
-		Com_Printf( "Usage: demoget <number>\n" );
-		Com_Printf( "Downloads a demo from the server\n" );
-		Com_Printf( "Use the demolist command to see list of demos on the server\n" );
-		return;
-	}
-
-	Cbuf_ExecuteText( EXEC_NOW, va( "cmd demoget %s", Cmd_Argv( 1 ) ) );
+	TempAllocator temp = cls.frame_arena.temp();
+	Cbuf_ExecuteLine( temp( "demogeturl {}", Cmd_Argv( 1 ) ) );
 
 	demo_requested = true;
 }
 
-static void CG_SC_DemoGet() {
+static void CG_SC_DownloadDemo() {
 	if( cgs.demoPlaying ) {
 		// ignore download commands coming from demo files
 		return;
@@ -247,7 +248,7 @@ static const ServerCommand server_commands[] = {
 	{ "cp", CG_SC_CenterPrint },
 	{ "obry", CG_SC_Obituary },
 	{ "debug", CG_SC_Debug },
-	{ "demoget", CG_SC_DemoGet },
+	{ "downloaddemo", CG_SC_DownloadDemo },
 	{ "changeloadout", CG_SC_ChangeLoadout },
 	{ "saveloadout", CG_SC_SaveLoadout },
 };
@@ -371,15 +372,12 @@ static const cgcmd_t cgcmds[] = {
 	{ "+scores", CG_ScoresOn_f, true },
 	{ "-scores", CG_ScoresOff_f, true },
 	{ "demoget", CG_Cmd_DemoGet_f, false },
-	{ "demolist", NULL, false },
 	{ "use", CG_Cmd_UseItem_f, false },
 	{ "lastweapon", CG_Cmd_LastWeapon_f, false },
 	{ "weapnext", CG_Cmd_NextWeapon_f, false },
 	{ "weapprev", CG_Cmd_PrevWeapon_f, false },
 	{ "weapon", CG_Cmd_Weapon_f, false },
 	{ "viewpos", CG_Viewpos_f, true },
-
-	{ NULL, NULL, false }
 };
 
 void CG_RegisterCGameCommands() {
@@ -387,7 +385,7 @@ void CG_RegisterCGameCommands() {
 		if( cgs.demoPlaying && !cmd.allowdemo ) {
 			continue;
 		}
-		Cmd_AddCommand( cmd.name, cmd.func );
+		AddCommand( cmd.name, cmd.func );
 	}
 }
 
@@ -397,7 +395,7 @@ void CG_UnregisterCGameCommands() {
 		for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
 			const char * name = cl.configstrings[CS_GAMECOMMANDS + i];
 			if( !StrEqual( name, "" ) ) {
-				Cmd_RemoveCommand( name );
+				RemoveCommand( name );
 			}
 		}
 	}
@@ -407,6 +405,6 @@ void CG_UnregisterCGameCommands() {
 		if( cgs.demoPlaying && !cmd.allowdemo ) {
 			continue;
 		}
-		Cmd_RemoveCommand( cmd.name );
+		RemoveCommand( cmd.name );
 	}
 }

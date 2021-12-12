@@ -233,6 +233,22 @@ static void CL_UpdateConfigString( int idx, const char *s ) {
 	CL_GameModule_ConfigString( idx );
 }
 
+static void CL_ForwardToServer_f() {
+	if( cls.demo.playing ) {
+		return;
+	}
+
+	if( cls.state != CA_CONNECTED && cls.state != CA_ACTIVE ) {
+		Com_Printf( "Can't \"%s\", not connected\n", Cmd_Argv( 0 ) );
+		return;
+	}
+
+	// don't forward the first argument
+	if( Cmd_Argc() > 1 ) {
+		CL_AddReliableCommand( Cmd_Args() );
+	}
+}
+
 static void CL_ParseConfigstringCommand() {
 	int i, argc, idx;
 	const char *s;

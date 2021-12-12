@@ -286,11 +286,7 @@ void SV_Demo_Purge_f() {
 	}
 }
 
-void SV_DemoList_f( client_t *client ) {
-	if( client->state < CS_SPAWNED ) {
-		return;
-	}
-
+void SV_DemoList_f( edict_t * ent ) {
 	TempAllocator temp = svs.frame_arena.temp();
 
 	DynamicArray< char * > demos( &temp );
@@ -311,14 +307,10 @@ void SV_DemoList_f( client_t *client ) {
 
 	output += "\"";
 
-	SV_AddGameCommand( client, output.c_str() );
+	PF_GameCmd( ent, output.c_str() );
 }
 
-void SV_DemoGet_f( client_t *client ) {
-	if( client->state < CS_SPAWNED ) {
-		return;
-	}
-
+void SV_DemoGetUrl_f( edict_t * ent ) {
 	if( Cmd_Argc() != 2 ) {
 		return;
 	}
@@ -336,11 +328,11 @@ void SV_DemoGet_f( client_t *client ) {
 	Span< const char > arg = MakeSpan( Cmd_Argv( 1 ) );
 	int id;
 	if( !TrySpanToInt( arg, &id ) || id <= 0 || id > demos.size() ) {
-		SV_AddGameCommand( client, "demoget" );
+		PF_GameCmd( ent, "pr \"demoget <id from demolist>\"" );
 		return;
 	}
 
-	SV_AddGameCommand( client, temp( "demoget \"{}/{}\"", SV_DEMO_DIR, demos[ id - 1 ] ) );
+	PF_GameCmd( ent, temp( "downloaddemo \"{}/{}\"", SV_DEMO_DIR, demos[ id - 1 ] ) );
 }
 
 bool SV_IsDemoDownloadRequest( const char * request ) {

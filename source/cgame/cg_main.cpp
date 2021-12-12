@@ -225,7 +225,7 @@ void CG_Init( unsigned int playerNum,
 
 	CG_DemocamInit();
 
-	Cmd_AddCommand( "printmap", PrintMap );
+	AddCommand( "printmap", PrintMap );
 }
 
 void CG_Shutdown() {
@@ -236,5 +236,5 @@ void CG_Shutdown() {
 	CG_ShutdownHUD();
 	ShutdownDecals();
 
-	Cmd_RemoveCommand( "printmap" );
+	RemoveCommand( "printmap" );
 }

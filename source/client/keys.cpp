@@ -224,15 +224,15 @@ void Key_WriteBindings( DynamicString * config ) {
 }
 
 void Key_Init() {
-	Cmd_AddCommand( "bind", Key_Bind_f );
-	Cmd_AddCommand( "unbind", Key_Unbind_f );
-	Cmd_AddCommand( "unbindall", Key_Unbindall );
+	AddCommand( "bind", Key_Bind_f );
+	AddCommand( "unbind", Key_Unbind_f );
+	AddCommand( "unbindall", Key_Unbindall );
 }
 
 void Key_Shutdown() {
-	Cmd_RemoveCommand( "bind" );
-	Cmd_RemoveCommand( "unbind" );
-	Cmd_RemoveCommand( "unbindall" );
+	RemoveCommand( "bind" );
+	RemoveCommand( "unbind" );
+	RemoveCommand( "unbindall" );
 
 	Key_Unbindall();
 }
@@ -244,7 +244,7 @@ void Key_Event( int key, bool down ) {
 		}
 
 		if( cls.state != CA_ACTIVE ) {
-			Cbuf_AddText( "disconnect\n" );
+			CL_Disconnect_f();
 			return;
 		}
 
@@ -258,13 +258,10 @@ void Key_Event( int key, bool down ) {
 
 		if( kb ) {
 			if( kb[0] == '+' ) {
-				char cmd[1024];
-				snprintf( cmd, sizeof( cmd ), "%s%s %i\n", down ? "+" : "-", kb + 1, key );
-				Cbuf_AddText( cmd );
+				Cbuf_Add( "{}{} {}", down ? "+" : "-", kb + 1, key );
 			}
 			else if( down ) {
-				Cbuf_AddText( kb );
-				Cbuf_AddText( "\n" );
+				Cbuf_Add( "{}", kb );
 			}
 		}
 	}

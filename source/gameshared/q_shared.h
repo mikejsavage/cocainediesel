@@ -29,12 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define LittleLong( l ) ( l )
 #define LittleFloat( l ) ( l )
 
-//==============================================
-
-// command line execution flags
-#define EXEC_NOW                    0           // don't return until completed
-#define EXEC_APPEND                 1           // add to end of the command buffer
-
 //==============================================================
 //
 //PATHLIB

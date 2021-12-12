@@ -404,10 +404,6 @@ ucmd_t ucmds[] =
 
 	{ "nodelta", SV_NoDelta_f },
 
-	// server demo downloads
-	{ "demolist", SV_DemoList_f },
-	{ "demoget", SV_DemoGet_f },
-
 	{ NULL, NULL }
 };
 

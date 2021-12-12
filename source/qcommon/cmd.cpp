@@ -1,349 +1,149 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
 #include <algorithm> // std::sort
 
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
+#include "qcommon/hash.h"
+#include "qcommon/hashtable.h"
 #include "qcommon/string.h"
-#include "qcommon/q_trie.h"
 
-static bool cmd_initialized = false;
+struct ConsoleCommand {
+	char * name;
+	ConsoleCommandCallback callback;
+	TabCompletionCallback tab_completion_callback;
+	bool disabled;
+};
 
-/*
-=============================================================================
+constexpr size_t MAX_COMMANDS = 1024;
 
-COMMAND BUFFER
+static String< 1024 > command_buffer;
 
-=============================================================================
-*/
+static ConsoleCommand commands[ MAX_COMMANDS ];
+static Hashtable< MAX_COMMANDS * 2 > commands_hashtable;
 
-/*
-* Command buffer is a cyclical dynamically allocated buffer
-* It must never be totally full, since cbuf_text_head points to first free
-* position in the buffer
-*/
-
-#define MIN_CMD_TEXT_SIZE 1024
-
-static size_t cbuf_text_size, cbuf_text_head, cbuf_text_tail;
-static char *cbuf_text;
-static mempool_t *cbuf_pool;
-
-#define Cbuf_Malloc( size ) Mem_Alloc( cbuf_pool, size )
-#define Cbuf_Free( data ) Mem_Free( data )
-
-static void Cbuf_Init() {
-	cbuf_pool = Mem_AllocPool( NULL, "Command buffer" );
-
-	cbuf_text_size = MIN_CMD_TEXT_SIZE;
-	cbuf_text = ( char * ) Cbuf_Malloc( cbuf_text_size );
-	cbuf_text_head = 0;
-	cbuf_text_tail = 0;
+static Span< const char > GrabLine( Span< const char > str ) {
+	const char * newline = ( const char * ) memchr( str.ptr, '\n', str.n );
+	return newline == NULL ? str : str.slice( 0, newline - str.ptr );
 }
 
-static void Cbuf_Shutdown() {
-	Cbuf_Free( cbuf_text );
-	cbuf_text = NULL;
-	cbuf_text_size = 0;
-	cbuf_text_head = 0;
-	cbuf_text_tail = 0;
-
-	Mem_FreePool( &cbuf_pool );
+static ConsoleCommand * FindCommand( const char * name ) {
+	u64 hash = CaseHash64( name );
+	u64 idx;
+	if( !commands_hashtable.get( hash, &idx ) )
+		return NULL;
+	return &commands[ idx ];
 }
 
-/*
-* Cbuf_FreeSpace
-*
-* Frees some space, if we have too big buffer in use
-*/
-static void Cbuf_FreeSpace() {
-	char *old;
-	size_t used, old_size;
+static void Cmd_TokenizeString( Span< const char > str ); // TODO: nuke
 
-	if( cbuf_text_head >= cbuf_text_tail ) {
-		used = cbuf_text_head - cbuf_text_tail;
-	} else {
-		used = cbuf_text_size - cbuf_text_tail + cbuf_text_head;
+bool Cbuf_ExecuteLine( Span< const char > line, bool warn_on_invalid ) {
+	Cmd_TokenizeString( line );
+
+	if( Cmd_Argc() == 0 ) {
+		return true;
 	}
 
-	if( used < cbuf_text_size / 2 && used < cbuf_text_size - MIN_CMD_TEXT_SIZE ) {
-		old = cbuf_text;
-		old_size = cbuf_text_size;
+	const ConsoleCommand * command = FindCommand( Cmd_Argv( 0 ) );
+	if( command != NULL ) {
+		command->callback();
+		return true;
+	}
 
-		cbuf_text_size = used + MIN_CMD_TEXT_SIZE;
-		cbuf_text = ( char * ) Cbuf_Malloc( cbuf_text_size );
+	if( Cvar_Command() ) {
+		return true;
+	}
 
-		if( cbuf_text_head >= cbuf_text_tail ) {
-			memcpy( cbuf_text, old + cbuf_text_tail, used );
-		} else {
-			memcpy( cbuf_text, old + cbuf_text_tail, old_size - cbuf_text_tail );
-			memcpy( cbuf_text + ( old_size - cbuf_text_tail ), old, cbuf_text_head );
+	if( warn_on_invalid ) {
+		Com_GGPrint( "Unknown command \"{}\"", Cmd_Argv( 0 ) );
+	}
+
+	return false;
+}
+
+void Cbuf_ExecuteLine( const char * line ) {
+	Cbuf_ExecuteLine( MakeSpan( line ), true );
+}
+
+static void Cbuf_Execute( const char * str, bool skip_comments ) {
+	Span< const char > cursor = MakeSpan( str );
+	while( cursor.n > 0 ) {
+		Span< const char > line = GrabLine( cursor );
+		if( !skip_comments || !StartsWith( line, "//" ) ) {
+			Cbuf_ExecuteLine( line, true );
 		}
-		cbuf_text_tail = 0;
-		cbuf_text_head = used;
 
-		Cbuf_Free( old );
+		cursor += line.n + 1;
 	}
 }
 
-static void Cbuf_EnsureSpace( size_t size ) {
-	size_t free;
-	size_t diff;
-
-	if( cbuf_text_head >= cbuf_text_tail ) {
-		free = cbuf_text_size - cbuf_text_head + cbuf_text_tail;
-	} else {
-		free = cbuf_text_tail - cbuf_text_head;
-	}
-
-	if( free >= size ) {
+void Cbuf_AddLine( const char * text ) {
+	size_t length_with_newline = strlen( text ) + 1;
+	if( command_buffer.length() + length_with_newline > command_buffer.capacity() ) {
+		Com_Printf( S_COLOR_YELLOW "Typed too much stuff...\n" );
 		return;
 	}
 
-	diff = ( size - free ) + MIN_CMD_TEXT_SIZE;
-	cbuf_text_size += diff;
-	cbuf_text = ( char * ) Mem_Realloc( cbuf_text, cbuf_text_size );
-
-	if( cbuf_text_head < cbuf_text_tail ) {
-		memmove( cbuf_text + cbuf_text_tail + diff, cbuf_text + cbuf_text_tail, cbuf_text_size - diff - cbuf_text_tail );
-		cbuf_text_tail += diff;
-	}
+	command_buffer.append_raw( text, strlen( text ) );
+	command_buffer += '\n';
 }
 
-/*
-* Cbuf_AddText
-*
-* Adds command text at the end of the buffer
-*/
-void Cbuf_AddText( const char *text ) {
-	size_t textlen = strlen( text );
-
-	Cbuf_EnsureSpace( textlen );
-
-	if( cbuf_text_size - cbuf_text_head < textlen ) {
-		size_t endsize = cbuf_text_size - cbuf_text_head;
-
-		memcpy( cbuf_text + cbuf_text_head, text, endsize );
-		memcpy( cbuf_text, text + endsize, textlen - endsize );
-		cbuf_text_head = textlen - endsize;
-	} else {
-		memcpy( cbuf_text + cbuf_text_head, text, textlen );
-		cbuf_text_head += textlen;
-		if( cbuf_text_head == cbuf_text_size ) {
-			cbuf_text_head = 0;
-		}
-	}
-}
-
-/*
-* Cbuf_InsertText
-*
-* When a command wants to issue other commands immediately, the text is
-* inserted at the beginning of the buffer, before any remaining unexecuted
-* commands.
-* Adds a \n to the text
-*/
-static void Cbuf_InsertText( const char *text ) {
-	size_t textlen = strlen( text );
-
-	Cbuf_EnsureSpace( textlen );
-
-	if( cbuf_text_tail < textlen ) {
-		memcpy( cbuf_text + cbuf_text_size - ( textlen - cbuf_text_tail ), text, textlen - cbuf_text_tail );
-		memcpy( cbuf_text, text + textlen - cbuf_text_tail, cbuf_text_tail );
-		cbuf_text_tail = cbuf_text_size - ( textlen - cbuf_text_tail );
-	} else {
-		memcpy( cbuf_text + cbuf_text_tail - textlen, text, textlen );
-		cbuf_text_tail -= textlen;
-	}
-}
-
-
-/*
-* Cbuf_ExecuteText
-* This can be used in place of either Cbuf_AddText or Cbuf_InsertText
-*/
-void Cbuf_ExecuteText( int exec_when, const char *text ) {
-	switch( exec_when ) {
-		case EXEC_NOW:
-			Cmd_ExecuteString( text );
-			break;
-		case EXEC_APPEND:
-			Cbuf_AddText( text );
-			break;
-		default:
-			Fatal( "Cbuf_ExecuteText: bad exec_when" );
-	}
-}
-
-/*
-* Cbuf_Execute
-* Pulls off \n terminated lines of text from the command buffer and sends
-* them through Cmd_ExecuteString.  Stops when the buffer is empty.
-* Normally called once per frame, but may be explicitly invoked.
-* Do not call inside a command function!
-*/
 void Cbuf_Execute() {
-	size_t i;
-	int c;
-	char line[MAX_STRING_CHARS];
-	bool quotes, quoteskip;
-
-	while( cbuf_text_tail != cbuf_text_head ) {
-		// find a \n or ; line break
-		i = 0;
-		quotes = false;
-		quoteskip = false;
-		while( cbuf_text_tail != cbuf_text_head && i < sizeof( line ) - 1 ) {
-			c = cbuf_text[cbuf_text_tail];
-
-			if( !quoteskip && c == '"' ) {
-				quotes = !quotes;
-			}
-
-			if( !quoteskip && c == '\\' ) {
-				quoteskip = true;
-			} else {
-				quoteskip = false;
-			}
-
-			line[i] = c;
-
-			cbuf_text_tail = ( cbuf_text_tail + 1 ) % cbuf_text_size;
-
-			if( c == '\n' ) {
-				break;
-			}
-
-			i++;
-		}
-		line[i] = 0;
-
-		// execute the command line
-		Cmd_ExecuteString( line );
-	}
-
-	Cbuf_FreeSpace();
+	Cbuf_Execute( command_buffer.c_str(), false );
+	command_buffer.clear();
 }
 
-/*
-* Cbuf_AddEarlyCommands
-*
-* Adds all the +set commands from the command line:
-*
-* Adds command line parameters as script statements
-* Commands lead with a +, and continue until another +
-*
-* Set/exec/config commands are added early, so they are guaranteed to be set before
-* the client and server initialize for the first time.
-*
-* This command is first run before autoexec.cfg and config.cfg to allow changing
-* fs_basepath etc. The second run is after those files has been execed in order
-* to allow overwriting values set in them.
-*
-* Other commands are added late, after all initialization is complete.
-*/
-void Cbuf_AddEarlyCommands() {
-	for( int i = 1; i < COM_Argc(); ++i ) {
-		const char * s = COM_Argv( i );
-		if( StrCaseEqual( s, "+set" ) ) {
-			Cbuf_AddText( va( "\"set\" \"%s\" \"%s\"\n", COM_Argv( i + 1 ), COM_Argv( i + 2 ) ) );
-			COM_ClearArgv( i );
-			COM_ClearArgv( i + 1 );
-			COM_ClearArgv( i + 2 );
+static const char * Argv( int argc, char ** argv, int i ) {
+	return i < argc ? argv[ i ] : "";
+}
+
+static void ClearArg( int argc, char ** argv, int i ) {
+	if( i < argc ) {
+		argv[ i ] = "";
+	}
+}
+
+void Cbuf_AddEarlyCommands( int argc, char ** argv ) {
+	for( int i = 1; i < argc; i++ ) {
+		if( StrCaseEqual( argv[ i ], "-set" ) || StrCaseEqual( argv[ i ], "+set" ) ) {
+			Cbuf_Add( "set \"{}\" \"{}\"", Argv( argc, argv, i + 1 ), Argv( argc, argv, i + 2 ) );
+			ClearArg( argc, argv, i );
+			ClearArg( argc, argv, i + 1 );
+			ClearArg( argc, argv, i + 2 );
 			i += 2;
 		}
-		else if( StrCaseEqual( s, "+exec" ) ) {
-			Cbuf_AddText( va( "exec \"%s\"\n", COM_Argv( i + 1 ) ) );
-			COM_ClearArgv( i );
-			COM_ClearArgv( i + 1 );
+		else if( StrCaseEqual( argv[ i ], "-exec" ) || StrCaseEqual( argv[ i ], "+exec" ) ) {
+			Cbuf_Add( "exec \"{}\"", Argv( argc, argv, i + 1 ) );
+			ClearArg( argc, argv, i );
+			ClearArg( argc, argv, i + 1 );
 			i += 1;
 		}
-		else if( StrCaseEqual( s, "+config" ) ) {
-			Cbuf_AddText( va( "config \"%s\"\n", COM_Argv( i + 1 ) ) );
-			COM_ClearArgv( i );
-			COM_ClearArgv( i + 1 );
+		else if( StrCaseEqual( argv[ i ], "-config" ) || StrCaseEqual( argv[ i ], "+config" ) ) {
+			Cbuf_Add( "config \"{}\"", Argv( argc, argv, i + 1 ) );
+			ClearArg( argc, argv, i );
+			ClearArg( argc, argv, i + 1 );
 			i += 1;
 		}
 	}
+
+	Cbuf_Execute();
 }
 
-/*
-* Cbuf_AddLateCommands
-*
-* Adds command line parameters as script statements
-* Commands lead with a + and continue until another + or -
-* quake +map amlev1
-*
-* Returns true if any late commands were added, which
-* will keep the demoloop from immediately starting
-*/
-bool Cbuf_AddLateCommands() {
-	int i;
-	size_t text_size;
-	char *text;
+void Cbuf_AddLateCommands( int argc, char ** argv ) {
+	String< 1024 > buf;
 
-	// build the combined string to parse from
-	text_size = 0;
-	for( i = 1; i < COM_Argc(); i++ ) {
-		if( COM_Argv( i )[0] == 0 ) {
-			continue;
+	// TODO: should probably not roundtrip to string and retokenize
+	for( int i = 1; i < argc; i++ ) {
+		if( StartsWith( argv[ i ], "-" ) || StartsWith( argv[ i ], "+" ) ) {
+			Cbuf_ExecuteLine( buf.c_str() );
+			buf.format( "{}", argv[ i ] + 1 );
 		}
-		text_size += strlen( COM_Argv( i ) ) + 2 /* quatation marks */ + 1 /* space */;
-	}
-	if( text_size == 0 ) {
-		return false;
+		else {
+			buf.append( " \"{}\"", argv[ i ] );
+		}
 	}
 
-	text_size += 2; // '\n' and '\0' at the end
-	text = ( char * ) Cbuf_Malloc( (int)text_size );
-	text[0] = 0;
-	for( i = 1; i < COM_Argc(); i++ ) {
-		if( COM_Argv( i )[0] == 0 ) {
-			continue;
-		}
-		if( COM_Argv( i )[0] == '+' ) {
-			Q_strncatz( text, "\n", text_size );
-			Q_strncatz( text, va( "\"%s\"", COM_Argv( i ) + 1 ), text_size );
-		} else {
-			Q_strncatz( text, va( "\"%s\"", COM_Argv( i ) ), text_size );
-		}
-		Q_strncatz( text, " ", text_size );
-	}
-	Q_strncatz( text, "\n", text_size );
-
-	Cbuf_AddText( text );
-	Cbuf_Free( text );
-
-	return true;
+	Cbuf_ExecuteLine( buf.c_str() );
 }
-
-
-/*
-==============================================================================
-
-SCRIPT COMMANDS
-
-==============================================================================
-*/
 
 static void ExecConfig( const char * path ) {
 	char * config = ReadFileString( sys_allocator, path );
@@ -353,9 +153,7 @@ static void ExecConfig( const char * path ) {
 		return;
 	}
 
-	Cbuf_InsertText( "\n" );
-	Cbuf_InsertText( config );
-	Cbuf_InsertText( "\n" );
+	Cbuf_Execute( config, true );
 }
 
 static void Cmd_Exec_f() {
@@ -391,266 +189,108 @@ void ExecDefaultCfg() {
 	ExecConfig( path.c_str() );
 }
 
-static const char **CL_CompleteExecBuildList( const char *partial ) {
-	return Cmd_CompleteHomeDirFileList( partial, "base", ".cfg" );
-}
-
-/*
-=============================================================================
-
-COMMAND EXECUTION
-
-=============================================================================
-*/
-
-struct cmd_function_t {
-	char *name;
-	xcommand_t function;
-	xcompletionf_t completion_func;
-};
+/* DUMB SHIT */
+// TODO: just pass the span to commands and stop misusing this everywhere else
 
 static int cmd_argc;
-static char *cmd_argv[MAX_STRING_TOKENS];
-static size_t cmd_argv_sizes[MAX_STRING_TOKENS];
-static char cmd_null_string[] = "";
+static char * cmd_argv[MAX_STRING_TOKENS];
 static char cmd_args[MAX_STRING_CHARS];
-
-static trie_t *cmd_function_trie = NULL;
-
-static int Cmd_PatternMatchesFunction( void *cmd, const void *pattern ) {
-	assert( cmd );
-	return !pattern || Com_GlobMatch( (const char *) pattern, ( (cmd_function_t *) cmd )->name, false );
-}
-
-// The functions that execute commands get their parameters with these
-// functions. Cmd_Argv () will return an empty string, not a NULL
-// if arg > argc, so string operations are always safe.
 
 int Cmd_Argc() {
 	return cmd_argc;
 }
 
-const char *Cmd_Argv( int arg ) {
-	if( arg >= cmd_argc ) {
-		return cmd_null_string;
-	}
-	return cmd_argv[arg];
+const char * Cmd_Argv( int arg ) {
+	return arg < cmd_argc ? cmd_argv[ arg ] : "";
 }
 
-/*
-* Cmd_Args
-*
-* Returns a single string containing argv(1) to argv(argc()-1)
-*/
-char *Cmd_Args() {
+char * Cmd_Args() {
 	return cmd_args;
 }
 
-/*
-* Cmd_TokenizeString
-*
-* Parses the given string into command line tokens.
-* $Cvars will be expanded unless they are in a quoted token
-* Takes a null terminated string.  Does not need to be /n terminated.
-*/
-void Cmd_TokenizeString( const char *text ) {
+// TODO: this sucks
+static void Cmd_TokenizeString( Span< const char > str ) {
+	for( int i = 0; i < cmd_argc; i++ ) {
+		FREE( sys_allocator, cmd_argv[ i ] );
+	}
+
+	strcpy( cmd_args, "" );
+
 	cmd_argc = 0;
-	cmd_args[0] = 0;
 
-	if( !text ) {
-		return;
-	}
-
-	while( true ) {
-		// skip whitespace up to a /n
-		while( *text && (unsigned char)*text <= ' ' && *text != '\n' )
-			text++;
-
-		if( *text == '\n' ) {
-			// a newline separates commands in the buffer
-			text++;
-			break;
-		}
-
-		if( !*text ) {
+	while( cmd_argc < MAX_STRING_TOKENS ) {
+		Span< const char > token = ParseToken( &str, Parse_StopOnNewLine );
+		if( token.ptr == NULL )
 			return;
-		}
 
-		// set cmd_args to everything after the first arg
+		cmd_argv[ cmd_argc ] = ( *sys_allocator )( "{}", token );
+
 		if( cmd_argc == 1 ) {
-			size_t l;
-
-			strncpy( cmd_args, text, sizeof( cmd_args ) - 1 );
-			cmd_args[sizeof( cmd_args ) - 1] = 0;
-
-			// strip off any trailing whitespace
-			// use > 0 and -1 instead of >= 0 since size_t can be unsigned
-			l = strlen( cmd_args );
-			for(; l > 0; l-- )
-				if( (unsigned char)cmd_args[l - 1] <= ' ' ) {
-					cmd_args[l - 1] = 0;
-				} else {
-					break;
-				}
-		}
-
-		Span< const char > token = ParseToken( &text, Parse_StopOnNewLine );
-		if( token.ptr == NULL || token == "//" )
-			return;
-
-		if( cmd_argc < MAX_STRING_TOKENS ) {
-			if( cmd_argv_sizes[cmd_argc] < token.n + 1 ) {
-				size_t new_size = Min2( token.n + 64, size_t( MAX_TOKEN_CHARS ) );
-				cmd_argv[cmd_argc] = REALLOC_MANY( sys_allocator, char, cmd_argv[cmd_argc], cmd_argv_sizes[cmd_argc], new_size );
-				cmd_argv_sizes[cmd_argc] = new_size;
+			Span< const char > rest_of_line( token.ptr, str.end() - token.ptr );
+			if( rest_of_line.ptr[ -1 ] == '"' ) {
+				rest_of_line.ptr--;
+				rest_of_line.n++;
 			}
-			memcpy( cmd_argv[cmd_argc], token.ptr, token.n );
-			cmd_argv[cmd_argc][token.n] = '\0';
-			cmd_argc++;
+			ggformat( cmd_args, sizeof( cmd_args ), "{}", rest_of_line );
+			size_t n = strlen( cmd_args );
+			while( n > 0 && cmd_args[ n - 1 ] == ' ' ) {
+				cmd_args[ n - 1 ] = '\0';
+				n--;
+			}
+		}
+
+		cmd_argc++;
+	}
+}
+
+void Cmd_TokenizeString( const char * str ) {
+	Cmd_TokenizeString( MakeSpan( str ) );
+}
+
+void AddCommand( const char * name, ConsoleCommandCallback callback ) {
+	assert( callback != NULL );
+
+	ConsoleCommand * old_command = FindCommand( name );
+	if( old_command != NULL ) {
+		assert( old_command->callback == callback && old_command->disabled );
+		old_command->disabled = false;
+		return;
+	}
+
+	assert( commands_hashtable.size() < ARRAY_COUNT( commands ) );
+
+	ConsoleCommand * command = &commands[ commands_hashtable.size() ];
+	*command = { };
+	command->name = CopyString( sys_allocator, name );
+	command->callback = callback;
+
+	u64 hash = CaseHash64( name );
+	bool ok = commands_hashtable.add( hash, commands_hashtable.size() );
+	assert( ok );
+}
+
+void RemoveCommand( const char * name ) {
+	FindCommand( name )->disabled = true;
+}
+
+void SetTabCompletionCallback( const char * name, TabCompletionCallback callback ) {
+	ConsoleCommand * command = FindCommand( name );
+	assert( command->tab_completion_callback == NULL || command->tab_completion_callback == callback );
+	command->tab_completion_callback = callback;
+}
+
+Span< const char * > Cmd_TabComplete( TempAllocator * a, const char * partial ) {
+	NonRAIIDynamicArray< const char * > completions;
+	completions.init( a );
+
+	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
+		const ConsoleCommand * command = &commands[ i ];
+		if( CaseStartsWith( command->name, partial ) ) {
+			completions.add( command->name );
 		}
 	}
-}
 
-
-/*
-* Cmd_AddCommand
-* called by the init functions of other parts of the program to
-* register commands and functions to call for them.
-* The cmd_name is referenced later, so it should not be in temp memory
-* if function is NULL, the command will be forwarded to the server
-* as a clc_clientcommand instead of executed locally
-*/
-void Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
-	// fail if the command is a variable name
-	if( IsCvar( cmd_name ) ) {
-		Com_Printf( "Cmd_AddCommand: %s already defined as a var\n", cmd_name );
-		return;
-	}
-
-	// fail if the command already exists
-	assert( cmd_function_trie );
-	assert( cmd_name );
-	cmd_function_t * cmd;
-	if( Trie_Find( cmd_function_trie, cmd_name, TRIE_EXACT_MATCH, (void **)&cmd ) == TRIE_OK ) {
-		cmd->function = function;
-		cmd->completion_func = NULL;
-		Com_DPrintf( "Cmd_AddCommand: %s already defined\n", cmd_name );
-		return;
-	}
-
-	cmd = ALLOC( sys_allocator, cmd_function_t );
-	cmd->name = CopyString( sys_allocator, cmd_name );
-	cmd->function = function;
-	cmd->completion_func = NULL;
-	Trie_Insert( cmd_function_trie, cmd_name, cmd );
-}
-
-void Cmd_RemoveCommand( const char *cmd_name ) {
-	cmd_function_t *cmd;
-
-	if( !cmd_initialized ) {
-		return;
-	}
-
-	assert( cmd_function_trie );
-	assert( cmd_name );
-	if( Trie_Remove( cmd_function_trie, cmd_name, (void **)&cmd ) == TRIE_OK ) {
-		FREE( sys_allocator, cmd->name );
-		FREE( sys_allocator, cmd );
-	}
-	else {
-		Com_Printf( "Cmd_RemoveCommand: %s not added\n", cmd_name );
-	}
-}
-
-/*
-* Cmd_Exists
-* used by the cvar code to check for cvar / command name overlap
-*/
-bool Cmd_Exists( const char *cmd_name ) {
-	cmd_function_t *cmd;
-
-	assert( cmd_function_trie );
-	assert( cmd_name );
-	return Trie_Find( cmd_function_trie, cmd_name, TRIE_EXACT_MATCH, (void **)&cmd ) == TRIE_OK;
-}
-
-void Cmd_SetCompletionFunc( const char *cmd_name, xcompletionf_t completion_func ) {
-	cmd_function_t *cmd;
-
-	if( !cmd_name || !cmd_name[0] ) {
-		Com_DPrintf( "Cmd_SetCompletionFunc: empty name pass as an argument\n" );
-		return;
-	}
-
-	if( Trie_Find( cmd_function_trie, cmd_name, TRIE_EXACT_MATCH, (void **)&cmd ) == TRIE_OK ) {
-		cmd->completion_func = completion_func;
-		return;
-	}
-
-	Com_DPrintf( "Cmd_SetCompletionFunc: %s already does not exist\n", cmd_name );
-}
-
-int Cmd_CompleteCountPossible( const char *partial ) {
-	assert( partial );
-	if( !partial[0] ) {
-		return 0;
-	} else {
-		unsigned int matches;
-		assert( cmd_function_trie );
-		Trie_NoOfMatches( cmd_function_trie, partial, &matches );
-		return matches;
-	}
-}
-
-const char **Cmd_CompleteBuildList( const char *partial ) {
-	trie_dump_t *dump;
-	const char **buf;
-	unsigned int i;
-
-	assert( cmd_function_trie );
-	assert( partial );
-	Trie_Dump( cmd_function_trie, partial, TRIE_DUMP_VALUES, &dump );
-	buf = (const char **) Mem_TempMalloc( sizeof( char * ) * ( dump->size + 1 ) );
-	for( i = 0; i < dump->size; ++i )
-		buf[i] = ( (cmd_function_t *) ( dump->key_value_vector[i].value ) )->name;
-	buf[dump->size] = NULL;
-	Trie_FreeDump( dump );
-	return buf;
-}
-
-/*
-* Cmd_CompleteBuildArgListExt
-*
-* Find a possible single matching command
-*/
-const char **Cmd_CompleteBuildArgListExt( const char *command, const char *arguments ) {
-	cmd_function_t *cmd = NULL;
-
-	if( Trie_Find( cmd_function_trie, command, TRIE_EXACT_MATCH, (void **)&cmd ) != TRIE_OK ) {
-		return NULL;
-	}
-	if( cmd->completion_func ) {
-		return cmd->completion_func( arguments );
-	}
-	return NULL;
-}
-
-/*
-* Cmd_CompleteBuildArgList
-*
-* Find a possible single matching command
-*/
-const char **Cmd_CompleteBuildArgList( const char *partial ) {
-	const char *p;
-
-	p = strstr( partial, " " );
-	if( p ) {
-		Cmd_TokenizeString( partial );
-		return Cmd_CompleteBuildArgListExt( cmd_argv[0], cmd_args );
-	}
-
-	return NULL;
+	return completions.span();
 }
 
 static void AddMatchingFilesRecursive( DynamicArray< char * > * files, DynamicString * path, Span< const char > prefix, size_t skip, const char * extension ) {
@@ -679,6 +319,7 @@ static void AddMatchingFilesRecursive( DynamicArray< char * > * files, DynamicSt
 	}
 }
 
+// TODO
 const char ** Cmd_CompleteHomeDirFileList( const char * partial, const char * search_dir, const char * extension ) {
 	DynamicString base_path( sys_allocator, "{}/{}", HomeDirPath(), search_dir );
 	size_t skip = base_path.length();
@@ -720,144 +361,29 @@ const char ** Cmd_CompleteHomeDirFileList( const char * partial, const char * se
 	return ( const char ** ) combined;
 }
 
-/*
-* Cmd_CheckForCommand
-*
-* Used by console code to check if text typed is a command/cvar
-*/
-bool Cmd_CheckForCommand( char *text ) {
-	char cmd[MAX_STRING_CHARS];
-	int i;
-
-	// this is not exactly what cbuf does when extracting lines
-	// for execution, but it works unless you do weird things like
-	// putting the command in quotes
-	for( i = 0; i < MAX_STRING_CHARS - 1; i++ ) {
-		if( (unsigned char)text[i] <= ' ' ) {
-			break;
-		} else {
-			cmd[i] = text[i];
-		}
-	}
-	cmd[i] = 0;
-
-	if( Cmd_Exists( cmd ) ) {
-		return true;
-	}
-	if( IsCvar( cmd ) ) {
-		return true;
-	}
-
-	return false;
-}
-
-/*
-* Cmd_ExecuteString
-* Parses a single line of text into arguments and tries to execute it
-* as if it was typed at the console
-* FIXME: lookupnoadd the token to speed search?
-*/
-void Cmd_ExecuteString( const char *text ) {
-	char *str;
-	cmd_function_t *cmd;
-
-	Cmd_TokenizeString( text );
-
-	// execute the command line
-	if( !Cmd_Argc() ) {
-		return; // no tokens
-
-	}
-	str = cmd_argv[0];
-
-	// FIXME: This routine defines the order in which identifiers are looked-up, but
-	// there are no checks for name-clashes. If a user sets a cvar with the name of
-	// an existing command, that cvar becomes shadowed!
-	// We need a global namespace data-structure and a way to check for name-clashes
-	// that does not break seperation of concerns.
-	// Aiwa, 07-14-2006
-
-	assert( cmd_function_trie );
-	if( Trie_Find( cmd_function_trie, str, TRIE_EXACT_MATCH, (void **)&cmd ) == TRIE_OK ) {
-		// check functions
-		if( !cmd->function ) {
-			// forward to server command
-			Cmd_ExecuteString( va( "cmd %s", text ) );
-		} else {
-			cmd->function();
-		}
-	} else if( Cvar_Command() ) {
-		// check cvars
-	} else {
-		Com_Printf( "Unknown command \"%s" S_COLOR_WHITE "\"\n", str );
-	}
-}
-
-static void Cmd_List_f() {
-	trie_dump_t *dump = NULL;
-	unsigned int i;
-	char *pattern;
-
-	if( Cmd_Argc() == 1 ) {
-		pattern = NULL; // no wildcard
-	} else {
-		pattern = Cmd_Args();
-	}
-
-	Com_Printf( "\nCommands:\n" );
-	assert( cmd_function_trie );
-	Trie_DumpIf( cmd_function_trie, "", TRIE_DUMP_VALUES, Cmd_PatternMatchesFunction, pattern, &dump );
-	for( i = 0; i < dump->size; ++i ) {
-		cmd_function_t *const cmd = (cmd_function_t *) dump->key_value_vector[i].value;
-		Com_Printf( "%s\n", cmd->name );
-	}
-	Trie_FreeDump( dump );
-	Com_Printf( "%i commands\n", i );
-}
-
 void Cmd_Init() {
-	assert( !cmd_initialized );
+	AddCommand( "exec", Cmd_Exec_f );
+	AddCommand( "config", Cmd_Config_f );
 
-	Trie_Create( TRIE_CASE_INSENSITIVE, &cmd_function_trie );
+	// SetTabCompletionCallback( "exec", CL_CompleteExecBuildList );
+	// SetTabCompletionCallback( "config", CL_CompleteExecBuildList );
 
-	Cmd_AddCommand( "cmdlist", Cmd_List_f );
-	Cmd_AddCommand( "exec", Cmd_Exec_f );
-	Cmd_AddCommand( "config", Cmd_Config_f );
+	command_buffer.clear();
 
-	Cmd_SetCompletionFunc( "exec", CL_CompleteExecBuildList );
-
-	Cbuf_Init();
-
-	cmd_initialized = true;
+	cmd_argc = 0;
 }
 
 void Cmd_Shutdown() {
-	assert( cmd_initialized );
+	RemoveCommand( "exec" );
+	RemoveCommand( "config" );
 
-	Cmd_RemoveCommand( "cmdlist" );
-	Cmd_RemoveCommand( "exec" );
-	Cmd_RemoveCommand( "config" );
-
-	// this is somewhat ugly IMO
-	for( unsigned int i = 0; i < MAX_STRING_TOKENS && cmd_argv_sizes[i]; i++ ) {
-		FREE( sys_allocator, cmd_argv[i] );
-		cmd_argv_sizes[i] = 0;
+	for( int i = 0; i < cmd_argc; i++ ) {
+		FREE( sys_allocator, cmd_argv[ i ] );
 	}
 
-	trie_dump_t *dump;
-	Trie_Dump( cmd_function_trie, "", TRIE_DUMP_VALUES, &dump );
-	for( unsigned int i = 0; i < dump->size; ++i ) {
-		if( !is_public_build ) {
-			Com_Printf( "Warning: Command %s was never removed\n",
-				( (cmd_function_t *)dump->key_value_vector[i].value )->name );
-		}
-		Cmd_RemoveCommand( ( (cmd_function_t *)dump->key_value_vector[i].value )->name );
+	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
+		ConsoleCommand * command = &commands[ i ];
+		assert( command->disabled );
+		FREE( sys_allocator, command->name );
 	}
-	Trie_FreeDump( dump );
-
-	Trie_Destroy( cmd_function_trie );
-
-	Cbuf_Shutdown();
-
-	cmd_initialized = false;
 }

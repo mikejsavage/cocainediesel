@@ -492,7 +492,6 @@ static bool Rcon_Validate() {
 * Redirect all printfs
 */
 static void SVC_RemoteCommand( const socket_t *socket, const netadr_t *address ) {
-	char remaining[1024];
 	flush_params_t extra;
 
 	if( Rcon_Validate() ) {
@@ -514,15 +513,7 @@ static void SVC_RemoteCommand( const socket_t *socket, const netadr_t *address )
 		Com_Printf( "Bad rcon_password.\n" );
 	}
 	else {
-		remaining[0] = 0;
-
-		for( int i = 2; i < Cmd_Argc(); i++ ) {
-			Q_strncatz( remaining, "\"", sizeof( remaining ) );
-			Q_strncatz( remaining, Cmd_Argv( i ), sizeof( remaining ) );
-			Q_strncatz( remaining, "\" ", sizeof( remaining ) );
-		}
-
-		Cmd_ExecuteString( remaining );
+		Cbuf_ExecuteLine( Cmd_Args() );
 	}
 
 	Com_EndRedirect();

@@ -363,8 +363,8 @@ void SV_Demo_Stop_f();
 void SV_Demo_Cancel_f();
 void SV_Demo_Purge_f();
 
-void SV_DemoList_f( client_t *client );
-void SV_DemoGet_f( client_t *client );
+void SV_DemoList_f( edict_t * ent );
+void SV_DemoGetUrl_f( edict_t * ent );
 
 #define SV_SetDemoMetaKeyValue( k,v ) svs.demo.meta_data_realsize = SNAP_SetDemoMetaKeyValue( svs.demo.meta_data, sizeof( svs.demo.meta_data ), svs.demo.meta_data_realsize, k, v )
 

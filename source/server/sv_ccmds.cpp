@@ -185,38 +185,38 @@ static void SV_KillServer_f() {
 //===========================================================
 
 void SV_InitOperatorCommands() {
-	Cmd_AddCommand( "heartbeat", SV_Heartbeat_f );
-	Cmd_AddCommand( "status", SV_Status_f );
+	AddCommand( "heartbeat", SV_Heartbeat_f );
+	AddCommand( "status", SV_Status_f );
 
-	Cmd_AddCommand( "map", SV_Map_f );
-	Cmd_AddCommand( "devmap", SV_Map_f );
-	Cmd_AddCommand( "killserver", SV_KillServer_f );
+	AddCommand( "map", SV_Map_f );
+	AddCommand( "devmap", SV_Map_f );
+	AddCommand( "killserver", SV_KillServer_f );
 
-	Cmd_AddCommand( "serverrecord", SV_Demo_Start_f );
-	Cmd_AddCommand( "serverrecordstop", SV_Demo_Stop_f );
-	Cmd_AddCommand( "serverrecordcancel", SV_Demo_Cancel_f );
+	AddCommand( "serverrecord", SV_Demo_Start_f );
+	AddCommand( "serverrecordstop", SV_Demo_Stop_f );
+	AddCommand( "serverrecordcancel", SV_Demo_Cancel_f );
 
 	if( is_dedicated_server ) {
-		Cmd_AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
+		AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
 	}
 
-	Cmd_SetCompletionFunc( "map", CompleteMapName );
-	Cmd_SetCompletionFunc( "devmap", CompleteMapName );
+	SetTabCompletionCallback( "map", CompleteMapName );
+	SetTabCompletionCallback( "devmap", CompleteMapName );
 }
 
 void SV_ShutdownOperatorCommands() {
-	Cmd_RemoveCommand( "heartbeat" );
-	Cmd_RemoveCommand( "status" );
+	RemoveCommand( "heartbeat" );
+	RemoveCommand( "status" );
 
-	Cmd_RemoveCommand( "map" );
-	Cmd_RemoveCommand( "devmap" );
-	Cmd_RemoveCommand( "killserver" );
+	RemoveCommand( "map" );
+	RemoveCommand( "devmap" );
+	RemoveCommand( "killserver" );
 
-	Cmd_RemoveCommand( "serverrecord" );
-	Cmd_RemoveCommand( "serverrecordstop" );
-	Cmd_RemoveCommand( "serverrecordcancel" );
+	RemoveCommand( "serverrecord" );
+	RemoveCommand( "serverrecordstop" );
+	RemoveCommand( "serverrecordcancel" );
 
 	if( is_dedicated_server ) {
-		Cmd_RemoveCommand( "serverrecordpurge" );
+		RemoveCommand( "serverrecordpurge" );
 	}
 }

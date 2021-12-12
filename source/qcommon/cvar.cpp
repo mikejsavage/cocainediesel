@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include <algorithm>
+#include <algorithm> // std::sort
 
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
@@ -104,13 +104,10 @@ Cvar * NewCvar( const char * name, const char * value, u32 flags ) {
 	if( old_cvar != NULL ) {
 		assert( StrEqual( old_cvar->default_value, value ) );
 		assert( ( old_cvar->flags & ~CvarFlag_FromConfig ) == CvarFlags( flags ) );
-		// Com_Printf( "duplicate cvar %s\n", name );
 		return old_cvar;
 	}
 
 	assert( cvars_hashtable.size() < ARRAY_COUNT( cvars ) );
-
-	u64 hash = CaseHash64( name );
 
 	Cvar * cvar = &cvars[ cvars_hashtable.size() ];
 	*cvar = { };
@@ -118,6 +115,7 @@ Cvar * NewCvar( const char * name, const char * value, u32 flags ) {
 	cvar->default_value = CopyString( sys_allocator, value );
 	cvar->flags = CvarFlags( flags );
 
+	u64 hash = CaseHash64( name );
 	bool ok = cvars_hashtable.add( hash, cvars_hashtable.size() );
 	assert( ok );
 
@@ -187,7 +185,7 @@ void ResetCheatCvars() {
 	}
 }
 
-Span< const char * > Cvar_TabComplete( Allocator * a, const char * partial ) {
+Span< const char * > Cvar_TabComplete( TempAllocator * a, const char * partial ) {
 	NonRAIIDynamicArray< const char * > completions;
 	completions.init( a );
 
@@ -288,13 +286,9 @@ void Cvar_WriteVariables( DynamicString * config ) {
 static const char * MakeInfoString( CvarFlags flag ) {
 	static char info[ MAX_INFO_STRING ];
 
-	if( HasFlag( versioncvar->flags, flag ) ) {
-		Info_SetValueForKey( info, versioncvar->name, versioncvar->value );
-	}
-
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
 		const Cvar * cvar = &cvars[ i ];
-		if( cvar != versioncvar && HasFlag( cvar->flags, flag ) ) {
+		if( HasFlag( cvar->flags, flag ) ) {
 			Info_SetValueForKey( info, cvar->name, cvar->value );
 		}
 	}
@@ -314,23 +308,23 @@ void Cvar_PreInit() {
 	cvars_hashtable.clear();
 	config_entries_hashtable.clear();
 
-	Cmd_AddCommand( "set", SetConfigCvar );
-	Cmd_AddCommand( "seta", SetConfigCvar );
-	Cmd_AddCommand( "setau", SetConfigCvar );
-	Cmd_AddCommand( "setas", SetConfigCvar );
+	AddCommand( "set", SetConfigCvar );
+	AddCommand( "seta", SetConfigCvar );
+	AddCommand( "setau", SetConfigCvar );
+	AddCommand( "setas", SetConfigCvar );
 }
 
 void Cvar_Init() {
-	Cmd_RemoveCommand( "set" );
-	Cmd_RemoveCommand( "seta" );
-	Cmd_RemoveCommand( "setau" );
-	Cmd_RemoveCommand( "setas" );
+	RemoveCommand( "set" );
+	RemoveCommand( "seta" );
+	RemoveCommand( "setau" );
+	RemoveCommand( "setas" );
 
-	Cmd_AddCommand( "reset", Cvar_Reset_f );
+	AddCommand( "reset", Cvar_Reset_f );
 }
 
 void Cvar_Shutdown() {
-	Cmd_RemoveCommand( "reset" );
+	RemoveCommand( "reset" );
 
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
 		FREE( sys_allocator, cvars[ i ].name );

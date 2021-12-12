@@ -666,7 +666,7 @@ static void DemoBrowser() {
 
 		if( clicked && ImGui::IsMouseDoubleClicked( 0 ) ) {
 			const char * cmd = yolodemo ? "yolodemo" : "demo";
-			Cbuf_AddText( temp( "{} \"{}\"\n", cmd, demo.path ) );
+			Cbuf_Add( "{} \"{}\"", cmd, demo.path );
 		}
 	}
 
@@ -700,7 +700,7 @@ static void CreateServer() {
 	CvarCheckbox( "Public", "sv_public", "0", CvarFlag_ServerReadOnly );
 
 	if( ImGui::Button( "Create server" ) ) {
-		Cbuf_AddText( temp( "map \"{}\"\n", map_name ) );
+		Cbuf_Add( "map \"{}\"", map_name );
 	}
 }
 
@@ -879,7 +879,7 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 	}
 
 	if( ImGui::Button( label, size ) ) {
-		Cbuf_AddText( temp( "{}\n", command ) );
+		Cbuf_Add( "{}", command );
 		if( clicked != NULL )
 			*clicked = true;
 	}
@@ -913,9 +913,8 @@ static void SendLoadout() {
 		}
 	}
 	loadout.append( " {}", selected_perk );
-	loadout += "\n";
 
-	Cbuf_AddText( loadout.c_str() );
+	Cbuf_Add( "{}", loadout.c_str() );
 }
 
 static void WeaponButton( WeaponType weapon, Vec2 size ) {
@@ -1085,7 +1084,7 @@ static void GameMenu() {
 		else {
 			if( client_gs.gameState.match_state <= MatchState_Countdown ) {
 				if( ImGui::Checkbox( ready ? "Ready!" : "Not ready", &ready ) ) {
-					Cbuf_AddText( "toggleready\n" );
+					Cbuf_Add( "toggleready" );
 				}
 			}
 

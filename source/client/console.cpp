@@ -157,52 +157,45 @@ static void TabCompletion( char * buf, size_t buf_size ) {
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	Span< const char * > cvar_completions = Cvar_TabComplete( &temp, input );
-	Span< const char * > cmd_completions; // = Cmd_TabComplete( &temp, input );
-	Span< const char * > special_completions;
+	Span< const char * > cvars, commands, arguments;
+	char * space = strchr( input, ' ' );
 
-	// TODO: can never have cvar/cmd and special completions at the same time so just make them separate code paths
-	// we should never even consider special completions unless we have already seen a space
-	// we should never consider cvar/cmd completions if we have seen a space
-	if( cvar_completions.n == 0 && cmd_completions.n == 0 ) {
-		// special_completions = ... TODO
-	}
+	if( space == NULL ) {
+		cvars = Cvar_TabComplete( &temp, input );
+		commands = Cmd_TabComplete( &temp, input );
+		if( cvars.n == 0 && commands.n == 0 ) {
+			Com_Printf( "No matching commands or cvars were found.\n" );
+			return;
+		}
 
-	size_t total = cvar_completions.n + cmd_completions.n + special_completions.n;
-	if( total == 0 ) {
-		Com_Printf( "No matching commands or cvars were found.\n" );
-		return;
-	}
+		Span< const char > shared_prefix;
+		shared_prefix = FindCommonPrefix( shared_prefix, cvars );
+		shared_prefix = FindCommonPrefix( shared_prefix, commands );
 
-	if( total == 1 ) {
-		if( cvar_completions.n > 0 ) {
-			Q_strncpyz( buf, cvar_completions[ 0 ], buf_size );
+		Q_strncpyz( buf, temp( "{}", shared_prefix ), buf_size );
+		if( cvars.n + commands.n == 1 ) {
 			Q_strncatz( buf, " ", buf_size );
 		}
-
-		if( cmd_completions.n > 0 ) {
-			Q_strncpyz( buf, cvar_completions[ 0 ], buf_size );
-			Q_strncatz( buf, " ", buf_size );
+		else {
+			PrintCompletions( commands, S_COLOR_RED, "command" );
+			PrintCompletions( cvars, S_COLOR_RED, "cvar" );
 		}
-
-		if( special_completions.n > 0 ) {
-			// TODO, truncate to space char, then add completion
-			// Q_strncpyz( buf, cvar_completions[ 0 ], buf_size );
-		}
-
-		return;
 	}
+	else {
+		while( *space == ' ' )
+			space++;
+		// arguments = Cmd_TabCompleteArgument( &temp, space );
+		if( arguments.n == 0 ) {
+			return;
+		}
 
-	Span< const char > shared_prefix;
-	shared_prefix = FindCommonPrefix( shared_prefix, cvar_completions );
-	shared_prefix = FindCommonPrefix( shared_prefix, cmd_completions );
-	shared_prefix = FindCommonPrefix( shared_prefix, special_completions );
+		if( arguments.n > 1 ) {
+			PrintCompletions( arguments, S_COLOR_GREEN, "argument" );
+		}
 
-	PrintCompletions( cmd_completions, S_COLOR_RED, "command" );
-	PrintCompletions( cvar_completions, S_COLOR_RED, "cvar" );
-	PrintCompletions( special_completions, S_COLOR_GREEN, "argument" );
-
-	Q_strncpyz( buf, temp( "{}", shared_prefix ), buf_size );
+		Span< const char > shared_prefix = FindCommonPrefix( Span< const char >(), arguments );
+		Q_strncpyz( space, temp( "{}", shared_prefix ), buf_size - ( space - buf ) );
+	}
 }
 
 static int InputCallback( ImGuiInputTextCallbackData * data ) {
@@ -242,46 +235,36 @@ static int InputCallback( ImGuiInputTextCallbackData * data ) {
 }
 
 static void Con_Execute() {
-	if( strlen( console.input ) != 0 ) {
-		bool chat = true;
-		chat = chat && cls.state == CA_ACTIVE;
-		chat = chat && console.input[ 0 ] != '/' && console.input[ 0 ] != '\\';
-		chat = chat && !Cmd_CheckForCommand( console.input );
+	if( StrEqual( console.input, "" ) )
+		return;
 
-		if( chat ) {
-			char * p = console.input;
-			while( ( p = strchr( p, '"' ) ) != NULL ) {
-				*p = '\'';
-				p++;
-			}
-			Cbuf_AddText( "say \"" );
-			Cbuf_AddText( console.input );
-			Cbuf_AddText( "\"\n" );
-		}
-		else {
-			const char * cmd = console.input;
-			if( cmd[ 0 ] == '/' || cmd[ 0 ] == '\\' )
-				cmd++;
-			Cbuf_AddText( cmd );
-			Cbuf_AddText( "\n" );
-		}
-
-		const HistoryEntry * last = &console.input_history[ ( console.history_head + console.history_count - 1 ) % ARRAY_COUNT( console.input_history ) ];
-
-		if( console.history_count == 0 || strcmp( last->cmd, console.input ) != 0 ) {
-			HistoryEntry * entry = &console.input_history[ ( console.history_head + console.history_count ) % ARRAY_COUNT( console.input_history ) ];
-			strcpy( entry->cmd, console.input );
-
-			if( console.history_count == ARRAY_COUNT( console.input_history ) ) {
-				console.history_head++;
-			}
-			else {
-				console.history_count++;
-			}
-		}
-	}
+	TempAllocator temp = cls.frame_arena.temp();
 
 	Com_Printf( "> %s\n", console.input );
+
+	const char * skip_slash = console.input;
+	if( skip_slash[ 0 ] == '/' || skip_slash[ 0 ] == '\\' )
+		skip_slash++;
+
+	bool try_chat = cls.state == CA_ACTIVE;
+	bool executed = Cbuf_ExecuteLine( MakeSpan( skip_slash ), !try_chat );
+	if( !executed && try_chat ) {
+		Cbuf_ExecuteLine( temp( "say {}", console.input ) );
+	}
+
+	const HistoryEntry * last = &console.input_history[ ( console.history_head + console.history_count - 1 ) % ARRAY_COUNT( console.input_history ) ];
+
+	if( console.history_count == 0 || strcmp( last->cmd, console.input ) != 0 ) {
+		HistoryEntry * entry = &console.input_history[ ( console.history_head + console.history_count ) % ARRAY_COUNT( console.input_history ) ];
+		strcpy( entry->cmd, console.input );
+
+		if( console.history_count == ARRAY_COUNT( console.input_history ) ) {
+			console.history_head++;
+		}
+		else {
+			console.history_count++;
+		}
+	}
 
 	Con_ClearInput();
 }

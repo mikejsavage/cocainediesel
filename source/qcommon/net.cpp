@@ -575,17 +575,13 @@ static int NET_Loopback_GetPacket( const socket_t *socket, netadr_t *address, ms
 
 	memcpy( net_message->data, loop->msgs[i].data, loop->msgs[i].datalen );
 	net_message->cursize = loop->msgs[i].datalen;
-	memset( address, 0, sizeof( *address ) );
-	address->type = NA_LOOPBACK;
+	NET_InitAddress( address, NA_LOOPBACK );
 
 	return 1;
 }
 
 static bool NET_Loopback_SendPacket( const socket_t *socket, const void *data, size_t length,
 									 const netadr_t *address ) {
-	int i;
-	loopback_t *loop;
-
 	assert( socket->open && socket->type == SOCKET_LOOPBACK );
 	assert( data );
 	assert( length > 0 );
@@ -596,9 +592,12 @@ static bool NET_Loopback_SendPacket( const socket_t *socket, const void *data, s
 		return false;
 	}
 
-	loop = &loopbacks[socket->handle ^ 1];
+	loopback_t * loop = &loopbacks[socket->handle ^ 1];
+	if( !loop->open ) {
+		return true;
+	}
 
-	i = loop->send & ( MAX_LOOPBACK - 1 );
+	int i = loop->send & ( MAX_LOOPBACK - 1 );
 	loop->send++;
 
 	memcpy( loop->msgs[i].data, data, length );

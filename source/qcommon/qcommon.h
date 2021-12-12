@@ -129,12 +129,6 @@ void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t
 size_t SNAP_SetDemoMetaKeyValue( char *meta_data, size_t meta_data_max_size, size_t meta_data_realsize,
 								 const char *key, const char *value );
 
-//============================================================================
-
-void COM_Init();
-
-int Com_GlobMatch( const char *pattern, const char *text, const bool casecmp );
-
 /*
 ==============================================================
 

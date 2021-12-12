@@ -150,10 +150,8 @@ size_t Q_urldecode( const char *src, char *dst, size_t dst_size );
 
 #ifndef _MSC_VER
 char *va( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-char *va_r( char *dst, size_t size, const char *format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );
 #else
 char *va( _Printf_format_string_ const char *format, ... );
-char *va_r( char *dst, size_t size, _Printf_format_string_ const char *format, ... );
 #endif
 
 //

@@ -86,20 +86,6 @@ bool COM_ValidateRelativeFilename( const char *filename ) {
 //============================================================================
 
 /*
-* va_r
-*
-* does a varargs printf into a temp buffer, so I don't need to have
-* varargs versions of all text functions.
-*/
-char *va_r( char *dest, size_t size, const char *format, ... ) {
-	va_list argptr;
-	va_start( argptr, format );
-	vsnprintf( dest, size, format, argptr );
-	va_end( argptr );
-	return dest;
-}
-
-/*
 * va
 *
 * does a varargs printf into a temp buffer, so I don't need to have

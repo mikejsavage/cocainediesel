@@ -41,7 +41,7 @@ static void ChallengersQueueClear() {
 }
 
 static void ChallengersQueueAddPlayer( s32 player_num ) {
-	assert( player_num < MAX_CLIENTS );
+	assert( player_num >= 0 && player_num < server_gs.maxclients );
 	for( s32 & player : gladiator_state.challengers_queue ) {
 		if( player == player_num ) {
 			return;
@@ -204,7 +204,7 @@ static void EndGame() {
 		}
 	}
 
-	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = PLAYERENT( i );
 		if( G_ISGHOSTING( ent ) || PF_GetClientState( i ) < CS_SPAWNED ) {
 			continue;
@@ -260,7 +260,7 @@ static void DoSpinner() {
 		weap2++;
 	}
 
-	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = PLAYERENT( i );
 		if( G_ISGHOSTING( ent ) ) {
 			continue;
@@ -316,7 +316,7 @@ static void NewRoundState( GladiatorRoundState newState ) {
 			}
 
 			// respawn all clients
-			for( int i = 0; i < MAX_CLIENTS; i++ ) {
+			for( int i = 0; i < server_gs.maxclients; i++ ) {
 				edict_t * ent = PLAYERENT( i );
 				if( PF_GetClientState( i ) >= CS_SPAWNED ) {
 					GClip_UnlinkEntity( ent );

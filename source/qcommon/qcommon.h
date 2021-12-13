@@ -472,8 +472,6 @@ void Com_DPrintf( _Printf_format_string_ const char *format, ... );
 void Com_Error( _Printf_format_string_ const char *format, ... );
 #endif
 
-void Com_Quit();
-
 template< typename... Rest >
 void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
 	char buf[ 4096 ];

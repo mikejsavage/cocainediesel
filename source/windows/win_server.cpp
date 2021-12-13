@@ -43,7 +43,7 @@ int main( int argc, char ** argv ) {
 		}
 	}
 
-	Com_Quit();
+	Qcommon_Shutdown();
 
 	return 0;
 }

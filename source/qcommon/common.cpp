@@ -230,15 +230,6 @@ void Com_DeferQuit() {
 	com_quit = true;
 }
 
-void Com_Quit() {
-	ZoneScoped;
-
-	SV_Shutdown( "Server quit\n" );
-	CL_Shutdown();
-	ShutdownMapList();
-	Qcommon_Shutdown();
-}
-
 server_state_t Com_ServerState() {
 	return server_state;
 }
@@ -372,6 +363,13 @@ bool Qcommon_Frame( unsigned int realMsec ) {
 }
 
 void Qcommon_Shutdown() {
+	ZoneScoped;
+
+	SV_Shutdown( "Server quit\n" );
+	CL_Shutdown();
+
+	ShutdownMapList();
+
 	Netchan_Shutdown();
 	NET_Shutdown();
 	Key_Shutdown();

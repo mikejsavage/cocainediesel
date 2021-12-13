@@ -1355,7 +1355,7 @@ void CL_Init() {
 	netadr_t address;
 	NET_InitAddress( &address, NA_LOOPBACK );
 	if( !NET_OpenSocket( &cls.socket_loopback, SOCKET_LOOPBACK, &address, false ) ) {
-		Fatal( "Couldn't open the loopback socket: %s\n", NET_ErrorString() );
+		Fatal( "Couldn't open the loopback socket: %s", NET_ErrorString() );
 	}
 
 	// IPv4

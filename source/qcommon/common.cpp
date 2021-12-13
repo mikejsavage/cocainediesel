@@ -270,7 +270,6 @@ void Qcommon_Init( int argc, char ** argv ) {
 
 	com_print_mutex = NewMutex();
 
-	Memory_Init();
 	InitFS();
 	FS_Init();
 
@@ -294,8 +293,6 @@ void Qcommon_Init( int argc, char ** argv ) {
 	Cbuf_AddEarlyCommands( argc, argv );
 
 	Cvar_Init();
-
-	Memory_InitCommands();
 
 	AddCommand( "quit", Com_DeferQuit );
 
@@ -376,8 +373,6 @@ void Qcommon_Shutdown() {
 
 	RemoveCommand( "quit" );
 
-	Memory_ShutdownCommands();
-
 	Com_CloseConsoleLog( true, true );
 
 	FS_Shutdown();
@@ -387,7 +382,6 @@ void Qcommon_Shutdown() {
 
 	Cvar_Shutdown();
 	Cmd_Shutdown();
-	Memory_Shutdown();
 
 	DeleteMutex( com_print_mutex );
 }

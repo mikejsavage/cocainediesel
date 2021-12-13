@@ -1386,8 +1386,6 @@ void CL_Init() {
 	UI_Init();
 
 	UI_ShowMainMenu();
-
-	Mem_DebugCheckSentinelsGlobal();
 }
 
 void CL_Shutdown() {

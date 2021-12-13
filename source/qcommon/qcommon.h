@@ -505,65 +505,6 @@ void Com_SetServerState( server_state_t state );
 extern Cvar *developer;
 extern const bool is_dedicated_server;
 
-/*
-==============================================================
-
-MEMORY MANAGEMENT
-
-==============================================================
-*/
-
-struct mempool_t;
-
-#define MEMPOOL_TEMPORARY           1
-#define MEMPOOL_GAME                2
-#define MEMPOOL_CLIENTGAME          4
-
-void Memory_Init();
-void Memory_InitCommands();
-void Memory_Shutdown();
-void Memory_ShutdownCommands();
-
-ATTRIBUTE_MALLOC void *_Mem_AllocExt( mempool_t *pool, size_t size, size_t aligment, int z, int musthave, int canthave, const char *filename, int fileline );
-ATTRIBUTE_MALLOC void *_Mem_Alloc( mempool_t *pool, size_t size, int musthave, int canthave, const char *filename, int fileline );
-void *_Mem_Realloc( void *data, size_t size, const char *filename, int fileline );
-void _Mem_Free( void *data, int musthave, int canthave, const char *filename, int fileline );
-mempool_t *_Mem_AllocPool( mempool_t *parent, const char *name, int flags, const char *filename, int fileline );
-mempool_t *_Mem_AllocTempPool( const char *name, const char *filename, int fileline );
-void _Mem_FreePool( mempool_t **pool, int musthave, int canthave, const char *filename, int fileline );
-void _Mem_EmptyPool( mempool_t *pool, int musthave, int canthave, const char *filename, int fileline );
-char *_Mem_CopyString( mempool_t *pool, const char *in, const char *filename, int fileline );
-
-void _Mem_CheckSentinels( void *data, const char *filename, int fileline );
-void _Mem_CheckSentinelsGlobal( const char *filename, int fileline );
-
-size_t Mem_PoolTotalSize( mempool_t *pool );
-
-#define Mem_AllocExt( pool, size, z ) _Mem_AllocExt( pool, size, 0, z, 0, 0, __FILE__, __LINE__ )
-#define Mem_Alloc( pool, size ) _Mem_Alloc( pool, size, 0, 0, __FILE__, __LINE__ )
-#define Mem_Realloc( data, size ) _Mem_Realloc( data, size, __FILE__, __LINE__ )
-#define Mem_Free( mem ) _Mem_Free( mem, 0, 0, __FILE__, __LINE__ )
-#define Mem_AllocPool( parent, name ) _Mem_AllocPool( parent, name, 0, __FILE__, __LINE__ )
-#define Mem_AllocTempPool( name ) _Mem_AllocTempPool( name, __FILE__, __LINE__ )
-#define Mem_FreePool( pool ) _Mem_FreePool( pool, 0, 0, __FILE__, __LINE__ )
-#define Mem_EmptyPool( pool ) _Mem_EmptyPool( pool, 0, 0, __FILE__, __LINE__ )
-#define Mem_CopyString( pool, str ) _Mem_CopyString( pool, str, __FILE__, __LINE__ )
-
-#define Mem_CheckSentinels( data ) _Mem_CheckSentinels( data, __FILE__, __LINE__ )
-#define Mem_CheckSentinelsGlobal() _Mem_CheckSentinelsGlobal( __FILE__, __LINE__ )
-#ifdef NDEBUG
-#define Mem_DebugCheckSentinelsGlobal()
-#else
-#define Mem_DebugCheckSentinelsGlobal() _Mem_CheckSentinelsGlobal( __FILE__, __LINE__ )
-#endif
-
-// used for temporary allocations
-extern mempool_t *tempMemPool;
-
-#define Mem_TempMallocExt( size, z ) Mem_AllocExt( tempMemPool, size, z )
-#define Mem_TempMalloc( size ) Mem_Alloc( tempMemPool, size )
-#define Mem_TempFree( data ) Mem_Free( data )
-
 void Qcommon_Init( int argc, char **argv );
 bool Qcommon_Frame( unsigned int realMsec );
 void Qcommon_Shutdown();

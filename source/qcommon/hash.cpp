@@ -1,5 +1,7 @@
+#include <ctype.h>
+
 #include "qcommon/base.h"
-#include "hash.h"
+#include "qcommon/hash.h"
 
 u32 Hash32( const void * data, size_t n, u32 hash ) {
 	const u32 prime = U32( 16777619 );

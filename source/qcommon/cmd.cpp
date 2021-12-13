@@ -98,7 +98,7 @@ static const char * Argv( int argc, char ** argv, int i ) {
 
 static void ClearArg( int argc, char ** argv, int i ) {
 	if( i < argc ) {
-		argv[ i ] = "";
+		argv[ i ] = NULL;
 	}
 }
 
@@ -133,6 +133,9 @@ void Cbuf_AddLateCommands( int argc, char ** argv ) {
 
 	// TODO: should probably not roundtrip to string and retokenize
 	for( int i = 1; i < argc; i++ ) {
+		if( argv[ i ] == NULL )
+			continue;
+
 		if( StartsWith( argv[ i ], "-" ) || StartsWith( argv[ i ], "+" ) ) {
 			Cbuf_ExecuteLine( buf.c_str() );
 			buf.format( "{}", argv[ i ] + 1 );

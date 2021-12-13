@@ -32,9 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MAX_NUM_ARGVS   50
 
-static int com_argc;
-static char *com_argv[MAX_NUM_ARGVS + 1];
-
 static bool com_quit;
 
 static jmp_buf abortframe;     // an ERR_DROP occured, exit the entire frame

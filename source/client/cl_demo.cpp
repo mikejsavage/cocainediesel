@@ -273,11 +273,6 @@ static void CL_StartDemo( const char * demoname, bool yolo ) {
 	CL_PauseDemo( false );
 }
 
-Span< const char * > CompleteDemoName( TempAllocator * a, const char * prefix ) {
-	return Span< const char * >();
-// 	return Cmd_CompleteHomeDirFileList( partial, "demos", APP_DEMO_EXTENSION_STR );
-}
-
 void CL_PlayDemo_f() {
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "demo <demoname>\n" );

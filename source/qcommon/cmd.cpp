@@ -26,12 +26,16 @@ static Span< const char > GrabLine( Span< const char > str ) {
 	return newline == NULL ? str : str.slice( 0, newline - str.ptr );
 }
 
-static ConsoleCommand * FindCommand( const char * name ) {
+static ConsoleCommand * FindCommand( Span< const char > name ) {
 	u64 hash = CaseHash64( name );
 	u64 idx;
 	if( !commands_hashtable.get( hash, &idx ) )
 		return NULL;
 	return &commands[ idx ];
+}
+
+static ConsoleCommand * FindCommand( const char * name ) {
+	return FindCommand( MakeSpan( name ) );
 }
 
 static void Cmd_TokenizeString( Span< const char > str ); // TODO: nuke
@@ -282,7 +286,7 @@ void SetTabCompletionCallback( const char * name, TabCompletionCallback callback
 	command->tab_completion_callback = callback;
 }
 
-Span< const char * > Cmd_TabComplete( TempAllocator * a, const char * partial ) {
+Span< const char * > TabCompleteCommand( TempAllocator * a, const char * partial ) {
 	NonRAIIDynamicArray< const char * > completions;
 	completions.init( a );
 
@@ -296,7 +300,21 @@ Span< const char * > Cmd_TabComplete( TempAllocator * a, const char * partial ) 
 	return completions.span();
 }
 
-static void AddMatchingFilesRecursive( DynamicArray< char * > * files, DynamicString * path, Span< const char > prefix, size_t skip, const char * extension ) {
+Span< const char * > TabCompleteArgument( TempAllocator * a, const char * partial ) {
+	Span< const char > command_name = ParseToken( &partial, Parse_StopOnNewLine );
+
+	const ConsoleCommand * command = FindCommand( command_name );
+	if( command == NULL || command->tab_completion_callback == NULL ) {
+		return Span< const char * >();
+	}
+
+	const char * first_arg = command_name.end();
+	while( *first_arg == ' ' )
+		first_arg++;
+	return command->tab_completion_callback( a, first_arg );
+}
+
+static void FindMatchingFilesRecursive( TempAllocator * a, NonRAIIDynamicArray< const char * > * files, DynamicString * path, const char * prefix, size_t skip, const char * extension ) {
 	ListDirHandle scan = BeginListDir( sys_allocator, path->c_str() );
 
 	const char * name;
@@ -309,67 +327,51 @@ static void AddMatchingFilesRecursive( DynamicArray< char * > * files, DynamicSt
 		size_t old_len = path->length();
 		path->append( "/{}", name );
 		if( dir ) {
-			AddMatchingFilesRecursive( files, path, prefix, skip, extension );
+			FindMatchingFilesRecursive( a, files, path, prefix, skip, extension );
 		}
 		else {
-			bool prefix_matches = path->length() >= prefix.n + skip && Q_strnicmp( path->c_str() + skip, prefix.ptr, prefix.n ) == 0;
+			bool prefix_matches = CaseStartsWith( path->c_str() + skip, prefix );
 			bool ext_matches = StrCaseEqual( FileExtension( path->c_str() ), extension );
 			if( prefix_matches && ext_matches ) {
-				files->add( ( *sys_allocator )( "{}", path->span().slice( skip, path->length() ) ) );
+				files->add( ( *a )( "{}", path->span().slice( skip, path->length() ) ) );
 			}
 		}
 		path->truncate( old_len );
 	}
 }
 
-// TODO
-const char ** Cmd_CompleteHomeDirFileList( const char * partial, const char * search_dir, const char * extension ) {
-	DynamicString base_path( sys_allocator, "{}/{}", HomeDirPath(), search_dir );
-	size_t skip = base_path.length();
-	base_path += BasePath( partial );
+Span< const char * > TabCompleteFilename( TempAllocator * a, const char * partial, const char * search_dir, const char * extension ) {
+	DynamicString base_path( sys_allocator, "{}", search_dir );
 
-	Span< const char > prefix = FileName( partial );
+	NonRAIIDynamicArray< const char * > completions;
+	completions.init( a );
 
-	DynamicArray< char * > files( sys_allocator );
+	FindMatchingFilesRecursive( a, &completions, &base_path, partial, base_path.length() + 1, extension );
 
-	AddMatchingFilesRecursive( &files, &base_path, prefix, skip + 1, extension );
+	std::sort( completions.begin(), completions.end(), SortCStringsComparator );
 
-	std::sort( files.begin(), files.end(), SortCStringsComparator );
+	return completions.span();
+}
 
-	size_t filenames_buffer_size = 0;
-	for( const char * file : files ) {
-		filenames_buffer_size += strlen( file ) + 1;
-	}
+Span< const char * > TabCompleteFilenameHomeDir( TempAllocator * a, const char * partial, const char * search_dir, const char * extension ) {
+	const char * home_search_dir = ( *a )( "{}/{}", HomeDirPath(), search_dir );
+	return TabCompleteFilename( a, partial, home_search_dir, extension );
+}
 
-	size_t pointers_buffer_size = ( files.size() + 1 ) * sizeof( char * ); // + 1 for trailing NULL
-	size_t combined_buffer_size =  pointers_buffer_size + filenames_buffer_size;
+static Span< const char * > TabCompleteExec( TempAllocator * a, const char * partial ) {
+	return TabCompleteFilenameHomeDir( a, partial, "base", ".cfg" );
+}
 
-	void * combined = Mem_TempMalloc( combined_buffer_size );
-	char ** pointers = ( char ** ) combined;
-	char * filenames = ( char * ) combined + pointers_buffer_size;
-
-	size_t filenames_cursor = 0;
-	for( size_t i = 0; i < files.size(); i++ ) {
-		char * file = files[ i ];
-
-		pointers[ i ] = filenames + filenames_cursor;
-		memcpy( pointers[ i ], file, strlen( file ) + 1 );
-		filenames_cursor += strlen( file ) + 1;
-
-		FREE( sys_allocator, file );
-	}
-
-	pointers[ files.size() ] = NULL;
-
-	return ( const char ** ) combined;
+static Span< const char * > TabCompleteConfig( TempAllocator * a, const char * partial ) {
+	return TabCompleteFilename( a, partial, "base", ".cfg" );
 }
 
 void Cmd_Init() {
 	AddCommand( "exec", Cmd_Exec_f );
 	AddCommand( "config", Cmd_Config_f );
 
-	// SetTabCompletionCallback( "exec", CL_CompleteExecBuildList );
-	// SetTabCompletionCallback( "config", CL_CompleteExecBuildList );
+	SetTabCompletionCallback( "exec", TabCompleteExec );
+	SetTabCompletionCallback( "config", TabCompleteConfig );
 
 	command_buffer.clear();
 

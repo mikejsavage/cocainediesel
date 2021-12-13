@@ -139,7 +139,7 @@ static size_t CommonPrefixLength( const char * a, Span< const char > b ) {
 
 static Span< const char > FindCommonPrefix( Span< const char > prefix, Span< const char * > strings ) {
 	for( const char * str : strings ) {
-		if( prefix.n == 0 ) {
+		if( prefix.ptr == NULL ) {
 			prefix = MakeSpan( str );
 		}
 		prefix.n = CommonPrefixLength( str, prefix );
@@ -161,8 +161,8 @@ static void TabCompletion( char * buf, size_t buf_size ) {
 	char * space = strchr( input, ' ' );
 
 	if( space == NULL ) {
-		cvars = Cvar_TabComplete( &temp, input );
-		commands = Cmd_TabComplete( &temp, input );
+		cvars = TabCompleteCvar( &temp, input );
+		commands = TabCompleteCommand( &temp, input );
 		if( cvars.n == 0 && commands.n == 0 ) {
 			Com_Printf( "No matching commands or cvars were found.\n" );
 			return;
@@ -182,9 +182,7 @@ static void TabCompletion( char * buf, size_t buf_size ) {
 		}
 	}
 	else {
-		while( *space == ' ' )
-			space++;
-		// arguments = Cmd_TabCompleteArgument( &temp, space );
+		arguments = TabCompleteArgument( &temp, input );
 		if( arguments.n == 0 ) {
 			return;
 		}
@@ -194,6 +192,8 @@ static void TabCompletion( char * buf, size_t buf_size ) {
 		}
 
 		Span< const char > shared_prefix = FindCommonPrefix( Span< const char >(), arguments );
+		while( *space == ' ' )
+			space++;
 		Q_strncpyz( space, temp( "{}", shared_prefix ), buf_size - ( space - buf ) );
 	}
 }

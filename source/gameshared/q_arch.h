@@ -37,7 +37,6 @@ typedef unsigned long ioctl_param_t;
 typedef uintptr_t socket_handle_t;
 
 #define Q_stricmp( s1, s2 ) _stricmp( ( s1 ), ( s2 ) )
-#define Q_strnicmp( s1, s2, n ) _strnicmp( ( s1 ), ( s2 ), ( n ) )
 
 #endif
 
@@ -53,7 +52,6 @@ typedef int socket_handle_t;
 #define INVALID_SOCKET ( -1 )
 
 #define Q_stricmp( s1, s2 ) strcasecmp( ( s1 ), ( s2 ) )
-#define Q_strnicmp( s1, s2, n ) strncasecmp( ( s1 ), ( s2 ), ( n ) )
 
 #endif
 

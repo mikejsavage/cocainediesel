@@ -185,7 +185,7 @@ void ResetCheatCvars() {
 	}
 }
 
-Span< const char * > Cvar_TabComplete( TempAllocator * a, const char * partial ) {
+Span< const char * > TabCompleteCvar( TempAllocator * a, const char * partial ) {
 	NonRAIIDynamicArray< const char * > completions;
 	completions.init( a );
 

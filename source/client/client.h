@@ -311,7 +311,6 @@ void CL_Stop_f();
 void CL_Record_f();
 void CL_PauseDemo_f();
 void CL_DemoJump_f();
-Span< const char * > CompleteDemoName( TempAllocator * a, const char * prefix );
 #define CL_SetDemoMetaKeyValue( k,v ) cls.demo.meta_data_realsize = SNAP_SetDemoMetaKeyValue( cls.demo.meta_data, sizeof( cls.demo.meta_data ), cls.demo.meta_data_realsize, k, v )
 
 //

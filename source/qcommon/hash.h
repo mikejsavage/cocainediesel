@@ -11,8 +11,6 @@ u64 Hash64( const char * str );
 
 u64 Hash64( u64 x );
 
-u64 CaseHash64( const char * str );
-
 template< typename T >
 u32 Hash32( Span< const T > data ) {
 	return Hash32( data.ptr, data.num_bytes() );
@@ -22,6 +20,10 @@ template< typename T >
 u64 Hash64( Span< const T > data ) {
 	return Hash64( data.ptr, data.num_bytes() );
 }
+
+// case insensitive hashing
+u64 CaseHash64( Span< const char > str );
+u64 CaseHash64( const char * str );
 
 // compile time hashing
 constexpr u32 Hash32_CT( const char * str, size_t n, u32 basis = U32( 2166136261 ) ) {

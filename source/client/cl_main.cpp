@@ -883,6 +883,10 @@ void CL_SetClientState( connstate_t state ) {
 	}
 }
 
+static Span< const char * > TabCompleteDemo( TempAllocator * a, const char * partial ) {
+	return TabCompleteFilenameHomeDir( a, partial, "demos", APP_DEMO_EXTENSION_STR );
+}
+
 static void CL_InitLocal() {
 	Cvar *name;
 	TempAllocator temp = cls.frame_arena.temp();
@@ -928,8 +932,8 @@ static void CL_InitLocal() {
 	AddCommand( "demopause", CL_PauseDemo_f );
 	AddCommand( "demojump", CL_DemoJump_f );
 
-	SetTabCompletionCallback( "demo", CompleteDemoName );
-	SetTabCompletionCallback( "yolodemo", CompleteDemoName );
+	SetTabCompletionCallback( "demo", TabCompleteDemo );
+	SetTabCompletionCallback( "yolodemo", TabCompleteDemo );
 }
 
 static void CL_ShutdownLocal() {

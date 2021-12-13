@@ -198,6 +198,9 @@ Command text buffering and command execution
 ==============================================================
 */
 
+void Cmd_Init();
+void Cmd_Shutdown();
+
 void Cbuf_AddLine( const char * text );
 void Cbuf_Execute();
 bool Cbuf_ExecuteLine( Span< const char > line, bool warn_on_invalid );
@@ -216,14 +219,14 @@ void Cbuf_Add( const char * fmt, const Rest & ... rest ) {
 using ConsoleCommandCallback = void ( * )();
 using TabCompletionCallback = Span< const char * > ( * )( TempAllocator * a, const char * partial );
 
-void Cmd_Init();
-void Cmd_Shutdown();
-
 void AddCommand( const char * name, ConsoleCommandCallback function );
 void SetTabCompletionCallback( const char * name, TabCompletionCallback callback );
 void RemoveCommand( const char * name );
 
-Span< const char * > Cmd_TabComplete( TempAllocator * a, const char * partial );
+Span< const char * > TabCompleteCommand( TempAllocator * a, const char * partial );
+Span< const char * > TabCompleteArgument( TempAllocator * a, const char * partial );
+Span< const char * > TabCompleteFilename( TempAllocator * a, const char * partial, const char * search_dir, const char * extension );
+Span< const char * > TabCompleteFilenameHomeDir( TempAllocator * a, const char * partial, const char * search_dir, const char * extension );
 
 int Cmd_Argc();
 const char * Cmd_Argv( int arg );
@@ -325,26 +328,26 @@ enum net_error_t {
 	NET_ERR_UNSUPPORTED,
 };
 
-void        NET_Init();
-void        NET_Shutdown();
+void NET_Init();
+void NET_Shutdown();
 
-bool        NET_OpenSocket( socket_t *socket, socket_type_t type, const netadr_t *address, bool server );
-void        NET_CloseSocket( socket_t *socket );
+bool NET_OpenSocket( socket_t *socket, socket_type_t type, const netadr_t *address, bool server );
+void NET_CloseSocket( socket_t *socket );
 
-bool        NET_Listen( const socket_t *socket );
-int         NET_Accept( const socket_t *socket, socket_t *newsocket, netadr_t *address );
+bool NET_Listen( const socket_t *socket );
+int NET_Accept( const socket_t *socket, socket_t *newsocket, netadr_t *address );
 
-int         NET_GetPacket( const socket_t *socket, netadr_t *address, msg_t *message );
-bool        NET_SendPacket( const socket_t *socket, const void *data, size_t length, const netadr_t *address );
+int NET_GetPacket( const socket_t *socket, netadr_t *address, msg_t *message );
+bool NET_SendPacket( const socket_t *socket, const void *data, size_t length, const netadr_t *address );
 
-int         NET_Get( const socket_t *socket, netadr_t *address, void *data, size_t length );
-int         NET_Send( const socket_t *socket, const void *data, size_t length, const netadr_t *address );
+int NET_Get( const socket_t *socket, netadr_t *address, void *data, size_t length );
+int NET_Send( const socket_t *socket, const void *data, size_t length, const netadr_t *address );
 
-void        NET_Sleep( int msec, socket_t *sockets[] );
-int         NET_Monitor( int msec, socket_t *sockets[],
-						 void ( *read_cb )( socket_t *socket, void* ),
-						 void ( *write_cb )( socket_t *socket, void* ),
-						 void ( *exception_cb )( socket_t *socket, void* ), void *privatep[] );
+void NET_Sleep( int msec, socket_t *sockets[] );
+int NET_Monitor( int msec, socket_t *sockets[],
+	void ( *read_cb )( socket_t *socket, void* ),
+	void ( *write_cb )( socket_t *socket, void* ),
+	void ( *exception_cb )( socket_t *socket, void* ), void *privatep[] );
 const char *NET_ErrorString();
 
 #ifndef _MSC_VER
@@ -353,24 +356,24 @@ void NET_SetErrorString( const char *format, ... ) __attribute__( ( format( prin
 void NET_SetErrorString( _Printf_format_string_ const char *format, ... );
 #endif
 
-void        NET_SetErrorStringFromLastError( const char *function );
+void NET_SetErrorStringFromLastError( const char *function );
 
 const char *NET_SocketTypeToString( socket_type_t type );
 const char *NET_SocketToString( const socket_t *socket );
-char       *NET_AddressToString( const netadr_t *address );
-bool        NET_StringToAddress( const char *s, netadr_t *address );
+char *NET_AddressToString( const netadr_t *address );
+bool NET_StringToAddress( const char *s, netadr_t *address );
 
-u16  NET_GetAddressPort( const netadr_t *address );
-void            NET_SetAddressPort( netadr_t *address, u16 port );
+u16 NET_GetAddressPort( const netadr_t *address );
+void NET_SetAddressPort( netadr_t *address, u16 port );
 
 u16 NET_ntohs( u16 x );
 
-bool    NET_CompareAddress( const netadr_t *a, const netadr_t *b );
-bool    NET_CompareBaseAddress( const netadr_t *a, const netadr_t *b );
-bool    NET_IsLANAddress( const netadr_t *address );
-bool    NET_IsLocalAddress( const netadr_t *address );
-void    NET_InitAddress( netadr_t *address, netadrtype_t type );
-void    NET_BroadcastAddress( netadr_t *address, u16 port );
+bool NET_CompareAddress( const netadr_t *a, const netadr_t *b );
+bool NET_CompareBaseAddress( const netadr_t *a, const netadr_t *b );
+bool NET_IsLANAddress( const netadr_t *address );
+bool NET_IsLocalAddress( const netadr_t *address );
+void NET_InitAddress( netadr_t *address, netadrtype_t type );
+void NET_BroadcastAddress( netadr_t *address, u16 port );
 
 //============================================================================
 
@@ -458,9 +461,9 @@ MISC
 
 #define MAX_PRINTMSG    3072
 
-void        Com_BeginRedirect( int target, char *buffer, int buffersize,
+void Com_BeginRedirect( int target, char *buffer, int buffersize,
 							   void ( *flush )( int, const char*, const void* ), const void *extra );
-void        Com_EndRedirect();
+void Com_EndRedirect();
 
 #ifndef _MSC_VER
 void Com_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
@@ -488,13 +491,13 @@ void Com_GGError( const char * fmt, const Rest & ... rest ) {
 	Com_Error( "%s", buf );
 }
 
-void        Com_DeferQuit();
+void Com_DeferQuit();
 
 connstate_t Com_ClientState();
 void Com_SetClientState( connstate_t state );
 
-bool		Com_DemoPlaying();
-void        Com_SetDemoPlaying( bool state );
+bool Com_DemoPlaying();
+void Com_SetDemoPlaying( bool state );
 
 server_state_t Com_ServerState();
 void Com_SetServerState( server_state_t state );

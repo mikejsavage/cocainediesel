@@ -38,13 +38,17 @@ u64 Hash64( u64 x ) {
 	return x;
 }
 
-u64 CaseHash64( const char * str ) {
+u64 CaseHash64( Span< const char > str ) {
 	u64 hash = Hash64( "" );
-	for( char c : MakeSpan( str ) ) {
+	for( char c : str ) {
 		c = tolower( c );
 		hash = Hash64( &c, 1, hash );
 	}
 	return hash;
+}
+
+u64 CaseHash64( const char * str ) {
+	return CaseHash64( MakeSpan( str ) );
 }
 
 #ifdef PUBLIC_BUILD

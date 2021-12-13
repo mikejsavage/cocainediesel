@@ -944,7 +944,6 @@ static void CL_ShutdownLocal() {
 	RemoveCommand( "rcon" );
 	RemoveCommand( "demo" );
 	RemoveCommand( "yolodemo" );
-	RemoveCommand( "next" );
 	RemoveCommand( "demopause" );
 	RemoveCommand( "demojump" );
 }

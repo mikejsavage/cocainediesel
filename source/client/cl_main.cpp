@@ -326,10 +326,6 @@ void CL_SetOldKeyDest( keydest_t key_dest ) {
 	cls.old_key_dest = key_dest;
 }
 
-void CL_ResetServerCount() {
-	cl.servercount = -1;
-}
-
 void CL_ClearState() {
 	// wipe the entire cl structure
 	memset( &cl, 0, sizeof( client_state_t ) );
@@ -352,20 +348,6 @@ void CL_ClearState() {
 	cls.lastPacketSentTime = 0;
 	cls.lastPacketReceivedTime = 0;
 }
-
-
-/*
-* CL_SetNext_f
-*
-* Next is used to set an action which is executed at disconnecting.
-*/
-static void CL_SetNext_f() {
-	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "USAGE: next <commands>\n" );
-		return;
-	}
-}
-
 
 /*
 * CL_Disconnect_SendCommand
@@ -943,7 +925,6 @@ static void CL_InitLocal() {
 	AddCommand( "rcon", CL_Rcon_f );
 	AddCommand( "demo", CL_PlayDemo_f );
 	AddCommand( "yolodemo", CL_YoloDemo_f );
-	AddCommand( "next", CL_SetNext_f );
 	AddCommand( "demopause", CL_PauseDemo_f );
 	AddCommand( "demojump", CL_DemoJump_f );
 

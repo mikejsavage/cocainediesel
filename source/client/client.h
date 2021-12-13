@@ -240,7 +240,6 @@ void CL_AdjustServerTime( unsigned int gamemsec );
 
 void CL_SetKeyDest( keydest_t key_dest );
 void CL_SetOldKeyDest( keydest_t key_dest );
-void CL_ResetServerCount();
 void CL_SetClientState( connstate_t state );
 void CL_ClearState();
 void CL_ReadPackets();

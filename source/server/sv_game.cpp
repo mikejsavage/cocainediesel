@@ -84,11 +84,6 @@ void PF_ConfigString( int index, const char *val ) {
 		len = sizeof( sv.configstrings[0] ) - 1;
 	}
 
-	if( !COM_ValidateConfigstring( val ) ) {
-		Com_Printf( "WARNING: 'PF_Configstring' invalid configstring %i: %s\n", index, val );
-		return;
-	}
-
 	// ignore if no changes
 	if( !strncmp( sv.configstrings[index], val, len ) && sv.configstrings[index][len] == '\0' ) {
 		return;

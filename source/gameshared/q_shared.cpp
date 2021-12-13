@@ -509,37 +509,6 @@ size_t Q_urldecode( const char *src, char *dst, size_t dst_size ) {
 //
 //=====================================================================
 
-
-bool COM_ValidateConfigstring( const char *string ) {
-	const char *p;
-	bool opened = false;
-	int parity = 0;
-
-	if( !string ) {
-		return false;
-	}
-
-	p = string;
-	while( *p ) {
-		if( *p == '\"' ) {
-			if( opened ) {
-				parity--;
-				opened = false;
-			} else {
-				parity++;
-				opened = true;
-			}
-		}
-		p++;
-	}
-
-	if( parity != 0 ) {
-		return false;
-	}
-
-	return true;
-}
-
 static bool Info_ValidateValue( const char *value ) {
 	assert( value );
 

@@ -204,10 +204,6 @@ static void CL_ParseFrame( msg_t *msg ) {
 }
 
 static void CL_UpdateConfigString( int idx, const char *s ) {
-	if( !s ) {
-		return;
-	}
-
 	if( cl_debug_serverCmd->integer && ( cls.state >= CA_ACTIVE || cls.demo.playing ) ) {
 		Com_Printf( "CL_ParseConfigstringCommand(%i): \"%s\"\n", idx, s );
 	}
@@ -220,11 +216,6 @@ static void CL_UpdateConfigString( int idx, const char *s ) {
 	if( strlen( s ) >= MAX_CONFIGSTRING_CHARS ) {
 		Com_Printf( "%sWARNING:%s Configstring %i overflowed\n", S_COLOR_YELLOW, S_COLOR_WHITE, idx );
 		Com_Printf( "%s%s\n", S_COLOR_WHITE, s );
-	}
-
-	if( !COM_ValidateConfigstring( s ) ) {
-		Com_Printf( "%sWARNING:%s Invalid Configstring (%i): %s\n", S_COLOR_YELLOW, S_COLOR_WHITE, idx, s );
-		return;
 	}
 
 	Q_strncpyz( cl.configstrings[idx], s, sizeof( cl.configstrings[idx] ) );

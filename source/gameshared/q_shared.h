@@ -91,8 +91,6 @@ Span< const char > BasePath( const char * path );
 
 bool SortCStringsComparator( const char * a, const char * b );
 
-bool COM_ValidateConfigstring( const char *string );
-
 //==============================================================
 //
 // STRINGLIB

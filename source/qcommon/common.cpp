@@ -30,8 +30,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <errno.h>
 #include <setjmp.h>
 
-#define MAX_NUM_ARGVS   50
-
 static bool com_quit;
 
 static jmp_buf abortframe;     // an ERR_DROP occured, exit the entire frame

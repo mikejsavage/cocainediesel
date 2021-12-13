@@ -31,55 +31,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //===============================================================================
 
 /*
-* SV_FindPlayer
-* Helper for the functions below. It finds the client_t for the given name or id
-*/
-static client_t *SV_FindPlayer( const char *s ) {
-	client_t *cl;
-	client_t *player;
-	int i;
-	int idnum = 0;
-
-	if( !s ) {
-		return NULL;
-	}
-
-	// numeric values are just slot numbers
-	if( s[0] >= '0' && s[0] <= '9' ) {
-		idnum = atoi( s );
-		if( idnum < 0 || idnum >= sv_maxclients->integer ) {
-			Com_Printf( "Bad client slot: %i\n", idnum );
-			return NULL;
-		}
-
-		player = &svs.clients[idnum];
-		goto found_player;
-	}
-
-	// check for a name match
-	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
-		if( !cl->state ) {
-			continue;
-		}
-		if( !Q_stricmp( cl->name, s ) ) {
-			player = cl;
-			goto found_player;
-		}
-	}
-
-	Com_Printf( "Userid %s is not on the server\n", s );
-	return NULL;
-
-found_player:
-	if( !player->state || !player->edict ) {
-		Com_Printf( "Client %s is not active\n", s );
-		return NULL;
-	}
-
-	return player;
-}
-
-/*
 * SV_Map_f
 *
 * User command to change the map

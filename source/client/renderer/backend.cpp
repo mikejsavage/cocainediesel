@@ -825,8 +825,8 @@ static void SubmitFramebufferBlit( const RenderPass & pass ) {
 		}
 	}
 	if( pass.clear_depth ) {
-		glReadBuffer( GL_DEPTH_ATTACHMENT );
-		glDrawBuffer( GL_DEPTH_ATTACHMENT );
+		glReadBuffer( GL_COLOR_ATTACHMENT0 );
+		glDrawBuffer( GL_COLOR_ATTACHMENT0 );
 		glBlitFramebuffer( 0, 0, src.width, src.height, 0, 0, target.width, target.height, GL_DEPTH_BUFFER_BIT, GL_NEAREST );
 	}
 }

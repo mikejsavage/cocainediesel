@@ -483,7 +483,6 @@ void G_Snap_UpdateWeaponListMessages();
 //
 void SV_Impact( edict_t *e1, trace_t *trace );
 void G_RunEntity( edict_t *ent );
-int G_BoxSlideMove( edict_t *ent, int contentmask, float slideBounce, float friction );
 
 //
 // g_main.c

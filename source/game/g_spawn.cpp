@@ -65,6 +65,7 @@ static constexpr EntityField entity_keys[] = {
 	{ "dmg", FOFS( dmg ), EntityField_Int },
 	{ "angles", FOFS( s.angles ), EntityField_Vec3 },
 	{ "angle", FOFS( s.angles ), EntityField_Angle },
+	{ "scale", FOFS( s.scale ), EntityField_Float },
 	{ "mass", FOFS( mass ), EntityField_Int },
 	{ "random", FOFS( random ), EntityField_Float },
 

@@ -814,10 +814,21 @@ static void SubmitFramebufferBlit( const RenderPass & pass ) {
 	Framebuffer src = pass.blit_source;
 	Framebuffer target = pass.target;
 	glBindFramebuffer( GL_READ_FRAMEBUFFER, src.fbo );
-	GLbitfield clear_mask = 0;
-	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
-	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
-	glBlitFramebuffer( 0, 0, src.width, src.height, 0, 0, target.width, target.height, clear_mask, GL_NEAREST );
+	if( pass.clear_color ) {
+		for( u32 i = 0; i < MAX_RENDER_TARGETS; i++ ) {
+			const FramebufferTarget & fb_target = src.targets[ i ];
+			if( fb_target.texture.texture != 0 ) {
+				glReadBuffer( GL_COLOR_ATTACHMENT0 + i );
+				glDrawBuffer( GL_COLOR_ATTACHMENT0 + i );
+				glBlitFramebuffer( 0, 0, src.width, src.height, 0, 0, target.width, target.height, GL_COLOR_BUFFER_BIT, GL_NEAREST );
+			}
+		}
+	}
+	if( pass.clear_depth ) {
+		glReadBuffer( GL_DEPTH_ATTACHMENT );
+		glDrawBuffer( GL_DEPTH_ATTACHMENT );
+		glBlitFramebuffer( 0, 0, src.width, src.height, 0, 0, target.width, target.height, GL_DEPTH_BUFFER_BIT, GL_NEAREST );
+	}
 }
 
 static void SetupRenderPass( const RenderPass & pass ) {

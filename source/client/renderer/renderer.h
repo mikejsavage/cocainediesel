@@ -50,11 +50,12 @@ struct FrameStatic {
 	float vertical_fov;
 	float near_plane;
 
+	Framebuffer main_gbuffer;
+	Framebuffer main_gbuffer_msaa;
+
 	Framebuffer silhouette_gbuffer;
-	Framebuffer msaa_fb;
-	Framebuffer postprocess_fb;
-	Framebuffer msaa_fb_onlycolor;
-	Framebuffer postprocess_fb_onlycolor;
+	Framebuffer main_fb_msaa;
+	Framebuffer main_fb;
 	Framebuffer oit_fb;
 	Framebuffer shadowmap_fb[ 4 ];
 
@@ -62,9 +63,12 @@ struct FrameStatic {
 
 	u8 particle_update_pass;
 	u8 shadowmap_pass[ 4 ];
+
+	u8 main_gbuffer_pass;
+	u8 deferred_pass;
+
 	u8 world_opaque_prepass_pass;
 	u8 world_opaque_pass;
-	u8 add_world_outlines_pass;
 
 	u8 write_silhouette_gbuffer_pass;
 

@@ -71,6 +71,30 @@ static void LoadShaders() {
 	DynamicArray< const char * > srcs( &temp );
 	DynamicArray< int > lengths( &temp );
 
+	const char * main_gbuffer_defines = temp(
+		"#define TILE_SIZE {}\n", TILE_SIZE );
+	BuildShaderSrcs( "glsl/write_main_gbuffer.glsl", main_gbuffer_defines, &srcs, &lengths );
+	ReplaceShader( &shaders.write_main_gbuffer, srcs.span(), lengths.span() );
+
+	const char * main_gbuffer_skinned_defines = temp(
+		"#define SKINNED 1\n"
+		"#define TILE_SIZE {}\n", TILE_SIZE );
+	BuildShaderSrcs( "glsl/write_main_gbuffer.glsl", main_gbuffer_skinned_defines, &srcs, &lengths );
+	ReplaceShader( &shaders.write_main_gbuffer_skinned, srcs.span(), lengths.span() );
+
+	const char * deferred_defines = temp(
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+	BuildShaderSrcs( "glsl/deferred.glsl", deferred_defines, &srcs, &lengths );
+	ReplaceShader( &shaders.deferred, srcs.span(), lengths.span() );
+
+	const char * deferred_msaa_defines = temp(
+		"#define MSAA 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+	BuildShaderSrcs( "glsl/deferred.glsl", deferred_msaa_defines, &srcs, &lengths );
+	ReplaceShader( &shaders.deferred_msaa, srcs.span(), lengths.span() );
+
 	BuildShaderSrcs( "glsl/standard.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.standard, srcs.span(), lengths.span() );
 
@@ -177,14 +201,10 @@ static void LoadShaders() {
 
 	const char * world_defines = temp(
 		"#define APPLY_DRAWFLAT 1\n"
-		"#define APPLY_FOG 1\n"
 		"#define APPLY_DECALS 1\n"
-		"#define APPLY_DLIGHTS 1\n"
-		"#define SHADED 1\n"
-		"#define APPLY_SHADOWS 1\n"
 		"#define TILE_SIZE {}\n"
 		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
-	BuildShaderSrcs( "glsl/standard.glsl", world_defines, &srcs, &lengths );
+	BuildShaderSrcs( "glsl/write_main_gbuffer.glsl", world_defines, &srcs, &lengths );
 	ReplaceShader( &shaders.world, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/depth_only.glsl", NULL, &srcs, &lengths );
@@ -192,12 +212,6 @@ static void LoadShaders() {
 
 	BuildShaderSrcs( "glsl/depth_only.glsl", "#define SKINNED 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.depth_only_skinned, srcs.span(), lengths.span() );
-
-	BuildShaderSrcs( "glsl/postprocess_world_gbuffer.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.postprocess_world_gbuffer, srcs.span(), lengths.span() );
-
-	BuildShaderSrcs( "glsl/postprocess_world_gbuffer.glsl", "#define MSAA 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.postprocess_world_gbuffer_msaa, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/write_silhouette_gbuffer.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.write_silhouette_gbuffer, srcs.span(), lengths.span() );

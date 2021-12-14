@@ -166,6 +166,7 @@ void DrawViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & c
 }
 
 void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, MatrixPalettes palettes ) {
+	return; // temporary, dno if we really need this anymore with new outlines
 	UniformBlock outline_uniforms = UploadUniformBlock( color, outline_height );
 
 	auto MakeOutlinePipeline = [ &outline_uniforms ]( PipelineState * pipeline, bool skinned ) {

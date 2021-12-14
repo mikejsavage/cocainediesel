@@ -84,12 +84,11 @@ Light GetSunLight() {
 #if APPLY_DLIGHTS
 uniform isamplerBuffer u_DynamicLightTiles;
 uniform samplerBuffer u_DynamicLightData;
-
-Light GetDynamicLight( int index, vec3 normal ) {
+Light GetDynamicLight( int index, vec3 position, vec3 normal ) {
 	vec4 data = texelFetch( u_DynamicLightData, index );
 	vec3 origin = floor( data.xyz );
 	float radius_squared = data.w * data.w;
-	vec3 dir = v_Position - origin;
+	vec3 dir = position - origin;
 	float dist_squared = dot( dir, dir );
 	float attenuation = DLIGHT_CUTOFF * ( ( radius_squared + 1.0 ) / ( dist_squared + 1.0 ) - 1.0 );
 
@@ -129,7 +128,7 @@ vec3 ShadePixel( Surface surface, Light light, float occlusion, vec3 v, float No
 	return ( surface.color * diffuse * ( occlusion * 0.5 + 0.5 ) + specular * occlusion ) * light.color * light.attenuation * ambient_NoL;
 }
 
-vec3 BRDF( vec3 n, vec3 v, vec3 albedo, float roughness, float metallic, float aniso, float shadow, int dlight_count, int tile_index ) {
+vec3 BRDF( vec3 p, vec3 n, vec3 v, vec3 albedo, float roughness, float metallic, float aniso, float shadow, int dlight_count, int tile_index ) {
 	Surface surface = CreateSurface( n, albedo, roughness, metallic, aniso );
 	Light light = GetSunLight();
 
@@ -143,7 +142,7 @@ vec3 BRDF( vec3 n, vec3 v, vec3 albedo, float roughness, float metallic, float a
 	for( int i = 0; i < dlight_count; i++ ) {
 		int idx = tile_index * 50 + i; // NOTE(msc): 50 = MAX_DLIGHTS_PER_TILE
 		int dlight_index = texelFetch( u_DynamicLightTiles, idx ).x;
-		light = GetDynamicLight( dlight_index, n );
+		light = GetDynamicLight( dlight_index, p, n );
 		color += ShadePixel( surface, light, 1.0, v, NoV, ToV, BoV );
 	}
 #endif

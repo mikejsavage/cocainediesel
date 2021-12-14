@@ -490,11 +490,9 @@ void UploadDecalBuffers() {
 }
 
 void AddDynamicsToPipeline( PipelineState * pipeline ) {
-	pipeline->set_uniform( "u_Decal", UploadUniformBlock( s32( num_decals ) ) );
 	pipeline->set_texture_buffer( "u_DecalTiles", decal_tiles_buffer );
 	pipeline->set_texture_buffer( "u_DecalData", decals_buffer );
 
-	pipeline->set_uniform( "u_DynamicLight", UploadUniformBlock( s32( num_dlights ) ) );
 	pipeline->set_texture_buffer( "u_DynamicLightTiles", dlight_tiles_buffer );
 	pipeline->set_texture_buffer( "u_DynamicLightData", dlights_buffer );
 

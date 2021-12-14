@@ -131,13 +131,13 @@ void main() {
 
 	float shadowlight = 1.0;
 	#if APPLY_SHADOWS
-		shadowlight = GetLight( normal );
+		shadowlight = GetLight( v_Position, normal );
 	#endif
 	#if FAKE_SHADOW
 		shadowlight = u_InLight;
 	#endif
 
-	diffuse.rgb = BRDF( normal, viewDir, diffuse.rgb, u_Roughness, u_Metallic, u_Anisotropic, shadowlight, decal_dlight_count.y, tile_index );
+	diffuse.rgb = BRDF( v_Position, normal, viewDir, diffuse.rgb, u_Roughness, u_Metallic, u_Anisotropic, shadowlight, decal_dlight_count.y, tile_index );
 #endif
 
 #if APPLY_FOG

@@ -3,6 +3,11 @@
 #include "client/renderer/types.h"
 
 struct Shaders {
+	Shader write_main_gbuffer;
+	Shader write_main_gbuffer_skinned;
+	Shader deferred;
+	Shader deferred_msaa;
+
 	Shader standard;
 	Shader standard_shaded;
 	Shader standard_shaded_fake_shadow;
@@ -27,8 +32,6 @@ struct Shaders {
 	Shader depth_only_skinned;
 
 	Shader world;
-	Shader postprocess_world_gbuffer;
-	Shader postprocess_world_gbuffer_msaa;
 
 	Shader write_silhouette_gbuffer;
 	Shader write_silhouette_gbuffer_skinned;

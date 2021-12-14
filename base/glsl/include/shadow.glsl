@@ -134,19 +134,19 @@ float ShadowCascade( vec3 position, vec3 normal, int cascadeIdx ) {
 	return SampleShadowMapOptimizedPCF( shadowPos, shadowPosDX, shadowPosDY, cascadeIdx );
 }
 
-float GetLight( vec3 normal ) {
-	float view_distance = length( u_CameraPos - v_Position );
+float GetLight( vec3 position, vec3 normal ) {
+	float view_distance = length( u_CameraPos - position );
 
 	for( int i = 0; i < u_ShadowCascades; i++ ) {
 		float plane = GetCascadePlane( i );
 		if( view_distance <= plane ) {
-			float light = ShadowCascade( v_Position, normal, i );
+			float light = ShadowCascade( position, normal, i );
 			#if FILTER_ACROSS_CASCADES
 				float fade_factor = ( plane - view_distance ) / plane;
 				if( fade_factor < blend_threshold ) {
 					float next_light = 1.0; // fade to nothing if we're on last cascade
 					if( i + 1 < u_ShadowCascades ) {
-						next_light = ShadowCascade( v_Position, normal, i + 1 );
+						next_light = ShadowCascade( position, normal, i + 1 );
 					}
 					float lerp_amt = smoothstep( 0.0, blend_threshold, fade_factor );
 					light = mix( next_light, light, lerp_amt );

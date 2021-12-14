@@ -161,7 +161,7 @@ static void SubmitPostprocessPass() {
 	pipeline.depth_func = DepthFunc_Disabled;
 	pipeline.shader = &shaders.postprocess;
 
-	const Framebuffer & fb = frame_static.postprocess_fb;
+	const Framebuffer & fb = frame_static.main_fb;
 	pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 	pipeline.set_texture( "u_Screen", &fb.targets[ 0 ].texture );
 	pipeline.set_texture( "u_Noise", FindMaterial( "textures/noise" )->texture );
@@ -202,6 +202,31 @@ static void SubmitPostprocessPass() {
 	DrawFullscreenMesh( pipeline );
 }
 
+static void RenderDeffered() {
+	PipelineState pipeline;
+	pipeline.pass = frame_static.deferred_pass;
+	pipeline.shader = frame_static.msaa_samples > 1 ? &shaders.deferred_msaa : &shaders.deferred;
+	pipeline.set_texture( "u_Albedo", &frame_static.main_gbuffer.targets[ 0 ].texture );
+	pipeline.set_texture( "u_RMAC", &frame_static.main_gbuffer.targets[ 1 ].texture );
+	pipeline.set_texture( "u_Normal", &frame_static.main_gbuffer.targets[ 2 ].texture );
+	const Framebuffer & fb = frame_static.msaa_samples > 1 ? frame_static.main_gbuffer_msaa : frame_static.main_gbuffer;
+	pipeline.set_texture( "u_Depth", &fb.depth_target.texture );
+	pipeline.set_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
+	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.set_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
+	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
+	pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
+	pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
+	constexpr RGBA8 gray = RGBA8( 30, 30, 30, 255 );
+	pipeline.set_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
+	AddDynamicsToPipeline( &pipeline );
+	pipeline.depth_func = DepthFunc_Disabled;
+	pipeline.blend_func = BlendFunc_Disabled;
+	pipeline.write_depth = false;
+
+	DrawFullscreenMesh( pipeline );
+}
+
 void SCR_UpdateScreen() {
 	CL_ForceVsync( cls.state == CA_DISCONNECTED );
 
@@ -222,6 +247,7 @@ void SCR_UpdateScreen() {
 		cg.damage_effect = 0.0f;
 	}
 
+	RenderDeffered();
 	SubmitPostprocessPass();
 
 	UI_Refresh();

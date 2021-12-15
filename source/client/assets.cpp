@@ -111,7 +111,7 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 	ZoneScoped;
 	ZoneText( game_path, strlen( game_path ) );
 
-	Span< const char > ext = LastFileExtension( game_path );
+	Span< const char > ext = FileExtension( game_path );
 	bool compressed = ext == ".zst";
 
 	Span< const char > game_path_no_zst = MakeSpan( game_path );

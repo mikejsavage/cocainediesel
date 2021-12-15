@@ -351,26 +351,32 @@ bool CaseStartsWith( const char * str, const char * prefix ) {
 	return StrCaseEqual( Span< const char >( str, strlen( prefix ) ), prefix );
 }
 
+static Span< const char > MemRChr( Span< const char > str, char c, bool empty_if_missing ) {
+	for( size_t i = 0; i < str.n; i++ ) {
+		if( str[ str.n - i - 1 ] == c ) {
+			return str + ( str.n - i - 1 );
+		}
+	}
+
+	return empty_if_missing ? Span< const char >() : str;
+}
+
+Span< const char > FileExtension( Span< const char > path ) {
+	Span< const char > filename = MemRChr( path, '/', false );
+	return MemRChr( filename, '.', true );
+}
+
 Span< const char > FileExtension( const char * path ) {
-	const char * filename = strrchr( path, '/' );
-	const char * ext = strchr( filename == NULL ? path : filename, '.' );
-	return ext == NULL ? Span< const char >() : MakeSpan( ext );
+	return FileExtension( MakeSpan( path ) );
+}
+
+Span< const char > StripExtension( Span< const char > path ) {
+	Span< const char > ext = FileExtension( path );
+	return path.slice( 0, path.n - ext.n );
 }
 
 Span< const char > StripExtension( const char * path ) {
-	Span< const char > ext = FileExtension( path );
-	return Span< const char >( path, strlen( path ) - ext.n );
-}
-
-Span< const char > LastFileExtension( const char * path ) {
-	const char * filename = strrchr( path, '/' );
-	const char * ext = strrchr( filename == NULL ? path : filename, '.' );
-	return ext == NULL ? Span< const char >() : MakeSpan( ext );
-}
-
-Span< const char > StripLastExtension( const char * path ) {
-	Span< const char > ext = LastFileExtension( path );
-	return Span< const char >( path, strlen( path ) - ext.n );
+	return StripExtension( MakeSpan( path ) );
 }
 
 Span< const char > FileName( const char * path ) {

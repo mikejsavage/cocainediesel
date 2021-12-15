@@ -82,10 +82,10 @@ bool StartsWith( const char * str, const char * prefix );
 
 bool CaseStartsWith( const char * str, const char * prefix );
 
+Span< const char > FileExtension( Span< const char > path );
 Span< const char > FileExtension( const char * path );
+Span< const char > StripExtension( Span< const char > path );
 Span< const char > StripExtension( const char * path );
-Span< const char > LastFileExtension( const char * path );
-Span< const char > StripLastExtension( const char * path );
 Span< const char > FileName( const char * path );
 Span< const char > BasePath( const char * path );
 

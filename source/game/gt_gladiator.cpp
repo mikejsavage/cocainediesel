@@ -234,10 +234,10 @@ static void PickRandomArena() {
 			if( name[ 0 ] == '.' || dir )
 				continue;
 
-			if( FileExtension( name ) != ".bsp" && FileExtension( name ) != ".bsp.zst" )
+			if( FileExtension( name ) != ".bsp" && FileExtension( StripExtension( name ) ) != ".bsp" )
 				continue;
 
-			maps.add( temp( "gladiator/{}", StripExtension( name ) ) );
+			maps.add( temp( "gladiator/{}", StripExtension( StripExtension( name ) ) ) );
 		}
 
 		G_LoadMap( RandomElement( &svs.rng, maps.begin(), maps.size() ) );

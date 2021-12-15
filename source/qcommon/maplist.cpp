@@ -40,9 +40,8 @@ void RefreshMapList( Allocator * a ) {
 		if( dir )
 			continue;
 
-		Span< const char > ext = FileExtension( name );
-		if( ext == ".bsp" || ext == ".bsp.zst" ) {
-			char * map = ( *sys_allocator )( "{}", StripExtension( name ) );
+		if( FileExtension( name ) == ".bsp" || FileExtension( StripExtension( name ) ) == ".bsp" ) {
+			char * map = ( *sys_allocator )( "{}", StripExtension( StripExtension( name ) ) );
 			maps.add( map );
 		}
 	}

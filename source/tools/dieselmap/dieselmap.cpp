@@ -1248,7 +1248,7 @@ int main( int argc, char ** argv ) {
 		return 1;
 	}
 
-	DynamicString bsp_path( sys_allocator, "{}.bsp", StripLastExtension( argv[ 1 ] ) );
+	DynamicString bsp_path( sys_allocator, "{}.bsp", FileExtension( argv[ 1 ] ) );
 
 	size_t carfentanil_len;
 	char * carfentanil = ReadFileString( sys_allocator, argv[ 1 ], &carfentanil_len );

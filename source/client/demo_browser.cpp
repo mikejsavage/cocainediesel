@@ -121,7 +121,7 @@ static void FindDemosRecursive( TempAllocator * temp, DynamicString * path, size
 		if( dir ) {
 			FindDemosRecursive( temp, path, skip );
 		}
-		else if( LastFileExtension( path->c_str() + skip ) == APP_DEMO_EXTENSION_STR ) {
+		else if( FileExtension( path->c_str() + skip ) == APP_DEMO_EXTENSION_STR ) {
 			DemoBrowserEntry demo = { };
 			demo.path = CopyString( sys_allocator, path->c_str() + skip );
 			demos.add( demo );

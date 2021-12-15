@@ -1436,7 +1436,12 @@ int main( int argc, char ** argv ) {
 
 		bsp.entities->append( "{{\n" );
 		for( KeyValue kv : entity.kvs.span() ) {
-			bsp.entities->append( "\t\"{}\" \"{}\"\n", kv.key, kv.value );
+			if( kv.key == "model" && FileExtension( kv.value ) == ".glb" ) {
+				bsp.entities->append( "\t\"{}\" \"{}\"\n", kv.key, StripExtension( kv.value ) );
+			}
+			else {
+				bsp.entities->append( "\t\"{}\" \"{}\"\n", kv.key, kv.value );
+			}
 		}
 		if( entity.brushes.size() > 0 ) {
 			bsp.entities->append( "\t\"model\" \"*{}\"\n", entity.model_id );

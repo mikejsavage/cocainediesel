@@ -440,7 +440,7 @@ static void DrawEntityModel( centity_t * cent ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const Model * model = cent->interpolated.model;
-	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin );
+	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->current.scale );
 
 	Vec4 color = sRGBToLinear( cent->interpolated.color );
 

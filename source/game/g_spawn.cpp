@@ -31,6 +31,7 @@ enum EntityFieldType {
 	EntityField_Asset,
 	EntityField_Vec3,
 	EntityField_Angle,
+	EntityField_Scale,
 	EntityField_RGBA,
 };
 
@@ -65,7 +66,8 @@ static constexpr EntityField entity_keys[] = {
 	{ "dmg", FOFS( dmg ), EntityField_Int },
 	{ "angles", FOFS( s.angles ), EntityField_Vec3 },
 	{ "angle", FOFS( s.angles ), EntityField_Angle },
-	{ "scale", FOFS( s.scale ), EntityField_Float },
+	{ "modelscale_vec", FOFS( s.scale ), EntityField_Vec3 },
+	{ "modelscale", FOFS( s.scale ), EntityField_Scale },
 	{ "mass", FOFS( mass ), EntityField_Int },
 	{ "random", FOFS( random ), EntityField_Float },
 
@@ -177,6 +179,9 @@ static void ED_ParseField( Span< const char > key, Span< const char > value, edi
 				break;
 			case EntityField_Angle:
 				*(Vec3 *)( b + f.ofs ) = Vec3( 0.0f, SpanToFloat( value, 0.0f ), 0.0f );
+				break;
+			case EntityField_Scale:
+				*(Vec3 *)( b + f.ofs ) = Vec3( SpanToFloat( value, 1.0f ) );
 				break;
 
 			case EntityField_Vec3: {

@@ -9,6 +9,28 @@ enum InterpolationMode {
 	// InterpolationMode_CubicSpline,
 };
 
+struct DrawModelConfig {
+	struct DrawModel {
+		bool enabled;
+		bool view_weapon;
+	} draw_model;
+
+	struct DrawShadows {
+		bool enabled;
+	} draw_shadows;
+
+	struct DrawOutlines {
+		bool enabled;
+		float outline_height;
+		Vec4 outline_color;
+	} draw_outlines;
+
+	struct DrawSilhouette {
+		bool enabled;
+		Vec4 silhouette_color;
+	} draw_silhouette;
+};
+
 struct Model {
 	struct Primitive {
 		const Material * material;
@@ -81,12 +103,7 @@ bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< c
 void DeleteBSPRenderData( Map * map );
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline );
-void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
-void DrawViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & color );
-void DrawOutlinedViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height );
-void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
-void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, MatrixPalettes palettes = MatrixPalettes() );
-void DrawModelShadow( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
+void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
 
 Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t );
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses );

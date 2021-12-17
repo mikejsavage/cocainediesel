@@ -120,8 +120,10 @@ void DrawGibs() {
 		}
 
 		Mat4 transform = Mat4Translation( gib->origin ) * Mat4Scale( size );
-		DrawModel( model, transform, gib->color );
-		DrawModelShadow( model, transform, gib->color );
+		DrawModelConfig config = { };
+		config.draw_model.enabled = true;
+		config.draw_shadows.enabled = true;
+		DrawModel( config, model, transform, gib->color );
 
 		gib->origin = next_origin;
 	}

@@ -785,62 +785,76 @@ void CG_DrawPlayer( centity_t * cent ) {
 	bool draw_model = !ISVIEWERENTITY( cent->current.number ) || cg.view.thirdperson;
 	bool same_team = GS_TeamBasedGametype( &client_gs ) && cg.predictedPlayerState.team == cent->current.team;
 	bool draw_silhouette = draw_model && ( ISREALSPECTATOR() || same_team );
-
-	if( draw_model )
-		DrawModel( meta->model, transform, color, pose );
-	DrawModelShadow( meta->model, transform, color, pose );
-	if( !corpse && draw_silhouette ) {
-		DrawModelSilhouette( meta->model, transform, color, pose );
-	}
-
-	if( draw_model ) {
-		float outline_height = CG_OutlineScaleForDist( &cent->interpolated, 4096, 1.0f );
-		if( outline_height != 0.0f ) {
-			DrawOutlinedModel( meta->model, transform, color * 0.5f, outline_height, pose );
+	
+	{
+		DrawModelConfig config = { };
+		config.draw_model.enabled = draw_model;
+		config.draw_shadows.enabled = true;
+		if( !corpse && draw_silhouette ) {
+			config.draw_silhouette.enabled = true;
+			config.draw_silhouette.silhouette_color = color;
 		}
+
+		if( draw_model ) {
+			config.draw_outlines.enabled = true;
+			float outline_height = CG_OutlineScaleForDist( &cent->interpolated, 4096, 1.0f );
+			if( outline_height != 0.0f ) {
+				config.draw_outlines.outline_height = outline_height;
+				config.draw_outlines.outline_color = color * 0.5f;
+			}
+		}
+
+		DrawModel( config, meta->model, transform, color, pose );
 	}
 
 	Mat4 inverse_scale = Mat4Scale( 1.0f / cent->current.scale );
 
 	// add weapon model
-	if( cent->current.weapon != Weapon_None ) {
-		const Model * weapon_model = GetWeaponModelMetadata( cent->current.weapon )->model;
-		if( weapon_model != NULL ) {
-			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon ) * inverse_scale;
+	{
+		if( cent->current.weapon != Weapon_None ) {
+			const Model * weapon_model = GetWeaponModelMetadata( cent->current.weapon )->model;
+			if( weapon_model != NULL ) {
+				Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon ) * inverse_scale;
 
-			if( draw_model )
-				DrawModel( weapon_model, tag_transform, color );
-			DrawModelShadow( weapon_model, tag_transform, color );
+				DrawModelConfig config = { };
+				config.draw_model.enabled = draw_model;
+				config.draw_shadows.enabled = true;
 
-			if( draw_silhouette ) {
-				DrawModelSilhouette( weapon_model, tag_transform, color );
-			}
+				if( draw_silhouette ) {
+					config.draw_silhouette.enabled = true;
+					config.draw_silhouette.silhouette_color = color;
+				}
 
-			u8 muzzle;
-			if( FindNodeByName( weapon_model, Hash32( "muzzle" ), &muzzle ) ) {
-				pmodel->muzzle_transform = tag_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
-			}
-			else {
-				pmodel->muzzle_transform = tag_transform;
+				DrawModel( config, weapon_model, tag_transform, color );
+
+				u8 muzzle;
+				if( FindNodeByName( weapon_model, Hash32( "muzzle" ), &muzzle ) ) {
+					pmodel->muzzle_transform = tag_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
+				}
+				else {
+					pmodel->muzzle_transform = tag_transform;
+				}
 			}
 		}
 	}
 
 	// add bomb/hat
-	const Model * attached_model = FindModel( cent->current.model2 );
-	if( attached_model != NULL ) {
-		PlayerModelMetadata::Tag tag = meta->tag_bomb;
-		if( cent->current.effects & EF_HAT )
-			tag = meta->tag_hat;
+	{
+		const Model * attached_model = FindModel( cent->current.model2 );
+		if( attached_model != NULL ) {
+			PlayerModelMetadata::Tag tag = meta->tag_bomb;
+			if( cent->current.effects & EF_HAT )
+				tag = meta->tag_hat;
 
-		Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag ) * inverse_scale;
+			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag ) * inverse_scale;
 
-		if( draw_model )
-			DrawModel( attached_model, tag_transform, vec4_white );
-		DrawModelShadow( attached_model, tag_transform, vec4_white );
+			DrawModelConfig config = { };
+			config.draw_model.enabled = draw_model;
+			config.draw_shadows.enabled = true;
+			config.draw_silhouette.enabled = draw_silhouette;
+			config.draw_silhouette.silhouette_color = color;
 
-		if( draw_silhouette ) {
-			DrawModelSilhouette( attached_model, tag_transform, color );
+			DrawModel( config, attached_model, tag_transform, vec4_white );
 		}
 	}
 }

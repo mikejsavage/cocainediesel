@@ -1,7 +1,3 @@
-layout( std140 ) uniform u_DynamicLight {
-	int u_NumDynamicLights;
-};
-
 uniform isamplerBuffer u_DynamicLightTiles;
 uniform samplerBuffer u_DynamicLightData;
 

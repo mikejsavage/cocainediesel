@@ -1,7 +1,3 @@
-layout( std140 ) uniform u_Decal {
-	int u_NumDecals;
-};
-
 uniform isamplerBuffer u_DecalTiles;
 uniform samplerBuffer u_DecalData;
 uniform sampler2DArray u_DecalAtlases;

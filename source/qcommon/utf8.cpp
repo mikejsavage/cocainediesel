@@ -23,9 +23,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "gameshared/q_shared.h"
-#include "gameshared/q_math.h"
-
 // See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
 static const uint8_t utf8d[] = {
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 00..1f

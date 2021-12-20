@@ -574,7 +574,6 @@ struct moveinfo_t {
 
 struct client_snapreset_t {
 	int buttons;
-	uint8_t plrkeys; // used for displaying key icons
 	int damageTaken;
 	Vec3 damageTakenDir;
 };
@@ -596,21 +595,21 @@ struct client_respawnreset_t {
 struct client_levelreset_t {
 	int64_t timeStamp;				// last time it was reset
 
-	int64_t last_vsay;				// time when last vsay was said
-	int64_t last_activity;
-	int64_t last_spray;
+	Time last_vsay;				// time when last vsay was said
+	Time last_activity;
+	Time last_spray;
 
 	score_stats_t stats;
 
 	// flood protection
-	int64_t flood_locktill;			// locked from talking
-	int64_t flood_when[MAX_FLOOD_MESSAGES];        // when messages were said
+	Time flood_locktill;			// locked from talking
+	Time flood_when[MAX_FLOOD_MESSAGES];        // when messages were said
 	int flood_whenhead;             // head pointer for when said
 	// team only
-	int64_t flood_team_when[MAX_FLOOD_MESSAGES];   // when messages were said
+	Time flood_team_when[MAX_FLOOD_MESSAGES];   // when messages were said
 	int flood_team_whenhead;        // head pointer for when said
 
-	int64_t callvote_when;
+	Time callvote_when;
 };
 
 struct client_teamreset_t {

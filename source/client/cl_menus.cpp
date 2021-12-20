@@ -719,7 +719,7 @@ static void MainMenu() {
 
 	ImGui::BeginChild( "mainmenubody", ImVec2( 0, -ImGui::GetFrameHeightWithSpacing() + window_padding.y ) );
 
-	auto triangel = []( s64 x, s64 period ) {
+	auto triangel = []( Time x, Time period ) {
 		float normalized = float( x % period ) / period;
 		return normalized < 0.5f ? Unlerp( 0.0f, normalized, 0.5f ) : Unlerp( 1.0f, normalized, 0.5f );
 	};
@@ -730,7 +730,7 @@ static void MainMenu() {
 		return a + b < 300;
 	};
 
-	ImGui::SetCursorPosX( 40.0f * triangel( cls.monotonicTime, 631 ) );
+	ImGui::SetCursorPosX( 0.04f * ToSeconds( triangel( cls.monotonicTime, Milliseconds( 631 ) ) ) );
 	ImGui::PushFont( cls.large_font );
 
 	if( NewCvar( "cg_colorBlind", "0", CvarFlag_Archive )->integer ) {
@@ -839,7 +839,7 @@ static void MainMenu() {
 
 		const char * buf = APP_VERSION u8" \u00A9 AHA CHEERS";
 		ImVec2 size = ImGui::CalcTextSize( buf );
-		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - window_padding.x - 1 - sinf( cls.monotonicTime / 29.0f ) );
+		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - window_padding.x - 1 - sinf( ( cls.monotonicTime / 29.0f ) % Milliseconds( PI ) ) );
 
 		if( ImGui::Button( buf ) ) {
 			ImGui::OpenPopup( "Credits" );

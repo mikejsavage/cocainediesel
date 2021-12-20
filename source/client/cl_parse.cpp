@@ -67,16 +67,7 @@ bool CL_DownloadFile( const char * filename, DownloadCompleteCallback callback )
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const char * url = temp( "{}/{}", cls.download_url, filename );
-	if( cls.download_url_is_game_server ) {
-		const char * headers[] = {
-			temp( "X-Client: {}", cl.playernum ),
-			temp( "X-Session: {}", cls.session ),
-		};
-		StartDownload( url, OnDownloadDone, headers, ARRAY_COUNT( headers ) );
-	}
-	else {
-		StartDownload( url, OnDownloadDone, NULL, 0 );
-	}
+	StartDownload( url, OnDownloadDone, NULL, 0 );
 
 	Com_Printf( "Downloading %s\n", url );
 

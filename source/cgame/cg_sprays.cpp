@@ -10,13 +10,13 @@ struct Spray {
 	float radius;
 	float angle;
 	StringHash material;
-	s64 spawn_time;
+	Time spawn_time;
 };
 
 static StringHash spray_assets[ 4096 ];
 static size_t num_spray_assets;
 
-constexpr static s64 SPRAY_LIFETIME = 60000;
+constexpr static Time SPRAY_LIFETIME = Seconds( u64( 60 ) );
 
 static Spray sprays[ 1024 ];
 static size_t sprays_head;

@@ -174,8 +174,6 @@ float CG_CalcViewFov() {
 }
 
 static void CG_CalcViewBob() {
-	float bobMove, bobTime, bobScale;
-
 	if( !cg.view.drawWeapon ) {
 		return;
 	}
@@ -183,7 +181,7 @@ static void CG_CalcViewBob() {
 	// calculate speed and cycle to be used for all cyclic walking effects
 	cg.xyspeed = Length( cg.predictedPlayerState.pmove.velocity.xy() );
 
-	bobScale = 0;
+	float bobScale = 0;
 	if( cg.xyspeed < 5 ) {
 		cg.oldBobTime = 0;  // start at beginning of cycle again
 	}
@@ -210,11 +208,10 @@ static void CG_CalcViewBob() {
 		}
 	}
 
-	bobMove = cls.frametime * bobScale * 0.001f;
-	bobTime = ( cg.oldBobTime += bobMove );
-
-	cg.bobCycle = (int)bobTime;
-	cg.bobFracSin = Abs( sinf( bobTime * PI ) );
+	float bobMove = cls.dt * bobScale * 0.001f;
+	cg.oldBobTime += bobMove;
+	cg.bobCycle = (int)cg.oldBobTime;
+	cg.bobFracSin = Abs( sinf( cg.oldBobTime * PI ) );
 }
 
 void CG_StartFallKickEffect( int bounceTime ) {

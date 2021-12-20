@@ -180,8 +180,6 @@ struct cg_static_t {
 };
 
 struct cg_state_t {
-	int frameCount;
-
 	snapshot_t frame, oldFrame;
 	bool fireEvents;
 

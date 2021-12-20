@@ -1235,8 +1235,8 @@ void CL_Frame( Time dt, Time real_dt ) {
 		}
 	}
 
-	static u64 accumulated_real_dt = 0;
-	static u64 accumulated_dt = 0;
+	static Time accumulated_real_dt = 0;
+	static Time accumulated_dt = 0;
 
 	cls.gametime += dt;
 	accumulated_real_dt += real_dt;
@@ -1256,7 +1256,7 @@ void CL_Frame( Time dt, Time real_dt ) {
 	}
 
 	float target_fps = IsWindowFocused() ? cl_maxfps->value : min_fps;
-	u64 target_dt = Seconds( 1.0f / target_fps );
+	Time target_dt = Seconds( 1.0f / target_fps );
 
 	if( accumulated_real_dt < target_dt ) {
 		// let CPU sleep while minimized

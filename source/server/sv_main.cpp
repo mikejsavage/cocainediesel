@@ -292,36 +292,22 @@ static void SV_CheckLatchedUserinfoChanges() {
 	}
 }
 
-#define WORLDFRAMETIME 16 // 62.5fps
-static bool SV_RunGameFrame( int msec ) {
+static bool SV_RunGameFrame( Time dt ) {
 	ZoneScoped;
 
-	static int64_t accTime = 0;
-	bool refreshSnapshot;
-	bool refreshGameModule;
-	bool sentFragments;
+	static Time acc_dt = Milliseconds( 0 );
 
-	accTime += msec;
-
-	refreshSnapshot = false;
-	refreshGameModule = false;
-
-	sentFragments = SV_SendClientsFragments();
-
-	// see if it's time to run a new game frame
-	if( accTime >= WORLDFRAMETIME ) {
-		refreshGameModule = true;
-	}
+	bool refreshSnapshot = false;
+	bool sentFragments = SV_SendClientsFragments();
 
 	// see if it's time for a new snapshot
 	if( !sentFragments && svs.gametime >= sv.nextSnapTime ) {
 		refreshSnapshot = true;
-		refreshGameModule = true;
 	}
 
 	// if there aren't pending packets to be sent, we can sleep
 	if( is_dedicated_server && !sentFragments && !refreshSnapshot ) {
-		int sleeptime = Min2( WORLDFRAMETIME - ( accTime + 1 ), sv.nextSnapTime - ( svs.gametime + 1 ) );
+		int sleeptime = Min2( svc.gameFrameTime - ( acc_dt + 1 ), sv.nextSnapTime - ( svs.gametime + 1 ) );
 
 		if( sleeptime > 0 ) {
 			socket_t *sockets[] = { &svs.socket_udp, &svs.socket_udp6 };
@@ -343,36 +329,21 @@ static bool SV_RunGameFrame( int msec ) {
 		}
 	}
 
-	if( refreshGameModule ) {
-		int64_t moduleTime;
+	// update ping based on the last known frame from all clients
+	SV_CalcPings();
 
-		// update ping based on the last known frame from all clients
-		SV_CalcPings();
-
-		if( accTime >= WORLDFRAMETIME ) {
-			moduleTime = WORLDFRAMETIME;
-			accTime -= WORLDFRAMETIME;
-			if( accTime >= WORLDFRAMETIME ) { // don't let it accumulate more than 1 frame
-				accTime = WORLDFRAMETIME - 1;
-			}
-		} else {
-			moduleTime = accTime;
-			accTime = 0;
-		}
-
-		G_RunFrame( moduleTime );
+	while( acc_dt >= svc.gameFrameTime ) {
+		G_RunFrame( svc.gameFrameTime );
+		acc_dt -= svc.gameFrameTime;
 	}
 
-	// if we don't have to send a snapshot we are done here
 	if( refreshSnapshot ) {
-		int extraSnapTime;
-
 		// set up for sending a snapshot
 		sv.framenum++;
 		G_SnapFrame();
 
 		// set time for next snapshot
-		extraSnapTime = (int)( svs.gametime - sv.nextSnapTime );
+		int extraSnapTime = (int)( svs.gametime - sv.nextSnapTime );
 		if( extraSnapTime > svc.snapFrameTime * 0.5 ) { // don't let too much time be accumulated
 			extraSnapTime = svc.snapFrameTime * 0.5;
 		}
@@ -385,35 +356,23 @@ static bool SV_RunGameFrame( int msec ) {
 	return false;
 }
 
-static void SV_CheckDefaultMap() {
-	if( svc.autostarted ) {
-		return;
-	}
-
-	svc.autostarted = true;
-	if( is_dedicated_server ) {
-		printf( "WTF\n" );
-	}
-}
-
 void SV_Frame( Time dt, Time real_dt ) {
 	ZoneScoped;
 
 	TracyPlot( "Server frame arena max utilisation", svs.frame_arena.max_utilisation() );
 	svs.frame_arena.clear();
 
+	// if server is not active, do nothing
+	if( !svs.initialized ) {
+		return;
+	}
+
 	u64 entropy[ 2 ];
 	CSPRNG( entropy, sizeof( entropy ) );
 	svs.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
-	// if server is not active, do nothing
-	if( !svs.initialized ) {
-		SV_CheckDefaultMap();
-		return;
-	}
-
-	svs.realtime += realmsec;
-	svs.gametime += gamemsec;
+	svs.time += dt;
+	svs.monotonic_time += real_dt;
 
 	// check timeouts
 	SV_CheckTimeouts();
@@ -425,7 +384,7 @@ void SV_Frame( Time dt, Time real_dt ) {
 	SV_CheckLatchedUserinfoChanges();
 
 	// let everything in the world think and move
-	if( SV_RunGameFrame( gamemsec ) ) {
+	if( SV_RunGameFrame( dt ) ) {
 		// send messages back to the clients that had packets read this frame
 		SV_SendClientMessages();
 
@@ -549,13 +508,13 @@ void SV_Init() {
 	MSG_Init( &tmpMessage, tmpMessageData, sizeof( tmpMessageData ) );
 
 	// init server updates ratio
-	constexpr float pps = 20.0f;
-	constexpr float fps = 62.0f;
-	STATIC_ASSERT( fps >= pps );
-	svc.snapFrameTime = int( 1000.0f / pps );
-	svc.gameFrameTime = int( 1000.0f / fps );
+	constexpr u32 pps = 20;
+	constexpr u32 fps = 60;
+	STATIC_ASSERT( fps >= pps && fps % pps == 0 );
+	svc.snapFrameTime = Hz( pps );
+	svc.gameFrameTime = Hz( fps );
 
-	//init the master servers list
+	// init the master servers list
 	SV_InitMaster();
 
 	SV_Web_Init();

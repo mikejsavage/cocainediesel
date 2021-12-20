@@ -36,7 +36,7 @@ Cvar *cg_showPlayerNames_alpha;
 Cvar *cg_showPlayerNames_zfar;
 Cvar *cg_showPlayerNames_barWidth;
 
-static int64_t scr_damagetime = 0;
+static Time scr_damagetime = Milliseconds( 0 );
 
 /*
 ===============================================================================

@@ -652,7 +652,7 @@ static void CG_DrawObituaries(
 static void GlitchText( Span< char > msg ) {
 	constexpr const char glitches[] = { '#', '@', '~', '$' };
 
-	RNG rng = NewRNG( cls.monotonicTime / 67, 0 );
+	RNG rng = NewRNG( ( cls.monotonicTime / Milliseconds( 67 ).flicks ).flicks, 0 );
 
 	for( char & c : msg ) {
 		if( Probability( &rng, 0.03f ) ) {

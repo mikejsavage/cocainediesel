@@ -135,13 +135,13 @@ struct client_static_t {
 	keydest_t key_dest;
 	keydest_t old_key_dest;
 
-	int64_t monotonicTime; // starts at 0 when the game is launched, increases forever
+	u64 framecount;
 
-	int64_t framecount;
-	u64 realtime; // always increasing, no clamping, etc
-	u64 gametime; // always increasing, no clamping, etc
-	u64 real_dt;  // real dt since last frame
-	u64 dt;       // real_dt scaled by timescale
+	Time monotonicTime; // starts at 0 when the game is launched, increases forever
+	Time realtime; // always increasing, no clamping, etc
+	Time gametime; // always increasing, no clamping, etc
+	Time real_dt;  // real dt since last frame
+	Time dt;       // real_dt scaled by timescale
 
 	socket_t socket_loopback;
 	socket_t socket_udp;
@@ -152,7 +152,7 @@ struct client_static_t {
 
 	// connection information
 	netadr_t serveraddress;         // address of that server
-	int64_t connect_time;               // for connection retransmits
+	Time connect_time;               // for connection retransmits
 	int connect_count;
 
 	socket_t *socket;               // socket used by current connection
@@ -160,7 +160,6 @@ struct client_static_t {
 	netadr_t rconaddress;       // address where we are sending rcon messages, to ignore other print packets
 
 	char * download_url;              // http://<httpaddress>/
-	bool download_url_is_game_server;
 
 	bool rejected;          // these are used when the server rejects our connection
 	int rejecttype;

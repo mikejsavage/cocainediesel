@@ -30,7 +30,7 @@ struct SoundEffect {
 		StringHash sounds[ 128 ];
 		u8 num_random_sounds;
 
-		float delay;
+		Time delay;
 		float volume;
 		float pitch;
 		float pitch_random;
@@ -51,7 +51,7 @@ enum PlayingSoundType {
 struct PlayingSound {
 	PlayingSoundType type;
 	const SoundEffect * sfx;
-	s64 start_time;
+	Time start_time;
 	int ent_num;
 	int channel;
 	float volume;
@@ -433,7 +433,11 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 				config->num_random_sounds++;
 			}
 			else if( key == "delay" ) {
-				if( !TrySpanToFloat( value, &config->delay ) ) {
+				float delay;
+				if( TrySpanToFloat( value, &delay ) ) {
+					config->delay = Seconds( delay );
+				}
+				else {
 					Com_Printf( S_COLOR_YELLOW "Argument to delay should be a number\n" );
 					return false;
 				}
@@ -709,7 +713,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 
 	for( size_t i = 0; i < num_playing_sound_effects; i++ ) {
 		PlayingSound * ps = &playing_sound_effects[ i ];
-		float t = ( cls.monotonicTime - ps->start_time ) * 0.001f;
+		Time t = cls.monotonicTime - ps->start_time;
 		bool all_stopped = true;
 
 		bool not_touched = ps->immediate_handle.x != 0 && !ps->touched_since_last_update;

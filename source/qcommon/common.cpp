@@ -322,10 +322,8 @@ void Qcommon_Init( int argc, char ** argv ) {
 	Cbuf_AddLateCommands( argc, argv );
 }
 
-bool Qcommon_Frame( unsigned int realMsec ) {
+bool Qcommon_Frame( Time dt ) {
 	ZoneScoped;
-
-	static unsigned int gameMsec;
 
 	if( setjmp( abortframe ) ) {
 		return true; // an ERR_DROP was thrown
@@ -336,13 +334,12 @@ bool Qcommon_Frame( unsigned int realMsec ) {
 		Com_ReopenConsoleLog();
 	}
 
-	if( timescale->number >= 0 ) {
-		static float extratime = 0.0f;
-		gameMsec = extratime + (float)realMsec * timescale->number;
-		extratime = ( extratime + (float)realMsec * timescale->number ) - (float)gameMsec;
-	} else {
-		gameMsec = realMsec;
+	if( timescale->number < 0 ) {
+		Cvar_Set( "timescale", "1.0" );
+		Com_Printf( "Timescale < 0, resetting.\n" );
 	}
+
+	Time scaled_dt = dt * timescale->number;
 
 	if( is_dedicated_server ) {
 		while( true ) {
@@ -353,8 +350,8 @@ bool Qcommon_Frame( unsigned int realMsec ) {
 		}
 	}
 
-	SV_Frame( realMsec, gameMsec );
-	CL_Frame( realMsec, gameMsec );
+	SV_Frame( scaled_dt, dt );
+	CL_Frame( scaled_dt, dt );
 
 	return !com_quit;
 }

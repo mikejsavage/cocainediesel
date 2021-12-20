@@ -1,6 +1,7 @@
 #include "client/client.h"
 #include "client/icon.h"
 #include "client/renderer/renderer.h"
+#include "qcommon/time.h"
 
 #include "glad/glad.h"
 
@@ -533,12 +534,12 @@ int main( int argc, char ** argv ) {
 	Con_Init();
 	Qcommon_Init( argc, argv );
 
-	u64 last_frame_time = ggtime();
+	Time last_frame_time = Now();
 	while( !glfwWindowShouldClose( window ) ) {
 		FrameMark;
 
-		u64 now = ggtime();
-		u64 dt = now - last_frame_time;
+		Time now = Now();
+		Time dt = now - last_frame_time;
 		if( !is_public_build ) {
 			// limit frame time to 200ms after being stopped by the debugger etc
 			dt = Min2( dt, Milliseconds( 200 ) );

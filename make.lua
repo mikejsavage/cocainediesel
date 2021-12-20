@@ -16,7 +16,7 @@ gcc_obj_cxxflags( ".*", "-Werror=vla -Werror=format-security -Werror=unused-valu
 if config == "release" then
 	obj_cxxflags( ".*", "-DPUBLIC_BUILD" )
 else
-	obj_cxxflags( ".*", "-DTRACY_ENABLE" )
+	-- obj_cxxflags( ".*", "-DTRACY_ENABLE" )
 end
 
 require( "libs.cgltf" )

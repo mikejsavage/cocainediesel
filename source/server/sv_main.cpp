@@ -396,7 +396,7 @@ static void SV_CheckDefaultMap() {
 	}
 }
 
-void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
+void SV_Frame( Time dt, Time real_dt ) {
 	ZoneScoped;
 
 	TracyPlot( "Server frame arena max utilisation", svs.frame_arena.max_utilisation() );

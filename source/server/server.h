@@ -179,8 +179,9 @@ struct client_entities_t {
 
 struct server_static_t {
 	bool initialized;               // sv_init has completed
-	int64_t realtime;               // real world time - always increasing, no clamping, etc
-	int64_t gametime;               // game world time - always increasing, no clamping, etc
+	Time dt;                        // game time, affected by timescale/pauses etc
+	Time time;                      // game time, affected by timescale/pauses etc
+	Time monotonic_time;            // real life wall clock time
 
 	ArenaAllocator frame_arena;
 
@@ -190,8 +191,7 @@ struct server_static_t {
 	socket_t socket_udp6;
 	socket_t socket_loopback;
 
-	int spawncount;                     // incremented each server start
-	                                    // used to check late spawns
+	int spawncount; // used to check whether people tried to connect across a map change
 
 	client_t * clients;
 	client_entities_t client_entities;
@@ -200,9 +200,7 @@ struct server_static_t {
 
 	server_static_demo_t demo;
 
-	CollisionModel *cms;                // passed to CM-functions
-
-	u64 ent_string_checksum;
+	CollisionModel * cms;
 };
 
 struct server_constant_t {

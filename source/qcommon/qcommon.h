@@ -27,8 +27,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "gameshared/gs_public.h"
 
 #include "qcommon/application.h"
-#include "qcommon/qfiles.h"
 #include "qcommon/strtonum.h"
+#include "qcommon/time.h"
 
 inline Vec3 FromQFAxis( const mat3_t m, int axis ) {
 	return Vec3( m[ axis + 0 ], m[ axis + 1 ], m[ axis + 2 ] );
@@ -506,7 +506,7 @@ extern Cvar *developer;
 extern const bool is_dedicated_server;
 
 void Qcommon_Init( int argc, char **argv );
-bool Qcommon_Frame( unsigned int realMsec );
+bool Qcommon_Frame( Time dt );
 void Qcommon_Shutdown();
 
 /*
@@ -543,10 +543,10 @@ CLIENT / SERVER SYSTEMS
 void CL_Init();
 void CL_Disconnect( const char *message );
 void CL_Shutdown();
-void CL_Frame( int realMsec, int gameMsec );
+void CL_Frame( Time dt, Time real_dt );
 void Con_Print( const char *text );
 
 void SV_Init();
 void SV_Shutdown( const char *finalmsg );
 void SV_ShutdownGame( const char *finalmsg, bool reconnect );
-void SV_Frame( unsigned realMsec, unsigned gameMsec );
+void SV_Frame( Time dt, Time real_dt );

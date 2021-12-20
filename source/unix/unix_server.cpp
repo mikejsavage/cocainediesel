@@ -2,6 +2,7 @@
 #include <unistd.h>
 
 #include "qcommon/qcommon.h"
+#include "qcommon/time.h"
 
 const bool is_dedicated_server = true;
 
@@ -18,34 +19,23 @@ static void QuitOnSignal( int sig ) {
 }
 
 int main( int argc, char ** argv ) {
-	unsigned int oldtime, newtime, time;
-
 	received_shutdown_signal = 0;
+
 	QuitOnSignal( SIGINT );
 	QuitOnSignal( SIGQUIT );
 	QuitOnSignal( SIGTERM );
 
 	Qcommon_Init( argc, argv );
 
-	oldtime = Sys_Milliseconds();
+	Time last_frame_time = Now();
 	while( true ) {
 		FrameMark;
 
-		// find time spent rendering last frame
-		do {
-			ZoneScopedN( "Interframe" );
-
-			newtime = Sys_Milliseconds();
-			time = newtime - oldtime;
-			if( time > 0 ) {
-				break;
-			}
-		} while( 1 );
-		oldtime = newtime;
-
-		if( !Qcommon_Frame( time ) || received_shutdown_signal == 1 ) {
+		Time now = Now();
+		if( !Qcommon_Frame( now - last_frame_time ) || received_shutdown_signal == 1 ) {
 			break;
 		}
+		last_frame_time = now;
 	}
 
 	Qcommon_Shutdown();

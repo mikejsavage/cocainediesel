@@ -184,8 +184,8 @@ void G_FreeEdict( edict_t *ed ) {
 	ed->s.number = ENTNUM( ed );
 	ed->r.svflags = SVF_NOCLIENT;
 
-	if( !ISEVENTENTITY( &ed->s ) && level.spawnedTimeStamp != svs.realtime ) {
-		ed->freetime = svs.realtime; // ET_EVENT or ET_SOUND don't need to wait to be reused
+	if( level.spawnedTimeStamp != svs.monotonic_time ) {
+		ed->freetime = svs.monotonic_time;
 	}
 }
 

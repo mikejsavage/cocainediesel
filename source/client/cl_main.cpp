@@ -1206,7 +1206,7 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 	ServerBrowserFrame();
 }
 
-void CL_Frame( int realMsec, int gameMsec ) {
+void CL_Frame( Time dt, Time real_dt ) {
 	ZoneScoped;
 
 	LivePPFrame();

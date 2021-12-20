@@ -321,13 +321,13 @@ static void G_RunClients() {
 	}
 }
 
-void G_RunFrame( unsigned int msec ) {
+void G_RunFrame( Time dt ) {
 	ZoneScoped;
 
 	G_CheckCvars();
 
-	game.frametime = msec;
-	G_Timeout_Update( msec );
+	game.dt = dt;
+	G_Timeout_Update( dt );
 
 	G_CallVotes_Think();
 

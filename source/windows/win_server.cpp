@@ -1,6 +1,7 @@
 #include "windows/miniwindows.h"
 
 #include "qcommon/qcommon.h"
+#include "qcommon/time.h"
 
 const bool is_dedicated_server = true;
 
@@ -23,24 +24,15 @@ int main( int argc, char ** argv ) {
 
 	oldtime = Sys_Milliseconds();
 
+	Time last_frame_time = Now();
 	while( true ) {
 		FrameMark;
 
-		do {
-			ZoneScopedN( "Interframe" );
-
-			newtime = Sys_Milliseconds();
-			time = newtime - oldtime;
-			if( time > 0 ) {
-				break;
-			}
-			Sys_Sleep( 0 );
-		} while( 1 );
-		oldtime = newtime;
-
-		if( !Qcommon_Frame( time ) ) {
+		Time now = Now();
+		if( !Qcommon_Frame( now - last_frame_time ) ) {
 			break;
 		}
+		last_frame_time = now;
 	}
 
 	Qcommon_Shutdown();

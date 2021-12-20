@@ -18,7 +18,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include "qcommon/qcommon.h"
+#include "qcommon/base.h"
+#include "qcommon/qfiles.h"
+#include "gameshared/gs_public.h"
+#include "gameshared/gs_synctypes.h"
 #include "gameshared/gs_weapons.h"
 
 #define SPEEDKEY    500.0f

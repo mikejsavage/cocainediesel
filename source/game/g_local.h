@@ -77,8 +77,8 @@ struct timeout_t {
 struct level_locals_t {
 	int64_t framenum;
 	int64_t time; // time in milliseconds
-	int64_t spawnedTimeStamp; // time when map was restarted
-	int64_t finalMatchDuration;
+	Time spawnedTimeStamp; // time when map was restarted
+	Time finalMatchDuration;
 
 	char callvote_map[MAX_CONFIGSTRING_CHARS];
 	char autorecord_name[128];

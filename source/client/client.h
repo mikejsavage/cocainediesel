@@ -138,10 +138,10 @@ struct client_static_t {
 	int64_t monotonicTime; // starts at 0 when the game is launched, increases forever
 
 	int64_t framecount;
-	int64_t realtime;               // always increasing, no clamping, etc
-	int64_t gametime;               // always increasing, no clamping, etc
-	int frametime;                  // milliseconds since last frame
-	int realFrameTime;
+	u64 realtime; // always increasing, no clamping, etc
+	u64 gametime; // always increasing, no clamping, etc
+	u64 real_dt;  // real dt since last frame
+	u64 dt;       // real_dt scaled by timescale
 
 	socket_t socket_loopback;
 	socket_t socket_udp;

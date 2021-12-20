@@ -542,11 +542,32 @@ CLIENT / SERVER SYSTEMS
 
 void CL_Init();
 void CL_Disconnect( const char *message );
-void CL_Shutdown();
-void CL_Frame( Time dt, Time real_dt );
+void CL_Shutdown( void );
+void CL_Frame( u64 dt, u64 real_dt );
+void CL_ParseServerMessage( msg_t *msg );
+void CL_Netchan_Transmit( msg_t *msg );
 void Con_Print( const char *text );
 
 void SV_Init();
 void SV_Shutdown( const char *finalmsg );
 void SV_ShutdownGame( const char *finalmsg, bool reconnect );
-void SV_Frame( Time dt, Time real_dt );
+void SV_Frame( u64 dt, u64 real_dt );
+bool SV_SendMessageToClient( struct client_s *client, msg_t *msg );
+void SV_ParseClientMessage( struct client_s *client, msg_t *msg );
+
+/*
+==============================================================
+
+MAPLIST SUBSYSTEM
+
+==============================================================
+*/
+
+void InitMapList();
+void ShutdownMapList();
+
+void RefreshMapList();
+Span< const char * > GetMapList();
+bool MapExists( const char * name );
+
+const char ** CompleteMapName( const char * prefix );

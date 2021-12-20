@@ -536,8 +536,6 @@ int main( int argc, char ** argv ) {
 
 	Time last_frame_time = Now();
 	while( !glfwWindowShouldClose( window ) ) {
-		FrameMark;
-
 		Time now = Now();
 		Time dt = now - last_frame_time;
 		if( !is_public_build ) {

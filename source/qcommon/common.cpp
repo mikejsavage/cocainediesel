@@ -322,9 +322,19 @@ void Qcommon_Init( int argc, char ** argv ) {
 	Cbuf_AddLateCommands( argc, argv );
 }
 
+<<<<<<< HEAD
 bool Qcommon_Frame( Time dt ) {
 	ZoneScoped;
 
+=======
+void Qcommon_Frame( u64 real_dt ) {
+	ZoneScoped;
+
+	if( com_quit ) {
+		Com_Quit();
+	}
+
+>>>>>>> origin/ggtime
 	if( setjmp( abortframe ) ) {
 		return true; // an ERR_DROP was thrown
 	}
@@ -334,12 +344,18 @@ bool Qcommon_Frame( Time dt ) {
 		Com_ReopenConsoleLog();
 	}
 
+<<<<<<< HEAD
 	if( timescale->number < 0 ) {
 		Cvar_Set( "timescale", "1.0" );
 		Com_Printf( "Timescale < 0, resetting.\n" );
 	}
 
 	Time scaled_dt = dt * timescale->number;
+=======
+	wswcurl_perform();
+
+	FS_Frame();
+>>>>>>> origin/ggtime
 
 	if( is_dedicated_server ) {
 		while( true ) {
@@ -350,6 +366,7 @@ bool Qcommon_Frame( Time dt ) {
 		}
 	}
 
+<<<<<<< HEAD
 	SV_Frame( scaled_dt, dt );
 	CL_Frame( scaled_dt, dt );
 
@@ -364,6 +381,19 @@ void Qcommon_Shutdown() {
 
 	ShutdownMapList();
 
+=======
+	if( timescale->value < 0 ) {
+		Cvar_ForceSet( "timescale", "1.0" );
+	}
+
+	u64 dt = double( real_dt ) * timescale->value;
+	SV_Frame( real_dt, dt );
+	CL_Frame( real_dt, dt );
+}
+
+void Qcommon_Shutdown() {
+	CM_Shutdown();
+>>>>>>> origin/ggtime
 	Netchan_Shutdown();
 	NET_Shutdown();
 	Key_Shutdown();

@@ -18,97 +18,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
-#include "qcommon/string.h"
 
-static constexpr const char * PLAYER_SOUND_NAMES[] = {
-	"death",
-	"jump",
-	"pain25", "pain50", "pain75", "pain100",
-	"walljump",
-	"dash",
-};
-
-STATIC_ASSERT( ARRAY_COUNT( PLAYER_SOUND_NAMES ) == PlayerSound_Count );
-
-void CG_RegisterPlayerSounds( PlayerModelMetadata * metadata, const char * name ) {
-	for( size_t i = 0; i < ARRAY_COUNT( metadata->sounds ); i++ ) {
-		TempAllocator temp = cls.frame_arena.temp();
-
-		const char * p = strrchr( name, '/' );
-		if( p != NULL ) {
-			name = p + 1;
-		}
-
-		DynamicString path( &temp, "players/{}/{}", name, PLAYER_SOUND_NAMES[ i ] );
-		metadata->sounds[ i ] = FindSoundEffect( path.c_str() );
-	}
-}
-
-static const SoundEffect * GetPlayerSound( int entnum, PlayerSound ps ) {
-	if( entnum < 0 || entnum >= ARRAY_COUNT( cg_entPModels ) ) {
-		return NULL;
-	}
-	if( cg_entPModels[ entnum ].metadata == NULL ) {
+static StringHash GetPlayerSound( int entnum, PlayerSound ps ) {
+	const PlayerModelMetadata * meta = GetPlayerModelMetadata( entnum );
+	if( meta == NULL ) {
 		Com_Printf( "Player model metadata is null\n" );
-		return NULL;
+		return EMPTY_HASH;
 	}
-	return cg_entPModels[ entnum ].metadata->sounds[ ps ];
+	return meta->sounds[ ps ];
 }
 
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
-	bool fixed = ( entchannel & CHAN_FIXED ) != 0;
-	entchannel &= ~CHAN_FIXED;
+	StringHash sfx = GetPlayerSound( entnum, ps );
 
-	const SoundEffect * sfx = GetPlayerSound( entnum, ps );
-	if( fixed ) {
-		S_StartFixedSound( sfx, cg_entities[entnum].current.origin, entchannel, 1.0f );
+	float pitch = 1.0f;
+	if( ps == PlayerSound_Death || ps == PlayerSound_Void || ps == PlayerSound_Pain25 || ps == PlayerSound_Pain50 || ps == PlayerSound_Pain75 || ps == PlayerSound_Pain100 || ps == PlayerSound_WallJump ) {
+		pitch = 1.0f / cg_entities[ entnum ].current.scale.z;
 	}
-	else if( ISVIEWERENTITY( entnum ) ) {
-		S_StartGlobalSound( sfx, entchannel, 1.0f );
+
+	if( ISVIEWERENTITY( entnum ) ) {
+		S_StartGlobalSound( sfx, entchannel, 1.0f, pitch );
 	}
 	else {
-		S_StartEntitySound( sfx, entnum, entchannel, 1.0f );
-	}
-}
-
-/*
-* CG_ParseClientInfo
-*/
-static void CG_ParseClientInfo( cg_clientInfo_t *ci, const char *info ) {
-	assert( ci );
-	assert( info );
-
-	if( !Info_Validate( info ) ) {
-		Com_Error( ERR_DROP, "Invalid client info" );
-	}
-
-	char *s = Info_ValueForKey( info, "name" );
-	Q_strncpyz( ci->name, s && s[0] ? s : "badname", sizeof( ci->name ) );
-
-	s = Info_ValueForKey( info, "hand" );
-	ci->hand = s && s[0] ? atoi( s ) : 2;
-}
-
-/*
-* CG_LoadClientInfo
-* Updates cached client info from the current CS_PLAYERINFOS configstring value
-*/
-void CG_LoadClientInfo( int client ) {
-	assert( client >= 0 && client < client_gs.maxclients );
-	CG_ParseClientInfo( &cgs.clientInfo[client], cgs.configStrings[CS_PLAYERINFOS + client] );
-}
-
-/*
-* CG_ResetClientInfos
-*/
-void CG_ResetClientInfos( void ) {
-	int i, cs;
-
-	memset( cgs.clientInfo, 0, sizeof( cgs.clientInfo ) );
-
-	for( i = 0, cs = CS_PLAYERINFOS + i; i < MAX_CLIENTS; i++, cs++ ) {
-		if( cgs.configStrings[cs][0] ) {
-			CG_LoadClientInfo( i );
-		}
+		S_StartEntitySound( sfx, entnum, entchannel, 1.0f, pitch );
 	}
 }

@@ -25,22 +25,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 // button bits
 //
-#define BUTTON_ATTACK               1
-#define BUTTON_WALK                 2
-#define BUTTON_SPECIAL              4
-#define BUTTON_RELOAD               8
-
-enum {
-	KEYICON_FORWARD = 0,
-	KEYICON_BACKWARD,
-	KEYICON_LEFT,
-	KEYICON_RIGHT,
-	KEYICON_FIRE,
-	KEYICON_JUMP,
-	KEYICON_CROUCH,
-	KEYICON_SPECIAL,
-	KEYICON_TOTAL
-};
+#define BUTTON_ATTACK   ( 1 << 0 )
+#define BUTTON_WALK     ( 1 << 1 )
+#define BUTTON_SPECIAL  ( 1 << 2 )
+#define BUTTON_RELOAD   ( 1 << 3 )
+#define BUTTON_GADGET   ( 1 << 4 )
 
 // user command communications
 #define CMD_BACKUP  64  // allow a lot of command backups for very fast systems
@@ -62,14 +51,11 @@ enum pmtype_t {
 #define PMF_WALLJUMPCOUNT   ( 1 << 0 )
 #define PMF_ON_GROUND       ( 1 << 1 )
 #define PMF_TIME_WATERJUMP  ( 1 << 2 )  // pm_time is waterjump
-#define PMF_TIME_LAND       ( 1 << 3 )  // pm_time is time before rejump
-#define PMF_TIME_TELEPORT   ( 1 << 4 )  // pm_time is non-moving time
-#define PMF_NO_PREDICTION   ( 1 << 5 )  // temporarily disables prediction (used for grappling hook)
-#define PMF_DASHING         ( 1 << 6 )  // Dashing flag
-#define PMF_SPECIAL_HELD    ( 1 << 7 )  // Special flag
-#define PMF_WALLJUMPING     ( 1 << 8 )  // WJ starting flag
-#define PMF_DOUBLEJUMPED    ( 1 << 9 )  // DJ stat flag
-#define PMF_JUMPPAD_TIME    ( 1 << 10 ) // temporarily disables fall damage
+#define PMF_TIME_TELEPORT   ( 1 << 3 )  // pm_time is non-moving time
+#define PMF_NO_PREDICTION   ( 1 << 4 )  // temporarily disables prediction (used for grappling hook)
+#define PMF_DASHING         ( 1 << 5 )  // Dashing flag
+#define PMF_SPECIAL_HELD    ( 1 << 6 )  // Special flag
+#define PMF_WALLJUMPING     ( 1 << 7 )  // WJ starting flag
 
 // note that Q_rint was causing problems here
 // (spawn looking straight up\down at delta_angles wrapping)
@@ -82,21 +68,16 @@ enum pmtype_t {
 //
 // config strings are a general means of communication from
 // the server to all connected clients.
-// Each config string can be at most MAX_QPATH characters.
 //
+
 #define CS_HOSTNAME         0
 #define CS_MAXCLIENTS       1
 
-#define SERVER_PROTECTED_CONFIGSTRINGS 4
-
-#define CS_AUTORECORDSTATE  4
+#define CS_AUTORECORDSTATE  2
 
 #define CS_MATCHSCORE       5
 
 #define CS_CALLVOTE 6
-#define CS_CALLVOTE_YES_VOTES 7
-#define CS_CALLVOTE_NO_VOTES 8
-#define CS_CALLVOTE_REQUIRED_VOTES 9
 
 //precache stuff begins here
 #define CS_PLAYERINFOS      32
@@ -105,29 +86,27 @@ enum pmtype_t {
 
 //==============================================
 
-constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "ghdigital.com", "excalibur.nvg.ntnu.no" };
-#define DEFAULT_MASTER_SERVERS_IPS          "dpmaster.deathmask.net ghdigital.com excalibur.nvg.ntnu.no"
+constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "excalibur.nvg.ntnu.no" };
 #define SERVER_PINGING_TIMEOUT              50
 #define LAN_SERVER_PINGING_TIMEOUT          20
-#define DEFAULT_PLAYERMODEL                 "bigvic"
 
 // SyncEntityState is the information conveyed from the server
 // in an update message about entities that the client will
 // need to render in some way
 
 // edict->svflags
-#define SVF_NOCLIENT            0x00000001      // don't send entity to clients, even if it has effects
-#define SVF_TRANSMITORIGIN2     0x00000008      // always send old_origin (beams, etc)
-#define SVF_SOUNDCULL           0x00000010      // distance culling
-#define SVF_FAKECLIENT          0x00000020      // do not try to send anything to this client
-#define SVF_BROADCAST           0x00000040      // always transmit
-#define SVF_CORPSE              0x00000080      // treat as CONTENTS_CORPSE for collision
-#define SVF_PROJECTILE          0x00000100      // sets s.solid to SOLID_NOT for prediction
-#define SVF_ONLYTEAM            0x00000200      // this entity is only transmited to clients with the same ent->s.team value
-#define SVF_FORCEOWNER          0x00000400      // this entity forces the entity at s.ownerNum to be included in the snapshot
-#define SVF_ONLYOWNER           0x00000800      // this entity is only transmitted to its owner
-#define SVF_FORCETEAM           0x00001000      // this entity is always transmitted to clients with the same ent->s.team value
-#define SVF_NEVEROWNER          0x00002000      // this entity is tramitted to everyone but its owner
+#define SVF_NOCLIENT         ( 1 << 0 )      // don't send entity to clients, even if it has effects
+#define SVF_SOUNDCULL        ( 1 << 1 )      // distance culling
+#define SVF_FAKECLIENT       ( 1 << 2 )      // do not try to send anything to this client
+#define SVF_BROADCAST        ( 1 << 3 )      // always transmit
+#define SVF_CORPSE           ( 1 << 4 )      // treat as CONTENTS_CORPSE for collision
+#define SVF_PROJECTILE       ( 1 << 5 )      // sets s.solid to SOLID_NOT for prediction
+#define SVF_ONLYTEAM         ( 1 << 6 )      // this entity is only transmited to clients with the same ent->s.team value
+#define SVF_FORCEOWNER       ( 1 << 7 )      // this entity forces the entity at s.ownerNum to be included in the snapshot
+#define SVF_ONLYOWNER        ( 1 << 8 )      // this entity is only transmitted to its owner
+#define SVF_OWNERANDCHASERS  ( 1 << 9 )      // this entity is only transmitted to its owner and people spectating them
+#define SVF_FORCETEAM        ( 1 << 10 )      // this entity is always transmitted to clients with the same ent->s.team value
+#define SVF_NEVEROWNER       ( 1 << 11 )      // this entity is tramitted to everyone but its owner
 
 // edict->solid values
 enum solid_t {
@@ -135,8 +114,6 @@ enum solid_t {
 	SOLID_TRIGGER,          // only touch when inside, after moving
 	SOLID_YES               // touch on edge
 };
-
-#define SOLID_BMODEL    31  // special value for bmodel
 
 // SyncEntityState->event values
 // entity events are for effects that take place relative
@@ -155,6 +132,12 @@ enum connstate_t {
 	CA_ACTIVE,                          // game views should be displayed
 };
 
+enum server_state_t {
+	ss_dead,        // no map loaded
+	ss_loading,     // spawning level edicts
+	ss_game         // actively running
+};
+
 enum {
 	DROP_TYPE_GENERAL,
 	DROP_TYPE_PASSWORD,
@@ -169,32 +152,3 @@ enum {
 };
 
 #define DROP_FLAG_AUTORECONNECT 1       // it's okay try reconnectting automatically
-
-enum downloadtype_t {
-	DOWNLOADTYPE_NONE,
-	DOWNLOADTYPE_SERVER,
-	DOWNLOADTYPE_WEB
-};
-
-//==============================================
-
-enum http_query_method_t {
-	HTTP_METHOD_BAD = -1,
-	HTTP_METHOD_NONE = 0,
-	HTTP_METHOD_GET  = 1,
-	HTTP_METHOD_POST = 2,
-	HTTP_METHOD_PUT  = 3,
-	HTTP_METHOD_HEAD = 4,
-};
-
-enum http_response_code_t {
-	HTTP_RESP_NONE = 0,
-	HTTP_RESP_OK = 200,
-	HTTP_RESP_PARTIAL_CONTENT = 206,
-	HTTP_RESP_BAD_REQUEST = 400,
-	HTTP_RESP_FORBIDDEN = 403,
-	HTTP_RESP_NOT_FOUND = 404,
-	HTTP_RESP_REQUEST_TOO_LARGE = 413,
-	HTTP_RESP_REQUESTED_RANGE_NOT_SATISFIABLE = 416,
-	HTTP_RESP_SERVICE_UNAVAILABLE = 503,
-};

@@ -1,2 +1,0 @@
-#define TCP_SUPPORT
-#define HTTP_SUPPORT

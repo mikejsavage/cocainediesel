@@ -9,6 +9,8 @@ build_script:
 - cmd: ggbuild\lua.exe ggbuild\ninja_timeline.lua
 - cmd: ggbuild\ducible.exe release\client.exe
 - cmd: ggbuild\ducible.exe release\server.exe
+- cmd: ggbuild\ducible.exe release\bc4.exe
+- cmd: ggbuild\ducible.exe release\dieselmap.exe
 
 artifacts:
 - path: release

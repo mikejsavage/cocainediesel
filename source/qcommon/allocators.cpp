@@ -1,29 +1,41 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/asan.h"
+#include "qcommon/string.h"
 
 void * Allocator::allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
 	void * p = try_allocate( size, alignment, func, file, line );
 	if( p == NULL )
-		Sys_Error( "Allocation failed in '%s' (%s:%d)", func, file, line );
+		Fatal( "Allocation failed in '%s' (%s:%d)", func, file, line );
 	return p;
 }
 
 void * Allocator::reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
 	void * new_p = try_reallocate( ptr, current_size, new_size, alignment, func, file, line );
 	if( new_p == NULL )
-		Sys_Error( "Reallocation failed in '%s' (%s:%d)", func, file, line );
+		Fatal( "Reallocation failed in '%s' (%s:%d)", func, file, line );
 	return new_p;
+}
+
+void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
+	if( n != 0 && SIZE_MAX / n < size )
+		Fatal( "allocation too large" );
+	return a->allocate( n * size, alignment, func, file, line );
+}
+
+void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
+	if( SIZE_MAX / new_n < size )
+		Fatal( "allocation too large" );
+	return a->reallocate( ptr, current_n * size, new_n * size, alignment, func, file, line );
 }
 
 /*
  * SystemAllocator
  */
 
-#if RELEASE_BUILD
+#if PUBLIC_BUILD
 
 struct AllocationTracker {
-	NONCOPYABLE( AllocationTracker );
 	void track( void * ptr, const char * func, const char * file, int line ) { }
 	void untrack( void * ptr, const char * func, const char * file, int line ) { }
 };
@@ -52,11 +64,26 @@ struct AllocationTracker {
 	}
 
 	~AllocationTracker() {
+		String< 2048 > msg( "Memory leaks:" );
+
+		size_t leaks = 0;
 		for( auto & alloc : allocations ) {
 			const AllocInfo & info = alloc.second;
-			Com_Printf( "Leaked allocation in '%s' (%s:%d)\n", info.func, info.file, info.line );
+			msg.append( "\n{} ({}:{})", info.func, info.file, info.line );
+
+			leaks++;
+			if( leaks == 5 )
+				break;
 		}
-		assert( allocations.empty() );
+
+		if( leaks < allocations.size() ) {
+			msg.append( "\n...and {} more", allocations.size() - leaks );
+		}
+
+		if( leaks > 0 ) {
+			ShowErrorAndAbort( msg.c_str(), __FILE__, __LINE__ );
+		}
+
 		DeleteMutex( mutex );
 	}
 
@@ -73,7 +100,7 @@ struct AllocationTracker {
 			return;
 		Lock( mutex );
 		if( allocations.erase( ptr ) == 0 )
-			Sys_Error( "Stray free in '%s' (%s:%d)", func, file, line );
+			Fatal( "Stray free in '%s' (%s:%d)", func, file, line );
 		Unlock( mutex );
 	};
 };
@@ -81,9 +108,6 @@ struct AllocationTracker {
 #endif
 
 struct SystemAllocator final : public Allocator {
-	SystemAllocator() { }
-	NONCOPYABLE( SystemAllocator );
-
 	AllocationTracker tracker;
 
 	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
@@ -238,18 +262,6 @@ void * ArenaAllocator::get_memory() {
 
 float ArenaAllocator::max_utilisation() const {
 	return float( cursor_max - cursor ) / float( top - cursor );
-}
-
-void * AllocManyHelper( Allocator * a, size_t n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	if( n != 0 && SIZE_MAX / n < size )
-		Sys_Error( "allocation too large" );
-	return a->allocate( n * size, alignment, func, file, line );
-}
-
-void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t new_n, size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	if( SIZE_MAX / new_n < size )
-		Sys_Error( "allocation too large" );
-	return a->reallocate( ptr, current_n * size, new_n * size, alignment, func, file, line );
 }
 
 static SystemAllocator sys_allocator_;

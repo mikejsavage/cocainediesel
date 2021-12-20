@@ -1,0 +1,19 @@
+{
+  particles {
+    material textures/vfx/dirt1
+    blendfunc blend
+    acceleration $gravity
+    collision point
+    rotate
+
+    position cone 90 0
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+
+    speed 128
+    size 100 100
+    lifetime 0.4
+    count 3
+  }
+}

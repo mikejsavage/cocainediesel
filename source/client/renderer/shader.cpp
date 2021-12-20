@@ -53,11 +53,11 @@ static void BuildShaderSrcs( const char * path, const char * defines, DynamicArr
 	lengths->add( -1 );
 }
 
-static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int > lens ) {
+static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Span< const char * > feedback_varyings = Span< const char * >() ) {
 	ZoneScoped;
 
 	Shader new_shader;
-	if( !NewShader( &new_shader, srcs, lens ) )
+	if( !NewShader( &new_shader, srcs, lens, feedback_varyings ) )
 		return;
 
 	DeleteShader( *shader );
@@ -74,28 +74,49 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/standard.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.standard, srcs.span(), lengths.span() );
 
+	const char * standard_shaded_defines = temp(
+		"#define APPLY_DLIGHTS 1\n"
+		"#define SHADED 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+	BuildShaderSrcs( "glsl/standard.glsl", standard_shaded_defines, &srcs, &lengths );
+	ReplaceShader( &shaders.standard_shaded, srcs.span(), lengths.span() );
+
 	BuildShaderSrcs( "glsl/standard.glsl", "#define VERTEX_COLORS 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_vertexcolors, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/standard.glsl", "#define SKINNED 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_skinned, srcs.span(), lengths.span() );
 
+	const char * standard_skinned_shaded_defines = temp(
+		"#define SKINNED 1\n"
+		"#define APPLY_DLIGHTS 1\n"
+		"#define SHADED 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+	BuildShaderSrcs( "glsl/standard.glsl", standard_skinned_shaded_defines, &srcs, &lengths );
+	ReplaceShader( &shaders.standard_skinned_shaded, srcs.span(), lengths.span() );
+
 	BuildShaderSrcs( "glsl/standard.glsl", "#define SKINNED 1\n#define VERTEX_COLORS 1\n", &srcs, &lengths );
 	ReplaceShader( &shaders.standard_skinned_vertexcolors, srcs.span(), lengths.span() );
-
-	BuildShaderSrcs( "glsl/standard.glsl", "#define ALPHA_TEST 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.standard_alphatest, srcs.span(), lengths.span() );
 
 	const char * world_defines = temp(
 		"#define APPLY_DRAWFLAT 1\n"
 		"#define APPLY_FOG 1\n"
 		"#define APPLY_DECALS 1\n"
-		"#define TILE_SIZE {}\n", TILE_SIZE );
+		"#define APPLY_DLIGHTS 1\n"
+		"#define APPLY_SHADOWS 1\n"
+		"#define SHADED 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
 	BuildShaderSrcs( "glsl/standard.glsl", world_defines, &srcs, &lengths );
 	ReplaceShader( &shaders.world, srcs.span(), lengths.span() );
 
-	BuildShaderSrcs( "glsl/write_world_gbuffer.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.write_world_gbuffer, srcs.span(), lengths.span() );
+	BuildShaderSrcs( "glsl/depth_only.glsl", NULL, &srcs, &lengths );
+	ReplaceShader( &shaders.depth_only, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/depth_only.glsl", "#define SKINNED 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.depth_only_skinned, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/postprocess_world_gbuffer.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.postprocess_world_gbuffer, srcs.span(), lengths.span() );
@@ -121,8 +142,42 @@ static void LoadShaders() {
 	BuildShaderSrcs( "glsl/scope.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.scope, srcs.span(), lengths.span() );
 
+	BuildShaderSrcs( "glsl/particle_update.glsl", NULL, &srcs, &lengths );
+	const char * update_no_feedback[] = {
+		"v_ParticlePosition",
+		"v_ParticleVelocity",
+		"v_ParticleAccelDragRest",
+		"v_ParticleUVWH",
+		"v_ParticleStartColor",
+		"v_ParticleEndColor",
+		"v_ParticleSize",
+		"v_ParticleAgeLifetime",
+		"v_ParticleFlags",
+	};
+	ReplaceShader( &shaders.particle_update, srcs.span(), lengths.span(), Span< const char *>( update_no_feedback, ARRAY_COUNT( update_no_feedback ) ) );
+
+	BuildShaderSrcs( "glsl/particle_update.glsl", "#define FEEDBACK 1\n", &srcs, &lengths );
+	const char * update_feedback[] = {
+		"v_ParticlePosition",
+		"v_ParticleVelocity",
+		"v_ParticleAccelDragRest",
+		"v_ParticleUVWH",
+		"v_ParticleStartColor",
+		"v_ParticleEndColor",
+		"v_ParticleSize",
+		"v_ParticleAgeLifetime",
+		"v_ParticleFlags",
+		"gl_NextBuffer",
+		"v_FeedbackPositionNormal",
+		"v_FeedbackColorParm",
+	};
+	ReplaceShader( &shaders.particle_update_feedback, srcs.span(), lengths.span(), Span< const char *>( update_feedback, ARRAY_COUNT( update_feedback ) ) );
+
 	BuildShaderSrcs( "glsl/particle.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.particle, srcs.span(), lengths.span() );
+
+	BuildShaderSrcs( "glsl/particle.glsl", "#define MODEL 1\n", &srcs, &lengths );
+	ReplaceShader( &shaders.particle_model, srcs.span(), lengths.span() );
 
 	BuildShaderSrcs( "glsl/skybox.glsl", NULL, &srcs, &lengths );
 	ReplaceShader( &shaders.skybox, srcs.span(), lengths.span() );

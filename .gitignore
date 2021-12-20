@@ -7,15 +7,30 @@
 /client-*
 /server
 /server-*
+/bc4
+/bc4-*
+/dieselmap
+/dieselmap-*
+
+/livepp_shim.*
+/libs/LivePP
 
 /demos
+/maps/*.bak
+/maps/*.map
+/maps/*.prt
+/maps/*.srf
 /screenshots
+
+/listip.cfg
 
 .vs/
 .vscode/
 
+*.asd
 *.exe
 *.exp
 *.ilk
 *.lib
 *.pdb
+*.cddemo

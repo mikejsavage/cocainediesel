@@ -17,23 +17,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// cg_pmodels.h -- local definitions for pmodels and view weapon
-
-//=============================================================================
-//
-//							SPLITMODELS
-//
-//=============================================================================
-
-extern cvar_t *cg_weaponFlashes;
-extern cvar_t *cg_gunx;
-extern cvar_t *cg_guny;
-extern cvar_t *cg_gunz;
-extern cvar_t *cg_debugPlayerModels;
-extern cvar_t *cg_debugWeaponModels;
-extern cvar_t *cg_gunbob;
-extern cvar_t *cg_gun_fov;
-extern cvar_t *cg_handOffset;
 
 enum {
 	LOWER = 0,
@@ -121,27 +104,18 @@ enum {
 	VWEAP_MAXANIMS
 };
 
-// equivalent to pmodelinfo_t. Shared by different players, etc.
 struct WeaponModelMetadata {
 	bool inuse;
 
 	const Model * model;
 
-	int firstframe[VWEAP_MAXANIMS];         // animation script
-	int lastframe[VWEAP_MAXANIMS];
-	int loopingframes[VWEAP_MAXANIMS];
-	unsigned int frametime[VWEAP_MAXANIMS];
-
-	orientation_t tag_projectionsource;
-
-	// handOffset
 	Vec3 handpositionOrigin;
 	Vec3 handpositionAngles;
 
-	const SoundEffect * fire_sound;
-	const SoundEffect * up_sound;
-	const SoundEffect * zoom_in_sound;
-	const SoundEffect * zoom_out_sound;
+	StringHash fire_sound;
+	StringHash up_sound;
+	StringHash zoom_in_sound;
+	StringHash zoom_out_sound;
 };
 
 enum {
@@ -167,6 +141,7 @@ struct pmodel_animationstate_t {
 
 enum PlayerSound {
 	PlayerSound_Death,
+	PlayerSound_Void,
 	PlayerSound_Jump,
 	PlayerSound_Pain25,
 	PlayerSound_Pain50,
@@ -180,7 +155,7 @@ enum PlayerSound {
 
 struct PlayerModelMetadata {
 	struct Tag {
-		u8 joint_idx;
+		u8 node_idx;
 		Mat4 transform;
 	};
 
@@ -190,36 +165,27 @@ struct PlayerModelMetadata {
 		float loop_from; // we only loop the last part of the animation
 	};
 
-	u64 name_hash;
-
 	const Model * model;
-	const SoundEffect * sounds[ PlayerSound_Count ];
+	StringHash sounds[ PlayerSound_Count ];
 
-	u8 upper_rotator_joints[ 2 ];
-	u8 head_rotator_joint;
-	u8 upper_root_joint;
+	u8 upper_rotator_nodes[ 2 ];
+	u8 head_rotator_node;
+	u8 upper_root_node;
 
-	Tag tag_backpack;
-	Tag tag_head;
+	Tag tag_bomb;
+	Tag tag_hat;
 	Tag tag_weapon;
 
 	AnimationClip clips[ PMODEL_TOTAL_ANIMATIONS ];
-
-	PlayerModelMetadata *next;
 };
 
 struct pmodel_t {
-	// static data
-	const PlayerModelMetadata * metadata;
-
-	// dynamic
 	pmodel_animationstate_t animState;
 
 	Vec3 angles[PMODEL_PARTS];                // for rotations
 	Vec3 oldangles[PMODEL_PARTS];             // for rotations
 
-	// effects
-	orientation_t projectionSource;     // for projectiles
+	Mat4 muzzle_transform;
 };
 
 extern pmodel_t cg_entPModels[MAX_EDICTS];      //a pmodel handle for each cg_entity
@@ -236,13 +202,12 @@ void CG_MoveToTag( Vec3 * move_origin,
 				   Vec3 tag_origin,
 				   const mat3_t tag_axis );
 
-//pmodels
-void CG_PModelsInit( void );
-void CG_PModelsShutdown( void );
-void CG_ResetPModels( void );
-PlayerModelMetadata *CG_RegisterPlayerModel( const char *filename );
+void InitPlayerModels();
+const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num );
+
+void CG_ResetPModels();
+
 void CG_DrawPlayer( centity_t * cent );
-bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result );
 void CG_UpdatePlayerModelEnt( centity_t *cent );
 void CG_PModel_AddAnimation( int entNum, int loweranim, int upperanim, int headanim, int channel );
 void CG_PModel_ClearEventAnimations( int entNum );
@@ -250,9 +215,8 @@ void CG_PModel_ClearEventAnimations( int entNum );
 //
 // cg_wmodels.c
 //
-void CG_WModelsInit();
-WeaponModelMetadata *CG_CreateWeaponZeroModel();
-WeaponModelMetadata *CG_RegisterWeaponModel( const char *cgs_name, WeaponType weaponTag );
+void InitWeaponModels();
+const WeaponModelMetadata * GetWeaponModelMetadata( WeaponType weapon );
 
 //=================================================
 //				VIEW WEAPON
@@ -262,15 +226,10 @@ struct cg_viewweapon_t {
 	mat3_t axis;
 	Vec3 origin;
 
-	unsigned int POVnum;
-	int weapon;
-
-	// animation
 	int baseAnim;
 	int64_t baseAnimStartTime;
 	int eventAnim;
 	int64_t eventAnimStartTime;
 
-	// other effects
-	orientation_t projectionSource;
+	Mat4 muzzle_transform;
 };

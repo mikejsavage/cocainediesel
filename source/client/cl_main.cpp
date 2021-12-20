@@ -21,44 +21,38 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "client/client.h"
 #include "client/assets.h"
+#include "client/downloads.h"
 #include "client/threadpool.h"
+#include "client/demo_browser.h"
+#include "client/server_browser.h"
 #include "client/renderer/renderer.h"
-#include "qcommon/asyncstream.h"
-#include "qcommon/version.h"
-#include "qcommon/hash.h"
+#include "qcommon/compression.h"
 #include "qcommon/csprng.h"
+#include "qcommon/hash.h"
+#include "qcommon/fs.h"
+#include "qcommon/livepp.h"
+#include "qcommon/string.h"
+#include "qcommon/version.h"
 #include "gameshared/gs_public.h"
 
-cvar_t *rcon_client_password;
-cvar_t *rcon_address;
+Cvar *rcon_client_password;
+Cvar *rcon_address;
 
-cvar_t *cl_timeout;
-cvar_t *cl_maxfps;
-cvar_t *cl_pps;
-cvar_t *cl_shownet;
+Cvar *cl_timeout;
+Cvar *cl_maxfps;
+Cvar *cl_pps;
+Cvar *cl_shownet;
 
-cvar_t *cl_extrapolationTime;
-cvar_t *cl_extrapolate;
+Cvar *cl_extrapolationTime;
+Cvar *cl_extrapolate;
 
-static cvar_t *cl_hotloadAssets;
-
-//
-// userinfo
-//
-cvar_t *info_password;
+static Cvar *cl_hotloadAssets;
 
 // wsw : debug netcode
-cvar_t *cl_debug_serverCmd;
-cvar_t *cl_debug_timeDelta;
+Cvar *cl_debug_serverCmd;
+Cvar *cl_debug_timeDelta;
 
-cvar_t *cl_downloads;
-cvar_t *cl_downloads_from_web;
-cvar_t *cl_downloads_from_web_timeout;
-
-cvar_t *cl_devtools;
-
-static char cl_nextString[MAX_STRING_CHARS];
-static char cl_connectChain[MAX_STRING_CHARS];
+Cvar *cl_devtools;
 
 client_static_t cls;
 client_state_t cl;
@@ -66,8 +60,6 @@ client_state_t cl;
 SyncEntityState cl_baselines[MAX_EDICTS];
 
 static bool cl_initialized = false;
-
-static async_stream_module_t *cl_async_stream;
 
 /*
 =======================================================================
@@ -81,7 +73,7 @@ CLIENT RELIABLE COMMAND COMMUNICATION
 * CL_AddReliableCommand
 *
 * The given command will be transmitted to the server, and is gauranteed to
-* not have future usercmd_t executed before it is executed
+* not have future UserCommand executed before it is executed
 */
 void CL_AddReliableCommand( const char *cmd ) {
 	int index;
@@ -94,7 +86,7 @@ void CL_AddReliableCommand( const char *cmd ) {
 	// we must drop the connection
 	if( cls.reliableSequence > cls.reliableAcknowledge + MAX_RELIABLE_COMMANDS ) {
 		cls.reliableAcknowledge = cls.reliableSequence; // try to avoid loops
-		Com_Error( ERR_DROP, "Client command overflow %" PRIi64 " %" PRIi64, cls.reliableAcknowledge, cls.reliableSequence );
+		Com_Error( "Client command overflow %" PRIi64 " %" PRIi64, cls.reliableAcknowledge, cls.reliableSequence );
 	}
 	cls.reliableSequence++;
 	index = cls.reliableSequence & ( MAX_RELIABLE_COMMANDS - 1 );
@@ -116,41 +108,14 @@ void CL_UpdateClientCommandsToServer( msg_t *msg ) {
 		}
 
 		MSG_WriteUint8( msg, clc_clientcommand );
-		if( !cls.reliable ) {
-			MSG_WriteIntBase128( msg, i );
-		}
+		MSG_WriteIntBase128( msg, i );
 		MSG_WriteString( msg, cls.reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )] );
 	}
 
 	cls.reliableSent = cls.reliableSequence;
-	if( cls.reliable ) {
-		cls.reliableAcknowledge = cls.reliableSent;
-	}
 }
 
-/*
-* CL_ForwardToServer_f
-*/
-void CL_ForwardToServer_f( void ) {
-	if( cls.demo.playing ) {
-		return;
-	}
-
-	if( cls.state != CA_CONNECTED && cls.state != CA_ACTIVE ) {
-		Com_Printf( "Can't \"%s\", not connected\n", Cmd_Argv( 0 ) );
-		return;
-	}
-
-	// don't forward the first argument
-	if( Cmd_Argc() > 1 ) {
-		CL_AddReliableCommand( Cmd_Args() );
-	}
-}
-
-/*
-* CL_ServerDisconnect_f
-*/
-void CL_ServerDisconnect_f( void ) {
+void CL_ServerDisconnect_f() {
 	char menuparms[MAX_STRING_CHARS];
 	int type;
 	char reason[MAX_STRING_CHARS];
@@ -166,25 +131,10 @@ void CL_ServerDisconnect_f( void ) {
 
 	Com_Printf( "Connection was closed by server: %s\n", reason );
 
-	snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
-				 DROP_REASON_CONNTERMINATED, cls.servername, type, reason );
+	snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
+				 DROP_REASON_CONNTERMINATED, type, reason );
 
-	Cbuf_ExecuteText( EXEC_NOW, menuparms );
-}
-
-/*
-* CL_Quit
-*/
-void CL_Quit( void ) {
-	CL_Disconnect( NULL );
-	Com_Quit();
-}
-
-/*
-* CL_Quit_f
-*/
-static void CL_Quit_f( void ) {
-	CL_Quit();
+	Cbuf_ExecuteLine( menuparms );
 }
 
 /*
@@ -193,11 +143,12 @@ static void CL_Quit_f( void ) {
 * We have gotten a challenge from the server, so try and
 * connect.
 */
-static void CL_SendConnectPacket( void ) {
+static void CL_SendConnectPacket() {
 	userinfo_modified = false;
 
-	Netchan_OutOfBandPrint( cls.socket, &cls.serveraddress, "connect %i %i %i \"%s\"\n",
-							APP_PROTOCOL_VERSION, Netchan_GamePort(), cls.challenge, Cvar_Userinfo() );
+	TempAllocator temp = cls.frame_arena.temp();
+	Netchan_OutOfBandPrint( cls.socket, &cls.serveraddress, "%s", temp( "connect {} {} {} \"{}\"\n",
+		APP_PROTOCOL_VERSION, Netchan_ClientSessionID(), cls.challenge, Cvar_GetUserInfo() ) );
 }
 
 /*
@@ -205,9 +156,8 @@ static void CL_SendConnectPacket( void ) {
 *
 * Resend a connect message if the last one has timed out
 */
-static void CL_CheckForResend( void ) {
-	// FIXME: should use cls.realtime, but it can be old here after starting a server
-	int64_t realtime = Sys_Milliseconds();
+static void CL_CheckForResend() {
+	int64_t realtime = cls.monotonicTime;
 
 	if( cls.demo.playing ) {
 		return;
@@ -215,22 +165,13 @@ static void CL_CheckForResend( void ) {
 
 	// if the local server is running and we aren't then connect
 	if( cls.state == CA_DISCONNECTED && Com_ServerState() ) {
-		CL_SetClientState( CA_CONNECTING );
-		if( cls.servername ) {
-			Mem_ZoneFree( cls.servername );
-		}
-		cls.servername = ZoneCopyString( "localhost" );
-		cls.servertype = SOCKET_LOOPBACK;
-		NET_InitAddress( &cls.serveraddress, NA_LOOPBACK );
-		if( !NET_OpenSocket( &cls.socket_loopback, cls.servertype, &cls.serveraddress, false ) ) {
-			Com_Error( ERR_FATAL, "Couldn't open the loopback socket\n" );
-			return;
-		}
-		cls.socket = &cls.socket_loopback;
+		netadr_t address;
+		NET_InitAddress( &address, NA_LOOPBACK );
+		CL_Connect( &address );
 	}
 
 	// resend if we haven't gotten a reply yet
-	if( cls.state == CA_CONNECTING && !cls.reliable ) {
+	if( cls.state == CA_CONNECTING ) {
 		if( realtime - cls.connect_time < 3000 ) {
 			return;
 		}
@@ -241,70 +182,30 @@ static void CL_CheckForResend( void ) {
 		cls.connect_count++;
 		cls.connect_time = realtime; // for retransmit requests
 
-		Com_Printf( "Connecting to %s...\n", cls.servername );
+		Com_Printf( "Connecting to %s...\n", NET_AddressToString( &cls.serveraddress ) );
 
 		Netchan_OutOfBandPrint( cls.socket, &cls.serveraddress, "getchallenge\n" );
 	}
-
-	if( cls.state == CA_CONNECTING && cls.reliable ) {
-		if( realtime - cls.connect_time < 10000 ) {
-			return;
-		}
-
-		CL_Disconnect( "Connection timed out" );
-	}
 }
 
-/*
-* CL_Connect
-*/
-static void CL_Connect( const char *servername, socket_type_t type, netadr_t *address, const char *serverchain ) {
-	netadr_t socketaddress;
-
-	cl_connectChain[0] = '\0';
-	cl_nextString[0] = '\0';
-
+void CL_Connect( const netadr_t * address ) {
 	CL_Disconnect( NULL );
 
-	switch( type ) {
-		case SOCKET_LOOPBACK:
-			NET_InitAddress( &socketaddress, NA_LOOPBACK );
-			if( !NET_OpenSocket( &cls.socket_loopback, SOCKET_LOOPBACK, &socketaddress, false ) ) {
-				Com_Error( ERR_FATAL, "Couldn't open the loopback socket: %s\n", NET_ErrorString() ); // FIXME
-				return;
-			}
-			cls.socket = &cls.socket_loopback;
-			cls.reliable = false;
-			break;
-
-		case SOCKET_UDP:
-			cls.socket = ( address->type == NA_IP6 ?  &cls.socket_udp6 :  &cls.socket_udp );
-			cls.reliable = false;
-			break;
-
-		default:
-			assert( false );
-			return;
-	}
-
-	cls.servertype = type;
 	cls.serveraddress = *address;
-	if( NET_GetAddressPort( &cls.serveraddress ) == 0 ) {
-		NET_SetAddressPort( &cls.serveraddress, PORT_SERVER );
-	}
 
-	if( cls.servername ) {
-		Mem_ZoneFree( cls.servername );
+	if( address->type == NA_LOOPBACK ) {
+		cls.socket = &cls.socket_loopback;
 	}
-	cls.servername = ZoneCopyString( servername );
+	else {
+		cls.socket = address->type == NA_IPv6 ? &cls.socket_udp6 : &cls.socket_udp;
+		if( NET_GetAddressPort( &cls.serveraddress ) == 0 ) {
+			NET_SetAddressPort( &cls.serveraddress, PORT_SERVER );
+		}
+	}
 
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 
 	CL_SetClientState( CA_CONNECTING );
-
-	if( serverchain[0] ) {
-		Q_strncpyz( cl_connectChain, serverchain, sizeof( cl_connectChain ) );
-	}
 
 	cls.connect_time = -99999; // CL_CheckForResend() will fire immediately
 	cls.connect_count = 0;
@@ -312,78 +213,33 @@ static void CL_Connect( const char *servername, socket_type_t type, netadr_t *ad
 	cls.lastPacketReceivedTime = cls.realtime; // reset the timeout limit
 }
 
-/*
-* CL_Connect_Cmd_f
-*/
-static void CL_Connect_Cmd_f( socket_type_t socket ) {
-	netadr_t serveraddress;
-	char *servername, password[64];
-	char *connectstring, *connectstring_base;
-	const char *tmp;
-	const char *serverchain;
-
+static void CL_Connect_f() {
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "Usage: %s <server>\n", Cmd_Argv( 0 ) );
 		return;
 	}
 
-	connectstring_base = TempCopyString( Cmd_Argv( 1 ) );
-	connectstring = connectstring_base;
-	serverchain = Cmd_Argc() >= 3 ? Cmd_Argv( 2 ) : "";
+	TempAllocator temp = cls.frame_arena.temp();
 
-	if( !Q_strnicmp( connectstring, APP_URI_SCHEME, strlen( APP_URI_SCHEME ) ) ) {
-		connectstring += strlen( APP_URI_SCHEME );
+	const char * arg = Cmd_Argv( 1 );
+	if( StartsWith( arg, APP_URI_SCHEME ) ) {
+		arg += strlen( APP_URI_SCHEME );
 	}
 
-	if( FileExtension( connectstring ) == APP_DEMO_EXTENSION_STR ) {
-		char *temp;
-		size_t temp_size;
-		const char *http_scheme = "http://";
-
-		if( !Q_strnicmp( connectstring, http_scheme, strlen( http_scheme ) ) ) {
-			connectstring += strlen( http_scheme );
-		}
-
-		temp_size = strlen( "demo " ) + strlen( http_scheme ) + strlen( connectstring ) + 1;
-		temp = ( char * ) Mem_TempMalloc( temp_size );
-		snprintf( temp, temp_size, "demo %s%s", http_scheme, connectstring );
-
-		Cbuf_ExecuteText( EXEC_NOW, temp );
-
-		Mem_TempFree( temp );
-		Mem_TempFree( connectstring_base );
-		return;
+	const char * at = strchr( arg, '@' );
+	if( at != NULL ) {
+		Span< const char > password = Span< const char >( arg, at - arg );
+		Cvar_Set( "password", temp( "{}", password ) );
+		arg += password.n + 1;
 	}
 
-	if( ( tmp = Q_strrstr( connectstring, "@" ) ) != NULL ) {
-		Q_strncpyz( password, connectstring, qmin( sizeof( password ), tmp - connectstring + 1 ) );
-		Cvar_Set( "password", password );
-		connectstring += ( tmp - connectstring ) + 1;
-	}
-
-	if( ( tmp = Q_strrstr( connectstring, "/" ) ) != NULL ) {
-		connectstring[tmp - connectstring] = '\0';
-	}
-
-	if( !NET_StringToAddress( connectstring, &serveraddress ) ) {
-		Mem_TempFree( connectstring_base );
+	netadr_t address;
+	if( !NET_StringToAddress( arg, &address ) ) {
 		Com_Printf( "Bad server address\n" );
 		return;
 	}
 
-	servername = TempCopyString( connectstring );
-	CL_Connect( servername, ( serveraddress.type == NA_LOOPBACK ? SOCKET_LOOPBACK : socket ),
-				&serveraddress, serverchain );
-
-	Mem_TempFree( servername );
-	Mem_TempFree( connectstring_base );
-}
-
-/*
-* CL_Connect_f
-*/
-static void CL_Connect_f( void ) {
-	CL_Connect_Cmd_f( SOCKET_UDP );
+	CL_Connect( &address );
 }
 
 
@@ -393,7 +249,7 @@ static void CL_Connect_f( void ) {
 * Send the rest of the command line over as
 * an unconnected command.
 */
-static void CL_Rcon_f( void ) {
+static void CL_Rcon_f() {
 	char message[1024];
 	int i;
 	const socket_t *socket;
@@ -403,13 +259,13 @@ static void CL_Rcon_f( void ) {
 		return;
 	}
 
-	if( rcon_client_password->string[0] == '\0' ) {
+	if( rcon_client_password->value[0] == '\0' ) {
 		Com_Printf( "You must set 'rcon_password' before issuing an rcon command.\n" );
 		return;
 	}
 
 	// wsw : jal : check for msg len abuse (thx to r1Q2)
-	if( strlen( Cmd_Args() ) + strlen( rcon_client_password->string ) + 16 >= sizeof( message ) ) {
+	if( strlen( Cmd_Args() ) + strlen( rcon_client_password->value ) + 16 >= sizeof( message ) ) {
 		Com_Printf( "Length of password + command exceeds maximum allowed length.\n" );
 		return;
 	}
@@ -422,7 +278,7 @@ static void CL_Rcon_f( void ) {
 
 	Q_strncatz( message, "rcon ", sizeof( message ) );
 
-	Q_strncatz( message, rcon_client_password->string, sizeof( message ) );
+	Q_strncatz( message, rcon_client_password->value, sizeof( message ) );
 	Q_strncatz( message, " ", sizeof( message ) );
 
 	for( i = 1; i < Cmd_Argc(); i++ ) {
@@ -435,13 +291,13 @@ static void CL_Rcon_f( void ) {
 		socket = cls.netchan.socket;
 		address = &cls.netchan.remoteAddress;
 	} else {
-		if( !strlen( rcon_address->string ) ) {
+		if( !strlen( rcon_address->value ) ) {
 			Com_Printf( "You must be connected, or set the 'rcon_address' cvar to issue rcon commands\n" );
 			return;
 		}
 
 		if( rcon_address->modified ) {
-			if( !NET_StringToAddress( rcon_address->string, &cls.rconaddress ) ) {
+			if( !NET_StringToAddress( rcon_address->value, &cls.rconaddress ) ) {
 				Com_Printf( "Bad rcon_address.\n" );
 				return; // we don't clear modified, so it will whine the next time too
 			}
@@ -452,16 +308,13 @@ static void CL_Rcon_f( void ) {
 			rcon_address->modified = false;
 		}
 
-		socket = ( cls.rconaddress.type == NA_IP6 ? &cls.socket_udp6 : &cls.socket_udp );
+		socket = cls.rconaddress.type == NA_IPv6 ? &cls.socket_udp6 : &cls.socket_udp;
 		address = &cls.rconaddress;
 	}
 
 	NET_SendPacket( socket, message, (int)strlen( message ) + 1, address );
 }
 
-/*
-* CL_SetKeyDest
-*/
 void CL_SetKeyDest( keydest_t key_dest ) {
 	if( key_dest != cls.key_dest ) {
 		Key_ClearStates();
@@ -469,42 +322,11 @@ void CL_SetKeyDest( keydest_t key_dest ) {
 	}
 }
 
-/*
-* CL_SetOldKeyDest
-*/
 void CL_SetOldKeyDest( keydest_t key_dest ) {
 	cls.old_key_dest = key_dest;
 }
 
-/*
-* CL_GetBaseServerURL
-*/
-size_t CL_GetBaseServerURL( char *buffer, size_t buffer_size ) {
-	const char *web_url = cls.httpbaseurl;
-
-	if( !buffer || !buffer_size ) {
-		return 0;
-	}
-	if( !web_url || !*web_url ) {
-		*buffer = '\0';
-		return 0;
-	}
-
-	Q_strncpyz( buffer, web_url, buffer_size );
-	return strlen( web_url );
-}
-
-/*
-* CL_ResetServerCount
-*/
-void CL_ResetServerCount( void ) {
-	cl.servercount = -1;
-}
-
-/*
-* CL_ClearState
-*/
-void CL_ClearState( void ) {
+void CL_ClearState() {
 	// wipe the entire cl structure
 	memset( &cl, 0, sizeof( client_state_t ) );
 	memset( cl_baselines, 0, sizeof( cl_baselines ) );
@@ -527,43 +349,12 @@ void CL_ClearState( void ) {
 	cls.lastPacketReceivedTime = 0;
 }
 
-
-/*
-* CL_SetNext_f
-*
-* Next is used to set an action which is executed at disconnecting.
-*/
-static void CL_SetNext_f( void ) {
-	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "USAGE: next <commands>\n" );
-		return;
-	}
-
-	// jalfixme: I'm afraid of this being too powerful, since it basically
-	// is allowed to execute everything. Shall we check for something?
-	Q_strncpyz( cl_nextString, Cmd_Args(), sizeof( cl_nextString ) );
-	Com_Printf( "NEXT: %s\n", cl_nextString );
-}
-
-
-/*
-* CL_ExecuteNext
-*/
-static void CL_ExecuteNext( void ) {
-	if( !strlen( cl_nextString ) ) {
-		return;
-	}
-
-	Cbuf_ExecuteText( EXEC_APPEND, cl_nextString );
-	memset( cl_nextString, 0, sizeof( cl_nextString ) );
-}
-
 /*
 * CL_Disconnect_SendCommand
 *
 * Sends a disconnect message to the server
 */
-static void CL_Disconnect_SendCommand( void ) {
+static void CL_Disconnect_SendCommand() {
 	// wsw : jal : send the packet 3 times to make sure isn't lost
 	CL_AddReliableCommand( "disconnect" );
 	CL_SendMessagesToServer( true );
@@ -581,27 +372,16 @@ static void CL_Disconnect_SendCommand( void ) {
 * This is also called on Com_Error, so it shouldn't cause any errors
 */
 void CL_Disconnect( const char *message ) {
-	char menuparms[MAX_STRING_CHARS];
-	bool wasconnecting;
-
-	// We have to shut down webdownloading first
-	if( cls.download.web && !cls.download.disconnect ) {
-		cls.download.disconnect = true;
-		return;
-	}
+	CancelDownload(); // TODO: maybe shouldn't cancel when downloading a demo
 
 	if( cls.state == CA_UNINITIALIZED ) {
 		return;
 	}
 	if( cls.state == CA_DISCONNECTED ) {
-		goto done;
+		return;
 	}
 
-	if( cls.state < CA_CONNECTED ) {
-		wasconnecting = true;
-	} else {
-		wasconnecting = false;
-	}
+	bool wasconnecting = cls.state < CA_CONNECTED;
 
 	SV_ShutdownGame( "Owner left the listen server", false );
 
@@ -619,64 +399,28 @@ void CL_Disconnect( const char *message ) {
 		CL_Disconnect_SendCommand(); // send a disconnect message to the server
 	}
 
-	// udp is kept open all the time, for connectionless messages
-	if( cls.socket && cls.socket->type != SOCKET_UDP ) {
-		NET_CloseSocket( cls.socket );
-	}
-
 	cls.socket = NULL;
-	cls.reliable = false;
 
-	if( cls.httpbaseurl ) {
-		Mem_Free( cls.httpbaseurl );
-		cls.httpbaseurl = NULL;
-	}
+	FREE( sys_allocator, cls.download_url );
+	cls.download_url = NULL;
 
 	S_StopAllSounds( false );
+
+	CL_GameModule_Shutdown();
 
 	CL_ClearState();
 	CL_SetClientState( CA_DISCONNECTED );
 
-	if( cls.download.requestname ) {
-		cls.download.pending_reconnect = false;
-		cls.download.cancelled = true;
-		CL_DownloadDone();
+	if( message != NULL ) {
+		char menuparms[MAX_STRING_CHARS];
+		snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
+					 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), DROP_TYPE_GENERAL, message );
+
+		Cbuf_ExecuteLine( menuparms );
 	}
-
-	if( cl_connectChain[0] == '\0' ) {
-		if( message != NULL ) {
-			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
-						 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), cls.servername, DROP_TYPE_GENERAL, message );
-
-			Cbuf_ExecuteText( EXEC_NOW, menuparms );
-		}
-	} else {
-		const char *s = strchr( cl_connectChain, ',' );
-		if( s ) {
-			cl_connectChain[s - cl_connectChain] = '\0';
-		} else {
-			s = cl_connectChain + strlen( cl_connectChain ) - 1;
-		}
-		snprintf( cl_nextString, sizeof( cl_nextString ), "connect \"%s\" \"%s\"", cl_connectChain, s + 1 );
-	}
-
-done:
-	// in case we disconnect while in download phase
-	CL_FreeDownloadList();
-
-	CL_ExecuteNext(); // start next action if any is defined
 }
 
-void CL_Disconnect_f( void ) {
-	cl_connectChain[0] = '\0';
-	cl_nextString[0] = '\0';
-
-	// We have to shut down webdownloading first
-	if( cls.download.web ) {
-		cls.download.disconnect = true;
-		return;
-	}
-
+void CL_Disconnect_f() {
 	CL_Disconnect( NULL );
 }
 
@@ -686,13 +430,7 @@ void CL_Disconnect_f( void ) {
 * Just sent as a hint to the client that they should
 * drop to full console
 */
-void CL_Changing_f( void ) {
-	//ZOID
-	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if( cls.download.filenum || cls.download.web ) {
-		return;
-	}
-
+void CL_Changing_f() {
 	if( cls.demo.recording ) {
 		CL_Stop_f();
 	}
@@ -712,14 +450,8 @@ void CL_Changing_f( void ) {
 *
 * The server is changing levels
 */
-void CL_ServerReconnect_f( void ) {
+void CL_ServerReconnect_f() {
 	if( cls.demo.playing ) {
-		return;
-	}
-
-	//if we are downloading, we don't change!  This so we don't suddenly stop downloading a map
-	if( cls.download.filenum || cls.download.web ) {
-		cls.download.pending_reconnect = true;
 		return;
 	}
 
@@ -727,6 +459,8 @@ void CL_ServerReconnect_f( void ) {
 		Com_Printf( "Error: CL_ServerReconnect_f while not connected\n" );
 		return;
 	}
+
+	CancelDownload();
 
 	if( cls.demo.recording ) {
 		CL_Stop_f();
@@ -752,25 +486,15 @@ void CL_ServerReconnect_f( void ) {
 *
 * User reconnect command.
 */
-void CL_Reconnect_f( void ) {
-	char *servername;
-	socket_type_t servertype;
-	netadr_t serveraddress;
-
-	if( !cls.servername ) {
+void CL_Reconnect_f() {
+	if( cls.serveraddress.type == NA_NOTRANSMIT ) {
 		Com_Printf( "Can't reconnect, never connected\n" );
 		return;
 	}
 
-	cl_connectChain[0] = '\0';
-	cl_nextString[0] = '\0';
-
-	servername = TempCopyString( cls.servername );
-	servertype = cls.servertype;
-	serveraddress = cls.serveraddress;
+	netadr_t serveraddress = cls.serveraddress;
 	CL_Disconnect( NULL );
-	CL_Connect( servername, servertype, &serveraddress, "" );
-	Mem_TempFree( servername );
+	CL_Connect( &serveraddress );
 }
 
 /*
@@ -779,45 +503,28 @@ void CL_Reconnect_f( void ) {
 * Responses to broadcasts, etc
 */
 static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *address, msg_t *msg ) {
-	char *s;
-	const char *c;
-
 	MSG_BeginReading( msg );
 	MSG_ReadInt32( msg ); // skip the -1
 
-	s = MSG_ReadStringLine( msg );
+	const char * s = MSG_ReadStringLine( msg );
 
-	if( !strncmp( s, "getserversResponse\\", 19 ) ) {
-		Com_DPrintf( "%s: %s\n", NET_AddressToString( address ), "getserversResponse" );
-		CL_ParseGetServersResponse( socket, address, msg, false );
+	if( StartsWith( s, "getserversResponse" ) ) {
+		ParseMasterServerResponse( msg, false );
 		return;
 	}
 
-	if( !strncmp( s, "getserversExtResponse", 21 ) ) {
-		Com_DPrintf( "%s: %s\n", NET_AddressToString( address ), "getserversExtResponse" );
-		CL_ParseGetServersResponse( socket, address, msg, true );
+	if( StartsWith( s, "getserversExtResponse" ) ) {
+		ParseMasterServerResponse( msg, true );
 		return;
 	}
 
 	Cmd_TokenizeString( s );
-	c = Cmd_Argv( 0 );
+	const char * c = Cmd_Argv( 0 );
 
 	Com_DPrintf( "%s: %s\n", NET_AddressToString( address ), s );
 
-	// server responding to a status broadcast
-	if( !strcmp( c, "info" ) ) {
-		CL_ParseStatusMessage( socket, address, msg );
-		return;
-	}
-
-	// jal : wsw
-	// server responding to a detailed info broadcast
-	if( !strcmp( c, "infoResponse" ) ) {
-		CL_ParseGetInfoResponse( socket, address, msg );
-		return;
-	}
-	if( !strcmp( c, "statusResponse" ) ) {
-		CL_ParseGetStatusResponse( socket, address, msg );
+	if( strcmp( c, "info" ) == 0 ) {
+		ParseGameServerResponse( msg, *address );
 		return;
 	}
 
@@ -827,7 +534,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 	}
 
 	// server connection
-	if( !strcmp( c, "client_connect" ) ) {
+	if( strcmp( c, "client_connect" ) == 0 ) {
 		if( cls.state == CA_CONNECTED ) {
 			Com_Printf( "Dup connect received.  Ignored.\n" );
 			return;
@@ -848,7 +555,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 
 		Q_strncpyz( cls.session, MSG_ReadStringLine( msg ), sizeof( cls.session ) );
 
-		Netchan_Setup( &cls.netchan, socket, address, Netchan_GamePort() );
+		Netchan_Setup( &cls.netchan, socket, address, Netchan_ClientSessionID() );
 		memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 		CL_SetClientState( CA_HANDSHAKE );
 		CL_AddReliableCommand( "new" );
@@ -856,7 +563,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 	}
 
 	// reject packet, used to inform the client that connection attemp didn't succeed
-	if( !strcmp( c, "reject" ) ) {
+	if( strcmp( c, "reject" ) == 0 ) {
 		int rejectflag;
 
 		if( cls.state != CA_CONNECTING ) {
@@ -895,32 +602,21 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 			Com_Printf( "Automatic reconnecting not allowed.\n" );
 
 			CL_Disconnect( NULL );
-			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i servername \"%s\" droptype %i rejectmessage \"%s\"",
-						 DROP_REASON_CONNFAILED, cls.servername, cls.rejecttype, cls.rejectmessage );
+			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
+						 DROP_REASON_CONNFAILED, cls.rejecttype, cls.rejectmessage );
 
-			Cbuf_ExecuteText( EXEC_NOW, menuparms );
+			Cbuf_ExecuteLine( menuparms );
 		}
 
 		return;
 	}
 
-	// remote command from gui front end
-	if( !strcmp( c, "cmd" ) ) {
-		if( !NET_IsLocalAddress( address ) ) {
-			Com_Printf( "Command packet from remote host, ignored\n" );
-			return;
-		}
-		s = MSG_ReadString( msg );
-		Cbuf_AddText( s );
-		Cbuf_AddText( "\n" );
-		return;
-	}
 	// print command from somewhere
-	if( !strcmp( c, "print" ) ) {
+	if( strcmp( c, "print" ) == 0 ) {
 		// CA_CONNECTING is allowed, because old servers send protocol mismatch connection error message with it
 		if( ( ( cls.state != CA_UNINITIALIZED && cls.state != CA_DISCONNECTED ) &&
 			  NET_CompareAddress( address, &cls.serveraddress ) ) ||
-			( rcon_address->string[0] != '\0' && NET_CompareAddress( address, &cls.rconaddress ) ) ) {
+			( rcon_address->value[0] != '\0' && NET_CompareAddress( address, &cls.rconaddress ) ) ) {
 			s = MSG_ReadString( msg );
 			Com_Printf( "%s", s );
 			return;
@@ -928,18 +624,6 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 			Com_Printf( "Print packet from unknown host, ignored\n" );
 			return;
 		}
-	}
-
-	// ping from somewhere
-	if( !strcmp( c, "ping" ) ) {
-		// send any args back with the acknowledgement
-		Netchan_OutOfBandPrint( socket, address, "ack %s", Cmd_Args() );
-		return;
-	}
-
-	// ack from somewhere
-	if( !strcmp( c, "ack" ) ) {
-		return;
 	}
 
 	// challenge from the server we are connecting to
@@ -951,8 +635,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 		}
 		if( !NET_CompareAddress( address, &cls.serveraddress ) ) {
 			Com_Printf( "challenge from a different address, ignored\n" );
-			Com_Printf( "Was %s", NET_AddressToString( address ) );
-			Com_Printf( " should have been %s\n", NET_AddressToString( &cls.serveraddress ) );
+			Com_Printf( "Was %s should have been %s\n", NET_AddressToString( address ), NET_AddressToString( &cls.serveraddress ) );
 			return;
 		}
 
@@ -965,18 +648,9 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 		return;
 	}
 
-	// echo request from server
-	if( !strcmp( c, "echo" ) ) {
-		Netchan_OutOfBandPrint( socket, address, "%s", Cmd_Argv( 1 ) );
-		return;
-	}
-
 	Com_Printf( "Unknown connectionless packet from %s\n%s\n", NET_AddressToString( address ), c );
 }
 
-/*
-* CL_ProcessPacket
-*/
 static bool CL_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 	int zerror;
 
@@ -1000,10 +674,7 @@ static bool CL_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 	return true;
 }
 
-/*
-* CL_ReadPackets
-*/
-void CL_ReadPackets( void ) {
+void CL_ReadPackets() {
 	msg_t msg;
 	uint8_t msgData[MAX_MSGLEN];
 	int ret;
@@ -1025,9 +696,6 @@ void CL_ReadPackets( void ) {
 		while( socket->open && ( ret = NET_GetPacket( socket, &address, &msg ) ) != 0 ) {
 			if( ret == -1 ) {
 				Com_Printf( "Error receiving packet with %s: %s\n", NET_SocketToString( socket ), NET_ErrorString() );
-				if( cls.reliable && cls.socket == socket ) {
-					CL_Disconnect( va( "Error receiving packet: %s\n", NET_ErrorString() ) );
-				}
 
 				continue;
 			}
@@ -1083,7 +751,7 @@ void CL_ReadPackets( void ) {
 
 	// check timeout
 	if( cls.state >= CA_HANDSHAKE && cls.lastPacketReceivedTime ) {
-		if( cls.lastPacketReceivedTime + cl_timeout->value * 1000 < cls.realtime ) {
+		if( cls.lastPacketReceivedTime + cl_timeout->number * 1000 < cls.realtime ) {
 			if( ++cl.timeoutcount > 5 ) { // timeoutcount saves debugger
 				Com_Printf( "\nServer connection timed out.\n" );
 				CL_Disconnect( "Connection timed out" );
@@ -1097,29 +765,31 @@ void CL_ReadPackets( void ) {
 
 //=============================================================================
 
-/*
-* CL_Userinfo_f
-*/
-static void CL_Userinfo_f( void ) {
-	Com_Printf( "User info settings:\n" );
-	Info_Print( Cvar_Userinfo() );
-}
-
 static int precache_spawncount;
 
-void CL_RequestNextDownload( void ) {
-	if( cls.state != CA_CONNECTED ) {
-		return;
-	}
-
-	if( cl_downloads->integer ) {
-		// if( !CL_CheckOrDownloadFile( cl.configstrings[CS_WORLDMODEL] ) ) {
-		// 	return; // started a download
-		// }
-	}
-
+void CL_FinishConnect() {
 	CL_GameModule_Init();
 	CL_AddReliableCommand( va( "begin %i\n", precache_spawncount ) );
+}
+
+static bool AddDownloadedMap( const char * filename, Span< const u8 > compressed ) {
+	if( compressed.ptr == NULL )
+		return false;
+
+	Span< u8 > data;
+	defer { FREE( sys_allocator, data.ptr ); };
+
+	if( !Decompress( filename, sys_allocator, compressed, &data ) ) {
+		Com_Printf( "Downloaded map is corrupt.\n" );
+		return false;
+	}
+
+	if( !AddMap( data, filename + strlen( "base/" ) ) ) {
+		Com_Printf( "Downloaded map is corrupt.\n" );
+		return false;
+	}
+
+	return true;
 }
 
 /*
@@ -1128,7 +798,7 @@ void CL_RequestNextDownload( void ) {
 * The server will send this command right
 * before allowing the client into the server
 */
-void CL_Precache_f( void ) {
+void CL_Precache_f() {
 	if( cls.demo.playing ) {
 		if( !cls.demo.play_jump ) {
 			CL_GameModule_Init();
@@ -1144,64 +814,43 @@ void CL_Precache_f( void ) {
 
 	precache_spawncount = atoi( Cmd_Argv( 1 ) );
 
-	CL_RequestNextDownload();
-}
+	const char * mapname = Cmd_Argv( 2 );
+	u64 hash = Hash64( mapname, strlen( mapname ), Hash64( "maps/" ) );
 
-/*
-* CL_WriteConfiguration
-*
-* Writes key bindings, archived cvars and aliases to a config file
-*/
-static void CL_WriteConfiguration( const char *name ) {
-	int file;
-	if( FS_FOpenFile( name, &file, FS_WRITE ) == -1 ) {
-		Com_Printf( "Couldn't write %s.\n", name );
+	if( FindMap( StringHash( hash ) ) == NULL ) {
+		TempAllocator temp = cls.frame_arena.temp();
+		CL_DownloadFile( temp( "base/maps/{}.bsp.zst", Cmd_Argv( 2 ) ), []( const char * filename, Span< const u8 > data ) {
+			if( AddDownloadedMap( filename, data ) ) {
+				CL_FinishConnect();
+			}
+			else {
+				CL_Disconnect( NULL );
+			}
+		} );
+
 		return;
 	}
 
-	FS_Printf( file, "// key bindings\r\n" );
-	Key_WriteBindings( file );
-
-	FS_Printf( file, "\r\n// variables\r\n" );
-	Cvar_WriteVariables( file );
-
-	FS_FCloseFile( file );
+	CL_FinishConnect();
 }
 
-/*
-* CL_WriteConfig_f
-*/
-static void CL_WriteConfig_f( void ) {
-	char *name;
-	int name_size;
+static void CL_WriteConfiguration() {
+	TempAllocator temp = cls.frame_arena.temp();
 
-	if( Cmd_Argc() != 2 ) {
-		Com_Printf( "Usage: writeconfig <filename>\n" );
-		return;
+	DynamicString config( &temp );
+
+	config += "// key bindings\r\n";
+	Key_WriteBindings( &config );
+
+	config += "\r\n// variables\r\n";
+	Cvar_WriteVariables( &config );
+
+	DynamicString path( &temp, "{}/base/config.cfg", HomeDirPath() );
+	if( !WriteFile( &temp, path.c_str(), config.c_str(), config.length() ) ) {
+		Com_Printf( "Couldn't write %s.\n", path.c_str() );
 	}
-
-	name_size = sizeof( char ) * ( strlen( Cmd_Argv( 1 ) ) + strlen( ".cfg" ) + 1 );
-	name = ( char * ) Mem_TempMalloc( name_size );
-	Q_strncpyz( name, Cmd_Argv( 1 ), name_size );
-	COM_SanitizeFilePath( name );
-
-	if( !COM_ValidateRelativeFilename( name ) ) {
-		Com_Printf( "Invalid filename" );
-		Mem_TempFree( name );
-		return;
-	}
-
-	COM_DefaultExtension( name, ".cfg", name_size );
-
-	Com_Printf( "Writing: %s\n", name );
-	CL_WriteConfiguration( name );
-
-	Mem_TempFree( name );
 }
 
-/*
-* CL_SetClientState
-*/
 void CL_SetClientState( connstate_t state ) {
 	cls.state = state;
 	Com_SetClientState( state );
@@ -1221,10 +870,9 @@ void CL_SetClientState( connstate_t state ) {
 		case CA_CONNECTED:
 			cls.cgameActive = false;
 			Con_Close();
-			Cvar_FixCheatVars();
+			ResetCheatCvars();
 			break;
 		case CA_ACTIVE:
-			cl_connectChain[0] = '\0';
 			Con_Close();
 			UI_HideMenu();
 			S_StopBackgroundTrack();
@@ -1235,131 +883,73 @@ void CL_SetClientState( connstate_t state ) {
 	}
 }
 
-/*
-* CL_ShowServerIP_f - wsw : pb : show the ip:port of the server the client is connected to
-*/
-static void CL_ShowServerIP_f( void ) {
-	if( cls.state != CA_CONNECTED && cls.state != CA_ACTIVE ) {
-		Com_Printf( "Not connected to a server\n" );
-		return;
-	}
-
-	Com_Printf( "Connected to server:\n" );
-	Com_Printf( "Name: %s\n", cls.servername );
-	Com_Printf( "Address: %s\n", NET_AddressToString( &cls.serveraddress ) );
+static Span< const char * > TabCompleteDemo( TempAllocator * a, const char * partial ) {
+	return TabCompleteFilenameHomeDir( a, partial, "demos", APP_DEMO_EXTENSION_STR );
 }
 
-/*
-* CL_InitLocal
-*/
-static void CL_InitLocal( void ) {
-	cvar_t *name;
+static void CL_InitLocal() {
+	Cvar *name;
+	TempAllocator temp = cls.frame_arena.temp();
 
 	cls.state = CA_DISCONNECTED;
 	Com_SetClientState( CA_DISCONNECTED );
 
-	//
-	// register our variables
-	//
-	cl_maxfps =     Cvar_Get( "cl_maxfps", "250", CVAR_ARCHIVE );
-	cl_pps =        Cvar_Get( "cl_pps", "40", CVAR_ARCHIVE );
+	cl_maxfps = NewCvar( "cl_maxfps", "250", CvarFlag_Archive );
+	cl_pps = NewCvar( "cl_pps", "40", CvarFlag_Archive );
 
-	cl_extrapolationTime =  Cvar_Get( "cl_extrapolationTime", "0", CVAR_DEVELOPER );
-	cl_extrapolate = Cvar_Get( "cl_extrapolate", "1", CVAR_ARCHIVE );
+	cl_extrapolationTime = NewCvar( "cl_extrapolationTime", "0", CvarFlag_Developer );
+	cl_extrapolate = NewCvar( "cl_extrapolate", "1", CvarFlag_Archive );
 
-#if PUBLIC_BUILD
-	cl_hotloadAssets = Cvar_Get( "cl_hotloadAssets", "0", CVAR_ARCHIVE );
-#else
-	cl_hotloadAssets = Cvar_Get( "cl_hotloadAssets", "1", CVAR_ARCHIVE );
-#endif
+	cl_hotloadAssets = NewCvar( "cl_hotloadAssets", is_public_build ? "0" : "1", CvarFlag_Archive );
 
-	cl_shownet =        Cvar_Get( "cl_shownet", "0", 0 );
-	cl_timeout =        Cvar_Get( "cl_timeout", "120", 0 );
+	cl_shownet = NewCvar( "cl_shownet", "0", 0 );
+	cl_timeout = NewCvar( "cl_timeout", "120", 0 );
 
-	rcon_client_password =  Cvar_Get( "rcon_password", "", 0 );
-	rcon_address =      Cvar_Get( "rcon_address", "", 0 );
+	rcon_client_password = NewCvar( "rcon_password", "", 0 );
+	rcon_address = NewCvar( "rcon_address", "", 0 );
 
 	// wsw : debug netcode
-	cl_debug_serverCmd =    Cvar_Get( "cl_debug_serverCmd", "0", CVAR_ARCHIVE | CVAR_CHEAT );
-	cl_debug_timeDelta =    Cvar_Get( "cl_debug_timeDelta", "0", CVAR_ARCHIVE /*|CVAR_CHEAT*/ );
+	cl_debug_serverCmd = NewCvar( "cl_debug_serverCmd", "0", CvarFlag_Archive | CvarFlag_Cheat );
+	cl_debug_timeDelta = NewCvar( "cl_debug_timeDelta", "0", CvarFlag_Archive /*|CvarFlag_Cheat*/ );
 
-	cl_downloads =      Cvar_Get( "cl_downloads", "1", CVAR_ARCHIVE );
-	cl_downloads_from_web = Cvar_Get( "cl_downloads_from_web", "1", CVAR_ARCHIVE | CVAR_READONLY );
-	cl_downloads_from_web_timeout = Cvar_Get( "cl_downloads_from_web_timeout", "600", CVAR_ARCHIVE );
+	cl_devtools = NewCvar( "cl_devtools", "0", CvarFlag_Archive );
 
-	cl_devtools = Cvar_Get( "cl_devtools", "0", CVAR_ARCHIVE );
+	NewCvar( "password", "", CvarFlag_UserInfo );
 
-	//
-	// userinfo
-	//
-	info_password =     Cvar_Get( "password", "", CVAR_USERINFO );
-
-	name = Cvar_Get( "name", "", CVAR_USERINFO | CVAR_ARCHIVE );
-	if( !name->string[0] ) {
-		Cvar_Set( name->name, "Player" );
+	name = NewCvar( "name", "", CvarFlag_UserInfo | CvarFlag_Archive );
+	if( StrEqual( name->value, "" ) ) {
+		Cvar_Set( name->name, temp( "user{06}", RandomUniform( &cls.rng, 0, 1000000 ) ) );
 	}
 
-	Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
+	AddCommand( "disconnect", CL_Disconnect_f );
+	AddCommand( "record", CL_Record_f );
+	AddCommand( "stop", CL_Stop_f );
+	AddCommand( "connect", CL_Connect_f );
+	AddCommand( "reconnect", CL_Reconnect_f );
+	AddCommand( "rcon", CL_Rcon_f );
+	AddCommand( "demo", CL_PlayDemo_f );
+	AddCommand( "yolodemo", CL_YoloDemo_f );
+	AddCommand( "demopause", CL_PauseDemo_f );
+	AddCommand( "demojump", CL_DemoJump_f );
 
-	Cvar_Get( "cl_download_name", "", CVAR_READONLY );
-	Cvar_Get( "cl_download_percent", "0", CVAR_READONLY );
-
-	//
-	// register our commands
-	//
-	Cmd_AddCommand( "cmd", CL_ForwardToServer_f );
-	Cmd_AddCommand( "requestservers", CL_GetServers_f );
-	Cmd_AddCommand( "getinfo", CL_QueryGetInfoMessage_f ); // wsw : jal : ask for server info
-	Cmd_AddCommand( "getstatus", CL_QueryGetStatusMessage_f ); // wsw : jal : ask for server info
-	Cmd_AddCommand( "userinfo", CL_Userinfo_f );
-	Cmd_AddCommand( "disconnect", CL_Disconnect_f );
-	Cmd_AddCommand( "record", CL_Record_f );
-	Cmd_AddCommand( "stop", CL_Stop_f );
-	Cmd_AddCommand( "quit", CL_Quit_f );
-	Cmd_AddCommand( "connect", CL_Connect_f );
-	Cmd_AddCommand( "reconnect", CL_Reconnect_f );
-	Cmd_AddCommand( "rcon", CL_Rcon_f );
-	Cmd_AddCommand( "writeconfig", CL_WriteConfig_f );
-	Cmd_AddCommand( "demo", CL_PlayDemo_f );
-	Cmd_AddCommand( "next", CL_SetNext_f );
-	Cmd_AddCommand( "pingserver", CL_PingServer_f );
-	Cmd_AddCommand( "demopause", CL_PauseDemo_f );
-	Cmd_AddCommand( "demojump", CL_DemoJump_f );
-	Cmd_AddCommand( "showserverip", CL_ShowServerIP_f );
-	Cmd_AddCommand( "downloadstatus", CL_DownloadStatus_f );
-	Cmd_AddCommand( "downloadcancel", CL_DownloadCancel_f );
-
-	Cmd_SetCompletionFunc( "demo", CL_DemoComplete );
+	SetTabCompletionCallback( "demo", TabCompleteDemo );
+	SetTabCompletionCallback( "yolodemo", TabCompleteDemo );
 }
 
-/*
-* CL_ShutdownLocal
-*/
-static void CL_ShutdownLocal( void ) {
+static void CL_ShutdownLocal() {
 	cls.state = CA_UNINITIALIZED;
 	Com_SetClientState( CA_UNINITIALIZED );
 
-	Cmd_RemoveCommand( "cmd" );
-	Cmd_RemoveCommand( "requestservers" );
-	Cmd_RemoveCommand( "getinfo" );
-	Cmd_RemoveCommand( "getstatus" );
-	Cmd_RemoveCommand( "userinfo" );
-	Cmd_RemoveCommand( "disconnect" );
-	Cmd_RemoveCommand( "record" );
-	Cmd_RemoveCommand( "stop" );
-	Cmd_RemoveCommand( "quit" );
-	Cmd_RemoveCommand( "connect" );
-	Cmd_RemoveCommand( "reconnect" );
-	Cmd_RemoveCommand( "rcon" );
-	Cmd_RemoveCommand( "writeconfig" );
-	Cmd_RemoveCommand( "demo" );
-	Cmd_RemoveCommand( "next" );
-	Cmd_RemoveCommand( "pingserver" );
-	Cmd_RemoveCommand( "demopause" );
-	Cmd_RemoveCommand( "demojump" );
-	Cmd_RemoveCommand( "showserverip" );
-	Cmd_RemoveCommand( "downloadstatus" );
-	Cmd_RemoveCommand( "downloadcancel" );
+	RemoveCommand( "disconnect" );
+	RemoveCommand( "record" );
+	RemoveCommand( "stop" );
+	RemoveCommand( "connect" );
+	RemoveCommand( "reconnect" );
+	RemoveCommand( "rcon" );
+	RemoveCommand( "demo" );
+	RemoveCommand( "yolodemo" );
+	RemoveCommand( "demopause" );
+	RemoveCommand( "demojump" );
 }
 
 //============================================================================
@@ -1398,9 +988,6 @@ void CL_AdjustServerTime( unsigned int gameMsec ) {
 	}
 }
 
-/*
-* CL_RestartTimeDeltas
-*/
 void CL_RestartTimeDeltas( int newTimeDelta ) {
 	int i;
 
@@ -1413,10 +1000,7 @@ void CL_RestartTimeDeltas( int newTimeDelta ) {
 	}
 }
 
-/*
-* CL_SmoothTimeDeltas
-*/
-int CL_SmoothTimeDeltas( void ) {
+int CL_SmoothTimeDeltas() {
 	int i, count;
 	double delta;
 	snapshot_t  *snap;
@@ -1452,7 +1036,7 @@ int CL_SmoothTimeDeltas( void ) {
 /*
 * CL_UpdateSnapshot - Check for pending snapshots, and fire if needed
 */
-void CL_UpdateSnapshot( void ) {
+void CL_UpdateSnapshot() {
 	ZoneScoped;
 
 	snapshot_t  *snap;
@@ -1497,9 +1081,6 @@ void CL_UpdateSnapshot( void ) {
 	}
 }
 
-/*
-* CL_Netchan_Transmit
-*/
 void CL_Netchan_Transmit( msg_t *msg ) {
 	// if we got here with unsent fragments, fire them all now
 	Netchan_PushAllFragments( &cls.netchan );
@@ -1515,10 +1096,7 @@ void CL_Netchan_Transmit( msg_t *msg ) {
 	cls.lastPacketSentTime = cls.realtime;
 }
 
-/*
-* CL_MaxPacketsReached
-*/
-static bool CL_MaxPacketsReached( void ) {
+static bool CL_MaxPacketsReached() {
 	static int64_t lastPacketTime = 0;
 	static float roundingMsec = 0.0f;
 	int minpackettime;
@@ -1530,11 +1108,11 @@ static bool CL_MaxPacketsReached( void ) {
 
 	if( cl_pps->integer > 62 || cl_pps->integer < 40 ) {
 		Com_Printf( "'cl_pps' value is out of valid range, resetting to default\n" );
-		Cvar_ForceSet( "cl_pps", va( "%s", cl_pps->dvalue ) );
+		Cvar_ForceSet( "cl_pps", cl_pps->default_value );
 	}
 
 	elapsedTime = cls.realtime - lastPacketTime;
-	float minTime = ( 1000.0f / cl_pps->value );
+	float minTime = ( 1000.0f / cl_pps->number );
 
 	// don't let cl_pps be smaller than sv_pps
 	if( cls.state == CA_ACTIVE && !cls.demo.playing && cl.snapFrameTime ) {
@@ -1558,9 +1136,6 @@ static bool CL_MaxPacketsReached( void ) {
 	return true;
 }
 
-/*
-* CL_SendMessagesToServer
-*/
 void CL_SendMessagesToServer( bool sendNow ) {
 	msg_t message;
 	uint8_t messageData[MAX_MSGLEN];
@@ -1580,10 +1155,8 @@ void CL_SendMessagesToServer( bool sendNow ) {
 	if( cls.state < CA_ACTIVE ) {
 		if( sendNow || cls.realtime > 100 + cls.lastPacketSentTime ) {
 			// write the command ack
-			if( !cls.reliable ) {
-				MSG_WriteUint8( &message, clc_svcack );
-				MSG_WriteIntBase128( &message, cls.lastExecutedServerCommand );
-			}
+			MSG_WriteUint8( &message, clc_svcack );
+			MSG_WriteIntBase128( &message, cls.lastExecutedServerCommand );
 			//write up the clc commands
 			CL_UpdateClientCommandsToServer( &message );
 			if( message.cursize > 0 ) {
@@ -1592,14 +1165,12 @@ void CL_SendMessagesToServer( bool sendNow ) {
 		}
 	} else if( sendNow || CL_MaxPacketsReached() ) {
 		// write the command ack
-		if( !cls.reliable ) {
-			MSG_WriteUint8( &message, clc_svcack );
-			MSG_WriteIntBase128( &message, cls.lastExecutedServerCommand );
-		}
+		MSG_WriteUint8( &message, clc_svcack );
+		MSG_WriteIntBase128( &message, cls.lastExecutedServerCommand );
 		// send a userinfo update if needed
 		if( userinfo_modified ) {
 			userinfo_modified = false;
-			CL_AddReliableCommand( va( "usri \"%s\"", Cvar_Userinfo() ) );
+			CL_AddReliableCommand( va( "usri \"%s\"", Cvar_GetUserInfo() ) );
 		}
 		CL_UpdateClientCommandsToServer( &message );
 		CL_WriteUcmdsToMessage( &message );
@@ -1609,9 +1180,6 @@ void CL_SendMessagesToServer( bool sendNow ) {
 	}
 }
 
-/*
-* CL_NetFrame
-*/
 static void CL_NetFrame( int realMsec, int gameMsec ) {
 	ZoneScoped;
 
@@ -1634,28 +1202,24 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 
 	// resend a connection request if necessary
 	CL_CheckForResend();
-	CL_CheckDownloadTimeout();
 
-	CL_ServerListFrame();
+	ServerBrowserFrame();
 }
 
-/*
-* CL_Frame
-*/
 void CL_Frame( int realMsec, int gameMsec ) {
 	ZoneScoped;
+
+	LivePPFrame();
 
 	TracyPlot( "Client frame arena max utilisation", cls.frame_arena.max_utilisation() );
 	cls.frame_arena.clear();
 
 	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	cls.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+	CSPRNG( entropy, sizeof( entropy ) );
+	cls.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	static int allRealMsec = 0, allGameMsec = 0, extraMsec = 0;
 	static float roundingMsec = 0.0f;
-	int minMsec;
-	float maxFps;
 
 	cls.monotonicTime += realMsec;
 	cls.realtime += realMsec;
@@ -1678,30 +1242,11 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	allRealMsec += realMsec;
 	allGameMsec += gameMsec;
 
-	DoneHotloadingAssets();
-
-	if( cl_hotloadAssets->integer != 0 ) {
-		static s64 last_hotload_time = 0;
-		static bool last_focused = true;
-
-		bool focused = IsWindowFocused();
-		bool just_became_focused = focused && !last_focused;
-
-		// hotload assets when the window regains focus or every 1 second when not focused
-		if( just_became_focused || ( !focused && cls.monotonicTime - last_hotload_time >= 1000 ) ) {
-			TempAllocator temp = cls.frame_arena.temp();
-			HotloadAssets( &temp );
-
-			last_hotload_time = cls.monotonicTime;
-		}
-
-		last_focused = focused;
-	}
-
 	CL_UpdateSnapshot();
 	CL_AdjustServerTime( gameMsec );
 	CL_UserInputFrame( realMsec );
 	CL_NetFrame( realMsec, gameMsec );
+	PumpDownloads();
 
 	const int absMinFps = 24;
 
@@ -1709,8 +1254,8 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	if( cl_maxfps->integer < absMinFps ) {
 		Cvar_ForceSet( "cl_maxfps", va( "%i", absMinFps ) );
 	}
-	maxFps = IsWindowFocused() ? cl_maxfps->value : absMinFps;
-	minMsec = Max2( 1000.0f / maxFps, 1.0f );
+	float maxFps = IsWindowFocused() ? cl_maxfps->number : absMinFps;
+	int minMsec = Max2( 1000.0f / maxFps, 1.0f );
 	roundingMsec += Max2( 1000.0f / maxFps, 1.0f ) - minMsec;
 
 	if( roundingMsec >= 1.0f ) {
@@ -1728,7 +1273,15 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		return;
 	}
 
-	cls.frametime = allGameMsec;
+	FrameMark;
+
+	DoneHotloadingAssets();
+	if( cl_hotloadAssets->integer != 0 ) {
+		TempAllocator temp = cls.frame_arena.temp();
+		HotloadAssets( &temp );
+	}
+
+	cls.frametime = cls.demo.paused ? 0 : allGameMsec;
 	cls.realFrameTime = allRealMsec;
 	if( allRealMsec < minMsec ) { // is compensating for a too slow frame
 		extraMsec = Clamp( 0, extraMsec - ( minMsec - allRealMsec ), 100 );
@@ -1761,115 +1314,24 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	SwapBuffers();
 }
 
-//============================================================================
-
-/*
-* CL_AsyncStream_Alloc
-*/
-static void *CL_AsyncStream_Alloc( size_t size, const char *filename, int fileline ) {
-	return _Mem_Alloc( zoneMemPool, size, 0, 0, filename, fileline );
-}
-
-/*
-* CL_AsyncStream_Free
-*/
-static void CL_AsyncStream_Free( void *data, const char *filename, int fileline ) {
-	_Mem_Free( data, 0, 0, filename, fileline );
-}
-
-/*
-* CL_InitAsyncStream
-*/
-static void CL_InitAsyncStream( void ) {
-	cl_async_stream = AsyncStream_InitModule( "Client", CL_AsyncStream_Alloc, CL_AsyncStream_Free );
-}
-
-/*
-* CL_ShutdownAsyncStream
-*/
-static void CL_ShutdownAsyncStream( void ) {
-	if( !cl_async_stream ) {
-		return;
-	}
-
-	AsyncStream_ShutdownModule( cl_async_stream );
-	cl_async_stream = NULL;
-}
-
-/*
-* CL_AddSessionHttpRequestHeaders
-*/
-int CL_AddSessionHttpRequestHeaders( const char *url, const char **headers ) {
-	static char pH[32];
-
-	if( cls.httpbaseurl && *cls.httpbaseurl ) {
-		if( !strncmp( url, cls.httpbaseurl, strlen( cls.httpbaseurl ) ) ) {
-			snprintf( pH, sizeof( pH ), "%i", cl.playernum );
-
-			headers[0] = "X-Client";
-			headers[1] = pH;
-			headers[2] = "X-Session";
-			headers[3] = cls.session;
-			return 4;
-		}
-	}
-	return 0;
-}
-
-/*
-* CL_AsyncStreamRequest
-*/
-void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, int resumeFrom,
-							size_t ( *read_cb )( const void *, size_t, float, int, const char *, void * ),
-							void ( *done_cb )( int, const char *, void * ),
-							void ( *header_cb )( const char *, void * ), void *privatep, bool urlencodeUnsafe ) {
-	char *tmpUrl = NULL;
-	const char *safeUrl;
-
-	if( urlencodeUnsafe ) {
-		// urlencode unsafe characters
-		size_t allocSize = strlen( url ) * 3 + 1;
-		tmpUrl = ( char * )Mem_TempMalloc( allocSize );
-		AsyncStream_UrlEncodeUnsafeChars( url, tmpUrl, allocSize );
-
-		safeUrl = tmpUrl;
-	} else {
-		safeUrl = url;
-	}
-
-	AsyncStream_PerformRequestExt( cl_async_stream, safeUrl, "GET", NULL, headers, timeout,
-								   resumeFrom, read_cb, done_cb, (async_stream_header_cb_t)header_cb, NULL );
-
-	if( urlencodeUnsafe ) {
-		Mem_TempFree( tmpUrl );
-	}
-}
-
-//============================================================================
-
-/*
-* CL_Init
-*/
-void CL_Init( void ) {
+void CL_Init() {
 	ZoneScoped;
+
+	InitLivePP();
 
 	constexpr size_t frame_arena_size = 1024 * 1024; // 1MB
 	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size, 16 );
 	cls.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 
 	u64 entropy[ 2 ];
-	CSPRNG_Bytes( entropy, sizeof( entropy ) );
-	cls.rng = new_rng( entropy[ 0 ], entropy[ 1 ] );
+	CSPRNG( entropy, sizeof( entropy ) );
+	cls.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
 	cls.monotonicTime = 0;
-
-	netadr_t address;
 
 	assert( !cl_initialized );
 
 	cl_initialized = true;
-
-	Con_Init();
 
 	InitThreadPool();
 
@@ -1884,20 +1346,29 @@ void CL_Init( void ) {
 	InitRenderer();
 	InitMaps();
 
+	cls.white_material = FindMaterial( "$whiteimage" );
+
 	if( !S_Init() ) {
 		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
 	}
 
 	CL_ClearState();
 
+	// loopback
+	netadr_t address;
+	NET_InitAddress( &address, NA_LOOPBACK );
+	if( !NET_OpenSocket( &cls.socket_loopback, SOCKET_LOOPBACK, &address, false ) ) {
+		Fatal( "Couldn't open the loopback socket: %s", NET_ErrorString() );
+	}
+
 	// IPv4
-	NET_InitAddress( &address, NA_IP );
+	NET_InitAddress( &address, NA_IPv4 );
 	if( !NET_OpenSocket( &cls.socket_udp, SOCKET_UDP, &address, false ) ) {
-		Com_Error( ERR_FATAL, "Couldn't open UDP socket: %s", NET_ErrorString() );
+		Fatal( "Couldn't open UDP socket: %s", NET_ErrorString() );
 	}
 
 	// IPv6
-	NET_InitAddress( &address, NA_IP6 );
+	NET_InitAddress( &address, NA_IPv6 );
 	if( !NET_OpenSocket( &cls.socket_udp6, SOCKET_UDP, &address, false ) ) {
 		Com_Printf( "Error: Couldn't open UDP6 socket: %s", NET_ErrorString() );
 	}
@@ -1907,45 +1378,31 @@ void CL_Init( void ) {
 	CL_InitLocal();
 	CL_InitInput();
 
-	CL_InitAsyncStream();
-
-	SCR_RegisterConsoleMedia();
+	InitDownloads();
+	InitServerBrowser();
+	InitDemoBrowser();
 
 	CL_InitImGui();
 	UI_Init();
 
 	UI_ShowMainMenu();
-
-	CL_InitServerList();
-
-	Mem_DebugCheckSentinelsGlobal();
 }
 
-/*
-* CL_Shutdown
-*
-* FIXME: this is a callback from Sys_Quit and Com_Error.  It would be better
-* to run quit through here before the final handoff to the sys code.
-*/
-void CL_Shutdown( void ) {
+void CL_Shutdown() {
+	ZoneScoped;
+
 	if( !cl_initialized ) {
 		return;
 	}
 
 	S_StopAllSounds( true );
 
-	CL_ShutDownServerList();
-
-	CL_WriteConfiguration( "config.cfg" );
+	CL_WriteConfiguration();
 
 	CL_Disconnect( NULL );
+	NET_CloseSocket( &cls.socket_loopback );
 	NET_CloseSocket( &cls.socket_udp );
 	NET_CloseSocket( &cls.socket_udp6 );
-	// TOCHECK: Shouldn't we close the TCP socket too?
-	if( cls.servername ) {
-		Mem_ZoneFree( cls.servername );
-		cls.servername = NULL;
-	}
 
 	UI_Shutdown();
 	CL_ShutdownImGui();
@@ -1956,7 +1413,9 @@ void CL_Shutdown( void ) {
 	ShutdownRenderer();
 	DestroyWindow();
 
-	CL_ShutdownAsyncStream();
+	ShutdownDemoBrowser();
+	ShutdownServerBrowser();
+	ShutdownDownloads();
 
 	CL_ShutdownLocal();
 

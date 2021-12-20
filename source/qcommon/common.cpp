@@ -20,42 +20,34 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 #include "qcommon/cmodel.h"
-#include "qcommon/glob.h"
 #include "qcommon/csprng.h"
+#include "qcommon/fpe.h"
+#include "qcommon/fs.h"
+#include "qcommon/maplist.h"
 #include "qcommon/threads.h"
 #include "qcommon/version.h"
-#include "qcommon/wswcurl.h"
 
+#include <errno.h>
 #include <setjmp.h>
-
-#define MAX_NUM_ARGVS   50
-
-static bool commands_intialized = false;
-
-static int com_argc;
-static char *com_argv[MAX_NUM_ARGVS + 1];
-static char com_errormsg[MAX_PRINTMSG];
 
 static bool com_quit;
 
 static jmp_buf abortframe;     // an ERR_DROP occured, exit the entire frame
 
-cvar_t *developer;
-cvar_t *timescale;
-cvar_t *versioncvar;
+Cvar *developer;
+Cvar *timescale;
 
-static cvar_t *logconsole = NULL;
-static cvar_t *logconsole_append;
-static cvar_t *logconsole_flush;
-static cvar_t *logconsole_timestamp;
-static cvar_t *com_showtrace;
+static Cvar *logconsole = NULL;
+static Cvar *logconsole_append;
+static Cvar *logconsole_flush;
+static Cvar *logconsole_timestamp;
 
 static Mutex *com_print_mutex;
 
-static int log_file = 0;
+static FILE * log_file = NULL;
 
-static int server_state = CA_UNINITIALIZED;
-static int client_state = CA_UNINITIALIZED;
+static server_state_t server_state = ss_dead;
+static connstate_t client_state = CA_UNINITIALIZED;
 static bool demo_playing = false;
 
 /*
@@ -91,7 +83,7 @@ void Com_BeginRedirect( int target, char *buffer, int buffersize,
 	Unlock( com_print_mutex );
 }
 
-void Com_EndRedirect( void ) {
+void Com_EndRedirect() {
 	Lock( com_print_mutex );
 
 	rd_flush( rd_target, rd_buffer, rd_extra );
@@ -105,12 +97,6 @@ void Com_EndRedirect( void ) {
 	Unlock( com_print_mutex );
 }
 
-void Com_DeferConsoleLogReopen( void ) {
-	if( logconsole != NULL ) {
-		logconsole->modified = true;
-	}
-}
-
 static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	if( shutdown ) {
 		lock = true;
@@ -120,9 +106,9 @@ static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 		Lock( com_print_mutex );
 	}
 
-	if( log_file ) {
-		FS_FCloseFile( log_file );
-		log_file = 0;
+	if( log_file != NULL ) {
+		fclose( log_file );
+		log_file = NULL;
 	}
 
 	if( shutdown ) {
@@ -134,28 +120,19 @@ static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	}
 }
 
-static void Com_ReopenConsoleLog( void ) {
+static void Com_ReopenConsoleLog() {
 	char errmsg[MAX_PRINTMSG] = { 0 };
 
 	Lock( com_print_mutex );
 
 	Com_CloseConsoleLog( false, false );
 
-	if( logconsole && logconsole->string && logconsole->string[0] ) {
-		size_t name_size;
-		char *name;
-
-		name_size = strlen( logconsole->string ) + strlen( ".log" ) + 1;
-		name = ( char* )Mem_TempMalloc( name_size );
-		Q_strncpyz( name, logconsole->string, name_size );
-		COM_DefaultExtension( name, ".log", name_size );
-
-		if( FS_FOpenFile( name, &log_file, ( logconsole_append && logconsole_append->integer ? FS_APPEND : FS_WRITE ) ) == -1 ) {
-			log_file = 0;
-			snprintf( errmsg, MAX_PRINTMSG, "Couldn't open: %s\n", name );
+	if( logconsole && logconsole->value && logconsole->value[0] ) {
+		const char * mode = logconsole_append && logconsole_append->integer ? "a" : "w";
+		log_file = OpenFile( sys_allocator, logconsole->value, mode );
+		if( log_file == NULL ) {
+			snprintf( errmsg, sizeof( errmsg ), "Couldn't open log file: %s (%s)\n", logconsole->value, strerror( errno ) );
 		}
-
-		Mem_TempFree( name );
 	}
 
 	Unlock( com_print_mutex );
@@ -198,15 +175,15 @@ void Com_Printf( const char *format, ... ) {
 
 	TracyMessage( msg, strlen( msg ) );
 
-	if( log_file ) {
+	if( log_file != NULL ) {
 		if( logconsole_timestamp && logconsole_timestamp->integer ) {
 			char timestamp[MAX_PRINTMSG];
-			Sys_FormatTime( timestamp, sizeof( timestamp ), "%Y-%m-%dT%H:%M:%SZ " );
-			FS_Printf( log_file, "%s", timestamp );
+			Sys_FormatCurrentTime( timestamp, sizeof( timestamp ), "%Y-%m-%dT%H:%M:%SZ " );
+			WritePartialFile( log_file, timestamp, strlen( timestamp ) );
 		}
-		FS_Printf( log_file, "%s", msg );
+		WritePartialFile( log_file, msg, strlen( msg ) );
 		if( logconsole_flush && logconsole_flush->integer ) {
-			FS_Flush( log_file ); // force it to save every time
+			fflush( log_file );
 		}
 	}
 }
@@ -231,97 +208,45 @@ void Com_DPrintf( const char *format, ... ) {
 	Com_Printf( "%s", msg );
 }
 
-
 /*
-* Com_Error
-*
-* Both client and server can use this, and it will
-* do the apropriate things.
-*/
-void Com_Error( com_error_code_t code, const char *format, ... ) {
+ * Quit when run on the server, disconnect when run on the client
+ */
+void Com_Error( const char *format, ... ) {
 	va_list argptr;
-	char *msg = com_errormsg;
-	const size_t sizeof_msg = sizeof( com_errormsg );
-	static bool recursive = false;
-
-	if( recursive ) {
-		Com_Printf( "recursive error after: %s", msg ); // wsw : jal : log it
-		Sys_Error( "recursive error after: %s", msg );
-	}
-	recursive = true;
+	char msg[ MAX_PRINTMSG ];
 
 	va_start( argptr, format );
-	vsnprintf( msg, sizeof_msg, format, argptr );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
-	if( code == ERR_DROP ) {
-		Com_Printf( "********************\nERROR: %s\n********************\n", msg );
-		SV_ShutdownGame( va( "Server crashed: %s\n", msg ), false );
-		CL_Disconnect( msg );
-		recursive = false;
-#if PUBLIC_BUILD
-		longjmp( abortframe, -1 );
-#else
-		abort();
-#endif
-	} else {
-		Com_Printf( "********************\nERROR: %s\n********************\n", msg );
-		SV_Shutdown( va( "Server fatal crashed: %s\n", msg ) );
-		CL_Shutdown();
-	}
+	Com_Printf( "********************\nERROR: %s\n********************\n", msg );
+	SV_ShutdownGame( "Server crashed", false );
+	CL_Disconnect( msg );
 
-	if( log_file ) {
-		FS_FCloseFile( log_file );
-		log_file = 0;
-	}
-
-	Sys_Error( "%s", msg );
+	longjmp( abortframe, -1 );
 }
 
-/*
-* Com_DeferQuit
-*/
-void Com_DeferQuit( void ) {
+void Com_DeferQuit() {
 	com_quit = true;
 }
 
-/*
-* Com_Quit
-*
-* Both client and server can use this, and it will
-* do the apropriate things.
-*/
-void Com_Quit( void ) {
-	SV_Shutdown( "Server quit\n" );
-	CL_Shutdown();
-	ShutdownMapList();
-
-	Sys_Quit();
-}
-
-/*
-* Com_ServerState
-*/
-int Com_ServerState( void ) {
+server_state_t Com_ServerState() {
 	return server_state;
 }
 
-/*
-* Com_SetServerState
-*/
-void Com_SetServerState( int state ) {
+void Com_SetServerState( server_state_t state ) {
 	server_state = state;
 }
 
-int Com_ClientState( void ) {
+connstate_t Com_ClientState() {
 	return client_state;
 }
 
-void Com_SetClientState( int state ) {
+void Com_SetClientState( connstate_t state ) {
 	client_state = state;
 }
 
-bool Com_DemoPlaying( void ) {
+bool Com_DemoPlaying() {
 	return demo_playing;
 }
 
@@ -331,312 +256,79 @@ void Com_SetDemoPlaying( bool state ) {
 
 //============================================================================
 
-/*
-* COM_CheckParm
-*
-* Returns the position (1 to argc-1) in the program's argument list
-* where the given parameter apears, or 0 if not present
-*/
-int COM_CheckParm( char *parm ) {
-	int i;
+void Key_Init();
+void Key_Shutdown();
 
-	for( i = 1; i < com_argc; i++ ) {
-		if( !strcmp( parm, com_argv[i] ) ) {
-			return i;
-		}
-	}
-
-	return 0;
-}
-
-int COM_Argc( void ) {
-	return com_argc;
-}
-
-const char *COM_Argv( int arg ) {
-	if( arg < 0 || arg >= com_argc || !com_argv[arg] ) {
-		return "";
-	}
-	return com_argv[arg];
-}
-
-void COM_ClearArgv( int arg ) {
-	if( arg < 0 || arg >= com_argc || !com_argv[arg] ) {
-		return;
-	}
-	com_argv[arg][0] = '\0';
-}
-
-
-/*
-* COM_InitArgv
-*/
-void COM_InitArgv( int argc, char **argv ) {
-	int i;
-
-	if( argc > MAX_NUM_ARGVS ) {
-		Com_Error( ERR_FATAL, "argc > MAX_NUM_ARGVS" );
-	}
-	com_argc = argc;
-	for( i = 0; i < argc; i++ ) {
-		if( !argv[i] || strlen( argv[i] ) >= MAX_TOKEN_CHARS ) {
-			com_argv[i][0] = '\0';
-		} else {
-			com_argv[i] = argv[i];
-		}
-	}
-}
-
-/*
-* COM_AddParm
-*
-* Adds the given string at the end of the current argument list
-*/
-void COM_AddParm( char *parm ) {
-	if( com_argc == MAX_NUM_ARGVS ) {
-		Com_Error( ERR_FATAL, "COM_AddParm: MAX_NUM_ARGVS" );
-	}
-	com_argv[com_argc++] = parm;
-}
-
-int Com_GlobMatch( const char *pattern, const char *text, const bool casecmp ) {
-	return glob_match( pattern, text, casecmp );
-}
-
-char *_ZoneCopyString( const char *str, const char *filename, int fileline ) {
-	return _Mem_CopyString( zoneMemPool, str, filename, fileline );
-}
-
-char *_TempCopyString( const char *str, const char *filename, int fileline ) {
-	return _Mem_CopyString( tempMemPool, str, filename, fileline );
-}
-
-void Info_Print( char *s ) {
-	char key[512];
-	char value[512];
-	char *o;
-	int l;
-
-	if( *s == '\\' ) {
-		s++;
-	}
-	while( *s ) {
-		o = key;
-		while( *s && *s != '\\' )
-			*o++ = *s++;
-
-		l = o - key;
-		if( l < 20 ) {
-			memset( o, ' ', 20 - l );
-			key[20] = 0;
-		} else {
-			*o = 0;
-		}
-		Com_Printf( "%s", key );
-
-		if( !*s ) {
-			Com_Printf( "MISSING VALUE\n" );
-			return;
-		}
-
-		o = value;
-		s++;
-		while( *s && *s != '\\' )
-			*o++ = *s++;
-		*o = 0;
-
-		if( *s ) {
-			s++;
-		}
-		Com_Printf( "%s\n", value );
-	}
-}
-
-//============================================================================
-
-void Key_Init( void );
-void Key_Shutdown( void );
-
-/*
-* Q_malloc
-*
-* Just like malloc(), but die if allocation fails
-*/
-void *Q_malloc( size_t size ) {
-	void *buf = malloc( size );
-
-	if( !buf ) {
-		Sys_Error( "Q_malloc: failed on allocation of %" PRIuPTR " bytes.\n", (uintptr_t)size );
-	}
-
-	return buf;
-}
-
-/*
-* Q_realloc
-*
-* Just like realloc(), but die if reallocation fails
-*/
-void *Q_realloc( void *buf, size_t newsize ) {
-	void *newbuf = realloc( buf, newsize );
-
-	if( !newbuf && newsize ) {
-		Sys_Error( "Q_realloc: failed on allocation of %" PRIuPTR " bytes.\n", (uintptr_t)newsize );
-	}
-
-	return newbuf;
-}
-
-/*
-* Q_free
-*/
-void Q_free( void *buf ) {
-	free( buf );
-}
-
-/*
-* Qcommon_InitCommands
-*/
-void Qcommon_InitCommands( void ) {
-	assert( !commands_intialized );
-
-	if( is_dedicated_server ) {
-		Cmd_AddCommand( "quit", Com_Quit );
-	}
-
-	commands_intialized = true;
-}
-
-/*
-* Qcommon_ShutdownCommands
-*/
-void Qcommon_ShutdownCommands( void ) {
-	if( !commands_intialized ) {
-		return;
-	}
-
-	if( is_dedicated_server ) {
-		Cmd_RemoveCommand( "quit" );
-	}
-
-	commands_intialized = false;
-}
-
-/*
-* Qcommon_Init
-*/
-void Qcommon_Init( int argc, char **argv ) {
+void Qcommon_Init( int argc, char ** argv ) {
 	ZoneScoped;
 
-#if !PUBLIC_BUILD
-	EnableFPE();
-#endif
+	if( !is_public_build ) {
+		EnableFPE();
+	}
 
 	Sys_Init();
 
-	if( setjmp( abortframe ) ) {
-		Sys_Error( "Error during initialization: %s", com_errormsg );
-	}
-
 	com_print_mutex = NewMutex();
 
-	// initialize memory manager
-	Memory_Init();
+	InitFS();
+	FS_Init();
 
 	// prepare enough of the subsystems to handle
 	// cvar and command buffer management
-	COM_InitArgv( argc, argv );
-
-	Cbuf_Init();
-
-	// initialize cmd/cvar tries
-	Cmd_PreInit();
-	Cvar_PreInit();
-
-	// create basic commands and cvars
 	Cmd_Init();
-	Cvar_Init();
+	Cvar_PreInit();
+	Key_Init(); // need to be able to bind keys before running configs
 
-	wswcurl_init();
-
-	Key_Init();
-
-	// we need to add the early commands twice, because
-	// a basepath or cdpath needs to be set before execing
-	// config files, but we want other parms to override
-	// the settings of the config files
-	Cbuf_AddEarlyCommands( false );
-	Cbuf_Execute();
-
-	developer =     Cvar_Get( "developer", "0", 0 );
-
-	FS_Init();
+	developer = NewCvar( "developer", "0", 0 );
 
 	if( !is_dedicated_server ) {
-		Cbuf_AddText( "exec default.cfg\n" );
-		Cbuf_AddText( "exec config.cfg\n" );
-		Cbuf_AddText( "exec autoexec.cfg\n" );
+		ExecDefaultCfg();
+		Cbuf_ExecuteLine( "exec config.cfg" );
+		Cbuf_ExecuteLine( "exec autoexec.cfg" );
 	}
 	else {
-		Cbuf_AddText( "exec dedicated_autoexec.cfg\n" );
+		Cbuf_ExecuteLine( "config dedicated_autoexec.cfg" );
 	}
 
-	Cbuf_AddEarlyCommands( true );
-	Cbuf_Execute();
+	Cbuf_AddEarlyCommands( argc, argv );
 
-	//
-	// init commands and vars
-	//
-	Memory_InitCommands();
+	Cvar_Init();
 
-	Qcommon_InitCommands();
+	AddCommand( "quit", Com_DeferQuit );
 
-	timescale =     Cvar_Get( "timescale", "1.0", CVAR_CHEAT );
+	timescale = NewCvar( "timescale", "1.0", CvarFlag_Cheat );
 	if( is_dedicated_server ) {
-		logconsole =        Cvar_Get( "logconsole", "server.log", CVAR_ARCHIVE );
-	} else {
-		logconsole =        Cvar_Get( "logconsole", "", CVAR_ARCHIVE );
+		logconsole = NewCvar( "logconsole", "server.log", CvarFlag_Archive );
 	}
-	logconsole_append = Cvar_Get( "logconsole_append", "1", CVAR_ARCHIVE );
-	logconsole_flush =  Cvar_Get( "logconsole_flush", "0", CVAR_ARCHIVE );
-	logconsole_timestamp =  Cvar_Get( "logconsole_timestamp", "0", CVAR_ARCHIVE );
+	else {
+		logconsole = NewCvar( "logconsole", "", CvarFlag_Archive );
+	}
+	logconsole_append = NewCvar( "logconsole_append", "1", CvarFlag_Archive );
+	logconsole_flush =  NewCvar( "logconsole_flush", "0", CvarFlag_Archive );
+	logconsole_timestamp =  NewCvar( "logconsole_timestamp", "0", CvarFlag_Archive );
 
-	com_showtrace =     Cvar_Get( "com_showtrace", "0", 0 );
+	NewCvar( "gamename", APPLICATION_NOSPACES, CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
-	Cvar_Get( "gamename", APPLICATION_NOSPACES, CVAR_SERVERINFO | CVAR_READONLY );
-	versioncvar = Cvar_Get( "version", APP_VERSION " " ARCH " " OSNAME, CVAR_SERVERINFO | CVAR_READONLY );
-
-	CSPRNG_Init();
+	InitCSPRNG();
 
 	NET_Init();
 	Netchan_Init();
-
-	CM_Init();
 
 	InitMapList();
 
 	SV_Init();
 	CL_Init();
 
-	Cbuf_AddLateCommands();
-
-	Cbuf_Execute();
+	Cbuf_AddLateCommands( argc, argv );
 }
 
-/*
-* Qcommon_Frame
-*/
-void Qcommon_Frame( unsigned int realMsec ) {
+bool Qcommon_Frame( unsigned int realMsec ) {
 	ZoneScoped;
 
 	static unsigned int gameMsec;
 
-	if( com_quit ) {
-		Com_Quit();
-	}
-
 	if( setjmp( abortframe ) ) {
-		return; // an ERR_DROP was thrown
+		return true; // an ERR_DROP was thrown
 	}
 
 	if( logconsole && logconsole->modified ) {
@@ -644,58 +336,52 @@ void Qcommon_Frame( unsigned int realMsec ) {
 		Com_ReopenConsoleLog();
 	}
 
-	if( timescale->value >= 0 ) {
+	if( timescale->number >= 0 ) {
 		static float extratime = 0.0f;
-		gameMsec = extratime + (float)realMsec * timescale->value;
-		extratime = ( extratime + (float)realMsec * timescale->value ) - (float)gameMsec;
+		gameMsec = extratime + (float)realMsec * timescale->number;
+		extratime = ( extratime + (float)realMsec * timescale->number ) - (float)gameMsec;
 	} else {
 		gameMsec = realMsec;
 	}
 
-	wswcurl_perform();
-
-	FS_Frame();
-
 	if( is_dedicated_server ) {
-		const char * s;
-		do {
-			s = Sys_ConsoleInput();
-			if( s ) {
-				Cbuf_AddText( va( "%s\n", s ) );
-			}
-		} while( s );
-
-		Cbuf_Execute();
+		while( true ) {
+			const char * s = Sys_ConsoleInput();
+			if( s == NULL )
+				break;
+			Cbuf_ExecuteLine( s );
+		}
 	}
 
 	SV_Frame( realMsec, gameMsec );
 	CL_Frame( realMsec, gameMsec );
+
+	return !com_quit;
 }
 
-/*
-* Qcommon_Shutdown
-*/
-void Qcommon_Shutdown( void ) {
-	CM_Shutdown();
+void Qcommon_Shutdown() {
+	ZoneScoped;
+
+	SV_Shutdown( "Server quit\n" );
+	CL_Shutdown();
+
+	ShutdownMapList();
+
 	Netchan_Shutdown();
 	NET_Shutdown();
 	Key_Shutdown();
 
-	Qcommon_ShutdownCommands();
-	Memory_ShutdownCommands();
+	RemoveCommand( "quit" );
 
 	Com_CloseConsoleLog( true, true );
 
 	FS_Shutdown();
+	ShutdownFS();
 
-	CSPRNG_Shutdown();
-
-	wswcurl_cleanup();
+	ShutdownCSPRNG();
 
 	Cvar_Shutdown();
 	Cmd_Shutdown();
-	Cbuf_Shutdown();
-	Memory_Shutdown();
 
 	DeleteMutex( com_print_mutex );
 }

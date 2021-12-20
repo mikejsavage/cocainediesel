@@ -1,8 +1,10 @@
+#include <ctype.h>
+
 #include "qcommon/base.h"
-#include "hash.h"
+#include "qcommon/hash.h"
 
 u32 Hash32( const void * data, size_t n, u32 hash ) {
-	const u32 prime = UINT32_C( 16777619 );
+	const u32 prime = U32( 16777619 );
 
 	const char * cdata = ( const char * ) data;
 	for( size_t i = 0; i < n; i++ ) {
@@ -12,7 +14,7 @@ u32 Hash32( const void * data, size_t n, u32 hash ) {
 }
 
 u64 Hash64( const void * data, size_t n, u64 hash ) {
-	const u64 prime = UINT64_C( 1099511628211 );
+	const u64 prime = U64( 1099511628211 );
 
 	const char * cdata = ( const char * ) data;
 	for( size_t i = 0; i < n; i++ ) {
@@ -36,12 +38,34 @@ u64 Hash64( u64 x ) {
 	return x;
 }
 
+u64 CaseHash64( Span< const char > str ) {
+	u64 hash = Hash64( "" );
+	for( char c : str ) {
+		c = tolower( c );
+		hash = Hash64( &c, 1, hash );
+	}
+	return hash;
+}
+
+u64 CaseHash64( const char * str ) {
+	return CaseHash64( MakeSpan( str ) );
+}
+
 #ifdef PUBLIC_BUILD
 StringHash::StringHash( const char * s ) {
 	hash = Hash64( s );
 }
+
+StringHash::StringHash( Span< const char > s ) {
+	hash = Hash64( s );
+}
 #else
 StringHash::StringHash( const char * s ) {
+	hash = Hash64( s );
+	str = NULL;
+}
+
+StringHash::StringHash( Span< const char > s ) {
 	hash = Hash64( s );
 	str = NULL;
 }

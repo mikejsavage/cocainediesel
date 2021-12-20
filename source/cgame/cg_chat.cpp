@@ -1,4 +1,5 @@
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 #include "qcommon/string.h"
 
 #include "imgui/imgui.h"
@@ -35,7 +36,7 @@ static Chat chat;
 
 static void OpenChat() {
 	if( !cls.demo.playing ) {
-		bool team = Q_stricmp( Cmd_Argv( 0 ), "messagemode2" ) == 0 &&  Cmd_Exists( "say_team" );
+		bool team = Q_stricmp( Cmd_Argv( 0 ), "messagemode2" ) == 0;
 		chat.mode = team ? ChatMode_SayTeam : ChatMode_Say;
 		chat.input[ 0 ] = '\0';
 		chat.scroll_to_bottom = true;
@@ -51,13 +52,13 @@ static void CloseChat() {
 void CG_InitChat() {
 	chat = { };
 
-	Cmd_AddCommand( "messagemode", OpenChat );
-	Cmd_AddCommand( "messagemode2", OpenChat );
+	AddCommand( "messagemode", OpenChat );
+	AddCommand( "messagemode2", OpenChat );
 }
 
 void CG_ShutdownChat() {
-	Cmd_RemoveCommand( "messagemode" );
-	Cmd_RemoveCommand( "messagemode2" );
+	RemoveCommand( "messagemode" );
+	RemoveCommand( "messagemode2" );
 }
 
 void CG_AddChat( const char * str ) {
@@ -84,19 +85,12 @@ void CG_AddChat( const char * str ) {
 
 static void SendChat() {
 	if( strlen( chat.input ) > 0 ) {
-		// convert double quotes to single quotes
-		for( char * p = chat.input; *p != '\0'; p++ ) {
-			if( *p == '"' ) {
-				*p = '\'';
-			}
-		}
-
 		TempAllocator temp = cls.frame_arena.temp();
 
-		const char * cmd = chat.mode == ChatMode_SayTeam && Cmd_Exists( "say_team" ) ? "say_team" : "say";
-		Cbuf_AddText( temp( "{} \"{}\"\n", cmd, chat.input ) );
+		const char * cmd = chat.mode == ChatMode_SayTeam ? "say_team" : "say";
+		Cbuf_Add( "{} {}", cmd, chat.input );
 
-		S_StartGlobalSound( FindSoundEffect( "sounds/typewriter/return" ), CHAN_AUTO, 1.0f );
+		S_StartGlobalSound( "sounds/typewriter/return", CHAN_AUTO, 1.0f, 1.0f );
 	}
 
 	CloseChat();
@@ -104,12 +98,12 @@ static void SendChat() {
 
 static int InputCallback( ImGuiInputTextCallbackData * data ) {
 	if( data->EventChar == ' ' ) {
-		S_StartGlobalSound( FindSoundEffect( "sounds/typewriter/space" ), CHAN_AUTO, 1.0f );
-		Cbuf_AddText( "cmd typewriterspace\n" );
+		S_StartGlobalSound( "sounds/typewriter/space", CHAN_AUTO, 1.0f, 1.0f );
+		Cbuf_Add( "typewriterspace" );
 	}
 	else {
-		S_StartGlobalSound( FindSoundEffect( "sounds/typewriter/clack" ), CHAN_AUTO, 1.0f );
-		Cbuf_AddText( "cmd typewriterclack\n" );
+		S_StartGlobalSound( "sounds/typewriter/clack", CHAN_AUTO, 1.0f, 1.0f );
+		Cbuf_Add( "typewriterclack" );
 	}
 	return 0;
 }
@@ -117,32 +111,44 @@ static int InputCallback( ImGuiInputTextCallbackData * data ) {
 void CG_DrawChat() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	const ImGuiIO & io = ImGui::GetIO();
-	float width_frac = Lerp( 0.5f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.3f );
-	Vec2 size = io.DisplaySize * Vec2( width_frac, 0.25f );
+	float width_frac = Lerp( 0.5f, Unlerp01( 1024.0f, float( frame_static.viewport_width ), 1920.0f ), 0.3f );
+	Vec2 size = frame_static.viewport * Vec2( width_frac, 0.25f );
 
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground;
-	ImGuiWindowFlags log_flags = 0;
+	ImGuiWindowFlags log_flags = ImGuiWindowFlags_AlwaysUseWindowPadding;
 	if( chat.mode == ChatMode_None ) {
 		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
 		log_flags |= ImGuiWindowFlags_NoScrollbar;
 	}
 
+	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
+	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 8.0f, 8.0f ) );
+	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 8.0f ) );
+
+	// round size down to integer number of lines
+	float extra_height = ImGui::GetFrameHeightWithSpacing() + 3 * ImGui::GetStyle().WindowPadding.y;
+	size.y -= extra_height;
+	size.y -= fmodf( size.y, ImGui::GetTextLineHeightWithSpacing() );
+	size.y += extra_height;
+
 	ImGui::SetNextWindowSize( ImVec2( size.x, size.y ) );
-	ImGui::SetNextWindowPos( ImVec2( 0, size.y * 3 ), ImGuiCond_Always, ImVec2( 0, 0.5f ) );
+	ImGui::SetNextWindowPos( ImVec2( 8, size.y * 3 ), ImGuiCond_Always, ImVec2( 0, 1.0f ) );
 	ImGui::Begin( "chat", WindowZOrder_Chat, flags );
 
 	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), false, log_flags );
+
+	float wrap_width = ImGui::GetWindowContentRegionWidth();
 
 	for( size_t i = 0; i < chat.history_len; i++ ) {
 		size_t idx = ( chat.history_head + i ) % ARRAY_COUNT( chat.history );
 		const ChatMessage * msg = &chat.history[ idx ];
 
 		if( chat.mode == ChatMode_None && cls.monotonicTime > msg->time + GAMECHAT_NOTIFY_TIME ) {
-			continue;
+			ImGui::Dummy( ImGui::CalcTextSize( msg->text, NULL, false, wrap_width ) );
 		}
-
-		ImGui::TextWrapped( "%s", msg->text );
+		else {
+			ImGui::TextWrapped( "%s", msg->text );
+		}
 	}
 
 	if( chat.scroll_to_bottom ) {
@@ -190,34 +196,5 @@ void CG_DrawChat() {
 	}
 
 	ImGui::End();
-}
-
-void CG_FlashChatHighlight( const unsigned int fromIndex, const char *text ) {
-	// dont highlight ourselves
-	if( fromIndex == cgs.playerNum )
-		return;
-
-	// if we've been highlighted recently, dont let people spam it..
-	bool eligible = !chat.lastHighlightTime || chat.lastHighlightTime + GAMECHAT_HIGHLIGHT_TIME < cls.realtime;
-
-	// dont bother doing text match if we've been pinged recently
-	if( !eligible )
-		return;
-
-	// do a case insensitive check for the local player name. remove all crap too
-	char nameLower[MAX_STRING_CHARS];
-	Q_strncpyz( nameLower, cgs.clientInfo[cgs.playerNum].name, MAX_STRING_CHARS );
-	Q_strlwr( nameLower );
-
-	char msgLower[MAX_CHAT_BYTES];
-	Q_strncpyz( msgLower, text, MAX_CHAT_BYTES );
-	Q_strlwr( msgLower );
-
-	// TODO: text match fuzzy ? Levenshtien distance or something might be good here. or at least tokenizing and looking for word
-	// this is probably shitty for some nicks
-	bool hadNick = strstr( msgLower, nameLower ) != NULL;
-	if( hadNick ) {
-		trap_VID_FlashWindow();
-		chat.lastHighlightTime = cls.realtime;
-	}
+	ImGui::PopStyleVar( 3 );
 }

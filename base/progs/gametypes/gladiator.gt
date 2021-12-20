@@ -1,6 +1,0 @@
-/shared/constants.as;
-
-generic/matchstates.as;
-
-gladiator/main.as;
-gladiator/spinner.as;

@@ -200,188 +200,10 @@ static void AngleMove_Calc( edict_t *ent, Vec3 destangles, void ( *func )( edict
 	}
 }
 
-//=========================================================
-//
-//  PLATS
-//
-//=========================================================
-
-#define PLAT_LOW_TRIGGER    1
-
 #define STATE_TOP       0
 #define STATE_BOTTOM        1
 #define STATE_UP        2
 #define STATE_DOWN      3
-
-static void plat_go_down( edict_t *ent );
-
-static void plat_hit_top( edict_t *ent ) {
-	if( ent->moveinfo.sound_end != EMPTY_HASH ) {
-		G_AddEvent( ent, EV_PLAT_HIT_TOP, ent->moveinfo.sound_end.hash, true );
-	}
-	ent->s.sound = EMPTY_HASH;
-	ent->moveinfo.state = STATE_TOP;
-
-	ent->think = plat_go_down;
-	ent->nextThink = level.time + 3000;
-}
-
-static void plat_hit_bottom( edict_t *ent ) {
-	if( ent->moveinfo.sound_end != EMPTY_HASH ) {
-		G_AddEvent( ent, EV_PLAT_HIT_BOTTOM, ent->moveinfo.sound_end.hash, true );
-	}
-	ent->s.sound = EMPTY_HASH;
-	ent->moveinfo.state = STATE_BOTTOM;
-}
-
-void plat_go_down( edict_t *ent ) {
-	if( ent->moveinfo.sound_start != EMPTY_HASH ) {
-		G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start.hash, true );
-	}
-	ent->s.sound = ent->moveinfo.sound_middle;
-	ent->moveinfo.state = STATE_DOWN;
-	Move_Calc( ent, ent->moveinfo.end_origin, plat_hit_bottom );
-}
-
-static void plat_go_up( edict_t *ent ) {
-	if( ent->moveinfo.sound_start != EMPTY_HASH ) {
-		G_AddEvent( ent, EV_PLAT_START_MOVING, ent->moveinfo.sound_start.hash, true );
-	}
-	ent->s.sound = ent->moveinfo.sound_middle;
-	ent->moveinfo.state = STATE_UP;
-	Move_Calc( ent, ent->moveinfo.start_origin, plat_hit_top );
-}
-
-static void plat_blocked( edict_t *self, edict_t *other ) {
-	if( !other->r.client ) {
-		// give it a chance to go away on its own terms (like gibs)
-		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, MOD_CRUSH );
-
-		// if it's still there, nuke it
-		if( other->r.inuse ) {
-			BecomeExplosion1( other );
-		}
-		return;
-	}
-
-	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
-
-	if( self->moveinfo.state == STATE_UP ) {
-		plat_go_down( self );
-	} else if( self->moveinfo.state == STATE_DOWN ) {
-		plat_go_up( self );
-	}
-}
-
-
-void Use_Plat( edict_t *ent, edict_t *other, edict_t *activator ) {
-	if( ent->think ) {
-		return; // already down
-	}
-	plat_go_down( ent );
-}
-
-
-static void Touch_Plat_Center( edict_t *ent, edict_t *other, cplane_t *plane, int surfFlags ) {
-	if( !other->r.client ) {
-		return;
-	}
-	if( G_IsDead( other ) ) {
-		return;
-	}
-
-	ent = ent->enemy; // now point at the plat, not the trigger
-	if( ent->moveinfo.state == STATE_BOTTOM ) {
-		plat_go_up( ent );
-	} else if( ent->moveinfo.state == STATE_TOP ) {
-		ent->nextThink = level.time + 1000; // the player is still on the plat, so delay going down
-	}
-}
-
-static void plat_spawn_inside_trigger( edict_t *ent ) {
-	//
-	// middle trigger
-	//
-	edict_t * trigger = G_Spawn();
-	trigger->s.team = ent->s.team;
-	trigger->touch = Touch_Plat_Center;
-	trigger->movetype = MOVETYPE_NONE;
-	trigger->r.solid = SOLID_TRIGGER;
-	trigger->enemy = ent;
-
-	Vec3 tmin = ent->r.mins + Vec3( 25.0f, 25.0f, 0.0f );
-	Vec3 tmax = ent->r.maxs + Vec3( -25.0f, -25.0f, 8.0f );
-	tmin.z = tmax.z - ( ent->moveinfo.start_origin.z - ent->moveinfo.end_origin.z + st.lip );
-
-	if( ent->spawnflags & PLAT_LOW_TRIGGER ) {
-		tmax.z = tmin.z + 8;
-	}
-
-	if( tmax.x - tmin.x <= 0 ) {
-		tmin.x = ( ent->r.mins.x + ent->r.maxs.x ) * 0.5;
-		tmax.x = tmin.x + 1;
-	}
-	if( tmax.y - tmin.y <= 0 ) {
-		tmin.y = ( ent->r.mins.y + ent->r.maxs.y ) * 0.5;
-		tmax.y = tmin.y + 1;
-	}
-
-	trigger->r.mins = tmin;
-	trigger->r.maxs = tmax;
-
-	GClip_LinkEntity( trigger );
-}
-
-void SP_func_plat( edict_t *ent ) {
-	G_InitMover( ent );
-
-	ent->s.angles = Vec3( 0.0f );
-
-	ent->moveinfo.blocked = plat_blocked;
-
-	if( !ent->speed ) {
-		ent->speed = 300;
-	}
-
-	if( !ent->dmg ) {
-		ent->dmg = 2;
-	}
-
-	if( !st.lip ) {
-		st.lip = 8;
-	}
-
-	// start is the top position, end is the bottom
-	ent->moveinfo.start_origin = ent->s.origin;
-	ent->moveinfo.end_origin = ent->s.origin;
-	if( st.height ) {
-		ent->moveinfo.end_origin.z -= st.height;
-	} else {
-		ent->moveinfo.end_origin.z -= ( ent->r.maxs.z - ent->r.mins.z ) - st.lip;
-	}
-
-	ent->use = Use_Plat;
-
-	plat_spawn_inside_trigger( ent ); // the "start moving" trigger
-
-	if( ent->targetname ) {
-		ent->moveinfo.state = STATE_UP;
-	} else {
-		ent->s.origin = ent->moveinfo.end_origin;
-		ent->moveinfo.state = STATE_BOTTOM;
-	}
-
-	ent->moveinfo.speed = ent->speed;
-	ent->moveinfo.wait = ent->wait;
-	ent->moveinfo.start_angles = ent->s.angles;
-	ent->moveinfo.end_angles = ent->s.angles;
-
-	GClip_LinkEntity( ent );
-
-	G_AssignMoverSounds( ent, S_PLAT_START, S_PLAT_MOVE, S_PLAT_STOP );
-}
-
-
 
 //=========================================================
 //
@@ -416,10 +238,6 @@ static void door_use_areaportals( edict_t *self, bool open ) {
 static void door_go_down( edict_t *self );
 
 static void door_hit_top( edict_t *self ) {
-	if( self->moveinfo.sound_end != EMPTY_HASH ) {
-		G_AddEvent( self, EV_DOOR_HIT_TOP, self->moveinfo.sound_end.hash, true );
-	}
-	self->s.sound = EMPTY_HASH;
 	self->moveinfo.state = STATE_TOP;
 	if( self->spawnflags & DOOR_TOGGLE ) {
 		return;
@@ -431,17 +249,13 @@ static void door_hit_top( edict_t *self ) {
 }
 
 static void door_hit_bottom( edict_t *self ) {
-	if( self->moveinfo.sound_end != EMPTY_HASH ) {
-		G_AddEvent( self, EV_DOOR_HIT_BOTTOM, self->moveinfo.sound_end.hash, true );
-	}
-	self->s.sound = EMPTY_HASH;
 	self->moveinfo.state = STATE_BOTTOM;
 	door_use_areaportals( self, false );
 }
 
 void door_go_down( edict_t *self ) {
-	if( self->moveinfo.sound_start != EMPTY_HASH ) {
-		G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_start.hash, true );
+	if( self->moveinfo.sound_end != EMPTY_HASH ) {
+		G_AddEvent( self, EV_DOOR_START_MOVING, self->moveinfo.sound_end.hash, true );
 	}
 	self->s.sound = self->moveinfo.sound_middle;
 
@@ -452,7 +266,7 @@ void door_go_down( edict_t *self ) {
 	}
 
 	self->moveinfo.state = STATE_DOWN;
-	if( !Q_stricmp( self->classname, "func_door_rotating" ) ) {
+	if( self->classname == "func_door_rotating" ) {
 		AngleMove_Calc( self, self->moveinfo.start_angles, door_hit_bottom );
 	} else {
 		Move_Calc( self, self->moveinfo.start_origin, door_hit_bottom );
@@ -462,8 +276,8 @@ void door_go_down( edict_t *self ) {
 static void door_go_up( edict_t *self, edict_t *activator ) {
 	if( self->moveinfo.state == STATE_UP ) {
 		return; // already going up
-
 	}
+
 	if( self->moveinfo.state == STATE_TOP ) { // reset top wait time
 		if( self->moveinfo.wait >= 0 ) {
 			self->nextThink = level.time + self->moveinfo.wait * 1000;
@@ -477,7 +291,7 @@ static void door_go_up( edict_t *self, edict_t *activator ) {
 	self->s.sound = self->moveinfo.sound_middle;
 
 	self->moveinfo.state = STATE_UP;
-	if( !Q_stricmp( self->classname, "func_door_rotating" ) ) {
+	if( self->classname == "func_door_rotating" ) {
 		AngleMove_Calc( self, self->moveinfo.end_angles, door_hit_top );
 	} else {
 		Move_Calc( self, self->moveinfo.end_origin, door_hit_top );
@@ -502,7 +316,7 @@ static void door_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	door_go_up( self, activator );
 }
 
-static void Touch_DoorTrigger( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+static void Touch_DoorTrigger( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	if( G_IsDead( other ) ) {
 		return;
 	}
@@ -545,16 +359,12 @@ static void Think_SpawnDoorTrigger( edict_t *ent ) {
 static void door_blocked( edict_t *self, edict_t *other ) {
 	if( !other->r.client ) {
 		// give it a chance to go away on its own terms (like gibs)
-		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, MOD_CRUSH );
-
-		// if it's still there, nuke it
-		if( other->r.inuse ) {
-			BecomeExplosion1( other );
-		}
+		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, WorldDamage_Crush );
+		G_FreeEdict( other );
 		return;
 	}
 
-	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, WorldDamage_Crush );
 
 	if( self->spawnflags & DOOR_CRUSHER ) {
 		return;
@@ -575,7 +385,7 @@ void SP_func_door( edict_t *ent ) {
 	G_InitMover( ent );
 	G_SetMovedir( &ent->s.angles, &ent->moveinfo.movedir );
 
-	G_AssignMoverSounds( ent, S_DOOR_START, S_DOOR_MOVE, S_DOOR_STOP );
+	G_AssignMoverSounds( ent, "sounds/movers/door_start", EMPTY_HASH, "sounds/movers/door_close" );
 
 	ent->moveinfo.blocked = door_blocked;
 	ent->use = door_use;
@@ -629,7 +439,7 @@ void SP_func_door( edict_t *ent ) {
 	ent->style = -1;
 	door_use_areaportals( ent, ( ent->spawnflags & DOOR_START_OPEN ) != 0 );
 
-	if( !ent->targetname ) {
+	if( ent->name == EMPTY_HASH ) {
 		ent->nextThink = level.time + 1;
 		ent->think = Think_SpawnDoorTrigger;
 	}
@@ -679,7 +489,7 @@ void SP_func_door_rotating( edict_t *ent ) {
 		ent->dmg = 2;
 	}
 
-	G_AssignMoverSounds( ent, S_DOOR_ROTATING_START, S_DOOR_ROTATING_MOVE, S_DOOR_ROTATING_STOP );
+	G_AssignMoverSounds( ent, "sounds/movers/door_start", EMPTY_HASH, "sounds/movers/door_close" );
 
 	// if it starts open, switch the positions
 	if( ent->spawnflags & DOOR_START_OPEN ) {
@@ -697,7 +507,7 @@ void SP_func_door_rotating( edict_t *ent ) {
 
 	GClip_LinkEntity( ent );
 
-	if( !ent->targetname ) {
+	if( ent->name == EMPTY_HASH ) {
 		ent->nextThink = level.time + 1;
 		ent->think = Think_SpawnDoorTrigger;
 	}
@@ -751,12 +561,12 @@ static void Think_RotateDecel( edict_t *self ) {
 }
 
 static void rotating_blocked( edict_t *self, edict_t *other ) {
-	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, WorldDamage_Crush );
 }
 
-static void rotating_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+static void rotating_touch( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	if( self->avelocity != Vec3( 0.0f ) ) {
-		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, WorldDamage_Crush );
 	}
 }
 
@@ -849,124 +659,11 @@ void SP_func_rotating( edict_t *ent ) {
 		ent->moveinfo.blocked = rotating_blocked;
 	}
 
-	G_AssignMoverSounds( ent, S_FUNC_ROTATING_START, S_FUNC_ROTATING_MOVE, S_FUNC_ROTATING_STOP );
+	G_AssignMoverSounds( ent, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 
 	if( !( ent->spawnflags & 1 ) ) {
 		G_CallUse( ent, NULL, NULL );
 	}
-
-	GClip_LinkEntity( ent );
-}
-
-
-//======================================================================
-//
-//BUTTONS
-//
-//======================================================================
-
-static void button_done( edict_t *self ) {
-	self->moveinfo.state = STATE_BOTTOM;
-}
-
-static void button_return( edict_t *self ) {
-	self->moveinfo.state = STATE_DOWN;
-
-	Move_Calc( self, self->moveinfo.start_origin, button_done );
-
-	if( self->health ) {
-		self->deadflag = DEAD_NO;
-		self->takedamage = DAMAGE_YES;
-	}
-}
-
-static void button_wait( edict_t *self ) {
-	self->moveinfo.state = STATE_TOP;
-
-	G_UseTargets( self, self->activator );
-	if( self->moveinfo.wait >= 0 ) {
-		self->nextThink = level.time + ( self->moveinfo.wait * 1000 );
-		self->think = button_return;
-	}
-}
-
-static void button_fire( edict_t *self ) {
-	if( self->moveinfo.state == STATE_UP || self->moveinfo.state == STATE_TOP ) {
-		return;
-	}
-
-	self->moveinfo.state = STATE_UP;
-	if( self->moveinfo.sound_start != EMPTY_HASH ) {
-		G_AddEvent( self, EV_BUTTON_FIRE, self->moveinfo.sound_start.hash, true );
-	}
-	Move_Calc( self, self->moveinfo.end_origin, button_wait );
-}
-
-static void button_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	self->activator = activator;
-	button_fire( self );
-}
-
-static void button_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
-	if( !other->r.client ) {
-		return;
-	}
-	if( G_IsDead( other ) ) {
-		return;
-	}
-
-	self->activator = other;
-	button_fire( self );
-}
-
-static void button_killed( edict_t *self, edict_t *inflictor, edict_t *attacker, int damage, Vec3 point ) {
-	self->activator = attacker;
-	self->health = self->max_health;
-	self->takedamage = DAMAGE_NO;
-	button_fire( self );
-}
-
-void SP_func_button( edict_t *ent ) {
-	G_InitMover( ent );
-	G_SetMovedir( &ent->s.angles, &ent->moveinfo.movedir );
-
-	ent->moveinfo.sound_start = st.noise != EMPTY_HASH ? st.noise : S_BUTTON_START;
-
-	if( !ent->speed ) {
-		ent->speed = 40;
-	}
-
-	if( !ent->wait ) {
-		ent->wait = 3;
-	}
-	if( !st.lip ) {
-		st.lip = 4;
-	}
-
-	ent->moveinfo.start_origin = ent->s.origin;
-	Vec3 abs_movedir;
-	abs_movedir.x = Abs( ent->moveinfo.movedir.x );
-	abs_movedir.y = Abs( ent->moveinfo.movedir.y );
-	abs_movedir.z = Abs( ent->moveinfo.movedir.z );
-	float dist = Dot( abs_movedir, ent->r.size ) - st.lip;
-	ent->moveinfo.end_origin = ent->moveinfo.start_origin + ent->moveinfo.movedir * dist;
-
-	ent->use = button_use;
-
-	if( ent->health ) {
-		ent->max_health = ent->health;
-		ent->die = button_killed;
-		ent->takedamage = DAMAGE_YES;
-	} else if( !ent->targetname ) {
-		ent->touch = button_touch;
-	}
-
-	ent->moveinfo.state = STATE_BOTTOM;
-
-	ent->moveinfo.speed = ent->speed;
-	ent->moveinfo.wait = ent->wait;
-	ent->moveinfo.start_angles = ent->s.angles;
-	ent->moveinfo.end_angles = ent->s.angles;
 
 	GClip_LinkEntity( ent );
 }
@@ -980,12 +677,8 @@ static void train_next( edict_t *self );
 static void train_blocked( edict_t *self, edict_t *other ) {
 	if( !other->r.client ) {
 		// give it a chance to go away on its own terms (like gibs)
-		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, MOD_CRUSH );
-
-		// if it's still there, nuke it
-		if( other->r.inuse ) {
-			BecomeExplosion1( other );
-		}
+		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, WorldDamage_Crush );
+		G_FreeEdict( other );
 		return;
 	}
 
@@ -997,12 +690,12 @@ static void train_blocked( edict_t *self, edict_t *other ) {
 		return;
 	}
 	self->timeStamp = level.time;
-	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, MOD_CRUSH );
+	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, WorldDamage_Crush );
 }
 
 static void train_wait( edict_t *self ) {
-	if( self->target_ent->pathtarget ) {
-		const char *savetarget;
+	if( self->target_ent->pathtarget != EMPTY_HASH ) {
+		StringHash savetarget;
 		edict_t *ent;
 
 		ent = self->target_ent;
@@ -1044,15 +737,14 @@ void train_next( edict_t *self ) {
 
 	first = true;
 again:
-	if( !self->target ) {
-		//		Com_Printf ("train_next: no next target\n");
+	if( self->target == EMPTY_HASH ) {
 		return;
 	}
 
 	ent = G_PickTarget( self->target );
 	if( !ent ) {
 		if( developer->integer ) {
-			Com_Printf( "train_next: bad target %s\n", self->target );
+			Com_GGPrint( "train_next: bad target {}\n", self->target );
 		}
 		return;
 	}
@@ -1107,7 +799,7 @@ static void train_resume( edict_t *self ) {
 static void func_train_find( edict_t *self ) {
 	edict_t *ent;
 
-	if( !self->target ) {
+	if( self->target == EMPTY_HASH ) {
 		if( developer->integer ) {
 			Com_Printf( "train_find: no target\n" );
 		}
@@ -1117,7 +809,7 @@ static void func_train_find( edict_t *self ) {
 	ent = G_PickTarget( self->target );
 	if( !ent ) {
 		if( developer->integer ) {
-			Com_Printf( "train_find: target %s not found\n", self->target );
+			Com_GGPrint( "train_find: target {} not found\n", self->target );
 		}
 		return;
 	}
@@ -1128,7 +820,7 @@ static void func_train_find( edict_t *self ) {
 	GClip_LinkEntity( self );
 
 	// if not triggered, start immediately
-	if( !self->targetname ) {
+	if( self->name == EMPTY_HASH ) {
 		self->spawnflags |= TRAIN_START_ON;
 	}
 
@@ -1179,120 +871,15 @@ void SP_func_train( edict_t *self ) {
 
 	self->moveinfo.speed = self->speed;
 	self->use = train_use;
-	self->s.effects = EF_WORLD_MODEL;
 
 	GClip_LinkEntity( self );
 
-	if( self->target ) {
+	if( self->target != EMPTY_HASH ) {
 		// start trains on the second frame, to make sure their targets have had
 		// a chance to spawn
 		self->nextThink = level.time + 1;
 		self->think = func_train_find;
 	} else {
-		if( developer->integer ) {
-			Com_GGPrint( "func_train without a target at {}", self->r.absmin );
-		}
-	}
-}
-
-static void trigger_elevator_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	edict_t *target;
-
-	if( self->movetarget->nextThink ) {
-		//		Com_Printf( "elevator busy\n" );
-		return;
-	}
-
-	if( !other->pathtarget ) {
-		if( developer->integer ) {
-			Com_Printf( "elevator used with no pathtarget\n" );
-		}
-		return;
-	}
-
-	target = G_PickTarget( other->pathtarget );
-	if( !target ) {
-		if( developer->integer ) {
-			Com_Printf( "elevator used with bad pathtarget: %s\n", other->pathtarget );
-		}
-		return;
-	}
-
-	self->movetarget->target_ent = target;
-	train_resume( self->movetarget );
-}
-
-static void trigger_elevator_init( edict_t *self ) {
-	if( !self->target ) {
-		if( developer->integer ) {
-			Com_Printf( "trigger_elevator has no target\n" );
-		}
-		return;
-	}
-	self->movetarget = G_PickTarget( self->target );
-	if( !self->movetarget ) {
-		if( developer->integer ) {
-			Com_Printf( "trigger_elevator unable to find target %s\n", self->target );
-		}
-		return;
-	}
-	if( Q_stricmp( self->movetarget->classname, "func_train" ) ) {
-		if( developer->integer ) {
-			Com_Printf( "trigger_elevator target %s is not a train\n", self->target );
-		}
-		return;
-	}
-
-	self->use = trigger_elevator_use;
-	self->r.svflags = SVF_NOCLIENT;
-
-}
-
-void SP_trigger_elevator( edict_t *self ) {
-	self->think = trigger_elevator_init;
-	self->nextThink = level.time + 1;
-}
-
-void func_timer_think( edict_t *self ) {
-	G_UseTargets( self, self->activator );
-	self->nextThink = level.time + 1000 * ( self->wait + random_float11( &svs.rng ) * self->random );
-}
-
-void func_timer_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	self->activator = activator;
-
-	// if on, turn it off
-	if( self->nextThink ) {
-		self->nextThink = 0;
-		return;
-	}
-
-	// turn it on
-	if( self->delay ) {
-		self->nextThink = level.time + self->delay * 1000;
-	} else {
-		func_timer_think( self );
-	}
-}
-
-void SP_func_timer( edict_t *self ) {
-	if( !self->wait ) {
-		self->wait = 1.0;
-	}
-
-	self->use = func_timer_use;
-	self->think = func_timer_think;
-
-	if( self->random >= self->wait ) {
-		self->random = self->wait - 0.1;
-		if( developer->integer ) {
-			Com_GGPrint( "func_timer at {} has random >= wait\n", self->s.origin );
-		}
-	}
-
-	if( self->spawnflags & 1 ) {
-		self->nextThink = level.time + 1000 *
-						  ( 1.0 + st.pausetime + self->delay + self->wait + random_float11( &svs.rng ) * self->random );
-		self->activator = self;
+		Com_GGPrint( "func_train without a target at {}", self->s.origin );
 	}
 }

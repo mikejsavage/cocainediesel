@@ -18,7 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
+#include "qcommon/fs.h"
 #include "qcommon/qcommon.h"
+#include "qcommon/string.h"
 #include "qcommon/cmodel.h"
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
@@ -27,12 +29,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //===================================================================
 
-#define DEFAULT_SUBTITLE_SECONDS 9
-
-char *demoscriptname;
-bool democam_editing_mode;
-int64_t demo_initial_timestamp;
-int64_t demo_time;
+static bool democam_editing_mode;
+static int64_t demo_initial_timestamp;
+static int64_t demo_time;
 
 static bool CamIsFree;
 
@@ -87,9 +86,6 @@ static bool cam_3dPerson;
 static Vec3 cam_orbital_angles;
 static float cam_orbital_radius;
 
-/*
-* CG_Democam_FindCurrent
-*/
 static cg_democam_t *CG_Democam_FindCurrent( int64_t time ) {
 	int64_t higher_time = 0;
 	cg_democam_t *cam, *curcam;
@@ -107,9 +103,6 @@ static cg_democam_t *CG_Democam_FindCurrent( int64_t time ) {
 	return curcam;
 }
 
-/*
-* CG_Democam_FindNext
-*/
 static cg_democam_t *CG_Democam_FindNext( int64_t time ) {
 	int64_t lower_time = INT64_MAX;
 	cg_democam_t *cam, *ncam;
@@ -127,9 +120,6 @@ static cg_democam_t *CG_Democam_FindNext( int64_t time ) {
 	return ncam;
 }
 
-/*
-* CG_Democam_RegisterCam
-*/
 static cg_democam_t *CG_Democam_RegisterCam( int type ) {
 	cg_democam_t *cam;
 
@@ -145,7 +135,7 @@ static cg_democam_t *CG_Democam_RegisterCam( int type ) {
 	}
 
 	if( cam == NULL ) {
-		cam = ( cg_democam_t * )CG_Malloc( sizeof( cg_democam_t ) );
+		cam = ALLOC( sys_allocator, cg_democam_t );
 		cam->next = cg_cams_headnode;
 		cg_cams_headnode = cam;
 	}
@@ -166,9 +156,6 @@ static cg_democam_t *CG_Democam_RegisterCam( int type ) {
 	return cam;
 }
 
-/*
-* CG_Democam_UnregisterCam
-*/
 static void CG_Democam_UnregisterCam( cg_democam_t *cam ) {
 	cg_democam_t *tcam;
 
@@ -179,7 +166,7 @@ static void CG_Democam_UnregisterCam( cg_democam_t *cam ) {
 	// headnode shortcut
 	if( cg_cams_headnode == cam ) {
 		cg_cams_headnode = cg_cams_headnode->next;
-		CG_Free( cam );
+		FREE( sys_allocator, cam );
 		return;
 	}
 
@@ -188,18 +175,14 @@ static void CG_Democam_UnregisterCam( cg_democam_t *cam ) {
 	while( tcam != NULL ) {
 		if( tcam->next == cam ) {
 			tcam->next = cam->next;
-
-			CG_Free( cam );
+			FREE( sys_allocator, cam );
 			break;
 		}
 		tcam = tcam->next;
 	}
 }
 
-/*
-* CG_Democam_FreeCams
-*/
-void CG_Democam_FreeCams( void ) {
+void CG_Democam_FreeCams() {
 	while( cg_cams_headnode )
 		CG_Democam_UnregisterCam( cg_cams_headnode );
 
@@ -208,117 +191,10 @@ void CG_Democam_FreeCams( void ) {
 
 //===================================================================
 
-typedef struct cg_subtitles_s
-{
-	int64_t timeStamp;
-	int64_t maxDuration;
-	bool highprint;
-	char *text;
-
-	struct cg_subtitles_s *next;
-} cg_subtitle_t;
-
-static cg_subtitle_t *cg_subs_headnode = NULL;
-
-static cg_subtitle_t *CG_Democam_FindCurrentSubtitle( void ) {
-	int64_t higher_time = 0;
-	cg_subtitle_t *sub, *currentsub;
-
-	sub = cg_subs_headnode;
-	currentsub = NULL;
-	while( sub != NULL ) {
-		if( ( currentsub == NULL || sub->timeStamp > higher_time ) && sub->timeStamp <= demo_time &&
-			( sub->timeStamp + sub->maxDuration > demo_time ) ) {
-			higher_time = sub->timeStamp;
-			currentsub = sub;
-		}
-		sub = sub->next;
-	}
-
-	return currentsub;
-}
-
-/*
-* CG_Democam_RegisterSubtitle
-*/
-static cg_subtitle_t *CG_Democam_RegisterSubtitle( void ) {
-	cg_subtitle_t *sub;
-
-	CG_DemoCam_UpdateDemoTime();
-
-	sub = cg_subs_headnode;
-	while( sub != NULL ) {
-		if( sub->timeStamp == demo_time ) { // a subtitle exists with the very same timestamp
-			Com_Printf( "warning: There was a subtitle with the same timestamp, it's being replaced\n" );
-			break;
-		}
-		sub = sub->next;
-	}
-
-	if( sub == NULL ) {
-		sub = ( cg_subtitle_t * )CG_Malloc( sizeof( cg_subtitle_t ) );
-		sub->next = cg_subs_headnode;
-		cg_subs_headnode = sub;
-	}
-
-	sub->timeStamp = demo_time;
-	sub->maxDuration = DEFAULT_SUBTITLE_SECONDS * 1000;
-	sub->highprint = false;
-	return sub;
-}
-
-/*
-* CG_Democam_UnregisterSubtitle
-*/
-static void CG_Democam_UnregisterSubtitle( cg_subtitle_t *sub ) {
-	cg_subtitle_t *tsub;
-
-	if( !sub ) {
-		return;
-	}
-
-	// headnode shortcut
-	if( cg_subs_headnode == sub ) {
-		cg_subs_headnode = cg_subs_headnode->next;
-		if( sub->text ) {
-			CG_Free( sub->text );
-		}
-		CG_Free( sub );
-		return;
-	}
-
-	// find the camera which has this one as next;
-	tsub = cg_subs_headnode;
-	while( tsub != NULL ) {
-		if( tsub->next == sub ) {
-			tsub->next = sub->next;
-
-			if( sub->text ) {
-				CG_Free( sub->text );
-			}
-			CG_Free( sub );
-			break;
-		}
-		tsub = tsub->next;
-	}
-}
-
-/*
-* CG_Democam_FreeSubtitles
-*/
-void CG_Democam_FreeSubtitles( void ) {
-	while( cg_subs_headnode )
-		CG_Democam_UnregisterSubtitle( cg_subs_headnode );
-
-	cg_subs_headnode = NULL;
-}
 
 //===================================================================
 
-/*
-* CG_Democam_ExecutePathAnalisys
-*/
-static void CG_Democam_ExecutePathAnalysis( void ) {
+static void CG_Democam_ExecutePathAnalysis() {
 	int64_t pathtime;
 	cg_democam_t *ccam, *ncam, *pcam, *sncam;
 	int count;
@@ -451,110 +327,68 @@ static void CG_Democam_ExecutePathAnalysis( void ) {
 	}
 }
 
-/*
-* CG_LoadRecamScriptFile
-*/
-bool CG_LoadRecamScriptFile( char *filename ) {
-	int filelen, filehandle;
-	uint8_t *buf = NULL;
-	char *ptr, *token;
-	int linecount;
+static bool CG_LoadRecamScriptFile( const char *filename ) {
 	cg_democam_t *cam = NULL;
 
-	if( !filename ) {
-		Com_Printf( "CG_LoadRecamScriptFile: no filename\n" );
+	size_t len;
+	char * buf = ReadFileString( sys_allocator, filename, &len );
+	defer { FREE( sys_allocator, buf ); };
+	if( buf == NULL )
 		return false;
-	}
-
-	filelen = FS_FOpenFile( filename, &filehandle, FS_READ );
-	if( !filehandle || filelen < 1 ) {
-		FS_FCloseFile( filehandle );
-	} else {
-		buf = ( uint8_t * )CG_Malloc( filelen + 1 );
-		filelen = FS_Read( buf, filelen, filehandle );
-		FS_FCloseFile( filehandle );
-	}
-
-	if( !buf ) {
-		return false;
-	}
 
 	// parse the script
-	linecount = 0;
-	ptr = ( char * )buf;
-	while( ptr ) {
-		token = COM_ParseExt( &ptr, true );
-		if( !token[0] ) {
+	int linecount = 0;
+	Span< const char > cursor = Span< const char >( buf, len );
+	while( true ) {
+		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		if( token == "" ) {
 			break;
 		}
 
-		if( !Q_stricmp( token, "subtitle" ) || !Q_stricmp( token, "print" ) ) {
-			cg_subtitle_t *sub;
-
-			sub = CG_Democam_RegisterSubtitle();
-			sub->highprint = ( Q_stricmp( token, "print" ) == 0 );
-
-			token = COM_ParseExt( &ptr, true );
-			if( !token[0] ) {
+		switch( linecount ) {
+			case 0:
+				cam = CG_Democam_RegisterCam( SpanToInt( token, 0 ) );
 				break;
-			}
-			sub->timeStamp = (unsigned int)atoi( token );
-			token = COM_ParseExt( &ptr, true );
-			if( !token[0] ) {
+			case 1:
+				cam->timeStamp = SpanToInt( token, 0 );
 				break;
-			}
-			sub->maxDuration = (unsigned int)atoi( token );
-			sub->text = CG_CopyString( COM_ParseExt( &ptr, true ) );
+			case 2:
+				cam->origin.x = SpanToFloat( token, 0.0f );
+				break;
+			case 3:
+				cam->origin.y = SpanToFloat( token, 0.0f );
+				break;
+			case 4:
+				cam->origin.z = SpanToFloat( token, 0.0f );
+				break;
+			case 5:
+				cam->angles.x = SpanToFloat( token, 0.0f );
+				break;
+			case 6:
+				cam->angles.y = SpanToFloat( token, 0.0f );
+				break;
+			case 7:
+				cam->angles.z = SpanToFloat( token, 0.0f );
+				break;
+			case 8:
+				cam->trackEnt = SpanToInt( token, 0 );
+				break;
+			case 9:
+				cam->fov = SpanToInt( token, 0 );
+				break;
+			default:
+				Com_Error( "CG_LoadRecamScriptFile: bad switch\n" );
+		}
 
+		linecount++;
+		if( linecount == 10 ) {
 			linecount = 0;
-		} else {
-			switch( linecount ) {
-				case 0:
-					cam = CG_Democam_RegisterCam( atoi( token ) );
-					break;
-				case 1:
-					cam->timeStamp = (unsigned int)atoi( token );
-					break;
-				case 2:
-					cam->origin.x = atof( token );
-					break;
-				case 3:
-					cam->origin.y = atof( token );
-					break;
-				case 4:
-					cam->origin.z = atof( token );
-					break;
-				case 5:
-					cam->angles.x = atof( token );
-					break;
-				case 6:
-					cam->angles.y = atof( token );
-					break;
-				case 7:
-					cam->angles.z = atof( token );
-					break;
-				case 8:
-					cam->trackEnt = atoi( token );
-					break;
-				case 9:
-					cam->fov = atoi( token );
-					break;
-				default:
-					Com_Error( ERR_DROP, "CG_LoadRecamScriptFile: bad switch\n" );
-			}
-
-			linecount++;
-			if( linecount == 10 ) {
-				linecount = 0;
-			}
 		}
 	}
 
-	CG_Free( buf );
 	if( linecount != 0 ) {
 		Com_Printf( "CG_LoadRecamScriptFile: Invalid script. Ignored\n" );
 		CG_Democam_FreeCams();
-		CG_Democam_FreeSubtitles();
 		return false;
 	}
 
@@ -562,80 +396,34 @@ bool CG_LoadRecamScriptFile( char *filename ) {
 	return true;
 }
 
-/*
-* CG_SaveRecamScriptFile
-*/
-void CG_SaveRecamScriptFile( const char *filename ) {
-	cg_democam_t *cam;
-	cg_subtitle_t *sub;
-	int filehandle;
-	char str[256];
-
-	if( !cg_cams_headnode && !cg_subs_headnode ) {
-		Com_Printf( "CG_SaveRecamScriptFile: no cameras nor subtitles to save\n" );
+static void CG_SaveRecamScriptFile( const char *filename ) {
+	if( !cg_cams_headnode ) {
+		Com_Printf( "CG_SaveRecamScriptFile: no cameras to save\n" );
 		return;
 	}
 
-	if( !filename ) {
-		filename = demoscriptname;
-		if( !filename ) {
-			return;
-		}
-	}
+	DynamicString output( sys_allocator );
+	output.append( "// demo start time: {}\n", demo_initial_timestamp );
 
-	if( FS_FOpenFile( filename, &filehandle, FS_WRITE ) == -1 ) {
-		Com_Printf( "CG_SaveRecamScriptFile: Couldn't create the file %s\n", demoscriptname );
-		return;
-	}
-
-	snprintf( str, sizeof( str ), "// cam script file generated by %s\n", Cvar_String( "gamename" ) );
-	FS_Print( filehandle, str );
-
-	snprintf( str, sizeof( str ), "// demo start time: %" PRIi64 "\n", demo_initial_timestamp );
-	FS_Print( filehandle, str );
-
-	cam = cg_cams_headnode;
+	const cg_democam_t * cam = cg_cams_headnode;
 	while( cam != NULL ) {
-		snprintf( str, sizeof( str ), "%i %" PRIi64" %.2f %.2f %.2f %.2f %.2f %.2f %i %i\n",
-					 cam->type,
-					 cam->timeStamp,
-					 cam->origin.x,
-					 cam->origin.y,
-					 cam->origin.z,
-					 cam->angles.x,
-					 cam->angles.y,
-					 cam->angles.z,
-					 cam->trackEnt,
-					 cam->fov
-					 );
-		FS_Print( filehandle, str );
+		output.append( "{} {} {} {} {} {} {} {} {} {}\n",
+			cam->type, cam->timeStamp,
+			cam->origin.x, cam->origin.y, cam->origin.z,
+			cam->angles.x, cam->angles.y, cam->angles.z,
+			cam->trackEnt, cam->fov );
 		cam = cam->next;
 	}
 
-	sub = cg_subs_headnode;
-	while( sub != NULL ) {
-		snprintf( str, sizeof( str ), "%s %" PRIi64 " %" PRIi64 " ",
-					 sub->highprint ? "print" : "subtitle",
-					 sub->timeStamp,
-					 sub->maxDuration
-					 );
-		FS_Print( filehandle, str );
-		FS_Print( filehandle, "\"" );
-		FS_Print( filehandle, sub->text ? sub->text : "" );
-		FS_Print( filehandle, "\"\n" );
-		sub = sub->next;
-	}
+	TempAllocator temp = cls.frame_arena.temp();
+	WriteFile( &temp, filename, output.c_str(), output.length() );
 
-	FS_FCloseFile( filehandle );
 	Com_Printf( "cam file saved\n" );
 }
 
 //===================================================================
 
-/*
-* CG_DrawEntityNumbers
-*/
-static void CG_DrawEntityNumbers( void ) {
+static void CG_DrawEntityNumbers() {
 	float zfar = 2048;
 	int i, entnum;
 	centity_t *cent;
@@ -686,100 +474,14 @@ static void CG_DrawEntityNumbers( void ) {
 	}
 }
 
-#if 0
-void CG_Democam_DrawCenterSubtitle( int y, unsigned int maxwidth, struct qfontface_s *font, char *text ) {
-	char *ptr, *s, *t, c, d;
-	int x = frame_static.viewport_width / 2;
-
-	if( !text || !text[0] ) {
-		return;
-	}
-
-	int shadowOffset = 2 * frame_static.viewport_height / 600;
-	if( !shadowOffset ) {
-		shadowOffset = 1;
-	}
-
-	// if( !maxwidth || trap_SCR_strWidth( text, font, 0 ) <= maxwidth ) {
-	if( !maxwidth ) {
-		// trap_SCR_DrawStringWidth( x + shadowOffset, y + shadowOffset, ALIGN_CENTER_TOP, COM_RemoveColorTokens( text ), maxwidth, font, colorBlack );
-		// trap_SCR_DrawStringWidth( x, y, ALIGN_CENTER_TOP, text, maxwidth, font, colorWhite );
-		return;
-	}
-
-	t = s = ptr = text;
-	while( *s ) {
-		while( *s && *s != ' ' && *s != '\n' )
-			s++;
-
-		// if( ( !*s || *s == '\n' ) && trap_SCR_strWidth( ptr, font, 0 ) < maxwidth ) { // new line or end of text, in both cases force write
-		if( false ) { // new line or end of text, in both cases force write
-			c = *s;
-			*s = 0;
-			// trap_SCR_DrawStringWidth( x + shadowOffset, y + shadowOffset, ALIGN_CENTER_TOP, COM_RemoveColorTokens( ptr ), maxwidth, font, colorBlack );
-			// trap_SCR_DrawStringWidth( x, y, ALIGN_CENTER_TOP, ptr, maxwidth, font, colorWhite );
-			*s = c;
-
-			if( !*s ) {
-				break;
-			}
-
-			t = s;
-			s++;
-			ptr = s;
-		} else {
-			c = *s;
-			*s = 0;
-
-			// if( trap_SCR_strWidth( ptr, font, 0 ) < maxwidth ) {
-			// 	*s = c;
-			// 	t = s;
-			// 	s++;
-			// 	continue;
-			// }
-
-			*s = c;
-			d = *t;
-			*t = 0;
-			// trap_SCR_DrawStringWidth( x + shadowOffset, y + shadowOffset, ALIGN_CENTER_TOP, COM_RemoveColorTokens( ptr ), maxwidth, font, colorBlack );
-			// trap_SCR_DrawStringWidth( x, y, ALIGN_CENTER_TOP, ptr, maxwidth, font, colorWhite );
-			*t = d;
-			s = t;
-			s++;
-			ptr = s;
-		}
-
-		// y += trap_SCR_FontHeight( font );
-	}
-}
-#endif
-
-/*
-* CG_DrawDemocam2D
-*/
-void CG_DrawDemocam2D( void ) {
+void CG_DrawDemocam2D() {
 	int xpos, ypos;
 	const char *cam_type_name;
 	int64_t cam_timestamp;
 	char sfov[8], strack[8];
-	cg_subtitle_t *sub;
 
 	if( !cgs.demoPlaying ) {
 		return;
-	}
-
-	if( ( sub = CG_Democam_FindCurrentSubtitle() ) != NULL ) {
-		if( sub->text && sub->text[0] ) {
-			int y;
-
-			if( sub->highprint ) {
-				y = frame_static.viewport_height * 0.30f;
-			} else {
-				y = frame_static.viewport_height - ( frame_static.viewport_height * 0.30f );
-			}
-
-			// CG_Democam_DrawCenterSubtitle( y, frame_static.viewport_width * 0.75, cgs.fontSystemBig, sub->text );
-		}
 	}
 
 	if( democam_editing_mode ) {
@@ -859,9 +561,6 @@ void CG_DrawDemocam2D( void ) {
 
 //===================================================================
 
-/*
-* CG_DemoCam_LookAt
-*/
 static bool CG_DemoCam_LookAt( int trackEnt, Vec3 vieworg, Vec3 * viewangles ) {
 	if( trackEnt < 1 || trackEnt >= MAX_EDICTS ) {
 		return false;
@@ -876,7 +575,7 @@ static bool CG_DemoCam_LookAt( int trackEnt, Vec3 vieworg, Vec3 * viewangles ) {
 	Vec3 origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
 
 	// if having a bounding box, look to its center
-	struct cmodel_s *cmodel = CG_CModelForEntity( trackEnt );
+	const cmodel_t *cmodel = CG_CModelForEntity( trackEnt );
 	if( cmodel != NULL ) {
 		Vec3 mins, maxs;
 		CM_InlineModelBounds( cl.cms, cmodel, &mins, &maxs );
@@ -888,26 +587,14 @@ static bool CG_DemoCam_LookAt( int trackEnt, Vec3 vieworg, Vec3 * viewangles ) {
 	return true;
 }
 
-/*
-* CG_DemoCam_GetViewType
-*/
-int CG_DemoCam_GetViewType( void ) {
+int CG_DemoCam_GetViewType() {
 	return cam_viewtype;
 }
 
-/*
-* CG_DemoCam_GetThirdPerson
-*/
-bool CG_DemoCam_GetThirdPerson( void ) {
-	if( !currentcam ) {
-		return ( chaseCam.mode == CAM_THIRDPERSON );
-	}
+bool CG_DemoCam_GetThirdPerson() {
 	return ( cam_viewtype == VIEWDEF_PLAYERVIEW && cam_3dPerson );
 }
 
-/*
-* CG_DemoCam_GetViewDef
-*/
 void CG_DemoCam_GetViewDef( cg_viewdef_t *view ) {
 	view->POVent = cam_POVent;
 	view->thirdperson = cam_3dPerson;
@@ -916,9 +603,6 @@ void CG_DemoCam_GetViewDef( cg_viewdef_t *view ) {
 	view->draw2D = false;
 }
 
-/*
-* CG_DemoCam_GetOrientation
-*/
 float CG_DemoCam_GetOrientation( Vec3 * origin, Vec3 * angles, Vec3 * velocity ) {
 	*angles = cam_angles;
 	*origin = cam_origin;
@@ -933,21 +617,18 @@ float CG_DemoCam_GetOrientation( Vec3 * origin, Vec3 * angles, Vec3 * velocity )
 
 static short freecam_delta_angles[3];
 
-/*
-* CG_DemoCam_FreeFly
-*/
-int CG_DemoCam_FreeFly( void ) {
-	usercmd_t cmd;
+int CG_DemoCam_FreeFly() {
+	UserCommand cmd;
 	const float SPEED = 500;
 
 	if( cgs.demoPlaying && CamIsFree ) {
-		Vec3 wishvel, wishdir, forward, right, up, moveangles;
+		Vec3 wishvel, forward, right, up, moveangles;
 		float fmove, smove, upmove, wishspeed, maxspeed;
 
 		maxspeed = 250;
 
 		// run frame
-		trap_NET_GetUserCmd( trap_NET_GetCurrentUserCmdNum() - 1, &cmd );
+		CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 		cmd.msec = cls.realFrameTime;
 
 		moveangles.x = SHORT2ANGLE( cmd.angles[ 0 ] ) + SHORT2ANGLE( freecam_delta_angles[ 0 ] );
@@ -968,7 +649,6 @@ int CG_DemoCam_FreeFly( void ) {
 		wishvel.z += upmove;
 
 		wishspeed = Length( wishvel );
-		wishdir = Normalize( wishvel );
 		if( wishspeed > maxspeed ) {
 			wishspeed = maxspeed / wishspeed;
 			wishvel = wishvel * ( wishspeed );
@@ -985,7 +665,7 @@ int CG_DemoCam_FreeFly( void ) {
 	return VIEWDEF_PLAYERVIEW;
 }
 
-static void CG_Democam_SetCameraPositionFromView( void ) {
+static void CG_Democam_SetCameraPositionFromView() {
 	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
 		cam_origin = cg.view.origin;
 		cam_angles = cg.view.angles;
@@ -995,9 +675,9 @@ static void CG_Democam_SetCameraPositionFromView( void ) {
 	}
 
 	if( !CamIsFree ) {
-		usercmd_t cmd;
+		UserCommand cmd;
 
-		trap_NET_GetUserCmd( trap_NET_GetCurrentUserCmdNum() - 1, &cmd );
+		CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 
 		freecam_delta_angles[ 0 ] = ANGLE2SHORT( cam_angles.x ) - cmd.angles[ 0 ];
 		freecam_delta_angles[ 1 ] = ANGLE2SHORT( cam_angles.y ) - cmd.angles[ 1 ];
@@ -1007,10 +687,7 @@ static void CG_Democam_SetCameraPositionFromView( void ) {
 	}
 }
 
-/*
-* CG_Democam_CalcView
-*/
-static int CG_Democam_CalcView( void ) {
+static int CG_Democam_CalcView() {
 	int viewType;
 	float lerpfrac;
 	Vec3 v;
@@ -1159,7 +836,7 @@ static int CG_Democam_CalcView( void ) {
 					cam_velocity = Vec3( 0.0f );
 				} else {
 					Vec3 center, forward;
-					struct cmodel_s *cmodel;
+					const cmodel_t *cmodel;
 					const float ft = (float)cls.frametime * 0.001f;
 
 					// find the trackEnt origin
@@ -1210,10 +887,7 @@ static int CG_Democam_CalcView( void ) {
 	return viewType;
 }
 
-/*
-* CG_DemoCam_Update
-*/
-bool CG_DemoCam_Update( void ) {
+bool CG_DemoCam_Update() {
 	if( !cgs.demoPlaying ) {
 		return false;
 	}
@@ -1243,17 +917,11 @@ bool CG_DemoCam_Update( void ) {
 	return true;
 }
 
-/*
-* CG_DemoCam_IsFree
-*/
-bool CG_DemoCam_IsFree( void ) {
+bool CG_DemoCam_IsFree() {
 	return CamIsFree;
 }
 
-/*
-* CG_DemoFreeFly_Cmd_f
-*/
-static void CG_DemoFreeFly_Cmd_f( void ) {
+static void CG_DemoFreeFly_Cmd_f() {
 	if( Cmd_Argc() > 1 ) {
 		if( !Q_stricmp( Cmd_Argv( 1 ), "on" ) ) {
 			CamIsFree = true;
@@ -1268,77 +936,11 @@ static void CG_DemoFreeFly_Cmd_f( void ) {
 	Com_Printf( "demo cam mode %s\n", CamIsFree ? "Free Fly" : "Preview" );
 }
 
-/*
-* CG_CamSwitch_Cmd_f
-*/
-static void CG_CamSwitch_Cmd_f( void ) {
+static void CG_CamSwitch_Cmd_f() {
 
 }
 
-/*
-* CG_AddCam_Sub_f
-*/
-static void CG_AddSub_Cmd_f( void ) {
-	cg_subtitle_t *sub;
-
-	sub = CG_Democam_RegisterSubtitle();
-	if( !sub ) {
-		Com_Printf( "DemoCam Error: Failed to allocate the subtitle\n" );
-		return;
-	}
-
-	if( Cmd_Argc() > 1 ) {
-		char str[MAX_STRING_CHARS]; // one line of the console can't handle more than this
-
-		str[0] = 0;
-		for( int i = 1; i < Cmd_Argc(); i++ ) {
-			Q_strncatz( str, Cmd_Argv( i ), sizeof( str ) );
-			if( i < Cmd_Argc() - 1 ) {
-				Q_strncatz( str, " ", sizeof( str ) );
-			}
-		}
-
-		sub->text = CG_CopyString( str );
-	} else {
-		sub->text = CG_CopyString( "" );
-	}
-}
-
-/*
-* CG_AddPrint_Cmd_f
-*/
-static void CG_AddPrint_Cmd_f( void ) {
-	cg_subtitle_t *sub;
-
-	sub = CG_Democam_RegisterSubtitle();
-	if( !sub ) {
-		Com_Printf( "DemoCam Error: Failed to allocate the subtitle\n" );
-		return;
-	}
-
-	if( Cmd_Argc() > 1 ) {
-		char str[MAX_STRING_CHARS]; // one line of the console can't handle more than this
-
-		str[0] = 0;
-		for( int i = 1; i < Cmd_Argc(); i++ ) {
-			Q_strncatz( str, Cmd_Argv( i ), sizeof( str ) );
-			if( i < Cmd_Argc() - 1 ) {
-				Q_strncatz( str, " ", sizeof( str ) );
-			}
-		}
-
-		sub->text = CG_CopyString( str );
-	} else {
-		sub->text = CG_CopyString( "" );
-	}
-
-	sub->highprint = true;
-}
-
-/*
-* CG_AddCam_Cmd_f
-*/
-static void CG_AddCam_Cmd_f( void ) {
+static void CG_AddCam_Cmd_f() {
 	int type, i;
 
 	CG_DemoCam_UpdateDemoTime();
@@ -1374,10 +976,7 @@ static void CG_AddCam_Cmd_f( void ) {
 		Com_Printf( " : %s\n", cam_TypeNames[i] );
 }
 
-/*
-* CG_DeleteCam_Cmd_f
-*/
-static void CG_DeleteCam_Cmd_f( void ) {
+static void CG_DeleteCam_Cmd_f() {
 	if( !currentcam ) {
 		Com_Printf( "DeleteCam: No current cam to delete\n" );
 		return;
@@ -1395,10 +994,7 @@ static void CG_DeleteCam_Cmd_f( void ) {
 	Com_Printf( "cam deleted\n" );
 }
 
-/*
-* CG_EditCam_Cmd_f
-*/
-static void CG_EditCam_Cmd_f( void ) {
+static void CG_EditCam_Cmd_f() {
 	CG_DemoCam_UpdateDemoTime();
 
 	currentcam = CG_Democam_FindCurrent( demo_time );
@@ -1529,71 +1125,43 @@ static void CG_EditCam_Cmd_f( void ) {
 	Com_Printf( " : roll <value> ( assigns roll angle to current cam )\n" );
 }
 
-/*
-* CG_SaveCam_Cmd_f
-*/
-void CG_SaveCam_Cmd_f( void ) {
+void CG_SaveCam_Cmd_f() {
 	if( !cgs.demoPlaying ) {
 		return;
 	}
-	if( Cmd_Argc() > 1 ) {
-		char *customName;
-		int custom_name_size;
 
-		custom_name_size = sizeof( char ) * ( strlen( "demos/" ) + strlen( Cmd_Argv( 1 ) ) + strlen( ".cam" ) + 1 );
-		customName = ( char * )CG_Malloc( custom_name_size );
-		snprintf( customName, custom_name_size, "demos/%s", Cmd_Argv( 1 ) );
-		COM_ReplaceExtension( customName, ".cam", custom_name_size );
-		CG_SaveRecamScriptFile( customName );
-		CG_Free( customName );
-		return;
-	}
+	TempAllocator temp = cls.frame_arena.temp();
+	char * path = temp( "{}/base/demos/{}.cam", HomeDirPath(), Cmd_Argc() > 1 ? Cmd_Argv( 1 ) : cgs.demoName );
 
-	CG_SaveRecamScriptFile( demoscriptname );
+	CG_SaveRecamScriptFile( path );
 }
 
-/*
-* CG_Democam_ImportCams_f
-*/
-void CG_Democam_ImportCams_f( void ) {
-	int name_size;
-	char *customName;
-
+void CG_Democam_ImportCams_f() {
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "Usage: importcams <filename> (relative to demos directory)\n" );
 		return;
 	}
 
-	// see if there is any script for this demo, and load it
-	name_size = sizeof( char ) * ( strlen( "demos/" ) + strlen( Cmd_Argv( 1 ) ) + strlen( ".cam" ) + 1 );
-	customName = ( char * )CG_Malloc( name_size );
-	snprintf( customName, name_size, "demos/%s", Cmd_Argv( 1 ) );
-	COM_ReplaceExtension( customName, ".cam", name_size );
-	if( CG_LoadRecamScriptFile( customName ) ) {
+	TempAllocator temp = cls.frame_arena.temp();
+	char * path = temp( "{}/base/demos/{}.cam", HomeDirPath(), Cmd_Argv( 1 ) );
+
+	if( CG_LoadRecamScriptFile( path ) ) {
 		Com_Printf( "cam script imported\n" );
 	} else {
 		Com_Printf( "CG_Democam_ImportCams_f: no valid file found\n" );
 	}
 }
 
-/*
-* CG_DemoEditMode_RemoveCmds
-*/
-void CG_DemoEditMode_RemoveCmds( void ) {
-	Cmd_RemoveCommand( "addcam" );
-	Cmd_RemoveCommand( "deletecam" );
-	Cmd_RemoveCommand( "editcam" );
-	Cmd_RemoveCommand( "saverecam" );
-	Cmd_RemoveCommand( "clearcams" );
-	Cmd_RemoveCommand( "importcams" );
-	Cmd_RemoveCommand( "subtitle" );
-	Cmd_RemoveCommand( "addprint" );
+void CG_DemoEditMode_RemoveCmds() {
+	RemoveCommand( "addcam" );
+	RemoveCommand( "deletecam" );
+	RemoveCommand( "editcam" );
+	RemoveCommand( "saverecam" );
+	RemoveCommand( "clearcams" );
+	RemoveCommand( "importcams" );
 }
 
-/*
-* CG_DemoEditMode_Cmd_f
-*/
-static void CG_DemoEditMode_Cmd_f( void ) {
+static void CG_DemoEditMode_Cmd_f() {
 	if( !cgs.demoPlaying ) {
 		return;
 	}
@@ -1610,25 +1178,18 @@ static void CG_DemoEditMode_Cmd_f( void ) {
 
 	Com_Printf( "demo cam editing mode %s\n", democam_editing_mode ? "on" : "off" );
 	if( democam_editing_mode ) {
-		Cmd_AddCommand( "addcam", CG_AddCam_Cmd_f );
-		Cmd_AddCommand( "deletecam", CG_DeleteCam_Cmd_f );
-		Cmd_AddCommand( "editcam", CG_EditCam_Cmd_f );
-		Cmd_AddCommand( "saverecam", CG_SaveCam_Cmd_f );
-		Cmd_AddCommand( "clearcams", CG_Democam_FreeCams );
-		Cmd_AddCommand( "importcams", CG_Democam_ImportCams_f );
-		Cmd_AddCommand( "subtitle", CG_AddSub_Cmd_f );
-		Cmd_AddCommand( "addprint", CG_AddPrint_Cmd_f );
+		AddCommand( "addcam", CG_AddCam_Cmd_f );
+		AddCommand( "deletecam", CG_DeleteCam_Cmd_f );
+		AddCommand( "editcam", CG_EditCam_Cmd_f );
+		AddCommand( "saverecam", CG_SaveCam_Cmd_f );
+		AddCommand( "clearcams", CG_Democam_FreeCams );
+		AddCommand( "importcams", CG_Democam_ImportCams_f );
 	} else {
 		CG_DemoEditMode_RemoveCmds();
 	}
 }
 
-/*
-* CG_DemocamInit
-*/
-void CG_DemocamInit( void ) {
-	int name_size;
-
+void CG_DemocamInit() {
 	democam_editing_mode = false;
 	demo_time = 0;
 	demo_initial_timestamp = 0;
@@ -1638,53 +1199,42 @@ void CG_DemocamInit( void ) {
 	}
 
 	if( !*cgs.demoName ) {
-		Com_Error( ERR_DROP, "CG_DemocamInit: no demo name string\n" );
+		Com_Error( "CG_DemocamInit: no demo name string\n" );
 	}
 
 	// see if there is any script for this demo, and load it
-	name_size = sizeof( char ) * ( strlen( cgs.demoName ) + strlen( ".cam" ) + 1 );
-	demoscriptname = ( char * )CG_Malloc( name_size );
-	snprintf( demoscriptname, name_size, "%s", cgs.demoName );
-	COM_ReplaceExtension( demoscriptname, ".cam", name_size );
+	TempAllocator temp = cls.frame_arena.temp();
+	char * path = temp( "{}/base/demos/{}.cam", HomeDirPath(), cgs.demoName );
 
-	Com_Printf( "cam: %s\n", demoscriptname );
+	Com_Printf( "cam: %s\n", path );
 
 	// add console commands
-	Cmd_AddCommand( "demoEditMode", CG_DemoEditMode_Cmd_f );
-	Cmd_AddCommand( "demoFreeFly", CG_DemoFreeFly_Cmd_f );
-	Cmd_AddCommand( "camswitch", CG_CamSwitch_Cmd_f );
+	AddCommand( "demoEditMode", CG_DemoEditMode_Cmd_f );
+	AddCommand( "demoFreeFly", CG_DemoFreeFly_Cmd_f );
+	AddCommand( "camswitch", CG_CamSwitch_Cmd_f );
 
-	if( CG_LoadRecamScriptFile( demoscriptname ) ) {
+	if( CG_LoadRecamScriptFile( path ) ) {
 		Com_Printf( "Loaded demo cam script\n" );
 	}
 }
 
-/*
-* CG_DemocamShutdown
-*/
-void CG_DemocamShutdown( void ) {
+void CG_DemocamShutdown() {
 	if( !cgs.demoPlaying ) {
 		return;
 	}
 
 	// remove console commands
-	Cmd_RemoveCommand( "demoEditMode" );
-	Cmd_RemoveCommand( "demoFreeFly" );
-	Cmd_RemoveCommand( "camswitch" );
+	RemoveCommand( "demoEditMode" );
+	RemoveCommand( "demoFreeFly" );
+	RemoveCommand( "camswitch" );
 	if( democam_editing_mode ) {
 		CG_DemoEditMode_RemoveCmds();
 	}
 
 	CG_Democam_FreeCams();
-	CG_Democam_FreeSubtitles();
-	CG_Free( demoscriptname );
-	demoscriptname = NULL;
 }
 
-/*
-* CG_DemocamReset
-*/
-void CG_DemocamReset( void ) {
+void CG_DemocamReset() {
 	demo_time = 0;
 	demo_initial_timestamp = 0;
 }

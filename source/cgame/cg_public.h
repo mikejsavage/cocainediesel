@@ -20,10 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-struct orientation_s;
-struct entity_s;
-struct cmodel_s;
-
 //
 // structs and variables shared with the main engine
 //
@@ -61,40 +57,20 @@ struct snapshot_t {
 //===============================================================
 
 //
-// functions provided by the main engine
-//
-struct cgame_import_t {
-	void ( *GetConfigString )( int i, char *str, int size );
-	bool ( *DownloadRequest )( const char *filename );
-
-	void ( *NET_GetUserCmd )( int frame, usercmd_t *cmd );
-	int ( *NET_GetCurrentUserCmdNum )( void );
-	void ( *NET_GetCurrentState )( int64_t *incomingAcknowledged, int64_t *outgoingSequence, int64_t *outgoingSent );
-
-	// refresh system
-	void ( *VID_FlashWindow )();
-};
-
-//
 // functions exported by the client game subsystem
 //
 struct cgame_export_t {
 	// the init function will be called at each restart
-	void ( *Init )( const char *serverName, unsigned int playerNum,
-					bool demoplaying, const char *demoName, unsigned int snapFrameTime );
+	void ( *Init )( unsigned int playerNum, bool demoplaying, const char *demoName, unsigned int snapFrameTime );
 
 	// "soft restarts" at demo jumps
-	void ( *Reset )( void );
+	void ( *Reset )();
 
-	void ( *Shutdown )( void );
+	void ( *Shutdown )();
 
-	void ( *ConfigString )( int number, const char *value );
+	void ( *ConfigString )( int number );
 
-	void ( *EscapeKey )( void );
-
-	void ( *GetEntitySpatilization )( int entNum, Vec3 * origin, Vec3 * velocity );
-
-	void ( *Trace )( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int passent, int contentmask );
+	void ( *EscapeKey )();
 
 	void ( *RenderView )( unsigned extrapolationTime );
 
@@ -102,13 +78,8 @@ struct cgame_export_t {
 
 	void ( *MouseMove )( int frameTime, Vec2 m );
 
-	/**
-	 * Gets input command buttons added by cgame.
-	 * May be called multiple times in a frame.
-	 *
-	 * @return BUTTON_ bitfield with the pressed or simulated actions
-	 */
-	unsigned int ( *GetButtonBits )( void );
+	u8 ( *GetButtonBits )();
+	u8 ( *GetButtonDownEdges )();
 };
 
-cgame_export_t *GetCGameAPI( cgame_import_t * import );
+cgame_export_t *GetCGameAPI();

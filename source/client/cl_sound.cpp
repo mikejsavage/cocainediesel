@@ -9,6 +9,7 @@
 #include "client/assets.h"
 #include "client/sound.h"
 #include "client/threadpool.h"
+#include "cgame/cg_local.h"
 #include "gameshared/gs_public.h"
 
 #define AL_LIBTYPE_STATIC
@@ -31,6 +32,8 @@ struct SoundEffect {
 
 		float delay;
 		float volume;
+		float pitch;
+		float pitch_random;
 		float attenuation;
 	};
 
@@ -52,12 +55,14 @@ struct PlayingSound {
 	int ent_num;
 	int channel;
 	float volume;
+	float pitch;
 
 	u32 entropy;
 	bool has_entropy;
 
 	ImmediateSoundHandle immediate_handle;
 	bool touched_since_last_update;
+	bool loop;
 
 	Vec3 origin;
 	Vec3 end;
@@ -67,24 +72,20 @@ struct PlayingSound {
 	bool stopped[ ARRAY_COUNT( &SoundEffect::sounds ) ];
 };
 
-struct EntitySound {
-	Vec3 origin;
-	Vec3 velocity;
-};
-
 static ALCdevice * al_device;
 static ALCcontext * al_context;
 
 // so we don't crash when some other application is running in exclusive playback mode (WASAPI/JACK/etc)
 static bool initialized;
 
-static cvar_t * s_volume;
-static cvar_t * s_musicvolume;
-static cvar_t * s_muteinbackground;
+Cvar * s_device;
+static Cvar * s_volume;
+static Cvar * s_musicvolume;
+static Cvar * s_muteinbackground;
 
 constexpr u32 MAX_SOUND_ASSETS = 4096;
 constexpr u32 MAX_SOUND_EFFECTS = 4096;
-constexpr u32 MAX_PLAYING_SOUNDS = 128;
+constexpr u32 MAX_PLAYING_SOUNDS = 256;
 
 static Sound sounds[ MAX_SOUND_ASSETS ];
 static u32 num_sounds;
@@ -106,11 +107,9 @@ static u64 immediate_sounds_autoinc;
 static ALuint music_source;
 static bool music_playing;
 
-static bool window_focused;
+constexpr float MusicIsWayTooLoud = 0.25f;
 
-static EntitySound entities[ MAX_EDICTS ];
-
-const char *S_ErrorMessage( ALenum error ) {
+const char * ALErrorMessage( ALenum error ) {
 	switch( error ) {
 		case AL_NO_ERROR:
 			return "No error";
@@ -129,21 +128,30 @@ const char *S_ErrorMessage( ALenum error ) {
 	}
 }
 
-static void CheckALErrors() {
+template< typename... Rest >
+static void CheckALErrors( const char * fmt, const Rest & ... rest ) {
 	ALenum err = alGetError();
 	if( err != AL_NO_ERROR ) {
-		Sys_Error( "%s", S_ErrorMessage( err ) );
+		char buf[ 1024 ];
+		ggformat( buf, sizeof( buf ), fmt, rest... );
+
+		if( is_public_build ) {
+			Com_Printf( S_COLOR_RED "AL error: %s\n", buf );
+		}
+		else {
+			Fatal( "AL error: %s", buf );
+		}
 	}
 }
 
 static void CheckedALListener( ALenum param, float x ) {
 	alListenerf( param, x );
-	CheckALErrors();
+	CheckALErrors( "alListenerf( {}, {} )", param, x );
 }
 
 static void CheckedALListener( ALenum param, Vec3 v ) {
 	alListenerfv( param, v.ptr() );
-	CheckALErrors();
+	CheckALErrors( "alListenerfv( {}, {} )", param, v );
 }
 
 static void CheckedALListener( ALenum param, const mat3_t m ) {
@@ -155,56 +163,73 @@ static void CheckedALListener( ALenum param, const mat3_t m ) {
 	forward_and_up[ 4 ] = m[ AXIS_UP + 1 ];
 	forward_and_up[ 5 ] = m[ AXIS_UP + 2 ];
 	alListenerfv( param, forward_and_up );
-	CheckALErrors();
+	CheckALErrors( "alListenerfv( {}, {}/{} )", param, FromQFAxis( m, AXIS_FORWARD ), FromQFAxis( m, AXIS_UP ) );
 }
 
 static ALint CheckedALGetSource( ALuint source, ALenum param ) {
 	ALint res;
 	alGetSourcei( source, param, &res );
-	CheckALErrors();
+	CheckALErrors( "alGetSourcei( {}, {} )", source, param );
 	return res;
 }
 
 static void CheckedALSource( ALuint source, ALenum param, ALint x ) {
 	alSourcei( source, param, x );
-	CheckALErrors();
+	CheckALErrors( "alSourcei( {}, {}, {} )", source, param, x );
 }
 
 static void CheckedALSource( ALuint source, ALenum param, ALuint x ) {
 	alSourcei( source, param, x );
-	CheckALErrors();
+	CheckALErrors( "alSourcei( {}, {}, {} )", source, param, x );
 }
 
 static void CheckedALSource( ALuint source, ALenum param, float x ) {
 	alSourcef( source, param, x );
-	CheckALErrors();
+	CheckALErrors( "alSourcef( {}, {}, {} )", source, param, x );
 }
 
 static void CheckedALSource( ALuint source, ALenum param, Vec3 v ) {
 	alSourcefv( source, param, v.ptr() );
-	CheckALErrors();
+	CheckALErrors( "alSourcefv( {}, {}, {} )", source, param, v );
 }
 
 static void CheckedALSourcePlay( ALuint source ) {
 	alSourcePlay( source );
-	CheckALErrors();
+	CheckALErrors( "alSourcePlay( {} )", source );
 }
 
 static void CheckedALSourceStop( ALuint source ) {
 	alSourceStop( source );
-	CheckALErrors();
+	CheckALErrors( "alSourceStop( {} )", source );
 }
 
 static bool S_InitAL() {
 	ZoneScoped;
 
-	al_device = alcOpenDevice( NULL );
-	if( al_device == NULL ) {
-		Com_Printf( S_COLOR_RED "Failed to open device\n" );
-		return false;
+	al_device = NULL;
+
+	if( !StrEqual( s_device->value, "" ) ) {
+		al_device = alcOpenDevice( s_device->value );
+		if( al_device == NULL ) {
+			Com_Printf( S_COLOR_YELLOW "Failed to open sound device %s, trying default\n", s_device->value );
+		}
 	}
 
-	ALCint attrs[] = { ALC_HRTF_SOFT, ALC_HRTF_ENABLED_SOFT, 0 };
+	if( al_device == NULL ) {
+		al_device = alcOpenDevice( NULL );
+
+		if( al_device == NULL ) {
+			Com_Printf( S_COLOR_RED "Failed to open device\n" );
+			return false;
+		}
+	}
+
+	ALCint attrs[] = {
+		ALC_HRTF_SOFT, ALC_HRTF_ENABLED_SOFT,
+		ALC_MONO_SOURCES, 256,
+		ALC_STEREO_SOURCES, 16,
+		0
+	};
 	al_context = alcCreateContext( al_device, attrs );
 	if( al_context == NULL ) {
 		alcCloseDevice( al_device );
@@ -271,6 +296,8 @@ static void AddSound( const char * path, int num_samples, int channels, int samp
 		SoundEffect sfx = { };
 		sfx.sounds[ 0 ].sounds[ 0 ] = StringHash( hash );
 		sfx.sounds[ 0 ].volume = 1;
+		sfx.sounds[ 0 ].pitch = 1.0f;
+		sfx.sounds[ 0 ].pitch_random = 0.0f;
 		sfx.sounds[ 0 ].attenuation = ATTN_NORM;
 		sfx.sounds[ 0 ].num_random_sounds = 1;
 		sfx.num_sounds = 1;
@@ -288,7 +315,7 @@ static void AddSound( const char * path, int num_samples, int channels, int samp
 	ALenum format = channels == 1 ? AL_FORMAT_MONO16 : AL_FORMAT_STEREO16;
 	alGenBuffers( 1, &sounds[ idx ].buf );
 	alBufferData( sounds[ idx ].buf, format, samples, num_samples * channels * sizeof( s16 ), sample_rate );
-	CheckALErrors();
+	CheckALErrors( "AddSound" );
 
 	sounds[ idx ].mono = channels == 1;
 
@@ -367,12 +394,15 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 			break;
 
 		if( opening_brace != "{" ) {
-			Com_Printf( S_COLOR_YELLOW "Expected {" );
+			Com_Printf( S_COLOR_YELLOW "Expected {\n" );
 			return false;
 		}
 
+
 		SoundEffect::PlaybackConfig * config = &sfx->sounds[ sfx->num_sounds ];
 		config->volume = 1.0f;
+		config->pitch = 1.0f;
+		config->pitch_random = 0.0f;
 		config->attenuation = ATTN_NORM;
 
 		while( true ) {
@@ -403,14 +433,26 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 				config->num_random_sounds++;
 			}
 			else if( key == "delay" ) {
-				if( !SpanToFloat( value, &config->delay ) ) {
+				if( !TrySpanToFloat( value, &config->delay ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to delay should be a number\n" );
 					return false;
 				}
 			}
 			else if( key == "volume" ) {
-				if( !SpanToFloat( value, &config->volume ) ) {
+				if( !TrySpanToFloat( value, &config->volume ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to volume should be a number\n" );
+					return false;
+				}
+			}
+			else if( key == "pitch" ) {
+				if( !TrySpanToFloat( value, &config->pitch ) ) {
+					Com_Printf( S_COLOR_YELLOW "Argument to pitch should be a number\n" );
+					return false;
+				}
+			}
+			else if( key == "pitch_random" ) {
+				if( !TrySpanToFloat( value, &config->pitch_random ) ) {
+					Com_Printf( S_COLOR_YELLOW "Argument to pitch_random should be a number\n" );
 					return false;
 				}
 			}
@@ -497,10 +539,6 @@ static void HotloadSoundEffects() {
 	}
 }
 
-static void PlaySoundCmd() {
-	S_StartLocalSound( FindSoundEffect( Cmd_Argv( 1 ) ), CHAN_AUTO, 1.0f );
-}
-
 bool S_Init() {
 	ZoneScoped;
 
@@ -508,16 +546,17 @@ bool S_Init() {
 	num_sound_effects = 0;
 	num_playing_sound_effects = 0;
 	immediate_sounds_autoinc = 1;
+	sounds_hashtable.clear();
+	sound_effects_hashtable.clear();
+	immediate_sounds_hashtable.clear();
 	music_playing = false;
-	window_focused = true;
 	initialized = false;
 
-	memset( entities, 0, sizeof( entities ) );
-
-	s_volume = Cvar_Get( "s_volume", "1", CVAR_ARCHIVE );
-	s_musicvolume = Cvar_Get( "s_musicvolume", "1", CVAR_ARCHIVE );
-	s_muteinbackground = Cvar_Get( "s_muteinbackground", "1", CVAR_ARCHIVE );
-	s_muteinbackground->modified = true;
+	s_device = NewCvar( "s_device", "", CvarFlag_Archive );
+	s_device->modified = false;
+	s_volume = NewCvar( "s_volume", "1", CvarFlag_Archive );
+	s_musicvolume = NewCvar( "s_musicvolume", "1", CvarFlag_Archive );
+	s_muteinbackground = NewCvar( "s_muteinbackground", "1", CvarFlag_Archive );
 
 	if( !S_InitAL() )
 		return false;
@@ -525,20 +564,18 @@ bool S_Init() {
 	LoadSounds();
 	LoadSoundEffects();
 
-	Cmd_AddCommand( "playsound", PlaySoundCmd );
-
 	initialized = true;
 
 	return true;
 }
 
 void S_Shutdown() {
+	ZoneScoped;
+
 	if( !initialized )
 		return;
 
 	S_StopAllSounds( true );
-
-	Cmd_RemoveCommand( "playsound" );
 
 	alDeleteSources( ARRAY_COUNT( free_sound_sources ), free_sound_sources );
 	alDeleteSources( 1, &music_source );
@@ -547,10 +584,14 @@ void S_Shutdown() {
 		alDeleteBuffers( 1, &sounds[ i ].buf );
 	}
 
-	CheckALErrors();
+	CheckALErrors( "S_Shutdown" );
 
 	alcDestroyContext( al_context );
 	alcCloseDevice( al_device );
+}
+
+const char * GetAudioDevicesAsSequentialStrings() {
+	return alcGetString( NULL, ALC_ALL_DEVICES_SPECIFIER );
 }
 
 static bool FindSound( StringHash name, Sound * sound ) {
@@ -561,15 +602,11 @@ static bool FindSound( StringHash name, Sound * sound ) {
 	return true;
 }
 
-const SoundEffect * FindSoundEffect( StringHash name ) {
+static const SoundEffect * FindSoundEffect( StringHash name ) {
 	u64 idx;
 	if( !initialized || !sound_effects_hashtable.get( name.hash, &idx ) )
 		return NULL;
 	return &sound_effects[ idx ];
-}
-
-const SoundEffect * FindSoundEffect( const char * name ) {
-	return FindSoundEffect( StringHash( name ) );
 }
 
 static bool StartSound( PlayingSound * ps, u8 i ) {
@@ -577,11 +614,11 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 
 	int idx;
 	if( !ps->has_entropy ) {
-		idx = random_uniform( &cls.rng, 0, config.num_random_sounds );
+		idx = RandomUniform( &cls.rng, 0, config.num_random_sounds );
 	}
 	else {
-		RNG rng = new_rng( ps->entropy, 0 );
-		idx = random_uniform( &rng, 0, config.num_random_sounds );
+		RNG rng = NewRNG( ps->entropy, 0 );
+		idx = RandomUniform( &rng, 0, config.num_random_sounds );
 	}
 
 	Sound sound;
@@ -603,7 +640,8 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 	ps->sources[ i ] = source;
 
 	CheckedALSource( source, AL_BUFFER, sound.buf );
-	CheckedALSource( source, AL_GAIN, ps->volume * config.volume * s_volume->value );
+	CheckedALSource( source, AL_GAIN, ps->volume * config.volume * s_volume->number );
+	CheckedALSource( source, AL_PITCH, ps->pitch * config.pitch + ( RandomFloat11( &cls.rng ) * config.pitch_random * config.pitch * ps->pitch ) );
 	CheckedALSource( source, AL_REFERENCE_DISTANCE, S_DEFAULT_ATTENUATION_REFDISTANCE );
 	CheckedALSource( source, AL_MAX_DISTANCE, S_DEFAULT_ATTENUATION_MAXDISTANCE );
 	CheckedALSource( source, AL_ROLLOFF_FACTOR, config.attenuation );
@@ -622,8 +660,8 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 			break;
 
 		case PlayingSoundType_Entity:
-			CheckedALSource( source, AL_POSITION, entities[ ps->ent_num ].origin );
-			CheckedALSource( source, AL_VELOCITY, entities[ ps->ent_num ].velocity );
+			CheckedALSource( source, AL_POSITION, cg_entities[ ps->ent_num ].interpolated.origin );
+			CheckedALSource( source, AL_VELOCITY, cg_entities[ ps->ent_num ].velocity );
 			CheckedALSource( source, AL_SOURCE_RELATIVE, AL_FALSE );
 			break;
 
@@ -634,7 +672,7 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 			break;
 	}
 
-	CheckedALSource( source, AL_LOOPING, ps->immediate_handle.x == 0 ? AL_FALSE : AL_TRUE );
+	CheckedALSource( source, AL_LOOPING, ps->immediate_handle.x != 0 && ps->loop ? AL_TRUE : AL_FALSE );
 	CheckedALSourcePlay( source );
 
 	return true;
@@ -653,6 +691,12 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 
 	if( !initialized )
 		return;
+
+	if( s_device->modified ) {
+		S_Shutdown();
+		S_Init();
+		s_device->modified = false;
+	}
 
 	HotloadSounds();
 	HotloadSoundEffects();
@@ -676,7 +720,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 				if( ps->stopped[ j ] )
 					continue;
 
-				ALint state = CheckedALGetSource( ps->sources[ j ], AL_SOURCE_STATE );;
+				ALint state = CheckedALGetSource( ps->sources[ j ], AL_SOURCE_STATE );
 				if( not_touched || state == AL_STOPPED ) {
 					StopSound( ps, j );
 				}
@@ -722,12 +766,15 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 				continue;
 
 			if( s_volume->modified ) {
-				CheckedALSource( ps->sources[ j ], AL_GAIN, ps->volume * ps->sfx->sounds[ j ].volume * s_volume->value );
+				CheckedALSource( ps->sources[ j ], AL_GAIN, ps->volume * ps->sfx->sounds[ j ].volume * s_volume->number );
 			}
 
 			if( ps->type == PlayingSoundType_Entity ) {
-				CheckedALSource( ps->sources[ j ], AL_POSITION, entities[ ps->ent_num ].origin );
-				CheckedALSource( ps->sources[ j ], AL_VELOCITY, entities[ ps->ent_num ].velocity );
+				CheckedALSource( ps->sources[ j ], AL_POSITION, cg_entities[ ps->ent_num ].interpolated.origin );
+				CheckedALSource( ps->sources[ j ], AL_VELOCITY, cg_entities[ ps->ent_num ].velocity );
+			}
+			else if( ps->type == PlayingSoundType_Position ) {
+				CheckedALSource( ps->sources[ j ], AL_POSITION, ps->origin );
 			}
 			else if( ps->type == PlayingSoundType_Line ) {
 				Vec3 p = ClosestPointOnSegment( ps->origin, ps->end, origin );
@@ -737,19 +784,11 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 	}
 
 	if( ( s_volume->modified || s_musicvolume->modified ) && music_playing ) {
-		CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
+		CheckedALSource( music_source, AL_GAIN, s_volume->number * s_musicvolume->number * MusicIsWayTooLoud );
 	}
 
 	s_volume->modified = false;
 	s_musicvolume->modified = false;
-}
-
-void S_UpdateEntity( int ent_num, Vec3 origin, Vec3 velocity ) {
-	if( !initialized )
-		return;
-
-	entities[ ent_num ].origin  = origin;
-	entities[ ent_num ].velocity = velocity;
 }
 
 static PlayingSound * FindEmptyPlayingSound( int ent_num, int channel ) {
@@ -774,8 +813,12 @@ static PlayingSound * FindEmptyPlayingSound( int ent_num, int channel ) {
 	return &playing_sound_effects[ num_playing_sound_effects - 1 ];
 }
 
-static PlayingSound * StartSoundEffect( const SoundEffect * sfx, int ent_num, int channel, float volume, PlayingSoundType type ) {
-	if( !initialized || sfx == NULL )
+static PlayingSound * StartSoundEffect( StringHash name, int ent_num, int channel, float volume, float pitch, PlayingSoundType type ) {
+	if( !initialized )
+		return NULL;
+
+	const SoundEffect * sfx = FindSoundEffect( name );
+	if( sfx == NULL )
 		return NULL;
 
 	PlayingSound * ps = FindEmptyPlayingSound( ent_num, channel );
@@ -791,74 +834,78 @@ static PlayingSound * StartSoundEffect( const SoundEffect * sfx, int ent_num, in
 	ps->ent_num = ent_num;
 	ps->channel = channel;
 	ps->volume = volume;
+	ps->pitch = pitch;
 	ps->touched_since_last_update = true;
 
 	return ps;
 }
 
-void S_StartFixedSound( const SoundEffect * sfx, Vec3 origin, int channel, float volume ) {
-	PlayingSound * ps = StartSoundEffect( sfx, 0, channel, volume, PlayingSoundType_Position );
+void S_StartFixedSound( StringHash name, Vec3 origin, int channel, float volume, float pitch ) {
+	PlayingSound * ps = StartSoundEffect( name, 0, channel, volume, pitch, PlayingSoundType_Position );
 	if( ps == NULL )
 		return;
 	ps->origin = origin;
 }
 
-void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, float volume ) {
-	StartSoundEffect( sfx, ent_num, channel, volume, PlayingSoundType_Entity );
+void S_StartEntitySound( StringHash name, int ent_num, int channel, float volume, float pitch ) {
+	StartSoundEffect( name, ent_num, channel, volume, pitch, PlayingSoundType_Entity );
 }
 
-void S_StartEntitySound( const SoundEffect * sfx, int ent_num, int channel, float volume, u32 sfx_entropy ) {
-	PlayingSound * ps = StartSoundEffect( sfx, ent_num, channel, volume, PlayingSoundType_Entity );
+void S_StartEntitySound( StringHash name, int ent_num, int channel, float volume, float pitch, u32 sfx_entropy ) {
+	PlayingSound * ps = StartSoundEffect( name, ent_num, channel, volume, pitch, PlayingSoundType_Entity );
 	if( ps == NULL )
 		return;
 	ps->entropy = sfx_entropy;
 	ps->has_entropy = true;
 }
 
-void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume ) {
-	StartSoundEffect( sfx, 0, channel, volume, PlayingSoundType_Global );
+void S_StartGlobalSound( StringHash name, int channel, float volume, float pitch ) {
+	StartSoundEffect( name, 0, channel, volume, pitch, PlayingSoundType_Global );
 }
 
-void S_StartGlobalSound( const SoundEffect * sfx, int channel, float volume, u32 sfx_entropy ) {
-	PlayingSound * ps = StartSoundEffect( sfx, 0, channel, volume, PlayingSoundType_Global );
+void S_StartGlobalSound( StringHash name, int channel, float volume, float pitch, u32 sfx_entropy ) {
+	PlayingSound * ps = StartSoundEffect( name, 0, channel, volume, pitch, PlayingSoundType_Global );
 	if( ps == NULL )
 		return;
 	ps->entropy = sfx_entropy;
 	ps->has_entropy = true;
 }
 
-void S_StartLocalSound( const SoundEffect * sfx, int channel, float volume ) {
-	StartSoundEffect( sfx, -1, channel, volume, PlayingSoundType_Global );
+void S_StartLocalSound( StringHash name, int channel, float volume, float pitch ) {
+	StartSoundEffect( name, -1, channel, volume, pitch, PlayingSoundType_Global );
 }
 
-void S_StartLineSound( const SoundEffect * sfx, Vec3 start, Vec3 end, int channel, float volume ) {
-	PlayingSound * ps = StartSoundEffect( sfx, -1, channel, volume, PlayingSoundType_Line );
+void S_StartLineSound( StringHash name, Vec3 start, Vec3 end, int channel, float volume, float pitch) {
+	PlayingSound * ps = StartSoundEffect( name, -1, channel, volume, pitch, PlayingSoundType_Line );
 	if( ps == NULL )
 		return;
 	ps->origin = start;
 	ps->end = end;
 }
 
-static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int ent_num, float volume, PlayingSoundType type, ImmediateSoundHandle handle ) {
-	if( sfx == NULL )
-		return handle;
+static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, float volume, float pitch, bool loop, u32 sfx_entropy, PlayingSoundType type, ImmediateSoundHandle handle ) {
+	if( name == EMPTY_HASH ) {
+		return { 0 };
+	}
 
 	u64 idx;
 	if( handle.x != 0 && immediate_sounds_hashtable.get( handle.x, &idx ) ) {
 		playing_sound_effects[ idx ].touched_since_last_update = true;
 	}
 	else {
-		PlayingSound * ps = StartSoundEffect( sfx, ent_num, CHAN_AUTO, volume, type );
+		PlayingSound * ps = StartSoundEffect( name, ent_num, CHAN_AUTO, volume, pitch, type );
 		if( ps == NULL )
-			return handle;
+			return { 0 };
 
-		handle = { Hash64( immediate_sounds_autoinc ) };
+		handle = { immediate_sounds_autoinc };
 
 		immediate_sounds_autoinc++;
 		if( immediate_sounds_autoinc == 0 )
 			immediate_sounds_autoinc++;
 
 		ps->immediate_handle = handle;
+		ps->loop = loop;
+		ps->entropy = sfx_entropy;
 		idx = ps - playing_sound_effects;
 
 		immediate_sounds_hashtable.add( handle.x, idx );
@@ -867,12 +914,31 @@ static ImmediateSoundHandle StartImmediateSound( const SoundEffect * sfx, int en
 	return handle;
 }
 
-ImmediateSoundHandle S_ImmediateEntitySound( const SoundEffect * sfx, int ent_num, float volume, ImmediateSoundHandle handle ) {
-	return StartImmediateSound( sfx, ent_num, volume, PlayingSoundType_Entity, handle );
+ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, bool loop, ImmediateSoundHandle handle ) {
+	return StartImmediateSound( name, ent_num, volume, pitch, loop, 0, PlayingSoundType_Entity, handle );
 }
 
-ImmediateSoundHandle S_ImmediateLineSound( const SoundEffect * sfx, Vec3 start, Vec3 end, float volume, ImmediateSoundHandle handle ) {
-	handle = StartImmediateSound( sfx, -1, volume, PlayingSoundType_Line, handle );
+ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, bool loop, u32 sfx_entropy, ImmediateSoundHandle handle ) {
+	return StartImmediateSound( name, ent_num, volume, pitch, loop, sfx_entropy, PlayingSoundType_Entity, handle );
+}
+
+ImmediateSoundHandle S_ImmediateFixedSound( StringHash name, Vec3 origin, float volume, float pitch, ImmediateSoundHandle handle ) {
+	handle = StartImmediateSound( name, -1, volume, pitch, true, 0, PlayingSoundType_Position, handle );
+	if( handle.x == 0 )
+		return handle;
+
+	u64 idx;
+	bool ok = immediate_sounds_hashtable.get( handle.x, &idx );
+	assert( ok );
+
+	PlayingSound * ps = &playing_sound_effects[ idx ];
+	ps->origin = origin;
+
+	return handle;
+}
+
+ImmediateSoundHandle S_ImmediateLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch, ImmediateSoundHandle handle ) {
+	handle = StartImmediateSound( name, -1, volume, pitch, true, 0, PlayingSoundType_Line, handle );
 	if( handle.x == 0 )
 		return handle;
 
@@ -920,7 +986,7 @@ void S_StartMenuMusic() {
 	if( music_playing )
 		return;
 
-	CheckedALSource( music_source, AL_GAIN, s_volume->value * s_musicvolume->value );
+	CheckedALSource( music_source, AL_GAIN, s_volume->number * s_musicvolume->number * MusicIsWayTooLoud );
 	CheckedALSource( music_source, AL_DIRECT_CHANNELS_SOFT, AL_TRUE );
 	CheckedALSource( music_source, AL_LOOPING, AL_TRUE );
 	CheckedALSource( music_source, AL_BUFFER, sound.buf );

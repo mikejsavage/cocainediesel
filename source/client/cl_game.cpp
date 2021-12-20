@@ -27,26 +27,7 @@ static cgame_export_t *cge;
 
 gs_state_t client_gs;
 
-/*
-* CL_GameModule_GetConfigString
-*/
-static void CL_GameModule_GetConfigString( int i, char *str, int size ) {
-	if( i < 0 || i >= MAX_CONFIGSTRINGS ) {
-		Com_DPrintf( S_COLOR_RED "CL_GameModule_GetConfigString: i > MAX_CONFIGSTRINGS" );
-		return;
-	}
-	if( !str || size <= 0 ) {
-		Com_DPrintf( S_COLOR_RED "CL_GameModule_GetConfigString: NULL string" );
-		return;
-	}
-
-	Q_strncpyz( str, cl.configstrings[i], size );
-}
-
-/*
-* CL_GameModule_NET_GetUserCmd
-*/
-static void CL_GameModule_NET_GetUserCmd( int frame, usercmd_t *cmd ) {
+void CL_GetUserCmd( int frame, UserCommand *cmd ) {
 	if( cmd ) {
 		if( frame < 0 ) {
 			frame = 0;
@@ -56,17 +37,11 @@ static void CL_GameModule_NET_GetUserCmd( int frame, usercmd_t *cmd ) {
 	}
 }
 
-/*
-* CL_GameModule_NET_GetCurrentUserCmdNum
-*/
-static int CL_GameModule_NET_GetCurrentUserCmdNum( void ) {
+int CL_GetCurrentUserCmdNum() {
 	return cls.ucmdHead;
 }
 
-/*
-* CL_GameModule_NET_GetCurrentState
-*/
-static void CL_GameModule_NET_GetCurrentState( int64_t *incomingAcknowledged, int64_t *outgoingSequence, int64_t *outgoingSent ) {
+void CL_GetCurrentState( int64_t *incomingAcknowledged, int64_t *outgoingSequence, int64_t *outgoingSent ) {
 	if( incomingAcknowledged ) {
 		*incomingAcknowledged = cls.ucmdAcknowledged;
 	}
@@ -78,48 +53,24 @@ static void CL_GameModule_NET_GetCurrentState( int64_t *incomingAcknowledged, in
 	}
 }
 
-//==============================================
-
-/*
-* CL_GameModule_Init
-*/
-void CL_GameModule_Init( void ) {
-	cgame_import_t import;
-
+void CL_GameModule_Init() {
 	// stop all playing sounds
 	S_StopAllSounds( true );
 
 	CL_GameModule_Shutdown();
 
-	import.GetConfigString = CL_GameModule_GetConfigString;
-	import.DownloadRequest = CL_DownloadRequest;
-
-	import.NET_GetUserCmd = CL_GameModule_NET_GetUserCmd;
-	import.NET_GetCurrentUserCmdNum = CL_GameModule_NET_GetCurrentUserCmdNum;
-	import.NET_GetCurrentState = CL_GameModule_NET_GetCurrentState;
-
-	import.VID_FlashWindow = FlashWindow;
-
-	cge = GetCGameAPI( &import );
-
-	cge->Init( cls.servername, cl.playernum, cls.demo.playing, cls.demo.playing ? cls.demo.filename : "", cl.snapFrameTime );
-
+	cge = GetCGameAPI();
+	cge->Init( cl.playernum, cls.demo.playing, cls.demo.playing ? cls.demo.filename : "", cl.snapFrameTime );
 	cls.cgameActive = true;
 }
 
-/*
-* CL_GameModule_Reset
-*/
-void CL_GameModule_Reset( void ) {
+void CL_GameModule_Reset() {
 	if( cge ) {
 		cge->Reset();
 	}
 }
 
-/*
-* CL_GameModule_Shutdown
-*/
-void CL_GameModule_Shutdown( void ) {
+void CL_GameModule_Shutdown() {
 	if( !cge ) {
 		return;
 	}
@@ -130,36 +81,18 @@ void CL_GameModule_Shutdown( void ) {
 	cge = NULL;
 }
 
-/*
-* CL_GameModule_EscapeKey
-*/
-void CL_GameModule_EscapeKey( void ) {
+void CL_GameModule_EscapeKey() {
 	if( cge ) {
 		cge->EscapeKey();
 	}
 }
 
-/*
-* CL_GameModule_GetEntitySoundOrigin
-*/
-void CL_GameModule_GetEntitySpatilization( int entNum, Vec3 * origin, Vec3 * velocity ) {
+void CL_GameModule_ConfigString( int number ) {
 	if( cge ) {
-		cge->GetEntitySpatilization( entNum, origin, velocity );
+		cge->ConfigString( number );
 	}
 }
 
-/*
-* CL_GameModule_ConfigString
-*/
-void CL_GameModule_ConfigString( int number, const char *value ) {
-	if( cge ) {
-		cge->ConfigString( number, value );
-	}
-}
-
-/*
-* CL_GameModule_NewSnapshot
-*/
 bool CL_GameModule_NewSnapshot( int pendingSnapshot ) {
 	snapshot_t *currentSnap, *newSnap;
 
@@ -172,28 +105,26 @@ bool CL_GameModule_NewSnapshot( int pendingSnapshot ) {
 	return false;
 }
 
-/*
-* CL_GameModule_RenderView
-*/
 void CL_GameModule_RenderView() {
 	if( cge && cls.cgameActive ) {
 		cge->RenderView( cl_extrapolate->integer && !cls.demo.playing ? cl_extrapolationTime->integer : 0 );
 	}
 }
 
-/*
-* CL_GameModule_GetButtonBits
-*/
-unsigned CL_GameModule_GetButtonBits( void ) {
+u8 CL_GameModule_GetButtonBits() {
 	if( cge ) {
 		return cge->GetButtonBits();
 	}
 	return 0;
 }
 
-/*
-* CL_GameModule_MouseMove
-*/
+u8 CL_GameModule_GetButtonDownEdges() {
+	if( cge ) {
+		return cge->GetButtonDownEdges();
+	}
+	return 0;
+}
+
 void CL_GameModule_MouseMove( int frameTime, Vec2 d ) {
 	if( cge ) {
 		cge->MouseMove( frameTime, d );

@@ -18,17 +18,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <algorithm>
+
+#include <ctype.h>
 #include <time.h>
 
 #include "server/server.h"
+#include "qcommon/array.h"
+#include "qcommon/fs.h"
+#include "qcommon/string.h"
 
-#define SV_DEMO_DIR va( "demos/server%s%s", sv_demodir->string[0] ? "/" : "", sv_demodir->string[0] ? sv_demodir->string : "" )
+#define SV_DEMO_DIR va( "demos/server%s%s", sv_demodir->value[0] ? "/" : "", sv_demodir->value[0] ? sv_demodir->value : "" )
 
-/*
-* SV_Demo_WriteMessage
-*
-* Writes given message to the demofile
-*/
 static void SV_Demo_WriteMessage( msg_t *msg ) {
 	assert( svs.demo.file );
 	if( !svs.demo.file ) {
@@ -38,20 +39,14 @@ static void SV_Demo_WriteMessage( msg_t *msg ) {
 	SNAP_RecordDemoMessage( svs.demo.file, msg, 0 );
 }
 
-/*
-* SV_Demo_WriteStartMessages
-*/
-static void SV_Demo_WriteStartMessages( void ) {
-	// clear demo meta data, we'll write some keys later
-	svs.demo.meta_data_realsize = SNAP_ClearDemoMeta( svs.demo.meta_data, sizeof( svs.demo.meta_data ) );
+static void SV_Demo_WriteStartMessages() {
+	memset( svs.demo.meta_data, 0, sizeof( svs.demo.meta_data ) );
+	svs.demo.meta_data_realsize = 0;
 
-	SNAP_BeginDemoRecording( svs.demo.file, svs.spawncount, svc.snapFrameTime, SV_BITFLAGS_RELIABLE, sv.configstrings[0], sv.baselines );
+	SNAP_BeginDemoRecording( svs.demo.file, svs.spawncount, svc.snapFrameTime, sv.configstrings[0], sv.baselines );
 }
 
-/*
-* SV_Demo_WriteSnap
-*/
-void SV_Demo_WriteSnap( void ) {
+void SV_Demo_WriteSnap() {
 	ZoneScoped;
 
 	int i;
@@ -88,14 +83,10 @@ void SV_Demo_WriteSnap( void ) {
 	svs.demo.client.lastframe = sv.framenum; // FIXME: is this needed?
 }
 
-/*
-* SV_Demo_InitClient
-*/
-static void SV_Demo_InitClient( void ) {
+static void SV_Demo_InitClient() {
 	memset( &svs.demo.client, 0, sizeof( svs.demo.client ) );
 
 	svs.demo.client.mv = true;
-	svs.demo.client.reliable = true;
 
 	svs.demo.client.reliableAcknowledge = 0;
 	svs.demo.client.reliableSequence = 0;
@@ -106,14 +97,7 @@ static void SV_Demo_InitClient( void ) {
 	svs.demo.client.nodelta = false;
 }
 
-/*
-* SV_Demo_Start_f
-*
-* Begins server demo recording.
-*/
-void SV_Demo_Start_f( void ) {
-	int demofilename_size, i;
-
+void SV_Demo_Start_f() {
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "Usage: serverrecord <demoname>\n" );
 		return;
@@ -129,13 +113,14 @@ void SV_Demo_Start_f( void ) {
 		return;
 	}
 
-	for( i = 0; i < sv_maxclients->integer; i++ ) {
-		if( svs.clients[i].state >= CS_SPAWNED && svs.clients[i].edict &&
-			!( svs.clients[i].edict->r.svflags & SVF_NOCLIENT ) ) {
+	bool any_players = false;
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		if( svs.clients[i].state >= CS_SPAWNED && svs.clients[i].edict && !( svs.clients[i].edict->r.svflags & SVF_NOCLIENT ) ) {
+			any_players = true;
 			break;
 		}
 	}
-	if( i == sv_maxclients->integer ) {
+	if( !any_players ) {
 		Com_Printf( "No players in game, can't record a demo\n" );
 		return;
 	}
@@ -144,35 +129,22 @@ void SV_Demo_Start_f( void ) {
 	// open the demo file
 	//
 
-	// real name
-	demofilename_size =
-		sizeof( char ) * ( strlen( SV_DEMO_DIR ) + 1 + strlen( Cmd_Args() ) + strlen( APP_DEMO_EXTENSION_STR ) + 1 );
-	svs.demo.filename = ( char * ) Mem_ZoneMalloc( demofilename_size );
-
-	snprintf( svs.demo.filename, demofilename_size, "%s/%s", SV_DEMO_DIR, Cmd_Args() );
-
-	COM_SanitizeFilePath( svs.demo.filename );
-
-	if( !COM_ValidateRelativeFilename( svs.demo.filename ) ) {
-		Mem_ZoneFree( svs.demo.filename );
-		svs.demo.filename = NULL;
+	if( !COM_ValidateRelativeFilename( Cmd_Argv( 1 ) ) ) {
 		Com_Printf( "Invalid filename.\n" );
 		return;
 	}
 
-	COM_DefaultExtension( svs.demo.filename, APP_DEMO_EXTENSION_STR, demofilename_size );
+	svs.demo.filename = ( *sys_allocator )( "{}/{}" APP_DEMO_EXTENSION_STR, SV_DEMO_DIR, Cmd_Argv( 1 ) );
+	COM_SanitizeFilePath( svs.demo.filename );
 
-	// temp name
-	demofilename_size = sizeof( char ) * ( strlen( svs.demo.filename ) + strlen( ".rec" ) + 1 );
-	svs.demo.tempname = ( char * ) Mem_ZoneMalloc( demofilename_size );
-	snprintf( svs.demo.tempname, demofilename_size, "%s.rec", svs.demo.filename );
+	svs.demo.tempname = ( *sys_allocator )( "{}.rec", svs.demo.filename );
 
 	// open it
-	if( FS_FOpenFile( svs.demo.tempname, &svs.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
+	if( FS_FOpenAbsoluteFile( svs.demo.tempname, &svs.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
 		Com_Printf( "Error: Couldn't open file: %s\n", svs.demo.tempname );
-		Mem_ZoneFree( svs.demo.filename );
+		FREE( sys_allocator, svs.demo.filename );
 		svs.demo.filename = NULL;
-		Mem_ZoneFree( svs.demo.tempname );
+		FREE( sys_allocator, svs.demo.tempname );
 		svs.demo.tempname = NULL;
 		return;
 	}
@@ -193,9 +165,6 @@ void SV_Demo_Start_f( void ) {
 	svs.demo.client.nodelta = false;
 }
 
-/*
-* SV_Demo_Stop
-*/
 static void SV_Demo_Stop( bool cancel, bool silent ) {
 	if( !svs.demo.file ) {
 		if( !silent ) {
@@ -204,11 +173,13 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 		return;
 	}
 
-	if( cancel ) {
-		Com_Printf( "Canceled server demo recording: %s\n", svs.demo.filename );
-	} else {
-		SNAP_StopDemoRecording( svs.demo.file );
+	TempAllocator temp = svs.frame_arena.temp();
 
+	if( cancel ) {
+		Com_Printf( "Cancelled server demo recording: %s\n", svs.demo.filename );
+	}
+	else {
+		SNAP_StopDemoRecording( svs.demo.file );
 		Com_Printf( "Stopped server demo recording: %s\n", svs.demo.filename );
 	}
 
@@ -216,10 +187,11 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 	svs.demo.file = 0;
 
 	if( cancel ) {
-		if( !FS_RemoveFile( svs.demo.tempname ) ) {
+		if( !RemoveFile( &temp, svs.demo.tempname ) ) {
 			Com_Printf( "Error: Failed to delete the temporary server demo file\n" );
 		}
-	} else {
+	}
+	else {
 		// write some meta information about the match/demo
 		SV_SetDemoMetaKeyValue( "hostname", sv.configstrings[CS_HOSTNAME] );
 		SV_SetDemoMetaKeyValue( "localtime", va( "%" PRIi64, (int64_t)svs.demo.localtime ) );
@@ -230,7 +202,7 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 
 		SNAP_WriteDemoMetaData( svs.demo.tempname, svs.demo.meta_data, svs.demo.meta_data_realsize );
 
-		if( !FS_MoveFile( svs.demo.tempname, svs.demo.filename ) ) {
+		if( !MoveFile( &temp, svs.demo.tempname, svs.demo.filename, MoveFile_DoReplace ) ) {
 			Com_Printf( "Error: Failed to rename the server demo file\n" );
 		}
 	}
@@ -240,315 +212,129 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 
 	SNAP_FreeClientFrames( &svs.demo.client );
 
-	Mem_ZoneFree( svs.demo.filename );
+	FREE( sys_allocator, svs.demo.filename );
 	svs.demo.filename = NULL;
-	Mem_ZoneFree( svs.demo.tempname );
+	FREE( sys_allocator, svs.demo.tempname );
 	svs.demo.tempname = NULL;
 }
 
-/*
-* SV_Demo_Stop_f
-*
-* Console command for stopping server demo recording.
-*/
-void SV_Demo_Stop_f( void ) {
+void SV_Demo_Stop_f() {
 	SV_Demo_Stop( false, atoi( Cmd_Argv( 1 ) ) != 0 );
 }
 
-/*
-* SV_Demo_Cancel_f
-*
-* Cancels the server demo recording (stop, remove file)
-*/
-void SV_Demo_Cancel_f( void ) {
+void SV_Demo_Cancel_f() {
 	SV_Demo_Stop( true, atoi( Cmd_Argv( 1 ) ) != 0 );
 }
 
-/*
-* SV_Demo_Purge_f
-*
-* Removes the server demo files
-*/
-void SV_Demo_Purge_f( void ) {
-	char *buffer;
-	char *p, *s, num[8];
-	char path[256];
-	size_t extlen, length, bufSize;
-	unsigned int i, numdemos, numautodemos, maxautodemos;
+static void GetServerDemos( DynamicArray< char * > * demos ) {
+	ListDirHandle scan = BeginListDir( sys_allocator, SV_DEMO_DIR );
 
-	if( Cmd_Argc() > 2 ) {
-		Com_Printf( "Usage: serverrecordpurge [maxautodemos]\n" );
-		return;
+	const char * name;
+	bool dir;
+	while( ListDirNext( &scan, &name, &dir ) ) {
+		// skip ., .., .git, etc
+		if( name[ 0 ] == '.' )
+			continue;
+
+		if( dir || FileExtension( name ) != APP_DEMO_EXTENSION_STR )
+			continue;
+
+		demos->add( CopyString( sys_allocator, name ) );
 	}
 
-	maxautodemos = 0;
-	if( Cmd_Argc() == 2 ) {
-		maxautodemos = atoi( Cmd_Argv( 1 ) );
-	}
-
-	numdemos = FS_GetFileListExt( SV_DEMO_DIR, APP_DEMO_EXTENSION_STR, NULL, &bufSize, 0, 0 );
-	if( !numdemos ) {
-		return;
-	}
-
-	extlen = strlen( APP_DEMO_EXTENSION_STR );
-	buffer = ( char * ) Mem_TempMalloc( bufSize );
-	FS_GetFileList( SV_DEMO_DIR, APP_DEMO_EXTENSION_STR, buffer, bufSize, 0, 0 );
-
-	numautodemos = 0;
-	s = buffer;
-	for( i = 0; i < numdemos; i++, s += length + 1 ) {
-		length = strlen( s );
-		if( length < strlen( "_auto9999" ) + extlen ) {
-			continue;
-		}
-
-		p = s + length - strlen( "_auto9999" ) - extlen;
-		if( strncmp( p, "_auto", strlen( "_auto" ) ) ) {
-			continue;
-		}
-
-		p += strlen( "_auto" );
-		snprintf( num, sizeof( num ), "%04i", atoi( p ) );
-		if( strncmp( p, num, 4 ) ) {
-			continue;
-		}
-
-		numautodemos++;
-	}
-
-	if( numautodemos <= maxautodemos ) {
-		Mem_TempFree( buffer );
-		return;
-	}
-
-	s = buffer;
-	for( i = 0; i < numdemos; i++, s += length + 1 ) {
-		length = strlen( s );
-		if( length < strlen( "_auto9999" ) + extlen ) {
-			continue;
-		}
-
-		p = s + length - strlen( "_auto9999" ) - extlen;
-		if( strncmp( p, "_auto", strlen( "_auto" ) ) ) {
-			continue;
-		}
-
-		p += strlen( "_auto" );
-		snprintf( num, sizeof( num ), "%04i", atoi( p ) );
-		if( strncmp( p, num, 4 ) ) {
-			continue;
-		}
-
-		snprintf( path, sizeof( path ), "%s/%s", SV_DEMO_DIR, s );
-		Com_Printf( "Removing old autorecord demo: %s\n", path );
-		if( !FS_RemoveFile( path ) ) {
-			Com_Printf( "Error, couldn't remove file: %s\n", path );
-			continue;
-		}
-
-		if( --numautodemos == maxautodemos ) {
-			break;
-		}
-	}
-
-	Mem_TempFree( buffer );
+	std::sort( demos->begin(), demos->end(), SortCStringsComparator );
 }
 
-/*
-* SV_DemoList_f
-*/
-#define DEMOS_PER_VIEW  30
-void SV_DemoList_f( client_t *client ) {
-	char message[MAX_STRING_CHARS];
-	char numpr[16];
-	char buffer[MAX_STRING_CHARS];
-	char *s, *p;
-	size_t j, length, length_escaped, pos, extlen;
-	int numdemos, i, start = -1, end, k;
-
-	if( client->state < CS_SPAWNED ) {
+void SV_Demo_Purge_f() {
+	if( !is_dedicated_server ) {
 		return;
 	}
 
-	if( Cmd_Argc() > 2 ) {
-		SV_AddGameCommand( client, "pr \"Usage: demolist [starting position]\n\"" );
+	TempAllocator temp = svs.frame_arena.temp();
+
+	DynamicArray< char * > demos( &temp );
+	GetServerDemos( &demos );
+	defer {
+		for( char * demo : demos ) {
+			FREE( sys_allocator, demo );
+		}
+	};
+
+	DynamicArray< const char * > auto_demos( &temp );
+	for( const char * demo : demos ) {
+		// terrible, but isdigit( '\0' ) is false so this is safe
+		const char * _auto = strstr( demo, "_auto" );
+		if( _auto != NULL && isdigit( _auto[ 5 ] ) && isdigit( _auto[ 6 ] ) && isdigit( _auto[ 7 ] ) && isdigit( _auto[ 8 ] ) ) {
+			auto_demos.add( demo );
+		}
+	}
+
+	int keep = g_autorecord_maxdemos->integer;
+	if( keep >= auto_demos.size() ) {
 		return;
 	}
 
-	if( Cmd_Argc() == 2 ) {
-		start = atoi( Cmd_Argv( 1 ) ) - 1;
-		if( start < 0 ) {
-			SV_AddGameCommand( client, "pr \"Usage: demolist [starting position]\n\"" );
-			return;
+	size_t to_remove = auto_demos.size() - keep;
+	for( size_t i = 0; i < to_remove; i++ ) {
+		DynamicString path( &temp, "{}/{}", SV_DEMO_DIR, auto_demos[ i ] );
+		if( RemoveFile( &temp, path.c_str() ) ) {
+			Com_GGPrint( "Removed old autorecord demo: {}", path );
+		}
+		else {
+			Com_GGPrint( "Couldn't remove old autorecord demo: {}", path );
 		}
 	}
-
-	Q_strncpyz( message, "pr \"Available demos:\n----------------\n", sizeof( message ) );
-
-	numdemos = FS_GetFileList( SV_DEMO_DIR, APP_DEMO_EXTENSION_STR, NULL, 0, 0, 0 );
-	if( numdemos ) {
-		if( start < 0 ) {
-			start = Max2( 0, numdemos - DEMOS_PER_VIEW );
-		} else if( start > numdemos - 1 ) {
-			start = numdemos - 1;
-		}
-
-		if( start > 0 ) {
-			Q_strncatz( message, "...\n", sizeof( message ) );
-		}
-
-		end = start + DEMOS_PER_VIEW;
-		if( end > numdemos ) {
-			end = numdemos;
-		}
-
-		extlen = strlen( APP_DEMO_EXTENSION_STR );
-
-		i = start;
-		do {
-			if( ( k = FS_GetFileList( SV_DEMO_DIR, APP_DEMO_EXTENSION_STR, buffer, sizeof( buffer ), i, end ) ) == 0 ) {
-				i++;
-				continue;
-			}
-
-			for( s = buffer; k > 0; k--, s += length + 1, i++ ) {
-				length = strlen( s );
-
-				length_escaped = length;
-				p = s;
-				while( ( p = strchr( p, '\\' ) ) )
-					length_escaped++;
-
-				snprintf( numpr, sizeof( numpr ), "%i: ", i + 1 );
-				if( strlen( message ) + strlen( numpr ) + length_escaped - extlen + 1 + 5 >= sizeof( message ) ) {
-					Q_strncatz( message, "\"", sizeof( message ) );
-					SV_AddGameCommand( client, message );
-
-					Q_strncpyz( message, "pr \"", sizeof( message ) );
-					if( strlen( "demoget " ) + strlen( numpr ) + length_escaped - extlen + 1 + 5 >= sizeof( message ) ) {
-						continue;
-					}
-				}
-
-				Q_strncatz( message, numpr, sizeof( message ) );
-				pos = strlen( message );
-				for( j = 0; j < length - extlen; j++ ) {
-					assert( s[j] != '\\' );
-					if( s[j] == '"' ) {
-						message[pos++] = '\\';
-					}
-					message[pos++] = s[j];
-				}
-				message[pos++] = '\n';
-				message[pos] = '\0';
-			}
-		} while( i < end );
-
-		if( end < numdemos ) {
-			Q_strncatz( message, "...\n", sizeof( message ) );
-		}
-	} else {
-		Q_strncatz( message, "none\n", sizeof( message ) );
-	}
-
-	Q_strncatz( message, "\"", sizeof( message ) );
-
-	SV_AddGameCommand( client, message );
 }
 
-/*
-* SV_DemoGet_f
-*
-* Responds to clients demoget request with: demoget "filename"
-* If nothing is found, responds with demoget without filename, so client knowns it wasn't found
-*/
-void SV_DemoGet_f( client_t *client ) {
-	int num, numdemos;
-	char message[MAX_STRING_CHARS];
-	char buffer[MAX_STRING_CHARS];
-	char *s, *p;
-	size_t j, length, length_escaped, pos, pos_bak, msglen;
+void SV_DemoList_f( edict_t * ent ) {
+	TempAllocator temp = svs.frame_arena.temp();
 
-	if( client->state < CS_SPAWNED ) {
-		return;
+	DynamicArray< char * > demos( &temp );
+	GetServerDemos( &demos );
+	defer {
+		for( char * demo : demos ) {
+			FREE( sys_allocator, demo );
+		}
+	};
+
+	DynamicString output( &temp, "pr \"Available demos:\n" );
+
+	size_t start = demos.size() - Min2( demos.size(), size_t( 10 ) );
+
+	for( size_t i = start; i < demos.size(); i++ ) {
+		output.append( "{}: {}\n", i + 1, demos[ i ] );
 	}
+
+	output += "\"";
+
+	PF_GameCmd( ent, output.c_str() );
+}
+
+void SV_DemoGetUrl_f( edict_t * ent ) {
 	if( Cmd_Argc() != 2 ) {
 		return;
 	}
 
-	Q_strncpyz( message, "demoget \"", sizeof( message ) );
-	Q_strncatz( message, SV_DEMO_DIR, sizeof( message ) );
-	msglen = strlen( message );
-	message[msglen++] = '/';
+	TempAllocator temp = svs.frame_arena.temp();
 
-	pos = pos_bak = msglen;
-
-	numdemos = FS_GetFileList( SV_DEMO_DIR, APP_DEMO_EXTENSION_STR, NULL, 0, 0, 0 );
-	if( numdemos ) {
-		if( Cmd_Argv( 1 )[0] == '.' ) {
-			num = numdemos - strlen( Cmd_Argv( 1 ) );
-		} else {
-			num = atoi( Cmd_Argv( 1 ) ) - 1;
+	DynamicArray< char * > demos( &temp );
+	GetServerDemos( &demos );
+	defer {
+		for( char * demo : demos ) {
+			FREE( sys_allocator, demo );
 		}
-		num = Clamp( 0, num, numdemos - 1 );
+	};
 
-		numdemos = FS_GetFileList( SV_DEMO_DIR, APP_DEMO_EXTENSION_STR, buffer, sizeof( buffer ), num, num + 1 );
-		if( numdemos ) {
-			s = buffer;
-			length = strlen( buffer );
-
-			length_escaped = length;
-			p = s;
-			while( ( p = strchr( p, '\\' ) ) )
-				length_escaped++;
-
-			if( msglen + length_escaped + 1 + 5 < sizeof( message ) ) {
-				for( j = 0; j < length; j++ ) {
-					assert( s[j] != '\\' );
-					if( s[j] == '"' ) {
-						message[pos++] = '\\';
-					}
-					message[pos++] = s[j];
-				}
-			}
-		}
-	}
-
-	if( pos == pos_bak ) {
+	Span< const char > arg = MakeSpan( Cmd_Argv( 1 ) );
+	int id;
+	if( !TrySpanToInt( arg, &id ) || id <= 0 || id > demos.size() ) {
+		PF_GameCmd( ent, "pr \"demoget <id from demolist>\"" );
 		return;
 	}
 
-	message[pos++] = '"';
-	message[pos] = '\0';
-
-	SV_AddGameCommand( client, message );
+	PF_GameCmd( ent, temp( "downloaddemo \"{}/{}\"", SV_DEMO_DIR, demos[ id - 1 ] ) );
 }
 
-/*
-* SV_IsDemoDownloadRequest
-*/
-bool SV_IsDemoDownloadRequest( const char *request ) {
-	const char *demoDir = SV_DEMO_DIR;
-	const size_t demoDirLen = strlen( demoDir );
-
-	if( !request ) {
-		return false;
-	}
-	if( strlen( request ) <= demoDirLen + 1 + strlen( APP_DEMO_EXTENSION_STR ) ) {
-		// should at least contain demo dir name and demo file extension
-		return false;
-	}
-
-	if( Q_strnicmp( request, demoDir, demoDirLen ) || request[demoDirLen] != '/' ) {
-		// nah, wrong dir
-		return false;
-	}
-
-	if( FileExtension( request ) != APP_DEMO_EXTENSION_STR ) {
-		// wrong extension
-		return false;
-	}
-
-	return true;
+bool SV_IsDemoDownloadRequest( const char * request ) {
+	return StartsWith( request, SV_DEMO_DIR ) && FileExtension( request ) == APP_DEMO_EXTENSION_STR;
 }

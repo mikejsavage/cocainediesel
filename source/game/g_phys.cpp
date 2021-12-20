@@ -44,13 +44,10 @@ static bool EntityOverlapsAnything( edict_t *ent ) {
 	return trace.startsolid;
 }
 
-/*
-* SV_CheckVelocity
-*/
 static void SV_CheckVelocity( edict_t *ent ) {
 	float velocity = Length( ent->velocity );
-	if( velocity > g_maxvelocity->value && velocity != 0.0f ) {
-		ent->velocity = ent->velocity * g_maxvelocity->value / velocity;
+	if( velocity > g_maxvelocity->number && velocity != 0.0f ) {
+		ent->velocity = ent->velocity * g_maxvelocity->number / velocity;
 	}
 }
 
@@ -154,17 +151,16 @@ retry:
 }
 
 
-typedef struct
-{
+struct pushed_t {
 	edict_t *ent;
 	Vec3 origin;
 	Vec3 angles;
 	float yaw;
 	Vec3 pmove_origin;
-} pushed_t;
-pushed_t pushed[MAX_EDICTS], *pushed_p;
+};
+static pushed_t pushed[MAX_EDICTS], *pushed_p;
 
-edict_t *obstacle;
+static edict_t *obstacle;
 
 
 /*
@@ -200,8 +196,8 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 	pushed_p++;
 
 	// move the pusher to its final position
-	pusher->s.origin = pusher->s.origin + move;
-	pusher->s.angles = pusher->s.angles + amove;
+	pusher->s.origin += move;
+	pusher->s.angles += amove;
 	GClip_LinkEntity( pusher );
 
 	// see if any solid entities are inside the final position
@@ -336,7 +332,7 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 	}
 
 	if( pushed_p > &pushed[MAX_EDICTS] ) {
-		Com_Error( ERR_DROP, "pushed_p > &pushed[MAX_EDICTS], memory corrupted" );
+		Fatal( "pushed_p > &pushed[MAX_EDICTS], memory corrupted" );
 	}
 
 	if( blocked ) {
@@ -413,7 +409,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		} else {
 			Vec3 acceldir;
 			acceldir = Normalize( ent->velocity );
-			acceldir = acceldir * ( ent->accel * FRAMETIME );
+			acceldir = acceldir * ent->accel * FRAMETIME;
 			ent->velocity = ent->velocity + acceldir;
 		}
 	}
@@ -422,11 +418,8 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 	// add gravity
 	if( ent->movetype != MOVETYPE_FLY && !ent->groundentity ) {
-		ent->velocity.z -= ent->gravity * level.gravity * FRAMETIME;
+		ent->velocity.z -= GRAVITY * FRAMETIME;
 	}
-
-	// move angles
-	ent->s.angles = ent->s.angles + ent->avelocity * FRAMETIME;
 
 	// move origin
 	move = ent->velocity * FRAMETIME;
@@ -447,6 +440,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		}
 
 		ent->velocity = GS_ClipVelocity( ent->velocity, trace.plane.normal, backoff );
+		ent->num_bounces++;
 
 		// stop if on ground
 
@@ -459,7 +453,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 				( ISWALKABLEPLANE( &trace.plane ) &&
 				  Abs( Dot( trace.plane.normal, ent->velocity ) ) < 40
 				)
-				) {
+			) {
 				ent->groundentity = &game.edicts[trace.ent];
 				ent->groundentity_linkcount = ent->groundentity->linkcount;
 				ent->velocity = Vec3( 0.0f );
@@ -480,24 +474,32 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		}
 	}
 
+	// move angles
+	if( ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
+		if( ent->velocity == Vec3( 0.0f ) ) {
+			ent->s.angles.x = 0.0f;
+			ent->s.angles.z = 0.0f;
+		}
+		else {
+			ent->s.angles = VecToAngles( SafeNormalize( ent->velocity ) );
+		}
+	}
+	else {
+		ent->s.angles += ent->avelocity * FRAMETIME;
+	}
+
 	// check for water transition
 	wasinwater = ent->watertype & MASK_WATER;
 	ent->watertype = G_PointContents( ent->s.origin );
 	isinwater = ent->watertype & MASK_WATER;
 
-	// never allow items in CONTENTS_NODROP
-	if( ent->item && ( ent->watertype & CONTENTS_NODROP ) ) {
-		G_FreeEdict( ent );
-		return;
-	}
-
 	ent->waterlevel = isinwater;
 
 
 	if( !wasinwater && isinwater ) {
-		G_PositionedSound( old_origin, CHAN_AUTO, S_HIT_WATER );
+		G_PositionedSound( old_origin, CHAN_AUTO, "sounds/misc/hit_water" );
 	} else if( wasinwater && !isinwater ) {
-		G_PositionedSound( ent->s.origin, CHAN_AUTO, S_HIT_WATER );
+		G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/misc/hit_water" );
 	}
 
 	GClip_LinkEntity( ent );
@@ -532,18 +534,16 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	ent->waterlevel = G_PointContents( ent->s.origin ) & MASK_WATER;
 
 	if( !wasinwater && ent->waterlevel ) {
-		G_PositionedSound( start, CHAN_AUTO, S_HIT_WATER );
+		G_PositionedSound( start, CHAN_AUTO, "sounds/misc/hit_water" );
 	} else if( wasinwater && !ent->waterlevel ) {
-		G_PositionedSound( ent->s.origin, CHAN_AUTO, S_HIT_WATER );
+		G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/misc/hit_water" );
 	}
+
+	ent->s.angles += ent->avelocity * FRAMETIME;
 }
 
 //============================================================================
 
-/*
-* G_RunEntity
-*
-*/
 void G_RunEntity( edict_t *ent ) {
 	if( !level.canSpawnEntities ) { // don't try to think before map entities are spawned
 		return;
@@ -579,6 +579,6 @@ void G_RunEntity( edict_t *ent ) {
 			SV_Physics_LinearProjectile( ent );
 			break;
 		default:
-			Com_Error( ERR_DROP, "SV_Physics: bad movetype %i", (int)ent->movetype );
+			Fatal( "SV_Physics: bad movetype %i", (int)ent->movetype );
 	}
 }

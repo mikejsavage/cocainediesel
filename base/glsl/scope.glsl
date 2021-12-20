@@ -14,27 +14,23 @@ void main() {
 out vec4 f_Albedo;
 
 void main() {
-	vec2 p = gl_FragCoord.xy;
-	vec2 mid = u_ViewportSize * 0.5f;
+	const vec4 crosshair_color = vec4( 1.0, 0.0, 0.0, 1.0 );
+	const vec4 crosshair_lines_color = vec4( 0.0, 0.0, 0.0, 1.0 );
+	const vec4 vignette_color = vec4( 0.0, 0.0, 0.0, 1.0 );
 
-	float radial_frac = distance( p, mid ) / min( mid.x, mid.y );
-	float cross_dist = min( distance( floor( p.x ), floor( mid.x ) ), distance( floor( p.y ), floor( mid.y ) ) );
+	vec2 p = gl_FragCoord.xy - u_ViewportSize * 0.5;
 
-	if( radial_frac < 0.035 ) {
-		if( floor( p.x ) == floor( mid.x ) || floor( p.y ) == floor( mid.y ) ) {
-			f_Albedo = vec4( 1.0, 0.0, 0.0, 1.0 );
-		}
-	}
-	else {
+	float radial_frac = length( p ) * 2.0 / min( u_ViewportSize.x, u_ViewportSize.y );
+	float cross_dist = min( abs( floor( p.x ) ), abs( floor( p.y ) ) );
 
-		if( cross_dist <= 1.0 ) {
-			f_Albedo = vec4( 0.0, 0.0, 0.0, 1.0 );
-		}
-		else {
-			float frac = Unlerp( 0.375, radial_frac, 0.95 );
-			f_Albedo = LinearTosRGB( mix( vec4( 0.0, 0.0, 0.0, 0.0 ), vec4( 0.0, 0.0, 0.0, 1.0 ), frac ) );
-		}
-	}
+	float crosshair_frac = step( radial_frac, 0.035 );
+	vec4 crosshair = mix( crosshair_lines_color, crosshair_color, crosshair_frac );
+	crosshair.a = step( cross_dist, 1.0 - crosshair_frac );
+
+	float vignette_frac = smoothstep( 0.375, 0.95, radial_frac );
+	vec4 color = mix( crosshair, vignette_color, vignette_frac );
+
+	f_Albedo = LinearTosRGB( color );
 }
 
 #endif

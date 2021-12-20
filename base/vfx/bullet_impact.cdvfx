@@ -1,0 +1,90 @@
+{
+  dlight {
+    intensity 500
+    lifetime 2.0
+    color 1 1 1 1
+    color_override
+  }
+
+  dlight {
+    intensity 500
+    lifetime 0.2
+    color 1 1 1 1
+    color_override
+  }
+
+  decal {
+    material weapons/bullet_impact1
+    material weapons/bullet_impact2
+    material weapons/bullet_impact3
+    size 3.5
+    size_distribution uniform 1.5
+    lifetime 20
+    lifetime_distribution uniform 10
+
+    color 0.01 0.01 0.01 1.0
+
+    height -100
+  }
+
+  particles {
+    material textures/vfx/trace2
+    blendfunc add
+    rotate
+    stretch
+
+    position cone 75 0
+
+    speed 500
+    speed_distribution uniform 32
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+
+    size 24 0
+
+    lifetime 0.065
+    emission 35
+  }
+
+  particles {
+    material textures/vfx/trace2
+    blendfunc add
+    rotate
+    stretch
+
+    position cone 45 0
+
+    acceleration $gravity
+
+    speed 100
+    speed_distribution uniform 100
+
+    color 1.0 0.15 0.0 1.0
+
+    size 2 0
+
+    lifetime 0.7
+    count 1
+  }
+
+  particles {
+    material textures/vfx/trace1
+    blendfunc add
+    rotate
+    stretch
+
+    position cone 65 0
+
+    speed 145
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+    size 12 36
+
+    lifetime 0.05
+    lifetime_distribution uniform 0.05
+
+    count 1
+  }
+}

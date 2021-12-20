@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include "qcommon/types.h"
+
 enum {
 	K_TAB = 9,
 	K_ENTER = 13,
@@ -107,7 +109,6 @@ enum {
 	K_MOUSE5,
 	K_MOUSE6,
 	K_MOUSE7,
-	K_MOUSE8,
 
 	K_MWHEELUP,
 	K_MWHEELDOWN,
@@ -116,10 +117,13 @@ enum {
 void Key_Event( int key, bool down );
 void Key_Init();
 void Key_Shutdown();
-void Key_WriteBindings( int file );
+
 void Key_SetBinding( int keynum, const char *binding );
 const char *Key_GetBindingBuf( int binding );
 void Key_ClearStates();
 
-const char *Key_KeynumToString( int keynum );
+Span< const char > Key_KeynumToString( int keynum );
 int Key_StringToKeynum( const char *str );
+
+class DynamicString;
+void Key_WriteBindings( DynamicString * config );

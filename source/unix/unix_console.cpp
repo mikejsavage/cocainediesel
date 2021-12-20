@@ -6,7 +6,7 @@
 
 static bool stdin_active = true;
 
-const char * Sys_ConsoleInput( void ) {
+const char * Sys_ConsoleInput() {
 	static char text[256];
 	int len;
 	fd_set fdset;
@@ -79,8 +79,6 @@ static int Nearest256Color( RGB8 c ) {
 }
 
 void Sys_ConsoleOutput( const char * str ) {
-	printf( "\033[0m" );
-
 	const char * end = str + strlen( str );
 
 	const char * p = str;
@@ -97,9 +95,10 @@ void Sys_ConsoleOutput( const char * str ) {
 		p++;
 	}
 
-	fputs( print_from, stdout );
+	printf( "%s\033[0m", print_from );
 }
 
-void Sys_ShowErrorMessage( const char * msg ) {
-	printf( "%s\n", msg );
+void ShowErrorAndAbort( const char * msg, const char * file, int line ) {
+	printf( "%s (%s:%d)\n", msg, file, line );
+	abort();
 }

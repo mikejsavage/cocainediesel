@@ -1,4 +1,6 @@
 {
+	volume 0.5
+	attenuation distant
 	sound ./fire1
 	sound ./fire2
 	sound ./fire3

@@ -1,11 +1,12 @@
 {
 	attenuation static
 	volume 0.2
-	sound ./bullet_whizz/whizz1
-	sound ./bullet_whizz/whizz2
-	sound ./bullet_whizz/whizz3
-	sound ./bullet_whizz/whizz4
-	sound ./bullet_whizz/whizz5
-	sound ./bullet_whizz/whizz6
-	sound ./bullet_whizz/whizz7
+	pitch_random 0.1
+	sound ./whizz1
+	sound ./whizz2
+	sound ./whizz3
+	sound ./whizz4
+	sound ./whizz5
+	sound ./whizz6
+	sound ./whizz7
 }

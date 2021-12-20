@@ -4,5 +4,5 @@ if %SHOW_FPS
 	moveCursor 0, 12
 endif
 setSize 300 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 120
-setFontSize %VIDHEIGHT / 50
-drawObituaries 3 16 //last number is the space between the strings
+setFontSize %VIDHEIGHT / 45
+drawObituaries 3 22 //last number is the space between the strings

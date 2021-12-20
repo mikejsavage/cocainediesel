@@ -29,7 +29,6 @@ typedef struct {
 } boxLeafsWork_t;
 
 typedef struct {
-	bool ispoint;
 	int contents;
 	int checkcount;
 
@@ -45,13 +44,9 @@ typedef struct {
 
 	trace_t *trace;
 
-	int nummarkbrushes;
 	cbrush_t *brushes;
-	int *markbrushes;
 
-	int nummarkfaces;
 	cface_t *faces;
-	int *markfaces;
 
 	int *brush_checkcounts;
 	int *face_checkcounts;
@@ -86,7 +81,7 @@ void CM_InitBoxHull( CollisionModel *cms ) {
 		s->surfFlags = 0;
 
 		// planes
-		cplane_t * p = &s->plane;
+		Plane * p = &s->plane;
 		p->normal = Vec3( 0.0f );
 
 		if( ( i & 1 ) ) {
@@ -134,7 +129,7 @@ void CM_InitOctagonHull( CollisionModel *cms ) {
 		s->surfFlags = 0;
 
 		// planes
-		cplane_t * p = &s->plane;
+		Plane * p = &s->plane;
 		p->normal = Vec3( 0.0f );
 
 		if( ( i & 1 ) ) {
@@ -151,7 +146,7 @@ void CM_InitOctagonHull( CollisionModel *cms ) {
 		s->surfFlags = 0;
 
 		// planes
-		cplane_t * p = &s->plane;
+		Plane * p = &s->plane;
 		p->normal = oct_dirs[i - 6];
 	}
 }
@@ -162,12 +157,12 @@ void CM_InitOctagonHull( CollisionModel *cms ) {
 * To keep everything totally uniform, bounding boxes are turned into inline models
 */
 cmodel_t *CM_ModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs ) {
-	cms->box_brushsides[0].plane.dist = maxs.x;
-	cms->box_brushsides[1].plane.dist = -mins.x;
-	cms->box_brushsides[2].plane.dist = maxs.y;
-	cms->box_brushsides[3].plane.dist = -mins.y;
-	cms->box_brushsides[4].plane.dist = maxs.z;
-	cms->box_brushsides[5].plane.dist = -mins.z;
+	cms->box_brushsides[0].plane.distance = maxs.x;
+	cms->box_brushsides[1].plane.distance = -mins.x;
+	cms->box_brushsides[2].plane.distance = maxs.y;
+	cms->box_brushsides[3].plane.distance = -mins.y;
+	cms->box_brushsides[4].plane.distance = maxs.z;
+	cms->box_brushsides[5].plane.distance = -mins.z;
 
 	cms->box_cmodel->mins = mins;
 	cms->box_cmodel->maxs = maxs;
@@ -194,12 +189,12 @@ cmodel_t *CM_OctagonModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs ) {
 	cms->oct_cmodel->mins = size[0];
 	cms->oct_cmodel->maxs = size[1];
 
-	cms->oct_brushsides[0].plane.dist = size[1].x;
-	cms->oct_brushsides[1].plane.dist = -size[0].x;
-	cms->oct_brushsides[2].plane.dist = size[1].y;
-	cms->oct_brushsides[3].plane.dist = -size[0].y;
-	cms->oct_brushsides[4].plane.dist = size[1].z;
-	cms->oct_brushsides[5].plane.dist = -size[0].z;
+	cms->oct_brushsides[0].plane.distance = size[1].x;
+	cms->oct_brushsides[1].plane.distance = -size[0].x;
+	cms->oct_brushsides[2].plane.distance = size[1].y;
+	cms->oct_brushsides[3].plane.distance = -size[0].y;
+	cms->oct_brushsides[4].plane.distance = size[1].z;
+	cms->oct_brushsides[5].plane.distance = -size[0].z;
 
 	a = size[1].x; // halfx
 	b = size[1].y; // halfy
@@ -220,16 +215,16 @@ cmodel_t *CM_OctagonModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs ) {
 	// the following should match normals set in CM_InitOctagonHull
 
 	cms->oct_brushsides[6].plane.normal = Vec3( cosa, sina, 0 );
-	cms->oct_brushsides[6].plane.dist = d;
+	cms->oct_brushsides[6].plane.distance = d;
 
 	cms->oct_brushsides[7].plane.normal = Vec3( -cosa, sina, 0 );
-	cms->oct_brushsides[7].plane.dist = d;
+	cms->oct_brushsides[7].plane.distance = d;
 
 	cms->oct_brushsides[8].plane.normal = Vec3( -cosa, -sina, 0 );
-	cms->oct_brushsides[8].plane.dist = d;
+	cms->oct_brushsides[8].plane.distance = d;
 
 	cms->oct_brushsides[9].plane.normal = Vec3( cosa, -sina, 0 );
-	cms->oct_brushsides[9].plane.dist = d;
+	cms->oct_brushsides[9].plane.distance = d;
 
 	return cms->oct_cmodel;
 }
@@ -254,15 +249,15 @@ enum AABBPlaneResult {
 	AABBPlaneResult_InFront,
 };
 
-static AABBPlaneResult IntersectAABBPlane( Vec3 mins, Vec3 maxs, const cplane_t * p ) {
+static AABBPlaneResult IntersectAABBPlane( Vec3 mins, Vec3 maxs, const Plane * p ) {
 	Vec3 back_point, front_point;
 	for( int i = 0; i < 3; i++ ) {
 		back_point[ i ] = p->normal[ i ] < 0 ? maxs[ i ] : mins[ i ];
 		front_point[ i ] = p->normal[ i ] < 0 ? mins[ i ] : maxs[ i ];
 	}
 
-	float back_dist = Dot( p->normal, back_point ) - p->dist;
-	float front_dist = Dot( p->normal, front_point ) - p->dist;
+	float back_dist = Dot( p->normal, back_point ) - p->distance;
+	float front_dist = Dot( p->normal, front_point ) - p->distance;
 
 	if( back_dist > 0 ) {
 		return AABBPlaneResult_InFront;
@@ -465,7 +460,7 @@ static void CM_ClipBoxToBrush( traceWork_t *tw, const cbrush_t *brush ) {
 	float leavefrac = 1.0f;
 	float enterfrac2 = -1.0f;
 
-	const cplane_t * clipplane = NULL;
+	const Plane * clipplane = NULL;
 
 	bool getout = false;
 	bool startout = false;
@@ -473,7 +468,7 @@ static void CM_ClipBoxToBrush( traceWork_t *tw, const cbrush_t *brush ) {
 	const cbrushside_t * side = brush->brushsides;
 
 	for( int i = 0; i < brush->numsides; i++, side++ ) {
-		const cplane_t * p = &side->plane;
+		const Plane * p = &side->plane;
 
 		Vec3 offset;
 		for( int j = 0; j < 3; j++ ) {
@@ -484,8 +479,8 @@ static void CM_ClipBoxToBrush( traceWork_t *tw, const cbrush_t *brush ) {
 		start_offset = tw->start + offset;
 		end_offset = tw->end + offset;
 
-		float d1 = Dot( p->normal, start_offset ) - p->dist;
-		float d2 = Dot( p->normal, end_offset ) - p->dist;
+		float d1 = Dot( p->normal, start_offset ) - p->distance;
+		float d2 = Dot( p->normal, end_offset ) - p->distance;
 
 		if( d2 > 0 ) {
 			getout = true; // endpoint is not in solid
@@ -559,7 +554,7 @@ static void CM_TestBoxInBrush( traceWork_t *tw, const cbrush_t *brush ) {
 
 	const cbrushside_t * side = brush->brushsides;
 	for( int i = 0; i < brush->numsides; i++, side++ ) {
-		const cplane_t * p = &side->plane;
+		const Plane * p = &side->plane;
 
 		Vec3 offset;
 		for( int j = 0; j < 3; j++ ) {
@@ -568,7 +563,7 @@ static void CM_TestBoxInBrush( traceWork_t *tw, const cbrush_t *brush ) {
 
 		Vec3 start_offset = tw->start + offset;
 
-		if( Dot( p->normal, start_offset ) > p->dist ) {
+		if( Dot( p->normal, start_offset ) > p->distance ) {
 			return;
 		}
 	}
@@ -651,18 +646,8 @@ static inline void CM_TestBox( traceWork_t *tw, const int *markbrushes, int numm
 }
 
 static void CM_RecursiveHullCheck( traceWork_t *tw, int num, float p1f, float p2f, Vec3 p1, Vec3 p2 ) {
-	ZoneScoped;
+	const CollisionModel * cms = tw->cms;
 
-	const CollisionModel *cms = tw->cms;
-	const cnode_t *node;
-	const cplane_t *plane;
-	int side;
-	float t1, t2, radius;
-	float frac, frac2;
-	float idist, midf;
-	Vec3 mid;
-
-loc0:
 	if( tw->realfraction <= p1f ) {
 		return; // already hit something nearer
 	}
@@ -671,7 +656,7 @@ loc0:
 	if( num < 0 ) {
 		cleaf_t *leaf;
 
-		leaf = &cms->map_leafs[-1 - num];
+		leaf = &cms->map_leafs[ -1 - num ];
 		if( leaf->contents & tw->contents ) {
 			CM_ClipBox( tw, leaf->markbrushes, leaf->nummarkbrushes, leaf->markfaces, leaf->nummarkfaces );
 		}
@@ -682,38 +667,35 @@ loc0:
 	// find the point distances to the seperating plane
 	// and the radius for the size of the box
 	//
-	node = cms->map_nodes + num;
-	plane = node->plane;
+	const cnode_t * node = cms->map_nodes + num;
+	const Plane * plane = node->plane;
 
-	t1 = Dot( plane->normal, p1 ) - plane->dist;
-	t2 = Dot( plane->normal, p2 ) - plane->dist;
-	if( tw->ispoint ) {
-		radius = 0;
-	}
-	else {
-		radius = Abs( tw->extents.x * plane->normal.x ) +
-			Abs( tw->extents.y * plane->normal.y ) +
-			Abs( tw->extents.z * plane->normal.z );
-	}
+	float t1 = Dot( plane->normal, p1 ) - plane->distance;
+	float t2 = Dot( plane->normal, p2 ) - plane->distance;
+	float radius = Abs( tw->extents.x * plane->normal.x ) +
+		Abs( tw->extents.y * plane->normal.y ) +
+		Abs( tw->extents.z * plane->normal.z );
 
 	// see which sides we need to consider
 	if( t1 >= radius && t2 >= radius ) {
-		num = node->children[0];
-		goto loc0;
+		CM_RecursiveHullCheck( tw, node->children[ 0 ], p1f, p2f, p1, p2 );
+		return;
 	}
 	if( t1 < -radius && t2 < -radius ) {
-		num = node->children[1];
-		goto loc0;
+		CM_RecursiveHullCheck( tw, node->children[ 1 ], p1f, p2f, p1, p2 );
+		return;
 	}
 
 	// put the crosspoint DIST_EPSILON pixels on the near side
+	int side;
+	float frac, frac2;
 	if( t1 < t2 ) {
-		idist = 1.0 / ( t1 - t2 );
+		float idist = 1.0f / ( t1 - t2 );
 		side = 1;
 		frac2 = ( t1 + radius ) * idist;
 		frac = ( t1 - radius ) * idist;
 	} else if( t1 > t2 ) {
-		idist = 1.0 / ( t1 - t2 );
+		float idist = 1.0f / ( t1 - t2 );
 		side = 0;
 		frac2 = ( t1 - radius ) * idist;
 		frac = ( t1 + radius ) * idist;
@@ -725,22 +707,22 @@ loc0:
 
 	// move up to the node
 	frac = Clamp01( frac );
-	midf = p1f + ( p2f - p1f ) * frac;
-	mid = Lerp( p1, frac, p2 );
+	float midf = p1f + ( p2f - p1f ) * frac;
+	Vec3 mid = Lerp( p1, frac, p2 );
 
-	CM_RecursiveHullCheck( tw, node->children[side], p1f, midf, p1, mid );
+	CM_RecursiveHullCheck( tw, node->children[ side ], p1f, midf, p1, mid );
 
 	// go past the node
 	frac2 = Clamp01( frac2 );
 	midf = p1f + ( p2f - p1f ) * frac2;
 	mid = Lerp( p1, frac2, p2 );
 
-	CM_RecursiveHullCheck( tw, node->children[side ^ 1], midf, p2f, mid, p2 );
+	CM_RecursiveHullCheck( tw, node->children[ side ^ 1 ], midf, p2f, mid, p2 );
 }
 
 static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	Vec3 start, Vec3 end, Vec3 mins, Vec3 maxs,
-	cmodel_t *cmodel, Vec3 origin, int brushmask ) {
+	const cmodel_t *cmodel, Vec3 origin, int brushmask ) {
 
 	ZoneScoped;
 
@@ -749,10 +731,6 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	// fill in a default trace
 	memset( tr, 0, sizeof( *tr ) );
 	tr->fraction = 1;
-
-	if( !cms->numnodes ) { // map not loaded
-		return;
-	}
 
 	cms->checkcount++;  // for multi-check avoidance
 
@@ -805,7 +783,7 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 			int leafs[ 1024 ];
 			int numleafs = CM_BoxLeafnums( cms, c1, c2, leafs, 1024, NULL );
 			for( int i = 0; i < numleafs; i++ ) {
-				cleaf_t * leaf = &cms->map_leafs[leafs[i]];
+				const cleaf_t * leaf = &cms->map_leafs[ leafs[ i ] ];
 
 				if( leaf->contents & brushmask ) {
 					CM_TestBox( tw, leaf->markbrushes, leaf->nummarkbrushes, leaf->markfaces, leaf->nummarkfaces );
@@ -828,14 +806,8 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	//
 	// check for point special case
 	//
-	if( mins == Vec3( 0.0f ) && maxs == Vec3( 0.0f ) ) {
-		tw->ispoint = true;
-		tw->extents = Vec3( 0.0f );
-	} else {
-		tw->ispoint = false;
-		for( int i = 0; i < 3; i++ ) {
-			tw->extents[ i ] = Max2( Abs( mins[ i ] ), Abs( maxs[ i ] ) );
-		}
+	for( int i = 0; i < 3; i++ ) {
+		tw->extents[ i ] = Max2( Abs( mins[ i ] ), Abs( maxs[ i ] ) );
 	}
 
 	//
@@ -859,7 +831,7 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 * rotating entities
 */
 void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, Vec3 start, Vec3 end, Vec3 mins, Vec3 maxs,
-							 cmodel_t *cmodel, int brushmask, Vec3 origin, Vec3 angles ) {
+							 const cmodel_t *cmodel, int brushmask, Vec3 origin, Vec3 angles ) {
 	ZoneScoped;
 
 	Vec3 start_l, end_l;
@@ -867,10 +839,6 @@ void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, tra
 	mat3_t axis;
 	bool rotated;
 	traceWork_t tw;
-
-	if( !tr ) {
-		return;
-	}
 
 	if( !cmodel || cmodel->hash == cms->world_hash ) {
 		cmodel = CM_FindCModel( soc, StringHash( cms->world_hash ) );

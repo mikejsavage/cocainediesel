@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string.h>
+
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
 #include "client/renderer/types.h"
@@ -35,7 +37,13 @@ enum TextureFormat : u8 {
 	TextureFormat_RGBA_U8,
 	TextureFormat_RGBA_U8_sRGB,
 
+	TextureFormat_BC1_sRGB,
+	TextureFormat_BC3_sRGB,
+	TextureFormat_BC4,
+	TextureFormat_BC5,
+
 	TextureFormat_Depth,
+	TextureFormat_Shadow,
 };
 
 enum TextureWrap : u8 {
@@ -51,27 +59,36 @@ enum TextureFilter : u8 {
 };
 
 enum VertexFormat : u8 {
+	VertexFormat_U8x2,
+	VertexFormat_U8x2_Norm,
+	VertexFormat_U8x3,
+	VertexFormat_U8x3_Norm,
 	VertexFormat_U8x4,
 	VertexFormat_U8x4_Norm,
 
+	VertexFormat_U16x2,
+	VertexFormat_U16x2_Norm,
+	VertexFormat_U16x3,
+	VertexFormat_U16x3_Norm,
 	VertexFormat_U16x4,
 	VertexFormat_U16x4_Norm,
 
-	VertexFormat_Halfx2,
-	VertexFormat_Halfx3,
-	VertexFormat_Halfx4,
+	VertexFormat_U32x1,
 
-	VertexFormat_Floatx1,
 	VertexFormat_Floatx2,
 	VertexFormat_Floatx3,
 	VertexFormat_Floatx4,
 };
 
 enum TextureBufferFormat : u8 {
+	TextureBufferFormat_U8x2,
 	TextureBufferFormat_U8x4,
 
 	TextureBufferFormat_U32,
 	TextureBufferFormat_U32x2,
+
+	TextureBufferFormat_S32x2,
+	TextureBufferFormat_S32x3,
 
 	TextureBufferFormat_Floatx4,
 };
@@ -79,9 +96,9 @@ enum TextureBufferFormat : u8 {
 struct Texture {
 	u32 texture;
 	u32 width, height;
+	u32 num_mipmaps;
 	bool msaa;
 	TextureFormat format;
-	const void * data;
 };
 
 struct TextureArray {
@@ -93,6 +110,7 @@ struct Framebuffer {
 	Texture albedo_texture;
 	Texture normal_texture;
 	Texture depth_texture;
+	TextureArray texture_array;
 	u32 width, height;
 };
 
@@ -124,10 +142,11 @@ struct PipelineState {
 	UniformBinding uniforms[ ARRAY_COUNT( &Shader::uniforms ) ];
 	TextureBinding textures[ ARRAY_COUNT( &Shader::textures ) ];
 	TextureBufferBinding texture_buffers[ ARRAY_COUNT( &Shader::texture_buffers ) ];
-	TextureArrayBinding texture_array = { };
+	TextureArrayBinding texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ];
 	size_t num_uniforms = 0;
 	size_t num_textures = 0;
 	size_t num_texture_buffers = 0;
+	size_t num_texture_arrays = 0;
 
 	u8 pass = U8_MAX;
 	const Shader * shader = NULL;
@@ -136,6 +155,7 @@ struct PipelineState {
 	CullFace cull_face = CullFace_Back;
 	Scissor scissor = { };
 	bool write_depth = true;
+	bool clamp_depth = false;
 	bool view_weapon_depth_hack = false;
 	bool wireframe = false;
 
@@ -179,8 +199,16 @@ struct PipelineState {
 	}
 
 	void set_texture_array( StringHash name, TextureArray ta ) {
-		texture_array.name_hash = name.hash;
-		texture_array.ta = ta;
+		for( size_t i = 0; i < num_texture_arrays; i++ ) {
+			if( texture_arrays[ i ].name_hash == name.hash ) {
+				texture_arrays[ i ].ta = ta;
+				return;
+			}
+		}
+
+		texture_arrays[ num_texture_arrays ].name_hash = name.hash;
+		texture_arrays[ num_texture_arrays ].ta = ta;
+		num_texture_arrays++;
 	}
 };
 
@@ -216,6 +244,8 @@ struct MeshConfig {
 		};
 	};
 
+	const char * name = NULL;
+
 	VertexFormat positions_format = VertexFormat_Floatx3;
 	VertexFormat normals_format = VertexFormat_Floatx3;
 	VertexFormat tex_coords_format = VertexFormat_Floatx2;
@@ -234,6 +264,7 @@ struct MeshConfig {
 struct TextureConfig {
 	u32 width = 0;
 	u32 height = 0;
+	u32 num_mipmaps = 1;
 
 	const void * data = NULL;
 
@@ -247,13 +278,25 @@ struct TextureConfig {
 struct TextureArrayConfig {
 	u32 width = 0;
 	u32 height = 0;
+	u32 num_mipmaps = 1;
 	u32 layers = 0;
 
 	const void * data = NULL;
+
+	TextureFormat format;
+};
+
+namespace tracy { struct SourceLocationData; }
+
+enum RenderPassType {
+	RenderPass_Normal,
+	RenderPass_Blit,
 };
 
 struct RenderPass {
 	const char * name = NULL;
+
+	RenderPassType type;
 
 	Framebuffer target = { };
 
@@ -265,7 +308,9 @@ struct RenderPass {
 
 	bool sorted = true;
 
-	Framebuffer msaa_source = { };
+	Framebuffer blit_source = { };
+
+	const tracy::SourceLocationData * tracy;
 };
 
 struct FramebufferConfig {
@@ -285,13 +330,11 @@ void RenderBackendBeginFrame();
 void RenderBackendSubmitFrame();
 
 u8 AddRenderPass( const RenderPass & config );
-u8 AddRenderPass( const char * name, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
-u8 AddRenderPass( const char * name, Framebuffer target, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
-u8 AddUnsortedRenderPass( const char * name );
-void AddResolveMSAAPass( Framebuffer src, Framebuffer dst );
-
-u32 renderer_num_draw_calls();
-u32 renderer_num_vertices();
+u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target = { } );
+void AddBlitPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
+void AddResolveMSAAPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 
@@ -310,6 +353,7 @@ VertexBuffer NewParticleVertexBuffer( u32 n );
 IndexBuffer NewIndexBuffer( const void * data, u32 len );
 IndexBuffer NewIndexBuffer( u32 len );
 void WriteIndexBuffer( IndexBuffer ib, const void * data, u32 size, u32 offset = 0 );
+void ReadVertexBuffer( VertexBuffer vb, void * data, u32 len, u32 offset = 0 );
 void DeleteIndexBuffer( IndexBuffer ib );
 
 template< typename T >
@@ -320,17 +364,20 @@ IndexBuffer NewIndexBuffer( Span< T > data ) {
 TextureBuffer NewTextureBuffer( TextureBufferFormat format, u32 len );
 void WriteTextureBuffer( TextureBuffer tb, const void * data, u32 size );
 void DeleteTextureBuffer( TextureBuffer tb );
+void DeferDeleteTextureBuffer( TextureBuffer tb );
 
 Texture NewTexture( const TextureConfig & config );
 void DeleteTexture( Texture texture );
 
-TextureArray NewAtlasTextureArray( const TextureArrayConfig & config );
+TextureArray NewTextureArray( const TextureArrayConfig & config );
 void DeleteTextureArray( TextureArray ta );
 
 Framebuffer NewFramebuffer( const FramebufferConfig & config );
+Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, Texture * depth_texture );
+Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer );
 void DeleteFramebuffer( Framebuffer fb );
 
-bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths );
+bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths, Span< const char * > feedback_varyings = Span< const char * >() );
 void DeleteShader( Shader shader );
 
 Mesh NewMesh( MeshConfig config );
@@ -338,7 +385,10 @@ void DeleteMesh( const Mesh & mesh );
 void DeferDeleteMesh( const Mesh & mesh );
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0 );
-void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, const Material * material, const Material * gradient, BlendFunc blend_func, u32 num_particles );
+void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, float radius, u32 num_particles, float dt );
+void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, VertexBuffer vb_feedback, float radius, u32 num_particles, float dt );
+void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, BlendFunc blend_func, u32 num_particles );
+void DrawInstancedParticles( VertexBuffer vb, const Model * model, u32 num_particles );
 
 void DownloadFramebuffer( void * buf );
 
@@ -375,8 +425,7 @@ UniformBlock UploadUniformBlock( Rest... rest ) {
 	// assign to constexpr variable to break the build if it
 	// stops being constexpr, instead of switching to VLA
 	constexpr size_t buf_size = Std140Size< Rest... >( 0 );
-	char buf[ buf_size ];
-	memset( buf, 0, sizeof( buf ) );
+	char buf[ buf_size ] = { };
 	SerializeUniforms( buf, 0, rest... );
 	return UploadUniforms( buf, sizeof( buf ) );
 }

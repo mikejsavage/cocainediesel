@@ -27,16 +27,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Returns true if the trigger shouldn't be activated
 */
 static bool G_TriggerWait( edict_t *ent, edict_t *other ) {
-	if( GS_RaceGametype( &server_gs ) ) {
-		if( other->trigger_entity == ent && other->trigger_timeout && other->trigger_timeout >= level.time ) {
-			return true;
-		}
-
-		other->trigger_entity = ent;
-		other->trigger_timeout = level.time + 1000 * ent->wait;
-		return false;
-	}
-
 	if( ent->timeStamp >= level.time ) {
 		return true;
 	}
@@ -52,7 +42,6 @@ static void InitTrigger( edict_t *self ) {
 	GClip_SetBrushModel( self );
 	self->r.svflags = SVF_NOCLIENT;
 }
-
 
 // the trigger was just activated
 // ent->activator should be set to the activator so it can be held through a delay
@@ -78,7 +67,7 @@ static void Use_Multi( edict_t *ent, edict_t *other, edict_t *activator ) {
 	multi_trigger( ent );
 }
 
-static void Touch_Multi( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+static void Touch_Multi( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	if( other->r.client ) {
 		if( self->spawnflags & 2 ) {
 			return;
@@ -178,7 +167,7 @@ static void G_JumpPadSound( edict_t *ent ) {
 
 #define MIN_TRIGGER_PUSH_REBOUNCE_TIME 100
 
-static void trigger_push_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+static void trigger_push_touch( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	if( self->s.team && self->s.team != other->s.team ) {
 		return;
 	}
@@ -215,13 +204,13 @@ static void trigger_push_setup( edict_t *self ) {
 	Vec3 velocity = target->s.origin - origin;
 
 	float height = target->s.origin.z - origin.z;
-	float time = sqrtf( height / ( 0.5f * level.gravity ) );
+	float time = sqrtf( height / ( 0.5f * GRAVITY ) );
 	if( time != 0 ) {
 		velocity.z = 0;
 		float dist = Length( velocity );
 		velocity = SafeNormalize( velocity );
 		velocity = velocity * ( dist / time );
-		velocity.z = time * level.gravity;
+		velocity.z = time * GRAVITY;
 		self->s.origin2 = velocity;
 	}
 	else {
@@ -232,7 +221,7 @@ static void trigger_push_setup( edict_t *self ) {
 void SP_trigger_push( edict_t *self ) {
 	InitTrigger( self );
 
-	self->moveinfo.sound_start = st.noise != EMPTY_HASH ? st.noise : S_JUMPPAD;
+	self->moveinfo.sound_start = st.noise != EMPTY_HASH ? st.noise : StringHash( "sounds/world/jumppad" );
 
 	// gameteam field from editor
 	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
@@ -272,10 +261,7 @@ static void hurt_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	}
 }
 
-static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
-	int dflags;
-	int damage;
-
+static void hurt_touch( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	if( !other->takedamage || G_IsDead( other ) ) {
 		return;
 	}
@@ -288,15 +274,9 @@ static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surf
 		return;
 	}
 
-	damage = self->dmg;
+	int damage = self->dmg;
 	if( self->spawnflags & ( 32 | 64 ) ) {
 		damage = other->health + 1;
-	}
-
-	if( self->spawnflags & 8 ) {
-		dflags = DAMAGE_NO_PROTECTION;
-	} else {
-		dflags = 0;
 	}
 
 	if( self->spawnflags & ( 32 | 64 ) ) { // KILL, FALL
@@ -311,7 +291,7 @@ static void hurt_touch( edict_t *self, edict_t *other, cplane_t *plane, int surf
 		}
 	}
 
-	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, damage, damage, dflags, MOD_TRIGGER_HURT );
+	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, damage, damage, 0, WorldDamage_Trigger );
 }
 
 void SP_trigger_hurt( edict_t *self ) {
@@ -351,42 +331,7 @@ void SP_trigger_hurt( edict_t *self ) {
 	}
 }
 
-//==============================================================================
-//
-//trigger_gravity
-//
-//==============================================================================
-
-static void trigger_gravity_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
-	if( self->s.team && self->s.team != other->s.team ) {
-		return;
-	}
-
-	other->gravity = self->gravity;
-}
-
-void SP_trigger_gravity( edict_t *self ) {
-	if( st.gravity == 0 ) {
-		if( developer->integer ) {
-			Com_GGPrint( "trigger_gravity without gravity set at {}", self->s.origin );
-		}
-		G_FreeEdict( self );
-		return;
-	}
-
-	// gameteam field from editor
-	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
-		self->s.team = st.gameteam;
-	} else {
-		self->s.team = TEAM_SPECTATOR;
-	}
-
-	InitTrigger( self );
-	self->gravity = atof( st.gravity );
-	self->touch = trigger_gravity_touch;
-}
-
-static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+static void TeleporterTouch( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	edict_t *dest;
 
 	if( !G_PlayerCanTeleport( other ) ) {
@@ -407,7 +352,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 
 	self->timeStamp = level.time + ( self->wait * 1000 );
 
-	dest = G_Find( NULL, FOFS( targetname ), self->target );
+	dest = G_Find( NULL, &edict_t::name, self->target );
 	if( !dest ) {
 		if( developer->integer ) {
 			Com_Printf( "Couldn't find destination.\n" );
@@ -432,7 +377,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, cplane_t *plane, int
 }
 
 void SP_trigger_teleport( edict_t *ent ) {
-	if( !ent->target ) {
+	if( ent->target == EMPTY_HASH ) {
 		if( developer->integer ) {
 			Com_Printf( "teleporter without a target.\n" );
 		}

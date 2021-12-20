@@ -37,6 +37,7 @@ struct ImFont;
 struct snapshot_t;
 
 constexpr RGBA8 rgba8_diesel_yellow = RGBA8( 255, 204, 38, 255 );
+constexpr RGBA8 rgba8_diesel_green = RGBA8( 44, 209, 89, 255 ); //yolo
 
 //=============================================================================
 
@@ -51,7 +52,7 @@ struct client_state_t {
 	int timeoutcount;
 
 	int cmdNum;                     // current cmd
-	usercmd_t cmds[CMD_BACKUP];     // each mesage will send several old cmds
+	UserCommand cmds[CMD_BACKUP];     // each mesage will send several old cmds
 	int cmd_time[CMD_BACKUP];       // time sent, for calculating pings
 
 	WeaponType weaponSwitch;
@@ -93,50 +94,11 @@ extern client_state_t cl;
 /*
 ==================================================================
 
-the client_static_t structure is persistant through an arbitrary number
+the client_static_t structure is persistent through an arbitrary number
 of server connections
 
 ==================================================================
 */
-
-struct download_list_t {
-	char *filename;
-	download_list_t *next;
-};
-
-struct download_t {
-	// for request
-	char *requestname;              // file we requested from the server (NULL if none requested)
-	bool requestnext;           // whether to request next download after this, for precaching
-	int64_t timeout;
-	int64_t timestart;
-
-	// both downloads
-	char *name;                     // name of the file in download, relative to base path
-	char *origname;                 // name of the file in download as originally passed by the server
-	char *tempname;                 // temporary location, relative to base path
-	size_t size;
-	unsigned checksum;
-
-	double percent;
-	int successCount;               // so we know to restart media
-	download_list_t *list;          // list of all tried downloads, so we don't request same file twice
-
-	// server download
-	int filenum;
-	size_t offset;
-	int retries;
-	size_t baseoffset;              // for download speed calculation when resuming downloads
-
-	// web download
-	bool web;
-	char *web_url;                  // download URL, passed by the server
-	bool web_local_http;
-
-	bool disconnect;            // set when user tries to disconnect, to allow cleaning up webdownload
-	bool pending_reconnect;     // set when we ignored a map change command to avoid stopping the download
-	bool cancelled;             // to allow cleaning up of temporary download file
-};
 
 struct cl_demo_t {
 	char *name;
@@ -158,10 +120,10 @@ struct cl_demo_t {
 	int64_t play_jump_time;
 	bool play_ignore_next_frametime;
 
-	bool pause_on_stop;
-
 	char meta_data[SNAP_MAX_DEMO_META_DATA_SIZE];
 	size_t meta_data_realsize;
+
+	bool yolo;
 };
 
 struct client_static_t {
@@ -189,19 +151,16 @@ struct client_static_t {
 	bool cgameActive;
 
 	// connection information
-	char *servername;               // name of server from original connect
-	socket_type_t servertype;       // socket type used to connect to the server
 	netadr_t serveraddress;         // address of that server
 	int64_t connect_time;               // for connection retransmits
 	int connect_count;
 
 	socket_t *socket;               // socket used by current connection
-	bool reliable;
 
 	netadr_t rconaddress;       // address where we are sending rcon messages, to ignore other print packets
 
-	netadr_t httpaddress;           // address of the builtin HTTP server
-	char *httpbaseurl;              // http://<httpaddress>/
+	char * download_url;              // http://<httpaddress>/
+	bool download_url_is_game_server;
 
 	bool rejected;          // these are used when the server rejects our connection
 	int rejecttype;
@@ -211,12 +170,10 @@ struct client_static_t {
 
 	int challenge;              // from the server to use for connecting
 
-	download_t download;
-
 	// demo recording info must be here, so it isn't cleared on level change
 	cl_demo_t demo;
 
-	const Material * whiteTexture;
+	const Material * white_material;
 
 	// these are our reliable messages that go to the server
 	int64_t reliableSequence;          // the last one we put in the list to be sent
@@ -253,20 +210,16 @@ extern gs_state_t client_gs;
 //
 // cvars
 //
-extern cvar_t *cl_shownet;
+extern Cvar *cl_shownet;
 
-extern cvar_t *cl_extrapolationTime;
-extern cvar_t *cl_extrapolate;
+extern Cvar *cl_extrapolationTime;
+extern Cvar *cl_extrapolate;
 
 // wsw : debug netcode
-extern cvar_t *cl_debug_serverCmd;
-extern cvar_t *cl_debug_timeDelta;
+extern Cvar *cl_debug_serverCmd;
+extern Cvar *cl_debug_timeDelta;
 
-extern cvar_t *cl_downloads;
-extern cvar_t *cl_downloads_from_web;
-extern cvar_t *cl_downloads_from_web_timeout;
-
-extern cvar_t *cl_devtools;
+extern Cvar *cl_devtools;
 
 // delta from this if not from a previous frame
 extern SyncEntityState cl_baselines[MAX_EDICTS];
@@ -276,8 +229,7 @@ extern SyncEntityState cl_baselines[MAX_EDICTS];
 //
 // cl_main.c
 //
-void CL_Init( void );
-void CL_Quit( void );
+void CL_Init();
 
 void CL_UpdateClientCommandsToServer( msg_t *msg );
 void CL_AddReliableCommand( const char *cmd );
@@ -288,42 +240,38 @@ void CL_AdjustServerTime( unsigned int gamemsec );
 
 void CL_SetKeyDest( keydest_t key_dest );
 void CL_SetOldKeyDest( keydest_t key_dest );
-void CL_ResetServerCount( void );
 void CL_SetClientState( connstate_t state );
-void CL_ClearState( void );
-void CL_ReadPackets( void );
-void CL_Disconnect_f( void );
+void CL_ClearState();
+void CL_ReadPackets();
+void CL_Disconnect_f();
 
-void CL_Reconnect_f( void );
-void CL_ServerReconnect_f( void );
-void CL_Changing_f( void );
-void CL_Precache_f( void );
-void CL_ForwardToServer_f( void );
-void CL_ServerDisconnect_f( void );
+void CL_Connect( const netadr_t * address );
+void CL_Reconnect_f();
+void CL_FinishConnect();
+void CL_ServerReconnect_f();
+void CL_Changing_f();
+void CL_Precache_f();
+void CL_ServerDisconnect_f();
 
 void CL_ForceVsync( bool force );
-
-size_t CL_GetBaseServerURL( char *buffer, size_t buffer_size );
-
-int CL_AddSessionHttpRequestHeaders( const char *url, const char **headers );
-void CL_AsyncStreamRequest( const char *url, const char **headers, int timeout, int resumeFrom,
-							size_t ( *read_cb )( const void *, size_t, float, int, const char *, void * ),
-							void ( *done_cb )( int, const char *, void * ),
-							void ( *header_cb )( const char *, void * ), void *privatep, bool urlencodeUnsafe );
 
 //
 // cl_game.c
 //
-void CL_GameModule_Init( void );
-void CL_GameModule_Reset( void );
-void CL_GameModule_Shutdown( void );
-void CL_GameModule_ConfigString( int number, const char *value );
-void CL_GameModule_EscapeKey( void );
+void CL_GetUserCmd( int frame, UserCommand *cmd );
+int CL_GetCurrentUserCmdNum();
+void CL_GetCurrentState( int64_t *incomingAcknowledged, int64_t *outgoingSequence, int64_t *outgoingSent );
+
+void CL_GameModule_Init();
+void CL_GameModule_Reset();
+void CL_GameModule_Shutdown();
+void CL_GameModule_ConfigString( int number );
+void CL_GameModule_EscapeKey();
 bool CL_GameModule_NewSnapshot( int pendingSnapshot );
 void CL_GameModule_RenderView();
-void CL_GameModule_GetEntitySpatilization( int entnum, Vec3 * origin, Vec3 * velocity );
 void CL_GameModule_InputFrame( int frameTime );
-unsigned CL_GameModule_GetButtonBits( void );
+u8 CL_GameModule_GetButtonBits();
+u8 CL_GameModule_GetButtonDownEdges();
 void CL_GameModule_AddViewAngles( Vec3 * viewAngles );
 void CL_GameModule_AddMovement( Vec3 * movement );
 void CL_GameModule_MouseMove( int frameTime, Vec2 m );
@@ -333,20 +281,20 @@ void CL_GameModule_MouseMove( int frameTime, Vec2 m );
 //
 void CL_ParseGetInfoResponse( const socket_t *socket, const netadr_t *address, msg_t *msg );
 void CL_ParseGetStatusResponse( const socket_t *socket, const netadr_t *address, msg_t *msg );
-void CL_QueryGetInfoMessage_f( void );
-void CL_QueryGetStatusMessage_f( void );
+void CL_QueryGetInfoMessage_f();
+void CL_QueryGetStatusMessage_f();
 void CL_ParseStatusMessage( const socket_t *socket, const netadr_t *address, msg_t *msg );
 void CL_ParseGetServersResponse( const socket_t *socket, const netadr_t *address, msg_t *msg, bool extended );
-void CL_GetServers_f( void );
-void CL_PingServer_f( void );
-void CL_ServerListFrame( void );
-void CL_InitServerList( void );
-void CL_ShutDownServerList( void );
+void CL_GetServers_f();
+void CL_PingServer_f();
+void CL_ServerListFrame();
+void CL_InitServerList();
+void CL_ShutDownServerList();
 
 //
 // cl_input.c
 //
-void CL_InitInput( void );
+void CL_InitInput();
 void CL_UserInputFrame( int realMsec );
 void CL_WriteUcmdsToMessage( msg_t *msg );
 
@@ -354,16 +302,15 @@ void CL_WriteUcmdsToMessage( msg_t *msg );
 // cl_demo.c
 //
 void CL_WriteDemoMessage( msg_t *msg );
-void CL_DemoCompleted( void );
-void CL_PlayDemo_f( void );
-void CL_ReadDemoPackets( void );
-void CL_LatchedDemoJump( void );
-void CL_Stop_f( void );
-void CL_Record_f( void );
-void CL_PauseDemo_f( void );
-void CL_DemoJump_f( void );
-size_t CL_ReadDemoMetaData( const char *demopath, char *meta_data, size_t meta_data_size );
-const char **CL_DemoComplete( const char *partial );
+void CL_DemoCompleted();
+void CL_PlayDemo_f();
+void CL_YoloDemo_f();
+void CL_ReadDemoPackets();
+void CL_LatchedDemoJump();
+void CL_Stop_f();
+void CL_Record_f();
+void CL_PauseDemo_f();
+void CL_DemoJump_f();
 #define CL_SetDemoMetaKeyValue( k,v ) cls.demo.meta_data_realsize = SNAP_SetDemoMetaKeyValue( cls.demo.meta_data, sizeof( cls.demo.meta_data ), cls.demo.meta_data_realsize, k, v )
 
 //
@@ -372,25 +319,20 @@ const char **CL_DemoComplete( const char *partial );
 void CL_ParseServerMessage( msg_t *msg );
 #define SHOWNET( msg,s ) _SHOWNET( msg,s,cl_shownet->integer );
 
-void CL_FreeDownloadList( void );
-bool CL_CheckOrDownloadFile( const char *filename );
+using DownloadCompleteCallback = void ( * )( const char * filename, Span< const u8 > data );
 
-bool CL_DownloadRequest( const char *filename );
-void CL_DownloadStatus_f( void );
-void CL_DownloadCancel_f( void );
-void CL_DownloadDone( void );
-void CL_RequestNextDownload( void );
-void CL_CheckDownloadTimeout( void );
+bool CL_DownloadFile( const char * filename, DownloadCompleteCallback cb );
+bool CL_IsDownloading();
+void CL_CancelDownload();
 
 //
 // cl_screen.c
 //
-void SCR_InitScreen( void );
-void SCR_UpdateScreen( void );
+void SCR_InitScreen();
+void SCR_UpdateScreen();
 void SCR_DebugGraph( float value, float r, float g, float b );
-void SCR_RegisterConsoleMedia( void );
 
-void CL_AddNetgraph( void );
+void CL_AddNetgraph();
 
 //
 // cl_imgui

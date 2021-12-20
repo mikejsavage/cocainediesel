@@ -22,24 +22,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/renderer.h"
 #include "client/renderer/text.h"
 
-cvar_t *cg_centerTime;
-cvar_t *cg_showFPS;
-cvar_t *cg_showPointedPlayer;
-cvar_t *cg_draw2D;
+Cvar *cg_centerTime;
+Cvar *cg_showFPS;
+Cvar *cg_showPointedPlayer;
+Cvar *cg_draw2D;
 
-cvar_t *cg_crosshair_size;
+Cvar *cg_crosshair_size;
 
-cvar_t *cg_showSpeed;
-cvar_t *cg_showAwards;
+Cvar *cg_showSpeed;
 
-cvar_t *cg_showPlayerNames;
-cvar_t *cg_showPlayerNames_alpha;
-cvar_t *cg_showPlayerNames_zfar;
-cvar_t *cg_showPlayerNames_barWidth;
-
-cvar_t *cg_showPressedKeys;
-
-cvar_t *cg_showViewBlends;
+Cvar *cg_showPlayerNames;
+Cvar *cg_showPlayerNames_alpha;
+Cvar *cg_showPlayerNames_zfar;
+Cvar *cg_showPlayerNames_barWidth;
 
 static int64_t scr_damagetime = 0;
 
@@ -51,9 +46,8 @@ CENTER PRINTING
 ===============================================================================
 */
 
-char scr_centerstring[1024];
-int scr_centertime_off;
-int scr_erase_center;
+static char scr_centerstring[1024];
+static int scr_centertime_off;
 
 /*
 * CG_CenterPrint
@@ -63,66 +57,62 @@ int scr_erase_center;
 */
 void CG_CenterPrint( const char *str ) {
 	Q_strncpyz( scr_centerstring, str, sizeof( scr_centerstring ) );
-	scr_centertime_off = cg_centerTime->value * 1000.0f;
+	scr_centertime_off = cg_centerTime->number * 1000.0f;
 }
 
-static void CG_DrawCenterString( void ) {
-	DrawText( cgs.fontMontserrat, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.35f, vec4_white, true );
+static void CG_DrawCenterString() {
+	DrawText( cgs.fontNormal, cgs.textSizeMedium, scr_centerstring, Alignment_CenterTop, frame_static.viewport_width * 0.5f, frame_static.viewport_height * 0.75f, vec4_white, true );
 }
 
 //============================================================================
 
-/*
-* CG_ScreenInit
-*/
-void CG_ScreenInit( void ) {
-	cg_showFPS =        Cvar_Get( "cg_showFPS", "0", CVAR_ARCHIVE );
-	cg_draw2D =     Cvar_Get( "cg_draw2D", "1", 0 );
-	cg_centerTime =     Cvar_Get( "cg_centerTime", "2.5", 0 );
+void CG_ScreenInit() {
+	cg_showFPS =        NewCvar( "cg_showFPS", "0", CvarFlag_Archive );
+	cg_draw2D =     NewCvar( "cg_draw2D", "1", 0 );
+	cg_centerTime =     NewCvar( "cg_centerTime", "2.5", 0 );
 
-	cg_crosshair_size = Cvar_Get( "cg_crosshair_size", "3", CVAR_ARCHIVE );
+	cg_crosshair_size = NewCvar( "cg_crosshair_size", "3", CvarFlag_Archive );
 
-	cg_showSpeed =      Cvar_Get( "cg_showSpeed", "0", CVAR_ARCHIVE );
-	cg_showPointedPlayer =  Cvar_Get( "cg_showPointedPlayer", "1", CVAR_ARCHIVE );
-	cg_showViewBlends = Cvar_Get( "cg_showViewBlends", "1", CVAR_ARCHIVE );
-	cg_showAwards =     Cvar_Get( "cg_showAwards", "1", CVAR_ARCHIVE );
+	cg_showSpeed =      NewCvar( "cg_showSpeed", "0", CvarFlag_Archive );
+	cg_showPointedPlayer =  NewCvar( "cg_showPointedPlayer", "1", CvarFlag_Archive );
 
-	cg_showPlayerNames =        Cvar_Get( "cg_showPlayerNames", "2", CVAR_ARCHIVE );
-	cg_showPlayerNames_alpha =  Cvar_Get( "cg_showPlayerNames_alpha", "0.4", CVAR_ARCHIVE );
-	cg_showPlayerNames_zfar =   Cvar_Get( "cg_showPlayerNames_zfar", "1024", CVAR_ARCHIVE );
-	cg_showPlayerNames_barWidth =   Cvar_Get( "cg_showPlayerNames_barWidth", "8", CVAR_ARCHIVE );
-
-	cg_showPressedKeys = Cvar_Get( "cg_showPressedKeys", "0", CVAR_ARCHIVE );
+	cg_showPlayerNames =        NewCvar( "cg_showPlayerNames", "2", CvarFlag_Archive );
+	cg_showPlayerNames_alpha =  NewCvar( "cg_showPlayerNames_alpha", "0.4", CvarFlag_Archive );
+	cg_showPlayerNames_zfar =   NewCvar( "cg_showPlayerNames_zfar", "1024", CvarFlag_Archive );
+	cg_showPlayerNames_barWidth =   NewCvar( "cg_showPlayerNames_barWidth", "8", CvarFlag_Archive );
 }
 
-/*
-* CG_DrawNet
-*/
 void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
 	if( cgs.demoPlaying ) {
 		return;
 	}
 
 	int64_t incomingAcknowledged, outgoingSequence;
-	trap_NET_GetCurrentState( &incomingAcknowledged, &outgoingSequence, NULL );
+	CL_GetCurrentState( &incomingAcknowledged, &outgoingSequence, NULL );
 	if( outgoingSequence - incomingAcknowledged < CMD_BACKUP - 1 ) {
 		return;
 	}
 	x = CG_HorizontalAlignForWidth( x, alignment, w );
 	y = CG_VerticalAlignForHeight( y, alignment, h );
-	Draw2DBox( x, y, w, h, cgs.media.shaderNet, color );
+	Draw2DBox( x, y, w, h, FindMaterial( "gfx/hud/net" ), color );
 }
 
-void CG_ScreenCrosshairDamageUpdate( void ) {
+void CG_ScreenCrosshairDamageUpdate() {
 	scr_damagetime = cls.monotonicTime;
 }
 
 static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
-	Draw2DBox( x, y, w, h, cgs.white_material, color );
+	Draw2DBox( x, y, w, h, cls.white_material, color );
 }
 
 void CG_DrawCrosshair() {
-	if( cg.predictedPlayerState.health <= 0 || ( cg.predictedPlayerState.weapon == Weapon_Sniper && cg.predictedPlayerState.zoom_time > 0 ) )
+	if( cg.predictedPlayerState.health <= 0 )
+		return;
+
+	WeaponType weapon = cg.predictedPlayerState.weapon;
+	if( weapon == Weapon_Knife || weapon == Weapon_Sniper )
+		return;
+	if( weapon == Weapon_AutoSniper && cg.predictedPlayerState.zoom_time > 0 )
 		return;
 
 	Vec4 color = cls.monotonicTime - scr_damagetime <= 300 ? vec4_red : vec4_white;
@@ -135,71 +125,25 @@ void CG_DrawCrosshair() {
 	CG_FillRect( w / 2 - 2 - size, h / 2 - 2, 4 + 2 * size, 4, vec4_black );
 	CG_FillRect( w / 2 - 1, h / 2 - 1 - size, 2, 2 + 2 * size, color );
 	CG_FillRect( w / 2 - 1 - size, h / 2 - 1, 2 + 2 * size, 2, color );
-
-	// temp reload progress bar
-	if( cg.predictedPlayerState.weapon_state == WeaponState_Reloading ) {
-		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapon );
-		float frac = 1.0f - float( cg.predictedPlayerState.weapon_time ) / float( def->reload_time );
-
-		int size = 32;
-		CG_FillRect( w / 2 - 1 - size, h / 2 - 1 + 24, 2 + 2 * size, 4, vec4_black );
-		CG_FillRect( w / 2 - size, h / 2 - 1 + 25, frac * 2 * size, 2, vec4_white );
-	}
 }
 
-void CG_DrawKeyState( int x, int y, int w, int h, const char *key ) {
-	int i;
-	bool pressed = false;
-
-	if( !cg_showPressedKeys->integer ) {
-		return;
-	}
-
-	if( !key ) {
-		return;
-	}
-
-	for( i = 0; i < KEYICON_TOTAL; i++ )
-		if( !Q_stricmp( key, gs_keyicon_names[i] ) ) {
-			break;
-		}
-
-	if( i == KEYICON_TOTAL ) {
-		return;
-	}
-
-	if( cg.predictedPlayerState.plrkeys & ( 1 << i ) ) {
-		pressed = 1;
-	}
-
-	Vec4 color = vec4_white;
-	if( !pressed ) {
-		color.w = 0.5f;
-	}
-
-	Draw2DBox( x, y, w, h, cgs.media.shaderKeyIcon[i], color );
-}
-
-/*
-* CG_DrawClock
-*/
 void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border ) {
 	int64_t clocktime, startTime, duration, curtime;
 	char string[12];
 
-	if( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME ) {
+	if( client_gs.gameState.match_state > MatchState_Playing ) {
 		return;
 	}
 
-	if( GS_MatchClockOverride( &client_gs ) ) {
-		clocktime = GS_MatchClockOverride( &client_gs );
+	if( client_gs.gameState.clock_override != 0 ) {
+		clocktime = client_gs.gameState.clock_override;
 		if( clocktime < 0 )
 			return;
 	}
 	else {
 		curtime = ( GS_MatchWaiting( &client_gs ) || GS_MatchPaused( &client_gs ) ) ? cg.frame.serverTime : cl.serverTime;
-		duration = GS_MatchDuration( &client_gs );
-		startTime = GS_MatchStartTime( &client_gs );
+		duration = client_gs.gameState.match_duration;
+		startTime = client_gs.gameState.match_state_start_time;
 
 		// count downwards when having a duration
 		if( duration ) {
@@ -227,19 +171,13 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	DrawText( font, font_size, string, alignment, x, y, color, border );
 }
 
-/*
-* CG_ClearPointedNum
-*/
-void CG_ClearPointedNum( void ) {
+void CG_ClearPointedNum() {
 	cg.pointedNum = 0;
 	cg.pointRemoveTime = 0;
 	cg.pointedHealth = 0;
 }
 
-/*
-* CG_UpdatePointedNum
-*/
-static void CG_UpdatePointedNum( void ) {
+static void CG_UpdatePointedNum() {
 	// disable cases
 	if( cg.view.thirdperson || cg.view.type != VIEWDEF_PLAYERVIEW || !cg_showPointedPlayer->integer ) {
 		CG_ClearPointedNum();
@@ -263,15 +201,8 @@ static void CG_UpdatePointedNum( void ) {
 	}
 }
 
-/*
-* CG_DrawPlayerNames
-*/
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {
 	// static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
-	Vec3 dir, drawOrigin;
-	float dist, fadeFrac;
-	trace_t trace;
-
 	if( !cg_showPlayerNames->integer && !cg_showPointedPlayer->integer ) {
 		return;
 	}
@@ -279,7 +210,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 	CG_UpdatePointedNum();
 
 	for( int i = 0; i < client_gs.maxclients; i++ ) {
-		if( !cgs.clientInfo[i].name[0] || ISVIEWERENTITY( i + 1 ) ) {
+		if( strlen( PlayerName( i ) ) == 0 || ISVIEWERENTITY( i + 1 ) ) {
 			continue;
 		}
 
@@ -297,14 +228,14 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		if( !cent->current.solid || cent->current.solid == SOLID_BMODEL || cent->current.team == TEAM_SPECTATOR ) {
+		if( cent->current.type != ET_PLAYER ) {
 			continue;
 		}
 
 		// Kill if behind the view
-		dir = cent->ent.origin - cg.view.origin;
-		dist = Length( dir ) * cg.view.fracDistFOV;
-		dir = Normalize( dir );
+		Vec3 dir = cent->interpolated.origin - cg.view.origin;
+		float dist = Length( dir ) * cg.view.fracDistFOV;
+		dir = SafeNormalize( dir );
 
 		if( Dot( dir, FromQFAxis( cg.view.axis, AXIS_FORWARD ) ) < 0 ) {
 			continue;
@@ -312,14 +243,15 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 
 		Vec4 tmpcolor = color;
 
+		float fadeFrac;
 		if( cent->current.number != cg.pointedNum ) {
-			if( dist > cg_showPlayerNames_zfar->value ) {
+			if( dist > cg_showPlayerNames_zfar->number ) {
 				continue;
 			}
 
-			fadeFrac = Clamp01( ( cg_showPlayerNames_zfar->value - dist ) / ( cg_showPlayerNames_zfar->value * 0.25f ) );
+			fadeFrac = Clamp01( ( cg_showPlayerNames_zfar->number - dist ) / ( cg_showPlayerNames_zfar->number * 0.25f ) );
 
-			tmpcolor.w = cg_showPlayerNames_alpha->value * color.w * fadeFrac;
+			tmpcolor.w = cg_showPlayerNames_alpha->number * color.w * fadeFrac;
 		} else {
 			fadeFrac = Clamp01( ( cg.pointRemoveTime - cl.serverTime ) / 150.0f );
 
@@ -330,25 +262,29 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), cent->ent.origin, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
+		trace_t trace;
+		CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), cent->interpolated.origin, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
 		if( trace.fraction < 1.0f && trace.ent != cent->current.number ) {
 			continue;
 		}
 
-		drawOrigin = Vec3( cent->ent.origin.x, cent->ent.origin.y, cent->ent.origin.z + playerbox_stand_maxs.z + 8 );
+		Vec3 drawOrigin = cent->interpolated.origin + Vec3( 0.0f, 0.0f, playerbox_stand_maxs.z + 8 );
 
 		Vec2 coords = WorldToScreen( drawOrigin );
 		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
 			continue;
 		}
 
-		DrawText( font, font_size, cgs.clientInfo[i].name, Alignment_CenterBottom, coords.x, coords.y, tmpcolor, border );
+		DrawText( font, font_size, PlayerName( i ), Alignment_CenterBottom, coords.x, coords.y, tmpcolor, border );
 	}
 }
 
 //=============================================================================
 
-static const char * mini_obituaries[] = { "GG", "RIP", "BYE", "CYA", "L8R", "CHRS", "PLZ", "HAX" };
+static const char * mini_obituaries[] = {
+#include "mini_obituaries.h"
+};
+
 constexpr int MINI_OBITUARY_DAMAGE = 255;
 
 struct DamageNumber {
@@ -376,13 +312,13 @@ void CG_AddDamageNumber( SyncEntityState * ent, u64 parm ) {
 	dn->t = cl.serverTime;
 	dn->damage = parm >> 1;
 	dn->headshot = ( parm & 1 ) != 0;
-	dn->drift = random_float11( &cls.rng );
-	dn->obituary = random_select( &cls.rng, mini_obituaries );
+	dn->drift = RandomFloat11( &cls.rng ) > 0.0f ? 1.0f : -1.0f;
+	dn->obituary = RandomElement( &cls.rng, mini_obituaries );
 
 	float distance_jitter = 4;
 	dn->origin = ent->origin;
-	dn->origin.x += random_float11( &cls.rng ) * distance_jitter;
-	dn->origin.y += random_float11( &cls.rng ) * distance_jitter;
+	dn->origin.x += RandomFloat11( &cls.rng ) * distance_jitter;
+	dn->origin.y += RandomFloat11( &cls.rng ) * distance_jitter;
 	dn->origin.z += 48;
 
 	damage_numbers_head = ( damage_numbers_head + 1 ) % ARRAY_COUNT( damage_numbers );
@@ -393,40 +329,49 @@ void CG_DrawDamageNumbers() {
 		if( dn.damage == 0 )
 			continue;
 
-		float lifetime = Lerp( 750.0f, Unlerp01( 0, dn.damage, MINI_OBITUARY_DAMAGE ), 2000.0f );
+		bool obituary = dn.damage == MINI_OBITUARY_DAMAGE;
+
+		float lifetime = obituary ? 1150.0f : Lerp( 750.0f, Unlerp01( 0, dn.damage, 50 ), 1000.0f );
 		float frac = ( cl.serverTime - dn.t ) / lifetime;
 		if( frac > 1 )
 			continue;
 
 		Vec3 origin = dn.origin;
-		origin.z += frac * 32;
+
+		if( obituary ) {
+			origin.z += 256.0f * frac - 512.0f * frac * frac;
+		}
+		else {
+			origin.z += frac * 32.0f;
+		}
 
 		if( Dot( -frame_static.V.row2().xyz(), origin - frame_static.position ) <= 0 )
 			continue;
 
 		Vec2 coords = WorldToScreen( origin );
-		coords.x += dn.drift * frac * 8;
+		coords.x += dn.drift * frac * ( obituary ? 512.0f : 8.0f );
 		if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {
 			continue;
 		}
 
 		char buf[ 16 ];
 		Vec4 color;
-		if( dn.damage == MINI_OBITUARY_DAMAGE ) {
+		float font_size;
+		if( obituary ) {
 			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
-			color = CG_TeamColorVec4( TEAM_ENEMY );
+			color = AttentionGettingColor();
+			font_size = Lerp( cgs.textSizeSmall, frac * frac, 0.0f );
 		}
 		else {
 			snprintf( buf, sizeof( buf ), "%d", dn.damage );
-			color = dn.headshot ? AttentionGettingColor() : vec4_white;
+			color = dn.headshot ? sRGBToLinear( rgba8_diesel_yellow ) : vec4_white;
+			font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 50 ), cgs.textSizeSmall );
 		}
-
-		float font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 60 ), cgs.textSizeSmall );
 
 		float alpha = 1 - Max2( 0.0f, frac - 0.75f ) / 0.25f;
 		color.w *= alpha;
 
-		DrawText( cgs.fontMontserrat, font_size, buf, Alignment_CenterBottom, coords.x, coords.y, color, true );
+		DrawText( cgs.fontNormal, font_size, buf, Alignment_CenterBottom, coords.x, coords.y, color, true );
 	}
 }
 
@@ -434,7 +379,6 @@ void CG_DrawDamageNumbers() {
 
 struct BombSite {
 	Vec3 origin;
-	int team;
 	char letter;
 };
 
@@ -448,7 +392,6 @@ enum BombState {
 struct Bomb {
 	BombState state;
 	Vec3 origin;
-	int team;
 };
 
 static BombSite bomb_sites[ 26 ];
@@ -463,39 +406,29 @@ void CG_AddBomb( centity_t * cent ) {
 		bomb.state = BombState_Planted;
 	}
 
-	bomb.team = cent->current.team;
-	bomb.origin = cent->current.origin;
+	bomb.origin = cent->interpolated.origin;
 
 	// TODO: this really does not belong here...
-	if( bomb.state == BombState_Planted ) {
-		ParticleEmitter emitter = { };
-		emitter.position = bomb.origin + Vec3( -12.0f, 3.0f, -12.0f ); // TODO lol
+	if( cent->interpolated.animating ) {
+		const Model * model = FindModel( "models/bomb/bomb" );
+		if( model == NULL )
+			return;
 
-		emitter.start_speed = 128.0f;
-		emitter.end_speed = 128.0f;
+		u8 tip_node;
+		if( !FindNodeByName( model, Hash32( "a" ), &tip_node ) )
+			return;
 
-		emitter.start_color = Vec4( 1.0f, 0.69f, 0.0f, 1.0f );
-		emitter.end_color = Vec3( 0.8f, 0.1f, 0.0f );
+		TempAllocator temp = cls.frame_arena.temp();
 
-		emitter.red_distribution.type = RandomDistributionType_Uniform;
-		emitter.red_distribution.uniform = 0.1f;
-		emitter.green_distribution.type = RandomDistributionType_Uniform;
-		emitter.green_distribution.uniform = 0.05f;
+		Span< TRS > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
+		MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
 
-		emitter.start_size = 24.0f;
-		emitter.end_size = 0.0f;
+		Vec3 bomb_origin = cent->interpolated.origin - Vec3( 0.0f, 0.0f, 32.0f ); // BOMB_HUD_OFFSET
 
-		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = 2.0f;
+		Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, bomb_origin );
+		Vec3 tip = ( transform * model->transform * palettes.node_transforms[ tip_node ] * Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) ).xyz();
 
-		emitter.lifetime = 0.2f;
-
-		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = 0.05f;
-
-		emitter.emission_rate = 100;
-
-		EmitParticles( &cgs.bullet_sparks, emitter );
+		DoVisualEffect( "models/bomb/fuse", tip );
 	}
 }
 
@@ -504,18 +437,17 @@ void CG_AddBombSite( centity_t * cent ) {
 
 	BombSite * site = &bomb_sites[ num_bomb_sites ];
 	site->origin = cent->current.origin;
-	site->team = cent->current.team;
 	site->letter = cent->current.counterNum;
 
 	num_bomb_sites++;
 }
 
 void CG_DrawBombHUD() {
-	if( GS_MatchState( &client_gs ) > MATCH_STATE_PLAYTIME )
+	if( client_gs.gameState.match_state > MatchState_Playing )
 		return;
 
 	int my_team = cg.predictedPlayerState.team;
-	bool show_labels = my_team != TEAM_SPECTATOR && GS_MatchState( &client_gs ) == MATCH_STATE_PLAYTIME;
+	bool show_labels = my_team != TEAM_SPECTATOR && client_gs.gameState.match_state == MatchState_Playing;
 
 	Vec4 yellow = sRGBToLinear( rgba8_diesel_yellow );
 
@@ -529,12 +461,12 @@ void CG_DrawBombHUD() {
 
 			char buf[ 4 ];
 			snprintf( buf, sizeof( buf ), "%c", site->letter );
-			DrawText( cgs.fontMontserrat, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
+			DrawText( cgs.fontNormal, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
-				const char * msg = my_team == site->team ? "DEFEND" : "ATTACK";
+				const char * msg = my_team == client_gs.gameState.bomb.attacking_team ? "ATTACK" : "DEFEND";
 				coords.y += ( cgs.fontSystemMediumSize * 7 ) / 8;
-				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
+				DrawText( cgs.fontNormal, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 			}
 		}
 	}
@@ -545,21 +477,26 @@ void CG_DrawBombHUD() {
 
 		if( clamped ) {
 			int icon_size = ( cgs.fontSystemMediumSize * frame_static.viewport_height ) / 600;
-			Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, cgs.media.shaderBombIcon );
+			Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, FindMaterial( "gfx/bomb" ) );
 		}
 		else {
 			if( show_labels ) {
 				Vec4 color = vec4_white;
-				const char * msg;
+				const char * msg = "";
 
 				if( bomb.state == BombState_Dropped ) {
 					msg = "RETRIEVE";
+					color = AttentionGettingColor();
+
+					// TODO: lol
+					DoVisualEffect( "models/bomb/pickup_sparkle", bomb.origin - Vec3( 0.0f, 0.0f, 32.0f ), Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, AttentionGettingColor() );
 				}
 				else if( bomb.state == BombState_Planting ) {
 					msg = "PLANTING";
+					color = AttentionGettingColor();
 				}
 				else if( bomb.state == BombState_Planted ) {
-					if( my_team == bomb.team ) {
+					if( my_team == client_gs.gameState.bomb.attacking_team ) {
 						msg = "PROTECT";
 					}
 					else {
@@ -569,7 +506,7 @@ void CG_DrawBombHUD() {
 				}
 
 				float y = coords.y - cgs.fontSystemTinySize / 2;
-				DrawText( cgs.fontMontserrat, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, y, vec4_white, true );
+				DrawText( cgs.fontNormal, cgs.textSizeSmall, msg, Alignment_CenterMiddle, coords.x, y, color, true );
 			}
 		}
 
@@ -583,10 +520,7 @@ void CG_ResetBombHUD() {
 
 //=============================================================================
 
-/*
-* CG_EscapeKey
-*/
-void CG_EscapeKey( void ) {
+void CG_EscapeKey() {
 	if( cgs.demoPlaying ) {
 		UI_ShowDemoMenu();
 		return;
@@ -596,31 +530,19 @@ void CG_EscapeKey( void ) {
 }
 
 static Vec4 CG_CalcColorBlend() {
-	int contents = CG_PointContents( cg.view.origin );
-	if( contents & CONTENTS_WATER )
-		return Vec4( 0.0f, 0.1f, 1.0f, 0.2f );
-	if( contents & CONTENTS_LAVA )
-		return Vec4( 1.0f, 0.3f, 0.0f, 0.6f );
-	if( contents & CONTENTS_SLIME )
-		return Vec4( 0.0f, 0.1f, 0.05f, 0.6f );
-
-	return Vec4( 0 );
+	const SyncPlayerState * ps = &cg.predictedPlayerState;
+	float flashed = Unlerp01( u16( 0 ), ps->flashed, u16( U16_MAX * 0.75f ) );
+	return Vec4( Vec3( 1.0f ), flashed * flashed );
 }
 
-/*
-* CG_SCRDrawViewBlend
-*/
-static void CG_SCRDrawViewBlend( void ) {
-	if( !cg_showViewBlends->integer ) {
-		return;
-	}
-
+static void CG_SCRDrawViewBlend() {
 	Vec4 color = CG_CalcColorBlend();
+
 	if( color.w < 0.01f ) {
 		return;
 	}
 
-	Draw2DBox( 0, 0, frame_static.viewport_width, frame_static.viewport_height, cgs.white_material, color );
+	Draw2DBox( 0, 0, frame_static.viewport_width, frame_static.viewport_height, cls.white_material, color );
 }
 
 void AddDamageEffect( float x ) {
@@ -631,23 +553,7 @@ void AddDamageEffect( float x ) {
 	cg.damage_effect = Min2( max, cg.damage_effect + x );
 }
 
-static void CG_DrawScope() {
-	if( cg.predictedPlayerState.weapon == Weapon_Sniper && cg.predictedPlayerState.zoom_time > 0 ) {
-		PipelineState pipeline;
-		pipeline.pass = frame_static.ui_pass;
-		pipeline.shader = &shaders.scope;
-		pipeline.depth_func = DepthFunc_Disabled;
-		pipeline.blend_func = BlendFunc_Blend;
-		pipeline.write_depth = false;
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		DrawFullscreenMesh( pipeline );
-	}
-}
-
-/*
-* CG_Draw2DView
-*/
-void CG_Draw2DView( void ) {
+void CG_Draw2DView() {
 	ZoneScoped;
 
 	if( !cg.view.draw2D ) {
@@ -664,15 +570,13 @@ void CG_Draw2DView( void ) {
 		CG_DrawCenterString();
 	}
 
-	CG_DrawScope();
-	CG_ExecuteLayoutProgram( cg.statusBar );
+	CG_DrawHUD();
 	CG_DrawChat();
 }
 
-/*
-* CG_Draw2D
-*/
-void CG_Draw2D( void ) {
+void CG_Draw2D() {
+	CG_DrawScope();
+
 	if( !cg_draw2D->integer ) {
 		return;
 	}

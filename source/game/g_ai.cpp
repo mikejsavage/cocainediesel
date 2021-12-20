@@ -1,5 +1,5 @@
-#include "g_local.h"
-#include "../gameshared/gs_public.h"
+#include "game/g_local.h"
+#include "gameshared/gs_public.h"
 
 static const char * bot_names[] = {
 	"vic",
@@ -13,28 +13,27 @@ static const char * bot_names[] = {
 	"Perrina",
 
 	"__mute__",
-	"Slice*>",
 
 	// twitch subs
-	"ne0ns0up",
-	"hvaholic",
+	"bes1337",
 	"catman1900",
+	"hvaholic",
+	"ne0ns0up",
+	"notmsc",
+	"prym88",
+	"Quitehatty",
+	"Sam!",
+	"Scoot",
+	"Slice*>",
+	"touchpad timma",
 };
 
-static void CreateUserInfo( char * buffer, size_t bufferSize ) {
-	memset( buffer, 0, bufferSize );
-
-	Info_SetValueForKey( buffer, "name", random_select( &svs.rng, bot_names ) );
-	Info_SetValueForKey( buffer, "hand", va( "%i", random_uniform( &svs.rng, 0, 3 ) ) );
-}
-
 static edict_t * ConnectFakeClient() {
-	char userInfo[MAX_INFO_STRING];
-	static char fakeSocketType[] = "loopback";
-	static char fakeIP[] = "127.0.0.1";
-	CreateUserInfo( userInfo, sizeof( userInfo ) );
-	int entNum = SVC_FakeConnect( userInfo, fakeSocketType, fakeIP );
-	if( entNum < 1 ) {
+	char userInfo[ MAX_INFO_STRING ] = "";
+	Info_SetValueForKey( userInfo, "name", RandomElement( &svs.rng, bot_names ) );
+
+	int entNum = SVC_FakeConnect( userInfo, "loopback", "127.0.0.1" );
+	if( entNum == -1 ) {
 		Com_Printf( "AI: Can't spawn the fake client\n" );
 		return NULL;
 	}
@@ -51,7 +50,7 @@ void AI_SpawnBot() {
 		return;
 
 	ent->think = NULL;
-	ent->nextThink = level.time + 500 + random_uniform( &svs.rng, 0, 2000 );
+	ent->nextThink = level.time;
 	ent->classname = "bot";
 	ent->die = player_die;
 
@@ -75,9 +74,7 @@ static void AI_SpecThink( edict_t * self ) {
 
 	if( self->r.client->team == TEAM_SPECTATOR ) {
 		// try to join a team
-		if( !self->r.client->queueTimeStamp ) {
-			G_Teams_JoinAnyTeam( self, false );
-		}
+		G_Teams_JoinAnyTeam( self, false );
 
 		if( self->r.client->team == TEAM_SPECTATOR ) { // couldn't join, delay the next think
 			self->nextThink = level.time + 100;
@@ -87,8 +84,8 @@ static void AI_SpecThink( edict_t * self ) {
 		return;
 	}
 
-	usercmd_t ucmd;
-	memset( &ucmd, 0, sizeof( usercmd_t ) );
+	UserCommand ucmd;
+	memset( &ucmd, 0, sizeof( UserCommand ) );
 
 	// set approximate ping and show values
 	ucmd.serverTimeStamp = svs.gametime;
@@ -98,12 +95,12 @@ static void AI_SpecThink( edict_t * self ) {
 }
 
 static void AI_GameThink( edict_t * self ) {
-	if( GS_MatchState( &server_gs ) <= MATCH_STATE_WARMUP ) {
+	if( server_gs.gameState.match_state <= MatchState_Warmup ) {
 		G_Match_Ready( self );
 	}
 
-	usercmd_t ucmd;
-	memset( &ucmd, 0, sizeof( usercmd_t ) );
+	UserCommand ucmd;
+	memset( &ucmd, 0, sizeof( UserCommand ) );
 
 	// set up for pmove
 	ucmd.angles[ 0 ] = (short)ANGLE2SHORT( self->s.angles.x ) - self->r.client->ps.pmove.delta_angles[ 0 ];
@@ -115,7 +112,7 @@ static void AI_GameThink( edict_t * self ) {
 	self->r.client->ps.pmove.delta_angles[ 2 ] = 0;
 
 	// set approximate ping and show values
-	ucmd.msec = (uint8_t)game.frametime;
+	ucmd.msec = u8( game.frametime );
 	ucmd.serverTimeStamp = svs.gametime;
 
 	ClientThink( self, &ucmd, 0 );

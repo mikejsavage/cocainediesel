@@ -2,7 +2,6 @@
 
 sub=". ../base"
 if [ "$#" -ge 1 ]; then
-	sub=$1
+	sub=$@
 fi
-find $sub \( -name "*.lua" -or -name "*.cpp" -or -name "*.h" -or -name "*.glsl" -or -name "*.as" \) | xargs wc -l
-
+find $sub \( -name "*.lua" -or -name "*.cpp" -or -name "*.h" -or -name "*.glsl" \) -and -not \( -name blue_noise.cpp -or -name icon.cpp -or -name mini_obituaries.h -or -name obituaries.h -or -name prefixes.h \) | xargs wc -l

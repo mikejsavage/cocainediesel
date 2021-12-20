@@ -21,45 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/string.h"
 #include "game/g_local.h"
 
-/*
-* G_ClientUpdateScoreBoardMessage
-*
-* Show the scoreboard messages if the scoreboards are active
-*/
-void G_UpdateScoreBoardMessages( void ) {
-	char as_scoreboard[ 1024 ];
-	GT_asCallScoreboardMessage( as_scoreboard, sizeof( as_scoreboard ) );
-
-	String< 1024 > scoreboard( "scb \"{}", as_scoreboard );
-
-	// add spectators
-	scoreboard.append( " {}", teamlist[ TEAM_SPECTATOR ].numplayers );
-	for( int i = 0; i < teamlist[TEAM_SPECTATOR].numplayers; i++ ) {
-		const edict_t * e = game.edicts + teamlist[TEAM_SPECTATOR].playerIndices[i];
-		scoreboard.append( " {}", PLAYERNUM( e ) );
-	}
-
-	scoreboard += '"';
-
-	// send to players who have scoreboard visible
-	for( int i = 0; i < server_gs.maxclients; i++ ) {
-		edict_t * ent = game.edicts + 1 + i;
-		if( !ent->r.inuse || !ent->r.client ) {
-			continue;
-		}
-
-		gclient_t * client = ent->r.client;
-
-		if( svs.realtime <= client->level.scoreboard_time + scoreboardInterval ) {
-			continue;
-		}
-
-		if( client->ps.show_scoreboard ) {
-			client->level.scoreboard_time = svs.realtime + scoreboardInterval - ( svs.realtime % scoreboardInterval );
-			PF_GameCmd( ent, scoreboard.c_str() );
-		}
-	}
-}
 
 //=======================================================================
 
@@ -119,23 +80,20 @@ static unsigned int G_FindPointedPlayer( edict_t *self ) {
 	return best;
 }
 
-/*
-* G_SetClientStats
-*/
 void G_SetClientStats( edict_t * ent ) {
 	gclient_t * client = ent->r.client;
 	SyncPlayerState * ps = &client->ps;
 
-	ps->show_scoreboard = ent->r.client->level.showscores || GS_MatchState( &server_gs ) > MATCH_STATE_PLAYTIME;
-	ps->ready = GS_MatchState( &server_gs ) <= MATCH_STATE_WARMUP && level.ready[ PLAYERNUM( ent ) ];
+	ps->ready = server_gs.gameState.match_state <= MatchState_Warmup && level.ready[ PLAYERNUM( ent ) ];
 	ps->voted = G_Callvotes_HasVoted( ent );
 	ps->team = ent->s.team;
 	ps->real_team = ent->s.team;
 	ps->health = ent->s.team == TEAM_SPECTATOR ? 0 : HEALTH_TO_INT( ent->health );
+	ps->max_health = HEALTH_TO_INT( ent->max_health );
 
 	ps->pointed_player = 0;
 	ps->pointed_health = 0;
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		unsigned int pointed = G_FindPointedPlayer( ent );
 		edict_t * e = &game.edicts[ pointed ];
 		if( e->s.team == ent->s.team ) {

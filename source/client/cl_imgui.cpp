@@ -62,12 +62,12 @@ void CL_InitImGui() {
 	}
 
 	{
-		AddFontAsset( "fonts/Montserrat-SemiBold.ttf", 18.0f );
-		cls.huge_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 128.0f );
-		cls.large_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 64.0f );
-		cls.big_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 48.0f );
-		cls.medium_font = AddFontAsset( "fonts/Montserrat-Bold.ttf", 28.0f );
-		cls.console_font = AddFontAsset( "fonts/Montserrat-SemiBold.ttf", 14.0f );
+		AddFontAsset( "fonts/Decalotype-Bold.ttf", 18.0f );
+		cls.huge_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 128.0f );
+		cls.large_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 64.0f );
+		cls.big_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 48.0f );
+		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f );
+		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
 
 		ImGuiFreeType::BuildFontAtlas( io.Fonts );
 
@@ -89,43 +89,43 @@ void CL_InitImGui() {
 	{
 		ImGuiStyle & style = ImGui::GetStyle();
 		style.WindowRounding = 0;
-		style.FrameRounding = 1;
-		style.GrabRounding = 2;
-		style.FramePadding = ImVec2( 8, 8 );
+		style.FrameRounding = 0;
+		style.GrabRounding = 0;
+		style.FramePadding = ImVec2( 16, 16 );
 		style.FrameBorderSize = 0;
-		style.WindowPadding = ImVec2( 16, 16 );
+		style.WindowPadding = ImVec2( 32, 32 );
 		style.WindowBorderSize = 0;
 		style.PopupBorderSize = 0;
-		style.Colors[ ImGuiCol_Button ] = ImVec4( 0.5f, 0.125f, 0.125f, 1.f );
-		style.Colors[ ImGuiCol_ButtonHovered ] = ImVec4( 0.5f, 0.25f, 0.25f, 1.f );
-		style.Colors[ ImGuiCol_ButtonActive ] = ImVec4( 0.375f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_Button ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_ButtonHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_ButtonActive ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
 
-		style.Colors[ ImGuiCol_Tab ] = ImVec4( 0.5f, 0.125f, 0.125f, 1.f );
-		style.Colors[ ImGuiCol_TabHovered ] = ImVec4( 0.5f, 0.25f, 0.2f, 1.f );
-		style.Colors[ ImGuiCol_TabActive ] = ImVec4( 0.375f, 0.125f, 0.125f, 1.f );
-		style.Colors[ ImGuiCol_TabUnfocused ] = ImVec4( 0.375f, 0.25f, 0.25f, 1.f );
-		style.Colors[ ImGuiCol_TabUnfocusedActive ] = ImVec4( 0.375f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_Tab ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_TabHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_TabActive ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_TabUnfocused ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_TabUnfocusedActive ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
 
-		style.Colors[ ImGuiCol_FrameBg ] = ImVec4( 0.5f, 0.125f, 0.125f, 0.5f );
-		style.Colors[ ImGuiCol_FrameBgHovered ] = ImVec4( 0.5f, 0.25f, 0.25f, 0.5f );
-		style.Colors[ ImGuiCol_FrameBgActive ] = ImVec4( 0.45f, 0.125f, 0.125f, 0.5f );
+		style.Colors[ ImGuiCol_FrameBg ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_FrameBgHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_FrameBgActive ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
 
-		style.Colors[ ImGuiCol_SliderGrab ] = ImVec4( 1.f, 0.5f, 0.5f, 1.f );
-		style.Colors[ ImGuiCol_SliderGrabActive ] = ImVec4( 0.75f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_SliderGrab ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_SliderGrabActive ] = ImVec4( 0.75f, 0.75f, 0.75f, 1.f );
 
-		style.Colors[ ImGuiCol_ScrollbarBg ] = ImVec4( 0.5f, 0.125f, 0.125f, 0.5f );
-		style.Colors[ ImGuiCol_ScrollbarGrab ] = ImVec4( 0.75f, 0.25f, 0.25f, 1.f );
-		style.Colors[ ImGuiCol_ScrollbarGrabHovered ] = ImVec4( 0.75f, 0.5f, 0.5f, 1.f );
-		style.Colors[ ImGuiCol_ScrollbarGrabActive ] = ImVec4( 0.5f, 0.25f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_ScrollbarBg ] = ImVec4( 0.125f, 0.125f, 0.125f, 0.5f );
+		style.Colors[ ImGuiCol_ScrollbarGrab ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_ScrollbarGrabHovered ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_ScrollbarGrabActive ] = ImVec4( 0.75f, 0.75f, 0.75f, 1.f );
 
-		style.Colors[ ImGuiCol_CheckMark ] = ImVec4( 0.f, 1.f, 0.25f, 1.f );
+		style.Colors[ ImGuiCol_CheckMark ] = ImVec4( 0.25f, 1.f, 0.f, 1.f );
 
-		style.Colors[ ImGuiCol_Header ] = ImVec4( 0.5f, 0.125f, 0.125f, 1.f );
-		style.Colors[ ImGuiCol_HeaderHovered ] = ImVec4( 0.625f, 0.25f, 0.25f, 1.f );
-		style.Colors[ ImGuiCol_HeaderActive ] = ImVec4( 0.375f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_Header ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
+		style.Colors[ ImGuiCol_HeaderHovered ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
+		style.Colors[ ImGuiCol_HeaderActive ] = ImVec4( 0.75f, 0.75f, 0.75f, 1.f );
 
 		style.Colors[ ImGuiCol_WindowBg ] = ImColor( 0x1a, 0x1a, 0x1a );
-		style.ItemSpacing.y = 8;
+		style.ItemSpacing.y = 16;
 	}
 
 }
@@ -149,11 +149,16 @@ static void SubmitDrawCalls() {
 		return;
 	draw_data->ScaleClipRects( io.DisplayFramebufferScale );
 
+	u32 pass = 0;
+
 	ImVec2 pos = draw_data->DisplayPos;
 	for( int n = 0; n < draw_data->CmdListsCount; n++ ) {
+		TempAllocator temp = cls.frame_arena.temp();
+
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
 
 		MeshConfig config;
+		config.name = temp( "ImGui - {}", n );
 		config.unified_buffer = NewVertexBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ) );
 		config.positions_offset = offsetof( ImDrawVert, pos );
 		config.tex_coords_offset = offsetof( ImDrawVert, uv );
@@ -173,7 +178,13 @@ static void SubmitDrawCalls() {
 				MinMax2 scissor = MinMax2( Vec2( pcmd->ClipRect.x - pos.x, pcmd->ClipRect.y - pos.y ), Vec2( pcmd->ClipRect.z - pos.x, pcmd->ClipRect.w - pos.y ) );
 				if( scissor.mins.x < fb_width && scissor.mins.y < fb_height && scissor.maxs.x >= 0.0f && scissor.maxs.y >= 0.0f ) {
 					PipelineState pipeline;
-					pipeline.pass = frame_static.ui_pass;
+
+					// TODO: this is a hack to separate drawcalls into 2 passes
+					u32 new_pass = u32( uintptr_t( pcmd->UserCallbackData ) );
+					if( new_pass != 0 ) {
+						pass = new_pass;
+					}
+					pipeline.pass = pass == 0 ? frame_static.ui_pass : frame_static.post_ui_pass;
 					pipeline.shader = pcmd->TextureId.shader;
 					pipeline.depth_func = DepthFunc_Disabled;
 					pipeline.blend_func = BlendFunc_Blend;
@@ -228,6 +239,7 @@ namespace ImGui {
 	void Begin( const char * name, WindowZOrder z_order, ImGuiWindowFlags flags ) {
 		ImGui::Begin( name, NULL, flags );
 		ImGui::GetCurrentWindow()->BeginOrderWithinContext = z_order;
+		ImGui::GetWindowDrawList()->AddCallback( NULL, ( void * ) 1 ); // TODO: this is a hack to separate drawcalls into 2 passes
 	}
 
 	bool Hotkey( int key ) {
@@ -272,4 +284,10 @@ void WindowCenterTextXY( const char * str ) {
 Vec4 AttentionGettingColor() {
 	float t = sinf( cls.monotonicTime / 20.0f ) * 0.5f + 1.0f;
 	return Lerp( vec4_red, t, sRGBToLinear( rgba8_diesel_yellow ) );
+}
+
+
+Vec4 PlantableColor() {
+	float t = sinf( cls.monotonicTime / 20.0f ) * 0.5f + 1.0f;
+	return Lerp( vec4_dark, t, sRGBToLinear( rgba8_diesel_green ) );
 }

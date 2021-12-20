@@ -46,23 +46,8 @@ void SV_ClientResetCommandBuffers( client_t *client ) {
 	client->lastSentFrameNum = 0;
 }
 
-void SV_ClientCloseDownload( client_t *client ) {
-	if( client->download.file ) {
-		FS_FCloseFile( client->download.file );
-	}
-	if( client->download.name ) {
-		Mem_ZoneFree( client->download.name );
-	}
-	memset( &client->download, 0, sizeof( client->download ) );
-}
-
-/*
-* SV_ClientConnect
-* accept the new client
-* this is the only place a client_t is ever initialized
-*/
 bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t *client, char *userinfo,
-					   int game_port, int challenge, bool fakeClient ) {
+					   u64 session_id, int challenge, bool fakeClient ) {
 	edict_t *ent;
 	int edictnum;
 
@@ -84,7 +69,6 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 		switch( socket->type ) {
 			case SOCKET_UDP:
 			case SOCKET_LOOPBACK:
-				client->reliable = false;
 				client->individual_socket = false;
 				client->socket.open = false;
 				break;
@@ -94,7 +78,6 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 		}
 	} else {
 		assert( fakeClient );
-		client->reliable = false;
 		client->individual_socket = false;
 		client->socket.open = false;
 	}
@@ -110,13 +93,11 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 
 	if( fakeClient ) {
 		client->netchan.remoteAddress.type = NA_NOTRANSMIT; // fake-clients can't transmit
-		// TODO: if mm_debug_reportbots
-		Info_SetValueForKey( userinfo, "cl_mm_session", va( "%d", client->mm_session ) );
 	} else {
 		if( client->individual_socket ) {
-			Netchan_Setup( &client->netchan, &client->socket, address, game_port );
+			Netchan_Setup( &client->netchan, &client->socket, address, session_id );
 		} else {
-			Netchan_Setup( &client->netchan, socket, address, game_port );
+			Netchan_Setup( &client->netchan, socket, address, session_id );
 		}
 	}
 
@@ -126,15 +107,11 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 	SV_UserinfoChanged( client );
 
 	// generate session id
-	size_t i;
-	for( i = 0; i < sizeof( svs.clients[0].session ) - 1; i++ ) {
-		const unsigned char symbols[65] =
-			"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-		client->session[i] = random_select( &svs.rng, symbols );
+	for( size_t i = 0; i < sizeof( client->session ) - 1; i++ ) {
+		const char symbols[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+		client->session[i] = RandomElement( &svs.rng, symbols );
 	}
-	client->session[i] = '\0';
-
-	SV_Web_AddGameClient( client->session, client - svs.clients, &client->netchan.remoteAddress );
+	client->session[ sizeof( client->session ) - 1 ] = '\0';
 
 	return true;
 }
@@ -185,12 +162,6 @@ void SV_DropClient( client_t *drop, int type, const char *format, ... ) {
 
 	SNAP_FreeClientFrames( drop );
 
-	SV_Web_RemoveGameClient( drop->session );
-
-	if( drop->download.name ) {
-		SV_ClientCloseDownload( drop );
-	}
-
 	if( drop->individual_socket ) {
 		NET_CloseSocket( &drop->socket );
 	}
@@ -215,10 +186,6 @@ CLIENT COMMAND EXECUTION
 * This will be sent on the initial connection and upon each server load.
 */
 static void SV_New_f( client_t *client ) {
-	int playernum;
-	edict_t *ent;
-	int sv_bitflags = 0;
-
 	Com_DPrintf( "New() from %s\n", client->name );
 
 	// if in CS_AWAITING we have sent the response packet the new once already,
@@ -239,9 +206,8 @@ static void SV_New_f( client_t *client ) {
 	MSG_WriteInt32( &tmpMessage, APP_PROTOCOL_VERSION );
 	MSG_WriteInt32( &tmpMessage, svs.spawncount );
 	MSG_WriteInt16( &tmpMessage, (unsigned short)svc.snapFrameTime );
-	MSG_WriteString( &tmpMessage, FS_BaseGameDirectory() );
 
-	playernum = client - svs.clients;
+	int playernum = client - svs.clients;
 	MSG_WriteInt16( &tmpMessage, playernum );
 
 	//
@@ -249,29 +215,11 @@ static void SV_New_f( client_t *client ) {
 	//
 	if( sv.state == ss_game ) {
 		// set up the entity for the client
-		ent = EDICT_NUM( playernum + 1 );
+		edict_t * ent = EDICT_NUM( playernum + 1 );
 		ent->s.number = playernum + 1;
 		client->edict = ent;
 
-		if( client->reliable ) {
-			sv_bitflags |= SV_BITFLAGS_RELIABLE;
-		}
-		if( SV_Web_Running() ) {
-			const char *baseurl = SV_Web_UpstreamBaseUrl();
-			sv_bitflags |= SV_BITFLAGS_HTTP;
-			if( baseurl[0] ) {
-				sv_bitflags |= SV_BITFLAGS_HTTP_BASEURL;
-			}
-		}
-		MSG_WriteUint8( &tmpMessage, sv_bitflags );
-	}
-
-	if( sv_bitflags & SV_BITFLAGS_HTTP ) {
-		if( sv_bitflags & SV_BITFLAGS_HTTP_BASEURL ) {
-			MSG_WriteString( &tmpMessage, sv_http_upstream_baseurl->string );
-		} else {
-			MSG_WriteInt16( &tmpMessage, sv_http_port->integer ); // HTTP port number
-		}
+		MSG_WriteString( &tmpMessage, sv_downloadurl->value );
 	}
 
 	SV_ClientResetCommandBuffers( client );
@@ -283,9 +231,6 @@ static void SV_New_f( client_t *client ) {
 	client->state = CS_CONNECTING;
 }
 
-/*
-* SV_Configstrings_f
-*/
 static void SV_Configstrings_f( client_t *client ) {
 	int start;
 
@@ -330,9 +275,6 @@ static void SV_Configstrings_f( client_t *client ) {
 	}
 }
 
-/*
-* SV_Baselines_f
-*/
 static void SV_Baselines_f( client_t *client ) {
 	int start;
 	SyncEntityState nullstate;
@@ -373,7 +315,7 @@ static void SV_Baselines_f( client_t *client ) {
 
 	// send next command
 	if( start == MAX_EDICTS ) {
-		SV_SendServerCommand( client, "precache %i", svs.spawncount );
+		SV_SendServerCommand( client, "precache %i \"%s\"", svs.spawncount, sv.mapname );
 	} else {
 		SV_SendServerCommand( client, "cmd baselines %i %i", svs.spawncount, start );
 	}
@@ -382,9 +324,6 @@ static void SV_Baselines_f( client_t *client ) {
 	SV_SendMessageToClient( client, &tmpMessage );
 }
 
-/*
-* SV_Begin_f
-*/
 static void SV_Begin_f( client_t *client ) {
 	Com_DPrintf( "Begin() from %s\n", client->name );
 
@@ -414,236 +353,11 @@ static void SV_Begin_f( client_t *client ) {
 
 //=============================================================================
 
-
-/*
-* SV_NextDownload_f
-*
-* Responds to reliable nextdl packet with unreliable download packet
-* If nextdl packet's offet information is negative, download will be stopped
-*/
-static void SV_NextDownload_f( client_t *client ) {
-	uint8_t data[FRAGMENT_SIZE * 2];
-
-	if( !client->download.name ) {
-		Com_Printf( "nextdl message for client with no download active, from: %s\n", client->name );
-		return;
-	}
-
-	if( Q_stricmp( client->download.name, Cmd_Argv( 1 ) ) ) {
-		Com_Printf( "nextdl message for wrong filename, from: %s\n", client->name );
-		return;
-	}
-
-	int offset = atoi( Cmd_Argv( 2 ) );
-
-	if( offset > client->download.size ) {
-		Com_Printf( "nextdl message with too big offset, from: %s\n", client->name );
-		return;
-	}
-
-	if( offset == -1 ) {
-		Com_Printf( "Upload of %s to %s%s completed\n", client->download.name, client->name, S_COLOR_WHITE );
-		SV_ClientCloseDownload( client );
-		return;
-	}
-
-	if( offset < 0 ) {
-		Com_Printf( "Upload of %s to %s%s failed\n", client->download.name, client->name, S_COLOR_WHITE );
-		SV_ClientCloseDownload( client );
-		return;
-	}
-
-	if( !client->download.file ) {
-		Com_Printf( "Starting server upload of %s to %s\n", client->download.name, client->name );
-
-		client->download.size = FS_FOpenBaseFile( client->download.name, &client->download.file, FS_READ );
-		if( !client->download.file || client->download.size < 0 ) {
-			Com_Printf( "Error opening %s for uploading\n", client->download.name );
-			SV_ClientCloseDownload( client );
-			return;
-		}
-	}
-
-	SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
-	SV_AddReliableCommandsToMessage( client, &tmpMessage );
-
-	int blocksize = client->download.size - offset;
-	if( blocksize > sizeof( data ) ) {
-		blocksize = sizeof( data );
-	}
-	if( offset + blocksize > client->download.size ) {
-		blocksize = client->download.size - offset;
-	}
-	if( blocksize < 0 ) {
-		blocksize = 0;
-	}
-
-	if( blocksize > 0 ) {
-		FS_Seek( client->download.file, offset, FS_SEEK_SET );
-		blocksize = FS_Read( data, blocksize, client->download.file );
-	}
-
-	MSG_WriteUint8( &tmpMessage, svc_download );
-	MSG_WriteString( &tmpMessage, client->download.name );
-	MSG_WriteInt32( &tmpMessage, offset );
-	MSG_WriteInt32( &tmpMessage, blocksize );
-	if( blocksize > 0 ) {
-		MSG_CopyData( &tmpMessage, data, blocksize );
-	}
-	SV_SendMessageToClient( client, &tmpMessage );
-
-	client->download.timeout = svs.realtime + 10000;
-}
-
-/*
-* SV_GameAllowDownload
-* Asks game function whether to allow downloading of a file
-*/
-static bool SV_GameAllowDownload( client_t *client, const char *requestname, const char *uploadname ) {
-	if( client->state < CS_SPAWNED ) {
-		return false;
-	}
-
-	// allow downloading demos
-	if( SV_IsDemoDownloadRequest( requestname ) ) {
-		return sv_uploads_demos->integer != 0;
-	}
-
-	return false;
-}
-
-/*
-* SV_DenyDownload
-* Helper function for generating initdownload packets for denying download
-*/
-static void SV_DenyDownload( client_t *client, const char *reason ) {
-	// size -1 is used to signal that it's refused
-	// URL field is used for deny reason
-	SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
-	SV_SendServerCommand( client, "initdownload \"%s\" %i %u %i \"%s\"", "", -1, 0, false, reason ? reason : "" );
-	SV_AddReliableCommandsToMessage( client, &tmpMessage );
-	SV_SendMessageToClient( client, &tmpMessage );
-}
-
-static bool SV_FilenameForDownloadRequest( const char *requestname, const char **uploadname, const char **errormsg ) {
-	if( FS_FOpenFile( requestname, NULL, FS_READ ) == -1 ) {
-		*errormsg = "File not found";
-		return false;
-	}
-
-	*uploadname = FS_BaseNameForFile( requestname );
-	if( !*uploadname ) {
-		*errormsg = "File only available in pack";
-		return false;
-	}
-	return true;
-}
-
-/*
-* SV_BeginDownload_f
-* Responds to reliable download packet with reliable initdownload packet
-*/
-static void SV_BeginDownload_f( client_t *client ) {
-	const char *requestname;
-	const char *uploadname;
-	size_t alloc_size;
-	unsigned checksum;
-	char *url;
-	const char *errormsg = NULL;
-	bool local_http = SV_Web_Running() && sv_uploads_http->integer != 0;
-
-	requestname = Cmd_Argv( 1 );
-
-	if( !requestname[0] || !COM_ValidateRelativeFilename( requestname ) ) {
-		SV_DenyDownload( client, "Invalid filename" );
-		return;
-	}
-
-	if( !SV_FilenameForDownloadRequest( requestname, &uploadname, &errormsg ) ) {
-		assert( errormsg != NULL );
-		SV_DenyDownload( client, errormsg );
-		return;
-	}
-
-	if( !SV_GameAllowDownload( client, requestname, uploadname ) ) {
-		SV_DenyDownload( client, "Downloading of this file is not allowed" );
-		return;
-	}
-
-	// we will just overwrite old download, if any
-	if( client->download.name ) {
-		SV_ClientCloseDownload( client );
-	}
-
-	client->download.size = FS_LoadBaseFile( uploadname, NULL, NULL, 0 );
-	if( client->download.size == -1 ) {
-		Com_Printf( "Error getting size of %s for uploading\n", uploadname );
-		client->download.size = 0;
-		SV_DenyDownload( client, "Error getting file size" );
-		return;
-	}
-
-	checksum = FS_ChecksumBaseFile( uploadname );
-	client->download.timeout = svs.realtime + 1000 * 60 * 60; // this is web download timeout
-
-	alloc_size = sizeof( char ) * ( strlen( uploadname ) + 1 );
-	client->download.name = ( char * ) Mem_ZoneMalloc( alloc_size );
-	Q_strncpyz( client->download.name, uploadname, alloc_size );
-
-	Com_Printf( "Offering %s to %s\n", client->download.name, client->name );
-
-	if( SV_IsDemoDownloadRequest( requestname ) && ( local_http || sv_uploads_demos_baseurl->string[0] != 0 ) ) {
-		// demo file download from the web
-		if( local_http ) {
-			alloc_size = sizeof( char ) * ( 6 + strlen( uploadname ) * 3 + 1 );
-			url = ( char * ) Mem_TempMalloc( alloc_size );
-			snprintf( url, alloc_size, "files/" );
-			Q_urlencode_unsafechars( uploadname, url + 6, alloc_size - 6 );
-		} else {
-			alloc_size = sizeof( char ) * ( strlen( sv_uploads_demos_baseurl->string ) + 1 );
-			url = ( char * ) Mem_TempMalloc( alloc_size );
-			snprintf( url, alloc_size, "%s/", sv_uploads_demos_baseurl->string );
-		}
-	} else {
-		url = NULL;
-	}
-
-	// start the download
-	SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
-	SV_SendServerCommand( client, "initdownload \"%s\" %i %u %i \"%s\"", client->download.name,
-						  client->download.size, checksum, local_http ? 1 : 0, ( url ? url : "" ) );
-	SV_AddReliableCommandsToMessage( client, &tmpMessage );
-	SV_SendMessageToClient( client, &tmpMessage );
-
-	if( url ) {
-		Mem_TempFree( url );
-		url = NULL;
-	}
-}
-
-//============================================================================
-
-
-/*
-* SV_Disconnect_f
-* The client is going to disconnect, so remove the connection immediately
-*/
 static void SV_Disconnect_f( client_t *client ) {
 	SV_DropClient( client, DROP_TYPE_GENERAL, NULL );
 }
 
 
-/*
-* SV_ShowServerinfo_f
-* Dumps the serverinfo info string
-*/
-static void SV_ShowServerinfo_f( client_t *client ) {
-	Info_Print( Cvar_Serverinfo() );
-}
-
-/*
-* SV_UserinfoCommand_f
-*/
 static void SV_UserinfoCommand_f( client_t *client ) {
 	const char *info;
 	int64_t time;
@@ -667,9 +381,6 @@ static void SV_UserinfoCommand_f( client_t *client ) {
 	}
 }
 
-/*
-* SV_NoDelta_f
-*/
 static void SV_NoDelta_f( client_t *client ) {
 	client->nodelta = true;
 	client->nodelta_frame = 0;
@@ -693,22 +404,9 @@ ucmd_t ucmds[] =
 
 	{ "nodelta", SV_NoDelta_f },
 
-	// issued by hand at client consoles
-	{ "info", SV_ShowServerinfo_f },
-
-	{ "download", SV_BeginDownload_f },
-	{ "nextdl", SV_NextDownload_f },
-
-	// server demo downloads
-	{ "demolist", SV_DemoList_f },
-	{ "demoget", SV_DemoGet_f },
-
 	{ NULL, NULL }
 };
 
-/*
-* SV_ExecuteUserCommand
-*/
 static void SV_ExecuteUserCommand( client_t *client, const char *s ) {
 	ucmd_t *u;
 
@@ -736,10 +434,10 @@ USER CMD EXECUTION
 */
 
 /*
-* SV_FindNextUserCommand - Returns the next valid usercmd_t in execution list
+* SV_FindNextUserCommand - Returns the next valid UserCommand in execution list
 */
-usercmd_t *SV_FindNextUserCommand( client_t *client ) {
-	usercmd_t *ucmd;
+UserCommand *SV_FindNextUserCommand( client_t *client ) {
+	UserCommand *ucmd;
 	int64_t higherTime = 0;
 	unsigned int i;
 
@@ -763,14 +461,14 @@ usercmd_t *SV_FindNextUserCommand( client_t *client ) {
 }
 
 /*
-* SV_ExecuteClientThinks - Execute all pending usercmd_t
+* SV_ExecuteClientThinks - Execute all pending UserCommand
 */
 void SV_ExecuteClientThinks( int clientNum ) {
 	unsigned int msec;
 	int64_t minUcmdTime;
 	int timeDelta;
 	client_t *client;
-	usercmd_t *ucmd;
+	UserCommand *ucmd;
 
 	if( clientNum >= sv_maxclients->integer || clientNum < 0 ) {
 		return;
@@ -808,12 +506,9 @@ void SV_ExecuteClientThinks( int clientNum ) {
 	client->UcmdExecuted = client->UcmdReceived;
 }
 
-/*
-* SV_ParseMoveCommand
-*/
 static void SV_ParseMoveCommand( client_t *client, msg_t *msg ) {
 	unsigned int i, ucmdHead, ucmdFirst, ucmdCount;
-	usercmd_t nullcmd;
+	UserCommand nullcmd;
 	int lastframe;
 
 	lastframe = MSG_ReadInt32( msg );
@@ -859,10 +554,6 @@ static void SV_ParseMoveCommand( client_t *client, msg_t *msg ) {
 	}
 }
 
-/*
-* SV_ParseClientMessage
-* The current message is parsed for the given client
-*/
 void SV_ParseClientMessage( client_t *client, msg_t *msg ) {
 	char *s;
 	bool move_issued;
@@ -891,11 +582,6 @@ void SV_ParseClientMessage( client_t *client, msg_t *msg ) {
 			} break;
 
 			case clc_svcack: {
-				if( client->reliable ) {
-					Com_Printf( "SV_ParseClientMessage: svack from reliable client\n" );
-					SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: svack from reliable client" );
-					return;
-				}
 				cmdNum = MSG_ReadIntBase128( msg );
 				if( cmdNum < client->reliableAcknowledge || cmdNum > client->reliableSent ) {
 					//SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: bad server command acknowledged" );
@@ -905,14 +591,12 @@ void SV_ParseClientMessage( client_t *client, msg_t *msg ) {
 			} break;
 
 			case clc_clientcommand: {
-				if( !client->reliable ) {
-					cmdNum = MSG_ReadIntBase128( msg );
-					if( cmdNum <= client->clientCommandExecuted ) {
-						s = MSG_ReadString( msg ); // read but ignore
-						continue;
-					}
-					client->clientCommandExecuted = cmdNum;
+				cmdNum = MSG_ReadIntBase128( msg );
+				if( cmdNum <= client->clientCommandExecuted ) {
+					s = MSG_ReadString( msg ); // read but ignore
+					continue;
 				}
+				client->clientCommandExecuted = cmdNum;
 				s = MSG_ReadString( msg );
 				SV_ExecuteUserCommand( client, s );
 				if( client->state == CS_ZOMBIE ) {

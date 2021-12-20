@@ -1,0 +1,41 @@
+{
+  particles {
+    material weapons/9mm/icon
+    material weapons/br/icon
+    material weapons/bg/icon
+    material weapons/deagle/icon
+    material weapons/eb/icon
+    material weapons/gb/icon
+    material weapons/gl/icon
+    material weapons/rl/icon
+    material weapons/lg/icon
+    material weapons/mg/icon
+    material weapons/ar/icon
+    material weapons/rg/icon
+    material weapons/rifle/icon
+    material weapons/sniper/icon
+    material weapons/road/icon
+    material weapons/minigun/icon
+
+    blendfunc blend
+
+    angle_distribution uniform 360
+    rotation_distribution uniform 20
+
+    position sphere 750
+
+    color 0.1 0.1 0.1 1.0
+    end_color 0.0 0.0 0.0
+
+    red_distribution uniform 0.01
+    green_distribution uniform 0.01
+    blue_distribution uniform 0.01
+
+    speed 2
+    speed_distribution uniform 0.5
+
+    size 0 200
+    lifetime 5
+    emission 50
+  }
+}

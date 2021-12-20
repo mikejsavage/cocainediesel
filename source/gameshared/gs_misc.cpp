@@ -43,14 +43,10 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 
 	// reset walljump counter
 	playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;
-	playerState->pmove.pm_flags |= PMF_JUMPPAD_TIME;
 	playerState->pmove.pm_flags &= ~PMF_ON_GROUND;
 	gs->api.PredictedEvent( playerState->POVnum, EV_JUMP_PAD, 0 );
 }
 
-/*
-* GS_WaterLevel
-*/
 int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec3 maxs ) {
 	int waterlevel = 0;
 
@@ -75,88 +71,43 @@ int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec
 	return waterlevel;
 }
 
-//============================================================================
+DamageType::DamageType( WeaponType weapon ) {
+	encoded = weapon;
+}
 
-/*
-* GS_Obituary
-*
-* Can be called by either the server or the client
-*/
-void GS_Obituary( void *victim, void *attacker, int mod, char *message, char *message2 ) {
-	message[0] = 0;
-	message2[0] = 0;
+DamageType::DamageType( GadgetType gadget ) {
+	encoded = gadget + Weapon_Count;
+}
 
-	if( !attacker || attacker == victim ) {
-		switch( mod ) {
-			case MOD_SUICIDE:
-				strcpy( message, "suicides" );
-				break;
-			case MOD_CRUSH:
-				strcpy( message, "was squished" );
-				break;
-			case MOD_SLIME:
-				strcpy( message, "melted" );
-				break;
-			case MOD_LAVA:
-				strcpy( message, "sacrificed to the lava god" ); // wsw : pb : some killed messages
-				break;
-			case MOD_TRIGGER_HURT:
-				strcpy( message, "was in the wrong place" );
-				break;
-			case MOD_LASER:
-				strcpy( message, "was cut in half" );
-				break;
-			case MOD_SPIKES:
-				strcpy( message, "was impaled by spikes" );
-				break;
-			default:
-				strcpy( message, "died" );
-				break;
+DamageType::DamageType( WorldDamage world ) {
+	encoded = world + Weapon_Count + Gadget_Count;
+}
+
+bool operator==( DamageType a, DamageType b ) {
+	return a.encoded == b.encoded;
+}
+
+bool operator!=( DamageType a, DamageType b ) {
+	return !( a == b );
+}
+
+DamageCategory DecodeDamageType( DamageType type, WeaponType * weapon, GadgetType * gadget, WorldDamage * world ) {
+	if( type.encoded < Weapon_Count ) {
+		if( weapon != NULL ) {
+			*weapon = WeaponType( type.encoded );
 		}
-		return;
+		return DamageCategory_Weapon;
 	}
 
-	switch( mod ) {
-		case MOD_TELEFRAG:
-			strcpy( message, "tried to invade" );
-			strcpy( message2, "'s personal space" );
-			break;
-		case MOD_GUNBLADE:
-			strcpy( message, "was impaled by" );
-			strcpy( message2, "'s gunblade" );
-			break;
-		case MOD_MACHINEGUN:
-			strcpy( message, "was penetrated by" );
-			strcpy( message2, "'s machinegun" );
-			break;
-		case MOD_SHOTGUN:
-			strcpy( message, "was shredded by" );
-			strcpy( message2, "'s riotgun" );
-			break;
-		case MOD_GRENADE:
-			strcpy( message, "was popped by" );
-			strcpy( message2, "'s grenade" );
-			break;
-		case MOD_ROCKET:
-			strcpy( message, "ate" );
-			strcpy( message2, "'s rocket" );
-			break;
-		case MOD_PLASMA:
-		case MOD_BUBBLEGUN:
-			strcpy( message, "was melted by" );
-			strcpy( message2, "'s plasmagun" );
-			break;
-		case MOD_RAILGUN:
-			strcpy( message, "was bolted by" );
-			strcpy( message2, "'s electrobolt" );
-			break;
-		case MOD_LASERGUN:
-			strcpy( message, "was cut by" );
-			strcpy( message2, "'s lasergun" );
-			break;
-
-		default:
-			strcpy( message, "was fragged by" );
-			break;
+	if( type.encoded < Weapon_Count + Gadget_Count ) {
+		if( gadget != NULL ) {
+			*gadget = GadgetType( type.encoded - Weapon_Count );
+		}
+		return DamageCategory_Gadget;
 	}
+
+	if( world != NULL ) {
+		*world = WorldDamage( type.encoded - Weapon_Count - Gadget_Count );
+	}
+	return DamageCategory_World;
 }

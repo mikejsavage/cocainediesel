@@ -3,8 +3,8 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
-#include "qcommon/string.h"
 #include "qcommon/span2d.h"
+#include "client/client.h"
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/maps.h"
@@ -14,14 +14,14 @@
 enum BSPLump {
 	BSPLump_Entities,
 	BSPLump_Materials,
-	BSPLump_Planes_Unused,
-	BSPLump_Nodes_Unused,
-	BSPLump_Leaves_Unused,
+	BSPLump_Planes,
+	BSPLump_Nodes,
+	BSPLump_Leaves,
 	BSPLump_LeafFaces_Unused,
-	BSPLump_LeafBrushes_Unused,
+	BSPLump_LeafBrushes,
 	BSPLump_Models,
-	BSPLump_Brushes_Unused,
-	BSPLump_BrushSides_Unused,
+	BSPLump_Brushes,
+	BSPLump_BrushSides,
 	BSPLump_Vertices,
 	BSPLump_Indices,
 	BSPLump_Fogs_Unused,
@@ -51,12 +51,56 @@ struct BSPMaterial {
 	u32 contents;
 };
 
+struct BSPPlane {
+	Vec3 normal;
+	float dist;
+};
+
+struct BSPNode {
+	int planenum;
+	int children[2];
+	Vec3 mins;
+	Vec3 maxs;
+};
+
+struct BSPLeaf {
+	int cluster;
+	int area;
+	Vec3 mins;
+	Vec3 maxs;
+	int firstLeafFace;
+	int numLeafFaces;
+	int firstLeafBrush;
+	int numLeafBrushes;
+};
+
+struct BSPLeafBrush {
+	int brush;
+};
+
 struct BSPModel {
 	MinMax3 bounds;
 	u32 first_face;
 	u32 num_faces;
 	u32 first_brush;
 	u32 num_brushes;
+};
+
+struct BSPBrush {
+	u32 first_side;
+	u32 num_sides;
+	u32 material;
+};
+
+struct BSPBrushSide {
+	u32 planenum;
+	u32 material;
+};
+
+struct RavenBSPBrushSide {
+	u32 planenum;
+	u32 material;
+	u32 material2;
 };
 
 struct BSPVertex {
@@ -133,7 +177,14 @@ struct BSPVisbilityHeader {
 struct BSPSpans {
 	Span< const char > entities;
 	Span< const BSPMaterial > materials;
+	Span< const BSPPlane > planes;
+	Span< const BSPNode > nodes;
+	Span< const BSPLeaf > leaves;
+	Span< const BSPLeafBrush > leafbrushes;
 	Span< const BSPModel > models;
+	Span< const BSPBrush > brushes;
+	Span< const BSPBrushSide > brushsides;
+	Span< const RavenBSPBrushSide > raven_brushsides;
 	Span< const BSPVertex > vertices;
 	Span< const RavenBSPVertex > raven_vertices;
 	Span< const BSPIndex > indices;
@@ -169,17 +220,31 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 	ok = ok && ParseLump( &bsp->entities, data, BSPLump_Entities );
 	ok = ok && ParseLump( &bsp->materials, data, BSPLump_Materials );
 	ok = ok && ParseLump( &bsp->models, data, BSPLump_Models );
+	ok = ok && ParseLump( &bsp->brushes, data, BSPLump_Brushes );
+	ok = ok && ParseLump( &bsp->planes, data, BSPLump_Planes );
+	ok = ok && ParseLump( &bsp->nodes, data, BSPLump_Nodes );
+	ok = ok && ParseLump( &bsp->leaves, data, BSPLump_Leaves );
+	ok = ok && ParseLump( &bsp->leafbrushes, data, BSPLump_LeafBrushes );
 	ok = ok && ParseLump( &bsp->indices, data, BSPLump_Indices );
 
+	// strip trailing null terminator
+	if( bsp->entities.n > 0 ) {
+		bsp->entities.n--;
+	}
+
 	if( bsp->idbsp ) {
+		ok = ok && ParseLump( &bsp->brushsides, data, BSPLump_BrushSides );
 		ok = ok && ParseLump( &bsp->vertices, data, BSPLump_Vertices );
 		ok = ok && ParseLump( &bsp->faces, data, BSPLump_Faces );
+		bsp->raven_brushsides = { };
 		bsp->raven_vertices = { };
 		bsp->raven_faces = { };
 	}
 	else {
+		bsp->brushsides = { };
 		bsp->vertices = { };
 		bsp->faces = { };
+		ok = ok && ParseLump( &bsp->raven_brushsides, data, BSPLump_BrushSides );
 		ok = ok && ParseLump( &bsp->raven_vertices, data, BSPLump_Vertices );
 		ok = ok && ParseLump( &bsp->raven_faces, data, BSPLump_Faces );
 	}
@@ -190,29 +255,8 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 static float ParseFogStrength( const BSPSpans * bsp ) {
 	ZoneScoped;
 
-	float default_fog_strength = 0.0004f;
-
-	Span< const char > cursor = bsp->entities;
-
-	if( ParseToken( &cursor, Parse_DontStopOnNewLine ) != "{" )
-		return default_fog_strength;
-
-	while( true ) {
-		Span< const char > key = ParseToken( &cursor, Parse_DontStopOnNewLine );
-		Span< const char > value = ParseToken( &cursor, Parse_DontStopOnNewLine );
-
-		if( key == "" || value == "" || key == "}" )
-			break;
-
-		if( key == "fog_strength" ) {
-			float f;
-			if( SpanToFloat( value, &f ) ) {
-				return f;
-			}
-		}
-	}
-
-	return default_fog_strength;
+	Span< const char > key = ParseWorldspawnKey( bsp->entities, "fog_strength" );
+	return SpanToFloat( key, 0.0007f );
 }
 
 struct BSPDrawCall {
@@ -230,6 +274,26 @@ struct BSPModelVertex {
 	Vec3 position;
 	Vec3 normal;
 	Vec2 uv;
+};
+
+struct GPUBSPPlane {
+	Vec3 normal;
+	float dist;
+};
+
+struct GPUBSPNode {
+	s32 plane;
+	s32 children[ 2 ];
+};
+
+struct GPUBSPLeaf {
+	s32 firstBrush;
+	s32 numBrushes;
+};
+
+struct GPUBSPLeafBrush {
+	u32 firstSide;
+	u32 numSides;
 };
 
 static BSPModelVertex Lerp( const BSPModelVertex & a, float t, const BSPModelVertex & b ) {
@@ -276,16 +340,12 @@ static int Order2BezierSubdivisions( Vec3 control0, Vec3 control1, Vec3 control2
 	return Order2BezierSubdivisions( control0, control1, control2, max_error, control0, control2, 0.0f, 1.0f );
 }
 
-static bool SortByMaterial( const BSPDrawCall & a, const BSPDrawCall & b ) {
-	return a.material < b.material;
-}
-
-static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSpans & bsp, u64 base_hash, size_t model_idx ) {
+static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex > & vertices, const BSPSpans & bsp, size_t model_idx ) {
 	ZoneScoped;
 
 	const BSPModel & bsp_model = bsp.models[ model_idx ];
 	if( bsp_model.num_faces == 0 )
-		return;
+		return { };
 
 	DynamicArray< BSPDrawCall > draw_calls( sys_allocator );
 	if( bsp.idbsp ) {
@@ -296,7 +356,12 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 			dc.base_vertex = face->first_vertex;
 			dc.index_offset = face->first_index;
 			dc.num_vertices = face->num_indices;
-			dc.material = FindMaterial( bsp.materials[ face->material ].name, &world_material );
+			if( bsp.materials[ face->material ].flags & CONTENTS_WALLBANGABLE ) {
+				dc.material = FindMaterial( bsp.materials[ face->material ].name, &wallbang_material );
+			}
+			else {
+				dc.material = FindMaterial( bsp.materials[ face->material ].name, &world_material );
+			}
 
 			dc.patch = face->type == FaceType_Patch;
 			dc.patch_width = face->patch_width;
@@ -313,7 +378,12 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 			dc.base_vertex = face->first_vertex;
 			dc.index_offset = face->first_index;
 			dc.num_vertices = face->num_indices;
-			dc.material = FindMaterial( bsp.materials[ face->material ].name, &world_material );
+			if( bsp.materials[ face->material ].flags & CONTENTS_WALLBANGABLE ) {
+				dc.material = FindMaterial( bsp.materials[ face->material ].name, &wallbang_material );
+			}
+			else {
+				dc.material = FindMaterial( bsp.materials[ face->material ].name, &world_material );
+			}
 
 			dc.patch = face->type == FaceType_Patch;
 			dc.patch_width = face->patch_width;
@@ -323,7 +393,9 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 		}
 	}
 
-	std::sort( draw_calls.begin(), draw_calls.end(), SortByMaterial );
+	std::sort( draw_calls.begin(), draw_calls.end(), []( const BSPDrawCall & a, const BSPDrawCall & b ) {
+		return a.material < b.material;
+	} );
 
 	// generate patch geometry and merge draw calls
 	// TODO: this generates terrible geometry then relies on meshopt to fix it up. maybe it could be done better
@@ -333,13 +405,10 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 	Model::Primitive first;
 	first.first_index = 0;
 	first.num_vertices = 0;
-	first.material = draw_calls[ 0 ].material; // TODO: first material may have discard
+	first.material = draw_calls[ 0 ].material;
 	primitives.add( first );
 
 	for( const BSPDrawCall & dc : draw_calls ) {
-		if( dc.material->discard )
-			continue;
-
 		if( dc.material != primitives.top().material ) {
 			Model::Primitive prim;
 			prim.first_index = primitives.top().first_index + primitives.top().num_vertices;
@@ -354,21 +423,26 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 			u32 num_patches_x = ( dc.patch_width - 1 ) / 2;
 			u32 num_patches_y = ( dc.patch_height - 1 ) / 2;
 
+			// find best tessellation for rows and columns
+			// minimum of 2 seems reasonable
+			float max_error = 1.0f;
+			s32 tess_x = 2;
+			s32 tess_y = 2;
+
 			for( u32 patch_y = 0; patch_y < num_patches_y; patch_y++ ) {
 				for( u32 patch_x = 0; patch_x < num_patches_x; patch_x++ ) {
 					u32 control_base = ( patch_y * 2 * dc.patch_width + patch_x * 2 ) + dc.base_vertex;
-
-					float max_error = 1.0f;
-					int tess_x = 0;
-					int tess_y = 0;
-					{
-						Span2D< const BSPModelVertex > control( &vertices[ control_base ], 3, 3, dc.patch_width );
-						for( int j = 0; j < 3; j++ ) {
-							tess_x = Max2( tess_x, Order2BezierSubdivisions( control( 0, j ).position, control( 1, j ).position, control( 2, j ).position, max_error ) );
-							tess_y = Max2( tess_y, Order2BezierSubdivisions( control( j, 0 ).position, control( j, 1 ).position, control( j, 2 ).position, max_error ) );
-						}
+					Span2D< const BSPModelVertex > control( &vertices[ control_base ], 3, 3, dc.patch_width );
+					for( int j = 0; j < 3; j++ ) {
+						tess_x = Max2( tess_x, Order2BezierSubdivisions( control( 0, j ).position, control( 1, j ).position, control( 2, j ).position, max_error ) );
+						tess_y = Max2( tess_y, Order2BezierSubdivisions( control( j, 0 ).position, control( j, 1 ).position, control( j, 2 ).position, max_error ) );
 					}
+				}
+			}
 
+			for( u32 patch_y = 0; patch_y < num_patches_y; patch_y++ ) {
+				for( u32 patch_x = 0; patch_x < num_patches_x; patch_x++ ) {
+					u32 control_base = ( patch_y * 2 * dc.patch_width + patch_x * 2 ) + dc.base_vertex;
 					u32 base_vert = vertices.size();
 
 					for( int y = 0; y <= tess_y; y++ ) {
@@ -412,42 +486,55 @@ static void LoadBSPModel( DynamicArray< BSPModelVertex > & vertices, const BSPSp
 		}
 	}
 
+	for( BSPModelVertex & v : vertices ) {
+		if( v.position.z <= -1024.0f ) {
+			v.position.z = -999999.0f;
+		}
+	}
+
 	// TODO: meshopt
 
-	String< 16 > suffix( "*{}", model_idx );
-	Model * model = NewModel( Hash64( suffix.c_str(), suffix.len(), base_hash ) );
-	*model = { };
-	model->transform = Mat4::Identity();
+	Model model = { };
+	model.transform = Mat4::Identity();
 
-	model->primitives = ALLOC_MANY( sys_allocator, Model::Primitive, primitives.size() );
-	model->num_primitives = primitives.size();
-	memcpy( model->primitives, primitives.ptr(), primitives.num_bytes() );
+	model.primitives = ALLOC_MANY( sys_allocator, Model::Primitive, primitives.size() );
+	model.num_primitives = primitives.size();
+	memcpy( model.primitives, primitives.ptr(), primitives.num_bytes() );
 
-	MeshConfig mesh_config;
-	mesh_config.ccw_winding = false;
-	mesh_config.unified_buffer = NewVertexBuffer( vertices.ptr(), vertices.num_bytes() );
-	mesh_config.stride = sizeof( vertices[ 0 ] );
-	mesh_config.positions_offset = offsetof( BSPModelVertex, position );
-	mesh_config.normals_offset = offsetof( BSPModelVertex, normal );
-	mesh_config.tex_coords_offset = offsetof( BSPModelVertex, uv );
-	mesh_config.num_vertices = indices.size();
+	TempAllocator temp = cls.frame_arena.temp();
 
-	// if( num_verts <= U16_MAX ) {
-	// 	DynamicArray< u16 > indices_u16( sys_allocator, indices.size() );
-	// 	for( u32 i = 0; i < indices.size(); i++ ) {
-	// 		indices_u16.add( indices[ i ] );
-	// 	}
-	// 	mesh_config.indices = NewIndexBuffer( indices.ptr(), indices.num_bytes() );
-	// }
-	// else {
-		mesh_config.indices = NewIndexBuffer( indices.ptr(), indices.num_bytes() );
-		mesh_config.indices_format = IndexFormat_U32;
-	// }
+	{
+		ZoneScopedN( "Upload to GPU" );
 
-	model->mesh = NewMesh( mesh_config );
+		MeshConfig mesh_config;
+		mesh_config.name = temp( "{} - {}", filename, model_idx );
+		mesh_config.ccw_winding = false;
+		mesh_config.unified_buffer = NewVertexBuffer( vertices.ptr(), vertices.num_bytes() );
+		mesh_config.stride = sizeof( vertices[ 0 ] );
+		mesh_config.positions_offset = offsetof( BSPModelVertex, position );
+		mesh_config.normals_offset = offsetof( BSPModelVertex, normal );
+		mesh_config.tex_coords_offset = offsetof( BSPModelVertex, uv );
+		mesh_config.num_vertices = indices.size();
+
+		// if( num_verts <= U16_MAX ) {
+		// 	DynamicArray< u16 > indices_u16( sys_allocator, indices.size() );
+		// 	for( u32 i = 0; i < indices.size(); i++ ) {
+		// 		indices_u16.add( indices[ i ] );
+		// 	}
+		// 	mesh_config.indices = NewIndexBuffer( indices.ptr(), indices.num_bytes() );
+		// }
+		// else {
+			mesh_config.indices = NewIndexBuffer( indices.ptr(), indices.num_bytes() );
+			mesh_config.indices_format = IndexFormat_U32;
+		// }
+
+		model.mesh = NewMesh( mesh_config );
+	}
+
+	return model;
 }
 
-bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data ) {
+bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< const u8 > data ) {
 	ZoneScoped;
 
 	BSPSpans bsp;
@@ -477,13 +564,85 @@ bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data ) {
 		}
 	}
 
-	for( size_t i = 0; i < bsp.models.n; i++ ) {
-		LoadBSPModel( vertices, bsp, base_hash, i );
-	}
-
 	map->base_hash = base_hash;
 	map->num_models = bsp.models.n;
 	map->fog_strength = ParseFogStrength( &bsp );
 
+	map->models = ALLOC_MANY( sys_allocator, Model, bsp.models.n );
+
+	for( size_t i = 0; i < bsp.models.n; i++ ) {
+		map->models[ i ] = LoadBSPModel( filename, vertices, bsp, i );
+	}
+
+	DynamicArray< GPUBSPNode > nodes( sys_allocator, bsp.nodes.n );
+	DynamicArray< GPUBSPLeaf > leaves( sys_allocator, bsp.leaves.n );
+	DynamicArray< GPUBSPLeafBrush > leafbrushes( sys_allocator, bsp.leafbrushes.n );
+	DynamicArray< GPUBSPPlane > planes( sys_allocator, bsp.planes.n + bsp.brushsides.n );
+
+	for( u32 i = 0; i < bsp.nodes.n; i++ ) {
+		const BSPNode node = bsp.nodes[ i ];
+		const BSPPlane plane = bsp.planes[ node.planenum ];
+
+		GPUBSPNode gpu_node = { int( planes.size() ), node.children[ 0 ], node.children[ 1 ] };
+		nodes.add( gpu_node );
+		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };
+		planes.add( gpu_plane );
+	}
+
+	for( u32 i = 0; i < bsp.leaves.n; i++ ) {
+		const BSPLeaf leaf = bsp.leaves[ i ];
+		GPUBSPLeaf gpu_leaf = { leaf.firstLeafBrush, leaf.numLeafBrushes };
+		leaves.add( gpu_leaf );
+	}
+	u32 planes_offset = planes.size();
+	for( u32 i = 0; i < bsp.leafbrushes.n; i++ ) {
+		const BSPLeafBrush leafbrush = bsp.leafbrushes[ i ];
+		const BSPBrush brush = bsp.brushes[ leafbrush.brush ];
+		bool solid = ( bsp.materials[ brush.material ].contents & MASK_PLAYERSOLID ) != 0;
+		GPUBSPLeafBrush gpu_brush = { planes_offset + brush.first_side, solid ? brush.num_sides : 0 };
+		leafbrushes.add( gpu_brush );
+	}
+	for( u32 i = 0; i < bsp.brushsides.n; i++ ) {
+		const BSPBrushSide brushside = bsp.brushsides[ i ];
+		const BSPPlane plane = bsp.planes[ brushside.planenum ];
+		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };
+		planes.add( gpu_plane );
+	}
+	for( u32 i = 0; i < bsp.raven_brushsides.n; i++ ) {
+		const RavenBSPBrushSide brushside = bsp.raven_brushsides[ i ];
+		const BSPPlane plane = bsp.planes[ brushside.planenum ];
+		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };
+		planes.add( gpu_plane );
+	}
+
+	TextureBuffer nodesBuffer = NewTextureBuffer( TextureBufferFormat_S32x3, nodes.size() );
+	WriteTextureBuffer( nodesBuffer, nodes.ptr(), nodes.size() * sizeof( GPUBSPNode ) );
+	map->nodeBuffer = nodesBuffer;
+
+	TextureBuffer leafBuffer = NewTextureBuffer( TextureBufferFormat_S32x2, leaves.size() );
+	WriteTextureBuffer( leafBuffer, leaves.ptr(), leaves.size() * sizeof( GPUBSPLeaf ) );
+	map->leafBuffer = leafBuffer;
+
+	TextureBuffer brushBuffer = NewTextureBuffer( TextureBufferFormat_S32x2, leafbrushes.size() );
+	WriteTextureBuffer( brushBuffer, leafbrushes.ptr(), leafbrushes.size() * sizeof( GPUBSPLeafBrush ) );
+	map->brushBuffer = brushBuffer;
+
+	TextureBuffer planeBuffer = NewTextureBuffer( TextureBufferFormat_Floatx4, planes.size() );
+	WriteTextureBuffer( planeBuffer, planes.ptr(), planes.size() * sizeof( GPUBSPPlane ) );
+	map->planeBuffer = planeBuffer;
+
 	return true;
+}
+
+void DeleteBSPRenderData( Map * map ) {
+	for( u32 i = 0; i < map->num_models; i++ ) {
+		DeleteModel( &map->models[ i ] );
+	}
+
+	FREE( sys_allocator, map->models );
+
+	DeleteTextureBuffer( map->nodeBuffer );
+	DeleteTextureBuffer( map->leafBuffer );
+	DeleteTextureBuffer( map->brushBuffer );
+	DeleteTextureBuffer( map->planeBuffer );
 }

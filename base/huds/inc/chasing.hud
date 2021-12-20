@@ -1,12 +1,12 @@
 if %CHASING != #NOTSET
 	setAlignment left middle
-	setCursor 20 * 1.333 * %VIDHEIGHT / %VIDWIDTH, #HEIGHT - 32
+	setCursor 24 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48
 	setColor 1 1 1 1
-	setSize 24 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 24
+	setSize 44 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 44
 	drawPicByName "gfx/hud/cam"
 
-	moveCursor 32 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
-	setFontSize %VIDHEIGHT / 40
+	moveCursor 52 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
+	setFontSize %VIDHEIGHT / 18
 	setColor 1 1 1 1
 	setFontBorder on
 

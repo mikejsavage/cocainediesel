@@ -2,7 +2,6 @@ textures/editor/discard
 {
 	qer_editorimage textures/editor/discard
 	surfaceparm nodraw
-	surfaceparm nomarks
 }
 
 textures/editor/fullclip
@@ -10,8 +9,6 @@ textures/editor/fullclip
 	qer_trans 0.40
 	qer_editorimage textures/editor/fullclip
 	surfaceparm nodraw
-	surfaceparm trans
-	surfaceparm nomarks
 }
 
 textures/editor/ladder
@@ -20,9 +17,6 @@ textures/editor/ladder
 	qer_editorimage textures/editor/ladder
 	surfaceparm nodraw
 	surfaceparm nonsolid
-	surfaceparm trans
-	surfaceparm nomarks
-	surfaceparm noimpact
 	surfaceparm playerclip
 	surfaceparm ladder
 }
@@ -33,9 +27,6 @@ textures/editor/no_walljump
 	qer_editorimage textures/editor/no_walljump
 	surfaceparm nodraw
 	surfaceparm nonsolid
-	surfaceparm trans
-	surfaceparm nomarks
-	surfaceparm noimpact
 	surfaceparm playerclip
 	surfaceparm nowalljump
 }
@@ -46,9 +37,6 @@ textures/editor/playerclip
 	qer_editorimage textures/editor/playerclip
 	surfaceparm nodraw
 	surfaceparm nonsolid
-	surfaceparm trans
-	surfaceparm nomarks
-	surfaceparm noimpact
 	surfaceparm playerclip
 }
 

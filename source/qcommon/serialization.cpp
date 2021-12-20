@@ -49,3 +49,4 @@ void Serialize( SerializationBuffer * buf, Quaternion & q ) { *buf & q.x & q.y &
 
 void Serialize( SerializationBuffer * buf, MinMax1 & b ) { *buf & b.lo & b.hi; }
 void Serialize( SerializationBuffer * buf, MinMax2 & b ) { *buf & b.mins & b.maxs; }
+void Serialize( SerializationBuffer * buf, MinMax3 & b ) { *buf & b.mins & b.maxs; }

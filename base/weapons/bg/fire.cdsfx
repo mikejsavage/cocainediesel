@@ -1,0 +1,8 @@
+{
+	attenuation distant
+	volume 0.75
+	pitch_random 0.02
+	sound ./fire1
+	sound ./fire2
+	sound ./fire3
+}

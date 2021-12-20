@@ -4,15 +4,17 @@
 
 struct Shaders {
 	Shader standard;
+	Shader standard_shaded;
 	Shader standard_vertexcolors;
 
 	Shader standard_skinned;
+	Shader standard_skinned_shaded;
 	Shader standard_skinned_vertexcolors;
 
-	Shader standard_alphatest;
+	Shader depth_only;
+	Shader depth_only_skinned;
 
 	Shader world;
-	Shader write_world_gbuffer;
 	Shader postprocess_world_gbuffer;
 	Shader postprocess_world_gbuffer_msaa;
 
@@ -25,7 +27,10 @@ struct Shaders {
 
 	Shader scope;
 
+	Shader particle_update;
+	Shader particle_update_feedback;
 	Shader particle;
+	Shader particle_model;
 
 	Shader skybox;
 

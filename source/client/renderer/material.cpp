@@ -1,24 +1,3 @@
-/*
-Copyright (C) 1999 Stephen C. Taylor
-Copyright (C) 2002-2007 Victor Luchits
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-
 #include <algorithm> // std::sort
 
 #include "qcommon/base.h"
@@ -31,13 +10,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/assets.h"
 #include "client/threadpool.h"
 #include "client/renderer/renderer.h"
+#include "client/renderer/dds.h"
+#include "cgame/cg_dynamics.h"
 
 #include "stb/stb_image.h"
 #include "stb/stb_rect_pack.h"
 
 struct MaterialSpecKey {
 	const char * keyword;
-	void ( *func )( Material * material, const char * name, const char ** ptr );
+	void ( *func )( Material * material, Span< const char > name, Span< const char > * data );
 };
 
 constexpr u32 MAX_TEXTURES = 4096;
@@ -45,8 +26,11 @@ constexpr u32 MAX_MATERIALS = 4096;
 
 constexpr u32 MAX_DECALS = 4096;
 constexpr int DECAL_ATLAS_SIZE = 2048;
+constexpr int DECAL_ATLAS_BLOCK_SIZE = DECAL_ATLAS_SIZE / 4;
 
 static Texture textures[ MAX_TEXTURES ];
+static void * texture_stb_data[ MAX_TEXTURES ];
+static Span< const BC4Block > texture_bc4_data[ MAX_TEXTURES ];
 static u32 num_textures;
 static Hashtable< MAX_TEXTURES * 2 > textures_hashtable;
 
@@ -58,206 +42,176 @@ static u32 num_materials;
 static Hashtable< MAX_MATERIALS * 2 > materials_hashtable;
 
 Material world_material;
-
-struct MaterialLocation {
-	const char * start;
-	const char * end;
-};
-
-static MaterialLocation material_locations[ MAX_MATERIALS ];
-static Hashtable< MAX_MATERIALS * 2 > material_locations_hashtable;
+Material wallbang_material;
 
 static Vec4 decal_uvwhs[ MAX_DECALS ];
 static u32 num_decals;
 static Hashtable< MAX_DECALS * 2 > decals_hashtable;
 static TextureArray decals_atlases;
 
-static u64 HashMaterialName( const char * name ) {
+bool CompressedTextureFormat( TextureFormat format ) {
+	switch( format ) {
+		case TextureFormat_BC1_sRGB:
+		case TextureFormat_BC3_sRGB:
+		case TextureFormat_BC4:
+		case TextureFormat_BC5:
+			return true;
+
+		default:
+			return false;
+	}
+}
+
+u32 BitsPerPixel( TextureFormat format ) {
+	switch( format ) {
+		case TextureFormat_BC1_sRGB:
+			return 4;
+
+		case TextureFormat_BC3_sRGB:
+			return 8;
+
+		case TextureFormat_BC4:
+			return 4;
+
+		case TextureFormat_BC5:
+			return 8;
+
+		default:
+			assert( false );
+			return 0;
+	}
+}
+
+static u32 MipmappedByteSize( u32 w, u32 h, u32 levels, TextureFormat format ) {
+	u32 size = 0;
+
+	for( u32 i = 0; i < levels; i++ ) {
+		size += ( ( w >> i ) * ( h >> i ) * BitsPerPixel( format ) ) / 8;
+	}
+
+	return size;
+}
+
+static u64 HashMaterialName( Span< const char > name ) {
 	// skip leading /
-	while( *name == '/' )
+	while( name != "" && name[ 0 ] == '/' )
 		name++;
 	return Hash64( name );
 }
 
-static const char * Shader_ParseString( const char ** ptr ) {
-	if( **ptr == '\0' || **ptr == '}' )
-		return "";
-	return COM_ParseExt( ptr, false );
+static u64 HashMaterialName( const char * str ) {
+	return HashMaterialName( MakeSpan( str ) );
 }
 
-static Span< const char > Shader_ParseToken( const char ** ptr ) {
-	Span< const char > span = ParseToken( ptr, Parse_StopOnNewLine );
-	if( span.n == 0 || span[ 0 ] == '}' )
+static Span< const char > ParseMaterialToken( Span< const char > * data ) {
+	Span< const char > token = ParseToken( data, Parse_StopOnNewLine );
+	if( token == "" ) {
 		return Span< const char >();
-	return span;
+	}
+
+	if( token == "}" ) {
+		data->ptr--;
+		data->n++;
+		return Span< const char >();
+	}
+
+	return token;
 }
 
-static float Shader_ParseFloat( const char ** ptr ) {
-	if( **ptr == '\0' || **ptr == '}' )
-		return 0;
-	return atof( COM_ParseExt( ptr, false ) );
+static float ParseMaterialFloat( Span< const char > * data ) {
+	return ParseFloat( data, 0.0f, Parse_StopOnNewLine );
 }
 
-static void Shader_ParseVector( const char ** ptr, float * v, unsigned int size ) {
-	for( unsigned int i = 0; i < size; i++ ) {
-		v[i] = Shader_ParseFloat( ptr );
+static void ParseVector( Span< const char > * data, float * v, size_t n ) {
+	for( size_t i = 0; i < n; i++ ) {
+		v[ i ] = ParseMaterialFloat( data );
 	}
 }
 
-static void Shader_SkipLine( const char ** ptr ) {
-	while( ptr ) {
-		if( **ptr == '}' )
-			return;
-		const char * token = COM_ParseExt( ptr, false );
-		if( strlen( token ) == 0 )
-			return;
+static void SkipToEndOfLine( Span< const char > * data ) {
+	while( true ) {
+		Span< const char > token = ParseToken( data, Parse_StopOnNewLine );
+		if( token == "" || token == "}" )
+			break;
 	}
 }
 
-static Wave Shader_ParseWave( const char ** ptr ) {
+static Wave ParseWave( Span< const char > * data ) {
 	Wave wave = { };
-	const char * token = Shader_ParseString( ptr );
-	if( !strcmp( token, "sin" ) ) {
+	Span< const char > token = ParseMaterialToken( data );
+	if( token == "sin" ) {
 		wave.type = WaveFunc_Sin;
 	}
-	else if( !strcmp( token, "triangle" ) ) {
+	else if( token == "triangle" ) {
 		wave.type = WaveFunc_Triangle;
 	}
-	else if( !strcmp( token, "sawtooth" ) ) {
+	else if( token == "sawtooth" ) {
 		wave.type = WaveFunc_Sawtooth;
 	}
-	else if( !strcmp( token, "inversesawtooth" ) ) {
+	else if( token == "inversesawtooth" ) {
 		wave.type = WaveFunc_InverseSawtooth;
 	}
 
-	wave.args[ 0 ] = Shader_ParseFloat( ptr );
-	wave.args[ 1 ] = Shader_ParseFloat( ptr );
-	wave.args[ 2 ] = Shader_ParseFloat( ptr );
-	wave.args[ 3 ] = Shader_ParseFloat( ptr );
+	ParseVector( data, wave.args, 4 );
 
 	return wave;
 }
 
-static void Shader_Cull( Material * material, const char * name, const char ** ptr ) {
-	const char * token = Shader_ParseString( ptr );
-	if( !strcmp( token, "disable" ) || !strcmp( token, "none" ) || !strcmp( token, "twosided" ) ) {
+static void ParseCull( Material * material, Span< const char > name, Span< const char > * data ) {
+	Span< const char > token = ParseMaterialToken( data );
+	if( token == "disable" || token == "none" || token == "twosided" ) {
 		material->double_sided = true;
 	}
 }
 
-static void Shader_Discard( Material * material, const char * name, const char ** ptr ) {
-	material->discard = true;
-}
-
-static void Shader_Decal( Material * material, const char * name, const char ** ptr ) {
+static void ParseDecal( Material * material, Span< const char > name, Span< const char > * data ) {
 	material->decal = true;
 }
 
-static void ParseMaterial( Material * material, const char * name, const char ** ptr );
-static void Shader_Template( Material * material, const char * material_name, const char ** ptr ) {
-	constexpr int MAX_ARGS = 9;
+static void ParseMaskOutlines( Material * material, Span< const char > name, Span< const char > * data ) {
+	material->mask_outlines = true;
+}
 
-	const char * name = Shader_ParseString( ptr );
-	if( !*name ) {
-		Com_Printf( S_COLOR_YELLOW "WARNING: missing template name in material %s\n", material_name );
-		Shader_SkipLine( ptr );
-		return;
-	}
+static void ParseShaded( Material * material, Span< const char > name, Span< const char > * data ) {
+	material->shaded = true;
+}
 
-	u64 idx;
-	if( !material_locations_hashtable.get( HashMaterialName( name ), &idx ) ) {
-		Com_Printf( S_COLOR_YELLOW "WARNING: material template %s not found\n", name );
-		Shader_SkipLine( ptr );
-		return;
-	}
+static void ParseSpecular( Material * material, Span< const char > name, Span< const char > * data ) {
+	material->specular = ParseMaterialFloat( data );
+}
 
-	MaterialLocation location = material_locations[ idx ];
-	TempAllocator temp = cls.frame_arena.temp();
-	DynamicString original( &temp );
-	original.append_raw( location.start, location.end - location.start );
-
-	// parse args
-	Span< const char > args[ MAX_ARGS ];
-	int num_args = 0;
-	while( true ) {
-		args[ num_args ] = Shader_ParseToken( ptr );
-		if( args[ num_args ].n == 0 )
-			break;
-
-		if( num_args == MAX_ARGS ) {
-			Com_Printf( S_COLOR_YELLOW "WARNING: material template %s has too many arguments\n", name );
-			break;
-		}
-
-		num_args++;
-	}
-
-	// expand template
-	DynamicString expanded( &temp );
-
-	const char * cursor = original.c_str();
-	while( true ) {
-		const char * dollar = strchr( cursor, '$' );
-		if( dollar == NULL ) {
-			expanded += cursor;
-			break;
-		}
-
-		expanded.append_raw( cursor, dollar - cursor );
-
-		if( dollar[ 1 ] == '\0' )
-			break;
-
-		if( dollar[ 1 ] >= '1' && dollar[ 1 ] <= '9' ) {
-			int arg = dollar[ 1 ] - '1';
-			expanded += args[ arg ];
-		}
-		else {
-			expanded.append_raw( dollar, 2 );
-		}
-
-		cursor = dollar + strlen( "$0" );
-	}
-
-	const char * template_ptr = expanded.c_str();
-	ParseMaterial( material, material_name, &template_ptr );
+static void ParseShininess( Material * material, Span< const char > name, Span< const char > * data ) {
+	material->shininess = ParseMaterialFloat( data );
 }
 
 static const MaterialSpecKey shaderkeys[] = {
-	{ "cull", Shader_Cull },
-	{ "template", Shader_Template },
-	{ "polygonoffset", Shader_Discard },
-	{ "decal", Shader_Decal },
+	{ "cull", ParseCull },
+	{ "decal", ParseDecal },
+	{ "maskoutlines", ParseMaskOutlines },
+	{ "shaded", ParseShaded },
+	{ "specular", ParseSpecular },
+	{ "shininess", ParseShininess },
 
-	{ NULL, NULL }
+	{ }
 };
 
-static void Shaderpass_AlphaTest( Material * material, const char * name, const char ** ptr ) {
-	const char * token = Shader_ParseString( ptr );
-	material->alpha_cutoff = atof( token );
-}
-
-static void Shaderpass_BlendFunc( Material * material, const char * name, const char ** ptr ) {
-	const char * token = Shader_ParseString( ptr );
-	if( strcmp( token, "blend" ) == 0 ) {
+static void ParseBlendFunc( Material * material, Span< const char > name, Span< const char > * data ) {
+	Span< const char > token = ParseMaterialToken( data );
+	if( token == "blend" ) {
 		material->blend_func = BlendFunc_Blend;
 	}
-	else if( strcmp( token, "add" ) == 0 ) {
+	else if( token == "add" ) {
 		material->blend_func = BlendFunc_Add;
 	}
-	Shader_SkipLine( ptr );
+	SkipToEndOfLine( data );
 }
 
-static void Shaderpass_MapExt( Material * material, const char ** ptr ) {
-	const char * token = Shader_ParseString( ptr );
+static void ParseMap( Material * material, Span< const char > name, Span< const char > * data ) {
+	Span< const char > token = ParseMaterialToken( data );
 	u64 idx;
 	if( textures_hashtable.get( StringHash( token ).hash, &idx ) ) {
 		material->texture = &textures[ idx ];
 	}
-}
-
-static void Shaderpass_Map( Material * material, const char * name, const char ** ptr ) {
-	Shaderpass_MapExt( material, ptr );
 }
 
 static Vec3 NormalizeColor( Vec3 color ) {
@@ -265,29 +219,29 @@ static Vec3 NormalizeColor( Vec3 color ) {
 	return f > 1.0f ? color / f : color;
 }
 
-static void Shaderpass_RGBGen( Material * material, const char * name, const char ** ptr ) {
-	const char * token = Shader_ParseString( ptr );
-	if( !strcmp( token, "wave" ) ) {
+static void ParseRGBGen( Material * material, Span< const char > name, Span< const char > * data ) {
+	Span< const char > token = ParseMaterialToken( data );
+	if( token == "wave" ) {
 		material->rgbgen.type = ColorGenType_Wave;
-		material->rgbgen.wave = Shader_ParseWave( ptr );
+		material->rgbgen.wave = ParseWave( data );
 	}
-	else if( !strcmp( token, "colorwave" ) ) {
+	else if( token == "colorwave" ) {
 		material->rgbgen.type = ColorGenType_Wave;
-		Shader_ParseVector( ptr, material->rgbgen.args, 3 );
-		material->rgbgen.wave = Shader_ParseWave( ptr );
+		ParseVector( data, material->rgbgen.args, 3 );
+		material->rgbgen.wave = ParseWave( data );
 	}
-	else if( !strcmp( token, "entity" ) ) {
+	else if( token == "entity" ) {
 		material->rgbgen.type = ColorGenType_Entity;
 	}
-	else if( !strcmp( token, "entitycolorwave" ) ) {
+	else if( token == "entitycolorwave" ) {
 		material->rgbgen.type = ColorGenType_EntityWave;
-		Shader_ParseVector( ptr, material->rgbgen.args, 3 );
-		material->rgbgen.wave = Shader_ParseWave( ptr );
+		ParseVector( data, material->rgbgen.args, 3 );
+		material->rgbgen.wave = ParseWave( data );
 	}
-	else if( !strcmp( token, "const" ) ) {
+	else if( token == "const" ) {
 		material->rgbgen.type = ColorGenType_Constant;
 		Vec3 color;
-		Shader_ParseVector( ptr, color.ptr(), 3 );
+		ParseVector( data, color.ptr(), 3 );
 		color = NormalizeColor( color );
 		material->rgbgen.args[ 0 ] = sRGBToLinear( color.x );
 		material->rgbgen.args[ 1 ] = sRGBToLinear( color.y );
@@ -295,83 +249,68 @@ static void Shaderpass_RGBGen( Material * material, const char * name, const cha
 	}
 }
 
-static void Shaderpass_AlphaGen( Material * material, const char * name, const char ** ptr ) {
-	const char * token = Shader_ParseString( ptr );
-	if( !strcmp( token, "entity" ) ) {
+static void ParseAlphaGen( Material * material, Span< const char > name, Span< const char > * data ) {
+	Span< const char > token = ParseMaterialToken( data );
+	if( token == "entity" ) {
 		material->alphagen.type = ColorGenType_EntityWave;
 	}
-	else if( !strcmp( token, "wave" ) ) {
+	else if( token == "wave" ) {
 		material->alphagen.type = ColorGenType_Wave;
-		material->alphagen.wave = Shader_ParseWave( ptr );
+		material->alphagen.wave = ParseWave( data );
 	}
-	else if( !strcmp( token, "const" ) ) {
+	else if( token == "const" ) {
 		material->alphagen.type = ColorGenType_Constant;
-		material->alphagen.args[0] = Shader_ParseFloat( ptr );
+		material->alphagen.args[0] = ParseMaterialFloat( data );
 	}
 }
 
-static void Shaderpass_TcMod( Material * material, const char * name, const char ** ptr ) {
+static void ParseTCMod( Material * material, Span< const char > name, Span< const char > * data ) {
 	if( material->tcmod.type != TCModFunc_None ) {
-		Com_Printf( S_COLOR_YELLOW "WARNING: material %s has multiple tcmods\n", name );
-		Shader_SkipLine( ptr );
+		Com_GGPrint( S_COLOR_YELLOW "WARNING: material {} has multiple tcmods", name );
+		SkipToEndOfLine( data );
 		return;
 	}
 
-	const char * token = Shader_ParseString( ptr );
-	if( !strcmp( token, "rotate" ) ) {
-		material->tcmod.args[0] = -Shader_ParseFloat( ptr );
-		if( !material->tcmod.args[0] ) {
-			return;
-		}
+	Span< const char > token = ParseMaterialToken( data );
+	if( token == "rotate" ) {
+		material->tcmod.args[0] = -ParseMaterialFloat( data );
 		material->tcmod.type = TCModFunc_Rotate;
 	}
-	else if( !strcmp( token, "scroll" ) ) {
-		Shader_ParseVector( ptr, material->tcmod.args, 2 );
+	else if( token == "scroll" ) {
+		ParseVector( data, material->tcmod.args, 2 );
 		material->tcmod.type = TCModFunc_Scroll;
 	}
-	else if( !strcmp( token, "stretch" ) ) {
-		material->tcmod.wave = Shader_ParseWave( ptr );
+	else if( token == "stretch" ) {
+		material->tcmod.wave = ParseWave( data );
 		material->tcmod.type = TCModFunc_Stretch;
 	}
 	else {
-		Shader_SkipLine( ptr );
-		return;
+		SkipToEndOfLine( data );
 	}
 }
 
 static const MaterialSpecKey shaderpasskeys[] = {
-	{ "alphagen", Shaderpass_AlphaGen },
-	{ "alphamaskclampmap", Shaderpass_Map },
-	{ "alphatest", Shaderpass_AlphaTest },
-	{ "blendfunc", Shaderpass_BlendFunc },
-	{ "clampmap", Shaderpass_Map },
-	{ "map", Shaderpass_Map },
-	{ "rgbgen", Shaderpass_RGBGen },
-	{ "tcmod", Shaderpass_TcMod },
+	{ "alphagen", ParseAlphaGen },
+	{ "blendfunc", ParseBlendFunc },
+	{ "map", ParseMap },
+	{ "rgbgen", ParseRGBGen },
+	{ "tcmod", ParseTCMod },
 
-	{ NULL, NULL }
+	{ }
 };
 
-static bool Shader_Parsetok( Material * material, const char * name, const MaterialSpecKey * keys, const char * token, const char ** ptr ) {
+static void ParseMaterialKey( Material * material, Span< const char > name, const MaterialSpecKey * keys, Span< const char > token, Span< const char > * data ) {
 	for( const MaterialSpecKey * key = keys; key->keyword != NULL; key++ ) {
-		if( !Q_stricmp( token, key->keyword ) ) {
-			if( key->func ) {
-				key->func( material, name, ptr );
-			}
-			if( *ptr && **ptr == '}' ) {
-				*ptr = *ptr + 1;
-				return true;
-			}
-			return false;
+		if( StrCaseEqual( token, key->keyword ) ) {
+			key->func( material, name, data );
+			return;
 		}
 	}
 
-	Shader_SkipLine( ptr );
-
-	return false;
+	SkipToEndOfLine( data );
 }
 
-static void Shader_Readpass( Material * material, const char * name, const char ** ptr ) {
+static void ParseMaterialPass( Material * material, Span< const char > name, Span< const char > * data ) {
 	material->rgbgen.type = ColorGenType_Constant;
 	material->rgbgen.args[ 0 ] = 1.0f;
 	material->rgbgen.args[ 1 ] = 1.0f;
@@ -380,56 +319,57 @@ static void Shader_Readpass( Material * material, const char * name, const char 
 	material->alphagen.type = ColorGenType_Constant;
 	material->rgbgen.args[ 0 ] = 1.0f;
 
-	while( ptr ) {
-		const char * token = COM_ParseExt( ptr, true );
-		if( !token[0] ) {
+	while( true ) {
+		Span< const char > token = ParseToken( data, Parse_DontStopOnNewLine );
+		if( token == "" || token == "}" )
 			break;
-		}
-		else if( token[0] == '}' ) {
-			break;
-		}
-		else if( Shader_Parsetok( material, name, shaderpasskeys, token, ptr ) ) {
-			break;
-		}
+
+		ParseMaterialKey( material, name, shaderpasskeys, token, data );
 	}
 }
 
-static void ParseMaterial( Material * material, const char * name, const char ** ptr ) {
+static bool ParseMaterial( Material * material, Span< const char > name, Span< const char > * data ) {
 	ZoneScoped;
 
 	bool seen_pass = false;
-	while( ptr != NULL ) {
-		const char * token = COM_ParseExt( ptr, true );
+	while( true ) {
+		Span< const char > token = ParseToken( data, Parse_DontStopOnNewLine );
+		if( token == "" ) {
+			Com_GGPrint( S_COLOR_YELLOW "WARNING: hit end of file inside a material ({})", name );
+			return false;
+		}
 
-		if( !token[ 0 ] ) {
+		if( token == "}" ) {
 			break;
 		}
-		else if( token[ 0 ] == '}' ) {
-			break;
-		}
-		else if( token[ 0 ] == '{' ) {
+		else if( token == "{" ) {
 			if( !seen_pass ) {
-				Shader_Readpass( material, name, ptr );
+				ParseMaterialPass( material, name, data );
 				seen_pass = true;
 			}
 			else {
-				Com_Printf( S_COLOR_YELLOW "WARNING: material %s has multiple passes\n", name );
-
-				while( ptr ) { // skip
-					token = COM_ParseExt( ptr, true );
-					if( !token[0] || token[0] == '}' ) {
-						break;
-					}
-				}
+				Com_GGPrint( S_COLOR_YELLOW "WARNING: material {} has multiple passes", name );
+				return false;
 			}
 		}
-		else if( Shader_Parsetok( material, name, shaderkeys, token, ptr ) ) {
-			break;
+		else {
+			ParseMaterialKey( material, name, shaderkeys, token, data );
 		}
 	}
+
+	return true;
 }
 
-static Texture * AddTexture( u64 hash, const TextureConfig & config ) {
+static void UnloadTexture( u64 idx ) {
+	stbi_image_free( texture_stb_data[ idx ] );
+
+	texture_stb_data[ idx ] = NULL;
+	texture_bc4_data[ idx ] = Span< const BC4Block >();
+
+	DeleteTexture( textures[ idx ] );
+}
+
+static u64 AddTexture( u64 hash, const TextureConfig & config ) {
 	ZoneScoped;
 
 	assert( num_textures < ARRAY_COUNT( textures ) );
@@ -446,12 +386,15 @@ static Texture * AddTexture( u64 hash, const TextureConfig & config ) {
 		num_materials++;
 	}
 	else {
-		DeleteTexture( textures[ idx ] );
-		stbi_image_free( const_cast< void * >( textures[ idx ].data ) );
+		if( CompressedTextureFormat( config.format ) && !CompressedTextureFormat( textures[ idx ].format ) ) {
+			return U64_MAX;
+		}
+
+		UnloadTexture( idx );
 	}
 
 	textures[ idx ] = NewTexture( config );
-	return &textures[ idx ];
+	return idx;
 }
 
 static void LoadBuiltinTextures() {
@@ -482,27 +425,6 @@ static void LoadBuiltinTextures() {
 	}
 
 	{
-		u8 data[ 16 * 16 ];
-		Span2D< u8 > image( data, 16, 16 );
-
-		for( int y = 0; y < 16; y++ ) {
-			for( int x = 0; x < 16; x++ ) {
-				float d = Length( Vec2( x - 7.5f, y - 7.5f ) );
-				float a = Unlerp01( 1.0f, d, 7.0f );
-				image( x, y ) = 255 * ( 1.0f - a );
-			}
-		}
-
-		TextureConfig config;
-		config.width = 16;
-		config.height = 16;
-		config.data = data;
-		config.format = TextureFormat_A_U8;
-
-		AddTexture( Hash64( "$particle" ), config );
-	}
-
-	{
 		constexpr RGB8 pixels[] = {
 			RGB8( 255, 0, 255 ),
 			RGB8( 0, 0, 0 ),
@@ -521,12 +443,12 @@ static void LoadBuiltinTextures() {
 	}
 }
 
-static void LoadTexture( const char * path, u8 * pixels, int w, int h, int channels ) {
+static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int channels, const char * failure_reason ) {
 	ZoneScoped;
 	ZoneText( path, strlen( path ) );
 
 	if( pixels == NULL ) {
-		Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load texture from %s\n", path );
+		Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load texture from %s: %s\n", path, failure_reason );
 		return;
 	}
 
@@ -543,23 +465,81 @@ static void LoadTexture( const char * path, u8 * pixels, int w, int h, int chann
 	config.data = pixels;
 	config.format = formats[ channels - 1 ];
 
-	Span< const char > ext = FileExtension( path );
-	Texture * texture = AddTexture( Hash64( path, strlen( path ) - ext.n ), config );
-	texture->data = pixels;
+	size_t idx = AddTexture( Hash64( StripExtension( path ) ), config );
+	texture_stb_data[ idx ] = pixels;
 }
 
-static void LoadMaterialFile( const char * path ) {
-	Span< const char > data = AssetString( path );
+static void LoadDDSTexture( const char * path ) {
+	Span< const u8 > dds = AssetBinary( path );
+	if( dds.num_bytes() < sizeof( DDSHeader ) ) {
+		Com_GGPrint( S_COLOR_YELLOW "{} is too small to be a DDS file", path );
+		return;
+	}
 
-	const char * ptr = data.ptr;
-	while( ptr != NULL ) {
-		const char * material_name = COM_ParseExt( &ptr, true );
-		if( strlen( material_name ) == 0 )
+	const DDSHeader * header = ( const DDSHeader * ) dds.ptr;
+
+	TextureConfig config;
+	config.width = header->width;
+	config.height = header->height;
+	config.data = dds.ptr + sizeof( DDSHeader );
+
+	if( header->magic != DDSMagic ) {
+		Com_GGPrint( S_COLOR_YELLOW "{} isn't a DDS file", path );
+		return;
+	}
+
+	if( header->width % 4 != 0 || header->height % 4 != 0 ) {
+		Com_GGPrint( S_COLOR_YELLOW "{} dimensions must be a multiple of 4 ({}x{})", path, header->width, header->height );
+		return;
+	}
+
+	switch( header->format ) {
+		case DDSTextureFormat_BC1:
+			config.format = TextureFormat_BC1_sRGB;
 			break;
 
-		u64 hash = HashMaterialName( material_name );
-		COM_ParseExt( &ptr, true ); // skip opening brace
-		const char * start = ptr;
+		case DDSTextureFormat_BC3:
+			config.format = TextureFormat_BC3_sRGB;
+			break;
+
+		case DDSTextureFormat_BC4:
+			config.format = TextureFormat_BC4;
+			break;
+
+		case DDSTextureFormat_BC5:
+			config.format = TextureFormat_BC5;
+			break;
+
+		default:
+			Com_GGPrint( S_COLOR_YELLOW "{} isn't a BC format ({})", path, header->format );
+			return;
+	}
+
+	config.num_mipmaps = Max2( header->mipmap_count, u32( 1 ) );
+	size_t expected_data_size = MipmappedByteSize( config.width, config.height, config.num_mipmaps, config.format );
+	if( dds.num_bytes() - sizeof( DDSHeader ) != expected_data_size ) {
+		Com_GGPrint( S_COLOR_YELLOW "{} has bad data size. Got {}, expected {}", path, dds.num_bytes() - sizeof( DDSHeader ), expected_data_size );
+		return;
+	}
+
+	size_t idx = AddTexture( Hash64( StripExtension( path ) ), config );
+	texture_bc4_data[ idx ] = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
+}
+
+static void LoadMaterialFile( const char * path, Span< const char > * material_names ) {
+	Span< const char > data = AssetString( path );
+
+	while( data != "" ) {
+		Span< const char > name = ParseToken( &data, Parse_DontStopOnNewLine );
+		if( name == "" )
+			break;
+
+		u64 hash = HashMaterialName( name );
+		ParseToken( &data, Parse_DontStopOnNewLine );
+
+		Material material = Material();
+		if( !ParseMaterial( &material, name, &data ) )
+			break;
 
 		u64 idx = num_materials;
 		if( !materials_hashtable.get( hash, &idx ) ) {
@@ -567,19 +547,13 @@ static void LoadMaterialFile( const char * path ) {
 			num_materials++;
 		}
 
-		materials[ idx ] = Material();
+		material_names[ idx ] = name;
+		materials[ idx ] = material;
 		materials[ idx ].name = hash;
-		materials[ idx ].texture = &missing_texture;
-		ParseMaterial( &materials[ idx ], material_name, &ptr );
-
-		material_locations[ idx ] = { start, ptr };
-		material_locations_hashtable.add( hash, idx );
 	}
-
-	material_locations_hashtable.clear();
 }
 
-struct DecodeTextureJob {
+struct DecodeSTBTextureJob {
 	struct {
 		const char * path;
 		Span< const u8 > data;
@@ -589,31 +563,92 @@ struct DecodeTextureJob {
 		int width, height;
 		int channels;
 		u8 * pixels;
+		const char * failure_reason;
 	} out;
 };
 
-static void CopyImage( Span2D< RGBA8 > dst, int x, int y, const Texture * texture ) {
-	Span2D< const RGBA8 > src( ( const RGBA8 * ) texture->data, texture->width, texture->height );
-	for( u32 row = 0; row < texture->height; row++ ) {
-		memcpy( &dst( x, y + row ), &src( 0, row ), sizeof( RGBA8 ) * texture->width );
+struct DecalAtlasLayer {
+	BC4Block blocks[ DECAL_ATLAS_BLOCK_SIZE * DECAL_ATLAS_BLOCK_SIZE ];
+};
+
+static BC4Block FastBC4( Span2D< const RGBA8 > rgba ) {
+	BC4Block result;
+
+	result.data[ 0 ] = 255;
+	result.data[ 1 ] = 0;
+
+	constexpr u8 selector_lut[] = { 1, 7, 6, 5, 4, 3, 2, 0 };
+
+	u64 selectors = 0;
+	for( size_t i = 0; i < 16; i++ ) {
+		u64 selector = selector_lut[ rgba( i % 4, i / 4 ).a >> 5 ];
+		selectors |= selector << ( i * 3 );
 	}
+
+	memcpy( &result.data[ 2 ], &selectors, 6 );
+
+	return result;
 }
 
-static void PackDecalAtlas() {
+static Span2D< BC4Block > RGBAToBC4( Span2D< const RGBA8 > rgba ) {
+	ZoneScoped;
+
+	Span2D< BC4Block > bc4 = ALLOC_SPAN2D( sys_allocator, BC4Block, rgba.w / 4, rgba.h / 4 );
+
+	for( u32 row = 0; row < bc4.h; row++ ) {
+		for( u32 col = 0; col < bc4.w; col++ ) {
+			Span2D< const RGBA8 > rgba_block = rgba.slice( col * 4, row * 4, 4, 4 );
+			bc4( col, row ) = FastBC4( rgba_block );
+		}
+	}
+
+	return bc4;
+}
+
+static Span2D< const BC4Block > GetMipmap( const Material * material, u32 mipmap ) {
+	u64 texture_idx = material->texture - textures;
+	u32 w = material->texture->width / 4;
+	u32 h = material->texture->height / 4;
+
+	Span< const BC4Block > cursor = texture_bc4_data[ texture_idx ];
+	for( u32 i = 0; i < mipmap; i++ ) {
+		cursor += ( w >> i ) * ( h >> i );
+	}
+
+	u32 mip_w = w >> mipmap;
+	u32 mip_h = h >> mipmap;
+
+	return Span2D< const BC4Block >( cursor.slice( 0, mip_w * mip_h ).ptr, mip_w, mip_h );
+}
+
+static void PackDecalAtlas( Span< const char > * material_names ) {
 	ZoneScoped;
 
 	decals_hashtable.clear();
 
+	// make a list of textures to be packed
 	stbrp_rect rects[ MAX_DECALS ];
 	num_decals = 0;
 
+	u32 num_mipmaps = U32_MAX;
+
 	for( u32 i = 0; i < num_materials; i++ ) {
-		if( !materials[ i ].decal )
+		const Texture * texture = materials[ i ].texture;
+		if( !materials[ i ].decal || texture == NULL )
 			continue;
 
-		if( materials[ i ].texture->format != TextureFormat_RGBA_U8_sRGB ) {
-			Com_Printf( S_COLOR_YELLOW "Decals must be RGBA\n" );
+		if( texture->format != TextureFormat_RGBA_U8_sRGB && texture->format != TextureFormat_BC4 ) {
+			Com_GGPrint( S_COLOR_YELLOW "Decals must be RGBA or BC4 ({})", material_names[ i ] );
 			continue;
+		}
+
+		if( texture->width % 4 != 0 || texture->height % 4 != 0 ) {
+			Com_GGPrint( S_COLOR_YELLOW "Decal dimensions must be a multiple of 4 ({} is {}x{})", material_names[ i ], texture->width, texture->height );
+			continue;
+		}
+
+		if( texture->num_mipmaps < 3 ) {
+			Com_GGPrint( S_COLOR_YELLOW "{} has a small number of mipmaps ({}) and will mess up the decal atlas", material_names[ i ], texture->num_mipmaps );
 		}
 
 		assert( num_decals < ARRAY_COUNT( rects ) );
@@ -622,24 +657,29 @@ static void PackDecalAtlas() {
 		num_decals++;
 
 		rect->id = i;
-		rect->w = materials[ i ].texture->width;
-		rect->h = materials[ i ].texture->height;
+		rect->w = texture->width;
+		rect->h = texture->height;
+
+		num_mipmaps = Min2( texture->num_mipmaps, num_mipmaps );
 	}
 
-	u32 num_to_pack = num_decals;
-	u32 num_atlases = 0;
+	// rect packing
+	u32 num_unpacked = num_decals;
+	u32 num_layers = 0;
 	while( true ) {
+		ZoneScopedN( "stb_rect_pack iteration" );
+
 		stbrp_node nodes[ MAX_TEXTURES ];
 		stbrp_context packer;
 		stbrp_init_target( &packer, DECAL_ATLAS_SIZE, DECAL_ATLAS_SIZE, nodes, ARRAY_COUNT( nodes ) );
 		stbrp_setup_allow_out_of_mem( &packer, 1 );
 
-		bool all_packed = stbrp_pack_rects( &packer, rects, num_to_pack ) != 0;
+		bool all_packed = stbrp_pack_rects( &packer, rects, num_unpacked ) != 0;
 		bool none_packed = true;
 
 		static RGBA8 pixels[ DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE ];
 		Span2D< RGBA8 > image( pixels, DECAL_ATLAS_SIZE, DECAL_ATLAS_SIZE );
-		for( u32 i = 0; i < num_to_pack; i++ ) {
+		for( u32 i = 0; i < num_unpacked; i++ ) {
 			if( !rects[ i ].was_packed )
 				continue;
 			none_packed = false;
@@ -648,45 +688,89 @@ static void PackDecalAtlas() {
 
 			size_t decal_idx = decals_hashtable.size();
 			decals_hashtable.add( material->name, decal_idx );
-			decal_uvwhs[ decal_idx ].x = rects[ i ].x / float( DECAL_ATLAS_SIZE ) + num_atlases;
+			decal_uvwhs[ decal_idx ].x = rects[ i ].x / float( DECAL_ATLAS_SIZE ) + num_layers;
 			decal_uvwhs[ decal_idx ].y = rects[ i ].y / float( DECAL_ATLAS_SIZE );
 			decal_uvwhs[ decal_idx ].z = material->texture->width / float( DECAL_ATLAS_SIZE );
 			decal_uvwhs[ decal_idx ].w = material->texture->height / float( DECAL_ATLAS_SIZE );
 		}
 
-		num_atlases++;
+		num_layers++;
 		if( all_packed )
 			break;
 
 		if( none_packed ) {
-			Com_Error( ERR_DROP, "Can't pack decals" );
+			Fatal( "Can't pack decals" );
 		}
 
 		// repack rects array
-		for( u32 i = 0; i < num_to_pack; i++ ) {
+		for( u32 i = 0; i < num_unpacked; i++ ) {
 			if( !rects[ i ].was_packed )
 				continue;
 
-			num_to_pack--;
-			Swap2( &rects[ num_to_pack ], &rects[ i ] );
+			num_unpacked--;
+			Swap2( &rects[ num_unpacked ], &rects[ i ] );
 			i--;
 		}
 	}
 
-	RGBA8 * pixels = ALLOC_MANY( sys_allocator, RGBA8, DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE * num_atlases );
-	memset( pixels, 0, DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE * num_atlases * sizeof( RGBA8 ) );
-	defer { FREE( sys_allocator, pixels ); };
-
+	// convert pngs to temporary bc4s
 	for( u32 i = 0; i < num_decals; i++ ) {
 		const Material * material = &materials[ rects[ i ].id ];
-		u64 decal_idx;
-		bool ok = decals_hashtable.get( material->name, &decal_idx );
-		assert( ok );
+		if( material->texture->format != TextureFormat_RGBA_U8_sRGB )
+			continue;
 
-		u32 layer = u32( decal_uvwhs[ decal_idx ].x );
-		Span2D< RGBA8 > atlas( pixels + DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE * layer, DECAL_ATLAS_SIZE, DECAL_ATLAS_SIZE );
+		u64 texture_idx = material->texture - textures;
+		Span2D< const RGBA8 > rgba = Span2D< const RGBA8 >( ( const RGBA8 * ) texture_stb_data[ texture_idx ], material->texture->width, material->texture->height );
+		Span2D< const BC4Block > bc4 = RGBAToBC4( rgba );
+		texture_bc4_data[ texture_idx ] = Span< const BC4Block >( bc4.ptr, bc4.w * bc4.h );
+	}
 
-		CopyImage( atlas, rects[ i ].x, rects[ i ].y, material->texture );
+	// copy texture data into atlases, convert RGBA to BC4 as needed
+	u32 num_blocks = 0;
+	for( u32 i = 0; i < num_mipmaps; i++ ) {
+		num_blocks += Square( DECAL_ATLAS_BLOCK_SIZE >> i );
+	}
+	num_blocks *= num_layers;
+
+	Span< BC4Block > blocks = ALLOC_SPAN( sys_allocator, BC4Block, num_blocks );
+	memset( blocks.ptr, 0, blocks.num_bytes() );
+	defer { FREE( sys_allocator, blocks.ptr ); };
+
+	Span< BC4Block > cursor = blocks;
+
+	for( u32 mipmap_idx = 0; mipmap_idx < num_mipmaps; mipmap_idx++ ) {
+		u32 mipmap_dim = DECAL_ATLAS_BLOCK_SIZE >> mipmap_idx;
+		u32 mipmap_blocks = mipmap_dim * mipmap_dim * num_layers;
+		Span< BC4Block > layer_mipmap = cursor.slice( 0, mipmap_blocks );
+		cursor += mipmap_blocks;
+
+		for( u32 i = 0; i < num_decals; i++ ) {
+			const Material * material = &materials[ rects[ i ].id ];
+			u64 decal_idx;
+			bool ok = decals_hashtable.get( material->name, &decal_idx );
+			assert( ok );
+
+			u32 layer_idx = u32( decal_uvwhs[ decal_idx ].x );
+			Span2D< BC4Block > layer( layer_mipmap + mipmap_dim * mipmap_dim * layer_idx, mipmap_dim, mipmap_dim );
+
+			Span2D< const BC4Block > bc4 = GetMipmap( material, mipmap_idx );
+
+			u32 mipped_x = rects[ i ].x >> mipmap_idx;
+			u32 mipped_y = rects[ i ].y >> mipmap_idx;
+			assert( mipped_x % 4 == 0 && mipped_y % 4 == 0 );
+			CopySpan2D( layer.slice( mipped_x / 4, mipped_y / 4, bc4.w, bc4.h ), bc4 );
+		}
+	}
+
+	// free temporary bc4s
+	for( u32 i = 0; i < num_decals; i++ ) {
+		const Material * material = &materials[ rects[ i ].id ];
+		if( material->texture->format != TextureFormat_RGBA_U8_sRGB )
+			continue;
+
+		u64 texture_idx = material->texture - textures;
+		FREE( sys_allocator, const_cast< BC4Block * >( texture_bc4_data[ texture_idx ].ptr ) );
+		texture_bc4_data[ texture_idx ] = Span< const BC4Block >();
 	}
 
 	// upload atlases
@@ -698,10 +782,12 @@ static void PackDecalAtlas() {
 		TextureArrayConfig config;
 		config.width = DECAL_ATLAS_SIZE;
 		config.height = DECAL_ATLAS_SIZE;
-		config.layers = num_atlases;
-		config.data = pixels;
+		config.num_mipmaps = num_mipmaps;
+		config.layers = num_layers;
+		config.data = blocks.ptr;
+		config.format = TextureFormat_BC4;
 
-		decals_atlases = NewAtlasTextureArray( config );
+		decals_atlases = NewTextureArray( config );
 	}
 }
 
@@ -711,35 +797,54 @@ void InitMaterials() {
 	num_textures = 0;
 	num_materials = 0;
 
-	world_material = { };
+	world_material = Material();
+	world_material.rgbgen.args[ 0 ] = 0.17f;
+	world_material.rgbgen.args[ 1 ] = 0.17f;
+	world_material.rgbgen.args[ 2 ] = 0.17f;
+	world_material.rgbgen.args[ 3 ] = 1.0f;
+	world_material.specular = 3.0f;
+	world_material.shininess = 8.0f;
+
+	wallbang_material = Material();
+	wallbang_material.rgbgen.args[ 0 ] = 0.17f * 2.0f;
+	wallbang_material.rgbgen.args[ 1 ] = 0.17f * 2.0f;
+	wallbang_material.rgbgen.args[ 2 ] = 0.17f * 2.0f;
+	wallbang_material.rgbgen.args[ 3 ] = 1.0f;
+	wallbang_material.specular = 3.0f;
+	wallbang_material.shininess = 8.0f;
 
 	LoadBuiltinTextures();
 
 	{
 		ZoneScopedN( "Load disk textures" );
 
-		DynamicArray< DecodeTextureJob > jobs( sys_allocator );
+		DynamicArray< DecodeSTBTextureJob > jobs( sys_allocator );
 		{
 			ZoneScopedN( "Build job list" );
 
 			for( const char * path : AssetPaths() ) {
 				Span< const char > ext = FileExtension( path );
+
 				if( ext == ".png" || ext == ".jpg" ) {
-					DecodeTextureJob job;
+					DecodeSTBTextureJob job;
 					job.in.path = path;
 					job.in.data = AssetBinary( path );
 
 					jobs.add( job );
 				}
+
+				if( ext == ".dds" ) {
+					LoadDDSTexture( path );
+				}
 			}
 
-			std::sort( jobs.begin(), jobs.end(), []( const DecodeTextureJob & a, const DecodeTextureJob & b ) {
+			std::sort( jobs.begin(), jobs.end(), []( const DecodeSTBTextureJob & a, const DecodeSTBTextureJob & b ) {
 				return a.in.data.n > b.in.data.n;
 			} );
 		}
 
 		ParallelFor( jobs.span(), []( TempAllocator * temp, void * data ) {
-			DecodeTextureJob * job = ( DecodeTextureJob * ) data;
+			DecodeSTBTextureJob * job = ( DecodeSTBTextureJob * ) data;
 
 			ZoneScopedN( "stbi_load_from_memory" );
 			ZoneText( job->in.path, strlen( job->in.path ) );
@@ -747,17 +852,22 @@ void InitMaterials() {
 			job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
 		} );
 
-		for( DecodeTextureJob job : jobs ) {
-			LoadTexture( job.in.path, job.out.pixels, job.out.width, job.out.height, job.out.channels );
+		for( DecodeSTBTextureJob job : jobs ) {
+			LoadSTBTexture( job.in.path, job.out.pixels, job.out.width, job.out.height, job.out.channels, stbi_failure_reason() );
 		}
 	}
+
+	Span< const char > material_names[ MAX_MATERIALS ];
 
 	{
 		ZoneScopedN( "Load materials" );
 
 		for( const char * path : AssetPaths() ) {
-			if( FileExtension( path ) == ".shader" && BaseName( path ) != "editor.shader" ) {
-				LoadMaterialFile( path );
+			// game crashes if we load materials with no texture,
+			// skip editor.shader until we convert asset pointers
+			// to asset hashes
+			if( FileExtension( path ) == ".shader" && FileName( path ) != "editor.shader" ) {
+				LoadMaterialFile( path, material_names );
 			}
 		}
 	}
@@ -765,7 +875,7 @@ void InitMaterials() {
 	missing_material = Material();
 	missing_material.texture = &missing_texture;
 
-	PackDecalAtlas();
+	PackDecalAtlas( material_names );
 }
 
 void HotloadMaterials() {
@@ -775,6 +885,7 @@ void HotloadMaterials() {
 
 	for( const char * path : ModifiedAssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
+
 		if( ext == ".png" || ext == ".jpg" ) {
 			Span< const u8 > data = AssetBinary( path );
 
@@ -786,28 +897,34 @@ void HotloadMaterials() {
 				pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
 			}
 
-			LoadTexture( path, pixels, w, h, channels );
+			LoadSTBTexture( path, pixels, w, h, channels, stbi_failure_reason() );
 
+			changes = true;
+		}
+
+		if( ext == ".dds" ) {
+			LoadDDSTexture( path );
 			changes = true;
 		}
 	}
 
+	Span< const char > material_names[ MAX_MATERIALS ] = { };
+
 	for( const char * path : ModifiedAssetPaths() ) {
-		if( FileExtension( path ) == ".shader" && BaseName( path ) != "editor.shader" ) {
-			LoadMaterialFile( path );
+		if( FileExtension( path ) == ".shader" && FileName( path ) != "editor.shader" ) {
+			LoadMaterialFile( path, material_names );
 			changes = true;
 		}
 	}
 
 	if( changes ) {
-		PackDecalAtlas();
+		PackDecalAtlas( material_names );
 	}
 }
 
 void ShutdownMaterials() {
 	for( u32 i = 0; i < num_textures; i++ ) {
-		DeleteTexture( textures[ i ] );
-		stbi_image_free( const_cast< void * >( textures[ i ].data ) );
+		UnloadTexture( i );
 	}
 
 	DeleteTexture( missing_texture );
@@ -849,10 +966,6 @@ Vec2 HalfPixelSize( const Material * material ) {
 	return 0.5f / Vec2( material->texture->width, material->texture->height );
 }
 
-bool HasAlpha( TextureFormat format ) {
-	return format == TextureFormat_A_U8 || format == TextureFormat_RA_U8 || format == TextureFormat_RGBA_U8 || format == TextureFormat_RGBA_U8_sRGB;
-}
-
 static float EvaluateWaveFunc( Wave wave ) {
 	float t = PositiveMod( ( cls.gametime % 1000 ) / 1000.0f * wave.args[ 3 ] + wave.args[ 2 ], 1.0f );
 	float v = 0.0f;
@@ -878,13 +991,28 @@ static float EvaluateWaveFunc( Wave wave ) {
 }
 
 PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned ) {
-	if( material == &world_material ) {
+	if( material == &world_material || material == &wallbang_material ) {
 		PipelineState pipeline;
 		pipeline.shader = &shaders.world;
 		pipeline.pass = frame_static.world_opaque_pass;
 		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
 		pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
+		color.x = material->rgbgen.args[ 0 ];
+		color.y = material->rgbgen.args[ 1 ];
+		color.z = material->rgbgen.args[ 2 ];
+		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( 0.0f ), material->specular, material->shininess, Vec3( 0.0f ), Vec3( 0.0f ) ) );
+		pipeline.set_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
+		pipeline.set_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
+		pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
+		AddDynamicsToPipeline( &pipeline );
+		return pipeline;
+	}
+
+	if( material->mask_outlines ) {
+		PipelineState pipeline;
+		pipeline.pass = frame_static.world_opaque_pass;
+		pipeline.shader = &shaders.depth_only;
 		return pipeline;
 	}
 
@@ -922,12 +1050,9 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	// evaluate tcmod
-	Vec3 tcmod_row0, tcmod_row1;
-	if( material->tcmod.type == TCModFunc_None ) {
-		tcmod_row0 = Vec3( 1, 0, 0 );
-		tcmod_row1 = Vec3( 0, 1, 0 );
-	}
-	else if( material->tcmod.type == TCModFunc_Scroll ) {
+	Vec3 tcmod_row0 = Vec3( 1.0f, 0.0f, 0.0f );
+	Vec3 tcmod_row1 = Vec3( 0.0f, 1.0f, 0.0f );
+	if( material->tcmod.type == TCModFunc_Scroll ) {
 		float s = float( PositiveMod( double( material->tcmod.args[ 0 ] ) * double( cls.gametime / 1000.0 ), 1.0 ) );
 		float t = float( PositiveMod( double( material->tcmod.args[ 1 ] ) * double( cls.gametime / 1000.0 ), 1.0 ) );
 		tcmod_row0 = Vec3( 1, 0, s );
@@ -960,16 +1085,25 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	pipeline.set_texture( "u_BaseTexture", material->texture );
-	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->alpha_cutoff, tcmod_row0, tcmod_row1 ) );
+	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->specular, material->shininess, tcmod_row0, tcmod_row1 ) );
 
-	if( material->alpha_cutoff > 0 ) {
-		pipeline.shader = &shaders.standard_alphatest;
-	}
-	else if( skinned ) {
-		pipeline.shader = &shaders.standard_skinned;
+	if( skinned ) {
+		if( material->shaded ) {
+			pipeline.shader = &shaders.standard_skinned_shaded;
+			AddDynamicsToPipeline( &pipeline );
+		}
+		else {
+			pipeline.shader = &shaders.standard_skinned;
+		}
 	}
 	else {
-		pipeline.shader = &shaders.standard;
+		if( material->shaded ) {
+			pipeline.shader = &shaders.standard_shaded;
+			AddDynamicsToPipeline( &pipeline );
+		}
+		else {
+			pipeline.shader = &shaders.standard;
+		}
 	}
 
 	return pipeline;

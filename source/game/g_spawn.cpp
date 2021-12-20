@@ -21,94 +21,87 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "qcommon/compression.h"
 #include "qcommon/cmodel.h"
+#include "qcommon/fs.h"
 #include "game/g_local.h"
 
 enum EntityFieldType {
-	F_INT,
-	F_FLOAT,
-	F_LSTRING,      // string on disk, pointer in memory, TAG_LEVEL
-	F_HASH,
-	F_MODELHASH,
-	F_VECTOR,
-	F_ANGLE,
-	F_RGBA,
+	EntityField_Int,
+	EntityField_Float,
+	EntityField_StringHash,
+	EntityField_Asset,
+	EntityField_Vec3,
+	EntityField_Angle,
+	EntityField_Scale,
+	EntityField_RGBA,
 };
 
 struct EntityField {
-	const char *name;
+	StringHash name;
 	size_t ofs;
 	EntityFieldType type;
-	int flags;
+	bool temp;
 };
 
-#define FFL_SPAWNTEMP       1
+#define FOFS( x ) offsetof( edict_t, x )
+#define STOFS( x ) offsetof( spawn_temp_t, x )
 
-static const EntityField fields[] = {
-	{ "classname", FOFS( classname ), F_LSTRING },
-	{ "origin", FOFS( s.origin ), F_VECTOR },
-	{ "model", FOFS( s.model ), F_MODELHASH },
-	{ "model2", FOFS( s.model2 ), F_MODELHASH },
-	{ "spawnflags", FOFS( spawnflags ), F_INT },
-	{ "speed", FOFS( speed ), F_FLOAT },
-	{ "target", FOFS( target ), F_LSTRING },
-	{ "targetname", FOFS( targetname ), F_LSTRING },
-	{ "pathtarget", FOFS( pathtarget ), F_LSTRING },
-	{ "killtarget", FOFS( killtarget ), F_LSTRING },
-	{ "message", FOFS( message ), F_LSTRING },
-	{ "team", FOFS( team ), F_LSTRING },
-	{ "wait", FOFS( wait ), F_FLOAT },
-	{ "delay", FOFS( delay ), F_FLOAT },
-	{ "style", FOFS( style ), F_INT },
-	{ "count", FOFS( count ), F_INT },
-	{ "health", FOFS( health ), F_FLOAT },
-	{ "light", FOFS( light ), F_FLOAT },
-	{ "color", FOFS( color ), F_VECTOR },
-	{ "dmg", FOFS( dmg ), F_INT },
-	{ "angles", FOFS( s.angles ), F_VECTOR },
-	{ "mangle", FOFS( s.angles ), F_VECTOR },
-	{ "angle", FOFS( s.angles ), F_ANGLE },
-	{ "mass", FOFS( mass ), F_INT },
-	{ "random", FOFS( random ), F_FLOAT },
+static constexpr EntityField entity_keys[] = {
+	{ "classname", FOFS( classname ), EntityField_StringHash },
+	{ "origin", FOFS( s.origin ), EntityField_Vec3 },
+	{ "model", FOFS( s.model ), EntityField_Asset },
+	{ "model2", FOFS( s.model2 ), EntityField_Asset },
+	{ "material", FOFS( s.material ), EntityField_Asset },
+	{ "color", FOFS( s.color ), EntityField_RGBA },
+	{ "spawnflags", FOFS( spawnflags ), EntityField_Int },
+	{ "speed", FOFS( speed ), EntityField_Float },
+	{ "target", FOFS( target ), EntityField_StringHash },
+	{ "targetname", FOFS( name ), EntityField_StringHash },
+	{ "pathtarget", FOFS( pathtarget ), EntityField_StringHash },
+	{ "killtarget", FOFS( killtarget ), EntityField_StringHash },
+	{ "wait", FOFS( wait ), EntityField_Float },
+	{ "delay", FOFS( delay ), EntityField_Float },
+	{ "style", FOFS( style ), EntityField_Int },
+	{ "count", FOFS( count ), EntityField_Int },
+	{ "health", FOFS( health ), EntityField_Float },
+	{ "dmg", FOFS( dmg ), EntityField_Int },
+	{ "angles", FOFS( s.angles ), EntityField_Vec3 },
+	{ "angle", FOFS( s.angles ), EntityField_Angle },
+	{ "modelscale_vec", FOFS( s.scale ), EntityField_Vec3 },
+	{ "modelscale", FOFS( s.scale ), EntityField_Scale },
+	{ "mass", FOFS( mass ), EntityField_Int },
+	{ "random", FOFS( random ), EntityField_Float },
 
 	// temp spawn vars -- only valid when the spawn function is called
-	{ "lip", STOFS( lip ), F_INT, FFL_SPAWNTEMP },
-	{ "distance", STOFS( distance ), F_INT, FFL_SPAWNTEMP },
-	{ "radius", STOFS( radius ), F_FLOAT, FFL_SPAWNTEMP },
-	{ "height", STOFS( height ), F_INT, FFL_SPAWNTEMP },
-	{ "noise", STOFS( noise ), F_HASH, FFL_SPAWNTEMP },
-	{ "noise_start", STOFS( noise_start ), F_HASH, FFL_SPAWNTEMP },
-	{ "noise_stop", STOFS( noise_stop ), F_HASH, FFL_SPAWNTEMP },
-	{ "pausetime", STOFS( pausetime ), F_FLOAT, FFL_SPAWNTEMP },
-	{ "gravity", STOFS( gravity ), F_LSTRING, FFL_SPAWNTEMP },
-	{ "gameteam", STOFS( gameteam ), F_INT, FFL_SPAWNTEMP },
-	{ "size", STOFS( size ), F_INT, FFL_SPAWNTEMP },
-	{ "rgba", STOFS( rgba ), F_RGBA, FFL_SPAWNTEMP },
+	{ "lip", STOFS( lip ), EntityField_Int, true },
+	{ "distance", STOFS( distance ), EntityField_Int, true },
+	{ "radius", STOFS( radius ), EntityField_Float, true },
+	{ "height", STOFS( height ), EntityField_Int, true },
+	{ "noise", STOFS( noise ), EntityField_StringHash, true },
+	{ "noise_start", STOFS( noise_start ), EntityField_StringHash, true },
+	{ "noise_stop", STOFS( noise_stop ), EntityField_StringHash, true },
+	{ "pausetime", STOFS( pausetime ), EntityField_Float, true },
+	{ "gameteam", STOFS( gameteam ), EntityField_Int, true },
+	{ "size", STOFS( size ), EntityField_Int, true },
+	{ "spawn_probability", STOFS( spawn_probability ), EntityField_Float, true },
 };
 
-typedef struct
-{
-	const char *name;
-	void ( *spawn )( edict_t *ent );
-} spawn_t;
+static void SP_worldspawn( edict_t * ent );
 
-static void SP_worldspawn( edict_t *ent );
+struct EntitySpawnCallback {
+	StringHash classname;
+	void ( *cb )( edict_t * ent );
+};
 
-static spawn_t spawns[] = {
-	{ "info_player_start", SP_info_player_start },
-	{ "info_player_deathmatch", SP_info_player_deathmatch },
+static constexpr EntitySpawnCallback spawn_callbacks[] = {
+	{ "worldspawn", SP_worldspawn },
 
 	{ "post_match_camera", SP_post_match_camera },
-	{ "info_player_intermission", SP_post_match_camera },
 
-	{ "func_plat", SP_func_plat },
-	{ "func_button", SP_func_button },
 	{ "func_door", SP_func_door },
 	{ "func_door_rotating", SP_func_door_rotating },
 	{ "func_rotating", SP_func_rotating },
 	{ "func_train", SP_func_train },
-	{ "func_timer", SP_func_timer },
 	{ "func_wall", SP_func_wall },
-	{ "func_explosive", SP_func_explosive },
 	{ "func_static", SP_func_static },
 
 	{ "trigger_always", SP_trigger_always },
@@ -116,276 +109,141 @@ static spawn_t spawns[] = {
 	{ "trigger_multiple", SP_trigger_multiple },
 	{ "trigger_push", SP_trigger_push },
 	{ "trigger_hurt", SP_trigger_hurt },
-	{ "trigger_elevator", SP_trigger_elevator },
-	{ "trigger_gravity", SP_trigger_gravity },
 
-	{ "target_explosion", SP_target_explosion },
 	{ "target_laser", SP_target_laser },
 	{ "target_position", SP_target_position },
-	{ "target_print", SP_target_print },
 	{ "target_delay", SP_target_delay },
-	{ "target_teleporter", SP_target_teleporter },
-
-	{ "worldspawn", SP_worldspawn },
 
 	{ "path_corner", SP_path_corner },
 
 	{ "trigger_teleport", SP_trigger_teleport },
 	{ "misc_teleporter_dest", SP_target_position },
 
-	{ "misc_model", SP_misc_model },
 	{ "model", SP_model },
+	{ "decal", SP_decal },
 
+	{ "spike", SP_spike },
 	{ "spikes", SP_spikes },
+
+	{ "speaker_wall", SP_speaker_wall },
 };
 
-/*
-* G_CallSpawn
-*
-* Finds the spawn function for the entity and calls it
-*/
-bool G_CallSpawn( edict_t *ent ) {
-	if( !ent->classname ) {
-		if( developer->integer ) {
-			Com_Printf( "G_CallSpawn: NULL classname\n" );
-		}
-		return false;
-	}
-
-	// check normal spawn functions
-	for( spawn_t s : spawns ) {
-		if( !Q_stricmp( s.name, ent->classname ) ) {
-			s.spawn( ent );
+static bool SpawnEntity( edict_t * ent ) {
+	for( EntitySpawnCallback s : spawn_callbacks ) {
+		if( s.classname == ent->classname ) {
+			s.cb( ent );
 			return true;
 		}
 	}
 
-	// see if there's a spawn definition in the gametype scripts
-	if( G_asCallMapEntitySpawnScript( ent->classname, ent ) ) {
-		return true; // handled by the script
+	if( level.gametype.SpawnEntity != NULL && level.gametype.SpawnEntity( ent->classname, ent ) ) {
+		return true;
 	}
 
-	if( sv_cheats->integer || developer->integer ) { // mappers load their maps with devmap
-		Com_Printf( "%s doesn't have a spawn function\n", ent->classname );
-	}
+	Com_GGPrint( "{} doesn't have a spawn function", st.classname );
 
 	return false;
 }
 
-/*
-* G_GetEntitySpawnKey
-*/
-const char *G_GetEntitySpawnKey( const char *key, edict_t *self ) {
-	static char value[MAX_TOKEN_CHARS];
-	char keyname[MAX_TOKEN_CHARS];
-	char *com_token;
-	const char *data = NULL;
+static void ED_ParseField( Span< const char > key, Span< const char > value, edict_t * ent ) {
+	StringHash key_hash = StringHash( key );
 
-	value[0] = 0;
-
-	if( self ) {
-		data = self->spawnString;
-	}
-
-	if( data && data[0] && key && key[0] ) {
-		// go through all the dictionary pairs
-		while( 1 ) {
-			// parse key
-			com_token = COM_Parse( &data );
-			if( com_token[0] == '}' ) {
-				break;
-			}
-
-			if( !data ) {
-				Com_Error( ERR_DROP, "G_GetEntitySpawnKey: EOF without closing brace" );
-			}
-
-			Q_strncpyz( keyname, com_token, sizeof( keyname ) );
-
-			// parse value
-			com_token = COM_Parse( &data );
-			if( !data ) {
-				Com_Error( ERR_DROP, "G_GetEntitySpawnKey: EOF without closing brace" );
-			}
-
-			if( com_token[0] == '}' ) {
-				Com_Error( ERR_DROP, "G_GetEntitySpawnKey: closing brace without data" );
-			}
-
-			// key names with a leading underscore are used for utility comments and are immediately discarded
-			if( keyname[0] == '_' ) {
-				continue;
-			}
-
-			if( !Q_stricmp( key, keyname ) ) {
-				Q_strncpyz( value, com_token, sizeof( value ) );
-				break;
-			}
-		}
-	}
-
-	return value;
-}
-
-/*
-* ED_NewString
-*/
-static char *ED_NewString( const char *string ) {
-	char *newb, *new_p;
-	size_t i, l;
-
-	l = strlen( string ) + 1;
-	newb = &level.map_parsed_ents[level.map_parsed_len];
-	level.map_parsed_len += l;
-
-	new_p = newb;
-
-	for( i = 0; i < l; i++ ) {
-		if( string[i] == '\\' && i < l - 1 ) {
-			i++;
-			if( string[i] == 'n' ) {
-				*new_p++ = '\n';
-			} else {
-				*new_p++ = '/';
-				*new_p++ = string[i];
-			}
-		} else {
-			*new_p++ = string[i];
-		}
-	}
-
-	*new_p = '\0';
-	return newb;
-}
-
-/*
-* ED_ParseField
-*
-* Takes a key/value pair and sets the binary values
-* in an edict
-*/
-static void ED_ParseField( char *key, char *value, edict_t *ent ) {
-	for( EntityField f : fields ) {
-		if( Q_stricmp( f.name, key ) != 0 )
+	for( EntityField f : entity_keys ) {
+		if( f.name != key_hash )
 			continue;
 
 		uint8_t *b;
-		if( f.flags & FFL_SPAWNTEMP ) {
+		if( f.temp ) {
 			b = (uint8_t *)&st;
 		} else {
 			b = (uint8_t *)ent;
 		}
 
 		switch( f.type ) {
-			case F_LSTRING:
-				*(char **)( b + f.ofs ) = ED_NewString( value );
-				break;
-			case F_HASH:
+			case EntityField_StringHash:
 				*(StringHash *)( b + f.ofs ) = StringHash( value );
 				break;
-			case F_MODELHASH:
+			case EntityField_Asset:
 				if( value[ 0 ] == '*' ) {
-					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value, strlen( value ), svs.cms->base_hash ) );
+					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value.ptr, value.n, svs.cms->base_hash ) );
 				}
 				else {
 					*(StringHash *)( b + f.ofs ) = StringHash( value );
 				}
 				break;
-			case F_INT:
-				*(int *)( b + f.ofs ) = atoi( value );
+			case EntityField_Int:
+				*(int *)( b + f.ofs ) = SpanToInt( value, 0 );
 				break;
-			case F_FLOAT:
-				*(float *)( b + f.ofs ) = atof( value );
+			case EntityField_Float:
+				*(float *)( b + f.ofs ) = SpanToFloat( value, 0.0f );
 				break;
-			case F_ANGLE:
-				*(Vec3 *)( b + f.ofs ) = Vec3( 0.0f, atof( value ), 0.0f );
+			case EntityField_Angle:
+				*(Vec3 *)( b + f.ofs ) = Vec3( 0.0f, SpanToFloat( value, 0.0f ), 0.0f );
+				break;
+			case EntityField_Scale:
+				*(Vec3 *)( b + f.ofs ) = Vec3( SpanToFloat( value, 1.0f ) );
 				break;
 
-			case F_VECTOR: {
+			case EntityField_Vec3: {
 				Vec3 vec;
-				sscanf( value, "%f %f %f", &vec.x, &vec.y, &vec.z );
+				vec.x = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+				vec.y = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+				vec.z = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
 				*(Vec3 *)( b + f.ofs ) = vec;
 			} break;
 
-			case F_RGBA: {
-				*( int * ) ( b + f.ofs ) = COM_ReadColorRGBAString( value );
+			case EntityField_RGBA: {
+				RGBA8 rgba;
+				rgba.r = ParseInt( &value, 255, Parse_StopOnNewLine );
+				rgba.g = ParseInt( &value, 255, Parse_StopOnNewLine );
+				rgba.b = ParseInt( &value, 255, Parse_StopOnNewLine );
+				rgba.a = ParseInt( &value, 255, Parse_StopOnNewLine );
+				*(RGBA8 *)( b + f.ofs ) = rgba;
 			} break;
 		}
 		return;
 	}
 
 	if( developer->integer ) {
-		Com_Printf( "%s is not a field\n", key );
+		Com_GGPrint( "{} is not a field", key );
 	}
 }
 
-/*
-* ED_ParseEdict
-*
-* Parses an edict out of the given string, returning the new position
-* ed should be a properly initialized empty edict.
-*/
-static char *ED_ParseEdict( char *data, edict_t *ent ) {
-	bool init;
-	char keyname[256];
-	char *com_token;
-
-	init = false;
+static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent ) {
 	memset( &st, 0, sizeof( st ) );
-	level.spawning_entity = ent;
+	st.spawn_probability = 1.0f;
 
-	// go through all the dictionary pairs
-	while( 1 ) {
-		// parse key
-		com_token = COM_Parse( &data );
-		if( com_token[0] == '}' ) {
+	while( true ) {
+		Span< const char > key = ParseToken( cursor, Parse_DontStopOnNewLine );
+		if( key == "}" )
 			break;
-		}
-		if( !data ) {
-			Com_Error( ERR_DROP, "ED_ParseEntity: EOF without closing brace" );
-		}
-
-		Q_strncpyz( keyname, com_token, sizeof( keyname ) );
-
-		// parse value
-		com_token = COM_Parse( &data );
-		if( !data ) {
-			Com_Error( ERR_DROP, "ED_ParseEntity: EOF without closing brace" );
+		if( key.ptr == NULL ) {
+			Com_Error( "ED_ParseEntity: EOF without closing brace" );
 		}
 
-		if( com_token[0] == '}' ) {
-			Com_Error( ERR_DROP, "ED_ParseEntity: closing brace without data" );
+		Span< const char > value = ParseToken( cursor, Parse_StopOnNewLine );
+		if( value.ptr == NULL ) {
+			Com_Error( "ED_ParseEntity: EOF without closing brace" );
+		}
+		if( value == "}" ) {
+			Com_Error( "ED_ParseEntity: closing brace without data" );
 		}
 
-		init = true;
+		ED_ParseField( key, value, ent );
 
-		// keynames with a leading underscore are used for utility comments,
-		// and are immediately discarded by quake
-		if( keyname[0] == '_' ) {
-			continue;
+		if( StrCaseEqual( key, "classname" ) ) {
+			st.classname = value;
 		}
-
-		ED_ParseField( keyname, com_token, ent );
 	}
-
-	if( !init ) {
-		ent->classname = NULL;
-	}
-
-	return data;
 }
 
-/*
-* G_FreeEntities
-*/
-static void G_FreeEntities( void ) {
-	int i;
-
+static void G_FreeEntities() {
 	if( !level.time ) {
 		memset( game.edicts, 0, game.maxentities * sizeof( game.edicts[0] ) );
-	} else {
+	}
+	else {
 		G_FreeEdict( world );
-		for( i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+		for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
 			if( game.edicts[i].r.inuse ) {
 				G_FreeEdict( game.edicts + i );
 			}
@@ -395,65 +253,45 @@ static void G_FreeEntities( void ) {
 	game.numentities = server_gs.maxclients + 1;
 }
 
-/*
-* G_SpawnEntities
-*/
-static void G_SpawnEntities( void ) {
-	int i;
-	edict_t *ent;
-	char *token;
-	char *entities;
-
+static void SpawnMapEntities() {
 	level.spawnedTimeStamp = svs.gametime;
 	level.canSpawnEntities = true;
 
-	entities = level.mapString;
-	level.map_parsed_ents[0] = 0;
-	level.map_parsed_len = 0;
+	Span< const char > cursor = MakeSpan( CM_EntityString( svs.cms ) );
+	edict_t * ent = NULL;
 
-	i = 0;
-	ent = NULL;
-	while( 1 ) {
-		level.spawning_entity = NULL;
-
+	while( true ) {
 		// parse the opening brace
-		token = COM_Parse( &entities );
-		if( !entities ) {
+		Span< const char > brace = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		if( brace == "" )
 			break;
-		}
-		if( token[0] != '{' ) {
-			Com_Error( ERR_DROP, "G_SpawnMapEntities: found %s when expecting {", token );
+		if( brace != "{" ) {
+			Com_Error( "SpawnMapEntities: entity string doesn't begin with {" );
 		}
 
-		if( !ent ) {
+		if( ent == NULL ) {
 			ent = world;
 			G_InitEdict( world );
-		} else {
+		}
+		else {
 			ent = G_Spawn();
 		}
 
-		ent->spawnString = entities; // keep track of string definition of this entity
+		ED_ParseEntity( &cursor, ent );
 
-		entities = ED_ParseEdict( entities, ent );
-		if( !ent->classname ) {
-			i++;
-			G_FreeEdict( ent );
-			continue;
-		}
+		bool ok = true;
+		bool rng = Probability( &svs.rng, st.spawn_probability );
+		ok = ok && st.classname != "";
+		ok = ok && rng;
+		ok = ok && SpawnEntity( ent );
 
-		if( !G_CallSpawn( ent ) ) {
-			i++;
+		if( !ok ) {
 			G_FreeEdict( ent );
-			continue;
 		}
 	}
 
-	// is the parsing string sane?
-	assert( level.map_parsed_len < level.mapStrlen );
-	level.map_parsed_ents[level.map_parsed_len] = 0;
-
 	// make sure server got the edicts data
-	SV_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, game.numentities, game.maxentities );
 }
 
 /*
@@ -465,36 +303,16 @@ static void G_SpawnEntities( void ) {
 void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	TempAllocator temp = svs.frame_arena.temp();
 
-	G_asGarbageCollect( true );
-
-	GT_asCallShutdown();
-
-	GT_asShutdownScript();
-
 	GClip_ClearWorld(); // clear areas links
 
 	memset( &level, 0, sizeof( level_locals_t ) );
+	level.time = levelTime;
+
 	memset( &server_gs.gameState, 0, sizeof( server_gs.gameState ) );
 
 	const char * path = temp( "maps/{}", mapname );
 	server_gs.gameState.map = StringHash( path );
 	server_gs.gameState.map_checksum = svs.cms->checksum;
-
-	// clear old data
-	int entstrlen = CM_EntityStringLen( svs.cms );
-	G_LevelInitPool( strlen( mapname ) + 1 + ( entstrlen + 1 ) * 2 + G_LEVELPOOL_BASE_SIZE );
-	G_StringPoolInit();
-
-	level.time = levelTime;
-	level.gravity = GRAVITY;
-
-	// get the strings back
-	level.mapString = ( char * )G_LevelMalloc( entstrlen + 1 );
-	level.mapStrlen = entstrlen;
-	strcpy( level.mapString, CM_EntityString( svs.cms ) );
-
-	// make a copy of the raw entities string for parsing
-	level.map_parsed_ents = ( char * )G_LevelMalloc( entstrlen + 1 );
 
 	G_FreeEntities();
 
@@ -502,7 +320,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		game.edicts[i + 1].s.number = i + 1;
 		game.edicts[i + 1].r.client = &game.clients[i];
-		game.edicts[i + 1].r.inuse = ( PF_GetClientState( i ) >= CS_CONNECTED ) ? true : false;
+		game.edicts[i + 1].r.inuse = PF_GetClientState( i ) >= CS_CONNECTED;
 		memset( &game.clients[i].level, 0, sizeof( game.clients[0].level ) );
 		game.clients[i].level.timeStamp = level.time;
 	}
@@ -511,41 +329,51 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	PF_ConfigString( CS_MATCHSCORE, "" );
 
 	G_InitGameCommands();
-	G_CallVotes_Init();
-	G_SpawnQueue_Init();
+
 	G_Teams_Init();
 
-	G_Gametype_Init();
+	InitGametype();
 
 	G_PrecacheGameCommands(); // adding commands after this point won't update them to the client
 
-	// start spawning entities
-	G_SpawnEntities();
-
-	GT_asCallSpawn();
+	SpawnMapEntities();
 
 	// always start in warmup match state and let the thinking code
 	// revert it to wait state if empty ( so gametype based item masks are setup )
-	G_Match_LaunchState( MATCH_STATE_WARMUP );
+	G_Match_LaunchState( MatchState_Warmup );
 
-	G_asGarbageCollect( true );
-}
-
-void G_ResetLevel( void ) {
-	G_FreeEdict( world );
-	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
-		if( game.edicts[i].r.inuse ) {
-			G_FreeEdict( game.edicts + i );
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		if( game.edicts[ i + 1 ].r.inuse ) {
+			G_Teams_SetTeam( &game.edicts[ i + 1 ], TEAM_SPECTATOR );
 		}
 	}
 
-	G_SpawnEntities();
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		if( game.edicts[ i + 1 ].r.inuse ) {
+			G_Teams_JoinAnyTeam( &game.edicts[ i + 1 ], true );
+		}
+	}
+}
 
-	GT_asCallSpawn();
+void G_ResetLevel() {
+	G_FreeEdict( world );
+	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+		G_FreeEdict( game.edicts + i );
+	}
+
+	SpawnMapEntities();
 }
 
 void G_RespawnLevel() {
+	ShutdownGametype();
 	G_InitLevel( sv.mapname, level.time );
+
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		edict_t * ent = &game.edicts[ i + 1 ];
+		if( !ent->r.inuse )
+			continue;
+		GT_CallPlayerConnected( ent );
+	}
 }
 
 void G_LoadMap( const char * name ) {
@@ -557,61 +385,67 @@ void G_LoadMap( const char * name ) {
 
 	Q_strncpyz( sv.mapname, name, sizeof( sv.mapname ) );
 
-	const char * path = temp( "maps/{}.bsp", name );
-	u8 * buf;
-	int length = FS_LoadFile( path, ( void ** ) &buf, NULL, 0 );
-	if( buf == NULL ) {
-		Com_Error( ERR_FATAL, "Couldn't load %s", path );
+	const char * base_path = temp( "maps/{}", name );
+
+	Span< u8 > data;
+	defer { FREE( sys_allocator, data.ptr ); };
+
+	const char * bsp_path = temp( "{}/base/maps/{}.bsp", RootDirPath(), name );
+	data = ReadFileBinary( sys_allocator, bsp_path );
+
+	if( data.ptr == NULL ) {
+		const char * zst_path = temp( "{}.zst", bsp_path );
+		Span< u8 > compressed = ReadFileBinary( sys_allocator, zst_path );
+		defer { FREE( sys_allocator, compressed.ptr ); };
+		if( compressed.ptr == NULL ) {
+			Fatal( "Couldn't find map %s", name );
+		}
+
+		bool ok = Decompress( zst_path, sys_allocator, compressed, &data );
+		if( !ok ) {
+			Fatal( "Couldn't decompress %s", zst_path );
+		}
 	}
 
-	Span< const u8 > compressed = Span< const u8 >( buf, length );
-	Span< u8 > decompressed;
-	defer { FREE( sys_allocator, decompressed.ptr ); };
-	bool ok = Decompress( path, sys_allocator, compressed, &decompressed );
-	if( !ok ) {
-		Com_Error( ERR_FATAL, "Couldn't decompress %s", path );
-	}
-
-	Span< const u8 > data = decompressed.ptr == NULL ? compressed : decompressed;
-	u64 base_hash = Hash64( path, strlen( path ) - strlen( ".bsp" ) );
+	u64 base_hash = Hash64( base_path );
 	svs.cms = CM_LoadMap( CM_Server, data, base_hash );
+	svs.ent_string_checksum = Hash64( CM_EntityString( svs.cms ), CM_EntityStringLen( svs.cms ) );
 
 	server_gs.gameState.map = StringHash( base_hash );
 	server_gs.gameState.map_checksum = svs.cms->checksum;
+}
 
-	FS_FreeFile( buf );
+void G_HotloadMap() {
+	char map[ ARRAY_COUNT( sv.mapname ) ];
+	Q_strncpyz( map, sv.mapname, sizeof( map ) );
+	G_LoadMap( map );
+	G_ResetLevel();
+
+	if( level.gametype.MapHotloaded != NULL ) {
+		level.gametype.MapHotloaded();
+	}
 }
 
 // TODO: game module init is a mess and I'm not sure how to clean this up
 void G_Aasdf() {
 	GClip_ClearWorld(); // clear areas links
-
-	int len = CM_EntityStringLen( svs.cms );
-	G_LevelInitPool( strlen( sv.mapname ) + 1 + ( len + 1 ) * 2 + G_LEVELPOOL_BASE_SIZE );
-	G_StringPoolInit();
-
-	level.mapString = ( char * )G_LevelMalloc( len + 1 );
-	level.mapStrlen = len;
-
-	strcpy( level.mapString, CM_EntityString( svs.cms ) );
-
-	level.map_parsed_ents = ( char * )G_LevelMalloc( len + 1 );
-
 	G_ResetLevel();
+	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+		edict_t * ent = &game.edicts[ i ];
+		if( ent->r.inuse ) {
+			ent->s.teleported = true;
+		}
+	}
 }
 
 static void SP_worldspawn( edict_t *ent ) {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.solid = SOLID_YES;
-	ent->r.inuse = true;       // since the world doesn't use G_Spawn()
+	ent->r.inuse = true; // since the world doesn't use G_Spawn()
 	ent->s.origin = Vec3( 0.0f );
 	ent->s.angles = Vec3( 0.0f );
 
 	const char * model_name = "*0";
 	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), svs.cms->base_hash ) );
 	GClip_SetBrushModel( ent );
-
-	if( st.gravity ) {
-		level.gravity = atof( st.gravity );
-	}
 }

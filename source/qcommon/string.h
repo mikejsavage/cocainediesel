@@ -8,7 +8,7 @@
 
 template< size_t N >
 class String {
-	size_t length;
+	size_t len;
 	char buf[ N ];
 
 public:
@@ -25,7 +25,7 @@ public:
 
 	void clear() {
 		buf[ 0 ] = '\0';
-		length = 0;
+		len = 0;
 	}
 
 	template< typename T >
@@ -36,36 +36,36 @@ public:
 	template< typename... Rest >
 	void format( const char * fmt, const Rest & ... rest ) {
 		size_t copied = ggformat( buf, N, fmt, rest... );
-		length = Min2( copied, N - 1 );
+		len = Min2( copied, N - 1 );
 	}
 
 	template< typename... Rest >
 	void append( const char * fmt, const Rest & ... rest ) {
-		size_t copied = ggformat( buf + length, N - length, fmt, rest... );
-		length += Min2( copied, N - length - 1 );
+		size_t copied = ggformat( buf + len, N - len, fmt, rest... );
+		len += Min2( copied, N - len - 1 );
 	}
 
-	void append_raw( const char * str, size_t len ) {
-		size_t to_copy = Min2( N - length - 1, len );
-		memmove( buf + length, str, to_copy );
-		length += to_copy;
-		buf[ length ] = '\0';
+	void append_raw( const char * str, size_t n ) {
+		size_t to_copy = Min2( N - len - 1, n );
+		memmove( buf + len, str, to_copy );
+		len += to_copy;
+		buf[ len ] = '\0';
 	}
 
-	void remove( size_t start, size_t len ) {
-		if( start >= length )
+	void remove( size_t start, size_t n ) {
+		if( start >= len )
 			return;
-		size_t to_remove = Min2( length - start, len );
-		memmove( buf + start, buf + start + to_remove, length - to_remove );
-		length -= to_remove;
-		buf[ length ] = '\0';
+		size_t to_remove = Min2( len - start, n );
+		memmove( buf + start, buf + start + to_remove, len - to_remove );
+		len -= to_remove;
+		buf[ len ] = '\0';
 	}
 
 	void truncate( size_t n ) {
-		if( n >= length )
+		if( n >= len )
 			return;
 		buf[ n ] = '\0';
-		length = n;
+		len = n;
 	}
 
 	char & operator[]( size_t i ) {
@@ -78,21 +78,14 @@ public:
 		return buf[ i ];
 	}
 
-	const char * c_str() const {
-		return buf;
-	}
+	const char * c_str() const { return buf; }
+	size_t length() const { return len; }
+	size_t capacity() const { return N - 1; }
 
-	size_t len() const {
-		return length;
-	}
+	bool operator==( const char * rhs ) const { return strcmp( buf, rhs ) == 0; }
+	bool operator!=( const char * rhs ) const { return !( *this == rhs ); }
 
-	bool operator==( const char * rhs ) const {
-		return strcmp( buf, rhs ) == 0;
-	}
-
-	bool operator!=( const char * rhs ) const {
-		return !( *this == rhs );
-	}
+	Span< const char > span() const { return Span< const char >( buf, len ); }
 };
 
 class DynamicString {
@@ -149,14 +142,9 @@ public:
 	char & operator[]( size_t i ) { return buf[ i ]; }
 	const char & operator[]( size_t i ) const { return buf[ i ]; }
 
-	size_t length() const {
-		return buf.size() == 0 ? 0 : buf.size() - 1;
-	}
+	size_t length() const { return buf.size() == 0 ? 0 : buf.size() - 1; }
 
-	char * begin() { return buf.begin(); }
-	char * end() { return buf.end(); }
-	const char * begin() const { return buf.begin(); }
-	const char * end() const { return buf.end(); }
+	Span< const char > span() const { return buf.span(); }
 };
 
 template< size_t N >

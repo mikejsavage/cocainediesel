@@ -3,6 +3,7 @@
 #include "include/skinning.glsl"
 #include "include/dither.glsl"
 #include "include/fog.glsl"
+#include "include/lighting.glsl"
 
 v2f vec3 v_Position;
 v2f vec3 v_Normal;
@@ -38,7 +39,10 @@ void main() {
 #endif
 
 	v_Position = ( u_M * Position ).xyz;
-	v_Normal = mat3( u_M ) * Normal;
+
+	mat3 m = transpose( inverse( mat3( u_M ) ) );
+	v_Normal = m * Normal;
+
 	v_TexCoord = ApplyTCMod( a_TexCoord );
 
 #if VERTEX_COLORS
@@ -64,34 +68,26 @@ uniform sampler2D u_BaseTexture;
 uniform sampler2D u_DepthTexture;
 #endif
 
-#if APPLY_DECALS
-layout( std140 ) uniform u_Decal {
-	int u_NumDecals;
-};
-
-uniform samplerBuffer u_DecalData;
-uniform isamplerBuffer u_DecalIndices;
-uniform isamplerBuffer u_DecalTiles;
-uniform sampler2DArray u_DecalAtlases;
+#if APPLY_DECALS || APPLY_DLIGHTS
+uniform isamplerBuffer u_DynamicCount;
 #endif
 
-float ProjectedScale( vec3 p, vec3 o, vec3 d ) {
-	return dot( p - o, d ) / dot( d, d );
-}
+#if APPLY_DECALS
+#include "include/decals.glsl"
+#endif
 
-// must match the CPU OrthonormalBasis
-void OrthonormalBasis( vec3 v, out vec3 tangent, out vec3 bitangent ) {
-	float s = step( 0.0, v.z ) * 2.0 - 1.0;
-	float a = -1.0 / ( s + v.z );
-	float b = v.x * v.y * a;
+#if APPLY_DLIGHTS
+#include "include/dlights.glsl"
+#endif
 
-	tangent = vec3( 1.0 + s * v.x * v.x * a, s * b, -s * v.x );
-	bitangent = vec3( b, s + v.y * v.y * a, -v.y );
-}
+#if APPLY_SHADOWS
+#include "include/shadow.glsl"
+#endif
 
 void main() {
+	vec3 normal = normalize( v_Normal );
 #if APPLY_DRAWFLAT
-	vec4 diffuse = vec4( 0.25, 0.25, 0.25, 1.0 );
+	vec4 diffuse = u_MaterialColor;
 #else
 	vec4 color = u_MaterialColor;
 
@@ -112,54 +108,54 @@ void main() {
 	diffuse *= mix(vec4(1.0), vec4(softness), u_BlendMix.xxxy);
 #endif
 
-#if APPLY_DECALS
+#if APPLY_DECALS || APPLY_DLIGHTS
 	float tile_size = float( TILE_SIZE );
 	int tile_row = int( ( u_ViewportSize.y - gl_FragCoord.y ) / tile_size );
 	int tile_col = int( gl_FragCoord.x / tile_size );
 	int cols = int( u_ViewportSize.x + tile_size - 1 ) / int( tile_size );
 	int tile_index = tile_row * cols + tile_col;
+	ivec2 decal_dlight_count = texelFetch( u_DynamicCount, tile_index ).xy;
+#endif
 
-	ivec2 tile = texelFetch( u_DecalTiles, tile_index ).xy;
+#if APPLY_DECALS
+	applyDecals( decal_dlight_count.x, tile_index, diffuse, normal );
+#endif
 
-	for( int i = 0; i < tile.y; i++ ) {
-		int idx = texelFetch( u_DecalIndices, tile.x + i ).x;
-		vec4 origin_radius = texelFetch( u_DecalData, idx * 4 + 0 );
+#if SHADED
+	const vec3 suncolor = vec3( 1.0 );
 
-		if( distance( origin_radius.xyz, v_Position ) < origin_radius.w ) {
-			vec4 normal_angle = texelFetch( u_DecalData, idx * 4 + 1 );
-			vec4 decal_color = texelFetch( u_DecalData, idx * 4 + 2 );
-			vec4 uvwh = texelFetch( u_DecalData, idx * 4 + 3 );
-			float layer = floor( uvwh.x );
+	vec3 viewDir = normalize( u_CameraPos - v_Position );
 
-			vec3 basis_u;
-			vec3 basis_v;
-			OrthonormalBasis( normal_angle.xyz, basis_u, basis_v );
-			basis_u *= origin_radius.w * 2.0;
-			basis_v *= origin_radius.w * -2.0;
-			vec3 bottom_left = origin_radius.xyz - ( basis_u + basis_v ) * 0.5;
+	vec3 lambertlight = suncolor * LambertLight( normal, -u_LightDir );
+	vec3 specularlight = suncolor * SpecularLight( normal, u_LightDir, viewDir, u_Shininess ) * u_Specular;
 
-			float c = cos( normal_angle.w );
-			float s = sin( normal_angle.w );
-			mat2 rotation = mat2( c, s, -s, c );
-			vec2 uv = vec2( ProjectedScale( v_Position, bottom_left, basis_u ), ProjectedScale( v_Position, bottom_left, basis_v ) );
+	float shadowlight = 1.0;
+	#if APPLY_SHADOWS
+		shadowlight = GetLight( normal );
+		specularlight = specularlight * shadowlight;
+	#endif
+	shadowlight = shadowlight * 0.5 + 0.5;
 
-			uv -= 0.5;
-			uv = rotation * uv;
-			uv += 0.5;
-			uv = uvwh.xy + uvwh.zw * uv;
+#if APPLY_DLIGHTS
+	applyDynamicLights( decal_dlight_count.y, tile_index, v_Position, normal, viewDir, lambertlight, specularlight );
+#endif
+	lambertlight = lambertlight * 0.5 + 0.5;
 
-			vec4 sample = texture( u_DecalAtlases, vec3( uv, layer ) );
-			float inv_cos_45_degrees = 1.41421356237;
-			float decal_alpha = min( 1.0, sample.a * decal_color.a * max( 0.0, dot( v_Normal, normal_angle.xyz ) * inv_cos_45_degrees ) );
-			diffuse.rgb = mix( diffuse.rgb, sample.rgb * decal_color.rgb, decal_alpha );
-		}
-	}
+	#if APPLY_DRAWFLAT
+		lambertlight = lambertlight * 0.5 + 0.5;
+	#endif
+
+	diffuse.rgb *= shadowlight * ( lambertlight + specularlight );
+
 #endif
 
 #if APPLY_FOG
 	diffuse.rgb = Fog( diffuse.rgb, length( v_Position - u_CameraPos ) );
 	diffuse.rgb += Dither();
 #endif
+
+	diffuse.rgb = VoidFog( diffuse.rgb, v_Position.z );
+	diffuse.a = VoidFogAlpha( diffuse.a, v_Position.z );
 
 	f_Albedo = LinearTosRGB( diffuse );
 }

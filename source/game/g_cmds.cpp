@@ -17,6 +17,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
 #include "game/g_local.h"
 
 /*
@@ -34,7 +35,7 @@ static bool G_Teleport( edict_t *ent, Vec3 origin, Vec3 angles ) {
 		trace_t tr;
 
 		G_Trace( &tr, origin, ent->r.mins, ent->r.maxs, origin, ent, MASK_PLAYERSOLID );
-		if( tr.fraction != 1.0f || tr.startsolid ) {
+		if( ( tr.fraction != 1.0f || tr.startsolid ) && ( game.edicts[ tr.ent ].s.team != TEAM_PLAYERS && game.edicts[ tr.ent ].s.team != ent->s.team ) ) {
 			return false;
 		}
 
@@ -68,38 +69,10 @@ static bool G_Teleport( edict_t *ent, Vec3 origin, Vec3 angles ) {
 
 //=================================================================================
 
-/*
-* Cmd_God_f
-* Sets client to godmode
-* argv(0) god
-*/
-static void Cmd_God_f( edict_t *ent ) {
-	const char *msg;
-
-	if( !sv_cheats->integer ) {
-		G_PrintMsg( ent, "Cheats are not enabled on this server.\n" );
-		return;
-	}
-
-	ent->flags ^= FL_GODMODE;
-	if( !( ent->flags & FL_GODMODE ) ) {
-		msg = "godmode OFF\n";
-	} else {
-		msg = "godmode ON\n";
-	}
-
-	G_PrintMsg( ent, "%s", msg );
-}
-
-/*
-* Cmd_Noclip_f
-*
-* argv(0) noclip
-*/
 static void Cmd_Noclip_f( edict_t *ent ) {
 	const char *msg;
 
-	if( !sv_cheats->integer ) {
+	if( sv_cheats->integer == 0 ) {
 		G_PrintMsg( ent, "Cheats are not enabled on this server.\n" );
 		return;
 	}
@@ -115,11 +88,8 @@ static void Cmd_Noclip_f( edict_t *ent ) {
 	G_PrintMsg( ent, "%s", msg );
 }
 
-/*
-* Cmd_GameOperator_f
-*/
 static void Cmd_GameOperator_f( edict_t *ent ) {
-	if( !g_operator_password->string[0] ) {
+	if( StrEqual( g_operator_password->value, "" ) ) {
 		G_PrintMsg( ent, "Operator is disabled in this server\n" );
 		return;
 	}
@@ -129,7 +99,7 @@ static void Cmd_GameOperator_f( edict_t *ent ) {
 		return;
 	}
 
-	if( !Q_stricmp( Cmd_Argv( 1 ), g_operator_password->string ) ) {
+	if( StrEqual( Cmd_Argv( 1 ), g_operator_password->value ) ) {
 		if( !ent->r.client->isoperator ) {
 			G_PrintMsg( NULL, "%s" S_COLOR_WHITE " is now a game operator\n", ent->r.client->netname );
 		}
@@ -141,20 +111,15 @@ static void Cmd_GameOperator_f( edict_t *ent ) {
 	G_PrintMsg( ent, "Incorrect operator password.\n" );
 }
 
-/*
-* Cmd_Kill_f
-*/
 static void Cmd_Kill_f( edict_t *ent ) {
 	if( ent->r.solid == SOLID_NOT ) {
 		return;
 	}
 
-	ent->flags &= ~FL_GODMODE;
 	ent->health = 0;
-	meansOfDeath = MOD_SUICIDE;
 
 	// wsw : pb : fix /kill command
-	G_Killed( ent, ent, ent, 100000, Vec3( 0.0f ), MOD_SUICIDE );
+	G_Killed( ent, ent, ent, -1, WorldDamage_Suicide, 100000 );
 }
 
 void Cmd_ChaseNext_f( edict_t *ent ) {
@@ -165,28 +130,10 @@ void Cmd_ChasePrev_f( edict_t *ent ) {
 	G_ChaseStep( ent, -1 );
 }
 
-/*
-* Cmd_Score_f
-*/
-static void Cmd_Score_f( edict_t *ent ) {
-	bool newvalue;
-
-	if( Cmd_Argc() == 2 ) {
-		newvalue = ( atoi( Cmd_Argv( 1 ) ) != 0 ) ? true : false;
-	} else {
-		newvalue = !ent->r.client->level.showscores ? true : false;
-	}
-
-	ent->r.client->level.showscores = newvalue;
-}
-
-/*
-* Cmd_Position_f
-*/
 static void Cmd_Position_f( edict_t *ent ) {
 	const char *action;
 
-	if( !sv_cheats->integer && GS_MatchState( &server_gs ) > MATCH_STATE_WARMUP &&
+	if( !sv_cheats->integer && server_gs.gameState.match_state > MatchState_Warmup &&
 		ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
 		G_PrintMsg( ent, "Position command is only available in warmup and in spectator mode.\n" );
 		return;
@@ -209,10 +156,6 @@ static void Cmd_Position_f( edict_t *ent ) {
 		if( !ent->r.client->teamstate.position_saved ) {
 			G_PrintMsg( ent, "No position saved.\n" );
 		} else {
-			if( ent->r.client->resp.chase.active ) {
-				G_SpectatorMode( ent );
-			}
-
 			if( G_Teleport( ent, ent->r.client->teamstate.position_origin, ent->r.client->teamstate.position_angles ) ) {
 				G_PrintMsg( ent, "Position loaded.\n" );
 			} else {
@@ -222,10 +165,6 @@ static void Cmd_Position_f( edict_t *ent ) {
 	} else if( !Q_stricmp( action, "set" ) && Cmd_Argc() == 7 ) {
 		Vec3 origin = Vec3( atof( Cmd_Argv( 2 ) ), atof( Cmd_Argv( 3 ) ), atof( Cmd_Argv( 4 ) ) );
 		Vec3 angles = Vec3( atof( Cmd_Argv( 5 ) ), atof( Cmd_Argv( 6 ) ), 0.0f );
-
-		if( ent->r.client->resp.chase.active ) {
-			G_SpectatorMode( ent );
-		}
 
 		if( G_Teleport( ent, origin, angles ) ) {
 			G_PrintMsg( ent, "Position not available.\n" );
@@ -243,77 +182,6 @@ static void Cmd_Position_f( edict_t *ent ) {
 							 ent->s.origin.z, ent->s.angles.x, ent->s.angles.y ), sizeof( msg ) );
 		G_PrintMsg( ent, "%s", msg );
 	}
-}
-
-/*
-* Cmd_PlayersExt_f
-*/
-static void Cmd_PlayersExt_f( edict_t *ent, bool onlyspecs ) {
-	int i;
-	int count = 0;
-	int start = 0;
-	char line[64];
-	char msg[1024];
-
-	if( Cmd_Argc() > 1 ) {
-		start = Clamp( 0, atoi( Cmd_Argv( 1 ) ), server_gs.maxclients - 1 );
-	}
-
-	// print information
-	msg[0] = 0;
-
-	for( i = start; i < server_gs.maxclients; i++ ) {
-		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
-			edict_t *clientEnt = &game.edicts[i + 1];
-			gclient_t *cl;
-
-			if( onlyspecs && clientEnt->s.team != TEAM_SPECTATOR ) {
-				continue;
-			}
-
-			cl = clientEnt->r.client;
-
-			snprintf( line, sizeof( line ), "%3i %s" S_COLOR_WHITE "%s\n", i, cl->netname, cl->isoperator ? " op" : "" );
-
-			if( strlen( line ) + strlen( msg ) > sizeof( msg ) - 100 ) {
-				// can't print all of them in one packet
-				Q_strncatz( msg, "...\n", sizeof( msg ) );
-				break;
-			}
-
-			if( count == 0 ) {
-				Q_strncatz( msg, "num name\n", sizeof( msg ) );
-				Q_strncatz( msg, "--- ------------------------------\n", sizeof( msg ) );
-			}
-
-			Q_strncatz( msg, line, sizeof( msg ) );
-			count++;
-		}
-	}
-
-	if( count ) {
-		Q_strncatz( msg, "--- ------------------------------\n", sizeof( msg ) );
-	}
-	Q_strncatz( msg, va( "%3i %s\n", count, Cmd_Argv( 0 ) ), sizeof( msg ) );
-	G_PrintMsg( ent, "%s", msg );
-
-	if( i < server_gs.maxclients ) {
-		G_PrintMsg( ent, "Type '%s %i' for more %s\n", Cmd_Argv( 0 ), i, Cmd_Argv( 0 ) );
-	}
-}
-
-/*
-* Cmd_Players_f
-*/
-static void Cmd_Players_f( edict_t *ent ) {
-	Cmd_PlayersExt_f( ent, false );
-}
-
-/*
-* Cmd_Spectators_f
-*/
-static void Cmd_Spectators_f( edict_t *ent ) {
-	Cmd_PlayersExt_f( ent, true );
 }
 
 bool CheckFlood( edict_t *ent, bool teamonly ) {
@@ -378,7 +246,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 
 			if( client->level.flood_team_when[i] && client->level.flood_team_when[i] <= svs.realtime &&
 				( svs.realtime < client->level.flood_team_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
-				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->value * 1000;
+				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->integer * 1000;
 				G_PrintMsg( ent, "Flood protection: You can't talk for %d seconds.\n", g_floodprotection_penalty->integer );
 				return true;
 			}
@@ -395,7 +263,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 
 			if( client->level.flood_when[i] && client->level.flood_when[i] <= svs.realtime &&
 				( svs.realtime < client->level.flood_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
-				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->value * 1000;
+				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->integer * 1000;
 				G_PrintMsg( ent, "Flood protection: You can't talk for %d seconds.\n", g_floodprotection_penalty->integer );
 				return true;
 			}
@@ -408,23 +276,6 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 	return false;
 }
 
-static void Cmd_CoinToss_f( edict_t *ent ) {
-	if( GS_MatchState( &server_gs ) > MATCH_STATE_WARMUP && !GS_MatchPaused( &server_gs ) ) {
-		G_PrintMsg( ent, "You can only toss coins during warmup or timeouts\n" );
-		return;
-	}
-
-	if( CheckFlood( ent, false ) ) {
-		return;
-	}
-
-	bool won = random_p( &svs.rng, 0.5f );
-	G_PrintMsg( NULL, "%s%s tossed a coin and %s!\n", won ? S_COLOR_GREEN : S_COLOR_RED, ent->r.client->netname, won ? "won" : "lost" );
-}
-
-/*
-* Cmd_Say_f
-*/
 void Cmd_Say_f( edict_t *ent, bool arg0, bool checkflood ) {
 	char *p;
 	char text[2048];
@@ -434,10 +285,6 @@ void Cmd_Say_f( edict_t *ent, bool arg0, bool checkflood ) {
 		if( CheckFlood( ent, false ) ) {
 			return;
 		}
-	}
-
-	if( ent->r.client && ( ent->r.client->muted & 1 ) ) {
-		return;
 	}
 
 	if( Cmd_Argc() < 2 && !arg0 ) {
@@ -453,13 +300,6 @@ void Cmd_Say_f( edict_t *ent, bool arg0, bool checkflood ) {
 		Q_strncatz( text, Cmd_Args(), sizeof( text ) );
 	} else {
 		p = Cmd_Args();
-
-		if( *p == '"' ) {
-			if( p[strlen( p ) - 1] == '"' ) {
-				p[strlen( p ) - 1] = 0;
-			}
-			p++;
-		}
 		Q_strncatz( text, p, sizeof( text ) );
 	}
 
@@ -469,9 +309,6 @@ void Cmd_Say_f( edict_t *ent, bool arg0, bool checkflood ) {
 	G_ChatMsg( NULL, ent, false, "%s", text );
 }
 
-/*
-* Cmd_SayCmd_f
-*/
 static void Cmd_SayCmd_f( edict_t * ent ) {
 	if( !G_ISGHOSTING( ent ) ) {
 		edict_t * event = G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/typewriter/return" );
@@ -481,9 +318,6 @@ static void Cmd_SayCmd_f( edict_t * ent ) {
 	Cmd_Say_f( ent, false, true );
 }
 
-/*
-* Cmd_SayTeam_f
-*/
 static void Cmd_SayTeam_f( edict_t * ent ) {
 	if( !G_ISGHOSTING( ent ) ) {
 		edict_t * event = G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/typewriter/return" );
@@ -503,175 +337,6 @@ static void Cmd_Clack_f( edict_t * ent ) {
 	}
 }
 
-static StringHash spray_names[] = {
-	"textures/sprays/102",
-	"textures/sprays/120",
-	"textures/sprays/15152",
-	"textures/sprays/3pac",
-	"textures/sprays/48",
-	"textures/sprays/911",
-	"textures/sprays/acab2",
-	"textures/sprays/acab3",
-	"textures/sprays/acab4",
-	"textures/sprays/aititty",
-	"textures/sprays/amk",
-	"textures/sprays/anal",
-	"textures/sprays/angry",
-	"textures/sprays/astley",
-	"textures/sprays/avocadotoast",
-	"textures/sprays/betmen2",
-	"textures/sprays/biedronka",
-	"textures/sprays/blm",
-	"textures/sprays/bojo",
-	"textures/sprays/bom",
-	"textures/sprays/bombsite",
-	"textures/sprays/bonk",
-	"textures/sprays/butterfly",
-	"textures/sprays/cactus",
-	"textures/sprays/cccp",
-	"textures/sprays/chainmail",
-	"textures/sprays/clint",
-	"textures/sprays/cock",
-	"textures/sprays/cock2",
-	"textures/sprays/cock3",
-	"textures/sprays/cock4",
-	"textures/sprays/cock5",
-	"textures/sprays/combo",
-	"textures/sprays/cracovia",
-	"textures/sprays/crazyal",
-	"textures/sprays/creep",
-	"textures/sprays/cumshoot",
-	"textures/sprays/danksy",
-	"textures/sprays/defqon1",
-	"textures/sprays/dickbutt",
-	"textures/sprays/dikhed",
-	"textures/sprays/disastergirl",
-	"textures/sprays/dontgiveupo",
-	"textures/sprays/donttellme",
-	"textures/sprays/dudedead",
-	"textures/sprays/duderando",
-	"textures/sprays/eggquake",
-	"textures/sprays/emule",
-	"textures/sprays/epstein2",
-	"textures/sprays/face",
-	"textures/sprays/faec",
-	"textures/sprays/fakeb",
-	"textures/sprays/fish",
-	"textures/sprays/flat_earth",
-	"textures/sprays/forkknife",
-	"textures/sprays/fuck",
-	"textures/sprays/fuckyou",
-	"textures/sprays/fuckyour",
-	"textures/sprays/fun",
-	"textures/sprays/gfnervig",
-	"textures/sprays/goku",
-	"textures/sprays/goochie",
-	"textures/sprays/goy",
-	"textures/sprays/graf",
-	"textures/sprays/greencube",
-	"textures/sprays/hacktheplanet",
-	"textures/sprays/happysad",
-	"textures/sprays/harambe",
-	"textures/sprays/heart1",
-	"textures/sprays/hitit",
-	"textures/sprays/hotel",
-	"textures/sprays/hta",
-	"textures/sprays/huso",
-	"textures/sprays/icq",
-	"textures/sprays/ig",
-	"textures/sprays/influencer",
-	"textures/sprays/informer",
-	"textures/sprays/jebise",
-	"textures/sprays/jwzr",
-	"textures/sprays/kama",
-	"textures/sprays/kanye",
-	"textures/sprays/kanye2",
-	"textures/sprays/kanye3",
-	"textures/sprays/kapow",
-	"textures/sprays/kazaa",
-	"textures/sprays/kerning",
-	"textures/sprays/ket",
-	"textures/sprays/kobe",
-	"textures/sprays/kurwa",
-	"textures/sprays/limewire",
-	"textures/sprays/mask",
-	"textures/sprays/master",
-	"textures/sprays/mdma",
-	"textures/sprays/mike2",
-	"textures/sprays/mirc",
-	"textures/sprays/missgeburt",
-	"textures/sprays/munch",
-	"textures/sprays/napster",
-	"textures/sprays/never",
-	"textures/sprays/neveragain2",
-	"textures/sprays/neveragain3",
-	"textures/sprays/neverforget",
-	"textures/sprays/nighty",
-	"textures/sprays/nipplegate",
-	"textures/sprays/nodrama",
-	"textures/sprays/noregerts",
-	"textures/sprays/oink",
-	"textures/sprays/onionfire1",
-	"textures/sprays/palestine",
-	"textures/sprays/peekatyou",
-	"textures/sprays/phart",
-	"textures/sprays/pig",
-	"textures/sprays/pigeon",
-	"textures/sprays/pistol",
-	"textures/sprays/poop2",
-	"textures/sprays/pow",
-	"textures/sprays/praisethesun",
-	"textures/sprays/ps",
-	"textures/sprays/puffdarneko",
-	"textures/sprays/punk",
-	"textures/sprays/pusikuirac",
-	"textures/sprays/ranger",
-	"textures/sprays/raptor",
-	"textures/sprays/redskin",
-	"textures/sprays/right2bear",
-	"textures/sprays/ripwpd",
-	"textures/sprays/robot",
-	"textures/sprays/sapipa",
-	"textures/sprays/skirym",
-	"textures/sprays/slime",
-	"textures/sprays/slk",
-	"textures/sprays/smudge",
-	"textures/sprays/spin",
-	"textures/sprays/spook",
-	"textures/sprays/starwings",
-	"textures/sprays/sun",
-	"textures/sprays/sup",
-	"textures/sprays/sure",
-	"textures/sprays/symbol",
-	"textures/sprays/teleport",
-	"textures/sprays/tictactoe",
-	"textures/sprays/tissue",
-	"textures/sprays/titties",
-	"textures/sprays/tonyskate",
-	"textures/sprays/toof",
-	"textures/sprays/triangel",
-	"textures/sprays/truffle",
-	"textures/sprays/tupac",
-	"textures/sprays/urgay",
-	"textures/sprays/urinate",
-	"textures/sprays/user",
-	"textures/sprays/vagina",
-	"textures/sprays/volim1",
-	"textures/sprays/wack",
-	"textures/sprays/warsowsucks",
-	"textures/sprays/what",
-	"textures/sprays/whatablast",
-	"textures/sprays/whodone",
-	"textures/sprays/wutang",
-	"textures/sprays/x_x",
-	"textures/sprays/xmas",
-	"textures/sprays/yanderedev",
-	"textures/sprays/youngp",
-	"textures/sprays/zakalidis",
-	"textures/sprays/zelder",
-	"textures/sprays/zoink",
-};
-
 static void Cmd_Spray_f( edict_t * ent ) {
 	if( G_ISGHOSTING( ent ) )
 		return;
@@ -689,128 +354,64 @@ static void Cmd_Spray_f( edict_t * ent ) {
 	trace_t trace;
 	G_Trace( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ent, MASK_OPAQUE );
 
-	if( trace.ent != 0 || ( trace.surfFlags & ( SURF_SKY | SURF_NOMARKS ) ) )
+	if( trace.ent != 0 )
 		return;
 
 	ent->r.client->level.last_spray = svs.realtime;
 
-	StringHash spray = random_select( &svs.rng, spray_names );
-	edict_t * event = G_SpawnEvent( EV_SPRAY, spray.hash, &trace.endpos );
+	edict_t * event = G_SpawnEvent( EV_SPRAY, Random64( &svs.rng ), &trace.endpos );
 	event->s.angles = ent->r.client->ps.viewangles;
+	event->s.scale = ent->s.scale;
 	event->s.origin2 = trace.plane.normal;
 }
 
-typedef struct
-{
+struct g_vsays_t {
 	const char *name;
 	int id;
-} g_vsays_t;
+};
 
 static const g_vsays_t g_vsays[] = {
 	{ "sorry", Vsay_Sorry },
 	{ "thanks", Vsay_Thanks },
 	{ "goodgame", Vsay_GoodGame },
 	{ "boomstick", Vsay_BoomStick },
-	{ "shutup", Vsay_ShutUp },
-	{ "bruh", Vsay_Bruh },
-	{ "cya", Vsay_Cya },
-	{ "getgood", Vsay_GetGood },
-	{ "hittheshowers", Vsay_HitTheShowers },
-	{ "lads", Vsay_Lads },
-	{ "shedoesnteven", Vsay_SheDoesntEvenGoHere },
-	{ "shitson", Vsay_ShitSon },
-	{ "trashsmash", Vsay_TrashSmash },
-	{ "whattheshit", Vsay_WhatTheShit },
-	{ "wowyourterrible", Vsay_WowYourTerrible },
 	{ "acne", Vsay_Acne },
 	{ "valley", Vsay_Valley },
 	{ "mike", Vsay_Mike },
+	{ "user", Vsay_User },
+	{ "guyman", Vsay_Guyman },
+	{ "helena", Vsay_Helena },
 
 	{ NULL, 0 }
 };
 
-/*
-* G_vsay_f
-*/
-static void G_vsay_f( edict_t *ent, bool team ) {
-	const char *msg = Cmd_Argv( 1 );
-
-	if( ent->r.client && ( ent->r.client->muted & 2 ) ) {
+static void G_vsay_f( edict_t *ent ) {
+	if( G_ISGHOSTING( ent ) && server_gs.gameState.match_state < MatchState_PostMatch ) {
 		return;
 	}
 
-	if( G_ISGHOSTING( ent ) && GS_MatchState( &server_gs ) < MATCH_STATE_POSTMATCH ) {
+	if( ent->r.client->level.last_vsay > svs.realtime - 500 ) {
 		return;
 	}
-
-	if( ( !GS_TeamBasedGametype( &server_gs ) || GS_IndividualGameType( &server_gs ) ) && ent->s.team != TEAM_SPECTATOR ) {
-		team = false;
-	}
-
-	if( !( ent->r.svflags & SVF_FAKECLIENT ) ) { // ignore flood checks on bots
-		if( ent->r.client->level.last_vsay > svs.realtime - 500 ) {
-			return; // ignore silently vsays in that come in rapid succession
-		}
-		ent->r.client->level.last_vsay = svs.realtime;
-
-		if( CheckFlood( ent, false ) ) {
-			return;
-		}
-	}
+	ent->r.client->level.last_vsay = svs.realtime;
 
 	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {
-		if( Q_stricmp( msg, vsay->name ) != 0 )
+		if( Q_stricmp( Cmd_Argv( 1 ), vsay->name ) != 0 )
 			continue;
 
-		u64 entropy = random_u32( &svs.rng );
+		u64 entropy = Random32( &svs.rng );
 		u64 parm = u64( vsay->id ) | ( entropy << 16 );
 
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
 		event->r.svflags |= SVF_BROADCAST; // force sending even when not in PVS
 		event->s.ownerNum = ent->s.number;
 
-		if( team ) {
-			event->s.team = ent->s.team;
-			event->r.svflags |= SVF_ONLYTEAM;
-		}
-
 		return;
 	}
 
-	// unknown token, print help
-	char string[MAX_STRING_CHARS];
-
-	string[0] = 0;
-	if( msg && msg[0] != '\0' ) {
-		Q_strncatz( string, va( "%sUnknown vsay token%s \"%s\"\n", S_COLOR_YELLOW, S_COLOR_WHITE, msg ), sizeof( string ) );
-	}
-	Q_strncatz( string, va( "%svsays:%s\n", S_COLOR_YELLOW, S_COLOR_WHITE ), sizeof( string ) );
-	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {
-		if( strlen( vsay->name ) + strlen( string ) < sizeof( string ) - 6 ) {
-			Q_strncatz( string, va( "%s ", vsay->name ), sizeof( string ) );
-		}
-	}
-	Q_strncatz( string, "\n", sizeof( string ) );
-	G_PrintMsg( ent, "%s", string );
+	G_PrintMsg( ent, "Unknown vsay %s", Cmd_Argv( 1 ) );
 }
 
-/*
-* G_vsay_Cmd
-*/
-static void G_vsay_Cmd( edict_t *ent ) {
-	G_vsay_f( ent, false );
-}
-
-/*
-* G_Teams_vsay_Cmd
-*/
-static void G_Teams_vsay_Cmd( edict_t *ent ) {
-	G_vsay_f( ent, true );
-}
-
-/*
-* Cmd_Join_f
-*/
 static void Cmd_Join_f( edict_t *ent ) {
 	if( CheckFlood( ent, false ) ) {
 		return;
@@ -819,17 +420,14 @@ static void Cmd_Join_f( edict_t *ent ) {
 	G_Teams_Join_Cmd( ent );
 }
 
-/*
-* Cmd_Timeout_f
-*/
 static void Cmd_Timeout_f( edict_t *ent ) {
 	int num;
 
-	if( ent->s.team == TEAM_SPECTATOR || GS_MatchState( &server_gs ) != MATCH_STATE_PLAYTIME ) {
+	if( ent->s.team == TEAM_SPECTATOR || server_gs.gameState.match_state != MatchState_Playing ) {
 		return;
 	}
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		num = ent->s.team;
 	} else {
 		num = ENTNUM( ent ) - 1;
@@ -843,7 +441,7 @@ static void Cmd_Timeout_f( edict_t *ent ) {
 	if( g_maxtimeouts->integer != -1 && level.timeout.used[num] >= g_maxtimeouts->integer ) {
 		if( g_maxtimeouts->integer == 0 ) {
 			G_PrintMsg( ent, "Timeouts are not allowed on this server\n" );
-		} else if( GS_TeamBasedGametype( &server_gs ) ) {
+		} else if( level.gametype.isTeamBased ) {
 			G_PrintMsg( ent, "Your team doesn't have any timeouts left\n" );
 		} else {
 			G_PrintMsg( ent, "You don't have any timeouts left\n" );
@@ -854,7 +452,7 @@ static void Cmd_Timeout_f( edict_t *ent ) {
 	G_PrintMsg( NULL, "%s%s called a timeout\n", ent->r.client->netname, S_COLOR_WHITE );
 
 	if( !GS_MatchPaused( &server_gs ) ) {
-		G_AnnouncerSound( NULL, StringHash( va( S_ANNOUNCER_TIMEOUT_TIMEOUT_1_to_2, random_uniform( &svs.rng, 1, 3 ) ) ), GS_MAX_TEAMS, true, NULL );
+		G_AnnouncerSound( NULL, StringHash( "sounds/announcer/timeout" ), GS_MAX_TEAMS, true, NULL );
 	}
 
 	level.timeout.used[num]++;
@@ -863,9 +461,6 @@ static void Cmd_Timeout_f( edict_t *ent ) {
 	level.timeout.endtime = level.timeout.time + TIMEOUT_TIME + FRAMETIME;
 }
 
-/*
-* Cmd_Timeout_f
-*/
 static void Cmd_Timein_f( edict_t *ent ) {
 	int num;
 
@@ -883,14 +478,14 @@ static void Cmd_Timein_f( edict_t *ent ) {
 		return;
 	}
 
-	if( GS_TeamBasedGametype( &server_gs ) ) {
+	if( level.gametype.isTeamBased ) {
 		num = ent->s.team;
 	} else {
 		num = ENTNUM( ent ) - 1;
 	}
 
 	if( level.timeout.caller != num ) {
-		if( GS_TeamBasedGametype( &server_gs ) ) {
+		if( level.gametype.isTeamBased ) {
 			G_PrintMsg( ent, "Your team didn't call this timeout.\n" );
 		} else {
 			G_PrintMsg( ent, "You didn't call this timeout.\n" );
@@ -900,125 +495,37 @@ static void Cmd_Timein_f( edict_t *ent ) {
 
 	level.timeout.endtime = level.timeout.time + TIMEIN_TIME + FRAMETIME;
 
-	G_AnnouncerSound( NULL, StringHash( va( S_ANNOUNCER_TIMEOUT_TIMEIN_1_to_2, random_uniform( &svs.rng, 1, 3 ) ) ), GS_MAX_TEAMS, true, NULL );
+	G_AnnouncerSound( NULL, StringHash( "sounds/announcer/timein" ), GS_MAX_TEAMS, true, NULL );
 
 	G_PrintMsg( NULL, "%s%s called a timein\n", ent->r.client->netname, S_COLOR_WHITE );
-}
-
-/*
-* G_StatsMessage
-*
-* Generates stats message for the entity
-* The returned string must be freed by the caller using G_Free
-* Note: This string must never contain " characters
-*/
-char *G_StatsMessage( edict_t *ent ) {
-	static char entry[MAX_TOKEN_CHARS];
-
-	assert( ent && ent->r.client );
-	const gclient_t * client = ent->r.client;
-
-	// message header
-	snprintf( entry, sizeof( entry ), "%d", PLAYERNUM( ent ) );
-
-	for( WeaponType i = Weapon_None + 1; i < Weapon_Count; i++ ) {
-		int hit = client->level.stats.accuracy_hits[ i ];
-		int shot = client->level.stats.accuracy_shots[ i ];
-
-		Q_strncatz( entry, va( " %d", shot ), sizeof( entry ) );
-		if( shot < 1 ) {
-			continue;
-		}
-		Q_strncatz( entry, va( " %d", hit ), sizeof( entry ) );
-	}
-
-	Q_strncatz( entry, va( " %d %d", client->level.stats.total_damage_given, client->level.stats.total_damage_received ), sizeof( entry ) );
-
-	// add enclosing quote
-	Q_strncatz( entry, "\"", sizeof( entry ) );
-
-	return entry;
-}
-
-/*
-* Cmd_ShowStats_f
-*/
-static void Cmd_ShowStats_f( edict_t *ent ) {
-	edict_t *target;
-
-	if( Cmd_Argc() > 2 ) {
-		G_PrintMsg( ent, "Usage: stats [player]\n" );
-		return;
-	}
-
-	if( Cmd_Argc() == 2 ) {
-		target = G_PlayerForText( Cmd_Argv( 1 ) );
-		if( target == NULL ) {
-			G_PrintMsg( ent, "No such player\n" );
-			return;
-		}
-	} else {
-		if( ent->r.client->resp.chase.active && game.edicts[ent->r.client->resp.chase.target].r.client ) {
-			target = &game.edicts[ent->r.client->resp.chase.target];
-		} else {
-			target = ent;
-		}
-	}
-
-	if( target->s.team == TEAM_SPECTATOR ) {
-		G_PrintMsg( ent, "No stats for spectators\n" );
-		return;
-	}
-
-	PF_GameCmd( ent, va( "plstats \"%s\"", G_StatsMessage( target ) ) );
 }
 
 //===========================================================
 //	client commands
 //===========================================================
 
-typedef void ( *gamecommandfunc_t )( edict_t * );
-
 typedef struct
 {
-	char name[MAX_QPATH];
+	char name[MAX_CONFIGSTRING_CHARS];
 	gamecommandfunc_t func;
 } g_gamecommands_t;
 
 g_gamecommands_t g_Commands[MAX_GAMECOMMANDS];
 
-/*
-* G_PrecacheGameCommands
-*/
-void G_PrecacheGameCommands( void ) {
+void G_PrecacheGameCommands() {
 	for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
 		PF_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
 	}
 }
 
-/*
-* G_AddCommand
-*/
 void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
-	int i;
-	char temp[MAX_QPATH];
-	static const char *blacklist[] = { "callvotevalidate", "callvotepassed", NULL };
-
-	Q_strncpyz( temp, name, sizeof( temp ) );
-
-	for( i = 0; blacklist[i] != NULL; i++ ) {
-		if( !Q_stricmp( blacklist[i], temp ) ) {
-			Com_Printf( "WARNING: G_AddCommand: command name '%s' is write protected\n", temp );
-			return;
-		}
-	}
-
 	// see if we already had it in game side
+	int i;
 	for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
 		if( !g_Commands[i].name[0] ) {
 			break;
 		}
-		if( !Q_stricmp( g_Commands[i].name, temp ) ) {
+		if( !Q_stricmp( g_Commands[i].name, name ) ) {
 			// update func if different
 			if( g_Commands[i].func != callback ) {
 				g_Commands[i].func = ( gamecommandfunc_t )callback;
@@ -1027,14 +534,11 @@ void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 		}
 	}
 
-	if( i == MAX_GAMECOMMANDS ) {
-		Com_Error( ERR_DROP, "G_AddCommand: Couldn't find a free g_Commands spot for the new command. (increase MAX_GAMECOMMANDS)\n" );
-		return;
-	}
+	assert( i < MAX_GAMECOMMANDS );
 
 	// we don't have it, add it
 	g_Commands[i].func = ( gamecommandfunc_t )callback;
-	Q_strncpyz( g_Commands[i].name, temp, sizeof( g_Commands[i].name ) );
+	Q_strncpyz( g_Commands[i].name, name, sizeof( g_Commands[i].name ) );
 
 	// add the configstring if the precache process was already done
 	if( level.canSpawnEntities ) {
@@ -1042,31 +546,22 @@ void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 	}
 }
 
-/*
-* G_InitGameCommands
-*/
-void G_InitGameCommands( void ) {
+void G_InitGameCommands() {
 	memset( g_Commands, 0, sizeof( g_Commands ) );
 
 	G_AddCommand( "position", Cmd_Position_f );
-	G_AddCommand( "players", Cmd_Players_f );
-	G_AddCommand( "spectators", Cmd_Spectators_f );
-	G_AddCommand( "stats", Cmd_ShowStats_f );
 	G_AddCommand( "say", Cmd_SayCmd_f );
 	G_AddCommand( "say_team", Cmd_SayTeam_f );
-	G_AddCommand( "svscore", Cmd_Score_f );
-	G_AddCommand( "god", Cmd_God_f );
 	G_AddCommand( "noclip", Cmd_Noclip_f );
 	G_AddCommand( "kill", Cmd_Kill_f );
 	G_AddCommand( "chase", Cmd_ChaseCam_f );
 	G_AddCommand( "chasenext", Cmd_ChaseNext_f );
 	G_AddCommand( "chaseprev", Cmd_ChasePrev_f );
-	G_AddCommand( "enterqueue", G_Teams_JoinChallengersQueue );
-	G_AddCommand( "leavequeue", G_Teams_LeaveChallengersQueue );
 	G_AddCommand( "camswitch", Cmd_SwitchChaseCamMode_f );
 	G_AddCommand( "timeout", Cmd_Timeout_f );
 	G_AddCommand( "timein", Cmd_Timein_f );
-	G_AddCommand( "cointoss", Cmd_CoinToss_f );
+	G_AddCommand( "demolist", SV_DemoList_f );
+	G_AddCommand( "demogeturl", SV_DemoGetUrl_f );
 
 	// callvotes commands
 	G_AddCommand( "callvote", G_CallVote_Cmd );
@@ -1088,13 +583,9 @@ void G_InitGameCommands( void ) {
 
 	G_AddCommand( "spray", Cmd_Spray_f );
 
-	G_AddCommand( "vsay", G_vsay_Cmd );
-	G_AddCommand( "vsay_team", G_Teams_vsay_Cmd );
+	G_AddCommand( "vsay", G_vsay_f );
 }
 
-/*
-* ClientCommand
-*/
 void ClientCommand( edict_t *ent ) {
 	if( !ent->r.client || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return; // not fully in game yet
@@ -1113,7 +604,7 @@ void ClientCommand( edict_t *ent ) {
 			if( g_Commands[i].func ) {
 				g_Commands[i].func( ent );
 			} else {
-				GT_asCallGameCommand( ent->r.client, cmd, Cmd_Args(), Cmd_Argc() - 1 );
+				GT_CallGameCommand( ent->r.client, cmd, Cmd_Args(), Cmd_Argc() - 1 );
 			}
 			return;
 		}

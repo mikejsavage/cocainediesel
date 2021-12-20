@@ -16,19 +16,18 @@ void main() {
 out vec4 f_Albedo;
 
 void main() {
-	vec2 pixel_size = 1.0 / u_ViewportSize;
-	vec2 uv = gl_FragCoord.xy / u_ViewportSize;
+	ivec2 p = ivec2( gl_FragCoord.xy );
+	ivec3 pixel = ivec3( 0, 1, -1 );
 
-	vec4 colour_up = texture( u_SilhouetteTexture, uv + vec2( 0.0, pixel_size.y ) );
-	vec4 colour_down = texture( u_SilhouetteTexture, uv + vec2( 0.0, -pixel_size.y ) );
-	vec4 colour_left = texture( u_SilhouetteTexture, uv + vec2( -pixel_size.x, 0.0 ) );
-	vec4 colour_right = texture( u_SilhouetteTexture, uv + vec2( pixel_size.x, 0.0 ) );
+	vec4 colour_up =        texelFetch( u_SilhouetteTexture, p + pixel.xz, 0 );
+	vec4 colour_downleft =  texelFetch( u_SilhouetteTexture, p + pixel.yy, 0 );
+	vec4 colour_downright = texelFetch( u_SilhouetteTexture, p + pixel.zy, 0 );
 
-	float edgeness_x = length( colour_right - colour_left );
-	float edgeness_y = length( colour_down - colour_up );
+	float edgeness_x = length( colour_downright - colour_downleft );
+	float edgeness_y = length( mix( colour_downleft, colour_downright, 0.5 ) - colour_up );
 	float edgeness = length( vec2( edgeness_x, edgeness_y ) );
 
-	vec4 colour = max( max( colour_left, colour_right ), max( colour_up, colour_down ) );
+	vec4 colour = max( max( colour_downleft, colour_downright ), colour_up );
 
 	f_Albedo = edgeness * colour;
 }

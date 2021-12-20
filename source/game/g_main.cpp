@@ -25,59 +25,42 @@ gs_state_t server_gs;
 level_locals_t level;
 spawn_temp_t st;
 
-mempool_t *gamepool;
-
-int meansOfDeath;
+DamageType meansOfDeath;
 Vec3 knockbackOfDeath;
+int damageFlagsOfDeath;
 
-cvar_t *password;
-cvar_t *g_operator_password;
-cvar_t *g_select_empty;
+Cvar *sv_password;
+Cvar *g_operator_password;
+Cvar *g_select_empty;
 
-cvar_t *filterban;
+Cvar *filterban;
 
-cvar_t *g_maxvelocity;
+Cvar *g_maxvelocity;
 
-cvar_t *sv_cheats;
+Cvar *sv_cheats;
 
-cvar_t *g_maplist;
-cvar_t *g_maprotation;
+Cvar *g_floodprotection_messages;
+Cvar *g_floodprotection_team;
+Cvar *g_floodprotection_seconds;
+Cvar *g_floodprotection_penalty;
 
-cvar_t *g_enforce_map_pool;
-cvar_t *g_map_pool;
+Cvar *g_inactivity_maxtime;
 
-cvar_t *g_floodprotection_messages;
-cvar_t *g_floodprotection_team;
-cvar_t *g_floodprotection_seconds;
-cvar_t *g_floodprotection_penalty;
+Cvar *g_projectile_prestep;
+Cvar *g_numbots;
+Cvar *g_maxtimeouts;
+Cvar *g_antilag;
+Cvar *g_antilag_maxtimedelta;
+Cvar *g_antilag_timenudge;
+Cvar *g_autorecord;
+Cvar *g_autorecord_maxdemos;
 
-cvar_t *g_inactivity_maxtime;
+Cvar *g_deadbody_followkiller;
 
-cvar_t *g_projectile_prestep;
-cvar_t *g_numbots;
-cvar_t *g_maxtimeouts;
-cvar_t *g_antilag;
-cvar_t *g_antilag_maxtimedelta;
-cvar_t *g_antilag_timenudge;
-cvar_t *g_autorecord;
-cvar_t *g_autorecord_maxdemos;
+Cvar *g_allow_spectator_voting;
 
-cvar_t *g_self_knockback;
-cvar_t *g_knockback_scale;
-
-cvar_t *g_respawn_delay_min;
-cvar_t *g_respawn_delay_max;
-cvar_t *g_deadbody_followkiller;
-
-cvar_t *g_allow_spectator_voting;
-
-cvar_t *g_asGC_stats;
-cvar_t *g_asGC_interval;
-
-static char *map_rotation_s = NULL;
-static char **map_rotation_p = NULL;
-static int map_rotation_current = -1;
-static int map_rotation_count = 0;
+Cvar *g_asGC_stats;
+Cvar *g_asGC_interval;
 
 /*
 * G_GS_Trace - Used only for gameshared linking
@@ -95,10 +78,10 @@ static void G_GS_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end,
 * G_InitGameShared
 * give gameshared access to some utilities
 */
-static void G_InitGameShared( void ) {
+static void G_InitGameShared() {
 	int maxclients = atoi( PF_GetConfigString( CS_MAXCLIENTS ) );
 	if( maxclients < 1 || maxclients > MAX_EDICTS ) {
-		Com_Error( ERR_DROP, "Invalid maxclients value %i\n", maxclients );
+		Fatal( "Invalid maxclients value %i\n", maxclients );
 	}
 
 	server_gs = { };
@@ -107,6 +90,7 @@ static void G_InitGameShared( void ) {
 
 	server_gs.api.PredictedEvent = G_PredictedEvent;
 	server_gs.api.PredictedFireWeapon = G_PredictedFireWeapon;
+	server_gs.api.PredictedUseGadget = G_PredictedUseGadget;
 	server_gs.api.Trace = G_GS_Trace;
 	server_gs.api.GetEntityState = G_GetEntityStateForDeltaTime;
 	server_gs.api.PointContents = G_PointContents4D;
@@ -129,8 +113,6 @@ void G_GamestatSetFlag( int flag, bool b ) {
 * only happens when a new game is started or a save game is loaded.
 */
 void G_Init( unsigned int framemsec ) {
-	gamepool = _Mem_AllocPool( NULL, "Game", MEMPOOL_GAME, __FILE__, __LINE__ );
-
 	Com_Printf( "==== G_Init ====\n" );
 
 	G_InitGameShared();
@@ -141,101 +123,65 @@ void G_Init( unsigned int framemsec ) {
 	game.frametime = game.snapFrameTime;
 	game.numBots = 0;
 
-	g_maxvelocity = Cvar_Get( "g_maxvelocity", "16000", 0 );
-	if( g_maxvelocity->value < 20 ) {
-		Cvar_SetValue( "g_maxvelocity", 20 );
+	g_maxvelocity = NewCvar( "g_maxvelocity", "16000", 0 );
+	if( g_maxvelocity->integer < 20 ) {
+		Cvar_SetInteger( "g_maxvelocity", 20 );
 	}
 
-	developer = Cvar_Get( "developer", "0", 0 );
+	sv_cheats = NewCvar( "sv_cheats", is_public_build ? "0" : "1", CvarFlag_ServerReadOnly );
 
-	// latched vars
-	sv_cheats = Cvar_Get( "sv_cheats", "0", CVAR_SERVERINFO | CVAR_LATCH );
+	sv_password = NewCvar( "sv_password", "", CvarFlag_UserInfo );
+	sv_password->modified = true; // force an update of g_needpass in G_UpdateServerInfo
+	g_operator_password = NewCvar( "g_operator_password", "", CvarFlag_Archive );
+	filterban = NewCvar( "filterban", "1", 0 );
 
-	password = Cvar_Get( "password", "", CVAR_USERINFO );
-	password->modified = true; // force an update of g_needpass in G_UpdateServerInfo
-	g_operator_password = Cvar_Get( "g_operator_password", "", CVAR_ARCHIVE );
-	filterban = Cvar_Get( "filterban", "1", 0 );
-
-	g_projectile_prestep = Cvar_Get( "g_projectile_prestep", va( "%i", PROJECTILE_PRESTEP ), CVAR_DEVELOPER );
-	g_self_knockback = Cvar_Get( "g_self_knockback", "1.18", CVAR_DEVELOPER );
-	g_knockback_scale = Cvar_Get( "g_knockback_scale", "1.0", CVAR_ARCHIVE );
-	g_respawn_delay_min = Cvar_Get( "g_respawn_delay_min", "600", CVAR_DEVELOPER );
-	g_respawn_delay_max = Cvar_Get( "g_respawn_delay_max", "6000", CVAR_DEVELOPER );
-	g_numbots = Cvar_Get( "g_numbots", "0", CVAR_ARCHIVE );
-	g_deadbody_followkiller = Cvar_Get( "g_deadbody_followkiller", "1", CVAR_DEVELOPER );
-	g_maxtimeouts = Cvar_Get( "g_maxtimeouts", "2", CVAR_ARCHIVE );
-	g_antilag_maxtimedelta = Cvar_Get( "g_antilag_maxtimedelta", "200", CVAR_ARCHIVE );
+	g_projectile_prestep = NewCvar( "g_projectile_prestep", va( "%i", PROJECTILE_PRESTEP ), CvarFlag_Developer );
+	g_numbots = NewCvar( "g_numbots", "0", CvarFlag_Archive );
+	g_deadbody_followkiller = NewCvar( "g_deadbody_followkiller", "1", CvarFlag_Developer );
+	g_maxtimeouts = NewCvar( "g_maxtimeouts", "2", CvarFlag_Archive );
+	g_antilag_maxtimedelta = NewCvar( "g_antilag_maxtimedelta", "200", CvarFlag_Archive );
 	g_antilag_maxtimedelta->modified = true;
-	g_antilag_timenudge = Cvar_Get( "g_antilag_timenudge", "0", CVAR_ARCHIVE );
+	g_antilag_timenudge = NewCvar( "g_antilag_timenudge", "0", CvarFlag_Archive );
 	g_antilag_timenudge->modified = true;
 
-	g_allow_spectator_voting = Cvar_Get( "g_allow_spectator_voting", "1", CVAR_ARCHIVE );
-
-	if( is_dedicated_server ) {
-		g_autorecord = Cvar_Get( "g_autorecord", "1", CVAR_ARCHIVE );
-		g_autorecord_maxdemos = Cvar_Get( "g_autorecord_maxdemos", "200", CVAR_ARCHIVE );
-	} else {
-		g_autorecord = Cvar_Get( "g_autorecord", "0", CVAR_ARCHIVE );
-		g_autorecord_maxdemos = Cvar_Get( "g_autorecord_maxdemos", "0", CVAR_ARCHIVE );
-	}
+	g_allow_spectator_voting = NewCvar( "g_allow_spectator_voting", "1", CvarFlag_Archive );
 
 	// flood control
-	g_floodprotection_messages = Cvar_Get( "g_floodprotection_messages", "4", 0 );
+	g_floodprotection_messages = NewCvar( "g_floodprotection_messages", "4", 0 );
 	g_floodprotection_messages->modified = true;
-	g_floodprotection_team = Cvar_Get( "g_floodprotection_team", "0", 0 );
+	g_floodprotection_team = NewCvar( "g_floodprotection_team", "0", 0 );
 	g_floodprotection_team->modified = true;
-	g_floodprotection_seconds = Cvar_Get( "g_floodprotection_seconds", "4", 0 );
+	g_floodprotection_seconds = NewCvar( "g_floodprotection_seconds", "4", 0 );
 	g_floodprotection_seconds->modified = true;
-	g_floodprotection_penalty = Cvar_Get( "g_floodprotection_delay", "2", 0 );
+	g_floodprotection_penalty = NewCvar( "g_floodprotection_delay", "2", 0 );
 	g_floodprotection_penalty->modified = true;
 
-	g_inactivity_maxtime = Cvar_Get( "g_inactivity_maxtime", "90.0", 0 );
+	g_inactivity_maxtime = NewCvar( "g_inactivity_maxtime", "90.0", 0 );
 	g_inactivity_maxtime->modified = true;
 
-	// map list
-	g_maplist = Cvar_Get( "g_maplist", "", CVAR_ARCHIVE );
-	g_maprotation = Cvar_Get( "g_maprotation", "1", CVAR_ARCHIVE );
-
-	// map pool
-	g_enforce_map_pool = Cvar_Get( "g_enforce_map_pool", "0", CVAR_ARCHIVE );
-	g_map_pool = Cvar_Get( "g_map_pool", "", CVAR_ARCHIVE );
-
 	// helper cvars to show current status in serverinfo reply
-	Cvar_Get( "g_match_time", "", CVAR_SERVERINFO | CVAR_READONLY );
-	Cvar_Get( "g_match_score", "", CVAR_SERVERINFO | CVAR_READONLY );
-	Cvar_Get( "g_needpass", "", CVAR_SERVERINFO | CVAR_READONLY );
+	NewCvar( "g_match_score", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
+	NewCvar( "g_needpass", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
-	g_asGC_stats = Cvar_Get( "g_asGC_stats", "0", CVAR_ARCHIVE );
-	g_asGC_interval = Cvar_Get( "g_asGC_interval", "10", CVAR_ARCHIVE );
+	g_asGC_stats = NewCvar( "g_asGC_stats", "0", CvarFlag_Archive );
+	g_asGC_interval = NewCvar( "g_asGC_interval", "10", CvarFlag_Archive );
 
-	// initialize all entities for this game
 	game.maxentities = MAX_EDICTS;
-	game.edicts = ( edict_t * )G_Malloc( game.maxentities * sizeof( game.edicts[0] ) );
-
-	// initialize all clients for this game
-	game.clients = ( gclient_t * )G_Malloc( server_gs.maxclients * sizeof( game.clients[0] ) );
+	memset( game.edicts, 0, sizeof( game.edicts ) );
+	memset( game.clients, 0, sizeof( game.clients ) );
 
 	game.numentities = server_gs.maxclients + 1;
 
-	SV_LocateEntities( game.edicts, sizeof( game.edicts[0] ), game.numentities, game.maxentities );
+	SV_LocateEntities( game.edicts, game.numentities, game.maxentities );
 
 	// server console commands
 	G_AddServerCommands();
-
-	// init AS engine
-	G_asInitGameModuleEngine();
 }
 
-/*
-* G_Shutdown
-*/
-void G_Shutdown( void ) {
+void G_Shutdown() {
 	Com_Printf( "==== G_Shutdown ====\n" );
 
-	GT_asCallShutdown();
-
-	GT_asShutdownScript();
-	G_asShutdownGameModuleEngine();
+	ShutdownGametype();
 
 	SV_WriteIPList();
 
@@ -243,144 +189,24 @@ void G_Shutdown( void ) {
 
 	G_FreeCallvotes();
 
-	G_LevelFreePool();
-
 	for( int i = 0; i < game.numentities; i++ ) {
 		if( game.edicts[i].r.inuse ) {
 			G_FreeEdict( &game.edicts[i] );
 		}
 	}
-
-	G_Free( game.edicts );
-	G_Free( game.clients );
-
-	Mem_FreePool( &gamepool );
 }
 
 //======================================================================
 
-/*
-* G_UpdateMapRotation
-*
-* Reads current map rotation into internal list
-*/
-static void G_UpdateMapRotation( void ) {
-	int count, i;
-	bool thiswhitespace, lastwhitespace, found;
-	char *p, *start;
-	static const char *seps = " ,\n\r";
-
-	if( g_maplist->modified || !map_rotation_s || !map_rotation_p ) {
-		g_maplist->modified = false;
-
-		// reread the maplist
-		if( map_rotation_s ) {
-			G_Free( map_rotation_s );
-		}
-		if( map_rotation_p ) {
-			G_Free( map_rotation_p );
-		}
-
-		map_rotation_s = G_CopyString( g_maplist->string );
-		map_rotation_p = NULL;
-		map_rotation_current = -1;  // reset the mapcounter too
-		map_rotation_count = 0;
-
-		// count the number of tokens
-		p = map_rotation_s;
-		count = 0;
-		lastwhitespace = true;
-		start = NULL;
-		found = false;
-		while( *p ) {
-			thiswhitespace = ( strchr( seps, *p ) != NULL ) ? true : false;
-			if( lastwhitespace && !thiswhitespace ) {
-				start = p;
-				count++;
-			} else if( thiswhitespace && !lastwhitespace && !found && start ) {
-				found = true;
-				for( i = 0; start + i < p; i++ ) {
-					if( tolower( start[i] ) != tolower( sv.mapname[i] ) ) {
-						found = false;
-					}
-				}
-				if( found ) {
-					map_rotation_current = count - 1;
-				}
-			}
-
-			lastwhitespace = thiswhitespace;
-			p++;
-		}
-
-		if( !count ) {
-			return;
-		}
-
-		// allocate the array of pointers
-		map_rotation_p = ( char ** )G_Malloc( ( count + 1 ) * sizeof( *map_rotation_p ) );
-
-		// now convert the string to tokens by nulling the separators
-		p = map_rotation_s;
-		count = 0;
-		lastwhitespace = true;
-		while( *p ) {
-			thiswhitespace = ( strchr( seps, *p ) != NULL ) ? true : false;
-			if( lastwhitespace && !thiswhitespace ) {
-				map_rotation_p[count++] = p;
-			}
-
-			if( thiswhitespace ) {
-				*p = 0;
-			}
-
-			lastwhitespace = thiswhitespace;
-			p++;
-		}
-
-		// final null pointer to mark the end
-		map_rotation_p[count] = NULL;
-
-		map_rotation_count = count;
-	}
-}
-
-/*
-* G_MapRotationNormal
-*/
-static const char *G_MapRotationNormal( void ) {
-	G_UpdateMapRotation();
-
-	if( !map_rotation_count ) {
-		return NULL;
-	}
-
-	map_rotation_current++;
-
-	if( map_rotation_current >= map_rotation_count || map_rotation_p[map_rotation_current] == NULL ) {
-		map_rotation_current = 0;
-	}
-
-	return map_rotation_p[map_rotation_current];
-}
-
-static const char *G_NextMap( void ) {
+static const char *G_NextMap() {
 	if( strlen( level.callvote_map ) > 0 )
 		return level.callvote_map;
 
-	if( !( *g_maplist->string ) || g_maplist->string[0] == '\0' || g_maprotation->integer == 0 ) {
-		// same map again
-		return sv.mapname;
-	}
-
-	const char *next = G_MapRotationNormal();
-	return next ? next : sv.mapname;
+	// same map again
+	return sv.mapname;
 }
 
-/*
-* G_ExitLevel
-*/
-void G_ExitLevel( void ) {
+void G_ExitLevel() {
 	bool loadmap = true;
 
 	level.exitNow = false;
@@ -394,9 +220,7 @@ void G_ExitLevel( void ) {
 	}
 
 	if( loadmap ) {
-		char command[256];
-		snprintf( command, sizeof( command ), "gamemap \"%s\"\n", nextmapname );
-		Cbuf_ExecuteText( EXEC_APPEND, command );
+		Cbuf_Add( "map \"{}\"", nextmapname );
 	}
 
 	G_SnapClients();
@@ -406,12 +230,6 @@ void G_ExitLevel( void ) {
 		edict_t *ent = game.edicts + 1 + i;
 		if( !ent->r.inuse ) {
 			continue;
-		}
-
-		ent->r.client->level.showscores = false;
-
-		if( ent->health > ent->max_health ) {
-			ent->health = ent->max_health;
 		}
 
 		if( loadmap ) {

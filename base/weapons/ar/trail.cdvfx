@@ -1,0 +1,113 @@
+{
+  particles {
+    material textures/vfx/glow1
+    blendfunc add
+    
+    position line 0
+
+    speed 5
+
+    color 1.0 1.0 1.0 0.5
+    end_color 0.0 0.5 1.0
+    color_override
+
+    size 12 0
+    lifetime 0.3
+
+    emission 50
+  }
+
+  particles {
+    material textures/vfx/glow1
+    blendfunc add
+    
+    position line 0
+
+    speed 0
+
+    color 1.0 1.0 1.0 1.0
+    end_color 0.0 0.0 0.0
+    color_override
+
+    size 24 0
+    lifetime 0.3
+
+    emission 24
+  }
+
+  particles {
+    material textures/vfx/glow1
+    blendfunc blend
+    
+    position line 0
+
+    speed 0
+
+    color 1.0 1.0 1.0 1.0
+    end_color 0.0 0.0 0.0
+    color_override
+
+    size 12 0
+    lifetime 0.2
+
+    emission 24
+  }
+
+  particles {
+    material textures/vfx/flare1
+    blendfunc add
+    
+    position line 0
+
+    speed 0
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+
+    size 8 0
+    lifetime 1.0
+
+    emission 128
+  }
+
+  particles {
+    material textures/vfx/smoke3
+    material textures/vfx/smoke4
+    material textures/vfx/smoke5
+    material textures/vfx/smoke6
+    material textures/vfx/smoke7
+    material textures/vfx/smoke8
+    material textures/vfx/smoke9
+    blendfunc blend
+    
+    position line 0
+
+    speed 2
+
+    color 0.58 0.58 0.58 0.75
+    color_override
+
+    size 14 0
+    lifetime 0.2
+    count 1
+  }
+
+  particles {
+    material textures/vfx/muzzle2
+    blendfunc add
+    stretch
+    rotate
+    
+    position line 0
+
+    speed 200
+
+    color 0.0 1.0 1.0 1.0
+    color_override
+    size 4 0
+    lifetime 0.25
+    count 1
+  }
+}
+  
+}

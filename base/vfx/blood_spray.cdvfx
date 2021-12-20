@@ -1,0 +1,146 @@
+{
+  particles {
+    material textures/vfx/trace1
+    material textures/vfx/trace2
+    material textures/vfx/trace3
+    material textures/vfx/trace4
+    material textures/vfx/trace5
+    blendfunc add
+    stretch
+    rotate
+
+    position sphere 0 20 
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+
+    speed 400
+    size 16 0
+    size_distribution uniform 2
+    lifetime 0.26
+    lifetime_distribution 0.16
+    count 2
+  }
+
+  particles {
+    material textures/vfx/smoke1
+    material textures/vfx/smoke2
+    material textures/vfx/smoke3
+    material textures/vfx/smoke4
+    material textures/vfx/smoke5
+    material textures/vfx/smoke6
+    blendfunc add
+
+    position point
+
+    color 0.55 0.15 0.58 1.0
+    color_override
+
+    speed 20
+    size 0 32
+    size_distribution uniform 16
+    lifetime 0.4
+    count 1
+  }
+
+  particles {
+    material textures/vfx/trace1
+    material textures/vfx/trace2
+    material textures/vfx/trace3
+    material textures/vfx/trace4
+    material textures/vfx/trace5
+    blendfunc add
+    stretch
+    rotate
+
+    position point
+
+    color 1.0 1.0 1.0 1.0
+    end_color 1.0 1.0 1.0 1.0
+    color_override
+
+    speed 200
+    size 16 16
+    size_distribution uniform 2
+    lifetime 0.15
+    lifetime_distribution 0.05
+    count 2
+  }
+
+  particles {
+    material textures/vfx/slash4
+    blendfunc add
+    rotate
+    stretch
+
+    position point
+
+    color 1.0 1.0 1.0 1.0
+    end_color 0.0 0.0 0.0 0.0
+
+    speed 8
+    size 16 0
+    lifetime 0.25
+    lifetime_distribution 0.05
+    count 4
+  }
+
+  particles {
+    material textures/vfx/drop
+    material textures/vfx/drop2
+    blendfunc blend
+    stretch
+    rotate
+    acceleration $gravity
+
+    position cone 15 15
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+
+    speed 300
+    size 4 0
+    lifetime 0.8
+    lifetime_distribution 0.2
+    count 2
+  }
+
+  particles {
+    material textures/vfx/drop
+    material textures/vfx/drop2
+    acceleration $gravity
+    blendfunc blend
+    stretch
+    rotate
+
+    position point
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+
+    speed 300
+    size 4 0
+    lifetime 0.8
+    lifetime_distribution 0.2
+    count 2
+  }
+
+    particles {
+    material textures/vfx/drop
+    material textures/vfx/drop2
+    blendfunc add
+    stretch
+    rotate
+
+    position point
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+
+    speed 600
+    size 2 0
+    lifetime 0.4
+    lifetime_distribution 0.2
+    count 1
+  }
+}

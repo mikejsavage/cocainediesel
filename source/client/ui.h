@@ -10,7 +10,7 @@ void UI_Refresh();
 void UI_ShowMainMenu();
 void UI_ShowConnectingScreen();
 void UI_ShowGameMenu();
-void UI_ShowLoadoutMenu( Span< int > weapons );
+void UI_ShowLoadoutMenu( Span< int > weapons, PerkType perk );
 void UI_ShowDemoMenu();
 void UI_HideMenu();
 
@@ -30,3 +30,4 @@ void ColumnRightText( const char * str );
 void WindowCenterTextXY( const char * str );
 
 Vec4 AttentionGettingColor();
+Vec4 PlantableColor();

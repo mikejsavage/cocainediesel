@@ -56,61 +56,32 @@ int PF_GetClientState( int numClient ) {
 * Sends the server command to clients.
 * If ent is NULL the command will be sent to all connected clients
 */
-void PF_GameCmd( edict_t *ent, const char *cmd ) {
-	int i;
-	client_t *client;
-
-	if( !cmd || !cmd[0] ) {
+void PF_GameCmd( edict_t * ent, const char * cmd ) {
+	if( ent != NULL ) {
+		client_t * client = &svs.clients[ NUM_FOR_EDICT( ent ) - 1 ];
+		SV_AddGameCommand( client, cmd );
 		return;
 	}
 
-	if( !ent ) {
-		for( i = 0, client = svs.clients; i < sv_maxclients->integer; i++, client++ ) {
-			if( client->state < CS_SPAWNED ) {
-				continue;
-			}
-			SV_AddGameCommand( client, cmd );
-		}
-	} else {
-		i = NUM_FOR_EDICT( ent );
-		if( i < 1 || i > sv_maxclients->integer ) {
-			return;
-		}
-
-		client = svs.clients + ( i - 1 );
-		if( client->state < CS_SPAWNED ) {
-			return;
-		}
-
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		client_t * client = &svs.clients[ i ];
 		SV_AddGameCommand( client, cmd );
 	}
 }
 
 void PF_ConfigString( int index, const char *val ) {
-	size_t len;
-
 	if( !val ) {
 		return;
 	}
 
 	if( index < 0 || index >= MAX_CONFIGSTRINGS ) {
-		Com_Error( ERR_DROP, "configstring: bad index %i", index );
+		Fatal( "configstring: bad index %i", index );
 	}
 
-	if( index < SERVER_PROTECTED_CONFIGSTRINGS ) {
-		Com_Printf( "WARNING: 'PF_Configstring', configstring %i is server protected\n", index );
-		return;
-	}
-
-	len = strlen( val );
+	size_t len = strlen( val );
 	if( len >= sizeof( sv.configstrings[0] ) ) {
 		Com_Printf( "WARNING: 'PF_Configstring', configstring %i overflowed (%" PRIuPTR ")\n", index, (uintptr_t)strlen( val ) );
 		len = sizeof( sv.configstrings[0] ) - 1;
-	}
-
-	if( !COM_ValidateConfigstring( val ) ) {
-		Com_Printf( "WARNING: 'PF_Configstring' invalid configstring %i: %s\n", index, val );
-		return;
 	}
 
 	// ignore if no changes
@@ -142,18 +113,13 @@ const char *PF_GetConfigString( int index ) {
 * Called when either the entire server is being killed, or
 * it is changing to a different game directory.
 */
-void SV_ShutdownGameProgs( void ) {
+void SV_ShutdownGameProgs() {
 	G_Shutdown();
 }
 
-void SV_LocateEntities( edict_t *edicts, size_t edict_size, int num_edicts, int max_edicts ) {
-	if( !edicts || edict_size < sizeof( entity_shared_t ) ) {
-		Com_Error( ERR_DROP, "SV_LocateEntities: bad edicts" );
-	}
-
+void SV_LocateEntities( edict_t *edicts, int num_edicts, int max_edicts ) {
 	sv.gi.edicts = edicts;
 	sv.gi.clients = svs.clients;
-	sv.gi.edict_size = edict_size;
 	sv.gi.num_edicts = num_edicts;
 	sv.gi.max_edicts = max_edicts;
 	sv.gi.max_clients = Min2( num_edicts, sv_maxclients->integer );
@@ -164,7 +130,7 @@ void SV_LocateEntities( edict_t *edicts, size_t edict_size, int num_edicts, int 
 *
 * Init the game subsystem for a new map
 */
-void SV_InitGameProgs( void ) {
+void SV_InitGameProgs() {
 	SV_SetServerConfigStrings();
 
 	G_Init( svc.snapFrameTime );

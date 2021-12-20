@@ -66,26 +66,15 @@ static bool try_urandom( void * buf, size_t n ) {
 
 #if PLATFORM_WINDOWS
 
-#pragma comment( lib, "advapi32.lib" )
+#pragma comment( lib, "bcrypt.lib" )
 
-#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
-#endif
-
 #include <windows.h>
-#include <wincrypt.h>
+#include <bcrypt.h>
 
 bool ggentropy( void * buf, size_t n ) {
 	assert( n <= 256 );
-
-	HCRYPTPROV provider;
-	if( CryptAcquireContext( &provider, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT ) == 0 )
-		return false;
-
-	int ok = CryptGenRandom( provider, n, ( BYTE * ) buf );
-	CryptReleaseContext( provider, 0 );
-
-	return ok != 0;
+	return !FAILED( BCryptGenRandom( NULL, ( PUCHAR ) buf, n, BCRYPT_USE_SYSTEM_PREFERRED_RNG ) );
 }
 
 #elif PLATFORM_LINUX

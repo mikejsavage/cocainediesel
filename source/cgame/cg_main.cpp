@@ -23,44 +23,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 cg_static_t cgs;
 cg_state_t cg;
 
-mempool_t *cg_mempool;
-
 centity_t cg_entities[MAX_EDICTS];
 
-cvar_t *cg_showMiss;
+Cvar *cg_showMiss;
 
-cvar_t *cg_hand;
+Cvar *cg_thirdPerson;
+Cvar *cg_thirdPersonAngle;
+Cvar *cg_thirdPersonRange;
 
-cvar_t *cg_addDecals;
+Cvar *cg_projectileAntilagOffset;
+Cvar *cg_chat;
 
-cvar_t *cg_thirdPerson;
-cvar_t *cg_thirdPersonAngle;
-cvar_t *cg_thirdPersonRange;
+Cvar *cg_showHotkeys;
+Cvar *cg_colorBlind;
 
-cvar_t *cg_gunx;
-cvar_t *cg_guny;
-cvar_t *cg_gunz;
-cvar_t *cg_debugPlayerModels;
-cvar_t *cg_debugWeaponModels;
-cvar_t *cg_gunbob;
+Cvar *cg_autoaction_demo;
+Cvar *cg_autoaction_screenshot;
+Cvar *cg_autoaction_spectator;
+Cvar *cg_showClamp;
 
-cvar_t *cg_handOffset;
-cvar_t *cg_gun_fov;
-cvar_t *cg_volume_announcer;
-cvar_t *cg_volume_hitsound;
-cvar_t *cg_voiceChats;
-cvar_t *cg_projectileAntilagOffset;
-cvar_t *cg_chatFilter;
+Cvar *cg_particleDebug;
 
-cvar_t *cg_showHotkeys;
-
-cvar_t *cg_autoaction_demo;
-cvar_t *cg_autoaction_screenshot;
-cvar_t *cg_autoaction_spectator;
-cvar_t *cg_showClamp;
-
-cvar_t *cg_allyModel;
-cvar_t *cg_enemyModel;
+Cvar *cg_showServerDebugPrints;
 
 void CG_LocalPrint( const char *format, ... ) {
 	va_list argptr;
@@ -101,10 +85,8 @@ static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 	return &cent->current;
 }
 
-static void CG_InitGameShared( void ) {
-	char cstring[MAX_CONFIGSTRING_CHARS];
-	trap_GetConfigString( CS_MAXCLIENTS, cstring, MAX_CONFIGSTRING_CHARS );
-	int maxclients = atoi( cstring );
+static void CG_InitGameShared() {
+	int maxclients = atoi( cl.configstrings[ CS_MAXCLIENTS ] );
 	if( maxclients < 1 || maxclients > MAX_CLIENTS ) {
 		maxclients = MAX_CLIENTS;
 	}
@@ -115,118 +97,57 @@ static void CG_InitGameShared( void ) {
 
 	client_gs.api.PredictedEvent = CG_PredictedEvent;
 	client_gs.api.PredictedFireWeapon = CG_PredictedFireWeapon;
+	client_gs.api.PredictedUseGadget = CG_PredictedUseGadget;
 	client_gs.api.Trace = CG_GS_Trace;
 	client_gs.api.GetEntityState = CG_GS_GetEntityState;
 	client_gs.api.PointContents = CG_GS_PointContents;
 	client_gs.api.PMoveTouchTriggers = CG_Predict_TouchTriggers;
 }
 
-char *_CG_CopyString( const char *in, const char *filename, int fileline ) {
-	char * out = ( char * )_Mem_AllocExt( cg_mempool, strlen( in ) + 1, 16, 1, 0, 0, filename, fileline );
-	strcpy( out, in );
-	return out;
+static void CG_RegisterVariables() {
+	cg_showMiss = NewCvar( "cg_showMiss", "0", 0 );
+
+	cg_showHotkeys = NewCvar( "cg_showHotkeys", "1", CvarFlag_Archive );
+	cg_colorBlind  = NewCvar( "cg_colorBlind", "0", CvarFlag_Archive );
+
+	cg_thirdPerson = NewCvar( "cg_thirdPerson", "0", CvarFlag_Cheat );
+	cg_thirdPersonAngle = NewCvar( "cg_thirdPersonAngle", "0", 0 );
+	cg_thirdPersonRange = NewCvar( "cg_thirdPersonRange", "90", 0 );
+
+	cg_autoaction_demo = NewCvar( "cg_autoaction_demo", "0", CvarFlag_Archive );
+	cg_autoaction_screenshot = NewCvar( "cg_autoaction_screenshot", "0", CvarFlag_Archive );
+	cg_autoaction_spectator = NewCvar( "cg_autoaction_spectator", "0", CvarFlag_Archive );
+
+	cg_projectileAntilagOffset = NewCvar( "cg_projectileAntilagOffset", "1.0", CvarFlag_Archive );
+
+	cg_chat = NewCvar( "cg_chat", "1", CvarFlag_Archive );
+
+	cg_showClamp = NewCvar( "cg_showClamp", "0", CvarFlag_Developer );
+
+	cg_particleDebug = NewCvar( "cg_particleDebug", "0", CvarFlag_Developer );
+
+	cg_showServerDebugPrints = NewCvar( "cg_showServerDebugPrints", "0", CvarFlag_Archive );
+
+	NewCvar( "cg_loadout", "", CvarFlag_Archive | CvarFlag_UserInfo );
 }
 
-static void CG_RegisterWeaponModels( void ) {
-	cgs.weaponInfos[ Weapon_None ] = CG_CreateWeaponZeroModel();
-	for( WeaponType i = Weapon_None + 1; i < Weapon_Count; i++ ) {
-		cgs.weaponInfos[i] = CG_RegisterWeaponModel( GS_GetWeaponDef( i )->short_name, i );
-	}
-}
-
-static void CG_RegisterClients( void ) {
-	for( int i = 0; i < MAX_CLIENTS; i++ ) {
-		const char * name = cgs.configStrings[CS_PLAYERINFOS + i];
-		if( !name[0] )
-			continue;
-		CG_LoadClientInfo( i );
-	}
-}
-
-static void CG_RegisterVariables( void ) {
-	cg_showMiss =       Cvar_Get( "cg_showMiss", "0", 0 );
-
-	cg_debugPlayerModels =  Cvar_Get( "cg_debugPlayerModels", "0", CVAR_CHEAT );
-	cg_debugWeaponModels =  Cvar_Get( "cg_debugWeaponModels", "0", CVAR_CHEAT );
-
-	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
-
-	cg_hand =           Cvar_Get( "hand", "0", CVAR_USERINFO | CVAR_ARCHIVE );
-
-	cg_addDecals =      Cvar_Get( "cg_decals", "1", CVAR_ARCHIVE );
-
-	cg_thirdPerson =    Cvar_Get( "cg_thirdPerson", "0", CVAR_CHEAT );
-	cg_thirdPersonAngle =   Cvar_Get( "cg_thirdPersonAngle", "0", 0 );
-	cg_thirdPersonRange =   Cvar_Get( "cg_thirdPersonRange", "90", 0 );
-
-	cg_gunx =       Cvar_Get( "cg_gunx", "5", CVAR_CHEAT );
-	cg_guny =       Cvar_Get( "cg_guny", "-10", CVAR_CHEAT );
-	cg_gunz =       Cvar_Get( "cg_gunz", "5", CVAR_CHEAT );
-	cg_gunbob =     Cvar_Get( "cg_gunbob", "1", CVAR_ARCHIVE );
-
-	cg_gun_fov =        Cvar_Get( "cg_gun_fov", "75", CVAR_ARCHIVE );
-
-	// wsw
-	cg_volume_announcer =   Cvar_Get( "cg_volume_announcer", "1.0", CVAR_ARCHIVE );
-	cg_volume_hitsound =    Cvar_Get( "cg_volume_hitsound", "1.0", CVAR_ARCHIVE );
-	cg_handOffset =     Cvar_Get( "cg_handOffset", "5", CVAR_ARCHIVE );
-	cg_autoaction_demo =    Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
-	cg_autoaction_screenshot =  Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );
-	cg_autoaction_spectator = Cvar_Get( "cg_autoaction_spectator", "0", CVAR_ARCHIVE );
-
-	cg_voiceChats =     Cvar_Get( "cg_voiceChats", "1", CVAR_ARCHIVE );
-
-	cg_projectileAntilagOffset = Cvar_Get( "cg_projectileAntilagOffset", "1.0", CVAR_ARCHIVE );
-
-	cg_chatFilter =     Cvar_Get( "cg_chatFilter", "0", CVAR_ARCHIVE );
-
-	// developer cvars
-	cg_showClamp = Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
-
-	cg_allyModel = Cvar_Get( "cg_allyModel", "bigvic", CVAR_ARCHIVE );
-	cg_allyModel->modified = true;
-
-	cg_enemyModel = Cvar_Get( "cg_enemyModel", "padpork", CVAR_ARCHIVE );
-	cg_enemyModel->modified = true;
-
-	Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
-}
-
-void CG_Precache( void ) {
-	if( cgs.precacheDone ) {
-		return;
+const char * PlayerName( int i ) {
+	if( i < 0 || i >= client_gs.maxclients ) {
+		return "";
 	}
 
-	CG_RegisterMediaModels();
-	CG_RegisterWeaponModels();
-	CG_RegisterPlayerModels();
-	CG_RegisterMediaSounds();
-	CG_RegisterMediaSounds();
-	CG_RegisterMediaShaders();
-	CG_RegisterClients();
-
-	cgs.precacheDone = true;
+	Span< const char[ MAX_CONFIGSTRING_CHARS ] > names( cl.configstrings + CS_PLAYERINFOS, client_gs.maxclients );
+	return names[ i ];
 }
 
-static void CG_RegisterConfigStrings( void ) {
+static void CG_RegisterConfigStrings() {
 	for( int i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
-		trap_GetConfigString( i, cgs.configStrings[i], MAX_CONFIGSTRING_CHARS );
+		CG_ConfigString( i );
 	}
-
-	// backup initial configstrings for CG_Reset
-	memcpy( &cgs.baseConfigStrings[0][0], &cgs.configStrings[0][0], MAX_CONFIGSTRINGS*MAX_CONFIGSTRING_CHARS );
-
-	CG_SC_AutoRecordAction( cgs.configStrings[CS_AUTORECORDSTATE] );
 }
 
-void CG_Reset( void ) {
-	memcpy( &cgs.configStrings[0][0], &cgs.baseConfigStrings[0][0], MAX_CONFIGSTRINGS*MAX_CONFIGSTRING_CHARS );
-
-	CG_ResetClientInfos();
-
+void CG_Reset() {
 	CG_ResetPModels();
-
-	CG_ResetKickAngles();
 
 	CG_SC_ResetObituaries();
 
@@ -237,10 +158,11 @@ void CG_Reset( void ) {
 
 	CG_ClearPointedNum();
 
-	CG_ClearAwards();
-
 	CG_InitDamageNumbers();
+	InitDecals();
 	InitPersistentBeams();
+	InitSprays();
+	ClearParticles();
 
 	chaseCam.key_pressed = false;
 
@@ -254,20 +176,17 @@ static void PrintMap() {
 	Com_Printf( "Current map: %s\n", cl.map == NULL ? "null" : cl.map->name );
 }
 
-void CG_Init( const char *serverName, unsigned int playerNum,
+void CG_Init( unsigned int playerNum,
 			  bool demoplaying, const char *demoName,
 			  unsigned snapFrameTime ) {
-	cg_mempool = _Mem_AllocPool( NULL, "CGame", MEMPOOL_CLIENTGAME, __FILE__, __LINE__ );
-
-	CG_InitGameShared();
-
 	memset( &cg, 0, sizeof( cg_state_t ) );
 	memset( &cgs, 0, sizeof( cg_static_t ) );
 
 	memset( cg_entities, 0, sizeof( cg_entities ) );
 
-	// save server name
-	cgs.serverName = CG_CopyString( serverName );
+	CG_RegisterConfigStrings();
+
+	CG_InitGameShared();
 
 	// save local player number
 	cgs.playerNum = playerNum;
@@ -281,57 +200,41 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	CG_InitInput();
 
 	CG_RegisterVariables();
-	CG_PModelsInit();
-	CG_WModelsInit();
+	InitPlayerModels();
+	InitWeaponModels();
 
 	CG_ScreenInit();
 
 	CG_InitDamageNumbers();
 
-	// get configstrings
-	CG_RegisterConfigStrings();
-
-	// register fonts here so loading screen works
-	CG_RegisterFonts();
-	cgs.white_material = FindMaterial( "$whiteimage" );
-
 	CG_RegisterCGameCommands();
+
+	CG_RegisterMedia();
 
 	CG_InitHUD();
 
 	InitDecals();
-	InitParticles();
+	InitSprays();
 	InitPersistentBeams();
 	InitGibs();
+	ClearParticles();
 
 	CG_InitChat();
 
-	// start up announcer events queue from clean
 	CG_ClearAnnouncerEvents();
-
-	cg.firstFrame = true; // think of the next frame in CG_NewFrameSnap as of the first one
-
-	// now that we're done with precaching, let the autorecord actions do something
-	CG_ConfigString( CS_AUTORECORDSTATE, cgs.configStrings[CS_AUTORECORDSTATE] );
 
 	CG_DemocamInit();
 
-	Cmd_AddCommand( "printmap", PrintMap );
+	AddCommand( "printmap", PrintMap );
 }
 
 void CG_Shutdown() {
 	CG_DemocamShutdown();
 	CG_UnregisterCGameCommands();
-	CG_PModelsShutdown();
 	CG_ShutdownChat();
 	CG_ShutdownInput();
 	CG_ShutdownHUD();
-	ShutdownParticles();
 	ShutdownDecals();
 
-	CG_Free( const_cast< char * >( cgs.serverName ) );
-
-	Mem_FreePool( &cg_mempool );
-
-	Cmd_RemoveCommand( "printmap" );
+	RemoveCommand( "printmap" );
 }

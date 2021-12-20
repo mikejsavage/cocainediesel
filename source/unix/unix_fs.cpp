@@ -1,295 +1,84 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/
-
-#include "qcommon/qcommon.h"
+#include "qcommon/base.h"
+#include "qcommon/application.h"
 #include "qcommon/fs.h"
-
 #include "qcommon/sys_fs.h"
+#include "qcommon/array.h"
+#include "qcommon/hash.h"
+#include "qcommon/hashtable.h"
+#include "qcommon/string.h"
 
-#define __USE_BSD
-
+// these must come after qcommon because both tracy and one of these defines BLOCK_SIZE
 #include <dirent.h>
-
-#ifdef __linux__
-#include <linux/limits.h>
-#endif
-
+#include <errno.h>
+#include <fcntl.h>
 #include <unistd.h>
+#include <poll.h>
+#include <linux/fs.h>
+#include <sys/inotify.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
+#include <sys/syscall.h>
 
-// Mac OS X and FreeBSD don't know the readdir64 and dirent64
-#if ( defined ( __FreeBSD__ ) || !defined( _LARGEFILE64_SOURCE ) )
-#define readdir64 readdir
-#define dirent64 dirent
-#endif
-
-static char *findbase = NULL;
-static size_t findbase_size = 0;
-static const char *findpattern = NULL;
-static char *findpath = NULL;
-static size_t findpath_size = 0;
-static DIR *fdir = NULL;
-static int fdots = 0;
-
-/*
-* FS_DirentIsDir
-*/
-static bool FS_DirentIsDir( const struct dirent64 *d, const char *base ) {
-#if defined( _DIRENT_HAVE_D_TYPE ) && defined( DT_DIR )
-	return ( d->d_type == DT_DIR );
-#else
-	size_t pathSize;
-	char *path;
-	struct stat st;
-
-	pathSize = strlen( base ) + 1 + strlen( d->d_name ) + 1;
-	path = alloca( pathSize );
-	snprintf( path, pathSize, "%s/%s", base, d->d_name );
-	if( stat( path, &st ) ) {
-		return false;
+char * FindHomeDirectory( Allocator * a ) {
+	const char * xdg_data_home = getenv( "XDG_DATA_HOME" );
+	if( xdg_data_home != NULL ) {
+		return ( *a )( "{}/{}", xdg_data_home, APPLICATION );
 	}
-	return S_ISDIR( st.st_mode ) != 0;
-#endif
+
+	const char * home = getenv( "HOME" );
+	if( home == NULL ) {
+		Fatal( "Can't find home directory" );
+	}
+
+	return ( *a )( "{}/.local/share/{}", home, APPLICATION );
 }
 
-/*
-* CompareAttributes
-*/
-static bool CompareAttributes( const struct dirent64 *d, const char *base, unsigned musthave, unsigned canthave ) {
-	bool isDir;
-	bool checkDir;
+char * GetExePath( Allocator * a ) {
+	NonRAIIDynamicArray< char > buf;
+	buf.init( a );
+	buf.resize( 1024 );
 
-	assert( d );
-
-	isDir = false;
-	checkDir = ( canthave & SFF_SUBDIR ) || ( musthave & SFF_SUBDIR );
-	if( checkDir ) {
-		isDir = FS_DirentIsDir( d, base );
-	}
-
-	if( isDir && ( canthave & SFF_SUBDIR ) ) {
-		return false;
-	}
-	if( ( musthave & SFF_SUBDIR ) && !isDir ) {
-		return false;
-	}
-
-	return true;
-}
-
-/*
-* CompareAttributesForPath
-*/
-static bool CompareAttributesForPath( const struct dirent64 *d, const char *path, unsigned musthave, unsigned canthave ) {
-	return true;
-}
-
-/*
-* Sys_FS_FindFirst
-*/
-const char *Sys_FS_FindFirst( const char *path, unsigned musthave, unsigned canhave ) {
-	char *p;
-
-	assert( path );
-	assert( !fdir );
-	assert( !findbase && !findpattern && !findpath && !findpath_size );
-
-	if( fdir ) {
-		Sys_Error( "Sys_BeginFind without close" );
-	}
-
-	findbase_size = strlen( path );
-	assert( findbase_size );
-	findbase_size += 1;
-
-	findbase = ( char * ) Mem_TempMalloc( sizeof( char ) * findbase_size );
-	Q_strncpyz( findbase, path, sizeof( char ) * findbase_size );
-
-	if( ( p = strrchr( findbase, '/' ) ) ) {
-		*p = 0;
-		if( !strcmp( p + 1, "*.*" ) ) { // *.* to *
-			*( p + 2 ) = 0;
-		}
-		findpattern = p + 1;
-	} else {
-		findpattern = "*";
-	}
-
-	if( !( fdir = opendir( findbase ) ) ) {
-		return NULL;
-	}
-
-	fdots = 2; // . and ..
-	return Sys_FS_FindNext( musthave, canhave );
-}
-
-/*
-* Sys_FS_FindNext
-*/
-const char *Sys_FS_FindNext( unsigned musthave, unsigned canhave ) {
-	struct dirent64 *d;
-
-	assert( fdir );
-	assert( findbase && findpattern );
-
-	if( !fdir ) {
-		return NULL;
-	}
-
-	while( ( d = readdir64( fdir ) ) != NULL ) {
-		if( !CompareAttributes( d, findbase, musthave, canhave ) ) {
-			continue;
+	while( true ) {
+		ssize_t n = readlink( "/proc/self/exe", buf.ptr(), buf.size() );
+		if( n == -1 ) {
+			FatalErrno( "readlink" );
 		}
 
-		if( fdots > 0 ) {
-			// . and .. never match
-			const char *base = COM_FileBase( d->d_name );
-			if( !strcmp( base, "." ) || !strcmp( base, ".." ) ) {
-				fdots--;
-				continue;
-			}
+		if( size_t( n ) < buf.size() ) {
+			buf[ n ] = '\0';
+			break;
 		}
 
-		if( !*findpattern || Com_GlobMatch( findpattern, d->d_name, 0 ) ) {
-			const char *dname = d->d_name;
-			size_t dname_len = strlen( dname );
-			size_t size = sizeof( char ) * ( findbase_size + dname_len + 1 + 1 );
-			if( findpath_size < size ) {
-				if( findpath ) {
-					Mem_TempFree( findpath );
-				}
-				findpath_size = size * 2; // extra size to reduce reallocs
-				findpath = ( char * ) Mem_TempMalloc( findpath_size );
-			}
-
-			snprintf( findpath, findpath_size, "%s/%s%s", findbase, dname,
-						 dname[dname_len - 1] != '/' && FS_DirentIsDir( d, findbase ) ? "/" : "" );
-			if( CompareAttributesForPath( d, findpath, musthave, canhave ) ) {
-				return findpath;
-			}
-		}
+		buf.resize( buf.size() * 2 );
 	}
 
-	return NULL;
+	return buf.ptr();
 }
 
-void Sys_FS_FindClose( void ) {
-	assert( findbase );
-
-	if( fdir ) {
-		closedir( fdir );
-		fdir = NULL;
-	}
-
-	fdots = 0;
-
-	Mem_TempFree( findbase );
-	findbase = NULL;
-	findbase_size = 0;
-	findpattern = NULL;
-
-	if( findpath ) {
-		Mem_TempFree( findpath );
-		findpath = NULL;
-		findpath_size = 0;
-	}
+FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {
+	return fopen( path, mode );
 }
 
-/*
-* Sys_FS_GetHomeDirectory
-*/
-const char *Sys_FS_GetHomeDirectory( void ) {
-	static char home[PATH_MAX] = { '\0' };
+bool MoveFile( Allocator * a, const char * old_path, const char * new_path, MoveFileReplace replace ) {
+	unsigned int flags = replace == MoveFile_DontReplace ? RENAME_NOREPLACE : 0;
 
-	if( home[0] == '\0' ) {
-		const char *homeEnv = getenv( "HOME" );
-		const char *base = NULL, *local = "";
-
-#ifdef __MACOSX__
-		base = homeEnv;
-		local = "Library/Application Support/";
-#else
-		base = getenv( "XDG_DATA_HOME" );
-		local = "";
-		if( !base ) {
-			base = homeEnv;
-			local = ".local/share/";
-		}
-#endif
-
-		if( base ) {
-			snprintf( home, sizeof( home ), "%s/%s%s-0.0", base, local, APPLICATION );
-		}
+	// the glibc on appveyor doesn't have renameat2 so call it directly
+	if( syscall( SYS_renameat2, AT_FDCWD, old_path, AT_FDCWD, new_path, flags ) == 0 ) {
+		return true;
 	}
 
-	if( home[0] == '\0' ) {
-		return NULL;
+	if( errno == ENOSYS || errno == EINVAL || errno == EFAULT ) {
+		FatalErrno( "rename" );
 	}
-	return home;
+
+	return false;
 }
 
-/*
-* Sys_FS_GetCacheDirectory
-*/
-const char *Sys_FS_GetCacheDirectory( void ) {
-	static char cache[PATH_MAX] = { '\0' };
-
-	if( cache[0] == '\0' ) {
-		const char *homeEnv = getenv( "HOME" );
-		const char *base = NULL, *local = "";
-
-#ifdef __MACOSX__
-		base = homeEnv;
-		local = "Library/Caches/";
-#else
-		base = getenv( "XDG_CACHE_HOME" );
-		local = "";
-		if( !base ) {
-			base = homeEnv;
-			local = ".cache/";
-		}
-#endif
-
-		if( base ) {
-			snprintf( cache, sizeof( cache ), "%s/%s%s-0.0", base, local, APPLICATION );
-		}
-	}
-
-	if( cache[0] == '\0' ) {
-		return NULL;
-	}
-	return cache;
+bool RemoveFile( Allocator * a, const char * path ) {
+	return unlink( path ) == 0;
 }
 
-/*
-* Sys_FS_CreateDirectory
-*/
-bool Sys_FS_CreateDirectory( const char *path ) {
-	return ( !mkdir( path, 0777 ) );
-}
-
-/*
-* Sys_FS_FileNo
-*/
-int Sys_FS_FileNo( FILE *fp ) {
-	return fileno( fp );
+bool CreateDirectory( Allocator * a, const char * path ) {
+	return mkdir( path, 0755 ) == 0 || errno == EEXIST;
 }
 
 struct ListDirHandleImpl {
@@ -310,7 +99,7 @@ static ListDirHandle ImplToOpaque( ListDirHandleImpl impl ) {
 	return opaque;
 }
 
-ListDirHandle BeginListDir( const char * path ) {
+ListDirHandle BeginListDir( Allocator * a, const char * path ) {
 	ListDirHandleImpl handle;
 	handle.dir = opendir( path );
 	return ImplToOpaque( handle );
@@ -337,11 +126,115 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	return false;
 }
 
-s64 FileLastModifiedTime( const char * path ) {
-	struct stat buf;
-	if( stat( path, &buf ) == -1 ) {
-		return 0;
+constexpr size_t MAX_INOTIFY_WATCHES = 4096;
+struct FSChangeMonitor {
+	int fd;
+	char * wd_paths[ MAX_INOTIFY_WATCHES ];
+	size_t num_wd_paths;
+	Hashtable< MAX_INOTIFY_WATCHES * 2 > wd_to_path;
+};
+
+static void AddInotifyWatchesRecursive( Allocator * a, FSChangeMonitor * monitor, DynamicString * path, size_t skip ) {
+	u32 filter = IN_CREATE | IN_MODIFY | IN_MOVED_TO;
+	int wd = inotify_add_watch( monitor->fd, path->c_str(), filter );
+	if( wd == -1 ) {
+		FatalErrno( "inotify_add_watch" );
 	}
 
-	return checked_cast< s64 >( buf.st_mtim.tv_sec ) * 1000 + checked_cast< s64 >( buf.st_mtim.tv_nsec ) / 1000000;
+	/*
+	 * we want wd_path to "" when path is "base". we also don't do {}/{}
+	 * when building the full path so we don't accidentally add a leading
+	 * slash to the "base" case, so add the trailing slash here for
+	 * non-base paths
+	 */
+	if( path->length() == skip ) {
+		monitor->wd_paths[ monitor->num_wd_paths ] = CopyString( a, "" );
+	}
+	else {
+		monitor->wd_paths[ monitor->num_wd_paths ] = ( *a )( "{}/", path->c_str() + skip + 1 );
+	}
+	monitor->wd_to_path.add( Hash64( wd ), monitor->num_wd_paths );
+	monitor->num_wd_paths++;
+
+	ListDirHandle scan = BeginListDir( a, path->c_str() );
+
+	const char * name;
+	bool dir;
+	while( ListDirNext( &scan, &name, &dir ) ) {
+		// skip ., .., .git, etc
+		if( name[ 0 ] == '.' || !dir )
+			continue;
+
+		size_t old_len = path->length();
+		path->append( "/{}", name );
+		AddInotifyWatchesRecursive( a, monitor, path, skip );
+		path->truncate( old_len );
+	}
+}
+
+FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path ) {
+	FSChangeMonitor * monitor = ALLOC( a, FSChangeMonitor );
+	monitor->fd = inotify_init();
+	if( monitor->fd == -1 ) {
+		FatalErrno( "inotify_init" );
+	}
+
+	monitor->num_wd_paths = 0;
+	monitor->wd_to_path.clear();
+
+	DynamicString base( a, "{}", path );
+	AddInotifyWatchesRecursive( a, monitor, &base, base.length() );
+
+	return monitor;
+}
+
+void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor ) {
+	for( size_t i = 0; i < monitor->num_wd_paths; i++ ) {
+		FREE( a, monitor->wd_paths[ i ] );
+	}
+	close( monitor->fd );
+	FREE( a, monitor );
+}
+
+Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n ) {
+	{
+		pollfd fd = { };
+		fd.fd = monitor->fd;
+		fd.events = POLLIN;
+
+		int res = poll( &fd, 1, 0 );
+		if( res == -1 ) {
+			FatalErrno( "poll" );
+		}
+		if( res == 0 ) {
+			return Span< const char * >();
+		}
+	}
+
+	alignas( inotify_event ) char buf[ 16384 ];
+	ssize_t bytes_read = read( monitor->fd, buf, sizeof( buf ) );
+	if( bytes_read == -1 ) {
+		if( errno == EINTR ) {
+			return Span< const char * >();
+		}
+		FatalErrno( "read" );
+	}
+
+	size_t num_results = 0;
+	const inotify_event * cursor = ( const inotify_event * ) buf;
+	while( ( const char * ) cursor < buf + bytes_read ) {
+		if( ( cursor->mask & IN_ISDIR ) == 0 ) {
+			u64 idx;
+			bool ok = monitor->wd_to_path.get( Hash64( cursor->wd ), &idx );
+			assert( ok );
+
+			results[ num_results ] = ( *temp )( "{}{}", monitor->wd_paths[ idx ], cursor->name );
+			num_results++;
+		}
+
+		cursor = ( const inotify_event * ) ( ( ( const char * ) cursor ) + sizeof( *cursor ) + cursor->len );
+
+	}
+
+	return Span< const char * >( results, num_results );
 }

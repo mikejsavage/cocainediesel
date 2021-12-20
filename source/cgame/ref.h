@@ -23,30 +23,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/types.h"
 #include "gameshared/q_math.h"
 
-// refdef flags
-#define RDF_UNDERWATER          0x1     // warp the screen as apropriate
-#define RDF_CROSSINGWATER       0x2     // potentially crossing water surface
-#define RDF_BLURRED             0x4
-
 constexpr u32 TILE_SIZE = 32; // forward+ tile size
+constexpr float DLIGHT_CUTOFF = 0.5f;
 
-struct orientation_t {
-	mat3_t axis;
-	Vec3 origin;
-};
-
-struct TRS {
-	Quaternion rotation;
-	Vec3 translation;
-	float scale;
-};
-
-struct MatrixPalettes {
-	Span< Mat4 > joint_poses;
-	Span< Mat4 > skinning_matrices;
-};
-
-struct entity_t {
+struct InterpolatedEntity {
 	const Model * model;
 
 	mat3_t axis;
@@ -55,8 +35,9 @@ struct entity_t {
 	RGBA8 color;
 
 	float scale;
-	float radius;                       // used as RT_SPRITE's radius
-	float rotation;
+
+	bool animating;
+	float animation_time;
 };
 
 enum XAlignment {
@@ -88,6 +69,7 @@ constexpr Alignment Alignment_RightBottom = { XAlignment_Right, YAlignment_Botto
 
 constexpr Vec4 vec4_white = Vec4( 1, 1, 1, 1 );
 constexpr Vec4 vec4_black = Vec4( 0, 0, 0, 1 );
+constexpr Vec4 vec4_dark = Vec4( 0.02f, 0.02f, 0.02f, 1.0f );
 constexpr Vec4 vec4_red = Vec4( 1, 0, 0, 1 );
 constexpr Vec4 vec4_green = Vec4( 0, 1, 0, 1 );
 constexpr Vec4 vec4_yellow = Vec4( 1, 1, 0, 1 );

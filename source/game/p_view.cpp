@@ -21,15 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "game/g_local.h"
 
-float xyspeed;
-
 //====================================================================
 // DEAD VIEW
 //====================================================================
 
-/*
-* G_ProjectThirdPersonView
-*/
 static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t *passent ) {
 	float thirdPersonRange = 60;
 	float thirdPersonAngle = 0;
@@ -50,7 +45,7 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 	chase_dest.z += 8;
 
 	// find the spot the player is looking at
-	Vec3 dest = *vieworg + v_forward * ( 512 );
+	Vec3 dest = *vieworg + v_forward * 512.0f;
 	G_Trace( &trace, *vieworg, mins, maxs, dest, passent, MASK_SOLID );
 
 	// calculate pitch to look at the same spot from camera
@@ -76,9 +71,6 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 	*vieworg = chase_dest;
 }
 
-/*
-* G_Client_DeadView
-*/
 static void G_Client_DeadView( edict_t *ent ) {
 	gclient_t * client = ent->r.client;
 	edict_t * body = &game.edicts[ ent->s.ownerNum ];
@@ -116,9 +108,6 @@ static void G_Client_DeadView( edict_t *ent ) {
 // EFFECTS
 //====================================================================
 
-/*
-* G_ClientAddDamageIndicatorImpact
-*/
 void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const Vec3 basedir ) {
 	if( damage < 1 ) {
 		return;
@@ -143,23 +132,21 @@ void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, const Vec3
 void G_ClientDamageFeedback( edict_t *ent ) {
 	if( ent->r.client->resp.snap.damageTaken ) {
 		int damage = ent->r.client->resp.snap.damageTaken;
-		int byteDir = DirToByte( ent->r.client->resp.snap.damageTakenDir );
+		u64 parm = DirToU64( ent->r.client->resp.snap.damageTakenDir );
 
 		if( damage <= 10 ) {
-			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_10, byteDir );
+			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_10, parm );
 		} else if( damage <= 20 ) {
-			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_20, byteDir );
+			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_20, parm );
 		} else if( damage <= 30 ) {
-			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_30, byteDir );
+			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_30, parm );
 		} else {
-			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_40, byteDir );
+			G_AddPlayerStateEvent( ent->r.client, PSEV_DAMAGE_40, parm );
 		}
 	}
 
 	// add hitsounds from given damage
-	if( ent->snap.damageteam_given ) { //keep it in case we use a sound for teamhit
-		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 5 );
-	} else if( ent->snap.kill ) { //kill
+	if( ent->snap.kill ) { //kill
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 4 );
 	} else if( ent->snap.damage_given >= 35 ) {
 		G_AddPlayerStateEvent( ent->r.client, PSEV_HIT, 0 );
@@ -172,9 +159,6 @@ void G_ClientDamageFeedback( edict_t *ent ) {
 	}
 }
 
-/*
-* G_PlayerWorldEffects
-*/
 static void G_PlayerWorldEffects( edict_t *ent ) {
 	int waterlevel, old_waterlevel;
 	int watertype, old_watertype;
@@ -195,11 +179,11 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	//
 	if( !old_waterlevel && waterlevel ) {
 		if( ent->watertype & CONTENTS_LAVA ) {
-			G_Sound( ent, CHAN_AUTO, S_WORLD_LAVA_IN );
+			G_Sound( ent, CHAN_AUTO, "sounds/world/lava_in" );
 		} else if( ent->watertype & CONTENTS_SLIME ) {
-			G_Sound( ent, CHAN_AUTO, S_WORLD_SLIME_IN );
+			G_Sound( ent, CHAN_AUTO, "sounds/world/water_in" );
 		} else if( ent->watertype & CONTENTS_WATER ) {
-			G_Sound( ent, CHAN_AUTO, S_WORLD_WATER_IN );
+			G_Sound( ent, CHAN_AUTO, "sounds/world/water_in" );
 		}
 	}
 
@@ -208,11 +192,11 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	//
 	if( old_waterlevel && !waterlevel ) {
 		if( old_watertype & CONTENTS_LAVA ) {
-			G_Sound( ent, CHAN_AUTO, S_WORLD_LAVA_OUT );
+			G_Sound( ent, CHAN_AUTO, "sounds/world/lava_out" );
 		} else if( old_watertype & CONTENTS_SLIME ) {
-			G_Sound( ent, CHAN_AUTO, S_WORLD_SLIME_OUT );
+			G_Sound( ent, CHAN_AUTO, "sounds/world/water_out" );
 		} else if( old_watertype & CONTENTS_WATER ) {
-			G_Sound( ent, CHAN_AUTO, S_WORLD_WATER_OUT );
+			G_Sound( ent, CHAN_AUTO, "sounds/world/water_out" );
 		}
 	}
 
@@ -222,41 +206,24 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	if( waterlevel && ( ent->watertype & ( CONTENTS_LAVA | CONTENTS_SLIME ) ) ) {
 		if( ent->watertype & CONTENTS_LAVA ) {
 			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin,
-					  ( 30 * waterlevel ) * game.snapFrameTime / 1000.0f, 0, 0, MOD_LAVA );
+					  ( 30 * waterlevel ) * game.snapFrameTime / 1000.0f, 0, 0, WorldDamage_Lava );
 		}
 
 		if( ent->watertype & CONTENTS_SLIME ) {
 			G_Damage( ent, world, world, Vec3( 0.0f ), Vec3( 0.0f ), ent->s.origin,
-					  ( 10 * waterlevel ) * game.snapFrameTime / 1000.0f, 0, 0, MOD_SLIME );
+					  ( 10 * waterlevel ) * game.snapFrameTime / 1000.0f, 0, 0, WorldDamage_Slime );
 		}
 	}
 }
 
-/*
-* G_SetClientEffects
-*/
-static void G_SetClientEffects( edict_t *ent ) {
-	if( G_IsDead( ent ) || GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
-		return;
-	}
-
-	// show cheaters!!!
-	if( ent->flags & FL_GODMODE ) {
-		ent->s.effects |= EF_GODMODE;
-	}
-}
-
-/*
-* G_SetClientSound
-*/
 static void G_SetClientSound( edict_t *ent ) {
 	if( ent->waterlevel == 3 ) {
 		if( ent->watertype & CONTENTS_LAVA ) {
-			ent->s.sound = S_WORLD_UNDERLAVA;
+			ent->s.sound = "sounds/world/underwater";
 		} else if( ent->watertype & CONTENTS_SLIME ) {
-			ent->s.sound = S_WORLD_UNDERSLIME;
+			ent->s.sound = "sounds/world/underwater";
 		} else if( ent->watertype & CONTENTS_WATER ) {
-			ent->s.sound = S_WORLD_UNDERWATER;
+			ent->s.sound = "sounds/world/underwater";
 		}
 	} else {
 		ent->s.sound = EMPTY_HASH;
@@ -278,7 +245,7 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 
 	// If the end of unit layout is displayed, don't give
 	// the player any normal movement attributes
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_POSTMATCH ) {
+	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
 		G_SetClientStats( ent );
 	} else {
 		if( G_IsDead( ent ) ) {
@@ -288,10 +255,7 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 		G_PlayerWorldEffects( ent ); // burn from lava, etc
 		G_ClientDamageFeedback( ent ); // show damage taken along the snap
 		G_SetClientStats( ent );
-		G_SetClientEffects( ent );
 		G_SetClientSound( ent );
-
-		client->ps.plrkeys = client->resp.snap.plrkeys;
 	}
 
 	G_ReleaseClientPSEvent( client );

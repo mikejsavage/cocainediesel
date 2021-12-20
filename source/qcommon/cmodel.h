@@ -25,41 +25,41 @@
 
 #define MAX_CM_LEAFS        ( MAX_MAP_LEAFS )
 
-typedef struct {
+struct cshaderref_t {
 	int contents;
 	int flags;
 	char *name;
-} cshaderref_t;
+};
 
-typedef struct {
+struct cnode_t {
 	int children[2];            // negative numbers are leafs
-	cplane_t *plane;
-} cnode_t;
+	Plane *plane;
+};
 
-typedef struct {
+struct cbrushside_t {
 	int surfFlags;
-	cplane_t plane;
-} cbrushside_t;
+	Plane plane;
+};
 
-typedef struct {
+struct cbrush_t {
 	int contents;
 	int numsides;
 
 	Vec3 mins, maxs;
 
 	cbrushside_t *brushsides;
-} cbrush_t;
+};
 
-typedef struct {
+struct cface_t {
 	int contents;
 	int numfacets;
 
 	Vec3 mins, maxs;
 
 	cbrush_t *facets;
-} cface_t;
+};
 
-typedef struct {
+struct cleaf_t {
 	int contents;
 	int cluster;
 
@@ -70,9 +70,9 @@ typedef struct {
 
 	int *markbrushes;
 	int *markfaces;
-} cleaf_t;
+};
 
-typedef struct cmodel_s {
+struct cmodel_t {
 	u64 hash;
 
 	bool builtin;
@@ -91,12 +91,12 @@ typedef struct cmodel_s {
 	// which treats brush models as leafs
 	int *markfaces;
 	int *markbrushes;
-} cmodel_t;
+};
 
-typedef struct {
+struct carea_t {
 	int floodnum;               // if two areas have equal floodnums, they are connected
 	int floodvalid;
-} carea_t;
+};
 
 struct CollisionModel {
 	u64 base_hash;
@@ -114,7 +114,7 @@ struct CollisionModel {
 	cshaderref_t *map_shaderrefs;
 
 	int numplanes;
-	cplane_t *map_planes;
+	Plane *map_planes;
 
 	int numnodes;
 	cnode_t *map_nodes;
@@ -185,26 +185,26 @@ enum CModelServerOrClient {
 CollisionModel * CM_LoadMap( CModelServerOrClient soc, Span< const u8 > data, u64 base_hash );
 void CM_Free( CModelServerOrClient soc,  CollisionModel * cms );
 
-struct cmodel_s * CM_FindCModel( CModelServerOrClient soc, StringHash hash );
-struct cmodel_s * CM_TryFindCModel( CModelServerOrClient soc, StringHash hash );
+cmodel_t * CM_FindCModel( CModelServerOrClient soc, StringHash hash );
+cmodel_t * CM_TryFindCModel( CModelServerOrClient soc, StringHash hash );
 
 bool CM_IsBrushModel( CModelServerOrClient soc, StringHash hash );
 
 int CM_NumClusters( const CollisionModel *cms );
 int CM_NumAreas( const CollisionModel *cms );
-char *CM_EntityString( const CollisionModel *cms );
-int CM_EntityStringLen( const CollisionModel *cms );
+const char * CM_EntityString( const CollisionModel *cms );
+size_t CM_EntityStringLen( const CollisionModel *cms );
 
 // creates a clipping hull for an arbitrary bounding box
-struct cmodel_s *CM_ModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs );
-struct cmodel_s *CM_OctagonModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs );
-void CM_InlineModelBounds( const CollisionModel *cms, const struct cmodel_s *cmodel, Vec3 * mins, Vec3 * maxs );
+cmodel_t *CM_ModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs );
+cmodel_t *CM_OctagonModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs );
+void CM_InlineModelBounds( const CollisionModel *cms, const cmodel_t *cmodel, Vec3 * mins, Vec3 * maxs );
 
 // returns an ORed contents mask
-int CM_TransformedPointContents( CModelServerOrClient soc, CollisionModel * cms, Vec3 p, struct cmodel_s *cmodel, Vec3 origin, Vec3 angles );
+int CM_TransformedPointContents( CModelServerOrClient soc, CollisionModel * cms, Vec3 p, cmodel_t *cmodel, Vec3 origin, Vec3 angles );
 
 void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, Vec3 start, Vec3 end, Vec3 mins, Vec3 maxs,
-							 struct cmodel_s *cmodel, int brushmask, Vec3 origin, Vec3 angles );
+							 const cmodel_t *cmodel, int brushmask, Vec3 origin, Vec3 angles );
 
 int CM_ClusterRowSize( const CollisionModel *cms );
 int CM_AreaRowSize( const CollisionModel *cms );
@@ -224,6 +224,3 @@ void CM_WriteAreaBits( CollisionModel *cms, uint8_t *buffer );
 bool CM_HeadnodeVisible( CollisionModel *cms, int headnode, uint8_t *visbits );
 
 void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out );
-
-void CM_Init( void );
-void CM_Shutdown( void );

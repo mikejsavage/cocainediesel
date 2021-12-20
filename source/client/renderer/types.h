@@ -24,8 +24,8 @@ struct Shader {
 	u32 program;
 	u64 uniforms[ 8 ];
 	u64 textures[ 4 ];
-	u64 texture_buffers[ 4 ];
-	u64 texture_array;
+	u64 texture_buffers[ 8 ];
+	u64 texture_arrays[ 2 ];
 };
 
 struct VertexBuffer {
@@ -64,9 +64,37 @@ struct Mesh {
 
 struct GPUParticle {
 	Vec3 position;
+	float angle;
+	Vec3 velocity;
+	float rotation_speed;
+	float acceleration;
+	float drag;
+	float restitution;
+	Vec4 uvwh;
+	RGBA8 start_color;
+	RGBA8 end_color;
+	float start_size;
+	float end_size;
+	float age;
+	float lifetime;
+	u32 flags;
+};
+
+struct GPUParticleFeedback {
+	Vec3 position_normal;
+	RGB8 color;
+	u8 parm;
+};
+
+struct TRS {
+	Quaternion rotation;
+	Vec3 translation;
 	float scale;
-	float t;
-	RGBA8 color;
+};
+
+struct MatrixPalettes {
+	Span< Mat4 > node_transforms;
+	Span< Mat4 > skinning_matrices;
 };
 
 struct Font;

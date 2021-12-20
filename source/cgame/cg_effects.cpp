@@ -1,217 +1,16 @@
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
-void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	{
-		ParticleEmitter emitter = { };
-		emitter.position = origin;
-
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = normal;
-		emitter.direction_cone.theta = 80.0f;
-
-		emitter.start_speed = 500.0f;
-		emitter.end_speed = 200.0f;
-		emitter.speed_distribution.type = RandomDistributionType_Uniform;
-		emitter.speed_distribution.uniform = 100.0f;
-
-		emitter.start_color = Vec4( 1.0f, 1.0f, 1.0f, 1.0f );
-		emitter.end_color = Vec3( 1.0f, 1.0f, 1.0f );
-
-		emitter.start_size = 4.0f;
-		emitter.end_size = 4.0f;
-
-		emitter.lifetime = 1.5f;
-		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = 0.15f;
-
-		emitter.n = 24;
-
-		EmitParticles( &cgs.sparks, emitter );
-	}
-
-	{
-		ParticleEmitter emitter = { };
-		emitter.position = origin;
-
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = normal;
-		emitter.direction_cone.theta = 180.0f;
-
-		emitter.start_speed = 200.0f;
-		emitter.end_speed = 50.0f;
-
-		float darken = 0.1f;
-		float r = team_color.x >= darken ? team_color.x - darken : 0.0f;
-		float g = team_color.y >= darken ? team_color.y - darken : 0.0f;
-		float b = team_color.z >= darken ? team_color.z - darken : 0.0f;
-
-		emitter.start_color = Vec4( 1.0f, 1.0f, 1.0f, 1.0f );
-		emitter.end_color = Vec3( r, g, b );
-
-		emitter.start_size = 24.0f;
-		emitter.end_size = 12.0f;
-		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = 10.0f;
-
-		emitter.lifetime = 0.30f;
-		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = 0.15f;
-
-		emitter.n = 64;
-
-		EmitParticles( &cgs.sparks, emitter );
-	}
-
-	{
-		ParticleEmitter emitter = { };
-		emitter.position = origin;
-
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = normal;
-		emitter.direction_cone.theta = 180.0f;
-
-		emitter.start_speed = 200.0f;
-		emitter.end_speed = 50.0f;
-
-		emitter.start_color = Vec4( 1.0f, 1.0f, 1.0f, 1.0f );
-		emitter.end_color = team_color;
-
-		emitter.start_size = 16.0f;
-		emitter.end_size = 16.0f;
-		emitter.size_distribution.type = RandomDistributionType_Uniform;
-		emitter.size_distribution.uniform = 16.0f;
-
-		emitter.lifetime = 0.3f;
-		emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-		emitter.lifetime_distribution.uniform = 0.2f;
-
-		emitter.n = 256;
-
-		EmitParticles( &cgs.ions, emitter );
-	}
-
-	{
-		ParticleEmitter emitter = { };
-		emitter.position = origin;
-
-		emitter.use_cone_direction = true;
-		emitter.direction_cone.normal = normal;
-		emitter.direction_cone.theta = 5.0f;
-
-		emitter.start_speed = 200.0f;
-		emitter.end_speed = 0.0f;
-
-		emitter.start_color = Vec4( 1.0f, 1.0f, 1.0f, 1.0f );
-		emitter.end_color = Vec3( 1.0f, 1.0f, 1.0f );
-
-		emitter.start_size = 64.0f;
-		emitter.end_size = 0.0f;
-
-		emitter.lifetime = 0.5f;
-
-		emitter.n = 1;
-
-		EmitParticles( &cgs.sparks, emitter );
-	}
-}
-
-void PlasmaImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	ParticleEmitter emitter = { };
-	emitter.position = origin;
-
-	emitter.use_cone_direction = true;
-	emitter.direction_cone.normal = normal;
-	emitter.direction_cone.theta = 90.0f;
-
-	emitter.start_speed = 125.0f;
-	emitter.end_speed = 25.0f;
-
-	emitter.start_color = Vec4( team_color, 0.5f );
-	emitter.end_color = team_color;
-
-	emitter.start_size = 32.0f;
-	emitter.end_size = 32.0f;
-	emitter.size_distribution.type = RandomDistributionType_Uniform;
-	emitter.size_distribution.uniform = 8.0f;
-
-	emitter.lifetime = 0.15f;
-	emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-	emitter.lifetime_distribution.uniform = 0.1f;
-
-	emitter.n = 8;
-
-	EmitParticles( &cgs.sparks, emitter );
-}
-
-void BubbleImpactParticles( Vec3 origin, Vec3 team_color ) {
-	ParticleEmitter emitter = { };
-	emitter.position = origin;
-
-	emitter.start_speed = 200.0f;
-	emitter.end_speed = 0.0f;
-
-	emitter.start_color = Vec4( team_color, 1.0f );
-	emitter.end_color = team_color;
-
-	emitter.start_size = 1.5f;
-	emitter.end_size = 0.0f;
-	emitter.size_distribution.type = RandomDistributionType_Uniform;
-	emitter.size_distribution.uniform = 1.5f;
-
-	emitter.lifetime = 0.5f;
-	emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-	emitter.lifetime_distribution.uniform = 0.5f;
-
-	emitter.red_distribution.uniform = 0.5f;
-	emitter.blue_distribution.uniform = 0.5f;
-
-	emitter.n = 64;
-
-	EmitParticles( &cgs.sparks, emitter );
-}
-
 void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
-	ParticleEmitter emitter = { };
-	emitter.position = start;
-	emitter.position_distribution.type = RandomDistribution3DType_Line;
-	emitter.position_distribution.line.end = end;
-
-	emitter.start_speed = 4.0f;
-	emitter.end_speed = 0.0f;
-
-	emitter.start_color = color;
-	emitter.end_color = color.xyz();
-
-	RandomDistribution color_dist;
-	color_dist.type = RandomDistributionType_Uniform;
-	color_dist.uniform = 0.1f;
-	emitter.red_distribution = color_dist;
-	emitter.green_distribution = color_dist;
-	emitter.blue_distribution = color_dist;
-	emitter.alpha_distribution = color_dist;
-
-	emitter.start_size = 1.0f;
-	emitter.end_size = 1.0f;
-	emitter.size_distribution.type = RandomDistributionType_Uniform;
-	emitter.size_distribution.uniform = 0.1f;
-
-	emitter.lifetime = 0.9f;
-	emitter.lifetime_distribution.type = RandomDistributionType_Uniform;
-	emitter.lifetime_distribution.uniform = 0.3f;
-
 	constexpr int max_ions = 256;
 	float distance_between_particles = 4.0f;
-
 	float len = Length( end - start );
-
-	emitter.n = Min2( len / distance_between_particles + 1.0f, float( max_ions ) );
-
-	EmitParticles( &cgs.ions, emitter );
+	float count = Min2( len / distance_between_particles + 1.0f, float( max_ions ) );
+	DoVisualEffect( "weapons/eb/trail", start, end, count, color );
 }
 
-void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material ) {
-	if( material == NULL )
+void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material_name ) {
+	if( start == end || start == frame_static.position )
 		return;
 
 	Vec3 dir = Normalize( end - start );
@@ -241,6 +40,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 		end - end_width * beam_across * 0.5f,
 	};
 
+	const Material * material = FindMaterial( material_name );
 	float texture_aspect_ratio = float( material->texture->width ) / float( material->texture->height );
 	float beam_aspect_ratio = Length( end - start ) / width;
 	float repetitions = beam_aspect_ratio / texture_aspect_ratio;
@@ -287,7 +87,7 @@ struct PersistentBeam {
 	Vec3 start, end;
 	float width;
 	Vec4 color;
-	const Material * material;
+	StringHash material;
 
 	s64 spawn_time;
 	float duration;
@@ -302,7 +102,7 @@ void InitPersistentBeams() {
 	num_persistent_beams = 0;
 }
 
-void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material, float duration, float fade_time ) {
+void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material, float duration, float fade_time ) {
 	if( num_persistent_beams == ARRAY_COUNT( persistent_beams ) )
 		return;
 

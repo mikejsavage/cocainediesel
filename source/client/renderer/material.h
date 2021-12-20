@@ -51,14 +51,20 @@ struct Material {
 	ColorGen alphagen;
 	BlendFunc blend_func = BlendFunc_Disabled;
 	bool double_sided = false;
-	bool discard = false;
 	bool decal = false;
-	float alpha_cutoff = 0.0f;
+	bool mask_outlines = false;
+	bool shaded = false;
+	float specular = 0.0f;
+	float shininess = 64.0f;
 
 	TCMod tcmod = { };
 };
 
 extern Material world_material;
+extern Material wallbang_material;
+
+bool CompressedTextureFormat( TextureFormat format );
+u32 BitsPerPixel( TextureFormat format );
 
 void InitMaterials();
 void HotloadMaterials();

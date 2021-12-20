@@ -20,25 +20,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "cgame/cg_local.h"
 #include "client/ui.h"
+#include "qcommon/fs.h"
 
-/*
-==========================================================================
-
-SERVER COMMANDS
-
-==========================================================================
-*/
-
-/*
-* CG_SC_Print
-*/
-static void CG_SC_Print( void ) {
+static void CG_SC_Print() {
 	CG_LocalPrint( "%s", Cmd_Argv( 1 ) );
 }
 
-/*
-* CG_SC_ChatPrint
-*/
 static void CG_SC_ChatPrint() {
 	bool teamonly = Q_stricmp( Cmd_Argv( 0 ), "tch" ) == 0;
 	int who = atoi( Cmd_Argv( 1 ) );
@@ -47,7 +34,7 @@ static void CG_SC_ChatPrint() {
 		return;
 	}
 
-	if( cg_chatFilter->integer & ( teamonly ? 2 : 1 ) ) {
+	if( cg_chat->integer == 0 ) {
 		return;
 	}
 
@@ -58,7 +45,7 @@ static void CG_SC_ChatPrint() {
 		return;
 	}
 
-	const char * name = cgs.clientInfo[ who - 1 ].name;
+	const char * name = PlayerName( who - 1 );
 	int team = cg_entities[ who ].current.team;
 	RGB8 team_color = team == TEAM_SPECTATOR ? RGB8( 128, 128, 128 ) : CG_TeamColor( team );
 
@@ -72,124 +59,50 @@ static void CG_SC_ChatPrint() {
 		prefix,
 		( const char * ) ImGuiColorToken( team_color ).token, name,
 		( const char * ) ImGuiColorToken( rgba8_white ).token, text );
-
-	if( !cgs.demoPlaying ) {
-		CG_FlashChatHighlight( who - 1, text );
-	}
 }
 
-/*
-* CG_SC_CenterPrint
-*/
-static void CG_SC_CenterPrint( void ) {
+static void CG_SC_CenterPrint() {
 	CG_CenterPrint( Cmd_Argv( 1 ) );
 }
 
-/*
-* CG_ConfigString
-*/
-void CG_ConfigString( int i, const char *s ) {
-	size_t len;
-
-	// wsw : jal : warn if configstring overflow
-	len = strlen( s );
-	if( len >= MAX_CONFIGSTRING_CHARS ) {
-		Com_Printf( "%sWARNING:%s Configstring %i overflowed\n", S_COLOR_YELLOW, S_COLOR_WHITE, i );
+static void CG_SC_Debug() {
+	if( cg_showServerDebugPrints->integer != 0 ) {
+		Com_Printf( S_COLOR_ORANGE "Debug: %s\n", Cmd_Argv( 1 ) );
 	}
+}
 
-	if( i < 0 || i >= MAX_CONFIGSTRINGS ) {
-		Com_Error( ERR_DROP, "configstring > MAX_CONFIGSTRINGS" );
+static void SendServerCommand() {
+	if( cls.demo.playing ) {
 		return;
 	}
 
-	Q_strncpyz( cgs.configStrings[i], s, sizeof( cgs.configStrings[i] ) );
+	char buf[ 1024 ];
+	snprintf( buf, sizeof( buf ), "%s %s", Cmd_Argv( 0 ), Cmd_Args() );
+	CL_AddReliableCommand( buf );
+}
 
-	// do something apropriate
+void CG_ConfigString( int i ) {
 	if( i == CS_AUTORECORDSTATE ) {
-		CG_SC_AutoRecordAction( cgs.configStrings[i] );
-	} else if( i >= CS_PLAYERINFOS && i < CS_PLAYERINFOS + MAX_CLIENTS ) {
-		CG_LoadClientInfo( i - CS_PLAYERINFOS );
-	} else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
-		if( !cgs.demoPlaying ) {
-			Cmd_AddCommand( cgs.configStrings[i], NULL );
+		CG_SC_AutoRecordAction( cl.configstrings[ i ] );
+	}
+	else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
+		if( !cgs.demoPlaying && !StrEqual( cl.configstrings[ i ], "" ) ) {
+			AddCommand( cl.configstrings[ i ], SendServerCommand );
 		}
 	}
 }
 
-/*
-* CG_SC_Scoreboard
-*/
-static void CG_SC_Scoreboard( void ) {
-	SCR_UpdateScoreboardMessage( Cmd_Argv( 1 ) );
-}
-
-static int ParseIntOr0( const char ** cursor ) {
-	Span< const char > token = ParseToken( cursor, Parse_DontStopOnNewLine );
-	int x;
-	return SpanToInt( token, &x ) ? x : 0;
-}
-
-static void CG_SC_PlayerStats() {
-	const char * s = Cmd_Argv( 1 );
-
-	int playerNum = ParseIntOr0( &s );
-	if( playerNum < 0 || playerNum >= client_gs.maxclients ) {
-		return;
-	}
-
-	Com_Printf( "Stats for %s" S_COLOR_WHITE ":\n", cgs.clientInfo[playerNum].name );
-	Com_Printf( "\nWeapon\n" );
-	Com_Printf( "    hit/shot percent\n" );
-
-	for( WeaponType i = Weapon_Knife; i < Weapon_Count; i++ ) {
-		const WeaponDef * weapon = GS_GetWeaponDef( i );
-
-		int shots = ParseIntOr0( &s );
-		if( shots < 1 ) { // only continue with registered shots
-			continue;
-		}
-		int hits = ParseIntOr0( &s );
-
-		// name
-		Com_Printf( S_COLOR_WHITE "%2s: ", weapon->short_name );
-
-#define STATS_PERCENT( hit, total ) ( ( total ) == 0 ? 0 : ( ( hit ) == ( total ) ? 100 : (float)( hit ) * 100.0f / (float)( total ) ) )
-
-		// total
-		Com_Printf( S_COLOR_GREEN "%3i" S_COLOR_WHITE "/" S_COLOR_CYAN "%3i      " S_COLOR_YELLOW "%2.1f\n",
-			   hits, shots, STATS_PERCENT( hits, shots ) );
-	}
-
-	Com_Printf( "\n" );
-
-	int total_damage_given = ParseIntOr0( &s );
-	int total_damage_received = ParseIntOr0( &s );
-
-	Com_Printf( S_COLOR_YELLOW "Damage given/received: " S_COLOR_WHITE "%i/%i " S_COLOR_YELLOW "ratio: %s%3.2f\n",
-		total_damage_given, total_damage_received,
-		total_damage_given > total_damage_received ? S_COLOR_GREEN : S_COLOR_RED,
-		STATS_PERCENT( total_damage_given, total_damage_given + total_damage_received ) );
-
-#undef STATS_PERCENT
-}
-
-/*
-* CG_SC_AutoRecordName
-*/
-static const char *CG_SC_AutoRecordName( void ) {
+static const char *CG_SC_AutoRecordName() {
 	static char name[MAX_STRING_CHARS];
 
 	char date[ 128 ];
-	Sys_FormatTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
+	Sys_FormatCurrentTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
-	snprintf( name, sizeof( name ), "%s_%s_%04i", date, cl.map->name, random_uniform( &cls.rng, 0, 10000 ) );
+	snprintf( name, sizeof( name ), "%s_%s_%04i", date, cl.map->name, RandomUniform( &cls.rng, 0, 10000 ) );
 
 	return name;
 }
 
-/*
-* CG_SC_AutoRecordAction
-*/
 void CG_SC_AutoRecordAction( const char *action ) {
 	static bool autorecording = false;
 	const char *name;
@@ -204,8 +117,9 @@ void CG_SC_AutoRecordAction( const char *action ) {
 		return;
 	}
 
-	// let configstrings and other stuff arrive before taking any action
-	if( !cgs.precacheDone ) {
+	// TODO: AutoRecordName segfaults without this because sometimes we
+	// receive configstrings before the map when connecting
+	if( !cgs.rendered_a_frame ) {
 		return;
 	}
 
@@ -217,29 +131,26 @@ void CG_SC_AutoRecordAction( const char *action ) {
 
 	name = CG_SC_AutoRecordName();
 
+	TempAllocator temp = cls.frame_arena.temp();
+
 	if( !Q_stricmp( action, "start" ) ) {
 		if( cg_autoaction_demo->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			Cbuf_ExecuteText( EXEC_NOW, "stop silent" );
-			Cbuf_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
-			autorecording = true;
-		}
-	} else if( !Q_stricmp( action, "altstart" ) ) {
-		if( cg_autoaction_demo->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			Cbuf_ExecuteText( EXEC_NOW, va( "record autorecord/%s silent", name ) );
+			Cbuf_ExecuteLine( "stop silent" );
+			Cbuf_ExecuteLine( temp( "record autorecord/{} silent", name ) );
 			autorecording = true;
 		}
 	} else if( !Q_stricmp( action, "stop" ) ) {
 		if( autorecording ) {
-			Cbuf_ExecuteText( EXEC_NOW, "stop silent" );
+			Cbuf_ExecuteLine( "stop silent" );
 			autorecording = false;
 		}
 
 		if( cg_autoaction_screenshot->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			Cbuf_ExecuteText( EXEC_NOW, va( "screenshot autorecord/%s silent", name ) );
+			Cbuf_ExecuteLine( temp( "screenshot autorecord/{} silent", name ) );
 		}
 	} else if( !Q_stricmp( action, "cancel" ) ) {
 		if( autorecording ) {
-			Cbuf_ExecuteText( EXEC_NOW, "stop cancel silent" );
+			Cbuf_ExecuteLine( "stop cancel silent" );
 			autorecording = false;
 		}
 	} else if( developer->integer ) {
@@ -247,32 +158,20 @@ void CG_SC_AutoRecordAction( const char *action ) {
 	}
 }
 
-/*
-* CG_Cmd_DemoGet_f
-*/
 static bool demo_requested = false;
-static void CG_Cmd_DemoGet_f( void ) {
+static void CG_Cmd_DemoGet_f() {
 	if( demo_requested ) {
 		Com_Printf( "Already requesting a demo\n" );
 		return;
 	}
 
-	if( Cmd_Argc() != 2 || ( atoi( Cmd_Argv( 1 ) ) <= 0 && Cmd_Argv( 1 )[0] != '.' ) ) {
-		Com_Printf( "Usage: demoget <number>\n" );
-		Com_Printf( "Downloads a demo from the server\n" );
-		Com_Printf( "Use the demolist command to see list of demos on the server\n" );
-		return;
-	}
-
-	Cbuf_ExecuteText( EXEC_NOW, va( "cmd demoget %s", Cmd_Argv( 1 ) ) );
+	TempAllocator temp = cls.frame_arena.temp();
+	Cbuf_ExecuteLine( temp( "demogeturl {}", Cmd_Argv( 1 ) ) );
 
 	demo_requested = true;
 }
 
-/*
-* CG_SC_DemoGet
-*/
-static void CG_SC_DemoGet( void ) {
+static void CG_SC_DownloadDemo() {
 	if( cgs.demoPlaying ) {
 		// ignore download commands coming from demo files
 		return;
@@ -286,7 +185,7 @@ static void CG_SC_DemoGet( void ) {
 	demo_requested = false;
 
 	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "No such demo found\n" );
+		Com_Printf( "Invalid demo ID\n" );
 		return;
 	}
 
@@ -297,46 +196,44 @@ static void CG_SC_DemoGet( void ) {
 		return;
 	}
 
-	trap_DownloadRequest( filename );
+	CL_DownloadFile( filename, []( const char * filename, Span< const u8 > data ) {
+		if( data.ptr == NULL )
+			return;
+
+		TempAllocator temp = cls.frame_arena.temp();
+		const char * path = temp( "{}/demos/server/{}", HomeDirPath(), FileName( filename ) );
+
+		if( FileExists( &temp, path ) ) {
+			Com_Printf( "%s already exists!\n", path );
+			return;
+		}
+
+		if( !WriteFile( &temp, path, data.ptr, data.num_bytes() ) ) {
+			Com_Printf( "Couldn't write to %s\n", path );
+		}
+	} );
 }
 
 static void CG_SC_ChangeLoadout() {
 	if( cgs.demoPlaying )
 		return;
 
-	int weapons[ Weapon_Count ] = { };
-	size_t n = 0;
+	int weapons[ WeaponCategory_Count ] = { };
 
-	if( Cmd_Argc() - 1 >= ARRAY_COUNT( weapons ) )
+	if( Cmd_Argc() != ARRAY_COUNT( weapons ) + 2 )
 		return;
 
-	for( int i = 0; i < Cmd_Argc() - 1; i++ ) {
-		int weapon = atoi( Cmd_Argv( i + 1 ) );
-		if( weapon <= Weapon_None || weapon >= Weapon_Count )
-			return;
-		weapons[ n ] = weapon;
-		n++;
+	for( size_t i = 0; i < ARRAY_COUNT( weapons ); i++ ) {
+		weapons[ i ] = atoi( Cmd_Argv( i + 1 ) );
 	}
 
-	UI_ShowLoadoutMenu( Span< int >( weapons, n ) );
+	PerkType perk = PerkType( atoi( Cmd_Argv( ARRAY_COUNT( weapons ) + 1 ) ) );
+
+	UI_ShowLoadoutMenu( Span< int >( weapons, ARRAY_COUNT( weapons ) ), perk );
 }
 
 static void CG_SC_SaveLoadout() {
 	Cvar_Set( "cg_loadout", Cmd_Args() );
-}
-
-void CG_AddAward( const char * str ) {
-	if( !str || !str[0] ) {
-		return;
-	}
-
-	Q_strncpyz( cg.award_lines[cg.award_head % MAX_AWARD_LINES], str, MAX_CONFIGSTRING_CHARS );
-	cg.award_times[cg.award_head % MAX_AWARD_LINES] = cl.serverTime;
-	cg.award_head++;
-}
-
-static void CG_SC_AddAward() {
-	CG_AddAward( Cmd_Argv( 1 ) );
 }
 
 struct ServerCommand {
@@ -350,10 +247,8 @@ static const ServerCommand server_commands[] = {
 	{ "tch", CG_SC_ChatPrint },
 	{ "cp", CG_SC_CenterPrint },
 	{ "obry", CG_SC_Obituary },
-	{ "scb", CG_SC_Scoreboard },
-	{ "plstats", CG_SC_PlayerStats },
-	{ "demoget", CG_SC_DemoGet },
-	{ "aw", CG_SC_AddAward },
+	{ "debug", CG_SC_Debug },
+	{ "downloaddemo", CG_SC_DownloadDemo },
 	{ "changeloadout", CG_SC_ChangeLoadout },
 	{ "saveloadout", CG_SC_SaveLoadout },
 };
@@ -384,7 +279,7 @@ static void SwitchWeapon( WeaponType weapon ) {
 	cl.weaponSwitch = weapon;
 }
 
-static void CG_Cmd_UseItem_f( void ) {
+static void CG_Cmd_UseItem_f() {
 	if( !Cmd_Argc() ) {
 		Com_Printf( "Usage: 'use <item name>' or 'use <item index>'\n" );
 		return;
@@ -399,36 +294,36 @@ static void CG_Cmd_UseItem_f( void ) {
 	}
 }
 
-static WeaponType CG_UseWeaponStep( SyncPlayerState * ps, bool next, WeaponType predicted_equipped_weapon ) {
-	if( predicted_equipped_weapon == Weapon_Count )
-		return Weapon_Count;
+static void ScrollWeapon( int step ) {
+	WeaponType current = cg.predictedPlayerState.weapon;
+	if( cg.predictedPlayerState.pending_weapon != Weapon_None ) {
+		current = cg.predictedPlayerState.pending_weapon;
+	}
+
+	if( current == Weapon_None )
+		return;
+
+	SyncPlayerState * ps = &cg.predictedPlayerState;
 
 	size_t num_weapons = ARRAY_COUNT( ps->weapons );
-	
-	int weapon;
-	for( weapon = 0; weapon < num_weapons; weapon++ ) { //find the basis weapon
-		if( ps->weapons[ weapon ].weapon == predicted_equipped_weapon ) {
+
+	int slot = 0;
+	for( int i = 0; i < num_weapons; i++ ) {
+		if( ps->weapons[ i ].weapon == current ) {
+			slot = i;
 			break;
 		}
 	}
 
-	int step = ( next ? 1 : -1 );
-	weapon += step;
+	slot += step;
 
-	int end = ( next ? num_weapons : -1 );
-	for( int i = weapon; i != end; i += step ) {
-		if( ps->weapons[ i ].weapon != Weapon_None ) {
-			return ps->weapons[ i ].weapon;
-		}
+	if( slot >= num_weapons || slot < 0 )
+		return;
+
+	WeaponType weapon = ps->weapons[ slot ].weapon;
+	if( weapon != Weapon_None && weapon != Weapon_Knife ) {
+		SwitchWeapon( weapon );
 	}
-
-	for( int i = ( next ? 0 : num_weapons - 1 ); i != end; i+= step ) {
-		if( ps->weapons[ i ].weapon != Weapon_None ) {
-			return ps->weapons[ i ].weapon;
-		}
-	}
-
-	return Weapon_Count;
 }
 
 static void CG_Cmd_NextWeapon_f() {
@@ -437,10 +332,7 @@ static void CG_Cmd_NextWeapon_f() {
 		return;
 	}
 
-	WeaponType weapon = CG_UseWeaponStep( &cg.frame.playerState, true, cg.predictedPlayerState.pending_weapon );
-	if( weapon != Weapon_Count ) {
-		SwitchWeapon( weapon );
-	}
+	ScrollWeapon( 1 );
 }
 
 static void CG_Cmd_PrevWeapon_f() {
@@ -449,10 +341,11 @@ static void CG_Cmd_PrevWeapon_f() {
 		return;
 	}
 
-	WeaponType weapon = CG_UseWeaponStep( &cg.frame.playerState, false, cg.predictedPlayerState.pending_weapon );
-	if( weapon != Weapon_Count ) {
-		SwitchWeapon( weapon );
-	}
+	ScrollWeapon( -1 );
+}
+
+static void CG_Cmd_LastWeapon_f() {
+	SwitchWeapon( cg.predictedPlayerState.last_weapon );
 }
 
 static void CG_Cmd_Weapon_f() {
@@ -463,205 +356,55 @@ static void CG_Cmd_Weapon_f() {
 	}
 }
 
-/*
-* CG_Viewpos_f
-*/
-static void CG_Viewpos_f( void ) {
+static void CG_Viewpos_f() {
 	Com_Printf( "\"origin\" \"%i %i %i\"\n", (int)cg.view.origin.x, (int)cg.view.origin.y, (int)cg.view.origin.z );
 	Com_Printf( "\"angles\" \"%i %i %i\"\n", (int)cg.view.angles.x, (int)cg.view.angles.y, (int)cg.view.angles.z );
 }
 
-// ======================================================================
-
-/*
-* CG_PlayerNamesCompletionExt_f
-*
-* Helper function
-*/
-static const char **CG_PlayerNamesCompletionExt_f( const char *partial, bool teamOnly ) {
-	int i;
-	int team = cg_entities[cgs.playerNum + 1].current.team;
-	const char **matches = NULL;
-	int num_matches = 0;
-
-	if( partial ) {
-		size_t partial_len = strlen( partial );
-
-		matches = (const char **) CG_Malloc( sizeof( char * ) * ( client_gs.maxclients + 1 ) );
-		for( i = 0; i < client_gs.maxclients; i++ ) {
-			cg_clientInfo_t *info = cgs.clientInfo + i;
-			if( !info->name[0] ) {
-				continue;
-			}
-			if( teamOnly && ( cg_entities[i + 1].current.team != team ) ) {
-				continue;
-			}
-			if( !Q_strnicmp( info->name, partial, partial_len ) ) {
-				matches[num_matches++] = info->name;
-			}
-		}
-		matches[num_matches] = NULL;
-	}
-
-	return matches;
-}
-
-/*
-* CG_PlayerNamesCompletion_f
-*/
-static const char **CG_PlayerNamesCompletion_f( const char *partial ) {
-	return CG_PlayerNamesCompletionExt_f( partial, false );
-}
-
-/*
-* CG_TeamPlayerNamesCompletion_f
-*/
-static const char **CG_TeamPlayerNamesCompletion_f( const char *partial ) {
-	return CG_PlayerNamesCompletionExt_f( partial, true );
-}
-
-/*
-* CG_SayCmdAdd_f
-*/
-static void CG_SayCmdAdd_f( void ) {
-	Cmd_SetCompletionFunc( "say", &CG_PlayerNamesCompletion_f );
-}
-
-/*
-* CG_SayTeamCmdAdd_f
-*/
-static void CG_SayTeamCmdAdd_f( void ) {
-	Cmd_SetCompletionFunc( "say_team", &CG_TeamPlayerNamesCompletion_f );
-}
-
-/*
-* CG_StatsCmdAdd_f
-*/
-static void CG_StatsCmdAdd_f( void ) {
-	Cmd_SetCompletionFunc( "stats", &CG_PlayerNamesCompletion_f );
-}
-
-// server commands
-static const ServerCommand cg_consvcmds[] = {
-	{ "say", CG_SayCmdAdd_f },
-	{ "say_team", CG_SayTeamCmdAdd_f },
-	{ "stats", CG_StatsCmdAdd_f },
-
-	{ NULL, NULL }
+// local cgame commands
+struct cgcmd_t {
+	const char *name;
+	void ( *func )();
+	bool allowdemo;
 };
 
-// local cgame commands
-typedef struct
-{
-	const char *name;
-	void ( *func )( void );
-	bool allowdemo;
-} cgcmd_t;
-
-static const cgcmd_t cgcmds[] =
-{
+static const cgcmd_t cgcmds[] = {
 	{ "+scores", CG_ScoresOn_f, true },
 	{ "-scores", CG_ScoresOff_f, true },
 	{ "demoget", CG_Cmd_DemoGet_f, false },
-	{ "demolist", NULL, false },
 	{ "use", CG_Cmd_UseItem_f, false },
+	{ "lastweapon", CG_Cmd_LastWeapon_f, false },
 	{ "weapnext", CG_Cmd_NextWeapon_f, false },
 	{ "weapprev", CG_Cmd_PrevWeapon_f, false },
 	{ "weapon", CG_Cmd_Weapon_f, false },
 	{ "viewpos", CG_Viewpos_f, true },
-	{ "players", NULL, false },
-	{ "spectators", NULL, false },
-
-	{ NULL, NULL, false }
 };
 
-/*
-* CG_RegisterCGameCommands
-*/
-void CG_RegisterCGameCommands( void ) {
-	int i;
-	char *name;
-	const cgcmd_t *cmd;
-
-	if( !cgs.demoPlaying ) {
-		const ServerCommand *svcmd;
-
-		// add game side commands
-		for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
-			name = cgs.configStrings[CS_GAMECOMMANDS + i];
-			if( !name[0] ) {
-				continue;
-			}
-
-			// check for local command overrides
-			for( cmd = cgcmds; cmd->name; cmd++ ) {
-				if( !Q_stricmp( cmd->name, name ) ) {
-					break;
-				}
-			}
-			if( cmd->name ) {
-				continue;
-			}
-
-			Cmd_AddCommand( name, NULL );
-
-			// check for server commands we might want to do some special things for..
-			for( svcmd = cg_consvcmds; svcmd->name; svcmd++ ) {
-				if( !Q_stricmp( svcmd->name, name ) ) {
-					if( svcmd->func ) {
-						svcmd->func();
-					}
-					break;
-				}
-			}
-		}
-	}
-
-	// add local commands
-	for( cmd = cgcmds; cmd->name; cmd++ ) {
-		if( cgs.demoPlaying && !cmd->allowdemo ) {
+void CG_RegisterCGameCommands() {
+	for( const cgcmd_t & cmd : cgcmds ) {
+		if( cgs.demoPlaying && !cmd.allowdemo ) {
 			continue;
 		}
-		Cmd_AddCommand( cmd->name, cmd->func );
+		AddCommand( cmd.name, cmd.func );
 	}
 }
 
-/*
-* CG_UnregisterCGameCommands
-*/
-void CG_UnregisterCGameCommands( void ) {
-	int i;
-	char *name;
-	const cgcmd_t *cmd;
-
+void CG_UnregisterCGameCommands() {
 	if( !cgs.demoPlaying ) {
 		// remove game commands
-		for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
-			name = cgs.configStrings[CS_GAMECOMMANDS + i];
-			if( !name[0] ) {
-				continue;
+		for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
+			const char * name = cl.configstrings[CS_GAMECOMMANDS + i];
+			if( !StrEqual( name, "" ) ) {
+				RemoveCommand( name );
 			}
-
-			// check for local command overrides so we don't try
-			// to unregister them twice
-			for( cmd = cgcmds; cmd->name; cmd++ ) {
-				if( !Q_stricmp( cmd->name, name ) ) {
-					break;
-				}
-			}
-			if( cmd->name ) {
-				continue;
-			}
-
-			Cmd_RemoveCommand( name );
 		}
 	}
 
 	// remove local commands
-	for( cmd = cgcmds; cmd->name; cmd++ ) {
-		if( cgs.demoPlaying && !cmd->allowdemo ) {
+	for( const cgcmd_t & cmd : cgcmds ) {
+		if( cgs.demoPlaying && !cmd.allowdemo ) {
 			continue;
 		}
-		Cmd_RemoveCommand( cmd->name );
+		RemoveCommand( cmd.name );
 	}
 }

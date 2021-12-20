@@ -22,10 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/string.h"
 #include "game/g_local.h"
 
-/*
-* G_Timeout_Reset
-*/
-void G_Timeout_Reset( void ) {
+void G_Timeout_Reset() {
 	G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, false );
 	level.timeout = { };
 }
@@ -38,7 +35,6 @@ void G_Timeout_Reset( void ) {
 static void G_Timeout_Update( unsigned int msec ) {
 	static int timeout_printtime = 0;
 	static int timeout_last_endtime = 0;
-	static int countdown_set = 1;
 
 	if( !GS_MatchPaused( &server_gs ) ) {
 		return;
@@ -66,12 +62,14 @@ static void G_Timeout_Update( unsigned int msec ) {
 			int seconds_left = (int)( ( level.timeout.endtime - level.timeout.time ) / 1000.0 + 0.5 );
 
 			if( seconds_left == ( TIMEIN_TIME * 2 ) / 1000 ) {
-				G_AnnouncerSound( NULL, StringHash( va( S_ANNOUNCER_COUNTDOWN_READY_1_to_2, random_uniform( &svs.rng, 1, 3 ) ) ),
-								  GS_MAX_TEAMS, false, NULL );
-				countdown_set = random_uniform( &svs.rng, 1, 3 );
+				G_AnnouncerSound( NULL, StringHash( "sounds/announcer/ready" ), GS_MAX_TEAMS, false, NULL );
 			} else if( seconds_left >= 1 && seconds_left <= 3 ) {
-				G_AnnouncerSound( NULL, StringHash( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, seconds_left,
-															 countdown_set ) ), GS_MAX_TEAMS, false, NULL );
+				constexpr StringHash countdown[] = {
+					"sounds/announcer/1",
+					"sounds/announcer/2",
+					"sounds/announcer/3",
+				};
+				G_AnnouncerSound( NULL, countdown[ seconds_left + 1 ], GS_MAX_TEAMS, false, NULL );
 			}
 
 			G_CenterPrintMsg( NULL, "Match will resume in %i %s", seconds_left, seconds_left == 1 ? "second" : "seconds" );
@@ -87,52 +85,12 @@ static void G_Timeout_Update( unsigned int msec ) {
 * G_UpdateServerInfo
 * update the cvars which show the match state at server browsers
 */
-static void G_UpdateServerInfo( void ) {
-	// g_match_time
-	if( GS_MatchState( &server_gs ) <= MATCH_STATE_WARMUP ) {
-		Cvar_ForceSet( "g_match_time", "Warmup" );
-	} else if( GS_MatchState( &server_gs ) == MATCH_STATE_COUNTDOWN ) {
-		Cvar_ForceSet( "g_match_time", "Countdown" );
-	} else if( GS_MatchState( &server_gs ) == MATCH_STATE_PLAYTIME ) {
-		// partly from G_GetMatchState
-		char extra[MAX_INFO_VALUE];
-		int clocktime, timelimit, mins, secs;
-
-		if( GS_MatchDuration( &server_gs ) ) {
-			timelimit = ( ( GS_MatchDuration( &server_gs ) ) * 0.001 ) / 60;
-		} else {
-			timelimit = 0;
-		}
-
-		clocktime = (float)( svs.gametime - GS_MatchStartTime( &server_gs ) ) * 0.001f;
-
-		if( clocktime <= 0 ) {
-			mins = 0;
-			secs = 0;
-		} else {
-			mins = clocktime / 60;
-			secs = clocktime - mins * 60;
-		}
-
-		extra[0] = 0;
-		if( GS_MatchPaused( &server_gs ) ) {
-			Q_strncatz( extra, " (in timeout)", sizeof( extra ) );
-		}
-
-		if( timelimit ) {
-			Cvar_ForceSet( "g_match_time", va( "%02i:%02i / %02i:00%s", mins, secs, timelimit, extra ) );
-		} else {
-			Cvar_ForceSet( "g_match_time", va( "%02i:%02i%s", mins, secs, extra ) );
-		}
-	} else {
-		Cvar_ForceSet( "g_match_time", "Finished" );
-	}
-
+static void G_UpdateServerInfo() {
 	// g_match_score
-	if( GS_MatchState( &server_gs ) >= MATCH_STATE_PLAYTIME && GS_TeamBasedGametype( &server_gs ) ) {
+	if( server_gs.gameState.match_state >= MatchState_Playing && level.gametype.isTeamBased ) {
 		String< MAX_INFO_STRING > score( "{}: {} {}: {}",
-			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.bomb.alpha_score,
-			GS_TeamName( TEAM_BETA ), server_gs.gameState.bomb.beta_score );
+			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.teams[ TEAM_ALPHA ].score,
+			GS_TeamName( TEAM_BETA ), server_gs.gameState.teams[ TEAM_BETA ].score );
 
 		Cvar_ForceSet( "g_match_score", score.c_str() );
 	} else {
@@ -140,24 +98,29 @@ static void G_UpdateServerInfo( void ) {
 	}
 
 	// g_needpass
-	if( password->modified ) {
-		if( password->string && strlen( password->string ) ) {
-			Cvar_ForceSet( "g_needpass", "1" );
-		} else {
-			Cvar_ForceSet( "g_needpass", "0" );
-		}
-		password->modified = false;
-	}
+	Cvar_ForceSet( "g_needpass", StrEqual( sv_password->value, "" ) ? "0" : "1" );
+}
+
+static void G_UpdateClientScoreboard( edict_t * ent ) {
+	const score_stats_t * stats = G_ClientGetStats( ent );
+	SyncScoreboardPlayer * player = &server_gs.gameState.players[ PLAYERNUM( ent ) ];
+
+	player->ping = ent->r.client->r.ping;
+	player->score = stats->score;
+	player->kills = stats->kills;
+	player->ready = stats->ready;
+	player->carrier = ent->r.client->ps.carrying_bomb;
+	player->alive = !( G_IsDead( ent ) || G_ISGHOSTING( ent ) );
 }
 
 /*
 * G_CheckCvars
 * Check for cvars that have been modified and need the game to be updated
 */
-void G_CheckCvars( void ) {
+void G_CheckCvars() {
 	if( g_antilag_maxtimedelta->modified ) {
 		if( g_antilag_maxtimedelta->integer < 0 ) {
-			Cvar_SetValue( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
+			Cvar_SetInteger( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
 		}
 		g_antilag_maxtimedelta->modified = false;
 		g_antilag_timenudge->modified = true;
@@ -165,16 +128,16 @@ void G_CheckCvars( void ) {
 
 	if( g_antilag_timenudge->modified ) {
 		if( g_antilag_timenudge->integer > g_antilag_maxtimedelta->integer ) {
-			Cvar_SetValue( "g_antilag_timenudge", g_antilag_maxtimedelta->integer );
+			Cvar_SetInteger( "g_antilag_timenudge", g_antilag_maxtimedelta->integer );
 		} else if( g_antilag_timenudge->integer < -g_antilag_maxtimedelta->integer ) {
-			Cvar_SetValue( "g_antilag_timenudge", -g_antilag_maxtimedelta->integer );
+			Cvar_SetInteger( "g_antilag_timenudge", -g_antilag_maxtimedelta->integer );
 		}
 		g_antilag_timenudge->modified = false;
 	}
 
 	if( g_warmup_timelimit->modified ) {
 		// if we are inside timelimit period, update the endtime
-		if( GS_MatchState( &server_gs ) == MATCH_STATE_WARMUP ) {
+		if( server_gs.gameState.match_state == MatchState_Warmup ) {
 			server_gs.gameState.match_duration = (int64_t)Abs( 60.0f * 1000 * g_warmup_timelimit->integer );
 		}
 		g_warmup_timelimit->modified = false;
@@ -183,38 +146,24 @@ void G_CheckCvars( void ) {
 	// update gameshared server settings
 
 	// FIXME: This should be restructured so gameshared settings are the master settings
-	G_GamestatSetFlag( GAMESTAT_FLAG_HASCHALLENGERS, level.gametype.hasChallengersQueue );
-
 	G_GamestatSetFlag( GAMESTAT_FLAG_ISTEAMBASED, level.gametype.isTeamBased );
-	G_GamestatSetFlag( GAMESTAT_FLAG_ISRACE, level.gametype.isRace );
-
 	G_GamestatSetFlag( GAMESTAT_FLAG_COUNTDOWN, level.gametype.countdownEnabled );
-	G_GamestatSetFlag( GAMESTAT_FLAG_INHIBITSHOOTING, level.gametype.shootingDisabled );
-
-	server_gs.gameState.max_team_players = Clamp( 0, level.gametype.maxPlayersPerTeam, 255 );
-
 }
 
 //===================================================================
 //		SNAP FRAMES
 //===================================================================
 
-/*
-* G_SnapClients
-*/
-void G_SnapClients( void ) {
-	int i;
-	edict_t *ent;
-
+void G_SnapClients() {
 	// calc the player views now that all pushing and damage has been added
-	for( i = 0; i < server_gs.maxclients; i++ ) {
-		ent = game.edicts + 1 + i;
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		edict_t * ent = game.edicts + 1 + i;
 		if( !ent->r.inuse || !ent->r.client ) {
 			continue;
 		}
 
 		G_Client_InactivityRemove( ent->r.client );
-
+		G_UpdateClientScoreboard( ent );
 		G_ClientEndSnapFrame( ent );
 	}
 
@@ -236,32 +185,6 @@ static void G_SnapEntities() {
 			// this is pretty hackish
 			ent->s.origin2 = ent->velocity;
 		}
-
-		if( ent->s.type == ET_PLAYER ) {
-			// Until we get a proper damage saved effect, we accumulate both into the blood fx
-			// so, at least, we don't send 2 entities where we can send one
-			ent->snap.damage_taken += ent->snap.damage_saved;
-
-			//spawn accumulated damage
-			if( ent->snap.damage_taken && !( ent->flags & FL_GODMODE ) ) {
-				float damage = Min2( ent->snap.damage_taken, 120.0f );
-
-				Vec3 dir = SafeNormalize( ent->snap.damage_dir );
-				Vec3 origin = ent->s.origin + ent->snap.damage_at;
-
-				edict_t * event = G_SpawnEvent( EV_BLOOD, DirToByte( dir ), &origin );
-				event->s.radius = HEALTH_TO_INT( damage );
-				event->s.team = ent->s.team;
-
-				if( !G_IsDead( ent ) ) {
-					// play an apropriate pain sound
-					if( level.time >= ent->pain_debounce_time ) {
-						G_AddEvent( ent, EV_PAIN, ent->health <= 25 ? PAIN_20 : PAIN_100, true );
-						ent->pain_debounce_time = level.time + 400;
-					}
-				}
-			}
-		}
 	}
 }
 
@@ -273,7 +196,7 @@ static StringHash entity_sound_backup[MAX_EDICTS];
 * We just run G_SnapFrame, the server just sent the snap to the clients,
 * it's now time to clean up snap specific data to start the next snap from clean.
 */
-void G_ClearSnap( void ) {
+void G_ClearSnap() {
 	edict_t *ent;
 
 	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
@@ -318,7 +241,7 @@ void G_ClearSnap( void ) {
 * G_SnapFrame
 * It's time to send a new snap, so set the world up for sending
 */
-void G_SnapFrame( void ) {
+void G_SnapFrame() {
 	edict_t *ent;
 	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
 
@@ -337,29 +260,13 @@ void G_SnapFrame( void ) {
 
 	// set entity bits (prepare entities for being sent in the snap)
 	for( ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
-		if( ent->s.number != ENTNUM( ent ) ) {
-			if( developer->integer ) {
-				Com_Printf( "fixing ent->s.number (etype:%i, classname:%s)\n", ent->s.type, ent->classname ? ent->classname : "noclassname" );
-			}
-			ent->s.number = ENTNUM( ent );
-		}
+		assert( ent->s.number == ENTNUM( ent ) );
 
 		// temporary filter (Q2 system to ensure reliability)
 		// ignore ents without visible models unless they have an effect
 		if( !ent->r.inuse ) {
 			ent->r.svflags |= SVF_NOCLIENT;
 			continue;
-		} else if( ent->s.type >= ET_TOTAL_TYPES || ent->s.type < 0 ) {
-			if( developer->integer ) {
-				Com_Printf( "'G_SnapFrame': Inhibiting invalid entity type %i\n", ent->s.type );
-			}
-			ent->r.svflags |= SVF_NOCLIENT;
-			continue;
-		}
-
-		ent->s.effects &= ~EF_TAKEDAMAGE;
-		if( ent->takedamage ) {
-			ent->s.effects |= EF_TAKEDAMAGE;
 		}
 
 		if( GS_MatchPaused( &server_gs ) ) {
@@ -374,12 +281,7 @@ void G_SnapFrame( void ) {
 //		WORLD FRAMES
 //===================================================================
 
-/*
-* G_RunEntities
-* treat each object in turn
-* even the world and clients get a chance to think
-*/
-static void G_RunEntities( void ) {
+static void G_RunEntities() {
 	ZoneScoped;
 
 	edict_t *ent;
@@ -404,41 +306,21 @@ static void G_RunEntities( void ) {
 		}
 
 		G_RunEntity( ent );
-
-		if( ent->takedamage ) {
-			ent->s.effects |= EF_TAKEDAMAGE;
-		} else {
-			ent->s.effects &= ~EF_TAKEDAMAGE;
-		}
 	}
 }
 
-/*
-* G_RunClients
-*/
-static void G_RunClients( void ) {
+static void G_RunClients() {
 	ZoneScoped;
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t *ent = game.edicts + 1 + i;
-		if( !ent->r.inuse ) {
+		if( !ent->r.inuse )
 			continue;
-		}
 
 		G_ClientThink( ent );
-
-		if( ent->takedamage ) {
-			ent->s.effects |= EF_TAKEDAMAGE;
-		} else {
-			ent->s.effects &= ~EF_TAKEDAMAGE;
-		}
 	}
 }
 
-/*
-* G_RunFrame
-* Advances the world
-*/
 void G_RunFrame( unsigned int msec ) {
 	ZoneScoped;
 
@@ -452,7 +334,7 @@ void G_RunFrame( unsigned int msec ) {
 	if( GS_MatchPaused( &server_gs ) ) {
 		unsigned int serverTimeDelta = svs.gametime - game.prevServerTime;
 		// freeze match clock and linear projectiles
-		server_gs.gameState.match_start += serverTimeDelta;
+		server_gs.gameState.match_state_start_time += serverTimeDelta;
 		for( edict_t *ent = game.edicts + server_gs.maxclients; ENTNUM( ent ) < game.numentities; ent++ ) {
 			if( ent->s.linearMovement ) {
 				ent->s.linearMovementTimeStamp += serverTimeDelta;
@@ -466,13 +348,11 @@ void G_RunFrame( unsigned int msec ) {
 
 	// reset warmup clock if not enough players
 	if( GS_MatchWaiting( &server_gs ) ) {
-		server_gs.gameState.match_start = svs.gametime;
+		server_gs.gameState.match_state_start_time = svs.gametime;
 	}
 
 	level.framenum++;
 	level.time += msec;
-
-	G_SpawnQueue_Think();
 
 	// run the world
 	G_RunClients();

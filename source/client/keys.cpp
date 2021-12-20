@@ -82,7 +82,6 @@ static const keyname_t keynames[] = {
 	{ "MOUSE5", K_MOUSE5 },
 	{ "MOUSE6", K_MOUSE6 },
 	{ "MOUSE7", K_MOUSE7 },
-	{ "MOUSE8", K_MOUSE8 },
 
 	{ "KP_HOME", KP_HOME },
 	{ "KP_UPARROW", KP_UPARROW },
@@ -109,7 +108,6 @@ static const keyname_t keynames[] = {
 
 	{ "PAUSE", K_PAUSE },
 
-	{ "SEMICOLON", ';' }, // because a raw semicolon separates commands
 	{ nullptr, 0 }
 };
 
@@ -131,32 +129,30 @@ int Key_StringToKeynum( const char *str ) {
 	return -1;
 }
 
-const char *Key_KeynumToString( int keynum ) {
-	static char tinystr[2];
+Span< const char > Key_KeynumToString( int keynum ) {
+	static constexpr const char uppercase_ascii[] = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~";
 
-	if( keynum > 32 && keynum < 127 ) { // printable ascii
-		tinystr[0] = toupper( keynum );
-		tinystr[1] = 0;
-		return tinystr;
+	if( keynum > 32 && keynum < 127 ) {
+		return Span< const char >( uppercase_ascii + keynum - '!', 1 );
 	}
 
 	for( keyname_t kn : keynames ) {
 		if( keynum == kn.keynum ) {
-			return kn.name;
+			return MakeSpan( kn.name );
 		}
 	}
 
-	return NULL;
+	return Span< const char >();
 }
 
 void Key_SetBinding( int keynum, const char *binding ) {
 	if( keybindings[keynum] ) {
-		Mem_ZoneFree( keybindings[keynum] );
+		FREE( sys_allocator, keybindings[keynum] );
 		keybindings[keynum] = NULL;
 	}
 
 	if( binding != NULL ) {
-		keybindings[keynum] = ZoneCopyString( binding );
+		keybindings[keynum] = CopyString( sys_allocator, binding );
 	}
 }
 
@@ -217,36 +213,26 @@ static void Key_Bind_f() {
 	Key_SetBinding( b, cmd.c_str() );
 }
 
-void Key_WriteBindings( int file ) {
-	FS_Printf( file, "unbindall\r\n" );
+void Key_WriteBindings( DynamicString * config ) {
+	config->append( "unbindall\r\n" );
 
 	for( int i = 0; i < int( ARRAY_COUNT( keybindings ) ); i++ ) {
 		if( keybindings[i] && keybindings[i][0] ) {
-			FS_Printf( file, "bind %s \"%s\"\r\n", Key_KeynumToString( i ), keybindings[i] );
-		}
-	}
-}
-
-static void Key_Bindlist_f() {
-	for( int i = 0; i < int( ARRAY_COUNT( keybindings ) ); i++ ) {
-		if( keybindings[i] && keybindings[i][0] ) {
-			Com_Printf( "%s \"%s\"\n", Key_KeynumToString( i ), keybindings[i] );
+			config->append( "bind {} \"{}\"\r\n", Key_KeynumToString( i ), keybindings[ i ] );
 		}
 	}
 }
 
 void Key_Init() {
-	Cmd_AddCommand( "bind", Key_Bind_f );
-	Cmd_AddCommand( "unbind", Key_Unbind_f );
-	Cmd_AddCommand( "unbindall", Key_Unbindall );
-	Cmd_AddCommand( "bindlist", Key_Bindlist_f );
+	AddCommand( "bind", Key_Bind_f );
+	AddCommand( "unbind", Key_Unbind_f );
+	AddCommand( "unbindall", Key_Unbindall );
 }
 
 void Key_Shutdown() {
-	Cmd_RemoveCommand( "bind" );
-	Cmd_RemoveCommand( "unbind" );
-	Cmd_RemoveCommand( "unbindall" );
-	Cmd_RemoveCommand( "bindlist" );
+	RemoveCommand( "bind" );
+	RemoveCommand( "unbind" );
+	RemoveCommand( "unbindall" );
 
 	Key_Unbindall();
 }
@@ -258,7 +244,7 @@ void Key_Event( int key, bool down ) {
 		}
 
 		if( cls.state != CA_ACTIVE ) {
-			Cbuf_AddText( "disconnect\n" );
+			CL_Disconnect_f();
 			return;
 		}
 
@@ -272,13 +258,10 @@ void Key_Event( int key, bool down ) {
 
 		if( kb ) {
 			if( kb[0] == '+' ) {
-				char cmd[1024];
-				snprintf( cmd, sizeof( cmd ), "%s%s %i\n", down ? "+" : "-", kb + 1, key );
-				Cbuf_AddText( cmd );
+				Cbuf_Add( "{}{} {}", down ? "+" : "-", kb + 1, key );
 			}
 			else if( down ) {
-				Cbuf_AddText( kb );
-				Cbuf_AddText( "\n" );
+				Cbuf_Add( "{}", kb );
 			}
 		}
 	}

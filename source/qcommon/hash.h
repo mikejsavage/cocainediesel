@@ -21,6 +21,10 @@ u64 Hash64( Span< const T > data ) {
 	return Hash64( data.ptr, data.num_bytes() );
 }
 
+// case insensitive hashing
+u64 CaseHash64( Span< const char > str );
+u64 CaseHash64( const char * str );
+
 // compile time hashing
 constexpr u32 Hash32_CT( const char * str, size_t n, u32 basis = U32( 2166136261 ) ) {
 	return n == 0 ? basis : Hash32_CT( str + 1, n - 1, ( basis ^ str[ 0 ] ) * U32( 16777619 ) );
@@ -35,6 +39,7 @@ struct StringHash {
 
 	StringHash() = default;
 	explicit StringHash( const char * s );
+	explicit StringHash( Span< const char > s );
 
 #ifdef PUBLIC_BUILD
 	template< size_t N >
@@ -49,7 +54,6 @@ struct StringHash {
 
 	constexpr explicit StringHash( u64 h ) : hash( h ), str( NULL ) { }
 #endif
-
 };
 
 inline bool operator==( StringHash a, StringHash b ) { return a.hash == b.hash; }

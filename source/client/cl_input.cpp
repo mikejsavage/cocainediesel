@@ -21,9 +21,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/client.h"
 #include "cgame/cg_local.h"
 
-cvar_t *cl_ucmdMaxResend;
+Cvar *cl_ucmdMaxResend;
 
-cvar_t *cl_ucmdFPS;
+Cvar *cl_ucmdFPS;
 
 static void CL_CreateNewUserCommand( int realMsec );
 
@@ -32,39 +32,34 @@ static void CL_CreateNewUserCommand( int realMsec );
 *
 * Notifies cgame of new frame, refreshes input timings, coordinates and angles
 */
-static void CL_UpdateGameInput( int frameTime ) {
-	Vec2 movement = GetMouseMovement();
-
+static void CL_UpdateGameInput( Vec2 movement, int frameTime ) {
 	if( cls.key_dest == key_game && cls.state == CA_ACTIVE ) {
 		CL_GameModule_MouseMove( frameTime, movement );
 		cl.viewangles += CG_GetDeltaViewAngles();
 	}
 }
 
-/*
-* CL_UserInputFrame
-*/
 void CL_UserInputFrame( int realMsec ) {
 	ZoneScoped;
+
+	// Grab input before possibly resetting it in GlfwInputFrame
+	Vec2 movement = GetMouseMovement();
 
 	GlfwInputFrame();
 
 	// refresh mouse angles and movement velocity
-	CL_UpdateGameInput( realMsec );
+	CL_UpdateGameInput( movement, realMsec );
 
-	// create a new usercmd_t structure for this frame
+	// create a new UserCommand structure for this frame
 	CL_CreateNewUserCommand( realMsec );
 
 	// process console commands
 	Cbuf_Execute();
 }
 
-/*
-* CL_InitInput
-*/
-void CL_InitInput( void ) {
-	cl_ucmdMaxResend =  Cvar_Get( "cl_ucmdMaxResend", "3", CVAR_ARCHIVE );
-	cl_ucmdFPS =        Cvar_Get( "cl_ucmdFPS", "62", CVAR_DEVELOPER );
+void CL_InitInput() {
+	cl_ucmdMaxResend = NewCvar( "cl_ucmdMaxResend", "3", CvarFlag_Archive );
+	cl_ucmdFPS = NewCvar( "cl_ucmdFPS", "62", CvarFlag_Developer );
 }
 
 //===============================================================================
@@ -78,7 +73,7 @@ void CL_InitInput( void ) {
 *
 * Updates ucmd to use the most recent viewangles.
 */
-static void CL_RefreshUcmd( usercmd_t *ucmd, int msec, bool ready ) {
+static void CL_RefreshUcmd( UserCommand *ucmd, int msec, bool ready ) {
 	ucmd->msec += msec;
 
 	if( ucmd->msec && cls.key_dest == key_game ) {
@@ -89,6 +84,7 @@ static void CL_RefreshUcmd( usercmd_t *ucmd, int msec, bool ready ) {
 		ucmd->upmove = Clamp( -127, (int)(movement.z * 127.0f), 127 );
 
 		ucmd->buttons |= CL_GameModule_GetButtonBits();
+		ucmd->down_edges |= CL_GameModule_GetButtonDownEdges();
 
 		if( cl.weaponSwitch != 0 ) {
 			ucmd->weaponSwitch = cl.weaponSwitch;
@@ -114,9 +110,6 @@ static void CL_RefreshUcmd( usercmd_t *ucmd, int msec, bool ready ) {
 	ucmd->angles[2] = ANGLE2SHORT( cl.viewangles.z );
 }
 
-/*
-* CL_WriteUcmdsToMessage
-*/
 void CL_WriteUcmdsToMessage( msg_t *msg ) {
 	unsigned int resendCount;
 	unsigned int ucmdFirst;
@@ -130,10 +123,10 @@ void CL_WriteUcmdsToMessage( msg_t *msg ) {
 	ucmdFirst = cls.ucmdAcknowledged + 1;
 	ucmdHead = cl.cmdNum + 1;
 
-	if( cl_ucmdMaxResend->integer > CMD_BACKUP * 0.5 ) {
-		Cvar_SetValue( "cl_ucmdMaxResend", CMD_BACKUP * 0.5 );
+	if( cl_ucmdMaxResend->integer > CMD_BACKUP / 2 ) {
+		Cvar_SetInteger( "cl_ucmdMaxResend", CMD_BACKUP / 2 );
 	} else if( cl_ucmdMaxResend->integer < 1 ) {
-		Cvar_SetValue( "cl_ucmdMaxResend", 1 );
+		Cvar_SetInteger( "cl_ucmdMaxResend", 1 );
 	}
 
 	// find what is our resend count (resend doesn't include the newly generated ucmds)
@@ -181,12 +174,12 @@ void CL_WriteUcmdsToMessage( msg_t *msg ) {
 	MSG_WriteInt32( msg, ucmdHead );
 	MSG_WriteUint8( msg, (uint8_t)( ucmdHead - ucmdFirst ) );
 
-	usercmd_t nullcmd = { };
-	const usercmd_t * oldcmd = &nullcmd;
+	UserCommand nullcmd = { };
+	const UserCommand * oldcmd = &nullcmd;
 
 	// write the ucmds
 	for( unsigned int i = ucmdFirst; i < ucmdHead; i++ ) {
-		const usercmd_t * cmd = &cl.cmds[i & CMD_MASK];
+		const UserCommand * cmd = &cl.cmds[i & CMD_MASK];
 		MSG_WriteDeltaUsercmd( msg, oldcmd, cmd );
 		oldcmd = cmd;
 	}
@@ -194,9 +187,6 @@ void CL_WriteUcmdsToMessage( msg_t *msg ) {
 	cls.ucmdSent = ucmdHead;
 }
 
-/*
-* CL_NextUserCommandTimeReached
-*/
 static bool CL_NextUserCommandTimeReached( int realMsec ) {
 	static int minMsec = 1, allMsec = 0, extraMsec = 0;
 	static float roundingMsec = 0.0f;
@@ -205,7 +195,7 @@ static bool CL_NextUserCommandTimeReached( int realMsec ) {
 	if( cls.state < CA_ACTIVE ) {
 		maxucmds = 10; // reduce ratio while connecting
 	} else {
-		maxucmds = cl_ucmdFPS->value;
+		maxucmds = cl_ucmdFPS->integer;
 	}
 
 	// the cvar is developer only
@@ -249,11 +239,8 @@ static bool CL_NextUserCommandTimeReached( int realMsec ) {
 	return true;
 }
 
-/*
-* CL_CreateNewUserCommand
-*/
 static void CL_CreateNewUserCommand( int realMsec ) {
-	usercmd_t *ucmd;
+	UserCommand *ucmd;
 
 	if( !CL_NextUserCommandTimeReached( realMsec ) ) {
 		// refresh current command with up to date data for movement prediction
@@ -271,7 +258,8 @@ static void CL_CreateNewUserCommand( int realMsec ) {
 	// advance head and init the new command
 	cls.ucmdHead++;
 	ucmd = &cl.cmds[cls.ucmdHead & CMD_MASK];
-	memset( ucmd, 0, sizeof( usercmd_t ) );
+	memset( ucmd, 0, sizeof( UserCommand ) );
+	ucmd->entropy = Random32( &cls.rng );
 
 	// start up with the most recent viewangles
 	CL_RefreshUcmd( ucmd, 0, false );

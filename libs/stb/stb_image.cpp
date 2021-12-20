@@ -16,4 +16,4 @@ static void StbFree( void * ptr ) {
 #define STBI_MALLOC StbMalloc
 #define STBI_REALLOC_SIZED StbRealloc
 #define STBI_FREE StbFree
-#include "stb/stb_image.h"
+#include "stb_image.h"

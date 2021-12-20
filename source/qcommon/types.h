@@ -11,29 +11,29 @@
  * ints
  */
 
-typedef int8_t s8;
-typedef int16_t s16;
-typedef int32_t s32;
-typedef int64_t s64;
+using s8 = int8_t;
+using s16 = int16_t;
+using s32 = int32_t;
+using s64 = int64_t;
 
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
+using u8 = uint8_t;
+using u16 = uint16_t;
+using u32 = uint32_t;
+using u64 = uint64_t;
 
-#define S8_MAX s8( INT8_MAX )
-#define S16_MAX s16( INT16_MAX )
-#define S32_MAX s32( INT32_MAX )
-#define S64_MAX s64( INT64_MAX )
-#define S8_MIN s8( INT8_MIN )
-#define S16_MIN s16( INT16_MIN )
-#define S32_MIN s32( INT32_MIN )
-#define S64_MIN s64( INT64_MIN )
+constexpr s8 S8_MAX = INT8_MAX;
+constexpr s16 S16_MAX = INT16_MAX;
+constexpr s32 S32_MAX = INT32_MAX;
+constexpr s64 S64_MAX = INT64_MAX;
+constexpr s8 S8_MIN = INT8_MIN;
+constexpr s16 S16_MIN = INT16_MIN;
+constexpr s32 S32_MIN = INT32_MIN;
+constexpr s64 S64_MIN = INT64_MIN;
 
-#define U8_MAX u8( UINT8_MAX )
-#define U16_MAX u16( UINT16_MAX )
-#define U32_MAX u32( UINT32_MAX )
-#define U64_MAX u64( UINT64_MAX )
+constexpr u8 U8_MAX = UINT8_MAX;
+constexpr u16 U16_MAX = UINT16_MAX;
+constexpr u32 U32_MAX = UINT32_MAX;
+constexpr u64 U64_MAX = UINT64_MAX;
 
 #define S8 INT8_C
 #define S16 INT16_C
@@ -45,11 +45,10 @@ typedef uint64_t u64;
 #define U64 UINT64_C
 
 /*
- * allocators
+ * Allocator
  */
 
 struct Allocator {
-	virtual ~Allocator() { }
 	virtual void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) = 0;
 	virtual void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) = 0;
 	void * allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
@@ -60,53 +59,7 @@ struct Allocator {
 	char * operator()( const char * fmt, const Rest & ... rest );
 };
 
-struct ArenaAllocator;
-struct TempAllocator final : public Allocator {
-	TempAllocator() = default;
-	TempAllocator( const TempAllocator & other );
-	~TempAllocator();
-
-	void operator=( const TempAllocator & ) = delete;
-
-	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
-	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
-	void deallocate( void * ptr, const char * func, const char * file, int line );
-
-private:
-	ArenaAllocator * arena;
-	u8 * old_cursor;
-
-	friend struct ArenaAllocator;
-};
-
-struct ArenaAllocator final : public Allocator {
-	ArenaAllocator() = default;
-	ArenaAllocator( void * mem, size_t size );
-
-	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
-	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
-	void deallocate( void * ptr, const char * func, const char * file, int line );
-
-	TempAllocator temp();
-
-	void clear();
-	void * get_memory();
-
-	float max_utilisation() const;
-
-private:
-	u8 * memory;
-	u8 * top;
-	u8 * cursor;
-	u8 * cursor_max;
-
-	u32 num_temp_allocators;
-
-	void * try_temp_allocate( size_t size, size_t alignment, const char * func, const char * file, int line );
-	void * try_temp_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line );
-
-	friend struct TempAllocator;
-};
+struct TempAllocator;
 
 #if COMPILER_MSVC
 #define __PRETTY_FUNCTION__ __FUNCSIG__
@@ -187,13 +140,6 @@ T Clamp01( const T & x ) {
 }
 
 /*
- * NoInit
- */
-
-enum class NoInit { NoInit };
-constexpr NoInit NO_INIT = NoInit::NoInit;
-
-/*
  * Span
  */
 
@@ -220,6 +166,10 @@ struct Span {
 		return Span< T >( ptr + i, n - i );
 	}
 
+	void operator+=( size_t i ) {
+		*this = *this + i;
+	}
+
 	void operator++( int ) {
 		assert( n > 0 );
 		ptr++;
@@ -232,12 +182,13 @@ struct Span {
 	Span< T > slice( size_t start, size_t one_past_end ) const {
 		assert( start <= one_past_end );
 		assert( one_past_end <= n );
-		return Span< const T >( ptr + start, one_past_end - start );
+		return Span< T >( ptr + start, one_past_end - start );
 	}
 
 	template< typename S >
 	Span< S > cast() const {
 		assert( num_bytes() % sizeof( S ) == 0 );
+		assert( uintptr_t( ptr ) % alignof( S ) == 0 );
 		return Span< S >( ( S * ) ptr, num_bytes() / sizeof( S ) );
 	}
 };
@@ -413,12 +364,20 @@ struct alignas( 16 ) Mat3x4 {
 	}
 };
 
+struct EulerDegrees2 {
+	float pitch, yaw;
+
+	EulerDegrees2() = default;
+	constexpr EulerDegrees2( float p, float y ) : pitch( p ), yaw( y ) { }
+	explicit constexpr EulerDegrees2( Vec2 v ) : pitch( v.x ), yaw( v.y ) { }
+};
+
 struct EulerDegrees3 {
 	float pitch, yaw, roll;
 
 	EulerDegrees3() = default;
 	constexpr EulerDegrees3( float p, float y, float r ) : pitch( p ), yaw( y ), roll( r ) { }
-	constexpr EulerDegrees3( Vec3 v ) : pitch( v.x ), yaw( v.y ), roll( v.z ) { }
+	explicit constexpr EulerDegrees3( Vec3 v ) : pitch( v.x ), yaw( v.y ), roll( v.z ) { }
 };
 
 struct Quaternion {
@@ -483,7 +442,3 @@ struct RGBA8 {
 
 	constexpr RGB8 rgb() const { return RGB8( r, g, b ); }
 };
-
-// TODO: asset types?
-
-struct SoundEffect;

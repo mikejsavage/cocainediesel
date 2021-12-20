@@ -1,9 +1,28 @@
+#include <stdarg.h>
+#include <errno.h>
+
 #include "qcommon/base.h"
+#include "qcommon/qcommon.h"
 
 bool break1 = false;
 bool break2 = false;
 bool break3 = false;
 bool break4 = false;
+
+void FatalImpl( const char * file, int line, const char * format, ... ) {
+	va_list argptr;
+	char msg[ 1024 ];
+
+	va_start( argptr, format );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
+	va_end( argptr );
+
+	ShowErrorAndAbort( msg, file, line );
+}
+
+void FatalErrno( const char * msg ) {
+	Fatal( "%s: %s (%d)", msg, strerror( errno ), errno );
+}
 
 void format( FormatBuffer * fb, Span< const char > span, const FormatOpts & opts ) {
 	if( fb->capacity > 0 && fb->len < fb->capacity - 1 ) {
@@ -15,9 +34,7 @@ void format( FormatBuffer * fb, Span< const char > span, const FormatOpts & opts
 }
 
 char * CopyString( Allocator * a, const char * str ) {
-	char * copy = ALLOC_MANY( a, char, strlen( str ) + 1 );
-	strcpy( copy, str );
-	return copy;
+	return ( *a )( "{}", str );
 }
 
 Span< const char > MakeSpan( const char * str ) {

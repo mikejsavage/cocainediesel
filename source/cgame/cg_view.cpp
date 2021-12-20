@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 ChasecamState chaseCam;
 
-int CG_LostMultiviewPOV( void );
+int CG_LostMultiviewPOV();
 
 /*
 * CG_ChaseStep
@@ -73,40 +73,38 @@ bool CG_ChaseStep( int step ) {
 	}
 
 	if( !cgs.demoPlaying ) {
-		Cbuf_ExecuteText( EXEC_NOW, step > 0 ? "chasenext" : "chaseprev" );
+		Cbuf_ExecuteLine( step > 0 ? "chasenext" : "chaseprev" );
 		return true;
 	}
 
 	return false;
 }
 
-/*
-* CG_AddLocalSounds
-*/
-static void CG_AddLocalSounds( void ) {
+static void CG_AddLocalSounds() {
 	static unsigned lastSecond = 0;
 
 	// add local announces
 	if( GS_Countdown( &client_gs ) ) {
-		if( GS_MatchDuration( &client_gs ) ) {
-			int64_t duration, curtime;
-			unsigned remainingSeconds;
-			float seconds;
+		if( client_gs.gameState.match_duration ) {
+			s64 curtime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime;
+			s64 duration = client_gs.gameState.match_duration;
 
-			curtime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime;
-			duration = GS_MatchDuration( &client_gs );
-
-			if( duration + GS_MatchStartTime( &client_gs ) < curtime ) {
-				duration = curtime - GS_MatchStartTime( &client_gs ); // avoid negative results
-
+			if( duration + client_gs.gameState.match_state_start_time < curtime ) {
+				duration = curtime - client_gs.gameState.match_state_start_time; // avoid negative results
 			}
-			seconds = (float)( GS_MatchStartTime( &client_gs ) + duration - curtime ) * 0.001f;
-			remainingSeconds = (unsigned int)seconds;
+
+			float seconds = (float)( client_gs.gameState.match_state_start_time + duration - curtime ) * 0.001f;
+			unsigned int remainingSeconds = (unsigned int)seconds;
 
 			if( remainingSeconds != lastSecond ) {
 				if( 1 + remainingSeconds < 4 ) {
-					const SoundEffect * sfx = FindSoundEffect( va( S_ANNOUNCER_COUNTDOWN_COUNT_1_to_3_SET_1_to_2, 1 + remainingSeconds, 1 ) );
-					CG_AddAnnouncerEvent( sfx, false );
+					constexpr StringHash countdown[] = {
+						"sounds/announcer/1",
+						"sounds/announcer/2",
+						"sounds/announcer/3",
+					};
+
+					CG_AddAnnouncerEvent( countdown[ remainingSeconds ], false );
 					CG_CenterPrint( va( "%i", remainingSeconds + 1 ) );
 				}
 
@@ -126,19 +124,19 @@ static void CG_AddLocalSounds( void ) {
 *
 * Flashes game window in case of important events (match state changes, etc) for user to notice
 */
-static void CG_FlashGameWindow( void ) {
+static void CG_FlashGameWindow() {
 	static int oldState = -1;
 	bool flash = false;
 	static u8 oldAlphaScore, oldBetaScore;
 	static bool scoresSet = false;
 
 	// notify player of important match states
-	int newState = GS_MatchState( &client_gs );
+	int newState = client_gs.gameState.match_state;
 	if( oldState != newState ) {
 		switch( newState ) {
-			case MATCH_STATE_COUNTDOWN:
-			case MATCH_STATE_PLAYTIME:
-			case MATCH_STATE_POSTMATCH:
+			case MatchState_Countdown:
+			case MatchState_Playing:
+			case MatchState_PostMatch:
 				flash = true;
 				break;
 			default:
@@ -150,51 +148,21 @@ static void CG_FlashGameWindow( void ) {
 
 	// notify player of teams scoring in team-based gametypes
 	if( !scoresSet ||
-		( oldAlphaScore != client_gs.gameState.bomb.alpha_score || oldBetaScore != client_gs.gameState.bomb.beta_score ) ) {
-		oldAlphaScore = client_gs.gameState.bomb.alpha_score;
-		oldBetaScore = client_gs.gameState.bomb.beta_score;
+		( oldAlphaScore != client_gs.gameState.teams[ TEAM_ALPHA ].score || oldBetaScore != client_gs.gameState.teams[ TEAM_BETA ].score ) ) {
+		oldAlphaScore = client_gs.gameState.teams[ TEAM_ALPHA ].score;
+		oldBetaScore = client_gs.gameState.teams[ TEAM_BETA ].score;
 
-		flash = scoresSet && GS_TeamBasedGametype( &client_gs ) && !GS_IndividualGameType( &client_gs );
+		flash = scoresSet && GS_TeamBasedGametype( &client_gs );
 		scoresSet = true;
 	}
 
 	if( flash ) {
-		trap_VID_FlashWindow();
+		FlashWindow();
 	}
 }
 
-Vec3 CG_GetKickAngles() {
-	Vec3 angles = Vec3( 0.0f );
-
-	for( int i = 0; i < MAX_ANGLES_KICKS; i++ ) {
-		if( cl.serverTime > cg.kickangles[i].timestamp + cg.kickangles[i].kicktime ) {
-			continue;
-		}
-
-		float time = (float)( ( cg.kickangles[i].timestamp + cg.kickangles[i].kicktime ) - cl.serverTime );
-		float uptime = ( (float)cg.kickangles[i].kicktime ) * 0.5f;
-		float delta = 1.0f - ( Abs( time - uptime ) / uptime );
-
-		//CG_Printf("Kick Delta:%f\n", delta );
-		if( delta > 1.0f ) {
-			delta = 1.0f;
-		}
-		if( delta <= 0.0f ) {
-			continue;
-		}
-
-		angles.x += cg.kickangles[i].v_pitch * delta;
-		angles.z += cg.kickangles[i].v_roll * delta;
-	}
-
-	return angles;
-}
-
-/*
-* CG_CalcViewFov
-*/
 float CG_CalcViewFov() {
-	float hardcoded_fov = 107.9f; // TODO: temp hardcoded fov
+	float hardcoded_fov = 107.9f;
 
 	WeaponType weapon = cg.predictedPlayerState.weapon;
 	if( weapon == Weapon_None )
@@ -205,10 +173,7 @@ float CG_CalcViewFov() {
 	return Lerp( hardcoded_fov, frac, float( zoom_fov ) );
 }
 
-/*
-* CG_CalcViewBob
-*/
-static void CG_CalcViewBob( void ) {
+static void CG_CalcViewBob() {
 	float bobMove, bobTime, bobScale;
 
 	if( !cg.view.drawWeapon ) {
@@ -222,20 +187,17 @@ static void CG_CalcViewBob( void ) {
 	if( cg.xyspeed < 5 ) {
 		cg.oldBobTime = 0;  // start at beginning of cycle again
 	}
-	else if( cg_gunbob->integer ) {
+	else {
 		if( !ISVIEWERENTITY( cg.view.POVent ) ) {
 			bobScale = 0.0f;
 		} else if( CG_PointContents( cg.view.origin ) & MASK_WATER ) {
 			bobScale =  0.75f;
 		} else {
-			centity_t *cent;
-			Vec3 mins, maxs;
 			trace_t trace;
 
-			cent = &cg_entities[cg.view.POVent];
-			CG_BBoxForEntityState( &cent->current, &mins, &maxs );
-			maxs.z = mins.z;
-			mins.z -= 1.6f * STEPSIZE;
+			const centity_t * cent = &cg_entities[cg.view.POVent];
+			Vec3 maxs = cent->current.bounds.mins;
+			Vec3 mins = maxs - Vec3( 0.0f, 0.0f, 1.6f * STEPSIZE );
 
 			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, MASK_PLAYERSOLID );
 			if( trace.startsolid || trace.allsolid ) {
@@ -255,16 +217,6 @@ static void CG_CalcViewBob( void ) {
 	cg.bobFracSin = Abs( sinf( bobTime * PI ) );
 }
 
-/*
-* CG_ResetKickAngles
-*/
-void CG_ResetKickAngles( void ) {
-	memset( cg.kickangles, 0, sizeof( cg.kickangles ) );
-}
-
-/*
-* CG_StartFallKickEffect
-*/
 void CG_StartFallKickEffect( int bounceTime ) {
 	if( cg.fallEffectTime > cl.serverTime ) {
 		cg.fallEffectRebounceTime = 0;
@@ -282,18 +234,6 @@ void CG_StartFallKickEffect( int bounceTime ) {
 
 //============================================================================
 
-/*
-* CG_AddEntityToScene
-*/
-void CG_AddEntityToScene( entity_t * ent ) {
-	// trap_R_AddEntityToScene( ent );
-}
-
-//============================================================================
-
-/*
-* CG_InterpolatePlayerState
-*/
 static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 	const SyncPlayerState * ps = &cg.frame.playerState;
 	const SyncPlayerState * ops = &cg.oldFrame.playerState;
@@ -319,41 +259,36 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 	playerState->pmove.velocity = Lerp( ops->pmove.velocity, cg.lerpfrac, ps->pmove.velocity );
 
 	playerState->zoom_time = Lerp( ops->zoom_time, cg.lerpfrac, ps->zoom_time );
+	playerState->flashed = Lerp( ops->flashed, cg.lerpfrac, ps->flashed );
 
-	if( ps->weapon_time <= ops->weapon_time ) {
-		playerState->weapon_time = Lerp( ops->weapon_time, cg.lerpfrac, ps->weapon_time );
+	// TODO: this should probably go through UpdateWeapons
+	if( ps->weapon_state_time >= ops->weapon_state_time ) {
+		playerState->weapon_state_time = Lerp( ops->weapon_state_time, cg.lerpfrac, ps->weapon_state_time );
 	}
 	else {
 		s64 dt = cg.frame.serverTime - cg.oldFrame.serverTime;
-		playerState->weapon_time = Max2( 0.0f, ops->weapon_time - cg.lerpfrac * dt );
+		playerState->weapon_state = ops->weapon_state;
+		playerState->weapon_state_time = Min2( float( U16_MAX ), ops->weapon_state_time + cg.lerpfrac * dt );
 	}
 }
 
-/*
-* CG_ThirdPersonOffsetView
-*/
 static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	float dist, f, r;
 	trace_t trace;
 	Vec3 mins( -4.0f );
 	Vec3 maxs( 4.0f );
 
-	if( !cg_thirdPersonAngle || !cg_thirdPersonRange ) {
-		cg_thirdPersonAngle = Cvar_Get( "cg_thirdPersonAngle", "0", CVAR_ARCHIVE );
-		cg_thirdPersonRange = Cvar_Get( "cg_thirdPersonRange", "70", CVAR_ARCHIVE );
-	}
-
 	// calc exact destination
 	Vec3 chase_dest = view->origin;
-	r = Radians( cg_thirdPersonAngle->value );
+	r = Radians( cg_thirdPersonAngle->number );
 	f = -cosf( r );
 	r = -sinf( r );
-	chase_dest += FromQFAxis( view->axis, AXIS_FORWARD ) * ( cg_thirdPersonRange->value * f );
-	chase_dest += FromQFAxis( view->axis, AXIS_RIGHT ) * ( cg_thirdPersonRange->value * r );
+	chase_dest += FromQFAxis( view->axis, AXIS_FORWARD ) * ( cg_thirdPersonRange->number * f );
+	chase_dest += FromQFAxis( view->axis, AXIS_RIGHT ) * ( cg_thirdPersonRange->number * r );
 	chase_dest.z += 8;
 
 	// find the spot the player is looking at
-	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * ( 512 );
+	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * 512.0f;
 	CG_Trace( &trace, view->origin, mins, maxs, dest, view->POVent, MASK_SOLID );
 
 	// calculate pitch to look at the same spot from camera
@@ -363,7 +298,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 		dist = 1;
 	}
 	view->angles.x = Degrees( -atan2f( stop.z, dist ) );
-	view->angles.y -= cg_thirdPersonAngle->value;
+	view->angles.y -= cg_thirdPersonAngle->number;
 	Matrix3_FromAngles( view->angles, view->axis );
 
 	// move towards destination
@@ -379,9 +314,6 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	view->origin = chase_dest;
 }
 
-/*
-* CG_ViewSmoothPredictedSteps
-*/
 void CG_ViewSmoothPredictedSteps( Vec3 * vieworg ) {
 	int timeDelta;
 
@@ -392,10 +324,7 @@ void CG_ViewSmoothPredictedSteps( Vec3 * vieworg ) {
 	}
 }
 
-/*
-* CG_ViewSmoothFallKick
-*/
-float CG_ViewSmoothFallKick( void ) {
+float CG_ViewSmoothFallKick() {
 	// fallkick offset
 	if( cg.fallEffectTime > cl.serverTime ) {
 		float fallfrac = (float)( cl.serverTime - cg.fallEffectRebounceTime ) / (float)( cg.fallEffectTime - cg.fallEffectRebounceTime );
@@ -407,54 +336,9 @@ float CG_ViewSmoothFallKick( void ) {
 	return 0.0f;
 }
 
-/*
-* CG_SwitchChaseCamMode
-*
-* Returns whether the mode was actually switched.
-*/
-bool CG_SwitchChaseCamMode( void ) {
-	bool chasecam = ( cg.frame.playerState.pmove.pm_type == PM_CHASECAM )
-					&& ( cg.frame.playerState.POVnum != (unsigned)( cgs.playerNum + 1 ) );
-	bool realSpec = cgs.demoPlaying || ISREALSPECTATOR();
-
-	if( ( cg.frame.multipov || chasecam ) && !CG_DemoCam_IsFree() ) {
-		if( chasecam ) {
-			if( realSpec ) {
-				if( ++chaseCam.mode >= CAM_MODES ) {
-					// if exceeds the cycle, start free fly
-					Cbuf_ExecuteText( EXEC_NOW, "camswitch" );
-					chaseCam.mode = 0;
-				}
-				return true;
-			}
-			return false;
-		}
-
-		chaseCam.mode = ( ( chaseCam.mode != CAM_THIRDPERSON ) ? CAM_THIRDPERSON : CAM_INEYES );
-		return true;
-	}
-
-	if( realSpec && ( CG_DemoCam_IsFree() || cg.frame.playerState.pmove.pm_type == PM_SPECTATOR ) ) {
-		Cbuf_ExecuteText( EXEC_NOW, "camswitch" );
-		return true;
-	}
-
-	return false;
-}
-
-/*
-* CG_UpdateChaseCam
-*/
-static void CG_UpdateChaseCam( void ) {
-	bool chasecam = ( cg.frame.playerState.pmove.pm_type == PM_CHASECAM )
-					&& ( cg.frame.playerState.POVnum != (unsigned)( cgs.playerNum + 1 ) );
-
-	if( !( cg.frame.multipov || chasecam ) || CG_DemoCam_IsFree() ) {
-		chaseCam.mode = CAM_INEYES;
-	}
-
-	usercmd_t cmd;
-	trap_NET_GetUserCmd( trap_NET_GetCurrentUserCmdNum() - 1, &cmd );
+static void CG_UpdateChaseCam() {
+	UserCommand cmd;
+	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 
 	if( chaseCam.key_pressed ) {
 		chaseCam.key_pressed = ( cmd.buttons & ( BUTTON_ATTACK | BUTTON_SPECIAL ) ) != 0 || cmd.upmove != 0 || cmd.sidemove != 0;
@@ -462,7 +346,9 @@ static void CG_UpdateChaseCam( void ) {
 	}
 
 	if( cmd.buttons & BUTTON_ATTACK ) {
-		CG_SwitchChaseCamMode();
+		if( cgs.demoPlaying || ISREALSPECTATOR() ) {
+			Cbuf_ExecuteLine( "camswitch" );
+		}
 		chaseCam.key_pressed = true;
 	}
 
@@ -483,9 +369,6 @@ static void CG_UpdateChaseCam( void ) {
 	}
 }
 
-/*
-* CG_SetupViewDef
-*/
 static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	memset( view, 0, sizeof( cg_viewdef_t ) );
 
@@ -503,8 +386,6 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		// set up third-person
 		if( cgs.demoPlaying ) {
 			view->thirdperson = CG_DemoCam_GetThirdPerson();
-		} else if( chaseCam.mode == CAM_THIRDPERSON ) {
-			view->thirdperson = true;
 		} else {
 			view->thirdperson = ( cg_thirdPerson->integer != 0 );
 		}
@@ -528,15 +409,9 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 				}
 			}
 		}
-	} else if( view->type == VIEWDEF_DEMOCAM ) {
-		CG_DemoCam_GetViewDef( view );
 	} else {
-		Com_Error( ERR_DROP, "CG_SetupView: Invalid view type %i\n", view->type );
+		CG_DemoCam_GetViewDef( view );
 	}
-
-	//
-	// SETUP REFDEF FOR THE VIEW SETTINGS
-	//
 
 	if( view->type == VIEWDEF_PLAYERVIEW ) {
 		Vec3 viewoffset;
@@ -550,31 +425,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
 			view->angles = cg.predictedPlayerState.viewangles;
 
-			if( cg.recoiling ) {
-				constexpr float up_mult = 30.0f;
-				constexpr float down_mult = 5.0f;
-
-				cg.recoil_initial_pitch += Min2( 0.0f, cl.viewangles.x - cl.prevviewangles.x );
-
-				if( cg.recoil == 0.0f ) {
-					float d = cg.recoil_initial_pitch - cl.viewangles.x;
-					if( d <= 0.0f ) {
-						cg.recoiling = false;
-					}
-					else {
-						float downkick = d * down_mult * cls.frametime * 0.001f;
-						cl.viewangles.x += Min2( downkick, d );
-					}
-				}
-				else {
-					float kick = cg.recoil * up_mult * cls.frametime * 0.001f;
-					cl.viewangles.x -= kick;
-					cg.recoil -= kick;
-					if( cg.recoil < 0.1f ) {
-						cg.recoil = 0.0f;
-					}
-				}
-			}
+			CG_Recoil( cg.predictedPlayerState.weapon );
 
 			CG_ViewSmoothPredictedSteps( &view->origin ); // smooth out stair climbing
 		} else {
@@ -633,9 +484,23 @@ static void DrawWorld() {
 
 	for( u32 i = 0; i < model->num_primitives; i++ ) {
 		if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
+			for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
+				PipelineState pipeline;
+				pipeline.pass = frame_static.shadowmap_pass[ j ];
+				pipeline.shader = &shaders.depth_only;
+				pipeline.clamp_depth = true;
+				// pipeline.cull_face = CullFace_Disabled;
+				pipeline.set_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
+				pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+
+				DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+			}
+		}
+
+		{
 			PipelineState pipeline;
-			pipeline.pass = frame_static.write_world_gbuffer_pass;
-			pipeline.shader = &shaders.write_world_gbuffer;
+			pipeline.pass = frame_static.world_opaque_prepass_pass;
+			pipeline.shader = &shaders.depth_only;
 			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 
@@ -646,8 +511,8 @@ static void DrawWorld() {
 			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
 			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-			pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
-			AddDecalsToPipeline( &pipeline );
+			pipeline.write_depth = false;
+			pipeline.depth_func = DepthFunc_Equal;
 
 			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 		}
@@ -657,63 +522,20 @@ static void DrawWorld() {
 		bool msaa = frame_static.msaa_samples >= 1;
 
 		PipelineState pipeline;
-		pipeline.pass = frame_static.postprocess_world_gbuffer_pass;
-		pipeline.shader = msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer;
-
-		const Framebuffer & fb = frame_static.world_gbuffer;
-		pipeline.set_texture( "u_DepthTexture", &fb.depth_texture );
-		pipeline.set_texture( "u_NormalTexture", &fb.normal_texture );
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-
-		DrawFullscreenMesh( pipeline );
-	}
-
-	{
-		PipelineState pipeline;
 		pipeline.pass = frame_static.add_world_outlines_pass;
-		pipeline.shader = &shaders.standard_vertexcolors;
+		pipeline.shader = msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer;
+		pipeline.depth_func = DepthFunc_Disabled;
 		pipeline.blend_func = BlendFunc_Blend;
 		pipeline.write_depth = false;
 
-		const Framebuffer & fb = frame_static.world_outlines_fb;
-		pipeline.set_texture( "u_BaseTexture", &fb.albedo_texture );
-		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
-		pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-		pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
-
-		Vec3 positions[] = {
-			Vec3( 0, 0, 0 ),
-			Vec3( frame_static.viewport_width, 0, 0 ),
-			Vec3( 0, frame_static.viewport_height, 0 ),
-			Vec3( frame_static.viewport_width, frame_static.viewport_height, 0 ),
-		};
-
-		Vec2 half_pixel = 0.5f / frame_static.viewport;
-		Vec2 uvs[] = {
-			Vec2( half_pixel.x, 1.0f - half_pixel.y ),
-			Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
-			Vec2( half_pixel.x, half_pixel.y ),
-			Vec2( 1.0f - half_pixel.x, half_pixel.y ),
-		};
-
 		constexpr RGBA8 gray = RGBA8( 30, 30, 30, 255 );
-		constexpr RGBA8 colors[] = { gray, gray, gray, gray };
 
-		u16 base_index = DynamicMeshBaseIndex();
-		u16 indices[] = { 0, 2, 1, 3, 1, 2 };
-		for( u16 & idx : indices ) {
-			idx += base_index;
-		}
-
-		DynamicMesh mesh = { };
-		mesh.positions = positions;
-		mesh.uvs = uvs;
-		mesh.colors = colors;
-		mesh.indices = indices;
-		mesh.num_vertices = 4;
-		mesh.num_indices = 6;
-
-		DrawDynamicMesh( pipeline, mesh );
+		const Framebuffer & fb = msaa ? frame_static.msaa_fb : frame_static.postprocess_fb;
+		pipeline.set_texture( "u_DepthTexture", &fb.depth_texture );
+		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
+		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.set_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
+		DrawFullscreenMesh( pipeline );
 	}
 }
 
@@ -722,62 +544,16 @@ static void DrawSilhouettes() {
 
 	{
 		PipelineState pipeline;
-		pipeline.pass = frame_static.postprocess_silhouette_gbuffer_pass;
-		pipeline.shader = &shaders.postprocess_silhouette_gbuffer;
-
-		const Framebuffer & fb = frame_static.silhouette_gbuffer;
-		pipeline.set_texture( "u_SilhouetteTexture", &fb.albedo_texture );
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-
-		DrawFullscreenMesh( pipeline );
-	}
-
-	{
-		PipelineState pipeline;
 		pipeline.pass = frame_static.add_silhouettes_pass;
-		pipeline.shader = &shaders.standard;
+		pipeline.shader = &shaders.postprocess_silhouette_gbuffer;
 		pipeline.depth_func = DepthFunc_Disabled;
 		pipeline.blend_func = BlendFunc_Blend;
 		pipeline.write_depth = false;
 
-		const Framebuffer & fb = frame_static.silhouette_silhouettes_fb;
-		pipeline.set_texture( "u_BaseTexture", &fb.albedo_texture );
+		const Framebuffer & fb = frame_static.silhouette_gbuffer;
+		pipeline.set_texture( "u_SilhouetteTexture", &fb.albedo_texture );
 		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
-		pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-		pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
-
-		Vec3 positions[] = {
-			Vec3( 0, 0, 0 ),
-			Vec3( frame_static.viewport_width, 0, 0 ),
-			Vec3( 0, frame_static.viewport_height, 0 ),
-			Vec3( frame_static.viewport_width, frame_static.viewport_height, 0 ),
-		};
-
-		Vec2 half_pixel = 0.5f / frame_static.viewport;
-		Vec2 uvs[] = {
-			Vec2( half_pixel.x, 1.0f - half_pixel.y ),
-			Vec2( 1.0f - half_pixel.x, 1.0f - half_pixel.y ),
-			Vec2( half_pixel.x, half_pixel.y ),
-			Vec2( 1.0f - half_pixel.x, half_pixel.y ),
-		};
-
-		constexpr RGBA8 colors[] = { rgba8_white, rgba8_white, rgba8_white, rgba8_white };
-
-		u16 base_index = DynamicMeshBaseIndex();
-		u16 indices[] = { 0, 2, 1, 3, 1, 2 };
-		for( u16 & idx : indices ) {
-			idx += base_index;
-		}
-
-		DynamicMesh mesh = { };
-		mesh.positions = positions;
-		mesh.uvs = uvs;
-		mesh.colors = colors;
-		mesh.indices = indices;
-		mesh.num_vertices = 4;
-		mesh.num_indices = 6;
-
-		DrawDynamicMesh( pipeline, mesh );
+		DrawFullscreenMesh( pipeline );
 	}
 }
 
@@ -786,10 +562,11 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	cg.frameCount++;
 
-	if( !cgs.precacheDone || !cg.frame.valid ) {
-		CG_Precache();
+	if( !cg.frame.valid ) {
 		return;
 	}
+
+	cgs.rendered_a_frame = true;
 
 	{
 		// moved this from CG_Init here
@@ -830,6 +607,29 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	cg.lerpfrac = Clamp01( cg.lerpfrac );
 
+	{
+		constexpr float SYSTEM_FONT_TINY_SIZE = 8;
+		constexpr float SYSTEM_FONT_EXTRASMALL_SIZE = 12;
+		constexpr float SYSTEM_FONT_SMALL_SIZE = 14;
+		constexpr float SYSTEM_FONT_MEDIUM_SIZE = 16;
+		constexpr float SYSTEM_FONT_BIG_SIZE = 24;
+
+		float scale = frame_static.viewport_height / 600.0f;
+
+		cgs.fontSystemTinySize = ceilf( SYSTEM_FONT_TINY_SIZE * scale );
+		cgs.fontSystemExtraSmallSize = ceilf( SYSTEM_FONT_EXTRASMALL_SIZE * scale );
+		cgs.fontSystemSmallSize = ceilf( SYSTEM_FONT_SMALL_SIZE * scale );
+		cgs.fontSystemMediumSize = ceilf( SYSTEM_FONT_MEDIUM_SIZE * scale );
+		cgs.fontSystemBigSize = ceilf( SYSTEM_FONT_BIG_SIZE * scale );
+
+		scale *= 1.3f;
+		cgs.textSizeTiny = SYSTEM_FONT_TINY_SIZE * scale;
+		cgs.textSizeExtraSmall = SYSTEM_FONT_EXTRASMALL_SIZE * scale;
+		cgs.textSizeSmall = SYSTEM_FONT_SMALL_SIZE * scale;
+		cgs.textSizeMedium = SYSTEM_FONT_MEDIUM_SIZE * scale;
+		cgs.textSizeBig = SYSTEM_FONT_BIG_SIZE * scale;
+	}
+
 	CG_FlashGameWindow(); // notify player of important game events
 
 	AllocateDecalBuffers();
@@ -853,14 +653,17 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	CG_ResetBombHUD();
 
+	DoVisualEffect( "vfx/rain", cg.view.origin );
+
 	DrawWorld();
 	DrawSilhouettes();
-	CG_AddEntities();
+	DrawEntities();
 	CG_AddViewWeapon( &cg.weapon );
 	DrawGibs();
 	DrawParticles();
 	DrawPersistentBeams();
 	DrawPersistentDecals();
+	DrawPersistentDynamicLights();
 	DrawSkybox();
 	DrawSprays();
 

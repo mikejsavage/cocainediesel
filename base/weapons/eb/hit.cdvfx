@@ -1,0 +1,28 @@
+{
+  dlight {
+    intensity 50000
+    lifetime 0.5
+    color 1 1 1 1
+    color_override
+  }
+
+  particles {
+    material textures/vfx/trace2
+    blendfunc add
+    rotate
+    stretch
+
+    position cone 90 0
+
+    speed 150
+    speed_distribution uniform 32
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+
+    size 12
+
+    lifetime 0.25
+    count 10
+  }
+}

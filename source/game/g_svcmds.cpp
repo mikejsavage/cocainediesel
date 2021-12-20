@@ -19,19 +19,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "qcommon/fs.h"
+#include "qcommon/string.h"
 
-/*
-* Cmd_ConsoleSay_f
-*/
-static void Cmd_ConsoleSay_f( void ) {
+static void Cmd_ConsoleSay_f() {
 	G_ChatMsg( NULL, NULL, false, "%s", Cmd_Args() );
 }
 
-
-/*
-* Cmd_ConsoleKick_f
-*/
-static void Cmd_ConsoleKick_f( void ) {
+static void Cmd_ConsoleKick_f() {
 	edict_t *ent;
 
 	if( Cmd_Argc() != 2 ) {
@@ -46,33 +41,6 @@ static void Cmd_ConsoleKick_f( void ) {
 	}
 
 	PF_DropClient( ent, DROP_TYPE_NORECONNECT, "Kicked" );
-}
-
-
-/*
-* Cmd_Match_f
-*/
-static void Cmd_Match_f( void ) {
-	const char *cmd;
-
-	if( Cmd_Argc() != 2 ) {
-		Com_Printf( "Usage: match <option: restart|advance|status>\n" );
-		return;
-	}
-
-	cmd = Cmd_Argv( 1 );
-	if( !Q_stricmp( cmd, "restart" ) ) {
-		level.exitNow = false;
-		level.hardReset = false;
-		Q_strncpyz( level.callvote_map, sv.mapname, sizeof( sv.mapname ) );
-		G_EndMatch();
-	} else if( !Q_stricmp( cmd, "advance" ) ) {
-		level.exitNow = false;
-		level.hardReset = true;
-		G_EndMatch();
-	} else if( !Q_stricmp( cmd, "status" ) ) {
-		Cbuf_ExecuteText( EXEC_APPEND, "status" );
-	}
 }
 
 //==============================================================================
@@ -115,9 +83,6 @@ typedef struct
 static ipfilter_t ipfilters[MAX_IPFILTERS];
 static int numipfilters;
 
-/*
-* StringToFilter
-*/
 static bool StringToFilter( const char *s, ipfilter_t *f ) {
 	char num[128];
 	int i, j;
@@ -157,19 +122,13 @@ static bool StringToFilter( const char *s, ipfilter_t *f ) {
 	return true;
 }
 
-/*
-* SV_ResetPacketFiltersTimeouts
-*/
-void SV_ResetPacketFiltersTimeouts( void ) {
+void SV_ResetPacketFiltersTimeouts() {
 	int i;
 
 	for( i = 0; i < MAX_IPFILTERS; i++ )
 		ipfilters[i].timeout = 0;
 }
 
-/*
-* SV_FilterPacket
-*/
 bool SV_FilterPacket( char *from ) {
 	int i;
 	unsigned in;
@@ -205,57 +164,35 @@ bool SV_FilterPacket( char *from ) {
 	return false;
 }
 
-/*
-* SV_ReadIPList
-*/
-void SV_ReadIPList( void ) {
+void SV_ReadIPList() {
 	SV_ResetPacketFiltersTimeouts();
 
-	Cbuf_ExecuteText( EXEC_APPEND, "exec listip.cfg silent\n" );
+	Cbuf_Add( "exec listip.cfg" );
 }
 
-/*
-* SV_WriteIPList
-*/
-void SV_WriteIPList( void ) {
-	int file;
-	char name[MAX_QPATH];
-	char string[MAX_STRING_CHARS];
-	uint8_t b[4] = { 0, 0, 0, 0 };
-	int i;
+void SV_WriteIPList() {
+	DynamicString output( sys_allocator, "filterban {}\r\n", filterban->integer );
 
-	Q_strncpyz( name, "listip.cfg", sizeof( name ) );
-
-	//Com_Printf( "Writing %s.\n", name );
-
-	if( FS_FOpenFile( name, &file, FS_WRITE ) == -1 ) {
-		Com_Printf( "Couldn't open %s\n", name );
-		return;
-	}
-
-	snprintf( string, sizeof( string ), "set filterban %d\r\n", filterban->integer );
-	FS_Write( string, strlen( string ), file );
-
-	for( i = 0; i < numipfilters; i++ ) {
+	for( int i = 0; i < numipfilters; i++ ) {
 		if( ipfilters[i].timeout && ipfilters[i].timeout <= svs.gametime ) {
 			continue;
 		}
-		*(unsigned *)b = ipfilters[i].compare;
-		if( ipfilters[i].timeout ) {
-			snprintf( string, sizeof( string ), "addip %i.%i.%i.%i %.2f\r\n", b[0], b[1], b[2], b[3], ( ipfilters[i].timeout - svs.gametime ) / ( 1000.0f * 60.0f ) );
-		} else {
-			snprintf( string, sizeof( string ), "addip %i.%i.%i.%i\r\n", b[0], b[1], b[2], b[3] );
+
+		const u8 * ip = ( const u8 * ) &ipfilters[ i ].compare;
+		output.append( "addip {}.{}.{}.{}", ip[ 0 ], ip[ 1 ], ip[ 2 ], ip[ 3 ] );
+		if( ipfilters[i].timeout != 0 ) {
+			output.append( " {.2}", ( ipfilters[i].timeout - svs.gametime ) / ( 1000.0f * 60.0f ) );
 		}
-		FS_Write( string, strlen( string ), file );
+		output += "\r\n";
 	}
 
-	FS_FCloseFile( file );
+	TempAllocator temp = svs.frame_arena.temp();
+	if( !WriteFile( &temp, "listip.cfg", output.c_str(), output.length() ) ) {
+		Com_Printf( "Couldn't write listip.cfg\n" );
+	}
 }
 
-/*
-* Cmd_AddIP_f
-*/
-static void Cmd_AddIP_f( void ) {
+static void Cmd_AddIP_f() {
 	int i;
 
 	if( Cmd_Argc() < 2 ) {
@@ -283,10 +220,7 @@ static void Cmd_AddIP_f( void ) {
 	}
 }
 
-/*
-* Cmd_RemoveIP_f
-*/
-static void Cmd_RemoveIP_f( void ) {
+static void Cmd_RemoveIP_f() {
 	ipfilter_t f;
 	int i, j;
 
@@ -311,10 +245,7 @@ static void Cmd_RemoveIP_f( void ) {
 	Com_Printf( "Didn't find %s.\n", Cmd_Argv( 1 ) );
 }
 
-/*
-* Cmd_ListIP_f
-*/
-static void Cmd_ListIP_f( void ) {
+static void Cmd_ListIP_f() {
 	int i;
 	uint8_t b[4];
 
@@ -330,51 +261,30 @@ static void Cmd_ListIP_f( void ) {
 	}
 }
 
-/*
-* Cmd_WriteIP_f
-*/
-static void Cmd_WriteIP_f( void ) {
+static void Cmd_WriteIP_f() {
 	SV_WriteIPList();
 }
 
-/*
-* G_AddCommands
-*/
-void G_AddServerCommands( void ) {
+void G_AddServerCommands() {
 	if( is_dedicated_server ) {
-		Cmd_AddCommand( "say", Cmd_ConsoleSay_f );
+		AddCommand( "say", Cmd_ConsoleSay_f );
 	}
-	Cmd_AddCommand( "kick", Cmd_ConsoleKick_f );
+	AddCommand( "kick", Cmd_ConsoleKick_f );
 
-	// match controls
-	Cmd_AddCommand( "match", Cmd_Match_f );
-
-	// banning
-	Cmd_AddCommand( "addip", Cmd_AddIP_f );
-	Cmd_AddCommand( "removeip", Cmd_RemoveIP_f );
-	Cmd_AddCommand( "listip", Cmd_ListIP_f );
-	Cmd_AddCommand( "writeip", Cmd_WriteIP_f );
-
-	Cmd_AddCommand( "dumpASapi", G_asDumpAPI_f );
+	AddCommand( "addip", Cmd_AddIP_f );
+	AddCommand( "removeip", Cmd_RemoveIP_f );
+	AddCommand( "listip", Cmd_ListIP_f );
+	AddCommand( "writeip", Cmd_WriteIP_f );
 }
 
-/*
-* G_RemoveCommands
-*/
-void G_RemoveCommands( void ) {
+void G_RemoveCommands() {
 	if( is_dedicated_server ) {
-		Cmd_RemoveCommand( "say" );
+		RemoveCommand( "say" );
 	}
-	Cmd_RemoveCommand( "kick" );
+	RemoveCommand( "kick" );
 
-	// match controls
-	Cmd_RemoveCommand( "match" );
-
-	// banning
-	Cmd_RemoveCommand( "addip" );
-	Cmd_RemoveCommand( "removeip" );
-	Cmd_RemoveCommand( "listip" );
-	Cmd_RemoveCommand( "writeip" );
-
-	Cmd_RemoveCommand( "dumpASapi" );
+	RemoveCommand( "addip" );
+	RemoveCommand( "removeip" );
+	RemoveCommand( "listip" );
+	RemoveCommand( "writeip" );
 }

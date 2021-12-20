@@ -28,8 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //FIXME: this use of "area" is different from the bsp file use
 //===============================================================================
 
-#define GAME_EDICT_NUM( n ) ( (edict_t *)( game.edicts + n ) )
-
 #define AREA_GRID       128
 #define AREA_GRIDNODES  ( AREA_GRID * AREA_GRID )
 #define AREA_GRIDMINSIZE 64.0f  // minimum areagrid cell size, smaller values
@@ -57,24 +55,24 @@ static areagrid_t g_areagrid;
 #define CFRAME_UPDATE_BACKUP    64  // copies of SyncEntityState to keep buffered (1 second of backup at 62 fps).
 #define CFRAME_UPDATE_MASK  ( CFRAME_UPDATE_BACKUP - 1 )
 
-typedef struct c4clipedict_s {
+struct c4clipedict_t {
 	SyncEntityState s;
 	entity_shared_t r;
-} c4clipedict_t;
+};
 
 //backups of all server frames areas and edicts
-typedef struct c4frame_s {
+struct c4frame_t {
 	c4clipedict_t clipEdicts[MAX_EDICTS];
 	int numedicts;
 
 	int64_t timestamp;
 	int64_t framenum;
-} c4frame_t;
+};
 
-c4frame_t sv_collisionframes[CFRAME_UPDATE_BACKUP];
+static c4frame_t sv_collisionframes[CFRAME_UPDATE_BACKUP];
 static int64_t sv_collisionFrameNum = 0;
 
-void GClip_BackUpCollisionFrame( void ) {
+void GClip_BackUpCollisionFrame() {
 	c4frame_t *cframe;
 	edict_t *svedict;
 	int i;
@@ -143,7 +141,7 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 	backTime = Abs( deltaTime );
 	if( g_antilag_maxtimedelta->integer ) {
 		if( g_antilag_maxtimedelta->integer < 0 ) {
-			Cvar_SetValue( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
+			Cvar_SetInteger( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
 		}
 		if( backTime > (int64_t)g_antilag_maxtimedelta->integer ) {
 			backTime = (int64_t)g_antilag_maxtimedelta->integer;
@@ -298,7 +296,7 @@ static void GClip_LinkEntity_AreaGrid( areagrid_t *areagrid, edict_t *ent ) {
 	int igrid[3], igridmins[3], igridmaxs[3], gridnum, entitynumber;
 
 	entitynumber = ENTNUM( ent );
-	if( entitynumber <= 0 || entitynumber >= game.maxentities || GAME_EDICT_NUM( entitynumber ) != ent ) {
+	if( entitynumber <= 0 || entitynumber >= game.maxentities || &game.edicts[ entitynumber ] != ent ) {
 		Com_Printf( "GClip_LinkEntity_AreaGrid: invalid edict %p "
 					"(edicts is %p, edict compared to prog->edicts is %i)\n",
 					(void *)ent, game.edicts, entitynumber );
@@ -447,7 +445,7 @@ static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, Vec3 mins, Vec3 m
 * GClip_ClearWorld
 * called after the world model has been loaded, before linking any entities
 */
-void GClip_ClearWorld( void ) {
+void GClip_ClearWorld() {
 	cmodel_t * world_model = CM_FindCModel( CM_Server, StringHash( svs.cms->world_hash ) );
 
 	Vec3 world_mins, world_maxs;
@@ -480,16 +478,11 @@ void GClip_UnlinkEntity( edict_t *ent ) {
 void GClip_LinkEntity( edict_t *ent ) {
 	int leafs[MAX_TOTAL_ENT_LEAFS];
 	int clusters[MAX_TOTAL_ENT_LEAFS];
-	int num_leafs;
-	int i, j, k;
-	int area;
-	int topnode;
 
 	GClip_UnlinkEntity( ent ); // unlink from old position
 
 	if( ent == game.edicts ) {
 		return; // don't add the world
-
 	}
 	if( !ent->r.inuse ) {
 		return;
@@ -498,39 +491,14 @@ void GClip_LinkEntity( edict_t *ent ) {
 	// set the size
 	ent->r.size = ent->r.maxs - ent->r.mins;
 
-	if( ent->r.solid == SOLID_NOT || ( ent->r.svflags & SVF_PROJECTILE ) ) {
-		ent->s.solid = 0;
-	} else if( CM_IsBrushModel( CM_Server, ent->s.model ) ) {
-		// the only predicted SOLID_TRIGGER entity is jumppads
-		if( ent->r.solid != SOLID_TRIGGER || ent->s.type == ET_JUMPPAD || ent->s.type == ET_PAINKILLER_JUMPPAD ) {
-			ent->s.solid = SOLID_BMODEL;
-		} else {
-			ent->s.solid = 0;
-		}
-	} else {   // encode the size into the entity_state for client prediction
-		if( ent->r.solid == SOLID_TRIGGER ) {
-			ent->s.solid = 0;
-		} else {
-			// assume that x/y are equal and symetric
-			i = Clamp( 1.0f, ent->r.maxs.x / 8, 31.0f );
-
-			// z is not symetric
-			j = Clamp( 1.0f, ( -ent->r.mins.z ) / 8, 31.0f );
-
-			// and z maxs can be negative...
-			k = Clamp( 1.0f, ( ent->r.maxs.z + 32 ) / 8, 63.0f );
-
-			ent->s.solid = ( k << 10 ) | ( j << 5 ) | i;
-		}
-	}
+	bool predicted_trigger = ent->r.solid == SOLID_TRIGGER && ( ent->s.type == ET_JUMPPAD || ent->s.type == ET_PAINKILLER_JUMPPAD );
+	bool transmit_bounds = ent->r.solid == SOLID_YES || predicted_trigger;
+	ent->s.bounds = transmit_bounds ? MinMax3( ent->r.mins, ent->r.maxs ) : MinMax3::Empty();
 
 	// set the abs box
-	if( CM_IsBrushModel( CM_Server, ent->s.model ) && ( ent->s.angles.x || ent->s.angles.y || ent->s.angles.z ) ) {
+	if( CM_IsBrushModel( CM_Server, ent->s.model ) && ent->s.angles != Vec3( 0.0f ) ) {
 		// expand for rotation
-		float radius;
-
-		radius = RadiusFromBounds( ent->r.mins, ent->r.maxs );
-
+		float radius = RadiusFromBounds( ent->r.mins, ent->r.maxs );
 		ent->r.absmin = ent->s.origin - Vec3( radius );
 		ent->r.absmax = ent->s.origin + Vec3( radius );
 	} else {   // axis aligned
@@ -548,21 +516,21 @@ void GClip_LinkEntity( edict_t *ent ) {
 	ent->r.areanum = ent->r.areanum2 = -1;
 
 	// get all leafs, including solids
-	num_leafs = CM_BoxLeafnums( svs.cms, ent->r.absmin, ent->r.absmax,
+	int topnode;
+	int num_leafs = CM_BoxLeafnums( svs.cms, ent->r.absmin, ent->r.absmax,
 									 leafs, MAX_TOTAL_ENT_LEAFS, &topnode );
 
 	// set areas
-	for( i = 0; i < num_leafs; i++ ) {
+	for( int i = 0; i < num_leafs; i++ ) {
 		clusters[i] = CM_LeafCluster( svs.cms, leafs[i] );
-		area = CM_LeafArea( svs.cms, leafs[i] );
+		int area = CM_LeafArea( svs.cms, leafs[i] );
 		if( area > -1 ) {
 			// doors may legally straggle two areas,
 			// but nothing should ever need more than that
 			if( ent->r.areanum > -1 && ent->r.areanum != area ) {
 				if( ent->r.areanum2 > -1 && ent->r.areanum2 != area ) {
 					if( developer->integer ) {
-						Com_Printf( "Object %s touching 3 areas at %f %f %f\n",
-								  ( ent->classname ? ent->classname : "" ),
+						Com_Printf( "Object touching 3 areas at %f %f %f\n",
 								  ent->r.absmin.x, ent->r.absmin.y, ent->r.absmin.z );
 					}
 				}
@@ -579,14 +547,16 @@ void GClip_LinkEntity( edict_t *ent ) {
 		ent->r.headnode = topnode;
 	} else {
 		ent->r.num_clusters = 0;
-		for( i = 0; i < num_leafs; i++ ) {
+		for( int i = 0; i < num_leafs; i++ ) {
 			if( clusters[i] == -1 ) {
 				continue; // not a visible leaf
 			}
-			for( j = 0; j < i; j++ )
+			int j;
+			for( j = 0; j < i; j++ ) {
 				if( clusters[j] == clusters[i] ) {
 					break;
 				}
+			}
 			if( j == i ) {
 				if( ent->r.num_clusters == MAX_ENT_CLUSTERS ) {
 					// assume we missed some leafs, and mark by headnode
@@ -648,7 +618,8 @@ int GClip_AreaEdicts( Vec3 mins, Vec3 maxs, int *list, int maxcount, int areatyp
 * Returns a collision model that can be used for testing or clipping an
 * object of mins/maxs size.
 */
-static struct cmodel_s *GClip_CollisionModelForEntity( SyncEntityState *s, entity_shared_t *r ) {
+
+static cmodel_t *GClip_CollisionModelForEntity( SyncEntityState *s, entity_shared_t *r ) {
 	cmodel_t * model = CM_TryFindCModel( CM_Server, s->model );
 	if( model != NULL ) {
 		return model;
@@ -675,7 +646,7 @@ static int GClip_PointContents( Vec3 p, int timeDelta ) {
 	int touch[MAX_EDICTS];
 	int i, num;
 	int contents, c2;
-	struct cmodel_s *cmodel;
+	cmodel_t *cmodel;
 
 	// get base contents from world
 	contents = CM_TransformedPointContents( CM_Server, svs.cms, p, NULL, Vec3( 0.0f ), Vec3( 0.0f ) );
@@ -761,7 +732,7 @@ static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 		}
 
 		// might intersect, so do an exact clip
-		struct cmodel_s * cmodel = GClip_CollisionModelForEntity( &touch->s, &touch->r );
+		cmodel_t * cmodel = GClip_CollisionModelForEntity( &touch->s, &touch->r );
 
 		Vec3 angles;
 		if( CM_IsBrushModel( CM_Server, touch->s.model ) ) {
@@ -902,41 +873,36 @@ bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t *ent ) {
 	return BoundsOverlap( mins, maxs, ent->r.absmin, ent->r.absmax );
 }
 
+static void CallTouches( edict_t * ent, Vec3 mins, Vec3 maxs ) {
+	int touch[ MAX_EDICTS ];
+	int num = GClip_AreaEdicts( mins, maxs, touch, MAX_EDICTS, AREA_TRIGGERS, 0 );
 
-/*
-* GClip_TouchTriggers
-*/
-void GClip_TouchTriggers( edict_t *ent ) {
-	int touch[MAX_EDICTS];
-
-	if( !ent->r.inuse || ( ent->r.client && G_IsDead( ent ) ) ) {
-		return;
-	}
-
-	Vec3 mins = ent->s.origin + ent->r.mins;
-	Vec3 maxs = ent->s.origin + ent->r.maxs;
-
-	// FIXME: should be s.origin + mins and s.origin + maxs because of absmin and absmax padding?
-	int num = GClip_AreaEdicts( ent->r.absmin, ent->r.absmax, touch, MAX_EDICTS, AREA_TRIGGERS, 0 );
-
-	// be careful, it is possible to have an entity in this
-	// list removed before we get to it (killtriggered)
 	for( int i = 0; i < num; i++ ) {
-		edict_t *hit = &game.edicts[touch[i]];
+		edict_t * hit = &game.edicts[ touch[ i ] ];
+
+		// G_CallTouch can kill entities so we need to check they still exist
 		if( !hit->r.inuse ) {
 			continue;
 		}
 
-		if( !hit->touch && !hit->asTouchFunc ) {
+		if( !hit->touch ) {
 			continue;
 		}
 
-		if( !hit->item && !GClip_EntityContact( mins, maxs, hit ) ) {
+		if( !GClip_EntityContact( mins, maxs, hit ) ) {
 			continue;
 		}
 
 		G_CallTouch( hit, ent, NULL, 0 );
 	}
+}
+
+void GClip_TouchTriggers( edict_t *ent ) {
+	if( !ent->r.inuse || ( ent->r.client && G_IsDead( ent ) ) ) {
+		return;
+	}
+
+	CallTouches( ent, ent->r.absmin, ent->r.absmax );
 }
 
 void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
@@ -969,69 +935,44 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	GClip_LinkEntity( ent );
 
 	// expand the search bounds to include the space between the previous and current origin
-	Vec3 mins, maxs;
-	for( int i = 0; i < 3; i++ ) {
-		if( previous_origin[i] < pm->playerState->pmove.origin[i] ) {
-			mins[i] = Min2( previous_origin[i] + pm->maxs[i], pm->playerState->pmove.origin[i] + pm->mins[i] );
-			maxs[i] = pm->playerState->pmove.origin[i] + pm->maxs[i];
-		} else {
-			mins[i] = pm->playerState->pmove.origin[i] + pm->mins[i];
-			maxs[i] = Max2( previous_origin[i] + pm->mins[i], pm->playerState->pmove.origin[i] + pm->maxs[i] );
-		}
-	}
+	MinMax3 bounds = MinMax3::Empty();
+	bounds = Union( bounds, previous_origin + pm->maxs );
+	bounds = Union( bounds, previous_origin + pm->mins );
+	bounds = Union( bounds, pm->playerState->pmove.origin + pm->maxs );
+	bounds = Union( bounds, pm->playerState->pmove.origin + pm->mins );
 
-	int touch[MAX_EDICTS];
-	int num = GClip_AreaEdicts( mins, maxs, touch, MAX_EDICTS, AREA_TRIGGERS, 0 );
-
-	// be careful, it is possible to have an entity in this
-	// list removed before we get to it (killtriggered)
-	for( int i = 0; i < num; i++ ) {
-		edict_t *hit = &game.edicts[touch[i]];
-		if( !hit->r.inuse ) {
-			continue;
-		}
-
-		if( !hit->touch && !hit->asTouchFunc ) {
-			continue;
-		}
-
-		if( !hit->item && !GClip_EntityContact( mins, maxs, hit ) ) {
-			continue;
-		}
-
-		G_CallTouch( hit, ent, NULL, 0 );
-	}
+	CallTouches( ent, bounds.mins, bounds.maxs );
 }
 
 /*
 * GClip_FindInRadius4D
 * Returns entities that have their boxes within a spherical area
 */
-int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int timeDelta ) {
-	float rad_ = rad * sqrtf( 2.0f ) + 1.0f;
-	int touch[MAX_EDICTS];
+int GClip_FindInRadius4D( Vec3 origin, float radius, int * output, int maxcount, int timeDelta ) {
+	float aabb_size = radius * sqrtf( 2.0f ) + 1.0f;
+	Vec3 mins = origin - Vec3( aabb_size );
+	Vec3 maxs = origin + Vec3( aabb_size );
 
-	Vec3 mins = Vec3( org.x - rad_, org.y - rad_, org.z - rad_ );
-	Vec3 maxs = Vec3( org.x + rad_, org.y + rad_, org.z + rad_ );
+	int candidates[ MAX_EDICTS ];
+	int num = GClip_AreaEdicts( mins, maxs, candidates, MAX_EDICTS, AREA_ALL, timeDelta );
 
-	int listnum = 0;
-	int num = GClip_AreaEdicts( mins, maxs, touch, MAX_EDICTS, AREA_ALL, timeDelta );
+	int n = 0;
 
 	for( int i = 0; i < num; i++ ) {
-		edict_t * check = GAME_EDICT_NUM( touch[i] );
+		const edict_t * check = &game.edicts[ candidates[ i ] ];
 
 		// make absolute mins and maxs
-		if( !BoundsOverlapSphere( check->r.absmin, check->r.absmax, org, rad ) ) {
+		if( !BoundsOverlapSphere( check->r.absmin, check->r.absmax, origin, radius ) ) {
 			continue;
 		}
 
-		if( listnum < maxcount ) {
-			list[listnum] = touch[i];
+		if( n < maxcount ) {
+			output[ n ] = candidates[ i ];
 		}
-		listnum++;
+		n++;
 	}
 
-	return listnum;
+	return n;
 }
 
 /*
@@ -1039,8 +980,8 @@ int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int time
 *
 * Returns entities that have their boxes within a spherical area
 */
-int GClip_FindInRadius( Vec3 org, float rad, int *list, int maxcount ) {
-	return GClip_FindInRadius4D( org, rad, list, maxcount, 0 );
+int GClip_FindInRadius( Vec3 origin, float radius, int * output, int maxcount ) {
+	return GClip_FindInRadius4D( origin, radius, output, maxcount, 0 );
 }
 
 void G_SplashFrac4D( const edict_t *ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage ) {

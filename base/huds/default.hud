@@ -1,17 +1,4 @@
-/*
-Credz:
- - Warsow Team
- - Scratch
- - joki
- - kuhjoe
- - Jihnsius 4EXTREME BRA1NZ
- - IRC for <3 and feedback
- - clownFart for most of the work
-*/
-
-if %MATCH_STATE < #MATCH_STATE_POSTMATCH
-
-#include callvote
+if %MATCH_STATE < #MatchState_PostMatch
 
 #include bomb_indicators
 
@@ -25,8 +12,6 @@ endif
 
 #include weaponlist
 
-#include obituaries
-
 #include bomb_progress
 
 #include chasing
@@ -34,17 +19,13 @@ endif
 #include speed
 #include fps
 
-/*
-#include download
-*/
-
 #include net
 #include damage_numbers
 #include pointing
-#include keystate
+#include obituaries
 
 #include crosshair
 
-endif //if %MATCH_STATE < #MATCH_STATE_POSTMATCH
+endif //if %MATCH_STATE < #MatchState_PostMatch
 
-#include awards
+#include callvote

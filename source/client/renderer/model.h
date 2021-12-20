@@ -1,8 +1,35 @@
 #pragma once
 
 #include "qcommon/types.h"
-#include "cgame/ref.h"
-#include "client/renderer/backend.h"
+#include "client/renderer/types.h"
+
+enum InterpolationMode {
+	InterpolationMode_Step,
+	InterpolationMode_Linear,
+	// InterpolationMode_CubicSpline,
+};
+
+struct DrawModelConfig {
+	struct DrawModel {
+		bool enabled;
+		bool view_weapon;
+	} draw_model;
+
+	struct DrawShadows {
+		bool enabled;
+	} draw_shadows;
+
+	struct DrawOutlines {
+		bool enabled;
+		float outline_height;
+		Vec4 outline_color;
+	} draw_outlines;
+
+	struct DrawSilhouette {
+		bool enabled;
+		Vec4 silhouette_color;
+	} draw_silhouette;
+};
 
 struct Model {
 	struct Primitive {
@@ -17,21 +44,29 @@ struct Model {
 		T * samples;
 		float * times;
 		u32 num_samples;
+		InterpolationMode interpolation;
 	};
 
-	struct Joint {
-		Mat4 joint_to_bind;
-		u8 parent;
-		u8 next;
-
-		// TODO: remove this with additive animations
+	struct Node {
 		u32 name;
+
+		Mat4 global_transform;
+		TRS local_transform;
+		u8 primitive;
+
+		u8 parent;
 		u8 first_child;
 		u8 sibling;
 
 		AnimationChannel< Quaternion > rotations;
 		AnimationChannel< Vec3 > translations;
 		AnimationChannel< float > scales;
+		bool skinned;
+	};
+
+	struct Joint {
+		Mat4 joint_to_bind;
+		u8 node_idx;
 	};
 
 	Mesh mesh;
@@ -42,9 +77,13 @@ struct Model {
 	Primitive * primitives;
 	u32 num_primitives;
 
-	Joint * joints;
+	Node * nodes;
+	u8 num_nodes;
+
+	Joint * skin;
 	u8 num_joints;
-	u8 root_joint;
+
+	u8 camera;
 };
 
 void InitModels();
@@ -53,24 +92,20 @@ void ShutdownModels();
 
 const Model * FindModel( StringHash name );
 const Model * FindModel( const char * name );
+const Model * FindMapModel( StringHash name );
 
-Model * NewModel( u64 hash );
+void DeleteModel( Model * model );
 
 bool LoadGLTFModel( Model * model, const char * path );
 
 struct Map;
-bool LoadBSPRenderData( Map * map, u64 base_hash, Span< const u8 > data );
+bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< const u8 > data );
+void DeleteBSPRenderData( Map * map );
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline );
-void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
-void DrawViewWeapon( const Model * model, const Mat4 & transform );
-void DrawOutlinedViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height );
-void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
-void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, Span< const Mat4 > skinning_matrices = Span< const Mat4 >() );
-
-MinMax3 ModelBounds( const Model * model );
+void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
 
 Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t );
-MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< TRS > local_poses );
-bool FindJointByName( const Model * model, u32 name, u8 * joint_idx );
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses );
+bool FindNodeByName( const Model * model, u32 name, u8 * idx );
 void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_joint );

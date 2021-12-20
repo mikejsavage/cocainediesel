@@ -17,61 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
 #include "game/g_local.h"
-
-static void target_explosion_explode( edict_t *self ) {
-	float save;
-	int radius;
-
-	G_RadiusDamage( self, self->activator, NULL, NULL, MOD_EXPLOSIVE );
-
-	if( ( self->projectileInfo.radius * 1 / 8 ) > 255 ) {
-		radius = ( self->projectileInfo.radius * 1 / 16 ) & 0xFF;
-		if( radius < 1 ) {
-			radius = 1;
-		}
-		G_SpawnEvent( EV_EXPLOSION2, radius, &self->s.origin );
-	} else {
-		radius = ( self->projectileInfo.radius * 1 / 8 ) & 0xFF;
-		if( radius < 1 ) {
-			radius = 1;
-		}
-		G_SpawnEvent( EV_EXPLOSION1, radius, &self->s.origin );
-	}
-
-	save = self->delay;
-	self->delay = 0;
-	G_UseTargets( self, self->activator );
-	self->delay = save;
-}
-
-static void use_target_explosion( edict_t *self, edict_t *other, edict_t *activator ) {
-	self->activator = activator;
-
-	if( !self->delay ) {
-		target_explosion_explode( self );
-		return;
-	}
-
-	self->think = target_explosion_explode;
-	self->nextThink = level.time + self->delay * 1000;
-}
-
-void SP_target_explosion( edict_t *self ) {
-	self->use = use_target_explosion;
-	self->r.svflags = SVF_NOCLIENT;
-
-	self->projectileInfo.maxDamage = Max2( self->dmg, 1 );
-	self->projectileInfo.minDamage = Min2( self->dmg, 1 );
-	self->projectileInfo.maxKnockback = self->projectileInfo.maxDamage;
-	self->projectileInfo.minKnockback = self->projectileInfo.minDamage;
-	self->projectileInfo.radius = st.radius;
-	if( !self->projectileInfo.radius ) {
-		self->projectileInfo.radius = self->dmg + 100;
-	}
-}
-
-//==========================================================
 
 static void target_laser_think( edict_t *self ) {
 	trace_t tr;
@@ -117,7 +64,7 @@ static void target_laser_think( edict_t *self ) {
 		// hurt it if we can
 		if( game.edicts[tr.ent].takedamage ) {
 			if( game.edicts[tr.ent].r.client && self->activator->r.client ) {
-				if( !GS_TeamBasedGametype( &server_gs ) ||
+				if( !level.gametype.isTeamBased ||
 					game.edicts[tr.ent].s.team != self->activator->s.team ) {
 					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, self->count );
 				}
@@ -133,9 +80,8 @@ static void target_laser_think( edict_t *self ) {
 
 				self->spawnflags &= ~0x80000000;
 
-				event = G_SpawnEvent( EV_LASER_SPARKS, DirToByte( tr.plane.normal ), &tr.endpos );
+				event = G_SpawnEvent( EV_LASER_SPARKS, DirToU64( tr.plane.normal ), &tr.endpos );
 				event->s.counterNum = count;
-				event->s.colorRGBA = self->s.colorRGBA;
 			}
 			break;
 		}
@@ -183,12 +129,11 @@ void target_laser_start( edict_t *self ) {
 	self->s.type = ET_LASER;
 	self->r.svflags = 0;
 	self->s.radius = st.size > 0 ? st.size : 8;
-	self->s.colorRGBA = st.rgba != 0 ? st.rgba : COLOR_RGBA( 220, 0, 0, 76 );
 	self->s.sound = "sounds/gladiator/laser_hum";
 
 	if( !self->enemy ) {
-		if( self->target ) {
-			edict_t * target = G_Find( NULL, FOFS( targetname ), self->target );
+		if( self->target != EMPTY_HASH ) {
+			edict_t * target = G_Find( NULL, &edict_t::name, self->target );
 			if( !target ) {
 				if( developer->integer ) {
 					Com_GGPrint( "{} at {}: {} is a bad target", self->classname, self->s.origin, self->target );
@@ -217,61 +162,17 @@ void SP_target_laser( edict_t *self ) {
 	// let everything else get spawned before we start firing
 	self->think = target_laser_start;
 	self->nextThink = level.time + 1;
-	self->count = MOD_LASER;
+	self->count = WorldDamage_Laser;
 }
 
 void SP_target_position( edict_t *self ) { }
-
-static void SP_target_print_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	if( activator->r.client && ( self->spawnflags & 4 ) ) {
-		G_CenterPrintMsg( activator, "%s", self->message );
-		return;
-	}
-
-	// print to team
-	if( activator->r.client && self->spawnflags & 3 ) {
-		edict_t *e;
-		for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
-			if( e->r.inuse && e->s.team ) {
-				if( self->spawnflags & 1 && e->s.team == activator->s.team ) {
-					G_CenterPrintMsg( e, "%s", self->message );
-				}
-				if( self->spawnflags & 2 && e->s.team != activator->s.team ) {
-					G_CenterPrintMsg( e, "%s", self->message );
-				}
-			}
-		}
-		return;
-	}
-
-	for( int i = 1; i <= server_gs.maxclients; i++ ) {
-		edict_t *player = &game.edicts[i];
-		if( !player->r.inuse ) {
-			continue;
-		}
-
-		G_CenterPrintMsg( player, "%s", self->message );
-	}
-}
-
-void SP_target_print( edict_t *self ) {
-	if( !self->message ) {
-		G_FreeEdict( self );
-		return;
-	}
-
-	self->use = SP_target_print_use;
-}
-
-
-//==========================================================
 
 static void target_delay_think( edict_t *ent ) {
 	G_UseTargets( ent, ent->activator );
 }
 
 static void target_delay_use( edict_t *ent, edict_t *other, edict_t *activator ) {
-	ent->nextThink = level.time + 1000 * ( ent->wait + ent->random * random_float11( &svs.rng ) );
+	ent->nextThink = level.time + 1000 * ( ent->wait + ent->random * RandomFloat11( &svs.rng ) );
 	ent->think = target_delay_think;
 	ent->activator = activator;
 }
@@ -287,50 +188,4 @@ void SP_target_delay( edict_t *ent ) {
 
 	ent->delay = 0;
 	ent->use = target_delay_use;
-}
-
-
-//==========================================================
-
-static void target_teleporter_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	edict_t *dest;
-
-	if( !G_PlayerCanTeleport( activator ) ) {
-		return;
-	}
-
-	if( ( self->s.team != TEAM_SPECTATOR ) && ( self->s.team != activator->s.team ) ) {
-		return;
-	}
-	if( self->spawnflags & 1 && activator->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
-		return;
-	}
-
-	dest = G_Find( NULL, FOFS( targetname ), self->target );
-	if( !dest ) {
-		if( developer->integer ) {
-			Com_Printf( "Couldn't find destination.\n" );
-		}
-		return;
-	}
-
-	G_TeleportPlayer( activator, dest );
-}
-
-void SP_target_teleporter( edict_t *self ) {
-	self->r.svflags |= SVF_NOCLIENT;
-
-	if( !self->targetname ) {
-		if( developer->integer ) {
-			Com_GGPrint( "untargeted {} at {}", self->classname, self->s.origin );
-		}
-	}
-
-	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
-		self->s.team = st.gameteam;
-	} else {
-		self->s.team = TEAM_SPECTATOR;
-	}
-
-	self->use = target_teleporter_use;
 }

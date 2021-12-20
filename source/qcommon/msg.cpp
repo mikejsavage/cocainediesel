@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <type_traits>
+
 #include "qcommon/qcommon.h"
 #include "qcommon/half_float.h"
 #include "qcommon/serialization.h"
@@ -42,7 +44,7 @@ void *MSG_GetSpace( msg_t *msg, size_t length ) {
 
 	assert( msg->cursize + length <= msg->maxsize );
 	if( msg->cursize + length > msg->maxsize ) {
-		Com_Error( ERR_FATAL, "MSG_GetSpace: overflowed" );
+		Fatal( "MSG_GetSpace: overflowed" );
 	}
 
 	ptr = msg->data + msg->cursize;
@@ -204,11 +206,22 @@ static void Delta( DeltaBuffer * buf, Vec3 & v, const Vec3 & baseline ) {
 	}
 }
 
+static void Delta( DeltaBuffer * buf, MinMax3 & b, const MinMax3 & baseline ) {
+	Delta( buf, b.mins, baseline.mins );
+	Delta( buf, b.maxs, baseline.maxs );
+}
+
 static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 	Delta( buf, rgba.r, baseline.r );
 	Delta( buf, rgba.g, baseline.b );
 	Delta( buf, rgba.b, baseline.g );
 	Delta( buf, rgba.a, baseline.a );
+}
+
+template< typename E >
+void DeltaEnum( DeltaBuffer * buf, E & x, const E & baseline ) {
+	using T = typename std::underlying_type< E >::type;
+	Delta( buf, ( T & ) x, ( const T & ) baseline );
 }
 
 static void DeltaHalf( DeltaBuffer * buf, float & x, const float & baseline ) {
@@ -275,6 +288,18 @@ void MSG_WriteInt32( msg_t *msg, int c ) {
 }
 
 void MSG_WriteInt64( msg_t *msg, int64_t c ) {
+	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 8 );
+	buf[0] = ( uint8_t )( c & 0xffL );
+	buf[1] = ( uint8_t )( ( c >> 8L ) & 0xffL );
+	buf[2] = ( uint8_t )( ( c >> 16L ) & 0xffL );
+	buf[3] = ( uint8_t )( ( c >> 24L ) & 0xffL );
+	buf[4] = ( uint8_t )( ( c >> 32L ) & 0xffL );
+	buf[5] = ( uint8_t )( ( c >> 40L ) & 0xffL );
+	buf[6] = ( uint8_t )( ( c >> 48L ) & 0xffL );
+	buf[7] = ( uint8_t )( c >> 56L );
+}
+
+void MSG_WriteUint64( msg_t *msg, uint64_t c ) {
 	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 8 );
 	buf[0] = ( uint8_t )( c & 0xffL );
 	buf[1] = ( uint8_t )( ( c >> 8L ) & 0xffL );
@@ -391,6 +416,22 @@ int64_t MSG_ReadInt64( msg_t *msg ) {
 		| ( ( int64_t )msg->data[msg->readcount - 1] << 56L );
 }
 
+uint64_t MSG_ReadUint64( msg_t *msg ) {
+	msg->readcount += 8;
+	if( msg->readcount > msg->cursize ) {
+		return 0;
+	}
+
+	return ( uint64_t )msg->data[msg->readcount - 8]
+		| ( ( uint64_t )msg->data[msg->readcount - 7] << 8L )
+		| ( ( uint64_t )msg->data[msg->readcount - 6] << 16L )
+		| ( ( uint64_t )msg->data[msg->readcount - 5] << 24L )
+		| ( ( uint64_t )msg->data[msg->readcount - 4] << 32L )
+		| ( ( uint64_t )msg->data[msg->readcount - 3] << 40L )
+		| ( ( uint64_t )msg->data[msg->readcount - 2] << 48L )
+		| ( ( uint64_t )msg->data[msg->readcount - 1] << 56L );
+}
+
 uint64_t MSG_ReadUintBase128( msg_t *msg ) {
 	size_t len = 0;
 	uint64_t i = 0;
@@ -472,22 +513,27 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.origin, baseline.origin );
 	DeltaAngle( buf, ent.angles, baseline.angles );
 
+	Delta( buf, ent.bounds, baseline.bounds );
+
 	Delta( buf, ent.teleported, baseline.teleported );
 
-	Delta( buf, ent.type, baseline.type );
-	Delta( buf, ent.solid, baseline.solid );
+	DeltaEnum( buf, ent.type, baseline.type );
 	Delta( buf, ent.model, baseline.model );
+	Delta( buf, ent.material, baseline.material );
+	Delta( buf, ent.color, baseline.color );
 	Delta( buf, ent.svflags, baseline.svflags );
 	Delta( buf, ent.effects, baseline.effects );
 	Delta( buf, ent.ownerNum, baseline.ownerNum );
-	Delta( buf, ent.targetNum, baseline.targetNum );
 	Delta( buf, ent.sound, baseline.sound );
 	Delta( buf, ent.model2, baseline.model2 );
+	Delta( buf, ent.animating, baseline.animating );
+	Delta( buf, ent.animation_time, baseline.animation_time );
 	Delta( buf, ent.counterNum, baseline.counterNum );
 	Delta( buf, ent.channel, baseline.channel );
 	Delta( buf, ent.weapon, baseline.weapon );
 	Delta( buf, ent.radius, baseline.radius );
 	Delta( buf, ent.team, baseline.team );
+	Delta( buf, ent.scale, baseline.scale );
 
 	Delta( buf, ent.origin2, baseline.origin2 );
 
@@ -499,68 +545,8 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.linearMovementEnd, baseline.linearMovementEnd );
 	Delta( buf, ent.linearMovementTimeDelta, baseline.linearMovementTimeDelta );
 
-	Delta( buf, ent.colorRGBA, baseline.colorRGBA );
 	Delta( buf, ent.silhouetteColor, baseline.silhouetteColor );
-
-	Delta( buf, ent.light, baseline.light );
 }
-
-// static const msg_field_t ent_state_fields[] = {
-// 	{ ESOFS( events[0] ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( eventParms[0] ), 32, 1, WIRE_BASE128 },
-//
-// 	{ ESOFS( origin[0] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( origin[1] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( origin[2] ), 0, 1, WIRE_FLOAT },
-//
-// 	{ ESOFS( angles[0] ), 0, 1, WIRE_ANGLE },
-// 	{ ESOFS( angles[1] ), 0, 1, WIRE_ANGLE },
-//
-// 	{ ESOFS( teleported ), 1, 1, WIRE_BOOL },
-//
-// 	{ ESOFS( type ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( solid ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( modelindex ), 32, 1, WIRE_FIXED_INT8 },
-// 	{ ESOFS( svflags ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( effects ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( ownerNum ), 32, 1, WIRE_BASE128 },
-// 	{ ESOFS( targetNum ), 32, 1, WIRE_BASE128 },
-// 	{ ESOFS( sound ), 32, 1, WIRE_FIXED_INT8 },
-// 	{ ESOFS( modelindex2 ), 32, 1, WIRE_FIXED_INT8 },
-// 	{ ESOFS( attenuation ), 0, 1, WIRE_HALF_FLOAT },
-// 	{ ESOFS( counterNum ), 32, 1, WIRE_BASE128 },
-// 	{ ESOFS( channel ), 32, 1, WIRE_FIXED_INT8 },
-// 	{ ESOFS( events[1] ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( eventParms[1] ), 32, 1, WIRE_BASE128 },
-// 	{ ESOFS( weapon ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( damage ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( radius ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( team ), 32, 1, WIRE_FIXED_INT8 },
-//
-// 	{ ESOFS( origin2[0] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( origin2[1] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( origin2[2] ), 0, 1, WIRE_FLOAT },
-//
-// 	{ ESOFS( linearMovementTimeStamp ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( linearMovement ), 1, 1, WIRE_BOOL },
-// 	{ ESOFS( linearMovementDuration ), 32, 1, WIRE_UBASE128 },
-// 	{ ESOFS( linearMovementVelocity[0] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementVelocity[1] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementVelocity[2] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementBegin[0] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementBegin[1] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementBegin[2] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementEnd[0] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementEnd[1] ), 0, 1, WIRE_FLOAT },
-// 	{ ESOFS( linearMovementEnd[2] ), 0, 1, WIRE_FLOAT },
-//
-// 	{ ESOFS( angles[2] ), 0, 1, WIRE_ANGLE },
-//
-// 	{ ESOFS( colorRGBA ), 32, 1, WIRE_FIXED_INT32 },
-// 	{ ESOFS( silhouetteColor ), 32, 1, WIRE_FIXED_INT32 },
-//
-// 	{ ESOFS( light ), 32, 1, WIRE_FIXED_INT32 },
-// };
 
 void MSG_WriteEntityNumber( msg_t *msg, int number, bool remove ) {
 	MSG_WriteIntBase128( msg, (remove ? 1 : 0) | number << 1 );
@@ -609,38 +595,28 @@ void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEnt
 // DELTA USER CMDS
 //==================================================
 
-// static const msg_field_t usercmd_fields[] = {
-// 	{ UCOFS( angles[0] ), 16, 1, WIRE_FIXED_INT16 },
-// 	{ UCOFS( angles[1] ), 16, 1, WIRE_FIXED_INT16 },
-// 	{ UCOFS( angles[2] ), 16, 1, WIRE_FIXED_INT16 },
-//
-// 	{ UCOFS( forwardmove ), 8, 1, WIRE_FIXED_INT8 },
-// 	{ UCOFS( sidemove ), 8, 1, WIRE_FIXED_INT8 },
-// 	{ UCOFS( upmove ), 8, 1, WIRE_FIXED_INT8 },
-//
-// 	{ UCOFS( buttons ), 32, 1, WIRE_UBASE128 },
-// };
-
-static void Delta( DeltaBuffer * buf, usercmd_t & cmd, const usercmd_t & baseline ) {
+static void Delta( DeltaBuffer * buf, UserCommand & cmd, const UserCommand & baseline ) {
 	Delta( buf, cmd.angles, baseline.angles );
 	Delta( buf, cmd.forwardmove, baseline.forwardmove );
 	Delta( buf, cmd.sidemove, baseline.sidemove );
 	Delta( buf, cmd.upmove, baseline.upmove );
 	Delta( buf, cmd.buttons, baseline.buttons );
+	Delta( buf, cmd.down_edges, baseline.down_edges );
+	Delta( buf, cmd.entropy, baseline.entropy );
 	Delta( buf, cmd.weaponSwitch, baseline.weaponSwitch );
 }
 
-void MSG_WriteDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, const usercmd_t * cmd ) {
+void MSG_WriteDeltaUsercmd( msg_t * msg, const UserCommand * baseline, const UserCommand * cmd ) {
 	u8 buf[ MAX_MSGLEN ];
 	DeltaBuffer delta = DeltaWriter( buf, sizeof( buf ) );
 
-	Delta( &delta, *const_cast< usercmd_t * >( cmd ), *baseline );
+	Delta( &delta, *const_cast< UserCommand * >( cmd ), *baseline );
 
 	MSG_WriteDeltaBuffer( msg, delta );
 	MSG_WriteIntBase128( msg, cmd->serverTimeStamp );
 }
 
-void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, usercmd_t * cmd ) {
+void MSG_ReadDeltaUsercmd( msg_t * msg, const UserCommand * baseline, UserCommand * cmd ) {
 	DeltaBuffer delta = MSG_StartReadingDeltaBuffer( msg );
 	Delta( &delta, *cmd, *baseline );
 	MSG_FinishReadingDeltaBuffer( msg, delta );
@@ -650,54 +626,6 @@ void MSG_ReadDeltaUsercmd( msg_t * msg, const usercmd_t * baseline, usercmd_t * 
 //==================================================
 // DELTA PLAYER STATES
 //==================================================
-
-// static const msg_field_t player_state_msg_fields[] = {
-// 	{ PSOFS( pmove.pm_type ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( pmove.origin[0] ), 0, 1, WIRE_FLOAT },
-// 	{ PSOFS( pmove.origin[1] ), 0, 1, WIRE_FLOAT },
-// 	{ PSOFS( pmove.origin[2] ), 0, 1, WIRE_FLOAT },
-//
-// 	{ PSOFS( pmove.velocity[0] ), 0, 1, WIRE_FLOAT },
-// 	{ PSOFS( pmove.velocity[1] ), 0, 1, WIRE_FLOAT },
-// 	{ PSOFS( pmove.velocity[2] ), 0, 1, WIRE_FLOAT },
-//
-// 	{ PSOFS( pmove.pm_time ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( pmove.pm_flags ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( pmove.delta_angles[0] ), 16, 1, WIRE_FIXED_INT16 },
-// 	{ PSOFS( pmove.delta_angles[1] ), 16, 1, WIRE_FIXED_INT16 },
-// 	{ PSOFS( pmove.delta_angles[2] ), 16, 1, WIRE_FIXED_INT16 },
-//
-// 	{ PSOFS( event[0] ), 32, 1, WIRE_UBASE128 },
-// 	{ PSOFS( eventParm[0] ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( event[1] ), 32, 1, WIRE_UBASE128 },
-// 	{ PSOFS( eventParm[1] ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( viewangles[0] ), 0, 1, WIRE_ANGLE },
-// 	{ PSOFS( viewangles[1] ), 0, 1, WIRE_ANGLE },
-// 	{ PSOFS( viewangles[2] ), 0, 1, WIRE_ANGLE },
-//
-// 	{ PSOFS( pmove.gravity ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( weapon_state ), 8, 1, WIRE_FIXED_INT8 },
-//
-// 	{ PSOFS( fov ), 0, 1, WIRE_HALF_FLOAT },
-//
-// 	{ PSOFS( POVnum ), 32, 1, WIRE_UBASE128 },
-// 	{ PSOFS( playerNum ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( viewheight ), 32, 1, WIRE_HALF_FLOAT },
-//
-// 	{ PSOFS( plrkeys ), 32, 1, WIRE_UBASE128 },
-//
-// 	{ PSOFS( stats ), 16, PS_MAX_STATS, WIRE_BASE128 },
-//
-// 	{ PSOFS( pmove.stats ), 16, PM_STAT_SIZE, WIRE_BASE128 },
-// 	{ PSOFS( inventory ), 32, MAX_ITEMS, WIRE_UBASE128 },
-// };
 
 static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t & baseline ) {
 	Delta( buf, pmove.pm_type, baseline.pm_type );
@@ -711,7 +639,7 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 
 	Delta( buf, pmove.features, baseline.features );
 
-	Delta( buf, pmove.no_control_time, baseline.no_control_time );
+	Delta( buf, pmove.no_shooting_time, baseline.no_shooting_time );
 	Delta( buf, pmove.knockback_time, baseline.knockback_time );
 	Delta( buf, pmove.crouch_time, baseline.crouch_time );
 	Delta( buf, pmove.dash_time, baseline.dash_time );
@@ -720,10 +648,9 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 	Delta( buf, pmove.max_speed, baseline.max_speed );
 	Delta( buf, pmove.jump_speed, baseline.jump_speed );
 	Delta( buf, pmove.dash_speed, baseline.dash_speed );
-	Delta( buf, pmove.gravity, baseline.gravity );
 }
 
-static void Delta( DeltaBuffer * buf, SyncPlayerState::WeaponInfo & weapon, const SyncPlayerState::WeaponInfo & baseline ) {
+static void Delta( DeltaBuffer * buf, WeaponSlot & weapon, const WeaponSlot & baseline ) {
 	Delta( buf, weapon.weapon, baseline.weapon );
 	Delta( buf, weapon.ammo, baseline.ammo );
 }
@@ -735,21 +662,15 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	DeltaAngle( buf, player.viewangles, baseline.viewangles );
 
-	Delta( buf, player.weapon_state, baseline.weapon_state );
-
-	DeltaHalf( buf, player.fov, baseline.fov );
-
 	Delta( buf, player.POVnum, baseline.POVnum );
 	Delta( buf, player.playerNum, baseline.playerNum );
 
 	DeltaHalf( buf, player.viewheight, baseline.viewheight );
 
-	Delta( buf, player.plrkeys, baseline.plrkeys );
-
 	Delta( buf, player.weapons, baseline.weapons );
-	Delta( buf, player.items, baseline.items );
+	DeltaEnum( buf, player.gadget, baseline.gadget );
+	Delta( buf, player.gadget_ammo, baseline.gadget_ammo );
 
-	Delta( buf, player.show_scoreboard, baseline.show_scoreboard );
 	Delta( buf, player.ready, baseline.ready );
 	Delta( buf, player.voted, baseline.voted );
 	Delta( buf, player.can_change_loadout, baseline.can_change_loadout );
@@ -757,10 +678,17 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	Delta( buf, player.carrying_bomb, baseline.carrying_bomb );
 
 	Delta( buf, player.health, baseline.health );
+	Delta( buf, player.max_health, baseline.max_health );
+	Delta( buf, player.flashed, baseline.flashed );
+
+	DeltaEnum( buf, player.weapon_state, baseline.weapon_state );
+	Delta( buf, player.weapon_state_time, baseline.weapon_state_time );
 
 	Delta( buf, player.weapon, baseline.weapon );
 	Delta( buf, player.pending_weapon, baseline.pending_weapon );
-	Delta( buf, player.weapon_time, baseline.weapon_time );
+	Delta( buf, player.using_gadget, baseline.using_gadget );
+	Delta( buf, player.pending_gadget, baseline.pending_gadget );
+	Delta( buf, player.last_weapon, baseline.last_weapon );
 	Delta( buf, player.zoom_time, baseline.zoom_time );
 
 	Delta( buf, player.team, baseline.team );
@@ -802,25 +730,50 @@ void MSG_ReadDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, Sy
 // DELTA GAME STATES
 //==================================================
 
+static void Delta( DeltaBuffer * buf, SyncScoreboardPlayer & player, const SyncScoreboardPlayer & baseline ) {
+	Delta( buf, player.ping, baseline.ping );
+	Delta( buf, player.score, baseline.score );
+	Delta( buf, player.kills, baseline.kills );
+	Delta( buf, player.ready, baseline.ready );
+	Delta( buf, player.carrier, baseline.carrier );
+	Delta( buf, player.alive, baseline.alive );
+}
+
+static void Delta( DeltaBuffer * buf, SyncTeamState & team, const SyncTeamState & baseline ) {
+	Delta( buf, team.player_indices, baseline.player_indices );
+	Delta( buf, team.score, baseline.score );
+	Delta( buf, team.num_players, baseline.num_players );
+}
+
 static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGameState & baseline ) {
-	Delta( buf, bomb.alpha_score, baseline.alpha_score );
-	Delta( buf, bomb.beta_score, baseline.beta_score );
+	Delta( buf, bomb.attacking_team, baseline.attacking_team );
 	Delta( buf, bomb.alpha_players_alive, baseline.alpha_players_alive );
 	Delta( buf, bomb.alpha_players_total, baseline.alpha_players_total );
 	Delta( buf, bomb.beta_players_alive, baseline.beta_players_alive );
 	Delta( buf, bomb.beta_players_total, baseline.beta_players_total );
+	Delta( buf, bomb.exploding, baseline.exploding );
+	Delta( buf, bomb.exploded_at, baseline.exploded_at );
 }
 
 static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState & baseline ) {
 	Delta( buf, state.flags, baseline.flags );
-	Delta( buf, state.match_state, baseline.match_state );
-	Delta( buf, state.match_start, baseline.match_start );
+	DeltaEnum( buf, state.match_state, baseline.match_state );
+	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
-	Delta( buf, state.round_type, baseline.round_type );
-	Delta( buf, state.max_team_players, baseline.max_team_players );
+	Delta( buf, state.callvote_required_votes, baseline.callvote_required_votes );
+	Delta( buf, state.callvote_yes_votes, baseline.callvote_yes_votes );
+
+	Delta( buf, state.round_num, baseline.round_num );
+	DeltaEnum( buf, state.round_state, baseline.round_state );
+	DeltaEnum( buf, state.round_type, baseline.round_type );
+
+	Delta( buf, state.teams, baseline.teams );
+	Delta( buf, state.players, baseline.players );
+
 	Delta( buf, state.map, baseline.map );
 	Delta( buf, state.map_checksum, baseline.map_checksum );
+
 	Delta( buf, state.bomb, baseline.bomb );
 }
 

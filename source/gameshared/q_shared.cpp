@@ -18,11 +18,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <ctype.h>
 #include <limits.h>
 
-#include "gameshared/q_arch.h"
-#include "gameshared/q_math.h"
-#include "gameshared/q_shared.h"
+#include "qcommon/qcommon.h"
 #include "qcommon/strtonum.h"
 
 //============================================================================
@@ -48,9 +47,6 @@ char *COM_SanitizeFilePath( char *path ) {
 	return path;
 }
 
-/*
-* COM_ValidateFilename
-*/
 bool COM_ValidateFilename( const char *filename ) {
 	assert( filename );
 
@@ -66,15 +62,14 @@ bool COM_ValidateFilename( const char *filename ) {
 	return true;
 }
 
-/*
-* COM_ValidateRelativeFilename
-*/
 bool COM_ValidateRelativeFilename( const char *filename ) {
+	// TODO: should probably use PathIsRelative on windows
+	// https://docs.microsoft.com/en-us/windows/win32/api/shlwapi/nf-shlwapi-pathisrelativea?redirectedfrom=MSDN
 	if( !COM_ValidateFilename( filename ) ) {
 		return false;
 	}
 
-	if( strstr( filename, ".." ) || strstr( filename, "//" ) ) {
+	if( strchr( filename, ':' ) || strstr( filename, ".." ) || strstr( filename, "//" ) ) {
 		return false;
 	}
 
@@ -85,122 +80,11 @@ bool COM_ValidateRelativeFilename( const char *filename ) {
 	return true;
 }
 
-/*
-* COM_StripExtension
-*/
-void COM_StripExtension( char *filename ) {
-	char *src, *last = NULL;
-
-	last = strrchr( filename, '/' );
-	src = strrchr( last ? last : filename, '.' );
-	if( src && *( src + 1 ) ) {
-		*src = 0;
-	}
-}
-
-/*
-* COM_DefaultExtension
-* If path doesn't have extension, appends one to it
-* If there is no room for it overwrites the end of the path
-*/
-void COM_DefaultExtension( char *path, const char *extension, size_t size ) {
-	const char *src, *last;
-	size_t extlen;
-
-	assert( extension && extension[0] && strlen( extension ) < size );
-
-	extlen = strlen( extension );
-
-	// if path doesn't have a .EXT, append extension
-	// (extension should include the .)
-	last = strrchr( path, '/' );
-	src = strrchr( last ? last : path, '.' );
-	if( src && *( src + 1 ) ) {
-		return;             // it has an extension
-	}
-	if( strlen( path ) + extlen >= size ) {
-		path[size - extlen - 1] = 0;
-	}
-	Q_strncatz( path, extension, size );
-}
-
-/*
-* COM_ReplaceExtension
-* Replaces current extension, if there is none appends one
-* If there is no room for it overwrites the end of the path
-*/
-void COM_ReplaceExtension( char *path, const char *extension, size_t size ) {
-	assert( path );
-	assert( extension && extension[0] && strlen( extension ) < size );
-
-	COM_StripExtension( path );
-	//COM_DefaultExtension( path, extension, size );
-
-	// Vic: using COM_DefaultExtension here breaks filenames with multiple dots
-	// and we have just stripped the extension in COM_StripExtension anyway
-	if( *path && path[strlen( path ) - 1] != '/' ) {
-		Q_strncatz( path, extension, size );
-	}
-}
-
-/*
-* COM_FileBase
-*/
-const char *COM_FileBase( const char *in ) {
-	const char *s;
-
-	s = strrchr( in, '/' );
-	if( s ) {
-		return s + 1;
-	}
-
-	return in;
-}
-
-/*
-* COM_StripFilename
-*
-* Cuts the string of, at the last / or erases the whole string if not found
-*/
-void COM_StripFilename( char *filename ) {
-	char *p;
-
-	p = strrchr( filename, '/' );
-	if( !p ) {
-		p = filename;
-	}
-
-	*p = 0;
-}
-
 //============================================================================
 //
 //					BYTE ORDER FUNCTIONS
 //
 //============================================================================
-
-short ShortSwap( short l ) {
-	uint8_t b1, b2;
-
-	b1 = l & 255;
-	b2 = ( l >> 8 ) & 255;
-
-	return ( b1 << 8 ) + b2;
-}
-
-/*
-* va_r
-*
-* does a varargs printf into a temp buffer, so I don't need to have
-* varargs versions of all text functions.
-*/
-char *va_r( char *dest, size_t size, const char *format, ... ) {
-	va_list argptr;
-	va_start( argptr, format );
-	vsnprintf( dest, size, format, argptr );
-	va_end( argptr );
-	return dest;
-}
 
 /*
 * va
@@ -225,6 +109,10 @@ static bool IsWhitespace( char c ) {
 	return c == '\0' || c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
+/*
+ * this can return an empty string if it parses empty quotes
+ * check for ret.ptr == NULL to see if you hit the end of the string
+ */
 Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
 	const char * cursor = *ptr;
 	if( cursor == NULL ) {
@@ -235,12 +123,12 @@ Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
 	while( IsWhitespace( *cursor ) ) {
 		if( *cursor == '\0' ) {
 			*ptr = NULL;
-			return MakeSpan( "" );
+			return Span< const char >( NULL, 0 );
 		}
 
 		if( *cursor == '\n' && stop == Parse_StopOnNewLine ) {
 			*ptr = cursor;
-			return MakeSpan( "" );
+			return Span< const char >( NULL, 0 );
 		}
 
 		cursor++;
@@ -275,6 +163,10 @@ Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
 	return span;
 }
 
+/*
+ * this can return an empty string if it parses empty quotes
+ * check for ret.ptr == NULL to see if you hit the end of the string
+ */
 Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop ) {
 	Span< const char > c = *cursor;
 
@@ -282,12 +174,12 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 	while( c.n == 0 || IsWhitespace( c[ 0 ] ) ) {
 		if( c.n == 0 ) {
 			*cursor = c;
-			return c;
+			return Span< const char >( NULL, 0 );
 		}
 
 		if( c[ 0 ] == '\n' && stop == Parse_StopOnNewLine ) {
 			*cursor = c;
-			return MakeSpan( "" );
+			return Span< const char >( NULL, 0 );
 		}
 
 		c++;
@@ -322,19 +214,7 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 	return token;
 }
 
-int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop ) {
-	Span< const char > token = ParseToken( cursor, stop );
-	int x;
-	return SpanToInt( token, &x ) ? x : def;
-}
-
-float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop ) {
-	Span< const char > token = ParseToken( cursor, stop );
-	float x;
-	return SpanToFloat( token, &x ) ? x : def;
-}
-
-bool SpanToInt( Span< const char > str, int * x ) {
+bool TrySpanToInt( Span< const char > str, int * x ) {
 	char buf[ 128 ];
 	if( str.n >= sizeof( buf ) )
 		return false;
@@ -348,9 +228,9 @@ bool SpanToInt( Span< const char > str, int * x ) {
 	return err == NULL;
 }
 
-bool SpanToFloat( Span< const char > str, float * x ) {
+bool TrySpanToFloat( Span< const char > str, float * x ) {
 	char buf[ 128 ];
-	if( str.n >= sizeof( buf ) )
+	if( str.n == 0 || str.n >= sizeof( buf ) )
 		return false;
 
 	memcpy( buf, str.ptr, str.n );
@@ -362,6 +242,58 @@ bool SpanToFloat( Span< const char > str, float * x ) {
 	return end == buf + str.n;
 }
 
+bool TryStringToU64( const char * str, u64 * x ) {
+	if( strlen( str ) == 0 )
+		return false;
+
+	u64 res = 0;
+	while( true ) {
+		if( *str == '\0' )
+			break;
+
+		if( *str < '0' || *str > '9' )
+			return false;
+
+		if( U64_MAX / 10 < res )
+			return false;
+
+		u64 digit = *str - '0';
+		if( U64_MAX - digit < res )
+			return false;
+
+		res = res * 10 + digit;
+		str++;
+	}
+
+	*x = res;
+	return true;
+}
+
+int SpanToInt( Span< const char > token, int def ) {
+	int x;
+	return TrySpanToInt( token, &x ) ? x : def;
+}
+
+float SpanToFloat( Span< const char > token, float def ) {
+	float x;
+	return TrySpanToFloat( token, &x ) ? x : def;
+}
+
+u64 StringToU64( const char * str, u64 def ) {
+	u64 x;
+	return TryStringToU64( str, &x ) ? x : def;
+}
+
+int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop ) {
+	Span< const char > token = ParseToken( cursor, stop );
+	return SpanToInt( token, def );
+}
+
+float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop ) {
+	Span< const char > token = ParseToken( cursor, stop );
+	return SpanToFloat( token, def );
+}
+
 bool StrEqual( Span< const char > lhs, Span< const char > rhs ) {
 	return lhs.n == rhs.n && memcmp( lhs.ptr, rhs.ptr, lhs.n ) == 0;
 }
@@ -370,29 +302,84 @@ bool StrEqual( Span< const char > lhs, const char * rhs ) {
 	return StrEqual( lhs, MakeSpan( rhs ) );
 }
 
-bool StrEqual( const char * rhs, Span< const char > lhs ) {
-	return StrEqual( lhs, rhs );
+bool StrEqual( const char * lhs, Span< const char > rhs ) {
+	return StrEqual( MakeSpan( lhs ), rhs );
+}
+
+bool StrEqual( const char * lhs, const char * rhs ) {
+	return StrEqual( MakeSpan( lhs ), MakeSpan( rhs ) );
 }
 
 bool StrCaseEqual( Span< const char > lhs, Span< const char > rhs ) {
-	return lhs.n == rhs.n && Q_strnicmp( lhs.ptr, rhs.ptr, lhs.n ) == 0;
+	if( lhs.n != rhs.n )
+		return false;
+
+	for( size_t i = 0; i < lhs.n; i++ ) {
+		if( tolower( lhs[ i ] ) != tolower( rhs[ i ] ) ) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 bool StrCaseEqual( Span< const char > lhs, const char * rhs ) {
 	return StrCaseEqual( lhs, MakeSpan( rhs ) );
 }
 
-bool StrCaseEqual( const char * rhs, Span< const char > lhs ) {
-	return StrCaseEqual( lhs, rhs );
+bool StrCaseEqual( const char * lhs, Span< const char > rhs ) {
+	return StrCaseEqual( MakeSpan( lhs ), rhs );
+}
+
+bool StrCaseEqual( const char * lhs, const char * rhs ) {
+	return StrCaseEqual( MakeSpan( lhs ), MakeSpan( rhs ) );
+}
+
+bool StartsWith( Span< const char > str, const char * prefix ) {
+	if( str.n < strlen( prefix ) )
+		return false;
+	return memcmp( str.ptr, prefix, strlen( prefix ) ) == 0;
+}
+
+bool StartsWith( const char * str, const char * prefix ) {
+	return StartsWith( MakeSpan( str ), prefix );
+}
+
+bool CaseStartsWith( const char * str, const char * prefix ) {
+	if( strlen( str ) < strlen( prefix ) )
+		return false;
+	return StrCaseEqual( Span< const char >( str, strlen( prefix ) ), prefix );
+}
+
+static Span< const char > MemRChr( Span< const char > str, char c, bool empty_if_missing ) {
+	for( size_t i = 0; i < str.n; i++ ) {
+		if( str[ str.n - i - 1 ] == c ) {
+			return str + ( str.n - i - 1 );
+		}
+	}
+
+	return empty_if_missing ? Span< const char >() : str;
+}
+
+Span< const char > FileExtension( Span< const char > path ) {
+	Span< const char > filename = MemRChr( path, '/', false );
+	return MemRChr( filename, '.', true );
 }
 
 Span< const char > FileExtension( const char * path ) {
-	const char * filename = strrchr( path, '/' );
-	const char * ext = strchr( filename == NULL ? path : filename, '.' );
-	return ext == NULL ? Span< const char >() : MakeSpan( ext );
+	return FileExtension( MakeSpan( path ) );
 }
 
-Span< const char > BaseName( const char * path ) {
+Span< const char > StripExtension( Span< const char > path ) {
+	Span< const char > ext = FileExtension( path );
+	return path.slice( 0, path.n - ext.n );
+}
+
+Span< const char > StripExtension( const char * path ) {
+	return StripExtension( MakeSpan( path ) );
+}
+
+Span< const char > FileName( const char * path ) {
 	const char * filename = strrchr( path, '/' );
 	filename = filename == NULL ? path : filename + 1;
 	return MakeSpan( filename );
@@ -403,261 +390,8 @@ Span< const char > BasePath( const char * path ) {
 	return slash == NULL ? MakeSpan( path ) : Span< const char >( path, slash - path );
 }
 
-/*
-* COM_ParseExt2_r
-*
-* Parse a token out of a string
-*/
-char *COM_ParseExt2_r( char *token, size_t token_size, const char **data_p, bool nl, bool sq ) {
-	int c;
-	unsigned len;
-	const char *data;
-	bool newlines = false;
-
-	data = *data_p;
-	len = 0;
-	token[0] = 0;
-
-	if( !data ) {
-		*data_p = NULL;
-		return token;
-	}
-
-	// skip whitespace
-skipwhite:
-	while( (unsigned char)( c = *data ) <= ' ' ) {
-		if( c == 0 ) {
-			*data_p = NULL;
-			return token;
-		}
-		if( c == '\n' ) {
-			newlines = true;
-		}
-		data++;
-	}
-
-	if( newlines && !nl ) {
-		*data_p = data;
-		return token;
-	}
-
-	// skip // comments
-	if( c == '/' && data[1] == '/' ) {
-		data += 2;
-
-		while( *data && *data != '\n' )
-			data++;
-		goto skipwhite;
-	}
-
-	// skip /* */ comments
-	if( c == '/' && data[1] == '*' ) {
-		data += 2;
-
-		while( 1 ) {
-			if( !*data ) {
-				break;
-			}
-			if( *data != '*' || *( data + 1 ) != '/' ) {
-				data++;
-			} else {
-				data += 2;
-				break;
-			}
-		}
-		goto skipwhite;
-	}
-
-	// handle quoted strings specially
-	if( c == '\"' ) {
-		if( sq ) {
-			data++;
-		}
-		while( 1 ) {
-			c = *data++;
-			if( c == '\"' || !c ) {
-				if( !c ) {
-					data--;
-				}
-
-				if( ( len < token_size ) && ( !sq ) ) {
-					token[len] = '\"';
-					len++;
-					//data++;
-				}
-
-				if( len == token_size ) {
-					//Com_Printf ("Token exceeded %i chars, discarded.\n", (int)token_size);
-					len = 0;
-				}
-				token[len] = 0;
-				*data_p = data;
-				return token;
-			}
-			if( len < token_size ) {
-				token[len] = c;
-				len++;
-			}
-		}
-	}
-
-	// parse a regular word
-	do {
-		if( len < token_size ) {
-			token[len] = c;
-			len++;
-		}
-		data++;
-		c = *data;
-	} while( (unsigned char)c > 32 );
-
-	if( len == token_size ) {
-		//Com_Printf ("Token exceeded %i chars, discarded.\n", (int)token_size);
-		len = 0;
-	}
-	token[len] = 0;
-
-	*data_p = data;
-	return token;
-}
-
-static char com_token[MAX_TOKEN_CHARS];
-
-/*
- * COM_ParseExt
- *
- * Parse a token out of a string
- */
-char *COM_ParseExt2( const char **data_p, bool nl, bool sq ) {
-	return COM_ParseExt2_r( com_token, MAX_TOKEN_CHARS, data_p, nl, sq );
-}
-
-/*
-* COM_RemoveJunkChars
-*
-* Remove junk chars from a string (created for autoaction filenames)
-*/
-const char *COM_RemoveJunkChars( const char *in ) {
-	static char cleanString[MAX_STRING_CHARS];
-	char *out = cleanString, *end = cleanString + sizeof( cleanString ) - 1;
-
-	if( in ) {
-		while( *in && ( out < end ) ) {
-			if( isalpha( *in ) || isdigit( *in ) ) {
-				// keep it
-				*out = *in;
-				in++;
-				out++;
-			} else if( *in == '<' || *in == '[' || *in == '{' ) {
-				*out = '(';
-				in++;
-				out++;
-			} else if( *in == '>' || *in == ']' || *in == '}' ) {
-				*out = ')';
-				in++;
-				out++;
-			} else if( *in == '.' || *in == '/' || *in == '_' ) {
-				*out = '_';
-				in++;
-				out++;
-			} else {
-				// another char
-				// skip it
-				in++;
-			}
-		}
-	}
-
-	*out = '\0';
-	return cleanString;
-}
-
-/*
-* COM_ReadColorRGBString
-*/
-int COM_ReadColorRGBString( const char *in ) {
-	if( in == NULL )
-		return 0;
-
-	int rgb[3];
-	if( sscanf( in, "%3i %3i %3i", &rgb[0], &rgb[1], &rgb[2] ) != 3 )
-		return 0;
-
-	for( int i = 0; i < 3; i++ ) {
-		rgb[i] = Clamp( rgb[i], 0, 255 );
-	}
-
-	return COLOR_RGB( rgb[0], rgb[1], rgb[2] );
-}
-
-int COM_ReadColorRGBAString( const char *in ) {
-	if( in == NULL )
-		return 0;
-
-	int rgba[4];
-	if( sscanf( in, "%3i %3i %3i %3i", &rgba[0], &rgba[1], &rgba[2], &rgba[3] ) != 4 )
-		return 0;
-
-	for( int i = 0; i < 4; i++ ) {
-		rgba[i] = Clamp( rgba[i], 0, 255 );
-	}
-
-	return COLOR_RGBA( rgba[0], rgba[1], rgba[2], rgba[3] );
-}
-
-/*
-* COM_ListNameForPosition
-*/
-char *COM_ListNameForPosition( const char *namesList, int position, const char separator ) {
-	static char buf[MAX_STRING_CHARS];
-	const char *s, *t;
-	char *b;
-	int count, len;
-
-	if( !namesList ) {
-		return NULL;
-	}
-
-	// set up the tittle from the spinner names
-	s = namesList;
-	t = s;
-	count = 0;
-	buf[0] = 0;
-	b = buf;
-	while( *s && ( s = strchr( s, separator ) ) ) {
-		if( count == position ) {
-			len = s - t;
-			if( len <= 0 ) {
-				return NULL;
-			}
-			if( len > MAX_STRING_CHARS - 1 ) {
-				len = MAX_STRING_CHARS - 1;
-			}
-			s = t + len;
-			while( t <= s ) {
-				if( *t == separator || t == s ) {
-					*b = 0;
-					break;
-				}
-
-				*b = *t;
-				t++;
-				b++;
-			}
-
-			break;
-		}
-
-		count++;
-		s++;
-		t = s;
-	}
-
-	if( buf[0] == 0 ) {
-		return NULL;
-	}
-
-	return buf;
+bool SortCStringsComparator( const char * a, const char * b ) {
+	return strcmp( a, b ) < 0;
 }
 
 //============================================================================
@@ -666,9 +400,6 @@ char *COM_ListNameForPosition( const char *namesList, int position, const char s
 //
 //============================================================================
 
-/*
-* Q_strncpyz
-*/
 void Q_strncpyz( char *dest, const char *src, size_t size ) {
 	if( size ) {
 		while( --size && ( *dest++ = *src++ ) ) ;
@@ -676,9 +407,6 @@ void Q_strncpyz( char *dest, const char *src, size_t size ) {
 	}
 }
 
-/*
-* Q_strncatz
-*/
 void Q_strncatz( char *dest, const char *src, size_t size ) {
 	if( size ) {
 		while( --size && *dest++ ) ;
@@ -690,9 +418,6 @@ void Q_strncatz( char *dest, const char *src, size_t size ) {
 	}
 }
 
-/*
-* Q_strupr
-*/
 char *Q_strupr( char *s ) {
 	char *p;
 
@@ -705,9 +430,6 @@ char *Q_strupr( char *s ) {
 	return NULL;
 }
 
-/*
-* Q_strlwr
-*/
 char *Q_strlwr( char *s ) {
 	char *p;
 
@@ -720,24 +442,6 @@ char *Q_strlwr( char *s ) {
 	return NULL;
 }
 
-/*
-* Q_strrstr
-*/
-const char *Q_strrstr( const char *s, const char *substr ) {
-	const char *p;
-
-	s = p = strstr( s, substr );
-	while( s != NULL ) {
-		p = s;
-		s = strstr( s + 1, substr );
-	}
-
-	return p;
-}
-
-/*
-* Q_trim
-*/
 #define IS_TRIMMED_CHAR( s ) ( ( s ) == ' ' || ( s ) == '\t' || ( s ) == '\r' || ( s ) == '\n' )
 char *Q_trim( char *s ) {
 	char *t = s;
@@ -755,19 +459,6 @@ char *Q_trim( char *s ) {
 		s[--len] = '\0';
 
 	return s;
-}
-
-/*
-* Q_isdigit
-*/
-bool Q_isdigit( const char *str ) {
-	if( str && *str ) {
-		while( isdigit( *str ) ) str++;
-		if( !*str ) {
-			return true;
-		}
-	}
-	return false;
 }
 
 void RemoveTrailingZeroesFloat( char * str ) {
@@ -791,53 +482,6 @@ void RemoveTrailingZeroesFloat( char * str ) {
 	str[ len + 1 ] = '\0';
 }
 
-/*
-* Q_urlencode_unsafechars
-*/
-void Q_urlencode_unsafechars( const char *src, char *dst, size_t dst_size ) {
-	size_t i, n, len;
-
-	assert( src );
-	assert( dst );
-
-	if( !src || !dst || !dst_size ) {
-		return;
-	}
-
-	len = strlen( src );
-	if( len >= dst_size ) {
-		len = dst_size - 1;
-	}
-
-	// urlencode
-	n = 0;
-	for( i = 0; i < len && n < dst_size - 1; i++ ) {
-		char c = src[i];
-
-		if( c == ' ' || c == '#' || c == '%' ||
-			c == '<' || c == '>' || c == '{' || c == '}' ||
-			c == '|' || c == '\\' || c == '^' || c == '~' ||
-			c == '[' || c == ']' ) {
-			// urlencode
-			if( n + 3 >= dst_size ) {
-				// not enough space
-				break;
-			}
-
-			dst[n  ] = '%';
-			sprintf( &dst[n + 1], "%02x", (int)c );
-			n += 3;
-		} else {
-			dst[n] = src[i];
-			n++;
-		}
-	}
-	dst[n] = '\0';
-}
-
-/*
-* Q_urldecode
-*/
 #define hex2dec( x ) ( ( ( x ) <= '9' ? ( x ) - '0' : ( ( x ) <= 'F' ) ? ( x ) - 'A' + 10 : ( x ) - 'a' + 10 ) )
 size_t Q_urldecode( const char *src, char *dst, size_t dst_size ) {
 	char *dst_start = dst, *dst_end = dst + dst_size - 1;
@@ -871,43 +515,6 @@ size_t Q_urldecode( const char *src, char *dst, size_t dst_size ) {
 //
 //=====================================================================
 
-
-/*
-* COM_ValidateConfigstring
-*/
-bool COM_ValidateConfigstring( const char *string ) {
-	const char *p;
-	bool opened = false;
-	int parity = 0;
-
-	if( !string ) {
-		return false;
-	}
-
-	p = string;
-	while( *p ) {
-		if( *p == '\"' ) {
-			if( opened ) {
-				parity--;
-				opened = false;
-			} else {
-				parity++;
-				opened = true;
-			}
-		}
-		p++;
-	}
-
-	if( parity != 0 ) {
-		return false;
-	}
-
-	return true;
-}
-
-/*
-* Info_ValidateValue
-*/
 static bool Info_ValidateValue( const char *value ) {
 	assert( value );
 
@@ -934,9 +541,6 @@ static bool Info_ValidateValue( const char *value ) {
 	return true;
 }
 
-/*
-* Info_ValidateKey
-*/
 static bool Info_ValidateKey( const char *key ) {
 	assert( key );
 
@@ -1117,9 +721,6 @@ char *Info_ValueForKey( const char *info, const char *key ) {
 	return value[valueindex];
 }
 
-/*
-* Info_RemoveKey
-*/
 void Info_RemoveKey( char *info, const char *key ) {
 	assert( info && Info_Validate( info ) );
 	assert( key && Info_ValidateKey( key ) );
@@ -1154,9 +755,6 @@ void Info_RemoveKey( char *info, const char *key ) {
 	}
 }
 
-/*
-* Info_SetValueForKey
-*/
 bool Info_SetValueForKey( char *info, const char *key, const char *value ) {
 	char pair[MAX_INFO_KEY + MAX_INFO_VALUE + 1];
 
@@ -1181,67 +779,23 @@ bool Info_SetValueForKey( char *info, const char *key, const char *value ) {
 	return true;
 }
 
+Span< const char > ParseWorldspawnKey( Span< const char > entities, const char * name ) {
+	Span< const char > cursor = entities;
 
-//=====================================================================
-//
-//  SOUND ATTENUATION
-//
-//=====================================================================
-
-/*
-* Q_GainForAttenuation
-*/
-float Q_GainForAttenuation( int model, float maxdistance, float refdistance, float dist, float attenuation ) {
-	float gain = 0.0f;
-
-	switch( model ) {
-		case 0:
-			//gain = (1 - AL_ROLLOFF_FACTOR * (distance * AL_REFERENCE_DISTANCE) / (AL_MAX_DISTANCE - AL_REFERENCE_DISTANCE))
-			//AL_LINEAR_DISTANCE
-			dist = Min2( dist, maxdistance );
-			gain = ( 1 - attenuation * ( dist - refdistance ) / ( maxdistance - refdistance ) );
-			break;
-		case 1:
-		default:
-			//gain = (1 - AL_ROLLOFF_FACTOR * (distance - AL_REFERENCE_DISTANCE) / (AL_MAX_DISTANCE - AL_REFERENCE_DISTANCE))
-			//AL_LINEAR_DISTANCE_CLAMPED
-			dist = Max2( dist, refdistance );
-			dist = Min2( dist, maxdistance );
-			gain = ( 1 - attenuation * ( dist - refdistance ) / ( maxdistance - refdistance ) );
-			break;
-		case 2:
-			//gain = AL_REFERENCE_DISTANCE / (AL_REFERENCE_DISTANCE + AL_ROLLOFF_FACTOR * (distance - AL_REFERENCE_DISTANCE));
-			//AL_INVERSE_DISTANCE
-			gain = refdistance / ( refdistance + attenuation * ( dist - refdistance ) );
-			break;
-		case 3:
-			//AL_INVERSE_DISTANCE_CLAMPED
-			//gain = AL_REFERENCE_DISTANCE / (AL_REFERENCE_DISTANCE + AL_ROLLOFF_FACTOR * (distance - AL_REFERENCE_DISTANCE));
-			dist = Max2( dist, refdistance );
-			dist = Min2( dist, maxdistance );
-			gain = refdistance / ( refdistance + attenuation * ( dist - refdistance ) );
-			break;
-		case 4:
-			//AL_EXPONENT_DISTANCE
-			//gain = (distance / AL_REFERENCE_DISTANCE) ^ (- AL_ROLLOFF_FACTOR)
-			gain = powf( ( dist / refdistance ), ( -attenuation ) );
-			break;
-		case 5:
-			//AL_EXPONENT_DISTANCE_CLAMPED
-			//gain = (distance / AL_REFERENCE_DISTANCE) ^ (- AL_ROLLOFF_FACTOR)
-			dist = Max2( dist, refdistance );
-			dist = Min2( dist, maxdistance );
-			gain = powf( ( dist / refdistance ), ( -attenuation ) );
-			break;
-		case 6:
-			// qfusion gain
-			dist -= 80;
-			if( dist < 0 ) {
-				dist = 0;
-			}
-			gain = 1.0 - dist * attenuation * 0.0001;
-			break;
+	if( ParseToken( &cursor, Parse_DontStopOnNewLine ) != "{" ) {
+		Fatal( "Entity string doesn't start with {" );
 	}
 
-	return gain;
+	while( true ) {
+		Span< const char > key = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		Span< const char > value = ParseToken( &cursor, Parse_DontStopOnNewLine );
+
+		if( key == "" || value == "" || key == "}" )
+			break;
+
+		if( StrCaseEqual( key, name ) )
+			return value;
+	}
+
+	return Span< const char >();
 }

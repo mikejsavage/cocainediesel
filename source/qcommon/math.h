@@ -17,6 +17,7 @@ extern "C" float fmodf( float, float );
 extern "C" double fmod( double, double );
 extern "C" float floorf( float );
 extern "C" float ceilf( float );
+extern "C" float roundf( float );
 
 constexpr float PI = 3.14159265358979323846f;
 
@@ -32,12 +33,31 @@ inline float Square( float x ) {
 	return x * x;
 }
 
+inline float Cube( float x ) {
+	return x * x * x;
+}
+
+template< typename T >
+T Lerp( T a, float t, T b ) {
+	return a * ( 1.0f - t ) + b * t;
+}
+
+template< typename T >
+float Unlerp( T lo, T x, T hi ) {
+	return float( x - lo ) / float( hi - lo );
+}
+
+template< typename T >
+float Unlerp01( T lo, T x, T hi ) {
+	return Clamp01( Unlerp( lo, x, hi ) );
+}
+
 // some stubs to catch accidental double usage
-void sinf( double x );
-void cosf( double x );
-void tanf( double x );
-void asinf( double x );
-void acosf( double x );
-void atanf( double x );
-void atan2f( double x );
-void sqrtf( double x );
+void sinf( double );
+void cosf( double );
+void tanf( double );
+void asinf( double );
+void acosf( double );
+void atanf( double );
+void atan2f( double );
+void sqrtf( double );

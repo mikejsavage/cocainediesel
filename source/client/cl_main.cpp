@@ -1298,10 +1298,6 @@ void CL_Frame( Time dt, Time real_dt ) {
 		S_Update( Vec3( 0 ), Vec3( 0 ), axis_identity );
 	}
 
-	// TODO ????
-	allRealMsec = 0;
-	allGameMsec = 0;
-
 	cl.prevviewangles = cl.viewangles;
 
 	cls.framecount++;

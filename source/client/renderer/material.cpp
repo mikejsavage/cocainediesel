@@ -49,6 +49,15 @@ static u32 num_decals;
 static Hashtable< MAX_DECALS * 2 > decals_hashtable;
 static TextureArray decals_atlases;
 
+static UniformBlock material_static_uniforms[ MAX_MATERIALS ];
+static Hashtable< MAX_MATERIALS * 2 > material_static_uniforms_hashtable;
+static u32 num_material_static_uniforms;
+
+void ClearMaterialStaticUniforms() {
+	material_static_uniforms_hashtable.clear();
+	num_material_static_uniforms = 0;
+}
+
 bool CompressedTextureFormat( TextureFormat format ) {
 	switch( format ) {
 		case TextureFormat_BC1_sRGB:
@@ -796,6 +805,7 @@ void InitMaterials() {
 
 	num_textures = 0;
 	num_materials = 0;
+	ClearMaterialStaticUniforms();
 
 	world_material = Material();
 	world_material.rgbgen.args[ 0 ] = 0.17f;
@@ -990,7 +1000,7 @@ static float EvaluateWaveFunc( Wave wave ) {
 	return wave.args[ 0 ] + wave.args[ 1 ] * v;
 }
 
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned ) {
+PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bool skinned, GPUMaterial * gpu_material ) {
 	if( material == &world_material || material == &wallbang_material ) {
 		PipelineState pipeline;
 		pipeline.shader = &shaders.world;
@@ -1001,7 +1011,8 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		color.x = material->rgbgen.args[ 0 ];
 		color.y = material->rgbgen.args[ 1 ];
 		color.z = material->rgbgen.args[ 2 ];
-		pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( 0.0f ), material->specular, material->shininess, Vec3( 0.0f ), Vec3( 0.0f ) ) );
+		pipeline.set_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
+		pipeline.set_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
 		pipeline.set_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
 		pipeline.set_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
 		pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
@@ -1085,7 +1096,30 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	pipeline.set_texture( "u_BaseTexture", material->texture );
-	pipeline.set_uniform( "u_Material", UploadMaterialUniforms( color, Vec2( material->texture->width, material->texture->height ), material->specular, material->shininess, tcmod_row0, tcmod_row1 ) );
+
+	{
+		u64 hash = Hash64( u64( material ) );
+
+		u64 idx = num_material_static_uniforms;
+		if( !material_static_uniforms_hashtable.get( hash, &idx ) ) {
+			assert( num_material_static_uniforms < ARRAY_COUNT( material_static_uniforms ) );
+			material_static_uniforms_hashtable.add( hash, num_material_static_uniforms );
+			material_static_uniforms[ idx ] = UploadMaterialStaticUniforms( Vec2( material->texture->width, material->texture->height ), material->specular, material->shininess );
+			num_material_static_uniforms++;
+		}
+
+		pipeline.set_uniform( "u_MaterialStatic", material_static_uniforms[ idx ] );
+	}
+	
+	if( skinned || gpu_material == NULL ) {
+		pipeline.set_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, tcmod_row0, tcmod_row1 ) );
+	}
+	if( gpu_material != NULL ) {
+		// instanced matrial
+		gpu_material->color = color;
+		gpu_material->tcmod[ 0 ] = tcmod_row0;
+		gpu_material->tcmod[ 1 ] = tcmod_row1;
+	}
 
 	if( skinned ) {
 		if( material->shaded ) {
@@ -1098,11 +1132,11 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 	else {
 		if( material->shaded ) {
-			pipeline.shader = &shaders.standard_shaded;
+			pipeline.shader = &shaders.standard_shaded_instanced;
 			AddDynamicsToPipeline( &pipeline );
 		}
 		else {
-			pipeline.shader = &shaders.standard;
+			pipeline.shader = &shaders.standard_instanced;
 		}
 	}
 

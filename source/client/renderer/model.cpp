@@ -11,6 +11,31 @@ static Model gltf_models[ MAX_MODELS ];
 static u32 num_gltf_models;
 static Hashtable< MAX_MODELS * 2 > gltf_models_hashtable;
 
+constexpr u32 MAX_INSTANCES = 1024;
+constexpr u32 MAX_INSTANCE_GROUPS = 128;
+
+template< typename T >
+struct ModelInstanceGroup {
+	T instances[ MAX_INSTANCES ];
+	u32 num_instances;
+	PipelineState pipeline;
+	VertexBuffer instance_data;
+	const Model * model;
+	const Model::Primitive * primitive;
+};
+
+template< typename T >
+struct ModelInstanceCollection {
+	ModelInstanceGroup< T > groups[ MAX_INSTANCE_GROUPS ];
+	Hashtable< MAX_INSTANCE_GROUPS * 2 > groups_hashtable;
+	u32 num_groups;
+};
+
+static ModelInstanceCollection< GPUModelInstance > model_instance_collection;
+static ModelInstanceCollection< GPUModelShadowsInstance > model_shadows_instance_collection;
+static ModelInstanceCollection< GPUModelOutlinesInstance > model_outlines_instance_collection;
+static ModelInstanceCollection< GPUModelSilhouetteInstance > model_silhouette_instance_collection;
+
 static void LoadGLTF( const char * path ) {
 	Span< const char > ext = FileExtension( path );
 	if( ext != ".glb" )
@@ -35,6 +60,9 @@ static void LoadGLTF( const char * path ) {
 	gltf_models[ idx ] = model;
 }
 
+void InitModelInstances();
+void ShutdownModelInstances();
+
 void InitModels() {
 	ZoneScoped;
 
@@ -43,6 +71,8 @@ void InitModels() {
 	for( const char * path : AssetPaths() ) {
 		LoadGLTF( path );
 	}
+
+	InitModelInstances();
 }
 
 void DeleteModel( Model * model ) {
@@ -77,6 +107,8 @@ void ShutdownModels() {
 	for( u32 i = 0; i < num_gltf_models; i++ ) {
 		DeleteModel( &gltf_models[ i ] );
 	}
+
+	ShutdownModelInstances();
 }
 
 const Model * FindModel( StringHash name ) {
@@ -101,7 +133,33 @@ void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive
 	}
 }
 
-static void DrawModelNode( DrawModelConfig::DrawModel config, const Model * model, const Model::Primitive * primitive, bool skinned, PipelineState pipeline ) {
+static void DrawModelPrimitiveInstanced( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline, VertexBuffer instance_data, u32 num_instances, InstanceType instance_type ) {
+	if( primitive->num_vertices != 0 ) {
+		u32 index_size = model->mesh.indices_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
+		DrawInstancedMesh( model->mesh, pipeline, instance_data, num_instances, instance_type, primitive->num_vertices, primitive->first_index * index_size );
+	}
+	else {
+		DrawInstancedMesh( primitive->mesh, pipeline, instance_data, num_instances, instance_type );
+	}
+}
+
+template< typename T >
+static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, const Model * model, const Model::Primitive * primitive, PipelineState pipeline, T & instance, u64 hash ) {
+	u64 idx = collection.num_groups;
+	if( !collection.groups_hashtable.get( hash, &idx ) ) {
+		assert( collection.num_groups < ARRAY_COUNT( collection.groups ) );
+		collection.groups_hashtable.add( hash, collection.num_groups );
+		collection.groups[ idx ].pipeline = pipeline;
+		collection.groups[ idx ].model = model;
+		collection.groups[ idx ].primitive = primitive;
+		collection.num_groups++;
+	}
+
+	assert( collection.groups[ idx ].num_instances < ARRAY_COUNT( collection.groups[ idx ].instances ) );
+	collection.groups[ idx ].instances[ collection.groups[ idx ].num_instances++ ] = instance;
+}
+
+static void DrawModelNode( DrawModelConfig::DrawModel config, const Model * model, const Model::Primitive * primitive, bool skinned, PipelineState pipeline, u64 hash, Mat4 & transform, GPUMaterial gpu_material ) {
 	if( !config.enabled )
 		return;
 
@@ -109,14 +167,27 @@ static void DrawModelNode( DrawModelConfig::DrawModel config, const Model * mode
 		pipeline.view_weapon_depth_hack = true;
 	}
 
-	DrawModelPrimitive( model, primitive, pipeline );
+	if( skinned ) {
+		DrawModelPrimitive( model, primitive, pipeline );
+		return;
+	}
+
+	hash = Hash64( &config.view_weapon, sizeof( config.view_weapon ), hash );
+
+	GPUModelInstance instance = { };
+	instance.material = gpu_material;
+	instance.transform[ 0 ] = transform.row0();
+	instance.transform[ 1 ] = transform.row1();
+	instance.transform[ 2 ] = transform.row2();
+
+	AddInstanceToCollection( model_instance_collection, model, primitive, pipeline, instance, hash );
 }
 
-static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Model * model, const Model::Primitive * primitive, bool skinned, PipelineState pipeline ) {
+static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Model * model, const Model::Primitive * primitive, bool skinned, PipelineState pipeline, u64 hash, Mat4 & transform ) {
 	if( !config.enabled )
 		return;
 
-	pipeline.shader = skinned ? &shaders.depth_only_skinned : &shaders.depth_only;
+	pipeline.shader = skinned ? &shaders.depth_only_skinned : &shaders.depth_only_instanced;
 	pipeline.clamp_depth = true;
 	// pipeline.cull_face = CullFace_Disabled;
 	pipeline.write_depth = true;
@@ -125,49 +196,94 @@ static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Model * 
 		pipeline.pass = frame_static.shadowmap_pass[ i ];
 		pipeline.set_uniform( "u_View", frame_static.shadowmap_view_uniforms[ i ] );
 
-		DrawModelPrimitive( model, primitive, pipeline );
+		if( skinned ) {
+			DrawModelPrimitive( model, primitive, pipeline );
+			continue;
+		}
+
+		hash = Hash64( &i, sizeof( i ), hash );
+
+		GPUModelShadowsInstance instance = { };
+		instance.transform[ 0 ] = transform.row0();
+		instance.transform[ 1 ] = transform.row1();
+		instance.transform[ 2 ] = transform.row2();
+
+		AddInstanceToCollection( model_shadows_instance_collection, model, primitive, pipeline, instance, hash );
 	}
 }
 
-static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Model * model, const Model::Primitive * primitive, bool skinned, PipelineState pipeline, UniformBlock outline_uniforms ) {
+static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Model * model, const Model::Primitive * primitive, bool skinned, PipelineState pipeline, UniformBlock outline_uniforms, u64 hash, Mat4 & transform ) {
 	if( !config.enabled )
 		return;
 	
-	pipeline.shader = skinned ? &shaders.outline_skinned : &shaders.outline;
+	pipeline.shader = skinned ? &shaders.outline_skinned : &shaders.outline_instanced;
 	pipeline.pass = frame_static.nonworld_opaque_pass;
 	pipeline.cull_face = CullFace_Front;
-	pipeline.set_uniform( "u_Outline", outline_uniforms );
 
-	DrawModelPrimitive( model, primitive, pipeline );
+	if( skinned ) {
+		pipeline.set_uniform( "u_Outline", outline_uniforms );
+		DrawModelPrimitive( model, primitive, pipeline );
+		return;
+	}
+
+	GPUModelOutlinesInstance instance = { };
+	instance.color = config.outline_color;
+	instance.height = config.outline_height;
+	instance.transform[ 0 ] = transform.row0();
+	instance.transform[ 1 ] = transform.row1();
+	instance.transform[ 2 ] = transform.row2();
+
+	AddInstanceToCollection( model_outlines_instance_collection, model, primitive, pipeline, instance, hash );
 }
 
-static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Model * model, const Model::Primitive * primitive, bool skinned, PipelineState pipeline, UniformBlock silhouette_uniforms ) {
+static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Model * model, const Model::Primitive * primitive, bool skinned, PipelineState pipeline, UniformBlock silhouette_uniforms, u64 hash, Mat4 & transform ) {
 	if( !config.enabled )
 		return;
 	
-	pipeline.shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer;
+	pipeline.shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer_instanced;
 	pipeline.pass = frame_static.write_silhouette_gbuffer_pass;
 	pipeline.write_depth = false;
-	pipeline.set_uniform( "u_Material", silhouette_uniforms );
 
-	DrawModelPrimitive( model, primitive, pipeline );
+	if( skinned ) {
+		pipeline.set_uniform( "u_Silhouette", silhouette_uniforms );
+		DrawModelPrimitive( model, primitive, pipeline );
+		return;
+	}
+
+	GPUModelSilhouetteInstance instance = { };
+	instance.color = config.silhouette_color;
+	instance.transform[ 0 ] = transform.row0();
+	instance.transform[ 1 ] = transform.row1();
+	instance.transform[ 2 ] = transform.row2();
+
+	AddInstanceToCollection( model_silhouette_instance_collection, model, primitive, pipeline, instance, hash );
 }
 
 void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
 	bool animated = palettes.node_transforms.ptr != NULL;
+
+	// TODO: this should be figured out during model loading
+	bool any_skinned = false;
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		if( model->nodes[ i ].skinned ) {
+			any_skinned = true;
+			break;
+		}
+	}
+
 	UniformBlock pose_uniforms = { };
-	if( animated ) {
+	if( any_skinned && animated ) {
 		pose_uniforms = UploadUniforms( palettes.skinning_matrices.ptr, palettes.skinning_matrices.num_bytes() );
 	}
 
 	UniformBlock outline_uniforms = { };
-	if( config.draw_outlines.enabled ) {
+	if( any_skinned && config.draw_outlines.enabled ) {
 		outline_uniforms = UploadUniformBlock( config.draw_outlines.outline_color, config.draw_outlines.outline_height );
 	}
 
 	UniformBlock silhouette_uniforms = { };
-	if( config.draw_silhouette.enabled ) {
-		silhouette_uniforms = UploadMaterialUniforms( config.draw_silhouette.silhouette_color, Vec2( 0.0f ), 0.0f, 0.0f );
+	if( any_skinned && config.draw_silhouette.enabled ) {
+		silhouette_uniforms = UploadUniformBlock( config.draw_silhouette.silhouette_color );
 	}
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
@@ -190,18 +306,71 @@ void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transf
 		node_transform = transform * model->transform * node_transform;
 
 		const Model::Primitive * primitive = &model->primitives[ node->primitive ];
-		PipelineState pipeline = MaterialToPipelineState( primitive->material, color, skinned );
+		GPUMaterial gpu_material;
+		PipelineState pipeline = MaterialToPipelineState( primitive->material, color, skinned, &gpu_material );
 		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Model", UploadModelUniforms( node_transform ) );
+
+		// skinned models can't be instanced
 		if( skinned ) {
+			pipeline.set_uniform( "u_Model", UploadModelUniforms( node_transform ) );
 			pipeline.set_uniform( "u_Pose", pose_uniforms );
 		}
 
-		DrawModelNode( config.draw_model, model, primitive, skinned, pipeline );
-		DrawShadowsNode( config.draw_shadows, model, primitive, skinned, pipeline );
-		DrawOutlinesNode( config.draw_outlines, model, primitive, skinned, pipeline, outline_uniforms );
-		DrawSilhouetteNode( config.draw_silhouette, model, primitive, skinned, pipeline, silhouette_uniforms );
+		u64 hash = Hash64( u64( model ) );
+		hash = Hash64( &primitive, sizeof( primitive ), hash );
+
+		DrawModelNode( config.draw_model, model, primitive, skinned, pipeline, hash, node_transform, gpu_material );
+		DrawShadowsNode( config.draw_shadows, model, primitive, skinned, pipeline, hash, node_transform );
+		DrawOutlinesNode( config.draw_outlines, model, primitive, skinned, pipeline, outline_uniforms, hash, node_transform );
+		DrawSilhouetteNode( config.draw_silhouette, model, primitive, skinned, pipeline, silhouette_uniforms, hash, node_transform );
 	}
+}
+
+void InitModelInstances() {
+	ZoneScoped;
+	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
+		model_instance_collection.groups[ i ].instance_data = NewVertexBuffer( sizeof( GPUModelInstance ) * MAX_INSTANCES );
+		model_instance_collection.num_groups = 0;
+
+		model_shadows_instance_collection.groups[ i ].instance_data = NewVertexBuffer( sizeof( GPUModelShadowsInstance ) * MAX_INSTANCES );
+		model_shadows_instance_collection.num_groups = 0;
+
+		model_outlines_instance_collection.groups[ i ].instance_data = NewVertexBuffer( sizeof( GPUModelOutlinesInstance ) * MAX_INSTANCES );
+		model_outlines_instance_collection.num_groups = 0;
+
+		model_silhouette_instance_collection.groups[ i ].instance_data = NewVertexBuffer( sizeof( GPUModelSilhouetteInstance ) * MAX_INSTANCES );
+		model_silhouette_instance_collection.num_groups = 0;
+	}
+}
+
+void ShutdownModelInstances() {
+	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
+		DeleteVertexBuffer( model_instance_collection.groups[ i ].instance_data );
+		DeleteVertexBuffer( model_shadows_instance_collection.groups[ i ].instance_data );
+		DeleteVertexBuffer( model_outlines_instance_collection.groups[ i ].instance_data );
+		DeleteVertexBuffer( model_silhouette_instance_collection.groups[ i ].instance_data );
+	}
+}
+
+template< typename T >
+static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collection, InstanceType instance_type ) {
+	for( u32 i = 0; i < collection.num_groups; i++ ) {
+		ModelInstanceGroup< T > & group = collection.groups[ i ];
+		WriteVertexBuffer( group.instance_data, group.instances, sizeof( T ) * group.num_instances );
+		DrawModelPrimitiveInstanced( group.model, group.primitive, group.pipeline, group.instance_data, group.num_instances, instance_type );
+		group.num_instances = 0;
+	}
+	collection.num_groups = 0;
+	collection.groups_hashtable.clear();
+}
+
+void DrawModelInstances() {
+	ZoneScoped;
+
+	DrawModelInstanceCollection( model_instance_collection, InstanceType_Model );
+	DrawModelInstanceCollection( model_shadows_instance_collection, InstanceType_ModelShadows );
+	DrawModelInstanceCollection( model_outlines_instance_collection, InstanceType_ModelOutlines );
+	DrawModelInstanceCollection( model_silhouette_instance_collection, InstanceType_ModelSilhouette );
 }
 
 template< typename T, typename F >

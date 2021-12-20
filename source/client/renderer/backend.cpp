@@ -28,7 +28,16 @@ enum VertexAttribute : GLuint {
 	VertexAttribute_JointIndices,
 	VertexAttribute_JointWeights,
 
-	VertexAttribute_ParticlePosition,
+	// instance stuff
+	VertexAttribute_MaterialColor,
+	VertexAttribute_MaterialTextureMatrix0,
+	VertexAttribute_MaterialTextureMatrix1,
+	VertexAttribute_OutlineHeight,
+	VertexAttribute_ModelTransformRow0,
+	VertexAttribute_ModelTransformRow1,
+	VertexAttribute_ModelTransformRow2,
+
+	VertexAttribute_ParticlePosition = VertexAttribute_Color,
 	VertexAttribute_ParticleVelocity,
 	VertexAttribute_ParticleAccelDragRest,
 	VertexAttribute_ParticleUVWH,
@@ -47,6 +56,7 @@ struct DrawCall {
 	u32 num_vertices;
 	u32 index_offset;
 
+	InstanceType instance_type;
 	u32 num_instances;
 	VertexBuffer instance_data;
 	VertexBuffer update_data;
@@ -281,6 +291,10 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*integral = true;
 			return;
 
+		case VertexFormat_Floatx1:
+			*type = GL_FLOAT;
+			*num_components = 1;
+			return;
 		case VertexFormat_Floatx2:
 			*type = GL_FLOAT;
 			*num_components = 2;
@@ -883,7 +897,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	glBindVertexArray( dc.mesh.vao );
 	GLenum primitive = PrimitiveTypeToGL( dc.mesh.primitive_type );
 
-	if( dc.num_instances != 0 ) {
+	if( dc.instance_type == InstanceType_Particles ) {
 		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
 
 		SetupAttribute( VertexAttribute_ParticlePosition, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
@@ -928,6 +942,80 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 			GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 			glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
 		}
+	}
+	else if( dc.instance_type == InstanceType_Model ) {
+		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
+
+		SetupAttribute( VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.color ) );
+		SetupAttribute( VertexAttribute_MaterialTextureMatrix0, VertexFormat_Floatx3, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.tcmod[ 0 ] ) );
+		SetupAttribute( VertexAttribute_MaterialTextureMatrix1, VertexFormat_Floatx3, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.tcmod[ 1 ] ) );
+
+		SetupAttribute( VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 0 ] ) );
+		SetupAttribute( VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 1 ] ) );
+		SetupAttribute( VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 2 ] ) );
+
+		glVertexAttribDivisor( VertexAttribute_MaterialColor, 1 );
+		glVertexAttribDivisor( VertexAttribute_MaterialTextureMatrix0, 1 );
+		glVertexAttribDivisor( VertexAttribute_MaterialTextureMatrix1, 1 );
+
+		glVertexAttribDivisor( VertexAttribute_ModelTransformRow0, 1 );
+		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
+		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
+
+		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+		glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
+	}
+	else if( dc.instance_type == InstanceType_ModelShadows ) {
+		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
+
+		SetupAttribute( VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 0 ] ) );
+		SetupAttribute( VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 1 ] ) );
+		SetupAttribute( VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 2 ] ) );
+
+		glVertexAttribDivisor( VertexAttribute_ModelTransformRow0, 1 );
+		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
+		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
+
+		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+		glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
+	}
+	else if( dc.instance_type == InstanceType_ModelOutlines ) {
+		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
+
+		SetupAttribute( VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, color ) );
+		SetupAttribute( VertexAttribute_OutlineHeight, VertexFormat_Floatx1, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, height ) );
+
+		SetupAttribute( VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 0 ] ) );
+		SetupAttribute( VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 1 ] ) );
+		SetupAttribute( VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 2 ] ) );
+
+		glVertexAttribDivisor( VertexAttribute_MaterialColor, 1 );
+		glVertexAttribDivisor( VertexAttribute_OutlineHeight, 1 );
+
+		glVertexAttribDivisor( VertexAttribute_ModelTransformRow0, 1 );
+		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
+		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
+
+		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+		glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
+	}
+	else if( dc.instance_type == InstanceType_ModelSilhouette ) {
+		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
+
+		SetupAttribute( VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, color ) );
+
+		SetupAttribute( VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 0 ] ) );
+		SetupAttribute( VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 1 ] ) );
+		SetupAttribute( VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 2 ] ) );
+
+		glVertexAttribDivisor( VertexAttribute_MaterialColor, 1 );
+
+		glVertexAttribDivisor( VertexAttribute_ModelTransformRow0, 1 );
+		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
+		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
+
+		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+		glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
 	}
 	else if( dc.mesh.indices.ebo != 0 ) {
 		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
@@ -1511,7 +1599,7 @@ static GLuint CompileShader( GLenum type, Span< const char * > srcs, Span< int >
 	return shader;
 }
 
-bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Span< const char * > feedback_varyings ) {
+bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Span< const char * > feedback_varyings, bool particle_vertex_attribs ) {
 	*shader = { };
 	bool feedback = feedback_varyings.n > 0;
 
@@ -1538,22 +1626,35 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 		glAttachShader( program, fs );
 	}
 
-	glBindAttribLocation( program, VertexAttribute_Position, "a_Position" );
-	glBindAttribLocation( program, VertexAttribute_Normal, "a_Normal" );
-	glBindAttribLocation( program, VertexAttribute_TexCoord, "a_TexCoord" );
-	glBindAttribLocation( program, VertexAttribute_Color, "a_Color" );
-	glBindAttribLocation( program, VertexAttribute_JointIndices, "a_JointIndices" );
-	glBindAttribLocation( program, VertexAttribute_JointWeights, "a_JointWeights" );
-
-	glBindAttribLocation( program, VertexAttribute_ParticlePosition, "a_ParticlePosition" );
-	glBindAttribLocation( program, VertexAttribute_ParticleVelocity, "a_ParticleVelocity" );
-	glBindAttribLocation( program, VertexAttribute_ParticleAccelDragRest, "a_ParticleAccelDragRest" );
-	glBindAttribLocation( program, VertexAttribute_ParticleUVWH, "a_ParticleUVWH" );
-	glBindAttribLocation( program, VertexAttribute_ParticleStartColor, "a_ParticleStartColor" );
-	glBindAttribLocation( program, VertexAttribute_ParticleEndColor, "a_ParticleEndColor" );
-	glBindAttribLocation( program, VertexAttribute_ParticleSize, "a_ParticleSize" );
-	glBindAttribLocation( program, VertexAttribute_ParticleAgeLifetime, "a_ParticleAgeLifetime" );
-	glBindAttribLocation( program, VertexAttribute_ParticleFlags, "a_ParticleFlags" );
+	if( particle_vertex_attribs ) {
+		glBindAttribLocation( program, VertexAttribute_Position, "a_Position" );
+		glBindAttribLocation( program, VertexAttribute_Normal, "a_Normal" );
+		glBindAttribLocation( program, VertexAttribute_TexCoord, "a_TexCoord" );
+		glBindAttribLocation( program, VertexAttribute_ParticlePosition, "a_ParticlePosition" );
+		glBindAttribLocation( program, VertexAttribute_ParticleVelocity, "a_ParticleVelocity" );
+		glBindAttribLocation( program, VertexAttribute_ParticleAccelDragRest, "a_ParticleAccelDragRest" );
+		glBindAttribLocation( program, VertexAttribute_ParticleUVWH, "a_ParticleUVWH" );
+		glBindAttribLocation( program, VertexAttribute_ParticleStartColor, "a_ParticleStartColor" );
+		glBindAttribLocation( program, VertexAttribute_ParticleEndColor, "a_ParticleEndColor" );
+		glBindAttribLocation( program, VertexAttribute_ParticleSize, "a_ParticleSize" );
+		glBindAttribLocation( program, VertexAttribute_ParticleAgeLifetime, "a_ParticleAgeLifetime" );
+		glBindAttribLocation( program, VertexAttribute_ParticleFlags, "a_ParticleFlags" );
+	}
+	else {
+		glBindAttribLocation( program, VertexAttribute_Position, "a_Position" );
+		glBindAttribLocation( program, VertexAttribute_Normal, "a_Normal" );
+		glBindAttribLocation( program, VertexAttribute_TexCoord, "a_TexCoord" );
+		glBindAttribLocation( program, VertexAttribute_Color, "a_Color" );
+		glBindAttribLocation( program, VertexAttribute_JointIndices, "a_JointIndices" );
+		glBindAttribLocation( program, VertexAttribute_JointWeights, "a_JointWeights" );
+		glBindAttribLocation( program, VertexAttribute_MaterialColor, "a_MaterialColor" );
+		glBindAttribLocation( program, VertexAttribute_MaterialTextureMatrix0, "a_MaterialTextureMatrix0" );
+		glBindAttribLocation( program, VertexAttribute_MaterialTextureMatrix1, "a_MaterialTextureMatrix1" );
+		glBindAttribLocation( program, VertexAttribute_OutlineHeight, "a_OutlineHeight" );
+		glBindAttribLocation( program, VertexAttribute_ModelTransformRow0, "a_ModelTransformRow0" );
+		glBindAttribLocation( program, VertexAttribute_ModelTransformRow1, "a_ModelTransformRow1" );
+		glBindAttribLocation( program, VertexAttribute_ModelTransformRow2, "a_ModelTransformRow2" );
+	}
 
 	if( !feedback ) {
 		glBindFragDataLocation( program, 0, "f_Albedo" );
@@ -1808,6 +1909,24 @@ void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertic
 	num_vertices_this_frame += dc.num_vertices;
 }
 
+void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, VertexBuffer instance_data, u32 num_instances, InstanceType instance_type, u32 num_vertices_override, u32 index_offset ) {
+	assert( in_frame );
+	assert( pipeline.pass != U8_MAX );
+	assert( pipeline.shader != NULL );
+
+	DrawCall dc = { };
+	dc.mesh = mesh;
+	dc.pipeline = pipeline;
+	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
+	dc.index_offset = index_offset;
+	dc.instance_type = instance_type;
+	dc.instance_data = instance_data;
+	dc.num_instances = num_instances;
+	draw_calls.add( dc );
+
+	num_vertices_this_frame += dc.num_vertices * num_instances;
+}
+
 u8 AddRenderPass( const RenderPass & pass ) {
 	return checked_cast< u8 >( render_passes.add( pass ) );
 }
@@ -1872,6 +1991,7 @@ void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out
 	DrawCall dc = { };
 	dc.mesh = mesh;
 	dc.pipeline = pipeline;
+	dc.instance_type = InstanceType_Particles;
 	dc.num_instances = num_particles;
 	dc.instance_data = vb_in;
 	dc.update_data = vb_out;
@@ -1898,6 +2018,7 @@ void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffe
 	dc.mesh = mesh;
 	dc.pipeline = pipeline;
 	dc.num_instances = num_particles;
+	dc.instance_type = InstanceType_Particles;
 	dc.instance_data = vb_in;
 	dc.update_data = vb_out;
 	dc.feedback_data = vb_feedback;
@@ -1921,6 +2042,7 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, BlendFunc blend
 	dc.mesh = mesh;
 	dc.pipeline = pipeline;
 	dc.num_vertices = mesh.num_vertices;
+	dc.instance_type = InstanceType_Particles;
 	dc.instance_data = vb;
 	dc.num_instances = num_particles;
 
@@ -1969,6 +2091,7 @@ void DrawInstancedParticles( VertexBuffer vb, const Model * model, u32 num_parti
 			num_vertices_this_frame += primitive.mesh.num_vertices * num_particles;
 		}
 
+		dc.instance_type = InstanceType_Particles;
 		dc.num_instances = num_particles;
 
 		draw_calls.add( dc );

@@ -101,3 +101,37 @@ struct Font;
 struct Material;
 struct Model;
 struct PipelineState;
+
+enum InstanceType {
+	InstanceType_None,
+	InstanceType_Particles,
+	InstanceType_Model,
+	InstanceType_ModelShadows,
+	InstanceType_ModelOutlines,
+	InstanceType_ModelSilhouette,
+};
+
+struct GPUMaterial {
+	Vec4 color;
+	Vec3 tcmod[ 2 ];
+};
+
+struct GPUModelInstance {
+	GPUMaterial material;
+	Vec4 transform[ 3 ];
+};
+
+struct GPUModelShadowsInstance {
+	Vec4 transform[ 3 ];
+};
+
+struct GPUModelOutlinesInstance {
+	Vec4 transform[ 3 ];
+	Vec4 color;
+	float height;
+};
+
+struct GPUModelSilhouetteInstance {
+	Vec4 transform[ 3 ];
+	Vec4 color;
+};

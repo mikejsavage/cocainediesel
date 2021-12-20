@@ -197,7 +197,8 @@ static void SubmitDrawCalls() {
 
 					pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 					pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-					pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
+					pipeline.set_uniform( "u_MaterialStatic", frame_static.identity_material_static_uniforms );
+					pipeline.set_uniform( "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms );
 
 					if( pcmd->TextureId.uniform_name != EMPTY_HASH ) {
 						pipeline.set_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );

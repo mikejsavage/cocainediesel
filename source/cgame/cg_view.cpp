@@ -667,6 +667,8 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawSkybox();
 	DrawSprays();
 
+	DrawModelInstances();
+
 	CG_AddLocalSounds();
 
 	S_Update( cg.view.origin, cg.view.velocity, cg.view.axis );

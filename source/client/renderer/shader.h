@@ -11,7 +11,12 @@ struct Shaders {
 	Shader standard_skinned_shaded;
 	Shader standard_skinned_vertexcolors;
 
+	Shader standard_instanced;
+	Shader standard_shaded_instanced;
+	Shader standard_vertexcolors_instanced;
+
 	Shader depth_only;
+	Shader depth_only_instanced;
 	Shader depth_only_skinned;
 
 	Shader world;
@@ -19,10 +24,12 @@ struct Shaders {
 	Shader postprocess_world_gbuffer_msaa;
 
 	Shader write_silhouette_gbuffer;
+	Shader write_silhouette_gbuffer_instanced;
 	Shader write_silhouette_gbuffer_skinned;
 	Shader postprocess_silhouette_gbuffer;
 
 	Shader outline;
+	Shader outline_instanced;
 	Shader outline_skinned;
 
 	Shader scope;

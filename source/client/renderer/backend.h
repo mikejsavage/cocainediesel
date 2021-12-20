@@ -75,6 +75,7 @@ enum VertexFormat : u8 {
 
 	VertexFormat_U32x1,
 
+	VertexFormat_Floatx1,
 	VertexFormat_Floatx2,
 	VertexFormat_Floatx3,
 	VertexFormat_Floatx4,
@@ -377,7 +378,7 @@ Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, 
 Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer );
 void DeleteFramebuffer( Framebuffer fb );
 
-bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths, Span< const char * > feedback_varyings = Span< const char * >() );
+bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths, Span< const char * > feedback_varyings = Span< const char * >(), bool particle_vertex_attribs = false );
 void DeleteShader( Shader shader );
 
 Mesh NewMesh( MeshConfig config );
@@ -385,6 +386,7 @@ void DeleteMesh( const Mesh & mesh );
 void DeferDeleteMesh( const Mesh & mesh );
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0 );
+void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, VertexBuffer instance_data, u32 num_instances, InstanceType instance_type, u32 num_vertices_override = 0, u32 first_index = 0 );
 void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, float radius, u32 num_particles, float dt );
 void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, VertexBuffer vb_feedback, float radius, u32 num_particles, float dt );
 void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, BlendFunc blend_func, u32 num_particles );

@@ -1218,8 +1218,6 @@ void CL_Frame( Time dt, Time real_dt ) {
 	CSPRNG( entropy, sizeof( entropy ) );
 	cls.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
-	static int allRealMsec = 0, allGameMsec = 0, extraMsec = 0;
-
 	cls.monotonicTime += real_dt;
 	cls.realtime += real_dt;
 
@@ -1284,12 +1282,6 @@ void CL_Frame( Time dt, Time real_dt ) {
 	cls.real_dt = accumulated_real_dt;
 
 	// TODO: that's not right lol. use fixed timestep
-
-	if( allRealMsec < minMsec ) { // is compensating for a too slow frame
-		extraMsec = Clamp( 0, extraMsec - ( minMsec - allRealMsec ), 100 );
-	} else {   // too slow, or exact frame
-		extraMsec = Clamp( 0, allRealMsec - minMsec, 100 );
-	}
 
 	VID_CheckChanges();
 

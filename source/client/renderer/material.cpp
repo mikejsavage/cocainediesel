@@ -1053,13 +1053,13 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	Vec3 tcmod_row0 = Vec3( 1.0f, 0.0f, 0.0f );
 	Vec3 tcmod_row1 = Vec3( 0.0f, 1.0f, 0.0f );
 	if( material->tcmod.type == TCModFunc_Scroll ) {
-		float s = float( PositiveMod( double( material->tcmod.args[ 0 ] ) * double( cls.gametime / 1000.0 ), 1.0 ) );
-		float t = float( PositiveMod( double( material->tcmod.args[ 1 ] ) * double( cls.gametime / 1000.0 ), 1.0 ) );
+		float s = ToSeconds( ( ( cls.gametime % Seconds( 1.0f / material->tcmod.args[ 0 ] ) ) * material->tcmod.args[ 0 ] ) );
+		float t = ToSeconds( ( ( cls.gametime % Seconds( 1.0f / material->tcmod.args[ 0 ] ) ) * material->tcmod.args[ 1 ] ) );
 		tcmod_row0 = Vec3( 1, 0, s );
 		tcmod_row1 = Vec3( 0, 1, t );
 	}
 	else if( material->tcmod.type == TCModFunc_Rotate ) {
-		float degrees = float( PositiveMod( double( material->tcmod.args[ 0 ] ) * double( cls.gametime / 1000.0 ), 360.0 ) );
+		float degrees = ToSeconds( ( ( cls.gametime % Seconds( 360.0f / material->tcmod.args[ 0 ] ) ) * material->tcmod.args[ 0 ] ) );
 		float s = sinf( Radians( degrees ) );
 		float c = cosf( Radians( degrees ) );
 		// keep centered on (0.5, 0.5)

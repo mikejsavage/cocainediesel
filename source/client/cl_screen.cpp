@@ -184,9 +184,9 @@ static void SubmitPostprocessPass() {
 	constexpr float chasing_speed = 4.0f;
 	bool chasing = cls.cgameActive && !cls.demo.playing && cg.predictedPlayerState.team != TEAM_SPECTATOR && cg.predictedPlayerState.POVnum != cgs.playerNum + 1;
 	if( chasing ) {
-		chasing_amount += cls.frametime * 0.001f * chasing_speed;
+		chasing_amount += ToSeconds( cls.dt * chasing_speed );
 	} else {
-		chasing_amount -= cls.frametime * 0.001f * chasing_speed;
+		chasing_amount -= ToSeconds( cls.dt * chasing_speed );
 	}
 	chasing_amount = Clamp01( chasing_amount );
 

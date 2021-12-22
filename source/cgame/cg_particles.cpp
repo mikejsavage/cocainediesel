@@ -101,7 +101,7 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 		ps->vb_feedback = NewVertexBuffer( ps->particles_feedback.begin(), ps->max_particles * sizeof( GPUParticleFeedback ) );
 	}
 	else {
-		ps->gpu_instances_time = ALLOC_SPAN( a, s64, ps->max_particles );
+		ps->gpu_instances_time = ALLOC_SPAN( a, Time, ps->max_particles );
 	}
 	ps->ibo = NewIndexBuffer( ps->max_particles * sizeof( ps->gpu_instances[ 0 ] ) );
 	ps->vb = NewParticleVertexBuffer( ps->max_particles );
@@ -827,7 +827,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 			for( size_t i = 0; i < ps->new_particles; i++ ) {
 				ps->gpu_instances[ ps->num_particles + i ] = previous_num_particles + i;
 				if( !ps->feedback ) {
-					ps->gpu_instances_time[ ps->num_particles + i ] = cls.gametime + ps->particles[ i ].lifetime * 1000.0f;
+					ps->gpu_instances_time[ ps->num_particles + i ] = cls.gametime + Seconds( ps->particles[ i ].lifetime );
 				}
 			}
 		}
@@ -873,7 +873,7 @@ void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 }
 
 void DrawParticles() {
-	float dt = cls.frametime / 1000.0f;
+	float dt = ToSeconds( cls.dt );
 
 	s64 total_particles = 0;
 	s64 total_new_particles = 0;
@@ -1012,7 +1012,7 @@ void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, floa
 		return;
 	}
 
-	float dt = cls.frametime / 1000.0f;
+	float dt = ToSeconds( cls.dt );
 	u64 idx = num_particleSystems;
 	if( !particleSystems_hashtable.get( emitter->particle_system, &idx ) ) {
 		Com_Printf( S_COLOR_YELLOW "Warning: Particle emitter doesn't have a system\n" );
@@ -1107,7 +1107,7 @@ void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color, fl
 	actual_color.z += SampleRandomDistribution( &cls.rng, emitter->blue_distribution );
 	actual_color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
 	actual_color = Clamp01( actual_color );
-	AddPersistentDecal( origin, normal, size, angle, material, actual_color, lifetime * 1000.0f, emitter->height );
+	AddPersistentDecal( origin, normal, size, angle, material, actual_color, Seconds( lifetime ), emitter->height );
 }
 
 void EmitDynamicLight( DynamicLightEmitter * emitter, Vec3 origin, Vec4 color ) {
@@ -1123,7 +1123,7 @@ void EmitDynamicLight( DynamicLightEmitter * emitter, Vec3 origin, Vec4 color ) 
 	actual_color.z += SampleRandomDistribution( &cls.rng, emitter->blue_distribution );
 	actual_color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
 	actual_color = Clamp01( actual_color );
-	AddPersistentDynamicLight( origin, actual_color, intensity, lifetime * 1000.0f );
+	AddPersistentDynamicLight( origin, actual_color, intensity, Seconds( lifetime ) );
 }
 
 void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec4 color, float decal_lifetime_scale ) {

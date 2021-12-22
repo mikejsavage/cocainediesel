@@ -164,8 +164,9 @@ struct server_static_demo_t {
 	int file;
 	char *filename;
 	char *tempname;
-	time_t localtime;
-	int64_t basetime, duration;
+	s64 utc_time;
+	Time basetime;
+	Time duration;
 	client_t client;                // special client for writing the messages
 	char meta_data[SNAP_MAX_DEMO_META_DATA_SIZE];
 	size_t meta_data_realsize;

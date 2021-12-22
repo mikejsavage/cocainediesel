@@ -257,8 +257,8 @@ struct SyncEntityState {
 	Vec3 linearMovementVelocity;
 	Vec3 linearMovementEnd;
 	Vec3 linearMovementBegin;
-	unsigned int linearMovementDuration;
-	int64_t linearMovementTimeStamp;
+	Time linearMovementDuration;
+	Time linearMovementTimeStamp;
 	int linearMovementTimeDelta;
 
 	WeaponType weapon;

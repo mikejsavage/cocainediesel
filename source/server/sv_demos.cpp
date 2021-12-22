@@ -79,7 +79,7 @@ void SV_Demo_WriteSnap() {
 
 	SV_Demo_WriteMessage( &msg );
 
-	svs.demo.duration = svs.gametime - svs.demo.basetime;
+	svs.demo.duration = svs.time - svs.demo.basetime;
 	svs.demo.client.lastframe = sv.framenum; // FIXME: is this needed?
 }
 
@@ -154,9 +154,9 @@ void SV_Demo_Start_f() {
 	SV_Demo_InitClient();
 
 	// write serverdata, configstrings and baselines
-	svs.demo.duration = 0;
-	svs.demo.basetime = svs.gametime;
-	svs.demo.localtime = time( NULL );
+	svs.demo.duration = { };
+	svs.demo.basetime = svs.time;
+	svs.demo.utc_time = time( NULL );
 	SV_Demo_WriteStartMessages();
 
 	// write one nodelta frame
@@ -194,9 +194,9 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 	else {
 		// write some meta information about the match/demo
 		SV_SetDemoMetaKeyValue( "hostname", sv.configstrings[CS_HOSTNAME] );
-		SV_SetDemoMetaKeyValue( "localtime", va( "%" PRIi64, (int64_t)svs.demo.localtime ) );
+		SV_SetDemoMetaKeyValue( "localtime", temp( "{}", svs.demo.utc_time ) );
 		SV_SetDemoMetaKeyValue( "multipov", "1" );
-		SV_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceilf( (double)svs.demo.duration / 1000.0 ) ) );
+		SV_SetDemoMetaKeyValue( "duration", temp( "{}", svs.demo.duration.flicks / GGTIME_FLICKS_PER_SECOND ) );
 		SV_SetDemoMetaKeyValue( "mapname", sv.mapname );
 		SV_SetDemoMetaKeyValue( "matchscore", sv.configstrings[CS_MATCHSCORE] );
 
@@ -207,8 +207,9 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 		}
 	}
 
-	svs.demo.localtime = 0;
-	svs.demo.basetime = svs.demo.duration = 0;
+	svs.demo.utc_time = 0;
+	svs.demo.basetime = { };
+	svs.demo.duration = { };
 
 	SNAP_FreeClientFrames( &svs.demo.client );
 

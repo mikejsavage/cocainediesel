@@ -91,7 +91,7 @@ void RefreshServerBrowser() {
 	// query LAN servers
 	{
 		TempAllocator temp = cls.frame_arena.temp();
-		const char * query = temp( "info {}", cls.monotonicTime );
+		const char * query = temp( "info {}", cls.monotonicTime.flicks );
 
 		netadr_t broadcast;
 		NET_BroadcastAddress( &broadcast, PORT_SERVER );
@@ -188,14 +188,14 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 }
 
 void ParseGameServerResponse( msg_t * msg, netadr_t address ) {
-	s64 timestamp;
+	Time timestamp;
 	char name[ 128 ];
 	char map[ 32 ];
 	int num_players;
 	int max_players;
 
 	const char * info = MSG_ReadString( msg );
-	int parsed = sscanf( info, "%" SCNi64 "\\\\n\\\\%127[^\\]\\\\m\\\\%31[^\\]\\\\u\\\\%d/%d\\\\EOT", &timestamp, name, map, &num_players, &max_players );
+	int parsed = sscanf( info, "%" SCNu64 "\\\\n\\\\%127[^\\]\\\\m\\\\%31[^\\]\\\\u\\\\%d/%d\\\\EOT", &timestamp.flicks, name, map, &num_players, &max_players );
 	if( parsed != 5 ) {
 		return;
 	}

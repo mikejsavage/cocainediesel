@@ -10,6 +10,7 @@
 #include "gg/ggformat.h"
 #include "qcommon/allocators.h"
 #include "qcommon/linear_algebra.h"
+#include "qcommon/time.h"
 
 #include "tracy/Tracy.hpp"
 

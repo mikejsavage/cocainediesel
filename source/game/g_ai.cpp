@@ -41,7 +41,7 @@ static edict_t * ConnectFakeClient() {
 }
 
 void AI_SpawnBot() {
-	if( level.spawnedTimeStamp + 5000 > svs.realtime || !level.canSpawnEntities ) {
+	if( level.spawnedTimeStamp + 5000 > svs.monotonic_time || !level.canSpawnEntities ) {
 		return;
 	}
 

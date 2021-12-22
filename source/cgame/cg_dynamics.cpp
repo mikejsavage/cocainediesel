@@ -24,8 +24,8 @@ struct Decal {
 
 struct PersistentDecal {
 	Decal decal;
-	s64 spawn_time;
-	s64 duration;
+	Time spawn_time;
+	Time duration;
 };
 
 STATIC_ASSERT( sizeof( Decal ) == 2 * 4 * sizeof( float ) );
@@ -40,8 +40,8 @@ struct DynamicLight {
 struct PersistentDynamicLight {
 	DynamicLight dlight;
 	float start_intensity;
-	s64 spawn_time;
-	s64 duration;
+	Time spawn_time;
+	Time duration;
 };
 
 STATIC_ASSERT( sizeof( DynamicLight ) == 1 * 4 * sizeof( float ) );
@@ -216,7 +216,7 @@ void DrawPersistentDynamicLights() {
 		}
 
 		// TODO: add better curves maybe
-		float fract = float( cl.serverTime - dlight->spawn_time ) / float( dlight->duration );
+		float fract = ToSeconds( cl.serverTime - dlight->spawn_time ) / ToSeconds( dlight->duration );
 		float intensity = Lerp( dlight->start_intensity, fract, 0.0f );
 		dlight->dlight.radius = sqrtf( intensity / DLIGHT_CUTOFF );
 		dlights[ num_dlights ] = dlight->dlight;

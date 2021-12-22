@@ -359,12 +359,8 @@ static bool G_EachNewSecond() {
 }
 
 static void G_CheckNumBots() {
-	if( level.spawnedTimeStamp + 5000 > svs.realtime ) {
-		return;
-	}
-
 	if( g_numbots->integer > server_gs.maxclients ) {
-		Cvar_Set( "g_numbots", va( "%i", server_gs.maxclients ) );
+		Cvar_SetInteger( "g_numbots", server_gs.maxclients );
 	}
 
 	int desiredNumBots = g_numbots->integer;

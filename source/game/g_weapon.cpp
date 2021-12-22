@@ -263,7 +263,7 @@ static edict_t * FireLinearProjectile(
 	projectile->s.linearMovement = true;
 	projectile->s.linearMovementBegin = projectile->s.origin;
 	projectile->s.linearMovementVelocity = projectile->velocity;
-	projectile->s.linearMovementTimeStamp = svs.gametime;
+	projectile->s.linearMovementTimeStamp = svs.time;
 	projectile->s.linearMovementTimeDelta = Min2( Abs( timeDelta ), 255 );
 
 	return projectile;

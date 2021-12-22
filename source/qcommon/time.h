@@ -3,13 +3,10 @@
 #include "qcommon/types.h"
 #include "gg/ggtime.h"
 
-struct Time {
-	u64 flicks;
-};
-
 Time Now();
 
 constexpr Time Milliseconds( u64 ms ) { return { ms * GGTIME_FLICKS_PER_SECOND / 1000 }; }
+constexpr Time Milliseconds( int ms ) { return Milliseconds( u64( ms ) ); }
 constexpr Time Milliseconds( double ms ) { return { u64( ms * GGTIME_FLICKS_PER_SECOND / 1000.0 ) }; }
 constexpr Time Seconds( u64 secs ) { return { secs * GGTIME_FLICKS_PER_SECOND }; }
 constexpr Time Seconds( double secs ) { return { u64( secs * GGTIME_FLICKS_PER_SECOND ) }; }

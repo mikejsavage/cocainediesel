@@ -527,14 +527,14 @@ struct chasecam_t {
 	bool active;
 	int target;
 	int mode;                   //3rd or 1st person
-	int64_t timeout;           //delay after loosing target
+	Time timeout;           //delay after loosing target
 };
 
 #define MAX_ASSIST_INFO 4
 struct assistinfo_t {
 	int entno;
 	int cumDamage;
-	int64_t lastTime;
+	Time lastTime;
 };
 
 struct moveinfo_t {

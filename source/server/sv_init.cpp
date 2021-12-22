@@ -70,8 +70,8 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	memset( &sv, 0, sizeof( sv ) );
 
 	SV_ResetClientFrameCounters();
-	svs.realtime = Sys_Milliseconds();
-	svs.gametime = 0;
+	svs.monotonic_time = Now();
+	svs.time = { };
 
 	SV_SetServerConfigStrings();
 

@@ -14,7 +14,7 @@ enum ChatMode {
 };
 
 struct ChatMessage {
-	s64 time;
+	Time time;
 	char text[ CHAT_MESSAGE_SIZE ];
 };
 
@@ -28,8 +28,6 @@ struct Chat {
 
 	bool at_bottom;
 	bool scroll_to_bottom;
-
-	s64 lastHighlightTime;
 };
 
 static Chat chat;
@@ -78,10 +76,10 @@ void CG_AddChat( const char * str ) {
 	}
 }
 
-#define GAMECHAT_NOTIFY_TIME        5000
-#define GAMECHAT_WAIT_OUT_TIME      4000
-#define GAMECHAT_HIGHLIGHT_TIME     4000
-#define GAMECHAT_FADE_OUT_TIME      ( GAMECHAT_NOTIFY_TIME - GAMECHAT_WAIT_OUT_TIME )
+constexpr Time GAMECHAT_NOTIFY_TIME = Seconds( 5 );
+constexpr Time GAMECHAT_WAIT_OUT_TIME = Seconds( 4 );
+constexpr Time GAMECHAT_HIGHLIGHT_TIME = Seconds( 4 );
+constexpr Time GAMECHAT_FADE_OUT_TIME = GAMECHAT_NOTIFY_TIME - GAMECHAT_WAIT_OUT_TIME;
 
 static void SendChat() {
 	if( strlen( chat.input ) > 0 ) {

@@ -102,7 +102,7 @@ struct ParticleSystem {
 	bool feedback;
 	Span< GPUParticleFeedback > particles_feedback;
 	Span< u32 > gpu_instances;
-	Span< s64 > gpu_instances_time;
+	Span< Time > gpu_instances_time;
 
 	IndexBuffer ibo;
 	VertexBuffer vb;

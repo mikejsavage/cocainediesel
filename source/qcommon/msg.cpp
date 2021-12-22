@@ -189,8 +189,12 @@ static void Delta( DeltaBuffer * buf, bool & b, bool baseline ) {
 	}
 }
 
+static void Delta( DeltaBuffer * buf, Time & time, Time time ) {
+	Delta( buf, time.flicks, baseline.flicks );
+}
+
 static void Delta( DeltaBuffer * buf, StringHash & hash, StringHash baseline ) {
-	DeltaFundamental( buf, hash.hash, baseline.hash );
+	Delta( buf, hash.hash, baseline.hash );
 }
 
 template< typename T, size_t N >

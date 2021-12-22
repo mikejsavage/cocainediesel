@@ -331,7 +331,6 @@ void CL_ClearState() {
 	memset( &cl, 0, sizeof( client_state_t ) );
 	memset( cl_baselines, 0, sizeof( cl_baselines ) );
 
-	//userinfo_modified = true;
 	cls.lastExecutedServerCommand = 0;
 	cls.reliableAcknowledge = 0;
 	cls.reliableSequence = 0;
@@ -342,11 +341,11 @@ void CL_ClearState() {
 	cls.ucmdSent = 0;
 	cls.ucmdAcknowledged = 0;
 
-	//restart realtime and lastPacket times
-	cls.realtime = 0;
-	cls.gametime = 0;
-	cls.lastPacketSentTime = 0;
-	cls.lastPacketReceivedTime = 0;
+	// restart realtime and lastPacket times
+	cls.realtime = { };
+	cls.gametime = { };
+	cls.lastPacketSentTime = { };
+	cls.lastPacketReceivedTime = { };
 }
 
 /*
@@ -1235,8 +1234,8 @@ void CL_Frame( Time dt, Time real_dt ) {
 		}
 	}
 
-	static Time accumulated_real_dt = 0;
-	static Time accumulated_dt = 0;
+	static Time accumulated_real_dt = { };
+	static Time accumulated_dt = { };
 
 	cls.gametime += dt;
 	accumulated_real_dt += real_dt;
@@ -1252,10 +1251,10 @@ void CL_Frame( Time dt, Time real_dt ) {
 
 	// do not allow setting cl_maxfps to very low values to prevent cheating
 	if( cl_maxfps->integer < min_fps ) {
-		Cvar_ForceSet( "cl_maxfps", va( "%i", min_fps ) );
+		Cvar_SetInteger( "cl_maxfps", min_fps );
 	}
 
-	float target_fps = IsWindowFocused() ? cl_maxfps->value : min_fps;
+	float target_fps = IsWindowFocused() ? cl_maxfps->number : min_fps;
 	Time target_dt = Seconds( 1.0f / target_fps );
 
 	if( accumulated_real_dt < target_dt ) {
@@ -1318,7 +1317,7 @@ void CL_Init() {
 	CSPRNG( entropy, sizeof( entropy ) );
 	cls.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
-	cls.monotonicTime = 0;
+	cls.monotonicTime = { };
 
 	assert( !cl_initialized );
 

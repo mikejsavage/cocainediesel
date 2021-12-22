@@ -189,8 +189,8 @@ struct client_static_t {
 	int64_t ucmdSent;
 
 	// times when we got/sent last valid packets from/to server
-	int64_t lastPacketSentTime;
-	int64_t lastPacketReceivedTime;
+	Time lastPacketSentTime;
+	Time lastPacketReceivedTime;
 
 	char session[MAX_INFO_VALUE];
 

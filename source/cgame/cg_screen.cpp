@@ -36,7 +36,7 @@ Cvar *cg_showPlayerNames_alpha;
 Cvar *cg_showPlayerNames_zfar;
 Cvar *cg_showPlayerNames_barWidth;
 
-static Time scr_damagetime = Milliseconds( 0 );
+static Time scr_damagetime = { };
 
 /*
 ===============================================================================
@@ -47,7 +47,7 @@ CENTER PRINTING
 */
 
 static char scr_centerstring[1024];
-static int scr_centertime_off;
+static Time scr_centertime_off;
 
 /*
 * CG_CenterPrint
@@ -57,7 +57,7 @@ static int scr_centertime_off;
 */
 void CG_CenterPrint( const char *str ) {
 	Q_strncpyz( scr_centerstring, str, sizeof( scr_centerstring ) );
-	scr_centertime_off = cg_centerTime->number * 1000.0f;
+	scr_centertime_off = Seconds( cg_centerTime->number );
 }
 
 static void CG_DrawCenterString() {
@@ -67,19 +67,19 @@ static void CG_DrawCenterString() {
 //============================================================================
 
 void CG_ScreenInit() {
-	cg_showFPS =        NewCvar( "cg_showFPS", "0", CvarFlag_Archive );
-	cg_draw2D =     NewCvar( "cg_draw2D", "1", 0 );
-	cg_centerTime =     NewCvar( "cg_centerTime", "2.5", 0 );
+	cg_showFPS = NewCvar( "cg_showFPS", "0", CvarFlag_Archive );
+	cg_draw2D = NewCvar( "cg_draw2D", "1", 0 );
+	cg_centerTime = NewCvar( "cg_centerTime", "2.5", 0 );
 
 	cg_crosshair_size = NewCvar( "cg_crosshair_size", "3", CvarFlag_Archive );
 
-	cg_showSpeed =      NewCvar( "cg_showSpeed", "0", CvarFlag_Archive );
-	cg_showPointedPlayer =  NewCvar( "cg_showPointedPlayer", "1", CvarFlag_Archive );
+	cg_showSpeed = NewCvar( "cg_showSpeed", "0", CvarFlag_Archive );
+	cg_showPointedPlayer = NewCvar( "cg_showPointedPlayer", "1", CvarFlag_Archive );
 
-	cg_showPlayerNames =        NewCvar( "cg_showPlayerNames", "2", CvarFlag_Archive );
-	cg_showPlayerNames_alpha =  NewCvar( "cg_showPlayerNames_alpha", "0.4", CvarFlag_Archive );
-	cg_showPlayerNames_zfar =   NewCvar( "cg_showPlayerNames_zfar", "1024", CvarFlag_Archive );
-	cg_showPlayerNames_barWidth =   NewCvar( "cg_showPlayerNames_barWidth", "8", CvarFlag_Archive );
+	cg_showPlayerNames = NewCvar( "cg_showPlayerNames", "2", CvarFlag_Archive );
+	cg_showPlayerNames_alpha = NewCvar( "cg_showPlayerNames_alpha", "0.4", CvarFlag_Archive );
+	cg_showPlayerNames_zfar = NewCvar( "cg_showPlayerNames_zfar", "1024", CvarFlag_Archive );
+	cg_showPlayerNames_barWidth = NewCvar( "cg_showPlayerNames_barWidth", "8", CvarFlag_Archive );
 }
 
 void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
@@ -128,22 +128,20 @@ void CG_DrawCrosshair() {
 }
 
 void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border ) {
-	int64_t clocktime, startTime, duration, curtime;
-	char string[12];
-
 	if( client_gs.gameState.match_state > MatchState_Playing ) {
 		return;
 	}
 
+	int64_t clocktime;
 	if( client_gs.gameState.clock_override != 0 ) {
 		clocktime = client_gs.gameState.clock_override;
 		if( clocktime < 0 )
 			return;
 	}
 	else {
-		curtime = ( GS_MatchWaiting( &client_gs ) || GS_MatchPaused( &client_gs ) ) ? cg.frame.serverTime : cl.serverTime;
-		duration = client_gs.gameState.match_duration;
-		startTime = client_gs.gameState.match_state_start_time;
+		s64 curtime = ( GS_MatchWaiting( &client_gs ) || GS_MatchPaused( &client_gs ) ) ? cg.frame.serverTime : cl.serverTime;
+		s64 duration = client_gs.gameState.match_duration;
+		s64 startTime = client_gs.gameState.match_state_start_time;
 
 		// count downwards when having a duration
 		if( duration ) {
@@ -166,9 +164,10 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	int minutes = (int)( seconds / 60 );
 	seconds -= minutes * 60;
 
-	snprintf( string, sizeof( string ), "%i:%02i", minutes, (int)seconds );
+	char buf[ 32 ];
+	snprintf( buf, sizeof( buf ), "%d:%02d", minutes, (int)seconds );
 
-	DrawText( font, font_size, string, alignment, x, y, color, border );
+	DrawText( font, font_size, buf, alignment, x, y, color, border );
 }
 
 void CG_ClearPointedNum() {
@@ -562,11 +561,11 @@ void CG_Draw2DView() {
 
 	CG_SCRDrawViewBlend();
 
-	scr_centertime_off -= cls.frametime;
+	scr_centertime_off -= cls.dt;
 	if( CG_ScoreboardShown() ) {
 		CG_DrawScoreboard();
 	}
-	else if( scr_centertime_off > 0 ) {
+	else if( scr_centertime_off > Seconds( 0 ) ) {
 		CG_DrawCenterString();
 	}
 

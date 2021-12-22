@@ -557,8 +557,6 @@ static void DrawSilhouettes() {
 void CG_RenderView( unsigned extrapolationTime ) {
 	ZoneScoped;
 
-	cg.frameCount++;
-
 	if( !cg.frame.valid ) {
 		return;
 	}

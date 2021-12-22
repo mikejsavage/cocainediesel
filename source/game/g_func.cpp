@@ -75,7 +75,7 @@ static void Move_UpdateLinearVelocity( edict_t *ent, float dist, int speed ) {
 
 	ent->s.linearMovementEnd = ent->moveinfo.dest;
 	ent->s.linearMovementBegin = ent->s.origin;
-	ent->s.linearMovementTimeStamp = svs.gametime - game.frametime;
+	ent->s.linearMovementTimeStamp = svs.time - game.frametime;
 	ent->s.linearMovementDuration = duration;
 }
 

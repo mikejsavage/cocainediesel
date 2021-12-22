@@ -214,14 +214,14 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 	}
 
 	if( g_floodprotection_seconds->modified ) {
-		if( g_floodprotection_seconds->value <= 0 ) {
+		if( g_floodprotection_seconds->number <= 0 ) {
 			Cvar_Set( "g_floodprotection_seconds", "4" );
 		}
 		g_floodprotection_seconds->modified = false;
 	}
 
 	if( g_floodprotection_penalty->modified ) {
-		if( g_floodprotection_penalty->value < 0 ) {
+		if( g_floodprotection_penalty->number < 0 ) {
 			Cvar_Set( "g_floodprotection_penalty", "10" );
 		}
 		g_floodprotection_penalty->modified = false;
@@ -238,7 +238,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 
 
 	if( teamonly ) {
-		if( g_floodprotection_team->integer && g_floodprotection_penalty->value > 0 ) {
+		if( g_floodprotection_team->integer && g_floodprotection_penalty->number > 0 ) {
 			i = client->level.flood_team_whenhead - g_floodprotection_team->integer + 1;
 			if( i < 0 ) {
 				i = MAX_FLOOD_MESSAGES + i;
@@ -255,7 +255,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 		client->level.flood_team_whenhead = ( client->level.flood_team_whenhead + 1 ) % MAX_FLOOD_MESSAGES;
 		client->level.flood_team_when[client->level.flood_team_whenhead] = svs.realtime;
 	} else {
-		if( g_floodprotection_messages->integer && g_floodprotection_penalty->value > 0 ) {
+		if( g_floodprotection_messages->integer && g_floodprotection_penalty->number > 0 ) {
 			i = client->level.flood_whenhead - g_floodprotection_messages->integer + 1;
 			if( i < 0 ) {
 				i = MAX_FLOOD_MESSAGES + i;

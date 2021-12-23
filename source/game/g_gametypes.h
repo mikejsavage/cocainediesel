@@ -19,7 +19,6 @@ struct Gametype {
 	void ( *MapHotloaded )();
 
 	bool isTeamBased;
-	bool countdownEnabled;
 	bool removeInactivePlayers;
 	bool selfDamage;
 	bool autoRespawn;

@@ -147,7 +147,6 @@ void G_CheckCvars() {
 
 	// FIXME: This should be restructured so gameshared settings are the master settings
 	G_GamestatSetFlag( GAMESTAT_FLAG_ISTEAMBASED, level.gametype.isTeamBased );
-	G_GamestatSetFlag( GAMESTAT_FLAG_COUNTDOWN, level.gametype.countdownEnabled );
 }
 
 //===================================================================

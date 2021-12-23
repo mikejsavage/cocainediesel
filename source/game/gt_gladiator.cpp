@@ -575,7 +575,6 @@ Gametype GetGladiatorGametype() {
 	gt.SpawnEntity = GT_Gladiator_SpawnEntity;
 
 	gt.isTeamBased = false;
-	gt.countdownEnabled = false;
 	gt.removeInactivePlayers = true;
 	gt.selfDamage = false;
 	gt.autoRespawn = true;

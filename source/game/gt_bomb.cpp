@@ -1283,7 +1283,6 @@ static void GT_Bomb_MatchStateStarted() {
 			break;
 
 		case MatchState_Countdown:
-			level.gametype.countdownEnabled = true;
 			G_AnnouncerSound( NULL, "sounds/announcer/get_ready_to_fight", GS_MAX_TEAMS, false, NULL );
 			break;
 
@@ -1357,7 +1356,6 @@ Gametype GetBombGametype() {
 	gt.SpawnEntity = GT_Bomb_SpawnEntity;
 
 	gt.isTeamBased = true;
-	gt.countdownEnabled = false;
 	gt.removeInactivePlayers = true;
 	gt.selfDamage = true;
 	gt.autoRespawn = true;

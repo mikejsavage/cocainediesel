@@ -80,45 +80,6 @@ bool CG_ChaseStep( int step ) {
 	return false;
 }
 
-static void CG_AddLocalSounds() {
-	static unsigned lastSecond = 0;
-
-	// add local announces
-	if( GS_Countdown( &client_gs ) ) {
-		if( client_gs.gameState.match_duration ) {
-			s64 curtime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime;
-			s64 duration = client_gs.gameState.match_duration;
-
-			if( duration + client_gs.gameState.match_state_start_time < curtime ) {
-				duration = curtime - client_gs.gameState.match_state_start_time; // avoid negative results
-			}
-
-			float seconds = (float)( client_gs.gameState.match_state_start_time + duration - curtime ) * 0.001f;
-			unsigned int remainingSeconds = (unsigned int)seconds;
-
-			if( remainingSeconds != lastSecond ) {
-				if( 1 + remainingSeconds < 4 ) {
-					constexpr StringHash countdown[] = {
-						"sounds/announcer/1",
-						"sounds/announcer/2",
-						"sounds/announcer/3",
-					};
-
-					CG_AddAnnouncerEvent( countdown[ remainingSeconds ], false );
-					CG_CenterPrint( va( "%i", remainingSeconds + 1 ) );
-				}
-
-				lastSecond = remainingSeconds;
-			}
-		}
-	} else {
-		lastSecond = 0;
-	}
-
-	// add sounds from announcer
-	CG_ReleaseAnnouncerEvents();
-}
-
 /*
 * CG_FlashGameWindow
 *
@@ -669,7 +630,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	DrawModelInstances();
 
-	CG_AddLocalSounds();
+	CG_ReleaseAnnouncerEvents();
 
 	S_Update( cg.view.origin, cg.view.velocity, cg.view.axis );
 

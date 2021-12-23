@@ -357,28 +357,30 @@ void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assisto
 void G_PrintMsg( edict_t *ent, const char *format, ... ) {
 	char msg[MAX_STRING_CHARS];
 	va_list argptr;
-	char *s, *p;
 
 	va_start( argptr, format );
 	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	// double quotes are bad
-	p = msg;
-	while( ( p = strchr( p, '\"' ) ) != NULL )
+	char * p = msg;
+	while( ( p = strchr( p, '\"' ) ) != NULL ) {
 		*p = '\'';
+	}
 
-	s = va( "pr \"%s\"", msg );
+	char cmd[MAX_STRING_CHARS];
+	snprintf( cmd, sizeof( cmd ), "pr \"%s\"", msg );
 
 	if( !ent ) {
 		// mirror at server console
 		if( is_dedicated_server ) {
 			Com_Printf( "%s", msg );
 		}
-		PF_GameCmd( NULL, s );
-	} else {
+		PF_GameCmd( NULL, cmd );
+	}
+	else {
 		if( ent->r.inuse && ent->r.client ) {
-			PF_GameCmd( ent, s );
+			PF_GameCmd( ent, cmd );
 		}
 	}
 }
@@ -389,7 +391,7 @@ void G_PrintMsg( edict_t *ent, const char *format, ... ) {
 * NULL sends the message to all clients
 */
 void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, ... ) {
-	char msg[1024];
+	char msg[MAX_STRING_CHARS];
 	va_list argptr;
 
 	va_start( argptr, format );
@@ -420,9 +422,7 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 		}
 
 		if( who && teamonly ) {
-			int i;
-
-			for( i = 0; i < server_gs.maxclients; i++ ) {
+			for( int i = 0; i < server_gs.maxclients; i++ ) {
 				ent = game.edicts + 1 + i;
 
 				if( ent->r.inuse && ent->r.client && PF_GetClientState( i ) >= CS_CONNECTED ) {
@@ -801,27 +801,18 @@ edict_t *G_PlayerForText( const char *text ) {
 		return NULL;
 	}
 
-	int pnum = atoi( text );
-
-	if( !Q_stricmp( text, va( "%i", pnum ) ) && pnum >= 0 && pnum < server_gs.maxclients && game.edicts[pnum + 1].r.inuse ) {
-		return &game.edicts[atoi( text ) + 1];
+	u64 num;
+	if( TryStringToU64( text, &num ) && num < u64( server_gs.maxclients ) && game.edicts[ num + 1 ].r.inuse ) {
+		return &game.edicts[ num + 1 ];
 	}
 
-	int i;
-	edict_t *e;
-
-	// check if it's a known player name
-	for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
-		if( !e->r.inuse ) {
-			continue;
-		}
-
-		if( !Q_stricmp( text, e->r.client->netname ) ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		edict_t * e = &game.edicts[ i + 1 ];
+		if( StrCaseEqual( e->r.client->netname, text ) ) {
 			return e;
 		}
 	}
 
-	// nothing found
 	return NULL;
 }
 

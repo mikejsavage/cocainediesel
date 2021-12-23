@@ -627,8 +627,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 * loadgames will.
 */
 bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
-	char *value;
-
 	assert( ent );
 	assert( userinfo && Info_Validate( userinfo ) );
 	assert( Info_ValueForKey( userinfo, "ip" ) && Info_ValueForKey( userinfo, "socket" ) );
@@ -653,7 +651,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 	}
 
 	// check to see if they are on the banned IP list
-	value = Info_ValueForKey( userinfo, "ip" );
+	char * value = Info_ValueForKey( userinfo, "ip" );
 	if( SV_FilterPacket( value ) ) {
 		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_GENERAL ) );
 		Info_SetValueForKey( userinfo, "rejmsg", "You're banned from this server" );

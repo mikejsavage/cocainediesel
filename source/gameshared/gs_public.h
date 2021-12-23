@@ -130,11 +130,6 @@ enum {
 
 #define ISWALKABLEPLANE( x ) ( ( (Plane *)x )->normal.z >= 0.7f )
 
-#define SLIDEMOVE_PLANEINTERACT_EPSILON 0.05
-#define SLIDEMOVEFLAG_WALL_BLOCKED  8
-#define SLIDEMOVEFLAG_TRAPPED       4
-#define SLIDEMOVEFLAG_BLOCKED       2   // it was blocked at some point, doesn't mean it didn't slide along the blocking object
-
 Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal, float overbounce );
 
 int GS_LinearMovement( const SyncEntityState *ent, int64_t time, Vec3 * dest );
@@ -187,15 +182,6 @@ enum DamageCategory {
 	DamageCategory_Gadget,
 	DamageCategory_World,
 };
-
-// struct DamageType {
-// 	DamageCategory type;
-// 	union {
-// 		WeaponType weapon;
-// 		GadgetType gadget;
-// 		WorldDamage world;
-// 	};
-// };
 
 enum WorldDamage : u8 {
 	WorldDamage_Slime,

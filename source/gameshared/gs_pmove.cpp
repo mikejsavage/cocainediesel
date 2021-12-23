@@ -28,6 +28,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define PM_AIRCONTROL_BOUNCE_DELAY 200
 #define PM_OVERBOUNCE       1.01f
 
+#define SLIDEMOVE_PLANEINTERACT_EPSILON 0.05
+#define SLIDEMOVEFLAG_WALL_BLOCKED  8
+#define SLIDEMOVEFLAG_TRAPPED       4
+#define SLIDEMOVEFLAG_BLOCKED       2   // it was blocked at some point, doesn't mean it didn't slide along the blocking object
+
 static constexpr s16 MAX_TBAG_TIME = 2000;
 static constexpr s16 TBAG_THRESHOLD = 1000;
 static constexpr s16 TBAG_AMOUNT_PER_CROUCH = 500;

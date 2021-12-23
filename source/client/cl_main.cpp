@@ -1060,7 +1060,7 @@ void CL_UpdateSnapshot() {
 
 			if( cl_extrapolationTime->modified ) {
 				if( cl_extrapolationTime->integer > (int)cl.snapFrameTime - 1 ) {
-					Cvar_ForceSet( "cl_extrapolationTime", va( "%i", (int)cl.snapFrameTime - 1 ) );
+					Cvar_SetInteger( "cl_extrapolationTime", (int)cl.snapFrameTime - 1 );
 				} else if( cl_extrapolationTime->integer < 0 ) {
 					Cvar_ForceSet( "cl_extrapolationTime", "0" );
 				}
@@ -1252,7 +1252,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	// do not allow setting cl_maxfps to very low values to prevent cheating
 	if( cl_maxfps->integer < absMinFps ) {
-		Cvar_ForceSet( "cl_maxfps", va( "%i", absMinFps ) );
+		Cvar_SetInteger( "cl_maxfps", absMinFps );
 	}
 	float maxFps = IsWindowFocused() ? cl_maxfps->number : absMinFps;
 	int minMsec = Max2( 1000.0f / maxFps, 1.0f );

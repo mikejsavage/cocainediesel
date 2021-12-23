@@ -172,15 +172,13 @@ static void Cmd_Position_f( edict_t *ent ) {
 			G_PrintMsg( ent, "Position set.\n" );
 		}
 	} else {
-		char msg[MAX_STRING_CHARS];
-
-		msg[0] = 0;
-		Q_strncatz( msg, "Usage:\nposition save - Save current position\n", sizeof( msg ) );
-		Q_strncatz( msg, "position load - Teleport to saved position\n", sizeof( msg ) );
-		Q_strncatz( msg, "position set <x> <y> <z> <pitch> <yaw> - Teleport to specified position\n", sizeof( msg ) );
-		Q_strncatz( msg, va( "Current position: %.4f %.4f %.4f %.4f %.4f\n", ent->s.origin.x, ent->s.origin.y,
-							 ent->s.origin.z, ent->s.angles.x, ent->s.angles.y ), sizeof( msg ) );
-		G_PrintMsg( ent, "%s", msg );
+		G_PrintMsg( ent,
+			"Usage:\n"
+			"position save - Save current position\n"
+			"position load - Teleport to saved position\n"
+			"position set <x> <y> <z> <pitch> <yaw> - Teleport to specified position\n"
+			"Current position: %.4f %.4f %.4f %.4f %.4f\n",
+			ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.x, ent->s.angles.y );
 	}
 }
 
@@ -198,7 +196,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 			Cvar_Set( "g_floodprotection_messages", "0" );
 		}
 		if( g_floodprotection_messages->integer > MAX_FLOOD_MESSAGES ) {
-			Cvar_Set( "g_floodprotection_messages", va( "%i", MAX_FLOOD_MESSAGES ) );
+			Cvar_SetInteger( "g_floodprotection_messages", MAX_FLOOD_MESSAGES );
 		}
 		g_floodprotection_messages->modified = false;
 	}
@@ -208,7 +206,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 			Cvar_Set( "g_floodprotection_team", "0" );
 		}
 		if( g_floodprotection_team->integer > MAX_FLOOD_MESSAGES ) {
-			Cvar_Set( "g_floodprotection_team", va( "%i", MAX_FLOOD_MESSAGES ) );
+			Cvar_SetInteger( "g_floodprotection_team", MAX_FLOOD_MESSAGES );
 		}
 		g_floodprotection_team->modified = false;
 	}

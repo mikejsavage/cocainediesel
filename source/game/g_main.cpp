@@ -115,6 +115,8 @@ void G_GamestatSetFlag( int flag, bool b ) {
 void G_Init( unsigned int framemsec ) {
 	Com_Printf( "==== G_Init ====\n" );
 
+	TempAllocator temp = svs.frame_arena.temp();
+
 	G_InitGameShared();
 
 	SV_ReadIPList();
@@ -135,7 +137,7 @@ void G_Init( unsigned int framemsec ) {
 	g_operator_password = NewCvar( "g_operator_password", "", CvarFlag_Archive );
 	filterban = NewCvar( "filterban", "1", 0 );
 
-	g_projectile_prestep = NewCvar( "g_projectile_prestep", va( "%i", PROJECTILE_PRESTEP ), CvarFlag_Developer );
+	g_projectile_prestep = NewCvar( "g_projectile_prestep", temp( "{}", PROJECTILE_PRESTEP ), CvarFlag_Developer );
 	g_numbots = NewCvar( "g_numbots", "0", CvarFlag_Archive );
 	g_deadbody_followkiller = NewCvar( "g_deadbody_followkiller", "1", CvarFlag_Developer );
 	g_maxtimeouts = NewCvar( "g_maxtimeouts", "2", CvarFlag_Archive );
@@ -214,13 +216,14 @@ void G_ExitLevel() {
 	const char *nextmapname = G_NextMap();
 
 	// if it's the same map see if we can restart without loading
-	if( !level.hardReset && !Q_stricmp( nextmapname, sv.mapname ) ) {
+	if( StrEqual( nextmapname, sv.mapname ) ) {
 		G_RespawnLevel();
 		loadmap = false;
 	}
 
 	if( loadmap ) {
-		Cbuf_Add( "map \"{}\"", nextmapname );
+		TempAllocator temp = svs.frame_arena.temp();
+		Cbuf_ExecuteLine( temp( "map \"{}\"", nextmapname ) );
 	}
 
 	G_SnapClients();

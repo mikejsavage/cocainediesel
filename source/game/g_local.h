@@ -85,15 +85,12 @@ struct level_locals_t {
 
 	bool canSpawnEntities; // security check to prevent entities being spawned before map entities
 
-	// intermission state
 	bool exitNow;
-	bool hardReset;
 
 	// gametype definition and execution
 	Gametype gametype;
 
 	bool ready[MAX_CLIENTS];
-	bool forceExit;     // just exit, ignore extended time checks
 
 	edict_t *current_entity;    // entity running from G_RunFrame
 

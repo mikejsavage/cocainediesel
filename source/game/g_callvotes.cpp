@@ -57,10 +57,9 @@ struct callvotetype_t {
 	bool ( *validate )( callvotedata_t *data, bool first );
 	void ( *execute )( callvotedata_t *vote );
 	const char *( *current )();
-	void ( *extraHelp )( edict_t *ent );
+	void ( *extraHelp )( edict_t * ent, String< MAX_STRING_CHARS > * msg );
 	const char *argument_format;
 	const char *help;
-	const char *argument_type;
 };
 
 // Data that will only be used by the common callvote functions
@@ -71,9 +70,16 @@ struct callvotestate_t {
 
 static callvotestate_t callvoteState;
 
-//==============================================
-//		Vote specifics
-//==============================================
+static void ListPlayersExcept( edict_t * ent, String< MAX_STRING_CHARS > * msg, bool include_specs ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		const edict_t * e = &game.edicts[ i + 1 ];
+		if( !e->r.inuse || e == ent )
+			continue;
+		if( !include_specs && e->s.team == TEAM_SPECTATOR )
+			continue;
+		msg->append( "\n{}: {}", i, e->r.client->netname );
+	}
+}
 
 /*
 * map
@@ -81,49 +87,15 @@ static callvotestate_t callvoteState;
 
 #define MAPLIST_SEPS " ,"
 
-static void G_VoteMapExtraHelp( edict_t *ent ) {
-	char message[MAX_STRING_CHARS / 4 * 3];    // use buffer to send only one print message
-
+static void G_VoteMapExtraHelp( edict_t * ent, String< MAX_STRING_CHARS > * msg ) {
 	TempAllocator temp = svs.frame_arena.temp();
 	RefreshMapList( &temp );
 
-	// don't use Q_strncatz and Q_strncpyz below because we
-	// check length of the message string manually
-
-	memset( message, 0, sizeof( message ) );
-	strcpy( message, "- Available maps:" );
+	msg->append( "\n- Available maps:" );
 
 	Span< const char * > maps = GetMapList();
-
-	unsigned int start = 0;
-	if( Cmd_Argc() > 2 ) {
-		start = strtonum( Cmd_Argv( 2 ), 0, S32_MAX, NULL );
-	}
-
-	unsigned int i = start;
-	size_t msglength = strlen( message );
-
-	while( i < maps.n ) {
-		size_t length = strlen( maps[ i ] );
-		if( msglength + length + 3 >= sizeof( message ) ) {
-			break;
-		}
-
-		strcat( message, " " );
-		strcat( message, maps[ i ] );
-
-		msglength += length + 1;
-		i++;
-	}
-
-	if( i == start ) {
-		strcat( message, "\nNone" );
-	}
-
-	G_PrintMsg( ent, "%s\n", message );
-
-	if( i < maps.n ) {
-		G_PrintMsg( ent, "Type 'callvote map %i' for more maps\n", i + 1 );
+	for( const char * map : maps ) {
+		msg->append( " {}", map );
 	}
 }
 
@@ -223,38 +195,8 @@ static void G_VoteStartPassed( callvotedata_t *vote ) {
 * spectate
 */
 
-static void G_VoteSpectateExtraHelp( edict_t *ent ) {
-	int i;
-	edict_t *e;
-	char msg[1024];
-
-	msg[0] = 0;
-	Q_strncatz( msg, "- List of players in game:\n", sizeof( msg ) );
-
-	if( level.gametype.isTeamBased ) {
-		int team;
-
-		for( team = TEAM_ALPHA; team < GS_MAX_TEAMS; team++ ) {
-			Q_strncatz( msg, va( "%s:\n", GS_TeamName( team ) ), sizeof( msg ) );
-			for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
-				if( !e->r.inuse || e->s.team != team ) {
-					continue;
-				}
-
-				Q_strncatz( msg, va( "%3i: %s\n", PLAYERNUM( e ), e->r.client->netname ), sizeof( msg ) );
-			}
-		}
-	} else {
-		for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
-			if( !e->r.inuse || e->s.team != TEAM_PLAYERS ) {
-				continue;
-			}
-
-			Q_strncatz( msg, va( "%3i: %s\n", PLAYERNUM( e ), e->r.client->netname ), sizeof( msg ) );
-		}
-	}
-
-	G_PrintMsg( ent, "%s", msg );
+static void G_VoteSpectateExtraHelp( edict_t * ent, String< MAX_STRING_CHARS > * msg ) {
+	ListPlayersExcept( ent, msg, false );
 }
 
 static bool G_VoteSpectateValidate( callvotedata_t *vote, bool first ) {
@@ -312,23 +254,8 @@ static void G_VoteSpectatePassed( callvotedata_t *vote ) {
 * kick
 */
 
-static void G_VoteKickExtraHelp( edict_t *ent ) {
-	int i;
-	edict_t *e;
-	char msg[1024];
-
-	msg[0] = 0;
-	Q_strncatz( msg, "- List of current players:\n", sizeof( msg ) );
-
-	for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
-		if( !e->r.inuse ) {
-			continue;
-		}
-
-		Q_strncatz( msg, va( "%3i: %s\n", PLAYERNUM( e ), e->r.client->netname ), sizeof( msg ) );
-	}
-
-	G_PrintMsg( ent, "%s", msg );
+static void G_VoteKickExtraHelp( edict_t * ent, String< MAX_STRING_CHARS > * msg ) {
+	ListPlayersExcept( ent, msg, true );
 }
 
 static bool G_VoteKickValidate( callvotedata_t *vote, bool first ) {
@@ -381,23 +308,8 @@ static void G_VoteKickPassed( callvotedata_t *vote ) {
 * kickban
 */
 
-static void G_VoteKickBanExtraHelp( edict_t *ent ) {
-	int i;
-	edict_t *e;
-	char msg[1024];
-
-	msg[0] = 0;
-	Q_strncatz( msg, "- List of current players:\n", sizeof( msg ) );
-
-	for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
-		if( !e->r.inuse ) {
-			continue;
-		}
-
-		Q_strncatz( msg, va( "%3i: %s\n", PLAYERNUM( e ), e->r.client->netname ), sizeof( msg ) );
-	}
-
-	G_PrintMsg( ent, "%s", msg );
+static void G_VoteKickBanExtraHelp( edict_t * ent, String< MAX_STRING_CHARS > * msg ) {
+	ListPlayersExcept( ent, msg, true );
 }
 
 static bool G_VoteKickBanValidate( callvotedata_t *vote, bool first ) {
@@ -509,7 +421,6 @@ static callvotetype_t votes[] = {
 		G_VoteMapCurrent,
 		G_VoteMapExtraHelp,
 		"<name>",
-		"option",
 		"Changes map",
 	},
 
@@ -518,7 +429,6 @@ static callvotetype_t votes[] = {
 		0,
 		G_VoteStartValidate,
 		G_VoteStartPassed,
-		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -533,7 +443,6 @@ static callvotetype_t votes[] = {
 		NULL,
 		G_VoteSpectateExtraHelp,
 		"<player>",
-		"option",
 		"Forces player back to spectator mode",
 	},
 
@@ -545,7 +454,6 @@ static callvotetype_t votes[] = {
 		NULL,
 		G_VoteKickExtraHelp,
 		"<player>",
-		"option",
 		"Removes player from the server",
 	},
 
@@ -557,7 +465,6 @@ static callvotetype_t votes[] = {
 		NULL,
 		G_VoteKickBanExtraHelp,
 		"<player>",
-		"option",
 		"Removes player from the server and bans his IP-address for 15 minutes",
 	},
 
@@ -569,7 +476,6 @@ static callvotetype_t votes[] = {
 		NULL,
 		NULL,
 		NULL,
-		NULL,
 		"Pauses the game",
 	},
 
@@ -578,7 +484,6 @@ static callvotetype_t votes[] = {
 		0,
 		G_VoteTimeinValidate,
 		G_VoteTimeinPassed,
-		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -638,18 +543,25 @@ static void G_CallVotes_PrintUsagesToPlayer( edict_t *ent ) {
 }
 
 static void G_CallVotes_PrintHelpToPlayer( edict_t *ent, const callvotetype_t *callvote ) {
+	String< MAX_STRING_CHARS > msg( "Usage: {}", callvote->name );
 
-	if( !callvote ) {
-		return;
+	if( callvote->argument_format != NULL ) {
+		msg.append( " {}", callvote->argument_format );
 	}
 
-	G_PrintMsg( ent, "Usage: %s %s\n%s%s%s\n", callvote->name,
-				( callvote->argument_format ? callvote->argument_format : "" ),
-				( callvote->current ? va( "Current: %s\n", callvote->current() ) : "" ),
-				( callvote->help ? "- " : "" ), ( callvote->help ? callvote->help : "" ) );
+	if( callvote->current != NULL ) {
+		msg.append( "\nCurrent: {}", callvote->current() );
+	}
+
+	if( callvote->help != NULL ) {
+		msg.append( "\n- {}", callvote->help );
+	}
+
 	if( callvote->extraHelp != NULL ) {
-		callvote->extraHelp( ent );
+		callvote->extraHelp( ent, &msg );
 	}
+
+	G_PrintMsg( ent, "%s\n", msg.c_str() );
 }
 
 static const char *G_CallVotes_ArgsToString( const callvotedata_t *vote ) {

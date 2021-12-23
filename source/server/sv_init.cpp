@@ -129,11 +129,8 @@ void SV_InitGame() {
 
 	svs.initialized = true;
 
-	// init clients
-	if( sv_maxclients->integer < 1 ) {
-		Cvar_ForceSet( "sv_maxclients", "8" );
-	} else if( sv_maxclients->integer > MAX_CLIENTS ) {
-		Cvar_ForceSet( "sv_maxclients", va( "%i", MAX_CLIENTS ) );
+	if( sv_maxclients->integer < 1 || sv_maxclients->integer > MAX_CLIENTS ) {
+		Cvar_ForceSet( "sv_maxclients", sv_maxclients->default_value );
 	}
 
 	svs.spawncount = RandomUniform( &svs.rng, 0, S16_MAX );

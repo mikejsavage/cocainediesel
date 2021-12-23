@@ -155,7 +155,7 @@ void G_Match_LaunchState( MatchState matchState ) {
 
 		case MatchState_Countdown:
 			server_gs.gameState.match_state = MatchState_Countdown;
-			server_gs.gameState.match_duration = 5000;
+			server_gs.gameState.match_duration = 2000;
 			server_gs.gameState.match_state_start_time = svs.gametime;
 			break;
 
@@ -173,7 +173,6 @@ void G_Match_LaunchState( MatchState matchState ) {
 			level.gametype.countdownEnabled = false;
 
 			G_Timeout_Reset();
-			level.forceExit = false;
 			break;
 
 		case MatchState_WaitExit:
@@ -232,7 +231,6 @@ bool G_Match_TimelimitHit() {
 }
 
 void G_EndMatch() {
-	level.forceExit = true;
 	G_Match_LaunchState( MatchState_PostMatch );
 }
 
@@ -364,7 +362,7 @@ static void G_CheckNumBots() {
 	}
 
 	if( g_numbots->integer > server_gs.maxclients ) {
-		Cvar_Set( "g_numbots", va( "%i", server_gs.maxclients ) );
+		Cvar_SetInteger( "g_numbots", server_gs.maxclients );
 	}
 
 	int desiredNumBots = g_numbots->integer;

@@ -172,9 +172,6 @@ extern Cvar *g_autorecord;
 extern Cvar *g_autorecord_maxdemos;
 extern Cvar *g_allow_spectator_voting;
 
-extern Cvar *g_asGC_stats;
-extern Cvar *g_asGC_interval;
-
 void G_Teams_Join_Cmd( edict_t *ent );
 bool G_Teams_JoinTeam( edict_t *ent, int team );
 void G_Teams_UpdateMembersList();

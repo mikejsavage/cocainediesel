@@ -59,9 +59,6 @@ Cvar *g_deadbody_followkiller;
 
 Cvar *g_allow_spectator_voting;
 
-Cvar *g_asGC_stats;
-Cvar *g_asGC_interval;
-
 /*
 * G_GS_Trace - Used only for gameshared linking
 */
@@ -164,9 +161,6 @@ void G_Init( unsigned int framemsec ) {
 	// helper cvars to show current status in serverinfo reply
 	NewCvar( "g_match_score", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 	NewCvar( "g_needpass", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
-
-	g_asGC_stats = NewCvar( "g_asGC_stats", "0", CvarFlag_Archive );
-	g_asGC_interval = NewCvar( "g_asGC_interval", "10", CvarFlag_Archive );
 
 	game.maxentities = MAX_EDICTS;
 	memset( game.edicts, 0, sizeof( game.edicts ) );

@@ -58,8 +58,8 @@ configs[ "linux-tsan" ] = {
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-release" ] = {
-	cxxflags = "-O2 -DNDEBUG",
-	ldflags = "-s",
+	cxxflags = "-ggdb3 -O2 -DNDEBUG",
+	ldflags = "",
 	bin_prefix = "release/",
 }
 configs[ "linux-bench" ] = {
@@ -315,14 +315,28 @@ rule cpp
     description = $in
     deps = gcc
 
-rule bin
-    command = $cpp -o $out $in $ldflags $extra_ldflags
-    description = $out
-
 rule lib
     command = ar rs $out $in
     description = $out
 ]] )
+
+if config ~= "release" then
+
+printf( [[
+rule bin
+    command = $cpp -o $out $in $ldflags $extra_ldflags
+    description = $out
+]] )
+
+else
+
+printf( [[
+rule bin
+    command = $cpp -o $out $in $ldflags $extra_ldflags;objcopy --only-keep-debug $out $out.debug;strip $out
+    description = $out
+]] )
+
+end
 
 end
 

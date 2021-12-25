@@ -373,7 +373,7 @@ static void CreateFramebuffers() {
 		texture_config.format = TextureFormat_Shadow;
 		fb.albedo_attachment = texture_config;
 
-		for( u32 i = 0; i < 4; i++ ) {
+		for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
 			frame_static.shadowmap_fb[ i ] = NewShadowFramebuffer( frame_static.shadowmap_texture_array, i );
 		}
 	}

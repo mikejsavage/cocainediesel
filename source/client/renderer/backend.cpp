@@ -1224,6 +1224,8 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	TextureFormatToGL( config.format, &internal_format, &channels, &type );
 
 	if( msaa_samples == 0 ) {
+		glTexStorage2D( GL_TEXTURE_2D, config.num_mipmaps, internal_format, config.width, config.height );
+
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
 
@@ -1233,6 +1235,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter );
 		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
 
 		if( config.wrap == TextureWrap_Border ) {
 			glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, ( GLfloat * ) &config.border_color );
@@ -1262,8 +1265,8 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
 			}
 
-			glTexImage2D( GL_TEXTURE_2D, 0, internal_format,
-				config.width, config.height, 0, channels, type, config.data );
+			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0,
+				config.width, config.height, channels, type, config.data );
 		}
 		else {
 			if( config.format == TextureFormat_BC4 ) {
@@ -1273,8 +1276,6 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
 			}
 
-			glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
-
 			const char * cursor = ( const char * ) config.data;
 			for( u32 i = 0; i < config.num_mipmaps; i++ ) {
 				u32 w = config.width >> i;
@@ -1282,8 +1283,8 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 				u32 size = ( BitsPerPixel( config.format ) * w * h ) / 8;
 				assert( size < S32_MAX );
 
-				glCompressedTexImage2D( GL_TEXTURE_2D, i, internal_format,
-					w, h, 0, size, cursor );
+				glCompressedTexSubImage2D( GL_TEXTURE_2D, i, 0, 0,
+					w, h, internal_format, size, cursor );
 
 				cursor += size;
 			}
@@ -1312,14 +1313,17 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 
 	glGenTextures( 1, &ta.texture );
 	glBindTexture( GL_TEXTURE_2D_ARRAY, ta.texture );
+
+	GLenum internal_format, channels, type;
+	TextureFormatToGL( config.format, &internal_format, &channels, &type );
+	glTexStorage3D( GL_TEXTURE_2D_ARRAY, config.num_mipmaps, internal_format, config.width, config.height, config.layers );
+
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
-
-	GLenum internal_format, channels, type;
-	TextureFormatToGL( config.format, &internal_format, &channels, &type );
+	glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
 
 	if( config.format == TextureFormat_Shadow ) {
 		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
@@ -1350,11 +1354,10 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
 		}
 
-		glTexImage3D( GL_TEXTURE_2D_ARRAY, 0, internal_format, config.width, config.height, config.layers, 0, channels, type, config.data );
+		glTexSubImage3D( GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0,
+			config.width, config.height, config.layers, channels, type, config.data );
 	}
 	else {
-		glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
-
 		const char * cursor = ( const char * ) config.data;
 		for( u32 i = 0; i < config.num_mipmaps; i++ ) {
 			u32 w = config.width >> i;
@@ -1362,8 +1365,8 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 			u32 size = ( BitsPerPixel( config.format ) * w * h * config.layers ) / 8;
 			assert( size < S32_MAX );
 
-			glCompressedTexImage3D( GL_TEXTURE_2D_ARRAY, i, internal_format,
-				w, h, config.layers, 0, size, cursor );
+			glCompressedTexSubImage3D( GL_TEXTURE_2D_ARRAY, i, 0, 0, 0,
+				w, h, config.layers, internal_format, size, cursor );
 
 			cursor += size;
 		}

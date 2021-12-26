@@ -730,7 +730,8 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	if( pipeline.clamp_depth != prev_pipeline.clamp_depth ) {
 		if( pipeline.clamp_depth ) {
 			glEnable( GL_DEPTH_CLAMP );
-		} else {
+		}
+		else {
 			glDisable( GL_DEPTH_CLAMP );
 		}
 	}

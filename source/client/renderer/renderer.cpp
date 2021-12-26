@@ -221,7 +221,7 @@ static Mat4 OrthographicProjection( float left, float top, float right, float bo
 
 static Mat4 PerspectiveProjection( float vertical_fov_degrees, float aspect_ratio, float near_plane ) {
 	float tan_half_vertical_fov = tanf( Radians( vertical_fov_degrees ) / 2.0f );
-	float epsilon = 2.4e-6f;
+	constexpr float epsilon = 4.8e-7f; // http://www.terathon.com/gdc07_lengyel.pdf
 
 	return Mat4(
 		1.0f / ( tan_half_vertical_fov * aspect_ratio ),

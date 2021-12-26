@@ -215,7 +215,7 @@ static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Model * 
 static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Model * model, const Model::Primitive * primitive, bool skinned, PipelineState pipeline, UniformBlock outline_uniforms, u64 hash, Mat4 & transform ) {
 	if( !config.enabled )
 		return;
-	
+
 	pipeline.shader = skinned ? &shaders.outline_skinned : &shaders.outline_instanced;
 	pipeline.pass = frame_static.nonworld_opaque_pass;
 	pipeline.cull_face = CullFace_Front;
@@ -239,7 +239,7 @@ static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Model 
 static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Model * model, const Model::Primitive * primitive, bool skinned, PipelineState pipeline, UniformBlock silhouette_uniforms, u64 hash, Mat4 & transform ) {
 	if( !config.enabled )
 		return;
-	
+
 	pipeline.shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer_instanced;
 	pipeline.pass = frame_static.write_silhouette_gbuffer_pass;
 	pipeline.write_depth = false;

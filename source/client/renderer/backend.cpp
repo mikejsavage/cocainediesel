@@ -350,27 +350,16 @@ static void TextureBufferFormatToGL( TextureBufferFormat format, GLenum * intern
 static const char * DebugTypeString( GLenum type ) {
 	switch( type ) {
 		case GL_DEBUG_TYPE_ERROR:
-		case GL_DEBUG_CATEGORY_API_ERROR_AMD:
 			return "error";
 		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-		case GL_DEBUG_CATEGORY_DEPRECATION_AMD:
 			return "deprecated";
 		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-		case GL_DEBUG_CATEGORY_UNDEFINED_BEHAVIOR_AMD:
 			return "undefined";
 		case GL_DEBUG_TYPE_PORTABILITY:
 			return "nonportable";
 		case GL_DEBUG_TYPE_PERFORMANCE:
-		case GL_DEBUG_CATEGORY_PERFORMANCE_AMD:
 			return "performance";
-		case GL_DEBUG_CATEGORY_WINDOW_SYSTEM_AMD:
-			return "window system";
-		case GL_DEBUG_CATEGORY_SHADER_COMPILER_AMD:
-			return "shader compiler";
-		case GL_DEBUG_CATEGORY_APPLICATION_AMD:
-			return "application";
 		case GL_DEBUG_TYPE_OTHER:
-		case GL_DEBUG_CATEGORY_OTHER_AMD:
 			return "other";
 		default:
 			return "idk";
@@ -380,13 +369,10 @@ static const char * DebugTypeString( GLenum type ) {
 static const char * DebugSeverityString( GLenum severity ) {
 	switch( severity ) {
 		case GL_DEBUG_SEVERITY_LOW:
-			// case GL_DEBUG_SEVERITY_LOW_AMD:
 			return S_COLOR_GREEN "low" S_COLOR_WHITE;
 		case GL_DEBUG_SEVERITY_MEDIUM:
-			// case GL_DEBUG_SEVERITY_MEDIUM_AMD:
 			return S_COLOR_YELLOW "medium" S_COLOR_WHITE;
 		case GL_DEBUG_SEVERITY_HIGH:
-			// case GL_DEBUG_SEVERITY_HIGH_AMD:
 			return S_COLOR_RED "high" S_COLOR_WHITE;
 		case GL_DEBUG_SEVERITY_NOTIFICATION:
 			return "notice";
@@ -410,7 +396,7 @@ static void DebugOutputCallback(
 		return;
 	}
 
-	if( severity == GL_DEBUG_SEVERITY_NOTIFICATION || severity == GL_DEBUG_SEVERITY_NOTIFICATION_KHR ) {
+	if( severity == GL_DEBUG_SEVERITY_NOTIFICATION ) {
 		return;
 	}
 
@@ -428,18 +414,9 @@ static void DebugOutputCallback(
 	}
 }
 
-static void DebugOutputCallbackAMD(
-	GLuint id, GLenum type, GLenum severity, GLsizei length,
-	const GLchar * message, const void * _
-) {
-	DebugOutputCallback( GL_DONT_CARE, type, id, severity, length, message, _ );
-}
-
 static void DebugLabel( GLenum type, GLuint object, const char * label ) {
 	assert( label != NULL );
-	if( GLAD_GL_KHR_debug != 0 ) {
-		glObjectLabel( type, object, -1, label );
-	}
+	glObjectLabel( type, object, -1, label );
 }
 
 static void PlotVRAMUsage() {
@@ -458,24 +435,16 @@ void RenderBackendInit() {
 	ZoneScoped;
 	TracyGpuContext;
 
-	if( !is_public_build ) {
-		if( GLAD_GL_KHR_debug != 0 ) {
-			GLint context_flags;
-			glGetIntegerv( GL_CONTEXT_FLAGS, &context_flags );
-			if( context_flags & GL_CONTEXT_FLAG_DEBUG_BIT ) {
-				Com_Printf( "Initialising debug output\n" );
+	{
+		GLint context_flags;
+		glGetIntegerv( GL_CONTEXT_FLAGS, &context_flags );
+		if( context_flags & GL_CONTEXT_FLAG_DEBUG_BIT ) {
+			Com_Printf( "Initialising OpenGL debug output\n" );
 
-				glEnable( GL_DEBUG_OUTPUT );
-				glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
-				glDebugMessageCallback( ( GLDEBUGPROC ) DebugOutputCallback, NULL );
-				glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE );
-			}
-		}
-		else if( GLAD_GL_AMD_debug_output != 0 ) {
-			Com_Printf( "Initialising AMD debug output\n" );
-
-			glDebugMessageCallbackAMD( ( GLDEBUGPROCAMD ) DebugOutputCallbackAMD, NULL );
-			glDebugMessageEnableAMD( 0, 0, 0, NULL, GL_TRUE );
+			glEnable( GL_DEBUG_OUTPUT );
+			glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
+			glDebugMessageCallback( ( GLDEBUGPROC ) DebugOutputCallback, NULL );
+			glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE );
 		}
 	}
 
@@ -636,7 +605,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		u64 name_hash = pipeline.shader->texture_buffers[ i ];
 		GLenum tex_unit = GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + i;
 		TextureBuffer prev_texture = prev_bindings.texture_buffers[ i ];
-		
+
 		bool found = prev_texture.texture == 0;
 		if( name_hash != 0 ) {
 			for( size_t j = 0; j < pipeline.num_texture_buffers; j++ ) {
@@ -665,7 +634,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		u64 name_hash = pipeline.shader->texture_arrays[ i ];
 		GLenum tex_unit = GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + ARRAY_COUNT( pipeline.shader->texture_buffers ) + i;
 		TextureArray prev_texture = prev_bindings.texture_arrays[ i ];
-		
+
 		bool found = prev_texture.texture == 0;
 		if( name_hash != 0 ) {
 			for( size_t j = 0; j < pipeline.num_texture_arrays; j++ ) {
@@ -829,9 +798,7 @@ static void SetupRenderPass( const RenderPass & pass ) {
 	renderpass_zone = new (renderpass_zone_memory) tracy::GpuCtxScope( pass.tracy );
 #endif
 
-	if( GLAD_GL_KHR_debug != 0 ) {
-		glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.name );
-	}
+	glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.name );
 
 	const Framebuffer & fb = pass.target;
 	if( fb.fbo != prev_fbo ) {
@@ -880,8 +847,7 @@ static void SetupRenderPass( const RenderPass & pass ) {
 }
 
 static void FinishRenderPass() {
-	if( GLAD_GL_KHR_debug != 0 )
-		glPopDebugGroup();
+	glPopDebugGroup();
 
 #if TRACY_ENABLE
 	renderpass_zone->~GpuCtxScope();
@@ -1543,11 +1509,11 @@ void DeleteFramebuffer( Framebuffer fb ) {
 
 #define MAX_GLSL_UNIFORM_JOINTS 100
 
-static const char * VERTEX_SHADER_PRELUDE =
+static constexpr const char * VERTEX_SHADER_PRELUDE =
 	"#define VERTEX_SHADER 1\n"
 	"#define v2f out\n";
 
-static const char * FRAGMENT_SHADER_PRELUDE =
+static constexpr const char * FRAGMENT_SHADER_PRELUDE =
 	"#define FRAGMENT_SHADER 1\n"
 	"#define v2f in\n";
 

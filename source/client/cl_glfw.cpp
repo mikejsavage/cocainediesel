@@ -257,8 +257,9 @@ static void OnGlfwError( int code, const char * message ) {
 	if( code == GLFW_FORMAT_UNAVAILABLE && strstr( message, "Failed to convert" ) )
 		return;
 
-	if( code == GLFW_VERSION_UNAVAILABLE )
-		return;
+	if( code == GLFW_VERSION_UNAVAILABLE ) {
+		Fatal( "Your PC is too old. You need a GPU that can support OpenGL 4.3" );
+	}
 
 	Fatal( "GLFW error %d: %s", code, message );
 }
@@ -293,60 +294,35 @@ static WindowMode CompleteWindowMode( WindowMode mode ) {
 void CreateWindow( WindowMode mode ) {
 	ZoneScoped;
 
-	struct { int major, minor; } versions[] = {
-		{ 4, 6 },
-		{ 4, 5 },
-		{ 4, 4 },
-		{ 4, 3 },
-		{ 4, 2 },
-		{ 4, 1 },
-		{ 4, 0 },
-		{ 3, 3 },
-	};
+	glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_API );
+	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
+	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
+	glfwWindowHint( GLFW_RESIZABLE, GLFW_TRUE );
 
-	for( auto version : versions ) {
-		glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_API );
-		glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-		glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
-		glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, version.major );
-		glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, version.minor );
-
-		if( is_public_build ) {
-			glfwWindowHint( GLFW_CONTEXT_NO_ERROR, GLFW_TRUE );
-		}
-		else {
-			glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
-		}
-
-		glfwWindowHint( GLFW_RESIZABLE, GLFW_TRUE );
-
-		mode = CompleteWindowMode( mode );
-
-		if( mode.fullscreen == FullscreenMode_Windowed ) {
-			window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, NULL, NULL );
-			if( window == NULL )
-				continue;
-			glfwSetWindowPos( window, mode.x, mode.y );
-		}
-		else if( mode.fullscreen == FullscreenMode_Borderless ) {
-			glfwWindowHint( GLFW_DECORATED, GLFW_FALSE );
-			window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, NULL, NULL );
-			if( window == NULL )
-				continue;
-			glfwSetWindowPos( window, mode.x, mode.y );
-		}
-		else if( mode.fullscreen == FullscreenMode_Fullscreen ) {
-			glfwWindowHint( GLFW_REFRESH_RATE, mode.video_mode.frequency );
-			GLFWmonitor * monitor = GetMonitorByIdx( mode.monitor );
-			window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, monitor, NULL );
-		}
-
-		if( window != NULL )
-			break;
+	if( is_public_build ) {
+		glfwWindowHint( GLFW_CONTEXT_NO_ERROR, GLFW_TRUE );
+	}
+	else {
+		glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
 	}
 
-	if( window == NULL ) {
-		Fatal( "glfwCreateWindow" );
+	mode = CompleteWindowMode( mode );
+
+	if( mode.fullscreen == FullscreenMode_Windowed ) {
+		window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, NULL, NULL );
+		glfwSetWindowPos( window, mode.x, mode.y );
+	}
+	else if( mode.fullscreen == FullscreenMode_Borderless ) {
+		glfwWindowHint( GLFW_DECORATED, GLFW_FALSE );
+		window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, NULL, NULL );
+		glfwSetWindowPos( window, mode.x, mode.y );
+	}
+	else if( mode.fullscreen == FullscreenMode_Fullscreen ) {
+		glfwWindowHint( GLFW_REFRESH_RATE, mode.video_mode.frequency );
+		GLFWmonitor * monitor = GetMonitorByIdx( mode.monitor );
+		window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, monitor, NULL );
 	}
 
 	glfwGetFramebufferSize( window, &framebuffer_width, &framebuffer_height );

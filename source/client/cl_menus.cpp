@@ -808,19 +808,6 @@ static void MainMenu() {
 
 	ImGui::Separator();
 
-	if( !GLAD_GL_VERSION_4_6 ) {
-		ImGui::Text( "%s", temp(
-			"Diesel news 14th August 2021:\n"
-			"    {}We're thinking about bumping the game's required OpenGL version. Your GPU supports up to {}GL {}.{}{}.\n"
-			"    Please let us know on discord so we don't break your shit!",
-			ImGuiColorToken( 255, 0, 0, 255 ),
-			ImGuiColorToken( 255, 255, 0, 255 ),
-			GLVersion.major, GLVersion.minor,
-			ImGuiColorToken( 255, 0, 0, 255 ) ) );
-	}
-
-	ImGui::Separator();
-
 	switch( mainmenu_state ) {
 		case MainMenuState_ServerBrowser: ServerBrowser(); break;
 		case MainMenuState_DemoBrowser: DemoBrowser(); break;

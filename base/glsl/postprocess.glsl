@@ -273,9 +273,8 @@ void main() {
 
 	vec3 color = glitch( uv, glitch_amount );
 	color = crtEffect( color, uv, crt_amount );
-	color = LinearTosRGB( color );
 	if( all( lessThanEqual( abs( uv - 0.5 ), vec2( 0.5 ) ) ) ) {
-		color = brightnessContrast( color, u_Brightness, u_Contrast );
+		color = sRGBToLinear( brightnessContrast( LinearTosRGB( color ), u_Brightness, u_Contrast ) );
 	}
 	f_Albedo = vec4( color, 1.0 );
 }

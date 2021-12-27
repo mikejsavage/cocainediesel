@@ -69,7 +69,7 @@ void main() {
 
   color = VoidFog( color, gl_FragCoord.xy );
 
-  f_Albedo = LinearTosRGB( color + Dither() );
+  f_Albedo = color + Dither();
 }
 
 #endif

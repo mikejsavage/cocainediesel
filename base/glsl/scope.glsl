@@ -30,7 +30,7 @@ void main() {
 	float vignette_frac = smoothstep( 0.375, 0.95, radial_frac );
 	vec4 color = mix( crosshair, vignette_color, vignette_frac );
 
-	f_Albedo = LinearTosRGB( color );
+	f_Albedo = color;
 }
 
 #endif

@@ -839,10 +839,8 @@ static void CL_WriteConfiguration() {
 
 	DynamicString config( &temp );
 
-	config += "// key bindings\r\n";
 	Key_WriteBindings( &config );
-
-	config += "\r\n// variables\r\n";
+	config += "\r\n";
 	Cvar_WriteVariables( &config );
 
 	DynamicString path( &temp, "{}/base/config.cfg", HomeDirPath() );

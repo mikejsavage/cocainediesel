@@ -83,7 +83,7 @@ struct UBO {
 	u32 bytes_used;
 };
 
-static UBO ubos[ 64 ]; // 4MB of uniform space
+static UBO ubos[ 16 ]; // 1MB of uniform space
 static u32 ubo_offset_alignment;
 
 static float max_anisotropic_filtering;

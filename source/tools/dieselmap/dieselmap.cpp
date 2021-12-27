@@ -13,9 +13,8 @@
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
 
-void ShowErrorAndAbort( const char * msg, const char * file, int line ) {
-	printf( "%s\n", msg );
-	abort();
+void ShowErrorMessage( const char * msg, const char * file, int line ) {
+	printf( "%s (%s:%d)\n", msg, file, line );
 }
 
 enum BSPLump {

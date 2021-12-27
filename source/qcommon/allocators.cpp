@@ -81,7 +81,7 @@ struct AllocationTracker {
 		}
 
 		if( leaks > 0 ) {
-			ShowErrorAndAbort( msg.c_str(), __FILE__, __LINE__ );
+			Fatal( "%s", msg.c_str() );
 		}
 
 		DeleteMutex( mutex );

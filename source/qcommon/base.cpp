@@ -17,7 +17,8 @@ void FatalImpl( const char * file, int line, const char * format, ... ) {
 	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
-	ShowErrorAndAbort( msg, file, line );
+	ShowErrorMessage( msg, file, line );
+	abort();
 }
 
 void FatalErrno( const char * msg ) {

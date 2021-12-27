@@ -518,7 +518,7 @@ NON-PORTABLE SYSTEM SERVICES
 */
 
 void Sys_Init();
-void ShowErrorAndAbort( const char * msg, const char * file, int line );
+void ShowErrorMessage( const char * msg, const char * file, int line );
 
 int64_t Sys_Milliseconds();
 uint64_t Sys_Microseconds();

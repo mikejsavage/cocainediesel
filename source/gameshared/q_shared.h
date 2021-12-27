@@ -197,10 +197,3 @@ enum sv_client_state_t {
 	CS_CONNECTED,       // has been assigned to a client_t, but not in game yet
 	CS_SPAWNED          // client is fully in game
 };
-
-enum keydest_t {
-	key_game,
-	key_console,
-	key_message,
-	key_menu,
-};

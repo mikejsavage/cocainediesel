@@ -100,6 +100,13 @@ of server connections
 ==================================================================
 */
 
+enum keydest_t {
+	key_game,
+	key_console,
+	key_message,
+	key_menu,
+};
+
 struct cl_demo_t {
 	char *name;
 

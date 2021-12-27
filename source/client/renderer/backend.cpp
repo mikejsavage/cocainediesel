@@ -1223,76 +1223,80 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	GLenum internal_format, channels, type;
 	TextureFormatToGL( config.format, &internal_format, &channels, &type );
 
-	if( msaa_samples == 0 ) {
-		glTexStorage2D( GL_TEXTURE_2D, config.num_mipmaps, internal_format, config.width, config.height );
+	if( msaa_samples != 0 ) {
+		glTexStorage2DMultisample( texture.texture, msaa_samples,
+			internal_format, config.width, config.height, GL_TRUE );
+		return texture;
+	}
 
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
+	glTexStorage2D( GL_TEXTURE_2D, config.num_mipmaps, internal_format, config.width, config.height );
 
-		GLenum min_filter = GL_NONE;
-		GLenum mag_filter = GL_NONE;
-		TextureFilterToGL( config.filter, &min_filter, &mag_filter );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter );
-		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
-		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
 
-		if( config.wrap == TextureWrap_Border ) {
-			glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, ( GLfloat * ) &config.border_color );
-		}
+	GLenum min_filter = GL_NONE;
+	GLenum mag_filter = GL_NONE;
+	TextureFilterToGL( config.filter, &min_filter, &mag_filter );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
+	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
 
-		if( !CompressedTextureFormat( config.format ) ) {
-			assert( config.num_mipmaps == 1 );
+	if( config.wrap == TextureWrap_Border ) {
+		glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, ( GLfloat * ) &config.border_color );
+	}
 
-			if( channels == GL_RED ) {
-				if( config.format == TextureFormat_A_U8 ) {
-					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
-				}
-				else {
-					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
-					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
-					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
-					glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ONE );
-				}
-			}
-			else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
-			}
+	if( !CompressedTextureFormat( config.format ) ) {
+		assert( config.num_mipmaps == 1 );
 
-			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0,
-				config.width, config.height, channels, type, config.data );
-		}
-		else {
-			if( config.format == TextureFormat_BC4 ) {
+		if( channels == GL_RED ) {
+			if( config.format == TextureFormat_A_U8 ) {
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ONE );
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_ONE );
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_ONE );
 				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
 			}
-
-			const char * cursor = ( const char * ) config.data;
-			for( u32 i = 0; i < config.num_mipmaps; i++ ) {
-				u32 w = config.width >> i;
-				u32 h = config.height >> i;
-				u32 size = ( BitsPerPixel( config.format ) * w * h ) / 8;
-				assert( size < S32_MAX );
-
-				glCompressedTexSubImage2D( GL_TEXTURE_2D, i, 0, 0,
-					w, h, internal_format, size, cursor );
-
-				cursor += size;
+			else {
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
+				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ONE );
 			}
+		}
+		else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
+		}
+
+		if( config.data != NULL ) {
+			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0,
+				config.width, config.height, channels, type, config.data );
 		}
 	}
 	else {
-		glTexImage2DMultisample( GL_TEXTURE_2D_MULTISAMPLE, msaa_samples,
-			internal_format, config.width, config.height, GL_TRUE );
+		assert( config.data != NULL );
+
+		if( config.format == TextureFormat_BC4 ) {
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ONE );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_ONE );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_ONE );
+			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
+		}
+
+		const char * cursor = ( const char * ) config.data;
+		for( u32 i = 0; i < config.num_mipmaps; i++ ) {
+			u32 w = config.width >> i;
+			u32 h = config.height >> i;
+			u32 size = ( BitsPerPixel( config.format ) * w * h ) / 8;
+			assert( size < S32_MAX );
+
+			glCompressedTexSubImage2D( GL_TEXTURE_2D, i, 0, 0,
+				w, h, internal_format, size, cursor );
+
+			cursor += size;
+		}
 	}
 
 	return texture;

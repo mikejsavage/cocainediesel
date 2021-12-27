@@ -1358,8 +1358,10 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
 		}
 
-		glTexSubImage3D( GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0,
-			config.width, config.height, config.layers, channels, type, config.data );
+		if( config.data != NULL ) {
+			glTexSubImage3D( GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0,
+				config.width, config.height, config.layers, channels, type, config.data );
+		}
 	}
 	else {
 		const char * cursor = ( const char * ) config.data;

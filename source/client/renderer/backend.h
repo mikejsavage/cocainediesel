@@ -131,6 +131,11 @@ struct PipelineState {
 		TextureArray ta;
 	};
 
+	struct GPUBufferBinding {
+		u64 name_hash;
+		GPUBuffer buffer;
+	};
+
 	struct TextureBufferBinding {
 		u64 name_hash;
 		TextureBuffer tb;
@@ -142,12 +147,14 @@ struct PipelineState {
 
 	UniformBinding uniforms[ ARRAY_COUNT( &Shader::uniforms ) ];
 	TextureBinding textures[ ARRAY_COUNT( &Shader::textures ) ];
-	TextureBufferBinding texture_buffers[ ARRAY_COUNT( &Shader::texture_buffers ) ];
 	TextureArrayBinding texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ];
+	GPUBufferBinding buffers[ ARRAY_COUNT( &Shader::buffers ) ];
+	TextureBufferBinding texture_buffers[ ARRAY_COUNT( &Shader::texture_buffers ) ];
 	size_t num_uniforms = 0;
 	size_t num_textures = 0;
-	size_t num_texture_buffers = 0;
 	size_t num_texture_arrays = 0;
+	size_t num_buffers = 0;
+	size_t num_texture_buffers = 0;
 
 	u8 pass = U8_MAX;
 	const Shader * shader = NULL;
@@ -186,19 +193,6 @@ struct PipelineState {
 		num_textures++;
 	}
 
-	void set_texture_buffer( StringHash name, TextureBuffer tb ) {
-		for( size_t i = 0; i < num_texture_buffers; i++ ) {
-			if( texture_buffers[ i ].name_hash == name.hash ) {
-				texture_buffers[ i ].tb = tb;
-				return;
-			}
-		}
-
-		texture_buffers[ num_texture_buffers ].name_hash = name.hash;
-		texture_buffers[ num_texture_buffers ].tb = tb;
-		num_texture_buffers++;
-	}
-
 	void set_texture_array( StringHash name, TextureArray ta ) {
 		for( size_t i = 0; i < num_texture_arrays; i++ ) {
 			if( texture_arrays[ i ].name_hash == name.hash ) {
@@ -210,6 +204,32 @@ struct PipelineState {
 		texture_arrays[ num_texture_arrays ].name_hash = name.hash;
 		texture_arrays[ num_texture_arrays ].ta = ta;
 		num_texture_arrays++;
+	}
+
+	void set_buffer( StringHash name, GPUBuffer buffer ) {
+		for( size_t i = 0; i < num_buffers; i++ ) {
+			if( buffers[ i ].name_hash == name.hash ) {
+				buffers[ i ].buffer = buffer;
+				return;
+			}
+		}
+
+		buffers[ num_buffers ].name_hash = name.hash;
+		buffers[ num_buffers ].buffer = buffer;
+		num_buffers++;
+	}
+
+	void set_texture_buffer( StringHash name, TextureBuffer tb ) {
+		for( size_t i = 0; i < num_texture_buffers; i++ ) {
+			if( texture_buffers[ i ].name_hash == name.hash ) {
+				texture_buffers[ i ].tb = tb;
+				return;
+			}
+		}
+
+		texture_buffers[ num_texture_buffers ].name_hash = name.hash;
+		texture_buffers[ num_texture_buffers ].tb = tb;
+		num_texture_buffers++;
 	}
 };
 
@@ -342,6 +362,7 @@ UniformBlock UploadUniforms( const void * data, size_t size );
 GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name = NULL );
 void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 len, u32 offset = 0 );
 void DeleteGPUBuffer( GPUBuffer buf );
+void DeferDeleteGPUBuffer( GPUBuffer buf );
 
 template< typename T >
 GPUBuffer NewGPUBuffer( Span< T > data, const char * name = NULL ) {

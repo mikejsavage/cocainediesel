@@ -66,7 +66,9 @@ struct DrawCall {
 
 static NonRAIIDynamicArray< RenderPass > render_passes;
 static NonRAIIDynamicArray< DrawCall > draw_calls;
+
 static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
+static NonRAIIDynamicArray< GPUBuffer > deferred_buffer_deletes;
 static NonRAIIDynamicArray< TextureBuffer > deferred_tb_deletes;
 
 #if TRACY_ENABLE
@@ -96,6 +98,7 @@ static u32 prev_viewport_height;
 
 static struct {
 	UniformBlock uniforms[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
+	GPUBuffer buffers[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
 	const Texture * textures[ ARRAY_COUNT( &Shader::textures ) ] = { };
 	TextureBuffer texture_buffers[ ARRAY_COUNT( &Shader::texture_buffers ) ] = { };
 	TextureArray texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ] = { };
@@ -479,6 +482,12 @@ void InitRenderBackend() {
 		if( any_missing ) {
 			Fatal( "%s", missing_extensions.c_str() );
 		}
+
+		GLint vert_buffers;
+		glGetIntegerv( GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &vert_buffers );
+		if( vert_buffers >= 0 && size_t( vert_buffers ) < ARRAY_COUNT( &Shader::buffers ) ) {
+			Fatal( "GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS too small" );
+		}
 	}
 
 	{
@@ -498,7 +507,9 @@ void InitRenderBackend() {
 
 	render_passes.init( sys_allocator );
 	draw_calls.init( sys_allocator );
+
 	deferred_mesh_deletes.init( sys_allocator );
+	deferred_buffer_deletes.init( sys_allocator );
 	deferred_tb_deletes.init( sys_allocator );
 
 	glEnable( GL_DEPTH_TEST );
@@ -546,6 +557,7 @@ void ShutdownRenderBackend() {
 	draw_calls.shutdown();
 
 	deferred_mesh_deletes.shutdown();
+	deferred_buffer_deletes.shutdown();
 	deferred_tb_deletes.shutdown();
 }
 
@@ -557,6 +569,7 @@ void RenderBackendBeginFrame() {
 	draw_calls.clear();
 
 	deferred_mesh_deletes.clear();
+	deferred_buffer_deletes.clear();
 	deferred_tb_deletes.clear();
 
 	num_vertices_this_frame = 0;
@@ -636,6 +649,32 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		if( !found ) {
 			glBindTextureUnit( i, 0 );
 			prev_bindings.textures[ i ] = { };
+		}
+	}
+
+	// buffers
+	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->buffers ); i++ ) {
+		u64 name_hash = pipeline.shader->buffers[ i ];
+		GPUBuffer prev_buffer = prev_bindings.buffers[ i ];
+
+		bool should_unbind = prev_buffer.buffer != 0;
+		if( name_hash != 0 ) {
+			for( size_t j = 0; j < pipeline.num_buffers; j++ ) {
+				if( pipeline.buffers[ j ].name_hash == name_hash ) {
+					GPUBuffer buffer = pipeline.buffers[ j ].buffer;
+					if( buffer.buffer != prev_buffer.buffer ) {
+						glBindBufferBase( GL_SHADER_STORAGE_BUFFER, i, buffer.buffer );
+						prev_bindings.buffers[ i ] = buffer;
+					}
+					should_unbind = false;
+					break;
+				}
+			}
+		}
+
+		if( should_unbind ) {
+			glBindBufferBase( GL_SHADER_STORAGE_BUFFER, i, 0 );
+			prev_bindings.buffers[ i ] = { };
 		}
 	}
 
@@ -1081,6 +1120,12 @@ void RenderBackendSubmitFrame() {
 		}
 		deferred_mesh_deletes.clear();
 
+		for( const GPUBuffer & buffer : deferred_buffer_deletes ) {
+			DeleteGPUBuffer( buffer );
+		}
+
+		deferred_buffer_deletes.clear();
+
 		for( const TextureBuffer & tb : deferred_tb_deletes ) {
 			DeleteTextureBuffer( tb );
 		}
@@ -1226,6 +1271,10 @@ void DeleteGPUBuffer( GPUBuffer buf ) {
 	if( buf.buffer == 0 )
 		return;
 	glDeleteBuffers( 1, &buf.buffer );
+}
+
+void DeferDeleteGPUBuffer( GPUBuffer buf ) {
+	deferred_buffer_deletes.add( buf );
 }
 
 static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
@@ -1708,13 +1757,22 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 		}
 	}
 
-	glGetProgramiv( program, GL_ACTIVE_UNIFORM_BLOCKS, &count );
+	glGetProgramInterfaceiv( program, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &count );
 	for( GLint i = 0; i < count; i++ ) {
 		char name[ 128 ];
 		GLint len;
-		glGetActiveUniformBlockName( program, i, sizeof( name ), &len, name );
+		glGetProgramResourceName( program, GL_UNIFORM_BLOCK, i, sizeof( name ), &len, name );
 		glUniformBlockBinding( program, i, i );
 		shader->uniforms[ i ] = Hash64( name, len );
+	}
+
+	glGetProgramInterfaceiv( program, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &count );
+	for( GLint i = 0; i < count; i++ ) {
+		char name[ 128 ];
+		GLint len;
+		glGetProgramResourceName( program, GL_SHADER_STORAGE_BLOCK, i, sizeof( name ), &len, name );
+		glShaderStorageBlockBinding( program, i, i );
+		shader->buffers[ i ] = Hash64( name, len );
 	}
 
 	return true;

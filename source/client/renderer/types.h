@@ -24,8 +24,9 @@ struct Shader {
 	u32 program;
 	u64 uniforms[ 8 ];
 	u64 textures[ 4 ];
-	u64 texture_buffers[ 8 ];
 	u64 texture_arrays[ 2 ];
+	u64 texture_buffers[ 8 ];
+	u64 buffers[ 8 ];
 };
 
 struct GPUBuffer {

@@ -25,7 +25,6 @@ static void BuildShaderSrcs( const char * path, const char * defines, DynamicArr
 		// TODO
 	}
 
-	u64 base_hash = Hash64( path );
 	srcs->add( "#line 1\n" );
 	lengths->add( -1 );
 

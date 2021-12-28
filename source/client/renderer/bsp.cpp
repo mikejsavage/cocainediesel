@@ -509,7 +509,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 		MeshConfig mesh_config;
 		mesh_config.name = temp( "{} - {}", filename, model_idx );
 		mesh_config.ccw_winding = false;
-		mesh_config.unified_buffer = NewVertexBuffer( vertices.ptr(), vertices.num_bytes() );
+		mesh_config.unified_buffer = NewGPUBuffer( vertices.ptr(), vertices.num_bytes(), temp( "{} - {} vertices", filename, model_idx ) );
 		mesh_config.stride = sizeof( vertices[ 0 ] );
 		mesh_config.positions_offset = offsetof( BSPModelVertex, position );
 		mesh_config.normals_offset = offsetof( BSPModelVertex, normal );
@@ -521,10 +521,10 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 		// 	for( u32 i = 0; i < indices.size(); i++ ) {
 		// 		indices_u16.add( indices[ i ] );
 		// 	}
-		// 	mesh_config.indices = NewIndexBuffer( indices.ptr(), indices.num_bytes() );
+		// 	mesh_config.indices = NewGPUBuffer( indices.ptr(), indices.num_bytes(), temp( "{} - {} indices", filename, model_idx ) );
 		// }
 		// else {
-			mesh_config.indices = NewIndexBuffer( indices.ptr(), indices.num_bytes() );
+			mesh_config.indices = NewGPUBuffer( indices.ptr(), indices.num_bytes(), temp( "{} - {} indices", filename, model_idx ) );
 			mesh_config.indices_format = IndexFormat_U32;
 		// }
 

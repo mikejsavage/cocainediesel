@@ -81,7 +81,7 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 
 		if( attr.type == cgltf_attribute_type_position ) {
 			mesh_config.num_vertices = attr.data->count;
-			mesh_config.positions = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.positions = NewGPUBuffer( AccessorToSpan( attr.data ) );
 
 			Vec3 min, max;
 			for( int j = 0; j < 3; j++ ) {
@@ -94,31 +94,31 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 		}
 
 		if( attr.type == cgltf_attribute_type_normal ) {
-			mesh_config.normals = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.normals = NewGPUBuffer( AccessorToSpan( attr.data ) );
 		}
 
 		if( attr.type == cgltf_attribute_type_texcoord ) {
-			mesh_config.tex_coords = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.tex_coords = NewGPUBuffer( AccessorToSpan( attr.data ) );
 			mesh_config.tex_coords_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 
 		if( attr.type == cgltf_attribute_type_color ) {
-			mesh_config.colors = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.colors = NewGPUBuffer( AccessorToSpan( attr.data ) );
 			mesh_config.colors_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 
 		if( attr.type == cgltf_attribute_type_joints ) {
-			mesh_config.joints = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.joints = NewGPUBuffer( AccessorToSpan( attr.data ) );
 			mesh_config.joints_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 
 		if( attr.type == cgltf_attribute_type_weights ) {
-			mesh_config.weights = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.weights = NewGPUBuffer( AccessorToSpan( attr.data ) );
 			mesh_config.weights_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 	}
 
-	mesh_config.indices = NewIndexBuffer( AccessorToSpan( prim.indices ) );
+	mesh_config.indices = NewGPUBuffer( AccessorToSpan( prim.indices ) );
 	mesh_config.indices_format = prim.indices->component_type == cgltf_component_type_r_16u ? IndexFormat_U16 : IndexFormat_U32;
 	mesh_config.num_vertices = prim.indices->count;
 	mesh_config.ccw_winding = true;

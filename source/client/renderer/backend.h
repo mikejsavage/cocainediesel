@@ -223,17 +223,17 @@ struct MeshConfig {
 		weights = { };
 	}
 
-	VertexBuffer unified_buffer = { };
+	GPUBuffer unified_buffer = { };
 	u32 stride = 0;
 
 	union {
 		struct {
-			VertexBuffer positions;
-			VertexBuffer normals;
-			VertexBuffer tex_coords;
-			VertexBuffer colors;
-			VertexBuffer joints;
-			VertexBuffer weights;
+			GPUBuffer positions;
+			GPUBuffer normals;
+			GPUBuffer tex_coords;
+			GPUBuffer colors;
+			GPUBuffer joints;
+			GPUBuffer weights;
 		};
 		struct {
 			u32 positions_offset;
@@ -255,7 +255,7 @@ struct MeshConfig {
 	VertexFormat weights_format = VertexFormat_Floatx4;
 	IndexFormat indices_format = IndexFormat_U16;
 
-	IndexBuffer indices = { };
+	GPUBuffer indices = { };
 	u32 num_vertices = 0;
 
 	PrimitiveType primitive_type = PrimitiveType_Triangles;
@@ -339,26 +339,35 @@ void AddResolveMSAAPass( const char * name, const tracy::SourceLocationData * tr
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 
-VertexBuffer NewVertexBuffer( const void * data, u32 len );
-VertexBuffer NewVertexBuffer( u32 len );
-void WriteVertexBuffer( VertexBuffer vb, const void * data, u32 size, u32 offset = 0 );
-void DeleteVertexBuffer( VertexBuffer vb );
+GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name = NULL );
+void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 len, u32 offset = 0 );
+void DeleteGPUBuffer( GPUBuffer buf );
 
 template< typename T >
-VertexBuffer NewVertexBuffer( Span< T > data ) {
+GPUBuffer NewGPUBuffer( Span< T > data, const char * name = NULL ) {
+	return NewGPUBuffer( data.ptr, data.num_bytes(), name );
+}
+
+GPUBuffer NewVertexBuffer( const void * data, u32 len );
+GPUBuffer NewVertexBuffer( u32 len );
+void WriteVertexBuffer( GPUBuffer vb, const void * data, u32 size, u32 offset = 0 );
+void DeleteVertexBuffer( GPUBuffer vb );
+
+template< typename T >
+GPUBuffer NewVertexBuffer( Span< T > data ) {
 	return NewVertexBuffer( data.ptr, data.num_bytes() );
 }
 
-VertexBuffer NewParticleVertexBuffer( u32 n );
+GPUBuffer NewParticleVertexBuffer( u32 n );
 
-IndexBuffer NewIndexBuffer( const void * data, u32 len );
-IndexBuffer NewIndexBuffer( u32 len );
-void WriteIndexBuffer( IndexBuffer ib, const void * data, u32 size, u32 offset = 0 );
-void ReadVertexBuffer( VertexBuffer vb, void * data, u32 len, u32 offset = 0 );
-void DeleteIndexBuffer( IndexBuffer ib );
+GPUBuffer NewIndexBuffer( const void * data, u32 len );
+GPUBuffer NewIndexBuffer( u32 len );
+void WriteIndexBuffer( GPUBuffer ib, const void * data, u32 size, u32 offset = 0 );
+void ReadVertexBuffer( GPUBuffer vb, void * data, u32 len, u32 offset = 0 );
+void DeleteIndexBuffer( GPUBuffer ib );
 
 template< typename T >
-IndexBuffer NewIndexBuffer( Span< T > data ) {
+GPUBuffer NewIndexBuffer( Span< T > data ) {
 	return NewIndexBuffer( data.ptr, data.num_bytes() );
 }
 
@@ -386,11 +395,11 @@ void DeleteMesh( const Mesh & mesh );
 void DeferDeleteMesh( const Mesh & mesh );
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0 );
-void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, VertexBuffer instance_data, u32 num_instances, InstanceType instance_type, u32 num_vertices_override = 0, u32 first_index = 0 );
-void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, float radius, u32 num_particles, float dt );
-void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, VertexBuffer vb_feedback, float radius, u32 num_particles, float dt );
-void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, BlendFunc blend_func, u32 num_particles );
-void DrawInstancedParticles( VertexBuffer vb, const Model * model, u32 num_particles );
+void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer instance_data, u32 num_instances, InstanceType instance_type, u32 num_vertices_override = 0, u32 first_index = 0 );
+void UpdateParticles( const Mesh & mesh, GPUBuffer vb_in, GPUBuffer vb_out, float radius, u32 num_particles, float dt );
+void UpdateParticlesFeedback( const Mesh & mesh, GPUBuffer vb_in, GPUBuffer vb_out, GPUBuffer vb_feedback, float radius, u32 num_particles, float dt );
+void DrawInstancedParticles( const Mesh & mesh, GPUBuffer vb, BlendFunc blend_func, u32 num_particles );
+void DrawInstancedParticles( GPUBuffer vb, const Model * model, u32 num_particles );
 
 void DownloadFramebuffer( void * buf );
 

@@ -28,13 +28,12 @@ struct Shader {
 	u64 texture_arrays[ 2 ];
 };
 
-struct VertexBuffer {
-	u32 vbo;
+struct GPUBuffer {
+	u32 buffer;
 };
 
-struct IndexBuffer {
-	u32 ebo;
-};
+using VertexBuffer = GPUBuffer;
+using IndexBuffer = GPUBuffer;
 
 struct TextureBuffer {
 	u32 tbo;
@@ -51,13 +50,13 @@ struct Mesh {
 	u32 num_vertices;
 	PrimitiveType primitive_type;
 	u32 vao;
-	VertexBuffer positions;
-	VertexBuffer normals;
-	VertexBuffer tex_coords;
-	VertexBuffer colors;
-	VertexBuffer joints;
-	VertexBuffer weights;
-	IndexBuffer indices;
+	GPUBuffer positions;
+	GPUBuffer normals;
+	GPUBuffer tex_coords;
+	GPUBuffer colors;
+	GPUBuffer joints;
+	GPUBuffer weights;
+	GPUBuffer indices;
 	IndexFormat indices_format;
 	bool ccw_winding;
 };

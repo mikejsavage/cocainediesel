@@ -1534,7 +1534,7 @@ static GLuint CompileShader( GLenum type, Span< const char * > srcs, Span< int >
 	int full_lens[ 64 ];
 	GLsizei n = 0;
 
-	full_srcs[ n ] = "#version 330\n";
+	full_srcs[ n ] = "#version 430\n";
 	full_lens[ n ] = -1;
 	n++;
 

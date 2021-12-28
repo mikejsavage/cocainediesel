@@ -324,8 +324,8 @@ struct FramebufferConfig {
 enum ClearColor { ClearColor_Dont, ClearColor_Do };
 enum ClearDepth { ClearDepth_Dont, ClearDepth_Do };
 
-void RenderBackendInit();
-void RenderBackendShutdown();
+void InitRenderBackend();
+void ShutdownRenderBackend();
 
 void RenderBackendBeginFrame();
 void RenderBackendSubmitFrame();

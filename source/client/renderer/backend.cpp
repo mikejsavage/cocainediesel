@@ -431,7 +431,7 @@ static void PlotVRAMUsage() {
 	}
 }
 
-void RenderBackendInit() {
+void InitRenderBackend() {
 	ZoneScoped;
 	TracyGpuContext;
 
@@ -492,7 +492,7 @@ void RenderBackendInit() {
 	prev_viewport_height = 0;
 }
 
-void RenderBackendShutdown() {
+void ShutdownRenderBackend() {
 	for( UBO ubo : ubos ) {
 		glDeleteBuffers( 1, &ubo.ubo );
 	}

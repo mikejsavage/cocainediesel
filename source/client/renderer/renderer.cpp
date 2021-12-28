@@ -103,7 +103,7 @@ static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 void InitRenderer() {
 	ZoneScoped;
 
-	RenderBackendInit();
+	InitRenderBackend();
 
 	r_samples = NewCvar( "r_samples", "0", CvarFlag_Archive );
 	r_shadow_quality = NewCvar( "r_shadow_quality", "1", CvarFlag_Archive );
@@ -192,7 +192,7 @@ void ShutdownRenderer() {
 
 	RemoveCommand( "screenshot" );
 
-	RenderBackendShutdown();
+	ShutdownRenderBackend();
 }
 
 static Mat4 OrthographicProjection( float left, float top, float right, float bottom, float near_plane, float far_plane ) {

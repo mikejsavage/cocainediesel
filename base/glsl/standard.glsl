@@ -93,7 +93,14 @@ uniform sampler2D u_DepthTexture;
 #endif
 
 #if APPLY_DECALS || APPLY_DLIGHTS
-uniform isamplerBuffer u_DynamicCount;
+struct DynamicTile {
+	uint num_decals;
+	uint num_dlights;
+};
+
+layout( std430 ) readonly buffer b_DynamicTiles {
+	DynamicTile dynamic_tiles[];
+};
 #endif
 
 #if APPLY_DECALS
@@ -146,11 +153,11 @@ void main() {
 	int tile_col = int( gl_FragCoord.x / tile_size );
 	int cols = int( u_ViewportSize.x + tile_size - 1 ) / int( tile_size );
 	int tile_index = tile_row * cols + tile_col;
-	ivec2 decal_dlight_count = texelFetch( u_DynamicCount, tile_index ).xy;
+	DynamicTile dynamic_tile = dynamic_tiles[ tile_index ];
 #endif
 
 #if APPLY_DECALS
-	applyDecals( decal_dlight_count.x, tile_index, diffuse, normal );
+	applyDecals( dynamic_tile.num_decals, tile_index, diffuse, normal );
 #endif
 
 #if SHADED
@@ -169,7 +176,7 @@ void main() {
 	shadowlight = shadowlight * 0.5 + 0.5;
 
 #if APPLY_DLIGHTS
-	applyDynamicLights( decal_dlight_count.y, tile_index, v_Position, normal, viewDir, lambertlight, specularlight );
+	applyDynamicLights( dynamic_tile.num_dlights, tile_index, v_Position, normal, viewDir, lambertlight, specularlight );
 #endif
 	lambertlight = lambertlight * 0.5 + 0.5;
 

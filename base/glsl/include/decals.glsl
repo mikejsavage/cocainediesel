@@ -1,5 +1,21 @@
-uniform isamplerBuffer u_DecalTiles;
-uniform samplerBuffer u_DecalData;
+struct DecalTile {
+	uint indices[ 50 ]; // TODO: 50 should be a define/const
+};
+
+layout( std430 ) readonly buffer b_DecalTiles {
+	DecalTile decal_tiles[];
+};
+
+struct Decal {
+	vec3 origin_normal;
+	float radius_angle;
+	vec4 color_uvwh_height;
+};
+
+layout( std430 ) readonly buffer b_Decals {
+	Decal decals[];
+};
+
 uniform sampler2DArray u_DecalAtlases;
 
 float ProjectedScale( vec3 p, vec3 o, vec3 d ) {
@@ -16,31 +32,27 @@ void OrthonormalBasis( vec3 v, out vec3 tangent, out vec3 bitangent ) {
 	bitangent = vec3( b, s + v.y * v.y * a, -v.y );
 }
 
-void applyDecals( int count, int tile_index, inout vec4 diffuse, inout vec3 normal ) {
+void applyDecals( uint count, int tile_index, inout vec4 diffuse, inout vec3 normal ) {
 	float accumulated_alpha = 1.0;
 	vec3 accumulated_color = vec3( 0.0 );
 	float accumulated_height = 0.0;
 
-	for( int i = 0; i < count; i++ ) {
+	for( uint i = 0; i < count; i++ ) {
 		if( accumulated_alpha < 0.001 ) {
 			accumulated_alpha = 0.0;
 			break;
 		}
 
-		int idx = tile_index * 50 + i;
-		int decal_index = texelFetch( u_DecalTiles, idx ).x * 2; // decal is 2 vec4's
+		Decal decal = decals[ decal_tiles[ tile_index ].indices[ i ] ];
 
-		vec4 data1 = texelFetch( u_DecalData, decal_index );
-		vec3 origin = floor( data1.xyz );
-		float radius = floor( data1.w );
-		vec3 decal_normal = ( fract( data1.xyz ) - 0.5 ) / 0.49;
-		float angle = fract( data1.w ) * M_PI * 2.0;
-
-		vec4 data2 = texelFetch( u_DecalData, decal_index + 1 );
-		vec4 decal_color = vec4( fract( floor( data2.yzw ) / 256.0 ), 1.0 );
-		float decal_height = floor( data2.y / 256.0 );
-		vec4 uvwh = vec4( data2.x, fract( data2.yzw ) );
-		float layer = floor( uvwh.x );
+		vec3 origin = floor( decal.origin_normal );
+		float radius = floor( decal.radius_angle );
+		vec3 decal_normal = ( fract( decal.origin_normal ) - 0.5 ) / 0.49;
+		float angle = fract( decal.radius_angle ) * M_PI * 2.0;
+		vec4 decal_color = vec4( fract( floor( decal.color_uvwh_height.yzw ) / 256.0 ), 1.0 );
+		float decal_height = floor( decal.color_uvwh_height.y / 256.0 );
+		vec4 uvwh = vec4( decal.color_uvwh_height.x, fract( decal.color_uvwh_height.yzw ) );
+		float layer = floor( decal.color_uvwh_height.x );
 
 		if( distance( origin, v_Position ) < radius ) {
 			vec3 basis_u;

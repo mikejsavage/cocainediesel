@@ -5,11 +5,11 @@
 #include "client/renderer/renderer.h"
 #include "qcommon/array.h"
 
-static TextureBuffer decal_tiles_buffer;
-static TextureBuffer dlight_tiles_buffer;
-static TextureBuffer dynamic_count;
-static TextureBuffer decals_buffer;
-static TextureBuffer dlights_buffer;
+static GPUBuffer decal_tiles_buffer;
+static GPUBuffer decals_buffer;
+static GPUBuffer dlight_tiles_buffer;
+static GPUBuffer dlights_buffer;
+static GPUBuffer dynamic_count;
 
 static u32 last_viewport_width, last_viewport_height;
 
@@ -79,8 +79,8 @@ static Span2D< DecalTile > gpu_decal_tiles;
 static Span2D< DynamicLightTile > gpu_dlight_tiles;
 
 struct DynamicCount {
-	u8 decal_count;
-	u8 dlight_count;
+	u32 decal_count;
+	u32 dlight_count;
 };
 
 static Span2D< DynamicCount > gpu_dynamic_counts;
@@ -92,22 +92,24 @@ void InitDecals() {
 	last_viewport_width = U32_MAX;
 	last_viewport_height = U32_MAX;
 
-	decals_buffer = NewTextureBuffer( TextureBufferFormat_Floatx4, MAX_DECALS * sizeof( Decal ) / sizeof( Vec4 ) );
-	dlights_buffer = NewTextureBuffer( TextureBufferFormat_Floatx4, MAX_DECALS * sizeof( DynamicLight ) / sizeof( Vec4 ) );
+	decals_buffer = NewGPUBuffer( NULL, sizeof( decals ), "Decals" );
+	dlights_buffer = NewGPUBuffer( NULL, sizeof( dlights ), "Dynamic lights" );
 }
 
 void ShutdownDecals() {
 	FREE( sys_allocator, gpu_decal_tiles.ptr );
 	gpu_decal_tiles.ptr = NULL;
-	DeferDeleteTextureBuffer( decal_tiles_buffer );
+	DeferDeleteGPUBuffer( decal_tiles_buffer );
+	DeferDeleteGPUBuffer( decals_buffer );
 
 	FREE( sys_allocator, gpu_dlight_tiles.ptr );
 	gpu_dlight_tiles.ptr = NULL;
-	DeferDeleteTextureBuffer( dlight_tiles_buffer );
+	DeferDeleteGPUBuffer( dlight_tiles_buffer );
+	DeferDeleteGPUBuffer( dlights_buffer );
 
 	FREE( sys_allocator, gpu_dynamic_counts.ptr );
 	gpu_dynamic_counts.ptr = NULL;
-	DeferDeleteTextureBuffer( dynamic_count );
+	DeferDeleteGPUBuffer( dynamic_count );
 }
 
 void DrawDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color, float height ) {
@@ -191,7 +193,6 @@ void AddPersistentDynamicLight( Vec3 origin, Vec4 color, float intensity, s64 du
 		return;
 
 	PersistentDynamicLight * dlight = &persistent_dlights[ num_persistent_dlights ];
-
 
 	dlight->dlight.origin_color = Floor( origin ) + color.xyz() * 0.9f;
 	dlight->dlight.radius = sqrtf( intensity / DLIGHT_CUTOFF );
@@ -303,15 +304,15 @@ void AllocateDecalBuffers() {
 
 		FREE( sys_allocator, gpu_decal_tiles.ptr );
 		gpu_decal_tiles = ALLOC_SPAN2D( sys_allocator, DecalTile, cols, rows );
-		decal_tiles_buffer = NewTextureBuffer( TextureBufferFormat_U32, rows * cols * MAX_DECALS_PER_TILE );
+		decal_tiles_buffer = NewGPUBuffer( NULL, gpu_decal_tiles.num_bytes() );
 
 		FREE( sys_allocator, gpu_dlight_tiles.ptr );
 		gpu_dlight_tiles = ALLOC_SPAN2D( sys_allocator, DynamicLightTile, cols, rows );
-		dlight_tiles_buffer = NewTextureBuffer( TextureBufferFormat_U32, rows * cols * MAX_DLIGHTS_PER_TILE );
+		dlight_tiles_buffer = NewGPUBuffer( NULL, gpu_dlight_tiles.num_bytes() );
 
 		FREE( sys_allocator, gpu_dynamic_counts.ptr );
 		gpu_dynamic_counts = ALLOC_SPAN2D( sys_allocator, DynamicCount, cols, rows );
-		dynamic_count = NewTextureBuffer( TextureBufferFormat_U8x2, rows * cols );
+		dynamic_count = NewGPUBuffer( NULL, gpu_dynamic_counts.num_bytes() );
 
 		last_viewport_width = frame_static.viewport_width;
 		last_viewport_height = frame_static.viewport_height;
@@ -477,12 +478,12 @@ void UploadDecalBuffers() {
 	}
 
 	{
-		ZoneScopedN( "Upload TBOs" );
-		WriteTextureBuffer( decal_tiles_buffer, gpu_decal_tiles.ptr, gpu_decal_tiles.num_bytes() );
-		WriteTextureBuffer( dlight_tiles_buffer, gpu_dlight_tiles.ptr, gpu_dlight_tiles.num_bytes() );
-		WriteTextureBuffer( dynamic_count, gpu_dynamic_counts.ptr, gpu_dynamic_counts.num_bytes() );
-		WriteTextureBuffer( decals_buffer, decals, num_decals * sizeof( Decal ) );
-		WriteTextureBuffer( dlights_buffer, dlights, num_dlights * sizeof( DynamicLight ) );
+		ZoneScopedN( "Upload decals/dlights" );
+		WriteGPUBuffer( decal_tiles_buffer, gpu_decal_tiles.ptr, gpu_decal_tiles.num_bytes() );
+		WriteGPUBuffer( decals_buffer, decals, num_decals * sizeof( Decal ) );
+		WriteGPUBuffer( dlight_tiles_buffer, gpu_dlight_tiles.ptr, gpu_dlight_tiles.num_bytes() );
+		WriteGPUBuffer( dlights_buffer, dlights, num_dlights * sizeof( DynamicLight ) );
+		WriteGPUBuffer( dynamic_count, gpu_dynamic_counts.ptr, gpu_dynamic_counts.num_bytes() );
 	}
 
 	num_decals = 0;
@@ -490,11 +491,11 @@ void UploadDecalBuffers() {
 }
 
 void AddDynamicsToPipeline( PipelineState * pipeline ) {
-	pipeline->set_texture_buffer( "u_DecalTiles", decal_tiles_buffer );
-	pipeline->set_texture_buffer( "u_DecalData", decals_buffer );
+	pipeline->set_buffer( "b_DecalTiles", decal_tiles_buffer );
+	pipeline->set_buffer( "b_Decals", decals_buffer );
 
-	pipeline->set_texture_buffer( "u_DynamicLightTiles", dlight_tiles_buffer );
-	pipeline->set_texture_buffer( "u_DynamicLightData", dlights_buffer );
+	pipeline->set_buffer( "b_DynamicLightTiles", dlight_tiles_buffer );
+	pipeline->set_buffer( "b_DynamicLights", dlights_buffer );
 
-	pipeline->set_texture_buffer( "u_DynamicCount", dynamic_count );
+	pipeline->set_buffer( "b_DynamicTiles", dynamic_count );
 }

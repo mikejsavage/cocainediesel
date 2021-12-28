@@ -69,7 +69,6 @@ static NonRAIIDynamicArray< DrawCall > draw_calls;
 
 static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
 static NonRAIIDynamicArray< GPUBuffer > deferred_buffer_deletes;
-static NonRAIIDynamicArray< TextureBuffer > deferred_tb_deletes;
 
 #if TRACY_ENABLE
 alignas( tracy::GpuCtxScope ) static char renderpass_zone_memory[ sizeof( tracy::GpuCtxScope ) ];
@@ -100,7 +99,6 @@ static struct {
 	UniformBlock uniforms[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
 	GPUBuffer buffers[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
 	const Texture * textures[ ARRAY_COUNT( &Shader::textures ) ] = { };
-	TextureBuffer texture_buffers[ ARRAY_COUNT( &Shader::texture_buffers ) ] = { };
 	TextureArray texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ] = { };
 } prev_bindings;
 
@@ -333,41 +331,6 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 	}
 }
 
-static void TextureBufferFormatToGL( TextureBufferFormat format, GLenum * internal_format, u32 * element_size ) {
-	switch( format ) {
-		case TextureBufferFormat_U8x2:
-			*internal_format = GL_RG8UI;
-			*element_size = 2 * sizeof( u8 );
-			return;
-		case TextureBufferFormat_U8x4:
-			*internal_format = GL_RGBA8;
-			*element_size = 4 * sizeof( u8 );
-			return;
-		case TextureBufferFormat_U32:
-			*internal_format = GL_R32UI;
-			*element_size = sizeof( u32 );
-			return;
-		case TextureBufferFormat_U32x2:
-			*internal_format = GL_RG32UI;
-			*element_size = 2 * sizeof( u32 );
-			return;
-		case TextureBufferFormat_S32x2:
-			*internal_format = GL_RG32I;
-			*element_size = 2 * sizeof( s32 );
-			return;
-		case TextureBufferFormat_S32x3:
-			*internal_format = GL_RGB32I;
-			*element_size = 3 * sizeof( s32 );
-			return;
-		case TextureBufferFormat_Floatx4:
-			*internal_format = GL_RGBA32F;
-			*element_size = 4 * sizeof( float );
-			return;
-	}
-
-	assert( false );
-}
-
 static const char * DebugTypeString( GLenum type ) {
 	switch( type ) {
 		case GL_DEBUG_TYPE_ERROR:
@@ -510,7 +473,6 @@ void InitRenderBackend() {
 
 	deferred_mesh_deletes.init( sys_allocator );
 	deferred_buffer_deletes.init( sys_allocator );
-	deferred_tb_deletes.init( sys_allocator );
 
 	glEnable( GL_DEPTH_TEST );
 	glDepthFunc( GL_LESS );
@@ -558,7 +520,6 @@ void ShutdownRenderBackend() {
 
 	deferred_mesh_deletes.shutdown();
 	deferred_buffer_deletes.shutdown();
-	deferred_tb_deletes.shutdown();
 }
 
 void RenderBackendBeginFrame() {
@@ -570,7 +531,6 @@ void RenderBackendBeginFrame() {
 
 	deferred_mesh_deletes.clear();
 	deferred_buffer_deletes.clear();
-	deferred_tb_deletes.clear();
 
 	num_vertices_this_frame = 0;
 
@@ -678,37 +638,10 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		}
 	}
 
-	// texture buffers
-	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->texture_buffers ); i++ ) {
-		u64 name_hash = pipeline.shader->texture_buffers[ i ];
-		GLenum tex_unit = ARRAY_COUNT( pipeline.shader->textures ) + i;
-		TextureBuffer prev_texture = prev_bindings.texture_buffers[ i ];
-
-		bool found = prev_texture.texture == 0;
-		if( name_hash != 0 ) {
-			for( size_t j = 0; j < pipeline.num_texture_buffers; j++ ) {
-				if( pipeline.texture_buffers[ j ].name_hash == name_hash ) {
-					TextureBuffer texture = pipeline.texture_buffers[ j ].tb;
-					if( texture.texture != prev_texture.texture ) {
-						glBindTextureUnit( tex_unit, texture.texture );
-						prev_bindings.texture_buffers[ i ] = texture;
-					}
-					found = true;
-					break;
-				}
-			}
-		}
-
-		if( !found ) {
-			glBindTextureUnit( tex_unit, 0 );
-			prev_bindings.texture_buffers[ i ] = { };
-		}
-	}
-
 	// texture arrays
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->texture_arrays ); i++ ) {
 		u64 name_hash = pipeline.shader->texture_arrays[ i ];
-		GLenum tex_unit = ARRAY_COUNT( pipeline.shader->textures ) + ARRAY_COUNT( pipeline.shader->texture_buffers ) + i;
+		GLenum tex_unit = ARRAY_COUNT( pipeline.shader->textures ) + i;
 		TextureArray prev_texture = prev_bindings.texture_arrays[ i ];
 
 		bool found = prev_texture.texture == 0;
@@ -1125,11 +1058,6 @@ void RenderBackendSubmitFrame() {
 		}
 
 		deferred_buffer_deletes.clear();
-
-		for( const TextureBuffer & tb : deferred_tb_deletes ) {
-			DeleteTextureBuffer( tb );
-		}
-		deferred_tb_deletes.clear();
 	}
 
 	u32 ubo_bytes_used = 0;
@@ -1216,38 +1144,6 @@ void WriteIndexBuffer( IndexBuffer ib, const void * data, u32 len, u32 offset ) 
 
 void DeleteIndexBuffer( IndexBuffer ib ) {
 	DeleteGPUBuffer( ib );
-}
-
-TextureBuffer NewTextureBuffer( TextureBufferFormat format, u32 len ) {
-	TextureBuffer tb;
-	glGenBuffers( 1, &tb.tbo );
-	glGenTextures( 1, &tb.texture );
-
-	glBindBuffer( GL_TEXTURE_BUFFER, tb.tbo );
-	glBindTexture( GL_TEXTURE_BUFFER, tb.texture );
-
-	GLenum internal_format;
-	u32 element_size;
-	TextureBufferFormatToGL( format, &internal_format, &element_size );
-	glTexBuffer( GL_TEXTURE_BUFFER, internal_format, tb.tbo );
-
-	glBufferData( GL_TEXTURE_BUFFER, len * element_size, NULL, GL_STREAM_DRAW );
-
-	return tb;
-}
-
-void WriteTextureBuffer( TextureBuffer tb, const void * data, u32 len ) {
-	glBindBuffer( GL_TEXTURE_BUFFER, tb.tbo );
-	glBufferSubData( GL_TEXTURE_BUFFER, 0, len, data );
-}
-
-void DeleteTextureBuffer( TextureBuffer tb ) {
-	glDeleteBuffers( 1, &tb.tbo );
-	glDeleteTextures( 1, &tb.texture );
-}
-
-void DeferDeleteTextureBuffer( TextureBuffer tb ) {
-	deferred_tb_deletes.add( tb );
 }
 
 GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name ) {
@@ -1712,7 +1608,6 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 	glGetProgramiv( program, GL_ACTIVE_UNIFORMS, &count );
 
 	size_t num_textures = 0;
-	size_t num_texture_buffers = 0;
 	size_t num_texture_arrays = 0;
 	for( GLint i = 0; i < count; i++ ) {
 		char name[ 128 ];
@@ -1732,18 +1627,6 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 			num_textures++;
 		}
 
-		if( type == GL_SAMPLER_BUFFER || type == GL_INT_SAMPLER_BUFFER || type == GL_UNSIGNED_INT_SAMPLER_BUFFER ) {
-			if( num_texture_buffers == ARRAY_COUNT( shader->texture_buffers ) ) {
-				glDeleteProgram( program );
-				Com_Printf( S_COLOR_YELLOW "Too many samplers in shader\n" );
-				return false;
-			}
-
-			glProgramUniform1i( program, glGetUniformLocation( program, name ), ARRAY_COUNT( &Shader::textures ) + num_texture_buffers );
-			shader->texture_buffers[ num_texture_buffers ] = Hash64( name, len );
-			num_texture_buffers++;
-		}
-
 		if( type == GL_SAMPLER_2D_ARRAY || type == GL_SAMPLER_2D_ARRAY_SHADOW ) {
 			if( num_texture_arrays == ARRAY_COUNT( shader->texture_arrays ) ) {
 				glDeleteProgram( program );
@@ -1751,7 +1634,7 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 				return false;
 			}
 
-			glProgramUniform1i( program, glGetUniformLocation( program, name ), ARRAY_COUNT( &Shader::textures ) + ARRAY_COUNT( &Shader::texture_buffers ) + num_texture_arrays );
+			glProgramUniform1i( program, glGetUniformLocation( program, name ), ARRAY_COUNT( &Shader::textures ) + num_texture_arrays );
 			shader->texture_arrays[ num_texture_arrays ] = Hash64( name, len );
 			num_texture_arrays++;
 		}

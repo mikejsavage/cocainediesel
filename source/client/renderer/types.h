@@ -25,7 +25,6 @@ struct Shader {
 	u64 uniforms[ 8 ];
 	u64 textures[ 4 ];
 	u64 texture_arrays[ 2 ];
-	u64 texture_buffers[ 8 ];
 	u64 buffers[ 8 ];
 };
 
@@ -35,11 +34,6 @@ struct GPUBuffer {
 
 using VertexBuffer = GPUBuffer;
 using IndexBuffer = GPUBuffer;
-
-struct TextureBuffer {
-	u32 tbo;
-	u32 texture;
-};
 
 struct UniformBlock {
 	u32 ubo;

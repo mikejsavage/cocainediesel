@@ -81,19 +81,6 @@ enum VertexFormat : u8 {
 	VertexFormat_Floatx4,
 };
 
-enum TextureBufferFormat : u8 {
-	TextureBufferFormat_U8x2,
-	TextureBufferFormat_U8x4,
-
-	TextureBufferFormat_U32,
-	TextureBufferFormat_U32x2,
-
-	TextureBufferFormat_S32x2,
-	TextureBufferFormat_S32x3,
-
-	TextureBufferFormat_Floatx4,
-};
-
 struct Texture {
 	u32 texture;
 	u32 width, height;
@@ -136,11 +123,6 @@ struct PipelineState {
 		GPUBuffer buffer;
 	};
 
-	struct TextureBufferBinding {
-		u64 name_hash;
-		TextureBuffer tb;
-	};
-
 	struct Scissor {
 		u32 x, y, w, h;
 	};
@@ -149,12 +131,10 @@ struct PipelineState {
 	TextureBinding textures[ ARRAY_COUNT( &Shader::textures ) ];
 	TextureArrayBinding texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ];
 	GPUBufferBinding buffers[ ARRAY_COUNT( &Shader::buffers ) ];
-	TextureBufferBinding texture_buffers[ ARRAY_COUNT( &Shader::texture_buffers ) ];
 	size_t num_uniforms = 0;
 	size_t num_textures = 0;
 	size_t num_texture_arrays = 0;
 	size_t num_buffers = 0;
-	size_t num_texture_buffers = 0;
 
 	u8 pass = U8_MAX;
 	const Shader * shader = NULL;
@@ -217,19 +197,6 @@ struct PipelineState {
 		buffers[ num_buffers ].name_hash = name.hash;
 		buffers[ num_buffers ].buffer = buffer;
 		num_buffers++;
-	}
-
-	void set_texture_buffer( StringHash name, TextureBuffer tb ) {
-		for( size_t i = 0; i < num_texture_buffers; i++ ) {
-			if( texture_buffers[ i ].name_hash == name.hash ) {
-				texture_buffers[ i ].tb = tb;
-				return;
-			}
-		}
-
-		texture_buffers[ num_texture_buffers ].name_hash = name.hash;
-		texture_buffers[ num_texture_buffers ].tb = tb;
-		num_texture_buffers++;
 	}
 };
 
@@ -391,11 +358,6 @@ template< typename T >
 GPUBuffer NewIndexBuffer( Span< T > data ) {
 	return NewIndexBuffer( data.ptr, data.num_bytes() );
 }
-
-TextureBuffer NewTextureBuffer( TextureBufferFormat format, u32 len );
-void WriteTextureBuffer( TextureBuffer tb, const void * data, u32 size );
-void DeleteTextureBuffer( TextureBuffer tb );
-void DeferDeleteTextureBuffer( TextureBuffer tb );
 
 Texture NewTexture( const TextureConfig & config );
 void DeleteTexture( Texture texture );

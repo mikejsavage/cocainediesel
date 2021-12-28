@@ -1,7 +1,7 @@
 setCursor 16, #HEIGHT - 88
 setAlignment left middle
 setSize 200, 18
-setFontSize %VIDHEIGHT / 40
+setFontSize %VIDHEIGHT / 30
 setFontBorder on
 
 if %SHOW_HOTKEYS

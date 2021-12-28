@@ -86,6 +86,7 @@ struct UBO {
 };
 
 static UBO ubos[ 16 ]; // 1MB of uniform space
+static GLsync ubo_fence;
 static u32 ubo_offset_alignment;
 
 static float max_anisotropic_filtering;
@@ -490,6 +491,7 @@ void InitRenderBackend() {
 	GLint alignment;
 	glGetIntegerv( GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &alignment );
 	ubo_offset_alignment = checked_cast< u32 >( alignment );
+	ubo_fence = 0;
 
 	glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropic_filtering );
 
@@ -498,8 +500,11 @@ void InitRenderBackend() {
 	assert( max_ubo_size >= s32( UNIFORM_BUFFER_SIZE ) );
 
 	for( UBO & ubo : ubos ) {
+		GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
 		glCreateBuffers( 1, &ubo.ubo );
-		glNamedBufferStorage( ubo.ubo, UNIFORM_BUFFER_SIZE, NULL, GL_MAP_WRITE_BIT );
+		glNamedBufferStorage( ubo.ubo, UNIFORM_BUFFER_SIZE, NULL, flags );
+		ubo.buffer = ( u8 * ) glMapNamedBufferRange( ubo.ubo, 0, UNIFORM_BUFFER_SIZE, flags );
+		assert( ubo.buffer != NULL );
 	}
 
 	in_frame = false;
@@ -512,6 +517,7 @@ void InitRenderBackend() {
 
 void ShutdownRenderBackend() {
 	for( UBO ubo : ubos ) {
+		glUnmapNamedBuffer( ubo.ubo );
 		glDeleteBuffers( 1, &ubo.ubo );
 	}
 
@@ -535,9 +541,12 @@ void RenderBackendBeginFrame() {
 	num_vertices_this_frame = 0;
 
 	for( UBO & ubo : ubos ) {
-		ubo.buffer = ( u8 * ) glMapNamedBufferRange( ubo.ubo, 0, UNIFORM_BUFFER_SIZE, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
-		assert( ubo.buffer != NULL );
 		ubo.bytes_used = 0;
+	}
+
+	if( ubo_fence != 0 ) {
+		glClientWaitSync( ubo_fence, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED );
+		glDeleteSync( ubo_fence );
 	}
 
 	if( frame_static.viewport_width != prev_viewport_width || frame_static.viewport_height != prev_viewport_height ) {
@@ -1002,13 +1011,6 @@ void RenderBackendSubmitFrame() {
 	in_frame = false;
 
 	{
-		ZoneScopedN( "Unmap UBOs" );
-		for( UBO ubo : ubos ) {
-			glUnmapNamedBuffer( ubo.ubo );
-		}
-	}
-
-	{
 		ZoneScopedN( "Sort draw calls" );
 		std::stable_sort( draw_calls.begin(), draw_calls.end(), SortDrawCall );
 	}
@@ -1036,6 +1038,8 @@ void RenderBackendSubmitFrame() {
 		SetupRenderPass( render_passes[ pass_idx ] );
 		FinishRenderPass();
 	}
+
+	ubo_fence = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
 
 	{
 		// OBS captures the game with glBlitFramebuffer which gets

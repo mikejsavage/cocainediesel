@@ -45,6 +45,11 @@ struct Span2D {
 	Span< T > row( size_t r ) const {
 		return Span< T >( &( *this )( 0, r ), w );
 	}
+
+	Span< T > span() const {
+		assert( row_stride == w );
+		return Span< T >( ptr, w * h );
+	}
 };
 
 template< typename T >

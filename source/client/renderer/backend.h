@@ -336,6 +336,11 @@ GPUBuffer NewGPUBuffer( Span< T > data, const char * name = NULL ) {
 	return NewGPUBuffer( data.ptr, data.num_bytes(), name );
 }
 
+template< typename T >
+void WriteGPUBuffer( GPUBuffer buf, Span< T > data, u32 offset = 0 ) {
+	WriteGPUBuffer( buf, data.ptr, data.num_bytes(), offset );
+}
+
 GPUBuffer NewVertexBuffer( const void * data, u32 len );
 GPUBuffer NewVertexBuffer( u32 len );
 void WriteVertexBuffer( GPUBuffer vb, const void * data, u32 size, u32 offset = 0 );

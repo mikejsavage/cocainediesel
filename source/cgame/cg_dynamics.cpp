@@ -479,11 +479,11 @@ void UploadDecalBuffers() {
 
 	{
 		ZoneScopedN( "Upload decals/dlights" );
-		WriteGPUBuffer( decal_tiles_buffer, gpu_decal_tiles.ptr, gpu_decal_tiles.num_bytes() );
+		WriteGPUBuffer( decal_tiles_buffer, gpu_decal_tiles.span() );
 		WriteGPUBuffer( decals_buffer, decals, num_decals * sizeof( Decal ) );
-		WriteGPUBuffer( dlight_tiles_buffer, gpu_dlight_tiles.ptr, gpu_dlight_tiles.num_bytes() );
+		WriteGPUBuffer( dlight_tiles_buffer, gpu_dlight_tiles.span() );
 		WriteGPUBuffer( dlights_buffer, dlights, num_dlights * sizeof( DynamicLight ) );
-		WriteGPUBuffer( dynamic_count, gpu_dynamic_counts.ptr, gpu_dynamic_counts.num_bytes() );
+		WriteGPUBuffer( dynamic_count, gpu_dynamic_counts.span() );
 	}
 
 	num_decals = 0;

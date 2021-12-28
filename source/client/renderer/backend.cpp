@@ -1175,7 +1175,6 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	glTextureParameteri( texture.texture, GL_TEXTURE_MIN_FILTER, min_filter );
 	glTextureParameteri( texture.texture, GL_TEXTURE_MAG_FILTER, mag_filter );
 	glTextureParameteri( texture.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
-	glTextureParameterf( texture.texture, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
 
 	if( config.wrap == TextureWrap_Border ) {
 		glTextureParameterfv( texture.texture, GL_TEXTURE_BORDER_COLOR, config.border_color.ptr() );
@@ -1212,6 +1211,8 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	}
 	else {
 		assert( config.data != NULL );
+
+		glTextureParameterf( texture.texture, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
 
 		if( config.format == TextureFormat_BC4 ) {
 			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_ONE );
@@ -1261,7 +1262,6 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 	glTextureParameteri( ta.texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
 	glTextureParameteri( ta.texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
 	glTextureParameteri( ta.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
-	glTextureParameterf( ta.texture, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
 
 	if( config.format == TextureFormat_Shadow ) {
 		glTextureParameteri( ta.texture, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
@@ -1298,6 +1298,8 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 		}
 	}
 	else {
+		glTextureParameterf( ta.texture, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
+
 		const char * cursor = ( const char * ) config.data;
 		for( u32 i = 0; i < config.num_mipmaps; i++ ) {
 			u32 w = config.width >> i;

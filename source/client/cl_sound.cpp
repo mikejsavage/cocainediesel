@@ -555,7 +555,7 @@ bool S_Init() {
 	s_device = NewCvar( "s_device", "", CvarFlag_Archive );
 	s_device->modified = false;
 	s_volume = NewCvar( "s_volume", "1", CvarFlag_Archive );
-	s_musicvolume = NewCvar( "s_musicvolume", "1", CvarFlag_Archive );
+	s_musicvolume = NewCvar( "s_musicvolume", "0.5", CvarFlag_Archive );
 	s_muteinbackground = NewCvar( "s_muteinbackground", "1", CvarFlag_Archive );
 
 	if( !S_InitAL() )

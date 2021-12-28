@@ -9,6 +9,7 @@
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/hash.h"
+#include "qcommon/string.h"
 #include "client/renderer/renderer.h"
 
 #include "cgame/cg_local.h"
@@ -434,6 +435,34 @@ static void PlotVRAMUsage() {
 void InitRenderBackend() {
 	ZoneScoped;
 	TracyGpuContext;
+
+	{
+		struct {
+			const char * name;
+			int loaded;
+		} required_extensions[] = {
+			{ "GL_ARB_buffer_storage", GLAD_GL_ARB_buffer_storage },
+			{ "GL_ARB_clip_control", GLAD_GL_ARB_clip_control },
+			{ "GL_ARB_direct_state_access", GLAD_GL_ARB_direct_state_access },
+			{ "GL_EXT_texture_compression_s3tc", GLAD_GL_EXT_texture_compression_s3tc },
+			{ "GL_EXT_texture_filter_anisotropic", GLAD_GL_EXT_texture_filter_anisotropic },
+			{ "GL_EXT_texture_sRGB", GLAD_GL_EXT_texture_sRGB },
+			{ "GL_EXT_texture_sRGB_decode", GLAD_GL_EXT_texture_sRGB_decode },
+		};
+
+		String< 1024 > missing_extensions( "Your GPU doesn't have some required OpenGL extensions:" );
+		bool any_missing = false;
+		for( auto ext : required_extensions ) {
+			if( ext.loaded == 0 ) {
+				missing_extensions.append( " {}", ext.name );
+				any_missing = true;
+			}
+		}
+
+		if( any_missing ) {
+			Fatal( "%s", missing_extensions.c_str() );
+		}
+	}
 
 	{
 		GLint context_flags;

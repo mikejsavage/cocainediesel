@@ -141,7 +141,6 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	{
 		MeshConfig mesh_config;
 		mesh_config.name = "???";
-		mesh_config.positions = NewVertexBuffer( NULL, 0 );
 		mesh_config.indices = ps->ibo;
 		mesh_config.indices_format = IndexFormat_U32;
 		mesh_config.num_vertices = 1;

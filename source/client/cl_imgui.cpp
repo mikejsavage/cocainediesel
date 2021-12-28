@@ -157,6 +157,9 @@ static void SubmitDrawCalls() {
 
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
 
+		if( cmd_list->VtxBuffer.Size == 0 || cmd_list->IdxBuffer.Size == 0 )
+			continue;
+
 		MeshConfig config;
 		config.name = temp( "ImGui - {}", n );
 		config.unified_buffer = NewVertexBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ) );

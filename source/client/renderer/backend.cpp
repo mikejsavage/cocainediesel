@@ -237,7 +237,19 @@ static void TextureFilterToGL( TextureFilter filter, GLenum * min, GLenum * mag 
 	assert( false );
 }
 
-static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_components, bool * integral, GLboolean * normalized ) {
+static u32 GLTypeSize( GLenum type ) {
+	switch( type ) {
+		case GL_UNSIGNED_BYTE: return 1;
+		case GL_UNSIGNED_SHORT: return 2;
+		case GL_UNSIGNED_INT:
+		case GL_FLOAT:
+			return 4;
+	}
+
+	assert( false );
+}
+
+static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_components, bool * integral, GLboolean * normalized, u32 * stride ) {
 	*integral = false;
 	*normalized = false;
 
@@ -248,21 +260,21 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*num_components = 2;
 			*integral = true;
 			*normalized = format == VertexFormat_U8x2_Norm;
-			return;
+			break;
 		case VertexFormat_U8x3:
 		case VertexFormat_U8x3_Norm:
 			*type = GL_UNSIGNED_BYTE;
 			*num_components = 3;
 			*integral = true;
 			*normalized = format == VertexFormat_U8x3_Norm;
-			return;
+			break;
 		case VertexFormat_U8x4:
 		case VertexFormat_U8x4_Norm:
 			*type = GL_UNSIGNED_BYTE;
 			*num_components = 4;
 			*integral = true;
 			*normalized = format == VertexFormat_U8x4_Norm;
-			return;
+			break;
 
 		case VertexFormat_U16x2:
 		case VertexFormat_U16x2_Norm:
@@ -270,47 +282,52 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			*num_components = 2;
 			*integral = true;
 			*normalized = format == VertexFormat_U16x2_Norm;
-			return;
+			break;
 		case VertexFormat_U16x3:
 		case VertexFormat_U16x3_Norm:
 			*type = GL_UNSIGNED_SHORT;
 			*num_components = 3;
 			*integral = true;
 			*normalized = format == VertexFormat_U16x3_Norm;
-			return;
+			break;
 		case VertexFormat_U16x4:
 		case VertexFormat_U16x4_Norm:
 			*type = GL_UNSIGNED_SHORT;
 			*num_components = 4;
 			*integral = true;
 			*normalized = format == VertexFormat_U16x4_Norm;
-			return;
+			break;
 
 		case VertexFormat_U32x1:
 			*type = GL_UNSIGNED_INT;
 			*num_components = 1;
 			*integral = true;
-			return;
+			break;
 
 		case VertexFormat_Floatx1:
 			*type = GL_FLOAT;
 			*num_components = 1;
-			return;
+			break;
 		case VertexFormat_Floatx2:
 			*type = GL_FLOAT;
 			*num_components = 2;
-			return;
+			break;
 		case VertexFormat_Floatx3:
 			*type = GL_FLOAT;
 			*num_components = 3;
-			return;
+			break;
 		case VertexFormat_Floatx4:
 			*type = GL_FLOAT;
 			*num_components = 4;
-			return;
+			break;
+
+		default:
+			assert( false );
 	}
 
-	assert( false );
+	if( stride != NULL ) {
+		*stride = GLTypeSize( *type ) * *num_components;
+	}
 }
 
 static void TextureBufferFormatToGL( TextureBufferFormat format, GLenum * internal_format, u32 * element_size ) {
@@ -508,9 +525,8 @@ void InitRenderBackend() {
 	assert( max_ubo_size >= s32( UNIFORM_BUFFER_SIZE ) );
 
 	for( UBO & ubo : ubos ) {
-		glGenBuffers( 1, &ubo.ubo );
-		glBindBuffer( GL_UNIFORM_BUFFER, ubo.ubo );
-		glBufferData( GL_UNIFORM_BUFFER, UNIFORM_BUFFER_SIZE, NULL, GL_DYNAMIC_DRAW );
+		glCreateBuffers( 1, &ubo.ubo );
+		glNamedBufferStorage( ubo.ubo, UNIFORM_BUFFER_SIZE, NULL, GL_MAP_WRITE_BIT );
 	}
 
 	in_frame = false;
@@ -528,6 +544,7 @@ void ShutdownRenderBackend() {
 
 	render_passes.shutdown();
 	draw_calls.shutdown();
+
 	deferred_mesh_deletes.shutdown();
 	deferred_tb_deletes.shutdown();
 }
@@ -538,14 +555,14 @@ void RenderBackendBeginFrame() {
 
 	render_passes.clear();
 	draw_calls.clear();
+
 	deferred_mesh_deletes.clear();
 	deferred_tb_deletes.clear();
 
 	num_vertices_this_frame = 0;
 
 	for( UBO & ubo : ubos ) {
-		glBindBuffer( GL_UNIFORM_BUFFER, ubo.ubo );
-		ubo.buffer = ( u8 * ) glMapBufferRange( GL_UNIFORM_BUFFER, 0, UNIFORM_BUFFER_SIZE, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
+		ubo.buffer = ( u8 * ) glMapNamedBufferRange( ubo.ubo, 0, UNIFORM_BUFFER_SIZE, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT );
 		assert( ubo.buffer != NULL );
 		ubo.bytes_used = 0;
 	}
@@ -599,7 +616,6 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	// textures
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->textures ); i++ ) {
 		u64 name_hash = pipeline.shader->textures[ i ];
-		GLenum tex_unit = GL_TEXTURE0 + i;
 		const Texture * prev_texture = prev_bindings.textures[ i ];
 
 		bool found = prev_texture == NULL;
@@ -607,14 +623,8 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 			for( size_t j = 0; j < pipeline.num_textures; j++ ) {
 				if( pipeline.textures[ j ].name_hash == name_hash ) {
 					const Texture * texture = pipeline.textures[ j ].texture;
-					GLenum target = texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-					GLenum other_target = texture->msaa ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
 					if( texture != prev_texture ) {
-						glActiveTexture( tex_unit );
-						glBindTexture( target, texture->texture );
-						if( prev_texture != NULL && texture->msaa != prev_texture->msaa ) {
-							glBindTexture( other_target, 0 );
-						}
+						glBindTextureUnit( i, texture->texture );
 						prev_bindings.textures[ i ] = texture;
 					}
 					found = true;
@@ -624,9 +634,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		}
 
 		if( !found ) {
-			glActiveTexture( tex_unit );
-			glBindTexture( GL_TEXTURE_2D, 0 );
-			glBindTexture( GL_TEXTURE_2D_MULTISAMPLE, 0 );
+			glBindTextureUnit( i, 0 );
 			prev_bindings.textures[ i ] = { };
 		}
 	}
@@ -634,7 +642,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	// texture buffers
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->texture_buffers ); i++ ) {
 		u64 name_hash = pipeline.shader->texture_buffers[ i ];
-		GLenum tex_unit = GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + i;
+		GLenum tex_unit = ARRAY_COUNT( pipeline.shader->textures ) + i;
 		TextureBuffer prev_texture = prev_bindings.texture_buffers[ i ];
 
 		bool found = prev_texture.texture == 0;
@@ -643,8 +651,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 				if( pipeline.texture_buffers[ j ].name_hash == name_hash ) {
 					TextureBuffer texture = pipeline.texture_buffers[ j ].tb;
 					if( texture.texture != prev_texture.texture ) {
-						glActiveTexture( tex_unit );
-						glBindTexture( GL_TEXTURE_BUFFER, texture.texture );
+						glBindTextureUnit( tex_unit, texture.texture );
 						prev_bindings.texture_buffers[ i ] = texture;
 					}
 					found = true;
@@ -654,8 +661,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		}
 
 		if( !found ) {
-			glActiveTexture( tex_unit );
-			glBindTexture( GL_TEXTURE_BUFFER, 0 );
+			glBindTextureUnit( tex_unit, 0 );
 			prev_bindings.texture_buffers[ i ] = { };
 		}
 	}
@@ -663,7 +669,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	// texture arrays
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->texture_arrays ); i++ ) {
 		u64 name_hash = pipeline.shader->texture_arrays[ i ];
-		GLenum tex_unit = GL_TEXTURE0 + ARRAY_COUNT( pipeline.shader->textures ) + ARRAY_COUNT( pipeline.shader->texture_buffers ) + i;
+		GLenum tex_unit = ARRAY_COUNT( pipeline.shader->textures ) + ARRAY_COUNT( pipeline.shader->texture_buffers ) + i;
 		TextureArray prev_texture = prev_bindings.texture_arrays[ i ];
 
 		bool found = prev_texture.texture == 0;
@@ -672,8 +678,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 				if( pipeline.texture_arrays[ j ].name_hash == name_hash ) {
 					TextureArray texture = pipeline.texture_arrays[ j ].ta;
 					if( texture.texture != prev_texture.texture ) {
-						glActiveTexture( tex_unit );
-						glBindTexture( GL_TEXTURE_2D_ARRAY, texture.texture );
+						glBindTextureUnit( tex_unit, texture.texture );
 						prev_bindings.texture_arrays[ i ] = texture;
 					}
 					found = true;
@@ -683,8 +688,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		}
 
 		if( !found ) {
-			glActiveTexture( tex_unit );
-			glBindTexture( GL_TEXTURE_2D_ARRAY, 0 );
+			glBindTextureUnit( tex_unit, 0 );
 			prev_bindings.texture_arrays[ i ] = { };
 		}
 	}
@@ -797,30 +801,31 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 	return a.pipeline.shader < b.pipeline.shader;
 }
 
-static void SetupAttribute( GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
-	const GLvoid * gl_offset = checked_cast< const GLvoid * >( checked_cast< uintptr_t >( offset ) );
+static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
+	if( buffer == 0 )
+		return;
 
 	GLenum type;
 	int num_components;
 	bool integral;
 	GLboolean normalized;
-	VertexFormatToGL( format, &type, &num_components, &integral, &normalized );
+	VertexFormatToGL( format, &type, &num_components, &integral, &normalized, stride == 0 ? &stride : NULL );
 
-	glEnableVertexAttribArray( index );
+	glEnableVertexArrayAttrib( vao, index );
+	glVertexArrayVertexBuffer( vao, index, buffer, 0, stride );
 	if( integral && !normalized )
-		glVertexAttribIPointer( index, num_components, type, stride, gl_offset );
+		glVertexArrayAttribIFormat( vao, index, num_components, type, offset );
 	else
-		glVertexAttribPointer( index, num_components, type, normalized, stride, gl_offset );
+		glVertexArrayAttribFormat( vao, index, num_components, type, normalized, offset );
 }
 
 static void SubmitFramebufferBlit( const RenderPass & pass ) {
 	Framebuffer src = pass.blit_source;
 	Framebuffer target = pass.target;
-	glBindFramebuffer( GL_READ_FRAMEBUFFER, src.fbo );
 	GLbitfield clear_mask = 0;
 	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
 	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
-	glBlitFramebuffer( 0, 0, src.width, src.height, 0, 0, target.width, target.height, clear_mask, GL_NEAREST );
+	glBlitNamedFramebuffer( src.fbo, target.fbo, 0, 0, src.width, src.height, 0, 0, target.width, target.height, clear_mask, GL_NEAREST );
 }
 
 static void SetupRenderPass( const RenderPass & pass ) {
@@ -896,17 +901,15 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	GLenum primitive = PrimitiveTypeToGL( dc.mesh.primitive_type );
 
 	if( dc.instance_type == InstanceType_Particles ) {
-		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
-
-		SetupAttribute( VertexAttribute_ParticlePosition, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
-		SetupAttribute( VertexAttribute_ParticleVelocity, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, velocity ) );
-		SetupAttribute( VertexAttribute_ParticleAccelDragRest, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, acceleration ) );
-		SetupAttribute( VertexAttribute_ParticleUVWH, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, uvwh ) );
-		SetupAttribute( VertexAttribute_ParticleStartColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, start_color ) );
-		SetupAttribute( VertexAttribute_ParticleEndColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, end_color ) );
-		SetupAttribute( VertexAttribute_ParticleSize, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, start_size ) );
-		SetupAttribute( VertexAttribute_ParticleAgeLifetime, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, age ) );
-		SetupAttribute( VertexAttribute_ParticleFlags, VertexFormat_U32x1, sizeof( GPUParticle ), offsetof( GPUParticle, flags ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ParticlePosition, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ParticleVelocity, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, velocity ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ParticleAccelDragRest, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, acceleration ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ParticleUVWH, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, uvwh ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ParticleStartColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, start_color ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ParticleEndColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, end_color ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ParticleSize, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, start_size ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ParticleAgeLifetime, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, age ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ParticleFlags, VertexFormat_U32x1, sizeof( GPUParticle ), offsetof( GPUParticle, flags ) );
 
 		if( dc.update_data.vbo ) {
 			glEnable( GL_RASTERIZER_DISCARD );
@@ -942,15 +945,13 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		}
 	}
 	else if( dc.instance_type == InstanceType_Model ) {
-		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.color ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_MaterialTextureMatrix0, VertexFormat_Floatx3, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.tcmod[ 0 ] ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_MaterialTextureMatrix1, VertexFormat_Floatx3, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.tcmod[ 1 ] ) );
 
-		SetupAttribute( VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.color ) );
-		SetupAttribute( VertexAttribute_MaterialTextureMatrix0, VertexFormat_Floatx3, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.tcmod[ 0 ] ) );
-		SetupAttribute( VertexAttribute_MaterialTextureMatrix1, VertexFormat_Floatx3, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.tcmod[ 1 ] ) );
-
-		SetupAttribute( VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 0 ] ) );
-		SetupAttribute( VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 1 ] ) );
-		SetupAttribute( VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 2 ] ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 0 ] ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 1 ] ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 2 ] ) );
 
 		glVertexAttribDivisor( VertexAttribute_MaterialColor, 1 );
 		glVertexAttribDivisor( VertexAttribute_MaterialTextureMatrix0, 1 );
@@ -964,11 +965,9 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
 	}
 	else if( dc.instance_type == InstanceType_ModelShadows ) {
-		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
-
-		SetupAttribute( VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 0 ] ) );
-		SetupAttribute( VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 1 ] ) );
-		SetupAttribute( VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 2 ] ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 0 ] ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 1 ] ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 2 ] ) );
 
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow0, 1 );
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
@@ -978,14 +977,12 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
 	}
 	else if( dc.instance_type == InstanceType_ModelOutlines ) {
-		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, color ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_OutlineHeight, VertexFormat_Floatx1, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, height ) );
 
-		SetupAttribute( VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, color ) );
-		SetupAttribute( VertexAttribute_OutlineHeight, VertexFormat_Floatx1, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, height ) );
-
-		SetupAttribute( VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 0 ] ) );
-		SetupAttribute( VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 1 ] ) );
-		SetupAttribute( VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 2 ] ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 0 ] ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 1 ] ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 2 ] ) );
 
 		glVertexAttribDivisor( VertexAttribute_MaterialColor, 1 );
 		glVertexAttribDivisor( VertexAttribute_OutlineHeight, 1 );
@@ -998,13 +995,11 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
 	}
 	else if( dc.instance_type == InstanceType_ModelSilhouette ) {
-		glBindBuffer( GL_ARRAY_BUFFER, dc.instance_data.vbo );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, color ) );
 
-		SetupAttribute( VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, color ) );
-
-		SetupAttribute( VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 0 ] ) );
-		SetupAttribute( VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 1 ] ) );
-		SetupAttribute( VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 2 ] ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 0 ] ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 1 ] ) );
+		SetupAttribute( dc.mesh.vao, dc.instance_data.vbo, VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 2 ] ) );
 
 		glVertexAttribDivisor( VertexAttribute_MaterialColor, 1 );
 
@@ -1037,8 +1032,7 @@ void RenderBackendSubmitFrame() {
 	{
 		ZoneScopedN( "Unmap UBOs" );
 		for( UBO ubo : ubos ) {
-			glBindBuffer( GL_UNIFORM_BUFFER, ubo.ubo );
-			glUnmapBuffer( GL_UNIFORM_BUFFER );
+			glUnmapNamedBuffer( ubo.ubo );
 		}
 	}
 
@@ -1080,17 +1074,17 @@ void RenderBackendSubmitFrame() {
 	}
 
 	{
-		ZoneScopedN( "Deferred mesh deletes" );
+		ZoneScopedN( "Deferred deletes" );
+
 		for( const Mesh & mesh : deferred_mesh_deletes ) {
 			DeleteMesh( mesh );
 		}
-	}
+		deferred_mesh_deletes.clear();
 
-	{
-		ZoneScopedN( "Deferred texturebuffer deletes" );
 		for( const TextureBuffer & tb : deferred_tb_deletes ) {
 			DeleteTextureBuffer( tb );
 		}
+		deferred_tb_deletes.clear();
 	}
 
 	u32 ubo_bytes_used = 0;
@@ -1136,15 +1130,9 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 }
 
 VertexBuffer NewVertexBuffer( const void * data, u32 len ) {
-	// glBufferData's length parameter is GLsizeiptr, so we need to make
-	// sure len fits in a signed 32bit int
-	assert( len < S32_MAX );
-
 	VertexBuffer vb;
-	glGenBuffers( 1, &vb.vbo );
-	glBindBuffer( GL_ARRAY_BUFFER, vb.vbo );
-	glBufferData( GL_ARRAY_BUFFER, len, data, data != NULL ? GL_STATIC_DRAW : GL_STREAM_DRAW );
-
+	glCreateBuffers( 1, &vb.vbo );
+	glNamedBufferStorage( vb.vbo, len, data, data != NULL ? 0 : GL_DYNAMIC_STORAGE_BIT );
 	return vb;
 }
 
@@ -1153,41 +1141,31 @@ VertexBuffer NewVertexBuffer( u32 len ) {
 }
 
 void WriteVertexBuffer( VertexBuffer vb, const void * data, u32 len, u32 offset ) {
-	glBindBuffer( GL_ARRAY_BUFFER, vb.vbo );
-	glBufferSubData( GL_ARRAY_BUFFER, offset, len, data );
+	glNamedBufferSubData( vb.vbo, offset, len, data );
 }
 
 void ReadVertexBuffer( VertexBuffer vb, void * data, u32 len, u32 offset ) {
-	glBindBuffer( GL_ARRAY_BUFFER, vb.vbo );
-	glGetBufferSubData( GL_ARRAY_BUFFER, offset, len, data );
+	glGetNamedBufferSubData( vb.vbo, offset, len, data );
 }
 
 void DeleteVertexBuffer( VertexBuffer vb ) {
+	if( vb.vbo == 0 )
+		return;
 	glDeleteBuffers( 1, &vb.vbo );
 }
 
 VertexBuffer NewParticleVertexBuffer( u32 n ) {
-	// glBufferData's length parameter is GLsizeiptr, so we need to make
-	// sure len fits in a signed 32bit int
-	u32 len = n * sizeof( GPUParticle );
-	assert( len < S32_MAX );
-
 	VertexBuffer vb;
-	glGenBuffers( 1, &vb.vbo );
-	glBindBuffer( GL_ARRAY_BUFFER, vb.vbo );
-	glBufferData( GL_ARRAY_BUFFER, len, NULL, GL_STATIC_DRAW );
+	glCreateBuffers( 1, &vb.vbo );
+	glNamedBufferStorage( vb.vbo, n * sizeof( GPUParticle ), NULL, GL_DYNAMIC_STORAGE_BIT );
 
 	return vb;
 }
 
 IndexBuffer NewIndexBuffer( const void * data, u32 len ) {
-	assert( len < S32_MAX );
-
 	IndexBuffer ib;
-	glGenBuffers( 1, &ib.ebo );
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ib.ebo );
-	glBufferData( GL_ELEMENT_ARRAY_BUFFER, len, data, data != NULL ? GL_STATIC_DRAW : GL_STREAM_DRAW );
-
+	glCreateBuffers( 1, &ib.ebo );
+	glNamedBufferStorage( ib.ebo, len, data, data != NULL ? 0 : GL_DYNAMIC_STORAGE_BIT );
 	return ib;
 }
 
@@ -1196,11 +1174,12 @@ IndexBuffer NewIndexBuffer( u32 len ) {
 }
 
 void WriteIndexBuffer( IndexBuffer ib, const void * data, u32 len, u32 offset ) {
-	glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ib.ebo );
-	glBufferSubData( GL_ELEMENT_ARRAY_BUFFER, offset, len, data );
+	glNamedBufferSubData( ib.ebo, offset, len, data );
 }
 
 void DeleteIndexBuffer( IndexBuffer ib ) {
+	if( ib.ebo == 0 )
+		return;
 	glDeleteBuffers( 1, &ib.ebo );
 }
 
@@ -1217,7 +1196,6 @@ TextureBuffer NewTextureBuffer( TextureBufferFormat format, u32 len ) {
 	TextureBufferFormatToGL( format, &internal_format, &element_size );
 	glTexBuffer( GL_TEXTURE_BUFFER, internal_format, tb.tbo );
 
-	assert( len * element_size < S32_MAX );
 	glBufferData( GL_TEXTURE_BUFFER, len * element_size, NULL, GL_STREAM_DRAW );
 
 	return tb;
@@ -1245,36 +1223,33 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	texture.msaa = msaa_samples > 1;
 	texture.format = config.format;
 
-	glGenTextures( 1, &texture.texture );
-	// TODO: should probably update the gl state since we bind a new texture
-	// TODO: or glactivetexture 0?
 	GLenum target = msaa_samples == 0 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
-	glBindTexture( target, texture.texture );
+	glCreateTextures( target, 1, &texture.texture );
 
 	GLenum internal_format, channels, type;
 	TextureFormatToGL( config.format, &internal_format, &channels, &type );
 
 	if( msaa_samples != 0 ) {
-		glTexStorage2DMultisample( texture.texture, msaa_samples,
+		glTextureStorage2DMultisample( texture.texture, msaa_samples,
 			internal_format, config.width, config.height, GL_TRUE );
 		return texture;
 	}
 
-	glTexStorage2D( GL_TEXTURE_2D, config.num_mipmaps, internal_format, config.width, config.height );
+	glTextureStorage2D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height );
 
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
+	glTextureParameteri( texture.texture, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
+	glTextureParameteri( texture.texture, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
 
 	GLenum min_filter = GL_NONE;
 	GLenum mag_filter = GL_NONE;
 	TextureFilterToGL( config.filter, &min_filter, &mag_filter );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min_filter );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag_filter );
-	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
-	glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
+	glTextureParameteri( texture.texture, GL_TEXTURE_MIN_FILTER, min_filter );
+	glTextureParameteri( texture.texture, GL_TEXTURE_MAG_FILTER, mag_filter );
+	glTextureParameteri( texture.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
+	glTextureParameterf( texture.texture, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
 
 	if( config.wrap == TextureWrap_Border ) {
-		glTexParameterfv( GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, ( GLfloat * ) &config.border_color );
+		glTextureParameterfv( texture.texture, GL_TEXTURE_BORDER_COLOR, config.border_color.ptr() );
 	}
 
 	if( !CompressedTextureFormat( config.format ) ) {
@@ -1282,27 +1257,27 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 
 		if( channels == GL_RED ) {
 			if( config.format == TextureFormat_A_U8 ) {
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_ONE );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_ONE );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_ONE );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_RED );
 			}
 			else {
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
-				glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_ONE );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_ONE );
 			}
 		}
 		else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_RED );
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_RED );
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_RED );
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
 		}
 
 		if( config.data != NULL ) {
-			glTexSubImage2D( GL_TEXTURE_2D, 0, 0, 0,
+			glTextureSubImage2D( texture.texture, 0, 0, 0,
 				config.width, config.height, channels, type, config.data );
 		}
 	}
@@ -1310,10 +1285,10 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 		assert( config.data != NULL );
 
 		if( config.format == TextureFormat_BC4 ) {
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-			glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_ONE );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_ONE );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_ONE );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_RED );
 		}
 
 		const char * cursor = ( const char * ) config.data;
@@ -1323,7 +1298,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 			u32 size = ( BitsPerPixel( config.format ) * w * h ) / 8;
 			assert( size < S32_MAX );
 
-			glCompressedTexSubImage2D( GL_TEXTURE_2D, i, 0, 0,
+			glCompressedTextureSubImage2D( texture.texture, i, 0, 0,
 				w, h, internal_format, size, cursor );
 
 			cursor += size;
@@ -1346,23 +1321,22 @@ void DeleteTexture( Texture texture ) {
 TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 	TextureArray ta;
 
-	glGenTextures( 1, &ta.texture );
-	glBindTexture( GL_TEXTURE_2D_ARRAY, ta.texture );
+	glCreateTextures( GL_TEXTURE_2D_ARRAY, 1, &ta.texture );
 
 	GLenum internal_format, channels, type;
 	TextureFormatToGL( config.format, &internal_format, &channels, &type );
-	glTexStorage3D( GL_TEXTURE_2D_ARRAY, config.num_mipmaps, internal_format, config.width, config.height, config.layers );
+	glTextureStorage3D( ta.texture, config.num_mipmaps, internal_format, config.width, config.height, config.layers );
 
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
-	glTexParameterf( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
+	glTextureParameteri( ta.texture, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	glTextureParameteri( ta.texture, GL_TEXTURE_WRAP_T, GL_REPEAT );
+	glTextureParameteri( ta.texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+	glTextureParameteri( ta.texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	glTextureParameteri( ta.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
+	glTextureParameterf( ta.texture, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
 
 	if( config.format == TextureFormat_Shadow ) {
-		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
-		glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
+		glTextureParameteri( ta.texture, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
+		glTextureParameteri( ta.texture, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
 	}
 
 	if( !CompressedTextureFormat( config.format ) ) {
@@ -1370,27 +1344,27 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 
 		if( channels == GL_RED ) {
 			if( config.format == TextureFormat_A_U8 ) {
-				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_A, GL_RED );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_R, GL_ONE );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_G, GL_ONE );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_B, GL_ONE );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_A, GL_RED );
 			}
 			else {
-				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_R, GL_RED );
-				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_G, GL_RED );
-				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_B, GL_RED );
-				glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_A, GL_ONE );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_A, GL_ONE );
 			}
 		}
 		else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
-			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_R, GL_RED );
-			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_G, GL_RED );
-			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_B, GL_RED );
-			glTexParameteri( GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
+			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
+			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
+			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
+			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
 		}
 
 		if( config.data != NULL ) {
-			glTexSubImage3D( GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0,
+			glTextureSubImage3D( ta.texture, 0, 0, 0, 0,
 				config.width, config.height, config.layers, channels, type, config.data );
 		}
 	}
@@ -1402,7 +1376,7 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 			u32 size = ( BitsPerPixel( config.format ) * w * h * config.layers ) / 8;
 			assert( size < S32_MAX );
 
-			glCompressedTexSubImage3D( GL_TEXTURE_2D_ARRAY, i, 0, 0, 0,
+			glCompressedTextureSubImage3D( ta.texture, i, 0, 0, 0,
 				w, h, config.layers, internal_format, size, cursor );
 
 			cursor += size;
@@ -1419,21 +1393,17 @@ void DeleteTextureArray( TextureArray ta ) {
 }
 
 Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
-	GLuint fbo;
-	glGenFramebuffers( 1, &fbo );
-	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
-
 	Framebuffer fb = { };
-	fb.fbo = fbo;
+
+	glCreateFramebuffers( 1, &fb.fbo );
 
 	u32 width = 0;
 	u32 height = 0;
-	GLenum target = config.msaa_samples <= 1 ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
 	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
 
 	if( config.albedo_attachment.width != 0 ) {
 		Texture texture = NewTextureSamples( config.albedo_attachment, config.msaa_samples );
-		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, texture.texture, 0 );
+		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT0, texture.texture, 0 );
 		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
 
 		fb.albedo_texture = texture;
@@ -1444,7 +1414,7 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 
 	if( config.normal_attachment.width != 0 ) {
 		Texture texture = NewTextureSamples( config.normal_attachment, config.msaa_samples );
-		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, target, texture.texture, 0 );
+		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT1, texture.texture, 0 );
 		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
 
 		fb.normal_texture = texture;
@@ -1455,7 +1425,7 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 
 	if( config.depth_attachment.width != 0 ) {
 		Texture texture = NewTextureSamples( config.depth_attachment, config.msaa_samples );
-		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, texture.texture, 0 );
+		glNamedFramebufferTexture( fb.fbo, GL_DEPTH_ATTACHMENT, texture.texture, 0 );
 
 		fb.depth_texture = texture;
 
@@ -1463,11 +1433,10 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 		height = texture.height;
 	}
 
-	glDrawBuffers( ARRAY_COUNT( bufs ), bufs );
+	glNamedFramebufferDrawBuffers( fb.fbo, ARRAY_COUNT( bufs ), bufs );
 
-	assert( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
 	assert( width > 0 && height > 0 );
-	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 
 	fb.width = width;
 	fb.height = height;
@@ -1476,42 +1445,35 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 }
 
 Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, Texture * depth_texture ) {
-	GLuint fbo;
-	glGenFramebuffers( 1, &fbo );
-	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
-
 	Framebuffer fb = { };
-	fb.fbo = fbo;
+
+	glCreateFramebuffers( 1, &fb.fbo );
 
 	u32 width = 0;
 	u32 height = 0;
 	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
 	if( albedo_texture != NULL ) {
-		GLenum target = albedo_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, albedo_texture->texture, 0 );
+		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT0, albedo_texture->texture, 0 );
 		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
 		width = albedo_texture->width;
 		height = albedo_texture->height;
 	}
 	if( normal_texture != NULL ) {
-		GLenum target = normal_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, target, normal_texture->texture, 0 );
+		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT1, normal_texture->texture, 0 );
 		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
 		width = normal_texture->width;
 		height = normal_texture->height;
 	}
 	if( depth_texture != NULL ) {
-		GLenum target = depth_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-		glFramebufferTexture2D( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, depth_texture->texture, 0 );
+		glNamedFramebufferTexture( fb.fbo, GL_DEPTH_ATTACHMENT, depth_texture->texture, 0 );
 		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
 		width = depth_texture->width;
 		height = depth_texture->height;
 	}
-	glDrawBuffers( ARRAY_COUNT( bufs ), bufs );
+	glNamedFramebufferDrawBuffers( fb.fbo, ARRAY_COUNT( bufs ), bufs );
 
-	assert( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
 	assert( width > 0 && height > 0 );
-	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 
 	fb.width = width;
 	fb.height = height;
@@ -1520,17 +1482,13 @@ Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, 
 }
 
 Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer ) {
-	GLuint fbo;
-	glGenFramebuffers( 1, &fbo );
-	glBindFramebuffer( GL_FRAMEBUFFER, fbo );
-
 	Framebuffer fb = { };
-	fb.fbo = fbo;
 
-	glFramebufferTextureLayer( GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, texture_array.texture, 0, layer );
+	glCreateFramebuffers( 1, &fb.fbo );
 
-	assert( glCheckFramebufferStatus( GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
-	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+	glNamedFramebufferTextureLayer( fb.fbo, GL_DEPTH_ATTACHMENT, texture_array.texture, 0, layer );
+
+	assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
 
 	fb.width = frame_static.shadow_parameters.shadowmap_res;
 	fb.height = frame_static.shadow_parameters.shadowmap_res;
@@ -1686,12 +1644,10 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 		return false;
 	}
 
-	glUseProgram( program );
 	shader->program = program;
 
-	GLint count, maxlen;
+	GLint count;
 	glGetProgramiv( program, GL_ACTIVE_UNIFORMS, &count );
-	glGetProgramiv( program, GL_ACTIVE_UNIFORM_MAX_LENGTH, &maxlen );
 
 	size_t num_textures = 0;
 	size_t num_texture_buffers = 0;
@@ -1709,7 +1665,7 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 				return false;
 			}
 
-			glUniform1i( glGetUniformLocation( program, name ), num_textures );
+			glProgramUniform1i( program, glGetUniformLocation( program, name ), num_textures );
 			shader->textures[ num_textures ] = Hash64( name, len );
 			num_textures++;
 		}
@@ -1721,7 +1677,7 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 				return false;
 			}
 
-			glUniform1i( glGetUniformLocation( program, name ), ARRAY_COUNT( &Shader::textures ) + num_texture_buffers );
+			glProgramUniform1i( program, glGetUniformLocation( program, name ), ARRAY_COUNT( &Shader::textures ) + num_texture_buffers );
 			shader->texture_buffers[ num_texture_buffers ] = Hash64( name, len );
 			num_texture_buffers++;
 		}
@@ -1733,15 +1689,13 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 				return false;
 			}
 
-			glUniform1i( glGetUniformLocation( program, name ), ARRAY_COUNT( &Shader::textures ) + ARRAY_COUNT( &Shader::texture_buffers ) + num_texture_arrays );
+			glProgramUniform1i( program, glGetUniformLocation( program, name ), ARRAY_COUNT( &Shader::textures ) + ARRAY_COUNT( &Shader::texture_buffers ) + num_texture_arrays );
 			shader->texture_arrays[ num_texture_arrays ] = Hash64( name, len );
 			num_texture_arrays++;
 		}
 	}
 
 	glGetProgramiv( program, GL_ACTIVE_UNIFORM_BLOCKS, &count );
-	glGetProgramiv( program, GL_ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH, &maxlen );
-
 	for( GLint i = 0; i < count; i++ ) {
 		char name[ 128 ];
 		GLint len;
@@ -1749,9 +1703,6 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 		glUniformBlockBinding( program, i, i );
 		shader->uniforms[ i ] = Hash64( name, len );
 	}
-
-	prev_pipeline.shader = NULL;
-	glUseProgram( 0 );
 
 	return true;
 }
@@ -1784,74 +1735,30 @@ Mesh NewMesh( MeshConfig config ) {
 	}
 
 	GLuint vao;
-	glGenVertexArrays( 1, &vao );
-	glBindVertexArray( vao );
+	glCreateVertexArrays( 1, &vao );
 	DebugLabel( GL_VERTEX_ARRAY, vao, config.name );
 
 	if( config.unified_buffer.vbo == 0 ) {
-		assert( config.positions.vbo != 0 );
-
-		glBindBuffer( GL_ARRAY_BUFFER, config.positions.vbo );
-		SetupAttribute( VertexAttribute_Position, config.positions_format );
-
-		if( config.normals.vbo != 0 ) {
-			glBindBuffer( GL_ARRAY_BUFFER, config.normals.vbo );
-			SetupAttribute( VertexAttribute_Normal, config.normals_format );
-		}
-
-		if( config.tex_coords.vbo != 0 ) {
-			glBindBuffer( GL_ARRAY_BUFFER, config.tex_coords.vbo );
-			SetupAttribute( VertexAttribute_TexCoord, config.tex_coords_format );
-		}
-
-		if( config.colors.vbo != 0 ) {
-			glBindBuffer( GL_ARRAY_BUFFER, config.colors.vbo );
-			SetupAttribute( VertexAttribute_Color, config.colors_format );
-		}
-
-		if( config.joints.vbo != 0 ) {
-			glBindBuffer( GL_ARRAY_BUFFER, config.joints.vbo );
-			SetupAttribute( VertexAttribute_JointIndices, config.joints_format );
-		}
-
-		if( config.weights.vbo != 0 ) {
-			glBindBuffer( GL_ARRAY_BUFFER, config.weights.vbo );
-			SetupAttribute( VertexAttribute_JointWeights, config.weights_format );
-		}
+		SetupAttribute( vao, config.positions.vbo, VertexAttribute_Position, config.positions_format );
+		SetupAttribute( vao, config.normals.vbo, VertexAttribute_Normal, config.normals_format );
+		SetupAttribute( vao, config.tex_coords.vbo, VertexAttribute_TexCoord, config.tex_coords_format );
+		SetupAttribute( vao, config.colors.vbo, VertexAttribute_Color, config.colors_format );
+		SetupAttribute( vao, config.joints.vbo, VertexAttribute_JointIndices, config.joints_format );
+		SetupAttribute( vao, config.weights.vbo, VertexAttribute_JointWeights, config.weights_format );
 	}
 	else {
 		assert( config.stride != 0 );
 
-		glBindBuffer( GL_ARRAY_BUFFER, config.unified_buffer.vbo );
-
-		SetupAttribute( VertexAttribute_Position, config.positions_format, config.stride, config.positions_offset );
-
-		if( config.normals_offset != 0 ) {
-			SetupAttribute( VertexAttribute_Normal, config.normals_format, config.stride, config.normals_offset );
-		}
-
-		if( config.tex_coords_offset != 0 ) {
-			SetupAttribute( VertexAttribute_TexCoord, config.tex_coords_format, config.stride, config.tex_coords_offset );
-		}
-
-		if( config.colors_offset != 0 ) {
-			SetupAttribute( VertexAttribute_Color, config.colors_format, config.stride, config.colors_offset );
-		}
-
-		if( config.joints_offset != 0 ) {
-			SetupAttribute( VertexAttribute_JointIndices, config.joints_format, config.stride, config.joints_offset );
-		}
-
-		if( config.weights_offset != 0 ) {
-			SetupAttribute( VertexAttribute_JointWeights, config.weights_format, config.stride, config.weights_offset );
-		}
+		GLuint vbo = config.unified_buffer.vbo;
+		SetupAttribute( vao, vbo, VertexAttribute_Position, config.positions_format, config.stride, config.positions_offset );
+		SetupAttribute( vao, vbo, VertexAttribute_Normal, config.normals_format, config.stride, config.normals_offset );
+		SetupAttribute( vao, vbo, VertexAttribute_TexCoord, config.tex_coords_format, config.stride, config.tex_coords_offset );
+		SetupAttribute( vao, vbo, VertexAttribute_Color, config.colors_format, config.stride, config.colors_offset );
+		SetupAttribute( vao, vbo, VertexAttribute_JointIndices, config.joints_format, config.stride, config.joints_offset );
+		SetupAttribute( vao, vbo, VertexAttribute_JointWeights, config.weights_format, config.stride, config.weights_offset );
 	}
 
-	if( config.indices.ebo != 0 ) {
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, config.indices.ebo );
-	}
-
-	glBindVertexArray( 0 );
+	glVertexArrayElementBuffer( vao, config.indices.ebo );
 
 	Mesh mesh = { };
 	mesh.num_vertices = config.num_vertices;
@@ -1879,20 +1786,13 @@ void DeleteMesh( const Mesh & mesh ) {
 	if( mesh.vao == 0 )
 		return;
 
-	if( mesh.positions.vbo != 0 )
-		DeleteVertexBuffer( mesh.positions );
-	if( mesh.normals.vbo != 0 )
-		DeleteVertexBuffer( mesh.normals );
-	if( mesh.tex_coords.vbo != 0 )
-		DeleteVertexBuffer( mesh.tex_coords );
-	if( mesh.colors.vbo != 0 )
-		DeleteVertexBuffer( mesh.colors );
-	if( mesh.joints.vbo != 0 )
-		DeleteVertexBuffer( mesh.joints );
-	if( mesh.weights.vbo != 0 )
-		DeleteVertexBuffer( mesh.weights );
-	if( mesh.indices.ebo != 0 )
-		DeleteIndexBuffer( mesh.indices );
+	DeleteVertexBuffer( mesh.positions );
+	DeleteVertexBuffer( mesh.normals );
+	DeleteVertexBuffer( mesh.tex_coords );
+	DeleteVertexBuffer( mesh.colors );
+	DeleteVertexBuffer( mesh.joints );
+	DeleteVertexBuffer( mesh.weights );
+	DeleteIndexBuffer( mesh.indices );
 
 	glDeleteVertexArrays( 1, &mesh.vao );
 }
@@ -2059,9 +1959,7 @@ void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, BlendFunc blend
 }
 
 void DownloadFramebuffer( void * buf ) {
-	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 	glReadPixels( 0, 0, frame_static.viewport_width, frame_static.viewport_height, GL_RGB, GL_UNSIGNED_BYTE, buf );
-	prev_fbo = 0;
 }
 
 void DrawInstancedParticles( VertexBuffer vb, const Model * model, u32 num_particles ) {

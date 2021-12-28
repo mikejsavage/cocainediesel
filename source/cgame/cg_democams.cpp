@@ -578,7 +578,7 @@ static bool CG_DemoCam_LookAt( int trackEnt, Vec3 vieworg, Vec3 * viewangles ) {
 	const cmodel_t *cmodel = CG_CModelForEntity( trackEnt );
 	if( cmodel != NULL ) {
 		Vec3 mins, maxs;
-		CM_InlineModelBounds( cl.cms, cmodel, &mins, &maxs );
+		CM_InlineModelBounds( cl.map->cms, cmodel, &mins, &maxs );
 		origin += mins + maxs;
 	}
 
@@ -845,7 +845,7 @@ static int CG_Democam_CalcView() {
 					// if having a bounding box, look to its center
 					if( ( cmodel = CG_CModelForEntity( currentcam->trackEnt ) ) != NULL ) {
 						Vec3 mins, maxs;
-						CM_InlineModelBounds( cl.cms, cmodel, &mins, &maxs );
+						CM_InlineModelBounds( cl.map->cms, cmodel, &mins, &maxs );
 						center += mins + maxs;
 					}
 

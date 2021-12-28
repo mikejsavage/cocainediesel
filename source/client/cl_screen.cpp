@@ -120,10 +120,8 @@ void SCR_InitScreen() {
 }
 
 static void SCR_RenderView() {
-	cl.map = FindMap( client_gs.gameState.map );
 	if( cl.map != NULL ) {
-		cl.cms = cl.map->cms;
-		if( cl.cms->checksum != client_gs.gameState.map_checksum && Com_ServerState() != ss_dead ) {
+		if( cl.map->cms->checksum != client_gs.gameState.map_checksum && Com_ServerState() != ss_dead ) {
 			// disable this check on local servers because server/client hotloads don't happen in sync
 			Com_Error( "Local map version differs from server" );
 		}
@@ -207,7 +205,7 @@ void SCR_UpdateScreen() {
 
 	CL_ImGuiBeginFrame();
 
-	if( cls.state == CA_CONNECTED || cls.state == CA_ACTIVE ) {
+	if( cls.state == CA_ACTIVE ) {
 		SCR_RenderView();
 
 		if( scr_timegraph->integer ) {

@@ -119,7 +119,7 @@ void CG_SC_AutoRecordAction( const char *action ) {
 
 	// TODO: AutoRecordName segfaults without this because sometimes we
 	// receive configstrings before the map when connecting
-	if( !cgs.rendered_a_frame ) {
+	if( cls.state != CA_ACTIVE ) {
 		return;
 	}
 

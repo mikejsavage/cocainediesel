@@ -523,11 +523,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	cg.frameCount++;
 
-	if( !cg.frame.valid ) {
-		return;
-	}
-
-	cgs.rendered_a_frame = true;
+	assert( cg.frame.valid );
 
 	{
 		// moved this from CG_Init here

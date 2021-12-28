@@ -275,6 +275,7 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 
 	cg.frame = *frame;
 	client_gs.gameState = frame->gameState;
+	cl.map = FindMap( client_gs.gameState.map );
 
 	if( cg_projectileAntilagOffset->number > 1.0f || cg_projectileAntilagOffset->number < 0.0f ) {
 		Cvar_ForceSet( "cg_projectileAntilagOffset", cg_projectileAntilagOffset->default_value );
@@ -286,7 +287,7 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 		CG_NewPacketEntityState( &frame->parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )] );
 	}
 
-	if( !cg.frame.valid || !cgs.rendered_a_frame ) {
+	if( !cg.frame.valid ) {
 		return false;
 	}
 
@@ -330,10 +331,10 @@ const cmodel_t *CG_CModelForEntity( int entNum ) {
 		return cmodel;
 
 	if( cent->type == ET_PLAYER || cent->type == ET_CORPSE ) {
-		return CM_OctagonModelForBBox( cl.cms, cent->current.bounds.mins, cent->current.bounds.maxs );
+		return CM_OctagonModelForBBox( cl.map->cms, cent->current.bounds.mins, cent->current.bounds.maxs );
 	}
 
-	return CM_ModelForBBox( cl.cms, cent->current.bounds.mins, cent->current.bounds.maxs );
+	return CM_ModelForBBox( cl.map->cms, cent->current.bounds.mins, cent->current.bounds.maxs );
 }
 
 static void CG_UpdateGenericEnt( centity_t *cent ) {

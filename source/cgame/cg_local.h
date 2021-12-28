@@ -172,8 +172,6 @@ struct cg_static_t {
 
 	cgs_media_t media;
 
-	bool rendered_a_frame;
-
 	bool demoPlaying;
 	unsigned snapFrameTime;
 	unsigned extrapolationTime;

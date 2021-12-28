@@ -64,7 +64,6 @@ struct client_state_t {
 	snapshot_t snapShots[CMD_BACKUP];
 
 	const Map * map;
-	CollisionModel * cms;
 
 	// the client maintains its own idea of view angles, which are
 	// sent to the server each frame.  It is cleared to 0 upon entering each level.

@@ -165,7 +165,7 @@ static bool CG_ClipEntityContact( Vec3 origin, Vec3 mins, Vec3 maxs, int entNum 
 	Vec3 absmins = origin + mins;
 	Vec3 absmaxs = origin + maxs;
 	trace_t tr;
-	CM_TransformedBoxTrace( CM_Client, cl.cms, &tr, Vec3( 0.0f ), Vec3( 0.0f ), absmins, absmaxs, cmodel, MASK_ALL, entorigin, entangles );
+	CM_TransformedBoxTrace( CM_Client, cl.map->cms, &tr, Vec3( 0.0f ), Vec3( 0.0f ), absmins, absmaxs, cmodel, MASK_ALL, entorigin, entangles );
 	return tr.startsolid == true || tr.allsolid == true;
 }
 
@@ -227,7 +227,7 @@ static void CG_ClipMoveToEntities( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, i
 		}
 
 		trace_t trace;
-		CM_TransformedBoxTrace( CM_Client, cl.cms, &trace, start, end, mins, maxs, cmodel, contentmask, origin, angles );
+		CM_TransformedBoxTrace( CM_Client, cl.map->cms, &trace, start, end, mins, maxs, cmodel, contentmask, origin, angles );
 		if( trace.allsolid || trace.fraction < tr->fraction ) {
 			trace.ent = ent->number;
 			*tr = trace;
@@ -245,7 +245,7 @@ void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignor
 	ZoneScoped;
 
 	// check against world
-	CM_TransformedBoxTrace( CM_Client, cl.cms, t, start, end, mins, maxs, NULL, contentmask, Vec3( 0.0f ), Vec3( 0.0f ) );
+	CM_TransformedBoxTrace( CM_Client, cl.map->cms, t, start, end, mins, maxs, NULL, contentmask, Vec3( 0.0f ), Vec3( 0.0f ) );
 	t->ent = t->fraction < 1.0 ? 0 : -1; // world entity is 0
 	if( t->fraction == 0 ) {
 		return; // blocked by the world
@@ -258,14 +258,14 @@ void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignor
 int CG_PointContents( Vec3 point ) {
 	ZoneScoped;
 
-	int contents = CM_TransformedPointContents( CM_Client, cl.cms, point, NULL, Vec3( 0.0f ), Vec3( 0.0f ) );
+	int contents = CM_TransformedPointContents( CM_Client, cl.map->cms, point, NULL, Vec3( 0.0f ), Vec3( 0.0f ) );
 
 	for( int i = 0; i < cg_numSolids; i++ ) {
 		const SyncEntityState * ent = cg_solidList[i];
 
 		cmodel_t * cmodel = CM_TryFindCModel( CM_Client, ent->model );
 		if( cmodel != NULL ) {
-			contents |= CM_TransformedPointContents( CM_Client, cl.cms, point, cmodel, ent->origin, ent->angles );
+			contents |= CM_TransformedPointContents( CM_Client, cl.map->cms, point, cmodel, ent->origin, ent->angles );
 		}
 	}
 

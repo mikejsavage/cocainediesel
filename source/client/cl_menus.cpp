@@ -537,7 +537,7 @@ static void SettingsAudio() {
 	ImGui::Separator();
 
 	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f, "1", CvarFlag_Archive );
-	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "0.5", CvarFlag_Archive );
+	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "1", CvarFlag_Archive );
 	CvarCheckbox( "Mute when alt-tabbed", "s_muteinbackground", "1", CvarFlag_Archive );
 }
 

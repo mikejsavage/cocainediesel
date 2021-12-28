@@ -1517,8 +1517,8 @@ static constexpr const char * FRAGMENT_SHADER_PRELUDE =
 	"#define v2f in\n";
 
 static GLuint CompileShader( GLenum type, Span< const char * > srcs, Span< int > lens ) {
-	const char * full_srcs[ 32 ];
-	int full_lens[ 32 ];
+	const char * full_srcs[ 64 ];
+	int full_lens[ 64 ];
 	GLsizei n = 0;
 
 	full_srcs[ n ] = "#version 330\n";

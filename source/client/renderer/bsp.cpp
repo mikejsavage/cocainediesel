@@ -51,11 +51,6 @@ struct BSPMaterial {
 	u32 contents;
 };
 
-struct BSPPlane {
-	Vec3 normal;
-	float dist;
-};
-
 struct BSPNode {
 	int planenum;
 	int children[2];
@@ -177,7 +172,7 @@ struct BSPVisbilityHeader {
 struct BSPSpans {
 	Span< const char > entities;
 	Span< const BSPMaterial > materials;
-	Span< const BSPPlane > planes;
+	Span< const Plane > planes;
 	Span< const BSPNode > nodes;
 	Span< const BSPLeaf > leaves;
 	Span< const BSPLeafBrush > leafbrushes;
@@ -281,8 +276,7 @@ struct GPUBSPPlane {
 	float dist;
 };
 
-struct GPUBSPNode {
-	s32 plane;
+struct GPUBSPNodeLinks {
 	s32 children[ 2 ];
 };
 
@@ -574,19 +568,18 @@ bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< c
 		map->models[ i ] = LoadBSPModel( filename, vertices, bsp, i );
 	}
 
-	DynamicArray< GPUBSPNode > nodes( sys_allocator, bsp.nodes.n );
+	DynamicArray< GPUBSPNodeLinks > nodes( sys_allocator, bsp.nodes.n );
 	DynamicArray< GPUBSPLeaf > leaves( sys_allocator, bsp.leaves.n );
 	DynamicArray< GPUBSPLeafBrush > leafbrushes( sys_allocator, bsp.leafbrushes.n );
-	DynamicArray< GPUBSPPlane > planes( sys_allocator, bsp.planes.n + bsp.brushsides.n );
+	DynamicArray< Plane > planes( sys_allocator, bsp.planes.n + bsp.brushsides.n );
 
 	for( u32 i = 0; i < bsp.nodes.n; i++ ) {
 		const BSPNode node = bsp.nodes[ i ];
-		const BSPPlane plane = bsp.planes[ node.planenum ];
+		const Plane plane = bsp.planes[ node.planenum ];
 
-		GPUBSPNode gpu_node = { int( planes.size() ), node.children[ 0 ], node.children[ 1 ] };
+		GPUBSPNodeLinks gpu_node = { node.children[ 0 ], node.children[ 1 ] };
 		nodes.add( gpu_node );
-		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };
-		planes.add( gpu_plane );
+		planes.add( plane );
 	}
 
 	for( u32 i = 0; i < bsp.leaves.n; i++ ) {
@@ -604,32 +597,17 @@ bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< c
 	}
 	for( u32 i = 0; i < bsp.brushsides.n; i++ ) {
 		const BSPBrushSide brushside = bsp.brushsides[ i ];
-		const BSPPlane plane = bsp.planes[ brushside.planenum ];
-		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };
-		planes.add( gpu_plane );
+		planes.add( bsp.planes[ brushside.planenum ] );
 	}
 	for( u32 i = 0; i < bsp.raven_brushsides.n; i++ ) {
 		const RavenBSPBrushSide brushside = bsp.raven_brushsides[ i ];
-		const BSPPlane plane = bsp.planes[ brushside.planenum ];
-		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };
-		planes.add( gpu_plane );
+		planes.add( bsp.planes[ brushside.planenum ] );
 	}
 
-	TextureBuffer nodesBuffer = NewTextureBuffer( TextureBufferFormat_S32x3, nodes.size() );
-	WriteTextureBuffer( nodesBuffer, nodes.ptr(), nodes.size() * sizeof( GPUBSPNode ) );
-	map->nodeBuffer = nodesBuffer;
-
-	TextureBuffer leafBuffer = NewTextureBuffer( TextureBufferFormat_S32x2, leaves.size() );
-	WriteTextureBuffer( leafBuffer, leaves.ptr(), leaves.size() * sizeof( GPUBSPLeaf ) );
-	map->leafBuffer = leafBuffer;
-
-	TextureBuffer brushBuffer = NewTextureBuffer( TextureBufferFormat_S32x2, leafbrushes.size() );
-	WriteTextureBuffer( brushBuffer, leafbrushes.ptr(), leafbrushes.size() * sizeof( GPUBSPLeafBrush ) );
-	map->brushBuffer = brushBuffer;
-
-	TextureBuffer planeBuffer = NewTextureBuffer( TextureBufferFormat_Floatx4, planes.size() );
-	WriteTextureBuffer( planeBuffer, planes.ptr(), planes.size() * sizeof( GPUBSPPlane ) );
-	map->planeBuffer = planeBuffer;
+	map->nodeBuffer = NewGPUBuffer( nodes.span() );
+	map->leafBuffer = NewGPUBuffer( leaves.span() );
+	map->brushBuffer = NewGPUBuffer( leafbrushes.span() );
+	map->planeBuffer = NewGPUBuffer( planes.span() );
 
 	return true;
 }
@@ -641,8 +619,8 @@ void DeleteBSPRenderData( Map * map ) {
 
 	FREE( sys_allocator, map->models );
 
-	DeleteTextureBuffer( map->nodeBuffer );
-	DeleteTextureBuffer( map->leafBuffer );
-	DeleteTextureBuffer( map->brushBuffer );
-	DeleteTextureBuffer( map->planeBuffer );
+	DeleteGPUBuffer( map->nodeBuffer );
+	DeleteGPUBuffer( map->leafBuffer );
+	DeleteGPUBuffer( map->brushBuffer );
+	DeleteGPUBuffer( map->planeBuffer );
 }

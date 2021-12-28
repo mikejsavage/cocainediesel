@@ -1960,10 +1960,10 @@ void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out
 	u32 collision = cl.map == NULL ? 0 : 1;
 	pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, radius, dt ) );
 	if( collision ) {
-		pipeline.set_texture_buffer( "u_NodeBuffer", cl.map->nodeBuffer );
-		pipeline.set_texture_buffer( "u_LeafBuffer", cl.map->leafBuffer );
-		pipeline.set_texture_buffer( "u_BrushBuffer", cl.map->brushBuffer );
-		pipeline.set_texture_buffer( "u_PlaneBuffer", cl.map->planeBuffer );
+		pipeline.set_buffer( "b_BSPNodeLinks", cl.map->nodeBuffer );
+		pipeline.set_buffer( "b_BSPLeaves", cl.map->leafBuffer );
+		pipeline.set_buffer( "b_BSPBrushes", cl.map->brushBuffer );
+		pipeline.set_buffer( "b_BSPPlanes", cl.map->planeBuffer );
 	}
 
 	DrawCall dc = { };
@@ -1986,10 +1986,10 @@ void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffe
 	u32 collision = cl.map == NULL ? 0 : 1;
 	pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, radius, dt ) );
 	if( collision ) {
-		pipeline.set_texture_buffer( "u_NodeBuffer", cl.map->nodeBuffer );
-		pipeline.set_texture_buffer( "u_LeafBuffer", cl.map->leafBuffer );
-		pipeline.set_texture_buffer( "u_BrushBuffer", cl.map->brushBuffer );
-		pipeline.set_texture_buffer( "u_PlaneBuffer", cl.map->planeBuffer );
+		pipeline.set_buffer( "b_BSPNodeLinks", cl.map->nodeBuffer );
+		pipeline.set_buffer( "b_BSPLeaves", cl.map->leafBuffer );
+		pipeline.set_buffer( "b_BSPBrushes", cl.map->brushBuffer );
+		pipeline.set_buffer( "b_BSPPlanes", cl.map->planeBuffer );
 	}
 
 	DrawCall dc = { };

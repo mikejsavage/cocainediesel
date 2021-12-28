@@ -17,10 +17,10 @@ struct Map {
 
 	CollisionModel * cms;
 
-	TextureBuffer nodeBuffer;
-	TextureBuffer leafBuffer;
-	TextureBuffer brushBuffer;
-	TextureBuffer planeBuffer;
+	GPUBuffer nodeBuffer;
+	GPUBuffer leafBuffer;
+	GPUBuffer brushBuffer;
+	GPUBuffer planeBuffer;
 };
 
 void InitMaps();

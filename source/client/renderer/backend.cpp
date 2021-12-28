@@ -59,9 +59,9 @@ struct DrawCall {
 
 	InstanceType instance_type;
 	u32 num_instances;
-	VertexBuffer instance_data;
-	VertexBuffer update_data;
-	VertexBuffer feedback_data;
+	GPUBuffer instance_data;
+	GPUBuffer update_data;
+	GPUBuffer feedback_data;
 };
 
 static NonRAIIDynamicArray< RenderPass > render_passes;
@@ -1102,48 +1102,15 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	return block;
 }
 
-VertexBuffer NewVertexBuffer( const void * data, u32 len ) {
-	return NewGPUBuffer( data, len );
+void ReadGPUBuffer( GPUBuffer buf, void * data, u32 len, u32 offset ) {
+	glGetNamedBufferSubData( buf.buffer, offset, len, data );
 }
 
-VertexBuffer NewVertexBuffer( u32 len ) {
-	return NewVertexBuffer( NULL, len );
-}
-
-void WriteVertexBuffer( VertexBuffer vb, const void * data, u32 len, u32 offset ) {
-	WriteGPUBuffer( vb, data, len, offset );
-}
-
-void ReadVertexBuffer( VertexBuffer vb, void * data, u32 len, u32 offset ) {
-	glGetNamedBufferSubData( vb.buffer, offset, len, data );
-}
-
-void DeleteVertexBuffer( VertexBuffer vb ) {
-	DeleteGPUBuffer( vb );
-}
-
-VertexBuffer NewParticleVertexBuffer( u32 n ) {
-	VertexBuffer vb;
-	glCreateBuffers( 1, &vb.buffer );
-	glNamedBufferStorage( vb.buffer, n * sizeof( GPUParticle ), NULL, GL_DYNAMIC_STORAGE_BIT );
-
-	return vb;
-}
-
-IndexBuffer NewIndexBuffer( const void * data, u32 len ) {
-	return NewGPUBuffer( data, len );
-}
-
-IndexBuffer NewIndexBuffer( u32 len ) {
-	return NewIndexBuffer( NULL, len );
-}
-
-void WriteIndexBuffer( IndexBuffer ib, const void * data, u32 len, u32 offset ) {
-	WriteGPUBuffer( ib, data, len, offset );
-}
-
-void DeleteIndexBuffer( IndexBuffer ib ) {
-	DeleteGPUBuffer( ib );
+GPUBuffer NewParticleGPUBuffer( u32 n ) {
+	GPUBuffer buf;
+	glCreateBuffers( 1, &buf.buffer );
+	glNamedBufferStorage( buf.buffer, n * sizeof( GPUParticle ), NULL, GL_DYNAMIC_STORAGE_BIT );
+	return buf;
 }
 
 GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name ) {
@@ -1157,6 +1124,10 @@ GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name ) {
 	}
 
 	return buf;
+}
+
+GPUBuffer NewGPUBuffer( u32 len, const char * name ) {
+	return NewGPUBuffer( NULL, len, name );
 }
 
 void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 len, u32 offset ) {
@@ -1770,7 +1741,7 @@ void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertic
 	num_vertices_this_frame += dc.num_vertices;
 }
 
-void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, VertexBuffer instance_data, u32 num_instances, InstanceType instance_type, u32 num_vertices_override, u32 index_offset ) {
+void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer instance_data, u32 num_instances, InstanceType instance_type, u32 num_vertices_override, u32 index_offset ) {
 	assert( in_frame );
 	assert( pipeline.pass != U8_MAX );
 	assert( pipeline.shader != NULL );
@@ -1834,7 +1805,7 @@ void AddResolveMSAAPass( const char * name, const tracy::SourceLocationData * tr
 	AddBlitPass( name, tracy, src, dst, clear_color, clear_depth );
 }
 
-void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, float radius, u32 num_particles, float dt ) {
+void UpdateParticles( const Mesh & mesh, GPUBuffer vb_in, GPUBuffer vb_out, float radius, u32 num_particles, float dt ) {
 	assert( in_frame );
 
 	PipelineState pipeline;
@@ -1860,7 +1831,7 @@ void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out
 	draw_calls.add( dc );
 }
 
-void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, VertexBuffer vb_feedback, float radius, u32 num_particles, float dt ) {
+void UpdateParticlesFeedback( const Mesh & mesh, GPUBuffer vb_in, GPUBuffer vb_out, GPUBuffer vb_feedback, float radius, u32 num_particles, float dt ) {
 	assert( in_frame );
 
 	PipelineState pipeline;
@@ -1887,7 +1858,7 @@ void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffe
 	draw_calls.add( dc );
 }
 
-void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, BlendFunc blend_func, u32 num_particles ) {
+void DrawInstancedParticles( const Mesh & mesh, GPUBuffer vb, BlendFunc blend_func, u32 num_particles ) {
 	assert( in_frame );
 
 	PipelineState pipeline;
@@ -1916,7 +1887,7 @@ void DownloadFramebuffer( void * buf ) {
 	glReadPixels( 0, 0, frame_static.viewport_width, frame_static.viewport_height, GL_RGB, GL_UNSIGNED_BYTE, buf );
 }
 
-void DrawInstancedParticles( VertexBuffer vb, const Model * model, u32 num_particles ) {
+void DrawInstancedParticles( GPUBuffer vb, const Model * model, u32 num_particles ) {
 	assert( in_frame );
 
 	UniformBlock model_uniforms = UploadModelUniforms( model->transform );

@@ -98,14 +98,14 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	if( ps->feedback ) {
 		ps->particles_feedback = ALLOC_SPAN( a, GPUParticleFeedback, ps->max_particles );
 		memset( ps->particles_feedback.ptr, 0, ps->particles_feedback.num_bytes() );
-		ps->vb_feedback = NewVertexBuffer( ps->particles_feedback.begin(), ps->max_particles * sizeof( GPUParticleFeedback ) );
+		ps->vb_feedback = NewGPUBuffer( ps->particles_feedback.begin(), ps->max_particles * sizeof( GPUParticleFeedback ) );
 	}
 	else {
 		ps->gpu_instances_time = ALLOC_SPAN( a, s64, ps->max_particles );
 	}
-	ps->ibo = NewIndexBuffer( ps->max_particles * sizeof( ps->gpu_instances[ 0 ] ) );
-	ps->vb = NewParticleVertexBuffer( ps->max_particles );
-	ps->vb2 = NewParticleVertexBuffer( ps->max_particles );
+	ps->ibo = NewGPUBuffer( ps->max_particles * sizeof( ps->gpu_instances[ 0 ] ) );
+	ps->vb = NewParticleGPUBuffer( ps->max_particles );
+	ps->vb2 = NewParticleGPUBuffer( ps->max_particles );
 
 	if( !ps->model ) {
 		{
@@ -116,7 +116,7 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 				Vec2( 0.5f, 0.5f ),
 			};
 
-			Vec2 uvs[] = {
+			constexpr Vec2 uvs[] = {
 				Vec2( 0.0f, 0.0f ),
 				Vec2( 1.0f, 0.0f ),
 				Vec2( 0.0f, 1.0f ),
@@ -127,10 +127,10 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 
 			MeshConfig mesh_config;
 			mesh_config.name = "Particle quad";
-			mesh_config.positions = NewVertexBuffer( verts, sizeof( verts ) );
+			mesh_config.positions = NewGPUBuffer( verts, sizeof( verts ) );
 			mesh_config.positions_format = VertexFormat_Floatx2;
-			mesh_config.tex_coords = NewVertexBuffer( uvs, sizeof( uvs ) );
-			mesh_config.indices = NewIndexBuffer( indices, sizeof( indices ) );
+			mesh_config.tex_coords = NewGPUBuffer( uvs, sizeof( uvs ) );
+			mesh_config.indices = NewGPUBuffer( indices, sizeof( indices ) );
 			mesh_config.num_vertices = ARRAY_COUNT( indices );
 			mesh_config.primitive_type = PrimitiveType_TriangleStrip;
 
@@ -721,10 +721,10 @@ void DeleteParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	FREE( a, ps->particles_feedback.ptr );
 	FREE( a, ps->gpu_instances.ptr );
 	FREE( a, ps->gpu_instances_time.ptr );
-	DeleteIndexBuffer( ps->ibo );
-	DeleteVertexBuffer( ps->vb );
-	DeleteVertexBuffer( ps->vb2 );
-	DeleteVertexBuffer( ps->vb_feedback );
+	DeleteGPUBuffer( ps->ibo );
+	DeleteGPUBuffer( ps->vb );
+	DeleteGPUBuffer( ps->vb2 );
+	DeleteGPUBuffer( ps->vb_feedback );
 
 	DeleteMesh( ps->mesh );
 	DeleteMesh( ps->update_mesh );
@@ -796,7 +796,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		ZoneScopedN( "Despawn expired particles" );
 
 		if( ps->feedback ) {
-			ReadVertexBuffer( ps->vb_feedback, ps->particles_feedback.begin(), ps->num_particles * sizeof( GPUParticleFeedback ) );
+			ReadGPUBuffer( ps->vb_feedback, ps->particles_feedback.begin(), ps->num_particles * sizeof( GPUParticleFeedback ) );
 
 			for( size_t i = 0; i < ps->num_particles; i++ ) {
 				size_t index = ps->gpu_instances[ i ];
@@ -822,7 +822,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	{
 		ZoneScopedN( "Spawn new particles" );
 		if( ps->new_particles > 0 ) {
-			WriteVertexBuffer( ps->vb, ps->particles.begin(), ps->new_particles * sizeof( GPUParticle ), previous_num_particles * sizeof( GPUParticle ) );
+			WriteGPUBuffer( ps->vb, ps->particles.begin(), ps->new_particles * sizeof( GPUParticle ), previous_num_particles * sizeof( GPUParticle ) );
 			for( size_t i = 0; i < ps->new_particles; i++ ) {
 				ps->gpu_instances[ ps->num_particles + i ] = previous_num_particles + i;
 				if( !ps->feedback ) {
@@ -837,7 +837,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 
 	{
 		ZoneScopedN( "Upload index buffer" );
-		WriteIndexBuffer( ps->ibo, ps->gpu_instances.begin(), ps->num_particles * sizeof( ps->gpu_instances[ 0 ] ) );
+		WriteGPUBuffer( ps->ibo, ps->gpu_instances.begin(), ps->num_particles * sizeof( ps->gpu_instances[ 0 ] ) );
 	}
 
 	{

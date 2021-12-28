@@ -92,8 +92,8 @@ void InitDecals() {
 	last_viewport_width = U32_MAX;
 	last_viewport_height = U32_MAX;
 
-	decals_buffer = NewGPUBuffer( NULL, sizeof( decals ), "Decals" );
-	dlights_buffer = NewGPUBuffer( NULL, sizeof( dlights ), "Dynamic lights" );
+	decals_buffer = NewGPUBuffer( sizeof( decals ), "Decals" );
+	dlights_buffer = NewGPUBuffer( sizeof( dlights ), "Dynamic lights" );
 }
 
 void ShutdownDecals() {
@@ -304,15 +304,15 @@ void AllocateDecalBuffers() {
 
 		FREE( sys_allocator, gpu_decal_tiles.ptr );
 		gpu_decal_tiles = ALLOC_SPAN2D( sys_allocator, DecalTile, cols, rows );
-		decal_tiles_buffer = NewGPUBuffer( NULL, gpu_decal_tiles.num_bytes() );
+		decal_tiles_buffer = NewGPUBuffer( gpu_decal_tiles.num_bytes(), "Decal tile indices" );
 
 		FREE( sys_allocator, gpu_dlight_tiles.ptr );
 		gpu_dlight_tiles = ALLOC_SPAN2D( sys_allocator, DynamicLightTile, cols, rows );
-		dlight_tiles_buffer = NewGPUBuffer( NULL, gpu_dlight_tiles.num_bytes() );
+		dlight_tiles_buffer = NewGPUBuffer( gpu_dlight_tiles.num_bytes(), "Dynamic light tile indices" );
 
 		FREE( sys_allocator, gpu_dynamic_counts.ptr );
 		gpu_dynamic_counts = ALLOC_SPAN2D( sys_allocator, DynamicCount, cols, rows );
-		dynamic_count = NewGPUBuffer( NULL, gpu_dynamic_counts.num_bytes() );
+		dynamic_count = NewGPUBuffer( gpu_dynamic_counts.num_bytes(), "Dynamics tile counts" );
 
 		last_viewport_width = frame_static.viewport_width;
 		last_viewport_height = frame_static.viewport_height;

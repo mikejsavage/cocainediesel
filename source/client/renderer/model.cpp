@@ -19,7 +19,7 @@ struct ModelInstanceGroup {
 	T instances[ MAX_INSTANCES ];
 	u32 num_instances;
 	PipelineState pipeline;
-	VertexBuffer instance_data;
+	GPUBuffer instance_data;
 	const Model * model;
 	const Model::Primitive * primitive;
 };
@@ -133,7 +133,7 @@ void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive
 	}
 }
 
-static void DrawModelPrimitiveInstanced( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline, VertexBuffer instance_data, u32 num_instances, InstanceType instance_type ) {
+static void DrawModelPrimitiveInstanced( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline, GPUBuffer instance_data, u32 num_instances, InstanceType instance_type ) {
 	if( primitive->num_vertices != 0 ) {
 		u32 index_size = model->mesh.indices_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
 		DrawInstancedMesh( model->mesh, pipeline, instance_data, num_instances, instance_type, primitive->num_vertices, primitive->first_index * index_size );
@@ -329,26 +329,26 @@ void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transf
 void InitModelInstances() {
 	ZoneScoped;
 	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
-		model_instance_collection.groups[ i ].instance_data = NewVertexBuffer( sizeof( GPUModelInstance ) * MAX_INSTANCES );
+		model_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelInstance ) * MAX_INSTANCES );
 		model_instance_collection.num_groups = 0;
 
-		model_shadows_instance_collection.groups[ i ].instance_data = NewVertexBuffer( sizeof( GPUModelShadowsInstance ) * MAX_INSTANCES );
+		model_shadows_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelShadowsInstance ) * MAX_INSTANCES );
 		model_shadows_instance_collection.num_groups = 0;
 
-		model_outlines_instance_collection.groups[ i ].instance_data = NewVertexBuffer( sizeof( GPUModelOutlinesInstance ) * MAX_INSTANCES );
+		model_outlines_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelOutlinesInstance ) * MAX_INSTANCES );
 		model_outlines_instance_collection.num_groups = 0;
 
-		model_silhouette_instance_collection.groups[ i ].instance_data = NewVertexBuffer( sizeof( GPUModelSilhouetteInstance ) * MAX_INSTANCES );
+		model_silhouette_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelSilhouetteInstance ) * MAX_INSTANCES );
 		model_silhouette_instance_collection.num_groups = 0;
 	}
 }
 
 void ShutdownModelInstances() {
 	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
-		DeleteVertexBuffer( model_instance_collection.groups[ i ].instance_data );
-		DeleteVertexBuffer( model_shadows_instance_collection.groups[ i ].instance_data );
-		DeleteVertexBuffer( model_outlines_instance_collection.groups[ i ].instance_data );
-		DeleteVertexBuffer( model_silhouette_instance_collection.groups[ i ].instance_data );
+		DeleteGPUBuffer( model_instance_collection.groups[ i ].instance_data );
+		DeleteGPUBuffer( model_shadows_instance_collection.groups[ i ].instance_data );
+		DeleteGPUBuffer( model_outlines_instance_collection.groups[ i ].instance_data );
+		DeleteGPUBuffer( model_silhouette_instance_collection.groups[ i ].instance_data );
 	}
 }
 
@@ -356,7 +356,7 @@ template< typename T >
 static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collection, InstanceType instance_type ) {
 	for( u32 i = 0; i < collection.num_groups; i++ ) {
 		ModelInstanceGroup< T > & group = collection.groups[ i ];
-		WriteVertexBuffer( group.instance_data, group.instances, sizeof( T ) * group.num_instances );
+		WriteGPUBuffer( group.instance_data, group.instances, sizeof( T ) * group.num_instances );
 		DrawModelPrimitiveInstanced( group.model, group.primitive, group.pipeline, group.instance_data, group.num_instances, instance_type );
 		group.num_instances = 0;
 	}

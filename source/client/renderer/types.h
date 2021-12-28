@@ -32,9 +32,6 @@ struct GPUBuffer {
 	u32 buffer;
 };
 
-using VertexBuffer = GPUBuffer;
-using IndexBuffer = GPUBuffer;
-
 struct UniformBlock {
 	u32 ubo;
 	u32 offset;

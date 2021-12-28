@@ -327,7 +327,9 @@ void AddResolveMSAAPass( const char * name, const tracy::SourceLocationData * tr
 UniformBlock UploadUniforms( const void * data, size_t size );
 
 GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name = NULL );
+GPUBuffer NewGPUBuffer( u32 len, const char * name = NULL );
 void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 len, u32 offset = 0 );
+void ReadGPUBuffer( GPUBuffer buf, void * data, u32 len, u32 offset = 0 );
 void DeleteGPUBuffer( GPUBuffer buf );
 void DeferDeleteGPUBuffer( GPUBuffer buf );
 
@@ -341,28 +343,7 @@ void WriteGPUBuffer( GPUBuffer buf, Span< T > data, u32 offset = 0 ) {
 	WriteGPUBuffer( buf, data.ptr, data.num_bytes(), offset );
 }
 
-GPUBuffer NewVertexBuffer( const void * data, u32 len );
-GPUBuffer NewVertexBuffer( u32 len );
-void WriteVertexBuffer( GPUBuffer vb, const void * data, u32 size, u32 offset = 0 );
-void DeleteVertexBuffer( GPUBuffer vb );
-
-template< typename T >
-GPUBuffer NewVertexBuffer( Span< T > data ) {
-	return NewVertexBuffer( data.ptr, data.num_bytes() );
-}
-
-GPUBuffer NewParticleVertexBuffer( u32 n );
-
-GPUBuffer NewIndexBuffer( const void * data, u32 len );
-GPUBuffer NewIndexBuffer( u32 len );
-void WriteIndexBuffer( GPUBuffer ib, const void * data, u32 size, u32 offset = 0 );
-void ReadVertexBuffer( GPUBuffer vb, void * data, u32 len, u32 offset = 0 );
-void DeleteIndexBuffer( GPUBuffer ib );
-
-template< typename T >
-GPUBuffer NewIndexBuffer( Span< T > data ) {
-	return NewIndexBuffer( data.ptr, data.num_bytes() );
-}
+GPUBuffer NewParticleGPUBuffer( u32 n );
 
 Texture NewTexture( const TextureConfig & config );
 void DeleteTexture( Texture texture );

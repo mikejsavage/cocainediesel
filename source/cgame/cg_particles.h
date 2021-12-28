@@ -104,10 +104,10 @@ struct ParticleSystem {
 	Span< u32 > gpu_instances;
 	Span< s64 > gpu_instances_time;
 
-	IndexBuffer ibo;
-	VertexBuffer vb;
-	VertexBuffer vb2;
-	VertexBuffer vb_feedback;
+	GPUBuffer ibo;
+	GPUBuffer vb;
+	GPUBuffer vb2;
+	GPUBuffer vb_feedback;
 
 	Mesh mesh;
 	Mesh update_mesh;

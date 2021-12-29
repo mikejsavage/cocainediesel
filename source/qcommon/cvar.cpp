@@ -263,6 +263,8 @@ void Cvar_WriteVariables( DynamicString * config ) {
 
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
 		const Cvar * cvar = &cvars[ i ];
+		if( !HasFlag( cvar->flags, CvarFlag_Archive ) )
+			continue;
 		if( !HasFlag( cvar->flags, CvarFlag_FromConfig ) && StrEqual( cvar->value, cvar->default_value ) )
 			continue;
 		lines.add( ( *sys_allocator )( "set {} \"{}\"\r\n", cvar->name, cvar->value ) );

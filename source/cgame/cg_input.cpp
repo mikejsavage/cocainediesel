@@ -36,7 +36,6 @@ static Button button_right;
 static Button button_jump;
 static Button button_special;
 static Button button_crouch;
-static Button button_walk;
 
 static Button button_attack;
 static Button button_gadget;
@@ -114,8 +113,6 @@ static void IN_SpecialDown() { KeyDown( &button_special ); }
 static void IN_SpecialUp() { KeyUp( &button_special ); }
 static void IN_CrouchDown() { KeyDown( &button_crouch ); }
 static void IN_CrouchUp() { KeyUp( &button_crouch ); }
-static void IN_WalkDown() { KeyDown( &button_walk ); }
-static void IN_WalkUp() { KeyUp( &button_walk ); }
 
 static void IN_AttackDown() { KeyDown( &button_attack ); }
 static void IN_AttackUp() { KeyUp( &button_attack ); }
@@ -143,10 +140,6 @@ u8 CG_GetButtonBits() {
 		buttons |= BUTTON_RELOAD;
 	}
 
-	if( button_walk.down ) {
-		buttons |= BUTTON_WALK;
-	}
-
 	return buttons;
 }
 
@@ -169,15 +162,10 @@ u8 CG_GetButtonDownEdges() {
 		edges |= BUTTON_RELOAD;
 	}
 
-	if( button_walk.down && button_walk.edge ) {
-		edges |= BUTTON_WALK;
-	}
-
 	button_attack.edge = false;
 	button_gadget.edge = false;
 	button_special.edge = false;
 	button_reload.edge = false;
-	button_walk.edge = false;
 
 	return edges;
 }
@@ -322,7 +310,6 @@ void CG_ClearInputState() {
 	ClearButton( &button_jump );
 	ClearButton( &button_special );
 	ClearButton( &button_crouch );
-	ClearButton( &button_walk );
 
 	ClearButton( &button_attack );
 	ClearButton( &button_gadget );
@@ -349,8 +336,6 @@ void CG_InitInput() {
 	AddCommand( "-special", IN_SpecialUp );
 	AddCommand( "+crouch", IN_CrouchDown );
 	AddCommand( "-crouch", IN_CrouchUp );
-	AddCommand( "+walk", IN_WalkDown );
-	AddCommand( "-walk", IN_WalkUp );
 
 	AddCommand( "+attack", IN_AttackDown );
 	AddCommand( "-attack", IN_AttackUp );
@@ -386,8 +371,6 @@ void CG_ShutdownInput() {
 	RemoveCommand( "-special" );
 	RemoveCommand( "+crouch" );
 	RemoveCommand( "-crouch" );
-	RemoveCommand( "+walk" );
-	RemoveCommand( "-walk" );
 
 	RemoveCommand( "+attack" );
 	RemoveCommand( "-attack" );

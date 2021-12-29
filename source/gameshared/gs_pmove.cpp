@@ -62,7 +62,6 @@ typedef struct {
 	float forwardPush, sidePush, upPush;
 
 	float maxPlayerSpeed;
-	float maxWalkSpeed;
 	float maxCrouchedSpeed;
 	float jumpPlayerSpeed;
 	float jumpPlayerSpeedWater;
@@ -75,8 +74,7 @@ static const gs_state_t * pmove_gs;
 
 // movement parameters
 
-#define DEFAULT_WALKSPEED 160.0f
-#define DEFAULT_CROUCHEDSPEED 100.0f
+#define DEFAULT_CROUCHEDSPEED 160.0f
 #define DEFAULT_LADDERSPEED 300.0f
 
 constexpr float pm_friction = 16; //  ( initially 6 )
@@ -101,7 +99,7 @@ constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
 constexpr float pm_wjbouncefactor = 0.4f;
 
 static float pm_wjminspeed() {
-	return ( pml.maxWalkSpeed + pml.maxPlayerSpeed ) * 0.5f;
+	return ( pml.maxCrouchedSpeed + pml.maxPlayerSpeed ) * 0.5f;
 }
 
 static float Normalize2D( Vec3 * v ) {
@@ -478,14 +476,11 @@ static void PM_Aircontrol( Vec3 wishdir, float wishspeed ) {
 
 static Vec3 PM_LadderMove( Vec3 wishvel ) {
 	if( pml.ladder && Abs( pml.velocity.z ) <= DEFAULT_LADDERSPEED ) {
-		if( pml.forwardPush > 0 ) {
-			wishvel.z = Lerp( -float( DEFAULT_LADDERSPEED ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( DEFAULT_LADDERSPEED ) );
-		}
-		else if( pml.upPush > 0 ) {
+		if( pml.upPush > 0 ) { //jump
 			wishvel.z = DEFAULT_LADDERSPEED;
 		}
-		else if( pml.upPush < 0 ) {
-			wishvel.z = -DEFAULT_LADDERSPEED;
+		else if( pml.forwardPush > 0 ) {
+			wishvel.z = Lerp( -float( DEFAULT_LADDERSPEED ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( DEFAULT_LADDERSPEED ) );
 		}
 		else {
 			wishvel.z = 0;
@@ -542,8 +537,6 @@ static void PM_Move() {
 	float maxspeed;
 	if( pm->playerState->pmove.crouch_time ) {
 		maxspeed = pml.maxCrouchedSpeed;
-	} else if( ( pm->cmd.buttons & BUTTON_WALK ) && ( pm->playerState->pmove.features & PMFEAT_WALK ) ) {
-		maxspeed = pml.maxWalkSpeed;
 	} else {
 		maxspeed = pml.maxPlayerSpeed;
 	}
@@ -1233,11 +1226,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	pml.dashPlayerSpeed = ps->pmove.dash_speed;
 	if( pml.dashPlayerSpeed < 0 ) {
 		pml.dashPlayerSpeed = DEFAULT_DASHSPEED;
-	}
-
-	pml.maxWalkSpeed = DEFAULT_WALKSPEED;
-	if( pml.maxWalkSpeed > pml.maxPlayerSpeed * 0.66f ) {
-		pml.maxWalkSpeed = pml.maxPlayerSpeed * 0.66f;
 	}
 
 	pml.maxCrouchedSpeed = DEFAULT_CROUCHEDSPEED;

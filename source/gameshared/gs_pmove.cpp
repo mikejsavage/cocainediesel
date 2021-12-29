@@ -376,7 +376,7 @@ static Vec3 PM_LadderMove( Vec3 wishvel ) {
 		if( pml.upPush > 0 ) { //jump
 			wishvel.z = DEFAULT_LADDERSPEED;
 		}
-		else if( pml.forwardPush != 0 ) {
+		else if( pml.forwardPush > 0 ) {
 			wishvel.z = Lerp( -float( DEFAULT_LADDERSPEED ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( DEFAULT_LADDERSPEED ) );
 		}
 		else {

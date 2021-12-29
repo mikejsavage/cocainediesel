@@ -165,13 +165,12 @@ int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec
 
 // pmove->pm_features
 #define PMFEAT_CROUCH           ( 1 << 0 )
-#define PMFEAT_WALK             ( 1 << 1 )
-#define PMFEAT_JUMP             ( 1 << 2 )
-#define PMFEAT_SPECIAL          ( 1 << 3 )
-#define PMFEAT_SCOPE            ( 1 << 4 )
-#define PMFEAT_GHOSTMOVE        ( 1 << 5 )
-#define PMFEAT_WEAPONSWITCH     ( 1 << 6 )
-#define PMFEAT_TEAMGHOST        ( 1 << 7 )
+#define PMFEAT_JUMP             ( 1 << 1 )
+#define PMFEAT_SPECIAL          ( 1 << 2 )
+#define PMFEAT_SCOPE            ( 1 << 3 )
+#define PMFEAT_GHOSTMOVE        ( 1 << 4 )
+#define PMFEAT_WEAPONSWITCH     ( 1 << 5 )
+#define PMFEAT_TEAMGHOST        ( 1 << 6 )
 
 #define PMFEAT_ALL              ( 0xFFFF )
 #define PMFEAT_DEFAULT          ( PMFEAT_ALL & ~PMFEAT_GHOSTMOVE & ~PMFEAT_TEAMGHOST )

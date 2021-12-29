@@ -38,6 +38,10 @@ static void CG_SC_ChatPrint() {
 		return;
 	}
 
+	if( cg_chat->integer == 2 && !teamonly ) {
+		return;
+	}
+
 	const char * text = Cmd_Argv( 2 );
 
 	if( who == 0 ) {

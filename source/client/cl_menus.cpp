@@ -665,8 +665,12 @@ static void DemoBrowser() {
 		ImGui::NextColumn();
 		ImGui::Text( "%s", demo.date );
 		ImGui::NextColumn();
+
+		bool old_version = !StrEqual( demo.version, APP_VERSION );
+		ImGui::PushStyleColor( ImGuiCol_Text, old_version ? vec4_red : vec4_green );
 		ImGui::Text( "%s", demo.version );
 		ImGui::NextColumn();
+		ImGui::PopStyleColor();
 
 		if( clicked && ImGui::IsMouseDoubleClicked( 0 ) ) {
 			const char * cmd = yolodemo ? "yolodemo" : "demo";

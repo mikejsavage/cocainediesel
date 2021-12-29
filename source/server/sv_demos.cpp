@@ -27,6 +27,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
+#include "qcommon/version.h"
 
 #define SV_DEMO_DIR va( "demos/server%s%s", sv_demodir->value[0] ? "/" : "", sv_demodir->value[0] ? sv_demodir->value : "" )
 
@@ -199,6 +200,7 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 		SV_SetDemoMetaKeyValue( "duration", temp( "{}", (int)ceilf( (double)svs.demo.duration / 1000.0 ) ) );
 		SV_SetDemoMetaKeyValue( "mapname", sv.mapname );
 		SV_SetDemoMetaKeyValue( "matchscore", sv.configstrings[CS_MATCHSCORE] );
+		SV_SetDemoMetaKeyValue( "version", APP_VERSION );
 
 		SNAP_WriteDemoMetaData( svs.demo.tempname, svs.demo.meta_data, svs.demo.meta_data_realsize );
 

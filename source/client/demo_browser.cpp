@@ -100,6 +100,7 @@ void DemoBrowserFrame() {
 		demo->have_details = true;
 		ggformat( demo->server, sizeof( demo->server ), "{}", GetDemoKey( metadata, "hostname" ) );
 		ggformat( demo->map, sizeof( demo->map ), "{}", GetDemoKey( metadata, "mapname" ) );
+		ggformat( demo->version, sizeof( demo->version ), "{}", GetDemoKey( metadata, "version" ) );
 
 		s64 timestamp = SpanToInt( GetDemoKey( metadata, "localtime" ), 0 );
 		Sys_FormatTimestamp( demo->date, sizeof( demo->date ), "%Y-%m-%d %H:%M", timestamp );

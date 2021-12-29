@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "client/client.h"
 #include "qcommon/fs.h"
+#include "qcommon/version.h"
 
 static void CL_PauseDemo( bool paused );
 
@@ -59,6 +60,7 @@ void CL_Stop_f() {
 	CL_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceilf( (double)cls.demo.duration / 1000.0 ) ) );
 	CL_SetDemoMetaKeyValue( "mapname", cl.map->name );
 	CL_SetDemoMetaKeyValue( "matchscore", cl.configstrings[CS_MATCHSCORE] );
+	CL_SetDemoMetaKeyValue( "version", APP_VERSION );
 
 	FS_FCloseFile( cls.demo.file );
 

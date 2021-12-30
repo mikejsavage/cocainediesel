@@ -351,6 +351,9 @@ bool Qcommon_Frame( unsigned int realMsec ) {
 				break;
 			Cbuf_ExecuteLine( s );
 		}
+
+		// process console commands
+		Cbuf_Execute();
 	}
 
 	SV_Frame( realMsec, gameMsec );

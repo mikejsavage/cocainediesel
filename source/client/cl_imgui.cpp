@@ -157,8 +157,17 @@ static void SubmitDrawCalls() {
 
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
 
-		if( cmd_list->VtxBuffer.Size == 0 || cmd_list->IdxBuffer.Size == 0 )
+		if( cmd_list->VtxBuffer.Size == 0 || cmd_list->IdxBuffer.Size == 0 ) {
+			// TODO: this is a hack to separate drawcalls into 2 passes
+			if( cmd_list->CmdBuffer.Size > 0 ) {
+				const ImDrawCmd * cmd = &cmd_list->CmdBuffer[ 0 ];
+				u32 new_pass = u32( uintptr_t( cmd->UserCallbackData ) );
+				if( new_pass != 0 ) {
+					pass = new_pass;
+				}
+			}
 			continue;
+		}
 
 		MeshConfig config;
 		config.name = temp( "ImGui - {}", n );
@@ -181,12 +190,6 @@ static void SubmitDrawCalls() {
 				MinMax2 scissor = MinMax2( Vec2( pcmd->ClipRect.x - pos.x, pcmd->ClipRect.y - pos.y ), Vec2( pcmd->ClipRect.z - pos.x, pcmd->ClipRect.w - pos.y ) );
 				if( scissor.mins.x < fb_width && scissor.mins.y < fb_height && scissor.maxs.x >= 0.0f && scissor.maxs.y >= 0.0f ) {
 					PipelineState pipeline;
-
-					// TODO: this is a hack to separate drawcalls into 2 passes
-					u32 new_pass = u32( uintptr_t( pcmd->UserCallbackData ) );
-					if( new_pass != 0 ) {
-						pass = new_pass;
-					}
 					pipeline.pass = pass == 0 ? frame_static.ui_pass : frame_static.post_ui_pass;
 					pipeline.shader = pcmd->TextureId.shader;
 					pipeline.depth_func = DepthFunc_Disabled;

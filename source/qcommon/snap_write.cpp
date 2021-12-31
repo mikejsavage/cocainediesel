@@ -665,7 +665,6 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 		state = &client_entities->entities[ne % client_entities->num_entities];
 
 		*state = ent->s;
-		state->svflags = ent->s.svflags;
 
 		frame->num_entities++;
 		ne++;

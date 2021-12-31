@@ -108,6 +108,7 @@ enum WeaponState : u8 {
 	WeaponState_FiringSmooth,
 	WeaponState_FiringEntireClip,
 	WeaponState_Reloading,
+	WeaponState_StagedReloading,
 
 	WeaponState_Cooking,
 	WeaponState_Throwing,

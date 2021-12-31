@@ -22,7 +22,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 8,
 		/* clip size            */ 0,
 		/* reload time          */ 0,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_FAST,
@@ -59,7 +59,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 15,
 		/* reload time          */ 1500,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_FAST,
@@ -96,7 +96,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 25,
 		/* reload time          */ 1500,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
@@ -134,7 +134,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 7,
 		/* reload time          */ 1500,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
@@ -170,8 +170,8 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 25,
 		/* clip size            */ 5,
-		/* reload time          */ 600,
-		/* staged reloading     */ true,
+		/* reload time          */ 1000,
+		/* staged reload time   */ 600,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_SLOW,
@@ -208,7 +208,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 6,
 		/* reload time          */ 600,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
@@ -245,7 +245,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 1,
 		/* reload time          */ 1000,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
@@ -282,7 +282,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 5,
 		/* reload time          */ 600,
-		/* staged reloading     */ true,
+		/* staged reload time   */ 600,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_SLOW,
@@ -318,8 +318,8 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 1,
 		/* clip size            */ 5,
-		/* reload time          */ 600,
-		/* staged reloading     */ true,
+		/* reload time          */ 1000,
+		/* staged reload time   */ 600,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_SLOW,
@@ -356,7 +356,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 30,
 		/* reload time          */ 1500,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
@@ -393,7 +393,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 15,
 		/* reload time          */ 1500,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
@@ -430,7 +430,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 40,
 		/* reload time          */ 1500,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_FAST,
@@ -467,7 +467,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 0,
 		/* reload time          */ 500, // time to fully charge for rail
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_SLOW,
@@ -504,7 +504,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 1,
 		/* reload time          */ 2000,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_VERY_SLOW,
@@ -541,7 +541,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 8,
 		/* reload time          */ 1500,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
@@ -578,7 +578,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 5,
 		/* reload time          */ 2000,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
@@ -615,7 +615,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 10,
 		/* clip size            */ 6,
 		/* reload time          */ 1500,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
@@ -652,7 +652,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 20,
 		/* reload time          */ 1500,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_FAST,
@@ -689,7 +689,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 12,
 		/* reload time          */ 1500,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_FAST,
@@ -727,7 +727,7 @@ const WeaponDef weapon_defs[] = {
 		/* projectile count     */ 1,
 		/* clip size            */ 0,
 		/* reload time          */ 0,
-		/* staged reloading     */ false,
+		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_VERY_SLOW,

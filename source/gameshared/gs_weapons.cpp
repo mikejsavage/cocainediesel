@@ -336,19 +336,34 @@ static ItemState generic_gun_states[] = {
 			return AllowWeaponSwitch( gs, ps, state );
 		}
 
-		if( def->staged_reloading ) {
-
-			slot->ammo++;
-			gs->api.PredictedEvent( ps->POVnum, EV_WEAPONACTIVATE, ps->weapon << 1 );
-			return slot->ammo == def->clip_size ||
-			   ( ( cmd->buttons & BUTTON_ATTACK ) != 0 && HasAmmo( def, slot ) ) ?
-				   WeaponState_Idle : ForceReset( state );
+		if( def->staged_reload_time != 0 ) {
+			ps->weapon_state_time = def->staged_reload_time;
+			return NoReset( WeaponState_StagedReloading );
 		}
 
 		slot->ammo = def->clip_size;
 		gs->api.PredictedEvent( ps->POVnum, EV_WEAPONACTIVATE, ps->weapon << 1 );
 
 		return WeaponState_Idle;
+	} ),
+
+	ItemState( WeaponState_StagedReloading, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
+		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+		WeaponSlot * slot = GetSelectedWeapon( ps );
+
+		if( ps->weapon_state_time < def->staged_reload_time ) {
+			return AllowWeaponSwitch( gs, ps, state );
+		}
+
+		slot->ammo++;
+		gs->api.PredictedEvent( ps->POVnum, EV_WEAPONACTIVATE, ps->weapon << 1 );
+
+		bool shoot = ( cmd->buttons & BUTTON_ATTACK ) != 0 && HasAmmo( def, slot );
+		if( slot->ammo == def->clip_size || shoot ) {
+			return WeaponState_Idle;
+		}
+
+		return ForceReset( WeaponState_StagedReloading );
 	} ),
 };
 

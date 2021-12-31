@@ -23,7 +23,7 @@ struct WeaponDef {
 	int projectile_count;
 	int clip_size;
 	u16 reload_time;
-	bool staged_reloading;
+	u16 staged_reload_time;
 
 	u16 switch_in_time;
 	u16 switch_out_time;

@@ -54,8 +54,9 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 		frac *= frac; //smoother curve
 		angles->x += Lerp( 0.0f, frac, 60.0f );
 	}
-	else if( ps->weapon_state == WeaponState_Reloading ) {
-		float frac = float( ps->weapon_state_time ) / float( def->reload_time );
+	else if( ps->weapon_state == WeaponState_Reloading || ps->weapon_state == WeaponState_StagedReloading ) {
+		float t = ps->weapon_state == WeaponState_Reloading ? def->reload_time : def->staged_reload_time;
+		float frac = float( ps->weapon_state_time ) / t;
 		angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
 	}
 	else if( ps->weapon == Weapon_Railgun && ps->weapon_state == WeaponState_Cooking ) {

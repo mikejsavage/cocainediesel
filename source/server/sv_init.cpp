@@ -202,7 +202,7 @@ void SV_InitGame() {
 static void SV_FinalMessage( const char *message, bool reconnect ) {
 	for( int i = 0; i < sv_maxclients->integer; i++ ) {
 		client_t * cl = &svs.clients[ i ];
-		if( cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		if( cl->edict && ( cl->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			continue;
 		}
 		if( cl->state >= CS_CONNECTING ) {
@@ -279,7 +279,7 @@ void SV_Map( const char * map, bool devmap ) {
 	// remove all bots before changing map
 	for( int i = 0; i < sv_maxclients->integer; i++ ) {
 		client_t * cl = &svs.clients[ i ];
-		if( cl->state && cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		if( cl->state && cl->edict && ( cl->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			SV_DropClient( cl, DROP_TYPE_GENERAL, NULL );
 		}
 	}

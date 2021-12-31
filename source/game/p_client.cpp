@@ -66,7 +66,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->r.owner = ent->r.owner;
 	body->s.team = ent->s.team;
 	body->s.scale = ent->s.scale;
-	body->r.svflags = SVF_CORPSE | SVF_BROADCAST;
+	body->s.svflags = SVF_CORPSE | SVF_BROADCAST;
 	body->activator = ent;
 	if( g_deadbody_followkiller->integer ) {
 		body->enemy = attacker;
@@ -110,7 +110,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	}
 
 	edict_t * event = G_SpawnEvent( EV_DIE, parm, NULL );
-	event->r.svflags |= SVF_BROADCAST;
+	event->s.svflags |= SVF_BROADCAST;
 	event->s.ownerNum = body->s.number;
 
 	ent->s.ownerNum = body->s.number;
@@ -246,7 +246,7 @@ void G_GhostClient( edict_t *ent ) {
 void G_ClientRespawn( edict_t *self, bool ghost ) {
 	GT_CallPlayerRespawning( self );
 
-	self->r.svflags &= ~SVF_NOCLIENT;
+	self->s.svflags &= ~SVF_NOCLIENT;
 
 	//if invalid be spectator
 	if( self->r.client->team < 0 || self->r.client->team >= GS_MAX_TEAMS ) {
@@ -269,9 +269,9 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	client->resp.timeStamp = level.time;
 	client->ps.playerNum = PLAYERNUM( self );
 
-	int old_svflags = self->r.svflags;
+	int old_svflags = self->s.svflags;
 	G_InitEdict( self );
-	self->r.svflags = old_svflags;
+	self->s.svflags = old_svflags;
 
 	// relink client struct
 	self->r.client = &game.clients[PLAYERNUM( self )];
@@ -288,13 +288,13 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->r.clipmask = MASK_PLAYERSOLID;
 	self->waterlevel = 0;
 	self->watertype = 0;
-	self->r.svflags &= ~SVF_CORPSE;
+	self->s.svflags &= ~SVF_CORPSE;
 	self->enemy = NULL;
 	self->r.owner = NULL;
 	self->max_health = 100;
 	self->health = self->max_health;
 
-	if( self->r.svflags & SVF_FAKECLIENT ) {
+	if( self->s.svflags & SVF_FAKECLIENT ) {
 		self->classname = "fakeclient";
 	} else {
 		self->classname = "player";
@@ -361,7 +361,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	GClip_LinkEntity( self );
 
-	if( self->r.svflags & SVF_FAKECLIENT ) {
+	if( self->s.svflags & SVF_FAKECLIENT ) {
 		AI_Respawn( self );
 	}
 
@@ -675,7 +675,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 	G_InitEdict( ent );
 	ent->r.solid = SOLID_NOT;
 	ent->r.client = game.clients + PLAYERNUM( ent );
-	ent->r.svflags = ( SVF_NOCLIENT | ( fakeClient ? SVF_FAKECLIENT : 0 ) );
+	ent->s.svflags = ( SVF_NOCLIENT | ( fakeClient ? SVF_FAKECLIENT : 0 ) );
 	memset( ent->r.client, 0, sizeof( gclient_t ) );
 	ent->r.client->ps.playerNum = PLAYERNUM( ent );
 	ent->r.client->connecting = true;
@@ -724,7 +724,7 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 	G_ClientRespawn( ent, true ); // respawn as ghost
 
 	ent->r.inuse = false;
-	ent->r.svflags = SVF_NOCLIENT;
+	ent->s.svflags = SVF_NOCLIENT;
 
 	memset( ent->r.client, 0, sizeof( *ent->r.client ) );
 	ent->r.client->ps.playerNum = PLAYERNUM( ent );
@@ -832,7 +832,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	client->ps.playerNum = PLAYERNUM( ent );
 
 	// anti-lag
-	if( ent->r.svflags & SVF_FAKECLIENT ) {
+	if( ent->s.svflags & SVF_FAKECLIENT ) {
 		client->timeDelta = 0;
 	} else {
 		int fixedNudge = game.snapFrameTime * 0.5; // fixme: find where this nudge comes from.
@@ -960,7 +960,7 @@ void G_ClientThink( edict_t *ent ) {
 	ent->r.client->ps.POVnum = ENTNUM( ent ); // set self
 
 	// run bots thinking with the rest of clients
-	if( ent->r.svflags & SVF_FAKECLIENT ) {
+	if( ent->s.svflags & SVF_FAKECLIENT ) {
 		AI_Think( ent );
 	}
 

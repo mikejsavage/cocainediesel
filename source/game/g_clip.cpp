@@ -713,12 +713,12 @@ static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 			}
 
 			// wsw : jal : never clipmove against SVF_PROJECTILE entities
-			if( touch->r.svflags & SVF_PROJECTILE ) {
+			if( touch->s.svflags & SVF_PROJECTILE ) {
 				continue;
 			}
 		}
 
-		if( ( touch->r.svflags & SVF_CORPSE ) && !( clip->contentmask & CONTENTS_CORPSE ) ) {
+		if( ( touch->s.svflags & SVF_CORPSE ) && !( clip->contentmask & CONTENTS_CORPSE ) ) {
 			continue;
 		}
 

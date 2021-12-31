@@ -68,7 +68,7 @@ static void SV_CalcPings() {
 		if( cl->state != CS_SPAWNED ) {
 			continue;
 		}
-		if( cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		if( cl->edict && ( cl->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			continue;
 		}
 
@@ -166,7 +166,7 @@ static void SV_ReadPackets() {
 				if( cl->state == CS_FREE || cl->state == CS_ZOMBIE ) {
 					continue;
 				}
-				if( cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
+				if( cl->edict && ( cl->edict->s.svflags & SVF_FAKECLIENT ) ) {
 					continue;
 				}
 
@@ -236,7 +236,7 @@ static void SV_CheckTimeouts() {
 	// timeout clients
 	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
 		// fake clients do not timeout
-		if( cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		if( cl->edict && ( cl->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			cl->lastPacketReceivedTime = svs.realtime;
 		}
 		// message times may be wrong across a changelevel
@@ -454,7 +454,7 @@ void SV_UserinfoChanged( client_t *client ) {
 	assert( client );
 	assert( Info_Validate( client->userinfo ) );
 
-	if( !client->edict || !( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( !client->edict || !( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		// force the IP key/value pair so the game can filter based on ip
 		if( !Info_SetValueForKey( client->userinfo, "socket", NET_SocketTypeToString( client->netchan.socket->type ) ) ) {
 			SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Couldn't set userinfo (socket)\n" );

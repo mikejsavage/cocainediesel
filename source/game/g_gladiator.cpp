@@ -37,7 +37,7 @@ static void SpikesTouched( edict_t * self, edict_t * other, Plane * plane, int s
 }
 
 void SP_spike( edict_t * spike ) {
-	spike->r.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
+	spike->s.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
 	spike->r.solid = SOLID_TRIGGER;
 	spike->s.radius = spike->spawnflags & 1;
 
@@ -59,7 +59,7 @@ void SP_spike( edict_t * spike ) {
 	GClip_LinkEntity( spike );
 
 	edict_t * base = G_Spawn();
-	base->r.svflags &= ~SVF_NOCLIENT;
+	base->s.svflags &= ~SVF_NOCLIENT;
 	base->r.mins = bounds.mins;
 	base->r.maxs = bounds.maxs;
 	base->s.origin = spike->s.origin;
@@ -69,7 +69,7 @@ void SP_spike( edict_t * spike ) {
 }
 
 void SP_spikes( edict_t * spikes ) {
-	spikes->r.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
+	spikes->s.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
 	spikes->r.solid = SOLID_TRIGGER;
 	spikes->s.radius = spikes->spawnflags & 1;
 
@@ -91,7 +91,7 @@ void SP_spikes( edict_t * spikes ) {
 	GClip_LinkEntity( spikes );
 
 	edict_t * base = G_Spawn();
-	base->r.svflags &= ~SVF_NOCLIENT;
+	base->s.svflags &= ~SVF_NOCLIENT;
 	base->r.mins = bounds.mins;
 	base->r.maxs = bounds.maxs;
 	base->s.origin = spikes->s.origin;

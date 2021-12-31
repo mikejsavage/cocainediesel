@@ -60,7 +60,7 @@ void SV_Demo_WriteSnap() {
 
 	for( i = 0; i < sv_maxclients->integer; i++ ) {
 		if( svs.clients[i].state >= CS_SPAWNED && svs.clients[i].edict &&
-			!( svs.clients[i].edict->r.svflags & SVF_NOCLIENT ) ) {
+			!( svs.clients[i].edict->s.svflags & SVF_NOCLIENT ) ) {
 			break;
 		}
 	}
@@ -116,7 +116,7 @@ void SV_Demo_Start_f() {
 
 	bool any_players = false;
 	for( int i = 0; i < sv_maxclients->integer; i++ ) {
-		if( svs.clients[i].state >= CS_SPAWNED && svs.clients[i].edict && !( svs.clients[i].edict->r.svflags & SVF_NOCLIENT ) ) {
+		if( svs.clients[i].state >= CS_SPAWNED && svs.clients[i].edict && !( svs.clients[i].edict->s.svflags & SVF_NOCLIENT ) ) {
 			any_players = true;
 			break;
 		}

@@ -549,7 +549,7 @@ void G_RunEntity( edict_t *ent ) {
 		return;
 	}
 
-	if( ent->timeDelta && !( ent->r.svflags & SVF_PROJECTILE ) ) {
+	if( ent->timeDelta && !( ent->s.svflags & SVF_PROJECTILE ) ) {
 		Com_Printf( "Warning: G_RunEntity 'Fixing timeDelta on non projectile entity\n" );
 		ent->timeDelta = 0;
 	}

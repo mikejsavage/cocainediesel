@@ -117,12 +117,12 @@ static void SetTeamProgress( int team, int percent, BombProgress type );
 static void UpdateScore( s32 player_num );
 
 static void Show( edict_t * ent ) {
-	ent->r.svflags &= ~SVF_NOCLIENT;
+	ent->s.svflags &= ~SVF_NOCLIENT;
 	GClip_LinkEntity( ent );
 }
 
 static void Hide( edict_t * ent ) {
-	ent->r.svflags |= SVF_NOCLIENT;
+	ent->s.svflags |= SVF_NOCLIENT;
 }
 
 static bool EntCanSee( edict_t * ent, Vec3 point ) {
@@ -352,7 +352,7 @@ static void SpawnBombSite( edict_t * ent ) {
 	site->hud->s.type = ET_BOMB_SITE;
 	site->hud->r.solid = SOLID_NOT;
 	site->hud->s.origin = bomb_state.sites[ i ].indicator->s.origin;
-	site->hud->r.svflags = SVF_BROADCAST;
+	site->hud->s.svflags = SVF_BROADCAST;
 	site->hud->s.counterNum = letter;
 	GClip_LinkEntity( site->hud );
 
@@ -430,7 +430,7 @@ static void BombTouch( edict_t * self, edict_t * other, Plane * plane, int surfF
 static void BombStop( edict_t * self ) {
 	if( bomb_state.bomb.state == BombState_Dropped ) {
 		bomb_state.bomb.hud->s.origin = bomb_state.bomb.model->s.origin + Vec3( 0.0f, 0.0f, bomb_hud_offset );
-		bomb_state.bomb.hud->r.svflags |= SVF_ONLYTEAM;
+		bomb_state.bomb.hud->s.svflags |= SVF_ONLYTEAM;
 		bomb_state.bomb.hud->s.radius = BombDown_Dropped;
 		Show( bomb_state.bomb.hud );
 	}
@@ -459,7 +459,7 @@ static void SpawnBombHUD() {
 	bomb_state.bomb.hud->s.type = ET_BOMB;
 	bomb_state.bomb.hud->s.team = AttackingTeam();
 	bomb_state.bomb.hud->r.solid = SOLID_NOT;
-	bomb_state.bomb.hud->r.svflags |= SVF_BROADCAST;
+	bomb_state.bomb.hud->s.svflags |= SVF_BROADCAST;
 }
 
 static void BombPickup() {
@@ -561,7 +561,7 @@ static void BombStartPlanting( u32 site ) {
 
 	bomb_state.bomb.hud->s.origin = tr.endpos + Vec3( 0.0f, 0.0f, bomb_hud_offset );
 	bomb_state.bomb.hud->s.angles = angles;
-	bomb_state.bomb.hud->r.svflags |= SVF_ONLYTEAM;
+	bomb_state.bomb.hud->s.svflags |= SVF_ONLYTEAM;
 	bomb_state.bomb.hud->s.radius = BombDown_Planting;
 	Show( bomb_state.bomb.hud );
 
@@ -580,7 +580,7 @@ static void BombPlanted() {
 	bomb_state.bomb.model->s.effects &= ~EF_TEAM_SILHOUETTE;
 
 	// show to defs too
-	bomb_state.bomb.hud->r.svflags &= ~SVF_ONLYTEAM;
+	bomb_state.bomb.hud->s.svflags &= ~SVF_ONLYTEAM;
 
 	// start fuse animation
 	bomb_state.bomb.model->s.animating = true;
@@ -752,7 +752,7 @@ static void BombGiveToRandom() {
 	for( int i = 0; i < num_players; i++ ) {
 		s32 player_num = server_gs.gameState.teams[ AttackingTeam() ].player_indices[ i ] - 1;
 		edict_t * ent = PLAYERENT( player_num );
-		if( ( ent->r.svflags & SVF_FAKECLIENT ) != 0 ) {
+		if( ( ent->s.svflags & SVF_FAKECLIENT ) != 0 ) {
 			num_bots++;
 		}
 	}
@@ -765,7 +765,7 @@ static void BombGiveToRandom() {
 	for( int i = 0; i < num_players; i++ ) {
 		s32 player_num = server_gs.gameState.teams[ AttackingTeam() ].player_indices[ i ] - 1;
 		edict_t * ent = PLAYERENT( player_num );
-		if( all_bots || ( ent->r.svflags & SVF_FAKECLIENT ) == 0 ) {
+		if( all_bots || ( ent->s.svflags & SVF_FAKECLIENT ) == 0 ) {
 			if( seen == carrier ) {
 				BombSetCarrier( player_num, true );
 				break;

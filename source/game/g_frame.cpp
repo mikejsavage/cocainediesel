@@ -176,7 +176,7 @@ void G_SnapClients() {
 static void G_SnapEntities() {
 	for( int i = 0; i < game.numentities; i++ ) {
 		edict_t * ent = &game.edicts[ i ];
-		if( !ent->r.inuse || ( ent->r.svflags & SVF_NOCLIENT ) ) {
+		if( !ent->r.inuse || ( ent->s.svflags & SVF_NOCLIENT ) ) {
 			continue;
 		}
 
@@ -264,7 +264,7 @@ void G_SnapFrame() {
 		// temporary filter (Q2 system to ensure reliability)
 		// ignore ents without visible models unless they have an effect
 		if( !ent->r.inuse ) {
-			ent->r.svflags |= SVF_NOCLIENT;
+			ent->s.svflags |= SVF_NOCLIENT;
 			continue;
 		}
 

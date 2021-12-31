@@ -103,14 +103,14 @@ static void target_laser_on( edict_t *self ) {
 		self->activator = self;
 	}
 	self->spawnflags |= 0x80000001;
-	self->r.svflags &= ~SVF_NOCLIENT;
+	self->s.svflags &= ~SVF_NOCLIENT;
 	self->wait = level.time * 0.001f + self->delay;
 	target_laser_think( self );
 }
 
 static void target_laser_off( edict_t *self ) {
 	self->spawnflags &= ~1;
-	self->r.svflags |= SVF_NOCLIENT;
+	self->s.svflags |= SVF_NOCLIENT;
 	self->nextThink = 0;
 }
 
@@ -127,7 +127,7 @@ void target_laser_start( edict_t *self ) {
 	self->movetype = MOVETYPE_NONE;
 	self->r.solid = SOLID_NOT;
 	self->s.type = ET_LASER;
-	self->r.svflags = 0;
+	self->s.svflags = 0;
 	self->s.radius = st.size > 0 ? st.size : 8;
 	self->s.sound = "sounds/gladiator/laser_hum";
 

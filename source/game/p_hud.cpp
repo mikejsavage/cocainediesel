@@ -50,7 +50,7 @@ static unsigned int G_FindPointedPlayer( edict_t *self ) {
 		if( other == self ) {
 			continue;
 		}
-		if( !other->r.solid || ( other->r.svflags & SVF_NOCLIENT ) ) {
+		if( !other->r.solid || ( other->s.svflags & SVF_NOCLIENT ) ) {
 			continue;
 		}
 

@@ -40,7 +40,7 @@ static void InitTrigger( edict_t *self ) {
 	self->r.solid = SOLID_TRIGGER;
 	self->movetype = MOVETYPE_NONE;
 	GClip_SetBrushModel( self );
-	self->r.svflags = SVF_NOCLIENT;
+	self->s.svflags = SVF_NOCLIENT;
 }
 
 // the trigger was just activated
@@ -110,7 +110,7 @@ void SP_trigger_multiple( edict_t *ent ) {
 
 	ent->touch = Touch_Multi;
 	ent->movetype = MOVETYPE_NONE;
-	ent->r.svflags |= SVF_NOCLIENT;
+	ent->s.svflags |= SVF_NOCLIENT;
 
 	if( ent->spawnflags & 4 ) {
 		ent->r.solid = SOLID_NOT;
@@ -233,7 +233,7 @@ void SP_trigger_push( edict_t *self ) {
 	self->touch = trigger_push_touch;
 	self->think = trigger_push_setup;
 	self->nextThink = level.time + 1;
-	self->r.svflags &= ~SVF_NOCLIENT;
+	self->s.svflags &= ~SVF_NOCLIENT;
 	self->s.type = ( self->spawnflags & 1 ) ? ET_PAINKILLER_JUMPPAD : ET_JUMPPAD;
 	GClip_LinkEntity( self );
 	self->timeStamp = level.time;

@@ -123,7 +123,7 @@ static char *SV_LongInfoString( bool fullStatus ) {
 	for( i = 0; i < sv_maxclients->integer; i++ ) {
 		cl = &svs.clients[i];
 		if( cl->state >= CS_CONNECTED ) {
-			if( cl->edict->r.svflags & SVF_FAKECLIENT ) {
+			if( cl->edict->s.svflags & SVF_FAKECLIENT ) {
 				bots++;
 			}
 			count++;
@@ -175,7 +175,7 @@ static char *SV_ShortInfoString() {
 	int count = 0;
 	for( int i = 0; i < sv_maxclients->integer; i++ ) {
 		if( svs.clients[i].state >= CS_CONNECTED ) {
-			if( svs.clients[i].edict->r.svflags & SVF_FAKECLIENT ) {
+			if( svs.clients[i].edict->s.svflags & SVF_FAKECLIENT ) {
 				bots++;
 			} else {
 				count++;
@@ -392,7 +392,7 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 			break;
 		}
 		// overwrite fakeclient if no free spots found
-		if( cl->state && cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		if( cl->state && cl->edict && ( cl->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			newcl = cl;
 		}
 	}
@@ -402,7 +402,7 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 		Com_DPrintf( "Server is full. Rejected a connection.\n" );
 		return;
 	}
-	if( newcl->state && newcl->edict && ( newcl->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( newcl->state && newcl->edict && ( newcl->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		SV_DropClient( newcl, DROP_TYPE_GENERAL, "%s", "Need room for a real player" );
 	}
 

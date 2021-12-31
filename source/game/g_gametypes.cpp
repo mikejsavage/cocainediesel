@@ -39,7 +39,7 @@ void G_Match_Autorecord_Start() {
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
 		SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
 		for( u8 i = 0; i < current_team->num_players; i++ ) {
-			if( game.edicts[ current_team->player_indices[ i ] ].r.svflags & SVF_FAKECLIENT ) {
+			if( game.edicts[ current_team->player_indices[ i ] ].s.svflags & SVF_FAKECLIENT ) {
 				continue;
 			}
 
@@ -279,7 +279,7 @@ void G_Match_CheckReadys() {
 }
 
 void G_Match_Ready( edict_t *ent ) {
-	if( ( ent->r.svflags & SVF_FAKECLIENT ) && level.ready[PLAYERNUM( ent )] ) {
+	if( ( ent->s.svflags & SVF_FAKECLIENT ) && level.ready[PLAYERNUM( ent )] ) {
 		return;
 	}
 
@@ -289,7 +289,7 @@ void G_Match_Ready( edict_t *ent ) {
 	}
 
 	if( server_gs.gameState.match_state != MatchState_Warmup ) {
-		if( !( ent->r.svflags & SVF_FAKECLIENT ) ) {
+		if( !( ent->s.svflags & SVF_FAKECLIENT ) ) {
 			G_PrintMsg( ent, "We're not in warmup.\n" );
 		}
 		return;
@@ -366,7 +366,7 @@ static void G_CheckNumBots() {
 	int desiredNumBots = g_numbots->integer;
 	if( desiredNumBots < game.numBots ) {
 		for( edict_t *ent = game.edicts + server_gs.maxclients; PLAYERNUM( ent ) >= 0 && desiredNumBots < game.numBots; ent-- ) {
-			if( !ent->r.inuse || !( ent->r.svflags & SVF_FAKECLIENT ) ) {
+			if( !ent->r.inuse || !( ent->s.svflags & SVF_FAKECLIENT ) ) {
 				continue;
 			}
 			PF_DropClient( ent, DROP_TYPE_GENERAL, NULL );

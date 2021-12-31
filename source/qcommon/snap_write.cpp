@@ -124,7 +124,7 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 	for( i = 0; i < gi->max_clients; i++ ) {
 		cl = gi->clients + i;
 
-		if( cl->state < CS_SPAWNED || ( ( !cl->edict || ( cl->edict->r.svflags & SVF_NOCLIENT ) ) && cl != client ) ) {
+		if( cl->state < CS_SPAWNED || ( ( !cl->edict || ( cl->edict->s.svflags & SVF_NOCLIENT ) ) && cl != client ) ) {
 			continue;
 		}
 
@@ -156,7 +156,7 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 		for( i = 0; i < gi->max_clients; i++ ) {
 			cl = gi->clients + i;
 
-			if( cl->state < CS_SPAWNED || ( ( !cl->edict || ( cl->edict->r.svflags & SVF_NOCLIENT ) ) && cl != client ) ) {
+			if( cl->state < CS_SPAWNED || ( ( !cl->edict || ( cl->edict->s.svflags & SVF_NOCLIENT ) ) && cl != client ) ) {
 				continue;
 			}
 
@@ -409,7 +409,7 @@ static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, Vec3 li
 static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *clent, client_snapshot_t *frame,
 								Vec3 vieworg, int viewarea, uint8_t *fatpvs ) {
 	// filters: this entity has been disabled for comunication
-	if( ent->r.svflags & SVF_NOCLIENT ) {
+	if( ent->s.svflags & SVF_NOCLIENT ) {
 		return true;
 	}
 
@@ -420,31 +420,31 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 
 	// filters: transmit only to clients in the same team as this entity
 	// broadcasting is less important than team specifics
-	if( ( ent->r.svflags & SVF_ONLYTEAM ) && ( clent && ent->s.team != clent->s.team ) ) {
+	if( ( ent->s.svflags & SVF_ONLYTEAM ) && ( clent && ent->s.team != clent->s.team ) ) {
 		return true;
 	}
 
 	// send only to owner
-	if( ( ent->r.svflags & SVF_ONLYOWNER ) && ( clent && ent->s.ownerNum != clent->s.number ) ) {
+	if( ( ent->s.svflags & SVF_ONLYOWNER ) && ( clent && ent->s.ownerNum != clent->s.number ) ) {
 		return true;
 	}
 
-	if( ( ent->r.svflags & SVF_OWNERANDCHASERS ) && clent ) {
+	if( ( ent->s.svflags & SVF_OWNERANDCHASERS ) && clent ) {
 		bool self = ent->s.ownerNum == clent->s.number;
 		bool spec = ent->s.ownerNum == clent->r.client->resp.chase.target;
 		if( !self && !spec )
 			return true;
 	}
 
-	if( ( ent->r.svflags & SVF_NEVEROWNER ) && ( clent && ent->s.ownerNum == clent->s.number ) ) {
+	if( ( ent->s.svflags & SVF_NEVEROWNER ) && ( clent && ent->s.ownerNum == clent->s.number ) ) {
 		return true;
 	}
 
-	if( ent->r.svflags & SVF_BROADCAST ) { // send to everyone
+	if( ent->s.svflags & SVF_BROADCAST ) { // send to everyone
 		return false;
 	}
 
-	if( ( ent->r.svflags & SVF_FORCETEAM ) && ( clent && ent->s.team == clent->s.team && ent->s.team >= TEAM_ALPHA ) ) {
+	if( ( ent->s.svflags & SVF_FORCETEAM ) && ( clent && ent->s.team == clent->s.team && ent->s.team >= TEAM_ALPHA ) ) {
 		return false;
 	}
 
@@ -467,7 +467,7 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 	bool snd_culled = true;
 
 	// sound entities culling
-	if( ent->r.svflags & SVF_SOUNDCULL ) {
+	if( ent->s.svflags & SVF_SOUNDCULL ) {
 		snd_cull_only = true;
 	}
 
@@ -515,7 +515,7 @@ static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, e
 			continue;
 		}
 
-		if( ent->r.svflags & SVF_FORCEOWNER ) {
+		if( ent->s.svflags & SVF_FORCEOWNER ) {
 			// make sure owner number is valid too
 			if( ent->s.ownerNum > 0 && ent->s.ownerNum < gi->num_edicts ) {
 				SNAP_AddEntNumToSnapList( ent->s.ownerNum, entList );
@@ -622,7 +622,7 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 		frame->numplayers = 0;
 		for( i = 0; i < gi->max_clients; i++ ) {
 			ent = EDICT_NUM( i + 1 );
-			if( ( clent == ent ) || ( ent->r.inuse && ent->r.client && !( ent->r.svflags & SVF_NOCLIENT ) ) ) {
+			if( ( clent == ent ) || ( ent->r.inuse && ent->r.client && !( ent->s.svflags & SVF_NOCLIENT ) ) ) {
 				frame->numplayers++;
 			}
 		}
@@ -634,7 +634,7 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 		numplayers = 0;
 		for( i = 0; i < gi->max_clients; i++ ) {
 			ent = EDICT_NUM( i + 1 );
-			if( ( clent == ent ) || ( ent->r.inuse && ent->r.client && !( ent->r.svflags & SVF_NOCLIENT ) ) ) {
+			if( ( clent == ent ) || ( ent->r.inuse && ent->r.client && !( ent->s.svflags & SVF_NOCLIENT ) ) ) {
 				frame->ps[numplayers] = ent->r.client->ps;
 				frame->ps[numplayers].playerNum = i;
 				numplayers++;
@@ -665,7 +665,7 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 		state = &client_entities->entities[ne % client_entities->num_entities];
 
 		*state = ent->s;
-		state->svflags = ent->r.svflags;
+		state->svflags = ent->s.svflags;
 
 		frame->num_entities++;
 		ne++;

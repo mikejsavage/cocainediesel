@@ -182,7 +182,7 @@ void G_FreeEdict( edict_t *ed ) {
 
 	memset( ed, 0, sizeof( *ed ) );
 	ed->s.number = ENTNUM( ed );
-	ed->r.svflags = SVF_NOCLIENT;
+	ed->s.svflags = SVF_NOCLIENT;
 
 	if( !ISEVENTENTITY( &ed->s ) && level.spawnedTimeStamp != svs.realtime ) {
 		ed->freetime = svs.realtime; // ET_EVENT or ET_SOUND don't need to wait to be reused
@@ -197,7 +197,7 @@ void G_InitEdict( edict_t *e ) {
 	e->s.scale = Vec3( 1.0f );
 
 	// mark all entities to not be sent by default
-	e->r.svflags = SVF_NOCLIENT;
+	e->s.svflags = SVF_NOCLIENT;
 }
 
 /*
@@ -279,7 +279,7 @@ edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
 	edict_t * ent = G_Spawn();
 	ent->s.type = ET_EVENT;
 	ent->r.solid = SOLID_NOT;
-	ent->r.svflags &= ~SVF_NOCLIENT;
+	ent->s.svflags &= ~SVF_NOCLIENT;
 	if( origin ) {
 		ent->s.origin = *origin;
 	}
@@ -293,7 +293,7 @@ edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
 void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm ) {
 	ent->s.type = ET_EVENT;
 	ent->r.solid = SOLID_NOT;
-	ent->r.svflags &= ~SVF_PROJECTILE; // FIXME: Medar: should be remove all or remove this one elsewhere?
+	ent->s.svflags &= ~SVF_PROJECTILE; // FIXME: Medar: should be remove all or remove this one elsewhere?
 	ent->s.linearMovement = false;
 	G_AddEvent( ent, event, parm, true );
 
@@ -303,7 +303,7 @@ void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm ) {
 void G_InitMover( edict_t *ent ) {
 	ent->r.solid = SOLID_YES;
 	ent->movetype = MOVETYPE_PUSH;
-	ent->r.svflags &= ~SVF_NOCLIENT;
+	ent->s.svflags &= ~SVF_NOCLIENT;
 
 	GClip_SetBrushModel( ent );
 }
@@ -516,8 +516,8 @@ void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, Damag
 
 static edict_t *_G_SpawnSound( int channel, StringHash sound ) {
 	edict_t * ent = G_Spawn();
-	ent->r.svflags &= ~SVF_NOCLIENT;
-	ent->r.svflags |= SVF_SOUNDCULL;
+	ent->s.svflags &= ~SVF_NOCLIENT;
+	ent->s.svflags |= SVF_SOUNDCULL;
 	ent->s.type = ET_SOUNDEVENT;
 	ent->s.channel = channel;
 	ent->s.sound = sound;
@@ -560,7 +560,7 @@ edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound ) {
 		ent->s.origin = origin;
 	}
 	else {
-		ent->r.svflags |= SVF_BROADCAST;
+		ent->s.svflags |= SVF_BROADCAST;
 	}
 
 	GClip_LinkEntity( ent );
@@ -581,7 +581,7 @@ void G_LocalSound( edict_t * owner, int channel, StringHash sound ) {
 
 	edict_t * ent = _G_SpawnSound( channel, sound );
 	ent->s.ownerNum = ENTNUM( owner );
-	ent->r.svflags |= SVF_ONLYOWNER | SVF_BROADCAST;
+	ent->s.svflags |= SVF_ONLYOWNER | SVF_BROADCAST;
 
 	GClip_LinkEntity( ent );
 }

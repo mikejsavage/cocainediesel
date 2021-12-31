@@ -42,7 +42,6 @@ struct entity_shared_t {
 
 	//================================
 
-	unsigned int svflags;                // SVF_NOCLIENT, SVF_MONSTER, etc
 	Vec3 mins, maxs;
 	Vec3 absmin, absmax, size;
 	solid_t solid;

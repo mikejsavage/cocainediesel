@@ -224,7 +224,7 @@ static edict_t * FireProjectile(
 
 	projectile->r.solid = SOLID_YES;
 	projectile->r.clipmask = clipmask;
-	projectile->r.svflags = SVF_PROJECTILE;
+	projectile->s.svflags = SVF_PROJECTILE;
 
 	projectile->r.mins = Vec3( 0.0f );
 	projectile->r.maxs = Vec3( 0.0f );
@@ -639,7 +639,7 @@ static edict_t * FindOrSpawnLaser( edict_t * owner ) {
 	laser->s.ownerNum = ownerNum;
 	laser->movetype = MOVETYPE_NONE;
 	laser->r.solid = SOLID_NOT;
-	laser->r.svflags &= ~SVF_NOCLIENT;
+	laser->s.svflags &= ~SVF_NOCLIENT;
 	return laser;
 }
 
@@ -656,7 +656,7 @@ static void W_Fire_Lasergun( edict_t * self, Vec3 start, Vec3 angles, int timeDe
 	trace_t tr;
 	GS_TraceLaserBeam( &server_gs, &tr, start, angles, def->range, ENTNUM( self ), timeDelta, LaserImpact, &data );
 
-	laser->r.svflags |= SVF_FORCEOWNER;
+	laser->s.svflags |= SVF_FORCEOWNER;
 
 	Vec3 dir;
 	laser->s.origin = start;

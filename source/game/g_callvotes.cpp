@@ -623,7 +623,7 @@ static void G_CallVotes_CheckState() {
 			continue;
 		}
 
-		if( ent->r.svflags & SVF_FAKECLIENT ) {
+		if( ent->s.svflags & SVF_FAKECLIENT ) {
 			continue;
 		}
 
@@ -669,7 +669,7 @@ void G_CallVotes_CmdVote( edict_t *ent ) {
 	if( !ent->r.client ) {
 		return;
 	}
-	if( ent->r.svflags & SVF_FAKECLIENT ) {
+	if( ent->s.svflags & SVF_FAKECLIENT ) {
 		return;
 	}
 
@@ -810,7 +810,7 @@ bool G_Callvotes_HasVoted( edict_t * ent ) {
 }
 
 void G_CallVote_Cmd( edict_t *ent ) {
-	if( ent->r.svflags & SVF_FAKECLIENT ) {
+	if( ent->s.svflags & SVF_FAKECLIENT ) {
 		return;
 	}
 	G_CallVote( ent, false );
@@ -823,7 +823,7 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 	if( !ent->r.client ) {
 		return;
 	}
-	if( ent->r.svflags & SVF_FAKECLIENT ) {
+	if( ent->s.svflags & SVF_FAKECLIENT ) {
 		return;
 	}
 
@@ -856,7 +856,7 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 			if( !other->r.inuse || PF_GetClientState( PLAYERNUM( other ) ) < CS_SPAWNED ) {
 				continue;
 			}
-			if( other->r.svflags & SVF_FAKECLIENT ) {
+			if( other->s.svflags & SVF_FAKECLIENT ) {
 				continue;
 			}
 

@@ -85,7 +85,7 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 		return;
 	}
 
-	if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		return;
 	}
 
@@ -177,7 +177,7 @@ void SV_SendServerCommand( client_t *cl, const char *format, ... ) {
 void SV_AddReliableCommandsToMessage( client_t *client, msg_t *msg ) {
 	unsigned int i;
 
-	if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		return;
 	}
 
@@ -251,7 +251,7 @@ bool SV_SendClientsFragments() {
 		if( client->state == CS_FREE || client->state == CS_ZOMBIE ) {
 			continue;
 		}
-		if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			continue;
 		}
 		if( !client->netchan.unsentFragments ) {
@@ -285,7 +285,7 @@ bool SV_Netchan_Transmit( netchan_t *netchan, msg_t *msg ) {
 }
 
 void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t size ) {
-	if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		return;
 	}
 
@@ -303,7 +303,7 @@ void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t s
 bool SV_SendMessageToClient( client_t *client, msg_t *msg ) {
 	assert( client );
 
-	if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		return true;
 	}
 
@@ -323,7 +323,7 @@ void SV_ResetClientFrameCounters() {
 		if( !client->state ) {
 			continue;
 		}
-		if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			continue;
 		}
 
@@ -341,7 +341,7 @@ void SV_BuildClientFrameSnap( client_t *client ) {
 }
 
 static bool SV_SendClientDatagram( client_t *client ) {
-	if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		return true;
 	}
 
@@ -370,7 +370,7 @@ void SV_SendClientMessages() {
 			continue;
 		}
 
-		if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			client->lastSentFrameNum = sv.framenum;
 			continue;
 		}

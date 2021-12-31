@@ -139,7 +139,7 @@ void SV_DropClient( client_t *drop, int type, const char *format, ... ) {
 	}
 
 	// add the disconnect
-	if( drop->edict && ( drop->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( drop->edict && ( drop->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		ClientDisconnect( drop->edict, reason );
 		SV_ClientResetCommandBuffers( drop ); // make sure everything is clean
 	} else {
@@ -479,7 +479,7 @@ void SV_ExecuteClientThinks( int clientNum ) {
 		return;
 	}
 
-	if( client->edict->r.svflags & SVF_FAKECLIENT ) {
+	if( client->edict->s.svflags & SVF_FAKECLIENT ) {
 		return;
 	}
 

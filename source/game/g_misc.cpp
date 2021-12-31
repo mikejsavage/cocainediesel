@@ -79,7 +79,7 @@ void SP_path_corner( edict_t *self ) {
 	self->touch = path_corner_touch;
 	self->r.mins = Vec3( -8.0f );
 	self->r.maxs = Vec3( 8.0f );
-	self->r.svflags |= SVF_NOCLIENT;
+	self->s.svflags |= SVF_NOCLIENT;
 	GClip_LinkEntity( self );
 }
 
@@ -92,11 +92,11 @@ void SP_path_corner( edict_t *self ) {
 static void func_wall_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	if( self->r.solid == SOLID_NOT ) {
 		self->r.solid = SOLID_YES;
-		self->r.svflags &= ~SVF_NOCLIENT;
+		self->s.svflags &= ~SVF_NOCLIENT;
 		KillBox( self, WorldDamage_Crush, Vec3( 0.0f ) );
 	} else {
 		self->r.solid = SOLID_NOT;
-		self->r.svflags |= SVF_NOCLIENT;
+		self->s.svflags |= SVF_NOCLIENT;
 	}
 	GClip_LinkEntity( self );
 
@@ -137,7 +137,7 @@ void SP_func_wall( edict_t *self ) {
 		self->r.solid = SOLID_YES;
 	} else {
 		self->r.solid = SOLID_NOT;
-		self->r.svflags |= SVF_NOCLIENT;
+		self->s.svflags |= SVF_NOCLIENT;
 	}
 	GClip_LinkEntity( self );
 }
@@ -145,17 +145,17 @@ void SP_func_wall( edict_t *self ) {
 void SP_func_static( edict_t *ent ) {
 	G_InitMover( ent );
 	ent->movetype = MOVETYPE_NONE;
-	ent->r.svflags = SVF_BROADCAST;
+	ent->s.svflags = SVF_BROADCAST;
 	GClip_LinkEntity( ent );
 }
 
 void SP_model( edict_t *ent ) {
-	ent->r.svflags &= ~SVF_NOCLIENT;
+	ent->s.svflags &= ~SVF_NOCLIENT;
 	GClip_LinkEntity( ent );
 }
 
 void SP_decal( edict_t * ent ) {
-	ent->r.svflags &= ~SVF_NOCLIENT;
+	ent->s.svflags &= ~SVF_NOCLIENT;
 	ent->s.type = ET_DECAL;
 	ent->s.radius = st.radius;
 	GClip_LinkEntity( ent );

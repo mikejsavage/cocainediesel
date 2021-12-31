@@ -27,35 +27,20 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #endif
 
 /*
-=========================================================================
-
-Encode a client frame onto the network channel
-
-=========================================================================
-*/
-
-/*
 * SNAP_EmitPacketEntities
 *
 * Writes a delta update of an SyncEntityState list to the message.
 */
 static void SNAP_EmitPacketEntities( ginfo_t *gi, client_snapshot_t *from, client_snapshot_t *to, msg_t *msg, SyncEntityState *baselines, SyncEntityState *client_entities, int num_client_entities ) {
-	SyncEntityState *oldent, *newent;
-	int oldindex, newindex;
-	int oldnum, newnum;
-	int from_num_entities;
-
 	MSG_WriteUint8( msg, svc_packetentities );
 
-	if( !from ) {
-		from_num_entities = 0;
-	} else {
-		from_num_entities = from->num_entities;
-	}
-
-	newindex = 0;
-	oldindex = 0;
+	int from_num_entities = from == NULL ? 0 : from->num_entities;
+	int newindex = 0;
+	int oldindex = 0;
 	while( newindex < to->num_entities || oldindex < from_num_entities ) {
+		SyncEntityState * oldent;
+		SyncEntityState * newent;
+		int oldnum, newnum;
 		if( newindex >= to->num_entities ) {
 			newent = NULL;
 			newnum = 9999;
@@ -113,25 +98,20 @@ static void SNAP_WritePlayerstateToClient( msg_t *msg, const SyncPlayerState *op
 }
 
 static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum ) {
-	int i, index;
-	client_t *cl;
 	int positions[MAX_CLIENTS];
-	int maxnumtargets;
-	const char *command;
 
 	// find the first command to send from every client
-	maxnumtargets = 0;
-	for( i = 0; i < gi->max_clients; i++ ) {
-		cl = gi->clients + i;
+	int maxnumtargets = 0;
+	for( int i = 0; i < gi->max_clients; i++ ) {
+		client_t * cl = gi->clients + i;
 
 		if( cl->state < CS_SPAWNED || ( ( !cl->edict || ( cl->edict->s.svflags & SVF_NOCLIENT ) ) && cl != client ) ) {
 			continue;
 		}
 
 		maxnumtargets++;
-		for( positions[i] = cl->gameCommandCurrent - MAX_RELIABLE_COMMANDS + 1;
-			 positions[i] <= cl->gameCommandCurrent; positions[i]++ ) {
-			index = positions[i] & ( MAX_RELIABLE_COMMANDS - 1 );
+		for( positions[i] = cl->gameCommandCurrent - MAX_RELIABLE_COMMANDS + 1; positions[i] <= cl->gameCommandCurrent; positions[i]++ ) {
+			int index = positions[i] & ( MAX_RELIABLE_COMMANDS - 1 );
 
 			// we need to check for too new commands too, because gamecommands for the next snap are generated
 			// all the time, and we might want to create a server demo frame or something in between snaps
@@ -144,17 +124,17 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 	}
 
 	// send all messages, combining similar messages together to save space
-	do {
+	while( true ) {
 		int numtargets = 0, maxtarget = 0;
 		int64_t framenum = 0;
 		uint8_t targets[MAX_CLIENTS / 8];
 
-		command = NULL;
+		const char * command = NULL;
 		memset( targets, 0, sizeof( targets ) );
 
 		// we find the message with the earliest framenum, and collect all recipients for that
-		for( i = 0; i < gi->max_clients; i++ ) {
-			cl = gi->clients + i;
+		for( int i = 0; i < gi->max_clients; i++ ) {
+			client_t * cl = gi->clients + i;
 
 			if( cl->state < CS_SPAWNED || ( ( !cl->edict || ( cl->edict->s.svflags & SVF_NOCLIENT ) ) && cl != client ) ) {
 				continue;
@@ -164,7 +144,7 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 				continue;
 			}
 
-			index = positions[i] & ( MAX_RELIABLE_COMMANDS - 1 );
+			int index = positions[i] & ( MAX_RELIABLE_COMMANDS - 1 );
 
 			if( command && !strcmp( cl->gameCommands[index].command, command ) &&
 				framenum == cl->gameCommands[index].framenum ) {
@@ -185,44 +165,42 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 			}
 		}
 
-		// send it
-		if( command ) {
-			// never write a command if it's of a higher framenum
-			if( frameNum >= framenum ) {
-				// do not allow the message buffer to overflow (can happen on flood updates)
-				if( msg->cursize + strlen( command ) + 512 > msg->maxsize ) {
-					continue;
-				}
+		if( command == NULL ) {
+			break;
+		}
 
-				MSG_WriteInt16( msg, frameNum - framenum );
-				MSG_WriteString( msg, command );
-
-				// 0 means everyone
-				if( numtargets == maxnumtargets ) {
-					MSG_WriteUint8( msg, 0 );
-				} else {
-					int bytes = ( maxtarget + 7 ) / 8;
-					MSG_WriteUint8( msg, bytes );
-					MSG_WriteData( msg, targets, bytes );
-				}
+		// never write a command if it's of a higher framenum
+		if( frameNum >= framenum ) {
+			// do not allow the message buffer to overflow (can happen on flood updates)
+			if( msg->cursize + strlen( command ) + 512 > msg->maxsize ) {
+				continue;
 			}
 
-			for( i = 0; i < maxtarget; i++ ) {
-				if( targets[i >> 3] & ( 1 << ( i & 7 ) ) ) {
-					positions[i]++;
-				}
+			MSG_WriteInt16( msg, frameNum - framenum );
+			MSG_WriteString( msg, command );
+
+			// 0 means everyone
+			if( numtargets == maxnumtargets ) {
+				MSG_WriteUint8( msg, 0 );
+			} else {
+				int bytes = ( maxtarget + 7 ) / 8;
+				MSG_WriteUint8( msg, bytes );
+				MSG_WriteData( msg, targets, bytes );
 			}
 		}
-	} while( command );
+
+		for( int i = 0; i < maxtarget; i++ ) {
+			if( targets[i >> 3] & ( 1 << ( i & 7 ) ) ) {
+				positions[i]++;
+			}
+		}
+	}
 }
 
 void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
 								  SyncEntityState *baselines, client_entities_t *client_entities ) {
-	client_snapshot_t *frame, *oldframe;
-	int flags, i, index;
-
 	// this is the frame we are creating
-	frame = &client->snapShots[frameNum & UPDATE_MASK];
+	client_snapshot_t * frame = &client->snapShots[frameNum & UPDATE_MASK];
 
 	// we need to send nodelta frame until the client responds
 	if( client->nodelta ) {
@@ -233,6 +211,7 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 		}
 	}
 
+	client_snapshot_t * oldframe;
 	if( client->lastframe <= 0 || client->lastframe > frameNum || client->nodelta ) {
 		// client is asking for a not compressed retransmit
 		oldframe = NULL;
@@ -256,7 +235,7 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 	MSG_WriteUintBase128( msg, client->lastframe );
 	MSG_WriteUintBase128( msg, frame->UcmdExecuted );
 
-	flags = 0;
+	int flags = 0;
 	if( oldframe != NULL ) {
 		flags |= FRAMESNAP_FLAG_DELTA;
 	}
@@ -273,8 +252,8 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 	if( frame->multipov ) {
 		SNAP_WriteMultiPOVCommands( gi, client, msg, frameNum );
 	} else {
-		for( i = client->gameCommandCurrent - MAX_RELIABLE_COMMANDS + 1; i <= client->gameCommandCurrent; i++ ) {
-			index = i & ( MAX_RELIABLE_COMMANDS - 1 );
+		for( int i = client->gameCommandCurrent - MAX_RELIABLE_COMMANDS + 1; i <= client->gameCommandCurrent; i++ ) {
+			int index = i & ( MAX_RELIABLE_COMMANDS - 1 );
 
 			// check that it is valid command and that has not already been sent
 			// we can only allow commands from certain amount of old frames, so the short won't overflow
@@ -299,7 +278,7 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 	SNAP_WriteDeltaGameStateToClient( oldframe, frame, msg );
 
 	// delta encode the playerstate
-	for( i = 0; i < frame->numplayers; i++ ) {
+	for( int i = 0; i < frame->numplayers; i++ ) {
 		if( oldframe && oldframe->numplayers > i ) {
 			SNAP_WritePlayerstateToClient( msg, &oldframe->ps[i], &frame->ps[i] );
 		} else {
@@ -529,21 +508,18 @@ static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, e
 
 static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_t *clent, Vec3 vieworg,
 										client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
-	int entNum;
-	int leafnum, clientarea;
-
 	entList->numSnapshotEntities = 0;
 	memset( entList->entityAddedToSnapList, 0, sizeof( entList->entityAddedToSnapList ) );
 
 	// find the client's PVS
-	leafnum = CM_PointLeafnum( cms, vieworg );
-	clientarea = CM_LeafArea( cms, leafnum );
+	int leafnum = CM_PointLeafnum( cms, vieworg );
+	int clientarea = CM_LeafArea( cms, leafnum );
 
 	CM_WriteAreaBits( cms, frame->areabits );
 
 	// always add the client entity
 	if( clent ) {
-		entNum = NUM_FOR_EDICT( clent );
+		int entNum = NUM_FOR_EDICT( clent );
 		if( clent->s.number != entNum ) {
 			Com_Printf( "FIXING CLENT->S.NUMBER: %i %i!!!\n", clent->s.number, entNum );
 			clent->s.number = entNum;
@@ -568,20 +544,12 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 	client_t *client,
 	SyncGameState *gameState, client_entities_t *client_entities
 ) {
-	int e, i, ne;
-	Vec3 org;
-	edict_t *ent, *clent;
-	client_snapshot_t *frame;
-	SyncEntityState *state;
-	int numplayers, numareas;
-	snapshotEntityNumbers_t entsList;
-
 	assert( gameState );
 
-	clent = client->edict;
+	edict_t * clent = client->edict;
+	Vec3 org;
 	if( clent && !clent->r.client ) {   // allow NULL ent for server record
 		return;     // not in game yet
-
 	}
 	if( clent ) {
 		org = clent->s.origin;
@@ -592,7 +560,7 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 	}
 
 	// this is the frame we are creating
-	frame = &client->snapShots[frameNum & UPDATE_MASK];
+	client_snapshot_t * frame = &client->snapShots[frameNum & UPDATE_MASK];
 	frame->sentTimeStamp = timeStamp;
 	frame->UcmdExecuted = client->UcmdExecuted;
 
@@ -605,7 +573,7 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 	}
 
 	// areaportals matrix
-	numareas = CM_NumAreas( cms );
+	int numareas = CM_NumAreas( cms );
 	if( frame->numareas < numareas ) {
 		frame->numareas = numareas;
 
@@ -620,8 +588,8 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 	// grab the current SyncPlayerState
 	if( frame->multipov ) {
 		frame->numplayers = 0;
-		for( i = 0; i < gi->max_clients; i++ ) {
-			ent = EDICT_NUM( i + 1 );
+		for( int i = 0; i < gi->max_clients; i++ ) {
+			const edict_t * ent = EDICT_NUM( i + 1 );
 			if( ( clent == ent ) || ( ent->r.inuse && ent->r.client && !( ent->s.svflags & SVF_NOCLIENT ) ) ) {
 				frame->numplayers++;
 			}
@@ -631,9 +599,9 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 	}
 
 	if( frame->multipov ) {
-		numplayers = 0;
-		for( i = 0; i < gi->max_clients; i++ ) {
-			ent = EDICT_NUM( i + 1 );
+		int numplayers = 0;
+		for( int i = 0; i < gi->max_clients; i++ ) {
+			const edict_t * ent = EDICT_NUM( i + 1 );
 			if( ( clent == ent ) || ( ent->r.inuse && ent->r.client && !( ent->s.svflags & SVF_NOCLIENT ) ) ) {
 				frame->ps[numplayers] = ent->r.client->ps;
 				frame->ps[numplayers].playerNum = i;
@@ -646,7 +614,7 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 	}
 
 	// build up the list of visible entities
-	//=============================
+	snapshotEntityNumbers_t entsList;
 	SNAP_BuildSnapEntitiesList( cms, gi, clent, org, frame, &entsList );
 
 	// store current match state information
@@ -655,14 +623,14 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 	//=============================
 
 	// dump the entities list
-	ne = client_entities->next_entities;
+	int ne = client_entities->next_entities;
 	frame->num_entities = 0;
 	frame->first_entity = ne;
 
-	for( e = 0; e < entsList.numSnapshotEntities; e++ ) {
+	for( int e = 0; e < entsList.numSnapshotEntities; e++ ) {
 		// add it to the circular client_entities array
-		ent = EDICT_NUM( entsList.snapshotEntities[e] );
-		state = &client_entities->entities[ne % client_entities->num_entities];
+		const edict_t * ent = EDICT_NUM( entsList.snapshotEntities[e] );
+		SyncEntityState * state = &client_entities->entities[ne % client_entities->num_entities];
 
 		*state = ent->s;
 

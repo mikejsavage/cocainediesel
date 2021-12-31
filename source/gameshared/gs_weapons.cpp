@@ -333,6 +333,9 @@ static ItemState generic_gun_states[] = {
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
 		if( ps->weapon_state_time < def->reload_time ) {
+			if( def->staged_reload_time == 0 ) {
+				slot->ammo = 0;
+			}
 			return AllowWeaponSwitch( gs, ps, state );
 		}
 

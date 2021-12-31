@@ -299,7 +299,7 @@ static void SetLoadout( edict_t * ent, const char * loadout_string, bool fallbac
 }
 
 static void ResetKillCounters() {
-	for( u32 i = 0; i < server_gs.maxclients; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		bomb_state.kills_this_round[ i ] = 0;
 	}
 }

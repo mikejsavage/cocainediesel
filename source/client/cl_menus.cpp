@@ -606,7 +606,7 @@ static void ServerBrowser() {
 	ImGui::NextColumn();
 
 	Span< const ServerBrowserEntry > servers = GetServerBrowserEntries();
-	for( int i = 0; i < servers.n; i++ ) {
+	for( size_t i = 0; i < servers.n; i++ ) {
 		if( !servers[ i ].have_details )
 			continue;
 

@@ -475,88 +475,87 @@ static void CG_DrawEntityNumbers() {
 }
 
 void CG_DrawDemocam2D() {
-	int xpos, ypos;
-	const char *cam_type_name;
-	int64_t cam_timestamp;
 	char sfov[8], strack[8];
 
 	if( !cgs.demoPlaying ) {
 		return;
 	}
 
-	if( democam_editing_mode ) {
-		// draw the numbers of every entity in the view
-		CG_DrawEntityNumbers();
-
-		// draw the cams info
-		xpos = 8 * frame_static.viewport_height / 600;
-		ypos = 100 * frame_static.viewport_height / 600;
-
-		if( *cgs.demoName ) {
-			// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, va( "Demo: %s", cgs.demoName ), cgs.fontSystemSmall, colorWhite );
-			// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
-		}
-
-		// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, va( "Play mode: %s%s%s", S_COLOR_ORANGE, CamIsFree ? "Free Fly" : "Preview", S_COLOR_WHITE ), cgs.fontSystemSmall, colorWhite );
-		// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
-
-		// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, va( "Time: %" PRIi64, demo_time ), cgs.fontSystemSmall, colorWhite );
-		// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
-
-		cam_type_name = "none";
-		cam_timestamp = 0;
-
-		if( currentcam ) {
-			cam_type_name = cam_TypeNames[currentcam->type];
-			cam_timestamp = currentcam->timeStamp;
-			snprintf( strack, sizeof( strack ), "%i", currentcam->trackEnt );
-			snprintf( sfov, sizeof( sfov ), "%i", currentcam->fov );
-		} else {
-			Q_strncpyz( strack, "NO", sizeof( strack ) );
-			Q_strncpyz( sfov, "NO", sizeof( sfov ) );
-		}
-
-		// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, 
-		// 	va( "Current cam: " S_COLOR_ORANGE "%s" S_COLOR_WHITE " Fov " S_COLOR_ORANGE "%s" S_COLOR_WHITE " Start %" PRIi64 " Tracking " S_COLOR_ORANGE "%s" S_COLOR_WHITE,
-		// 													 cam_type_name, sfov, cam_timestamp, strack ),
-		// 					 cgs.fontSystemSmall, colorWhite );
-		// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
-
-		if( currentcam ) {
-			// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, 
-			// 	va( "Pitch: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE " Yaw: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE " Roll: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE,
-			// 													 currentcam->angles[PITCH], currentcam->angles[YAW], currentcam->angles[ROLL] ),
-			// 					 cgs.fontSystemSmall, colorWhite );
-		}
-		// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
-
-		cam_type_name = "none";
-		cam_timestamp = 0;
-		Q_strncpyz( sfov, "NO", sizeof( sfov ) );
-		if( nextcam ) {
-			cam_type_name = cam_TypeNames[nextcam->type];
-			cam_timestamp = nextcam->timeStamp;
-			snprintf( strack, sizeof( strack ), "%i", nextcam->trackEnt );
-			snprintf( sfov, sizeof( sfov ), "%i", nextcam->fov );
-		} else {
-			Q_strncpyz( strack, "NO", sizeof( strack ) );
-			Q_strncpyz( sfov, "NO", sizeof( sfov ) );
-		}
-
-		// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, 
-		// 	va( "Next cam: " S_COLOR_ORANGE "%s" S_COLOR_WHITE " Fov " S_COLOR_ORANGE "%s" S_COLOR_WHITE " Start %" PRIi64 " Tracking " S_COLOR_ORANGE "%s" S_COLOR_WHITE,
-		// 													 cam_type_name, sfov, cam_timestamp, strack ),
-		// 					 cgs.fontSystemSmall, colorWhite );
-		// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
-
-		if( nextcam ) {
-			// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, 
-			// 	va( "Pitch: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE " Yaw: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE " Roll: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE,
-			// 													 nextcam->angles[PITCH], nextcam->angles[YAW], nextcam->angles[ROLL] ),
-			// 					 cgs.fontSystemSmall, colorWhite );
-		}
-		// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
+	if( !democam_editing_mode ) {
+		return;
 	}
+		
+	// draw the numbers of every entity in the view
+	CG_DrawEntityNumbers();
+
+	// draw the cams info
+	//int xpos = 8 * frame_static.viewport_height / 600;
+	//int ypos = 100 * frame_static.viewport_height / 600;
+
+	// if( *cgs.demoName ) {
+		// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, va( "Demo: %s", cgs.demoName ), cgs.fontSystemSmall, colorWhite );
+		// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
+	// }
+
+	// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, va( "Play mode: %s%s%s", S_COLOR_ORANGE, CamIsFree ? "Free Fly" : "Preview", S_COLOR_WHITE ), cgs.fontSystemSmall, colorWhite );
+	// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
+
+	// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, va( "Time: %" PRIi64, demo_time ), cgs.fontSystemSmall, colorWhite );
+	// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
+
+	//const char * cam_type_name = "none";
+	//int64_t cam_timestamp = 0;
+
+	if( currentcam ) {
+		//cam_type_name = cam_TypeNames[currentcam->type];
+		//cam_timestamp = currentcam->timeStamp;
+		snprintf( strack, sizeof( strack ), "%i", currentcam->trackEnt );
+		snprintf( sfov, sizeof( sfov ), "%i", currentcam->fov );
+	} else {
+		Q_strncpyz( strack, "NO", sizeof( strack ) );
+		Q_strncpyz( sfov, "NO", sizeof( sfov ) );
+	}
+
+	// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, 
+	// 	va( "Current cam: " S_COLOR_ORANGE "%s" S_COLOR_WHITE " Fov " S_COLOR_ORANGE "%s" S_COLOR_WHITE " Start %" PRIi64 " Tracking " S_COLOR_ORANGE "%s" S_COLOR_WHITE,
+	// 													 cam_type_name, sfov, cam_timestamp, strack ),
+	// 					 cgs.fontSystemSmall, colorWhite );
+	// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
+
+	// if( currentcam ) {
+		// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, 
+		// 	va( "Pitch: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE " Yaw: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE " Roll: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE,
+		// 													 currentcam->angles[PITCH], currentcam->angles[YAW], currentcam->angles[ROLL] ),
+		// 					 cgs.fontSystemSmall, colorWhite );
+	// }
+	// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
+
+	//cam_type_name = "none";
+	//cam_timestamp = 0;
+	Q_strncpyz( sfov, "NO", sizeof( sfov ) );
+	if( nextcam ) {
+		//cam_type_name = cam_TypeNames[nextcam->type];
+		//cam_timestamp = nextcam->timeStamp;
+		snprintf( strack, sizeof( strack ), "%i", nextcam->trackEnt );
+		snprintf( sfov, sizeof( sfov ), "%i", nextcam->fov );
+	} else {
+		Q_strncpyz( strack, "NO", sizeof( strack ) );
+		Q_strncpyz( sfov, "NO", sizeof( sfov ) );
+	}
+
+	// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, 
+	// 	va( "Next cam: " S_COLOR_ORANGE "%s" S_COLOR_WHITE " Fov " S_COLOR_ORANGE "%s" S_COLOR_WHITE " Start %" PRIi64 " Tracking " S_COLOR_ORANGE "%s" S_COLOR_WHITE,
+	// 													 cam_type_name, sfov, cam_timestamp, strack ),
+	// 					 cgs.fontSystemSmall, colorWhite );
+	// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
+
+	// if( nextcam ) {
+		// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, 
+		// 	va( "Pitch: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE " Yaw: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE " Roll: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE,
+		// 													 nextcam->angles[PITCH], nextcam->angles[YAW], nextcam->angles[ROLL] ),
+		// 					 cgs.fontSystemSmall, colorWhite );
+	// }
+	// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
 }
 
 //===================================================================

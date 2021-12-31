@@ -348,7 +348,7 @@ static void NewRoundState( GladiatorRoundState newState ) {
 			// generate vs string
 			TempAllocator temp = svs.frame_arena.temp();
 			DynamicString vs_string( &temp, "{}", PLAYERENT( gladiator_state.round_challengers[ 0 ] )->r.client->netname );
-			for( int i = 1; i < gladiator_state.round_challengers.size(); i++ ) {
+			for( size_t i = 1; i < gladiator_state.round_challengers.size(); i++ ) {
 				s32 player = gladiator_state.round_challengers[ i ];
 				vs_string.append( temp( " vs. {}", PLAYERENT( player )->r.client->netname ) );
 			}
@@ -358,7 +358,7 @@ static void NewRoundState( GladiatorRoundState newState ) {
 			// check for match point
 			int limit = g_scorelimit->integer;
 			RoundType type = RoundType_Normal;
-			for( int i = 0; i < num_players; i++ ) {
+			for( size_t i = 0; i < num_players; i++ ) {
 				s32 player_num = server_gs.gameState.teams[ TEAM_PLAYERS ].player_indices[ i ] - 1;
 				int score = G_ClientGetStats( PLAYERENT( player_num ) )->score;
 				if( score == limit - 1 ) {

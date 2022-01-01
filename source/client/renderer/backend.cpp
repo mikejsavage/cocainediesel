@@ -446,6 +446,7 @@ static void DSAHacks() {
 		glEnableVertexArrayAttrib = glEnableVertexArrayAttribEXT;
 
 		glNamedBufferStorage = glNamedBufferStorageEXT;
+		glMapNamedBufferRange = glMapNamedBufferRangeEXT;
 		glUnmapNamedBuffer = glUnmapNamedBufferEXT;
 
 		glCreateTextures = []( GLenum target, GLsizei n, GLuint * textures ) {

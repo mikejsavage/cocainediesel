@@ -456,6 +456,12 @@ static void DSAHacks() {
 			glBindTexture( target, 0 );
 		};
 
+		glCreateFramebuffers = []( GLsizei n, GLuint * fbos ) {
+			assert( n == 1 );
+			glGenFramebuffers( 1, fbos );
+			glBindFramebuffer( GL_FRAMEBUFFER, fbos[ 0 ] );
+			glBindFramebuffer( GL_FRAMEBUFFER, 0 );
+		};
 		glCheckNamedFramebufferStatus = glCheckNamedFramebufferStatusEXT;
 		glNamedFramebufferTextureLayer = glNamedFramebufferTextureLayerEXT;
 		glNamedFramebufferTexture = glNamedFramebufferTextureEXT;

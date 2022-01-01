@@ -418,7 +418,7 @@ static void PlotVRAMUsage() {
 
 static GLuint DSACreateBuffer( bool ubo ) {
 	GLuint buf;
-	if( GLAD_GL_ARB_direct_state_access == 0 ) {
+	if( GLAD_GL_ARB_direct_state_access != 0 ) {
 		glCreateBuffers( 1, &buf );
 	}
 	else {

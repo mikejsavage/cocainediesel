@@ -506,7 +506,7 @@ static void DSAHacks() {
 			glCompressedTextureSubImage3D( tex, mip, x, y, z, w, h, d, format, n, data );
 		};
 		glBindMultiTextureEXT = []( GLuint unit, GLenum target, GLuint tex ) {
-			glBindTextureUnit( unit, tex );
+			glBindTextureUnit( unit - GL_TEXTURE0, tex );
 		};
 	}
 }
@@ -706,9 +706,9 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 						GLenum target = texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 						if( prev_texture != NULL && prev_texture->msaa != texture->msaa ) {
 							GLenum prev_target = prev_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-							glBindMultiTextureEXT( i, prev_target, 0 );
+							glBindMultiTextureEXT( GL_TEXTURE0 + i, prev_target, 0 );
 						}
-						glBindMultiTextureEXT( i, target, texture->texture );
+						glBindMultiTextureEXT( GL_TEXTURE0 + i, target, texture->texture );
 						prev_bindings.textures[ i ] = texture;
 					}
 					found = true;
@@ -719,7 +719,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 
 		if( !found && prev_texture != NULL ) {
 			GLenum prev_target = prev_texture->msaa ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
-			glBindMultiTextureEXT( i, prev_target, 0 );
+			glBindMultiTextureEXT( GL_TEXTURE0 + i, prev_target, 0 );
 			prev_bindings.textures[ i ] = NULL;
 		}
 	}
@@ -762,7 +762,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 				if( pipeline.texture_arrays[ j ].name_hash == name_hash ) {
 					TextureArray texture = pipeline.texture_arrays[ j ].ta;
 					if( texture.texture != prev_texture.texture ) {
-						glBindMultiTextureEXT( tex_unit, GL_TEXTURE_2D_ARRAY, texture.texture );
+						glBindMultiTextureEXT( GL_TEXTURE0 + tex_unit, GL_TEXTURE_2D_ARRAY, texture.texture );
 						prev_bindings.texture_arrays[ i ] = texture;
 					}
 					found = true;
@@ -772,7 +772,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		}
 
 		if( !found ) {
-			glBindMultiTextureEXT( tex_unit, GL_TEXTURE_2D_ARRAY, 0 );
+			glBindMultiTextureEXT( GL_TEXTURE0 + tex_unit, GL_TEXTURE_2D_ARRAY, 0 );
 			prev_bindings.texture_arrays[ i ] = { };
 		}
 	}

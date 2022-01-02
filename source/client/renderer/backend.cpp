@@ -446,6 +446,8 @@ static void DSAHacks() {
 		glEnableVertexArrayAttrib = glEnableVertexArrayAttribEXT;
 
 		glNamedBufferStorage = glNamedBufferStorageEXT;
+		glNamedBufferSubData = glNamedBufferSubDataEXT;
+		glGetNamedBufferSubData = glGetNamedBufferSubDataEXT;
 		glMapNamedBufferRange = glMapNamedBufferRangeEXT;
 		glUnmapNamedBuffer = glUnmapNamedBufferEXT;
 

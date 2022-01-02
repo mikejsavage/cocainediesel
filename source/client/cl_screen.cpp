@@ -121,7 +121,7 @@ void SCR_InitScreen() {
 
 static void SCR_RenderView() {
 	if( cl.map != NULL ) {
-		if( cl.map->cms->checksum != client_gs.gameState.map_checksum && Com_ServerState() != ss_dead ) {
+		if( cl.map->cms->checksum != client_gs.gameState.map_checksum && Com_ServerState() == ss_dead ) {
 			// disable this check on local servers because server/client hotloads don't happen in sync
 			Com_Error( "Local map version differs from server" );
 		}

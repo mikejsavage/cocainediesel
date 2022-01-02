@@ -38,11 +38,13 @@ void Cvar_Set( const char * name, const char * value );
 void Cvar_SetInteger( const char * name, int value );
 void Cvar_ForceSet( const char * name, const char * value );
 
-Span< const char * > TabCompleteCvar( TempAllocator * a, const char * partial );
-void ResetCheatCvars();
 bool Cvar_Command();
 
+Span< const char * > TabCompleteCvar( TempAllocator * a, const char * partial );
+Span< const char * > SearchCvars( Allocator * a, const char * partial );
+
 bool Cvar_CheatsAllowed();
+void ResetCheatCvars();
 
 class DynamicString;
 void Cvar_WriteVariables( DynamicString * config );

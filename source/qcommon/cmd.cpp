@@ -191,6 +191,41 @@ static void Cmd_Config_f() {
 	ExecConfig( path.c_str() );
 }
 
+static void Cmd_Find_f() {
+	if( Cmd_Argc() < 2 ) {
+		Com_Printf( "Usage: find <partial>\n" );
+		return;
+	}
+
+	Span< const char * > cmds = SearchCommands( sys_allocator, Cmd_Argv( 1 ) );
+	Span< const char * > cvars = SearchCvars( sys_allocator, Cmd_Argv( 1 ) );
+	defer {
+		FREE( sys_allocator, cmds.ptr );
+		FREE( sys_allocator, cvars.ptr );
+	};
+
+	if( cmds.n == 0 && cvars.n == 0 ) {
+		Com_Printf( "No results.\n" );
+		return;
+	}
+
+	if( cmds.n > 0 ) {
+		Com_Printf( "Found %zu command%s:\n", cmds.n, cmds.n == 1 ? "" : "s" );
+
+		for( const char * cvar : cmds ) {
+			Com_Printf( "    %s\n", cvar );
+		}
+	}
+
+	if( cvars.n > 0 ) {
+		Com_Printf( "Found %zu cvar%s:\n", cvars.n, cvars.n == 1 ? "" : "s" );
+
+		for( const char * cvar : cvars ) {
+			Com_Printf( "    %s\n", cvar );
+		}
+	}
+}
+
 void ExecDefaultCfg() {
 	DynamicString path( sys_allocator, "{}/base/default.cfg", RootDirPath() );
 	ExecConfig( path.c_str() );
@@ -287,17 +322,35 @@ void SetTabCompletionCallback( const char * name, TabCompletionCallback callback
 }
 
 Span< const char * > TabCompleteCommand( TempAllocator * a, const char * partial ) {
-	NonRAIIDynamicArray< const char * > completions;
-	completions.init( a );
+	NonRAIIDynamicArray< const char * > results;
+	results.init( a );
 
 	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
 		const ConsoleCommand * command = &commands[ i ];
 		if( !command->disabled && CaseStartsWith( command->name, partial ) ) {
-			completions.add( command->name );
+			results.add( command->name );
 		}
 	}
 
-	return completions.span();
+	std::sort( results.begin(), results.end(), SortCStringsComparator );
+
+	return results.span();
+}
+
+Span< const char * > SearchCommands( Allocator * a, const char * partial ) {
+	NonRAIIDynamicArray< const char * > results;
+	results.init( a );
+
+	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
+		const ConsoleCommand * command = &commands[ i ];
+		if( !command->disabled && CaseContains( command->name, partial ) ) {
+			results.add( command->name );
+		}
+	}
+
+	std::sort( results.begin(), results.end(), SortCStringsComparator );
+
+	return results.span();
 }
 
 Span< const char * > TabCompleteArgument( TempAllocator * a, const char * partial ) {
@@ -343,14 +396,14 @@ static void FindMatchingFilesRecursive( TempAllocator * a, NonRAIIDynamicArray< 
 Span< const char * > TabCompleteFilename( TempAllocator * a, const char * partial, const char * search_dir, const char * extension ) {
 	DynamicString base_path( sys_allocator, "{}", search_dir );
 
-	NonRAIIDynamicArray< const char * > completions;
-	completions.init( a );
+	NonRAIIDynamicArray< const char * > results;
+	results.init( a );
 
-	FindMatchingFilesRecursive( a, &completions, &base_path, partial, base_path.length() + 1, extension );
+	FindMatchingFilesRecursive( a, &results, &base_path, partial, base_path.length() + 1, extension );
 
-	std::sort( completions.begin(), completions.end(), SortCStringsComparator );
+	std::sort( results.begin(), results.end(), SortCStringsComparator );
 
-	return completions.span();
+	return results.span();
 }
 
 Span< const char * > TabCompleteFilenameHomeDir( TempAllocator * a, const char * partial, const char * search_dir, const char * extension ) {
@@ -369,6 +422,7 @@ static Span< const char * > TabCompleteConfig( TempAllocator * a, const char * p
 void Cmd_Init() {
 	AddCommand( "exec", Cmd_Exec_f );
 	AddCommand( "config", Cmd_Config_f );
+	AddCommand( "find", Cmd_Find_f );
 
 	SetTabCompletionCallback( "exec", TabCompleteExec );
 	SetTabCompletionCallback( "config", TabCompleteConfig );
@@ -381,6 +435,7 @@ void Cmd_Init() {
 void Cmd_Shutdown() {
 	RemoveCommand( "exec" );
 	RemoveCommand( "config" );
+	RemoveCommand( "find" );
 
 	for( int i = 0; i < cmd_argc; i++ ) {
 		FREE( sys_allocator, cmd_argv[ i ] );

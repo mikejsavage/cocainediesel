@@ -50,10 +50,11 @@ bool Cvar_CheatsAllowed() {
 }
 
 static bool Cvar_InfoValidate( const char *s, bool name ) {
-	return !( ( strlen( s ) >= (unsigned)( name ? MAX_INFO_KEY : MAX_INFO_VALUE ) ) ||
-			  ( strchr( s, '\\' ) ) ||
-			  ( strchr( s, '"' ) ) ||
-			  ( strchr( s, ';' ) ) );
+	size_t max_len = name ? MAX_INFO_KEY : MAX_INFO_VALUE;
+	return strlen( s ) < max_len
+		&& strchr( s, '\\' ) == NULL
+		&& strchr( s, '"' ) == NULL
+		&& strchr( s, ';' ) == NULL;
 }
 
 static Cvar * FindCvar( const char * name ) {
@@ -186,17 +187,35 @@ void ResetCheatCvars() {
 }
 
 Span< const char * > TabCompleteCvar( TempAllocator * a, const char * partial ) {
-	NonRAIIDynamicArray< const char * > completions;
-	completions.init( a );
+	NonRAIIDynamicArray< const char * > results;
+	results.init( a );
 
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
 		const Cvar * cvar = &cvars[ i ];
 		if( CaseStartsWith( cvar->name, partial ) ) {
-			completions.add( cvar->name );
+			results.add( cvar->name );
 		}
 	}
 
-	return completions.span();
+	std::sort( results.begin(), results.end(), SortCStringsComparator );
+
+	return results.span();
+}
+
+Span< const char * > SearchCvars( Allocator * a, const char * partial ) {
+	NonRAIIDynamicArray< const char * > results;
+	results.init( a );
+
+	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
+		const Cvar * cvar = &cvars[ i ];
+		if( CaseContains( cvar->name, partial ) ) {
+			results.add( cvar->name );
+		}
+	}
+
+	std::sort( results.begin(), results.end(), SortCStringsComparator );
+
+	return results.span();
 }
 
 /*

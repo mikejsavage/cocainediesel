@@ -351,6 +351,22 @@ bool CaseStartsWith( const char * str, const char * prefix ) {
 	return StrCaseEqual( Span< const char >( str, strlen( prefix ) ), prefix );
 }
 
+bool CaseContains( const char * haystack, const char * needle ) {
+	if( strlen( needle ) > strlen( haystack ) )
+		return false;
+
+	Span< const char > n = MakeSpan( needle );
+	size_t diff = strlen( haystack ) - strlen( needle );
+	for( size_t i = 0; i < diff; i++ ) {
+		Span< const char > h = Span< const char >( haystack + i, n.n );
+		if( StrCaseEqual( h, n ) ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static Span< const char > MemRChr( Span< const char > str, char c, bool empty_if_missing ) {
 	for( size_t i = 0; i < str.n; i++ ) {
 		if( str[ str.n - i - 1 ] == c ) {

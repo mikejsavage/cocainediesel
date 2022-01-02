@@ -919,16 +919,16 @@ static void CL_InitLocal() {
 		Cvar_Set( name->name, temp( "user{06}", RandomUniform( &cls.rng, 0, 1000000 ) ) );
 	}
 
-	AddCommand( "disconnect", CL_Disconnect_f );
-	AddCommand( "record", CL_Record_f );
-	AddCommand( "stop", CL_Stop_f );
 	AddCommand( "connect", CL_Connect_f );
 	AddCommand( "reconnect", CL_Reconnect_f );
-	AddCommand( "rcon", CL_Rcon_f );
+	AddCommand( "disconnect", CL_Disconnect_f );
 	AddCommand( "demo", CL_PlayDemo_f );
+	AddCommand( "record", CL_Record_f );
+	AddCommand( "stop", CL_Stop_f );
 	AddCommand( "yolodemo", CL_YoloDemo_f );
 	AddCommand( "demopause", CL_PauseDemo_f );
 	AddCommand( "demojump", CL_DemoJump_f );
+	AddCommand( "rcon", CL_Rcon_f );
 
 	SetTabCompletionCallback( "demo", TabCompleteDemo );
 	SetTabCompletionCallback( "yolodemo", TabCompleteDemo );
@@ -938,16 +938,16 @@ static void CL_ShutdownLocal() {
 	cls.state = CA_UNINITIALIZED;
 	Com_SetClientState( CA_UNINITIALIZED );
 
-	RemoveCommand( "disconnect" );
-	RemoveCommand( "record" );
-	RemoveCommand( "stop" );
 	RemoveCommand( "connect" );
 	RemoveCommand( "reconnect" );
-	RemoveCommand( "rcon" );
+	RemoveCommand( "disconnect" );
 	RemoveCommand( "demo" );
+	RemoveCommand( "record" );
+	RemoveCommand( "stop" );
 	RemoveCommand( "yolodemo" );
 	RemoveCommand( "demopause" );
 	RemoveCommand( "demojump" );
+	RemoveCommand( "rcon" );
 }
 
 //============================================================================

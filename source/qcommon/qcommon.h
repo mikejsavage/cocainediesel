@@ -224,6 +224,7 @@ void SetTabCompletionCallback( const char * name, TabCompletionCallback callback
 void RemoveCommand( const char * name );
 
 Span< const char * > TabCompleteCommand( TempAllocator * a, const char * partial );
+Span< const char * > SearchCommands( Allocator * a, const char * partial );
 Span< const char * > TabCompleteArgument( TempAllocator * a, const char * partial );
 Span< const char * > TabCompleteFilename( TempAllocator * a, const char * partial, const char * search_dir, const char * extension );
 Span< const char * > TabCompleteFilenameHomeDir( TempAllocator * a, const char * partial, const char * search_dir, const char * extension );

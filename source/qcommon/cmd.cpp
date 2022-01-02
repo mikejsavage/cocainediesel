@@ -292,7 +292,7 @@ Span< const char * > TabCompleteCommand( TempAllocator * a, const char * partial
 
 	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
 		const ConsoleCommand * command = &commands[ i ];
-		if( CaseStartsWith( command->name, partial ) ) {
+		if( !command->disabled && CaseStartsWith( command->name, partial ) ) {
 			completions.add( command->name );
 		}
 	}

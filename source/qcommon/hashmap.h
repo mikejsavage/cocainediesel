@@ -7,23 +7,15 @@ template< typename T, size_t N >
 class Hashmap {
 	Hashtable< N * 2 > ht;
 	u64 keys[ N ];
+	T values[ N ];
 
 public:
-	T values[ N ];
-	size_t n;
-
-	Hashmap() {
-		n = 0;
-	}
-
 	T * add( u64 key ) {
-		if( !ht.add( key, n ) )
+		if( !ht.add( key, ht.size() ) )
 			return NULL;
 
-		keys[ n ] = key;
-		n++;
-
-		return &values[ n - 1 ];
+		keys[ ht.size() - 1 ] = key;
+		return &values[ ht.size() - 1 ];
 	}
 
 	T * get( u64 key ) {
@@ -36,9 +28,8 @@ public:
 		if( !ht.get( key, &idx ) )
 			return false;
 
-		n--;
-		Swap2( &keys[ idx ], &keys[ n ] );
-		Swap2( &values[ idx ], &values[ n ] );
+		Swap2( &keys[ idx ], &keys[ ht.size() - 1 ] );
+		Swap2( &values[ idx ], &values[ ht.size() - 1 ] );
 
 		ht.update( keys[ idx ], idx );
 		ht.remove( key );

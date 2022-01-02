@@ -102,6 +102,13 @@ struct Framebuffer {
 	u32 width, height;
 };
 
+struct StreamingBuffer {
+	GPUBuffer buffers[ 3 ];
+	u64 fences[ 3 ];
+	u8 * mappings[ 3 ];
+	u32 current;
+};
+
 struct PipelineState {
 	struct UniformBinding {
 		u64 name_hash;
@@ -332,6 +339,12 @@ void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 len, u32 offset = 0 )
 void ReadGPUBuffer( GPUBuffer buf, void * data, u32 len, u32 offset = 0 );
 void DeleteGPUBuffer( GPUBuffer buf );
 void DeferDeleteGPUBuffer( GPUBuffer buf );
+
+StreamingBuffer NewStreamingBuffer( u32 len );
+void StreamingBufferFrame( StreamingBuffer * buf );
+u8 * GetStreamingBufferMapping( StreamingBuffer stream );
+GPUBuffer GetStreamingBufferBuffer( StreamingBuffer stream );
+void DeleteStreamingBuffer( StreamingBuffer buf );
 
 template< typename T >
 GPUBuffer NewGPUBuffer( Span< T > data, const char * name = NULL ) {

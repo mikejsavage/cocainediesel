@@ -80,13 +80,11 @@ static u32 num_vertices_this_frame;
 static bool in_frame;
 
 struct UBO {
-	GLuint ubo;
-	u8 * buffer;
+	StreamingBuffer stream;
 	u32 bytes_used;
 };
 
 static UBO ubos[ 16 ]; // 1MB of uniform space
-static GLsync ubo_fence;
 static u32 ubo_offset_alignment;
 
 static float max_anisotropic_filtering;
@@ -511,6 +509,8 @@ static void DSAHacks() {
 	}
 }
 
+static StreamingBuffer NewStreamingBuffer( u32 len, bool ubo );
+
 void InitRenderBackend() {
 	ZoneScoped;
 	TracyGpuContext;
@@ -588,7 +588,6 @@ void InitRenderBackend() {
 	GLint alignment;
 	glGetIntegerv( GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &alignment );
 	ubo_offset_alignment = checked_cast< u32 >( alignment );
-	ubo_fence = 0;
 
 	glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropic_filtering );
 
@@ -597,11 +596,7 @@ void InitRenderBackend() {
 	assert( max_ubo_size >= s32( UNIFORM_BUFFER_SIZE ) );
 
 	for( UBO & ubo : ubos ) {
-		GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
-		ubo.ubo = DSACreateBuffer( true );
-		glNamedBufferStorage( ubo.ubo, UNIFORM_BUFFER_SIZE, NULL, flags );
-		ubo.buffer = ( u8 * ) glMapNamedBufferRange( ubo.ubo, 0, UNIFORM_BUFFER_SIZE, flags );
-		assert( ubo.buffer != NULL );
+		ubo.stream = NewStreamingBuffer( UNIFORM_BUFFER_SIZE, true );
 	}
 
 	in_frame = false;
@@ -614,8 +609,7 @@ void InitRenderBackend() {
 
 void ShutdownRenderBackend() {
 	for( UBO ubo : ubos ) {
-		glUnmapNamedBuffer( ubo.ubo );
-		glDeleteBuffers( 1, &ubo.ubo );
+		DeleteStreamingBuffer( ubo.stream );
 	}
 
 	render_passes.shutdown();
@@ -638,12 +632,8 @@ void RenderBackendBeginFrame() {
 	num_vertices_this_frame = 0;
 
 	for( UBO & ubo : ubos ) {
+		StreamingBufferFrame( &ubo.stream );
 		ubo.bytes_used = 0;
-	}
-
-	if( ubo_fence != 0 ) {
-		glClientWaitSync( ubo_fence, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED );
-		glDeleteSync( ubo_fence );
 	}
 
 	if( frame_static.viewport_width != prev_viewport_width || frame_static.viewport_height != prev_viewport_height ) {
@@ -1143,8 +1133,6 @@ void RenderBackendSubmitFrame() {
 		FinishRenderPass();
 	}
 
-	ubo_fence = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
-
 	{
 		// OBS captures the game with glBlitFramebuffer which gets
 		// nuked by scissor, so turn it off at the end of every frame
@@ -1198,13 +1186,14 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 		Fatal( "Ran out of UBO space" );
 
 	UniformBlock block;
-	block.ubo = ubo->ubo;
+	block.ubo = GetStreamingBufferBuffer( ubo->stream ).buffer;
 	block.offset = offset;
 	block.size = AlignPow2( checked_cast< u32 >( size ), u32( 16 ) );
 
 	// memset so we don't leave any gaps. good for write combined memory!
-	memset( ubo->buffer + ubo->bytes_used, 0, offset - ubo->bytes_used );
-	memcpy( ubo->buffer + offset, data, size );
+	u8 * mapping = GetStreamingBufferMapping( ubo->stream );
+	memset( mapping + ubo->bytes_used, 0, offset - ubo->bytes_used );
+	memcpy( mapping + offset, data, size );
 	ubo->bytes_used = offset + size;
 
 	return block;
@@ -1248,6 +1237,55 @@ void DeleteGPUBuffer( GPUBuffer buf ) {
 
 void DeferDeleteGPUBuffer( GPUBuffer buf ) {
 	deferred_buffer_deletes.add( buf );
+}
+
+static StreamingBuffer NewStreamingBuffer( u32 len, bool ubo ) {
+	StreamingBuffer stream = { };
+	for( size_t i = 0; i < ARRAY_COUNT( stream.buffers ); i++ ) {
+		GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+		stream.buffers[ i ].buffer = DSACreateBuffer( ubo );
+		glNamedBufferStorage( stream.buffers[ i ].buffer, len, NULL, flags );
+		stream.mappings[ i ] = ( u8 * ) glMapNamedBufferRange( stream.buffers[ i ].buffer, 0, len, flags );
+	}
+
+	return stream;
+}
+
+StreamingBuffer NewStreamingBuffer( u32 len ) {
+	return NewStreamingBuffer( len, false );
+}
+
+void StreamingBufferFrame( StreamingBuffer * stream ) {
+	stream->fences[ stream->current ] = bit_cast< u64 >( glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 ) );
+	stream->current = ( stream->current + 1 ) % ARRAY_COUNT( stream->buffers );
+
+	if( stream->fences[ stream->current ] != 0 ) {
+		GLsync sync = bit_cast< GLsync >( stream->fences[ stream->current ] );
+		glClientWaitSync( sync, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED );
+		glDeleteSync( sync );
+		stream->fences[ stream->current ] = 0;
+	}
+}
+
+u8 * GetStreamingBufferMapping( StreamingBuffer stream ) {
+	return stream.mappings[ stream.current ];
+}
+
+GPUBuffer GetStreamingBufferBuffer( StreamingBuffer stream ) {
+	return stream.buffers[ stream.current ];
+}
+
+void DeleteStreamingBuffer( StreamingBuffer stream ) {
+	for( GPUBuffer buf : stream.buffers ) {
+		glUnmapNamedBuffer( buf.buffer );
+		DeleteGPUBuffer( buf );
+	}
+
+	for( u64 fence : stream.fences ) {
+		if( fence != 0 ) {
+			glDeleteSync( bit_cast< GLsync >( fence ) );
+		}
+	}
 }
 
 static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {

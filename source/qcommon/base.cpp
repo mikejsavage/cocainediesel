@@ -38,6 +38,10 @@ char * CopyString( Allocator * a, const char * str ) {
 	return ( *a )( "{}", str );
 }
 
+Span< char > MakeSpan( char * str ) {
+	return Span< char >( str, strlen( str ) );
+}
+
 Span< const char > MakeSpan( const char * str ) {
 	return Span< const char >( str, strlen( str ) );
 }

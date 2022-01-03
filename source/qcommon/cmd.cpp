@@ -48,7 +48,7 @@ bool Cbuf_ExecuteLine( Span< const char > line, bool warn_on_invalid ) {
 	}
 
 	const ConsoleCommand * command = FindCommand( Cmd_Argv( 0 ) );
-	if( command != NULL ) {
+	if( command != NULL && !command->disabled ) {
 		command->callback();
 		return true;
 	}

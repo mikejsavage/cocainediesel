@@ -284,7 +284,7 @@ void CG_MouseMove( int frameTime, Vec2 m ) {
 Vec3 CG_GetDeltaViewAngles() {
 	// m_pitch/m_yaw used to default to 0.022
 	float x = Cvar_Float( "horizontalsensscale" );
-	float y = Cvar_Bool( "m_invertY" ) ? 1.0f : -1.0f;
+	float y = Cvar_Bool( "m_invertY" ) ? -1.0f : 1.0f;
 	return Vec3(
 		0.022f * y * mouse_movement.y,
 		-0.022f * x * mouse_movement.x,

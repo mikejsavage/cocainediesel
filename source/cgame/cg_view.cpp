@@ -199,7 +199,7 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 	const SyncPlayerState * ps = &cg.frame.playerState;
 	const SyncPlayerState * ops = &cg.oldFrame.playerState;
 
-	*playerState = *ps;
+	*playerState = *ops;
 
 	bool teleported = ( ps->pmove.pm_flags & PMF_TIME_TELEPORT ) != 0;
 

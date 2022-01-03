@@ -2,11 +2,23 @@
 #include "gameshared/gs_weapons.h"
 
 
+static float pm_defaultspeed = 320.0f;
+static float pm_jumpspeed = 260.0f;
+static float pm_dashspeed = 550.0f;
+
+static float pm_sidewalkspeed = 320.0f;
+static float pm_crouchedspeed = 160.0f;
+
+
 constexpr float pm_dashupspeed = ( 174.0f * GRAVITY_COMPENSATE );
+constexpr s16 pm_dashtimedelay = 400;
+
 constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
 constexpr float pm_wjbouncefactor = 0.4f;
+constexpr s16 pm_wjtimedelay = 1300;
 
 constexpr s16 max_walljumps = 2;
+
 
 
 static float pm_wjminspeed( pml_t * pml ) {
@@ -27,7 +39,7 @@ static void PM_WallJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs 
 	}
 
 	// don't walljump in the first 100 milliseconds of a dash jump
-	// if( pm->playerState->pmove.pm_flags & PMF_DASHING && pm->playerState->pmove.dash_time > PM_DASHJUMP_TIMEDELAY - 100 ) {
+	// if( pm->playerState->pmove.pm_flags & PMF_DASHING && pm->playerState->pmove.dash_time > pm_dashtimedelay - 100 ) {
 	// 	return;
 	// }
 
@@ -79,7 +91,7 @@ static void PM_WallJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs 
 
 				pm->playerState->pmove.walljump_count++;
 
-				pm->playerState->pmove.walljump_time = PM_WALLJUMP_TIMEDELAY;
+				pm->playerState->pmove.walljump_time = pm_wjtimedelay;
 
 				// Create the event
 				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_WALLJUMP, DirToU64( normal ) );
@@ -143,7 +155,7 @@ static void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) {
 		}
 	}
 
-	pm->playerState->pmove.dash_time = PM_DASHJUMP_TIMEDELAY;
+	pm->playerState->pmove.dash_time = pm_dashtimedelay;
 }
 
 
@@ -151,7 +163,7 @@ static void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) {
 
 
 
-void PM_DefaultJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
+static void PM_DefaultJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	if( pml->upPush < 10 ) {
 		return;
 	}
@@ -188,15 +200,15 @@ void PM_DefaultJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Syn
 
 
 
-void PM_DefaultSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
+static void PM_DefaultSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	bool pressed = pm->cmd.buttons & BUTTON_SPECIAL;
-
-	if( GS_GetWeaponDef( ps->weapon )->zoom_fov != 0 && ( ps->pmove.features & PMFEAT_SCOPE ) != 0 ) {
-		return;
-	}
 
 	if( !pressed ) {
 		pm->playerState->pmove.pm_flags &= ~PMF_SPECIAL_HELD;
+	}
+
+	if( GS_GetWeaponDef( ps->weapon )->zoom_fov != 0 && ( ps->pmove.features & PMFEAT_SCOPE ) != 0 ) {
+		return;
 	}
 
 	if( pm->playerState->pmove.pm_type != PM_NORMAL ) {
@@ -216,4 +228,34 @@ void PM_DefaultSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, 
 			PM_ClearDash( pm->playerState );
 		}
 	}
+}
+
+
+void PM_DefaultInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps ) {
+	pml->maxPlayerSpeed = ps->pmove.max_speed;
+	if( pml->maxPlayerSpeed < 0 ) {
+		pml->maxPlayerSpeed = pm_defaultspeed;
+	}
+
+	pml->jumpPlayerSpeed = (float)ps->pmove.jump_speed * GRAVITY_COMPENSATE;
+	pml->jumpPlayerSpeedWater = pml->jumpPlayerSpeed * 2;
+
+	if( pml->jumpPlayerSpeed < 0 ) {
+		pml->jumpPlayerSpeed = pm_jumpspeed * GRAVITY_COMPENSATE;
+		pml->jumpPlayerSpeedWater = pml->jumpPlayerSpeed * 2;
+	}
+
+	pml->dashPlayerSpeed = ps->pmove.dash_speed;
+	if( pml->dashPlayerSpeed < 0 ) {
+		pml->dashPlayerSpeed = pm_dashspeed;
+	}
+
+	pml->maxCrouchedSpeed = pm_crouchedspeed;
+
+	pml->forwardPush = pm->cmd.forwardmove * pm_defaultspeed / 127.0f;
+	pml->sidePush = pm->cmd.sidemove * pm_sidewalkspeed / 127.0f;
+	pml->upPush = pm->cmd.upmove * pm_defaultspeed / 127.0f;
+
+	pml->jumpCallback = PM_DefaultJump;
+	pml->specialCallback = PM_DefaultSpecial;
 }

@@ -49,9 +49,6 @@ constexpr int PLAYER_MASS = 200;
 
 #define ZOOMTIME 60
 #define CROUCHTIME 100
-#define DEFAULT_PLAYERSPEED 320.0f
-#define DEFAULT_JUMPSPEED 260.0f
-#define DEFAULT_DASHSPEED 550.0f
 #define PROJECTILE_PRESTEP 100
 
 //==================================================================

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qcommon.h"
 #include "gameshared/movement.h"
 
+static constexpr float pm_ladderspeed = 300.0f;
 
 static constexpr s16 MAX_TBAG_TIME = 2000;
 static constexpr s16 TBAG_THRESHOLD = 1000;
@@ -372,12 +373,12 @@ static void PM_Aircontrol( Vec3 wishdir, float wishspeed ) {
 }
 
 static Vec3 PM_LadderMove( Vec3 wishvel ) {
-	if( pml.ladder && Abs( pml.velocity.z ) <= DEFAULT_LADDERSPEED ) {
+	if( pml.ladder && Abs( pml.velocity.z ) <= pm_ladderspeed ) {
 		if( pml.upPush > 0 ) { //jump
-			wishvel.z = DEFAULT_LADDERSPEED;
+			wishvel.z = pm_ladderspeed;
 		}
 		else if( pml.forwardPush > 0 ) {
-			wishvel.z = Lerp( -float( DEFAULT_LADDERSPEED ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( DEFAULT_LADDERSPEED ) );
+			wishvel.z = Lerp( -float( pm_ladderspeed ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( pm_ladderspeed ) );
 		}
 		else {
 			wishvel.z = 0;
@@ -896,30 +897,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 	pml.frametime = pm->cmd.msec * 0.001;
 
-	pml.maxPlayerSpeed = ps->pmove.max_speed;
-	if( pml.maxPlayerSpeed < 0 ) {
-		pml.maxPlayerSpeed = DEFAULT_PLAYERSPEED;
-	}
-
-	pml.jumpPlayerSpeed = (float)ps->pmove.jump_speed * GRAVITY_COMPENSATE;
-	pml.jumpPlayerSpeedWater = pml.jumpPlayerSpeed * 2;
-
-	if( pml.jumpPlayerSpeed < 0 ) {
-		pml.jumpPlayerSpeed = DEFAULT_JUMPSPEED * GRAVITY_COMPENSATE;
-	}
-
-	pml.dashPlayerSpeed = ps->pmove.dash_speed;
-	if( pml.dashPlayerSpeed < 0 ) {
-		pml.dashPlayerSpeed = DEFAULT_DASHSPEED;
-	}
-
-	pml.maxCrouchedSpeed = DEFAULT_CROUCHEDSPEED;
-	if( pml.maxCrouchedSpeed > pml.maxPlayerSpeed * 0.5f ) {
-		pml.maxCrouchedSpeed = pml.maxPlayerSpeed * 0.5f;
-	}
-
-	pml.jumpCallback = PM_DefaultJump;
-	pml.specialCallback = PM_DefaultSpecial;
+	PM_DefaultInit( pm, &pml, ps );
 
 	// assign a contentmask for the movement type
 	switch( ps->pmove.pm_type ) {
@@ -978,10 +956,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		ps->pmove.tbag_time = Max2( 0, ps->pmove.tbag_time - pm->cmd.msec );
 		// crouch_time is handled at PM_AdjustBBox
 	}
-
-	pml.forwardPush = pm->cmd.forwardmove * SPEEDKEY / 127.0f;
-	pml.sidePush = pm->cmd.sidemove * SPEEDKEY / 127.0f;
-	pml.upPush = pm->cmd.upmove * SPEEDKEY / 127.0f;
 
 	if( ps->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
 		if( !GS_MatchPaused( pmove_gs ) ) {
@@ -1085,17 +1059,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	if( !( ps->pmove.pm_flags & PMF_ON_GROUND ) && pm->groundentity != -1 ) {
 		pm->groundentity = -1;
 		pml.velocity.z = 0;
-	}
-
-	if( pm->groundentity != -1 ) { // remove wall-jump and dash bits when touching ground
-		// always keep the dash flag 50 msecs at least (to prevent being removed at the start of the dash)
-		if( ps->pmove.dash_time < PM_DASHJUMP_TIMEDELAY - 50 ) {
-			ps->pmove.pm_flags &= ~PMF_DASHING;
-		}
-
-		if( ps->pmove.walljump_time < PM_WALLJUMP_TIMEDELAY - 50 ) {
-			PM_ClearWallJump( pm->playerState );
-		}
 	}
 
 	if( oldGroundEntity == -1 ) {

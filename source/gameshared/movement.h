@@ -25,26 +25,20 @@ struct pml_t {
 	float jumpPlayerSpeedWater;
 	float dashPlayerSpeed;
 
+	s16 dashTimeDelay;
+	s16 walljumpTimeDelay;
+
 	void (*jumpCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * );
 	void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * );
 };
 
-//to be changed
-#define SPEEDKEY    500.0f
-
-#define PM_DASHJUMP_TIMEDELAY 200 // delay in milliseconds
-#define PM_WALLJUMP_TIMEDELAY   1300
 #define PM_AIRCONTROL_BOUNCE_DELAY 200
-#define PM_OVERBOUNCE       1.01f
+#define PM_OVERBOUNCE       	   1.01f
 
 #define SLIDEMOVE_PLANEINTERACT_EPSILON 0.05
-#define SLIDEMOVEFLAG_WALL_BLOCKED  8
-#define SLIDEMOVEFLAG_TRAPPED       4
-#define SLIDEMOVEFLAG_BLOCKED       2   // it was blocked at some point, doesn't mean it didn't slide along the blocking object
-
-#define DEFAULT_CROUCHEDSPEED 160.0f
-#define DEFAULT_LADDERSPEED 300.0f
-
+#define SLIDEMOVEFLAG_BLOCKED       	( 1 << 1 )   // it was blocked at some point, doesn't mean it didn't slide along the blocking object
+#define SLIDEMOVEFLAG_TRAPPED       	( 1 << 2 )
+#define SLIDEMOVEFLAG_WALL_BLOCKED  	( 1 << 3 )
 
 
 //shared
@@ -54,7 +48,5 @@ float Normalize2D( Vec3 * v );
 void PlayerTouchWall( pmove_t *, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal );
 
 
-
 //default
-void PM_DefaultJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps );
-void PM_DefaultSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps );
+void PM_DefaultInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );

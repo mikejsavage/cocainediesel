@@ -928,22 +928,19 @@ enum {
 
 static float AmmoFrac( const SyncPlayerState * ps, WeaponType weap, int ammo ) {
 	const WeaponDef * def = GS_GetWeaponDef( weap );
-	float ammo_frac = 1.0f;
-	if( def->clip_size != 0 ) {
-		if( weap == ps->weapon && ( ps->weapon_state == WeaponState_Reloading || ps->weapon_state == WeaponState_StagedReloading ) ) {
-			if( def->staged_reload_time != 0 ) {
-				u16 t = ps->weapon_state == WeaponState_StagedReloading ? def->staged_reload_time : def->reload_time;
-				ammo_frac = ( float( ammo ) + Unlerp01( u16( 0 ), ps->weapon_state_time, t ) ) / float( def->clip_size );
-			}
-			else {
-				ammo_frac = Min2( 1.0f, float( ps->weapon_state_time ) / float( def->reload_time ) );
-			}
-		}
-		else {
-			ammo_frac = float( ammo ) / float( def->clip_size );
-		}
+	if( def->clip_size == 0 )
+		return 1.0f;
+
+	if( weap != ps->weapon || ( ps->weapon_state != WeaponState_Reloading && ps->weapon_state != WeaponState_StagedReloading ) ) {
+		return float( ammo ) / float( def->clip_size );
 	}
-	return ammo_frac;
+
+	if( def->staged_reload_time != 0 ) {
+		u16 t = ps->weapon_state == WeaponState_StagedReloading ? def->staged_reload_time : def->reload_time;
+		return ( float( ammo ) + Unlerp01( u16( 0 ), ps->weapon_state_time, t ) ) / float( def->clip_size );
+	}
+
+	return Min2( 1.0f, float( ps->weapon_state_time ) / float( def->reload_time ) );
 }
 
 static Vec4 AmmoColor( float ammo_frac ) {

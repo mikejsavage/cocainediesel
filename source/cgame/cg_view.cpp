@@ -308,7 +308,7 @@ static void CG_UpdateChaseCam() {
 
 	if( cmd.buttons & BUTTON_ATTACK ) {
 		if( cgs.demoPlaying || ISREALSPECTATOR() ) {
-			Cbuf_ExecuteLine( "camswitch" );
+			Cbuf_ExecuteLine( cgs.demoPlaying ? "democamswitch" : "camswitch" );
 		}
 		chaseCam.key_pressed = true;
 	}

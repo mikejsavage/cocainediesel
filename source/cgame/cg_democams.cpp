@@ -935,7 +935,7 @@ static void CG_DemoFreeFly_Cmd_f() {
 	Com_Printf( "demo cam mode %s\n", CamIsFree ? "Free Fly" : "Preview" );
 }
 
-static void CG_CamSwitch_Cmd_f() {
+static void CG_DemoCamSwitch_Cmd_f() {
 
 }
 
@@ -1210,7 +1210,7 @@ void CG_DemocamInit() {
 	// add console commands
 	AddCommand( "demoEditMode", CG_DemoEditMode_Cmd_f );
 	AddCommand( "demoFreeFly", CG_DemoFreeFly_Cmd_f );
-	AddCommand( "camswitch", CG_CamSwitch_Cmd_f );
+	AddCommand( "democamswitch", CG_DemoCamSwitch_Cmd_f );
 
 	if( CG_LoadRecamScriptFile( path ) ) {
 		Com_Printf( "Loaded demo cam script\n" );
@@ -1225,7 +1225,7 @@ void CG_DemocamShutdown() {
 	// remove console commands
 	RemoveCommand( "demoEditMode" );
 	RemoveCommand( "demoFreeFly" );
-	RemoveCommand( "camswitch" );
+	RemoveCommand( "democamswitch" );
 	if( democam_editing_mode ) {
 		CG_DemoEditMode_RemoveCmds();
 	}

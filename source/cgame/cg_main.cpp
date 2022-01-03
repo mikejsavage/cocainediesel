@@ -118,8 +118,6 @@ static void CG_RegisterVariables() {
 	cg_particleDebug = NewCvar( "cg_particleDebug", "0", CvarFlag_Developer );
 
 	cg_showServerDebugPrints = NewCvar( "cg_showServerDebugPrints", "0", CvarFlag_Archive );
-
-	NewCvar( "cg_loadout", "", CvarFlag_Archive | CvarFlag_UserInfo );
 }
 
 const char * PlayerName( int i ) {

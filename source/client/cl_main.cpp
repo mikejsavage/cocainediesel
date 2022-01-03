@@ -921,6 +921,7 @@ static void CL_InitLocal() {
 		Cvar_Set( name->name, temp( "user{06}", RandomUniform( &cls.rng, 0, 1000000 ) ) );
 	}
 
+	NewCvar( "cg_loadout", "", CvarFlag_Archive | CvarFlag_UserInfo );
 	NewCvar( "cg_showHotkeys", "1", CvarFlag_Archive );
 	NewCvar( "cg_colorBlind", "0", CvarFlag_Archive );
 	NewCvar( "cg_showSpeed", "0", CvarFlag_Archive );

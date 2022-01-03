@@ -130,7 +130,6 @@ void G_Init( unsigned int framemsec ) {
 	sv_cheats = NewCvar( "sv_cheats", is_public_build ? "0" : "1", CvarFlag_ServerReadOnly );
 
 	sv_password = NewCvar( "sv_password", "", 0 );
-	sv_password->modified = true; // force an update of g_needpass in G_UpdateServerInfo
 	g_operator_password = NewCvar( "g_operator_password", "", CvarFlag_Archive );
 	filterban = NewCvar( "filterban", "1", 0 );
 

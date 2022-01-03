@@ -33,6 +33,8 @@ Cvar * NewCvar( const char * name, const char * value, u32 flags );
 bool IsCvar( const char * name );
 const char * Cvar_String( const char * name );
 int Cvar_Integer( const char * name );
+float Cvar_Float( const char * name );
+bool Cvar_Bool( const char * name );
 
 void Cvar_Set( const char * name, const char * value );
 void Cvar_SetInteger( const char * name, int value );

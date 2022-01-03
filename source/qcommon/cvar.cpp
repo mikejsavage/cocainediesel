@@ -46,7 +46,7 @@ bool HasFlag( u64 bits, u64 bit ) {
 }
 
 bool Cvar_CheatsAllowed() {
-	return Com_ClientState() < CA_CONNECTED || Com_DemoPlaying() || ( Com_ServerState() && Cvar_Integer( "sv_cheats" ) );
+	return Com_ClientState() < CA_CONNECTED || Com_DemoPlaying() || ( Com_ServerState() && Cvar_Bool( "sv_cheats" ) );
 }
 
 static bool Cvar_InfoValidate( const char *s, bool name ) {
@@ -75,6 +75,14 @@ const char * Cvar_String( const char * name ) {
 
 int Cvar_Integer( const char * name ) {
 	return FindCvar( name )->integer;
+}
+
+float Cvar_Float( const char * name ) {
+	return FindCvar( name )->number;
+}
+
+bool Cvar_Bool( const char * name ) {
+	return Cvar_Integer( name ) != 0;
 }
 
 void SetCvar( Cvar * cvar, const char * value ) {

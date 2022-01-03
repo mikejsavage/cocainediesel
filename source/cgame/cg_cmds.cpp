@@ -34,11 +34,11 @@ static void CG_SC_ChatPrint() {
 		return;
 	}
 
-	if( cg_chat->integer == 0 ) {
+	if( Cvar_Integer( "cg_chat" ) == 0 ) {
 		return;
 	}
 
-	if( cg_chat->integer == 2 && !teamonly ) {
+	if( Cvar_Integer( "cg_chat" ) == 2 && !teamonly ) {
 		return;
 	}
 

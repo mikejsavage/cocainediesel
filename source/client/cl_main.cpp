@@ -54,6 +54,8 @@ Cvar *cl_debug_timeDelta;
 
 Cvar *cl_devtools;
 
+Cvar *cg_showFPS;
+
 client_static_t cls;
 client_state_t cl;
 
@@ -918,6 +920,17 @@ static void CL_InitLocal() {
 	if( StrEqual( name->value, "" ) ) {
 		Cvar_Set( name->name, temp( "user{06}", RandomUniform( &cls.rng, 0, 1000000 ) ) );
 	}
+
+	NewCvar( "cg_showHotkeys", "1", CvarFlag_Archive );
+	NewCvar( "cg_colorBlind", "0", CvarFlag_Archive );
+	NewCvar( "cg_showSpeed", "0", CvarFlag_Archive );
+	NewCvar( "cg_chat", "1", CvarFlag_Archive );
+	cg_showFPS = NewCvar( "cg_showFPS", "0", CvarFlag_Archive );
+
+	NewCvar( "sensitivity", "3", CvarFlag_Archive );
+	NewCvar( "horizontalsensscale", "1", CvarFlag_Archive );
+	NewCvar( "m_accel", "0", CvarFlag_Archive );
+	NewCvar( "m_invertY", "0", CvarFlag_Archive );
 
 	AddCommand( "connect", CL_Connect_f );
 	AddCommand( "reconnect", CL_Reconnect_f );

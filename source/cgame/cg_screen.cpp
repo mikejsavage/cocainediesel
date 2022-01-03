@@ -23,13 +23,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/text.h"
 
 Cvar *cg_centerTime;
-Cvar *cg_showFPS;
 Cvar *cg_showPointedPlayer;
 Cvar *cg_draw2D;
 
 Cvar *cg_crosshair_size;
-
-Cvar *cg_showSpeed;
 
 Cvar *cg_showPlayerNames;
 Cvar *cg_showPlayerNames_alpha;
@@ -67,13 +64,11 @@ static void CG_DrawCenterString() {
 //============================================================================
 
 void CG_ScreenInit() {
-	cg_showFPS =        NewCvar( "cg_showFPS", "0", CvarFlag_Archive );
 	cg_draw2D =     NewCvar( "cg_draw2D", "1", 0 );
 	cg_centerTime =     NewCvar( "cg_centerTime", "2.5", 0 );
 
 	cg_crosshair_size = NewCvar( "cg_crosshair_size", "3", CvarFlag_Archive );
 
-	cg_showSpeed =      NewCvar( "cg_showSpeed", "0", CvarFlag_Archive );
 	cg_showPointedPlayer =  NewCvar( "cg_showPointedPlayer", "1", CvarFlag_Archive );
 
 	cg_showPlayerNames =        NewCvar( "cg_showPlayerNames", "2", CvarFlag_Archive );

@@ -354,6 +354,10 @@ static ItemState generic_gun_states[] = {
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
+		if( ( cmd->buttons & BUTTON_ATTACK ) != 0 && HasAmmo( def, slot ) ) {
+			return WeaponState_Idle;
+		}
+
 		if( ps->weapon_state_time < def->staged_reload_time ) {
 			return AllowWeaponSwitch( gs, ps, state );
 		}
@@ -361,12 +365,7 @@ static ItemState generic_gun_states[] = {
 		slot->ammo++;
 		gs->api.PredictedEvent( ps->POVnum, EV_WEAPONACTIVATE, ps->weapon << 1 );
 
-		bool shoot = ( cmd->buttons & BUTTON_ATTACK ) != 0 && HasAmmo( def, slot );
-		if( slot->ammo == def->clip_size || shoot ) {
-			return WeaponState_Idle;
-		}
-
-		return ForceReset( WeaponState_StagedReloading );
+		return slot->ammo == def->clip_size ? WeaponState_Idle : ForceReset( WeaponState_StagedReloading );
 	} ),
 };
 

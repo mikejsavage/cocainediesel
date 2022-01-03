@@ -17,7 +17,7 @@ RGB8 CG_TeamColor( int team ) {
 	if( team == TEAM_PLAYERS )
 		return RGB8( 255, 255, 255 );
 
-	const RGB8 * colors = Cvar_Bool( "cg_colorBlind" ) ? TEAM_COLORS : COLORBLIND_TEAM_COLORS;
+	const RGB8 * colors = Cvar_Bool( "cg_colorBlind" ) ? COLORBLIND_TEAM_COLORS : TEAM_COLORS;
 	return CG_IsAlly( team ) ? colors[ 0 ] : colors[ 1 ];
 }
 

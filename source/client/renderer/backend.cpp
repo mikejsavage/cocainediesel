@@ -247,6 +247,7 @@ static u32 GLTypeSize( GLenum type ) {
 	}
 
 	assert( false );
+	return 0;
 }
 
 static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_components, bool * integral, GLboolean * normalized, u32 * stride ) {

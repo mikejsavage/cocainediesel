@@ -85,8 +85,6 @@ static void ListPlayersExcept( edict_t * ent, String< MAX_STRING_CHARS > * msg, 
 * map
 */
 
-#define MAPLIST_SEPS " ,"
-
 static void G_VoteMapExtraHelp( edict_t * ent, String< MAX_STRING_CHARS > * msg ) {
 	TempAllocator temp = svs.frame_arena.temp();
 	RefreshMapList( &temp );

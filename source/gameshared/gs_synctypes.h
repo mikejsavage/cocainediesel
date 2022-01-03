@@ -290,6 +290,7 @@ struct pmove_state_t {
 	s16 tbag_time;
 	s16 dash_time;
 	s16 walljump_time;
+	s16 walljump_count;
 
 	s16 max_speed;
 	s16 jump_speed;

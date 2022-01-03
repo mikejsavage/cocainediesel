@@ -985,9 +985,8 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 	if( ps->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
 		if( !GS_MatchPaused( pmove_gs ) ) {
-			PM_ClearDash( pm );
-
-			PM_ClearWallJump( pm );
+			PM_ClearDash( pm->playerState );
+			PM_ClearWallJump( pm->playerState );
 
 			ps->pmove.knockback_time = 0;
 			ps->pmove.crouch_time = 0;
@@ -1095,7 +1094,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		}
 
 		if( ps->pmove.walljump_time < PM_WALLJUMP_TIMEDELAY - 50 ) {
-			PM_ClearWallJump( pm );
+			PM_ClearWallJump( pm->playerState );
 		}
 	}
 

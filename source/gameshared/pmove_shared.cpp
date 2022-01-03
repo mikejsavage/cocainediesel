@@ -1,15 +1,15 @@
 #include "gameshared/movement.h"
 
 
-void PM_ClearDash( pmove_t * pm ) {
-	pm->playerState->pmove.pm_flags &= ~PMF_DASHING;
-	pm->playerState->pmove.dash_time = 0;
+void PM_ClearDash( SyncPlayerState * ps ) {
+	ps->pmove.pm_flags &= ~PMF_DASHING;
+	ps->pmove.dash_time = 0;
 }
 
-void PM_ClearWallJump( pmove_t * pm ) {
-	pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPING;
-	pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;
-	pm->playerState->pmove.walljump_time = 0;
+void PM_ClearWallJump( SyncPlayerState * ps ) {
+	ps->pmove.pm_flags &= ~PMF_WALLJUMPING;
+	ps->pmove.walljump_count = 0;
+	ps->pmove.walljump_time = 0;
 }
 
 

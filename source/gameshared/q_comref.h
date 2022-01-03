@@ -47,14 +47,13 @@ enum pmtype_t {
 };
 
 // pmove->pm_flags
-#define PMF_WALLJUMPCOUNT   ( 1 << 0 )
-#define PMF_ON_GROUND       ( 1 << 1 )
-#define PMF_TIME_WATERJUMP  ( 1 << 2 )  // pm_time is waterjump
-#define PMF_TIME_TELEPORT   ( 1 << 3 )  // pm_time is non-moving time
-#define PMF_NO_PREDICTION   ( 1 << 4 )  // temporarily disables prediction (used for grappling hook)
-#define PMF_DASHING         ( 1 << 5 )  // Dashing flag
-#define PMF_SPECIAL_HELD    ( 1 << 6 )  // Special flag
-#define PMF_WALLJUMPING     ( 1 << 7 )  // WJ starting flag
+#define PMF_ON_GROUND       ( 1 << 0 )
+#define PMF_TIME_WATERJUMP  ( 1 << 1 )  // pm_time is waterjump
+#define PMF_TIME_TELEPORT   ( 1 << 2 )  // pm_time is non-moving time
+#define PMF_NO_PREDICTION   ( 1 << 3 )  // temporarily disables prediction (used for grappling hook)
+#define PMF_DASHING         ( 1 << 4 )  // Dashing flag
+#define PMF_SPECIAL_HELD    ( 1 << 5 )  // Special flag
+#define PMF_WALLJUMPING     ( 1 << 6 )  // WJ starting flag
 
 // note that Q_rint was causing problems here
 // (spawn looking straight up\down at delta_angles wrapping)

@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
+#include "gameshared/movement.h"
 
 Vec3 GS_EvaluateJumppad( const SyncEntityState * jumppad, Vec3 velocity ) {
 	if( jumppad->type == ET_PAINKILLER_JUMPPAD ) {
@@ -42,8 +43,7 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 	playerState->pmove.velocity = GS_EvaluateJumppad( pusher, playerState->pmove.velocity );
 
 	// reset walljump counter
-	playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;
-	playerState->pmove.pm_flags &= ~PMF_ON_GROUND;
+	PM_ClearWallJump( playerState );
 	gs->api.PredictedEvent( playerState->POVnum, EV_JUMP_PAD, 0 );
 }
 

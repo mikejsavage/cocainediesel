@@ -6,6 +6,7 @@ constexpr float pm_dashupspeed = ( 174.0f * GRAVITY_COMPENSATE );
 constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
 constexpr float pm_wjbouncefactor = 0.4f;
 
+constexpr s16 max_walljumps = 2;
 
 
 static float pm_wjminspeed( pml_t * pml ) {
@@ -21,8 +22,8 @@ static void PM_WallJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs 
 		pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPING;
 	}
 
-	if( pm->playerState->pmove.walljump_time <= 0 ) { // reset the wj count after wj delay
-		pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPCOUNT;
+	if( pm->playerState->pmove.walljump_time <= 0 && pm->playerState->pmove.walljump_count == max_walljumps ) { // reset the wj count after wj delay
+		pm->playerState->pmove.walljump_count = 0;
 	}
 
 	// don't walljump in the first 100 milliseconds of a dash jump
@@ -32,7 +33,7 @@ static void PM_WallJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs 
 
 	// markthis
 
-	if(	( !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPCOUNT ) ) && pm->playerState->pmove.walljump_time <= 0 ) {
+	if(	pm->playerState->pmove.walljump_count != max_walljumps ) {
 		trace_t trace;
 		Vec3 point = pml->origin;
 		point.z -= STEPSIZE;
@@ -71,12 +72,12 @@ static void PM_WallJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs 
 				pml->velocity.z = ( oldupvelocity > pm_wjupspeed ) ? oldupvelocity : pm_wjupspeed; // jal: if we had a faster upwards speed, keep it
 
 				// set the walljumping state
-				PM_ClearDash( pm );
+				PM_ClearDash( pm->playerState );
 
 				pm->playerState->pmove.pm_flags |= PMF_WALLJUMPING;
 				pm->playerState->pmove.pm_flags |= PMF_SPECIAL_HELD;
 
-				pm->playerState->pmove.pm_flags |= PMF_WALLJUMPCOUNT;
+				pm->playerState->pmove.walljump_count++;
 
 				pm->playerState->pmove.walljump_time = PM_WALLJUMP_TIMEDELAY;
 
@@ -181,8 +182,8 @@ void PM_DefaultJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Syn
 	pml->velocity.z = Max2( 0.0f, pml->velocity.z ) + jumpSpeed;
 
 	// remove wj count
-	PM_ClearDash( pm );
-	PM_ClearWallJump( pm );
+	PM_ClearDash( pm->playerState );
+	PM_ClearWallJump( pm->playerState );
 }
 
 
@@ -209,13 +210,10 @@ void PM_DefaultSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, 
 	if( pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) ) {
 		if( pm->groundentity != -1 ) {
 			PM_Dash( pm, pml, pmove_gs );
-			PM_ClearWallJump( pm );
+			PM_ClearWallJump( pm->playerState );
 		} else if( pm->groundentity == -1 ) {
 			PM_WallJump( pm, pml, pmove_gs );
-			PM_ClearDash( pm );
+			PM_ClearDash( pm->playerState );
 		}
-	} else {
-		PM_ClearDash( pm );
-		PM_ClearWallJump( pm );
 	}
 }

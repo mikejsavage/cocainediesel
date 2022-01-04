@@ -807,7 +807,6 @@ static u32 PlayersAliveOnTeam( int team ) {
 static void EnableMovementFor( s32 playernum ) {
 	edict_t * ent = PLAYERENT( playernum );
 	ent->r.client->ps.pmove.max_speed = -1;
-	ent->r.client->ps.pmove.dash_speed = -1;
 	ent->r.client->ps.pmove.features = ent->r.client->ps.pmove.features | PMFEAT_JUMP | PMFEAT_SPECIAL;
 }
 
@@ -823,7 +822,6 @@ static void EnableMovement() {
 static void DisableMovementFor( s32 playernum ) {
 	edict_t * ent = PLAYERENT( playernum );
 	ent->r.client->ps.pmove.max_speed = 100;
-	ent->r.client->ps.pmove.dash_speed = 0;
 	ent->r.client->ps.pmove.features &= ~( PMFEAT_JUMP | PMFEAT_SPECIAL );
 	ent->r.client->ps.pmove.no_shooting_time = 5000;
 }

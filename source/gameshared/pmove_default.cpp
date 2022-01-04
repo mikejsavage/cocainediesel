@@ -56,7 +56,7 @@ static void PM_WallJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs 
 		pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
 
 		if( pml->upPush >= 10
-			|| ( hspeed > pm->playerState->pmove.dash_speed && pml->velocity.z > 8 )
+			|| ( hspeed > pm_dashspeed && pml->velocity.z > 8 )
 			|| ( trace.fraction == 1 ) || ( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
 			Vec3 normal( 0.0f );
 			PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal );
@@ -122,14 +122,14 @@ static void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) {
 
 	if( Length( dashdir ) < 0.01f ) { // if not moving, dash like a "forward dash"
 		dashdir = pml->flatforward;
-		pml->forwardPush = pml->dashPlayerSpeed;
+		pml->forwardPush = pm_dashspeed;
 	}
 
 	dashdir = Normalize( dashdir );
 
 	float actual_velocity = Normalize2D( &pml->velocity );
-	if( actual_velocity <= pml->dashPlayerSpeed ) {
-		dashdir *= pml->dashPlayerSpeed;
+	if( actual_velocity <= pm_dashspeed ) {
+		dashdir *= pm_dashspeed;
 	} else {
 		dashdir *= actual_velocity;
 	}
@@ -188,7 +188,7 @@ static void PM_DefaultJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 	}
 
 
-	float jumpSpeed = ( pm->waterlevel >= 2 ? pml->jumpPlayerSpeedWater : pml->jumpPlayerSpeed );
+	float jumpSpeed = ( pm->waterlevel >= 2 ? pm_jumpspeed * 2 : pm_jumpspeed );
 
 	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, 0 );
 	pml->velocity.z = Max2( 0.0f, pml->velocity.z ) + jumpSpeed;
@@ -235,19 +235,6 @@ void PM_DefaultInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps ) {
 	pml->maxPlayerSpeed = ps->pmove.max_speed;
 	if( pml->maxPlayerSpeed < 0 ) {
 		pml->maxPlayerSpeed = pm_defaultspeed;
-	}
-
-	pml->jumpPlayerSpeed = (float)ps->pmove.jump_speed * GRAVITY_COMPENSATE;
-	pml->jumpPlayerSpeedWater = pml->jumpPlayerSpeed * 2;
-
-	if( pml->jumpPlayerSpeed < 0 ) {
-		pml->jumpPlayerSpeed = pm_jumpspeed * GRAVITY_COMPENSATE;
-		pml->jumpPlayerSpeedWater = pml->jumpPlayerSpeed * 2;
-	}
-
-	pml->dashPlayerSpeed = ps->pmove.dash_speed;
-	if( pml->dashPlayerSpeed < 0 ) {
-		pml->dashPlayerSpeed = pm_dashspeed;
 	}
 
 	pml->maxCrouchedSpeed = pm_crouchedspeed;

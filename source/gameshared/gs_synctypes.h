@@ -292,8 +292,6 @@ struct pmove_state_t {
 	s16 special_count;
 
 	s16 max_speed;
-	s16 jump_speed;
-	s16 dash_speed;
 };
 
 struct WeaponSlot {

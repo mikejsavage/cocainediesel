@@ -21,9 +21,6 @@ struct pml_t {
 
 	float maxPlayerSpeed;
 	float maxCrouchedSpeed;
-	float jumpPlayerSpeed;
-	float jumpPlayerSpeedWater;
-	float dashPlayerSpeed;
 
 	void (*jumpCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * );
 	void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * );

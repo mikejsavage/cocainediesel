@@ -38,7 +38,7 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 	}
 
 	if( pm->groundentity != -1 ) {
-		float jumpSpeed = ( pm->waterlevel >= 2 ? pml->jumpPlayerSpeedWater : pml->jumpPlayerSpeed );
+		float jumpSpeed = ( pm->waterlevel >= 2 ? pm_basejumpspeed * 2 : pm_basejumpspeed );
 		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
 		pml->velocity.z = Max2( 0.0f, pml->velocity.z ) + jumpSpeed;
 		pm->groundentity = -1;
@@ -73,10 +73,10 @@ static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmo
 
 	if( pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) ) {
 		Vec3 dashdir = pml->flatforward;
-		pml->forwardPush = pml->dashPlayerSpeed;
+		pml->forwardPush = pm_boostspeed;
 
 		dashdir = Normalize( dashdir );
-		dashdir *= pml->dashPlayerSpeed;
+		dashdir *= pm_boostspeed;
 
 		pml->velocity.x = dashdir.x;
 		pml->velocity.y = dashdir.y;
@@ -94,19 +94,6 @@ void PM_JetpackInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps ) {
 	pml->maxPlayerSpeed = ps->pmove.max_speed;
 	if( pml->maxPlayerSpeed < 0 ) {
 		pml->maxPlayerSpeed = pm_defaultspeed;
-	}
-
-	pml->jumpPlayerSpeed = (float)ps->pmove.jump_speed * GRAVITY_COMPENSATE;
-	pml->jumpPlayerSpeedWater = pml->jumpPlayerSpeed * 2;
-
-	if( pml->jumpPlayerSpeed < 0 ) {
-		pml->jumpPlayerSpeed = pm_basejumpspeed * GRAVITY_COMPENSATE;
-		pml->jumpPlayerSpeedWater = pml->jumpPlayerSpeed * 2;
-	}
-
-	pml->dashPlayerSpeed = ps->pmove.dash_speed;
-	if( pml->dashPlayerSpeed < 0 ) {
-		pml->dashPlayerSpeed = pm_boostspeed;
 	}
 
 	pml->maxCrouchedSpeed = pm_crouchedspeed;

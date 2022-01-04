@@ -309,8 +309,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 
 	// set movement info
 	client->ps.pmove.max_speed = -1;
-	client->ps.pmove.jump_speed = -1;
-	client->ps.pmove.dash_speed = -1;
 
 	if( ghost ) {
 		G_GhostClient( self );

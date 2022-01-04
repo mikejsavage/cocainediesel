@@ -25,9 +25,6 @@ struct pml_t {
 	float jumpPlayerSpeedWater;
 	float dashPlayerSpeed;
 
-	s16 dashTimeDelay;
-	s16 walljumpTimeDelay;
-
 	void (*jumpCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * );
 	void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * );
 };
@@ -50,3 +47,6 @@ void PlayerTouchWall( pmove_t *, pml_t * pml, const gs_state_t * pmove_gs, int n
 
 //default
 void PM_DefaultInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );
+
+//jetpack
+void PM_JetpackInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );

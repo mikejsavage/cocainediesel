@@ -3,13 +3,12 @@
 
 void PM_ClearDash( SyncPlayerState * ps ) {
 	ps->pmove.pm_flags &= ~PMF_DASHING;
-	ps->pmove.dash_time = 0;
 }
 
 void PM_ClearWallJump( SyncPlayerState * ps ) {
 	ps->pmove.pm_flags &= ~PMF_WALLJUMPING;
-	ps->pmove.walljump_count = 0;
-	ps->pmove.walljump_time = 0;
+	ps->pmove.special_count = 0;
+	ps->pmove.special_time = 0;
 }
 
 

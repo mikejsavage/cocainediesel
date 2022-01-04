@@ -2,22 +2,22 @@
 #include "gameshared/gs_weapons.h"
 
 
-static float pm_defaultspeed = 320.0f;
-static float pm_jumpspeed = 260.0f;
-static float pm_dashspeed = 550.0f;
+static constexpr float pm_defaultspeed = 320.0f;
+static constexpr float pm_jumpspeed = 260.0f;
+static constexpr float pm_dashspeed = 550.0f;
 
-static float pm_sidewalkspeed = 320.0f;
-static float pm_crouchedspeed = 160.0f;
+static constexpr float pm_sidewalkspeed = 320.0f;
+static constexpr float pm_crouchedspeed = 160.0f;
 
 
-constexpr float pm_dashupspeed = ( 174.0f * GRAVITY_COMPENSATE );
-constexpr s16 pm_dashtimedelay = 400;
+static constexpr float pm_dashupspeed = ( 174.0f * GRAVITY_COMPENSATE );
+static constexpr s16 pm_dashtimedelay = 200;
 
-constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
-constexpr float pm_wjbouncefactor = 0.4f;
-constexpr s16 pm_wjtimedelay = 1300;
+static constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
+static constexpr float pm_wjbouncefactor = 0.4f;
+static constexpr s16 pm_wjtimedelay = 1300;
 
-constexpr s16 max_walljumps = 2;
+static constexpr s16 max_walljumps = 2;
 
 
 
@@ -34,8 +34,8 @@ static void PM_WallJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs 
 		pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPING;
 	}
 
-	if( pm->playerState->pmove.walljump_time <= 0 && pm->playerState->pmove.walljump_count == max_walljumps ) { // reset the wj count after wj delay
-		pm->playerState->pmove.walljump_count = 0;
+	if( pm->playerState->pmove.special_time <= 0 && pm->playerState->pmove.special_count == max_walljumps ) { // reset the wj count after wj delay
+		pm->playerState->pmove.special_count = 0;
 	}
 
 	// don't walljump in the first 100 milliseconds of a dash jump
@@ -45,7 +45,7 @@ static void PM_WallJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs 
 
 	// markthis
 
-	if(	pm->playerState->pmove.walljump_count != max_walljumps ) {
+	if(	pm->playerState->pmove.special_count != max_walljumps ) {
 		trace_t trace;
 		Vec3 point = pml->origin;
 		point.z -= STEPSIZE;
@@ -89,9 +89,9 @@ static void PM_WallJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs 
 				pm->playerState->pmove.pm_flags |= PMF_WALLJUMPING;
 				pm->playerState->pmove.pm_flags |= PMF_SPECIAL_HELD;
 
-				pm->playerState->pmove.walljump_count++;
+				pm->playerState->pmove.special_count++;
 
-				pm->playerState->pmove.walljump_time = pm_wjtimedelay;
+				pm->playerState->pmove.special_time = pm_wjtimedelay;
 
 				// Create the event
 				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_WALLJUMP, DirToU64( normal ) );
@@ -138,7 +138,7 @@ static void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) {
 	pml->velocity.z = upspeed;
 
 	// return sound events only when the dashes weren't too close to each other
-	if( pm->playerState->pmove.dash_time == 0 ) {
+	if( pm->playerState->pmove.special_time == 0 ) {
 		if( Abs( pml->sidePush ) >= Abs( pml->forwardPush ) ) {
 			if( pml->sidePush > 0 ) {
 				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH, 2 );
@@ -155,7 +155,7 @@ static void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) {
 		}
 	}
 
-	pm->playerState->pmove.dash_time = pm_dashtimedelay;
+	pm->playerState->pmove.special_time = pm_dashtimedelay;
 }
 
 
@@ -168,7 +168,7 @@ static void PM_DefaultJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 		return;
 	}
 
-	if( pm->playerState->pmove.pm_type != PM_NORMAL ) {
+	if( ps->pmove.pm_type != PM_NORMAL ) {
 		return;
 	}
 
@@ -176,7 +176,7 @@ static void PM_DefaultJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 		return;
 	}
 
-	if( !( pm->playerState->pmove.features & PMFEAT_JUMP ) ) {
+	if( !( ps->pmove.features & PMFEAT_JUMP ) ) {
 		return;
 	}
 
@@ -190,12 +190,12 @@ static void PM_DefaultJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 
 	float jumpSpeed = ( pm->waterlevel >= 2 ? pml->jumpPlayerSpeedWater : pml->jumpPlayerSpeed );
 
-	pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_JUMP, 0 );
+	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, 0 );
 	pml->velocity.z = Max2( 0.0f, pml->velocity.z ) + jumpSpeed;
 
 	// remove wj count
-	PM_ClearDash( pm->playerState );
-	PM_ClearWallJump( pm->playerState );
+	PM_ClearDash( ps );
+	PM_ClearWallJump( ps );
 }
 
 
@@ -204,28 +204,28 @@ static void PM_DefaultSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmo
 	bool pressed = pm->cmd.buttons & BUTTON_SPECIAL;
 
 	if( !pressed ) {
-		pm->playerState->pmove.pm_flags &= ~PMF_SPECIAL_HELD;
+		ps->pmove.pm_flags &= ~PMF_SPECIAL_HELD;
 	}
 
 	if( GS_GetWeaponDef( ps->weapon )->zoom_fov != 0 && ( ps->pmove.features & PMFEAT_SCOPE ) != 0 ) {
 		return;
 	}
 
-	if( pm->playerState->pmove.pm_type != PM_NORMAL ) {
+	if( ps->pmove.pm_type != PM_NORMAL ) {
 		return;
 	}
 
-	if( pm->playerState->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
+	if( ps->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
 		return;
 	}
 
 	if( pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) ) {
 		if( pm->groundentity != -1 ) {
 			PM_Dash( pm, pml, pmove_gs );
-			PM_ClearWallJump( pm->playerState );
+			PM_ClearWallJump( ps );
 		} else if( pm->groundentity == -1 ) {
 			PM_WallJump( pm, pml, pmove_gs );
-			PM_ClearDash( pm->playerState );
+			PM_ClearDash( ps );
 		}
 	}
 }

@@ -87,10 +87,13 @@ enum GadgetType : u8 {
 	Gadget_Count
 };
 
-enum PerkType : u8 {
+using PerkType = u8;
+enum PerkType_ : PerkType {
 	Perk_None,
 
+	Perk_Default,
 	Perk_Midget,
+	Perk_Jetpack,
 
 	Perk_Count
 };
@@ -312,6 +315,7 @@ struct SyncPlayerState {
 	WeaponSlot weapons[ Weapon_Count - 1 ];
 
 	GadgetType gadget;
+	PerkType perk;
 	u8 gadget_ammo;
 
 	bool ready;

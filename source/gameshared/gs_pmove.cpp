@@ -897,7 +897,11 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 	pml.frametime = pm->cmd.msec * 0.001;
 
-	PM_DefaultInit( pm, &pml, ps );
+	if( ps->perk == Perk_Jetpack ) {
+		PM_JetpackInit( pm, &pml, ps );
+	} else {
+		PM_DefaultInit( pm, &pml, ps );
+	}
 
 	// assign a contentmask for the movement type
 	switch( ps->pmove.pm_type ) {

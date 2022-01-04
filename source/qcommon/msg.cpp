@@ -668,6 +668,8 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	Delta( buf, player.weapons, baseline.weapons );
 	DeltaEnum( buf, player.gadget, baseline.gadget );
+	Delta( buf, player.perk, baseline.perk );
+
 	Delta( buf, player.gadget_ammo, baseline.gadget_ammo );
 
 	Delta( buf, player.ready, baseline.ready );

@@ -957,7 +957,9 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 }
 
 static void Perks( Vec2 icon_size ) {
-	ImGui::Text( "Do you want to be small" );
+	TempAllocator temp = cls.frame_arena.temp();
+
+	ImGui::Text( "How do you want to move" );
 	ImGui::NextColumn();
 
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
@@ -969,17 +971,26 @@ static void Perks( Vec2 icon_size ) {
 	ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
 	defer { ImGui::PopStyleVar( 2 ); };
 
-	const Material * icon = FindMaterial( "perks/midget" );
-	Vec2 half_pixel = HalfPixelSize( icon );
-	Vec4 color = selected_perk == Perk_Midget ? vec4_green : vec4_white;
+	for( PerkType i = Perk_None + 1; i < Perk_Count; i++ ) {
+		Vec4 color = selected_perk == i ? vec4_green : vec4_white;
+		ImGui::PushStyleColor( ImGuiCol_Border, color );
 
-	ImGui::PushStyleColor( ImGuiCol_Border, color );
-	defer { ImGui::PopStyleColor(); };
+		const Material * icon = cgs.media.shaderPerkIcon[ i ];
+		Vec2 half_pixel = HalfPixelSize( icon );
 
-	bool clicked = ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
-	if( clicked ) {
-		selected_perk = selected_perk == Perk_Midget ? Perk_None : Perk_Midget;
-		SendLoadout();
+		//not needed when there are different pics
+		ImGui::PushID( temp( "perk{}", i ) );
+		bool clicked = ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
+		if( clicked ) {
+			selected_perk = i;
+			SendLoadout();
+		}
+		ImGui::PopID();
+		ImGui::PopStyleColor();
+
+		ImGui::SameLine();
+		ImGui::Dummy( Vec2( 16, 0 ) );
+		ImGui::SameLine();
 	}
 
 	ImGui::NextColumn();

@@ -178,6 +178,8 @@ static void GiveInventory( edict_t * ent ) {
 
 	G_SelectWeapon( ent, 1 );
 
+	ent->r.client->ps.perk = loadout.perk;
+
 	float old_max_health = ent->max_health;
 	if( loadout.perk == Perk_Midget ) {
 		ent->s.scale = Vec3( 0.8f, 0.8f, 0.625f );

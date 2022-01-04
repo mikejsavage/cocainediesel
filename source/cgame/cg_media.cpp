@@ -48,6 +48,10 @@ void CG_RegisterMedia() {
 		cgs.media.shaderGadgetIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GetGadgetDef( GadgetType( i ) )->short_name ) );
 	}
 
+	for( u8 i = 0; i < Perk_Count; i++ ) {
+		cgs.media.shaderPerkIcon[ i ] = FindMaterial( "perks/midget" );
+	}
+
 	cgs.fontNormal = RegisterFont( "fonts/Decalotype-Bold" );
 	cgs.fontNormalBold = RegisterFont( "fonts/Decalotype-Black" );
 	cgs.fontItalic = RegisterFont( "fonts/Decalotype-BoldItalic" );

@@ -897,7 +897,9 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 	pml.frametime = pm->cmd.msec * 0.001;
 
-	if( ps->perk == Perk_Jetpack ) {
+	if( ps->perk == Perk_Midget ) {
+		PM_MidgetInit( pm, &pml, ps );
+	} else if( ps->perk == Perk_Jetpack ) {
 		PM_JetpackInit( pm, &pml, ps );
 	} else {
 		PM_DefaultInit( pm, &pml, ps );

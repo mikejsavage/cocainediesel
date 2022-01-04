@@ -3,12 +3,11 @@
 
 
 static constexpr float pm_defaultspeed = 320.0f;
-static constexpr float pm_jumpspeed = 260.0f;
-static constexpr float pm_dashspeed = 550.0f;
-
 static constexpr float pm_sidewalkspeed = 320.0f;
 static constexpr float pm_crouchedspeed = 160.0f;
 
+static constexpr float pm_jumpspeed = 260.0f;
+static constexpr float pm_dashspeed = 550.0f;
 
 static constexpr float pm_dashupspeed = ( 174.0f * GRAVITY_COMPENSATE );
 static constexpr s16 pm_dashtimedelay = 200;

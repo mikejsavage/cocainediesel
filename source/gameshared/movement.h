@@ -42,8 +42,6 @@ float Normalize2D( Vec3 * v );
 void PlayerTouchWall( pmove_t *, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal );
 
 
-//default
 void PM_DefaultInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );
-
-//jetpack
+void PM_MidgetInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );
 void PM_JetpackInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );

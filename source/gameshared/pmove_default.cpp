@@ -16,8 +16,9 @@ static constexpr s16 pm_dashtimedelay = 200;
 static constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
 static constexpr float pm_wjbouncefactor = 0.4f;
 static constexpr s16 pm_wjtimedelay = 1300;
+static constexpr s16 pm_wjtimedelayaircontrol = pm_wjtimedelay - 50;
 
-static constexpr s16 max_walljumps = 2;
+static constexpr s16 max_walljumps = 1;
 
 
 
@@ -29,11 +30,6 @@ static float pm_wjminspeed( pml_t * pml ) {
 
 static void PM_WallJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) {
 	ZoneScoped;
-
-	if( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING && pml->velocity.z < 0.0 ) {
-		pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPING;
-	}
-
 	if( pm->playerState->pmove.special_time <= 0 && pm->playerState->pmove.special_count == max_walljumps ) { // reset the wj count after wj delay
 		pm->playerState->pmove.special_count = 0;
 	}
@@ -97,8 +93,6 @@ static void PM_WallJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs 
 				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_WALLJUMP, DirToU64( normal ) );
 			}
 		}
-	} else {
-		pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPING;
 	}
 }
 
@@ -205,6 +199,10 @@ static void PM_DefaultSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmo
 
 	if( !pressed ) {
 		ps->pmove.pm_flags &= ~PMF_SPECIAL_HELD;
+	}
+
+	if( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING && ps->pmove.special_time < pm_wjtimedelayaircontrol ) {
+		pm->playerState->pmove.pm_flags &= ~PMF_WALLJUMPING;
 	}
 
 	if( GS_GetWeaponDef( ps->weapon )->zoom_fov != 0 && ( ps->pmove.features & PMFEAT_SCOPE ) != 0 ) {

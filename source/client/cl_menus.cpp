@@ -582,7 +582,7 @@ static void ServerBrowser() {
 	}
 	ImGui::AlignTextToFramePadding();
 	ImGui::SameLine(); ImGui::Text( "Search");
-	ImGui::SameLine(); ImGui::InputText( "", server_filter, sizeof( server_filter ) );
+	ImGui::SameLine(); ImGui::InputText( "##server_filter", server_filter, sizeof( server_filter ) );
 
 	ImGui::BeginChild( "servers" );
 	ImGui::Columns( 4, "serverbrowser", false );

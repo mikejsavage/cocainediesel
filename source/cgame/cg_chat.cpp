@@ -137,7 +137,7 @@ void CG_DrawChat() {
 
 	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), false, log_flags );
 
-	float wrap_width = ImGui::GetWindowContentRegionWidth();
+	float wrap_width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
 
 	for( size_t i = 0; i < chat.history_len; i++ ) {
 		size_t idx = ( chat.history_head + i ) % ARRAY_COUNT( chat.history );

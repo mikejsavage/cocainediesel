@@ -3,7 +3,6 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_internal.h"
-#include "imgui/imgui_freetype.h"
 
 #include "qcommon/base.h"
 #include "qcommon/string.h"
@@ -69,7 +68,7 @@ void CL_InitImGui() {
 		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f );
 		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
 
-		ImGuiFreeType::BuildFontAtlas( io.Fonts );
+		io.Fonts->Build();
 
 		u8 * pixels;
 		int width, height;

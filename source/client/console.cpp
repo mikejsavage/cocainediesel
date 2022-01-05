@@ -346,15 +346,15 @@ void Con_Draw() {
 		input_flags |= ImGuiInputTextFlags_EnterReturnsTrue;
 
 		ImGui::PushItemWidth( ImGui::GetWindowWidth() );
-		ImGui::SetKeyboardFocusHere();
-		bool enter = ImGui::InputText( "##consoleinput", console.input, sizeof( console.input ), input_flags, InputCallback );
-		// can't drag the scrollbar without this
+		// don't steal focus if the user is dragging the scrollbar
 		if( !ImGui::IsAnyItemActive() )
 			ImGui::SetKeyboardFocusHere();
+		bool enter = ImGui::InputText( "##consoleinput", console.input, sizeof( console.input ), input_flags, InputCallback );
 		ImGui::PopItemWidth();
 
 		if( enter ) {
 			Con_Execute();
+			console.scroll_to_bottom = true;
 		}
 
 		ImVec2 top_left = ImGui::GetCursorPos();

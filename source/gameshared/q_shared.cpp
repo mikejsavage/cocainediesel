@@ -345,6 +345,16 @@ bool StartsWith( const char * str, const char * prefix ) {
 	return StartsWith( MakeSpan( str ), prefix );
 }
 
+bool EndsWith( Span< const char > str, const char * suffix ) {
+	if( str.n < strlen( suffix ) )
+		return false;
+	return memcmp( str.end() - strlen( suffix ), suffix, strlen( suffix ) ) == 0;
+}
+
+bool EndsWith( const char * str, const char * suffix ) {
+	return EndsWith( MakeSpan( str ), suffix );
+}
+
 bool CaseStartsWith( const char * str, const char * prefix ) {
 	if( strlen( str ) < strlen( prefix ) )
 		return false;

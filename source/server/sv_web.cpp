@@ -453,8 +453,7 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 		return;
 	}
 
-	Span< const char > ext = FileExtension( request->resource );
-	if( ext != ".bsp.zst" && !SV_IsDemoDownloadRequest( request->resource ) ) {
+	if( EndsWith( request->resource, ".bsp.zst" ) && !SV_IsDemoDownloadRequest( request->resource ) ) {
 		response->code = HTTP_RESP_FORBIDDEN;
 		return;
 	}

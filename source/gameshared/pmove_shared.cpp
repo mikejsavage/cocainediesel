@@ -73,3 +73,64 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 void Event_Jump( const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, ps->perk );
 }
+
+float JumpVelocity( pmove_t * pm, float vel ) {
+	return ( pm->waterlevel >= 2 ? 2 : 1 ) * vel;
+}
+
+
+
+void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed ) {
+	pm->playerState->pmove.pm_flags |= PMF_DASHING;
+	pm->playerState->pmove.pm_flags |= PMF_SPECIAL_HELD;
+	pm->groundentity = -1;
+
+	// clip against the ground when jumping if moving that direction
+	if( pml->groundplane.normal.z > 0 && pml->velocity.z < 0 && Dot( pml->groundplane.normal.xy(), pml->velocity.xy() ) > 0 ) {
+		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane.normal, PM_OVERBOUNCE );
+	}
+
+	dashdir.z = 0.0f;
+	dashdir = Normalize( dashdir );
+
+	float upspeed = Max2( 0.0f, pml->velocity.z ) + JumpVelocity( pm, dash_upspeed );
+	float actual_velocity = Normalize2D( &pml->velocity );
+	if( actual_velocity <= dash_speed ) {
+		dashdir *= dash_speed;
+	} else {
+		dashdir *= actual_velocity;
+	}
+
+	pml->velocity = dashdir;
+	pml->velocity.z = upspeed;
+
+	// return sound events only when the dashes weren't too close to each other
+	if( pm->playerState->pmove.special_time == 0 ) {
+		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH,
+			Abs( pml->sidePush ) >= Abs( pml->forwardPush ) ?
+					( pml->sidePush < 0 ? 1 : 2 ) : //left or right
+					( pml->forwardPush < 0 ? 3 : 0 ) ); //back or forward
+	}
+}
+
+
+
+Vec3 PM_LadderMove( pmove_t * pm, pml_t * pml, Vec3 wishvel, float ladderspeed ) {
+	if( pml->ladder && Abs( pml->velocity.z ) <= ladderspeed ) {
+		if( pml->upPush > 0 ) { //jump
+			wishvel.z = ladderspeed;
+		}
+		else if( pml->forwardPush > 0 ) {
+			wishvel.z = Lerp( -float( ladderspeed ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( ladderspeed ) );
+		}
+		else {
+			wishvel.z = 0;
+		}
+
+		// limit horizontal speed when on a ladder
+		wishvel.x = Clamp( -25.0f, wishvel.x, 25.0f );
+		wishvel.y = Clamp( -25.0f, wishvel.y, 25.0f );
+	}
+
+	return wishvel;
+}

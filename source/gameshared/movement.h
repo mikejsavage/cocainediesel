@@ -43,7 +43,13 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 
 void Event_Jump( const gs_state_t * pmove_gs, SyncPlayerState * ps );
 
+float JumpVelocity( pmove_t * pm, float vel );
 
-void PM_DefaultInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );
+void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed );
+Vec3 PM_LadderMove( pmove_t * pm, pml_t * pml, Vec3 wishvel, float ladderspeed );
+
+//pmove_ files
+void PM_NinjaInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );
+void PM_HooliganInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );
 void PM_MidgetInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );
 void PM_JetpackInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );

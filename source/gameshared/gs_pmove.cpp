@@ -372,26 +372,6 @@ static void PM_Aircontrol( Vec3 wishdir, float wishspeed ) {
 	pml.velocity.z = zspeed;
 }
 
-static Vec3 PM_LadderMove( Vec3 wishvel ) {
-	if( pml.ladder && Abs( pml.velocity.z ) <= pm_ladderspeed ) {
-		if( pml.upPush > 0 ) { //jump
-			wishvel.z = pm_ladderspeed;
-		}
-		else if( pml.forwardPush > 0 ) {
-			wishvel.z = Lerp( -float( pm_ladderspeed ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( pm_ladderspeed ) );
-		}
-		else {
-			wishvel.z = 0;
-		}
-
-		// limit horizontal speed when on a ladder
-		wishvel.x = Clamp( -25.0f, wishvel.x, 25.0f );
-		wishvel.y = Clamp( -25.0f, wishvel.y, 25.0f );
-	}
-
-	return wishvel;
-}
-
 static void PM_WaterMove() {
 	ZoneScoped;
 
@@ -399,7 +379,7 @@ static void PM_WaterMove() {
 	Vec3 wishvel = pml.forward * pml.forwardPush + pml.right * pml.sidePush;
 	wishvel.z -= pm_waterfriction;
 
-	wishvel = PM_LadderMove( wishvel );
+	wishvel = PM_LadderMove( pm, &pml, wishvel, pm_ladderspeed );
 
 	Vec3 wishdir = wishvel;
 	float wishspeed = Length( wishdir );
@@ -424,7 +404,7 @@ static void PM_Move() {
 	Vec3 wishvel = pml.forward * fmove + pml.right * smove;
 	wishvel.z = 0;
 
-	wishvel = PM_LadderMove( wishvel );
+	wishvel = PM_LadderMove( pm, &pml, wishvel, pm_ladderspeed );
 
 	Vec3 wishdir = wishvel;
 	float wishspeed = Length( wishdir );
@@ -897,12 +877,11 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 	pml.frametime = pm->cmd.msec * 0.001;
 
-	if( ps->perk == Perk_Midget ) {
-		PM_MidgetInit( pm, &pml, ps );
-	} else if( ps->perk == Perk_Jetpack ) {
-		PM_JetpackInit( pm, &pml, ps );
-	} else {
-		PM_DefaultInit( pm, &pml, ps );
+	switch( ps->perk ) {
+	case Perk_Ninja: PM_NinjaInit( pm, &pml, ps ); break;
+	case Perk_Hooligan: PM_HooliganInit( pm, &pml, ps ); break;
+	case Perk_Midget: PM_MidgetInit( pm, &pml, ps ); break;
+	case Perk_Jetpack: PM_JetpackInit( pm, &pml, ps ); break;
 	}
 
 	// assign a contentmask for the movement type

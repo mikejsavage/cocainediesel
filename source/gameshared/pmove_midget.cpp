@@ -37,9 +37,8 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 			pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane.normal, PM_OVERBOUNCE );
 		}
 
-		float jumpSpeed = ( pm->waterlevel >= 2 ? 2 : 1 ) * pm_jumpspeed * (float)ps->pmove.special_count / pm_jumpboostdelay;
 		Event_Jump( pmove_gs, ps );
-		pml->velocity.z = Max2( 0.0f, pml->velocity.z ) + jumpSpeed;
+		pml->velocity.z = Max2( 0.0f, pml->velocity.z ) + JumpVelocity( pm, pm_jumpspeed * (float)ps->pmove.special_count / pm_jumpboostdelay );
 
 		ps->pmove.special_count = 0;
 	}

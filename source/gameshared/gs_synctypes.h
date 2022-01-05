@@ -91,7 +91,8 @@ using PerkType = u8;
 enum PerkType_ : PerkType {
 	Perk_None,
 
-	Perk_Default,
+	Perk_Ninja,
+	Perk_Hooligan,
 	Perk_Midget,
 	Perk_Jetpack,
 

@@ -39,7 +39,6 @@ static void OpenChat() {
 		bool team = Q_stricmp( Cmd_Argv( 0 ), "messagemode2" ) == 0;
 		chat.mode = team ? ChatMode_SayTeam : ChatMode_Say;
 		chat.input[ 0 ] = '\0';
-		chat.scroll_to_bottom = true;
 		CL_SetKeyDest( key_message );
 	}
 }
@@ -151,12 +150,12 @@ void CG_DrawChat() {
 		}
 	}
 
-	if( chat.scroll_to_bottom ) {
+	if( chat.mode == ChatMode_None || chat.scroll_to_bottom ) {
 		ImGui::SetScrollHereY( 1.0f );
 		chat.scroll_to_bottom = false;
 	}
 
-	if( ImGui::IsKeyPressed( K_PGUP ) || ImGui::IsKeyPressed( K_PGDN ) ) {
+	if( chat.mode != ChatMode_None && ( ImGui::IsKeyPressed( K_PGUP ) || ImGui::IsKeyPressed( K_PGDN ) ) ) {
 		float scroll = ImGui::GetScrollY();
 		float page = ImGui::GetWindowSize().y - ImGui::GetTextLineHeight();
 		scroll += page * ( ImGui::IsKeyPressed( K_PGUP ) ? -1 : 1 );

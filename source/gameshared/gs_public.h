@@ -255,6 +255,7 @@ enum EventType {
 	EV_DASH,
 
 	EV_WALLJUMP,
+	EV_JETPACK,
 	EV_JUMP,
 	EV_JUMP_PAD,
 	EV_FALL,

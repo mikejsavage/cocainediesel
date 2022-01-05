@@ -396,7 +396,7 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 
 //==================================================================
 
-void CG_Event_Fall( const SyncEntityState * state, u64 parm ) {
+static void CG_Event_Fall( const SyncEntityState * state, u64 parm ) {
 	if( ISVIEWERENTITY( state->number ) ) {
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
 	}
@@ -444,7 +444,7 @@ static void CG_Event_Die( int entNum, u64 parm ) {
 	CG_PModel_AddAnimation( entNum, animations[ animation ].dying, animations[ animation ].dying, ANIM_NONE, EVENT_CHANNEL );
 }
 
-void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
+static void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
 	constexpr int animations[] = { LEGS_DASH, LEGS_DASH_LEFT, LEGS_DASH_RIGHT, LEGS_DASH_BACK };
 	if( parm >= ARRAY_COUNT( animations ) )
 		return;
@@ -456,7 +456,7 @@ void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
 	cg_entities[ state->number ].jumpedLeft = true;
 }
 
-void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
+static void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
 	Vec3 normal = U64ToDir( parm );
 
 	Vec3 forward, right;
@@ -476,6 +476,16 @@ void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
 	}
 
 	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump );
+}
+
+
+static void CG_Event_Jetpack( const SyncEntityState * ent, u64 parm, Vec4 team_color ) {
+	Vec3 pos = ent->origin;
+	pos.z -= 10;
+	DoVisualEffect( "vfx/movement/jetpack", pos, ent->origin2, 1.0f, team_color );
+	if( parm == 1 ) {
+		DoVisualEffect( "vfx/movement/jetpack_boost", pos, ent->origin2, 1.0f, team_color );
+	}
 }
 
 static void CG_PlayJumpSound( const SyncEntityState * state, u8 perk ) {
@@ -650,6 +660,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_WALLJUMP:
 			CG_Event_WallJump( ent, parm, ev );
+			break;
+
+		case EV_JETPACK:
+			CG_Event_Jetpack( ent, parm, team_color );
 			break;
 
 		case EV_JUMP:

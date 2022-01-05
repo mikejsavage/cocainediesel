@@ -46,6 +46,8 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 		pm->groundentity = -1;
 		ps->pmove.special_count += jetpack_fuel_usage;
 		pml->velocity.z = Min2( pml->velocity.z + pm_jetpackspeed, pm_maxjetpackupspeed );
+
+		pmove_gs->api.PredictedEvent( ps->POVnum, EV_JETPACK, 0 );
 	}
 }
 
@@ -75,6 +77,8 @@ static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmo
 		pm->groundentity = -1;
 
 		ps->pmove.special_count += boost_fuel_usage;
+
+		pmove_gs->api.PredictedEvent( ps->POVnum, EV_JETPACK, 1 );
 	}
 
 

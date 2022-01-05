@@ -38,8 +38,7 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		}
 
 		float jumpSpeed = ( pm->waterlevel >= 2 ? 2 : 1 ) * pm_jumpspeed * (float)ps->pmove.special_count / pm_jumpboostdelay;
-
-		pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, 0 );
+		Event_Jump( pmove_gs, ps );
 		pml->velocity.z = Max2( 0.0f, pml->velocity.z ) + jumpSpeed;
 
 		ps->pmove.special_count = 0;

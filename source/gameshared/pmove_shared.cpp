@@ -67,3 +67,9 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 		}
 	}
 }
+
+
+
+void Event_Jump( const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
+	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, ps->perk );
+}

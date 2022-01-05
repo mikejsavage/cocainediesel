@@ -39,7 +39,9 @@ struct pml_t {
 void PM_ClearDash( SyncPlayerState * ps );
 void PM_ClearWallJump( SyncPlayerState * ps );
 float Normalize2D( Vec3 * v );
-void PlayerTouchWall( pmove_t *, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal );
+void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal );
+
+void Event_Jump( const gs_state_t * pmove_gs, SyncPlayerState * ps );
 
 
 void PM_DefaultInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );

@@ -188,8 +188,7 @@ static void PM_DefaultJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 
 
 	float jumpSpeed = ( pm->waterlevel >= 2 ? pm_jumpspeed * 2 : pm_jumpspeed );
-
-	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, 0 );
+	Event_Jump( pmove_gs, ps );
 	pml->velocity.z = Max2( 0.0f, pml->velocity.z ) + jumpSpeed;
 
 	// remove wj count

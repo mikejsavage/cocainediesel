@@ -292,8 +292,9 @@ struct pmove_state_t {
 	s16 knockback_time;
 	s16 crouch_time;
 	s16 tbag_time;
-	s16 special_time;
-	s16 special_count;
+	s16 stamina;
+	s16 stamina_max; 	//used for knowing what is stamina_max in hud
+	s16 stamina_reload; //used for walljump/dash reload times
 
 	s16 max_speed;
 };

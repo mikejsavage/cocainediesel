@@ -29,7 +29,7 @@ struct pml_t {
 	float maxCrouchedSpeed;
 
 	void (*jumpCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * );
-	void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * );
+	void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed );
 };
 
 #define PM_AIRCONTROL_BOUNCE_DELAY 200

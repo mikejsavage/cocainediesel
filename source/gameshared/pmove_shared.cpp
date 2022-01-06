@@ -7,8 +7,7 @@ void PM_ClearDash( SyncPlayerState * ps ) {
 
 void PM_ClearWallJump( SyncPlayerState * ps ) {
 	ps->pmove.pm_flags &= ~PMF_WALLJUMPING;
-	ps->pmove.special_count = 0;
-	ps->pmove.special_time = 0;
+	ps->pmove.stamina_reload = 0;
 }
 
 
@@ -82,12 +81,10 @@ float JumpVelocity( pmove_t * pm, float vel ) {
 
 void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed ) {
 	pm->playerState->pmove.pm_flags |= PMF_DASHING;
-	pm->playerState->pmove.pm_flags |= PMF_SPECIAL_HELD;
 	pm->groundentity = -1;
 
 	// clip against the ground when jumping if moving that direction
 	if( pml->groundplane.normal.z > 0 && pml->velocity.z < 0 && Dot( pml->groundplane.normal.xy(), pml->velocity.xy() ) > 0 ) {
-		printf("CLIP IT\n");
 		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane.normal, PM_OVERBOUNCE );
 	}
 
@@ -106,7 +103,7 @@ void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashd
 	pml->velocity.z = upspeed;
 
 	// return sound events only when the dashes weren't too close to each other
-	if( pm->playerState->pmove.special_time == 0 ) {
+	if( pm->playerState->pmove.stamina_reload == 0 ) {
 		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH,
 			Abs( pml->sidePush ) >= Abs( pml->forwardPush ) ?
 					( pml->sidePush < 0 ? 1 : 2 ) : //left or right

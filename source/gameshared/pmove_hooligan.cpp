@@ -23,21 +23,18 @@ static float pm_wjminspeed( pml_t * pml ) {
 }
 
 
+static void ClearWallJump( SyncPlayerState * ps ) {
+	PM_ClearWallJump( ps );
+	ps->pmove.stamina = pm_wjmax;
+}
+
 
 static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	if( pml->upPush < 10 ) {
 		return;
 	}
 
-	if( ps->pmove.pm_type != PM_NORMAL ) {
-		return;
-	}
-
 	if( pm->groundentity == -1 ) {
-		return;
-	}
-
-	if( !( ps->pmove.features & PMFEAT_JUMP ) ) {
 		return;
 	}
 
@@ -58,31 +55,21 @@ static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		PM_ClearDash( ps );
 	}
 
-	PM_ClearWallJump( ps );
+	ClearWallJump( ps );
 }
 
 
 
-static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	bool pressed = pm->cmd.buttons & BUTTON_SPECIAL;
-
-	if( !pressed ) {
-		ps->pmove.pm_flags &= ~PMF_SPECIAL_HELD;
-	}
-
-	if( ps->pmove.pm_flags & PMF_WALLJUMPING && ps->pmove.special_time < pm_wjtimedelayaircontrol ) {
+static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	if( ps->pmove.pm_flags & PMF_WALLJUMPING && ps->pmove.stamina_reload < pm_wjtimedelayaircontrol ) {
 		ps->pmove.pm_flags &= ~PMF_WALLJUMPING;
 	}
 
-	if( pm->groundentity != -1 || ( ps->pmove.special_time <= 0 && ps->pmove.special_count == pm_wjmax ) ) {
-		PM_ClearWallJump( ps );
+	if( pm->groundentity != -1 || ( ps->pmove.stamina_reload <= 0 && ps->pmove.stamina == 0 ) ) {
+		ClearWallJump( ps );
 	}
 
 	if( GS_GetWeaponDef( ps->weapon )->zoom_fov != 0 && ( ps->pmove.features & PMFEAT_SCOPE ) != 0 ) {
-		return;
-	}
-
-	if( ps->pmove.pm_type != PM_NORMAL ) {
 		return;
 	}
 
@@ -90,8 +77,8 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 		return;
 	}
 
-	if( pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) && pm->groundentity == -1 && ps->pmove.special_count != pm_wjmax ) {
-		if(	ps->pmove.special_count != pm_wjmax ) {
+	if( pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) && pm->groundentity == -1 && ps->pmove.stamina != 0 ) {
+		if(	ps->pmove.stamina != 0 ) {
 			trace_t trace;
 			Vec3 point = pml->origin;
 			point.z -= STEPSIZE;
@@ -134,9 +121,9 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 					ps->pmove.pm_flags |= PMF_WALLJUMPING;
 					ps->pmove.pm_flags |= PMF_SPECIAL_HELD;
 
-					ps->pmove.special_count++;
+					ps->pmove.stamina--;
 
-					ps->pmove.special_time = pm_wjtimedelay;
+					ps->pmove.stamina_reload = pm_wjtimedelay;
 
 					// Create the event
 					pmove_gs->api.PredictedEvent( ps->POVnum, EV_WALLJUMP, DirToU64( normal ) );
@@ -158,6 +145,8 @@ void PM_HooliganInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps ) {
 	pml->forwardPush = pm->cmd.forwardmove * pm_defaultspeed / 127.0f;
 	pml->sidePush = pm->cmd.sidemove * pm_sidewalkspeed / 127.0f;
 	pml->upPush = pm->cmd.upmove * pm_defaultspeed / 127.0f;
+
+	ps->pmove.stamina_max = pm_wjmax;
 
 	pml->jumpCallback = PM_HooliganJump;
 	pml->specialCallback = PM_HooliganSpecial;

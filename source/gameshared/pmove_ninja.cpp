@@ -12,6 +12,10 @@ static constexpr float pm_dashspeed = 550.0f;
 static constexpr float pm_dashupspeed = ( 180.0f * GRAVITY_COMPENSATE );
 static constexpr s16 pm_dashtimedelay = 200;
 
+static constexpr s16 stamina_max = 300;
+static constexpr s16 stamina_use = 1;
+static constexpr s16 stamina_recover = 5;
+
 
 static bool CheckWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) {
 	Vec3 spot = pml->origin + pml->flatforward;
@@ -26,15 +30,7 @@ static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 		return;
 	}
 
-	if( ps->pmove.pm_type != PM_NORMAL ) {
-		return;
-	}
-
 	if( pm->groundentity == -1 ) {
-		return;
-	}
-
-	if( !( ps->pmove.features & PMFEAT_JUMP ) ) {
 		return;
 	}
 
@@ -47,23 +43,17 @@ static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 
 	PM_Dash( pm, pml, pmove_gs, dashdir, pm_dashspeed, pm_dashupspeed );
 
-	pm->playerState->pmove.special_time = pm_dashtimedelay;
+	pm->playerState->pmove.stamina_reload = pm_dashtimedelay;
 }
 
 
 
-static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	bool pressed = pm->cmd.buttons & BUTTON_SPECIAL;
-
-	if( !pressed ) {
-		ps->pmove.pm_flags &= ~PMF_SPECIAL_HELD;
+static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	if( pm->groundentity != -1 ) {
+		ps->pmove.stamina = Min2( s16( ps->pmove.stamina + stamina_recover ), stamina_max );
 	}
 
 	if( GS_GetWeaponDef( ps->weapon )->zoom_fov != 0 && ( ps->pmove.features & PMFEAT_SCOPE ) != 0 ) {
-		return;
-	}
-
-	if( ps->pmove.pm_type != PM_NORMAL ) {
 		return;
 	}
 
@@ -71,15 +61,16 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		return;
 	}
 
-	if( pressed && ( ps->pmove.features & PMFEAT_SPECIAL ) && CheckWall( pm, pml, pmove_gs ) ) {
+	if( pressed && ( ps->pmove.features & PMFEAT_SPECIAL ) && CheckWall( pm, pml, pmove_gs ) && ps->pmove.stamina > 0 ) {
 		pml->ladder = Ladder_Fake;
-		ps->pmove.pm_flags |= PMF_SPECIAL_HELD;
 
 		Vec3 wishvel = pml->forward * pml->forwardPush + pml->right * pml->sidePush;
 		wishvel.z = 0.0;
 
-		if( !Length( wishvel ) )
+		if( !Length( wishvel ) ) {
+			ps->pmove.stamina -= stamina_use;
 			return;
+		}
 
 		wishvel = Normalize( wishvel );
 
@@ -87,6 +78,7 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 			wishvel.z = Lerp( -1.0, Unlerp01( 15.0f, ps->viewangles[PITCH], -15.0f ), 1.0 );
 		}
 
+		ps->pmove.stamina -= Length( wishvel ) * stamina_use;
 		pml->velocity = wishvel * pm_wallclimbspeed;
 	}
 }
@@ -103,6 +95,8 @@ void PM_NinjaInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps ) {
 	pml->forwardPush = pm->cmd.forwardmove * pm_defaultspeed / 127.0f;
 	pml->sidePush = pm->cmd.sidemove * pm_sidewalkspeed / 127.0f;
 	pml->upPush = pm->cmd.upmove * pm_defaultspeed / 127.0f;
+
+	ps->pmove.stamina_max = stamina_max;
 
 	pml->jumpCallback = PM_NinjaJump;
 	pml->specialCallback = PM_NinjaSpecial;

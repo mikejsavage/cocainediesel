@@ -878,6 +878,37 @@ static void PM_EndMove() {
 	pm->playerState->pmove.velocity = pml.velocity;
 }
 
+
+static void PM_InitPerk() {
+	pm->playerState->pmove.stamina_max = 0; //dirty but safe
+
+	switch( pm->playerState->perk ) {
+	case Perk_Ninja: PM_NinjaInit( pm, &pml, pm->playerState ); break;
+	case Perk_Hooligan: PM_HooliganInit( pm, &pml, pm->playerState ); break;
+	case Perk_Midget: PM_MidgetInit( pm, &pml, pm->playerState ); break;
+	case Perk_Jetpack: PM_JetpackInit( pm, &pml, pm->playerState ); break;
+	}
+}
+
+
+static void PM_Jump() {
+	if( !( pm->playerState->pmove.features & PMFEAT_JUMP ) ) {
+		return;
+	}
+
+	pml.jumpCallback( pm, &pml, pmove_gs, pm->playerState );
+}
+
+
+static void PM_Special() {
+	if( !( pm->cmd.buttons & BUTTON_SPECIAL ) ) {
+		pm->playerState->pmove.pm_flags &= ~PMF_SPECIAL_HELD;
+	}
+
+	pml.specialCallback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & BUTTON_SPECIAL );
+}
+
+
 void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	ZoneScoped;
 
@@ -897,12 +928,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 	pml.frametime = pm->cmd.msec * 0.001;
 
-	switch( ps->perk ) {
-	case Perk_Ninja: PM_NinjaInit( pm, &pml, ps ); break;
-	case Perk_Hooligan: PM_HooliganInit( pm, &pml, ps ); break;
-	case Perk_Midget: PM_MidgetInit( pm, &pml, ps ); break;
-	case Perk_Jetpack: PM_JetpackInit( pm, &pml, ps ); break;
-	}
+	PM_InitPerk();
 
 	// assign a contentmask for the movement type
 	switch( ps->pmove.pm_type ) {
@@ -956,7 +982,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 		ps->pmove.no_shooting_time = Max2( 0, ps->pmove.no_shooting_time - pm->cmd.msec );
 		ps->pmove.knockback_time = Max2( 0, ps->pmove.knockback_time - pm->cmd.msec );
-		ps->pmove.special_time = Max2( 0, ps->pmove.special_time - pm->cmd.msec );
+		ps->pmove.stamina_reload = Max2( 0, ps->pmove.stamina_reload - pm->cmd.msec );
 		ps->pmove.tbag_time = Max2( 0, ps->pmove.tbag_time - pm->cmd.msec );
 		// crouch_time is handled at PM_AdjustBBox
 	}
@@ -969,7 +995,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 			ps->pmove.knockback_time = 0;
 			ps->pmove.crouch_time = 0;
 			ps->pmove.tbag_time = 0;
-			ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_TELEPORT | PMF_SPECIAL_HELD );
+			ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_TELEPORT );
 
 			PM_AdjustBBox();
 		}
@@ -1015,8 +1041,10 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	} else {
 		// Kurim
 		// Keep this order !
-		pml.jumpCallback( pm, &pml, pmove_gs, ps );
-		pml.specialCallback( pm, &pml, pmove_gs, ps );
+		if( ps->pmove.pm_type == PM_NORMAL ) {
+			PM_Jump();
+			PM_Special();
+		}
 
 		PM_Friction();
 

@@ -49,6 +49,9 @@ constexpr float pm_decelerate = 16; // user intended deceleration when on ground
 constexpr float pm_airaccelerate = 0.5f; // user intended aceleration when on air
 constexpr float pm_airdecelerate = 1.0f; // air deceleration (not +strafe one, just at normal moving).
 
+constexpr float pm_specfriction = 2.5f;
+constexpr float pm_specaccelerate = 7.0f;
+
 // special movement parameters
 
 constexpr float pm_aircontrol = 140.0f; // aircontrol multiplier (intertia velocity to forward velocity conversion)
@@ -672,24 +675,15 @@ static void PM_CheckSpecialMovement() {
 }
 
 static void PM_FlyMove( bool doclip ) {
-	trace_t trace;
-
-	float maxspeed = pml.maxPlayerSpeed * 1.5f;
-
-	if( pm->cmd.buttons & BUTTON_SPECIAL ) {
-		maxspeed *= 2;
-	}
-
-	// friction
+	//friction
 	float speed = Length( pml.velocity );
 	if( speed < 1 ) {
 		pml.velocity = Vec3( 0.0f );
 	} else {
 		float drop = 0;
 
-		float friction = pm_friction * 1.5f; // extra friction
-		float control = speed < pm_decelerate ? pm_decelerate : speed;
-		drop += control * friction * pml.frametime;
+		float friction = pm_specfriction * 1.5f; // extra friction
+		drop += speed * friction * pml.frametime;
 
 		// scale the velocity
 		float newspeed = Max2( 0.0f, speed - drop );
@@ -699,30 +693,25 @@ static void PM_FlyMove( bool doclip ) {
 	// accelerate
 	float fmove = pml.forwardPush;
 	float smove = pml.sidePush;
+	float umove = pml.upPush;
 
 	if( pm->cmd.buttons & BUTTON_SPECIAL ) {
 		fmove *= 2;
 		smove *= 2;
+		umove *= 1.5;
 	}
 
 	Vec3 wishvel = pml.forward * fmove + pml.right * smove;
-	wishvel.z += pml.upPush;
+	wishvel.z += umove;
 
 	Vec3 wishdir = wishvel;
 	float wishspeed = Length( wishdir );
 	wishdir = SafeNormalize( wishdir );
 
-	// clamp to server defined max speed
-	if( wishspeed > maxspeed ) {
-		wishspeed = maxspeed / wishspeed;
-		wishvel *= wishspeed;
-		wishspeed = maxspeed;
-	}
-
 	float currentspeed = Dot( pml.velocity, wishdir );
 	float addspeed = wishspeed - currentspeed;
 	if( addspeed > 0 ) {
-		float accelspeed = pm_accelerate * pml.frametime * wishspeed;
+		float accelspeed = pm_specaccelerate * pml.frametime * wishspeed;
 		if( accelspeed > addspeed ) {
 			accelspeed = addspeed;
 		}
@@ -731,13 +720,8 @@ static void PM_FlyMove( bool doclip ) {
 	}
 
 	if( doclip ) {
-		Vec3 end = pml.origin + pml.frametime * pml.velocity;
-
-		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
-
-		pml.origin = trace.endpos;
+		PM_StepSlideMove();
 	} else {
-		// move
 		pml.origin += pml.velocity * pml.frametime;
 	}
 }
@@ -1003,7 +987,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		if( ps->pmove.pm_type == PM_SPECTATOR ) {
 			PM_ApplyMouseAnglesClamp();
 
-			PM_FlyMove( false );
+			PM_FlyMove( true );
 		} else {
 			pml.forwardPush = 0;
 			pml.sidePush = 0;

@@ -14,7 +14,7 @@ static constexpr s16 pm_dashtimedelay = 200;
 
 static constexpr s16 stamina_max = 300;
 static constexpr s16 stamina_use = 1;
-static constexpr s16 stamina_recover = 5;
+static constexpr s16 stamina_recover = 10;
 
 
 static bool CheckWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) {

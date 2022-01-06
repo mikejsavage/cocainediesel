@@ -14,9 +14,9 @@ static constexpr float pm_boostupspeed = 18.0f;
 
 static constexpr s16 fuel_max = 200;
 static constexpr s16 fuel_use_jetpack = 4;
-static constexpr s16 fuel_use_boost = 8;
+static constexpr s16 fuel_use_boost = 6;
 
-static constexpr s16 refuel_ground = 8;
+static constexpr s16 refuel_ground = 4;
 static constexpr s16 refuel_air = 1;
 
 

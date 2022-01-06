@@ -372,6 +372,26 @@ static void PM_Aircontrol( Vec3 wishdir, float wishspeed ) {
 	pml.velocity.z = zspeed;
 }
 
+static Vec3 PM_LadderMove( Vec3 wishvel ) {
+	if( pml.ladder == Ladder_On && Abs( pml.velocity.z ) <= pm_ladderspeed ) {
+		if( pml.upPush > 0 ) { //jump
+			wishvel.z = pm_ladderspeed;
+		}
+		else if( pml.forwardPush > 0 ) {
+			wishvel.z = Lerp( -float( pm_ladderspeed ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( pm_ladderspeed ) );
+		}
+		else {
+			wishvel.z = 0;
+		}
+
+		// limit horizontal speed when on a ladder
+		wishvel.x = Clamp( -25.0f, wishvel.x, 25.0f );
+		wishvel.y = Clamp( -25.0f, wishvel.y, 25.0f );
+	}
+
+	return wishvel;
+}
+
 static void PM_WaterMove() {
 	ZoneScoped;
 
@@ -379,7 +399,7 @@ static void PM_WaterMove() {
 	Vec3 wishvel = pml.forward * pml.forwardPush + pml.right * pml.sidePush;
 	wishvel.z -= pm_waterfriction;
 
-	wishvel = PM_LadderMove( pm, &pml, wishvel, pm_ladderspeed );
+	wishvel = PM_LadderMove( wishvel );
 
 	Vec3 wishdir = wishvel;
 	float wishspeed = Length( wishdir );
@@ -404,7 +424,7 @@ static void PM_Move() {
 	Vec3 wishvel = pml.forward * fmove + pml.right * smove;
 	wishvel.z = 0;
 
-	wishvel = PM_LadderMove( pm, &pml, wishvel, pm_ladderspeed );
+	wishvel = PM_LadderMove( wishvel );
 
 	Vec3 wishdir = wishvel;
 	float wishspeed = Length( wishdir );
@@ -456,7 +476,7 @@ static void PM_Move() {
 
 		PM_StepSlideMove();
 	}
-	else {
+	else  {
 		// Air Control
 		float wishspeed2 = wishspeed;
 		float accel;
@@ -616,14 +636,14 @@ static void PM_CheckSpecialMovement() {
 		return;
 	}
 
-	pml.ladder = false;
+	pml.ladder = Ladder_Off;
 
 	// check for ladder
 	Vec3 spot = pml.origin + pml.flatforward;
 	trace_t trace;
 	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
 	if( trace.fraction < 1 && ( trace.surfFlags & SURF_LADDER ) ) {
-		pml.ladder = true;
+		pml.ladder = Ladder_On;
 	}
 
 	// check for water jump

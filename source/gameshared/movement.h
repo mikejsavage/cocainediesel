@@ -1,5 +1,11 @@
 #include "qcommon/qcommon.h"
 
+enum LadderMovement : u8 {
+	Ladder_Off,
+	Ladder_On,
+	Ladder_Fake,
+};
+
 
 struct pml_t {
 	Vec3 origin;          // full float precision
@@ -15,7 +21,7 @@ struct pml_t {
 	int groundcontents;
 
 	Vec3 previous_origin;
-	bool ladder;
+	LadderMovement ladder;
 
 	float forwardPush, sidePush, upPush;
 
@@ -46,7 +52,6 @@ void Event_Jump( const gs_state_t * pmove_gs, SyncPlayerState * ps );
 float JumpVelocity( pmove_t * pm, float vel );
 
 void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed );
-Vec3 PM_LadderMove( pmove_t * pm, pml_t * pml, Vec3 wishvel, float ladderspeed );
 
 //pmove_ files
 void PM_NinjaInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );

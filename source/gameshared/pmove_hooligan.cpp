@@ -44,7 +44,7 @@ static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 	pm->groundentity = -1;
 
 	// clip against the ground when jumping if moving that direction
-	if( pml->groundplane.normal.z > 0 && pml->velocity.z < 0 && Dot( pml->groundplane.normal.xy(), pml->velocity.xy() ) > 0 ) {
+	if( pml->groundplane.normal.z > 0 && pml->velocity.z > 0 && Dot( pml->groundplane.normal.xy(), pml->velocity.xy() ) > 0 ) {
 		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane.normal, PM_OVERBOUNCE );
 	}
 
@@ -106,9 +106,8 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 				|| ( trace.fraction == 1 ) || ( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
 				Vec3 normal( 0.0f );
 				PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal );
-				if( !Length( normal ) ) {
+				if( !Length( normal ) )
 					return;
-				}
 
 				if( !( ps->pmove.pm_flags & PMF_SPECIAL_HELD ) &&
 				    !( ps->pmove.pm_flags & PMF_WALLJUMPING ) ) {

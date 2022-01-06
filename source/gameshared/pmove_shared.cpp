@@ -87,6 +87,7 @@ void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashd
 
 	// clip against the ground when jumping if moving that direction
 	if( pml->groundplane.normal.z > 0 && pml->velocity.z < 0 && Dot( pml->groundplane.normal.xy(), pml->velocity.xy() ) > 0 ) {
+		printf("CLIP IT\n");
 		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane.normal, PM_OVERBOUNCE );
 	}
 
@@ -111,26 +112,4 @@ void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashd
 					( pml->sidePush < 0 ? 1 : 2 ) : //left or right
 					( pml->forwardPush < 0 ? 3 : 0 ) ); //back or forward
 	}
-}
-
-
-
-Vec3 PM_LadderMove( pmove_t * pm, pml_t * pml, Vec3 wishvel, float ladderspeed ) {
-	if( pml->ladder && Abs( pml->velocity.z ) <= ladderspeed ) {
-		if( pml->upPush > 0 ) { //jump
-			wishvel.z = ladderspeed;
-		}
-		else if( pml->forwardPush > 0 ) {
-			wishvel.z = Lerp( -float( ladderspeed ), Unlerp01( 15.0f, pm->playerState->viewangles[PITCH], -15.0f ), float( ladderspeed ) );
-		}
-		else {
-			wishvel.z = 0;
-		}
-
-		// limit horizontal speed when on a ladder
-		wishvel.x = Clamp( -25.0f, wishvel.x, 25.0f );
-		wishvel.y = Clamp( -25.0f, wishvel.y, 25.0f );
-	}
-
-	return wishvel;
 }

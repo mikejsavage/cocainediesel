@@ -6,7 +6,7 @@ static constexpr float pm_defaultspeed = 400.0f;
 static constexpr float pm_sidewalkspeed = 320.0f;
 static constexpr float pm_crouchedspeed = 200.0f;
 
-static constexpr float pm_wallclimbspeed = 200.0f;
+static constexpr float pm_wallclimbspeed = 250.0f;
 
 static constexpr float pm_dashspeed = 550.0f;
 static constexpr float pm_dashupspeed = ( 180.0f * GRAVITY_COMPENSATE );
@@ -35,10 +35,6 @@ static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 	}
 
 	if( !( ps->pmove.features & PMFEAT_JUMP ) ) {
-		return;
-	}
-
-	if( ( ps->pmove.pm_flags & PMF_SPECIAL_HELD ) && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) && CheckWall( pm, pml, pmove_gs ) && pml->forwardPush >= 0 ) {
 		return;
 	}
 
@@ -75,10 +71,23 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		return;
 	}
 
-	if( pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) && CheckWall( pm, pml, pmove_gs ) ) {
-		pml->ladder = true;
+	if( pressed && ( ps->pmove.features & PMFEAT_SPECIAL ) && CheckWall( pm, pml, pmove_gs ) ) {
+		pml->ladder = Ladder_Fake;
+		ps->pmove.pm_flags |= PMF_SPECIAL_HELD;
+
 		Vec3 wishvel = pml->forward * pml->forwardPush + pml->right * pml->sidePush;
-		pml->velocity = PM_LadderMove( pm, pml, wishvel, pm_wallclimbspeed );
+		wishvel.z = 0.0;
+
+		if( !Length( wishvel ) )
+			return;
+
+		wishvel = Normalize( wishvel );
+
+		if( pml->forwardPush > 0 ) {
+			wishvel.z = Lerp( -1.0, Unlerp01( 15.0f, ps->viewangles[PITCH], -15.0f ), 1.0 );
+		}
+
+		pml->velocity = wishvel * pm_wallclimbspeed;
 	}
 }
 

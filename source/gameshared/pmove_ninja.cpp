@@ -53,10 +53,6 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		ps->pmove.stamina = Min2( s16( ps->pmove.stamina + stamina_recover ), stamina_max );
 	}
 
-	if( GS_GetWeaponDef( ps->weapon )->zoom_fov != 0 && ( ps->pmove.features & PMFEAT_SCOPE ) != 0 ) {
-		return;
-	}
-
 	if( ps->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
 		return;
 	}

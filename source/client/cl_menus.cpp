@@ -225,11 +225,10 @@ static void SettingsControls() {
 			KeyBindButton( "Left", "+left" );
 			KeyBindButton( "Right", "+right" );
 			KeyBindButton( "Jump", "+jump" );
-			KeyBindButton( "Dash", "+special" );
+			KeyBindButton( "Special move", "+special" );
 
 			ImGui::Separator();
 
-			KeyBindButton( "Attack", "+attack" );
 			KeyBindButton( "Reload", "+reload" );
 			KeyBindButton( "Plant bomb", "+crouch" );
 			KeyBindButton( "Drop bomb", "drop" );

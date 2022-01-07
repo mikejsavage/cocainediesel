@@ -47,8 +47,7 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 
 
 static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( ( GS_GetWeaponDef( ps->weapon )->zoom_fov == 0 || ( ps->pmove.features & PMFEAT_SCOPE ) == 0 ) &&
-		ps->pmove.stamina > 0 &&
+	if( ps->pmove.stamina > 0 &&
 		pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) )
 	{
 		Vec3 dashdir = pml->flatforward;

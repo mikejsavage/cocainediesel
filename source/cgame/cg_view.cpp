@@ -302,7 +302,7 @@ static void CG_UpdateChaseCam() {
 	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 
 	if( chaseCam.key_pressed ) {
-		chaseCam.key_pressed = ( cmd.buttons & ( BUTTON_ATTACK | BUTTON_SPECIAL ) ) != 0 || cmd.upmove != 0 || cmd.sidemove != 0;
+		chaseCam.key_pressed = ( cmd.buttons & ( BUTTON_ATTACK | BUTTON_SCOPE ) ) != 0 || cmd.upmove != 0 || cmd.sidemove != 0;
 		return;
 	}
 
@@ -316,7 +316,7 @@ static void CG_UpdateChaseCam() {
 	int chaseStep = 0;
 
 	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
-		if( cmd.upmove > 0 || cmd.sidemove > 0 || ( cmd.buttons & BUTTON_SPECIAL ) ) {
+		if( cmd.upmove > 0 || cmd.sidemove > 0 || ( cmd.buttons & BUTTON_SCOPE ) ) {
 			chaseStep = 1;
 		}
 		else if( cmd.upmove < 0 || cmd.sidemove < 0 ) {

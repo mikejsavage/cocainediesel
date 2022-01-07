@@ -38,6 +38,7 @@ static Button button_special;
 static Button button_crouch;
 
 static Button button_attack;
+static Button button_scope;
 static Button button_gadget;
 static Button button_reload;
 
@@ -116,6 +117,8 @@ static void IN_CrouchUp() { KeyUp( &button_crouch ); }
 
 static void IN_AttackDown() { KeyDown( &button_attack ); }
 static void IN_AttackUp() { KeyUp( &button_attack ); }
+static void IN_ScopeDown() { KeyDown( &button_scope ); }
+static void IN_ScopeUp() { KeyUp( &button_scope ); }
 static void IN_GadgetDown() { KeyDown( &button_gadget ); }
 static void IN_GadgetUp() { KeyUp( &button_gadget ); }
 static void IN_ReloadDown() { KeyDown( &button_reload ); }
@@ -126,6 +129,10 @@ u8 CG_GetButtonBits() {
 
 	if( button_attack.down ) {
 		buttons |= BUTTON_ATTACK;
+	}
+
+	if( button_scope.down ) {
+		buttons |= BUTTON_SCOPE;
 	}
 
 	if( button_gadget.down ) {
@@ -150,6 +157,10 @@ u8 CG_GetButtonDownEdges() {
 		edges |= BUTTON_ATTACK;
 	}
 
+	if( button_scope.down && button_scope.edge ) {
+		edges |= BUTTON_SCOPE;
+	}
+
 	if( button_gadget.down && button_gadget.edge ) {
 		edges |= BUTTON_GADGET;
 	}
@@ -163,6 +174,7 @@ u8 CG_GetButtonDownEdges() {
 	}
 
 	button_attack.edge = false;
+	button_scope.edge = false;
 	button_gadget.edge = false;
 	button_special.edge = false;
 	button_reload.edge = false;
@@ -303,6 +315,7 @@ void CG_ClearInputState() {
 	ClearButton( &button_crouch );
 
 	ClearButton( &button_attack );
+	ClearButton( &button_scope );
 	ClearButton( &button_gadget );
 	ClearButton( &button_reload );
 
@@ -330,6 +343,8 @@ void CG_InitInput() {
 
 	AddCommand( "+attack", IN_AttackDown );
 	AddCommand( "-attack", IN_AttackUp );
+	AddCommand( "+scope", IN_ScopeDown );
+	AddCommand( "-scope", IN_ScopeUp );
 	AddCommand( "+gadget", IN_GadgetDown );
 	AddCommand( "-gadget", IN_GadgetUp );
 	AddCommand( "+reload", IN_ReloadDown );
@@ -360,6 +375,8 @@ void CG_ShutdownInput() {
 
 	RemoveCommand( "+attack" );
 	RemoveCommand( "-attack" );
+	RemoveCommand( "+scope" );
+	RemoveCommand( "-scope" );
 	RemoveCommand( "+gadget" );
 	RemoveCommand( "-gadget" );
 	RemoveCommand( "+reload" );

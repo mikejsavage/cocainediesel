@@ -959,7 +959,7 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 static void Perks( Vec2 icon_size ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	ImGui::Text( "How do you want to move" );
+	ImGui::Text( "Movement" );
 	ImGui::NextColumn();
 
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );

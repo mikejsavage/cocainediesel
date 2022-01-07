@@ -419,6 +419,7 @@ void G_GhostClient( edict_t *self );
 void ClientThink( edict_t *ent, UserCommand *cmd, int timeDelta );
 void G_ClientThink( edict_t *ent );
 void G_CheckClientRespawnClick( edict_t *ent );
+void G_SetPerk( edict_t * ent, PerkType perk );
 bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient );
 void ClientDisconnect( edict_t *ent, const char *reason );
 void ClientBegin( edict_t *ent );

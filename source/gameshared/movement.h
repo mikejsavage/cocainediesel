@@ -47,10 +47,9 @@ void PM_ClearWallJump( SyncPlayerState * ps );
 float Normalize2D( Vec3 * v );
 void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal );
 
-void Event_Jump( const gs_state_t * pmove_gs, SyncPlayerState * ps );
-
 float JumpVelocity( pmove_t * pm, float vel );
 
+void PM_Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed );
 void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed );
 
 //pmove_ files

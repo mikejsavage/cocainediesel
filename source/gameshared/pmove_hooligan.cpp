@@ -38,21 +38,12 @@ static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		return;
 	}
 
-	pm->groundentity = -1;
-
-	// clip against the ground when jumping if moving that direction
-	if( pml->groundplane.normal.z > 0 && pml->velocity.z > 0 && Dot( pml->groundplane.normal.xy(), pml->velocity.xy() ) > 0 ) {
-		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane.normal, PM_OVERBOUNCE );
-	}
-
 	Vec3 velocity = pml->velocity;
 	velocity.z = 0.0f;
 	if( Length( velocity ) <= pm_defaultspeed && pml->forwardPush > 0 ) {
 		PM_Dash( pm, pml, pmove_gs, pml->flatforward * pml->forwardPush, pm_dashspeed, pm_jumpupspeed );
 	} else {
-		Event_Jump( pmove_gs, ps );
-		pml->velocity.z = Max2( 0.0f, pml->velocity.z ) + JumpVelocity( pm, pm_jumpupspeed );
-		PM_ClearDash( ps );
+		PM_Jump( pm, pml, pmove_gs, ps, pm_jumpupspeed );
 	}
 
 	ClearWallJump( ps );

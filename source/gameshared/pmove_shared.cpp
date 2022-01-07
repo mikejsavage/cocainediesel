@@ -68,15 +68,23 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 }
 
 
-
-void Event_Jump( const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, ps->perk );
-}
-
 float JumpVelocity( pmove_t * pm, float vel ) {
 	return ( pm->waterlevel >= 2 ? 2 : 1 ) * vel;
 }
 
+
+void PM_Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed ) {
+	pm->groundentity = -1;
+
+	// clip against the ground when jumping if moving that direction
+	if( pml->groundplane.normal.z > 0 && pml->velocity.z > 0 && Dot( pml->groundplane.normal.xy(), pml->velocity.xy() ) > 0 ) {
+		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane.normal, PM_OVERBOUNCE );
+	}
+
+	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, ps->perk );
+	pml->velocity.z = Max2( 0.0f, pml->velocity.z ) + JumpVelocity( pm, jumpspeed );
+	PM_ClearDash( ps );
+}
 
 
 void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed ) {

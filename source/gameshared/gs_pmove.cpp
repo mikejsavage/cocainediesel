@@ -49,7 +49,7 @@ constexpr float pm_decelerate = 16; // user intended deceleration when on ground
 constexpr float pm_airaccelerate = 0.5f; // user intended aceleration when on air
 constexpr float pm_airdecelerate = 1.0f; // air deceleration (not +strafe one, just at normal moving).
 
-constexpr float pm_specfriction = 2.5f;
+constexpr float pm_specfriction = 5.0f;
 constexpr float pm_specaccelerate = 7.0f;
 
 // special movement parameters
@@ -682,7 +682,7 @@ static void PM_FlyMove( bool doclip ) {
 	} else {
 		float drop = 0;
 
-		float friction = pm_specfriction * 1.5f; // extra friction
+		float friction = pm_specfriction; // extra friction
 		drop += speed * friction * pml.frametime;
 
 		// scale the velocity

@@ -990,3 +990,23 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		}
 	}
 }
+
+
+void G_SetPerk( edict_t * ent, PerkType perk ) {
+	ent->r.client->ps.perk = perk;
+
+	float old_max_health = ent->max_health;
+	switch( perk ) {
+	case Perk_Midget:
+		ent->s.scale = Vec3( 0.8f, 0.8f, 0.625f );
+		ent->max_health = 62.5f;
+		break;
+	default:
+		ent->s.scale = Vec3( 1.0f );
+		ent->max_health = 100.0f;
+		break;
+	}
+
+	ent->health = ent->health * ent->max_health / old_max_health;
+	ent->mass = PLAYER_MASS * ent->s.scale.z;
+}

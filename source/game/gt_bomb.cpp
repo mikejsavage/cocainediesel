@@ -178,20 +178,7 @@ static void GiveInventory( edict_t * ent ) {
 
 	G_SelectWeapon( ent, 1 );
 
-	ent->r.client->ps.perk = loadout.perk;
-
-	float old_max_health = ent->max_health;
-	if( loadout.perk == Perk_Midget ) {
-		ent->s.scale = Vec3( 0.8f, 0.8f, 0.625f );
-		ent->max_health = 62.5f;
-	}
-	else {
-		ent->s.scale = Vec3( 1.0f );
-		ent->max_health = 100.0f;
-	}
-
-	ent->health = ent->health * ent->max_health / old_max_health;
-	ent->mass = PLAYER_MASS * ent->s.scale.z;
+	G_SetPerk( ent, loadout.perk );
 }
 
 static void ShowShop( s32 player_num ) {

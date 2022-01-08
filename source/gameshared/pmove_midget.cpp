@@ -21,7 +21,7 @@ static constexpr s16 stamina_jump_limit = stamina_max - 15; //avoids jump spammi
 
 
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( pml->upPush >= 10 ) {
+	if( pml->upPush == 1 ) {
 		StaminaUse( ps, stamina_use );
 		ps->pmove.pm_flags |= PMF_JUMP_HELD;
 	} else {

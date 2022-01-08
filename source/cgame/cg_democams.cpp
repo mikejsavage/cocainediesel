@@ -637,9 +637,9 @@ int CG_DemoCam_FreeFly() {
 		AngleVectors( moveangles, &forward, &right, &up );
 		cam_angles = moveangles;
 
-		fmove = cmd.forwardmove * SPEED / 127.0f;
-		smove = cmd.sidemove * SPEED / 127.0f;
-		upmove = cmd.upmove * SPEED / 127.0f;
+		fmove = cmd.forwardmove * SPEED;
+		smove = cmd.sidemove * SPEED;
+		upmove = cmd.upmove * SPEED;
 		if( cmd.buttons & BUTTON_SPECIAL ) {
 			maxspeed *= 2;
 		}

@@ -23,7 +23,7 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		return;
 	}
 
-	if( pml->upPush < 10 ) {
+	if( pml->upPush < 1 ) {
 		ps->pmove.pm_flags &= ~PMF_JUMP_HELD;
 	} else {
 		if( !( ps->pmove.pm_flags & PMF_JUMP_HELD ) ) {
@@ -58,7 +58,7 @@ static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 			pml->maxPlayerSpeed = pm_chargespeed;
 			pml->maxCrouchedSpeed = pm_chargespeed;
 			pml->forwardPush = pm_chargespeed;
-			pml->sidePush = pm->cmd.sidemove * pm_chargesidespeed / 127.0f;
+			pml->sidePush = pm->cmd.sidemove * pm_chargesidespeed;
 		}
 	} else {
 		StaminaRecover( ps, stamina_recover );

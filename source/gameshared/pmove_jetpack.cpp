@@ -22,7 +22,7 @@ static constexpr s16 refuel_air = 1;
 
 
 static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( pml->upPush > 10 &&
+	if( pml->upPush == 1 &&
 		ps->pmove.stamina >= fuel_use_jetpack )
 	{
 		pm->groundentity = -1;

@@ -25,7 +25,7 @@ static float pm_wjminspeed( pml_t * pml ) {
 
 
 static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( pml->upPush < 10 ) {
+	if( pml->upPush < 1 ) {
 		return;
 	}
 
@@ -63,7 +63,7 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 		float hspeed = Length( Vec3( pml->velocity.x, pml->velocity.y, 0 ) );
 		pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
 
-		if( pml->upPush >= 10
+		if( pml->upPush == 1
 			|| ( hspeed > pm_dashspeed && pml->velocity.z > 8 )
 			|| ( trace.fraction == 1 ) || ( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
 			Vec3 normal( 0.0f );

@@ -95,6 +95,7 @@ enum PerkType_ : PerkType {
 	Perk_Hooligan,
 	Perk_Midget,
 	Perk_Jetpack,
+	Perk_Boomer,
 
 	Perk_Count
 };

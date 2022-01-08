@@ -5,11 +5,6 @@ void PM_ClearDash( SyncPlayerState * ps ) {
 	ps->pmove.pm_flags &= ~PMF_DASHING;
 }
 
-void PM_ClearWallJump( SyncPlayerState * ps ) {
-	ps->pmove.pm_flags &= ~PMF_WALLJUMPING;
-	ps->pmove.stamina_reload = 0;
-}
-
 
 float Normalize2D( Vec3 * v ) {
 	float length = Length( v->xy() );
@@ -65,6 +60,14 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 			*normal = trace.plane.normal;
 		}
 	}
+}
+
+void StaminaUse( SyncPlayerState * ps, s16 use ) {
+	ps->pmove.stamina = Max2( ps->pmove.stamina - use, 0 );
+}
+
+void StaminaRecover( SyncPlayerState * ps, s16 recover ) {
+	ps->pmove.stamina = Min2( s16( ps->pmove.stamina + recover ), ps->pmove.stamina_max );
 }
 
 

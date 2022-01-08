@@ -43,9 +43,11 @@ struct pml_t {
 
 //shared
 void PM_ClearDash( SyncPlayerState * ps );
-void PM_ClearWallJump( SyncPlayerState * ps );
 float Normalize2D( Vec3 * v );
 void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal );
+
+void StaminaUse( SyncPlayerState * ps, s16 use );
+void StaminaRecover( SyncPlayerState * ps, s16 recover );
 
 float JumpVelocity( pmove_t * pm, float vel );
 
@@ -57,3 +59,4 @@ void PM_NinjaInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );
 void PM_HooliganInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );
 void PM_MidgetInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );
 void PM_JetpackInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );
+void PM_BoomerInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps );

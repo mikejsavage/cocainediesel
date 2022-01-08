@@ -483,15 +483,12 @@ static void PM_Move() {
 		// Air Control
 		float wishspeed2 = wishspeed;
 		float accel;
-		if( Dot( pml.velocity, wishdir ) < 0 && !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) && pm->playerState->pmove.knockback_time <= 0 ) {
+		if( Dot( pml.velocity, wishdir ) < 0 && pm->playerState->pmove.knockback_time <= 0 ) {
 			accel = pm_airdecelerate;
 		} else {
 			accel = pm_airaccelerate;
 		}
 
-		if( ( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) ) {
-			accel = 0; // no stopmove while walljumping
-		}
 		if( smove != 0.0f && !fmove && pm->playerState->pmove.knockback_time <= 0 ) {
 			if( wishspeed > pm_wishspeed ) {
 				wishspeed = pm_wishspeed;
@@ -501,7 +498,7 @@ static void PM_Move() {
 
 		// Air control
 		PM_Accelerate( wishdir, wishspeed, accel );
-		if( !( pm->playerState->pmove.pm_flags & PMF_WALLJUMPING ) && pm->playerState->pmove.knockback_time <= 0 ) { // no air ctrl while wjing
+		if( pm->playerState->pmove.knockback_time <= 0 ) { // no air ctrl while wjing
 			PM_Aircontrol( wishdir, wishspeed2 );
 		}
 
@@ -871,6 +868,7 @@ static void PM_InitPerk() {
 	case Perk_Hooligan: PM_HooliganInit( pm, &pml, pm->playerState ); break;
 	case Perk_Midget: PM_MidgetInit( pm, &pml, pm->playerState ); break;
 	case Perk_Jetpack: PM_JetpackInit( pm, &pml, pm->playerState ); break;
+	case Perk_Boomer: PM_BoomerInit( pm, &pml, pm->playerState ); break;
 	}
 }
 
@@ -966,7 +964,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 		ps->pmove.no_shooting_time = Max2( 0, ps->pmove.no_shooting_time - pm->cmd.msec );
 		ps->pmove.knockback_time = Max2( 0, ps->pmove.knockback_time - pm->cmd.msec );
-		ps->pmove.stamina_reload = Max2( 0, ps->pmove.stamina_reload - pm->cmd.msec );
 		ps->pmove.tbag_time = Max2( 0, ps->pmove.tbag_time - pm->cmd.msec );
 		// crouch_time is handled at PM_AdjustBBox
 	}
@@ -974,7 +971,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	if( ps->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
 		if( !GS_MatchPaused( pmove_gs ) ) {
 			PM_ClearDash( pm->playerState );
-			PM_ClearWallJump( pm->playerState );
 
 			ps->pmove.knockback_time = 0;
 			ps->pmove.crouch_time = 0;

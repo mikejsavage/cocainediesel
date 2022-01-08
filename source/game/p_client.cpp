@@ -1001,6 +1001,10 @@ void G_SetPerk( edict_t * ent, PerkType perk ) {
 		ent->s.scale = Vec3( 0.8f, 0.8f, 0.625f );
 		ent->max_health = 62.5f;
 		break;
+	case Perk_Boomer:
+		ent->s.scale = Vec3( 1.5f, 1.5f, 1.0f );
+		ent->max_health = 150.0f;
+		break;
 	default:
 		ent->s.scale = Vec3( 1.0f );
 		ent->max_health = 100.0f;
@@ -1008,5 +1012,5 @@ void G_SetPerk( edict_t * ent, PerkType perk ) {
 	}
 
 	ent->health = ent->health * ent->max_health / old_max_health;
-	ent->mass = PLAYER_MASS * ent->s.scale.z;
+	ent->mass = PLAYER_MASS * Length( ent->s.scale );
 }

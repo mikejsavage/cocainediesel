@@ -5,26 +5,40 @@ static constexpr float pm_defaultspeed = 500.0f;
 static constexpr float pm_sidewalkspeed = 500.0f;
 static constexpr float pm_crouchedspeed = 200.0f;
 
-static constexpr float pm_jumpspeed = 600.0f;
-static constexpr s16 pm_jumpboostdelay = 35;
+static constexpr float pm_jumpspeed = 700.0f;
 
 static constexpr float pm_minbounceupspeed = 100.0f;
 static constexpr float pm_wallbouncefactor = 0.25f;
+
+
+static constexpr s16 stamina_max = 40;
+static constexpr s16 stamina_use = 1;
+static constexpr s16 stamina_recover = 5;
+static constexpr s16 stamina_jump_limit = stamina_max - 15; //avoids jump spamming
 
 
 
 
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	if( pml->upPush >= 10 ) {
-		ps->pmove.stamina = Min2( s16( ps->pmove.stamina + 1 ), pm_jumpboostdelay );
-	} else if( ps->pmove.stamina != 0 ) {
+		ps->pmove.pm_flags |= PMF_JUMP_HELD;
+		StaminaUse( ps, stamina_use );
+	} else {
+		StaminaRecover( ps, stamina_recover );
 		if( pm->groundentity == -1 ) {
-			ps->pmove.stamina = 0;
 			return;
 		}
 
-		PM_Jump( pm, pml, pmove_gs, ps, pm_jumpspeed * (float)ps->pmove.stamina / pm_jumpboostdelay );
-		ps->pmove.stamina = 0;
+		if( ps->pmove.stamina >= stamina_jump_limit ) {
+			return;
+		}
+
+		if( !( ps->pmove.pm_flags & PMF_JUMP_HELD ) ) { //avoids jumping on spawn
+			return;
+		}
+
+		ps->pmove.pm_flags &= ~PMF_JUMP_HELD;
+		PM_Jump( pm, pml, pmove_gs, ps, pm_jumpspeed * (float)(stamina_max - ps->pmove.stamina) / stamina_max );
 	}
 }
 
@@ -78,7 +92,7 @@ void PM_MidgetInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps ) {
 	pml->sidePush = pm->cmd.sidemove * pm_sidewalkspeed / 127.0f;
 	pml->upPush = pm->cmd.upmove * pm_defaultspeed / 127.0f;
 
-	ps->pmove.stamina_max = pm_jumpboostdelay;
+	ps->pmove.stamina_max = stamina_max;
 
 	pml->jumpCallback = PM_MidgetJump;
 	pml->specialCallback = PM_MidgetSpecial;

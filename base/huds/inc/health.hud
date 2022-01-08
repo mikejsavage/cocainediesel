@@ -10,7 +10,7 @@ if %HEALTH >= 0
 	drawPicByName $whiteimage
 
 	// fill coloured health bar
-	moveCursor 0, 22
+	moveCursor 0, 21
 	setAlignment left middle
 	setColor 1.0, %HEALTH_PERCENT / 83.333, %HEALTH_PERCENT / 500, 1
 	if %HEALTH_PERCENT > 50

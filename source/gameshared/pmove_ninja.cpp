@@ -6,7 +6,7 @@ static constexpr float pm_defaultspeed = 400.0f;
 static constexpr float pm_sidewalkspeed = 320.0f;
 static constexpr float pm_crouchedspeed = 200.0f;
 
-static constexpr float pm_wallclimbspeed = 250.0f;
+static constexpr float pm_wallclimbspeed = 200.0f;
 
 static constexpr float pm_dashspeed = 550.0f;
 static constexpr float pm_dashupspeed = ( 180.0f * GRAVITY_COMPENSATE );
@@ -14,6 +14,7 @@ static constexpr s16 pm_dashtimedelay = 200;
 
 static constexpr s16 stamina_max = 300;
 static constexpr s16 stamina_use = 1;
+static constexpr float stamina_use_moving = 1.5f;
 static constexpr s16 stamina_recover = 10;
 
 
@@ -50,21 +51,21 @@ static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 
 static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( pm->groundentity != -1 ) {
-		ps->pmove.stamina = Min2( s16( ps->pmove.stamina + stamina_recover ), stamina_max );
+		StaminaRecover( ps, stamina_recover );
 	}
 
 	if( ps->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
 		return;
 	}
 
-	if( pressed && ( ps->pmove.features & PMFEAT_SPECIAL ) && CheckWall( pm, pml, pmove_gs ) && ps->pmove.stamina > 0 ) {
+	if( pressed && ( ps->pmove.features & PMFEAT_SPECIAL ) && CheckWall( pm, pml, pmove_gs ) && ps->pmove.stamina >= stamina_use ) {
 		pml->ladder = Ladder_Fake;
 
 		Vec3 wishvel = pml->forward * pml->forwardPush + pml->right * pml->sidePush;
 		wishvel.z = 0.0;
 
 		if( !Length( wishvel ) ) {
-			ps->pmove.stamina -= stamina_use;
+			StaminaUse( ps, stamina_use );
 			return;
 		}
 
@@ -74,7 +75,7 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 			wishvel.z = Lerp( -1.0, Unlerp01( 15.0f, ps->viewangles[PITCH], -15.0f ), 1.0 );
 		}
 
-		ps->pmove.stamina -= Length( wishvel ) * stamina_use;
+		StaminaUse( ps, Length( wishvel ) * stamina_use_moving );
 		pml->velocity = wishvel * pm_wallclimbspeed;
 	}
 }

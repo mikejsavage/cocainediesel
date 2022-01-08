@@ -21,23 +21,12 @@ static constexpr s16 refuel_air = 1;
 
 
 
-
-static void PM_JetpackRefuel( pmove_t * pm, SyncPlayerState * ps ) {
-	if( pm->groundentity != -1 || pm->waterlevel >= 2 ) {
-		ps->pmove.stamina = Min2( s16( ps->pmove.stamina + refuel_ground ), fuel_max );
-	} else {
-		ps->pmove.stamina = Min2( s16( ps->pmove.stamina + refuel_air ), fuel_max );
-	}
-}
-
-
-
 static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	if( pml->upPush > 10 &&
-		ps->pmove.stamina > 0 )
+		ps->pmove.stamina >= fuel_use_jetpack )
 	{
 		pm->groundentity = -1;
-		ps->pmove.stamina -= fuel_use_jetpack;
+		StaminaUse( ps, fuel_use_jetpack );
 		pml->velocity.z = Min2( pml->velocity.z + pm_jetpackspeed, pm_maxjetpackupspeed );
 
 		pmove_gs->api.PredictedEvent( ps->POVnum, EV_JETPACK, 0 );
@@ -47,8 +36,8 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 
 
 static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( ps->pmove.stamina > 0 &&
-		pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) )
+	if( pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) &&
+		ps->pmove.stamina >= fuel_use_boost )
 	{
 		Vec3 dashdir = pml->flatforward;
 		pml->forwardPush = pm_boostspeed;
@@ -61,13 +50,17 @@ static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmo
 		pml->velocity.z += pm_boostupspeed;
 		pm->groundentity = -1;
 
-		ps->pmove.stamina -= fuel_use_boost;
+		StaminaUse( ps, fuel_use_boost );
 
 		pmove_gs->api.PredictedEvent( ps->POVnum, EV_JETPACK, 1 );
 	}
 
 
-	PM_JetpackRefuel( pm, ps );
+	if( pm->groundentity != -1 || pm->waterlevel >= 2 ) {
+		StaminaRecover( ps, refuel_ground );
+	} else {
+		StaminaRecover( ps, refuel_air );
+	}
 }
 
 

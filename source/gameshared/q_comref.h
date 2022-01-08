@@ -53,8 +53,8 @@ enum pmtype_t {
 #define PMF_TIME_TELEPORT   ( 1 << 2 )  // pm_time is non-moving time
 #define PMF_NO_PREDICTION   ( 1 << 3 )  // temporarily disables prediction (used for grappling hook)
 #define PMF_DASHING         ( 1 << 4 )  // Dashing flag
-#define PMF_SPECIAL_HELD    ( 1 << 5 )  // Special flag
-#define PMF_WALLJUMPING     ( 1 << 6 )  // WJ starting flag
+#define PMF_SPECIAL_HELD    ( 1 << 5 )  // Special held flag
+#define PMF_JUMP_HELD       ( 1 << 6 )  // Jump held flag
 
 // note that Q_rint was causing problems here
 // (spawn looking straight up\down at delta_angles wrapping)

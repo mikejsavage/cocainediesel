@@ -229,6 +229,8 @@ static void SettingsControls() {
 
 			ImGui::Separator();
 
+			KeyBindButton( "Attack", "+attack" );
+			KeyBindButton( "Scope (weapon specific)", "+scope" );
 			KeyBindButton( "Reload", "+reload" );
 			KeyBindButton( "Plant bomb", "+crouch" );
 			KeyBindButton( "Drop bomb", "drop" );

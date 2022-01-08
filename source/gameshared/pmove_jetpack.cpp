@@ -64,20 +64,6 @@ static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmo
 }
 
 
-void PM_JetpackInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps ) {
-	pml->maxPlayerSpeed = ps->pmove.max_speed;
-	if( pml->maxPlayerSpeed < 0 ) {
-		pml->maxPlayerSpeed = pm_defaultspeed;
-	}
-
-	pml->maxCrouchedSpeed = pm_crouchedspeed;
-
-	pml->forwardPush = pm->cmd.forwardmove * pm_defaultspeed / 127.0f;
-	pml->sidePush = pm->cmd.sidemove * pm_sidewalkspeed / 127.0f;
-	pml->upPush = pm->cmd.upmove * pm_defaultspeed / 127.0f;
-
-	ps->pmove.stamina_max = fuel_max;
-
-	pml->jumpCallback = PM_JetpackJump;
-	pml->specialCallback = PM_JetpackSpecial;
+void PM_JetpackInit( pmove_t * pm, pml_t * pml ) {
+	PM_InitPerk( pm, pml, pm_defaultspeed, pm_crouchedspeed, pm_sidewalkspeed, fuel_max, PM_JetpackJump, PM_JetpackSpecial );
 }

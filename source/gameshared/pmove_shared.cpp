@@ -3,11 +3,6 @@
 static constexpr s16 pm_dashtimedelay = 200;
 
 
-void PM_ClearDash( SyncPlayerState * ps ) {
-	ps->pmove.pm_flags &= ~PMF_DASHING;
-}
-
-
 float Normalize2D( Vec3 * v ) {
 	float length = Length( v->xy() );
 	Vec2 n = SafeNormalize( v->xy() );
@@ -75,6 +70,34 @@ void StaminaRecover( SyncPlayerState * ps, s16 recover ) {
 
 float JumpVelocity( pmove_t * pm, float vel ) {
 	return ( pm->waterlevel >= 2 ? 2 : 1 ) * vel;
+}
+
+
+void PM_InitPerk( pmove_t * pm, pml_t * pml,
+				float speed, float crouchspeed, float sidespeed, s16 stamina_max,
+				void (*jumpCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * ),
+				void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ) )
+{
+	pml->maxPlayerSpeed = pm->playerState->pmove.max_speed;
+	if( pml->maxPlayerSpeed < 0 ) {
+		pml->maxPlayerSpeed = speed;
+	}
+
+	pml->maxCrouchedSpeed = crouchspeed;
+
+	pml->forwardPush = pm->cmd.forwardmove * speed / 127.0f;
+	pml->sidePush = pm->cmd.sidemove * sidespeed / 127.0f;
+	pml->upPush = pm->cmd.upmove;
+
+	pm->playerState->pmove.stamina_max = stamina_max;
+
+	pml->jumpCallback = jumpCallback;
+	pml->specialCallback = specialCallback;
+}
+
+
+void PM_ClearDash( SyncPlayerState * ps ) {
+	ps->pmove.pm_flags &= ~PMF_DASHING;
 }
 
 

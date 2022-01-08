@@ -78,20 +78,6 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 }
 
 
-void PM_NinjaInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps ) {
-	pml->maxPlayerSpeed = ps->pmove.max_speed;
-	if( pml->maxPlayerSpeed < 0 ) {
-		pml->maxPlayerSpeed = pm_defaultspeed;
-	}
-
-	pml->maxCrouchedSpeed = pm_crouchedspeed;
-
-	pml->forwardPush = pm->cmd.forwardmove * pm_defaultspeed / 127.0f;
-	pml->sidePush = pm->cmd.sidemove * pm_sidewalkspeed / 127.0f;
-	pml->upPush = pm->cmd.upmove * pm_defaultspeed / 127.0f;
-
-	ps->pmove.stamina_max = stamina_max;
-
-	pml->jumpCallback = PM_NinjaJump;
-	pml->specialCallback = PM_NinjaSpecial;
+void PM_NinjaInit( pmove_t * pm, pml_t * pml ) {
+	PM_InitPerk( pm, pml, pm_defaultspeed, pm_crouchedspeed, pm_sidewalkspeed, stamina_max, PM_NinjaJump, PM_NinjaSpecial );
 }

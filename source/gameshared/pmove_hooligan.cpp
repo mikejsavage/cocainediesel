@@ -104,20 +104,6 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 }
 
 
-void PM_HooliganInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps ) {
-	pml->maxPlayerSpeed = ps->pmove.max_speed;
-	if( pml->maxPlayerSpeed < 0 ) {
-		pml->maxPlayerSpeed = pm_defaultspeed;
-	}
-
-	pml->maxCrouchedSpeed = pm_crouchedspeed;
-
-	pml->forwardPush = pm->cmd.forwardmove * pm_defaultspeed / 127.0f;
-	pml->sidePush = pm->cmd.sidemove * pm_sidewalkspeed / 127.0f;
-	pml->upPush = pm->cmd.upmove * pm_defaultspeed / 127.0f;
-
-	ps->pmove.stamina_max = stamina_max;
-
-	pml->jumpCallback = PM_HooliganJump;
-	pml->specialCallback = PM_HooliganSpecial;
+void PM_HooliganInit( pmove_t * pm, pml_t * pml ) {
+	PM_InitPerk( pm, pml, pm_defaultspeed, pm_crouchedspeed, pm_sidewalkspeed, stamina_max, PM_HooliganJump, PM_HooliganSpecial );
 }

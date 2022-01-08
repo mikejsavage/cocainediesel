@@ -864,11 +864,11 @@ static void PM_InitPerk() {
 	pm->playerState->pmove.stamina_max = 0; //dirty but safe
 
 	switch( pm->playerState->perk ) {
-	case Perk_Ninja: PM_NinjaInit( pm, &pml, pm->playerState ); break;
-	case Perk_Hooligan: PM_HooliganInit( pm, &pml, pm->playerState ); break;
-	case Perk_Midget: PM_MidgetInit( pm, &pml, pm->playerState ); break;
-	case Perk_Jetpack: PM_JetpackInit( pm, &pml, pm->playerState ); break;
-	case Perk_Boomer: PM_BoomerInit( pm, &pml, pm->playerState ); break;
+	case Perk_Ninja: PM_NinjaInit( pm, &pml ); break;
+	case Perk_Hooligan: PM_HooliganInit( pm, &pml ); break;
+	case Perk_Midget: PM_MidgetInit( pm, &pml ); break;
+	case Perk_Jetpack: PM_JetpackInit( pm, &pml ); break;
+	case Perk_Boomer: PM_BoomerInit( pm, &pml ); break;
 	}
 }
 

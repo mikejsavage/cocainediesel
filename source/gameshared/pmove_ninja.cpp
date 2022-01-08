@@ -10,7 +10,6 @@ static constexpr float pm_wallclimbspeed = 200.0f;
 
 static constexpr float pm_dashspeed = 550.0f;
 static constexpr float pm_dashupspeed = ( 180.0f * GRAVITY_COMPENSATE );
-static constexpr s16 pm_dashtimedelay = 200;
 
 static constexpr s16 stamina_max = 300;
 static constexpr s16 stamina_use = 1;
@@ -43,8 +42,6 @@ static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 	}
 
 	PM_Dash( pm, pml, pmove_gs, dashdir, pm_dashspeed, pm_dashupspeed );
-
-	pm->playerState->pmove.stamina_reload = pm_dashtimedelay;
 }
 
 

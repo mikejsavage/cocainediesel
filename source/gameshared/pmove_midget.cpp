@@ -10,6 +10,7 @@ static constexpr float pm_jumpspeed = 700.0f;
 static constexpr float pm_minbounceupspeed = 100.0f;
 static constexpr float pm_wallbouncefactor = 0.25f;
 
+static constexpr s16 pm_midgetjumpdetection = 50;
 
 static constexpr s16 stamina_max = 40;
 static constexpr s16 stamina_use = 1;
@@ -21,10 +22,11 @@ static constexpr s16 stamina_jump_limit = stamina_max - 15; //avoids jump spammi
 
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	if( pml->upPush >= 10 ) {
-		ps->pmove.pm_flags |= PMF_JUMP_HELD;
 		StaminaUse( ps, stamina_use );
+		ps->pmove.pm_flags |= PMF_JUMP_HELD;
 	} else {
 		StaminaRecover( ps, stamina_recover );
+		ps->pmove.stamina_time = pm_midgetjumpdetection;
 		if( pm->groundentity == -1 ) {
 			return;
 		}
@@ -33,11 +35,16 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 			return;
 		}
 
+		if( ps->pmove.stamina_time == 0 ) {
+			return;
+		}
+
 		if( !( ps->pmove.pm_flags & PMF_JUMP_HELD ) ) { //avoids jumping on spawn
 			return;
 		}
 
 		ps->pmove.pm_flags &= ~PMF_JUMP_HELD;
+		ps->pmove.stamina_time = 0;
 		PM_Jump( pm, pml, pmove_gs, ps, pm_jumpspeed * (float)(stamina_max - ps->pmove.stamina) / stamina_max );
 	}
 }

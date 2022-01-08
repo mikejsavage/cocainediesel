@@ -1,5 +1,7 @@
 #include "gameshared/movement.h"
 
+static constexpr s16 pm_dashtimedelay = 200;
+
 
 void PM_ClearDash( SyncPlayerState * ps ) {
 	ps->pmove.pm_flags &= ~PMF_DASHING;
@@ -114,10 +116,11 @@ void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashd
 	pml->velocity.z = upspeed;
 
 	// return sound events only when the dashes weren't too close to each other
-	if( pm->playerState->pmove.stamina_reload == 0 ) {
+	if( pm->playerState->pmove.stamina_time == 0 ) {
 		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH,
 			Abs( pml->sidePush ) >= Abs( pml->forwardPush ) ?
 					( pml->sidePush < 0 ? 1 : 2 ) : //left or right
 					( pml->forwardPush < 0 ? 3 : 0 ) ); //back or forward
+		pm->playerState->pmove.stamina_time = pm_dashtimedelay;
 	}
 }

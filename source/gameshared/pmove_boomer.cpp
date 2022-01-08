@@ -10,6 +10,9 @@ static constexpr float pm_jumpupspeed = 250.0f;
 
 static constexpr float pm_chargespeed = 600.0f;
 static constexpr float pm_chargesidespeed = 200.0f;
+
+static constexpr s16 pm_boomerjumpdetection = 50;
+
 static constexpr s16 stamina_max = 300;
 static constexpr s16 stamina_use = 3;
 static constexpr s16 stamina_recover = 1;
@@ -23,8 +26,8 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 	if( pml->upPush < 10 ) {
 		ps->pmove.pm_flags &= ~PMF_JUMP_HELD;
 	} else {
-		if( ps->pmove.pm_flags & PMF_JUMP_HELD ) {
-			return;
+		if( !( ps->pmove.pm_flags & PMF_JUMP_HELD ) ) {
+			ps->pmove.stamina_time = pm_boomerjumpdetection;
 		}
 
 		ps->pmove.pm_flags |= PMF_JUMP_HELD;
@@ -33,6 +36,11 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 			return;
 		}
 
+		if( ( ps->pmove.pm_flags & PMF_JUMP_HELD ) && ps->pmove.stamina_time == 0 ) {
+			return;
+		}
+
+		ps->pmove.stamina_time = 0;
 		PM_Jump( pm, pml, pmove_gs, ps, pm_jumpupspeed );
 	}
 }

@@ -964,6 +964,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 		ps->pmove.no_shooting_time = Max2( 0, ps->pmove.no_shooting_time - pm->cmd.msec );
 		ps->pmove.knockback_time = Max2( 0, ps->pmove.knockback_time - pm->cmd.msec );
+		ps->pmove.stamina_time = Max2( 0, ps->pmove.stamina_time - pm->cmd.msec );
 		ps->pmove.tbag_time = Max2( 0, ps->pmove.tbag_time - pm->cmd.msec );
 		// crouch_time is handled at PM_AdjustBBox
 	}

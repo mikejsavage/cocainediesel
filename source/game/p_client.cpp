@@ -996,6 +996,7 @@ void G_SetPerk( edict_t * ent, PerkType perk ) {
 	ent->r.client->ps.perk = perk;
 
 	float old_max_health = ent->max_health;
+
 	switch( perk ) {
 	case Perk_Midget:
 		ent->s.scale = Vec3( 0.8f, 0.8f, 0.625f );

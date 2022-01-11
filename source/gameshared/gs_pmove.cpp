@@ -49,8 +49,7 @@ constexpr float pm_decelerate = 16; // user intended deceleration when on ground
 constexpr float pm_airaccelerate = 0.5f; // user intended aceleration when on air
 constexpr float pm_airdecelerate = 1.0f; // air deceleration (not +strafe one, just at normal moving).
 
-constexpr float pm_specfriction = 5.0f;
-constexpr float pm_specaccelerate = 7.0f;
+constexpr float pm_specspeed = 500.0f;
 
 // special movement parameters
 
@@ -519,10 +518,6 @@ static void PM_GroundTrace( trace_t *trace ) {
 }
 
 static bool PM_GoodPosition( Vec3 origin, trace_t *trace ) {
-	if( pm->playerState->pmove.pm_type == PM_SPECTATOR ) {
-		return true;
-	}
-
 	pmove_gs->api.Trace( trace, origin, pm->mins, pm->maxs, origin, pm->playerState->POVnum, pm->contentmask, 0 );
 
 	return !trace->allsolid;
@@ -671,32 +666,12 @@ static void PM_CheckSpecialMovement() {
 	pm->playerState->pmove.pm_time = 255;
 }
 
-static void PM_FlyMove( bool doclip ) {
-	//friction
-	float speed = Length( pml.velocity );
-	if( speed < 1 ) {
-		pml.velocity = Vec3( 0.0f );
-	} else {
-		float drop = 0;
-
-		float friction = pm_specfriction; // extra friction
-		drop += speed * friction * pml.frametime;
-
-		// scale the velocity
-		float newspeed = Max2( 0.0f, speed - drop );
-		pml.velocity *= newspeed / speed;
-	}
-
+static void PM_FlyMove() {
 	// accelerate
-	float fmove = pml.forwardPush;
-	float smove = pml.sidePush;
-	float umove = pml.upPush;
-
-	if( pm->cmd.buttons & BUTTON_SPECIAL ) {
-		fmove *= 2;
-		smove *= 2;
-		umove *= 1.5;
-	}
+	float special = 1 + int( pm->cmd.buttons & BUTTON_SPECIAL ) * 0.5;
+	float fmove = pml.forwardPush * special;
+	float smove = pml.sidePush * special;
+	float umove = pml.upPush * special;
 
 	Vec3 wishvel = pml.forward * fmove + pml.right * smove;
 	wishvel.z += umove;
@@ -705,22 +680,8 @@ static void PM_FlyMove( bool doclip ) {
 	float wishspeed = Length( wishdir );
 	wishdir = SafeNormalize( wishdir );
 
-	float currentspeed = Dot( pml.velocity, wishdir );
-	float addspeed = wishspeed - currentspeed;
-	if( addspeed > 0 ) {
-		float accelspeed = pm_specaccelerate * pml.frametime * wishspeed;
-		if( accelspeed > addspeed ) {
-			accelspeed = addspeed;
-		}
-
-		pml.velocity += accelspeed * wishdir;
-	}
-
-	if( doclip ) {
-		PM_StepSlideMove();
-	} else {
-		pml.origin += pml.velocity * pml.frametime;
-	}
+	pml.velocity = pm_specspeed * wishspeed * wishdir;
+	pml.origin += pml.velocity * pml.frametime;
 }
 
 static void PM_AdjustBBox() {
@@ -730,11 +691,6 @@ static void PM_AdjustBBox() {
 		pm->playerState->pmove.crouch_time = 0;
 		pm->playerState->viewheight = 0;
 		return;
-	}
-
-	if( pm->playerState->pmove.pm_type == PM_SPECTATOR ) {
-		pm->playerState->pmove.crouch_time = 0;
-		pm->playerState->viewheight = playerbox_stand_viewheight;
 	}
 
 	if( pml.upPush < 0 && ( pm->playerState->pmove.features & PMFEAT_CROUCH ) ) {
@@ -909,6 +865,9 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	float fallvelocity = Max2( 0.0f, -pml.velocity.z );
 
 	pml.frametime = pm->cmd.msec * 0.001;
+	pml.forwardPush = pm->cmd.forwardmove;
+	pml.sidePush = pm->cmd.sidemove;
+	pml.upPush = pm->cmd.upmove;
 
 	PM_InitPerk();
 
@@ -926,7 +885,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 			if( pmove_gs->module == GS_MODULE_GAME ) {
 				ps->pmove.pm_flags &= ~PMF_NO_PREDICTION;
 			}
-			pm->contentmask = MASK_DEADSOLID;
+			pm->contentmask = 0;
 			break;
 
 		default:
@@ -984,7 +943,7 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 		if( ps->pmove.pm_type == PM_SPECTATOR ) {
 			PM_ApplyMouseAnglesClamp();
 
-			PM_FlyMove( true );
+			PM_FlyMove();
 		} else {
 			pml.forwardPush = 0;
 			pml.sidePush = 0;

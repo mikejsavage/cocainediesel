@@ -523,7 +523,7 @@ void CG_Draw2DView() {
 void CG_Draw2D() {
 	CG_DrawScope();
 
-	if( !cg_draw2D->integer ) {
+	if( !cg_draw2D->integer && cgs.demoPlaying ) {
 		return;
 	}
 

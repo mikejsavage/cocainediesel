@@ -1178,6 +1178,12 @@ static void DemoMenu() {
 		ImGui::NextColumn();
 		GameMenuButton( "+15s", "demojump +15", NULL, 1 );
 		ImGui::NextColumn();
+		if( Cvar_Bool( "cg_draw2D" ) ) {
+			GameMenuButton( "Show HUD", "cg_draw2D 1", NULL, 1 );
+		} else {
+			GameMenuButton( "Hide HUD", "cg_draw2D 0", NULL, 1 );
+		}
+
 
 		ImGui::Columns( 1, NULL, false );
 

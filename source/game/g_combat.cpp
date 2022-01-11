@@ -198,23 +198,25 @@ static void G_KnockBackPush( edict_t *targ, edict_t *attacker, Vec3 basedir, int
 	knockbackOfDeath = dir * push;
 }
 
-void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage, bool headshot, Vec3 pos, Vec3 dir ) {
+void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage, bool headshot, Vec3 pos, Vec3 dir, bool showNumbers ) {
 	u64 parm = HEALTH_TO_INT( damage ) << 1;
 	if( headshot ) {
 		parm |= 1;
 		G_SpawnEvent( EV_HEADSHOT, 0, &victim->s.origin );
 	}
 
-	edict_t * damage_number = G_SpawnEvent( EV_DAMAGE, parm, &victim->s.origin );
-	damage_number->s.svflags |= SVF_OWNERANDCHASERS;
-	damage_number->s.ownerNum = ENTNUM( attacker );
+	if( showNumbers ) {
+		edict_t * damage_number = G_SpawnEvent( EV_DAMAGE, parm, &victim->s.origin );
+		damage_number->s.svflags |= SVF_OWNERANDCHASERS;
+		damage_number->s.ownerNum = ENTNUM( attacker );
+	}
 
 	edict_t * blood = G_SpawnEvent( EV_BLOOD, HEALTH_TO_INT( damage ), &pos );
 	blood->s.origin2 = dir;
 	blood->s.team = victim->s.team;
 
 	if( !G_IsDead( victim ) && level.time >= victim->pain_debounce_time ) {
-		G_AddEvent( victim, EV_PAIN, victim->health <= 25 ? PAIN_20 : PAIN_100, true );
+		G_AddEvent( victim, EV_PAIN, Min2( 3, int( 4 * victim->health / game.clients[ PLAYERNUM( victim ) ].ps.max_health ) ), true );
 		victim->pain_debounce_time = level.time + 400;
 	}
 }
@@ -278,18 +280,6 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 		return;
 	}
 
-	// adding damage given/received to stats
-	if( statDmg && attacker->r.client && !targ->deadflag && targ->movetype != MOVETYPE_PUSH && targ->s.type != ET_CORPSE ) {
-		G_ClientGetStats( attacker )->total_damage_given += take;
-
-		// shotgun calls G_Damage for every bullet, so we accumulate damage
-		// in W_Fire_Shotgun and send events from there instead
-		if( damage_type != Weapon_Shotgun ) {
-			bool headshot = dflags & DAMAGE_HEADSHOT;
-			SpawnDamageEvents( attacker, targ, take, headshot, point, dmgdir );
-		}
-	}
-
 	if( statDmg ) {
 		G_ClientGetStats( targ )->total_damage_received += take;
 	}
@@ -319,6 +309,20 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	}
 
 	targ->health = targ->health - take;
+
+	// adding damage given/received to stats
+	if( attacker->r.client && !targ->deadflag && targ->movetype != MOVETYPE_PUSH && targ->s.type != ET_CORPSE ) {
+		if( statDmg ) {
+			G_ClientGetStats( attacker )->total_damage_given += take;
+		}
+
+		// shotgun calls G_Damage for every bullet, so we accumulate damage
+		// in W_Fire_Shotgun and send events from there instead
+		if( damage_type != Weapon_Shotgun ) {
+			bool headshot = dflags & DAMAGE_HEADSHOT;
+			SpawnDamageEvents( attacker, targ, take, headshot, point, dmgdir, statDmg );
+		}
+	}
 
 	int clamped_takedmg = HEALTH_TO_INT( take );
 

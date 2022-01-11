@@ -361,7 +361,7 @@ static void W_Fire_Shotgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	for( int i = 1; i <= MAX_CLIENTS; i++ ) {
 		if( damage_dealt[ i ] == 0 )
 			continue;
-		SpawnDamageEvents( self, &game.edicts[ i ], damage_dealt[ i ], false, hit_locations[ i ], dir );
+		SpawnDamageEvents( self, &game.edicts[ i ], damage_dealt[ i ], false, hit_locations[ i ], dir, false );
 	}
 }
 

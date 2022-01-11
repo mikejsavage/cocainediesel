@@ -158,7 +158,6 @@ void G_Init( unsigned int framemsec ) {
 	g_inactivity_maxtime->modified = true;
 
 	// helper cvars to show current status in serverinfo reply
-	NewCvar( "g_match_score", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 	NewCvar( "g_needpass", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
 	game.maxentities = MAX_EDICTS;

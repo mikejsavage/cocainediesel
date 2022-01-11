@@ -86,15 +86,11 @@ static void G_Timeout_Update( unsigned int msec ) {
 * update the cvars which show the match state at server browsers
 */
 static void G_UpdateServerInfo() {
-	// g_match_score
 	if( server_gs.gameState.match_state >= MatchState_Playing && level.gametype.isTeamBased ) {
 		String< MAX_INFO_STRING > score( "{}: {} {}: {}",
 			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.teams[ TEAM_ALPHA ].score,
 			GS_TeamName( TEAM_BETA ), server_gs.gameState.teams[ TEAM_BETA ].score );
 
-		Cvar_ForceSet( "g_match_score", score.c_str() );
-	} else {
-		Cvar_ForceSet( "g_match_score", "" );
 	}
 
 	// g_needpass

@@ -145,8 +145,6 @@ void CG_Reset() {
 
 	CG_ClearInputState();
 
-	CG_ClearPointedNum();
-
 	CG_InitDamageNumbers();
 	InitDecals();
 	InitPersistentBeams();

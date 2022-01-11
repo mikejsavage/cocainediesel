@@ -28,10 +28,8 @@ Cvar *cg_draw2D;
 
 Cvar *cg_crosshair_size;
 
-Cvar *cg_showPlayerNames;
-Cvar *cg_showPlayerNames_alpha;
-Cvar *cg_showPlayerNames_zfar;
-Cvar *cg_showPlayerNames_barWidth;
+static constexpr float playerNamesAlpha = 0.4f;
+static constexpr float playerNamesZfar = 1024.0f;
 
 static int64_t scr_damagetime = 0;
 
@@ -68,13 +66,6 @@ void CG_ScreenInit() {
 	cg_centerTime =     NewCvar( "cg_centerTime", "2.5", 0 );
 
 	cg_crosshair_size = NewCvar( "cg_crosshair_size", "3", CvarFlag_Archive );
-
-	cg_showPointedPlayer =  NewCvar( "cg_showPointedPlayer", "1", CvarFlag_Archive );
-
-	cg_showPlayerNames =        NewCvar( "cg_showPlayerNames", "2", CvarFlag_Archive );
-	cg_showPlayerNames_alpha =  NewCvar( "cg_showPlayerNames_alpha", "0.4", CvarFlag_Archive );
-	cg_showPlayerNames_zfar =   NewCvar( "cg_showPlayerNames_zfar", "1024", CvarFlag_Archive );
-	cg_showPlayerNames_barWidth =   NewCvar( "cg_showPlayerNames_barWidth", "8", CvarFlag_Archive );
 }
 
 void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
@@ -166,44 +157,8 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 	DrawText( font, font_size, string, alignment, x, y, color, border );
 }
 
-void CG_ClearPointedNum() {
-	cg.pointedNum = 0;
-	cg.pointRemoveTime = 0;
-	cg.pointedHealth = 0;
-}
-
-static void CG_UpdatePointedNum() {
-	// disable cases
-	if( cg.view.thirdperson || cg.view.type != VIEWDEF_PLAYERVIEW || !cg_showPointedPlayer->integer ) {
-		CG_ClearPointedNum();
-		return;
-	}
-
-	if( cg.predictedPlayerState.pointed_player ) {
-		cg.pointedNum = cg.predictedPlayerState.pointed_player;
-		cg.pointRemoveTime = cl.serverTime + 150;
-		cg.pointedHealth = cg.predictedPlayerState.pointed_health;
-	}
-
-	if( cg.pointRemoveTime <= cl.serverTime ) {
-		CG_ClearPointedNum();
-	}
-
-	if( cg.pointedNum ) {
-		if( cg_entities[cg.pointedNum].current.team != cg.predictedPlayerState.team ) {
-			CG_ClearPointedNum();
-		}
-	}
-}
-
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {
 	// static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
-	if( !cg_showPlayerNames->integer && !cg_showPointedPlayer->integer ) {
-		return;
-	}
-
-	CG_UpdatePointedNum();
-
 	for( int i = 0; i < client_gs.maxclients; i++ ) {
 		if( strlen( PlayerName( i ) ) == 0 || ISVIEWERENTITY( i + 1 ) ) {
 			continue;
@@ -214,12 +169,8 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		// only show the pointed player
-		if( !cg_showPlayerNames->integer && ( cent->current.number != cg.pointedNum ) ) {
-			continue;
-		}
-
-		if( cg_showPlayerNames->integer == 2 && cent->current.team != cg.predictedPlayerState.team ) {
+		//only show the players in your team
+		if( cent->current.team != cg.predictedPlayerState.team ) {
 			continue;
 		}
 
@@ -240,13 +191,13 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 
 		float fadeFrac;
 		if( cent->current.number != cg.pointedNum ) {
-			if( dist > cg_showPlayerNames_zfar->number ) {
+			if( dist > playerNamesZfar ) {
 				continue;
 			}
 
-			fadeFrac = Clamp01( ( cg_showPlayerNames_zfar->number - dist ) / ( cg_showPlayerNames_zfar->number * 0.25f ) );
+			fadeFrac = Clamp01( ( playerNamesZfar - dist ) / ( playerNamesZfar * 0.25f ) );
 
-			tmpcolor.w = cg_showPlayerNames_alpha->number * color.w * fadeFrac;
+			tmpcolor.w = playerNamesAlpha * color.w * fadeFrac;
 		} else {
 			fadeFrac = Clamp01( ( cg.pointRemoveTime - cl.serverTime ) / 150.0f );
 

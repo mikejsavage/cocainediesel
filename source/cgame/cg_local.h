@@ -307,8 +307,6 @@ void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float f
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border );
 void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color );
 
-void CG_ClearPointedNum();
-
 void CG_InitDamageNumbers();
 void CG_AddDamageNumber( SyncEntityState * ent, u64 parm );
 void CG_DrawDamageNumbers();

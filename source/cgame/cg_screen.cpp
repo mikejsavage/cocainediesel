@@ -22,7 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/renderer.h"
 #include "client/renderer/text.h"
 
-Cvar *cg_centerTime;
 Cvar *cg_showPointedPlayer;
 Cvar *cg_draw2D;
 
@@ -41,6 +40,7 @@ CENTER PRINTING
 ===============================================================================
 */
 
+static constexpr int centerTimeOff = 2500;
 static char scr_centerstring[1024];
 static int scr_centertime_off;
 
@@ -52,7 +52,7 @@ static int scr_centertime_off;
 */
 void CG_CenterPrint( const char *str ) {
 	Q_strncpyz( scr_centerstring, str, sizeof( scr_centerstring ) );
-	scr_centertime_off = cg_centerTime->number * 1000.0f;
+	scr_centertime_off = centerTimeOff;
 }
 
 static void CG_DrawCenterString() {
@@ -63,7 +63,6 @@ static void CG_DrawCenterString() {
 
 void CG_ScreenInit() {
 	cg_draw2D =     NewCvar( "cg_draw2D", "1", 0 );
-	cg_centerTime =     NewCvar( "cg_centerTime", "2.5", 0 );
 
 	cg_crosshair_size = NewCvar( "cg_crosshair_size", "3", CvarFlag_Archive );
 }

@@ -825,6 +825,7 @@ static void PM_InitPerk() {
 	case Perk_Midget: PM_MidgetInit( pm, &pml ); break;
 	case Perk_Jetpack: PM_JetpackInit( pm, &pml ); break;
 	case Perk_Boomer: PM_BoomerInit( pm, &pml ); break;
+	default: PM_HooliganInit( pm, &pml ); break;
 	}
 }
 

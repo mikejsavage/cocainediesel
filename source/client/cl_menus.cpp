@@ -958,6 +958,14 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 }
 
 static void Perks( Vec2 icon_size ) {
+	constexpr char hints[ Perk_Count ][ 2 ][ 256 ] = {
+		{ "Ninja", "Dashes around and climbs walls" },
+		{ "Hooligan", "Jumps and walljumps like a mad man" },
+		{ "Midget", "Fast and low hp, can charge his jump" },
+		{ "Jetpack", "The flying guy" },
+		{ "Boomer", "Slow and high hp, can charge fast" }
+	};
+
 	TempAllocator temp = cls.frame_arena.temp();
 
 	ImGui::Text( "Movement" );
@@ -986,6 +994,13 @@ static void Perks( Vec2 icon_size ) {
 			selected_perk = i;
 			SendLoadout();
 		}
+
+		if( ImGui::IsItemHovered() ) {
+			ImGui::BeginTooltip();
+			ImGui::Text( "%s", temp( "{}{}\n\n{}{}", ImGuiColorToken( 255, 200, 0, 255 ), hints[ i - 1 ][ 0 ], ImGuiColorToken( 255, 255, 255, 255 ), hints[ i - 1 ][ 1 ] ) );
+			ImGui::EndTooltip();
+		}
+
 		ImGui::PopID();
 		ImGui::PopStyleColor();
 

@@ -33,7 +33,15 @@ static constexpr float playerNamesZfar = 1024.0f;
 static constexpr float playerNamesZclose = 112.0f;
 static constexpr float playerNamesZgrow = 2.5f;
 
+static constexpr int64_t crosshairDamageTime = 200;
+static constexpr int crosshairFireGap = 6;
+static constexpr float crosshairFireSizeRatio = 1.5f;
+static constexpr float crosshairRefireGapRatio = 0.01f;
+static constexpr float crosshairRefireTimeRatio = 1.5f;
+
 static int64_t scr_damagetime = 0;
+static int64_t scr_shoottime = 0;
+static int64_t scr_shoottimebasis = 0;
 
 /*
 ===============================================================================
@@ -90,11 +98,16 @@ void CG_ScreenCrosshairDamageUpdate() {
 	scr_damagetime = cls.monotonicTime;
 }
 
+void CG_ScreenCrosshairShootUpdate( u16 refire_time ) {
+	scr_shoottime = cls.monotonicTime + refire_time * crosshairRefireTimeRatio + Max2( int64_t( 0 ), scr_shoottime - cls.monotonicTime );
+	scr_shoottimebasis = refire_time;
+}
+
 static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
 	Draw2DBox( x, y, w, h, cls.white_material, color );
 }
 
-void CG_DrawCrosshair() {
+void CG_DrawCrosshair( int x, int y ) {
 	if( cg.predictedPlayerState.health <= 0 )
 		return;
 
@@ -104,25 +117,28 @@ void CG_DrawCrosshair() {
 	if( weapon == Weapon_AutoSniper && cg.predictedPlayerState.zoom_time > 0 )
 		return;
 
-	Vec4 color = cls.monotonicTime - scr_damagetime <= 300 ? vec4_red : vec4_white;
+	Vec4 color = cls.monotonicTime - scr_damagetime <= crosshairDamageTime ? vec4_red : vec4_white; 
 
-	int w = frame_static.viewport_width;
-	int h = frame_static.viewport_height;
 	int size = cg_crosshair_size->integer > 0 ? cg_crosshair_size->integer : 0;
 	int gap = cg_crosshair_gap->integer > 0 ? cg_crosshair_gap->integer : 0;
+	float diff = (float)( scr_shoottime - cls.monotonicTime )/scr_shoottimebasis;
+	if( scr_shoottime > cls.monotonicTime ) {
+		gap += diff * ( crosshairFireGap + scr_shoottimebasis * crosshairRefireGapRatio );
+		size += diff * crosshairFireSizeRatio;
+	}
 
-	CG_FillRect( w / 2 - 2, h / 2 - 2 - size - gap, 4, 4 + size, vec4_black );
-	CG_FillRect( w / 2 - 2, h / 2 - 2 + gap, 4, 4 + size, vec4_black );
+	CG_FillRect( x - 2, y - 2 - size - gap, 4, 4 + size, vec4_black );
+	CG_FillRect( x - 2, y - 2 + gap, 4, 4 + size, vec4_black );
 
-	CG_FillRect( w / 2 - 2 - size - gap, h / 2 - 2, 4 + size, 4, vec4_black );
-	CG_FillRect( w / 2 - 2 + gap, h / 2 - 2, 4 + size, 4, vec4_black );
+	CG_FillRect( x - 2 - size - gap, y - 2, 4 + size, 4, vec4_black );
+	CG_FillRect( x - 2 + gap, y - 2, 4 + size, 4, vec4_black );
 
 
-	CG_FillRect( w / 2 - 1, h / 2 - 1 - gap - size, 2, 2 + size, color );
-	CG_FillRect( w / 2 - 1, h / 2 - 1 + gap, 2, 2 + size, color );
+	CG_FillRect( x - 1, y - 1 - gap - size, 2, 2 + size, color );
+	CG_FillRect( x - 1, y - 1 + gap, 2, 2 + size, color );
 
-	CG_FillRect( w / 2 - 1 - size - gap, h / 2 - 1, 2 + size, 2, color );
-	CG_FillRect( w / 2 - 1 + gap, h / 2 - 1, 2 + size, 2, color );
+	CG_FillRect( x - 1 - size - gap, y - 1, 2 + size, 2, color );
+	CG_FillRect( x - 1 + gap, y - 1, 2 + size, 2, color );
 
 }
 

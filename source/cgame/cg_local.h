@@ -298,8 +298,9 @@ void CG_CenterPrint( const char *str );
 
 void CG_EscapeKey();
 
-void CG_DrawCrosshair();
+void CG_DrawCrosshair( int x, int y );
 void CG_ScreenCrosshairDamageUpdate();
+void CG_ScreenCrosshairShootUpdate( u16 refire_time );
 
 void CG_DrawKeyState( int x, int y, int w, int h, const char *key );
 

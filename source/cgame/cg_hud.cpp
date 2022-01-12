@@ -1348,7 +1348,7 @@ static bool CG_LFuncDrawWeaponIcons( cg_layoutnode_t *argumentnode ) {
 }
 
 static bool CG_LFuncDrawCrossHair( cg_layoutnode_t *argumentnode ) {
-	CG_DrawCrosshair();
+	CG_DrawCrosshair( frame_static.viewport_width / 2, frame_static.viewport_height / 2 );
 	return true;
 }
 

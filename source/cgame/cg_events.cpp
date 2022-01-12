@@ -167,6 +167,8 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 		S_StartEntitySound( sfx, entNum, CHAN_AUTO, 1.0f, 1.0f );
 	}
 
+	CG_ScreenCrosshairShootUpdate( GS_GetWeaponDef( weapon )->refire_time );
+
 	// add animation to the player model
 	switch( weapon ) {
 		case Weapon_Knife:

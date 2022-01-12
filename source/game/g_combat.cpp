@@ -215,8 +215,9 @@ void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage
 	blood->s.origin2 = dir;
 	blood->s.team = victim->s.team;
 
-	if( !G_IsDead( victim ) && level.time >= victim->pain_debounce_time ) {
-		G_AddEvent( victim, EV_PAIN, Min2( 3, int( 4 * victim->health / game.clients[ PLAYERNUM( victim ) ].ps.max_health ) ), true );
+	s16 client_maxhp = game.clients[ PLAYERNUM( victim ) ].ps.max_health;
+	if( !G_IsDead( victim ) && level.time >= victim->pain_debounce_time && client_maxhp > 0 ) { //2nd check will prevent the game from crashing on some loss
+		G_AddEvent( victim, EV_PAIN, Min2( 3, int( 4 * victim->health / client_maxhp ) ), true );
 		victim->pain_debounce_time = level.time + 400;
 	}
 }

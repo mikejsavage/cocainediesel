@@ -24,12 +24,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/string.h"
 
 static int clientVoted[MAX_CLIENTS];
+static int64_t lastclientVote[MAX_CLIENTS];
 
 Cvar *g_callvote_electtime;          // in seconds
 Cvar *g_callvote_enabled;
 
 static constexpr float callvoteElectPercent = 55.0f / 100.0f;
 static constexpr int callvoteCooldown = 5000;
+static constexpr int voteChangeCooldown = 500;
 
 enum {
 	VOTED_NOTHING = 0,
@@ -689,6 +691,12 @@ void G_CallVotes_CmdVote( edict_t *ent ) {
 		return;
 	}
 
+	if( ( svs.realtime - lastclientVote[PLAYERNUM( ent )] ) < voteChangeCooldown ) {
+		G_PrintMsg( ent, "%sYou can't vote that fast\n", S_COLOR_RED, vote );
+		return;
+	}
+
+	lastclientVote[PLAYERNUM( ent )] = svs.realtime;
 	clientVoted[PLAYERNUM( ent )] = vote_id;
 	G_CallVotes_CheckState();
 }

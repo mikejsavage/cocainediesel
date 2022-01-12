@@ -55,6 +55,10 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		return;
 	}
 
+	if( pml->ladder ) {
+		return;
+	}
+
 	if( pressed && ( ps->pmove.features & PMFEAT_SPECIAL ) && CheckWall( pm, pml, pmove_gs ) && ps->pmove.stamina >= stamina_use ) {
 		pml->ladder = Ladder_Fake;
 

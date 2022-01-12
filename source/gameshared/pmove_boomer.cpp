@@ -52,7 +52,7 @@ static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 		ps->pmove.pm_flags &= ~PMF_SPECIAL_HELD;
 	}
 
-	if( ps->pmove.pm_flags & PMF_SPECIAL_HELD ) {
+	if( ( ps->pmove.pm_flags & PMF_SPECIAL_HELD ) && !pml->ladder ) {
 		if( ps->pmove.stamina >= stamina_use ) {
 			StaminaUse( ps, stamina_use );
 			pml->maxPlayerSpeed = pm_chargespeed;

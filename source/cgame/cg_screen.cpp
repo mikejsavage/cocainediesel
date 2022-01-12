@@ -26,6 +26,7 @@ Cvar *cg_showPointedPlayer;
 Cvar *cg_draw2D;
 
 Cvar *cg_crosshair_size;
+Cvar *cg_crosshair_gap;
 
 static constexpr float playerNamesAlpha = 0.4f;
 static constexpr float playerNamesZfar = 1024.0f;
@@ -67,6 +68,7 @@ void CG_ScreenInit() {
 	cg_draw2D =     NewCvar( "cg_draw2D", "1", 0 );
 
 	cg_crosshair_size = NewCvar( "cg_crosshair_size", "3", CvarFlag_Archive );
+	cg_crosshair_gap = NewCvar( "cg_crosshair_gap", "0", CvarFlag_Archive );
 }
 
 void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
@@ -107,11 +109,21 @@ void CG_DrawCrosshair() {
 	int w = frame_static.viewport_width;
 	int h = frame_static.viewport_height;
 	int size = cg_crosshair_size->integer > 0 ? cg_crosshair_size->integer : 0;
+	int gap = cg_crosshair_gap->integer > 0 ? cg_crosshair_gap->integer : 0;
 
-	CG_FillRect( w / 2 - 2, h / 2 - 2 - size, 4, 4 + 2 * size, vec4_black );
-	CG_FillRect( w / 2 - 2 - size, h / 2 - 2, 4 + 2 * size, 4, vec4_black );
-	CG_FillRect( w / 2 - 1, h / 2 - 1 - size, 2, 2 + 2 * size, color );
-	CG_FillRect( w / 2 - 1 - size, h / 2 - 1, 2 + 2 * size, 2, color );
+	CG_FillRect( w / 2 - 2, h / 2 - 2 - size - gap, 4, 4 + size, vec4_black );
+	CG_FillRect( w / 2 - 2, h / 2 - 2 + gap, 4, 4 + size, vec4_black );
+
+	CG_FillRect( w / 2 - 2 - size - gap, h / 2 - 2, 4 + size, 4, vec4_black );
+	CG_FillRect( w / 2 - 2 + gap, h / 2 - 2, 4 + size, 4, vec4_black );
+
+
+	CG_FillRect( w / 2 - 1, h / 2 - 1 - gap - size, 2, 2 + size, color );
+	CG_FillRect( w / 2 - 1, h / 2 - 1 + gap, 2, 2 + size, color );
+
+	CG_FillRect( w / 2 - 1 - size - gap, h / 2 - 1, 2 + size, 2, color );
+	CG_FillRect( w / 2 - 1 + gap, h / 2 - 1, 2 + size, 2, color );
+
 }
 
 void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border ) {

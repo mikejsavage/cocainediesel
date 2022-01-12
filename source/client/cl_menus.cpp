@@ -130,6 +130,20 @@ static void CvarCheckbox( const char * label, const char * cvar_name ) {
 	Cvar_Set( cvar_name, val ? "1" : "0" );
 }
 
+static void CvarSliderInt( const char * label, const char * cvar_name, int lo, int hi ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
+	SettingLabel( label );
+
+	int val = Cvar_Integer( cvar_name );
+	ImGui::PushID( cvar_name );
+	ImGui::SliderInt( "", &val, lo, hi, NULL );
+	ImGui::PopID();
+
+	char * buf = temp( "{}", val );
+	Cvar_Set( cvar_name, buf );
+}
+
 static void CvarSliderFloat( const char * label, const char * cvar_name, float lo, float hi ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -206,6 +220,10 @@ static void SettingsGeneral() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	CvarTextbox< MAX_NAME_CHARS >( "Name", "name" );
+
+	CvarSliderInt( "Crosshair size", "cg_crosshair_size", 1, 50 );
+	CvarSliderInt( "Crosshair gap", "cg_crosshair_gap", 0, 20 );
+
 
 	CvarCheckbox( "Show chat", "cg_chat" );
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys" );

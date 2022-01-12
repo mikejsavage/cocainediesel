@@ -29,6 +29,8 @@ Cvar *cg_crosshair_size;
 
 static constexpr float playerNamesAlpha = 0.4f;
 static constexpr float playerNamesZfar = 1024.0f;
+static constexpr float playerNamesZclose = 112.0f;
+static constexpr float playerNamesZgrow = 2.5f;
 
 static int64_t scr_damagetime = 0;
 
@@ -194,7 +196,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 				continue;
 			}
 
-			fadeFrac = Clamp01( ( playerNamesZfar - dist ) / ( playerNamesZfar * 0.25f ) );
+			fadeFrac = Clamp01( Min2( ( playerNamesZfar - dist ) / ( playerNamesZfar * 0.25f ), ( dist - playerNamesZclose ) / playerNamesZclose ) );
 
 			tmpcolor.w = playerNamesAlpha * color.w * fadeFrac;
 		} else {
@@ -220,7 +222,8 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 			continue;
 		}
 
-		DrawText( font, font_size, PlayerName( i ), Alignment_CenterBottom, coords.x, coords.y, tmpcolor, border );
+		float size = font_size * playerNamesZgrow * ( 1.0f - ( dist / ( playerNamesZfar * 1.8f ) ) );
+		DrawText( font, size, PlayerName( i ), Alignment_CenterBottom, coords.x, coords.y, tmpcolor, border );
 	}
 }
 

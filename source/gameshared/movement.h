@@ -28,6 +28,13 @@ struct pml_t {
 	float maxPlayerSpeed;
 	float maxCrouchedSpeed;
 
+	float groundAccel;
+	float airAccel;
+	float waterAccel;
+	float strafeBunnyAccel;
+
+	float friction;
+
 	void (*jumpCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * );
 	void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed );
 };

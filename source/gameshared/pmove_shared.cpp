@@ -87,7 +87,6 @@ void PM_InitPerk( pmove_t * pm, pml_t * pml,
 
 	pml->forwardPush *= speed;
 	pml->sidePush *= sidespeed;
-	pml->upPush = pm->cmd.upmove;
 
 	pm->playerState->pmove.stamina_max = stamina_max;
 

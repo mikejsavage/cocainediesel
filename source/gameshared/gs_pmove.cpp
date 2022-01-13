@@ -39,22 +39,22 @@ static const gs_state_t * pmove_gs;
 
 // movement parameters
 
-constexpr float pm_friction = 16; //  ( initially 6 )
+constexpr float default_friction = 16; //  ( initially 6 )
+constexpr float default_accelerate = 16; // user intended acceleration when on ground or fly movement ( initially 10 )
+constexpr float default_airaccelerate = 0.5f; // user intended aceleration when on air
+constexpr float default_wateraccelerate = 12; // user intended acceleration when swimming ( initially 6 )
+constexpr float default_strafebunnyaccel = 60; // forward acceleration when strafe bunny hopping
+
+
 constexpr float pm_waterfriction = 16;
-constexpr float pm_wateraccelerate = 12; // user intended acceleration when swimming ( initially 6 )
-
-constexpr float pm_accelerate = 16; // user intended acceleration when on ground or fly movement ( initially 10 )
 constexpr float pm_decelerate = 16; // user intended deceleration when on ground
-
-constexpr float pm_airaccelerate = 0.5f; // user intended aceleration when on air
 constexpr float pm_airdecelerate = 1.0f; // air deceleration (not +strafe one, just at normal moving).
 
-constexpr float pm_specspeed = 500.0f;
+constexpr float pm_specspeed = 450.0f;
 
 // special movement parameters
 
 constexpr float pm_aircontrol = 140.0f; // aircontrol multiplier (intertia velocity to forward velocity conversion)
-constexpr float pm_strafebunnyaccel = 60; // forward acceleration when strafe bunny hopping
 constexpr float pm_wishspeed = 30;
 
 //
@@ -313,7 +313,7 @@ static void PM_Friction() {
 	// apply ground friction
 	if( pm->groundentity != -1 || pml.ladder ) {
 		if( pm->playerState->pmove.knockback_time <= 0 ) {
-			float friction = pm_friction;
+			float friction = pml.friction;
 			float control = speed < pm_decelerate ? pm_decelerate : speed;
 			drop += control * friction * pml.frametime;
 		}
@@ -413,7 +413,7 @@ static void PM_WaterMove() {
 		wishspeed = pml.maxPlayerSpeed;
 	}
 
-	PM_Accelerate( wishdir, wishspeed, pm_wateraccelerate );
+	PM_Accelerate( wishdir, wishspeed, pml.waterAccel );
 	PM_StepSlideMove();
 }
 
@@ -448,7 +448,7 @@ static void PM_Move() {
 	}
 
 	if( pml.ladder ) {
-		PM_Accelerate( wishdir, wishspeed, pm_accelerate );
+		PM_Accelerate( wishdir, wishspeed, pml.groundAccel );
 
 		if( wishvel.z == 0.0f ) {
 			float decel = GRAVITY * pml.frametime;
@@ -468,7 +468,7 @@ static void PM_Move() {
 			pml.velocity.z = 0; //!!! this is before the accel
 		}
 
-		PM_Accelerate( wishdir, wishspeed, pm_accelerate );
+		PM_Accelerate( wishdir, wishspeed, pml.groundAccel );
 
 		pml.velocity.z = Min2( 0.0f, pml.velocity.z );
 
@@ -485,14 +485,14 @@ static void PM_Move() {
 		if( Dot( pml.velocity, wishdir ) < 0 && pm->playerState->pmove.knockback_time <= 0 ) {
 			accel = pm_airdecelerate;
 		} else {
-			accel = pm_airaccelerate;
+			accel = pml.airAccel;
 		}
 
 		if( smove != 0.0f && !fmove && pm->playerState->pmove.knockback_time <= 0 ) {
 			if( wishspeed > pm_wishspeed ) {
 				wishspeed = pm_wishspeed;
 			}
-			accel = pm_strafebunnyaccel;
+			accel = pml.strafeBunnyAccel;
 		}
 
 		// Air control
@@ -808,6 +808,18 @@ static void PM_BeginMove() {
 
 	// save old org in case we get stuck
 	pml.previous_origin = pm->playerState->pmove.origin;
+
+	pml.frametime = pm->cmd.msec * 0.001;
+	pml.forwardPush = pm->cmd.forwardmove;
+	pml.sidePush = pm->cmd.sidemove;
+	pml.upPush = pm->cmd.upmove;
+
+	pml.groundAccel = default_accelerate;
+	pml.airAccel = default_airaccelerate;
+	pml.waterAccel = default_wateraccelerate;
+	pml.strafeBunnyAccel = default_strafebunnyaccel;
+
+	pml.friction = default_friction;
 }
 
 static void PM_EndMove() {
@@ -864,11 +876,6 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 	PM_BeginMove();
 
 	float fallvelocity = Max2( 0.0f, -pml.velocity.z );
-
-	pml.frametime = pm->cmd.msec * 0.001;
-	pml.forwardPush = pm->cmd.forwardmove;
-	pml.sidePush = pm->cmd.sidemove;
-	pml.upPush = pm->cmd.upmove;
 
 	PM_InitPerk();
 

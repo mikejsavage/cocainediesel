@@ -6,15 +6,18 @@ static constexpr float pm_defaultspeed = 300.0f;
 static constexpr float pm_sidewalkspeed = 300.0f;
 static constexpr float pm_crouchedspeed = 100.0f;
 
-static constexpr float pm_jumpupspeed = 250.0f;
+static constexpr float jump_upspeed = 250.0f;
+static constexpr s16 jump_detection = 50;
 
-static constexpr float pm_chargespeed = 600.0f;
-static constexpr float pm_chargesidespeed = 200.0f;
 
-static constexpr s16 pm_boomerjumpdetection = 50;
+static constexpr float charge_groundAccel = 2.0f;
+static constexpr float charge_friction = 0.75f;
+static constexpr float charge_speed = 900.0f;
+static constexpr float charge_sidespeed = 400.0f;
 
 static constexpr s16 stamina_max = 300;
-static constexpr s16 stamina_use = 3;
+static constexpr s16 stamina_limit = stamina_max * 0.5f;
+static constexpr s16 stamina_use = 2;
 static constexpr s16 stamina_recover = 1;
 
 
@@ -27,7 +30,7 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		ps->pmove.pm_flags &= ~PMF_JUMP_HELD;
 	} else {
 		if( !( ps->pmove.pm_flags & PMF_JUMP_HELD ) ) {
-			ps->pmove.stamina_time = pm_boomerjumpdetection;
+			ps->pmove.stamina_time = jump_detection;
 		}
 
 		ps->pmove.pm_flags |= PMF_JUMP_HELD;
@@ -41,7 +44,7 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		}
 
 		ps->pmove.stamina_time = 0;
-		PM_Jump( pm, pml, pmove_gs, ps, pm_jumpupspeed );
+		PM_Jump( pm, pml, pmove_gs, ps, jump_upspeed );
 	}
 }
 
@@ -55,15 +58,19 @@ static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 	if( ( ps->pmove.pm_flags & PMF_SPECIAL_HELD ) && !pml->ladder ) {
 		if( ps->pmove.stamina >= stamina_use ) {
 			StaminaUse( ps, stamina_use );
-			pml->maxPlayerSpeed = pm_chargespeed;
-			pml->maxCrouchedSpeed = pm_chargespeed;
-			pml->forwardPush = pm_chargespeed;
-			pml->sidePush = pm->cmd.sidemove * pm_chargesidespeed;
+			pml->maxPlayerSpeed = charge_speed;
+			pml->maxCrouchedSpeed = charge_speed;
+			
+			pml->groundAccel = charge_groundAccel;
+			pml->friction = charge_friction;
+
+			pml->forwardPush = charge_speed;
+			pml->sidePush = pm->cmd.sidemove * charge_sidespeed;
 		}
 	} else {
 		StaminaRecover( ps, stamina_recover );
 
-		if( pressed && ps->pmove.stamina == stamina_max ) {
+		if( pressed && ps->pmove.stamina >= stamina_limit ) {
 			ps->pmove.pm_flags |= PMF_SPECIAL_HELD;
 		}
 	}

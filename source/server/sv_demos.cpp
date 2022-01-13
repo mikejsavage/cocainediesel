@@ -271,7 +271,7 @@ void SV_Demo_Purge_f() {
 		}
 	}
 
-	int keep = g_autorecord_maxdemos->integer;
+	size_t keep = g_autorecord_maxdemos->integer;
 	if( keep >= auto_demos.size() ) {
 		return;
 	}

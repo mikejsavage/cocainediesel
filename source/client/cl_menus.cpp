@@ -58,7 +58,7 @@ static MainMenuState mainmenu_state;
 static GameMenuState gamemenu_state;
 static DemoMenuState demomenu_state;
 
-static int selected_server;
+static size_t selected_server;
 
 static bool yolodemo;
 
@@ -222,7 +222,7 @@ static void SettingsGeneral() {
 	CvarTextbox< MAX_NAME_CHARS >( "Name", "name" );
 
 	CvarSliderInt( "Crosshair size", "cg_crosshair_size", 1, 50 );
-	CvarSliderInt( "Crosshair gap", "cg_crosshair_gap", 0, 20 );
+	CvarSliderInt( "Crosshair gap", "cg_crosshair_gap", 0, 50 );
 
 
 	CvarCheckbox( "Show chat", "cg_chat" );

@@ -692,7 +692,7 @@ void G_CallVotes_CmdVote( edict_t *ent ) {
 	}
 
 	if( ( svs.realtime - lastclientVote[PLAYERNUM( ent )] ) < voteChangeCooldown ) {
-		G_PrintMsg( ent, "%sYou can't vote that fast\n", S_COLOR_RED, vote );
+		G_PrintMsg( ent, "%sYou can't vote that fast\n", S_COLOR_RED );
 		return;
 	}
 

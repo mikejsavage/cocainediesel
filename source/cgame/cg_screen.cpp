@@ -43,6 +43,10 @@ static int64_t scr_damagetime = 0;
 static int64_t scr_shoottime = 0;
 static int64_t scr_shoottimebasis = 0;
 
+static constexpr int maxCrosshairSize = 50;
+static constexpr int maxCrosshairGapSize = 50;
+
+
 /*
 ===============================================================================
 
@@ -119,8 +123,8 @@ void CG_DrawCrosshair( int x, int y ) {
 
 	Vec4 color = cls.monotonicTime - scr_damagetime <= crosshairDamageTime ? vec4_red : vec4_white; 
 
-	int size = cg_crosshair_size->integer > 0 ? cg_crosshair_size->integer : 0;
-	int gap = cg_crosshair_gap->integer > 0 ? cg_crosshair_gap->integer : 0;
+	int size = Clamp( 1, cg_crosshair_size->integer, maxCrosshairSize );
+	int gap = Clamp( 0, cg_crosshair_gap->integer, maxCrosshairGapSize );
 	float diff = (float)( scr_shoottime - cls.monotonicTime )/scr_shoottimebasis;
 	if( scr_shoottime > cls.monotonicTime ) {
 		gap += diff * ( crosshairFireGap + scr_shoottimebasis * crosshairRefireGapRatio );

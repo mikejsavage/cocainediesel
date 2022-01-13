@@ -270,6 +270,7 @@ void CG_RegisterMedia();
 //
 // cg_players.c
 //
+float CG_PlayerPitch( int entnum );
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 
 //

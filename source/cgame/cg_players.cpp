@@ -28,12 +28,17 @@ static StringHash GetPlayerSound( int entnum, PlayerSound ps ) {
 	return meta->sounds[ ps ];
 }
 
+float CG_PlayerPitch( int entnum ) {
+	static const float basis = Length( Vec3( 1 ) );
+	return 1.0f / ( Length( cg_entities[ entnum ].current.scale ) / basis );
+}
+
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
 	StringHash sfx = GetPlayerSound( entnum, ps );
 
 	float pitch = 1.0f;
 	if( ps == PlayerSound_Death || ps == PlayerSound_Void || ps == PlayerSound_Pain25 || ps == PlayerSound_Pain50 || ps == PlayerSound_Pain75 || ps == PlayerSound_Pain100 || ps == PlayerSound_WallJump ) {
-		pitch = 1.0f / Length( cg_entities[ entnum ].current.scale );
+		pitch = CG_PlayerPitch( entnum );
 	}
 
 	if( ISVIEWERENTITY( entnum ) ) {

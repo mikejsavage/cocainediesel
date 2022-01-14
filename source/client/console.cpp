@@ -67,7 +67,7 @@ void Con_ToggleConsole() {
 	}
 	else {
 		CL_SetOldKeyDest( cls.key_dest );
-		CL_SetKeyDest( key_console );
+		CL_SetKeyDest( key_ImGui );
 	}
 
 	Con_ClearInput();

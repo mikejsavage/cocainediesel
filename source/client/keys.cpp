@@ -64,9 +64,6 @@ static const keyname_t keynames[] = {
 	{ "F10", K_F10 },
 	{ "F11", K_F11 },
 	{ "F12", K_F12 },
-	{ "F13", K_F13 },
-	{ "F14", K_F14 },
-	{ "F15", K_F15 },
 
 	{ "INS", K_INS },
 	{ "DEL", K_DEL },
@@ -253,15 +250,14 @@ void Key_Event( int key, bool down ) {
 		return;
 	}
 
-	if( cls.state == CA_ACTIVE && ( cls.key_dest == key_game || ( cls.key_dest != key_menu && key >= K_F1 && key <= K_F15 ) ) ) {
-		const char *kb = keybindings[key];
-
-		if( kb ) {
-			if( kb[0] == '+' ) {
-				Cbuf_Add( "{}{} {}", down ? "+" : "-", kb + 1, key );
+	if( cls.state == CA_ACTIVE && ( cls.key_dest == key_game || !down || ( key >= K_F1 && key <= K_F12 ) ) ) {
+		const char * command = keybindings[ key ];
+		if( command != NULL ) {
+			if( StartsWith( command, "+" ) ) {
+				Cbuf_Add( "{}{} {}", down ? "+" : "-", command + 1, key );
 			}
 			else if( down ) {
-				Cbuf_Add( "{}", kb );
+				Cbuf_Add( "{}", command );
 			}
 		}
 	}

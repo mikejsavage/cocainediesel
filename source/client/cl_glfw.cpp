@@ -138,9 +138,6 @@ static int TranslateGLFWKey( int glfw ) {
 		case GLFW_KEY_F10:           return K_F10;
 		case GLFW_KEY_F11:           return K_F11;
 		case GLFW_KEY_F12:           return K_F12;
-		case GLFW_KEY_F13:           return K_F13;
-		case GLFW_KEY_F14:           return K_F14;
-		case GLFW_KEY_F15:           return K_F15;
 		case GLFW_KEY_INSERT:        return K_INS;
 		case GLFW_KEY_DELETE:        return K_DEL;
 		case GLFW_KEY_PAGE_UP:       return K_PGUP;

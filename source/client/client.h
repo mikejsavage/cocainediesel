@@ -101,8 +101,7 @@ of server connections
 
 enum keydest_t {
 	key_game,
-	key_console,
-	key_message,
+	key_ImGui,
 	key_menu,
 };
 

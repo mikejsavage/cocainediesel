@@ -39,7 +39,7 @@ static void OpenChat() {
 		bool team = Q_stricmp( Cmd_Argv( 0 ), "messagemode2" ) == 0;
 		chat.mode = team ? ChatMode_SayTeam : ChatMode_Say;
 		chat.input[ 0 ] = '\0';
-		CL_SetKeyDest( key_message );
+		CL_SetKeyDest( key_ImGui );
 	}
 }
 

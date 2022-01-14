@@ -19,17 +19,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker, int topAssistEntNo, DamageType damage_type ) {
+static void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, DamageType mod, bool wallbang ) {
+	TempAllocator temp = svs.frame_arena.temp();
+	PF_GameCmd( NULL, temp( "obry {} {} {} {} {} {}", ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod.encoded, wallbang ? 1 : 0, Random64( &svs.rng ) ) );
+}
+
+static void ClientObituary( edict_t * self, edict_t * inflictor, edict_t * attacker, int topAssistEntNo, DamageType damage_type ) {
 	bool wallbang = ( damageFlagsOfDeath & DAMAGE_WALLBANG ) != 0;
 
-	// duplicate message at server console for logging
 	if( attacker && attacker->r.client ) {
 		if( attacker != self ) { // regular death message
 			self->enemy = attacker;
 			if( is_dedicated_server ) {
 				Com_GGPrint( "\"{}\" \"{}\" {} {}", self->r.client->netname, attacker->r.client->netname, damage_type.encoded, wallbang ? 1 : 0 );
 			}
-		} else {      // suicide
+		}
+		else {      // suicide
 			self->enemy = NULL;
 			if( is_dedicated_server ) {
 				Com_GGPrint( "\"{}\" suicide {}", self->r.client->netname, damage_type.encoded );
@@ -39,7 +44,8 @@ static void ClientObituary( edict_t *self, edict_t *inflictor, edict_t *attacker
 		}
 
 		G_Obituary( self, attacker, topAssistEntNo, damage_type, wallbang );
-	} else {      // wrong place, suicide, etc.
+	}
+	else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
 		if( is_dedicated_server ) {
 			Com_GGPrint( "\"{}\" suicide {}", self->r.client->netname, damage_type.encoded );

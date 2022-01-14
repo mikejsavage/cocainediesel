@@ -505,11 +505,6 @@ void G_DebugPrint( const char * format, ... ) {
 	Com_Printf( "Debug: %s\n", msg );
 }
 
-void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, DamageType mod, bool wallbang ) {
-	TempAllocator temp = svs.frame_arena.temp();
-	PF_GameCmd( NULL, temp( "obry {} {} {} {} {} {}", ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod.encoded, wallbang ? 1 : 0, Random64( &svs.rng ) ) );
-}
-
 //==================================================
 // SOUNDS
 //==================================================

@@ -435,37 +435,26 @@ void CG_SC_Obituary() {
 		self_obituary.damage_type = damage_type;
 	}
 
-	if( attacker == victim ) {
-		current->type = OBITUARY_SUICIDE;
-
+	if( assistor == NULL ) {
 		CG_AddChat( temp( "{} {}{} {}",
-			victim_name,
+			attacker_name,
 			ImGuiColorToken( rgba8_diesel_yellow ), obituary,
 			victim_name
 		) );
 	}
 	else {
-		if( assistor == NULL ) {
-			CG_AddChat( temp( "{} {}{} {}",
-				attacker_name,
-				ImGuiColorToken( rgba8_diesel_yellow ), obituary,
-				victim_name
-			) );
-		}
-		else {
-			const char * conjugation = RandomElement( &rng, conjunctions );
-			CG_AddChat( temp( "{} {}{} {} {}{} {}",
-				attacker_name,
-				ImGuiColorToken( 255, 255, 255, 255 ), conjugation,
-				assistor_name,
-				ImGuiColorToken( rgba8_diesel_yellow ), obituary,
-				victim_name
-			) );
-		}
+		const char * conjugation = RandomElement( &rng, conjunctions );
+		CG_AddChat( temp( "{} {}{} {} {}{} {}",
+			attacker_name,
+			ImGuiColorToken( 255, 255, 255, 255 ), conjugation,
+			assistor_name,
+			ImGuiColorToken( rgba8_diesel_yellow ), obituary,
+			victim_name
+		) );
+	}
 
-		if( ISVIEWERENTITY( attackerNum ) ) {
-			CG_CenterPrint( temp( "{} {}", obituary, Uppercase( &temp, victim ) ) );
-		}
+	if( ISVIEWERENTITY( attackerNum ) && attacker != victim ) {
+		CG_CenterPrint( temp( "{} {}", obituary, Uppercase( &temp, victim ) ) );
 	}
 }
 

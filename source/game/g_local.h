@@ -279,8 +279,6 @@ void G_ClearCenterPrint( edict_t *ent );
 
 void G_DebugPrint( const char * format, ... );
 
-void G_Obituary( edict_t *victim, edict_t *attacker, int topAssistEntNo, DamageType mod, bool wallbang );
-
 edict_t *G_Sound( edict_t *owner, int channel, StringHash sound );
 edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound );
 void G_GlobalSound( int channel, StringHash sound );

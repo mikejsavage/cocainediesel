@@ -74,7 +74,7 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 	const cgltf_primitive & prim = node->mesh->primitives[ 0 ];
 
 	MeshConfig mesh_config;
-	mesh_config.name = temp( "{} - {}", filename, node->name );
+	mesh_config.name = temp( "{} nodes[{}]", filename, node->name );
 
 	for( size_t i = 0; i < prim.attributes_count; i++ ) {
 		const cgltf_attribute & attr = prim.attributes[ i ];

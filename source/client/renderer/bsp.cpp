@@ -501,7 +501,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 		ZoneScopedN( "Upload to GPU" );
 
 		MeshConfig mesh_config;
-		mesh_config.name = temp( "{} - {}", filename, model_idx );
+		mesh_config.name = temp( "{} models[{}]", filename, model_idx );
 		mesh_config.ccw_winding = false;
 		mesh_config.unified_buffer = NewGPUBuffer( vertices.ptr(), vertices.num_bytes(), temp( "{} - {} vertices", filename, model_idx ) );
 		mesh_config.stride = sizeof( vertices[ 0 ] );

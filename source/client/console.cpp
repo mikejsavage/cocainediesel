@@ -87,13 +87,7 @@ void Con_Close() {
 	}
 }
 
-void Con_Print( const char * str ) {
-	if( console.log_mutex == NULL )
-		return;
-
-	Lock( console.log_mutex );
-	defer { Unlock( console.log_mutex ); };
-
+static void MakeSpaceAndPrint( const char * str ) {
 	// delete lines until we have enough space to add str
 	size_t len = strlen( str );
 	size_t trim = 0;
@@ -108,8 +102,18 @@ void Con_Print( const char * str ) {
 	}
 
 	console.log.remove( 0, trim );
-	console.log += S_COLOR_WHITE;
 	console.log.append_raw( str, len );
+}
+
+void Con_Print( const char * str ) {
+	if( console.log_mutex == NULL )
+		return;
+
+	Lock( console.log_mutex );
+	defer { Unlock( console.log_mutex ); };
+
+	MakeSpaceAndPrint( S_COLOR_WHITE );
+	MakeSpaceAndPrint( str );
 
 	if( console.at_bottom ) {
 		console.scroll_to_bottom = true;

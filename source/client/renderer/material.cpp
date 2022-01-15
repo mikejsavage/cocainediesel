@@ -390,6 +390,7 @@ static u64 AddTexture( const char * name, u64 hash, const TextureConfig & config
 		materials[ num_materials ] = Material();
 		materials[ num_materials ].texture = &textures[ num_textures ];
 		materials[ num_materials ].name = CopyString( sys_allocator, name );
+		materials[ num_materials ].hash = hash;
 		materials_hashtable.add( hash, num_materials );
 
 		num_textures++;

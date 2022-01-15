@@ -18,7 +18,7 @@ if %SHOW_HOTKEYS
 endif
 
 if %CAN_PLANT_BOMB
-	setAttentionGettingColor
+	setPlantableColor
 	drawBindString "Press [ %s ] to plant" "+crouch"
 endif
 

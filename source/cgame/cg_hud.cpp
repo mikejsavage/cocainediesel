@@ -1128,6 +1128,11 @@ static bool CG_LFuncAttentionGettingColor( cg_layoutnode_t * argumentnode ) {
 	return true;
 }
 
+static bool CG_LFuncPlantableColor( cg_layoutnode_t * argumentnode ) {
+	layout_cursor_color = PlantableColor();
+	return true;
+}
+
 static bool CG_LFuncColorAlpha( cg_layoutnode_t *argumentnode ) {
 	layout_cursor_color.w = CG_GetNumericArg( &argumentnode );
 	return true;
@@ -1362,7 +1367,6 @@ struct cg_layoutcommand_t {
 	const char *name;
 	bool ( *func )( cg_layoutnode_t *argumentnode );
 	int numparms;
-	const char *help;
 };
 
 static const cg_layoutcommand_t cg_LayoutCommands[] = {
@@ -1370,210 +1374,186 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 		"setCursor",
 		CG_LFuncCursor,
 		2,
-		"Sets the cursor position to x and y coordinates.",
 	},
 
 	{
 		"moveCursor",
 		CG_LFuncMoveCursor,
 		2,
-		"Moves the cursor position by dx and dy.",
 	},
 
 	{
 		"setAlignment",
 		CG_LFuncAlignment,
 		2,
-		"Changes alignment setting",
 	},
 
 	{
 		"setSize",
 		CG_LFuncSize,
 		2,
-		"Sets width and height. Used for pictures and models.",
 	},
 
 	{
 		"setFontSize",
 		CG_LFuncFontSize,
 		1,
-		"Sets font by font name. Accepts tiny/small/medium/big as shortcuts to default game fonts sizes.",
 	},
 
 	{
 		"setFontStyle",
 		CG_LFuncFontStyle,
 		1,
-		"Sets font style. Possible values are: 'normal', 'italic', 'bold' and 'bold-italic'.",
 	},
 
 	{
 		"setFontBorder",
 		CG_LFuncFontBorder,
 		1,
-		"Enable or disable font border. Values are 'on' and 'off'",
 	},
 
 	{
 		"setColor",
 		CG_LFuncColor,
 		4,
-		"Sets color setting in RGBA mode. Used for text and pictures",
 	},
 
 	{
 		"setColorsRGB",
 		CG_LFuncColorsRGB,
 		4,
-		"setColor but in sRGB",
 	},
 
 	{
 		"setColorToTeamColor",
 		CG_LFuncColorToTeamColor,
 		1,
-		"Sets cursor color to the color of the team provided in the argument",
 	},
 
 	{
 		"setAttentionGettingColor",
 		CG_LFuncAttentionGettingColor,
 		0,
-		"Sets cursor color to something that flashes and is distracting",
+	},
+
+	{
+		"setPlantableColor",
+		CG_LFuncPlantableColor,
+		0,
 	},
 
 	{
 		"setColorAlpha",
 		CG_LFuncColorAlpha,
 		1,
-		"Changes the alpha value of the current color",
 	},
 
 	{
 		"drawObituaries",
 		CG_LFuncDrawObituaries,
 		2,
-		"Draws graphical death messages",
 	},
 
 	{
 		"drawCallvote",
 		CG_LFuncDrawCallvote,
 		0,
-		"Draw callvote",
 	},
 
 	{
 		"drawClock",
 		CG_LFuncDrawClock,
 		0,
-		"Draws clock",
 	},
 
 	{
 		"drawPlayerName",
 		CG_LFuncDrawPlayerName,
 		1,
-		"Draws the name of the player with id provided by the argument, colored with color tokens, white by default",
 	},
 
 	{
 		"drawPointing",
 		CG_LFuncDrawPointed,
 		0,
-		"Draws the name of the player in the crosshair",
 	},
 
 	{
 		"drawDamageNumbers",
 		CG_LFuncDrawDamageNumbers,
 		0,
-		"Draws damage numbers",
 	},
 
 	{
 		"drawBombIndicators",
 		CG_LFuncDrawBombIndicators,
 		0,
-		"Draws bomb HUD",
 	},
 
 	{
 		"drawPlayerIcons",
 		CG_LFuncDrawPlayerIcons,
 		3,
-		"Draw dead/alive player icons",
 	},
 
 	{
 		"drawString",
 		CG_LFuncDrawString,
 		1,
-		"Draws the string in the argument",
 	},
 
 	{
 		"drawStringNum",
 		CG_LFuncDrawNumeric,
 		1,
-		"Draws numbers as text",
 	},
 
 	{
 		"drawBindString",
 		CG_LFuncDrawBindString,
 		2,
-		"Draws a string with %s replaced by a key name",
 	},
 
 	{
 		"drawCrosshair",
 		CG_LFuncDrawCrossHair,
 		0,
-		"Draws the game crosshair",
 	},
 
 	{
 		"drawNetIcon",
 		CG_LFuncDrawNet,
 		0,
-		"Draws the disconnection icon",
 	},
 
 	{
 		"drawPicByName",
 		CG_LFuncDrawPicByName,
 		1,
-		"Draws a pic with argument being the file path",
 	},
 
 	{
 		"drawWeaponIcons",
 		CG_LFuncDrawWeaponIcons,
 		5,
-		"Draws the icons of weapon/ammo owned by the player, arguments are offset x, offset y, size x, size y",
 	},
 
 	{
 		"if",
 		CG_LFuncIf,
 		1,
-		"Conditional expression. Argument accepts operations >, <, ==, >=, <=, etc",
 	},
 
 	{
 		"ifnot",
 		CG_LFuncIfNot,
 		1,
-		"Negative conditional expression. Argument accepts operations >, <, ==, >=, <=, etc",
 	},
 
 	{
 		"endif",
 		CG_LFuncEndIf,
 		0,
-		"End of conditional expression block",
 	},
 };
 

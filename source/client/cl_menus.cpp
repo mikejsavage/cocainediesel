@@ -223,7 +223,7 @@ static void SettingsGeneral() {
 
 	CvarSliderInt( "Crosshair size", "cg_crosshair_size", 1, 50 );
 	CvarSliderInt( "Crosshair gap", "cg_crosshair_gap", 0, 50 );
-
+	CvarCheckbox( "Dynamic crosshair", "cg_crosshair_dynamic" );
 
 	CvarCheckbox( "Show chat", "cg_chat" );
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys" );

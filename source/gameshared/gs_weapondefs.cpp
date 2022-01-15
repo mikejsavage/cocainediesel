@@ -95,7 +95,7 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 1,
 		/* clip size            */ 25,
-		/* reload time          */ 1500,
+		/* reload time          */ 2000,
 		/* staged reload time   */ 0,
 
 		// timings (in msecs)
@@ -170,7 +170,7 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 25,
 		/* clip size            */ 5,
-		/* reload time          */ 1000,
+		/* reload time          */ 600,
 		/* staged reload time   */ 600,
 
 		// timings (in msecs)
@@ -207,7 +207,7 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 1,
 		/* clip size            */ 6,
-		/* reload time          */ 600,
+		/* reload time          */ 700,
 		/* staged reload time   */ 0,
 
 		// timings (in msecs)
@@ -318,7 +318,7 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 1,
 		/* clip size            */ 5,
-		/* reload time          */ 1000,
+		/* reload time          */ 600,
 		/* staged reload time   */ 600,
 
 		// timings (in msecs)
@@ -355,7 +355,7 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 1,
 		/* clip size            */ 30,
-		/* reload time          */ 1500,
+		/* reload time          */ 2000,
 		/* staged reload time   */ 0,
 
 		// timings (in msecs)
@@ -651,7 +651,7 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 1,
 		/* clip size            */ 20,
-		/* reload time          */ 1500,
+		/* reload time          */ 1700,
 		/* staged reload time   */ 0,
 
 		// timings (in msecs)
@@ -688,7 +688,7 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 1,
 		/* clip size            */ 12,
-		/* reload time          */ 1500,
+		/* reload time          */ 2000,
 		/* staged reload time   */ 0,
 
 		// timings (in msecs)

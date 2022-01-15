@@ -164,7 +164,7 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 3, col_width );
 			ImGui::SetColumnWidth( 4, col_width );
 
-			ColumnCenterText( "ATTACKING" );
+			ColumnCenterText( client_gs.gameState.bomb.attacking_team == TEAM_ALPHA ? "ATTACKING" : "DEFENDING" );
 			ImGui::NextColumn();
 			ImGui::NextColumn();
 			ColumnCenterText( "SCORE" );
@@ -215,7 +215,7 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 3, col_width );
 			ImGui::SetColumnWidth( 4, col_width );
 
-			ColumnCenterText( "DEFENDING" );
+			ColumnCenterText( client_gs.gameState.bomb.attacking_team == TEAM_BETA ? "ATTACKING" : "DEFENDING" );
 			ImGui::NextColumn();
 			ImGui::NextColumn();
 			ImGui::NextColumn();

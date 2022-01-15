@@ -81,8 +81,7 @@ static void CG_DrawCenterString() {
 //============================================================================
 
 void CG_ScreenInit() {
-	cg_draw2D =     NewCvar( "cg_draw2D", "1", 0 );
-
+	cg_draw2D = NewCvar( "cg_draw2D", "1", CvarFlag_Cheat );
 	cg_crosshair_size = NewCvar( "cg_crosshair_size", "3", CvarFlag_Archive );
 	cg_crosshair_gap = NewCvar( "cg_crosshair_gap", "0", CvarFlag_Archive );
 	cg_crosshair_dynamic = NewCvar( "cg_crosshair_dynamic", "1", CvarFlag_Archive );
@@ -564,7 +563,7 @@ void CG_Draw2DView() {
 void CG_Draw2D() {
 	CG_DrawScope();
 
-	if( !cg_draw2D->integer && cgs.demoPlaying ) {
+	if( !cg_draw2D->integer ) {
 		return;
 	}
 

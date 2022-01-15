@@ -43,7 +43,8 @@ struct ColorGen {
 };
 
 struct Material {
-	u64 name;
+	char * name;
+	u64 hash;
 
 	const Texture * texture;
 

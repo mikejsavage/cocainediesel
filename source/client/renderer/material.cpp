@@ -378,7 +378,7 @@ static void UnloadTexture( u64 idx ) {
 	DeleteTexture( textures[ idx ] );
 }
 
-static u64 AddTexture( u64 hash, const TextureConfig & config ) {
+static u64 AddTexture( const char * name, u64 hash, const TextureConfig & config ) {
 	ZoneScoped;
 
 	assert( num_textures < ARRAY_COUNT( textures ) );
@@ -389,6 +389,7 @@ static u64 AddTexture( u64 hash, const TextureConfig & config ) {
 
 		materials[ num_materials ] = Material();
 		materials[ num_materials ].texture = &textures[ num_textures ];
+		materials[ num_materials ].name = CopyString( sys_allocator, name );
 		materials_hashtable.add( hash, num_materials );
 
 		num_textures++;
@@ -418,7 +419,7 @@ static void LoadBuiltinTextures() {
 		config.data = &white;
 		config.format = TextureFormat_R_U8;
 
-		AddTexture( Hash64( "$whiteimage" ), config );
+		AddTexture( "$whiteimage", Hash64( "$whiteimage" ), config );
 	}
 
 	{
@@ -430,7 +431,7 @@ static void LoadBuiltinTextures() {
 		config.data = &black;
 		config.format = TextureFormat_R_U8;
 
-		AddTexture( Hash64( "$blackimage" ), config );
+		AddTexture( "$whiteimage", Hash64( "$blackimage" ), config );
 	}
 
 	{
@@ -474,7 +475,7 @@ static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int ch
 	config.data = pixels;
 	config.format = formats[ channels - 1 ];
 
-	size_t idx = AddTexture( Hash64( StripExtension( path ) ), config );
+	size_t idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
 	texture_stb_data[ idx ] = pixels;
 }
 
@@ -531,11 +532,11 @@ static void LoadDDSTexture( const char * path ) {
 		return;
 	}
 
-	size_t idx = AddTexture( Hash64( StripExtension( path ) ), config );
+	size_t idx = AddTexture( path, Hash64( StripExtension( path ) ), config );
 	texture_bc4_data[ idx ] = ( dds + sizeof( DDSHeader ) ).cast< const BC4Block >();
 }
 
-static void LoadMaterialFile( const char * path, Span< const char > * material_names ) {
+static void LoadMaterialFile( const char * path ) {
 	Span< const char > data = AssetString( path );
 
 	while( data != "" ) {
@@ -553,12 +554,15 @@ static void LoadMaterialFile( const char * path, Span< const char > * material_n
 		u64 idx = num_materials;
 		if( !materials_hashtable.get( hash, &idx ) ) {
 			materials_hashtable.add( hash, idx );
+			material.name = ( *sys_allocator )( "{}", name );
 			num_materials++;
 		}
+		else {
+			material.name = materials[ idx ].name;
+		}
 
-		material_names[ idx ] = name;
+		material.hash = hash;
 		materials[ idx ] = material;
-		materials[ idx ].name = hash;
 	}
 }
 
@@ -630,7 +634,7 @@ static Span2D< const BC4Block > GetMipmap( const Material * material, u32 mipmap
 	return Span2D< const BC4Block >( cursor.slice( 0, mip_w * mip_h ).ptr, mip_w, mip_h );
 }
 
-static void PackDecalAtlas( Span< const char > * material_names ) {
+static void PackDecalAtlas() {
 	ZoneScoped;
 
 	decals_hashtable.clear();
@@ -647,17 +651,17 @@ static void PackDecalAtlas( Span< const char > * material_names ) {
 			continue;
 
 		if( texture->format != TextureFormat_RGBA_U8_sRGB && texture->format != TextureFormat_BC4 ) {
-			Com_GGPrint( S_COLOR_YELLOW "Decals must be RGBA or BC4 ({})", material_names[ i ] );
+			Com_GGPrint( S_COLOR_YELLOW "Decals must be RGBA or BC4 ({})", materials[ i ].name );
 			continue;
 		}
 
 		if( texture->width % 4 != 0 || texture->height % 4 != 0 ) {
-			Com_GGPrint( S_COLOR_YELLOW "Decal dimensions must be a multiple of 4 ({} is {}x{})", material_names[ i ], texture->width, texture->height );
+			Com_GGPrint( S_COLOR_YELLOW "Decal dimensions must be a multiple of 4 ({} is {}x{})", materials[ i ].name, texture->width, texture->height );
 			continue;
 		}
 
 		if( texture->num_mipmaps < 3 ) {
-			Com_GGPrint( S_COLOR_YELLOW "{} has a small number of mipmaps ({}) and will mess up the decal atlas", material_names[ i ], texture->num_mipmaps );
+			Com_GGPrint( S_COLOR_YELLOW "{} has a small number of mipmaps ({}) and will mess up the decal atlas", materials[ i ].name, texture->num_mipmaps );
 		}
 
 		assert( num_decals < ARRAY_COUNT( rects ) );
@@ -696,7 +700,7 @@ static void PackDecalAtlas( Span< const char > * material_names ) {
 			const Material * material = &materials[ rects[ i ].id ];
 
 			size_t decal_idx = decals_hashtable.size();
-			decals_hashtable.add( material->name, decal_idx );
+			decals_hashtable.add( material->hash, decal_idx );
 			decal_uvwhs[ decal_idx ].x = rects[ i ].x / float( DECAL_ATLAS_SIZE ) + num_layers;
 			decal_uvwhs[ decal_idx ].y = rects[ i ].y / float( DECAL_ATLAS_SIZE );
 			decal_uvwhs[ decal_idx ].z = material->texture->width / float( DECAL_ATLAS_SIZE );
@@ -756,7 +760,7 @@ static void PackDecalAtlas( Span< const char > * material_names ) {
 		for( u32 i = 0; i < num_decals; i++ ) {
 			const Material * material = &materials[ rects[ i ].id ];
 			u64 decal_idx;
-			bool ok = decals_hashtable.get( material->name, &decal_idx );
+			bool ok = decals_hashtable.get( material->hash, &decal_idx );
 			assert( ok );
 
 			u32 layer_idx = u32( decal_uvwhs[ decal_idx ].x );
@@ -867,8 +871,6 @@ void InitMaterials() {
 		}
 	}
 
-	Span< const char > material_names[ MAX_MATERIALS ];
-
 	{
 		ZoneScopedN( "Load materials" );
 
@@ -877,7 +879,7 @@ void InitMaterials() {
 			// skip editor.shader until we convert asset pointers
 			// to asset hashes
 			if( FileExtension( path ) == ".shader" && FileName( path ) != "editor.shader" ) {
-				LoadMaterialFile( path, material_names );
+				LoadMaterialFile( path );
 			}
 		}
 	}
@@ -885,7 +887,7 @@ void InitMaterials() {
 	missing_material = Material();
 	missing_material.texture = &missing_texture;
 
-	PackDecalAtlas( material_names );
+	PackDecalAtlas();
 }
 
 void HotloadMaterials() {
@@ -918,23 +920,25 @@ void HotloadMaterials() {
 		}
 	}
 
-	Span< const char > material_names[ MAX_MATERIALS ] = { };
-
 	for( const char * path : ModifiedAssetPaths() ) {
 		if( FileExtension( path ) == ".shader" && FileName( path ) != "editor.shader" ) {
-			LoadMaterialFile( path, material_names );
+			LoadMaterialFile( path );
 			changes = true;
 		}
 	}
 
 	if( changes ) {
-		PackDecalAtlas( material_names );
+		PackDecalAtlas();
 	}
 }
 
 void ShutdownMaterials() {
 	for( u32 i = 0; i < num_textures; i++ ) {
 		UnloadTexture( i );
+	}
+
+	for( u32 i = 0; i < num_materials; i++ ) {
+		FREE( sys_allocator, materials[ i ].name );
 	}
 
 	DeleteTexture( missing_texture );
@@ -1110,7 +1114,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 
 		pipeline.set_uniform( "u_MaterialStatic", material_static_uniforms[ idx ] );
 	}
-	
+
 	if( skinned || gpu_material == NULL ) {
 		pipeline.set_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, tcmod_row0, tcmod_row1 ) );
 	}

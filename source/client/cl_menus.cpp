@@ -936,7 +936,7 @@ static void WeaponButton( WeaponType weapon, Vec2 size ) {
 		SendLoadout();
 	}
 
-	ImGui::Text( def->name );
+	ImGui::Text( "%s", def->name );
 }
 
 static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {

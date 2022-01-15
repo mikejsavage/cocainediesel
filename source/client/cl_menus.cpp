@@ -58,7 +58,7 @@ static MainMenuState mainmenu_state;
 static GameMenuState gamemenu_state;
 static DemoMenuState demomenu_state;
 
-static size_t selected_server;
+static int selected_server;
 
 static bool yolodemo;
 
@@ -776,7 +776,7 @@ static void MainMenu() {
 
 	if( ImGui::Button( "FIND SERVERS" ) ) {
 		mainmenu_state = MainMenuState_ServerBrowser;
-		selected_server = -1;
+		ResetServerBrowser();
 	}
 
 	ImGui::SameLine();
@@ -890,23 +890,6 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 	}
 }
 
-static void WeaponTooltip( const WeaponDef * def ) {
-	if( ImGui::IsItemHovered() ) {
-		ImGui::BeginTooltip();
-
-		TempAllocator temp = cls.frame_arena.temp();
-
-		ImGui::Text( "%s", temp( "{}Weapon: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->name ) );
-		ImGui::Text( "%s", temp( "{}Type: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->speed == 0 ? "Hitscan" : "Projectile" ) );
-		ImGui::Text( "%s", temp( "{}Damage: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), int( def->damage * def->projectile_count ) ) );
-		char * reload = temp( "{.1}s", def->refire_time / 1000.f );
-		RemoveTrailingZeroesFloat( reload );
-		ImGui::Text( "%s", temp( "{}Reload: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), reload ) );
-
-		ImGui::EndTooltip();
-	}
-}
-
 static void SendLoadout() {
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -922,13 +905,17 @@ static void SendLoadout() {
 	Cbuf_Add( "{}", loadout.c_str() );
 }
 
+static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
+	return Vec4( rgba.r / 255.0f, rgba.g / 255.0f, rgba.b / 255.0f, rgba.a / 255.0f );
+}
+
 static void WeaponButton( WeaponType weapon, Vec2 size ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
 	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
 	defer { ImGui::PopStyleColor( 3 ); };
 
-	ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 2 );
+	ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 1 );
 	ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
 	defer { ImGui::PopStyleVar( 2 ); };
 
@@ -937,46 +924,41 @@ static void WeaponButton( WeaponType weapon, Vec2 size ) {
 
 	const Material * icon = cgs.media.shaderWeaponIcon[ weapon ];
 	Vec2 half_pixel = HalfPixelSize( icon );
-	Vec4 color = selected ? vec4_green : vec4_white;
+	Vec4 color = RGBA8ToVec4NosRGB( selected ? rgba8_diesel_yellow : rgba8_white ); // TODO...
 
+	ImGui::PushStyleColor( ImGuiCol_Text, color );
 	ImGui::PushStyleColor( ImGuiCol_Border, color );
-	defer { ImGui::PopStyleColor(); };
+	defer { ImGui::PopStyleColor( 2 ); };
 
 	bool clicked = ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
-
-	WeaponTooltip( def );
-
-	ImGui::SameLine();
-	ImGui::Dummy( Vec2( 16, 0 ) );
-	ImGui::SameLine();
-
-	int weaponBinds[ 2 ] = { -1, -1 };
-	CG_GetBoundKeycodes( va( "use %s", def->short_name ), weaponBinds );
-
-	if( clicked || ImGui::Hotkey( weaponBinds[ 0 ] ) || ImGui::Hotkey( weaponBinds[ 1 ] ) ) {
+	if( clicked ) {
 		selected_weapons[ def->category ] = weapon;
 		SendLoadout();
 	}
+
+	ImGui::Text( def->name );
 }
 
 static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex( 0 );
 	ImGui::Text( "%s", label );
 	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
-	ImGui::NextColumn();
 
 	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( i );
 		if( def->category == category ) {
+			ImGui::TableNextColumn();
 			WeaponButton( i, icon_size );
 		}
 	}
-
-	ImGui::NextColumn();
 }
 
 static void Perks( Vec2 icon_size ) {
-	ImGui::Text( "Do you want to be small" );
-	ImGui::NextColumn();
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex( 0 );
+	ImGui::Text( "CLASS" );
+	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
 
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
@@ -994,33 +976,51 @@ static void Perks( Vec2 icon_size ) {
 	ImGui::PushStyleColor( ImGuiCol_Border, color );
 	defer { ImGui::PopStyleColor(); };
 
+	ImGui::TableNextColumn();
+
 	bool clicked = ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
 	if( clicked ) {
 		selected_perk = selected_perk == Perk_Midget ? Perk_None : Perk_Midget;
 		SendLoadout();
 	}
 
-	ImGui::NextColumn();
+	ImGui::Text( "MIDGET" );
+}
+
+static int CountWeaponCategory( WeaponCategory category ) {
+	int n = 0;
+	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+		const WeaponDef * def = GS_GetWeaponDef( i );
+		if( def->category == category ) {
+			n++;
+		}
+	}
+	return n;
 }
 
 static bool LoadoutMenu( Vec2 displaySize ) {
-	ImGui::PushFont( cls.medium_font );
+	ImGui::PushFont( cls.medium_italic_font );
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
 	ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
 	ImGui::SetNextWindowSize( displaySize );
 	ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
-	const Vec2 icon_size = Vec2( displaySize.x * 0.075f );
+	Vec2 icon_size = Vec2( displaySize.x * 0.05f );
 
-	ImGui::Columns( 2, NULL, false );
-	ImGui::SetColumnWidth( 0, 300 );
+	int cols = 0;
+	cols = Max2( CountWeaponCategory( WeaponCategory_Primary ), cols );
+	cols = Max2( CountWeaponCategory( WeaponCategory_Secondary ), cols );
+	cols = Max2( CountWeaponCategory( WeaponCategory_Backup ), cols );
+	cols = Max2( int( Gadget_Count ), cols );
 
-	LoadoutCategory( "Primary", WeaponCategory_Primary, icon_size );
-	LoadoutCategory( "Secondary", WeaponCategory_Secondary, icon_size );
-	LoadoutCategory( "Backup", WeaponCategory_Backup, icon_size );
+	ImGui::BeginTable( "loadoutmenu", cols + 1 );
+
 	Perks( icon_size );
+	LoadoutCategory( "PRIMARY", WeaponCategory_Primary, icon_size );
+	LoadoutCategory( "SECONDARY", WeaponCategory_Secondary, icon_size );
+	LoadoutCategory( "BACKUP", WeaponCategory_Backup, icon_size );
 
-	ImGui::EndColumns();
+	ImGui::EndTable();
 
 	int loadoutKeys[ 2 ] = { };
 	CG_GetBoundKeycodes( "gametypemenu", loadoutKeys );

@@ -66,6 +66,7 @@ void CL_InitImGui() {
 		cls.large_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 64.0f );
 		cls.big_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 48.0f );
 		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f );
+		cls.medium_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 28.0f );
 		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
 
 		io.Fonts->Build();
@@ -292,7 +293,6 @@ Vec4 AttentionGettingColor() {
 	float t = sinf( cls.monotonicTime / 20.0f ) * 0.5f + 1.0f;
 	return Lerp( vec4_red, t, sRGBToLinear( rgba8_diesel_yellow ) );
 }
-
 
 Vec4 PlantableColor() {
 	float t = sinf( cls.monotonicTime / 20.0f ) * 0.5f + 1.0f;

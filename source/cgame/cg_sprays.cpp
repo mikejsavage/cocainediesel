@@ -2,6 +2,7 @@
 
 #include "qcommon/base.h"
 #include "client/assets.h"
+#include "client/renderer/material.h"
 #include "cgame/cg_local.h"
 
 struct Spray {
@@ -26,13 +27,20 @@ void InitSprays() {
 	num_spray_assets = 0;
 
 	for( const char * path : AssetPaths() ) {
-		Span< const char > ext = FileExtension( path );
-		if( StartsWith( path, "textures/sprays/" ) && ( ext == ".png" || ext == ".jpg" || ext == ".dds" ) ) {
-			assert( num_spray_assets < ARRAY_COUNT( spray_assets ) );
+		bool ext_ok = EndsWith( path, ".png" ) || EndsWith( path, ".jpg" ) || EndsWith( path, ".dds" );
+		if( !StartsWith( path, "textures/sprays/" ) || !ext_ok )
+			continue;
 
-			spray_assets[ num_spray_assets ] = StringHash( StripExtension( path ) );
-			num_spray_assets++;
+		const Material * material = FindMaterial( StringHash( Hash64( StripExtension( path ) ) ) );
+		if( !material->decal ) {
+			Com_Printf( S_COLOR_YELLOW "Spray %s needs a decal material\n", path );
+			continue;
 		}
+
+		assert( num_spray_assets < ARRAY_COUNT( spray_assets ) );
+
+		spray_assets[ num_spray_assets ] = StringHash( StripExtension( path ) );
+		num_spray_assets++;
 	}
 
 	std::sort( spray_assets, spray_assets + num_spray_assets, []( StringHash a, StringHash b ) {

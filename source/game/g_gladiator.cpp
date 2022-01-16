@@ -41,7 +41,6 @@ void SP_spike( edict_t * spike ) {
 	spike->r.solid = SOLID_TRIGGER;
 	spike->s.radius = spike->spawnflags & 1;
 
-	spike->s.angles.x += 90.0f; // make spike orientation match the arrow in radiant
 	Vec3 forward, right, up;
 	AngleVectors( spike->s.angles, &forward, &right, &up );
 
@@ -73,7 +72,6 @@ void SP_spikes( edict_t * spikes ) {
 	spikes->r.solid = SOLID_TRIGGER;
 	spikes->s.radius = spikes->spawnflags & 1;
 
-	spikes->s.angles.x += 90.0f; // make spike orientation match the arrow in radiant
 	Vec3 forward, right, up;
 	AngleVectors( spikes->s.angles, &forward, &right, &up );
 

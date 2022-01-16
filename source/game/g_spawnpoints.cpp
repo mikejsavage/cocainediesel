@@ -2,7 +2,7 @@
 #include "qcommon/cmodel.h"
 #include "qcommon/rng.h"
 
-void SP_post_match_camera( edict_t *ent ) { }
+void SP_post_match_camera( edict_t * ent, const spawn_temp_t * st ) { }
 
 void DropSpawnToFloor( edict_t * ent ) {
 	Vec3 mins = playerbox_stand_mins;

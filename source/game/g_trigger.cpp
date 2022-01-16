@@ -90,16 +90,16 @@ static void trigger_enable( edict_t *self, edict_t *other, edict_t *activator ) 
 	GClip_LinkEntity( self );
 }
 
-void SP_trigger_multiple( edict_t *ent ) {
+void SP_trigger_multiple( edict_t * ent, const spawn_temp_t * st ) {
 	GClip_SetBrushModel( ent );
 
-	if( st.noise != EMPTY_HASH ) {
-		ent->sound = st.noise;
+	if( st->noise != EMPTY_HASH ) {
+		ent->sound = st->noise;
 	}
 
 	// gameteam field from editor
-	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
-		ent->s.team = st.gameteam;
+	if( st->gameteam >= TEAM_SPECTATOR && st->gameteam < GS_MAX_TEAMS ) {
+		ent->s.team = st->gameteam;
 	} else {
 		ent->s.team = TEAM_SPECTATOR;
 	}
@@ -123,9 +123,9 @@ void SP_trigger_multiple( edict_t *ent ) {
 	GClip_LinkEntity( ent );
 }
 
-void SP_trigger_once( edict_t *ent ) {
+void SP_trigger_once( edict_t * ent, const spawn_temp_t * st ) {
 	ent->wait = -1;
-	SP_trigger_multiple( ent );
+	SP_trigger_multiple( ent, st );
 }
 
 //==============================================================================
@@ -139,7 +139,7 @@ static void trigger_always_think( edict_t *ent ) {
 	G_FreeEdict( ent );
 }
 
-void SP_trigger_always( edict_t *ent ) {
+void SP_trigger_always( edict_t * ent, const spawn_temp_t * st ) {
 	// we must have some delay to make sure our use targets are present
 	if( ent->delay < 0.3f ) {
 		ent->delay = 0.3f;
@@ -218,14 +218,14 @@ static void trigger_push_setup( edict_t *self ) {
 	}
 }
 
-void SP_trigger_push( edict_t *self ) {
+void SP_trigger_push( edict_t * self, const spawn_temp_t * st ) {
 	InitTrigger( self );
 
-	self->moveinfo.sound_start = st.noise != EMPTY_HASH ? st.noise : StringHash( "sounds/world/jumppad" );
+	self->moveinfo.sound_start = st->noise != EMPTY_HASH ? st->noise : StringHash( "sounds/world/jumppad" );
 
 	// gameteam field from editor
-	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
-		self->s.team = st.gameteam;
+	if( st->gameteam >= TEAM_SPECTATOR && st->gameteam < GS_MAX_TEAMS ) {
+		self->s.team = st->gameteam;
 	} else {
 		self->s.team = TEAM_SPECTATOR;
 	}
@@ -294,18 +294,18 @@ static void hurt_touch( edict_t *self, edict_t *other, Plane *plane, int surfFla
 	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, damage, damage, 0, WorldDamage_Trigger );
 }
 
-void SP_trigger_hurt( edict_t *self ) {
+void SP_trigger_hurt( edict_t * self, const spawn_temp_t * st ) {
 	InitTrigger( self );
 
 	if( self->dmg > 300 ) { // HACK: force KILL spawnflag for big damages
 		self->spawnflags |= 32;
 	}
 
-	self->sound = st.noise;
+	self->sound = st->noise;
 
 	// gameteam field from editor
-	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
-		self->s.team = st.gameteam;
+	if( st->gameteam >= TEAM_SPECTATOR && st->gameteam < GS_MAX_TEAMS ) {
+		self->s.team = st->gameteam;
 	} else {
 		self->s.team = TEAM_SPECTATOR;
 	}
@@ -376,7 +376,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, Plane *plane, int su
 	G_TeleportPlayer( other, dest );
 }
 
-void SP_trigger_teleport( edict_t *ent ) {
+void SP_trigger_teleport( edict_t * ent, const spawn_temp_t * st ) {
 	if( ent->target == EMPTY_HASH ) {
 		if( developer->integer ) {
 			Com_Printf( "teleporter without a target.\n" );
@@ -385,11 +385,11 @@ void SP_trigger_teleport( edict_t *ent ) {
 		return;
 	}
 
-	ent->sound = st.noise;
+	ent->sound = st->noise;
 
 	// gameteam field from editor
-	if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
-		ent->s.team = st.gameteam;
+	if( st->gameteam >= TEAM_SPECTATOR && st->gameteam < GS_MAX_TEAMS ) {
+		ent->s.team = st->gameteam;
 	} else {
 		ent->s.team = TEAM_SPECTATOR;
 	}

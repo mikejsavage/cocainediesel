@@ -21,10 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "game/g_local.h"
 
-static void G_AssignMoverSounds( edict_t *ent, StringHash default_start, StringHash default_move, StringHash default_stop ) {
-	ent->moveinfo.sound_start = st.noise_start != EMPTY_HASH ? st.noise_start : default_start;
-	ent->moveinfo.sound_middle = st.noise != EMPTY_HASH ? st.noise : default_move;
-	ent->moveinfo.sound_end = st.noise_stop != EMPTY_HASH ? st.noise_stop : default_stop;
+static void G_AssignMoverSounds( edict_t * ent, const spawn_temp_t * st, StringHash default_start, StringHash default_move, StringHash default_stop ) {
+	ent->moveinfo.sound_start = st->noise_start != EMPTY_HASH ? st->noise_start : default_start;
+	ent->moveinfo.sound_middle = st->noise != EMPTY_HASH ? st->noise : default_move;
+	ent->moveinfo.sound_end = st->noise_stop != EMPTY_HASH ? st->noise_stop : default_stop;
 }
 
 //=========================================================
@@ -381,11 +381,11 @@ static void door_blocked( edict_t *self, edict_t *other ) {
 	}
 }
 
-void SP_func_door( edict_t *ent ) {
+void SP_func_door( edict_t * ent, const spawn_temp_t * st ) {
 	G_InitMover( ent );
 	G_SetMovedir( &ent->s.angles, &ent->moveinfo.movedir );
 
-	G_AssignMoverSounds( ent, "sounds/movers/door_start", EMPTY_HASH, "sounds/movers/door_close" );
+	G_AssignMoverSounds( ent, st, "sounds/movers/door_start", EMPTY_HASH, "sounds/movers/door_close" );
 
 	ent->moveinfo.blocked = door_blocked;
 	ent->use = door_use;
@@ -396,13 +396,12 @@ void SP_func_door( edict_t *ent ) {
 	if( !ent->wait ) {
 		ent->wait = 2;
 	}
-	if( !st.lip ) {
-		st.lip = 8;
-	}
 
-	if( st.gameteam ) {
-		if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
-			ent->s.team = st.gameteam;
+	int lip = st->lip != 0 ? st->lip : 8;
+
+	if( st->gameteam ) {
+		if( st->gameteam >= TEAM_SPECTATOR && st->gameteam < GS_MAX_TEAMS ) {
+			ent->s.team = st->gameteam;
 		} else {
 			ent->s.team = TEAM_SPECTATOR;
 		}
@@ -416,7 +415,7 @@ void SP_func_door( edict_t *ent ) {
 	abs_movedir.x = Abs( ent->moveinfo.movedir.x );
 	abs_movedir.y = Abs( ent->moveinfo.movedir.y );
 	abs_movedir.z = Abs( ent->moveinfo.movedir.z );
-	ent->moveinfo.distance = Dot( abs_movedir, ent->r.size ) - st.lip;
+	ent->moveinfo.distance = Dot( abs_movedir, ent->r.size ) - lip;
 	ent->moveinfo.end_origin = ent->moveinfo.start_origin + ent->moveinfo.movedir * ent->moveinfo.distance;
 
 	// if it starts open, switch the positions
@@ -445,7 +444,7 @@ void SP_func_door( edict_t *ent ) {
 	}
 }
 
-void SP_func_door_rotating( edict_t *ent ) {
+void SP_func_door_rotating( edict_t * ent, const spawn_temp_t * st ) {
 	G_InitMover( ent );
 
 	ent->s.angles = Vec3( 0.0f );
@@ -465,16 +464,14 @@ void SP_func_door_rotating( edict_t *ent ) {
 		ent->moveinfo.movedir = -ent->moveinfo.movedir;
 	}
 
-	if( !st.distance ) {
-		if( developer->integer ) {
-			Com_GGPrint( "{} at {} with no distance set", ent->classname, ent->s.origin );
-		}
-		st.distance = 90;
+	int distance = st->distance != 0 ? st->distance : 90;
+	if( st->distance == 0 ) {
+		Com_GGPrint( "{} at {} with no distance set", ent->classname, ent->s.origin );
 	}
 
 	ent->moveinfo.start_angles = ent->s.angles;
-	ent->moveinfo.end_angles = ent->moveinfo.start_angles + ent->moveinfo.movedir * st.distance;
-	ent->moveinfo.distance = st.distance;
+	ent->moveinfo.end_angles = ent->moveinfo.start_angles + ent->moveinfo.movedir * st->distance;
+	ent->moveinfo.distance = distance;
 
 	ent->moveinfo.blocked = door_blocked;
 	ent->use = door_use;
@@ -489,7 +486,7 @@ void SP_func_door_rotating( edict_t *ent ) {
 		ent->dmg = 2;
 	}
 
-	G_AssignMoverSounds( ent, "sounds/movers/door_start", EMPTY_HASH, "sounds/movers/door_close" );
+	G_AssignMoverSounds( ent, st, "sounds/movers/door_start", EMPTY_HASH, "sounds/movers/door_close" );
 
 	// if it starts open, switch the positions
 	if( ent->spawnflags & DOOR_START_OPEN ) {
@@ -607,7 +604,7 @@ static void rotating_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	}
 }
 
-void SP_func_rotating( edict_t *ent ) {
+void SP_func_rotating( edict_t * ent, const spawn_temp_t * st ) {
 	G_InitMover( ent );
 
 	if( ent->spawnflags & 32 ) {
@@ -659,7 +656,7 @@ void SP_func_rotating( edict_t *ent ) {
 		ent->moveinfo.blocked = rotating_blocked;
 	}
 
-	G_AssignMoverSounds( ent, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
+	G_AssignMoverSounds( ent, st, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 
 	if( !( ent->spawnflags & 1 ) ) {
 		G_CallUse( ent, NULL, NULL );
@@ -850,7 +847,7 @@ static void train_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	}
 }
 
-void SP_func_train( edict_t *self ) {
+void SP_func_train( edict_t * self, const spawn_temp_t * st ) {
 	G_InitMover( self );
 
 	self->s.angles = Vec3( 0.0f );
@@ -863,7 +860,7 @@ void SP_func_train( edict_t *self ) {
 		}
 	}
 
-	G_AssignMoverSounds( self, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
+	G_AssignMoverSounds( self, st, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 
 	if( !self->speed ) {
 		self->speed = 100;

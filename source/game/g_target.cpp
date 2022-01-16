@@ -123,12 +123,11 @@ static void target_laser_use( edict_t *self, edict_t *other, edict_t *activator 
 	}
 }
 
-void target_laser_start( edict_t *self ) {
+static void target_laser_start( edict_t *self ) {
 	self->movetype = MOVETYPE_NONE;
 	self->r.solid = SOLID_NOT;
 	self->s.type = ET_LASER;
 	self->s.svflags = 0;
-	self->s.radius = st.size > 0 ? st.size : 8;
 	self->s.sound = "sounds/gladiator/laser_hum";
 
 	if( !self->enemy ) {
@@ -158,16 +157,17 @@ void target_laser_start( edict_t *self ) {
 	}
 }
 
-void SP_target_laser( edict_t *self ) {
+void SP_target_laser( edict_t * ent, const spawn_temp_t * st ) {
 	// let everything else get spawned before we start firing
-	self->think = target_laser_start;
-	self->nextThink = level.time + 1;
-	self->count = WorldDamage_Laser;
+	ent->think = target_laser_start;
+	ent->nextThink = level.time + 1;
+	ent->count = WorldDamage_Laser;
+	ent->s.radius = st->size > 0 ? st->size : 8;
 }
 
-void SP_target_position( edict_t *self ) { }
+void SP_target_position( edict_t * self, const spawn_temp_t * st ) { }
 
-static void target_delay_think( edict_t *ent ) {
+static void target_delay_think( edict_t * ent ) {
 	G_UseTargets( ent, ent->activator );
 }
 
@@ -177,7 +177,7 @@ static void target_delay_use( edict_t *ent, edict_t *other, edict_t *activator )
 	ent->activator = activator;
 }
 
-void SP_target_delay( edict_t *ent ) {
+void SP_target_delay( edict_t * ent, const spawn_temp_t * st ) {
 	// check the "delay" key for backwards compatibility with Q3 maps
 	if( ent->delay ) {
 		ent->wait = ent->delay;

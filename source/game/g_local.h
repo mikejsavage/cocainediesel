@@ -133,7 +133,6 @@ struct score_stats_t {
 
 extern gs_state_t server_gs;
 extern level_locals_t level;
-extern spawn_temp_t st;
 
 extern Vec3 knockbackOfDeath;
 extern int damageFlagsOfDeath;
@@ -192,29 +191,35 @@ void G_EndMatch();
 //
 void DropSpawnToFloor( edict_t * ent );
 void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, Vec3 * origin, Vec3 * angles );
-void SP_post_match_camera( edict_t *ent );
+void SP_post_match_camera( edict_t * ent, const spawn_temp_t * st );
 
 //
 // g_func.c
 //
-void SP_func_rotating( edict_t *ent );
-void SP_func_door( edict_t *ent );
-void SP_func_door_rotating( edict_t *ent );
-void SP_func_train( edict_t *ent );
-void SP_func_wall( edict_t *self );
-void SP_func_static( edict_t *ent );
+void SP_func_rotating( edict_t * ent, const spawn_temp_t * st );
+void SP_func_door( edict_t * ent, const spawn_temp_t * st );
+void SP_func_door_rotating( edict_t * ent, const spawn_temp_t * st );
+void SP_func_train( edict_t * ent, const spawn_temp_t * st );
+void SP_func_wall( edict_t * ent, const spawn_temp_t * st );
+void SP_func_static( edict_t * ent, const spawn_temp_t * st );
 
 //
-// g_gladiator
+// g_spikes
 //
-void SP_spike( edict_t * ent );
-void SP_spikes( edict_t * ent );
+void SP_spike( edict_t * ent, const spawn_temp_t * st );
+void SP_spikes( edict_t * ent, const spawn_temp_t * st );
 
 //
 // g_speakers
 //
 
-void SP_speaker_wall( edict_t * ent );
+void SP_speaker_wall( edict_t * ent, const spawn_temp_t * st );
+
+//
+// g_jumppad
+//
+
+void SP_jumppad( edict_t * ent, const spawn_temp_t * st );
 
 // item spawnflags
 #define ITEM_TRIGGER_SPAWN  0x00000001
@@ -316,13 +321,13 @@ void G_OperatorVote_Cmd( edict_t *ent );
 //
 // g_trigger.c
 //
-void SP_trigger_teleport( edict_t *ent );
-void SP_trigger_always( edict_t *ent );
-void SP_trigger_once( edict_t *ent );
-void SP_trigger_multiple( edict_t *ent );
-void SP_trigger_push( edict_t *ent );
-void SP_trigger_hurt( edict_t *ent );
-void SP_trigger_key( edict_t *ent );
+void SP_trigger_teleport( edict_t * ent, const spawn_temp_t * st );
+void SP_trigger_always( edict_t * ent, const spawn_temp_t * st );
+void SP_trigger_once( edict_t * ent, const spawn_temp_t * st );
+void SP_trigger_multiple( edict_t * ent, const spawn_temp_t * st );
+void SP_trigger_push( edict_t * ent, const spawn_temp_t * st );
+void SP_trigger_hurt( edict_t * ent, const spawn_temp_t * st );
+void SP_trigger_key( edict_t * ent, const spawn_temp_t * st );
 
 //
 // g_clip.c
@@ -381,13 +386,11 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Plane *plane, edict_
 //
 // g_misc.c
 //
-void ThrowSmallPileOfGibs( edict_t *self, Vec3 knockback, int damage );
+void ThrowSmallPileOfGibs( edict_t * self, Vec3 knockback, int damage );
 
-void SP_path_corner( edict_t *self );
-
-void SP_model( edict_t *ent );
-
-void SP_decal( edict_t * ent );
+void SP_path_corner( edict_t * ent, const spawn_temp_t * st );
+void SP_model( edict_t * ent, const spawn_temp_t * st );
+void SP_decal( edict_t * ent, const spawn_temp_t * st );
 
 //
 // g_weapon.c
@@ -439,11 +442,9 @@ void player_think( edict_t *self );
 //
 // g_target.c
 //
-void target_laser_start( edict_t *self );
-
-void SP_target_laser( edict_t *self );
-void SP_target_position( edict_t *self );
-void SP_target_delay( edict_t *ent );
+void SP_target_laser( edict_t * ent, const spawn_temp_t * st );
+void SP_target_position( edict_t * ent, const spawn_temp_t * st );
+void SP_target_delay( edict_t * ent, const spawn_temp_t * st );
 
 //
 // g_svcmds.c

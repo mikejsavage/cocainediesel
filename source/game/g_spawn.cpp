@@ -85,11 +85,11 @@ static constexpr EntityField entity_keys[] = {
 	{ "spawn_probability", STOFS( spawn_probability ), EntityField_Float, true },
 };
 
-static void SP_worldspawn( edict_t * ent );
+static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st );
 
 struct EntitySpawnCallback {
 	StringHash classname;
-	void ( *cb )( edict_t * ent );
+	void ( *cb )( edict_t * ent, const spawn_temp_t * st );
 };
 
 static constexpr EntitySpawnCallback spawn_callbacks[] = {
@@ -124,14 +124,15 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 
 	{ "spike", SP_spike },
 	{ "spikes", SP_spikes },
+	{ "jumppad", SP_jumppad },
 
 	{ "speaker_wall", SP_speaker_wall },
 };
 
-static bool SpawnEntity( edict_t * ent ) {
+static bool SpawnEntity( edict_t * ent, const spawn_temp_t * st ) {
 	for( EntitySpawnCallback s : spawn_callbacks ) {
 		if( s.classname == ent->classname ) {
-			s.cb( ent );
+			s.cb( ent, st );
 			return true;
 		}
 	}
@@ -140,12 +141,12 @@ static bool SpawnEntity( edict_t * ent ) {
 		return true;
 	}
 
-	Com_GGPrint( "{} doesn't have a spawn function", st.classname );
+	Com_GGPrint( "{} doesn't have a spawn function", st->classname );
 
 	return false;
 }
 
-static void ED_ParseField( Span< const char > key, Span< const char > value, edict_t * ent ) {
+static void ED_ParseField( Span< const char > key, Span< const char > value, edict_t * ent, spawn_temp_t * st ) {
 	StringHash key_hash = StringHash( key );
 
 	for( EntityField f : entity_keys ) {
@@ -154,7 +155,7 @@ static void ED_ParseField( Span< const char > key, Span< const char > value, edi
 
 		uint8_t *b;
 		if( f.temp ) {
-			b = (uint8_t *)&st;
+			b = (uint8_t *)st;
 		} else {
 			b = (uint8_t *)ent;
 		}
@@ -209,10 +210,7 @@ static void ED_ParseField( Span< const char > key, Span< const char > value, edi
 	}
 }
 
-static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent ) {
-	memset( &st, 0, sizeof( st ) );
-	st.spawn_probability = 1.0f;
-
+static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent, spawn_temp_t * st ) {
 	while( true ) {
 		Span< const char > key = ParseToken( cursor, Parse_DontStopOnNewLine );
 		if( key == "}" )
@@ -229,10 +227,10 @@ static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent ) {
 			Com_Error( "ED_ParseEntity: closing brace without data" );
 		}
 
-		ED_ParseField( key, value, ent );
+		ED_ParseField( key, value, ent, st );
 
 		if( StrCaseEqual( key, "classname" ) ) {
-			st.classname = value;
+			st->classname = value;
 		}
 	}
 }
@@ -277,13 +275,16 @@ static void SpawnMapEntities() {
 			ent = G_Spawn();
 		}
 
-		ED_ParseEntity( &cursor, ent );
+		spawn_temp_t st = { };
+		st.spawn_probability = 1.0f;
+
+		ED_ParseEntity( &cursor, ent, &st );
 
 		bool ok = true;
 		bool rng = Probability( &svs.rng, st.spawn_probability );
 		ok = ok && st.classname != "";
 		ok = ok && rng;
-		ok = ok && SpawnEntity( ent );
+		ok = ok && SpawnEntity( ent, &st );
 
 		if( !ok ) {
 			G_FreeEdict( ent );
@@ -438,7 +439,7 @@ void G_Aasdf() {
 	}
 }
 
-static void SP_worldspawn( edict_t *ent ) {
+static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st ) {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.solid = SOLID_YES;
 	ent->r.inuse = true; // since the world doesn't use G_Spawn()

@@ -244,7 +244,7 @@ static void door_hit_top( edict_t *self ) {
 	}
 	if( self->moveinfo.wait >= 0 ) {
 		self->think = door_go_down;
-		self->nextThink = level.time + ( self->moveinfo.wait * 1000 );
+		self->nextThink = level.time + self->moveinfo.wait;
 	}
 }
 
@@ -280,7 +280,7 @@ static void door_go_up( edict_t *self, edict_t *activator ) {
 
 	if( self->moveinfo.state == STATE_TOP ) { // reset top wait time
 		if( self->moveinfo.wait >= 0 ) {
-			self->nextThink = level.time + self->moveinfo.wait * 1000;
+			self->nextThink = level.time + self->moveinfo.wait;
 		}
 		return;
 	}
@@ -394,7 +394,7 @@ void SP_func_door( edict_t * ent, const spawn_temp_t * st ) {
 		ent->speed = 1500;
 	}
 	if( !ent->wait ) {
-		ent->wait = 2;
+		ent->wait = 2000;
 	}
 
 	int lip = st->lip != 0 ? st->lip : 8;
@@ -480,7 +480,7 @@ void SP_func_door_rotating( edict_t * ent, const spawn_temp_t * st ) {
 		ent->speed = 100;
 	}
 	if( !ent->wait ) {
-		ent->wait = 3;
+		ent->wait = 3000;
 	}
 	if( !ent->dmg ) {
 		ent->dmg = 2;
@@ -709,7 +709,7 @@ static void train_wait( edict_t *self ) {
 
 	if( self->moveinfo.wait ) {
 		if( self->moveinfo.wait > 0 ) {
-			self->nextThink = level.time + ( self->moveinfo.wait * 1000 );
+			self->nextThink = level.time + self->moveinfo.wait;
 			self->think = train_next;
 		} else if( self->spawnflags & TRAIN_TOGGLE ) {   // && wait < 0
 			train_next( self );

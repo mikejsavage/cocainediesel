@@ -26,28 +26,28 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Called always when using a trigger that supports wait flag
 * Returns true if the trigger shouldn't be activated
 */
-static bool G_TriggerWait( edict_t *ent, edict_t *other ) {
+static bool G_TriggerWait( edict_t * ent ) {
 	if( ent->timeStamp >= level.time ) {
 		return true;
 	}
 
 	// the wait time has passed, so set back up for another activation
-	ent->timeStamp = level.time + ( ent->wait * 1000 );
+	ent->timeStamp = level.time + ent->wait;
 	return false;
 }
 
-static void InitTrigger( edict_t *self ) {
-	self->r.solid = SOLID_TRIGGER;
-	self->movetype = MOVETYPE_NONE;
-	GClip_SetBrushModel( self );
-	self->s.svflags = SVF_NOCLIENT;
+static void InitTrigger( edict_t * ent ) {
+	ent->r.solid = SOLID_TRIGGER;
+	ent->movetype = MOVETYPE_NONE;
+	GClip_SetBrushModel( ent );
+	ent->s.svflags = SVF_NOCLIENT;
 }
 
 // the trigger was just activated
 // ent->activator should be set to the activator so it can be held through a delay
 // so wait for the delay time before firing
 static void multi_trigger( edict_t *ent ) {
-	if( G_TriggerWait( ent, ent->activator ) ) {
+	if( G_TriggerWait( ent ) ) {
 		return;     // already been triggered
 
 	}
@@ -105,7 +105,7 @@ void SP_trigger_multiple( edict_t * ent, const spawn_temp_t * st ) {
 	}
 
 	if( !ent->wait ) {
-		ent->wait = 0.2f;
+		ent->wait = 200;
 	}
 
 	ent->touch = Touch_Multi;
@@ -124,7 +124,6 @@ void SP_trigger_multiple( edict_t * ent, const spawn_temp_t * st ) {
 }
 
 void SP_trigger_once( edict_t * ent, const spawn_temp_t * st ) {
-	ent->wait = -1;
 	SP_trigger_multiple( ent, st );
 }
 
@@ -141,12 +140,9 @@ static void trigger_always_think( edict_t *ent ) {
 
 void SP_trigger_always( edict_t * ent, const spawn_temp_t * st ) {
 	// we must have some delay to make sure our use targets are present
-	if( ent->delay < 0.3f ) {
-		ent->delay = 0.3f;
-	}
-
+	ent->delay = Max2( s64( 300 ), ent->delay );
 	ent->think = trigger_always_think;
-	ent->nextThink = level.time + 1000 * ent->delay;
+	ent->nextThink = level.time + ent->delay;
 }
 
 //==============================================================================
@@ -172,7 +168,7 @@ static void trigger_push_touch( edict_t *self, edict_t *other, Plane *plane, int
 		return;
 	}
 
-	if( G_TriggerWait( self, other ) ) {
+	if( G_TriggerWait( self ) ) {
 		return;
 	}
 
@@ -238,7 +234,7 @@ void SP_trigger_push( edict_t * self, const spawn_temp_t * st ) {
 	GClip_LinkEntity( self );
 	self->timeStamp = level.time;
 	if( !self->wait ) {
-		self->wait = MIN_TRIGGER_PUSH_REBOUNCE_TIME * 0.001f;
+		self->wait = MIN_TRIGGER_PUSH_REBOUNCE_TIME;
 	}
 }
 
@@ -270,7 +266,7 @@ static void hurt_touch( edict_t *self, edict_t *other, Plane *plane, int surfFla
 		return;
 	}
 
-	if( G_TriggerWait( self, other ) ) {
+	if( G_TriggerWait( self ) ) {
 		return;
 	}
 
@@ -317,7 +313,7 @@ void SP_trigger_hurt( edict_t * self, const spawn_temp_t * st ) {
 	}
 
 	if( self->spawnflags & 16 || !self->wait ) {
-		self->wait = 0.1f;
+		self->wait = 100;
 	}
 
 	if( self->spawnflags & 1 ) {
@@ -350,7 +346,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, Plane *plane, int su
 		return;
 	}
 
-	self->timeStamp = level.time + ( self->wait * 1000 );
+	self->timeStamp = level.time + self->wait;
 
 	dest = G_Find( NULL, &edict_t::name, self->target );
 	if( !dest ) {

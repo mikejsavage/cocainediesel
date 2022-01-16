@@ -27,7 +27,7 @@ static void target_laser_think( edict_t *self ) {
 	int count;
 
 	// our lifetime has expired
-	if( self->delay && ( self->wait * 1000 < level.time ) ) {
+	if( self->delay && self->wait < level.time ) {
 		if( self->r.owner && self->r.owner->use ) {
 			G_CallUse( self->r.owner, self, self->activator );
 		}
@@ -104,7 +104,7 @@ static void target_laser_on( edict_t *self ) {
 	}
 	self->spawnflags |= 0x80000001;
 	self->s.svflags &= ~SVF_NOCLIENT;
-	self->wait = level.time * 0.001f + self->delay;
+	self->wait = level.time + self->delay;
 	target_laser_think( self );
 }
 
@@ -172,7 +172,7 @@ static void target_delay_think( edict_t * ent ) {
 }
 
 static void target_delay_use( edict_t *ent, edict_t *other, edict_t *activator ) {
-	ent->nextThink = level.time + 1000 * ( ent->wait + ent->random * RandomFloat11( &svs.rng ) );
+	ent->nextThink = level.time + ent->wait + ent->wait_randomness * RandomFloat11( &svs.rng );
 	ent->think = target_delay_think;
 	ent->activator = activator;
 }
@@ -183,7 +183,7 @@ void SP_target_delay( edict_t * ent, const spawn_temp_t * st ) {
 		ent->wait = ent->delay;
 	}
 	if( !ent->wait ) {
-		ent->wait = 1.0;
+		ent->wait = 1000;
 	}
 
 	ent->delay = 0;

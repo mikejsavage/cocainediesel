@@ -546,7 +546,7 @@ struct moveinfo_t {
 	float speed;
 	float distance;    // used by binary movers
 
-	float wait;
+	s64 wait;
 
 	// state data
 	int state;
@@ -745,9 +745,9 @@ struct edict_t {
 	StringHash sound;
 
 	// timing variables
-	float wait;
-	float delay;                // before firing targets
-	float random;
+	s64 wait;
+	s64 delay;                // before firing targets
+	s64 wait_randomness;
 
 	int watertype;
 	int waterlevel;

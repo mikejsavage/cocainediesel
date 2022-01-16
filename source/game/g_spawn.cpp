@@ -58,8 +58,8 @@ static constexpr EntityField entity_keys[] = {
 	{ "targetname", FOFS( name ), EntityField_StringHash },
 	{ "pathtarget", FOFS( pathtarget ), EntityField_StringHash },
 	{ "killtarget", FOFS( killtarget ), EntityField_StringHash },
-	{ "wait", FOFS( wait ), EntityField_Float },
-	{ "delay", FOFS( delay ), EntityField_Float },
+	{ "wait", FOFS( wait ), EntityField_Int },
+	{ "delay", FOFS( delay ), EntityField_Int },
 	{ "style", FOFS( style ), EntityField_Int },
 	{ "count", FOFS( count ), EntityField_Int },
 	{ "health", FOFS( health ), EntityField_Float },
@@ -69,7 +69,7 @@ static constexpr EntityField entity_keys[] = {
 	{ "modelscale_vec", FOFS( s.scale ), EntityField_Vec3 },
 	{ "modelscale", FOFS( s.scale ), EntityField_Scale },
 	{ "mass", FOFS( mass ), EntityField_Int },
-	{ "random", FOFS( random ), EntityField_Float },
+	{ "random", FOFS( wait_randomness ), EntityField_Int },
 
 	// temp spawn vars -- only valid when the spawn function is called
 	{ "lip", STOFS( lip ), EntityField_Int, true },

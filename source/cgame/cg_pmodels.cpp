@@ -594,13 +594,7 @@ static void CG_UpdatePModelAnimations( centity_t *cent ) {
 * Called each new serverframe
 */
 void CG_UpdatePlayerModelEnt( centity_t *cent ) {
-	// start from clean
-	memset( &cent->interpolated, 0, sizeof( cent->interpolated ) );
-	cent->interpolated.scale = Vec3( 1.0f );
-
 	pmodel_t * pmodel = &cg_entPModels[ cent->current.number ];
-
-	cent->interpolated.color = RGBA8( CG_TeamColor( cent->current.number ) );
 
 	// Spawning (teleported bit) forces nobacklerp and the interruption of EVENT_CHANNEL animations
 	if( cent->current.teleported ) {

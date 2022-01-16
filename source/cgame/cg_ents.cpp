@@ -338,8 +338,6 @@ const cmodel_t *CG_CModelForEntity( int entNum ) {
 }
 
 static void CG_UpdateGenericEnt( centity_t *cent ) {
-	// start from clean
-	memset( &cent->interpolated, 0, sizeof( cent->interpolated ) );
 	cent->interpolated.color = RGBA8( CG_TeamColor( cent->prev.team ) );
 }
 
@@ -421,7 +419,7 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 		}
 	}
 
-	cent->interpolated.scale = Lerp( cent->prev.scale, cg.lerpfrac, cent->interpolated.scale );
+	cent->interpolated.scale = Lerp( cent->prev.scale, cg.lerpfrac, cent->current.scale );
 
 	cent->interpolated.animating = cent->prev.animating;
 	cent->interpolated.animation_time = Lerp( cent->prev.animation_time, cg.lerpfrac, cent->current.animation_time );
@@ -885,6 +883,7 @@ void CG_UpdateEntities() {
 
 			case ET_PLAYER:
 			case ET_CORPSE:
+				CG_UpdateGenericEnt( cent );
 				CG_UpdatePlayerModelEnt( cent );
 				break;
 

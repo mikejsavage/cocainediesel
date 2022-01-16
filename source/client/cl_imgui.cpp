@@ -138,7 +138,7 @@ void CL_ShutdownImGui() {
 }
 
 static void SubmitDrawCalls() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	ImDrawData * draw_data = ImGui::GetDrawData();
 
@@ -221,14 +221,14 @@ static void SubmitDrawCalls() {
 }
 
 void CL_ImGuiBeginFrame() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 }
 
 void CL_ImGuiEndFrame() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	// ImGui::ShowDemoWindow();
 

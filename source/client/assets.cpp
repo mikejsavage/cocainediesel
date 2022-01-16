@@ -84,11 +84,11 @@ struct DecompressAssetJob {
 };
 
 static void DecompressAsset( TempAllocator * temp, void * data ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	DecompressAssetJob * job = ( DecompressAssetJob * ) data;
 
-	ZoneText( job->path, strlen( job->path ) );
+	TracyZoneText( job->path, strlen( job->path ) );
 
 	char * path_with_zst = ( *temp )( "{}.zst", job->path );
 	Span< u8 > decompressed;
@@ -108,8 +108,8 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 }
 
 static void LoadAsset( TempAllocator * temp, const char * game_path, const char * full_path ) {
-	ZoneScoped;
-	ZoneText( game_path, strlen( game_path ) );
+	TracyZoneScoped;
+	TracyZoneText( game_path, strlen( game_path ) );
 
 	Span< const char > ext = FileExtension( game_path );
 	bool compressed = ext == ".zst";
@@ -179,7 +179,7 @@ static void LoadAssetsRecursive( TempAllocator * temp, DynamicString * path, siz
 }
 
 void InitAssets( TempAllocator * temp ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	assets_mutex = NewMutex();
 
@@ -195,7 +195,7 @@ void InitAssets( TempAllocator * temp ) {
 }
 
 void HotloadAssets( TempAllocator * temp ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	const char * buf[ 1024 ];
 	Span< const char * > changes = PollFSChangeMonitor( temp, fs_change_monitor, buf, ARRAY_COUNT( buf ) );
@@ -223,7 +223,7 @@ void DoneHotloadingAssets() {
 }
 
 void ShutdownAssets() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( u32 i = 0; i < num_assets; i++ ) {
 		FREE( sys_allocator, assets[ i ].path );

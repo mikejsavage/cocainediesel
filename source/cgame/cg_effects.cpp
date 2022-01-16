@@ -120,7 +120,7 @@ void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHas
 }
 
 void DrawPersistentBeams() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( size_t i = 0; i < num_persistent_beams; i++ ) {
 		PersistentBeam & beam = persistent_beams[ i ];

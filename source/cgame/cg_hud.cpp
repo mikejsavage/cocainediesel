@@ -1919,6 +1919,6 @@ void CG_DrawHUD() {
 		CG_InitHUD();
 	}
 
-	ZoneScoped;
+	TracyZoneScoped;
 	CG_RecurseExecuteLayoutThread( hud_root );
 }

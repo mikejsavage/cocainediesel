@@ -64,7 +64,7 @@ void InitModelInstances();
 void ShutdownModelInstances();
 
 void InitModels() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	num_gltf_models = 0;
 
@@ -96,7 +96,7 @@ void DeleteModel( Model * model ) {
 }
 
 void HotloadModels() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( const char * path : ModifiedAssetPaths() ) {
 		LoadGLTF( path );
@@ -327,7 +327,7 @@ void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transf
 }
 
 void InitModelInstances() {
-	ZoneScoped;
+	TracyZoneScoped;
 	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
 		model_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelInstance ) * MAX_INSTANCES );
 		model_instance_collection.num_groups = 0;
@@ -365,7 +365,7 @@ static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collecti
 }
 
 void DrawModelInstances() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	DrawModelInstanceCollection( model_instance_collection, InstanceType_Model );
 	DrawModelInstanceCollection( model_shadows_instance_collection, InstanceType_ModelShadows );
@@ -404,7 +404,7 @@ static Vec3 LerpVec3( Vec3 a, float t, Vec3 b ) { return Lerp( a, t, b ); }
 static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
 
 Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, model->num_nodes );
 
@@ -445,7 +445,7 @@ static Mat4 TRSToMat4( const TRS & trs ) {
 }
 
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	assert( local_poses.n == model->num_nodes );
 

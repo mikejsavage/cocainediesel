@@ -277,7 +277,7 @@ void G_SnapFrame() {
 //===================================================================
 
 static void G_RunEntities() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	edict_t *ent;
 
@@ -305,7 +305,7 @@ static void G_RunEntities() {
 }
 
 static void G_RunClients() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t *ent = game.edicts + 1 + i;
@@ -317,7 +317,7 @@ static void G_RunClients() {
 }
 
 void G_RunFrame( unsigned int msec ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	G_CheckCvars();
 

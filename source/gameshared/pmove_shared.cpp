@@ -26,7 +26,7 @@ float Normalize2D( Vec3 * v ) {
 // maxZnormal is the max Z value of the normal of a poly to consider it a wall
 // normal becomes a pointer to the normal of the most appropriate wall
 void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	float dist = 1.0;
 

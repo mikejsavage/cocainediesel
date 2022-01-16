@@ -23,10 +23,10 @@ int main( int argc, char ** argv ) {
 	oldtime = Sys_Milliseconds();
 
 	while( true ) {
-		FrameMark;
+		TracyCFrameMark;
 
 		do {
-			ZoneScopedN( "Interframe" );
+			TracyZoneScopedN( "Interframe" );
 
 			newtime = Sys_Milliseconds();
 			time = newtime - oldtime;

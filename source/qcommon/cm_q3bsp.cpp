@@ -323,7 +323,7 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 }
 
 static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *shaderref, Vec3 *verts, int *patch_cp ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int step[2], size[2], flat[2];
 
@@ -421,7 +421,7 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *s
 }
 
 static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i;
 	int count;
@@ -469,7 +469,7 @@ static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
 }
 
 static void CMod_LoadVertexes( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i;
 	int count;
@@ -496,7 +496,7 @@ static void CMod_LoadVertexes( CollisionModel *cms, lump_t *l ) {
 }
 
 static void CMod_LoadVertexes_RBSP( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i;
 	int count;
@@ -523,7 +523,7 @@ static void CMod_LoadVertexes_RBSP( CollisionModel *cms, lump_t *l ) {
 }
 
 static inline void CMod_LoadFace( CollisionModel *cms, cface_t *out, int shadernum, int firstvert, int numverts, int *patch_cp ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	cshaderref_t *shaderref;
 
@@ -552,7 +552,7 @@ static inline void CMod_LoadFace( CollisionModel *cms, cface_t *out, int shadern
 }
 
 static void CMod_LoadFaces( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i, count;
 	dface_t *in;
@@ -582,7 +582,7 @@ static void CMod_LoadFaces( CollisionModel *cms, lump_t *l ) {
 }
 
 static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i, count;
 	rdface_t *in;
@@ -612,7 +612,7 @@ static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 }
 
 static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	const dmodel_t * in = ( dmodel_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
@@ -662,7 +662,7 @@ static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, l
 }
 
 static void CMod_LoadNodes( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i;
 	int count;
@@ -694,7 +694,7 @@ static void CMod_LoadNodes( CollisionModel *cms, lump_t *l ) {
 }
 
 static void CMod_LoadMarkFaces( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i, j;
 	int count;
@@ -723,7 +723,7 @@ static void CMod_LoadMarkFaces( CollisionModel *cms, lump_t *l ) {
 }
 
 static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i, j, k;
 	int count;
@@ -782,7 +782,7 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 }
 
 static void CMod_LoadPlanes( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	dplane_t * in = ( dplane_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
@@ -806,7 +806,7 @@ static void CMod_LoadPlanes( CollisionModel *cms, lump_t *l ) {
 }
 
 static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i;
 	int count;
@@ -830,7 +830,7 @@ static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
 }
 
 static void CMod_LoadBrushSides( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	dbrushside_t * in = ( dbrushside_t * )( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
@@ -856,7 +856,7 @@ static void CMod_LoadBrushSides( CollisionModel *cms, lump_t *l ) {
 }
 
 static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i, j;
 	int count;
@@ -894,7 +894,7 @@ static void CM_BoundBrush( cbrush_t *brush ) {
 }
 
 static void CMod_LoadBrushes( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i;
 	int count;
@@ -924,7 +924,7 @@ static void CMod_LoadBrushes( CollisionModel *cms, lump_t *l ) {
 }
 
 static void CMod_LoadVisibility( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	cms->map_visdatasize = l->filelen;
 	if( !cms->map_visdatasize ) {
@@ -940,7 +940,7 @@ static void CMod_LoadVisibility( CollisionModel *cms, lump_t *l ) {
 }
 
 static void CMod_LoadEntityString( CollisionModel *cms, lump_t *l ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	cms->numentitychars = l->filelen;
 	if( !l->filelen ) {
@@ -952,7 +952,7 @@ static void CMod_LoadEntityString( CollisionModel *cms, lump_t *l ) {
 }
 
 void CM_LoadQ3BrushModel( CModelServerOrClient soc, CollisionModel * cms, Span< const u8 > data ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	dheader_t header;
 	memcpy( &header, data.ptr, sizeof( header ) );

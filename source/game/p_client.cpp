@@ -823,7 +823,7 @@ void G_SelectWeapon( edict_t * ent, int index ) {
 }
 
 void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	gclient_t *client;
 	int i, j;

@@ -38,7 +38,7 @@ void ShutdownSkybox() {
 }
 
 void DrawSkybox() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	PipelineState pipeline;
 	pipeline.shader = &shaders.skybox;

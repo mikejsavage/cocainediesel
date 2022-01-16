@@ -437,7 +437,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 }
 
 static void DrawWorld() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	const char * suffix = "*0";
 	u64 hash = Hash64( suffix, strlen( suffix ), cl.map->base_hash );
@@ -501,7 +501,7 @@ static void DrawWorld() {
 }
 
 static void DrawSilhouettes() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	{
 		PipelineState pipeline;
@@ -519,7 +519,7 @@ static void DrawSilhouettes() {
 }
 
 void CG_RenderView( unsigned extrapolationTime ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	cg.frameCount++;
 

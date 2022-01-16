@@ -411,7 +411,7 @@ static void PlotVRAMUsage() {
 		GLint available_vram;
 		glGetIntegerv( GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &available_vram );
 
-		TracyPlot( "VRAM usage", s64( total_vram - available_vram ) );
+		TracyCPlot( "VRAM usage", s64( total_vram - available_vram ) );
 	}
 }
 
@@ -513,7 +513,7 @@ static void DSAHacks() {
 static StreamingBuffer NewStreamingBuffer( u32 len, const char * name, bool ubo );
 
 void InitRenderBackend() {
-	ZoneScoped;
+	TracyZoneScoped;
 	TracyGpuContext;
 
 	{
@@ -906,8 +906,8 @@ static void SubmitFramebufferBlit( const RenderPass & pass ) {
 }
 
 static void SetupRenderPass( const RenderPass & pass ) {
-	ZoneScoped;
-	ZoneText( pass.name, strlen( pass.name ) );
+	TracyZoneScoped;
+	TracyZoneText( pass.name, strlen( pass.name ) );
 #if TRACY_ENABLE
 	renderpass_zone = new (renderpass_zone_memory) tracy::GpuCtxScope( pass.tracy );
 #endif
@@ -969,7 +969,7 @@ static void FinishRenderPass() {
 }
 
 static void SubmitDrawCall( const DrawCall & dc ) {
-	ZoneScoped;
+	TracyZoneScoped;
 	TracyGpuZone( "Draw call" );
 
 	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
@@ -1100,14 +1100,14 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 }
 
 void RenderBackendSubmitFrame() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	assert( in_frame );
 	assert( render_passes.size() > 0 );
 	in_frame = false;
 
 	{
-		ZoneScopedN( "Sort draw calls" );
+		TracyZoneScopedN( "Sort draw calls" );
 		std::stable_sort( draw_calls.begin(), draw_calls.end(), SortDrawCall );
 	}
 
@@ -1115,7 +1115,7 @@ void RenderBackendSubmitFrame() {
 	u8 pass_idx = 0;
 
 	{
-		ZoneScopedN( "Submit draw calls" );
+		TracyZoneScopedN( "Submit draw calls" );
 		for( const DrawCall & dc : draw_calls ) {
 			while( dc.pipeline.pass > pass_idx ) {
 				FinishRenderPass();
@@ -1144,7 +1144,7 @@ void RenderBackendSubmitFrame() {
 	}
 
 	{
-		ZoneScopedN( "Deferred deletes" );
+		TracyZoneScopedN( "Deferred deletes" );
 
 		for( const Mesh & mesh : deferred_mesh_deletes ) {
 			DeleteMesh( mesh );
@@ -1162,10 +1162,10 @@ void RenderBackendSubmitFrame() {
 	for( const UBO & ubo : ubos ) {
 		ubo_bytes_used += ubo.bytes_used;
 	}
-	TracyPlot( "UBO utilisation", float( ubo_bytes_used ) / float( UNIFORM_BUFFER_SIZE * ARRAY_COUNT( ubos ) ) );
+	TracyCPlot( "UBO utilisation", float( ubo_bytes_used ) / float( UNIFORM_BUFFER_SIZE * ARRAY_COUNT( ubos ) ) );
 
-	TracyPlot( "Draw calls", s64( draw_calls.size() ) );
-	TracyPlot( "Vertices", s64( num_vertices_this_frame ) );
+	TracyCPlot( "Draw calls", s64( draw_calls.size() ) );
+	TracyCPlot( "Vertices", s64( num_vertices_this_frame ) );
 
 	TracyGpuCollect;
 }
@@ -1269,9 +1269,9 @@ StreamingBuffer NewStreamingBuffer( u32 len, const char * name ) {
 }
 
 void StreamingBufferFrame( StreamingBuffer * stream ) {
-	ZoneScoped;
+	TracyZoneScoped;
 	if( stream->name.ptr != NULL ) {
-		ZoneText( stream->name.ptr, stream->name.n );
+		TracyZoneText( stream->name.ptr, stream->name.n );
 	}
 
 	stream->fences[ stream->current ] = bit_cast< u64 >( glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 ) );

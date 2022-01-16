@@ -291,8 +291,8 @@ static void LoadSkin( Model * model, const cgltf_skin * skin ) {
 }
 
 bool LoadGLTFModel( Model * model, const char * path ) {
-	ZoneScoped;
-	ZoneText( path, strlen( path ) );
+	TracyZoneScoped;
+	TracyZoneText( path, strlen( path ) );
 
 	Span< const u8 > data = AssetBinary( path );
 

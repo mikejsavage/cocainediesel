@@ -121,7 +121,7 @@ static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 }
 
 static void SV_ReadPackets() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	static msg_t msg;
 	static uint8_t msgData[MAX_MSGLEN];
@@ -228,7 +228,7 @@ static void SV_ReadPackets() {
 * if necessary
 */
 static void SV_CheckTimeouts() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	client_t *cl;
 	int i;
@@ -271,7 +271,7 @@ static void SV_CheckTimeouts() {
 * Applies latched userinfo updates if the timeout is over.
 */
 static void SV_CheckLatchedUserinfoChanges() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	client_t *cl;
 	int i;
@@ -294,7 +294,7 @@ static void SV_CheckLatchedUserinfoChanges() {
 
 #define WORLDFRAMETIME 16 // 62.5fps
 static bool SV_RunGameFrame( int msec ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	static int64_t accTime = 0;
 	bool refreshSnapshot;
@@ -397,9 +397,9 @@ static void SV_CheckDefaultMap() {
 }
 
 void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
-	TracyPlot( "Server frame arena max utilisation", svs.frame_arena.max_utilisation() );
+	TracyCPlot( "Server frame arena max utilisation", svs.frame_arena.max_utilisation() );
 	svs.frame_arena.clear();
 
 	u64 entropy[ 2 ];
@@ -485,7 +485,7 @@ void SV_UserinfoChanged( client_t *client ) {
 }
 
 void SV_Init() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	assert( !sv_initialized );
 
@@ -568,7 +568,7 @@ void SV_Init() {
 }
 
 void SV_Shutdown( const char *finalmsg ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( !sv_initialized ) {
 		return;

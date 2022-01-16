@@ -300,7 +300,7 @@ void AllocateDecalBuffers() {
 	u32 cols = ( frame_static.viewport_width + TILE_SIZE - 1 ) / TILE_SIZE;
 
 	if( frame_static.viewport_width != last_viewport_width || frame_static.viewport_height != last_viewport_height ) {
-		ZoneScopedN( "Reallocate TBOs" );
+		TracyZoneScopedN( "Reallocate TBOs" );
 
 		FREE( sys_allocator, gpu_decal_tiles.ptr );
 		gpu_decal_tiles = ALLOC_SPAN2D( sys_allocator, DecalTile, cols, rows );
@@ -337,7 +337,7 @@ struct DynamicSet {
 };
 
 void UploadDecalBuffers() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	u32 rows = ( frame_static.viewport_height + TILE_SIZE - 1 ) / TILE_SIZE;
 	u32 cols = ( frame_static.viewport_width + TILE_SIZE - 1 ) / TILE_SIZE;
@@ -399,7 +399,7 @@ void UploadDecalBuffers() {
 	}
 
 	{
-		ZoneScopedN( "Fill buffers" );
+		TracyZoneScopedN( "Fill buffers" );
 
 		Span< DynamicSet > rows_coverage = ALLOC_SPAN( sys_allocator, DynamicSet, rows );
 		Span< DynamicSet > cols_coverage = ALLOC_SPAN( sys_allocator, DynamicSet, cols );
@@ -478,7 +478,7 @@ void UploadDecalBuffers() {
 	}
 
 	{
-		ZoneScopedN( "Upload decals/dlights" );
+		TracyZoneScopedN( "Upload decals/dlights" );
 		WriteGPUBuffer( decal_tiles_buffer, gpu_decal_tiles.span() );
 		WriteGPUBuffer( decals_buffer, decals, num_decals * sizeof( Decal ) );
 		WriteGPUBuffer( dlight_tiles_buffer, gpu_dlight_tiles.span() );

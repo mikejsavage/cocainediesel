@@ -29,7 +29,7 @@ static float pm_wjminspeed( pml_t * pml ) {
 
 
 static void PM_WallJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) {
-	ZoneScoped;
+	TracyZoneScoped;
 	if( pm->playerState->pmove.special_time <= 0 && pm->playerState->pmove.special_count == max_walljumps ) { // reset the wj count after wj delay
 		pm->playerState->pmove.special_count = 0;
 	}

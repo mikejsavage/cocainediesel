@@ -446,7 +446,7 @@ static Span< const char > ParseKeyValue( KeyValue * kv, Span< const char > str )
 }
 
 static Span< const char > ParseEntity( Entity * entity, Span< const char > str ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	str = SkipToken( str, "{" );
 
@@ -618,7 +618,7 @@ static Vec2 ProjectFaceVert( Vec3 centroid, Vec3 tangent, Vec3 bitangent, Vec3 p
 }
 
 static void ProcessBrush( BSP * bsp, MinMax3 * bounds, DynamicArray< MaterialMesh > * meshes, const Brush & brush, u32 entity_id, u32 brush_id ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	Plane planes[ MAX_BRUSH_FACES ];
 	*bounds = MinMax3::Empty();
@@ -860,7 +860,7 @@ static void PatchToVerts( MaterialMesh * mesh, const Patch & patch ) {
 }
 
 static void AddPatchBrushes( BSP * bsp, DynamicArray< MinMax3 > * brush_bounds, u32 material, const MaterialMesh * mesh, size_t first_patch_tri ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( size_t i = first_patch_tri; i < mesh->triangles.size(); i++ ) {
 		BSPTriangle tri = mesh->triangles[ i ];
@@ -954,12 +954,12 @@ float SurfaceArea( MinMax3 bounds ) {
 }
 
 CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	CandidatePlanes planes;
 
 	for( int i = 0; i < 3; i++ ) {
-		ZoneScopedN( "iter" );
+		TracyZoneScopedN( "iter" );
 		Span< CandidatePlane > axis = ALLOC_SPAN( a, CandidatePlane, brush_ids.n * 2 );
 		planes.axes[ i ] = axis;
 
@@ -970,7 +970,7 @@ CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const u32 > brush_ids
 		}
 
 		{
-			ZoneScopedN( "sort" );
+			TracyZoneScopedN( "sort" );
 			std::sort( axis.begin(), axis.end(), []( const CandidatePlane & a, const CandidatePlane & b ) {
 				if( a.distance == b.distance )
 					return a.start_edge < b.start_edge;
@@ -995,7 +995,7 @@ static MinMax3 HugeBounds() {
 }
 
 static s32 MakeLeaf( BSP * bsp, Span< const u32 > brush_ids ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	BSPLeaf leaf = { };
 	leaf.bounds = HugeBounds();
@@ -1009,7 +1009,7 @@ static s32 MakeLeaf( BSP * bsp, Span< const u32 > brush_ids ) {
 }
 
 static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds, CandidatePlanes candidate_planes, MinMax3 node_bounds, u32 max_depth ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( brush_ids.n <= 1 || max_depth == 0 ) {
 		return MakeLeaf( bsp, brush_ids );
@@ -1022,7 +1022,7 @@ static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u3
 	float node_surface_area = SurfaceArea( node_bounds );
 
 	{
-		ZoneScopedN( "Find best split" );
+		TracyZoneScopedN( "Find best split" );
 
 		for( int i = 0; i < 3; i++ ) {
 			int axis = ( MaxAxis( node_bounds ) + i ) % 3;
@@ -1094,7 +1094,7 @@ static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u3
 	DynamicArray< u32 > above_brushes( temp );
 
 	{
-		ZoneScopedN( "Classify above/below" );
+		TracyZoneScopedN( "Classify above/below" );
 
 		for( size_t i = 0; i < best_plane; i++ ) {
 			if( candidate_planes.axes[ best_axis ][ i ].start_edge ) {
@@ -1112,7 +1112,7 @@ static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u3
 	CandidatePlanes below_planes;
 	CandidatePlanes above_planes;
 	{
-		ZoneScopedN( "Split candidate planes" );
+		TracyZoneScopedN( "Split candidate planes" );
 
 		for( int i = 0; i < 3; i++ ) {
 			Span< CandidatePlane > axis_below = ALLOC_SPAN( temp, CandidatePlane, below_brushes.size() * 2 );
@@ -1144,7 +1144,7 @@ static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u3
 }
 
 void BuildKDTree( TempAllocator * temp, BSP * bsp, Span< const MinMax3 > brush_bounds ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	MinMax3 tree_bounds = MinMax3::Empty();
 	for( const MinMax3 & bounds : brush_bounds ) {
@@ -1197,7 +1197,7 @@ void Pack( DynamicArray< u8 > & packed, BSPHeader * header, BSPLump lump, Span< 
 }
 
 static void WriteBSP( TempAllocator * temp, const char * path, BSP * bsp ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	DynamicArray< u8 > packed( temp );
 
@@ -1269,7 +1269,7 @@ int main( int argc, char ** argv ) {
 	Span< const char > map( carfentanil, carfentanil_len );
 
 	{
-		ZoneScopedN( "Erase comments" );
+		TracyZoneScopedN( "Erase comments" );
 
 		for( size_t i = 0; i < map.n; i++ ) {
 			Span< const char > comment;
@@ -1291,7 +1291,7 @@ int main( int argc, char ** argv ) {
 	};
 
 	{
-		ZoneScopedN( "Parsing" );
+		TracyZoneScopedN( "Parsing" );
 		map = CaptureNOrMore( &entities, map, 1, ParseEntity );
 		map = SkipWhitespace( map );
 	}
@@ -1301,10 +1301,10 @@ int main( int argc, char ** argv ) {
 		Fatal( "Can't parse the map" );
 	}
 
-	FrameMark;
+	TracyCFrameMark;
 
 	{
-		ZoneScopedN( "Flatten func_groups" );
+		TracyZoneScopedN( "Flatten func_groups" );
 
 		for( Entity & entity : entities ) {
 			if( GetKey( entity.kvs.span(), "classname" ) != "func_group" )
@@ -1318,7 +1318,7 @@ int main( int argc, char ** argv ) {
 		}
 	}
 
-	FrameMark;
+	TracyCFrameMark;
 
 	DynamicString entstr( sys_allocator );
 	DynamicArray< BSPMaterial > materials( sys_allocator );
@@ -1425,7 +1425,7 @@ int main( int argc, char ** argv ) {
 		}
 	}
 
-	FrameMark;
+	TracyCFrameMark;
 
 	BuildKDTree( &temp, &bsp, brush_bounds.span() );
 

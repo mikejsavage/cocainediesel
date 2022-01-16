@@ -29,11 +29,11 @@ int main( int argc, char ** argv ) {
 
 	oldtime = Sys_Milliseconds();
 	while( true ) {
-		FrameMark;
+		TracyCFrameMark;
 
 		// find time spent rendering last frame
 		do {
-			ZoneScopedN( "Interframe" );
+			TracyZoneScopedN( "Interframe" );
 
 			newtime = Sys_Milliseconds();
 			time = newtime - oldtime;

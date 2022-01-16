@@ -439,7 +439,7 @@ static void G_CheckEvenTeam() {
 }
 
 void G_RunGametype() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	G_Teams_UpdateMembersList();
 	G_Match_CheckStateAbort();

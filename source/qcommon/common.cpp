@@ -173,7 +173,7 @@ void Com_Printf( const char *format, ... ) {
 
 	Con_Print( msg );
 
-	TracyMessage( msg, strlen( msg ) );
+	TracyCMessage( msg, strlen( msg ) );
 
 	if( log_file != NULL ) {
 		if( logconsole_timestamp && logconsole_timestamp->integer ) {
@@ -260,7 +260,7 @@ void Key_Init();
 void Key_Shutdown();
 
 void Qcommon_Init( int argc, char ** argv ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( !is_public_build ) {
 		EnableFPE();
@@ -323,7 +323,7 @@ void Qcommon_Init( int argc, char ** argv ) {
 }
 
 bool Qcommon_Frame( unsigned int realMsec ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	static unsigned int gameMsec;
 
@@ -363,7 +363,7 @@ bool Qcommon_Frame( unsigned int realMsec ) {
 }
 
 void Qcommon_Shutdown() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	SV_Shutdown( "Server quit\n" );
 	CL_Shutdown();

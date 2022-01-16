@@ -3,6 +3,8 @@
 #include "client/client.h"
 #include "client/threadpool.h"
 
+#include "tracy/Tracy.hpp"
+
 struct Job {
 	JobCallback callback;
 	void * data;
@@ -66,7 +68,7 @@ static void ThreadPoolWorker( void * data ) {
 }
 
 void InitThreadPool() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	shutting_down = false;
 	jobs_head = 0;
@@ -87,7 +89,7 @@ void InitThreadPool() {
 }
 
 void ShutdownThreadPool() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	Lock( jobs_mutex );
 	shutting_down = true;
@@ -108,7 +110,7 @@ void ShutdownThreadPool() {
 }
 
 void ThreadPoolDo( JobCallback callback, void * data ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	Lock( jobs_mutex );
 
@@ -125,7 +127,7 @@ void ThreadPoolDo( JobCallback callback, void * data ) {
 }
 
 void ParallelFor( void * datum, size_t n, size_t stride, JobCallback callback ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	Lock( jobs_mutex );
 
@@ -146,7 +148,7 @@ void ParallelFor( void * datum, size_t n, size_t stride, JobCallback callback ) 
 }
 
 void ThreadPoolFinish() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	Lock( jobs_mutex );
 

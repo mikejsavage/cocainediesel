@@ -338,7 +338,7 @@ static void ParseMaterialPass( Material * material, Span< const char > name, Spa
 }
 
 static bool ParseMaterial( Material * material, Span< const char > name, Span< const char > * data ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	bool seen_pass = false;
 	while( true ) {
@@ -379,7 +379,7 @@ static void UnloadTexture( u64 idx ) {
 }
 
 static u64 AddTexture( const char * name, u64 hash, const TextureConfig & config ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	assert( num_textures < ARRAY_COUNT( textures ) );
 
@@ -409,7 +409,7 @@ static u64 AddTexture( const char * name, u64 hash, const TextureConfig & config
 }
 
 static void LoadBuiltinTextures() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	{
 		u8 white = 255;
@@ -455,8 +455,8 @@ static void LoadBuiltinTextures() {
 }
 
 static void LoadSTBTexture( const char * path, u8 * pixels, int w, int h, int channels, const char * failure_reason ) {
-	ZoneScoped;
-	ZoneText( path, strlen( path ) );
+	TracyZoneScoped;
+	TracyZoneText( path, strlen( path ) );
 
 	if( pixels == NULL ) {
 		Com_Printf( S_COLOR_YELLOW "WARNING: couldn't load texture from %s: %s\n", path, failure_reason );
@@ -605,7 +605,7 @@ static BC4Block FastBC4( Span2D< const RGBA8 > rgba ) {
 }
 
 static Span2D< BC4Block > RGBAToBC4( Span2D< const RGBA8 > rgba ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	Span2D< BC4Block > bc4 = ALLOC_SPAN2D( sys_allocator, BC4Block, rgba.w / 4, rgba.h / 4 );
 
@@ -636,7 +636,7 @@ static Span2D< const BC4Block > GetMipmap( const Material * material, u32 mipmap
 }
 
 static void PackDecalAtlas() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	decals_hashtable.clear();
 
@@ -681,7 +681,7 @@ static void PackDecalAtlas() {
 	u32 num_unpacked = num_decals;
 	u32 num_layers = 0;
 	while( true ) {
-		ZoneScopedN( "stb_rect_pack iteration" );
+		TracyZoneScopedN( "stb_rect_pack iteration" );
 
 		stbrp_node nodes[ MAX_TEXTURES ];
 		stbrp_context packer;
@@ -789,7 +789,7 @@ static void PackDecalAtlas() {
 
 	// upload atlases
 	{
-		ZoneScopedN( "Upload atlas" );
+		TracyZoneScopedN( "Upload atlas" );
 
 		DeleteTextureArray( decals_atlases );
 
@@ -806,7 +806,7 @@ static void PackDecalAtlas() {
 }
 
 void InitMaterials() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	num_textures = 0;
 	num_materials = 0;
@@ -831,11 +831,11 @@ void InitMaterials() {
 	LoadBuiltinTextures();
 
 	{
-		ZoneScopedN( "Load disk textures" );
+		TracyZoneScopedN( "Load disk textures" );
 
 		DynamicArray< DecodeSTBTextureJob > jobs( sys_allocator );
 		{
-			ZoneScopedN( "Build job list" );
+			TracyZoneScopedN( "Build job list" );
 
 			for( const char * path : AssetPaths() ) {
 				Span< const char > ext = FileExtension( path );
@@ -861,8 +861,8 @@ void InitMaterials() {
 		ParallelFor( jobs.span(), []( TempAllocator * temp, void * data ) {
 			DecodeSTBTextureJob * job = ( DecodeSTBTextureJob * ) data;
 
-			ZoneScopedN( "stbi_load_from_memory" );
-			ZoneText( job->in.path, strlen( job->in.path ) );
+			TracyZoneScopedN( "stbi_load_from_memory" );
+			TracyZoneText( job->in.path, strlen( job->in.path ) );
 
 			job->out.pixels = stbi_load_from_memory( job->in.data.ptr, job->in.data.num_bytes(), &job->out.width, &job->out.height, &job->out.channels, 0 );
 		} );
@@ -873,7 +873,7 @@ void InitMaterials() {
 	}
 
 	{
-		ZoneScopedN( "Load materials" );
+		TracyZoneScopedN( "Load materials" );
 
 		for( const char * path : AssetPaths() ) {
 			// game crashes if we load materials with no texture,
@@ -892,7 +892,7 @@ void InitMaterials() {
 }
 
 void HotloadMaterials() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	bool changes = false;
 
@@ -905,8 +905,8 @@ void HotloadMaterials() {
 			int w, h, channels;
 			u8 * pixels;
 			{
-				ZoneScopedN( "stbi_load_from_memory" );
-				ZoneText( path, strlen( path ) );
+				TracyZoneScopedN( "stbi_load_from_memory" );
+				TracyZoneText( path, strlen( path ) );
 				pixels = stbi_load_from_memory( data.ptr, data.num_bytes(), &w, &h, &channels, 0 );
 			}
 

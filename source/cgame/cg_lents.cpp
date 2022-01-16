@@ -27,7 +27,7 @@ void InitGibs() {
 }
 
 void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int count = Min2( damage * 3 / 2, 60 );
 
@@ -83,7 +83,7 @@ static void GibImpact( Vec3 pos, Vec3 normal, Vec4 color, float scale ) {
 }
 
 void DrawGibs() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	float dt = cls.frametime * 0.001f;
 

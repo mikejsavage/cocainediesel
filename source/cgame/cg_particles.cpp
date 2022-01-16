@@ -563,8 +563,8 @@ static bool ParseVisualEffectGroup( VisualEffectGroup * group, Span< const char 
 }
 
 static void LoadVisualEffect( const char * path ) {
-	ZoneScoped;
-	ZoneText( path, strlen( path ) );
+	TracyZoneScoped;
+	TracyZoneText( path, strlen( path ) );
 
 	Span< const char > data = AssetString( path );
 	u64 hash = Hash64( path, strlen( path ) - strlen( ".cdvfx" ) );
@@ -673,7 +673,7 @@ void ShutdownParticleSystems() {
 }
 
 void InitVisualEffects() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	ShutdownParticleSystems();
 
@@ -687,7 +687,7 @@ void InitVisualEffects() {
 }
 
 void HotloadVisualEffects() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	bool restart_systems = false;
 	for( const char * path : ModifiedAssetPaths() ) {
@@ -788,12 +788,12 @@ bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
 };
 
 void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
-	ZoneScopedN( "Update particles" );
+	TracyZoneScopedN( "Update particles" );
 
 	size_t previous_num_particles = ps->num_particles;
 
 	{
-		ZoneScopedN( "Despawn expired particles" );
+		TracyZoneScopedN( "Despawn expired particles" );
 
 		if( ps->feedback ) {
 			ReadGPUBuffer( ps->vb_feedback, ps->particles_feedback.begin(), ps->num_particles * sizeof( GPUParticleFeedback ) );
@@ -820,7 +820,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	}
 
 	{
-		ZoneScopedN( "Spawn new particles" );
+		TracyZoneScopedN( "Spawn new particles" );
 		if( ps->new_particles > 0 ) {
 			WriteGPUBuffer( ps->vb, ps->particles.begin(), ps->new_particles * sizeof( GPUParticle ), previous_num_particles * sizeof( GPUParticle ) );
 			for( size_t i = 0; i < ps->new_particles; i++ ) {
@@ -836,12 +836,12 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	ps->new_particles = 0;
 
 	{
-		ZoneScopedN( "Upload index buffer" );
+		TracyZoneScopedN( "Upload index buffer" );
 		WriteGPUBuffer( ps->ibo, ps->gpu_instances.begin(), ps->num_particles * sizeof( ps->gpu_instances[ 0 ] ) );
 	}
 
 	{
-		ZoneScopedN( "Reset order" );
+		TracyZoneScopedN( "Reset order" );
 		for( size_t i = 0; i < ps->num_particles; i++ ) {
 			ps->gpu_instances[ i ] = i;
 		}
@@ -852,7 +852,7 @@ void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	if( ps->num_particles == 0 )
 		return;
 
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( ps->feedback ) {
 		UpdateParticlesFeedback( ps->update_mesh, ps->vb, ps->vb2, ps->vb_feedback, ps->radius, ps->num_particles, dt );
@@ -886,8 +886,8 @@ void DrawParticles() {
 		}
 	}
 
-	TracyPlot( "Particles", total_particles );
-	TracyPlot( "New Particles", total_new_particles );
+	TracyCPlot( "Particles", total_particles );
+	TracyCPlot( "New Particles", total_new_particles );
 
 	if( cg_particleDebug != NULL && cg_particleDebug->integer ) {
 		const ImGuiIO & io = ImGui::GetIO();
@@ -917,7 +917,7 @@ void DrawParticles() {
 }
 
 static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float rotation, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 start_color, Vec4 end_color, float start_size, float end_size, u32 flags ) {
-	ZoneScopedN( "Store Particle" );
+	TracyZoneScopedN( "Store Particle" );
 	if( ps->num_particles + ps->new_particles == ps->max_particles )
 		return;
 
@@ -950,7 +950,7 @@ static float SampleRandomDistribution( RNG * rng, RandomDistribution dist ) {
 }
 
 static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, ParticleEmitterPosition pos, float t, Vec4 start_color, Vec4 end_color, Mat4 dir_transform ) {
-	ZoneScopedN( "Emit Particle" );
+	TracyZoneScopedN( "Emit Particle" );
 	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) );
 
 	float size = Max2( 0.0f, emitter->start_size + SampleRandomDistribution( &cls.rng, emitter->size_distribution ) );
@@ -1005,7 +1005,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 }
 
 void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 color ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( emitter == NULL ) {
 		return;

@@ -136,7 +136,7 @@ void VID_CheckChanges() {
 }
 
 void VID_Init() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	vid_mode = NewCvar( "vid_mode", "", CvarFlag_Archive );
 	vid_mode->modified = false;

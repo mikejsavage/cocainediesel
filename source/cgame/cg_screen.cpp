@@ -540,7 +540,7 @@ void AddDamageEffect( float x ) {
 }
 
 void CG_Draw2DView() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( !cg.view.draw2D ) {
 		return;

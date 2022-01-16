@@ -204,7 +204,7 @@ static void CheckedALSourceStop( ALuint source ) {
 }
 
 static bool S_InitAL() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	al_device = NULL;
 
@@ -272,8 +272,8 @@ struct DecodeSoundJob {
 };
 
 static void AddSound( const char * path, int num_samples, int channels, int sample_rate, s16 * samples ) {
-	ZoneScoped;
-	ZoneText( path, strlen( path ) );
+	TracyZoneScoped;
+	TracyZoneText( path, strlen( path ) );
 
 	if( num_samples == -1 ) {
 		Com_Printf( S_COLOR_RED "Couldn't decode sound %s\n", path );
@@ -327,11 +327,11 @@ static void AddSound( const char * path, int num_samples, int channels, int samp
 }
 
 static void LoadSounds() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	DynamicArray< DecodeSoundJob > jobs( sys_allocator );
 	{
-		ZoneScopedN( "Build job list" );
+		TracyZoneScopedN( "Build job list" );
 
 		for( const char * path : AssetPaths() ) {
 			if( FileExtension( path ) == ".ogg" ) {
@@ -351,8 +351,8 @@ static void LoadSounds() {
 	ParallelFor( jobs.span(), []( TempAllocator * temp, void * data ) {
 		DecodeSoundJob * job = ( DecodeSoundJob * ) data;
 
-		ZoneScopedN( "stb_vorbis_decode_memory" );
-		ZoneText( job->in.path, strlen( job->in.path ) );
+		TracyZoneScopedN( "stb_vorbis_decode_memory" );
+		TracyZoneText( job->in.path, strlen( job->in.path ) );
 
 		job->out.num_samples = stb_vorbis_decode_memory( job->in.ogg.ptr, job->in.ogg.num_bytes(), &job->out.channels, &job->out.sample_rate, &job->out.samples );
 	} );
@@ -363,7 +363,7 @@ static void LoadSounds() {
 }
 
 static void HotloadSounds() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( const char * path : ModifiedAssetPaths() ) {
 		if( FileExtension( path ) == ".ogg" ) {
@@ -372,8 +372,8 @@ static void HotloadSounds() {
 			int num_samples, channels, sample_rate;
 			s16 * samples;
 			{
-				ZoneScopedN( "stb_vorbis_decode_memory" );
-				ZoneText( path, strlen( path ) );
+				TracyZoneScopedN( "stb_vorbis_decode_memory" );
+				TracyZoneText( path, strlen( path ) );
 				num_samples = stb_vorbis_decode_memory( ogg.ptr, ogg.num_bytes(), &channels, &sample_rate, &samples );
 			}
 
@@ -495,8 +495,8 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 }
 
 static void LoadSoundEffect( const char * path ) {
-	ZoneScoped;
-	ZoneText( path, strlen( path ) );
+	TracyZoneScoped;
+	TracyZoneText( path, strlen( path ) );
 
 	Span< const char > data = AssetString( path );
 	u64 base_hash = Hash64( BasePath( path ) );
@@ -520,7 +520,7 @@ static void LoadSoundEffect( const char * path ) {
 }
 
 static void LoadSoundEffects() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( const char * path : AssetPaths() ) {
 		if( FileExtension( path ) == ".cdsfx" ) {
@@ -530,7 +530,7 @@ static void LoadSoundEffects() {
 }
 
 static void HotloadSoundEffects() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( const char * path : ModifiedAssetPaths() ) {
 		if( FileExtension( path ) == ".cdsfx" ) {
@@ -540,7 +540,7 @@ static void HotloadSoundEffects() {
 }
 
 bool S_Init() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	num_sounds = 0;
 	num_sound_effects = 0;
@@ -570,7 +570,7 @@ bool S_Init() {
 }
 
 void S_Shutdown() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( !initialized )
 		return;
@@ -687,7 +687,7 @@ static void StopSound( PlayingSound * ps, u8 i ) {
 }
 
 void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( !initialized )
 		return;

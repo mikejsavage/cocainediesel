@@ -1,5 +1,27 @@
 #pragma once
 
+/*
+ * defer
+ */
+
+template< typename F >
+struct ScopeExit {
+	ScopeExit( F f_ ) : f( f_ ) { }
+	~ScopeExit() { f(); }
+	F f;
+};
+
+struct DeferHelper {
+	template< typename F >
+	ScopeExit< F > operator+( F f ) { return f; }
+};
+
+#define defer const auto & COUNTER_NAME( DEFER_ ) = DeferHelper() + [&]()
+
+/*
+ * includes
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,8 +32,7 @@
 #include "gg/ggformat.h"
 #include "qcommon/allocators.h"
 #include "qcommon/linear_algebra.h"
-
-#include "tracy/Tracy.hpp"
+#include "qcommon/tracy.h"
 
 /*
  * helpers
@@ -43,24 +64,6 @@ void FatalImpl( const char * file, int line, const char * format, ... ) __attrib
 void FatalImpl( const char * file, int line, _Printf_format_string_ const char * format, ... );
 #endif
 void FatalErrno( const char * msg );
-
-/*
- * defer
- */
-
-template< typename F >
-struct ScopeExit {
-	ScopeExit( F f_ ) : f( f_ ) { }
-	~ScopeExit() { f(); }
-	F f;
-};
-
-struct DeferHelper {
-	template< typename F >
-	ScopeExit< F > operator+( F f ) { return f; }
-};
-
-#define defer const auto & COUNTER_NAME( DEFER_ ) = DeferHelper() + [&]()
 
 /*
  * Span

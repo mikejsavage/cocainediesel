@@ -266,7 +266,7 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 * command from the console or progs.
 */
 void SV_Map( const char * map, bool devmap ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( svs.demo.file ) {
 		SV_Demo_Stop_f();

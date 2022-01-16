@@ -347,7 +347,7 @@ static inline int CM_PatchContents( cface_t *patch, Vec3 p ) {
 }
 
 static int CM_PointContents( CollisionModel *cms, Vec3 p, cmodel_t *cmodel ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int superContents;
 	int nummarkfaces, nummarkbrushes;
@@ -450,7 +450,7 @@ BOX TRACING
 #define DIST_EPSILON    ( 1.0f / 32.0f )
 
 static void CM_ClipBoxToBrush( traceWork_t *tw, const cbrush_t *brush ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( !brush->numsides ) {
 		return;
@@ -546,7 +546,7 @@ static void CM_ClipBoxToBrush( traceWork_t *tw, const cbrush_t *brush ) {
 }
 
 static void CM_TestBoxInBrush( traceWork_t *tw, const cbrush_t *brush ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( !brush->numsides ) {
 		return;
@@ -575,7 +575,7 @@ static void CM_TestBoxInBrush( traceWork_t *tw, const cbrush_t *brush ) {
 }
 
 static void CM_CollideBox( traceWork_t *tw, const int *markbrushes, int nummarkbrushes, const int *markfaces, int nummarkfaces, void ( *func )( traceWork_t *, const cbrush_t *b ) ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	const cbrush_t *brushes = tw->brushes;
 	const cface_t *faces = tw->faces;
@@ -724,7 +724,7 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 	Vec3 start, Vec3 end, Vec3 mins, Vec3 maxs,
 	const cmodel_t *cmodel, Vec3 origin, int brushmask ) {
 
-	ZoneScoped;
+	TracyZoneScoped;
 
 	bool world = cmodel->hash == cms->world_hash;
 
@@ -832,7 +832,7 @@ static void CM_BoxTrace( traceWork_t *tw, CollisionModel *cms, trace_t *tr,
 */
 void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, Vec3 start, Vec3 end, Vec3 mins, Vec3 maxs,
 							 const cmodel_t *cmodel, int brushmask, Vec3 origin, Vec3 angles ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	Vec3 start_l, end_l;
 	Vec3 a, temp;

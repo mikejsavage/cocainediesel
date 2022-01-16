@@ -76,7 +76,7 @@ static void ParseMaterialLine( Material * material, Span< const char > line ) {
 }
 
 static Span< const char > ParseMaterial( Span< const char > str ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( num_materials == ARRAY_COUNT( materials ) ) {
 		Fatal( "Too many materials" );
@@ -107,8 +107,8 @@ static Span< const char > ParseMaterial( Span< const char > str ) {
 }
 
 static void LoadShaderFile( const char * path ) {
-	ZoneScoped;
-	ZoneText( path, strlen( path ) );
+	TracyZoneScoped;
+	TracyZoneText( path, strlen( path ) );
 
 	if( num_shader_files == ARRAY_COUNT( shader_files ) ) {
 		Fatal( "Too many shader files" );
@@ -157,7 +157,7 @@ static void LoadMaterialsRecursive( Allocator * a, DynamicString * path ) {
 }
 
 void InitMaterials() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	num_shader_files = 0;
 	num_materials = 0;
@@ -167,7 +167,7 @@ void InitMaterials() {
 }
 
 void ShutdownMaterials() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( u32 i = 0; i < num_shader_files; i++ ) {
 		FREE( sys_allocator, shader_files[ i ] );

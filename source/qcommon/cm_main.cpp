@@ -160,7 +160,7 @@ MAP LOADING
 * Loads in the map and all submodels
 */
 CollisionModel * CM_LoadMap( CModelServerOrClient soc, Span< const u8 > data, u64 base_hash ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	CollisionModel * cms = ALLOC( sys_allocator, CollisionModel );
 	*cms = { };

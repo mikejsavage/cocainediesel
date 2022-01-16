@@ -17,6 +17,8 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 
+#include "tracy/Tracy.hpp"
+
 FrameStatic frame_static;
 
 static Texture blue_noise;
@@ -101,7 +103,7 @@ static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 }
 
 void InitRenderer() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	InitRenderBackend();
 
@@ -177,7 +179,7 @@ static void DeleteFramebuffers() {
 }
 
 void ShutdownRenderer() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	ShutdownModels();
 	ShutdownSkybox();
@@ -505,7 +507,7 @@ static Mat4 InverseScaleTranslation( Mat4 m ) {
 }
 
 void SetupShadowCascades() {
-	ZoneScoped;
+	TracyZoneScoped;
 	const float near_plane = 4.0f;
 	// const float cascade_dist[ 5 ] = { near_plane, 256.0f, 768.0f, 2304.0f, 6912.0f };
 	// const float cascade_dist[ 5 ] = { near_plane, 16.0f, 64.0f, 512.0f, 4096.0f };

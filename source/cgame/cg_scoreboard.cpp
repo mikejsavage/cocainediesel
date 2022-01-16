@@ -118,7 +118,7 @@ static void DrawTeamScoreboard( TempAllocator & temp, int team, float col_width,
 }
 
 void CG_DrawScoreboard() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	TempAllocator temp = cls.frame_arena.temp();
 

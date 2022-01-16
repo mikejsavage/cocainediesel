@@ -660,7 +660,7 @@ static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
 }
 
 void DrawEntities() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
 		SyncEntityState * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
@@ -790,7 +790,7 @@ void DrawEntities() {
 * Interpolate the entity states positions into the entity_t structs
 */
 void CG_LerpEntities() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
 		SyncEntityState * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
@@ -857,7 +857,7 @@ void CG_LerpEntities() {
 * Called at receiving a new serverframe. Sets up the model, type, etc to be drawn later on
 */
 void CG_UpdateEntities() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
 		SyncEntityState * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];

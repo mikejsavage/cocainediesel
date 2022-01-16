@@ -974,7 +974,7 @@ static void CL_ShutdownLocal() {
 * CL_AdjustServerTime - adjust delta to new frame snap timestamp
 */
 void CL_AdjustServerTime( unsigned int gameMsec ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	// hurry up if coming late (unless in demos)
 	if( !cls.demo.playing ) {
@@ -1053,7 +1053,7 @@ int CL_SmoothTimeDeltas() {
 * CL_UpdateSnapshot - Check for pending snapshots, and fire if needed
 */
 void CL_UpdateSnapshot() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	snapshot_t  *snap;
 	int i;
@@ -1197,7 +1197,7 @@ void CL_SendMessagesToServer( bool sendNow ) {
 }
 
 static void CL_NetFrame( int realMsec, int gameMsec ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	// read packets from server
 	if( realMsec > 5000 ) { // if in the debugger last frame, don't timeout
@@ -1223,11 +1223,11 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 }
 
 void CL_Frame( int realMsec, int gameMsec ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	LivePPFrame();
 
-	TracyPlot( "Client frame arena max utilisation", cls.frame_arena.max_utilisation() );
+	TracyCPlot( "Client frame arena max utilisation", cls.frame_arena.max_utilisation() );
 	cls.frame_arena.clear();
 
 	u64 entropy[ 2 ];
@@ -1289,7 +1289,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		return;
 	}
 
-	FrameMark;
+	TracyCFrameMark;
 
 	DoneHotloadingAssets();
 	if( cl_hotloadAssets->integer != 0 ) {
@@ -1331,7 +1331,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 }
 
 void CL_Init() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	InitLivePP();
 
@@ -1405,7 +1405,7 @@ void CL_Init() {
 }
 
 void CL_Shutdown() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( !cl_initialized ) {
 		return;

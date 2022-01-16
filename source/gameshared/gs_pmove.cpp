@@ -87,7 +87,7 @@ static void PM_AddTouchEnt( int entNum ) {
 
 
 static int PM_SlideMove() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	Vec3 planes[MAX_CLIP_PLANES];
 	constexpr int maxmoves = 4;
@@ -225,7 +225,7 @@ static int PM_SlideMove() {
 * sliding along it.
 */
 static void PM_StepSlideMove() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	trace_t trace;
 
@@ -393,7 +393,7 @@ static Vec3 PM_LadderMove( Vec3 wishvel ) {
 }
 
 static void PM_WaterMove() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	// user intentions
 	Vec3 wishvel = pml.forward * pml.forwardPush + pml.right * pml.sidePush;
@@ -416,7 +416,7 @@ static void PM_WaterMove() {
 }
 
 static void PM_Move() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	float fmove = pml.forwardPush;
 	float smove = pml.sidePush;
@@ -529,7 +529,7 @@ static bool PM_GoodPosition( Vec3 origin, trace_t *trace ) {
 }
 
 static void PM_UnstickPosition( trace_t *trace ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	Vec3 origin = pml.origin;
 
@@ -553,7 +553,7 @@ static void PM_UnstickPosition( trace_t *trace ) {
 }
 
 static void PM_CategorizePosition() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( pml.velocity.z > 180 ) { // !!ZOID changed from 100 to 180 (ramp accel)
 		pm->playerState->pmove.pm_flags &= ~PMF_ON_GROUND;
@@ -879,7 +879,7 @@ static void PM_EndMove() {
 }
 
 void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( !pmove->playerState ) {
 		return;

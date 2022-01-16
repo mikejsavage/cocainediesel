@@ -248,7 +248,7 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 }
 
 static float ParseFogStrength( const BSPSpans * bsp ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	Span< const char > key = ParseWorldspawnKey( bsp->entities, "fog_strength" );
 	return SpanToFloat( key, 0.0007f );
@@ -335,7 +335,7 @@ static int Order2BezierSubdivisions( Vec3 control0, Vec3 control1, Vec3 control2
 }
 
 static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex > & vertices, const BSPSpans & bsp, size_t model_idx ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	const BSPModel & bsp_model = bsp.models[ model_idx ];
 	if( bsp_model.num_faces == 0 )
@@ -412,7 +412,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 		}
 
 		if( dc.patch ) {
-			ZoneScopedN( "Generate patch" );
+			TracyZoneScopedN( "Generate patch" );
 
 			u32 num_patches_x = ( dc.patch_width - 1 ) / 2;
 			u32 num_patches_y = ( dc.patch_height - 1 ) / 2;
@@ -498,7 +498,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 	TempAllocator temp = cls.frame_arena.temp();
 
 	{
-		ZoneScopedN( "Upload to GPU" );
+		TracyZoneScopedN( "Upload to GPU" );
 
 		MeshConfig mesh_config;
 		mesh_config.name = temp( "{} models[{}]", filename, model_idx );
@@ -529,7 +529,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 }
 
 bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< const u8 > data ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	BSPSpans bsp;
 	if( !ParseBSP( &bsp, data ) )

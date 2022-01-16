@@ -242,7 +242,7 @@ static void CG_ClipMoveToEntities( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, i
 }
 
 void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	// check against world
 	CM_TransformedBoxTrace( CM_Client, cl.map->cms, t, start, end, mins, maxs, NULL, contentmask, Vec3( 0.0f ), Vec3( 0.0f ) );
@@ -256,7 +256,7 @@ void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignor
 }
 
 int CG_PointContents( Vec3 point ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int contents = CM_TransformedPointContents( CM_Client, cl.map->cms, point, NULL, Vec3( 0.0f ), Vec3( 0.0f ) );
 
@@ -333,7 +333,7 @@ static void CG_PredictSmoothSteps() {
 * Sets cg.predictedVelocty, cg.predictedOrigin and cg.predictedAngles
 */
 void CG_PredictMovement() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int64_t ucmdExecuted, ucmdHead;
 	int64_t frame;

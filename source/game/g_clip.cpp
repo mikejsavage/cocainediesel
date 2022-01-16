@@ -640,7 +640,7 @@ static cmodel_t *GClip_CollisionModelForEntity( SyncEntityState *s, entity_share
 * Quake 2 extends this to also check entities, to allow moving liquids
 */
 static int GClip_PointContents( Vec3 p, int timeDelta ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	c4clipedict_t *clipEnt;
 	int touch[MAX_EDICTS];
@@ -690,7 +690,7 @@ typedef struct {
 * GClip_ClipMoveToEntities
 */
 static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int touchlist[MAX_EDICTS];
 	int num = GClip_AreaEdicts( clip->boxmins, clip->boxmaxs, touchlist, MAX_EDICTS, AREA_SOLID, timeDelta );
@@ -792,7 +792,7 @@ static void GClip_TraceBounds( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, Vec3 
 */
 static void GClip_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs,
 						 Vec3 end, edict_t *passedict, int contentmask, int timeDelta ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	moveclip_t clip;
 

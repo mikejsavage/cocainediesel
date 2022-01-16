@@ -152,7 +152,7 @@ static UniformBlock UploadPostprocessUniforms( PostprocessUniforms uniforms ) {
 }
 
 static void SubmitPostprocessPass() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.postprocess_pass;

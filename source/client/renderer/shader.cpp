@@ -8,8 +8,8 @@
 Shaders shaders;
 
 static void BuildShaderSrcs( const char * path, const char * defines, DynamicArray< const char * > * srcs, DynamicArray< int > * lengths ) {
-	ZoneScoped;
-	ZoneText( path, strlen( path ) );
+	TracyZoneScoped;
+	TracyZoneText( path, strlen( path ) );
 
 	srcs->clear();
 	lengths->clear();
@@ -61,7 +61,7 @@ static void BuildShaderSrcs( const char * path, const char * defines, DynamicArr
 }
 
 static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Span< const char * > feedback_varyings = Span< const char * >(), bool particle_vertex_attribs = false ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	Shader new_shader;
 	if( !NewShader( &new_shader, srcs, lens, feedback_varyings, particle_vertex_attribs ) )
@@ -72,7 +72,7 @@ static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int
 }
 
 static void LoadShaders() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	TempAllocator temp = cls.frame_arena.temp();
 	DynamicArray< const char * > srcs( &temp );

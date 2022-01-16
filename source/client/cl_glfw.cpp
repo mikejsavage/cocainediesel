@@ -289,7 +289,7 @@ static WindowMode CompleteWindowMode( WindowMode mode ) {
 }
 
 void CreateWindow( WindowMode mode ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_API );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
@@ -326,7 +326,7 @@ void CreateWindow( WindowMode mode ) {
 	glfwGetFramebufferSize( window, &framebuffer_width, &framebuffer_height );
 
 	{
-		ZoneScopedN( "Set window icon" );
+		TracyZoneScopedN( "Set window icon" );
 
 		GLFWimage icon;
 		icon.pixels = stbi_load_from_memory( icon_png, icon_png_len, &icon.width, &icon.height, NULL, 4 );
@@ -349,7 +349,7 @@ void CreateWindow( WindowMode mode ) {
 	glfwMakeContextCurrent( window );
 
 	{
-		ZoneScopedN( "Load OpenGL" );
+		TracyZoneScopedN( "Load OpenGL" );
 		if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
 			Fatal( "Couldn't load GL" );
 		}
@@ -357,7 +357,7 @@ void CreateWindow( WindowMode mode ) {
 }
 
 void DestroyWindow() {
-	ZoneScoped;
+	TracyZoneScoped;
 	glfwDestroyWindow( window );
 }
 
@@ -484,7 +484,7 @@ void GlfwInputFrame() {
 }
 
 void SwapBuffers() {
-	ZoneScoped;
+	TracyZoneScoped;
 	glfwSwapBuffers( window );
 }
 
@@ -492,7 +492,7 @@ int main( int argc, char ** argv ) {
 	running_in_debugger = !is_public_build && Sys_BeingDebugged();
 
 	{
-		ZoneScopedN( "Init GLFW" );
+		TracyZoneScopedN( "Init GLFW" );
 
 		glfwSetErrorCallback( OnGlfwError );
 
@@ -512,7 +512,7 @@ int main( int argc, char ** argv ) {
 		int64_t newtime;
 		int dt;
 		{
-			ZoneScopedN( "Interframe" );
+			TracyZoneScopedN( "Interframe" );
 
 			// find time spent rendering last frame
 			do {

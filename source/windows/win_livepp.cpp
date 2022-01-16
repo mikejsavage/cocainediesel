@@ -15,7 +15,7 @@ void InitLivePP() {
 	if( is_public_build )
 		return;
 
-	ZoneScoped;
+	TracyZoneScoped;
 	livepp = LoadLibraryW( L"livepp_shim.dll" );
 	if( livepp == NULL )
 		return;
@@ -29,7 +29,7 @@ void InitLivePP() {
 }
 
 void LivePPFrame() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( livepp_Frame != NULL ) {
 		livepp_Frame();

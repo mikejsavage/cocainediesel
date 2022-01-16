@@ -40,7 +40,7 @@ static void CL_UpdateGameInput( Vec2 movement, int frameTime ) {
 }
 
 void CL_UserInputFrame( int realMsec ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	// Grab input before possibly resetting it in GlfwInputFrame
 	Vec2 movement = GetMouseMovement();

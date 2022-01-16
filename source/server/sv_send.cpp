@@ -359,7 +359,7 @@ static bool SV_SendClientDatagram( client_t *client ) {
 }
 
 void SV_SendClientMessages() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i;
 	client_t *client;

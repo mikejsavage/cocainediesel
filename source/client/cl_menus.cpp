@@ -1230,7 +1230,7 @@ static void DemoMenu() {
 }
 
 void UI_Refresh() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( uistate == UIState_Hidden && !Con_IsVisible() ) {
 		return;

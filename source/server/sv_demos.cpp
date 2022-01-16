@@ -48,7 +48,7 @@ static void SV_Demo_WriteStartMessages() {
 }
 
 void SV_Demo_WriteSnap() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i;
 	msg_t msg;

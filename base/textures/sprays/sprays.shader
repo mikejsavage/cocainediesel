@@ -3222,14 +3222,6 @@ textures/sprays/smhbro
 	decal
 }
 
-textures/sprays/smile
-{
-	{
-		map textures/sprays/smile
-	}
-	decal
-}
-
 textures/sprays/smile1
 {
 	{
@@ -3246,26 +3238,34 @@ textures/sprays/smile2
 	decal
 }
 
-textures/sprays/smiley1
+textures/sprays/smile3
 {
 	{
-		map textures/sprays/smiley1
+		map textures/sprays/smile3
 	}
 	decal
 }
 
-textures/sprays/smiley2
+textures/sprays/smile4
 {
 	{
-		map textures/sprays/smiley2
+		map textures/sprays/smile4
 	}
 	decal
 }
 
-textures/sprays/smiley3
+textures/sprays/smile5
 {
 	{
-		map textures/sprays/smiley3
+		map textures/sprays/smile5
+	}
+	decal
+}
+
+textures/sprays/smile6
+{
+	{
+		map textures/sprays/smile6
 	}
 	decal
 }

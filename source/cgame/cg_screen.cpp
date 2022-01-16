@@ -247,7 +247,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 		}
 
 		trace_t trace;
-		Vec3 headpos = Vec3( 0.0f, 0.0f, 34.0f * cent->current.scale.z );
+		Vec3 headpos = Vec3( 0.0f, 0.0f, 34.0f * cent->interpolated.scale.z );
 		CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), cent->interpolated.origin + headpos, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
 		if( trace.fraction < 1.0f && trace.ent != cent->current.number ) {
 			continue;

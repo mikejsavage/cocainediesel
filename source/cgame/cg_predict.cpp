@@ -369,7 +369,7 @@ void CG_PredictMovement() {
 	// copy current state to pmove
 	memset( &pm, 0, sizeof( pm ) );
 	pm.playerState = &cg.predictedPlayerState;
-	pm.scale = cg_entities[cg.frame.playerState.POVnum].current.scale;
+	pm.scale = cg_entities[cg.frame.playerState.POVnum].interpolated.scale;
 
 	// clear the triggered toggles for this prediction round
 	memset( &cg_triggersListTriggered, false, sizeof( cg_triggersListTriggered ) );

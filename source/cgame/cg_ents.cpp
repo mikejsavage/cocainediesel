@@ -340,11 +340,7 @@ const cmodel_t *CG_CModelForEntity( int entNum ) {
 static void CG_UpdateGenericEnt( centity_t *cent ) {
 	// start from clean
 	memset( &cent->interpolated, 0, sizeof( cent->interpolated ) );
-	cent->interpolated.scale = 1.0f;
-	cent->interpolated.color = RGBA8( CG_TeamColor( cent->current.team ) );
-
-	// set up the model
-	cent->interpolated.model = FindModel( cent->current.model );
+	cent->interpolated.color = RGBA8( CG_TeamColor( cent->prev.team ) );
 }
 
 void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
@@ -425,23 +421,26 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 		}
 	}
 
-	cent->interpolated.animating = cent->current.animating;
+	cent->interpolated.scale = Lerp( cent->prev.scale, cg.lerpfrac, cent->interpolated.scale );
+
+	cent->interpolated.animating = cent->prev.animating;
 	cent->interpolated.animation_time = Lerp( cent->prev.animation_time, cg.lerpfrac, cent->current.animation_time );
 }
 
 static void DrawEntityModel( centity_t * cent ) {
-	if( cent->interpolated.scale == 0.0f ) {
+	Vec3 scale = cent->interpolated.scale;
+	if( scale.x == 0.0f || scale.y == 0.0f || scale.z == 0.0f ) {
 		return;
 	}
 
-	if( cent->interpolated.model == NULL ) {
+	const Model * model = FindModel( cent->prev.model );
+	if( model == NULL ) {
 		return;
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	const Model * model = cent->interpolated.model;
-	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->current.scale );
+	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( scale );
 
 	Vec4 color = sRGBToLinear( cent->interpolated.color );
 

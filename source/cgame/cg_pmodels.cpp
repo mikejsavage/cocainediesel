@@ -596,7 +596,7 @@ static void CG_UpdatePModelAnimations( centity_t *cent ) {
 void CG_UpdatePlayerModelEnt( centity_t *cent ) {
 	// start from clean
 	memset( &cent->interpolated, 0, sizeof( cent->interpolated ) );
-	cent->interpolated.scale = 1.0f;
+	cent->interpolated.scale = Vec3( 1.0f );
 
 	pmodel_t * pmodel = &cg_entPModels[ cent->current.number ];
 
@@ -775,7 +775,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	MatrixPalettes pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 
-	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->current.scale );
+	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	if( corpse ) {
@@ -785,7 +785,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 	bool draw_model = !ISVIEWERENTITY( cent->current.number ) || cg.view.thirdperson;
 	bool same_team = GS_TeamBasedGametype( &client_gs ) && cg.predictedPlayerState.team == cent->current.team;
 	bool draw_silhouette = draw_model && ( ISREALSPECTATOR() || same_team );
-	
+
 	{
 		DrawModelConfig config = { };
 		config.draw_model.enabled = draw_model;
@@ -807,7 +807,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		DrawModel( config, meta->model, transform, color, pose );
 	}
 
-	Mat4 inverse_scale = Mat4Scale( 1.0f / cent->current.scale );
+	Mat4 inverse_scale = Mat4Scale( 1.0f / cent->interpolated.scale );
 
 	// add weapon model
 	{

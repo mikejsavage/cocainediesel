@@ -27,14 +27,12 @@ constexpr u32 TILE_SIZE = 32; // forward+ tile size
 constexpr float DLIGHT_CUTOFF = 0.5f;
 
 struct InterpolatedEntity {
-	const Model * model;
-
 	mat3_t axis;
 	Vec3 origin, origin2;
 
 	RGBA8 color;
 
-	float scale;
+	Vec3 scale;
 
 	bool animating;
 	float animation_time;

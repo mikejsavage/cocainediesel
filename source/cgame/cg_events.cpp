@@ -393,7 +393,7 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 		S_StartGlobalSound( sound, CHAN_AUTO, 1.0f, 1.0f, entropy );
 	}
 	else {
-		float pitch = 1.0f / cent->current.scale.z;
+		float pitch = 1.0f / cent->interpolated.scale.z;
 		cent->vsay_sound = S_ImmediateEntitySound( sound, entNum, 1.0f, pitch, false, entropy, cent->vsay_sound );
 	}
 }

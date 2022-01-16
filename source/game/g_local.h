@@ -329,6 +329,9 @@ void SP_trigger_push( edict_t * ent, const spawn_temp_t * st );
 void SP_trigger_hurt( edict_t * ent, const spawn_temp_t * st );
 void SP_trigger_key( edict_t * ent, const spawn_temp_t * st );
 
+void InitTrigger( edict_t * self );
+bool G_TriggerWait( edict_t * ent );
+
 //
 // g_clip.c
 //

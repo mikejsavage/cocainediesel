@@ -80,7 +80,7 @@
   Any player that touches this will be hurt by "dmg" points of damage once per server frame (very fast). A sizzling sound is also played while the player is being hurt.
   <integer key="dmg" name="Damage Inflicted" value="5">Number of points of damage inflicted to player per server frame (default 5 - integer values only).</integer>
   <real key="wait" name="Repeat Time" value="0.5">Time in seconds until trigger becomes re-triggerable after it's been touched (default 0.5, -1 = trigger once).</real>
-  <sound key="noise" name="Sound File">override default noise ("silent" doesn't make any noise)</sound>  
+  <sound key="noise" name="Sound File">override default noise ("silent" doesn't make any noise)</sound>
   <flag key="START_OFF" name="Start Disabled" bit="0">Needs to be triggered (toggle) for damage.</flag>
   <flag key="TOGGLE" name="Toggle" bit="1">Allows trigger_hurt to be toggled on/off.</flag>
   <flag key="SILENT" name="Silent" bit="2">Suppresses the sizzling sound while player is being hurt.</flag>
@@ -120,6 +120,14 @@
   <texture key="material" name="material">Name of material</texture>
   <real key="radius" name="radius">Decal radius</real>
   <color key="color" name="color">Decal color, RGBA 0-255</color>
+</point>
+
+<point name="jumppad" color="0 .5 0" box="-32 -32 0 32 32 24">
+  A jumppad
+  <target key="target" name="Target">this points to the target_position to which the player will jump.</target>
+  <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
+  <model key="model" name="Model File" value="entities/jumppad/model.glb">Don't touch this</model>
+  <flag key="PAINKILLER" name="PAINKILLER" bit="0">Player keeps sideways momentum</flag>
 </point>
 
 <point name="spike" color="1 0 0" box="-16 -16 -16 16 16 16">

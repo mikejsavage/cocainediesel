@@ -748,7 +748,7 @@ void DrawEntities() {
 
 			case ET_JUMPPAD:
 			case ET_PAINKILLER_JUMPPAD:
-				CG_EntityLoopSound( cent, state );
+				DrawEntityModel( cent );
 				break;
 
 			case ET_EVENT:
@@ -798,6 +798,8 @@ void CG_LerpEntities() {
 
 		switch( cent->type ) {
 			case ET_GENERIC:
+			case ET_JUMPPAD:
+			case ET_PAINKILLER_JUMPPAD:
 			case ET_ROCKET:
 			case ET_ARBULLET:
 			case ET_BUBBLE:
@@ -823,10 +825,6 @@ void CG_LerpEntities() {
 
 			case ET_LASERBEAM:
 				CG_LerpLaserbeamEnt( cent );
-				break;
-
-			case ET_JUMPPAD:
-			case ET_PAINKILLER_JUMPPAD:
 				break;
 
 			case ET_EVENT:

@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Called always when using a trigger that supports wait flag
 * Returns true if the trigger shouldn't be activated
 */
-static bool G_TriggerWait( edict_t * ent ) {
+bool G_TriggerWait( edict_t * ent ) {
 	if( ent->timeStamp >= level.time ) {
 		return true;
 	}
@@ -36,7 +36,7 @@ static bool G_TriggerWait( edict_t * ent ) {
 	return false;
 }
 
-static void InitTrigger( edict_t * ent ) {
+void InitTrigger( edict_t * ent ) {
 	ent->r.solid = SOLID_TRIGGER;
 	ent->movetype = MOVETYPE_NONE;
 	GClip_SetBrushModel( ent );

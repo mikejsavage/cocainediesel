@@ -837,6 +837,7 @@ void CG_LerpEntities() {
 				break;
 
 			case ET_SPIKES:
+				CG_LerpGenericEnt( cent );
 				CG_LerpSpikes( cent );
 				break;
 

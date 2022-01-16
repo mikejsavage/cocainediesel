@@ -64,6 +64,10 @@ edict_t * G_PickRandomEnt( StringHash edict_t::* field, StringHash value ) {
 }
 
 edict_t * G_PickTarget( StringHash name ) {
+	if( name == EMPTY_HASH ) {
+		return NULL;
+	}
+
 	edict_t * cursor = NULL;
 
 	edict_t * candidates[ MAX_EDICTS ];

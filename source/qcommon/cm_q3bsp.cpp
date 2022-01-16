@@ -44,7 +44,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define LUMP_LIGHTING       14
 #define LUMP_LIGHTGRID      15
 #define LUMP_VISIBILITY     16
-#define LUMP_LIGHTARRAY     17
+#define LUMP_LIGHTARRAY_PHYSX     17
 
 #define HEADER_LUMPS        18      // 16 for IDBSP
 

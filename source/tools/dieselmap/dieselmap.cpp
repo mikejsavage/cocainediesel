@@ -13,6 +13,12 @@
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
 
+#include "physx/PxConfig.h"
+#include "physx/PxPhysicsAPI.h"
+#include "physx/cooking/PxCooking.h"
+
+using namespace physx;
+
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
 }
@@ -35,7 +41,7 @@ enum BSPLump {
 	BSPLump_Lighting_Unused,
 	BSPLump_LightGrid_Unused,
 	BSPLump_Visibility,
-	BSPLump_LightArray_Unused,
+	BSPLump_Physx,
 
 	BSPLump_Count
 };
@@ -58,7 +64,7 @@ static const char * lump_names[] = {
 	"BSPLump_Lighting_Unused",
 	"BSPLump_LightGrid_Unused",
 	"BSPLump_Visibility",
-	"BSPLump_LightArray_Unused",
+	"BSPLump_Physx",
 };
 
 struct BSPLumpLocation {
@@ -1123,7 +1129,7 @@ static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u3
 			for( size_t j = 0; j < candidate_planes.axes[ i ].n; j++ ) {
 				CandidatePlane & plane = candidate_planes.axes[ i ][ j ];
 				const MinMax3 & curr_brush_bounds = brush_bounds[ plane.brush_id ];
-				
+
 				if( curr_brush_bounds.mins[ best_axis ] < distance )
 					axis_below[ below_count++ ] = plane;
 				if( curr_brush_bounds.maxs[ best_axis ] > distance )
@@ -1187,8 +1193,7 @@ void Pack( DynamicArray< u8 > & packed, BSPHeader * header, BSPLump lump, Span< 
 		memset( &packed[ before_padding ], 0, padding );
 	}
 
-	size_t offset = packed.extend( data.num_bytes() );
-	memcpy( &packed[ offset ], data.ptr, data.num_bytes() );
+	size_t offset = packed.add_many( data.cast< const u8 >() );
 
 	header->lumps[ lump ].offset = offset;
 	header->lumps[ lump ].length = data.num_bytes();
@@ -1196,7 +1201,7 @@ void Pack( DynamicArray< u8 > & packed, BSPHeader * header, BSPLump lump, Span< 
 	ggprint( "lump {-20} is size {.2}MB\n", lump_names[ lump ], data.num_bytes() / 1000.0f / 1000.0f );
 }
 
-static void WriteBSP( TempAllocator * temp, const char * path, BSP * bsp ) {
+static void WriteBSP( TempAllocator * temp, const char * path, const BSP * bsp, Span< const u8 > cooked_physx ) {
 	TracyZoneScoped;
 
 	DynamicArray< u8 > packed( temp );
@@ -1218,6 +1223,7 @@ static void WriteBSP( TempAllocator * temp, const char * path, BSP * bsp ) {
 	Pack( packed, &header, BSPLump_Vertices, bsp->vertices->span() );
 	Pack( packed, &header, BSPLump_Indices, bsp->triangles->span() );
 	Pack( packed, &header, BSPLump_Faces, bsp->meshes->span() );
+	Pack( packed, &header, BSPLump_Physx, cooked_physx );
 
 	memcpy( &packed[ header_offset ], &header, sizeof( header ) );
 
@@ -1240,6 +1246,24 @@ Span< const char > GetKey( Span< const KeyValue > kvs, const char * key ) {
 
 	return Span< const char >( NULL, 0 );
 }
+
+static void CookPhysx( const BSP * bsp, PxOutputStream * buffer );
+
+class PhysxBuffer final : public PxOutputStream {
+	DynamicArray< u8 > buf;
+
+public:
+	PhysxBuffer( Allocator * a ) : buf( a ) { }
+
+	u32 write( const void * ptr, u32 n ) {
+		buf.add_many( Span< const u8 >( ( const u8 * ) ptr, n ) );
+		return n;
+	}
+
+	Span< const u8 > span() const {
+		return buf.span();
+	}
+};
 
 int main( int argc, char ** argv ) {
 	if( argc != 2 ) {
@@ -1448,7 +1472,14 @@ int main( int argc, char ** argv ) {
 		bsp.entities->append( "}}\n" );
 	}
 
-	WriteBSP( &temp, bsp_path.c_str(), &bsp );
+	TracyCFrameMark;
+
+	PhysxBuffer physx_buffer( &temp );
+	CookPhysx( &bsp, &physx_buffer );
+
+	TracyCFrameMark;
+
+	WriteBSP( &temp, bsp_path.c_str(), &bsp, physx_buffer.span() );
 
 	// TODO: perf
 	// - remove sorts and optimise sorts for debug
@@ -1472,4 +1503,82 @@ int main( int argc, char ** argv ) {
 	ShutdownFS();
 
 	return 0;
+}
+
+static bool PointInsideBrush( const BSP * bsp, const BSPBrush & brush, Vec3 p ) {
+	constexpr float epsilon = 0.001f;
+	for( size_t i = 0; i < brush.num_faces; i++ ) {
+		Plane plane = ( *bsp->planes )[ ( *bsp->brush_faces )[ brush.first_face + i ].planenum ];
+		if( Dot( p, plane.normal ) - plane.distance > epsilon ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static void BrushConvexHull( DynamicArray< Vec3 > * hull, const BSP * bsp, const BSPBrush & brush ) {
+	TracyZoneScoped;
+
+	for( size_t i = 0; i < brush.num_faces; i++ ) {
+		const Plane & pi = ( *bsp->planes )[ ( *bsp->brush_faces )[ brush.first_face + i ].planenum ];
+		for( size_t j = i + 1; j < brush.num_faces; j++ ) {
+			const Plane & pj = ( *bsp->planes )[ ( *bsp->brush_faces )[ brush.first_face + j ].planenum ];
+			for( size_t k = j + 1; k < brush.num_faces; k++ ) {
+				const Plane & pk = ( *bsp->planes )[ ( *bsp->brush_faces )[ brush.first_face + k ].planenum ];
+
+				Vec3 p;
+				if( !Intersect3PlanesPoint( &p, pi, pj, pk ) )
+					continue;
+
+				if( !PointInsideBrush( bsp, brush, p ) )
+					continue;
+
+				hull->add( p );
+			}
+		}
+	}
+}
+
+static void CookPhysx( const BSP * bsp, PxOutputStream * buffer ) {
+	TracyZoneScoped;
+
+	PxDefaultAllocator allocator;
+	PxDefaultErrorCallback error_callback;
+	PxFoundation * physx_foundation = PxCreateFoundation( PX_PHYSICS_VERSION, allocator, error_callback );
+	assert( physx_foundation );
+
+	PxTolerancesScale scale;
+	scale.length = 32;
+	scale.speed = 850; // TODO GRAVITY;
+	PxCookingParams params( scale );
+	params.meshWeldTolerance = 0.001f;
+	params.meshPreprocessParams = PxMeshPreprocessingFlags( PxMeshPreprocessingFlag::eWELD_VERTICES );
+	PxMidphaseDesc midphase;
+	midphase.setToDefault( PxMeshMidPhase::eBVH34 );
+	params.midphaseDesc = midphase;
+	PxCooking * physx_cooking = PxCreateCooking( PX_PHYSICS_VERSION, *physx_foundation, params );
+	assert( physx_cooking );
+
+	for( const BSPBrush & brush : *bsp->brushes ) {
+		PxConvexMeshDesc convexDesc;
+		DynamicArray< Vec3 > hull( sys_allocator );
+		BrushConvexHull( &hull, bsp, brush );
+		convexDesc.points.count = hull.size();
+		convexDesc.points.stride = sizeof( Vec3 );
+		convexDesc.points.data = hull.ptr();
+		convexDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX | PxConvexFlag::eSHIFT_VERTICES | PxConvexFlag::eCHECK_ZERO_AREA_TRIANGLES;
+
+		PxConvexMeshCookingResult::Enum result;
+		if( !physx_cooking->cookConvexMesh( convexDesc, *buffer, &result ) ) {
+			// ggprint( "cook failed\n" );
+		}
+	}
+
+	// PxDefaultMemoryInputData input(buf.getData(), buf.getSize());
+	// PxConvexMesh* convexMesh = physx_physics->createConvexMesh(input);
+	// model->collision_shapes[ model->num_collision_shapes ] = physx_physics->createShape( PxConvexMeshGeometry( convexMesh ), *physx_default_material );
+
+	physx_cooking->release();
+	physx_foundation->release();
 }

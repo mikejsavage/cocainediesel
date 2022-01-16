@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/downloads.h"
 #include "client/threadpool.h"
 #include "client/demo_browser.h"
+#include "client/physx.h"
 #include "client/server_browser.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/compression.h"
@@ -1359,6 +1360,7 @@ void CL_Init() {
 
 	ThreadPoolFinish();
 
+	InitPhysX();
 	InitRenderer();
 	InitMaps();
 
@@ -1427,6 +1429,7 @@ void CL_Shutdown() {
 	S_Shutdown();
 	ShutdownMaps();
 	ShutdownRenderer();
+	ShutdownPhysX();
 	DestroyWindow();
 
 	ShutdownDemoBrowser();

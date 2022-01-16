@@ -30,8 +30,12 @@ bin( "dieselmap", {
 	libs = {
 		"ggformat",
 		"tracy",
+		"physx",
+		"physx_cooking",
 	},
 
 	msvc_extra_ldflags = "ole32.lib",
 	gcc_extra_ldflags = "-lm -lpthread",
 } )
+
+obj_cxxflags( "source/tools/dieselmap/dieselmap.cpp", "-I libs/physx -I libs/physx/physx" )

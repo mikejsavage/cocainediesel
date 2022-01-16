@@ -175,8 +175,8 @@ local function join_libs( names )
 	for _, lib in ipairs( flatten( names ) ) do
 		local prebuilt = prebuilt_libs[ lib ]
 		if prebuilt then
-			for _, archive in ipairs( prebuilt ) do
-				table.insert( joined, "libs/" .. lib .. "/" .. prebuilt_lib_dir .. "/" .. lib_prefix .. archive .. lib_suffix )
+			for _, archive in ipairs( prebuilt.archives ) do
+				table.insert( joined, "libs/" .. prebuilt.dir .. "/" .. prebuilt_lib_dir .. "/" .. lib_prefix .. archive .. lib_suffix )
 			end
 		else
 			table.insert( joined, dir .. "/" .. lib_prefix .. lib .. lib_suffix )
@@ -253,9 +253,12 @@ function lib( lib_name, srcs )
 	add_srcs( globbed )
 end
 
-function prebuilt_lib( lib_name, archives )
+function prebuilt_lib( lib_name, archives, dir )
 	assert( not prebuilt_libs[ lib_name ] )
-	prebuilt_libs[ lib_name ] = archives or { lib_name }
+	prebuilt_libs[ lib_name ] = {
+		dir = dir or lib_name,
+		archives = archives or { lib_name },
+	}
 end
 
 function obj_cxxflags( pattern, flags )

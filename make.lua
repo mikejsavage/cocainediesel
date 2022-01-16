@@ -30,6 +30,7 @@ require( "libs.mbedtls" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
 require( "libs.openal" )
+require( "libs.physx" )
 require( "libs.rgbcx" )
 require( "libs.stb" )
 require( "libs.tracy" )
@@ -93,6 +94,7 @@ do
 			"meshoptimizer",
 			"monocypher",
 			"openal",
+			"physx",
 			"stb_image",
 			"stb_image_write",
 			"stb_rect_pack",
@@ -110,6 +112,9 @@ do
 	} )
 
 	obj_cxxflags( "source/client/renderer/text.cpp", "-I libs/freetype" )
+
+	obj_cxxflags( "source/client/physx.cpp", "-I libs/physx -I libs/physx/physx" )
+	obj_cxxflags( "source/client/renderer/bsp.cpp", "-I libs/physx -I libs/physx/physx" )
 end
 
 do

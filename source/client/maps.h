@@ -3,6 +3,7 @@
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
 #include "client/renderer/types.h"
+#include "client/physx.h"
 
 struct CollisionModel;
 
@@ -21,6 +22,8 @@ struct Map {
 	GPUBuffer leafBuffer;
 	GPUBuffer brushBuffer;
 	GPUBuffer planeBuffer;
+
+	physx::PxRigidStatic * physx;
 };
 
 void InitMaps();

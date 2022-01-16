@@ -8,8 +8,14 @@
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/maps.h"
+#include "client/physx.h"
 
 #include "meshoptimizer/meshoptimizer.h"
+
+#include "physx/PxConfig.h"
+#include "physx/PxPhysicsApi.h" // figure out what we actually need to include
+
+using namespace physx;
 
 enum BSPLump {
 	BSPLump_Entities,
@@ -29,7 +35,7 @@ enum BSPLump {
 	BSPLump_Lighting_Unused,
 	BSPLump_LightGrid_Unused,
 	BSPLump_Visibility,
-	BSPLump_LightArray_Unused,
+	BSPLump_Physx,
 
 	BSPLump_Count
 };
@@ -185,6 +191,7 @@ struct BSPSpans {
 	Span< const BSPIndex > indices;
 	Span< const BSPFace > faces;
 	Span< const RavenBSPFace > raven_faces;
+	Span< const u8 > physx;
 
 	bool idbsp;
 };
@@ -221,6 +228,7 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 	ok = ok && ParseLump( &bsp->leaves, data, BSPLump_Leaves );
 	ok = ok && ParseLump( &bsp->leafbrushes, data, BSPLump_LeafBrushes );
 	ok = ok && ParseLump( &bsp->indices, data, BSPLump_Indices );
+	ok = ok && ParseLump( &bsp->physx, data, BSPLump_Physx );
 
 	// strip trailing null terminator
 	if( bsp->entities.n > 0 ) {
@@ -568,46 +576,65 @@ bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< c
 		map->models[ i ] = LoadBSPModel( filename, vertices, bsp, i );
 	}
 
-	DynamicArray< GPUBSPNodeLinks > nodes( sys_allocator, bsp.nodes.n );
-	DynamicArray< GPUBSPLeaf > leaves( sys_allocator, bsp.leaves.n );
-	DynamicArray< GPUBSPLeafBrush > leafbrushes( sys_allocator, bsp.leafbrushes.n );
-	DynamicArray< Plane > planes( sys_allocator, bsp.planes.n + bsp.brushsides.n );
+	// gpu collision detection
+	{
+		DynamicArray< GPUBSPNodeLinks > nodes( sys_allocator, bsp.nodes.n );
+		DynamicArray< GPUBSPLeaf > leaves( sys_allocator, bsp.leaves.n );
+		DynamicArray< GPUBSPLeafBrush > leafbrushes( sys_allocator, bsp.leafbrushes.n );
+		DynamicArray< Plane > planes( sys_allocator, bsp.planes.n + bsp.brushsides.n );
 
-	for( u32 i = 0; i < bsp.nodes.n; i++ ) {
-		const BSPNode node = bsp.nodes[ i ];
-		const Plane plane = bsp.planes[ node.planenum ];
+		for( u32 i = 0; i < bsp.nodes.n; i++ ) {
+			const BSPNode node = bsp.nodes[ i ];
+			const Plane plane = bsp.planes[ node.planenum ];
 
-		GPUBSPNodeLinks gpu_node = { node.children[ 0 ], node.children[ 1 ] };
-		nodes.add( gpu_node );
-		planes.add( plane );
+			GPUBSPNodeLinks gpu_node = { node.children[ 0 ], node.children[ 1 ] };
+			nodes.add( gpu_node );
+			planes.add( plane );
+		}
+
+		for( u32 i = 0; i < bsp.leaves.n; i++ ) {
+			const BSPLeaf leaf = bsp.leaves[ i ];
+			GPUBSPLeaf gpu_leaf = { leaf.firstLeafBrush, leaf.numLeafBrushes };
+			leaves.add( gpu_leaf );
+		}
+		u32 planes_offset = planes.size();
+		for( u32 i = 0; i < bsp.leafbrushes.n; i++ ) {
+			const BSPLeafBrush leafbrush = bsp.leafbrushes[ i ];
+			const BSPBrush brush = bsp.brushes[ leafbrush.brush ];
+			bool solid = ( bsp.materials[ brush.material ].contents & MASK_PLAYERSOLID ) != 0;
+			GPUBSPLeafBrush gpu_brush = { planes_offset + brush.first_side, solid ? brush.num_sides : 0 };
+			leafbrushes.add( gpu_brush );
+		}
+		for( u32 i = 0; i < bsp.brushsides.n; i++ ) {
+			const BSPBrushSide brushside = bsp.brushsides[ i ];
+			planes.add( bsp.planes[ brushside.planenum ] );
+		}
+		for( u32 i = 0; i < bsp.raven_brushsides.n; i++ ) {
+			const RavenBSPBrushSide brushside = bsp.raven_brushsides[ i ];
+			planes.add( bsp.planes[ brushside.planenum ] );
+		}
+
+		map->nodeBuffer = NewGPUBuffer( nodes.span() );
+		map->leafBuffer = NewGPUBuffer( leaves.span() );
+		map->brushBuffer = NewGPUBuffer( leafbrushes.span() );
+		map->planeBuffer = NewGPUBuffer( planes.span() );
 	}
 
-	for( u32 i = 0; i < bsp.leaves.n; i++ ) {
-		const BSPLeaf leaf = bsp.leaves[ i ];
-		GPUBSPLeaf gpu_leaf = { leaf.firstLeafBrush, leaf.numLeafBrushes };
-		leaves.add( gpu_leaf );
-	}
-	u32 planes_offset = planes.size();
-	for( u32 i = 0; i < bsp.leafbrushes.n; i++ ) {
-		const BSPLeafBrush leafbrush = bsp.leafbrushes[ i ];
-		const BSPBrush brush = bsp.brushes[ leafbrush.brush ];
-		bool solid = ( bsp.materials[ brush.material ].contents & MASK_PLAYERSOLID ) != 0;
-		GPUBSPLeafBrush gpu_brush = { planes_offset + brush.first_side, solid ? brush.num_sides : 0 };
-		leafbrushes.add( gpu_brush );
-	}
-	for( u32 i = 0; i < bsp.brushsides.n; i++ ) {
-		const BSPBrushSide brushside = bsp.brushsides[ i ];
-		planes.add( bsp.planes[ brushside.planenum ] );
-	}
-	for( u32 i = 0; i < bsp.raven_brushsides.n; i++ ) {
-		const RavenBSPBrushSide brushside = bsp.raven_brushsides[ i ];
-		planes.add( bsp.planes[ brushside.planenum ] );
-	}
+	// physx
+	{
+		map->physx = physx_physics->createRigidStatic( PxTransform( PxIdentity ) );
 
-	map->nodeBuffer = NewGPUBuffer( nodes.span() );
-	map->leafBuffer = NewGPUBuffer( leaves.span() );
-	map->brushBuffer = NewGPUBuffer( leafbrushes.span() );
-	map->planeBuffer = NewGPUBuffer( planes.span() );
+		while( true ) {
+			physx::PxDefaultMemoryInputData input( const_cast< u8 * >( bsp.physx.ptr ), bsp.physx.num_bytes() );
+			physx::PxConvexMesh * mesh = physx_physics->createConvexMesh(input);
+
+			if( mesh == NULL )
+				break;
+
+			PxShape * shape = physx_physics->createShape( physx::PxConvexMeshGeometry( mesh ), *physx_default_material );
+			map->physx->attachShape( *shape );
+		}
+	}
 
 	return true;
 }

@@ -33,11 +33,10 @@ public:
 		return idx;
 	}
 
-	void add_many( Span< const T > xs ) {
+	size_t add_many( Span< const T > xs ) {
 		size_t base = extend( xs.n );
-		for( size_t i = 0; i < xs.n; i++ ) {
-			elems[ base + i ] = xs[ i ];
-		}
+		memcpy( &elems[ base ], xs.ptr, xs.num_bytes() );
+		return base;
 	}
 
 	void clear() {

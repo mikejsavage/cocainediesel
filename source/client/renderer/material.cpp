@@ -840,6 +840,10 @@ void InitMaterials() {
 			for( const char * path : AssetPaths() ) {
 				Span< const char > ext = FileExtension( path );
 
+				if( StartsWith( path, "textures/editor" ) ) {
+					continue;
+				}
+
 				if( ext == ".png" || ext == ".jpg" ) {
 					DecodeSTBTextureJob job;
 					job.in.path = path;

@@ -491,8 +491,15 @@ void GT_CallPlayerKilled( edict_t * victim, edict_t * attacker, edict_t * inflic
 	level.gametype.PlayerKilled( victim, attacker, inflictor );
 }
 
-edict_t * GT_CallSelectSpawnPoint( edict_t * ent ) {
+const edict_t * GT_CallSelectSpawnPoint( const edict_t * ent ) {
 	return level.gametype.SelectSpawnPoint( ent );
+}
+
+const edict_t * GT_CallSelectDeadcam() {
+	if( level.gametype.SelectDeadcam != NULL ) {
+		return level.gametype.SelectDeadcam();
+	}
+	return NULL;
 }
 
 bool GT_CallGameCommand( gclient_t * client, const char * cmd, const char * args, int argc ) {

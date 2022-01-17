@@ -190,7 +190,7 @@ void G_EndMatch();
 // g_spawnpoints.c
 //
 void DropSpawnToFloor( edict_t * ent );
-void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, Vec3 * origin, Vec3 * angles );
+void SelectSpawnPoint( const edict_t * ent, const edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles );
 void SP_post_match_camera( edict_t * ent, const spawn_temp_t * st );
 
 //
@@ -703,6 +703,7 @@ struct edict_t {
 	StringHash target;
 	StringHash killtarget;
 	StringHash pathtarget;
+	StringHash deadcam;
 	edict_t *target_ent;
 
 	Vec3 velocity;

@@ -95,6 +95,7 @@
 <point name="bomb_site" color=".5 .5 .5" box="-8 -8 -8 8 8 8">
   A bomb site
   <targetname key="targetname" name="Target Name">the bomb site name, must match the plant_area's target</targetname>
+  <targetname key="deadcam" name="Bomb site deadcam">Dead people look through this cam if they don't have anyone to spec</targetname>
 </point>
 
 <group name="plant_area" color=".5 .5 0">
@@ -150,6 +151,13 @@
   A speaker hanging off the wall, place the box origin on the wall and the speaker points in the direction of the arrow
   <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
   <model key="model" name="Model File" value="models/speakers/speaker_wall.glb">Don't touch this</model>
+</point>
+
+<point name="deadcam" color="0.5 0.5 0.5" box="-4 -8 -4 4 14 4">
+  Look through this camera when all your teammates are dead
+  <targetname key="targetname" name="Target Name">The deadcam's name, set your bomb_site deadcam key to this</targetname>
+  <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
+  <model key="model" name="Model File" value="models/camera.glb">Don't touch this</model>
 </point>
 
 <point name="target_laser" color="0 0.5 0" box="-8 -8 -8 8 8 8">

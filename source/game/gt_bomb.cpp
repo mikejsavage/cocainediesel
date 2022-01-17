@@ -1137,7 +1137,7 @@ static bool GT_Bomb_Command( gclient_t * client, const char * cmd_, const char *
 	return false;
 }
 
-static edict_t * GT_Bomb_SelectSpawnPoint( edict_t * ent ) {
+static const edict_t * GT_Bomb_SelectSpawnPoint( const edict_t * ent ) {
 	if( ent->s.team == AttackingTeam() ) {
 		edict_t * spawn = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" );
 		if( spawn != NULL ) {
@@ -1151,6 +1151,12 @@ static edict_t * GT_Bomb_SelectSpawnPoint( edict_t * ent ) {
 		return spawn;
 	}
 	return G_PickRandomEnt( &edict_t::classname, "team_CTF_alphaspawn" );
+}
+
+static const edict_t * GT_Bomb_SelectDeadcam() {
+	if( bomb_state.bomb.state < BombState_Planted )
+		return NULL;
+	return G_PickTarget( bomb_state.sites[ bomb_state.site ].indicator->deadcam );
 }
 
 static void GT_Bomb_PlayerConnected( edict_t * ent ) {
@@ -1348,6 +1354,7 @@ Gametype GetBombGametype() {
 	gt.PlayerRespawned = GT_Bomb_PlayerRespawned;
 	gt.PlayerKilled = GT_Bomb_PlayerKilled;
 	gt.SelectSpawnPoint = GT_Bomb_SelectSpawnPoint;
+	gt.SelectDeadcam = GT_Bomb_SelectDeadcam;
 	gt.Command = GT_Bomb_Command;
 	gt.Shutdown = GT_Bomb_Shutdown;
 	gt.MapHotloaded = ResetBombSites;

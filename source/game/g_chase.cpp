@@ -24,7 +24,7 @@ static void G_Chase_SetChaseActive( edict_t *ent, bool active ) {
 	ent->r.client->resp.chase.active = active;
 }
 
-static bool G_Chase_IsValidTarget( edict_t *ent, edict_t *target ) {
+static bool G_Chase_IsValidTarget( const edict_t * ent, const edict_t * target ) {
 	bool teamonly = ent->s.team >= TEAM_ALPHA;
 
 	if( !ent || !target ) {
@@ -132,41 +132,54 @@ void G_EndServerFrames_UpdateChaseCam() {
 	}
 }
 
-void G_ChasePlayer( edict_t *ent ) {
+void G_ChasePlayer( edict_t * ent ) {
+	// post_match_camera
 	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
-		edict_t * camera = G_Find( NULL, &edict_t::classname, "post_match_camera" );
+		const edict_t * camera = G_Find( NULL, &edict_t::classname, "post_match_camera" );
+		if( camera == NULL ) {
+			camera = G_PickRandomEnt( &edict_t::classname, "deadcam" );
+		}
 		if( camera == NULL ) {
 			camera = world;
 		}
 
+		ent->movetype = MOVETYPE_NONE;
 		ent->s.origin = camera->s.origin;
 		ent->s.angles = camera->s.angles;
 		return;
 	}
 
+	// try to find a teammate
 	bool teamonly = ent->s.team >= TEAM_ALPHA;
 	gclient_t * client = ent->r.client;
 
-	int targetNum = -1;
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
-		edict_t * e = PLAYERENT( i );
-		if( !G_Chase_IsValidTarget( ent, e ) ) {
+		const edict_t * e = PLAYERENT( i );
+		if( !G_Chase_IsValidTarget( ent, e ) )
 			continue;
-		}
 
-		targetNum = ENTNUM( e );
-		break;
-	}
-
-	if( targetNum != -1 ) {
 		client->resp.chase.active = true;
-		client->resp.chase.target = targetNum;
+		client->resp.chase.target = ENTNUM( e );
+		return;
 	}
-	else {
-		client->resp.chase.active = false;
-		if( !teamonly ) {
-			ent->movetype = MOVETYPE_NOCLIP;
-		}
+
+	// pick a deadcam
+	const edict_t * deadcam = GT_CallSelectDeadcam();
+
+	if( deadcam == NULL ) {
+		deadcam = G_PickRandomEnt( &edict_t::classname, "deadcam" );
+	}
+
+	if( deadcam != NULL ) {
+		ent->movetype = MOVETYPE_NONE;
+		ent->s.origin = deadcam->s.origin;
+		ent->s.angles = deadcam->s.angles;
+		return;
+	}
+
+	client->resp.chase.active = false;
+	if( !teamonly ) {
+		ent->movetype = MOVETYPE_NOCLIP;
 	}
 }
 

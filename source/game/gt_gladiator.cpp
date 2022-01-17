@@ -411,8 +411,8 @@ static void NewRoundState( GladiatorRoundState newState ) {
 
 // --------------
 
-static edict_t * GT_Gladiator_SelectSpawnPoint( edict_t * ent ) {
-	edict_t * spawn = NULL;
+static const edict_t * GT_Gladiator_SelectSpawnPoint( const edict_t * ent ) {
+	const edict_t * spawn = NULL;
 	edict_t * cursor = NULL;
 	float max_dist = 0.0f;
 

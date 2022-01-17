@@ -58,6 +58,7 @@ static constexpr EntityField entity_keys[] = {
 	{ "targetname", FOFS( name ), EntityField_StringHash },
 	{ "pathtarget", FOFS( pathtarget ), EntityField_StringHash },
 	{ "killtarget", FOFS( killtarget ), EntityField_StringHash },
+	{ "deadcam", FOFS( deadcam ), EntityField_StringHash },
 	{ "wait", FOFS( wait ), EntityField_Int },
 	{ "delay", FOFS( delay ), EntityField_Int },
 	{ "style", FOFS( style ), EntityField_Int },
@@ -96,6 +97,7 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 	{ "worldspawn", SP_worldspawn },
 
 	{ "post_match_camera", SP_post_match_camera },
+	{ "deadcam", SP_post_match_camera },
 
 	{ "func_door", SP_func_door },
 	{ "func_door_rotating", SP_func_door_rotating },

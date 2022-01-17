@@ -336,7 +336,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 
 	if( !ghost ) {
-		edict_t * spawnpoint;
+		const edict_t * spawnpoint;
 		Vec3 spawn_origin, spawn_angles;
 		SelectSpawnPoint( self, &spawnpoint, &spawn_origin, &spawn_angles );
 		client->ps.pmove.origin = spawn_origin;

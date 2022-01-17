@@ -10,6 +10,7 @@
 #include "qcommon/qfiles.h"
 #include "qcommon/span2d.h"
 #include "qcommon/string.h"
+#include "qcommon/hash.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
 
@@ -264,6 +265,7 @@ static Span< const char > ParseVec3( Vec3 * v, Span< const char > str ) {
 struct Face {
 	Vec3 plane[ 3 ];
 	Span< const char > material;
+	u64 material_hash;
 	Mat3 texcoords_transform;
 };
 
@@ -285,6 +287,7 @@ struct ControlPoint {
 
 struct Patch {
 	Span< const char > material;
+	u64 material_hash;
 	int w, h;
 	ControlPoint control_points[ 1024 ];
 };
@@ -316,6 +319,8 @@ static Span< const char > SkipFlags( Span< const char > str ) {
 static Span< const char > ParseQ1Face( Face * face, Span< const char > str ) {
 	str = ParsePlane( face->plane, str );
 	str = ParseWord( &face->material, str );
+	constexpr u64 base_hash = Hash64_CT( "textures/", 9 );
+	face->material_hash = Hash64( face->material.ptr, face->material.num_bytes(), base_hash );
 
 	float u, v, angle, scale_x, scale_y;
 	str = ParseFloat( &u, str );
@@ -355,6 +360,8 @@ static Span< const char > ParseQ3Face( Face * face, Span< const char > str ) {
 	);
 
 	str = ParseWord( &face->material, str );
+	constexpr u64 base_hash = Hash64_CT( "textures/", 9 );
+	face->material_hash = Hash64( face->material.ptr, face->material.num_bytes(), base_hash );
 	str = SkipFlags( str );
 
 	return str;
@@ -379,6 +386,8 @@ static Span< const char > ParsePatch( Patch * patch, Span< const char > str ) {
 	str = SkipToken( str, "{" );
 
 	str = ParseWord( &patch->material, str );
+	constexpr u64 base_hash = Hash64_CT( "textures/", 9 );
+	patch->material_hash = Hash64( patch->material.ptr, patch->material.num_bytes(), base_hash );
 
 	str = SkipToken( str, "(" );
 
@@ -516,7 +525,7 @@ static void format( FormatBuffer * fb, const Plane & plane, const FormatOpts & o
 	ggformat_impl( fb, "{.5}.X = {.1}", plane.normal, plane.distance );
 }
 
-static u32 AddMaterial( BSP * bsp, Span< const char > name ) {
+static u32 AddMaterial( BSP * bsp, Span< const char > name, u64 hash ) {
 	for( size_t i = 0; i < bsp->materials->size(); i++ ) {
 		if( StrEqual( name, ( *bsp->materials )[ i ].name ) ) {
 			return i;
@@ -524,7 +533,7 @@ static u32 AddMaterial( BSP * bsp, Span< const char > name ) {
 	}
 
 	BSPMaterial material = { };
-	GetMaterialFlags( name, &material.surface_flags, &material.content_flags );
+	GetMaterialFlags( hash, &material.surface_flags, &material.content_flags );
 	assert( name.n + 1 < sizeof( material.name ) );
 	memcpy( material.name, name.ptr, name.n );
 	return bsp->materials->add( material );
@@ -532,19 +541,21 @@ static u32 AddMaterial( BSP * bsp, Span< const char > name ) {
 
 struct MaterialMesh {
 	Span< const char > material; // TODO: u32?
+	u64 material_hash;
 	NonRAIIDynamicArray< BSPVertex > vertices;
 	NonRAIIDynamicArray< BSPTriangle > triangles;
 };
 
-static MaterialMesh * GetMaterialMesh( DynamicArray< MaterialMesh > * meshes, Span< const char > material ) {
+static MaterialMesh * GetMaterialMesh( DynamicArray< MaterialMesh > * meshes, Span< const char > material, u64 material_hash ) {
 	for( MaterialMesh & mesh : meshes->span() ) {
-		if( StrEqual( mesh.material, material ) ) {
+		if( mesh.material_hash == material_hash ) {
 			return &mesh;
 		}
 	}
 
 	MaterialMesh mesh;
 	mesh.material = material;
+	mesh.material_hash = material_hash;
 	mesh.vertices.init( sys_allocator );
 	mesh.triangles.init( sys_allocator );
 	meshes->add( mesh );
@@ -632,8 +643,8 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, DynamicArray< MaterialMes
 
 	// render geometry and bounds
 	for( size_t i = 0; i < brush.faces.n; i++ ) {
-		bool generate_render_geometry = !IsNodrawMaterial( brush.faces.span()[ i ].material );
-		MaterialMesh * mesh = GetMaterialMesh( meshes, brush.faces.span()[ i ].material );
+		bool generate_render_geometry = !IsNodrawMaterial( brush.faces.span()[ i ].material_hash );
+		MaterialMesh * mesh = GetMaterialMesh( meshes, brush.faces.span()[ i ].material, brush.faces.span()[ i ].material_hash );
 
 		// generate arbitrary list of points
 		FaceVerts verts = { };
@@ -703,7 +714,7 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, DynamicArray< MaterialMes
 		u32 content_flags = 0;
 
 		for( size_t i = 0; i < brush.faces.n; i++ ) {
-			u32 face_material = AddMaterial( bsp, brush.faces.span()[ i ].material );
+			u32 face_material = AddMaterial( bsp, brush.faces.span()[ i ].material, brush.faces.span()[ i ].material_hash );
 			u32 face_flags = ( *bsp->materials )[ face_material ].content_flags;
 			if( i == 0 ) {
 				brush_material = face_material;
@@ -718,7 +729,7 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, DynamicArray< MaterialMes
 		AddBevelPlanes( bsp, *bounds, brush_material );
 
 		for( size_t i = 0; i < brush.faces.n; i++ ) {
-			u32 material = AddMaterial( bsp, brush.faces.span()[ i ].material );
+			u32 material = AddMaterial( bsp, brush.faces.span()[ i ].material, brush.faces.span()[ i ].material_hash );
 			AddBSPPlane( bsp, planes[ i ], material );
 		}
 
@@ -1366,12 +1377,12 @@ int main( int argc, char ** argv ) {
 		}
 
 		for( const Patch & patch : entity.patches ) {
-			MaterialMesh * mesh = GetMaterialMesh( &entity_meshes, patch.material );
+			MaterialMesh * mesh = GetMaterialMesh( &entity_meshes, patch.material, patch.material_hash );
 			size_t patch_first_tri = mesh->triangles.size();
 
 			PatchToVerts( mesh, patch );
 
-			u32 material = AddMaterial( &bsp, patch.material );
+			u32 material = AddMaterial( &bsp, patch.material, patch.material_hash );
 			AddPatchBrushes( &bsp, &brush_bounds, material, mesh, patch_first_tri ); // TODO
 		}
 
@@ -1393,7 +1404,7 @@ int main( int argc, char ** argv ) {
 			bsp.triangles->add_many( mesh.triangles.span() );
 
 			BSPMesh bsp_mesh = { };
-			bsp_mesh.material = AddMaterial( &bsp, mesh.material );
+			bsp_mesh.material = AddMaterial( &bsp, mesh.material, mesh.material_hash );
 			bsp_mesh.type = s32( FaceType_Mesh );
 			bsp_mesh.bounds = HugeBounds();
 			bsp_mesh.first_vertex = base_vertex;

@@ -12,6 +12,7 @@
   Gladiator spawn point
   <angle key="angle" name="Yaw Angle">View angle, yaw</angle>
   <angles key="angles" name="Pitch Yaw Roll">View angles, pitch/yaw/roll</angles>
+  <model key="model" name="Model File" value="players/rigg/model.glb">Don't touch this</model>
   <flag key="SUSPENDED" name="SUSPENDED" bit="0">don't drop the spawn to the floor</flag>
 </point>
 
@@ -19,6 +20,7 @@
   Bomb attacker spawn point
   <angle key="angle" name="Yaw Angle">View angle, yaw</angle>
   <angles key="angles" name="Pitch Yaw Roll">View angles, pitch/yaw/roll</angles>
+  <model key="model" name="Model File" value="players/rigg/model.glb">Don't touch this</model>
   <flag key="SUSPENDED" name="SUSPENDED" bit="0">don't drop the spawn to the floor</flag>
 </point>
 
@@ -26,6 +28,7 @@
   Bomb defending spawn point
   <angle key="angle" name="Yaw Angle">View angle, yaw</angle>
   <angles key="angles" name="Pitch Yaw Roll">View angles, pitch/yaw/roll</angles>
+  <model key="model" name="Model File" value="players/rigg/model.glb">Don't touch this</model>
   <flag key="SUSPENDED" name="SUSPENDED" bit="0">don't drop the spawn to the floor</flag>
 </point>
 
@@ -46,7 +49,6 @@
   <flag key="START_OPEN" name="Start Open" bit="0">The door will spawn in the open state and operate in reverse.</flag>
   <flag key="CRUSHER" name="Crusher" bit="2">Door will not reverse direction when blocked and will keep damaging player until he dies or gets out of the way.</flag>
 </group>
-
 
 <group name="func_train" color="0 .4 1">
   Trains are moving solids that follow a looped string of path_corner entities. Trains in Q3A are very basic, they also require an origin brush (see notes).

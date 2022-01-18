@@ -370,10 +370,9 @@ static void DebugOutputCallback(
 	const GLchar * message, const void * _
 ) {
 	if(
-	    source == 33352 || // shader compliation errors
+	    source == 33352 || // shader compilation errors
 	    id == 131169 ||
 	    id == 131185 ||
-	    id == 131201 || // TBO resized
 	    id == 131218 ||
 	    id == 131204
 	) {

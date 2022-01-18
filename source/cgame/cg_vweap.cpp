@@ -156,7 +156,7 @@ void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	const Model * model = GetWeaponModelMetadata( cg.predictedPlayerState.weapon )->model;
 	Mat4 transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
-	
+
 	DrawModelConfig config = { };
 	config.draw_model.enabled = true;
 	config.draw_model.view_weapon = true;

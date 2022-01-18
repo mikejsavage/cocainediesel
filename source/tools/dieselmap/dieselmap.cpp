@@ -1134,7 +1134,7 @@ static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u3
 			for( size_t j = 0; j < candidate_planes.axes[ i ].n; j++ ) {
 				CandidatePlane & plane = candidate_planes.axes[ i ][ j ];
 				const MinMax3 & curr_brush_bounds = brush_bounds[ plane.brush_id ];
-				
+
 				if( curr_brush_bounds.mins[ best_axis ] < distance )
 					axis_below[ below_count++ ] = plane;
 				if( curr_brush_bounds.maxs[ best_axis ] > distance )

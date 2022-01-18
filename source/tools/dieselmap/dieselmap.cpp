@@ -319,8 +319,9 @@ static Span< const char > SkipFlags( Span< const char > str ) {
 static Span< const char > ParseQ1Face( Face * face, Span< const char > str ) {
 	str = ParsePlane( face->plane, str );
 	str = ParseWord( &face->material, str );
-	constexpr u64 base_hash = Hash64_CT( "textures/", 9 );
-	face->material_hash = Hash64( face->material.ptr, face->material.num_bytes(), base_hash );
+
+	constexpr StringHash base_hash = "textures/";
+	face->material_hash = Hash64( face->material.ptr, face->material.num_bytes(), base_hash.hash );
 
 	float u, v, angle, scale_x, scale_y;
 	str = ParseFloat( &u, str );

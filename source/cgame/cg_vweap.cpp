@@ -116,9 +116,9 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 
 	// scale forward gun offset depending on fov and aspect ratio
 	gunOffset.x *= frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV );
-	gunOffset.z += CG_ViewSmoothFallKick();
 
 	viewweapon->origin = ( frame_static.inverse_V * Vec4( gunOffset, 1.0 ) ).xyz();
+	viewweapon->origin.z += CG_ViewSmoothFallKick();
 
 	// add angles effects
 	gunAngles += cg.predictedPlayerState.viewangles;

@@ -4,6 +4,6 @@
 }
 {
 	attenuation idle
-	sound weapons/up
+	sound weapons/gb/up
 	volume 0.75
 }

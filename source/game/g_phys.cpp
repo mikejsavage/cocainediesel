@@ -57,13 +57,10 @@ static void SV_CheckVelocity( edict_t *ent ) {
 * Runs thinking code for this frame if necessary
 */
 static void SV_RunThink( edict_t *ent ) {
-	int64_t thinktime;
+	TracyZoneScoped;
 
-	thinktime = ent->nextThink;
-	if( thinktime <= 0 ) {
-		return;
-	}
-	if( thinktime > level.time ) {
+	int64_t thinktime = ent->nextThink;
+	if( ent->nextThink <= 0 || ent->nextThink > level.time ) {
 		return;
 	}
 
@@ -170,6 +167,8 @@ static edict_t *obstacle;
 * otherwise riders would continue to slide.
 */
 static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
+	TracyZoneScoped;
+
 	int e;
 	edict_t *check;
 	Vec3 mins, maxs;
@@ -312,6 +311,8 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 * push all box objects
 */
 static void SV_Physics_Pusher( edict_t *ent ) {
+	TracyZoneScoped;
+
 	pushed_p = pushed;
 
 	bool blocked = false;
@@ -363,6 +364,8 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 * FIXME: This function needs a serious rewrite
 */
 static void SV_Physics_Toss( edict_t *ent ) {
+	TracyZoneScoped;
+
 	trace_t trace;
 	Vec3 move;
 	float backoff;
@@ -508,6 +511,8 @@ static void SV_Physics_Toss( edict_t *ent ) {
 //============================================================================
 
 static void SV_Physics_LinearProjectile( edict_t *ent ) {
+	TracyZoneScoped;
+
 	Vec3 start, end;
 	int mask;
 	trace_t trace;
@@ -545,6 +550,8 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 //============================================================================
 
 void G_RunEntity( edict_t *ent ) {
+	TracyZoneScoped;
+
 	if( !level.canSpawnEntities ) { // don't try to think before map entities are spawned
 		return;
 	}

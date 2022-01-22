@@ -186,7 +186,7 @@ static void G_KnockBackPush( edict_t *targ, edict_t *attacker, Vec3 basedir, int
 		return;
 	}
 
-	Vec3 dir = Normalize( basedir );
+	Vec3 dir = SafeNormalize( basedir );
 	constexpr float VERTICAL_KNOCKBACK_SCALE = 1.25f;
 	dir.z *= VERTICAL_KNOCKBACK_SCALE;
 
@@ -397,7 +397,7 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 		center_of_mass = origin + 0.5f * ( maxs + mins );
 	}
 
-	*pushdir = Normalize( center_of_mass - point );
+	*pushdir = SafeNormalize( center_of_mass - point );
 }
 
 void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, Plane *plane, DamageType damage_type, int timeDelta ) {

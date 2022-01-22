@@ -105,7 +105,7 @@ static void Move_Begin( edict_t *ent ) {
 	// set up velocity vector
 	Vec3 dir = ent->moveinfo.dest - ent->s.origin;
 	float dist = Length( dir );
-	dir = Normalize( dir );
+	dir = SafeNormalize( dir );
 	ent->velocity = dir * ent->moveinfo.speed;
 	ent->nextThink = level.time + 1;
 	ent->think = Move_Watch;

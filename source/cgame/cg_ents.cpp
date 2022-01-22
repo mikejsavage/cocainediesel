@@ -346,6 +346,7 @@ void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 
 	cent->interpolated.origin = cent->current.origin;
 	cent->interpolated.origin2 = cent->current.origin;
+	cent->interpolated.scale = cent->current.scale;
 
 	AnglesToAxis( cent->current.angles, cent->interpolated.axis );
 }

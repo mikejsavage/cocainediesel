@@ -59,7 +59,6 @@ static void SV_CheckVelocity( edict_t *ent ) {
 static void SV_RunThink( edict_t *ent ) {
 	TracyZoneScoped;
 
-	int64_t thinktime = ent->nextThink;
 	if( ent->nextThink <= 0 || ent->nextThink > level.time ) {
 		return;
 	}

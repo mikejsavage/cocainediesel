@@ -724,8 +724,7 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 		G_TeleportEffect( ent, false );
 	}
 
-	ent->r.client->team = TEAM_SPECTATOR;
-	G_ClientRespawn( ent, true ); // respawn as ghost
+	CreateCorpse( ent, NULL, 0, 0 ); //create a corpse
 
 	ent->r.inuse = false;
 	ent->s.svflags = SVF_NOCLIENT;

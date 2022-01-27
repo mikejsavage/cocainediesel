@@ -36,12 +36,12 @@ static constexpr float playerNamesZgrow = 2.5f;
 
 static constexpr int64_t crosshairDamageTime = 200;
 
-static constexpr int64_t crosshairTimeOffset = 100;
-static constexpr float crosshairTimeSpeed = 0.5f;
-static constexpr float crosshairRefireTimeSpeed = 1.5f;
-static constexpr float crosshairReFireSizeRatio = 0.001f;
-static constexpr float crosshairFireGap = 1.0f;
-static constexpr float crosshairFireSizeRatio = 1.0f;
+static constexpr int64_t crosshairTimeOffset = 75;
+static constexpr float crosshairTimeSpeed = 0.25f;
+static constexpr float crosshairRefireTimeSpeed = 1.6f;
+static constexpr float crosshairReFireSizeRatio = 0.002f;
+static constexpr float crosshairFireGap = 0.25f;
+static constexpr float crosshairFireSizeRatio = 0.125f;
 
 static int64_t scr_damagetime = 0;
 static int64_t scr_shoottime = 0;
@@ -88,9 +88,8 @@ void CG_ScreenInit() {
 }
 
 void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
-	if( cgs.demoPlaying ) {
+	if( cgs.demoPlaying )
 		return;
-	}
 
 	int64_t incomingAcknowledged, outgoingSequence;
 	CL_GetCurrentState( &incomingAcknowledged, &outgoingSequence, NULL );
@@ -106,7 +105,17 @@ void CG_ScreenCrosshairDamageUpdate() {
 	scr_damagetime = cls.monotonicTime;
 }
 
+static bool CG_IsShownCrosshair() {
+	WeaponType weapon = cg.predictedPlayerState.weapon;
+	return  cg.predictedPlayerState.health > 0 &&
+			!( weapon == Weapon_Knife || weapon == Weapon_Sniper ) &&
+			!( weapon == Weapon_AutoSniper && cg.predictedPlayerState.zoom_time > 0 );
+}
+
 void CG_ScreenCrosshairShootUpdate( u16 refire_time ) {
+	if( !CG_IsShownCrosshair() )
+		return;
+
 	current_refire_time = Max2( (int64_t)0, current_refire_time + scr_shoottime + crosshairTimeOffset - cls.monotonicTime ) + refire_time * crosshairRefireTimeSpeed;
 	scr_shoottime = cls.monotonicTime - crosshairTimeOffset;
 }
@@ -116,13 +125,7 @@ static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
 }
 
 void CG_DrawCrosshair( int x, int y ) {
-	if( cg.predictedPlayerState.health <= 0 )
-		return;
-
-	WeaponType weapon = cg.predictedPlayerState.weapon;
-	if( weapon == Weapon_Knife || weapon == Weapon_Sniper )
-		return;
-	if( weapon == Weapon_AutoSniper && cg.predictedPlayerState.zoom_time > 0 )
+	if( !CG_IsShownCrosshair() )
 		return;
 
 	Vec4 color = cls.monotonicTime - scr_damagetime <= crosshairDamageTime ? vec4_red : vec4_white; 

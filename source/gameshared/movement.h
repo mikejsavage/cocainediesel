@@ -12,7 +12,6 @@ struct pml_t {
 	Vec3 velocity;        // full float precision
 
 	Vec3 forward, right, up;
-	Vec3 flatforward;     // normalized forward without z component, saved here because it needs
 	// special handling for looking straight up or down
 	float frametime;
 

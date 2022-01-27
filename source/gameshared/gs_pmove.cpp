@@ -634,7 +634,7 @@ static void PM_CheckSpecialMovement() {
 	pml.ladder = Ladder_Off;
 
 	// check for ladder
-	Vec3 spot = pml.origin + pml.flatforward;
+	Vec3 spot = pml.origin + pml.forward;
 	trace_t trace;
 	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
 	if( trace.fraction < 1 && ( trace.surfFlags & SURF_LADDER ) ) {
@@ -646,7 +646,7 @@ static void PM_CheckSpecialMovement() {
 		return;
 	}
 
-	spot = pml.origin + pml.flatforward * 30;
+	spot = pml.origin + pml.forward * 30;
 	spot.z += 4;
 	cont = pmove_gs->api.PointContents( spot, 0 );
 	if( !( cont & CONTENTS_SOLID ) ) {
@@ -659,7 +659,7 @@ static void PM_CheckSpecialMovement() {
 		return;
 	}
 	// jump out of water
-	pml.velocity = pml.flatforward * 50;
+	pml.velocity = pml.forward * 50;
 	pml.velocity.z = 350;
 
 	pm->playerState->pmove.pm_flags |= PMF_TIME_WATERJUMP;
@@ -789,7 +789,7 @@ static void PM_ApplyMouseAnglesClamp() {
 
 	AngleVectors( pm->playerState->viewangles, &pml.forward, &pml.right, &pml.up );
 
-	pml.flatforward = Normalize( Vec3( pml.forward.xy(), 0.0f ) );
+	pml.forward = Normalize( Vec3( pml.forward.xy(), 0.0f ) );
 }
 
 static void PM_BeginMove() {
@@ -1009,14 +1009,14 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove ) {
 
 			// hack to work when looking straight up and straight down
 			if( pml.forward.z == -1.0f ) {
-				pml.flatforward = pml.up;
+				pml.forward = pml.up;
 			} else if( pml.forward.z == 1.0f ) {
-				pml.flatforward = -pml.up;
+				pml.forward = -pml.up;
 			} else {
-				pml.flatforward = pml.forward;
+				pml.forward = pml.forward;
 			}
-			pml.flatforward.z = 0.0f;
-			pml.flatforward = SafeNormalize( pml.flatforward );
+			pml.forward.z = 0.0f;
+			pml.forward = SafeNormalize( pml.forward );
 
 			PM_Move();
 		}

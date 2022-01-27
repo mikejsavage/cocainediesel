@@ -18,7 +18,7 @@ static constexpr s16 stamina_recover = 10;
 
 
 static bool CheckWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) {
-	Vec3 spot = pml->origin + pml->flatforward;
+	Vec3 spot = pml->origin + pml->forward;
 	trace_t trace;
 	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
 	return trace.fraction < 1;
@@ -35,9 +35,9 @@ static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 	}
 
 	// ch : we should do explicit forwardPush here, and ignore sidePush ?
-	Vec3 dashdir = pml->flatforward * pml->forwardPush + pml->right * pml->sidePush;
+	Vec3 dashdir = pml->forward * pml->forwardPush + pml->right * pml->sidePush;
 	if( Length( dashdir ) < 0.01f ) { // if not moving, dash like a "forward dash"
-		dashdir = pml->flatforward;
+		dashdir = pml->forward;
 		pml->forwardPush = pm_dashspeed;
 	}
 

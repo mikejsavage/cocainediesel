@@ -124,6 +124,11 @@ void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashd
 	}
 
 	dashdir.z = 0.0f;
+	if( Length( dashdir ) == 0.0f ) {
+		PM_Jump( pm, pml, pmove_gs, pm->playerState, dash_upspeed );
+		return;
+	}
+
 	dashdir = Normalize( dashdir );
 
 	float upspeed = Max2( 0.0f, pml->velocity.z ) + JumpVelocity( pm, dash_upspeed );

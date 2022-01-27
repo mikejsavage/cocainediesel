@@ -33,8 +33,15 @@ static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		return;
 	}
 
-	if( pml->forwardPush > 0 && pml->sidePush == 0.0f ) { //sidePush is for people strafing
-		PM_Dash( pm, pml, pmove_gs, pml->flatforward * pml->forwardPush, pm_dashspeed, pm_jumpupspeed );
+	float oldupvelocity = pml->velocity.z;
+	pml->velocity.z = 0.0;
+	float hspeed = Length( pml->velocity );
+	pml->velocity.z = oldupvelocity;
+
+	if( hspeed < pm_defaultspeed ) {
+		PM_Dash( pm, pml, pmove_gs, pml->forward * pml->forwardPush + pml->right * pml->sidePush, pm_dashspeed, pm_jumpupspeed );
+	} else if( pml->forwardPush > 0 && pml->sidePush == 0.0f ) { //sidePush is for people strafing
+		PM_Dash( pm, pml, pmove_gs, pml->forward * pml->forwardPush, pm_dashspeed, pm_jumpupspeed );
 	} else {
 		PM_Jump( pm, pml, pmove_gs, ps, pm_jumpupspeed );
 	}
@@ -44,16 +51,16 @@ static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 
 static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( pm->groundentity != -1 ) {
-		StaminaRecover( pm->playerState, stamina_recover_ground );
+		StaminaRecover( ps, stamina_recover_ground );
 	} else {
-		StaminaRecover( pm->playerState, stamina_recover_air );
+		StaminaRecover( ps, stamina_recover_air );
 	}
 
 	if( ps->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
 		return;
 	}
 
-	if( pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) && pm->groundentity == -1 && ps->pmove.stamina >= stamina_use ) {
+	if( pressed && ( ps->pmove.features & PMFEAT_SPECIAL ) && pm->groundentity == -1 && ps->pmove.stamina >= stamina_use ) {
 		trace_t trace;
 		Vec3 point = pml->origin;
 		point.z -= STEPSIZE;
@@ -61,7 +68,7 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 		// don't walljump if our height is smaller than a step
 		// unless jump is pressed or the player is moving faster than dash speed and upwards
 		float hspeed = Length( Vec3( pml->velocity.x, pml->velocity.y, 0 ) );
-		pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
+		pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, ps->POVnum, pm->contentmask, 0 );
 
 		if( pml->upPush == 1
 			|| ( hspeed > pm_dashspeed && pml->velocity.z > 8 )

@@ -40,7 +40,7 @@ static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmo
 	if( pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) &&
 		ps->pmove.stamina >= fuel_use_boost )
 	{
-		Vec3 dashdir = pml->flatforward;
+		Vec3 dashdir = pml->forward;
 		pml->forwardPush = pm_boostspeed;
 
 		dashdir = Normalize( dashdir );

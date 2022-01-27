@@ -449,22 +449,8 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 * into a more C friendly form.
 */
 void SV_UserinfoChanged( client_t *client ) {
-	char *val;
-
 	assert( client );
 	assert( Info_Validate( client->userinfo ) );
-
-	if( !client->edict || !( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
-		// force the IP key/value pair so the game can filter based on ip
-		if( !Info_SetValueForKey( client->userinfo, "socket", NET_SocketTypeToString( client->netchan.socket->type ) ) ) {
-			SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Couldn't set userinfo (socket)\n" );
-			return;
-		}
-		if( !Info_SetValueForKey( client->userinfo, "ip", NET_AddressToString( &client->netchan.remoteAddress ) ) ) {
-			SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Couldn't set userinfo (ip)\n" );
-			return;
-		}
-	}
 
 	// call prog code to allow overrides
 	ClientUserinfoChanged( client->edict, client->userinfo );
@@ -475,7 +461,7 @@ void SV_UserinfoChanged( client_t *client ) {
 	}
 
 	// we assume that game module deals with setting a correct name
-	val = Info_ValueForKey( client->userinfo, "name" );
+	char * val = Info_ValueForKey( client->userinfo, "name" );
 	if( !val || !val[0] ) {
 		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: No name set" );
 		return;

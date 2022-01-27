@@ -55,7 +55,7 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 	ent = EDICT_NUM( edictnum );
 
 	// get the game a chance to reject this connection or modify the userinfo
-	if( !ClientConnect( ent, userinfo, fakeClient ) ) {
+	if( !ClientConnect( ent, userinfo, address, fakeClient ) ) {
 		return false;
 	}
 

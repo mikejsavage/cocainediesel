@@ -319,20 +319,6 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 	char userinfo[ MAX_INFO_STRING ];
 	Q_strncpyz( userinfo, Cmd_Argv( 4 ), sizeof( userinfo ) );
 
-	// force the IP key/value pair so the game can filter based on ip
-	if( !Info_SetValueForKey( userinfo, "socket", NET_SocketTypeToString( socket->type ) ) ) {
-		Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nError: Couldn't set userinfo (socket)\n",
-								DROP_TYPE_GENERAL, 0 );
-		Com_DPrintf( "Connection from %s refused: couldn't set userinfo (socket)\n", NET_AddressToString( address ) );
-		return;
-	}
-	if( !Info_SetValueForKey( userinfo, "ip", NET_AddressToString( address ) ) ) {
-		Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nError: Couldn't set userinfo (ip)\n",
-								DROP_TYPE_GENERAL, 0 );
-		Com_DPrintf( "Connection from %s refused: couldn't set userinfo (ip)\n", NET_AddressToString( address ) );
-		return;
-	}
-
 	// see if the challenge is valid
 	{
 		int i;
@@ -425,7 +411,7 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 * (Not a real out of band command)
 * A connection request that came from the game module
 */
-int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const char *fakeIP ) {
+int SVC_FakeConnect( const char *fakeUserinfo ) {
 	int i;
 	char userinfo[MAX_INFO_STRING];
 	client_t *cl, *newcl;
@@ -433,25 +419,7 @@ int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const
 
 	Com_DPrintf( "SVC_FakeConnect ()\n" );
 
-	if( !fakeUserinfo ) {
-		fakeUserinfo = "";
-	}
-	if( !fakeIP ) {
-		fakeIP = "127.0.0.1";
-	}
-	if( !fakeSocketType ) {
-		fakeIP = "loopback";
-	}
-
 	Q_strncpyz( userinfo, fakeUserinfo, sizeof( userinfo ) );
-
-	// force the IP key/value pair so the game can filter based on ip
-	if( !Info_SetValueForKey( userinfo, "socket", fakeSocketType ) ) {
-		return -1;
-	}
-	if( !Info_SetValueForKey( userinfo, "ip", fakeIP ) ) {
-		return -1;
-	}
 
 	// find a client slot
 	newcl = NULL;

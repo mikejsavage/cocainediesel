@@ -260,7 +260,7 @@ void SV_UserinfoChanged( client_t *cl );
 void SV_MasterHeartbeat();
 
 void SVC_MasterInfoResponse( const socket_t *socket, const netadr_t *address );
-int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const char *fakeIP );
+int SVC_FakeConnect( const char *fakeUserinfo );
 
 //
 // sv_oob.c

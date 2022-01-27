@@ -570,7 +570,6 @@ static void G_UpdatePlayerInfoString( int playerNum ) {
 * (forcing skins or names, etc) before copying it off.
 */
 void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
-	char *s;
 	char oldname[MAX_INFO_VALUE];
 	gclient_t *cl;
 
@@ -584,24 +583,6 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	}
 
 	cl = ent->r.client;
-
-	// ip
-	s = Info_ValueForKey( userinfo, "ip" );
-	if( !s ) {
-		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client IP" );
-		return;
-	}
-
-	Q_strncpyz( cl->ip, s, sizeof( cl->ip ) );
-
-	// socket
-	s = Info_ValueForKey( userinfo, "socket" );
-	if( !s ) {
-		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Server didn't provide client socket" );
-		return;
-	}
-
-	Q_strncpyz( cl->socket, s, sizeof( cl->socket ) );
 
 	// set name, it's validated and possibly changed first
 	Q_strncpyz( oldname, cl->netname, sizeof( oldname ) );
@@ -630,10 +611,10 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 * Changing levels will NOT cause this to be called again, but
 * loadgames will.
 */
-bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
+bool ClientConnect( edict_t *ent, char *userinfo, const netadr_t * address, bool fakeClient ) {
 	assert( ent );
 	assert( userinfo && Info_Validate( userinfo ) );
-	assert( Info_ValueForKey( userinfo, "ip" ) && Info_ValueForKey( userinfo, "socket" ) );
+	assert( address );
 
 	// verify that server gave us valid data
 	if( !Info_Validate( userinfo ) ) {
@@ -642,28 +623,15 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 		return false;
 	}
 
-	if( !Info_ValueForKey( userinfo, "ip" ) ) {
-		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_GENERAL ) );
-		Info_SetValueForKey( userinfo, "rejmsg", "Error: Server didn't provide client IP" );
-		return false;
-	}
-
-	if( !Info_ValueForKey( userinfo, "ip" ) ) {
-		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_GENERAL ) );
-		Info_SetValueForKey( userinfo, "rejmsg", "Error: Server didn't provide client socket" );
-		return false;
-	}
-
 	// check to see if they are on the banned IP list
-	char * value = Info_ValueForKey( userinfo, "ip" );
-	if( SV_FilterPacket( value ) ) {
+	if( SV_FilterPacket( NET_AddressToString( address ) ) ) {
 		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_GENERAL ) );
 		Info_SetValueForKey( userinfo, "rejmsg", "You're banned from this server" );
 		return false;
 	}
 
 	// check for a password
-	value = Info_ValueForKey( userinfo, "password" );
+	char * value = Info_ValueForKey( userinfo, "password" );
 	if( !fakeClient && ( *sv_password->value && ( !value || strcmp( sv_password->value, value ) ) ) ) {
 		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_PASSWORD ) );
 		if( value && value[0] ) {
@@ -695,7 +663,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient ) {
 
 		G_PrintMsg( NULL, "%s\n", message );
 
-		Com_Printf( "%s connected from %s\n", ent->r.client->netname, ent->r.client->ip );
+		Com_Printf( "%s connected from %s\n", ent->r.client->netname, NET_AddressToString( address ) );
 	}
 
 	G_CallVotes_ResetClient( PLAYERNUM( ent ) );

@@ -1,4 +1,4 @@
 {
 	sound ./fuse
-	attenuation distant
+	attenuation idle
 }

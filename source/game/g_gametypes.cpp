@@ -369,7 +369,7 @@ static void G_CheckNumBots() {
 			if( !ent->r.inuse || !( ent->s.svflags & SVF_FAKECLIENT ) ) {
 				continue;
 			}
-			PF_DropClient( ent, DROP_TYPE_GENERAL, NULL );
+			PF_DropClient( ent, NULL );
 			game.numBots--;
 		}
 	}

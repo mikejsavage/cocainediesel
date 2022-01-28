@@ -122,12 +122,7 @@ void CL_ServerDisconnect_f() {
 	int type;
 	char reason[MAX_STRING_CHARS];
 
-	type = atoi( Cmd_Argv( 1 ) );
-	if( type < 0 || type >= DROP_TYPE_TOTAL ) {
-		type = DROP_TYPE_GENERAL;
-	}
-
-	Q_strncpyz( reason, Cmd_Argv( 2 ), sizeof( reason ) );
+	Q_strncpyz( reason, Cmd_Argv( 1 ), sizeof( reason ) );
 
 	CL_Disconnect_f();
 
@@ -415,8 +410,8 @@ void CL_Disconnect( const char *message ) {
 
 	if( message != NULL ) {
 		char menuparms[MAX_STRING_CHARS];
-		snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
-					 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), DROP_TYPE_GENERAL, message );
+		snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i rejectmessage \"%s\"",
+					 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), message );
 
 		Cbuf_ExecuteLine( menuparms );
 	}
@@ -580,11 +575,6 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 		}
 
 		cls.rejected = true;
-
-		cls.rejecttype = atoi( MSG_ReadStringLine( msg ) );
-		if( cls.rejecttype < 0 || cls.rejecttype >= DROP_TYPE_TOTAL ) {
-			cls.rejecttype = DROP_TYPE_GENERAL;
-		}
 
 		rejectflag = atoi( MSG_ReadStringLine( msg ) );
 

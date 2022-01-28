@@ -254,7 +254,7 @@ static void SV_CheckTimeouts() {
 
 		if( cl->state != CS_FREE && cl->state != CS_ZOMBIE &&
 			cl->lastPacketReceivedTime + 1000 * sv_timeout->number < svs.realtime ) {
-			SV_DropClient( cl, DROP_TYPE_GENERAL, "%s", "Error: Connection timed out" );
+			SV_DropClient( cl, "%s", "Error: Connection timed out" );
 			cl->state = CS_FREE; // don't bother with zombie state
 			if( cl->socket.open ) {
 				NET_CloseSocket( &cl->socket );
@@ -456,14 +456,14 @@ void SV_UserinfoChanged( client_t *client ) {
 	ClientUserinfoChanged( client->edict, client->userinfo );
 
 	if( !Info_Validate( client->userinfo ) ) {
-		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Invalid userinfo (after game)" );
+		SV_DropClient( client, "%s", "Error: Invalid userinfo (after game)" );
 		return;
 	}
 
 	// we assume that game module deals with setting a correct name
 	char * val = Info_ValueForKey( client->userinfo, "name" );
 	if( !val || !val[0] ) {
-		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: No name set" );
+		SV_DropClient( client, "%s", "Error: No name set" );
 		return;
 	}
 	Q_strncpyz( client->name, val, sizeof( client->name ) );

@@ -578,7 +578,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 
 	// check for malformed or illegal info strings
 	if( !Info_Validate( userinfo ) ) {
-		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Invalid userinfo" );
+		PF_DropClient( ent, "Error: Invalid userinfo" );
 		return;
 	}
 
@@ -591,7 +591,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 		G_PrintMsg( NULL, "%s is now known as %s\n", oldname, cl->netname );
 	}
 	if( !Info_SetValueForKey( userinfo, "name", cl->netname ) ) {
-		PF_DropClient( ent, DROP_TYPE_GENERAL, "Error: Couldn't set userinfo (name)" );
+		PF_DropClient( ent, "Error: Couldn't set userinfo (name)" );
 		return;
 	}
 
@@ -618,14 +618,12 @@ bool ClientConnect( edict_t *ent, char *userinfo, const netadr_t * address, bool
 
 	// verify that server gave us valid data
 	if( !Info_Validate( userinfo ) ) {
-		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_GENERAL ) );
 		Info_SetValueForKey( userinfo, "rejmsg", "Invalid userinfo" );
 		return false;
 	}
 
 	// check to see if they are on the banned IP list
 	if( SV_FilterPacket( NET_AddressToString( address ) ) ) {
-		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_GENERAL ) );
 		Info_SetValueForKey( userinfo, "rejmsg", "You're banned from this server" );
 		return false;
 	}
@@ -633,7 +631,6 @@ bool ClientConnect( edict_t *ent, char *userinfo, const netadr_t * address, bool
 	// check for a password
 	char * value = Info_ValueForKey( userinfo, "password" );
 	if( !fakeClient && ( *sv_password->value && ( !value || strcmp( sv_password->value, value ) ) ) ) {
-		Info_SetValueForKey( userinfo, "rejtype", va( "%i", DROP_TYPE_PASSWORD ) );
 		if( value && value[0] ) {
 			Info_SetValueForKey( userinfo, "rejmsg", "Incorrect password" );
 		} else {

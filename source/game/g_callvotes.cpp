@@ -299,7 +299,7 @@ static void G_VoteKickPassed( callvotedata_t *vote ) {
 		return;
 	}
 
-	PF_DropClient( ent, DROP_TYPE_NORECONNECT, "Kicked" );
+	PF_DropClient( ent, "Kicked" );
 }
 
 
@@ -359,7 +359,7 @@ static void G_VoteKickBanPassed( callvotedata_t *vote ) {
 	}
 
 	Cbuf_Add( "addip {} {}", NET_AddressToString( &svs.clients[ PLAYERNUM( ent ) ].socket.address ), 15 );
-	PF_DropClient( ent, DROP_TYPE_NORECONNECT, "Kicked" );
+	PF_DropClient( ent, "Kicked" );
 }
 
 /*

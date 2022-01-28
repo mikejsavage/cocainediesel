@@ -302,7 +302,7 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 
 	int version = atoi( Cmd_Argv( 1 ) );
 	if( version != APP_PROTOCOL_VERSION ) {
-		Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nServer and client don't have the same version\n", DROP_TYPE_GENERAL, 0 );
+		Netchan_OutOfBandPrint( socket, address, "reject\n%i\nServer and client don't have the same version\n", 0 );
 		Com_DPrintf( "    rejected connect from protocol %i\n", version );
 		return;
 	}
@@ -311,7 +311,7 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 	int challenge = atoi( Cmd_Argv( 3 ) );
 
 	if( !Info_Validate( Cmd_Argv( 4 ) ) ) {
-		Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nInvalid userinfo string\n", DROP_TYPE_GENERAL, 0 );
+		Netchan_OutOfBandPrint( socket, address, "reject\n%i\nInvalid userinfo string\n", 0 );
 		Com_DPrintf( "Connection from %s refused: invalid userinfo string\n", NET_AddressToString( address ) );
 		return;
 	}
@@ -330,14 +330,12 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 					NET_InitAddress( &svs.challenges[i].adr, NA_NOTRANSMIT );
 					break; // good
 				}
-				Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nBad challenge\n",
-										DROP_TYPE_GENERAL, DROP_FLAG_AUTORECONNECT );
+				Netchan_OutOfBandPrint( socket, address, "reject\n%i\nBad challenge\n", DROP_FLAG_AUTORECONNECT );
 				return;
 			}
 		}
 		if( i == MAX_CHALLENGES ) {
-			Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nNo challenge for address\n",
-									DROP_TYPE_GENERAL, DROP_FLAG_AUTORECONNECT );
+			Netchan_OutOfBandPrint( socket, address, "reject\n%i\nNo challenge for address\n", DROP_FLAG_AUTORECONNECT );
 			return;
 		}
 	}
@@ -361,8 +359,7 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 		}
 
 		if( previousclients >= sv_iplimit->integer * 2 ) {
-			Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nToo many connections from your host\n", DROP_TYPE_GENERAL,
-									DROP_FLAG_AUTORECONNECT );
+			Netchan_OutOfBandPrint( socket, address, "reject\n%i\nToo many connections from your host\n", DROP_FLAG_AUTORECONNECT );
 			Com_DPrintf( "%s:connect rejected : too many connections\n", NET_AddressToString( address ) );
 			return;
 		}
@@ -383,21 +380,19 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 		}
 	}
 	if( !newcl ) {
-		Netchan_OutOfBandPrint( socket, address, "reject\n%i\n%i\nServer is full\n", DROP_TYPE_GENERAL,
-								DROP_FLAG_AUTORECONNECT );
+		Netchan_OutOfBandPrint( socket, address, "reject\n%i\nServer is full\n", DROP_FLAG_AUTORECONNECT );
 		Com_DPrintf( "Server is full. Rejected a connection.\n" );
 		return;
 	}
 	if( newcl->state && newcl->edict && ( newcl->edict->s.svflags & SVF_FAKECLIENT ) ) {
-		SV_DropClient( newcl, DROP_TYPE_GENERAL, "%s", "Need room for a real player" );
+		SV_DropClient( newcl, "%s", "Need room for a real player" );
 	}
 
 	// get the game a chance to reject this connection or modify the userinfo
 	if( !SV_ClientConnect( socket, address, newcl, userinfo, session_id, challenge, false ) ) {
-		const char * rejtype = Info_ValueForKey( userinfo, "rejtype" );
 		const char * rejmsg = Info_ValueForKey( userinfo, "rejmsg" );
 
-		Netchan_OutOfBandPrint( socket, address, "reject\n%s\n%s\n", rejtype, rejmsg );
+		Netchan_OutOfBandPrint( socket, address, "reject\n%s\n", rejmsg );
 
 		return;
 	}

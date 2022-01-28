@@ -136,10 +136,4 @@ enum server_state_t {
 	ss_game         // actively running
 };
 
-enum {
-	DROP_REASON_CONNFAILED,
-	DROP_REASON_CONNTERMINATED,
-	DROP_REASON_CONNERROR
-};
-
 #define DROP_FLAG_AUTORECONNECT 1       // it's okay try reconnectting automatically

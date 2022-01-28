@@ -143,6 +143,11 @@ void SV_DropClient( client_t *drop, const char *format, ... ) {
 		ClientDisconnect( drop->edict, reason );
 		SV_ClientResetCommandBuffers( drop ); // make sure everything is clean
 	} else {
+		SV_InitClientMessage( drop, &tmpMessage, NULL, 0 );
+		SV_SendServerCommand( drop, "disconnect \"%s\"", string );
+		SV_AddReliableCommandsToMessage( drop, &tmpMessage );
+
+		SV_SendMessageToClient( drop, &tmpMessage );
 		Netchan_PushAllFragments( &drop->netchan );
 
 		if( drop->state >= CS_CONNECTED ) {

@@ -168,7 +168,6 @@ struct client_static_t {
 	bool download_url_is_game_server;
 
 	bool rejected;          // these are used when the server rejects our connection
-	int rejecttype;
 	char rejectmessage[80];
 
 	netchan_t netchan;

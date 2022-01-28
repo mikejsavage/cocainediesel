@@ -119,17 +119,14 @@ void CL_UpdateClientCommandsToServer( msg_t *msg ) {
 
 void CL_ServerDisconnect_f() {
 	char menuparms[MAX_STRING_CHARS];
-	int type;
 	char reason[MAX_STRING_CHARS];
 
 	Q_strncpyz( reason, Cmd_Argv( 1 ), sizeof( reason ) );
 
 	CL_Disconnect_f();
 
-	Com_Printf( "Connection was closed by server: %s\n", reason );
-
-	snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
-				 DROP_REASON_CONNTERMINATED, type, reason );
+	Com_Printf( "Connection was closed by server: %s\n", reason );	
+	snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed rejectmessage \"%s\"", reason );
 
 	Cbuf_ExecuteLine( menuparms );
 }
@@ -410,8 +407,7 @@ void CL_Disconnect( const char *message ) {
 
 	if( message != NULL ) {
 		char menuparms[MAX_STRING_CHARS];
-		snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i rejectmessage \"%s\"",
-					 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), message );
+		snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed rejectmessage \"%s\"", message );
 
 		Cbuf_ExecuteLine( menuparms );
 	}
@@ -594,8 +590,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 			Com_Printf( "Automatic reconnecting not allowed.\n" );
 
 			CL_Disconnect( NULL );
-			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
-						 DROP_REASON_CONNFAILED, cls.rejecttype, cls.rejectmessage );
+			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed rejectmessage \"%s\"", cls.rejectmessage );
 
 			Cbuf_ExecuteLine( menuparms );
 		}

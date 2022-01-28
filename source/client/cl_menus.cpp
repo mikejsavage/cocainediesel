@@ -291,6 +291,7 @@ static void SettingsControls() {
 			KeyBindButton( "User pack", "vsay user" );
 			KeyBindButton( "Guyman pack", "vsay guyman" );
 			KeyBindButton( "Helena pack", "vsay helena" );
+			KeyBindButton( "Fart pack", "vsay fart" );
 
 			ImGui::EndTabItem();
 		}

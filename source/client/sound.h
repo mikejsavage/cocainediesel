@@ -11,7 +11,7 @@ extern Cvar * s_device;
 bool S_Init();
 void S_Shutdown();
 
-const char * GetAudioDevicesAsSequentialStrings();
+Span< const char * > GetAudioDevices( Allocator * a );
 
 void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis );
 

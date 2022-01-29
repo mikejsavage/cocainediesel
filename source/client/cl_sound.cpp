@@ -590,8 +590,17 @@ void S_Shutdown() {
 	alcCloseDevice( al_device );
 }
 
-const char * GetAudioDevicesAsSequentialStrings() {
-	return alcGetString( NULL, ALC_ALL_DEVICES_SPECIFIER );
+Span< const char * > GetAudioDevices( Allocator * a ) {
+	NonRAIIDynamicArray< const char * > devices;
+	devices.init( a );
+
+	const char * cursor = alcGetString( NULL, ALC_ALL_DEVICES_SPECIFIER );
+	while( !StrEqual( cursor, "" ) ) {
+		devices.add( cursor );
+		cursor += strlen( cursor ) + 1;
+	}
+
+	return devices.span();
 }
 
 static bool FindSound( StringHash name, Sound * sound ) {

@@ -530,12 +530,11 @@ static void SettingsAudio() {
 			Cvar_Set( "s_device", "" );
 		}
 
-		const char * device = GetAudioDevicesAsSequentialStrings();
-		while( !StrEqual( device, "" ) ) {
+		TempAllocator temp = cls.frame_arena.temp();
+		for( const char * device : GetAudioDevices( &temp ) ) {
 			if( ImGui::Selectable( CleanAudioDeviceName( device ), StrEqual( device, s_device->value ) ) ) {
 				Cvar_Set( "s_device", device );
 			}
-			device += strlen( device ) + 1;
 		}
 		ImGui::EndCombo();
 	}

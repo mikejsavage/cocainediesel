@@ -375,8 +375,6 @@ void CL_Disconnect( const char *message ) {
 		return;
 	}
 
-	bool wasconnecting = cls.state < CA_CONNECTED;
-
 	SV_ShutdownGame( "Owner left the listen server", false );
 
 	cls.connect_time = 0;

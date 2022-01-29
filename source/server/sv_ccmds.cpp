@@ -112,7 +112,6 @@ void SV_Status_f() {
 		Com_Printf( " " ); // always add at least one space between the columns because IPv6 addresses are long
 
 		Com_GGPrint( "{16x}", cl->netchan.session_id );
-		Com_Printf( "" );
 	}
 	Com_Printf( "\n" );
 }

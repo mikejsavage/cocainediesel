@@ -320,7 +320,7 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 	u64 session_id, int challenge, bool fakeClient );
 
 #ifndef _MSC_VER
-void SV_DropClient( client_t *drop, const char *format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );
+void SV_DropClient( client_t *drop, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
 #else
 void SV_DropClient( client_t *drop, _Printf_format_string_ const char *format, ... );
 #endif

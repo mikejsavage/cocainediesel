@@ -920,7 +920,7 @@ static void AddPatchBrushes( BSP * bsp, DynamicArray< MinMax3 > * brush_bounds, 
 	}
 }
 
-Span< const char > ParseComment( Span< const char > * comment, Span< const char > str ) {
+static Span< const char > ParseComment( Span< const char > * comment, Span< const char > str ) {
 	return PEGCapture( comment, str, []( Span< const char > str ) {
 		str = PEGLiteral( str, "//" );
 		str = PEGNOrMore( str, 0, []( Span< const char > str ) {
@@ -953,19 +953,19 @@ struct CandidatePlanes {
 	Span< CandidatePlane > axes[ 3 ];
 };
 
-int MaxAxis( MinMax3 bounds ) {
+static int MaxAxis( MinMax3 bounds ) {
 	Vec3 dims = bounds.maxs - bounds.mins;
 	if( dims.x > dims.y && dims.x > dims.z )
 		return 0;
 	return dims.y > dims.z ? 1 : 2;
 }
 
-float SurfaceArea( MinMax3 bounds ) {
+static float SurfaceArea( MinMax3 bounds ) {
 	Vec3 dims = bounds.maxs - bounds.mins;
 	return 2.0f * ( dims.x * dims.y + dims.x * dims.z + dims.y * dims.z );
 }
 
-CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds ) {
+static CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds ) {
 	TracyZoneScoped;
 
 	CandidatePlanes planes;
@@ -1155,7 +1155,7 @@ static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u3
 	return node_id;
 }
 
-void BuildKDTree( TempAllocator * temp, BSP * bsp, Span< const MinMax3 > brush_bounds ) {
+static void BuildKDTree( TempAllocator * temp, BSP * bsp, Span< const MinMax3 > brush_bounds ) {
 	TracyZoneScoped;
 
 	MinMax3 tree_bounds = MinMax3::Empty();
@@ -1243,7 +1243,7 @@ static void WriteBSP( TempAllocator * temp, const char * path, BSP * bsp ) {
 	}
 }
 
-Span< const char > GetKey( Span< const KeyValue > kvs, const char * key ) {
+static Span< const char > GetKey( Span< const KeyValue > kvs, const char * key ) {
 	for( KeyValue kv : kvs ) {
 		if( StrCaseEqual( kv.key, key ) ) {
 			return kv.value;

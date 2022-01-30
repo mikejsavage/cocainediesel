@@ -1,5 +1,5 @@
 {
 	attenuation distant
-	sound weapons/stake/fire
+	sound ./fire
 	volume 0.7
 }

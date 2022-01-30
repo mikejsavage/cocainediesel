@@ -1,5 +1,5 @@
 {
 	attenuation idle
-	sound weapons/rg/up
+	sound ./up
 	volume 0.60
 }

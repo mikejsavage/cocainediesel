@@ -1,4 +1,4 @@
 {
 	attenuation idle
-	sound weapons/rg/reload
+	sound ./reload
 }

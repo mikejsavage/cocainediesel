@@ -400,7 +400,7 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 
 //==================================================================
 
-void CG_Event_Fall( const SyncEntityState * state, u64 parm ) {
+static void CG_Event_Fall( const SyncEntityState * state, u64 parm, bool viewer ) {
 	if( ISVIEWERENTITY( state->number ) ) {
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
 	}
@@ -413,7 +413,7 @@ void CG_Event_Fall( const SyncEntityState * state, u64 parm ) {
 
 	float volume = ( parm - 40 ) / 300.0f;
 	float pitch = 1.0f - volume * 0.125f;
-	if( ISVIEWERENTITY( state->number ) ) {
+	if( viewer ) {
 		S_StartLocalSound( "players/fall", CHAN_AUTO, volume, pitch );
 	}
 	else {
@@ -676,7 +676,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_FALL:
-			CG_Event_Fall( ent, parm );
+			CG_Event_Fall( ent, parm, viewer );
 			break;
 
 			//  NON PREDICTABLE EVENTS

@@ -624,7 +624,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 			break;
 
-		case EV_RELOADED: {
+		case EV_RELOAD: {
 			if( parm <= Weapon_None || parm >= Weapon_Count )
 				return;
 

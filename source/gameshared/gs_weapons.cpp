@@ -329,6 +329,10 @@ static ItemState generic_gun_states[] = {
 	} ),
 
 	ItemState( WeaponState_Reloading, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
+		if( ps->weapon_state_time == 0 ) {
+			gs->api.PredictedEvent( ps->POVnum, EV_RELOAD, ps->weapon );
+		}
+
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
@@ -345,12 +349,15 @@ static ItemState generic_gun_states[] = {
 		}
 
 		slot->ammo = def->clip_size;
-		gs->api.PredictedEvent( ps->POVnum, EV_RELOADED, ps->weapon );
 
 		return WeaponState_Idle;
 	} ),
 
 	ItemState( WeaponState_StagedReloading, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
+		if( ps->weapon_state_time == 0 ) {
+			gs->api.PredictedEvent( ps->POVnum, EV_RELOAD, ps->weapon );
+		}
+
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
@@ -363,7 +370,6 @@ static ItemState generic_gun_states[] = {
 		}
 
 		slot->ammo++;
-		gs->api.PredictedEvent( ps->POVnum, EV_RELOADED, ps->weapon );
 
 		return slot->ammo == def->clip_size ? WeaponState_Idle : ForceReset( WeaponState_StagedReloading );
 	} ),

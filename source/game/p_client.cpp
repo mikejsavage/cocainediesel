@@ -684,11 +684,6 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 		G_PrintMsg( NULL, "%s disconnected (%s)\n", ent->r.client->netname, reason );
 	}
 
-	// send effect
-	if( ent->s.team > TEAM_SPECTATOR ) {
-		G_TeleportEffect( ent, false );
-	}
-
 	CreateCorpse( ent, NULL, 0, 0 ); //create a corpse
 
 	ent->r.inuse = false;

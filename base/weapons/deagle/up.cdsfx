@@ -1,5 +1,5 @@
 {
 	attenuation idle
 	sound ./up
-	volume 0.55
+	volume 0.7
 }

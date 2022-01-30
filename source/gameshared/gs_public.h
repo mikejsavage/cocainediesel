@@ -234,6 +234,7 @@ enum {
 	Vsay_Guyman,
 	Vsay_Helena,
 	Vsay_Fart,
+	Vsay_Zombie,
 
 	Vsay_Total
 };

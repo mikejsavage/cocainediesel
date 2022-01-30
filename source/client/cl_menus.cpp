@@ -286,12 +286,13 @@ static void SettingsControls() {
 
 		if( ImGui::BeginTabItem( "Voices" ) ) {
 			KeyBindButton( "Acne pack", "vsay acne" );
-			KeyBindButton( "Valley pack", "vsay valley" );
-			KeyBindButton( "Mike pack", "vsay mike" );
-			KeyBindButton( "User pack", "vsay user" );
+			KeyBindButton( "Fart pack", "vsay fart" );
 			KeyBindButton( "Guyman pack", "vsay guyman" );
 			KeyBindButton( "Helena pack", "vsay helena" );
-			KeyBindButton( "Fart pack", "vsay fart" );
+			KeyBindButton( "Mike pack", "vsay mike" );
+			KeyBindButton( "User pack", "vsay user" );
+			KeyBindButton( "Valley pack", "vsay valley" );
+			KeyBindButton( "Zombie pack", "vsay zombie" );
 
 			ImGui::EndTabItem();
 		}

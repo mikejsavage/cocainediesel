@@ -40,6 +40,7 @@ void CG_RegisterMedia() {
 	cgs.media.sfxVSaySounds[ Vsay_Guyman ] = "sounds/vsay/guyman";
 	cgs.media.sfxVSaySounds[ Vsay_Helena ] = "sounds/vsay/helena";
 	cgs.media.sfxVSaySounds[ Vsay_Fart ] = "sounds/vsay/fart";
+	cgs.media.sfxVSaySounds[ Vsay_Zombie ] = "sounds/vsay/zombie";
 
 	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
 		cgs.media.shaderWeaponIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GS_GetWeaponDef( i )->short_name ) );

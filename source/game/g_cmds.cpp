@@ -381,6 +381,7 @@ static const g_vsays_t g_vsays[] = {
 	{ "helena", Vsay_Helena },
 	{ "fart", Vsay_Fart },
 	{ "zombie", Vsay_Zombie },
+	{ "larp", Vsay_Larp },
 
 	{ NULL, 0 }
 };

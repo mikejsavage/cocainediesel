@@ -482,12 +482,8 @@ void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
 	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump );
 }
 
-static void CG_PlayJumpSound( const SyncEntityState * state ) {
-	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Jump );
-}
-
 static void CG_Event_Jump( SyncEntityState * state ) {
-	CG_PlayJumpSound( state );
+	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Jump );
 
 	centity_t * cent = &cg_entities[ state->number ];
 	float xyspeedcheck = Length( Vec3( cent->animVelocity.x, cent->animVelocity.y, 0 ) );
@@ -671,7 +667,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_JUMP_PAD:
-			CG_PlayJumpSound( ent );
 			CG_PModel_AddAnimation( ent->number, LEGS_JUMP_NEUTRAL, 0, 0, EVENT_CHANNEL );
 			break;
 

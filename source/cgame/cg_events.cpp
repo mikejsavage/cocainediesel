@@ -546,7 +546,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			if( !silent ) {
 				CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
 
-				StringHash sfx = GetWeaponModelMetadata( weapon )->up_sound;
+				StringHash sfx = GetWeaponModelMetadata( weapon )->switch_in_sound;
 				if( viewer ) {
 					S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
 				}
@@ -627,6 +627,20 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				S_StartFixedSound( "weapons/noammo", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 			}
 			break;
+
+		case EV_RELOADED: {
+			if( parm <= Weapon_None || parm >= Weapon_Count )
+				return;
+
+			StringHash sfx = GetWeaponModelMetadata( parm )->reload_sound;
+
+			if( viewer ) {
+				S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
+			}
+			else {
+				S_StartFixedSound( sfx, ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			}
+		} break;
 
 		case EV_ZOOM_IN:
 		case EV_ZOOM_OUT: {

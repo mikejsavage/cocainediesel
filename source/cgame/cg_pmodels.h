@@ -113,7 +113,8 @@ struct WeaponModelMetadata {
 	Vec3 handpositionAngles;
 
 	StringHash fire_sound;
-	StringHash up_sound;
+	StringHash reload_sound;
+	StringHash switch_in_sound;
 	StringHash zoom_in_sound;
 	StringHash zoom_out_sound;
 };

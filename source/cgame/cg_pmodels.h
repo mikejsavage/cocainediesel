@@ -105,8 +105,6 @@ enum {
 };
 
 struct WeaponModelMetadata {
-	bool inuse;
-
 	const Model * model;
 
 	Vec3 handpositionOrigin;
@@ -117,6 +115,13 @@ struct WeaponModelMetadata {
 	StringHash switch_in_sound;
 	StringHash zoom_in_sound;
 	StringHash zoom_out_sound;
+};
+
+struct GadgetModelMetadata {
+	const Model * model;
+
+	StringHash use_sound;
+	StringHash switch_in_sound;
 };
 
 enum {
@@ -218,6 +223,7 @@ void CG_PModel_ClearEventAnimations( int entNum );
 //
 void InitWeaponModels();
 const WeaponModelMetadata * GetWeaponModelMetadata( WeaponType weapon );
+const GadgetModelMetadata * GetGadgetModelMetadata( GadgetType gadget );
 
 //=================================================
 //				VIEW WEAPON

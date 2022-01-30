@@ -199,8 +199,11 @@ static ItemStateTransition Dispatch( const gs_state_t * gs, WeaponState state, S
 	ps->pending_weapon = Weapon_None;
 	ps->pending_gadget = false;
 
-	u64 quiet_bit = state == WeaponState_DispatchQuiet ? 1 : 0;
-	gs->api.PredictedEvent( ps->POVnum, EV_WEAPONACTIVATE, ( ps->weapon << 1 ) | quiet_bit );
+	if( state != WeaponState_DispatchQuiet ) {
+		u64 gadget_bit = ps->using_gadget ? 1 : 0;
+		u64 parm = ( ps->weapon << 1 ) | ( ps->gadget << 1 ) | gadget_bit;
+		gs->api.PredictedEvent( ps->POVnum, EV_WEAPONACTIVATE, parm );
+	}
 
 	return WeaponState_SwitchingIn;
 }
@@ -598,4 +601,14 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd
 
 bool GS_CanEquip( const SyncPlayerState * ps, WeaponType weapon ) {
 	return ( ps->pmove.features & PMFEAT_WEAPONSWITCH ) != 0 && FindWeapon( ps, weapon ) != NULL;
+}
+
+void format( FormatBuffer * fb, const Loadout & loadout, const FormatOpts & opts ) {
+	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
+		format( fb, loadout.weapons[ i ], FormatOpts() );
+		format( fb, " " );
+	}
+	format( fb, loadout.perk, FormatOpts() );
+	format( fb, " " );
+	format( fb, loadout.gadget, FormatOpts() );
 }

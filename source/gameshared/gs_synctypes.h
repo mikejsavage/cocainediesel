@@ -49,6 +49,14 @@ enum EntityType : u8 {
 	ET_SOUNDEVENT,
 };
 
+enum WeaponCategory {
+	WeaponCategory_Primary,
+	WeaponCategory_Secondary,
+	WeaponCategory_Backup,
+
+	WeaponCategory_Count
+};
+
 using WeaponType = u8;
 enum WeaponType_ : WeaponType {
 	Weapon_None,
@@ -93,6 +101,12 @@ enum PerkType : u8 {
 	Perk_Midget,
 
 	Perk_Count
+};
+
+struct Loadout {
+	WeaponType weapons[ WeaponCategory_Count ];
+	GadgetType gadget;
+	PerkType perk;
 };
 
 enum WeaponState : u8 {

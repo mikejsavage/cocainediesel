@@ -749,6 +749,14 @@ void G_PredictedFireWeapon( int entNum, u64 parm ) {
 void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm ) {
 	edict_t * ent = &game.edicts[ entNum ];
 	G_UseGadget( ent, gadget, parm );
+
+	Vec3 start = ent->s.origin;
+	start.z += ent->r.client->ps.viewheight;
+
+	edict_t * event = G_SpawnEvent( EV_USEGADGET, ( parm << 8 ) | gadget, &start );
+	event->s.ownerNum = entNum;
+	event->s.origin2 = ent->r.client->ps.viewangles;
+	event->s.team = ent->s.team;
 }
 
 void G_GiveWeapon( edict_t * ent, WeaponType weapon ) {

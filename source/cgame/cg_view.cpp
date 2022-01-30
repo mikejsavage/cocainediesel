@@ -357,7 +357,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 
 		// check for drawing gun
 		if( !view->thirdperson && view->POVent > 0 && view->POVent <= client_gs.maxclients ) {
-			if( cg_entities[view->POVent].serverFrame == cg.frame.serverFrame && cg_entities[view->POVent].current.weapon != Weapon_Count ) {
+			if( cg_entities[view->POVent].serverFrame == cg.frame.serverFrame ) {
 				view->drawWeapon = true;
 			}
 		}

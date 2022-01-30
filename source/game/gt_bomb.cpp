@@ -1,6 +1,5 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
-#include "qcommon/string.h"
 
 #include "game/g_local.h"
 
@@ -67,12 +66,6 @@ struct BombSite {
 	edict_t * indicator;
 	edict_t * hud;
 	char letter;
-};
-
-struct Loadout {
-	WeaponType weapons[ WeaponCategory_Count ];
-	GadgetType gadget;
-	PerkType perk;
 };
 
 static struct {
@@ -178,6 +171,9 @@ static void GiveInventory( edict_t * ent ) {
 
 	G_SelectWeapon( ent, 1 );
 
+	ent->r.client->ps.gadget = loadout.gadget;
+	ent->r.client->ps.gadget_ammo = GetGadgetDef( loadout.gadget )->uses;
+
 	float old_max_health = ent->max_health;
 	if( loadout.perk == Perk_Midget ) {
 		ent->s.scale = Vec3( 0.8f, 0.8f, 0.625f );
@@ -198,20 +194,8 @@ static void ShowShop( s32 player_num ) {
 	}
 
 	TempAllocator temp = svs.frame_arena.temp();
-	DynamicString command( &temp, "changeloadout" );
-
 	const Loadout & loadout = bomb_state.loadouts[ player_num ];
-
-	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		WeaponType weapon = loadout.weapons[ i ];
-		if( weapon != Weapon_None ) {
-			command.append( " {}", weapon );
-		}
-	}
-
-	command.append( " {}", loadout.perk );
-
-	PF_GameCmd( PLAYERENT( player_num ), command.c_str() );
+	PF_GameCmd( PLAYERENT( player_num ), temp( "changeloadout {}", loadout ) );
 }
 
 static Loadout DefaultLoadout() {
@@ -223,6 +207,8 @@ static Loadout DefaultLoadout() {
 	for( int i = 0; i < WeaponCategory_Count; i++ ) {
 		assert( loadout.weapons[ i ] != Weapon_None );
 	}
+
+	loadout.gadget = Gadget_ThrowingAxe;
 
 	return loadout;
 }
@@ -259,6 +245,14 @@ static bool ParseLoadout( Loadout * loadout, const char * loadout_string ) {
 		loadout->perk = PerkType( perk );
 	}
 
+	{
+		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		int gadget;
+		if( !TrySpanToInt( token, &gadget ) || gadget <= Gadget_None || gadget >= Gadget_Count )
+			return false;
+		loadout->gadget = GadgetType( gadget );
+	}
+
 	return cursor.ptr != NULL && cursor.n == 0;
 }
 
@@ -271,17 +265,7 @@ static void SetLoadout( edict_t * ent, const char * loadout_string, bool fallbac
 	}
 
 	TempAllocator temp = svs.frame_arena.temp();
-	DynamicString command( &temp, "saveloadout" );
-
-	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		WeaponType weapon = loadout.weapons[ i ];
-		if( weapon != Weapon_None ) {
-			command.append( " {}", weapon );
-		}
-	}
-	command.append( " {}", loadout.perk );
-
-	PF_GameCmd( ent, command.c_str() );
+	PF_GameCmd( ent, temp( "saveloadout {}", loadout ) );
 
 	bomb_state.loadouts[ PLAYERNUM( ent ) ] = loadout;
 

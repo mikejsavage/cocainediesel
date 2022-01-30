@@ -533,22 +533,22 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			//  PREDICTABLE EVENTS
 
 		case EV_WEAPONACTIVATE: {
-			WeaponType weapon = parm >> 1;
-			bool silent = ( parm & 1 ) != 0;
-			if( predicted ) {
-				cg_entities[ ent->number ].current.weapon = weapon;
+			CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
+
+			StringHash sfx = EMPTY_HASH;
+			bool is_gadget = ( parm & 1 ) != 0;
+			if( !is_gadget ) {
+				sfx = GetWeaponModelMetadata( WeaponType( parm >> 1 ) )->switch_in_sound;
+			}
+			else {
+				sfx = GetGadgetModelMetadata( GadgetType( parm >> 1 ) )->switch_in_sound;
 			}
 
-			if( !silent ) {
-				CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
-
-				StringHash sfx = GetWeaponModelMetadata( weapon )->switch_in_sound;
-				if( viewer ) {
-					S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
-				}
-				else {
-					S_StartFixedSound( sfx, ent->origin, CHAN_AUTO, 1.0f, 1.0f );
-				}
+			if( viewer ) {
+				S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
+			}
+			else {
+				S_StartFixedSound( sfx, ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 			}
 		} break;
 
@@ -613,6 +613,19 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			// if( predicted && weapon == Weapon_Minigun ) {
 			// 	cg.predictedPlayerState.pmove.velocity -= dir * GS_GetWeaponDef( Weapon_Minigun )->knockback;
 			// }
+		} break;
+
+		case EV_USEGADGET: {
+			GadgetType gadget = GadgetType( parm & 0xFF );
+			StringHash sfx = GetGadgetModelMetadata( gadget )->use_sound;
+
+			int owner = predicted ? ent->number : ent->ownerNum;
+			if( viewer ) {
+				S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
+			}
+			else {
+				S_StartEntitySound( sfx, owner, CHAN_AUTO, 1.0f, 1.0f );
+			}
 		} break;
 
 		case EV_NOAMMOCLICK:
@@ -918,7 +931,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		} break;
 
 		case EV_STUN_GRENADE_EXPLOSION:
-			S_StartFixedSound( "sounds/vsay/goodgame", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			DoVisualEffect( "gadgets/flash/explode", ent->origin, Vec3(), 1.0f, vec4_white );
+			S_StartFixedSound( "gadgets/flash/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 			break;
 	}
 }

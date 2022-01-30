@@ -224,7 +224,7 @@ static void CG_SC_ChangeLoadout() {
 
 	int weapons[ WeaponCategory_Count ] = { };
 
-	if( Cmd_Argc() != ARRAY_COUNT( weapons ) + 2 )
+	if( Cmd_Argc() != ARRAY_COUNT( weapons ) + 3 )
 		return;
 
 	for( size_t i = 0; i < ARRAY_COUNT( weapons ); i++ ) {
@@ -232,8 +232,9 @@ static void CG_SC_ChangeLoadout() {
 	}
 
 	PerkType perk = PerkType( atoi( Cmd_Argv( ARRAY_COUNT( weapons ) + 1 ) ) );
+	GadgetType gadget = GadgetType( atoi( Cmd_Argv( ARRAY_COUNT( weapons ) + 2 ) ) );
 
-	UI_ShowLoadoutMenu( Span< int >( weapons, ARRAY_COUNT( weapons ) ), perk );
+	UI_ShowLoadoutMenu( Span< int >( weapons, ARRAY_COUNT( weapons ) ), perk, gadget );
 }
 
 static void CG_SC_SaveLoadout() {

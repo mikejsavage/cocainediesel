@@ -1,18 +1,11 @@
 #pragma once
 
 #include "qcommon/types.h"
+#include "gameshared/gs_synctypes.h"
 
 struct gs_state_t;
 struct SyncPlayerState;
 struct UserCommand;
-
-enum WeaponCategory {
-	WeaponCategory_Primary,
-	WeaponCategory_Secondary,
-	WeaponCategory_Backup,
-
-	WeaponCategory_Count
-};
 
 struct WeaponDef {
 	const char * name;
@@ -54,6 +47,7 @@ struct WeaponDef {
 struct GadgetDef {
 	const char * name;
 	const char * short_name;
+	int uses;
 
 	u16 switch_in_time;
 	u16 using_time;
@@ -66,7 +60,6 @@ struct GadgetDef {
 	int splash_radius;
 	s64 timeout;
 	int speed;
-	int uses;
 };
 
 void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd, int timeDelta );
@@ -85,3 +78,5 @@ Vec2 FixedSpreadPattern( int i, float spread );
 void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * trace, Vec3 dir, void * data ), void * data );
 
 bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );
+
+void format( FormatBuffer * fb, const Loadout & loadout, const FormatOpts & opts );

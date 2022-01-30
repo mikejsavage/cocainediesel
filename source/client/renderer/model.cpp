@@ -260,6 +260,9 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mo
 }
 
 void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
+	if( model == NULL )
+		return;
+
 	bool animated = palettes.node_transforms.ptr != NULL;
 
 	// TODO: this should be figured out during model loading

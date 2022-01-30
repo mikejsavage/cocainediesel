@@ -48,7 +48,7 @@ void CG_RegisterMedia() {
 	}
 
 	for( u8 i = 0; i < Gadget_Count; i++ ) {
-		cgs.media.shaderGadgetIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GetGadgetDef( GadgetType( i ) )->short_name ) );
+		cgs.media.shaderGadgetIcon[ i ] = FindMaterial( temp( "gadgets/{}/icon", GetGadgetDef( GadgetType( i ) )->short_name ) );
 	}
 
 	cgs.fontNormal = RegisterFont( "fonts/Decalotype-Bold" );

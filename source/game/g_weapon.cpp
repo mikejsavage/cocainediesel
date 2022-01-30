@@ -953,8 +953,8 @@ static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	edict_t * axe = FireProjectile( self, start, angles, timeDelta, stats, TouchThrowingAxe, ET_THROWING_AXE, MASK_SHOT );
 	axe->classname = "throwing axe";
 	axe->movetype = MOVETYPE_BOUNCE;
-	axe->s.model = "weapons/axe/model";
-	axe->s.sound = "weapons/axe/trail";
+	axe->s.model = "gadgets/hatchet/model";
+	axe->s.sound = "gadgets/hatchet/trail";
 	axe->avelocity = Vec3( 360.0f * 4, 0.0f, 0.0f );
 }
 
@@ -1009,7 +1009,7 @@ static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, stats, TouchStunGrenade, ET_GENERIC, MASK_SHOT );
 	grenade->classname = "stun grenade";
 	grenade->movetype = MOVETYPE_BOUNCE;
-	grenade->s.model = "weapons/stungrenade/model";
+	grenade->s.model = "gadgets/flash/model";
 	grenade->avelocity = Vec3( 360.0f, 0.0f, 0.0f );
 	grenade->think = ExplodeStunGrenade;
 }

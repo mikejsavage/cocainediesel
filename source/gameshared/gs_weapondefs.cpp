@@ -769,7 +769,8 @@ const GadgetDef gadget_defs[] = {
 
 	{
 		/* name             */ "AXE",
-		/* short name       */ "axe",
+		/* short name       */ "hatchet",
+		/* uses             */ 1,
 		/* switch_in_time   */ WEAPONUP_TIME_NORMAL,
 		/* using_time       */ 500,
 		/* cook_time        */ 1000,
@@ -781,17 +782,18 @@ const GadgetDef gadget_defs[] = {
 		/* splash_radius    */ 0,
 		/* timeout          */ 5000,
 		/* speed            */ 1500,
+	},
+
+	{
+		/* name             */ "AMERICA",
+		/* short name       */ "suicidevest",
 		/* uses             */ 1,
 	},
 
 	{
-		"Suicide vest",
-		"suicidevest",
-	},
-
-	{
 		/* name             */ "FLASH",
-		/* short name       */ "flashbang",
+		/* short name       */ "flash",
+		/* uses             */ 2,
 		/* switch_in_time   */ WEAPONUP_TIME_NORMAL,
 		/* using_time       */ 500,
 		/* cook_time        */ 0,
@@ -803,7 +805,6 @@ const GadgetDef gadget_defs[] = {
 		/* splash_radius    */ 300,
 		/* timeout          */ 2500,
 		/* speed            */ 750,
-		/* uses             */ 1,
 	},
 };
 

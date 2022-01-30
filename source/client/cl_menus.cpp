@@ -7,7 +7,6 @@
 #include "client/renderer/renderer.h"
 #include "qcommon/version.h"
 #include "qcommon/maplist.h"
-#include "qcommon/string.h"
 
 #include "cgame/cg_local.h"
 
@@ -62,8 +61,7 @@ static int selected_server;
 
 static bool yolodemo;
 
-static WeaponType selected_weapons[ WeaponCategory_Count ];
-static PerkType selected_perk;
+static Loadout loadout;
 
 static SettingsState settings_state;
 static bool reset_video_settings;
@@ -894,24 +892,16 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 
 static void SendLoadout() {
 	TempAllocator temp = cls.frame_arena.temp();
-
-	DynamicString loadout( &temp, "weapselect" );
-
-	for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-		if( selected_weapons[ i ] != Weapon_None ) {
-			loadout.append( " {}", selected_weapons[ i ] );
-		}
-	}
-	loadout.append( " {}", selected_perk );
-
-	Cbuf_Add( "{}", loadout.c_str() );
+	Cbuf_Add( "weapselect {}", loadout );
 }
 
 static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
 	return Vec4( rgba.r / 255.0f, rgba.g / 255.0f, rgba.b / 255.0f, rgba.a / 255.0f );
 }
 
-static void WeaponButton( WeaponType weapon, Vec2 size ) {
+static bool LoadoutButton( const char * text, Vec2 icon_size, const Material * icon, bool selected ) {
+	ImGui::TableNextColumn();
+
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
 	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
@@ -921,10 +911,6 @@ static void WeaponButton( WeaponType weapon, Vec2 size ) {
 	ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
 	defer { ImGui::PopStyleVar( 2 ); };
 
-	const WeaponDef * def = GS_GetWeaponDef( weapon );
-	bool selected = selected_weapons[ def->category ] == weapon;
-
-	const Material * icon = cgs.media.shaderWeaponIcon[ weapon ];
 	Vec2 half_pixel = HalfPixelSize( icon );
 	Vec4 color = RGBA8ToVec4NosRGB( selected ? rgba8_diesel_yellow : rgba8_white ); // TODO...
 
@@ -932,28 +918,10 @@ static void WeaponButton( WeaponType weapon, Vec2 size ) {
 	ImGui::PushStyleColor( ImGuiCol_Border, color );
 	defer { ImGui::PopStyleColor( 2 ); };
 
-	bool clicked = ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
-	if( clicked ) {
-		selected_weapons[ def->category ] = weapon;
-		SendLoadout();
-	}
+	bool clicked = ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
+	ImGui::Text( "%s", text );
 
-	ImGui::Text( "%s", def->name );
-}
-
-static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
-	ImGui::TableNextRow();
-	ImGui::TableSetColumnIndex( 0 );
-	ImGui::Text( "%s", label );
-	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
-
-	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
-		const WeaponDef * def = GS_GetWeaponDef( i );
-		if( def->category == category ) {
-			ImGui::TableNextColumn();
-			WeaponButton( i, icon_size );
-		}
-	}
+	return clicked;
 }
 
 static void Perks( Vec2 icon_size ) {
@@ -962,31 +930,10 @@ static void Perks( Vec2 icon_size ) {
 	ImGui::Text( "CLASS" );
 	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
 
-	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
-	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
-	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
-	defer { ImGui::PopStyleColor( 3 ); };
-
-	ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 2 );
-	ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
-	defer { ImGui::PopStyleVar( 2 ); };
-
-	const Material * icon = FindMaterial( "perks/midget" );
-	Vec2 half_pixel = HalfPixelSize( icon );
-	Vec4 color = selected_perk == Perk_Midget ? vec4_green : vec4_white;
-
-	ImGui::PushStyleColor( ImGuiCol_Border, color );
-	defer { ImGui::PopStyleColor(); };
-
-	ImGui::TableNextColumn();
-
-	bool clicked = ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
-	if( clicked ) {
-		selected_perk = selected_perk == Perk_Midget ? Perk_None : Perk_Midget;
+	if( LoadoutButton( "MIDGET", icon_size, FindMaterial( "perks/midget" ), loadout.perk == Perk_Midget ) ) {
+		loadout.perk = loadout.perk == Perk_Midget ? Perk_None : Perk_Midget;
 		SendLoadout();
 	}
-
-	ImGui::Text( "MIDGET" );
 }
 
 static int CountWeaponCategory( WeaponCategory category ) {
@@ -998,6 +945,40 @@ static int CountWeaponCategory( WeaponCategory category ) {
 		}
 	}
 	return n;
+}
+
+static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex( 0 );
+	ImGui::Text( "%s", label );
+	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+
+	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+		const WeaponDef * def = GS_GetWeaponDef( i );
+		if( def->category == category ) {
+			const Material * icon = cgs.media.shaderWeaponIcon[ i ];
+			if( LoadoutButton( def->name, icon_size, icon, loadout.weapons[ def->category ] == i ) ) {
+				loadout.weapons[ def->category ] = i;
+				SendLoadout();
+			}
+		}
+	}
+}
+
+static void Gadgets( Vec2 icon_size ) {
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex( 0 );
+	ImGui::Text( "GADGET" );
+	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+
+	for( u8 i = 1; i < Gadget_Count; i++ ) {
+		const GadgetDef * def = GetGadgetDef( GadgetType( i ) );
+		const Material * icon = cgs.media.shaderGadgetIcon[ i ];
+		if( LoadoutButton( def->name, icon_size, icon, loadout.gadget == i ) ) {
+			loadout.gadget = GadgetType( i );
+			SendLoadout();
+		}
+	}
 }
 
 static bool LoadoutMenu( Vec2 displaySize ) {
@@ -1013,7 +994,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	cols = Max2( CountWeaponCategory( WeaponCategory_Primary ), cols );
 	cols = Max2( CountWeaponCategory( WeaponCategory_Secondary ), cols );
 	cols = Max2( CountWeaponCategory( WeaponCategory_Backup ), cols );
-	cols = Max2( int( Gadget_Count ), cols );
+	cols = Max2( int( Gadget_Count ) - 1, cols );
 
 	ImGui::BeginTable( "loadoutmenu", cols + 1 );
 
@@ -1021,6 +1002,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	LoadoutCategory( "PRIMARY", WeaponCategory_Primary, icon_size );
 	LoadoutCategory( "SECONDARY", WeaponCategory_Secondary, icon_size );
 	LoadoutCategory( "BACKUP", WeaponCategory_Backup, icon_size );
+	Gadgets( icon_size );
 
 	ImGui::EndTable();
 
@@ -1312,11 +1294,11 @@ void UI_HideMenu() {
 	uistate = UIState_Hidden;
 }
 
-void UI_ShowLoadoutMenu( Span< int > weapons, PerkType perk ) {
+void UI_ShowLoadoutMenu( Span< int > weapons, PerkType perk, GadgetType gadget ) {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Loadout;
 
-	for( WeaponType & w : selected_weapons ) {
+	for( WeaponType & w : loadout.weapons ) {
 		w = Weapon_None;
 	}
 
@@ -1325,16 +1307,20 @@ void UI_ShowLoadoutMenu( Span< int > weapons, PerkType perk ) {
 			return;
 
 		WeaponCategory category = GS_GetWeaponDef( w )->category;
-		if( category == WeaponCategory_Count || selected_weapons[ category ] != Weapon_None )
+		if( category == WeaponCategory_Count || loadout.weapons[ category ] != Weapon_None )
 			return;
 
-		selected_weapons[ category ] = w;
+		loadout.weapons[ category ] = w;
 	}
 
 	if( perk < Perk_None || perk >= Perk_Count )
 		return;
 
-	selected_perk = perk;
+	if( gadget <= Gadget_None || gadget >= Gadget_Count )
+		return;
+
+	loadout.perk = perk;
+	loadout.gadget = gadget;
 
 	CL_SetKeyDest( key_menu );
 }

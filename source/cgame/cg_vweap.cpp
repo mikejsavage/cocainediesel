@@ -85,15 +85,24 @@ void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {
 	cg.weapon.eventAnimStartTime = cl.serverTime;
 }
 
-void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
-	if( cg.predictedPlayerState.weapon == Weapon_None )
-		return;
+void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
+	const SyncPlayerState * ps = &cg.predictedPlayerState;
+	const Model * model;
+	if( !ps->using_gadget ) {
+		model = GetWeaponModelMetadata( ps->weapon )->model;
+	}
+	else {
+		model = GetGadgetModelMetadata( ps->gadget )->model;
+	}
 
-	const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( cg.predictedPlayerState.weapon );
-	const Model * model = weaponInfo->model;
+	if( model == NULL )
+		return;
 
 	Vec3 gunAngles, gunOffset;
 	if( model->camera == U8_MAX ) {
+		assert( !ps->using_gadget );
+
+		const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( ps->weapon );
 		// calculate the entity position
 		// weapon config offsets
 		gunAngles = weaponInfo->handpositionAngles;
@@ -150,17 +159,25 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 	}
 }
 
-void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
-	if( !cg.view.drawWeapon || cg.predictedPlayerState.weapon == Weapon_None )
+void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
+	if( !cg.view.drawWeapon )
 		return;
 
-	const Model * model = GetWeaponModelMetadata( cg.predictedPlayerState.weapon )->model;
+	const SyncPlayerState * ps = &cg.predictedPlayerState;
+	const Model * model;
+	if( !ps->using_gadget ) {
+		model = GetWeaponModelMetadata( ps->weapon )->model;
+	}
+	else {
+		model = GetGadgetModelMetadata( ps->gadget )->model;
+	}
+
 	Mat4 transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
 
 	DrawModelConfig config = { };
 	config.draw_model.enabled = true;
 	config.draw_model.view_weapon = true;
-	DrawModel( config, model, transform, CG_TeamColorVec4( cg.predictedPlayerState.team ) );
+	DrawModel( config, model, transform, CG_TeamColorVec4( ps->team ) );
 }
 
 void CG_AddRecoil( WeaponType weapon ) {

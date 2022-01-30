@@ -7,8 +7,7 @@ if %TEAM != #TEAM_SPECTATOR
 	setFontStyle bold
 	setFontBorder on
 
-	// draw selected gun
-	drawWeaponIcons 58 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0, 48 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48, %VIDHEIGHT / 36
+	drawWeaponIcons 58 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48, %VIDHEIGHT / 36
 
 	setFontBorder off
 endif

@@ -1,0 +1,5 @@
+{
+	attenuation distant
+	sound weapons/stake/fire
+	volume 0.7
+}

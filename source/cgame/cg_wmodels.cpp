@@ -38,7 +38,7 @@ static WeaponModelMetadata LoadWeaponModel( WeaponType weapon ) {
 	ParseWeaponModelConfig( &metadata, temp( "weapons/{}/model.cfg", name ) );
 
 	metadata.fire_sound = StringHash( temp( "weapons/{}/fire", name ) );
-	metadata.reload_sound = StringHash( temp( "weapons/{}/fire", name ) );
+	metadata.reload_sound = StringHash( temp( "weapons/{}/reload", name ) );
 	metadata.switch_in_sound = StringHash( temp( "weapons/{}/up", name ) );
 	metadata.zoom_in_sound = StringHash( temp( "weapons/{}/zoom_in", name ) );
 	metadata.zoom_out_sound = StringHash( temp( "weapons/{}/zoom_out", name ) );

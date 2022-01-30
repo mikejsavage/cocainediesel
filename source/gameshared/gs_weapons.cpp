@@ -345,7 +345,7 @@ static ItemState generic_gun_states[] = {
 		}
 
 		slot->ammo = def->clip_size;
-		gs->api.PredictedEvent( ps->POVnum, EV_WEAPONACTIVATE, ps->weapon << 1 );
+		// gs->api.PredictedEvent( ps->POVnum, EV_WEAPONACTIVATE, ps->weapon << 1 );
 
 		return WeaponState_Idle;
 	} ),
@@ -363,7 +363,7 @@ static ItemState generic_gun_states[] = {
 		}
 
 		slot->ammo++;
-		gs->api.PredictedEvent( ps->POVnum, EV_WEAPONACTIVATE, ps->weapon << 1 );
+		//gs->api.PredictedEvent( ps->POVnum, EV_WEAPONACTIVATE, ps->weapon << 1 );
 
 		return slot->ammo == def->clip_size ? WeaponState_Idle : ForceReset( WeaponState_StagedReloading );
 	} ),

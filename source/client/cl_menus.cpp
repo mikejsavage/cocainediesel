@@ -247,6 +247,7 @@ static void SettingsControls() {
 
 			KeyBindButton( "Attack", "+attack" );
 			KeyBindButton( "Reload", "+reload" );
+			KeyBindButton( "Use gadget", "+gadget" );
 			KeyBindButton( "Plant bomb", "+crouch" );
 			KeyBindButton( "Drop bomb", "drop" );
 			KeyBindButton( "Shop", "gametypemenu" );

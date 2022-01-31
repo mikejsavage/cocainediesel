@@ -1348,8 +1348,10 @@ static bool CG_LFuncDrawPlayerName( cg_layoutnode_t *argumentnode ) {
 }
 
 static bool CG_LFuncDrawNumeric( cg_layoutnode_t *argumentnode ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	int value = CG_GetNumericArg( &argumentnode );
-	DrawText( GetHUDFont(), layout_cursor_font_size, va( "%i", value ), layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
+	DrawText( GetHUDFont(), layout_cursor_font_size, temp( "{}", value ), layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 

@@ -502,59 +502,53 @@ static int G_SanitizeUserString( char *string, size_t size ) {
 	return c_ascii;
 }
 
-static void G_SetName( edict_t *ent, const char *original_name ) {
-	edict_t *other;
-	char name[MAX_NAME_CHARS + 1];
-	int i, trynum, trylen;
-	int c_ascii;
-
+static void G_SetName( edict_t * ent, const char * original_name ) {
 	if( !ent->r.client ) {
 		return;
 	}
 
-	// we allow NULL to be passed for name
-	if( !original_name ) {
+	if( original_name == NULL ) {
 		original_name = "";
 	}
 
+	char name[ MAX_NAME_CHARS + 1 ];
 	Q_strncpyz( name, original_name, sizeof( name ) );
 
-	c_ascii = G_SanitizeUserString( name, sizeof( name ) );
+	int c_ascii = G_SanitizeUserString( name, sizeof( name ) );
 	if( !c_ascii ) {
 		Q_strncpyz( name, "Player", sizeof( name ) );
 	}
 
-	trynum = 1;
-	do {
-		for( i = 0; i < server_gs.maxclients; i++ ) {
-			other = game.edicts + 1 + i;
-			if( !other->r.inuse || !other->r.client || other == ent ) {
-				continue;
-			}
-
-			// if nick is already in use, try with (number) appended
-			if( !Q_stricmp( name, other->r.client->netname ) ) {
-				if( trynum != 1 ) { // remove last try
-					name[strlen( name ) - strlen( va( "(%i)", trynum - 1 ) )] = 0;
-				}
-
-				// make sure there is enough space for the postfix
-				trylen = strlen( va( "(%i)", trynum ) );
-				if( (int)strlen( name ) + trylen > MAX_NAME_CHARS ) {
-					name[ MAX_NAME_CHARS - trylen - 1 ] = '\0';
-				}
-
-				// add the postfix
-				Q_strncatz( name, va( "(%i)", trynum ), sizeof( name ) );
-
-				// go trough all clients again
-				trynum++;
-				break;
-			}
-		}
-	} while( i != server_gs.maxclients && trynum <= MAX_CLIENTS );
-
 	Q_strncpyz( ent->r.client->netname, name, sizeof( ent->r.client->netname ) );
+
+	int trynum = 0;
+	while( trynum < MAX_CLIENTS ) {
+		bool ok = true;
+
+		for( int i = 0; i < server_gs.maxclients; i++ ) {
+			const edict_t * other = game.edicts + 1 + i;
+			if( !other->r.inuse || !other->r.client || other == ent )
+				continue;
+
+			if( !StrEqual( other->r.client->netname, ent->r.client->netname ) )
+				continue;
+
+			char suffix[ MAX_NAME_CHARS + 1 ];
+			snprintf( suffix, sizeof( suffix ), "(%i)", trynum + 2 );
+
+			Span< const char > prefix = MakeSpan( name );
+			prefix.n = Min2( MAX_NAME_CHARS - strlen( suffix ), prefix.n );
+
+			ggformat( ent->r.client->netname, sizeof( ent->r.client->netname ), "{}{}", prefix, suffix );
+
+			trynum++;
+			ok = false;
+			break;
+		}
+
+		if( ok )
+			break;
+	}
 }
 
 static void G_UpdatePlayerInfoString( int playerNum ) {

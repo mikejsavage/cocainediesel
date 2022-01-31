@@ -753,8 +753,10 @@ void CL_ReadPackets() {
 static int precache_spawncount;
 
 void CL_FinishConnect() {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	CL_GameModule_Init();
-	CL_AddReliableCommand( va( "begin %i\n", precache_spawncount ) );
+	CL_AddReliableCommand( temp( "begin {}\n", precache_spawncount ) );
 }
 
 static bool AddDownloadedMap( const char * filename, Span< const u8 > compressed ) {
@@ -1168,8 +1170,9 @@ void CL_SendMessagesToServer( bool sendNow ) {
 		MSG_WriteIntBase128( &message, cls.lastExecutedServerCommand );
 		// send a userinfo update if needed
 		if( userinfo_modified ) {
+			TempAllocator temp = cls.frame_arena.temp();
+			CL_AddReliableCommand( temp( "usri \"{}\"", Cvar_GetUserInfo() ) );
 			userinfo_modified = false;
-			CL_AddReliableCommand( va( "usri \"%s\"", Cvar_GetUserInfo() ) );
 		}
 		CL_UpdateClientCommandsToServer( &message );
 		CL_WriteUcmdsToMessage( &message );

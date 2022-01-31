@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/string.h"
 #include "qcommon/version.h"
 
-static char * GetDemoDir( TempAllocator * temp ) {
+static const char * GetDemoDir( TempAllocator * temp ) {
 	return StrEqual( sv_demodir->value, "" ) ? "demos" : ( *temp )( "demos/{}", sv_demodir->value );
 }
 

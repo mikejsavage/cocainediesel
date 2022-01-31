@@ -1140,26 +1140,6 @@ void NET_SetErrorStringFromLastError( const char *function ) {
 	}
 }
 
-const char *NET_SocketTypeToString( socket_type_t type ) {
-	switch( type ) {
-		case SOCKET_LOOPBACK:
-			return "loopback";
-
-		case SOCKET_UDP:
-			return "UDP";
-
-		case SOCKET_TCP:
-			return "TCP";
-
-		default:
-			return "unknown";
-	}
-}
-
-const char *NET_SocketToString( const socket_t *socket ) {
-	return va( "%s %s", NET_SocketTypeToString( socket->type ), ( socket->server ? "server" : "client" ) );
-}
-
 bool NET_Listen( const socket_t *socket ) {
 	assert( socket->open );
 

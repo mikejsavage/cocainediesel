@@ -680,7 +680,7 @@ void CL_ReadPackets() {
 
 		while( socket->open && ( ret = NET_GetPacket( socket, &address, &msg ) ) != 0 ) {
 			if( ret == -1 ) {
-				Com_Printf( "Error receiving packet with %s: %s\n", NET_SocketToString( socket ), NET_ErrorString() );
+				Com_Printf( "Error receiving packet: %s\n", NET_ErrorString() );
 
 				continue;
 			}

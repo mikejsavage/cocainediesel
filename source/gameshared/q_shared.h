@@ -144,12 +144,6 @@ void RemoveTrailingZeroesFloat( char * str );
  */
 size_t Q_urldecode( const char *src, char *dst, size_t dst_size );
 
-#ifndef _MSC_VER
-char *va( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-#else
-char *va( _Printf_format_string_ const char *format, ... );
-#endif
-
 //
 // key / value info strings
 //

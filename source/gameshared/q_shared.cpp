@@ -80,31 +80,6 @@ bool COM_ValidateRelativeFilename( const char *filename ) {
 	return true;
 }
 
-//============================================================================
-//
-//					BYTE ORDER FUNCTIONS
-//
-//============================================================================
-
-/*
-* va
-*
-* does a varargs printf into a temp buffer, so I don't need to have
-* varargs versions of all text functions.
-*/
-char *va( const char *format, ... ) {
-	va_list argptr;
-	static int str_index;
-	static char string[8][2048];
-
-	str_index = ( str_index + 1 ) & 7;
-	va_start( argptr, format );
-	vsnprintf( string[str_index], sizeof( string[0] ), format, argptr );
-	va_end( argptr );
-
-	return string[str_index];
-}
-
 static bool IsWhitespace( char c ) {
 	return c == '\0' || c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }

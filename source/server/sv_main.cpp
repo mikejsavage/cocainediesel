@@ -524,7 +524,7 @@ void SV_Init() {
 		Cvar_ForceSet( "sv_maxclients", temp( "{}", MAX_CLIENTS ) );
 	}
 
-	sv_demodir = NewCvar( "sv_demodir", "", CvarFlag_ServerReadOnly );
+	sv_demodir = NewCvar( "sv_demodir", "server", CvarFlag_ServerReadOnly );
 
 	g_autorecord = NewCvar( "g_autorecord", is_dedicated_server ? "1" : "0", CvarFlag_Archive );
 	g_autorecord_maxdemos = NewCvar( "g_autorecord_maxdemos", "200", CvarFlag_Archive );

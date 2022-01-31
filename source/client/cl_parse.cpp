@@ -164,7 +164,8 @@ static void CL_ParseFrame( msg_t *msg ) {
 				cls.demo.meta_data_realsize = 0;
 
 				// write out messages to hold the startup information
-				SNAP_BeginDemoRecording( cls.demo.file, 0x10000 + cl.servercount, cl.snapFrameTime,
+				TempAllocator temp = cls.frame_arena.temp();
+				SNAP_BeginDemoRecording( &temp, cls.demo.file, 0x10000 + cl.servercount, cl.snapFrameTime,
 										 cl.configstrings[0], cl_baselines );
 
 				// the rest of the demo file will be individual frames

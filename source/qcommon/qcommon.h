@@ -122,7 +122,7 @@ void MSG_ReadData( msg_t *sb, void *buffer, size_t length );
 
 void SNAP_RecordDemoMessage( int demofile, msg_t *msg, int offset );
 int SNAP_ReadDemoMessage( int demofile, msg_t *msg );
-void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned int snapFrameTime,
+void SNAP_BeginDemoRecording( TempAllocator * temp, int demofile, unsigned int spawncount, unsigned int snapFrameTime,
 	const char *configstrings, SyncEntityState *baselines );
 void SNAP_StopDemoRecording( int demofile );
 void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t meta_data_realsize );

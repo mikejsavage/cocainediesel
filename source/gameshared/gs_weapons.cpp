@@ -150,7 +150,7 @@ static void HandleZoom( const gs_state_t * gs, SyncPlayerState * ps, const UserC
 	s16 last_zoom_time = ps->zoom_time;
 	bool can_zoom = ( ps->weapon_state == WeaponState_Idle || ( ps->weapon_state == WeaponState_Firing && HasAmmo( def, slot ) ) ) && ( ps->pmove.features & PMFEAT_SCOPE );
 
-	if( can_zoom && def->zoom_fov != 0 && ( cmd->buttons & BUTTON_SPECIAL ) != 0 ) {
+	if( can_zoom && def->zoom_fov != 0 && ( cmd->buttons & BUTTON_ATTACK2 ) != 0 ) {
 		ps->zoom_time = Min2( ps->zoom_time + cmd->msec, ZOOMTIME );
 		if( last_zoom_time == 0 ) {
 			gs->api.PredictedEvent( ps->POVnum, EV_ZOOM_IN, ps->weapon );
@@ -262,7 +262,7 @@ static ItemState generic_gun_states[] = {
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
-		if( cmd->buttons & BUTTON_ATTACK ) {
+		if( cmd->buttons & BUTTON_ATTACK1 ) {
 			if( HasAmmo( def, slot ) ) {
 				FireWeapon( gs, ps, cmd, false );
 
@@ -284,7 +284,7 @@ static ItemState generic_gun_states[] = {
 	} ),
 
 	ItemState( WeaponState_FiringSemiAuto, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
-		if( cmd->buttons & BUTTON_ATTACK ) {
+		if( cmd->buttons & BUTTON_ATTACK1 ) {
 			const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 			ps->weapon_state_time = Min2( def->refire_time, ps->weapon_state_time );
 
@@ -306,7 +306,7 @@ static ItemState generic_gun_states[] = {
 
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
-		if( ( cmd->buttons & BUTTON_ATTACK ) == 0 || slot->ammo == 0 ) {
+		if( ( cmd->buttons & BUTTON_ATTACK1 ) == 0 || slot->ammo == 0 ) {
 			return WeaponState_Idle;
 		}
 
@@ -364,7 +364,7 @@ static ItemState generic_gun_states[] = {
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		WeaponSlot * slot = GetSelectedWeapon( ps );
 
-		if( ( cmd->buttons & BUTTON_ATTACK ) != 0 && HasAmmo( def, slot ) ) {
+		if( ( cmd->buttons & BUTTON_ATTACK1 ) != 0 && HasAmmo( def, slot ) ) {
 			return WeaponState_Idle;
 		}
 
@@ -384,7 +384,7 @@ static ItemState railgun_states[] = {
 	generic_gun_refire_state,
 
 	ItemState( WeaponState_Idle, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
-		if( cmd->buttons & BUTTON_ATTACK ) {
+		if( cmd->buttons & BUTTON_ATTACK1 ) {
 			return WeaponState_Cooking;
 		}
 
@@ -393,7 +393,7 @@ static ItemState railgun_states[] = {
 
 	ItemState( WeaponState_Cooking, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
-		if( ( cmd->buttons & BUTTON_ATTACK ) == 0 && ps->weapon_state_time >= def->reload_time ) {
+		if( ( cmd->buttons & BUTTON_ATTACK1 ) == 0 && ps->weapon_state_time >= def->reload_time ) {
 			gs->api.PredictedFireWeapon( ps->POVnum, Weapon_Railgun );
 			return WeaponState_Firing;
 		}
@@ -561,7 +561,7 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd
 	}
 
 	if( ps->pmove.no_shooting_time > 0 ) {
-		cmd.buttons = cmd.buttons & ~BUTTON_ATTACK;
+		cmd.buttons = cmd.buttons & ~BUTTON_ATTACK1;
 		cmd.buttons = cmd.buttons & ~BUTTON_GADGET;
 	}
 

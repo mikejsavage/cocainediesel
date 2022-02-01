@@ -33,10 +33,6 @@ constexpr Vec3 playerbox_stand_mins = Vec3( -16, -16, -24 );
 constexpr Vec3 playerbox_stand_maxs = Vec3( 16, 16, 40 );
 constexpr int playerbox_stand_viewheight = 30;
 
-constexpr Vec3 playerbox_crouch_mins = Vec3( -16, -16, -24 );
-constexpr Vec3 playerbox_crouch_maxs = Vec3( 16, 16, 39 );
-constexpr int playerbox_crouch_viewheight = 30;
-
 constexpr Vec3 playerbox_gib_mins = Vec3( -16, -16, 0 );
 constexpr Vec3 playerbox_gib_maxs = Vec3( 16, 16, 16 );
 constexpr int playerbox_gib_viewheight = 8;
@@ -259,6 +255,7 @@ enum EventType {
 	EV_DASH,
 
 	EV_WALLJUMP,
+	EV_JETPACK,
 	EV_JUMP,
 	EV_JUMP_PAD,
 	EV_FALL,

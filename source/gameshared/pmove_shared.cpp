@@ -1,15 +1,6 @@
 #include "gameshared/movement.h"
 
-
-void PM_ClearDash( SyncPlayerState * ps ) {
-	ps->pmove.pm_flags &= ~PMF_DASHING;
-}
-
-void PM_ClearWallJump( SyncPlayerState * ps ) {
-	ps->pmove.pm_flags &= ~PMF_WALLJUMPING;
-	ps->pmove.special_count = 0;
-	ps->pmove.special_time = 0;
-}
+static constexpr s16 pm_dashtimedelay = 200;
 
 
 float Normalize2D( Vec3 * v ) {
@@ -65,5 +56,96 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 			dist = trace.fraction;
 			*normal = trace.plane.normal;
 		}
+	}
+}
+
+void StaminaUse( SyncPlayerState * ps, s16 use ) {
+	ps->pmove.stamina = Max2( ps->pmove.stamina - use, 0 );
+}
+
+void StaminaRecover( SyncPlayerState * ps, s16 recover ) {
+	ps->pmove.stamina = Min2( s16( ps->pmove.stamina + recover ), ps->pmove.stamina_max );
+}
+
+
+float JumpVelocity( pmove_t * pm, float vel ) {
+	return ( pm->waterlevel >= 2 ? 2 : 1 ) * vel;
+}
+
+
+void PM_InitPerk( pmove_t * pm, pml_t * pml,
+				float speed, float sidespeed, s16 stamina_max,
+				void (*jumpCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * ),
+				void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ) )
+{
+	pml->maxPlayerSpeed = pm->playerState->pmove.max_speed;
+	if( pml->maxPlayerSpeed < 0 ) {
+		pml->maxPlayerSpeed = speed;
+	}
+
+	pml->forwardPush *= speed;
+	pml->sidePush *= sidespeed;
+
+	pm->playerState->pmove.stamina_max = stamina_max;
+
+	pml->jumpCallback = jumpCallback;
+	pml->specialCallback = specialCallback;
+}
+
+
+void PM_ClearDash( SyncPlayerState * ps ) {
+	ps->pmove.pm_flags &= ~PMF_DASHING;
+}
+
+
+void PM_Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed ) {
+	pm->groundentity = -1;
+
+	// clip against the ground when jumping if moving that direction
+	if( pml->groundplane.normal.z > 0 && pml->velocity.z > 0 && Dot( pml->groundplane.normal.xy(), pml->velocity.xy() ) > 0 ) {
+		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane.normal, PM_OVERBOUNCE );
+	}
+
+	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, ps->perk );
+	pml->velocity.z = Max2( 0.0f, pml->velocity.z ) + JumpVelocity( pm, jumpspeed );
+	PM_ClearDash( ps );
+}
+
+
+void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed ) {
+	pm->playerState->pmove.pm_flags |= PMF_DASHING;
+	pm->groundentity = -1;
+
+	// clip against the ground when jumping if moving that direction
+	if( pml->groundplane.normal.z > 0 && pml->velocity.z < 0 && Dot( pml->groundplane.normal.xy(), pml->velocity.xy() ) > 0 ) {
+		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane.normal, PM_OVERBOUNCE );
+	}
+
+	dashdir.z = 0.0f;
+	if( Length( dashdir ) == 0.0f ) {
+		PM_Jump( pm, pml, pmove_gs, pm->playerState, dash_upspeed );
+		return;
+	}
+
+	dashdir = Normalize( dashdir );
+
+	float upspeed = Max2( 0.0f, pml->velocity.z ) + JumpVelocity( pm, dash_upspeed );
+	float actual_velocity = Normalize2D( &pml->velocity );
+	if( actual_velocity <= dash_speed ) {
+		dashdir *= dash_speed;
+	} else {
+		dashdir *= actual_velocity;
+	}
+
+	pml->velocity = dashdir;
+	pml->velocity.z = upspeed;
+
+	// return sound events only when the dashes weren't too close to each other
+	if( pm->playerState->pmove.stamina_time == 0 ) {
+		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH,
+			Abs( pml->sidePush ) >= Abs( pml->forwardPush ) ?
+					( pml->sidePush < 0 ? 1 : 2 ) : //left or right
+					( pml->forwardPush < 0 ? 3 : 0 ) ); //back or forward
+		pm->playerState->pmove.stamina_time = pm_dashtimedelay;
 	}
 }

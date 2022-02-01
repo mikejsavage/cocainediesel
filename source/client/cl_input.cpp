@@ -79,9 +79,9 @@ static void CL_RefreshUcmd( UserCommand *ucmd, int msec, bool ready ) {
 	if( ucmd->msec && cls.key_dest == key_game ) {
 		Vec3 movement = CG_GetMovement();
 
-		ucmd->sidemove = Clamp( -127, (int)(movement.x * 127.0f), 127 );
-		ucmd->forwardmove = Clamp( -127, (int)(movement.y * 127.0f), 127 );
-		ucmd->upmove = Clamp( -127, (int)(movement.z * 127.0f), 127 );
+		ucmd->sidemove = movement.x;
+		ucmd->forwardmove = movement.y;
+		ucmd->upmove = movement.z;
 
 		ucmd->buttons |= CL_GameModule_GetButtonBits();
 		ucmd->down_edges |= CL_GameModule_GetButtonDownEdges();

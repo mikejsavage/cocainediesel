@@ -940,7 +940,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		constexpr int min_delay = 600;
 		constexpr int max_delay = 6000;
 
-		bool clicked = level.time > ent->deathTimeStamp + min_delay && ( ent->r.client->resp.snap.buttons & BUTTON_ATTACK );
+		bool clicked = level.time > ent->deathTimeStamp + min_delay && ( ent->r.client->resp.snap.buttons & BUTTON_ATTACK1 );
 		bool timeout = level.time > ent->deathTimeStamp + max_delay;
 		if( clicked || timeout ) {
 			G_ClientRespawn( ent, false );
@@ -951,4 +951,29 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 			G_ClientRespawn( ent, true );
 		}
 	}
+}
+
+
+void G_GivePerk( edict_t * ent, PerkType perk ) {
+	ent->r.client->ps.perk = perk;
+
+	float old_max_health = ent->max_health;
+
+	switch( perk ) {
+	case Perk_Midget:
+		ent->s.scale = Vec3( 0.8f, 0.8f, 0.625f );
+		ent->max_health = 62.5f;
+		break;
+	case Perk_Boomer:
+		ent->s.scale = Vec3( 1.5f, 1.5f, 1.0f );
+		ent->max_health = 150.0f;
+		break;
+	default:
+		ent->s.scale = Vec3( 1.0f );
+		ent->max_health = 100.0f;
+		break;
+	}
+
+	ent->health = ent->health * ent->max_health / old_max_health;
+	ent->mass = PLAYER_MASS * Length( ent->s.scale );
 }

@@ -1,9 +1,16 @@
 if %HEALTH >= 0
 	setAlignment left middle
-	setCursor 16, #HEIGHT - 54
+	setCursor 16, #HEIGHT - 70
 	setFontSize %VIDHEIGHT / 24
 
+	// fill stamina bar
+	setAlignment left middle
+	setColor 0.0, 0.1, 0.5, 1
+	setSize %STAMINA_PERCENT * 2, 8
+	drawPicByName $whiteimage
+
 	// fill coloured health bar
+	moveCursor 0, 21
 	setAlignment left middle
 	setColor 1.0, %HEALTH_PERCENT / 115, %HEALTH_PERCENT / 1600, 1
 	if %HEALTH_PERCENT > 75

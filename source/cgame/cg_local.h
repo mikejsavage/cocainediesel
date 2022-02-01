@@ -120,6 +120,7 @@ struct cgs_media_t {
 
 	const Material * shaderWeaponIcon[ Weapon_Count ];
 	const Material * shaderGadgetIcon[ Gadget_Count ];
+	const Material * shaderPerkIcon[ Perk_Count ];
 };
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
@@ -269,6 +270,7 @@ void CG_RegisterMedia();
 //
 // cg_players.c
 //
+float CG_PlayerPitch( int entnum );
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 
 //

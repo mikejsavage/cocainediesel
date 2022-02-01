@@ -432,6 +432,7 @@ void G_PredictedFireWeapon( int entNum, u64 weapon_and_entropy );
 void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm );
 void G_SelectWeapon( edict_t * ent, int index );
 void G_GiveWeapon( edict_t * ent, WeaponType weapon );
+void G_GivePerk( edict_t * ent, PerkType perk );
 void G_TeleportPlayer( edict_t *player, edict_t *dest );
 bool G_PlayerCanTeleport( edict_t *player );
 

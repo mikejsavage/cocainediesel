@@ -393,15 +393,14 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 		S_StartGlobalSound( sound, CHAN_AUTO, 1.0f, 1.0f, entropy );
 	}
 	else {
-		float pitch = 1.0f / cent->interpolated.scale.z;
-		cent->vsay_sound = S_ImmediateEntitySound( sound, entNum, 1.0f, pitch, false, entropy, cent->vsay_sound );
+		cent->vsay_sound = S_ImmediateEntitySound( sound, entNum, 1.0f, CG_PlayerPitch( entNum ), false, entropy, cent->vsay_sound );
 	}
 }
 
 //==================================================================
 
 static void CG_Event_Fall( const SyncEntityState * state, u64 parm, bool viewer ) {
-	if( ISVIEWERENTITY( state->number ) ) {
+	if( viewer ) {
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
 	}
 
@@ -448,7 +447,7 @@ static void CG_Event_Die( int entNum, u64 parm ) {
 	CG_PModel_AddAnimation( entNum, animations[ animation ].dying, animations[ animation ].dying, ANIM_NONE, EVENT_CHANNEL );
 }
 
-void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
+static void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
 	constexpr int animations[] = { LEGS_DASH, LEGS_DASH_LEFT, LEGS_DASH_RIGHT, LEGS_DASH_BACK };
 	if( parm >= ARRAY_COUNT( animations ) )
 		return;
@@ -460,7 +459,7 @@ void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
 	cg_entities[ state->number ].jumpedLeft = true;
 }
 
-void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
+static void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
 	Vec3 normal = U64ToDir( parm );
 
 	Vec3 forward, right;
@@ -484,6 +483,27 @@ void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
 
 static void CG_Event_Jump( SyncEntityState * state ) {
 	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Jump );
+}
+
+static void CG_Event_Jetpack( const SyncEntityState * ent, u64 parm, Vec4 team_color ) {
+	Vec3 pos = ent->origin;
+	pos.z -= 10;
+	DoVisualEffect( "vfx/movement/jetpack", pos, ent->origin2, 1.0f, team_color );
+	if( parm == 1 ) {
+		DoVisualEffect( "vfx/movement/jetpack_boost", pos, ent->origin2, 1.0f, team_color );
+	}
+}
+
+static void CG_PlayJumpSound( const SyncEntityState * state, u8 perk ) {
+	if( perk == Perk_Midget ) {
+		CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump );
+	} else {
+		CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Jump );
+	}
+}
+
+static void CG_Event_Jump( SyncEntityState * state, u64 parm ) {
+	CG_PlayJumpSound( state, parm );
 
 	centity_t * cent = &cg_entities[ state->number ];
 	float xyspeedcheck = Length( Vec3( cent->animVelocity.x, cent->animVelocity.y, 0 ) );
@@ -675,11 +695,16 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			CG_Event_WallJump( ent, parm, ev );
 			break;
 
+		case EV_JETPACK:
+			CG_Event_Jetpack( ent, parm, team_color );
+			break;
+
 		case EV_JUMP:
-			CG_Event_Jump( ent );
+			CG_Event_Jump( ent, parm );
 			break;
 
 		case EV_JUMP_PAD:
+			CG_PlayJumpSound( ent, 0 );
 			CG_PModel_AddAnimation( ent->number, LEGS_JUMP_NEUTRAL, 0, 0, EVENT_CHANNEL );
 			break;
 

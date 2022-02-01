@@ -240,15 +240,16 @@ static void SettingsControls() {
 			KeyBindButton( "Back", "+back" );
 			KeyBindButton( "Left", "+left" );
 			KeyBindButton( "Right", "+right" );
-			KeyBindButton( "Jump", "+jump" );
-			KeyBindButton( "Dash", "+special" );
+			KeyBindButton( "Movement ability 1", "+ability1" );
+			KeyBindButton( "Movement ability 2", "+ability2" );
 
 			ImGui::Separator();
 
-			KeyBindButton( "Attack", "+attack" );
+			KeyBindButton( "Attack", "+attack1" );
+			KeyBindButton( "Scope (weapon specific)", "+attack2" ); //will be changed to secondary when it makes sense
 			KeyBindButton( "Reload", "+reload" );
 			KeyBindButton( "Use gadget", "+gadget" );
-			KeyBindButton( "Plant bomb", "+crouch" );
+			KeyBindButton( "Plant bomb", "+plant" );
 			KeyBindButton( "Drop bomb", "drop" );
 			KeyBindButton( "Shop", "gametypemenu" );
 			KeyBindButton( "Scoreboard", "+scores" );
@@ -919,21 +920,36 @@ static bool LoadoutButton( const char * text, Vec2 icon_size, const Material * i
 	ImGui::PushStyleColor( ImGuiCol_Border, color );
 	defer { ImGui::PopStyleColor( 2 ); };
 
+	ImGui::PushID( text );
 	bool clicked = ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
+	ImGui::PopID();
+
 	ImGui::Text( "%s", text );
 
 	return clicked;
 }
 
 static void Perks( Vec2 icon_size ) {
+	constexpr char * classes[ Perk_Count ] = {
+		"",
+		"Ninja",
+		"Hooligan",
+		"Midget",
+		"Jetpack",
+		"Boomer"
+	};
+
 	ImGui::TableNextRow();
 	ImGui::TableSetColumnIndex( 0 );
 	ImGui::Text( "CLASS" );
 	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
 
-	if( LoadoutButton( "MIDGET", icon_size, FindMaterial( "perks/midget" ), loadout.perk == Perk_Midget ) ) {
-		loadout.perk = loadout.perk == Perk_Midget ? Perk_None : Perk_Midget;
-		SendLoadout();
+	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
+		const Material * icon = cgs.media.shaderPerkIcon[ i ];
+		if( LoadoutButton( classes[ i ], icon_size, icon, loadout.perk == i ) ) {
+			loadout.perk = i;
+			SendLoadout();
+		}
 	}
 }
 

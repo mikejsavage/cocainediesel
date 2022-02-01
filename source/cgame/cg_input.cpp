@@ -33,11 +33,12 @@ static Button button_back;
 static Button button_left;
 static Button button_right;
 
-static Button button_jump;
-static Button button_special;
-static Button button_crouch;
+static Button button_ability1;
+static Button button_ability2;
+static Button button_plant;
 
-static Button button_attack;
+static Button button_attack1;
+static Button button_attack2;
 static Button button_gadget;
 static Button button_reload;
 
@@ -107,15 +108,17 @@ static void IN_LeftUp() { KeyUp( &button_left ); }
 static void IN_RightDown() { KeyDown( &button_right ); }
 static void IN_RightUp() { KeyUp( &button_right ); }
 
-static void IN_JumpDown() { KeyDown( &button_jump ); }
-static void IN_JumpUp() { KeyUp( &button_jump ); }
-static void IN_SpecialDown() { KeyDown( &button_special ); }
-static void IN_SpecialUp() { KeyUp( &button_special ); }
-static void IN_CrouchDown() { KeyDown( &button_crouch ); }
-static void IN_CrouchUp() { KeyUp( &button_crouch ); }
+static void IN_Ability1Down() { KeyDown( &button_ability1 ); }
+static void IN_Ability1Up() { KeyUp( &button_ability1 ); }
+static void IN_Ability2Down() { KeyDown( &button_ability2 ); }
+static void IN_Ability2Up() { KeyUp( &button_ability2 ); }
+static void IN_PlantDown() { KeyDown( &button_plant ); }
+static void IN_PlantUp() { KeyUp( &button_plant ); }
 
-static void IN_AttackDown() { KeyDown( &button_attack ); }
-static void IN_AttackUp() { KeyUp( &button_attack ); }
+static void IN_Attack1Down() { KeyDown( &button_attack1 ); }
+static void IN_Attack1Up() { KeyUp( &button_attack1 ); }
+static void IN_Attack2Down() { KeyDown( &button_attack2 ); }
+static void IN_Attack2Up() { KeyUp( &button_attack2 ); }
 static void IN_GadgetDown() { KeyDown( &button_gadget ); }
 static void IN_GadgetUp() { KeyUp( &button_gadget ); }
 static void IN_ReloadDown() { KeyDown( &button_reload ); }
@@ -124,20 +127,28 @@ static void IN_ReloadUp() { KeyUp( &button_reload ); }
 u8 CG_GetButtonBits() {
 	u8 buttons = 0;
 
-	if( button_attack.down ) {
-		buttons |= BUTTON_ATTACK;
+	if( button_attack1.down ) {
+		buttons |= BUTTON_ATTACK1;
+	}
+
+	if( button_attack2.down ) {
+		buttons |= BUTTON_ATTACK2;
 	}
 
 	if( button_gadget.down ) {
 		buttons |= BUTTON_GADGET;
 	}
 
-	if( button_special.down ) {
-		buttons |= BUTTON_SPECIAL;
+	if( button_ability2.down ) {
+		buttons |= BUTTON_ABILITY2;
 	}
 
 	if( button_reload.down ) {
 		buttons |= BUTTON_RELOAD;
+	}
+
+	if( button_plant.down ) {
+		buttons |= BUTTON_PLANT;
 	}
 
 	return buttons;
@@ -146,26 +157,37 @@ u8 CG_GetButtonBits() {
 u8 CG_GetButtonDownEdges() {
 	u8 edges = 0;
 
-	if( button_attack.down && button_attack.edge ) {
-		edges |= BUTTON_ATTACK;
+	if( button_attack1.down && button_attack1.edge ) {
+		edges |= BUTTON_ATTACK1;
+	}
+
+	if( button_attack2.down && button_attack2.edge ) {
+		edges |= BUTTON_ATTACK2;
 	}
 
 	if( button_gadget.down && button_gadget.edge ) {
 		edges |= BUTTON_GADGET;
 	}
 
-	if( button_special.down && button_special.edge ) {
-		edges |= BUTTON_SPECIAL;
+	if( button_ability2.down && button_ability2.edge ) {
+		edges |= BUTTON_ABILITY2;
 	}
 
 	if( button_reload.down && button_reload.edge ) {
 		edges |= BUTTON_RELOAD;
 	}
 
-	button_attack.edge = false;
+	if( button_plant.down && button_plant.edge ) {
+		edges |= BUTTON_PLANT;
+	}
+
+
+	button_attack1.edge = false;
+	button_attack2.edge = false;
 	button_gadget.edge = false;
-	button_special.edge = false;
+	button_ability2.edge = false;
 	button_reload.edge = false;
+	button_plant.edge = false;
 
 	return edges;
 }
@@ -174,7 +196,7 @@ Vec3 CG_GetMovement() {
 	return Vec3(
 		( button_right.down ? 1.0f : 0.0f ) - ( button_left.down ? 1.0f : 0.0f ),
 		( button_forward.down ? 1.0f : 0.0f ) - ( button_back.down ? 1.0f : 0.0f ),
-		( button_jump.down ? 1.0f : 0.0f ) - ( button_crouch.down ? 1.0f : 0.0f )
+		( button_ability1.down ? 1.0f : 0.0f )
 	);
 }
 
@@ -298,11 +320,12 @@ void CG_ClearInputState() {
 	ClearButton( &button_left );
 	ClearButton( &button_right );
 
-	ClearButton( &button_jump );
-	ClearButton( &button_special );
-	ClearButton( &button_crouch );
+	ClearButton( &button_ability1 );
+	ClearButton( &button_ability2 );
+	ClearButton( &button_plant );
 
-	ClearButton( &button_attack );
+	ClearButton( &button_attack1 );
+	ClearButton( &button_attack2 );
 	ClearButton( &button_gadget );
 	ClearButton( &button_reload );
 
@@ -321,15 +344,17 @@ void CG_InitInput() {
 	AddCommand( "+right", IN_RightDown );
 	AddCommand( "-right", IN_RightUp );
 
-	AddCommand( "+jump", IN_JumpDown );
-	AddCommand( "-jump", IN_JumpUp );
-	AddCommand( "+special", IN_SpecialDown );
-	AddCommand( "-special", IN_SpecialUp );
-	AddCommand( "+crouch", IN_CrouchDown );
-	AddCommand( "-crouch", IN_CrouchUp );
+	AddCommand( "+ability1", IN_Ability1Down );
+	AddCommand( "-ability1", IN_Ability1Up );
+	AddCommand( "+ability2", IN_Ability2Down );
+	AddCommand( "-ability2", IN_Ability2Up );
+	AddCommand( "+plant", IN_PlantDown );
+	AddCommand( "-plant", IN_PlantUp );
 
-	AddCommand( "+attack", IN_AttackDown );
-	AddCommand( "-attack", IN_AttackUp );
+	AddCommand( "+attack1", IN_Attack1Down );
+	AddCommand( "-attack1", IN_Attack1Up );
+	AddCommand( "+attack2", IN_Attack2Down );
+	AddCommand( "-attack2", IN_Attack2Up );
 	AddCommand( "+gadget", IN_GadgetDown );
 	AddCommand( "-gadget", IN_GadgetUp );
 	AddCommand( "+reload", IN_ReloadDown );
@@ -351,15 +376,17 @@ void CG_ShutdownInput() {
 	RemoveCommand( "+right" );
 	RemoveCommand( "-right" );
 
-	RemoveCommand( "+jump" );
-	RemoveCommand( "-jump" );
-	RemoveCommand( "+special" );
-	RemoveCommand( "-special" );
-	RemoveCommand( "+crouch" );
-	RemoveCommand( "-crouch" );
+	RemoveCommand( "+ability1" );
+	RemoveCommand( "-ability1" );
+	RemoveCommand( "+ability2" );
+	RemoveCommand( "-ability2" );
+	RemoveCommand( "+plant" );
+	RemoveCommand( "-plant" );
 
-	RemoveCommand( "+attack" );
-	RemoveCommand( "-attack" );
+	RemoveCommand( "+attack1" );
+	RemoveCommand( "-attack1" );
+	RemoveCommand( "+attack2" );
+	RemoveCommand( "-attack2" );
 	RemoveCommand( "+gadget" );
 	RemoveCommand( "-gadget" );
 	RemoveCommand( "+reload" );

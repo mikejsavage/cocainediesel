@@ -25,10 +25,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 // button bits
 //
-#define BUTTON_ATTACK   ( 1 << 0 )
-#define BUTTON_SPECIAL  ( 1 << 1 )
-#define BUTTON_RELOAD   ( 1 << 2 )
-#define BUTTON_GADGET   ( 1 << 3 )
+#define BUTTON_ATTACK1	( 1 << 0 )
+#define BUTTON_ATTACK2	( 1 << 1 )
+#define BUTTON_ABILITY2	( 1 << 2 )
+#define BUTTON_RELOAD	( 1 << 3 )
+#define BUTTON_GADGET	( 1 << 4 )
+#define BUTTON_PLANT	( 1 << 5 )
 
 // user command communications
 #define CMD_BACKUP  64  // allow a lot of command backups for very fast systems
@@ -51,9 +53,9 @@ enum pmtype_t {
 #define PMF_TIME_WATERJUMP  ( 1 << 1 )  // pm_time is waterjump
 #define PMF_TIME_TELEPORT   ( 1 << 2 )  // pm_time is non-moving time
 #define PMF_NO_PREDICTION   ( 1 << 3 )  // temporarily disables prediction (used for grappling hook)
-#define PMF_DASHING         ( 1 << 4 )  // Dashing flag
-#define PMF_SPECIAL_HELD    ( 1 << 5 )  // Special flag
-#define PMF_WALLJUMPING     ( 1 << 6 )  // WJ starting flag
+#define PMF_DASHING         ( 1 << 4 )  // Dashing flag (should be removed probably)
+#define PMF_ABILITY1_HELD   ( 1 << 5 )  // Special held flag
+#define PMF_ABILITY2_HELD   ( 1 << 6 )  // Jump held flag
 
 // note that Q_rint was causing problems here
 // (spawn looking straight up\down at delta_angles wrapping)

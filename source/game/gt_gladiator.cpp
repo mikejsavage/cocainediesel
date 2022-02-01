@@ -467,6 +467,7 @@ static void GT_Gladiator_PlayerRespawned( edict_t *ent, int old_team, int new_te
 		G_GiveWeapon( ent, weap1 );
 		G_GiveWeapon( ent, weap2 );
 		G_SelectWeapon( ent, 0 );
+		G_GivePerk( ent, Perk_Hooligan );
 		G_RespawnEffect( ent );
 	}
 }

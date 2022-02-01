@@ -105,7 +105,11 @@ void operator++( GadgetType & x, int );
 enum PerkType : u8 {
 	Perk_None,
 
+	Perk_Ninja,
+	Perk_Hooligan,
 	Perk_Midget,
+	Perk_Jetpack,
+	Perk_Boomer,
 
 	Perk_Count
 };
@@ -315,10 +319,10 @@ struct pmove_state_t {
 	s16 no_shooting_time;
 
 	s16 knockback_time;
-	s16 crouch_time;
 	s16 tbag_time;
-	s16 special_time;
-	s16 special_count;
+	s16 stamina;
+	s16 stamina_max; 	//used for knowing what is stamina_max in hud
+	s16 stamina_time;   //used to avoid dash ev spam and do some jump buffering
 
 	s16 max_speed;
 };
@@ -341,6 +345,7 @@ struct SyncPlayerState {
 	WeaponSlot weapons[ Weapon_Count - 1 ];
 
 	GadgetType gadget;
+	PerkType perk;
 	u8 gadget_ammo;
 
 	bool ready;

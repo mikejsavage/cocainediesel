@@ -139,6 +139,12 @@ static int CG_HealthPercent( const void * parameter ) {
 	return cg.predictedPlayerState.health * 100 / cg.predictedPlayerState.max_health;
 }
 
+static int CG_StaminaPercent( const void * parameter ) {
+	if( cg.predictedPlayerState.pmove.stamina_max == 0 ) {
+		return 0;
+	} return cg.predictedPlayerState.pmove.stamina * 100 / cg.predictedPlayerState.pmove.stamina_max;
+}
+
 static int CG_GetSpeedVertical( const void *parameter ) {
 	return cg.predictedPlayerState.pmove.velocity.z;
 }
@@ -206,6 +212,8 @@ static const reference_numeric_t cg_numeric_references[] = {
 	// stats
 	{ "HEALTH", CG_S16, &cg.predictedPlayerState.health },
 	{ "HEALTH_PERCENT", CG_HealthPercent, NULL },
+	{ "STAMINA", CG_S16, &cg.predictedPlayerState.pmove.stamina },
+	{ "STAMINA_PERCENT", CG_StaminaPercent, NULL },
 	{ "WEAPON_ITEM", CG_U8, &cg.predictedPlayerState.weapon },
 
 	{ "READY", CG_Bool, &cg.predictedPlayerState.ready },

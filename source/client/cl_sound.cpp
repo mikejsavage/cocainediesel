@@ -591,8 +591,7 @@ void S_Shutdown() {
 }
 
 Span< const char * > GetAudioDevices( Allocator * a ) {
-	NonRAIIDynamicArray< const char * > devices;
-	devices.init( a );
+	NonRAIIDynamicArray< const char * > devices( a );
 
 	const char * cursor = alcGetString( NULL, ALC_ALL_DEVICES_SPECIFIER );
 	while( !StrEqual( cursor, "" ) ) {

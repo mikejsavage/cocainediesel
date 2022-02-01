@@ -233,8 +233,7 @@ void SV_Demo_Cancel_f() {
 }
 
 static Span< char * > GetServerDemos( TempAllocator * temp ) {
-	NonRAIIDynamicArray< char * > demos;
-	demos.init( temp );
+	NonRAIIDynamicArray< char * > demos( temp );
 
 	ListDirHandle scan = BeginListDir( sys_allocator, GetDemoDir( temp ) );
 

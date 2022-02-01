@@ -11,6 +11,12 @@ class NonRAIIDynamicArray {
 	T * elems;
 
 public:
+	NonRAIIDynamicArray() = default;
+
+	NonRAIIDynamicArray( Allocator * a_, size_t initial_capacity = 0 ) {
+		init( a_, initial_capacity );
+	}
+
 	void init( Allocator * a_, size_t initial_capacity = 0 ) {
 		a = a_;
 		capacity = initial_capacity;

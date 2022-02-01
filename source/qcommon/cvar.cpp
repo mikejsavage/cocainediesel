@@ -195,8 +195,7 @@ void ResetCheatCvars() {
 }
 
 Span< const char * > TabCompleteCvar( TempAllocator * a, const char * partial ) {
-	NonRAIIDynamicArray< const char * > results;
-	results.init( a );
+	NonRAIIDynamicArray< const char * > results( a );
 
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
 		const Cvar * cvar = &cvars[ i ];
@@ -211,8 +210,7 @@ Span< const char * > TabCompleteCvar( TempAllocator * a, const char * partial ) 
 }
 
 Span< const char * > SearchCvars( Allocator * a, const char * partial ) {
-	NonRAIIDynamicArray< const char * > results;
-	results.init( a );
+	NonRAIIDynamicArray< const char * > results( a );
 
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
 		const Cvar * cvar = &cvars[ i ];

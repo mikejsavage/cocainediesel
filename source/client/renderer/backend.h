@@ -370,7 +370,7 @@ Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, 
 Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer );
 void DeleteFramebuffer( Framebuffer fb );
 
-bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths, Span< const char * > feedback_varyings = Span< const char * >(), bool particle_vertex_attribs = false );
+bool NewShader( Shader * shader, Span< Span< const char > > srcs, Span< const char * > feedback_varyings = Span< const char * >(), bool particle_vertex_attribs = false );
 void DeleteShader( Shader shader );
 
 Mesh NewMesh( MeshConfig config );

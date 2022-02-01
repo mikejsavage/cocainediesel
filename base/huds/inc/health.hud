@@ -5,23 +5,23 @@ if %HEALTH >= 0
 
 	// fill coloured health bar
 	setAlignment left middle
-	setColor 1.0, %HEALTH_PERCENT / 83.333, %HEALTH_PERCENT / 500, 1
-	if %HEALTH_PERCENT > 50
-		setColorsRGB 1.0 - 0.02 * %HEALTH_PERCENT - 50, 0.6, %HEALTH_PERCENT / 500, 1
+	setColor 1.0, %HEALTH_PERCENT / 115, %HEALTH_PERCENT / 1600, 1
+	if %HEALTH_PERCENT > 75
+		setColorsRGB 0.5 - 0.03 * %HEALTH_PERCENT - 70, 1.0, 0.4, 1
 	endif
 	setSize %HEALTH_PERCENT * 2, 36
 	drawPicByName $whiteimage
 
 	// accent
-	setColor 0.03, 0.03, 0.03, 1.0
+	setColor 0.02, 0.02, 0.02, 1.0
 	setSize 200, 24
 	moveCursor 0, 18
 	drawPicByName $whiteimage
 
-	// draw white cross
-	setColor 1.0, %HEALTH_PERCENT / 83.333, %HEALTH_PERCENT / 500, 1
-	if %HEALTH_PERCENT > 50
-		setColorsRGB 1.0 - 0.02 * %HEALTH_PERCENT - 50, 0.6, %HEALTH_PERCENT / 500, 1
+	// draw cross
+	setColor 1.0, %HEALTH_PERCENT / 115, %HEALTH_PERCENT / 1600, 1
+	if %HEALTH_PERCENT > 75
+		setColorsRGB 0.5 - 0.03 * %HEALTH_PERCENT - 70, 1.0, 0.4, 1
 	endif
 	moveCursor 6 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 0
 	setAlignment left middle

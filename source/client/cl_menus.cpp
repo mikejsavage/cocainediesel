@@ -930,7 +930,7 @@ static bool LoadoutButton( const char * text, Vec2 icon_size, const Material * i
 }
 
 static void Perks( Vec2 icon_size ) {
-	constexpr char * classes[ Perk_Count ] = {
+	constexpr const char * classes[] = {
 		"",
 		"Ninja",
 		"Hooligan",
@@ -938,6 +938,8 @@ static void Perks( Vec2 icon_size ) {
 		"Jetpack",
 		"Boomer"
 	};
+
+	STATIC_ASSERT( ARRAY_COUNT( classes ) == Perk_Count );
 
 	ImGui::TableNextRow();
 	ImGui::TableSetColumnIndex( 0 );

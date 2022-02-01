@@ -481,10 +481,6 @@ static void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
 	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump );
 }
 
-static void CG_Event_Jump( SyncEntityState * state ) {
-	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Jump );
-}
-
 static void CG_Event_Jetpack( const SyncEntityState * ent, u64 parm, Vec4 team_color ) {
 	Vec3 pos = ent->origin;
 	pos.z -= 10;

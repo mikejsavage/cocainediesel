@@ -318,9 +318,9 @@ static void ScrollWeapon( int step ) {
 	if( current == Weapon_None )
 		return;
 
-	SyncPlayerState * ps = &cg.predictedPlayerState;
+	const SyncPlayerState * ps = &cg.predictedPlayerState;
 
-	size_t num_weapons = ARRAY_COUNT( ps->weapons );
+	int num_weapons = int( ARRAY_COUNT( ps->weapons ) );
 
 	int slot = 0;
 	for( int i = 0; i < num_weapons; i++ ) {
@@ -331,7 +331,6 @@ static void ScrollWeapon( int step ) {
 	}
 
 	slot += step;
-
 	if( slot >= num_weapons || slot < 0 )
 		return;
 

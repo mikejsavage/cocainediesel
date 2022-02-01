@@ -680,8 +680,6 @@ static void PM_FlyMove() {
 }
 
 static void PM_AdjustBBox() {
-	trace_t trace;
-
 	if( pm->playerState->pmove.pm_type >= PM_FREEZE ) {
 		pm->playerState->viewheight = 0;
 		return;

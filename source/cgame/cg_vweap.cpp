@@ -118,7 +118,10 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 
 	Vec3 gunAngles, gunOffset;
 	if( model->camera == U8_MAX ) {
-		assert( !ps->using_gadget );
+		if( ps->using_gadget ) {
+			Com_Printf( S_COLOR_YELLOW "Gadget models must have a camera!\n" );
+			return;
+		}
 
 		const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( ps->weapon );
 		// calculate the entity position

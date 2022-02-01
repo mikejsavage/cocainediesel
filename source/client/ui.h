@@ -1,6 +1,7 @@
 #pragma once
 
 #include "qcommon/types.h"
+#include "gameshared/gs_synctypes.h"
 
 void UI_Init();
 void UI_Shutdown();
@@ -10,7 +11,7 @@ void UI_Refresh();
 void UI_ShowMainMenu();
 void UI_ShowConnectingScreen();
 void UI_ShowGameMenu();
-void UI_ShowLoadoutMenu( Span< int > weapons, PerkType perk, GadgetType gadget );
+void UI_ShowLoadoutMenu( Loadout loadout );
 void UI_ShowDemoMenu();
 void UI_HideMenu();
 

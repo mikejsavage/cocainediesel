@@ -86,9 +86,9 @@ static void CL_RefreshUcmd( UserCommand *ucmd, int msec, bool ready ) {
 		ucmd->buttons |= CL_GameModule_GetButtonBits();
 		ucmd->down_edges |= CL_GameModule_GetButtonDownEdges();
 
-		if( cl.weaponSwitch != 0 ) {
+		if( cl.weaponSwitch != Weapon_None ) {
 			ucmd->weaponSwitch = cl.weaponSwitch;
-			cl.weaponSwitch = 0;
+			cl.weaponSwitch = Weapon_None;
 		}
 	}
 

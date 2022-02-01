@@ -530,7 +530,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.animation_time, baseline.animation_time );
 	Delta( buf, ent.counterNum, baseline.counterNum );
 	Delta( buf, ent.channel, baseline.channel );
-	Delta( buf, ent.weapon, baseline.weapon );
+	DeltaEnum( buf, ent.weapon, baseline.weapon );
 	Delta( buf, ent.radius, baseline.radius );
 	Delta( buf, ent.team, baseline.team );
 	Delta( buf, ent.scale, baseline.scale );
@@ -603,7 +603,7 @@ static void Delta( DeltaBuffer * buf, UserCommand & cmd, const UserCommand & bas
 	Delta( buf, cmd.buttons, baseline.buttons );
 	Delta( buf, cmd.down_edges, baseline.down_edges );
 	Delta( buf, cmd.entropy, baseline.entropy );
-	Delta( buf, cmd.weaponSwitch, baseline.weaponSwitch );
+	DeltaEnum( buf, cmd.weaponSwitch, baseline.weaponSwitch );
 }
 
 void MSG_WriteDeltaUsercmd( msg_t * msg, const UserCommand * baseline, const UserCommand * cmd ) {
@@ -650,7 +650,7 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 }
 
 static void Delta( DeltaBuffer * buf, WeaponSlot & weapon, const WeaponSlot & baseline ) {
-	Delta( buf, weapon.weapon, baseline.weapon );
+	DeltaEnum( buf, weapon.weapon, baseline.weapon );
 	Delta( buf, weapon.ammo, baseline.ammo );
 }
 
@@ -683,11 +683,11 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	DeltaEnum( buf, player.weapon_state, baseline.weapon_state );
 	Delta( buf, player.weapon_state_time, baseline.weapon_state_time );
 
-	Delta( buf, player.weapon, baseline.weapon );
-	Delta( buf, player.pending_weapon, baseline.pending_weapon );
+	DeltaEnum( buf, player.weapon, baseline.weapon );
+	DeltaEnum( buf, player.pending_weapon, baseline.pending_weapon );
 	Delta( buf, player.using_gadget, baseline.using_gadget );
 	Delta( buf, player.pending_gadget, baseline.pending_gadget );
-	Delta( buf, player.last_weapon, baseline.last_weapon );
+	DeltaEnum( buf, player.last_weapon, baseline.last_weapon );
 	Delta( buf, player.zoom_time, baseline.zoom_time );
 
 	Delta( buf, player.team, baseline.team );

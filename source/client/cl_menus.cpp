@@ -939,7 +939,7 @@ static void Perks( Vec2 icon_size ) {
 
 static int CountWeaponCategory( WeaponCategory category ) {
 	int n = 0;
-	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( i );
 		if( def->category == category ) {
 			n++;
@@ -954,7 +954,7 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 	ImGui::Text( "%s", label );
 	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
 
-	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( i );
 		if( def->category == category ) {
 			const Material * icon = cgs.media.shaderWeaponIcon[ i ];
@@ -972,8 +972,8 @@ static void Gadgets( Vec2 icon_size ) {
 	ImGui::Text( "GADGET" );
 	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
 
-	for( u8 i = 1; i < Gadget_Count; i++ ) {
-		const GadgetDef * def = GetGadgetDef( GadgetType( i ) );
+	for( GadgetType i = GadgetType( Gadget_None + 1 ); i < Gadget_Count; i++ ) {
+		const GadgetDef * def = GetGadgetDef( i );
 		const Material * icon = cgs.media.shaderGadgetIcon[ i ];
 		if( LoadoutButton( def->name, icon_size, icon, loadout.gadget == i ) ) {
 			loadout.gadget = GadgetType( i );
@@ -1295,33 +1295,11 @@ void UI_HideMenu() {
 	uistate = UIState_Hidden;
 }
 
-void UI_ShowLoadoutMenu( Span< int > weapons, PerkType perk, GadgetType gadget ) {
+void UI_ShowLoadoutMenu( Loadout new_loadout ) {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Loadout;
 
-	for( WeaponType & w : loadout.weapons ) {
-		w = Weapon_None;
-	}
-
-	for( int w : weapons ) {
-		if( w <= Weapon_None || w >= Weapon_Count )
-			return;
-
-		WeaponCategory category = GS_GetWeaponDef( w )->category;
-		if( category == WeaponCategory_Count || loadout.weapons[ category ] != Weapon_None )
-			return;
-
-		loadout.weapons[ category ] = w;
-	}
-
-	if( perk < Perk_None || perk >= Perk_Count )
-		return;
-
-	if( gadget <= Gadget_None || gadget >= Gadget_Count )
-		return;
-
-	loadout.perk = perk;
-	loadout.gadget = gadget;
+	loadout = new_loadout;
 
 	CL_SetKeyDest( key_menu );
 }

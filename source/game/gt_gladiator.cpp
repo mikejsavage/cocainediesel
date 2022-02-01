@@ -253,8 +253,8 @@ static void DoSpinner() {
 		return;
 	}
 
-	WeaponType weap1 = RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count );
-	WeaponType weap2 = RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 );
+	WeaponType weap1 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count ) );
+	WeaponType weap2 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 ) );
 
 	if( weap2 >= weap1 ) {
 		weap2++;
@@ -457,8 +457,8 @@ static void GT_Gladiator_PlayerRespawned( edict_t *ent, int old_team, int new_te
 	}
 
 	if( server_gs.gameState.match_state != MatchState_Playing ) {
-		WeaponType weap1 = RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count );
-		WeaponType weap2 = RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 );
+		WeaponType weap1 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count ) );
+		WeaponType weap2 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 ) );
 
 		if( weap2 >= weap1 ) {
 			weap2++;

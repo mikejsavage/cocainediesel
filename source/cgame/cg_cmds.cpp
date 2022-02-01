@@ -222,19 +222,29 @@ static void CG_SC_ChangeLoadout() {
 	if( cgs.demoPlaying )
 		return;
 
-	int weapons[ WeaponCategory_Count ] = { };
+	Loadout loadout = { };
 
-	if( Cmd_Argc() != ARRAY_COUNT( weapons ) + 3 )
+	if( Cmd_Argc() != ARRAY_COUNT( loadout.weapons ) + 3 )
 		return;
 
-	for( size_t i = 0; i < ARRAY_COUNT( weapons ); i++ ) {
-		weapons[ i ] = atoi( Cmd_Argv( i + 1 ) );
+	for( size_t i = 0; i < ARRAY_COUNT( loadout.weapons ); i++ ) {
+		int weapon = atoi( Cmd_Argv( i + 1 ) );
+		if( weapon <= Weapon_None || weapon >= Weapon_Count )
+			return;
+		loadout.weapons[ i ] = WeaponType( weapon );
 	}
 
-	PerkType perk = PerkType( atoi( Cmd_Argv( ARRAY_COUNT( weapons ) + 1 ) ) );
-	GadgetType gadget = GadgetType( atoi( Cmd_Argv( ARRAY_COUNT( weapons ) + 2 ) ) );
+	int perk = atoi( Cmd_Argv( ARRAY_COUNT( loadout.weapons ) + 1 ) );
+	if( perk < Perk_None || perk >= Perk_Count )
+		return;
+	loadout.perk = PerkType( perk );
 
-	UI_ShowLoadoutMenu( Span< int >( weapons, ARRAY_COUNT( weapons ) ), perk, gadget );
+	int gadget = atoi( Cmd_Argv( ARRAY_COUNT( loadout.weapons ) + 2 ) );
+	if( gadget <= Gadget_None || gadget >= Gadget_Count )
+		return;
+	loadout.gadget = GadgetType( gadget );
+
+	UI_ShowLoadoutMenu( loadout );
 }
 
 static void CG_SC_SaveLoadout() {
@@ -291,7 +301,7 @@ static void CG_Cmd_UseItem_f() {
 	}
 
 	const char * name = Cmd_Args();
-	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * weapon = GS_GetWeaponDef( i );
 		if( ( Q_stricmp( weapon->name, name ) == 0 || Q_stricmp( weapon->short_name, name ) == 0 ) && GS_CanEquip( &cg.predictedPlayerState, i ) ) {
 			SwitchWeapon( i );

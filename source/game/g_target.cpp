@@ -24,7 +24,6 @@ static void target_laser_think( edict_t *self ) {
 	trace_t tr;
 	Vec3 point;
 	Vec3 last_movedir;
-	int count;
 
 	// our lifetime has expired
 	if( self->delay && self->wait < level.time ) {
@@ -34,12 +33,6 @@ static void target_laser_think( edict_t *self ) {
 
 		G_FreeEdict( self );
 		return;
-	}
-
-	if( self->spawnflags & 0x80000000 ) {
-		count = 8;
-	} else {
-		count = 4;
 	}
 
 	if( self->enemy ) {
@@ -66,22 +59,18 @@ static void target_laser_think( edict_t *self ) {
 			if( game.edicts[tr.ent].r.client && self->activator->r.client ) {
 				if( !level.gametype.isTeamBased ||
 					game.edicts[tr.ent].s.team != self->activator->s.team ) {
-					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, self->count );
+					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, WorldDamage_Laser );
 				}
 			} else {
-				G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, self->count );
+				G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, WorldDamage_Laser );
 			}
 		}
 
 		// if we hit something that's not a monster or player or is immune to lasers, we're done
 		if( !game.edicts[tr.ent].r.client ) {
 			if( self->spawnflags & 0x80000000 ) {
-				edict_t *event;
-
 				self->spawnflags &= ~0x80000000;
-
-				event = G_SpawnEvent( EV_LASER_SPARKS, DirToU64( tr.plane.normal ), &tr.endpos );
-				event->s.counterNum = count;
+				G_SpawnEvent( EV_LASER_SPARKS, DirToU64( tr.plane.normal ), &tr.endpos );
 			}
 			break;
 		}

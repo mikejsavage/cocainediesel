@@ -47,6 +47,8 @@ enum EntityType : u8 {
 	// eventual entities: types below this will get event treatment
 	ET_EVENT = EVENT_ENTITIES_START,
 	ET_SOUNDEVENT,
+
+	EntityType_Count
 };
 
 enum WeaponCategory {
@@ -57,8 +59,7 @@ enum WeaponCategory {
 	WeaponCategory_Count
 };
 
-using WeaponType = u8;
-enum WeaponType_ : WeaponType {
+enum WeaponType : u8 {
 	Weapon_None,
 
 	Weapon_Knife,
@@ -85,6 +86,8 @@ enum WeaponType_ : WeaponType {
 	Weapon_Count
 };
 
+void operator++( WeaponType & x, int );
+
 enum GadgetType : u8 {
 	Gadget_None,
 
@@ -95,6 +98,8 @@ enum GadgetType : u8 {
 	Gadget_Count
 };
 
+void operator++( GadgetType & x, int );
+
 enum PerkType : u8 {
 	Perk_None,
 
@@ -102,6 +107,8 @@ enum PerkType : u8 {
 
 	Perk_Count
 };
+
+void operator++( PerkType & x, int );
 
 struct Loadout {
 	WeaponType weapons[ WeaponCategory_Count ];

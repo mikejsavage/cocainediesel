@@ -62,7 +62,7 @@ static GadgetModelMetadata BuildGadgetModelMetadata( GadgetType gadget ) {
 
 void InitWeaponModels() {
 	weapon_model_metadata[ Weapon_None ] = { };
-	for( WeaponType i = Weapon_None + 1; i < Weapon_Count; i++ ) {
+	for( WeaponType i = WeaponType( Weapon_None + 1 ); i < Weapon_Count; i++ ) {
 		weapon_model_metadata[ i ] = BuildWeaponModelMetadata( i );
 	}
 

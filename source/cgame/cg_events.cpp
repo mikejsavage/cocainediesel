@@ -641,7 +641,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			if( parm <= Weapon_None || parm >= Weapon_Count )
 				return;
 
-			StringHash sfx = GetWeaponModelMetadata( parm )->reload_sound;
+			StringHash sfx = GetWeaponModelMetadata( WeaponType( parm ) )->reload_sound;
 
 			if( viewer ) {
 				S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
@@ -656,7 +656,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			if( parm <= Weapon_None || parm >= Weapon_Count )
 				return;
 
-			const WeaponModelMetadata * weapon = GetWeaponModelMetadata( parm );
+			const WeaponModelMetadata * weapon = GetWeaponModelMetadata( WeaponType( parm ) );
 			StringHash sfx = ev == EV_ZOOM_IN ? weapon->zoom_in_sound : weapon->zoom_out_sound;
 
 			if( viewer ) {

@@ -948,7 +948,9 @@ static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	const GadgetDef * def = GetGadgetDef( Gadget_ThrowingAxe );
 
 	ProjectileStats stats = GadgetProjectileStats( Gadget_ThrowingAxe );
-	stats.max_damage = Lerp( def->min_damage, Unlerp01( u64( 0 ), charge_time, u64( def->cook_time ) ), def->damage );
+	float unlerped_cook = Unlerp01( u64( 0 ), charge_time, u64( def->cook_time ) );
+	stats.max_damage = Lerp( def->min_damage, unlerped_cook, def->damage );
+	stats.speed = Lerp( def->min_speed, unlerped_cook, def->speed );
 
 	edict_t * axe = FireProjectile( self, start, angles, timeDelta, stats, TouchThrowingAxe, ET_THROWING_AXE, MASK_SHOT );
 	axe->classname = "throwing axe";
@@ -1003,8 +1005,11 @@ static void ExplodeStunGrenade( edict_t * grenade ) {
 	G_FreeEdict( grenade );
 }
 
-static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, u64 charge_time ) {
+	const GadgetDef * def = GetGadgetDef( Gadget_StunGrenade );
+
 	ProjectileStats stats = GadgetProjectileStats( Gadget_StunGrenade );
+	stats.speed = Lerp( def->min_speed, Unlerp01( u64( 0 ), charge_time, u64( def->cook_time ) ), def->speed );
 
 	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, stats, TouchStunGrenade, ET_GENERIC, MASK_SHOT );
 	grenade->classname = "stun grenade";
@@ -1028,7 +1033,7 @@ void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm ) {
 			break;
 
 		case Gadget_StunGrenade:
-			UseStunGrenade( ent, origin, angles, timeDelta );
+			UseStunGrenade( ent, origin, angles, timeDelta, parm );
 			break;
 	}
 }

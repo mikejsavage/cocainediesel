@@ -417,18 +417,17 @@ static const ItemState generic_throwable_states[] = {
 			return WeaponState_Throwing;
 		}
 
+		const GadgetDef * def = GetGadgetDef( ps->gadget );
+		ps->weapon_state_time = Min2( def->cook_time, ps->weapon_state_time );
+
 		return AllowWeaponSwitch( gs, ps, state );
 	} ),
 
 	ItemState( WeaponState_Throwing, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		const GadgetDef * def = GetGadgetDef( ps->gadget );
-		if( ps->weapon_state_time >= def->using_time || ps->gadget_ammo == 0 ) {
-			ps->using_gadget = false;
-			ps->pending_weapon = ps->last_weapon;
-			return WeaponState_Dispatch;
-		}
-
-		return state;
+		ps->using_gadget = false;
+		ps->pending_weapon = ps->last_weapon;
+		return WeaponState_Dispatch;
 	} ),
 
 	ItemState( WeaponState_SwitchingOut, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {

@@ -26,43 +26,61 @@ static float SmoothStep( float t ) {
 
 static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * viewweapon ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	if( ps->weapon == Weapon_None )
-		return;
 
-	const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+	if( ps->using_gadget ) {
+		const GadgetDef * def = GetGadgetDef( ps->gadget );
 
-	if( ps->weapon_state == WeaponState_Firing || ps->weapon_state == WeaponState_FiringSemiAuto ) {
-		float frac = float( ps->weapon_state_time ) / float( def->refire_time );
-		if( ps->weapon == Weapon_Knife ) {
-			viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-			angles->z -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-			angles->y += def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-			angles->x -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+		if( ps->weapon_state == WeaponState_Cooking ) {
+			float charge = float( ps->weapon_state_time ) / float( def->cook_time );
+			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 9.0f;
+			viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_UP ) * pull_back;
+			angles->x -= Lerp( 0.0f, pull_back, 4.0f );
+		} else if( ps->weapon_state == WeaponState_SwitchingIn  ) {
+			float frac = 1.0f - float( ps->weapon_state_time ) / float( def->switch_in_time );
+			frac *= frac; //smoother curve
+			viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_UP ) * frac * 10.0f;
+			angles->x += Lerp( 0.0f, frac, 60.0f );
 		}
-		else {
-			angles->x -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+
+	} else {
+		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+		if( ps->weapon == Weapon_None )
+			return;
+
+		if( ps->weapon_state == WeaponState_Firing || ps->weapon_state == WeaponState_FiringSemiAuto ) {
+			float frac = float( ps->weapon_state_time ) / float( def->refire_time );
+			if( ps->weapon == Weapon_Knife ) {
+				viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->z -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->y += def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->x -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+			}
+			else {
+				angles->x -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+			}
 		}
-	}
-	else if( ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingOut ) {
-		float frac;
-		if( ps->weapon_state == WeaponState_SwitchingIn ) {
-			frac = 1.0f - float( ps->weapon_state_time ) / float( def->switch_in_time );
+		else if( ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingOut ) {
+			float frac;
+			if( ps->weapon_state == WeaponState_SwitchingIn ) {
+				frac = 1.0f - float( ps->weapon_state_time ) / float( def->switch_in_time );
+			}
+			else {
+				frac = float( ps->weapon_state_time ) / float( def->switch_out_time );
+			}
+			frac *= frac; //smoother curve
+			angles->x += Lerp( 0.0f, frac, 60.0f );
 		}
-		else {
-			frac = float( ps->weapon_state_time ) / float( def->switch_out_time );
+		else if( ps->weapon_state == WeaponState_Reloading || ps->weapon_state == WeaponState_StagedReloading ) {
+			float t = ps->weapon_state == WeaponState_Reloading ? def->reload_time : def->staged_reload_time;
+			float frac = float( ps->weapon_state_time ) / t;
+			angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
 		}
-		frac *= frac; //smoother curve
-		angles->x += Lerp( 0.0f, frac, 60.0f );
-	}
-	else if( ps->weapon_state == WeaponState_Reloading || ps->weapon_state == WeaponState_StagedReloading ) {
-		float t = ps->weapon_state == WeaponState_Reloading ? def->reload_time : def->staged_reload_time;
-		float frac = float( ps->weapon_state_time ) / t;
-		angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
-	}
-	else if( ps->weapon == Weapon_Railgun && ps->weapon_state == WeaponState_Cooking ) {
-		float charge = float( ps->weapon_state_time ) / float( def->reload_time );
-		float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 4.0f;
-		viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_FORWARD ) * pull_back;
+		else if( ps->weapon == Weapon_Railgun && ps->weapon_state == WeaponState_Cooking ) {
+			float charge = float( ps->weapon_state_time ) / float( def->reload_time );
+			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 4.0f;
+			viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_FORWARD ) * pull_back;
+		}
+
 	}
 
 	// gun angles from bobbing

@@ -50,7 +50,6 @@ struct GadgetDef {
 	int uses;
 
 	u16 switch_in_time;
-	u16 using_time;
 	u16 cook_time;
 	u16 switch_out_time;
 	int damage;
@@ -60,6 +59,7 @@ struct GadgetDef {
 	int splash_radius;
 	s64 timeout;
 	int speed;
+	int min_speed;
 };
 
 void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd, int timeDelta );

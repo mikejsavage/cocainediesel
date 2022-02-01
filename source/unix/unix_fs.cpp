@@ -33,7 +33,8 @@ char * FindHomeDirectory( Allocator * a ) {
 }
 
 char * GetExePath( Allocator * a ) {
-	NonRAIIDynamicArray< char > buf( a, 1024 );
+	NonRAIIDynamicArray< char > buf( a );
+	buf.resize( 1024 );
 
 	while( true ) {
 		ssize_t n = readlink( "/proc/self/exe", buf.ptr(), buf.size() );

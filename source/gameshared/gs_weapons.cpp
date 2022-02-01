@@ -189,7 +189,7 @@ static ItemStateTransition Dispatch( const gs_state_t * gs, WeaponState state, S
 		return state;
 	}
 
-	if( ps->pending_gadget && ps->gadget_ammo != 0 ) {
+	if( ps->pending_gadget && ps->gadget_ammo > 0 ) {
 		ps->using_gadget = true;
 	}
 	else {
@@ -425,9 +425,13 @@ static const ItemState generic_throwable_states[] = {
 
 	ItemState( WeaponState_Throwing, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		const GadgetDef * def = GetGadgetDef( ps->gadget );
-		ps->using_gadget = false;
-		ps->pending_weapon = ps->last_weapon;
-		return WeaponState_Dispatch;
+		if( ps->weapon_state_time >= def->using_time ) {
+			ps->using_gadget = false;
+			ps->pending_weapon = ps->last_weapon;
+			return WeaponState_Dispatch;
+		}
+
+		return state;
 	} ),
 
 	ItemState( WeaponState_SwitchingOut, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {

@@ -772,6 +772,7 @@ const GadgetDef gadget_defs[] = {
 		/* short name       */ "hatchet",
 		/* uses             */ 1,
 		/* switch_in_time   */ WEAPONUP_TIME_FAST,
+		/* using_time       */ 500,
 		/* cook_time        */ 1200,
 		/* switch_out_time  */ WEAPONDOWN_TIME,
 		/* damage           */ 50,
@@ -781,7 +782,7 @@ const GadgetDef gadget_defs[] = {
 		/* splash_radius    */ 0,
 		/* timeout          */ 5000,
 		/* speed            */ 2000,
-		/* speed            */ 750,
+		/* min_speed        */ 750,
 	},
 
 	{
@@ -795,6 +796,7 @@ const GadgetDef gadget_defs[] = {
 		/* short name       */ "flash",
 		/* uses             */ 2,
 		/* switch_in_time   */ WEAPONUP_TIME_FAST,
+		/* using_time       */ 500,
 		/* cook_time        */ 1200,
 		/* switch_out_time  */ WEAPONDOWN_TIME,
 		/* damage           */ 5,

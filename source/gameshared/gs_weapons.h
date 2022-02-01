@@ -50,6 +50,7 @@ struct GadgetDef {
 	int uses;
 
 	u16 switch_in_time;
+	u16 using_time;
 	u16 cook_time;
 	u16 switch_out_time;
 	int damage;

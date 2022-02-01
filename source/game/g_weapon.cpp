@@ -126,9 +126,6 @@ static void G_ProjectileDistancePrestep( edict_t * projectile, float distance ) 
 
 	float speed = Length( projectile->velocity );
 	Vec3 dir = Normalize( projectile->velocity );
-	if( speed == 0.0f ) {
-		return;
-	}
 
 	int mask = projectile->r.clipmask;
 

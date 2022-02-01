@@ -4,7 +4,7 @@
 #include "qcommon/hash.h"
 
 u32 Hash32( const void * data, size_t n, u32 hash ) {
-	const u32 prime = U32( 16777619 );
+	constexpr u32 prime = U32( 16777619 );
 
 	const char * cdata = ( const char * ) data;
 	for( size_t i = 0; i < n; i++ ) {
@@ -14,7 +14,7 @@ u32 Hash32( const void * data, size_t n, u32 hash ) {
 }
 
 u64 Hash64( const void * data, size_t n, u64 hash ) {
-	const u64 prime = U64( 1099511628211 );
+	constexpr u64 prime = U64( 1099511628211 );
 
 	const char * cdata = ( const char * ) data;
 	for( size_t i = 0; i < n; i++ ) {

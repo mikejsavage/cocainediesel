@@ -934,10 +934,7 @@ static void TouchThrowingAxe( edict_t * ent, edict_t * other, Plane * plane, int
 	// edict_t * event = G_SpawnEvent( EV_AXE_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
 	// event->s.team = ent->s.team;
 
-	if( other->takedamage ) {
-		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_None );
-	}
-
+	G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_None );
 	G_FreeEdict( ent );
 }
 
@@ -962,9 +959,7 @@ static void TouchStunGrenade( edict_t * ent, edict_t * other, Plane * plane, int
 		return;
 	}
 
-	if( other->takedamage ) {
-		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_None );
-	}
+	G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_None );
 }
 
 static void ExplodeStunGrenade( edict_t * grenade ) {

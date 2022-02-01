@@ -1,0 +1,5 @@
+{
+	attenuation idle
+	sound ./beep
+	pitch_random 0.02
+}

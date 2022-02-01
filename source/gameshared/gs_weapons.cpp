@@ -463,16 +463,16 @@ static const ItemState suicide_bomb_states[] = {
 			gs->api.PredictedEvent( ps->POVnum, EV_SUICIDE_BOMB_ANNOUNCEMENT, 0 );
 		}
 
-		u64 beep_interval = 1024;
+		u64 beep_interval = 768;
 		u64 beep_delay = beep_interval;
-		constexpr int num_beeps = 10;
+		constexpr int num_beeps = 20;
 
 		for( int beep = 3; beep < 3 + num_beeps; beep++ ) {
 			if( SuicideBombStage( ps, beep, beep_delay ) ) {
 				gs->api.PredictedEvent( ps->POVnum, EV_SUICIDE_BOMB_BEEP, 0 );
 			}
 
-			beep_interval = Max2( u64( 128 ), beep_interval / 2 );
+			beep_interval = Max2( 64.0f, beep_interval / 1.5f );
 			beep_delay += beep_interval;
 		}
 

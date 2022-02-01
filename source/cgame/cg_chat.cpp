@@ -46,7 +46,8 @@ static void OpenChat() {
 
 static void CloseChat() {
 	chat.mode = ChatMode_None;
-	CL_SetKeyDest( key_game );
+	if( !Con_IsVisible() )
+		CL_SetKeyDest( key_game );
 }
 
 void CG_InitChat() {

@@ -63,10 +63,9 @@ void Con_ToggleConsole() {
 	}
 
 	if( console.visible ) {
-		CL_SetKeyDest( cls.old_key_dest );
+		CL_SetKeyDest( key_game );
 	}
 	else {
-		CL_SetOldKeyDest( cls.key_dest );
 		CL_SetKeyDest( key_ImGui );
 	}
 
@@ -82,7 +81,6 @@ bool Con_IsVisible() {
 
 void Con_Close() {
 	if( console.visible ) {
-		CL_SetKeyDest( cls.old_key_dest );
 		console.visible = false;
 	}
 }

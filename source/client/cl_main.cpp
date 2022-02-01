@@ -316,10 +316,6 @@ void CL_SetKeyDest( keydest_t key_dest ) {
 	}
 }
 
-void CL_SetOldKeyDest( keydest_t key_dest ) {
-	cls.old_key_dest = key_dest;
-}
-
 void CL_ClearState() {
 	// wipe the entire cl structure
 	memset( &cl, 0, sizeof( client_state_t ) );

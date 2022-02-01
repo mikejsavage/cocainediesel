@@ -973,6 +973,11 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 
 	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
 
+	if( dc.instance_type == InstanceType_ComputeShader ) {
+		glDispatchCompute( 1, 1, 1 );
+		return;
+	}
+
 	glBindVertexArray( dc.mesh.vao );
 	GLenum primitive = PrimitiveTypeToGL( dc.mesh.primitive_type );
 
@@ -1616,16 +1621,16 @@ static GLuint CompileShader( GLenum type, Span< Span< const char > > srcs ) {
 	DynamicArray< const char * > src_ptrs( &temp );
 	DynamicArray< int > src_lens( &temp );
 
-	src_ptrs.add( "#version 430\n" );
+	src_ptrs.add( "#version 430 core\n" );
 	src_lens.add( -1 );
 
 	if( type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER ) {
 		src_ptrs.add( type == GL_VERTEX_SHADER ? VERTEX_SHADER_PRELUDE : FRAGMENT_SHADER_PRELUDE );
 		src_lens.add( -1 );
-	}
 
-	src_ptrs.add( "#define MAX_JOINTS " STRINGIFY( MAX_GLSL_UNIFORM_JOINTS ) "\n" );
-	src_lens.add( -1 );
+		src_ptrs.add( "#define MAX_JOINTS " STRINGIFY( MAX_GLSL_UNIFORM_JOINTS ) "\n" );
+		src_lens.add( -1 );
+	}
 
 	for( Span< const char > fragment : srcs ) {
 		src_ptrs.add( fragment.ptr );
@@ -1647,7 +1652,7 @@ static GLuint CompileShader( GLenum type, Span< Span< const char > > srcs ) {
 
 		// static char src[ 65536 ];
 		// glGetShaderSource( shader, sizeof( src ), NULL, src );
-		// printf( "%s\n", src );
+		// Com_Printf( "%s\n", src );
 
 		return 0;
 	}
@@ -1792,6 +1797,20 @@ bool NewShader( Shader * shader, Span< Span< const char > > srcs, Span< const ch
 	else {
 		glTransformFeedbackVaryings( shader->program, feedback_varyings.n, feedback_varyings.begin(), GL_INTERLEAVED_ATTRIBS );
 	}
+
+	return LinkShader( shader, shader->program );
+}
+
+bool NewComputeShader( Shader * shader, Span< Span< const char > > srcs ) {
+	*shader = { };
+
+	GLuint cs = CompileShader( GL_COMPUTE_SHADER, srcs );
+	if( cs == 0 )
+		return false;
+	defer { glDeleteShader( cs ); };
+
+	shader->program = glCreateProgram();
+	glAttachShader( shader->program, cs );
 
 	return LinkShader( shader, shader->program );
 }
@@ -2047,10 +2066,6 @@ void DrawInstancedParticles( const Mesh & mesh, GPUBuffer vb, BlendFunc blend_fu
 	num_vertices_this_frame += mesh.num_vertices * num_particles;
 }
 
-void DownloadFramebuffer( void * buf ) {
-	glReadPixels( 0, 0, frame_static.viewport_width, frame_static.viewport_height, GL_RGB, GL_UNSIGNED_BYTE, buf );
-}
-
 void DrawInstancedParticles( GPUBuffer vb, const Model * model, u32 num_particles ) {
 	assert( in_frame );
 
@@ -2090,4 +2105,15 @@ void DrawInstancedParticles( GPUBuffer vb, const Model * model, u32 num_particle
 
 		draw_calls.add( dc );
 	}
+}
+
+void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {
+	DrawCall dc = { };
+	dc.pipeline = pipeline;
+	dc.instance_type = InstanceType_ComputeShader;
+	draw_calls.add( dc );
+}
+
+void DownloadFramebuffer( void * buf ) {
+	glReadPixels( 0, 0, frame_static.viewport_width, frame_static.viewport_height, GL_RGB, GL_UNSIGNED_BYTE, buf );
 }

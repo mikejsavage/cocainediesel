@@ -100,6 +100,8 @@ enum InstanceType {
 	InstanceType_ModelShadows,
 	InstanceType_ModelOutlines,
 	InstanceType_ModelSilhouette,
+
+	InstanceType_ComputeShader,
 };
 
 struct GPUMaterial {

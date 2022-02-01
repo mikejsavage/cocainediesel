@@ -219,9 +219,12 @@ static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 }
 
 template< typename E >
-void DeltaEnum( DeltaBuffer * buf, E & x, const E & baseline ) {
+void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
 	using T = typename std::underlying_type< E >::type;
 	Delta( buf, ( T & ) x, ( const T & ) baseline );
+	if( x < 0 || x >= count ) {
+		buf->error = true;
+	}
 }
 
 static void DeltaHalf( DeltaBuffer * buf, float & x, const float & baseline ) {
@@ -517,7 +520,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 
 	Delta( buf, ent.teleported, baseline.teleported );
 
-	DeltaEnum( buf, ent.type, baseline.type );
+	DeltaEnum( buf, ent.type, baseline.type, EntityType_Count );
 	Delta( buf, ent.model, baseline.model );
 	Delta( buf, ent.material, baseline.material );
 	Delta( buf, ent.color, baseline.color );
@@ -530,7 +533,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.animation_time, baseline.animation_time );
 	Delta( buf, ent.counterNum, baseline.counterNum );
 	Delta( buf, ent.channel, baseline.channel );
-	DeltaEnum( buf, ent.weapon, baseline.weapon );
+	DeltaEnum( buf, ent.weapon, baseline.weapon, Weapon_Count );
 	Delta( buf, ent.radius, baseline.radius );
 	Delta( buf, ent.team, baseline.team );
 	Delta( buf, ent.scale, baseline.scale );
@@ -603,7 +606,7 @@ static void Delta( DeltaBuffer * buf, UserCommand & cmd, const UserCommand & bas
 	Delta( buf, cmd.buttons, baseline.buttons );
 	Delta( buf, cmd.down_edges, baseline.down_edges );
 	Delta( buf, cmd.entropy, baseline.entropy );
-	DeltaEnum( buf, cmd.weaponSwitch, baseline.weaponSwitch );
+	DeltaEnum( buf, cmd.weaponSwitch, baseline.weaponSwitch, Weapon_Count );
 }
 
 void MSG_WriteDeltaUsercmd( msg_t * msg, const UserCommand * baseline, const UserCommand * cmd ) {
@@ -650,7 +653,7 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 }
 
 static void Delta( DeltaBuffer * buf, WeaponSlot & weapon, const WeaponSlot & baseline ) {
-	DeltaEnum( buf, weapon.weapon, baseline.weapon );
+	DeltaEnum( buf, weapon.weapon, baseline.weapon, Weapon_Count );
 	Delta( buf, weapon.ammo, baseline.ammo );
 }
 
@@ -667,7 +670,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	DeltaHalf( buf, player.viewheight, baseline.viewheight );
 
 	Delta( buf, player.weapons, baseline.weapons );
-	DeltaEnum( buf, player.gadget, baseline.gadget );
+	DeltaEnum( buf, player.gadget, baseline.gadget, Gadget_Count );
 	Delta( buf, player.gadget_ammo, baseline.gadget_ammo );
 
 	Delta( buf, player.ready, baseline.ready );
@@ -680,14 +683,14 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	Delta( buf, player.max_health, baseline.max_health );
 	Delta( buf, player.flashed, baseline.flashed );
 
-	DeltaEnum( buf, player.weapon_state, baseline.weapon_state );
+	DeltaEnum( buf, player.weapon_state, baseline.weapon_state, WeaponState_Count );
 	Delta( buf, player.weapon_state_time, baseline.weapon_state_time );
 
-	DeltaEnum( buf, player.weapon, baseline.weapon );
-	DeltaEnum( buf, player.pending_weapon, baseline.pending_weapon );
+	DeltaEnum( buf, player.weapon, baseline.weapon, Weapon_Count );
+	DeltaEnum( buf, player.pending_weapon, baseline.pending_weapon, Weapon_Count );
 	Delta( buf, player.using_gadget, baseline.using_gadget );
 	Delta( buf, player.pending_gadget, baseline.pending_gadget );
-	DeltaEnum( buf, player.last_weapon, baseline.last_weapon );
+	DeltaEnum( buf, player.last_weapon, baseline.last_weapon, Weapon_Count );
 	Delta( buf, player.zoom_time, baseline.zoom_time );
 
 	Delta( buf, player.team, baseline.team );
@@ -756,7 +759,7 @@ static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGa
 
 static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState & baseline ) {
 	Delta( buf, state.flags, baseline.flags );
-	DeltaEnum( buf, state.match_state, baseline.match_state );
+	DeltaEnum( buf, state.match_state, baseline.match_state, MatchState_Count );
 	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
@@ -764,8 +767,8 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.callvote_yes_votes, baseline.callvote_yes_votes );
 
 	Delta( buf, state.round_num, baseline.round_num );
-	DeltaEnum( buf, state.round_state, baseline.round_state );
-	DeltaEnum( buf, state.round_type, baseline.round_type );
+	DeltaEnum( buf, state.round_state, baseline.round_state, RoundState_Count );
+	DeltaEnum( buf, state.round_type, baseline.round_type, RoundType_Count );
 
 	Delta( buf, state.teams, baseline.teams );
 	Delta( buf, state.players, baseline.players );

@@ -11,6 +11,8 @@ enum MatchState : u8 {
 	MatchState_Playing,
 	MatchState_PostMatch,
 	MatchState_WaitExit,
+
+	MatchState_Count
 };
 
 #define EVENT_ENTITIES_START    96 // entity types above this index will get event treatment
@@ -133,6 +135,8 @@ enum WeaponState : u8 {
 
 	WeaponState_Cooking,
 	WeaponState_Throwing,
+
+	WeaponState_Count
 };
 
 enum FiringMode {
@@ -147,6 +151,8 @@ enum RoundType : u8 {
 	RoundType_MatchPoint,
 	RoundType_Overtime,
 	RoundType_OvertimeMatchPoint,
+
+	RoundType_Count
 };
 
 enum RoundState : u8 {
@@ -155,6 +161,8 @@ enum RoundState : u8 {
 	RoundState_Round,
 	RoundState_Finished,
 	RoundState_Post,
+
+	RoundState_Count
 };
 
 enum BombDown {

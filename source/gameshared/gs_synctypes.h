@@ -320,8 +320,8 @@ struct pmove_state_t {
 
 	s16 knockback_time;
 	s16 tbag_time;
-	s16 stamina;
-	s16 stamina_max; 	//used for knowing what is stamina_max in hud
+	float stamina;
+	float stamina_max;  //used for knowing what is stamina_max in hud
 	s16 stamina_time;   //used to avoid dash ev spam and do some jump buffering
 
 	s16 max_speed;

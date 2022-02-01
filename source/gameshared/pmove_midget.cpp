@@ -11,10 +11,10 @@ static constexpr float pm_wallbouncefactor = 0.25f;
 
 static constexpr s16 pm_midgetjumpdetection = 50;
 
-static constexpr s16 stamina_max = 40;
-static constexpr s16 stamina_use = 1;
-static constexpr s16 stamina_recover = 5;
-static constexpr s16 stamina_jump_limit = stamina_max - 15; //avoids jump spamming
+static constexpr float stamina_max = 40.0f / 62.0f;
+static constexpr float stamina_use = 1.0f;
+static constexpr float stamina_recover = 5.0f;
+static constexpr float stamina_jump_limit = stamina_max - 15.0f / 62.0f; //avoids jump spamming
 
 
 
@@ -25,10 +25,10 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 			return;
 		}
 		
-		StaminaUse( ps, stamina_use );
+		StaminaUse( ps, pml, stamina_use );
 		ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
 	} else {
-		StaminaRecover( ps, stamina_recover );
+		StaminaRecover( ps, pml, stamina_recover );
 		ps->pmove.stamina_time = pm_midgetjumpdetection;
 		if( pm->groundentity == -1 ) {
 			return;
@@ -48,7 +48,7 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 
 		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
 		ps->pmove.stamina_time = 0;
-		PM_Jump( pm, pml, pmove_gs, ps, pm_jumpspeed * (float)(stamina_max - ps->pmove.stamina) / stamina_max );
+		PM_Jump( pm, pml, pmove_gs, ps, pm_jumpspeed * ( stamina_max - ps->pmove.stamina ) / stamina_max );
 	}
 }
 

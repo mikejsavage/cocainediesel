@@ -10,10 +10,10 @@ static constexpr float pm_wallclimbspeed = 200.0f;
 static constexpr float pm_dashspeed = 550.0f;
 static constexpr float pm_dashupspeed = ( 180.0f * GRAVITY_COMPENSATE );
 
-static constexpr s16 stamina_max = 300;
-static constexpr s16 stamina_use = 1;
+static constexpr float stamina_max = 300.0f / 62.0f;
+static constexpr float stamina_use = 1.0f;
 static constexpr float stamina_use_moving = 1.5f;
-static constexpr s16 stamina_recover = 10;
+static constexpr float stamina_recover = 10.0f;
 
 
 static bool CheckWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) {
@@ -47,7 +47,7 @@ static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 
 static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( pm->groundentity != -1 ) {
-		StaminaRecover( ps, stamina_recover );
+		StaminaRecover( ps, pml, stamina_recover );
 	}
 
 	if( ps->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
@@ -58,24 +58,24 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		return;
 	}
 
-	if( pressed && ( ps->pmove.features & PMFEAT_SPECIAL ) && CheckWall( pm, pml, pmove_gs ) && ps->pmove.stamina >= stamina_use ) {
+	if( pressed && ( ps->pmove.features & PMFEAT_SPECIAL ) && CheckWall( pm, pml, pmove_gs ) && StaminaAvailable( ps, pml, stamina_use ) ) {
 		pml->ladder = Ladder_Fake;
 
 		Vec3 wishvel = pml->forward * pml->forwardPush + pml->right * pml->sidePush;
 		wishvel.z = 0.0;
 
 		if( !Length( wishvel ) ) {
-			StaminaUse( ps, stamina_use );
+			StaminaUse( ps, pml, stamina_use );
 			return;
 		}
 
 		wishvel = Normalize( wishvel );
 
 		if( pml->forwardPush > 0 ) {
-			wishvel.z = Lerp( -1.0, Unlerp01( 15.0f, ps->viewangles[PITCH], -15.0f ), 1.0 );
+			wishvel.z = Lerp( -1.0, Unlerp01( 15.0f, ps->viewangles[ PITCH ], -15.0f ), 1.0 );
 		}
 
-		StaminaUse( ps, Length( wishvel ) * stamina_use_moving );
+		StaminaUse( ps, pml, Length( wishvel ) * stamina_use_moving );
 		pml->velocity = wishvel * pm_wallclimbspeed;
 	}
 }

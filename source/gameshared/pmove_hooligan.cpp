@@ -12,10 +12,10 @@ static constexpr s16 pm_dashtimedelay = 200;
 static constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
 static constexpr float pm_wjbouncefactor = 0.4f;
 
-static constexpr s16 stamina_max = 200;
-static constexpr s16 stamina_use = 110;
-static constexpr s16 stamina_recover_ground = 10;
-static constexpr s16 stamina_recover_air = 1;
+static constexpr float stamina_max = 200.0f / 62.0f;
+static constexpr float stamina_use = 110.0f / 62.0f;
+static constexpr float stamina_recover_ground = 10.0f;
+static constexpr float stamina_recover_air = 1.0f;
 
 
 static float pm_wjminspeed( pml_t * pml ) {
@@ -50,16 +50,16 @@ static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 
 static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( pm->groundentity != -1 ) {
-		StaminaRecover( ps, stamina_recover_ground );
+		StaminaRecover( ps, pml, stamina_recover_ground );
 	} else {
-		StaminaRecover( ps, stamina_recover_air );
+		StaminaRecover( ps, pml, stamina_recover_air );
 	}
 
 	if( ps->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
 		return;
 	}
 
-	if( pressed && ( ps->pmove.features & PMFEAT_SPECIAL ) && pm->groundentity == -1 && ps->pmove.stamina >= stamina_use ) {
+	if( pressed && ( ps->pmove.features & PMFEAT_SPECIAL ) && pm->groundentity == -1 && StaminaAvailableImmediate( ps, stamina_use ) ) {
 		trace_t trace;
 		Vec3 point = pml->origin;
 		point.z -= STEPSIZE;
@@ -100,7 +100,7 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 
 				ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
 
-				StaminaUse( ps, stamina_use );
+				StaminaUseImmediate( ps, stamina_use );
 
 				// Create the event
 				pmove_gs->api.PredictedEvent( ps->POVnum, EV_WALLJUMP, DirToU64( normal ) );

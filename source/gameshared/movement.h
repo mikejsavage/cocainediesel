@@ -52,13 +52,16 @@ void PM_ClearDash( SyncPlayerState * ps );
 float Normalize2D( Vec3 * v );
 void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal );
 
-void StaminaUse( SyncPlayerState * ps, s16 use );
-void StaminaRecover( SyncPlayerState * ps, s16 recover );
+bool StaminaAvailable( SyncPlayerState * ps, pml_t * pml, float need );
+bool StaminaAvailableImmediate( SyncPlayerState * ps, float need );
+void StaminaUse( SyncPlayerState * ps, pml_t * pml, float use );
+void StaminaUseImmediate( SyncPlayerState * ps, float use );
+void StaminaRecover( SyncPlayerState * ps, pml_t * pml, float recover );
 
 float JumpVelocity( pmove_t * pm, float vel );
 
 void PM_InitPerk( pmove_t * pm, pml_t * pml,
-				float speed, float sidespeed, s16 stamina_max,
+				float speed, float sidespeed, float stamina_max,
 				void (*jumpCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * ),
 				void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ) );
 

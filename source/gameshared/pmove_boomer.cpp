@@ -14,10 +14,10 @@ static constexpr float charge_friction = 0.75f;
 static constexpr float charge_speed = 900.0f;
 static constexpr float charge_sidespeed = 400.0f;
 
-static constexpr s16 stamina_max = 300;
-static constexpr s16 stamina_limit = stamina_max * 0.5f;
-static constexpr s16 stamina_use = 2;
-static constexpr s16 stamina_recover = 1;
+static constexpr float stamina_max = 300.0f / 62.0f;
+static constexpr float stamina_limit = stamina_max * 0.5f;
+static constexpr float stamina_use = 2.0f;
+static constexpr float stamina_recover = 1.0f;
 
 
 static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
@@ -55,8 +55,8 @@ static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 	}
 
 	if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && !pml->ladder ) {
-		if( ps->pmove.stamina >= stamina_use ) {
-			StaminaUse( ps, stamina_use );
+		if( StaminaAvailable( ps, pml, stamina_use ) ) {
+			StaminaUse( ps, pml, stamina_use );
 			pml->maxPlayerSpeed = charge_speed;
 			pml->maxCrouchedSpeed = charge_speed;
 			
@@ -67,7 +67,7 @@ static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 			pml->sidePush = pm->cmd.sidemove * charge_sidespeed;
 		}
 	} else {
-		StaminaRecover( ps, stamina_recover );
+		StaminaRecover( ps, pml, stamina_recover );
 
 		if( pressed && ps->pmove.stamina >= stamina_limit ) {
 			ps->pmove.pm_flags |= PMF_ABILITY2_HELD;

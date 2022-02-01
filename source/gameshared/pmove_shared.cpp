@@ -59,12 +59,24 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 	}
 }
 
-void StaminaUse( SyncPlayerState * ps, s16 use ) {
-	ps->pmove.stamina = Max2( ps->pmove.stamina - use, 0 );
+bool StaminaAvailable( SyncPlayerState * ps, pml_t * pml, float need ) {
+	return ps->pmove.stamina >= need * pml->frametime;
 }
 
-void StaminaRecover( SyncPlayerState * ps, s16 recover ) {
-	ps->pmove.stamina = Min2( s16( ps->pmove.stamina + recover ), ps->pmove.stamina_max );
+bool StaminaAvailableImmediate( SyncPlayerState * ps, float need ) {
+	return ps->pmove.stamina >= need;
+}
+
+void StaminaUse( SyncPlayerState * ps, pml_t * pml, float use ) {
+	ps->pmove.stamina = Max2( ps->pmove.stamina - use * pml->frametime, 0.0f );
+}
+
+void StaminaUseImmediate( SyncPlayerState * ps, float use ) {
+	ps->pmove.stamina = Max2( ps->pmove.stamina - use, 0.0f );
+}
+
+void StaminaRecover( SyncPlayerState * ps, pml_t * pml, float recover ) {
+	ps->pmove.stamina = Min2( ps->pmove.stamina + recover * pml->frametime, ps->pmove.stamina_max );
 }
 
 
@@ -74,7 +86,7 @@ float JumpVelocity( pmove_t * pm, float vel ) {
 
 
 void PM_InitPerk( pmove_t * pm, pml_t * pml,
-				float speed, float sidespeed, s16 stamina_max,
+				float speed, float sidespeed, float stamina_max,
 				void (*jumpCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * ),
 				void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ) )
 {

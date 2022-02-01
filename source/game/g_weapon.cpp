@@ -124,19 +124,15 @@ static void G_ProjectileDistancePrestep( edict_t * projectile, float distance ) 
 		return;
 	}
 
-	float speed = Length( projectile->velocity );
-	Vec3 dir = Normalize( projectile->velocity );
-
-	int mask = projectile->r.clipmask;
-
 #ifdef ARBULLETHACK
 	Vec3 arbullet_hack_start = projectile->s.origin;
 #endif
 
+	Vec3 dir = Normalize( projectile->velocity );
 	Vec3 dest = projectile->s.origin + dir * distance;
 
 	trace_t trace;
-	G_Trace4D( &trace, projectile->s.origin, projectile->r.mins, projectile->r.maxs, dest, projectile->r.owner, mask, projectile->timeDelta );
+	G_Trace4D( &trace, projectile->s.origin, projectile->r.mins, projectile->r.maxs, dest, projectile->r.owner, projectile->r.clipmask, projectile->timeDelta );
 
 	projectile->s.origin = trace.endpos;
 	projectile->olds.origin = trace.endpos;

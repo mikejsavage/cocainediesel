@@ -1,5 +1,8 @@
 gadgets/hatchet/handle
 {
+	shaded
+	specular 10
+	shininess 8
 	cull disable
 	{
 		map $whiteimage
@@ -10,6 +13,9 @@ gadgets/hatchet/handle
 
 gadgets/hatchet/head
 {
+	shaded
+	specular 10
+	shininess 8
 	cull disable
 	{
 		map $whiteimage

@@ -365,14 +365,6 @@ static void SV_Physics_Pusher( edict_t *ent ) {
 static void SV_Physics_Toss( edict_t *ent ) {
 	TracyZoneScoped;
 
-	trace_t trace;
-	Vec3 move;
-	float backoff;
-	bool wasinwater;
-	bool isinwater;
-	Vec3 old_origin;
-	float oldSpeed;
-
 	// refresh the ground entity
 	if( ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
 		if( ent->velocity.z > 0.1f ) {
@@ -384,7 +376,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		ent->groundentity = NULL;
 	}
 
-	oldSpeed = Length( ent->velocity );
+	float oldSpeed = Length( ent->velocity );
 
 	if( ent->groundentity ) {
 		if( !oldSpeed ) {
@@ -403,7 +395,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		}
 	}
 
-	old_origin = ent->s.origin;
+	Vec3 old_origin = ent->s.origin;
 
 	if( ent->accel != 0 ) {
 		if( ent->accel < 0 && Length( ent->velocity ) < 50 ) {
@@ -424,24 +416,22 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	}
 
 	// move origin
-	move = ent->velocity * FRAMETIME;
+	Vec3 move = ent->velocity * FRAMETIME;
 
 	if( !ent->r.inuse ) {
 		return;
 	}
 
-	trace = SV_PushEntity( ent, move );
-
+	trace_t trace = SV_PushEntity( ent, move );
 	if( trace.fraction < 1.0f ) {
-		if( ent->movetype == MOVETYPE_BOUNCE ) {
-			backoff = 1.5;
-		} else if( ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
-			backoff = 1.5;
-		} else {
-			backoff = 1;
+		float restitution = 0.0f;
+		if( ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
+			restitution = 0.5f;
 		}
 
-		ent->velocity = GS_ClipVelocity( ent->velocity, trace.plane.normal, backoff );
+		Vec3 impulse = -Dot( ent->velocity, trace.plane.normal ) * trace.plane.normal;
+		ent->velocity += ( 1.0f + restitution ) * impulse;
+
 		ent->num_bounces++;
 
 		// stop if on ground
@@ -491,9 +481,9 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	}
 
 	// check for water transition
-	wasinwater = ent->watertype & MASK_WATER;
+	bool wasinwater = ent->watertype & MASK_WATER;
 	ent->watertype = G_PointContents( ent->s.origin );
-	isinwater = ent->watertype & MASK_WATER;
+	bool isinwater = ent->watertype & MASK_WATER;
 
 	ent->waterlevel = isinwater;
 

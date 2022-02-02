@@ -20,11 +20,6 @@ static constexpr float stamina_recover_ground = 8.0f;
 static constexpr float stamina_recover_air = 1.0f;
 
 
-static float pm_wjminspeed( pml_t * pml ) {
-	return ( pml->maxCrouchedSpeed + pml->maxPlayerSpeed ) * 0.5f;
-}
-
-
 static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( !pressed ) {
 		return;
@@ -68,9 +63,7 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 		pml->velocity = GS_ClipVelocity( pml->velocity, normal, 1.0005f );
 		pml->velocity = pml->velocity + normal * pm_wjbouncefactor;
 
-		if( hspeed < pm_wjminspeed( pml ) ) {
-			hspeed = pm_wjminspeed( pml );
-		}
+		hspeed = Min2( hspeed, pml->maxPlayerSpeed );
 
 		pml->velocity = Normalize( pml->velocity );
 

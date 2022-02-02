@@ -39,15 +39,8 @@ constexpr float FOV = 107.9f; // chosen to upset everyone equally
 constexpr RGB8 TEAM_COLORS[] = {
 	RGB8( 40, 204, 255 ),
 	RGB8( 255, 24, 96 ),
-//	RGB8( 50, 200, 90 ),
-//	RGB8( 210, 170, 0 ),
-};
-
-constexpr RGB8 COLORBLIND_TEAM_COLORS[] = {
-	RGB8( 80, 204, 255 ),
 	RGB8( 255, 150, 40 ),
-//	RGB8( 50, 200, 90 ),
-//	RGB8( 210, 170, 0 ),
+	RGB8( 190, 0, 240 ),
 };
 
 enum {

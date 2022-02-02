@@ -44,7 +44,6 @@ constexpr int playerbox_gib_viewheight = 8;
 constexpr int PLAYER_MASS = 200;
 
 #define ZOOMTIME 60
-#define CROUCHTIME 100
 #define PROJECTILE_PRESTEP 100
 
 //==================================================================

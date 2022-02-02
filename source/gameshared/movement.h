@@ -25,7 +25,6 @@ struct pml_t {
 	float forwardPush, sidePush;
 
 	float maxPlayerSpeed;
-	float maxCrouchedSpeed;
 
 	float groundAccel;
 	float airAccel;

@@ -816,3 +816,39 @@ const GadgetDef * GetGadgetDef( GadgetType gadget ) {
 	assert( gadget < Gadget_Count );
 	return &gadget_defs[ gadget ];
 }
+
+
+const PerkDef perk_defs[] = {
+	{ },
+
+	{ 
+		/* name             */ "NINJA",
+		/* short name       */ "ninja",
+	},
+
+	{ 
+		/* name             */ "HOOLIGAN",
+		/* short name       */ "hooligan",
+	},
+
+	{
+		/* name             */ "MIDGET",
+		/* short name       */ "midget",
+	},
+
+	{
+		/* name             */ "JETPACK",
+		/* short name       */ "jetpack",
+	},
+
+	{ 
+		/* name             */ "BOOMER",
+		/* short name       */ "boomer"
+	}
+};
+
+
+const PerkDef * GetPerkDef( PerkType perk ) {
+	assert( perk < Perk_Count );
+	return &perk_defs[ perk ];
+}

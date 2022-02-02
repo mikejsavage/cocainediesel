@@ -48,11 +48,11 @@ void CG_RegisterMedia() {
 	}
 
 	for( GadgetType i = Gadget_None; i < Gadget_Count; i++ ) {
-		cgs.media.shaderGadgetIcon[ i ] = FindMaterial( temp( "gadgets/{}/icon", GetGadgetDef( GadgetType( i ) )->short_name ) );
+		cgs.media.shaderGadgetIcon[ i ] = FindMaterial( temp( "gadgets/{}/icon", GetGadgetDef( i )->short_name ) );
 	}
 
-	for( u8 i = 0; i < Perk_Count; i++ ) {
-		cgs.media.shaderPerkIcon[ i ] = FindMaterial( "perks/midget" );
+	for( PerkType i = Perk_None; i < Perk_Count; i++ ) {
+		cgs.media.shaderPerkIcon[ i ] = FindMaterial( temp( "perks/{}/icon", GetPerkDef( i )->short_name ) );
 	}
 
 	cgs.fontNormal = RegisterFont( "fonts/Decalotype-Bold" );

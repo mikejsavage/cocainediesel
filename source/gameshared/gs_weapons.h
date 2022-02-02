@@ -63,11 +63,17 @@ struct GadgetDef {
 	int min_speed;
 };
 
+struct PerkDef {
+	const char * name;
+	const char * short_name;
+};
+
 void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd, int timeDelta );
 void ClearInventory( SyncPlayerState * ps );
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
 const GadgetDef * GetGadgetDef( GadgetType gadget );
+const PerkDef * GetPerkDef( PerkType perk );
 
 WeaponSlot * GS_FindWeapon( SyncPlayerState * player, WeaponType weapon );
 const WeaponSlot * GS_FindWeapon( const SyncPlayerState * player, WeaponType weapon );

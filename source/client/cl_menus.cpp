@@ -930,17 +930,6 @@ static bool LoadoutButton( const char * text, Vec2 icon_size, const Material * i
 }
 
 static void Perks( Vec2 icon_size ) {
-	constexpr const char * classes[] = {
-		"",
-		"Ninja",
-		"Hooligan",
-		"Midget",
-		"Jetpack",
-		"Boomer"
-	};
-
-	STATIC_ASSERT( ARRAY_COUNT( classes ) == Perk_Count );
-
 	ImGui::TableNextRow();
 	ImGui::TableSetColumnIndex( 0 );
 	ImGui::Text( "CLASS" );
@@ -948,7 +937,7 @@ static void Perks( Vec2 icon_size ) {
 
 	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
 		const Material * icon = cgs.media.shaderPerkIcon[ i ];
-		if( LoadoutButton( classes[ i ], icon_size, icon, loadout.perk == i ) ) {
+		if( LoadoutButton( GetPerkDef( i )->name, icon_size, icon, loadout.perk == i ) ) {
 			loadout.perk = i;
 			SendLoadout();
 		}

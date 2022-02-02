@@ -15,7 +15,7 @@ if %HEALTH >= 0
 	setSize 200, 18
 	drawPicByName $whiteimage
 
-	setColorToTeamColor #TEAM_ALPHA
+	setColorToTeamColor #TEAM_ALLY
 	setSize %STAMINA_PERCENT * 2, 18
 	drawPicByName $whiteimage
 

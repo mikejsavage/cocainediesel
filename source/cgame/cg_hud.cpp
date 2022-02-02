@@ -85,6 +85,9 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "TEAM_PLAYERS", TEAM_PLAYERS },
 	{ "TEAM_ALPHA", TEAM_ALPHA },
 	{ "TEAM_BETA", TEAM_BETA },
+	{ "TEAM_ALLY", TEAM_ALLY },
+	{ "TEAM_ENEMY", TEAM_ENEMY },
+
 
 	{ "WIDTH", 800 },
 	{ "HEIGHT", 600 },

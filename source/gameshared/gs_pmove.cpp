@@ -663,15 +663,14 @@ static void PM_CheckSpecialMovement() {
 
 static void PM_FlyMove() {
 	// accelerate
-	float special = 1 + int( pm->cmd.buttons & BUTTON_ABILITY2 ) * 0.5;
-	float fmove = pml.forwardPush * special;
-	float smove = pml.sidePush * special;
-	float umove = int( pm->cmd.buttons & BUTTON_ABILITY1 ) * special;
+	float special = 1 + int( ( pm->cmd.buttons & BUTTON_ATTACK2 ) != 0 );
+	float fmove = pm->cmd.forwardmove * special;
+	float smove = pm->cmd.sidemove * special;
+	float umove = (int( (pm->cmd.buttons & BUTTON_ABILITY1) != 0 ) - int( (pm->cmd.buttons & BUTTON_ABILITY2) != 0 )) * special;
 
-	Vec3 wishvel = pml.forward * fmove + pml.right * smove;
-	wishvel.z += umove;
+	Vec3 wishdir = pml.forward * fmove + pml.right * smove;
+	wishdir.z += umove;
 
-	Vec3 wishdir = wishvel;
 	float wishspeed = Length( wishdir );
 	wishdir = SafeNormalize( wishdir );
 
@@ -777,7 +776,7 @@ static void PM_InitPerk() {
 	case Perk_Midget: PM_MidgetInit( pm, &pml ); break;
 	case Perk_Jetpack: PM_JetpackInit( pm, &pml ); break;
 	case Perk_Boomer: PM_BoomerInit( pm, &pml ); break;
-	default: PM_HooliganInit( pm, &pml ); break;
+	default: PM_NinjaInit( pm, &pml ); break;
 	}
 }
 

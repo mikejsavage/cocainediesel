@@ -639,7 +639,7 @@ int CG_DemoCam_FreeFly() {
 
 		fmove = cmd.forwardmove * SPEED;
 		smove = cmd.sidemove * SPEED;
-		upmove = int( cmd.buttons & BUTTON_ABILITY1 ) * SPEED;
+		upmove = int( (cmd.buttons & BUTTON_ABILITY1) != 0 ) * SPEED;
 		if( cmd.buttons & BUTTON_ABILITY2 ) {
 			maxspeed *= 2;
 		}

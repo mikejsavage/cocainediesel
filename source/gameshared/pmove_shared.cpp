@@ -105,11 +105,6 @@ void PM_InitPerk( pmove_t * pm, pml_t * pml,
 }
 
 
-void PM_ClearDash( SyncPlayerState * ps ) {
-	ps->pmove.pm_flags &= ~PMF_DASHING;
-}
-
-
 void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, JumpType j ) {
 	pm->groundentity = -1;
 
@@ -120,12 +115,10 @@ void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerSta
 
 	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, j );
 	pml->velocity.z = Max2( 0.0f, pml->velocity.z ) + JumpVelocity( pm, jumpspeed );
-	PM_ClearDash( ps );
 }
 
 
 void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed ) {
-	pm->playerState->pmove.pm_flags |= PMF_DASHING;
 	pm->groundentity = -1;
 
 	// clip against the ground when jumping if moving that direction

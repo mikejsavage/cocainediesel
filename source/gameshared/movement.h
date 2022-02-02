@@ -48,7 +48,6 @@ struct pml_t {
 
 
 //shared
-void PM_ClearDash( SyncPlayerState * ps );
 float Normalize2D( Vec3 * v );
 void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal );
 

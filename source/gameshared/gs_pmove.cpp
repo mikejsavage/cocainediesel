@@ -784,19 +784,11 @@ static void PM_InitPerk() {
 
 
 static void PM_Jump() {
-	if( !( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {
-		return;
-	}
-
 	pml.jumpCallback( pm, &pml, pmove_gs, pm->playerState );
 }
 
 
 static void PM_Special() {
-	if( !( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {
-		return;
-	}
-
 	pml.specialCallback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & BUTTON_ABILITY2 );
 }
 
@@ -878,8 +870,6 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 
 	if( ps->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
 		if( !GS_MatchPaused( pmove_gs ) ) {
-			PM_ClearDash( pm->playerState );
-
 			ps->pmove.knockback_time = 0;
 			ps->pmove.tbag_time = 0;
 			ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_TELEPORT );
@@ -928,7 +918,7 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 	} else {
 		// Kurim
 		// Keep this order !
-		if( ps->pmove.pm_type == PM_NORMAL ) {
+		if( ps->pmove.pm_type == PM_NORMAL && ( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {
 			PM_Jump();
 			PM_Special();
 		}

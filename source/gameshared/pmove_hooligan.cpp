@@ -16,7 +16,7 @@ static constexpr float pm_wjbouncefactor = 0.4f;
 static constexpr float stamina_max = 200.0f / 62.0f;
 static constexpr float stamina_usewj = 110.0f / 62.0f;
 static constexpr float stamina_usedash = 120.0f / 62.0f;
-static constexpr float stamina_recover_ground = 10.0f;
+static constexpr float stamina_recover_ground = 6.0f;
 static constexpr float stamina_recover_air = 1.0f;
 
 

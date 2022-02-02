@@ -919,8 +919,8 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 		// Kurim
 		// Keep this order !
 		if( ps->pmove.pm_type == PM_NORMAL && ( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {
-			PM_Jump();
 			PM_Special();
+			PM_Jump();
 		}
 
 		PM_Friction();

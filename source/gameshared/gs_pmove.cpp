@@ -768,8 +768,6 @@ static void PM_EndMove() {
 
 
 static void PM_InitPerk() {
-	pm->playerState->pmove.stamina_max = 0.0f; //dirty but safe
-
 	switch( pm->playerState->perk ) {
 	case Perk_Ninja: PM_NinjaInit( pm, &pml ); break;
 	case Perk_Hooligan: PM_HooliganInit( pm, &pml ); break;

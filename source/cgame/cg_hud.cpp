@@ -143,9 +143,7 @@ static int CG_HealthPercent( const void * parameter ) {
 }
 
 static int CG_StaminaPercent( const void * parameter ) {
-	if( cg.predictedPlayerState.pmove.stamina_max == 0 ) {
-		return 0;
-	} return cg.predictedPlayerState.pmove.stamina * 100 / cg.predictedPlayerState.pmove.stamina_max;
+	return cg.predictedPlayerState.pmove.stamina * 100;
 }
 
 static int CG_GetSpeedVertical( const void *parameter ) {

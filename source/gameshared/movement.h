@@ -59,7 +59,7 @@ void StaminaRecover( SyncPlayerState * ps, pml_t * pml, float recover );
 float JumpVelocity( pmove_t * pm, float vel );
 
 void PM_InitPerk( pmove_t * pm, pml_t * pml,
-				float speed, float sidespeed, float stamina_max,
+				float speed, float sidespeed,
 				void (*ability1Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool ),
 				void (*ability2Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool ) );
 

@@ -11,12 +11,11 @@ static constexpr float pm_maxjetpackupspeed = 600.0f;
 static constexpr float pm_boostspeed = 15.0f * 62.0f;
 static constexpr float pm_boostupspeed = 18.0f * 62.0f;
 
-static constexpr float fuel_max = 200.0f / 62.0f;
-static constexpr float fuel_use_jetpack = 4.0f;
-static constexpr float fuel_use_boost = 6.0f;
+static constexpr float fuel_use_jetpack = 1.25f;
+static constexpr float fuel_use_boost = 2.0f;
 
-static constexpr float refuel_ground = 4.0f;
-static constexpr float refuel_air = 1.0f;
+static constexpr float refuel_ground = 1.25f;
+static constexpr float refuel_air = 0.25f;
 
 
 
@@ -60,5 +59,5 @@ static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmo
 
 
 void PM_JetpackInit( pmove_t * pm, pml_t * pml ) {
-	PM_InitPerk( pm, pml, pm_defaultspeed, pm_sidewalkspeed, fuel_max, PM_JetpackJump, PM_JetpackSpecial );
+	PM_InitPerk( pm, pml, pm_defaultspeed, pm_sidewalkspeed, PM_JetpackJump, PM_JetpackSpecial );
 }

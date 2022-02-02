@@ -14,10 +14,9 @@ static constexpr float charge_friction = 0.75f;
 static constexpr float charge_speed = 900.0f;
 static constexpr float charge_sidespeed = 400.0f;
 
-static constexpr float stamina_max = 300.0f / 62.0f;
-static constexpr float stamina_limit = stamina_max * 0.5f;
-static constexpr float stamina_use = 2.0f;
-static constexpr float stamina_recover = 2.0f;
+static constexpr float stamina_limit = 0.5f;
+static constexpr float stamina_use = 0.5f;
+static constexpr float stamina_recover = 0.5f;
 
 
 static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
@@ -73,5 +72,5 @@ static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 
 void PM_BoomerInit( pmove_t * pm, pml_t * pml ) {
-	PM_InitPerk( pm, pml, pm_defaultspeed, pm_sidewalkspeed, stamina_max, PM_BoomerJump, PM_BoomerSpecial );
+	PM_InitPerk( pm, pml, pm_defaultspeed, pm_sidewalkspeed, PM_BoomerJump, PM_BoomerSpecial );
 }

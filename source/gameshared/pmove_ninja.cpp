@@ -10,10 +10,9 @@ static constexpr float pm_wallclimbspeed = 200.0f;
 static constexpr float pm_dashspeed = 550.0f;
 static constexpr float pm_dashupspeed = ( 180.0f * GRAVITY_COMPENSATE );
 
-static constexpr float stamina_max = 300.0f / 62.0f;
-static constexpr float stamina_use = 1.0f;
-static constexpr float stamina_use_moving = 1.5f;
-static constexpr float stamina_recover = 10.0f;
+static constexpr float stamina_use = 0.2f;
+static constexpr float stamina_use_moving = 0.3f;
+static constexpr float stamina_recover = 2.0f;
 
 
 static bool CheckWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) {
@@ -79,5 +78,5 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 
 
 void PM_NinjaInit( pmove_t * pm, pml_t * pml ) {
-	PM_InitPerk( pm, pml, pm_defaultspeed, pm_sidewalkspeed, stamina_max, PM_NinjaJump, PM_NinjaSpecial );
+	PM_InitPerk( pm, pml, pm_defaultspeed, pm_sidewalkspeed, PM_NinjaJump, PM_NinjaSpecial );
 }

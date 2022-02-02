@@ -76,7 +76,7 @@ void StaminaUseImmediate( SyncPlayerState * ps, float use ) {
 }
 
 void StaminaRecover( SyncPlayerState * ps, pml_t * pml, float recover ) {
-	ps->pmove.stamina = Min2( ps->pmove.stamina + recover * pml->frametime, ps->pmove.stamina_max );
+	ps->pmove.stamina = Min2( ps->pmove.stamina + recover * pml->frametime, 1.0f );
 }
 
 
@@ -86,7 +86,7 @@ float JumpVelocity( pmove_t * pm, float vel ) {
 
 
 void PM_InitPerk( pmove_t * pm, pml_t * pml,
-				float speed, float sidespeed, float stamina_max,
+				float speed, float sidespeed,
 				void (*ability1Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ),
 				void (*ability2Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ) )
 {
@@ -97,8 +97,6 @@ void PM_InitPerk( pmove_t * pm, pml_t * pml,
 
 	pml->forwardPush *= speed;
 	pml->sidePush *= sidespeed;
-
-	pm->playerState->pmove.stamina_max = stamina_max;
 
 	pml->ability1Callback = ability1Callback;
 	pml->ability2Callback = ability2Callback;

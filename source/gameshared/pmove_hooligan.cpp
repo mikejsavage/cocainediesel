@@ -13,11 +13,10 @@ static constexpr s16 pm_dashtimedelay = 200;
 static constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
 static constexpr float pm_wjbouncefactor = 0.4f;
 
-static constexpr float stamina_max = 200.0f / 62.0f;
-static constexpr float stamina_usewj = 110.0f / 62.0f;
-static constexpr float stamina_usedash = 120.0f / 62.0f;
-static constexpr float stamina_recover_ground = 8.0f;
-static constexpr float stamina_recover_air = 1.0f;
+static constexpr float stamina_usewj = 34.0f / 62.0f;
+static constexpr float stamina_usedash = 37.0f / 62.0f;
+static constexpr float stamina_recover_ground = 2.5f;
+static constexpr float stamina_recover_air = 0.3f;
 
 
 static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
@@ -124,5 +123,5 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 
 
 void PM_HooliganInit( pmove_t * pm, pml_t * pml ) {
-	PM_InitPerk( pm, pml, pm_defaultspeed, pm_sidewalkspeed, stamina_max, PM_HooliganJump, PM_HooliganSpecial );
+	PM_InitPerk( pm, pml, pm_defaultspeed, pm_sidewalkspeed, PM_HooliganJump, PM_HooliganSpecial );
 }

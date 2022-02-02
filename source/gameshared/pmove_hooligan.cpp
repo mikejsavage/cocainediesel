@@ -38,11 +38,11 @@ static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 	pml->velocity.z = oldupvelocity;
 
 	if( hspeed < pm_defaultspeed ) {
-		PM_Dash( pm, pml, pmove_gs, pml->forward * pml->forwardPush + pml->right * pml->sidePush, pm_dashspeed, pm_jumpupspeed );
+		Dash( pm, pml, pmove_gs, pml->forward * pml->forwardPush + pml->right * pml->sidePush, pm_dashspeed, pm_jumpupspeed );
 	} else if( pml->forwardPush > 0 && pml->sidePush == 0.0f ) { //sidePush is for people strafing
-		PM_Dash( pm, pml, pmove_gs, pml->forward * pml->forwardPush, pm_dashspeed, pm_jumpupspeed );
+		Dash( pm, pml, pmove_gs, pml->forward * pml->forwardPush, pm_dashspeed, pm_jumpupspeed );
 	} else {
-		PM_Jump( pm, pml, pmove_gs, ps, pm_jumpupspeed );
+		Jump( pm, pml, pmove_gs, ps, pm_jumpupspeed, JumpType_Normal );
 	}
 }
 
@@ -55,11 +55,15 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 		StaminaRecover( ps, pml, stamina_recover_air );
 	}
 
+	if( !pressed ) {
+		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
+	}
+
 	if( ps->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
 		return;
 	}
 
-	if( pressed && ( ps->pmove.features & PMFEAT_SPECIAL ) && pm->groundentity == -1 && StaminaAvailableImmediate( ps, stamina_use ) ) {
+	if( pressed && pm->groundentity == -1 && StaminaAvailableImmediate( ps, stamina_use ) ) {
 		trace_t trace;
 		Vec3 point = pml->origin;
 		point.z -= STEPSIZE;
@@ -69,9 +73,9 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 		float hspeed = Length( Vec3( pml->velocity.x, pml->velocity.y, 0 ) );
 		pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, ps->POVnum, pm->contentmask, 0 );
 
-		if( pml->upPush == 1
-			|| ( hspeed > pm_dashspeed && pml->velocity.z > 8 )
-			|| ( trace.fraction == 1 ) || ( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
+		if( ( hspeed > pm_dashspeed && pml->velocity.z > 8 ) || ( trace.fraction == 1 ) ||
+			( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) )
+		{
 			Vec3 normal( 0.0f );
 			PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal );
 			if( !Length( normal ) )

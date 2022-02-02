@@ -784,7 +784,7 @@ static void PM_InitPerk() {
 
 
 static void PM_Jump() {
-	if( !( pm->playerState->pmove.features & PMFEAT_JUMP ) ) {
+	if( !( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {
 		return;
 	}
 
@@ -793,8 +793,8 @@ static void PM_Jump() {
 
 
 static void PM_Special() {
-	if( !( pm->cmd.buttons & BUTTON_ABILITY2 ) ) {
-		pm->playerState->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
+	if( !( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {
+		return;
 	}
 
 	pml.specialCallback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & BUTTON_ABILITY2 );

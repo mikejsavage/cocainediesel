@@ -490,16 +490,17 @@ static void CG_Event_Jetpack( const SyncEntityState * ent, u64 parm, Vec4 team_c
 	}
 }
 
-static void CG_PlayJumpSound( const SyncEntityState * state, u8 perk ) {
-	if( perk == Perk_Midget ) {
-		CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump );
-	} else {
-		CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Jump );
+static void CG_PlayJumpSound( const SyncEntityState * state, JumpType j ) {
+	switch( j ) {
+	case JumpType_Normal:
+		return CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Jump );
+	case JumpType_MidgetCharge:
+		return CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump );
 	}
 }
 
 static void CG_Event_Jump( SyncEntityState * state, u64 parm ) {
-	CG_PlayJumpSound( state, parm );
+	CG_PlayJumpSound( state, JumpType( parm ) );
 
 	centity_t * cent = &cg_entities[ state->number ];
 	float xyspeedcheck = Length( Vec3( cent->animVelocity.x, cent->animVelocity.y, 0 ) );
@@ -700,7 +701,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_JUMP_PAD:
-			CG_PlayJumpSound( ent, 0 );
+			CG_PlayJumpSound( ent, JumpType_Normal );
 			CG_PModel_AddAnimation( ent->number, LEGS_JUMP_NEUTRAL, 0, 0, EVENT_CHANNEL );
 			break;
 

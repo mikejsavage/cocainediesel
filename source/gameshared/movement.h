@@ -65,8 +65,8 @@ void PM_InitPerk( pmove_t * pm, pml_t * pml,
 				void (*jumpCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * ),
 				void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ) );
 
-void PM_Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed );
-void PM_Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed );
+void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, JumpType j );
+void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed );
 
 //pmove_ files
 void PM_NinjaInit( pmove_t * pm, pml_t * pml );

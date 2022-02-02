@@ -40,7 +40,7 @@ static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 		pml->forwardPush = pm_dashspeed;
 	}
 
-	PM_Dash( pm, pml, pmove_gs, dashdir, pm_dashspeed, pm_dashupspeed );
+	Dash( pm, pml, pmove_gs, dashdir, pm_dashspeed, pm_dashupspeed );
 }
 
 
@@ -58,7 +58,7 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		return;
 	}
 
-	if( pressed && ( ps->pmove.features & PMFEAT_SPECIAL ) && CheckWall( pm, pml, pmove_gs ) && StaminaAvailable( ps, pml, stamina_use ) ) {
+	if( pressed && CheckWall( pm, pml, pmove_gs ) && StaminaAvailable( ps, pml, stamina_use ) ) {
 		pml->ladder = Ladder_Fake;
 
 		Vec3 wishvel = pml->forward * pml->forwardPush + pml->right * pml->sidePush;

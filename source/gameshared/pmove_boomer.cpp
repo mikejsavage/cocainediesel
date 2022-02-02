@@ -5,7 +5,7 @@
 static constexpr float pm_defaultspeed = 300.0f;
 static constexpr float pm_sidewalkspeed = 300.0f;
 
-static constexpr float jump_upspeed = 250.0f;
+static constexpr float jump_upspeed = 270.0f;
 static constexpr s16 jump_detection = 50;
 
 
@@ -43,7 +43,7 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		}
 
 		ps->pmove.stamina_time = 0;
-		PM_Jump( pm, pml, pmove_gs, ps, jump_upspeed );
+		Jump( pm, pml, pmove_gs, ps, jump_upspeed, JumpType_Normal );
 	}
 }
 

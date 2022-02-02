@@ -4,9 +4,10 @@
 static constexpr float pm_defaultspeed = 500.0f;
 static constexpr float pm_sidewalkspeed = 500.0f;
 
-static constexpr float pm_jumpspeed = 700.0f;
+static constexpr float pm_jumpspeed = 250.0f;
+static constexpr float pm_chargedjumpspeed = 700.0f;
 
-static constexpr float pm_minbounceupspeed = 100.0f;
+static constexpr float pm_minbounceupspeed = 150.0f;
 static constexpr float pm_wallbouncefactor = 0.25f;
 
 static constexpr s16 pm_midgetjumpdetection = 50;
@@ -14,47 +15,55 @@ static constexpr s16 pm_midgetjumpdetection = 50;
 static constexpr float stamina_max = 40.0f / 62.0f;
 static constexpr float stamina_use = 1.0f;
 static constexpr float stamina_recover = 5.0f;
-static constexpr float stamina_jump_limit = stamina_max - 15.0f / 62.0f; //avoids jump spamming
+static constexpr float stamina_jump_limit = stamina_max - ( 15.0f / 62.0f ); //avoids jump spamming
 
 
 
 
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( pml->upPush == 1 ) {
-		if( pml->ladder ) {
-			return;
-		}
-		
-		StaminaUse( ps, pml, stamina_use );
-		ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
-	} else {
-		StaminaRecover( ps, pml, stamina_recover );
-		ps->pmove.stamina_time = pm_midgetjumpdetection;
-		if( pm->groundentity == -1 ) {
-			return;
-		}
-
-		if( ps->pmove.stamina >= stamina_jump_limit ) {
-			return;
-		}
-
-		if( ps->pmove.stamina_time == 0 ) {
-			return;
-		}
-
-		if( !( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) ) { //avoids jumping on spawn
-			return;
-		}
-
-		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
-		ps->pmove.stamina_time = 0;
-		PM_Jump( pm, pml, pmove_gs, ps, pm_jumpspeed * ( stamina_max - ps->pmove.stamina ) / stamina_max );
+	if( pml->upPush != 1 ) {
+		return;
 	}
+
+	if( pml->ladder ) {
+		return;
+	}
+
+	if( pm->groundentity == -1 ) {
+		return;
+	}
+		
+	Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, JumpType_Normal );
 }
 
 
 //in this one we don't care about pressing special
 static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	if( pressed ) {
+		if( pml->ladder ) {
+			return;
+		}
+		
+		StaminaUse( ps, pml, stamina_use );
+		ps->pmove.stamina_time = 0;
+		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
+	} else if( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) {
+		ps->pmove.stamina_time = pm_midgetjumpdetection;
+		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
+	}
+	else {
+		StaminaRecover( ps, pml, stamina_recover );
+	}
+
+
+	if( pm->groundentity != -1 &&
+		ps->pmove.stamina < stamina_jump_limit &&
+		ps->pmove.stamina_time > 0 )
+	{
+		ps->pmove.stamina_time = 0;
+		Jump( pm, pml, pmove_gs, ps, pm_chargedjumpspeed * ( stamina_max - ps->pmove.stamina ) / stamina_max, JumpType_MidgetCharge );
+	}
+
 	if( pm->groundentity != -1 ) {
 		return;
 	}

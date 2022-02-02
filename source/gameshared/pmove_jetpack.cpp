@@ -33,7 +33,7 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 
 
 static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) && StaminaAvailable( ps, pml, fuel_use_boost ) ) {
+	if( pressed && StaminaAvailable( ps, pml, fuel_use_boost ) ) {
 		Vec3 dashdir = pml->forward;
 		pml->forwardPush = pm_boostspeed;
 

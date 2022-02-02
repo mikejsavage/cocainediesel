@@ -17,11 +17,15 @@ static constexpr float charge_sidespeed = 400.0f;
 static constexpr float stamina_max = 300.0f / 62.0f;
 static constexpr float stamina_limit = stamina_max * 0.5f;
 static constexpr float stamina_use = 2.0f;
-static constexpr float stamina_recover = 1.0f;
+static constexpr float stamina_recover = 2.0f;
 
 
 static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) {
+		return;
+	}
+
+	if( pm->groundentity == -1 ) {
 		return;
 	}
 
@@ -32,10 +36,6 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 
 		ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
 
-		if( pm->groundentity == -1 ) {
-			return;
-		}
-
 		if( ( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) && ps->pmove.stamina_time == 0 ) {
 			return;
 		}
@@ -43,6 +43,7 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		ps->pmove.stamina_time = 0;
 		Jump( pm, pml, pmove_gs, ps, jump_upspeed, JumpType_Normal );
 	} else {
+		StaminaRecover( ps, pml, stamina_recover );
 		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
 	}
 }
@@ -65,12 +66,8 @@ static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 			pml->forwardPush = charge_speed;
 			pml->sidePush = pm->cmd.sidemove * charge_sidespeed;
 		}
-	} else {
-		StaminaRecover( ps, pml, stamina_recover );
-
-		if( pressed && ps->pmove.stamina >= stamina_limit ) {
-			ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
-		}
+	} else if( pressed && ps->pmove.stamina >= stamina_limit ) {
+		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
 	}
 }
 

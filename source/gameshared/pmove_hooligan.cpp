@@ -21,11 +21,13 @@ static constexpr float stamina_recover_air = 1.0f;
 
 
 static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( !pressed ) {
+	if( pm->groundentity == -1 ) {
+		StaminaRecover( ps, pml, stamina_recover_air );
 		return;
 	}
 
-	if( pm->groundentity == -1 ) {
+	if( !pressed ) {
+		StaminaRecover( ps, pml, stamina_recover_ground );
 		return;
 	}
 
@@ -103,12 +105,6 @@ static void PM_HooliganDash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 
 
 static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( pm->groundentity != -1 ) {
-		StaminaRecover( ps, pml, stamina_recover_ground );
-	} else {
-		StaminaRecover( ps, pml, stamina_recover_air );
-	}
-
 	if( !pressed ) {
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}

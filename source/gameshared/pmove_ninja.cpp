@@ -25,11 +25,12 @@ static bool CheckWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) 
 
 
 static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( !pressed ) {
+	if( pm->groundentity == -1 ) {
 		return;
 	}
 
-	if( pm->groundentity == -1 ) {
+	if( !pressed ) {
+		StaminaRecover( ps, pml, stamina_recover );
 		return;
 	}
 
@@ -46,10 +47,6 @@ static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 
 
 static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( pm->groundentity != -1 ) {
-		StaminaRecover( ps, pml, stamina_recover );
-	}
-
 	if( ps->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
 		return;
 	}

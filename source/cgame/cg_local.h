@@ -472,7 +472,7 @@ void CG_MouseMove( int frameTime, Vec2 m );
 u8 CG_GetButtonBits();
 u8 CG_GetButtonDownEdges();
 Vec3 CG_GetDeltaViewAngles();
-Vec3 CG_GetMovement();
+Vec2 CG_GetMovement();
 
 /*
 * Returns angular movement vector (in euler angles) obtained from the input.

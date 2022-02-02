@@ -87,8 +87,8 @@ float JumpVelocity( pmove_t * pm, float vel ) {
 
 void PM_InitPerk( pmove_t * pm, pml_t * pml,
 				float speed, float sidespeed, float stamina_max,
-				void (*jumpCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * ),
-				void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ) )
+				void (*ability1Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ),
+				void (*ability2Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ) )
 {
 	pml->maxPlayerSpeed = pm->playerState->pmove.max_speed;
 	if( pml->maxPlayerSpeed < 0 ) {
@@ -100,8 +100,8 @@ void PM_InitPerk( pmove_t * pm, pml_t * pml,
 
 	pm->playerState->pmove.stamina_max = stamina_max;
 
-	pml->jumpCallback = jumpCallback;
-	pml->specialCallback = specialCallback;
+	pml->ability1Callback = ability1Callback;
+	pml->ability2Callback = ability2Callback;
 }
 
 

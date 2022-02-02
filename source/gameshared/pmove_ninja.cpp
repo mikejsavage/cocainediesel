@@ -24,8 +24,8 @@ static bool CheckWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) 
 }
 
 
-static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( pml->upPush < 1 ) {
+static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	if( !pressed ) {
 		return;
 	}
 

@@ -20,14 +20,12 @@ static constexpr float stamina_use = 2.0f;
 static constexpr float stamina_recover = 1.0f;
 
 
-static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
+static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) {
 		return;
 	}
 
-	if( pml->upPush < 1 ) {
-		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
-	} else {
+	if( pressed ) {
 		if( !( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) ) {
 			ps->pmove.stamina_time = jump_detection;
 		}
@@ -44,6 +42,8 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 
 		ps->pmove.stamina_time = 0;
 		Jump( pm, pml, pmove_gs, ps, jump_upspeed, JumpType_Normal );
+	} else {
+		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
 	}
 }
 

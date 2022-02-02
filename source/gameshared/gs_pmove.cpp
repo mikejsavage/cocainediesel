@@ -376,7 +376,7 @@ static void PM_Aircontrol( Vec3 wishdir, float wishspeed ) {
 
 static Vec3 PM_LadderMove( Vec3 wishvel ) {
 	if( pml.ladder == Ladder_On && Abs( pml.velocity.z ) <= pm_ladderspeed ) {
-		if( pml.upPush > 0 ) { //jump
+		if( pm->cmd.buttons & BUTTON_ABILITY1 ) { //jump
 			wishvel.z = pm_ladderspeed;
 		}
 		else if( pml.forwardPush > 0 ) {
@@ -666,7 +666,7 @@ static void PM_FlyMove() {
 	float special = 1 + int( pm->cmd.buttons & BUTTON_ABILITY2 ) * 0.5;
 	float fmove = pml.forwardPush * special;
 	float smove = pml.sidePush * special;
-	float umove = pml.upPush * special;
+	float umove = int( pm->cmd.buttons & BUTTON_ABILITY1 ) * special;
 
 	Vec3 wishvel = pml.forward * fmove + pml.right * smove;
 	wishvel.z += umove;
@@ -753,7 +753,6 @@ static void PM_BeginMove() {
 	pml.frametime = pm->cmd.msec * 0.001;
 	pml.forwardPush = pm->cmd.forwardmove;
 	pml.sidePush = pm->cmd.sidemove;
-	pml.upPush = pm->cmd.upmove;
 
 	pml.groundAccel = default_accelerate;
 	pml.airAccel = default_airaccelerate;
@@ -780,16 +779,6 @@ static void PM_InitPerk() {
 	case Perk_Boomer: PM_BoomerInit( pm, &pml ); break;
 	default: PM_HooliganInit( pm, &pml ); break;
 	}
-}
-
-
-static void PM_Jump() {
-	pml.jumpCallback( pm, &pml, pmove_gs, pm->playerState );
-}
-
-
-static void PM_Special() {
-	pml.specialCallback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & BUTTON_ABILITY2 );
 }
 
 
@@ -884,7 +873,6 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 		} else {
 			pml.forwardPush = 0;
 			pml.sidePush = 0;
-			pml.upPush = 0;
 		}
 
 		PM_EndMove();
@@ -919,8 +907,8 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 		// Kurim
 		// Keep this order !
 		if( ps->pmove.pm_type == PM_NORMAL && ( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {
-			PM_Special();
-			PM_Jump();
+			pml.ability2Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & BUTTON_ABILITY2 );
+			pml.ability1Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & BUTTON_ABILITY1 );
 		}
 
 		PM_Friction();

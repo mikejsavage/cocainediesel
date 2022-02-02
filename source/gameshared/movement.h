@@ -22,7 +22,7 @@ struct pml_t {
 	Vec3 previous_origin;
 	LadderMovement ladder;
 
-	float forwardPush, sidePush, upPush;
+	float forwardPush, sidePush;
 
 	float maxPlayerSpeed;
 	float maxCrouchedSpeed;
@@ -34,8 +34,8 @@ struct pml_t {
 
 	float friction;
 
-	void (*jumpCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * );
-	void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed );
+	void (*ability1Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool );
+	void (*ability2Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool );
 };
 
 #define PM_AIRCONTROL_BOUNCE_DELAY 200
@@ -61,8 +61,8 @@ float JumpVelocity( pmove_t * pm, float vel );
 
 void PM_InitPerk( pmove_t * pm, pml_t * pml,
 				float speed, float sidespeed, float stamina_max,
-				void (*jumpCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState * ),
-				void (*specialCallback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ) );
+				void (*ability1Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool ),
+				void (*ability2Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool ) );
 
 void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, JumpType j );
 void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed );

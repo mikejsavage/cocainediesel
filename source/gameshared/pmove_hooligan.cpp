@@ -16,7 +16,7 @@ static constexpr float pm_wjbouncefactor = 0.4f;
 static constexpr float stamina_max = 200.0f / 62.0f;
 static constexpr float stamina_usewj = 110.0f / 62.0f;
 static constexpr float stamina_usedash = 120.0f / 62.0f;
-static constexpr float stamina_recover_ground = 6.0f;
+static constexpr float stamina_recover_ground = 8.0f;
 static constexpr float stamina_recover_air = 1.0f;
 
 
@@ -25,8 +25,8 @@ static float pm_wjminspeed( pml_t * pml ) {
 }
 
 
-static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( pml->upPush != 1 ) {
+static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	if( !pressed ) {
 		return;
 	}
 
@@ -60,31 +60,29 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 		if( !Length( normal ) )
 			return;
 
-		if( !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
-			float oldupvelocity = pml->velocity.z;
-			pml->velocity.z = 0.0;
+		float oldupvelocity = pml->velocity.z;
+		pml->velocity.z = 0.0;
 
-			hspeed = Normalize2D( &pml->velocity );
+		hspeed = Normalize2D( &pml->velocity );
 
-			pml->velocity = GS_ClipVelocity( pml->velocity, normal, 1.0005f );
-			pml->velocity = pml->velocity + normal * pm_wjbouncefactor;
+		pml->velocity = GS_ClipVelocity( pml->velocity, normal, 1.0005f );
+		pml->velocity = pml->velocity + normal * pm_wjbouncefactor;
 
-			if( hspeed < pm_wjminspeed( pml ) ) {
-				hspeed = pm_wjminspeed( pml );
-			}
-
-			pml->velocity = Normalize( pml->velocity );
-
-			pml->velocity *= hspeed;
-			pml->velocity.z = ( oldupvelocity > pm_wjupspeed ) ? oldupvelocity : pm_wjupspeed; // jal: if we had a faster upwards speed, keep it
-
-			ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
-
-			StaminaUseImmediate( ps, stamina_usewj );
-
-			// Create the event
-			pmove_gs->api.PredictedEvent( ps->POVnum, EV_WALLJUMP, DirToU64( normal ) );
+		if( hspeed < pm_wjminspeed( pml ) ) {
+			hspeed = pm_wjminspeed( pml );
 		}
+
+		pml->velocity = Normalize( pml->velocity );
+
+		pml->velocity *= hspeed;
+		pml->velocity.z = ( oldupvelocity > pm_wjupspeed ) ? oldupvelocity : pm_wjupspeed; // jal: if we had a faster upwards speed, keep it
+
+		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
+
+		StaminaUseImmediate( ps, stamina_usewj );
+
+		// Create the event
+		pmove_gs->api.PredictedEvent( ps->POVnum, EV_WALLJUMP, DirToU64( normal ) );
 	}
 }
 
@@ -126,7 +124,7 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 		return;
 	}
 
-	if( pressed ) {
+	if( pressed && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
 		if( pm->groundentity == -1 ) {
 			PM_HooliganWalljump( pm, pml, pmove_gs, ps );
 		} else {

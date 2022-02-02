@@ -386,6 +386,6 @@ struct UserCommand {
 	u16 entropy;
 	s64 serverTimeStamp;
 	s16 angles[ 3 ];
-	s8 forwardmove, sidemove, upmove;
+	s8 forwardmove, sidemove;
 	WeaponType weaponSwitch;
 };

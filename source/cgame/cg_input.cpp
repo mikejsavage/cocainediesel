@@ -139,6 +139,10 @@ u8 CG_GetButtonBits() {
 		buttons |= BUTTON_GADGET;
 	}
 
+	if( button_ability1.down ) {
+		buttons |= BUTTON_ABILITY1;
+	}
+
 	if( button_ability2.down ) {
 		buttons |= BUTTON_ABILITY2;
 	}
@@ -169,6 +173,10 @@ u8 CG_GetButtonDownEdges() {
 		edges |= BUTTON_GADGET;
 	}
 
+	if( button_ability1.down && button_ability1.edge ) {
+		edges |= BUTTON_ABILITY1;
+	}
+
 	if( button_ability2.down && button_ability2.edge ) {
 		edges |= BUTTON_ABILITY2;
 	}
@@ -185,6 +193,7 @@ u8 CG_GetButtonDownEdges() {
 	button_attack1.edge = false;
 	button_attack2.edge = false;
 	button_gadget.edge = false;
+	button_ability1.edge = false;
 	button_ability2.edge = false;
 	button_reload.edge = false;
 	button_plant.edge = false;
@@ -192,11 +201,10 @@ u8 CG_GetButtonDownEdges() {
 	return edges;
 }
 
-Vec3 CG_GetMovement() {
-	return Vec3(
+Vec2 CG_GetMovement() {
+	return Vec2(
 		( button_right.down ? 1.0f : 0.0f ) - ( button_left.down ? 1.0f : 0.0f ),
-		( button_forward.down ? 1.0f : 0.0f ) - ( button_back.down ? 1.0f : 0.0f ),
-		( button_ability1.down ? 1.0f : 0.0f )
+		( button_forward.down ? 1.0f : 0.0f ) - ( button_back.down ? 1.0f : 0.0f )
 	);
 }
 

@@ -20,8 +20,8 @@ static constexpr float refuel_air = 1.0f;
 
 
 
-static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( pml->upPush == 1 && StaminaAvailable( ps, pml, fuel_use_jetpack ) && !pml->ladder ) {
+static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	if( pressed && StaminaAvailable( ps, pml, fuel_use_jetpack ) && !pml->ladder ) {
 		pm->groundentity = -1;
 		StaminaUse( ps, pml, fuel_use_jetpack );
 		pml->velocity.z = Min2( pml->velocity.z + pm_jetpackspeed * pml->frametime, pm_maxjetpackupspeed );

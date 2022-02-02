@@ -20,8 +20,8 @@ static constexpr float stamina_jump_limit = stamina_max - ( 15.0f / 62.0f ); //a
 
 
 
-static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( pml->upPush != 1 ) {
+static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	if( !pressed ) {
 		return;
 	}
 

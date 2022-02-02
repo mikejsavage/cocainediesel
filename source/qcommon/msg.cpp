@@ -602,7 +602,6 @@ static void Delta( DeltaBuffer * buf, UserCommand & cmd, const UserCommand & bas
 	Delta( buf, cmd.angles, baseline.angles );
 	Delta( buf, cmd.forwardmove, baseline.forwardmove );
 	Delta( buf, cmd.sidemove, baseline.sidemove );
-	Delta( buf, cmd.upmove, baseline.upmove );
 	Delta( buf, cmd.buttons, baseline.buttons );
 	Delta( buf, cmd.down_edges, baseline.down_edges );
 	Delta( buf, cmd.entropy, baseline.entropy );

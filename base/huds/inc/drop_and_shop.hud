@@ -1,4 +1,4 @@
-setCursor 16, #HEIGHT - 88
+setCursor 14, #HEIGHT - 114
 setAlignment left middle
 setSize 200, 18
 setFontSize %VIDHEIGHT / 30

@@ -1,31 +1,42 @@
 if %HEALTH >= 0
-	setAlignment left middle
-	setCursor 16, #HEIGHT - 70
-	setFontSize %VIDHEIGHT / 24
+	setAlignment left bottom
+	setCursor 12, #HEIGHT - 14
+	setFontSize %VIDHEIGHT / 20
 
-	// fill stamina bar
-	setAlignment left middle
-	setColor 0.0, 0.1, 0.5, 1
-	setSize %STAMINA_PERCENT * 2, 8
+	setColor 0.02, 0.02, 0.02, 1
+	setSize 204.5, 83
 	drawPicByName $whiteimage
 
+	// fill stamina bar
+	setAlignment left top
+	moveCursor 2.5, -79
+
+	setColor 0.06, 0.06, 0.06, 1
+	setSize 200, 18
+	drawPicByName $whiteimage
+
+	setColorToTeamColor #TEAM_ALPHA
+	setSize %STAMINA_PERCENT * 2, 18
+	drawPicByName $whiteimage
+
+
 	// fill coloured health bar
-	moveCursor 0, 21
-	setAlignment left middle
+	moveCursor 0, 21.5
+	setAlignment left top
+	
+	setColor 0.06, 0.06, 0.06, 1
+	setSize 200, 30
+	drawPicByName $whiteimage
+
 	setColor 1.0, %HEALTH_PERCENT / 115, %HEALTH_PERCENT / 1600, 1
 	if %HEALTH_PERCENT > 75
 		setColorsRGB 0.5 - 0.03 * %HEALTH_PERCENT - 70, 1.0, 0.4, 1
 	endif
-	setSize %HEALTH_PERCENT * 2, 36
-	drawPicByName $whiteimage
-
-	// accent
-	setColor 0.02, 0.02, 0.02, 1.0
-	setSize 200, 24
-	moveCursor 0, 18
+	setSize %HEALTH_PERCENT * 2, 30
 	drawPicByName $whiteimage
 
 	// draw cross
+	moveCursor 0, 43
 	setColor 1.0, %HEALTH_PERCENT / 115, %HEALTH_PERCENT / 1600, 1
 	if %HEALTH_PERCENT > 75
 		setColorsRGB 0.5 - 0.03 * %HEALTH_PERCENT - 70, 1.0, 0.4, 1

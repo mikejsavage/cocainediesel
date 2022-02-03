@@ -31,21 +31,33 @@ if %HEALTH >= 0
 		drawPicByName $whiteimage
 
 		setColorAlpha 1
-		if %STAMINA >= 50
+		if %STAMINA >= 100 * 0.33
+			setSize 200 * 0.33, 18
+			if %STAMINA > 100 * 0.33 * 2 setSize 200 * 0.33 * 2, 18 endif
 			if %STAMINA == 100 setSize 200, 18 endif
-			if %STAMINA < 100 setSize 100, 18 endif
 
 			drawPicByName $whiteimage
 		endif
 
-		moveCursor 99, 0
 		setColor 0.02, 0.02, 0.02, 1
 		setSize 2, 18
+		moveCursor 200 * 0.33, 0
 		drawPicByName $whiteimage
-		moveCursor -99, 0
+		moveCursor 200 * 0.33, 0
+		drawPicByName $whiteimage
+		moveCursor -200 * 0.33 * 2, 0
 	endif
 
 	if %PERK == #PERK_MIDGET
+		if %STAMINA == 0 if %STAMINA_STATE == #STAMINA_USING
+			setCustomAttentionGettingColor 0, 0, 1, 1, 1
+			setColorAlpha 0.1
+			setSize 200, 18
+			drawPicByName $whiteimage
+		endif endif
+
+
+
 		setSize %STAMINA * 2, 18
 		if %STAMINA < 50
 			setColorAlpha %STAMINA * 0.02
@@ -57,7 +69,7 @@ if %HEALTH >= 0
 		setColor 1, 0, 0, 0.2 - %STAMINA * 0.005
 
 		if %STAMINA_STATE == #STAMINA_RELOADING
-			setColorAlpha 0.2
+			setColorAlpha 0.2 - %STAMINA * 0.004
 		endif
 
 		setSize 200, 18

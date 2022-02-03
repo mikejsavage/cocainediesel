@@ -15,13 +15,16 @@ static constexpr float fuel_use_jetpack = 0.125f;
 static constexpr float fuel_use_boost = 0.5f;
 static constexpr float fuel_min = 0.01f;
 
+static constexpr float refuel_min = 0.5f; //50%
 static constexpr float refuel_ground = 0.5f;
 static constexpr float refuel_air = 0.0f;
 
 
 static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( pressed && StaminaAvailable( ps, pml, fuel_use_jetpack ) && !pml->ladder && ps->pmove.stamina_state != Stamina_Reloading ) {
-		pm->groundentity = -1;
+		if( pm->groundentity != -1 ) {
+			Jump( pm, pml, pmove_gs, ps, pm_maxjetpackupspeed, JumpType_Normal );
+		}
 
 		ps->pmove.stamina_state = Stamina_UsingAbility;
 		StaminaUse( ps, pml, fuel_use_jetpack );
@@ -44,7 +47,7 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 
 	if( ps->pmove.stamina_state == Stamina_Normal || ps->pmove.stamina_state == Stamina_Reloading ) {
 		StaminaRecover( ps, pml, refuel_ground );
-		if( ps->pmove.stamina == 1.0f ) {
+		if( ps->pmove.stamina >= refuel_min ) {
 			ps->pmove.stamina_state = Stamina_Normal;
 		}
 	} else if( ps->pmove.stamina_state != Stamina_Reloading && ps->pmove.stamina_state != Stamina_UsedAbility ) {

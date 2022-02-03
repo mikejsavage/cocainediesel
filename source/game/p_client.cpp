@@ -300,6 +300,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->max_health = 100;
 	self->health = self->max_health;
 
+
 	if( self->s.svflags & SVF_FAKECLIENT ) {
 		self->classname = "fakeclient";
 	} else {
@@ -955,28 +956,21 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 
 
 void G_GivePerk( edict_t * ent, PerkType perk ) {
+	const PerkDef * def = GetPerkDef( perk );
+
 	ent->r.client->ps.perk = perk;
 	ent->r.client->ps.pmove.stamina = 1.0f; //max stamina
 	ent->r.client->ps.pmove.stamina_stored = 0.0f;
 	ent->r.client->ps.pmove.stamina_state = Stamina_Normal;
 
 	float old_max_health = ent->max_health;
+	ent->s.scale = def->scale;
+	ent->max_health = def->health;
 
-	switch( perk ) {
-	case Perk_Midget:
-		ent->s.scale = Vec3( 0.8f, 0.8f, 0.625f );
-		ent->max_health = 62.5f;
-		break;
-	case Perk_Boomer:
-		ent->s.scale = Vec3( 1.5f, 1.5f, 1.0f );
-		ent->max_health = 150.0f;
-		break;
-	default:
-		ent->s.scale = Vec3( 1.0f );
-		ent->max_health = 100.0f;
-		break;
+	if( old_max_health == 0.0f ) {
+		ent->health = ent->max_health;
+	} else {
+		ent->health = ent->health * ent->max_health / old_max_health;
+		ent->mass = PLAYER_MASS * Length( ent->s.scale );
 	}
-
-	ent->health = ent->health * ent->max_health / old_max_health;
-	ent->mass = PLAYER_MASS * Length( ent->s.scale );
 }

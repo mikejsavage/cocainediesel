@@ -1179,6 +1179,16 @@ static bool CG_LFuncAttentionGettingColor( cg_layoutnode_t * argumentnode ) {
 	return true;
 }
 
+static bool CG_LFuncCustomAttentionGettingColor( cg_layoutnode_t * argumentnode ) {
+	Vec4 to;
+
+	for( int i = 0; i < 4; i++ ) {
+		to[ i ] = CG_GetNumericArg( &argumentnode );
+	}
+	layout_cursor_color = CustomAttentionGettingColor( vec4_dark, to, CG_GetNumericArg( &argumentnode ) );
+	return true;
+}
+
 static bool CG_LFuncPlantableColor( cg_layoutnode_t * argumentnode ) {
 	layout_cursor_color = PlantableColor();
 	return true;
@@ -1486,6 +1496,12 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 		"setAttentionGettingColor",
 		CG_LFuncAttentionGettingColor,
 		0,
+	},
+
+	{
+		"setCustomAttentionGettingColor",
+		CG_LFuncCustomAttentionGettingColor,
+		5,
 	},
 
 	{

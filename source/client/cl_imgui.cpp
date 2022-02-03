@@ -289,12 +289,15 @@ void WindowCenterTextXY( const char * str ) {
 	ImGui::Text( "%s", str );
 }
 
+Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, float div ) {
+	float t = sinf( cls.monotonicTime / div ) * 0.5f + 1.0f;
+	return Lerp( from, t, to );
+}
+
 Vec4 AttentionGettingColor() {
-	float t = sinf( cls.monotonicTime / 20.0f ) * 0.5f + 1.0f;
-	return Lerp( vec4_red, t, sRGBToLinear( rgba8_diesel_yellow ) );
+	return CustomAttentionGettingColor( vec4_red, sRGBToLinear( rgba8_diesel_yellow ), 20.0f );
 }
 
 Vec4 PlantableColor() {
-	float t = sinf( cls.monotonicTime / 20.0f ) * 0.5f + 1.0f;
-	return Lerp( vec4_dark, t, sRGBToLinear( rgba8_diesel_green ) );
+	return CustomAttentionGettingColor( vec4_dark, sRGBToLinear( rgba8_diesel_green ), 20.0f );
 }

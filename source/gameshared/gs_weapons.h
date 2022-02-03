@@ -66,6 +66,8 @@ struct GadgetDef {
 struct PerkDef {
 	const char * name;
 	const char * short_name;
+	float health;
+	Vec3 scale;
 };
 
 void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd, int timeDelta );

@@ -824,26 +824,36 @@ const PerkDef perk_defs[] = {
 	{ 
 		/* name             */ "NINJA",
 		/* short name       */ "ninja",
+		/* health           */ 100,
+		/* scale            */ Vec3( 1 ),
 	},
 
 	{ 
 		/* name             */ "HOOLIGAN",
 		/* short name       */ "hooligan",
+		/* health           */ 100,
+		/* scale            */ Vec3( 1 ),
 	},
 
 	{
 		/* name             */ "MIDGET",
 		/* short name       */ "midget",
+		/* health           */ 65,
+		/* scale            */ Vec3( 0.8f, 0.8f, 0.625f ),
 	},
 
 	{
 		/* name             */ "JETPACK",
 		/* short name       */ "jetpack",
+		/* health           */ 80,
+		/* scale            */ Vec3( 1 ),
 	},
 
 	{ 
 		/* name             */ "BOOMER",
-		/* short name       */ "boomer"
+		/* short name       */ "boomer",
+		/* health           */ 150,
+		/* scale            */ Vec3( 1.5f, 1.5f, 1.0f ),
 	}
 };
 

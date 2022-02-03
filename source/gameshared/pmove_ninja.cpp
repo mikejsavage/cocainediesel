@@ -12,10 +12,17 @@ static constexpr float pm_dashupspeed = ( 180.0f * GRAVITY_COMPENSATE );
 
 static constexpr float stamina_use = 0.2f;
 static constexpr float stamina_use_moving = 0.3f;
-static constexpr float stamina_recover = 2.0f;
+static constexpr float stamina_recover = 1.0f;
+
+static constexpr float STATE_CLIMBED = -1.0f;
+static constexpr float STATE_NORMAL = 0.0f;
 
 
-static bool CheckWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) {
+static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
+	if( !StaminaAvailable( ps, pml, stamina_use ) ) {
+		return false;
+	}
+
 	Vec3 spot = pml->origin + pml->forward;
 	trace_t trace;
 	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
@@ -24,12 +31,17 @@ static bool CheckWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs ) 
 
 
 static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	if( ps->pmove.stamina_state == STATE_NORMAL && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
+		StaminaRecover( ps, pml, stamina_recover );
+	}
+
 	if( pm->groundentity == -1 ) {
 		return;
 	}
 
+	ps->pmove.stamina_state = STATE_NORMAL;
+
 	if( !pressed ) {
-		StaminaRecover( ps, pml, stamina_recover );
 		return;
 	}
 
@@ -54,7 +66,7 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		return;
 	}
 
-	if( pressed && CheckWall( pm, pml, pmove_gs ) && StaminaAvailable( ps, pml, stamina_use ) ) {
+	if( pressed && CanClimb( pm, pml, pmove_gs, ps ) ) {
 		pml->ladder = Ladder_Fake;
 
 		Vec3 wishvel = pml->forward * pml->forwardPush + pml->right * pml->sidePush;
@@ -71,8 +83,13 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 			wishvel.z = Lerp( -1.0, Unlerp01( 15.0f, ps->viewangles[ PITCH ], -15.0f ), 1.0 );
 		}
 
+		ps->pmove.stamina_state = STATE_CLIMBED;
+		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
+
 		StaminaUse( ps, pml, Length( wishvel ) * stamina_use_moving );
 		pml->velocity = wishvel * pm_wallclimbspeed;
+	} else {
+		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
 }
 

@@ -16,13 +16,15 @@ static constexpr float charge_sidespeed = 400.0f;
 
 static constexpr float stamina_limit = 0.5f;
 static constexpr float stamina_use = 0.5f;
-static constexpr float stamina_recover = 0.5f;
+static constexpr float stamina_recover = 0.25f;
 
 
 static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) {
 		return;
 	}
+
+	StaminaRecover( ps, pml, stamina_recover );
 
 	if( pm->groundentity == -1 ) {
 		return;
@@ -42,7 +44,6 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		ps->pmove.stamina_time = 0;
 		Jump( pm, pml, pmove_gs, ps, jump_upspeed, JumpType_Normal );
 	} else {
-		StaminaRecover( ps, pml, stamina_recover );
 		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
 	}
 }

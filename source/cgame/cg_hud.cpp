@@ -88,6 +88,18 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "TEAM_ALLY", TEAM_ALLY },
 	{ "TEAM_ENEMY", TEAM_ENEMY },
 
+	{ "PERK_NINJA", Perk_Ninja },
+	{ "PERK_HOOLIGAN", Perk_Hooligan },
+	{ "PERK_MIDGET", Perk_Midget },
+	{ "PERK_JETPACK", Perk_Jetpack },
+	{ "PERK_BOOMER", Perk_Boomer },
+
+	{ "STAMINA_NORMAL", Stamina_Normal },
+	{ "STAMINA_RELOADING", Stamina_Reloading },
+	{ "STAMINA_USING", Stamina_UsingAbility },
+	{ "STAMINA_USED", Stamina_UsedAbility },
+
+
 
 	{ "WIDTH", 800 },
 	{ "HEIGHT", 600 },
@@ -144,6 +156,10 @@ static int CG_HealthPercent( const void * parameter ) {
 
 static int CG_StaminaPercent( const void * parameter ) {
 	return cg.predictedPlayerState.pmove.stamina * 100;
+}
+
+static int CG_StaminaStoredPercent( const void * parameter ) {
+	return cg.predictedPlayerState.pmove.stamina_stored * 100;
 }
 
 static int CG_GetSpeedVertical( const void *parameter ) {
@@ -213,9 +229,11 @@ static const reference_numeric_t cg_numeric_references[] = {
 	// stats
 	{ "HEALTH", CG_S16, &cg.predictedPlayerState.health },
 	{ "HEALTH_PERCENT", CG_HealthPercent, NULL },
-	{ "STAMINA", CG_S16, &cg.predictedPlayerState.pmove.stamina },
-	{ "STAMINA_PERCENT", CG_StaminaPercent, NULL },
+	{ "STAMINA", CG_StaminaPercent, NULL },
+	{ "STAMINA_Stored", CG_StaminaStoredPercent, NULL },
+	{ "STAMINA_STATE", CG_U8, &cg.predictedPlayerState.pmove.stamina_state },
 	{ "WEAPON_ITEM", CG_U8, &cg.predictedPlayerState.weapon },
+	{ "PERK", CG_U8, &cg.predictedPlayerState.perk },
 
 	{ "READY", CG_Bool, &cg.predictedPlayerState.ready },
 

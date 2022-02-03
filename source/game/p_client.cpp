@@ -957,7 +957,8 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 void G_GivePerk( edict_t * ent, PerkType perk ) {
 	ent->r.client->ps.perk = perk;
 	ent->r.client->ps.pmove.stamina = 1.0f; //max stamina
-	ent->r.client->ps.pmove.stamina_state = 0.0f; //no stamina state
+	ent->r.client->ps.pmove.stamina_stored = 0.0f;
+	ent->r.client->ps.pmove.stamina_state = Stamina_Normal;
 
 	float old_max_health = ent->max_health;
 

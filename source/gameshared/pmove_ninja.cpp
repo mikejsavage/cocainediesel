@@ -14,9 +14,6 @@ static constexpr float stamina_use = 0.2f;
 static constexpr float stamina_use_moving = 0.3f;
 static constexpr float stamina_recover = 1.0f;
 
-static constexpr float STATE_CLIMBED = -1.0f;
-static constexpr float STATE_NORMAL = 0.0f;
-
 
 static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	if( !StaminaAvailable( ps, pml, stamina_use ) ) {
@@ -31,7 +28,7 @@ static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Sy
 
 
 static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( ps->pmove.stamina_state == STATE_NORMAL && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
+	if( ps->pmove.stamina_state == Stamina_Normal && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
 		StaminaRecover( ps, pml, stamina_recover );
 	}
 
@@ -39,7 +36,7 @@ static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 		return;
 	}
 
-	ps->pmove.stamina_state = STATE_NORMAL;
+	ps->pmove.stamina_state = Stamina_Normal;
 
 	if( !pressed ) {
 		return;
@@ -83,7 +80,7 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 			wishvel.z = Lerp( -1.0, Unlerp01( 15.0f, ps->viewangles[ PITCH ], -15.0f ), 1.0 );
 		}
 
-		ps->pmove.stamina_state = STATE_CLIMBED;
+		ps->pmove.stamina_state = Stamina_UsingAbility;
 		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
 
 		StaminaUse( ps, pml, Length( wishvel ) * stamina_use_moving );

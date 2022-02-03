@@ -1,6 +1,6 @@
 #include "gameshared/movement.h"
 
-static constexpr s16 pm_dashtimedelay = 200;
+static constexpr float pm_dashtimedelay = 0.2f;
 
 
 float Normalize2D( Vec3 * v ) {
@@ -142,13 +142,14 @@ void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir,
 
 	pml->velocity = dashdir;
 	pml->velocity.z = upspeed;
+	pm->playerState->pmove.stamina_stored = Max2( 0.0f, pm->playerState->pmove.stamina_stored - pm->cmd.msec * 0.001f );
 
 	// return sound events only when the dashes weren't too close to each other
-	if( pm->playerState->pmove.stamina_time == 0 ) {
+	if( pm->playerState->pmove.stamina_stored == 0.0f ) {
 		pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_DASH,
 			Abs( pml->sidePush ) >= Abs( pml->forwardPush ) ?
 					( pml->sidePush < 0 ? 1 : 2 ) : //left or right
 					( pml->forwardPush < 0 ? 3 : 0 ) ); //back or forward
-		pm->playerState->pmove.stamina_time = pm_dashtimedelay;
+		pm->playerState->pmove.stamina_stored = pm_dashtimedelay;
 	}
 }

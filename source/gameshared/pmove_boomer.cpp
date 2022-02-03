@@ -6,7 +6,7 @@ static constexpr float pm_defaultspeed = 300.0f;
 static constexpr float pm_sidewalkspeed = 300.0f;
 
 static constexpr float jump_upspeed = 270.0f;
-static constexpr s16 jump_detection = 50;
+static constexpr float jump_detection = 0.01f;
 
 
 static constexpr float charge_groundAccel = 2.0f;
@@ -32,16 +32,17 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 
 	if( pressed ) {
 		if( !( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) ) {
-			ps->pmove.stamina_time = jump_detection;
+			ps->pmove.stamina_stored = jump_detection;
 		}
 
 		ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
+		ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pm->cmd.msec * 0.001f );
 
-		if( ( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) && ps->pmove.stamina_time == 0 ) {
+		if( ( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) && ps->pmove.stamina_stored == 0.0f ) {
 			return;
 		}
 
-		ps->pmove.stamina_time = 0;
+		ps->pmove.stamina_stored = 0.0f;
 		Jump( pm, pml, pmove_gs, ps, jump_upspeed, JumpType_Normal );
 	} else {
 		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;

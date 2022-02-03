@@ -1,3 +1,4 @@
+//welcome to hell
 if %HEALTH >= 0
 	setAlignment left bottom
 	setCursor 12, #HEIGHT - 14
@@ -11,13 +12,67 @@ if %HEALTH >= 0
 	setAlignment left top
 	moveCursor 2.5, -79
 
+	//these can be redundant but we need them in most places even if we override them
 	setColor 0.06, 0.06, 0.06, 1
 	setSize 200, 18
 	drawPicByName $whiteimage
 
 	setColorToTeamColor #TEAM_ALLY
-	setSize %STAMINA_PERCENT * 2, 18
-	drawPicByName $whiteimage
+
+	if %PERK == #PERK_NINJA
+		setSize %STAMINA * 2, 18
+		setColorAlpha %STAMINA * 0.01
+		drawPicByName $whiteimage
+	endif
+
+	if %PERK == #PERK_HOOLIGAN
+		setSize %STAMINA * 2, 18
+		setColorAlpha 0.1
+		drawPicByName $whiteimage
+
+		setColorAlpha 1
+		if %STAMINA >= 50
+			if %STAMINA == 100 setSize 200, 18 endif
+			if %STAMINA < 100 setSize 100, 18 endif
+
+			drawPicByName $whiteimage
+		endif
+
+		moveCursor 99, 0
+		setColor 0.02, 0.02, 0.02, 1
+		setSize 2, 18
+		drawPicByName $whiteimage
+		moveCursor -99, 0
+	endif
+
+	if %PERK == #PERK_MIDGET
+		setSize %STAMINA * 2, 18
+		if %STAMINA < 50
+			setColorAlpha %STAMINA * 0.02
+		endif
+		drawPicByName $whiteimage
+	endif
+
+	if %PERK == #PERK_JETPACK
+		setColor 1, 0, 0, 0.2 - %STAMINA * 0.005
+
+		if %STAMINA_STATE == #STAMINA_RELOADING
+			setColorAlpha 0.2
+		endif
+
+		setSize 200, 18
+		drawPicByName $whiteimage
+
+		setColorToTeamColor #TEAM_ALLY
+		setSize %STAMINA * 2, 18
+		drawPicByName $whiteimage
+	endif
+
+	if %PERK == #PERK_BOOMER
+		setSize %STAMINA * 2, 18
+		setColorAlpha %STAMINA * 0.01
+		drawPicByName $whiteimage
+	endif
 
 
 	// fill coloured health bar

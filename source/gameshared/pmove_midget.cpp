@@ -15,13 +15,8 @@ static constexpr float stamina_recover = 1.55f;
 static constexpr float stamina_jump_limit = 0.5f; //avoids jump spamming
 
 
-static constexpr float STATE_JUMPED = -1.0f;
-static constexpr float STATE_NORMAL = 0.0f;
-
-
-
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( ps->pmove.stamina_state == STATE_NORMAL ) {
+	if( ps->pmove.stamina_state == Stamina_Normal ) {
 		StaminaRecover( ps, pml, stamina_recover );
 	}
 
@@ -43,13 +38,14 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 
 //in this one we don't care about pressing special
 static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	bool can_start_charge = ps->pmove.stamina_state == STATE_NORMAL && ps->pmove.stamina > stamina_jump_limit;
+	bool can_start_charge = ps->pmove.stamina_state == Stamina_Normal && ps->pmove.stamina > stamina_jump_limit;
 	if( pressed && !pml->ladder ) {
-		if( ps->pmove.stamina_state > 0 ||
+		if( ps->pmove.stamina_state == Stamina_UsingAbility ||
 			( can_start_charge && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) ) //a bit tricky but we don't want midget charge to start if we were already pressing before reaching can_start_charge
 		{
 			if( can_start_charge ) {
-				ps->pmove.stamina_state = ps->pmove.stamina;
+				ps->pmove.stamina_stored = ps->pmove.stamina;
+				ps->pmove.stamina_state = Stamina_UsingAbility;
 			}
 			StaminaUse( ps, pml, stamina_use );
 		}
@@ -57,19 +53,20 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 	}
 
 	if( !pressed ) {
-		float factor = ( ps->pmove.stamina_state - ps->pmove.stamina );
+		float factor = ( ps->pmove.stamina_stored - ps->pmove.stamina );
 		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
 			if( factor > stamina_jump_limit ) {
 				Jump( pm, pml, pmove_gs, ps, pm_chargedjumpspeed * factor, JumpType_MidgetCharge );
 			}
-			ps->pmove.stamina_state = STATE_JUMPED;
+			ps->pmove.stamina_state = Stamina_UsedAbility;
 		}
+		ps->pmove.stamina_stored = 0.0f;
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
 
 	if( pm->groundentity != -1 ) {
-		if( ps->pmove.stamina_state == STATE_JUMPED ) {
-			ps->pmove.stamina_state = STATE_NORMAL;
+		if( ps->pmove.stamina_state == Stamina_UsedAbility ) {
+			ps->pmove.stamina_state = Stamina_Normal;
 		}
 		return;
 	}
@@ -84,7 +81,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
 
 	if( ( trace.fraction == 1 || ( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) &&
-		ps->pmove.stamina_state == STATE_JUMPED )
+		ps->pmove.stamina_state == Stamina_UsedAbility )
 	{
 		Vec3 normal( 0.0f );
 		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.1f, &normal );

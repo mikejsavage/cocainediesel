@@ -116,6 +116,16 @@ enum PerkType : u8 {
 
 void operator++( PerkType & x, int );
 
+enum StaminaState : u8 {
+	Stamina_Normal,
+	Stamina_Reloading,
+	Stamina_UsingAbility,
+	Stamina_UsedAbility,
+
+	Stamina_Count,
+};
+
+
 struct Loadout {
 	WeaponType weapons[ WeaponCategory_Count ];
 	GadgetType gadget;
@@ -321,8 +331,8 @@ struct pmove_state_t {
 	s16 knockback_time;
 	s16 tbag_time;
 	float stamina;
-	float stamina_state;
-	s16 stamina_time;   //used to avoid dash ev spam and do some jump buffering
+	float stamina_stored;
+	StaminaState stamina_state;
 
 	s16 max_speed;
 };

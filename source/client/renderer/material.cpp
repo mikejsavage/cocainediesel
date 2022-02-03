@@ -821,9 +821,9 @@ void InitMaterials() {
 	world_material.shininess = 8.0f;
 
 	wallbang_material = Material();
-	wallbang_material.rgbgen.args[ 0 ] = 0.17f * 2.0f;
-	wallbang_material.rgbgen.args[ 1 ] = 0.17f * 2.0f;
-	wallbang_material.rgbgen.args[ 2 ] = 0.17f * 2.0f;
+	wallbang_material.rgbgen.args[ 0 ] = 0.17f * 0.45f;
+	wallbang_material.rgbgen.args[ 1 ] = 0.17f * 0.45f;
+	wallbang_material.rgbgen.args[ 2 ] = 0.17f * 0.45f;
 	wallbang_material.rgbgen.args[ 3 ] = 1.0f;
 	wallbang_material.specular = 3.0f;
 	wallbang_material.shininess = 8.0f;

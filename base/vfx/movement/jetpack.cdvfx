@@ -1,25 +1,153 @@
 {
 
-  particles {
+ particles {
     material textures/vfx/smoke3
     material textures/vfx/smoke4
     material textures/vfx/smoke5
-    blendfunc blend
-    
-    speed 100
+    blendfunc add
+
+    speed 10
     speed_distribution 1.0
 
     angle 360
     angle_distribution 1.0
 
-    color 1.0 1.0 1.0 0.75
+    color 0.05 0.05 0.05 1.0
+
+    size 24 64
+    lifetime 1.5
+
+    emission 300
+  }
+
+  particles {
+    material textures/vfx/smoke3
+    material textures/vfx/smoke4
+    material textures/vfx/smoke5
+    blendfunc blend
+
+    speed 20
+    speed_distribution 1.0
+
+    angle 360
+    angle_distribution 1.0
+
+    color 0.05 0.05 0.05 1.0
+
+    size 24 64
+    lifetime 1.5
+
+    emission 300
+  }
+
+  particles {
+    material textures/vfx/smoke3
+    material textures/vfx/smoke4
+    material textures/vfx/smoke5
+    blendfunc blend
+
+    speed 10
+    speed_distribution 1.0
+
+    angle 360
+    angle_distribution 1.0
+
+    color 0.05 0.05 0.05 1.0
+
+    size 32 0
+    lifetime 0.7
+
+    emission 300
+  }
+
+  particles {
+    material textures/vfx/flame1
+    material textures/vfx/flame2
+    material textures/vfx/flame3
+    material textures/vfx/flame4
+    material textures/vfx/flame5
+    blendfunc blend
+    rotate
+    stretch
+
+    speed 5
+    speed_distribution uniform 5
+
+    angle 360
+    angle_distribution uniform 360
+
+    color 1.0 0.5 0.15 0.75
+    green_distribution uniform 0.4
+
+    size 17 0
+    size_distribution uniform 10
+
+    lifetime 0.25
+
+    emission 300
+    count 4
+  }
+
+  particles {
+    material textures/vfx/flame1
+    material textures/vfx/flame2
+    material textures/vfx/flame3
+    material textures/vfx/flame4
+    material textures/vfx/flame5
+    blendfunc blend
+    rotate
+    stretch
+
+    speed 5
+    speed_distribution uniform 5
+
+    angle 360
+    angle_distribution uniform 360
+
+    color 1.0 0.2 0.05 0.75
+    green_distribution uniform 0.1
+
+    size 22 0
+    size_distribution uniform 8
+    lifetime 0.55
+
+    emission 300
+    count 2
+  }
+
+  particles {
+    material textures/vfx/light3
+    blendfunc add
+
+    speed 150
+    speed_distribution uniform 40
+
+    green_distribution uniform 0.4
+
+    angle 45
+    color 1.0 0.4 0.05 1.0
+
+    size 4 0
+    lifetime 0.25
+
+    emission 500
+  }
+
+  particles {
+    material textures/vfx/light3
+    blendfunc add
+
+    speed 150
+    speed_distribution uniform 40
+
+    green_distribution uniform 0.4
+
+    angle 45
+    color 1.0 1.0 1.0 1.0
+
     color_override
 
-    size 40 40
-    lifetime 1.0
-
-    emission 200
-
+    size 4 0
+    lifetime 0.25
   }
-  
 }

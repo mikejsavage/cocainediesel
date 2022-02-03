@@ -1003,6 +1003,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	cols = Max2( CountWeaponCategory( WeaponCategory_Secondary ), cols );
 	cols = Max2( CountWeaponCategory( WeaponCategory_Backup ), cols );
 	cols = Max2( int( Gadget_Count ) - 1, cols );
+	cols = Max2( int( Perk_Count ) - 1, cols );
 
 	ImGui::BeginTable( "loadoutmenu", cols + 1 );
 

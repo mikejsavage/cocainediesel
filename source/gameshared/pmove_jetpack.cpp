@@ -56,14 +56,18 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 
 static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( pressed && StaminaAvailable( ps, pml, fuel_use_boost ) && ps->pmove.stamina_state != Stamina_Reloading ) {
-		Vec3 dashdir = pml->forward;
-		pml->forwardPush = pm_boostspeed;
+		Vec3 fwd, right;
+		AngleVectors( pm->playerState->viewangles, &fwd, &right, NULL );
+		Vec3 dashdir = fwd * pml->forwardPush + right * pml->sidePush;
+		if( Length( dashdir ) < 0.01f ) { // no direction keys pressed
+			dashdir = fwd;
+			pml->forwardPush = pm_boostspeed;
+		}
 
 		dashdir = Normalize( dashdir );
 		dashdir *= pm_boostspeed * pml->frametime;
 
-		pml->velocity.x += dashdir.x;
-		pml->velocity.y += dashdir.y;
+		pml->velocity += dashdir;
 		pml->velocity.z += pm_boostupspeed * pml->frametime;
 		pm->groundentity = -1;
 

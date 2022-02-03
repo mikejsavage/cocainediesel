@@ -6,7 +6,7 @@ static constexpr float pm_defaultspeed = 300.0f;
 static constexpr float pm_sidewalkspeed = 300.0f;
 
 static constexpr float jump_upspeed = 270.0f;
-static constexpr float jump_detection = 0.01f;
+static constexpr float jump_detection = 0.06f;
 
 
 static constexpr float charge_groundAccel = 2.0f;
@@ -24,21 +24,19 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		return;
 	}
 
-	StaminaRecover( ps, pml, stamina_recover );
-
-	if( pm->groundentity == -1 ) {
-		return;
-	}
-
 	if( pressed ) {
 		if( !( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) ) {
 			ps->pmove.stamina_stored = jump_detection;
 		}
 
 		ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
-		ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pm->cmd.msec * 0.001f );
+		ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
 
 		if( ( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) && ps->pmove.stamina_stored == 0.0f ) {
+			return;
+		}
+
+		if( pm->groundentity == -1 ) {
 			return;
 		}
 
@@ -69,6 +67,8 @@ static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 		}
 	} else if( pressed && ps->pmove.stamina >= stamina_limit ) {
 		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
+	} else {
+		StaminaRecover( ps, pml, stamina_recover );
 	}
 }
 

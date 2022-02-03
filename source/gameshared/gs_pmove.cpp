@@ -903,8 +903,8 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 		// Kurim
 		// Keep this order !
 		if( ps->pmove.pm_type == PM_NORMAL && ( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {
-			pml.ability2Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & BUTTON_ABILITY2 );
 			pml.ability1Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & BUTTON_ABILITY1 );
+			pml.ability2Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & BUTTON_ABILITY2 );
 		}
 
 		PM_Friction();
@@ -930,14 +930,12 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 			}
 			pml.forward.z = 0.0f;
 			pml.forward = SafeNormalize( pml.forward );
-
 			PM_Move();
 		}
 	}
 
 	// set groundentity, watertype, and waterlevel for final spot
 	PM_CategorizePosition();
-
 	PM_EndMove();
 
 	// Execute the triggers that are touched.

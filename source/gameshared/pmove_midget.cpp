@@ -16,10 +16,6 @@ static constexpr float stamina_jump_limit = 0.5f; //avoids jump spamming
 
 
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( ps->pmove.stamina_state == Stamina_Normal ) {
-		StaminaRecover( ps, pml, stamina_recover );
-	}
-
 	if( pm->groundentity == -1 ) {
 		return;
 	}
@@ -39,6 +35,11 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 //in this one we don't care about pressing special
 static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	bool can_start_charge = ps->pmove.stamina_state == Stamina_Normal && ps->pmove.stamina > stamina_jump_limit;
+
+	if( ps->pmove.stamina_state == Stamina_Normal ) {
+		StaminaRecover( ps, pml, stamina_recover );
+	}
+
 	if( pressed && !pml->ladder ) {
 		if( ps->pmove.stamina_state == Stamina_UsingAbility ||
 			( can_start_charge && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) ) //a bit tricky but we don't want midget charge to start if we were already pressing before reaching can_start_charge

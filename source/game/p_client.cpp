@@ -971,6 +971,7 @@ void G_GivePerk( edict_t * ent, PerkType perk ) {
 		ent->health = ent->max_health;
 	} else {
 		ent->health = ent->health * ent->max_health / old_max_health;
-		ent->mass = PLAYER_MASS * Length( ent->s.scale );
 	}
+	
+	ent->mass = PLAYER_MASS * Length( ent->s.scale );
 }

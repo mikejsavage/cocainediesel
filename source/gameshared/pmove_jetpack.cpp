@@ -44,7 +44,11 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 			ps->pmove.stamina_state = Stamina_Normal;
 		}
 	}
+}
 
+
+
+static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( ps->pmove.stamina_state == Stamina_Normal || ps->pmove.stamina_state == Stamina_Reloading ) {
 		StaminaRecover( ps, pml, refuel_ground );
 		if( ps->pmove.stamina >= refuel_min ) {
@@ -53,11 +57,7 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 	} else if( ps->pmove.stamina_state != Stamina_Reloading && ps->pmove.stamina_state != Stamina_UsedAbility ) {
 		StaminaRecover( ps, pml, refuel_air );
 	}
-}
-
-
-
-static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	
 	if( pressed && StaminaAvailable( ps, pml, fuel_use_boost ) && ps->pmove.stamina_state != Stamina_Reloading ) {
 		Vec3 fwd, right;
 		AngleVectors( pm->playerState->viewangles, &fwd, &right, NULL );

@@ -28,10 +28,6 @@ static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Sy
 
 
 static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( ps->pmove.stamina_state == Stamina_Normal && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
-		StaminaRecover( ps, pml, stamina_recover );
-	}
-
 	if( pm->groundentity == -1 ) {
 		return;
 	}
@@ -55,6 +51,10 @@ static void PM_NinjaJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 
 
 static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	if( ps->pmove.stamina_state == Stamina_Normal && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
+		StaminaRecover( ps, pml, stamina_recover );
+	}
+	
 	if( ps->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
 		return;
 	}

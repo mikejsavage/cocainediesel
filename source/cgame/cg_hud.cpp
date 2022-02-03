@@ -1729,7 +1729,7 @@ static cg_layoutnode_t *CG_LayoutParseArgumentNode( Span< const char > token ) {
 		}
 
 		if( !ok ) {
-			Com_GGPrint( "Warning: HUD: %s is not valid numeric constant", token );
+			Com_GGPrint( "Warning: HUD: {} is not valid numeric constant", token );
 		}
 
 	}

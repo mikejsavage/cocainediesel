@@ -33,6 +33,9 @@ static int layout_cursor_height = 100;
 static Alignment layout_cursor_alignment = Alignment_LeftTop;
 static Vec4 layout_cursor_color = vec4_white;
 
+static const Vec4 light_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
+static constexpr Vec4 dark_gray = vec4_dark;
+
 enum FontStyle {
 	FontStyle_Normal,
 	FontStyle_Bold,
@@ -154,8 +157,8 @@ static int CG_HealthPercent( const void * parameter ) {
 	return cg.predictedPlayerState.health * 100 / cg.predictedPlayerState.max_health;
 }
 
-static int CG_StaminaPercent( const void * parameter ) {
-	return cg.predictedPlayerState.pmove.stamina * 100;
+static int CG_Stamina( const void * parameter ) {
+	return cg.predictedPlayerState.pmove.stamina * 200; //easier conversions, more fluid
 }
 
 static int CG_StaminaStoredPercent( const void * parameter ) {
@@ -229,7 +232,7 @@ static const reference_numeric_t cg_numeric_references[] = {
 	// stats
 	{ "HEALTH", CG_S16, &cg.predictedPlayerState.health },
 	{ "HEALTH_PERCENT", CG_HealthPercent, NULL },
-	{ "STAMINA", CG_StaminaPercent, NULL },
+	{ "STAMINA", CG_Stamina, NULL },
 	{ "STAMINA_Stored", CG_StaminaStoredPercent, NULL },
 	{ "STAMINA_STATE", CG_U8, &cg.predictedPlayerState.pmove.stamina_state },
 	{ "WEAPON_ITEM", CG_U8, &cg.predictedPlayerState.weapon },
@@ -974,9 +977,6 @@ static void DrawWeaponBar( int ix, int iy, int offx, int iw, int ih, Alignment a
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	Vec4 light_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
-	Vec4 dark_gray = vec4_dark;
-
 	const SyncEntityState * es = &cg_entities[ ps->POVnum ].current;
 
 	int num_weapons = 0;
@@ -1065,7 +1065,7 @@ static void DrawWeaponBar( int ix, int iy, int offx, int iw, int ih, Alignment a
 		Draw2DBoxPadded( x, y, w, h, border, cls.white_material, border_color );
 		Draw2DBox( x, y, w, h, cls.white_material, bg_color );
 		Draw2DBox( x, y, w, h, FindMaterial( "gfx/bomb" ), bomb_color );
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, "BOMB", Alignment_CenterTop, x + w * 0.5f, y - h * 1.075f, text_color, layout_cursor_font_border );
+		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, "BOMB", Alignment_CenterTop, x + w * 0.5f, y + h * 1.15f, text_color, layout_cursor_font_border );
 
 		x += offx;
 	}
@@ -1075,10 +1075,6 @@ static void DrawPerksUtility( int ix, int iy, int offx, int iw, int ih, Alignmen
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	Vec4 light_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
-	Vec4 dark_gray = vec4_dark;
-
-	const SyncEntityState * es = &cg_entities[ ps->POVnum ].current;
 
 	bool has_gadget = ps->gadget != Gadget_None;
 

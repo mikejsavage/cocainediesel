@@ -12,10 +12,10 @@ static constexpr float pm_dashspeed = 550.0f;
 static constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
 static constexpr float pm_wjbouncefactor = 0.4f;
 
-static constexpr float stamina_usewj = 0.33f; //25%
-static constexpr float stamina_usedash = 0.33f; //25%
+static constexpr float stamina_usewj = 0.5f; //50%
+static constexpr float stamina_usedash = 0.5f; //50%
 static constexpr float stamina_recover_ground = 0.75f;
-static constexpr float stamina_recover_air = 0.25f;
+static constexpr float stamina_recover_air = 0.35f;
 
 
 static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {

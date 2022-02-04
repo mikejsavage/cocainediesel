@@ -20,32 +20,41 @@ if %HEALTH >= 0
 	setColorToTeamColor #TEAM_ALLY
 
 	if %PERK == #PERK_NINJA
-		setSize %STAMINA * 2, 18
-		setColorAlpha %STAMINA * 0.01
+		setSize %STAMINA, 18
+		setColorAlpha %STAMINA * 0.005
 		drawPicByName $whiteimage
 	endif
 
 	if %PERK == #PERK_HOOLIGAN
-		setSize %STAMINA * 2, 18
-		setColorAlpha 0.1
-		drawPicByName $whiteimage
 
 		setColorAlpha 1
-		if %STAMINA >= 100 * 0.33
-			setSize 200 * 0.33, 18
-			if %STAMINA > 100 * 0.33 * 2 setSize 200 * 0.33 * 2, 18 endif
-			if %STAMINA == 100 setSize 200, 18 endif
+		setSize 200, 18
 
-			drawPicByName $whiteimage
+		if %STAMINA < 200
+			setSize 200 * 0.5, 18
+
+			if %STAMINA <= 100
+				setColorAlpha %STAMINA * 0.01
+			endif
+
+			if %STAMINA > 100
+				drawPicByName $whiteimage
+				moveCursor 200 * 0.5, 0
+				setColorAlpha %STAMINA * 0.01
+			endif
 		endif
+
+		drawPicByName $whiteimage
+
+		if %STAMINA < 200 if %STAMINA > 100
+			moveCursor -0.5 * 200, 0
+		endif endif
 
 		setColor 0.02, 0.02, 0.02, 1
 		setSize 2, 18
-		moveCursor 200 * 0.33, 0
+		moveCursor -1 + 200 * 0.5, 0
 		drawPicByName $whiteimage
-		moveCursor 200 * 0.33, 0
-		drawPicByName $whiteimage
-		moveCursor -200 * 0.33 * 2, 0
+		moveCursor 1 - 200 * 0.5, 0
 	endif
 
 	if %PERK == #PERK_MIDGET
@@ -58,31 +67,31 @@ if %HEALTH >= 0
 
 
 
-		setSize %STAMINA * 2, 18
-		if %STAMINA < 50
-			setColorAlpha %STAMINA * 0.02
+		setSize %STAMINA, 18
+		if %STAMINA < 100
+			setColorAlpha %STAMINA * 0.01
 		endif
 		drawPicByName $whiteimage
 	endif
 
 	if %PERK == #PERK_JETPACK
-		setColor 1, 0, 0, 0.2 - %STAMINA * 0.005
+		setColor 1, 0, 0, 0.2 - %STAMINA * 0.0025
 
 		if %STAMINA_STATE == #STAMINA_RELOADING
-			setColorAlpha 0.2 - %STAMINA * 0.004
+			setColorAlpha 0.2 - %STAMINA * 0.002
 		endif
 
 		setSize 200, 18
 		drawPicByName $whiteimage
 
 		setColorToTeamColor #TEAM_ALLY
-		setSize %STAMINA * 2, 18
+		setSize %STAMINA, 18
 		drawPicByName $whiteimage
 	endif
 
 	if %PERK == #PERK_BOOMER
-		setSize %STAMINA * 2, 18
-		setColorAlpha %STAMINA * 0.01
+		setSize %STAMINA, 18
+		setColorAlpha %STAMINA * 0.005
 		drawPicByName $whiteimage
 	endif
 

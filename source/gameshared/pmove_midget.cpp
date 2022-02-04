@@ -28,6 +28,10 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		return;
 	}
 
+	if( ps->pmove.stamina_state == Stamina_UsedAbility ) {
+		ps->pmove.stamina_state = Stamina_Normal;
+	}
+
 	Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, JumpType_Normal );
 }
 
@@ -66,9 +70,6 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 	}
 
 	if( pm->groundentity != -1 ) {
-		if( ps->pmove.stamina_state == Stamina_UsedAbility ) {
-			ps->pmove.stamina_state = Stamina_Normal;
-		}
 		return;
 	}
 

@@ -5,6 +5,9 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 
+#include "cgame/cg_particles.h"
+#include "cgame/cg_dynamics.h"
+
 constexpr u32 MAX_MODELS = 1024;
 
 static Model gltf_models[ MAX_MODELS ];
@@ -259,6 +262,32 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mo
 	AddInstanceToCollection( model_silhouette_instance_collection, model, primitive, pipeline, instance, hash );
 }
 
+static void DrawVfxNode( DrawModelConfig::DrawModel config, const Model::Node * node, Mat4 & transform ) {
+	if( !config.enabled || node->vfx_type == ModelVfxType_Generic )
+		return;
+
+	// TODO: idk about this cheers
+	Vec3 scale = Vec3( Length( transform.col0.xyz() ), Length( transform.col1.xyz() ), Length( transform.col2.xyz() ) );
+	float size = Min2( Min2( Abs( scale.x ), Abs( scale.y ) ), Abs( scale.z ) );
+
+	if( size == 0.0f )
+		return;
+
+	Vec3 origin = transform.col3.xyz();
+	Vec3 normal = transform.col1.xyz();
+	switch( node->vfx_type ) {
+		case ModelVfxType_Vfx:
+			DoVisualEffect( node->vfx_node.name, origin, normal, size, node->vfx_node.color );
+			break;
+		case ModelVfxType_DynamicLight:
+			DrawDynamicLight( origin, node->dlight_node.color, node->dlight_node.intensity * size );
+			break;
+		case ModelVfxType_Decal:
+			DrawDecal( origin, normal, node->decal_node.radius * size, node->decal_node.angle, node->decal_node.name, node->decal_node.color );
+			break;
+	}
+}
+
 void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
 	if( model == NULL )
 		return;
@@ -291,7 +320,7 @@ void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transf
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		const Model::Node * node = &model->nodes[ i ];
-		if( node->primitive == U8_MAX )
+		if( node->primitive == U8_MAX && node->vfx_type == ModelVfxType_Generic )
 			continue;
 
 		bool skinned = animated && node->skinned;
@@ -307,6 +336,11 @@ void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transf
 			node_transform = node->global_transform;
 		}
 		node_transform = transform * model->transform * node_transform;
+
+		DrawVfxNode( config.draw_model, node, node_transform );
+
+		if( node->primitive == U8_MAX )
+			continue;
 
 		const Model::Primitive * primitive = &model->primitives[ node->primitive ];
 		GPUMaterial gpu_material;

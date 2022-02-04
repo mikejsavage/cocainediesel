@@ -31,6 +31,13 @@ struct DrawModelConfig {
 	} draw_silhouette;
 };
 
+enum ModelVfxType {
+	ModelVfxType_Generic,
+	ModelVfxType_Vfx,
+	ModelVfxType_DynamicLight,
+	ModelVfxType_Decal,
+};
+
 struct Model {
 	struct Primitive {
 		const Material * material;
@@ -45,6 +52,23 @@ struct Model {
 		float * times;
 		u32 num_samples;
 		InterpolationMode interpolation;
+	};
+
+	struct VfxNode {
+		StringHash name;
+		Vec4 color;
+	};
+
+	struct DynamicLightNode {
+		Vec4 color;
+		float intensity;
+	};
+
+	struct DecalNode {
+		StringHash name;
+		Vec4 color;
+		float radius;
+		float angle;
 	};
 
 	struct Node {
@@ -62,6 +86,13 @@ struct Model {
 		AnimationChannel< Vec3 > translations;
 		AnimationChannel< float > scales;
 		bool skinned;
+
+		ModelVfxType vfx_type;
+		union {
+			VfxNode vfx_node;
+			DynamicLightNode dlight_node;
+			DecalNode decal_node;
+		};
 	};
 
 	struct Joint {

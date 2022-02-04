@@ -26,6 +26,7 @@ require( "libs.gg" )
 require( "libs.glad" )
 require( "libs.glfw3" )
 require( "libs.imgui" )
+require( "libs.jsmn" )
 require( "libs.mbedtls" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
@@ -90,6 +91,7 @@ do
 			"ggformat",
 			"glad",
 			"glfw3",
+			"jsmn",
 			"meshoptimizer",
 			"monocypher",
 			"openal",

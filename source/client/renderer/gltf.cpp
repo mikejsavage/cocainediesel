@@ -7,6 +7,7 @@
 #include "cgame/ref.h"
 
 #include "cgltf/cgltf.h"
+#include "jsmn/jsmn.h"
 
 // like cgltf_load_buffers, but doesn't try to load URIs
 static bool LoadBinaryBuffers( cgltf_data * data ) {
@@ -134,7 +135,58 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 	primitive->material = FindMaterial( material_name );
 }
 
-static void LoadNode( const char * filename, Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
+constexpr u32 MAX_EXTRAS = 16;
+struct GltfExtras {
+	Span< const char > keys[ MAX_EXTRAS ];
+	Span< const char > values[ MAX_EXTRAS ];
+	u32 num_extras = 0;
+};
+
+static Span< const char > JsonSpan( Span< const char > json, jsmntok_t * token ) {
+	return json.slice( token->start, token->end );
+}
+
+static GltfExtras LoadExtras( cgltf_data * gltf, cgltf_node * gltf_node ) {
+	char json_data[ 1024 ];
+	size_t json_size = 1024;
+	cgltf_copy_extras_json( gltf, &gltf_node->extras, json_data, &json_size );
+	Span< const char > json( json_data, json_size );
+
+	GltfExtras extras = {};
+
+	jsmn_parser p;
+	constexpr u32 max_tokens = MAX_EXTRAS * 2 + 1;
+	jsmntok_t tokens[ max_tokens ];
+	jsmn_init( &p );
+	int res = jsmn_parse( &p, json.ptr, json.n, tokens, max_tokens );
+	if( res < 0 ) {
+		return extras;
+	}
+	if( res < 1 || tokens[ 0 ].type != JSMN_OBJECT ) {
+		return extras;
+	}
+
+	for( s32 i = 0; i < tokens[ 0 ].size; i++ ) {
+		u32 idx = 1 + i * 2;
+		extras.keys[ extras.num_extras ] = json.slice( tokens[ idx ].start, tokens[ idx ].end );
+		// TODO: value could be object or array...
+		extras.values[ extras.num_extras ] = json.slice( tokens[ idx + 1 ].start, tokens[ idx + 1 ].end );
+		extras.num_extras++;
+	}
+
+	return extras;
+}
+
+static Span< const char > GetExtrasKey( const char * key, GltfExtras * extras ) {
+	for( u32 i = 0; i < extras->num_extras; i++ ) {
+		if( StrEqual( extras->keys[ i ], key ) ) {
+			return extras->values[ i ];
+		}
+	}
+	return MakeSpan( "" );
+}
+
+static void LoadNode( const char * filename, Model * model, cgltf_data * gltf, cgltf_node * gltf_node, u8 * node_idx ) {
 	u8 idx = *node_idx;
 	*node_idx += 1;
 	SetNodeIdx( gltf_node, idx );
@@ -174,6 +226,36 @@ static void LoadNode( const char * filename, Model * model, cgltf_node * gltf_no
 		node->local_transform.scale = gltf_node->scale[ 0 ];
 	}
 
+	{
+		GltfExtras extras = LoadExtras( gltf, gltf_node );
+		Span< const char > type = GetExtrasKey( "type", &extras );
+		Span< const char > color_value = GetExtrasKey( "color", &extras );
+		Vec4 color;
+		for( u32 i = 0; i < 4; i++ ) {
+			color[ i ] = ParseFloat( &color_value, 1.0f, Parse_StopOnNewLine );
+		}
+		if( type == "vfx" ) {
+			node->vfx_type = ModelVfxType_Vfx;
+			node->vfx_node.name = StringHash( GetExtrasKey( "name", &extras ) );
+			node->vfx_node.color = color;
+		}
+		else if( type == "dlight" ) {
+			node->vfx_type = ModelVfxType_DynamicLight;
+			node->dlight_node.color = color;
+			Span< const char > intensity = GetExtrasKey( "intensity", &extras );
+			node->dlight_node.intensity = ParseFloat( &intensity, 0.0f, Parse_DontStopOnNewLine );
+		}
+		else if( type == "decal" ) {
+			node->vfx_type = ModelVfxType_Decal;
+			node->decal_node.color = color;
+			Span< const char > angle = GetExtrasKey( "angle", &extras );
+			node->decal_node.angle = ParseFloat( &angle, 0.0f, Parse_DontStopOnNewLine );
+			Span< const char > radius = GetExtrasKey( "radius", &extras );
+			node->decal_node.radius = ParseFloat( &radius, 0.0f, Parse_DontStopOnNewLine );
+			node->decal_node.name = StringHash( GetExtrasKey( "name", &extras ) );
+		}
+	}
+
 	node->skinned = gltf_node->skin != NULL;
 
 	// TODO: this will break if multiple nodes share a mesh
@@ -183,7 +265,7 @@ static void LoadNode( const char * filename, Model * model, cgltf_node * gltf_no
 	}
 
 	for( size_t i = 0; i < gltf_node->children_count; i++ ) {
-		LoadNode( filename, model, gltf_node->children[ i ], node_idx );
+		LoadNode( filename, model, gltf, gltf_node->children[ i ], node_idx );
 	}
 
 	if( gltf_node->children_count == 0 ) {
@@ -353,7 +435,7 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 
 	u8 node_idx = 0;
 	for( size_t i = 0; i < gltf->scene->nodes_count; i++ ) {
-		LoadNode( path, model, gltf->scene->nodes[ i ], &node_idx );
+		LoadNode( path, model, gltf, gltf->scene->nodes[ i ], &node_idx );
 		model->nodes[ GetNodeIdx( gltf->scene->nodes[ i ] ) ].sibling = U8_MAX;
 	}
 

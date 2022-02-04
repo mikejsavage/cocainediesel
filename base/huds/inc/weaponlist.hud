@@ -1,13 +1,17 @@
 if %TEAM != #TEAM_SPECTATOR
-	setAlignment center middle
-	setCursor #WIDTH / 2, #HEIGHT - 48
-	setColor 1.0, %HEALTH / 83.333, %HEALTH / 500, 1
+	setAlignment left middle
 	setColor 1 1 1 1
 
 	setFontStyle bold
 	setFontBorder on
 
-	drawWeaponIcons 58 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 48, %VIDHEIGHT / 36
+
+	setCursor 14, #HEIGHT - 126
+	drawPerksUtilityIcons 52 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 40 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 40, %VIDHEIGHT / 36
+
+
+	setCursor 222, #HEIGHT - 64
+	drawWeaponIcons 72 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 60 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 60, %VIDHEIGHT / 36
 
 	setFontBorder off
 endif

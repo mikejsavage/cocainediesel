@@ -1002,17 +1002,20 @@ static void DrawWeaponBar( int ix, int iy, int offx, int iw, int ih, Alignment a
 
 	for( int i = 0; i < num_weapons; i++ ) {
 		WeaponType weap = ps->weapons[ i ].weapon;
-		int ammo = ps->weapons[ i ].ammo;
 		const WeaponDef * def = GS_GetWeaponDef( weap );
+		const Material * icon = cgs.media.shaderWeaponIcon[ weap ];
+		Vec2 half_pixel = HalfPixelSize( icon );
+
+		int ammo = ps->weapons[ i ].ammo;
 
 		float ammo_frac = AmmoFrac( ps, weap, ammo );
 		Vec4 ammo_color = AmmoColor( ammo_frac );
 
-		const Material * icon = cgs.media.shaderWeaponIcon[ weap ];
-		Vec2 half_pixel = HalfPixelSize( icon );
+		bool selected_weapon = ps->pending_weapon != Weapon_None ? weap == ps->pending_weapon : weap == ps->weapon;
+		Vec4 selected_weapon_color = selected_weapon ? vec4_white : Vec4( 0.5f, 0.5f, 0.5f, 1.0f );
 
 		// border
-		Draw2DBoxPadded( x, y, w, h + h * 0.28f, border, cls.white_material, dark_gray );
+		Draw2DBoxPadded( x, y, w, h + h * ( selected_weapon ? 0.35f : 0.27f ), border, cls.white_material, dark_gray );
 
 		// background icon
 		Draw2DBox( x, y, w, h, icon, light_gray );
@@ -1037,9 +1040,7 @@ static void DrawWeaponBar( int ix, int iy, int offx, int iw, int ih, Alignment a
 		}
 
 		// weapon name
-		bool selected_weapon = ps->pending_weapon != Weapon_None ? weap == ps->pending_weapon : weap == ps->weapon;
-		Vec4 selected_weapon_color = selected_weapon ? vec4_white : Vec4( 0.5f, 0.5f, 0.5f, 1.0f );
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, def->name, Alignment_CenterTop, x + w * 0.5f, y + h * 1.1f, selected_weapon_color, layout_cursor_font_border );
+		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, def->name, Alignment_CenterTop, x + w * 0.5f, y + h * (selected_weapon ? 1.15f : 1.1f ), selected_weapon_color, layout_cursor_font_border );
 
 		if( Cvar_Bool( "cg_showHotkeys" ) ) {
 			// first try the weapon specific bind
@@ -1049,7 +1050,7 @@ static void DrawWeaponBar( int ix, int iy, int offx, int iw, int ih, Alignment a
 			}
 
 			// weapon bind
-			DrawText( cgs.fontNormalBold, cgs.fontSystemTinySize, bind, Alignment_CenterMiddle, x + w * 0.5f, y - h * 0.2f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), layout_cursor_font_border );
+			DrawText( cgs.fontNormalBold, cgs.fontSystemSmallSize, bind, Alignment_CenterMiddle, x + w * 0.5f, y - h * 0.2f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), layout_cursor_font_border );
 		}
 
 		x += offx;

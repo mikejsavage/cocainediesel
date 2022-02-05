@@ -10,17 +10,21 @@ static constexpr float pm_wjbouncefactor = 0.4f;
 
 static constexpr float stamina_usewj = 0.5f; //50%
 static constexpr float stamina_usedash = 0.5f; //50%
-static constexpr float stamina_recover_ground = 0.75f;
-static constexpr float stamina_recover_air = 0.35f;
+static constexpr float stamina_recover = 1.5f;
 
 
 static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	if( ps->pmove.stamina_state == Stamina_Normal ) {
+		StaminaRecover( ps, pml, stamina_recover );
+	}
+
 	if( pm->groundentity == -1 ) {
 		return;
 	}
 
+	ps->pmove.stamina_state = Stamina_Normal;
+
 	if( !pressed ) {
-		ps->pmove.stamina_state = Stamina_Normal;
 		return;
 	}
 
@@ -100,12 +104,6 @@ static void PM_HooliganDash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 
 
 static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( ps->pmove.stamina_state == Stamina_Normal ) {
-		StaminaRecover( ps, pml, stamina_recover_ground );
-	} else {
-		StaminaRecover( ps, pml, stamina_recover_air );
-	}
-	
 	if( !pressed ) {
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}

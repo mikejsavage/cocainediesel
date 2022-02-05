@@ -424,18 +424,6 @@ static void LoadBuiltinTextures() {
 	}
 
 	{
-		u8 black = 0;
-
-		TextureConfig config;
-		config.width = 1;
-		config.height = 1;
-		config.data = &black;
-		config.format = TextureFormat_R_U8;
-
-		AddTexture( "$whiteimage", Hash64( "$blackimage" ), config );
-	}
-
-	{
 		constexpr RGB8 pixels[] = {
 			RGB8( 255, 0, 255 ),
 			RGB8( 0, 0, 0 ),

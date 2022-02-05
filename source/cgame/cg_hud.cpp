@@ -170,9 +170,6 @@ static int CG_StaminaStoredPercent( const void * parameter ) {
 	return cg.predictedPlayerState.pmove.stamina_stored * 100;
 }
 
-static int CG_GetSpeedVertical( const void *parameter ) {
-	return cg.predictedPlayerState.pmove.velocity.z;
-}
 static int CG_GetFPS() {
 	static int frameTimes[ 32 ];
 
@@ -263,7 +260,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 	// other
 	{ "CHASING", CG_GetPOVnum, NULL },
 	{ "SPEED", CG_GetSpeed, NULL },
-	{ "SPEED_VERTICAL", CG_GetSpeedVertical, NULL },
 	{ "MATCH_STATE", CG_GetMatchState, NULL },
 	{ "PAUSED", CG_Paused, NULL },
 	{ "VIDWIDTH", CG_GetVidWidth, NULL },

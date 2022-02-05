@@ -588,7 +588,6 @@ static void BombDefused() {
 
 	G_Sound( bomb_state.bomb.model, CHAN_AUTO, "models/bomb/tss" );
 
-	G_DebugPrint( "defenders defused" );
 	RoundWonBy( DefendingTeam() );
 
 	bomb_state.defuser = -1;
@@ -596,7 +595,6 @@ static void BombDefused() {
 
 static void BombExplode() {
 	if( server_gs.gameState.round_state == RoundState_Round ) {
-		G_DebugPrint( "bomb exploded" );
 		RoundWonBy( AttackingTeam() );
 	}
 
@@ -1000,7 +998,6 @@ static void RoundThink() {
 	if( bomb_state.round_check_end && level.time > bomb_state.round_state_end ) {
 		if( server_gs.gameState.round_state == RoundState_Round ) {
 			if( bomb_state.bomb.state != BombState_Planted ) {
-				G_DebugPrint( "ran out of time" );
 				RoundWonBy( DefendingTeam() );
 				bomb_state.last_time = 1; // kinda hacky, this shows at 0:00
 				G_CenterPrintMsg( NULL, S_COLOR_RED "Timelimit Hit!" );

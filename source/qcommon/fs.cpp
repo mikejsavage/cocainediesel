@@ -6,7 +6,6 @@
 
 static char * root_dir_path;
 static char * home_dir_path;
-static char * versioned_home_dir_path;
 
 static char * FindRootDir( Allocator * a ) {
 	char * root = GetExePath( a );
@@ -19,20 +18,15 @@ void InitFS() {
 
 	if( !is_public_build ) {
 		home_dir_path = CopyString( sys_allocator, root_dir_path );
-		versioned_home_dir_path = CopyString( sys_allocator, home_dir_path );
 	}
 	else {
 		home_dir_path = FindHomeDirectory( sys_allocator );
-
-		const char * fmt = IFDEF( PLATFORM_WINDOWS ) ? "{} 0.0" : "{}-0.0";
-		versioned_home_dir_path = ( *sys_allocator )( fmt, home_dir_path );
 	}
 }
 
 void ShutdownFS() {
 	FREE( sys_allocator, root_dir_path );
 	FREE( sys_allocator, home_dir_path );
-	FREE( sys_allocator, versioned_home_dir_path );
 }
 
 const char * RootDirPath() {
@@ -40,10 +34,6 @@ const char * RootDirPath() {
 }
 
 const char * HomeDirPath() {
-	return versioned_home_dir_path;
-}
-
-const char * FutureHomeDirPath() {
 	return home_dir_path;
 }
 

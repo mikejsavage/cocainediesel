@@ -5,4 +5,5 @@ if %SHOW_FPS
 endif
 setSize 300 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 120
 setFontSize %VIDHEIGHT / 45
+setFontStyle normal
 drawObituaries 3 22 //last number is the space between the strings

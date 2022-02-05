@@ -92,5 +92,5 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 
 
 void PM_NinjaInit( pmove_t * pm, pml_t * pml ) {
-	PM_InitPerk( pm, pml, pm_defaultspeed, pm_sidewalkspeed, PM_NinjaJump, PM_NinjaSpecial );
+	PM_InitPerk( pm, pml, Perk_Ninja, PM_NinjaJump, PM_NinjaSpecial );
 }

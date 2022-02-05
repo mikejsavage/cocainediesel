@@ -1,10 +1,6 @@
 #include "gameshared/movement.h"
 #include "gameshared/gs_weapons.h"
 
-
-static constexpr float pm_defaultspeed = 320.0f;
-static constexpr float pm_sidewalkspeed = 320.0f;
-
 static constexpr float pm_jumpupspeed = 280.0f;
 static constexpr float pm_dashupspeed = 160.0f;
 static constexpr float pm_dashspeed = 550.0f;
@@ -28,7 +24,7 @@ static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		return;
 	}
 
-	Jump( pm, pml, pmove_gs, ps, pm_jumpupspeed, JumpType_Normal );
+	Jump( pm, pml, pmove_gs, ps, pm_jumpupspeed, JumpType_Normal, true );
 }
 
 
@@ -62,7 +58,7 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 		pml->velocity = GS_ClipVelocity( pml->velocity, normal, 1.0005f );
 		pml->velocity = pml->velocity + normal * pm_wjbouncefactor;
 
-		hspeed = Max2( hspeed, pml->maxPlayerSpeed );
+		hspeed = Max2( hspeed, pml->maxSpeed );
 
 		pml->velocity = Normalize( pml->velocity );
 
@@ -129,5 +125,5 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 
 
 void PM_HooliganInit( pmove_t * pm, pml_t * pml ) {
-	PM_InitPerk( pm, pml, pm_defaultspeed, pm_sidewalkspeed, PM_HooliganJump, PM_HooliganSpecial );
+	PM_InitPerk( pm, pml, Perk_Hooligan, PM_HooliganJump, PM_HooliganSpecial );
 }

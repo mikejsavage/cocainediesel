@@ -1,9 +1,5 @@
 #include "gameshared/movement.h"
 
-
-static constexpr float pm_defaultspeed = 500.0f;
-static constexpr float pm_sidewalkspeed = 500.0f;
-
 static constexpr float pm_jumpspeed = 250.0f;
 static constexpr float pm_chargedjumpspeed = 700.0f;
 
@@ -20,6 +16,10 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		return;
 	}
 
+	if( ps->pmove.stamina_state == Stamina_UsedAbility ) {
+		ps->pmove.stamina_state = Stamina_Normal;
+	}
+
 	if( !pressed ) {
 		return;
 	}
@@ -28,11 +28,8 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		return;
 	}
 
-	if( ps->pmove.stamina_state == Stamina_UsedAbility ) {
-		ps->pmove.stamina_state = Stamina_Normal;
-	}
 
-	Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, JumpType_Normal );
+	Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, JumpType_Normal, true );
 }
 
 
@@ -61,7 +58,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 		float factor = ( ps->pmove.stamina_stored - ps->pmove.stamina );
 		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
 			if( factor > stamina_jump_limit ) {
-				Jump( pm, pml, pmove_gs, ps, pm_chargedjumpspeed * factor, JumpType_MidgetCharge );
+				Jump( pm, pml, pmove_gs, ps, pm_chargedjumpspeed * factor, JumpType_MidgetCharge, false );
 			}
 			ps->pmove.stamina_state = Stamina_UsedAbility;
 		}
@@ -107,5 +104,5 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 
 void PM_MidgetInit( pmove_t * pm, pml_t * pml ) {
-	PM_InitPerk( pm, pml, pm_defaultspeed, pm_sidewalkspeed, PM_MidgetJump, PM_MidgetSpecial );
+	PM_InitPerk( pm, pml, Perk_Midget, PM_MidgetJump, PM_MidgetSpecial );
 }

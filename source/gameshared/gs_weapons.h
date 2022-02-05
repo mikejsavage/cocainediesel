@@ -68,6 +68,9 @@ struct PerkDef {
 	const char * short_name;
 	float health;
 	Vec3 scale;
+	float max_speed;
+	float side_speed;
+	float max_airspeed;
 };
 
 void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd, int timeDelta );

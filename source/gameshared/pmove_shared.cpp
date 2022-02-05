@@ -85,25 +85,27 @@ float JumpVelocity( pmove_t * pm, float vel ) {
 }
 
 
-void PM_InitPerk( pmove_t * pm, pml_t * pml,
-				float speed, float sidespeed,
+void PM_InitPerk( pmove_t * pm, pml_t * pml, PerkType perk,
 				void (*ability1Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ),
 				void (*ability2Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ) )
 {
-	pml->maxPlayerSpeed = pm->playerState->pmove.max_speed;
-	if( pml->maxPlayerSpeed < 0 ) {
-		pml->maxPlayerSpeed = speed;
-	}
+	const PerkDef * def = GetPerkDef( perk );
 
-	pml->forwardPush *= speed;
-	pml->sidePush *= sidespeed;
+	pml->maxSpeed = pm->playerState->pmove.max_speed;
+	if( pml->maxSpeed < 0 ) {
+		pml->maxSpeed = def->max_speed;
+	}
+	pml->maxAirSpeed = def->max_airspeed;
+
+	pml->forwardPush *= def->max_speed;
+	pml->sidePush *= def->side_speed;
 
 	pml->ability1Callback = ability1Callback;
 	pml->ability2Callback = ability2Callback;
 }
 
 
-void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, JumpType j ) {
+void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, JumpType j, bool addvel ) {
 	pm->groundentity = -1;
 
 	// clip against the ground when jumping if moving that direction
@@ -112,7 +114,7 @@ void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerSta
 	}
 
 	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, j );
-	pml->velocity.z = Max2( 0.0f, pml->velocity.z ) + JumpVelocity( pm, jumpspeed );
+	pml->velocity.z = (addvel ? Max2( 0.0f, pml->velocity.z ) : 0.0f) + JumpVelocity( pm, jumpspeed );
 }
 
 
@@ -126,7 +128,7 @@ void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir,
 
 	dashdir.z = 0.0f;
 	if( Length( dashdir ) == 0.0f ) {
-		Jump( pm, pml, pmove_gs, pm->playerState, dash_upspeed, JumpType_Normal );
+		Jump( pm, pml, pmove_gs, pm->playerState, dash_upspeed, JumpType_Normal, true );
 		return;
 	}
 

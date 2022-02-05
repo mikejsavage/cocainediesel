@@ -54,7 +54,7 @@ constexpr float pm_specspeed = 450.0f;
 
 // special movement parameters
 
-constexpr float pm_aircontrol = 140.0f; // aircontrol multiplier (intertia velocity to forward velocity conversion)
+constexpr float pm_aircontrol = 4440.0f; // aircontrol multiplier (intertia velocity to forward velocity conversion)
 constexpr float pm_wishspeed = 30;
 
 //
@@ -313,9 +313,8 @@ static void PM_Friction() {
 	// apply ground friction
 	if( pm->groundentity != -1 || pml.ladder ) {
 		if( pm->playerState->pmove.knockback_time <= 0 ) {
-			float friction = pml.friction;
 			float control = speed < pm_decelerate ? pm_decelerate : speed;
-			drop += control * friction * pml.frametime;
+			drop += control * pml.friction * pml.frametime;
 		}
 	}
 
@@ -359,7 +358,7 @@ static void PM_Aircontrol( Vec3 wishdir, float wishspeed ) {
 	pml.velocity = Normalize( pml.velocity );
 
 	float dot = Dot( pml.velocity, wishdir );
-	float k = 32.0f * pm_aircontrol * dot * dot * pml.frametime;
+	float k = pm_aircontrol * dot * dot * pml.frametime;
 
 	if( dot > 0 ) {
 		// we can't change direction while slowing down
@@ -407,10 +406,10 @@ static void PM_WaterMove() {
 	float wishspeed = Length( wishdir );
 	wishdir = SafeNormalize( wishdir );
 
-	if( wishspeed > pml.maxPlayerSpeed ) {
-		wishspeed = pml.maxPlayerSpeed / wishspeed;
+	if( wishspeed > pml.maxSpeed ) {
+		wishspeed = pml.maxSpeed / wishspeed;
 		wishvel *= wishspeed;
-		wishspeed = pml.maxPlayerSpeed;
+		wishspeed = pml.maxSpeed;
 	}
 
 	PM_Accelerate( wishdir, wishspeed, pml.waterAccel );
@@ -434,7 +433,7 @@ static void PM_Move() {
 
 	// clamp to server defined max speed
 
-	float maxspeed = pml.maxPlayerSpeed;
+	float maxspeed = pml.maxSpeed;
 
 	if( wishspeed > maxspeed ) {
 		wishspeed = maxspeed / wishspeed;
@@ -473,10 +472,11 @@ static void PM_Move() {
 
 		PM_StepSlideMove();
 	}
-	else  {
+	else {
 		// Air Control
 		float wishspeed2 = wishspeed;
-		float accel;
+		float accel = 0.0f;
+
 		if( Dot( pml.velocity, wishdir ) < 0 && pm->playerState->pmove.knockback_time <= 0 ) {
 			accel = pm_airdecelerate;
 		} else {

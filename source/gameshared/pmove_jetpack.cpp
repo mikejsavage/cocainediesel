@@ -2,9 +2,6 @@
 #include "gameshared/gs_weapons.h"
 
 
-static constexpr float pm_defaultspeed = 320.0f;
-static constexpr float pm_sidewalkspeed = 320.0f;
-
 static constexpr float pm_jetpackspeed = 25.0f * 62.0f;
 static constexpr float pm_maxjetpackupspeed = 150.0f;
 
@@ -23,7 +20,7 @@ static constexpr float refuel_air = 0.0f;
 static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( pressed && StaminaAvailable( ps, pml, fuel_use_jetpack ) && !pml->ladder && ps->pmove.stamina_state != Stamina_Reloading ) {
 		if( pm->groundentity != -1 ) {
-			Jump( pm, pml, pmove_gs, ps, pm_maxjetpackupspeed, JumpType_Normal );
+			Jump( pm, pml, pmove_gs, ps, pm_maxjetpackupspeed, JumpType_Normal, true );
 		}
 
 		ps->pmove.stamina_state = Stamina_UsingAbility;
@@ -83,5 +80,5 @@ static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmo
 
 
 void PM_JetpackInit( pmove_t * pm, pml_t * pml ) {
-	PM_InitPerk( pm, pml, pm_defaultspeed, pm_sidewalkspeed, PM_JetpackJump, PM_JetpackSpecial );
+	PM_InitPerk( pm, pml, Perk_Jetpack, PM_JetpackJump, PM_JetpackSpecial );
 }

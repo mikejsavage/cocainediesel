@@ -1,4 +1,5 @@
 #include "qcommon/qcommon.h"
+#include "gameshared/gs_weapons.h"
 
 enum LadderMovement : u8 {
 	Ladder_Off,
@@ -24,7 +25,8 @@ struct pml_t {
 
 	float forwardPush, sidePush;
 
-	float maxPlayerSpeed;
+	float maxSpeed;
+	float maxAirSpeed;
 
 	float groundAccel;
 	float airAccel;
@@ -58,12 +60,11 @@ void StaminaRecover( SyncPlayerState * ps, pml_t * pml, float recover );
 
 float JumpVelocity( pmove_t * pm, float vel );
 
-void PM_InitPerk( pmove_t * pm, pml_t * pml,
-				float speed, float sidespeed,
+void PM_InitPerk( pmove_t * pm, pml_t * pml, PerkType perk,
 				void (*ability1Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool ),
 				void (*ability2Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool ) );
 
-void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, JumpType j );
+void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, JumpType j, bool addvel );
 void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir, float dash_speed, float dash_upspeed );
 
 //pmove_ files

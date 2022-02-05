@@ -1,10 +1,6 @@
 #include "gameshared/movement.h"
 #include "gameshared/gs_weapons.h"
 
-
-static constexpr float pm_defaultspeed = 300.0f;
-static constexpr float pm_sidewalkspeed = 300.0f;
-
 static constexpr float jump_upspeed = 270.0f;
 static constexpr float jump_detection = 0.06f;
 
@@ -41,7 +37,7 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		}
 
 		ps->pmove.stamina_stored = 0.0f;
-		Jump( pm, pml, pmove_gs, ps, jump_upspeed, JumpType_Normal );
+		Jump( pm, pml, pmove_gs, ps, jump_upspeed, JumpType_Normal, true );
 	} else {
 		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
 	}
@@ -57,7 +53,7 @@ static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 	if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && !pml->ladder ) {
 		if( StaminaAvailable( ps, pml, stamina_use ) ) {
 			StaminaUse( ps, pml, stamina_use );
-			pml->maxPlayerSpeed = charge_speed;
+			pml->maxSpeed = charge_speed;
 			
 			pml->groundAccel = charge_groundAccel;
 			pml->friction = charge_friction;
@@ -74,5 +70,5 @@ static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 
 void PM_BoomerInit( pmove_t * pm, pml_t * pml ) {
-	PM_InitPerk( pm, pml, pm_defaultspeed, pm_sidewalkspeed, PM_BoomerJump, PM_BoomerSpecial );
+	PM_InitPerk( pm, pml, Perk_Boomer, PM_BoomerJump, PM_BoomerSpecial );
 }

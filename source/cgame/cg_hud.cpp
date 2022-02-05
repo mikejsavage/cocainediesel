@@ -2300,22 +2300,28 @@ static int LuauDrawText( lua_State * L ) {
 void CG_InitHUD() {
 	TracyZoneScoped;
 
-	TempAllocator temp = cls.frame_arena.temp();
-	const char * path = "huds/default.hud";
+	{
+		TracyZoneScopedN( "HUDScript" );
 
-	DynamicString script( &temp );
-	if( !LoadHUDFile( path, script ) ) {
-		Com_Printf( "HUD: failed to load %s file\n", path );
-		return;
+		TempAllocator temp = cls.frame_arena.temp();
+		const char * path = "huds/default.hud";
+
+		DynamicString script( &temp );
+		if( !LoadHUDFile( path, script ) ) {
+			Com_Printf( "HUD: failed to load %s file\n", path );
+			return;
+		}
+
+		Span< const char > cursor = script.span();
+		hud_root = CG_RecurseParseLayoutScript( &cursor, 0 );
+
+		layout_cursor_font_style = FontStyle_Normal;
+		layout_cursor_font_size = cgs.textSizeSmall;
 	}
 
-	Span< const char > cursor = script.span();
-	hud_root = CG_RecurseParseLayoutScript( &cursor, 0 );
-
-	layout_cursor_font_style = FontStyle_Normal;
-	layout_cursor_font_size = cgs.textSizeSmall;
-
 	{
+		TracyZoneScopedN( "Luau" );
+
 		hud_L = NULL;
 
 		size_t bytecode_size;
@@ -2376,6 +2382,8 @@ void CG_ShutdownHUD() {
 }
 
 void CG_DrawHUD() {
+	TracyZoneScoped;
+
 	bool hotload = false;
 	for( const char * path : ModifiedAssetPaths() ) {
 		if( StartsWith( path, "huds/" ) ) {
@@ -2390,12 +2398,12 @@ void CG_DrawHUD() {
 	}
 
 	{
-		TracyZoneScoped;
+		TracyZoneScopedN( "HUDScript" );
 		CG_RecurseExecuteLayoutThread( hud_root );
 	}
 
 	if( hud_L != NULL ) {
-		TracyZoneScoped;
+		TracyZoneScopedN( "Luau" );
 
 		lua_pushvalue( hud_L, -1 );
 

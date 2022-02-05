@@ -27,6 +27,7 @@ require( "libs.glad" )
 require( "libs.glfw3" )
 require( "libs.imgui" )
 require( "libs.jsmn" )
+require( "libs.luau" )
 require( "libs.mbedtls" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
@@ -92,6 +93,7 @@ do
 			"glad",
 			"glfw3",
 			"jsmn",
+			"luau",
 			"meshoptimizer",
 			"monocypher",
 			"openal",

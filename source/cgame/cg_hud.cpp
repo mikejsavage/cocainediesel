@@ -26,6 +26,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/text.h"
 #include "cgame/cg_local.h"
 
+#include "luau/lua.h"
+#include "luau/lualib.h"
+#include "luau/luacode.h"
+
 static int layout_cursor_x = 400;
 static int layout_cursor_y = 300;
 static int layout_cursor_width = 100;
@@ -75,6 +79,7 @@ struct cg_layoutnode_t {
 };
 
 static cg_layoutnode_t * hud_root;
+static lua_State * hud_L;
 
 struct constant_numeric_t {
 	const char *name;
@@ -2000,7 +2005,310 @@ static bool LoadHUDFile( const char * path, DynamicString & script ) {
 	return true;
 }
 
+static void CallWithStackTrace( lua_State * L, int args, const char * err ) {
+	lua_call( L, args, 0 );
+	// if( lua_pcall( L, args, 0, 1 ) ) {
+	// 	Com_Printf( S_COLOR_YELLOW "%s: %s\n", err, lua_tostring( L, -1 ) );
+	// }
+}
+
+static Span< const char > LuaToSpan( lua_State * L, int idx ) {
+	size_t len;
+	const char * str = lua_tolstring( L, idx, &len );
+	return Span< const char >( str, len );
+}
+
+static u8 CheckRGBA8Component( lua_State * L, int idx, int narg ) {
+	float val = lua_tonumber( L, idx );
+	luaL_argcheck( L, float( u8( val ) ) == val, narg, "RGBA8 colors must have u8 components" );
+	return u8( val );
+}
+
+static bool IsHex( char c ) {
+	return ( c >= '0' && c <= '9' ) || ( c >= 'a' && c <= 'f' ) || ( c >= 'A' && c <= 'F' );
+}
+
+static bool ParseHexDigit( u8 * digit, char c ) {
+	if( !IsHex( c ) )
+		return false;
+	if( c >= '0' && c <= '9' ) *digit = c - '0';
+	if( c >= 'a' && c <= 'f' ) *digit = 10 + c - 'a';
+	if( c >= 'A' && c <= 'F' ) *digit = 10 + c - 'A';
+	return true;
+}
+
+static bool ParseHexByte( u8 * byte, char a, char b ) {
+	u8 x, y;
+	if( !ParseHexDigit( &x, a ) || !ParseHexDigit( &y, b ) )
+		return false;
+	*byte = x * 16 + y;
+	return true;
+}
+
+static bool ParseHexColor( RGBA8 * rgba, Span< const char > str ) {
+	if( str.n == 0 || str[ 1 ] == '#' )
+		return false;
+
+	str++;
+
+	char digits[ 8 ];
+	digits[ 6 ] = 'f';
+	digits[ 7 ] = 'f';
+
+	if( str.n == 3 || str.n == 4 ) {
+		// #rgb #rgba
+		for( size_t i = 0; i < str.n; i++ ) {
+			digits[ i * 2 + 0 ] = str[ i ];
+			digits[ i * 2 + 1 ] = str[ i ];
+		}
+	}
+	else if( str.n == 6 || str.n == 8 ) {
+		// #rrggbb #rrggbbaa
+		for( size_t i = 0; i < str.n; i++ ) {
+			digits[ i ] = str[ i ];
+		}
+	}
+	else {
+		return false;
+	}
+
+	bool ok = true;
+	ok = ok && ParseHexByte( &rgba->r, digits[ 0 ], digits[ 1 ] );
+	ok = ok && ParseHexByte( &rgba->g, digits[ 2 ], digits[ 3 ] );
+	ok = ok && ParseHexByte( &rgba->b, digits[ 4 ], digits[ 5 ] );
+	ok = ok && ParseHexByte( &rgba->a, digits[ 6 ], digits[ 7 ] );
+	return ok;
+}
+
+static Vec4 CheckColor( lua_State * L, int narg ) {
+	int type = lua_type( L, narg );
+	luaL_argcheck( L, type == LUA_TSTRING || type == LUA_TTABLE, narg, "colors must be strings or tables" );
+
+	if( lua_type( L, narg ) == LUA_TSTRING ) {
+		RGBA8 rgba;
+		if( !ParseHexColor( &rgba, LuaToSpan( L, narg ) ) ) {
+			luaL_error( L, "color doesn't parse as a hex string: %s", lua_tostring( L, narg ) );
+		}
+		return sRGBToLinear( rgba );
+	}
+
+	lua_getfield( L, narg, "srgb" );
+	luaL_argcheck( L, lua_isboolean( L, -1 ), narg, "color.srgb must be a boolean" );
+	bool srgb = lua_toboolean( L, -1 );
+	lua_pop( L, 1 );
+
+	if( srgb ) {
+		RGBA8 rgba;
+
+		lua_getfield( L, narg, "r" );
+		rgba.r = CheckRGBA8Component( L, -1, narg );
+		lua_pop( L, 1 );
+
+		lua_getfield( L, narg, "g" );
+		rgba.g = CheckRGBA8Component( L, -1, narg );
+		lua_pop( L, 1 );
+
+		lua_getfield( L, narg, "b" );
+		rgba.b = CheckRGBA8Component( L, -1, narg );
+		lua_pop( L, 1 );
+
+		lua_getfield( L, narg, "a" );
+		rgba.a = lua_isnil( L, -1 ) ? 255 : CheckRGBA8Component( L, -1, narg );
+		lua_pop( L, 1 );
+
+		return sRGBToLinear( rgba );
+	}
+
+	Vec4 linear;
+
+	lua_getfield( L, narg, "r" );
+	linear.x = lua_tonumber( L, -1 );
+	lua_pop( L, 1 );
+
+	lua_getfield( L, narg, "g" );
+	linear.y = lua_tonumber( L, -1 );
+	lua_pop( L, 1 );
+
+	lua_getfield( L, narg, "b" );
+	linear.z = lua_tonumber( L, -1 );
+	lua_pop( L, 1 );
+
+	lua_getfield( L, narg, "a" );
+	linear.w = lua_isnil( L, -1 ) ? 1.0f : lua_tonumber( L, -1 );
+	lua_pop( L, 1 );
+
+	return linear;
+}
+
+static int LuauRGBA8( lua_State * L ) {
+	RGBA8 rgba;
+	rgba.r = CheckRGBA8Component( L, 1, 1 );
+	rgba.g = CheckRGBA8Component( L, 2, 2 );
+	rgba.b = CheckRGBA8Component( L, 3, 3 );
+	rgba.a = lua_isnoneornil( L, 4 ) ? 255 : CheckRGBA8Component( L, 4, 4 );
+
+	lua_newtable( L );
+
+	lua_pushboolean( L, true );
+	lua_setfield( L, -2, "srgb" );
+
+	lua_pushnumber( L, rgba.r );
+	lua_setfield( L, -2, "r" );
+
+	lua_pushnumber( L, rgba.g );
+	lua_setfield( L, -2, "g" );
+
+	lua_pushnumber( L, rgba.b );
+	lua_setfield( L, -2, "b" );
+
+	lua_pushnumber( L, rgba.a );
+	lua_setfield( L, -2, "a" );
+
+	return 1;
+}
+
+static int LuauRGBALinear( lua_State * L ) {
+	lua_newtable( L );
+
+	lua_pushboolean( L, false );
+	lua_setfield( L, -2, "srgb" );
+
+	lua_pushvalue( L, 1 );
+	lua_setfield( L, -2, "r" );
+
+	lua_pushvalue( L, 2 );
+	lua_setfield( L, -2, "g" );
+
+	lua_pushvalue( L, 3 );
+	lua_setfield( L, -2, "b" );
+
+	lua_pushvalue( L, 4 );
+	lua_setfield( L, -2, "a" );
+
+	return 1;
+}
+
+static int LuauPrint( lua_State * L ) {
+	Com_Printf( "%s\n", luaL_checkstring( hud_L, 1 ) );
+	return 0;
+}
+
+static int LuauAsset( lua_State * L ) {
+	StringHash hash( luaL_checkstring( hud_L, 1 ) );
+	lua_pushlightuserdata( L, checked_cast< void * >( checked_cast< uintptr_t >( hash.hash ) ) );
+	return 1;
+}
+
+static StringHash CheckHash( lua_State * L, int idx ) {
+	if( lua_isnoneornil( L, idx ) )
+		return EMPTY_HASH;
+	luaL_checktype( L, idx, LUA_TLIGHTUSERDATA );
+	return StringHash( checked_cast< u64 >( checked_cast< uintptr_t >( lua_touserdata( L, idx ) ) ) );
+}
+
+static int LuauDraw2DBox( lua_State * L ) {
+	float x = luaL_checknumber( L, 1 );
+	float y = luaL_checknumber( L, 2 );
+	float w = luaL_checknumber( L, 3 );
+	float h = luaL_checknumber( L, 4 );
+	Vec4 color = CheckColor( L, 5 );
+	StringHash material = CheckHash( L, 6 );
+	Draw2DBox( x, y, w, h, material == EMPTY_HASH ? cls.white_material : FindMaterial( material ), color );
+	return 0;
+}
+
+static Alignment CheckAlignment( lua_State * L, int idx ) {
+	constexpr const Alignment alignments[] = {
+		Alignment_LeftTop,
+		Alignment_CenterTop,
+		Alignment_RightTop,
+		Alignment_LeftMiddle,
+		Alignment_CenterMiddle,
+		Alignment_RightMiddle,
+		Alignment_LeftBottom,
+		Alignment_CenterBottom,
+		Alignment_RightBottom,
+	};
+
+	constexpr const char * names[] = {
+		"left top",
+		"center top",
+		"right top",
+		"left middle",
+		"center middle",
+		"right middle",
+		"left bottom",
+		"center bottom",
+		"right bottom",
+	};
+
+	return alignments[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
+}
+
+static const Font * CheckFont( lua_State * L, int idx ) {
+	const Font * fonts[] = {
+		cgs.fontNormal,
+		cgs.fontNormalBold,
+		cgs.fontItalic,
+		cgs.fontBoldItalic,
+	};
+
+	constexpr const char * names[] = {
+		"normal",
+		"bold",
+		"italic",
+		"bolditalic",
+	};
+
+	return fonts[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
+}
+
+static int LuauDrawText( lua_State * L ) {
+	luaL_checktype( L, 1, LUA_TTABLE );
+
+	lua_getfield( L, 1, "color" );
+	Vec4 color = CheckColor( L, -1 );
+	lua_pop( L, 1 );
+
+	lua_getfield( L, 1, "font" );
+	const Font * font = CheckFont( L, -1 );
+	lua_pop( L, 1 );
+
+	lua_getfield( L, 1, "font_size" );
+	luaL_argcheck( L, lua_type( L, -1 ) == LUA_TNUMBER, 1, "options.font_size must be a number" );
+	float font_size = lua_tonumber( L, -1 );
+	lua_pop( L, 1 );
+
+	bool border = false;
+	Vec4 border_color = vec4_black;
+	lua_getfield( L, 1, "border" );
+	if( !lua_isnil( L, -1 ) ) {
+		border = true;
+		border_color = CheckColor( L, -1 );
+	}
+	lua_pop( L, 1 );
+
+	lua_getfield( L, 1, "alignment" );
+	Alignment alignment = CheckAlignment( L, -1 );
+	lua_pop( L, 1 );
+
+	float x = luaL_checknumber( L, 2 );
+	float y = luaL_checknumber( L, 3 );
+	const char * str = luaL_checkstring( hud_L, 4 );
+
+	if( border ) {
+		DrawText( font, font_size, str, alignment, x, y, color, border_color );
+	}
+	else {
+		DrawText( font, font_size, str, alignment, x, y, color, false );
+	}
+
+	return 0;
+}
+
 void CG_InitHUD() {
+	TracyZoneScoped;
+
 	TempAllocator temp = cls.frame_arena.temp();
 	const char * path = "huds/default.hud";
 
@@ -2015,16 +2323,71 @@ void CG_InitHUD() {
 
 	layout_cursor_font_style = FontStyle_Normal;
 	layout_cursor_font_size = cgs.textSizeSmall;
+
+	{
+		hud_L = NULL;
+
+		size_t bytecode_size;
+		char * bytecode = luau_compile( AssetString( "huds/hud.lua" ).ptr, AssetBinary( "huds/hud.lua" ).n, NULL, &bytecode_size );
+		defer { free( bytecode ); };
+		if( bytecode == NULL ) {
+			Com_Printf( S_COLOR_YELLOW "Couldn't compile hud.lua: %s\n", bytecode );
+			return;
+		}
+
+		hud_L = luaL_newstate();
+		if( hud_L == NULL ) {
+			Fatal( "luaL_newstate" );
+		}
+
+		constexpr const luaL_Reg cdlib[] = {
+			{ "print", LuauPrint },
+			{ "asset", LuauAsset },
+			{ "box", LuauDraw2DBox },
+			{ "text", LuauDrawText },
+
+			{ NULL, NULL }
+		};
+
+		// TODO: add a require statement
+
+		luaL_openlibs( hud_L ); // TODO: don't open all libs
+		luaL_register( hud_L, "cd", cdlib );
+
+		lua_pushcfunction( hud_L, LuauRGBA8, "RGBA8" );
+		lua_setfield( hud_L, LUA_GLOBALSINDEX, "RGBA8" );
+
+		lua_pushcfunction( hud_L, LuauRGBALinear, "RGBALinear" );
+		lua_setfield( hud_L, LUA_GLOBALSINDEX, "RGBALinear" );
+
+		luaL_sandbox( hud_L );
+
+		// lua_getglobal( hud_L, "debug" );
+		// lua_getfield( hud_L, -1, "traceback" );
+		// lua_remove( hud_L, -2 );
+
+		int ok = luau_load( hud_L, "hud.lua", bytecode, bytecode_size, 0 );
+		if( ok == 0 ) {
+			// check we have 1 thing on the stack
+			lua_call( hud_L, 0, 1 );
+		}
+		else {
+			lua_close( hud_L );
+			hud_L = NULL;
+		}
+		// CallWithStackTrace( "hud.lua" );
+	}
 }
 
 void CG_ShutdownHUD() {
 	CG_RecurseFreeLayoutThread( hud_root );
+	lua_close( hud_L );
 }
 
 void CG_DrawHUD() {
 	bool hotload = false;
 	for( const char * path : ModifiedAssetPaths() ) {
-		if( FileExtension( path ) == ".hud" ) {
+		if( StartsWith( path, "huds/" ) ) {
 			hotload = true;
 			break;
 		}
@@ -2035,6 +2398,36 @@ void CG_DrawHUD() {
 		CG_InitHUD();
 	}
 
-	TracyZoneScoped;
-	CG_RecurseExecuteLayoutThread( hud_root );
+	{
+		TracyZoneScoped;
+		CG_RecurseExecuteLayoutThread( hud_root );
+	}
+
+	if( hud_L != NULL ) {
+		TracyZoneScoped;
+
+		lua_pushvalue( hud_L, -1 );
+
+		lua_newtable( hud_L );
+
+		lua_pushnumber( hud_L, cg.predictedPlayerState.health );
+		lua_setfield( hud_L, -2, "health" );
+
+		lua_pushnumber( hud_L, cg.predictedPlayerState.max_health );
+		lua_setfield( hud_L, -2, "max_health" );
+
+		lua_pushboolean( hud_L, Cvar_Bool( "cg_showFPS" ) );
+		lua_setfield( hud_L, -2, "show_fps" );
+
+		lua_pushnumber( hud_L, CG_GetFPS( NULL ) );
+		lua_setfield( hud_L, -2, "fps" );
+
+		lua_pushnumber( hud_L, frame_static.viewport_width );
+		lua_setfield( hud_L, -2, "viewport_width" );
+
+		lua_pushnumber( hud_L, frame_static.viewport_height );
+		lua_setfield( hud_L, -2, "viewport_height" );
+
+		CallWithStackTrace( hud_L, 1, "hud.lua" );
+	}
 }

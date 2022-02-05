@@ -7,6 +7,8 @@
 #include "cgame/ref.h"
 
 #include "cgltf/cgltf.h"
+
+#define JSMN_HEADER
 #include "jsmn/jsmn.h"
 
 // like cgltf_load_buffers, but doesn't try to load URIs

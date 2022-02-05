@@ -17,7 +17,6 @@ endif
 #include chasing
 
 #include speed
-#include fps
 
 #include net
 #include damage_numbers

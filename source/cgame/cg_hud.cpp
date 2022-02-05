@@ -173,26 +173,22 @@ static int CG_StaminaStoredPercent( const void * parameter ) {
 static int CG_GetSpeedVertical( const void *parameter ) {
 	return cg.predictedPlayerState.pmove.velocity.z;
 }
-
-static int CG_GetFPS( const void *parameter ) {
-#define FPSSAMPLESCOUNT 32
-#define FPSSAMPLESMASK ( FPSSAMPLESCOUNT - 1 )
-	static int frameTimes[FPSSAMPLESCOUNT];
+static int CG_GetFPS() {
+	static int frameTimes[ 32 ];
 
 	if( cg_showFPS->modified ) {
 		memset( frameTimes, 0, sizeof( frameTimes ) );
 		cg_showFPS->modified = false;
 	}
 
-	frameTimes[cg.frameCount & FPSSAMPLESMASK] = cls.realFrameTime;
+	frameTimes[cg.frameCount % ARRAY_COUNT( frameTimes )] = cls.realFrameTime;
 
 	float average = 0.0f;
 	for( size_t i = 0; i < ARRAY_COUNT( frameTimes ); i++ ) {
-		average += frameTimes[( cg.frameCount - i ) & FPSSAMPLESMASK];
+		average += frameTimes[( cg.frameCount - i ) % ARRAY_COUNT( frameTimes )];
 	}
-	average /= FPSSAMPLESCOUNT;
+	average /= ARRAY_COUNT( frameTimes );
 	return int( 1000.0f / average + 0.5f );
-;
 }
 
 static int CG_GetMatchState( const void *parameter ) {
@@ -268,7 +264,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "CHASING", CG_GetPOVnum, NULL },
 	{ "SPEED", CG_GetSpeed, NULL },
 	{ "SPEED_VERTICAL", CG_GetSpeedVertical, NULL },
-	{ "FPS", CG_GetFPS, NULL },
 	{ "MATCH_STATE", CG_GetMatchState, NULL },
 	{ "PAUSED", CG_Paused, NULL },
 	{ "VIDWIDTH", CG_GetVidWidth, NULL },
@@ -2419,7 +2414,7 @@ void CG_DrawHUD() {
 		lua_pushboolean( hud_L, Cvar_Bool( "cg_showFPS" ) );
 		lua_setfield( hud_L, -2, "show_fps" );
 
-		lua_pushnumber( hud_L, CG_GetFPS( NULL ) );
+		lua_pushnumber( hud_L, CG_GetFPS() );
 		lua_setfield( hud_L, -2, "fps" );
 
 		lua_pushnumber( hud_L, frame_static.viewport_width );

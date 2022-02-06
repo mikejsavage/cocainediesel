@@ -70,11 +70,6 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 			frac *= frac; //smoother curve
 			angles->x += Lerp( 0.0f, frac, 60.0f );
 		}
-		else if( ps->weapon_state == WeaponState_Reloading || ps->weapon_state == WeaponState_StagedReloading ) {
-			float t = ps->weapon_state == WeaponState_Reloading ? def->reload_time : def->staged_reload_time;
-			float frac = float( ps->weapon_state_time ) / t;
-			angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
-		}
 		else if( ps->weapon == Weapon_Railgun && ps->weapon_state == WeaponState_Cooking ) {
 			float charge = float( ps->weapon_state_time ) / float( def->reload_time );
 			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 4.0f;
@@ -94,13 +89,11 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 	angles->x += cg.xyspeed * cg.bobFracSin * 0.012f;
 }
 
-void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {
-	if( !cg.view.drawWeapon ) {
-		return;
+void CG_ViewWeapon_AddAnimation( int ent_num, StringHash anim ) {
+	if( ISVIEWERENTITY( ent_num ) && !cg.view.thirdperson && cg.view.drawWeapon ) {
+		cg.weapon.eventAnim = anim;
+		cg.weapon.eventAnimStartTime = cl.serverTime;
 	}
-
-	cg.weapon.eventAnim = newAnim;
-	cg.weapon.eventAnimStartTime = cl.serverTime;
 }
 
 void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
@@ -193,12 +186,31 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 		model = GetGadgetModelMetadata( ps->gadget )->model;
 	}
 
+	if( model == NULL ) {
+		return;
+	}
+
 	Mat4 transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
 
 	DrawModelConfig config = { };
 	config.draw_model.enabled = true;
 	config.draw_model.view_weapon = true;
-	DrawModel( config, model, transform, CG_TeamColorVec4( ps->team ) );
+
+	bool found = false;
+	for( u8 i = 0; i < model->num_animations; i++ ) {
+		if( model->animations[ i ].name == viewweapon->eventAnim ) {
+			found = true;
+			float t = float( cl.serverTime - viewweapon->eventAnimStartTime ) * 0.001f;
+			TempAllocator temp = cls.frame_arena.temp();
+			Span< TRS > pose = SampleAnimation( &temp, model, t, i );
+			MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
+			DrawModel( config, model, transform, CG_TeamColorVec4( ps->team ), palettes );
+			break;
+		}
+	}
+	if( !found ) {
+		DrawModel( config, model, transform, CG_TeamColorVec4( ps->team ) );
+	}
 }
 
 void CG_AddRecoil( WeaponType weapon ) {

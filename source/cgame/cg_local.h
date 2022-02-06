@@ -425,7 +425,7 @@ void DrawPersistentBeams();
 //
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon );
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon );
-void CG_ViewWeapon_StartAnimationEvent( int newAnim );
+void CG_ViewWeapon_AddAnimation( int ent_num, StringHash anim );
 
 void CG_AddRecoil( WeaponType weapon );
 void CG_Recoil( WeaponType weapon );

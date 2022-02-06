@@ -233,9 +233,9 @@ struct cg_viewweapon_t {
 	mat3_t axis;
 	Vec3 origin;
 
-	int baseAnim;
+	StringHash baseAnim;
 	int64_t baseAnimStartTime;
-	int eventAnim;
+	StringHash eventAnim;
 	int64_t eventAnimStartTime;
 
 	Mat4 muzzle_transform;

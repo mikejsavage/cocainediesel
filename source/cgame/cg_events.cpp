@@ -207,11 +207,6 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 			break;
 	}
 
-	// add animation to the view weapon model
-	if( ISVIEWERENTITY( entNum ) && !cg.view.thirdperson ) {
-		CG_ViewWeapon_StartAnimationEvent( WEAPANIM_ATTACK );
-	}
-
 	// recoil
 	if( ISVIEWERENTITY( entNum ) && cg.view.playerPrediction ) {
 		CG_AddRecoil( weapon );
@@ -551,6 +546,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_WEAPONACTIVATE: {
 			CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
+			CG_ViewWeapon_AddAnimation( ent->number, "activate" );
 
 			StringHash sfx = EMPTY_HASH;
 			bool is_gadget = ( parm & 1 ) != 0;
@@ -608,6 +604,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 
 			CG_FireWeaponEvent( owner, weapon );
+			CG_ViewWeapon_AddAnimation( owner, "fire" );
 
 			Vec3 dir;
 			AngleVectors( angles, &dir, NULL, NULL );
@@ -662,6 +659,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 			if( viewer ) {
 				S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
+				CG_ViewWeapon_AddAnimation( ent->number, "reload" );
 			}
 			else {
 				S_StartFixedSound( sfx, ent->origin, CHAN_AUTO, 1.0f, 1.0f );
@@ -713,6 +711,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_WEAPONDROP: // deactivate is not predictable
 			CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHOUT, 0, EVENT_CHANNEL );
+			CG_ViewWeapon_AddAnimation( ent->number, "drop" );
 			break;
 
 		case EV_PAIN:

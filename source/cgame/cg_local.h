@@ -309,7 +309,7 @@ void CG_DrawDamageNumbers();
 
 void CG_AddBomb( centity_t * cent );
 void CG_AddBombSite( centity_t * cent );
-void CG_DrawBombHUD();
+void CG_DrawBombHUD( int name_size, int goal_size );
 void CG_ResetBombHUD();
 
 void AddDamageEffect( float x = 0.0f );

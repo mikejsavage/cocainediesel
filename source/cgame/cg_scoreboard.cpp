@@ -148,7 +148,7 @@ void CG_DrawScoreboard() {
 	};
 
 	float col_width = 80;
-	u8 alpha = 242;
+	u8 alpha = 255;
 
 	if( GS_TeamBasedGametype( &client_gs ) ) {
 		float score_width = 5 * ( ImGui::GetTextLineHeight() + 2 * 8 );

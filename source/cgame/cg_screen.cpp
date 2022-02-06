@@ -431,7 +431,7 @@ void CG_AddBombSite( centity_t * cent ) {
 	num_bomb_sites++;
 }
 
-void CG_DrawBombHUD() {
+void CG_DrawBombHUD( int name_size, int goal_size ) {
 	if( client_gs.gameState.match_state > MatchState_Playing )
 		return;
 
@@ -450,12 +450,12 @@ void CG_DrawBombHUD() {
 
 			char buf[ 4 ];
 			snprintf( buf, sizeof( buf ), "%c", site->letter );
-			DrawText( cgs.fontNormal, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
+			DrawText( cgs.fontNormal, name_size, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == client_gs.gameState.bomb.attacking_team ? "ATTACK" : "DEFEND";
-				coords.y += ( cgs.fontSystemMediumSize * 7 ) / 8;
-				DrawText( cgs.fontNormal, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
+				coords.y += name_size * 0.6f;
+				DrawText( cgs.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 			}
 		}
 	}
@@ -494,8 +494,8 @@ void CG_DrawBombHUD() {
 					}
 				}
 
-				float y = coords.y - cgs.fontSystemTinySize / 2;
-				DrawText( cgs.fontNormal, cgs.textSizeSmall, msg, Alignment_CenterMiddle, coords.x, y, color, true );
+				float y = coords.y - name_size / 2;
+				DrawText( cgs.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, y, color, true );
 			}
 		}
 

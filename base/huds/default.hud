@@ -1,7 +1,5 @@
 if %MATCH_STATE < #MatchState_PostMatch
 
-#include bomb_indicators
-
 #include topinfo
 
 if %TEAM != #TEAM_SPECTATOR
@@ -12,18 +10,11 @@ endif
 
 #include weaponlist
 
-#include bomb_progress
-
 #include chasing
-
-#include speed
 
 #include net
 #include damage_numbers
 #include pointing
-#include obituaries
-
-#include crosshair
 
 endif //if %MATCH_STATE < #MatchState_PostMatch
 

@@ -154,7 +154,7 @@ static int CG_IsTeamBased( const void *parameter ) {
 	return GS_TeamBasedGametype( &client_gs ) ? 1 : 0;
 }
 
-static int CG_GetSpeed( const void *parameter ) {
+static int CG_GetSpeed() {
 	return Length( cg.predictedPlayerState.pmove.velocity.xy() );
 }
 
@@ -248,7 +248,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "BETA_PLAYERS_ALIVE", CG_U8, &client_gs.gameState.bomb.beta_players_alive },
 	{ "BETA_PLAYERS_TOTAL", CG_U8, &client_gs.gameState.bomb.beta_players_total },
 
-	{ "PROGRESS", CG_U8, &cg.predictedPlayerState.progress },
 	{ "PROGRESS_TYPE", CG_U8, &cg.predictedPlayerState.progress_type },
 
 	{ "ROUND_TYPE", CG_U8, &client_gs.gameState.round_type },
@@ -259,7 +258,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 
 	// other
 	{ "CHASING", CG_GetPOVnum, NULL },
-	{ "SPEED", CG_GetSpeed, NULL },
 	{ "MATCH_STATE", CG_GetMatchState, NULL },
 	{ "PAUSED", CG_Paused, NULL },
 	{ "VIDWIDTH", CG_GetVidWidth, NULL },
@@ -269,9 +267,7 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "CALLVOTE", CG_IsActiveCallvote, NULL },
 
 	// cvars
-	{ "SHOW_FPS", CG_GetCvar, "cg_showFPS" },
 	{ "SHOW_POINTED_PLAYER", CG_GetCvar, "cg_showPointedPlayer" },
-	{ "SHOW_SPEED", CG_GetCvar, "cg_showSpeed" },
 	{ "SHOW_HOTKEYS", CG_GetCvar, "cg_showHotkeys" },
 };
 
@@ -522,144 +518,6 @@ static const Material * DamageTypeToIcon( DamageType type ) {
 	}
 
 	return FindMaterial( "" );
-}
-
-static void CG_DrawObituaries(
-	int x, int y, Alignment alignment, int width, int height,
-	int internal_align, unsigned int icon_size
-) {
-	const int icon_padding = 4;
-
-	unsigned line_height = Max2( 1u, Max2( unsigned( layout_cursor_font_size ), icon_size ) );
-	int num_max = height / line_height;
-
-	if( width < (int)icon_size || !num_max ) {
-		return;
-	}
-
-	const Font * font = GetHUDFont();
-
-	int next = cg_obituaries_current + 1;
-	if( next >= MAX_OBITUARIES ) {
-		next = 0;
-	}
-
-	int num = 0;
-	int i = next;
-	do {
-		if( cg_obituaries[i].type != OBITUARY_NONE && cls.monotonicTime - cg_obituaries[i].time <= 5000 ) {
-			num++;
-		}
-		if( ++i >= MAX_OBITUARIES ) {
-			i = 0;
-		}
-	} while( i != next );
-
-	int skip;
-	if( num > num_max ) {
-		skip = num - num_max;
-		num = num_max;
-	} else {
-		skip = 0;
-	}
-
-	y = CG_VerticalAlignForHeight( y, alignment, height );
-	x = CG_HorizontalAlignForWidth( x, alignment, width );
-
-	int xoffset = 0;
-	int yoffset = 0;
-
-	i = next;
-	do {
-		const obituary_t * obr = &cg_obituaries[i];
-		if( ++i >= MAX_OBITUARIES ) {
-			i = 0;
-		}
-
-		if( obr->type == OBITUARY_NONE || cls.monotonicTime - obr->time > 5000 ) {
-			continue;
-		}
-
-		if( skip > 0 ) {
-			skip--;
-			continue;
-		}
-
-		const Material * pic = DamageTypeToIcon( obr->damage_type );
-
-		float attacker_width = TextBounds( font, layout_cursor_font_size, obr->attacker ).maxs.x;
-		float victim_width = TextBounds( font, layout_cursor_font_size, obr->victim ).maxs.x;
-
-		int w = 0;
-		if( obr->type != OBITUARY_ACCIDENT ) {
-			w += attacker_width;
-		}
-		w += icon_padding;
-		w += icon_size;
-		w += icon_padding;
-		w += victim_width;
-
-		if( obr->wallbang ) {
-			w += icon_size;
-			w += icon_padding;
-		}
-
-		if( internal_align == 1 ) {
-			// left
-			xoffset = 0;
-		} else if( internal_align == 2 ) {
-			// center
-			xoffset = ( width - w ) / 2;
-		} else {
-			// right
-			xoffset = width - w;
-		}
-
-		int obituary_y = y + yoffset + ( line_height - layout_cursor_font_size ) / 2;
-		if( obr->type != OBITUARY_ACCIDENT ) {
-			Vec4 color = CG_TeamColorVec4( obr->attacker_team );
-			DrawText( font, layout_cursor_font_size, obr->attacker, x + xoffset, obituary_y, color, layout_cursor_font_border );
-			xoffset += attacker_width;
-		}
-
-		xoffset += icon_padding;
-
-		Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, pic, AttentionGettingColor() );
-		xoffset += icon_size + icon_padding;
-
-		if( obr->wallbang ) {
-			Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, FindMaterial( "weapons/wallbang_icon" ), AttentionGettingColor() );
-			xoffset += icon_size + icon_padding;
-		}
-
-		Vec4 color = CG_TeamColorVec4( obr->victim_team );
-		DrawText( font, layout_cursor_font_size, obr->victim, x + xoffset, obituary_y, color, layout_cursor_font_border );
-
-		yoffset += line_height;
-	} while( i != next );
-
-	if( cg.predictedPlayerState.health <= 0 && cg.predictedPlayerState.team != TEAM_SPECTATOR ) {
-		if( self_obituary.entropy != 0 ) {
-			float h = 128.0f;
-			float yy = frame_static.viewport.y * 0.5f - h * 0.5f;
-
-			float t = float( cls.monotonicTime - self_obituary.time ) / 500.0f;
-
-			Draw2DBox( 0, yy, frame_static.viewport.x, h, cls.white_material, Vec4( 0, 0, 0, Min2( 0.5f, t * 0.5f ) ) );
-
-			if( t >= 1.0f ) {
-				RNG rng = NewRNG( self_obituary.entropy, 0 );
-
-				TempAllocator temp = cls.frame_arena.temp();
-				const char * obituary = MakeObituary( &temp, &rng, self_obituary.type, self_obituary.damage_type );
-
-				float size = Lerp( h * 0.5f, Unlerp01( 1.0f, t, 20.0f ), h * 5.0f );
-				Vec4 color = AttentionGettingColor();
-				color.w = Unlerp01( 1.0f, t, 2.0f );
-				DrawText( cgs.fontNormal, size, obituary, Alignment_CenterMiddle, frame_static.viewport.x * 0.5f, frame_static.viewport.y * 0.5f, color );
-			}
-		}
-	}
 }
 
 //=============================================================================
@@ -1312,15 +1170,6 @@ static bool CG_LFuncFontBorder( cg_layoutnode_t *argumentnode ) {
 	return true;
 }
 
-static bool CG_LFuncDrawObituaries( cg_layoutnode_t *argumentnode ) {
-	int internal_align = (int)CG_GetNumericArg( &argumentnode );
-	int icon_size = (int)CG_GetNumericArg( &argumentnode );
-
-	CG_DrawObituaries( layout_cursor_x, layout_cursor_y, layout_cursor_alignment,
-		layout_cursor_width, layout_cursor_height, internal_align, icon_size * frame_static.viewport_height / 600 );
-	return true;
-}
-
 static bool CG_LFuncDrawClock( cg_layoutnode_t *argumentnode ) {
 	CG_DrawClock( layout_cursor_x, layout_cursor_y, layout_cursor_alignment, GetHUDFont(), layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
 	return true;
@@ -1328,11 +1177,6 @@ static bool CG_LFuncDrawClock( cg_layoutnode_t *argumentnode ) {
 
 static bool CG_LFuncDrawDamageNumbers( cg_layoutnode_t *argumentnode ) {
 	CG_DrawDamageNumbers();
-	return true;
-}
-
-static bool CG_LFuncDrawBombIndicators( cg_layoutnode_t *argumentnode ) {
-	CG_DrawBombHUD();
 	return true;
 }
 
@@ -1437,12 +1281,6 @@ static bool CG_LFuncDrawPerksUtilityIcons( cg_layoutnode_t *argumentnode ) {
 
 	DrawPerksUtility( layout_cursor_x, layout_cursor_y, offx, w, h, layout_cursor_alignment, font_size );
 
-	return true;
-}
-
-
-static bool CG_LFuncDrawCrossHair( cg_layoutnode_t *argumentnode ) {
-	CG_DrawCrosshair( frame_static.viewport_width / 2, frame_static.viewport_height / 2 );
 	return true;
 }
 
@@ -1555,12 +1393,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 	},
 
 	{
-		"drawObituaries",
-		CG_LFuncDrawObituaries,
-		2,
-	},
-
-	{
 		"drawCallvote",
 		CG_LFuncDrawCallvote,
 		0,
@@ -1591,12 +1423,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 	},
 
 	{
-		"drawBombIndicators",
-		CG_LFuncDrawBombIndicators,
-		0,
-	},
-
-	{
 		"drawPlayerIcons",
 		CG_LFuncDrawPlayerIcons,
 		3,
@@ -1618,12 +1444,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 		"drawBindString",
 		CG_LFuncDrawBindString,
 		2,
-	},
-
-	{
-		"drawCrosshair",
-		CG_LFuncDrawCrossHair,
-		0,
 	},
 
 	{
@@ -2297,6 +2117,182 @@ static int LuauDrawText( lua_State * L ) {
 	return 0;
 }
 
+static int DrawBombIndicators( lua_State * L ) {
+	CG_DrawBombHUD( luaL_checknumber( L, 1 ), luaL_checknumber( L, 2 ) );
+	return 0;
+}
+
+static int DrawCrosshair( lua_State * L ) {
+	CG_DrawCrosshair( frame_static.viewport_width / 2, frame_static.viewport_height / 2 );
+	return 0;
+}
+
+static int DrawObituaries( lua_State * L ) {
+	luaL_checktype( L, 1, LUA_TTABLE );
+
+	lua_getfield( L, 1, "font_size" );
+	int font_size = lua_tonumber( L, -1 );
+	lua_pop( L, 1 );
+
+	lua_getfield( L, 1, "alignment" );
+	Alignment alignment = CheckAlignment( L, -1 );
+	lua_pop( L, 1 );
+
+	lua_getfield( L, 1, "width" );
+	int width = lua_tonumber( L, -1 );
+	lua_pop( L, 1 );
+
+	lua_getfield( L, 1, "height" );
+	int height = lua_tonumber( L, -1 );
+	lua_pop( L, 1 );
+
+	lua_getfield( L, 1, "internal_align" );
+	int internal_align = lua_tonumber( L, -1 );
+	lua_pop( L, 1 );
+
+	lua_getfield( L, 1, "icon_size" );
+	unsigned int icon_size = lua_tonumber( L, -1 );
+	lua_pop( L, 1 );
+
+	int x = luaL_checknumber( L, 2 );
+	int y = luaL_checknumber( L, 3 );
+
+	const int icon_padding = 4;
+
+	unsigned line_height = Max2( 1u, Max2( unsigned( font_size ), icon_size ) );
+	int num_max = height / line_height;
+
+	if( width < (int)icon_size || !num_max ) {
+		return 0;
+	}
+
+	const Font * font = GetHUDFont();
+
+	int next = cg_obituaries_current + 1;
+	if( next >= MAX_OBITUARIES ) {
+		next = 0;
+	}
+
+	int num = 0;
+	int i = next;
+	do {
+		if( cg_obituaries[i].type != OBITUARY_NONE && cls.monotonicTime - cg_obituaries[i].time <= 5000 ) {
+			num++;
+		}
+		if( ++i >= MAX_OBITUARIES ) {
+			i = 0;
+		}
+	} while( i != next );
+
+	int skip;
+	if( num > num_max ) {
+		skip = num - num_max;
+		num = num_max;
+	} else {
+		skip = 0;
+	}
+
+	y = CG_VerticalAlignForHeight( y, alignment, height );
+	x = CG_HorizontalAlignForWidth( x, alignment, width );
+
+	int xoffset = 0;
+	int yoffset = 0;
+
+	i = next;
+	do {
+		const obituary_t * obr = &cg_obituaries[i];
+		if( ++i >= MAX_OBITUARIES ) {
+			i = 0;
+		}
+
+		if( obr->type == OBITUARY_NONE || cls.monotonicTime - obr->time > 5000 ) {
+			continue;
+		}
+
+		if( skip > 0 ) {
+			skip--;
+			continue;
+		}
+
+		const Material * pic = DamageTypeToIcon( obr->damage_type );
+
+		float attacker_width = TextBounds( font, font_size, obr->attacker ).maxs.x;
+		float victim_width = TextBounds( font, font_size, obr->victim ).maxs.x;
+
+		int w = 0;
+		if( obr->type != OBITUARY_ACCIDENT ) {
+			w += attacker_width;
+		}
+		w += icon_padding;
+		w += icon_size;
+		w += icon_padding;
+		w += victim_width;
+
+		if( obr->wallbang ) {
+			w += icon_size;
+			w += icon_padding;
+		}
+
+		if( internal_align == 1 ) {
+			// left
+			xoffset = 0;
+		} else if( internal_align == 2 ) {
+			// center
+			xoffset = ( width - w ) / 2;
+		} else {
+			// right
+			xoffset = width - w;
+		}
+
+		int obituary_y = y + yoffset + ( line_height - font_size ) / 2;
+		if( obr->type != OBITUARY_ACCIDENT ) {
+			Vec4 color = CG_TeamColorVec4( obr->attacker_team );
+			DrawText( font, font_size, obr->attacker, x + xoffset, obituary_y, color, layout_cursor_font_border );
+			xoffset += attacker_width;
+		}
+
+		xoffset += icon_padding;
+
+		Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, pic, AttentionGettingColor() );
+		xoffset += icon_size + icon_padding;
+
+		if( obr->wallbang ) {
+			Draw2DBox( x + xoffset, y + yoffset + ( line_height - icon_size ) / 2, icon_size, icon_size, FindMaterial( "weapons/wallbang_icon" ), AttentionGettingColor() );
+			xoffset += icon_size + icon_padding;
+		}
+
+		Vec4 color = CG_TeamColorVec4( obr->victim_team );
+		DrawText( font, font_size, obr->victim, x + xoffset, obituary_y, color, layout_cursor_font_border );
+
+		yoffset += line_height;
+	} while( i != next );
+
+	if( cg.predictedPlayerState.health <= 0 && cg.predictedPlayerState.team != TEAM_SPECTATOR ) {
+		if( self_obituary.entropy != 0 ) {
+			float h = 128.0f;
+			float yy = frame_static.viewport.y * 0.5f - h * 0.5f;
+
+			float t = float( cls.monotonicTime - self_obituary.time ) / 500.0f;
+
+			Draw2DBox( 0, yy, frame_static.viewport.x, h, cls.white_material, Vec4( 0, 0, 0, Min2( 0.5f, t * 0.5f ) ) );
+
+			if( t >= 1.0f ) {
+				RNG rng = NewRNG( self_obituary.entropy, 0 );
+
+				TempAllocator temp = cls.frame_arena.temp();
+				const char * obituary = MakeObituary( &temp, &rng, self_obituary.type, self_obituary.damage_type );
+
+				float size = Lerp( h * 0.5f, Unlerp01( 1.0f, t, 20.0f ), h * 5.0f );
+				Vec4 color = AttentionGettingColor();
+				color.w = Unlerp01( 1.0f, t, 2.0f );
+				DrawText( cgs.fontNormal, size, obituary, Alignment_CenterMiddle, frame_static.viewport.x * 0.5f, frame_static.viewport.y * 0.5f, color );
+			}
+		}
+	}
+
+	return 0;
+}
+
 void CG_InitHUD() {
 	TracyZoneScoped;
 
@@ -2342,6 +2338,10 @@ void CG_InitHUD() {
 			{ "asset", LuauAsset },
 			{ "box", LuauDraw2DBox },
 			{ "text", LuauDrawText },
+
+			{ "drawBombIndicators", DrawBombIndicators },
+			{ "drawCrosshair", DrawCrosshair },
+			{ "drawObituaries", DrawObituaries },
 
 			{ NULL, NULL }
 		};
@@ -2415,11 +2415,20 @@ void CG_DrawHUD() {
 		lua_pushnumber( hud_L, cg.predictedPlayerState.max_health );
 		lua_setfield( hud_L, -2, "max_health" );
 
+		lua_pushnumber( hud_L, cg.predictedPlayerState.progress );
+		lua_setfield( hud_L, -2, "bomb_progress" );
+
 		lua_pushboolean( hud_L, Cvar_Bool( "cg_showFPS" ) );
 		lua_setfield( hud_L, -2, "show_fps" );
 
 		lua_pushnumber( hud_L, CG_GetFPS() );
 		lua_setfield( hud_L, -2, "fps" );
+
+		lua_pushboolean( hud_L, Cvar_Bool( "cg_showSpeed" ) );
+		lua_setfield( hud_L, -2, "show_speed" );
+
+		lua_pushnumber( hud_L, CG_GetSpeed() );
+		lua_setfield( hud_L, -2, "speed" );
 
 		lua_pushnumber( hud_L, frame_static.viewport_width );
 		lua_setfield( hud_L, -2, "viewport_width" );

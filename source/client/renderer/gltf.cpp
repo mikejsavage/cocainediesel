@@ -331,7 +331,7 @@ static float LoadScaleChannel( const cgltf_animation_channel * chan, Model::Anim
 		out_channel->samples[ i ] = scale[ 0 ];
 	}
 
-	float duration = chan->sampler->input->max[ 0 ]; // - chan->sampler->input->min[ 0 ];
+	float duration = chan->sampler->input->max[ 0 ] - chan->sampler->input->min[ 0 ];
 	return duration;
 }
 

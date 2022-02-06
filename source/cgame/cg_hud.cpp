@@ -2304,8 +2304,7 @@ void CG_InitHUD() {
 		char * bytecode = luau_compile( AssetString( "huds/hud.lua" ).ptr, AssetBinary( "huds/hud.lua" ).n, NULL, &bytecode_size );
 		defer { free( bytecode ); };
 		if( bytecode == NULL ) {
-			Com_Printf( S_COLOR_YELLOW "Couldn't compile hud.lua: %s\n", bytecode );
-			return;
+			Fatal( "luau_compile" );
 		}
 
 		hud_L = luaL_newstate();
@@ -2351,6 +2350,7 @@ void CG_InitHUD() {
 			lua_call( hud_L, 0, 1 );
 		}
 		else {
+			Com_Printf( S_COLOR_RED "Luau compilation error: %s\n", lua_tostring( hud_L, -1 ) );
 			lua_close( hud_L );
 			hud_L = NULL;
 		}

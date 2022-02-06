@@ -17,7 +17,6 @@ local function DrawTopInfo( state )
 		cd.text( options, posX, state.viewport_height * 0.05, "OVERTIME MATCH POINT" )
 	end
 
-
 	if state.matchState < MatchState_Playing then
 		cd.text( options, posX, state.viewport_height * 0.015, "WARMUP" )
 
@@ -35,7 +34,7 @@ local function DrawTopInfo( state )
 
 		if state.teambased then
 			options.font_size = state.viewport_height / 20
-			
+
 			options.color = cd.getTeamColor( TEAM_ALPHA )
 			cd.text( options, posX - posX / 11, state.viewport_height * 0.012, state.scoreAlpha )
 			options.color = cd.getTeamColor( TEAM_BETA )
@@ -51,8 +50,7 @@ local function DrawTopInfo( state )
 			local color = cd.getTeamColor( TEAM_ALPHA )
 			local x = posX - posX * 0.2
 
-			for i = 0, state.totalAlpha - 1, 1
-			do
+			for i = 0, state.totalAlpha - 1, 1 do
 				if i < state.aliveAlpha then
 					cd.box( x - step * i, y, scaleX, scaleY, color, material )
 				else
@@ -63,8 +61,7 @@ local function DrawTopInfo( state )
 			color = cd.getTeamColor( TEAM_BETA )
 			x = posX + posX * 0.2
 
-			for i = 0, state.totalBeta - 1, 1
-			do
+			for i = 0, state.totalBeta - 1, 1 do
 				if i < state.aliveBeta then
 					cd.box( x + step * i, y, scaleX, scaleY, color, material )
 				else
@@ -75,7 +72,6 @@ local function DrawTopInfo( state )
 	end
 end
 
-
 local function DrawDevInfo( state )
 	local options = {
 		color = "#fffb",
@@ -84,15 +80,17 @@ local function DrawDevInfo( state )
 		font_size = state.viewport_height / 50,
 		alignment = "right top",
 	}
+
 	if state.show_fps then
 		cd.text( options, state.viewport_width - 4, 4, state.fps )
 	end
 
+	options.alignment = "right bottom"
+
 	if state.show_speed then
-		cd.text( options, state.viewport_width - 4, state.viewport_height - options.font_size, state.speed )
+		cd.text( options, state.viewport_width - 4, state.viewport_height - 4, state.speed )
 	end
 end
-
 
 local function DrawBombProgress( state )
 	if state.bomb_progress ~= 0 then
@@ -102,7 +100,6 @@ local function DrawBombProgress( state )
 		cd.box( (state.viewport_width - width)/2, state.viewport_height * 0.7, width * progress, state.viewport_height / 30, color )
 	end
 end
-
 
 local function DrawChasing( state )
 	if state.chasing == NOTSET then
@@ -131,10 +128,6 @@ local function DrawLagging( state )
 		cd.box( width, width, width, width, "#fff", cd.asset( "gfx/hud/net" ) )
 	end
 end
-
-
-
-
 
 return function( state )
 	if state.matchState < MatchState_PostMatch then

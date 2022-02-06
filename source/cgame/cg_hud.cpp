@@ -146,7 +146,7 @@ static int CG_Bool( const void * p ) {
 	return *( const bool * ) p ? 1 : 0;
 }
 
-static int CG_GetPOVnum( const void *parameter ) {
+static int CG_GetPOVnum() {
 	return cg.predictedPlayerState.POVnum != cgs.playerNum + 1 ? cg.predictedPlayerState.POVnum : 9999;
 }
 
@@ -216,6 +216,12 @@ static int CG_IsActiveCallvote( const void * parameter ) {
 	return !StrEqual( cl.configstrings[ CS_CALLVOTE ], "" );
 }
 
+static bool CG_IsLagging() {
+	int64_t incomingAcknowledged, outgoingSequence;
+	CL_GetCurrentState( &incomingAcknowledged, &outgoingSequence, NULL );
+	return !cgs.demoPlaying && (outgoingSequence - incomingAcknowledged) >= (CMD_BACKUP - 1);
+}
+
 struct reference_numeric_t {
 	const char *name;
 	int ( *func )( const void *parameter );
@@ -251,7 +257,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "CAN_CHANGE_LOADOUT", CG_Bool, &cg.predictedPlayerState.can_change_loadout },
 
 	// other
-	{ "CHASING", CG_GetPOVnum, NULL },
 	{ "MATCH_STATE", CG_GetMatchState, NULL },
 	{ "PAUSED", CG_Paused, NULL },
 	{ "VIDWIDTH", CG_GetVidWidth, NULL },
@@ -570,47 +575,6 @@ void CG_DrawScope() {
 			}
 		}
 	}
-}
-
-static bool CG_LFuncDrawCallvote( cg_layoutnode_t *argumentnode ) {
-	const char * vote = cl.configstrings[ CS_CALLVOTE ];
-	if( strlen( vote ) == 0 )
-		return true;
-
-	int left = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_alignment, layout_cursor_width );
-	int top = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_alignment, layout_cursor_height );
-	int right = left + layout_cursor_width;
-
-	TempAllocator temp = cls.frame_arena.temp();
-
-	u8 required = client_gs.gameState.callvote_required_votes;
-	u8 yeses = client_gs.gameState.callvote_yes_votes;
-
-	bool voted = cg.predictedPlayerState.voted;
-	float padding = layout_cursor_font_size * 0.5f;
-
-	if( !voted ) {
-		float height = padding * 2 + layout_cursor_font_size * 2.2f;
-		Draw2DBox( left, top, layout_cursor_width, height, cls.white_material, Vec4( 0, 0, 0, 0.5f ) );
-	}
-
-	Vec4 color = voted ? vec4_white : AttentionGettingColor();
-
-	DrawText( GetHUDFont(), layout_cursor_font_size, temp( "Vote: {}", vote ), left + padding, top + padding, color, true );
-	DrawText( GetHUDFont(), layout_cursor_font_size, temp( "{}/{}", yeses, required ), Alignment_RightTop, right - padding, top + padding, color, true );
-
-	if( !voted ) {
-		char vote_yes_keys[ 128 ];
-		CG_GetBoundKeysString( "vote yes", vote_yes_keys, sizeof( vote_yes_keys ) );
-		char vote_no_keys[ 128 ];
-		CG_GetBoundKeysString( "vote no", vote_no_keys, sizeof( vote_no_keys ) );
-
-		const char * str = temp( "[{}] Vote yes [{}] Vote no", vote_yes_keys, vote_no_keys );
-		float y = top + padding + layout_cursor_font_size * 1.2f;
-		DrawText( GetHUDFont(), layout_cursor_font_size, str, left + padding, y, color, true );
-	}
-
-	return true;
 }
 
 //=============================================================================
@@ -1162,39 +1126,6 @@ static bool CG_LFuncFontBorder( cg_layoutnode_t *argumentnode ) {
 	return true;
 }
 
-static bool CG_LFuncDrawClock( cg_layoutnode_t *argumentnode ) {
-	CG_DrawClock( layout_cursor_x, layout_cursor_y, layout_cursor_alignment, GetHUDFont(), layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
-	return true;
-}
-
-static bool CG_LFuncDrawPlayerIcons( cg_layoutnode_t *argumentnode ) {
-	int team = int( CG_GetNumericArg( &argumentnode ) );
-	int alive = int( CG_GetNumericArg( &argumentnode ) );
-	int total = int( CG_GetNumericArg( &argumentnode ) );
-
-	Vec4 team_color = CG_TeamColorVec4( team );
-
-	const Material * icon = FindMaterial( "gfx/hud/guy" );
-
-	float height = layout_cursor_font_size;
-	float width = float( icon->texture->width ) / float( icon->texture->height ) * height;
-	float padding = width * 0.25f;
-
-	float x = layout_cursor_x;
-	float y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_alignment, height );
-	float dx = width + padding;
-	if( layout_cursor_alignment.x == XAlignment_Right ) {
-		x -= width;
-		dx = -dx;
-	}
-
-	for( int i = 0; i < total; i++ ) {
-		Vec4 color = i < alive ? team_color : layout_cursor_color;
-		Draw2DBox( x + dx * i, y, width, height, icon, color );
-	}
-
-	return true;
-}
 
 static bool CG_LFuncDrawString( cg_layoutnode_t *argumentnode ) {
 	const char *string = CG_GetStringArg( &argumentnode );
@@ -1225,17 +1156,6 @@ static bool CG_LFuncDrawBindString( cg_layoutnode_t *argumentnode ) {
 	return true;
 }
 
-static bool CG_LFuncDrawPlayerName( cg_layoutnode_t *argumentnode ) {
-	int index = (int)CG_GetNumericArg( &argumentnode ) - 1;
-
-	if( index >= 0 && index < client_gs.maxclients ) {
-		DrawText( GetHUDFont(), layout_cursor_font_size, PlayerName( index ), layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
-		return true;
-	}
-
-	return false;
-}
-
 static bool CG_LFuncDrawNumeric( cg_layoutnode_t *argumentnode ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -1263,11 +1183,6 @@ static bool CG_LFuncDrawPerksUtilityIcons( cg_layoutnode_t *argumentnode ) {
 
 	DrawPerksUtility( layout_cursor_x, layout_cursor_y, offx, w, h, layout_cursor_alignment, font_size );
 
-	return true;
-}
-
-static bool CG_LFuncDrawNet( cg_layoutnode_t *argumentnode ) {
-	CG_DrawNet( layout_cursor_x, layout_cursor_y, layout_cursor_width, layout_cursor_height, layout_cursor_alignment, layout_cursor_color );
 	return true;
 }
 
@@ -1375,24 +1290,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 	},
 
 	{
-		"drawCallvote",
-		CG_LFuncDrawCallvote,
-		0,
-	},
-
-	{
-		"drawClock",
-		CG_LFuncDrawClock,
-		0,
-	},
-
-	{
-		"drawPlayerName",
-		CG_LFuncDrawPlayerName,
-		1,
-	},
-
-	{
 		"drawPlayerIcons",
 		CG_LFuncDrawPlayerIcons,
 		3,
@@ -1414,12 +1311,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 		"drawBindString",
 		CG_LFuncDrawBindString,
 		2,
-	},
-
-	{
-		"drawNetIcon",
-		CG_LFuncDrawNet,
-		0,
 	},
 
 	{
@@ -2087,8 +1978,68 @@ static int LuauDrawText( lua_State * L ) {
 	return 0;
 }
 
+static int LuauGetBind( lua_State * L ) {
+	char keys[ 128 ];
+	if( !CG_GetBoundKeysString( luaL_checkstring( L, 1 ), keys, sizeof( keys ) ) ) {
+		snprintf( keys, sizeof( keys ), "[%s]", luaL_checkstring( L, 1 ) );
+	}
+
+	lua_newtable( L );
+	lua_pushstring( L, keys );
+
+	return 1;
+}
+
+static int Vec4ToLuauColor( lua_State * L, Vec4 color ) {
+	lua_newtable( L );
+
+	lua_pushboolean( L, true );
+	lua_setfield( L, -2, "srgb" );
+
+	lua_pushnumber( L, (u8)(color.x*255) );
+	lua_setfield( L, -2, "r" );
+
+	lua_pushnumber( L, (u8)(color.y*255));
+	lua_setfield( L, -2, "g" );
+
+	lua_pushnumber( L, (u8)(color.z*255) );
+	lua_setfield( L, -2, "b" );
+
+	lua_pushnumber( L, (u8)(color.w*255) );
+	lua_setfield( L, -2, "a" );
+
+	return 1;
+}
+
+static int LuauGetTeamColor( lua_State * L ) {
+	return Vec4ToLuauColor( L, CG_TeamColorVec4( luaL_checknumber( L, 1 ) ) );
+}
+
+static int LuauAttentionGettingColor( lua_State * L ) {
+	return Vec4ToLuauColor( L, AttentionGettingColor() );
+}
+
+static int LuauGetPlayerName( lua_State * L ) {
+	int index = luaL_checknumber( L, 1 ) - 1;
+
+	if( index >= 0 && index < client_gs.maxclients ) {
+		lua_newtable( L );
+		lua_pushstring( L, PlayerName( index ) );
+
+		return 1;
+	}
+
+	return 0;
+}
+
+
 static int HUD_DrawBombIndicators( lua_State * L ) {
 	CG_DrawBombHUD( luaL_checknumber( L, 1 ), luaL_checknumber( L, 2 ) );
+	return 0;
+}
+
+static int HUD_DrawClock( lua_State * L ) {
+	CG_DrawClock( luaL_checknumber( L, 1 ), luaL_checknumber( L, 2 ), CheckAlignment( L, 5 ), GetHUDFont(), luaL_checknumber( L, 3 ), CheckColor( L, 4 ), luaL_checknumber( L, 6 ) );
 	return 0;
 }
 
@@ -2108,43 +2059,18 @@ static int HUD_DrawPointed( lua_State * L ) {
 }
 
 static int HUD_DrawObituaries( lua_State * L ) {
-	luaL_checktype( L, 1, LUA_TTABLE );
-
-	lua_getfield( L, 1, "font_size" );
-	float font_size = lua_tonumber( L, -1 );
-	lua_pop( L, 1 );
-
-	lua_getfield( L, 1, "alignment" );
-	Alignment alignment = CheckAlignment( L, -1 );
-	lua_pop( L, 1 );
-
-	lua_getfield( L, 1, "width" );
-	int width = lua_tonumber( L, -1 );
-	lua_pop( L, 1 );
-
-	lua_getfield( L, 1, "height" );
-	int height = lua_tonumber( L, -1 );
-	lua_pop( L, 1 );
-
-	lua_getfield( L, 1, "internal_align" );
-	int internal_align = lua_tonumber( L, -1 );
-	lua_pop( L, 1 );
-
-	lua_getfield( L, 1, "icon_size" );
-	unsigned int icon_size = lua_tonumber( L, -1 );
-	lua_pop( L, 1 );
-
-	int x = luaL_checknumber( L, 2 );
-	int y = luaL_checknumber( L, 3 );
+	int x = luaL_checknumber( L, 1 );
+	int y = luaL_checknumber( L, 2 );
+	int width = lua_tonumber( L, 3 );
+	int height = lua_tonumber( L, 4 );
+	unsigned int icon_size = lua_tonumber( L, 5 );
+	float font_size = luaL_checknumber( L, 6 );
+	Alignment alignment = CheckAlignment( L, 7 );
 
 	const int icon_padding = 4;
 
 	unsigned line_height = Max2( 1u, Max2( unsigned( font_size ), icon_size ) );
 	int num_max = height / line_height;
-
-	if( width < (int)icon_size || !num_max ) {
-		return 0;
-	}
 
 	const Font * font = GetHUDFont();
 
@@ -2213,16 +2139,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 			w += icon_padding;
 		}
 
-		if( internal_align == 1 ) {
-			// left
-			xoffset = 0;
-		} else if( internal_align == 2 ) {
-			// center
-			xoffset = ( width - w ) / 2;
-		} else {
-			// right
-			xoffset = width - w;
-		}
+		xoffset = width - w;
 
 		int obituary_y = y + yoffset + ( line_height - font_size ) / 2;
 		if( obr->type != OBITUARY_ACCIDENT ) {
@@ -2273,6 +2190,56 @@ static int HUD_DrawObituaries( lua_State * L ) {
 	return 0;
 }
 
+
+static int HUD_DrawCallvote( lua_State * L ) {
+	const char * vote = cl.configstrings[ CS_CALLVOTE ];
+	if( strlen( vote ) == 0 )
+		return 1;
+
+	int width = luaL_checknumber( L, 3 );
+	int height = luaL_checknumber( L, 4 );
+	float font_size = luaL_checknumber( L, 5 );
+	Alignment alignment = CheckAlignment( L, 6 );
+
+	int left = CG_HorizontalAlignForWidth( luaL_checknumber( L, 1 ), alignment, width );
+	int top = CG_VerticalAlignForHeight( luaL_checknumber( L, 2 ), alignment, height );
+	int right = left + width;
+
+	TempAllocator temp = cls.frame_arena.temp();
+
+	u8 required = client_gs.gameState.callvote_required_votes;
+	u8 yeses = client_gs.gameState.callvote_yes_votes;
+
+	bool voted = cg.predictedPlayerState.voted;
+	float padding = font_size * 0.5f;
+
+	if( !voted ) {
+		float height = padding * 2 + font_size * 2.2f;
+		Draw2DBox( left, top, width, height, cls.white_material, Vec4( 0, 0, 0, 0.5f ) );
+	}
+
+	Vec4 color = voted ? vec4_white : AttentionGettingColor();
+
+	DrawText( GetHUDFont(), font_size, temp( "Vote: {}", vote ), left + padding, top + padding, color, true );
+	DrawText( GetHUDFont(), font_size, temp( "{}/{}", yeses, required ), Alignment_RightTop, right - padding, top + padding, color, true );
+
+	if( !voted ) {
+		char vote_yes_keys[ 128 ];
+		CG_GetBoundKeysString( "vote yes", vote_yes_keys, sizeof( vote_yes_keys ) );
+		char vote_no_keys[ 128 ];
+		CG_GetBoundKeysString( "vote no", vote_no_keys, sizeof( vote_no_keys ) );
+
+		const char * str = temp( "[{}] Vote yes [{}] Vote no", vote_yes_keys, vote_no_keys );
+		float y = top + padding + font_size * 1.2f;
+		DrawText( GetHUDFont(), font_size, str, left + padding, y, color, true );
+	}
+
+	return 0;
+}
+
+
+
+
 void CG_InitHUD() {
 	TracyZoneScoped;
 
@@ -2317,15 +2284,27 @@ void CG_InitHUD() {
 			{ "asset", LuauAsset },
 			{ "box", LuauDraw2DBox },
 			{ "text", LuauDrawText },
+			{ "getBind", LuauGetBind },
+			{ "getTeamColor", LuauGetTeamColor },
+			{ "attentionGettingColor", LuauAttentionGettingColor },
+
+			{ "getPlayerName", LuauGetPlayerName },
 
 			{ "drawBombIndicators", HUD_DrawBombIndicators },
 			{ "drawCrosshair", HUD_DrawCrosshair },
+			{ "drawClock", HUD_DrawClock },
 			{ "drawObituaries", HUD_DrawObituaries },
-			{ "drawDamageNumbers", HUD_DrawDamageNumbers },
 			{ "drawPointed", HUD_DrawPointed },
+			{ "drawDamageNumbers", HUD_DrawDamageNumbers },
+			{ "drawCallvote", HUD_DrawCallvote },
 
 			{ NULL, NULL }
 		};
+
+		for( size_t i = 0; i < ARRAY_COUNT( cg_numeric_constants ); i++ ) {
+			lua_pushnumber( hud_L, cg_numeric_constants[ i ].value );
+			lua_setfield( hud_L, LUA_GLOBALSINDEX, cg_numeric_constants[ i ].name );
+		}
 
 		// TODO: add a require statement
 
@@ -2393,14 +2372,53 @@ void CG_DrawHUD() {
 
 		lua_newtable( hud_L );
 
+		lua_pushboolean( hud_L, cg.predictedPlayerState.ready );
+		lua_setfield( hud_L, -2, "ready" );
+
 		lua_pushnumber( hud_L, cg.predictedPlayerState.health );
 		lua_setfield( hud_L, -2, "health" );
 
 		lua_pushnumber( hud_L, cg.predictedPlayerState.max_health );
 		lua_setfield( hud_L, -2, "max_health" );
 
+		lua_pushnumber( hud_L, cg.predictedPlayerState.team );
+		lua_setfield( hud_L, -2, "team" );
+
 		lua_pushnumber( hud_L, cg.predictedPlayerState.progress );
 		lua_setfield( hud_L, -2, "bomb_progress" );
+
+		lua_pushboolean( hud_L, GS_TeamBasedGametype( &client_gs ) );
+		lua_setfield( hud_L, -2, "teambased" );
+
+		lua_pushnumber( hud_L, CG_GetMatchState( NULL ) );
+		lua_setfield( hud_L, -2, "matchState" );
+
+		lua_pushnumber( hud_L, client_gs.gameState.teams[ TEAM_ALPHA ].score );
+		lua_setfield( hud_L, -2, "scoreAlpha" );
+
+		lua_pushnumber( hud_L, client_gs.gameState.bomb.alpha_players_alive );
+		lua_setfield( hud_L, -2, "aliveAlpha" );
+
+		lua_pushnumber( hud_L, client_gs.gameState.bomb.alpha_players_total );
+		lua_setfield( hud_L, -2, "totalAlpha" );
+
+		lua_pushnumber( hud_L, client_gs.gameState.teams[ TEAM_BETA ].score );
+		lua_setfield( hud_L, -2, "scoreBeta" );
+
+		lua_pushnumber( hud_L, client_gs.gameState.bomb.beta_players_alive );
+		lua_setfield( hud_L, -2, "aliveBeta" );
+
+		lua_pushnumber( hud_L, client_gs.gameState.bomb.beta_players_total );
+		lua_setfield( hud_L, -2, "totalBeta" );
+
+		lua_pushnumber( hud_L, client_gs.gameState.round_type );
+		lua_setfield( hud_L, -2, "roundType" );
+
+		lua_pushnumber( hud_L, CG_GetPOVnum() );
+		lua_setfield( hud_L, -2, "chasing" );
+
+		lua_pushboolean( hud_L, CG_IsLagging() );
+		lua_setfield( hud_L, -2, "lagging" );
 
 		lua_pushboolean( hud_L, Cvar_Bool( "cg_showFPS" ) );
 		lua_setfield( hud_L, -2, "show_fps" );

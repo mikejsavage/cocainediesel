@@ -87,20 +87,6 @@ void CG_ScreenInit() {
 	cg_crosshair_dynamic = NewCvar( "cg_crosshair_dynamic", "1", CvarFlag_Archive );
 }
 
-void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
-	if( cgs.demoPlaying )
-		return;
-
-	int64_t incomingAcknowledged, outgoingSequence;
-	CL_GetCurrentState( &incomingAcknowledged, &outgoingSequence, NULL );
-	if( outgoingSequence - incomingAcknowledged < CMD_BACKUP - 1 ) {
-		return;
-	}
-	x = CG_HorizontalAlignForWidth( x, alignment, w );
-	y = CG_VerticalAlignForHeight( y, alignment, h );
-	Draw2DBox( x, y, w, h, FindMaterial( "gfx/hud/net" ), color );
-}
-
 void CG_ScreenCrosshairDamageUpdate() {
 	scr_damagetime = cls.monotonicTime;
 }

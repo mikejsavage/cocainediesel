@@ -1,7 +1,5 @@
 if %MATCH_STATE < #MatchState_PostMatch
 
-#include topinfo
-
 if %TEAM != #TEAM_SPECTATOR
 	#include health
 
@@ -10,10 +8,4 @@ endif
 
 #include weaponlist
 
-#include chasing
-
-#include net
-
 endif //if %MATCH_STATE < #MatchState_PostMatch
-
-#include callvote

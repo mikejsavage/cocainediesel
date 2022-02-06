@@ -1,5 +1,0 @@
-setAlignment left top
-setFontSize %VIDHEIGHT / 40
-setCursor 10 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 10
-setSize 300 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 56
-drawCallvote

@@ -216,10 +216,6 @@ static int CG_IsActiveCallvote( const void * parameter ) {
 	return !StrEqual( cl.configstrings[ CS_CALLVOTE ], "" );
 }
 
-static int CG_GetScoreboardShown( const void *parameter ) {
-	return CG_ScoreboardShown() ? 1 : 0;
-}
-
 struct reference_numeric_t {
 	const char *name;
 	int ( *func )( const void *parameter );
@@ -248,8 +244,6 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "BETA_PLAYERS_ALIVE", CG_U8, &client_gs.gameState.bomb.beta_players_alive },
 	{ "BETA_PLAYERS_TOTAL", CG_U8, &client_gs.gameState.bomb.beta_players_total },
 
-	{ "PROGRESS_TYPE", CG_U8, &cg.predictedPlayerState.progress_type },
-
 	{ "ROUND_TYPE", CG_U8, &client_gs.gameState.round_type },
 
 	{ "CARRYING_BOMB", CG_Bool, &cg.predictedPlayerState.carrying_bomb },
@@ -262,12 +256,10 @@ static const reference_numeric_t cg_numeric_references[] = {
 	{ "PAUSED", CG_Paused, NULL },
 	{ "VIDWIDTH", CG_GetVidWidth, NULL },
 	{ "VIDHEIGHT", CG_GetVidHeight, NULL },
-	{ "SCOREBOARD", CG_GetScoreboardShown, NULL },
 	{ "DEMOPLAYING", CG_IsDemoPlaying, NULL },
 	{ "CALLVOTE", CG_IsActiveCallvote, NULL },
 
 	// cvars
-	{ "SHOW_POINTED_PLAYER", CG_GetCvar, "cg_showPointedPlayer" },
 	{ "SHOW_HOTKEYS", CG_GetCvar, "cg_showHotkeys" },
 };
 
@@ -1175,11 +1167,6 @@ static bool CG_LFuncDrawClock( cg_layoutnode_t *argumentnode ) {
 	return true;
 }
 
-static bool CG_LFuncDrawDamageNumbers( cg_layoutnode_t *argumentnode ) {
-	CG_DrawDamageNumbers();
-	return true;
-}
-
 static bool CG_LFuncDrawPlayerIcons( cg_layoutnode_t *argumentnode ) {
 	int team = int( CG_GetNumericArg( &argumentnode ) );
 	int alive = int( CG_GetNumericArg( &argumentnode ) );
@@ -1206,11 +1193,6 @@ static bool CG_LFuncDrawPlayerIcons( cg_layoutnode_t *argumentnode ) {
 		Draw2DBox( x + dx * i, y, width, height, icon, color );
 	}
 
-	return true;
-}
-
-static bool CG_LFuncDrawPointed( cg_layoutnode_t *argumentnode ) {
-	CG_DrawPlayerNames( GetHUDFont(), layout_cursor_font_size, layout_cursor_color, layout_cursor_font_border );
 	return true;
 }
 
@@ -1408,18 +1390,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 		"drawPlayerName",
 		CG_LFuncDrawPlayerName,
 		1,
-	},
-
-	{
-		"drawPointing",
-		CG_LFuncDrawPointed,
-		0,
-	},
-
-	{
-		"drawDamageNumbers",
-		CG_LFuncDrawDamageNumbers,
-		0,
 	},
 
 	{
@@ -2117,21 +2087,31 @@ static int LuauDrawText( lua_State * L ) {
 	return 0;
 }
 
-static int DrawBombIndicators( lua_State * L ) {
+static int HUD_DrawBombIndicators( lua_State * L ) {
 	CG_DrawBombHUD( luaL_checknumber( L, 1 ), luaL_checknumber( L, 2 ) );
 	return 0;
 }
 
-static int DrawCrosshair( lua_State * L ) {
+static int HUD_DrawCrosshair( lua_State * L ) {
 	CG_DrawCrosshair( frame_static.viewport_width / 2, frame_static.viewport_height / 2 );
 	return 0;
 }
 
-static int DrawObituaries( lua_State * L ) {
+static int HUD_DrawDamageNumbers( lua_State * L ) {
+	CG_DrawDamageNumbers( luaL_checknumber( L, 1 ), luaL_checknumber( L, 2 ) );
+	return 0;
+}
+
+static int HUD_DrawPointed( lua_State * L ) {
+	CG_DrawPlayerNames( GetHUDFont(), luaL_checknumber( L, 1 ), CheckColor( L, 2 ), luaL_checknumber( L, 3 ) );
+	return 0;
+}
+
+static int HUD_DrawObituaries( lua_State * L ) {
 	luaL_checktype( L, 1, LUA_TTABLE );
 
 	lua_getfield( L, 1, "font_size" );
-	int font_size = lua_tonumber( L, -1 );
+	float font_size = lua_tonumber( L, -1 );
 	lua_pop( L, 1 );
 
 	lua_getfield( L, 1, "alignment" );
@@ -2339,9 +2319,11 @@ void CG_InitHUD() {
 			{ "box", LuauDraw2DBox },
 			{ "text", LuauDrawText },
 
-			{ "drawBombIndicators", DrawBombIndicators },
-			{ "drawCrosshair", DrawCrosshair },
-			{ "drawObituaries", DrawObituaries },
+			{ "drawBombIndicators", HUD_DrawBombIndicators },
+			{ "drawCrosshair", HUD_DrawCrosshair },
+			{ "drawObituaries", HUD_DrawObituaries },
+			{ "drawDamageNumbers", HUD_DrawDamageNumbers },
+			{ "drawPointed", HUD_DrawPointed },
 
 			{ NULL, NULL }
 		};

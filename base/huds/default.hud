@@ -13,8 +13,6 @@ endif
 #include chasing
 
 #include net
-#include damage_numbers
-#include pointing
 
 endif //if %MATCH_STATE < #MatchState_PostMatch
 

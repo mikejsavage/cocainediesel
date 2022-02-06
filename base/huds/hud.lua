@@ -25,7 +25,7 @@ local function DrawObituaries( state )
 		internal_align = 3,
 		icon_size = state.viewport_width / 40,
 	}
-	cd.drawObituaries( options, state.viewport_width - 10, 2 )
+	cd.drawObituaries( options, state.viewport_width - 10, 2 ) -- options, X, Y
 end
 
 
@@ -42,12 +42,15 @@ end
 
 
 return function( state )
-	cd.drawBombIndicators( state.viewport_height / 26, state.viewport_height / 60 )
+	cd.drawBombIndicators( state.viewport_height / 26, state.viewport_height / 60 ) -- site name size, site message size (ATTACK/DEFEND/...)
 
 	DrawDevInfo( state )
 
 	DrawBombProgress( state )
 
 	cd.drawCrosshair()
+	cd.drawDamageNumbers( state.viewport_height / 30, state.viewport_height / 50 ) -- obituary msg size, dmg numbers size
+	cd.drawPointed( state.viewport_height / 80, "#fff", 1 ) -- font size, color, border
+
 	DrawObituaries( state )
 end

@@ -305,7 +305,7 @@ void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color );
 
 void CG_InitDamageNumbers();
 void CG_AddDamageNumber( SyncEntityState * ent, u64 parm );
-void CG_DrawDamageNumbers();
+void CG_DrawDamageNumbers( float obi_size, float dmg_size );
 
 void CG_AddBomb( centity_t * cent );
 void CG_AddBombSite( centity_t * cent );

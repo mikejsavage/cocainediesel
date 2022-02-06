@@ -313,7 +313,7 @@ void CG_AddDamageNumber( SyncEntityState * ent, u64 parm ) {
 	damage_numbers_head = ( damage_numbers_head + 1 ) % ARRAY_COUNT( damage_numbers );
 }
 
-void CG_DrawDamageNumbers() {
+void CG_DrawDamageNumbers( float obi_size, float dmg_size ) {
 	for( const DamageNumber & dn : damage_numbers ) {
 		if( dn.damage == 0 )
 			continue;
@@ -349,12 +349,12 @@ void CG_DrawDamageNumbers() {
 		if( obituary ) {
 			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
 			color = AttentionGettingColor();
-			font_size = Lerp( cgs.textSizeSmall, frac * frac, 0.0f );
+			font_size = Lerp( obi_size, frac * frac, 0.0f );
 		}
 		else {
 			snprintf( buf, sizeof( buf ), "%d", dn.damage );
 			color = dn.headshot ? sRGBToLinear( rgba8_diesel_yellow ) : vec4_white;
-			font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 50 ), cgs.textSizeSmall );
+			font_size = Lerp( dmg_size, Unlerp01( 0, dn.damage, 50 ), cgs.textSizeSmall );
 		}
 
 		float alpha = 1 - Max2( 0.0f, frac - 0.75f ) / 0.25f;

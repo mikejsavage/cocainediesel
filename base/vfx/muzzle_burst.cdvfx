@@ -1,0 +1,24 @@
+{
+  particles {
+    material textures/vfx/spark1
+    material textures/vfx/spark2
+    material textures/vfx/spark3
+    material textures/vfx/spark4
+    blendfunc add
+    rotate
+    stretch
+
+    angle_distribution uniform 360
+
+    position cone 10 1
+    speed 2000
+
+    color 1.0 0.7 0.0 1.0
+    end_color 0.0 0.0 0.0 0.0
+
+    size 5 0
+
+    lifetime 0.1
+    emission 100
+  }
+}

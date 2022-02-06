@@ -59,6 +59,23 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 				angles->x -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
 			}
 		}
+		else if( ps->weapon_state == WeaponState_Reloading || ps->weapon_state == WeaponState_StagedReloading ) {
+			// TODO: temporary for non-animated models
+			const Model * model = GetWeaponModelMetadata( ps->weapon )->model;
+			bool found = false;
+			for( u8 i = 0; i < model->num_animations; i++ ) {
+				if( model->animations[ i ].name == viewweapon->eventAnim ) {
+					found = true;
+					break;
+				}
+			}
+
+			if( !found ) {
+				float t = ps->weapon_state == WeaponState_Reloading ? def->reload_time : def->staged_reload_time;
+				float frac = float( ps->weapon_state_time ) / t;
+				angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
+			}
+		}
 		else if( ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingOut ) {
 			float frac;
 			if( ps->weapon_state == WeaponState_SwitchingIn ) {

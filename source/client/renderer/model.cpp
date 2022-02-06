@@ -274,11 +274,11 @@ static void DrawVfxNode( DrawModelConfig::DrawModel config, const Model::Node * 
 	Vec3 scale = Vec3( Length( transform.col0.xyz() ), Length( transform.col1.xyz() ), Length( transform.col2.xyz() ) );
 	float size = Min2( Min2( Abs( scale.x ), Abs( scale.y ) ), Abs( scale.z ) );
 
-	if( size == 0.0f )
+	if( size <= 0.01f )
 		return;
 
 	Vec3 origin = transform.col3.xyz();
-	Vec3 normal = transform.col1.xyz();
+	Vec3 normal = SafeNormalize( transform.col1.xyz() );
 	switch( node->vfx_type ) {
 		case ModelVfxType_Vfx:
 			DoVisualEffect( node->vfx_node.name, origin, normal, size, node->vfx_node.color );

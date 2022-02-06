@@ -2360,7 +2360,9 @@ void CG_InitHUD() {
 
 void CG_ShutdownHUD() {
 	CG_RecurseFreeLayoutThread( hud_root );
-	lua_close( hud_L );
+	if( hud_L != NULL ) {
+		lua_close( hud_L );
+	}
 }
 
 void CG_DrawHUD() {

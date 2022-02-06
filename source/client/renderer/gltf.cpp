@@ -290,7 +290,7 @@ static InterpolationMode InterpolationModeFromGLTF( cgltf_interpolation_type int
 }
 
 template< typename T >
-static void LoadChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< T > * out_channel ) {
+static float LoadChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< T > * out_channel ) {
 	constexpr size_t lanes = sizeof( T ) / sizeof( float );
 	size_t n = chan->sampler->input->count;
 
@@ -305,9 +305,12 @@ static void LoadChannel( const cgltf_animation_channel * chan, Model::AnimationC
 		ok = ok && cgltf_accessor_read_float( chan->sampler->output, i, out_channel->samples[ i ].ptr(), lanes );
 		assert( ok != 0 );
 	}
+
+	float duration = chan->sampler->input->max[ 0 ] - chan->sampler->input->min[ 0 ];
+	return duration;
 }
 
-static void LoadScaleChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< float > * out_channel ) {
+static float LoadScaleChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< float > * out_channel ) {
 	size_t n = chan->sampler->input->count;
 
 	float * memory = ALLOC_MANY( sys_allocator, float, n * 2 );
@@ -327,6 +330,9 @@ static void LoadScaleChannel( const cgltf_animation_channel * chan, Model::Anima
 
 		out_channel->samples[ i ] = scale[ 0 ];
 	}
+
+	float duration = chan->sampler->input->max[ 0 ]; // - chan->sampler->input->min[ 0 ];
+	return duration;
 }
 
 template< typename T >
@@ -342,23 +348,28 @@ static void CreateSingleSampleChannel( Model::AnimationChannel< T > * out_channe
 	out_channel->samples[ 0 ] = sample;
 }
 
-static void LoadAnimation( Model * model, const cgltf_animation * animation ) {
+static void LoadAnimation( Model * model, const cgltf_animation * animation, u8 index = 0 ) {
+	float duration = 0.0f;
 	for( size_t i = 0; i < animation->channels_count; i++ ) {
 		const cgltf_animation_channel * chan = &animation->channels[ i ];
 
 		u8 node_idx = GetNodeIdx( chan->target_node );
 		assert( node_idx != U8_MAX );
 
+		float channel_duration = 0.0f;
 		if( chan->target_path == cgltf_animation_path_type_translation ) {
-			LoadChannel( chan, &model->nodes[ node_idx ].translations );
+			channel_duration = LoadChannel( chan, &model->nodes[ node_idx ].animations[ index ].translations );
 		}
 		else if( chan->target_path == cgltf_animation_path_type_rotation ) {
-			LoadChannel( chan, &model->nodes[ node_idx ].rotations );
+			channel_duration = LoadChannel( chan, &model->nodes[ node_idx ].animations[ index ].rotations );
 		}
 		else if( chan->target_path == cgltf_animation_path_type_scale ) {
-			LoadScaleChannel( chan, &model->nodes[ node_idx ].scales );
+			channel_duration = LoadScaleChannel( chan, &model->nodes[ node_idx ].animations[ index ].scales );
 		}
+		duration = Max2( channel_duration, duration );
 	}
+	model->animations[ index ].name = StringHash( animation->name );
+	model->animations[ index ].duration = duration;
 }
 
 static void LoadSkin( Model * model, const cgltf_skin * skin ) {
@@ -401,7 +412,7 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 		return false;
 	}
 
-	if( gltf->scenes_count != 1 || gltf->animations_count > 1 || gltf->skins_count > 1 || gltf->cameras_count > 1 ) {
+	if( gltf->scenes_count != 1 || gltf->skins_count > 1 || gltf->cameras_count > 1 ) {
 		Com_Printf( S_COLOR_YELLOW "Trivial models only please (%s)\n", path );
 		return false;
 	}
@@ -442,11 +453,19 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 	}
 
 	if( gltf->animations_count > 0 ) {
+		model->num_animations = gltf->animations_count;
 		if( gltf->skins_count > 0 ) {
 			LoadSkin( model, &gltf->skins[ 0 ] );
 		}
 
-		LoadAnimation( model, &gltf->animations[ 0 ] );
+		model->animations = ALLOC_MANY( sys_allocator, Model::Animation, gltf->animations_count );
+		for( size_t i = 0; i < model->num_nodes; i++ ) {
+			model->nodes[ i ].animations = ALLOC_SPAN( sys_allocator, Model::NodeAnimation, gltf->animations_count );
+			memset( model->nodes[ i ].animations.ptr, 0, sizeof( Model::NodeAnimation ) * gltf->animations_count );
+		}
+		for( size_t i = 0; i < gltf->animations_count; i++ ) {
+			LoadAnimation( model, &gltf->animations[ i ], i );
+		}
 	}
 
 	model->camera = U8_MAX;

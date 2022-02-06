@@ -54,6 +54,17 @@ struct Model {
 		InterpolationMode interpolation;
 	};
 
+	struct Animation {
+		StringHash name;
+		float duration;
+	};
+
+	struct NodeAnimation {
+		AnimationChannel< Quaternion > rotations;
+		AnimationChannel< Vec3 > translations;
+		AnimationChannel< float > scales;
+	};
+
 	struct VfxNode {
 		StringHash name;
 		Vec4 color;
@@ -82,9 +93,7 @@ struct Model {
 		u8 first_child;
 		u8 sibling;
 
-		AnimationChannel< Quaternion > rotations;
-		AnimationChannel< Vec3 > translations;
-		AnimationChannel< float > scales;
+		Span< NodeAnimation > animations;
 		bool skinned;
 
 		ModelVfxType vfx_type;
@@ -115,6 +124,9 @@ struct Model {
 	u8 num_joints;
 
 	u8 camera;
+
+	Animation * animations;
+	u8 num_animations;
 };
 
 void InitModels();
@@ -136,7 +148,7 @@ void DeleteBSPRenderData( Map * map );
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline );
 void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
 
-Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t );
+Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t, u8 animation = 0 );
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses );
 bool FindNodeByName( const Model * model, u32 name, u8 * idx );
 void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_joint );

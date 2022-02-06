@@ -86,9 +86,12 @@ void DeleteModel( Model * model ) {
 	}
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
-		FREE( sys_allocator, model->nodes[ i ].rotations.times );
-		FREE( sys_allocator, model->nodes[ i ].translations.times );
-		FREE( sys_allocator, model->nodes[ i ].scales.times );
+		for( u8 j = 0; j < model->num_animations; j++ ) {
+			FREE( sys_allocator, model->nodes[ i ].animations[ j ].rotations.times );
+			FREE( sys_allocator, model->nodes[ i ].animations[ j ].translations.times );
+			FREE( sys_allocator, model->nodes[ i ].animations[ j ].scales.times );
+		}
+		FREE( sys_allocator, model->nodes[ i ].animations.ptr );
 	}
 
 	DeleteMesh( model->mesh );
@@ -96,6 +99,7 @@ void DeleteModel( Model * model ) {
 	FREE( sys_allocator, model->primitives );
 	FREE( sys_allocator, model->nodes );
 	FREE( sys_allocator, model->skin );
+	FREE( sys_allocator, model->animations );
 }
 
 void HotloadModels() {
@@ -440,16 +444,16 @@ static T SampleAnimationChannel( const Model::AnimationChannel< T > & channel, f
 static Vec3 LerpVec3( Vec3 a, float t, Vec3 b ) { return Lerp( a, t, b ); }
 static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
 
-Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t ) {
+Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t, u8 animation ) {
 	TracyZoneScoped;
 
 	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, model->num_nodes );
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		const Model::Node * node = &model->nodes[ i ];
-		local_poses[ i ].rotation = SampleAnimationChannel( node->rotations, t, node->local_transform.rotation, NLerp );
-		local_poses[ i ].translation = SampleAnimationChannel( node->translations, t, node->local_transform.translation, LerpVec3 );
-		local_poses[ i ].scale = SampleAnimationChannel( node->scales, t, node->local_transform.scale, LerpFloat );
+		local_poses[ i ].rotation = SampleAnimationChannel( node->animations[ animation ].rotations, t, node->local_transform.rotation, NLerp );
+		local_poses[ i ].translation = SampleAnimationChannel( node->animations[ animation ].translations, t, node->local_transform.translation, LerpVec3 );
+		local_poses[ i ].scale = SampleAnimationChannel( node->animations[ animation ].scales, t, node->local_transform.scale, LerpFloat );
 	}
 
 	return local_poses;

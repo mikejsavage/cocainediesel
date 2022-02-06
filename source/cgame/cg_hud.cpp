@@ -1290,12 +1290,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 	},
 
 	{
-		"drawPlayerIcons",
-		CG_LFuncDrawPlayerIcons,
-		3,
-	},
-
-	{
 		"drawString",
 		CG_LFuncDrawString,
 		1,

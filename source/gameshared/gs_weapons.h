@@ -68,6 +68,7 @@ struct PerkDef {
 	const char * short_name;
 	float health;
 	Vec3 scale;
+	float weight;
 	float max_speed;
 	float side_speed;
 	float max_airspeed;

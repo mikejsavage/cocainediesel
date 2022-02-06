@@ -1,7 +1,7 @@
 #include "gameshared/movement.h"
 #include "gameshared/gs_weapons.h"
 
-static constexpr float jump_upspeed = 270.0f;
+static constexpr float jump_upspeed = 260.0f;
 static constexpr float jump_detection = 0.06f;
 
 

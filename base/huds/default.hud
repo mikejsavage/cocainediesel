@@ -1,11 +1,5 @@
 if %MATCH_STATE < #MatchState_PostMatch
 
-if %TEAM != #TEAM_SPECTATOR
-	#include health
-
-	#include drop_and_shop
-endif
-
 #include weaponlist
 
 endif //if %MATCH_STATE < #MatchState_PostMatch

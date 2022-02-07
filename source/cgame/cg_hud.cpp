@@ -32,8 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static int layout_cursor_x = 400;
 static int layout_cursor_y = 300;
-static int layout_cursor_width = 100;
-static int layout_cursor_height = 100;
 static Alignment layout_cursor_alignment = Alignment_LeftTop;
 static Vec4 layout_cursor_color = vec4_white;
 
@@ -107,9 +105,6 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "STAMINA_USING", Stamina_UsingAbility },
 	{ "STAMINA_USED", Stamina_UsedAbility },
 
-
-
-	{ "WIDTH", 800 },
 	{ "HEIGHT", 600 },
 
 	{ "MatchState_Warmup", MatchState_Warmup },
@@ -138,36 +133,12 @@ static int CG_U8( const void * p ) {
 	return *( const u8 * ) p;
 }
 
-static int CG_S16( const void * p ) {
-	return *( const s16 * ) p;
-}
-
-static int CG_Bool( const void * p ) {
-	return *( const bool * ) p ? 1 : 0;
-}
-
 static int CG_GetPOVnum() {
 	return cg.predictedPlayerState.POVnum != cgs.playerNum + 1 ? cg.predictedPlayerState.POVnum : 9999;
 }
 
-static int CG_IsTeamBased( const void *parameter ) {
-	return GS_TeamBasedGametype( &client_gs ) ? 1 : 0;
-}
-
 static int CG_GetSpeed() {
 	return Length( cg.predictedPlayerState.pmove.velocity.xy() );
-}
-
-static int CG_HealthPercent( const void * parameter ) {
-	return cg.predictedPlayerState.health * 100 / cg.predictedPlayerState.max_health;
-}
-
-static int CG_Stamina( const void * parameter ) {
-	return cg.predictedPlayerState.pmove.stamina * 200; //easier conversions, more fluid
-}
-
-static int CG_StaminaStoredPercent( const void * parameter ) {
-	return cg.predictedPlayerState.pmove.stamina_stored * 100;
 }
 
 static int CG_GetFPS() {
@@ -192,28 +163,12 @@ static int CG_GetMatchState( const void *parameter ) {
 	return client_gs.gameState.match_state;
 }
 
-static int CG_Paused( const void *parameter ) {
-	return GS_MatchPaused( &client_gs );
-}
-
 static int CG_GetVidWidth( const void *parameter ) {
 	return frame_static.viewport_width;
 }
 
 static int CG_GetVidHeight( const void *parameter ) {
 	return frame_static.viewport_height;
-}
-
-static int CG_GetCvar( const void *parameter ) {
-	return Cvar_Integer( (const char *)parameter );
-}
-
-static int CG_IsDemoPlaying( const void *parameter ) {
-	return cgs.demoPlaying ? 1 : 0;
-}
-
-static int CG_IsActiveCallvote( const void * parameter ) {
-	return !StrEqual( cl.configstrings[ CS_CALLVOTE ], "" );
 }
 
 static bool CG_IsLagging() {
@@ -230,42 +185,14 @@ struct reference_numeric_t {
 
 static const reference_numeric_t cg_numeric_references[] = {
 	// stats
-	{ "HEALTH", CG_S16, &cg.predictedPlayerState.health },
-	{ "HEALTH_PERCENT", CG_HealthPercent, NULL },
-	{ "STAMINA", CG_Stamina, NULL },
-	{ "STAMINA_Stored", CG_StaminaStoredPercent, NULL },
-	{ "STAMINA_STATE", CG_U8, &cg.predictedPlayerState.pmove.stamina_state },
 	{ "WEAPON_ITEM", CG_U8, &cg.predictedPlayerState.weapon },
-	{ "PERK", CG_U8, &cg.predictedPlayerState.perk },
-
-	{ "READY", CG_Bool, &cg.predictedPlayerState.ready },
 
 	{ "TEAM", CG_Int, &cg.predictedPlayerState.team },
 
-	{ "TEAMBASED", CG_IsTeamBased, NULL },
-	{ "ALPHA_SCORE", CG_U8, &client_gs.gameState.teams[ TEAM_ALPHA ].score },
-	{ "ALPHA_PLAYERS_ALIVE", CG_U8, &client_gs.gameState.bomb.alpha_players_alive },
-	{ "ALPHA_PLAYERS_TOTAL", CG_U8, &client_gs.gameState.bomb.alpha_players_total },
-	{ "BETA_SCORE", CG_U8, &client_gs.gameState.teams[ TEAM_BETA ].score },
-	{ "BETA_PLAYERS_ALIVE", CG_U8, &client_gs.gameState.bomb.beta_players_alive },
-	{ "BETA_PLAYERS_TOTAL", CG_U8, &client_gs.gameState.bomb.beta_players_total },
-
-	{ "ROUND_TYPE", CG_U8, &client_gs.gameState.round_type },
-
-	{ "CARRYING_BOMB", CG_Bool, &cg.predictedPlayerState.carrying_bomb },
-	{ "CAN_PLANT_BOMB", CG_Bool, &cg.predictedPlayerState.can_plant },
-	{ "CAN_CHANGE_LOADOUT", CG_Bool, &cg.predictedPlayerState.can_change_loadout },
-
 	// other
 	{ "MATCH_STATE", CG_GetMatchState, NULL },
-	{ "PAUSED", CG_Paused, NULL },
 	{ "VIDWIDTH", CG_GetVidWidth, NULL },
 	{ "VIDHEIGHT", CG_GetVidHeight, NULL },
-	{ "DEMOPLAYING", CG_IsDemoPlaying, NULL },
-	{ "CALLVOTE", CG_IsActiveCallvote, NULL },
-
-	// cvars
-	{ "SHOW_HOTKEYS", CG_GetCvar, "cg_showHotkeys" },
 };
 
 //=============================================================================
@@ -953,13 +880,6 @@ static void DrawPerksUtility( int ix, int iy, int offx, int iw, int ih, Alignmen
 	}
 }
 
-static bool CG_LFuncDrawPicByName( cg_layoutnode_t *argumentnode ) {
-	int x = CG_HorizontalAlignForWidth( layout_cursor_x, layout_cursor_alignment, layout_cursor_width );
-	int y = CG_VerticalAlignForHeight( layout_cursor_y, layout_cursor_alignment, layout_cursor_height );
-	Draw2DBox( x, y, layout_cursor_width, layout_cursor_height, FindMaterial( CG_GetStringArg( &argumentnode ) ), layout_cursor_color );
-	return true;
-}
-
 static float ScaleX( float x ) {
 	return x * frame_static.viewport_width / 800.0f;
 }
@@ -977,65 +897,10 @@ static bool CG_LFuncCursor( cg_layoutnode_t *argumentnode ) {
 	return true;
 }
 
-static bool CG_LFuncMoveCursor( cg_layoutnode_t *argumentnode ) {
-	float x = ScaleX( CG_GetNumericArg( &argumentnode ) );
-	float y = ScaleY( CG_GetNumericArg( &argumentnode ) );
-
-	layout_cursor_x += Q_rint( x );
-	layout_cursor_y += Q_rint( y );
-	return true;
-}
-
-static bool CG_LFuncSize( cg_layoutnode_t *argumentnode ) {
-	float x = ScaleX( CG_GetNumericArg( &argumentnode ) );
-	float y = ScaleY( CG_GetNumericArg( &argumentnode ) );
-
-	layout_cursor_width = Q_rint( x );
-	layout_cursor_height = Q_rint( y );
-	return true;
-}
-
 static bool CG_LFuncColor( cg_layoutnode_t *argumentnode ) {
 	for( int i = 0; i < 4; i++ ) {
 		layout_cursor_color[ i ] = Clamp01( CG_GetNumericArg( &argumentnode ) );
 	}
-	return true;
-}
-
-static bool CG_LFuncColorsRGB( cg_layoutnode_t *argumentnode ) {
-	for( int i = 0; i < 4; i++ ) {
-		layout_cursor_color[ i ] = sRGBToLinear( Clamp01( CG_GetNumericArg( &argumentnode ) ) );
-	}
-	return true;
-}
-
-static bool CG_LFuncColorToTeamColor( cg_layoutnode_t *argumentnode ) {
-	layout_cursor_color = CG_TeamColorVec4( CG_GetNumericArg( &argumentnode ) );
-	return true;
-}
-
-static bool CG_LFuncAttentionGettingColor( cg_layoutnode_t * argumentnode ) {
-	layout_cursor_color = AttentionGettingColor();
-	return true;
-}
-
-static bool CG_LFuncCustomAttentionGettingColor( cg_layoutnode_t * argumentnode ) {
-	Vec4 to;
-
-	for( int i = 0; i < 4; i++ ) {
-		to[ i ] = CG_GetNumericArg( &argumentnode );
-	}
-	layout_cursor_color = CustomAttentionGettingColor( vec4_dark, to, CG_GetNumericArg( &argumentnode ) );
-	return true;
-}
-
-static bool CG_LFuncPlantableColor( cg_layoutnode_t * argumentnode ) {
-	layout_cursor_color = PlantableColor();
-	return true;
-}
-
-static bool CG_LFuncColorAlpha( cg_layoutnode_t *argumentnode ) {
-	layout_cursor_color.w = CG_GetNumericArg( &argumentnode );
 	return true;
 }
 
@@ -1126,44 +991,6 @@ static bool CG_LFuncFontBorder( cg_layoutnode_t *argumentnode ) {
 	return true;
 }
 
-
-static bool CG_LFuncDrawString( cg_layoutnode_t *argumentnode ) {
-	const char *string = CG_GetStringArg( &argumentnode );
-
-	if( !string || !string[0] ) {
-		return false;
-	}
-
-	DrawText( GetHUDFont(), layout_cursor_font_size, string, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
-
-	return true;
-}
-
-static bool CG_LFuncDrawBindString( cg_layoutnode_t *argumentnode ) {
-	const char * fmt = CG_GetStringArg( &argumentnode );
-	const char * command = CG_GetStringArg( &argumentnode );
-
-	char keys[ 128 ];
-	if( !CG_GetBoundKeysString( command, keys, sizeof( keys ) ) ) {
-		snprintf( keys, sizeof( keys ), "[%s]", command );
-	}
-
-	char buf[ 1024 ];
-	snprintf( buf, sizeof( buf ), fmt, keys );
-
-	DrawText( GetHUDFont(), layout_cursor_font_size, buf, layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
-
-	return true;
-}
-
-static bool CG_LFuncDrawNumeric( cg_layoutnode_t *argumentnode ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
-	int value = CG_GetNumericArg( &argumentnode );
-	DrawText( GetHUDFont(), layout_cursor_font_size, temp( "{}", value ), layout_cursor_alignment, layout_cursor_x, layout_cursor_y, layout_cursor_color, layout_cursor_font_border );
-	return true;
-}
-
 static bool CG_LFuncDrawWeaponIcons( cg_layoutnode_t *argumentnode ) {
 	int offx = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
 	int w = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
@@ -1190,10 +1017,6 @@ static bool CG_LFuncIf( cg_layoutnode_t *argumentnode ) {
 	return (int)CG_GetNumericArg( &argumentnode ) != 0;
 }
 
-static bool CG_LFuncIfNot( cg_layoutnode_t *argumentnode ) {
-	return (int)CG_GetNumericArg( &argumentnode ) == 0;
-}
-
 static bool CG_LFuncEndIf( cg_layoutnode_t *argumentnode ) {
 	return true;
 }
@@ -1212,20 +1035,8 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 	},
 
 	{
-		"moveCursor",
-		CG_LFuncMoveCursor,
-		2,
-	},
-
-	{
 		"setAlignment",
 		CG_LFuncAlignment,
-		2,
-	},
-
-	{
-		"setSize",
-		CG_LFuncSize,
 		2,
 	},
 
@@ -1254,66 +1065,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 	},
 
 	{
-		"setColorsRGB",
-		CG_LFuncColorsRGB,
-		4,
-	},
-
-	{
-		"setColorToTeamColor",
-		CG_LFuncColorToTeamColor,
-		1,
-	},
-
-	{
-		"setAttentionGettingColor",
-		CG_LFuncAttentionGettingColor,
-		0,
-	},
-
-	{
-		"setCustomAttentionGettingColor",
-		CG_LFuncCustomAttentionGettingColor,
-		5,
-	},
-
-	{
-		"setPlantableColor",
-		CG_LFuncPlantableColor,
-		0,
-	},
-
-	{
-		"setColorAlpha",
-		CG_LFuncColorAlpha,
-		1,
-	},
-
-	{
-		"drawString",
-		CG_LFuncDrawString,
-		1,
-	},
-
-	{
-		"drawStringNum",
-		CG_LFuncDrawNumeric,
-		1,
-	},
-
-	{
-		"drawBindString",
-		CG_LFuncDrawBindString,
-		2,
-	},
-
-	{
-		"drawPicByName",
-		CG_LFuncDrawPicByName,
-		1,
-	},
-
-	{
 		"drawWeaponIcons",
 		CG_LFuncDrawWeaponIcons,
 		4,
@@ -1328,12 +1079,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 	{
 		"if",
 		CG_LFuncIf,
-		1,
-	},
-
-	{
-		"ifnot",
-		CG_LFuncIfNot,
 		1,
 	},
 
@@ -1597,7 +1342,7 @@ static cg_layoutnode_t *CG_RecurseParseLayoutScript( Span< const char > * cursor
 
 		nodes.add( command );
 
-		if( command->func == CG_LFuncIf || command->func == CG_LFuncIfNot ) {
+		if( command->func == CG_LFuncIf ) {
 			command->ifthread = CG_RecurseParseLayoutScript( cursor, level + 1 );
 		}
 		else if( command->func == CG_LFuncEndIf ) {
@@ -1987,19 +1732,19 @@ static int LuauGetBind( lua_State * L ) {
 static int Vec4ToLuauColor( lua_State * L, Vec4 color ) {
 	lua_newtable( L );
 
-	lua_pushboolean( L, true );
+	lua_pushboolean( L, false );
 	lua_setfield( L, -2, "srgb" );
 
-	lua_pushnumber( L, (u8)(color.x*255) );
+	lua_pushnumber( L, color.x );
 	lua_setfield( L, -2, "r" );
 
-	lua_pushnumber( L, (u8)(color.y*255));
+	lua_pushnumber( L, color.y );
 	lua_setfield( L, -2, "g" );
 
-	lua_pushnumber( L, (u8)(color.z*255) );
+	lua_pushnumber( L, color.z );
 	lua_setfield( L, -2, "b" );
 
-	lua_pushnumber( L, (u8)(color.w*255) );
+	lua_pushnumber( L, color.w );
 	lua_setfield( L, -2, "a" );
 
 	return 1;
@@ -2375,8 +2120,26 @@ void CG_DrawHUD() {
 		lua_pushnumber( hud_L, cg.predictedPlayerState.max_health );
 		lua_setfield( hud_L, -2, "max_health" );
 
+		lua_pushnumber( hud_L, cg.predictedPlayerState.perk );
+		lua_setfield( hud_L, -2, "perk" );
+
+		lua_pushnumber( hud_L, cg.predictedPlayerState.pmove.stamina );
+		lua_setfield( hud_L, -2, "stamina" );
+
+		lua_pushnumber( hud_L, cg.predictedPlayerState.pmove.stamina_state );
+		lua_setfield( hud_L, -2, "staminaState" );
+
 		lua_pushnumber( hud_L, cg.predictedPlayerState.team );
 		lua_setfield( hud_L, -2, "team" );
+
+		lua_pushboolean( hud_L, cg.predictedPlayerState.carrying_bomb );
+		lua_setfield( hud_L, -2, "isCarrier" );
+
+		lua_pushboolean( hud_L, cg.predictedPlayerState.can_plant );
+		lua_setfield( hud_L, -2, "canPlant" );
+
+		lua_pushboolean( hud_L, cg.predictedPlayerState.can_change_loadout );
+		lua_setfield( hud_L, -2, "canChangeLoadout" );
 
 		lua_pushnumber( hud_L, cg.predictedPlayerState.progress );
 		lua_setfield( hud_L, -2, "bomb_progress" );
@@ -2416,6 +2179,9 @@ void CG_DrawHUD() {
 
 		lua_pushboolean( hud_L, Cvar_Bool( "cg_showFPS" ) );
 		lua_setfield( hud_L, -2, "show_fps" );
+
+		lua_pushboolean( hud_L, Cvar_Bool( "cg_showHotkeys" ) );
+		lua_setfield( hud_L, -2, "show_hotkeys" );
 
 		lua_pushnumber( hud_L, CG_GetFPS() );
 		lua_setfield( hud_L, -2, "fps" );

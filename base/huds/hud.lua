@@ -26,7 +26,7 @@ local function DrawTopInfo( state )
 				cd.text( options, posX, state.viewport_height * 0.05, "READY" )
 			else
 				options.color = cd.attentionGettingColor()
-				cd.text( options, posX, state.viewport_height * 0.04, "Press " .. cd.getBind( "toggleready" ) .. " to ready up" )
+				cd.text( options, posX, state.viewport_height * 0.04, "Press [" .. cd.getBind( "toggleready" ) .. "] to ready up" )
 			end
 		end
 	elseif state.matchState == MatchState_Playing then
@@ -69,6 +69,106 @@ local function DrawTopInfo( state )
 				end
 			end
 		end
+	end
+end
+
+local function DrawHotkeys( state, options, x, y )
+	options.alignment = "center middle"
+	options.border = "#0000"
+	options.font_size *= 0.7
+
+	y -= options.font_size * 0.1
+	if state.canChangeLoadout then
+		options.color = "#fff"
+		cd.text( options, x, y, "Press "..cd.getBind( "gametypemenu" ).." to change loadout" )
+	elseif state.canPlant then
+		options.color = cd.attentionGettingColor()	
+		cd.text( options, x, y, "Press "..cd.getBind( "+plant" ).." to plant" )
+	elseif state.isCarrier then
+		options.color = "#fff"
+		cd.text( options, x, y, "Press "..cd.getBind( "drop" ).." to drop the bomb" )
+	end
+end
+
+local function DrawPlayerBar( state )
+	if state.health <= 0 then
+		return
+	end
+
+	local offset = state.viewport_width * 0.015
+	local stamina_bar_height = state.viewport_width * 0.016
+	local health_bar_height = state.viewport_width * 0.028
+	local empty_bar_height = state.viewport_width * 0.025
+	local padding = offset/4;
+
+
+	local width = state.viewport_width * 0.25
+	local height = stamina_bar_height + health_bar_height + empty_bar_height + padding * 4
+
+	local x = offset
+	local y = state.viewport_height - offset - height
+	cd.box( x, y, width, height, "#222" )
+
+	x += padding
+	y += padding
+	width -= padding * 2
+
+	local stamina_bg_color = RGBALinear( 0.06, 0.06, 0.06, 1 )
+	local stamina_color = cd.getTeamColor( TEAM_ALLY )
+
+	if state.perk == PERK_HOOLIGAN then
+		cd.box( x, y, width, stamina_bar_height, stamina_bg_color )
+		
+		stamina_color.a = math.min( 1, state.stamina * 2 )
+		cd.box( x, y, width/2, stamina_bar_height, stamina_color )
+
+		stamina_color.a = math.max( 0.0, (state.stamina - 0.5) * 2 )
+		cd.box( x + width/2, y, width/2, stamina_bar_height, stamina_color )
+
+
+		cd.box( x + width / 2 - padding/2, y, padding, stamina_bar_height, "#222" )
+	else
+		if state.perk == PERK_MIDGET and state.stamina <= 0 and state.staminaState == STAMINA_USING then
+			stamina_bg_color = cd.attentionGettingColor()
+			stamina_bg_color.a = 0.05
+		elseif state.perk == PERK_JETPACK then
+			local s = 1 - math.min( 1.0, state.stamina + 0.5 )
+			stamina_bg_color = RGBALinear( 0.06 + s * 0.8, 0.06 + s * 0.1, 0.06 + s * 0.1, 0.5 + 0.5 * state.stamina )
+		end
+
+		stamina_color.a = state.stamina
+		cd.box( x, y, width, stamina_bar_height, stamina_bg_color )
+		cd.box( x, y, width * state.stamina, stamina_bar_height, stamina_color )
+	end
+
+
+	y += stamina_bar_height + padding
+
+	cd.box( x, y, width, health_bar_height, "#444" )
+	local hp = state.health / state.max_health
+	local hp_color = RGBALinear( 1 - hp, hp * 0.5, 0, 1 )
+	cd.box( x, y, width * hp, health_bar_height, hp_color )
+
+	y += health_bar_height + padding * 2
+	x += padding
+	local cross_long = empty_bar_height - padding * 2
+	local cross_short = cross_long / 4
+	cd.box( x, y + cross_long/2 - cross_short/2, cross_long, cross_short, hp_color )
+	cd.box( x + cross_long/2 - cross_short/2, y, cross_short, cross_long, hp_color )
+
+	x += cross_long + padding * 3
+	local options = {
+		color = hp_color,
+		border = "#000a",
+		font = "bold",
+		font_size = empty_bar_height * 1.05,
+		alignment = "left top",
+	}
+
+	cd.text( options, x, y, state.health )
+
+	if state.show_hotkeys then
+		DrawHotkeys( state, options, x + options.font_size * 0.25 + ( width - x + offset + padding * 2)/2, y + cross_long /2 )
 	end
 end
 
@@ -134,6 +234,10 @@ return function( state )
 		cd.drawBombIndicators( state.viewport_height / 26, state.viewport_height / 60 ) -- site name size, site message size (ATTACK/DEFEND/...)
 
 		DrawTopInfo( state )
+
+		if state.team ~= TEAM_SPECTATOR then
+			DrawPlayerBar( state )
+		end
 
 		DrawDevInfo( state )
 

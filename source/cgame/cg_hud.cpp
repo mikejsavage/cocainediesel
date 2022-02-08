@@ -50,18 +50,13 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "TEAM_ALLY", TEAM_ALLY },
 	{ "TEAM_ENEMY", TEAM_ENEMY },
 
-	{ "Gadget_None", Gadget_None },
-
-	{ "Gadget_ThrowingAxe", Gadget_ThrowingAxe },
-	{ "Gadget_SuicideBomb", Gadget_SuicideBomb },
-	{ "Gadget_StunGrenade", Gadget_StunGrenade },
-
-
 	{ "Perk_Ninja", Perk_Ninja },
 	{ "Perk_Hooligan", Perk_Hooligan },
 	{ "Perk_Midget", Perk_Midget },
 	{ "Perk_Jetpack", Perk_Jetpack },
 	{ "Perk_Boomer", Perk_Boomer },
+
+	{ "Gadget_None", Gadget_None },
 
 	{ "Stamina_Normal", Stamina_Normal },
 	{ "Stamina_Reloading", Stamina_Reloading },
@@ -334,11 +329,11 @@ static const Material * DamageTypeToIcon( DamageType type ) {
 	DamageCategory category = DecodeDamageType( type, &weapon, &gadget, &world );
 
 	if( category == DamageCategory_Weapon ) {
-		return cgs.media.shaderWeaponIcon[ weapon ];
+		return FindMaterial( cgs.media.shaderWeaponIcon[ weapon ] );
 	}
 
 	if( category == DamageCategory_Gadget ) {
-		return cgs.media.shaderGadgetIcon[ gadget ];
+		return FindMaterial( cgs.media.shaderGadgetIcon[ gadget ] );
 	}
 
 	switch( world ) {
@@ -486,7 +481,7 @@ static void DrawWeaponBar( int ix, int iy, int size, int padding, Alignment alig
 	for( int i = 0; i < num_weapons; i++ ) {
 		WeaponType weap = ps->weapons[ i ].weapon;
 		const WeaponDef * def = GS_GetWeaponDef( weap );
-		const Material * icon = cgs.media.shaderWeaponIcon[ weap ];
+		const Material * icon = FindMaterial( cgs.media.shaderWeaponIcon[ weap ] );
 		Vec2 half_pixel = HalfPixelSize( icon );
 
 		int ammo = ps->weapons[ i ].ammo;
@@ -549,74 +544,6 @@ static void DrawWeaponBar( int ix, int iy, int size, int padding, Alignment alig
 		Draw2DBox( x, y, size, size, cls.white_material, bg_color );
 		Draw2DBox( x, y, size, size, FindMaterial( "gfx/bomb" ), bomb_color );
 		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, "BOMB", Alignment_CenterTop, x + size * 0.5f, y + size * 1.15f, text_color, true );
-
-		x += size + padding;
-	}
-}
-
-static void DrawPerksUtility( int ix, int iy, int size, int padding, Alignment alignment ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
-	const SyncPlayerState * ps = &cg.predictedPlayerState;
-
-	bool has_gadget = ps->gadget != Gadget_None;
-
-	int columns = ( has_gadget ? 1 : 0 ) + 1;
-
-	int total_width = columns * size + Max2( 0, columns - 1 ) * padding;
-
-	float border = size * 0.08f;
-
-	float x = CG_HorizontalAlignForWidth( ix, alignment, total_width );
-	float y = CG_VerticalAlignForHeight( iy, alignment, size );
-
-	{
-		const Material * icon = cgs.media.shaderPerkIcon[ ps->perk ];
-
-		Draw2DBoxPadded( x, y, size, size, border, cls.white_material, dark_gray );
-		Draw2DBox( x, y, size, size, cls.white_material, light_gray );
-		Draw2DBox( x, y, size, size, icon, vec4_white );
-		x += size + padding;
-	}
-
-	if( has_gadget ) {
-		const GadgetDef * def = GetGadgetDef( ps->gadget );
-
-		float ammo_frac = float( ps->gadget_ammo ) / float( def->uses );
-		Vec4 ammo_color = AmmoColor( ammo_frac );
-
-		const Material * icon = cgs.media.shaderGadgetIcon[ ps->gadget ];
-		Vec2 half_pixel = HalfPixelSize( icon );
-
-		// border
-		Draw2DBoxPadded( x, y, size, size, border, cls.white_material, dark_gray );
-
-		// background icon
-		Draw2DBox( x, y, size, size, icon, light_gray );
-
-		{
-			float y_offset = size * ( 1.0f - ammo_frac );
-			float partial_y = y + y_offset;
-			float partial_h = size - y_offset;
-
-			// partial ammo color background
-			Draw2DBox( x, partial_y, size, partial_h, cls.white_material, ammo_color );
-
-			// partial ammo icon
-			Draw2DBoxUV( x, partial_y, size, partial_h,
-				Vec2( half_pixel.x, Lerp( half_pixel.y, 1.0f - ammo_frac, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
-				icon, vec4_dark );
-		}
-
-		// current ammo
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, temp( "{}", ps->gadget_ammo ), Alignment_LeftTop, x + size * 0.05f, y + size * 0.05f, ammo_color, true );
-
-		if( Cvar_Bool( "cg_showHotkeys" ) ) {
-			// bind
-			char bind[ 32 ];
-			CG_GetBoundKeysString( "+gadget", bind, sizeof( bind ) );
-			DrawText( cgs.fontNormalBold, cgs.fontSystemTinySize, bind, Alignment_CenterMiddle, x + size * 0.5f, y - size * 0.25f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), true );
-		}
 
 		x += size + padding;
 	}
@@ -839,6 +766,19 @@ static int LuauDraw2DBox( lua_State * L ) {
 	return 0;
 }
 
+static int LuauDraw2DBoxUV( lua_State * L ) {
+	float x = luaL_checknumber( L, 1 );
+	float y = luaL_checknumber( L, 2 );
+	float w = luaL_checknumber( L, 3 );
+	float h = luaL_checknumber( L, 4 );
+	Vec2 topleft_uv = Vec2( luaL_checknumber( L, 5 ), luaL_checknumber( L, 6 ) );
+	Vec2 bottomright_uv = Vec2( luaL_checknumber( L, 7 ), luaL_checknumber( L, 8 ) );
+	Vec4 color = CheckColor( L, 9 );
+	StringHash material = CheckHash( L, 10 );
+	Draw2DBoxUV( x, y, w, h, topleft_uv, bottomright_uv, material == EMPTY_HASH ? cls.white_material : FindMaterial( material ), color );
+	return 0;
+}
+
 static Alignment CheckAlignment( lua_State * L, int idx ) {
 	constexpr const Alignment alignments[] = {
 		Alignment_LeftTop,
@@ -982,6 +922,40 @@ static int LuauGetPlayerName( lua_State * L ) {
 	return 0;
 }
 
+static int LuauGetWeaponIcon( lua_State * L ) {
+	u8 w = luaL_checknumber( L, 1 );
+	lua_newtable( L );
+	lua_pushlightuserdata( L, checked_cast< void * >( checked_cast< uintptr_t >( cgs.media.shaderWeaponIcon[ w ].hash ) ) );
+	return 1;
+}
+
+static int LuauGetGadgetIcon( lua_State * L ) {
+	u8 g = luaL_checknumber( L, 1 );
+	lua_newtable( L );
+	lua_pushlightuserdata( L, checked_cast< void * >( checked_cast< uintptr_t >( cgs.media.shaderGadgetIcon[ g ].hash ) ) );
+	return 1;
+}
+
+static int LuauGetPerkIcon( lua_State * L ) {
+	u8 p = luaL_checknumber( L, 1 );
+	lua_newtable( L );
+	lua_pushlightuserdata( L, checked_cast< void * >( checked_cast< uintptr_t >( cgs.media.shaderPerkIcon[ p ].hash ) ) );
+	return 1;
+}
+
+static int LuauGetWeaponAmmo( lua_State * L ) {
+	u8 w = luaL_checknumber( L, 1 );
+	lua_newtable( L );
+	lua_pushnumber( L, GS_GetWeaponDef( WeaponType( w ) )->clip_size );
+	return 1;
+}
+
+static int LuauGetGadgetAmmo( lua_State * L ) {
+	u8 g = luaL_checknumber( L, 1 );
+	lua_newtable( L );
+	lua_pushnumber( L, GetGadgetDef( GadgetType( g ) )->uses );
+	return 1;
+}
 
 static int HUD_DrawBombIndicators( lua_State * L ) {
 	CG_DrawBombHUD( luaL_checknumber( L, 1 ), luaL_checknumber( L, 2 ) );
@@ -1152,18 +1126,6 @@ static int HUD_DrawWeaponBar( lua_State * L ) {
 	return 0;
 }
 
-static int HUD_DrawPerksUtility( lua_State * L ) {
-	int x = luaL_checknumber( L, 1 );
-	int y = luaL_checknumber( L, 2 );
-	int size = luaL_checknumber( L, 3 );
-	int padding = luaL_checknumber( L, 4 );
-	Alignment alignment = CheckAlignment( L, 5 );
-
-	DrawPerksUtility( x, y, size, padding, alignment );
-
-	return 0;
-}
-
 void CG_InitHUD() {
 	TracyZoneScopedN( "Luau" );
 
@@ -1185,12 +1147,20 @@ void CG_InitHUD() {
 		{ "print", LuauPrint },
 		{ "asset", LuauAsset },
 		{ "box", LuauDraw2DBox },
+		{ "boxuv", LuauDraw2DBoxUV },
 		{ "text", LuauDrawText },
+
 		{ "getBind", LuauGetBind },
 		{ "getTeamColor", LuauGetTeamColor },
 		{ "attentionGettingColor", LuauAttentionGettingColor },
-
 		{ "getPlayerName", LuauGetPlayerName },
+
+		{ "getWeaponIcon", LuauGetWeaponIcon },
+		{ "getGadgetIcon", LuauGetGadgetIcon },
+		{ "getPerkIcon", LuauGetPerkIcon },
+
+		{ "getWeaponAmmo", LuauGetWeaponAmmo },
+		{ "getGadgetAmmo", LuauGetGadgetAmmo },
 
 		{ "drawBombIndicators", HUD_DrawBombIndicators },
 		{ "drawCrosshair", HUD_DrawCrosshair },
@@ -1199,7 +1169,6 @@ void CG_InitHUD() {
 		{ "drawPointed", HUD_DrawPointed },
 		{ "drawDamageNumbers", HUD_DrawDamageNumbers },
 		{ "drawWeaponBar", HUD_DrawWeaponBar },
-		{ "drawPerksUtility", HUD_DrawPerksUtility },
 
 		{ NULL, NULL }
 	};
@@ -1276,6 +1245,12 @@ void CG_DrawHUD() {
 
 		lua_pushnumber( hud_L, cg.predictedPlayerState.max_health );
 		lua_setfield( hud_L, -2, "max_health" );
+
+		lua_pushnumber( hud_L, cg.predictedPlayerState.gadget );
+		lua_setfield( hud_L, -2, "gadget" );
+
+		lua_pushnumber( hud_L, cg.predictedPlayerState.gadget_ammo );
+		lua_setfield( hud_L, -2, "gadget_ammo" );
 
 		lua_pushnumber( hud_L, cg.predictedPlayerState.perk );
 		lua_setfield( hud_L, -2, "perk" );

@@ -1,3 +1,6 @@
+local yellow = RGBALinear( 1, 0.64, 0.0225, 1 )
+local red = RGBALinear( 1, 0.0484, 0.1444, 1 )
+
 local function DrawTopInfo( state )
 	local options = {
 		color = "#ffff",
@@ -90,6 +93,68 @@ local function DrawHotkeys( state, options, x, y )
 	end
 end
 
+local function DrawBoxOutline( x, y, sizeX, sizeY, outline_size )
+	cd.box( x - outline_size, y - outline_size, sizeX + outline_size * 2, sizeY + outline_size * 2, "#222" )
+end
+
+local function AmmoColor( frac )
+	return RGBALinear( 
+		(red.r - red.r*frac + yellow.r*frac), 
+		(red.g - red.g*frac + yellow.g*frac),
+		(red.b - red.b*frac + yellow.b*frac), 1 )
+end
+
+local function DrawAmmoFrac( x, y, size, ammo, ammo_max, material )
+	local f = ammo/ammo_max
+	local ammo_color = AmmoColor( f )
+
+	cd.box( x, y, size, size, "#333" )
+	cd.box( x, y, size, size, "#777", material )
+
+	cd.boxuv( x, y + size - size*f, size, size*f,
+		0, 1 - f, 1, 1,
+		ammo_color, nil )
+	cd.boxuv( x, y + size - size*f, size, size*f,
+		0, 1 - f, 1, 1,
+		"#000", material )
+
+	local options = {
+		color = ammo_color,
+		border = "#000f",
+		font = "bold",
+		font_size = size * 0.4,
+		alignment = "right bottom",
+	}
+	cd.text( options, x + size * 0.9, y + size * 0.9, ammo )
+end
+
+local function DrawPerk( state, x, y, size, outline_size )
+	DrawBoxOutline( x, y, size, size, outline_size )
+	cd.box( x, y, size, size, "#999" )
+	cd.box( x, y, size, size, "#fff", cd.getPerkIcon( state.perk ) )
+end
+
+local function DrawUtility( state, x, y, size, outline_size )
+	if state.gadget ~= Gadget_None then
+		DrawBoxOutline( x, y, size, size, outline_size )
+		DrawAmmoFrac( x, y, size, state.gadget_ammo, cd.getGadgetAmmo( state.gadget ), cd.getGadgetIcon( state.gadget ) )
+	end
+end
+
+local function DrawWeaponBar( state )
+	-- copied from health bar lol
+	local offset = state.viewport_width * 0.015
+	local padding = offset / 4;
+
+	local width = state.viewport_width * 0.25
+	local height = state.viewport_width * 0.069 + padding * 3
+
+	local size = 0.1 * state.viewport_height
+	local padding = 0.02 * state.viewport_height
+
+	cd.drawWeaponBar( offset + width + padding, state.viewport_height - height - offset, size, padding, "left top" )
+end
+
 local function DrawPlayerBar( state )
 	if state.health <= 0 then
 		return
@@ -101,12 +166,19 @@ local function DrawPlayerBar( state )
 	local empty_bar_height = state.viewport_width * 0.025
 	local padding = offset/4;
 
-
 	local width = state.viewport_width * 0.25
 	local height = stamina_bar_height + health_bar_height + empty_bar_height + padding * 4
 
 	local x = offset
 	local y = state.viewport_height - offset - height
+
+
+	local perks_utility_size = state.viewport_width * 0.035
+	local perkX = x + padding
+	local perkY = y - perks_utility_size - padding * 2
+	DrawPerk( state, perkX, perkY, perks_utility_size, padding )
+	DrawUtility( state, perkX + perks_utility_size + padding * 3 , perkY, perks_utility_size, padding )
+
 	cd.box( x, y, width, height, "#222" )
 
 	x += padding
@@ -171,34 +243,6 @@ local function DrawPlayerBar( state )
 	if state.show_hotkeys and state.chasing == NOT_CHASING then
 		DrawHotkeys( state, options, x + ( width - x + offset + options.font_size * 0.5 * string.len( hp_text ))/2, y + cross_long /2 )
 	end
-end
-
-local function DrawWeaponBar( state )
-	-- copied from health bar lol
-	local offset = state.viewport_width * 0.015
-	local padding = offset / 4;
-
-	local width = state.viewport_width * 0.25
-	local height = state.viewport_width * 0.069 + padding * 3
-
-	local size = 0.1 * state.viewport_height
-	local padding = 0.02 * state.viewport_height
-
-	cd.drawWeaponBar( offset + width + padding, state.viewport_height - height - offset, size, padding, "left top" )
-end
-
-local function DrawPerksUtility( state )
-	-- copied from health bar lol
-	local offset = state.viewport_width * 0.015
-	local padding = offset / 4;
-
-	local height = state.viewport_width * 0.069 + padding * 3
-
-	local size = 0.0666667 * state.viewport_height
-	local icon_padding = 0.02 * state.viewport_height
-	local border = size * 0.08 -- compensate for Draw2DBoxPadded adding an outer border, still a tiny bit off
-
-	cd.drawPerksUtility( offset + border, state.viewport_height - offset - height - icon_padding, size, icon_padding, "left bottom" )
 end
 
 local function DrawDevInfo( state )
@@ -305,7 +349,6 @@ return function( state )
 
 		if state.team ~= TEAM_SPECTATOR then
 			DrawPlayerBar( state )
-			DrawPerksUtility( state )
 			DrawWeaponBar( state )
 		end
 

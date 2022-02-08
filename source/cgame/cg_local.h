@@ -111,9 +111,9 @@ struct cgs_media_t {
 	StringHash sfxWeaponHit[ 4 ];
 	StringHash sfxVSaySounds[ Vsay_Total ];
 
-	const Material * shaderWeaponIcon[ Weapon_Count ];
-	const Material * shaderGadgetIcon[ Gadget_Count ];
-	const Material * shaderPerkIcon[ Perk_Count ];
+	StringHash shaderWeaponIcon[ Weapon_Count ];
+	StringHash shaderGadgetIcon[ Gadget_Count ];
+	StringHash shaderPerkIcon[ Perk_Count ];
 };
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time

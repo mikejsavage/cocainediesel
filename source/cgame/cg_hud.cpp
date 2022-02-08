@@ -208,8 +208,10 @@ static const char * RandomPrefix( RNG * rng, float p ) {
 }
 
 static char * Uppercase( Allocator * a, const char * str ) {
-	char * upper = CopyString( a, str );
-	Q_strupr( upper );
+	char * upper = ALLOC_MANY( a, char, strlen( str ) + 1 );
+	for( size_t i = 0; i < strlen( str ); i++ ) {
+		upper[ i ] = toupper( str[ i ] );
+	}
 	return upper;
 }
 

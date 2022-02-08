@@ -420,18 +420,6 @@ void Q_strncatz( char *dest, const char *src, size_t size ) {
 	}
 }
 
-char *Q_strupr( char *s ) {
-	char *p;
-
-	if( s ) {
-		for( p = s; *s; s++ )
-			*s = toupper( *s );
-		return p;
-	}
-
-	return NULL;
-}
-
 char *Q_strlwr( char *s ) {
 	char *p;
 

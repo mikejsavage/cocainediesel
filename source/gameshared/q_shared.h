@@ -133,7 +133,6 @@ STATIC_ASSERT( MAX_NAME_CHARS <= MAX_CONFIGSTRING_CHARS );
 void Q_strncpyz( char *dest, const char *src, size_t size );
 void Q_strncatz( char *dest, const char *src, size_t size );
 
-char *Q_strupr( char *s );
 char *Q_strlwr( char *s );
 char *Q_trim( char *s );
 void RemoveTrailingZeroesFloat( char * str );

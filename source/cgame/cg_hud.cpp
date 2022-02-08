@@ -1416,11 +1416,14 @@ static bool LoadHUDFile( const char * path, DynamicString & script ) {
 	return true;
 }
 
-static void CallWithStackTrace( lua_State * L, int args, const char * err ) {
-	lua_call( L, args, 0 );
-	// if( lua_pcall( L, args, 0, 1 ) ) {
-	// 	Com_Printf( S_COLOR_YELLOW "%s: %s\n", err, lua_tostring( L, -1 ) );
-	// }
+static bool CallWithStackTrace( lua_State * L, int args, int results ) {
+	if( lua_pcall( L, args, results, 1 ) != 0 ) {
+		Com_Printf( S_COLOR_YELLOW "%s\n", lua_tostring( L, -1 ) );
+		lua_pop( L, 1 );
+		return false;
+	}
+
+	return true;
 }
 
 static Span< const char > LuaToSpan( lua_State * L, int idx ) {
@@ -2045,10 +2048,9 @@ void CG_InitHUD() {
 			lua_setfield( hud_L, LUA_GLOBALSINDEX, cg_numeric_constants[ i ].name );
 		}
 
-		// TODO: add a require statement
-
-		luaL_openlibs( hud_L ); // TODO: don't open all libs
+		luaL_openlibs( hud_L ); // TODO: don't open all libs?
 		luaL_register( hud_L, "cd", cdlib );
+		lua_pop( hud_L, 1 );
 
 		lua_pushcfunction( hud_L, LuauRGBA8, "RGBA8" );
 		lua_setfield( hud_L, LUA_GLOBALSINDEX, "RGBA8" );
@@ -2058,21 +2060,23 @@ void CG_InitHUD() {
 
 		luaL_sandbox( hud_L );
 
-		// lua_getglobal( hud_L, "debug" );
-		// lua_getfield( hud_L, -1, "traceback" );
-		// lua_remove( hud_L, -2 );
+		lua_getglobal( hud_L, "debug" );
+		lua_getfield( hud_L, -1, "traceback" );
+		lua_remove( hud_L, -2 );
 
 		int ok = luau_load( hud_L, "hud.lua", bytecode, bytecode_size, 0 );
 		if( ok == 0 ) {
-			// check we have 1 thing on the stack
-			lua_call( hud_L, 0, 1 );
+			if( !CallWithStackTrace( hud_L, 0, 1 ) || lua_type( hud_L, -1 ) != LUA_TFUNCTION ) {
+				Com_Printf( S_COLOR_RED "hud.lua must return a function\n" );
+				lua_close( hud_L );
+				hud_L = NULL;
+			}
 		}
 		else {
 			Com_Printf( S_COLOR_RED "Luau compilation error: %s\n", lua_tostring( hud_L, -1 ) );
 			lua_close( hud_L );
 			hud_L = NULL;
 		}
-		// CallWithStackTrace( "hud.lua" );
 	}
 }
 
@@ -2108,7 +2112,6 @@ void CG_DrawHUD() {
 		TracyZoneScopedN( "Luau" );
 
 		lua_pushvalue( hud_L, -1 );
-
 		lua_newtable( hud_L );
 
 		lua_pushboolean( hud_L, cg.predictedPlayerState.ready );
@@ -2198,6 +2201,6 @@ void CG_DrawHUD() {
 		lua_pushnumber( hud_L, frame_static.viewport_height );
 		lua_setfield( hud_L, -2, "viewport_height" );
 
-		CallWithStackTrace( hud_L, 1, "hud.lua" );
+		CallWithStackTrace( hud_L, 1, 0 );
 	}
 }

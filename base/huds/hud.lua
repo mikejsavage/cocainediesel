@@ -1,5 +1,10 @@
+local dark_grey = "#222"
 local yellow = RGBALinear( 1, 0.64, 0.0225, 1 )
 local red = RGBALinear( 1, 0.0484, 0.1444, 1 )
+
+local function SRGBALinear( rgbalinear )
+
+end
 
 local function DrawTopInfo( state )
 	local options = {
@@ -78,7 +83,7 @@ end
 local function DrawHotkeys( state, options, x, y )
 	options.alignment = "center middle"
 	options.border = "#0000"
-	options.font_size *= 0.7
+	options.font_size *= 0.8
 
 	y -= options.font_size * 0.1
 	if state.canChangeLoadout then
@@ -94,7 +99,7 @@ local function DrawHotkeys( state, options, x, y )
 end
 
 local function DrawBoxOutline( x, y, sizeX, sizeY, outline_size )
-	cd.box( x - outline_size, y - outline_size, sizeX + outline_size * 2, sizeY + outline_size * 2, "#222" )
+	cd.box( x - outline_size, y - outline_size, sizeX + outline_size * 2, sizeY + outline_size * 2, dark_grey )
 end
 
 local function AmmoColor( frac )
@@ -108,30 +113,30 @@ local function DrawAmmoFrac( x, y, size, ammo, ammo_max, material )
 	local f = ammo/ammo_max
 	local ammo_color = AmmoColor( f )
 
-	cd.box( x, y, size, size, "#333" )
-	cd.box( x, y, size, size, "#777", material )
+	cd.box( x, y, size, size, RGBA8( 45, 45, 45 ) )
+	cd.box( x, y, size, size, "#666", material )
 
 	cd.boxuv( x, y + size - size*f, size, size*f,
 		0, 1 - f, 1, 1,
 		ammo_color, nil )
 	cd.boxuv( x, y + size - size*f, size, size*f,
 		0, 1 - f, 1, 1,
-		"#000", material )
+		dark_grey, material )
 
 	local options = {
 		color = ammo_color,
 		border = "#000f",
 		font = "bold",
 		font_size = size * 0.4,
-		alignment = "right bottom",
+		alignment = "left top",
 	}
-	cd.text( options, x + size * 0.9, y + size * 0.9, ammo )
+	cd.text( options, x + size * 0.1, y + size * 0.1, ammo )
 end
 
 local function DrawPerk( state, x, y, size, outline_size )
 	DrawBoxOutline( x, y, size, size, outline_size )
-	cd.box( x, y, size, size, "#999" )
-	cd.box( x, y, size, size, "#fff", cd.getPerkIcon( state.perk ) )
+	cd.box( x, y, size, size, "#fff" )
+	cd.box( x, y, size, size, dark_grey, cd.getPerkIcon( state.perk ) )
 end
 
 local function DrawUtility( state, x, y, size, outline_size )
@@ -141,18 +146,8 @@ local function DrawUtility( state, x, y, size, outline_size )
 	end
 end
 
-local function DrawWeaponBar( state )
-	-- copied from health bar lol
-	local offset = state.viewport_width * 0.015
-	local padding = offset / 4;
-
-	local width = state.viewport_width * 0.25
-	local height = state.viewport_width * 0.069 + padding * 3
-
-	local size = 0.1 * state.viewport_height
-	local padding = 0.02 * state.viewport_height
-
-	cd.drawWeaponBar( offset + width + padding, state.viewport_height - height - offset, size, padding, "left top" )
+local function DrawWeaponBar( state, x, y, size, padding )
+	cd.drawWeaponBar( x, y + padding * 1.02, size, padding*3, "left top" )
 end
 
 local function DrawPlayerBar( state )
@@ -161,10 +156,10 @@ local function DrawPlayerBar( state )
 	end
 
 	local offset = state.viewport_width * 0.015
-	local stamina_bar_height = state.viewport_width * 0.016
-	local health_bar_height = state.viewport_width * 0.028
-	local empty_bar_height = state.viewport_width * 0.025
-	local padding = offset/4;
+	local stamina_bar_height = state.viewport_width * 0.014
+	local health_bar_height = state.viewport_width * 0.023
+	local empty_bar_height = state.viewport_width * 0.020
+	local padding = math.floor( offset/5 );
 
 	local width = state.viewport_width * 0.25
 	local height = stamina_bar_height + health_bar_height + empty_bar_height + padding * 4
@@ -178,8 +173,9 @@ local function DrawPlayerBar( state )
 	local perkY = y - perks_utility_size - padding * 2
 	DrawPerk( state, perkX, perkY, perks_utility_size, padding )
 	DrawUtility( state, perkX + perks_utility_size + padding * 3 , perkY, perks_utility_size, padding )
+	DrawWeaponBar( state, x + width + padding * 2, y, height * 0.73, padding )
 
-	cd.box( x, y, width, height, "#222" )
+	cd.box( x, y, width, height, dark_grey )
 
 	x += padding
 	y += padding
@@ -198,7 +194,7 @@ local function DrawPlayerBar( state )
 		cd.box( x + width/2, y, width/2, stamina_bar_height, stamina_color )
 
 
-		cd.box( x + width / 2 - padding/2, y, padding, stamina_bar_height, "#222" )
+		cd.box( x + width / 2 - padding/2, y, padding, stamina_bar_height, dark_grey )
 	else
 		if state.perk == Perk_Midget and state.stamina <= 0 and state.staminaState == Stamina_UsingAbility then
 			stamina_bg_color = cd.attentionGettingColor()
@@ -218,7 +214,7 @@ local function DrawPlayerBar( state )
 
 	cd.box( x, y, width, health_bar_height, "#444" )
 	local hp = state.health / state.max_health
-	local hp_color = RGBALinear( 1 - hp, hp * 0.5, 0, 1 )
+	local hp_color = RGBALinear( sRGBToLinear(1 - hp), sRGBToLinear(hp), sRGBToLinear(hp * 0.3), 1 )
 	cd.box( x, y, width * hp, health_bar_height, hp_color )
 
 	y += health_bar_height + padding * 2
@@ -349,7 +345,6 @@ return function( state )
 
 		if state.team ~= TEAM_SPECTATOR then
 			DrawPlayerBar( state )
-			DrawWeaponBar( state )
 		end
 
 		DrawDevInfo( state )

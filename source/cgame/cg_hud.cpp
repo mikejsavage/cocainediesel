@@ -737,6 +737,13 @@ static int LuauRGBALinear( lua_State * L ) {
 	return 1;
 }
 
+static int LuausRGBToLinear( lua_State * L ) {
+	float i = luaL_checknumber( L, 1 );
+	lua_newtable( L );
+	lua_pushnumber( L, sRGBToLinear( i ) );
+	return 1;
+}
+
 static int LuauPrint( lua_State * L ) {
 	Com_Printf( "%s\n", luaL_checkstring( hud_L, 1 ) );
 	return 0;
@@ -1187,6 +1194,9 @@ void CG_InitHUD() {
 
 	lua_pushcfunction( hud_L, LuauRGBALinear, "RGBALinear" );
 	lua_setfield( hud_L, LUA_GLOBALSINDEX, "RGBALinear" );
+
+	lua_pushcfunction( hud_L, LuausRGBToLinear, "sRGBToLinear" );
+	lua_setfield( hud_L, LUA_GLOBALSINDEX, "sRGBToLinear" );
 
 	luaL_sandbox( hud_L );
 

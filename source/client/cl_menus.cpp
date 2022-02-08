@@ -936,7 +936,7 @@ static void Perks( Vec2 icon_size ) {
 	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
 
 	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
-		const Material * icon = cgs.media.shaderPerkIcon[ i ];
+		const Material * icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );
 		if( LoadoutButton( GetPerkDef( i )->name, icon_size, icon, loadout.perk == i ) ) {
 			loadout.perk = i;
 			SendLoadout();
@@ -964,7 +964,7 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( i );
 		if( def->category == category ) {
-			const Material * icon = cgs.media.shaderWeaponIcon[ i ];
+			const Material * icon = FindMaterial( cgs.media.shaderWeaponIcon[ i ] );
 			if( LoadoutButton( def->name, icon_size, icon, loadout.weapons[ def->category ] == i ) ) {
 				loadout.weapons[ def->category ] = i;
 				SendLoadout();
@@ -981,7 +981,7 @@ static void Gadgets( Vec2 icon_size ) {
 
 	for( GadgetType i = GadgetType( Gadget_None + 1 ); i < Gadget_Count; i++ ) {
 		const GadgetDef * def = GetGadgetDef( i );
-		const Material * icon = cgs.media.shaderGadgetIcon[ i ];
+		const Material * icon = FindMaterial( cgs.media.shaderGadgetIcon[ i ] );
 		if( LoadoutButton( def->name, icon_size, icon, loadout.gadget == i ) ) {
 			loadout.gadget = GadgetType( i );
 			SendLoadout();

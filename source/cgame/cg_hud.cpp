@@ -710,7 +710,7 @@ static void Draw2DBoxPadded( float x, float y, float w, float h, float border, c
 	Draw2DBox( x - border, y - border, w + border * 2.0f, h + border * 2.0f, material, color );
 }
 
-static void DrawWeaponBar( int ix, int iy, int offx, int iw, int ih, Alignment alignment, float font_size ) {
+static void DrawWeaponBar( int ix, int iy, int size, int padding, Alignment alignment ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
@@ -727,15 +727,12 @@ static void DrawWeaponBar( int ix, int iy, int offx, int iw, int ih, Alignment a
 
 	int columns = num_weapons + ( has_bomb ? 1 : 0 );
 
-	int padding = offx - iw;
-	int total_width = columns * offx + Max2( 0, columns - 1 ) * padding;
+	int total_width = columns * size + Max2( 0, columns - 1 ) * padding;
 
-	float w = iw;
-	float h = ih;
-	float border = w * 0.06f;
+	float border = size * 0.06f;
 
 	float x = CG_HorizontalAlignForWidth( ix, alignment, total_width );
-	float y = CG_VerticalAlignForHeight( iy, alignment, h );
+	float y = CG_VerticalAlignForHeight( iy, alignment, size );
 
 	for( int i = 0; i < num_weapons; i++ ) {
 		WeaponType weap = ps->weapons[ i ].weapon;
@@ -752,32 +749,32 @@ static void DrawWeaponBar( int ix, int iy, int offx, int iw, int ih, Alignment a
 		Vec4 selected_weapon_color = selected_weapon ? vec4_white : Vec4( 0.5f, 0.5f, 0.5f, 1.0f );
 
 		// border
-		Draw2DBoxPadded( x, y, w, h + h * ( selected_weapon ? 0.35f : 0.27f ), border, cls.white_material, dark_gray );
+		Draw2DBoxPadded( x, y, size, size + size * ( selected_weapon ? 0.35f : 0.27f ), border, cls.white_material, dark_gray );
 
 		// background icon
-		Draw2DBox( x, y, w, h, icon, light_gray );
+		Draw2DBox( x, y, size, size, icon, light_gray );
 
 		{
-			float y_offset = h * ( 1.0f - ammo_frac );
+			float y_offset = size * ( 1.0f - ammo_frac );
 			float partial_y = y + y_offset;
-			float partial_h = h - y_offset;
+			float partial_h = size - y_offset;
 
 			// partial ammo color background
-			Draw2DBox( x, partial_y, w, partial_h, cls.white_material, ammo_color );
+			Draw2DBox( x, partial_y, size, partial_h, cls.white_material, ammo_color );
 
 			// partial ammo icon
-			Draw2DBoxUV( x, partial_y, w, partial_h,
+			Draw2DBoxUV( x, partial_y, size, partial_h,
 				Vec2( half_pixel.x, Lerp( half_pixel.y, 1.0f - ammo_frac, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
 				icon, vec4_dark );
 		}
 
 		// current ammo
 		if( def->clip_size != 0 ) {
-			DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, temp( "{}", ammo ), Alignment_LeftTop, x + w * 0.05f, y + h * 0.05f, ammo_color, layout_cursor_font_border );
+			DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, temp( "{}", ammo ), Alignment_LeftTop, x + size * 0.05f, y + size * 0.05f, ammo_color, layout_cursor_font_border );
 		}
 
 		// weapon name
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, def->name, Alignment_CenterTop, x + w * 0.5f, y + h * (selected_weapon ? 1.15f : 1.1f ), selected_weapon_color, layout_cursor_font_border );
+		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, def->name, Alignment_CenterTop, x + size * 0.5f, y + size * (selected_weapon ? 1.15f : 1.1f ), selected_weapon_color, layout_cursor_font_border );
 
 		if( Cvar_Bool( "cg_showHotkeys" ) ) {
 			// first try the weapon specific bind
@@ -787,10 +784,10 @@ static void DrawWeaponBar( int ix, int iy, int offx, int iw, int ih, Alignment a
 			}
 
 			// weapon bind
-			DrawText( cgs.fontNormalBold, cgs.fontSystemSmallSize, bind, Alignment_CenterMiddle, x + w * 0.5f, y - h * 0.2f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), layout_cursor_font_border );
+			DrawText( cgs.fontNormalBold, cgs.fontSystemSmallSize, bind, Alignment_CenterMiddle, x + size * 0.5f, y - size * 0.2f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), layout_cursor_font_border );
 		}
 
-		x += offx;
+		x += size + padding;
 	}
 
 	if( has_bomb ) {
@@ -799,43 +796,39 @@ static void DrawWeaponBar( int ix, int iy, int offx, int iw, int ih, Alignment a
 		Vec4 bomb_color = ps->can_plant ? dark_gray : vec4_white;
 		Vec4 text_color = ps->can_plant ? PlantableColor() : vec4_white;
 
-		Draw2DBoxPadded( x, y, w, h, border, cls.white_material, border_color );
-		Draw2DBox( x, y, w, h, cls.white_material, bg_color );
-		Draw2DBox( x, y, w, h, FindMaterial( "gfx/bomb" ), bomb_color );
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, "BOMB", Alignment_CenterTop, x + w * 0.5f, y + h * 1.15f, text_color, layout_cursor_font_border );
+		Draw2DBoxPadded( x, y, size, size, border, cls.white_material, border_color );
+		Draw2DBox( x, y, size, size, cls.white_material, bg_color );
+		Draw2DBox( x, y, size, size, FindMaterial( "gfx/bomb" ), bomb_color );
+		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, "BOMB", Alignment_CenterTop, x + size * 0.5f, y + size * 1.15f, text_color, layout_cursor_font_border );
 
-		x += offx;
+		x += size + padding;
 	}
 }
 
-static void DrawPerksUtility( int ix, int iy, int offx, int iw, int ih, Alignment alignment, float font_size ) {
+static void DrawPerksUtility( int ix, int iy, int size, int padding, Alignment alignment ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
 
 	bool has_gadget = ps->gadget != Gadget_None;
 
-	int columns =  ( has_gadget ? 1 : 0 ) + 1;
+	int columns = ( has_gadget ? 1 : 0 ) + 1;
 
-	int padding = offx - iw;
-	int total_width = columns * offx + Max2( 0, columns - 1 ) * padding;
+	int total_width = columns * size + Max2( 0, columns - 1 ) * padding;
 
-	float w = iw;
-	float h = ih;
-	float border = w * 0.08f;
+	float border = size * 0.08f;
 
 	float x = CG_HorizontalAlignForWidth( ix, alignment, total_width );
-	float y = CG_VerticalAlignForHeight( iy, alignment, h );
+	float y = CG_VerticalAlignForHeight( iy, alignment, size );
 
 	{
 		const Material * icon = cgs.media.shaderPerkIcon[ ps->perk ];
 
-		Draw2DBoxPadded( x, y, w, h, border, cls.white_material, dark_gray );
-		Draw2DBox( x, y, w, h, cls.white_material, light_gray );
-		Draw2DBox( x, y, w, h, icon, vec4_white );
-		x += offx;
+		Draw2DBoxPadded( x, y, size, size, border, cls.white_material, dark_gray );
+		Draw2DBox( x, y, size, size, cls.white_material, light_gray );
+		Draw2DBox( x, y, size, size, icon, vec4_white );
+		x += size + padding;
 	}
-
 
 	if( has_gadget ) {
 		const GadgetDef * def = GetGadgetDef( ps->gadget );
@@ -847,36 +840,36 @@ static void DrawPerksUtility( int ix, int iy, int offx, int iw, int ih, Alignmen
 		Vec2 half_pixel = HalfPixelSize( icon );
 
 		// border
-		Draw2DBoxPadded( x, y, w, h, border, cls.white_material, dark_gray );
+		Draw2DBoxPadded( x, y, size, size, border, cls.white_material, dark_gray );
 
 		// background icon
-		Draw2DBox( x, y, w, h, icon, light_gray );
+		Draw2DBox( x, y, size, size, icon, light_gray );
 
 		{
-			float y_offset = h * ( 1.0f - ammo_frac );
+			float y_offset = size * ( 1.0f - ammo_frac );
 			float partial_y = y + y_offset;
-			float partial_h = h - y_offset;
+			float partial_h = size - y_offset;
 
 			// partial ammo color background
-			Draw2DBox( x, partial_y, w, partial_h, cls.white_material, ammo_color );
+			Draw2DBox( x, partial_y, size, partial_h, cls.white_material, ammo_color );
 
 			// partial ammo icon
-			Draw2DBoxUV( x, partial_y, w, partial_h,
+			Draw2DBoxUV( x, partial_y, size, partial_h,
 				Vec2( half_pixel.x, Lerp( half_pixel.y, 1.0f - ammo_frac, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
 				icon, vec4_dark );
 		}
 
 		// current ammo
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, temp( "{}", ps->gadget_ammo ), Alignment_LeftTop, x + w * 0.05f, y + h * 0.05f, ammo_color, layout_cursor_font_border );
+		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, temp( "{}", ps->gadget_ammo ), Alignment_LeftTop, x + size * 0.05f, y + size * 0.05f, ammo_color, layout_cursor_font_border );
 
 		if( Cvar_Bool( "cg_showHotkeys" ) ) {
 			// bind
 			char bind[ 32 ];
 			CG_GetBoundKeysString( "+gadget", bind, sizeof( bind ) );
-			DrawText( cgs.fontNormalBold, cgs.fontSystemTinySize, bind, Alignment_CenterMiddle, x + w * 0.5f, y - h * 0.25f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), layout_cursor_font_border );
+			DrawText( cgs.fontNormalBold, cgs.fontSystemTinySize, bind, Alignment_CenterMiddle, x + size * 0.5f, y - size * 0.25f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), layout_cursor_font_border );
 		}
 
-		x += offx;
+		x += size + padding;
 	}
 }
 
@@ -991,28 +984,6 @@ static bool CG_LFuncFontBorder( cg_layoutnode_t *argumentnode ) {
 	return true;
 }
 
-static bool CG_LFuncDrawWeaponIcons( cg_layoutnode_t *argumentnode ) {
-	int offx = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
-	int w = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
-	int h = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600;
-	float font_size = CG_GetNumericArg( &argumentnode );
-
-	DrawWeaponBar( layout_cursor_x, layout_cursor_y, offx, w, h, layout_cursor_alignment, font_size );
-
-	return true;
-}
-
-static bool CG_LFuncDrawPerksUtilityIcons( cg_layoutnode_t *argumentnode ) {
-	int offx = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
-	int w = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_width / 800;
-	int h = CG_GetNumericArg( &argumentnode ) * frame_static.viewport_height / 600;
-	float font_size = CG_GetNumericArg( &argumentnode );
-
-	DrawPerksUtility( layout_cursor_x, layout_cursor_y, offx, w, h, layout_cursor_alignment, font_size );
-
-	return true;
-}
-
 static bool CG_LFuncIf( cg_layoutnode_t *argumentnode ) {
 	return (int)CG_GetNumericArg( &argumentnode ) != 0;
 }
@@ -1061,18 +1032,6 @@ static const cg_layoutcommand_t cg_LayoutCommands[] = {
 	{
 		"setColor",
 		CG_LFuncColor,
-		4,
-	},
-
-	{
-		"drawWeaponIcons",
-		CG_LFuncDrawWeaponIcons,
-		4,
-	},
-
-	{
-		"drawPerksUtilityIcons",
-		CG_LFuncDrawPerksUtilityIcons,
 		4,
 	},
 
@@ -1932,7 +1891,6 @@ static int HUD_DrawObituaries( lua_State * L ) {
 	return 0;
 }
 
-
 static int HUD_DrawCallvote( lua_State * L ) {
 	const char * vote = cl.configstrings[ CS_CALLVOTE ];
 	if( strlen( vote ) == 0 )
@@ -1979,8 +1937,29 @@ static int HUD_DrawCallvote( lua_State * L ) {
 	return 0;
 }
 
+static int HUD_DrawWeaponBar( lua_State * L ) {
+	int x = luaL_checknumber( L, 1 );
+	int y = luaL_checknumber( L, 2 );
+	int size = luaL_checknumber( L, 3 );
+	int padding = luaL_checknumber( L, 4 );
+	Alignment alignment = CheckAlignment( L, 5 );
 
+	DrawWeaponBar( x, y, size, padding, alignment );
 
+	return 0;
+}
+
+static int HUD_DrawPerksUtility( lua_State * L ) {
+	int x = luaL_checknumber( L, 1 );
+	int y = luaL_checknumber( L, 2 );
+	int size = luaL_checknumber( L, 3 );
+	int padding = luaL_checknumber( L, 4 );
+	Alignment alignment = CheckAlignment( L, 5 );
+
+	DrawPerksUtility( x, y, size, padding, alignment );
+
+	return 0;
+}
 
 void CG_InitHUD() {
 	TracyZoneScoped;
@@ -2039,6 +2018,8 @@ void CG_InitHUD() {
 			{ "drawPointed", HUD_DrawPointed },
 			{ "drawDamageNumbers", HUD_DrawDamageNumbers },
 			{ "drawCallvote", HUD_DrawCallvote },
+			{ "drawWeaponBar", HUD_DrawWeaponBar },
+			{ "drawPerksUtility", HUD_DrawPerksUtility },
 
 			{ NULL, NULL }
 		};

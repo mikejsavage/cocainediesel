@@ -82,7 +82,7 @@ local function DrawHotkeys( state, options, x, y )
 		options.color = "#fff"
 		cd.text( options, x, y, "Press "..cd.getBind( "gametypemenu" ).." to change loadout" )
 	elseif state.canPlant then
-		options.color = cd.attentionGettingColor()	
+		options.color = cd.attentionGettingColor()
 		cd.text( options, x, y, "Press "..cd.getBind( "+plant" ).." to plant" )
 	elseif state.isCarrier then
 		options.color = "#fff"
@@ -118,7 +118,7 @@ local function DrawPlayerBar( state )
 
 	if state.perk == PERK_HOOLIGAN then
 		cd.box( x, y, width, stamina_bar_height, stamina_bg_color )
-		
+
 		stamina_color.a = math.min( 1, state.stamina * 2 )
 		cd.box( x, y, width/2, stamina_bar_height, stamina_color )
 
@@ -170,6 +170,34 @@ local function DrawPlayerBar( state )
 	if state.show_hotkeys then
 		DrawHotkeys( state, options, x + options.font_size * 0.25 + ( width - x + offset + padding * 2)/2, y + cross_long /2 )
 	end
+end
+
+local function DrawWeaponBar( state )
+	-- copied from health bar lol
+	local offset = state.viewport_width * 0.015
+	local padding = offset / 4;
+
+	local width = state.viewport_width * 0.25
+	local height = state.viewport_width * 0.069 + padding * 3
+
+	local size = 0.1 * state.viewport_height
+	local padding = 0.02 * state.viewport_height
+
+	cd.drawWeaponBar( offset + width + padding, state.viewport_height - height - offset, size, padding, "left top" )
+end
+
+local function DrawPerksUtility( state )
+	-- copied from health bar lol
+	local offset = state.viewport_width * 0.015
+	local padding = offset / 4;
+
+	local height = state.viewport_width * 0.069 + padding * 3
+
+	local size = 0.0666667 * state.viewport_height
+	local icon_padding = 0.02 * state.viewport_height
+	local border = size * 0.08 -- compensate for Draw2DBoxPadded adding an outer border, still a tiny bit off
+
+	cd.drawPerksUtility( offset + border, state.viewport_height - offset - height - icon_padding, size, icon_padding, "left bottom" )
 end
 
 local function DrawDevInfo( state )
@@ -237,6 +265,8 @@ return function( state )
 
 		if state.team ~= TEAM_SPECTATOR then
 			DrawPlayerBar( state )
+			DrawPerksUtility( state )
+			DrawWeaponBar( state )
 		end
 
 		DrawDevInfo( state )

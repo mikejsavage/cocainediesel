@@ -1,5 +1,3 @@
-if %MATCH_STATE < #MatchState_PostMatch
 
-#include weaponlist
 
-endif //if %MATCH_STATE < #MatchState_PostMatch
+

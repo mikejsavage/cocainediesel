@@ -204,9 +204,13 @@ local function DrawPlayerBar( state )
 			stamina_bg_color = RGBALinear( 0.06 + s * 0.8, 0.06 + s * 0.1, 0.06 + s * 0.1, 0.5 + 0.5 * state.stamina )
 		end
 
-		stamina_color.a = state.stamina
+		stamina_color.a = 0.25 + state.stamina * 0.75
 		cd.box( x, y, width, stamina_bar_height, stamina_bg_color )
 		cd.box( x, y, width * state.stamina, stamina_bar_height, stamina_color )
+		cd.boxuv( x, y,
+			width * state.stamina, stamina_bar_height,
+			0, 0, (width * state.stamina)/8, stamina_bar_height/8, --8 is the size of the texture
+			RGBALinear( 1, 1, 1, 0.75 * state.stamina ), cd.asset( "gfx/hud/diagonal_pattern" ) )
 	end
 
 

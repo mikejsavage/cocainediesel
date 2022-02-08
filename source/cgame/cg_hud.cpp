@@ -1134,7 +1134,7 @@ static int HUD_DrawWeaponBar( lua_State * L ) {
 }
 
 void CG_InitHUD() {
-	TracyZoneScopedN( "Luau" );
+	TracyZoneScoped;
 
 	hud_L = NULL;
 
@@ -1241,117 +1241,116 @@ void CG_DrawHUD() {
 		CG_InitHUD();
 	}
 
-	if( hud_L != NULL ) {
-		TracyZoneScopedN( "Luau" );
+	if( hud_L == NULL )
+		return;
 
-		lua_pushvalue( hud_L, -1 );
-		lua_newtable( hud_L );
+	lua_pushvalue( hud_L, -1 );
+	lua_newtable( hud_L );
 
-		lua_pushboolean( hud_L, cg.predictedPlayerState.ready );
-		lua_setfield( hud_L, -2, "ready" );
+	lua_pushboolean( hud_L, cg.predictedPlayerState.ready );
+	lua_setfield( hud_L, -2, "ready" );
 
-		lua_pushnumber( hud_L, cg.predictedPlayerState.health );
-		lua_setfield( hud_L, -2, "health" );
+	lua_pushnumber( hud_L, cg.predictedPlayerState.health );
+	lua_setfield( hud_L, -2, "health" );
 
-		lua_pushnumber( hud_L, cg.predictedPlayerState.max_health );
-		lua_setfield( hud_L, -2, "max_health" );
+	lua_pushnumber( hud_L, cg.predictedPlayerState.max_health );
+	lua_setfield( hud_L, -2, "max_health" );
 
-		lua_pushnumber( hud_L, cg.predictedPlayerState.gadget );
-		lua_setfield( hud_L, -2, "gadget" );
+	lua_pushnumber( hud_L, cg.predictedPlayerState.gadget );
+	lua_setfield( hud_L, -2, "gadget" );
 
-		lua_pushnumber( hud_L, cg.predictedPlayerState.gadget_ammo );
-		lua_setfield( hud_L, -2, "gadget_ammo" );
+	lua_pushnumber( hud_L, cg.predictedPlayerState.gadget_ammo );
+	lua_setfield( hud_L, -2, "gadget_ammo" );
 
-		lua_pushnumber( hud_L, cg.predictedPlayerState.perk );
-		lua_setfield( hud_L, -2, "perk" );
+	lua_pushnumber( hud_L, cg.predictedPlayerState.perk );
+	lua_setfield( hud_L, -2, "perk" );
 
-		lua_pushnumber( hud_L, cg.predictedPlayerState.pmove.stamina );
-		lua_setfield( hud_L, -2, "stamina" );
+	lua_pushnumber( hud_L, cg.predictedPlayerState.pmove.stamina );
+	lua_setfield( hud_L, -2, "stamina" );
 
-		lua_pushnumber( hud_L, cg.predictedPlayerState.pmove.stamina_state );
-		lua_setfield( hud_L, -2, "staminaState" );
+	lua_pushnumber( hud_L, cg.predictedPlayerState.pmove.stamina_state );
+	lua_setfield( hud_L, -2, "staminaState" );
 
-		lua_pushnumber( hud_L, cg.predictedPlayerState.team );
-		lua_setfield( hud_L, -2, "team" );
+	lua_pushnumber( hud_L, cg.predictedPlayerState.team );
+	lua_setfield( hud_L, -2, "team" );
 
-		lua_pushboolean( hud_L, cg.predictedPlayerState.carrying_bomb );
-		lua_setfield( hud_L, -2, "isCarrier" );
+	lua_pushboolean( hud_L, cg.predictedPlayerState.carrying_bomb );
+	lua_setfield( hud_L, -2, "isCarrier" );
 
-		lua_pushboolean( hud_L, cg.predictedPlayerState.can_plant );
-		lua_setfield( hud_L, -2, "canPlant" );
+	lua_pushboolean( hud_L, cg.predictedPlayerState.can_plant );
+	lua_setfield( hud_L, -2, "canPlant" );
 
-		lua_pushboolean( hud_L, cg.predictedPlayerState.can_change_loadout );
-		lua_setfield( hud_L, -2, "canChangeLoadout" );
+	lua_pushboolean( hud_L, cg.predictedPlayerState.can_change_loadout );
+	lua_setfield( hud_L, -2, "canChangeLoadout" );
 
-		lua_pushnumber( hud_L, cg.predictedPlayerState.progress );
-		lua_setfield( hud_L, -2, "bomb_progress" );
+	lua_pushnumber( hud_L, cg.predictedPlayerState.progress );
+	lua_setfield( hud_L, -2, "bomb_progress" );
 
-		lua_pushboolean( hud_L, GS_TeamBasedGametype( &client_gs ) );
-		lua_setfield( hud_L, -2, "teambased" );
+	lua_pushboolean( hud_L, GS_TeamBasedGametype( &client_gs ) );
+	lua_setfield( hud_L, -2, "teambased" );
 
-		lua_pushnumber( hud_L, client_gs.gameState.match_state );
-		lua_setfield( hud_L, -2, "matchState" );
+	lua_pushnumber( hud_L, client_gs.gameState.match_state );
+	lua_setfield( hud_L, -2, "matchState" );
 
-		lua_pushnumber( hud_L, client_gs.gameState.teams[ TEAM_ALPHA ].score );
-		lua_setfield( hud_L, -2, "scoreAlpha" );
+	lua_pushnumber( hud_L, client_gs.gameState.teams[ TEAM_ALPHA ].score );
+	lua_setfield( hud_L, -2, "scoreAlpha" );
 
-		lua_pushnumber( hud_L, client_gs.gameState.bomb.alpha_players_alive );
-		lua_setfield( hud_L, -2, "aliveAlpha" );
+	lua_pushnumber( hud_L, client_gs.gameState.bomb.alpha_players_alive );
+	lua_setfield( hud_L, -2, "aliveAlpha" );
 
-		lua_pushnumber( hud_L, client_gs.gameState.bomb.alpha_players_total );
-		lua_setfield( hud_L, -2, "totalAlpha" );
+	lua_pushnumber( hud_L, client_gs.gameState.bomb.alpha_players_total );
+	lua_setfield( hud_L, -2, "totalAlpha" );
 
-		lua_pushnumber( hud_L, client_gs.gameState.teams[ TEAM_BETA ].score );
-		lua_setfield( hud_L, -2, "scoreBeta" );
+	lua_pushnumber( hud_L, client_gs.gameState.teams[ TEAM_BETA ].score );
+	lua_setfield( hud_L, -2, "scoreBeta" );
 
-		lua_pushnumber( hud_L, client_gs.gameState.bomb.beta_players_alive );
-		lua_setfield( hud_L, -2, "aliveBeta" );
+	lua_pushnumber( hud_L, client_gs.gameState.bomb.beta_players_alive );
+	lua_setfield( hud_L, -2, "aliveBeta" );
 
-		lua_pushnumber( hud_L, client_gs.gameState.bomb.beta_players_total );
-		lua_setfield( hud_L, -2, "totalBeta" );
+	lua_pushnumber( hud_L, client_gs.gameState.bomb.beta_players_total );
+	lua_setfield( hud_L, -2, "totalBeta" );
 
-		lua_pushnumber( hud_L, client_gs.gameState.round_type );
-		lua_setfield( hud_L, -2, "roundType" );
+	lua_pushnumber( hud_L, client_gs.gameState.round_type );
+	lua_setfield( hud_L, -2, "roundType" );
 
-		lua_pushnumber( hud_L, CG_GetPOVnum() );
-		lua_setfield( hud_L, -2, "chasing" );
+	lua_pushnumber( hud_L, CG_GetPOVnum() );
+	lua_setfield( hud_L, -2, "chasing" );
 
-		lua_pushstring( hud_L, cl.configstrings[ CS_CALLVOTE ] );
-		lua_setfield( hud_L, -2, "vote" );
+	lua_pushstring( hud_L, cl.configstrings[ CS_CALLVOTE ] );
+	lua_setfield( hud_L, -2, "vote" );
 
-		lua_pushnumber( hud_L, client_gs.gameState.callvote_required_votes );
-		lua_setfield( hud_L, -2, "votesRequired" );
+	lua_pushnumber( hud_L, client_gs.gameState.callvote_required_votes );
+	lua_setfield( hud_L, -2, "votesRequired" );
 
-		lua_pushnumber( hud_L, client_gs.gameState.callvote_yes_votes );
-		lua_setfield( hud_L, -2, "votesTotal" );
+	lua_pushnumber( hud_L, client_gs.gameState.callvote_yes_votes );
+	lua_setfield( hud_L, -2, "votesTotal" );
 
-		lua_pushboolean( hud_L, cg.predictedPlayerState.voted );
-		lua_setfield( hud_L, -2, "hasVoted" );
+	lua_pushboolean( hud_L, cg.predictedPlayerState.voted );
+	lua_setfield( hud_L, -2, "hasVoted" );
 
-		lua_pushboolean( hud_L, CG_IsLagging() );
-		lua_setfield( hud_L, -2, "lagging" );
+	lua_pushboolean( hud_L, CG_IsLagging() );
+	lua_setfield( hud_L, -2, "lagging" );
 
-		lua_pushboolean( hud_L, Cvar_Bool( "cg_showFPS" ) );
-		lua_setfield( hud_L, -2, "show_fps" );
+	lua_pushboolean( hud_L, Cvar_Bool( "cg_showFPS" ) );
+	lua_setfield( hud_L, -2, "show_fps" );
 
-		lua_pushboolean( hud_L, Cvar_Bool( "cg_showHotkeys" ) );
-		lua_setfield( hud_L, -2, "show_hotkeys" );
+	lua_pushboolean( hud_L, Cvar_Bool( "cg_showHotkeys" ) );
+	lua_setfield( hud_L, -2, "show_hotkeys" );
 
-		lua_pushnumber( hud_L, CG_GetFPS() );
-		lua_setfield( hud_L, -2, "fps" );
+	lua_pushnumber( hud_L, CG_GetFPS() );
+	lua_setfield( hud_L, -2, "fps" );
 
-		lua_pushboolean( hud_L, Cvar_Bool( "cg_showSpeed" ) );
-		lua_setfield( hud_L, -2, "show_speed" );
+	lua_pushboolean( hud_L, Cvar_Bool( "cg_showSpeed" ) );
+	lua_setfield( hud_L, -2, "show_speed" );
 
-		lua_pushnumber( hud_L, CG_GetSpeed() );
-		lua_setfield( hud_L, -2, "speed" );
+	lua_pushnumber( hud_L, CG_GetSpeed() );
+	lua_setfield( hud_L, -2, "speed" );
 
-		lua_pushnumber( hud_L, frame_static.viewport_width );
-		lua_setfield( hud_L, -2, "viewport_width" );
+	lua_pushnumber( hud_L, frame_static.viewport_width );
+	lua_setfield( hud_L, -2, "viewport_width" );
 
-		lua_pushnumber( hud_L, frame_static.viewport_height );
-		lua_setfield( hud_L, -2, "viewport_height" );
+	lua_pushnumber( hud_L, frame_static.viewport_height );
+	lua_setfield( hud_L, -2, "viewport_height" );
 
-		CallWithStackTrace( hud_L, 1, 0 );
-	}
+	CallWithStackTrace( hud_L, 1, 0 );
 }

@@ -116,7 +116,7 @@ local function DrawPlayerBar( state )
 	local stamina_bg_color = RGBALinear( 0.06, 0.06, 0.06, 1 )
 	local stamina_color = cd.getTeamColor( TEAM_ALLY )
 
-	if state.perk == PERK_HOOLIGAN then
+	if state.perk == Perk_Hooligan then
 		cd.box( x, y, width, stamina_bar_height, stamina_bg_color )
 
 		stamina_color.a = math.min( 1, state.stamina * 2 )
@@ -128,10 +128,10 @@ local function DrawPlayerBar( state )
 
 		cd.box( x + width / 2 - padding/2, y, padding, stamina_bar_height, "#222" )
 	else
-		if state.perk == PERK_MIDGET and state.stamina <= 0 and state.staminaState == STAMINA_USING then
+		if state.perk == Perk_Midget and state.stamina <= 0 and state.staminaState == Stamina_UsingAbility then
 			stamina_bg_color = cd.attentionGettingColor()
 			stamina_bg_color.a = 0.05
-		elseif state.perk == PERK_JETPACK then
+		elseif state.perk == Perk_Jetpack then
 			local s = 1 - math.min( 1.0, state.stamina + 0.5 )
 			stamina_bg_color = RGBALinear( 0.06 + s * 0.8, 0.06 + s * 0.1, 0.06 + s * 0.1, 0.5 + 0.5 * state.stamina )
 		end
@@ -165,10 +165,11 @@ local function DrawPlayerBar( state )
 		alignment = "left top",
 	}
 
-	cd.text( options, x, y, state.health )
+	local hp_text = string.format("%d", state.health)
+	cd.text( options, x, y, hp_text )
 
-	if state.show_hotkeys then
-		DrawHotkeys( state, options, x + options.font_size * 0.25 + ( width - x + offset + padding * 2)/2, y + cross_long /2 )
+	if state.show_hotkeys and state.chasing == NOT_CHASING then
+		DrawHotkeys( state, options, x + ( width - x + offset + options.font_size * 0.5 * string.len( hp_text ))/2, y + cross_long /2 )
 	end
 end
 
@@ -230,7 +231,7 @@ local function DrawBombProgress( state )
 end
 
 local function DrawChasing( state )
-	if state.chasing == NOTSET then
+	if state.chasing == NOT_CHASING then
 		return
 	end
 

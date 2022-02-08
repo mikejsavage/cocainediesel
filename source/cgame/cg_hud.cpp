@@ -30,53 +30,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "luau/lualib.h"
 #include "luau/luacode.h"
 
-static int layout_cursor_x = 400;
-static int layout_cursor_y = 300;
-static Alignment layout_cursor_alignment = Alignment_LeftTop;
-static Vec4 layout_cursor_color = vec4_white;
-
 static const Vec4 light_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
 static constexpr Vec4 dark_gray = vec4_dark;
 
-enum FontStyle {
-	FontStyle_Normal,
-	FontStyle_Bold,
-	FontStyle_Italic,
-	FontStyle_BoldItalic,
-};
-
-static float layout_cursor_font_size;
-static FontStyle layout_cursor_font_style;
-static bool layout_cursor_font_border;
-
-static const Font * GetHUDFont() {
-	switch( layout_cursor_font_style ) {
-		case FontStyle_Normal: return cgs.fontNormal;
-		case FontStyle_Bold: return cgs.fontNormalBold;
-		case FontStyle_Italic: return cgs.fontItalic;
-		case FontStyle_BoldItalic: return cgs.fontBoldItalic;
-	}
-	return NULL;
-}
-
-//=============================================================================
-
-using opFunc_t = float( * )( const float a, float b );
-
-struct cg_layoutnode_t {
-	bool ( *func )( cg_layoutnode_t *argumentnode );
-	int type;
-	char *string;
-	int num_args;
-	size_t idx;
-	float value;
-	opFunc_t opFunc;
-	cg_layoutnode_t *args;
-	cg_layoutnode_t *next;
-	cg_layoutnode_t *ifthread;
-};
-
-static cg_layoutnode_t * hud_root;
 static lua_State * hud_L;
 
 struct constant_numeric_t {
@@ -85,7 +41,7 @@ struct constant_numeric_t {
 };
 
 static const constant_numeric_t cg_numeric_constants[] = {
-	{ "NOTSET", 9999 },
+	{ "NOT_CHASING", 9999 },
 
 	{ "TEAM_SPECTATOR", TEAM_SPECTATOR },
 	{ "TEAM_PLAYERS", TEAM_PLAYERS },
@@ -94,18 +50,16 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "TEAM_ALLY", TEAM_ALLY },
 	{ "TEAM_ENEMY", TEAM_ENEMY },
 
-	{ "PERK_NINJA", Perk_Ninja },
-	{ "PERK_HOOLIGAN", Perk_Hooligan },
-	{ "PERK_MIDGET", Perk_Midget },
-	{ "PERK_JETPACK", Perk_Jetpack },
-	{ "PERK_BOOMER", Perk_Boomer },
+	{ "Perk_Ninja", Perk_Ninja },
+	{ "Perk_Hooligan", Perk_Hooligan },
+	{ "Perk_Midget", Perk_Midget },
+	{ "Perk_Jetpack", Perk_Jetpack },
+	{ "Perk_Boomer", Perk_Boomer },
 
-	{ "STAMINA_NORMAL", Stamina_Normal },
-	{ "STAMINA_RELOADING", Stamina_Reloading },
-	{ "STAMINA_USING", Stamina_UsingAbility },
-	{ "STAMINA_USED", Stamina_UsedAbility },
-
-	{ "HEIGHT", 600 },
+	{ "Stamina_Normal", Stamina_Normal },
+	{ "Stamina_Reloading", Stamina_Reloading },
+	{ "Stamina_UsingAbility", Stamina_UsingAbility },
+	{ "Stamina_UsedAbility", Stamina_UsedAbility },
 
 	{ "MatchState_Warmup", MatchState_Warmup },
 	{ "MatchState_Countdown", MatchState_Countdown },
@@ -124,14 +78,6 @@ static const constant_numeric_t cg_numeric_constants[] = {
 };
 
 //=============================================================================
-
-static int CG_Int( const void * p ) {
-	return *( const int * ) p;
-}
-
-static int CG_U8( const void * p ) {
-	return *( const u8 * ) p;
-}
 
 static int CG_GetPOVnum() {
 	return cg.predictedPlayerState.POVnum != cgs.playerNum + 1 ? cg.predictedPlayerState.POVnum : 9999;
@@ -159,41 +105,11 @@ static int CG_GetFPS() {
 	return int( 1000.0f / average + 0.5f );
 }
 
-static int CG_GetMatchState( const void *parameter ) {
-	return client_gs.gameState.match_state;
-}
-
-static int CG_GetVidWidth( const void *parameter ) {
-	return frame_static.viewport_width;
-}
-
-static int CG_GetVidHeight( const void *parameter ) {
-	return frame_static.viewport_height;
-}
-
 static bool CG_IsLagging() {
 	int64_t incomingAcknowledged, outgoingSequence;
 	CL_GetCurrentState( &incomingAcknowledged, &outgoingSequence, NULL );
 	return !cgs.demoPlaying && (outgoingSequence - incomingAcknowledged) >= (CMD_BACKUP - 1);
 }
-
-struct reference_numeric_t {
-	const char *name;
-	int ( *func )( const void *parameter );
-	const void *parameter;
-};
-
-static const reference_numeric_t cg_numeric_references[] = {
-	// stats
-	{ "WEAPON_ITEM", CG_U8, &cg.predictedPlayerState.weapon },
-
-	{ "TEAM", CG_Int, &cg.predictedPlayerState.team },
-
-	// other
-	{ "MATCH_STATE", CG_GetMatchState, NULL },
-	{ "VIDWIDTH", CG_GetVidWidth, NULL },
-	{ "VIDHEIGHT", CG_GetVidHeight, NULL },
-};
 
 //=============================================================================
 
@@ -505,180 +421,6 @@ void CG_DrawScope() {
 }
 
 //=============================================================================
-//	STATUS BAR PROGRAMS
-//=============================================================================
-
-// we will always operate with floats so we don't have to code 2 different numeric paths
-// it's not like using float or ints would make a difference in this simple-scripting case.
-
-static float CG_OpFuncAdd( const float a, const float b ) {
-	return a + b;
-}
-
-static float CG_OpFuncSubtract( const float a, const float b ) {
-	return a - b;
-}
-
-static float CG_OpFuncMultiply( const float a, const float b ) {
-	return a * b;
-}
-
-static float CG_OpFuncDivide( const float a, const float b ) {
-	return a / b;
-}
-
-static float CG_OpFuncAND( const float a, const float b ) {
-	return (int)a & (int)b;
-}
-
-static float CG_OpFuncOR( const float a, const float b ) {
-	return (int)a | (int)b;
-}
-
-static float CG_OpFuncXOR( const float a, const float b ) {
-	return (int)a ^ (int)b;
-}
-
-static float CG_OpFuncCompareEqual( const float a, const float b ) {
-	return ( a == b );
-}
-
-static float CG_OpFuncCompareNotEqual( const float a, const float b ) {
-	return ( a != b );
-}
-
-static float CG_OpFuncCompareGreater( const float a, const float b ) {
-	return ( a > b );
-}
-
-static float CG_OpFuncCompareGreaterOrEqual( const float a, const float b ) {
-	return ( a >= b );
-}
-
-static float CG_OpFuncCompareSmaller( const float a, const float b ) {
-	return ( a < b );
-}
-
-static float CG_OpFuncCompareSmallerOrEqual( const float a, const float b ) {
-	return ( a <= b );
-}
-
-static float CG_OpFuncCompareAnd( const float a, const float b ) {
-	return ( a && b );
-}
-
-static float CG_OpFuncCompareOr( const float a, const float b ) {
-	return ( a || b );
-}
-
-struct cg_layoutoperators_t {
-	const char *name;
-	opFunc_t opFunc;
-};
-
-static cg_layoutoperators_t cg_LayoutOperators[] = {
-	{
-		"+",
-		CG_OpFuncAdd
-	},
-
-	{
-		"-",
-		CG_OpFuncSubtract
-	},
-
-	{
-		"*",
-		CG_OpFuncMultiply
-	},
-
-	{
-		"/",
-		CG_OpFuncDivide
-	},
-
-	{
-		"&",
-		CG_OpFuncAND
-	},
-
-	{
-		"|",
-		CG_OpFuncOR
-	},
-
-	{
-		"^",
-		CG_OpFuncXOR
-	},
-
-	{
-		"==",
-		CG_OpFuncCompareEqual
-	},
-
-	{
-		"!=",
-		CG_OpFuncCompareNotEqual
-	},
-
-	{
-		">",
-		CG_OpFuncCompareGreater
-	},
-
-	{
-		">=",
-		CG_OpFuncCompareGreaterOrEqual
-	},
-
-	{
-		"<",
-		CG_OpFuncCompareSmaller
-	},
-
-	{
-		"<=",
-		CG_OpFuncCompareSmallerOrEqual
-	},
-
-	{
-		"&&",
-		CG_OpFuncCompareAnd
-	},
-
-	{
-		"||",
-		CG_OpFuncCompareOr
-	},
-};
-
-static opFunc_t CG_OperatorFuncForArgument( Span< const char > token ) {
-	for( cg_layoutoperators_t op : cg_LayoutOperators ) {
-		if( StrCaseEqual( token, op.name ) ) {
-			return op.opFunc;
-		}
-	}
-
-	return NULL;
-}
-
-//=============================================================================
-
-static const char *CG_GetStringArg( cg_layoutnode_t **argumentsnode );
-static float CG_GetNumericArg( cg_layoutnode_t **argumentsnode );
-
-//=============================================================================
-
-enum {
-	LNODE_COMMAND,
-	LNODE_NUMERIC,
-	LNODE_STRING,
-	LNODE_REFERENCE_NUMERIC,
-	LNODE_DUMMY,
-};
-
-//=============================================================================
 // Commands' Functions
 //=============================================================================
 
@@ -770,11 +512,11 @@ static void DrawWeaponBar( int ix, int iy, int size, int padding, Alignment alig
 
 		// current ammo
 		if( def->clip_size != 0 ) {
-			DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, temp( "{}", ammo ), Alignment_LeftTop, x + size * 0.05f, y + size * 0.05f, ammo_color, layout_cursor_font_border );
+			DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, temp( "{}", ammo ), Alignment_LeftTop, x + size * 0.05f, y + size * 0.05f, ammo_color, true );
 		}
 
 		// weapon name
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, def->name, Alignment_CenterTop, x + size * 0.5f, y + size * (selected_weapon ? 1.15f : 1.1f ), selected_weapon_color, layout_cursor_font_border );
+		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, def->name, Alignment_CenterTop, x + size * 0.5f, y + size * (selected_weapon ? 1.15f : 1.1f ), selected_weapon_color, true );
 
 		if( Cvar_Bool( "cg_showHotkeys" ) ) {
 			// first try the weapon specific bind
@@ -784,7 +526,7 @@ static void DrawWeaponBar( int ix, int iy, int size, int padding, Alignment alig
 			}
 
 			// weapon bind
-			DrawText( cgs.fontNormalBold, cgs.fontSystemSmallSize, bind, Alignment_CenterMiddle, x + size * 0.5f, y - size * 0.2f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), layout_cursor_font_border );
+			DrawText( cgs.fontNormalBold, cgs.fontSystemSmallSize, bind, Alignment_CenterMiddle, x + size * 0.5f, y - size * 0.2f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), true );
 		}
 
 		x += size + padding;
@@ -799,7 +541,7 @@ static void DrawWeaponBar( int ix, int iy, int size, int padding, Alignment alig
 		Draw2DBoxPadded( x, y, size, size, border, cls.white_material, border_color );
 		Draw2DBox( x, y, size, size, cls.white_material, bg_color );
 		Draw2DBox( x, y, size, size, FindMaterial( "gfx/bomb" ), bomb_color );
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, "BOMB", Alignment_CenterTop, x + size * 0.5f, y + size * 1.15f, text_color, layout_cursor_font_border );
+		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, "BOMB", Alignment_CenterTop, x + size * 0.5f, y + size * 1.15f, text_color, true );
 
 		x += size + padding;
 	}
@@ -860,520 +602,20 @@ static void DrawPerksUtility( int ix, int iy, int size, int padding, Alignment a
 		}
 
 		// current ammo
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, temp( "{}", ps->gadget_ammo ), Alignment_LeftTop, x + size * 0.05f, y + size * 0.05f, ammo_color, layout_cursor_font_border );
+		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, temp( "{}", ps->gadget_ammo ), Alignment_LeftTop, x + size * 0.05f, y + size * 0.05f, ammo_color, true );
 
 		if( Cvar_Bool( "cg_showHotkeys" ) ) {
 			// bind
 			char bind[ 32 ];
 			CG_GetBoundKeysString( "+gadget", bind, sizeof( bind ) );
-			DrawText( cgs.fontNormalBold, cgs.fontSystemTinySize, bind, Alignment_CenterMiddle, x + size * 0.5f, y - size * 0.25f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), layout_cursor_font_border );
+			DrawText( cgs.fontNormalBold, cgs.fontSystemTinySize, bind, Alignment_CenterMiddle, x + size * 0.5f, y - size * 0.25f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), true );
 		}
 
 		x += size + padding;
 	}
 }
 
-static float ScaleX( float x ) {
-	return x * frame_static.viewport_width / 800.0f;
-}
-
-static float ScaleY( float y ) {
-	return y * frame_static.viewport_height / 600.0f;
-}
-
-static bool CG_LFuncCursor( cg_layoutnode_t *argumentnode ) {
-	float x = ScaleX( CG_GetNumericArg( &argumentnode ) );
-	float y = ScaleY( CG_GetNumericArg( &argumentnode ) );
-
-	layout_cursor_x = Q_rint( x );
-	layout_cursor_y = Q_rint( y );
-	return true;
-}
-
-static bool CG_LFuncColor( cg_layoutnode_t *argumentnode ) {
-	for( int i = 0; i < 4; i++ ) {
-		layout_cursor_color[ i ] = Clamp01( CG_GetNumericArg( &argumentnode ) );
-	}
-	return true;
-}
-
-static bool CG_LFuncAlignment( cg_layoutnode_t *argumentnode ) {
-	const char * x = CG_GetStringArg( &argumentnode );
-	const char * y = CG_GetStringArg( &argumentnode );
-
-	if( !Q_stricmp( x, "left" ) ) {
-		layout_cursor_alignment.x = XAlignment_Left;
-	}
-	else if( !Q_stricmp( x, "center" ) ) {
-		layout_cursor_alignment.x = XAlignment_Center;
-	}
-	else if( !Q_stricmp( x, "right" ) ) {
-		layout_cursor_alignment.x = XAlignment_Right;
-	}
-	else {
-		Com_Printf( "WARNING 'CG_LFuncAlignment' Unknown alignment '%s'\n", x );
-		return false;
-	}
-
-	if( !Q_stricmp( y, "top" ) ) {
-		layout_cursor_alignment.y = YAlignment_Top;
-	}
-	else if( !Q_stricmp( y, "middle" ) ) {
-		layout_cursor_alignment.y = YAlignment_Middle;
-	}
-	else if( !Q_stricmp( y, "bottom" ) ) {
-		layout_cursor_alignment.y = YAlignment_Bottom;
-	}
-	else {
-		Com_Printf( "WARNING 'CG_LFuncAlignment' Unknown alignment '%s'\n", y );
-		return false;
-	}
-
-	return true;
-}
-
-static bool CG_LFuncFontSize( cg_layoutnode_t *argumentnode ) {
-	cg_layoutnode_t *charnode = argumentnode;
-	const char * fontsize = CG_GetStringArg( &charnode );
-
-	if( !Q_stricmp( fontsize, "tiny" ) ) {
-		layout_cursor_font_size = cgs.textSizeTiny;
-	}
-	else if( !Q_stricmp( fontsize, "small" ) ) {
-		layout_cursor_font_size = cgs.textSizeSmall;
-	}
-	else if( !Q_stricmp( fontsize, "medium" ) ) {
-		layout_cursor_font_size = cgs.textSizeMedium;
-	}
-	else if( !Q_stricmp( fontsize, "big" ) ) {
-		layout_cursor_font_size = cgs.textSizeBig;
-	}
-	else {
-		layout_cursor_font_size = CG_GetNumericArg( &argumentnode );
-	}
-
-	return true;
-}
-
-static bool CG_LFuncFontStyle( cg_layoutnode_t *argumentnode ) {
-	const char * fontstyle = CG_GetStringArg( &argumentnode );
-
-	if( !Q_stricmp( fontstyle, "normal" ) ) {
-		layout_cursor_font_style = FontStyle_Normal;
-	}
-	else if( !Q_stricmp( fontstyle, "bold" ) ) {
-		layout_cursor_font_style = FontStyle_Bold;
-	}
-	else if( !Q_stricmp( fontstyle, "italic" ) ) {
-		layout_cursor_font_style = FontStyle_Italic;
-	}
-	else if( !Q_stricmp( fontstyle, "bold-italic" ) ) {
-		layout_cursor_font_style = FontStyle_BoldItalic;
-	}
-	else {
-		Com_Printf( "WARNING 'CG_LFuncFontStyle' Unknown font style '%s'\n", fontstyle );
-		return false;
-	}
-
-	return true;
-}
-
-static bool CG_LFuncFontBorder( cg_layoutnode_t *argumentnode ) {
-	const char * border = CG_GetStringArg( &argumentnode );
-	layout_cursor_font_border = Q_stricmp( border, "on" ) == 0;
-	return true;
-}
-
-static bool CG_LFuncIf( cg_layoutnode_t *argumentnode ) {
-	return (int)CG_GetNumericArg( &argumentnode ) != 0;
-}
-
-static bool CG_LFuncEndIf( cg_layoutnode_t *argumentnode ) {
-	return true;
-}
-
-struct cg_layoutcommand_t {
-	const char *name;
-	bool ( *func )( cg_layoutnode_t *argumentnode );
-	int numparms;
-};
-
-static const cg_layoutcommand_t cg_LayoutCommands[] = {
-	{
-		"setCursor",
-		CG_LFuncCursor,
-		2,
-	},
-
-	{
-		"setAlignment",
-		CG_LFuncAlignment,
-		2,
-	},
-
-	{
-		"setFontSize",
-		CG_LFuncFontSize,
-		1,
-	},
-
-	{
-		"setFontStyle",
-		CG_LFuncFontStyle,
-		1,
-	},
-
-	{
-		"setFontBorder",
-		CG_LFuncFontBorder,
-		1,
-	},
-
-	{
-		"setColor",
-		CG_LFuncColor,
-		4,
-	},
-
-	{
-		"if",
-		CG_LFuncIf,
-		1,
-	},
-
-	{
-		"endif",
-		CG_LFuncEndIf,
-		0,
-	},
-};
-
-
 //=============================================================================
-
-static const char *CG_GetStringArg( cg_layoutnode_t **argumentsnode ) {
-	cg_layoutnode_t *anode = *argumentsnode;
-
-	if( anode == NULL ) {
-		return "";
-	}
-
-	*argumentsnode = anode->next;
-	return anode->string;
-}
-
-/*
-* CG_GetNumericArg
-* can use recursion for mathematical operations
-*/
-static float CG_GetNumericArg( cg_layoutnode_t **argumentsnode ) {
-	cg_layoutnode_t *anode = *argumentsnode;
-
-	if( anode == NULL ) {
-		return 0.0f;
-	}
-
-	if( anode->type != LNODE_NUMERIC && anode->type != LNODE_REFERENCE_NUMERIC ) {
-		Com_Printf( "WARNING: 'CG_LayoutGetNumericArg': arg %s is not numeric\n", anode->string );
-	}
-
-	*argumentsnode = anode->next;
-	float value;
-	if( anode->type == LNODE_REFERENCE_NUMERIC ) {
-		value = cg_numeric_references[anode->idx].func( cg_numeric_references[anode->idx].parameter );
-	} else {
-		value = anode->value;
-	}
-
-	// recurse if there are operators
-	if( anode->opFunc != NULL ) {
-		value = anode->opFunc( value, CG_GetNumericArg( argumentsnode ) );
-	}
-
-	return value;
-}
-
-/*
-* CG_LayoutParseCommandNode
-* alloc a new node for a command
-*/
-static cg_layoutnode_t *CG_LayoutParseCommandNode( Span< const char > token ) {
-	for( cg_layoutcommand_t command : cg_LayoutCommands ) {
-		if( StrCaseEqual( token, command.name ) ) {
-			cg_layoutnode_t * node = ALLOC( sys_allocator, cg_layoutnode_t );
-			*node = { };
-
-			node->type = LNODE_COMMAND;
-			node->num_args = command.numparms;
-			node->string = CopyString( sys_allocator, command.name );
-			node->func = command.func;
-
-			return node;
-		}
-	}
-
-	return NULL;
-}
-
-/*
-* CG_LayoutParseArgumentNode
-* alloc a new node for an argument
-*/
-static cg_layoutnode_t *CG_LayoutParseArgumentNode( Span< const char > token ) {
-	cg_layoutnode_t * node = ALLOC( sys_allocator, cg_layoutnode_t );
-	*node = { };
-
-	if( token[ 0 ] == '%' ) {
-		node->type = LNODE_REFERENCE_NUMERIC;
-
-		bool ok = false;
-		for( size_t i = 0; i < ARRAY_COUNT( cg_numeric_references ); i++ ) {
-			if( StrCaseEqual( token + 1, cg_numeric_references[ i ].name ) ) {
-				ok = true;
-				node->idx = i;
-				break;
-			}
-		}
-
-		if( !ok ) {
-			Com_GGPrint( "Warning: HUD: {} is not valid numeric reference", token );
-		}
-	}
-	else if( token[ 0 ] == '#' ) {
-		node->type = LNODE_NUMERIC;
-
-		bool ok = false;
-		for( size_t i = 0; i < ARRAY_COUNT( cg_numeric_constants ); i++ ) {
-			if( StrCaseEqual( token + 1, cg_numeric_constants[ i ].name ) ) {
-				ok = true;
-				node->value = cg_numeric_constants[ i ].value;
-				break;
-			}
-		}
-
-		if( !ok ) {
-			Com_GGPrint( "Warning: HUD: {} is not valid numeric constant", token );
-		}
-
-	}
-	else if( token[ 0 ] == '\\' ) {
-		node->type = LNODE_STRING;
-		token++;
-	}
-	else {
-		node->value = 0.0f;
-		node->type = TrySpanToFloat( token, &node->value ) ? LNODE_NUMERIC : LNODE_STRING;
-	}
-
-	node->string = ( *sys_allocator )( "{}", token );
-
-	return node;
-}
-
-static void CG_RecurseFreeLayoutThread( cg_layoutnode_t * node ) {
-	if( node == NULL )
-		return;
-
-	CG_RecurseFreeLayoutThread( node->args );
-	CG_RecurseFreeLayoutThread( node->ifthread );
-	CG_RecurseFreeLayoutThread( node->next );
-	FREE( sys_allocator, node->string );
-	FREE( sys_allocator, node );
-}
-
-static Span< const char > ParseHUDToken( Span< const char > * cursor ) {
-	Span< const char > token;
-
-	// skip comments
-	while( true ) {
-		token = ParseToken( cursor, Parse_DontStopOnNewLine );
-		if( !StartsWith( token, "//" ) )
-			break;
-
-		while( true ) {
-			if( ParseToken( cursor, Parse_StopOnNewLine ) == "" ) {
-				break;
-			}
-		}
-	}
-
-	// strip trailing comma
-	if( token.n > 0 && token[ token.n - 1 ] == ',' ) {
-		token.n--;
-	}
-
-	return token;
-}
-
-struct LayoutNodeList {
-	cg_layoutnode_t * head;
-	cg_layoutnode_t * tail;
-
-	LayoutNodeList() {
-		head = ALLOC( sys_allocator, cg_layoutnode_t );
-		tail = head;
-
-		*head = { };
-		head->type = LNODE_DUMMY;
-	}
-
-	void add( cg_layoutnode_t * node ) {
-		tail->next = node;
-		tail = tail->next;
-	}
-};
-
-static cg_layoutnode_t * CG_ParseArgs( Span< const char > * cursor, const char * command_name, int expected_args, int * parsed_args ) {
-	LayoutNodeList nodes;
-
-	*parsed_args = 0;
-
-	while( true ) {
-		Span< const char > last_cursor = *cursor;
-		Span< const char > token = ParseHUDToken( cursor );
-		if( token == "" )
-			break;
-
-		opFunc_t op = CG_OperatorFuncForArgument( token );
-		if( op != NULL ) {
-			if( nodes.tail == NULL ) {
-				Com_GGPrint( "WARNING 'CG_RecurseParseLayoutScript'({}): \"{}\" Operator hasn't any prior argument", command_name, token );
-				continue;
-			}
-			if( nodes.tail->opFunc != NULL ) {
-				Com_GGPrint( "WARNING 'CG_RecurseParseLayoutScript'({}): \"{}\" Found two operators in a row", command_name, token );
-			}
-			if( nodes.tail->type == LNODE_STRING ) {
-				Com_GGPrint( "WARNING 'CG_RecurseParseLayoutScript'({}): \"{}\" Operator was assigned to a string node", command_name, token );
-			}
-
-			nodes.tail->opFunc = op;
-			continue;
-		}
-
-		if( *parsed_args == expected_args && nodes.tail->opFunc == NULL ) {
-			*cursor = last_cursor;
-			break;
-		}
-
-		cg_layoutnode_t * command = CG_LayoutParseCommandNode( token );
-		if( command != NULL ) {
-			Com_GGPrint( "WARNING 'CG_RecurseParseLayoutScript': \"{}\" is not a valid argument for \"{}\"", token, command_name );
-			break;
-		}
-
-		cg_layoutnode_t * node = CG_LayoutParseArgumentNode( token );
-
-		if( nodes.tail == NULL || nodes.tail->opFunc == NULL ) {
-			*parsed_args += 1;
-		}
-
-		nodes.add( node );
-	}
-
-	return nodes.head;
-}
-
-static cg_layoutnode_t *CG_RecurseParseLayoutScript( Span< const char > * cursor, int level ) {
-	LayoutNodeList nodes;
-
-	while( true ) {
-		Span< const char > token = ParseHUDToken( cursor );
-		if( token == "" ) {
-			if( level > 0 ) {
-				Com_Printf( "WARNING 'CG_RecurseParseLayoutScript'(level %i): If without endif\n", level );
-			}
-			break;
-		}
-
-		cg_layoutnode_t * command = CG_LayoutParseCommandNode( token );
-		if( command == NULL ) {
-			Com_GGPrint( "WARNING 'CG_RecurseParseLayoutScript'(level {}): unrecognized command \"{}\"", level, token );
-			break;
-		}
-
-		int parsed_args;
-		command->args = CG_ParseArgs( cursor, command->string, command->num_args, &parsed_args );
-
-		if( parsed_args != command->num_args ) {
-			Com_Printf( "ERROR: Layout command %s: invalid argument count (expecting %i, found %i)\n", command->string, command->num_args, parsed_args );
-		}
-
-		nodes.add( command );
-
-		if( command->func == CG_LFuncIf ) {
-			command->ifthread = CG_RecurseParseLayoutScript( cursor, level + 1 );
-		}
-		else if( command->func == CG_LFuncEndIf ) {
-			break;
-		}
-	}
-
-	return nodes.head;
-}
-
-/*
-* CG_RecurseExecuteLayoutThread
-* Execution works like this: First node (on backwards) is expected to be the command, followed by arguments nodes.
-* we keep a pointer to the command and run the tree counting arguments until we reach the next command,
-* then we call the command function sending the pointer to first argument and the pointer to the command.
-* At return we advance one node (we stopped at last argument node) so it starts again from the next command (if any).
-*
-* When finding an "if" command with a subtree, we execute the "if" command. In the case it
-* returns any value, we recurse execute the subtree
-*/
-static void CG_RecurseExecuteLayoutThread( cg_layoutnode_t * node ) {
-	if( node == NULL )
-		return;
-
-	// args->next to skip the dummy node
-	if( node->type != LNODE_DUMMY && node->func( node->args->next ) ) {
-		CG_RecurseExecuteLayoutThread( node->ifthread );
-	}
-
-	CG_RecurseExecuteLayoutThread( node->next );
-}
-
-static bool LoadHUDFile( const char * path, DynamicString & script ) {
-	Span< const char > contents = AssetString( StringHash( path ) );
-	if( contents == "" )
-		return false;
-
-	const char * cursor = contents.ptr;
-
-	while( true ) {
-		const char * before_include = strstr( cursor, "#include" );
-		if( before_include == NULL )
-			break;
-
-		script.append_raw( cursor, before_include - cursor );
-		cursor = before_include + strlen( "#include" );
-
-		Span< const char > include = ParseToken( &cursor, Parse_StopOnNewLine );
-		if( include == "" ) {
-			Com_Printf( "HUD: WARNING: Missing file after #include\n" );
-			return false;
-		}
-
-		u64 hash = Hash64( "huds/inc/" );
-		hash = Hash64( include.ptr, include.n, hash );
-		hash = Hash64( ".hud", strlen( ".hud" ), hash );
-
-		Span< const char > include_contents = AssetString( StringHash( hash ) );
-		if( include_contents == "" ) {
-			Com_GGPrint( "HUD: Couldn't include huds/inc/{}.hud", include );
-			return false;
-		}
-
-		// TODO: AssetString includes the trailing '\0' and we don't
-		// want to add that to the script
-		script.append_raw( include_contents.ptr, include_contents.n - 1 );
-	}
-
-	script += cursor;
-
-	return true;
-}
 
 static bool CallWithStackTrace( lua_State * L, int args, int results ) {
 	if( lua_pcall( L, args, results, 1 ) != 0 ) {
@@ -1740,7 +982,7 @@ static int HUD_DrawBombIndicators( lua_State * L ) {
 }
 
 static int HUD_DrawClock( lua_State * L ) {
-	CG_DrawClock( luaL_checknumber( L, 1 ), luaL_checknumber( L, 2 ), CheckAlignment( L, 5 ), GetHUDFont(), luaL_checknumber( L, 3 ), CheckColor( L, 4 ), luaL_checknumber( L, 6 ) );
+	CG_DrawClock( luaL_checknumber( L, 1 ), luaL_checknumber( L, 2 ), CheckAlignment( L, 5 ), cgs.fontNormalBold, luaL_checknumber( L, 3 ), CheckColor( L, 4 ), luaL_checknumber( L, 6 ) );
 	return 0;
 }
 
@@ -1755,7 +997,7 @@ static int HUD_DrawDamageNumbers( lua_State * L ) {
 }
 
 static int HUD_DrawPointed( lua_State * L ) {
-	CG_DrawPlayerNames( GetHUDFont(), luaL_checknumber( L, 1 ), CheckColor( L, 2 ), luaL_checknumber( L, 3 ) );
+	CG_DrawPlayerNames( cgs.fontNormalBold, luaL_checknumber( L, 1 ), CheckColor( L, 2 ), luaL_checknumber( L, 3 ) );
 	return 0;
 }
 
@@ -1773,7 +1015,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 	unsigned line_height = Max2( 1u, Max2( unsigned( font_size ), icon_size ) );
 	int num_max = height / line_height;
 
-	const Font * font = GetHUDFont();
+	const Font * font = cgs.fontNormalBold;
 
 	int next = cg_obituaries_current + 1;
 	if( next >= MAX_OBITUARIES ) {
@@ -1845,7 +1087,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		int obituary_y = y + yoffset + ( line_height - font_size ) / 2;
 		if( obr->type != OBITUARY_ACCIDENT ) {
 			Vec4 color = CG_TeamColorVec4( obr->attacker_team );
-			DrawText( font, font_size, obr->attacker, x + xoffset, obituary_y, color, layout_cursor_font_border );
+			DrawText( font, font_size, obr->attacker, x + xoffset, obituary_y, color, true );
 			xoffset += attacker_width;
 		}
 
@@ -1860,7 +1102,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		}
 
 		Vec4 color = CG_TeamColorVec4( obr->victim_team );
-		DrawText( font, font_size, obr->victim, x + xoffset, obituary_y, color, layout_cursor_font_border );
+		DrawText( font, font_size, obr->victim, x + xoffset, obituary_y, color, true );
 
 		yoffset += line_height;
 	} while( i != next );
@@ -1920,8 +1162,8 @@ static int HUD_DrawCallvote( lua_State * L ) {
 
 	Vec4 color = voted ? vec4_white : AttentionGettingColor();
 
-	DrawText( GetHUDFont(), font_size, temp( "Vote: {}", vote ), left + padding, top + padding, color, true );
-	DrawText( GetHUDFont(), font_size, temp( "{}/{}", yeses, required ), Alignment_RightTop, right - padding, top + padding, color, true );
+	DrawText( cgs.fontNormalBold, font_size, temp( "Vote: {}", vote ), left + padding, top + padding, color, true );
+	DrawText( cgs.fontNormalBold, font_size, temp( "{}/{}", yeses, required ), Alignment_RightTop, right - padding, top + padding, color, true );
 
 	if( !voted ) {
 		char vote_yes_keys[ 128 ];
@@ -1931,7 +1173,7 @@ static int HUD_DrawCallvote( lua_State * L ) {
 
 		const char * str = temp( "[{}] Vote yes [{}] Vote no", vote_yes_keys, vote_no_keys );
 		float y = top + padding + font_size * 1.2f;
-		DrawText( GetHUDFont(), font_size, str, left + padding, y, color, true );
+		DrawText( cgs.fontNormalBold, font_size, str, left + padding, y, color, true );
 	}
 
 	return 0;
@@ -1962,107 +1204,83 @@ static int HUD_DrawPerksUtility( lua_State * L ) {
 }
 
 void CG_InitHUD() {
-	TracyZoneScoped;
+	TracyZoneScopedN( "Luau" );
 
-	{
-		TracyZoneScopedN( "HUDScript" );
+	hud_L = NULL;
 
-		TempAllocator temp = cls.frame_arena.temp();
-		const char * path = "huds/default.hud";
-
-		DynamicString script( &temp );
-		if( !LoadHUDFile( path, script ) ) {
-			Com_Printf( "HUD: failed to load %s file\n", path );
-			return;
-		}
-
-		Span< const char > cursor = script.span();
-		hud_root = CG_RecurseParseLayoutScript( &cursor, 0 );
-
-		layout_cursor_font_style = FontStyle_Normal;
-		layout_cursor_font_size = cgs.textSizeSmall;
+	size_t bytecode_size;
+	char * bytecode = luau_compile( AssetString( "huds/hud.lua" ).ptr, AssetBinary( "huds/hud.lua" ).n, NULL, &bytecode_size );
+	defer { free( bytecode ); };
+	if( bytecode == NULL ) {
+		Fatal( "luau_compile" );
 	}
 
-	{
-		TracyZoneScopedN( "Luau" );
+	hud_L = luaL_newstate();
+	if( hud_L == NULL ) {
+		Fatal( "luaL_newstate" );
+	}
 
-		hud_L = NULL;
+	constexpr const luaL_Reg cdlib[] = {
+		{ "print", LuauPrint },
+		{ "asset", LuauAsset },
+		{ "box", LuauDraw2DBox },
+		{ "text", LuauDrawText },
+		{ "getBind", LuauGetBind },
+		{ "getTeamColor", LuauGetTeamColor },
+		{ "attentionGettingColor", LuauAttentionGettingColor },
 
-		size_t bytecode_size;
-		char * bytecode = luau_compile( AssetString( "huds/hud.lua" ).ptr, AssetBinary( "huds/hud.lua" ).n, NULL, &bytecode_size );
-		defer { free( bytecode ); };
-		if( bytecode == NULL ) {
-			Fatal( "luau_compile" );
-		}
+		{ "getPlayerName", LuauGetPlayerName },
 
-		hud_L = luaL_newstate();
-		if( hud_L == NULL ) {
-			Fatal( "luaL_newstate" );
-		}
+		{ "drawBombIndicators", HUD_DrawBombIndicators },
+		{ "drawCrosshair", HUD_DrawCrosshair },
+		{ "drawClock", HUD_DrawClock },
+		{ "drawObituaries", HUD_DrawObituaries },
+		{ "drawPointed", HUD_DrawPointed },
+		{ "drawDamageNumbers", HUD_DrawDamageNumbers },
+		{ "drawCallvote", HUD_DrawCallvote },
+		{ "drawWeaponBar", HUD_DrawWeaponBar },
+		{ "drawPerksUtility", HUD_DrawPerksUtility },
 
-		constexpr const luaL_Reg cdlib[] = {
-			{ "print", LuauPrint },
-			{ "asset", LuauAsset },
-			{ "box", LuauDraw2DBox },
-			{ "text", LuauDrawText },
-			{ "getBind", LuauGetBind },
-			{ "getTeamColor", LuauGetTeamColor },
-			{ "attentionGettingColor", LuauAttentionGettingColor },
+		{ NULL, NULL }
+	};
 
-			{ "getPlayerName", LuauGetPlayerName },
+	for( size_t i = 0; i < ARRAY_COUNT( cg_numeric_constants ); i++ ) {
+		lua_pushnumber( hud_L, cg_numeric_constants[ i ].value );
+		lua_setfield( hud_L, LUA_GLOBALSINDEX, cg_numeric_constants[ i ].name );
+	}
 
-			{ "drawBombIndicators", HUD_DrawBombIndicators },
-			{ "drawCrosshair", HUD_DrawCrosshair },
-			{ "drawClock", HUD_DrawClock },
-			{ "drawObituaries", HUD_DrawObituaries },
-			{ "drawPointed", HUD_DrawPointed },
-			{ "drawDamageNumbers", HUD_DrawDamageNumbers },
-			{ "drawCallvote", HUD_DrawCallvote },
-			{ "drawWeaponBar", HUD_DrawWeaponBar },
-			{ "drawPerksUtility", HUD_DrawPerksUtility },
+	luaL_openlibs( hud_L ); // TODO: don't open all libs?
+	luaL_register( hud_L, "cd", cdlib );
+	lua_pop( hud_L, 1 );
 
-			{ NULL, NULL }
-		};
+	lua_pushcfunction( hud_L, LuauRGBA8, "RGBA8" );
+	lua_setfield( hud_L, LUA_GLOBALSINDEX, "RGBA8" );
 
-		for( size_t i = 0; i < ARRAY_COUNT( cg_numeric_constants ); i++ ) {
-			lua_pushnumber( hud_L, cg_numeric_constants[ i ].value );
-			lua_setfield( hud_L, LUA_GLOBALSINDEX, cg_numeric_constants[ i ].name );
-		}
+	lua_pushcfunction( hud_L, LuauRGBALinear, "RGBALinear" );
+	lua_setfield( hud_L, LUA_GLOBALSINDEX, "RGBALinear" );
 
-		luaL_openlibs( hud_L ); // TODO: don't open all libs?
-		luaL_register( hud_L, "cd", cdlib );
-		lua_pop( hud_L, 1 );
+	luaL_sandbox( hud_L );
 
-		lua_pushcfunction( hud_L, LuauRGBA8, "RGBA8" );
-		lua_setfield( hud_L, LUA_GLOBALSINDEX, "RGBA8" );
+	lua_getglobal( hud_L, "debug" );
+	lua_getfield( hud_L, -1, "traceback" );
+	lua_remove( hud_L, -2 );
 
-		lua_pushcfunction( hud_L, LuauRGBALinear, "RGBALinear" );
-		lua_setfield( hud_L, LUA_GLOBALSINDEX, "RGBALinear" );
-
-		luaL_sandbox( hud_L );
-
-		lua_getglobal( hud_L, "debug" );
-		lua_getfield( hud_L, -1, "traceback" );
-		lua_remove( hud_L, -2 );
-
-		int ok = luau_load( hud_L, "hud.lua", bytecode, bytecode_size, 0 );
-		if( ok == 0 ) {
-			if( !CallWithStackTrace( hud_L, 0, 1 ) || lua_type( hud_L, -1 ) != LUA_TFUNCTION ) {
-				Com_Printf( S_COLOR_RED "hud.lua must return a function\n" );
-				lua_close( hud_L );
-				hud_L = NULL;
-			}
-		}
-		else {
-			Com_Printf( S_COLOR_RED "Luau compilation error: %s\n", lua_tostring( hud_L, -1 ) );
+	int ok = luau_load( hud_L, "hud.lua", bytecode, bytecode_size, 0 );
+	if( ok == 0 ) {
+		if( !CallWithStackTrace( hud_L, 0, 1 ) || lua_type( hud_L, -1 ) != LUA_TFUNCTION ) {
+			Com_Printf( S_COLOR_RED "hud.lua must return a function\n" );
 			lua_close( hud_L );
 			hud_L = NULL;
 		}
 	}
+	else {
+		Com_Printf( S_COLOR_RED "Luau compilation error: %s\n", lua_tostring( hud_L, -1 ) );
+		lua_close( hud_L );
+		hud_L = NULL;
+	}
 }
 
 void CG_ShutdownHUD() {
-	CG_RecurseFreeLayoutThread( hud_root );
 	if( hud_L != NULL ) {
 		lua_close( hud_L );
 	}
@@ -2082,11 +1300,6 @@ void CG_DrawHUD() {
 	if( hotload ) {
 		CG_ShutdownHUD();
 		CG_InitHUD();
-	}
-
-	{
-		TracyZoneScopedN( "HUDScript" );
-		CG_RecurseExecuteLayoutThread( hud_root );
 	}
 
 	if( hud_L != NULL ) {
@@ -2131,7 +1344,7 @@ void CG_DrawHUD() {
 		lua_pushboolean( hud_L, GS_TeamBasedGametype( &client_gs ) );
 		lua_setfield( hud_L, -2, "teambased" );
 
-		lua_pushnumber( hud_L, CG_GetMatchState( NULL ) );
+		lua_pushnumber( hud_L, client_gs.gameState.match_state );
 		lua_setfield( hud_L, -2, "matchState" );
 
 		lua_pushnumber( hud_L, client_gs.gameState.teams[ TEAM_ALPHA ].score );

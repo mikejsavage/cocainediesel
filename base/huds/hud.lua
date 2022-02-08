@@ -258,6 +258,45 @@ local function DrawLagging( state )
 	end
 end
 
+local function DrawCallvote( state )
+	local width = state.viewport_width * 0.25
+	local height = state.viewport_width * 0.08
+
+	local offset = state.viewport_width * 0.025
+	local padding = width / 20
+
+	local text_color = "#fff"
+
+	local xleft = offset + padding
+	local xright = offset + width - padding
+	local ytop = offset + padding
+	local ybottom = offset + height - padding
+	
+	if not state.hasVoted then
+		cd.box( offset, offset, width, height, "#000a" )
+		text_color = cd.attentionGettingColor()
+	end
+
+	local options = {
+		color = text_color,
+		border = "#000b",
+		font = "bold",
+		font_size = height * 0.3,
+		alignment = "left top",
+	}
+
+	cd.text( options, xleft, ytop, "Vote : " .. state.vote )
+	options.alignment = "right top"
+	cd.text( options, xright, ytop, state.votesTotal .. "/" .. state.votesRequired )
+
+	options.font_size *= 0.8
+	options.alignment = "left bottom"
+	cd.text( options, xleft, ybottom, "["..cd.getBind("vote yes").."] Vote yes" )
+
+	options.alignment = "right bottom"
+	cd.text( options, xright, ybottom, "["..cd.getBind("vote no").."] Vote no" )
+end
+
 return function( state )
 	if state.matchState < MatchState_PostMatch then
 		cd.drawBombIndicators( state.viewport_height / 26, state.viewport_height / 60 ) -- site name size, site message size (ATTACK/DEFEND/...)
@@ -287,7 +326,7 @@ return function( state )
 	end
 
 
-	cd.drawCallvote( state.viewport_width * 0.05, state.viewport_width * 0.15,
-					 state.viewport_width * 0.3, state.viewport_width * 0.2,
-					 state.viewport_width / 40, "left middle" )
+	if string.len( state.vote ) > 0 then
+		DrawCallvote( state )
+	end
 end

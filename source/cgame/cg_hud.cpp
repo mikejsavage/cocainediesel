@@ -50,6 +50,13 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "TEAM_ALLY", TEAM_ALLY },
 	{ "TEAM_ENEMY", TEAM_ENEMY },
 
+	{ "Gadget_None", Gadget_None },
+
+	{ "Gadget_ThrowingAxe", Gadget_ThrowingAxe },
+	{ "Gadget_SuicideBomb", Gadget_SuicideBomb },
+	{ "Gadget_StunGrenade", Gadget_StunGrenade },
+
+
 	{ "Perk_Ninja", Perk_Ninja },
 	{ "Perk_Hooligan", Perk_Hooligan },
 	{ "Perk_Midget", Perk_Midget },
@@ -1133,52 +1140,6 @@ static int HUD_DrawObituaries( lua_State * L ) {
 	return 0;
 }
 
-static int HUD_DrawCallvote( lua_State * L ) {
-	const char * vote = cl.configstrings[ CS_CALLVOTE ];
-	if( strlen( vote ) == 0 )
-		return 1;
-
-	int width = luaL_checknumber( L, 3 );
-	int height = luaL_checknumber( L, 4 );
-	float font_size = luaL_checknumber( L, 5 );
-	Alignment alignment = CheckAlignment( L, 6 );
-
-	int left = CG_HorizontalAlignForWidth( luaL_checknumber( L, 1 ), alignment, width );
-	int top = CG_VerticalAlignForHeight( luaL_checknumber( L, 2 ), alignment, height );
-	int right = left + width;
-
-	TempAllocator temp = cls.frame_arena.temp();
-
-	u8 required = client_gs.gameState.callvote_required_votes;
-	u8 yeses = client_gs.gameState.callvote_yes_votes;
-
-	bool voted = cg.predictedPlayerState.voted;
-	float padding = font_size * 0.5f;
-
-	if( !voted ) {
-		float height = padding * 2 + font_size * 2.2f;
-		Draw2DBox( left, top, width, height, cls.white_material, Vec4( 0, 0, 0, 0.5f ) );
-	}
-
-	Vec4 color = voted ? vec4_white : AttentionGettingColor();
-
-	DrawText( cgs.fontNormalBold, font_size, temp( "Vote: {}", vote ), left + padding, top + padding, color, true );
-	DrawText( cgs.fontNormalBold, font_size, temp( "{}/{}", yeses, required ), Alignment_RightTop, right - padding, top + padding, color, true );
-
-	if( !voted ) {
-		char vote_yes_keys[ 128 ];
-		CG_GetBoundKeysString( "vote yes", vote_yes_keys, sizeof( vote_yes_keys ) );
-		char vote_no_keys[ 128 ];
-		CG_GetBoundKeysString( "vote no", vote_no_keys, sizeof( vote_no_keys ) );
-
-		const char * str = temp( "[{}] Vote yes [{}] Vote no", vote_yes_keys, vote_no_keys );
-		float y = top + padding + font_size * 1.2f;
-		DrawText( cgs.fontNormalBold, font_size, str, left + padding, y, color, true );
-	}
-
-	return 0;
-}
-
 static int HUD_DrawWeaponBar( lua_State * L ) {
 	int x = luaL_checknumber( L, 1 );
 	int y = luaL_checknumber( L, 2 );
@@ -1237,7 +1198,6 @@ void CG_InitHUD() {
 		{ "drawObituaries", HUD_DrawObituaries },
 		{ "drawPointed", HUD_DrawPointed },
 		{ "drawDamageNumbers", HUD_DrawDamageNumbers },
-		{ "drawCallvote", HUD_DrawCallvote },
 		{ "drawWeaponBar", HUD_DrawWeaponBar },
 		{ "drawPerksUtility", HUD_DrawPerksUtility },
 
@@ -1370,6 +1330,18 @@ void CG_DrawHUD() {
 
 		lua_pushnumber( hud_L, CG_GetPOVnum() );
 		lua_setfield( hud_L, -2, "chasing" );
+
+		lua_pushstring( hud_L, cl.configstrings[ CS_CALLVOTE ] );
+		lua_setfield( hud_L, -2, "vote" );
+
+		lua_pushnumber( hud_L, client_gs.gameState.callvote_required_votes );
+		lua_setfield( hud_L, -2, "votesRequired" );
+
+		lua_pushnumber( hud_L, client_gs.gameState.callvote_yes_votes );
+		lua_setfield( hud_L, -2, "votesTotal" );
+
+		lua_pushboolean( hud_L, cg.predictedPlayerState.voted );
+		lua_setfield( hud_L, -2, "hasVoted" );
 
 		lua_pushboolean( hud_L, CG_IsLagging() );
 		lua_setfield( hud_L, -2, "lagging" );

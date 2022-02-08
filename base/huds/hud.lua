@@ -181,11 +181,11 @@ local function DrawPlayerBar( state )
 	y += padding
 	width -= padding * 2
 
-	local stamina_bg_color = RGBALinear( 0.06, 0.06, 0.06, 1 )
+	local bg_color = RGBALinear( 0.04, 0.04, 0.04, 1 )
 	local stamina_color = cd.getTeamColor( TEAM_ALLY )
 
 	if state.perk == Perk_Hooligan then
-		cd.box( x, y, width, stamina_bar_height, stamina_bg_color )
+		cd.box( x, y, width, stamina_bar_height, bg_color )
 
 		stamina_color.a = math.min( 1, state.stamina * 2 )
 		cd.box( x, y, width/2, stamina_bar_height, stamina_color )
@@ -204,19 +204,18 @@ local function DrawPlayerBar( state )
 			stamina_bg_color = RGBALinear( 0.06 + s * 0.8, 0.06 + s * 0.1, 0.06 + s * 0.1, 0.5 + 0.5 * state.stamina )
 		end
 
-		stamina_color.a = 0.25 + state.stamina * 0.75
 		cd.box( x, y, width, stamina_bar_height, stamina_bg_color )
 		cd.box( x, y, width * state.stamina, stamina_bar_height, stamina_color )
-		cd.boxuv( x, y,
-			width * state.stamina, stamina_bar_height,
-			0, 0, (width * state.stamina)/8, stamina_bar_height/8, --8 is the size of the texture
-			RGBALinear( 1, 1, 1, 0.75 * state.stamina ), cd.asset( "gfx/hud/diagonal_pattern" ) )
 	end
 
+	cd.boxuv( x, y,
+			width * state.stamina, stamina_bar_height,
+			0, 0, (width * state.stamina)/8, stamina_bar_height/8, --8 is the size of the texture
+			RGBALinear( 0, 0, 0, 0.25 + 0.25 * state.stamina ), cd.asset( "gfx/hud/diagonal_pattern" ) )
 
 	y += stamina_bar_height + padding
 
-	cd.box( x, y, width, health_bar_height, "#444" )
+	cd.box( x, y, width, health_bar_height, bg_color )
 	local hp = state.health / state.max_health
 	local hp_color = RGBALinear( sRGBToLinear(1 - hp), sRGBToLinear(hp), sRGBToLinear(hp * 0.3), 1 )
 	cd.box( x, y, width * hp, health_bar_height, hp_color )

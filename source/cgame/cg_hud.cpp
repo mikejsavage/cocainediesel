@@ -50,13 +50,20 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "TEAM_ALLY", TEAM_ALLY },
 	{ "TEAM_ENEMY", TEAM_ENEMY },
 
+	{ "Weapon_None", Weapon_None },
+	{ "Weapon_Knife", Weapon_Knife },
+
+	{ "WeaponState_Reloading", WeaponState_Reloading },
+	{ "WeaponState_StagedReloading", WeaponState_StagedReloading },
+
+	{ "Gadget_None", Gadget_None },
+
 	{ "Perk_Ninja", Perk_Ninja },
 	{ "Perk_Hooligan", Perk_Hooligan },
 	{ "Perk_Midget", Perk_Midget },
 	{ "Perk_Jetpack", Perk_Jetpack },
 	{ "Perk_Boomer", Perk_Boomer },
 
-	{ "Gadget_None", Gadget_None },
 
 	{ "Stamina_Normal", Stamina_Normal },
 	{ "Stamina_Reloading", Stamina_Reloading },
@@ -421,133 +428,6 @@ void CG_DrawScope() {
 				DrawText( cgs.fontItalic, cgs.textSizeSmall, msg, Alignment_LeftTop, frame_static.viewport_width / 2 + offset, frame_static.viewport_height / 2 + offset, color, vec4_black );
 			}
 		}
-	}
-}
-
-//=============================================================================
-// Commands' Functions
-//=============================================================================
-
-static float AmmoFrac( const SyncPlayerState * ps, WeaponType weap, int ammo ) {
-	const WeaponDef * def = GS_GetWeaponDef( weap );
-	if( def->clip_size == 0 )
-		return 1.0f;
-
-	if( weap != ps->weapon || ( ps->weapon_state != WeaponState_Reloading && ps->weapon_state != WeaponState_StagedReloading ) ) {
-		return float( ammo ) / float( def->clip_size );
-	}
-
-	if( def->staged_reload_time != 0 ) {
-		u16 t = ps->weapon_state == WeaponState_StagedReloading ? def->staged_reload_time : def->reload_time;
-		return ( float( ammo ) + Unlerp01( u16( 0 ), ps->weapon_state_time, t ) ) / float( def->clip_size );
-	}
-
-	return Min2( 1.0f, float( ps->weapon_state_time ) / float( def->reload_time ) );
-}
-
-static Vec4 AmmoColor( float ammo_frac ) {
-	Vec4 color_ammo_max = sRGBToLinear( rgba8_diesel_yellow );
-	Vec4 color_ammo_min = sRGBToLinear( RGBA8( 255, 56, 97, 255 ) );
-
-	return Lerp( color_ammo_min, Unlerp( 0.0f, ammo_frac, 1.0f ), color_ammo_max );
-}
-
-static void Draw2DBoxPadded( float x, float y, float w, float h, float border, const Material * material, Vec4 color ) {
-	Draw2DBox( x - border, y - border, w + border * 2.0f, h + border * 2.0f, material, color );
-}
-
-static void DrawWeaponBar( int ix, int iy, int size, int padding, Alignment alignment ) {
-	TempAllocator temp = cls.frame_arena.temp();
-
-	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	const SyncEntityState * es = &cg_entities[ ps->POVnum ].current;
-
-	int num_weapons = 0;
-	for( size_t i = 0; i < ARRAY_COUNT( ps->weapons ); i++ ) {
-		if( ps->weapons[ i ].weapon != Weapon_None ) {
-			num_weapons++;
-		}
-	}
-
-	bool has_bomb = ( es->effects & EF_CARRIER ) != 0;
-
-	int columns = num_weapons + ( has_bomb ? 1 : 0 );
-
-	int total_width = columns * size + Max2( 0, columns - 1 ) * padding;
-
-	float border = size * 0.06f;
-
-	float x = CG_HorizontalAlignForWidth( ix, alignment, total_width );
-	float y = CG_VerticalAlignForHeight( iy, alignment, size );
-
-	for( int i = 0; i < num_weapons; i++ ) {
-		WeaponType weap = ps->weapons[ i ].weapon;
-		const WeaponDef * def = GS_GetWeaponDef( weap );
-		const Material * icon = FindMaterial( cgs.media.shaderWeaponIcon[ weap ] );
-		Vec2 half_pixel = HalfPixelSize( icon );
-
-		int ammo = ps->weapons[ i ].ammo;
-
-		float ammo_frac = AmmoFrac( ps, weap, ammo );
-		Vec4 ammo_color = AmmoColor( ammo_frac );
-
-		bool selected_weapon = ps->pending_weapon != Weapon_None ? weap == ps->pending_weapon : weap == ps->weapon;
-		Vec4 selected_weapon_color = selected_weapon ? vec4_white : Vec4( 0.5f, 0.5f, 0.5f, 1.0f );
-
-		// border
-		Draw2DBoxPadded( x, y, size, size + size * ( selected_weapon ? 0.35f : 0.27f ), border, cls.white_material, dark_gray );
-
-		// background icon
-		Draw2DBox( x, y, size, size, icon, light_gray );
-
-		{
-			float y_offset = size * ( 1.0f - ammo_frac );
-			float partial_y = y + y_offset;
-			float partial_h = size - y_offset;
-
-			// partial ammo color background
-			Draw2DBox( x, partial_y, size, partial_h, cls.white_material, ammo_color );
-
-			// partial ammo icon
-			Draw2DBoxUV( x, partial_y, size, partial_h,
-				Vec2( half_pixel.x, Lerp( half_pixel.y, 1.0f - ammo_frac, 1.0f - half_pixel.y ) ), 1.0f - half_pixel,
-				icon, vec4_dark );
-		}
-
-		// current ammo
-		if( def->clip_size != 0 ) {
-			DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, temp( "{}", ammo ), Alignment_LeftTop, x + size * 0.05f, y + size * 0.05f, ammo_color, true );
-		}
-
-		// weapon name
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, def->name, Alignment_CenterTop, x + size * 0.5f, y + size * (selected_weapon ? 1.15f : 1.1f ), selected_weapon_color, true );
-
-		if( Cvar_Bool( "cg_showHotkeys" ) ) {
-			// first try the weapon specific bind
-			char bind[ 32 ];
-			if( !CG_GetBoundKeysString( temp( "use {}", def->short_name ), bind, sizeof( bind ) ) ) {
-				CG_GetBoundKeysString( temp( "weapon {}", i + 1 ), bind, sizeof( bind ) );
-			}
-
-			// weapon bind
-			DrawText( cgs.fontNormalBold, cgs.fontSystemSmallSize, bind, Alignment_CenterMiddle, x + size * 0.5f, y - size * 0.2f, Vec4( 0.5f, 0.5f, 0.5f, 1.0f ), true );
-		}
-
-		x += size + padding;
-	}
-
-	if( has_bomb ) {
-		Vec4 bg_color = ps->can_plant ? PlantableColor() : dark_gray;
-		Vec4 border_color = dark_gray;
-		Vec4 bomb_color = ps->can_plant ? dark_gray : vec4_white;
-		Vec4 text_color = ps->can_plant ? PlantableColor() : vec4_white;
-
-		Draw2DBoxPadded( x, y, size, size, border, cls.white_material, border_color );
-		Draw2DBox( x, y, size, size, cls.white_material, bg_color );
-		Draw2DBox( x, y, size, size, FindMaterial( "gfx/bomb" ), bomb_color );
-		DrawText( cgs.fontBoldItalic, cgs.fontSystemExtraSmallSize, "BOMB", Alignment_CenterTop, x + size * 0.5f, y + size * 1.15f, text_color, true );
-
-		x += size + padding;
 	}
 }
 
@@ -952,6 +832,22 @@ static int LuauGetPerkIcon( lua_State * L ) {
 	return 1;
 }
 
+static int LuauGetWeaponName( lua_State * L ) {
+	u8 w = luaL_checknumber( L, 1 );
+	lua_newtable( L );
+	lua_pushstring( L, GS_GetWeaponDef( WeaponType( w ) )->name );
+	return 1;
+}
+
+static int LuauGetWeaponReloadTime( lua_State * L ) {
+	u8 w = luaL_checknumber( L, 1 );
+	lua_newtable( L );
+	lua_pushnumber( L, cg.predictedPlayerState.weapon_state == WeaponState_StagedReloading ?
+						GS_GetWeaponDef( WeaponType( w ) )->staged_reload_time :
+						GS_GetWeaponDef( WeaponType( w ) )->reload_time );
+	return 1;
+}
+
 static int LuauGetWeaponAmmo( lua_State * L ) {
 	u8 w = luaL_checknumber( L, 1 );
 	lua_newtable( L );
@@ -1123,18 +1019,6 @@ static int HUD_DrawObituaries( lua_State * L ) {
 	return 0;
 }
 
-static int HUD_DrawWeaponBar( lua_State * L ) {
-	int x = luaL_checknumber( L, 1 );
-	int y = luaL_checknumber( L, 2 );
-	int size = luaL_checknumber( L, 3 );
-	int padding = luaL_checknumber( L, 4 );
-	Alignment alignment = CheckAlignment( L, 5 );
-
-	DrawWeaponBar( x, y, size, padding, alignment );
-
-	return 0;
-}
-
 void CG_InitHUD() {
 	TracyZoneScoped;
 
@@ -1168,6 +1052,9 @@ void CG_InitHUD() {
 		{ "getGadgetIcon", LuauGetGadgetIcon },
 		{ "getPerkIcon", LuauGetPerkIcon },
 
+		{ "getWeaponName", LuauGetWeaponName },
+		{ "getWeaponReloadTime", LuauGetWeaponReloadTime },
+
 		{ "getWeaponAmmo", LuauGetWeaponAmmo },
 		{ "getGadgetAmmo", LuauGetGadgetAmmo },
 
@@ -1177,7 +1064,6 @@ void CG_InitHUD() {
 		{ "drawObituaries", HUD_DrawObituaries },
 		{ "drawPointed", HUD_DrawPointed },
 		{ "drawDamageNumbers", HUD_DrawDamageNumbers },
-		{ "drawWeaponBar", HUD_DrawWeaponBar },
 
 		{ NULL, NULL }
 	};
@@ -1258,6 +1144,18 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, cg.predictedPlayerState.max_health );
 	lua_setfield( hud_L, -2, "max_health" );
 
+	lua_pushboolean( hud_L, cg.predictedPlayerState.zoom_time > 0 );
+	lua_setfield( hud_L, -2, "zooming" );
+
+	lua_pushnumber( hud_L, cg.predictedPlayerState.weapon );
+	lua_setfield( hud_L, -2, "weapon" );
+
+	lua_pushnumber( hud_L, cg.predictedPlayerState.weapon_state );
+	lua_setfield( hud_L, -2, "weapon_state" );
+
+	lua_pushnumber( hud_L, cg.predictedPlayerState.weapon_state_time );
+	lua_setfield( hud_L, -2, "weapon_state_time" );
+
 	lua_pushnumber( hud_L, cg.predictedPlayerState.gadget );
 	lua_setfield( hud_L, -2, "gadget" );
 
@@ -1271,19 +1169,19 @@ void CG_DrawHUD() {
 	lua_setfield( hud_L, -2, "stamina" );
 
 	lua_pushnumber( hud_L, cg.predictedPlayerState.pmove.stamina_state );
-	lua_setfield( hud_L, -2, "staminaState" );
+	lua_setfield( hud_L, -2, "stamina_state" );
 
 	lua_pushnumber( hud_L, cg.predictedPlayerState.team );
 	lua_setfield( hud_L, -2, "team" );
 
 	lua_pushboolean( hud_L, cg.predictedPlayerState.carrying_bomb );
-	lua_setfield( hud_L, -2, "isCarrier" );
+	lua_setfield( hud_L, -2, "is_carrier" );
 
 	lua_pushboolean( hud_L, cg.predictedPlayerState.can_plant );
-	lua_setfield( hud_L, -2, "canPlant" );
+	lua_setfield( hud_L, -2, "can_plant" );
 
 	lua_pushboolean( hud_L, cg.predictedPlayerState.can_change_loadout );
-	lua_setfield( hud_L, -2, "canChangeLoadout" );
+	lua_setfield( hud_L, -2, "can_change_loadout" );
 
 	lua_pushnumber( hud_L, cg.predictedPlayerState.progress );
 	lua_setfield( hud_L, -2, "bomb_progress" );
@@ -1353,6 +1251,20 @@ void CG_DrawHUD() {
 
 	lua_pushnumber( hud_L, frame_static.viewport_height );
 	lua_setfield( hud_L, -2, "viewport_height" );
+
+	lua_createtable( hud_L, Weapon_Count - 1, 0 );
+	for( WeaponType i = Weapon_None; i < Weapon_Count - 1; i++ ) {
+		lua_pushnumber( hud_L, i );
+		lua_createtable( hud_L, 0, 2 );
+
+		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].weapon );
+		lua_setfield( hud_L, -2, "weapon" );
+		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].ammo );
+		lua_setfield( hud_L, -2, "ammo" );
+
+		lua_settable( hud_L, -3 );
+	}
+	lua_setfield( hud_L, -2, "weapons" );
 
 	CallWithStackTrace( hud_L, 1, 0 );
 }

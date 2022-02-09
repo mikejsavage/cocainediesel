@@ -1,6 +1,6 @@
 local dark_grey = "#222"
 local yellow = RGBALinear( 1, 0.64, 0.0225, 1 )
-local red = RGBALinear( 1, 0.0484, 0.1444, 1 )
+local red = RGBALinear( 0.8, 0, 0.05, 1 )
 
 local function SRGBALinear( rgbalinear )
 
@@ -82,17 +82,16 @@ end
 
 local function DrawHotkeys( state, options, x, y )
 	options.alignment = "center middle"
-	options.border = "#0000"
 	options.font_size *= 0.8
 
 	y -= options.font_size * 0.1
-	if state.canChangeLoadout then
+	if state.can_change_loadout then
 		options.color = "#fff"
 		cd.text( options, x, y, "Press "..cd.getBind( "gametypemenu" ).." to change loadout" )
-	elseif state.canPlant then
+	elseif state.can_plant then
 		options.color = cd.attentionGettingColor()
 		cd.text( options, x, y, "Press "..cd.getBind( "+plant" ).." to plant" )
-	elseif state.isCarrier then
+	elseif state.is_carrier then
 		options.color = "#fff"
 		cd.text( options, x, y, "Press "..cd.getBind( "drop" ).." to drop the bomb" )
 	end
@@ -109,28 +108,27 @@ local function AmmoColor( frac )
 		(red.b - red.b*frac + yellow.b*frac), 1 )
 end
 
-local function DrawAmmoFrac( x, y, size, ammo, ammo_max, material )
-	local f = ammo/ammo_max
-	local ammo_color = AmmoColor( f )
+local function DrawAmmoFrac( options, x, y, size, ammo, frac, material )
+	if frac == -1 then
+		cd.box( x, y, size, size, yellow )
+		cd.box( x, y, size, size, dark_grey, material )
+		return
+	end
+
+	local ammo_color = AmmoColor( frac )
 
 	cd.box( x, y, size, size, RGBA8( 45, 45, 45 ) )
 	cd.box( x, y, size, size, "#666", material )
 
-	cd.boxuv( x, y + size - size*f, size, size*f,
-		0, 1 - f, 1, 1,
+	cd.boxuv( x, y + size - size*frac, size, size*frac,
+		0, 1 - frac, 1, 1,
 		ammo_color, nil )
-	cd.boxuv( x, y + size - size*f, size, size*f,
-		0, 1 - f, 1, 1,
+	cd.boxuv( x, y + size - size*frac, size, size*frac,
+		0, 1 - frac, 1, 1,
 		dark_grey, material )
 
-	local options = {
-		color = ammo_color,
-		border = "#000f",
-		font = "bold",
-		font_size = size * 0.4,
-		alignment = "left top",
-	}
-	cd.text( options, x + size * 0.1, y + size * 0.1, ammo )
+	options.color = ammo_color
+	cd.text( options, x + options.font_size * 0.28, y + options.font_size * 0.28, ammo )
 end
 
 local function DrawPerk( state, x, y, size, outline_size )
@@ -139,15 +137,65 @@ local function DrawPerk( state, x, y, size, outline_size )
 	cd.box( x, y, size, size, dark_grey, cd.getPerkIcon( state.perk ) )
 end
 
-local function DrawUtility( state, x, y, size, outline_size )
+local function DrawUtility( state, options, x, y, size, outline_size )
 	if state.gadget ~= Gadget_None then
 		DrawBoxOutline( x, y, size, size, outline_size )
-		DrawAmmoFrac( x, y, size, state.gadget_ammo, cd.getGadgetAmmo( state.gadget ), cd.getGadgetIcon( state.gadget ) )
+		options.font_size = size * 0.3
+		DrawAmmoFrac( options, x, y, size, state.gadget_ammo, state.gadget_ammo/cd.getGadgetAmmo( state.gadget ), cd.getGadgetIcon( state.gadget ) )
 	end
 end
 
-local function DrawWeaponBar( state, x, y, size, padding )
-	cd.drawWeaponBar( x, y + padding * 1.02, size, padding*3, "left top" )
+local function DrawWeaponBar( state, options, x, y, width, height, padding )
+	x += padding
+	y += padding
+	height -= padding * 2
+	width -= padding * 2
+
+	for k, v in pairs( state.weapons ) do
+		if v.weapon ~= Weapon_None and not (state.teambased and v.weapon == Weapon_Knife) then
+			local h = height
+			local ammo = v.ammo
+			local max_ammo = cd.getWeaponAmmo( v.weapon )
+			if state.weapon == v.weapon then
+				h *= 1.05
+			end
+
+			local frac = -1
+			if max_ammo ~= 0 then
+				frac = ammo/max_ammo
+			end
+
+			if state.weapon == v.weapon then
+				h *= 1.05
+				if state.weapon_state == WeaponState_Reloading or state.weapon_state == WeaponState_StagedReloading then
+					frac = state.weapon_state_time/cd.getWeaponReloadTime( v.weapon )
+				end
+			end
+
+			DrawBoxOutline( x, y, width, h, padding )
+
+			options.font_size = width * 0.22
+			options.alignment = "left top"
+
+			DrawAmmoFrac( options, x, y, width, ammo, frac, cd.getWeaponIcon( v.weapon ) )
+
+			options.color = "#fff"
+			options.alignment = "center middle"
+			cd.text( options, x + width/2, y + width + (h - width + padding)/2, cd.getWeaponName( v.weapon ) )
+
+			x += width + padding * 3
+		end
+	end
+
+	if state.is_carrier then
+		DrawBoxOutline( x, y, width, width, padding )
+		if state.can_plant then
+			cd.box( x, y, width, width, cd.attentionGettingColor() )
+		else
+			cd.box( x, y, width, width, "#666" )
+		end
+		cd.box( x, y, width, width, dark_grey, cd.asset( "gfx/bomb" ) )
+	end
 end
 
 local function DrawPlayerBar( state )
@@ -158,7 +206,7 @@ local function DrawPlayerBar( state )
 	local offset = state.viewport_width * 0.015
 	local stamina_bar_height = state.viewport_width * 0.014
 	local health_bar_height = state.viewport_width * 0.023
-	local empty_bar_height = state.viewport_width * 0.020
+	local empty_bar_height = state.viewport_width * 0.021
 	local padding = math.floor( offset/5 );
 
 	local width = state.viewport_width * 0.25
@@ -171,9 +219,14 @@ local function DrawPlayerBar( state )
 	local perks_utility_size = state.viewport_width * 0.035
 	local perkX = x + padding
 	local perkY = y - perks_utility_size - padding * 2
+	local weapons_options = {
+		border = "#000f",
+		font = "bolditalic",
+		alignment = "left top",
+	}
 	DrawPerk( state, perkX, perkY, perks_utility_size, padding )
-	DrawUtility( state, perkX + perks_utility_size + padding * 3 , perkY, perks_utility_size, padding )
-	DrawWeaponBar( state, x + width + padding * 2, y, height * 0.73, padding )
+	DrawUtility( state, weapons_options, perkX + perks_utility_size + padding * 3 , perkY, perks_utility_size, padding )
+	DrawWeaponBar( state, weapons_options, x + width + padding, y, height * 0.85, height, padding )
 
 	cd.box( x, y, width, height, dark_grey )
 
@@ -196,7 +249,7 @@ local function DrawPlayerBar( state )
 
 		cd.box( x + width / 2 - padding/2, y, padding, stamina_bar_height, dark_grey )
 	else
-		if state.perk == Perk_Midget and state.stamina <= 0 and state.staminaState == Stamina_UsingAbility then
+		if state.perk == Perk_Midget and state.stamina <= 0 and state.stamina_state == Stamina_UsingAbility then
 			bg_color = cd.attentionGettingColor()
 			bg_color.a = 0.05
 		elseif state.perk == Perk_Jetpack then
@@ -346,7 +399,7 @@ return function( state )
 
 		DrawTopInfo( state )
 
-		if state.team ~= TEAM_SPECTATOR then
+		if state.team ~= TEAM_SPECTATOR and not state.zooming then
 			DrawPlayerBar( state )
 		end
 
@@ -365,7 +418,6 @@ return function( state )
 		cd.drawObituaries( state.viewport_width - 10, 2, state.viewport_width / 10, state.viewport_width / 10,
 						   state.viewport_height / 20, state.viewport_width / 70, "right top" )
 	end
-
 
 	if string.len( state.vote ) > 0 then
 		DrawCallvote( state )

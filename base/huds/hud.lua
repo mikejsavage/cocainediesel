@@ -25,11 +25,11 @@ local function DrawTopInfo( state )
 		cd.text( options, posX, state.viewport_height * 0.05, "OVERTIME MATCH POINT" )
 	end
 
-	if state.matchState < MatchState_Playing then
+	if state.match_state < MatchState_Playing then
 		cd.text( options, posX, state.viewport_height * 0.015, "WARMUP" )
 
 		if state.team ~= TEAM_SPECTATOR then
-			if state.ready or state.matchState == MatchState_Countdown then
+			if state.ready or state.match_state == MatchState_Countdown then
 				options.color = "#5f6f"
 				cd.text( options, posX, state.viewport_height * 0.05, "READY" )
 			else
@@ -37,7 +37,7 @@ local function DrawTopInfo( state )
 				cd.text( options, posX, state.viewport_height * 0.04, "Press [" .. cd.getBind( "toggleready" ) .. "] to ready up" )
 			end
 		end
-	elseif state.matchState == MatchState_Playing then
+	elseif state.match_state == MatchState_Playing then
 		cd.drawClock( state.viewport_width / 2, state.viewport_width * 0.008, state.viewport_width / 50, "#fff", "center top", 1 )
 
 		if state.teambased then
@@ -359,7 +359,7 @@ local function DrawLagging( state )
 end
 
 local function DrawCallvote( state )
-	if string.len( state.vote ) > 0 then
+	if string.len( state.vote ) == 0 then
 		return
 	end
 	
@@ -376,7 +376,7 @@ local function DrawCallvote( state )
 	local ytop = offset + padding
 	local ybottom = offset + height - padding
 	
-	if not state.hasVoted then
+	if not state.has_voted then
 		cd.box( offset, offset, width, height, "#000a" )
 		text_color = cd.attentionGettingColor()
 	end
@@ -391,7 +391,7 @@ local function DrawCallvote( state )
 
 	cd.text( options, xleft, ytop, "Vote : " .. state.vote )
 	options.alignment = "right top"
-	cd.text( options, xright, ytop, state.votesTotal .. "/" .. state.votesRequired )
+	cd.text( options, xright, ytop, state.votes_total .. "/" .. state.votes_required )
 
 	options.font_size *= 0.8
 	options.alignment = "left bottom"
@@ -402,7 +402,7 @@ local function DrawCallvote( state )
 end
 
 return function( state )
-	if state.matchState < MatchState_PostMatch then
+	if state.match_state < MatchState_PostMatch then
 		cd.drawBombIndicators( state.viewport_height / 26, state.viewport_height / 60 ) -- site name size, site message size (ATTACK/DEFEND/...)
 
 		DrawTopInfo( state )

@@ -1190,7 +1190,7 @@ void CG_DrawHUD() {
 	lua_setfield( hud_L, -2, "teambased" );
 
 	lua_pushnumber( hud_L, client_gs.gameState.match_state );
-	lua_setfield( hud_L, -2, "matchState" );
+	lua_setfield( hud_L, -2, "match_state" );
 
 	lua_pushnumber( hud_L, client_gs.gameState.teams[ TEAM_ALPHA ].score );
 	lua_setfield( hud_L, -2, "scoreAlpha" );
@@ -1220,13 +1220,13 @@ void CG_DrawHUD() {
 	lua_setfield( hud_L, -2, "vote" );
 
 	lua_pushnumber( hud_L, client_gs.gameState.callvote_required_votes );
-	lua_setfield( hud_L, -2, "votesRequired" );
+	lua_setfield( hud_L, -2, "votes_required" );
 
 	lua_pushnumber( hud_L, client_gs.gameState.callvote_yes_votes );
-	lua_setfield( hud_L, -2, "votesTotal" );
+	lua_setfield( hud_L, -2, "votes_total" );
 
 	lua_pushboolean( hud_L, cg.predictedPlayerState.voted );
-	lua_setfield( hud_L, -2, "hasVoted" );
+	lua_setfield( hud_L, -2, "has_voted" );
 
 	lua_pushboolean( hud_L, CG_IsLagging() );
 	lua_setfield( hud_L, -2, "lagging" );

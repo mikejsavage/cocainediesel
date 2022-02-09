@@ -115,6 +115,10 @@ local function DrawAmmoFrac( options, x, y, size, ammo, frac, material )
 		return
 	end
 
+	if frac > 1 then
+		frac = 1
+	end
+
 	local ammo_color = AmmoColor( frac )
 
 	cd.box( x, y, size, size, RGBA8( 45, 45, 45 ) )
@@ -199,7 +203,7 @@ local function DrawWeaponBar( state, options, x, y, width, height, padding )
 end
 
 local function DrawPlayerBar( state )
-	if state.health <= 0 then
+	if state.health <= 0 or state.team == TEAM_SPECTATOR or state.zooming then
 		return
 	end
 
@@ -254,7 +258,7 @@ local function DrawPlayerBar( state )
 			bg_color.a = 0.05
 		elseif state.perk == Perk_Jetpack then
 			local s = 1 - math.min( 1.0, state.stamina + 0.5 )
-			stamina_bg_color = RGBALinear( 0.06 + s * 0.8, 0.06 + s * 0.1, 0.06 + s * 0.1, 0.5 + 0.5 * state.stamina )
+			bg_color = RGBALinear( 0.06 + s * 0.8, 0.06 + s * 0.1, 0.06 + s * 0.1, 0.5 + 0.5 * state.stamina )
 		end
 
 		cd.box( x, y, width, stamina_bar_height, bg_color )
@@ -355,6 +359,10 @@ local function DrawLagging( state )
 end
 
 local function DrawCallvote( state )
+	if string.len( state.vote ) > 0 then
+		return
+	end
+	
 	local width = state.viewport_width * 0.25
 	local height = state.viewport_width * 0.08
 
@@ -399,9 +407,7 @@ return function( state )
 
 		DrawTopInfo( state )
 
-		if state.team ~= TEAM_SPECTATOR and not state.zooming then
-			DrawPlayerBar( state )
-		end
+		DrawPlayerBar( state )
 
 		DrawDevInfo( state )
 
@@ -419,7 +425,5 @@ return function( state )
 						   state.viewport_height / 20, state.viewport_width / 70, "right top" )
 	end
 
-	if string.len( state.vote ) > 0 then
-		DrawCallvote( state )
-	end
+	DrawCallvote( state )
 end

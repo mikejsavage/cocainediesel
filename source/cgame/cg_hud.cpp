@@ -50,9 +50,6 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "TEAM_ALLY", TEAM_ALLY },
 	{ "TEAM_ENEMY", TEAM_ENEMY },
 
-	{ "Weapon_None", Weapon_None },
-	{ "Weapon_Knife", Weapon_Knife },
-
 	{ "WeaponState_Reloading", WeaponState_Reloading },
 	{ "WeaponState_StagedReloading", WeaponState_StagedReloading },
 
@@ -1278,8 +1275,11 @@ void CG_DrawHUD() {
 	lua_setfield( hud_L, -2, "viewport_height" );
 
 	lua_createtable( hud_L, Weapon_Count - 1, 0 );
-	for( WeaponType i = Weapon_None; i < Weapon_Count - 1; i++ ) {
-		lua_pushnumber( hud_L, i );
+	for( size_t i = 0; i < ARRAY_COUNT( cg.predictedPlayerState.weapons ); i++ ) {
+		if( cg.predictedPlayerState.weapons[ i ].weapon == Weapon_None )
+			continue;
+
+		lua_pushnumber( hud_L, i + 1 );
 		lua_createtable( hud_L, 0, 2 );
 
 		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].weapon );

@@ -168,41 +168,39 @@ local function DrawWeaponBar( state, options, x, y, width, height, padding )
 	height -= padding * 2
 	width -= padding * 2
 
-	for k, v in pairs( state.weapons ) do
-		if v.weapon ~= Weapon_None and not (state.teambased and v.weapon == Weapon_Knife) then
-			local h = height
-			local ammo = v.ammo
-			local max_ammo = cd.getWeaponAmmo( v.weapon )
-			if state.weapon == v.weapon then
-				h *= 1.05
-			end
-
-			local frac = -1
-			if max_ammo ~= 0 then
-				frac = ammo/max_ammo
-			end
-
-			if state.weapon == v.weapon then
-				h *= 1.05
-				if state.weapon_state == WeaponState_Reloading or state.weapon_state == WeaponState_StagedReloading then
-					frac = state.weapon_state_time/cd.getWeaponReloadTime( v.weapon )
-				end
-			end
-
-			DrawBoxOutline( x, y, width, h, padding )
-
-			options.font_size = width * 0.22
-			options.alignment = "left top"
-
-			DrawAmmoFrac( options, x, y, width, ammo, frac, cd.getWeaponIcon( v.weapon ) )
-
-			options.color = "#fff"
-			options.alignment = "center middle"
-			options.font_size = width * 0.18
-			cd.text( options, x + width/2, y + width + (h - width + padding)/2, cd.getWeaponName( v.weapon ) )
-
-			x += width + padding * 3
+	for k, v in ipairs( state.weapons ) do
+		local h = height
+		local ammo = v.ammo
+		local max_ammo = cd.getWeaponAmmo( v.weapon )
+		if state.weapon == v.weapon then
+			h *= 1.05
 		end
+
+		local frac = -1
+		if max_ammo ~= 0 then
+			frac = ammo/max_ammo
+		end
+
+		if state.weapon == v.weapon then
+			h *= 1.05
+			if state.weapon_state == WeaponState_Reloading or state.weapon_state == WeaponState_StagedReloading then
+				frac = state.weapon_state_time/cd.getWeaponReloadTime( v.weapon )
+			end
+		end
+
+		DrawBoxOutline( x, y, width, h, padding )
+
+		options.font_size = width * 0.22
+		options.alignment = "left top"
+
+		DrawAmmoFrac( options, x, y, width, ammo, frac, cd.getWeaponIcon( v.weapon ) )
+
+		options.color = "#fff"
+		options.alignment = "center middle"
+		options.font_size = width * 0.18
+		cd.text( options, x + width/2, y + width + (h - width + padding)/2, cd.getWeaponName( v.weapon ) )
+
+		x += width + padding * 3
 	end
 
 	if state.is_carrier then

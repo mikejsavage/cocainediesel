@@ -901,7 +901,7 @@ static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
 	return Vec4( rgba.r / 255.0f, rgba.g / 255.0f, rgba.b / 255.0f, rgba.a / 255.0f );
 }
 
-static bool LoadoutButton( const char * text, Vec2 icon_size, const Material * icon, bool selected ) {
+static bool LoadoutButton( const char * label, Vec2 icon_size, const Material * icon, bool selected ) {
 	ImGui::TableNextColumn();
 
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
@@ -920,11 +920,12 @@ static bool LoadoutButton( const char * text, Vec2 icon_size, const Material * i
 	ImGui::PushStyleColor( ImGuiCol_Border, color );
 	defer { ImGui::PopStyleColor( 2 ); };
 
-	ImGui::PushID( text );
+	ImGui::PushID( label );
+	CellCenter( icon_size.x );
 	bool clicked = ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
 	ImGui::PopID();
 
-	ImGui::Text( "%s", text );
+	CellCenterText( label );
 
 	return clicked;
 }

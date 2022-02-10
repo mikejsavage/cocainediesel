@@ -271,6 +271,16 @@ void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts 
 	format( fb, ( const char * ) token.token );
 }
 
+void CellCenter( float item_width ) {
+	float cell_width = ImGui::GetContentRegionAvail().x;
+	ImGui::SetCursorPosX( ImGui::GetCursorPosX() + 0.5f * ( cell_width - item_width ) );
+}
+
+void CellCenterText( const char * str ) {
+	CellCenter( ImGui::CalcTextSize( str ).x );
+	ImGui::Text( "%s", str );
+}
+
 void ColumnCenterText( const char * str ) {
 	float width = ImGui::CalcTextSize( str ).x;
 	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + 0.5f * ( ImGui::GetColumnWidth() - width ) );

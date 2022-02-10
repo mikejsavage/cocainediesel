@@ -26,6 +26,8 @@ struct ImGuiColorToken {
 
 void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts & opts );
 
+void CellCenter( float item_width );
+void CellCenterText( const char * str );
 void ColumnCenterText( const char * str );
 void ColumnRightText( const char * str );
 void WindowCenterTextXY( const char * str );

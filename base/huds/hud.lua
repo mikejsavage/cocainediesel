@@ -16,13 +16,14 @@ local function DrawTopInfo( state )
 	}
 
 	local posX = state.viewport_width / 2
+	local posY = state.viewport_height * 0.05
 
 	if state.roundType == RoundType_MatchPoint then
-		cd.text( options, posX, state.viewport_height * 0.05, "MATCH POINT" )
+		cd.text( options, posX, posY, "MATCH POINT" )
 	elseif state.roundType == RoundType_Overtime then
-		cd.text( options, posX, state.viewport_height * 0.05, "OVERTIME" )
+		cd.text( options, posX, posY, "OVERTIME" )
 	elseif state.roundType == RoundType_OvertimeMatchPoint then
-		cd.text( options, posX, state.viewport_height * 0.05, "OVERTIME MATCH POINT" )
+		cd.text( options, posX, posY, "OVERTIME MATCH POINT" )
 	end
 
 	if state.match_state < MatchState_Playing then
@@ -31,18 +32,30 @@ local function DrawTopInfo( state )
 		if state.team ~= TEAM_SPECTATOR then
 			if state.ready or state.match_state == MatchState_Countdown then
 				options.color = "#5f6f"
-				cd.text( options, posX, state.viewport_height * 0.05, "READY" )
+				cd.text( options, posX, posY, "READY" )
 			else
 				options.color = cd.attentionGettingColor()
 				cd.text( options, posX, state.viewport_height * 0.04, "Press [" .. cd.getBind( "toggleready" ) .. "] to ready up" )
 			end
 		end
 	elseif state.match_state == MatchState_Playing then
-		cd.drawClock( state.viewport_width / 2, state.viewport_width * 0.008, state.viewport_width / 50, "#fff", "center top", 1 )
+		options.font_size = state.viewport_height / 25
+		local seconds = cd.getClockTime()
+
+		if seconds >= 0 then
+			local minutes = seconds / 60
+			seconds = seconds % 60
+
+			if minutes < 1 and seconds < 11 then
+				options.color = "#f00"
+			end
+			cd.text( options, posX, state.viewport_height * 0.012, string.format( "%d:%02i", minutes, seconds ) )
+		elseif state.teambased then
+			local size = state.viewport_height * 0.055
+			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, dark_grey, cd.asset( "gfx/bomb"))
+		end
 
 		if state.teambased then
-			options.font_size = state.viewport_height / 20
-
 			options.color = cd.getTeamColor( TEAM_ALPHA )
 			cd.text( options, posX - posX / 11, state.viewport_height * 0.012, state.scoreAlpha )
 			options.color = cd.getTeamColor( TEAM_BETA )
@@ -185,6 +198,7 @@ local function DrawWeaponBar( state, options, x, y, width, height, padding )
 
 			options.color = "#fff"
 			options.alignment = "center middle"
+			options.font_size = width * 0.18
 			cd.text( options, x + width/2, y + width + (h - width + padding)/2, cd.getWeaponName( v.weapon ) )
 
 			x += width + padding * 3

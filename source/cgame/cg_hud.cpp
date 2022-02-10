@@ -862,13 +862,37 @@ static int LuauGetGadgetAmmo( lua_State * L ) {
 	return 1;
 }
 
-static int HUD_DrawBombIndicators( lua_State * L ) {
-	CG_DrawBombHUD( luaL_checknumber( L, 1 ), luaL_checknumber( L, 2 ) );
-	return 0;
+static int LuauGetClockTime( lua_State * L ) {
+	lua_newtable( L );
+	int64_t clocktime, startTime, duration, curtime;
+	int64_t zero = 0;
+
+	if( client_gs.gameState.clock_override != 0 ) {
+		clocktime = client_gs.gameState.clock_override;
+		if( clocktime < 0 ) {
+			lua_pushnumber( L, clocktime );
+			return 1;
+		}
+	}
+	else {
+		curtime = ( GS_MatchWaiting( &client_gs ) || GS_MatchPaused( &client_gs ) ) ? cg.frame.serverTime : cl.serverTime;
+		duration = client_gs.gameState.match_duration;
+		startTime = client_gs.gameState.match_state_start_time;
+
+		// count downwards when having a duration
+		if( duration ) {
+			duration = Max2( curtime - startTime, zero ); // avoid negative results
+			clocktime = startTime + duration - curtime;
+		} else {
+			clocktime = Max2( curtime - startTime, zero );
+		}
+	}
+	lua_pushnumber( L, clocktime * 0.001 );
+	return 1;
 }
 
-static int HUD_DrawClock( lua_State * L ) {
-	CG_DrawClock( luaL_checknumber( L, 1 ), luaL_checknumber( L, 2 ), CheckAlignment( L, 5 ), cgs.fontNormalBold, luaL_checknumber( L, 3 ), CheckColor( L, 4 ), luaL_checknumber( L, 6 ) );
+static int HUD_DrawBombIndicators( lua_State * L ) {
+	CG_DrawBombHUD( luaL_checknumber( L, 1 ), luaL_checknumber( L, 2 ) );
 	return 0;
 }
 
@@ -1058,9 +1082,10 @@ void CG_InitHUD() {
 		{ "getWeaponAmmo", LuauGetWeaponAmmo },
 		{ "getGadgetAmmo", LuauGetGadgetAmmo },
 
+		{ "getClockTime", LuauGetClockTime },
+
 		{ "drawBombIndicators", HUD_DrawBombIndicators },
 		{ "drawCrosshair", HUD_DrawCrosshair },
-		{ "drawClock", HUD_DrawClock },
 		{ "drawObituaries", HUD_DrawObituaries },
 		{ "drawPointed", HUD_DrawPointed },
 		{ "drawDamageNumbers", HUD_DrawDamageNumbers },

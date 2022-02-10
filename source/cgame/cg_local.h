@@ -299,7 +299,6 @@ void CG_ScreenCrosshairShootUpdate( u16 refire_time );
 
 void CG_DrawKeyState( int x, int y, int w, int h, const char *key );
 
-void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border );
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border );
 
 void CG_InitDamageNumbers();

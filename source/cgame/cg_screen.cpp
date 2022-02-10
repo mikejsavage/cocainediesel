@@ -140,50 +140,6 @@ void CG_DrawCrosshair( int x, int y ) {
 
 }
 
-void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border ) {
-	int64_t clocktime, startTime, duration, curtime;
-	char string[12];
-
-	if( client_gs.gameState.match_state > MatchState_Playing ) {
-		return;
-	}
-
-	if( client_gs.gameState.clock_override != 0 ) {
-		clocktime = client_gs.gameState.clock_override;
-		if( clocktime < 0 )
-			return;
-	}
-	else {
-		curtime = ( GS_MatchWaiting( &client_gs ) || GS_MatchPaused( &client_gs ) ) ? cg.frame.serverTime : cl.serverTime;
-		duration = client_gs.gameState.match_duration;
-		startTime = client_gs.gameState.match_state_start_time;
-
-		// count downwards when having a duration
-		if( duration ) {
-			if( duration + startTime < curtime ) {
-				duration = curtime - startTime; // avoid negative results
-			}
-			clocktime = startTime + duration - curtime;
-		}
-		else {
-			if( curtime >= startTime ) { // avoid negative results
-				clocktime = curtime - startTime;
-			}
-			else {
-				clocktime = 0;
-			}
-		}
-	}
-
-	double seconds = (double)clocktime * 0.001;
-	int minutes = (int)( seconds / 60 );
-	seconds -= minutes * 60;
-
-	snprintf( string, sizeof( string ), "%i:%02i", minutes, (int)seconds );
-
-	DrawText( font, font_size, string, alignment, x, y, color, border );
-}
-
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {
 	// static vec4_t alphagreen = { 0, 1, 0, 0 }, alphared = { 1, 0, 0, 0 }, alphayellow = { 1, 1, 0, 0 }, alphamagenta = { 1, 0, 1, 1 }, alphagrey = { 0.85, 0.85, 0.85, 1 };
 	for( int i = 0; i < client_gs.maxclients; i++ ) {

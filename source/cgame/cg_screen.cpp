@@ -373,7 +373,7 @@ void CG_AddBombSite( centity_t * cent ) {
 	num_bomb_sites++;
 }
 
-void CG_DrawBombHUD( int name_size, int goal_size ) {
+void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 	if( client_gs.gameState.match_state > MatchState_Playing )
 		return;
 

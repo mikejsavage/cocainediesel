@@ -102,7 +102,7 @@ local function DrawHotkeys( state, options, x, y )
 		options.color = "#fff"
 		cd.text( options, x, y, "Press "..cd.getBind( "gametypemenu" ).." to change loadout" )
 	elseif state.can_plant then
-		options.color = cd.attentionGettingColor()
+		options.color = cd.plantableColor()
 		cd.text( options, x, y, "Press "..cd.getBind( "+plant" ).." to plant" )
 	elseif state.is_carrier then
 		options.color = "#fff"
@@ -206,7 +206,7 @@ local function DrawWeaponBar( state, options, x, y, width, height, padding )
 	if state.is_carrier then
 		DrawBoxOutline( x, y, width, width, padding )
 		if state.can_plant then
-			cd.box( x, y, width, width, cd.attentionGettingColor() )
+			cd.box( x, y, width, width, cd.plantableColor() )
 		else
 			cd.box( x, y, width, width, "#666" )
 		end
@@ -415,7 +415,7 @@ end
 
 return function( state )
 	if state.match_state < MatchState_PostMatch then
-		cd.drawBombIndicators( state.viewport_height / 26, state.viewport_height / 60 ) -- site name size, site message size (ATTACK/DEFEND/...)
+		cd.drawBombIndicators( state.viewport_height / 26, state.viewport_height / 60, state.viewport_height / 50 ) -- site name size, site message size (ATTACK/DEFEND/...)
 
 		DrawTopInfo( state )
 

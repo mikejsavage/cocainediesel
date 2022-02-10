@@ -795,6 +795,10 @@ static int LuauAttentionGettingColor( lua_State * L ) {
 	return Vec4ToLuauColor( L, AttentionGettingColor() );
 }
 
+static int LuauPlantableColor( lua_State * L ) {
+	return Vec4ToLuauColor( L, PlantableColor() );
+}
+
 static int LuauGetPlayerName( lua_State * L ) {
 	int index = luaL_checknumber( L, 1 ) - 1;
 
@@ -889,7 +893,7 @@ static int LuauGetClockTime( lua_State * L ) {
 }
 
 static int HUD_DrawBombIndicators( lua_State * L ) {
-	CG_DrawBombHUD( luaL_checknumber( L, 1 ), luaL_checknumber( L, 2 ) );
+	CG_DrawBombHUD( luaL_checknumber( L, 1 ), luaL_checknumber( L, 2 ), luaL_checknumber( L, 3 ) );
 	return 0;
 }
 
@@ -1067,6 +1071,7 @@ void CG_InitHUD() {
 		{ "getBind", LuauGetBind },
 		{ "getTeamColor", LuauGetTeamColor },
 		{ "attentionGettingColor", LuauAttentionGettingColor },
+		{ "plantableColor", LuauPlantableColor },
 		{ "getPlayerName", LuauGetPlayerName },
 
 		{ "getWeaponIcon", LuauGetWeaponIcon },

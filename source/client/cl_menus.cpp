@@ -7,6 +7,7 @@
 #include "client/renderer/renderer.h"
 #include "qcommon/version.h"
 #include "qcommon/maplist.h"
+#include "qcommon/array.h"
 
 #include "cgame/cg_local.h"
 
@@ -212,6 +213,34 @@ static const char * SelectableMapList() {
 	ImGui::PopItemWidth();
 
 	return ( selected_map < maps.n ? maps[ selected_map ] : "" );
+}
+
+static const char * SelectablePlayerList() {
+	TempAllocator temp = cls.frame_arena.temp();
+	DynamicArray< const char * > players( &temp );
+
+	for( int i = 0; i < client_gs.maxclients; i++ ) {
+		const char * name = PlayerName( i ); 
+		if( strlen( name ) != 0 && !ISVIEWERENTITY( i + 1 ) ) {
+			players.add( name );
+		}
+	}
+
+	static size_t selected_player = 0;
+
+	ImGui::PushItemWidth( 200 );
+	if( ImGui::BeginCombo( "##players", players[ selected_player ] ) ) {
+		for( size_t i = 0; i < players.size(); i++ ) {
+			if( ImGui::Selectable( players[ i ], i == selected_player ) )
+				selected_player = i;
+			if( i == selected_player )
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+	ImGui::PopItemWidth();
+
+	return ( selected_player < players.size() ? players[ selected_player ] : "" );
 }
 
 static void SettingsGeneral() {
@@ -997,6 +1026,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	ImGui::SetNextWindowSize( displaySize );
 	ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
+	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, Vec2( 0, displaySize.y * 0.02 ) );
 	Vec2 icon_size = Vec2( displaySize.x * 0.05f );
 
 	int cols = 0;
@@ -1024,6 +1054,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 		should_close = true;
 	}
 
+	ImGui::PopStyleVar();
 	ImGui::PopStyleColor();
 	ImGui::PopFont();
 
@@ -1130,21 +1161,33 @@ static void GameMenu() {
 	else if( gamemenu_state == GameMenuState_Vote ) {
 		TempAllocator temp = cls.frame_arena.temp();
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( -1, -1 ) );
+		ImGui::SetNextWindowSize( ImVec2( displaySize.x * 0.5f, -1 ) );
 		ImGui::Begin( "votemap", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		static int e = 0;
-		ImGui::RadioButton( "Start match", &e, 0 ); ImGui::SameLine();
+		ImGui::Columns( 2, NULL, false );
+		ImGui::RadioButton( "Start match", &e, 0 );
 		ImGui::RadioButton( "Change map", &e, 1 );
+		ImGui::RadioButton( "Spectate", &e, 2 );
+		ImGui::RadioButton( "Kick", &e, 3 );
 
+		ImGui::NextColumn();
+
+		const char * vote;
+		const char * arg;
 		if( e == 0 ) {
-			GameMenuButton( "Start vote", "callvote start", &should_close );
+			vote = "start";
+			arg = "";
+		} else if( e == 1 ) {
+			vote = "map";
+			arg = SelectableMapList();
+		} else {
+			vote = e == 2 ? "spectate" : "kick";
+			arg = SelectablePlayerList();
 		}
 
-		if( e == 1 ) {
-			const char * map_name = SelectableMapList();
-			GameMenuButton( "Start vote", temp( "callvote map {}", map_name ), &should_close );
-		}
+		ImGui::Columns( 1 );
+		GameMenuButton( "Start vote", temp( "callvote {} {}", vote, arg ), &should_close );
 	}
 	else if( gamemenu_state == GameMenuState_Settings ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );

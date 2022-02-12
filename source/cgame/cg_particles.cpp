@@ -1175,7 +1175,7 @@ void ClearParticles() {
 void DrawParticleMenuEffect() {
 	ImVec2 mouse_pos = ImGui::GetMousePos();
 	Vec2 pos = Clamp( Vec2( 0.0f ), Vec2( mouse_pos.x, mouse_pos.y ), frame_static.viewport ) - frame_static.viewport * 0.5f;
-	pos *= 0.05;
+	pos *= 0.05f;
 	RendererSetView( Vec3( -400, pos.x, pos.y ), EulerDegrees3( 0, 0, 0 ), 90 );
 	frame_static.fog_uniforms = UploadUniformBlock( 0.0f );
 	DoVisualEffect( "vfx/menu", Vec3( 0.0f ) );

@@ -909,6 +909,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	}
 
 	UpdateWeapons( &server_gs, &client->ps, *ucmd, client->timeDelta );
+	ent->s.weapon = client->ps.weapon;
 
 	client->resp.snap.buttons |= ucmd->buttons;
 }

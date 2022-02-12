@@ -199,11 +199,13 @@ static ItemStateTransition Dispatch( const gs_state_t * gs, WeaponState state, S
 	ps->pending_weapon = Weapon_None;
 	ps->pending_gadget = false;
 
-	if( state != WeaponState_DispatchQuiet ) {
-		u64 parm = ps->using_gadget ? 1 : 0;
-		parm |= ps->using_gadget ? ( ps->gadget << 1 ) : ( ps->weapon << 1 );
-		gs->api.PredictedEvent( ps->POVnum, EV_WEAPONACTIVATE, parm );
+	if( state == WeaponState_DispatchQuiet ) {
+		return WeaponState_Idle;
 	}
+
+	u64 parm = ps->using_gadget ? 1 : 0;
+	parm |= ps->using_gadget ? ( ps->gadget << 1 ) : ( ps->weapon << 1 );
+	gs->api.PredictedEvent( ps->POVnum, EV_WEAPONACTIVATE, parm );
 
 	return WeaponState_SwitchingIn;
 }

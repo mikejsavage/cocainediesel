@@ -408,7 +408,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 
 		if( clamped ) {
 			int icon_size = ( cgs.fontSystemMediumSize * frame_static.viewport_height ) / 600;
-			Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, FindMaterial( "gfx/bomb" ) );
+			Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, FindMaterial( "hud/icons/bomb" ) );
 		}
 		else {
 			if( show_labels ) {

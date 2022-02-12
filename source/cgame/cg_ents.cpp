@@ -504,7 +504,7 @@ static void CG_LerpLaser( centity_t *cent ) {
 }
 
 static void CG_AddLaserEnt( centity_t *cent ) {
-	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, vec4_white, "gfx/misc/laser" );
+	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, vec4_white, "entities/laser/laser" );
 }
 
 static void CG_UpdateLaserbeamEnt( centity_t *cent ) {

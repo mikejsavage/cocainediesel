@@ -344,25 +344,25 @@ static const Material * DamageTypeToIcon( DamageType type ) {
 
 	switch( world ) {
 		case WorldDamage_Slime:
-			return FindMaterial( "gfx/slime" );
+			return FindMaterial( "hud/icons/obituaries/slime" );
 		case WorldDamage_Lava:
-			return FindMaterial( "gfx/lava" );
+			return FindMaterial( "hud/icons/obituaries/lava" );
 		case WorldDamage_Crush:
-			return FindMaterial( "gfx/crush" );
+			return FindMaterial( "hud/icons/obituaries/crush" );
 		case WorldDamage_Telefrag:
-			return FindMaterial( "gfx/telefrag" );
+			return FindMaterial( "hud/icons/obituaries/telefrag" );
 		case WorldDamage_Suicide:
-			return FindMaterial( "gfx/suicide" );
+			return FindMaterial( "hud/icons/obituaries/suicide" );
 		case WorldDamage_Explosion:
-			return FindMaterial( "gfx/explosion" );
+			return FindMaterial( "hud/icons/obituaries/explosion" );
 		case WorldDamage_Trigger:
-			return FindMaterial( "gfx/trigger" );
+			return FindMaterial( "hud/icons/obituaries/trigger" );
 		case WorldDamage_Laser:
-			return FindMaterial( "gfx/laser" );
+			return FindMaterial( "hud/icons/obituaries/laser" );
 		case WorldDamage_Spike:
-			return FindMaterial( "gfx/spike" );
+			return FindMaterial( "hud/icons/obituaries/spike" );
 		case WorldDamage_Void:
-			return FindMaterial( "gfx/void" );
+			return FindMaterial( "hud/icons/obituaries/void" );
 	}
 
 	return FindMaterial( "" );
@@ -1050,7 +1050,7 @@ void CG_InitHUD() {
 	hud_L = NULL;
 
 	size_t bytecode_size;
-	char * bytecode = luau_compile( AssetString( "huds/hud.lua" ).ptr, AssetBinary( "huds/hud.lua" ).n, NULL, &bytecode_size );
+	char * bytecode = luau_compile( AssetString( "hud/hud.lua" ).ptr, AssetBinary( "hud/hud.lua" ).n, NULL, &bytecode_size );
 	defer { free( bytecode ); };
 	if( bytecode == NULL ) {
 		Fatal( "luau_compile" );
@@ -1145,7 +1145,7 @@ void CG_DrawHUD() {
 
 	bool hotload = false;
 	for( const char * path : ModifiedAssetPaths() ) {
-		if( StartsWith( path, "huds/" ) ) {
+		if( StartsWith( path, "hud/" ) && EndsWith( path, ".lua" ) ) {
 			hotload = true;
 			break;
 		}

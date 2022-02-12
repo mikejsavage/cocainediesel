@@ -433,7 +433,7 @@ static const edict_t * GT_Gladiator_SelectSpawnPoint( const edict_t * ent ) {
 			}
 		}
 
-		if( min_dist == -1.0 ) { //If no player is spawned, pick a random spawn
+		if( min_dist == -1.0f ) { //If no player is spawned, pick a random spawn
 			spawn = G_PickRandomEnt( &edict_t::classname, "spawn_gladiator" );
 			break;
 		}

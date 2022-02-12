@@ -319,7 +319,7 @@ bool Netchan_TransmitNextFragment( netchan_t *chan ) {
 		fragmentLength = chan->unsentLength - chan->unsentFragmentStart;
 		last = true;
 	} else {
-		fragmentLength = ceilf( ( chan->unsentLength - chan->unsentFragmentStart ) * 1.0 / ceilf( ( chan->unsentLength - chan->unsentFragmentStart ) * 1.0 / FRAGMENT_SIZE ) );
+		fragmentLength = ceilf( ( chan->unsentLength - chan->unsentFragmentStart ) * 1.0f / ceilf( ( chan->unsentLength - chan->unsentFragmentStart ) * 1.0f / FRAGMENT_SIZE ) );
 		last = false;
 	}
 

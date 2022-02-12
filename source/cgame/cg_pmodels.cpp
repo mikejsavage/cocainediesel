@@ -539,27 +539,27 @@ void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 		AnglesToAxis( Vec3( 0, cent->current.angles.y, 0 ), axis );
 
 		float front = scale * Dot( hvelocity, FromQFAxis( axis, AXIS_FORWARD ) );
-		if( front < -0.1 || front > 0.1 ) {
+		if( front < -0.1f || front > 0.1f ) {
 			leanAngles[LOWER].x += front;
-			leanAngles[UPPER].x -= front * 0.25;
-			leanAngles[HEAD].x -= front * 0.5;
+			leanAngles[UPPER].x -= front * 0.25f;
+			leanAngles[HEAD].x -= front * 0.5f;
 		}
 
 		float aside = ( front * 0.001f ) * cent->yawVelocity;
 
 		if( aside ) {
 			float asidescale = 75;
-			leanAngles[LOWER].z -= aside * 0.5 * asidescale;
-			leanAngles[UPPER].z += aside * 1.75 * asidescale;
-			leanAngles[HEAD].z -= aside * 0.35 * asidescale;
+			leanAngles[LOWER].z -= aside * 0.5f * asidescale;
+			leanAngles[UPPER].z += aside * 1.75f * asidescale;
+			leanAngles[HEAD].z -= aside * 0.35f * asidescale;
 		}
 
 		float side = scale * Dot( hvelocity, FromQFAxis( axis, AXIS_RIGHT ) );
 
 		if( side < -1 || side > 1 ) {
-			leanAngles[LOWER].z -= side * 0.5;
-			leanAngles[UPPER].z += side * 0.5;
-			leanAngles[HEAD].z += side * 0.25;
+			leanAngles[LOWER].z -= side * 0.5f;
+			leanAngles[UPPER].z += side * 0.5f;
+			leanAngles[HEAD].z += side * 0.25f;
 		}
 
 		leanAngles[LOWER].x = Clamp( -45.0f, leanAngles[LOWER].x, 45.0f );

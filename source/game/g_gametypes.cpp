@@ -386,7 +386,7 @@ static bool G_EachNewMinute() {
 	static int lastminute;
 	static int minute;
 
-	minute = (int)( level.time * 0.001 / 60.0f );
+	minute = (int)( level.time * 0.001f / 60.0f );
 	if( lastminute == minute ) {
 		return false;
 	}

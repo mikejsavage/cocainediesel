@@ -265,7 +265,7 @@ static void PM_StepSlideMove() {
 	float down_dist = LengthSquared( down_o.xy() - start_o.xy() );
 	float up_dist = LengthSquared( up.xy() - start_o.xy() );
 
-	if( down_dist >= up_dist || trace.allsolid || ( trace.fraction != 1.0 && !ISWALKABLEPLANE( &trace.plane ) ) ) {
+	if( down_dist >= up_dist || trace.allsolid || ( trace.fraction != 1.0f && !ISWALKABLEPLANE( &trace.plane ) ) ) {
 		pml.origin = down_o;
 		pml.velocity = down_v;
 		return;
@@ -963,10 +963,10 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 			fall_delta = 0;
 		}
 		if( pm->waterlevel == 2 ) {
-			fall_delta *= 0.25;
+			fall_delta *= 0.25f;
 		}
 		if( pm->waterlevel == 1 ) {
-			fall_delta *= 0.5;
+			fall_delta *= 0.5f;
 		}
 
 		float frac = Unlerp01( min_fall_velocity, fall_delta, max_fall_velocity );

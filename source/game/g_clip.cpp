@@ -807,7 +807,7 @@ static void GClip_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs,
 	} else {
 		// clip to world
 		CM_TransformedBoxTrace( CM_Server, svs.cms, tr, start, end, mins, maxs, NULL, contentmask, Vec3( 0.0f ), Vec3( 0.0f ) );
-		tr->ent = tr->fraction < 1.0 ? world->s.number : -1;
+		tr->ent = tr->fraction < 1.0f ? world->s.number : -1;
 		if( tr->fraction == 0 ) {
 			return; // blocked by the world
 		}

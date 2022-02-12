@@ -127,7 +127,7 @@ retry:
 
 	GClip_LinkEntity( ent );
 
-	if( trace.fraction < 1.0 ) {
+	if( trace.fraction < 1.0f ) {
 		SV_Impact( ent, &trace );
 
 		// if the pushed entity went away and the pusher is still there

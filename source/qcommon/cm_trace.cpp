@@ -883,7 +883,7 @@ void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, tra
 	// sweep the box through the model
 	CM_BoxTrace( &tw, cms, tr, start_l, end_l, mins, maxs, cmodel, origin, brushmask );
 
-	if( rotated && tr->fraction != 1.0 ) {
+	if( rotated && tr->fraction != 1.0f ) {
 		a = -angles;
 		AnglesToAxis( a, axis );
 

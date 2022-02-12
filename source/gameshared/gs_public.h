@@ -100,11 +100,11 @@ struct gs_state_t {
 
 //==================================================================
 
-#define ATTN_NONE               0       // full volume the entire level
-#define ATTN_DISTANT            0.5     // distant sound (most likely explosions)
-#define ATTN_NORM               1       // players, weapons, etc
-#define ATTN_IDLE               2.5     // stuff around you
-#define ATTN_STATIC             5       // diminish very rapidly with distance
+#define ATTN_NONE               0.0f    // full volume the entire level
+#define ATTN_DISTANT            0.5f    // distant sound (most likely explosions)
+#define ATTN_NORM               1.0f    // players, weapons, etc
+#define ATTN_IDLE               2.5f    // stuff around you
+#define ATTN_STATIC             5.0f    // diminish very rapidly with distance
 
 // sound channels
 // CHAN_AUTO never willingly overrides

@@ -242,8 +242,8 @@ bool PlaneFromPoints( Vec3 verts[3], Plane *plane ) {
 	return true;
 }
 
-#define PLANE_NORMAL_EPSILON    0.00001
-#define PLANE_DIST_EPSILON  0.01
+#define PLANE_NORMAL_EPSILON    0.00001f
+#define PLANE_DIST_EPSILON  0.01f
 
 /*
 * ComparePlanes

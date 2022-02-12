@@ -982,7 +982,7 @@ static float EvaluateWaveFunc( Wave wave ) {
 			 break;
 
 		case WaveFunc_Triangle:
-			 v = t < 0.5 ? t * 4 - 1 : 1 - ( t - 0.5f ) * 4;
+			 v = t < 0.5f ? t * 4 - 1 : 1 - ( t - 0.5f ) * 4;
 			 break;
 
 		case WaveFunc_Sawtooth:

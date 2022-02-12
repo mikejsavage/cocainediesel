@@ -77,7 +77,7 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		wishvel = Normalize( wishvel );
 
 		if( pml->forwardPush > 0 ) {
-			wishvel.z = Lerp( -1.0, Unlerp01( 15.0f, ps->viewangles[ PITCH ], -15.0f ), 1.0 );
+			wishvel.z = Lerp( -1.0f, Unlerp01( 15.0f, ps->viewangles[ PITCH ], -15.0f ), 1.0f );
 		}
 
 		ps->pmove.stamina_state = Stamina_UsingAbility;

@@ -246,7 +246,7 @@ void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignor
 
 	// check against world
 	CM_TransformedBoxTrace( CM_Client, cl.map->cms, t, start, end, mins, maxs, NULL, contentmask, Vec3( 0.0f ), Vec3( 0.0f ) );
-	t->ent = t->fraction < 1.0 ? 0 : -1; // world entity is 0
+	t->ent = t->fraction < 1.0f ? 0 : -1; // world entity is 0
 	if( t->fraction == 0 ) {
 		return; // blocked by the world
 	}

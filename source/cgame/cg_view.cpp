@@ -261,9 +261,9 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	// move towards destination
 	CG_Trace( &trace, view->origin, mins, maxs, chase_dest, view->POVent, MASK_SOLID );
 
-	if( trace.fraction != 1.0 ) {
+	if( trace.fraction != 1.0f ) {
 		stop = trace.endpos;
-		stop.z += ( 1.0 - trace.fraction ) * 32;
+		stop.z += ( 1.0f - trace.fraction ) * 32;
 		CG_Trace( &trace, view->origin, mins, maxs, stop, view->POVent, MASK_SOLID );
 		chase_dest = trace.endpos;
 	}

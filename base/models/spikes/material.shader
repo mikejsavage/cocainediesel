@@ -4,7 +4,7 @@ models/objects/spikes_base
 	shaded
 	{
 		map $whiteimage
-		rgbGen const 0.11 0.11 0.11
+		rgbGen const 0.44 0.44 0.44
 	}
 }
 

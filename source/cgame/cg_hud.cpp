@@ -35,12 +35,13 @@ static constexpr Vec4 dark_gray = vec4_dark;
 
 static lua_State * hud_L;
 
-struct constant_numeric_t {
-	const char *name;
-	int value;
+template <typename T>
+struct LuauConst {
+	const char * name;
+	T value;
 };
 
-static const constant_numeric_t cg_numeric_constants[] = {
+static const LuauConst<int> numeric_constants[] = {
 	{ "NOT_CHASING", 9999 },
 
 	{ "TEAM_SPECTATOR", TEAM_SPECTATOR },
@@ -77,11 +78,28 @@ static const constant_numeric_t cg_numeric_constants[] = {
 	{ "BombProgress_Planting", BombProgress_Planting },
 	{ "BombProgress_Defusing", BombProgress_Defusing },
 
+	{ "RoundState_Countdown", RoundState_Countdown },
+	{ "RoundState_Round", RoundState_Round },
+	{ "RoundState_Finished", RoundState_Finished },
+	{ "RoundState_Post", RoundState_Post },
+
 	{ "RoundType_Normal", RoundType_Normal },
 	{ "RoundType_MatchPoint", RoundType_MatchPoint },
 	{ "RoundType_Overtime", RoundType_Overtime },
 	{ "RoundType_OvertimeMatchPoint", RoundType_OvertimeMatchPoint },
 };
+
+
+static const LuauConst<StringHash> asset_constants[] = {
+	{ "diagonal_pattern", StringHash( "hud/diagonal_pattern" ) },
+	{ "bomb", StringHash( "hud/icons/bomb" ) },
+	{ "cam", StringHash( "hud/icons/cam" ) },
+	{ "guy", StringHash( "hud/icons/guy" ) },
+	{ "net", StringHash( "hud/iconsnet" ) },
+};
+
+
+
 
 //=============================================================================
 
@@ -430,6 +448,11 @@ void CG_DrawScope() {
 
 //=============================================================================
 
+static void PushLuaAsset( lua_State * L, StringHash s ) {
+	lua_pushlightuserdata( L, checked_cast< void * >( checked_cast< uintptr_t >( s.hash ) ) );
+}
+
+
 static bool CallWithStackTrace( lua_State * L, int args, int results ) {
 	if( lua_pcall( L, args, results, 1 ) != 0 ) {
 		Com_Printf( S_COLOR_YELLOW "%s\n", lua_tostring( L, -1 ) );
@@ -630,7 +653,7 @@ static int LuauPrint( lua_State * L ) {
 
 static int LuauAsset( lua_State * L ) {
 	StringHash hash( luaL_checkstring( hud_L, 1 ) );
-	lua_pushlightuserdata( L, checked_cast< void * >( checked_cast< uintptr_t >( hash.hash ) ) );
+	PushLuaAsset( L, hash );
 	return 1;
 }
 
@@ -815,28 +838,21 @@ static int LuauGetPlayerName( lua_State * L ) {
 static int LuauGetWeaponIcon( lua_State * L ) {
 	u8 w = luaL_checknumber( L, 1 );
 	lua_newtable( L );
-	lua_pushlightuserdata( L, checked_cast< void * >( checked_cast< uintptr_t >( cgs.media.shaderWeaponIcon[ w ].hash ) ) );
+	PushLuaAsset( L, cgs.media.shaderWeaponIcon[ w ] );
 	return 1;
 }
 
 static int LuauGetGadgetIcon( lua_State * L ) {
 	u8 g = luaL_checknumber( L, 1 );
 	lua_newtable( L );
-	lua_pushlightuserdata( L, checked_cast< void * >( checked_cast< uintptr_t >( cgs.media.shaderGadgetIcon[ g ].hash ) ) );
+	PushLuaAsset( L, cgs.media.shaderGadgetIcon[ g ] );
 	return 1;
 }
 
 static int LuauGetPerkIcon( lua_State * L ) {
 	u8 p = luaL_checknumber( L, 1 );
 	lua_newtable( L );
-	lua_pushlightuserdata( L, checked_cast< void * >( checked_cast< uintptr_t >( cgs.media.shaderPerkIcon[ p ].hash ) ) );
-	return 1;
-}
-
-static int LuauGetWeaponName( lua_State * L ) {
-	u8 w = luaL_checknumber( L, 1 );
-	lua_newtable( L );
-	lua_pushstring( L, GS_GetWeaponDef( WeaponType( w ) )->name );
+	PushLuaAsset( L, cgs.media.shaderPerkIcon[ p ] );
 	return 1;
 }
 
@@ -846,13 +862,6 @@ static int LuauGetWeaponReloadTime( lua_State * L ) {
 	lua_pushnumber( L, cg.predictedPlayerState.weapon_state == WeaponState_StagedReloading ?
 						GS_GetWeaponDef( WeaponType( w ) )->staged_reload_time :
 						GS_GetWeaponDef( WeaponType( w ) )->reload_time );
-	return 1;
-}
-
-static int LuauGetWeaponAmmo( lua_State * L ) {
-	u8 w = luaL_checknumber( L, 1 );
-	lua_newtable( L );
-	lua_pushnumber( L, GS_GetWeaponDef( WeaponType( w ) )->clip_size );
 	return 1;
 }
 
@@ -867,6 +876,11 @@ static int LuauGetClockTime( lua_State * L ) {
 	lua_newtable( L );
 	int64_t clocktime, startTime, duration, curtime;
 	int64_t zero = 0;
+
+	if( client_gs.gameState.round_state >= RoundState_Finished ) {
+		lua_pushnumber( L, 0 );
+		return 1;
+	}
 
 	if( client_gs.gameState.clock_override != 0 ) {
 		clocktime = client_gs.gameState.clock_override;
@@ -1078,10 +1092,8 @@ void CG_InitHUD() {
 		{ "getGadgetIcon", LuauGetGadgetIcon },
 		{ "getPerkIcon", LuauGetPerkIcon },
 
-		{ "getWeaponName", LuauGetWeaponName },
 		{ "getWeaponReloadTime", LuauGetWeaponReloadTime },
 
-		{ "getWeaponAmmo", LuauGetWeaponAmmo },
 		{ "getGadgetAmmo", LuauGetGadgetAmmo },
 
 		{ "getClockTime", LuauGetClockTime },
@@ -1095,9 +1107,21 @@ void CG_InitHUD() {
 		{ NULL, NULL }
 	};
 
-	for( size_t i = 0; i < ARRAY_COUNT( cg_numeric_constants ); i++ ) {
-		lua_pushnumber( hud_L, cg_numeric_constants[ i ].value );
-		lua_setfield( hud_L, LUA_GLOBALSINDEX, cg_numeric_constants[ i ].name );
+	for( size_t i = 0; i < ARRAY_COUNT( numeric_constants ); i++ ) {
+		lua_pushnumber( hud_L, numeric_constants[ i ].value );
+		lua_setfield( hud_L, LUA_GLOBALSINDEX, numeric_constants[ i ].name );
+	}
+
+	//assets
+	{
+		lua_newtable( hud_L );
+
+		for( size_t i = 0; i < ARRAY_COUNT( asset_constants ); i++ ) {
+			PushLuaAsset( hud_L, asset_constants[ i ].value );
+			lua_setfield( hud_L, -2, asset_constants[ i ].name );
+		}
+
+		lua_setfield( hud_L, LUA_GLOBALSINDEX, "assets" );
 	}
 
 	luaL_openlibs( hud_L ); // TODO: don't open all libs?
@@ -1219,6 +1243,12 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, client_gs.gameState.match_state );
 	lua_setfield( hud_L, -2, "match_state" );
 
+	lua_pushnumber( hud_L, client_gs.gameState.round_state );
+	lua_setfield( hud_L, -2, "round_state" );
+
+	lua_pushnumber( hud_L, client_gs.gameState.round_type );
+	lua_setfield( hud_L, -2, "round_type" );
+
 	lua_pushnumber( hud_L, client_gs.gameState.teams[ TEAM_ALPHA ].score );
 	lua_setfield( hud_L, -2, "scoreAlpha" );
 
@@ -1236,9 +1266,6 @@ void CG_DrawHUD() {
 
 	lua_pushnumber( hud_L, client_gs.gameState.bomb.beta_players_total );
 	lua_setfield( hud_L, -2, "totalBeta" );
-
-	lua_pushnumber( hud_L, client_gs.gameState.round_type );
-	lua_setfield( hud_L, -2, "roundType" );
 
 	lua_pushnumber( hud_L, CG_GetPOVnum() );
 	lua_setfield( hud_L, -2, "chasing" );
@@ -1284,13 +1311,19 @@ void CG_DrawHUD() {
 		if( cg.predictedPlayerState.weapons[ i ].weapon == Weapon_None )
 			continue;
 
+		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapons[ i ].weapon );
+
 		lua_pushnumber( hud_L, i + 1 );
-		lua_createtable( hud_L, 0, 2 );
+		lua_createtable( hud_L, 0, 4 );
 
 		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].weapon );
 		lua_setfield( hud_L, -2, "weapon" );
+		lua_pushstring( hud_L, def->name );
+		lua_setfield( hud_L, -2, "name" );
 		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].ammo );
 		lua_setfield( hud_L, -2, "ammo" );
+		lua_pushnumber( hud_L, def->clip_size );
+		lua_setfield( hud_L, -2, "max_ammo" );
 
 		lua_settable( hud_L, -3 );
 	}

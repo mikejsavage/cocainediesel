@@ -18,11 +18,11 @@ local function DrawTopInfo( state )
 	local posX = state.viewport_width / 2
 	local posY = state.viewport_height * 0.05
 
-	if state.roundType == RoundType_MatchPoint then
+	if state.round_type == RoundType_MatchPoint then
 		cd.text( options, posX, posY, "MATCH POINT" )
-	elseif state.roundType == RoundType_Overtime then
+	elseif state.round_type == RoundType_Overtime then
 		cd.text( options, posX, posY, "OVERTIME" )
-	elseif state.roundType == RoundType_OvertimeMatchPoint then
+	elseif state.round_type == RoundType_OvertimeMatchPoint then
 		cd.text( options, posX, posY, "OVERTIME MATCH POINT" )
 	end
 
@@ -46,14 +46,15 @@ local function DrawTopInfo( state )
 			local minutes = seconds / 60
 			seconds = seconds % 60
 
-			if minutes < 1 and seconds < 11 then
+			if minutes < 1 and seconds < 11 and seconds ~= 0 then
 				options.color = "#f00"
 			end
 			cd.text( options, posX, state.viewport_height * 0.012, string.format( "%d:%02i", minutes, seconds ) )
 		elseif state.teambased then
 			local size = state.viewport_height * 0.055
-			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, dark_grey, cd.asset( "hud/icons/bomb" ))
+			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, dark_grey, assets.bomb )
 		end
+
 
 		if state.teambased then
 			options.color = cd.getTeamColor( TEAM_ALPHA )
@@ -66,7 +67,7 @@ local function DrawTopInfo( state )
 			local scaleY = scaleX * 1.6
 			local step = scaleX
 			local grey = "#555"
-			local material = cd.asset( "hud/icons/guy" )
+			local material = assets.guy
 
 			local color = cd.getTeamColor( TEAM_ALPHA )
 			local x = posX - posX * 0.2
@@ -171,7 +172,7 @@ local function DrawWeaponBar( state, options, x, y, width, height, padding )
 	for k, v in ipairs( state.weapons ) do
 		local h = height
 		local ammo = v.ammo
-		local max_ammo = cd.getWeaponAmmo( v.weapon )
+		local max_ammo = v.max_ammo
 		if state.weapon == v.weapon then
 			h *= 1.05
 		end
@@ -198,7 +199,7 @@ local function DrawWeaponBar( state, options, x, y, width, height, padding )
 		options.color = "#fff"
 		options.alignment = "center middle"
 		options.font_size = width * 0.18
-		cd.text( options, x + width/2, y + width + (h - width + padding)/2, cd.getWeaponName( v.weapon ) )
+		cd.text( options, x + width/2, y + width + (h - width + padding)/2, v.name )
 
 		x += width + padding * 3
 	end
@@ -210,7 +211,7 @@ local function DrawWeaponBar( state, options, x, y, width, height, padding )
 		else
 			cd.box( x, y, width, width, "#666" )
 		end
-		cd.box( x, y, width, width, dark_grey, cd.asset( "hud/icons/bomb" ) )
+		cd.box( x, y, width, width, dark_grey, assets.bomb )
 	end
 end
 
@@ -280,7 +281,7 @@ local function DrawPlayerBar( state )
 	cd.boxuv( x, y,
 			width * state.stamina, stamina_bar_height,
 			0, 0, (width * state.stamina)/8, stamina_bar_height/8, --8 is the size of the texture
-			RGBALinear( 0, 0, 0, 0.5 ), cd.asset( "hud/diagonal_pattern" ) )
+			RGBALinear( 0, 0, 0, 0.5 ), assets.diagonal_pattern )
 
 	y += stamina_bar_height + padding
 
@@ -358,7 +359,7 @@ local function DrawChasing( state )
 		alignment = "left middle",
 	}
 
-	cd.box( pos, pos, scale, scale, "#fff", cd.asset( "hud/icons/cam" ) )
+	cd.box( pos, pos, scale, scale, "#fff", assets.cam )
 	cd.text( options, pos + scale * 1.2, pos + scale * 0.5, cd.getPlayerName( state.chasing ) )
 end
 
@@ -366,7 +367,7 @@ end
 local function DrawLagging( state )
 	if state.lagging then
 		local width = state.viewport_width * 0.05
-		cd.box( width, width, width, width, "#fff", cd.asset( "hud/icons/net" ) )
+		cd.box( width, width, width, width, "#fff", assets.net )
 	end
 end
 

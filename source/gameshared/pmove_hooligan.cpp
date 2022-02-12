@@ -14,6 +14,8 @@ static constexpr float stamina_usewj = 0.5f; //50%
 static constexpr float stamina_usedash = 0.25f; //50%
 static constexpr float stamina_recover = 1.5f;
 
+static constexpr float floor_distance = STEPSIZE * 0.5f;
+
 
 static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( ps->pmove.stamina_state == Stamina_Normal ) {
@@ -41,7 +43,7 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 
 	trace_t trace;
 	Vec3 point = pml->origin;
-	point.z -= STEPSIZE;
+	point.z -= floor_distance;
 
 	// don't walljump if our height is smaller than a step
 	// unless jump is pressed or the player is moving faster than dash speed and upwards

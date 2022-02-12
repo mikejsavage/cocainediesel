@@ -3,6 +3,7 @@
 
 
 static constexpr float pm_jetpackspeed = 25.0f * 62.0f;
+static constexpr float pm_jumpspeed = 220.0f;
 static constexpr float pm_maxjetpackupspeed = 150.0f;
 
 static constexpr float pm_boostspeed = 5.0f * 62.0f;
@@ -18,16 +19,22 @@ static constexpr float refuel_air = 0.0f;
 
 
 static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( pressed && StaminaAvailable( ps, pml, fuel_use_jetpack ) && !pml->ladder && ps->pmove.stamina_state != Stamina_Reloading ) {
-		if( pm->groundentity != -1 ) {
-			Jump( pm, pml, pmove_gs, ps, pm_maxjetpackupspeed, JumpType_Normal, true );
+	if( pressed ) {
+		if( pm->groundentity != -1 && !( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) ) {
+			Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, JumpType_Normal, true );
 		}
 
-		ps->pmove.stamina_state = Stamina_UsingAbility;
-		StaminaUse( ps, pml, fuel_use_jetpack );
-		pml->velocity.z = Min2( pml->velocity.z + pm_jetpackspeed * pml->frametime, pm_maxjetpackupspeed );
+		ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
 
-		pmove_gs->api.PredictedEvent( ps->POVnum, EV_JETPACK, 0 );
+		if( StaminaAvailable( ps, pml, fuel_use_jetpack ) && !pml->ladder && ps->pmove.stamina_state != Stamina_Reloading && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
+			ps->pmove.stamina_state = Stamina_UsingAbility;
+			StaminaUse( ps, pml, fuel_use_jetpack );
+			pml->velocity.z = Min2( pml->velocity.z + pm_jetpackspeed * pml->frametime, pm_maxjetpackupspeed );
+
+			pmove_gs->api.PredictedEvent( ps->POVnum, EV_JETPACK, 0 );
+		}
+	} else {
+		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
 	}
 
 	if( ps->pmove.stamina < fuel_min ) {
@@ -71,10 +78,13 @@ static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmo
 		pml->velocity.z += pm_boostupspeed * pml->frametime;
 		pm->groundentity = -1;
 
+		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
 		ps->pmove.stamina_state = Stamina_UsingAbility;
 		StaminaUse( ps, pml, fuel_use_boost );
 
 		pmove_gs->api.PredictedEvent( ps->POVnum, EV_JETPACK, 1 );
+	} else {
+		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
 }
 

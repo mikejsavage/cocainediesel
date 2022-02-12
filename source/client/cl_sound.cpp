@@ -694,6 +694,19 @@ static void StopSound( PlayingSound * ps, u8 i ) {
 	ps->stopped[ i ] = true;
 }
 
+static void UpdateSound( PlayingSound * ps, float volume, float pitch ) {
+	ps->volume = volume;
+	ps->pitch = pitch;
+
+	for( size_t i = 0; i < ps->sfx->num_sounds; i++ ) {
+		if( ps->started[ i ] ) {
+			const SoundEffect::PlaybackConfig * config = &ps->sfx->sounds[ i ];
+			CheckedALSource( ps->sources[ i ], AL_GAIN, ps->volume * config->volume * s_volume->number );
+			CheckedALSource( ps->sources[ i ], AL_PITCH, ps->pitch * config->pitch + ( RandomFloat11( &cls.rng ) * config->pitch_random * config->pitch * ps->pitch ) );
+		}
+	}
+}
+
 void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 	TracyZoneScoped;
 
@@ -897,7 +910,11 @@ static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, f
 	}
 
 	u64 idx;
-	if( handle.x != 0 && immediate_sounds_hashtable.get( handle.x, &idx ) ) {
+	bool found = immediate_sounds_hashtable.get( handle.x, &idx );
+	if( handle.x != 0 && found && playing_sound_effects[ idx ].sfx->sounds[ 0 ].sounds[ 0 ] == name ) {
+		if( playing_sound_effects[ idx ].volume != volume || playing_sound_effects[ idx ].pitch != pitch ) {
+			UpdateSound( &playing_sound_effects[ idx ], volume, pitch );
+		}
 		playing_sound_effects[ idx ].touched_since_last_update = true;
 	}
 	else {

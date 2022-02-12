@@ -476,12 +476,38 @@ static void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
 	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump );
 }
 
-static void CG_Event_Jetpack( const SyncEntityState * ent, u64 parm, Vec4 team_color ) {
-	Vec3 pos = ent->origin;
+static void CG_Event_Jetpack( const SyncEntityState * ent, u64 parm ) {
+	centity_t * cent = &cg_entities[ ent->number ];
+
+	cent->jetpack_boost = (parm == 1);
+	cent->localEffects[ LOCALEFFECT_JETPACK ] = cl.serverTime + 50;
+}
+
+void CG_JetpackEffect( centity_t * cent ) {
+	bool viewer = ISVIEWERENTITY( cent->current.number );
+	float volume = cent->jetpack_boost ? 4.0f : 1.0f;
+
+	if( cent->localEffects[ LOCALEFFECT_JETPACK ] <= cl.serverTime ) {
+		if( cent->localEffects[ LOCALEFFECT_JETPACK ] ) {
+			if( ISVIEWERENTITY( cent->current.number ) ) {
+				S_StartGlobalSound( "perks/jetpack/stop", CHAN_AUTO, volume, 1.0f );
+			}
+			else {
+				S_StartEntitySound( "perks/jetpack/stop", cent->current.number, CHAN_AUTO, volume, 1.0f );
+			}
+		}
+		cent->localEffects[ LOCALEFFECT_JETPACK ] = 0;
+		cent->jetpack_sound = S_ImmediateEntitySound( "perks/jetpack/idle", cent->current.number, 1.0f, 1.0f, true, cent->jetpack_sound );
+		return;
+	}
+
+	Vec4 team_color = CG_TeamColorVec4( cent->current.team );
+	Vec3 pos = cent->current.origin;
 	pos.z -= 10;
-	DoVisualEffect( "vfx/movement/jetpack", pos, ent->origin2, 1.0f, team_color );
-	if( parm == 1 ) {
-		DoVisualEffect( "vfx/movement/jetpack_boost", pos, ent->origin2, 1.0f, team_color );
+	DoVisualEffect( "vfx/movement/jetpack", pos, cent->current.origin2, 1.0f, team_color );
+	cent->jetpack_sound = S_ImmediateEntitySound( "perks/jetpack/hum", cent->current.number, volume, 1.0f, true, cent->jetpack_sound );
+	if( cent->jetpack_boost ) {
+		DoVisualEffect( "vfx/movement/jetpack_boost", pos, cent->current.origin2, 1.0f, team_color );
 	}
 }
 
@@ -537,6 +563,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 	}
 
 	Vec4 team_color = CG_TeamColorVec4( ent->team );
+
+
 
 	switch( ev ) {
 		default:
@@ -691,7 +719,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_JETPACK:
-			CG_Event_Jetpack( ent, parm, team_color );
+			CG_Event_Jetpack( ent, parm );
 			break;
 
 		case EV_JUMP:

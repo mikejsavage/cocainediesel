@@ -56,7 +56,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 	if( !pressed ) {
 		float factor = ( ps->pmove.stamina_stored - ps->pmove.stamina );
-		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
+		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility ) {
 			if( factor > stamina_jump_limit ) {
 				Jump( pm, pml, pmove_gs, ps, pm_chargedjumpspeed * factor, JumpType_MidgetCharge, false );
 			}

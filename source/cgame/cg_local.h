@@ -46,6 +46,7 @@ constexpr RGB8 TEAM_COLORS[] = {
 enum {
 	LOCALEFFECT_VSAY_TIMEOUT,
 	LOCALEFFECT_LASERBEAM,
+	LOCALEFFECT_JETPACK,
 
 	LOCALEFFECT_COUNT
 };
@@ -87,6 +88,9 @@ struct centity_t {
 	ImmediateSoundHandle lg_hum_sound;
 	ImmediateSoundHandle lg_beam_sound;
 	ImmediateSoundHandle lg_tip_sound;
+
+	bool jetpack_boost;
+	ImmediateSoundHandle jetpack_sound;
 
 	ImmediateSoundHandle vsay_sound;
 
@@ -441,6 +445,7 @@ void ResetAnnouncerSpeakers();
 void AddAnnouncerSpeaker( const centity_t * cent );
 
 // I don't know where to put these ones
+void CG_JetpackEffect( centity_t * cent );
 void CG_LaserBeamEffect( centity_t *cent );
 
 

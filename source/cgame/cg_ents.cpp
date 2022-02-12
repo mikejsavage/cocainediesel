@@ -725,6 +725,7 @@ void DrawEntities() {
 				CG_AddPlayerEnt( cent );
 				CG_EntityLoopSound( cent, state );
 				CG_LaserBeamEffect( cent );
+				CG_JetpackEffect( cent );
 				CG_PlayVsay( cent );
 				break;
 

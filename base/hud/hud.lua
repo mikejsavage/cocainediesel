@@ -257,14 +257,19 @@ local function DrawPlayerBar( state )
 	if state.perk == Perk_Hooligan then
 		cd.box( x, y, width, stamina_bar_height, bg_color )
 
-		stamina_color.a = math.min( 1, state.stamina * 2 )
-		cd.box( x, y, width/2, stamina_bar_height, stamina_color )
+		local steps = math.floor( state.stamina_stored )
+		local cell_width = width/steps
+		stamina_color.a = math.min( state.stamina * steps, 1 )
+		cd.box( x, y, cell_width, stamina_bar_height, stamina_color )
 
-		stamina_color.a = math.max( 0.0, (state.stamina - 0.5) * 2 )
-		cd.box( x + width/2, y, width/2, stamina_bar_height, stamina_color )
+		for i = 0, steps, 1 do
+			stamina_color.a = math.clamp( state.stamina * steps - i, 0, 1 )
+			cd.box( x + cell_width * i, y, cell_width, stamina_bar_height, stamina_color )
+		end
 
-
-		cd.box( x + width / 2 - padding/2, y, padding, stamina_bar_height, dark_grey )
+		for i = 1, steps - 1, 1 do
+			cd.box( x + cell_width * i - padding/2, y, padding, stamina_bar_height, dark_grey )
+		end
 	else
 		if state.perk == Perk_Midget and state.stamina <= 0 and state.stamina_state == Stamina_UsingAbility then
 			bg_color = cd.attentionGettingColor()

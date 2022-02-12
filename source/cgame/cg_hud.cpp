@@ -1219,6 +1219,9 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, cg.predictedPlayerState.pmove.stamina );
 	lua_setfield( hud_L, -2, "stamina" );
 
+	lua_pushnumber( hud_L, cg.predictedPlayerState.pmove.stamina_stored );
+	lua_setfield( hud_L, -2, "stamina_stored" );
+
 	lua_pushnumber( hud_L, cg.predictedPlayerState.pmove.stamina_state );
 	lua_setfield( hud_L, -2, "stamina_state" );
 

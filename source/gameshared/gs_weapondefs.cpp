@@ -377,7 +377,7 @@ const WeaponDef weapon_defs[] = {
 		/* wallbang damage      */ 1.0f, //not implemented
 		/* knockback            */ 30,
 		/* splash radius        */ 45,
-		/* splash min damage    */ 7,
+		/* splash min damage    */ 8,
 		/* splash min knockback */ 5,
 
 		// projectile def

@@ -1,4 +1,4 @@
-#include "qcommon/qcommon.h"
+#include "qcommon/base.h"
 #include "gameshared/gs_public.h"
 
 #include "physx/PxConfig.h"
@@ -12,6 +12,7 @@ static PxDefaultErrorCallback errorCallback;
 static PxPvd * physx_pvd;
 
 static PxFoundation * physx_foundation;
+PxCpuDispatcher * physx_dispatcher;
 PxPhysics * physx_physics;
 PxMaterial * physx_default_material;
 
@@ -39,6 +40,8 @@ void InitPhysX() {
 	physx_default_material = physx_physics->createMaterial( 0.5f, 0.5f, 0.1f );
 	if(!physx_default_material)
 		return; //fatalError("createMaterial failed!");
+
+	physx_dispatcher = PxDefaultCpuDispatcherCreate( 2 );
 }
 
 void ShutdownPhysX() {

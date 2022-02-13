@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "cgame/cg_physics.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/skybox.h"
 
@@ -618,6 +619,9 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawPersistentDynamicLights();
 	DrawSkybox();
 	DrawSprays();
+
+	PhysicsFrame( cls.frametime * 0.001f );
+	DrawTheBall();
 
 	DrawModelInstances();
 

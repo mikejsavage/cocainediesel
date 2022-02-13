@@ -623,10 +623,10 @@ bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< c
 	// physx
 	{
 		map->physx = physx_physics->createRigidStatic( PxTransform( PxIdentity ) );
+		physx::PxDefaultMemoryInputData input( const_cast< u8 * >( bsp.physx.ptr ), bsp.physx.num_bytes() );
 
 		while( true ) {
-			physx::PxDefaultMemoryInputData input( const_cast< u8 * >( bsp.physx.ptr ), bsp.physx.num_bytes() );
-			physx::PxConvexMesh * mesh = physx_physics->createConvexMesh(input);
+			physx::PxConvexMesh * mesh = physx_physics->createConvexMesh( input );
 
 			if( mesh == NULL )
 				break;
@@ -650,4 +650,6 @@ void DeleteBSPRenderData( Map * map ) {
 	DeleteGPUBuffer( map->leafBuffer );
 	DeleteGPUBuffer( map->brushBuffer );
 	DeleteGPUBuffer( map->planeBuffer );
+
+	map->physx->release();
 }

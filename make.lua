@@ -119,6 +119,7 @@ do
 
 	obj_cxxflags( "source/client/physx.cpp", "-I libs/physx -I libs/physx/physx" )
 	obj_cxxflags( "source/client/renderer/bsp.cpp", "-I libs/physx -I libs/physx/physx" )
+	obj_cxxflags( "source/cgame/cg_physics.cpp", "-I libs/physx -I libs/physx/physx" )
 end
 
 do

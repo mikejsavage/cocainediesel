@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "cgame/cg_physics.h"
 #include "client/renderer/renderer.h"
 
 cg_static_t cgs;
@@ -212,10 +213,13 @@ void CG_Init( unsigned int playerNum,
 
 	CG_DemocamInit();
 
+	InitPhysics();
+
 	AddCommand( "printmap", PrintMap );
 }
 
 void CG_Shutdown() {
+	ShutdownPhysics();
 	CG_DemocamShutdown();
 	CG_UnregisterCGameCommands();
 	CG_ShutdownChat();

@@ -1581,9 +1581,15 @@ static void CookPhysx( const BSP * bsp, PxOutputStream * buffer ) {
 		convexDesc.points.data = hull.ptr();
 		convexDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX | PxConvexFlag::eSHIFT_VERTICES | PxConvexFlag::eCHECK_ZERO_AREA_TRIANGLES;
 
+		// if( !physx_cooking->validateConvexMesh( convexDesc ) ) {
+		// 	ggprint( "shits fucked\n" );
+		// 	continue;
+		// }
+
 		PxConvexMeshCookingResult::Enum result;
 		if( !physx_cooking->cookConvexMesh( convexDesc, *buffer, &result ) ) {
 			// ggprint( "cook failed\n" );
+			continue;
 		}
 	}
 

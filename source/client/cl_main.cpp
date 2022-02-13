@@ -799,8 +799,9 @@ void CL_Precache_f() {
 
 	const char * mapname = Cmd_Argv( 2 );
 	u64 hash = Hash64( mapname, strlen( mapname ), Hash64( "maps/" ) );
+	cl.map = FindMap( StringHash( hash ) );
 
-	if( FindMap( StringHash( hash ) ) == NULL ) {
+	if( cl.map == NULL ) {
 		TempAllocator temp = cls.frame_arena.temp();
 		CL_DownloadFile( temp( "base/maps/{}.bsp.zst", Cmd_Argv( 2 ) ), []( const char * filename, Span< const u8 > data ) {
 			if( AddDownloadedMap( filename, data ) ) {

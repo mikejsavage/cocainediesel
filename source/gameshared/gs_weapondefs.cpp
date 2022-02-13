@@ -612,7 +612,7 @@ const WeaponDef weapon_defs[] = {
 		/* short name           */ "mb",
 		/* category             */ WeaponCategory_Backup,
 
-		/* projectile count     */ 10,
+		/* projectile count     */ 12,
 		/* clip size            */ 6,
 		/* reload time          */ 1500,
 		/* staged reload time   */ 0,
@@ -641,7 +641,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ 3000,
-		/* spread               */ 25,
+		/* spread               */ 30,
 	},
 
 	{

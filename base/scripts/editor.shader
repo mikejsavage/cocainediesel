@@ -1,3 +1,8 @@
+textures/editor/world
+{
+	qer_editorimage textures/editor/world
+}
+
 textures/editor/discard
 {
 	qer_editorimage textures/editor/discard
@@ -50,7 +55,7 @@ textures/editor/trigger
 
 textures/editor/wallbangable
 {
-	qer_editorimage textures/editor/trigger
+	qer_editorimage textures/editor/wallbangable
 	surfaceparm nonsolid
 	surfaceparm wallbangable
 }

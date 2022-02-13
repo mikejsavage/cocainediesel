@@ -133,7 +133,6 @@ struct score_stats_t {
 
 extern gs_state_t server_gs;
 extern level_locals_t level;
-extern spawn_temp_t st;
 
 extern Vec3 knockbackOfDeath;
 extern int damageFlagsOfDeath;
@@ -191,30 +190,36 @@ void G_EndMatch();
 // g_spawnpoints.c
 //
 void DropSpawnToFloor( edict_t * ent );
-void SelectSpawnPoint( edict_t *ent, edict_t **spawnpoint, Vec3 * origin, Vec3 * angles );
-void SP_post_match_camera( edict_t *ent );
+void SelectSpawnPoint( const edict_t * ent, const edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles );
+void SP_post_match_camera( edict_t * ent, const spawn_temp_t * st );
 
 //
 // g_func.c
 //
-void SP_func_rotating( edict_t *ent );
-void SP_func_door( edict_t *ent );
-void SP_func_door_rotating( edict_t *ent );
-void SP_func_train( edict_t *ent );
-void SP_func_wall( edict_t *self );
-void SP_func_static( edict_t *ent );
+void SP_func_rotating( edict_t * ent, const spawn_temp_t * st );
+void SP_func_door( edict_t * ent, const spawn_temp_t * st );
+void SP_func_door_rotating( edict_t * ent, const spawn_temp_t * st );
+void SP_func_train( edict_t * ent, const spawn_temp_t * st );
+void SP_func_wall( edict_t * ent, const spawn_temp_t * st );
+void SP_func_static( edict_t * ent, const spawn_temp_t * st );
 
 //
-// g_gladiator
+// g_spikes
 //
-void SP_spike( edict_t * ent );
-void SP_spikes( edict_t * ent );
+void SP_spike( edict_t * ent, const spawn_temp_t * st );
+void SP_spikes( edict_t * ent, const spawn_temp_t * st );
 
 //
 // g_speakers
 //
 
-void SP_speaker_wall( edict_t * ent );
+void SP_speaker_wall( edict_t * ent, const spawn_temp_t * st );
+
+//
+// g_jumppad
+//
+
+void SP_jumppad( edict_t * ent, const spawn_temp_t * st );
 
 // item spawnflags
 #define ITEM_TRIGGER_SPAWN  0x00000001
@@ -316,13 +321,16 @@ void G_OperatorVote_Cmd( edict_t *ent );
 //
 // g_trigger.c
 //
-void SP_trigger_teleport( edict_t *ent );
-void SP_trigger_always( edict_t *ent );
-void SP_trigger_once( edict_t *ent );
-void SP_trigger_multiple( edict_t *ent );
-void SP_trigger_push( edict_t *ent );
-void SP_trigger_hurt( edict_t *ent );
-void SP_trigger_key( edict_t *ent );
+void SP_trigger_teleport( edict_t * ent, const spawn_temp_t * st );
+void SP_trigger_always( edict_t * ent, const spawn_temp_t * st );
+void SP_trigger_once( edict_t * ent, const spawn_temp_t * st );
+void SP_trigger_multiple( edict_t * ent, const spawn_temp_t * st );
+void SP_trigger_push( edict_t * ent, const spawn_temp_t * st );
+void SP_trigger_hurt( edict_t * ent, const spawn_temp_t * st );
+void SP_trigger_key( edict_t * ent, const spawn_temp_t * st );
+
+void InitTrigger( edict_t * self );
+bool G_TriggerWait( edict_t * ent );
 
 //
 // g_clip.c
@@ -381,13 +389,11 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Plane *plane, edict_
 //
 // g_misc.c
 //
-void ThrowSmallPileOfGibs( edict_t *self, Vec3 knockback, int damage );
+void ThrowSmallPileOfGibs( edict_t * self, Vec3 knockback, int damage );
 
-void SP_path_corner( edict_t *self );
-
-void SP_model( edict_t *ent );
-
-void SP_decal( edict_t * ent );
+void SP_path_corner( edict_t * ent, const spawn_temp_t * st );
+void SP_model( edict_t * ent, const spawn_temp_t * st );
+void SP_decal( edict_t * ent, const spawn_temp_t * st );
 
 //
 // g_weapon.c
@@ -417,7 +423,7 @@ void G_GhostClient( edict_t *self );
 void ClientThink( edict_t *ent, UserCommand *cmd, int timeDelta );
 void G_ClientThink( edict_t *ent );
 void G_CheckClientRespawnClick( edict_t *ent );
-bool ClientConnect( edict_t *ent, char *userinfo, bool fakeClient );
+bool ClientConnect( edict_t *ent, char *userinfo, const netadr_t * address, bool fakeClient );
 void ClientDisconnect( edict_t *ent, const char *reason );
 void ClientBegin( edict_t *ent );
 void ClientCommand( edict_t *ent );
@@ -426,6 +432,7 @@ void G_PredictedFireWeapon( int entNum, u64 weapon_and_entropy );
 void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm );
 void G_SelectWeapon( edict_t * ent, int index );
 void G_GiveWeapon( edict_t * ent, WeaponType weapon );
+void G_GivePerk( edict_t * ent, PerkType perk );
 void G_TeleportPlayer( edict_t *player, edict_t *dest );
 bool G_PlayerCanTeleport( edict_t *player );
 
@@ -439,11 +446,9 @@ void player_think( edict_t *self );
 //
 // g_target.c
 //
-void target_laser_start( edict_t *self );
-
-void SP_target_laser( edict_t *self );
-void SP_target_position( edict_t *self );
-void SP_target_delay( edict_t *ent );
+void SP_target_laser( edict_t * ent, const spawn_temp_t * st );
+void SP_target_position( edict_t * ent, const spawn_temp_t * st );
+void SP_target_delay( edict_t * ent, const spawn_temp_t * st );
 
 //
 // g_svcmds.c
@@ -545,7 +550,7 @@ struct moveinfo_t {
 	float speed;
 	float distance;    // used by binary movers
 
-	float wait;
+	s64 wait;
 
 	// state data
 	int state;
@@ -633,8 +638,6 @@ struct gclient_t {
 
 	char userinfo[MAX_INFO_STRING];
 	char netname[MAX_NAME_CHARS + 1];
-	char ip[MAX_INFO_VALUE];
-	char socket[MAX_INFO_VALUE];
 
 	bool connecting;
 
@@ -699,6 +702,7 @@ struct edict_t {
 	StringHash target;
 	StringHash killtarget;
 	StringHash pathtarget;
+	StringHash deadcam;
 	edict_t *target_ent;
 
 	Vec3 velocity;
@@ -744,9 +748,9 @@ struct edict_t {
 	StringHash sound;
 
 	// timing variables
-	float wait;
-	float delay;                // before firing targets
-	float random;
+	s64 wait;
+	s64 delay;                // before firing targets
+	s64 wait_randomness;
 
 	int watertype;
 	int waterlevel;

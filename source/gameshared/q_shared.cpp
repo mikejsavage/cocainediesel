@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include <ctype.h>
 #include <limits.h>
+#include <type_traits>
 
 #include "qcommon/qcommon.h"
 #include "qcommon/strtonum.h"
@@ -78,31 +79,6 @@ bool COM_ValidateRelativeFilename( const char *filename ) {
 	}
 
 	return true;
-}
-
-//============================================================================
-//
-//					BYTE ORDER FUNCTIONS
-//
-//============================================================================
-
-/*
-* va
-*
-* does a varargs printf into a temp buffer, so I don't need to have
-* varargs versions of all text functions.
-*/
-char *va( const char *format, ... ) {
-	va_list argptr;
-	static int str_index;
-	static char string[8][2048];
-
-	str_index = ( str_index + 1 ) & 7;
-	va_start( argptr, format );
-	vsnprintf( string[str_index], sizeof( string[0] ), format, argptr );
-	va_end( argptr );
-
-	return string[str_index];
 }
 
 static bool IsWhitespace( char c ) {
@@ -442,18 +418,6 @@ void Q_strncatz( char *dest, const char *src, size_t size ) {
 		}
 		*dest = '\0';
 	}
-}
-
-char *Q_strupr( char *s ) {
-	char *p;
-
-	if( s ) {
-		for( p = s; *s; s++ )
-			*s = toupper( *s );
-		return p;
-	}
-
-	return NULL;
 }
 
 char *Q_strlwr( char *s ) {
@@ -824,4 +788,19 @@ Span< const char > ParseWorldspawnKey( Span< const char > entities, const char *
 	}
 
 	return Span< const char >();
+}
+
+void operator++( WeaponType & x, int ) {
+	using T = typename std::underlying_type< WeaponType >::type;
+	x = WeaponType( T( x ) + 1 );
+}
+
+void operator++( GadgetType & x, int ) {
+	using T = typename std::underlying_type< GadgetType >::type;
+	x = GadgetType( T( x ) + 1 );
+}
+
+void operator++( PerkType & x, int ) {
+	using T = typename std::underlying_type< PerkType >::type;
+	x = PerkType( T( x ) + 1 );
 }

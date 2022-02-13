@@ -424,18 +424,6 @@ static void LoadBuiltinTextures() {
 	}
 
 	{
-		u8 black = 0;
-
-		TextureConfig config;
-		config.width = 1;
-		config.height = 1;
-		config.data = &black;
-		config.format = TextureFormat_R_U8;
-
-		AddTexture( "$whiteimage", Hash64( "$blackimage" ), config );
-	}
-
-	{
 		constexpr RGB8 pixels[] = {
 			RGB8( 255, 0, 255 ),
 			RGB8( 0, 0, 0 ),
@@ -821,9 +809,9 @@ void InitMaterials() {
 	world_material.shininess = 8.0f;
 
 	wallbang_material = Material();
-	wallbang_material.rgbgen.args[ 0 ] = 0.17f * 2.0f;
-	wallbang_material.rgbgen.args[ 1 ] = 0.17f * 2.0f;
-	wallbang_material.rgbgen.args[ 2 ] = 0.17f * 2.0f;
+	wallbang_material.rgbgen.args[ 0 ] = 0.17f * 0.45f;
+	wallbang_material.rgbgen.args[ 1 ] = 0.17f * 0.45f;
+	wallbang_material.rgbgen.args[ 2 ] = 0.17f * 0.45f;
 	wallbang_material.rgbgen.args[ 3 ] = 1.0f;
 	wallbang_material.specular = 3.0f;
 	wallbang_material.shininess = 8.0f;
@@ -839,6 +827,10 @@ void InitMaterials() {
 
 			for( const char * path : AssetPaths() ) {
 				Span< const char > ext = FileExtension( path );
+
+				if( StartsWith( path, "textures/editor" ) ) {
+					continue;
+				}
 
 				if( ext == ".png" || ext == ".jpg" ) {
 					DecodeSTBTextureJob job;
@@ -990,7 +982,7 @@ static float EvaluateWaveFunc( Wave wave ) {
 			 break;
 
 		case WaveFunc_Triangle:
-			 v = t < 0.5 ? t * 4 - 1 : 1 - ( t - 0.5f ) * 4;
+			 v = t < 0.5f ? t * 4 - 1 : 1 - ( t - 0.5f ) * 4;
 			 break;
 
 		case WaveFunc_Sawtooth:

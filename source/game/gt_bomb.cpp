@@ -1,6 +1,5 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
-#include "qcommon/string.h"
 
 #include "game/g_local.h"
 
@@ -69,12 +68,6 @@ struct BombSite {
 	char letter;
 };
 
-struct Loadout {
-	WeaponType weapons[ WeaponCategory_Count ];
-	GadgetType gadget;
-	PerkType perk;
-};
-
 static struct {
 	bool round_check_end;
 	s64 round_start_time;
@@ -109,7 +102,7 @@ static struct {
 } bomb_state;
 
 static bool BombCanPlant();
-static void BombStartPlanting( u32 site );
+static void BombStartPlanting( edict_t * carrier_ent, u32 site );
 static void BombSetCarrier( s32 player_num, bool no_sound );
 static void RoundWonBy( int winner );
 static void RoundNewState( RoundState state );
@@ -178,18 +171,10 @@ static void GiveInventory( edict_t * ent ) {
 
 	G_SelectWeapon( ent, 1 );
 
-	float old_max_health = ent->max_health;
-	if( loadout.perk == Perk_Midget ) {
-		ent->s.scale = Vec3( 0.8f, 0.8f, 0.625f );
-		ent->max_health = 62.5f;
-	}
-	else {
-		ent->s.scale = Vec3( 1.0f );
-		ent->max_health = 100.0f;
-	}
+	ent->r.client->ps.gadget = loadout.gadget;
+	ent->r.client->ps.gadget_ammo = GetGadgetDef( loadout.gadget )->uses;
 
-	ent->health = ent->health * ent->max_health / old_max_health;
-	ent->mass = PLAYER_MASS * ent->s.scale.z;
+	G_GivePerk( ent, loadout.perk );
 }
 
 static void ShowShop( s32 player_num ) {
@@ -198,20 +183,8 @@ static void ShowShop( s32 player_num ) {
 	}
 
 	TempAllocator temp = svs.frame_arena.temp();
-	DynamicString command( &temp, "changeloadout" );
-
 	const Loadout & loadout = bomb_state.loadouts[ player_num ];
-
-	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		WeaponType weapon = loadout.weapons[ i ];
-		if( weapon != Weapon_None ) {
-			command.append( " {}", weapon );
-		}
-	}
-
-	command.append( " {}", loadout.perk );
-
-	PF_GameCmd( PLAYERENT( player_num ), command.c_str() );
+	PF_GameCmd( PLAYERENT( player_num ), temp( "changeloadout {}", loadout ) );
 }
 
 static Loadout DefaultLoadout() {
@@ -219,10 +192,13 @@ static Loadout DefaultLoadout() {
 	loadout.weapons[ WeaponCategory_Primary ] = Weapon_RocketLauncher;
 	loadout.weapons[ WeaponCategory_Secondary ] = Weapon_Shotgun;
 	loadout.weapons[ WeaponCategory_Backup ] = Weapon_StakeGun;
+	loadout.perk = Perk_Hooligan;
 
 	for( int i = 0; i < WeaponCategory_Count; i++ ) {
 		assert( loadout.weapons[ i ] != Weapon_None );
 	}
+
+	loadout.gadget = Gadget_ThrowingAxe;
 
 	return loadout;
 }
@@ -254,9 +230,17 @@ static bool ParseLoadout( Loadout * loadout, const char * loadout_string ) {
 	{
 		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
 		int perk;
-		if( !TrySpanToInt( token, &perk ) || perk < Perk_None || perk >= Perk_Count )
+		if( !TrySpanToInt( token, &perk ) || perk <= Perk_None || perk >= Perk_Count )
 			return false;
 		loadout->perk = PerkType( perk );
+	}
+
+	{
+		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
+		int gadget;
+		if( !TrySpanToInt( token, &gadget ) || gadget <= Gadget_None || gadget >= Gadget_Count )
+			return false;
+		loadout->gadget = GadgetType( gadget );
 	}
 
 	return cursor.ptr != NULL && cursor.n == 0;
@@ -271,17 +255,7 @@ static void SetLoadout( edict_t * ent, const char * loadout_string, bool fallbac
 	}
 
 	TempAllocator temp = svs.frame_arena.temp();
-	DynamicString command( &temp, "saveloadout" );
-
-	for( u32 i = 0; i < WeaponCategory_Count; i++ ) {
-		WeaponType weapon = loadout.weapons[ i ];
-		if( weapon != Weapon_None ) {
-			command.append( " {}", weapon );
-		}
-	}
-	command.append( " {}", loadout.perk );
-
-	PF_GameCmd( ent, command.c_str() );
+	PF_GameCmd( ent, temp( "saveloadout {}", loadout ) );
 
 	bomb_state.loadouts[ PLAYERNUM( ent ) ] = loadout;
 
@@ -309,11 +283,10 @@ static void ResetKillCounters() {
 static void BombSiteCarrierTouched( u32 site ) {
 	bomb_state.carrier_can_plant_time = level.time;
 	if( BombCanPlant() ) {
-		const edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
-		Vec3 velocity = carrier_ent->velocity;
+		edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
 
-		if( carrier_ent->r.client->ps.pmove.crouch_time > 0 && level.time - bomb_state.bomb.action_time >= 1000 && Length( velocity ) < bomb_max_plant_speed ) {
-			BombStartPlanting( site );
+		if( carrier_ent->r.client->ucmd.buttons & BUTTON_PLANT ) {
+			BombStartPlanting( carrier_ent, site );
 		}
 	}
 }
@@ -540,11 +513,12 @@ static void DropBomb( BombDropReason reason ) {
 	bomb_state.bomb.state = BombState_Dropped;
 }
 
-static void BombStartPlanting( u32 site ) {
+static void BombStartPlanting( edict_t * carrier_ent, u32 site ) {
 	// TODO
+	carrier_ent->r.client->ps.pmove.max_speed = 0;
+
 	bomb_state.site = site;
 
-	edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
 	Vec3 start = carrier_ent->s.origin + Vec3( 0.0f, 0.0f, carrier_ent->viewheight );
 
 	Vec3 end = start;
@@ -575,6 +549,9 @@ static void BombStartPlanting( u32 site ) {
 }
 
 static void BombPlanted() {
+	edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
+	carrier_ent->r.client->ps.pmove.max_speed = -1;
+
 	bomb_state.bomb.action_time = level.time + int( g_bomb_bombtimer->number * 1000.0f );
 	bomb_state.bomb.model->s.sound = "models/bomb/fuse";
 	bomb_state.bomb.model->s.effects &= ~EF_TEAM_SILHOUETTE;
@@ -611,7 +588,6 @@ static void BombDefused() {
 
 	G_Sound( bomb_state.bomb.model, CHAN_AUTO, "models/bomb/tss" );
 
-	G_DebugPrint( "defenders defused" );
 	RoundWonBy( DefendingTeam() );
 
 	bomb_state.defuser = -1;
@@ -619,7 +595,6 @@ static void BombDefused() {
 
 static void BombExplode() {
 	if( server_gs.gameState.round_state == RoundState_Round ) {
-		G_DebugPrint( "bomb exploded" );
 		RoundWonBy( AttackingTeam() );
 	}
 
@@ -653,7 +628,10 @@ static void BombThink() {
 
 		case BombState_Planting: {
 			edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
-			if( !EntCanSee( carrier_ent, bomb_state.bomb.model->s.origin ) || Length( carrier_ent->s.origin - bomb_state.bomb.model->s.origin ) > bomb_arm_defuse_radius ) {
+			if( !EntCanSee( carrier_ent, bomb_state.bomb.model->s.origin ) ||
+				Length( carrier_ent->s.origin - bomb_state.bomb.model->s.origin ) > bomb_arm_defuse_radius ||
+				!( carrier_ent->r.client->ucmd.buttons & BUTTON_PLANT ) ) {
+				carrier_ent->r.client->ps.pmove.max_speed = -1;
 				SetTeamProgress( AttackingTeam(), 0, BombProgress_Nothing );
 				BombPickup();
 				break;
@@ -807,7 +785,7 @@ static u32 PlayersAliveOnTeam( int team ) {
 static void EnableMovementFor( s32 playernum ) {
 	edict_t * ent = PLAYERENT( playernum );
 	ent->r.client->ps.pmove.max_speed = -1;
-	ent->r.client->ps.pmove.features = ent->r.client->ps.pmove.features | PMFEAT_JUMP | PMFEAT_SPECIAL;
+	ent->r.client->ps.pmove.features = ent->r.client->ps.pmove.features | PMFEAT_ABILITIES;
 }
 
 static void EnableMovement() {
@@ -822,7 +800,7 @@ static void EnableMovement() {
 static void DisableMovementFor( s32 playernum ) {
 	edict_t * ent = PLAYERENT( playernum );
 	ent->r.client->ps.pmove.max_speed = 100;
-	ent->r.client->ps.pmove.features &= ~( PMFEAT_JUMP | PMFEAT_SPECIAL );
+	ent->r.client->ps.pmove.features &= ~( PMFEAT_ABILITIES );
 	ent->r.client->ps.pmove.no_shooting_time = 5000;
 }
 
@@ -1020,7 +998,6 @@ static void RoundThink() {
 	if( bomb_state.round_check_end && level.time > bomb_state.round_state_end ) {
 		if( server_gs.gameState.round_state == RoundState_Round ) {
 			if( bomb_state.bomb.state != BombState_Planted ) {
-				G_DebugPrint( "ran out of time" );
 				RoundWonBy( DefendingTeam() );
 				bomb_state.last_time = 1; // kinda hacky, this shows at 0:00
 				G_CenterPrintMsg( NULL, S_COLOR_RED "Timelimit Hit!" );
@@ -1137,7 +1114,7 @@ static bool GT_Bomb_Command( gclient_t * client, const char * cmd_, const char *
 	return false;
 }
 
-static edict_t * GT_Bomb_SelectSpawnPoint( edict_t * ent ) {
+static const edict_t * GT_Bomb_SelectSpawnPoint( const edict_t * ent ) {
 	if( ent->s.team == AttackingTeam() ) {
 		edict_t * spawn = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" );
 		if( spawn != NULL ) {
@@ -1151,6 +1128,12 @@ static edict_t * GT_Bomb_SelectSpawnPoint( edict_t * ent ) {
 		return spawn;
 	}
 	return G_PickRandomEnt( &edict_t::classname, "team_CTF_alphaspawn" );
+}
+
+static const edict_t * GT_Bomb_SelectDeadcam() {
+	if( bomb_state.bomb.state < BombState_Planted )
+		return NULL;
+	return G_PickTarget( bomb_state.sites[ bomb_state.site ].indicator->deadcam );
 }
 
 static void GT_Bomb_PlayerConnected( edict_t * ent ) {
@@ -1348,6 +1331,7 @@ Gametype GetBombGametype() {
 	gt.PlayerRespawned = GT_Bomb_PlayerRespawned;
 	gt.PlayerKilled = GT_Bomb_PlayerKilled;
 	gt.SelectSpawnPoint = GT_Bomb_SelectSpawnPoint;
+	gt.SelectDeadcam = GT_Bomb_SelectDeadcam;
 	gt.Command = GT_Bomb_Command;
 	gt.Shutdown = GT_Bomb_Shutdown;
 	gt.MapHotloaded = ResetBombSites;

@@ -2,98 +2,93 @@
 #include "gameshared/gs_weapons.h"
 
 
-static constexpr float pm_defaultspeed = 320.0f;
-static constexpr float pm_sidewalkspeed = 320.0f;
-static constexpr float pm_crouchedspeed = 160.0f;
+static constexpr float pm_jetpackspeed = 25.0f * 62.0f;
+static constexpr float pm_jumpspeed = 220.0f;
+static constexpr float pm_maxjetpackupspeed = 150.0f;
 
-static constexpr float pm_jetpackspeed = 25.0f;
-static constexpr float pm_maxjetpackupspeed = 600.0f;
+static constexpr float pm_boostspeed = 5.0f * 62.0f;
+static constexpr float pm_boostupspeed = 18.0f * 62.0f;
 
-static constexpr float pm_boostspeed = 15.0f;
-static constexpr float pm_boostupspeed = 18.0f;
+static constexpr float fuel_use_jetpack = 0.125f;
+static constexpr float fuel_use_boost = 0.5f;
+static constexpr float fuel_min = 0.01f;
 
-
-static constexpr s16 ground_refuel = 8;
-static constexpr s16 air_refuel = 1;
-
-static constexpr s16 jetpack_fuel_usage = 4;
-static constexpr s16 boost_fuel_usage = 8;
-
-static constexpr s16 maxfuel = 200;
-static constexpr s16 jetpackmax = maxfuel - ground_refuel;
+static constexpr float refuel_min = 0.5f; //50%
+static constexpr float refuel_ground = 0.5f;
+static constexpr float refuel_air = 0.0f;
 
 
+static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	if( pressed ) {
+		if( pm->groundentity != -1 && !( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) ) {
+			Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, JumpType_Normal, true );
+		}
 
+		ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
 
-static void PM_JetpackRefuel( pmove_t * pm, SyncPlayerState * ps ) {
-	if( ps->pmove.special_count > 0 ) {
-		if( pm->groundentity != -1 || pm->waterlevel >= 2 ) {
-			ps->pmove.special_count -= ground_refuel;
-		} else {
-			ps->pmove.special_count -= air_refuel;
+		if( StaminaAvailable( ps, pml, fuel_use_jetpack ) && !pml->ladder && ps->pmove.stamina_state != Stamina_Reloading && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
+			ps->pmove.stamina_state = Stamina_UsingAbility;
+			StaminaUse( ps, pml, fuel_use_jetpack );
+			pml->velocity.z = Min2( pml->velocity.z + pm_jetpackspeed * pml->frametime, pm_maxjetpackupspeed );
+
+			pmove_gs->api.PredictedEvent( ps->POVnum, EV_JETPACK, 0 );
+		}
+	} else {
+		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
+	}
+
+	if( ps->pmove.stamina < fuel_min ) {
+		ps->pmove.stamina_state = Stamina_UsedAbility;
+	}
+
+	if( ( pm->groundentity != -1 || pm->waterlevel >= 2 ) ) {
+		if( ps->pmove.stamina_state == Stamina_UsedAbility ) {
+			ps->pmove.stamina_state = Stamina_Reloading;
+		} else if( ps->pmove.stamina_state == Stamina_UsingAbility ) {
+			ps->pmove.stamina_state = Stamina_Normal;
 		}
 	}
 }
 
 
 
-static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( pm->playerState->pmove.pm_type == PM_NORMAL &&
-		pm->playerState->pmove.features & PMFEAT_JUMP &&
-		pml->upPush > 10 &&
-		ps->pmove.special_count < jetpackmax )
-	{
-		pm->groundentity = -1;
-		ps->pmove.special_count += jetpack_fuel_usage;
-		pml->velocity.z = Min2( pml->velocity.z + pm_jetpackspeed, pm_maxjetpackupspeed );
+static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+	if( ps->pmove.stamina_state == Stamina_Normal || ps->pmove.stamina_state == Stamina_Reloading ) {
+		StaminaRecover( ps, pml, refuel_ground );
+		if( ps->pmove.stamina >= refuel_min ) {
+			ps->pmove.stamina_state = Stamina_Normal;
+		}
+	} else if( ps->pmove.stamina_state != Stamina_Reloading && ps->pmove.stamina_state != Stamina_UsedAbility ) {
+		StaminaRecover( ps, pml, refuel_air );
 	}
-}
-
-
-
-static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	bool pressed = pm->cmd.buttons & BUTTON_SPECIAL;
-
-	if( !pressed ) {
-		pm->playerState->pmove.pm_flags &= ~PMF_SPECIAL_HELD;
-	}
-
-	if( ( GS_GetWeaponDef( ps->weapon )->zoom_fov == 0 || ( ps->pmove.features & PMFEAT_SCOPE ) == 0 ) &&
-		pm->playerState->pmove.pm_type == PM_NORMAL &&
-		ps->pmove.special_count < jetpackmax &&
-		pressed && ( pm->playerState->pmove.features & PMFEAT_SPECIAL ) )
-	{
-		Vec3 dashdir = pml->flatforward;
-		pml->forwardPush = pm_boostspeed;
+	
+	if( pressed && StaminaAvailable( ps, pml, fuel_use_boost ) && ps->pmove.stamina_state != Stamina_Reloading ) {
+		Vec3 fwd, right;
+		AngleVectors( pm->playerState->viewangles, &fwd, &right, NULL );
+		Vec3 dashdir = fwd * pml->forwardPush + right * pml->sidePush;
+		if( Length( dashdir ) < 0.01f ) { // no direction keys pressed
+			dashdir = fwd;
+			pml->forwardPush = pm_boostspeed;
+		}
 
 		dashdir = Normalize( dashdir );
-		dashdir *= pm_boostspeed;
+		dashdir *= pm_boostspeed * pml->frametime;
 
-		pml->velocity.x += dashdir.x;
-		pml->velocity.y += dashdir.y;
-		pml->velocity.z += pm_boostupspeed;
+		pml->velocity += dashdir;
+		pml->velocity.z += pm_boostupspeed * pml->frametime;
 		pm->groundentity = -1;
 
-		ps->pmove.special_count += boost_fuel_usage;
+		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
+		ps->pmove.stamina_state = Stamina_UsingAbility;
+		StaminaUse( ps, pml, fuel_use_boost );
+
+		pmove_gs->api.PredictedEvent( ps->POVnum, EV_JETPACK, 1 );
+	} else {
+		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
-
-
-	PM_JetpackRefuel( pm, ps );
 }
 
 
-void PM_JetpackInit( pmove_t * pm, pml_t * pml, SyncPlayerState * ps ) {
-	pml->maxPlayerSpeed = ps->pmove.max_speed;
-	if( pml->maxPlayerSpeed < 0 ) {
-		pml->maxPlayerSpeed = pm_defaultspeed;
-	}
-
-	pml->maxCrouchedSpeed = pm_crouchedspeed;
-
-	pml->forwardPush = pm->cmd.forwardmove * pm_defaultspeed / 127.0f;
-	pml->sidePush = pm->cmd.sidemove * pm_sidewalkspeed / 127.0f;
-	pml->upPush = pm->cmd.upmove * pm_defaultspeed / 127.0f;
-
-	pml->jumpCallback = PM_JetpackJump;
-	pml->specialCallback = PM_JetpackSpecial;
+void PM_JetpackInit( pmove_t * pm, pml_t * pml ) {
+	PM_InitPerk( pm, pml, Perk_Jetpack, PM_JetpackJump, PM_JetpackSpecial );
 }

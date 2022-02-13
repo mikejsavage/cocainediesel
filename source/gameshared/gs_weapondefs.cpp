@@ -355,7 +355,7 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 1,
 		/* clip size            */ 30,
-		/* reload time          */ 2000,
+		/* reload time          */ 2500,
 		/* staged reload time   */ 0,
 
 		// timings (in msecs)
@@ -373,11 +373,11 @@ const WeaponDef weapon_defs[] = {
 
 		// damages
 		/* damage               */ 8,
-		/* self damage          */ 0,
+		/* self damage          */ 1,
 		/* wallbang damage      */ 1.0f, //not implemented
 		/* knockback            */ 30,
 		/* splash radius        */ 45,
-		/* splash min damage    */ 7,
+		/* splash min damage    */ 8,
 		/* splash min knockback */ 5,
 
 		// projectile def
@@ -557,7 +557,7 @@ const WeaponDef weapon_defs[] = {
 		/* zoom inaccuracy      */ 5.0f,
 
 		// damages
-		/* damage               */ 20,
+		/* damage               */ 24,
 		/* self damage          */ 0,
 		/* wallbang damage      */ 1.0f,
 		/* knockback            */ 30,
@@ -612,7 +612,7 @@ const WeaponDef weapon_defs[] = {
 		/* short name           */ "mb",
 		/* category             */ WeaponCategory_Backup,
 
-		/* projectile count     */ 10,
+		/* projectile count     */ 12,
 		/* clip size            */ 6,
 		/* reload time          */ 1500,
 		/* staged reload time   */ 0,
@@ -641,7 +641,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ 3000,
-		/* spread               */ 25,
+		/* spread               */ 30,
 	},
 
 	{
@@ -769,41 +769,44 @@ const GadgetDef gadget_defs[] = {
 
 	{
 		/* name             */ "AXE",
-		/* short name       */ "axe",
-		/* switch_in_time   */ WEAPONUP_TIME_NORMAL,
-		/* using_time       */ 500,
-		/* cook_time        */ 1000,
-		/* switch_out_time  */ WEAPONDOWN_TIME,
+		/* short name       */ "hatchet",
+		/* uses             */ 1,
+		/* switch in time   */ WEAPONUP_TIME_FAST,
+		/* using time       */ 500,
+		/* cook time        */ 1200,
+		/* switch out time  */ WEAPONDOWN_TIME,
 		/* damage           */ 50,
 		/* knockback        */ 100,
-		/* mindamage        */ 25,
-		/* minknockback     */ 0,
-		/* splash_radius    */ 0,
+		/* min damage       */ 25,
+		/* min knockback    */ 0,
+		/* splash radius    */ 0,
 		/* timeout          */ 5000,
-		/* speed            */ 1500,
-		/* uses             */ 1,
+		/* speed            */ 2000,
+		/* min speed        */ 750,
 	},
 
 	{
-		"Suicide vest",
-		"suicidevest",
+		/* name             */ "AMERICA",
+		/* short name       */ "suicidevest",
+		/* uses             */ 1,
 	},
 
 	{
 		/* name             */ "FLASH",
-		/* short name       */ "flashbang",
-		/* switch_in_time   */ WEAPONUP_TIME_NORMAL,
-		/* using_time       */ 500,
-		/* cook_time        */ 0,
-		/* switch_out_time  */ WEAPONDOWN_TIME,
+		/* short name       */ "flash",
+		/* uses             */ 2,
+		/* switch in time   */ WEAPONUP_TIME_FAST,
+		/* using time       */ 500,
+		/* cook time        */ 1200,
+		/* switch out time  */ WEAPONDOWN_TIME,
 		/* damage           */ 5,
 		/* knockback        */ 0,
-		/* mindamage        */ 120,
-		/* minknockback     */ 0,
-		/* splash_radius    */ 300,
+		/* min damage       */ 120,
+		/* min knockback    */ 0,
+		/* splash_radius    */ 2000,
 		/* timeout          */ 2500,
-		/* speed            */ 750,
-		/* uses             */ 1,
+		/* speed            */ 1500,
+		/* min speed        */ 150,
 	},
 };
 
@@ -812,4 +815,70 @@ STATIC_ASSERT( ARRAY_COUNT( gadget_defs ) == Gadget_Count );
 const GadgetDef * GetGadgetDef( GadgetType gadget ) {
 	assert( gadget < Gadget_Count );
 	return &gadget_defs[ gadget ];
+}
+
+
+const PerkDef perk_defs[] = {
+	{ },
+
+	{
+		/* name             */ "NINJA",
+		/* short name       */ "ninja",
+		/* health           */ 100,
+		/* scale            */ Vec3( 1 ),
+		/* weight           */ 1.0f,
+		/* max speed        */ 400.0f,
+		/* side speed       */ 320.0f,
+		/* max air speed    */ 600.0f,
+	},
+
+	{
+		/* name             */ "HOOLIGAN",
+		/* short name       */ "hooligan",
+		/* health           */ 100,
+		/* scale            */ Vec3( 1 ),
+		/* weight           */ 1.0f,
+		/* max speed        */ 320.0f,
+		/* side speed       */ 320.0f,
+		/* max air speed    */ 800.0f,
+	},
+
+	{
+		/* name             */ "MIDGET",
+		/* short name       */ "midget",
+		/* health           */ 65,
+		/* scale            */ Vec3( 0.8f, 0.8f, 0.625f ),
+		/* weight           */ 0.8f,
+		/* max speed        */ 500.0f,
+		/* side speed       */ 500.0f,
+		/* max air speed    */ 600.0f,
+	},
+
+	{
+		/* name             */ "JETPACK",
+		/* short name       */ "jetpack",
+		/* health           */ 80,
+		/* scale            */ Vec3( 1 ),
+		/* weight           */ 1.0f,
+		/* max speed        */ 320.0f,
+		/* side speed       */ 320.0f,
+		/* max air speed    */ 600.0f,
+	},
+
+	{
+		/* name             */ "BOOMER",
+		/* short name       */ "boomer",
+		/* health           */ 150,
+		/* scale            */ Vec3( 1.5f, 1.5f, 1.0f ),
+		/* weight           */ 1.5f,
+		/* max speed        */ 300.0f,
+		/* side speed       */ 300.0f,
+		/* max air speed    */ 600.0f,
+	}
+};
+
+
+const PerkDef * GetPerkDef( PerkType perk ) {
+	assert( perk < Perk_Count );
+	return &perk_defs[ perk ];
 }

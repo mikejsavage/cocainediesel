@@ -124,22 +124,15 @@ static void G_ProjectileDistancePrestep( edict_t * projectile, float distance ) 
 		return;
 	}
 
-	float speed = Length( projectile->velocity );
-	Vec3 dir = Normalize( projectile->velocity );
-	if( speed == 0.0f ) {
-		return;
-	}
-
-	int mask = projectile->r.clipmask;
-
 #ifdef ARBULLETHACK
 	Vec3 arbullet_hack_start = projectile->s.origin;
 #endif
 
+	Vec3 dir = Normalize( projectile->velocity );
 	Vec3 dest = projectile->s.origin + dir * distance;
 
 	trace_t trace;
-	G_Trace4D( &trace, projectile->s.origin, projectile->r.mins, projectile->r.maxs, dest, projectile->r.owner, mask, projectile->timeDelta );
+	G_Trace4D( &trace, projectile->s.origin, projectile->r.mins, projectile->r.maxs, dest, projectile->r.owner, projectile->r.clipmask, projectile->timeDelta );
 
 	projectile->s.origin = trace.endpos;
 	projectile->olds.origin = trace.endpos;
@@ -937,10 +930,7 @@ static void TouchThrowingAxe( edict_t * ent, edict_t * other, Plane * plane, int
 	// edict_t * event = G_SpawnEvent( EV_AXE_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
 	// event->s.team = ent->s.team;
 
-	if( other->takedamage ) {
-		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_None );
-	}
-
+	G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_None );
 	G_FreeEdict( ent );
 }
 
@@ -948,13 +938,15 @@ static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	const GadgetDef * def = GetGadgetDef( Gadget_ThrowingAxe );
 
 	ProjectileStats stats = GadgetProjectileStats( Gadget_ThrowingAxe );
-	stats.max_damage = Lerp( def->min_damage, Unlerp01( u64( 0 ), charge_time, u64( def->cook_time ) ), def->damage );
+	float unlerped_cook = Unlerp01( u64( 0 ), charge_time, u64( def->cook_time ) );
+	stats.max_damage = Lerp( def->min_damage, unlerped_cook, def->damage );
+	stats.speed = Lerp( def->min_speed, unlerped_cook, def->speed );
 
 	edict_t * axe = FireProjectile( self, start, angles, timeDelta, stats, TouchThrowingAxe, ET_THROWING_AXE, MASK_SHOT );
 	axe->classname = "throwing axe";
 	axe->movetype = MOVETYPE_BOUNCE;
-	axe->s.model = "weapons/axe/model";
-	axe->s.sound = "weapons/axe/trail";
+	axe->s.model = "gadgets/hatchet/model";
+	axe->s.sound = "gadgets/hatchet/trail";
 	axe->avelocity = Vec3( 360.0f * 4, 0.0f, 0.0f );
 }
 
@@ -963,9 +955,7 @@ static void TouchStunGrenade( edict_t * ent, edict_t * other, Plane * plane, int
 		return;
 	}
 
-	if( other->takedamage ) {
-		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_None );
-	}
+	G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_None );
 }
 
 static void ExplodeStunGrenade( edict_t * grenade ) {
@@ -1003,13 +993,16 @@ static void ExplodeStunGrenade( edict_t * grenade ) {
 	G_FreeEdict( grenade );
 }
 
-static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, u64 charge_time ) {
+	const GadgetDef * def = GetGadgetDef( Gadget_StunGrenade );
+
 	ProjectileStats stats = GadgetProjectileStats( Gadget_StunGrenade );
+	stats.speed = Lerp( def->min_speed, Unlerp01( u64( 0 ), charge_time, u64( def->cook_time ) ), def->speed );
 
 	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, stats, TouchStunGrenade, ET_GENERIC, MASK_SHOT );
 	grenade->classname = "stun grenade";
 	grenade->movetype = MOVETYPE_BOUNCE;
-	grenade->s.model = "weapons/stungrenade/model";
+	grenade->s.model = "gadgets/flash/model";
 	grenade->avelocity = Vec3( 360.0f, 0.0f, 0.0f );
 	grenade->think = ExplodeStunGrenade;
 }
@@ -1028,7 +1021,7 @@ void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm ) {
 			break;
 
 		case Gadget_StunGrenade:
-			UseStunGrenade( ent, origin, angles, timeDelta );
+			UseStunGrenade( ent, origin, angles, timeDelta, parm );
 			break;
 	}
 }

@@ -39,13 +39,20 @@ void CG_RegisterMedia() {
 	cgs.media.sfxVSaySounds[ Vsay_User ] = "sounds/vsay/user";
 	cgs.media.sfxVSaySounds[ Vsay_Guyman ] = "sounds/vsay/guyman";
 	cgs.media.sfxVSaySounds[ Vsay_Helena ] = "sounds/vsay/helena";
+	cgs.media.sfxVSaySounds[ Vsay_Fart ] = "sounds/vsay/fart";
+	cgs.media.sfxVSaySounds[ Vsay_Zombie ] = "sounds/vsay/zombie";
+	cgs.media.sfxVSaySounds[ Vsay_Larp ] = "sounds/vsay/larp";
 
-	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
-		cgs.media.shaderWeaponIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GS_GetWeaponDef( i )->short_name ) );
+	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
+		cgs.media.shaderWeaponIcon[ i ] = StringHash( temp( "weapons/{}/icon", GS_GetWeaponDef( i )->short_name ) );
 	}
 
-	for( u8 i = 0; i < Gadget_Count; i++ ) {
-		cgs.media.shaderGadgetIcon[ i ] = FindMaterial( temp( "weapons/{}/icon", GetGadgetDef( GadgetType( i ) )->short_name ) );
+	for( GadgetType i = Gadget_None; i < Gadget_Count; i++ ) {
+		cgs.media.shaderGadgetIcon[ i ] = StringHash( temp( "gadgets/{}/icon", GetGadgetDef( i )->short_name ) );
+	}
+
+	for( PerkType i = Perk_None; i < Perk_Count; i++ ) {
+		cgs.media.shaderPerkIcon[ i ] = StringHash( temp( "perks/{}/icon", GetPerkDef( i )->short_name ) );
 	}
 
 	cgs.fontNormal = RegisterFont( "fonts/Decalotype-Bold" );

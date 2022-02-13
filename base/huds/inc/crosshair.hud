@@ -1,3 +1,0 @@
-if %SCOREBOARD == 0
-	drawCrosshair
-endif

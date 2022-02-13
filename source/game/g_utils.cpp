@@ -64,6 +64,10 @@ edict_t * G_PickRandomEnt( StringHash edict_t::* field, StringHash value ) {
 }
 
 edict_t * G_PickTarget( StringHash name ) {
+	if( name == EMPTY_HASH ) {
+		return NULL;
+	}
+
 	edict_t * cursor = NULL;
 
 	edict_t * candidates[ MAX_EDICTS ];
@@ -111,7 +115,7 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 		// create a temp object to fire at a later time
 		t = G_Spawn();
 		t->classname = "delayed_use";
-		t->nextThink = level.time + 1000 * ent->delay;
+		t->nextThink = level.time + ent->delay;
 		t->think = Think_Delay;
 		t->activator = activator;
 		if( !activator ) {

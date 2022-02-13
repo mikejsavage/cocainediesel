@@ -167,7 +167,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 		S_StartEntitySound( sfx, entNum, CHAN_AUTO, 1.0f, 1.0f );
 	}
 
-	if( weapon != Weapon_Laser ) {
+	if( weapon != Weapon_Laser && ISVIEWERENTITY( entNum ) ) {
 		CG_ScreenCrosshairShootUpdate( GS_GetWeaponDef( weapon )->refire_time );
 	}
 
@@ -205,11 +205,6 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 		case Weapon_Rifle:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_AIMWEAPON, 0, EVENT_CHANNEL );
 			break;
-	}
-
-	// add animation to the view weapon model
-	if( ISVIEWERENTITY( entNum ) && !cg.view.thirdperson ) {
-		CG_ViewWeapon_StartAnimationEvent( WEAPANIM_ATTACK );
 	}
 
 	// recoil
@@ -393,15 +388,14 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 		S_StartGlobalSound( sound, CHAN_AUTO, 1.0f, 1.0f, entropy );
 	}
 	else {
-		float pitch = 1.0f / cent->current.scale.z;
-		cent->vsay_sound = S_ImmediateEntitySound( sound, entNum, 1.0f, pitch, false, entropy, cent->vsay_sound );
+		cent->vsay_sound = S_ImmediateEntitySound( sound, entNum, 1.0f, CG_PlayerPitch( entNum ), false, entropy, cent->vsay_sound );
 	}
 }
 
 //==================================================================
 
-void CG_Event_Fall( const SyncEntityState * state, u64 parm ) {
-	if( ISVIEWERENTITY( state->number ) ) {
+static void CG_Event_Fall( const SyncEntityState * state, u64 parm, bool viewer ) {
+	if( viewer ) {
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
 	}
 
@@ -413,7 +407,7 @@ void CG_Event_Fall( const SyncEntityState * state, u64 parm ) {
 
 	float volume = ( parm - 40 ) / 300.0f;
 	float pitch = 1.0f - volume * 0.125f;
-	if( ISVIEWERENTITY( state->number ) ) {
+	if( viewer ) {
 		S_StartLocalSound( "players/fall", CHAN_AUTO, volume, pitch );
 	}
 	else {
@@ -448,7 +442,7 @@ static void CG_Event_Die( int entNum, u64 parm ) {
 	CG_PModel_AddAnimation( entNum, animations[ animation ].dying, animations[ animation ].dying, ANIM_NONE, EVENT_CHANNEL );
 }
 
-void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
+static void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
 	constexpr int animations[] = { LEGS_DASH, LEGS_DASH_LEFT, LEGS_DASH_RIGHT, LEGS_DASH_BACK };
 	if( parm >= ARRAY_COUNT( animations ) )
 		return;
@@ -460,7 +454,7 @@ void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
 	cg_entities[ state->number ].jumpedLeft = true;
 }
 
-void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
+static void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
 	Vec3 normal = U64ToDir( parm );
 
 	Vec3 forward, right;
@@ -482,12 +476,56 @@ void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
 	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump );
 }
 
-static void CG_PlayJumpSound( const SyncEntityState * state ) {
-	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Jump );
+static void CG_Event_Jetpack( const SyncEntityState * ent, u64 parm ) {
+	centity_t * cent = &cg_entities[ ent->number ];
+
+	cent->jetpack_boost = (parm == 1);
+	cent->localEffects[ LOCALEFFECT_JETPACK ] = cl.serverTime + 50;
 }
 
-static void CG_Event_Jump( SyncEntityState * state ) {
-	CG_PlayJumpSound( state );
+void CG_JetpackEffect( centity_t * cent ) {
+	if( cg.frame.playerStates[ cent->current.number - 1 ].perk != Perk_Jetpack ) {
+		return;
+	}
+
+	bool viewer = ISVIEWERENTITY( cent->current.number );
+	float volume = cent->jetpack_boost ? 4.0f : 1.0f;
+
+	if( cent->localEffects[ LOCALEFFECT_JETPACK ] <= cl.serverTime ) {
+		if( cent->localEffects[ LOCALEFFECT_JETPACK ] ) {
+			if( ISVIEWERENTITY( cent->current.number ) ) {
+				S_StartGlobalSound( "perks/jetpack/stop", CHAN_AUTO, volume, 1.0f );
+			}
+			else {
+				S_StartEntitySound( "perks/jetpack/stop", cent->current.number, CHAN_AUTO, volume, 1.0f );
+			}
+		}
+		cent->localEffects[ LOCALEFFECT_JETPACK ] = 0;
+		cent->jetpack_sound = S_ImmediateEntitySound( "perks/jetpack/idle", cent->current.number, 1.0f, 1.0f, true, cent->jetpack_sound );
+		return;
+	}
+
+	Vec4 team_color = CG_TeamColorVec4( cent->current.team );
+	Vec3 pos = cent->current.origin;
+	pos.z -= 10;
+	DoVisualEffect( "vfx/movement/jetpack", pos, cent->current.origin2, 1.0f, team_color );
+	cent->jetpack_sound = S_ImmediateEntitySound( "perks/jetpack/hum", cent->current.number, volume, 1.0f, true, cent->jetpack_sound );
+	if( cent->jetpack_boost ) {
+		DoVisualEffect( "vfx/movement/jetpack_boost", pos, cent->current.origin2, 1.0f, team_color );
+	}
+}
+
+static void CG_PlayJumpSound( const SyncEntityState * state, JumpType j ) {
+	switch( j ) {
+	case JumpType_Normal:
+		return CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Jump );
+	case JumpType_MidgetCharge:
+		return CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump );
+	}
+}
+
+static void CG_Event_Jump( SyncEntityState * state, u64 parm ) {
+	CG_PlayJumpSound( state, JumpType( parm ) );
 
 	centity_t * cent = &cg_entities[ state->number ];
 	float xyspeedcheck = Length( Vec3( cent->animVelocity.x, cent->animVelocity.y, 0 ) );
@@ -530,6 +568,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 	Vec4 team_color = CG_TeamColorVec4( ent->team );
 
+
+
 	switch( ev ) {
 		default:
 			break;
@@ -537,22 +577,23 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			//  PREDICTABLE EVENTS
 
 		case EV_WEAPONACTIVATE: {
-			WeaponType weapon = parm >> 1;
-			bool silent = ( parm & 1 ) != 0;
-			if( predicted ) {
-				cg_entities[ ent->number ].current.weapon = weapon;
+			CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
+			CG_ViewWeapon_AddAnimation( ent->number, "activate" );
+
+			StringHash sfx = EMPTY_HASH;
+			bool is_gadget = ( parm & 1 ) != 0;
+			if( !is_gadget ) {
+				sfx = GetWeaponModelMetadata( WeaponType( parm >> 1 ) )->switch_in_sound;
+			}
+			else {
+				sfx = GetGadgetModelMetadata( GadgetType( parm >> 1 ) )->switch_in_sound;
 			}
 
-			if( !silent ) {
-				CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
-
-				StringHash sfx = GetWeaponModelMetadata( weapon )->up_sound;
-				if( viewer ) {
-					S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
-				}
-				else {
-					S_StartFixedSound( sfx, ent->origin, CHAN_AUTO, 1.0f, 1.0f );
-				}
+			if( viewer ) {
+				S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
+			}
+			else {
+				S_StartFixedSound( sfx, ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 			}
 		} break;
 
@@ -595,6 +636,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 
 			CG_FireWeaponEvent( owner, weapon );
+			CG_ViewWeapon_AddAnimation( owner, "fire" );
 
 			Vec3 dir;
 			AngleVectors( angles, &dir, NULL, NULL );
@@ -619,6 +661,19 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			// }
 		} break;
 
+		case EV_USEGADGET: {
+			GadgetType gadget = GadgetType( parm & 0xFF );
+			StringHash sfx = GetGadgetModelMetadata( gadget )->use_sound;
+
+			int owner = predicted ? ent->number : ent->ownerNum;
+			if( viewer ) {
+				S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
+			}
+			else {
+				S_StartEntitySound( sfx, owner, CHAN_AUTO, 1.0f, 1.0f );
+			}
+		} break;
+
 		case EV_NOAMMOCLICK:
 			if( viewer ) {
 				S_StartGlobalSound( "weapons/noammo", CHAN_AUTO, 1.0f, 1.0f );
@@ -628,12 +683,27 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 			break;
 
+		case EV_RELOAD: {
+			if( parm <= Weapon_None || parm >= Weapon_Count )
+				return;
+
+			StringHash sfx = GetWeaponModelMetadata( WeaponType( parm ) )->reload_sound;
+
+			if( viewer ) {
+				S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
+				CG_ViewWeapon_AddAnimation( ent->number, "reload" );
+			}
+			else {
+				S_StartFixedSound( sfx, ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			}
+		} break;
+
 		case EV_ZOOM_IN:
 		case EV_ZOOM_OUT: {
 			if( parm <= Weapon_None || parm >= Weapon_Count )
 				return;
 
-			const WeaponModelMetadata * weapon = GetWeaponModelMetadata( parm );
+			const WeaponModelMetadata * weapon = GetWeaponModelMetadata( WeaponType( parm ) );
 			StringHash sfx = ev == EV_ZOOM_IN ? weapon->zoom_in_sound : weapon->zoom_out_sound;
 
 			if( viewer ) {
@@ -652,23 +722,28 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			CG_Event_WallJump( ent, parm, ev );
 			break;
 
+		case EV_JETPACK:
+			CG_Event_Jetpack( ent, parm );
+			break;
+
 		case EV_JUMP:
-			CG_Event_Jump( ent );
+			CG_Event_Jump( ent, parm );
 			break;
 
 		case EV_JUMP_PAD:
-			CG_PlayJumpSound( ent );
+			CG_PlayJumpSound( ent, JumpType_Normal );
 			CG_PModel_AddAnimation( ent->number, LEGS_JUMP_NEUTRAL, 0, 0, EVENT_CHANNEL );
 			break;
 
 		case EV_FALL:
-			CG_Event_Fall( ent, parm );
+			CG_Event_Fall( ent, parm, viewer );
 			break;
 
 			//  NON PREDICTABLE EVENTS
 
 		case EV_WEAPONDROP: // deactivate is not predictable
 			CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHOUT, 0, EVENT_CHANNEL );
+			CG_ViewWeapon_AddAnimation( ent->number, "drop" );
 			break;
 
 		case EV_PAIN:
@@ -909,7 +984,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		} break;
 
 		case EV_STUN_GRENADE_EXPLOSION:
-			S_StartFixedSound( "sounds/vsay/goodgame", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			DoVisualEffect( "gadgets/flash/explode", ent->origin, Vec3(), 1.0f, vec4_white );
+			S_StartFixedSound( "gadgets/flash/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
 			break;
 	}
 }

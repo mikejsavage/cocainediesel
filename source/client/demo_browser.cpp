@@ -37,8 +37,10 @@ static Span< u8 > ReadFirst1kBytes( const char * path ) {
 
 	u8 * buf = ALLOC_MANY( sys_allocator, u8, 1024 );
 	size_t n;
-	if( !ReadPartialFile( f, buf, 1024, &n ) )
+	if( !ReadPartialFile( f, buf, 1024, &n ) ) {
+		FREE( sys_allocator, buf );
 		return Span< u8 >();
+	}
 
 	return Span< u8 >( buf, n );
 }

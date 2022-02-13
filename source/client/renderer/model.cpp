@@ -5,6 +5,9 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 
+#include "cgame/cg_particles.h"
+#include "cgame/cg_dynamics.h"
+
 constexpr u32 MAX_MODELS = 1024;
 
 static Model gltf_models[ MAX_MODELS ];
@@ -83,9 +86,12 @@ void DeleteModel( Model * model ) {
 	}
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
-		FREE( sys_allocator, model->nodes[ i ].rotations.times );
-		FREE( sys_allocator, model->nodes[ i ].translations.times );
-		FREE( sys_allocator, model->nodes[ i ].scales.times );
+		for( u8 j = 0; j < model->num_animations; j++ ) {
+			FREE( sys_allocator, model->nodes[ i ].animations[ j ].rotations.times );
+			FREE( sys_allocator, model->nodes[ i ].animations[ j ].translations.times );
+			FREE( sys_allocator, model->nodes[ i ].animations[ j ].scales.times );
+		}
+		FREE( sys_allocator, model->nodes[ i ].animations.ptr );
 	}
 
 	DeleteMesh( model->mesh );
@@ -93,6 +99,7 @@ void DeleteModel( Model * model ) {
 	FREE( sys_allocator, model->primitives );
 	FREE( sys_allocator, model->nodes );
 	FREE( sys_allocator, model->skin );
+	FREE( sys_allocator, model->animations );
 }
 
 void HotloadModels() {
@@ -259,7 +266,36 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mo
 	AddInstanceToCollection( model_silhouette_instance_collection, model, primitive, pipeline, instance, hash );
 }
 
+static void DrawVfxNode( DrawModelConfig::DrawModel config, const Model::Node * node, Mat4 & transform ) {
+	if( !config.enabled || node->vfx_type == ModelVfxType_Generic )
+		return;
+
+	// TODO: idk about this cheers
+	Vec3 scale = Vec3( Length( transform.col0.xyz() ), Length( transform.col1.xyz() ), Length( transform.col2.xyz() ) );
+	float size = Min2( Min2( Abs( scale.x ), Abs( scale.y ) ), Abs( scale.z ) );
+
+	if( size <= 0.01f )
+		return;
+
+	Vec3 origin = transform.col3.xyz();
+	Vec3 normal = SafeNormalize( transform.col1.xyz() );
+	switch( node->vfx_type ) {
+		case ModelVfxType_Vfx:
+			DoVisualEffect( node->vfx_node.name, origin, normal, size, node->vfx_node.color );
+			break;
+		case ModelVfxType_DynamicLight:
+			DrawDynamicLight( origin, node->dlight_node.color, node->dlight_node.intensity * size );
+			break;
+		case ModelVfxType_Decal:
+			DrawDecal( origin, normal, node->decal_node.radius * size, node->decal_node.angle, node->decal_node.name, node->decal_node.color );
+			break;
+	}
+}
+
 void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
+	if( model == NULL )
+		return;
+
 	bool animated = palettes.node_transforms.ptr != NULL;
 
 	// TODO: this should be figured out during model loading
@@ -288,7 +324,7 @@ void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transf
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		const Model::Node * node = &model->nodes[ i ];
-		if( node->primitive == U8_MAX )
+		if( node->primitive == U8_MAX && node->vfx_type == ModelVfxType_Generic )
 			continue;
 
 		bool skinned = animated && node->skinned;
@@ -304,6 +340,11 @@ void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transf
 			node_transform = node->global_transform;
 		}
 		node_transform = transform * model->transform * node_transform;
+
+		DrawVfxNode( config.draw_model, node, node_transform );
+
+		if( node->primitive == U8_MAX )
+			continue;
 
 		const Model::Primitive * primitive = &model->primitives[ node->primitive ];
 		GPUMaterial gpu_material;
@@ -403,16 +444,16 @@ static T SampleAnimationChannel( const Model::AnimationChannel< T > & channel, f
 static Vec3 LerpVec3( Vec3 a, float t, Vec3 b ) { return Lerp( a, t, b ); }
 static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
 
-Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t ) {
+Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t, u8 animation ) {
 	TracyZoneScoped;
 
 	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, model->num_nodes );
 
 	for( u8 i = 0; i < model->num_nodes; i++ ) {
 		const Model::Node * node = &model->nodes[ i ];
-		local_poses[ i ].rotation = SampleAnimationChannel( node->rotations, t, node->local_transform.rotation, NLerp );
-		local_poses[ i ].translation = SampleAnimationChannel( node->translations, t, node->local_transform.translation, LerpVec3 );
-		local_poses[ i ].scale = SampleAnimationChannel( node->scales, t, node->local_transform.scale, LerpFloat );
+		local_poses[ i ].rotation = SampleAnimationChannel( node->animations[ animation ].rotations, t, node->local_transform.rotation, NLerp );
+		local_poses[ i ].translation = SampleAnimationChannel( node->animations[ animation ].translations, t, node->local_transform.translation, LerpVec3 );
+		local_poses[ i ].scale = SampleAnimationChannel( node->animations[ animation ].scales, t, node->local_transform.scale, LerpFloat );
 	}
 
 	return local_poses;

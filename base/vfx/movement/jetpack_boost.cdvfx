@@ -1,0 +1,25 @@
+{
+
+  particles {
+    material textures/vfx/smoke3
+    material textures/vfx/smoke4
+    material textures/vfx/smoke5
+    blendfunc blend
+    
+    speed 100
+    speed_distribution 1.0
+
+    angle 360
+    angle_distribution 1.0
+
+    color 0.0 0.0 0.0 0.75
+
+    size 40 40
+    size_distribution 1.0
+    lifetime 1.0
+
+    emission 250
+
+  }
+  
+}

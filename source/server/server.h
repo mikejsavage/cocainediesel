@@ -260,7 +260,7 @@ void SV_UserinfoChanged( client_t *cl );
 void SV_MasterHeartbeat();
 
 void SVC_MasterInfoResponse( const socket_t *socket, const netadr_t *address );
-int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const char *fakeIP );
+int SVC_FakeConnect( const char *fakeUserinfo );
 
 //
 // sv_oob.c
@@ -320,9 +320,9 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 	u64 session_id, int challenge, bool fakeClient );
 
 #ifndef _MSC_VER
-void SV_DropClient( client_t *drop, int type, const char *format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );
+void SV_DropClient( client_t *drop, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
 #else
-void SV_DropClient( client_t *drop, int type, _Printf_format_string_ const char *format, ... );
+void SV_DropClient( client_t *drop, _Printf_format_string_ const char *format, ... );
 #endif
 
 void SV_ExecuteClientThinks( int clientNum );
@@ -347,7 +347,7 @@ void SV_BuildClientFrameSnap( client_t *client );
 void SV_InitGameProgs();
 void SV_ShutdownGameProgs();
 
-void PF_DropClient( edict_t *ent, int type, const char *message );
+void PF_DropClient( edict_t *ent, const char *message );
 int PF_GetClientState( int numClient );
 void PF_GameCmd( edict_t *ent, const char *cmd );
 void PF_ConfigString( int index, const char *val );

@@ -32,7 +32,7 @@ static edict_t * ConnectFakeClient() {
 	char userInfo[ MAX_INFO_STRING ] = "";
 	Info_SetValueForKey( userInfo, "name", RandomElement( &svs.rng, bot_names ) );
 
-	int entNum = SVC_FakeConnect( userInfo, "loopback", "127.0.0.1" );
+	int entNum = SVC_FakeConnect( userInfo );
 	if( entNum == -1 ) {
 		Com_Printf( "AI: Can't spawn the fake client\n" );
 		return NULL;

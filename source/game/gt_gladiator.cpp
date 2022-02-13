@@ -253,8 +253,11 @@ static void DoSpinner() {
 		return;
 	}
 
-	WeaponType weap1 = RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count );
-	WeaponType weap2 = RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 );
+	WeaponType weap1 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count ) );
+	WeaponType weap2 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 ) );
+
+	u8 p = RandomUniform( &svs.rng, 0, 3 ); //we'll randomize properly when all the hud stuff and perks fit the game
+	PerkType perk = p == 0 ? Perk_Hooligan : p == 1 ? Perk_Midget : Perk_Jetpack;
 
 	if( weap2 >= weap1 ) {
 		weap2++;
@@ -269,6 +272,7 @@ static void DoSpinner() {
 		G_GiveWeapon( ent, weap1 );
 		G_GiveWeapon( ent, weap2 );
 		G_SelectWeapon( ent, 0 );
+		G_GivePerk( ent, perk );
 	}
 }
 
@@ -411,8 +415,8 @@ static void NewRoundState( GladiatorRoundState newState ) {
 
 // --------------
 
-static edict_t * GT_Gladiator_SelectSpawnPoint( edict_t * ent ) {
-	edict_t * spawn = NULL;
+static const edict_t * GT_Gladiator_SelectSpawnPoint( const edict_t * ent ) {
+	const edict_t * spawn = NULL;
 	edict_t * cursor = NULL;
 	float max_dist = 0.0f;
 
@@ -429,7 +433,7 @@ static edict_t * GT_Gladiator_SelectSpawnPoint( edict_t * ent ) {
 			}
 		}
 
-		if( min_dist == -1.0 ) { //If no player is spawned, pick a random spawn
+		if( min_dist == -1.0f ) { //If no player is spawned, pick a random spawn
 			spawn = G_PickRandomEnt( &edict_t::classname, "spawn_gladiator" );
 			break;
 		}
@@ -457,8 +461,8 @@ static void GT_Gladiator_PlayerRespawned( edict_t *ent, int old_team, int new_te
 	}
 
 	if( server_gs.gameState.match_state != MatchState_Playing ) {
-		WeaponType weap1 = RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count );
-		WeaponType weap2 = RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 );
+		WeaponType weap1 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count ) );
+		WeaponType weap2 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 ) );
 
 		if( weap2 >= weap1 ) {
 			weap2++;
@@ -467,6 +471,7 @@ static void GT_Gladiator_PlayerRespawned( edict_t *ent, int old_team, int new_te
 		G_GiveWeapon( ent, weap1 );
 		G_GiveWeapon( ent, weap2 );
 		G_SelectWeapon( ent, 0 );
+		G_GivePerk( ent, Perk_Hooligan );
 		G_RespawnEffect( ent );
 	}
 }

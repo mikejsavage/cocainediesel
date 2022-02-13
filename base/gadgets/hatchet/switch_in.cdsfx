@@ -1,0 +1,6 @@
+{
+	attenuation idle
+	sound weapons/gb/up
+	volume 0.65
+	pitch 0.5
+}

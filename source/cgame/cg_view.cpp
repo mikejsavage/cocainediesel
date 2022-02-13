@@ -162,11 +162,7 @@ static void CG_CalcViewBob() {
 
 			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, MASK_PLAYERSOLID );
 			if( trace.startsolid || trace.allsolid ) {
-				if( cg.predictedPlayerState.pmove.crouch_time != 0 ) {
-					bobScale = 1.5f;
-				} else {
-					bobScale = 2.5f;
-				}
+				bobScale = 2.5f;
 			}
 		}
 	}
@@ -265,9 +261,9 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	// move towards destination
 	CG_Trace( &trace, view->origin, mins, maxs, chase_dest, view->POVent, MASK_SOLID );
 
-	if( trace.fraction != 1.0 ) {
+	if( trace.fraction != 1.0f ) {
 		stop = trace.endpos;
-		stop.z += ( 1.0 - trace.fraction ) * 32;
+		stop.z += ( 1.0f - trace.fraction ) * 32;
 		CG_Trace( &trace, view->origin, mins, maxs, stop, view->POVent, MASK_SOLID );
 		chase_dest = trace.endpos;
 	}
@@ -302,11 +298,11 @@ static void CG_UpdateChaseCam() {
 	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 
 	if( chaseCam.key_pressed ) {
-		chaseCam.key_pressed = ( cmd.buttons & ( BUTTON_ATTACK | BUTTON_SPECIAL ) ) != 0 || cmd.upmove != 0 || cmd.sidemove != 0;
+		chaseCam.key_pressed = cmd.buttons != 0 || cmd.sidemove != 0 || cmd.forwardmove != 0;
 		return;
 	}
 
-	if( cmd.buttons & BUTTON_ATTACK ) {
+	if( cmd.buttons & BUTTON_ATTACK1 ) {
 		if( cgs.demoPlaying || ISREALSPECTATOR() ) {
 			Cbuf_ExecuteLine( cgs.demoPlaying ? "democamswitch" : "camswitch" );
 		}
@@ -316,10 +312,10 @@ static void CG_UpdateChaseCam() {
 	int chaseStep = 0;
 
 	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
-		if( cmd.upmove > 0 || cmd.sidemove > 0 || ( cmd.buttons & BUTTON_SPECIAL ) ) {
+		if( cmd.sidemove > 0 || ( cmd.buttons & BUTTON_ATTACK2 ) ) {
 			chaseStep = 1;
 		}
-		else if( cmd.upmove < 0 || cmd.sidemove < 0 ) {
+		else if( cmd.sidemove < 0 || ( cmd.buttons & BUTTON_ATTACK1 ) ) {
 			chaseStep = -1;
 		}
 	}
@@ -357,7 +353,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 
 		// check for drawing gun
 		if( !view->thirdperson && view->POVent > 0 && view->POVent <= client_gs.maxclients ) {
-			if( cg_entities[view->POVent].serverFrame == cg.frame.serverFrame && cg_entities[view->POVent].current.weapon != Weapon_Count ) {
+			if( cg_entities[view->POVent].serverFrame == cg.frame.serverFrame ) {
 				view->drawWeapon = true;
 			}
 		}
@@ -380,7 +376,6 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		if( view->playerPrediction ) {
 			CG_PredictMovement();
 
-			// fixme: crouching is predicted now, but it looks very ugly
 			viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
 
 			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;

@@ -138,7 +138,6 @@ struct client_static_t {
 
 	connstate_t state;          // only set through CL_SetClientState
 	keydest_t key_dest;
-	keydest_t old_key_dest;
 
 	int64_t monotonicTime; // starts at 0 when the game is launched, increases forever
 
@@ -168,7 +167,6 @@ struct client_static_t {
 	bool download_url_is_game_server;
 
 	bool rejected;          // these are used when the server rejects our connection
-	int rejecttype;
 	char rejectmessage[80];
 
 	netchan_t netchan;

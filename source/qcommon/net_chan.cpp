@@ -85,6 +85,10 @@ static Cvar *showpackets;
 static Cvar *showdrop;
 static Cvar *net_showfragments;
 
+static const char * DescribeSocket( const socket_t *socket ) {
+	return socket->server ? "server to client" : "client to server";
+}
+
 /*
 * Netchan_OutOfBand
 *
@@ -293,7 +297,7 @@ bool Netchan_TransmitNextFragment( netchan_t *chan ) {
 	MSG_Clear( &send );
 
 	if( net_showfragments->integer ) {
-		Com_Printf( "Transmit fragment (%s) (id:%i)\n", NET_SocketToString( chan->socket ), chan->outgoingSequence );
+		Com_Printf( "Transmit fragment (%s) (id:%i)\n", DescribeSocket( chan->socket ), chan->outgoingSequence );
 	}
 
 	MSG_WriteInt32( &send, chan->outgoingSequence | FRAGMENT_BIT );
@@ -315,7 +319,7 @@ bool Netchan_TransmitNextFragment( netchan_t *chan ) {
 		fragmentLength = chan->unsentLength - chan->unsentFragmentStart;
 		last = true;
 	} else {
-		fragmentLength = ceilf( ( chan->unsentLength - chan->unsentFragmentStart ) * 1.0 / ceilf( ( chan->unsentLength - chan->unsentFragmentStart ) * 1.0 / FRAGMENT_SIZE ) );
+		fragmentLength = ceilf( ( chan->unsentLength - chan->unsentFragmentStart ) * 1.0f / ceilf( ( chan->unsentLength - chan->unsentFragmentStart ) * 1.0f / FRAGMENT_SIZE ) );
 		last = false;
 	}
 
@@ -330,7 +334,7 @@ bool Netchan_TransmitNextFragment( netchan_t *chan ) {
 	}
 
 	if( showpackets->integer ) {
-		Com_Printf( "%s send %4li : s=%i fragment=%li,%i\n", NET_SocketToString( chan->socket ), send.cursize,
+		Com_Printf( "%s send %4li : s=%i fragment=%li,%i\n", DescribeSocket( chan->socket ), send.cursize,
 					chan->outgoingSequence, chan->unsentFragmentStart, fragmentLength );
 	}
 
@@ -421,7 +425,7 @@ bool Netchan_Transmit( netchan_t *chan, msg_t *msg ) {
 	}
 
 	if( showpackets->integer ) {
-		Com_Printf( "%s send %4li : s=%i ack=%i\n", NET_SocketToString( chan->socket ), send.cursize,
+		Com_Printf( "%s send %4li : s=%i ack=%i\n", DescribeSocket( chan->socket ), send.cursize,
 					chan->outgoingSequence - 1, chan->incomingSequence );
 	}
 
@@ -458,7 +462,7 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg ) {
 		fragmented = true;
 
 		if( net_showfragments->integer ) {
-			Com_Printf( "Process fragmented packet (%s) (id:%i)\n", NET_SocketToString( chan->socket ), sequence );
+			Com_Printf( "Process fragmented packet (%s) (id:%i)\n", DescribeSocket( chan->socket ), sequence );
 		}
 	} else {
 		fragmented = false;
@@ -493,10 +497,10 @@ bool Netchan_Process( netchan_t *chan, msg_t *msg ) {
 
 	if( showpackets->integer ) {
 		if( fragmented ) {
-			Com_Printf( "%s recv %4li : s=%i fragment=%i,%i\n", NET_SocketToString( chan->socket ), msg->cursize,
+			Com_Printf( "%s recv %4li : s=%i fragment=%i,%i\n", DescribeSocket( chan->socket ), msg->cursize,
 						sequence, fragmentStart, fragmentLength );
 		} else {
-			Com_Printf( "%s recv %4li : s=%i\n", NET_SocketToString( chan->socket ), msg->cursize, sequence );
+			Com_Printf( "%s recv %4li : s=%i\n", DescribeSocket( chan->socket ), msg->cursize, sequence );
 		}
 	}
 

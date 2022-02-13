@@ -40,7 +40,7 @@ static void Cmd_ConsoleKick_f() {
 		return;
 	}
 
-	PF_DropClient( ent, DROP_TYPE_NORECONNECT, "Kicked" );
+	PF_DropClient( ent, "Kicked" );
 }
 
 //==============================================================================

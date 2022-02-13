@@ -1,0 +1,5 @@
+{
+	attenuation distant
+	sound ./hum
+	volume 0.5
+}

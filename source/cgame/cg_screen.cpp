@@ -36,12 +36,12 @@ static constexpr float playerNamesZgrow = 2.5f;
 
 static constexpr int64_t crosshairDamageTime = 200;
 
-static constexpr int64_t crosshairTimeOffset = 100;
-static constexpr float crosshairTimeSpeed = 0.5f;
-static constexpr float crosshairRefireTimeSpeed = 1.5f;
-static constexpr float crosshairReFireSizeRatio = 0.001f;
-static constexpr float crosshairFireGap = 1.0f;
-static constexpr float crosshairFireSizeRatio = 1.0f;
+static constexpr int64_t crosshairTimeOffset = 75;
+static constexpr float crosshairTimeSpeed = 0.25f;
+static constexpr float crosshairRefireTimeSpeed = 1.6f;
+static constexpr float crosshairReFireSizeRatio = 0.002f;
+static constexpr float crosshairFireGap = 0.25f;
+static constexpr float crosshairFireSizeRatio = 0.125f;
 
 static int64_t scr_damagetime = 0;
 static int64_t scr_shoottime = 0;
@@ -87,26 +87,21 @@ void CG_ScreenInit() {
 	cg_crosshair_dynamic = NewCvar( "cg_crosshair_dynamic", "1", CvarFlag_Archive );
 }
 
-void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color ) {
-	if( cgs.demoPlaying ) {
-		return;
-	}
-
-	int64_t incomingAcknowledged, outgoingSequence;
-	CL_GetCurrentState( &incomingAcknowledged, &outgoingSequence, NULL );
-	if( outgoingSequence - incomingAcknowledged < CMD_BACKUP - 1 ) {
-		return;
-	}
-	x = CG_HorizontalAlignForWidth( x, alignment, w );
-	y = CG_VerticalAlignForHeight( y, alignment, h );
-	Draw2DBox( x, y, w, h, FindMaterial( "gfx/hud/net" ), color );
-}
-
 void CG_ScreenCrosshairDamageUpdate() {
 	scr_damagetime = cls.monotonicTime;
 }
 
+static bool CG_IsShownCrosshair() {
+	WeaponType weapon = cg.predictedPlayerState.weapon;
+	return  cg.predictedPlayerState.health > 0 &&
+			!( weapon == Weapon_Knife || weapon == Weapon_Sniper ) &&
+			!( weapon == Weapon_AutoSniper && cg.predictedPlayerState.zoom_time > 0 );
+}
+
 void CG_ScreenCrosshairShootUpdate( u16 refire_time ) {
+	if( !CG_IsShownCrosshair() )
+		return;
+
 	current_refire_time = Max2( (int64_t)0, current_refire_time + scr_shoottime + crosshairTimeOffset - cls.monotonicTime ) + refire_time * crosshairRefireTimeSpeed;
 	scr_shoottime = cls.monotonicTime - crosshairTimeOffset;
 }
@@ -116,13 +111,7 @@ static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
 }
 
 void CG_DrawCrosshair( int x, int y ) {
-	if( cg.predictedPlayerState.health <= 0 )
-		return;
-
-	WeaponType weapon = cg.predictedPlayerState.weapon;
-	if( weapon == Weapon_Knife || weapon == Weapon_Sniper )
-		return;
-	if( weapon == Weapon_AutoSniper && cg.predictedPlayerState.zoom_time > 0 )
+	if( !CG_IsShownCrosshair() )
 		return;
 
 	Vec4 color = cls.monotonicTime - scr_damagetime <= crosshairDamageTime ? vec4_red : vec4_white; 
@@ -149,50 +138,6 @@ void CG_DrawCrosshair( int x, int y ) {
 	CG_FillRect( x - 1 - size - gap, y - 1, 2 + size, 2, color );
 	CG_FillRect( x - 1 + gap, y - 1, 2 + size, 2, color );
 
-}
-
-void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border ) {
-	int64_t clocktime, startTime, duration, curtime;
-	char string[12];
-
-	if( client_gs.gameState.match_state > MatchState_Playing ) {
-		return;
-	}
-
-	if( client_gs.gameState.clock_override != 0 ) {
-		clocktime = client_gs.gameState.clock_override;
-		if( clocktime < 0 )
-			return;
-	}
-	else {
-		curtime = ( GS_MatchWaiting( &client_gs ) || GS_MatchPaused( &client_gs ) ) ? cg.frame.serverTime : cl.serverTime;
-		duration = client_gs.gameState.match_duration;
-		startTime = client_gs.gameState.match_state_start_time;
-
-		// count downwards when having a duration
-		if( duration ) {
-			if( duration + startTime < curtime ) {
-				duration = curtime - startTime; // avoid negative results
-			}
-			clocktime = startTime + duration - curtime;
-		}
-		else {
-			if( curtime >= startTime ) { // avoid negative results
-				clocktime = curtime - startTime;
-			}
-			else {
-				clocktime = 0;
-			}
-		}
-	}
-
-	double seconds = (double)clocktime * 0.001;
-	int minutes = (int)( seconds / 60 );
-	seconds -= minutes * 60;
-
-	snprintf( string, sizeof( string ), "%i:%02i", minutes, (int)seconds );
-
-	DrawText( font, font_size, string, alignment, x, y, color, border );
 }
 
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {
@@ -247,7 +192,7 @@ void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool bo
 		}
 
 		trace_t trace;
-		Vec3 headpos = Vec3( 0.0f, 0.0f, 34.0f * cent->current.scale.z );
+		Vec3 headpos = Vec3( 0.0f, 0.0f, 34.0f * cent->interpolated.scale.z );
 		CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), cent->interpolated.origin + headpos, cg.predictedPlayerState.POVnum, MASK_OPAQUE );
 		if( trace.fraction < 1.0f && trace.ent != cent->current.number ) {
 			continue;
@@ -310,7 +255,7 @@ void CG_AddDamageNumber( SyncEntityState * ent, u64 parm ) {
 	damage_numbers_head = ( damage_numbers_head + 1 ) % ARRAY_COUNT( damage_numbers );
 }
 
-void CG_DrawDamageNumbers() {
+void CG_DrawDamageNumbers( float obi_size, float dmg_size ) {
 	for( const DamageNumber & dn : damage_numbers ) {
 		if( dn.damage == 0 )
 			continue;
@@ -346,12 +291,12 @@ void CG_DrawDamageNumbers() {
 		if( obituary ) {
 			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
 			color = AttentionGettingColor();
-			font_size = Lerp( cgs.textSizeSmall, frac * frac, 0.0f );
+			font_size = Lerp( obi_size, frac * frac, 0.0f );
 		}
 		else {
 			snprintf( buf, sizeof( buf ), "%d", dn.damage );
 			color = dn.headshot ? sRGBToLinear( rgba8_diesel_yellow ) : vec4_white;
-			font_size = Lerp( cgs.textSizeTiny, Unlerp01( 0, dn.damage, 50 ), cgs.textSizeSmall );
+			font_size = Lerp( dmg_size, Unlerp01( 0, dn.damage, 50 ), cgs.textSizeSmall );
 		}
 
 		float alpha = 1 - Max2( 0.0f, frac - 0.75f ) / 0.25f;
@@ -428,7 +373,7 @@ void CG_AddBombSite( centity_t * cent ) {
 	num_bomb_sites++;
 }
 
-void CG_DrawBombHUD() {
+void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 	if( client_gs.gameState.match_state > MatchState_Playing )
 		return;
 
@@ -447,12 +392,12 @@ void CG_DrawBombHUD() {
 
 			char buf[ 4 ];
 			snprintf( buf, sizeof( buf ), "%c", site->letter );
-			DrawText( cgs.fontNormal, cgs.textSizeMedium, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
+			DrawText( cgs.fontNormal, name_size, buf, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 
 			if( show_labels && !clamped && bomb.state != BombState_Dropped ) {
 				const char * msg = my_team == client_gs.gameState.bomb.attacking_team ? "ATTACK" : "DEFEND";
-				coords.y += ( cgs.fontSystemMediumSize * 7 ) / 8;
-				DrawText( cgs.fontNormal, cgs.textSizeTiny, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
+				coords.y += name_size * 0.6f;
+				DrawText( cgs.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, coords.y, yellow, true );
 			}
 		}
 	}
@@ -463,7 +408,7 @@ void CG_DrawBombHUD() {
 
 		if( clamped ) {
 			int icon_size = ( cgs.fontSystemMediumSize * frame_static.viewport_height ) / 600;
-			Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, FindMaterial( "gfx/bomb" ) );
+			Draw2DBox( coords.x - icon_size / 2, coords.y - icon_size / 2, icon_size, icon_size, FindMaterial( "hud/icons/bomb" ) );
 		}
 		else {
 			if( show_labels ) {
@@ -491,8 +436,8 @@ void CG_DrawBombHUD() {
 					}
 				}
 
-				float y = coords.y - cgs.fontSystemTinySize / 2;
-				DrawText( cgs.fontNormal, cgs.textSizeSmall, msg, Alignment_CenterMiddle, coords.x, y, color, true );
+				float y = coords.y - name_size / 2;
+				DrawText( cgs.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, y, color, true );
 			}
 		}
 

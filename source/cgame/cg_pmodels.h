@@ -105,17 +105,23 @@ enum {
 };
 
 struct WeaponModelMetadata {
-	bool inuse;
-
 	const Model * model;
 
 	Vec3 handpositionOrigin;
 	Vec3 handpositionAngles;
 
 	StringHash fire_sound;
-	StringHash up_sound;
+	StringHash reload_sound;
+	StringHash switch_in_sound;
 	StringHash zoom_in_sound;
 	StringHash zoom_out_sound;
+};
+
+struct GadgetModelMetadata {
+	const Model * model;
+
+	StringHash use_sound;
+	StringHash switch_in_sound;
 };
 
 enum {
@@ -217,6 +223,7 @@ void CG_PModel_ClearEventAnimations( int entNum );
 //
 void InitWeaponModels();
 const WeaponModelMetadata * GetWeaponModelMetadata( WeaponType weapon );
+const GadgetModelMetadata * GetGadgetModelMetadata( GadgetType gadget );
 
 //=================================================
 //				VIEW WEAPON
@@ -226,9 +233,9 @@ struct cg_viewweapon_t {
 	mat3_t axis;
 	Vec3 origin;
 
-	int baseAnim;
+	StringHash baseAnim;
 	int64_t baseAnimStartTime;
-	int eventAnim;
+	StringHash eventAnim;
 	int64_t eventAnimStartTime;
 
 	Mat4 muzzle_transform;

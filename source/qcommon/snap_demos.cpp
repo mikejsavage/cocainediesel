@@ -129,7 +129,7 @@ static void SNAP_RecordDemoMetaDataMessage( int demofile, msg_t *msg ) {
 	FS_Flush( demofile );
 }
 
-void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned int snapFrameTime,
+void SNAP_BeginDemoRecording( TempAllocator * temp, int demofile, unsigned int spawncount, unsigned int snapFrameTime,
 		const char *configstrings, SyncEntityState *baselines ) {
 	msg_t msg;
 	uint8_t msg_buffer[MAX_MSGLEN];
@@ -155,7 +155,7 @@ void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned in
 		const char *configstring = configstrings + i * MAX_CONFIGSTRING_CHARS;
 		if( configstring[0] ) {
 			MSG_WriteUint8( &msg, svc_servercs );
-			MSG_WriteString( &msg, va( "cs %i \"%s\"", i, configstring ) );
+			MSG_WriteString( &msg, ( *temp )( "cs {} \"{}\"", i, configstring ) );
 
 			DEMO_SAFEWRITE( demofile, &msg, false );
 		}

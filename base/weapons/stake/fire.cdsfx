@@ -1,0 +1,5 @@
+{
+	attenuation distant
+	sound ./fire
+	volume 0.7
+}

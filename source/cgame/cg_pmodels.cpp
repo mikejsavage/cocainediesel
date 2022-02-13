@@ -380,7 +380,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 vel
 	// this is not like having groundEntity, we are more generous with
 	// the tracing size here to include small steps
 	Vec3 point = state->origin;
-	point.z -= 1.6 * STEPSIZE;
+	point.z -= 1.6f * STEPSIZE;
 	client_gs.api.Trace( &trace, state->origin, mins, maxs, point, state->number, MASK_PLAYERSOLID, 0 );
 	if( trace.ent == -1 || ( trace.fraction < 1.0f && !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
 		moveflags |= ANIMMOVE_AIR;
@@ -539,27 +539,27 @@ void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 		AnglesToAxis( Vec3( 0, cent->current.angles.y, 0 ), axis );
 
 		float front = scale * Dot( hvelocity, FromQFAxis( axis, AXIS_FORWARD ) );
-		if( front < -0.1 || front > 0.1 ) {
+		if( front < -0.1f || front > 0.1f ) {
 			leanAngles[LOWER].x += front;
-			leanAngles[UPPER].x -= front * 0.25;
-			leanAngles[HEAD].x -= front * 0.5;
+			leanAngles[UPPER].x -= front * 0.25f;
+			leanAngles[HEAD].x -= front * 0.5f;
 		}
 
 		float aside = ( front * 0.001f ) * cent->yawVelocity;
 
 		if( aside ) {
 			float asidescale = 75;
-			leanAngles[LOWER].z -= aside * 0.5 * asidescale;
-			leanAngles[UPPER].z += aside * 1.75 * asidescale;
-			leanAngles[HEAD].z -= aside * 0.35 * asidescale;
+			leanAngles[LOWER].z -= aside * 0.5f * asidescale;
+			leanAngles[UPPER].z += aside * 1.75f * asidescale;
+			leanAngles[HEAD].z -= aside * 0.35f * asidescale;
 		}
 
 		float side = scale * Dot( hvelocity, FromQFAxis( axis, AXIS_RIGHT ) );
 
 		if( side < -1 || side > 1 ) {
-			leanAngles[LOWER].z -= side * 0.5;
-			leanAngles[UPPER].z += side * 0.5;
-			leanAngles[HEAD].z += side * 0.25;
+			leanAngles[LOWER].z -= side * 0.5f;
+			leanAngles[UPPER].z += side * 0.5f;
+			leanAngles[HEAD].z += side * 0.25f;
 		}
 
 		leanAngles[LOWER].x = Clamp( -45.0f, leanAngles[LOWER].x, 45.0f );
@@ -594,13 +594,7 @@ static void CG_UpdatePModelAnimations( centity_t *cent ) {
 * Called each new serverframe
 */
 void CG_UpdatePlayerModelEnt( centity_t *cent ) {
-	// start from clean
-	memset( &cent->interpolated, 0, sizeof( cent->interpolated ) );
-	cent->interpolated.scale = 1.0f;
-
 	pmodel_t * pmodel = &cg_entPModels[ cent->current.number ];
-
-	cent->interpolated.color = RGBA8( CG_TeamColor( cent->current.number ) );
 
 	// Spawning (teleported bit) forces nobacklerp and the interruption of EVENT_CHANNEL animations
 	if( cent->current.teleported ) {
@@ -775,7 +769,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	MatrixPalettes pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 
-	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->current.scale );
+	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	if( corpse ) {
@@ -785,7 +779,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 	bool draw_model = !ISVIEWERENTITY( cent->current.number ) || cg.view.thirdperson;
 	bool same_team = GS_TeamBasedGametype( &client_gs ) && cg.predictedPlayerState.team == cent->current.team;
 	bool draw_silhouette = draw_model && ( ISREALSPECTATOR() || same_team );
-	
+
 	{
 		DrawModelConfig config = { };
 		config.draw_model.enabled = draw_model;
@@ -807,7 +801,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		DrawModel( config, meta->model, transform, color, pose );
 	}
 
-	Mat4 inverse_scale = Mat4Scale( 1.0f / cent->current.scale );
+	Mat4 inverse_scale = Mat4Scale( 1.0f / cent->interpolated.scale );
 
 	// add weapon model
 	{

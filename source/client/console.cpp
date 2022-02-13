@@ -63,10 +63,9 @@ void Con_ToggleConsole() {
 	}
 
 	if( console.visible ) {
-		CL_SetKeyDest( cls.old_key_dest );
+		CL_SetKeyDest( key_game );
 	}
 	else {
-		CL_SetOldKeyDest( cls.key_dest );
 		CL_SetKeyDest( key_ImGui );
 	}
 
@@ -82,7 +81,6 @@ bool Con_IsVisible() {
 
 void Con_Close() {
 	if( console.visible ) {
-		CL_SetKeyDest( cls.old_key_dest );
 		console.visible = false;
 	}
 }
@@ -306,7 +304,7 @@ void Con_Draw() {
 	{
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, bg );
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 4 ) );
-		ImGui::BeginChild( "consoletext", ImVec2( 0, frame_static.viewport_height * 0.4 - ImGui::GetFrameHeightWithSpacing() - 3 ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
+		ImGui::BeginChild( "consoletext", ImVec2( 0, frame_static.viewport_height * 0.4f - ImGui::GetFrameHeightWithSpacing() - 3 ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 		{
 			Lock( console.log_mutex );
 			defer { Unlock( console.log_mutex ); };

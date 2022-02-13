@@ -369,7 +369,7 @@ static void G_CheckNumBots() {
 			if( !ent->r.inuse || !( ent->s.svflags & SVF_FAKECLIENT ) ) {
 				continue;
 			}
-			PF_DropClient( ent, DROP_TYPE_GENERAL, NULL );
+			PF_DropClient( ent, NULL );
 			game.numBots--;
 		}
 	}
@@ -386,7 +386,7 @@ static bool G_EachNewMinute() {
 	static int lastminute;
 	static int minute;
 
-	minute = (int)( level.time * 0.001 / 60.0f );
+	minute = (int)( level.time * 0.001f / 60.0f );
 	if( lastminute == minute ) {
 		return false;
 	}
@@ -491,8 +491,15 @@ void GT_CallPlayerKilled( edict_t * victim, edict_t * attacker, edict_t * inflic
 	level.gametype.PlayerKilled( victim, attacker, inflictor );
 }
 
-edict_t * GT_CallSelectSpawnPoint( edict_t * ent ) {
+const edict_t * GT_CallSelectSpawnPoint( const edict_t * ent ) {
 	return level.gametype.SelectSpawnPoint( ent );
+}
+
+const edict_t * GT_CallSelectDeadcam() {
+	if( level.gametype.SelectDeadcam != NULL ) {
+		return level.gametype.SelectDeadcam();
+	}
+	return NULL;
 }
 
 bool GT_CallGameCommand( gclient_t * client, const char * cmd, const char * args, int argc ) {

@@ -50,6 +50,7 @@ enum PlayingSoundType {
 
 struct PlayingSound {
 	PlayingSoundType type;
+	StringHash hash;
 	const SoundEffect * sfx;
 	s64 start_time;
 	int ent_num;
@@ -590,8 +591,16 @@ void S_Shutdown() {
 	alcCloseDevice( al_device );
 }
 
-const char * GetAudioDevicesAsSequentialStrings() {
-	return alcGetString( NULL, ALC_ALL_DEVICES_SPECIFIER );
+Span< const char * > GetAudioDevices( Allocator * a ) {
+	NonRAIIDynamicArray< const char * > devices( a );
+
+	const char * cursor = alcGetString( NULL, ALC_ALL_DEVICES_SPECIFIER );
+	while( !StrEqual( cursor, "" ) ) {
+		devices.add( cursor );
+		cursor += strlen( cursor ) + 1;
+	}
+
+	return devices.span();
 }
 
 static bool FindSound( StringHash name, Sound * sound ) {
@@ -684,6 +693,19 @@ static void StopSound( PlayingSound * ps, u8 i ) {
 	free_sound_sources[ num_free_sound_sources ] = ps->sources[ i ];
 	num_free_sound_sources++;
 	ps->stopped[ i ] = true;
+}
+
+static void UpdateSound( PlayingSound * ps, float volume, float pitch ) {
+	ps->volume = volume;
+	ps->pitch = pitch;
+
+	for( size_t i = 0; i < ps->sfx->num_sounds; i++ ) {
+		if( ps->started[ i ] ) {
+			const SoundEffect::PlaybackConfig * config = &ps->sfx->sounds[ i ];
+			CheckedALSource( ps->sources[ i ], AL_GAIN, ps->volume * config->volume * s_volume->number );
+			CheckedALSource( ps->sources[ i ], AL_PITCH, ps->pitch * config->pitch + ( RandomFloat11( &cls.rng ) * config->pitch_random * config->pitch * ps->pitch ) );
+		}
+	}
 }
 
 void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
@@ -829,6 +851,7 @@ static PlayingSound * StartSoundEffect( StringHash name, int ent_num, int channe
 
 	*ps = { };
 	ps->type = type;
+	ps->hash = name;
 	ps->sfx = sfx;
 	ps->start_time = cls.monotonicTime;
 	ps->ent_num = ent_num;
@@ -889,7 +912,11 @@ static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, f
 	}
 
 	u64 idx;
-	if( handle.x != 0 && immediate_sounds_hashtable.get( handle.x, &idx ) ) {
+	bool found = immediate_sounds_hashtable.get( handle.x, &idx );
+	if( handle.x != 0 && found && playing_sound_effects[ idx ].hash == name ) {
+		if( playing_sound_effects[ idx ].volume != volume || playing_sound_effects[ idx ].pitch != pitch ) {
+			UpdateSound( &playing_sound_effects[ idx ], volume, pitch );
+		}
 		playing_sound_effects[ idx ].touched_since_last_update = true;
 	}
 	else {

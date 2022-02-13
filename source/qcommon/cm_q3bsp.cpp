@@ -253,7 +253,7 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 		int j = ( i + 1 ) % numverts;
 
 		vec = verts[i] - verts[j];
-		if( Length( vec ) < 0.5 ) {
+		if( Length( vec ) < 0.5f ) {
 			continue;
 		}
 		vec = Normalize( vec );

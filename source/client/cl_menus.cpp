@@ -7,7 +7,7 @@
 #include "client/renderer/renderer.h"
 #include "qcommon/version.h"
 #include "qcommon/maplist.h"
-#include "qcommon/string.h"
+#include "qcommon/array.h"
 
 #include "cgame/cg_local.h"
 
@@ -62,8 +62,7 @@ static int selected_server;
 
 static bool yolodemo;
 
-static WeaponType selected_weapons[ WeaponCategory_Count ];
-static PerkType selected_perk;
+static Loadout loadout;
 
 static SettingsState settings_state;
 static bool reset_video_settings;
@@ -216,6 +215,34 @@ static const char * SelectableMapList() {
 	return ( selected_map < maps.n ? maps[ selected_map ] : "" );
 }
 
+static const char * SelectablePlayerList() {
+	TempAllocator temp = cls.frame_arena.temp();
+	DynamicArray< const char * > players( &temp );
+
+	for( int i = 0; i < client_gs.maxclients; i++ ) {
+		const char * name = PlayerName( i ); 
+		if( strlen( name ) != 0 && !ISVIEWERENTITY( i + 1 ) ) {
+			players.add( name );
+		}
+	}
+
+	static size_t selected_player = 0;
+
+	ImGui::PushItemWidth( 200 );
+	if( ImGui::BeginCombo( "##players", players[ selected_player ] ) ) {
+		for( size_t i = 0; i < players.size(); i++ ) {
+			if( ImGui::Selectable( players[ i ], i == selected_player ) )
+				selected_player = i;
+			if( i == selected_player )
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+	ImGui::PopItemWidth();
+
+	return ( selected_player < players.size() ? players[ selected_player ] : "" );
+}
+
 static void SettingsGeneral() {
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -242,14 +269,16 @@ static void SettingsControls() {
 			KeyBindButton( "Back", "+back" );
 			KeyBindButton( "Left", "+left" );
 			KeyBindButton( "Right", "+right" );
-			KeyBindButton( "Jump", "+jump" );
-			KeyBindButton( "Dash", "+special" );
+			KeyBindButton( "Movement ability 1", "+ability1" );
+			KeyBindButton( "Movement ability 2", "+ability2" );
 
 			ImGui::Separator();
 
-			KeyBindButton( "Attack", "+attack" );
+			KeyBindButton( "Attack", "+attack1" );
+			KeyBindButton( "Scope (weapon specific)", "+attack2" ); //will be changed to secondary when it makes sense
 			KeyBindButton( "Reload", "+reload" );
-			KeyBindButton( "Plant bomb", "+crouch" );
+			KeyBindButton( "Use gadget", "+gadget" );
+			KeyBindButton( "Plant bomb", "+plant" );
 			KeyBindButton( "Drop bomb", "drop" );
 			KeyBindButton( "Shop", "gametypemenu" );
 			KeyBindButton( "Scoreboard", "+scores" );
@@ -286,11 +315,14 @@ static void SettingsControls() {
 
 		if( ImGui::BeginTabItem( "Voices" ) ) {
 			KeyBindButton( "Acne pack", "vsay acne" );
-			KeyBindButton( "Valley pack", "vsay valley" );
-			KeyBindButton( "Mike pack", "vsay mike" );
-			KeyBindButton( "User pack", "vsay user" );
+			KeyBindButton( "Fart pack", "vsay fart" );
 			KeyBindButton( "Guyman pack", "vsay guyman" );
 			KeyBindButton( "Helena pack", "vsay helena" );
+			KeyBindButton( "Larp pack", "vsay larp" );
+			KeyBindButton( "Mike pack", "vsay mike" );
+			KeyBindButton( "User pack", "vsay user" );
+			KeyBindButton( "Valley pack", "vsay valley" );
+			KeyBindButton( "Zombie pack", "vsay zombie" );
 
 			ImGui::EndTabItem();
 		}
@@ -529,12 +561,11 @@ static void SettingsAudio() {
 			Cvar_Set( "s_device", "" );
 		}
 
-		const char * device = GetAudioDevicesAsSequentialStrings();
-		while( !StrEqual( device, "" ) ) {
+		TempAllocator temp = cls.frame_arena.temp();
+		for( const char * device : GetAudioDevices( &temp ) ) {
 			if( ImGui::Selectable( CleanAudioDeviceName( device ), StrEqual( device, s_device->value ) ) ) {
 				Cvar_Set( "s_device", device );
 			}
-			device += strlen( device ) + 1;
 		}
 		ImGui::EndCombo();
 	}
@@ -892,24 +923,16 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 
 static void SendLoadout() {
 	TempAllocator temp = cls.frame_arena.temp();
-
-	DynamicString loadout( &temp, "weapselect" );
-
-	for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-		if( selected_weapons[ i ] != Weapon_None ) {
-			loadout.append( " {}", selected_weapons[ i ] );
-		}
-	}
-	loadout.append( " {}", selected_perk );
-
-	Cbuf_Add( "{}", loadout.c_str() );
+	Cbuf_Add( "weapselect {}", loadout );
 }
 
 static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
 	return Vec4( rgba.r / 255.0f, rgba.g / 255.0f, rgba.b / 255.0f, rgba.a / 255.0f );
 }
 
-static void WeaponButton( WeaponType weapon, Vec2 size ) {
+static bool LoadoutButton( const char * label, Vec2 icon_size, const Material * icon, bool selected ) {
+	ImGui::TableNextColumn();
+
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
 	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
@@ -919,10 +942,6 @@ static void WeaponButton( WeaponType weapon, Vec2 size ) {
 	ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
 	defer { ImGui::PopStyleVar( 2 ); };
 
-	const WeaponDef * def = GS_GetWeaponDef( weapon );
-	bool selected = selected_weapons[ def->category ] == weapon;
-
-	const Material * icon = cgs.media.shaderWeaponIcon[ weapon ];
 	Vec2 half_pixel = HalfPixelSize( icon );
 	Vec4 color = RGBA8ToVec4NosRGB( selected ? rgba8_diesel_yellow : rgba8_white ); // TODO...
 
@@ -930,28 +949,14 @@ static void WeaponButton( WeaponType weapon, Vec2 size ) {
 	ImGui::PushStyleColor( ImGuiCol_Border, color );
 	defer { ImGui::PopStyleColor( 2 ); };
 
-	bool clicked = ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
-	if( clicked ) {
-		selected_weapons[ def->category ] = weapon;
-		SendLoadout();
-	}
+	ImGui::PushID( label );
+	CellCenter( icon_size.x );
+	bool clicked = ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
+	ImGui::PopID();
 
-	ImGui::Text( "%s", def->name );
-}
+	CellCenterText( label );
 
-static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
-	ImGui::TableNextRow();
-	ImGui::TableSetColumnIndex( 0 );
-	ImGui::Text( "%s", label );
-	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
-
-	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
-		const WeaponDef * def = GS_GetWeaponDef( i );
-		if( def->category == category ) {
-			ImGui::TableNextColumn();
-			WeaponButton( i, icon_size );
-		}
-	}
+	return clicked;
 }
 
 static void Perks( Vec2 icon_size ) {
@@ -960,42 +965,58 @@ static void Perks( Vec2 icon_size ) {
 	ImGui::Text( "CLASS" );
 	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
 
-	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
-	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
-	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
-	defer { ImGui::PopStyleColor( 3 ); };
-
-	ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 2 );
-	ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
-	defer { ImGui::PopStyleVar( 2 ); };
-
-	const Material * icon = FindMaterial( "perks/midget" );
-	Vec2 half_pixel = HalfPixelSize( icon );
-	Vec4 color = selected_perk == Perk_Midget ? vec4_green : vec4_white;
-
-	ImGui::PushStyleColor( ImGuiCol_Border, color );
-	defer { ImGui::PopStyleColor(); };
-
-	ImGui::TableNextColumn();
-
-	bool clicked = ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
-	if( clicked ) {
-		selected_perk = selected_perk == Perk_Midget ? Perk_None : Perk_Midget;
-		SendLoadout();
+	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
+		const Material * icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );
+		if( LoadoutButton( GetPerkDef( i )->name, icon_size, icon, loadout.perk == i ) ) {
+			loadout.perk = i;
+			SendLoadout();
+		}
 	}
-
-	ImGui::Text( "MIDGET" );
 }
 
 static int CountWeaponCategory( WeaponCategory category ) {
 	int n = 0;
-	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( i );
 		if( def->category == category ) {
 			n++;
 		}
 	}
 	return n;
+}
+
+static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex( 0 );
+	ImGui::Text( "%s", label );
+	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+
+	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
+		const WeaponDef * def = GS_GetWeaponDef( i );
+		if( def->category == category ) {
+			const Material * icon = FindMaterial( cgs.media.shaderWeaponIcon[ i ] );
+			if( LoadoutButton( def->name, icon_size, icon, loadout.weapons[ def->category ] == i ) ) {
+				loadout.weapons[ def->category ] = i;
+				SendLoadout();
+			}
+		}
+	}
+}
+
+static void Gadgets( Vec2 icon_size ) {
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex( 0 );
+	ImGui::Text( "GADGET" );
+	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+
+	for( GadgetType i = GadgetType( Gadget_None + 1 ); i < Gadget_Count; i++ ) {
+		const GadgetDef * def = GetGadgetDef( i );
+		const Material * icon = FindMaterial( cgs.media.shaderGadgetIcon[ i ] );
+		if( LoadoutButton( def->name, icon_size, icon, loadout.gadget == i ) ) {
+			loadout.gadget = GadgetType( i );
+			SendLoadout();
+		}
+	}
 }
 
 static bool LoadoutMenu( Vec2 displaySize ) {
@@ -1005,13 +1026,15 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	ImGui::SetNextWindowSize( displaySize );
 	ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
+	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, Vec2( 0, displaySize.y * 0.02 ) );
 	Vec2 icon_size = Vec2( displaySize.x * 0.05f );
 
 	int cols = 0;
 	cols = Max2( CountWeaponCategory( WeaponCategory_Primary ), cols );
 	cols = Max2( CountWeaponCategory( WeaponCategory_Secondary ), cols );
 	cols = Max2( CountWeaponCategory( WeaponCategory_Backup ), cols );
-	cols = Max2( int( Gadget_Count ), cols );
+	cols = Max2( int( Gadget_Count ) - 1, cols );
+	cols = Max2( int( Perk_Count ) - 1, cols );
 
 	ImGui::BeginTable( "loadoutmenu", cols + 1 );
 
@@ -1019,6 +1042,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	LoadoutCategory( "PRIMARY", WeaponCategory_Primary, icon_size );
 	LoadoutCategory( "SECONDARY", WeaponCategory_Secondary, icon_size );
 	LoadoutCategory( "BACKUP", WeaponCategory_Backup, icon_size );
+	Gadgets( icon_size );
 
 	ImGui::EndTable();
 
@@ -1030,6 +1054,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 		should_close = true;
 	}
 
+	ImGui::PopStyleVar();
 	ImGui::PopStyleColor();
 	ImGui::PopFont();
 
@@ -1136,21 +1161,33 @@ static void GameMenu() {
 	else if( gamemenu_state == GameMenuState_Vote ) {
 		TempAllocator temp = cls.frame_arena.temp();
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( -1, -1 ) );
+		ImGui::SetNextWindowSize( ImVec2( displaySize.x * 0.5f, -1 ) );
 		ImGui::Begin( "votemap", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		static int e = 0;
-		ImGui::RadioButton( "Start match", &e, 0 ); ImGui::SameLine();
+		ImGui::Columns( 2, NULL, false );
+		ImGui::RadioButton( "Start match", &e, 0 );
 		ImGui::RadioButton( "Change map", &e, 1 );
+		ImGui::RadioButton( "Spectate", &e, 2 );
+		ImGui::RadioButton( "Kick", &e, 3 );
 
+		ImGui::NextColumn();
+
+		const char * vote;
+		const char * arg;
 		if( e == 0 ) {
-			GameMenuButton( "Start vote", "callvote start", &should_close );
+			vote = "start";
+			arg = "";
+		} else if( e == 1 ) {
+			vote = "map";
+			arg = SelectableMapList();
+		} else {
+			vote = e == 2 ? "spectate" : "kick";
+			arg = SelectablePlayerList();
 		}
 
-		if( e == 1 ) {
-			const char * map_name = SelectableMapList();
-			GameMenuButton( "Start vote", temp( "callvote map {}", map_name ), &should_close );
-		}
+		ImGui::Columns( 1 );
+		GameMenuButton( "Start vote", temp( "callvote {} {}", vote, arg ), &should_close );
 	}
 	else if( gamemenu_state == GameMenuState_Settings ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
@@ -1310,29 +1347,11 @@ void UI_HideMenu() {
 	uistate = UIState_Hidden;
 }
 
-void UI_ShowLoadoutMenu( Span< int > weapons, PerkType perk ) {
+void UI_ShowLoadoutMenu( Loadout new_loadout ) {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Loadout;
 
-	for( WeaponType & w : selected_weapons ) {
-		w = Weapon_None;
-	}
-
-	for( int w : weapons ) {
-		if( w <= Weapon_None || w >= Weapon_Count )
-			return;
-
-		WeaponCategory category = GS_GetWeaponDef( w )->category;
-		if( category == WeaponCategory_Count || selected_weapons[ category ] != Weapon_None )
-			return;
-
-		selected_weapons[ category ] = w;
-	}
-
-	if( perk < Perk_None || perk >= Perk_Count )
-		return;
-
-	selected_perk = perk;
+	loadout = new_loadout;
 
 	CL_SetKeyDest( key_menu );
 }

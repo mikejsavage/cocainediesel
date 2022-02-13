@@ -39,20 +39,14 @@ constexpr float FOV = 107.9f; // chosen to upset everyone equally
 constexpr RGB8 TEAM_COLORS[] = {
 	RGB8( 40, 204, 255 ),
 	RGB8( 255, 24, 96 ),
-//	RGB8( 50, 200, 90 ),
-//	RGB8( 210, 170, 0 ),
-};
-
-constexpr RGB8 COLORBLIND_TEAM_COLORS[] = {
-	RGB8( 80, 204, 255 ),
 	RGB8( 255, 150, 40 ),
-//	RGB8( 50, 200, 90 ),
-//	RGB8( 210, 170, 0 ),
+	RGB8( 190, 0, 240 ),
 };
 
 enum {
 	LOCALEFFECT_VSAY_TIMEOUT,
 	LOCALEFFECT_LASERBEAM,
+	LOCALEFFECT_JETPACK,
 
 	LOCALEFFECT_COUNT
 };
@@ -95,6 +89,9 @@ struct centity_t {
 	ImmediateSoundHandle lg_beam_sound;
 	ImmediateSoundHandle lg_tip_sound;
 
+	bool jetpack_boost;
+	ImmediateSoundHandle jetpack_sound;
+
 	ImmediateSoundHandle vsay_sound;
 
 	bool linearProjectileCanDraw;
@@ -118,8 +115,9 @@ struct cgs_media_t {
 	StringHash sfxWeaponHit[ 4 ];
 	StringHash sfxVSaySounds[ Vsay_Total ];
 
-	const Material * shaderWeaponIcon[ Weapon_Count ];
-	const Material * shaderGadgetIcon[ Gadget_Count ];
+	StringHash shaderWeaponIcon[ Weapon_Count ];
+	StringHash shaderGadgetIcon[ Gadget_Count ];
+	StringHash shaderPerkIcon[ Perk_Count ];
 };
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
@@ -269,6 +267,7 @@ void CG_RegisterMedia();
 //
 // cg_players.c
 //
+float CG_PlayerPitch( int entnum );
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 
 //
@@ -304,17 +303,15 @@ void CG_ScreenCrosshairShootUpdate( u16 refire_time );
 
 void CG_DrawKeyState( int x, int y, int w, int h, const char *key );
 
-void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border );
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border );
-void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color );
 
 void CG_InitDamageNumbers();
 void CG_AddDamageNumber( SyncEntityState * ent, u64 parm );
-void CG_DrawDamageNumbers();
+void CG_DrawDamageNumbers( float obi_size, float dmg_size );
 
 void CG_AddBomb( centity_t * cent );
 void CG_AddBombSite( centity_t * cent );
-void CG_DrawBombHUD();
+void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size );
 void CG_ResetBombHUD();
 
 void AddDamageEffect( float x = 0.0f );
@@ -430,7 +427,7 @@ void DrawPersistentBeams();
 //
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon );
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon );
-void CG_ViewWeapon_StartAnimationEvent( int newAnim );
+void CG_ViewWeapon_AddAnimation( int ent_num, StringHash anim );
 
 void CG_AddRecoil( WeaponType weapon );
 void CG_Recoil( WeaponType weapon );
@@ -448,6 +445,7 @@ void ResetAnnouncerSpeakers();
 void AddAnnouncerSpeaker( const centity_t * cent );
 
 // I don't know where to put these ones
+void CG_JetpackEffect( centity_t * cent );
 void CG_LaserBeamEffect( centity_t *cent );
 
 
@@ -470,7 +468,7 @@ void CG_MouseMove( int frameTime, Vec2 m );
 u8 CG_GetButtonBits();
 u8 CG_GetButtonDownEdges();
 Vec3 CG_GetDeltaViewAngles();
-Vec3 CG_GetMovement();
+Vec2 CG_GetMovement();
 
 /*
 * Returns angular movement vector (in euler angles) obtained from the input.

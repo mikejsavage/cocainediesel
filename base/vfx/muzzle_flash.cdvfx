@@ -1,0 +1,22 @@
+{
+  particles {
+    material textures/vfx/muzzle1
+    material textures/vfx/muzzle2
+    material textures/vfx/muzzle3
+    material textures/vfx/muzzle4
+    material textures/vfx/muzzle5
+    blendfunc blend
+    rotate
+
+    position cone 1 0
+    speed 500
+
+    color 1.0 0.7 0.0 1.0
+    end_color 1.0 0.7 0.0 1.0
+
+    size 30 0
+
+    lifetime 0.05
+    count 1
+  }
+}

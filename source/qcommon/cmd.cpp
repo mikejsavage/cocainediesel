@@ -322,8 +322,7 @@ void SetTabCompletionCallback( const char * name, TabCompletionCallback callback
 }
 
 Span< const char * > TabCompleteCommand( TempAllocator * a, const char * partial ) {
-	NonRAIIDynamicArray< const char * > results;
-	results.init( a );
+	NonRAIIDynamicArray< const char * > results( a );
 
 	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
 		const ConsoleCommand * command = &commands[ i ];
@@ -338,8 +337,7 @@ Span< const char * > TabCompleteCommand( TempAllocator * a, const char * partial
 }
 
 Span< const char * > SearchCommands( Allocator * a, const char * partial ) {
-	NonRAIIDynamicArray< const char * > results;
-	results.init( a );
+	NonRAIIDynamicArray< const char * > results( a );
 
 	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
 		const ConsoleCommand * command = &commands[ i ];
@@ -396,9 +394,7 @@ static void FindMatchingFilesRecursive( TempAllocator * a, NonRAIIDynamicArray< 
 Span< const char * > TabCompleteFilename( TempAllocator * a, const char * partial, const char * search_dir, const char * extension ) {
 	DynamicString base_path( sys_allocator, "{}", search_dir );
 
-	NonRAIIDynamicArray< const char * > results;
-	results.init( a );
-
+	NonRAIIDynamicArray< const char * > results( a );
 	FindMatchingFilesRecursive( a, &results, &base_path, partial, base_path.length() + 1, extension );
 
 	std::sort( results.begin(), results.end(), SortCStringsComparator );

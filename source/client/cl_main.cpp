@@ -120,22 +120,14 @@ void CL_UpdateClientCommandsToServer( msg_t *msg ) {
 
 void CL_ServerDisconnect_f() {
 	char menuparms[MAX_STRING_CHARS];
-	int type;
 	char reason[MAX_STRING_CHARS];
 
-	type = atoi( Cmd_Argv( 1 ) );
-	if( type < 0 || type >= DROP_TYPE_TOTAL ) {
-		type = DROP_TYPE_GENERAL;
-	}
-
-	Q_strncpyz( reason, Cmd_Argv( 2 ), sizeof( reason ) );
+	Q_strncpyz( reason, Cmd_Argv( 1 ), sizeof( reason ) );
 
 	CL_Disconnect_f();
 
-	Com_Printf( "Connection was closed by server: %s\n", reason );
-
-	snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
-				 DROP_REASON_CONNTERMINATED, type, reason );
+	Com_Printf( "Connection was closed by server: %s\n", reason );	
+	snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed rejectmessage \"%s\"", reason );
 
 	Cbuf_ExecuteLine( menuparms );
 }
@@ -325,10 +317,6 @@ void CL_SetKeyDest( keydest_t key_dest ) {
 	}
 }
 
-void CL_SetOldKeyDest( keydest_t key_dest ) {
-	cls.old_key_dest = key_dest;
-}
-
 void CL_ClearState() {
 	// wipe the entire cl structure
 	memset( &cl, 0, sizeof( client_state_t ) );
@@ -384,8 +372,6 @@ void CL_Disconnect( const char *message ) {
 		return;
 	}
 
-	bool wasconnecting = cls.state < CA_CONNECTED;
-
 	SV_ShutdownGame( "Owner left the listen server", false );
 
 	cls.connect_time = 0;
@@ -416,8 +402,7 @@ void CL_Disconnect( const char *message ) {
 
 	if( message != NULL ) {
 		char menuparms[MAX_STRING_CHARS];
-		snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
-					 ( wasconnecting ? DROP_REASON_CONNFAILED : DROP_REASON_CONNERROR ), DROP_TYPE_GENERAL, message );
+		snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed rejectmessage \"%s\"", message );
 
 		Cbuf_ExecuteLine( menuparms );
 	}
@@ -582,11 +567,6 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 
 		cls.rejected = true;
 
-		cls.rejecttype = atoi( MSG_ReadStringLine( msg ) );
-		if( cls.rejecttype < 0 || cls.rejecttype >= DROP_TYPE_TOTAL ) {
-			cls.rejecttype = DROP_TYPE_GENERAL;
-		}
-
 		rejectflag = atoi( MSG_ReadStringLine( msg ) );
 
 		Q_strncpyz( cls.rejectmessage, MSG_ReadStringLine( msg ), sizeof( cls.rejectmessage ) );
@@ -605,8 +585,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 			Com_Printf( "Automatic reconnecting not allowed.\n" );
 
 			CL_Disconnect( NULL );
-			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed dropreason %i droptype %i rejectmessage \"%s\"",
-						 DROP_REASON_CONNFAILED, cls.rejecttype, cls.rejectmessage );
+			snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed rejectmessage \"%s\"", cls.rejectmessage );
 
 			Cbuf_ExecuteLine( menuparms );
 		}
@@ -698,7 +677,7 @@ void CL_ReadPackets() {
 
 		while( socket->open && ( ret = NET_GetPacket( socket, &address, &msg ) ) != 0 ) {
 			if( ret == -1 ) {
-				Com_Printf( "Error receiving packet with %s: %s\n", NET_SocketToString( socket ), NET_ErrorString() );
+				Com_Printf( "Error receiving packet: %s\n", NET_ErrorString() );
 
 				continue;
 			}
@@ -771,8 +750,10 @@ void CL_ReadPackets() {
 static int precache_spawncount;
 
 void CL_FinishConnect() {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	CL_GameModule_Init();
-	CL_AddReliableCommand( va( "begin %i\n", precache_spawncount ) );
+	CL_AddReliableCommand( temp( "begin {}\n", precache_spawncount ) );
 }
 
 static bool AddDownloadedMap( const char * filename, Span< const u8 > compressed ) {
@@ -1186,8 +1167,9 @@ void CL_SendMessagesToServer( bool sendNow ) {
 		MSG_WriteIntBase128( &message, cls.lastExecutedServerCommand );
 		// send a userinfo update if needed
 		if( userinfo_modified ) {
+			TempAllocator temp = cls.frame_arena.temp();
+			CL_AddReliableCommand( temp( "usri \"{}\"", Cvar_GetUserInfo() ) );
 			userinfo_modified = false;
-			CL_AddReliableCommand( va( "usri \"%s\"", Cvar_GetUserInfo() ) );
 		}
 		CL_UpdateClientCommandsToServer( &message );
 		CL_WriteUcmdsToMessage( &message );
@@ -1265,13 +1247,13 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	CL_NetFrame( realMsec, gameMsec );
 	PumpDownloads();
 
-	const int absMinFps = 24;
+	constexpr int absMinFps = 24;
 
 	// do not allow setting cl_maxfps to very low values to prevent cheating
 	if( cl_maxfps->integer < absMinFps ) {
 		Cvar_SetInteger( "cl_maxfps", absMinFps );
 	}
-	float maxFps = IsWindowFocused() ? cl_maxfps->number : absMinFps;
+	float maxFps = IFDEF( PLATFORM_LINUX ) || IsWindowFocused() ? cl_maxfps->number : absMinFps;
 	int minMsec = Max2( 1000.0f / maxFps, 1.0f );
 	roundingMsec += Max2( 1000.0f / maxFps, 1.0f ) - minMsec;
 

@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/cmodel.h"
 #include "qcommon/version.h"
 
-void PF_DropClient( edict_t *ent, int type, const char *message ) {
+void PF_DropClient( edict_t *ent, const char *message ) {
 	int p;
 	client_t *drop;
 
@@ -37,9 +37,9 @@ void PF_DropClient( edict_t *ent, int type, const char *message ) {
 
 	drop = svs.clients + ( p - 1 );
 	if( message ) {
-		SV_DropClient( drop, type, "%s", message );
+		SV_DropClient( drop, "%s", message );
 	} else {
-		SV_DropClient( drop, type, NULL );
+		SV_DropClient( drop, NULL );
 	}
 }
 

@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 game_locals_t game;
 gs_state_t server_gs;
 level_locals_t level;
-spawn_temp_t st;
 
 DamageType meansOfDeath;
 Vec3 knockbackOfDeath;

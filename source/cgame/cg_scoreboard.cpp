@@ -20,15 +20,15 @@ static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float l
 	const Material * icon = NULL;
 
 	if( warmup ) {
-		icon = player->ready ? FindMaterial( "gfx/scoreboard/ready" ) : NULL;
+		icon = player->ready ? FindMaterial( "hud/icons/ready" ) : NULL;
 	}
 	else {
 		bool carrier = player->carrier && ( ISREALSPECTATOR() || cg_entities[ playerIndex ].current.team == cg.predictedPlayerState.team );
 		if( player->alive ) {
-			icon = carrier ? FindMaterial( "gfx/bomb" ) : FindMaterial( "gfx/scoreboard/alive" );
+			icon = carrier ? FindMaterial( "hud/icons/bomb" ) : FindMaterial( "hud/icons/alive" );
 		}
 		else {
-			icon = FindMaterial( "gfx/scoreboard/dead" );
+			icon = FindMaterial( "hud/icons/dead" );
 		}
 	}
 
@@ -148,7 +148,7 @@ void CG_DrawScoreboard() {
 	};
 
 	float col_width = 80;
-	u8 alpha = 242;
+	u8 alpha = 255;
 
 	if( GS_TeamBasedGametype( &client_gs ) ) {
 		float score_width = 5 * ( ImGui::GetTextLineHeight() + 2 * 8 );

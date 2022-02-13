@@ -4,23 +4,11 @@
 #include "qcommon/hash.h"
 
 u32 Hash32( const void * data, size_t n, u32 hash ) {
-	const u32 prime = U32( 16777619 );
-
-	const char * cdata = ( const char * ) data;
-	for( size_t i = 0; i < n; i++ ) {
-		hash = ( hash ^ cdata[ i ] ) * prime;
-	}
-	return hash;
+	return Hash32_CT( ( const char * ) data, n, hash );
 }
 
 u64 Hash64( const void * data, size_t n, u64 hash ) {
-	const u64 prime = U64( 1099511628211 );
-
-	const char * cdata = ( const char * ) data;
-	for( size_t i = 0; i < n; i++ ) {
-		hash = ( hash ^ cdata[ i ] ) * prime;
-	}
-	return hash;
+	return Hash64_CT( ( const char * ) data, n, hash );
 }
 
 u32 Hash32( const char * str ) {

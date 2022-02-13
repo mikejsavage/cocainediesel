@@ -338,13 +338,7 @@ const cmodel_t *CG_CModelForEntity( int entNum ) {
 }
 
 static void CG_UpdateGenericEnt( centity_t *cent ) {
-	// start from clean
-	memset( &cent->interpolated, 0, sizeof( cent->interpolated ) );
-	cent->interpolated.scale = 1.0f;
-	cent->interpolated.color = RGBA8( CG_TeamColor( cent->current.team ) );
-
-	// set up the model
-	cent->interpolated.model = FindModel( cent->current.model );
+	cent->interpolated.color = RGBA8( CG_TeamColor( cent->prev.team ) );
 }
 
 void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
@@ -352,6 +346,7 @@ void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 
 	cent->interpolated.origin = cent->current.origin;
 	cent->interpolated.origin2 = cent->current.origin;
+	cent->interpolated.scale = cent->current.scale;
 
 	AnglesToAxis( cent->current.angles, cent->interpolated.axis );
 }
@@ -425,23 +420,26 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 		}
 	}
 
-	cent->interpolated.animating = cent->current.animating;
+	cent->interpolated.scale = Lerp( cent->prev.scale, cg.lerpfrac, cent->current.scale );
+
+	cent->interpolated.animating = cent->prev.animating;
 	cent->interpolated.animation_time = Lerp( cent->prev.animation_time, cg.lerpfrac, cent->current.animation_time );
 }
 
 static void DrawEntityModel( centity_t * cent ) {
-	if( cent->interpolated.scale == 0.0f ) {
+	Vec3 scale = cent->interpolated.scale;
+	if( scale.x == 0.0f || scale.y == 0.0f || scale.z == 0.0f ) {
 		return;
 	}
 
-	if( cent->interpolated.model == NULL ) {
+	const Model * model = FindModel( cent->prev.model );
+	if( model == NULL ) {
 		return;
 	}
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	const Model * model = cent->interpolated.model;
-	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->current.scale );
+	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( scale );
 
 	Vec4 color = sRGBToLinear( cent->interpolated.color );
 
@@ -506,7 +504,7 @@ static void CG_LerpLaser( centity_t *cent ) {
 }
 
 static void CG_AddLaserEnt( centity_t *cent ) {
-	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, vec4_white, "gfx/misc/laser" );
+	DrawBeam( cent->interpolated.origin, cent->interpolated.origin2, cent->current.radius, vec4_white, "entities/laser/laser" );
 }
 
 static void CG_UpdateLaserbeamEnt( centity_t *cent ) {
@@ -727,6 +725,7 @@ void DrawEntities() {
 				CG_AddPlayerEnt( cent );
 				CG_EntityLoopSound( cent, state );
 				CG_LaserBeamEffect( cent );
+				CG_JetpackEffect( cent );
 				CG_PlayVsay( cent );
 				break;
 
@@ -749,7 +748,7 @@ void DrawEntities() {
 
 			case ET_JUMPPAD:
 			case ET_PAINKILLER_JUMPPAD:
-				CG_EntityLoopSound( cent, state );
+				DrawEntityModel( cent );
 				break;
 
 			case ET_EVENT:
@@ -799,6 +798,8 @@ void CG_LerpEntities() {
 
 		switch( cent->type ) {
 			case ET_GENERIC:
+			case ET_JUMPPAD:
+			case ET_PAINKILLER_JUMPPAD:
 			case ET_ROCKET:
 			case ET_ARBULLET:
 			case ET_BUBBLE:
@@ -826,10 +827,6 @@ void CG_LerpEntities() {
 				CG_LerpLaserbeamEnt( cent );
 				break;
 
-			case ET_JUMPPAD:
-			case ET_PAINKILLER_JUMPPAD:
-				break;
-
 			case ET_EVENT:
 			case ET_SOUNDEVENT:
 				break;
@@ -842,6 +839,7 @@ void CG_LerpEntities() {
 				break;
 
 			case ET_SPIKES:
+				CG_LerpGenericEnt( cent );
 				CG_LerpSpikes( cent );
 				break;
 
@@ -888,6 +886,7 @@ void CG_UpdateEntities() {
 
 			case ET_PLAYER:
 			case ET_CORPSE:
+				CG_UpdateGenericEnt( cent );
 				CG_UpdatePlayerModelEnt( cent );
 				break;
 

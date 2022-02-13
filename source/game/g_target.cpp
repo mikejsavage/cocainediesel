@@ -24,22 +24,15 @@ static void target_laser_think( edict_t *self ) {
 	trace_t tr;
 	Vec3 point;
 	Vec3 last_movedir;
-	int count;
 
 	// our lifetime has expired
-	if( self->delay && ( self->wait * 1000 < level.time ) ) {
+	if( self->delay && self->wait < level.time ) {
 		if( self->r.owner && self->r.owner->use ) {
 			G_CallUse( self->r.owner, self, self->activator );
 		}
 
 		G_FreeEdict( self );
 		return;
-	}
-
-	if( self->spawnflags & 0x80000000 ) {
-		count = 8;
-	} else {
-		count = 4;
 	}
 
 	if( self->enemy ) {
@@ -66,22 +59,18 @@ static void target_laser_think( edict_t *self ) {
 			if( game.edicts[tr.ent].r.client && self->activator->r.client ) {
 				if( !level.gametype.isTeamBased ||
 					game.edicts[tr.ent].s.team != self->activator->s.team ) {
-					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, self->count );
+					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, WorldDamage_Laser );
 				}
 			} else {
-				G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, self->count );
+				G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, WorldDamage_Laser );
 			}
 		}
 
 		// if we hit something that's not a monster or player or is immune to lasers, we're done
 		if( !game.edicts[tr.ent].r.client ) {
 			if( self->spawnflags & 0x80000000 ) {
-				edict_t *event;
-
 				self->spawnflags &= ~0x80000000;
-
-				event = G_SpawnEvent( EV_LASER_SPARKS, DirToU64( tr.plane.normal ), &tr.endpos );
-				event->s.counterNum = count;
+				G_SpawnEvent( EV_LASER_SPARKS, DirToU64( tr.plane.normal ), &tr.endpos );
 			}
 			break;
 		}
@@ -104,7 +93,7 @@ static void target_laser_on( edict_t *self ) {
 	}
 	self->spawnflags |= 0x80000001;
 	self->s.svflags &= ~SVF_NOCLIENT;
-	self->wait = level.time * 0.001f + self->delay;
+	self->wait = level.time + self->delay;
 	target_laser_think( self );
 }
 
@@ -123,12 +112,11 @@ static void target_laser_use( edict_t *self, edict_t *other, edict_t *activator 
 	}
 }
 
-void target_laser_start( edict_t *self ) {
+static void target_laser_start( edict_t *self ) {
 	self->movetype = MOVETYPE_NONE;
 	self->r.solid = SOLID_NOT;
 	self->s.type = ET_LASER;
 	self->s.svflags = 0;
-	self->s.radius = st.size > 0 ? st.size : 8;
 	self->s.sound = "sounds/gladiator/laser_hum";
 
 	if( !self->enemy ) {
@@ -158,32 +146,33 @@ void target_laser_start( edict_t *self ) {
 	}
 }
 
-void SP_target_laser( edict_t *self ) {
+void SP_target_laser( edict_t * ent, const spawn_temp_t * st ) {
 	// let everything else get spawned before we start firing
-	self->think = target_laser_start;
-	self->nextThink = level.time + 1;
-	self->count = WorldDamage_Laser;
+	ent->think = target_laser_start;
+	ent->nextThink = level.time + 1;
+	ent->count = WorldDamage_Laser;
+	ent->s.radius = st->size > 0 ? st->size : 8;
 }
 
-void SP_target_position( edict_t *self ) { }
+void SP_target_position( edict_t * self, const spawn_temp_t * st ) { }
 
-static void target_delay_think( edict_t *ent ) {
+static void target_delay_think( edict_t * ent ) {
 	G_UseTargets( ent, ent->activator );
 }
 
 static void target_delay_use( edict_t *ent, edict_t *other, edict_t *activator ) {
-	ent->nextThink = level.time + 1000 * ( ent->wait + ent->random * RandomFloat11( &svs.rng ) );
+	ent->nextThink = level.time + ent->wait + ent->wait_randomness * RandomFloat11( &svs.rng );
 	ent->think = target_delay_think;
 	ent->activator = activator;
 }
 
-void SP_target_delay( edict_t *ent ) {
+void SP_target_delay( edict_t * ent, const spawn_temp_t * st ) {
 	// check the "delay" key for backwards compatibility with Q3 maps
 	if( ent->delay ) {
 		ent->wait = ent->delay;
 	}
 	if( !ent->wait ) {
-		ent->wait = 1.0;
+		ent->wait = 1000;
 	}
 
 	ent->delay = 0;

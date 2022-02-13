@@ -1,6 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
+#include "qcommon/hash.h"
 #include "qcommon/sys_fs.h"
 #include "gameshared/q_shared.h"
 
@@ -11,7 +12,7 @@
 #include "materials.h"
 
 struct Material {
-	Span< const char > name;
+	u64 name;
 	u32 surface_flags;
 	u32 content_flags;
 };
@@ -85,7 +86,9 @@ static Span< const char > ParseMaterial( Span< const char > str ) {
 	Material material = { };
 	material.content_flags = CONTENTS_SOLID;
 
-	str = ParseWord( &material.name, str );
+	Span< const char > material_name;
+	str = ParseWord( &material_name, str );
+	material.name = Hash64( material_name );
 	str = SkipToken( str, "{" );
 	str = PEGNOrMore( str, 0, [&]( Span< const char > str ) {
 		return PEGOr( str,
@@ -174,13 +177,13 @@ void ShutdownMaterials() {
 	}
 }
 
-void GetMaterialFlags( Span< const char > name, u32 * surface_flags, u32 * content_flags ) {
+void GetMaterialFlags( u64 name, u32 * surface_flags, u32 * content_flags ) {
 	*surface_flags = 0;
 	*content_flags = CONTENTS_SOLID;
 
 	for( u32 i = 0; i < num_materials; i++ ) {
 		const Material * material = &materials[ i ];
-		if( !StrEqual( material->name, name ) )
+		if( material->name != name )
 			continue;
 
 		*surface_flags = material->surface_flags;
@@ -190,10 +193,10 @@ void GetMaterialFlags( Span< const char > name, u32 * surface_flags, u32 * conte
 	}
 }
 
-bool IsNodrawMaterial( Span< const char > name ) {
+bool IsNodrawMaterial( u64 name ) {
 	for( u32 i = 0; i < num_materials; i++ ) {
 		const Material * material = &materials[ i ];
-		if( StrEqual( material->name, name ) ) {
+		if( material->name == name ) {
 			return material->surface_flags & SURF_NODRAW;
 		}
 	}

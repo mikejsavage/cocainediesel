@@ -29,7 +29,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/string.h"
 #include "qcommon/version.h"
 
-#define SV_DEMO_DIR va( "demos/server%s%s", sv_demodir->value[0] ? "/" : "", sv_demodir->value[0] ? sv_demodir->value : "" )
+static const char * GetDemoDir( TempAllocator * temp ) {
+	return StrEqual( sv_demodir->value, "" ) ? "demos" : ( *temp )( "demos/{}", sv_demodir->value );
+}
 
 static void SV_Demo_WriteMessage( msg_t *msg ) {
 	assert( svs.demo.file );
@@ -44,7 +46,8 @@ static void SV_Demo_WriteStartMessages() {
 	memset( svs.demo.meta_data, 0, sizeof( svs.demo.meta_data ) );
 	svs.demo.meta_data_realsize = 0;
 
-	SNAP_BeginDemoRecording( svs.demo.file, svs.spawncount, svc.snapFrameTime, sv.configstrings[0], sv.baselines );
+	TempAllocator temp = svs.frame_arena.temp();
+	SNAP_BeginDemoRecording( &temp, svs.demo.file, svs.spawncount, svc.snapFrameTime, sv.configstrings[0], sv.baselines );
 }
 
 void SV_Demo_WriteSnap() {
@@ -135,7 +138,8 @@ void SV_Demo_Start_f() {
 		return;
 	}
 
-	svs.demo.filename = ( *sys_allocator )( "{}/{}" APP_DEMO_EXTENSION_STR, SV_DEMO_DIR, Cmd_Argv( 1 ) );
+	TempAllocator temp = svs.frame_arena.temp();
+	svs.demo.filename = ( *sys_allocator )( "{}/{}.cddemo", GetDemoDir( &temp ), Cmd_Argv( 1 ) );
 	COM_SanitizeFilePath( svs.demo.filename );
 
 	svs.demo.tempname = ( *sys_allocator )( "{}.rec", svs.demo.filename );
@@ -228,8 +232,10 @@ void SV_Demo_Cancel_f() {
 	SV_Demo_Stop( true, atoi( Cmd_Argv( 1 ) ) != 0 );
 }
 
-static void GetServerDemos( DynamicArray< char * > * demos ) {
-	ListDirHandle scan = BeginListDir( sys_allocator, SV_DEMO_DIR );
+static Span< char * > GetServerDemos( TempAllocator * temp ) {
+	NonRAIIDynamicArray< char * > demos( temp );
+
+	ListDirHandle scan = BeginListDir( sys_allocator, GetDemoDir( temp ) );
 
 	const char * name;
 	bool dir;
@@ -241,10 +247,12 @@ static void GetServerDemos( DynamicArray< char * > * demos ) {
 		if( dir || FileExtension( name ) != APP_DEMO_EXTENSION_STR )
 			continue;
 
-		demos->add( CopyString( sys_allocator, name ) );
+		demos.add( CopyString( sys_allocator, name ) );
 	}
 
-	std::sort( demos->begin(), demos->end(), SortCStringsComparator );
+	std::sort( demos.begin(), demos.end(), SortCStringsComparator );
+
+	return demos.span();
 }
 
 void SV_Demo_Purge_f() {
@@ -253,9 +261,7 @@ void SV_Demo_Purge_f() {
 	}
 
 	TempAllocator temp = svs.frame_arena.temp();
-
-	DynamicArray< char * > demos( &temp );
-	GetServerDemos( &demos );
+	Span< char * > demos = GetServerDemos( &temp );
 	defer {
 		for( char * demo : demos ) {
 			FREE( sys_allocator, demo );
@@ -278,7 +284,7 @@ void SV_Demo_Purge_f() {
 
 	size_t to_remove = auto_demos.size() - keep;
 	for( size_t i = 0; i < to_remove; i++ ) {
-		DynamicString path( &temp, "{}/{}", SV_DEMO_DIR, auto_demos[ i ] );
+		DynamicString path( &temp, "{}/{}", GetDemoDir( &temp ), auto_demos[ i ] );
 		if( RemoveFile( &temp, path.c_str() ) ) {
 			Com_GGPrint( "Removed old autorecord demo: {}", path );
 		}
@@ -290,9 +296,7 @@ void SV_Demo_Purge_f() {
 
 void SV_DemoList_f( edict_t * ent ) {
 	TempAllocator temp = svs.frame_arena.temp();
-
-	DynamicArray< char * > demos( &temp );
-	GetServerDemos( &demos );
+	Span< char * > demos = GetServerDemos( &temp );
 	defer {
 		for( char * demo : demos ) {
 			FREE( sys_allocator, demo );
@@ -301,9 +305,9 @@ void SV_DemoList_f( edict_t * ent ) {
 
 	DynamicString output( &temp, "pr \"Available demos:\n" );
 
-	size_t start = demos.size() - Min2( demos.size(), size_t( 10 ) );
+	size_t start = demos.n - Min2( demos.n, size_t( 10 ) );
 
-	for( size_t i = start; i < demos.size(); i++ ) {
+	for( size_t i = start; i < demos.n; i++ ) {
 		output.append( "{}: {}\n", i + 1, demos[ i ] );
 	}
 
@@ -318,9 +322,7 @@ void SV_DemoGetUrl_f( edict_t * ent ) {
 	}
 
 	TempAllocator temp = svs.frame_arena.temp();
-
-	DynamicArray< char * > demos( &temp );
-	GetServerDemos( &demos );
+	Span< char * > demos = GetServerDemos( &temp );
 	defer {
 		for( char * demo : demos ) {
 			FREE( sys_allocator, demo );
@@ -329,14 +331,15 @@ void SV_DemoGetUrl_f( edict_t * ent ) {
 
 	Span< const char > arg = MakeSpan( Cmd_Argv( 1 ) );
 	int id;
-	if( !TrySpanToInt( arg, &id ) || id <= 0 || id > demos.size() ) {
-		PF_GameCmd( ent, "pr \"demoget <id from demolist>\"" );
+	if( !TrySpanToInt( arg, &id ) || id <= 0 || id > demos.n ) {
+		PF_GameCmd( ent, "pr \"demoget <id from demolist>\"\n" );
 		return;
 	}
 
-	PF_GameCmd( ent, temp( "downloaddemo \"{}/{}\"", SV_DEMO_DIR, demos[ id - 1 ] ) );
+	PF_GameCmd( ent, temp( "downloaddemo \"{}/{}\"", GetDemoDir( &temp ), demos[ id - 1 ] ) );
 }
 
 bool SV_IsDemoDownloadRequest( const char * request ) {
-	return StartsWith( request, SV_DEMO_DIR ) && EndsWith( request, APP_DEMO_EXTENSION_STR );
+	TempAllocator temp = svs.frame_arena.temp();
+	return StartsWith( request, GetDemoDir( &temp ) ) && EndsWith( request, APP_DEMO_EXTENSION_STR );
 }

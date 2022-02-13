@@ -33,10 +33,6 @@ constexpr Vec3 playerbox_stand_mins = Vec3( -16, -16, -24 );
 constexpr Vec3 playerbox_stand_maxs = Vec3( 16, 16, 40 );
 constexpr int playerbox_stand_viewheight = 30;
 
-constexpr Vec3 playerbox_crouch_mins = Vec3( -16, -16, -24 );
-constexpr Vec3 playerbox_crouch_maxs = Vec3( 16, 16, 39 );
-constexpr int playerbox_crouch_viewheight = 30;
-
 constexpr Vec3 playerbox_gib_mins = Vec3( -16, -16, 0 );
 constexpr Vec3 playerbox_gib_maxs = Vec3( 16, 16, 16 );
 constexpr int playerbox_gib_viewheight = 8;
@@ -48,7 +44,6 @@ constexpr int playerbox_gib_viewheight = 8;
 constexpr int PLAYER_MASS = 200;
 
 #define ZOOMTIME 60
-#define CROUCHTIME 100
 #define PROJECTILE_PRESTEP 100
 
 //==================================================================
@@ -105,11 +100,11 @@ struct gs_state_t {
 
 //==================================================================
 
-#define ATTN_NONE               0       // full volume the entire level
-#define ATTN_DISTANT            0.5     // distant sound (most likely explosions)
-#define ATTN_NORM               1       // players, weapons, etc
-#define ATTN_IDLE               2.5     // stuff around you
-#define ATTN_STATIC             5       // diminish very rapidly with distance
+#define ATTN_NONE               0.0f    // full volume the entire level
+#define ATTN_DISTANT            0.5f    // distant sound (most likely explosions)
+#define ATTN_NORM               1.0f    // players, weapons, etc
+#define ATTN_IDLE               2.5f    // stuff around you
+#define ATTN_STATIC             5.0f    // diminish very rapidly with distance
 
 // sound channels
 // CHAN_AUTO never willingly overrides
@@ -161,13 +156,11 @@ int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec
 //===============================================================
 
 // pmove->pm_features
-#define PMFEAT_CROUCH           ( 1 << 0 )
-#define PMFEAT_JUMP             ( 1 << 1 )
-#define PMFEAT_SPECIAL          ( 1 << 2 )
-#define PMFEAT_SCOPE            ( 1 << 3 )
-#define PMFEAT_GHOSTMOVE        ( 1 << 4 )
-#define PMFEAT_WEAPONSWITCH     ( 1 << 5 )
-#define PMFEAT_TEAMGHOST        ( 1 << 6 )
+#define PMFEAT_ABILITIES        ( 1 << 0 )
+#define PMFEAT_SCOPE            ( 1 << 1 )
+#define PMFEAT_GHOSTMOVE        ( 1 << 2 )
+#define PMFEAT_WEAPONSWITCH     ( 1 << 3 )
+#define PMFEAT_TEAMGHOST        ( 1 << 4 )
 
 #define PMFEAT_ALL              ( 0xFFFF )
 #define PMFEAT_DEFAULT          ( PMFEAT_ALL & ~PMFEAT_GHOSTMOVE & ~PMFEAT_TEAMGHOST )
@@ -233,6 +226,9 @@ enum {
 	Vsay_User,
 	Vsay_Guyman,
 	Vsay_Helena,
+	Vsay_Fart,
+	Vsay_Zombie,
+	Vsay_Larp,
 
 	Vsay_Total
 };
@@ -249,12 +245,14 @@ enum EventType {
 	EV_USEGADGET,
 	EV_SMOOTHREFIREWEAPON,
 	EV_NOAMMOCLICK,
+	EV_RELOAD,
 	EV_ZOOM_IN,
 	EV_ZOOM_OUT,
 
 	EV_DASH,
 
 	EV_WALLJUMP,
+	EV_JETPACK,
 	EV_JUMP,
 	EV_JUMP_PAD,
 	EV_FALL,
@@ -326,6 +324,11 @@ enum EventType {
 	EV_VFX,
 
 	MAX_EVENTS = 128
+};
+
+enum JumpType : u8 {
+	JumpType_Normal,
+	JumpType_MidgetCharge
 };
 
 enum playerstate_event_t {

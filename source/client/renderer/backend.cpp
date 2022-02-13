@@ -370,10 +370,9 @@ static void DebugOutputCallback(
 	const GLchar * message, const void * _
 ) {
 	if(
-	    source == 33352 || // shader compliation errors
+	    source == 33352 || // shader compilation errors
 	    id == 131169 ||
 	    id == 131185 ||
-	    id == 131201 || // TBO resized
 	    id == 131218 ||
 	    id == 131204
 	) {
@@ -973,6 +972,11 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	TracyGpuZone( "Draw call" );
 
 	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
+
+	if( dc.instance_type == InstanceType_ComputeShader ) {
+		glDispatchCompute( 1, 1, 1 );
+		return;
+	}
 
 	glBindVertexArray( dc.mesh.vao );
 	GLenum primitive = PrimitiveTypeToGL( dc.mesh.primitive_type );
@@ -1611,33 +1615,30 @@ static constexpr const char * FRAGMENT_SHADER_PRELUDE =
 	"#define FRAGMENT_SHADER 1\n"
 	"#define v2f in\n";
 
-static GLuint CompileShader( GLenum type, Span< const char * > srcs, Span< int > lens ) {
-	const char * full_srcs[ 64 ];
-	int full_lens[ 64 ];
-	GLsizei n = 0;
+static GLuint CompileShader( GLenum type, Span< Span< const char > > srcs ) {
+	TempAllocator temp = cls.frame_arena.temp();
 
-	full_srcs[ n ] = "#version 430\n";
-	full_lens[ n ] = -1;
-	n++;
+	DynamicArray< const char * > src_ptrs( &temp );
+	DynamicArray< int > src_lens( &temp );
 
-	full_srcs[ n ] = type == GL_VERTEX_SHADER ? VERTEX_SHADER_PRELUDE : FRAGMENT_SHADER_PRELUDE;
-	full_lens[ n ] = -1;
-	n++;
+	src_ptrs.add( "#version 430 core\n" );
+	src_lens.add( -1 );
 
-	full_srcs[ n ] = "#define MAX_JOINTS " STRINGIFY( MAX_GLSL_UNIFORM_JOINTS ) "\n";
-	full_lens[ n ] = -1;
-	n++;
+	if( type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER ) {
+		src_ptrs.add( type == GL_VERTEX_SHADER ? VERTEX_SHADER_PRELUDE : FRAGMENT_SHADER_PRELUDE );
+		src_lens.add( -1 );
 
-	assert( n + srcs.n <= ARRAY_COUNT( full_srcs ) );
+		src_ptrs.add( "#define MAX_JOINTS " STRINGIFY( MAX_GLSL_UNIFORM_JOINTS ) "\n" );
+		src_lens.add( -1 );
+	}
 
-	for( size_t i = 0; i < srcs.n; i++ ) {
-		full_srcs[ n ] = srcs[ i ];
-		full_lens[ n ] = lens[ i ];
-		n++;
+	for( Span< const char > fragment : srcs ) {
+		src_ptrs.add( fragment.ptr );
+		src_lens.add( checked_cast< int >( fragment.n ) );
 	}
 
 	GLuint shader = glCreateShader( type );
-	glShaderSource( shader, n, full_srcs, full_lens );
+	glShaderSource( shader, src_ptrs.size(), src_ptrs.ptr(), src_lens.ptr() );
 	glCompileShader( shader );
 
 	GLint status;
@@ -1651,7 +1652,7 @@ static GLuint CompileShader( GLenum type, Span< const char * > srcs, Span< int >
 
 		// static char src[ 65536 ];
 		// glGetShaderSource( shader, sizeof( src ), NULL, src );
-		// printf( "%s\n", src );
+		// Com_Printf( "%s\n", src );
 
 		return 0;
 	}
@@ -1659,71 +1660,7 @@ static GLuint CompileShader( GLenum type, Span< const char * > srcs, Span< int >
 	return shader;
 }
 
-bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Span< const char * > feedback_varyings, bool particle_vertex_attribs ) {
-	*shader = { };
-	bool feedback = feedback_varyings.n > 0;
-
-	GLuint vs = CompileShader( GL_VERTEX_SHADER, srcs, lens );
-	if( vs == 0 )
-		return false;
-	defer { glDeleteShader( vs ); };
-
-	GLuint fs = 0;
-	if( !feedback ) {
-		fs = CompileShader( GL_FRAGMENT_SHADER, srcs, lens );
-		if( fs == 0 )
-			return false;
-	}
-	defer {
-		if( fs != 0 ) {
-			glDeleteShader( fs );
-		}
-	};
-
-	GLuint program = glCreateProgram();
-	glAttachShader( program, vs );
-	if( !feedback ) {
-		glAttachShader( program, fs );
-	}
-
-	if( particle_vertex_attribs ) {
-		glBindAttribLocation( program, VertexAttribute_Position, "a_Position" );
-		glBindAttribLocation( program, VertexAttribute_Normal, "a_Normal" );
-		glBindAttribLocation( program, VertexAttribute_TexCoord, "a_TexCoord" );
-		glBindAttribLocation( program, VertexAttribute_ParticlePosition, "a_ParticlePosition" );
-		glBindAttribLocation( program, VertexAttribute_ParticleVelocity, "a_ParticleVelocity" );
-		glBindAttribLocation( program, VertexAttribute_ParticleAccelDragRest, "a_ParticleAccelDragRest" );
-		glBindAttribLocation( program, VertexAttribute_ParticleUVWH, "a_ParticleUVWH" );
-		glBindAttribLocation( program, VertexAttribute_ParticleStartColor, "a_ParticleStartColor" );
-		glBindAttribLocation( program, VertexAttribute_ParticleEndColor, "a_ParticleEndColor" );
-		glBindAttribLocation( program, VertexAttribute_ParticleSize, "a_ParticleSize" );
-		glBindAttribLocation( program, VertexAttribute_ParticleAgeLifetime, "a_ParticleAgeLifetime" );
-		glBindAttribLocation( program, VertexAttribute_ParticleFlags, "a_ParticleFlags" );
-	}
-	else {
-		glBindAttribLocation( program, VertexAttribute_Position, "a_Position" );
-		glBindAttribLocation( program, VertexAttribute_Normal, "a_Normal" );
-		glBindAttribLocation( program, VertexAttribute_TexCoord, "a_TexCoord" );
-		glBindAttribLocation( program, VertexAttribute_Color, "a_Color" );
-		glBindAttribLocation( program, VertexAttribute_JointIndices, "a_JointIndices" );
-		glBindAttribLocation( program, VertexAttribute_JointWeights, "a_JointWeights" );
-		glBindAttribLocation( program, VertexAttribute_MaterialColor, "a_MaterialColor" );
-		glBindAttribLocation( program, VertexAttribute_MaterialTextureMatrix0, "a_MaterialTextureMatrix0" );
-		glBindAttribLocation( program, VertexAttribute_MaterialTextureMatrix1, "a_MaterialTextureMatrix1" );
-		glBindAttribLocation( program, VertexAttribute_OutlineHeight, "a_OutlineHeight" );
-		glBindAttribLocation( program, VertexAttribute_ModelTransformRow0, "a_ModelTransformRow0" );
-		glBindAttribLocation( program, VertexAttribute_ModelTransformRow1, "a_ModelTransformRow1" );
-		glBindAttribLocation( program, VertexAttribute_ModelTransformRow2, "a_ModelTransformRow2" );
-	}
-
-	if( !feedback ) {
-		glBindFragDataLocation( program, 0, "f_Albedo" );
-		glBindFragDataLocation( program, 1, "f_Normal" );
-	}
-	else {
-		glTransformFeedbackVaryings( program, feedback_varyings.n, feedback_varyings.begin(), GL_INTERLEAVED_ATTRIBS );
-	}
-
+static bool LinkShader( Shader * shader, GLuint program ) {
 	glLinkProgram( program );
 
 	GLint status;
@@ -1738,8 +1675,6 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 
 		return false;
 	}
-
-	shader->program = program;
 
 	GLint count;
 	glGetProgramiv( program, GL_ACTIVE_UNIFORMS, &count );
@@ -1796,6 +1731,88 @@ bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Sp
 	}
 
 	return true;
+}
+
+bool NewShader( Shader * shader, Span< Span< const char > > srcs, Span< const char * > feedback_varyings, bool particle_vertex_attribs ) {
+	*shader = { };
+	bool feedback = feedback_varyings.n > 0;
+
+	GLuint vs = CompileShader( GL_VERTEX_SHADER, srcs );
+	if( vs == 0 )
+		return false;
+	defer { glDeleteShader( vs ); };
+
+	GLuint fs = 0;
+	if( !feedback ) {
+		fs = CompileShader( GL_FRAGMENT_SHADER, srcs );
+		if( fs == 0 )
+			return false;
+	}
+	defer {
+		if( fs != 0 ) {
+			glDeleteShader( fs );
+		}
+	};
+
+	shader->program = glCreateProgram();
+	glAttachShader( shader->program, vs );
+	if( !feedback ) {
+		glAttachShader( shader->program, fs );
+	}
+
+	if( particle_vertex_attribs ) {
+		glBindAttribLocation( shader->program, VertexAttribute_Position, "a_Position" );
+		glBindAttribLocation( shader->program, VertexAttribute_Normal, "a_Normal" );
+		glBindAttribLocation( shader->program, VertexAttribute_TexCoord, "a_TexCoord" );
+		glBindAttribLocation( shader->program, VertexAttribute_ParticlePosition, "a_ParticlePosition" );
+		glBindAttribLocation( shader->program, VertexAttribute_ParticleVelocity, "a_ParticleVelocity" );
+		glBindAttribLocation( shader->program, VertexAttribute_ParticleAccelDragRest, "a_ParticleAccelDragRest" );
+		glBindAttribLocation( shader->program, VertexAttribute_ParticleUVWH, "a_ParticleUVWH" );
+		glBindAttribLocation( shader->program, VertexAttribute_ParticleStartColor, "a_ParticleStartColor" );
+		glBindAttribLocation( shader->program, VertexAttribute_ParticleEndColor, "a_ParticleEndColor" );
+		glBindAttribLocation( shader->program, VertexAttribute_ParticleSize, "a_ParticleSize" );
+		glBindAttribLocation( shader->program, VertexAttribute_ParticleAgeLifetime, "a_ParticleAgeLifetime" );
+		glBindAttribLocation( shader->program, VertexAttribute_ParticleFlags, "a_ParticleFlags" );
+	}
+	else {
+		glBindAttribLocation( shader->program, VertexAttribute_Position, "a_Position" );
+		glBindAttribLocation( shader->program, VertexAttribute_Normal, "a_Normal" );
+		glBindAttribLocation( shader->program, VertexAttribute_TexCoord, "a_TexCoord" );
+		glBindAttribLocation( shader->program, VertexAttribute_Color, "a_Color" );
+		glBindAttribLocation( shader->program, VertexAttribute_JointIndices, "a_JointIndices" );
+		glBindAttribLocation( shader->program, VertexAttribute_JointWeights, "a_JointWeights" );
+		glBindAttribLocation( shader->program, VertexAttribute_MaterialColor, "a_MaterialColor" );
+		glBindAttribLocation( shader->program, VertexAttribute_MaterialTextureMatrix0, "a_MaterialTextureMatrix0" );
+		glBindAttribLocation( shader->program, VertexAttribute_MaterialTextureMatrix1, "a_MaterialTextureMatrix1" );
+		glBindAttribLocation( shader->program, VertexAttribute_OutlineHeight, "a_OutlineHeight" );
+		glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow0, "a_ModelTransformRow0" );
+		glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow1, "a_ModelTransformRow1" );
+		glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow2, "a_ModelTransformRow2" );
+	}
+
+	if( !feedback ) {
+		glBindFragDataLocation( shader->program, 0, "f_Albedo" );
+		glBindFragDataLocation( shader->program, 1, "f_Normal" );
+	}
+	else {
+		glTransformFeedbackVaryings( shader->program, feedback_varyings.n, feedback_varyings.begin(), GL_INTERLEAVED_ATTRIBS );
+	}
+
+	return LinkShader( shader, shader->program );
+}
+
+bool NewComputeShader( Shader * shader, Span< Span< const char > > srcs ) {
+	*shader = { };
+
+	GLuint cs = CompileShader( GL_COMPUTE_SHADER, srcs );
+	if( cs == 0 )
+		return false;
+	defer { glDeleteShader( cs ); };
+
+	shader->program = glCreateProgram();
+	glAttachShader( shader->program, cs );
+
+	return LinkShader( shader, shader->program );
 }
 
 void DeleteShader( Shader shader ) {
@@ -2049,10 +2066,6 @@ void DrawInstancedParticles( const Mesh & mesh, GPUBuffer vb, BlendFunc blend_fu
 	num_vertices_this_frame += mesh.num_vertices * num_particles;
 }
 
-void DownloadFramebuffer( void * buf ) {
-	glReadPixels( 0, 0, frame_static.viewport_width, frame_static.viewport_height, GL_RGB, GL_UNSIGNED_BYTE, buf );
-}
-
 void DrawInstancedParticles( GPUBuffer vb, const Model * model, u32 num_particles ) {
 	assert( in_frame );
 
@@ -2092,4 +2105,15 @@ void DrawInstancedParticles( GPUBuffer vb, const Model * model, u32 num_particle
 
 		draw_calls.add( dc );
 	}
+}
+
+void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {
+	DrawCall dc = { };
+	dc.pipeline = pipeline;
+	dc.instance_type = InstanceType_ComputeShader;
+	draw_calls.add( dc );
+}
+
+void DownloadFramebuffer( void * buf ) {
+	glReadPixels( 0, 0, frame_static.viewport_width, frame_static.viewport_height, GL_RGB, GL_UNSIGNED_BYTE, buf );
 }

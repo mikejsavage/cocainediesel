@@ -254,7 +254,7 @@ static void SV_CheckTimeouts() {
 
 		if( cl->state != CS_FREE && cl->state != CS_ZOMBIE &&
 			cl->lastPacketReceivedTime + 1000 * sv_timeout->number < svs.realtime ) {
-			SV_DropClient( cl, DROP_TYPE_GENERAL, "%s", "Error: Connection timed out" );
+			SV_DropClient( cl, "%s", "Error: Connection timed out" );
 			cl->state = CS_FREE; // don't bother with zombie state
 			if( cl->socket.open ) {
 				NET_CloseSocket( &cl->socket );
@@ -449,35 +449,21 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 * into a more C friendly form.
 */
 void SV_UserinfoChanged( client_t *client ) {
-	char *val;
-
 	assert( client );
 	assert( Info_Validate( client->userinfo ) );
-
-	if( !client->edict || !( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
-		// force the IP key/value pair so the game can filter based on ip
-		if( !Info_SetValueForKey( client->userinfo, "socket", NET_SocketTypeToString( client->netchan.socket->type ) ) ) {
-			SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Couldn't set userinfo (socket)\n" );
-			return;
-		}
-		if( !Info_SetValueForKey( client->userinfo, "ip", NET_AddressToString( &client->netchan.remoteAddress ) ) ) {
-			SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Couldn't set userinfo (ip)\n" );
-			return;
-		}
-	}
 
 	// call prog code to allow overrides
 	ClientUserinfoChanged( client->edict, client->userinfo );
 
 	if( !Info_Validate( client->userinfo ) ) {
-		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Invalid userinfo (after game)" );
+		SV_DropClient( client, "%s", "Error: Invalid userinfo (after game)" );
 		return;
 	}
 
 	// we assume that game module deals with setting a correct name
-	val = Info_ValueForKey( client->userinfo, "name" );
+	char * val = Info_ValueForKey( client->userinfo, "name" );
 	if( !val || !val[0] ) {
-		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: No name set" );
+		SV_DropClient( client, "%s", "Error: No name set" );
 		return;
 	}
 	Q_strncpyz( client->name, val, sizeof( client->name ) );
@@ -538,7 +524,7 @@ void SV_Init() {
 		Cvar_ForceSet( "sv_maxclients", temp( "{}", MAX_CLIENTS ) );
 	}
 
-	sv_demodir = NewCvar( "sv_demodir", "", CvarFlag_ServerReadOnly );
+	sv_demodir = NewCvar( "sv_demodir", "server", CvarFlag_ServerReadOnly );
 
 	g_autorecord = NewCvar( "g_autorecord", is_dedicated_server ? "1" : "0", CvarFlag_Archive );
 	g_autorecord_maxdemos = NewCvar( "g_autorecord_maxdemos", "200", CvarFlag_Archive );

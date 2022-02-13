@@ -11,6 +11,8 @@ enum MatchState : u8 {
 	MatchState_Playing,
 	MatchState_PostMatch,
 	MatchState_WaitExit,
+
+	MatchState_Count
 };
 
 #define EVENT_ENTITIES_START    96 // entity types above this index will get event treatment
@@ -47,10 +49,19 @@ enum EntityType : u8 {
 	// eventual entities: types below this will get event treatment
 	ET_EVENT = EVENT_ENTITIES_START,
 	ET_SOUNDEVENT,
+
+	EntityType_Count
 };
 
-using WeaponType = u8;
-enum WeaponType_ : WeaponType {
+enum WeaponCategory {
+	WeaponCategory_Primary,
+	WeaponCategory_Secondary,
+	WeaponCategory_Backup,
+
+	WeaponCategory_Count
+};
+
+enum WeaponType : u8 {
 	Weapon_None,
 
 	Weapon_Knife,
@@ -77,6 +88,8 @@ enum WeaponType_ : WeaponType {
 	Weapon_Count
 };
 
+void operator++( WeaponType & x, int );
+
 enum GadgetType : u8 {
 	Gadget_None,
 
@@ -87,12 +100,36 @@ enum GadgetType : u8 {
 	Gadget_Count
 };
 
+void operator++( GadgetType & x, int );
+
 enum PerkType : u8 {
 	Perk_None,
 
+	Perk_Ninja,
+	Perk_Hooligan,
 	Perk_Midget,
+	Perk_Jetpack,
+	Perk_Boomer,
 
 	Perk_Count
+};
+
+void operator++( PerkType & x, int );
+
+enum StaminaState : u8 {
+	Stamina_Normal,
+	Stamina_Reloading,
+	Stamina_UsingAbility,
+	Stamina_UsedAbility,
+
+	Stamina_Count,
+};
+
+
+struct Loadout {
+	WeaponType weapons[ WeaponCategory_Count ];
+	GadgetType gadget;
+	PerkType perk;
 };
 
 enum WeaponState : u8 {
@@ -112,6 +149,8 @@ enum WeaponState : u8 {
 
 	WeaponState_Cooking,
 	WeaponState_Throwing,
+
+	WeaponState_Count
 };
 
 enum FiringMode {
@@ -126,6 +165,8 @@ enum RoundType : u8 {
 	RoundType_MatchPoint,
 	RoundType_Overtime,
 	RoundType_OvertimeMatchPoint,
+
+	RoundType_Count
 };
 
 enum RoundState : u8 {
@@ -134,6 +175,8 @@ enum RoundState : u8 {
 	RoundState_Round,
 	RoundState_Finished,
 	RoundState_Post,
+
+	RoundState_Count
 };
 
 enum BombDown {
@@ -286,10 +329,10 @@ struct pmove_state_t {
 	s16 no_shooting_time;
 
 	s16 knockback_time;
-	s16 crouch_time;
 	s16 tbag_time;
-	s16 special_time;
-	s16 special_count;
+	float stamina;
+	float stamina_stored;
+	StaminaState stamina_state;
 
 	s16 max_speed;
 };
@@ -312,6 +355,7 @@ struct SyncPlayerState {
 	WeaponSlot weapons[ Weapon_Count - 1 ];
 
 	GadgetType gadget;
+	PerkType perk;
 	u8 gadget_ammo;
 
 	bool ready;
@@ -352,6 +396,6 @@ struct UserCommand {
 	u16 entropy;
 	s64 serverTimeStamp;
 	s16 angles[ 3 ];
-	s8 forwardmove, sidemove, upmove;
+	s8 forwardmove, sidemove;
 	WeaponType weaponSwitch;
 };

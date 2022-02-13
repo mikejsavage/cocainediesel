@@ -484,7 +484,7 @@ void CG_DrawDemocam2D() {
 	if( !democam_editing_mode ) {
 		return;
 	}
-		
+
 	// draw the numbers of every entity in the view
 	CG_DrawEntityNumbers();
 
@@ -516,14 +516,14 @@ void CG_DrawDemocam2D() {
 		Q_strncpyz( sfov, "NO", sizeof( sfov ) );
 	}
 
-	// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, 
+	// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP,
 	// 	va( "Current cam: " S_COLOR_ORANGE "%s" S_COLOR_WHITE " Fov " S_COLOR_ORANGE "%s" S_COLOR_WHITE " Start %" PRIi64 " Tracking " S_COLOR_ORANGE "%s" S_COLOR_WHITE,
 	// 													 cam_type_name, sfov, cam_timestamp, strack ),
 	// 					 cgs.fontSystemSmall, colorWhite );
 	// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
 
 	// if( currentcam ) {
-		// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, 
+		// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP,
 		// 	va( "Pitch: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE " Yaw: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE " Roll: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE,
 		// 													 currentcam->angles[PITCH], currentcam->angles[YAW], currentcam->angles[ROLL] ),
 		// 					 cgs.fontSystemSmall, colorWhite );
@@ -543,14 +543,14 @@ void CG_DrawDemocam2D() {
 		Q_strncpyz( sfov, "NO", sizeof( sfov ) );
 	}
 
-	// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, 
+	// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP,
 	// 	va( "Next cam: " S_COLOR_ORANGE "%s" S_COLOR_WHITE " Fov " S_COLOR_ORANGE "%s" S_COLOR_WHITE " Start %" PRIi64 " Tracking " S_COLOR_ORANGE "%s" S_COLOR_WHITE,
 	// 													 cam_type_name, sfov, cam_timestamp, strack ),
 	// 					 cgs.fontSystemSmall, colorWhite );
 	// ypos += trap_SCR_FontHeight( cgs.fontSystemSmall );
 
 	// if( nextcam ) {
-		// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP, 
+		// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP,
 		// 	va( "Pitch: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE " Yaw: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE " Roll: " S_COLOR_ORANGE "%.2f" S_COLOR_WHITE,
 		// 													 nextcam->angles[PITCH], nextcam->angles[YAW], nextcam->angles[ROLL] ),
 		// 					 cgs.fontSystemSmall, colorWhite );
@@ -637,10 +637,10 @@ int CG_DemoCam_FreeFly() {
 		AngleVectors( moveangles, &forward, &right, &up );
 		cam_angles = moveangles;
 
-		fmove = cmd.forwardmove * SPEED / 127.0f;
-		smove = cmd.sidemove * SPEED / 127.0f;
-		upmove = cmd.upmove * SPEED / 127.0f;
-		if( cmd.buttons & BUTTON_SPECIAL ) {
+		fmove = cmd.forwardmove * SPEED;
+		smove = cmd.sidemove * SPEED;
+		upmove = int( (cmd.buttons & BUTTON_ABILITY1) != 0 ) * SPEED;
+		if( cmd.buttons & BUTTON_ABILITY2 ) {
 			maxspeed *= 2;
 		}
 

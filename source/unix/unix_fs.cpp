@@ -33,8 +33,7 @@ char * FindHomeDirectory( Allocator * a ) {
 }
 
 char * GetExePath( Allocator * a ) {
-	NonRAIIDynamicArray< char > buf;
-	buf.init( a );
+	NonRAIIDynamicArray< char > buf( a );
 	buf.resize( 1024 );
 
 	while( true ) {

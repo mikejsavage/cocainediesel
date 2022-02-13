@@ -355,7 +355,7 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 1,
 		/* clip size            */ 30,
-		/* reload time          */ 2000,
+		/* reload time          */ 2500,
 		/* staged reload time   */ 0,
 
 		// timings (in msecs)
@@ -373,7 +373,7 @@ const WeaponDef weapon_defs[] = {
 
 		// damages
 		/* damage               */ 8,
-		/* self damage          */ 0,
+		/* self damage          */ 1,
 		/* wallbang damage      */ 1.0f, //not implemented
 		/* knockback            */ 30,
 		/* splash radius        */ 45,
@@ -821,7 +821,7 @@ const GadgetDef * GetGadgetDef( GadgetType gadget ) {
 const PerkDef perk_defs[] = {
 	{ },
 
-	{ 
+	{
 		/* name             */ "NINJA",
 		/* short name       */ "ninja",
 		/* health           */ 100,
@@ -832,7 +832,7 @@ const PerkDef perk_defs[] = {
 		/* max air speed    */ 600.0f,
 	},
 
-	{ 
+	{
 		/* name             */ "HOOLIGAN",
 		/* short name       */ "hooligan",
 		/* health           */ 100,
@@ -865,7 +865,7 @@ const PerkDef perk_defs[] = {
 		/* max air speed    */ 600.0f,
 	},
 
-	{ 
+	{
 		/* name             */ "BOOMER",
 		/* short name       */ "boomer",
 		/* health           */ 150,

@@ -50,6 +50,7 @@ enum PlayingSoundType {
 
 struct PlayingSound {
 	PlayingSoundType type;
+	StringHash hash;
 	const SoundEffect * sfx;
 	s64 start_time;
 	int ent_num;
@@ -850,6 +851,7 @@ static PlayingSound * StartSoundEffect( StringHash name, int ent_num, int channe
 
 	*ps = { };
 	ps->type = type;
+	ps->hash = name;
 	ps->sfx = sfx;
 	ps->start_time = cls.monotonicTime;
 	ps->ent_num = ent_num;
@@ -911,7 +913,7 @@ static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, f
 
 	u64 idx;
 	bool found = immediate_sounds_hashtable.get( handle.x, &idx );
-	if( handle.x != 0 && found && playing_sound_effects[ idx ].sfx->sounds[ 0 ].sounds[ 0 ] == name ) {
+	if( handle.x != 0 && found && playing_sound_effects[ idx ].hash == name ) {
 		if( playing_sound_effects[ idx ].volume != volume || playing_sound_effects[ idx ].pitch != pitch ) {
 			UpdateSound( &playing_sound_effects[ idx ], volume, pitch );
 		}

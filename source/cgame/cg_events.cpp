@@ -484,6 +484,10 @@ static void CG_Event_Jetpack( const SyncEntityState * ent, u64 parm ) {
 }
 
 void CG_JetpackEffect( centity_t * cent ) {
+	if( cg.frame.playerStates[ cent->current.number - 1 ].perk != Perk_Jetpack ) {
+		return;
+	}
+
 	bool viewer = ISVIEWERENTITY( cent->current.number );
 	float volume = cent->jetpack_boost ? 4.0f : 1.0f;
 

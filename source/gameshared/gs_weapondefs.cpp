@@ -557,7 +557,7 @@ const WeaponDef weapon_defs[] = {
 		/* zoom inaccuracy      */ 5.0f,
 
 		// damages
-		/* damage               */ 20,
+		/* damage               */ 24,
 		/* self damage          */ 0,
 		/* wallbang damage      */ 1.0f,
 		/* knockback            */ 30,

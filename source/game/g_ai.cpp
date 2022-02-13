@@ -97,6 +97,7 @@ static void AI_SpecThink( edict_t * self ) {
 static void AI_GameThink( edict_t * self ) {
 	if( server_gs.gameState.match_state <= MatchState_Warmup ) {
 		bool all_humans_ready = true;
+		bool any_humans = false;
 
 		for( int i = 0; i < server_gs.maxclients; i++ ) {
 			const edict_t * player = PLAYERENT( i );
@@ -104,13 +105,14 @@ static void AI_GameThink( edict_t * self ) {
 				continue;
 			}
 
+			any_humans = true;
 			if( !level.ready[ PLAYERNUM( player ) ] ) {
 				all_humans_ready = false;
 				break;
 			}
 		}
 
-		if( all_humans_ready ) {
+		if( any_humans && all_humans_ready ) {
 			G_Match_Ready( self );
 		}
 	}

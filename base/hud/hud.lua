@@ -2,8 +2,8 @@ local dark_grey = "#222"
 local yellow = RGBALinear( 1, 0.64, 0.0225, 1 )
 local red = RGBALinear( 0.8, 0, 0.05, 1 )
 
-local function SRGBALinear( rgbalinear )
-
+local function hotkeys( state )
+	return state.show_hotkeys and state.chasing == NOT_CHASING
 end
 
 local function DrawTopInfo( state )
@@ -157,8 +157,15 @@ end
 
 local function DrawUtility( state, options, x, y, size, outline_size )
 	if state.gadget ~= Gadget_None then
-		DrawBoxOutline( x, y, size, size, outline_size )
 		options.font_size = size * 0.3
+		if hotkeys( state ) then
+			options.color = "#fff"
+			options.alignment = "center middle"
+			cd.text( options, x + size / 2, y - options.font_size, cd.getBind("+gadget") )
+		end
+
+		DrawBoxOutline( x, y, size, size, outline_size )
+		options.alignment = "left top"
 		DrawAmmoFrac( options, x, y, size, state.gadget_ammo, state.gadget_ammo/cd.getGadgetAmmo( state.gadget ), cd.getGadgetIcon( state.gadget ) )
 	end
 end
@@ -168,11 +175,21 @@ local function DrawWeaponBar( state, options, x, y, width, height, padding )
 	y += padding
 	height -= padding * 2
 	width -= padding * 2
+	local show_bind = hotkeys( state )
 
 	for k, v in ipairs( state.weapons ) do
 		local h = height
 		local ammo = v.ammo
 		local max_ammo = v.max_ammo
+
+		if show_bind then
+			options.color = "#fff"
+			options.alignment = "center middle"
+			options.font_size = width * 0.2
+			cd.text( options, x + width/2, y - options.font_size, cd.getBind( string.format("weapon %d", k) ) )
+		end
+
+
 		if state.weapon == v.weapon then
 			h *= 1.05
 		end
@@ -226,7 +243,7 @@ local function DrawPlayerBar( state )
 	local empty_bar_height = state.viewport_width * 0.021
 	local padding = math.floor( offset/5 );
 
-	local width = state.viewport_width * 0.25
+	local width = state.viewport_width * 0.24
 	local height = stamina_bar_height + health_bar_height + empty_bar_height + padding * 4
 
 	local x = offset
@@ -267,6 +284,14 @@ local function DrawPlayerBar( state )
 			cd.box( x + cell_width * i, y, cell_width, stamina_bar_height, stamina_color )
 		end
 
+		local uvwidth = width * math.floor( state.stamina * steps + 0.99 )/steps
+		if state.stamina > 0 then
+			cd.boxuv( x, y,
+				uvwidth, stamina_bar_height,
+				0, 0, uvwidth/8, stamina_bar_height/8, --8 is the size of the texture
+				RGBALinear( 0, 0, 0, 0.5 ), assets.diagonal_pattern )
+		end
+
 		for i = 1, steps - 1, 1 do
 			cd.box( x + cell_width * i - padding/2, y, padding, stamina_bar_height, dark_grey )
 		end
@@ -281,12 +306,12 @@ local function DrawPlayerBar( state )
 
 		cd.box( x, y, width, stamina_bar_height, bg_color )
 		cd.box( x, y, width * state.stamina, stamina_bar_height, stamina_color )
-	end
 
-	cd.boxuv( x, y,
+		cd.boxuv( x, y,
 			width * state.stamina, stamina_bar_height,
 			0, 0, (width * state.stamina)/8, stamina_bar_height/8, --8 is the size of the texture
 			RGBALinear( 0, 0, 0, 0.5 ), assets.diagonal_pattern )
+	end
 
 	y += stamina_bar_height + padding
 
@@ -314,7 +339,7 @@ local function DrawPlayerBar( state )
 	local hp_text = string.format("%d", state.health)
 	cd.text( options, x, y, hp_text )
 
-	if state.show_hotkeys and state.chasing == NOT_CHASING then
+	if hotkeys( state ) then
 		DrawHotkeys( state, options, x + ( width - x + offset + options.font_size * 0.5 * string.len( hp_text ))/2, y + cross_long /2 )
 	end
 end

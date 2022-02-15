@@ -177,6 +177,20 @@ static void Cmd_Exec_f() {
 	ExecConfig( path.c_str() );
 }
 
+static void Cmd_ExecOld_f() {
+	if( Cmd_Argc() < 2 ) {
+		Com_Printf( "Usage: execold <filename>\n" );
+		return;
+	}
+
+	DynamicString path( sys_allocator, "{}/base/{}", OldHomeDirPath(), Cmd_Argv( 1 ) );
+	if( FileExtension( path.c_str() ) == "" ) {
+		path += ".cfg";
+	}
+
+	ExecConfig( path.c_str() );
+}
+
 static void Cmd_Config_f() {
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "Usage: config <filename>\n" );
@@ -417,6 +431,7 @@ static Span< const char * > TabCompleteConfig( TempAllocator * a, const char * p
 
 void Cmd_Init() {
 	AddCommand( "exec", Cmd_Exec_f );
+	AddCommand( "execold", Cmd_ExecOld_f );
 	AddCommand( "config", Cmd_Config_f );
 	AddCommand( "find", Cmd_Find_f );
 

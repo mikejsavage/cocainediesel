@@ -827,7 +827,8 @@ static void CL_WriteConfiguration() {
 	config += "\r\n";
 	Cvar_WriteVariables( &config );
 
-	DynamicString path( &temp, "{}/base/config.cfg", HomeDirPath() );
+	const char * fmt = is_public_build ? "{}/config.cfg" : "{}/base/config.cfg";
+	DynamicString path( &temp, fmt, HomeDirPath() );
 	if( !WriteFile( &temp, path.c_str(), config.c_str(), config.length() ) ) {
 		Com_Printf( "Couldn't write %s.\n", path.c_str() );
 	}

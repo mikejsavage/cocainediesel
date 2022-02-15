@@ -169,7 +169,8 @@ static void Cmd_Exec_f() {
 		return;
 	}
 
-	DynamicString path( sys_allocator, "{}/base/{}", HomeDirPath(), Cmd_Argv( 1 ) );
+	const char * fmt = is_public_build ? "{}/{}" : "{}/base/{}";
+	DynamicString path( sys_allocator, fmt, HomeDirPath(), Cmd_Argv( 1 ) );
 	if( FileExtension( path.c_str() ) == "" ) {
 		path += ".cfg";
 	}

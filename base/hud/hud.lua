@@ -374,7 +374,7 @@ local function DrawBombProgress( state )
 end
 
 local function DrawChasing( state )
-	if state.chasing == NOT_CHASING then
+	if not state.chasing then
 		return
 	end
 

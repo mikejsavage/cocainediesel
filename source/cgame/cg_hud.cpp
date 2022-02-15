@@ -42,8 +42,6 @@ struct LuauConst {
 };
 
 static const LuauConst<int> numeric_constants[] = {
-	{ "NOT_CHASING", 9999 },
-
 	{ "TEAM_SPECTATOR", TEAM_SPECTATOR },
 	{ "TEAM_PLAYERS", TEAM_PLAYERS },
 	{ "TEAM_ALPHA", TEAM_ALPHA },
@@ -61,7 +59,6 @@ static const LuauConst<int> numeric_constants[] = {
 	{ "Perk_Midget", Perk_Midget },
 	{ "Perk_Jetpack", Perk_Jetpack },
 	{ "Perk_Boomer", Perk_Boomer },
-
 
 	{ "Stamina_Normal", Stamina_Normal },
 	{ "Stamina_Reloading", Stamina_Reloading },
@@ -89,7 +86,6 @@ static const LuauConst<int> numeric_constants[] = {
 	{ "RoundType_OvertimeMatchPoint", RoundType_OvertimeMatchPoint },
 };
 
-
 static const LuauConst<StringHash> asset_constants[] = {
 	{ "diagonal_pattern", StringHash( "hud/diagonal_pattern" ) },
 	{ "bomb", StringHash( "hud/icons/bomb" ) },
@@ -97,15 +93,6 @@ static const LuauConst<StringHash> asset_constants[] = {
 	{ "guy", StringHash( "hud/icons/guy" ) },
 	{ "net", StringHash( "hud/iconsnet" ) },
 };
-
-
-
-
-//=============================================================================
-
-static int CG_GetPOVnum() {
-	return cg.predictedPlayerState.POVnum != cgs.playerNum + 1 ? cg.predictedPlayerState.POVnum : 9999;
-}
 
 static int CG_GetSpeed() {
 	return Length( cg.predictedPlayerState.pmove.velocity.xy() );
@@ -451,7 +438,6 @@ void CG_DrawScope() {
 static void PushLuaAsset( lua_State * L, StringHash s ) {
 	lua_pushlightuserdata( L, checked_cast< void * >( checked_cast< uintptr_t >( s.hash ) ) );
 }
-
 
 static bool CallWithStackTrace( lua_State * L, int args, int results ) {
 	if( lua_pcall( L, args, results, 1 ) != 0 ) {
@@ -1107,18 +1093,18 @@ void CG_InitHUD() {
 		{ NULL, NULL }
 	};
 
-	for( size_t i = 0; i < ARRAY_COUNT( numeric_constants ); i++ ) {
-		lua_pushnumber( hud_L, numeric_constants[ i ].value );
-		lua_setfield( hud_L, LUA_GLOBALSINDEX, numeric_constants[ i ].name );
+	for( const auto & kv : numeric_constants ) {
+		lua_pushnumber( hud_L, kv.value );
+		lua_setfield( hud_L, LUA_GLOBALSINDEX, kv.name );
 	}
 
 	//assets
 	{
 		lua_newtable( hud_L );
 
-		for( size_t i = 0; i < ARRAY_COUNT( asset_constants ); i++ ) {
-			PushLuaAsset( hud_L, asset_constants[ i ].value );
-			lua_setfield( hud_L, -2, asset_constants[ i ].name );
+		for( const auto & kv : asset_constants ) {
+			PushLuaAsset( hud_L, kv.value );
+			lua_setfield( hud_L, -2, kv.name );
 		}
 
 		lua_setfield( hud_L, LUA_GLOBALSINDEX, "assets" );
@@ -1270,8 +1256,10 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, client_gs.gameState.bomb.beta_players_total );
 	lua_setfield( hud_L, -2, "totalBeta" );
 
-	lua_pushnumber( hud_L, CG_GetPOVnum() );
-	lua_setfield( hud_L, -2, "chasing" );
+	if( cg.predictedPlayerState.POVnum != cgs.playerNum + 1 ) {
+		lua_pushnumber( hud_L, cg.predictedPlayerState.POVnum );
+		lua_setfield( hud_L, -2, "chasing" );
+	}
 
 	lua_pushstring( hud_L, cl.configstrings[ CS_CALLVOTE ] );
 	lua_setfield( hud_L, -2, "vote" );

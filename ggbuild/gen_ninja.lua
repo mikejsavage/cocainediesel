@@ -179,7 +179,7 @@ local function join_libs( names )
 
 		if prebuilt_lib then
 			for _, archive in ipairs( prebuilt_lib ) do
-				table.insert( joined, "libs/" .. lib .. "/" .. prebuilt_lib_dir .. "/" .. archive .. lib_suffix )
+				table.insert( joined, "libs/" .. lib .. "/" .. prebuilt_lib_dir .. "/" .. lib_prefix .. archive .. lib_suffix )
 			end
 		elseif prebuilt_dll then
 			table.insert( dlls, output_dir .. prebuilt_dll .. dll_suffix )

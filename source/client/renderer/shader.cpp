@@ -68,6 +68,20 @@ static void LoadShader( Shader * shader, const char * path, const char * defines
 	*shader = new_shader;
 }
 
+static void LoadComputeShader( Shader * shader, const char * path, const char * defines = NULL ) {
+	TracyZoneScoped;
+
+	TempAllocator temp = cls.frame_arena.temp();
+	Span< Span< const char > > srcs = BuildShaderSrcs( &temp, path, defines );
+
+	Shader new_shader;
+	if( !NewComputeShader( &new_shader, srcs ) )
+		return;
+
+	DeleteShader( *shader );
+	*shader = new_shader;
+}
+
 static void LoadShaders() {
 	TracyZoneScoped;
 

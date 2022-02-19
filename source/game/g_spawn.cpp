@@ -304,8 +304,6 @@ static void SpawnMapEntities() {
 * parsing textual entity definitions out of an ent file.
 */
 void G_InitLevel( const char *mapname, int64_t levelTime ) {
-	TempAllocator temp = svs.frame_arena.temp();
-
 	GClip_ClearWorld(); // clear areas links
 
 	memset( &level, 0, sizeof( level_locals_t ) );
@@ -313,8 +311,7 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 
 	memset( &server_gs.gameState, 0, sizeof( server_gs.gameState ) );
 
-	const char * path = temp( "maps/{}", mapname );
-	server_gs.gameState.map = StringHash( path );
+	server_gs.gameState.map = StringHash( mapname );
 	server_gs.gameState.map_checksum = svs.cms->checksum;
 
 	G_FreeEntities();
@@ -388,8 +385,6 @@ void G_LoadMap( const char * name ) {
 
 	Q_strncpyz( sv.mapname, name, sizeof( sv.mapname ) );
 
-	const char * base_path = temp( "maps/{}", name );
-
 	Span< u8 > data;
 	defer { FREE( sys_allocator, data.ptr ); };
 
@@ -410,11 +405,11 @@ void G_LoadMap( const char * name ) {
 		}
 	}
 
-	u64 base_hash = Hash64( base_path );
-	svs.cms = CM_LoadMap( CM_Server, data, base_hash );
+	u64 hash = Hash64( name );
+	svs.cms = CM_LoadMap( CM_Server, data, hash );
 	svs.ent_string_checksum = Hash64( CM_EntityString( svs.cms ), CM_EntityStringLen( svs.cms ) );
 
-	server_gs.gameState.map = StringHash( base_hash );
+	server_gs.gameState.map = StringHash( hash );
 	server_gs.gameState.map_checksum = svs.cms->checksum;
 }
 

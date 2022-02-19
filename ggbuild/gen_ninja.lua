@@ -8,6 +8,7 @@ configs[ "windows" ] = {
 	bin_suffix = ".exe",
 	obj_suffix = ".obj",
 	lib_suffix = ".lib",
+	dll_suffix = ".dll",
 
 	toolchain = "msvc",
 
@@ -21,7 +22,7 @@ configs[ "windows-debug" ] = {
 }
 configs[ "windows-release" ] = {
 	cxxflags = "/O2 /MT /DNDEBUG",
-	bin_prefix = "release/",
+	output_dir = "release/",
 }
 configs[ "windows-bench" ] = {
 	bin_suffix = "-bench.exe",
@@ -32,8 +33,8 @@ configs[ "windows-bench" ] = {
 
 configs[ "linux" ] = {
 	obj_suffix = ".o",
-	lib_prefix = "lib",
 	lib_suffix = ".a",
+	dll_suffix = ".so",
 
 	toolchain = "gcc",
 	cxx = "g++",
@@ -60,7 +61,7 @@ configs[ "linux-tsan" ] = {
 configs[ "linux-release" ] = {
 	cxxflags = "-ggdb3 -O2 -DNDEBUG",
 	ldflags = "",
-	bin_prefix = "release/",
+	output_dir = "release/",
 }
 configs[ "linux-bench" ] = {
 	bin_suffix = "-bench",
@@ -112,11 +113,12 @@ local function rightmost( key )
 		or ""
 end
 
-local bin_prefix = rightmost( "bin_prefix" )
+local output_dir = rightmost( "output_dir" )
 local bin_suffix = rightmost( "bin_suffix" )
 local obj_suffix = rightmost( "obj_suffix" )
 local lib_prefix = rightmost( "lib_prefix" )
 local lib_suffix = rightmost( "lib_suffix" )
+local dll_suffix = rightmost( "dll_suffix" )
 local prebuilt_lib_dir = rightmost( "prebuilt_lib_dir" )
 prebuilt_lib_dir = prebuilt_lib_dir == "" and OS_config or prebuilt_lib_dir
 local cxxflags = concat( "cxxflags" )
@@ -134,10 +136,10 @@ local objs_extra_flags = { }
 local bins = { }
 local bins_flags = { }
 local bins_extra_flags = { }
-local prebuilt_bins = { }
 
 local libs = { }
 local prebuilt_libs = { }
+local prebuilt_dlls = { }
 
 local function flatten_into( res, t )
 	for _, x in ipairs( t ) do
@@ -168,34 +170,24 @@ local function join_srcs( names, suffix )
 end
 
 local function join_libs( names )
-	if not names then
-		return ""
-	end
-
 	local joined = { }
-	local extra_deps = { }
+	local dlls = { }
 	for _, lib in ipairs( flatten( names ) ) do
-		local prebuilt = prebuilt_libs[ lib ]
-		local prebuilt_bin = prebuilt_bins[ lib ]
+		local prebuilt_lib = prebuilt_libs[ lib ]
+		local prebuilt_dll = prebuilt_dlls[ lib ]
 
-		if prebuilt then
-			for _, archive in ipairs( prebuilt ) do
-				table.insert( joined, "libs/" .. lib .. "/" .. prebuilt_lib_dir .. "/" .. lib_prefix .. archive .. lib_suffix )
+		if prebuilt_lib then
+			for _, archive in ipairs( prebuilt_lib ) do
+				table.insert( joined, "libs/" .. lib .. "/" .. prebuilt_lib_dir .. "/" .. archive .. lib_suffix )
 			end
-		elseif prebuilt_bin then
-			flatten_into( extra_deps, prebuilt_bin.deps )
+		elseif prebuilt_dll then
+			table.insert( dlls, output_dir .. prebuilt_dll .. dll_suffix )
 		else
-			table.insert( joined, dir .. "/" .. lib_prefix .. lib .. lib_suffix )
+			table.insert( joined, dir .. "/" .. lib .. lib_suffix )
 		end
 	end
 
-	-- Add any non-code rules as dependencies (copy..)
-	if extra_deps then
-		table.insert( joined, "|" )
-		flatten_into( joined, extra_deps )
-	end
-
-	return table.concat( joined, " " )
+	return table.concat( joined, " " ) .. " | " .. table.concat( dlls )
 end
 
 local function printf( form, ... )
@@ -257,14 +249,6 @@ function bin( bin_name, cfg )
 	add_srcs( cfg.srcs )
 end
 
-function prebuilt_bin( bin_name, cfg )
-	assert( not prebuilt_bins[ bin_name ] )
-	assert( type( cfg ) == "table", "cfg should be a table" )
-	assert( not cfg.windows_bins or type( cfg.windows_bins ) == "table", "cfg.windows_bins should be a table or nil" )
-	assert( not cfg.linux_bins or type( cfg.linux_bins ) == "table", "cfg.linux_bins should be a table or nil" )
-	prebuilt_bins[ bin_name ] = cfg
-end
-
 function lib( lib_name, srcs )
 	assert( type( srcs ) == "table", "srcs should be a table" )
 	assert( not libs[ lib_name ] )
@@ -277,6 +261,11 @@ end
 function prebuilt_lib( lib_name, archives )
 	assert( not prebuilt_libs[ lib_name ] )
 	prebuilt_libs[ lib_name ] = archives or { lib_name }
+end
+
+function prebuilt_dll( lib_name, dll )
+	assert( not prebuilt_dlls[ lib_name ] )
+	prebuilt_dlls[ lib_name ] = dll
 end
 
 function obj_cxxflags( pattern, flags )
@@ -374,7 +363,7 @@ local function rule_for_src( src_name )
 	return ( { cpp = "cpp" } )[ ext ]
 end
 
-local function write_ninja_script()
+function write_ninja_script()
 	for _, flag in ipairs( objs_flags ) do
 		for name, cfg in pairs( objs ) do
 			if name:match( flag.pattern ) then
@@ -406,17 +395,15 @@ local function write_ninja_script()
 		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join_srcs( srcs, obj_suffix ) )
 	end
 
-	for lib_name, cfg in pairs( prebuilt_bins ) do
-		local bins = OS == "windows" and cfg.windows_bins or cfg.linux_bins
-		cfg.deps = { }
-		for _, name in ipairs( bins ) do
-			local filename = name:match("^.+/(.+)$")
-			if OS == "windows" then
-				name = name:gsub("/", "\\")	-- copy goes beserk without this
-			end
-			printf( "build %s: copy %s", filename, name )
-			table.insert(cfg.deps, filename)
+	for lib_name, dll in pairs( prebuilt_dlls ) do
+		local src_path = "libs/" .. lib_name .. "/" ..  dll .. dll_suffix
+		local dst_path = output_dir .. dll .. dll_suffix
+		if OS == "windows" then
+			-- copy goes beserk without this
+			src_path = src_path:gsub( "/", "\\" )
+			dst_path = dst_path:gsub( "/", "\\" )
 		end
+		printf( "build %s: copy %s", dst_path, src_path );
 	end
 
 	for bin_name, cfg in pairs( bins ) do
@@ -429,7 +416,7 @@ local function write_ninja_script()
 			printf( "    in_rc = %s.rc", cfg.rc )
 		end
 
-		local full_name = bin_prefix .. bin_name .. bin_suffix
+		local full_name = output_dir .. bin_name .. bin_suffix
 		printf( "build %s: bin %s %s",
 			full_name,
 			join_srcs( srcs, obj_suffix ),
@@ -448,5 +435,3 @@ local function write_ninja_script()
 		printf( "default %s", full_name )
 	end
 end
-
-automatically_print_output_at_exit = setmetatable( { }, { __gc = write_ninja_script } )

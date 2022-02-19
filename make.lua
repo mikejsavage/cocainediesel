@@ -166,3 +166,5 @@ do
 		msvc_extra_ldflags = "ole32.lib ws2_32.lib crypt32.lib",
 	} )
 end
+
+write_ninja_script()

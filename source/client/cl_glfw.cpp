@@ -438,7 +438,7 @@ void EnableVSync( bool enabled ) {
 }
 
 bool IsWindowFocused() {
-	return glfwGetWindowAttrib( window, GLFW_FOCUSED );
+	return IFDEF( PLATFORM_LINUX ) ? false : glfwGetWindowAttrib( window, GLFW_FOCUSED );
 }
 
 static double last_mouse_x, last_mouse_y;

@@ -1254,7 +1254,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	if( cl_maxfps->integer < absMinFps ) {
 		Cvar_SetInteger( "cl_maxfps", absMinFps );
 	}
-	float maxFps = IFDEF( PLATFORM_LINUX ) || IsWindowFocused() ? cl_maxfps->number : absMinFps;
+	float maxFps = IsWindowFocused() ? cl_maxfps->number : absMinFps;
 	int minMsec = Max2( 1000.0f / maxFps, 1.0f );
 	roundingMsec += Max2( 1000.0f / maxFps, 1.0f ) - minMsec;
 

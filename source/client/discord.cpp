@@ -136,7 +136,7 @@ void DiscordFrame() {
 		}
 
 		presence.large_image.format( "map-{}", cl.map->name );
-		presence.large_image_tooltip.format( "Playing on map {}", cl.map->name );
+		presence.large_image_tooltip.format( "Playing on {}", cl.map->name );
 
 		const char * gt = is_bomb ? "bomb" : "gladiator";
 		presence.small_image.format( "gt-{}", gt );

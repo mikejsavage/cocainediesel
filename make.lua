@@ -21,6 +21,7 @@ end
 
 require( "libs.cgltf" )
 require( "libs.curl" )
+require( "libs.discord" )
 require( "libs.freetype" )
 require( "libs.gg" )
 require( "libs.glad" )
@@ -62,6 +63,7 @@ do
 			"source/unix/unix_client.cpp",
 			"source/unix/unix_console.cpp",
 			"source/unix/unix_fs.cpp",
+			"source/unix/unix_library.cpp",
 			"source/unix/unix_livepp.cpp",
 			"source/unix/unix_net.cpp",
 			"source/unix/unix_sys.cpp",
@@ -87,6 +89,7 @@ do
 
 			"cgltf",
 			"curl",
+			"discord",
 			"freetype",
 			"ggentropy",
 			"ggformat",
@@ -159,7 +162,9 @@ do
 			"zstd",
 		},
 
-		gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++",
+		gcc_extra_ldflags = "-lm -lpthread -no-pie -static-libstdc++",
 		msvc_extra_ldflags = "ole32.lib ws2_32.lib crypt32.lib",
 	} )
 end
+
+write_ninja_script()

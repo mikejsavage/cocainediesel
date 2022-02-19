@@ -8,6 +8,7 @@ configs[ "windows" ] = {
 	bin_suffix = ".exe",
 	obj_suffix = ".obj",
 	lib_suffix = ".lib",
+	dll_suffix = ".dll",
 
 	toolchain = "msvc",
 
@@ -21,7 +22,7 @@ configs[ "windows-debug" ] = {
 }
 configs[ "windows-release" ] = {
 	cxxflags = "/O2 /MT /DNDEBUG",
-	bin_prefix = "release/",
+	output_dir = "release/",
 }
 configs[ "windows-bench" ] = {
 	bin_suffix = "-bench.exe",
@@ -34,6 +35,7 @@ configs[ "linux" ] = {
 	obj_suffix = ".o",
 	lib_prefix = "lib",
 	lib_suffix = ".a",
+	dll_suffix = ".so",
 
 	toolchain = "gcc",
 	cxx = "g++",
@@ -60,7 +62,7 @@ configs[ "linux-tsan" ] = {
 configs[ "linux-release" ] = {
 	cxxflags = "-ggdb3 -O2 -DNDEBUG",
 	ldflags = "",
-	bin_prefix = "release/",
+	output_dir = "release/",
 }
 configs[ "linux-bench" ] = {
 	bin_suffix = "-bench",
@@ -112,11 +114,12 @@ local function rightmost( key )
 		or ""
 end
 
-local bin_prefix = rightmost( "bin_prefix" )
+local output_dir = rightmost( "output_dir" )
 local bin_suffix = rightmost( "bin_suffix" )
 local obj_suffix = rightmost( "obj_suffix" )
 local lib_prefix = rightmost( "lib_prefix" )
 local lib_suffix = rightmost( "lib_suffix" )
+local dll_suffix = rightmost( "dll_suffix" )
 local prebuilt_lib_dir = rightmost( "prebuilt_lib_dir" )
 prebuilt_lib_dir = prebuilt_lib_dir == "" and OS_config or prebuilt_lib_dir
 local cxxflags = concat( "cxxflags" )
@@ -137,6 +140,7 @@ local bins_extra_flags = { }
 
 local libs = { }
 local prebuilt_libs = { }
+local prebuilt_dlls = { }
 
 local function flatten_into( res, t )
 	for _, x in ipairs( t ) do
@@ -167,22 +171,24 @@ local function join_srcs( names, suffix )
 end
 
 local function join_libs( names )
-	if not names then
-		return ""
-	end
-
 	local joined = { }
+	local dlls = { }
 	for _, lib in ipairs( flatten( names ) ) do
-		local prebuilt = prebuilt_libs[ lib ]
-		if prebuilt then
-			for _, archive in ipairs( prebuilt ) do
+		local prebuilt_lib = prebuilt_libs[ lib ]
+		local prebuilt_dll = prebuilt_dlls[ lib ]
+
+		if prebuilt_lib then
+			for _, archive in ipairs( prebuilt_lib ) do
 				table.insert( joined, "libs/" .. lib .. "/" .. prebuilt_lib_dir .. "/" .. lib_prefix .. archive .. lib_suffix )
 			end
+		elseif prebuilt_dll then
+			table.insert( dlls, output_dir .. prebuilt_dll .. dll_suffix )
 		else
 			table.insert( joined, dir .. "/" .. lib_prefix .. lib .. lib_suffix )
 		end
 	end
-	return table.concat( joined, " " )
+
+	return table.concat( joined, " " ) .. " | " .. table.concat( dlls )
 end
 
 local function printf( form, ... )
@@ -258,6 +264,11 @@ function prebuilt_lib( lib_name, archives )
 	prebuilt_libs[ lib_name ] = archives or { lib_name }
 end
 
+function prebuilt_dll( lib_name, dll )
+	assert( not prebuilt_dlls[ lib_name ] )
+	prebuilt_dlls[ lib_name ] = dll
+end
+
 function obj_cxxflags( pattern, flags )
 	table.insert( objs_extra_flags, { pattern = pattern, flags = flags } )
 end
@@ -303,6 +314,10 @@ rule lib
 rule rc
     command = rc /fo$out /nologo $in_rc
     description = $in
+
+rule copy
+    command = cmd /c copy /Y $in $out
+    description = $in
 ]] )
 
 elseif toolchain == "gcc" then
@@ -318,6 +333,10 @@ rule cpp
 rule lib
     command = ar rs $out $in
     description = $out
+
+rule copy
+    command = cp $in $out
+    description = $in
 ]] )
 
 if config ~= "release" then
@@ -345,7 +364,7 @@ local function rule_for_src( src_name )
 	return ( { cpp = "cpp" } )[ ext ]
 end
 
-local function write_ninja_script()
+function write_ninja_script()
 	for _, flag in ipairs( objs_flags ) do
 		for name, cfg in pairs( objs ) do
 			if name:match( flag.pattern ) then
@@ -377,6 +396,17 @@ local function write_ninja_script()
 		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join_srcs( srcs, obj_suffix ) )
 	end
 
+	for lib_name, dll in pairs( prebuilt_dlls ) do
+		local src_path = "libs/" .. lib_name .. "/" ..  dll .. dll_suffix
+		local dst_path = output_dir .. dll .. dll_suffix
+		if OS == "windows" then
+			-- copy goes beserk without this
+			src_path = src_path:gsub( "/", "\\" )
+			dst_path = dst_path:gsub( "/", "\\" )
+		end
+		printf( "build %s: copy %s", dst_path, src_path );
+	end
+
 	for bin_name, cfg in pairs( bins ) do
 		local srcs = { cfg.srcs }
 
@@ -387,7 +417,7 @@ local function write_ninja_script()
 			printf( "    in_rc = %s.rc", cfg.rc )
 		end
 
-		local full_name = bin_prefix .. bin_name .. bin_suffix
+		local full_name = output_dir .. bin_name .. bin_suffix
 		printf( "build %s: bin %s %s",
 			full_name,
 			join_srcs( srcs, obj_suffix ),
@@ -406,5 +436,3 @@ local function write_ninja_script()
 		printf( "default %s", full_name )
 	end
 end
-
-automatically_print_output_at_exit = setmetatable( { }, { __gc = write_ninja_script } )

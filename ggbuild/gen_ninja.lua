@@ -33,6 +33,7 @@ configs[ "windows-bench" ] = {
 
 configs[ "linux" ] = {
 	obj_suffix = ".o",
+	lib_prefix = "lib",
 	lib_suffix = ".a",
 	dll_suffix = ".so",
 

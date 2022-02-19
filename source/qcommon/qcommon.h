@@ -477,7 +477,7 @@ void Com_Error( _Printf_format_string_ const char *format, ... );
 template< typename... Rest >
 void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
 	char buf[ 4096 ];
-	ggformat( buf, fmt, rest... );
+	ggformat( buf, sizeof( buf ), fmt, rest... );
 	Com_Printf( "%s", buf );
 }
 
@@ -486,7 +486,7 @@ void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
 template< typename... Rest >
 void Com_GGError( const char * fmt, const Rest & ... rest ) {
 	char buf[ 4096 ];
-	ggformat( buf, fmt, rest... );
+	ggformat( buf, sizeof( buf ), fmt, rest... );
 	Com_Error( "%s", buf );
 }
 

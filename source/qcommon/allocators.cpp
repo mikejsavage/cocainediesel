@@ -36,7 +36,7 @@ void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t ne
 #if PUBLIC_BUILD
 
 struct AllocationTracker {
-	void track( void * ptr, const char * func, const char * file, int line ) { }
+	void track( void * ptr, const char * func, const char * file, int line, size_t size ) { }
 	void untrack( void * ptr, const char * func, const char * file, int line ) { }
 };
 
@@ -54,6 +54,7 @@ struct AllocationTracker {
 		const char * func;
 		const char * file;
 		int line;
+		size_t size;
 	};
 
 	std::unordered_map< void *, AllocInfo > allocations;
@@ -69,7 +70,7 @@ struct AllocationTracker {
 		size_t leaks = 0;
 		for( auto & alloc : allocations ) {
 			const AllocInfo & info = alloc.second;
-			msg.append( "\n{} ({}:{})", info.func, info.file, info.line );
+			msg.append( "\n{} bytes at {} ({}:{})", info.size, info.func, info.file, info.line );
 
 			leaks++;
 			if( leaks == 5 )
@@ -87,11 +88,11 @@ struct AllocationTracker {
 		DeleteMutex( mutex );
 	}
 
-	void track( void * ptr, const char * func, const char * file, int line ) {
+	void track( void * ptr, const char * func, const char * file, int line, size_t size ) {
 		if( ptr == NULL )
 			return;
 		Lock( mutex );
-		allocations[ ptr ] = { func, file, line };
+		allocations[ ptr ] = { func, file, line, size };
 		Unlock( mutex );
 	}
 
@@ -125,7 +126,7 @@ struct SystemAllocator final : public Allocator {
 		assert( alignment <= 16 );
 		void * ptr = malloc( size );
 		TracyCAlloc( ptr, size );
-		tracker.track( ptr, func, file, line );
+		tracker.track( ptr, func, file, line, size );
 		return ptr;
 	}
 
@@ -138,12 +139,12 @@ struct SystemAllocator final : public Allocator {
 		void * new_ptr = realloc( ptr, new_size );
 		if( new_ptr == NULL ) {
 			TracyCAlloc( ptr, new_size );
-			tracker.track( ptr, func, file, line );
+			tracker.track( ptr, func, file, line, new_size );
 			return NULL;
 		}
 
 		TracyCAlloc( new_ptr, new_size );
-		tracker.track( new_ptr, func, file, line );
+		tracker.track( new_ptr, func, file, line, new_size );
 
 		return new_ptr;
 	}

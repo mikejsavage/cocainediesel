@@ -28,6 +28,8 @@
 .vscode/
 
 *.asd
+*.dll
+*.so
 *.exe
 *.exp
 *.ilk

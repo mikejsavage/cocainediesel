@@ -34,12 +34,6 @@
 template< typename... Rest >
 size_t ggformat( char * buf, size_t len, const char * fmt, const Rest & ... rest );
 
-template< size_t len, typename... Rest >
-size_t ggformat( char (&buf)[len], const char * fmt, const Rest & ... rest )
-{
-	return ggformat( buf, len, fmt, rest... );
-}
-
 /*
  * `ggprint_to_file` does what you would expect, and `ggprint` writes to
  * standard output. Both return `true` on success, or `false` if the write

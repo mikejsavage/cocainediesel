@@ -84,6 +84,8 @@ bool EndsWith( const char * str, const char * suffix );
 
 bool CaseStartsWith( const char * str, const char * prefix );
 
+Span< const char > StripPrefix( Span< const char > str, const char * prefix );
+
 bool CaseContains( const char * haystack, const char * needle );
 
 Span< const char > FileExtension( Span< const char > path );

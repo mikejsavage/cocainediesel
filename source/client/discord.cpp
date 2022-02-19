@@ -1,206 +1,183 @@
-
-//#include "qcommon/qcommon.h"
+#include "qcommon/library.h"
+#include "qcommon/string.h"
+#include "client/discord.h"
 #include "cgame/cg_local.h"
-#include "qcommon/sys_library.h"
+
 #include <time.h>
+
 #include "discord/discord_game_sdk.h"
 
-#define CLIENT_ID 882369979406753812
+constexpr DiscordClientId CLIENT_ID = 882369979406753812LL;
 
-using tDiscordCreate = decltype(&DiscordCreate);
-
-static void* discord_sdk_module;
-static tDiscordCreate pDiscordCreate = nullptr;
-
-struct Application {
-	IDiscordCore* core;
-	IDiscordUserManager* users;
-	IDiscordActivityManager* activities;
-	DiscordUserId user_id;
+struct RichPresence {
+	bool playing;
+	String< 127 > first_line;
+	String< 127 > second_line;
+	String< 127 > large_image;
+	String< 127 > large_image_tooltip;
+	String< 127 > small_image;
+	String< 127 > small_image_tooltip;
 };
 
-
-template< size_t size >
-void Q_strncpyz( char (&dest)[size], const char * src )
-{
-	Q_strncpyz( dest, src, size );
+static bool operator==( const RichPresence & a, const RichPresence & b ) {
+	return true
+		&& a.playing == b.playing
+		&& StrEqual( a.first_line.span(), b.first_line.span() )
+		&& StrEqual( a.second_line.span(), b.second_line.span() )
+		&& StrEqual( a.large_image.span(), b.large_image.span() )
+		&& StrEqual( a.large_image_tooltip.span(), b.large_image_tooltip.span() )
+		&& StrEqual( a.small_image.span(), b.small_image.span() )
+		&& StrEqual( a.small_image_tooltip.span(), b.small_image_tooltip.span() )
+		;
 }
 
-
-
-void OnUserUpdated(void* data)
-{
-	Application* app = (Application*)data;
-	DiscordUser user;
-	app->users->get_current_user(app->users, &user);
-	app->user_id = user.id;
-
-	Com_GGPrint("Discord: Hello {}#{}", user.username, user.discriminator);
+static bool operator!=( const RichPresence & a, const RichPresence & b ) {
+	return !( a == b );
 }
 
-void UpdateActivityCallback(void* data, EDiscordResult result)
-{
-	if (result != DiscordResult_Ok) {
-		Com_GGPrint("Discord: ActivityCallback: {}", result);
+template< size_t N, typename... Rest >
+size_t ggformat( char ( &buf )[ N ], const char * fmt, const Rest & ... rest ) {
+	return ggformat( buf, N, fmt, rest... );
+}
+
+static bool loaded;
+static Library discord_sdk_module;
+static IDiscordCore * core;
+static IDiscordActivityManager * activities;
+
+static RichPresence old_presence;
+
+static void LogOnError( void * data, EDiscordResult result ) {
+	if( result != DiscordResult_Ok ) {
+		Com_GGPrint( "Discord: ActivityCallback: {}", result );
 	}
 }
 
-const char* log2str(EDiscordLogLevel level)
-{
-	switch(level)
-	{
-		case DiscordLogLevel_Error: return "ERR ";
+static const char * DiscordLogLevelToString( EDiscordLogLevel level ) {
+	switch( level ) {
+		case DiscordLogLevel_Error: return "ERROR";
 		case DiscordLogLevel_Warn: return "WARN";
 		case DiscordLogLevel_Info: return "INFO";
-		case DiscordLogLevel_Debug: return "DBG ";
-		default: return "?--?";
+		case DiscordLogLevel_Debug: return "DEBUG";
 	}
+
+	assert( false );
+	return NULL;
 }
 
-void OnLog(void* hook_data, EDiscordLogLevel level, const char* message)
-{
-	Com_GGPrint("Discord: [{}]: {}", log2str(level), message);
-}
+void InitDiscord() {
+	TracyZoneScoped;
 
-static Application app = {};
-static IDiscordUserEvents users_events = {};
-static IDiscordActivityEvents activities_events = {};
+	TempAllocator temp = cls.frame_arena.temp();
 
+	loaded = false;
+	old_presence = { };
 
-void InitDiscord()
-{
-	ZoneScoped;
-
-	discord_sdk_module = Sys_Library_Open("discord_game_sdk");
-	if (discord_sdk_module == NULL)
+	discord_sdk_module = OpenLibrary( &temp, "discord_game_sdk" );
+	if( discord_sdk_module.handle == NULL )
 		return;
 
-	pDiscordCreate = (tDiscordCreate)Sys_Library_ProcAddress(discord_sdk_module, "DiscordCreate");
-	if (pDiscordCreate == NULL)
+	using tDiscordCreate = decltype( &DiscordCreate );
+	tDiscordCreate pDiscordCreate = tDiscordCreate( GetLibraryFunction( discord_sdk_module, "DiscordCreate" ) );
+	if( pDiscordCreate == NULL )
 		return;
-
-	users_events.on_current_user_update = OnUserUpdated;
 
 	DiscordCreateParams params;
-	DiscordCreateParamsSetDefault(&params);
+	DiscordCreateParamsSetDefault( &params );
 	params.client_id = CLIENT_ID;
-	params.flags = DiscordCreateFlags_NoRequireDiscord;	// Fail if discord is not running instead of closing the game
-	params.event_data = &app;
-	params.user_events = &users_events;
-	params.activity_events = &activities_events;
-	EDiscordResult result = pDiscordCreate(DISCORD_VERSION, &params, &app.core);
-	if (result != DiscordResult_Ok) {
-		Com_GGPrint("Discord: not initialized({})", result);
-		// Be sure it's disabled
-		app.core = nullptr;
-	} else {
-		app.core->set_log_hook(app.core, DiscordLogLevel_Debug, nullptr, OnLog);
+	params.flags = DiscordCreateFlags_NoRequireDiscord;
 
-		app.users = app.core->get_user_manager(app.core);
-		app.activities = app.core->get_activity_manager(app.core);
+	EDiscordResult result = pDiscordCreate( DISCORD_VERSION, &params, &core );
+	if( result != DiscordResult_Ok ) {
+		if( result != DiscordResult_NotRunning ) {
+			Com_GGPrint( S_COLOR_YELLOW "Discord not initialized: {}", result );
+		}
+		return;
+	}
+
+	EDiscordLogLevel log_level = is_public_build ? DiscordLogLevel_Warn : DiscordLogLevel_Debug;
+	core->set_log_hook( core, log_level, NULL, []( void * data, EDiscordLogLevel level, const char * message ) {
+		Com_GGPrint( "Discord {}: {}", DiscordLogLevelToString( level ), message );
+	} );
+
+	loaded = true;
+	activities = core->get_activity_manager( core );
+}
+
+void DiscordFrame() {
+	TracyZoneScoped;
+
+	if( !loaded )
+		return;
+
+	RichPresence presence = { };
+
+	if( cls.state == CA_ACTIVE ) {
+		presence.playing = true;
+
+		if( cg.predictedPlayerState.real_team == TEAM_SPECTATOR ) {
+			presence.first_line.format( "SPECTATING" );
+		}
+		else if( client_gs.gameState.match_state <= MatchState_Warmup ) {
+			presence.first_line.format( "WARMUP" );
+		}
+		else if( client_gs.gameState.match_state <= MatchState_Playing ) {
+			presence.first_line.format( "ROUND {}", client_gs.gameState.round_num );
+		}
+
+		bool is_bomb = GS_TeamBasedGametype( &client_gs );
+		if( is_bomb ) {
+			u8 alpha_score = client_gs.gameState.teams[ TEAM_ALPHA ].score;
+			u8 beta_score = client_gs.gameState.teams[ TEAM_BETA ].score;
+			presence.second_line.format( "{}-{}", alpha_score, beta_score );
+		}
+
+		presence.large_image.format( "map-{}", cl.map->name );
+		presence.large_image_tooltip.format( "Playing on map {}", cl.map->name );
+
+		const char * gt = is_bomb ? "bomb" : "gladiator";
+		presence.small_image.format( "gt-{}", gt );
+	}
+	else {
+		presence.playing = false;
+		presence.first_line.format( "MENU" );
+		// presence.large_image.format( "mainmenu" );
+	}
+
+	if( presence != old_presence ) {
+		DiscordActivity activity = { };
+
+		activity.instance = presence.playing;
+		ggformat( activity.details, "{}", presence.first_line );
+		ggformat( activity.state, "{}", presence.second_line );
+		ggformat( activity.assets.large_image, "{}", presence.large_image );
+		ggformat( activity.assets.large_text, "{}", presence.large_image_tooltip );
+		ggformat( activity.assets.small_image, "{}", presence.small_image );
+		ggformat( activity.assets.small_text, "{}", presence.small_image_tooltip );
+
+		activities->update_activity( activities, &activity, NULL, LogOnError );
+
+		old_presence = presence;
+	}
+
+	EDiscordResult result = core->run_callbacks( core );
+	if( result != DiscordResult_Ok ) {
+		Com_GGPrint( S_COLOR_YELLOW "Discord: run_callbacks failed: {}", result );
+		ShutdownDiscord();
 	}
 }
 
+void ShutdownDiscord() {
+	TracyZoneScoped;
 
-static DiscordActivity old_activity = {};
+	if( !loaded )
+		return;
 
-void DiscordFrame()
-{
-	ZoneScoped;
+	core->destroy( core );
 
-	if (app.activities)
-	{
-		if( (cls.state == CA_CONNECTED || cls.state == CA_ACTIVE) && client_gs.module )
-		{
-			DiscordActivity activity = {};
-
-			if (cg.predictedPlayerState.real_team == TEAM_SPECTATOR) {
-				Q_strncpyz(activity.details, "SPECTATING");
-			} else if (client_gs.gameState.match_state <= MatchState_Warmup) {
-				Q_strncpyz(activity.details, "WARMUP");
-			} else if (client_gs.gameState.match_state <= MatchState_Playing) {
-				ggformat(activity.details, "ROUND {}", client_gs.gameState.round_num);
-			}
-
-			bool is_bomb = GS_TeamBasedGametype( &client_gs );
-			if (is_bomb) {
-				auto& alpha = client_gs.gameState.teams[ TEAM_ALPHA ];
-				auto& beta = client_gs.gameState.teams[ TEAM_BETA ];
-				ggformat(activity.state, "bomb: {}-{}", alpha.score, beta.score );
-			} else {
-				Q_strncpyz(activity.state, "gladiator" );
-			}
-
-			auto curtime = ( GS_MatchWaiting( &client_gs ) || GS_MatchPaused( &client_gs ) ) ? cg.frame.serverTime : cl.serverTime;
-			auto startTime = client_gs.gameState.match_state_start_time;
-
-			if( curtime >= startTime ) { // avoid negative results
-				auto clocktime = curtime - startTime;
-				time_t now = time( NULL );
-				activity.timestamps.start = now - clocktime / 1000;
-			}
-
-			if (cl.map && !Q_strnicmp(cl.map->name, "maps/", 5))
-			{
-				char tmpmap[128];
-				ggformat(tmpmap, cl.map->name + 5);
-				COM_StripExtension(tmpmap);
-				if (!Q_strnicmp(tmpmap, "gladiator/", 10)) {
-					tmpmap[9] = 0;	// Cut off the '/013' part
-				}
-				ggformat(activity.assets.large_image, "map-{}", tmpmap);
-				ggformat(activity.assets.large_text, "Playing on map {}", tmpmap);
-			}
-			auto gt = is_bomb ? "bomb" : "gladiator";
-			ggformat(activity.assets.small_image, "gt-{}", is_bomb ? "bomb" : "gladiator");
-			ggformat(activity.assets.small_text, "Gametype: {}", gt);
-			activity.instance = 1;
-
-			if (Q_stricmp(old_activity.details, activity.details) ||
-				Q_stricmp(old_activity.state, activity.state) ||
-				memcmp(&old_activity.assets, &activity.assets, sizeof(activity.assets)))
-			{
-				old_activity = activity;
-				Com_GGPrint("Discord update: {}, {}, {}, {}", activity.details, activity.state, activity.assets.large_text, activity.assets.small_text);
-				app.activities->update_activity(app.activities, &activity, &app, UpdateActivityCallback);
-			}
-		}
-		else if (Q_stricmp(old_activity.details, "MENU"))
-		{
-			DiscordActivity activity = {};
-			Q_strncpyz(activity.details, "MENU");
-			Q_strncpyz(activity.assets.large_image, "mainmenu");
-
-			old_activity = activity;
-			Com_GGPrint("Discord update: {}", activity.details);
-			app.activities->update_activity(app.activities, &activity, &app, UpdateActivityCallback);
-		}
+	if( discord_sdk_module.handle != NULL ) {
+		CloseLibrary( discord_sdk_module );
 	}
 
-
-	if (app.core)
-	{
-		EDiscordResult result = app.core->run_callbacks(app.core);
-		if (result != DiscordResult_Ok) {
-			// Now what?
-			Com_GGPrint("Discord: run_callbacks failed: {}", result);
-		}
-	}
+	loaded = false;
 }
-
-void ShutdownDiscord()
-{
-	ZoneScoped;
-
-	if (app.activities) {
-		// Clear current activity
-		app.activities->clear_activity(app.activities, &app, UpdateActivityCallback);
-	}
-
-	if (app.core) {
-		// Cleanup
-		app.core->destroy(app.core);
-		app = {};
-	}
-}
-

@@ -799,8 +799,7 @@ void CL_Precache_f() {
 	precache_spawncount = atoi( Cmd_Argv( 1 ) );
 
 	const char * mapname = Cmd_Argv( 2 );
-	u64 hash = Hash64( mapname, strlen( mapname ), Hash64( "maps/" ) );
-	cl.map = FindMap( StringHash( hash ) );
+	cl.map = FindMap( StringHash( Hash64( mapname ) ) );
 
 	if( cl.map == NULL ) {
 		TempAllocator temp = cls.frame_arena.temp();

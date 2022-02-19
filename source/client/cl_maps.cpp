@@ -45,7 +45,8 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 	TracyZoneScoped;
 	TracyZoneText( path, strlen( path ) );
 
-	u64 hash = Hash64( StripExtension( path ) );
+	Span< const char > name = StripPrefix( StripExtension( path ), "maps/" );
+	u64 hash = Hash64( name );
 
 	Map map = { };
 	// TODO: need more map validation because they can be downloaded from the server
@@ -62,7 +63,7 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 		DeleteMap( &maps[ idx ] );
 	}
 
-	map.name = CopyString( sys_allocator, path );
+	map.name = ( *sys_allocator )( "{}", name );
 
 	map.cms = CM_LoadMap( CM_Client, data, hash );
 	if( map.cms == NULL ) {

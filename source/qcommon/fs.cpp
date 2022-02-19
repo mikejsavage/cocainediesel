@@ -32,6 +32,7 @@ void InitFS() {
 void ShutdownFS() {
 	FREE( sys_allocator, root_dir_path );
 	FREE( sys_allocator, home_dir_path );
+	FREE( sys_allocator, old_home_dir_path );
 }
 
 const char * RootDirPath() {

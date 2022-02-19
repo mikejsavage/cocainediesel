@@ -6,14 +6,8 @@ const bool is_dedicated_server = true;
 
 void Sys_InitTime();
 
-void ShowErrorAndAbortImpl( const char * msg, const char * file, int line ) {
+void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
-	abort();
-}
-
-void Sys_Quit() {
-	Qcommon_Shutdown();
-	exit( 0 );
 }
 
 void Sys_Init() {
@@ -29,10 +23,10 @@ int main( int argc, char ** argv ) {
 	oldtime = Sys_Milliseconds();
 
 	while( true ) {
-		FrameMark;
+		TracyCFrameMark;
 
 		do {
-			ZoneScopedN( "Interframe" );
+			TracyZoneScopedN( "Interframe" );
 
 			newtime = Sys_Milliseconds();
 			time = newtime - oldtime;
@@ -43,8 +37,12 @@ int main( int argc, char ** argv ) {
 		} while( 1 );
 		oldtime = newtime;
 
-		Qcommon_Frame( time );
+		if( !Qcommon_Frame( time ) ) {
+			break;
+		}
 	}
+
+	Qcommon_Shutdown();
 
 	return 0;
 }

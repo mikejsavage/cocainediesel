@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "server/server.h"
-#include "qcommon/q_trie.h"
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
 #include "qcommon/threads.h"
@@ -69,8 +68,6 @@ struct sv_http_request_t {
 	char *resource;
 	const char *query_string;
 
-	int clientNum;
-	char *clientSession;
 	netadr_t realAddr;
 
 	bool got_start_line;
@@ -99,12 +96,6 @@ struct sv_http_connection_t {
 	sv_http_response_t response;
 };
 
-struct http_game_client_t {
-	int clientNum;
-	char session[16];               // session id for HTTP requests
-	netadr_t remoteAddress;
-};
-
 static bool sv_http_initialized = false;
 static volatile bool sv_http_running = false;
 
@@ -112,9 +103,6 @@ static sv_http_connection_t sv_http_connections[MAX_INCOMING_HTTP_CONNECTIONS];
 
 static socket_t sv_socket_http;
 static socket_t sv_socket_http6;
-
-static trie_t *sv_http_clients = NULL;
-static Mutex *sv_http_clients_mutex = NULL;
 
 static Thread *sv_http_thread = NULL;
 static void SV_Web_ThreadProc( void *param );
@@ -129,13 +117,8 @@ static void SV_Web_ResetStream( sv_http_stream_t *stream ) {
 
 static void SV_Web_ResetRequest( sv_http_request_t *request ) {
 	if( request->resource ) {
-		Mem_Free( request->resource );
+		FREE( sys_allocator, request->resource );
 		request->resource = NULL;
-	}
-
-	if( request->clientSession ) {
-		Mem_Free( request->clientSession );
-		request->clientSession = NULL;
 	}
 
 	request->query_string = "";
@@ -145,7 +128,6 @@ static void SV_Web_ResetRequest( sv_http_request_t *request ) {
 
 	request->got_start_line = false;
 	request->error = HTTP_RESP_NONE;
-	request->clientNum = -1;
 }
 
 static void SV_Web_ResetResponse( sv_http_response_t *response ) {
@@ -197,105 +179,6 @@ static void SV_Web_ShutdownConnections() {
 			SV_Web_FreeConnection( &con );
 		}
 	}
-}
-
-bool SV_Web_AddGameClient( const char *session, int clientNum, const netadr_t *netAdr ) {
-	http_game_client_t *client;
-	trie_error_t trie_error;
-
-	if( !sv_http_initialized ) {
-		return false;
-	}
-
-	client = ( http_game_client_t * ) Mem_ZoneMalloc( sizeof( *client ) );
-	if( !client ) {
-		return false;
-	}
-
-	memcpy( client->session, session, HTTP_CLIENT_SESSION_SIZE );
-	client->clientNum = clientNum;
-	client->remoteAddress = *netAdr;
-
-	Lock( sv_http_clients_mutex );
-	trie_error = Trie_Insert( sv_http_clients, client->session, (void *)client );
-	Unlock( sv_http_clients_mutex );
-
-	if( trie_error != TRIE_OK ) {
-		Mem_ZoneFree( client );
-		return false;
-	}
-
-	return true;
-}
-
-void SV_Web_RemoveGameClient( const char *session ) {
-	http_game_client_t *client;
-	trie_error_t trie_error;
-
-	if( !sv_http_initialized ) {
-		return;
-	}
-
-	Lock( sv_http_clients_mutex );
-	trie_error = Trie_Remove( sv_http_clients, session, (void **)&client );
-	Unlock( sv_http_clients_mutex );
-
-	if( trie_error != TRIE_OK ) {
-		return;
-	}
-
-	Mem_ZoneFree( client );
-}
-
-static bool SV_Web_FindGameClientBySession( const char *session, int clientNum ) {
-	http_game_client_t *client;
-	trie_error_t trie_error;
-
-	if( !session || !*session ) {
-		return false;
-	}
-	if( clientNum < 0 || clientNum >= sv_maxclients->integer ) {
-		return false;
-	}
-
-	Lock( sv_http_clients_mutex );
-	trie_error = Trie_Find( sv_http_clients, session, TRIE_EXACT_MATCH, (void **)&client );
-	Unlock( sv_http_clients_mutex );
-
-	if( trie_error != TRIE_OK ) {
-		return false;
-	}
-	if( client->clientNum != clientNum ) {
-		return false;
-	}
-
-	return true;
-}
-
-/*
-* SV_Web_FindGameClientByAddress
-*
-* Performs lookup for game client in trie by network address. Terribly inefficient.
-*/
-static bool SV_Web_FindGameClientByAddress( const netadr_t *netadr ) {
-	trie_dump_t *dump;
-
-	Lock( sv_http_clients_mutex );
-	Trie_Dump( sv_http_clients, "", TRIE_DUMP_VALUES, &dump );
-	Unlock( sv_http_clients_mutex );
-
-	bool valid_address = false;
-	for( unsigned int i = 0; i < dump->size; i++ ) {
-		http_game_client_t *const a = (http_game_client_t *) dump->key_value_vector[i].value;
-		if( NET_CompareBaseAddress( netadr, &a->remoteAddress ) ) {
-			valid_address = true;
-			break;
-		}
-	}
-
-	Trie_FreeDump( dump );
-
-	return valid_address;
 }
 
 static bool SV_Web_ConnectionLimitReached( const netadr_t *addr ) {
@@ -381,7 +264,7 @@ static void SV_Web_ParseStartLine( sv_http_request_t *request, char *line ) {
 	}
 	*ptr = '\0';
 
-	request->resource = ZoneCopyString( *token ? token : "/" );
+	request->resource = CopyString( sys_allocator, strlen( token ) > 0 ? token : "/" );
 	Q_urldecode( request->resource, request->resource, strlen( request->resource ) + 1 );
 
 	// split resource into filepath and query string
@@ -411,12 +294,6 @@ static void SV_Web_AnalyzeHeader( sv_http_request_t *request, const char *key, c
 		else if( length > 0 ) {
 			request->error = HTTP_RESP_REQUEST_TOO_LARGE;
 		}
-	}
-	else if( !Q_stricmp( key, "X-Client" ) ) {
-		request->clientNum = atoi( value );
-	}
-	else if( !Q_stricmp( key, "X-Session" ) ) {
-		request->clientSession = ZoneCopyString( value );
 	}
 }
 
@@ -526,13 +403,6 @@ static void SV_Web_ReceiveRequest( socket_t *socket, sv_http_connection_t *con )
 		request->stream.header_buf_p = rem;
 		request->stream.header_length += advance;
 
-		// request must come from a connected client with a valid session id
-		if( is_public_build && !request->error && request->stream.header_done ) {
-			if( !SV_Web_FindGameClientBySession( request->clientSession, request->clientNum ) ) {
-				request->error = HTTP_RESP_FORBIDDEN;
-			}
-		}
-
 		if( request->error ) {
 			break;
 		}
@@ -583,8 +453,7 @@ static void SV_Web_RouteRequest( const sv_http_request_t *request, sv_http_respo
 		return;
 	}
 
-	Span< const char > ext = FileExtension( request->resource );
-	if( ext != ".bsp.zst" && !SV_IsDemoDownloadRequest( request->resource ) ) {
+	if( EndsWith( request->resource, ".bsp.zst" ) && !SV_IsDemoDownloadRequest( request->resource ) ) {
 		response->code = HTTP_RESP_FORBIDDEN;
 		return;
 	}
@@ -632,7 +501,7 @@ static void SV_Web_RespondToQuery( sv_http_connection_t *con ) {
 		headers += "\r\n";
 	}
 	else {
-		String< 64 > error( "{} {}\n", response->code, SV_Web_ResponseCodeMessage( response->code ) );;
+		String< 64 > error( "{} {}\n", response->code, SV_Web_ResponseCodeMessage( response->code ) );
 
 		headers.append( "Content-Type: text/plain\r\n" );
 		headers.append( "Content-Length: {}\r\n", error.length() );
@@ -728,35 +597,21 @@ static void SV_Web_Listen( socket_t *socket ) {
 	int ret;
 	socket_t newsocket = { };
 	netadr_t newaddress;
-	sv_http_connection_t *con;
 
 	// accept new connections
 	while( ( ret = NET_Accept( socket, &newsocket, &newaddress ) ) ) {
-		bool block;
-
 		if( ret == -1 ) {
 			Com_Printf( "NET_Accept: Error: %s\n", NET_ErrorString() );
 			continue;
 		}
 
-		block = false;
-
-		if( !NET_IsLocalAddress( &newaddress ) ) {
-			// only accept connections from connected clients
-			block = !SV_Web_FindGameClientByAddress( &newaddress );
-			if( !block ) {
-				block = SV_Web_ConnectionLimitReached( &newaddress );
-			}
-		}
-
-		if( block ) {
+		if( SV_Web_ConnectionLimitReached( &newaddress ) ) {
 			Com_DPrintf( "HTTP connection refused for %s\n", NET_AddressToString( &newaddress ) );
 			NET_CloseSocket( &newsocket );
 			continue;
 		}
 
-		Com_DPrintf( "HTTP connection accepted from %s\n", NET_AddressToString( &newaddress ) );
-		con = SV_Web_AllocConnection();
+		sv_http_connection_t * con = SV_Web_AllocConnection();
 		if( !con ) {
 			break;
 		}
@@ -774,14 +629,14 @@ void SV_Web_Init() {
 
 	SV_Web_InitConnections();
 
-	if( strlen( sv_downloadurl->string ) > 0 ) {
+	if( !StrEqual( sv_downloadurl->value, "" ) ) {
 		return;
 	}
 
-	SV_Web_InitSocket( sv_ip->string, NA_IP, &sv_socket_http );
-	SV_Web_InitSocket( sv_ip6->string, NA_IP6, &sv_socket_http6 );
+	SV_Web_InitSocket( sv_ip->value, NA_IPv4, &sv_socket_http );
+	SV_Web_InitSocket( sv_ip6->value, NA_IPv6, &sv_socket_http6 );
 
-	sv_http_initialized = ( sv_socket_http.address.type == NA_IP || sv_socket_http6.address.type == NA_IP6 );
+	sv_http_initialized = sv_socket_http.address.type == NA_IPv4 || sv_socket_http6.address.type == NA_IPv6;
 
 	if( !sv_http_initialized ) {
 		return;
@@ -789,8 +644,6 @@ void SV_Web_Init() {
 
 	sv_http_running = true;
 
-	Trie_Create( TRIE_CASE_SENSITIVE, &sv_http_clients );
-	sv_http_clients_mutex = NewMutex();
 	sv_http_thread = NewThread( SV_Web_ThreadProc );
 }
 
@@ -803,10 +656,10 @@ static void SV_Web_Frame() {
 	}
 
 	// accept new connections
-	if( sv_socket_http.address.type == NA_IP ) {
+	if( sv_socket_http.address.type == NA_IPv4 ) {
 		SV_Web_Listen( &sv_socket_http );
 	}
-	if( sv_socket_http6.address.type == NA_IP6 ) {
+	if( sv_socket_http6.address.type == NA_IPv6 ) {
 		SV_Web_Listen( &sv_socket_http6 );
 	}
 
@@ -828,10 +681,10 @@ static void SV_Web_Frame() {
 					 NULL, connections );
 	} else {
 		// sleep on network sockets if got nothing else to do
-		if( sv_socket_http.address.type == NA_IP ) {
+		if( sv_socket_http.address.type == NA_IPv4 ) {
 			sockets[num_sockets++] = &sv_socket_http;
 		}
-		if( sv_socket_http6.address.type == NA_IP6 ) {
+		if( sv_socket_http6.address.type == NA_IPv6 ) {
 			sockets[num_sockets++] = &sv_socket_http6;
 		}
 		sockets[num_sockets] = NULL;

@@ -1,28 +1,8 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-
 #include "client/client.h"
 #include "client/renderer/renderer.h"
 
-cvar_t * vid_mode;
-static cvar_t * vid_vsync;
+Cvar * vid_mode;
+static Cvar * vid_vsync;
 static bool force_vsync;
 
 static bool ParseWindowMode( const char * str, WindowMode * mode ) {
@@ -125,7 +105,7 @@ void VID_CheckChanges() {
 	vid_mode->modified = false;
 
 	WindowMode mode;
-	if( ParseWindowMode( vid_mode->string, &mode ) ) {
+	if( ParseWindowMode( vid_mode->value, &mode ) ) {
 		SetWindowMode( mode );
 	}
 	else {
@@ -136,16 +116,16 @@ void VID_CheckChanges() {
 }
 
 void VID_Init() {
-	ZoneScoped;
+	TracyZoneScoped;
 
-	vid_mode = Cvar_Get( "vid_mode", "", CVAR_ARCHIVE );
+	vid_mode = NewCvar( "vid_mode", "", CvarFlag_Archive );
 	vid_mode->modified = false;
 
-	vid_vsync = Cvar_Get( "vid_vsync", "0", CVAR_ARCHIVE );
+	vid_vsync = NewCvar( "vid_vsync", "0", CvarFlag_Archive );
 	force_vsync = false;
 
 	WindowMode mode;
-	if( !ParseWindowMode( vid_mode->string, &mode ) ) {
+	if( !ParseWindowMode( vid_mode->value, &mode ) ) {
 		mode = { };
 		mode.video_mode = GetVideoMode( mode.monitor );
 		mode.fullscreen = FullscreenMode_Fullscreen;

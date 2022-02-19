@@ -2,6 +2,7 @@
 
 #include "qcommon/base.h"
 #include "client/assets.h"
+#include "client/renderer/material.h"
 #include "cgame/cg_local.h"
 
 struct Spray {
@@ -26,13 +27,20 @@ void InitSprays() {
 	num_spray_assets = 0;
 
 	for( const char * path : AssetPaths() ) {
-		Span< const char > ext = FileExtension( path );
-		if( StartsWith( path, "textures/sprays/" ) && ( ext == ".png" || ext == ".jpg" || ext == ".dds" ) ) {
-			assert( num_spray_assets < ARRAY_COUNT( spray_assets ) );
+		bool ext_ok = EndsWith( path, ".png" ) || EndsWith( path, ".jpg" ) || EndsWith( path, ".dds" );
+		if( !StartsWith( path, "textures/sprays/" ) || !ext_ok )
+			continue;
 
-			spray_assets[ num_spray_assets ] = StringHash( StripExtension( path ) );
-			num_spray_assets++;
+		const Material * material = FindMaterial( StringHash( Hash64( StripExtension( path ) ) ) );
+		if( !material->decal ) {
+			Com_Printf( S_COLOR_YELLOW "Spray %s needs a decal material\n", path );
+			continue;
 		}
+
+		assert( num_spray_assets < ARRAY_COUNT( spray_assets ) );
+
+		spray_assets[ num_spray_assets ] = StringHash( StripExtension( path ) );
+		num_spray_assets++;
 	}
 
 	std::sort( spray_assets, spray_assets + num_spray_assets, []( StringHash a, StringHash b ) {
@@ -43,7 +51,7 @@ void InitSprays() {
 	num_sprays = 0;
 }
 
-void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, u64 entropy ) {
+void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, float scale, u64 entropy ) {
 	RNG rng = NewRNG( entropy, 0 );
 
 	Vec3 forward, up;
@@ -53,7 +61,7 @@ void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, u64 entropy ) {
 	spray.origin = origin;
 	spray.normal = normal;
 	spray.material = num_spray_assets == 0 ? StringHash( "" ) : RandomElement( &rng, spray_assets, num_spray_assets );
-	spray.radius = RandomUniformFloat( &rng, 32.0f, 48.0f );
+	spray.radius = RandomUniformFloat( &rng, 32.0f, 48.0f ) * scale;
 	spray.spawn_time = cls.gametime;
 
 	Vec3 left = Cross( normal, up );
@@ -87,6 +95,6 @@ void DrawSprays() {
 
 	for( size_t i = 0; i < num_sprays; i++ ) {
 		const Spray * spray = &sprays[ ( sprays_head + i ) % ARRAY_COUNT( sprays ) ];
-		DrawDecal( spray->origin, spray->normal, spray->radius, spray->angle, spray->material, vec4_white, 2.0f );
+		DrawDecal( spray->origin, spray->normal, spray->radius, spray->angle, spray->material, vec4_white, 0.0f );
 	}
 }

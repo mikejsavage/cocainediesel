@@ -37,6 +37,7 @@ struct ImFont;
 struct snapshot_t;
 
 constexpr RGBA8 rgba8_diesel_yellow = RGBA8( 255, 204, 38, 255 );
+constexpr RGBA8 rgba8_diesel_green = RGBA8( 44, 209, 89, 255 ); //yolo
 
 //=============================================================================
 
@@ -63,7 +64,6 @@ struct client_state_t {
 	snapshot_t snapShots[CMD_BACKUP];
 
 	const Map * map;
-	CollisionModel * cms;
 
 	// the client maintains its own idea of view angles, which are
 	// sent to the server each frame.  It is cleared to 0 upon entering each level.
@@ -99,6 +99,12 @@ of server connections
 ==================================================================
 */
 
+enum keydest_t {
+	key_game,
+	key_ImGui,
+	key_menu,
+};
+
 struct cl_demo_t {
 	char *name;
 
@@ -132,7 +138,6 @@ struct client_static_t {
 
 	connstate_t state;          // only set through CL_SetClientState
 	keydest_t key_dest;
-	keydest_t old_key_dest;
 
 	int64_t monotonicTime; // starts at 0 when the game is launched, increases forever
 
@@ -150,8 +155,6 @@ struct client_static_t {
 	bool cgameActive;
 
 	// connection information
-	char *servername;               // name of server from original connect
-	socket_type_t servertype;       // socket type used to connect to the server
 	netadr_t serveraddress;         // address of that server
 	int64_t connect_time;               // for connection retransmits
 	int connect_count;
@@ -164,7 +167,6 @@ struct client_static_t {
 	bool download_url_is_game_server;
 
 	bool rejected;          // these are used when the server rejects our connection
-	int rejecttype;
 	char rejectmessage[80];
 
 	netchan_t netchan;
@@ -200,6 +202,7 @@ struct client_static_t {
 	ImFont * large_font;
 	ImFont * big_font;
 	ImFont * medium_font;
+	ImFont * medium_italic_font;
 	ImFont * console_font;
 };
 
@@ -211,16 +214,16 @@ extern gs_state_t client_gs;
 //
 // cvars
 //
-extern cvar_t *cl_shownet;
+extern Cvar *cl_shownet;
 
-extern cvar_t *cl_extrapolationTime;
-extern cvar_t *cl_extrapolate;
+extern Cvar *cl_extrapolationTime;
+extern Cvar *cl_extrapolate;
 
 // wsw : debug netcode
-extern cvar_t *cl_debug_serverCmd;
-extern cvar_t *cl_debug_timeDelta;
+extern Cvar *cl_debug_serverCmd;
+extern Cvar *cl_debug_timeDelta;
 
-extern cvar_t *cl_devtools;
+extern Cvar *cl_devtools;
 
 // delta from this if not from a previous frame
 extern SyncEntityState cl_baselines[MAX_EDICTS];
@@ -231,7 +234,6 @@ extern SyncEntityState cl_baselines[MAX_EDICTS];
 // cl_main.c
 //
 void CL_Init();
-void CL_Quit();
 
 void CL_UpdateClientCommandsToServer( msg_t *msg );
 void CL_AddReliableCommand( const char *cmd );
@@ -242,18 +244,17 @@ void CL_AdjustServerTime( unsigned int gamemsec );
 
 void CL_SetKeyDest( keydest_t key_dest );
 void CL_SetOldKeyDest( keydest_t key_dest );
-void CL_ResetServerCount();
 void CL_SetClientState( connstate_t state );
 void CL_ClearState();
 void CL_ReadPackets();
 void CL_Disconnect_f();
 
+void CL_Connect( const netadr_t * address );
 void CL_Reconnect_f();
 void CL_FinishConnect();
 void CL_ServerReconnect_f();
 void CL_Changing_f();
 void CL_Precache_f();
-void CL_ForwardToServer_f();
 void CL_ServerDisconnect_f();
 
 void CL_ForceVsync( bool force );
@@ -261,7 +262,6 @@ void CL_ForceVsync( bool force );
 //
 // cl_game.c
 //
-void CL_GetConfigString( int i, char *str, int size );
 void CL_GetUserCmd( int frame, UserCommand *cmd );
 int CL_GetCurrentUserCmdNum();
 void CL_GetCurrentState( int64_t *incomingAcknowledged, int64_t *outgoingSequence, int64_t *outgoingSent );
@@ -269,7 +269,7 @@ void CL_GetCurrentState( int64_t *incomingAcknowledged, int64_t *outgoingSequenc
 void CL_GameModule_Init();
 void CL_GameModule_Reset();
 void CL_GameModule_Shutdown();
-void CL_GameModule_ConfigString( int number, const char *value );
+void CL_GameModule_ConfigString( int number );
 void CL_GameModule_EscapeKey();
 bool CL_GameModule_NewSnapshot( int pendingSnapshot );
 void CL_GameModule_RenderView();
@@ -315,8 +315,6 @@ void CL_Stop_f();
 void CL_Record_f();
 void CL_PauseDemo_f();
 void CL_DemoJump_f();
-size_t CL_ReadDemoMetaData( const char *demopath, char *meta_data, size_t meta_data_size );
-const char **CL_DemoComplete( const char *partial );
 #define CL_SetDemoMetaKeyValue( k,v ) cls.demo.meta_data_realsize = SNAP_SetDemoMetaKeyValue( cls.demo.meta_data, sizeof( cls.demo.meta_data ), cls.demo.meta_data_realsize, k, v )
 
 //

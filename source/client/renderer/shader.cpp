@@ -7,16 +7,14 @@
 
 Shaders shaders;
 
-static void BuildShaderSrcs( const char * path, const char * defines, DynamicArray< const char * > * srcs, DynamicArray< int > * lengths ) {
-	ZoneScoped;
-	ZoneText( path, strlen( path ) );
+static Span< Span< const char > > BuildShaderSrcs( TempAllocator * temp, const char * path, const char * defines ) {
+	TracyZoneScoped;
+	TracyZoneText( path, strlen( path ) );
 
-	srcs->clear();
-	lengths->clear();
+	NonRAIIDynamicArray< Span< const char > > srcs( temp );
 
 	if( defines != NULL ) {
-		srcs->add( defines );
-		lengths->add( -1 );
+		srcs.add( MakeSpan( defines ) );
 	}
 
 	Span< const char > glsl = AssetString( path );
@@ -25,14 +23,15 @@ static void BuildShaderSrcs( const char * path, const char * defines, DynamicArr
 		// TODO
 	}
 
+	srcs.add( MakeSpan( "#line 1\n" ) );
+
 	while( true ) {
 		const char * before_include = strstr( ptr, "#include" );
 		if( before_include == NULL )
 			break;
 
 		if( before_include != ptr ) {
-			srcs->add( ptr );
-			lengths->add( before_include - ptr );
+			srcs.add( Span< const char >( ptr, before_include - ptr ) );
 		}
 
 		ptr = before_include + strlen( "#include" );
@@ -45,19 +44,38 @@ static void BuildShaderSrcs( const char * path, const char * defines, DynamicArr
 			// TODO
 		}
 
-		srcs->add( contents.ptr );
-		lengths->add( -1 );
+		srcs.add( MakeSpan( "#line 1\n" ) );
+		srcs.add( contents );
+		srcs.add( MakeSpan( "#line 1\n" ) );
 	}
 
-	srcs->add( ptr );
-	lengths->add( -1 );
+	srcs.add( MakeSpan( ptr ) );
+
+	return srcs.span();
 }
 
-static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int > lens, Span< const char * > feedback_varyings = Span< const char * >() ) {
-	ZoneScoped;
+static void LoadShader( Shader * shader, const char * path, const char * defines = NULL, Span< const char * > feedback_varyings = Span< const char * >(), bool particle_vertex_attribs = false ) {
+	TracyZoneScoped;
+
+	TempAllocator temp = cls.frame_arena.temp();
+	Span< Span< const char > > srcs = BuildShaderSrcs( &temp, path, defines );
 
 	Shader new_shader;
-	if( !NewShader( &new_shader, srcs, lens, feedback_varyings ) )
+	if( !NewShader( &new_shader, srcs, feedback_varyings, particle_vertex_attribs ) )
+		return;
+
+	DeleteShader( *shader );
+	*shader = new_shader;
+}
+
+static void LoadComputeShader( Shader * shader, const char * path, const char * defines = NULL ) {
+	TracyZoneScoped;
+
+	TempAllocator temp = cls.frame_arena.temp();
+	Span< Span< const char > > srcs = BuildShaderSrcs( &temp, path, defines );
+
+	Shader new_shader;
+	if( !NewComputeShader( &new_shader, srcs ) )
 		return;
 
 	DeleteShader( *shader );
@@ -65,30 +83,44 @@ static void ReplaceShader( Shader * shader, Span< const char * > srcs, Span< int
 }
 
 static void LoadShaders() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	TempAllocator temp = cls.frame_arena.temp();
-	DynamicArray< const char * > srcs( &temp );
-	DynamicArray< int > lengths( &temp );
 
-	BuildShaderSrcs( "glsl/standard.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.standard, srcs.span(), lengths.span() );
+	// standard
+	LoadShader( &shaders.standard, "glsl/standard.glsl" );
+	LoadShader( &shaders.standard_vertexcolors, "glsl/standard.glsl", "#define VERTEX_COLORS 1\n" );
+	LoadShader( &shaders.standard_skinned, "glsl/standard.glsl", "#define SKINNED 1\n" );
+	LoadShader( &shaders.standard_skinned_vertexcolors, "glsl/standard.glsl", "#define SKINNED 1\n#define VERTEX_COLORS 1\n" );
 
-	BuildShaderSrcs( "glsl/standard.glsl", "#define SHADED 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.standard_shaded, srcs.span(), lengths.span() );
+	const char * standard_shaded_defines = temp(
+		"#define APPLY_DLIGHTS 1\n"
+		"#define SHADED 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+	LoadShader( &shaders.standard_shaded, "glsl/standard.glsl", standard_shaded_defines );
 
-	BuildShaderSrcs( "glsl/standard.glsl", "#define VERTEX_COLORS 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.standard_vertexcolors, srcs.span(), lengths.span() );
+	const char * standard_skinned_shaded_defines = temp(
+		"#define SKINNED 1\n"
+		"#define APPLY_DLIGHTS 1\n"
+		"#define SHADED 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+	LoadShader( &shaders.standard_skinned_shaded, "glsl/standard.glsl", standard_skinned_shaded_defines );
 
-	BuildShaderSrcs( "glsl/standard.glsl", "#define SKINNED 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.standard_skinned, srcs.span(), lengths.span() );
+	// standard instanced
+	LoadShader( &shaders.standard_instanced, "glsl/standard.glsl", "#define INSTANCED 1\n" );
+	LoadShader( &shaders.standard_vertexcolors_instanced, "glsl/standard.glsl", "#define VERTEX_COLORS 1\n" );
 
-	BuildShaderSrcs( "glsl/standard.glsl", "#define SKINNED 1\n#define SHADED 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.standard_skinned_shaded, srcs.span(), lengths.span() );
+	const char * standard_shaded_instanced_defines = temp(
+		"#define INSTANCED 1\n"
+		"#define APPLY_DLIGHTS 1\n"
+		"#define SHADED 1\n"
+		"#define TILE_SIZE {}\n"
+		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+	LoadShader( &shaders.standard_shaded_instanced, "glsl/standard.glsl", standard_shaded_instanced_defines );
 
-	BuildShaderSrcs( "glsl/standard.glsl", "#define SKINNED 1\n#define VERTEX_COLORS 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.standard_skinned_vertexcolors, srcs.span(), lengths.span() );
-
+	// rest
 	const char * world_defines = temp(
 		"#define APPLY_DRAWFLAT 1\n"
 		"#define APPLY_FOG 1\n"
@@ -98,40 +130,30 @@ static void LoadShaders() {
 		"#define SHADED 1\n"
 		"#define TILE_SIZE {}\n"
 		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
-	BuildShaderSrcs( "glsl/standard.glsl", world_defines, &srcs, &lengths );
-	ReplaceShader( &shaders.world, srcs.span(), lengths.span() );
+	LoadShader( &shaders.world, "glsl/standard.glsl", world_defines );
 
-	BuildShaderSrcs( "glsl/depth_only.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.depth_only, srcs.span(), lengths.span() );
+	LoadShader( &shaders.depth_only, "glsl/depth_only.glsl" );
+	LoadShader( &shaders.depth_only_instanced, "glsl/depth_only.glsl", "#define INSTANCED 1\n" );
+	LoadShader( &shaders.depth_only_skinned, "glsl/depth_only.glsl", "#define SKINNED 1\n" );
 
-	BuildShaderSrcs( "glsl/depth_only.glsl", "#define SKINNED 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.depth_only_skinned, srcs.span(), lengths.span() );
+	LoadShader( &shaders.postprocess_world_gbuffer, "glsl/postprocess_world_gbuffer.glsl" );
+	LoadShader( &shaders.postprocess_world_gbuffer_msaa, "glsl/postprocess_world_gbuffer.glsl", "#define MSAA 1\n" );
 
-	BuildShaderSrcs( "glsl/postprocess_world_gbuffer.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.postprocess_world_gbuffer, srcs.span(), lengths.span() );
+	LoadShader( &shaders.write_silhouette_gbuffer, "glsl/write_silhouette_gbuffer.glsl" );
+	LoadShader( &shaders.write_silhouette_gbuffer_instanced, "glsl/write_silhouette_gbuffer.glsl", "#define INSTANCED 1\n" );
+	LoadShader( &shaders.write_silhouette_gbuffer_skinned, "glsl/write_silhouette_gbuffer.glsl", "#define SKINNED 1\n" );
+	LoadShader( &shaders.postprocess_silhouette_gbuffer, "glsl/postprocess_silhouette_gbuffer.glsl" );
 
-	BuildShaderSrcs( "glsl/postprocess_world_gbuffer.glsl", "#define MSAA 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.postprocess_world_gbuffer_msaa, srcs.span(), lengths.span() );
+	LoadShader( &shaders.outline, "glsl/outline.glsl" );
+	LoadShader( &shaders.outline_instanced, "glsl/outline.glsl", "#define INSTANCED 1\n" );
+	LoadShader( &shaders.outline_skinned, "glsl/outline.glsl", "#define SKINNED 1\n" );
 
-	BuildShaderSrcs( "glsl/write_silhouette_gbuffer.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.write_silhouette_gbuffer, srcs.span(), lengths.span() );
+	LoadShader( &shaders.scope, "glsl/scope.glsl" );
+	LoadShader( &shaders.skybox, "glsl/skybox.glsl" );
+	LoadShader( &shaders.text, "glsl/text.glsl" );
+	LoadShader( &shaders.blur, "glsl/blur.glsl" );
+	LoadShader( &shaders.postprocess, "glsl/postprocess.glsl" );
 
-	BuildShaderSrcs( "glsl/write_silhouette_gbuffer.glsl", "#define SKINNED 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.write_silhouette_gbuffer_skinned, srcs.span(), lengths.span() );
-
-	BuildShaderSrcs( "glsl/postprocess_silhouette_gbuffer.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.postprocess_silhouette_gbuffer, srcs.span(), lengths.span() );
-
-	BuildShaderSrcs( "glsl/outline.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.outline, srcs.span(), lengths.span() );
-
-	BuildShaderSrcs( "glsl/outline.glsl", "#define SKINNED 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.outline_skinned, srcs.span(), lengths.span() );
-
-	BuildShaderSrcs( "glsl/scope.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.scope, srcs.span(), lengths.span() );
-
-	BuildShaderSrcs( "glsl/particle_update.glsl", NULL, &srcs, &lengths );
 	const char * update_no_feedback[] = {
 		"v_ParticlePosition",
 		"v_ParticleVelocity",
@@ -143,9 +165,8 @@ static void LoadShaders() {
 		"v_ParticleAgeLifetime",
 		"v_ParticleFlags",
 	};
-	ReplaceShader( &shaders.particle_update, srcs.span(), lengths.span(), Span< const char *>( update_no_feedback, ARRAY_COUNT( update_no_feedback ) ) );
+	LoadShader( &shaders.particle_update, "glsl/particle_update.glsl", NULL, Span< const char *>( update_no_feedback, ARRAY_COUNT( update_no_feedback ) ), true );
 
-	BuildShaderSrcs( "glsl/particle_update.glsl", "#define FEEDBACK 1\n", &srcs, &lengths );
 	const char * update_feedback[] = {
 		"v_ParticlePosition",
 		"v_ParticleVelocity",
@@ -160,25 +181,10 @@ static void LoadShaders() {
 		"v_FeedbackPositionNormal",
 		"v_FeedbackColorParm",
 	};
-	ReplaceShader( &shaders.particle_update_feedback, srcs.span(), lengths.span(), Span< const char *>( update_feedback, ARRAY_COUNT( update_feedback ) ) );
+	LoadShader( &shaders.particle_update_feedback, "glsl/particle_update.glsl", "#define FEEDBACK 1\n", Span< const char *>( update_feedback, ARRAY_COUNT( update_feedback ) ), true );
 
-	BuildShaderSrcs( "glsl/particle.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.particle, srcs.span(), lengths.span() );
-
-	BuildShaderSrcs( "glsl/particle.glsl", "#define MODEL 1\n", &srcs, &lengths );
-	ReplaceShader( &shaders.particle_model, srcs.span(), lengths.span() );
-
-	BuildShaderSrcs( "glsl/skybox.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.skybox, srcs.span(), lengths.span() );
-
-	BuildShaderSrcs( "glsl/text.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.text, srcs.span(), lengths.span() );
-
-	BuildShaderSrcs( "glsl/blur.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.blur, srcs.span(), lengths.span() );
-
-	BuildShaderSrcs( "glsl/postprocess.glsl", NULL, &srcs, &lengths );
-	ReplaceShader( &shaders.postprocess, srcs.span(), lengths.span() );
+	LoadShader( &shaders.particle, "glsl/particle.glsl", NULL, Span< const char * >(), true );
+	LoadShader( &shaders.particle_model, "glsl/particle.glsl", "#define MODEL 1\n", Span< const char * >(), true );
 }
 
 void InitShaders() {

@@ -21,8 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_local.h"
 #include "qcommon/cmodel.h"
 
-cvar_t *g_warmup_timelimit;
-cvar_t *g_scorelimit;
+Cvar *g_warmup_timelimit;
+Cvar *g_scorelimit;
 
 static void G_Match_SetAutorecordState( const char *state ) {
 	PF_ConfigString( CS_AUTORECORDSTATE, state );
@@ -39,7 +39,7 @@ void G_Match_Autorecord_Start() {
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
 		SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
 		for( u8 i = 0; i < current_team->num_players; i++ ) {
-			if( game.edicts[ current_team->player_indices[ i ] ].r.svflags & SVF_FAKECLIENT ) {
+			if( game.edicts[ current_team->player_indices[ i ] ].s.svflags & SVF_FAKECLIENT ) {
 				continue;
 			}
 
@@ -52,27 +52,21 @@ void G_Match_Autorecord_Start() {
 		return;
 
 	char date[ 128 ];
-	Sys_FormatTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
+	Sys_FormatCurrentTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
 	snprintf( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s_auto%04i", date, sv.mapname, RandomUniform( &svs.rng, 1, 10000 ) );
 
-	Cbuf_ExecuteText( EXEC_APPEND, va( "serverrecord %s\n", level.autorecord_name ) );
-}
-
-void G_Match_Autorecord_AltStart() {
-	G_Match_SetAutorecordState( "altstart" );
+	Cbuf_Add( "serverrecord {}", level.autorecord_name );
 }
 
 void G_Match_Autorecord_Stop() {
 	G_Match_SetAutorecordState( "stop" );
 
 	if( g_autorecord->integer ) {
-		// stop it
-		Cbuf_ExecuteText( EXEC_APPEND, "serverrecordstop 1\n" );
+		Cbuf_Add( "{}", "serverrecordstop 1" );
 
-		// check if we wanna delete some
 		if( g_autorecord_maxdemos->integer > 0 ) {
-			Cbuf_ExecuteText( EXEC_APPEND, "serverrecordpurge\n" );
+			Cbuf_Add( "{}", "serverrecordpurge" );
 		}
 	}
 }
@@ -81,7 +75,7 @@ void G_Match_Autorecord_Cancel() {
 	G_Match_SetAutorecordState( "cancel" );
 
 	if( g_autorecord->integer ) {
-		Cbuf_ExecuteText( EXEC_APPEND, "serverrecordcancel 1\n" );
+		Cbuf_Add( "{}", "serverrecordcancel 1" );
 	}
 }
 
@@ -155,13 +149,13 @@ void G_Match_LaunchState( MatchState matchState ) {
 		default:
 		case MatchState_Warmup:
 			server_gs.gameState.match_state = MatchState_Warmup;
-			server_gs.gameState.match_duration = (int64_t)( Abs( g_warmup_timelimit->value * 60 ) * 1000 );
+			server_gs.gameState.match_duration = (int64_t)( Abs( g_warmup_timelimit->number * 60 ) * 1000 );
 			server_gs.gameState.match_state_start_time = svs.gametime;
 			break;
 
 		case MatchState_Countdown:
 			server_gs.gameState.match_state = MatchState_Countdown;
-			server_gs.gameState.match_duration = 5000;
+			server_gs.gameState.match_duration = 2000;
 			server_gs.gameState.match_state_start_time = svs.gametime;
 			break;
 
@@ -177,7 +171,6 @@ void G_Match_LaunchState( MatchState matchState ) {
 			server_gs.gameState.match_state_start_time = svs.gametime;
 
 			G_Timeout_Reset();
-			level.forceExit = false;
 			break;
 
 		case MatchState_WaitExit:
@@ -236,7 +229,6 @@ bool G_Match_TimelimitHit() {
 }
 
 void G_EndMatch() {
-	level.forceExit = true;
 	G_Match_LaunchState( MatchState_PostMatch );
 }
 
@@ -277,7 +269,7 @@ void G_Match_CheckReadys() {
 		allready = teamsready == GS_MAX_TEAMS - TEAM_ALPHA;
 	}
 	else {
-		allready = teamsready == 1;
+		allready = teamsready == 1 && server_gs.gameState.teams[ TEAM_PLAYERS ].num_players != 1; //the team is ready and there's more than 1 player
 	}
 
 	if( allready ) {
@@ -287,7 +279,7 @@ void G_Match_CheckReadys() {
 }
 
 void G_Match_Ready( edict_t *ent ) {
-	if( ( ent->r.svflags & SVF_FAKECLIENT ) && level.ready[PLAYERNUM( ent )] ) {
+	if( ( ent->s.svflags & SVF_FAKECLIENT ) && level.ready[PLAYERNUM( ent )] ) {
 		return;
 	}
 
@@ -297,7 +289,7 @@ void G_Match_Ready( edict_t *ent ) {
 	}
 
 	if( server_gs.gameState.match_state != MatchState_Warmup ) {
-		if( !( ent->r.svflags & SVF_FAKECLIENT ) ) {
+		if( !( ent->s.svflags & SVF_FAKECLIENT ) ) {
 			G_PrintMsg( ent, "We're not in warmup.\n" );
 		}
 		return;
@@ -367,24 +359,18 @@ static void G_CheckNumBots() {
 		return;
 	}
 
-	// check sanity of g_numbots
-	if( g_numbots->integer < 0 ) {
-		Cvar_Set( "g_numbots", "0" );
-	}
-
 	if( g_numbots->integer > server_gs.maxclients ) {
-		Cvar_Set( "g_numbots", va( "%i", server_gs.maxclients ) );
+		Cvar_SetInteger( "g_numbots", server_gs.maxclients );
 	}
 
 	int desiredNumBots = g_numbots->integer;
 	if( desiredNumBots < game.numBots ) {
-		for( edict_t *ent = game.edicts + server_gs.maxclients; PLAYERNUM( ent ) >= 0; ent-- ) {
-			if( !ent->r.inuse || !( ent->r.svflags & SVF_FAKECLIENT ) ) {
+		for( edict_t *ent = game.edicts + server_gs.maxclients; PLAYERNUM( ent ) >= 0 && desiredNumBots < game.numBots; ent-- ) {
+			if( !ent->r.inuse || !( ent->s.svflags & SVF_FAKECLIENT ) ) {
 				continue;
 			}
-			PF_DropClient( ent, DROP_TYPE_GENERAL, NULL );
+			PF_DropClient( ent, NULL );
 			game.numBots--;
-			break;
 		}
 	}
 	else if( desiredNumBots > game.numBots ) {
@@ -400,7 +386,7 @@ static bool G_EachNewMinute() {
 	static int lastminute;
 	static int minute;
 
-	minute = (int)( level.time * 0.001 / 60.0f );
+	minute = (int)( level.time * 0.001f / 60.0f );
 	if( lastminute == minute ) {
 		return false;
 	}
@@ -453,12 +439,12 @@ static void G_CheckEvenTeam() {
 }
 
 void G_RunGametype() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	G_Teams_UpdateMembersList();
 	G_Match_CheckStateAbort();
 
-	GT_CallThinkRules();
+	level.gametype.Think();
 
 	if( G_EachNewSecond() ) {
 		G_CheckNumBots();
@@ -477,29 +463,12 @@ Span< const char > G_GetWorldspawnKey( const char * key ) {
 //		Game type registration
 //======================================================
 
-// this is pretty dirty, parse the first entity and grab the gametype key
-// do no validation, G_SpawnEntities will catch it
-static bool IsGladiatorMap() {
-	return G_GetWorldspawnKey( "gametype" ) == "gladiator";
-}
-
-void GT_CallSpawn() {
-	if( level.gametype.Init2 != NULL ) {
-		level.gametype.Init2();
-		return;
-	}
-}
-
 void GT_CallMatchStateStarted() {
 	level.gametype.MatchStateStarted();
 }
 
 bool GT_CallMatchStateFinished( MatchState incomingMatchState ) {
 	return level.gametype.MatchStateFinished( incomingMatchState );
-}
-
-void GT_CallThinkRules() {
-	level.gametype.Think();
 }
 
 void GT_CallPlayerConnected( edict_t * ent ) {
@@ -522,8 +491,15 @@ void GT_CallPlayerKilled( edict_t * victim, edict_t * attacker, edict_t * inflic
 	level.gametype.PlayerKilled( victim, attacker, inflictor );
 }
 
-edict_t * GT_CallSelectSpawnPoint( edict_t * ent ) {
+const edict_t * GT_CallSelectSpawnPoint( const edict_t * ent ) {
 	return level.gametype.SelectSpawnPoint( ent );
+}
+
+const edict_t * GT_CallSelectDeadcam() {
+	if( level.gametype.SelectDeadcam != NULL ) {
+		return level.gametype.SelectDeadcam();
+	}
+	return NULL;
 }
 
 bool GT_CallGameCommand( gclient_t * client, const char * cmd, const char * args, int argc ) {
@@ -533,14 +509,19 @@ bool GT_CallGameCommand( gclient_t * client, const char * cmd, const char * args
 	return false;
 }
 
-void GT_CallShutdown() {
-	level.gametype.Shutdown();
+static bool IsGladiatorMap() {
+	return G_GetWorldspawnKey( "gametype" ) == "gladiator";
 }
 
-void G_Gametype_Init() {
-	g_warmup_timelimit = Cvar_Get( "g_warmup_timelimit", "5", CVAR_ARCHIVE );
-	g_scorelimit = Cvar_Get( "g_scorelimit", "10", CVAR_ARCHIVE );
+void InitGametype() {
+	g_warmup_timelimit = NewCvar( "g_warmup_timelimit", "5", CvarFlag_Archive );
+	g_scorelimit = NewCvar( "g_scorelimit", "10", CvarFlag_Archive );
 
 	level.gametype = IsGladiatorMap() ? GetGladiatorGametype() : GetBombGametype();
 	level.gametype.Init();
+}
+
+void ShutdownGametype() {
+	level.gametype.Shutdown();
+	level.gametype = { };
 }

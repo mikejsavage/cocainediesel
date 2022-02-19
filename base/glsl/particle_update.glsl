@@ -79,7 +79,7 @@ bool collide() {
 	float restitution = a_ParticleAccelDragRest.z;
 	float asdf = 8.0;
 	float prestep = min( 0.1, a_ParticleAgeLifetime.x );
-	
+
 	vec4 frac = Trace( a_ParticlePosition.xyz - a_ParticleVelocity.xyz * u_dt * prestep, a_ParticleVelocity.xyz * u_dt * asdf, radius );
 	if ( frac.w < 1.0 ) {
 		v_ParticlePosition.xyz = a_ParticlePosition.xyz + a_ParticleVelocity.xyz * frac.w * u_dt / asdf;

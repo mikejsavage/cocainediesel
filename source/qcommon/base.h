@@ -10,8 +10,7 @@
 #include "gg/ggformat.h"
 #include "qcommon/allocators.h"
 #include "qcommon/linear_algebra.h"
-
-#include "tracy/Tracy.hpp"
+#include "qcommon/tracy.h"
 
 /*
  * helpers
@@ -36,10 +35,11 @@ inline To bit_cast( const From & from ) {
 	return result;
 }
 
+#define Fatal( format, ... ) FatalImpl( __FILE__, __LINE__, format, ##__VA_ARGS__ )
 #ifndef _MSC_VER
-void Fatal( const char * format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
+void FatalImpl( const char * file, int line, const char * format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );
 #else
-void Fatal( _Printf_format_string_ const char * format, ... );
+void FatalImpl( const char * file, int line, _Printf_format_string_ const char * format, ... );
 #endif
 void FatalErrno( const char * msg );
 
@@ -65,6 +65,7 @@ struct DeferHelper {
  * Span
  */
 
+Span< char > MakeSpan( char * str );
 Span< const char > MakeSpan( const char * str );
 void format( FormatBuffer * fb, Span< const char > arr, const FormatOpts & opts );
 

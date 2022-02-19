@@ -64,9 +64,6 @@ static const keyname_t keynames[] = {
 	{ "F10", K_F10 },
 	{ "F11", K_F11 },
 	{ "F12", K_F12 },
-	{ "F13", K_F13 },
-	{ "F14", K_F14 },
-	{ "F15", K_F15 },
 
 	{ "INS", K_INS },
 	{ "DEL", K_DEL },
@@ -147,12 +144,12 @@ Span< const char > Key_KeynumToString( int keynum ) {
 
 void Key_SetBinding( int keynum, const char *binding ) {
 	if( keybindings[keynum] ) {
-		Mem_ZoneFree( keybindings[keynum] );
+		FREE( sys_allocator, keybindings[keynum] );
 		keybindings[keynum] = NULL;
 	}
 
 	if( binding != NULL ) {
-		keybindings[keynum] = ZoneCopyString( binding );
+		keybindings[keynum] = CopyString( sys_allocator, binding );
 	}
 }
 
@@ -224,15 +221,15 @@ void Key_WriteBindings( DynamicString * config ) {
 }
 
 void Key_Init() {
-	Cmd_AddCommand( "bind", Key_Bind_f );
-	Cmd_AddCommand( "unbind", Key_Unbind_f );
-	Cmd_AddCommand( "unbindall", Key_Unbindall );
+	AddCommand( "bind", Key_Bind_f );
+	AddCommand( "unbind", Key_Unbind_f );
+	AddCommand( "unbindall", Key_Unbindall );
 }
 
 void Key_Shutdown() {
-	Cmd_RemoveCommand( "bind" );
-	Cmd_RemoveCommand( "unbind" );
-	Cmd_RemoveCommand( "unbindall" );
+	RemoveCommand( "bind" );
+	RemoveCommand( "unbind" );
+	RemoveCommand( "unbindall" );
 
 	Key_Unbindall();
 }
@@ -244,7 +241,7 @@ void Key_Event( int key, bool down ) {
 		}
 
 		if( cls.state != CA_ACTIVE ) {
-			Cbuf_AddText( "disconnect\n" );
+			CL_Disconnect_f();
 			return;
 		}
 
@@ -253,18 +250,14 @@ void Key_Event( int key, bool down ) {
 		return;
 	}
 
-	if( cls.state == CA_ACTIVE && ( cls.key_dest == key_game || ( cls.key_dest != key_menu && key >= K_F1 && key <= K_F15 ) ) ) {
-		const char *kb = keybindings[key];
-
-		if( kb ) {
-			if( kb[0] == '+' ) {
-				char cmd[1024];
-				snprintf( cmd, sizeof( cmd ), "%s%s %i\n", down ? "+" : "-", kb + 1, key );
-				Cbuf_AddText( cmd );
+	if( cls.state == CA_ACTIVE && ( cls.key_dest == key_game || !down || ( key >= K_F1 && key <= K_F12 ) ) ) {
+		const char * command = keybindings[ key ];
+		if( command != NULL ) {
+			if( StartsWith( command, "+" ) ) {
+				Cbuf_Add( "{}{} {}", down ? "+" : "-", command + 1, key );
 			}
 			else if( down ) {
-				Cbuf_AddText( kb );
-				Cbuf_AddText( "\n" );
+				Cbuf_Add( "{}", command );
 			}
 		}
 	}

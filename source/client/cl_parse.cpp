@@ -160,11 +160,12 @@ static void CL_ParseFrame( msg_t *msg ) {
 				cls.demo.basetime = snap->serverTime;
 				cls.demo.localtime = time( NULL );
 
-				// clear demo meta data, we'll write some keys later
-				cls.demo.meta_data_realsize = SNAP_ClearDemoMeta( cls.demo.meta_data, sizeof( cls.demo.meta_data ) );
+				memset( cls.demo.meta_data, 0, sizeof( cls.demo.meta_data ) );
+				cls.demo.meta_data_realsize = 0;
 
 				// write out messages to hold the startup information
-				SNAP_BeginDemoRecording( cls.demo.file, 0x10000 + cl.servercount, cl.snapFrameTime,
+				TempAllocator temp = cls.frame_arena.temp();
+				SNAP_BeginDemoRecording( &temp, cls.demo.file, 0x10000 + cl.servercount, cl.snapFrameTime,
 										 cl.configstrings[0], cl_baselines );
 
 				// the rest of the demo file will be individual frames
@@ -204,10 +205,6 @@ static void CL_ParseFrame( msg_t *msg ) {
 }
 
 static void CL_UpdateConfigString( int idx, const char *s ) {
-	if( !s ) {
-		return;
-	}
-
 	if( cl_debug_serverCmd->integer && ( cls.state >= CA_ACTIVE || cls.demo.playing ) ) {
 		Com_Printf( "CL_ParseConfigstringCommand(%i): \"%s\"\n", idx, s );
 	}
@@ -222,15 +219,26 @@ static void CL_UpdateConfigString( int idx, const char *s ) {
 		Com_Printf( "%s%s\n", S_COLOR_WHITE, s );
 	}
 
-	if( !COM_ValidateConfigstring( s ) ) {
-		Com_Printf( "%sWARNING:%s Invalid Configstring (%i): %s\n", S_COLOR_YELLOW, S_COLOR_WHITE, idx, s );
-		return;
-	}
-
 	Q_strncpyz( cl.configstrings[idx], s, sizeof( cl.configstrings[idx] ) );
 
 	// allow cgame to update it too
-	CL_GameModule_ConfigString( idx, s );
+	CL_GameModule_ConfigString( idx );
+}
+
+static void CL_ForwardToServer_f() {
+	if( cls.demo.playing ) {
+		return;
+	}
+
+	if( cls.state != CA_CONNECTED && cls.state != CA_ACTIVE ) {
+		Com_Printf( "Can't \"%s\", not connected\n", Cmd_Argv( 0 ) );
+		return;
+	}
+
+	// don't forward the first argument
+	if( Cmd_Argc() > 1 ) {
+		CL_AddReliableCommand( Cmd_Args() );
+	}
 }
 
 static void CL_ParseConfigstringCommand() {

@@ -27,8 +27,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
+#include "qcommon/version.h"
 
-#define SV_DEMO_DIR va( "demos/server%s%s", sv_demodir->string[0] ? "/" : "", sv_demodir->string[0] ? sv_demodir->string : "" )
+static const char * GetDemoDir( TempAllocator * temp ) {
+	return StrEqual( sv_demodir->value, "" ) ? "demos" : ( *temp )( "demos/{}", sv_demodir->value );
+}
 
 static void SV_Demo_WriteMessage( msg_t *msg ) {
 	assert( svs.demo.file );
@@ -40,14 +43,15 @@ static void SV_Demo_WriteMessage( msg_t *msg ) {
 }
 
 static void SV_Demo_WriteStartMessages() {
-	// clear demo meta data, we'll write some keys later
-	svs.demo.meta_data_realsize = SNAP_ClearDemoMeta( svs.demo.meta_data, sizeof( svs.demo.meta_data ) );
+	memset( svs.demo.meta_data, 0, sizeof( svs.demo.meta_data ) );
+	svs.demo.meta_data_realsize = 0;
 
-	SNAP_BeginDemoRecording( svs.demo.file, svs.spawncount, svc.snapFrameTime, sv.configstrings[0], sv.baselines );
+	TempAllocator temp = svs.frame_arena.temp();
+	SNAP_BeginDemoRecording( &temp, svs.demo.file, svs.spawncount, svc.snapFrameTime, sv.configstrings[0], sv.baselines );
 }
 
 void SV_Demo_WriteSnap() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i;
 	msg_t msg;
@@ -59,7 +63,7 @@ void SV_Demo_WriteSnap() {
 
 	for( i = 0; i < sv_maxclients->integer; i++ ) {
 		if( svs.clients[i].state >= CS_SPAWNED && svs.clients[i].edict &&
-			!( svs.clients[i].edict->r.svflags & SVF_NOCLIENT ) ) {
+			!( svs.clients[i].edict->s.svflags & SVF_NOCLIENT ) ) {
 			break;
 		}
 	}
@@ -98,8 +102,6 @@ static void SV_Demo_InitClient() {
 }
 
 void SV_Demo_Start_f() {
-	int demofilename_size, i;
-
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "Usage: serverrecord <demoname>\n" );
 		return;
@@ -115,13 +117,14 @@ void SV_Demo_Start_f() {
 		return;
 	}
 
-	for( i = 0; i < sv_maxclients->integer; i++ ) {
-		if( svs.clients[i].state >= CS_SPAWNED && svs.clients[i].edict &&
-			!( svs.clients[i].edict->r.svflags & SVF_NOCLIENT ) ) {
+	bool any_players = false;
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		if( svs.clients[i].state >= CS_SPAWNED && svs.clients[i].edict && !( svs.clients[i].edict->s.svflags & SVF_NOCLIENT ) ) {
+			any_players = true;
 			break;
 		}
 	}
-	if( i == sv_maxclients->integer ) {
+	if( !any_players ) {
 		Com_Printf( "No players in game, can't record a demo\n" );
 		return;
 	}
@@ -130,35 +133,23 @@ void SV_Demo_Start_f() {
 	// open the demo file
 	//
 
-	// real name
-	demofilename_size =
-		sizeof( char ) * ( strlen( SV_DEMO_DIR ) + 1 + strlen( Cmd_Args() ) + strlen( APP_DEMO_EXTENSION_STR ) + 1 );
-	svs.demo.filename = ( char * ) Mem_ZoneMalloc( demofilename_size );
-
-	snprintf( svs.demo.filename, demofilename_size, "%s/%s", SV_DEMO_DIR, Cmd_Args() );
-
-	COM_SanitizeFilePath( svs.demo.filename );
-
-	if( !COM_ValidateRelativeFilename( svs.demo.filename ) ) {
-		Mem_ZoneFree( svs.demo.filename );
-		svs.demo.filename = NULL;
+	if( !COM_ValidateRelativeFilename( Cmd_Argv( 1 ) ) ) {
 		Com_Printf( "Invalid filename.\n" );
 		return;
 	}
 
-	COM_DefaultExtension( svs.demo.filename, APP_DEMO_EXTENSION_STR, demofilename_size );
+	TempAllocator temp = svs.frame_arena.temp();
+	svs.demo.filename = ( *sys_allocator )( "{}/{}.cddemo", GetDemoDir( &temp ), Cmd_Argv( 1 ) );
+	COM_SanitizeFilePath( svs.demo.filename );
 
-	// temp name
-	demofilename_size = sizeof( char ) * ( strlen( svs.demo.filename ) + strlen( ".rec" ) + 1 );
-	svs.demo.tempname = ( char * ) Mem_ZoneMalloc( demofilename_size );
-	snprintf( svs.demo.tempname, demofilename_size, "%s.rec", svs.demo.filename );
+	svs.demo.tempname = ( *sys_allocator )( "{}.rec", svs.demo.filename );
 
 	// open it
-	if( FS_FOpenBaseFile( svs.demo.tempname, &svs.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
+	if( FS_FOpenAbsoluteFile( svs.demo.tempname, &svs.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
 		Com_Printf( "Error: Couldn't open file: %s\n", svs.demo.tempname );
-		Mem_ZoneFree( svs.demo.filename );
+		FREE( sys_allocator, svs.demo.filename );
 		svs.demo.filename = NULL;
-		Mem_ZoneFree( svs.demo.tempname );
+		FREE( sys_allocator, svs.demo.tempname );
 		svs.demo.tempname = NULL;
 		return;
 	}
@@ -187,11 +178,13 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 		return;
 	}
 
-	if( cancel ) {
-		Com_Printf( "Canceled server demo recording: %s\n", svs.demo.filename );
-	} else {
-		SNAP_StopDemoRecording( svs.demo.file );
+	TempAllocator temp = svs.frame_arena.temp();
 
+	if( cancel ) {
+		Com_Printf( "Cancelled server demo recording: %s\n", svs.demo.filename );
+	}
+	else {
+		SNAP_StopDemoRecording( svs.demo.file );
 		Com_Printf( "Stopped server demo recording: %s\n", svs.demo.filename );
 	}
 
@@ -199,21 +192,22 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 	svs.demo.file = 0;
 
 	if( cancel ) {
-		if( !FS_RemoveFile( svs.demo.tempname ) ) {
+		if( !RemoveFile( &temp, svs.demo.tempname ) ) {
 			Com_Printf( "Error: Failed to delete the temporary server demo file\n" );
 		}
-	} else {
+	}
+	else {
 		// write some meta information about the match/demo
 		SV_SetDemoMetaKeyValue( "hostname", sv.configstrings[CS_HOSTNAME] );
-		SV_SetDemoMetaKeyValue( "localtime", va( "%" PRIi64, (int64_t)svs.demo.localtime ) );
+		SV_SetDemoMetaKeyValue( "localtime", temp( "{}", (int64_t)svs.demo.localtime ) );
 		SV_SetDemoMetaKeyValue( "multipov", "1" );
-		SV_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceilf( (double)svs.demo.duration / 1000.0 ) ) );
+		SV_SetDemoMetaKeyValue( "duration", temp( "{}", (int)ceilf( (double)svs.demo.duration / 1000.0 ) ) );
 		SV_SetDemoMetaKeyValue( "mapname", sv.mapname );
 		SV_SetDemoMetaKeyValue( "matchscore", sv.configstrings[CS_MATCHSCORE] );
+		SV_SetDemoMetaKeyValue( "version", APP_VERSION );
 
 		SNAP_WriteDemoMetaData( svs.demo.tempname, svs.demo.meta_data, svs.demo.meta_data_realsize );
 
-		TempAllocator temp = svs.frame_arena.temp();
 		if( !MoveFile( &temp, svs.demo.tempname, svs.demo.filename, MoveFile_DoReplace ) ) {
 			Com_Printf( "Error: Failed to rename the server demo file\n" );
 		}
@@ -224,9 +218,9 @@ static void SV_Demo_Stop( bool cancel, bool silent ) {
 
 	SNAP_FreeClientFrames( &svs.demo.client );
 
-	Mem_ZoneFree( svs.demo.filename );
+	FREE( sys_allocator, svs.demo.filename );
 	svs.demo.filename = NULL;
-	Mem_ZoneFree( svs.demo.tempname );
+	FREE( sys_allocator, svs.demo.tempname );
 	svs.demo.tempname = NULL;
 }
 
@@ -238,8 +232,10 @@ void SV_Demo_Cancel_f() {
 	SV_Demo_Stop( true, atoi( Cmd_Argv( 1 ) ) != 0 );
 }
 
-static void GetServerDemos( DynamicArray< char * > * demos ) {
-	ListDirHandle scan = BeginListDir( sys_allocator, SV_DEMO_DIR );
+static Span< char * > GetServerDemos( TempAllocator * temp ) {
+	NonRAIIDynamicArray< char * > demos( temp );
+
+	ListDirHandle scan = BeginListDir( sys_allocator, GetDemoDir( temp ) );
 
 	const char * name;
 	bool dir;
@@ -251,10 +247,12 @@ static void GetServerDemos( DynamicArray< char * > * demos ) {
 		if( dir || FileExtension( name ) != APP_DEMO_EXTENSION_STR )
 			continue;
 
-		demos->add( CopyString( sys_allocator, name ) );
+		demos.add( CopyString( sys_allocator, name ) );
 	}
 
-	std::sort( demos->begin(), demos->end(), SortCStringsComparator );
+	std::sort( demos.begin(), demos.end(), SortCStringsComparator );
+
+	return demos.span();
 }
 
 void SV_Demo_Purge_f() {
@@ -263,9 +261,7 @@ void SV_Demo_Purge_f() {
 	}
 
 	TempAllocator temp = svs.frame_arena.temp();
-
-	DynamicArray< char * > demos( &temp );
-	GetServerDemos( &demos );
+	Span< char * > demos = GetServerDemos( &temp );
 	defer {
 		for( char * demo : demos ) {
 			FREE( sys_allocator, demo );
@@ -281,14 +277,14 @@ void SV_Demo_Purge_f() {
 		}
 	}
 
-	int keep = g_autorecord_maxdemos->integer;
+	size_t keep = g_autorecord_maxdemos->integer;
 	if( keep >= auto_demos.size() ) {
 		return;
 	}
 
 	size_t to_remove = auto_demos.size() - keep;
 	for( size_t i = 0; i < to_remove; i++ ) {
-		DynamicString path( &temp, "{}/{}", SV_DEMO_DIR, auto_demos[ i ] );
+		DynamicString path( &temp, "{}/{}", GetDemoDir( &temp ), auto_demos[ i ] );
 		if( RemoveFile( &temp, path.c_str() ) ) {
 			Com_GGPrint( "Removed old autorecord demo: {}", path );
 		}
@@ -298,15 +294,9 @@ void SV_Demo_Purge_f() {
 	}
 }
 
-void SV_DemoList_f( client_t *client ) {
-	if( client->state < CS_SPAWNED ) {
-		return;
-	}
-
+void SV_DemoList_f( edict_t * ent ) {
 	TempAllocator temp = svs.frame_arena.temp();
-
-	DynamicArray< char * > demos( &temp );
-	GetServerDemos( &demos );
+	Span< char * > demos = GetServerDemos( &temp );
 	defer {
 		for( char * demo : demos ) {
 			FREE( sys_allocator, demo );
@@ -315,30 +305,24 @@ void SV_DemoList_f( client_t *client ) {
 
 	DynamicString output( &temp, "pr \"Available demos:\n" );
 
-	size_t start = demos.size() - Min2( demos.size(), size_t( 10 ) );
+	size_t start = demos.n - Min2( demos.n, size_t( 10 ) );
 
-	for( size_t i = start; i < demos.size(); i++ ) {
+	for( size_t i = start; i < demos.n; i++ ) {
 		output.append( "{}: {}\n", i + 1, demos[ i ] );
 	}
 
 	output += "\"";
 
-	SV_AddGameCommand( client, output.c_str() );
+	PF_GameCmd( ent, output.c_str() );
 }
 
-void SV_DemoGet_f( client_t *client ) {
-	if( client->state < CS_SPAWNED ) {
-		return;
-	}
-
+void SV_DemoGetUrl_f( edict_t * ent ) {
 	if( Cmd_Argc() != 2 ) {
 		return;
 	}
 
 	TempAllocator temp = svs.frame_arena.temp();
-
-	DynamicArray< char * > demos( &temp );
-	GetServerDemos( &demos );
+	Span< char * > demos = GetServerDemos( &temp );
 	defer {
 		for( char * demo : demos ) {
 			FREE( sys_allocator, demo );
@@ -347,14 +331,15 @@ void SV_DemoGet_f( client_t *client ) {
 
 	Span< const char > arg = MakeSpan( Cmd_Argv( 1 ) );
 	int id;
-	if( !TrySpanToInt( arg, &id ) || id <= 0 || id > demos.size() ) {
-		SV_AddGameCommand( client, "demoget" );
+	if( !TrySpanToInt( arg, &id ) || id <= 0 || id > demos.n ) {
+		PF_GameCmd( ent, "pr \"demoget <id from demolist>\"\n" );
 		return;
 	}
 
-	SV_AddGameCommand( client, temp( "demoget \"{}/{}\"", SV_DEMO_DIR, demos[ id - 1 ] ) );
+	PF_GameCmd( ent, temp( "downloaddemo \"{}/{}\"", GetDemoDir( &temp ), demos[ id - 1 ] ) );
 }
 
 bool SV_IsDemoDownloadRequest( const char * request ) {
-	return StartsWith( request, SV_DEMO_DIR ) && FileExtension( request ) == APP_DEMO_EXTENSION_STR;
+	TempAllocator temp = svs.frame_arena.temp();
+	return StartsWith( request, GetDemoDir( &temp ) ) && EndsWith( request, APP_DEMO_EXTENSION_STR );
 }

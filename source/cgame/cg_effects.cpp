@@ -1,18 +1,6 @@
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
-void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	DoVisualEffect( "vfx/explosion", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
-}
-
-void ARBulletImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color ) {
-	DoVisualEffect( "weapons/ar/explosion", origin, normal, 1.0f, Vec4( team_color, 1.0f ) );
-}
-
-void BubbleImpactParticles( Vec3 origin, Vec3 team_color ) {
-	DoVisualEffect( "weapons/bg/explosion", origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, Vec4( team_color, 1.0f ) );
-}
-
 void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 	constexpr int max_ions = 256;
 	float distance_between_particles = 4.0f;
@@ -21,10 +9,7 @@ void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
 	DoVisualEffect( "weapons/eb/trail", start, end, count, color );
 }
 
-void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material ) {
-	if( material == NULL )
-		return;
-
+void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material_name ) {
 	if( start == end || start == frame_static.position )
 		return;
 
@@ -55,6 +40,7 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * m
 		end - end_width * beam_across * 0.5f,
 	};
 
+	const Material * material = FindMaterial( material_name );
 	float texture_aspect_ratio = float( material->texture->width ) / float( material->texture->height );
 	float beam_aspect_ratio = Length( end - start ) / width;
 	float repetitions = beam_aspect_ratio / texture_aspect_ratio;
@@ -101,7 +87,7 @@ struct PersistentBeam {
 	Vec3 start, end;
 	float width;
 	Vec4 color;
-	const Material * material;
+	StringHash material;
 
 	s64 spawn_time;
 	float duration;
@@ -116,7 +102,7 @@ void InitPersistentBeams() {
 	num_persistent_beams = 0;
 }
 
-void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material, float duration, float fade_time ) {
+void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material, float duration, float fade_time ) {
 	if( num_persistent_beams == ARRAY_COUNT( persistent_beams ) )
 		return;
 
@@ -134,7 +120,7 @@ void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Mat
 }
 
 void DrawPersistentBeams() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( size_t i = 0; i < num_persistent_beams; i++ ) {
 		PersistentBeam & beam = persistent_beams[ i ];

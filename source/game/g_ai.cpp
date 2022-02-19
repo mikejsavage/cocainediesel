@@ -32,7 +32,7 @@ static edict_t * ConnectFakeClient() {
 	char userInfo[ MAX_INFO_STRING ] = "";
 	Info_SetValueForKey( userInfo, "name", RandomElement( &svs.rng, bot_names ) );
 
-	int entNum = SVC_FakeConnect( userInfo, "loopback", "127.0.0.1" );
+	int entNum = SVC_FakeConnect( userInfo );
 	if( entNum == -1 ) {
 		Com_Printf( "AI: Can't spawn the fake client\n" );
 		return NULL;
@@ -50,7 +50,7 @@ void AI_SpawnBot() {
 		return;
 
 	ent->think = NULL;
-	ent->nextThink = level.time + 500 + RandomUniform( &svs.rng, 0, 2000 );
+	ent->nextThink = level.time;
 	ent->classname = "bot";
 	ent->die = player_die;
 
@@ -96,7 +96,25 @@ static void AI_SpecThink( edict_t * self ) {
 
 static void AI_GameThink( edict_t * self ) {
 	if( server_gs.gameState.match_state <= MatchState_Warmup ) {
-		G_Match_Ready( self );
+		bool all_humans_ready = true;
+		bool any_humans = false;
+
+		for( int i = 0; i < server_gs.maxclients; i++ ) {
+			const edict_t * player = PLAYERENT( i );
+			if( !player->r.inuse || ( player->s.svflags & SVF_FAKECLIENT ) ) {
+				continue;
+			}
+
+			any_humans = true;
+			if( !level.ready[ PLAYERNUM( player ) ] ) {
+				all_humans_ready = false;
+				break;
+			}
+		}
+
+		if( any_humans && all_humans_ready ) {
+			G_Match_Ready( self );
+		}
 	}
 
 	UserCommand ucmd;

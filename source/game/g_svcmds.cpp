@@ -22,17 +22,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
 
-/*
-* Cmd_ConsoleSay_f
-*/
 static void Cmd_ConsoleSay_f() {
 	G_ChatMsg( NULL, NULL, false, "%s", Cmd_Args() );
 }
 
-
-/*
-* Cmd_ConsoleKick_f
-*/
 static void Cmd_ConsoleKick_f() {
 	edict_t *ent;
 
@@ -47,34 +40,7 @@ static void Cmd_ConsoleKick_f() {
 		return;
 	}
 
-	PF_DropClient( ent, DROP_TYPE_NORECONNECT, "Kicked" );
-}
-
-
-/*
-* Cmd_Match_f
-*/
-static void Cmd_Match_f() {
-	const char *cmd;
-
-	if( Cmd_Argc() != 2 ) {
-		Com_Printf( "Usage: match <option: restart|advance|status>\n" );
-		return;
-	}
-
-	cmd = Cmd_Argv( 1 );
-	if( !Q_stricmp( cmd, "restart" ) ) {
-		level.exitNow = false;
-		level.hardReset = false;
-		Q_strncpyz( level.callvote_map, sv.mapname, sizeof( sv.mapname ) );
-		G_EndMatch();
-	} else if( !Q_stricmp( cmd, "advance" ) ) {
-		level.exitNow = false;
-		level.hardReset = true;
-		G_EndMatch();
-	} else if( !Q_stricmp( cmd, "status" ) ) {
-		Cbuf_ExecuteText( EXEC_APPEND, "status" );
-	}
+	PF_DropClient( ent, "Kicked" );
 }
 
 //==============================================================================
@@ -117,9 +83,6 @@ typedef struct
 static ipfilter_t ipfilters[MAX_IPFILTERS];
 static int numipfilters;
 
-/*
-* StringToFilter
-*/
 static bool StringToFilter( const char *s, ipfilter_t *f ) {
 	char num[128];
 	int i, j;
@@ -159,9 +122,6 @@ static bool StringToFilter( const char *s, ipfilter_t *f ) {
 	return true;
 }
 
-/*
-* SV_ResetPacketFiltersTimeouts
-*/
 void SV_ResetPacketFiltersTimeouts() {
 	int i;
 
@@ -169,9 +129,6 @@ void SV_ResetPacketFiltersTimeouts() {
 		ipfilters[i].timeout = 0;
 }
 
-/*
-* SV_FilterPacket
-*/
 bool SV_FilterPacket( char *from ) {
 	int i;
 	unsigned in;
@@ -207,20 +164,14 @@ bool SV_FilterPacket( char *from ) {
 	return false;
 }
 
-/*
-* SV_ReadIPList
-*/
 void SV_ReadIPList() {
 	SV_ResetPacketFiltersTimeouts();
 
-	Cbuf_ExecuteText( EXEC_APPEND, "exec listip.cfg\n" );
+	Cbuf_Add( "exec listip.cfg" );
 }
 
-/*
-* SV_WriteIPList
-*/
 void SV_WriteIPList() {
-	DynamicString output( sys_allocator, "set filterban {}\r\n", filterban->integer );
+	DynamicString output( sys_allocator, "filterban {}\r\n", filterban->integer );
 
 	for( int i = 0; i < numipfilters; i++ ) {
 		if( ipfilters[i].timeout && ipfilters[i].timeout <= svs.gametime ) {
@@ -241,9 +192,6 @@ void SV_WriteIPList() {
 	}
 }
 
-/*
-* Cmd_AddIP_f
-*/
 static void Cmd_AddIP_f() {
 	int i;
 
@@ -272,9 +220,6 @@ static void Cmd_AddIP_f() {
 	}
 }
 
-/*
-* Cmd_RemoveIP_f
-*/
 static void Cmd_RemoveIP_f() {
 	ipfilter_t f;
 	int i, j;
@@ -300,9 +245,6 @@ static void Cmd_RemoveIP_f() {
 	Com_Printf( "Didn't find %s.\n", Cmd_Argv( 1 ) );
 }
 
-/*
-* Cmd_ListIP_f
-*/
 static void Cmd_ListIP_f() {
 	int i;
 	uint8_t b[4];
@@ -319,47 +261,30 @@ static void Cmd_ListIP_f() {
 	}
 }
 
-/*
-* Cmd_WriteIP_f
-*/
 static void Cmd_WriteIP_f() {
 	SV_WriteIPList();
 }
 
-/*
-* G_AddCommands
-*/
 void G_AddServerCommands() {
 	if( is_dedicated_server ) {
-		Cmd_AddCommand( "say", Cmd_ConsoleSay_f );
+		AddCommand( "say", Cmd_ConsoleSay_f );
 	}
-	Cmd_AddCommand( "kick", Cmd_ConsoleKick_f );
+	AddCommand( "kick", Cmd_ConsoleKick_f );
 
-	// match controls
-	Cmd_AddCommand( "match", Cmd_Match_f );
-
-	// banning
-	Cmd_AddCommand( "addip", Cmd_AddIP_f );
-	Cmd_AddCommand( "removeip", Cmd_RemoveIP_f );
-	Cmd_AddCommand( "listip", Cmd_ListIP_f );
-	Cmd_AddCommand( "writeip", Cmd_WriteIP_f );
+	AddCommand( "addip", Cmd_AddIP_f );
+	AddCommand( "removeip", Cmd_RemoveIP_f );
+	AddCommand( "listip", Cmd_ListIP_f );
+	AddCommand( "writeip", Cmd_WriteIP_f );
 }
 
-/*
-* G_RemoveCommands
-*/
 void G_RemoveCommands() {
 	if( is_dedicated_server ) {
-		Cmd_RemoveCommand( "say" );
+		RemoveCommand( "say" );
 	}
-	Cmd_RemoveCommand( "kick" );
+	RemoveCommand( "kick" );
 
-	// match controls
-	Cmd_RemoveCommand( "match" );
-
-	// banning
-	Cmd_RemoveCommand( "addip" );
-	Cmd_RemoveCommand( "removeip" );
-	Cmd_RemoveCommand( "listip" );
-	Cmd_RemoveCommand( "writeip" );
+	RemoveCommand( "addip" );
+	RemoveCommand( "removeip" );
+	RemoveCommand( "listip" );
+	RemoveCommand( "writeip" );
 }

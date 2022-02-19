@@ -141,7 +141,7 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 	backTime = Abs( deltaTime );
 	if( g_antilag_maxtimedelta->integer ) {
 		if( g_antilag_maxtimedelta->integer < 0 ) {
-			Cvar_SetValue( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
+			Cvar_SetInteger( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
 		}
 		if( backTime > (int64_t)g_antilag_maxtimedelta->integer ) {
 			backTime = (int64_t)g_antilag_maxtimedelta->integer;
@@ -618,6 +618,7 @@ int GClip_AreaEdicts( Vec3 mins, Vec3 maxs, int *list, int maxcount, int areatyp
 * Returns a collision model that can be used for testing or clipping an
 * object of mins/maxs size.
 */
+
 static cmodel_t *GClip_CollisionModelForEntity( SyncEntityState *s, entity_shared_t *r ) {
 	cmodel_t * model = CM_TryFindCModel( CM_Server, s->model );
 	if( model != NULL ) {
@@ -639,7 +640,7 @@ static cmodel_t *GClip_CollisionModelForEntity( SyncEntityState *s, entity_share
 * Quake 2 extends this to also check entities, to allow moving liquids
 */
 static int GClip_PointContents( Vec3 p, int timeDelta ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	c4clipedict_t *clipEnt;
 	int touch[MAX_EDICTS];
@@ -689,7 +690,7 @@ typedef struct {
 * GClip_ClipMoveToEntities
 */
 static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int touchlist[MAX_EDICTS];
 	int num = GClip_AreaEdicts( clip->boxmins, clip->boxmaxs, touchlist, MAX_EDICTS, AREA_SOLID, timeDelta );
@@ -712,12 +713,12 @@ static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 			}
 
 			// wsw : jal : never clipmove against SVF_PROJECTILE entities
-			if( touch->r.svflags & SVF_PROJECTILE ) {
+			if( touch->s.svflags & SVF_PROJECTILE ) {
 				continue;
 			}
 		}
 
-		if( ( touch->r.svflags & SVF_CORPSE ) && !( clip->contentmask & CONTENTS_CORPSE ) ) {
+		if( ( touch->s.svflags & SVF_CORPSE ) && !( clip->contentmask & CONTENTS_CORPSE ) ) {
 			continue;
 		}
 
@@ -791,7 +792,7 @@ static void GClip_TraceBounds( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, Vec3 
 */
 static void GClip_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs,
 						 Vec3 end, edict_t *passedict, int contentmask, int timeDelta ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	moveclip_t clip;
 
@@ -806,7 +807,7 @@ static void GClip_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs,
 	} else {
 		// clip to world
 		CM_TransformedBoxTrace( CM_Server, svs.cms, tr, start, end, mins, maxs, NULL, contentmask, Vec3( 0.0f ), Vec3( 0.0f ) );
-		tr->ent = tr->fraction < 1.0 ? world->s.number : -1;
+		tr->ent = tr->fraction < 1.0f ? world->s.number : -1;
 		if( tr->fraction == 0 ) {
 			return; // blocked by the world
 		}
@@ -935,10 +936,10 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 
 	// expand the search bounds to include the space between the previous and current origin
 	MinMax3 bounds = MinMax3::Empty();
-	bounds = Extend( bounds, previous_origin + pm->maxs );
-	bounds = Extend( bounds, previous_origin + pm->mins );
-	bounds = Extend( bounds, pm->playerState->pmove.origin + pm->maxs );
-	bounds = Extend( bounds, pm->playerState->pmove.origin + pm->mins );
+	bounds = Union( bounds, previous_origin + pm->maxs );
+	bounds = Union( bounds, previous_origin + pm->mins );
+	bounds = Union( bounds, pm->playerState->pmove.origin + pm->maxs );
+	bounds = Union( bounds, pm->playerState->pmove.origin + pm->mins );
 
 	CallTouches( ent, bounds.mins, bounds.maxs );
 }

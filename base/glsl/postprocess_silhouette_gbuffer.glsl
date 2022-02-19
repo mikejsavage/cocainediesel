@@ -19,9 +19,9 @@ void main() {
 	ivec2 p = ivec2( gl_FragCoord.xy );
 	ivec3 pixel = ivec3( 0, 1, -1 );
 
-	vec4 colour_up =        texelFetch( u_SilhouetteTexture, p + pixel.xz, 0 );
-	vec4 colour_downleft =  texelFetch( u_SilhouetteTexture, p + pixel.yy, 0 );
-	vec4 colour_downright = texelFetch( u_SilhouetteTexture, p + pixel.zy, 0 );
+	vec4 colour_up =        sRGBToLinear( texelFetch( u_SilhouetteTexture, p + pixel.xz, 0 ) );
+	vec4 colour_downleft =  sRGBToLinear( texelFetch( u_SilhouetteTexture, p + pixel.yy, 0 ) );
+	vec4 colour_downright = sRGBToLinear( texelFetch( u_SilhouetteTexture, p + pixel.zy, 0 ) );
 
 	float edgeness_x = length( colour_downright - colour_downleft );
 	float edgeness_y = length( mix( colour_downleft, colour_downright, 0.5 ) - colour_up );

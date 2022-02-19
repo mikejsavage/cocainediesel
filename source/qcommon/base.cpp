@@ -9,7 +9,7 @@ bool break2 = false;
 bool break3 = false;
 bool break4 = false;
 
-void Fatal( const char * format, ... ) {
+void FatalImpl( const char * file, int line, const char * format, ... ) {
 	va_list argptr;
 	char msg[ 1024 ];
 
@@ -17,7 +17,8 @@ void Fatal( const char * format, ... ) {
 	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
-	ShowErrorAndAbort( msg );
+	ShowErrorMessage( msg, file, line );
+	abort();
 }
 
 void FatalErrno( const char * msg ) {
@@ -35,6 +36,10 @@ void format( FormatBuffer * fb, Span< const char > span, const FormatOpts & opts
 
 char * CopyString( Allocator * a, const char * str ) {
 	return ( *a )( "{}", str );
+}
+
+Span< char > MakeSpan( char * str ) {
+	return Span< char >( str, strlen( str ) );
 }
 
 Span< const char > MakeSpan( const char * str ) {

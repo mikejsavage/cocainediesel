@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 #include "qcommon/version.h"
+#include "qcommon/fs.h"
 
 #define DEMO_SAFEWRITE( demofile,msg,force ) \
 	if( force || ( msg )->cursize > ( msg )->maxsize / 2 ) \
@@ -36,14 +37,12 @@ static char dummy_meta_data[SNAP_MAX_DEMO_META_DATA_SIZE];
 * Writes given message to demofile
 */
 void SNAP_RecordDemoMessage( int demofile, msg_t *msg, int offset ) {
-	int len;
-
 	if( !demofile ) {
 		return;
 	}
 
 	// now write the entire message to the file, prefixed by length
-	len = LittleLong( msg->cursize ) - offset;
+	int len = LittleLong( msg->cursize ) - offset;
 	if( len <= 0 ) {
 		return;
 	}
@@ -52,13 +51,9 @@ void SNAP_RecordDemoMessage( int demofile, msg_t *msg, int offset ) {
 	FS_Write( msg->data + offset, len, demofile );
 }
 
-/*
-* SNAP_ReadDemoMessage
-*/
 int SNAP_ReadDemoMessage( int demofile, msg_t *msg ) {
-	int read = 0, msglen = -1;
-
-	read += FS_Read( &msglen, 4, demofile );
+	int msglen;
+	FS_Read( &msglen, 4, demofile );
 
 	msglen = LittleLong( msglen );
 	if( msglen == -1 ) {
@@ -72,7 +67,7 @@ int SNAP_ReadDemoMessage( int demofile, msg_t *msg ) {
 		Com_Error( "Error reading demo file: msglen > msg->maxsize" );
 	}
 
-	read = FS_Read( msg->data, msglen, demofile );
+	int read = FS_Read( msg->data, msglen, demofile );
 	if( read != msglen ) {
 		Com_Error( "Error reading demo file: End of file" );
 	}
@@ -83,23 +78,17 @@ int SNAP_ReadDemoMessage( int demofile, msg_t *msg ) {
 	return read;
 }
 
-/*
-* SNAP_DemoMetaDataMessage
-*/
 static void SNAP_DemoMetaDataMessage( msg_t *msg, const char *meta_data, size_t meta_data_realsize ) {
-	int demoinfo_len, demoinfo_len_pos, demoinfo_end;
-	int meta_data_ofs, meta_data_ofs_pos;
-
 	// demoinfo message
 	MSG_WriteUint8( msg, svc_demoinfo );
 
-	demoinfo_len_pos = msg->cursize;
+	int demoinfo_len_pos = msg->cursize;
 	MSG_WriteInt32( msg, 0 );    // svc_demoinfo length
-	demoinfo_len = msg->cursize;
+	int demoinfo_len = msg->cursize;
 
-	meta_data_ofs_pos = msg->cursize;
+	int meta_data_ofs_pos = msg->cursize;
 	MSG_WriteInt32( msg, 0 );    // meta data start offset
-	meta_data_ofs = msg->cursize;
+	int meta_data_ofs = msg->cursize;
 
 	if( meta_data_realsize > SNAP_MAX_DEMO_META_DATA_SIZE ) {
 		meta_data_realsize = SNAP_MAX_DEMO_META_DATA_SIZE;
@@ -114,7 +103,7 @@ static void SNAP_DemoMetaDataMessage( msg_t *msg, const char *meta_data, size_t 
 	MSG_WriteData( msg, meta_data, meta_data_realsize );
 	MSG_WriteData( msg, dummy_meta_data, SNAP_MAX_DEMO_META_DATA_SIZE - meta_data_realsize );
 
-	demoinfo_end = msg->cursize;
+	int demoinfo_end = msg->cursize;
 	demoinfo_len = msg->cursize - demoinfo_len;
 
 	msg->cursize = demoinfo_len_pos;
@@ -125,9 +114,6 @@ static void SNAP_DemoMetaDataMessage( msg_t *msg, const char *meta_data, size_t 
 	msg->cursize = demoinfo_end;
 }
 
-/*
-* SNAP_RecordDemoMetaDataMessage
-*/
 static void SNAP_RecordDemoMetaDataMessage( int demofile, msg_t *msg ) {
 	int complevel;
 
@@ -143,10 +129,7 @@ static void SNAP_RecordDemoMetaDataMessage( int demofile, msg_t *msg ) {
 	FS_Flush( demofile );
 }
 
-/*
-* SNAP_BeginDemoRecording
-*/
-void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned int snapFrameTime,
+void SNAP_BeginDemoRecording( TempAllocator * temp, int demofile, unsigned int spawncount, unsigned int snapFrameTime,
 		const char *configstrings, SyncEntityState *baselines ) {
 	msg_t msg;
 	uint8_t msg_buffer[MAX_MSGLEN];
@@ -172,7 +155,7 @@ void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned in
 		const char *configstring = configstrings + i * MAX_CONFIGSTRING_CHARS;
 		if( configstring[0] ) {
 			MSG_WriteUint8( &msg, svc_servercs );
-			MSG_WriteString( &msg, va( "cs %i \"%s\"", i, configstring ) );
+			MSG_WriteString( &msg, ( *temp )( "cs {} \"{}\"", i, configstring ) );
 
 			DEMO_SAFEWRITE( demofile, &msg, false );
 		}
@@ -201,15 +184,7 @@ void SNAP_BeginDemoRecording( int demofile, unsigned int spawncount, unsigned in
 }
 
 /*
-* SNAP_ClearDemoMeta
-*/
-size_t SNAP_ClearDemoMeta( char *meta_data, size_t meta_data_max_size ) {
-	memset( meta_data, 0, meta_data_max_size );
-	return 0;
-}
-
-/*
-* SNAP_SetDemoMetaValue
+* SNAP_SetDemoMetaKeyValue
 *
 * Stores a key-value pair of strings in a buffer in the following format:
 * key1\0value1\0key2\0value2\0...keyN\0valueN\0
@@ -217,102 +192,41 @@ size_t SNAP_ClearDemoMeta( char *meta_data, size_t meta_data_max_size ) {
 */
 size_t SNAP_SetDemoMetaKeyValue( char *meta_data, size_t meta_data_max_size, size_t meta_data_realsize,
 								 const char *key, const char *value ) {
-	char *s;
-	char *m_key, *m_val, *m_pastval;
-	size_t key_size, value_size;
-	const char *end = meta_data + meta_data_realsize;
+	size_t key_size = strlen( key ) + 1;
+	size_t value_size = strlen( value ) + 1;
 
-	assert( key );
-	assert( value );
-
-	if( !key || !value ) {
-		goto done;
-	}
-	if( !*key || !*value ) {
-		goto done;
-	}
-
-	// find current key value and remove it
-	for( s = meta_data; s < end && *s; ) {
-		m_key = s;
-		key_size = strlen( m_key ) + 1;
-		m_val = m_key + key_size;
-		if( m_val >= end ) {
-			// key without the value pair, EOF
-			goto done;
-		}
-
-		value_size = strlen( m_val ) + 1;
-		m_pastval = m_val + value_size;
-
-		if( !Q_stricmp( m_key, key ) ) {
-			if( !Q_stricmp( m_val, value ) ) {
-				// unchanged
-				goto done;
-			}
-
-			// key match, move everything past the key value
-			// in place of the key
-			memmove( m_key, m_pastval, end - m_pastval );
-			meta_data_realsize -= ( m_pastval - m_key );
-			break;
-		}
-
-		// some other key, skip
-		s = m_pastval;
-	}
-
-	key_size = strlen( key ) + 1;
-	value_size = strlen( value ) + 1;
 	if( meta_data_realsize + key_size + value_size > meta_data_max_size ) {
 		// no space
-		Com_Printf( "SNAP_SetDemoMetaValue: omitting value '%s' key '%s'\n", value, key );
-		goto done;
+		Com_Printf( "SNAP_SetDemoMetaKeyValue: omitting value '%s' key '%s'\n", value, key );
+		return meta_data_realsize;
 	}
 
-	memcpy( meta_data + meta_data_realsize, key, key_size ); meta_data_realsize += key_size;
-	memcpy( meta_data + meta_data_realsize, value, value_size ); meta_data_realsize += value_size;
+	memcpy( meta_data + meta_data_realsize, key, key_size );
+	meta_data_realsize += key_size;
+	memcpy( meta_data + meta_data_realsize, value, value_size );
+	meta_data_realsize += value_size;
 
-	// EOF
 	meta_data[meta_data_max_size - 1] = 0;
 
-done:
 	return meta_data_realsize;
 }
 
-/*
-* SNAP_StopDemoRecording
-*/
 void SNAP_StopDemoRecording( int demofile ) {
-	int i;
-
-	// finishup
-	i = LittleLong( -1 );
+	int i = LittleLong( -1 );
 	FS_Write( &i, 4, demofile );
 }
 
-/*
-* SNAP_WriteDemoMetaData
-*/
-void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t meta_data_realsize ) {
-	unsigned i;
-	unsigned v;
-	char tmpn[256];
-	int filenum, filelen;
+void SNAP_WriteDemoMetaData( const char * filename, const char * meta_data, size_t meta_data_realsize ) {
 	msg_t msg;
 	uint8_t msg_buffer[MAX_MSGLEN];
-	void *compressed_msg;
-
 	MSG_Init( &msg, msg_buffer, sizeof( msg_buffer ) );
 
 	// write to a temp file
-	v = 0;
-	for( i = 0; filename[i]; i++ ) {
-		v = ( v + i ) * 37 + tolower( filename[i] ); // case insensitivity
-	}
-	snprintf( tmpn, sizeof( tmpn ), "%u.tmp", v );
+	char * tmpn = ( *sys_allocator )( "{}.tmp", filename );
+	defer { FREE( sys_allocator, tmpn ); };
 
-	if( FS_FOpenFile( tmpn, &filenum, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
+	int filenum;
+	if( FS_FOpenAbsoluteFile( tmpn, &filenum, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
 		return;
 	}
 
@@ -324,67 +238,23 @@ void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t
 	// important note: we need to the load the temp file before closing it
 	// because in the case of gz compression, closing the file may actually
 	// write some data we don't want to copy
-	filelen = FS_LoadFile( tmpn, &compressed_msg, NULL, 0 );
-
-	if( compressed_msg ) {
-		int origfile;
-
-		if( FS_FOpenFile( filename, &origfile, FS_READ | FS_UPDATE ) != -1 ) {
-			FS_Write( compressed_msg, filelen, origfile );
-			FS_FCloseFile( origfile );
+	Span< u8 > metadata_only = ReadFileBinary( sys_allocator, tmpn );
+	if( metadata_only.ptr != NULL ) {
+		FILE * original = OpenFile( sys_allocator, filename, "rb+" );
+		bool ok = false;
+		if( original != NULL ) {
+			ok = WritePartialFile( original, metadata_only.ptr, metadata_only.num_bytes() );
+			fclose( original );
 		}
-		FS_FreeFile( compressed_msg );
+		if( !ok ) {
+			Com_Printf( "Couldn't overwrite demo metadata\n" );
+		}
+		FREE( sys_allocator, metadata_only.ptr );
 	}
 
 	FS_FCloseFile( filenum );
 
-	FS_RemoveFile( tmpn );
-}
-
-/*
-* SNAP_ReadDemoMetaData
-*
-* Reads null-terminated meta information from a demo file into a string
-*/
-size_t SNAP_ReadDemoMetaData( int demofile, char *meta_data, size_t meta_data_size ) {
-	char demoinfo;
-	int meta_data_ofs;
-	unsigned int meta_data_realsize, meta_data_fullsize;
-
-	if( !meta_data || !meta_data_size ) {
-		return 0;
+	if( !RemoveFile( sys_allocator, tmpn ) ) {
+		Com_Printf( "Couldn't remove temp demo file: %s\n", tmpn );
 	}
-
-	// fseek to zero byte, skipping initial msg length
-	if( FS_Seek( demofile, 0 + sizeof( int ), FS_SEEK_SET ) < 0 ) {
-		return 0;
-	}
-
-	// read svc_demoinfo
-	FS_Read( &demoinfo, 1, demofile );
-	if( demoinfo != svc_demoinfo ) {
-		return 0;
-	}
-
-	// skip demoinfo length
-	FS_Seek( demofile, sizeof( int ), FS_SEEK_CUR );
-
-	// read meta data offset
-	FS_Read( ( void * )&meta_data_ofs, sizeof( int ), demofile );
-	meta_data_ofs = LittleLong( meta_data_ofs );
-
-	if( FS_Seek( demofile, meta_data_ofs, FS_SEEK_CUR ) < 0 ) {
-		return 0;
-	}
-
-	FS_Read( ( void * )&meta_data_realsize, sizeof( int ), demofile );
-	FS_Read( ( void * )&meta_data_fullsize, sizeof( int ), demofile );
-
-	meta_data_realsize = LittleLong( meta_data_realsize );
-	meta_data_fullsize = LittleLong( meta_data_fullsize );
-
-	FS_Read( ( void * )meta_data, qmin( meta_data_size, meta_data_realsize ), demofile );
-	meta_data[qmin( meta_data_realsize, meta_data_size - 1 )] = '\0'; // termination \0
-
-	return meta_data_realsize;
 }

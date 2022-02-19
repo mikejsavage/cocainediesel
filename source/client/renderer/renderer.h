@@ -39,7 +39,8 @@ struct FrameStatic {
 	UniformBlock shadowmap_view_uniforms[ 4 ];
 	UniformBlock shadow_uniforms;
 	UniformBlock identity_model_uniforms;
-	UniformBlock identity_material_uniforms;
+	UniformBlock identity_material_static_uniforms;
+	UniformBlock identity_material_dynamic_uniforms;
 	UniformBlock fog_uniforms;
 	UniformBlock blue_noise_uniforms;
 
@@ -102,7 +103,7 @@ void RendererSubmitFrame();
 const Texture * BlueNoiseTexture();
 void DrawFullscreenMesh( const PipelineState & pipeline );
 
-PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false );
+PipelineState MaterialToPipelineState( const Material * material, Vec4 color = vec4_white, bool skinned = false, GPUMaterial * gpu_material = NULL );
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color = vec4_white );
 void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color );
@@ -112,6 +113,10 @@ u16 DynamicMeshBaseIndex();
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh );
 
 UniformBlock UploadModelUniforms( const Mat4 & M );
-UniformBlock UploadMaterialUniforms( const Vec4 & color, const Vec2 & texture_size, float specular, float shininess, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
+UniformBlock UploadMaterialStaticUniforms( const Vec2 & texture_size, float specular, float shininess );
+UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0 = Vec3( 1, 0, 0 ), Vec3 tcmod_row1 = Vec3( 0, 1, 0 ) );
 
 const char * ShadowQualityToString( ShadowQuality mode );
+
+void DrawModelInstances();
+void ClearMaterialStaticUniforms();

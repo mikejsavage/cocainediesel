@@ -33,10 +33,6 @@ constexpr Vec3 playerbox_stand_mins = Vec3( -16, -16, -24 );
 constexpr Vec3 playerbox_stand_maxs = Vec3( 16, 16, 40 );
 constexpr int playerbox_stand_viewheight = 30;
 
-constexpr Vec3 playerbox_crouch_mins = Vec3( -16, -16, -24 );
-constexpr Vec3 playerbox_crouch_maxs = Vec3( 16, 16, 39 );
-constexpr int playerbox_crouch_viewheight = 30;
-
 constexpr Vec3 playerbox_gib_mins = Vec3( -16, -16, 0 );
 constexpr Vec3 playerbox_gib_maxs = Vec3( 16, 16, 16 );
 constexpr int playerbox_gib_viewheight = 8;
@@ -45,11 +41,9 @@ constexpr int playerbox_gib_viewheight = 8;
 #define GRAVITY 850
 #define GRAVITY_COMPENSATE ( (float)GRAVITY / (float)BASEGRAVITY )
 
+constexpr int PLAYER_MASS = 200;
+
 #define ZOOMTIME 60
-#define CROUCHTIME 100
-#define DEFAULT_PLAYERSPEED 320.0f
-#define DEFAULT_JUMPSPEED 260.0f
-#define DEFAULT_DASHSPEED 550.0f
 #define PROJECTILE_PRESTEP 100
 
 //==================================================================
@@ -67,6 +61,7 @@ struct pmove_t {
 
 	// command (in)
 	UserCommand cmd;
+	Vec3 scale;
 
 	// results (out)
 	int numtouch;
@@ -80,8 +75,6 @@ struct pmove_t {
 	int waterlevel;
 
 	int contentmask;
-
-	bool ladder;
 };
 
 struct gs_module_api_t {
@@ -104,15 +97,14 @@ struct gs_state_t {
 #define GS_TeamBasedGametype( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_ISTEAMBASED ) != 0 )
 #define GS_MatchPaused( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_PAUSED ) != 0 )
 #define GS_MatchWaiting( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_WAITING ) != 0 )
-#define GS_Countdown( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_COUNTDOWN ) != 0 )
 
 //==================================================================
 
-#define ATTN_NONE               0       // full volume the entire level
-#define ATTN_DISTANT            0.5     // distant sound (most likely explosions)
-#define ATTN_NORM               1       // players, weapons, etc
-#define ATTN_IDLE               2.5     // stuff around you
-#define ATTN_STATIC             5       // diminish very rapidly with distance
+#define ATTN_NONE               0.0f    // full volume the entire level
+#define ATTN_DISTANT            0.5f    // distant sound (most likely explosions)
+#define ATTN_NORM               1.0f    // players, weapons, etc
+#define ATTN_IDLE               2.5f    // stuff around you
+#define ATTN_STATIC             5.0f    // diminish very rapidly with distance
 
 // sound channels
 // CHAN_AUTO never willingly overrides
@@ -127,12 +119,7 @@ enum {
 
 //==================================================================
 
-#define ISWALKABLEPLANE( x ) ( ( (cplane_t *)x )->normal.z >= 0.7f )
-
-#define SLIDEMOVE_PLANEINTERACT_EPSILON 0.05
-#define SLIDEMOVEFLAG_WALL_BLOCKED  8
-#define SLIDEMOVEFLAG_TRAPPED       4
-#define SLIDEMOVEFLAG_BLOCKED       2   // it was blocked at some point, doesn't mean it didn't slide along the blocking object
+#define ISWALKABLEPLANE( x ) ( ( (Plane *)x )->normal.z >= 0.7f )
 
 Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal, float overbounce );
 
@@ -169,14 +156,11 @@ int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec
 //===============================================================
 
 // pmove->pm_features
-#define PMFEAT_CROUCH           ( 1 << 0 )
-#define PMFEAT_WALK             ( 1 << 1 )
-#define PMFEAT_JUMP             ( 1 << 2 )
-#define PMFEAT_SPECIAL          ( 1 << 3 )
-#define PMFEAT_SCOPE            ( 1 << 4 )
-#define PMFEAT_GHOSTMOVE        ( 1 << 5 )
-#define PMFEAT_WEAPONSWITCH     ( 1 << 6 )
-#define PMFEAT_TEAMGHOST        ( 1 << 7 )
+#define PMFEAT_ABILITIES        ( 1 << 0 )
+#define PMFEAT_SCOPE            ( 1 << 1 )
+#define PMFEAT_GHOSTMOVE        ( 1 << 2 )
+#define PMFEAT_WEAPONSWITCH     ( 1 << 3 )
+#define PMFEAT_TEAMGHOST        ( 1 << 4 )
 
 #define PMFEAT_ALL              ( 0xFFFF )
 #define PMFEAT_DEFAULT          ( PMFEAT_ALL & ~PMFEAT_GHOSTMOVE & ~PMFEAT_TEAMGHOST )
@@ -186,15 +170,6 @@ enum DamageCategory {
 	DamageCategory_Gadget,
 	DamageCategory_World,
 };
-
-// struct DamageType {
-// 	DamageCategory type;
-// 	union {
-// 		WeaponType weapon;
-// 		GadgetType gadget;
-// 		WorldDamage world;
-// 	};
-// };
 
 enum WorldDamage : u8 {
 	WorldDamage_Slime,
@@ -251,6 +226,9 @@ enum {
 	Vsay_User,
 	Vsay_Guyman,
 	Vsay_Helena,
+	Vsay_Fart,
+	Vsay_Zombie,
+	Vsay_Larp,
 
 	Vsay_Total
 };
@@ -267,12 +245,14 @@ enum EventType {
 	EV_USEGADGET,
 	EV_SMOOTHREFIREWEAPON,
 	EV_NOAMMOCLICK,
+	EV_RELOAD,
 	EV_ZOOM_IN,
 	EV_ZOOM_OUT,
 
 	EV_DASH,
 
 	EV_WALLJUMP,
+	EV_JETPACK,
 	EV_JUMP,
 	EV_JUMP_PAD,
 	EV_FALL,
@@ -307,6 +287,8 @@ enum EventType {
 	EV_STAKE_IMPACT,
 	EV_BLAST_BOUNCE,
 	EV_BLAST_IMPACT,
+	EV_STICKY_EXPLOSION,
+	EV_STICKY_IMPACT,
 
 	EV_STUN_GRENADE_EXPLOSION,
 
@@ -342,6 +324,11 @@ enum EventType {
 	EV_VFX,
 
 	MAX_EVENTS = 128
+};
+
+enum JumpType : u8 {
+	JumpType_Normal,
+	JumpType_MidgetCharge
 };
 
 enum playerstate_event_t {

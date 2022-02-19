@@ -23,12 +23,12 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "qcommon/cmodel.h"
 
-static cvar_t *scr_netgraph;
-static cvar_t *scr_timegraph;
-static cvar_t *scr_debuggraph;
-static cvar_t *scr_graphheight;
-static cvar_t *scr_graphscale;
-static cvar_t *scr_graphshift;
+static Cvar *scr_netgraph;
+static Cvar *scr_timegraph;
+static Cvar *scr_debuggraph;
+static Cvar *scr_graphheight;
+static Cvar *scr_graphscale;
+static Cvar *scr_graphshift;
 
 /*
 ===============================================================================
@@ -111,21 +111,19 @@ static void SCR_DrawDebugGraph() {
 }
 
 void SCR_InitScreen() {
-	scr_netgraph = Cvar_Get( "netgraph", "0", 0 );
-	scr_timegraph = Cvar_Get( "timegraph", "0", 0 );
-	scr_debuggraph = Cvar_Get( "debuggraph", "0", 0 );
-	scr_graphheight = Cvar_Get( "graphheight", "32", 0 );
-	scr_graphscale = Cvar_Get( "graphscale", "1", 0 );
-	scr_graphshift = Cvar_Get( "graphshift", "0", 0 );
+	scr_netgraph = NewCvar( "netgraph", "0", 0 );
+	scr_timegraph = NewCvar( "timegraph", "0", 0 );
+	scr_debuggraph = NewCvar( "debuggraph", "0", 0 );
+	scr_graphheight = NewCvar( "graphheight", "32", 0 );
+	scr_graphscale = NewCvar( "graphscale", "1", 0 );
+	scr_graphshift = NewCvar( "graphshift", "0", 0 );
 }
 
 static void SCR_RenderView() {
-	cl.map = FindMap( client_gs.gameState.map );
 	if( cl.map != NULL ) {
-		cl.cms = cl.map->cms;
-		if( cl.cms->checksum != client_gs.gameState.map_checksum ) {
-			// TODO: hotloading breaks this because server checksum doesn't get updated until the next server frame
-			// Com_Error( "Local map version differs from server: %u != '%u'", cl.cms->checksum, client_gs.gameState.map_checksum );
+		if( cl.map->cms->checksum != client_gs.gameState.map_checksum && Com_ServerState() == ss_dead ) {
+			// disable this check on local servers because server/client hotloads don't happen in sync
+			Com_Error( "Local map version differs from server" );
 		}
 
 		CL_GameModule_RenderView();
@@ -154,7 +152,7 @@ static UniformBlock UploadPostprocessUniforms( PostprocessUniforms uniforms ) {
 }
 
 static void SubmitPostprocessPass() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.postprocess_pass;
@@ -207,7 +205,7 @@ void SCR_UpdateScreen() {
 
 	CL_ImGuiBeginFrame();
 
-	if( cls.state == CA_CONNECTED || cls.state == CA_ACTIVE ) {
+	if( cls.state == CA_ACTIVE ) {
 		SCR_RenderView();
 
 		if( scr_timegraph->integer ) {

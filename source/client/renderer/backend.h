@@ -75,27 +75,16 @@ enum VertexFormat : u8 {
 
 	VertexFormat_U32x1,
 
+	VertexFormat_Floatx1,
 	VertexFormat_Floatx2,
 	VertexFormat_Floatx3,
 	VertexFormat_Floatx4,
 };
 
-enum TextureBufferFormat : u8 {
-	TextureBufferFormat_U8x2,
-	TextureBufferFormat_U8x4,
-
-	TextureBufferFormat_U32,
-	TextureBufferFormat_U32x2,
-
-	TextureBufferFormat_S32x2,
-	TextureBufferFormat_S32x3,
-
-	TextureBufferFormat_Floatx4,
-};
-
 struct Texture {
 	u32 texture;
 	u32 width, height;
+	u32 num_mipmaps;
 	bool msaa;
 	TextureFormat format;
 };
@@ -111,6 +100,14 @@ struct Framebuffer {
 	Texture depth_texture;
 	TextureArray texture_array;
 	u32 width, height;
+};
+
+struct StreamingBuffer {
+	Span< char > name;
+	GPUBuffer buffers[ 3 ];
+	u64 fences[ 3 ];
+	u8 * mappings[ 3 ];
+	u32 current;
 };
 
 struct PipelineState {
@@ -129,9 +126,9 @@ struct PipelineState {
 		TextureArray ta;
 	};
 
-	struct TextureBufferBinding {
+	struct GPUBufferBinding {
 		u64 name_hash;
-		TextureBuffer tb;
+		GPUBuffer buffer;
 	};
 
 	struct Scissor {
@@ -140,12 +137,12 @@ struct PipelineState {
 
 	UniformBinding uniforms[ ARRAY_COUNT( &Shader::uniforms ) ];
 	TextureBinding textures[ ARRAY_COUNT( &Shader::textures ) ];
-	TextureBufferBinding texture_buffers[ ARRAY_COUNT( &Shader::texture_buffers ) ];
 	TextureArrayBinding texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ];
+	GPUBufferBinding buffers[ ARRAY_COUNT( &Shader::buffers ) ];
 	size_t num_uniforms = 0;
 	size_t num_textures = 0;
-	size_t num_texture_buffers = 0;
 	size_t num_texture_arrays = 0;
+	size_t num_buffers = 0;
 
 	u8 pass = U8_MAX;
 	const Shader * shader = NULL;
@@ -184,19 +181,6 @@ struct PipelineState {
 		num_textures++;
 	}
 
-	void set_texture_buffer( StringHash name, TextureBuffer tb ) {
-		for( size_t i = 0; i < num_texture_buffers; i++ ) {
-			if( texture_buffers[ i ].name_hash == name.hash ) {
-				texture_buffers[ i ].tb = tb;
-				return;
-			}
-		}
-
-		texture_buffers[ num_texture_buffers ].name_hash = name.hash;
-		texture_buffers[ num_texture_buffers ].tb = tb;
-		num_texture_buffers++;
-	}
-
 	void set_texture_array( StringHash name, TextureArray ta ) {
 		for( size_t i = 0; i < num_texture_arrays; i++ ) {
 			if( texture_arrays[ i ].name_hash == name.hash ) {
@@ -208,6 +192,19 @@ struct PipelineState {
 		texture_arrays[ num_texture_arrays ].name_hash = name.hash;
 		texture_arrays[ num_texture_arrays ].ta = ta;
 		num_texture_arrays++;
+	}
+
+	void set_buffer( StringHash name, GPUBuffer buffer ) {
+		for( size_t i = 0; i < num_buffers; i++ ) {
+			if( buffers[ i ].name_hash == name.hash ) {
+				buffers[ i ].buffer = buffer;
+				return;
+			}
+		}
+
+		buffers[ num_buffers ].name_hash = name.hash;
+		buffers[ num_buffers ].buffer = buffer;
+		num_buffers++;
 	}
 };
 
@@ -221,17 +218,17 @@ struct MeshConfig {
 		weights = { };
 	}
 
-	VertexBuffer unified_buffer = { };
+	GPUBuffer unified_buffer = { };
 	u32 stride = 0;
 
 	union {
 		struct {
-			VertexBuffer positions;
-			VertexBuffer normals;
-			VertexBuffer tex_coords;
-			VertexBuffer colors;
-			VertexBuffer joints;
-			VertexBuffer weights;
+			GPUBuffer positions;
+			GPUBuffer normals;
+			GPUBuffer tex_coords;
+			GPUBuffer colors;
+			GPUBuffer joints;
+			GPUBuffer weights;
 		};
 		struct {
 			u32 positions_offset;
@@ -253,7 +250,7 @@ struct MeshConfig {
 	VertexFormat weights_format = VertexFormat_Floatx4;
 	IndexFormat indices_format = IndexFormat_U16;
 
-	IndexBuffer indices = { };
+	GPUBuffer indices = { };
 	u32 num_vertices = 0;
 
 	PrimitiveType primitive_type = PrimitiveType_Triangles;
@@ -277,6 +274,7 @@ struct TextureConfig {
 struct TextureArrayConfig {
 	u32 width = 0;
 	u32 height = 0;
+	u32 num_mipmaps = 1;
 	u32 layers = 0;
 
 	const void * data = NULL;
@@ -321,8 +319,8 @@ struct FramebufferConfig {
 enum ClearColor { ClearColor_Dont, ClearColor_Do };
 enum ClearDepth { ClearDepth_Dont, ClearDepth_Do };
 
-void RenderBackendInit();
-void RenderBackendShutdown();
+void InitRenderBackend();
+void ShutdownRenderBackend();
 
 void RenderBackendBeginFrame();
 void RenderBackendSubmitFrame();
@@ -336,33 +334,30 @@ void AddResolveMSAAPass( const char * name, const tracy::SourceLocationData * tr
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 
-VertexBuffer NewVertexBuffer( const void * data, u32 len );
-VertexBuffer NewVertexBuffer( u32 len );
-void WriteVertexBuffer( VertexBuffer vb, const void * data, u32 size, u32 offset = 0 );
-void DeleteVertexBuffer( VertexBuffer vb );
+GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name = NULL );
+GPUBuffer NewGPUBuffer( u32 len, const char * name = NULL );
+void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 len, u32 offset = 0 );
+void ReadGPUBuffer( GPUBuffer buf, void * data, u32 len, u32 offset = 0 );
+void DeleteGPUBuffer( GPUBuffer buf );
+void DeferDeleteGPUBuffer( GPUBuffer buf );
+
+StreamingBuffer NewStreamingBuffer( u32 len, const char * name = NULL );
+void StreamingBufferFrame( StreamingBuffer * buf );
+u8 * GetStreamingBufferMapping( StreamingBuffer stream );
+GPUBuffer GetStreamingBufferBuffer( StreamingBuffer stream );
+void DeleteStreamingBuffer( StreamingBuffer buf );
 
 template< typename T >
-VertexBuffer NewVertexBuffer( Span< T > data ) {
-	return NewVertexBuffer( data.ptr, data.num_bytes() );
+GPUBuffer NewGPUBuffer( Span< T > data, const char * name = NULL ) {
+	return NewGPUBuffer( data.ptr, data.num_bytes(), name );
 }
-
-VertexBuffer NewParticleVertexBuffer( u32 n );
-
-IndexBuffer NewIndexBuffer( const void * data, u32 len );
-IndexBuffer NewIndexBuffer( u32 len );
-void WriteIndexBuffer( IndexBuffer ib, const void * data, u32 size, u32 offset = 0 );
-void ReadVertexBuffer( VertexBuffer vb, void * data, u32 len, u32 offset = 0 );
-void DeleteIndexBuffer( IndexBuffer ib );
 
 template< typename T >
-IndexBuffer NewIndexBuffer( Span< T > data ) {
-	return NewIndexBuffer( data.ptr, data.num_bytes() );
+void WriteGPUBuffer( GPUBuffer buf, Span< T > data, u32 offset = 0 ) {
+	WriteGPUBuffer( buf, data.ptr, data.num_bytes(), offset );
 }
 
-TextureBuffer NewTextureBuffer( TextureBufferFormat format, u32 len );
-void WriteTextureBuffer( TextureBuffer tb, const void * data, u32 size );
-void DeleteTextureBuffer( TextureBuffer tb );
-void DeferDeleteTextureBuffer( TextureBuffer tb );
+GPUBuffer NewParticleGPUBuffer( u32 n );
 
 Texture NewTexture( const TextureConfig & config );
 void DeleteTexture( Texture texture );
@@ -375,7 +370,8 @@ Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, 
 Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer );
 void DeleteFramebuffer( Framebuffer fb );
 
-bool NewShader( Shader * shader, Span< const char * > srcs, Span< int > lengths, Span< const char * > feedback_varyings = Span< const char * >() );
+bool NewShader( Shader * shader, Span< Span< const char > > srcs, Span< const char * > feedback_varyings = Span< const char * >(), bool particle_vertex_attribs = false );
+bool NewComputeShader( Shader * shader, Span< Span< const char > > srcs );
 void DeleteShader( Shader shader );
 
 Mesh NewMesh( MeshConfig config );
@@ -383,10 +379,13 @@ void DeleteMesh( const Mesh & mesh );
 void DeferDeleteMesh( const Mesh & mesh );
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0 );
-void UpdateParticles( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, float radius, u32 num_particles, float dt );
-void UpdateParticlesFeedback( const Mesh & mesh, VertexBuffer vb_in, VertexBuffer vb_out, VertexBuffer vb_feedback, float radius, u32 num_particles, float dt );
-void DrawInstancedParticles( const Mesh & mesh, VertexBuffer vb, BlendFunc blend_func, u32 num_particles );
-void DrawInstancedParticles( VertexBuffer vb, const Model * model, u32 num_particles );
+void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer instance_data, u32 num_instances, InstanceType instance_type, u32 num_vertices_override = 0, u32 first_index = 0 );
+void UpdateParticles( const Mesh & mesh, GPUBuffer vb_in, GPUBuffer vb_out, float radius, u32 num_particles, float dt );
+void UpdateParticlesFeedback( const Mesh & mesh, GPUBuffer vb_in, GPUBuffer vb_out, GPUBuffer vb_feedback, float radius, u32 num_particles, float dt );
+void DrawInstancedParticles( const Mesh & mesh, GPUBuffer vb, BlendFunc blend_func, u32 num_particles );
+void DrawInstancedParticles( GPUBuffer vb, const Model * model, u32 num_particles );
+
+void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z );
 
 void DownloadFramebuffer( void * buf );
 

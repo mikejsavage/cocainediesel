@@ -31,61 +31,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //===============================================================================
 
 /*
-* SV_FindPlayer
-* Helper for the functions below. It finds the client_t for the given name or id
-*/
-static client_t *SV_FindPlayer( const char *s ) {
-	client_t *cl;
-	client_t *player;
-	int i;
-	int idnum = 0;
-
-	if( !s ) {
-		return NULL;
-	}
-
-	// numeric values are just slot numbers
-	if( s[0] >= '0' && s[0] <= '9' ) {
-		idnum = atoi( s );
-		if( idnum < 0 || idnum >= sv_maxclients->integer ) {
-			Com_Printf( "Bad client slot: %i\n", idnum );
-			return NULL;
-		}
-
-		player = &svs.clients[idnum];
-		goto found_player;
-	}
-
-	// check for a name match
-	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
-		if( !cl->state ) {
-			continue;
-		}
-		if( !Q_stricmp( cl->name, s ) ) {
-			player = cl;
-			goto found_player;
-		}
-	}
-
-	Com_Printf( "Userid %s is not on the server\n", s );
-	return NULL;
-
-found_player:
-	if( !player->state || !player->edict ) {
-		Com_Printf( "Client %s is not active\n", s );
-		return NULL;
-	}
-
-	return player;
-}
-
-/*
 * SV_Map_f
 *
 * User command to change the map
 * map: restart game, and start map
 * devmap: restart game, enable cheats, and start map
-* gamemap: just start the map
 */
 static void SV_Map_f() {
 	if( Cmd_Argc() < 2 ) {
@@ -116,9 +66,6 @@ static void SV_Map_f() {
 
 //===============================================================
 
-/*
-* SV_Status_f
-*/
 void SV_Status_f() {
 	int i, j, l;
 	client_t *cl;
@@ -165,46 +112,12 @@ void SV_Status_f() {
 		Com_Printf( " " ); // always add at least one space between the columns because IPv6 addresses are long
 
 		Com_GGPrint( "{16x}", cl->netchan.session_id );
-		Com_Printf( "\n" );
 	}
 	Com_Printf( "\n" );
 }
 
-/*
-* SV_Heartbeat_f
-*/
 static void SV_Heartbeat_f() {
 	svc.nextHeartbeat = Sys_Milliseconds();
-}
-
-/*
-* SV_Serverinfo_f
-* Examine or change the serverinfo string
-*/
-static void SV_Serverinfo_f() {
-	Com_Printf( "Server info settings:\n" );
-	Info_Print( Cvar_Serverinfo() );
-}
-
-/*
-* SV_DumpUser_f
-* Examine all a users info strings
-*/
-static void SV_DumpUser_f() {
-	client_t *client;
-	if( Cmd_Argc() != 2 ) {
-		Com_Printf( "Usage: info <userid>\n" );
-		return;
-	}
-
-	client = SV_FindPlayer( Cmd_Argv( 1 ) );
-	if( !client ) {
-		return;
-	}
-
-	Com_Printf( "userinfo\n" );
-	Com_Printf( "--------\n" );
-	Info_Print( client->userinfo );
 }
 
 /*
@@ -221,52 +134,39 @@ static void SV_KillServer_f() {
 
 //===========================================================
 
-/*
-* SV_InitOperatorCommands
-*/
 void SV_InitOperatorCommands() {
-	Cmd_AddCommand( "heartbeat", SV_Heartbeat_f );
-	Cmd_AddCommand( "status", SV_Status_f );
-	Cmd_AddCommand( "serverinfo", SV_Serverinfo_f );
-	Cmd_AddCommand( "dumpuser", SV_DumpUser_f );
+	AddCommand( "heartbeat", SV_Heartbeat_f );
+	AddCommand( "status", SV_Status_f );
 
-	Cmd_AddCommand( "map", SV_Map_f );
-	Cmd_AddCommand( "devmap", SV_Map_f );
-	Cmd_AddCommand( "gamemap", SV_Map_f );
-	Cmd_AddCommand( "killserver", SV_KillServer_f );
+	AddCommand( "map", SV_Map_f );
+	AddCommand( "devmap", SV_Map_f );
+	AddCommand( "killserver", SV_KillServer_f );
 
-	Cmd_AddCommand( "serverrecord", SV_Demo_Start_f );
-	Cmd_AddCommand( "serverrecordstop", SV_Demo_Stop_f );
-	Cmd_AddCommand( "serverrecordcancel", SV_Demo_Cancel_f );
+	AddCommand( "serverrecord", SV_Demo_Start_f );
+	AddCommand( "serverrecordstop", SV_Demo_Stop_f );
+	AddCommand( "serverrecordcancel", SV_Demo_Cancel_f );
 
 	if( is_dedicated_server ) {
-		Cmd_AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
+		AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
 	}
 
-	Cmd_SetCompletionFunc( "map", CompleteMapName );
-	Cmd_SetCompletionFunc( "devmap", CompleteMapName );
-	Cmd_SetCompletionFunc( "gamemap", CompleteMapName );
+	SetTabCompletionCallback( "map", CompleteMapName );
+	SetTabCompletionCallback( "devmap", CompleteMapName );
 }
 
-/*
-* SV_ShutdownOperatorCommands
-*/
 void SV_ShutdownOperatorCommands() {
-	Cmd_RemoveCommand( "heartbeat" );
-	Cmd_RemoveCommand( "status" );
-	Cmd_RemoveCommand( "serverinfo" );
-	Cmd_RemoveCommand( "dumpuser" );
+	RemoveCommand( "heartbeat" );
+	RemoveCommand( "status" );
 
-	Cmd_RemoveCommand( "map" );
-	Cmd_RemoveCommand( "devmap" );
-	Cmd_RemoveCommand( "gamemap" );
-	Cmd_RemoveCommand( "killserver" );
+	RemoveCommand( "map" );
+	RemoveCommand( "devmap" );
+	RemoveCommand( "killserver" );
 
-	Cmd_RemoveCommand( "serverrecord" );
-	Cmd_RemoveCommand( "serverrecordstop" );
-	Cmd_RemoveCommand( "serverrecordcancel" );
+	RemoveCommand( "serverrecord" );
+	RemoveCommand( "serverrecordstop" );
+	RemoveCommand( "serverrecordcancel" );
 
 	if( is_dedicated_server ) {
-		Cmd_RemoveCommand( "serverrecordpurge" );
+		RemoveCommand( "serverrecordpurge" );
 	}
 }

@@ -14,13 +14,15 @@ void ShutdownFS();
 
 const char * RootDirPath();
 const char * HomeDirPath();
-const char * FutureHomeDirPath();
+const char * OldHomeDirPath();
 
 char * ReadFileString( Allocator * a, const char * path, size_t * len = NULL );
 Span< u8 > ReadFileBinary( Allocator * a, const char * path );
 
 FILE * OpenFile( Allocator * a, const char * path, const char * mode );
+bool ReadPartialFile( FILE * file, void * data, size_t len, size_t * bytes_read );
 bool WritePartialFile( FILE * file, const void * data, size_t len );
+bool Seek( FILE * file, size_t cursor );
 size_t FileSize( FILE * file );
 
 bool FileExists( Allocator * temp, const char * path );
@@ -35,9 +37,8 @@ struct ListDirHandle {
 ListDirHandle BeginListDir( Allocator * a, const char * path );
 bool ListDirNext( ListDirHandle * handle, const char ** path, bool * dir );
 
-struct FileMetadata {
-	u64 size;
-	s64 modified_time;
-};
+struct FSChangeMonitor;
 
-FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path );
+FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path );
+void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor );
+Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n );

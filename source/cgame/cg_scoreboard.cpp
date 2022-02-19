@@ -14,20 +14,21 @@ bool CG_ScoreboardShown() {
 
 static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float line_height ) {
 	SyncScoreboardPlayer * player = &client_gs.gameState.players[ playerIndex - 1 ];
+
 	// icon
 	bool warmup = client_gs.gameState.match_state == MatchState_Warmup || client_gs.gameState.match_state == MatchState_Countdown;
 	const Material * icon = NULL;
 
 	if( warmup ) {
-		icon = player->ready ? cgs.media.shaderReady : NULL;
+		icon = player->ready ? FindMaterial( "hud/icons/ready" ) : NULL;
 	}
 	else {
 		bool carrier = player->carrier && ( ISREALSPECTATOR() || cg_entities[ playerIndex ].current.team == cg.predictedPlayerState.team );
 		if( player->alive ) {
-			icon = carrier ? cgs.media.shaderBombIcon : cgs.media.shaderAlive;
+			icon = carrier ? FindMaterial( "hud/icons/bomb" ) : FindMaterial( "hud/icons/alive" );
 		}
 		else {
-			icon = cgs.media.shaderDead;
+			icon = FindMaterial( "hud/icons/dead" );
 		}
 	}
 
@@ -117,7 +118,7 @@ static void DrawTeamScoreboard( TempAllocator & temp, int team, float col_width,
 }
 
 void CG_DrawScoreboard() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -147,7 +148,7 @@ void CG_DrawScoreboard() {
 	};
 
 	float col_width = 80;
-	u8 alpha = 242;
+	u8 alpha = 255;
 
 	if( GS_TeamBasedGametype( &client_gs ) ) {
 		float score_width = 5 * ( ImGui::GetTextLineHeight() + 2 * 8 );
@@ -163,7 +164,7 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 3, col_width );
 			ImGui::SetColumnWidth( 4, col_width );
 
-			ColumnCenterText( "ATTACKING" );
+			ColumnCenterText( client_gs.gameState.bomb.attacking_team == TEAM_ALPHA ? "ATTACKING" : "DEFENDING" );
 			ImGui::NextColumn();
 			ImGui::NextColumn();
 			ColumnCenterText( "SCORE" );
@@ -214,7 +215,7 @@ void CG_DrawScoreboard() {
 			ImGui::SetColumnWidth( 3, col_width );
 			ImGui::SetColumnWidth( 4, col_width );
 
-			ColumnCenterText( "DEFENDING" );
+			ColumnCenterText( client_gs.gameState.bomb.attacking_team == TEAM_BETA ? "ATTACKING" : "DEFENDING" );
 			ImGui::NextColumn();
 			ImGui::NextColumn();
 			ImGui::NextColumn();

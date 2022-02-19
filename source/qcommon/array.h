@@ -11,7 +11,11 @@ class NonRAIIDynamicArray {
 	T * elems;
 
 public:
-	virtual ~NonRAIIDynamicArray() = default;
+	NonRAIIDynamicArray() = default;
+
+	NonRAIIDynamicArray( Allocator * a_, size_t initial_capacity = 0 ) {
+		init( a_, initial_capacity );
+	}
 
 	void init( Allocator * a_, size_t initial_capacity = 0 ) {
 		a = a_;
@@ -24,10 +28,22 @@ public:
 		FREE( a, elems );
 	}
 
+	T * add() {
+		size_t idx = extend( 1 );
+		return &elems[ idx ];
+	}
+
 	size_t add( const T & x ) {
 		size_t idx = extend( 1 );
 		elems[ idx ] = x;
 		return idx;
+	}
+
+	void add_many( Span< const T > xs ) {
+		size_t base = extend( xs.n );
+		for( size_t i = 0; i < xs.n; i++ ) {
+			elems[ base + i ] = xs[ i ];
+		}
 	}
 
 	void clear() {
@@ -35,7 +51,7 @@ public:
 	}
 
 	void resize( size_t new_size ) {
-		if( new_size < n ) {
+		if( new_size <= n ) {
 			n = new_size;
 			ASAN_POISON_MEMORY_REGION( elems + n, ( capacity - n ) * sizeof( T ) );
 			return;

@@ -17,82 +17,22 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
+
 #include "game/g_local.h"
-
-static void target_explosion_explode( edict_t *self ) {
-	float save;
-	int radius;
-
-	G_RadiusDamage( self, self->activator, NULL, NULL, WorldDamage_Explosion );
-
-	if( ( self->projectileInfo.radius * 1 / 8 ) > 255 ) {
-		radius = ( self->projectileInfo.radius * 1 / 16 ) & 0xFF;
-		if( radius < 1 ) {
-			radius = 1;
-		}
-		G_SpawnEvent( EV_EXPLOSION2, radius, &self->s.origin );
-	} else {
-		radius = ( self->projectileInfo.radius * 1 / 8 ) & 0xFF;
-		if( radius < 1 ) {
-			radius = 1;
-		}
-		G_SpawnEvent( EV_EXPLOSION1, radius, &self->s.origin );
-	}
-
-	save = self->delay;
-	self->delay = 0;
-	G_UseTargets( self, self->activator );
-	self->delay = save;
-}
-
-static void use_target_explosion( edict_t *self, edict_t *other, edict_t *activator ) {
-	self->activator = activator;
-
-	if( !self->delay ) {
-		target_explosion_explode( self );
-		return;
-	}
-
-	self->think = target_explosion_explode;
-	self->nextThink = level.time + self->delay * 1000;
-}
-
-void SP_target_explosion( edict_t *self ) {
-	self->use = use_target_explosion;
-	self->r.svflags = SVF_NOCLIENT;
-
-	self->projectileInfo.maxDamage = Max2( self->dmg, 1 );
-	self->projectileInfo.minDamage = Min2( self->dmg, 1 );
-	self->projectileInfo.maxKnockback = self->projectileInfo.maxDamage;
-	self->projectileInfo.minKnockback = self->projectileInfo.minDamage;
-	self->projectileInfo.radius = st.radius;
-	if( !self->projectileInfo.radius ) {
-		self->projectileInfo.radius = self->dmg + 100;
-	}
-}
-
-//==========================================================
 
 static void target_laser_think( edict_t *self ) {
 	trace_t tr;
 	Vec3 point;
 	Vec3 last_movedir;
-	int count;
 
 	// our lifetime has expired
-	if( self->delay && ( self->wait * 1000 < level.time ) ) {
+	if( self->delay && self->wait < level.time ) {
 		if( self->r.owner && self->r.owner->use ) {
 			G_CallUse( self->r.owner, self, self->activator );
 		}
 
 		G_FreeEdict( self );
 		return;
-	}
-
-	if( self->spawnflags & 0x80000000 ) {
-		count = 8;
-	} else {
-		count = 4;
 	}
 
 	if( self->enemy ) {
@@ -119,22 +59,18 @@ static void target_laser_think( edict_t *self ) {
 			if( game.edicts[tr.ent].r.client && self->activator->r.client ) {
 				if( !level.gametype.isTeamBased ||
 					game.edicts[tr.ent].s.team != self->activator->s.team ) {
-					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, self->count );
+					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, WorldDamage_Laser );
 				}
 			} else {
-				G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, self->count );
+				G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, WorldDamage_Laser );
 			}
 		}
 
 		// if we hit something that's not a monster or player or is immune to lasers, we're done
 		if( !game.edicts[tr.ent].r.client ) {
 			if( self->spawnflags & 0x80000000 ) {
-				edict_t *event;
-
 				self->spawnflags &= ~0x80000000;
-
-				event = G_SpawnEvent( EV_LASER_SPARKS, DirToU64( tr.plane.normal ), &tr.endpos );
-				event->s.counterNum = count;
+				G_SpawnEvent( EV_LASER_SPARKS, DirToU64( tr.plane.normal ), &tr.endpos );
 			}
 			break;
 		}
@@ -156,14 +92,14 @@ static void target_laser_on( edict_t *self ) {
 		self->activator = self;
 	}
 	self->spawnflags |= 0x80000001;
-	self->r.svflags &= ~SVF_NOCLIENT;
-	self->wait = level.time * 0.001f + self->delay;
+	self->s.svflags &= ~SVF_NOCLIENT;
+	self->wait = level.time + self->delay;
 	target_laser_think( self );
 }
 
 static void target_laser_off( edict_t *self ) {
 	self->spawnflags &= ~1;
-	self->r.svflags |= SVF_NOCLIENT;
+	self->s.svflags |= SVF_NOCLIENT;
 	self->nextThink = 0;
 }
 
@@ -176,12 +112,11 @@ static void target_laser_use( edict_t *self, edict_t *other, edict_t *activator 
 	}
 }
 
-void target_laser_start( edict_t *self ) {
+static void target_laser_start( edict_t *self ) {
 	self->movetype = MOVETYPE_NONE;
 	self->r.solid = SOLID_NOT;
 	self->s.type = ET_LASER;
-	self->r.svflags = 0;
-	self->s.radius = st.size > 0 ? st.size : 8;
+	self->s.svflags = 0;
 	self->s.sound = "sounds/gladiator/laser_hum";
 
 	if( !self->enemy ) {
@@ -211,76 +146,33 @@ void target_laser_start( edict_t *self ) {
 	}
 }
 
-void SP_target_laser( edict_t *self ) {
+void SP_target_laser( edict_t * ent, const spawn_temp_t * st ) {
 	// let everything else get spawned before we start firing
-	self->think = target_laser_start;
-	self->nextThink = level.time + 1;
-	self->count = WorldDamage_Laser;
+	ent->think = target_laser_start;
+	ent->nextThink = level.time + 1;
+	ent->count = WorldDamage_Laser;
+	ent->s.radius = st->size > 0 ? st->size : 8;
 }
 
-void SP_target_position( edict_t *self ) { }
+void SP_target_position( edict_t * self, const spawn_temp_t * st ) { }
 
-static void SP_target_print_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	if( activator->r.client && ( self->spawnflags & 4 ) ) {
-		G_CenterPrintMsg( activator, "%s", self->message );
-		return;
-	}
-
-	// print to team
-	if( activator->r.client && self->spawnflags & 3 ) {
-		edict_t *e;
-		for( e = game.edicts + 1; PLAYERNUM( e ) < server_gs.maxclients; e++ ) {
-			if( e->r.inuse && e->s.team ) {
-				if( self->spawnflags & 1 && e->s.team == activator->s.team ) {
-					G_CenterPrintMsg( e, "%s", self->message );
-				}
-				if( self->spawnflags & 2 && e->s.team != activator->s.team ) {
-					G_CenterPrintMsg( e, "%s", self->message );
-				}
-			}
-		}
-		return;
-	}
-
-	for( int i = 1; i <= server_gs.maxclients; i++ ) {
-		edict_t *player = &game.edicts[i];
-		if( !player->r.inuse ) {
-			continue;
-		}
-
-		G_CenterPrintMsg( player, "%s", self->message );
-	}
-}
-
-void SP_target_print( edict_t *self ) {
-	if( !self->message ) {
-		G_FreeEdict( self );
-		return;
-	}
-
-	self->use = SP_target_print_use;
-}
-
-
-//==========================================================
-
-static void target_delay_think( edict_t *ent ) {
+static void target_delay_think( edict_t * ent ) {
 	G_UseTargets( ent, ent->activator );
 }
 
 static void target_delay_use( edict_t *ent, edict_t *other, edict_t *activator ) {
-	ent->nextThink = level.time + 1000 * ( ent->wait + ent->random * RandomFloat11( &svs.rng ) );
+	ent->nextThink = level.time + ent->wait + ent->wait_randomness * RandomFloat11( &svs.rng );
 	ent->think = target_delay_think;
 	ent->activator = activator;
 }
 
-void SP_target_delay( edict_t *ent ) {
+void SP_target_delay( edict_t * ent, const spawn_temp_t * st ) {
 	// check the "delay" key for backwards compatibility with Q3 maps
 	if( ent->delay ) {
 		ent->wait = ent->delay;
 	}
 	if( !ent->wait ) {
-		ent->wait = 1.0;
+		ent->wait = 1000;
 	}
 
 	ent->delay = 0;

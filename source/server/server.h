@@ -70,8 +70,7 @@ struct client_snapshot_t {
 	int numareas;
 	uint8_t *areabits;                  // portalarea visibility bits
 	int numplayers;
-	int ps_size;
-	SyncPlayerState *ps;                 // [numplayers]
+	SyncPlayerState ps[ MAX_CLIENTS ];
 	int num_entities;
 	int first_entity;                   // into the circular sv.client_entities[]
 	int64_t sentTimeStamp;         // time at what this frame snap was sent to the clients
@@ -173,9 +172,9 @@ struct server_static_demo_t {
 };
 
 struct client_entities_t {
-	unsigned num_entities;              // maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
-	unsigned next_entities;             // next client_entity to use
-	SyncEntityState *entities;           // [num_entities]
+	unsigned num_entities;      // maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
+	unsigned next_entities;     // next client_entity to use
+	SyncEntityState * entities; // [num_entities]
 };
 
 struct server_static_t {
@@ -194,7 +193,7 @@ struct server_static_t {
 	int spawncount;                     // incremented each server start
 	                                    // used to check late spawns
 
-	client_t *clients;                  // [sv_maxclients->integer];
+	client_t * clients;
 	client_entities_t client_entities;
 
 	challenge_t challenges[MAX_CHALLENGES]; // to prevent invalid IPs from connecting
@@ -220,32 +219,30 @@ struct server_constant_t {
 extern msg_t tmpMessage;
 extern uint8_t tmpMessageData[MAX_MSGLEN];
 
-extern mempool_t *sv_mempool;
-
 extern server_constant_t svc;              // constant server info (trully persistant since sv_init)
 extern server_static_t svs;                // persistant server info
 extern server_t sv;                 // local server
 
-extern cvar_t *sv_ip;
-extern cvar_t *sv_port;
+extern Cvar *sv_ip;
+extern Cvar *sv_port;
 
-extern cvar_t *sv_ip6;
-extern cvar_t *sv_port6;
+extern Cvar *sv_ip6;
+extern Cvar *sv_port6;
 
-extern cvar_t *sv_downloadurl;
+extern Cvar *sv_downloadurl;
 
-extern cvar_t *sv_maxclients;
+extern Cvar *sv_maxclients;
 
-extern cvar_t *sv_showRcon;
-extern cvar_t *sv_showChallenge;
-extern cvar_t *sv_showInfoQueries;
+extern Cvar *sv_showRcon;
+extern Cvar *sv_showChallenge;
+extern Cvar *sv_showInfoQueries;
 
-extern cvar_t *sv_public;         // should heartbeats be sent
+extern Cvar *sv_public;         // should heartbeats be sent
 
 // wsw : debug netcode
-extern cvar_t *sv_debug_serverCmd;
+extern Cvar *sv_debug_serverCmd;
 
-extern cvar_t *sv_demodir;
+extern Cvar *sv_demodir;
 
 //===========================================================
 
@@ -263,7 +260,7 @@ void SV_UserinfoChanged( client_t *cl );
 void SV_MasterHeartbeat();
 
 void SVC_MasterInfoResponse( const socket_t *socket, const netadr_t *address );
-int SVC_FakeConnect( const char *fakeUserinfo, const char *fakeSocketType, const char *fakeIP );
+int SVC_FakeConnect( const char *fakeUserinfo );
 
 //
 // sv_oob.c
@@ -323,9 +320,9 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 	u64 session_id, int challenge, bool fakeClient );
 
 #ifndef _MSC_VER
-void SV_DropClient( client_t *drop, int type, const char *format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );
+void SV_DropClient( client_t *drop, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
 #else
-void SV_DropClient( client_t *drop, int type, _Printf_format_string_ const char *format, ... );
+void SV_DropClient( client_t *drop, _Printf_format_string_ const char *format, ... );
 #endif
 
 void SV_ExecuteClientThinks( int clientNum );
@@ -350,7 +347,7 @@ void SV_BuildClientFrameSnap( client_t *client );
 void SV_InitGameProgs();
 void SV_ShutdownGameProgs();
 
-void PF_DropClient( edict_t *ent, int type, const char *message );
+void PF_DropClient( edict_t *ent, const char *message );
 int PF_GetClientState( int numClient );
 void PF_GameCmd( edict_t *ent, const char *cmd );
 void PF_ConfigString( int index, const char *val );
@@ -366,8 +363,8 @@ void SV_Demo_Stop_f();
 void SV_Demo_Cancel_f();
 void SV_Demo_Purge_f();
 
-void SV_DemoList_f( client_t *client );
-void SV_DemoGet_f( client_t *client );
+void SV_DemoList_f( edict_t * ent );
+void SV_DemoGetUrl_f( edict_t * ent );
 
 #define SV_SetDemoMetaKeyValue( k,v ) svs.demo.meta_data_realsize = SNAP_SetDemoMetaKeyValue( svs.demo.meta_data, sizeof( svs.demo.meta_data ), svs.demo.meta_data_realsize, k, v )
 
@@ -379,8 +376,6 @@ bool SV_IsDemoDownloadRequest( const char *request );
 void SV_Web_Init();
 void SV_Web_Shutdown();
 bool SV_Web_Running();
-bool SV_Web_AddGameClient( const char *session, int clientNum, const netadr_t *netAdr );
-void SV_Web_RemoveGameClient( const char *session );
 
 //
 // snap_write
@@ -390,6 +385,5 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 
 void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
 	client_t *client,
-	SyncGameState *gameState, client_entities_t *client_entities,
-	mempool_t *mempool );
+	SyncGameState *gameState, client_entities_t *client_entities );
 void SNAP_FreeClientFrames( client_t * client );

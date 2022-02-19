@@ -17,6 +17,8 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
 
+#include "tracy/Tracy.hpp"
+
 FrameStatic frame_static;
 
 static Texture blue_noise;
@@ -35,8 +37,8 @@ static u32 last_viewport_width, last_viewport_height;
 static int last_msaa;
 static ShadowQuality last_shadow_quality;
 
-static cvar_t * r_samples;
-static cvar_t * r_shadow_quality;
+static Cvar * r_samples;
+static Cvar * r_shadow_quality;
 
 static void TakeScreenshot() {
 	RGB8 * framebuffer = ALLOC_MANY( sys_allocator, RGB8, frame_static.viewport_width * frame_static.viewport_height );
@@ -47,7 +49,7 @@ static void TakeScreenshot() {
 
 	int ok = stbi_write_png_to_func( []( void * context, void * png, int png_size ) {
 		char date[ 256 ];
-		Sys_FormatTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
+		Sys_FormatCurrentTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
 
 		TempAllocator temp = cls.frame_arena.temp();
 
@@ -101,12 +103,12 @@ static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 }
 
 void InitRenderer() {
-	ZoneScoped;
+	TracyZoneScoped;
 
-	RenderBackendInit();
+	InitRenderBackend();
 
-	r_samples = Cvar_Get( "r_samples", "0", CVAR_ARCHIVE );
-	r_shadow_quality = Cvar_Get( "r_shadow_quality", "1", CVAR_ARCHIVE );
+	r_samples = NewCvar( "r_samples", "0", CvarFlag_Archive );
+	r_shadow_quality = NewCvar( "r_shadow_quality", "1", CvarFlag_Archive );
 
 	frame_static = { };
 	last_viewport_width = U32_MAX;
@@ -137,7 +139,7 @@ void InitRenderer() {
 
 		MeshConfig config;
 		config.name = "Fullscreen triangle";
-		config.positions = NewVertexBuffer( positions, sizeof( positions ) );
+		config.positions = NewGPUBuffer( positions, sizeof( positions ), "Fullscreen triangle vertices" );
 		config.num_vertices = 3;
 		fullscreen_mesh = NewMesh( config );
 	}
@@ -145,14 +147,14 @@ void InitRenderer() {
 	{
 		MeshConfig config;
 		config.name = "Dynamic geometry";
-		config.positions = NewVertexBuffer( sizeof( Vec3 ) * 4 * MaxDynamicVerts );
-		config.tex_coords = NewVertexBuffer( sizeof( Vec2 ) * 4 * MaxDynamicVerts );
-		config.colors = NewVertexBuffer( sizeof( RGBA8 ) * 4 * MaxDynamicVerts );
-		config.indices = NewIndexBuffer( sizeof( u16 ) * 6 * MaxDynamicVerts );
+		config.positions = NewGPUBuffer( sizeof( Vec3 ) * 4 * MaxDynamicVerts, "Dynamic geometry positions" );
+		config.tex_coords = NewGPUBuffer( sizeof( Vec2 ) * 4 * MaxDynamicVerts, "Dynamic geometry uvs" );
+		config.colors = NewGPUBuffer( sizeof( RGBA8 ) * 4 * MaxDynamicVerts, "Dynamic geometry colors" );
+		config.indices = NewGPUBuffer( sizeof( u16 ) * 6 * MaxDynamicVerts, "Dynamic geometry indices" );
 		dynamic_geometry_mesh = NewMesh( config );
 	}
 
-	Cmd_AddCommand( "screenshot", TakeScreenshot );
+	AddCommand( "screenshot", TakeScreenshot );
 	strcpy( last_screenshot_date, "" );
 	same_date_count = 0;
 
@@ -177,6 +179,8 @@ static void DeleteFramebuffers() {
 }
 
 void ShutdownRenderer() {
+	TracyZoneScoped;
+
 	ShutdownModels();
 	ShutdownSkybox();
 	ShutdownText();
@@ -188,9 +192,9 @@ void ShutdownRenderer() {
 	DeleteMesh( fullscreen_mesh );
 	DeleteFramebuffers();
 
-	Cmd_RemoveCommand( "screenshot" );
+	RemoveCommand( "screenshot" );
 
-	RenderBackendShutdown();
+	ShutdownRenderBackend();
 }
 
 static Mat4 OrthographicProjection( float left, float top, float right, float bottom, float near_plane, float far_plane ) {
@@ -219,7 +223,7 @@ static Mat4 OrthographicProjection( float left, float top, float right, float bo
 
 static Mat4 PerspectiveProjection( float vertical_fov_degrees, float aspect_ratio, float near_plane ) {
 	float tan_half_vertical_fov = tanf( Radians( vertical_fov_degrees ) / 2.0f );
-	float epsilon = 2.4e-6f;
+	constexpr float epsilon = 4.8e-7f; // http://www.terathon.com/gdc07_lengyel.pdf
 
 	return Mat4(
 		1.0f / ( tan_half_vertical_fov * aspect_ratio ),
@@ -371,7 +375,7 @@ static void CreateFramebuffers() {
 		texture_config.format = TextureFormat_Shadow;
 		fb.albedo_attachment = texture_config;
 
-		for( u32 i = 0; i < 4; i++ ) {
+		for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
 			frame_static.shadowmap_fb[ i ] = NewShadowFramebuffer( frame_static.shadowmap_texture_array, i );
 		}
 	}
@@ -396,6 +400,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadMaps();
 	HotloadVisualEffects();
 
+	ClearMaterialStaticUniforms();
+
 	RenderBackendBeginFrame();
 
 	dynamic_geometry_num_vertices = 0;
@@ -403,12 +409,12 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
-		Cvar_Set( "r_samples", r_samples->dvalue );
+		Cvar_Set( "r_samples", r_samples->default_value );
 	}
 
 	if( r_shadow_quality->integer < ShadowQuality_Low || r_shadow_quality->integer > ShadowQuality_Ultra ) {
 		Com_Printf( "Invalid r_shadow_quality value (%d), resetting\n", r_shadow_quality->integer );
-		Cvar_Set( "r_shadow_quality", r_shadow_quality->dvalue );
+		Cvar_Set( "r_shadow_quality", r_shadow_quality->default_value );
 	}
 
 	frame_static.viewport_width = Max2( u32( 1 ), viewport_width );
@@ -431,7 +437,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Vec3() );
 	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
-	frame_static.identity_material_uniforms = UploadMaterialUniforms( vec4_white, Vec2( 0 ), 0.0f, 64.0f );
+	frame_static.identity_material_static_uniforms = UploadMaterialStaticUniforms( Vec2( 0 ), 0.0f, 64.0f );
+	frame_static.identity_material_dynamic_uniforms = UploadMaterialDynamicUniforms( vec4_white );
 
 	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
 
@@ -500,7 +507,7 @@ static Mat4 InverseScaleTranslation( Mat4 m ) {
 }
 
 void SetupShadowCascades() {
-	ZoneScoped;
+	TracyZoneScoped;
 	const float near_plane = 4.0f;
 	// const float cascade_dist[ 5 ] = { near_plane, 256.0f, 768.0f, 2304.0f, 6912.0f };
 	// const float cascade_dist[ 5 ] = { near_plane, 16.0f, 64.0f, 512.0f, 4096.0f };
@@ -640,10 +647,10 @@ u16 DynamicMeshBaseIndex() {
 }
 
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh ) {
-	WriteVertexBuffer( dynamic_geometry_mesh.positions, mesh.positions, mesh.num_vertices * sizeof( mesh.positions[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.positions[ 0 ] ) );
-	WriteVertexBuffer( dynamic_geometry_mesh.tex_coords, mesh.uvs, mesh.num_vertices * sizeof( mesh.uvs[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.uvs[ 0 ] ) );
-	WriteVertexBuffer( dynamic_geometry_mesh.colors, mesh.colors, mesh.num_vertices * sizeof( mesh.colors[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.colors[ 0 ] ) );
-	WriteIndexBuffer( dynamic_geometry_mesh.indices, mesh.indices, mesh.num_indices * sizeof( mesh.indices[ 0 ] ), dynamic_geometry_num_indices * sizeof( mesh.indices[ 0 ] ) );
+	WriteGPUBuffer( dynamic_geometry_mesh.positions, mesh.positions, mesh.num_vertices * sizeof( mesh.positions[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.positions[ 0 ] ) );
+	WriteGPUBuffer( dynamic_geometry_mesh.tex_coords, mesh.uvs, mesh.num_vertices * sizeof( mesh.uvs[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.uvs[ 0 ] ) );
+	WriteGPUBuffer( dynamic_geometry_mesh.colors, mesh.colors, mesh.num_vertices * sizeof( mesh.colors[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.colors[ 0 ] ) );
+	WriteGPUBuffer( dynamic_geometry_mesh.indices, mesh.indices, mesh.num_indices * sizeof( mesh.indices[ 0 ] ), dynamic_geometry_num_indices * sizeof( mesh.indices[ 0 ] ) );
 
 	DrawMesh( dynamic_geometry_mesh, pipeline, mesh.num_indices, dynamic_geometry_num_indices * sizeof( mesh.indices[ 0 ] ) );
 
@@ -673,6 +680,10 @@ UniformBlock UploadModelUniforms( const Mat4 & M ) {
 	return UploadUniformBlock( M );
 }
 
-UniformBlock UploadMaterialUniforms( const Vec4 & color, const Vec2 & texture_size, float specular, float shininess, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {
-	return UploadUniformBlock( color, tcmod_row0, tcmod_row1, texture_size, specular, shininess );
+UniformBlock UploadMaterialStaticUniforms( const Vec2 & texture_size, float specular, float shininess ) {
+	return UploadUniformBlock( texture_size, specular, shininess );
+}
+
+UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {
+	return UploadUniformBlock( color, tcmod_row0, tcmod_row1 );
 }

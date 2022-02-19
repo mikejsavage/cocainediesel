@@ -24,38 +24,9 @@ static void DeleteMap( Map * map ) {
 	DeleteBSPRenderData( map );
 }
 
-bool AddMap( Span< const u8 > data, const char * path ) {
-	ZoneScoped;
-	ZoneText( path, strlen( path ) );
-
-	u64 hash = Hash64( StripExtension( path ) );
-
-	u64 idx = num_maps;
-	if( !maps_hashtable.get( hash, &idx ) ) {
-		maps_hashtable.add( hash, num_maps );
-		num_maps++;
-	}
-	else {
-		DeleteMap( &maps[ idx ] );
-	}
-
-	maps[ idx ].name = CopyString( sys_allocator, path );
-
-	// TODO: need more map validation because they can be downloaded from the server
-	if( !LoadBSPRenderData( path, &maps[ idx ], hash, data ) ) {
-		return false;
-	}
-
-	maps[ idx ].cms = CM_LoadMap( CM_Client, data, hash );
-	if( maps[ idx ].cms == NULL ) {
-		// TODO: free render data
-		return false;
-	}
-
-	return true;
-}
-
 static void FillMapModelsHashtable() {
+	TracyZoneScoped;
+
 	map_models_hashtable.clear();
 
 	for( u32 i = 0; i < num_maps; i++ ) {
@@ -70,8 +41,43 @@ static void FillMapModelsHashtable() {
 	}
 }
 
+bool AddMap( Span< const u8 > data, const char * path ) {
+	TracyZoneScoped;
+	TracyZoneText( path, strlen( path ) );
+
+	u64 hash = Hash64( StripExtension( path ) );
+
+	Map map = { };
+	// TODO: need more map validation because they can be downloaded from the server
+	if( !LoadBSPRenderData( path, &map, hash, data ) ) {
+		return false;
+	}
+
+	u64 idx = num_maps;
+	if( !maps_hashtable.get( hash, &idx ) ) {
+		maps_hashtable.add( hash, num_maps );
+		num_maps++;
+	}
+	else {
+		DeleteMap( &maps[ idx ] );
+	}
+
+	map.name = CopyString( sys_allocator, path );
+
+	map.cms = CM_LoadMap( CM_Client, data, hash );
+	if( map.cms == NULL ) {
+		Fatal( "CM_LoadMap" );
+	}
+
+	maps[ idx ] = map;
+
+	FillMapModelsHashtable();
+
+	return true;
+}
+
 void InitMaps() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	num_maps = 0;
 
@@ -82,12 +88,10 @@ void InitMaps() {
 
 		AddMap( AssetBinary( path ), path );
 	}
-
-	FillMapModelsHashtable();
 }
 
 void HotloadMaps() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	bool hotloaded_anything = false;
 
@@ -100,14 +104,16 @@ void HotloadMaps() {
 		hotloaded_anything = true;
 	}
 
-	FillMapModelsHashtable();
-
+	// if we hotload a map while playing a local game just assume we're
+	// playing on it and always hotload
 	if( hotloaded_anything && Com_ServerState() != ss_dead ) {
 		G_HotloadMap();
 	}
 }
 
 void ShutdownMaps() {
+	TracyZoneScoped;
+
 	for( u32 i = 0; i < num_maps; i++ ) {
 		DeleteMap( &maps[ i ] );
 	}

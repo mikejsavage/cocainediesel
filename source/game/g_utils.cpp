@@ -41,17 +41,39 @@ edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash valu
 	return NULL;
 }
 
+edict_t * G_PickRandomEnt( StringHash edict_t::* field, StringHash value ) {
+	size_t num_ents = 0;
+	edict_t * cursor = NULL;
+
+	while( ( cursor = G_Find( cursor, field, value ) ) != NULL ) {
+		num_ents++;
+	}
+
+	if( num_ents == 0 ) { //no ents with this field and this value
+		return NULL;
+	}
+
+	const size_t index = RandomUniform( &svs.rng, 0, num_ents );
+	cursor = NULL;
+
+	for( size_t i = 0; i <= index; i++ ) {
+		cursor = G_Find( cursor, field, value );
+	}
+
+	return cursor;
+}
+
 edict_t * G_PickTarget( StringHash name ) {
+	if( name == EMPTY_HASH ) {
+		return NULL;
+	}
+
 	edict_t * cursor = NULL;
 
 	edict_t * candidates[ MAX_EDICTS ];
 	size_t num_candidates = 0;
 
-	while( 1 ) {
-		cursor = G_Find( cursor, &edict_t::name, name );
-		if( cursor == NULL )
-			break;
-
+	while( ( cursor = G_Find( cursor, &edict_t::name, name ) ) != NULL ) {
 		candidates[ num_candidates ] = cursor;
 		num_candidates++;
 	}
@@ -93,7 +115,7 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 		// create a temp object to fire at a later time
 		t = G_Spawn();
 		t->classname = "delayed_use";
-		t->nextThink = level.time + 1000 * ent->delay;
+		t->nextThink = level.time + ent->delay;
 		t->think = Think_Delay;
 		t->activator = activator;
 		if( !activator ) {
@@ -156,41 +178,30 @@ void G_SetMovedir( Vec3 * angles, Vec3 * movedir ) {
 	*angles = Vec3( 0.0f );
 }
 
-char *_G_CopyString( const char *in, const char *filename, int fileline ) {
-	char * out = ( char * )_Mem_AllocExt( gamepool, strlen( in ) + 1, 16, 1, 0, 0, filename, fileline );
-	strcpy( out, in );
-	return out;
-}
-
 void G_FreeEdict( edict_t *ed ) {
-	bool evt = ISEVENTENTITY( &ed->s );
+	if( ed == NULL )
+		return;
 
-	GClip_UnlinkEntity( ed );   // unlink from world
+	GClip_UnlinkEntity( ed );
 
 	memset( ed, 0, sizeof( *ed ) );
 	ed->s.number = ENTNUM( ed );
-	ed->r.svflags = SVF_NOCLIENT;
+	ed->s.svflags = SVF_NOCLIENT;
 
-	if( !evt && ( level.spawnedTimeStamp != svs.realtime ) ) {
+	if( !ISEVENTENTITY( &ed->s ) && level.spawnedTimeStamp != svs.realtime ) {
 		ed->freetime = svs.realtime; // ET_EVENT or ET_SOUND don't need to wait to be reused
 	}
 }
 
 void G_InitEdict( edict_t *e ) {
-	e->r.inuse = true;
-	e->timeDelta = 0;
-	e->deadflag = DEAD_NO;
-	e->timeStamp = 0;
-
-	memset( &e->s, 0, sizeof( SyncEntityState ) );
+	memset( e, 0, sizeof( *e ) );
 	e->s.number = ENTNUM( e );
+	e->r.inuse = true;
+
+	e->s.scale = Vec3( 1.0f );
 
 	// mark all entities to not be sent by default
-	e->r.svflags = SVF_NOCLIENT | (e->r.svflags & SVF_FAKECLIENT);
-
-	// clear the old state data
-	memset( &e->olds, 0, sizeof( e->olds ) );
-	memset( &e->snap, 0, sizeof( e->snap ) );
+	e->s.svflags = SVF_NOCLIENT;
 }
 
 /*
@@ -272,7 +283,7 @@ edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
 	edict_t * ent = G_Spawn();
 	ent->s.type = ET_EVENT;
 	ent->r.solid = SOLID_NOT;
-	ent->r.svflags &= ~SVF_NOCLIENT;
+	ent->s.svflags &= ~SVF_NOCLIENT;
 	if( origin ) {
 		ent->s.origin = *origin;
 	}
@@ -286,7 +297,7 @@ edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
 void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm ) {
 	ent->s.type = ET_EVENT;
 	ent->r.solid = SOLID_NOT;
-	ent->r.svflags &= ~SVF_PROJECTILE; // FIXME: Medar: should be remove all or remove this one elsewhere?
+	ent->s.svflags &= ~SVF_PROJECTILE; // FIXME: Medar: should be remove all or remove this one elsewhere?
 	ent->s.linearMovement = false;
 	G_AddEvent( ent, event, parm, true );
 
@@ -296,7 +307,7 @@ void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm ) {
 void G_InitMover( edict_t *ent ) {
 	ent->r.solid = SOLID_YES;
 	ent->movetype = MOVETYPE_PUSH;
-	ent->r.svflags &= ~SVF_NOCLIENT;
+	ent->s.svflags &= ~SVF_NOCLIENT;
 
 	GClip_SetBrushModel( ent );
 }
@@ -307,7 +318,7 @@ void G_CallThink( edict_t *ent ) {
 	}
 }
 
-void G_CallTouch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+void G_CallTouch( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	if( self == other ) {
 		return;
 	}
@@ -350,28 +361,30 @@ void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assisto
 void G_PrintMsg( edict_t *ent, const char *format, ... ) {
 	char msg[MAX_STRING_CHARS];
 	va_list argptr;
-	char *s, *p;
 
 	va_start( argptr, format );
 	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	// double quotes are bad
-	p = msg;
-	while( ( p = strchr( p, '\"' ) ) != NULL )
+	char * p = msg;
+	while( ( p = strchr( p, '\"' ) ) != NULL ) {
 		*p = '\'';
+	}
 
-	s = va( "pr \"%s\"", msg );
+	char cmd[MAX_STRING_CHARS];
+	snprintf( cmd, sizeof( cmd ), "pr \"%s\"", msg );
 
 	if( !ent ) {
 		// mirror at server console
 		if( is_dedicated_server ) {
 			Com_Printf( "%s", msg );
 		}
-		PF_GameCmd( NULL, s );
-	} else {
+		PF_GameCmd( NULL, cmd );
+	}
+	else {
 		if( ent->r.inuse && ent->r.client ) {
-			PF_GameCmd( ent, s );
+			PF_GameCmd( ent, cmd );
 		}
 	}
 }
@@ -382,20 +395,20 @@ void G_PrintMsg( edict_t *ent, const char *format, ... ) {
 * NULL sends the message to all clients
 */
 void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, ... ) {
-	char msg[1024];
+	char msg[MAX_STRING_CHARS];
 	va_list argptr;
-	char *s, *p;
 
 	va_start( argptr, format );
 	vsnprintf( msg, sizeof( msg ), format, argptr );
 	va_end( argptr );
 
 	// double quotes are bad
-	p = msg;
+	char * p = msg;
 	while( ( p = strchr( p, '\"' ) ) != NULL )
 		*p = '\'';
 
-	s = va( "%s %i \"%s\"", ( who && teamonly ? "tch" : "ch" ), ( who ? ENTNUM( who ) : 0 ), msg );
+	char cmd[ MAX_STRING_CHARS ];
+	snprintf( cmd, sizeof( cmd ), "%s %d \"%s\"", ( who && teamonly ? "tch" : "ch" ), ( who ? ENTNUM( who ) : 0 ), msg );
 
 	if( !ent ) {
 		// mirror at server console
@@ -413,24 +426,22 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 		}
 
 		if( who && teamonly ) {
-			int i;
-
-			for( i = 0; i < server_gs.maxclients; i++ ) {
+			for( int i = 0; i < server_gs.maxclients; i++ ) {
 				ent = game.edicts + 1 + i;
 
 				if( ent->r.inuse && ent->r.client && PF_GetClientState( i ) >= CS_CONNECTED ) {
 					if( ent->s.team == who->s.team ) {
-						PF_GameCmd( ent, s );
+						PF_GameCmd( ent, cmd );
 					}
 				}
 			}
 		} else {
-			PF_GameCmd( NULL, s );
+			PF_GameCmd( NULL, cmd );
 		}
 	} else {
 		if( ent->r.inuse && ent->r.client && PF_GetClientState( PLAYERNUM( ent ) ) >= CS_CONNECTED ) {
 			if( !who || !teamonly || ent->s.team == who->s.team ) {
-				PF_GameCmd( ent, s );
+				PF_GameCmd( ent, cmd );
 			}
 		}
 	}
@@ -478,9 +489,24 @@ void G_ClearCenterPrint( edict_t *ent ) {
 	G_CenterPrintMsg( ent, "%s", "" );
 }
 
-void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, DamageType mod, bool wallbang ) {
-	TempAllocator temp = svs.frame_arena.temp();
-	PF_GameCmd( NULL, temp( "obry {} {} {} {} {} {}", ENTNUM( victim ), ENTNUM( attacker ), topAssistEntNo, mod.encoded, wallbang ? 1 : 0, Random64( &svs.rng ) ) );
+void G_DebugPrint( const char * format, ... ) {
+	char msg[128];
+	va_list argptr;
+
+	va_start( argptr, format );
+	vsnprintf( msg, sizeof( msg ), format, argptr );
+	va_end( argptr );
+
+	// double quotes are bad
+	char * p = msg;
+	while( ( p = strchr( p, '\"' ) ) != NULL )
+		*p = '\'';
+
+	char cmd[MAX_STRING_CHARS];
+	snprintf( cmd, sizeof( cmd ), "debug \"%s\"", msg );
+	PF_GameCmd( NULL, cmd );
+
+	Com_Printf( "Debug: %s\n", msg );
 }
 
 //==================================================
@@ -489,8 +515,8 @@ void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, Damag
 
 static edict_t *_G_SpawnSound( int channel, StringHash sound ) {
 	edict_t * ent = G_Spawn();
-	ent->r.svflags &= ~SVF_NOCLIENT;
-	ent->r.svflags |= SVF_SOUNDCULL;
+	ent->s.svflags &= ~SVF_NOCLIENT;
+	ent->s.svflags |= SVF_SOUNDCULL;
 	ent->s.type = ET_SOUNDEVENT;
 	ent->s.channel = channel;
 	ent->s.sound = sound;
@@ -533,7 +559,7 @@ edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound ) {
 		ent->s.origin = origin;
 	}
 	else {
-		ent->r.svflags |= SVF_BROADCAST;
+		ent->s.svflags |= SVF_BROADCAST;
 	}
 
 	GClip_LinkEntity( ent );
@@ -554,7 +580,7 @@ void G_LocalSound( edict_t * owner, int channel, StringHash sound ) {
 
 	edict_t * ent = _G_SpawnSound( channel, sound );
 	ent->s.ownerNum = ENTNUM( owner );
-	ent->r.svflags |= SVF_ONLYOWNER | SVF_BROADCAST;
+	ent->s.svflags |= SVF_ONLYOWNER | SVF_BROADCAST;
 
 	GClip_LinkEntity( ent );
 }
@@ -774,27 +800,18 @@ edict_t *G_PlayerForText( const char *text ) {
 		return NULL;
 	}
 
-	int pnum = atoi( text );
-
-	if( !Q_stricmp( text, va( "%i", pnum ) ) && pnum >= 0 && pnum < server_gs.maxclients && game.edicts[pnum + 1].r.inuse ) {
-		return &game.edicts[atoi( text ) + 1];
+	u64 num;
+	if( TryStringToU64( text, &num ) && num < u64( server_gs.maxclients ) && game.edicts[ num + 1 ].r.inuse ) {
+		return &game.edicts[ num + 1 ];
 	}
 
-	int i;
-	edict_t *e;
-
-	// check if it's a known player name
-	for( i = 0, e = game.edicts + 1; i < server_gs.maxclients; i++, e++ ) {
-		if( !e->r.inuse ) {
-			continue;
-		}
-
-		if( !Q_stricmp( text, e->r.client->netname ) ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		edict_t * e = &game.edicts[ i + 1 ];
+		if( StrCaseEqual( e->r.client->netname, text ) ) {
 			return e;
 		}
 	}
 
-	// nothing found
 	return NULL;
 }
 

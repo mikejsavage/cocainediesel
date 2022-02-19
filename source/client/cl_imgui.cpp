@@ -3,7 +3,6 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_internal.h"
-#include "imgui/imgui_freetype.h"
 
 #include "qcommon/base.h"
 #include "qcommon/string.h"
@@ -67,9 +66,10 @@ void CL_InitImGui() {
 		cls.large_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 64.0f );
 		cls.big_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 48.0f );
 		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f );
+		cls.medium_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 28.0f );
 		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
 
-		ImGuiFreeType::BuildFontAtlas( io.Fonts );
+		io.Fonts->Build();
 
 		u8 * pixels;
 		int width, height;
@@ -138,7 +138,7 @@ void CL_ShutdownImGui() {
 }
 
 static void SubmitDrawCalls() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	ImDrawData * draw_data = ImGui::GetDrawData();
 
@@ -157,15 +157,28 @@ static void SubmitDrawCalls() {
 
 		const ImDrawList * cmd_list = draw_data->CmdLists[ n ];
 
+		// TODO: this is a hack to separate drawcalls into 2 passes
+		if( cmd_list->CmdBuffer.Size > 0 ) {
+			const ImDrawCmd * cmd = &cmd_list->CmdBuffer[ 0 ];
+			u32 new_pass = u32( uintptr_t( cmd->UserCallbackData ) );
+			if( new_pass != 0 ) {
+				pass = new_pass;
+			}
+		}
+
+		if( cmd_list->VtxBuffer.Size == 0 || cmd_list->IdxBuffer.Size == 0 ) {
+			continue;
+		}
+
 		MeshConfig config;
 		config.name = temp( "ImGui - {}", n );
-		config.unified_buffer = NewVertexBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ) );
+		config.unified_buffer = NewGPUBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ), temp( "ImGui vertices - {}", n ) );
 		config.positions_offset = offsetof( ImDrawVert, pos );
 		config.tex_coords_offset = offsetof( ImDrawVert, uv );
 		config.colors_offset = offsetof( ImDrawVert, col );
 		config.positions_format = VertexFormat_Floatx2;
 		config.stride = sizeof( ImDrawVert );
-		config.indices = NewIndexBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( u16 ) );
+		config.indices = NewGPUBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( u16 ), temp( "ImGui indices - {}", n ) );
 		Mesh mesh = NewMesh( config );
 		DeferDeleteMesh( mesh );
 
@@ -178,12 +191,6 @@ static void SubmitDrawCalls() {
 				MinMax2 scissor = MinMax2( Vec2( pcmd->ClipRect.x - pos.x, pcmd->ClipRect.y - pos.y ), Vec2( pcmd->ClipRect.z - pos.x, pcmd->ClipRect.w - pos.y ) );
 				if( scissor.mins.x < fb_width && scissor.mins.y < fb_height && scissor.maxs.x >= 0.0f && scissor.maxs.y >= 0.0f ) {
 					PipelineState pipeline;
-
-					// TODO: this is a hack to separate drawcalls into 2 passes
-					u32 new_pass = u32( uintptr_t( pcmd->UserCallbackData ) );
-					if( new_pass != 0 ) {
-						pass = new_pass;
-					}
 					pipeline.pass = pass == 0 ? frame_static.ui_pass : frame_static.post_ui_pass;
 					pipeline.shader = pcmd->TextureId.shader;
 					pipeline.depth_func = DepthFunc_Disabled;
@@ -197,7 +204,8 @@ static void SubmitDrawCalls() {
 
 					pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 					pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-					pipeline.set_uniform( "u_Material", frame_static.identity_material_uniforms );
+					pipeline.set_uniform( "u_MaterialStatic", frame_static.identity_material_static_uniforms );
+					pipeline.set_uniform( "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms );
 
 					if( pcmd->TextureId.uniform_name != EMPTY_HASH ) {
 						pipeline.set_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
@@ -213,14 +221,14 @@ static void SubmitDrawCalls() {
 }
 
 void CL_ImGuiBeginFrame() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 }
 
 void CL_ImGuiEndFrame() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	// ImGui::ShowDemoWindow();
 
@@ -263,6 +271,16 @@ void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts 
 	format( fb, ( const char * ) token.token );
 }
 
+void CellCenter( float item_width ) {
+	float cell_width = ImGui::GetContentRegionAvail().x;
+	ImGui::SetCursorPosX( ImGui::GetCursorPosX() + 0.5f * ( cell_width - item_width ) );
+}
+
+void CellCenterText( const char * str ) {
+	CellCenter( ImGui::CalcTextSize( str ).x );
+	ImGui::Text( "%s", str );
+}
+
 void ColumnCenterText( const char * str ) {
 	float width = ImGui::CalcTextSize( str ).x;
 	ImGui::SetCursorPosX( ImGui::GetColumnOffset() + 0.5f * ( ImGui::GetColumnWidth() - width ) );
@@ -281,7 +299,15 @@ void WindowCenterTextXY( const char * str ) {
 	ImGui::Text( "%s", str );
 }
 
+Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, float div ) {
+	float t = sinf( cls.monotonicTime / div ) * 0.5f + 1.0f;
+	return Lerp( from, t, to );
+}
+
 Vec4 AttentionGettingColor() {
-	float t = sinf( cls.monotonicTime / 20.0f ) * 0.5f + 1.0f;
-	return Lerp( vec4_red, t, sRGBToLinear( rgba8_diesel_yellow ) );
+	return CustomAttentionGettingColor( vec4_red, sRGBToLinear( rgba8_diesel_yellow ), 20.0f );
+}
+
+Vec4 PlantableColor() {
+	return CustomAttentionGettingColor( vec4_dark, sRGBToLinear( rgba8_diesel_green ), 20.0f );
 }

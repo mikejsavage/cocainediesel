@@ -1,0 +1,6 @@
+{
+	attenuation idle
+	sound ./idle
+	volume 0.5
+	pitch_random 0.25
+}

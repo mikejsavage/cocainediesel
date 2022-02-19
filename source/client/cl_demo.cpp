@@ -19,6 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "client/client.h"
+#include "qcommon/fs.h"
+#include "qcommon/version.h"
 
 static void CL_PauseDemo( bool paused );
 
@@ -43,60 +45,34 @@ void CL_WriteDemoMessage( msg_t *msg ) {
 * stop recording a demo
 */
 void CL_Stop_f() {
-	int arg;
-	bool silent, cancel;
-
-	// look through all the args
-	silent = false;
-	cancel = false;
-	for( arg = 1; arg < Cmd_Argc(); arg++ ) {
-		if( !Q_stricmp( Cmd_Argv( arg ), "silent" ) ) {
-			silent = true;
-		} else if( !Q_stricmp( Cmd_Argv( arg ), "cancel" ) ) {
-			cancel = true;
-		}
-	}
-
 	if( !cls.demo.recording ) {
-		if( !silent ) {
-			Com_Printf( "Not recording a demo.\n" );
-		}
+		Com_Printf( "Not recording a demo.\n" );
 		return;
 	}
+
+	TempAllocator temp = cls.frame_arena.temp();
 
 	// finish up
 	SNAP_StopDemoRecording( cls.demo.file );
 
 	// write some meta information about the match/demo
 	CL_SetDemoMetaKeyValue( "hostname", cl.configstrings[CS_HOSTNAME] );
-	CL_SetDemoMetaKeyValue( "localtime", va( "%" PRIi64, (int64_t)cls.demo.localtime ) );
+	CL_SetDemoMetaKeyValue( "localtime", temp( "{}", (int64_t)cls.demo.localtime ) );
 	CL_SetDemoMetaKeyValue( "multipov", "0" );
-	CL_SetDemoMetaKeyValue( "duration", va( "%u", (int)ceilf( (double)cls.demo.duration / 1000.0 ) ) );
+	CL_SetDemoMetaKeyValue( "duration", temp( "{}", (int)ceilf( (double)cls.demo.duration / 1000.0 ) ) );
 	CL_SetDemoMetaKeyValue( "mapname", cl.map->name );
 	CL_SetDemoMetaKeyValue( "matchscore", cl.configstrings[CS_MATCHSCORE] );
+	CL_SetDemoMetaKeyValue( "version", APP_VERSION );
 
 	FS_FCloseFile( cls.demo.file );
 
 	SNAP_WriteDemoMetaData( cls.demo.filename, cls.demo.meta_data, cls.demo.meta_data_realsize );
 
-	// cancel the demos
-	if( cancel ) {
-		// remove the file that correspond to cls.demo.file
-		if( !silent ) {
-			Com_Printf( "Canceling demo: %s\n", cls.demo.filename );
-		}
-		if( !FS_RemoveFile( cls.demo.filename ) && !silent ) {
-			Com_Printf( "Error canceling demo." );
-		}
-	}
-
-	if( !silent ) {
-		Com_Printf( "Stopped demo: %s\n", cls.demo.filename );
-	}
+	Com_Printf( "Stopped demo: %s\n", cls.demo.filename );
 
 	cls.demo.file = 0; // file id
-	Mem_ZoneFree( cls.demo.filename );
-	Mem_ZoneFree( cls.demo.name );
+	FREE( sys_allocator, cls.demo.filename );
+	FREE( sys_allocator, cls.demo.name );
 	cls.demo.filename = NULL;
 	cls.demo.name = NULL;
 	cls.demo.recording = false;
@@ -110,11 +86,6 @@ void CL_Stop_f() {
 * Begins recording a demo from the current position
 */
 void CL_Record_f() {
-	char *name;
-	size_t name_size;
-	bool silent;
-	const char *demoname;
-
 	if( cls.state != CA_ACTIVE ) {
 		Com_Printf( "You must be in a level to record.\n" );
 		return;
@@ -125,60 +96,36 @@ void CL_Record_f() {
 		return;
 	}
 
-	if( Cmd_Argc() > 2 && !Q_stricmp( Cmd_Argv( 2 ), "silent" ) ) {
-		silent = true;
-	} else {
-		silent = false;
-	}
-
 	if( cls.demo.playing ) {
-		if( !silent ) {
-			Com_Printf( "You can't record from another demo.\n" );
-		}
+		Com_Printf( "You can't record from another demo.\n" );
 		return;
 	}
 
 	if( cls.demo.recording ) {
-		if( !silent ) {
-			Com_Printf( "Already recording.\n" );
-		}
+		Com_Printf( "Already recording.\n" );
 		return;
 	}
 
-	//
-	// open the demo file
-	//
-	demoname = Cmd_Argv( 1 );
-	name_size = sizeof( char ) * ( strlen( "demos/" ) + strlen( demoname ) + strlen( APP_DEMO_EXTENSION_STR ) + 1 );
-	name = ( char * ) Mem_ZoneMalloc( name_size );
-
-	snprintf( name, name_size, "demos/%s", demoname );
-	COM_SanitizeFilePath( name );
-	COM_DefaultExtension( name, APP_DEMO_EXTENSION_STR, name_size );
-
-	if( !COM_ValidateRelativeFilename( name ) ) {
-		if( !silent ) {
-			Com_Printf( "Invalid filename.\n" );
-		}
-		Mem_ZoneFree( name );
+	if( !COM_ValidateRelativeFilename( Cmd_Argv( 1 ) ) ) {
+		Com_Printf( "Invalid filename.\n" );
 		return;
 	}
 
-	if( FS_FOpenBaseFile( name, &cls.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
-		Com_Printf( "Error: Couldn't create the demo file.\n" );
-		Mem_ZoneFree( name );
+	char * filename = ( *sys_allocator )( "{}/demos/{}" APP_DEMO_EXTENSION_STR, HomeDirPath(), Cmd_Argv( 1 ) );
+	COM_SanitizeFilePath( filename );
+
+	if( FS_FOpenAbsoluteFile( filename, &cls.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
+		Com_Printf( "Error: Couldn't create the demo file: %s\n", filename );
+		FREE( sys_allocator, filename );
 		return;
 	}
 
-	if( !silent ) {
-		Com_Printf( "Recording demo: %s\n", name );
-	}
+	Com_Printf( "Recording demo: %s\n", filename );
 
-	// store the name in case we need it later
-	cls.demo.filename = name;
+	cls.demo.filename = filename;
 	cls.demo.recording = true;
 	cls.demo.basetime = cls.demo.duration = cls.demo.time = 0;
-	cls.demo.name = ZoneCopyString( demoname );
+	cls.demo.name = CopyString( sys_allocator, Cmd_Argv( 1 ) );
 
 	// don't start saving messages until a non-delta compressed message is received
 	CL_AddReliableCommand( "nodelta" ); // request non delta compressed frame from server
@@ -199,7 +146,7 @@ static int demofilelen, demofilelentotal;
 /*
 * CL_DemoCompleted
 *
-* Close the demo file and disable demo state. Called from disconnection proccess
+* Close the demo file and disable demo state. Called from disconnection process
 */
 void CL_DemoCompleted() {
 	if( demofilehandle ) {
@@ -210,9 +157,9 @@ void CL_DemoCompleted() {
 
 	cls.demo.playing = false;
 	cls.demo.basetime = cls.demo.duration = cls.demo.time = 0;
-	Mem_ZoneFree( cls.demo.filename );
+	FREE( sys_allocator, cls.demo.filename );
 	cls.demo.filename = NULL;
-	Mem_ZoneFree( cls.demo.name );
+	FREE( sys_allocator, cls.demo.name );
 	cls.demo.name = NULL;
 
 	Com_SetDemoPlaying( false );
@@ -303,60 +250,18 @@ void CL_LatchedDemoJump() {
 	cls.demo.play_jump_latched = false;
 }
 
-/*
-* CL_StartDemo
-*/
-static void CL_StartDemo( const char *demoname, bool yolo ) {
-	size_t name_size;
-	char *name, *servername;
-	const char *filename = NULL;
-	int tempdemofilehandle = 0, tempdemofilelen = -1;
-
-	// have to copy the argument now, since next actions will lose it
-	servername = TempCopyString( demoname );
-	COM_SanitizeFilePath( servername );
-
-	name_size = sizeof( char ) * ( strlen( "demos/" ) + strlen( servername ) + strlen( APP_DEMO_EXTENSION_STR ) + 1 );
-	name = ( char * ) Mem_TempMalloc( name_size );
-
-	snprintf( name, name_size, "demos/%s", servername );
-	COM_DefaultExtension( name, APP_DEMO_EXTENSION_STR, name_size );
-
-	if( COM_ValidateRelativeFilename( name ) ) {
-		filename = name;
+static void CL_StartDemo( const char * demoname, bool yolo ) {
+	const char * ext = FileExtension( demoname ) == "" ? APP_DEMO_EXTENSION_STR : "";
+	char * filename;
+	if( COM_ValidateRelativeFilename( demoname ) ) {
+		filename = ( *sys_allocator )( "{}/demos/{}{}", HomeDirPath(), demoname, ext );
+	}
+	else {
+		filename = ( *sys_allocator )( "{}{}", HomeDirPath(), demoname, ext );
 	}
 
-	if( filename ) {
-		tempdemofilelen = FS_FOpenBaseFile( filename, &tempdemofilehandle, FS_READ | SNAP_DEMO_GZ );  // open the demo file
-	}
-
-	if( !tempdemofilehandle ) {
-		// relative filename didn't work, try launching a demo from absolute path
-		snprintf( name, name_size, "%s", servername );
-		COM_DefaultExtension( name, APP_DEMO_EXTENSION_STR, name_size );
-		tempdemofilelen = FS_FOpenAbsoluteFile( name, &tempdemofilehandle, FS_READ | SNAP_DEMO_GZ );
-	}
-
-	if( !tempdemofilehandle ) {
-		Com_Printf( "No valid demo file found\n" );
-		FS_FCloseFile( tempdemofilehandle );
-		Mem_TempFree( name );
-		Mem_TempFree( servername );
-		return;
-	}
-
-	// make sure a local server is killed
-	Cbuf_ExecuteText( EXEC_NOW, "killserver\n" );
-	CL_Disconnect( NULL );
-
-	memset( &cls.demo, 0, sizeof( cls.demo ) );
-
-	demofilehandle = tempdemofilehandle;
-	demofilelentotal = tempdemofilelen;
+	demofilelentotal = FS_FOpenAbsoluteFile( filename, &demofilehandle, FS_READ | SNAP_DEMO_GZ );
 	demofilelen = demofilelentotal;
-
-	cls.servername = ZoneCopyString( COM_FileBase( servername ) );
-	COM_StripExtension( cls.servername );
 
 	CL_SetClientState( CA_HANDSHAKE );
 	Com_SetDemoPlaying( true );
@@ -365,28 +270,13 @@ static void CL_StartDemo( const char *demoname, bool yolo ) {
 
 	cls.demo.play_ignore_next_frametime = false;
 	cls.demo.play_jump = false;
-	cls.demo.filename = ZoneCopyString( name );
-	cls.demo.name = ZoneCopyString( servername );
+	cls.demo.filename = filename;
+	cls.demo.name = CopyString( sys_allocator, demoname );
 	cls.demo.yolo = yolo;
 
 	CL_PauseDemo( false );
-
-	Mem_TempFree( name );
-	Mem_TempFree( servername );
 }
 
-/*
-* CL_DemoComplete
-*/
-const char **CL_DemoComplete( const char *partial ) {
-	return Cmd_CompleteHomeDirFileList( partial, "demos", APP_DEMO_EXTENSION_STR );
-}
-
-/*
-* CL_PlayDemo_f
-*
-* demo <demoname>
-*/
 void CL_PlayDemo_f() {
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "demo <demoname>\n" );
@@ -403,16 +293,10 @@ void CL_YoloDemo_f() {
 	CL_StartDemo( Cmd_Argv( 1 ), true );
 }
 
-/*
-* CL_PauseDemo
-*/
 static void CL_PauseDemo( bool paused ) {
 	cls.demo.paused = paused;
 }
 
-/*
-* CL_PauseDemo_f
-*/
 void CL_PauseDemo_f() {
 	if( !cls.demo.playing ) {
 		Com_Printf( "Can only demopause when playing a demo.\n" );
@@ -431,9 +315,6 @@ void CL_PauseDemo_f() {
 	CL_PauseDemo( !cls.demo.paused );
 }
 
-/*
-* CL_DemoJump_f
-*/
 void CL_DemoJump_f() {
 	bool relative;
 	int time;
@@ -476,59 +357,4 @@ void CL_DemoJump_f() {
 		cls.demo.play_jump_time = time; // gametime always starts from 0
 	}
 	cls.demo.play_jump_latched = true;
-}
-
-/*
-* CL_ReadDemoMetaData
-*/
-size_t CL_ReadDemoMetaData( const char *demopath, char *meta_data, size_t meta_data_size ) {
-	char *servername;
-	size_t meta_data_realsize = 0;
-
-	if( !demopath || !*demopath ) {
-		return 0;
-	}
-
-	// have to copy the argument now, since next actions will lose it
-	servername = TempCopyString( demopath );
-	COM_SanitizeFilePath( servername );
-
-	// hack:
-	if( cls.demo.playing && !Q_stricmp( cls.demo.name, servername ) && cls.demo.meta_data_realsize > 0 ) {
-		if( meta_data && meta_data_size ) {
-			meta_data_realsize = cls.demo.meta_data_realsize;
-			memcpy( meta_data, cls.demo.meta_data, Min2( meta_data_size, cls.demo.meta_data_realsize ) );
-			meta_data[Min2( meta_data_size - 1, cls.demo.meta_data_realsize )] = '\0';
-		}
-	} else {
-		char *name;
-		size_t name_size;
-		int demofile, demolength;
-
-		name_size = sizeof( char ) * ( strlen( "demos/" ) + strlen( servername ) + strlen( APP_DEMO_EXTENSION_STR ) + 1 );
-		name = ( char * ) Mem_TempMalloc( name_size );
-
-		snprintf( name, name_size, "demos/%s", servername );
-		COM_DefaultExtension( name, APP_DEMO_EXTENSION_STR, name_size );
-
-		demolength = FS_FOpenFile( name, &demofile, FS_READ | SNAP_DEMO_GZ );
-
-		if( !demofile || demolength < 1 ) {
-			// relative filename didn't work, try launching a demo from absolute path
-			snprintf( name, name_size, "%s", servername );
-			COM_DefaultExtension( name, APP_DEMO_EXTENSION_STR, name_size );
-			demolength = FS_FOpenAbsoluteFile( name, &demofile, FS_READ );
-		}
-
-		if( demolength > 0 ) {
-			meta_data_realsize = SNAP_ReadDemoMetaData( demofile, meta_data, meta_data_size );
-		}
-		FS_FCloseFile( demofile );
-
-		Mem_TempFree( name );
-	}
-
-	Mem_TempFree( servername );
-
-	return meta_data_realsize;
 }

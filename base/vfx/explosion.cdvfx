@@ -1,15 +1,8 @@
 {
-  dlight {
+   dlight {
     intensity 1000000
-    lifetime 0.25
-    color 1 1 1 1
-    color_override
-  }
-
-  dlight {
-    intensity 300000
-    lifetime 0.5
-    color 1 1 1 1
+    lifetime 0.55
+    color 1 1 1 0
     color_override
   }
 
@@ -28,114 +21,140 @@
     rotate
     stretch
 
-    position sphere 48
+    position cone 180
 
-    acceleration $gravity
+    speed 1000
 
-    speed 500
-
-    color 1.0 0.15 0.0 1.0
+    color 1.0 1.0 1.0 1.0
+    color_override
     end_color 0.0 0.0 0.0
 
-    size 32
-    size_distribution uniform 0
+    size 64 0
+    size_distribution uniform 64
 
-    lifetime 1.0
-    count 128
+    lifetime 0.15
+    count 256
   }
 
   particles {
-    material textures/vfx/glow2
+    material textures/vfx/trace2
     blendfunc add
+    rotate
+    stretch
 
-    position sphere 42
+    position cone 180
 
-    speed 5
+    speed 1000
 
-    color 1.0 0.25 0.0 1.0
-	end_color 0.0 0.0 0.0
+    color 1.0 1.0 1.0 1.0
+    end_color 0.0 0.0 0.0
 
-    size 32 0
-    size_distribution uniform 4
+    size 64 0
+    size_distribution uniform 64
+
+    lifetime 0.1
+    count 256
+  }
+
+  particles {
+    material textures/vfx/trace2
+    blendfunc add
+    rotate
+    stretch
+
+    position sphere 20
+
+    acceleration $gravity
+
+    speed 1500
+
+    color 1.0 0.15 0.0 1.0
+
+    size 128 0
+    size_distribution uniform 32
 
     lifetime 0.25
-    lifetime_distribution uniform 0.05
-    count 128
+    lifetime_distribution uniform 0.25
+    count 64
+  }
+
+   particles {
+    material textures/vfx/trace2
+    blendfunc add
+    rotate
+    stretch
+
+    position sphere 20
+
+    acceleration $gravity
+
+    speed 700
+
+    color 1.0 0.15 0.0 1.0
+
+    size 64 0
+    size_distribution uniform 32
+
+    lifetime 0.75
+    lifetime_distribution uniform 0.5
+    count 64
+  }
+
+  particles {
+    material textures/vfx/trace2
+    blendfunc blend
+    rotate
+    stretch
+
+    position cone 180 0
+
+    speed 300
+
+    color 0.0 0.0 0.0 1.0
+
+    size 8 0
+    size_distribution uniform 32
+
+    lifetime 0.25
+    count 196
   }
 
   particles {
     material textures/vfx/smoke9
     blendfunc blend
 
-    position sphere 42
+    position sphere 0
 
-    speed 35
+    speed 62
 
-    color 0.1 0.1 0.1 0.5
-    end_color 0.0 0.0 0.0
+    color 0.02 0.02 0.02 0.25
+    end_color 0.0 0.0 0.0 0.5
 
-    size 12 42
-    size_distribution uniform 16
-
-    lifetime 0.55
-    lifetime_distribution uniform 0.05
-    count 128
-  }
-
-  particles {
-    material textures/vfx/smoke10
-    blendfunc blend
-
-    position cone 180 0
-
-    speed 72
-
-    color 0.25 0.25 0.25 1.0
-    end_color 0.0 0.0 0.0
 
     size 42 12
-    size_distribution uniform 16
+    size_distribution uniform 12
 
-    lifetime 0.65
+    lifetime 0.7
     lifetime_distribution uniform 0.05
     count 128
   }
 
   particles {
-    material textures/vfx/fire2
-    blendfunc blend
-	acceleration 450
-    position cone 50 16
-
-    speed 200
-	
-    color 0.15 0.15 0.15 0.5
-    end_color 0.0 0.0 0.0
-
-    size 64 64
-    size_distribution uniform 16
-
-    lifetime 0.45
-    lifetime_distribution uniform 0.05
-    count 8
-  }
-
-  particles {
-    material textures/vfx/fire1
+    material textures/vfx/smoke9
     blendfunc add
 
-    position sphere 8
+    position sphere 0
 
-    speed 60
+    speed 200
 
-    color 1.0 1.0 1.0 1.0
-    color_override
+    color 1.0 0.15 0.0 1.0
+    end_color 0.0 0.0 0.0 0.5
 
-    size 150 100
-    size_distribution uniform 25
+    size 42 0
+    size_distribution uniform 12
 
-    lifetime 0.25
-    lifetime_distribution uniform 0
-    count 32
+    lifetime 0.3
+    lifetime_distribution uniform 0.05
+    count 128
   }
 }

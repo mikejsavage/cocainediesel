@@ -24,47 +24,40 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static bool sv_initialized = false;
 
-mempool_t *sv_mempool;
-
 // IPv4
-cvar_t *sv_ip;
-cvar_t *sv_port;
+Cvar *sv_ip;
+Cvar *sv_port;
 
 // IPv6
-cvar_t *sv_ip6;
-cvar_t *sv_port6;
+Cvar *sv_ip6;
+Cvar *sv_port6;
 
-cvar_t *sv_downloadurl;
+Cvar *sv_downloadurl;
 
-cvar_t *sv_timeout;            // seconds without any message
-cvar_t *sv_zombietime;         // seconds to sink messages after disconnect
+Cvar *sv_timeout;            // seconds without any message
+Cvar *sv_zombietime;         // seconds to sink messages after disconnect
 
-cvar_t *rcon_password;         // password for remote server commands
+Cvar *rcon_password;         // password for remote server commands
 
-cvar_t *sv_maxclients;
+Cvar *sv_maxclients;
 
-cvar_t *sv_showRcon;
-cvar_t *sv_showChallenge;
-cvar_t *sv_showInfoQueries;
+Cvar *sv_showRcon;
+Cvar *sv_showChallenge;
+Cvar *sv_showInfoQueries;
 
-cvar_t *sv_hostname;
-cvar_t *sv_public;         // should heartbeats be sent
-cvar_t *sv_defaultmap;
+Cvar *sv_hostname;
+Cvar *sv_public;         // should heartbeats be sent
+Cvar *sv_defaultmap;
 
-cvar_t *sv_iplimit;
+Cvar *sv_iplimit;
 
 // wsw : debug netcode
-cvar_t *sv_debug_serverCmd;
+Cvar *sv_debug_serverCmd;
 
-cvar_t *sv_demodir;
+Cvar *sv_demodir;
 
 //============================================================================
 
-/*
-* SV_CalcPings
-*
-* Updates the cl->ping variables
-*/
 static void SV_CalcPings() {
 	unsigned int i, j;
 	client_t *cl;
@@ -75,7 +68,7 @@ static void SV_CalcPings() {
 		if( cl->state != CS_SPAWNED ) {
 			continue;
 		}
-		if( cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		if( cl->edict && ( cl->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			continue;
 		}
 
@@ -105,9 +98,6 @@ static void SV_CalcPings() {
 	}
 }
 
-/*
-* SV_ProcessPacket
-*/
 static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 	if( !Netchan_Process( netchan, msg ) ) {
 		return false; // wasn't accepted for some reason
@@ -130,11 +120,8 @@ static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 	return true;
 }
 
-/*
-* SV_ReadPackets
-*/
 static void SV_ReadPackets() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	static msg_t msg;
 	static uint8_t msgData[MAX_MSGLEN];
@@ -179,7 +166,7 @@ static void SV_ReadPackets() {
 				if( cl->state == CS_FREE || cl->state == CS_ZOMBIE ) {
 					continue;
 				}
-				if( cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
+				if( cl->edict && ( cl->edict->s.svflags & SVF_FAKECLIENT ) ) {
 					continue;
 				}
 
@@ -232,7 +219,7 @@ static void SV_ReadPackets() {
 /*
 * SV_CheckTimeouts
 *
-* If a packet has not been received from a client for timeout->value
+* If a packet has not been received from a client for timeout->number
 * seconds, drop the conneciton.  Server frames are used instead of
 * realtime to avoid dropping the local client while debugging.
 *
@@ -241,7 +228,7 @@ static void SV_ReadPackets() {
 * if necessary
 */
 static void SV_CheckTimeouts() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	client_t *cl;
 	int i;
@@ -249,7 +236,7 @@ static void SV_CheckTimeouts() {
 	// timeout clients
 	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
 		// fake clients do not timeout
-		if( cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		if( cl->edict && ( cl->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			cl->lastPacketReceivedTime = svs.realtime;
 		}
 		// message times may be wrong across a changelevel
@@ -257,7 +244,7 @@ static void SV_CheckTimeouts() {
 			cl->lastPacketReceivedTime = svs.realtime;
 		}
 
-		if( cl->state == CS_ZOMBIE && cl->lastPacketReceivedTime + 1000 * sv_zombietime->value < svs.realtime ) {
+		if( cl->state == CS_ZOMBIE && cl->lastPacketReceivedTime + 1000 * sv_zombietime->number < svs.realtime ) {
 			cl->state = CS_FREE; // can now be reused
 			if( cl->individual_socket ) {
 				NET_CloseSocket( &cl->socket );
@@ -266,8 +253,8 @@ static void SV_CheckTimeouts() {
 		}
 
 		if( cl->state != CS_FREE && cl->state != CS_ZOMBIE &&
-			cl->lastPacketReceivedTime + 1000 * sv_timeout->value < svs.realtime ) {
-			SV_DropClient( cl, DROP_TYPE_GENERAL, "%s", "Error: Connection timed out" );
+			cl->lastPacketReceivedTime + 1000 * sv_timeout->number < svs.realtime ) {
+			SV_DropClient( cl, "%s", "Error: Connection timed out" );
 			cl->state = CS_FREE; // don't bother with zombie state
 			if( cl->socket.open ) {
 				NET_CloseSocket( &cl->socket );
@@ -284,7 +271,7 @@ static void SV_CheckTimeouts() {
 * Applies latched userinfo updates if the timeout is over.
 */
 static void SV_CheckLatchedUserinfoChanges() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	client_t *cl;
 	int i;
@@ -305,14 +292,9 @@ static void SV_CheckLatchedUserinfoChanges() {
 	}
 }
 
-//#define WORLDFRAMETIME 25 // 40fps
-//#define WORLDFRAMETIME 20 // 50fps
 #define WORLDFRAMETIME 16 // 62.5fps
-/*
-* SV_RunGameFrame
-*/
 static bool SV_RunGameFrame( int msec ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	static int64_t accTime = 0;
 	bool refreshSnapshot;
@@ -410,16 +392,14 @@ static void SV_CheckDefaultMap() {
 
 	svc.autostarted = true;
 	if( is_dedicated_server ) {
-		if( ( sv.state == ss_dead ) && sv_defaultmap && strlen( sv_defaultmap->string ) && !strlen( sv.mapname ) ) {
-			Cbuf_ExecuteText( EXEC_APPEND, va( "map %s\n", sv_defaultmap->string ) );
-		}
+		printf( "WTF\n" );
 	}
 }
 
 void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
-	TracyPlot( "Server frame arena max utilisation", svs.frame_arena.max_utilisation() );
+	TracyCPlot( "Server frame arena max utilisation", svs.frame_arena.max_utilisation() );
 	svs.frame_arena.clear();
 
 	u64 entropy[ 2 ];
@@ -469,49 +449,29 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 * into a more C friendly form.
 */
 void SV_UserinfoChanged( client_t *client ) {
-	char *val;
-
 	assert( client );
 	assert( Info_Validate( client->userinfo ) );
-
-	if( !client->edict || !( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
-		// force the IP key/value pair so the game can filter based on ip
-		if( !Info_SetValueForKey( client->userinfo, "socket", NET_SocketTypeToString( client->netchan.socket->type ) ) ) {
-			SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Couldn't set userinfo (socket)\n" );
-			return;
-		}
-		if( !Info_SetValueForKey( client->userinfo, "ip", NET_AddressToString( &client->netchan.remoteAddress ) ) ) {
-			SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Couldn't set userinfo (ip)\n" );
-			return;
-		}
-	}
 
 	// call prog code to allow overrides
 	ClientUserinfoChanged( client->edict, client->userinfo );
 
 	if( !Info_Validate( client->userinfo ) ) {
-		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Invalid userinfo (after game)" );
+		SV_DropClient( client, "%s", "Error: Invalid userinfo (after game)" );
 		return;
 	}
 
 	// we assume that game module deals with setting a correct name
-	val = Info_ValueForKey( client->userinfo, "name" );
+	char * val = Info_ValueForKey( client->userinfo, "name" );
 	if( !val || !val[0] ) {
-		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: No name set" );
+		SV_DropClient( client, "%s", "Error: No name set" );
 		return;
 	}
 	Q_strncpyz( client->name, val, sizeof( client->name ) );
 
 }
 
-
-//============================================================================
-
-/*
-* SV_Init
-*/
 void SV_Init() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	assert( !sv_initialized );
 
@@ -527,50 +487,49 @@ void SV_Init() {
 	CSPRNG( entropy, sizeof( entropy ) );
 	svs.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
+	TempAllocator temp = svs.frame_arena.temp();
+
 	SV_InitOperatorCommands();
 
-	sv_mempool = Mem_AllocPool( NULL, "Server" );
+	NewCvar( "protocol", temp( "{}", APP_PROTOCOL_VERSION ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
-	Cvar_Get( "protocol", va( "%i", APP_PROTOCOL_VERSION ), CVAR_SERVERINFO | CVAR_NOSET );
+	sv_ip = NewCvar( "sv_ip", "", CvarFlag_Archive | CvarFlag_ServerReadOnly );
+	sv_port = NewCvar( "sv_port", temp( "{}", PORT_SERVER ), CvarFlag_Archive | CvarFlag_ServerReadOnly );
 
-	// sv_port = 12345
+	sv_ip6 = NewCvar( "sv_ip6", "::", CvarFlag_Archive | CvarFlag_ServerReadOnly );
+	sv_port6 = NewCvar( "sv_port6", temp( "{}", PORT_SERVER ), CvarFlag_Archive | CvarFlag_ServerReadOnly );
 
-	sv_ip = Cvar_Get( "sv_ip", "", CVAR_ARCHIVE | CVAR_LATCH );
-	sv_port = Cvar_Get( "sv_port", va( "%i", PORT_SERVER ), CVAR_ARCHIVE | CVAR_LATCH );
+	sv_downloadurl = NewCvar( "sv_downloadurl", "", CvarFlag_Archive | CvarFlag_ServerReadOnly );
 
-	sv_ip6 = Cvar_Get( "sv_ip6", "::", CVAR_ARCHIVE | CVAR_LATCH );
-	sv_port6 = Cvar_Get( "sv_port6", va( "%i", PORT_SERVER ), CVAR_ARCHIVE | CVAR_LATCH );
+	rcon_password = NewCvar( "rcon_password", "", 0 );
+	sv_hostname = NewCvar( "sv_hostname", APPLICATION " server", CvarFlag_ServerInfo | CvarFlag_Archive );
+	sv_timeout = NewCvar( "sv_timeout", "125", 0 );
+	sv_zombietime = NewCvar( "sv_zombietime", "2", 0 );
+	sv_showRcon = NewCvar( "sv_showRcon", "1", 0 );
+	sv_showChallenge = NewCvar( "sv_showChallenge", "0", 0 );
+	sv_showInfoQueries = NewCvar( "sv_showInfoQueries", "0", 0 );
 
-	sv_downloadurl = Cvar_Get( "sv_downloadurl", "", CVAR_ARCHIVE | CVAR_LATCH );
+	sv_public = NewCvar( "sv_public", is_public_build && is_dedicated_server ? "1" : "0", CvarFlag_ServerReadOnly );
 
-	rcon_password = Cvar_Get( "rcon_password", "", 0 );
-	sv_hostname = Cvar_Get( "sv_hostname", APPLICATION " server", CVAR_SERVERINFO | CVAR_ARCHIVE );
-	sv_timeout = Cvar_Get( "sv_timeout", "125", 0 );
-	sv_zombietime = Cvar_Get( "sv_zombietime", "2", 0 );
-	sv_showRcon = Cvar_Get( "sv_showRcon", "1", 0 );
-	sv_showChallenge = Cvar_Get( "sv_showChallenge", "0", 0 );
-	sv_showInfoQueries = Cvar_Get( "sv_showInfoQueries", "0", 0 );
+	sv_iplimit = NewCvar( "sv_iplimit", "3", CvarFlag_Archive );
 
-	sv_public = Cvar_Get( "sv_public", is_public_build && is_dedicated_server ? "1" : "0", CVAR_LATCH );
-
-	sv_iplimit = Cvar_Get( "sv_iplimit", "3", CVAR_ARCHIVE );
-
-	sv_defaultmap = Cvar_Get( "sv_defaultmap", "carfentanil", CVAR_ARCHIVE );
-	sv_maxclients = Cvar_Get( "sv_maxclients", "16", CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_LATCH );
+	sv_defaultmap = NewCvar( "sv_defaultmap", "carfentanil", CvarFlag_Archive );
+	NewCvar( "mapname", "", CvarFlag_ServerInfo | CvarFlag_ReadOnly );
+	sv_maxclients = NewCvar( "sv_maxclients", "16", CvarFlag_Archive | CvarFlag_ServerInfo | CvarFlag_ServerReadOnly );
 
 	// fix invalid sv_maxclients values
 	if( sv_maxclients->integer < 1 ) {
-		Cvar_FullSet( "sv_maxclients", "1", CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_LATCH, true );
+		Cvar_ForceSet( "sv_maxclients", "1" );
 	} else if( sv_maxclients->integer > MAX_CLIENTS ) {
-		Cvar_FullSet( "sv_maxclients", va( "%i", MAX_CLIENTS ), CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_LATCH, true );
+		Cvar_ForceSet( "sv_maxclients", temp( "{}", MAX_CLIENTS ) );
 	}
 
-	sv_demodir = Cvar_Get( "sv_demodir", "", CVAR_NOSET );
+	sv_demodir = NewCvar( "sv_demodir", "server", CvarFlag_ServerReadOnly );
 
-	g_autorecord = Cvar_Get( "g_autorecord", is_dedicated_server ? "1" : "0", CVAR_ARCHIVE );
-	g_autorecord_maxdemos = Cvar_Get( "g_autorecord_maxdemos", "200", CVAR_ARCHIVE );
+	g_autorecord = NewCvar( "g_autorecord", is_dedicated_server ? "1" : "0", CvarFlag_Archive );
+	g_autorecord_maxdemos = NewCvar( "g_autorecord_maxdemos", "200", CvarFlag_Archive );
 
-	sv_debug_serverCmd = Cvar_Get( "sv_debug_serverCmd", "0", CVAR_ARCHIVE );
+	sv_debug_serverCmd = NewCvar( "sv_debug_serverCmd", "0", CvarFlag_Archive );
 
 	// this is a message holder for shared use
 	MSG_Init( &tmpMessage, tmpMessageData, sizeof( tmpMessageData ) );
@@ -588,14 +547,15 @@ void SV_Init() {
 	SV_Web_Init();
 
 	sv_initialized = true;
+
+	if( is_dedicated_server ) {
+		SV_Map( sv_defaultmap->value, false );
+	}
 }
 
-/*
-* SV_Shutdown
-*
-* Called once when the program is shutting down
-*/
 void SV_Shutdown( const char *finalmsg ) {
+	TracyZoneScoped;
+
 	if( !sv_initialized ) {
 		return;
 	}
@@ -605,8 +565,6 @@ void SV_Shutdown( const char *finalmsg ) {
 	SV_ShutdownGame( finalmsg, false );
 
 	SV_ShutdownOperatorCommands();
-
-	Mem_FreePool( &sv_mempool );
 
 	FREE( sys_allocator, svs.frame_arena.get_memory() );
 }

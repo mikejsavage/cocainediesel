@@ -1,16 +1,11 @@
-weapons/gl/grenade
+weapons/gl/grenade_color
 {
-	{
-		map $whiteimage
-		rgbgen entitycolorwave 0.7 0.7 0.7 sin 0.25 0.25 0.25 10
-	}
-}
-
-models/weapons/glauncher/glauncher_fx
-{
+	shaded
+	specular 1
+	shininess 8
 	cull disable
-	{
-		map $whiteimage
-		rgbGen const 0.086 0.086 0.086
-	}
+		{
+			map $whiteimage
+			rgbgen entitycolorwave 1.0 1.0 1.0 sin 0.2 0.25 1.0 15
+		}
 }

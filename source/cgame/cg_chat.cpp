@@ -1,4 +1,5 @@
 #include "cgame/cg_local.h"
+#include "client/renderer/renderer.h"
 #include "qcommon/string.h"
 
 #include "imgui/imgui.h"
@@ -35,29 +36,30 @@ static Chat chat;
 
 static void OpenChat() {
 	if( !cls.demo.playing ) {
-		bool team = Q_stricmp( Cmd_Argv( 0 ), "messagemode2" ) == 0 &&  Cmd_Exists( "say_team" );
+		bool team = Q_stricmp( Cmd_Argv( 0 ), "messagemode2" ) == 0;
 		chat.mode = team ? ChatMode_SayTeam : ChatMode_Say;
 		chat.input[ 0 ] = '\0';
 		chat.scroll_to_bottom = true;
-		CL_SetKeyDest( key_message );
+		CL_SetKeyDest( key_ImGui );
 	}
 }
 
 static void CloseChat() {
 	chat.mode = ChatMode_None;
-	CL_SetKeyDest( key_game );
+	if( !Con_IsVisible() )
+		CL_SetKeyDest( key_game );
 }
 
 void CG_InitChat() {
 	chat = { };
 
-	Cmd_AddCommand( "messagemode", OpenChat );
-	Cmd_AddCommand( "messagemode2", OpenChat );
+	AddCommand( "messagemode", OpenChat );
+	AddCommand( "messagemode2", OpenChat );
 }
 
 void CG_ShutdownChat() {
-	Cmd_RemoveCommand( "messagemode" );
-	Cmd_RemoveCommand( "messagemode2" );
+	RemoveCommand( "messagemode" );
+	RemoveCommand( "messagemode2" );
 }
 
 void CG_AddChat( const char * str ) {
@@ -84,19 +86,12 @@ void CG_AddChat( const char * str ) {
 
 static void SendChat() {
 	if( strlen( chat.input ) > 0 ) {
-		// convert double quotes to single quotes
-		for( char * p = chat.input; *p != '\0'; p++ ) {
-			if( *p == '"' ) {
-				*p = '\'';
-			}
-		}
-
 		TempAllocator temp = cls.frame_arena.temp();
 
-		const char * cmd = chat.mode == ChatMode_SayTeam && Cmd_Exists( "say_team" ) ? "say_team" : "say";
-		Cbuf_AddText( temp( "{} \"{}\"\n", cmd, chat.input ) );
+		const char * cmd = chat.mode == ChatMode_SayTeam ? "say_team" : "say";
+		Cbuf_Add( "{} {}", cmd, chat.input );
 
-		S_StartGlobalSound( "sounds/typewriter/return", CHAN_AUTO, 1.0f );
+		S_StartGlobalSound( "sounds/typewriter/return", CHAN_AUTO, 1.0f, 1.0f );
 	}
 
 	CloseChat();
@@ -104,12 +99,12 @@ static void SendChat() {
 
 static int InputCallback( ImGuiInputTextCallbackData * data ) {
 	if( data->EventChar == ' ' ) {
-		S_StartGlobalSound( "sounds/typewriter/space", CHAN_AUTO, 1.0f );
-		Cbuf_AddText( "cmd typewriterspace\n" );
+		S_StartGlobalSound( "sounds/typewriter/space", CHAN_AUTO, 1.0f, 1.0f );
+		Cbuf_Add( "typewriterspace" );
 	}
 	else {
-		S_StartGlobalSound( "sounds/typewriter/clack", CHAN_AUTO, 1.0f );
-		Cbuf_AddText( "cmd typewriterclack\n" );
+		S_StartGlobalSound( "sounds/typewriter/clack", CHAN_AUTO, 1.0f, 1.0f );
+		Cbuf_Add( "typewriterclack" );
 	}
 	return 0;
 }
@@ -117,9 +112,8 @@ static int InputCallback( ImGuiInputTextCallbackData * data ) {
 void CG_DrawChat() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	const ImGuiIO & io = ImGui::GetIO();
-	float width_frac = Lerp( 0.5f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.3f );
-	Vec2 size = io.DisplaySize * Vec2( width_frac, 0.25f );
+	float width_frac = Lerp( 0.5f, Unlerp01( 1024.0f, float( frame_static.viewport_width ), 1920.0f ), 0.3f );
+	Vec2 size = frame_static.viewport * Vec2( width_frac, 0.25f );
 
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground;
 	ImGuiWindowFlags log_flags = ImGuiWindowFlags_AlwaysUseWindowPadding;
@@ -144,7 +138,7 @@ void CG_DrawChat() {
 
 	ImGui::BeginChild( "chatlog", ImVec2( 0, -ImGui::GetFrameHeight() ), false, log_flags );
 
-	float wrap_width = ImGui::GetWindowContentRegionWidth();
+	float wrap_width = ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x;
 
 	for( size_t i = 0; i < chat.history_len; i++ ) {
 		size_t idx = ( chat.history_head + i ) % ARRAY_COUNT( chat.history );
@@ -158,12 +152,12 @@ void CG_DrawChat() {
 		}
 	}
 
-	if( chat.scroll_to_bottom ) {
+	if( chat.mode == ChatMode_None || chat.scroll_to_bottom ) {
 		ImGui::SetScrollHereY( 1.0f );
 		chat.scroll_to_bottom = false;
 	}
 
-	if( ImGui::IsKeyPressed( K_PGUP ) || ImGui::IsKeyPressed( K_PGDN ) ) {
+	if( chat.mode != ChatMode_None && ( ImGui::IsKeyPressed( K_PGUP ) || ImGui::IsKeyPressed( K_PGDN ) ) ) {
 		float scroll = ImGui::GetScrollY();
 		float page = ImGui::GetWindowSize().y - ImGui::GetTextLineHeight();
 		scroll += page * ( ImGui::IsKeyPressed( K_PGUP ) ? -1 : 1 );

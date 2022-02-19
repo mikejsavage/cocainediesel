@@ -1,0 +1,5 @@
+{
+	attenuation distant
+	sound ./stop
+	volume 0.5
+}

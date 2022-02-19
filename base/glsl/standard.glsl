@@ -8,6 +8,9 @@
 v2f vec3 v_Position;
 v2f vec3 v_Normal;
 v2f vec2 v_TexCoord;
+#if INSTANCED
+flat v2f vec4 v_MaterialColor;
+#endif
 
 #if VERTEX_COLORS
 v2f vec4 v_Color;
@@ -24,12 +27,29 @@ in vec3 a_Normal;
 in vec4 a_Color;
 in vec2 a_TexCoord;
 
+#if INSTANCED
+in vec4 a_MaterialColor;
+in vec3 a_MaterialTextureMatrix0;
+in vec3 a_MaterialTextureMatrix1;
+
+in vec4 a_ModelTransformRow0;
+in vec4 a_ModelTransformRow1;
+in vec4 a_ModelTransformRow2;
+#endif
+
 vec2 ApplyTCMod( vec2 uv ) {
+#if INSTANCED
+	mat3x2 m = transpose( mat2x3( a_MaterialTextureMatrix0, a_MaterialTextureMatrix1 ) );
+#else
 	mat3x2 m = transpose( mat2x3( u_TextureMatrix[ 0 ], u_TextureMatrix[ 1 ] ) );
+#endif
 	return ( m * vec3( uv, 1.0 ) ).xy;
 }
 
 void main() {
+#if INSTANCED
+	mat4 u_M = transpose( mat4( a_ModelTransformRow0, a_ModelTransformRow1, a_ModelTransformRow2, vec4( 0.0, 0.0, 0.0, 1.0 ) ) );
+#endif
 	vec4 Position = a_Position;
 	vec3 Normal = a_Normal;
 	vec2 TexCoord = a_TexCoord;
@@ -40,16 +60,17 @@ void main() {
 
 	v_Position = ( u_M * Position ).xyz;
 
-	// TODO: this fixes models that don't have 1,1,1 scale
-	mat3 m = mat3( u_M );
-	m = mat3( normalize( m[ 0 ] ), normalize( m[ 1 ] ), normalize( m[ 2 ] ) );
-	m *= sign( determinant( m ) );
+	mat3 m = transpose( inverse( mat3( u_M ) ) );
 	v_Normal = m * Normal;
 
 	v_TexCoord = ApplyTCMod( a_TexCoord );
 
 #if VERTEX_COLORS
 	v_Color = sRGBToLinear( a_Color );
+#endif
+
+#if INSTANCED
+	v_MaterialColor = a_MaterialColor;
 #endif
 
 	gl_Position = u_P * u_V * u_M * Position;
@@ -72,7 +93,14 @@ uniform sampler2D u_DepthTexture;
 #endif
 
 #if APPLY_DECALS || APPLY_DLIGHTS
-uniform isamplerBuffer u_DynamicCount;
+struct DynamicTile {
+	uint num_decals;
+	uint num_dlights;
+};
+
+layout( std430 ) readonly buffer b_DynamicTiles {
+	DynamicTile dynamic_tiles[];
+};
 #endif
 
 #if APPLY_DECALS
@@ -90,9 +118,17 @@ uniform isamplerBuffer u_DynamicCount;
 void main() {
 	vec3 normal = normalize( v_Normal );
 #if APPLY_DRAWFLAT
+#if INSTANCED
+	vec4 diffuse = v_MaterialColor;
+#else
 	vec4 diffuse = u_MaterialColor;
+#endif
+#else
+#if INSTANCED
+	vec4 color = v_MaterialColor;
 #else
 	vec4 color = u_MaterialColor;
+#endif
 
 #if VERTEX_COLORS
 	color *= v_Color;
@@ -117,11 +153,11 @@ void main() {
 	int tile_col = int( gl_FragCoord.x / tile_size );
 	int cols = int( u_ViewportSize.x + tile_size - 1 ) / int( tile_size );
 	int tile_index = tile_row * cols + tile_col;
-	ivec2 decal_dlight_count = texelFetch( u_DynamicCount, tile_index ).xy;
+	DynamicTile dynamic_tile = dynamic_tiles[ tile_index ];
 #endif
 
 #if APPLY_DECALS
-	applyDecals( decal_dlight_count.x, tile_index, diffuse, normal );
+	applyDecals( dynamic_tile.num_decals, tile_index, diffuse, normal );
 #endif
 
 #if SHADED
@@ -140,7 +176,7 @@ void main() {
 	shadowlight = shadowlight * 0.5 + 0.5;
 
 #if APPLY_DLIGHTS
-	applyDynamicLights( decal_dlight_count.y, tile_index, v_Position, normal, viewDir, lambertlight, specularlight );
+	applyDynamicLights( dynamic_tile.num_dlights, tile_index, v_Position, normal, viewDir, lambertlight, specularlight );
 #endif
 	lambertlight = lambertlight * 0.5 + 0.5;
 
@@ -160,7 +196,7 @@ void main() {
 	diffuse.rgb = VoidFog( diffuse.rgb, v_Position.z );
 	diffuse.a = VoidFogAlpha( diffuse.a, v_Position.z );
 
-	f_Albedo = LinearTosRGB( diffuse );
+	f_Albedo = diffuse;
 }
 
 #endif

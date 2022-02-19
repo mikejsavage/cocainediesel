@@ -53,6 +53,8 @@ typedef const void* TracyCZoneCtx;
 
 #else
 
+#include "common/TracyApi.h"
+
 #ifndef TracyConcat
 #  define TracyConcat(x,y) TracyConcatIndirect(x,y)
 #endif

@@ -2,8 +2,8 @@
 
 #include "qcommon/types.h"
 
-#define MAX_CLIENTS                 16
-#define MAX_EDICTS                  1024        // must change protocol to increase more
+constexpr int MAX_CLIENTS = 16;
+constexpr int MAX_EDICTS = 1024; // must change protocol to increase more
 
 enum MatchState : u8 {
 	MatchState_Warmup,
@@ -11,6 +11,8 @@ enum MatchState : u8 {
 	MatchState_Playing,
 	MatchState_PostMatch,
 	MatchState_WaitExit,
+
+	MatchState_Count
 };
 
 #define EVENT_ENTITIES_START    96 // entity types above this index will get event treatment
@@ -47,10 +49,19 @@ enum EntityType : u8 {
 	// eventual entities: types below this will get event treatment
 	ET_EVENT = EVENT_ENTITIES_START,
 	ET_SOUNDEVENT,
+
+	EntityType_Count
 };
 
-using WeaponType = u8;
-enum WeaponType_ : WeaponType {
+enum WeaponCategory {
+	WeaponCategory_Primary,
+	WeaponCategory_Secondary,
+	WeaponCategory_Backup,
+
+	WeaponCategory_Count
+};
+
+enum WeaponType : u8 {
 	Weapon_None,
 
 	Weapon_Knife,
@@ -71,10 +82,13 @@ enum WeaponType_ : WeaponType {
 	Weapon_Rifle,
 	Weapon_MasterBlaster,
 	Weapon_RoadGun,
+	Weapon_StickyGun,
 	// Weapon_Minigun,
 
 	Weapon_Count
 };
+
+void operator++( WeaponType & x, int );
 
 enum GadgetType : u8 {
 	Gadget_None,
@@ -84,6 +98,38 @@ enum GadgetType : u8 {
 	Gadget_StunGrenade,
 
 	Gadget_Count
+};
+
+void operator++( GadgetType & x, int );
+
+enum PerkType : u8 {
+	Perk_None,
+
+	Perk_Ninja,
+	Perk_Hooligan,
+	Perk_Midget,
+	Perk_Jetpack,
+	Perk_Boomer,
+
+	Perk_Count
+};
+
+void operator++( PerkType & x, int );
+
+enum StaminaState : u8 {
+	Stamina_Normal,
+	Stamina_Reloading,
+	Stamina_UsingAbility,
+	Stamina_UsedAbility,
+
+	Stamina_Count,
+};
+
+
+struct Loadout {
+	WeaponType weapons[ WeaponCategory_Count ];
+	GadgetType gadget;
+	PerkType perk;
 };
 
 enum WeaponState : u8 {
@@ -99,9 +145,12 @@ enum WeaponState : u8 {
 	WeaponState_FiringSmooth,
 	WeaponState_FiringEntireClip,
 	WeaponState_Reloading,
+	WeaponState_StagedReloading,
 
 	WeaponState_Cooking,
 	WeaponState_Throwing,
+
+	WeaponState_Count
 };
 
 enum FiringMode {
@@ -116,6 +165,8 @@ enum RoundType : u8 {
 	RoundType_MatchPoint,
 	RoundType_Overtime,
 	RoundType_OvertimeMatchPoint,
+
+	RoundType_Count
 };
 
 enum RoundState : u8 {
@@ -124,6 +175,8 @@ enum RoundState : u8 {
 	RoundState_Round,
 	RoundState_Finished,
 	RoundState_Post,
+
+	RoundState_Count
 };
 
 enum BombDown {
@@ -140,7 +193,6 @@ enum BombProgress {
 #define GAMESTAT_FLAG_PAUSED ( 1 << 0 )
 #define GAMESTAT_FLAG_WAITING ( 1 << 1 )
 #define GAMESTAT_FLAG_ISTEAMBASED ( 1 << 2 )
-#define GAMESTAT_FLAG_COUNTDOWN ( 1 << 3 )
 
 enum {
 	TEAM_SPECTATOR,
@@ -170,6 +222,8 @@ struct SyncTeamState {
 };
 
 struct SyncBombGameState {
+	int attacking_team;
+
 	u8 alpha_players_alive;
 	u8 alpha_players_total;
 	u8 beta_players_alive;
@@ -185,6 +239,8 @@ struct SyncGameState {
 	s64 match_state_start_time;
 	s64 match_duration;
 	s64 clock_override;
+	u8 callvote_required_votes;
+	u8 callvote_yes_votes;
 
 	u8 round_num;
 	RoundState round_state;
@@ -205,7 +261,7 @@ struct SyncEvent {
 };
 
 struct SyncEntityState {
-	int number;                         // edict index
+	int number;
 
 	unsigned int svflags;
 
@@ -237,24 +293,24 @@ struct SyncEntityState {
 	SyncEvent events[ 2 ];
 
 	int counterNum;                 // ET_GENERIC
-	int targetNum;                  // ET_EVENT specific
 	RGBA8 silhouetteColor;
-	int radius;                     // ET_GLADIATOR always extended, ET_BOMB state, EV_BLOOD damage, ...
+	int radius;                     // spikes always extended, BombDown stuff, EV_BLOOD damage, ...
 
 	bool linearMovement;
-	Vec3 linearMovementVelocity;      // this is transmitted instead of origin when linearProjectile is true
-	Vec3 linearMovementEnd;           // the end movement point for brush models
-	Vec3 linearMovementBegin;			// the starting movement point for brush models
+	Vec3 linearMovementVelocity;
+	Vec3 linearMovementEnd;
+	Vec3 linearMovementBegin;
 	unsigned int linearMovementDuration;
 	int64_t linearMovementTimeStamp;
 	int linearMovementTimeDelta;
 
-	WeaponType weapon;                  // WEAP_ for players
+	WeaponType weapon;
 	bool teleported;
+	Vec3 scale;
 
-	StringHash sound;                          // for looping sounds, to guarantee shutoff
+	StringHash sound;
 
-	int team;                           // team in the game
+	int team;
 };
 
 struct pmove_state_t {
@@ -273,14 +329,12 @@ struct pmove_state_t {
 	s16 no_shooting_time;
 
 	s16 knockback_time;
-	s16 crouch_time;
 	s16 tbag_time;
-	s16 dash_time;
-	s16 walljump_time;
+	float stamina;
+	float stamina_stored;
+	StaminaState stamina_state;
 
 	s16 max_speed;
-	s16 jump_speed;
-	s16 dash_speed;
 };
 
 struct WeaponSlot {
@@ -301,6 +355,7 @@ struct SyncPlayerState {
 	WeaponSlot weapons[ Weapon_Count - 1 ];
 
 	GadgetType gadget;
+	PerkType perk;
 	u8 gadget_ammo;
 
 	bool ready;
@@ -310,6 +365,7 @@ struct SyncPlayerState {
 	bool can_plant;
 
 	s16 health;
+	s16 max_health;
 	u16 flashed;
 
 	WeaponState weapon_state;
@@ -340,6 +396,6 @@ struct UserCommand {
 	u16 entropy;
 	s64 serverTimeStamp;
 	s16 angles[ 3 ];
-	s8 forwardmove, sidemove, upmove;
+	s8 forwardmove, sidemove;
 	WeaponType weaponSwitch;
 };

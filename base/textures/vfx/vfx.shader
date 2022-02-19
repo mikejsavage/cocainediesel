@@ -579,20 +579,6 @@ textures/vfx/trace7
   }
   decal
 }
-textures/vfx/trail1
-{
-  {
-    map textures/vfx/trail1
-  }
-  decal
-}
-textures/vfx/trail2
-{
-  {
-    map textures/vfx/trail2
-  }
-  decal
-}
 textures/vfx/trail3
 {
   {
@@ -625,13 +611,6 @@ textures/vfx/twirl4
 {
   {
     map textures/vfx/twirl4
-  }
-  decal
-}
-textures/vfx/water
-{
-  {
-    map textures/vfx/water
   }
   decal
 }

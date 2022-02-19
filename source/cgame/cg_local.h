@@ -39,20 +39,14 @@ constexpr float FOV = 107.9f; // chosen to upset everyone equally
 constexpr RGB8 TEAM_COLORS[] = {
 	RGB8( 40, 204, 255 ),
 	RGB8( 255, 24, 96 ),
-//	RGB8( 50, 200, 90 ),
-//	RGB8( 210, 170, 0 ),
-};
-
-constexpr RGB8 COLORBLIND_TEAM_COLORS[] = {
-	RGB8( 80, 204, 255 ),
 	RGB8( 255, 150, 40 ),
-//	RGB8( 50, 200, 90 ),
-//	RGB8( 210, 170, 0 ),
+	RGB8( 190, 0, 240 ),
 };
 
 enum {
 	LOCALEFFECT_VSAY_TIMEOUT,
 	LOCALEFFECT_LASERBEAM,
+	LOCALEFFECT_JETPACK,
 
 	LOCALEFFECT_COUNT
 };
@@ -95,6 +89,11 @@ struct centity_t {
 	ImmediateSoundHandle lg_beam_sound;
 	ImmediateSoundHandle lg_tip_sound;
 
+	bool jetpack_boost;
+	ImmediateSoundHandle jetpack_sound;
+
+	ImmediateSoundHandle vsay_sound;
+
 	bool linearProjectileCanDraw;
 	Vec3 linearProjectileViewerSource;
 	Vec3 linearProjectileViewerVelocity;
@@ -113,50 +112,15 @@ struct centity_t {
 #include "cgame/cg_pmodels.h"
 
 struct cgs_media_t {
-	// sounds
 	StringHash sfxWeaponHit[ 4 ];
-
 	StringHash sfxVSaySounds[ Vsay_Total ];
 
-	// models
-	const Model * modDash;
-	const Model * modGib;
-
-	const Model * modARBulletExplosion;
-
-	const Model * modBulletExplode;
-	const Model * modBladeWallHit;
-	const Model * modBladeWallExplo;
-
-	const Model * modLasergunWallExplo;
-
-	const Material * shaderBombIcon;
-	const Material * shaderLaser;
-	const Material * shaderNet;
-
-	const Material * shaderEBBeam;
-	const Material * shaderLGBeam;
-	const Material * shaderTracer;
-
-	const Material * shaderWeaponIcon[ Weapon_Count ];
-	const Material * shaderGadgetIcon[ Gadget_Count ];
-
-	const Material * shaderAlive;
-	const Material * shaderDead;
-	const Material * shaderReady;
-};
-
-#define MAX_ANGLES_KICKS 3
-
-struct cg_kickangles_t {
-	int64_t timestamp;
-	int64_t kicktime;
-	float v_roll, v_pitch;
+	StringHash shaderWeaponIcon[ Weapon_Count ];
+	StringHash shaderGadgetIcon[ Gadget_Count ];
+	StringHash shaderPerkIcon[ Perk_Count ];
 };
 
 #define PREDICTED_STEP_TIME 150 // stairs smoothing time
-#define MAX_AWARD_LINES 3
-#define MAX_AWARD_DISPLAYTIME 5000
 
 // view types
 enum {
@@ -183,38 +147,32 @@ struct cg_viewdef_t {
 
 // this is not exactly "static" but still...
 struct cg_static_t {
-	const char *serverName;
 	const char *demoName;
 	unsigned int playerNum;
 
 	// fonts
 	int fontSystemTinySize;
+	int fontSystemExtraSmallSize;
 	int fontSystemSmallSize;
 	int fontSystemMediumSize;
 	int fontSystemBigSize;
 
 	float textSizeTiny;
+	float textSizeExtraSmall;
 	float textSizeSmall;
 	float textSizeMedium;
 	float textSizeBig;
 
 	const Font * fontNormal;
 	const Font * fontNormalBold;
-	const Font * fontNormalItalic;
-	const Font * fontNormalBoldItalic;
+	const Font * fontItalic;
+	const Font * fontBoldItalic;
 
 	cgs_media_t media;
-
-	bool precacheDone;
 
 	bool demoPlaying;
 	unsigned snapFrameTime;
 	unsigned extrapolationTime;
-
-	//
-	// locally derived information from server state
-	//
-	char configStrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 };
 
 struct cg_state_t {
@@ -264,18 +222,8 @@ struct cg_state_t {
 	int bobCycle;                   // odd cycles are right foot going forward
 	float bobFracSin;               // sin(bobfrac*M_PI)
 
-	//
-	// kick angles and color blend effects
-	//
-
-	cg_kickangles_t kickangles[MAX_ANGLES_KICKS];
 	int64_t fallEffectTime;
 	int64_t fallEffectRebounceTime;
-
-	// awards
-	char award_lines[MAX_AWARD_LINES][MAX_CONFIGSTRING_CHARS];
-	int64_t award_times[MAX_AWARD_LINES];
-	int award_head;
 
 	cg_viewweapon_t weapon;
 	cg_viewdef_t view;
@@ -283,8 +231,6 @@ struct cg_state_t {
 
 extern cg_static_t cgs;
 extern cg_state_t cg;
-
-extern mempool_t *cg_mempool;
 
 #define ISVIEWERENTITY( entNum )  ( cg.predictedPlayerState.POVnum > 0 && (int)cg.predictedPlayerState.POVnum == ( entNum ) && cg.view.type == VIEWDEF_PLAYERVIEW )
 
@@ -302,7 +248,6 @@ const cmodel_t *CG_CModelForEntity( int entNum );
 
 void CG_SoundEntityNewState( centity_t *cent );
 void DrawEntities();
-void CG_GetEntitySpatialization( int entNum, Vec3 * origin, Vec3 * velocity );
 void CG_LerpEntities();
 void CG_LerpGenericEnt( centity_t *cent );
 
@@ -317,20 +262,18 @@ Vec2 WorldToScreenClamped( Vec3 v, Vec2 screen_border, bool * clamped );
 //
 // cg_media.c
 //
-void CG_RegisterMediaSounds();
-void CG_RegisterMediaModels();
-void CG_RegisterMediaShaders();
-void CG_RegisterFonts();
+void CG_RegisterMedia();
 
 //
 // cg_players.c
 //
+float CG_PlayerPitch( int entnum );
 void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps );
 
 //
 // cg_predict.c
 //
-extern cvar_t *cg_showMiss;
+extern Cvar *cg_showMiss;
 
 void CG_PredictedEvent( int entNum, int ev, u64 parm );
 void CG_PredictedFireWeapon( int entNum, u64 parm );
@@ -345,32 +288,30 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin );
 //
 // cg_screen.c
 //
-extern cvar_t *cg_showFPS;
+extern Cvar *cg_showFPS;
 
 void CG_ScreenInit();
+void CG_DrawScope();
 void CG_Draw2D();
 void CG_CenterPrint( const char *str );
 
 void CG_EscapeKey();
 
-void CG_DrawCrosshair();
+void CG_DrawCrosshair( int x, int y );
 void CG_ScreenCrosshairDamageUpdate();
+void CG_ScreenCrosshairShootUpdate( u16 refire_time );
 
 void CG_DrawKeyState( int x, int y, int w, int h, const char *key );
 
-void CG_DrawClock( int x, int y, Alignment alignment, const Font * font, float font_size, Vec4 color, bool border );
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border );
-void CG_DrawNet( int x, int y, int w, int h, Alignment alignment, Vec4 color );
-
-void CG_ClearPointedNum();
 
 void CG_InitDamageNumbers();
 void CG_AddDamageNumber( SyncEntityState * ent, u64 parm );
-void CG_DrawDamageNumbers();
+void CG_DrawDamageNumbers( float obi_size, float dmg_size );
 
 void CG_AddBomb( centity_t * cent );
 void CG_AddBombSite( centity_t * cent );
-void CG_DrawBombHUD();
+void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size );
 void CG_ResetBombHUD();
 
 void AddDamageEffect( float x = 0.0f );
@@ -383,7 +324,6 @@ void CG_ShutdownHUD();
 void CG_SC_ResetObituaries();
 void CG_SC_Obituary();
 void CG_DrawHUD();
-void CG_ClearAwards();
 
 //
 // cg_scoreboard.c
@@ -396,26 +336,21 @@ bool CG_ScoreboardShown();
 //
 // cg_main.c
 //
-extern cvar_t *developer;
-extern cvar_t *cg_showClamp;
-extern cvar_t *cg_showHotkeys;
-extern cvar_t *cg_colorBlind;
+extern Cvar *developer;
+extern Cvar *cg_showClamp;
 
 // wsw
-extern cvar_t *cg_autoaction_demo;
-extern cvar_t *cg_autoaction_screenshot;
-extern cvar_t *cg_autoaction_spectator;
+extern Cvar *cg_autoaction_demo;
+extern Cvar *cg_autoaction_screenshot;
+extern Cvar *cg_autoaction_spectator;
 
-extern cvar_t *cg_projectileAntilagOffset;
-extern cvar_t *cg_chat;
+extern Cvar *cg_projectileAntilagOffset;
 
-extern cvar_t *cg_particleDebug;
+extern Cvar *cg_particleDebug;
 
-#define CG_Malloc( size ) _Mem_AllocExt( cg_mempool, size, 16, 1, 0, 0, __FILE__, __LINE__ );
-#define CG_Free( data ) Mem_Free( data )
+extern Cvar *cg_showServerDebugPrints;
 
-void CG_Init( const char *serverName, unsigned int playerNum,
-			  bool demoplaying, const char *demoName, unsigned snapFrameTime );
+void CG_Init( unsigned int playerNum, bool demoplaying, const char *demoName, unsigned snapFrameTime );
 void CG_Shutdown();
 
 #ifndef _MSC_VER
@@ -429,14 +364,13 @@ void CG_Precache();
 
 void CG_RegisterCGameCommands();
 void CG_UnregisterCGameCommands();
-void CG_AddAward( const char *str );
 
 const char * PlayerName( int i );
 
 //
 // cg_svcmds.c
 //
-void CG_ConfigString( int i, const char *s );
+void CG_ConfigString( int idx );
 void CG_GameCommand( const char *command );
 void CG_SC_AutoRecordAction( const char *action );
 
@@ -450,52 +384,28 @@ Vec4 CG_TeamColorVec4( int team );
 //
 // cg_view.c
 //
-enum {
-	CAM_INEYES,
-	CAM_THIRDPERSON,
-	CAM_MODES
-};
-
 struct ChasecamState {
-	int mode;
 	bool key_pressed;
 };
 
 extern ChasecamState chaseCam;
 
-extern cvar_t *cg_thirdPerson;
-extern cvar_t *cg_thirdPersonAngle;
-extern cvar_t *cg_thirdPersonRange;
-
-void CG_ResetKickAngles();
+extern Cvar *cg_thirdPerson;
+extern Cvar *cg_thirdPersonAngle;
+extern Cvar *cg_thirdPersonRange;
 
 void CG_StartFallKickEffect( int bounceTime );
 void CG_ViewSmoothPredictedSteps( Vec3 * vieworg );
 float CG_ViewSmoothFallKick();
 float CG_CalcViewFov();
 void CG_RenderView( unsigned extrapolationTime );
-Vec3 CG_GetKickAngles();
 bool CG_ChaseStep( int step );
-bool CG_SwitchChaseCamMode();
 
 //
 // cg_lents.c
 //
 
-void CG_RifleBulletTrail( const centity_t * cent );
-void CG_ARBulletExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
-void CG_BubbleExplosion( Vec3 pos, Vec4 team_color );
-void CG_GrenadeExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
 void CG_GenericExplosion( Vec3 pos, Vec3 dir, float radius );
-void CG_RocketExplosion( Vec3 pos, Vec3 dir, Vec4 team_color );
-void CG_StakeImpact( Vec3 pos, Vec3 dir, Vec4 team_color );
-void CG_StakeImpale( Vec3 pos, Vec3 dir, Vec4 team_color );
-void CG_BlastImpact( Vec3 pos, Vec3 dir, Vec4 team_color );
-void CG_BlastBounce( Vec3 pos, Vec3 dir, Vec4 team_color );
-void CG_BladeImpact( Vec3 pos, Vec3 dir );
-
-void CG_Dash( const SyncEntityState *state );
-void CG_DustCircle( Vec3 pos, Vec3 dir, float radius, int count );
 
 void InitGibs();
 void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 team_color );
@@ -504,15 +414,12 @@ void DrawGibs();
 //
 // cg_effects.c
 //
-void ExplosionParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
-void ARBulletImpactParticles( Vec3 origin, Vec3 normal, Vec3 team_color );
-void BubbleImpactParticles( Vec3 origin, Vec3 team_color );
 void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color );
 
-void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material );
+void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material );
 
 void InitPersistentBeams();
-void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, const Material * material, float duration, float fade_time );
+void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material, float duration, float fade_time );
 void DrawPersistentBeams();
 
 //
@@ -520,7 +427,7 @@ void DrawPersistentBeams();
 //
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon );
 void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon );
-void CG_ViewWeapon_StartAnimationEvent( int newAnim );
+void CG_ViewWeapon_AddAnimation( int ent_num, StringHash anim );
 
 void CG_AddRecoil( WeaponType weapon );
 void CG_Recoil( WeaponType weapon );
@@ -538,6 +445,7 @@ void ResetAnnouncerSpeakers();
 void AddAnnouncerSpeaker( const centity_t * cent );
 
 // I don't know where to put these ones
+void CG_JetpackEffect( centity_t * cent );
 void CG_LaserBeamEffect( centity_t *cent );
 
 
@@ -557,11 +465,10 @@ void CG_InitInput();
 void CG_ShutdownInput();
 void CG_ClearInputState();
 void CG_MouseMove( int frameTime, Vec2 m );
-float CG_GetSensitivityScale( float sens, float zoomSens );
 u8 CG_GetButtonBits();
 u8 CG_GetButtonDownEdges();
 Vec3 CG_GetDeltaViewAngles();
-Vec3 CG_GetMovement();
+Vec2 CG_GetMovement();
 
 /*
 * Returns angular movement vector (in euler angles) obtained from the input.

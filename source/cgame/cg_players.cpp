@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static StringHash GetPlayerSound( int entnum, PlayerSound ps ) {
 	const PlayerModelMetadata * meta = GetPlayerModelMetadata( entnum );
+	assert( meta != NULL );
 	if( meta == NULL ) {
 		Com_Printf( "Player model metadata is null\n" );
 		return EMPTY_HASH;
@@ -28,18 +29,23 @@ static StringHash GetPlayerSound( int entnum, PlayerSound ps ) {
 	return meta->sounds[ ps ];
 }
 
-void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
-	bool fixed = ( entchannel & CHAN_FIXED ) != 0;
-	entchannel &= ~CHAN_FIXED;
+float CG_PlayerPitch( int entnum ) {
+	static const float basis = Length( Vec3( 1 ) );
+	return 1.0f / ( Length( cg_entities[ entnum ].current.scale ) / basis );
+}
 
+void CG_PlayerSound( int entnum, int entchannel, PlayerSound ps ) {
 	StringHash sfx = GetPlayerSound( entnum, ps );
-	if( fixed ) {
-		S_StartFixedSound( sfx, cg_entities[entnum].current.origin, entchannel, 1.0f );
+
+	float pitch = 1.0f;
+	if( ps == PlayerSound_Death || ps == PlayerSound_Void || ps == PlayerSound_Pain25 || ps == PlayerSound_Pain50 || ps == PlayerSound_Pain75 || ps == PlayerSound_Pain100 || ps == PlayerSound_WallJump ) {
+		pitch = CG_PlayerPitch( entnum );
 	}
-	else if( ISVIEWERENTITY( entnum ) ) {
-		S_StartGlobalSound( sfx, entchannel, 1.0f );
+
+	if( ISVIEWERENTITY( entnum ) ) {
+		S_StartGlobalSound( sfx, entchannel, 1.0f, pitch );
 	}
 	else {
-		S_StartEntitySound( sfx, entnum, entchannel, 1.0f );
+		S_StartEntitySound( sfx, entnum, entchannel, 1.0f, pitch );
 	}
 }

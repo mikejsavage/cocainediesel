@@ -73,53 +73,11 @@ bool CG_ChaseStep( int step ) {
 	}
 
 	if( !cgs.demoPlaying ) {
-		Cbuf_ExecuteText( EXEC_NOW, step > 0 ? "chasenext" : "chaseprev" );
+		Cbuf_ExecuteLine( step > 0 ? "chasenext" : "chaseprev" );
 		return true;
 	}
 
 	return false;
-}
-
-/*
-* CG_AddLocalSounds
-*/
-static void CG_AddLocalSounds() {
-	static unsigned lastSecond = 0;
-
-	// add local announces
-	if( GS_Countdown( &client_gs ) ) {
-		if( client_gs.gameState.match_duration ) {
-			s64 curtime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime;
-			s64 duration = client_gs.gameState.match_duration;
-
-			if( duration + client_gs.gameState.match_state_start_time < curtime ) {
-				duration = curtime - client_gs.gameState.match_state_start_time; // avoid negative results
-			}
-
-			float seconds = (float)( client_gs.gameState.match_state_start_time + duration - curtime ) * 0.001f;
-			unsigned int remainingSeconds = (unsigned int)seconds;
-
-			if( remainingSeconds != lastSecond ) {
-				if( 1 + remainingSeconds < 4 ) {
-					constexpr StringHash countdown[] = {
-						"sounds/announcer/1",
-						"sounds/announcer/2",
-						"sounds/announcer/3",
-					};
-
-					CG_AddAnnouncerEvent( countdown[ remainingSeconds ], false );
-					CG_CenterPrint( va( "%i", remainingSeconds + 1 ) );
-				}
-
-				lastSecond = remainingSeconds;
-			}
-		}
-	} else {
-		lastSecond = 0;
-	}
-
-	// add sounds from announcer
-	CG_ReleaseAnnouncerEvents();
 }
 
 /*
@@ -164,38 +122,8 @@ static void CG_FlashGameWindow() {
 	}
 }
 
-Vec3 CG_GetKickAngles() {
-	Vec3 angles = Vec3( 0.0f );
-
-	for( int i = 0; i < MAX_ANGLES_KICKS; i++ ) {
-		if( cl.serverTime > cg.kickangles[i].timestamp + cg.kickangles[i].kicktime ) {
-			continue;
-		}
-
-		float time = (float)( ( cg.kickangles[i].timestamp + cg.kickangles[i].kicktime ) - cl.serverTime );
-		float uptime = ( (float)cg.kickangles[i].kicktime ) * 0.5f;
-		float delta = 1.0f - ( Abs( time - uptime ) / uptime );
-
-		//CG_Printf("Kick Delta:%f\n", delta );
-		if( delta > 1.0f ) {
-			delta = 1.0f;
-		}
-		if( delta <= 0.0f ) {
-			continue;
-		}
-
-		angles.x += cg.kickangles[i].v_pitch * delta;
-		angles.z += cg.kickangles[i].v_roll * delta;
-	}
-
-	return angles;
-}
-
-/*
-* CG_CalcViewFov
-*/
 float CG_CalcViewFov() {
-	float hardcoded_fov = 107.9f; // TODO: temp hardcoded fov
+	float hardcoded_fov = 107.9f;
 
 	WeaponType weapon = cg.predictedPlayerState.weapon;
 	if( weapon == Weapon_None )
@@ -206,9 +134,6 @@ float CG_CalcViewFov() {
 	return Lerp( hardcoded_fov, frac, float( zoom_fov ) );
 }
 
-/*
-* CG_CalcViewBob
-*/
 static void CG_CalcViewBob() {
 	float bobMove, bobTime, bobScale;
 
@@ -237,11 +162,7 @@ static void CG_CalcViewBob() {
 
 			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, MASK_PLAYERSOLID );
 			if( trace.startsolid || trace.allsolid ) {
-				if( cg.predictedPlayerState.pmove.crouch_time != 0 ) {
-					bobScale = 1.5f;
-				} else {
-					bobScale = 2.5f;
-				}
+				bobScale = 2.5f;
 			}
 		}
 	}
@@ -253,16 +174,6 @@ static void CG_CalcViewBob() {
 	cg.bobFracSin = Abs( sinf( bobTime * PI ) );
 }
 
-/*
-* CG_ResetKickAngles
-*/
-void CG_ResetKickAngles() {
-	memset( cg.kickangles, 0, sizeof( cg.kickangles ) );
-}
-
-/*
-* CG_StartFallKickEffect
-*/
 void CG_StartFallKickEffect( int bounceTime ) {
 	if( cg.fallEffectTime > cl.serverTime ) {
 		cg.fallEffectRebounceTime = 0;
@@ -280,14 +191,11 @@ void CG_StartFallKickEffect( int bounceTime ) {
 
 //============================================================================
 
-/*
-* CG_InterpolatePlayerState
-*/
 static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 	const SyncPlayerState * ps = &cg.frame.playerState;
 	const SyncPlayerState * ops = &cg.oldFrame.playerState;
 
-	*playerState = *ps;
+	*playerState = *ops;
 
 	bool teleported = ( ps->pmove.pm_flags & PMF_TIME_TELEPORT ) != 0;
 
@@ -321,27 +229,19 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 	}
 }
 
-/*
-* CG_ThirdPersonOffsetView
-*/
 static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	float dist, f, r;
 	trace_t trace;
 	Vec3 mins( -4.0f );
 	Vec3 maxs( 4.0f );
 
-	if( !cg_thirdPersonAngle || !cg_thirdPersonRange ) {
-		cg_thirdPersonAngle = Cvar_Get( "cg_thirdPersonAngle", "0", CVAR_ARCHIVE );
-		cg_thirdPersonRange = Cvar_Get( "cg_thirdPersonRange", "70", CVAR_ARCHIVE );
-	}
-
 	// calc exact destination
 	Vec3 chase_dest = view->origin;
-	r = Radians( cg_thirdPersonAngle->value );
+	r = Radians( cg_thirdPersonAngle->number );
 	f = -cosf( r );
 	r = -sinf( r );
-	chase_dest += FromQFAxis( view->axis, AXIS_FORWARD ) * ( cg_thirdPersonRange->value * f );
-	chase_dest += FromQFAxis( view->axis, AXIS_RIGHT ) * ( cg_thirdPersonRange->value * r );
+	chase_dest += FromQFAxis( view->axis, AXIS_FORWARD ) * ( cg_thirdPersonRange->number * f );
+	chase_dest += FromQFAxis( view->axis, AXIS_RIGHT ) * ( cg_thirdPersonRange->number * r );
 	chase_dest.z += 8;
 
 	// find the spot the player is looking at
@@ -355,15 +255,15 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 		dist = 1;
 	}
 	view->angles.x = Degrees( -atan2f( stop.z, dist ) );
-	view->angles.y -= cg_thirdPersonAngle->value;
+	view->angles.y -= cg_thirdPersonAngle->number;
 	Matrix3_FromAngles( view->angles, view->axis );
 
 	// move towards destination
 	CG_Trace( &trace, view->origin, mins, maxs, chase_dest, view->POVent, MASK_SOLID );
 
-	if( trace.fraction != 1.0 ) {
+	if( trace.fraction != 1.0f ) {
 		stop = trace.endpos;
-		stop.z += ( 1.0 - trace.fraction ) * 32;
+		stop.z += ( 1.0f - trace.fraction ) * 32;
 		CG_Trace( &trace, view->origin, mins, maxs, stop, view->POVent, MASK_SOLID );
 		chase_dest = trace.endpos;
 	}
@@ -371,9 +271,6 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	view->origin = chase_dest;
 }
 
-/*
-* CG_ViewSmoothPredictedSteps
-*/
 void CG_ViewSmoothPredictedSteps( Vec3 * vieworg ) {
 	int timeDelta;
 
@@ -384,9 +281,6 @@ void CG_ViewSmoothPredictedSteps( Vec3 * vieworg ) {
 	}
 }
 
-/*
-* CG_ViewSmoothFallKick
-*/
 float CG_ViewSmoothFallKick() {
 	// fallkick offset
 	if( cg.fallEffectTime > cl.serverTime ) {
@@ -399,72 +293,29 @@ float CG_ViewSmoothFallKick() {
 	return 0.0f;
 }
 
-/*
-* CG_SwitchChaseCamMode
-*
-* Returns whether the mode was actually switched.
-*/
-bool CG_SwitchChaseCamMode() {
-	bool chasecam = ( cg.frame.playerState.pmove.pm_type == PM_CHASECAM )
-					&& ( cg.frame.playerState.POVnum != (unsigned)( cgs.playerNum + 1 ) );
-	bool realSpec = cgs.demoPlaying || ISREALSPECTATOR();
-
-	if( ( cg.frame.multipov || chasecam ) && !CG_DemoCam_IsFree() ) {
-		if( chasecam ) {
-			if( realSpec ) {
-				if( ++chaseCam.mode >= CAM_MODES ) {
-					// if exceeds the cycle, start free fly
-					Cbuf_ExecuteText( EXEC_NOW, "camswitch" );
-					chaseCam.mode = 0;
-				}
-				return true;
-			}
-			return false;
-		}
-
-		chaseCam.mode = ( ( chaseCam.mode != CAM_THIRDPERSON ) ? CAM_THIRDPERSON : CAM_INEYES );
-		return true;
-	}
-
-	if( realSpec && ( CG_DemoCam_IsFree() || cg.frame.playerState.pmove.pm_type == PM_SPECTATOR ) ) {
-		Cbuf_ExecuteText( EXEC_NOW, "camswitch" );
-		return true;
-	}
-
-	return false;
-}
-
-/*
-* CG_UpdateChaseCam
-*/
 static void CG_UpdateChaseCam() {
-	bool chasecam = ( cg.frame.playerState.pmove.pm_type == PM_CHASECAM )
-					&& ( cg.frame.playerState.POVnum != (unsigned)( cgs.playerNum + 1 ) );
-
-	if( !( cg.frame.multipov || chasecam ) || CG_DemoCam_IsFree() ) {
-		chaseCam.mode = CAM_INEYES;
-	}
-
 	UserCommand cmd;
 	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 
 	if( chaseCam.key_pressed ) {
-		chaseCam.key_pressed = ( cmd.buttons & ( BUTTON_ATTACK | BUTTON_SPECIAL ) ) != 0 || cmd.upmove != 0 || cmd.sidemove != 0;
+		chaseCam.key_pressed = cmd.buttons != 0 || cmd.sidemove != 0 || cmd.forwardmove != 0;
 		return;
 	}
 
-	if( cmd.buttons & BUTTON_ATTACK ) {
-		CG_SwitchChaseCamMode();
+	if( cmd.buttons & BUTTON_ATTACK1 ) {
+		if( cgs.demoPlaying || ISREALSPECTATOR() ) {
+			Cbuf_ExecuteLine( cgs.demoPlaying ? "democamswitch" : "camswitch" );
+		}
 		chaseCam.key_pressed = true;
 	}
 
 	int chaseStep = 0;
 
 	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
-		if( cmd.upmove > 0 || cmd.sidemove > 0 || ( cmd.buttons & BUTTON_SPECIAL ) ) {
+		if( cmd.sidemove > 0 || ( cmd.buttons & BUTTON_ATTACK2 ) ) {
 			chaseStep = 1;
 		}
-		else if( cmd.upmove < 0 || cmd.sidemove < 0 ) {
+		else if( cmd.sidemove < 0 || ( cmd.buttons & BUTTON_ATTACK1 ) ) {
 			chaseStep = -1;
 		}
 	}
@@ -475,9 +326,6 @@ static void CG_UpdateChaseCam() {
 	}
 }
 
-/*
-* CG_SetupViewDef
-*/
 static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	memset( view, 0, sizeof( cg_viewdef_t ) );
 
@@ -495,8 +343,6 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		// set up third-person
 		if( cgs.demoPlaying ) {
 			view->thirdperson = CG_DemoCam_GetThirdPerson();
-		} else if( chaseCam.mode == CAM_THIRDPERSON ) {
-			view->thirdperson = true;
 		} else {
 			view->thirdperson = ( cg_thirdPerson->integer != 0 );
 		}
@@ -507,7 +353,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 
 		// check for drawing gun
 		if( !view->thirdperson && view->POVent > 0 && view->POVent <= client_gs.maxclients ) {
-			if( cg_entities[view->POVent].serverFrame == cg.frame.serverFrame && cg_entities[view->POVent].current.weapon != Weapon_Count ) {
+			if( cg_entities[view->POVent].serverFrame == cg.frame.serverFrame ) {
 				view->drawWeapon = true;
 			}
 		}
@@ -530,7 +376,6 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		if( view->playerPrediction ) {
 			CG_PredictMovement();
 
-			// fixme: crouching is predicted now, but it looks very ugly
 			viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
 
 			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
@@ -587,7 +432,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 }
 
 static void DrawWorld() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	const char * suffix = "*0";
 	u64 hash = Hash64( suffix, strlen( suffix ), cl.map->base_hash );
@@ -651,7 +496,7 @@ static void DrawWorld() {
 }
 
 static void DrawSilhouettes() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	{
 		PipelineState pipeline;
@@ -669,14 +514,11 @@ static void DrawSilhouettes() {
 }
 
 void CG_RenderView( unsigned extrapolationTime ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	cg.frameCount++;
 
-	if( !cgs.precacheDone || !cg.frame.valid ) {
-		CG_Precache();
-		return;
-	}
+	assert( cg.frame.valid );
 
 	{
 		// moved this from CG_Init here
@@ -719,6 +561,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	{
 		constexpr float SYSTEM_FONT_TINY_SIZE = 8;
+		constexpr float SYSTEM_FONT_EXTRASMALL_SIZE = 12;
 		constexpr float SYSTEM_FONT_SMALL_SIZE = 14;
 		constexpr float SYSTEM_FONT_MEDIUM_SIZE = 16;
 		constexpr float SYSTEM_FONT_BIG_SIZE = 24;
@@ -726,12 +569,14 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		float scale = frame_static.viewport_height / 600.0f;
 
 		cgs.fontSystemTinySize = ceilf( SYSTEM_FONT_TINY_SIZE * scale );
+		cgs.fontSystemExtraSmallSize = ceilf( SYSTEM_FONT_EXTRASMALL_SIZE * scale );
 		cgs.fontSystemSmallSize = ceilf( SYSTEM_FONT_SMALL_SIZE * scale );
 		cgs.fontSystemMediumSize = ceilf( SYSTEM_FONT_MEDIUM_SIZE * scale );
 		cgs.fontSystemBigSize = ceilf( SYSTEM_FONT_BIG_SIZE * scale );
 
 		scale *= 1.3f;
 		cgs.textSizeTiny = SYSTEM_FONT_TINY_SIZE * scale;
+		cgs.textSizeExtraSmall = SYSTEM_FONT_EXTRASMALL_SIZE * scale;
 		cgs.textSizeSmall = SYSTEM_FONT_SMALL_SIZE * scale;
 		cgs.textSizeMedium = SYSTEM_FONT_MEDIUM_SIZE * scale;
 		cgs.textSizeBig = SYSTEM_FONT_BIG_SIZE * scale;
@@ -774,7 +619,9 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawSkybox();
 	DrawSprays();
 
-	CG_AddLocalSounds();
+	DrawModelInstances();
+
+	CG_ReleaseAnnouncerEvents();
 
 	S_Update( cg.view.origin, cg.view.velocity, cg.view.axis );
 

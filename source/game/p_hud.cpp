@@ -50,7 +50,7 @@ static unsigned int G_FindPointedPlayer( edict_t *self ) {
 		if( other == self ) {
 			continue;
 		}
-		if( !other->r.solid || ( other->r.svflags & SVF_NOCLIENT ) ) {
+		if( !other->r.solid || ( other->s.svflags & SVF_NOCLIENT ) ) {
 			continue;
 		}
 
@@ -89,6 +89,7 @@ void G_SetClientStats( edict_t * ent ) {
 	ps->team = ent->s.team;
 	ps->real_team = ent->s.team;
 	ps->health = ent->s.team == TEAM_SPECTATOR ? 0 : HEALTH_TO_INT( ent->health );
+	ps->max_health = HEALTH_TO_INT( ent->max_health );
 
 	ps->pointed_player = 0;
 	ps->pointed_health = 0;

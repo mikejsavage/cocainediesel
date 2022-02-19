@@ -61,19 +61,16 @@ struct snapshot_t {
 //
 struct cgame_export_t {
 	// the init function will be called at each restart
-	void ( *Init )( const char *serverName, unsigned int playerNum,
-					bool demoplaying, const char *demoName, unsigned int snapFrameTime );
+	void ( *Init )( unsigned int playerNum, bool demoplaying, const char *demoName, unsigned int snapFrameTime );
 
 	// "soft restarts" at demo jumps
 	void ( *Reset )();
 
 	void ( *Shutdown )();
 
-	void ( *ConfigString )( int number, const char *value );
+	void ( *ConfigString )( int number );
 
 	void ( *EscapeKey )();
-
-	void ( *Trace )( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int passent, int contentmask );
 
 	void ( *RenderView )( unsigned extrapolationTime );
 

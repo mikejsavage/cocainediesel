@@ -8,13 +8,12 @@
 #include "stb/stb_image.h"
 #include "stb/stb_image_resize.h"
 
-void ShowErrorAndAbortImpl( const char * msg, const char * file, int line ) {
-	printf( "%s\n", msg );
-	abort();
+void ShowErrorMessage( const char * msg, const char * file, int line ) {
+	printf( "%s (%s:%d)\n", msg, file, line );
 }
 
 static u32 BlockFormatMipLevels( u32 w, u32 h ) {
-	u32 dim = Max2( w, h );
+	u32 dim = Min2( w, h );
 	u32 levels = 0;
 
 	while( dim >= 4 ) {
@@ -49,9 +48,9 @@ int main( int argc, char ** argv ) {
 	}
 	defer { stbi_image_free( pixels ); };
 
-	if( !IsPowerOf2( w ) || !IsPowerOf2( h ) ) {
-		printf( "Image must be power of 2 dimensions\n" );
-		return 1;
+	bool generate_mipmaps = IsPowerOf2( w ) && IsPowerOf2( h );
+	if( !generate_mipmaps ) {
+		printf( "Image isn't pow2 sized so we aren't computing mipmaps: %s\n", argv[ 1 ] );
 	}
 
 	if( comp != 1 ) {
@@ -59,7 +58,7 @@ int main( int argc, char ** argv ) {
 		return 1;
 	}
 
-	u32 num_levels = BlockFormatMipLevels( w, h );
+	u32 num_levels = generate_mipmaps ? BlockFormatMipLevels( w, h ) : 1;
 	u32 total_size = 0;
 	for( u32 i = 0; i < num_levels; i++ ) {
 		total_size += MipSize( w, h, i );

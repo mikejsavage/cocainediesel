@@ -17,14 +17,10 @@ GLFWwindow * window = NULL;
 static bool running_in_debugger = false;
 const bool is_dedicated_server = false;
 
-void Sys_Quit() {
-	Qcommon_Shutdown();
-	glfwTerminate();
-	exit( 0 );
-}
+static int framebuffer_width, framebuffer_height;
 
 // TODO
-extern cvar_t * vid_mode;
+extern Cvar * vid_mode;
 
 static void UpdateVidModeCvar() {
 	TempAllocator temp = cls.frame_arena.temp();
@@ -52,8 +48,9 @@ static void OnWindowMoved( GLFWwindow *, int x, int y ) {
 }
 
 static void OnWindowResized( GLFWwindow *, int w, int h ) {
-	if( IsWindowFocused() ) {
+	if( w > 0 && h > 0 ) {
 		UpdateVidModeCvar();
+		glfwGetFramebufferSize( window, &framebuffer_width, &framebuffer_height );
 	}
 }
 
@@ -141,9 +138,6 @@ static int TranslateGLFWKey( int glfw ) {
 		case GLFW_KEY_F10:           return K_F10;
 		case GLFW_KEY_F11:           return K_F11;
 		case GLFW_KEY_F12:           return K_F12;
-		case GLFW_KEY_F13:           return K_F13;
-		case GLFW_KEY_F14:           return K_F14;
-		case GLFW_KEY_F15:           return K_F15;
 		case GLFW_KEY_INSERT:        return K_INS;
 		case GLFW_KEY_DELETE:        return K_DEL;
 		case GLFW_KEY_PAGE_UP:       return K_PGUP;
@@ -260,8 +254,9 @@ static void OnGlfwError( int code, const char * message ) {
 	if( code == GLFW_FORMAT_UNAVAILABLE && strstr( message, "Failed to convert" ) )
 		return;
 
-	if( code == GLFW_VERSION_UNAVAILABLE )
-		return;
+	if( code == GLFW_VERSION_UNAVAILABLE ) {
+		Fatal( "Your PC is too old. You need a GPU that can support OpenGL 4.3" );
+	}
 
 	Fatal( "GLFW error %d: %s", code, message );
 }
@@ -294,69 +289,51 @@ static WindowMode CompleteWindowMode( WindowMode mode ) {
 }
 
 void CreateWindow( WindowMode mode ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
-	struct { int major, minor; } versions[] = {
-		{ 4, 6 },
-		{ 4, 5 },
-		{ 4, 4 },
-		{ 4, 3 },
-		{ 4, 2 },
-		{ 4, 1 },
-		{ 4, 0 },
-		{ 3, 3 },
-	};
+	glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_API );
+	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
+	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
+	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 4 );
+	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
+	glfwWindowHint( GLFW_SRGB_CAPABLE, GLFW_TRUE );
+	glfwWindowHint( GLFW_RESIZABLE, GLFW_TRUE );
 
-	for( auto version : versions ) {
-		glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_API );
-		glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );
-		glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE );
-		glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, version.major );
-		glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, version.minor );
-
-		if( is_public_build ) {
-			glfwWindowHint( GLFW_CONTEXT_NO_ERROR, GLFW_TRUE );
-		}
-		else {
-			glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
-		}
-
-		glfwWindowHint( GLFW_RESIZABLE, GLFW_TRUE );
-
-		mode = CompleteWindowMode( mode );
-
-		if( mode.fullscreen == FullscreenMode_Windowed ) {
-			window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, NULL, NULL );
-			if( window == NULL )
-				continue;
-			glfwSetWindowPos( window, mode.x, mode.y );
-		}
-		else if( mode.fullscreen == FullscreenMode_Borderless ) {
-			glfwWindowHint( GLFW_DECORATED, GLFW_FALSE );
-			window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, NULL, NULL );
-			if( window == NULL )
-				continue;
-			glfwSetWindowPos( window, mode.x, mode.y );
-		}
-		else if( mode.fullscreen == FullscreenMode_Fullscreen ) {
-			glfwWindowHint( GLFW_REFRESH_RATE, mode.video_mode.frequency );
-			GLFWmonitor * monitor = GetMonitorByIdx( mode.monitor );
-			window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, monitor, NULL );
-		}
-
-		if( window != NULL )
-			break;
+	if( is_public_build ) {
+		glfwWindowHint( GLFW_CONTEXT_NO_ERROR, GLFW_TRUE );
+	}
+	else {
+		glfwWindowHint( GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE );
 	}
 
-	if( window == NULL ) {
-		Fatal( "glfwCreateWindow" );
+	mode = CompleteWindowMode( mode );
+
+	if( mode.fullscreen == FullscreenMode_Windowed ) {
+		window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, NULL, NULL );
+		glfwSetWindowPos( window, mode.x, mode.y );
+	}
+	else if( mode.fullscreen == FullscreenMode_Borderless ) {
+		glfwWindowHint( GLFW_DECORATED, GLFW_FALSE );
+		window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, NULL, NULL );
+		glfwSetWindowPos( window, mode.x, mode.y );
+	}
+	else if( mode.fullscreen == FullscreenMode_Fullscreen ) {
+		glfwWindowHint( GLFW_REFRESH_RATE, mode.video_mode.frequency );
+		GLFWmonitor * monitor = GetMonitorByIdx( mode.monitor );
+		window = glfwCreateWindow( mode.video_mode.width, mode.video_mode.height, APPLICATION, monitor, NULL );
 	}
 
-	GLFWimage icon;
-	icon.pixels = stbi_load_from_memory( icon_png, icon_png_len, &icon.width, &icon.height, NULL, 4 );
-	assert( icon.pixels != NULL );
-	glfwSetWindowIcon( window, 1, &icon );
-	stbi_image_free( icon.pixels );
+	glfwGetFramebufferSize( window, &framebuffer_width, &framebuffer_height );
+
+	{
+		TracyZoneScopedN( "Set window icon" );
+
+		GLFWimage icon;
+		icon.pixels = stbi_load_from_memory( icon_png, icon_png_len, &icon.width, &icon.height, NULL, 4 );
+		assert( icon.pixels != NULL );
+		glfwSetWindowIcon( window, 1, &icon );
+		stbi_image_free( icon.pixels );
+	}
 
 	if( glfwRawMouseMotionSupported() ) {
 		glfwSetInputMode( window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE );
@@ -371,17 +348,22 @@ void CreateWindow( WindowMode mode ) {
 
 	glfwMakeContextCurrent( window );
 
-	if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
-		Fatal( "Couldn't load GL" );
+	{
+		TracyZoneScopedN( "Load OpenGL" );
+		if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
+			Fatal( "Couldn't load GL" );
+		}
 	}
 }
 
 void DestroyWindow() {
+	TracyZoneScoped;
 	glfwDestroyWindow( window );
 }
 
 void GetFramebufferSize( int * width, int * height ) {
-	glfwGetFramebufferSize( window, width, height );
+	*width = framebuffer_width;
+	*height = framebuffer_height;
 }
 
 void FlashWindow() {
@@ -456,7 +438,7 @@ void EnableVSync( bool enabled ) {
 }
 
 bool IsWindowFocused() {
-	return glfwGetWindowAttrib( window, GLFW_FOCUSED );
+	return IFDEF( PLATFORM_LINUX ) ? false : glfwGetWindowAttrib( window, GLFW_FOCUSED );
 }
 
 static double last_mouse_x, last_mouse_y;
@@ -502,7 +484,7 @@ void GlfwInputFrame() {
 }
 
 void SwapBuffers() {
-	ZoneScoped;
+	TracyZoneScoped;
 	glfwSwapBuffers( window );
 }
 
@@ -510,7 +492,7 @@ int main( int argc, char ** argv ) {
 	running_in_debugger = !is_public_build && Sys_BeingDebugged();
 
 	{
-		ZoneScopedN( "Init GLFW" );
+		TracyZoneScopedN( "Init GLFW" );
 
 		glfwSetErrorCallback( OnGlfwError );
 
@@ -530,7 +512,7 @@ int main( int argc, char ** argv ) {
 		int64_t newtime;
 		int dt;
 		{
-			ZoneScopedN( "Interframe" );
+			TracyZoneScopedN( "Interframe" );
 
 			// find time spent rendering last frame
 			do {
@@ -542,10 +524,14 @@ int main( int argc, char ** argv ) {
 
 		glfwPollEvents();
 
-		Qcommon_Frame( dt );
+		if( !Qcommon_Frame( dt ) ) {
+			break;
+		}
 	}
 
-	Com_Quit();
+	Qcommon_Shutdown();
+
+	glfwTerminate();
 
 	return 0;
 }

@@ -23,28 +23,24 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 cg_static_t cgs;
 cg_state_t cg;
 
-mempool_t *cg_mempool;
-
 centity_t cg_entities[MAX_EDICTS];
 
-cvar_t *cg_showMiss;
+Cvar *cg_showMiss;
 
-cvar_t *cg_thirdPerson;
-cvar_t *cg_thirdPersonAngle;
-cvar_t *cg_thirdPersonRange;
+Cvar *cg_thirdPerson;
+Cvar *cg_thirdPersonAngle;
+Cvar *cg_thirdPersonRange;
 
-cvar_t *cg_projectileAntilagOffset;
-cvar_t *cg_chat;
+Cvar *cg_projectileAntilagOffset;
 
-cvar_t *cg_showHotkeys;
-cvar_t *cg_colorBlind;
+Cvar *cg_autoaction_demo;
+Cvar *cg_autoaction_screenshot;
+Cvar *cg_autoaction_spectator;
+Cvar *cg_showClamp;
 
-cvar_t *cg_autoaction_demo;
-cvar_t *cg_autoaction_screenshot;
-cvar_t *cg_autoaction_spectator;
-cvar_t *cg_showClamp;
+Cvar *cg_particleDebug;
 
-cvar_t *cg_particleDebug;
+Cvar *cg_showServerDebugPrints;
 
 void CG_LocalPrint( const char *format, ... ) {
 	va_list argptr;
@@ -86,9 +82,7 @@ static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 }
 
 static void CG_InitGameShared() {
-	char cstring[MAX_CONFIGSTRING_CHARS];
-	CL_GetConfigString( CS_MAXCLIENTS, cstring, MAX_CONFIGSTRING_CHARS );
-	int maxclients = atoi( cstring );
+	int maxclients = atoi( cl.configstrings[ CS_MAXCLIENTS ] );
 	if( maxclients < 1 || maxclients > MAX_CLIENTS ) {
 		maxclients = MAX_CLIENTS;
 	}
@@ -107,41 +101,23 @@ static void CG_InitGameShared() {
 }
 
 static void CG_RegisterVariables() {
-	cg_showMiss =       Cvar_Get( "cg_showMiss", "0", 0 );
+	cg_showMiss = NewCvar( "cg_showMiss", "0", 0 );
 
-	cg_showHotkeys = Cvar_Get( "cg_showHotkeys", "1", CVAR_ARCHIVE );
-	cg_colorBlind  = Cvar_Get( "cg_colorBlind", "0", CVAR_ARCHIVE );
+	cg_thirdPerson = NewCvar( "cg_thirdPerson", "0", CvarFlag_Cheat );
+	cg_thirdPersonAngle = NewCvar( "cg_thirdPersonAngle", "0", 0 );
+	cg_thirdPersonRange = NewCvar( "cg_thirdPersonRange", "90", 0 );
 
-	cg_thirdPerson =    Cvar_Get( "cg_thirdPerson", "0", CVAR_CHEAT );
-	cg_thirdPersonAngle =   Cvar_Get( "cg_thirdPersonAngle", "0", 0 );
-	cg_thirdPersonRange =   Cvar_Get( "cg_thirdPersonRange", "90", 0 );
+	cg_autoaction_demo = NewCvar( "cg_autoaction_demo", "0", CvarFlag_Archive );
+	cg_autoaction_screenshot = NewCvar( "cg_autoaction_screenshot", "0", CvarFlag_Archive );
+	cg_autoaction_spectator = NewCvar( "cg_autoaction_spectator", "0", CvarFlag_Archive );
 
-	cg_autoaction_demo =    Cvar_Get( "cg_autoaction_demo", "0", CVAR_ARCHIVE );
-	cg_autoaction_screenshot =  Cvar_Get( "cg_autoaction_screenshot", "0", CVAR_ARCHIVE );
-	cg_autoaction_spectator = Cvar_Get( "cg_autoaction_spectator", "0", CVAR_ARCHIVE );
+	cg_projectileAntilagOffset = NewCvar( "cg_projectileAntilagOffset", "1.0", CvarFlag_Archive );
 
-	cg_projectileAntilagOffset = Cvar_Get( "cg_projectileAntilagOffset", "1.0", CVAR_ARCHIVE );
+	cg_showClamp = NewCvar( "cg_showClamp", "0", CvarFlag_Developer );
 
-	cg_chat =           Cvar_Get( "cg_chat", "1", CVAR_ARCHIVE );
+	cg_particleDebug = NewCvar( "cg_particleDebug", "0", CvarFlag_Developer );
 
-	cg_showClamp =      Cvar_Get( "cg_showClamp", "0", CVAR_DEVELOPER );
-
-	cg_particleDebug =  Cvar_Get( "cg_particleDebug", "0", CVAR_DEVELOPER );
-
-	Cvar_Get( "cg_loadout", "", CVAR_ARCHIVE | CVAR_USERINFO );
-}
-
-void CG_Precache() {
-	if( cgs.precacheDone ) {
-		return;
-	}
-
-	CG_RegisterMediaModels();
-	CG_RegisterMediaSounds();
-	CG_RegisterMediaSounds();
-	CG_RegisterMediaShaders();
-
-	cgs.precacheDone = true;
+	cg_showServerDebugPrints = NewCvar( "cg_showServerDebugPrints", "0", CvarFlag_Archive );
 }
 
 const char * PlayerName( int i ) {
@@ -149,22 +125,18 @@ const char * PlayerName( int i ) {
 		return "";
 	}
 
-	Span< const char[ MAX_CONFIGSTRING_CHARS ] > names( cgs.configStrings + CS_PLAYERINFOS, client_gs.maxclients );
+	Span< const char[ MAX_CONFIGSTRING_CHARS ] > names( cl.configstrings + CS_PLAYERINFOS, client_gs.maxclients );
 	return names[ i ];
 }
 
 static void CG_RegisterConfigStrings() {
 	for( int i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
-		CL_GetConfigString( i, cgs.configStrings[i], MAX_CONFIGSTRING_CHARS );
+		CG_ConfigString( i );
 	}
-
-	CG_SC_AutoRecordAction( cgs.configStrings[CS_AUTORECORDSTATE] );
 }
 
 void CG_Reset() {
 	CG_ResetPModels();
-
-	CG_ResetKickAngles();
 
 	CG_SC_ResetObituaries();
 
@@ -173,14 +145,11 @@ void CG_Reset() {
 
 	CG_ClearInputState();
 
-	CG_ClearPointedNum();
-
-	CG_ClearAwards();
-
 	CG_InitDamageNumbers();
 	InitDecals();
 	InitPersistentBeams();
 	InitSprays();
+	ClearParticles();
 
 	chaseCam.key_pressed = false;
 
@@ -194,20 +163,17 @@ static void PrintMap() {
 	Com_Printf( "Current map: %s\n", cl.map == NULL ? "null" : cl.map->name );
 }
 
-void CG_Init( const char *serverName, unsigned int playerNum,
+void CG_Init( unsigned int playerNum,
 			  bool demoplaying, const char *demoName,
 			  unsigned snapFrameTime ) {
-	cg_mempool = _Mem_AllocPool( NULL, "CGame", MEMPOOL_CLIENTGAME, __FILE__, __LINE__ );
-
-	CG_InitGameShared();
-
 	memset( &cg, 0, sizeof( cg_state_t ) );
 	memset( &cgs, 0, sizeof( cg_static_t ) );
 
 	memset( cg_entities, 0, sizeof( cg_entities ) );
 
-	// save server name
-	cgs.serverName = CopyString( sys_allocator, serverName );
+	CG_RegisterConfigStrings();
+
+	CG_InitGameShared();
 
 	// save local player number
 	cgs.playerNum = playerNum;
@@ -228,13 +194,9 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 
 	CG_InitDamageNumbers();
 
-	// get configstrings
-	CG_RegisterConfigStrings();
-
-	// register fonts here so loading screen works
-	CG_RegisterFonts();
-
 	CG_RegisterCGameCommands();
+
+	CG_RegisterMedia();
 
 	CG_InitHUD();
 
@@ -242,17 +204,15 @@ void CG_Init( const char *serverName, unsigned int playerNum,
 	InitSprays();
 	InitPersistentBeams();
 	InitGibs();
+	ClearParticles();
 
 	CG_InitChat();
 
 	CG_ClearAnnouncerEvents();
 
-	// now that we're done with precaching, let the autorecord actions do something
-	CG_ConfigString( CS_AUTORECORDSTATE, cgs.configStrings[CS_AUTORECORDSTATE] );
-
 	CG_DemocamInit();
 
-	Cmd_AddCommand( "printmap", PrintMap );
+	AddCommand( "printmap", PrintMap );
 }
 
 void CG_Shutdown() {
@@ -263,9 +223,5 @@ void CG_Shutdown() {
 	CG_ShutdownHUD();
 	ShutdownDecals();
 
-	FREE( sys_allocator, const_cast< char * >( cgs.serverName ) );
-
-	Mem_FreePool( &cg_mempool );
-
-	Cmd_RemoveCommand( "printmap" );
+	RemoveCommand( "printmap" );
 }

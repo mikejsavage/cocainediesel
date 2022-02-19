@@ -86,66 +86,15 @@ static void G_Timeout_Update( unsigned int msec ) {
 * update the cvars which show the match state at server browsers
 */
 static void G_UpdateServerInfo() {
-	// g_match_time
-	if( server_gs.gameState.match_state <= MatchState_Warmup ) {
-		Cvar_ForceSet( "g_match_time", "Warmup" );
-	} else if( server_gs.gameState.match_state == MatchState_Countdown ) {
-		Cvar_ForceSet( "g_match_time", "Countdown" );
-	} else if( server_gs.gameState.match_state == MatchState_Playing ) {
-		// partly from G_GetMatchState
-		char extra[MAX_INFO_VALUE];
-		int clocktime, timelimit, mins, secs;
-
-		if( server_gs.gameState.match_duration ) {
-			timelimit = ( ( server_gs.gameState.match_duration ) * 0.001 ) / 60;
-		} else {
-			timelimit = 0;
-		}
-
-		clocktime = ( svs.gametime - server_gs.gameState.match_state_start_time ) * 0.001f;
-
-		if( clocktime <= 0 ) {
-			mins = 0;
-			secs = 0;
-		} else {
-			mins = clocktime / 60;
-			secs = clocktime - mins * 60;
-		}
-
-		extra[0] = 0;
-		if( GS_MatchPaused( &server_gs ) ) {
-			Q_strncatz( extra, " (in timeout)", sizeof( extra ) );
-		}
-
-		if( timelimit ) {
-			Cvar_ForceSet( "g_match_time", va( "%02i:%02i / %02i:00%s", mins, secs, timelimit, extra ) );
-		} else {
-			Cvar_ForceSet( "g_match_time", va( "%02i:%02i%s", mins, secs, extra ) );
-		}
-	} else {
-		Cvar_ForceSet( "g_match_time", "Finished" );
-	}
-
-	// g_match_score
 	if( server_gs.gameState.match_state >= MatchState_Playing && level.gametype.isTeamBased ) {
 		String< MAX_INFO_STRING > score( "{}: {} {}: {}",
 			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.teams[ TEAM_ALPHA ].score,
 			GS_TeamName( TEAM_BETA ), server_gs.gameState.teams[ TEAM_BETA ].score );
 
-		Cvar_ForceSet( "g_match_score", score.c_str() );
-	} else {
-		Cvar_ForceSet( "g_match_score", "" );
 	}
 
 	// g_needpass
-	if( sv_password->modified ) {
-		if( sv_password->string && strlen( sv_password->string ) ) {
-			Cvar_ForceSet( "g_needpass", "1" );
-		} else {
-			Cvar_ForceSet( "g_needpass", "0" );
-		}
-		sv_password->modified = false;
-	}
+	Cvar_ForceSet( "g_needpass", StrEqual( sv_password->value, "" ) ? "0" : "1" );
 }
 
 static void G_UpdateClientScoreboard( edict_t * ent ) {
@@ -167,7 +116,7 @@ static void G_UpdateClientScoreboard( edict_t * ent ) {
 void G_CheckCvars() {
 	if( g_antilag_maxtimedelta->modified ) {
 		if( g_antilag_maxtimedelta->integer < 0 ) {
-			Cvar_SetValue( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
+			Cvar_SetInteger( "g_antilag_maxtimedelta", Abs( g_antilag_maxtimedelta->integer ) );
 		}
 		g_antilag_maxtimedelta->modified = false;
 		g_antilag_timenudge->modified = true;
@@ -175,9 +124,9 @@ void G_CheckCvars() {
 
 	if( g_antilag_timenudge->modified ) {
 		if( g_antilag_timenudge->integer > g_antilag_maxtimedelta->integer ) {
-			Cvar_SetValue( "g_antilag_timenudge", g_antilag_maxtimedelta->integer );
+			Cvar_SetInteger( "g_antilag_timenudge", g_antilag_maxtimedelta->integer );
 		} else if( g_antilag_timenudge->integer < -g_antilag_maxtimedelta->integer ) {
-			Cvar_SetValue( "g_antilag_timenudge", -g_antilag_maxtimedelta->integer );
+			Cvar_SetInteger( "g_antilag_timenudge", -g_antilag_maxtimedelta->integer );
 		}
 		g_antilag_timenudge->modified = false;
 	}
@@ -194,7 +143,6 @@ void G_CheckCvars() {
 
 	// FIXME: This should be restructured so gameshared settings are the master settings
 	G_GamestatSetFlag( GAMESTAT_FLAG_ISTEAMBASED, level.gametype.isTeamBased );
-	G_GamestatSetFlag( GAMESTAT_FLAG_COUNTDOWN, level.gametype.countdownEnabled );
 }
 
 //===================================================================
@@ -224,7 +172,7 @@ void G_SnapClients() {
 static void G_SnapEntities() {
 	for( int i = 0; i < game.numentities; i++ ) {
 		edict_t * ent = &game.edicts[ i ];
-		if( !ent->r.inuse || ( ent->r.svflags & SVF_NOCLIENT ) ) {
+		if( !ent->r.inuse || ( ent->s.svflags & SVF_NOCLIENT ) ) {
 			continue;
 		}
 
@@ -312,7 +260,7 @@ void G_SnapFrame() {
 		// temporary filter (Q2 system to ensure reliability)
 		// ignore ents without visible models unless they have an effect
 		if( !ent->r.inuse ) {
-			ent->r.svflags |= SVF_NOCLIENT;
+			ent->s.svflags |= SVF_NOCLIENT;
 			continue;
 		}
 
@@ -329,7 +277,7 @@ void G_SnapFrame() {
 //===================================================================
 
 static void G_RunEntities() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	edict_t *ent;
 
@@ -357,7 +305,7 @@ static void G_RunEntities() {
 }
 
 static void G_RunClients() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t *ent = game.edicts + 1 + i;
@@ -369,7 +317,7 @@ static void G_RunClients() {
 }
 
 void G_RunFrame( unsigned int msec ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	G_CheckCvars();
 
@@ -400,8 +348,6 @@ void G_RunFrame( unsigned int msec ) {
 
 	level.framenum++;
 	level.time += msec;
-
-	G_SpawnQueue_Think();
 
 	// run the world
 	G_RunClients();

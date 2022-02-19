@@ -21,10 +21,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "game/g_local.h"
 
-static void G_AssignMoverSounds( edict_t *ent, StringHash default_start, StringHash default_move, StringHash default_stop ) {
-	ent->moveinfo.sound_start = st.noise_start != EMPTY_HASH ? st.noise_start : default_start;
-	ent->moveinfo.sound_middle = st.noise != EMPTY_HASH ? st.noise : default_move;
-	ent->moveinfo.sound_end = st.noise_stop != EMPTY_HASH ? st.noise_stop : default_stop;
+static void G_AssignMoverSounds( edict_t * ent, const spawn_temp_t * st, StringHash default_start, StringHash default_move, StringHash default_stop ) {
+	ent->moveinfo.sound_start = st->noise_start != EMPTY_HASH ? st->noise_start : default_start;
+	ent->moveinfo.sound_middle = st->noise != EMPTY_HASH ? st->noise : default_move;
+	ent->moveinfo.sound_end = st->noise_stop != EMPTY_HASH ? st->noise_stop : default_stop;
 }
 
 //=========================================================
@@ -105,7 +105,7 @@ static void Move_Begin( edict_t *ent ) {
 	// set up velocity vector
 	Vec3 dir = ent->moveinfo.dest - ent->s.origin;
 	float dist = Length( dir );
-	dir = Normalize( dir );
+	dir = SafeNormalize( dir );
 	ent->velocity = dir * ent->moveinfo.speed;
 	ent->nextThink = level.time + 1;
 	ent->think = Move_Watch;
@@ -244,7 +244,7 @@ static void door_hit_top( edict_t *self ) {
 	}
 	if( self->moveinfo.wait >= 0 ) {
 		self->think = door_go_down;
-		self->nextThink = level.time + ( self->moveinfo.wait * 1000 );
+		self->nextThink = level.time + self->moveinfo.wait;
 	}
 }
 
@@ -280,7 +280,7 @@ static void door_go_up( edict_t *self, edict_t *activator ) {
 
 	if( self->moveinfo.state == STATE_TOP ) { // reset top wait time
 		if( self->moveinfo.wait >= 0 ) {
-			self->nextThink = level.time + self->moveinfo.wait * 1000;
+			self->nextThink = level.time + self->moveinfo.wait;
 		}
 		return;
 	}
@@ -316,7 +316,7 @@ static void door_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	door_go_up( self, activator );
 }
 
-static void Touch_DoorTrigger( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+static void Touch_DoorTrigger( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	if( G_IsDead( other ) ) {
 		return;
 	}
@@ -360,11 +360,7 @@ static void door_blocked( edict_t *self, edict_t *other ) {
 	if( !other->r.client ) {
 		// give it a chance to go away on its own terms (like gibs)
 		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, WorldDamage_Crush );
-
-		// if it's still there, nuke it
-		if( other->r.inuse ) {
-			BecomeExplosion1( other );
-		}
+		G_FreeEdict( other );
 		return;
 	}
 
@@ -385,11 +381,11 @@ static void door_blocked( edict_t *self, edict_t *other ) {
 	}
 }
 
-void SP_func_door( edict_t *ent ) {
+void SP_func_door( edict_t * ent, const spawn_temp_t * st ) {
 	G_InitMover( ent );
 	G_SetMovedir( &ent->s.angles, &ent->moveinfo.movedir );
 
-	G_AssignMoverSounds( ent, "sounds/movers/door_start", EMPTY_HASH, "sounds/movers/door_close" );
+	G_AssignMoverSounds( ent, st, "sounds/movers/door_start", EMPTY_HASH, "sounds/movers/door_close" );
 
 	ent->moveinfo.blocked = door_blocked;
 	ent->use = door_use;
@@ -398,15 +394,14 @@ void SP_func_door( edict_t *ent ) {
 		ent->speed = 1500;
 	}
 	if( !ent->wait ) {
-		ent->wait = 2;
-	}
-	if( !st.lip ) {
-		st.lip = 8;
+		ent->wait = 2000;
 	}
 
-	if( st.gameteam ) {
-		if( st.gameteam >= TEAM_SPECTATOR && st.gameteam < GS_MAX_TEAMS ) {
-			ent->s.team = st.gameteam;
+	int lip = st->lip != 0 ? st->lip : 8;
+
+	if( st->gameteam ) {
+		if( st->gameteam >= TEAM_SPECTATOR && st->gameteam < GS_MAX_TEAMS ) {
+			ent->s.team = st->gameteam;
 		} else {
 			ent->s.team = TEAM_SPECTATOR;
 		}
@@ -420,7 +415,7 @@ void SP_func_door( edict_t *ent ) {
 	abs_movedir.x = Abs( ent->moveinfo.movedir.x );
 	abs_movedir.y = Abs( ent->moveinfo.movedir.y );
 	abs_movedir.z = Abs( ent->moveinfo.movedir.z );
-	ent->moveinfo.distance = Dot( abs_movedir, ent->r.size ) - st.lip;
+	ent->moveinfo.distance = Dot( abs_movedir, ent->r.size ) - lip;
 	ent->moveinfo.end_origin = ent->moveinfo.start_origin + ent->moveinfo.movedir * ent->moveinfo.distance;
 
 	// if it starts open, switch the positions
@@ -449,7 +444,7 @@ void SP_func_door( edict_t *ent ) {
 	}
 }
 
-void SP_func_door_rotating( edict_t *ent ) {
+void SP_func_door_rotating( edict_t * ent, const spawn_temp_t * st ) {
 	G_InitMover( ent );
 
 	ent->s.angles = Vec3( 0.0f );
@@ -469,16 +464,14 @@ void SP_func_door_rotating( edict_t *ent ) {
 		ent->moveinfo.movedir = -ent->moveinfo.movedir;
 	}
 
-	if( !st.distance ) {
-		if( developer->integer ) {
-			Com_GGPrint( "{} at {} with no distance set", ent->classname, ent->s.origin );
-		}
-		st.distance = 90;
+	int distance = st->distance != 0 ? st->distance : 90;
+	if( st->distance == 0 ) {
+		Com_GGPrint( "{} at {} with no distance set", ent->classname, ent->s.origin );
 	}
 
 	ent->moveinfo.start_angles = ent->s.angles;
-	ent->moveinfo.end_angles = ent->moveinfo.start_angles + ent->moveinfo.movedir * st.distance;
-	ent->moveinfo.distance = st.distance;
+	ent->moveinfo.end_angles = ent->moveinfo.start_angles + ent->moveinfo.movedir * st->distance;
+	ent->moveinfo.distance = distance;
 
 	ent->moveinfo.blocked = door_blocked;
 	ent->use = door_use;
@@ -487,13 +480,13 @@ void SP_func_door_rotating( edict_t *ent ) {
 		ent->speed = 100;
 	}
 	if( !ent->wait ) {
-		ent->wait = 3;
+		ent->wait = 3000;
 	}
 	if( !ent->dmg ) {
 		ent->dmg = 2;
 	}
 
-	G_AssignMoverSounds( ent, "sounds/movers/door_start", EMPTY_HASH, "sounds/movers/door_close" );
+	G_AssignMoverSounds( ent, st, "sounds/movers/door_start", EMPTY_HASH, "sounds/movers/door_close" );
 
 	// if it starts open, switch the positions
 	if( ent->spawnflags & DOOR_START_OPEN ) {
@@ -568,7 +561,7 @@ static void rotating_blocked( edict_t *self, edict_t *other ) {
 	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, WorldDamage_Crush );
 }
 
-static void rotating_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
+static void rotating_touch( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
 	if( self->avelocity != Vec3( 0.0f ) ) {
 		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, WorldDamage_Crush );
 	}
@@ -611,7 +604,7 @@ static void rotating_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	}
 }
 
-void SP_func_rotating( edict_t *ent ) {
+void SP_func_rotating( edict_t * ent, const spawn_temp_t * st ) {
 	G_InitMover( ent );
 
 	if( ent->spawnflags & 32 ) {
@@ -663,124 +656,11 @@ void SP_func_rotating( edict_t *ent ) {
 		ent->moveinfo.blocked = rotating_blocked;
 	}
 
-	G_AssignMoverSounds( ent, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
+	G_AssignMoverSounds( ent, st, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 
 	if( !( ent->spawnflags & 1 ) ) {
 		G_CallUse( ent, NULL, NULL );
 	}
-
-	GClip_LinkEntity( ent );
-}
-
-
-//======================================================================
-//
-//BUTTONS
-//
-//======================================================================
-
-static void button_done( edict_t *self ) {
-	self->moveinfo.state = STATE_BOTTOM;
-}
-
-static void button_return( edict_t *self ) {
-	self->moveinfo.state = STATE_DOWN;
-
-	Move_Calc( self, self->moveinfo.start_origin, button_done );
-
-	if( self->health ) {
-		self->deadflag = DEAD_NO;
-		self->takedamage = DAMAGE_YES;
-	}
-}
-
-static void button_wait( edict_t *self ) {
-	self->moveinfo.state = STATE_TOP;
-
-	G_UseTargets( self, self->activator );
-	if( self->moveinfo.wait >= 0 ) {
-		self->nextThink = level.time + ( self->moveinfo.wait * 1000 );
-		self->think = button_return;
-	}
-}
-
-static void button_fire( edict_t *self ) {
-	if( self->moveinfo.state == STATE_UP || self->moveinfo.state == STATE_TOP ) {
-		return;
-	}
-
-	self->moveinfo.state = STATE_UP;
-	if( self->moveinfo.sound_start != EMPTY_HASH ) {
-		G_AddEvent( self, EV_BUTTON_FIRE, self->moveinfo.sound_start.hash, true );
-	}
-	Move_Calc( self, self->moveinfo.end_origin, button_wait );
-}
-
-static void button_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	self->activator = activator;
-	button_fire( self );
-}
-
-static void button_touch( edict_t *self, edict_t *other, cplane_t *plane, int surfFlags ) {
-	if( !other->r.client ) {
-		return;
-	}
-	if( G_IsDead( other ) ) {
-		return;
-	}
-
-	self->activator = other;
-	button_fire( self );
-}
-
-static void button_killed( edict_t *self, edict_t *inflictor, edict_t *attacker, int assistor, DamageType damage_type, int damage ) {
-	self->activator = attacker;
-	self->health = self->max_health;
-	self->takedamage = DAMAGE_NO;
-	button_fire( self );
-}
-
-void SP_func_button( edict_t *ent ) {
-	G_InitMover( ent );
-	G_SetMovedir( &ent->s.angles, &ent->moveinfo.movedir );
-
-	ent->moveinfo.sound_start = st.noise != EMPTY_HASH ? st.noise : StringHash( "sounds/movers/button" );
-
-	if( !ent->speed ) {
-		ent->speed = 40;
-	}
-
-	if( !ent->wait ) {
-		ent->wait = 3;
-	}
-	if( !st.lip ) {
-		st.lip = 4;
-	}
-
-	ent->moveinfo.start_origin = ent->s.origin;
-	Vec3 abs_movedir;
-	abs_movedir.x = Abs( ent->moveinfo.movedir.x );
-	abs_movedir.y = Abs( ent->moveinfo.movedir.y );
-	abs_movedir.z = Abs( ent->moveinfo.movedir.z );
-	float dist = Dot( abs_movedir, ent->r.size ) - st.lip;
-	ent->moveinfo.end_origin = ent->moveinfo.start_origin + ent->moveinfo.movedir * dist;
-
-	ent->use = button_use;
-
-	if( ent->health ) {
-		ent->max_health = ent->health;
-		ent->die = button_killed;
-		ent->takedamage = DAMAGE_YES;
-	} else if( ent->name == EMPTY_HASH ) {
-		ent->touch = button_touch;
-	}
-
-	ent->moveinfo.state = STATE_BOTTOM;
-
-	ent->moveinfo.speed = ent->speed;
-	ent->moveinfo.wait = ent->wait;
-	ent->moveinfo.start_angles = ent->s.angles;
-	ent->moveinfo.end_angles = ent->s.angles;
 
 	GClip_LinkEntity( ent );
 }
@@ -795,11 +675,7 @@ static void train_blocked( edict_t *self, edict_t *other ) {
 	if( !other->r.client ) {
 		// give it a chance to go away on its own terms (like gibs)
 		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, 100000, 1, 0, WorldDamage_Crush );
-
-		// if it's still there, nuke it
-		if( other->r.inuse ) {
-			BecomeExplosion1( other );
-		}
+		G_FreeEdict( other );
 		return;
 	}
 
@@ -833,7 +709,7 @@ static void train_wait( edict_t *self ) {
 
 	if( self->moveinfo.wait ) {
 		if( self->moveinfo.wait > 0 ) {
-			self->nextThink = level.time + ( self->moveinfo.wait * 1000 );
+			self->nextThink = level.time + self->moveinfo.wait;
 			self->think = train_next;
 		} else if( self->spawnflags & TRAIN_TOGGLE ) {   // && wait < 0
 			train_next( self );
@@ -971,7 +847,7 @@ static void train_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	}
 }
 
-void SP_func_train( edict_t *self ) {
+void SP_func_train( edict_t * self, const spawn_temp_t * st ) {
 	G_InitMover( self );
 
 	self->s.angles = Vec3( 0.0f );
@@ -984,7 +860,7 @@ void SP_func_train( edict_t *self ) {
 		}
 	}
 
-	G_AssignMoverSounds( self, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
+	G_AssignMoverSounds( self, st, EMPTY_HASH, EMPTY_HASH, EMPTY_HASH );
 
 	if( !self->speed ) {
 		self->speed = 100;
@@ -1002,49 +878,5 @@ void SP_func_train( edict_t *self ) {
 		self->think = func_train_find;
 	} else {
 		Com_GGPrint( "func_train without a target at {}", self->s.origin );
-	}
-}
-
-void func_timer_think( edict_t *self ) {
-	G_UseTargets( self, self->activator );
-	self->nextThink = level.time + 1000 * ( self->wait + RandomFloat11( &svs.rng ) * self->random );
-}
-
-void func_timer_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	self->activator = activator;
-
-	// if on, turn it off
-	if( self->nextThink ) {
-		self->nextThink = 0;
-		return;
-	}
-
-	// turn it on
-	if( self->delay ) {
-		self->nextThink = level.time + self->delay * 1000;
-	} else {
-		func_timer_think( self );
-	}
-}
-
-void SP_func_timer( edict_t *self ) {
-	if( !self->wait ) {
-		self->wait = 1.0;
-	}
-
-	self->use = func_timer_use;
-	self->think = func_timer_think;
-
-	if( self->random >= self->wait ) {
-		self->random = self->wait - 0.1;
-		if( developer->integer ) {
-			Com_GGPrint( "func_timer at {} has random >= wait\n", self->s.origin );
-		}
-	}
-
-	if( self->spawnflags & 1 ) {
-		self->nextThink = level.time + 1000 *
-						  ( 1.0f + st.pausetime + self->delay + self->wait + RandomFloat11( &svs.rng ) * self->random );
-		self->activator = self;
 	}
 }

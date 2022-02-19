@@ -63,10 +63,10 @@ void Con_ToggleConsole() {
 	}
 
 	if( console.visible ) {
-		CL_SetKeyDest( cls.old_key_dest );
-	} else {
-		CL_SetOldKeyDest( cls.key_dest );
-		CL_SetKeyDest( key_console );
+		CL_SetKeyDest( key_game );
+	}
+	else {
+		CL_SetKeyDest( key_ImGui );
 	}
 
 	Con_ClearInput();
@@ -81,23 +81,16 @@ bool Con_IsVisible() {
 
 void Con_Close() {
 	if( console.visible ) {
-		CL_SetKeyDest( cls.old_key_dest );
 		console.visible = false;
 	}
 }
 
-void Con_Print( const char * str ) {
-	if( console.log_mutex == NULL )
-		return;
-
-	Lock( console.log_mutex );
-	defer { Unlock( console.log_mutex ); };
-
+static void MakeSpaceAndPrint( const char * str ) {
 	// delete lines until we have enough space to add str
 	size_t len = strlen( str );
 	size_t trim = 0;
 	while( console.log.length() - trim + len >= CONSOLE_LOG_SIZE ) {
-		const char * newline = StrChrUTF8( console.log.c_str() + trim, '\n' );
+		const char * newline = strchr( console.log.c_str() + trim, '\n' );
 		if( newline == NULL ) {
 			trim = console.log.length();
 			break;
@@ -107,118 +100,103 @@ void Con_Print( const char * str ) {
 	}
 
 	console.log.remove( 0, trim );
-	console.log += S_COLOR_WHITE;
 	console.log.append_raw( str, len );
+}
+
+void Con_Print( const char * str ) {
+	if( console.log_mutex == NULL )
+		return;
+
+	Lock( console.log_mutex );
+	defer { Unlock( console.log_mutex ); };
+
+	MakeSpaceAndPrint( S_COLOR_WHITE );
+	MakeSpaceAndPrint( str );
 
 	if( console.at_bottom ) {
 		console.scroll_to_bottom = true;
 	}
 }
 
-static void PrintCompletionList( const char ** list ) {
-	for( size_t i = 0; list[ i ] != NULL; i++ ) {
-		Com_Printf( "%s ", list[ i ] );
+static void PrintCompletions( Span< const char * > completions, const char * color, const char * type ) {
+	if( completions.n == 0 )
+		return;
+
+	Com_Printf( "%s%zu possible %s%s\n", color, completions.n, type, completions.n > 1 ? "s" : "" );
+	for( const char * completion : completions ) {
+		Com_Printf( "%s ", completion );
 	}
 	Com_Printf( "\n" );
 }
 
-static size_t CommonPrefixLength( const char * a, const char * b ) {
-	size_t n = Min2( strlen( a ), strlen( b ) );
-	size_t len = 0;
+static size_t CommonPrefixLength( const char * a, Span< const char > b ) {
+	size_t n = Min2( strlen( a ), b.n );
 	for( size_t i = 0; i < n; i++ ) {
-		if( a[ i ] != b[ i ] )
-			break;
-		len++;
+		if( tolower( a[ i ] ) != tolower( b[ i ] ) ) {
+			return i;
+		}
 	}
-	return len;
+	return n;
 }
 
-static void TabCompletion( char * buf, int buf_size ) {
+static Span< const char > FindCommonPrefix( Span< const char > prefix, Span< const char * > strings ) {
+	for( const char * str : strings ) {
+		if( prefix.ptr == NULL ) {
+			prefix = MakeSpan( str );
+		}
+		prefix.n = CommonPrefixLength( str, prefix );
+	}
+
+	return prefix;
+}
+
+static void TabCompletion( char * buf, size_t buf_size ) {
 	char * input = buf;
 	if( *input == '\\' || *input == '/' )
 		input++;
 	if( strlen( input ) == 0 )
 		return;
 
-	// Count number of possible matches
-	int c = Cmd_CompleteCountPossible( input );
-	int v = Cvar_CompleteCountPossible( input );
-	int ca = 0;
+	TempAllocator temp = cls.frame_arena.temp();
 
-	const char ** completion_lists[ 3 ] = { };
+	Span< const char * > cvars, commands, arguments;
+	char * space = strchr( input, ' ' );
 
-	const char * completion = NULL;
-
-	if( c + v == 0 ) {
-		// now see if there's any valid cmd in there, providing
-		// a list of matching arguments
-		completion_lists[2] = Cmd_CompleteBuildArgList( input );
-		if( !completion_lists[2] ) {
-			// No possible matches, let the user know they're insane
-			Com_Printf( "\nNo matching commands or cvars were found.\n" );
+	if( space == NULL ) {
+		cvars = TabCompleteCvar( &temp, input );
+		commands = TabCompleteCommand( &temp, input );
+		if( cvars.n == 0 && commands.n == 0 ) {
+			Com_Printf( "No matching commands or cvars were found.\n" );
 			return;
 		}
 
-		// count the number of matching arguments
-		while( completion_lists[2][ca] != NULL )
-			ca++;
-		if( ca == 0 ) {
-			// the list is empty, although non-NULL list pointer suggests that the command
-			// exists, so clean up and exit without printing anything
-			Mem_TempFree( completion_lists[2] );
-			return;
-		}
-	}
+		Span< const char > shared_prefix;
+		shared_prefix = FindCommonPrefix( shared_prefix, cvars );
+		shared_prefix = FindCommonPrefix( shared_prefix, commands );
 
-	if( c != 0 ) {
-		completion_lists[0] = Cmd_CompleteBuildList( input );
-		completion = *completion_lists[0];
-	}
-	if( v != 0 ) {
-		completion_lists[1] = Cvar_CompleteBuildList( input );
-		completion = *completion_lists[1];
-	}
-	if( ca != 0 ) {
-		input = StrChrUTF8( input, ' ' ) + 1;
-		completion = *completion_lists[2];
-	}
-
-	size_t common_prefix_len = SIZE_MAX;
-	for( size_t i = 0; i < ARRAY_COUNT( completion_lists ); i++ ) {
-		if( completion_lists[ i ] == NULL )
-			continue;
-		const char ** candidate = &completion_lists[ i ][ 0 ];
-		while( *candidate != NULL ) {
-			common_prefix_len = Min2( common_prefix_len, CommonPrefixLength( completion, *candidate ) );
-			candidate++;
-		}
-	}
-
-	int total_candidates = c + v + ca;
-	if( total_candidates > 1 ) {
-		if( c != 0 ) {
-			Com_Printf( S_COLOR_RED "%i possible command%s%s\n", c, ( c > 1 ) ? "s: " : ":", S_COLOR_WHITE );
-			PrintCompletionList( completion_lists[0] );
-		}
-		if( v != 0 ) {
-			Com_Printf( S_COLOR_CYAN "%i possible variable%s%s\n", v, ( v > 1 ) ? "s: " : ":", S_COLOR_WHITE );
-			PrintCompletionList( completion_lists[1] );
-		}
-		if( ca != 0 ) {
-			Com_Printf( S_COLOR_GREEN "%i possible argument%s%s\n", ca, ( ca > 1 ) ? "s: " : ":", S_COLOR_WHITE );
-			PrintCompletionList( completion_lists[2] );
-		}
-	}
-
-	if( completion != NULL ) {
-		size_t to_copy = qmin( common_prefix_len + 1, size_t( buf_size ) - ( input - console.input ) );
-		Q_strncpyz( input, completion, to_copy );
-		if( total_candidates == 1 )
+		Q_strncpyz( buf, temp( "{}", shared_prefix ), buf_size );
+		if( cvars.n + commands.n == 1 ) {
 			Q_strncatz( buf, " ", buf_size );
+		}
+		else {
+			PrintCompletions( commands, S_COLOR_RED, "command" );
+			PrintCompletions( cvars, S_COLOR_RED, "cvar" );
+		}
 	}
+	else {
+		arguments = TabCompleteArgument( &temp, input );
+		if( arguments.n == 0 ) {
+			return;
+		}
 
-	for( size_t i = 0; i < ARRAY_COUNT( completion_lists ); i++ ) {
-		Mem_TempFree( completion_lists[i] );
+		if( arguments.n > 1 ) {
+			PrintCompletions( arguments, S_COLOR_GREEN, "argument" );
+		}
+
+		Span< const char > shared_prefix = FindCommonPrefix( Span< const char >(), arguments );
+		while( *space == ' ' )
+			space++;
+		Q_strncpyz( space, temp( "{}", shared_prefix ), buf_size - ( space - buf ) );
 	}
 }
 
@@ -259,46 +237,36 @@ static int InputCallback( ImGuiInputTextCallbackData * data ) {
 }
 
 static void Con_Execute() {
-	if( strlen( console.input ) != 0 ) {
-		bool chat = true;
-		chat = chat && cls.state == CA_ACTIVE;
-		chat = chat && console.input[ 0 ] != '/' && console.input[ 0 ] != '\\';
-		chat = chat && !Cmd_CheckForCommand( console.input );
+	if( StrEqual( console.input, "" ) )
+		return;
 
-		if( chat ) {
-			char * p = console.input;
-			while( ( p = StrChrUTF8( p, '"' ) ) != NULL ) {
-				*p = '\'';
-				p++;
-			}
-			Cbuf_AddText( "say \"" );
-			Cbuf_AddText( console.input );
-			Cbuf_AddText( "\"\n" );
-		}
-		else {
-			const char * cmd = console.input;
-			if( cmd[ 0 ] == '/' || cmd[ 0 ] == '\\' )
-				cmd++;
-			Cbuf_AddText( cmd );
-			Cbuf_AddText( "\n" );
-		}
-
-		const HistoryEntry * last = &console.input_history[ ( console.history_head + console.history_count - 1 ) % ARRAY_COUNT( console.input_history ) ];
-
-		if( console.history_count == 0 || strcmp( last->cmd, console.input ) != 0 ) {
-			HistoryEntry * entry = &console.input_history[ ( console.history_head + console.history_count ) % ARRAY_COUNT( console.input_history ) ];
-			strcpy( entry->cmd, console.input );
-
-			if( console.history_count == ARRAY_COUNT( console.input_history ) ) {
-				console.history_head++;
-			}
-			else {
-				console.history_count++;
-			}
-		}
-	}
+	TempAllocator temp = cls.frame_arena.temp();
 
 	Com_Printf( "> %s\n", console.input );
+
+	const char * skip_slash = console.input;
+	if( skip_slash[ 0 ] == '/' || skip_slash[ 0 ] == '\\' )
+		skip_slash++;
+
+	bool try_chat = cls.state == CA_ACTIVE;
+	bool executed = Cbuf_ExecuteLine( MakeSpan( skip_slash ), !try_chat );
+	if( !executed && try_chat ) {
+		Cbuf_ExecuteLine( temp( "say {}", console.input ) );
+	}
+
+	const HistoryEntry * last = &console.input_history[ ( console.history_head + console.history_count - 1 ) % ARRAY_COUNT( console.input_history ) ];
+
+	if( console.history_count == 0 || strcmp( last->cmd, console.input ) != 0 ) {
+		HistoryEntry * entry = &console.input_history[ ( console.history_head + console.history_count ) % ARRAY_COUNT( console.input_history ) ];
+		strcpy( entry->cmd, console.input );
+
+		if( console.history_count == ARRAY_COUNT( console.input_history ) ) {
+			console.history_head++;
+		}
+		else {
+			console.history_count++;
+		}
+	}
 
 	Con_ClearInput();
 }
@@ -336,7 +304,7 @@ void Con_Draw() {
 	{
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, bg );
 		ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8, 4 ) );
-		ImGui::BeginChild( "consoletext", ImVec2( 0, frame_static.viewport_height * 0.4 - ImGui::GetFrameHeightWithSpacing() - 3 ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
+		ImGui::BeginChild( "consoletext", ImVec2( 0, frame_static.viewport_height * 0.4f - ImGui::GetFrameHeightWithSpacing() - 3 ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
 		{
 			Lock( console.log_mutex );
 			defer { Unlock( console.log_mutex ); };
@@ -380,15 +348,15 @@ void Con_Draw() {
 		input_flags |= ImGuiInputTextFlags_EnterReturnsTrue;
 
 		ImGui::PushItemWidth( ImGui::GetWindowWidth() );
-		ImGui::SetKeyboardFocusHere();
-		bool enter = ImGui::InputText( "##consoleinput", console.input, sizeof( console.input ), input_flags, InputCallback );
-		// can't drag the scrollbar without this
+		// don't steal focus if the user is dragging the scrollbar
 		if( !ImGui::IsAnyItemActive() )
 			ImGui::SetKeyboardFocusHere();
+		bool enter = ImGui::InputText( "##consoleinput", console.input, sizeof( console.input ), input_flags, InputCallback );
 		ImGui::PopItemWidth();
 
 		if( enter ) {
 			Con_Execute();
+			console.scroll_to_bottom = true;
 		}
 
 		ImVec2 top_left = ImGui::GetCursorPos();

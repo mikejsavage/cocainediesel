@@ -33,12 +33,12 @@ static Button button_back;
 static Button button_left;
 static Button button_right;
 
-static Button button_jump;
-static Button button_special;
-static Button button_crouch;
-static Button button_walk;
+static Button button_ability1;
+static Button button_ability2;
+static Button button_plant;
 
-static Button button_attack;
+static Button button_attack1;
+static Button button_attack2;
 static Button button_gadget;
 static Button button_reload;
 
@@ -108,17 +108,17 @@ static void IN_LeftUp() { KeyUp( &button_left ); }
 static void IN_RightDown() { KeyDown( &button_right ); }
 static void IN_RightUp() { KeyUp( &button_right ); }
 
-static void IN_JumpDown() { KeyDown( &button_jump ); }
-static void IN_JumpUp() { KeyUp( &button_jump ); }
-static void IN_SpecialDown() { KeyDown( &button_special ); }
-static void IN_SpecialUp() { KeyUp( &button_special ); }
-static void IN_CrouchDown() { KeyDown( &button_crouch ); }
-static void IN_CrouchUp() { KeyUp( &button_crouch ); }
-static void IN_WalkDown() { KeyDown( &button_walk ); }
-static void IN_WalkUp() { KeyUp( &button_walk ); }
+static void IN_Ability1Down() { KeyDown( &button_ability1 ); }
+static void IN_Ability1Up() { KeyUp( &button_ability1 ); }
+static void IN_Ability2Down() { KeyDown( &button_ability2 ); }
+static void IN_Ability2Up() { KeyUp( &button_ability2 ); }
+static void IN_PlantDown() { KeyDown( &button_plant ); }
+static void IN_PlantUp() { KeyUp( &button_plant ); }
 
-static void IN_AttackDown() { KeyDown( &button_attack ); }
-static void IN_AttackUp() { KeyUp( &button_attack ); }
+static void IN_Attack1Down() { KeyDown( &button_attack1 ); }
+static void IN_Attack1Up() { KeyUp( &button_attack1 ); }
+static void IN_Attack2Down() { KeyDown( &button_attack2 ); }
+static void IN_Attack2Up() { KeyUp( &button_attack2 ); }
 static void IN_GadgetDown() { KeyDown( &button_gadget ); }
 static void IN_GadgetUp() { KeyUp( &button_gadget ); }
 static void IN_ReloadDown() { KeyDown( &button_reload ); }
@@ -127,24 +127,32 @@ static void IN_ReloadUp() { KeyUp( &button_reload ); }
 u8 CG_GetButtonBits() {
 	u8 buttons = 0;
 
-	if( button_attack.down ) {
-		buttons |= BUTTON_ATTACK;
+	if( button_attack1.down ) {
+		buttons |= BUTTON_ATTACK1;
+	}
+
+	if( button_attack2.down ) {
+		buttons |= BUTTON_ATTACK2;
 	}
 
 	if( button_gadget.down ) {
 		buttons |= BUTTON_GADGET;
 	}
 
-	if( button_special.down ) {
-		buttons |= BUTTON_SPECIAL;
+	if( button_ability1.down ) {
+		buttons |= BUTTON_ABILITY1;
+	}
+
+	if( button_ability2.down ) {
+		buttons |= BUTTON_ABILITY2;
 	}
 
 	if( button_reload.down ) {
 		buttons |= BUTTON_RELOAD;
 	}
 
-	if( button_walk.down ) {
-		buttons |= BUTTON_WALK;
+	if( button_plant.down ) {
+		buttons |= BUTTON_PLANT;
 	}
 
 	return buttons;
@@ -153,40 +161,50 @@ u8 CG_GetButtonBits() {
 u8 CG_GetButtonDownEdges() {
 	u8 edges = 0;
 
-	if( button_attack.down && button_attack.edge ) {
-		edges |= BUTTON_ATTACK;
+	if( button_attack1.down && button_attack1.edge ) {
+		edges |= BUTTON_ATTACK1;
+	}
+
+	if( button_attack2.down && button_attack2.edge ) {
+		edges |= BUTTON_ATTACK2;
 	}
 
 	if( button_gadget.down && button_gadget.edge ) {
 		edges |= BUTTON_GADGET;
 	}
 
-	if( button_special.down && button_special.edge ) {
-		edges |= BUTTON_SPECIAL;
+	if( button_ability1.down && button_ability1.edge ) {
+		edges |= BUTTON_ABILITY1;
+	}
+
+	if( button_ability2.down && button_ability2.edge ) {
+		edges |= BUTTON_ABILITY2;
 	}
 
 	if( button_reload.down && button_reload.edge ) {
 		edges |= BUTTON_RELOAD;
 	}
 
-	if( button_walk.down && button_walk.edge ) {
-		edges |= BUTTON_WALK;
+	if( button_plant.down && button_plant.edge ) {
+		edges |= BUTTON_PLANT;
 	}
 
-	button_attack.edge = false;
+
+	button_attack1.edge = false;
+	button_attack2.edge = false;
 	button_gadget.edge = false;
-	button_special.edge = false;
+	button_ability1.edge = false;
+	button_ability2.edge = false;
 	button_reload.edge = false;
-	button_walk.edge = false;
+	button_plant.edge = false;
 
 	return edges;
 }
 
-Vec3 CG_GetMovement() {
-	return Vec3(
+Vec2 CG_GetMovement() {
+	return Vec2(
 		( button_right.down ? 1.0f : 0.0f ) - ( button_left.down ? 1.0f : 0.0f ),
-		( button_forward.down ? 1.0f : 0.0f ) - ( button_back.down ? 1.0f : 0.0f ),
-		( button_jump.down ? 1.0f : 0.0f ) - ( button_crouch.down ? 1.0f : 0.0f )
+		( button_forward.down ? 1.0f : 0.0f ) - ( button_back.down ? 1.0f : 0.0f )
 	);
 }
 
@@ -231,24 +249,15 @@ int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] ) {
  * mouse
  */
 
-static cvar_t *sensitivity;
-static cvar_t *horizontalSensScale;
-static cvar_t *zoomsens;
-static cvar_t *m_accel;
-static cvar_t *m_accelStyle;
-static cvar_t *m_accelOffset;
-static cvar_t *m_accelPow;
-static cvar_t *m_sensCap;
-static cvar_t *m_invertY;
+static Cvar *m_accelStyle;
+static Cvar *m_accelOffset;
+static Cvar *m_accelPow;
+static Cvar *m_sensCap;
 
 static Vec2 mouse_movement;
 
-float CG_GetSensitivityScale( float sens, float zoomSens ) {
-	if( !cgs.demoPlaying && sens && cg.predictedPlayerState.zoom_time > 0 ) {
-		if( zoomSens ) {
-			return zoomSens / sens;
-		}
-
+static float CG_GetSensitivityScale() {
+	if( !cgs.demoPlaying && cg.predictedPlayerState.zoom_time > 0 ) {
 		return CG_CalcViewFov() / FOV;
 	}
 
@@ -269,43 +278,43 @@ static Vec2 Pow( Vec2 v, float e ) {
 }
 
 void CG_MouseMove( int frameTime, Vec2 m ) {
-	float sens = sensitivity->value;
+	float sens = Cvar_Float( "sensitivity" );
 
-	if( m_accel->value != 0.0f && frameTime != 0 ) {
+	if( Cvar_Float( "m_accel" ) != 0.0f && frameTime != 0 ) {
 		// QuakeLive-style mouse acceleration, ported from ioquake3
 		// original patch by Gabriel Schnoering and TTimo
 		if( m_accelStyle->integer == 1 ) {
 			Vec2 base = Abs( m ) / float( frameTime );
-			Vec2 power = Pow( base / m_accelOffset->value, m_accel->value );
-			m += SignedOne( m ) * power * m_accelOffset->value;
+			Vec2 power = Pow( base / m_accelOffset->number, Cvar_Float( "m_accel" ) );
+			m += SignedOne( m ) * power * m_accelOffset->number;
 		} else if( m_accelStyle->integer == 2 ) {
 			// ch : similar to normal acceleration with offset and variable pow mechanisms
 
 			// sanitize values
-			float accelPow = Max2( m_accelPow->value, 1.0f );
-			float accelOffset = Max2( m_accelOffset->value, 0.0f );
+			float accelPow = Max2( m_accelPow->number, 1.0f );
+			float accelOffset = Max2( m_accelOffset->number, 0.0f );
 
 			float rate = Max2( Length( m ) / float( frameTime ) - accelOffset, 0.0f );
-			sens += powf( rate * m_accel->value, accelPow - 1.0f );
+			sens += powf( rate * Cvar_Float( "m_accel" ), accelPow - 1.0f );
 
-			if( m_sensCap->value > 0 ) {
-				sens = Min2( sens, m_sensCap->value );
+			if( m_sensCap->number > 0 ) {
+				sens = Min2( sens, m_sensCap->number );
 			}
 		} else {
 			float rate = Length( m ) / float( frameTime );
-			sens += rate * m_accel->value;
+			sens += rate * Cvar_Float( "m_accel" );
 		}
 	}
 
-	sens *= CG_GetSensitivityScale( sensitivity->value, zoomsens->value );
+	sens *= CG_GetSensitivityScale();
 
 	mouse_movement = m * sens;
 }
 
 Vec3 CG_GetDeltaViewAngles() {
 	// m_pitch/m_yaw used to default to 0.022
-	float x = horizontalSensScale->value;
-	float y = m_invertY->integer == 0 ? 1.0f : -1.0f;
+	float x = Cvar_Float( "horizontalsensscale" );
+	float y = Cvar_Bool( "m_invertY" ) ? -1.0f : 1.0f;
 	return Vec3(
 		0.022f * y * mouse_movement.y,
 		-0.022f * x * mouse_movement.x,
@@ -319,12 +328,12 @@ void CG_ClearInputState() {
 	ClearButton( &button_left );
 	ClearButton( &button_right );
 
-	ClearButton( &button_jump );
-	ClearButton( &button_special );
-	ClearButton( &button_crouch );
-	ClearButton( &button_walk );
+	ClearButton( &button_ability1 );
+	ClearButton( &button_ability2 );
+	ClearButton( &button_plant );
 
-	ClearButton( &button_attack );
+	ClearButton( &button_attack1 );
+	ClearButton( &button_attack2 );
 	ClearButton( &button_gadget );
 	ClearButton( &button_reload );
 
@@ -334,65 +343,60 @@ void CG_ClearInputState() {
 void CG_InitInput() {
 	CG_ClearInputState();
 
-	Cmd_AddCommand( "+forward", IN_ForwardDown );
-	Cmd_AddCommand( "-forward", IN_ForwardUp );
-	Cmd_AddCommand( "+back", IN_BackDown );
-	Cmd_AddCommand( "-back", IN_BackUp );
-	Cmd_AddCommand( "+left", IN_LeftDown );
-	Cmd_AddCommand( "-left", IN_LeftUp );
-	Cmd_AddCommand( "+right", IN_RightDown );
-	Cmd_AddCommand( "-right", IN_RightUp );
+	AddCommand( "+forward", IN_ForwardDown );
+	AddCommand( "-forward", IN_ForwardUp );
+	AddCommand( "+back", IN_BackDown );
+	AddCommand( "-back", IN_BackUp );
+	AddCommand( "+left", IN_LeftDown );
+	AddCommand( "-left", IN_LeftUp );
+	AddCommand( "+right", IN_RightDown );
+	AddCommand( "-right", IN_RightUp );
 
-	Cmd_AddCommand( "+jump", IN_JumpDown );
-	Cmd_AddCommand( "-jump", IN_JumpUp );
-	Cmd_AddCommand( "+special", IN_SpecialDown );
-	Cmd_AddCommand( "-special", IN_SpecialUp );
-	Cmd_AddCommand( "+crouch", IN_CrouchDown );
-	Cmd_AddCommand( "-crouch", IN_CrouchUp );
-	Cmd_AddCommand( "+walk", IN_WalkDown );
-	Cmd_AddCommand( "-walk", IN_WalkUp );
+	AddCommand( "+ability1", IN_Ability1Down );
+	AddCommand( "-ability1", IN_Ability1Up );
+	AddCommand( "+ability2", IN_Ability2Down );
+	AddCommand( "-ability2", IN_Ability2Up );
+	AddCommand( "+plant", IN_PlantDown );
+	AddCommand( "-plant", IN_PlantUp );
 
-	Cmd_AddCommand( "+attack", IN_AttackDown );
-	Cmd_AddCommand( "-attack", IN_AttackUp );
-	Cmd_AddCommand( "+gadget", IN_GadgetDown );
-	Cmd_AddCommand( "-gadget", IN_GadgetUp );
-	Cmd_AddCommand( "+reload", IN_ReloadDown );
-	Cmd_AddCommand( "-reload", IN_ReloadUp );
+	AddCommand( "+attack1", IN_Attack1Down );
+	AddCommand( "-attack1", IN_Attack1Up );
+	AddCommand( "+attack2", IN_Attack2Down );
+	AddCommand( "-attack2", IN_Attack2Up );
+	AddCommand( "+gadget", IN_GadgetDown );
+	AddCommand( "-gadget", IN_GadgetUp );
+	AddCommand( "+reload", IN_ReloadDown );
+	AddCommand( "-reload", IN_ReloadUp );
 
-	sensitivity = Cvar_Get( "sensitivity", "3", CVAR_ARCHIVE );
-	horizontalSensScale = Cvar_Get( "horizontalsensscale", "1", CVAR_ARCHIVE );
-	zoomsens = Cvar_Get( "zoomsens", "0", CVAR_ARCHIVE );
-	m_accel = Cvar_Get( "m_accel", "0", CVAR_ARCHIVE );
-	m_accelStyle = Cvar_Get( "m_accelStyle", "0", CVAR_ARCHIVE );
-	m_accelOffset = Cvar_Get( "m_accelOffset", "0", CVAR_ARCHIVE );
-	m_accelPow = Cvar_Get( "m_accelPow", "2", CVAR_ARCHIVE );
-	m_sensCap = Cvar_Get( "m_sensCap", "0", CVAR_ARCHIVE );
-	m_invertY = Cvar_Get( "m_invertY", "0", CVAR_ARCHIVE );
+	m_accelStyle = NewCvar( "m_accelStyle", "0", CvarFlag_Archive );
+	m_accelOffset = NewCvar( "m_accelOffset", "0", CvarFlag_Archive );
+	m_accelPow = NewCvar( "m_accelPow", "2", CvarFlag_Archive );
+	m_sensCap = NewCvar( "m_sensCap", "0", CvarFlag_Archive );
 }
 
 void CG_ShutdownInput() {
-	Cmd_RemoveCommand( "+forward" );
-	Cmd_RemoveCommand( "-forward" );
-	Cmd_RemoveCommand( "+back" );
-	Cmd_RemoveCommand( "-back" );
-	Cmd_RemoveCommand( "+left" );
-	Cmd_RemoveCommand( "-left" );
-	Cmd_RemoveCommand( "+right" );
-	Cmd_RemoveCommand( "-right" );
+	RemoveCommand( "+forward" );
+	RemoveCommand( "-forward" );
+	RemoveCommand( "+back" );
+	RemoveCommand( "-back" );
+	RemoveCommand( "+left" );
+	RemoveCommand( "-left" );
+	RemoveCommand( "+right" );
+	RemoveCommand( "-right" );
 
-	Cmd_RemoveCommand( "+jump" );
-	Cmd_RemoveCommand( "-jump" );
-	Cmd_RemoveCommand( "+special" );
-	Cmd_RemoveCommand( "-special" );
-	Cmd_RemoveCommand( "+crouch" );
-	Cmd_RemoveCommand( "-crouch" );
-	Cmd_RemoveCommand( "+walk" );
-	Cmd_RemoveCommand( "-walk" );
+	RemoveCommand( "+ability1" );
+	RemoveCommand( "-ability1" );
+	RemoveCommand( "+ability2" );
+	RemoveCommand( "-ability2" );
+	RemoveCommand( "+plant" );
+	RemoveCommand( "-plant" );
 
-	Cmd_RemoveCommand( "+attack" );
-	Cmd_RemoveCommand( "-attack" );
-	Cmd_RemoveCommand( "+gadget" );
-	Cmd_RemoveCommand( "-gadget" );
-	Cmd_RemoveCommand( "+reload" );
-	Cmd_RemoveCommand( "-reload" );
+	RemoveCommand( "+attack1" );
+	RemoveCommand( "-attack1" );
+	RemoveCommand( "+attack2" );
+	RemoveCommand( "-attack2" );
+	RemoveCommand( "+gadget" );
+	RemoveCommand( "-gadget" );
+	RemoveCommand( "+reload" );
+	RemoveCommand( "-reload" );
 }

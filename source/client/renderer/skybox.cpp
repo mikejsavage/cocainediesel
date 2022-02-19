@@ -23,9 +23,9 @@ void InitSkybox() {
 
 	MeshConfig mesh_config;
 	mesh_config.name = "Skybox";
-	mesh_config.positions = NewVertexBuffer( verts, sizeof( verts ) );
+	mesh_config.positions = NewGPUBuffer( verts, sizeof( verts ), "Skybox vertices" );
 	mesh_config.positions_format = VertexFormat_Floatx4;
-	mesh_config.indices = NewIndexBuffer( indices, sizeof( indices ) );
+	mesh_config.indices = NewGPUBuffer( indices, sizeof( indices ), "Skybox indices" );
 	mesh_config.num_vertices = ARRAY_COUNT( indices );
 	mesh_config.primitive_type = PrimitiveType_TriangleStrip;
 	mesh_config.ccw_winding = false;
@@ -38,7 +38,7 @@ void ShutdownSkybox() {
 }
 
 void DrawSkybox() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	PipelineState pipeline;
 	pipeline.shader = &shaders.skybox;

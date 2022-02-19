@@ -80,6 +80,7 @@ public:
 
 	const char * c_str() const { return buf; }
 	size_t length() const { return len; }
+	size_t capacity() const { return N - 1; }
 
 	bool operator==( const char * rhs ) const { return strcmp( buf, rhs ) == 0; }
 	bool operator!=( const char * rhs ) const { return !( *this == rhs ); }

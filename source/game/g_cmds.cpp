@@ -72,7 +72,7 @@ static bool G_Teleport( edict_t *ent, Vec3 origin, Vec3 angles ) {
 static void Cmd_Noclip_f( edict_t *ent ) {
 	const char *msg;
 
-	if( !Cvar_CheatsAllowed() ) {
+	if( sv_cheats->integer == 0 ) {
 		G_PrintMsg( ent, "Cheats are not enabled on this server.\n" );
 		return;
 	}
@@ -89,7 +89,7 @@ static void Cmd_Noclip_f( edict_t *ent ) {
 }
 
 static void Cmd_GameOperator_f( edict_t *ent ) {
-	if( !g_operator_password->string[0] ) {
+	if( StrEqual( g_operator_password->value, "" ) ) {
 		G_PrintMsg( ent, "Operator is disabled in this server\n" );
 		return;
 	}
@@ -99,7 +99,7 @@ static void Cmd_GameOperator_f( edict_t *ent ) {
 		return;
 	}
 
-	if( !Q_stricmp( Cmd_Argv( 1 ), g_operator_password->string ) ) {
+	if( StrEqual( Cmd_Argv( 1 ), g_operator_password->value ) ) {
 		if( !ent->r.client->isoperator ) {
 			G_PrintMsg( NULL, "%s" S_COLOR_WHITE " is now a game operator\n", ent->r.client->netname );
 		}
@@ -156,10 +156,6 @@ static void Cmd_Position_f( edict_t *ent ) {
 		if( !ent->r.client->teamstate.position_saved ) {
 			G_PrintMsg( ent, "No position saved.\n" );
 		} else {
-			if( ent->r.client->resp.chase.active ) {
-				G_SpectatorMode( ent );
-			}
-
 			if( G_Teleport( ent, ent->r.client->teamstate.position_origin, ent->r.client->teamstate.position_angles ) ) {
 				G_PrintMsg( ent, "Position loaded.\n" );
 			} else {
@@ -170,25 +166,19 @@ static void Cmd_Position_f( edict_t *ent ) {
 		Vec3 origin = Vec3( atof( Cmd_Argv( 2 ) ), atof( Cmd_Argv( 3 ) ), atof( Cmd_Argv( 4 ) ) );
 		Vec3 angles = Vec3( atof( Cmd_Argv( 5 ) ), atof( Cmd_Argv( 6 ) ), 0.0f );
 
-		if( ent->r.client->resp.chase.active ) {
-			G_SpectatorMode( ent );
-		}
-
 		if( G_Teleport( ent, origin, angles ) ) {
 			G_PrintMsg( ent, "Position not available.\n" );
 		} else {
 			G_PrintMsg( ent, "Position set.\n" );
 		}
 	} else {
-		char msg[MAX_STRING_CHARS];
-
-		msg[0] = 0;
-		Q_strncatz( msg, "Usage:\nposition save - Save current position\n", sizeof( msg ) );
-		Q_strncatz( msg, "position load - Teleport to saved position\n", sizeof( msg ) );
-		Q_strncatz( msg, "position set <x> <y> <z> <pitch> <yaw> - Teleport to specified position\n", sizeof( msg ) );
-		Q_strncatz( msg, va( "Current position: %.4f %.4f %.4f %.4f %.4f\n", ent->s.origin.x, ent->s.origin.y,
-							 ent->s.origin.z, ent->s.angles.x, ent->s.angles.y ), sizeof( msg ) );
-		G_PrintMsg( ent, "%s", msg );
+		G_PrintMsg( ent,
+			"Usage:\n"
+			"position save - Save current position\n"
+			"position load - Teleport to saved position\n"
+			"position set <x> <y> <z> <pitch> <yaw> - Teleport to specified position\n"
+			"Current position: %.4f %.4f %.4f %.4f %.4f\n",
+			ent->s.origin.x, ent->s.origin.y, ent->s.origin.z, ent->s.angles.x, ent->s.angles.y );
 	}
 }
 
@@ -206,7 +196,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 			Cvar_Set( "g_floodprotection_messages", "0" );
 		}
 		if( g_floodprotection_messages->integer > MAX_FLOOD_MESSAGES ) {
-			Cvar_Set( "g_floodprotection_messages", va( "%i", MAX_FLOOD_MESSAGES ) );
+			Cvar_SetInteger( "g_floodprotection_messages", MAX_FLOOD_MESSAGES );
 		}
 		g_floodprotection_messages->modified = false;
 	}
@@ -216,20 +206,20 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 			Cvar_Set( "g_floodprotection_team", "0" );
 		}
 		if( g_floodprotection_team->integer > MAX_FLOOD_MESSAGES ) {
-			Cvar_Set( "g_floodprotection_team", va( "%i", MAX_FLOOD_MESSAGES ) );
+			Cvar_SetInteger( "g_floodprotection_team", MAX_FLOOD_MESSAGES );
 		}
 		g_floodprotection_team->modified = false;
 	}
 
 	if( g_floodprotection_seconds->modified ) {
-		if( g_floodprotection_seconds->value <= 0 ) {
+		if( g_floodprotection_seconds->number <= 0 ) {
 			Cvar_Set( "g_floodprotection_seconds", "4" );
 		}
 		g_floodprotection_seconds->modified = false;
 	}
 
 	if( g_floodprotection_penalty->modified ) {
-		if( g_floodprotection_penalty->value < 0 ) {
+		if( g_floodprotection_penalty->number < 0 ) {
 			Cvar_Set( "g_floodprotection_penalty", "10" );
 		}
 		g_floodprotection_penalty->modified = false;
@@ -246,7 +236,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 
 
 	if( teamonly ) {
-		if( g_floodprotection_team->integer && g_floodprotection_penalty->value > 0 ) {
+		if( g_floodprotection_team->integer && g_floodprotection_penalty->number > 0 ) {
 			i = client->level.flood_team_whenhead - g_floodprotection_team->integer + 1;
 			if( i < 0 ) {
 				i = MAX_FLOOD_MESSAGES + i;
@@ -254,7 +244,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 
 			if( client->level.flood_team_when[i] && client->level.flood_team_when[i] <= svs.realtime &&
 				( svs.realtime < client->level.flood_team_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
-				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->value * 1000;
+				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->integer * 1000;
 				G_PrintMsg( ent, "Flood protection: You can't talk for %d seconds.\n", g_floodprotection_penalty->integer );
 				return true;
 			}
@@ -263,7 +253,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 		client->level.flood_team_whenhead = ( client->level.flood_team_whenhead + 1 ) % MAX_FLOOD_MESSAGES;
 		client->level.flood_team_when[client->level.flood_team_whenhead] = svs.realtime;
 	} else {
-		if( g_floodprotection_messages->integer && g_floodprotection_penalty->value > 0 ) {
+		if( g_floodprotection_messages->integer && g_floodprotection_penalty->number > 0 ) {
 			i = client->level.flood_whenhead - g_floodprotection_messages->integer + 1;
 			if( i < 0 ) {
 				i = MAX_FLOOD_MESSAGES + i;
@@ -271,7 +261,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 
 			if( client->level.flood_when[i] && client->level.flood_when[i] <= svs.realtime &&
 				( svs.realtime < client->level.flood_when[i] + g_floodprotection_seconds->integer * 1000 ) ) {
-				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->value * 1000;
+				client->level.flood_locktill = svs.realtime + g_floodprotection_penalty->integer * 1000;
 				G_PrintMsg( ent, "Flood protection: You can't talk for %d seconds.\n", g_floodprotection_penalty->integer );
 				return true;
 			}
@@ -308,13 +298,6 @@ void Cmd_Say_f( edict_t *ent, bool arg0, bool checkflood ) {
 		Q_strncatz( text, Cmd_Args(), sizeof( text ) );
 	} else {
 		p = Cmd_Args();
-
-		if( *p == '"' ) {
-			if( p[strlen( p ) - 1] == '"' ) {
-				p[strlen( p ) - 1] = 0;
-			}
-			p++;
-		}
 		Q_strncatz( text, p, sizeof( text ) );
 	}
 
@@ -369,13 +352,14 @@ static void Cmd_Spray_f( edict_t * ent ) {
 	trace_t trace;
 	G_Trace( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ent, MASK_OPAQUE );
 
-	if( trace.ent != 0 || ( trace.surfFlags & ( SURF_SKY | SURF_NOMARKS ) ) )
+	if( trace.ent != 0 )
 		return;
 
 	ent->r.client->level.last_spray = svs.realtime;
 
 	edict_t * event = G_SpawnEvent( EV_SPRAY, Random64( &svs.rng ), &trace.endpos );
 	event->s.angles = ent->r.client->ps.viewangles;
+	event->s.scale = ent->s.scale;
 	event->s.origin2 = trace.plane.normal;
 }
 
@@ -395,53 +379,38 @@ static const g_vsays_t g_vsays[] = {
 	{ "user", Vsay_User },
 	{ "guyman", Vsay_Guyman },
 	{ "helena", Vsay_Helena },
+	{ "fart", Vsay_Fart },
+	{ "zombie", Vsay_Zombie },
+	{ "larp", Vsay_Larp },
 
 	{ NULL, 0 }
 };
 
 static void G_vsay_f( edict_t *ent ) {
-	const char *msg = Cmd_Argv( 1 );
-
 	if( G_ISGHOSTING( ent ) && server_gs.gameState.match_state < MatchState_PostMatch ) {
 		return;
 	}
 
-	if( !( ent->r.svflags & SVF_FAKECLIENT ) ) { // ignore flood checks on bots
-		if( ent->r.client->level.last_vsay > svs.realtime - 500 ) {
-			return; // ignore silently vsays in that come in rapid succession
-		}
-		ent->r.client->level.last_vsay = svs.realtime;
+	if( ent->r.client->level.last_vsay > svs.realtime - 500 ) {
+		return;
 	}
+	ent->r.client->level.last_vsay = svs.realtime;
 
 	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {
-		if( Q_stricmp( msg, vsay->name ) != 0 )
+		if( Q_stricmp( Cmd_Argv( 1 ), vsay->name ) != 0 )
 			continue;
 
 		u64 entropy = Random32( &svs.rng );
 		u64 parm = u64( vsay->id ) | ( entropy << 16 );
 
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
-		event->r.svflags |= SVF_BROADCAST; // force sending even when not in PVS
+		event->s.svflags |= SVF_BROADCAST; // force sending even when not in PVS
 		event->s.ownerNum = ent->s.number;
 
 		return;
 	}
 
-	// unknown token, print help
-	char string[MAX_STRING_CHARS];
-
-	string[0] = 0;
-	if( msg && msg[0] != '\0' ) {
-		Q_strncatz( string, va( "%sUnknown vsay token%s \"%s\"\n", S_COLOR_YELLOW, S_COLOR_WHITE, msg ), sizeof( string ) );
-	}
-	Q_strncatz( string, va( "%svsays:%s\n", S_COLOR_YELLOW, S_COLOR_WHITE ), sizeof( string ) );
-	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {
-		if( strlen( vsay->name ) + strlen( string ) < sizeof( string ) - 6 ) {
-			Q_strncatz( string, va( "%s ", vsay->name ), sizeof( string ) );
-		}
-	}
-	Q_strncatz( string, "\n", sizeof( string ) );
-	G_PrintMsg( ent, "%s", string );
+	G_PrintMsg( ent, "Unknown vsay %s", Cmd_Argv( 1 ) );
 }
 
 static void Cmd_Join_f( edict_t *ent ) {
@@ -592,6 +561,8 @@ void G_InitGameCommands() {
 	G_AddCommand( "camswitch", Cmd_SwitchChaseCamMode_f );
 	G_AddCommand( "timeout", Cmd_Timeout_f );
 	G_AddCommand( "timein", Cmd_Timein_f );
+	G_AddCommand( "demolist", SV_DemoList_f );
+	G_AddCommand( "demogeturl", SV_DemoGetUrl_f );
 
 	// callvotes commands
 	G_AddCommand( "callvote", G_CallVote_Cmd );

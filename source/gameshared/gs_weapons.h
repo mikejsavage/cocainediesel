@@ -1,18 +1,11 @@
 #pragma once
 
 #include "qcommon/types.h"
+#include "gameshared/gs_synctypes.h"
 
 struct gs_state_t;
 struct SyncPlayerState;
 struct UserCommand;
-
-enum WeaponCategory {
-	WeaponCategory_Primary,
-	WeaponCategory_Secondary,
-	WeaponCategory_Backup,
-
-	WeaponCategory_Count
-};
 
 struct WeaponDef {
 	const char * name;
@@ -23,7 +16,7 @@ struct WeaponDef {
 	int projectile_count;
 	int clip_size;
 	u16 reload_time;
-	bool staged_reloading;
+	u16 staged_reload_time;
 
 	u16 switch_in_time;
 	u16 switch_out_time;
@@ -54,6 +47,7 @@ struct WeaponDef {
 struct GadgetDef {
 	const char * name;
 	const char * short_name;
+	int uses;
 
 	u16 switch_in_time;
 	u16 using_time;
@@ -66,7 +60,18 @@ struct GadgetDef {
 	int splash_radius;
 	s64 timeout;
 	int speed;
-	int uses;
+	int min_speed;
+};
+
+struct PerkDef {
+	const char * name;
+	const char * short_name;
+	float health;
+	Vec3 scale;
+	float weight;
+	float max_speed;
+	float side_speed;
+	float max_airspeed;
 };
 
 void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd, int timeDelta );
@@ -74,6 +79,7 @@ void ClearInventory( SyncPlayerState * ps );
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon );
 const GadgetDef * GetGadgetDef( GadgetType gadget );
+const PerkDef * GetPerkDef( PerkType perk );
 
 WeaponSlot * GS_FindWeapon( SyncPlayerState * player, WeaponType weapon );
 const WeaponSlot * GS_FindWeapon( const SyncPlayerState * player, WeaponType weapon );
@@ -85,3 +91,5 @@ Vec2 FixedSpreadPattern( int i, float spread );
 void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec3 angles, float range, int ignore, int timeDelta, void ( *impact )( const trace_t * trace, Vec3 dir, void * data ), void * data );
 
 bool GS_CanEquip( const SyncPlayerState * player, WeaponType weapon );
+
+void format( FormatBuffer * fb, const Loadout & loadout, const FormatOpts & opts );

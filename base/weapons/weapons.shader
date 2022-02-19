@@ -86,6 +86,25 @@ models/weapons/lg
 	}
 }
 
+models/weapons/lg_glow
+{
+	{
+		map $whiteimage
+		rgbGen entity
+	}
+}
+
+models/weapons/lg_cables
+{
+	shaded
+	specular 10
+	shininess 8
+	{
+		map $whiteimage
+		rgbGen const 0.8 0.8 0.8
+	}
+}
+
 weapons/mb/texture
 {
 	shaded
@@ -188,6 +207,17 @@ weapons/stake/texture
 }
 
 weapons/road
+{
+	shaded
+	specular 10
+	shininess 8
+	{
+		map $whiteimage
+		rgbGen const 0.128 0.128 0.128
+	}
+}
+
+weapons/stickybanger/texture
 {
 	shaded
 	specular 10

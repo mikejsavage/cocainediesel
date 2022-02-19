@@ -1,19 +1,27 @@
-layout( std140 ) uniform u_DynamicLight {
-	int u_NumDynamicLights;
+struct DynamicLightTile {
+	uint indices[ 50 ]; // NOTE(msc): 50 = MAX_DLIGHTS_PER_TILE
 };
 
-uniform isamplerBuffer u_DynamicLightTiles;
-uniform samplerBuffer u_DynamicLightData;
+layout( std430 ) readonly buffer b_DynamicLightTiles {
+	DynamicLightTile dlight_tiles[];
+};
 
-void applyDynamicLights( int count, int tile_index, vec3 position, vec3 normal, vec3 viewDir, inout vec3 lambertlight, inout vec3 specularlight ) {
-	for( int i = 0; i < count; i++ ) {
-		int idx = tile_index * 50 + i; // NOTE(msc): 50 = MAX_DLIGHTS_PER_TILE
-		int dlight_index = texelFetch( u_DynamicLightTiles, idx ).x;
+struct DynamicLight {
+	vec3 origin_color;
+	float radius;
+};
 
-		vec4 data = texelFetch( u_DynamicLightData, dlight_index );
-		vec3 origin = floor( data.xyz );
-		vec3 dlight_color = fract( data.xyz ) / 0.9;
-		float radius = data.w;
+layout( std430 ) readonly buffer b_DynamicLights {
+	DynamicLight dlights[];
+};
+
+void applyDynamicLights( uint count, int tile_index, vec3 position, vec3 normal, vec3 viewDir, inout vec3 lambertlight, inout vec3 specularlight ) {
+	for( uint i = 0; i < count; i++ ) {
+		DynamicLight dlight = dlights[ dlight_tiles[ tile_index ].indices[ i ] ];
+
+		vec3 origin = floor( dlight.origin_color.xyz );
+		vec3 dlight_color = fract( dlight.origin_color.xyz ) / 0.9;
+		float radius = dlight.radius;
 
 		float intensity = DLIGHT_CUTOFF * radius * radius;
 		float dist = distance( position, origin );

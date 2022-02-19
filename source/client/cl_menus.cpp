@@ -2,10 +2,12 @@
 #include "imgui/imgui_internal.h"
 
 #include "client/client.h"
+#include "client/demo_browser.h"
+#include "client/server_browser.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/version.h"
 #include "qcommon/maplist.h"
-#include "qcommon/string.h"
+#include "qcommon/array.h"
 
 #include "cgame/cg_local.h"
 
@@ -24,6 +26,7 @@ enum UIState {
 
 enum MainMenuState {
 	MainMenuState_ServerBrowser,
+	MainMenuState_DemoBrowser,
 	MainMenuState_CreateServer,
 	MainMenuState_Settings,
 
@@ -49,19 +52,6 @@ enum SettingsState {
 	SettingsState_Audio,
 };
 
-struct Server {
-	const char * address;
-
-	const char * name;
-	const char * map;
-	int ping;
-	int num_players;
-	int max_players;
-};
-
-static Server servers[ 1024 ];
-static int num_servers = 0;
-
 static UIState uistate;
 
 static MainMenuState mainmenu_state;
@@ -70,12 +60,13 @@ static DemoMenuState demomenu_state;
 
 static int selected_server;
 
-static WeaponType selected_weapons[ WeaponCategory_Count ];
+static bool yolodemo;
+
+static Loadout loadout;
 
 static SettingsState settings_state;
 static bool reset_video_settings;
 static float sensivity_range[] = { 0.25f, 10.f };
-
 
 static void PushButtonColor( ImVec4 color ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, color );
@@ -84,32 +75,17 @@ static void PushButtonColor( ImVec4 color ) {
 }
 
 static void ResetServerBrowser() {
-	for( int i = 0; i < num_servers; i++ ) {
-		FREE( sys_allocator, const_cast< char * >( servers[ i ].address ) );
-		FREE( sys_allocator, const_cast< char * >( servers[ i ].name ) );
-		FREE( sys_allocator, const_cast< char * >( servers[ i ].map ) );
-	}
-
-	memset( servers, 0, sizeof( servers ) );
-
-	num_servers = 0;
 	selected_server = -1;
 }
 
-static void RefreshServerBrowser() {
-	TempAllocator temp = cls.frame_arena.temp();
-
+static void Refresh() {
 	ResetServerBrowser();
-
-	for( const char * masterserver : MASTER_SERVERS ) {
-		Cbuf_AddText( temp( "requestservers global {} {} full empty\n", masterserver, APPLICATION_NOSPACES ) );
-	}
-
-	Cbuf_AddText( "requestservers local full empty\n" );
+	RefreshServerBrowser();
 }
 
 void UI_Init() {
 	ResetServerBrowser();
+	yolodemo = false;
 	// InitParticleMenuEffect();
 
 	uistate = UIState_MainMenu;
@@ -119,7 +95,6 @@ void UI_Init() {
 }
 
 void UI_Shutdown() {
-	ResetServerBrowser();
 	// ShutdownParticleEditor();
 }
 
@@ -130,13 +105,11 @@ static void SettingLabel( const char * label ) {
 }
 
 template< size_t maxlen >
-static void CvarTextbox( const char * label, const char * cvar_name, const char * def, cvar_flag_t flags ) {
+static void CvarTextbox( const char * label, const char * cvar_name ) {
 	SettingLabel( label );
 
-	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
-
 	char buf[ maxlen + 1 ];
-	Q_strncpyz( buf, cvar->string, sizeof( buf ) );
+	Q_strncpyz( buf, Cvar_String( cvar_name ), sizeof( buf ) );
 
 	ImGui::PushID( cvar_name );
 	ImGui::InputText( "", buf, sizeof( buf ) );
@@ -145,12 +118,10 @@ static void CvarTextbox( const char * label, const char * cvar_name, const char 
 	Cvar_Set( cvar_name, buf );
 }
 
-static void CvarCheckbox( const char * label, const char * cvar_name, const char * def, cvar_flag_t flags ) {
+static void CvarCheckbox( const char * label, const char * cvar_name ) {
 	SettingLabel( label );
 
-	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
-
-	bool val = cvar->integer != 0;
+	bool val = Cvar_Bool( cvar_name );
 	ImGui::PushID( cvar_name );
 	ImGui::Checkbox( "", &val );
 	ImGui::PopID();
@@ -158,14 +129,26 @@ static void CvarCheckbox( const char * label, const char * cvar_name, const char
 	Cvar_Set( cvar_name, val ? "1" : "0" );
 }
 
-static void CvarSliderFloat( const char * label, const char * cvar_name, float lo, float hi, const char * def, cvar_flag_t flags ) {
+static void CvarSliderInt( const char * label, const char * cvar_name, int lo, int hi ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	SettingLabel( label );
 
-	cvar_t * cvar = Cvar_Get( cvar_name, def, flags );
+	int val = Cvar_Integer( cvar_name );
+	ImGui::PushID( cvar_name );
+	ImGui::SliderInt( "", &val, lo, hi, NULL );
+	ImGui::PopID();
 
-	float val = cvar->value;
+	char * buf = temp( "{}", val );
+	Cvar_Set( cvar_name, buf );
+}
+
+static void CvarSliderFloat( const char * label, const char * cvar_name, float lo, float hi ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
+	SettingLabel( label );
+
+	float val = Cvar_Float( cvar_name );
 	ImGui::PushID( cvar_name );
 	ImGui::SliderFloat( "", &val, lo, hi, "%.2f" );
 	ImGui::PopID();
@@ -232,15 +215,47 @@ static const char * SelectableMapList() {
 	return ( selected_map < maps.n ? maps[ selected_map ] : "" );
 }
 
+static const char * SelectablePlayerList() {
+	TempAllocator temp = cls.frame_arena.temp();
+	DynamicArray< const char * > players( &temp );
+
+	for( int i = 0; i < client_gs.maxclients; i++ ) {
+		const char * name = PlayerName( i ); 
+		if( strlen( name ) != 0 && !ISVIEWERENTITY( i + 1 ) ) {
+			players.add( name );
+		}
+	}
+
+	static size_t selected_player = 0;
+
+	ImGui::PushItemWidth( 200 );
+	if( ImGui::BeginCombo( "##players", players[ selected_player ] ) ) {
+		for( size_t i = 0; i < players.size(); i++ ) {
+			if( ImGui::Selectable( players[ i ], i == selected_player ) )
+				selected_player = i;
+			if( i == selected_player )
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+	ImGui::PopItemWidth();
+
+	return ( selected_player < players.size() ? players[ selected_player ] : "" );
+}
+
 static void SettingsGeneral() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	CvarTextbox< MAX_NAME_CHARS >( "Name", "name", "", CVAR_USERINFO | CVAR_ARCHIVE );
+	CvarTextbox< MAX_NAME_CHARS >( "Name", "name" );
 
-	CvarCheckbox( "Show chat", "cg_chat", "1", CVAR_ARCHIVE );
-	CvarCheckbox( "Show hotkeys", "cg_showHotkeys", "1", CVAR_ARCHIVE );
-	CvarCheckbox( "Show FPS", "cg_showFPS", "0", CVAR_ARCHIVE );
-	CvarCheckbox( "Show speed", "cg_showSpeed", "0", CVAR_ARCHIVE );
+	CvarSliderInt( "Crosshair size", "cg_crosshair_size", 1, 50 );
+	CvarSliderInt( "Crosshair gap", "cg_crosshair_gap", 0, 50 );
+	CvarCheckbox( "Dynamic crosshair", "cg_crosshair_dynamic" );
+
+	CvarCheckbox( "Show chat", "cg_chat" );
+	CvarCheckbox( "Show hotkeys", "cg_showHotkeys" );
+	CvarCheckbox( "Show FPS", "cg_showFPS" );
+	CvarCheckbox( "Show speed", "cg_showSpeed" );
 }
 
 static void SettingsControls() {
@@ -254,14 +269,16 @@ static void SettingsControls() {
 			KeyBindButton( "Back", "+back" );
 			KeyBindButton( "Left", "+left" );
 			KeyBindButton( "Right", "+right" );
-			KeyBindButton( "Jump", "+jump" );
-			KeyBindButton( "Dash", "+special" );
+			KeyBindButton( "Movement ability 1", "+ability1" );
+			KeyBindButton( "Movement ability 2", "+ability2" );
 
 			ImGui::Separator();
 
-			KeyBindButton( "Attack", "+attack" );
+			KeyBindButton( "Attack", "+attack1" );
+			KeyBindButton( "Scope (weapon specific)", "+attack2" ); //will be changed to secondary when it makes sense
 			KeyBindButton( "Reload", "+reload" );
-			KeyBindButton( "Plant bomb", "+crouch" );
+			KeyBindButton( "Use gadget", "+gadget" );
+			KeyBindButton( "Plant bomb", "+plant" );
 			KeyBindButton( "Drop bomb", "drop" );
 			KeyBindButton( "Shop", "gametypemenu" );
 			KeyBindButton( "Scoreboard", "+scores" );
@@ -288,21 +305,24 @@ static void SettingsControls() {
 		}
 
 		if( ImGui::BeginTabItem( "Mouse" ) ) {
-			CvarSliderFloat( "Sensitivity", "sensitivity", sensivity_range[ 0 ], sensivity_range[ 1 ], "3", CVAR_ARCHIVE );
-			CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f, "1", CVAR_ARCHIVE );
-			CvarSliderFloat( "Acceleration", "m_accel", 0.0f, 1.0f, "0", CVAR_ARCHIVE );
-			CvarCheckbox( "Invert Y axis", "m_invertY", "0", CVAR_ARCHIVE );
+			CvarSliderFloat( "Sensitivity", "sensitivity", sensivity_range[ 0 ], sensivity_range[ 1 ] );
+			CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f );
+			CvarSliderFloat( "Acceleration", "m_accel", 0.0f, 1.0f );
+			CvarCheckbox( "Invert Y axis", "m_invertY" );
 
 			ImGui::EndTabItem();
 		}
 
-		if( ImGui::BeginTabItem( "Voice lines" ) ) {
+		if( ImGui::BeginTabItem( "Voices" ) ) {
 			KeyBindButton( "Acne pack", "vsay acne" );
-			KeyBindButton( "Valley pack", "vsay valley" );
-			KeyBindButton( "Mike pack", "vsay mike" );
-			KeyBindButton( "User pack", "vsay user" );
+			KeyBindButton( "Fart pack", "vsay fart" );
 			KeyBindButton( "Guyman pack", "vsay guyman" );
 			KeyBindButton( "Helena pack", "vsay helena" );
+			KeyBindButton( "Larp pack", "vsay larp" );
+			KeyBindButton( "Mike pack", "vsay mike" );
+			KeyBindButton( "User pack", "vsay user" );
+			KeyBindButton( "Valley pack", "vsay valley" );
+			KeyBindButton( "Zombie pack", "vsay zombie" );
 
 			ImGui::EndTabItem();
 		}
@@ -447,8 +467,7 @@ static void SettingsVideo() {
 	{
 		SettingLabel( "Anti-aliasing" );
 
-		cvar_t * cvar = Cvar_Get( "r_samples", "0", CVAR_ARCHIVE );
-		int samples = cvar->integer;
+		int samples = Cvar_Integer( "r_samples" );
 
 		ImGui::PushItemWidth( 100 );
 		if( ImGui::BeginCombo( "##r_samples", samples == 0 ? "Off" : temp( "{}x", samples ) ) ) {
@@ -479,8 +498,7 @@ static void SettingsVideo() {
 	{
 		SettingLabel( "Shadow Quality" );
 
-		cvar_t * cvar = Cvar_Get( "r_shadow_quality", "1", CVAR_ARCHIVE );
-		ShadowQuality quality = ShadowQuality( cvar->integer );
+		ShadowQuality quality = ShadowQuality( Cvar_Integer( "r_shadow_quality" ) );
 
 		ImGui::PushItemWidth( 150 );
 		if( ImGui::BeginCombo( "##r_shadow_quality", ShadowQualityToString( quality ) ) ) {
@@ -502,8 +520,7 @@ static void SettingsVideo() {
 
 		constexpr int values[] = { 60, 75, 120, 144, 165, 180, 200, 240, 333, 500, 1000 };
 
-		cvar_t * cvar = Cvar_Get( "cl_maxfps", "250", CVAR_ARCHIVE );
-		int maxfps = cvar->integer;
+		int maxfps = Cvar_Integer( "cl_maxfps" );
 
 		ImGui::PushItemWidth( 100 );
 		if( ImGui::BeginCombo( "##cl_maxfps", temp( "{}", maxfps ) ) ) {
@@ -521,9 +538,9 @@ static void SettingsVideo() {
 		Cvar_Set( "cl_maxfps", temp( "{}", maxfps ) );
 	}
 
-	CvarCheckbox( "Vsync", "vid_vsync", "0", CVAR_ARCHIVE );
+	CvarCheckbox( "Vsync", "vid_vsync" );
 
-	CvarCheckbox( "Colorblind mode", "cg_colorBlind", "0", CVAR_ARCHIVE );
+	CvarCheckbox( "Colorblind mode", "cg_colorBlind" );
 }
 
 static const char * CleanAudioDeviceName( const char * name ) {
@@ -538,31 +555,30 @@ static void SettingsAudio() {
 	SettingLabel( "Audio device" );
 	ImGui::PushItemWidth( 400 );
 
-	const char * current = strcmp( s_device->string, "" ) == 0 ? "Default" : s_device->string;
+	const char * current = StrEqual( s_device->value, "" ) ? "Default" : s_device->value;
 	if( ImGui::BeginCombo( "##audio_device", CleanAudioDeviceName( current ) ) ) {
-		if( ImGui::Selectable( "Default", strcmp( s_device->string, "" ) == 0 ) ) {
+		if( ImGui::Selectable( "Default", StrEqual( s_device->value, "" ) ) ) {
 			Cvar_Set( "s_device", "" );
 		}
 
-		const char * device = GetAudioDevicesAsSequentialStrings();
-		while( strcmp( device, "" ) != 0 ) {
-			if( ImGui::Selectable( CleanAudioDeviceName( device ), strcmp( device, s_device->string ) == 0 ) ) {
+		TempAllocator temp = cls.frame_arena.temp();
+		for( const char * device : GetAudioDevices( &temp ) ) {
+			if( ImGui::Selectable( CleanAudioDeviceName( device ), StrEqual( device, s_device->value ) ) ) {
 				Cvar_Set( "s_device", device );
 			}
-			device += strlen( device ) + 1;
 		}
 		ImGui::EndCombo();
 	}
 
 	if( ImGui::Button( "Test" ) ) {
-		S_StartLocalSound( "sounds/announcer/bomb/ace", CHAN_AUTO, 1.0f );
+		S_StartLocalSound( "sounds/announcer/bomb/ace", CHAN_AUTO, 1.0f, 1.0f );
 	}
 
 	ImGui::Separator();
 
-	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f, "1", CVAR_ARCHIVE );
-	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f, "0.5", CVAR_ARCHIVE );
-	CvarCheckbox( "Mute when alt-tabbed", "s_muteinbackground", "1", CVAR_ARCHIVE );
+	CvarSliderFloat( "Master volume", "s_volume", 0.0f, 1.0f );
+	CvarSliderFloat( "Music volume", "s_musicvolume", 0.0f, 1.0f );
+	CvarCheckbox( "Mute when alt-tabbed", "s_muteinbackground" );
 }
 
 static void Settings() {
@@ -611,12 +627,11 @@ static void ServerBrowser() {
 
 	char server_filter[ 256 ] = { };
 	if( ImGui::Button( "Refresh" ) ) {
-		RefreshServerBrowser();
+		Refresh();
 	}
 	ImGui::AlignTextToFramePadding();
 	ImGui::SameLine(); ImGui::Text( "Search");
-	ImGui::SameLine(); ImGui::InputText( "", server_filter, sizeof( server_filter ) );
-
+	ImGui::SameLine(); ImGui::InputText( "##server_filter", server_filter, sizeof( server_filter ) );
 
 	ImGui::BeginChild( "servers" );
 	ImGui::Columns( 4, "serverbrowser", false );
@@ -630,30 +645,76 @@ static void ServerBrowser() {
 	ImGui::Text( "Ping" );
 	ImGui::NextColumn();
 
-	for( int i = 0; i < num_servers; i++ ) {
-		const char * name = servers[ i ].name != NULL ? servers[ i ].name : servers[ i ].address;
-		if( strstr( name, server_filter ) != NULL ) {
-			if( ImGui::Selectable( name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
+	Span< const ServerBrowserEntry > servers = GetServerBrowserEntries();
+	for( size_t i = 0; i < servers.n; i++ ) {
+		if( !servers[ i ].have_details )
+			continue;
+
+		if( strstr( servers[ i ].name, server_filter ) != NULL ) {
+			if( ImGui::Selectable( servers[ i ].name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
 				if( ImGui::IsMouseDoubleClicked( 0 ) ) {
-					Cbuf_AddText( temp( "connect \"{}\"\n", servers[ i ].address ) );
+					CL_Connect( &servers[ i ].address );
 				}
 				selected_server = i;
 			}
 			ImGui::NextColumn();
 
-			if( servers[ i ].name == NULL ) {
-				ImGui::NextColumn();
-				ImGui::NextColumn();
-				ImGui::NextColumn();
-			}
-			else {
-				ImGui::Text( "%s", servers[ i ].map );
-				ImGui::NextColumn();
-				ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
-				ImGui::NextColumn();
-				ImGui::Text( "%d", servers[ i ].ping );
-				ImGui::NextColumn();
-			}
+			ImGui::Text( "%s", servers[ i ].map );
+			ImGui::NextColumn();
+			ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
+			ImGui::NextColumn();
+			ImGui::Text( "%d", servers[ i ].ping );
+			ImGui::NextColumn();
+		}
+	}
+
+	ImGui::Columns( 1 );
+	ImGui::EndChild();
+}
+
+static void DemoBrowser() {
+	TempAllocator temp = cls.frame_arena.temp();
+
+	DemoBrowserFrame();
+
+	ImGui::Checkbox( "Try to force load demos from old versions. Comes with no warranty", &yolodemo );
+
+	ImGui::Columns( 5, "demobrowser", false );
+
+	ImGui::Text( "Filename" );
+	ImGui::NextColumn();
+	ImGui::Text( "Server" );
+	ImGui::NextColumn();
+	ImGui::Text( "Map" );
+	ImGui::NextColumn();
+	ImGui::Text( "Date" );
+	ImGui::NextColumn();
+	ImGui::Text( "Game version" );
+	ImGui::NextColumn();
+
+	ImGui::Columns( 1 );
+	ImGui::BeginChild( "demos" );
+	ImGui::Columns( 5 );
+
+	for( const DemoBrowserEntry & demo : GetDemoBrowserEntries() ) {
+		bool clicked = ImGui::Selectable( demo.path, false, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick );
+		ImGui::NextColumn();
+		ImGui::Text( "%s", demo.server );
+		ImGui::NextColumn();
+		ImGui::Text( "%s", demo.map );
+		ImGui::NextColumn();
+		ImGui::Text( "%s", demo.date );
+		ImGui::NextColumn();
+
+		bool old_version = !StrEqual( demo.version, APP_VERSION );
+		ImGui::PushStyleColor( ImGuiCol_Text, old_version ? vec4_red : vec4_green );
+		ImGui::Text( "%s", demo.version );
+		ImGui::NextColumn();
+		ImGui::PopStyleColor();
+
+		if( clicked && ImGui::IsMouseDoubleClicked( 0 ) ) {
+			const char * cmd = yolodemo ? "yolodemo" : "demo";
+			Cbuf_Add( "{} \"{}\"", cmd, demo.path );
 		}
 	}
 
@@ -664,11 +725,10 @@ static void ServerBrowser() {
 static void CreateServer() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	CvarTextbox< 128 >( "Server name", "sv_hostname", APPLICATION " server", CVAR_SERVERINFO | CVAR_ARCHIVE );
+	CvarTextbox< 128 >( "Server name", "sv_hostname" );
 
 	{
-		cvar_t * cvar = Cvar_Get( "sv_maxclients", "16", CVAR_SERVERINFO | CVAR_LATCH );
-		int maxclients = cvar->integer;
+		int maxclients = Cvar_Integer( "sv_maxclients" );
 
 		SettingLabel( "Max players" );
 		ImGui::PushItemWidth( 150 );
@@ -685,10 +745,10 @@ static void CreateServer() {
 
 	const char * map_name = SelectableMapList();
 
-	CvarCheckbox( "Public", "sv_public", "0", CVAR_LATCH );
+	CvarCheckbox( "Public", "sv_public" );
 
 	if( ImGui::Button( "Create server" ) ) {
-		Cbuf_AddText( temp( "map \"{}\"\n", map_name ) );
+		Cbuf_Add( "map \"{}\"", map_name );
 	}
 }
 
@@ -721,7 +781,7 @@ static void MainMenu() {
 	ImGui::SetCursorPosX( 40.0f * triangel( cls.monotonicTime, 631 ) );
 	ImGui::PushFont( cls.large_font );
 
-	if( Cvar_Get( "cg_colorBlind", "0", CVAR_ARCHIVE )->integer ) {
+	if( Cvar_Bool( "cg_colorBlind" ) ) {
 		ImGui::PushStyleColor( ImGuiCol_Text, CG_TeamColorVec4( TEAM_BETA ) );
 		if( glitch( cls.monotonicTime / 8 ) )
 			ImGui::Text( "COLOURBLIN" );
@@ -736,7 +796,8 @@ static void MainMenu() {
 		ImGui::PushStyleColor( ImGuiCol_Text, CG_TeamColorVec4( TEAM_ALPHA ) );
 		ImGui::Text( "IESEL" );
 		ImGui::PopStyleColor();
-	} else {
+	}
+	else {
 		ImGui::PushStyleColor( ImGuiCol_Text, glitch( cls.monotonicTime ) ? IM_COL32( 255, 255, 255, 255 ) : IM_COL32( 32, 182, 252, 255 ) );
 		ImGui::Text( "VACCAINE PFIZEL" );
 		ImGui::PopStyleColor();
@@ -746,6 +807,15 @@ static void MainMenu() {
 
 	if( ImGui::Button( "FIND SERVERS" ) ) {
 		mainmenu_state = MainMenuState_ServerBrowser;
+		ResetServerBrowser();
+	}
+
+	ImGui::SameLine();
+
+	if( ImGui::Button( "REPLAYS" ) ) {
+		mainmenu_state = MainMenuState_DemoBrowser;
+		RefreshDemoBrowser();
+		yolodemo = false;
 	}
 
 	ImGui::SameLine();
@@ -765,7 +835,7 @@ static void MainMenu() {
 
 	PushButtonColor( ImVec4( 0.375f, 0.f, 0.f, 0.75f ) );
 	if( ImGui::Button( "QUIT" ) ) {
-		CL_Quit();
+		Com_DeferQuit();
 	} ImGui::PopStyleColor( 3 );
 
 	if( cl_devtools->integer != 0 ) {
@@ -787,21 +857,9 @@ static void MainMenu() {
 
 	ImGui::Separator();
 
-	if( !GLAD_GL_VERSION_4_6 ) {
-		ImGui::Text( "%s", temp(
-			"Diesel news 14th August 2021:\n"
-			"    {}We're thinking about bumping the game's required OpenGL version. Your GPU supports up to {}GL {}.{}{}.\n"
-			"    Please let us know on discord so we don't break your shit!",
-			ImGuiColorToken( 255, 0, 0, 255 ),
-			ImGuiColorToken( 255, 255, 0, 255 ),
-			GLVersion.major, GLVersion.minor,
-			ImGuiColorToken( 255, 0, 0, 255 ) ) );
-	}
-
-	ImGui::Separator();
-
 	switch( mainmenu_state ) {
 		case MainMenuState_ServerBrowser: ServerBrowser(); break;
+		case MainMenuState_DemoBrowser: DemoBrowser(); break;
 		case MainMenuState_CreateServer: CreateServer(); break;
 		case MainMenuState_Settings: Settings(); break;
 		// case MainMenuState_ParticleEditor: DrawParticleEditor(); break;
@@ -857,113 +915,136 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 	}
 
 	if( ImGui::Button( label, size ) ) {
-		Cbuf_AddText( temp( "{}\n", command ) );
+		Cbuf_Add( "{}", command );
 		if( clicked != NULL )
 			*clicked = true;
 	}
 }
 
-static void WeaponTooltip( const WeaponDef * def ) {
-	if( ImGui::IsItemHovered() ) {
-		ImGui::BeginTooltip();
-
-		TempAllocator temp = cls.frame_arena.temp();
-
-		ImGui::Text( "%s", temp( "{}Weapon: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->name ) );
-		ImGui::Text( "%s", temp( "{}Type: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), def->speed == 0 ? "Hitscan" : "Projectile" ) );
-		ImGui::Text( "%s", temp( "{}Damage: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), int( def->damage * def->projectile_count ) ) );
-		char * reload = temp( "{.1}s", def->refire_time / 1000.f );
-		RemoveTrailingZeroesFloat( reload );
-		ImGui::Text( "%s", temp( "{}Reload: {}{}", ImGuiColorToken( 255, 200, 0, 255 ), ImGuiColorToken( 255, 255, 255, 255 ), reload ) );
-
-		ImGui::EndTooltip();
-	}
-}
-
 static void SendLoadout() {
 	TempAllocator temp = cls.frame_arena.temp();
-
-	DynamicString loadout( &temp, "weapselect" );
-
-	for( size_t i = 0; i < ARRAY_COUNT( selected_weapons ); i++ ) {
-		if( selected_weapons[ i ] != Weapon_None ) {
-			loadout.append( " {}", selected_weapons[ i ] );
-		}
-	}
-	loadout += "\n";
-
-	Cbuf_AddText( loadout.c_str() );
+	Cbuf_Add( "weapselect {}", loadout );
 }
 
-static void WeaponButton( WeaponType weapon, Vec2 size ) {
+static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
+	return Vec4( rgba.r / 255.0f, rgba.g / 255.0f, rgba.b / 255.0f, rgba.a / 255.0f );
+}
+
+static bool LoadoutButton( const char * label, Vec2 icon_size, const Material * icon, bool selected ) {
+	ImGui::TableNextColumn();
+
 	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
 	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
 	defer { ImGui::PopStyleColor( 3 ); };
 
-	ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 2 );
+	ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 1 );
 	ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
 	defer { ImGui::PopStyleVar( 2 ); };
 
-	const WeaponDef * def = GS_GetWeaponDef( weapon );
-	bool selected = selected_weapons[ def->category ] == weapon;
-
-	const Material * icon = cgs.media.shaderWeaponIcon[ weapon ];
 	Vec2 half_pixel = HalfPixelSize( icon );
-	Vec4 color = selected ? vec4_green : vec4_white;
+	Vec4 color = RGBA8ToVec4NosRGB( selected ? rgba8_diesel_yellow : rgba8_white ); // TODO...
 
+	ImGui::PushStyleColor( ImGuiCol_Text, color );
 	ImGui::PushStyleColor( ImGuiCol_Border, color );
-	defer { ImGui::PopStyleColor(); };
+	defer { ImGui::PopStyleColor( 2 ); };
 
-	bool clicked = ImGui::ImageButton( icon, size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
+	ImGui::PushID( label );
+	CellCenter( icon_size.x );
+	bool clicked = ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
+	ImGui::PopID();
 
-	WeaponTooltip( def );
+	CellCenterText( label );
 
-	ImGui::SameLine();
-	ImGui::Dummy( Vec2( 16, 0 ) );
-	ImGui::SameLine();
+	return clicked;
+}
 
-	int weaponBinds[ 2 ] = { -1, -1 };
-	CG_GetBoundKeycodes( va( "use %s", def->short_name ), weaponBinds );
+static void Perks( Vec2 icon_size ) {
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex( 0 );
+	ImGui::Text( "CLASS" );
+	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
 
-	if( clicked || ImGui::Hotkey( weaponBinds[ 0 ] ) || ImGui::Hotkey( weaponBinds[ 1 ] ) ) {
-		selected_weapons[ def->category ] = selected ? WeaponType( Weapon_None ) : weapon;
-		SendLoadout();
+	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
+		const Material * icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );
+		if( LoadoutButton( GetPerkDef( i )->name, icon_size, icon, loadout.perk == i ) ) {
+			loadout.perk = i;
+			SendLoadout();
+		}
 	}
+}
+
+static int CountWeaponCategory( WeaponCategory category ) {
+	int n = 0;
+	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
+		const WeaponDef * def = GS_GetWeaponDef( i );
+		if( def->category == category ) {
+			n++;
+		}
+	}
+	return n;
 }
 
 static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex( 0 );
 	ImGui::Text( "%s", label );
 	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
-	ImGui::NextColumn();
 
-	for( WeaponType i = 0; i < Weapon_Count; i++ ) {
+	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( i );
 		if( def->category == category ) {
-			WeaponButton( i, icon_size );
+			const Material * icon = FindMaterial( cgs.media.shaderWeaponIcon[ i ] );
+			if( LoadoutButton( def->name, icon_size, icon, loadout.weapons[ def->category ] == i ) ) {
+				loadout.weapons[ def->category ] = i;
+				SendLoadout();
+			}
 		}
 	}
+}
 
-	ImGui::NextColumn();
+static void Gadgets( Vec2 icon_size ) {
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex( 0 );
+	ImGui::Text( "GADGET" );
+	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+
+	for( GadgetType i = GadgetType( Gadget_None + 1 ); i < Gadget_Count; i++ ) {
+		const GadgetDef * def = GetGadgetDef( i );
+		const Material * icon = FindMaterial( cgs.media.shaderGadgetIcon[ i ] );
+		if( LoadoutButton( def->name, icon_size, icon, loadout.gadget == i ) ) {
+			loadout.gadget = GadgetType( i );
+			SendLoadout();
+		}
+	}
 }
 
 static bool LoadoutMenu( Vec2 displaySize ) {
-	ImGui::PushFont( cls.medium_font );
+	ImGui::PushFont( cls.medium_italic_font );
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
 	ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
 	ImGui::SetNextWindowSize( displaySize );
 	ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
-	const Vec2 icon_size = Vec2( displaySize.x * 0.075f );
+	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, Vec2( 0, displaySize.y * 0.02 ) );
+	Vec2 icon_size = Vec2( displaySize.x * 0.05f );
 
-	ImGui::Columns( 2, NULL, false );
-	ImGui::SetColumnWidth( 0, 300 );
+	int cols = 0;
+	cols = Max2( CountWeaponCategory( WeaponCategory_Primary ), cols );
+	cols = Max2( CountWeaponCategory( WeaponCategory_Secondary ), cols );
+	cols = Max2( CountWeaponCategory( WeaponCategory_Backup ), cols );
+	cols = Max2( int( Gadget_Count ) - 1, cols );
+	cols = Max2( int( Perk_Count ) - 1, cols );
 
-	LoadoutCategory( "Primary", WeaponCategory_Primary, icon_size );
-	LoadoutCategory( "Secondary", WeaponCategory_Secondary, icon_size );
-	LoadoutCategory( "Backup", WeaponCategory_Backup, icon_size );
+	ImGui::BeginTable( "loadoutmenu", cols + 1 );
 
-	ImGui::EndColumns();
+	Perks( icon_size );
+	LoadoutCategory( "PRIMARY", WeaponCategory_Primary, icon_size );
+	LoadoutCategory( "SECONDARY", WeaponCategory_Secondary, icon_size );
+	LoadoutCategory( "BACKUP", WeaponCategory_Backup, icon_size );
+	Gadgets( icon_size );
+
+	ImGui::EndTable();
 
 	int loadoutKeys[ 2 ] = { };
 	CG_GetBoundKeycodes( "gametypemenu", loadoutKeys );
@@ -973,6 +1054,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 		should_close = true;
 	}
 
+	ImGui::PopStyleVar();
 	ImGui::PopStyleColor();
 	ImGui::PopFont();
 
@@ -1032,7 +1114,7 @@ static void GameMenu() {
 		else {
 			if( client_gs.gameState.match_state <= MatchState_Countdown ) {
 				if( ImGui::Checkbox( ready ? "Ready!" : "Not ready", &ready ) ) {
-					Cbuf_AddText( "toggleready\n" );
+					Cbuf_Add( "toggleready" );
 				}
 			}
 
@@ -1079,21 +1161,33 @@ static void GameMenu() {
 	else if( gamemenu_state == GameMenuState_Vote ) {
 		TempAllocator temp = cls.frame_arena.temp();
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
-		ImGui::SetNextWindowSize( ImVec2( -1, -1 ) );
+		ImGui::SetNextWindowSize( ImVec2( displaySize.x * 0.5f, -1 ) );
 		ImGui::Begin( "votemap", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 
 		static int e = 0;
-		ImGui::RadioButton( "Start match", &e, 0 ); ImGui::SameLine();
+		ImGui::Columns( 2, NULL, false );
+		ImGui::RadioButton( "Start match", &e, 0 );
 		ImGui::RadioButton( "Change map", &e, 1 );
+		ImGui::RadioButton( "Spectate", &e, 2 );
+		ImGui::RadioButton( "Kick", &e, 3 );
 
+		ImGui::NextColumn();
+
+		const char * vote;
+		const char * arg;
 		if( e == 0 ) {
-			GameMenuButton( "Start vote", "callvote start", &should_close );
+			vote = "start";
+			arg = "";
+		} else if( e == 1 ) {
+			vote = "map";
+			arg = SelectableMapList();
+		} else {
+			vote = e == 2 ? "spectate" : "kick";
+			arg = SelectablePlayerList();
 		}
 
-		if( e == 1 ) {
-			const char * map_name = SelectableMapList();
-			GameMenuButton( "Start vote", temp( "callvote map {}", map_name ), &should_close );
-		}
+		ImGui::Columns( 1 );
+		GameMenuButton( "Start vote", temp( "callvote {} {}", vote, arg ), &should_close );
 	}
 	else if( gamemenu_state == GameMenuState_Settings ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
@@ -1139,6 +1233,12 @@ static void DemoMenu() {
 		ImGui::NextColumn();
 		GameMenuButton( "+15s", "demojump +15", NULL, 1 );
 		ImGui::NextColumn();
+		if( Cvar_Bool( "cg_draw2D" ) ) {
+			GameMenuButton( "Show HUD", "cg_draw2D 1", NULL, 1 );
+		} else {
+			GameMenuButton( "Hide HUD", "cg_draw2D 0", NULL, 1 );
+		}
+
 
 		ImGui::Columns( 1, NULL, false );
 
@@ -1167,7 +1267,7 @@ static void DemoMenu() {
 }
 
 void UI_Refresh() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( uistate == UIState_Hidden && !Con_IsVisible() ) {
 		return;
@@ -1222,7 +1322,7 @@ void UI_ShowMainMenu() {
 	uistate = UIState_MainMenu;
 	mainmenu_state = MainMenuState_ServerBrowser;
 	S_StartMenuMusic();
-	RefreshServerBrowser();
+	Refresh();
 }
 
 void UI_ShowGameMenu() {
@@ -1247,51 +1347,11 @@ void UI_HideMenu() {
 	uistate = UIState_Hidden;
 }
 
-void UI_AddToServerList( const char * address, const char * info ) {
-	for( int i = 0; i < num_servers; i++ ) {
-		if( strcmp( address, servers[ i ].address ) == 0 ) {
-			char name[ 128 ];
-			char map[ 32 ];
-			int parsed = sscanf( info, "\\\\ping\\\\%d\\\\n\\\\%127[^\\]\\\\m\\\\ %31[^\\]\\\\u\\\\%d/%d\\\\EOT", &servers[ i ].ping, name, map, &servers[ i ].num_players, &servers[ i ].max_players );
-
-			if( parsed == 5 ) {
-				servers[ i ].name = CopyString( sys_allocator, name );
-				servers[ i ].map = CopyString( sys_allocator, map );
-			}
-
-			return;
-		}
-	}
-
-	if( size_t( num_servers ) < ARRAY_COUNT( servers ) ) {
-		servers[ num_servers ].address = CopyString( sys_allocator, address );
-		num_servers++;
-
-		if( strcmp( info, "\\\\EOT" ) == 0 ) {
-			TempAllocator temp = cls.frame_arena.temp();
-			Cbuf_AddText( temp( "pingserver {}\n", address ) );
-		}
-	}
-}
-
-void UI_ShowLoadoutMenu( Span< int > weapons ) {
+void UI_ShowLoadoutMenu( Loadout new_loadout ) {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Loadout;
 
-	for( WeaponType & w : selected_weapons ) {
-		w = Weapon_None;
-	}
-
-	for( int w : weapons ) {
-		if( w <= Weapon_None || w >= Weapon_Count )
-			return;
-
-		WeaponCategory category = GS_GetWeaponDef( w )->category;
-		if( category == WeaponCategory_Count || selected_weapons[ category ] != Weapon_None )
-			return;
-
-		selected_weapons[ category ] = w;
-	}
+	loadout = new_loadout;
 
 	CL_SetKeyDest( key_menu );
 }

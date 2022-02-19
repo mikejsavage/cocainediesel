@@ -23,13 +23,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "gameshared/q_shared.h"
-#include "gameshared/q_math.h"
-
 // See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
-#define UTF8_ACCEPT 0
-#define UTF8_REJECT 1
-
 static const uint8_t utf8d[] = {
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 00..1f
 	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, // 20..3f
@@ -50,7 +44,7 @@ static const uint8_t utf8d[] = {
 uint32_t DecodeUTF8( uint32_t * state, uint32_t * codep, uint32_t byte ) {
 	uint32_t type = utf8d[byte];
 
-	*codep = (*state != UTF8_ACCEPT) ?
+	*codep = (*state != 0) ?
 		(byte & 0x3fu) | (*codep << 6) :
 		(0xff >> type) & (byte);
 

@@ -8,6 +8,9 @@
 
 #include "cgltf/cgltf.h"
 
+#define JSMN_HEADER
+#include "jsmn/jsmn.h"
+
 // like cgltf_load_buffers, but doesn't try to load URIs
 static bool LoadBinaryBuffers( cgltf_data * data ) {
 	if( data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin ) {
@@ -25,11 +28,11 @@ static bool LoadBinaryBuffers( cgltf_data * data ) {
 }
 
 static u8 GetNodeIdx( const cgltf_node * node ) {
-	return u8( uintptr_t( node->camera ) - 1 );
+	return u8( uintptr_t( node->light ) - 1 );
 }
 
 static void SetNodeIdx( cgltf_node * node, u8 idx ) {
-	node->camera = ( cgltf_camera * ) uintptr_t( idx + 1 );
+	node->light = ( cgltf_light * ) uintptr_t( idx + 1 );
 }
 
 static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
@@ -74,14 +77,14 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 	const cgltf_primitive & prim = node->mesh->primitives[ 0 ];
 
 	MeshConfig mesh_config;
-	mesh_config.name = temp( "{} - {}", filename, node->name );
+	mesh_config.name = temp( "{} nodes[{}]", filename, node->name );
 
 	for( size_t i = 0; i < prim.attributes_count; i++ ) {
 		const cgltf_attribute & attr = prim.attributes[ i ];
 
 		if( attr.type == cgltf_attribute_type_position ) {
 			mesh_config.num_vertices = attr.data->count;
-			mesh_config.positions = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.positions = NewGPUBuffer( AccessorToSpan( attr.data ) );
 
 			Vec3 min, max;
 			for( int j = 0; j < 3; j++ ) {
@@ -89,36 +92,36 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 				max[ j ] = attr.data->max[ j ];
 			}
 
-			model->bounds = Extend( model->bounds, ( transform * Vec4( min, 1.0f ) ).xyz() );
-			model->bounds = Extend( model->bounds, ( transform * Vec4( max, 1.0f ) ).xyz() );
+			model->bounds = Union( model->bounds, ( transform * Vec4( min, 1.0f ) ).xyz() );
+			model->bounds = Union( model->bounds, ( transform * Vec4( max, 1.0f ) ).xyz() );
 		}
 
 		if( attr.type == cgltf_attribute_type_normal ) {
-			mesh_config.normals = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.normals = NewGPUBuffer( AccessorToSpan( attr.data ) );
 		}
 
 		if( attr.type == cgltf_attribute_type_texcoord ) {
-			mesh_config.tex_coords = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.tex_coords = NewGPUBuffer( AccessorToSpan( attr.data ) );
 			mesh_config.tex_coords_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 
 		if( attr.type == cgltf_attribute_type_color ) {
-			mesh_config.colors = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.colors = NewGPUBuffer( AccessorToSpan( attr.data ) );
 			mesh_config.colors_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 
 		if( attr.type == cgltf_attribute_type_joints ) {
-			mesh_config.joints = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.joints = NewGPUBuffer( AccessorToSpan( attr.data ) );
 			mesh_config.joints_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 
 		if( attr.type == cgltf_attribute_type_weights ) {
-			mesh_config.weights = NewVertexBuffer( AccessorToSpan( attr.data ) );
+			mesh_config.weights = NewGPUBuffer( AccessorToSpan( attr.data ) );
 			mesh_config.weights_format = VertexFormatFromGLTF( attr.data->type, attr.data->component_type, attr.data->normalized );
 		}
 	}
 
-	mesh_config.indices = NewIndexBuffer( AccessorToSpan( prim.indices ) );
+	mesh_config.indices = NewGPUBuffer( AccessorToSpan( prim.indices ) );
 	mesh_config.indices_format = prim.indices->component_type == cgltf_component_type_r_16u ? IndexFormat_U16 : IndexFormat_U32;
 	mesh_config.num_vertices = prim.indices->count;
 	mesh_config.ccw_winding = true;
@@ -134,7 +137,58 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 	primitive->material = FindMaterial( material_name );
 }
 
-static void LoadNode( const char * filename, Model * model, cgltf_node * gltf_node, u8 * node_idx ) {
+constexpr u32 MAX_EXTRAS = 16;
+struct GltfExtras {
+	Span< const char > keys[ MAX_EXTRAS ];
+	Span< const char > values[ MAX_EXTRAS ];
+	u32 num_extras = 0;
+};
+
+static Span< const char > JsonSpan( Span< const char > json, jsmntok_t * token ) {
+	return json.slice( token->start, token->end );
+}
+
+static GltfExtras LoadExtras( cgltf_data * gltf, cgltf_node * gltf_node ) {
+	char json_data[ 1024 ];
+	size_t json_size = 1024;
+	cgltf_copy_extras_json( gltf, &gltf_node->extras, json_data, &json_size );
+	Span< const char > json( json_data, json_size );
+
+	GltfExtras extras = {};
+
+	jsmn_parser p;
+	constexpr u32 max_tokens = MAX_EXTRAS * 2 + 1;
+	jsmntok_t tokens[ max_tokens ];
+	jsmn_init( &p );
+	int res = jsmn_parse( &p, json.ptr, json.n, tokens, max_tokens );
+	if( res < 0 ) {
+		return extras;
+	}
+	if( res < 1 || tokens[ 0 ].type != JSMN_OBJECT ) {
+		return extras;
+	}
+
+	for( s32 i = 0; i < tokens[ 0 ].size; i++ ) {
+		u32 idx = 1 + i * 2;
+		extras.keys[ extras.num_extras ] = json.slice( tokens[ idx ].start, tokens[ idx ].end );
+		// TODO: value could be object or array...
+		extras.values[ extras.num_extras ] = json.slice( tokens[ idx + 1 ].start, tokens[ idx + 1 ].end );
+		extras.num_extras++;
+	}
+
+	return extras;
+}
+
+static Span< const char > GetExtrasKey( const char * key, GltfExtras * extras ) {
+	for( u32 i = 0; i < extras->num_extras; i++ ) {
+		if( StrEqual( extras->keys[ i ], key ) ) {
+			return extras->values[ i ];
+		}
+	}
+	return MakeSpan( "" );
+}
+
+static void LoadNode( const char * filename, Model * model, cgltf_data * gltf, cgltf_node * gltf_node, u8 * node_idx ) {
 	u8 idx = *node_idx;
 	*node_idx += 1;
 	SetNodeIdx( gltf_node, idx );
@@ -174,6 +228,36 @@ static void LoadNode( const char * filename, Model * model, cgltf_node * gltf_no
 		node->local_transform.scale = gltf_node->scale[ 0 ];
 	}
 
+	{
+		GltfExtras extras = LoadExtras( gltf, gltf_node );
+		Span< const char > type = GetExtrasKey( "type", &extras );
+		Span< const char > color_value = GetExtrasKey( "color", &extras );
+		Vec4 color;
+		for( u32 i = 0; i < 4; i++ ) {
+			color[ i ] = ParseFloat( &color_value, 1.0f, Parse_StopOnNewLine );
+		}
+		if( type == "vfx" ) {
+			node->vfx_type = ModelVfxType_Vfx;
+			node->vfx_node.name = StringHash( GetExtrasKey( "name", &extras ) );
+			node->vfx_node.color = color;
+		}
+		else if( type == "dlight" ) {
+			node->vfx_type = ModelVfxType_DynamicLight;
+			node->dlight_node.color = color;
+			Span< const char > intensity = GetExtrasKey( "intensity", &extras );
+			node->dlight_node.intensity = ParseFloat( &intensity, 0.0f, Parse_DontStopOnNewLine );
+		}
+		else if( type == "decal" ) {
+			node->vfx_type = ModelVfxType_Decal;
+			node->decal_node.color = color;
+			Span< const char > angle = GetExtrasKey( "angle", &extras );
+			node->decal_node.angle = ParseFloat( &angle, 0.0f, Parse_DontStopOnNewLine );
+			Span< const char > radius = GetExtrasKey( "radius", &extras );
+			node->decal_node.radius = ParseFloat( &radius, 0.0f, Parse_DontStopOnNewLine );
+			node->decal_node.name = StringHash( GetExtrasKey( "name", &extras ) );
+		}
+	}
+
 	node->skinned = gltf_node->skin != NULL;
 
 	// TODO: this will break if multiple nodes share a mesh
@@ -183,7 +267,7 @@ static void LoadNode( const char * filename, Model * model, cgltf_node * gltf_no
 	}
 
 	for( size_t i = 0; i < gltf_node->children_count; i++ ) {
-		LoadNode( filename, model, gltf_node->children[ i ], node_idx );
+		LoadNode( filename, model, gltf, gltf_node->children[ i ], node_idx );
 	}
 
 	if( gltf_node->children_count == 0 ) {
@@ -206,7 +290,7 @@ static InterpolationMode InterpolationModeFromGLTF( cgltf_interpolation_type int
 }
 
 template< typename T >
-static void LoadChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< T > * out_channel ) {
+static float LoadChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< T > * out_channel ) {
 	constexpr size_t lanes = sizeof( T ) / sizeof( float );
 	size_t n = chan->sampler->input->count;
 
@@ -221,9 +305,12 @@ static void LoadChannel( const cgltf_animation_channel * chan, Model::AnimationC
 		ok = ok && cgltf_accessor_read_float( chan->sampler->output, i, out_channel->samples[ i ].ptr(), lanes );
 		assert( ok != 0 );
 	}
+
+	float duration = chan->sampler->input->max[ 0 ] - chan->sampler->input->min[ 0 ];
+	return duration;
 }
 
-static void LoadScaleChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< float > * out_channel ) {
+static float LoadScaleChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< float > * out_channel ) {
 	size_t n = chan->sampler->input->count;
 
 	float * memory = ALLOC_MANY( sys_allocator, float, n * 2 );
@@ -243,6 +330,9 @@ static void LoadScaleChannel( const cgltf_animation_channel * chan, Model::Anima
 
 		out_channel->samples[ i ] = scale[ 0 ];
 	}
+
+	float duration = chan->sampler->input->max[ 0 ] - chan->sampler->input->min[ 0 ];
+	return duration;
 }
 
 template< typename T >
@@ -258,23 +348,28 @@ static void CreateSingleSampleChannel( Model::AnimationChannel< T > * out_channe
 	out_channel->samples[ 0 ] = sample;
 }
 
-static void LoadAnimation( Model * model, const cgltf_animation * animation ) {
+static void LoadAnimation( Model * model, const cgltf_animation * animation, u8 index = 0 ) {
+	float duration = 0.0f;
 	for( size_t i = 0; i < animation->channels_count; i++ ) {
 		const cgltf_animation_channel * chan = &animation->channels[ i ];
 
 		u8 node_idx = GetNodeIdx( chan->target_node );
 		assert( node_idx != U8_MAX );
 
+		float channel_duration = 0.0f;
 		if( chan->target_path == cgltf_animation_path_type_translation ) {
-			LoadChannel( chan, &model->nodes[ node_idx ].translations );
+			channel_duration = LoadChannel( chan, &model->nodes[ node_idx ].animations[ index ].translations );
 		}
 		else if( chan->target_path == cgltf_animation_path_type_rotation ) {
-			LoadChannel( chan, &model->nodes[ node_idx ].rotations );
+			channel_duration = LoadChannel( chan, &model->nodes[ node_idx ].animations[ index ].rotations );
 		}
 		else if( chan->target_path == cgltf_animation_path_type_scale ) {
-			LoadScaleChannel( chan, &model->nodes[ node_idx ].scales );
+			channel_duration = LoadScaleChannel( chan, &model->nodes[ node_idx ].animations[ index ].scales );
 		}
+		duration = Max2( channel_duration, duration );
 	}
+	model->animations[ index ].name = StringHash( animation->name );
+	model->animations[ index ].duration = duration;
 }
 
 static void LoadSkin( Model * model, const cgltf_skin * skin ) {
@@ -291,8 +386,8 @@ static void LoadSkin( Model * model, const cgltf_skin * skin ) {
 }
 
 bool LoadGLTFModel( Model * model, const char * path ) {
-	ZoneScoped;
-	ZoneText( path, strlen( path ) );
+	TracyZoneScoped;
+	TracyZoneText( path, strlen( path ) );
 
 	Span< const u8 > data = AssetBinary( path );
 
@@ -317,8 +412,13 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 		return false;
 	}
 
-	if( gltf->scenes_count != 1 || gltf->animations_count > 1 || gltf->skins_count > 1 ) {
+	if( gltf->scenes_count != 1 || gltf->skins_count > 1 || gltf->cameras_count > 1 ) {
 		Com_Printf( S_COLOR_YELLOW "Trivial models only please (%s)\n", path );
+		return false;
+	}
+
+	if( gltf->lights_count != 0 ) {
+		Com_Printf( S_COLOR_YELLOW "We can't load models that have lights in them (%s)\n", path );
 		return false;
 	}
 
@@ -348,16 +448,31 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 
 	u8 node_idx = 0;
 	for( size_t i = 0; i < gltf->scene->nodes_count; i++ ) {
-		LoadNode( path, model, gltf->scene->nodes[ i ], &node_idx );
+		LoadNode( path, model, gltf, gltf->scene->nodes[ i ], &node_idx );
 		model->nodes[ GetNodeIdx( gltf->scene->nodes[ i ] ) ].sibling = U8_MAX;
 	}
 
 	if( gltf->animations_count > 0 ) {
+		model->num_animations = gltf->animations_count;
 		if( gltf->skins_count > 0 ) {
 			LoadSkin( model, &gltf->skins[ 0 ] );
 		}
 
-		LoadAnimation( model, &gltf->animations[ 0 ] );
+		model->animations = ALLOC_MANY( sys_allocator, Model::Animation, gltf->animations_count );
+		for( size_t i = 0; i < model->num_nodes; i++ ) {
+			model->nodes[ i ].animations = ALLOC_SPAN( sys_allocator, Model::NodeAnimation, gltf->animations_count );
+			memset( model->nodes[ i ].animations.ptr, 0, sizeof( Model::NodeAnimation ) * gltf->animations_count );
+		}
+		for( size_t i = 0; i < gltf->animations_count; i++ ) {
+			LoadAnimation( model, &gltf->animations[ i ], i );
+		}
+	}
+
+	model->camera = U8_MAX;
+	for( size_t i = 0; i < gltf->nodes_count; i++ ) {
+		if( gltf->nodes[ i ].camera != NULL ) {
+			model->camera = GetNodeIdx( &gltf->nodes[ i ] );
+		}
 	}
 
 	return true;

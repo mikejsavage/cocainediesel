@@ -21,13 +21,25 @@ u64 Hash64( Span< const T > data ) {
 	return Hash64( data.ptr, data.num_bytes() );
 }
 
+// case insensitive hashing
+u64 CaseHash64( Span< const char > str );
+u64 CaseHash64( const char * str );
+
 // compile time hashing
-constexpr u32 Hash32_CT( const char * str, size_t n, u32 basis = U32( 2166136261 ) ) {
-	return n == 0 ? basis : Hash32_CT( str + 1, n - 1, ( basis ^ str[ 0 ] ) * U32( 16777619 ) );
+constexpr u32 Hash32_CT( const char * data, size_t n, u32 hash = U32( 2166136261 ) ) {
+	constexpr u32 prime = U32( 16777619 );
+	for( size_t i = 0; i < n; i++ ) {
+		hash = ( hash ^ data[ i ] ) * prime;
+	}
+	return hash;
 }
 
-constexpr u64 Hash64_CT( const char * str, size_t n, u64 basis = U64( 14695981039346656037 ) ) {
-	return n == 0 ? basis : Hash64_CT( str + 1, n - 1, ( basis ^ str[ 0 ] ) * U64( 1099511628211 ) );
+constexpr u64 Hash64_CT( const char * data, size_t n, u64 hash = U64( 14695981039346656037 ) ) {
+	constexpr u64 prime = U64( 1099511628211 );
+	for( size_t i = 0; i < n; i++ ) {
+		hash = ( hash ^ data[ i ] ) * prime;
+	}
+	return hash;
 }
 
 struct StringHash {

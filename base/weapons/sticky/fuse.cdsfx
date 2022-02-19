@@ -1,0 +1,6 @@
+{
+	delay 1.520
+	attenuation distant
+	sound ./fuse
+	volume 0.075
+}

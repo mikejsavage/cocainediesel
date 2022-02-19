@@ -6,19 +6,10 @@
 
 static char * root_dir_path;
 static char * home_dir_path;
-static char * versioned_home_dir_path;
-
-static void ReplaceBackslashes( char * path ) {
-	char * cursor = path;
-	while( ( cursor = StrChrUTF8( cursor, '\\' ) ) != NULL ) {
-		*cursor = '/';
-		cursor++;
-	}
-}
+static char * old_home_dir_path;
 
 static char * FindRootDir( Allocator * a ) {
 	char * root = GetExePath( a );
-	ReplaceBackslashes( root );
 	root[ BasePath( root ).n ] = '\0';
 	return root;
 }
@@ -28,23 +19,19 @@ void InitFS() {
 
 	if( !is_public_build ) {
 		home_dir_path = CopyString( sys_allocator, root_dir_path );
-		versioned_home_dir_path = CopyString( sys_allocator, home_dir_path );
+		old_home_dir_path = CopyString( sys_allocator, home_dir_path );
 	}
 	else {
 		home_dir_path = FindHomeDirectory( sys_allocator );
 
 		const char * fmt = IFDEF( PLATFORM_WINDOWS ) ? "{} 0.0" : "{}-0.0";
-		versioned_home_dir_path = ( *sys_allocator )( fmt, home_dir_path );
+		old_home_dir_path = ( *sys_allocator )( fmt, home_dir_path );
 	}
-
-	ReplaceBackslashes( versioned_home_dir_path );
-	ReplaceBackslashes( home_dir_path );
 }
 
 void ShutdownFS() {
 	FREE( sys_allocator, root_dir_path );
 	FREE( sys_allocator, home_dir_path );
-	FREE( sys_allocator, versioned_home_dir_path );
 }
 
 const char * RootDirPath() {
@@ -52,11 +39,11 @@ const char * RootDirPath() {
 }
 
 const char * HomeDirPath() {
-	return versioned_home_dir_path;
+	return home_dir_path;
 }
 
-const char * FutureHomeDirPath() {
-	return home_dir_path;
+const char * OldHomeDirPath() {
+	return old_home_dir_path;
 }
 
 // TODO: some kind of better handling
@@ -114,7 +101,7 @@ bool FileExists( Allocator * temp, const char * path ) {
 	return true;
 }
 
-static bool CreatePathForFile( Allocator * a, const char * path ) {
+bool CreatePathForFile( Allocator * a, const char * path ) {
 	char * mutable_path = CopyString( a, path );
 	defer { FREE( a, mutable_path ); };
 
@@ -132,7 +119,7 @@ static bool CreatePathForFile( Allocator * a, const char * path ) {
 		}
 	}
 
-	while( ( cursor = StrChrUTF8( cursor, '/' ) ) != NULL ) {
+	while( ( cursor = strchr( cursor, '/' ) ) != NULL ) {
 		*cursor = '\0';
 		if( !CreateDirectory( a, mutable_path ) )
 			return false;
@@ -157,6 +144,15 @@ bool WriteFile( TempAllocator * temp, const char * path, const void * data, size
 	return w == len;
 }
 
+bool ReadPartialFile( FILE * file, void * data, size_t len, size_t * bytes_read ) {
+	*bytes_read = fread( data, 1, len, file );
+	return *bytes_read > 0 && ferror( file ) == 0;
+}
+
 bool WritePartialFile( FILE * file, const void * data, size_t len ) {
 	return fwrite( data, 1, len, file ) == len;
+}
+
+bool Seek( FILE * file, size_t cursor ) {
+	return fseek( file, checked_cast< long >( cursor ), SEEK_SET );
 }

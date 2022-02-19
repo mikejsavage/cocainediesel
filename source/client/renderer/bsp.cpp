@@ -51,11 +51,6 @@ struct BSPMaterial {
 	u32 contents;
 };
 
-struct BSPPlane {
-	Vec3 normal;
-	float dist;
-};
-
 struct BSPNode {
 	int planenum;
 	int children[2];
@@ -177,7 +172,7 @@ struct BSPVisbilityHeader {
 struct BSPSpans {
 	Span< const char > entities;
 	Span< const BSPMaterial > materials;
-	Span< const BSPPlane > planes;
+	Span< const Plane > planes;
 	Span< const BSPNode > nodes;
 	Span< const BSPLeaf > leaves;
 	Span< const BSPLeafBrush > leafbrushes;
@@ -253,7 +248,7 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 }
 
 static float ParseFogStrength( const BSPSpans * bsp ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	Span< const char > key = ParseWorldspawnKey( bsp->entities, "fog_strength" );
 	return SpanToFloat( key, 0.0007f );
@@ -281,8 +276,7 @@ struct GPUBSPPlane {
 	float dist;
 };
 
-struct GPUBSPNode {
-	s32 plane;
+struct GPUBSPNodeLinks {
 	s32 children[ 2 ];
 };
 
@@ -341,7 +335,7 @@ static int Order2BezierSubdivisions( Vec3 control0, Vec3 control1, Vec3 control2
 }
 
 static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex > & vertices, const BSPSpans & bsp, size_t model_idx ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	const BSPModel & bsp_model = bsp.models[ model_idx ];
 	if( bsp_model.num_faces == 0 )
@@ -418,7 +412,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 		}
 
 		if( dc.patch ) {
-			ZoneScopedN( "Generate patch" );
+			TracyZoneScopedN( "Generate patch" );
 
 			u32 num_patches_x = ( dc.patch_width - 1 ) / 2;
 			u32 num_patches_y = ( dc.patch_height - 1 ) / 2;
@@ -503,35 +497,39 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	MeshConfig mesh_config;
-	mesh_config.name = temp( "{} - {}", filename, model_idx );
-	mesh_config.ccw_winding = false;
-	mesh_config.unified_buffer = NewVertexBuffer( vertices.ptr(), vertices.num_bytes() );
-	mesh_config.stride = sizeof( vertices[ 0 ] );
-	mesh_config.positions_offset = offsetof( BSPModelVertex, position );
-	mesh_config.normals_offset = offsetof( BSPModelVertex, normal );
-	mesh_config.tex_coords_offset = offsetof( BSPModelVertex, uv );
-	mesh_config.num_vertices = indices.size();
+	{
+		TracyZoneScopedN( "Upload to GPU" );
 
-	// if( num_verts <= U16_MAX ) {
-	// 	DynamicArray< u16 > indices_u16( sys_allocator, indices.size() );
-	// 	for( u32 i = 0; i < indices.size(); i++ ) {
-	// 		indices_u16.add( indices[ i ] );
-	// 	}
-	// 	mesh_config.indices = NewIndexBuffer( indices.ptr(), indices.num_bytes() );
-	// }
-	// else {
-		mesh_config.indices = NewIndexBuffer( indices.ptr(), indices.num_bytes() );
-		mesh_config.indices_format = IndexFormat_U32;
-	// }
+		MeshConfig mesh_config;
+		mesh_config.name = temp( "{} models[{}]", filename, model_idx );
+		mesh_config.ccw_winding = false;
+		mesh_config.unified_buffer = NewGPUBuffer( vertices.ptr(), vertices.num_bytes(), temp( "{} - {} vertices", filename, model_idx ) );
+		mesh_config.stride = sizeof( vertices[ 0 ] );
+		mesh_config.positions_offset = offsetof( BSPModelVertex, position );
+		mesh_config.normals_offset = offsetof( BSPModelVertex, normal );
+		mesh_config.tex_coords_offset = offsetof( BSPModelVertex, uv );
+		mesh_config.num_vertices = indices.size();
 
-	model.mesh = NewMesh( mesh_config );
+		// if( num_verts <= U16_MAX ) {
+		// 	DynamicArray< u16 > indices_u16( sys_allocator, indices.size() );
+		// 	for( u32 i = 0; i < indices.size(); i++ ) {
+		// 		indices_u16.add( indices[ i ] );
+		// 	}
+		// 	mesh_config.indices = NewGPUBuffer( indices.ptr(), indices.num_bytes(), temp( "{} - {} indices", filename, model_idx ) );
+		// }
+		// else {
+			mesh_config.indices = NewGPUBuffer( indices.ptr(), indices.num_bytes(), temp( "{} - {} indices", filename, model_idx ) );
+			mesh_config.indices_format = IndexFormat_U32;
+		// }
+
+		model.mesh = NewMesh( mesh_config );
+	}
 
 	return model;
 }
 
 bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< const u8 > data ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	BSPSpans bsp;
 	if( !ParseBSP( &bsp, data ) )
@@ -570,19 +568,18 @@ bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< c
 		map->models[ i ] = LoadBSPModel( filename, vertices, bsp, i );
 	}
 
-	DynamicArray< GPUBSPNode > nodes( sys_allocator, bsp.nodes.n );
+	DynamicArray< GPUBSPNodeLinks > nodes( sys_allocator, bsp.nodes.n );
 	DynamicArray< GPUBSPLeaf > leaves( sys_allocator, bsp.leaves.n );
 	DynamicArray< GPUBSPLeafBrush > leafbrushes( sys_allocator, bsp.leafbrushes.n );
-	DynamicArray< GPUBSPPlane > planes( sys_allocator, bsp.planes.n + bsp.brushsides.n );
+	DynamicArray< Plane > planes( sys_allocator, bsp.planes.n + bsp.brushsides.n );
 
 	for( u32 i = 0; i < bsp.nodes.n; i++ ) {
 		const BSPNode node = bsp.nodes[ i ];
-		const BSPPlane plane = bsp.planes[ node.planenum ];
+		const Plane plane = bsp.planes[ node.planenum ];
 
-		GPUBSPNode gpu_node = { int( planes.size() ), node.children[ 0 ], node.children[ 1 ] };
+		GPUBSPNodeLinks gpu_node = { node.children[ 0 ], node.children[ 1 ] };
 		nodes.add( gpu_node );
-		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };
-		planes.add( gpu_plane );
+		planes.add( plane );
 	}
 
 	for( u32 i = 0; i < bsp.leaves.n; i++ ) {
@@ -600,37 +597,17 @@ bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< c
 	}
 	for( u32 i = 0; i < bsp.brushsides.n; i++ ) {
 		const BSPBrushSide brushside = bsp.brushsides[ i ];
-		const BSPPlane plane = bsp.planes[ brushside.planenum ];
-		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };
-		planes.add( gpu_plane );
+		planes.add( bsp.planes[ brushside.planenum ] );
 	}
 	for( u32 i = 0; i < bsp.raven_brushsides.n; i++ ) {
 		const RavenBSPBrushSide brushside = bsp.raven_brushsides[ i ];
-		const BSPPlane plane = bsp.planes[ brushside.planenum ];
-		GPUBSPPlane gpu_plane = { plane.normal, plane.dist };
-		planes.add( gpu_plane );
+		planes.add( bsp.planes[ brushside.planenum ] );
 	}
 
-	TextureBuffer nodesBuffer = NewTextureBuffer( TextureBufferFormat_S32x3, nodes.size() );
-	WriteTextureBuffer( nodesBuffer, nodes.ptr(), nodes.size() * sizeof( GPUBSPNode ) );
-	map->nodeBuffer = nodesBuffer;
-
-	TextureBuffer leafBuffer = NewTextureBuffer( TextureBufferFormat_S32x2, leaves.size() );
-	WriteTextureBuffer( leafBuffer, leaves.ptr(), leaves.size() * sizeof( GPUBSPLeaf ) );
-	map->leafBuffer = leafBuffer;
-
-	TextureBuffer brushBuffer = NewTextureBuffer( TextureBufferFormat_S32x2, leafbrushes.size() );
-	WriteTextureBuffer( brushBuffer, leafbrushes.ptr(), leafbrushes.size() * sizeof( GPUBSPLeafBrush ) );
-	map->brushBuffer = brushBuffer;
-
-	TextureBuffer planeBuffer = NewTextureBuffer( TextureBufferFormat_Floatx4, planes.size() );
-	WriteTextureBuffer( planeBuffer, planes.ptr(), planes.size() * sizeof( GPUBSPPlane ) );
-	map->planeBuffer = planeBuffer;
-
-	nodes.clear();
-	leaves.clear();
-	leafbrushes.clear();
-	planes.clear();
+	map->nodeBuffer = NewGPUBuffer( nodes.span() );
+	map->leafBuffer = NewGPUBuffer( leaves.span() );
+	map->brushBuffer = NewGPUBuffer( leafbrushes.span() );
+	map->planeBuffer = NewGPUBuffer( planes.span() );
 
 	return true;
 }
@@ -642,8 +619,8 @@ void DeleteBSPRenderData( Map * map ) {
 
 	FREE( sys_allocator, map->models );
 
-	DeleteTextureBuffer( map->nodeBuffer );
-	DeleteTextureBuffer( map->leafBuffer );
-	DeleteTextureBuffer( map->brushBuffer );
-	DeleteTextureBuffer( map->planeBuffer );
+	DeleteGPUBuffer( map->nodeBuffer );
+	DeleteGPUBuffer( map->leafBuffer );
+	DeleteGPUBuffer( map->brushBuffer );
+	DeleteGPUBuffer( map->planeBuffer );
 }

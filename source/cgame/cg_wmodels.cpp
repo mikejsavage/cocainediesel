@@ -3,6 +3,7 @@
 #include "client/renderer/renderer.h"
 
 static WeaponModelMetadata weapon_model_metadata[ Weapon_Count ];
+static GadgetModelMetadata gadget_model_metadata[ Gadget_Count ];
 
 static bool ParseWeaponModelConfig( WeaponModelMetadata * metadata, const char * filename ) {
 	Span< const char > contents = AssetString( filename );
@@ -26,7 +27,7 @@ static bool ParseWeaponModelConfig( WeaponModelMetadata * metadata, const char *
 	return true;
 }
 
-static WeaponModelMetadata LoadWeaponModel( WeaponType weapon ) {
+static WeaponModelMetadata BuildWeaponModelMetadata( WeaponType weapon ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	WeaponModelMetadata metadata;
@@ -38,25 +39,45 @@ static WeaponModelMetadata LoadWeaponModel( WeaponType weapon ) {
 	ParseWeaponModelConfig( &metadata, temp( "weapons/{}/model.cfg", name ) );
 
 	metadata.fire_sound = StringHash( temp( "weapons/{}/fire", name ) );
-	metadata.up_sound = StringHash( temp( "weapons/{}/up", name ) );
+	metadata.reload_sound = StringHash( temp( "weapons/{}/reload", name ) );
+	metadata.switch_in_sound = StringHash( temp( "weapons/{}/up", name ) );
 	metadata.zoom_in_sound = StringHash( temp( "weapons/{}/zoom_in", name ) );
 	metadata.zoom_out_sound = StringHash( temp( "weapons/{}/zoom_out", name ) );
 
-	metadata.tag_projectionsource.origin = Vec3( 16, 0, 8 );
-	Matrix3_Identity( metadata.tag_projectionsource.axis );
+	return metadata;
+}
+
+static GadgetModelMetadata BuildGadgetModelMetadata( GadgetType gadget ) {
+	TempAllocator temp = cls.frame_arena.temp();
+	const char * name = GetGadgetDef( gadget )->short_name;
+
+	GadgetModelMetadata metadata;
+
+	metadata.model = FindModel( temp( "gadgets/{}/model", name ) );
+	metadata.use_sound = StringHash( temp( "gadgets/{}/use", name ) );
+	metadata.switch_in_sound = StringHash( temp( "gadgets/{}/switch_in", name ) );
 
 	return metadata;
 }
 
 void InitWeaponModels() {
 	weapon_model_metadata[ Weapon_None ] = { };
+	for( WeaponType i = WeaponType( Weapon_None + 1 ); i < Weapon_Count; i++ ) {
+		weapon_model_metadata[ i ] = BuildWeaponModelMetadata( i );
+	}
 
-	for( WeaponType i = Weapon_None + 1; i < Weapon_Count; i++ ) {
-		weapon_model_metadata[ i ] = LoadWeaponModel( i );
+	gadget_model_metadata[ Gadget_None ] = { };
+	for( u8 i = u8( Gadget_None ) + 1; i < Gadget_Count; i++ ) {
+		gadget_model_metadata[ i ] = BuildGadgetModelMetadata( GadgetType( i ) );
 	}
 }
 
 const WeaponModelMetadata * GetWeaponModelMetadata( WeaponType weapon ) {
 	assert( weapon < Weapon_Count );
 	return &weapon_model_metadata[ weapon ];
+}
+
+const GadgetModelMetadata * GetGadgetModelMetadata( GadgetType gadget ) {
+	assert( gadget < Gadget_Count );
+	return &gadget_model_metadata[ gadget ];
 }

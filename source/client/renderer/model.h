@@ -9,6 +9,35 @@ enum InterpolationMode {
 	// InterpolationMode_CubicSpline,
 };
 
+struct DrawModelConfig {
+	struct DrawModel {
+		bool enabled;
+		bool view_weapon;
+	} draw_model;
+
+	struct DrawShadows {
+		bool enabled;
+	} draw_shadows;
+
+	struct DrawOutlines {
+		bool enabled;
+		float outline_height;
+		Vec4 outline_color;
+	} draw_outlines;
+
+	struct DrawSilhouette {
+		bool enabled;
+		Vec4 silhouette_color;
+	} draw_silhouette;
+};
+
+enum ModelVfxType {
+	ModelVfxType_Generic,
+	ModelVfxType_Vfx,
+	ModelVfxType_DynamicLight,
+	ModelVfxType_Decal,
+};
+
 struct Model {
 	struct Primitive {
 		const Material * material;
@@ -25,6 +54,34 @@ struct Model {
 		InterpolationMode interpolation;
 	};
 
+	struct Animation {
+		StringHash name;
+		float duration;
+	};
+
+	struct NodeAnimation {
+		AnimationChannel< Quaternion > rotations;
+		AnimationChannel< Vec3 > translations;
+		AnimationChannel< float > scales;
+	};
+
+	struct VfxNode {
+		StringHash name;
+		Vec4 color;
+	};
+
+	struct DynamicLightNode {
+		Vec4 color;
+		float intensity;
+	};
+
+	struct DecalNode {
+		StringHash name;
+		Vec4 color;
+		float radius;
+		float angle;
+	};
+
 	struct Node {
 		u32 name;
 
@@ -36,10 +93,15 @@ struct Model {
 		u8 first_child;
 		u8 sibling;
 
-		AnimationChannel< Quaternion > rotations;
-		AnimationChannel< Vec3 > translations;
-		AnimationChannel< float > scales;
+		Span< NodeAnimation > animations;
 		bool skinned;
+
+		ModelVfxType vfx_type;
+		union {
+			VfxNode vfx_node;
+			DynamicLightNode dlight_node;
+			DecalNode decal_node;
+		};
 	};
 
 	struct Joint {
@@ -60,6 +122,11 @@ struct Model {
 
 	Joint * skin;
 	u8 num_joints;
+
+	u8 camera;
+
+	Animation * animations;
+	u8 num_animations;
 };
 
 void InitModels();
@@ -79,14 +146,9 @@ bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< c
 void DeleteBSPRenderData( Map * map );
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline );
-void DrawModel( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
-void DrawViewWeapon( const Model * model, const Mat4 & transform );
-void DrawOutlinedViewWeapon( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height );
-void DrawModelSilhouette( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
-void DrawOutlinedModel( const Model * model, const Mat4 & transform, const Vec4 & color, float outline_height, MatrixPalettes palettes = MatrixPalettes() );
-void DrawModelShadow( const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
+void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
 
-Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t );
+Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t, u8 animation = 0 );
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses );
 bool FindNodeByName( const Model * model, u32 name, u8 * idx );
 void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_joint );

@@ -35,10 +35,10 @@
 
     count 1
   }
-  
+
   particles {
     material textures/vfx/smoke1
-    blendfunc blend
+    blendfunc add
     rotate
     stretch
 
@@ -57,7 +57,7 @@
     count 1
   }
 
-    particles {
+  particles {
     material textures/vfx/smoke1
     blendfunc add
     rotate

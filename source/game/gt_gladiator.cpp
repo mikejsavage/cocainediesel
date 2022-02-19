@@ -1,33 +1,11 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
+#include "qcommon/fs.h"
 #include "qcommon/string.h"
 
 #include "game/g_local.h"
 
 #include "qcommon/cmodel.h"
-
-static const char * maps[] = {
-	"gladiator/001",
-	"gladiator/002",
-	"gladiator/003",
-	"gladiator/004",
-	"gladiator/005",
-	"gladiator/006",
-	"gladiator/007",
-	// "gladiator/008",
-	"gladiator/009",
-	"gladiator/010",
-	"gladiator/011",
-	"gladiator/012",
-	"gladiator/013",
-	"gladiator/014",
-	"gladiator/015",
-	"gladiator/016",
-	"gladiator/017",
-	"gladiator/018",
-	"gladiator/019",
-	// "gladiator/020",
-};
 
 enum GladiatorRoundState {
 	GladiatorRoundState_None,
@@ -47,7 +25,6 @@ static struct GladiatorState {
 	NonRAIIDynamicArray< s32 > round_losers;
 	s32 round_winner;
 	bool randomise;
-	edict_t * last_spawn;
 } gladiator_state;
 
 static constexpr int countdown_seconds = 2;
@@ -64,7 +41,7 @@ static void ChallengersQueueClear() {
 }
 
 static void ChallengersQueueAddPlayer( s32 player_num ) {
-	assert( player_num < MAX_CLIENTS );
+	assert( player_num >= 0 && player_num < server_gs.maxclients );
 	for( s32 & player : gladiator_state.challengers_queue ) {
 		if( player == player_num ) {
 			return;
@@ -197,23 +174,15 @@ static void Think() {
 	}
 }
 
-static void SetUpWarmup() {
-	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		G_SpawnQueue_SetTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
-	}
-}
-
 static void SetUpCountdown() {
 	StringHash sound = "sounds/gladiator/let_the_games_begin";
 	G_AnnouncerSound( NULL, sound, GS_MAX_TEAMS, false, NULL );
 }
 
 static void NewGame() {
-	level.gametype.countdownEnabled = false;
+	level.gametype.autoRespawn = false;
 
 	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		G_SpawnQueue_SetTeamSpawnsystem( team, SPAWNSYSTEM_HOLD, 0, 0, true );
-
 		for( int i = 0; i < server_gs.gameState.teams[ team ].num_players; i++ ) {
 			s32 player_num = server_gs.gameState.teams[ team ].player_indices[ i ] - 1;
 			*G_ClientGetStats( PLAYERENT( player_num ) ) = { };
@@ -235,8 +204,7 @@ static void EndGame() {
 		}
 	}
 
-	level.gametype.countdownEnabled = false;
-	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = PLAYERENT( i );
 		if( G_ISGHOSTING( ent ) || PF_GetClientState( i ) < CS_SPAWNED ) {
 			continue;
@@ -252,7 +220,27 @@ static void EndGame() {
 void G_Aasdf(); // TODO
 static void PickRandomArena() {
 	if( gladiator_state.randomise ) {
-		G_LoadMap( RandomElement( &svs.rng, maps ) );
+		TempAllocator temp = svs.frame_arena.temp();
+
+		const char * maps_dir = temp( "{}/base/maps/gladiator", RootDirPath() );
+		DynamicArray< const char * > maps( &temp );
+
+		ListDirHandle scan = BeginListDir( sys_allocator, maps_dir );
+
+		const char * name;
+		bool dir;
+		while( ListDirNext( &scan, &name, &dir ) ) {
+			// skip ., .., .git, etc
+			if( name[ 0 ] == '.' || dir )
+				continue;
+
+			if( FileExtension( name ) != ".bsp" && FileExtension( StripExtension( name ) ) != ".bsp" )
+				continue;
+
+			maps.add( temp( "gladiator/{}", StripExtension( StripExtension( name ) ) ) );
+		}
+
+		G_LoadMap( RandomElement( &svs.rng, maps.begin(), maps.size() ) );
 		G_Aasdf();
 	}
 }
@@ -265,14 +253,17 @@ static void DoSpinner() {
 		return;
 	}
 
-	WeaponType weap1 = RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count );
-	WeaponType weap2 = RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 );
+	WeaponType weap1 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count ) );
+	WeaponType weap2 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 ) );
+
+	u8 p = RandomUniform( &svs.rng, 0, 3 ); //we'll randomize properly when all the hud stuff and perks fit the game
+	PerkType perk = p == 0 ? Perk_Hooligan : p == 1 ? Perk_Midget : Perk_Jetpack;
 
 	if( weap2 >= weap1 ) {
 		weap2++;
 	}
 
-	for( int i = 0; i < MAX_CLIENTS; i++ ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = PLAYERENT( i );
 		if( G_ISGHOSTING( ent ) ) {
 			continue;
@@ -281,11 +272,11 @@ static void DoSpinner() {
 		G_GiveWeapon( ent, weap1 );
 		G_GiveWeapon( ent, weap2 );
 		G_SelectWeapon( ent, 0 );
+		G_GivePerk( ent, perk );
 	}
 }
 
 static void NewRound() {
-	gladiator_state.last_spawn = NULL;
 	PickRandomArena();
 	server_gs.gameState.round_num++;
 	NewRoundState( GladiatorRoundState_Pre );
@@ -329,7 +320,7 @@ static void NewRoundState( GladiatorRoundState newState ) {
 			}
 
 			// respawn all clients
-			for( int i = 0; i < MAX_CLIENTS; i++ ) {
+			for( int i = 0; i < server_gs.maxclients; i++ ) {
 				edict_t * ent = PLAYERENT( i );
 				if( PF_GetClientState( i ) >= CS_SPAWNED ) {
 					GClip_UnlinkEntity( ent );
@@ -353,8 +344,6 @@ static void NewRoundState( GladiatorRoundState newState ) {
 				}
 				else {
 					G_ClientRespawn( ent, true );
-					G_ChasePlayer( ent, NULL, false, 0 );
-					ent->r.client->resp.chase.active = true;
 				}
 			}
 
@@ -363,7 +352,7 @@ static void NewRoundState( GladiatorRoundState newState ) {
 			// generate vs string
 			TempAllocator temp = svs.frame_arena.temp();
 			DynamicString vs_string( &temp, "{}", PLAYERENT( gladiator_state.round_challengers[ 0 ] )->r.client->netname );
-			for( int i = 1; i < gladiator_state.round_challengers.size(); i++ ) {
+			for( size_t i = 1; i < gladiator_state.round_challengers.size(); i++ ) {
 				s32 player = gladiator_state.round_challengers[ i ];
 				vs_string.append( temp( " vs. {}", PLAYERENT( player )->r.client->netname ) );
 			}
@@ -373,7 +362,7 @@ static void NewRoundState( GladiatorRoundState newState ) {
 			// check for match point
 			int limit = g_scorelimit->integer;
 			RoundType type = RoundType_Normal;
-			for( int i = 0; i < num_players; i++ ) {
+			for( size_t i = 0; i < num_players; i++ ) {
 				s32 player_num = server_gs.gameState.teams[ TEAM_PLAYERS ].player_indices[ i ] - 1;
 				int score = G_ClientGetStats( PLAYERENT( player_num ) )->score;
 				if( score == limit - 1 ) {
@@ -426,18 +415,39 @@ static void NewRoundState( GladiatorRoundState newState ) {
 
 // --------------
 
-static edict_t * GT_Gladiator_SelectSpawnPoint( edict_t * ent ) {
-	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
-		return NULL;
+static const edict_t * GT_Gladiator_SelectSpawnPoint( const edict_t * ent ) {
+	const edict_t * spawn = NULL;
+	edict_t * cursor = NULL;
+	float max_dist = 0.0f;
+
+	while( ( cursor = G_Find( cursor, &edict_t::classname, "spawn_gladiator" ) ) != NULL ) {
+		float min_dist = -1.0f;
+		for( edict_t * player = game.edicts + 1; PLAYERNUM( player ) < server_gs.maxclients; player++ ) {
+			if( player == ent || G_IsDead( player ) || player->s.team <= TEAM_SPECTATOR || PF_GetClientState( PLAYERNUM( player ) ) < CS_SPAWNED ) {
+				continue;
+			}
+
+			float dist = Length( player->s.origin - cursor->s.origin );
+			if( min_dist == -1.0f || dist < min_dist ) {
+				min_dist = dist;
+			}
+		}
+
+		if( min_dist == -1.0f ) { //If no player is spawned, pick a random spawn
+			spawn = G_PickRandomEnt( &edict_t::classname, "spawn_gladiator" );
+			break;
+		}
+
+		if( spawn == NULL || max_dist < min_dist ) {
+			max_dist = min_dist;
+			spawn = cursor;
+		}
 	}
-	edict_t * spawn = G_Find( gladiator_state.last_spawn, &edict_t::classname, "spawn_gladiator" );
-	if( spawn == NULL ) {
-		spawn = G_Find( NULL, &edict_t::classname, "spawn_gladiator" );
-	}
-	gladiator_state.last_spawn = spawn;
+
 	if( spawn == NULL ) {
 		Com_GGPrint( "null spawn btw" );
 	}
+
 	return spawn;
 }
 
@@ -451,8 +461,8 @@ static void GT_Gladiator_PlayerRespawned( edict_t *ent, int old_team, int new_te
 	}
 
 	if( server_gs.gameState.match_state != MatchState_Playing ) {
-		WeaponType weap1 = RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count );
-		WeaponType weap2 = RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 );
+		WeaponType weap1 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count ) );
+		WeaponType weap2 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 ) );
 
 		if( weap2 >= weap1 ) {
 			weap2++;
@@ -461,6 +471,7 @@ static void GT_Gladiator_PlayerRespawned( edict_t *ent, int old_team, int new_te
 		G_GiveWeapon( ent, weap1 );
 		G_GiveWeapon( ent, weap2 );
 		G_SelectWeapon( ent, 0 );
+		G_GivePerk( ent, Perk_Hooligan );
 		G_RespawnEffect( ent );
 	}
 }
@@ -507,7 +518,6 @@ static bool GT_Gladiator_MatchStateFinished( MatchState incomingMatchState ) {
 static void GT_Gladiator_MatchStateStarted() {
 	switch( server_gs.gameState.match_state ) {
 		case MatchState_Warmup:
-			SetUpWarmup();
 			break;
 		case MatchState_Countdown:
 			SetUpCountdown();
@@ -531,16 +541,6 @@ static void GT_Gladiator_InitGametype() {
 	gladiator_state.round_losers.init( sys_allocator, MAX_CLIENTS );
 	ChallengersQueueClear();
 
-	level.gametype.isTeamBased = false;
-	level.gametype.countdownEnabled = false;
-	level.gametype.removeInactivePlayers = true;
-	level.gametype.selfDamage = false;
-
-	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		G_SpawnQueue_SetTeamSpawnsystem( team, SPAWNSYSTEM_INSTANT, 0, 0, false );
-	}
-	gladiator_state.last_spawn = NULL;
-
 	gladiator_state.randomise = G_GetWorldspawnKey( "randomise_arena" ) != "";
 
 	PickRandomArena();
@@ -550,6 +550,11 @@ static void GT_Gladiator_Shutdown() {
 	gladiator_state.challengers_queue.shutdown();
 	gladiator_state.round_challengers.shutdown();
 	gladiator_state.round_losers.shutdown();
+
+	if( gladiator_state.randomise ) {
+		G_LoadMap( "gladiator" );
+		G_Aasdf();
+	}
 }
 
 static bool GT_Gladiator_SpawnEntity( StringHash classname, edict_t * ent ) {
@@ -575,9 +580,9 @@ Gametype GetGladiatorGametype() {
 	gt.SpawnEntity = GT_Gladiator_SpawnEntity;
 
 	gt.isTeamBased = false;
-	gt.countdownEnabled = false;
 	gt.removeInactivePlayers = true;
 	gt.selfDamage = false;
+	gt.autoRespawn = true;
 
 	return gt;
 }

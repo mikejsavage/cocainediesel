@@ -20,79 +20,79 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
-static void CG_ViewWeapon_UpdateProjectionSource( Vec3 hand_origin, const mat3_t hand_axis, Vec3 weap_origin, const mat3_t weap_axis ) {
-	orientation_t *tag_result = &cg.weapon.projectionSource;
-	orientation_t tag_weapon;
-
-	tag_weapon.origin = Vec3( 0.0f );
-	Matrix3_Copy( axis_identity, tag_weapon.axis );
-
-	// move to tag_weapon
-	CG_MoveToTag( &tag_weapon.origin, tag_weapon.axis,
-				  hand_origin, hand_axis,
-				  weap_origin, weap_axis );
-
-	const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( cg.predictedPlayerState.weapon );
-
-	// move to projectionSource tag
-	if( weaponInfo ) {
-		tag_result->origin = Vec3( 0.0f );
-		Matrix3_Copy( axis_identity, tag_result->axis );
-		CG_MoveToTag( &tag_result->origin, tag_result->axis,
-					  tag_weapon.origin, tag_weapon.axis,
-					  weaponInfo->tag_projectionsource.origin, weaponInfo->tag_projectionsource.axis );
-		return;
-	}
-
-	// fall back: copy gun origin and move it front by 16 units and 8 up
-	tag_result->origin = tag_weapon.origin;
-	Matrix3_Copy( tag_weapon.axis, tag_result->axis );
-	tag_result->origin += FromQFAxis( tag_result->axis, AXIS_FORWARD ) * 16.0f;
-	tag_result->origin += FromQFAxis( tag_result->axis, AXIS_UP ) * 8.0f;
-}
-
 static float SmoothStep( float t ) {
 	return t * t * ( 3.0f - 2.0f * t );
 }
 
 static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * viewweapon ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	if( ps->weapon == Weapon_None )
-		return;
 
-	const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+	if( ps->using_gadget ) {
+		const GadgetDef * def = GetGadgetDef( ps->gadget );
 
-	if( ps->weapon_state == WeaponState_Firing || ps->weapon_state == WeaponState_FiringSemiAuto ) {
-		float frac = float( ps->weapon_state_time ) / float( def->refire_time );
-		if( ps->weapon == Weapon_Knife ) {
-			viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-			angles->z -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-			angles->y += def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
-			angles->x -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+		if( ps->weapon_state == WeaponState_Cooking ) {
+			float charge = float( ps->weapon_state_time ) / float( def->cook_time );
+			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 9.0f;
+			viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_UP ) * pull_back;
+			angles->x -= Lerp( 0.0f, pull_back, 4.0f );
+		} else if( ps->weapon_state == WeaponState_SwitchingIn  ) {
+			float frac = 1.0f - float( ps->weapon_state_time ) / float( def->switch_in_time );
+			frac *= frac; //smoother curve
+			viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_UP ) * frac * 10.0f;
+			angles->x += Lerp( 0.0f, frac, 60.0f );
 		}
-		else {
-			angles->x -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+
+	} else {
+		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
+		if( ps->weapon == Weapon_None )
+			return;
+
+		if( ps->weapon_state == WeaponState_Firing || ps->weapon_state == WeaponState_FiringSemiAuto ) {
+			float frac = float( ps->weapon_state_time ) / float( def->refire_time );
+			if( ps->weapon == Weapon_Knife ) {
+				viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 30.0f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->z -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->y += def->refire_time * 0.025f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+				angles->x -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+			}
+			else {
+				angles->x -= def->refire_time * 0.05f * cosf( PI * ( frac * 2.0f - 1.0f ) * 0.5f );
+			}
 		}
-	}
-	else if( ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingOut ) {
-		float frac;
-		if( ps->weapon_state == WeaponState_SwitchingIn ) {
-			frac = 1.0f - float( ps->weapon_state_time ) / float( def->switch_in_time );
+		else if( ps->weapon_state == WeaponState_Reloading || ps->weapon_state == WeaponState_StagedReloading ) {
+			// TODO: temporary for non-animated models
+			const Model * model = GetWeaponModelMetadata( ps->weapon )->model;
+			bool found = false;
+			for( u8 i = 0; i < model->num_animations; i++ ) {
+				if( model->animations[ i ].name == viewweapon->eventAnim ) {
+					found = true;
+					break;
+				}
+			}
+
+			if( !found ) {
+				float t = ps->weapon_state == WeaponState_Reloading ? def->reload_time : def->staged_reload_time;
+				float frac = float( ps->weapon_state_time ) / t;
+				angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
+			}
 		}
-		else {
-			frac = float( ps->weapon_state_time ) / float( def->switch_out_time );
+		else if( ps->weapon_state == WeaponState_SwitchingIn || ps->weapon_state == WeaponState_SwitchingOut ) {
+			float frac;
+			if( ps->weapon_state == WeaponState_SwitchingIn ) {
+				frac = 1.0f - float( ps->weapon_state_time ) / float( def->switch_in_time );
+			}
+			else {
+				frac = float( ps->weapon_state_time ) / float( def->switch_out_time );
+			}
+			frac *= frac; //smoother curve
+			angles->x += Lerp( 0.0f, frac, 60.0f );
 		}
-		frac *= frac; //smoother curve
-		angles->x += Lerp( 0.0f, frac, 60.0f );
-	}
-	else if( ps->weapon_state == WeaponState_Reloading ) {
-		float frac = float( ps->weapon_state_time ) / float( def->reload_time );
-		angles->z += Lerp( 0.0f, SmoothStep( frac ), 360.0f );
-	}
-	else if( ps->weapon == Weapon_Railgun && ps->weapon_state == WeaponState_Cooking ) {
-		float charge = float( ps->weapon_state_time ) / float( def->reload_time );
-		float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 4.0f;
-		viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_FORWARD ) * pull_back;
+		else if( ps->weapon == Weapon_Railgun && ps->weapon_state == WeaponState_Cooking ) {
+			float charge = float( ps->weapon_state_time ) / float( def->reload_time );
+			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 4.0f;
+			viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_FORWARD ) * pull_back;
+		}
+
 	}
 
 	// gun angles from bobbing
@@ -104,42 +104,64 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 		angles->y += cg.xyspeed * cg.bobFracSin * 0.006f;
 	}
 	angles->x += cg.xyspeed * cg.bobFracSin * 0.012f;
-
-	// gun angles from kicks
-	*angles += CG_GetKickAngles();
 }
 
-void CG_ViewWeapon_StartAnimationEvent( int newAnim ) {
-	if( !cg.view.drawWeapon ) {
-		return;
+void CG_ViewWeapon_AddAnimation( int ent_num, StringHash anim ) {
+	if( ISVIEWERENTITY( ent_num ) && !cg.view.thirdperson && cg.view.drawWeapon ) {
+		cg.weapon.eventAnim = anim;
+		cg.weapon.eventAnimStartTime = cl.serverTime;
+	}
+}
+
+void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
+	const SyncPlayerState * ps = &cg.predictedPlayerState;
+	const Model * model;
+	if( !ps->using_gadget ) {
+		model = GetWeaponModelMetadata( ps->weapon )->model;
+	}
+	else {
+		model = GetGadgetModelMetadata( ps->gadget )->model;
 	}
 
-	cg.weapon.eventAnim = newAnim;
-	cg.weapon.eventAnimStartTime = cl.serverTime;
-}
+	if( model == NULL )
+		return;
 
-void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
-	const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( cg.predictedPlayerState.weapon );
+	Vec3 gunAngles, gunOffset;
+	if( model->camera == U8_MAX ) {
+		if( ps->using_gadget ) {
+			Com_Printf( S_COLOR_YELLOW "Gadget models must have a camera!\n" );
+			return;
+		}
 
-	// calculate the entity position
-	viewweapon->origin = cg.view.origin;
+		const WeaponModelMetadata * weaponInfo = GetWeaponModelMetadata( ps->weapon );
+		// calculate the entity position
+		// weapon config offsets
+		gunAngles = weaponInfo->handpositionAngles;
 
-	// weapon config offsets
-	Vec3 gunAngles = weaponInfo->handpositionAngles + cg.predictedPlayerState.viewangles;
+		constexpr Vec3 old_gunpos_cvars = Vec3( 3, 10, -12 ); // depth, horizontal, vertical
+		gunOffset = weaponInfo->handpositionOrigin + old_gunpos_cvars;
+		gunOffset = Vec3( gunOffset.y, gunOffset.z, -gunOffset.x );
+	}
+	else {
+		constexpr Mat4 y_up_to_camera_space = Mat4(
+			0.0f, 0.0f, 1.0f, 0.0f,
+			0.0f, 1.0f, 0.0f, 0.0f,
+			-1.0f, 0.0f, 0.0f, 0.0f,
+			0.0f, 0.0f, 0.0f, 1.0f
+		);
 
-	constexpr Vec3 old_gunpos_cvars = Vec3( 3, 10, -12 ); // depth, horizontal, vertical
-	Vec3 gunOffset = weaponInfo->handpositionOrigin + old_gunpos_cvars;
+		gunOffset = ( y_up_to_camera_space * Vec4( -model->nodes[ model->camera ].global_transform.col3.xyz(), 1.0f ) ).xyz();
+		gunAngles = Vec3( 0.0f );
+	}
 
 	// scale forward gun offset depending on fov and aspect ratio
-	gunOffset.x *= frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV ) ;
-	gunOffset.z += CG_ViewSmoothFallKick();
+	gunOffset.x *= frame_static.viewport_width / ( frame_static.viewport_height * cg.view.fracDistFOV );
 
-	// apply the offsets
-	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * gunOffset.x;
-	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_RIGHT ) * gunOffset.y;
-	viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_UP ) * gunOffset.z;
+	viewweapon->origin = ( frame_static.inverse_V * Vec4( gunOffset, 1.0 ) ).xyz();
+	viewweapon->origin.z += CG_ViewSmoothFallKick();
 
 	// add angles effects
+	gunAngles += cg.predictedPlayerState.viewangles;
 	CG_ViewWeapon_AddAngleEffects( &gunAngles, viewweapon );
 
 	// finish
@@ -157,16 +179,55 @@ void CG_CalcViewWeapon( cg_viewweapon_t *viewweapon ) {
 		viewweapon->axis[AXIS_FORWARD + 2] *= fracWeapFOV;
 	}
 
-	CG_ViewWeapon_UpdateProjectionSource( viewweapon->origin, viewweapon->axis, Vec3( 0.0f ), axis_identity );
+	Mat4 gun_transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
+	u8 muzzle;
+	if( FindNodeByName( model, Hash32( "muzzle" ), &muzzle ) ) {
+		viewweapon->muzzle_transform = gun_transform * model->transform * model->nodes[ muzzle ].global_transform;
+	}
+	else {
+		Mat4 hardcoded_offset = Mat4Translation( Vec3( 16, 0, 8 ) );
+		viewweapon->muzzle_transform = gun_transform * hardcoded_offset;
+	}
 }
 
-void CG_AddViewWeapon( cg_viewweapon_t *viewweapon ) {
-	if( !cg.view.drawWeapon || cg.predictedPlayerState.weapon == Weapon_None )
+void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
+	if( !cg.view.drawWeapon )
 		return;
 
-	const Model * model = GetWeaponModelMetadata( cg.predictedPlayerState.weapon )->model;
+	const SyncPlayerState * ps = &cg.predictedPlayerState;
+	const Model * model;
+	if( !ps->using_gadget ) {
+		model = GetWeaponModelMetadata( ps->weapon )->model;
+	}
+	else {
+		model = GetGadgetModelMetadata( ps->gadget )->model;
+	}
+
+	if( model == NULL ) {
+		return;
+	}
+
 	Mat4 transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
-	DrawViewWeapon( model, transform );
+
+	DrawModelConfig config = { };
+	config.draw_model.enabled = true;
+	config.draw_model.view_weapon = true;
+
+	bool found = false;
+	for( u8 i = 0; i < model->num_animations; i++ ) {
+		if( model->animations[ i ].name == viewweapon->eventAnim ) {
+			found = true;
+			float t = float( cl.serverTime - viewweapon->eventAnimStartTime ) * 0.001f;
+			TempAllocator temp = cls.frame_arena.temp();
+			Span< TRS > pose = SampleAnimation( &temp, model, t, i );
+			MatrixPalettes palettes = ComputeMatrixPalettes( &temp, model, pose );
+			DrawModel( config, model, transform, CG_TeamColorVec4( ps->team ), palettes );
+			break;
+		}
+	}
+	if( !found ) {
+		DrawModel( config, model, transform, CG_TeamColorVec4( ps->team ) );
+	}
 }
 
 void CG_AddRecoil( WeaponType weapon ) {
@@ -195,7 +256,7 @@ void CG_Recoil( WeaponType weapon ) {
 	EulerDegrees2 recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
 
 	cg.recoil_initial_angles.pitch += Min2( 0.0f, cl.viewangles[ PITCH ] - cl.prevviewangles[ PITCH ] );
-	cg.recoil_initial_angles.yaw += AngleDelta( cl.viewangles[ YAW ], cl.prevviewangles[ YAW ] );;
+	cg.recoil_initial_angles.yaw += AngleDelta( cl.viewangles[ YAW ], cl.prevviewangles[ YAW ] );
 
 	recovery_delta = AngleDelta( cg.recoil_initial_angles, viewangles );
 

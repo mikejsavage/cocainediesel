@@ -17,9 +17,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
-// sv_main.c -- server main program
 
-#include "server.h"
+#include "server/server.h"
 
 // shared message buffer to be used for occasional messages
 msg_t tmpMessage;
@@ -49,9 +48,6 @@ void SV_FlushRedirect( int sv_redirected, const char *outputbuf, const void *ext
 //
 //=============================================================================
 
-/*
-* SV_AddGameCommand
-*/
 void SV_AddGameCommand( client_t *client, const char *cmd ) {
 	int index;
 
@@ -89,7 +85,7 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 		return;
 	}
 
-	if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		return;
 	}
 
@@ -101,16 +97,13 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 	// we batch them here. On incoming "cs" command, we'll trackback the queue
 	// to find a pending "cs" command that has space in it. If we'll find one,
 	// we'll batch this there, if not, we'll create a new one.
-	if( !strncmp( cmd, "cs ", 3 ) ) {
+	if( StrEqual( cmd, "cs " ) ) {
 		// length of the index/value (leave room for one space and null char)
 		size_t len = strlen( cmd ) - 1;
 		for( i = client->reliableSequence; i > client->reliableSent; i-- ) {
-			size_t otherLen;
-			char *otherCmd;
-
-			otherCmd = client->reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )];
-			if( !strncmp( otherCmd, "cs ", 3 ) ) {
-				otherLen = strlen( otherCmd );
+			char * otherCmd = client->reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )];
+			if( StrEqual( otherCmd, "cs " ) ) {
+				size_t otherLen = strlen( otherCmd );
 				// is there any room? (should check for sizeof client->reliableCommands[0]?)
 				if( ( otherLen + len ) < MAX_STRING_CHARS ) {
 					// yahoo, put it in here
@@ -130,7 +123,7 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 			Com_DPrintf( "cmd %5d: %s\n", i, client->reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )] );
 		}
 		Com_DPrintf( "cmd %5d: %s\n", i, cmd );
-		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Server command overflow" );
+		SV_DropClient( client, "%s", "Error: Server command overflow" );
 		return;
 	}
 	index = client->reliableSequence & ( MAX_RELIABLE_COMMANDS - 1 );
@@ -184,7 +177,7 @@ void SV_SendServerCommand( client_t *cl, const char *format, ... ) {
 void SV_AddReliableCommandsToMessage( client_t *client, msg_t *msg ) {
 	unsigned int i;
 
-	if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		return;
 	}
 
@@ -248,9 +241,6 @@ void SV_BroadcastCommand( const char *format, ... ) {
 //
 //===============================================================================
 
-/*
-* SV_SendClientsFragments
-*/
 bool SV_SendClientsFragments() {
 	client_t *client;
 	int i;
@@ -261,7 +251,7 @@ bool SV_SendClientsFragments() {
 		if( client->state == CS_FREE || client->state == CS_ZOMBIE ) {
 			continue;
 		}
-		if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			continue;
 		}
 		if( !client->netchan.unsentFragments ) {
@@ -280,9 +270,6 @@ bool SV_SendClientsFragments() {
 	return sent;
 }
 
-/*
-* SV_Netchan_Transmit
-*/
 bool SV_Netchan_Transmit( netchan_t *netchan, msg_t *msg ) {
 	// if we got here with unsent fragments, fire them all now
 	if( !Netchan_PushAllFragments( netchan ) ) {
@@ -297,11 +284,8 @@ bool SV_Netchan_Transmit( netchan_t *netchan, msg_t *msg ) {
 	return Netchan_Transmit( netchan, msg );
 }
 
-/*
-* SV_InitClientMessage
-*/
 void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t size ) {
-	if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		return;
 	}
 
@@ -316,13 +300,10 @@ void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t s
 	MSG_WriteUintBase128( msg, client->UcmdReceived ); // acknowledge the last ucmd
 }
 
-/*
-* SV_SendMessageToClient
-*/
 bool SV_SendMessageToClient( client_t *client, msg_t *msg ) {
 	assert( client );
 
-	if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		return true;
 	}
 
@@ -342,7 +323,7 @@ void SV_ResetClientFrameCounters() {
 		if( !client->state ) {
 			continue;
 		}
-		if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			continue;
 		}
 
@@ -350,26 +331,17 @@ void SV_ResetClientFrameCounters() {
 	}
 }
 
-/*
-* SV_WriteFrameSnapToClient
-*/
 void SV_WriteFrameSnapToClient( client_t *client, msg_t *msg ) {
 	SNAP_WriteFrameSnapToClient( &sv.gi, client, msg, sv.framenum, svs.gametime, sv.baselines, &svs.client_entities );
 }
 
-/*
-* SV_BuildClientFrameSnap
-*/
 void SV_BuildClientFrameSnap( client_t *client ) {
 	SNAP_BuildClientFrameSnap( svs.cms, &sv.gi, sv.framenum, svs.gametime,
-		client, &server_gs.gameState, &svs.client_entities, sv_mempool );
+		client, &server_gs.gameState, &svs.client_entities );
 }
 
-/*
-* SV_SendClientDatagram
-*/
 static bool SV_SendClientDatagram( client_t *client ) {
-	if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		return true;
 	}
 
@@ -386,11 +358,8 @@ static bool SV_SendClientDatagram( client_t *client ) {
 	return SV_SendMessageToClient( client, &tmpMessage );
 }
 
-/*
-* SV_SendClientMessages
-*/
 void SV_SendClientMessages() {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	int i;
 	client_t *client;
@@ -401,7 +370,7 @@ void SV_SendClientMessages() {
 			continue;
 		}
 
-		if( client->edict && ( client->edict->r.svflags & SVF_FAKECLIENT ) ) {
+		if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			client->lastSentFrameNum = sv.framenum;
 			continue;
 		}

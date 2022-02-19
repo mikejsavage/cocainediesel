@@ -1,4 +1,12 @@
 {
 	attenuation idle
-	sound weapons/stake/hit
+	sound ./hit_thump
+}
+{
+	attenuation idle
+	sound ./hit1
+	sound ./hit2
+	sound ./hit3
+	sound ./hit4
+	volume 0.55
 }

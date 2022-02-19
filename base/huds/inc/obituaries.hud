@@ -1,8 +1,0 @@
-setAlignment right top
-setCursor #WIDTH - 5 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 2
-if %SHOW_FPS
-	moveCursor 0, 12
-endif
-setSize 300 * 1.333 * %VIDHEIGHT / %VIDWIDTH, 120
-setFontSize %VIDHEIGHT / 50
-drawObituaries 3 16 //last number is the space between the strings

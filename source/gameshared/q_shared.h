@@ -25,19 +25,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //==============================================
 
-short ShortSwap( short l );
-
 // little endian
-#define BigShort( l ) ShortSwap( l )
-#define LittleShort( l ) ( l )
 #define LittleLong( l ) ( l )
 #define LittleFloat( l ) ( l )
-
-//==============================================
-
-// command line execution flags
-#define EXEC_NOW                    0           // don't return until completed
-#define EXEC_APPEND                 1           // add to end of the command buffer
 
 //==============================================================
 //
@@ -48,9 +38,6 @@ short ShortSwap( short l );
 char *COM_SanitizeFilePath( char *filename );
 bool COM_ValidateFilename( const char *filename );
 bool COM_ValidateRelativeFilename( const char *filename );
-void COM_StripExtension( char *filename );
-void COM_DefaultExtension( char *path, const char *extension, size_t size );
-const char *COM_FileBase( const char *in );
 
 enum ParseStopOnNewLine {
 	Parse_DontStopOnNewLine,
@@ -73,11 +60,13 @@ float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine sto
 
 bool StrEqual( Span< const char > lhs, Span< const char > rhs );
 bool StrEqual( Span< const char > lhs, const char * rhs );
-bool StrEqual( const char * rhs, Span< const char > lhs );
+bool StrEqual( const char * lhs, Span< const char > rhs );
+bool StrEqual( const char * lhs, const char * rhs );
 
 bool StrCaseEqual( Span< const char > lhs, Span< const char > rhs );
 bool StrCaseEqual( Span< const char > lhs, const char * rhs );
-bool StrCaseEqual( const char * rhs, Span< const char > lhs );
+bool StrCaseEqual( const char * lhs, Span< const char > rhs );
+bool StrCaseEqual( const char * lhs, const char * rhs );
 
 template< size_t N >
 bool operator==( Span< const char > span, const char ( &str )[ N ] ) {
@@ -90,16 +79,21 @@ template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char
 
 bool StartsWith( Span< const char > str, const char * prefix );
 bool StartsWith( const char * str, const char * prefix );
+bool EndsWith( Span< const char > str, const char * suffix );
+bool EndsWith( const char * str, const char * suffix );
 
+bool CaseStartsWith( const char * str, const char * prefix );
+
+bool CaseContains( const char * haystack, const char * needle );
+
+Span< const char > FileExtension( Span< const char > path );
 Span< const char > FileExtension( const char * path );
+Span< const char > StripExtension( Span< const char > path );
 Span< const char > StripExtension( const char * path );
-Span< const char > LastFileExtension( const char * path );
 Span< const char > FileName( const char * path );
 Span< const char > BasePath( const char * path );
 
 bool SortCStringsComparator( const char * a, const char * b );
-
-bool COM_ValidateConfigstring( const char *string );
 
 //==============================================================
 //
@@ -139,30 +133,15 @@ STATIC_ASSERT( MAX_NAME_CHARS <= MAX_CONFIGSTRING_CHARS );
 void Q_strncpyz( char *dest, const char *src, size_t size );
 void Q_strncatz( char *dest, const char *src, size_t size );
 
-char *Q_strupr( char *s );
 char *Q_strlwr( char *s );
-const char *Q_strrstr( const char *s, const char *substr );
 char *Q_trim( char *s );
 void RemoveTrailingZeroesFloat( char * str );
 
-/**
- * Converts the given null-terminated string to an URL encoded null-terminated string.
- * Only "unsafe" subset of characters are encoded.
- */
-void Q_urlencode_unsafechars( const char *src, char *dst, size_t dst_size );
 /**
  * Converts the given URL-encoded string to a null-terminated plain string. Returns
  * total (untruncated) length of the resulting string.
  */
 size_t Q_urldecode( const char *src, char *dst, size_t dst_size );
-
-#ifndef _MSC_VER
-char *va( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-char *va_r( char *dst, size_t size, const char *format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );
-#else
-char *va( _Printf_format_string_ const char *format, ... );
-char *va_r( char *dst, size_t size, _Printf_format_string_ const char *format, ... );
-#endif
 
 //
 // key / value info strings
@@ -214,11 +193,4 @@ enum sv_client_state_t {
 	CS_CONNECTING,      // has send a "new" command, is awaiting for fetching configstrings
 	CS_CONNECTED,       // has been assigned to a client_t, but not in game yet
 	CS_SPAWNED          // client is fully in game
-};
-
-enum keydest_t {
-	key_game,
-	key_console,
-	key_message,
-	key_menu,
 };

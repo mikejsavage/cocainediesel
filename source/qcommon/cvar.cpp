@@ -18,407 +18,212 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <algorithm> // std::sort
+
 #include "qcommon/qcommon.h"
-#include "qcommon/q_trie.h"
-#include "qcommon/fs.h"
+#include "qcommon/array.h"
+#include "qcommon/hash.h"
+#include "qcommon/hashtable.h"
 #include "qcommon/string.h"
-#include "qcommon/threads.h"
-#include "client/console.h"
 
-static bool cvar_initialized = false;
-static bool cvar_preinitialized = false;
+struct ConfigEntry {
+	char * name;
+	char * value;
+};
 
-static trie_t *cvar_trie = NULL;
-static Mutex *cvar_mutex = NULL;
+constexpr size_t MAX_CVARS = 1024;
 
-static bool Cvar_FlagIsSet( cvar_flag_t flags, cvar_flag_t flag ) {
-	return ( bool )( ( flags & flag ) != 0 );
-}
+static Cvar cvars[ MAX_CVARS ];
+static Hashtable< MAX_CVARS * 2 > cvars_hashtable;
 
-static int Cvar_HasFlags( void *cvar, const void *flags ) {
-	assert( cvar );
-	return Cvar_FlagIsSet( ( (cvar_t *) cvar )->flags, *(const cvar_flag_t *) flags );
-}
+static ConfigEntry config_entries[ MAX_CVARS ];
+static Hashtable< MAX_CVARS * 2 > config_entries_hashtable;
 
-static int Cvar_IsLatched( void *cvar, const void *flags ) {
-	const cvar_t *const var = (cvar_t *) cvar;
-	assert( cvar );
-	return Cvar_FlagIsSet( var->flags, *(const cvar_flag_t *) flags ) && var->latched_string;
-}
+bool userinfo_modified;
 
-static cvar_flag_t Cvar_FlagSet( cvar_flag_t *flags, cvar_flag_t flag ) {
-	return *flags |= flag;
-}
-
-static cvar_flag_t Cvar_FlagUnset( cvar_flag_t *flags, cvar_flag_t flag ) {
-	return *flags &= ~flag;
-}
-
-static cvar_flag_t Cvar_FlagsClear( cvar_flag_t *flags ) {
-	return *flags = 0;
-}
-
-static void Cvar_SetModified( cvar_t *var ) {
-	var->modified = true;
+bool HasFlag( u64 bits, u64 bit ) {
+	return ( bits & bit ) != 0;
 }
 
 bool Cvar_CheatsAllowed() {
-	return Com_ClientState() < CA_CONNECTED || Com_DemoPlaying() || ( Com_ServerState() && Cvar_Value( "sv_cheats" ) );
+	return Com_ClientState() < CA_CONNECTED || Com_DemoPlaying() || ( Com_ServerState() && Cvar_Bool( "sv_cheats" ) );
 }
 
-static int Cvar_PatternMatches( void *cvar, const void *pattern ) {
-	return !pattern || Com_GlobMatch( (const char *) pattern, ( (cvar_t *) cvar )->name, false );
-}
-
-/*
-* Cvar_InfoValidate
-*/
 static bool Cvar_InfoValidate( const char *s, bool name ) {
-	return !( ( strlen( s ) >= (unsigned)( name ? MAX_INFO_KEY : MAX_INFO_VALUE ) ) ||
-			  ( strchr( s, '\\' ) ) ||
-			  ( strchr( s, '"' ) ) ||
-			  ( strchr( s, ';' ) ) );
+	size_t max_len = name ? MAX_INFO_KEY : MAX_INFO_VALUE;
+	return strlen( s ) < max_len
+		&& strchr( s, '\\' ) == NULL
+		&& strchr( s, '"' ) == NULL
+		&& strchr( s, ';' ) == NULL;
 }
 
-/*
-* Cvar_Initialized
-*/
-bool Cvar_Initialized() {
-	return cvar_initialized;
+static Cvar * FindCvar( const char * name ) {
+	u64 hash = CaseHash64( name );
+	u64 idx;
+	if( !cvars_hashtable.get( hash, &idx ) )
+		return NULL;
+	return &cvars[ idx ];
 }
 
-/*
-* Cvar_Find
-*/
-cvar_t *Cvar_Find( const char *var_name ) {
-	cvar_t *cvar;
-	assert( cvar_trie );
-	Lock( cvar_mutex );
-	Trie_Find( cvar_trie, var_name, TRIE_EXACT_MATCH, (void **)&cvar );
-	Unlock( cvar_mutex );
+bool IsCvar( const char * name ) {
+	return FindCvar( name ) != NULL;
+}
+
+const char * Cvar_String( const char * name ) {
+	return FindCvar( name )->value;
+}
+
+int Cvar_Integer( const char * name ) {
+	return FindCvar( name )->integer;
+}
+
+float Cvar_Float( const char * name ) {
+	return FindCvar( name )->number;
+}
+
+bool Cvar_Bool( const char * name ) {
+	return Cvar_Integer( name ) != 0;
+}
+
+void SetCvar( Cvar * cvar, const char * value ) {
+	cvar->modified = cvar->value == NULL || !StrEqual( value, cvar->value );
+
+	FREE( sys_allocator, cvar->value );
+	cvar->value = CopyString( sys_allocator, value );
+	cvar->number = SpanToFloat( MakeSpan( cvar->value ), 0.0f );
+	cvar->integer = Q_rint( cvar->number );
+
+	if( HasFlag( cvar->flags, CvarFlag_UserInfo ) ) {
+		userinfo_modified = true;
+	}
+}
+
+void Cvar_SetInteger( const char * name, int value ) {
+	char buf[ 32 ];
+	snprintf( buf, sizeof( buf ), "%d", value );
+	Cvar_Set( name, buf );
+}
+
+Cvar * NewCvar( const char * name, const char * value, u32 flags ) {
+	if( HasFlag( flags, CvarFlag_UserInfo ) || HasFlag( flags, CvarFlag_ServerInfo ) ) {
+		assert( Cvar_InfoValidate( name, true ) );
+		assert( Cvar_InfoValidate( value, true ) );
+	}
+
+	Cvar * old_cvar = FindCvar( name );
+	if( old_cvar != NULL ) {
+		assert( StrEqual( old_cvar->default_value, value ) );
+		assert( ( old_cvar->flags & ~CvarFlag_FromConfig ) == CvarFlags( flags ) );
+		return old_cvar;
+	}
+
+	assert( cvars_hashtable.size() < ARRAY_COUNT( cvars ) );
+
+	Cvar * cvar = &cvars[ cvars_hashtable.size() ];
+	*cvar = { };
+	cvar->name = CopyString( sys_allocator, name );
+	cvar->default_value = CopyString( sys_allocator, value );
+	cvar->flags = CvarFlags( flags );
+
+	u64 hash = CaseHash64( name );
+	bool ok = cvars_hashtable.add( hash, cvars_hashtable.size() );
+	assert( ok );
+
+	u64 idx;
+	if( !HasFlag( flags, CvarFlag_ReadOnly ) && config_entries_hashtable.get( hash, &idx ) ) {
+		SetCvar( cvar, config_entries[ idx ].value );
+		cvar->flags = CvarFlags( cvar->flags | CvarFlag_FromConfig );
+	}
+	else {
+		SetCvar( cvar, value );
+	}
+
 	return cvar;
 }
 
-/*
-* Cvar_Value
-* Returns 0 if not defined or non numeric
-*/
-float Cvar_Value( const char *var_name ) {
-	const cvar_t *const var = Cvar_Find( var_name );
-	return var
-		   ? atof( var->string )
-		   : 0;
+void Cvar_ForceSet( const char * name, const char * value ) {
+	Cvar * cvar = FindCvar( name );
+	assert( cvar != NULL );
+	SetCvar( cvar, value );
 }
 
-
-/*
-* Cvar_String
-* Returns an empty string if not defined
-*/
-const char *Cvar_String( const char *var_name ) {
-	const cvar_t *const var = Cvar_Find( var_name );
-	return var
-		   ? var->string
-		   : "";
-}
-
-/*
-* Cvar_Integer
-* Returns 0 if not defined or non numeric
-*/
-int Cvar_Integer( const char *var_name ) {
-	const cvar_t *const var = Cvar_Find( var_name );
-	return var
-		   ? var->integer
-		   : 0;
-}
-
-/*
-* Cvar_Get
-* Creates the variable if it doesn't exist.
-* If the variable already exists, the value will not be set
-* The flags will be or'ed and default value overwritten in if the variable exists.
-*/
-cvar_t *Cvar_Get( const char *var_name, const char *var_value, cvar_flag_t flags ) {
-	cvar_t *var;
-
-	if( !var_name || !var_name[0] ) {
-		return NULL;
-	}
-
-	if( Cvar_FlagIsSet( flags, CVAR_USERINFO ) || Cvar_FlagIsSet( flags, CVAR_SERVERINFO ) ) {
-		if( !Cvar_InfoValidate( var_name, true ) ) {
-			Com_Printf( "invalid info cvar name\n" );
-			return NULL;
-		}
-	}
-
-	assert( cvar_trie );
-	Lock( cvar_mutex );
-	Trie_Find( cvar_trie, var_name, TRIE_EXACT_MATCH, (void **)&var );
-	Unlock( cvar_mutex );
-
-	if( !var_value ) {
-		return NULL;
-	}
-
-	if( var ) {
-		bool reset = false;
-
-		if( !var->dvalue || strcmp( var->dvalue, var_value ) ) {
-			if( var->dvalue ) {
-				Mem_ZoneFree( var->dvalue ); // free the old default value string
-			}
-			var->dvalue = ZoneCopyString( (char *) var_value );
-		}
-
-		if( Cvar_FlagIsSet( flags, CVAR_USERINFO ) || Cvar_FlagIsSet( flags, CVAR_SERVERINFO ) ) {
-			if( var->string && !Cvar_InfoValidate( var->string, false ) ) {
-				reset = true;
-			}
-		}
-
-		reset = reset || Cvar_FlagIsSet( flags, CVAR_READONLY );
-		if( is_public_build ) {
-			reset = reset || Cvar_FlagIsSet( flags, CVAR_DEVELOPER );
-		}
-
-		if( reset ) {
-			if( !var->string || strcmp( var->string, var_value ) ) {
-				if( var->string ) {
-					Mem_ZoneFree( var->string );
-				}
-				var->string = ZoneCopyString( (char *) var_value );
-				var->value = atof( var->string );
-				var->integer = Q_rint( var->value );
-			}
-			var->flags = flags;
-		}
-
-		if( Cvar_FlagIsSet( flags, CVAR_USERINFO ) && !Cvar_FlagIsSet( var->flags, CVAR_USERINFO ) ) {
-			userinfo_modified = true; // transmit at next oportunity
-
-		}
-		Cvar_FlagSet( &var->flags, flags );
-		return var;
-	}
-
-	if( Cvar_FlagIsSet( flags, CVAR_USERINFO ) || Cvar_FlagIsSet( flags, CVAR_SERVERINFO ) ) {
-		if( !Cvar_InfoValidate( var_value, false ) ) {
-			Com_Printf( "invalid info cvar value\n" );
-			return NULL;
-		}
-	}
-
-	var = ( cvar_t * ) Mem_ZoneMalloc( (int)( sizeof( *var ) + strlen( var_name ) + 1 ) );
-	var->name = (char *)( (uint8_t *)var + sizeof( *var ) );
-	strcpy( var->name, var_name );
-	var->dvalue = ZoneCopyString( (char *) var_value );
-	var->string = ZoneCopyString( (char *) var_value );
-	var->value = atof( var->string );
-	var->integer = Q_rint( var->value );
-	var->flags = flags;
-	Cvar_SetModified( var );
-
-	Lock( cvar_mutex );
-	Trie_Insert( cvar_trie, var_name, var );
-	Unlock( cvar_mutex );
-
-	return var;
-}
-
-/*
-* Cvar_Set2
-*/
-static cvar_t *Cvar_Set2( const char *var_name, const char *value, bool force ) {
-	cvar_t *var = Cvar_Find( var_name );
-
-	if( !var ) {
-		// create it
-		return Cvar_Get( var_name, value, 0 );
-	}
-
-	if( Cvar_FlagIsSet( var->flags, CVAR_USERINFO ) || Cvar_FlagIsSet( var->flags, CVAR_SERVERINFO ) ) {
-		if( !Cvar_InfoValidate( value, false ) ) {
-			Com_Printf( "invalid info cvar value\n" );
-			return var;
-		}
-	}
-
-	if( !force ) {
-#ifdef PUBLIC_BUILD
-		if( Cvar_FlagIsSet( var->flags, CVAR_NOSET ) || Cvar_FlagIsSet( var->flags, CVAR_READONLY ) || Cvar_FlagIsSet( var->flags, CVAR_DEVELOPER ) ) {
-#else
-		if( Cvar_FlagIsSet( var->flags, CVAR_NOSET ) || Cvar_FlagIsSet( var->flags, CVAR_READONLY ) ) {
-#endif
-			Com_Printf( "%s is write protected.\n", var_name );
-			return var;
-		}
-
-		if( Cvar_FlagIsSet( var->flags, CVAR_CHEAT ) && strcmp( value, var->dvalue ) ) {
-			if( !Cvar_CheatsAllowed() ) {
-				Com_Printf( "%s is cheat protected.\n", var_name );
-				return var;
-			}
-		}
-
-		if( Cvar_FlagIsSet( var->flags, CVAR_LATCH ) ) {
-			if( var->latched_string ) {
-				if( !strcmp( value, var->latched_string ) ) {
-					return var;
-				}
-				Mem_ZoneFree( var->latched_string );
-			} else {
-				if( !strcmp( value, var->string ) ) {
-					return var;
-				}
-			}
-
-			if( Com_ServerState() ) {
-				Com_Printf( "%s will be changed upon restarting.\n", var->name );
-				var->latched_string = ZoneCopyString( (char *) value );
-			} else {
-				Mem_ZoneFree( var->string ); // free the old value string
-				var->string = ZoneCopyString( value );
-				var->value = atof( var->string );
-				var->integer = Q_rint( var->value );
-				Cvar_SetModified( var );
-			}
-			return var;
-		}
-	} else {
-		if( var->latched_string ) {
-			Mem_ZoneFree( var->latched_string );
-			var->latched_string = NULL;
-		}
-	}
-
-	if( !strcmp( value, var->string ) ) {
-		return var; // not changed
-
-	}
-	if( Cvar_FlagIsSet( var->flags, CVAR_USERINFO ) ) {
-		userinfo_modified = true; // transmit at next oportunity
-
-	}
-	Mem_ZoneFree( var->string ); // free the old value string
-
-	var->string = ZoneCopyString( (char *) value );
-	var->value = atof( var->string );
-	var->integer = Q_rint( var->value );
-	Cvar_SetModified( var );
-
-	return var;
-}
-
-/*
-* Cvar_ForceSet
-* Set the variable even if NOSET or LATCH
-*/
-cvar_t *Cvar_ForceSet( const char *var_name, const char *value ) {
-	return Cvar_Set2( var_name, value, true );
-}
-
-/*
-* Cvar_Set
-* Create the variable if it doesn't exist
-*/
-cvar_t *Cvar_Set( const char *var_name, const char *value ) {
-	return Cvar_Set2( var_name, value, false );
-}
-
-/*
-* Cvar_FullSet
-*/
-cvar_t *Cvar_FullSet( const char *var_name, const char *value, cvar_flag_t flags, bool overwrite_flags ) {
-	cvar_t *var;
-
-	var = Cvar_Find( var_name );
-	if( !var ) {
-		return Cvar_Get( var_name, value, flags );
-	}
-
-	if( overwrite_flags ) {
-		var->flags = flags;
-	} else {
-		Cvar_FlagSet( &var->flags, flags );
-	}
-
-	// if we overwrite the flags, we will also force the value
-	return Cvar_Set2( var_name, value, overwrite_flags );
-}
-
-/*
-* Cvar_SetValue
-* Expands value to a string and calls Cvar_Set
-*/
-void Cvar_SetValue( const char *var_name, float value ) {
-	char val[32];
-	if( value == Q_rint( value ) ) {
-		snprintf( val, sizeof( val ), "%i", Q_rint( value ) );
-	} else {
-		snprintf( val, sizeof( val ), "%f", value );
-	}
-	Cvar_Set( var_name, val );
-}
-
-/*
-* Cvar_GetLatchedVars
-*
-* Any variables with CVAR_LATCHED will now be updated
-*/
-void Cvar_GetLatchedVars( cvar_flag_t flags ) {
-	unsigned int i;
-	trie_dump_t *dump = NULL;
-	cvar_flag_t latchFlags;
-
-	Cvar_FlagsClear( &latchFlags );
-	Cvar_FlagSet( &latchFlags, CVAR_LATCH );
-	Cvar_FlagUnset( &flags, ~latchFlags );
-	if( !flags ) {
+void Cvar_Set( const char * name, const char * value ) {
+	Cvar * cvar = FindCvar( name );
+	if( cvar == NULL ) {
+		Com_Printf( "No such cvar: %s\n", name );
 		return;
 	}
 
-	assert( cvar_trie );
-	Lock( cvar_mutex );
-	Trie_DumpIf( cvar_trie, "", TRIE_DUMP_VALUES, Cvar_IsLatched, &flags, &dump );
-	Unlock( cvar_mutex );
-	for( i = 0; i < dump->size; ++i ) {
-		cvar_t * var = ( cvar_t * ) dump->key_value_vector[i].value;
-		Mem_ZoneFree( var->string );
-		var->string = var->latched_string;
-		var->latched_string = NULL;
-		var->value = atof( var->string );
-		var->integer = Q_rint( var->value );
+	if( HasFlag( cvar->flags, CvarFlag_UserInfo ) || HasFlag( cvar->flags, CvarFlag_ServerInfo ) ) {
+		if( !Cvar_InfoValidate( value, false ) ) {
+			Com_Printf( "invalid info cvar value\n" );
+			return;
+		}
 	}
-	Trie_FreeDump( dump );
+
+	bool read_only = HasFlag( cvar->flags, CvarFlag_ReadOnly ) || ( is_public_build && HasFlag( cvar->flags, CvarFlag_Developer ) );
+	if( read_only ) {
+		Com_Printf( "%s is write protected.\n", name );
+		return;
+	}
+
+	if( HasFlag( cvar->flags, CvarFlag_Cheat ) && !StrEqual( value, cvar->default_value ) ) {
+		if( !Cvar_CheatsAllowed() ) {
+			Com_Printf( "%s is cheat protected.\n", name );
+			return;
+		}
+	}
+
+	if( HasFlag( cvar->flags, CvarFlag_ServerReadOnly ) && Com_ServerState() ) {
+		Com_Printf( "Can't change %s while the server is running.\n", cvar->name );
+		return;
+	}
+
+	SetCvar( cvar, value );
 }
 
-/*
-* Cvar_FixCheatVars
-*
-* All cheat variables with be reset to default unless cheats are allowed
-*/
-void Cvar_FixCheatVars() {
-	trie_dump_t *dump = NULL;
-	unsigned int i;
-	cvar_flag_t flags = CVAR_CHEAT;
-
+void ResetCheatCvars() {
 	if( Cvar_CheatsAllowed() ) {
 		return;
 	}
 
-	assert( cvar_trie );
-	Lock( cvar_mutex );
-	Trie_DumpIf( cvar_trie, "", TRIE_DUMP_VALUES, Cvar_HasFlags, &flags, &dump );
-	Unlock( cvar_mutex );
-	for( i = 0; i < dump->size; ++i ) {
-		cvar_t * var = ( cvar_t * ) dump->key_value_vector[i].value;
-		Cvar_ForceSet( var->name, var->dvalue );
+	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
+		Cvar * cvar = &cvars[ i ];
+		if( HasFlag( cvar->flags, CvarFlag_Cheat ) ) {
+			SetCvar( cvar, cvar->default_value );
+		}
 	}
-	Trie_FreeDump( dump );
 }
 
+Span< const char * > TabCompleteCvar( TempAllocator * a, const char * partial ) {
+	NonRAIIDynamicArray< const char * > results( a );
+
+	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
+		const Cvar * cvar = &cvars[ i ];
+		if( CaseStartsWith( cvar->name, partial ) ) {
+			results.add( cvar->name );
+		}
+	}
+
+	std::sort( results.begin(), results.end(), SortCStringsComparator );
+
+	return results.span();
+}
+
+Span< const char * > SearchCvars( Allocator * a, const char * partial ) {
+	NonRAIIDynamicArray< const char * > results( a );
+
+	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
+		const Cvar * cvar = &cvars[ i ];
+		if( CaseContains( cvar->name, partial ) ) {
+			results.add( cvar->name );
+		}
+	}
+
+	std::sort( results.begin(), results.end(), SortCStringsComparator );
+
+	return results.span();
+}
 
 /*
 * Cvar_Command
@@ -430,445 +235,133 @@ void Cvar_FixCheatVars() {
 * was handled. (print or change)
 */
 bool Cvar_Command() {
-	cvar_t *v;
-
-	// check variables
-	v = Cvar_Find( Cmd_Argv( 0 ) );
-	if( !v ) {
+	Cvar * cvar = FindCvar( Cmd_Argv( 0 ) );
+	if( cvar == NULL )
 		return false;
+
+	if( Cmd_Argc() > 1 ) {
+		Cvar_Set( Cmd_Argv( 0 ), Cmd_Argv( 1 ) );
+	}
+	else {
+		Com_Printf( "\"%s\" is \"%s\" default: \"%s\"\n", cvar->name, cvar->value, cvar->default_value );
 	}
 
-	// perform a variable print or set
-	if( Cmd_Argc() == 1 ) {
-		Com_Printf( "\"%s\" is \"%s\" default: \"%s\"\n", v->name, v->string, v->dvalue );
-		if( v->latched_string ) {
-			Com_Printf( "latched: \"%s\"\n", v->latched_string );
-		}
-		return true;
-	}
-
-	Cvar_Set( v->name, Cmd_Argv( 1 ) );
 	return true;
 }
 
-
-/*
-* Cvar_Set_f
-*
-* Allows setting and defining of arbitrary cvars from console
-*/
-static void Cvar_Set_f() {
+static void SetConfigCvar() {
 	if( Cmd_Argc() != 3 ) {
 		Com_Printf( "usage: set <variable> <value>\n" );
 		return;
 	}
-	Cvar_Set( Cmd_Argv( 1 ), Cmd_Argv( 2 ) );
-}
 
-static void Cvar_SetWithFlag_f( cvar_flag_t flag ) {
-	if( Cmd_Argc() != 3 ) {
-		Com_Printf( "usage: %s <variable> <value>\n", Cmd_Argv( 0 ) );
-		return;
+	u64 hash = CaseHash64( Cmd_Argv( 1 ) );
+	u64 idx = config_entries_hashtable.size();
+	if( !config_entries_hashtable.get( hash, &idx ) ) {
+		if( !config_entries_hashtable.add( hash, idx ) ) {
+			Com_Printf( S_COLOR_YELLOW "Too many config entries!" );
+			return;
+		}
+
+		config_entries[ idx ].name = CopyString( sys_allocator, Cmd_Argv( 1 ) );
+		config_entries[ idx ].value = NULL;
 	}
-	Cvar_FullSet( Cmd_Argv( 1 ), Cmd_Argv( 2 ), flag, false );
-}
 
-static void Cvar_Seta_f() {
-	Cvar_SetWithFlag_f( CVAR_ARCHIVE | CVAR_FROMCONFIG );
-}
-
-static void Cvar_Setau_f() {
-	Cvar_SetWithFlag_f( CVAR_ARCHIVE | CVAR_USERINFO | CVAR_FROMCONFIG );
-}
-
-static void Cvar_Setas_f() {
-	Cvar_SetWithFlag_f( CVAR_ARCHIVE | CVAR_SERVERINFO | CVAR_FROMCONFIG );
-}
-
-static void Cvar_Sets_f() {
-	Cvar_SetWithFlag_f( CVAR_SERVERINFO );
-}
-
-static void Cvar_Setu_f() {
-	Cvar_SetWithFlag_f( CVAR_USERINFO );
+	FREE( sys_allocator, config_entries[ idx ].value );
+	config_entries[ idx ].value = CopyString( sys_allocator, Cmd_Argv( 2 ) );
 }
 
 static void Cvar_Reset_f() {
-	cvar_t *v;
-
 	if( Cmd_Argc() != 2 ) {
 		Com_Printf( "usage: reset <variable>\n" );
 		return;
 	}
 
-	v = Cvar_Find( Cmd_Argv( 1 ) );
-	if( !v ) {
+	Cvar * cvar = FindCvar( Cmd_Argv( 1 ) );
+	if( cvar == NULL )
 		return;
-	}
-
-	Cvar_Set( v->name, v->dvalue );
-}
-
-/*
-* Cvar_Toggle_f
-*/
-static void Cvar_Toggle_f() {
-	int i;
-	cvar_t *var;
-
-	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "Usage: toggle <list of variables>\n" );
-		return;
-	}
-
-	for( i = 1; i < Cmd_Argc(); i++ ) {
-		var = Cvar_Find( Cmd_Argv( i ) );
-		if( !var ) {
-			Com_Printf( "No such variable: \"%s\"\n", Cmd_Argv( i ) );
-			return;
-		}
-		Cvar_Set( var->name, var->integer ? "0" : "1" );
-	}
+	Cvar_Set( cvar->name, cvar->default_value );
+	cvar->flags = CvarFlags( cvar->flags & ~CvarFlag_FromConfig );
 }
 
 void Cvar_WriteVariables( DynamicString * config ) {
-	trie_dump_t *dump = NULL;
-	cvar_flag_t cvar_archive = CVAR_ARCHIVE;
+	DynamicArray< char * > lines( sys_allocator );
 
-	assert( cvar_trie );
-	Lock( cvar_mutex );
-	Trie_DumpIf( cvar_trie, "", TRIE_DUMP_VALUES, Cvar_HasFlags, &cvar_archive, &dump );
-	Unlock( cvar_mutex );
-
-	for( unsigned int i = 0; i < dump->size; ++i ) {
-		cvar_t * var = ( cvar_t * ) dump->key_value_vector[i].value;
-		if( ( var->flags & CVAR_FROMCONFIG ) == 0 && strcmp( var->string, var->dvalue ) == 0 )
+	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
+		const Cvar * cvar = &cvars[ i ];
+		if( !HasFlag( cvar->flags, CvarFlag_Archive ) )
 			continue;
-
-		const char * set;
-		if( Cvar_FlagIsSet( var->flags, CVAR_USERINFO ) ) {
-			set = "setau";
-		} else if( Cvar_FlagIsSet( var->flags, CVAR_SERVERINFO ) ) {
-			set = "setas";
-		} else {
-			set = "seta";
-		}
-
-		const char * value;
-		if( Cvar_FlagIsSet( var->flags, CVAR_LATCH ) && var->latched_string != NULL ) {
-			value = var->latched_string;
-		}
-		else {
-			value = var->string;
-		}
-
-		config->append( "{} {} \"{}\"\r\n", set, var->name, value );
+		if( !HasFlag( cvar->flags, CvarFlag_FromConfig ) && StrEqual( cvar->value, cvar->default_value ) )
+			continue;
+		lines.add( ( *sys_allocator )( "set {} \"{}\"\r\n", cvar->name, cvar->value ) );
 	}
-	Trie_FreeDump( dump );
+
+	for( size_t i = 0; i < config_entries_hashtable.size(); i++ ) {
+		const ConfigEntry * entry = &config_entries[ i ];
+		if( IsCvar( entry->name ) )
+			continue;
+		lines.add( ( *sys_allocator )( "set {} \"{}\"\r\n", entry->name, entry->value ) );
+	}
+
+	std::sort( lines.begin(), lines.end(), SortCStringsComparator );
+
+	for( char * line : lines ) {
+		config->append_raw( line, strlen( line ) );
+		FREE( sys_allocator, line );
+	}
 }
 
-/*
-* Cvar_List_f
-*/
-static void Cvar_List_f() {
-	trie_dump_t *dump = NULL;
-	unsigned int i;
-	char *pattern;
+static const char * MakeInfoString( CvarFlags flag ) {
+	static char info[ MAX_INFO_STRING ];
 
-	if( Cmd_Argc() == 1 ) {
-		pattern = NULL;
-	} else {
-		pattern = Cmd_Args();
-	}
-
-	assert( cvar_trie );
-	Lock( cvar_mutex );
-	Trie_DumpIf( cvar_trie, "", TRIE_DUMP_VALUES, Cvar_PatternMatches, pattern, &dump );
-	Unlock( cvar_mutex );
-
-	Com_Printf( "\nConsole variables:\n" );
-	for( i = 0; i < dump->size; ++i ) {
-		cvar_t * var = ( cvar_t * ) dump->key_value_vector[i].value;
-		if( is_public_build && Cvar_FlagIsSet( var->flags, CVAR_DEVELOPER ) ) {
-			continue;
-		}
-		if( Cvar_FlagIsSet( var->flags, CVAR_ARCHIVE ) ) {
-			Com_Printf( "*" );
-		} else {
-			Com_Printf( " " );
-		}
-		if( Cvar_FlagIsSet( var->flags, CVAR_USERINFO ) ) {
-			Com_Printf( "U" );
-		} else {
-			Com_Printf( " " );
-		}
-		if( Cvar_FlagIsSet( var->flags, CVAR_SERVERINFO ) ) {
-			Com_Printf( "S" );
-		} else {
-			Com_Printf( " " );
-		}
-		if( Cvar_FlagIsSet( var->flags, CVAR_NOSET ) || Cvar_FlagIsSet( var->flags, CVAR_READONLY ) ) {
-			Com_Printf( "-" );
-		} else if( Cvar_FlagIsSet( var->flags, CVAR_LATCH ) ) {
-			Com_Printf( "L" );
-		} else {
-			Com_Printf( " " );
-		}
-		if( Cvar_FlagIsSet( var->flags, CVAR_CHEAT ) ) {
-			Com_Printf( "C" );
-		} else {
-			Com_Printf( " " );
-		}
-		Com_Printf( " %s \"%s\", default: \"%s\"\n", var->name, var->string, var->dvalue );
-	}
-	Com_Printf( "%i variables\n", i );
-
-	Trie_FreeDump( dump );
-}
-
-bool userinfo_modified;
-
-static char *Cvar_BitInfo( int bit ) {
-	static char info[MAX_INFO_STRING];
-	trie_dump_t *dump = NULL;
-	unsigned int i;
-
-	info[0] = 0;
-
-	assert( cvar_trie );
-	Lock( cvar_mutex );
-	Trie_DumpIf( cvar_trie, "", TRIE_DUMP_VALUES, Cvar_HasFlags, &bit, &dump );
-	Unlock( cvar_mutex );
-
-	// make sure versioncvar comes first
-	for( i = dump->size; i > 0; --i ) {
-		cvar_t * var = ( cvar_t * ) dump->key_value_vector[i - 1].value;
-		if( var == versioncvar ) {
-			Info_SetValueForKey( info, var->name, var->string );
-			break;
+	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
+		const Cvar * cvar = &cvars[ i ];
+		if( HasFlag( cvar->flags, flag ) ) {
+			Info_SetValueForKey( info, cvar->name, cvar->value );
 		}
 	}
-
-	// dump other cvars
-	for( i = 0; i < dump->size; ++i ) {
-		cvar_t * var = ( cvar_t * ) dump->key_value_vector[i].value;
-		if( var != versioncvar ) {
-			Info_SetValueForKey( info, var->name, var->string );
-		}
-	}
-
-	Trie_FreeDump( dump );
 
 	return info;
 }
 
-/*
-* Cvar_Userinfo
-* Returns an info string containing all the CVAR_USERINFO cvars
-*/
-char *Cvar_Userinfo() {
-	return Cvar_BitInfo( CVAR_USERINFO );
+const char * Cvar_GetUserInfo() {
+	return MakeInfoString( CvarFlag_UserInfo );
 }
 
-/*
-* Cvar_Serverinfo
-* Returns an info string containing all the CVAR_SERVERINFO cvars
-*/
-char *Cvar_Serverinfo() {
-	return Cvar_BitInfo( CVAR_SERVERINFO );
+const char * Cvar_GetServerInfo() {
+	return MakeInfoString( CvarFlag_ServerInfo );
 }
 
-/*
-* Cvar_NotDeveloper
-*/
-#ifdef PUBLIC_BUILD
-static int Cvar_NotDeveloper( void *cvar, const void *nothing ) {
-	return !Cvar_FlagIsSet( ( (cvar_t *)cvar )->flags, CVAR_DEVELOPER );
-}
-#endif
-
-/*
-* CVar_CompleteCountPossible
-*/
-int Cvar_CompleteCountPossible( const char *partial ) {
-	unsigned int matches;
-	assert( cvar_trie );
-	assert( partial );
-	Lock( cvar_mutex );
-#ifdef PUBLIC_BUILD
-	Trie_NoOfMatchesIf( cvar_trie, partial, Cvar_NotDeveloper, NULL, &matches );
-#else
-	Trie_NoOfMatches( cvar_trie, partial, &matches );
-#endif
-	Unlock( cvar_mutex );
-	return matches;
-}
-
-/*
-* CVar_CompleteBuildList
-*/
-const char **Cvar_CompleteBuildList( const char *partial ) {
-	trie_dump_t *dump = NULL;
-	const char **buf;
-	unsigned int i;
-
-	assert( cvar_trie );
-	Lock( cvar_mutex );
-#ifdef PUBLIC_BUILD
-	Trie_DumpIf( cvar_trie, partial, TRIE_DUMP_VALUES, Cvar_NotDeveloper, NULL, &dump );
-#else
-	Trie_Dump( cvar_trie, partial, TRIE_DUMP_VALUES, &dump );
-#endif
-	Unlock( cvar_mutex );
-	buf = (const char **) Mem_TempMalloc( sizeof( char * ) * ( dump->size + 1 ) );
-	for( i = 0; i < dump->size; ++i )
-		buf[i] = ( ( cvar_t * ) dump->key_value_vector[i].value )->name;
-	buf[dump->size] = NULL;
-	Trie_FreeDump( dump );
-	return buf;
-}
-
-/*
-* Cvar_CompleteBuildListWithFlag
-*/
-const char **Cvar_CompleteBuildListWithFlag( const char *partial, cvar_flag_t flag ) {
-	trie_dump_t *dump = NULL;
-	const char **buf;
-	unsigned int i;
-
-	assert( cvar_trie );
-	Lock( cvar_mutex );
-	Trie_DumpIf( cvar_trie, partial, TRIE_DUMP_VALUES, Cvar_HasFlags, &flag, &dump );
-	Unlock( cvar_mutex );
-	buf = (const char **) Mem_TempMalloc( sizeof( char * ) * ( dump->size + 1 ) );
-	for( i = 0; i < dump->size; ++i )
-		buf[i] = ( ( cvar_t * ) dump->key_value_vector[i].value )->name;
-	buf[dump->size] = NULL;
-	Trie_FreeDump( dump );
-	return buf;
-}
-
-/*
-* Cvar_CompleteBuildListUser
-*/
-const char **Cvar_CompleteBuildListUser( const char *partial ) {
-	return Cvar_CompleteBuildListWithFlag( partial, CVAR_USERINFO );
-}
-
-/*
-* Cvar_CompleteBuildListServer
-*/
-const char **Cvar_CompleteBuildListServer( const char *partial ) {
-	return Cvar_CompleteBuildListWithFlag( partial, CVAR_SERVERINFO );
-}
-
-/*
-* Cvar_PreInit
-*/
 void Cvar_PreInit() {
-	assert( !cvar_initialized );
-	assert( !cvar_preinitialized );
+	cvars_hashtable.clear();
+	config_entries_hashtable.clear();
 
-	assert( !cvar_trie );
-
-	cvar_mutex = NewMutex();
-
-	Trie_Create( TRIE_CASE_INSENSITIVE, &cvar_trie );
-
-	cvar_preinitialized = true;
+	AddCommand( "set", SetConfigCvar );
+	AddCommand( "seta", SetConfigCvar );
+	AddCommand( "setau", SetConfigCvar );
+	AddCommand( "setas", SetConfigCvar );
 }
 
-/*
-* Cvar_Init
-*
-* Reads in all archived cvars
-*/
 void Cvar_Init() {
-	assert( !cvar_initialized );
-	assert( cvar_preinitialized );
+	RemoveCommand( "set" );
+	RemoveCommand( "seta" );
+	RemoveCommand( "setau" );
+	RemoveCommand( "setas" );
 
-	assert( cvar_trie );
-
-	Cmd_AddCommand( "set", Cvar_Set_f );
-	Cmd_AddCommand( "seta", Cvar_Seta_f );
-	Cmd_AddCommand( "setau", Cvar_Setau_f );
-	Cmd_AddCommand( "setas", Cvar_Setas_f );
-	Cmd_AddCommand( "setu", Cvar_Setu_f );
-	Cmd_AddCommand( "sets", Cvar_Sets_f );
-	Cmd_AddCommand( "reset", Cvar_Reset_f );
-	Cmd_AddCommand( "toggle", Cvar_Toggle_f );
-	Cmd_AddCommand( "cvarlist", Cvar_List_f );
-
-	Cmd_SetCompletionFunc( "set", Cvar_CompleteBuildList );
-	Cmd_SetCompletionFunc( "seta", Cvar_CompleteBuildList );
-	Cmd_SetCompletionFunc( "reset", Cvar_CompleteBuildList );
-	Cmd_SetCompletionFunc( "toggle", Cvar_CompleteBuildList );
-	Cmd_SetCompletionFunc( "setau", Cvar_CompleteBuildListUser );
-	Cmd_SetCompletionFunc( "setas", Cvar_CompleteBuildListServer );
-	Cmd_SetCompletionFunc( "setu", Cvar_CompleteBuildListUser );
-	Cmd_SetCompletionFunc( "sets", Cvar_CompleteBuildListServer );
-
-	cvar_initialized = true;
+	AddCommand( "reset", Cvar_Reset_f );
 }
 
-/*
-* Cvar_Shutdown
-*
-* Reads in all archived cvars
-*/
 void Cvar_Shutdown() {
-	if( cvar_initialized ) {
-		unsigned int i;
-		trie_dump_t *dump;
-		extern cvar_t *developer, *developer_memory;
+	RemoveCommand( "reset" );
 
-		assert( cvar_trie );
-
-		// NULL out some console variables so that we won't try to read from
-		// the memory pointers after the data has already been freed but before we
-		// reset the pointers to NULL
-		developer = NULL;
-		developer_memory = NULL;
-
-		Cmd_RemoveCommand( "set" );
-		Cmd_RemoveCommand( "seta" );
-		Cmd_RemoveCommand( "setau" );
-		Cmd_RemoveCommand( "setas" );
-		Cmd_RemoveCommand( "setu" );
-		Cmd_RemoveCommand( "sets" );
-		Cmd_RemoveCommand( "reset" );
-		Cmd_RemoveCommand( "toggle" );
-		Cmd_RemoveCommand( "cvarlist" );
-
-		Lock( cvar_mutex );
-		Trie_Dump( cvar_trie, "", TRIE_DUMP_VALUES, &dump );
-		Unlock( cvar_mutex );
-		for( i = 0; i < dump->size; ++i ) {
-			cvar_t * var = ( cvar_t * ) dump->key_value_vector[i].value;
-
-			if( var->string ) {
-				Mem_ZoneFree( var->string );
-			}
-			if( var->dvalue ) {
-				Mem_ZoneFree( var->dvalue );
-			}
-			Mem_ZoneFree( var );
-		}
-		Trie_FreeDump( dump );
-
-		cvar_initialized = false;
+	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
+		FREE( sys_allocator, cvars[ i ].name );
+		FREE( sys_allocator, cvars[ i ].value );
+		FREE( sys_allocator, cvars[ i ].default_value );
 	}
 
-	if( cvar_preinitialized ) {
-		assert( cvar_trie );
-
-		Lock( cvar_mutex );
-		Trie_Destroy( cvar_trie );
-		Unlock( cvar_mutex );
-		cvar_trie = NULL;
-
-		DeleteMutex( cvar_mutex );
-
-		cvar_preinitialized = false;
+	for( size_t i = 0; i < config_entries_hashtable.size(); i++ ) {
+		FREE( sys_allocator, config_entries[ i ].name );
+		FREE( sys_allocator, config_entries[ i ].value );
 	}
 }

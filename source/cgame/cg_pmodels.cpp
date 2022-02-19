@@ -238,46 +238,6 @@ void CG_MoveToTag( Vec3 * move_origin,
 	Matrix3_Multiply( tmpAxis, space_axis, move_axis );
 }
 
-/*
-* CG_PModel_GetProjectionSource
-* It asumes the player entity is up to date
-*/
-bool CG_PModel_GetProjectionSource( int entnum, orientation_t *tag_result ) {
-	centity_t *cent;
-	pmodel_t *pmodel;
-
-	if( !tag_result ) {
-		return false;
-	}
-
-	if( entnum < 1 || entnum >= MAX_EDICTS ) {
-		return false;
-	}
-
-	cent = &cg_entities[entnum];
-	if( cent->serverFrame != cg.frame.serverFrame ) {
-		return false;
-	}
-
-	// see if it's the view weapon
-	if( ISVIEWERENTITY( entnum ) && !cg.view.thirdperson ) {
-		tag_result->origin = cg.weapon.projectionSource.origin;
-		Matrix3_Copy( cg.weapon.projectionSource.axis, tag_result->axis );
-		return true;
-	}
-
-	return false;
-
-	// it's a 3rd person model
-	pmodel = &cg_entPModels[entnum];
-	tag_result->origin = pmodel->projectionSource.origin;
-	Matrix3_Copy( pmodel->projectionSource.axis, tag_result->axis );
-	return true;
-}
-
-/*
-* CG_OutlineScaleForDist
-*/
 static float CG_OutlineScaleForDist( const InterpolatedEntity * e, float maxdist, float scale ) {
 	Vec3 dir = e->origin - cg.view.origin;
 	float dist = Length( dir ) * cg.view.fracDistFOV;
@@ -420,7 +380,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 vel
 	// this is not like having groundEntity, we are more generous with
 	// the tracing size here to include small steps
 	Vec3 point = state->origin;
-	point.z -= 1.6 * STEPSIZE;
+	point.z -= 1.6f * STEPSIZE;
 	client_gs.api.Trace( &trace, state->origin, mins, maxs, point, state->number, MASK_PLAYERSOLID, 0 );
 	if( trace.ent == -1 || ( trace.fraction < 1.0f && !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
 		moveflags |= ANIMMOVE_AIR;
@@ -579,27 +539,27 @@ void CG_PModel_LeanAngles( centity_t *cent, pmodel_t *pmodel ) {
 		AnglesToAxis( Vec3( 0, cent->current.angles.y, 0 ), axis );
 
 		float front = scale * Dot( hvelocity, FromQFAxis( axis, AXIS_FORWARD ) );
-		if( front < -0.1 || front > 0.1 ) {
+		if( front < -0.1f || front > 0.1f ) {
 			leanAngles[LOWER].x += front;
-			leanAngles[UPPER].x -= front * 0.25;
-			leanAngles[HEAD].x -= front * 0.5;
+			leanAngles[UPPER].x -= front * 0.25f;
+			leanAngles[HEAD].x -= front * 0.5f;
 		}
 
 		float aside = ( front * 0.001f ) * cent->yawVelocity;
 
 		if( aside ) {
 			float asidescale = 75;
-			leanAngles[LOWER].z -= aside * 0.5 * asidescale;
-			leanAngles[UPPER].z += aside * 1.75 * asidescale;
-			leanAngles[HEAD].z -= aside * 0.35 * asidescale;
+			leanAngles[LOWER].z -= aside * 0.5f * asidescale;
+			leanAngles[UPPER].z += aside * 1.75f * asidescale;
+			leanAngles[HEAD].z -= aside * 0.35f * asidescale;
 		}
 
 		float side = scale * Dot( hvelocity, FromQFAxis( axis, AXIS_RIGHT ) );
 
 		if( side < -1 || side > 1 ) {
-			leanAngles[LOWER].z -= side * 0.5;
-			leanAngles[UPPER].z += side * 0.5;
-			leanAngles[HEAD].z += side * 0.25;
+			leanAngles[LOWER].z -= side * 0.5f;
+			leanAngles[UPPER].z += side * 0.5f;
+			leanAngles[HEAD].z += side * 0.25f;
 		}
 
 		leanAngles[LOWER].x = Clamp( -45.0f, leanAngles[LOWER].x, 45.0f );
@@ -634,13 +594,7 @@ static void CG_UpdatePModelAnimations( centity_t *cent ) {
 * Called each new serverframe
 */
 void CG_UpdatePlayerModelEnt( centity_t *cent ) {
-	// start from clean
-	memset( &cent->interpolated, 0, sizeof( cent->interpolated ) );
-	cent->interpolated.scale = 1.0f;
-
 	pmodel_t * pmodel = &cg_entPModels[ cent->current.number ];
-
-	cent->interpolated.color = RGBA8( CG_TeamColor( cent->current.number ) );
 
 	// Spawning (teleported bit) forces nobacklerp and the interruption of EVENT_CHANNEL animations
 	if( cent->current.teleported ) {
@@ -744,7 +698,7 @@ static Mat4 TransformTag( const Model * model, const Mat4 & transform, const Mat
 	return transform * model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
 }
 
-void CG_DrawPlayer( centity_t *cent ) {
+void CG_DrawPlayer( centity_t * cent ) {
 	pmodel_t * pmodel = &cg_entPModels[ cent->current.number ];
 	const PlayerModelMetadata * meta = GetPlayerModelMetadata( cent->current.number );
 	if( meta == NULL )
@@ -815,7 +769,7 @@ void CG_DrawPlayer( centity_t *cent ) {
 
 	MatrixPalettes pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 
-	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin );
+	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
 
 	Vec4 color = CG_TeamColorVec4( cent->current.team );
 	if( corpse ) {
@@ -826,49 +780,75 @@ void CG_DrawPlayer( centity_t *cent ) {
 	bool same_team = GS_TeamBasedGametype( &client_gs ) && cg.predictedPlayerState.team == cent->current.team;
 	bool draw_silhouette = draw_model && ( ISREALSPECTATOR() || same_team );
 
-	if( draw_model )
-		DrawModel( meta->model, transform, color, pose );
-	DrawModelShadow( meta->model, transform, color, pose );
-	if( !corpse && draw_silhouette ) {
-		DrawModelSilhouette( meta->model, transform, color, pose );
+	{
+		DrawModelConfig config = { };
+		config.draw_model.enabled = draw_model;
+		config.draw_shadows.enabled = true;
+		if( !corpse && draw_silhouette ) {
+			config.draw_silhouette.enabled = true;
+			config.draw_silhouette.silhouette_color = color;
+		}
+
+		if( draw_model ) {
+			config.draw_outlines.enabled = true;
+			float outline_height = CG_OutlineScaleForDist( &cent->interpolated, 4096, 1.0f );
+			if( outline_height != 0.0f ) {
+				config.draw_outlines.outline_height = outline_height;
+				config.draw_outlines.outline_color = color * 0.5f;
+			}
+		}
+
+		DrawModel( config, meta->model, transform, color, pose );
 	}
 
-	if( draw_model ) {
-		float outline_height = CG_OutlineScaleForDist( &cent->interpolated, 4096, 1.0f );
-		if( outline_height != 0.0f ) {
-			DrawOutlinedModel( meta->model, transform, color * 0.5f, outline_height, pose );
-		}
-	}
+	Mat4 inverse_scale = Mat4Scale( 1.0f / cent->interpolated.scale );
 
 	// add weapon model
-	if( cent->current.weapon != Weapon_None ) {
-		const Model * weapon_model = GetWeaponModelMetadata( cent->current.weapon )->model;
-		if( weapon_model != NULL ) {
-			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon );
+	{
+		if( cent->current.weapon != Weapon_None ) {
+			const Model * weapon_model = GetWeaponModelMetadata( cent->current.weapon )->model;
+			if( weapon_model != NULL ) {
+				Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon ) * inverse_scale;
 
-			if( draw_model )
-				DrawModel( weapon_model, tag_transform, vec4_white );
-			DrawModelShadow( weapon_model, tag_transform, vec4_white );
+				DrawModelConfig config = { };
+				config.draw_model.enabled = draw_model;
+				config.draw_shadows.enabled = true;
 
-			if( draw_silhouette ) {
-				DrawModelSilhouette( weapon_model, tag_transform, color );
+				if( draw_silhouette ) {
+					config.draw_silhouette.enabled = true;
+					config.draw_silhouette.silhouette_color = color;
+				}
+
+				DrawModel( config, weapon_model, tag_transform, color );
+
+				u8 muzzle;
+				if( FindNodeByName( weapon_model, Hash32( "muzzle" ), &muzzle ) ) {
+					pmodel->muzzle_transform = tag_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
+				}
+				else {
+					pmodel->muzzle_transform = tag_transform;
+				}
 			}
 		}
 	}
 
 	// add bomb/hat
-	const Model * attached_model = FindModel( cent->current.model2 );
-	if( attached_model != NULL ) {
-		PlayerModelMetadata::Tag tag = meta->tag_bomb;
-		if( cent->current.effects & EF_HAT )
-			tag = meta->tag_hat;
-		Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag );
-		if ( draw_model )
-			DrawModel( attached_model, tag_transform, vec4_white );
-		DrawModelShadow( attached_model, tag_transform, vec4_white );
+	{
+		const Model * attached_model = FindModel( cent->current.model2 );
+		if( attached_model != NULL ) {
+			PlayerModelMetadata::Tag tag = meta->tag_bomb;
+			if( cent->current.effects & EF_HAT )
+				tag = meta->tag_hat;
 
-		if( draw_silhouette ) {
-			DrawModelSilhouette( attached_model, tag_transform, color );
+			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag ) * inverse_scale;
+
+			DrawModelConfig config = { };
+			config.draw_model.enabled = draw_model;
+			config.draw_shadows.enabled = true;
+			config.draw_silhouette.enabled = draw_silhouette;
+			config.draw_silhouette.silhouette_color = color;
+
+			DrawModel( config, attached_model, tag_transform, vec4_white );
 		}
 	}
 }

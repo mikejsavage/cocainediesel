@@ -1,5 +1,5 @@
 {
 	attenuation idle
-	sound weapons/stake/impale1
-	sound weapons/stake/impale2
+	sound ./impale1
+	sound ./impale2
 }

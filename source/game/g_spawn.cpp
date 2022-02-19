@@ -31,6 +31,7 @@ enum EntityFieldType {
 	EntityField_Asset,
 	EntityField_Vec3,
 	EntityField_Angle,
+	EntityField_Scale,
 	EntityField_RGBA,
 };
 
@@ -57,16 +58,19 @@ static constexpr EntityField entity_keys[] = {
 	{ "targetname", FOFS( name ), EntityField_StringHash },
 	{ "pathtarget", FOFS( pathtarget ), EntityField_StringHash },
 	{ "killtarget", FOFS( killtarget ), EntityField_StringHash },
-	{ "wait", FOFS( wait ), EntityField_Float },
-	{ "delay", FOFS( delay ), EntityField_Float },
+	{ "deadcam", FOFS( deadcam ), EntityField_StringHash },
+	{ "wait", FOFS( wait ), EntityField_Int },
+	{ "delay", FOFS( delay ), EntityField_Int },
 	{ "style", FOFS( style ), EntityField_Int },
 	{ "count", FOFS( count ), EntityField_Int },
 	{ "health", FOFS( health ), EntityField_Float },
 	{ "dmg", FOFS( dmg ), EntityField_Int },
 	{ "angles", FOFS( s.angles ), EntityField_Vec3 },
 	{ "angle", FOFS( s.angles ), EntityField_Angle },
+	{ "modelscale_vec", FOFS( s.scale ), EntityField_Vec3 },
+	{ "modelscale", FOFS( s.scale ), EntityField_Scale },
 	{ "mass", FOFS( mass ), EntityField_Int },
-	{ "random", FOFS( random ), EntityField_Float },
+	{ "random", FOFS( wait_randomness ), EntityField_Int },
 
 	// temp spawn vars -- only valid when the spawn function is called
 	{ "lip", STOFS( lip ), EntityField_Int, true },
@@ -82,26 +86,24 @@ static constexpr EntityField entity_keys[] = {
 	{ "spawn_probability", STOFS( spawn_probability ), EntityField_Float, true },
 };
 
-static void SP_worldspawn( edict_t * ent );
+static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st );
 
 struct EntitySpawnCallback {
 	StringHash classname;
-	void ( *cb )( edict_t * ent );
+	void ( *cb )( edict_t * ent, const spawn_temp_t * st );
 };
 
 static constexpr EntitySpawnCallback spawn_callbacks[] = {
 	{ "worldspawn", SP_worldspawn },
 
 	{ "post_match_camera", SP_post_match_camera },
+	{ "deadcam", SP_post_match_camera },
 
-	{ "func_button", SP_func_button },
 	{ "func_door", SP_func_door },
 	{ "func_door_rotating", SP_func_door_rotating },
 	{ "func_rotating", SP_func_rotating },
 	{ "func_train", SP_func_train },
-	{ "func_timer", SP_func_timer },
 	{ "func_wall", SP_func_wall },
-	{ "func_explosive", SP_func_explosive },
 	{ "func_static", SP_func_static },
 
 	{ "trigger_always", SP_trigger_always },
@@ -110,10 +112,8 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 	{ "trigger_push", SP_trigger_push },
 	{ "trigger_hurt", SP_trigger_hurt },
 
-	{ "target_explosion", SP_target_explosion },
 	{ "target_laser", SP_target_laser },
 	{ "target_position", SP_target_position },
-	{ "target_print", SP_target_print },
 	{ "target_delay", SP_target_delay },
 
 	{ "path_corner", SP_path_corner },
@@ -126,14 +126,15 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 
 	{ "spike", SP_spike },
 	{ "spikes", SP_spikes },
+	{ "jumppad", SP_jumppad },
 
 	{ "speaker_wall", SP_speaker_wall },
 };
 
-static bool SpawnEntity( edict_t * ent ) {
+static bool SpawnEntity( edict_t * ent, const spawn_temp_t * st ) {
 	for( EntitySpawnCallback s : spawn_callbacks ) {
 		if( s.classname == ent->classname ) {
-			s.cb( ent );
+			s.cb( ent, st );
 			return true;
 		}
 	}
@@ -142,12 +143,12 @@ static bool SpawnEntity( edict_t * ent ) {
 		return true;
 	}
 
-	Com_GGPrint( "{} doesn't have a spawn function", st.classname );
+	Com_GGPrint( "{} doesn't have a spawn function", st->classname );
 
 	return false;
 }
 
-static void ED_ParseField( Span< const char > key, Span< const char > value, edict_t * ent ) {
+static void ED_ParseField( Span< const char > key, Span< const char > value, edict_t * ent, spawn_temp_t * st ) {
 	StringHash key_hash = StringHash( key );
 
 	for( EntityField f : entity_keys ) {
@@ -156,7 +157,7 @@ static void ED_ParseField( Span< const char > key, Span< const char > value, edi
 
 		uint8_t *b;
 		if( f.temp ) {
-			b = (uint8_t *)&st;
+			b = (uint8_t *)st;
 		} else {
 			b = (uint8_t *)ent;
 		}
@@ -181,6 +182,9 @@ static void ED_ParseField( Span< const char > key, Span< const char > value, edi
 				break;
 			case EntityField_Angle:
 				*(Vec3 *)( b + f.ofs ) = Vec3( 0.0f, SpanToFloat( value, 0.0f ), 0.0f );
+				break;
+			case EntityField_Scale:
+				*(Vec3 *)( b + f.ofs ) = Vec3( SpanToFloat( value, 1.0f ) );
 				break;
 
 			case EntityField_Vec3: {
@@ -208,10 +212,7 @@ static void ED_ParseField( Span< const char > key, Span< const char > value, edi
 	}
 }
 
-static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent ) {
-	memset( &st, 0, sizeof( st ) );
-	st.spawn_probability = 1.0f;
-
+static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent, spawn_temp_t * st ) {
 	while( true ) {
 		Span< const char > key = ParseToken( cursor, Parse_DontStopOnNewLine );
 		if( key == "}" )
@@ -228,10 +229,10 @@ static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent ) {
 			Com_Error( "ED_ParseEntity: closing brace without data" );
 		}
 
-		ED_ParseField( key, value, ent );
+		ED_ParseField( key, value, ent, st );
 
 		if( StrCaseEqual( key, "classname" ) ) {
-			st.classname = value;
+			st->classname = value;
 		}
 	}
 }
@@ -276,13 +277,16 @@ static void SpawnMapEntities() {
 			ent = G_Spawn();
 		}
 
-		ED_ParseEntity( &cursor, ent );
+		spawn_temp_t st = { };
+		st.spawn_probability = 1.0f;
+
+		ED_ParseEntity( &cursor, ent, &st );
 
 		bool ok = true;
 		bool rng = Probability( &svs.rng, st.spawn_probability );
 		ok = ok && st.classname != "";
 		ok = ok && rng;
-		ok = ok && SpawnEntity( ent );
+		ok = ok && SpawnEntity( ent, &st );
 
 		if( !ok ) {
 			G_FreeEdict( ent );
@@ -329,21 +333,23 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 
 	G_InitGameCommands();
 
-	G_SpawnQueue_Init();
 	G_Teams_Init();
 
-	G_Gametype_Init();
+	InitGametype();
 
 	G_PrecacheGameCommands(); // adding commands after this point won't update them to the client
 
-	// start spawning entities
 	SpawnMapEntities();
-
-	GT_CallSpawn();
 
 	// always start in warmup match state and let the thinking code
 	// revert it to wait state if empty ( so gametype based item masks are setup )
 	G_Match_LaunchState( MatchState_Warmup );
+
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		if( game.edicts[ i + 1 ].r.inuse ) {
+			G_Teams_SetTeam( &game.edicts[ i + 1 ], TEAM_SPECTATOR );
+		}
+	}
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		if( game.edicts[ i + 1 ].r.inuse ) {
@@ -355,18 +361,22 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 void G_ResetLevel() {
 	G_FreeEdict( world );
 	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
-		if( game.edicts[i].r.inuse ) {
-			G_FreeEdict( game.edicts + i );
-		}
+		G_FreeEdict( game.edicts + i );
 	}
 
 	SpawnMapEntities();
-
-	GT_CallSpawn();
 }
 
 void G_RespawnLevel() {
+	ShutdownGametype();
 	G_InitLevel( sv.mapname, level.time );
+
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		edict_t * ent = &game.edicts[ i + 1 ];
+		if( !ent->r.inuse )
+			continue;
+		GT_CallPlayerConnected( ent );
+	}
 }
 
 void G_LoadMap( const char * name ) {
@@ -413,15 +423,25 @@ void G_HotloadMap() {
 	Q_strncpyz( map, sv.mapname, sizeof( map ) );
 	G_LoadMap( map );
 	G_ResetLevel();
+
+	if( level.gametype.MapHotloaded != NULL ) {
+		level.gametype.MapHotloaded();
+	}
 }
 
 // TODO: game module init is a mess and I'm not sure how to clean this up
 void G_Aasdf() {
 	GClip_ClearWorld(); // clear areas links
 	G_ResetLevel();
+	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
+		edict_t * ent = &game.edicts[ i ];
+		if( ent->r.inuse ) {
+			ent->s.teleported = true;
+		}
+	}
 }
 
-static void SP_worldspawn( edict_t *ent ) {
+static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st ) {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.solid = SOLID_YES;
 	ent->r.inuse = true; // since the world doesn't use G_Spawn()

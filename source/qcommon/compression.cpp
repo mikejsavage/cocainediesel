@@ -23,7 +23,7 @@ bool Decompress( const char * name, Allocator * a, Span< const u8 > compressed, 
 
 	*decompressed = ALLOC_SPAN( a, u8, decompressed_size );
 	{
-		ZoneScopedN( "ZSTD_decompress" );
+		TracyZoneScopedN( "ZSTD_decompress" );
 		size_t r = ZSTD_decompress( decompressed->ptr, decompressed->n, compressed.ptr, compressed.n );
 		if( r != decompressed_size ) {
 			Com_Printf( S_COLOR_RED "Can't decompress %s: %s\n", name, ZSTD_getErrorName( r ) );

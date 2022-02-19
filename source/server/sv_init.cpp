@@ -45,9 +45,6 @@ static void SV_CreateBaseline() {
 	}
 }
 
-/*
-* SV_SetServerConfigStrings
-*/
 void SV_SetServerConfigStrings() {
 	snprintf( sv.configstrings[CS_MAXCLIENTS], sizeof( sv.configstrings[CS_MAXCLIENTS] ), "%i", sv_maxclients->integer );
 	Q_strncpyz( sv.configstrings[CS_HOSTNAME], Cvar_String( "sv_hostname" ), sizeof( sv.configstrings[CS_HOSTNAME] ) );
@@ -61,7 +58,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	if( devmap ) {
 		Cvar_ForceSet( "sv_cheats", "1" );
 	}
-	Cvar_FixCheatVars();
+	ResetCheatCvars();
 
 	Com_Printf( "SpawnServer: %s\n", mapname );
 
@@ -82,8 +79,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 
 	G_LoadMap( mapname );
 
-	// set serverinfo variable
-	Cvar_FullSet( "mapname", sv.mapname, CVAR_SERVERINFO | CVAR_READONLY, true );
+	Cvar_ForceSet( "mapname", sv.mapname );
 
 	//
 	// spawn the rest of the entities on the map
@@ -125,11 +121,6 @@ void SV_InitGame() {
 	if( svs.initialized ) {
 		// cause any connected clients to reconnect
 		SV_ShutdownGame( "Server restarted", true );
-
-		// SV_ShutdownGame will also call Cvar_GetLatchedVars
-	} else {
-		// get any latched variable changes (sv_maxclients, etc)
-		Cvar_GetLatchedVars( CVAR_LATCH );
 	}
 
 	u64 entropy[ 2 ];
@@ -138,17 +129,18 @@ void SV_InitGame() {
 
 	svs.initialized = true;
 
-	// init clients
-	if( sv_maxclients->integer < 1 ) {
-		Cvar_FullSet( "sv_maxclients", "8", CVAR_SERVERINFO | CVAR_LATCH, true );
-	} else if( sv_maxclients->integer > MAX_CLIENTS ) {
-		Cvar_FullSet( "sv_maxclients", va( "%i", MAX_CLIENTS ), CVAR_SERVERINFO | CVAR_LATCH, true );
+	if( sv_maxclients->integer < 1 || sv_maxclients->integer > MAX_CLIENTS ) {
+		Cvar_ForceSet( "sv_maxclients", sv_maxclients->default_value );
 	}
 
 	svs.spawncount = RandomUniform( &svs.rng, 0, S16_MAX );
-	svs.clients = ( client_t * ) Mem_Alloc( sv_mempool, sizeof( client_t ) * sv_maxclients->integer );
+
+	svs.clients = ALLOC_MANY( sys_allocator, client_t, sv_maxclients->integer );
+	memset( svs.clients, 0, sizeof( svs.clients[ 0 ] ) * sv_maxclients->integer );
+
 	svs.client_entities.num_entities = sv_maxclients->integer * UPDATE_BACKUP * MAX_SNAP_ENTITIES;
-	svs.client_entities.entities = ( SyncEntityState * ) Mem_Alloc( sv_mempool, sizeof( SyncEntityState ) * svs.client_entities.num_entities );
+	svs.client_entities.entities = ALLOC_MANY( sys_allocator, SyncEntityState, svs.client_entities.num_entities );
+	memset( svs.client_entities.entities, 0, sizeof( svs.client_entities.entities[ 0 ] ) * svs.client_entities.num_entities );
 
 	// init network stuff
 
@@ -164,7 +156,7 @@ void SV_InitGame() {
 
 	if( is_dedicated_server || sv_maxclients->integer > 1 ) {
 		// IPv4
-		NET_StringToAddress( sv_ip->string, &address );
+		NET_StringToAddress( sv_ip->value, &address );
 		NET_SetAddressPort( &address, sv_port->integer );
 		if( !NET_OpenSocket( &svs.socket_udp, SOCKET_UDP, &address, true ) ) {
 			Com_Printf( "Error: Couldn't open UDP socket: %s\n", NET_ErrorString() );
@@ -173,8 +165,8 @@ void SV_InitGame() {
 		}
 
 		// IPv6
-		NET_StringToAddress( sv_ip6->string, &ipv6_address );
-		if( ipv6_address.type == NA_IP6 ) {
+		NET_StringToAddress( sv_ip6->value, &ipv6_address );
+		if( ipv6_address.type == NA_IPv6 ) {
 			NET_SetAddressPort( &ipv6_address, sv_port6->integer );
 			if( !NET_OpenSocket( &svs.socket_udp6, SOCKET_UDP, &ipv6_address, true ) ) {
 				Com_Printf( "Error: Couldn't open UDP6 socket: %s\n", NET_ErrorString() );
@@ -182,7 +174,7 @@ void SV_InitGame() {
 				socket_opened = true;
 			}
 		} else {
-			Com_Printf( "Error: invalid IPv6 address: %s\n", sv_ip6->string );
+			Com_Printf( "Error: invalid IPv6 address: %s\n", sv_ip6->value );
 		}
 	}
 
@@ -208,26 +200,25 @@ void SV_InitGame() {
 * to totally exit after returning from this function.
 */
 static void SV_FinalMessage( const char *message, bool reconnect ) {
-	int i, j;
-	client_t *cl;
-
-	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
-		if( cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		client_t * cl = &svs.clients[ i ];
+		if( cl->edict && ( cl->edict->s.svflags & SVF_FAKECLIENT ) ) {
 			continue;
 		}
 		if( cl->state >= CS_CONNECTING ) {
 			if( reconnect ) {
 				SV_SendServerCommand( cl, "forcereconnect \"%s\"", message );
 			} else {
-				SV_SendServerCommand( cl, "disconnect %i \"%s\"", DROP_TYPE_GENERAL, message );
+				SV_SendServerCommand( cl, "disconnect \"%s\"", message );
 			}
 
 			SV_InitClientMessage( cl, &tmpMessage, NULL, 0 );
 			SV_AddReliableCommandsToMessage( cl, &tmpMessage );
 
 			// send it twice
-			for( j = 0; j < 2; j++ )
+			for( int j = 0; j < 2; j++ ) {
 				SV_SendMessageToClient( cl, &tmpMessage );
+			}
 		}
 	}
 }
@@ -246,9 +237,7 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 		SV_Demo_Stop_f();
 	}
 
-	if( svs.clients ) {
-		SV_FinalMessage( finalmsg, reconnect );
-	}
+	SV_FinalMessage( finalmsg, reconnect );
 
 	SV_ShutdownGameProgs();
 
@@ -256,18 +245,12 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 	NET_CloseSocket( &svs.socket_udp );
 	NET_CloseSocket( &svs.socket_udp6 );
 
-	// get any latched variable changes (sv_maxclients, etc)
-	Cvar_GetLatchedVars( CVAR_LATCH );
-
-	if( svs.clients ) {
-		Mem_Free( svs.clients );
-		svs.clients = NULL;
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		SNAP_FreeClientFrames( &svs.clients[ i ] );
 	}
 
-	if( svs.client_entities.entities ) {
-		Mem_Free( svs.client_entities.entities );
-		memset( &svs.client_entities, 0, sizeof( svs.client_entities ) );
-	}
+	FREE( sys_allocator, svs.clients );
+	FREE( sys_allocator, svs.client_entities.entities );
 
 	if( svs.cms ) {
 		CM_Free( CM_Server, svs.cms );
@@ -276,10 +259,6 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 
 	Com_SetServerState( ss_dead );
 	svs.initialized = false;
-
-	if( sv_mempool ) {
-		Mem_EmptyPool( sv_mempool );
-	}
 }
 
 /*
@@ -287,7 +266,7 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 * command from the console or progs.
 */
 void SV_Map( const char * map, bool devmap ) {
-	ZoneScoped;
+	TracyZoneScoped;
 
 	if( svs.demo.file ) {
 		SV_Demo_Stop_f();
@@ -300,8 +279,8 @@ void SV_Map( const char * map, bool devmap ) {
 	// remove all bots before changing map
 	for( int i = 0; i < sv_maxclients->integer; i++ ) {
 		client_t * cl = &svs.clients[ i ];
-		if( cl->state && cl->edict && ( cl->edict->r.svflags & SVF_FAKECLIENT ) ) {
-			SV_DropClient( cl, DROP_TYPE_GENERAL, NULL );
+		if( cl->state && cl->edict && ( cl->edict->s.svflags & SVF_FAKECLIENT ) ) {
+			SV_DropClient( cl, NULL );
 		}
 	}
 

@@ -24,21 +24,12 @@ struct Shader {
 	u32 program;
 	u64 uniforms[ 8 ];
 	u64 textures[ 4 ];
-	u64 texture_buffers[ 8 ];
 	u64 texture_arrays[ 2 ];
+	u64 buffers[ 8 ];
 };
 
-struct VertexBuffer {
-	u32 vbo;
-};
-
-struct IndexBuffer {
-	u32 ebo;
-};
-
-struct TextureBuffer {
-	u32 tbo;
-	u32 texture;
+struct GPUBuffer {
+	u32 buffer;
 };
 
 struct UniformBlock {
@@ -51,13 +42,13 @@ struct Mesh {
 	u32 num_vertices;
 	PrimitiveType primitive_type;
 	u32 vao;
-	VertexBuffer positions;
-	VertexBuffer normals;
-	VertexBuffer tex_coords;
-	VertexBuffer colors;
-	VertexBuffer joints;
-	VertexBuffer weights;
-	IndexBuffer indices;
+	GPUBuffer positions;
+	GPUBuffer normals;
+	GPUBuffer tex_coords;
+	GPUBuffer colors;
+	GPUBuffer joints;
+	GPUBuffer weights;
+	GPUBuffer indices;
 	IndexFormat indices_format;
 	bool ccw_winding;
 };
@@ -101,3 +92,39 @@ struct Font;
 struct Material;
 struct Model;
 struct PipelineState;
+
+enum InstanceType {
+	InstanceType_None,
+	InstanceType_Particles,
+	InstanceType_Model,
+	InstanceType_ModelShadows,
+	InstanceType_ModelOutlines,
+	InstanceType_ModelSilhouette,
+
+	InstanceType_ComputeShader,
+};
+
+struct GPUMaterial {
+	Vec4 color;
+	Vec3 tcmod[ 2 ];
+};
+
+struct GPUModelInstance {
+	GPUMaterial material;
+	Vec4 transform[ 3 ];
+};
+
+struct GPUModelShadowsInstance {
+	Vec4 transform[ 3 ];
+};
+
+struct GPUModelOutlinesInstance {
+	Vec4 transform[ 3 ];
+	Vec4 color;
+	float height;
+};
+
+struct GPUModelSilhouetteInstance {
+	Vec4 transform[ 3 ];
+	Vec4 color;
+};

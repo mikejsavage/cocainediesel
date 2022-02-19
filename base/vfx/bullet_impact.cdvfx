@@ -33,19 +33,20 @@
     rotate
     stretch
 
-    position cone 90 0
+    position cone 75 0
 
-    speed 150
+    speed 500
     speed_distribution uniform 32
 
     color 1.0 1.0 1.0 1.0
     color_override
 
-    size 12
+    size 24 0
 
-    lifetime 0.25
-    count 1
+    lifetime 0.065
+    emission 35
   }
+
   particles {
     material textures/vfx/trace2
     blendfunc add
@@ -64,6 +65,26 @@
     size 2 0
 
     lifetime 0.7
+    count 1
+  }
+
+  particles {
+    material textures/vfx/trace1
+    blendfunc add
+    rotate
+    stretch
+
+    position cone 65 0
+
+    speed 145
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+    size 12 36
+
+    lifetime 0.05
+    lifetime_distribution uniform 0.05
+
     count 1
   }
 }

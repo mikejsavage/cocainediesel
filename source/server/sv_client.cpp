@@ -46,11 +46,6 @@ void SV_ClientResetCommandBuffers( client_t *client ) {
 	client->lastSentFrameNum = 0;
 }
 
-/*
-* SV_ClientConnect
-* accept the new client
-* this is the only place a client_t is ever initialized
-*/
 bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t *client, char *userinfo,
 					   u64 session_id, int challenge, bool fakeClient ) {
 	edict_t *ent;
@@ -60,7 +55,7 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 	ent = EDICT_NUM( edictnum );
 
 	// get the game a chance to reject this connection or modify the userinfo
-	if( !ClientConnect( ent, userinfo, fakeClient ) ) {
+	if( !ClientConnect( ent, userinfo, address, fakeClient ) ) {
 		return false;
 	}
 
@@ -118,8 +113,6 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 	}
 	client->session[ sizeof( client->session ) - 1 ] = '\0';
 
-	SV_Web_AddGameClient( client->session, client - svs.clients, &client->netchan.remoteAddress );
-
 	return true;
 }
 
@@ -130,7 +123,7 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 * or unwillingly.  This is NOT called if the entire server is quiting
 * or crashing.
 */
-void SV_DropClient( client_t *drop, int type, const char *format, ... ) {
+void SV_DropClient( client_t *drop, const char *format, ... ) {
 	va_list argptr;
 	char *reason;
 	char string[1024];
@@ -146,12 +139,12 @@ void SV_DropClient( client_t *drop, int type, const char *format, ... ) {
 	}
 
 	// add the disconnect
-	if( drop->edict && ( drop->edict->r.svflags & SVF_FAKECLIENT ) ) {
+	if( drop->edict && ( drop->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		ClientDisconnect( drop->edict, reason );
 		SV_ClientResetCommandBuffers( drop ); // make sure everything is clean
 	} else {
 		SV_InitClientMessage( drop, &tmpMessage, NULL, 0 );
-		SV_SendServerCommand( drop, "disconnect %i \"%s\"", type, string );
+		SV_SendServerCommand( drop, "disconnect \"%s\"", string );
 		SV_AddReliableCommandsToMessage( drop, &tmpMessage );
 
 		SV_SendMessageToClient( drop, &tmpMessage );
@@ -168,8 +161,6 @@ void SV_DropClient( client_t *drop, int type, const char *format, ... ) {
 	}
 
 	SNAP_FreeClientFrames( drop );
-
-	SV_Web_RemoveGameClient( drop->session );
 
 	if( drop->individual_socket ) {
 		NET_CloseSocket( &drop->socket );
@@ -228,7 +219,7 @@ static void SV_New_f( client_t *client ) {
 		ent->s.number = playernum + 1;
 		client->edict = ent;
 
-		MSG_WriteString( &tmpMessage, sv_downloadurl->string );
+		MSG_WriteString( &tmpMessage, sv_downloadurl->value );
 	}
 
 	SV_ClientResetCommandBuffers( client );
@@ -240,9 +231,6 @@ static void SV_New_f( client_t *client ) {
 	client->state = CS_CONNECTING;
 }
 
-/*
-* SV_Configstrings_f
-*/
 static void SV_Configstrings_f( client_t *client ) {
 	int start;
 
@@ -287,9 +275,6 @@ static void SV_Configstrings_f( client_t *client ) {
 	}
 }
 
-/*
-* SV_Baselines_f
-*/
 static void SV_Baselines_f( client_t *client ) {
 	int start;
 	SyncEntityState nullstate;
@@ -339,9 +324,6 @@ static void SV_Baselines_f( client_t *client ) {
 	SV_SendMessageToClient( client, &tmpMessage );
 }
 
-/*
-* SV_Begin_f
-*/
 static void SV_Begin_f( client_t *client ) {
 	Com_DPrintf( "Begin() from %s\n", client->name );
 
@@ -350,7 +332,7 @@ static void SV_Begin_f( client_t *client ) {
 		if( is_dedicated_server ) {
 			Com_Printf( "SV_Begin_f: 'Begin' from already spawned client: %s.\n", client->name );
 		}
-		SV_DropClient( client, DROP_TYPE_GENERAL, "Error: Begin while connected" );
+		SV_DropClient( client, "Error: Begin while connected" );
 		return;
 	}
 	// wsw : r1q2[end]
@@ -371,33 +353,18 @@ static void SV_Begin_f( client_t *client ) {
 
 //=============================================================================
 
-/*
-* SV_Disconnect_f
-* The client is going to disconnect, so remove the connection immediately
-*/
 static void SV_Disconnect_f( client_t *client ) {
-	SV_DropClient( client, DROP_TYPE_GENERAL, NULL );
+	SV_DropClient( client, NULL );
 }
 
 
-/*
-* SV_ShowServerinfo_f
-* Dumps the serverinfo info string
-*/
-static void SV_ShowServerinfo_f( client_t *client ) {
-	Info_Print( Cvar_Serverinfo() );
-}
-
-/*
-* SV_UserinfoCommand_f
-*/
 static void SV_UserinfoCommand_f( client_t *client ) {
 	const char *info;
 	int64_t time;
 
 	info = Cmd_Argv( 1 );
 	if( !Info_Validate( info ) ) {
-		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Invalid userinfo" );
+		SV_DropClient( client, "%s", "Error: Invalid userinfo" );
 		return;
 	}
 
@@ -414,9 +381,6 @@ static void SV_UserinfoCommand_f( client_t *client ) {
 	}
 }
 
-/*
-* SV_NoDelta_f
-*/
 static void SV_NoDelta_f( client_t *client ) {
 	client->nodelta = true;
 	client->nodelta_frame = 0;
@@ -440,19 +404,9 @@ ucmd_t ucmds[] =
 
 	{ "nodelta", SV_NoDelta_f },
 
-	// issued by hand at client consoles
-	{ "info", SV_ShowServerinfo_f },
-
-	// server demo downloads
-	{ "demolist", SV_DemoList_f },
-	{ "demoget", SV_DemoGet_f },
-
 	{ NULL, NULL }
 };
 
-/*
-* SV_ExecuteUserCommand
-*/
 static void SV_ExecuteUserCommand( client_t *client, const char *s ) {
 	ucmd_t *u;
 
@@ -525,7 +479,7 @@ void SV_ExecuteClientThinks( int clientNum ) {
 		return;
 	}
 
-	if( client->edict->r.svflags & SVF_FAKECLIENT ) {
+	if( client->edict->s.svflags & SVF_FAKECLIENT ) {
 		return;
 	}
 
@@ -552,9 +506,6 @@ void SV_ExecuteClientThinks( int clientNum ) {
 	client->UcmdExecuted = client->UcmdReceived;
 }
 
-/*
-* SV_ParseMoveCommand
-*/
 static void SV_ParseMoveCommand( client_t *client, msg_t *msg ) {
 	unsigned int i, ucmdHead, ucmdFirst, ucmdCount;
 	UserCommand nullcmd;
@@ -568,7 +519,7 @@ static void SV_ParseMoveCommand( client_t *client, msg_t *msg ) {
 	ucmdCount = (unsigned int)MSG_ReadUint8( msg );
 
 	if( ucmdCount > CMD_MASK ) {
-		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Ucmd overflow" );
+		SV_DropClient( client, "%s", "Error: Ucmd overflow" );
 		return;
 	}
 
@@ -603,10 +554,6 @@ static void SV_ParseMoveCommand( client_t *client, msg_t *msg ) {
 	}
 }
 
-/*
-* SV_ParseClientMessage
-* The current message is parsed for the given client
-*/
 void SV_ParseClientMessage( client_t *client, msg_t *msg ) {
 	char *s;
 	bool move_issued;
@@ -623,7 +570,7 @@ void SV_ParseClientMessage( client_t *client, msg_t *msg ) {
 		switch( c ) {
 			default:
 				Com_Printf( "SV_ParseClientMessage: unknown command char\n" );
-				SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Unknown command char" );
+				SV_DropClient( client, "%s", "Error: Unknown command char" );
 				return;
 
 			case clc_move: {
@@ -637,7 +584,7 @@ void SV_ParseClientMessage( client_t *client, msg_t *msg ) {
 			case clc_svcack: {
 				cmdNum = MSG_ReadIntBase128( msg );
 				if( cmdNum < client->reliableAcknowledge || cmdNum > client->reliableSent ) {
-					//SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: bad server command acknowledged" );
+					//SV_DropClient( client, "%s", "Error: bad server command acknowledged" );
 					return;
 				}
 				client->reliableAcknowledge = cmdNum;
@@ -661,7 +608,7 @@ void SV_ParseClientMessage( client_t *client, msg_t *msg ) {
 
 	if( msg->readcount > msg->cursize ) {
 		Com_Printf( "SV_ParseClientMessage: badread\n" );
-		SV_DropClient( client, DROP_TYPE_GENERAL, "%s", "Error: Bad message" );
+		SV_DropClient( client, "%s", "Error: Bad message" );
 		return;
 	}
 }

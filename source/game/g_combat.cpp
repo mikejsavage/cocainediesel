@@ -26,7 +26,7 @@ bool G_IsTeamDamage( SyncEntityState *targ, SyncEntityState *attacker ) {
 	return targ->number != attacker->number && targ->team == attacker->team;
 }
 
-static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, cplane_t *plane, Vec3 pos, int timeDelta ) {
+static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, Plane *plane, Vec3 pos, int timeDelta ) {
 	constexpr float SPLASH_DAMAGE_TRACE_FRAC_EPSILON = 1.0f / 32.0f;
 
 	trace_t trace;
@@ -36,7 +36,7 @@ static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, cplane_t *plan
 		// NOT FOR PLAYERS only for entities that can push the players
 		Vec3 dest = ( targ->r.absmin + targ->r.absmax ) * 0.5f;
 		G_Trace4D( &trace, pos, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, MASK_SOLID, timeDelta );
-		if( trace.fraction >= 1.0 - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
+		if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 			return true;
 		}
 
@@ -51,39 +51,39 @@ static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, cplane_t *plan
 
 	// This is for players
 	G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), targ->s.origin, inflictor, MASK_SOLID, timeDelta );
-	if( trace.fraction >= 1.0 - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
+	if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 		return true;
 	}
 
 	Vec3 dest = targ->s.origin;
-	dest.x += 15.0;
-	dest.y += 15.0;
+	dest.x += 15.0f;
+	dest.y += 15.0f;
 	G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, MASK_SOLID, timeDelta );
-	if( trace.fraction >= 1.0 - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
+	if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 		return true;
 	}
 
 	dest = targ->s.origin;
-	dest.x += 15.0;
-	dest.y -= 15.0;
+	dest.x += 15.0f;
+	dest.y -= 15.0f;
 	G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, MASK_SOLID, timeDelta );
-	if( trace.fraction >= 1.0 - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
+	if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 		return true;
 	}
 
 	dest = targ->s.origin;
-	dest.x -= 15.0;
-	dest.y += 15.0;
+	dest.x -= 15.0f;
+	dest.y += 15.0f;
 	G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, MASK_SOLID, timeDelta );
-	if( trace.fraction >= 1.0 - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
+	if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 		return true;
 	}
 
 	dest = targ->s.origin;
-	dest.x -= 15.0;
-	dest.y -= 15.0;
+	dest.x -= 15.0f;
+	dest.y -= 15.0f;
 	G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, MASK_SOLID, timeDelta );
-	if( trace.fraction >= 1.0 - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
+	if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 		return true;
 	}
 
@@ -186,7 +186,7 @@ static void G_KnockBackPush( edict_t *targ, edict_t *attacker, Vec3 basedir, int
 		return;
 	}
 
-	Vec3 dir = Normalize( basedir );
+	Vec3 dir = SafeNormalize( basedir );
 	constexpr float VERTICAL_KNOCKBACK_SCALE = 1.25f;
 	dir.z *= VERTICAL_KNOCKBACK_SCALE;
 
@@ -198,23 +198,26 @@ static void G_KnockBackPush( edict_t *targ, edict_t *attacker, Vec3 basedir, int
 	knockbackOfDeath = dir * push;
 }
 
-void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage, bool headshot, Vec3 pos, Vec3 dir ) {
+void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage, bool headshot, Vec3 pos, Vec3 dir, bool showNumbers ) {
 	u64 parm = HEALTH_TO_INT( damage ) << 1;
 	if( headshot ) {
 		parm |= 1;
 		G_SpawnEvent( EV_HEADSHOT, 0, &victim->s.origin );
 	}
 
-	edict_t * damage_number = G_SpawnEvent( EV_DAMAGE, parm, &victim->s.origin );
-	damage_number->r.svflags |= SVF_OWNERANDCHASERS;
-	damage_number->s.ownerNum = ENTNUM( attacker );
+	if( showNumbers ) {
+		edict_t * damage_number = G_SpawnEvent( EV_DAMAGE, parm, &victim->s.origin );
+		damage_number->s.svflags |= SVF_OWNERANDCHASERS;
+		damage_number->s.ownerNum = ENTNUM( attacker );
+	}
 
 	edict_t * blood = G_SpawnEvent( EV_BLOOD, HEALTH_TO_INT( damage ), &pos );
 	blood->s.origin2 = dir;
 	blood->s.team = victim->s.team;
 
-	if( !G_IsDead( victim ) && level.time >= victim->pain_debounce_time ) {
-		G_AddEvent( victim, EV_PAIN, victim->health <= 25 ? PAIN_20 : PAIN_100, true );
+	s16 client_maxhp = game.clients[ PLAYERNUM( victim ) ].ps.max_health;
+	if( !G_IsDead( victim ) && level.time >= victim->pain_debounce_time && client_maxhp > 0 ) { //2nd check will prevent the game from crashing on some loss
+		G_AddEvent( victim, EV_PAIN, Min2( 3, int( 4 * victim->health / client_maxhp ) ), true );
 		victim->pain_debounce_time = level.time + 400;
 	}
 }
@@ -278,18 +281,6 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 		return;
 	}
 
-	// adding damage given/received to stats
-	if( statDmg && attacker->r.client && !targ->deadflag && targ->movetype != MOVETYPE_PUSH && targ->s.type != ET_CORPSE ) {
-		G_ClientGetStats( attacker )->total_damage_given += take;
-
-		// shotgun calls G_Damage for every bullet, so we accumulate damage
-		// in W_Fire_Shotgun and send events from there instead
-		if( damage_type != Weapon_Shotgun ) {
-			bool headshot = dflags & DAMAGE_HEADSHOT;
-			SpawnDamageEvents( attacker, targ, take, headshot, point, dmgdir );
-		}
-	}
-
 	if( statDmg ) {
 		G_ClientGetStats( targ )->total_damage_received += take;
 	}
@@ -320,6 +311,20 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 	targ->health = targ->health - take;
 
+	// adding damage given/received to stats
+	if( attacker->r.client && !targ->deadflag && targ->movetype != MOVETYPE_PUSH && targ->s.type != ET_CORPSE ) {
+		if( statDmg ) {
+			G_ClientGetStats( attacker )->total_damage_given += take;
+		}
+
+		// shotgun calls G_Damage for every bullet, so we accumulate damage
+		// in W_Fire_Shotgun and send events from there instead
+		if( damage_type != Weapon_Shotgun ) {
+			bool headshot = dflags & DAMAGE_HEADSHOT;
+			SpawnDamageEvents( attacker, targ, take, headshot, point, dmgdir, statDmg );
+		}
+	}
+
 	int clamped_takedmg = HEALTH_TO_INT( take );
 
 	// add damage done to stats
@@ -336,7 +341,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 	if( G_IsDead( targ ) ) {
 		if( targ->s.type != ET_CORPSE && attacker != targ ) {
 			edict_t * killed = G_SpawnEvent( EV_DAMAGE, 255 << 1, &targ->s.origin );
-			killed->r.svflags |= SVF_OWNERANDCHASERS;
+			killed->s.svflags |= SVF_OWNERANDCHASERS;
 			killed->s.ownerNum = ENTNUM( attacker );
 		}
 
@@ -392,10 +397,10 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 		center_of_mass = origin + 0.5f * ( maxs + mins );
 	}
 
-	*pushdir = Normalize( center_of_mass - point );
+	*pushdir = SafeNormalize( center_of_mass - point );
 }
 
-void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cplane_t *plane, DamageType damage_type, int timeDelta ) {
+void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, Plane *plane, DamageType damage_type, int timeDelta ) {
 	float maxknockback = def->knockback;
 	float minknockback = def->min_knockback;
 	float radius = def->splash_radius;
@@ -424,7 +429,7 @@ void G_RadiusKnockback( const WeaponDef * def, edict_t *attacker, Vec3 pos, cpla
 	}
 }
 
-void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, cplane_t *plane, edict_t *ignore, DamageType damage_type ) {
+void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Plane *plane, edict_t *ignore, DamageType damage_type ) {
 	assert( inflictor );
 
 	float maxdamage = inflictor->projectileInfo.maxDamage;

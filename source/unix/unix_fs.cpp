@@ -1,41 +1,22 @@
-/*
-Copyright (C) 1997-2001 Id Software, Inc.
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-*/
-
-#include "qcommon/qcommon.h"
+#include "qcommon/base.h"
+#include "qcommon/application.h"
 #include "qcommon/fs.h"
 #include "qcommon/sys_fs.h"
+#include "qcommon/array.h"
+#include "qcommon/hash.h"
+#include "qcommon/hashtable.h"
+#include "qcommon/string.h"
 
 // these must come after qcommon because both tracy and one of these defines BLOCK_SIZE
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <poll.h>
 #include <linux/fs.h>
+#include <sys/inotify.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
-
-/*
-* Sys_FS_CreateDirectory
-*/
-bool Sys_FS_CreateDirectory( const char *path ) {
-	return ( !mkdir( path, 0777 ) );
-}
 
 char * FindHomeDirectory( Allocator * a ) {
 	const char * xdg_data_home = getenv( "XDG_DATA_HOME" );
@@ -49,6 +30,27 @@ char * FindHomeDirectory( Allocator * a ) {
 	}
 
 	return ( *a )( "{}/.local/share/{}", home, APPLICATION );
+}
+
+char * GetExePath( Allocator * a ) {
+	NonRAIIDynamicArray< char > buf( a );
+	buf.resize( 1024 );
+
+	while( true ) {
+		ssize_t n = readlink( "/proc/self/exe", buf.ptr(), buf.size() );
+		if( n == -1 ) {
+			FatalErrno( "readlink" );
+		}
+
+		if( size_t( n ) < buf.size() ) {
+			buf[ n ] = '\0';
+			break;
+		}
+
+		buf.resize( buf.size() * 2 );
+	}
+
+	return buf.ptr();
 }
 
 FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {
@@ -123,37 +125,115 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	return false;
 }
 
-FileMetadata FileMetadataOrZeroes( TempAllocator * temp, const char * path ) {
-	struct stat buf;
-	if( stat( path, &buf ) == -1 ) {
-		return { };
+constexpr size_t MAX_INOTIFY_WATCHES = 4096;
+struct FSChangeMonitor {
+	int fd;
+	char * wd_paths[ MAX_INOTIFY_WATCHES ];
+	size_t num_wd_paths;
+	Hashtable< MAX_INOTIFY_WATCHES * 2 > wd_to_path;
+};
+
+static void AddInotifyWatchesRecursive( Allocator * a, FSChangeMonitor * monitor, DynamicString * path, size_t skip ) {
+	u32 filter = IN_CREATE | IN_MODIFY | IN_MOVED_TO;
+	int wd = inotify_add_watch( monitor->fd, path->c_str(), filter );
+	if( wd == -1 ) {
+		FatalErrno( "inotify_add_watch" );
 	}
 
-	FileMetadata metadata;
-	metadata.size = checked_cast< u64 >( buf.st_size );
-	metadata.modified_time = checked_cast< s64 >( buf.st_mtim.tv_sec ) * 1000 + checked_cast< s64 >( buf.st_mtim.tv_nsec ) / 1000000;
+	/*
+	 * we want wd_path to "" when path is "base". we also don't do {}/{}
+	 * when building the full path so we don't accidentally add a leading
+	 * slash to the "base" case, so add the trailing slash here for
+	 * non-base paths
+	 */
+	if( path->length() == skip ) {
+		monitor->wd_paths[ monitor->num_wd_paths ] = CopyString( a, "" );
+	}
+	else {
+		monitor->wd_paths[ monitor->num_wd_paths ] = ( *a )( "{}/", path->c_str() + skip + 1 );
+	}
+	monitor->wd_to_path.add( Hash64( wd ), monitor->num_wd_paths );
+	monitor->num_wd_paths++;
 
-	return metadata;
+	ListDirHandle scan = BeginListDir( a, path->c_str() );
+
+	const char * name;
+	bool dir;
+	while( ListDirNext( &scan, &name, &dir ) ) {
+		// skip ., .., .git, etc
+		if( name[ 0 ] == '.' || !dir )
+			continue;
+
+		size_t old_len = path->length();
+		path->append( "/{}", name );
+		AddInotifyWatchesRecursive( a, monitor, path, skip );
+		path->truncate( old_len );
+	}
 }
 
-char * GetExePath( Allocator * a ) {
-	size_t buf_size = 1024;
-	char * buf = ALLOC_MANY( a, char, buf_size );
-
-	while( true ) {
-		ssize_t n = readlink( "/proc/self/exe", buf, buf_size );
-		if( n == -1 ) {
-			FatalErrno( "readlink" );
-		}
-
-		if( size_t( n ) < buf_size ) {
-			buf[ n ] = '\0';
-			break;
-		}
-
-		buf = REALLOC_MANY( a, char, buf, buf_size, buf_size * 2 );
-		buf_size *= 2;
+FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path ) {
+	FSChangeMonitor * monitor = ALLOC( a, FSChangeMonitor );
+	monitor->fd = inotify_init();
+	if( monitor->fd == -1 ) {
+		FatalErrno( "inotify_init" );
 	}
 
-	return buf;
+	monitor->num_wd_paths = 0;
+	monitor->wd_to_path.clear();
+
+	DynamicString base( a, "{}", path );
+	AddInotifyWatchesRecursive( a, monitor, &base, base.length() );
+
+	return monitor;
+}
+
+void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor ) {
+	for( size_t i = 0; i < monitor->num_wd_paths; i++ ) {
+		FREE( a, monitor->wd_paths[ i ] );
+	}
+	close( monitor->fd );
+	FREE( a, monitor );
+}
+
+Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n ) {
+	{
+		pollfd fd = { };
+		fd.fd = monitor->fd;
+		fd.events = POLLIN;
+
+		int res = poll( &fd, 1, 0 );
+		if( res == -1 ) {
+			FatalErrno( "poll" );
+		}
+		if( res == 0 ) {
+			return Span< const char * >();
+		}
+	}
+
+	alignas( inotify_event ) char buf[ 16384 ];
+	ssize_t bytes_read = read( monitor->fd, buf, sizeof( buf ) );
+	if( bytes_read == -1 ) {
+		if( errno == EINTR ) {
+			return Span< const char * >();
+		}
+		FatalErrno( "read" );
+	}
+
+	size_t num_results = 0;
+	const inotify_event * cursor = ( const inotify_event * ) buf;
+	while( ( const char * ) cursor < buf + bytes_read ) {
+		if( ( cursor->mask & IN_ISDIR ) == 0 ) {
+			u64 idx;
+			bool ok = monitor->wd_to_path.get( Hash64( cursor->wd ), &idx );
+			assert( ok );
+
+			results[ num_results ] = ( *temp )( "{}{}", monitor->wd_paths[ idx ], cursor->name );
+			num_results++;
+		}
+
+		cursor = ( const inotify_event * ) ( ( ( const char * ) cursor ) + sizeof( *cursor ) + cursor->len );
+
+	}
+
+	return Span< const char * >( results, num_results );
 }

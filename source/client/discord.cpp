@@ -143,7 +143,8 @@ void DiscordFrame() {
 	}
 	else {
 		presence.playing = false;
-		presence.first_line.format( "SCARED AND SHAKING FROM FEAR" );
+		presence.first_line.format( "SCARED AND SHAKING" );
+		presence.second_line.format( "FROM FEAR" );
 		presence.large_image.format( "mainmenu" );
 	}
 

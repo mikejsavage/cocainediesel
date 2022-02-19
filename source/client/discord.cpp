@@ -132,7 +132,10 @@ void DiscordFrame() {
 		if( is_bomb ) {
 			u8 alpha_score = client_gs.gameState.teams[ TEAM_ALPHA ].score;
 			u8 beta_score = client_gs.gameState.teams[ TEAM_BETA ].score;
-			presence.second_line.format( "{} - {}", alpha_score, beta_score );
+
+			if( client_gs.gameState.match_state >= MatchState_Playing ) {
+				presence.second_line.format( "{} - {}", alpha_score, beta_score );
+			}
 		}
 
 		presence.large_image.format( "map-{}", cl.map->name );

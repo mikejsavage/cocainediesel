@@ -1,3 +1,5 @@
+#include "qcommon/base.h"
+#include "qcommon/fs.h"
 #include "qcommon/library.h"
 #include "qcommon/string.h"
 #include "client/discord.h"
@@ -73,7 +75,8 @@ void InitDiscord() {
 	loaded = false;
 	old_presence = { };
 
-	discord_sdk_module = OpenLibrary( &temp, "discord_game_sdk" );
+	const char * sdk_module_path = temp( "{}/discord_game_sdk", RootDirPath() );
+	discord_sdk_module = OpenLibrary( &temp, sdk_module_path );
 	if( discord_sdk_module.handle == NULL )
 		return;
 

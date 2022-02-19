@@ -10,7 +10,6 @@
 
 // these must come after qcommon because both tracy and one of these defines BLOCK_SIZE
 #include <dirent.h>
-#include <dlfcn.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -238,16 +237,4 @@ Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor 
 	}
 
 	return Span< const char * >( results, num_results );
-}
-
-Library OpenLibrary( Allocator * a, const char * path ) {
-	return { dlopen( path, RTLD_NOW ) };
-}
-
-void CloseLibrary( Library library ) {
-	dlclose( library.handle );
-}
-
-void * GetLibraryFunction( Library library, const char * name ) {
-	return dlsym( library.handle, name );
 }

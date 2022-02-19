@@ -132,7 +132,7 @@ void DiscordFrame() {
 		if( is_bomb ) {
 			u8 alpha_score = client_gs.gameState.teams[ TEAM_ALPHA ].score;
 			u8 beta_score = client_gs.gameState.teams[ TEAM_BETA ].score;
-			presence.second_line.format( "{}-{}", alpha_score, beta_score );
+			presence.second_line.format( "{} - {}", alpha_score, beta_score );
 		}
 
 		presence.large_image.format( "map-{}", cl.map->name );
@@ -143,8 +143,8 @@ void DiscordFrame() {
 	}
 	else {
 		presence.playing = false;
-		presence.first_line.format( "MENU" );
-		// presence.large_image.format( "mainmenu" );
+		presence.first_line.format( "SCARED AND SHAKING FROM FEAR" );
+		presence.large_image.format( "mainmenu" );
 	}
 
 	if( presence != old_presence ) {

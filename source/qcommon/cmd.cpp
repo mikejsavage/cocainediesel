@@ -446,6 +446,7 @@ void Cmd_Init() {
 
 void Cmd_Shutdown() {
 	RemoveCommand( "exec" );
+	RemoveCommand( "execold" );
 	RemoveCommand( "config" );
 	RemoveCommand( "find" );
 

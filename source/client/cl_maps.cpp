@@ -64,7 +64,6 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 	}
 
 	map.name = ( *sys_allocator )( "{}", name );
-
 	map.cms = CM_LoadMap( CM_Client, data, hash );
 	if( map.cms == NULL ) {
 		Fatal( "CM_LoadMap" );

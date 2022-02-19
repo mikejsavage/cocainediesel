@@ -184,7 +184,7 @@ local function join_libs( names )
 		elseif prebuilt_dll then
 			table.insert( dlls, output_dir .. prebuilt_dll .. dll_suffix )
 		else
-			table.insert( joined, dir .. "/" .. lib .. lib_suffix )
+			table.insert( joined, dir .. "/" .. lib_prefix .. lib .. lib_suffix )
 		end
 	end
 

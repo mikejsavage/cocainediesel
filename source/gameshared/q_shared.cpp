@@ -338,9 +338,7 @@ bool CaseStartsWith( const char * str, const char * prefix ) {
 }
 
 Span< const char > StripPrefix( Span< const char > str, const char * prefix ) {
-	if( !StartsWith( str, prefix ) )
-		return Span< const char >();
-	return str + strlen( prefix );
+	return StartsWith( str, prefix ) ? str + strlen( prefix ) : str;
 }
 
 bool CaseContains( const char * haystack, const char * needle ) {

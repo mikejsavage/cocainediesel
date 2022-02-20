@@ -24,8 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ctype.h>
 #include <inttypes.h>
 
-//==============================================
-
 #ifdef _WIN32
 
 typedef int socklen_t;
@@ -36,8 +34,6 @@ typedef uintptr_t socket_handle_t;
 
 #endif
 
-//==============================================
-
 #if defined ( __linux__ )
 
 typedef int ioctl_param_t;
@@ -47,18 +43,4 @@ typedef int socket_handle_t;
 #define SOCKET_ERROR ( -1 )
 #define INVALID_SOCKET ( -1 )
 
-#endif
-
-//==============================================
-
-// The `malloc' attribute is used to tell the compiler that a function
-// may be treated as if it were the malloc function.  The compiler
-// assumes that calls to malloc result in a pointers that cannot
-// alias anything.  This will often improve optimization.
-#if defined ( __GNUC__ )
-#define ATTRIBUTE_MALLOC __attribute__( ( malloc ) )
-#elif defined ( _MSC_VER )
-#define ATTRIBUTE_MALLOC __declspec( noalias ) __declspec( restrict )
-#else
-#define ATTRIBUTE_MALLOC
 #endif

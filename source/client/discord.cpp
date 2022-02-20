@@ -80,8 +80,7 @@ void InitDiscord() {
 	if( discord_sdk_module.handle == NULL )
 		return;
 
-	using tDiscordCreate = decltype( &DiscordCreate );
-	tDiscordCreate pDiscordCreate = tDiscordCreate( GetLibraryFunction( discord_sdk_module, "DiscordCreate" ) );
+	auto pDiscordCreate = decltype( &DiscordCreate )( GetLibraryFunction( discord_sdk_module, "DiscordCreate" ) );
 	if( pDiscordCreate == NULL )
 		return;
 

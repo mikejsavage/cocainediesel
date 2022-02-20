@@ -26,8 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifdef _WIN32
 
-typedef int socklen_t;
-
 typedef unsigned long ioctl_param_t;
 
 typedef uintptr_t socket_handle_t;

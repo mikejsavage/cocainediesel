@@ -922,9 +922,9 @@ bool CG_DemoCam_IsFree() {
 
 static void CG_DemoFreeFly_Cmd_f() {
 	if( Cmd_Argc() > 1 ) {
-		if( !Q_stricmp( Cmd_Argv( 1 ), "on" ) ) {
+		if( StrCaseEqual( Cmd_Argv( 1 ), "on" ) ) {
 			CamIsFree = true;
-		} else if( !Q_stricmp( Cmd_Argv( 1 ), "off" ) ) {
+		} else if( StrCaseEqual( Cmd_Argv( 1 ), "off" ) ) {
 			CamIsFree = false;
 		}
 	} else {
@@ -948,7 +948,7 @@ static void CG_AddCam_Cmd_f() {
 		// type
 		type = -1;
 		for( i = 0; cam_TypeNames[i] != NULL; i++ ) {
-			if( !Q_stricmp( cam_TypeNames[i], Cmd_Argv( 1 ) ) ) {
+			if( StrCaseEqual( cam_TypeNames[i], Cmd_Argv( 1 ) ) ) {
 				type = i;
 				break;
 			}
@@ -1002,8 +1002,8 @@ static void CG_EditCam_Cmd_f() {
 		return;
 	}
 
-	if( Cmd_Argc() >= 2 && Q_stricmp( Cmd_Argv( 1 ), "help" ) ) {
-		if( !Q_stricmp( Cmd_Argv( 1 ), "type" ) ) {
+	if( Cmd_Argc() >= 2 && !StrCaseEqual( Cmd_Argv( 1 ), "help" ) ) {
+		if( StrCaseEqual( Cmd_Argv( 1 ), "type" ) ) {
 			int type, i;
 			if( Cmd_Argc() < 3 ) { // not enough parameters, print help
 				Com_Printf( "Usage: EditCam type <type name>\n" );
@@ -1013,7 +1013,7 @@ static void CG_EditCam_Cmd_f() {
 			// type
 			type = -1;
 			for( i = 0; cam_TypeNames[i] != NULL; i++ ) {
-				if( !Q_stricmp( cam_TypeNames[i], Cmd_Argv( 2 ) ) ) {
+				if( StrCaseEqual( cam_TypeNames[i], Cmd_Argv( 2 ) ) ) {
 					type = i;
 					break;
 				}
@@ -1029,7 +1029,7 @@ static void CG_EditCam_Cmd_f() {
 				Com_Printf( "invalid type name\n" );
 			}
 		}
-		if( !Q_stricmp( Cmd_Argv( 1 ), "track" ) ) {
+		if( StrCaseEqual( Cmd_Argv( 1 ), "track" ) ) {
 			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
 				Com_Printf( "Usage: EditCam track <entity number> ( 0 for no tracking )\n" );
@@ -1039,7 +1039,7 @@ static void CG_EditCam_Cmd_f() {
 			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( Cmd_Argv( 1 ), "fov" ) ) {
+		} else if( StrCaseEqual( Cmd_Argv( 1 ), "fov" ) ) {
 			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
 				Com_Printf( "Usage: EditCam fov <value>\n" );
@@ -1049,7 +1049,7 @@ static void CG_EditCam_Cmd_f() {
 			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( Cmd_Argv( 1 ), "timeOffset" ) ) {
+		} else if( StrCaseEqual( Cmd_Argv( 1 ), "timeOffset" ) ) {
 			int64_t newtimestamp;
 			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
@@ -1066,18 +1066,18 @@ static void CG_EditCam_Cmd_f() {
 			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( Cmd_Argv( 1 ), "origin" ) ) {
+		} else if( StrCaseEqual( Cmd_Argv( 1 ), "origin" ) ) {
 			currentcam->origin = cg.view.origin;
 			cam_orbital_radius = 0;
 			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( Cmd_Argv( 1 ), "angles" ) ) {
+		} else if( StrCaseEqual( Cmd_Argv( 1 ), "angles" ) ) {
 			currentcam->angles = cg.view.angles;
 			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( Cmd_Argv( 1 ), "pitch" ) ) {
+		} else if( StrCaseEqual( Cmd_Argv( 1 ), "pitch" ) ) {
 			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
 				Com_Printf( "Usage: EditCam pitch <value>\n" );
@@ -1087,7 +1087,7 @@ static void CG_EditCam_Cmd_f() {
 			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( Cmd_Argv( 1 ), "yaw" ) ) {
+		} else if( StrCaseEqual( Cmd_Argv( 1 ), "yaw" ) ) {
 			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
 				Com_Printf( "Usage: EditCam yaw <value>\n" );
@@ -1097,7 +1097,7 @@ static void CG_EditCam_Cmd_f() {
 			Com_Printf( "cam edited\n" );
 			CG_Democam_ExecutePathAnalysis();
 			return;
-		} else if( !Q_stricmp( Cmd_Argv( 1 ), "roll" ) ) {
+		} else if( StrCaseEqual( Cmd_Argv( 1 ), "roll" ) ) {
 			if( Cmd_Argc() < 3 ) {
 				// not enough parameters, print help
 				Com_Printf( "Usage: EditCam roll <value>\n" );
@@ -1166,9 +1166,9 @@ static void CG_DemoEditMode_Cmd_f() {
 	}
 
 	if( Cmd_Argc() > 1 ) {
-		if( !Q_stricmp( Cmd_Argv( 1 ), "on" ) ) {
+		if( StrCaseEqual( Cmd_Argv( 1 ), "on" ) ) {
 			democam_editing_mode = true;
-		} else if( !Q_stricmp( Cmd_Argv( 1 ), "off" ) ) {
+		} else if( StrCaseEqual( Cmd_Argv( 1 ), "off" ) ) {
 			democam_editing_mode = false;
 		}
 	} else {

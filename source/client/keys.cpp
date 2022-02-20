@@ -119,7 +119,7 @@ int Key_StringToKeynum( const char *str ) {
 	}
 
 	for( kn = keynames; kn->name; kn++ ) {
-		if( !Q_stricmp( str, kn->name ) ) {
+		if( StrCaseEqual( str, kn->name ) ) {
 			return kn->keynum;
 		}
 	}

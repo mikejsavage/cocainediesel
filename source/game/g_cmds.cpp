@@ -147,12 +147,12 @@ static void Cmd_Position_f( edict_t *ent ) {
 
 	action = Cmd_Argv( 1 );
 
-	if( !Q_stricmp( action, "save" ) ) {
+	if( StrCaseEqual( action, "save" ) ) {
 		ent->r.client->teamstate.position_saved = true;
 		ent->r.client->teamstate.position_origin = ent->s.origin;
 		ent->r.client->teamstate.position_angles = ent->s.angles;
 		G_PrintMsg( ent, "Position saved.\n" );
-	} else if( !Q_stricmp( action, "load" ) ) {
+	} else if( StrCaseEqual( action, "load" ) ) {
 		if( !ent->r.client->teamstate.position_saved ) {
 			G_PrintMsg( ent, "No position saved.\n" );
 		} else {
@@ -162,7 +162,7 @@ static void Cmd_Position_f( edict_t *ent ) {
 				G_PrintMsg( ent, "Position not available.\n" );
 			}
 		}
-	} else if( !Q_stricmp( action, "set" ) && Cmd_Argc() == 7 ) {
+	} else if( StrCaseEqual( action, "set" ) && Cmd_Argc() == 7 ) {
 		Vec3 origin = Vec3( atof( Cmd_Argv( 2 ) ), atof( Cmd_Argv( 3 ) ), atof( Cmd_Argv( 4 ) ) );
 		Vec3 angles = Vec3( atof( Cmd_Argv( 5 ) ), atof( Cmd_Argv( 6 ) ), 0.0f );
 
@@ -326,7 +326,7 @@ static void Cmd_SayTeam_f( edict_t * ent ) {
 }
 
 static void Cmd_Clack_f( edict_t * ent ) {
-	bool space = Q_stricmp( Cmd_Argv( 0 ), "typewriterspace" ) == 0;
+	bool space = StrCaseEqual( Cmd_Argv( 0 ), "typewriterspace" );
 	if( !G_ISGHOSTING( ent ) ) {
 		StringHash sound = space ? StringHash( "sounds/typewriter/space" ) : StringHash( "sounds/typewriter/clack" );
 		edict_t * event = G_PositionedSound( ent->s.origin, CHAN_AUTO, sound );
@@ -397,7 +397,7 @@ static void G_vsay_f( edict_t *ent ) {
 	ent->r.client->level.last_vsay = svs.realtime;
 
 	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {
-		if( Q_stricmp( Cmd_Argv( 1 ), vsay->name ) != 0 )
+		if( !StrCaseEqual( Cmd_Argv( 1 ), vsay->name ) )
 			continue;
 
 		u64 entropy = Random32( &svs.rng );
@@ -526,7 +526,7 @@ void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
 		if( !g_Commands[i].name[0] ) {
 			break;
 		}
-		if( !Q_stricmp( g_Commands[i].name, name ) ) {
+		if( StrCaseEqual( g_Commands[i].name, name ) ) {
 			// update func if different
 			if( g_Commands[i].func != callback ) {
 				g_Commands[i].func = ( gamecommandfunc_t )callback;
@@ -601,7 +601,7 @@ void ClientCommand( edict_t *ent ) {
 			break;
 		}
 
-		if( !Q_stricmp( g_Commands[i].name, cmd ) ) {
+		if( StrCaseEqual( g_Commands[i].name, cmd ) ) {
 			if( g_Commands[i].func ) {
 				g_Commands[i].func( ent );
 			} else {

@@ -304,9 +304,9 @@ void CL_PauseDemo_f() {
 	}
 
 	if( Cmd_Argc() > 1 ) {
-		if( !Q_stricmp( Cmd_Argv( 1 ), "on" ) ) {
+		if( StrCaseEqual( Cmd_Argv( 1 ), "on" ) ) {
 			CL_PauseDemo( true );
-		} else if( !Q_stricmp( Cmd_Argv( 1 ), "off" ) ) {
+		} else if( StrCaseEqual( Cmd_Argv( 1 ), "off" ) ) {
 			CL_PauseDemo( false );
 		}
 		return;

@@ -113,7 +113,7 @@ static bool G_VoteMapValidate( callvotedata_t *data, bool first ) {
 	Q_strncpyz( mapname, data->argv[0], sizeof( mapname ) );
 	COM_SanitizeFilePath( mapname );
 
-	if( !Q_stricmp( sv.mapname, mapname ) ) {
+	if( StrCaseEqual( sv.mapname, mapname ) ) {
 		G_PrintMsg( data->caller, "%sYou are already on that map\n", S_COLOR_RED );
 		return false;
 	}
@@ -674,10 +674,10 @@ void G_CallVotes_CmdVote( edict_t *ent ) {
 	}
 
 	vote = Cmd_Argv( 1 );
-	if( !Q_stricmp( vote, "yes" ) ) {
+	if( StrCaseEqual( vote, "yes" ) ) {
 		vote_id = VOTED_YES;
 	}
-	else if( !Q_stricmp( vote, "no" ) ) {
+	else if( StrCaseEqual( vote, "no" ) ) {
 		vote_id = VOTED_NO;
 	}
 	else {
@@ -826,15 +826,15 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 		return;
 	}
 
-	if( !Q_stricmp( Cmd_Argv( 1 ), "help" ) ) {
+	if( StrCaseEqual( Cmd_Argv( 1 ), "help" ) ) {
 		G_PrintMsg( ent, "Opcall can be used with all callvotes and the following commands:\n" );
 		G_PrintMsg( ent, "-help\n - passvote\n- cancelvote\n- putteam\n" );
 		return;
 	}
 
-	if( !Q_stricmp( Cmd_Argv( 1 ), "cancelvote" ) ) {
+	if( StrCaseEqual( Cmd_Argv( 1 ), "cancelvote" ) ) {
 		forceVote = VOTED_NO;
-	} else if( !Q_stricmp( Cmd_Argv( 1 ), "passvote" ) ) {
+	} else if( StrCaseEqual( Cmd_Argv( 1 ), "passvote" ) ) {
 		forceVote = VOTED_YES;
 	} else {
 		forceVote = VOTED_NOTHING;
@@ -862,7 +862,7 @@ void G_OperatorVote_Cmd( edict_t *ent ) {
 		return;
 	}
 
-	if( !Q_stricmp( Cmd_Argv( 1 ), "putteam" ) ) {
+	if( StrCaseEqual( Cmd_Argv( 1 ), "putteam" ) ) {
 		const char *splayer = Cmd_Argv( 2 );
 		const char *steam = Cmd_Argv( 3 );
 		edict_t *playerEnt;

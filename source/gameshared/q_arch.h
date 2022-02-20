@@ -28,15 +28,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #ifdef _WIN32
 
-#define HAVE__STRICMP
-
 typedef int socklen_t;
 
 typedef unsigned long ioctl_param_t;
 
 typedef uintptr_t socket_handle_t;
-
-#define Q_stricmp( s1, s2 ) _stricmp( ( s1 ), ( s2 ) )
 
 #endif
 
@@ -50,8 +46,6 @@ typedef int socket_handle_t;
 
 #define SOCKET_ERROR ( -1 )
 #define INVALID_SOCKET ( -1 )
-
-#define Q_stricmp( s1, s2 ) strcasecmp( ( s1 ), ( s2 ) )
 
 #endif
 

@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
-#include "gameshared/q_arch.h"
+#include "gameshared/q_shared.h"
 
 static const char *gs_teamNames[] = {
 	"SPECTATOR",
@@ -40,7 +40,7 @@ int GS_TeamFromName( const char *teamname ) {
 	}
 
 	for( int i = 0; i < int( ARRAY_COUNT( gs_teamNames ) ); i++ ) {
-		if( !Q_stricmp( gs_teamNames[i], teamname ) ) {
+		if( StrCaseEqual( gs_teamNames[i], teamname ) ) {
 			return i;
 		}
 	}

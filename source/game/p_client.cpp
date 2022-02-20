@@ -582,7 +582,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	// set name, it's validated and possibly changed first
 	Q_strncpyz( oldname, cl->netname, sizeof( oldname ) );
 	G_SetName( ent, Info_ValueForKey( userinfo, "name" ) );
-	if( oldname[0] && Q_stricmp( oldname, cl->netname ) && !CheckFlood( ent, false ) ) {
+	if( oldname[0] && !StrCaseEqual( oldname, cl->netname ) && !CheckFlood( ent, false ) ) {
 		G_PrintMsg( NULL, "%s is now known as %s\n", oldname, cl->netname );
 	}
 	if( !Info_SetValueForKey( userinfo, "name", cl->netname ) ) {

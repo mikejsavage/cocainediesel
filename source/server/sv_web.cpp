@@ -245,9 +245,9 @@ static void SV_Web_ParseStartLine( sv_http_request_t *request, char *line ) {
 	}
 	*ptr = '\0';
 
-	if( !Q_stricmp( token, "GET" ) ) {
+	if( StrCaseEqual( token, "GET" ) ) {
 		request->method = HTTP_METHOD_GET;
-	} else if( !Q_stricmp( token, "HEAD" ) ) {
+	} else if( StrCaseEqual( token, "HEAD" ) ) {
 		request->method = HTTP_METHOD_HEAD;
 	} else {
 		request->error = HTTP_RESP_BAD_REQUEST;
@@ -285,7 +285,7 @@ static void SV_Web_ParseStartLine( sv_http_request_t *request, char *line ) {
 }
 
 static void SV_Web_AnalyzeHeader( sv_http_request_t *request, const char *key, const char *value ) {
-	if( !Q_stricmp( key, "Content-Length" ) ) {
+	if( StrCaseEqual( key, "Content-Length" ) ) {
 		u64 length;
 		bool ok = TryStringToU64( value, &length );
 		if( !ok ) {

@@ -27,7 +27,7 @@ static void CG_SC_Print() {
 }
 
 static void CG_SC_ChatPrint() {
-	bool teamonly = Q_stricmp( Cmd_Argv( 0 ), "tch" ) == 0;
+	bool teamonly = StrCaseEqual( Cmd_Argv( 0 ), "tch" );
 	int who = atoi( Cmd_Argv( 1 ) );
 
 	if( who < 0 || who > MAX_CLIENTS ) {
@@ -137,13 +137,13 @@ void CG_SC_AutoRecordAction( const char *action ) {
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	if( !Q_stricmp( action, "start" ) ) {
+	if( StrCaseEqual( action, "start" ) ) {
 		if( cg_autoaction_demo->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
 			Cbuf_ExecuteLine( "stop silent" );
 			Cbuf_ExecuteLine( temp( "record autorecord/{} silent", name ) );
 			autorecording = true;
 		}
-	} else if( !Q_stricmp( action, "stop" ) ) {
+	} else if( StrCaseEqual( action, "stop" ) ) {
 		if( autorecording ) {
 			Cbuf_ExecuteLine( "stop silent" );
 			autorecording = false;
@@ -152,7 +152,7 @@ void CG_SC_AutoRecordAction( const char *action ) {
 		if( cg_autoaction_screenshot->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
 			Cbuf_ExecuteLine( temp( "screenshot autorecord/{} silent", name ) );
 		}
-	} else if( !Q_stricmp( action, "cancel" ) ) {
+	} else if( StrCaseEqual( action, "cancel" ) ) {
 		if( autorecording ) {
 			Cbuf_ExecuteLine( "stop cancel silent" );
 			autorecording = false;
@@ -303,7 +303,7 @@ static void CG_Cmd_UseItem_f() {
 	const char * name = Cmd_Args();
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * weapon = GS_GetWeaponDef( i );
-		if( ( Q_stricmp( weapon->name, name ) == 0 || Q_stricmp( weapon->short_name, name ) == 0 ) && GS_CanEquip( &cg.predictedPlayerState, i ) ) {
+		if( StrCaseEqual( weapon->short_name, name ) && GS_CanEquip( &cg.predictedPlayerState, i ) ) {
 			SwitchWeapon( i );
 		}
 	}

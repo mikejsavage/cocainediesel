@@ -54,14 +54,14 @@ static void SV_Map_f() {
 		return;
 	}
 
-	if( !Q_stricmp( Cmd_Argv( 0 ), "map" ) || !Q_stricmp( Cmd_Argv( 0 ), "devmap" ) ) {
+	if( StrCaseEqual( Cmd_Argv( 0 ), "map" ) || StrCaseEqual( Cmd_Argv( 0 ), "devmap" ) ) {
 		sv.state = ss_dead; // don't save current level when changing
 	}
 
 	SV_UpdateMaster();
 
 	// start up the next map
-	SV_Map( map, !Q_stricmp( Cmd_Argv( 0 ), "devmap" ) );
+	SV_Map( map, StrCaseEqual( Cmd_Argv( 0 ), "devmap" ) );
 }
 
 //===============================================================

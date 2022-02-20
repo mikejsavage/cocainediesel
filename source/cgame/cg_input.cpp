@@ -230,7 +230,7 @@ int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] ) {
 
 	for( int key = 0; key < 256; key++ ) {
 		const char * bind = Key_GetBindingBuf( key );
-		if( bind == NULL || Q_stricmp( bind, cmd ) != 0 ) {
+		if( bind == NULL || !StrCaseEqual( bind, cmd ) ) {
 			continue;
 		}
 

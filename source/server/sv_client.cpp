@@ -413,7 +413,7 @@ static void SV_ExecuteUserCommand( client_t *client, const char *s ) {
 	Cmd_TokenizeString( s );
 
 	for( u = ucmds; u->name; u++ ) {
-		if( !strcmp( Cmd_Argv( 0 ), u->name ) ) {
+		if( StrEqual( Cmd_Argv( 0 ), u->name ) ) {
 			u->func( client );
 			break;
 		}

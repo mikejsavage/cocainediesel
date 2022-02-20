@@ -375,7 +375,6 @@ bool SV_IsDemoDownloadRequest( const char *request );
 //
 void SV_Web_Init();
 void SV_Web_Shutdown();
-bool SV_Web_Running();
 
 //
 // snap_write

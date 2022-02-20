@@ -82,9 +82,6 @@ public:
 	size_t length() const { return len; }
 	size_t capacity() const { return N - 1; }
 
-	bool operator==( const char * rhs ) const { return strcmp( buf, rhs ) == 0; }
-	bool operator!=( const char * rhs ) const { return !( *this == rhs ); }
-
 	Span< const char > span() const { return Span< const char >( buf, len ); }
 };
 

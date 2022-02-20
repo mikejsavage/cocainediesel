@@ -511,7 +511,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 
 	Com_DPrintf( "%s: %s\n", NET_AddressToString( address ), s );
 
-	if( strcmp( c, "info" ) == 0 ) {
+	if( StrEqual( c, "info" ) ) {
 		ParseGameServerResponse( msg, *address );
 		return;
 	}
@@ -522,7 +522,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 	}
 
 	// server connection
-	if( strcmp( c, "client_connect" ) == 0 ) {
+	if( StrEqual( c, "client_connect" ) ) {
 		if( cls.state == CA_CONNECTED ) {
 			Com_Printf( "Dup connect received.  Ignored.\n" );
 			return;
@@ -551,7 +551,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 	}
 
 	// reject packet, used to inform the client that connection attemp didn't succeed
-	if( strcmp( c, "reject" ) == 0 ) {
+	if( StrEqual( c, "reject" ) ) {
 		int rejectflag;
 
 		if( cls.state != CA_CONNECTING ) {
@@ -594,7 +594,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 	}
 
 	// print command from somewhere
-	if( strcmp( c, "print" ) == 0 ) {
+	if( StrEqual( c, "print" ) ) {
 		// CA_CONNECTING is allowed, because old servers send protocol mismatch connection error message with it
 		if( ( ( cls.state != CA_UNINITIALIZED && cls.state != CA_DISCONNECTED ) &&
 			  NET_CompareAddress( address, &cls.serveraddress ) ) ||
@@ -609,7 +609,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 	}
 
 	// challenge from the server we are connecting to
-	if( !strcmp( c, "challenge" ) ) {
+	if( StrEqual( c, "challenge" ) ) {
 		// these two are from Q3
 		if( cls.state != CA_CONNECTING ) {
 			Com_Printf( "challenge packet while not connecting, ignored\n" );

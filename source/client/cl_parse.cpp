@@ -292,7 +292,7 @@ static void CL_ParseServerCommand( msg_t *msg ) {
 
 	// filter out these server commands to be called from the client
 	for( cmd = svcmds; cmd->name; cmd++ ) {
-		if( !strcmp( s, cmd->name ) ) {
+		if( StrEqual( s, cmd->name ) ) {
 			cmd->func();
 			return;
 		}

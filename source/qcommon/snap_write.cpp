@@ -146,7 +146,7 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 
 			int index = positions[i] & ( MAX_RELIABLE_COMMANDS - 1 );
 
-			if( command && !strcmp( cl->gameCommands[index].command, command ) &&
+			if( command && StrEqual( cl->gameCommands[index].command, command ) &&
 				framenum == cl->gameCommands[index].framenum ) {
 				targets[i >> 3] |= 1 << ( i & 7 );
 				maxtarget = i + 1;

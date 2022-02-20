@@ -56,7 +56,7 @@ static void TakeScreenshot() {
 		char * dir = temp( "{}/screenshots", HomeDirPath() );
 		DynamicString path( &temp, "{}/{}", dir, date );
 
-		if( strcmp( date, last_screenshot_date ) == 0 ) {
+		if( StrEqual( date, last_screenshot_date ) ) {
 			same_date_count++;
 			path.append( "_{}", same_date_count );
 		}

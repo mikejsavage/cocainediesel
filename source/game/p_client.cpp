@@ -625,7 +625,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, const netadr_t * address, bool
 
 	// check for a password
 	char * value = Info_ValueForKey( userinfo, "password" );
-	if( !fakeClient && ( *sv_password->value && ( !value || strcmp( sv_password->value, value ) ) ) ) {
+	if( !fakeClient && ( *sv_password->value && ( !value || !StrEqual( sv_password->value, value ) ) ) ) {
 		if( value && value[0] ) {
 			Info_SetValueForKey( userinfo, "rejmsg", "Incorrect password" );
 		} else {

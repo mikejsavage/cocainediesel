@@ -1,7 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/application.h"
 #include "qcommon/fs.h"
-#include "qcommon/library.h"
 #include "qcommon/sys_fs.h"
 #include "qcommon/array.h"
 #include "qcommon/hash.h"
@@ -112,7 +111,7 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 
 	dirent64 * dirent;
 	while( ( dirent = readdir64( handle.dir ) ) != NULL ) {
-		if( strcmp( dirent->d_name, "." ) == 0 || strcmp( dirent->d_name, ".." ) == 0 )
+		if( StrEqual( dirent->d_name, "." ) || StrEqual( dirent->d_name, ".." ) )
 			continue;
 
 		*path = dirent->d_name;

@@ -258,7 +258,7 @@ static void Con_Execute() {
 
 	const HistoryEntry * last = &console.input_history[ ( console.history_head + console.history_count - 1 ) % ARRAY_COUNT( console.input_history ) ];
 
-	if( console.history_count == 0 || strcmp( last->cmd, console.input ) != 0 ) {
+	if( console.history_count == 0 || !StrEqual( last->cmd, console.input ) ) {
 		HistoryEntry * entry = &console.input_history[ ( console.history_head + console.history_count ) % ARRAY_COUNT( console.input_history ) ];
 		strcpy( entry->cmd, console.input );
 

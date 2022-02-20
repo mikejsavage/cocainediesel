@@ -279,7 +279,7 @@ static void SV_Web_ParseStartLine( sv_http_request_t *request, char *line ) {
 		token++;
 	}
 
-	if( strcmp( token, "HTTP/1.1" ) != 0 ) {
+	if( !StrEqual( token, "HTTP/1.1" ) ) {
 		request->error = HTTP_RESP_BAD_REQUEST;
 	}
 }
@@ -712,10 +712,6 @@ static void SV_Web_Frame() {
 			SV_Web_FreeConnection( &con );
 		}
 	}
-}
-
-bool SV_Web_Running() {
-	return sv_http_running;
 }
 
 static void SV_Web_ThreadProc( void *param ) {

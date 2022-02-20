@@ -273,7 +273,7 @@ void CG_GameCommand( const char * command ) {
 	const char * name = Cmd_Argv( 0 );
 
 	for( ServerCommand cmd : server_commands ) {
-		if( strcmp( name, cmd.name ) == 0 ) {
+		if( StrEqual( name, cmd.name ) ) {
 			cmd.func();
 			return;
 		}

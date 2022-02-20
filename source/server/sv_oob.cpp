@@ -519,7 +519,7 @@ void SV_ConnectionlessPacket( const socket_t *socket, const netadr_t *address, m
 	Com_DPrintf( "Packet %s : %s\n", NET_AddressToString( address ), c );
 
 	for( cmd = connectionless_cmds; cmd->name; cmd++ ) {
-		if( !strcmp( c, cmd->name ) ) {
+		if( StrEqual( c, cmd->name ) ) {
 			cmd->func( socket, address );
 			return;
 		}

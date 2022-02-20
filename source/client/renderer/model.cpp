@@ -266,7 +266,7 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mo
 	AddInstanceToCollection( model_silhouette_instance_collection, model, primitive, pipeline, instance, hash );
 }
 
-static void DrawVfxNode( DrawModelConfig::DrawModel config, const Model::Node * node, Mat4 & transform ) {
+static void DrawVfxNode( DrawModelConfig::DrawModel config, const Model::Node * node, Mat4 & transform, const Vec4 & color ) {
 	if( !config.enabled || node->vfx_type == ModelVfxType_Generic )
 		return;
 
@@ -281,7 +281,7 @@ static void DrawVfxNode( DrawModelConfig::DrawModel config, const Model::Node * 
 	Vec3 normal = SafeNormalize( transform.col1.xyz() );
 	switch( node->vfx_type ) {
 		case ModelVfxType_Vfx:
-			DoVisualEffect( node->vfx_node.name, origin, normal, size, node->vfx_node.color );
+			DoVisualEffect( node->vfx_node.name, origin, normal, size, node->vfx_node.color * color );
 			break;
 		case ModelVfxType_DynamicLight:
 			DrawDynamicLight( origin, node->dlight_node.color, node->dlight_node.intensity * size );
@@ -341,7 +341,7 @@ void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transf
 		}
 		node_transform = transform * model->transform * node_transform;
 
-		DrawVfxNode( config.draw_model, node, node_transform );
+		DrawVfxNode( config.draw_model, node, node_transform, color );
 
 		if( node->primitive == U8_MAX )
 			continue;

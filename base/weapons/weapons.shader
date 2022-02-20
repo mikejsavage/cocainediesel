@@ -78,8 +78,8 @@ models/weapons/gl
 models/weapons/lg
 {
 	shaded
-	specular 10
-	shininess 8
+	specular 20
+	shininess 6
 	{
 		map $whiteimage
 		rgbGen const 0.128 0.128 0.128
@@ -88,6 +88,9 @@ models/weapons/lg
 
 models/weapons/lg_glow
 {
+	shaded
+	specular 20
+	shininess 20
 	{
 		map $whiteimage
 		rgbGen entity
@@ -97,11 +100,44 @@ models/weapons/lg_glow
 models/weapons/lg_cables
 {
 	shaded
-	specular 10
-	shininess 8
+	specular 100
+	shininess 50
 	{
 		map $whiteimage
-		rgbGen const 0.8 0.8 0.8
+		rgbGen entity
+	}
+}
+
+models/weapons/lg_bolts
+{
+	shaded
+	specular 100
+	shininess 25
+	{
+		map $whiteimage
+		rgbGen const 0.128 0.128 0.128
+	}
+}
+
+models/weapons/lg_nuts
+{
+	shaded
+	specular 100
+	shininess 25
+	{
+		map $whiteimage
+		rgbGen const 0.128 0.128 0.128
+	}
+}
+
+models/weapons/lg_ammo_light
+{
+	shaded
+	specular 20
+	shininess 3
+	{
+		map $whiteimage
+		rgbGen const 0.25 0.25 0.25
 	}
 }
 

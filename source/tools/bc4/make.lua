@@ -16,6 +16,8 @@ bin( "bc4", {
 		"source/qcommon/allocators.cpp",
 		"source/qcommon/base.cpp",
 		"source/qcommon/hash.cpp",
+		"source/qcommon/strtonum.cpp",
+		"source/gameshared/q_shared.cpp",
 		platform_srcs,
 	},
 

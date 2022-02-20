@@ -144,10 +144,6 @@ struct GltfExtras {
 	u32 num_extras = 0;
 };
 
-static Span< const char > JsonSpan( Span< const char > json, jsmntok_t * token ) {
-	return json.slice( token->start, token->end );
-}
-
 static GltfExtras LoadExtras( cgltf_data * gltf, cgltf_node * gltf_node ) {
 	char json_data[ 1024 ];
 	size_t json_size = 1024;

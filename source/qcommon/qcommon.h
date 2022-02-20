@@ -20,6 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
+#include <stdarg.h>
+#include <stdint.h>
+#include <inttypes.h>
+
 #include "gameshared/q_arch.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"

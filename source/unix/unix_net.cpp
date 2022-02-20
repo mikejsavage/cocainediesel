@@ -48,8 +48,14 @@ void Sys_NET_SocketClose( socket_handle_t handle ) {
 	close( handle );
 }
 
-int Sys_NET_SocketIoctl( socket_handle_t handle, long request, ioctl_param_t* param ) {
-	return ioctl( handle, request, param );
+bool Sys_NET_SocketMakeNonBlocking( socket_handle_t handle ) {
+	int one = 1;
+	if( ioctl( handle, FIONBIO, &one ) == -1 ) {
+		NET_SetErrorStringFromLastError( "Sys_NET_SocketIoctl" );
+		return false;
+	}
+
+	return true;
 }
 
 void Sys_NET_Init() {

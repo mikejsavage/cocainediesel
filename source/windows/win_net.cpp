@@ -43,8 +43,9 @@ void Sys_NET_SocketClose( socket_handle_t handle ) {
 	closesocket( handle );
 }
 
-int Sys_NET_SocketIoctl( socket_handle_t handle, long request, ioctl_param_t* param ) {
-	return ioctlsocket( handle, request, param );
+bool Sys_NET_SocketMakeNonBlocking( socket_handle_t handle ) {
+	u_long one = 1;
+	return ioctlsocket( handle, FIONBIO, &one ) != SOCKET_ERROR;
 }
 
 static void WSAError( const char * name ) {

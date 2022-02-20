@@ -20,21 +20,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include <stdarg.h>
-#include <ctype.h>
-#include <inttypes.h>
-
 #ifdef _WIN32
-
-typedef unsigned long ioctl_param_t;
 
 typedef uintptr_t socket_handle_t;
 
 #endif
 
 #if defined ( __linux__ )
-
-typedef int ioctl_param_t;
 
 typedef int socket_handle_t;
 

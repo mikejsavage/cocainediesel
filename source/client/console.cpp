@@ -1,3 +1,5 @@
+#include <ctype.h>
+
 #include "client/client.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/string.h"

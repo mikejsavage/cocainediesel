@@ -30,7 +30,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <netinet/tcp.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #endif
@@ -234,17 +233,6 @@ static bool NET_SocketMakeBroadcastCapable( socket_handle_t handle ) {
 	return true;
 }
 
-static bool NET_SocketMakeNonBlocking( socket_handle_t handle ) {
-	ioctl_param_t _true = 1;
-
-	if( Sys_NET_SocketIoctl( handle, FIONBIO, &_true ) == SOCKET_ERROR ) {
-		NET_SetErrorStringFromLastError( "Sys_NET_SocketIoctl" );
-		return false;
-	}
-
-	return true;
-}
-
 static int NET_UDP_GetPacket( const socket_t *socket, netadr_t *address, msg_t *message ) {
 	struct sockaddr_storage from;
 	socklen_t fromlen;
@@ -321,7 +309,7 @@ static bool NET_IP_OpenSocket( socket_t *sock, const netadr_t *address, socket_t
 	}
 
 	// make it non-blocking
-	if( !NET_SocketMakeNonBlocking( newsocket ) ) {
+	if( !Sys_NET_SocketMakeNonBlocking( newsocket ) ) {
 		Sys_NET_SocketClose( newsocket );
 		return false;
 	}
@@ -521,7 +509,7 @@ static int NET_TCP_Accept( const socket_t *socket, socket_t *newsocket, netadr_t
 	}
 
 	// make the new socket non-blocking
-	if( !NET_SocketMakeNonBlocking( handle ) ) {
+	if( !Sys_NET_SocketMakeNonBlocking( handle ) ) {
 		Sys_NET_SocketClose( handle );
 		return -1;
 	}

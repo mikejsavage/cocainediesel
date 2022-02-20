@@ -6,6 +6,7 @@
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
+#include "gameshared/q_shared.h"
 
 // these must come after qcommon because both tracy and one of these defines BLOCK_SIZE
 #include <dirent.h>

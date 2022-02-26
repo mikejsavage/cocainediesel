@@ -64,6 +64,12 @@ struct DrawCall {
 	GPUBuffer feedback_data;
 };
 
+static GLsync fences[ 3 ];
+static u64 frame_counter;
+
+STATIC_ASSERT( ARRAY_COUNT( fences ) == ARRAY_COUNT( &StreamingBuffer::buffers ) );
+STATIC_ASSERT( ARRAY_COUNT( fences ) == ARRAY_COUNT( &StreamingBuffer::mappings ) );
+
 static NonRAIIDynamicArray< RenderPass > render_passes;
 static NonRAIIDynamicArray< DrawCall > draw_calls;
 
@@ -566,6 +572,11 @@ void InitRenderBackend() {
 
 	PlotVRAMUsage();
 
+	for( GLsync & fence : fences ) {
+		fence = 0;
+	}
+	frame_counter = 0;
+
 	render_passes.init( sys_allocator );
 	draw_calls.init( sys_allocator );
 
@@ -627,13 +638,15 @@ void RenderBackendBeginFrame() {
 	render_passes.clear();
 	draw_calls.clear();
 
-	deferred_mesh_deletes.clear();
-	deferred_buffer_deletes.clear();
+	if( fences[ frame_counter % ARRAY_COUNT( fences ) ] != 0 ) {
+		glClientWaitSync( fences[ frame_counter % ARRAY_COUNT( fences ) ], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED );
+		glDeleteSync( fences[ frame_counter % ARRAY_COUNT( fences ) ] );
+	}
+	frame_counter++;
 
 	num_vertices_this_frame = 0;
 
 	for( UBO & ubo : ubos ) {
-		StreamingBufferFrame( &ubo.stream );
 		ubo.bytes_used = 0;
 	}
 
@@ -1162,6 +1175,8 @@ void RenderBackendSubmitFrame() {
 		deferred_buffer_deletes.clear();
 	}
 
+	fences[ frame_counter % ARRAY_COUNT( fences ) ] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
+
 	u32 ubo_bytes_used = 0;
 	for( const UBO & ubo : ubos ) {
 		ubo_bytes_used += ubo.bytes_used;
@@ -1272,29 +1287,12 @@ StreamingBuffer NewStreamingBuffer( u32 len, const char * name ) {
 	return NewStreamingBuffer( len, name, false );
 }
 
-void StreamingBufferFrame( StreamingBuffer * stream ) {
-	TracyZoneScoped;
-	if( stream->name.ptr != NULL ) {
-		TracyZoneText( stream->name.ptr, stream->name.n );
-	}
-
-	stream->fences[ stream->current ] = bit_cast< u64 >( glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 ) );
-	stream->current = ( stream->current + 1 ) % ARRAY_COUNT( stream->buffers );
-
-	if( stream->fences[ stream->current ] != 0 ) {
-		GLsync sync = bit_cast< GLsync >( stream->fences[ stream->current ] );
-		glClientWaitSync( sync, GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED );
-		glDeleteSync( sync );
-		stream->fences[ stream->current ] = 0;
-	}
-}
-
 u8 * GetStreamingBufferMapping( StreamingBuffer stream ) {
-	return stream.mappings[ stream.current ];
+	return stream.mappings[ frame_counter % ARRAY_COUNT( stream.mappings ) ];
 }
 
 GPUBuffer GetStreamingBufferBuffer( StreamingBuffer stream ) {
-	return stream.buffers[ stream.current ];
+	return stream.buffers[ frame_counter % ARRAY_COUNT( stream.buffers ) ];
 }
 
 void DeleteStreamingBuffer( StreamingBuffer stream ) {
@@ -1302,13 +1300,6 @@ void DeleteStreamingBuffer( StreamingBuffer stream ) {
 		glUnmapNamedBuffer( buf.buffer );
 		DeleteGPUBuffer( buf );
 	}
-
-	for( u64 fence : stream.fences ) {
-		if( fence != 0 ) {
-			glDeleteSync( bit_cast< GLsync >( fence ) );
-		}
-	}
-
 	FREE( sys_allocator, stream.name.ptr );
 }
 

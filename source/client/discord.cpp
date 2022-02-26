@@ -1,11 +1,12 @@
 #include "qcommon/base.h"
+#include "qcommon/qcommon.h"
+#include "gameshared/q_shared.h"
 #include "qcommon/fs.h"
 #include "qcommon/library.h"
 #include "qcommon/string.h"
-#include "client/discord.h"
+#include "client/client.h"
 #include "cgame/cg_local.h"
-
-#include <time.h>
+#include "client/discord.h"
 
 #include "discord/discord_game_sdk.h"
 
@@ -114,7 +115,10 @@ void DiscordFrame() {
 
 	RichPresence presence = { };
 
-	if( cls.state == CA_ACTIVE ) {
+	if( !is_public_build ) {
+		presence.first_line.format( "gamedev lol" );
+	}
+	else if( cls.state == CA_ACTIVE ) {
 		presence.playing = true;
 
 		if( cg.predictedPlayerState.real_team == TEAM_SPECTATOR ) {

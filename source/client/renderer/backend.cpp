@@ -632,17 +632,20 @@ void ShutdownRenderBackend() {
 }
 
 void RenderBackendBeginFrame() {
+	TracyZoneScoped;
+
 	assert( !in_frame );
 	in_frame = true;
 
 	render_passes.clear();
 	draw_calls.clear();
 
+	frame_counter++;
 	if( fences[ frame_counter % ARRAY_COUNT( fences ) ] != 0 ) {
+		TracyZoneScopedN( "Wait on frame fence" );
 		glClientWaitSync( fences[ frame_counter % ARRAY_COUNT( fences ) ], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED );
 		glDeleteSync( fences[ frame_counter % ARRAY_COUNT( fences ) ] );
 	}
-	frame_counter++;
 
 	num_vertices_this_frame = 0;
 

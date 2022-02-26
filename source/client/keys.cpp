@@ -107,7 +107,7 @@ static const keyname_t keynames[] = {
 
 	{ "PAUSE", K_PAUSE },
 
-	{ nullptr, 0 }
+	{ NULL, 0 }
 };
 
 int Key_StringToKeynum( const char *str ) {

@@ -32,8 +32,6 @@ Cvar *sv_password;
 Cvar *g_operator_password;
 Cvar *g_select_empty;
 
-Cvar *filterban;
-
 Cvar *g_maxvelocity;
 
 Cvar *sv_cheats;
@@ -115,8 +113,6 @@ void G_Init( unsigned int framemsec ) {
 
 	G_InitGameShared();
 
-	SV_ReadIPList();
-
 	game.snapFrameTime = framemsec;
 	game.frametime = game.snapFrameTime;
 	game.numBots = 0;
@@ -130,7 +126,6 @@ void G_Init( unsigned int framemsec ) {
 
 	sv_password = NewCvar( "sv_password", "", 0 );
 	g_operator_password = NewCvar( "g_operator_password", "", CvarFlag_Archive );
-	filterban = NewCvar( "filterban", "1", 0 );
 
 	g_projectile_prestep = NewCvar( "g_projectile_prestep", temp( "{}", PROJECTILE_PRESTEP ), CvarFlag_Developer );
 	g_numbots = NewCvar( "g_numbots", "0", CvarFlag_Archive );
@@ -175,8 +170,6 @@ void G_Shutdown() {
 	Com_Printf( "==== G_Shutdown ====\n" );
 
 	ShutdownGametype();
-
-	SV_WriteIPList();
 
 	G_RemoveCommands();
 

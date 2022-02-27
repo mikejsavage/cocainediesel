@@ -617,12 +617,6 @@ bool ClientConnect( edict_t *ent, char *userinfo, const netadr_t * address, bool
 		return false;
 	}
 
-	// check to see if they are on the banned IP list
-	if( SV_FilterPacket( NET_AddressToString( address ) ) ) {
-		Info_SetValueForKey( userinfo, "rejmsg", "You're banned from this server" );
-		return false;
-	}
-
 	// check for a password
 	char * value = Info_ValueForKey( userinfo, "password" );
 	if( !fakeClient && ( *sv_password->value && ( !value || !StrEqual( sv_password->value, value ) ) ) ) {

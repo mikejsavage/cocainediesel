@@ -304,65 +304,6 @@ static void G_VoteKickPassed( callvotedata_t *vote ) {
 
 
 /*
-* kickban
-*/
-
-static void G_VoteKickBanExtraHelp( edict_t * ent, String< MAX_STRING_CHARS > * msg ) {
-	ListPlayersExcept( ent, msg, true );
-}
-
-static bool G_VoteKickBanValidate( callvotedata_t *vote, bool first ) {
-	int who = -1;
-
-	if( !filterban->integer ) {
-		G_PrintMsg( vote->caller, "%sFilterban is disabled on this server\n", S_COLOR_RED );
-		return false;
-	}
-
-	if( first ) {
-		edict_t *tokick = G_PlayerForText( vote->argv[0] );
-
-		if( tokick ) {
-			who = PLAYERNUM( tokick );
-		} else {
-			who = -1;
-		}
-
-		if( who != -1 ) {
-			if( game.edicts[who + 1].r.client->isoperator ) {
-				G_PrintMsg( vote->caller, S_COLOR_RED "%s is a game operator.\n", game.edicts[who + 1].r.client->netname );
-				return false;
-			}
-
-			// we save the player id to be kicked, so we don't later get
-			// confused by new ids or players changing names
-			vote->target = who;
-		} else {
-			G_PrintMsg( vote->caller, "%sNo such player\n", S_COLOR_RED );
-			return false;
-		}
-	} else {
-		who = vote->target;
-	}
-
-	if( !game.edicts[who + 1].r.inuse )
-		return false;
-
-	vote->string.format( "{}", game.edicts[who + 1].r.client->netname );
-	return true;
-}
-
-static void G_VoteKickBanPassed( callvotedata_t *vote ) {
-	edict_t * ent = &game.edicts[vote->target + 1];
-	if( !ent->r.inuse || !ent->r.client ) { // may have disconnected along the callvote time
-		return;
-	}
-
-	Cbuf_Add( "addip {} {}", NET_AddressToString( &svs.clients[ PLAYERNUM( ent ) ].socket.address ), 15 );
-	PF_DropClient( ent, "Kicked" );
-}
-
-/*
 * timeout
 */
 static bool G_VoteTimeoutValidate( callvotedata_t *vote, bool first ) {
@@ -454,17 +395,6 @@ static callvotetype_t votes[] = {
 		G_VoteKickExtraHelp,
 		"<player>",
 		"Removes player from the server",
-	},
-
-	{
-		"kickban",
-		1,
-		G_VoteKickBanValidate,
-		G_VoteKickBanPassed,
-		NULL,
-		G_VoteKickBanExtraHelp,
-		"<player>",
-		"Removes player from the server and bans his IP-address for 15 minutes",
 	},
 
 	{

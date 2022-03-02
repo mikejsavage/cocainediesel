@@ -614,4 +614,5 @@ void SV_Web_Shutdown() {
 	sv_http_running = false;
 	JoinThread( web_server_thread );
 	CloseSocket( web_server_socket );
+	FREE( sys_allocator, web_server_arena.get_memory() );
 }

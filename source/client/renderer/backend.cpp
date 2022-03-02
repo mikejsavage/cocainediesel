@@ -640,7 +640,6 @@ void RenderBackendBeginFrame() {
 	render_passes.clear();
 	draw_calls.clear();
 
-	frame_counter++;
 	if( fences[ frame_counter % ARRAY_COUNT( fences ) ] != 0 ) {
 		TracyZoneScopedN( "Wait on frame fence" );
 		glClientWaitSync( fences[ frame_counter % ARRAY_COUNT( fences ) ], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED );
@@ -1179,6 +1178,7 @@ void RenderBackendSubmitFrame() {
 	}
 
 	fences[ frame_counter % ARRAY_COUNT( fences ) ] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
+	frame_counter++;
 
 	u32 ubo_bytes_used = 0;
 	for( const UBO & ubo : ubos ) {

@@ -32,6 +32,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/application.h"
 #include "qcommon/qfiles.h"
+#include "qcommon/cmd.h"
+#include "qcommon/cvar.h"
 #include "qcommon/strtonum.h"
 
 inline Vec3 FromQFAxis( const mat3_t m, int axis ) {
@@ -191,64 +193,6 @@ enum clc_ops_e {
 #define FRAMESNAP_FLAG_DELTA        ( 1 << 0 )
 #define FRAMESNAP_FLAG_ALLENTITIES  ( 1 << 1 )
 #define FRAMESNAP_FLAG_MULTIPOV     ( 1 << 2 )
-
-/*
-==============================================================
-
-CMD
-
-Command text buffering and command execution
-
-==============================================================
-*/
-
-void Cmd_Init();
-void Cmd_Shutdown();
-
-void Cbuf_AddLine( const char * text );
-void Cbuf_Execute();
-bool Cbuf_ExecuteLine( Span< const char > line, bool warn_on_invalid );
-void Cbuf_ExecuteLine( const char * line );
-
-void Cbuf_AddEarlyCommands( int argc, char ** argv );
-void Cbuf_AddLateCommands( int argc, char ** argv );
-
-template< typename... Rest >
-void Cbuf_Add( const char * fmt, const Rest & ... rest ) {
-	char buf[ 1024 ];
-	ggformat( buf, sizeof( buf ), fmt, rest... );
-	Cbuf_AddLine( buf );
-}
-
-using ConsoleCommandCallback = void ( * )();
-using TabCompletionCallback = Span< const char * > ( * )( TempAllocator * a, const char * partial );
-
-void AddCommand( const char * name, ConsoleCommandCallback function );
-void SetTabCompletionCallback( const char * name, TabCompletionCallback callback );
-void RemoveCommand( const char * name );
-
-Span< const char * > TabCompleteCommand( TempAllocator * a, const char * partial );
-Span< const char * > SearchCommands( Allocator * a, const char * partial );
-Span< const char * > TabCompleteArgument( TempAllocator * a, const char * partial );
-Span< const char * > TabCompleteFilename( TempAllocator * a, const char * partial, const char * search_dir, const char * extension );
-Span< const char * > TabCompleteFilenameHomeDir( TempAllocator * a, const char * partial, const char * search_dir, const char * extension );
-
-int Cmd_Argc();
-const char * Cmd_Argv( int arg );
-char * Cmd_Args();
-void Cmd_TokenizeString( const char * text );
-
-void ExecDefaultCfg();
-
-/*
-==============================================================
-
-CVAR
-
-==============================================================
-*/
-
-#include "cvar.h"
 
 /*
 ==============================================================

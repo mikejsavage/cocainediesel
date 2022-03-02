@@ -320,7 +320,7 @@ void CL_ParseServerMessage( msg_t *msg ) {
 
 		if( cl_shownet->integer >= 2 ) {
 			if( !svc_strings[cmd] ) {
-				Com_Printf( "{}:BAD CMD {}", msg->readcount - 1, cmd );
+				Com_GGPrint( "{}:BAD CMD {}", msg->readcount - 1, cmd );
 			} else {
 				SHOWNET( msg, svc_strings[cmd] );
 			}

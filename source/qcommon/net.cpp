@@ -127,6 +127,9 @@ static u64 OpenSocket( SocketFamily family, UDPOrTCP type, NonBlockingBool nonbl
 	else {
 		OSSocketSetSockOptOne( handle, IPPROTO_TCP, TCP_NODELAY );
 	}
+	if( family == SocketFamily_IPv6 ) {
+		OSSocketSetSockOptOne( handle, IPPROTO_IPV6, IPV6_V6ONLY );
+	}
 
 	sockaddr_in address4;
 	address4.sin_family = AF_INET;

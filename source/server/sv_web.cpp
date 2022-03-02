@@ -602,6 +602,10 @@ void SV_Web_Init() {
 	memset( sv_http_connections, 0, sizeof( sv_http_connections ) );
 	sv_http_running = true;
 
+	constexpr size_t web_server_arena_size = 128 * 1024; // 128KB
+	void * web_server_arena_memory = ALLOC_SIZE( sys_allocator, web_server_arena_size, 16 );
+	web_server_arena = ArenaAllocator( web_server_arena_memory, web_server_arena_size );
+
 	web_server_socket = NewTCPServer( sv_port->integer, NonBlocking_Yes );
 	web_server_thread = NewThread( SV_Web_ThreadProc );
 }

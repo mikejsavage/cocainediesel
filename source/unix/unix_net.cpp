@@ -1,13 +1,17 @@
-#include <poll.h>
 #include <sys/ioctl.h>
-#include <sys/socket.h>
+#include <errno.h>
+#include <poll.h>
 
+#include "unix/unix_net.h"
+
+#include "qcommon/base.h"
+#include "qcommon/array.h"
 #include "qcommon/sys_net.h"
 
 void InitNetworking() { }
 void ShutdownNetworking() { }
 
-static u64 OSSocketToHandle( int s ) {
+static u64 OSSocketToHandle( int socket ) {
 	return socket == -1 ? 0 : socket + 1;
 }
 
@@ -16,7 +20,7 @@ static int HandleToOSSocket( u64 handle ) {
 	return checked_cast< int >( handle - 1 );
 }
 
-u64 OpenOSSocket( SocketFamily family, UDPOrTCP_TCP type, u16 port ) {
+u64 OpenOSSocket( SocketFamily family, UDPOrTCP type, u16 port ) {
 	int first_arg = family == SocketFamily_IPv4 ? AF_INET : AF_INET6;
 	int second_arg = type == UDPOrTCP_UDP ? SOCK_DGRAM : SOCK_STREAM;
 	int third_arg = type == UDPOrTCP_UDP ? IPPROTO_UDP : IPPROTO_TCP;
@@ -74,7 +78,7 @@ bool OSSocketSend( u64 handle, const void * data, size_t n, const sockaddr_stora
 				*sent = 0;
 				return true;
 			}
-			if( error == ECONNRESET ) {
+			if( errno == ECONNRESET ) {
 				return false;
 			}
 			FatalErrno( "sendto" );
@@ -87,7 +91,7 @@ bool OSSocketSend( u64 handle, const void * data, size_t n, const sockaddr_stora
 
 bool OSSocketReceive( u64 handle, void * data, size_t n, sockaddr_storage * source, size_t * received ) {
 	int socket = HandleToOSSocket( handle );
-	int source_size = sizeof( sockaddr_in6 );
+	socklen_t source_size = sizeof( sockaddr_in6 );
 
 	while( true ) {
 		int ret = recvfrom( socket, ( char * ) data, n, 0, ( sockaddr * ) source, &source_size );
@@ -124,7 +128,7 @@ void OSSocketListen( u64 handle ) {
 u64 OSSocketAccept( u64 handle, sockaddr_storage * address ) {
 	int socket = HandleToOSSocket( handle );
 
-	int address_size = sizeof( sockaddr_in6 );
+	socklen_t address_size = sizeof( sockaddr_in6 );
 	int client = accept( socket, ( sockaddr * ) address, &address_size );
 	if( client == -1 ) {
 		if( errno == EINTR || errno == EAGAIN ) {
@@ -136,8 +140,8 @@ u64 OSSocketAccept( u64 handle, sockaddr_storage * address ) {
 	return OSSocketToHandle( client );
 }
 
-void WaitForSockets( TempAllocator * a, const Socket * sockets, size_t num_sockets, s64 timeout_ms, WaitForSocketWriteableBool wait_for_writeable, WaitForSocketResult * results ) {
-	short events = wait_for_writeable ? POLLN | POLLOUT : POLLIN;
+void WaitForSockets( TempAllocator * temp, const Socket * sockets, size_t num_sockets, s64 timeout_ms, WaitForSocketWriteableBool wait_for_writeable, WaitForSocketResult * results ) {
+	short events = wait_for_writeable ? POLLIN | POLLOUT : POLLIN;
 
 	DynamicArray< pollfd > fds( temp );
 	for( size_t i = 0; i < num_sockets; i++ ) {
@@ -151,7 +155,7 @@ void WaitForSockets( TempAllocator * a, const Socket * sockets, size_t num_socke
 		}
 	}
 
-	DyanmicArray< size_t > fd_to_socket( temp );
+	DynamicArray< size_t > fd_to_socket( temp );
 	for( size_t i = 0; i < num_sockets; i++ ) {
 		if( sockets[ i ].ipv4 != 0 ) {
 			fd_to_socket.add( i );

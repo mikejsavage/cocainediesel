@@ -1,6 +1,7 @@
 #include "windows/miniwindows.h"
-#include "windows/win_net.h"
 #include <io.h>
+
+#include "windows/win_net.h"
 
 #include "qcommon/base.h"
 #include "qcommon/sys_net.h"

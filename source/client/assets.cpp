@@ -36,12 +36,12 @@ static u32 num_modified_assets;
 
 static Hashtable< MAX_ASSETS * 2 > assets_hashtable;
 
-enum IsCompressed {
-	IsCompressed_No,
-	IsCompressed_Yes,
+enum IsCompressedBool : bool {
+	IsCompressed_No = false,
+	IsCompressed_Yes = true,
 };
 
-static void AddAsset( const char * path, u64 hash, char * contents, size_t len, IsCompressed compressed ) {
+static void AddAsset( const char * path, u64 hash, char * contents, size_t len, IsCompressedBool compressed ) {
 	Lock( assets_mutex );
 	defer { Unlock( assets_mutex ); };
 
@@ -66,7 +66,7 @@ static void AddAsset( const char * path, u64 hash, char * contents, size_t len, 
 
 	a->data = contents;
 	a->len = len;
-	a->compressed = compressed == IsCompressed_Yes;
+	a->compressed = compressed;
 
 	modified_asset_paths[ num_modified_assets ] = a->path;
 	num_modified_assets++;

@@ -58,7 +58,7 @@ static void GetMasterServerAddress( void * data ) {
 }
 
 static void QueryMasterServer( MasterServer * master ) {
-	const char * command;
+	const char * command = master->address.family == SocketFamily_IPv4 ? "getservers" : "getserversExt";
 
 	TempAllocator temp = cls.frame_arena.temp();
 	const char * query = temp( "{} {} {} full empty", command, APPLICATION_NOSPACES, APP_PROTOCOL_VERSION );

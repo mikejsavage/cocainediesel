@@ -2,6 +2,7 @@
 
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
+#include "qcommon/qfiles.h"
 #include "qcommon/array.h"
 #include "qcommon/span2d.h"
 #include "client/client.h"

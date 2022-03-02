@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 #define IDBSPHEADER     "IBSP"
-#define QFBSPHEADER     "FBSP"
 
 #define MAX_MAP_LEAFS       0x20000
 

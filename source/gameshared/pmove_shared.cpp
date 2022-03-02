@@ -1,4 +1,5 @@
 #include "gameshared/movement.h"
+#include "qcommon/qfiles.h"
 
 float Normalize2D( Vec3 * v ) {
 	float length = Length( v->xy() );

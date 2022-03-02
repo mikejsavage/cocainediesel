@@ -62,6 +62,9 @@ struct DrawCall {
 	GPUBuffer instance_data;
 	GPUBuffer update_data;
 	GPUBuffer feedback_data;
+
+	u32 dispatch_size[ 3 ];
+	GPUBuffer indirect;
 };
 
 static GLsync fences[ 3 ];
@@ -380,7 +383,8 @@ static void DebugOutputCallback(
 	    id == 131169 ||
 	    id == 131185 ||
 	    id == 131218 ||
-	    id == 131204
+	    id == 131204 ||
+	  	id == 131184 // TODO(msc): idk what this is but it's spamming my console, cheers
 	) {
 		return;
 	}
@@ -989,7 +993,14 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
 
 	if( dc.instance_type == InstanceType_ComputeShader ) {
-		glDispatchCompute( 1, 1, 1 );
+		glDispatchCompute( dc.dispatch_size[ 0 ], dc.dispatch_size[ 1 ], dc.dispatch_size[ 2 ] );
+		return;
+	}
+
+	if( dc.instance_type == InstanceType_ComputeShaderIndirect ) {
+		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, dc.indirect.buffer );
+		glDispatchComputeIndirect( 0 );
+		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, 0 );
 		return;
 	}
 
@@ -1006,39 +1017,22 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleSize, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, start_size ) );
 		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleAgeLifetime, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, age ) );
 		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleFlags, VertexFormat_U32x1, sizeof( GPUParticle ), offsetof( GPUParticle, flags ) );
+		
+		glVertexAttribDivisor( VertexAttribute_ParticlePosition, 1 );
+		glVertexAttribDivisor( VertexAttribute_ParticleVelocity, 1 );
+		glVertexAttribDivisor( VertexAttribute_ParticleAccelDragRest, 1 );
+		glVertexAttribDivisor( VertexAttribute_ParticleUVWH, 1 );
+		glVertexAttribDivisor( VertexAttribute_ParticleStartColor, 1 );
+		glVertexAttribDivisor( VertexAttribute_ParticleEndColor, 1 );
+		glVertexAttribDivisor( VertexAttribute_ParticleSize, 1 );
+		glVertexAttribDivisor( VertexAttribute_ParticleAgeLifetime, 1 );
+		glVertexAttribDivisor( VertexAttribute_ParticleFlags, 1 );
 
-		if( dc.update_data.buffer ) {
-			glEnable( GL_RASTERIZER_DISCARD );
-			glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 0, dc.update_data.buffer );
-			if( dc.feedback_data.buffer ) {
-				glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 1, dc.feedback_data.buffer );
-			}
-
-			glBeginTransformFeedback( primitive );
-			GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-			const void * offset = ( const void * ) uintptr_t( dc.index_offset );
-			glDrawElements( primitive, dc.num_instances, type, offset );
-			glEndTransformFeedback();
-
-			glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 0, 0 );
-			if( dc.feedback_data.buffer ) {
-				glBindBufferBase( GL_TRANSFORM_FEEDBACK_BUFFER, 1, 0 );
-			}
-			glDisable( GL_RASTERIZER_DISCARD );
-		}
-		else {
-			glVertexAttribDivisor( VertexAttribute_ParticlePosition, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleVelocity, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleAccelDragRest, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleUVWH, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleStartColor, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleEndColor, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleSize, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleAgeLifetime, 1 );
-			glVertexAttribDivisor( VertexAttribute_ParticleFlags, 1 );
-			GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-			glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
-		}
+		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+		
+		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, dc.indirect.buffer );
+		glDrawElementsIndirect( primitive, type, 0 );
+		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
 	}
 	else if( dc.instance_type == InstanceType_Model ) {
 		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.color ) );
@@ -1230,6 +1224,7 @@ void ReadGPUBuffer( GPUBuffer buf, void * data, u32 len, u32 offset ) {
 GPUBuffer NewParticleGPUBuffer( u32 n ) {
 	GPUBuffer buf = { DSACreateBuffer( false ) };
 	glNamedBufferStorage( buf.buffer, n * sizeof( GPUParticle ), NULL, GL_DYNAMIC_STORAGE_BIT );
+	DebugLabel( GL_BUFFER, buf.buffer, "particles" );
 	return buf;
 }
 
@@ -1982,129 +1977,31 @@ void AddResolveMSAAPass( const char * name, const tracy::SourceLocationData * tr
 	AddBlitPass( name, tracy, src, dst, clear_color, clear_depth );
 }
 
-void UpdateParticles( const Mesh & mesh, GPUBuffer vb_in, GPUBuffer vb_out, float radius, u32 num_particles, float dt ) {
-	assert( in_frame );
-
-	PipelineState pipeline;
-	pipeline.pass = frame_static.particle_update_pass;
-	pipeline.shader = &shaders.particle_update;
-	u32 collision = cl.map == NULL ? 0 : 1;
-	pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, radius, dt ) );
-	if( collision ) {
-		pipeline.set_buffer( "b_BSPNodeLinks", cl.map->nodeBuffer );
-		pipeline.set_buffer( "b_BSPLeaves", cl.map->leafBuffer );
-		pipeline.set_buffer( "b_BSPBrushes", cl.map->brushBuffer );
-		pipeline.set_buffer( "b_BSPPlanes", cl.map->planeBuffer );
-	}
-
-	DrawCall dc = { };
-	dc.mesh = mesh;
-	dc.pipeline = pipeline;
-	dc.instance_type = InstanceType_Particles;
-	dc.num_instances = num_particles;
-	dc.instance_data = vb_in;
-	dc.update_data = vb_out;
-
-	draw_calls.add( dc );
-}
-
-void UpdateParticlesFeedback( const Mesh & mesh, GPUBuffer vb_in, GPUBuffer vb_out, GPUBuffer vb_feedback, float radius, u32 num_particles, float dt ) {
-	assert( in_frame );
-
-	PipelineState pipeline;
-	pipeline.pass = frame_static.particle_update_pass;
-	pipeline.shader = &shaders.particle_update_feedback;
-	u32 collision = cl.map == NULL ? 0 : 1;
-	pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, radius, dt ) );
-	if( collision ) {
-		pipeline.set_buffer( "b_BSPNodeLinks", cl.map->nodeBuffer );
-		pipeline.set_buffer( "b_BSPLeaves", cl.map->leafBuffer );
-		pipeline.set_buffer( "b_BSPBrushes", cl.map->brushBuffer );
-		pipeline.set_buffer( "b_BSPPlanes", cl.map->planeBuffer );
-	}
-
-	DrawCall dc = { };
-	dc.mesh = mesh;
-	dc.pipeline = pipeline;
-	dc.num_instances = num_particles;
-	dc.instance_type = InstanceType_Particles;
-	dc.instance_data = vb_in;
-	dc.update_data = vb_out;
-	dc.feedback_data = vb_feedback;
-
-	draw_calls.add( dc );
-}
-
-void DrawInstancedParticles( const Mesh & mesh, GPUBuffer vb, BlendFunc blend_func, u32 num_particles ) {
-	assert( in_frame );
-
-	PipelineState pipeline;
-	pipeline.pass = frame_static.transparent_pass;
-	pipeline.shader = &shaders.particle;
-	pipeline.blend_func = blend_func;
-	pipeline.write_depth = false;
-	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
-	pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
-
-	DrawCall dc = { };
-	dc.mesh = mesh;
-	dc.pipeline = pipeline;
-	dc.num_vertices = mesh.num_vertices;
-	dc.instance_type = InstanceType_Particles;
-	dc.instance_data = vb;
-	dc.num_instances = num_particles;
-
-	draw_calls.add( dc );
-
-	num_vertices_this_frame += mesh.num_vertices * num_particles;
-}
-
-void DrawInstancedParticles( GPUBuffer vb, const Model * model, u32 num_particles ) {
-	assert( in_frame );
-
-	UniformBlock model_uniforms = UploadModelUniforms( model->transform );
-
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
-		pipeline.pass = frame_static.nonworld_opaque_pass;
-		pipeline.shader = &shaders.particle_model;
-		pipeline.write_depth = true;
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
-		pipeline.set_uniform( "u_Model", model_uniforms );
-
-		const Model::Primitive primitive = model->primitives[ i ];
-		DrawCall dc = { };
-		dc.pipeline = pipeline;
-		dc.instance_data = vb;
-
-		if( primitive.num_vertices != 0 ) {
-			dc.mesh = model->mesh;
-			dc.num_vertices = primitive.num_vertices;
-			u32 index_size = model->mesh.indices_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
-			dc.index_offset = primitive.first_index * index_size;
-
-			num_vertices_this_frame += model->mesh.num_vertices * num_particles;
-		}
-		else {
-			dc.mesh = primitive.mesh;
-			dc.num_vertices = primitive.mesh.num_vertices;
-
-			num_vertices_this_frame += primitive.mesh.num_vertices * num_particles;
-		}
-
-		dc.instance_type = InstanceType_Particles;
-		dc.num_instances = num_particles;
-
-		draw_calls.add( dc );
-	}
-}
-
 void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {
 	DrawCall dc = { };
 	dc.pipeline = pipeline;
 	dc.instance_type = InstanceType_ComputeShader;
+	dc.dispatch_size[ 0 ] = x;
+	dc.dispatch_size[ 1 ] = y;
+	dc.dispatch_size[ 2 ] = z;
+	draw_calls.add( dc );
+}
+
+void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect ) {
+	DrawCall dc = { };
+	dc.pipeline = pipeline;
+	dc.instance_type = InstanceType_ComputeShaderIndirect;
+	dc.indirect = indirect;
+	draw_calls.add( dc );
+}
+
+void DrawElementsIndirect( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer instance_data, GPUBuffer indirect ) {
+	DrawCall dc = { };
+	dc.pipeline = pipeline;
+	dc.instance_type = InstanceType_Particles;
+	dc.instance_data = instance_data;
+	dc.mesh = mesh;
+	dc.indirect = indirect;
 	draw_calls.add( dc );
 }
 

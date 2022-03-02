@@ -42,7 +42,7 @@ void SNAP_RecordDemoMessage( int demofile, msg_t *msg, int offset ) {
 	}
 
 	// now write the entire message to the file, prefixed by length
-	int len = LittleLong( msg->cursize ) - offset;
+	int len = msg->cursize - offset;
 	if( len <= 0 ) {
 		return;
 	}
@@ -54,8 +54,6 @@ void SNAP_RecordDemoMessage( int demofile, msg_t *msg, int offset ) {
 int SNAP_ReadDemoMessage( int demofile, msg_t *msg ) {
 	int msglen;
 	FS_Read( &msglen, 4, demofile );
-
-	msglen = LittleLong( msglen );
 	if( msglen == -1 ) {
 		return -1;
 	}
@@ -212,7 +210,7 @@ size_t SNAP_SetDemoMetaKeyValue( char *meta_data, size_t meta_data_max_size, siz
 }
 
 void SNAP_StopDemoRecording( int demofile ) {
-	int i = LittleLong( -1 );
+	int i = -1;
 	FS_Write( &i, 4, demofile );
 }
 

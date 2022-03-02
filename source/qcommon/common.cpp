@@ -313,7 +313,7 @@ void Qcommon_Init( int argc, char ** argv ) {
 
 	InitCSPRNG();
 
-	NET_Init();
+	InitNetworking();
 	Netchan_Init();
 
 	InitMapList();
@@ -373,7 +373,7 @@ void Qcommon_Shutdown() {
 	ShutdownMapList();
 
 	Netchan_Shutdown();
-	NET_Shutdown();
+	ShutdownNetworking();
 	Key_Shutdown();
 
 	RemoveCommand( "quit" );

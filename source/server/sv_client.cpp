@@ -46,41 +46,19 @@ void SV_ClientResetCommandBuffers( client_t *client ) {
 	client->lastSentFrameNum = 0;
 }
 
-bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t *client, char *userinfo,
-					   u64 session_id, int challenge, bool fakeClient ) {
-	edict_t *ent;
-	int edictnum;
-
-	edictnum = ( client - svs.clients ) + 1;
-	ent = EDICT_NUM( edictnum );
+bool SV_ClientConnect( const NetAddress & address, client_t * client, char * userinfo, u64 session_id, int challenge, bool fakeClient ) {
+	int edictnum = ( client - svs.clients ) + 1;
+	edict_t * ent = EDICT_NUM( edictnum );
 
 	// get the game a chance to reject this connection or modify the userinfo
 	if( !ClientConnect( ent, userinfo, address, fakeClient ) ) {
 		return false;
 	}
 
-
 	// the connection is accepted, set up the client slot
 	memset( client, 0, sizeof( *client ) );
 	client->edict = ent;
 	client->challenge = challenge; // save challenge for checksumming
-
-	if( socket ) {
-		switch( socket->type ) {
-			case SOCKET_UDP:
-			case SOCKET_LOOPBACK:
-				client->individual_socket = false;
-				client->socket.open = false;
-				break;
-
-			default:
-				assert( false );
-		}
-	} else {
-		assert( fakeClient );
-		client->individual_socket = false;
-		client->socket.open = false;
-	}
 
 	SV_ClientResetCommandBuffers( client );
 
@@ -92,13 +70,9 @@ bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t
 	client->state = CS_CONNECTING;
 
 	if( fakeClient ) {
-		client->netchan.remoteAddress.type = NA_NOTRANSMIT; // fake-clients can't transmit
+		client->netchan.remoteAddress = NULL_ADDRESS;
 	} else {
-		if( client->individual_socket ) {
-			Netchan_Setup( &client->netchan, &client->socket, address, session_id );
-		} else {
-			Netchan_Setup( &client->netchan, socket, address, session_id );
-		}
+		Netchan_Setup( &client->netchan, address, session_id );
 	}
 
 	// parse some info from the info strings
@@ -148,7 +122,7 @@ void SV_DropClient( client_t *drop, const char *format, ... ) {
 		SV_AddReliableCommandsToMessage( drop, &tmpMessage );
 
 		SV_SendMessageToClient( drop, &tmpMessage );
-		Netchan_PushAllFragments( &drop->netchan );
+		Netchan_PushAllFragments( svs.socket, &drop->netchan );
 
 		if( drop->state >= CS_CONNECTED ) {
 			// call the prog function for removing a client
@@ -161,10 +135,6 @@ void SV_DropClient( client_t *drop, const char *format, ... ) {
 	}
 
 	SNAP_FreeClientFrames( drop );
-
-	if( drop->individual_socket ) {
-		NET_CloseSocket( &drop->socket );
-	}
 
 	drop->state = CS_ZOMBIE;    // become free in a few seconds
 	drop->name[0] = 0;
@@ -225,7 +195,7 @@ static void SV_New_f( client_t *client ) {
 	SV_ClientResetCommandBuffers( client );
 
 	SV_SendMessageToClient( client, &tmpMessage );
-	Netchan_PushAllFragments( &client->netchan );
+	Netchan_PushAllFragments( svs.socket, &client->netchan );
 
 	// don't let it send reliable commands until we get the first configstring request
 	client->state = CS_CONNECTING;

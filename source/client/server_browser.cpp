@@ -7,7 +7,7 @@
 #include "client/server_browser.h"
 
 struct MasterServer {
-	netadr_t address;
+	NetAddress address;
 	Thread * resolver_thread;
 	bool query_next_frame;
 };
@@ -41,16 +41,17 @@ Span< const ServerBrowserEntry > GetServerBrowserEntries() {
 static void GetMasterServerAddress( void * data ) {
 	size_t idx = size_t( uintptr_t( data ) );
 
-	netadr_t thread_local_address;
-	NET_StringToAddress( MASTER_SERVERS[ idx ], &thread_local_address );
-	NET_SetAddressPort( &thread_local_address, PORT_MASTER );
-
-	if( thread_local_address.type == NA_NOTRANSMIT ) {
+	NetAddress address = NULL_ADDRESS;
+	bool ok = DNS( MASTER_SERVERS[ idx ], &address );
+	if( !ok ) {
 		Com_Printf( "Failed to resolve master server address: %s\n", MASTER_SERVERS[ idx ] );
 	}
+	else {
+		address.port = PORT_MASTER;
+	}
 
-	DoUnderLock( &locked_master_servers, [ idx, thread_local_address ]( MasterServers * master_servers ) {
-		master_servers->servers[ idx ].address = thread_local_address;
+	DoUnderLock( &locked_master_servers, [ idx, address ]( MasterServers * master_servers ) {
+		master_servers->servers[ idx ].address = address;
 		master_servers->servers[ idx ].query_next_frame = true;
 		master_servers->num_dns_queries_in_flight--;
 	} );
@@ -58,19 +59,10 @@ static void GetMasterServerAddress( void * data ) {
 
 static void QueryMasterServer( MasterServer * master ) {
 	const char * command;
-	socket_t * socket;
-	if( master->address.type == NA_IPv4 ) {
-		command = "getservers";
-		socket = &cls.socket_udp;
-	}
-	else {
-		command = "getserversExt";
-		socket = &cls.socket_udp6;
-	}
 
 	TempAllocator temp = cls.frame_arena.temp();
 	const char * query = temp( "{} {} {} full empty", command, APPLICATION_NOSPACES, APP_PROTOCOL_VERSION );
-	Netchan_OutOfBandPrint( socket, &master->address, "%s", query );
+	Netchan_OutOfBandPrint( cls.socket, master->address, "%s", query );
 	master->query_next_frame = false;
 }
 
@@ -93,9 +85,8 @@ void RefreshServerBrowser() {
 		TempAllocator temp = cls.frame_arena.temp();
 		const char * query = temp( "info {}", cls.monotonicTime );
 
-		netadr_t broadcast;
-		NET_BroadcastAddress( &broadcast, PORT_SERVER );
-		Netchan_OutOfBandPrint( &cls.socket_udp, &broadcast, "%s", query );
+		NetAddress broadcast = GetBroadcastAddress( PORT_SERVER );
+		Netchan_OutOfBandPrint( cls.socket, broadcast, "%s", query );
 	}
 
 	// query master servers
@@ -106,7 +97,7 @@ void RefreshServerBrowser() {
 
 		if( master_servers->num_dns_queries_in_flight == 0 ) {
 			for( size_t i = 0; i < ARRAY_COUNT( MASTER_SERVERS ); i++ ) {
-				if( master_servers->servers[ i ].address.type == NA_NOTRANSMIT ) {
+				if( master_servers->servers[ i ].address == NULL_ADDRESS ) {
 					master_servers->servers[ i ].resolver_thread = NewThread( GetMasterServerAddress, ( void * ) uintptr_t( i ) );
 				}
 			}
@@ -124,11 +115,11 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 
 	while( true ) {
 		char separator = MSG_ReadInt8( msg );
-		netadr_t addr;
+		NetAddress address = NULL_ADDRESS;
 
 		if( separator == '\\' ) {
-			addr.type = NA_IPv4;
-			MSG_ReadData( msg, &addr.ipv4, sizeof( addr.ipv4 ) );
+			address.family = SocketFamily_IPv4;
+			MSG_ReadData( msg, &address.ipv4, sizeof( address.ipv4 ) );
 		}
 		else if( separator == '/' ) {
 			if( !allow_ipv6 ) {
@@ -136,17 +127,17 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 				break;
 			}
 
-			addr.type = NA_IPv6;
-			MSG_ReadData( msg, &addr.ipv6, sizeof( addr.ipv6 ) );
+			address.family = SocketFamily_IPv6;
+			MSG_ReadData( msg, &address.ipv6, sizeof( address.ipv6 ) );
 		}
 		else {
 			Com_Printf( "Bad separator in master server response\n" );
 			break;
 		}
 
-		addr.port = NET_ntohs( MSG_ReadUint16( msg ) );
+		address.port = Bswap( MSG_ReadUint16( msg ) );
 
-		if( addr.port == 0 && msg->readcount == msg->cursize ) {
+		if( address.port == 0 && msg->readcount == msg->cursize ) {
 			ok = true;
 			break;
 		}
@@ -158,7 +149,7 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 
 		bool is_new = true;
 		for( const ServerBrowserEntry & server : servers ) {
-			if( server.address == addr ) {
+			if( server.address == address ) {
 				is_new = false;
 				break;
 			}
@@ -166,7 +157,7 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 
 		if( is_new ) {
 			ServerBrowserEntry server = { };
-			server.address = addr;
+			server.address = address;
 			servers.add( server );
 		}
 	}
@@ -177,9 +168,8 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 		const char * query = temp( "info {}", cls.monotonicTime );
 
 		for( size_t i = old_num_servers; i < servers.size(); i++ ) {
-			netadr_t address = servers[ i ].address;
-			socket_t * socket = address.type == NA_IPv4 ? &cls.socket_udp : &cls.socket_udp6;
-			Netchan_OutOfBandPrint( socket, &address, "%s", query );
+			NetAddress address = servers[ i ].address;
+			Netchan_OutOfBandPrint( cls.socket, address, "%s", query );
 		}
 	}
 	else {
@@ -187,7 +177,7 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 	}
 }
 
-void ParseGameServerResponse( msg_t * msg, netadr_t address ) {
+void ParseGameServerResponse( msg_t * msg, const NetAddress & address ) {
 	s64 timestamp;
 	char name[ 128 ];
 	char map[ 32 ];

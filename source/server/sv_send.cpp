@@ -33,11 +33,11 @@ uint8_t tmpMessageData[MAX_MSGLEN];
 //=============================================================================
 
 char sv_outputbuf[SV_OUTPUTBUF_LENGTH];
-void SV_FlushRedirect( int sv_redirected, const char *outputbuf, const void *extra ) {
-	const flush_params_t *params = ( const flush_params_t * )extra;
+void SV_FlushRedirect( int sv_redirected, const char * outputbuf, const void * extra ) {
+	const NetAddress * address = ( const NetAddress * ) extra;
 
 	if( sv_redirected == RD_PACKET ) {
-		Netchan_OutOfBandPrint( params->socket, params->address, "print\n%s", outputbuf );
+		Netchan_OutOfBandPrint( svs.socket, *address, "print\n%s", outputbuf );
 	}
 }
 
@@ -182,7 +182,7 @@ void SV_AddReliableCommandsToMessage( client_t *client, msg_t *msg ) {
 	}
 
 	if( sv_debug_serverCmd->integer ) {
-		Com_Printf( "sv_cl->reliableAcknowledge: %" PRIi64" sv_cl->reliableSequence:%" PRIi64"\n", client->reliableAcknowledge,
+		Com_GGPrint( "sv_cl->reliableAcknowledge: {} sv_cl->reliableSequence:{}", client->reliableAcknowledge,
 					client->reliableSequence );
 	}
 
@@ -258,11 +258,7 @@ bool SV_SendClientsFragments() {
 			continue;
 		}
 
-		if( !Netchan_TransmitNextFragment( &client->netchan ) ) {
-			Com_Printf( "Error sending fragment to %s: %s\n", NET_AddressToString( &client->netchan.remoteAddress ),
-						NET_ErrorString() );
-			continue;
-		}
+		Netchan_TransmitNextFragment( svs.socket, &client->netchan );
 
 		sent = true;
 	}
@@ -272,7 +268,7 @@ bool SV_SendClientsFragments() {
 
 bool SV_Netchan_Transmit( netchan_t *netchan, msg_t *msg ) {
 	// if we got here with unsent fragments, fire them all now
-	if( !Netchan_PushAllFragments( netchan ) ) {
+	if( !Netchan_PushAllFragments( svs.socket, netchan ) ) {
 		return false;
 	}
 
@@ -281,7 +277,7 @@ bool SV_Netchan_Transmit( netchan_t *netchan, msg_t *msg ) {
 		Com_DPrintf( "SV_Netchan_Transmit (ignoring compression): Compression error %i\n", zerror );
 	}
 
-	return Netchan_Transmit( netchan, msg );
+	return Netchan_Transmit( svs.socket, netchan, msg );
 }
 
 void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t size ) {
@@ -377,7 +373,7 @@ void SV_SendClientMessages() {
 
 		if( client->state == CS_SPAWNED ) {
 			if( !SV_SendClientDatagram( client ) ) {
-				Com_Printf( "Error sending message to %s: %s\n", client->name, NET_ErrorString() );
+				Com_Printf( "Error sending message to %s\n", client->name );
 			}
 		} else {
 			// send pending reliable commands, or send heartbeats for not timing out
@@ -386,7 +382,7 @@ void SV_SendClientMessages() {
 				SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
 				SV_AddReliableCommandsToMessage( client, &tmpMessage );
 				if( !SV_SendMessageToClient( client, &tmpMessage ) ) {
-					Com_Printf( "Error sending message to %s: %s\n", client->name, NET_ErrorString() );
+					Com_Printf( "Error sending message to %s\n", client->name );
 				}
 			}
 		}

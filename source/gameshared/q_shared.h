@@ -22,12 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 
-//==============================================
-
-// little endian
-#define LittleLong( l ) ( l )
-#define LittleFloat( l ) ( l )
-
 //==============================================================
 //
 //PATHLIB

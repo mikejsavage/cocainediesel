@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server/server.h"
 #include "qcommon/version.h"
 
-static netadr_t sv_masters[ ARRAY_COUNT( MASTER_SERVERS ) ];
+static NetAddress sv_masters[ ARRAY_COUNT( MASTER_SERVERS ) ];
 
 extern Cvar *sv_hostname;
 extern Cvar *rcon_password;         // password for remote server commands
@@ -46,14 +46,13 @@ static void SV_ResolveMaster() {
 	}
 
 	for( size_t i = 0; i < ARRAY_COUNT( MASTER_SERVERS ); i++ ) {
-		if( !NET_StringToAddress( MASTER_SERVERS[ i ], &sv_masters[ i ] ) ) {
-			Com_Printf( "'SV_AddMaster_f' Bad Master server address: %s\n", MASTER_SERVERS[ i ] );
+		if( !DNS( MASTER_SERVERS[ i ], &sv_masters[ i ] ) ) {
+			Com_Printf( "Can't resolve master server: %s\n", MASTER_SERVERS[ i ] );
 			continue;
 		}
+		sv_masters[ i ].port = PORT_MASTER;
 
-		NET_SetAddressPort( &sv_masters[ i ], PORT_MASTER );
-
-		Com_Printf( "Added new master server #%zu at %s\n", i, NET_AddressToString( &sv_masters[ i ] ) );
+		Com_GGPrint( "Added new master server #{} at {}", i, sv_masters[ i ] );
 	}
 
 	svc.lastMasterResolve = Sys_Milliseconds();
@@ -91,11 +90,11 @@ void SV_MasterHeartbeat() {
 	}
 
 	// send to group master
-	for( const netadr_t & master : sv_masters ) {
-		if( master.type != NA_NOTRANSMIT ) {
-			socket_t * socket = master.type == NA_IPv6 ? &svs.socket_udp6 : &svs.socket_udp;
+	// TODO: separate ipv4 and ipv6 heartbeats
+	for( const NetAddress & master : sv_masters ) {
+		if( master != NULL_ADDRESS ) {
 			// warning: "DarkPlaces" is a protocol name here, not a game name. Do not replace it.
-			Netchan_OutOfBandPrint( socket, &master, "heartbeat DarkPlaces\n" );
+			Netchan_OutOfBandPrint( svs.socket, master, "heartbeat DarkPlaces\n" );
 		}
 	}
 }
@@ -226,28 +225,28 @@ static char *SV_ShortInfoString() {
 //
 //==============================================================================
 
-static void SVC_InfoResponse( const socket_t *socket, const netadr_t *address ) {
+static void SVC_InfoResponse( const NetAddress & address ) {
 	if( sv_showInfoQueries->integer ) {
-		Com_Printf( "Info Packet %s\n", NET_AddressToString( address ) );
+		Com_GGPrint( "Info Packet {}", address );
 	}
 
-	Netchan_OutOfBandPrint( socket, address, "info\n%s%s", Cmd_Argv( 1 ), SV_ShortInfoString() );
+	Netchan_OutOfBandPrint( svs.socket, address, "info\n%s%s", Cmd_Argv( 1 ), SV_ShortInfoString() );
 }
 
-static void MasterOrLivesowResponse( const socket_t * socket, const netadr_t * address, const char * command, bool include_players ) {
+static void MasterOrLivesowResponse( const NetAddress & address, const char * command, bool include_players ) {
 	if( sv_showInfoQueries->integer ) {
-		Com_Printf( "getstatus %s\n", NET_AddressToString( address ) );
+		Com_GGPrint( "getstatus {}", address );
 	}
 
-	Netchan_OutOfBandPrint( socket, address, "%s\n\\challenge\\%s%s", command, Cmd_Argv( 1 ), SV_LongInfoString( include_players ) );
+	Netchan_OutOfBandPrint( svs.socket, address, "%s\n\\challenge\\%s%s", command, Cmd_Argv( 1 ), SV_LongInfoString( include_players ) );
 }
 
-static void SVC_GetStatusResponse( const socket_t *socket, const netadr_t *address ) {
-	MasterOrLivesowResponse( socket, address, "statusResponse", true );
+static void SVC_GetStatusResponse( const NetAddress & address ) {
+	MasterOrLivesowResponse( address, "statusResponse", true );
 }
 
-static void SVC_MasterServerResponse( const socket_t *socket, const netadr_t *address ) {
-	MasterOrLivesowResponse( socket, address, "infoResponse", false );
+static void SVC_MasterServerResponse( const NetAddress & address ) {
+	MasterOrLivesowResponse( address, "infoResponse", false );
 }
 
 /*
@@ -259,21 +258,18 @@ static void SVC_MasterServerResponse( const socket_t *socket, const netadr_t *ad
 * flood the server with invalid connection IPs.  With a
 * challenge, they must give a valid IP address.
 */
-static void SVC_GetChallenge( const socket_t *socket, const netadr_t *address ) {
-	int i;
-	int oldest;
-	int oldestTime;
-
-	oldest = 0;
-	oldestTime = 0x7fffffff;
+static void SVC_GetChallenge( const NetAddress & address ) {
+	int oldest = 0;
+	int oldestTime = 0x7fffffff;
 
 	if( sv_showChallenge->integer ) {
-		Com_Printf( "Challenge Packet %s\n", NET_AddressToString( address ) );
+		Com_GGPrint( "Challenge Packet {}", address );
 	}
 
 	// see if we already have a challenge for this ip
+	int i;
 	for( i = 0; i < MAX_CHALLENGES; i++ ) {
-		if( NET_CompareBaseAddress( address, &svs.challenges[i].adr ) ) {
+		if( EqualIgnoringPort( address, svs.challenges[i].adr ) ) {
 			break;
 		}
 		if( svs.challenges[i].time < oldestTime ) {
@@ -285,24 +281,24 @@ static void SVC_GetChallenge( const socket_t *socket, const netadr_t *address ) 
 	if( i == MAX_CHALLENGES ) {
 		// overwrite the oldest
 		svs.challenges[oldest].challenge = RandomUniform( &svs.rng, 0, S16_MAX );
-		svs.challenges[oldest].adr = *address;
+		svs.challenges[oldest].adr = address;
 		svs.challenges[oldest].time = Sys_Milliseconds();
 		i = oldest;
 	}
 
-	Netchan_OutOfBandPrint( socket, address, "challenge %i", svs.challenges[i].challenge );
+	Netchan_OutOfBandPrint( svs.socket, address, "challenge %i", svs.challenges[i].challenge );
 }
 
 /*
 * SVC_DirectConnect
 * A connection request that did not come from the master
 */
-static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address ) {
+static void SVC_DirectConnect( const NetAddress & address ) {
 	Com_DPrintf( "SVC_DirectConnect (%s)\n", Cmd_Args() );
 
 	int version = atoi( Cmd_Argv( 1 ) );
 	if( version != APP_PROTOCOL_VERSION ) {
-		Netchan_OutOfBandPrint( socket, address, "reject\n%i\nServer and client don't have the same version\n", 0 );
+		Netchan_OutOfBandPrint( svs.socket, address, "reject\n%i\nServer and client don't have the same version\n", 0 );
 		Com_DPrintf( "    rejected connect from protocol %i\n", version );
 		return;
 	}
@@ -311,8 +307,7 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 	int challenge = atoi( Cmd_Argv( 3 ) );
 
 	if( !Info_Validate( Cmd_Argv( 4 ) ) ) {
-		Netchan_OutOfBandPrint( socket, address, "reject\n%i\nInvalid userinfo string\n", 0 );
-		Com_DPrintf( "Connection from %s refused: invalid userinfo string\n", NET_AddressToString( address ) );
+		Netchan_OutOfBandPrint( svs.socket, address, "reject\n%i\nInvalid userinfo string\n", 0 );
 		return;
 	}
 
@@ -323,19 +318,19 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 	{
 		int i;
 		for( i = 0; i < MAX_CHALLENGES; i++ ) {
-			if( NET_CompareBaseAddress( address, &svs.challenges[i].adr ) ) {
+			if( EqualIgnoringPort( address, svs.challenges[i].adr ) ) {
 				if( challenge == svs.challenges[i].challenge ) {
 					svs.challenges[i].challenge = 0; // wsw : r1q2 : reset challenge
 					svs.challenges[i].time = 0;
-					NET_InitAddress( &svs.challenges[i].adr, NA_NOTRANSMIT );
+					svs.challenges[i].adr = NULL_ADDRESS;
 					break; // good
 				}
-				Netchan_OutOfBandPrint( socket, address, "reject\n%i\nBad challenge\n", DROP_FLAG_AUTORECONNECT );
+				Netchan_OutOfBandPrint( svs.socket, address, "reject\n%i\nBad challenge\n", DROP_FLAG_AUTORECONNECT );
 				return;
 			}
 		}
 		if( i == MAX_CHALLENGES ) {
-			Netchan_OutOfBandPrint( socket, address, "reject\n%i\nNo challenge for address\n", DROP_FLAG_AUTORECONNECT );
+			Netchan_OutOfBandPrint( svs.socket, address, "reject\n%i\nNo challenge for address\n", DROP_FLAG_AUTORECONNECT );
 			return;
 		}
 	}
@@ -348,7 +343,7 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 			if( cl->state == CS_FREE ) {
 				continue;
 			}
-			if( NET_CompareBaseAddress( address, &cl->netchan.remoteAddress ) ) {
+			if( EqualIgnoringPort( address, cl->netchan.remoteAddress ) ) {
 				//r1: zombies are less dangerous
 				if( cl->state == CS_ZOMBIE ) {
 					previousclients++;
@@ -359,8 +354,7 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 		}
 
 		if( previousclients >= sv_iplimit->integer * 2 ) {
-			Netchan_OutOfBandPrint( socket, address, "reject\n%i\nToo many connections from your host\n", DROP_FLAG_AUTORECONNECT );
-			Com_DPrintf( "%s:connect rejected : too many connections\n", NET_AddressToString( address ) );
+			Netchan_OutOfBandPrint( svs.socket, address, "reject\n%i\nToo many connections from your host\n", DROP_FLAG_AUTORECONNECT );
 			return;
 		}
 	}
@@ -380,7 +374,7 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 		}
 	}
 	if( !newcl ) {
-		Netchan_OutOfBandPrint( socket, address, "reject\n%i\nServer is full\n", DROP_FLAG_AUTORECONNECT );
+		Netchan_OutOfBandPrint( svs.socket, address, "reject\n%i\nServer is full\n", DROP_FLAG_AUTORECONNECT );
 		Com_DPrintf( "Server is full. Rejected a connection.\n" );
 		return;
 	}
@@ -389,16 +383,16 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 	}
 
 	// get the game a chance to reject this connection or modify the userinfo
-	if( !SV_ClientConnect( socket, address, newcl, userinfo, session_id, challenge, false ) ) {
+	if( !SV_ClientConnect( address, newcl, userinfo, session_id, challenge, false ) ) {
 		const char * rejmsg = Info_ValueForKey( userinfo, "rejmsg" );
 
-		Netchan_OutOfBandPrint( socket, address, "reject\n%s\n", rejmsg );
+		Netchan_OutOfBandPrint( svs.socket, address, "reject\n%s\n", rejmsg );
 
 		return;
 	}
 
 	// send the connect packet to the client
-	Netchan_OutOfBandPrint( socket, address, "client_connect\n%s", newcl->session );
+	Netchan_OutOfBandPrint( svs.socket, address, "client_connect\n%s", newcl->session );
 }
 
 /*
@@ -406,32 +400,23 @@ static void SVC_DirectConnect( const socket_t *socket, const netadr_t *address )
 * (Not a real out of band command)
 * A connection request that came from the game module
 */
-int SVC_FakeConnect( const char *fakeUserinfo ) {
-	int i;
-	char userinfo[MAX_INFO_STRING];
-	client_t *cl, *newcl;
-	netadr_t address;
-
-	Com_DPrintf( "SVC_FakeConnect ()\n" );
-
-	Q_strncpyz( userinfo, fakeUserinfo, sizeof( userinfo ) );
-
+int SVC_FakeConnect( char * userinfo ) {
 	// find a client slot
-	newcl = NULL;
-	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
+	client_t * newcl = NULL;
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		client_t * cl = &svs.clients[ i ];
 		if( cl->state == CS_FREE ) {
 			newcl = cl;
 			break;
 		}
 	}
-	if( !newcl ) {
+	if( newcl == NULL ) {
 		Com_DPrintf( "Rejected a connection.\n" );
 		return -1;
 	}
 
-	NET_InitAddress( &address, NA_NOTRANSMIT );
 	// get the game a chance to reject this connection or modify the userinfo
-	if( !SV_ClientConnect( NULL, &address, newcl, userinfo, 0, -1, true ) ) {
+	if( !SV_ClientConnect( NULL_ADDRESS, newcl, userinfo, 0, -1, true ) ) {
 		Com_DPrintf( "Game rejected a connection.\n" );
 		return -1;
 	}
@@ -454,23 +439,15 @@ static bool Rcon_Validate() {
 * Shift down the remaining args
 * Redirect all printfs
 */
-static void SVC_RemoteCommand( const socket_t *socket, const netadr_t *address ) {
-	flush_params_t extra;
-
+static void SVC_RemoteCommand( const NetAddress & address ) {
 	if( Rcon_Validate() ) {
-		Com_Printf( "Bad rcon from %s:\n%s\n", NET_AddressToString( address ), Cmd_Args() );
+		Com_GGPrint( "Bad rcon from {}: {}", address, Cmd_Args() );
 	}
 	else {
-		Com_Printf( "Rcon from %s:\n%s\n", NET_AddressToString( address ), Cmd_Args() );
+		Com_GGPrint( "Rcon from {}: {}", address, Cmd_Args() );
 	}
 
-	extra.socket = socket;
-	extra.address = address;
-	Com_BeginRedirect( RD_PACKET, sv_outputbuf, SV_OUTPUTBUF_LENGTH, SV_FlushRedirect, ( const void * )&extra );
-
-	if( sv_showRcon->integer ) {
-		Com_Printf( "Rcon Packet %s\n", NET_AddressToString( address ) );
-	}
+	Com_BeginRedirect( RD_PACKET, sv_outputbuf, SV_OUTPUTBUF_LENGTH, SV_FlushRedirect, &address );
 
 	if( !Rcon_Validate() ) {
 		Com_Printf( "Bad rcon_password.\n" );
@@ -484,7 +461,7 @@ static void SVC_RemoteCommand( const socket_t *socket, const netadr_t *address )
 
 struct connectionless_cmd_t {
 	const char *name;
-	void ( *func )( const socket_t *socket, const netadr_t *address );
+	void ( *func )( const NetAddress & address );
 };
 
 static connectionless_cmd_t connectionless_cmds[] = {
@@ -494,8 +471,6 @@ static connectionless_cmd_t connectionless_cmds[] = {
 	{ "getchallenge", SVC_GetChallenge },
 	{ "connect", SVC_DirectConnect },
 	{ "rcon", SVC_RemoteCommand },
-
-	{ NULL, NULL }
 };
 
 /*
@@ -506,9 +481,7 @@ static connectionless_cmd_t connectionless_cmds[] = {
 * Clients that are in the game can still send
 * connectionless packets.
 */
-void SV_ConnectionlessPacket( const socket_t *socket, const netadr_t *address, msg_t *msg ) {
-	connectionless_cmd_t *cmd;
-
+void SV_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 	MSG_BeginReading( msg );
 	MSG_ReadInt32( msg );    // skip the -1 marker
 
@@ -516,14 +489,10 @@ void SV_ConnectionlessPacket( const socket_t *socket, const netadr_t *address, m
 	Cmd_TokenizeString( s );
 
 	const char * c = Cmd_Argv( 0 );
-	Com_DPrintf( "Packet %s : %s\n", NET_AddressToString( address ), c );
-
-	for( cmd = connectionless_cmds; cmd->name; cmd++ ) {
-		if( StrEqual( c, cmd->name ) ) {
-			cmd->func( socket, address );
+	for( auto cmd : connectionless_cmds ) {
+		if( StrEqual( c, cmd.name ) ) {
+			cmd.func( address );
 			return;
 		}
 	}
-
-	Com_DPrintf( "Bad connectionless packet from %s:\n%s\n", NET_AddressToString( address ), s );
 }

@@ -530,3 +530,7 @@ u32 Log2( u64 x ) {
 
 	return log;
 }
+
+u16 Bswap( u16 x ) {
+	return ( x >> 8 ) | ( x << 8 );
+}

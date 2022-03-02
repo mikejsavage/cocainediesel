@@ -30,8 +30,6 @@ void MSG_Init( msg_t *msg, uint8_t *data, size_t length ) {
 	memset( msg, 0, sizeof( *msg ) );
 	msg->data = data;
 	msg->maxsize = length;
-	msg->cursize = 0;
-	msg->compressed = false;
 }
 
 void MSG_Clear( msg_t *msg ) {

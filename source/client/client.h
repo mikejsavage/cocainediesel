@@ -136,6 +136,7 @@ struct client_static_t {
 
 	RNG rng;
 
+	u64 session_id;
 	connstate_t state;          // only set through CL_SetClientState
 	keydest_t key_dest;
 
@@ -147,21 +148,17 @@ struct client_static_t {
 	int frametime;                  // milliseconds since last frame
 	int realFrameTime;
 
-	socket_t socket_loopback;
-	socket_t socket_udp;
-	socket_t socket_udp6;
+	Socket socket;
 
 	// screen rendering information
 	bool cgameActive;
 
 	// connection information
-	netadr_t serveraddress;         // address of that server
+	NetAddress serveraddress;         // address of that server
 	int64_t connect_time;               // for connection retransmits
 	int connect_count;
 
-	socket_t *socket;               // socket used by current connection
-
-	netadr_t rconaddress;       // address where we are sending rcon messages, to ignore other print packets
+	NetAddress rconaddress;       // address where we are sending rcon messages, to ignore other print packets
 
 	char * download_url;              // http://<httpaddress>/
 	bool download_url_is_game_server;
@@ -249,7 +246,7 @@ void CL_ClearState();
 void CL_ReadPackets();
 void CL_Disconnect_f();
 
-void CL_Connect( const netadr_t * address );
+void CL_Connect( const NetAddress & address );
 void CL_Reconnect_f();
 void CL_FinishConnect();
 void CL_ServerReconnect_f();
@@ -279,21 +276,6 @@ u8 CL_GameModule_GetButtonDownEdges();
 void CL_GameModule_AddViewAngles( Vec3 * viewAngles );
 void CL_GameModule_AddMovement( Vec3 * movement );
 void CL_GameModule_MouseMove( int frameTime, Vec2 m );
-
-//
-// cl_serverlist.c
-//
-void CL_ParseGetInfoResponse( const socket_t *socket, const netadr_t *address, msg_t *msg );
-void CL_ParseGetStatusResponse( const socket_t *socket, const netadr_t *address, msg_t *msg );
-void CL_QueryGetInfoMessage_f();
-void CL_QueryGetStatusMessage_f();
-void CL_ParseStatusMessage( const socket_t *socket, const netadr_t *address, msg_t *msg );
-void CL_ParseGetServersResponse( const socket_t *socket, const netadr_t *address, msg_t *msg, bool extended );
-void CL_GetServers_f();
-void CL_PingServer_f();
-void CL_ServerListFrame();
-void CL_InitServerList();
-void CL_ShutDownServerList();
 
 //
 // cl_input.c

@@ -67,19 +67,18 @@ static void SV_Map_f() {
 //===============================================================
 
 void SV_Status_f() {
-	int i, j, l;
-	client_t *cl;
-	const char *s;
-	int ping;
 	if( !svs.clients ) {
 		Com_Printf( "No server running.\n" );
 		return;
 	}
-	Com_Printf( "map              : %s\n", sv.mapname );
+
+	Com_Printf( "map: %s\n", sv.mapname );
 
 	Com_Printf( "num score ping name                            lastmsg address               session         \n" );
 	Com_Printf( "--- ----- ---- ------------------------------- ------- --------------------- ----------------\n" );
-	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
+
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		const client_t * cl = &svs.clients[ i ];
 		if( !cl->state ) {
 			continue;
 		}
@@ -93,24 +92,13 @@ void SV_Status_f() {
 		} else if( cl->state == CS_CONNECTING ) {
 			Com_Printf( "AWAI " );
 		} else {
-			ping = cl->ping < 9999 ? cl->ping : 9999;
+			int ping = cl->ping < 9999 ? cl->ping : 9999;
 			Com_Printf( "%4i ", ping );
 		}
 
-		Com_Printf( "%s", cl->name );
-		l = MAX_NAME_CHARS - (int)strlen( cl->name );
-		for( j = 0; j < l; j++ )
-			Com_Printf( " " );
-
+		Com_Printf( "%-32s", cl->name );
 		Com_Printf( "%7i ", (int)(svs.realtime - cl->lastPacketReceivedTime) );
-
-		s = NET_AddressToString( &cl->netchan.remoteAddress );
-		Com_Printf( "%s", s );
-		l = 21 - (int)strlen( s );
-		for( j = 0; j < l; j++ )
-			Com_Printf( " " );
-		Com_Printf( " " ); // always add at least one space between the columns because IPv6 addresses are long
-
+		Com_GGPrintNL( "{-22}", cl->netchan.remoteAddress );
 		Com_GGPrint( "{16x}", cl->netchan.session_id );
 	}
 	Com_Printf( "\n" );

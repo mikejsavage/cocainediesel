@@ -421,7 +421,7 @@ void G_GhostClient( edict_t *self );
 void ClientThink( edict_t *ent, UserCommand *cmd, int timeDelta );
 void G_ClientThink( edict_t *ent );
 void G_CheckClientRespawnClick( edict_t *ent );
-bool ClientConnect( edict_t *ent, char *userinfo, const netadr_t * address, bool fakeClient );
+bool ClientConnect( edict_t *ent, char *userinfo, const NetAddress & address, bool fakeClient );
 void ClientDisconnect( edict_t *ent, const char *reason );
 void ClientBegin( edict_t *ent );
 void ClientCommand( edict_t *ent );

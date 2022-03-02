@@ -4,7 +4,7 @@
 #include "qcommon/qcommon.h"
 
 struct ServerBrowserEntry {
-	netadr_t address;
+	NetAddress address;
 
 	bool have_details;
 	char name[ 128 ];
@@ -24,4 +24,4 @@ void ServerBrowserFrame();
 
 struct msg_t;
 void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 );
-void ParseGameServerResponse( msg_t * msg, netadr_t address );
+void ParseGameServerResponse( msg_t * msg, const NetAddress & address );

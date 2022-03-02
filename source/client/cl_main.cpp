@@ -26,6 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/renderer/renderer.h"
+#include "server/server.h"
 #include "qcommon/compression.h"
 #include "qcommon/csprng.h"
 #include "qcommon/hash.h"
@@ -126,7 +127,7 @@ void CL_ServerDisconnect_f() {
 
 	CL_Disconnect_f();
 
-	Com_Printf( "Connection was closed by server: %s\n", reason );	
+	Com_Printf( "Connection was closed by server: %s\n", reason );
 	snprintf( menuparms, sizeof( menuparms ), "menu_open connfailed rejectmessage \"%s\"", reason );
 
 	Cbuf_ExecuteLine( menuparms );
@@ -142,8 +143,8 @@ static void CL_SendConnectPacket() {
 	userinfo_modified = false;
 
 	TempAllocator temp = cls.frame_arena.temp();
-	Netchan_OutOfBandPrint( cls.socket, &cls.serveraddress, "%s", temp( "connect {} {} {} \"{}\"\n",
-		APP_PROTOCOL_VERSION, Netchan_ClientSessionID(), cls.challenge, Cvar_GetUserInfo() ) );
+	Netchan_OutOfBandPrint( cls.socket, cls.serveraddress, "%s", temp( "connect {} {} {} \"{}\"\n",
+		APP_PROTOCOL_VERSION, cls.session_id, cls.challenge, Cvar_GetUserInfo() ) );
 }
 
 /*
@@ -160,9 +161,7 @@ static void CL_CheckForResend() {
 
 	// if the local server is running and we aren't then connect
 	if( cls.state == CA_DISCONNECTED && Com_ServerState() ) {
-		netadr_t address;
-		NET_InitAddress( &address, NA_LOOPBACK );
-		CL_Connect( &address );
+		CL_Connect( GetLoopbackAddress( sv_port->integer ) );
 	}
 
 	// resend if we haven't gotten a reply yet
@@ -177,26 +176,16 @@ static void CL_CheckForResend() {
 		cls.connect_count++;
 		cls.connect_time = realtime; // for retransmit requests
 
-		Com_Printf( "Connecting to %s...\n", NET_AddressToString( &cls.serveraddress ) );
+		Com_GGPrint( "Connecting to {}...", cls.serveraddress );
 
-		Netchan_OutOfBandPrint( cls.socket, &cls.serveraddress, "getchallenge\n" );
+		Netchan_OutOfBandPrint( cls.socket, cls.serveraddress, "getchallenge\n" );
 	}
 }
 
-void CL_Connect( const netadr_t * address ) {
+void CL_Connect( const NetAddress & address ) {
 	CL_Disconnect( NULL );
 
-	cls.serveraddress = *address;
-
-	if( address->type == NA_LOOPBACK ) {
-		cls.socket = &cls.socket_loopback;
-	}
-	else {
-		cls.socket = address->type == NA_IPv6 ? &cls.socket_udp6 : &cls.socket_udp;
-		if( NET_GetAddressPort( &cls.serveraddress ) == 0 ) {
-			NET_SetAddressPort( &cls.serveraddress, PORT_SERVER );
-		}
-	}
+	cls.serveraddress = address;
 
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 
@@ -228,13 +217,17 @@ static void CL_Connect_f() {
 		arg += password.n + 1;
 	}
 
-	netadr_t address;
-	if( !NET_StringToAddress( arg, &address ) ) {
+	NetAddress address;
+	// TODO: split into port and hostname
+	if( !DNS( arg, &address ) ) {
 		Com_Printf( "Bad server address\n" );
 		return;
 	}
+	if( address.port == 0 ) {
+		address.port = PORT_SERVER;
+	}
 
-	CL_Connect( &address );
+	CL_Connect( address );
 }
 
 
@@ -245,11 +238,6 @@ static void CL_Connect_f() {
 * an unconnected command.
 */
 static void CL_Rcon_f() {
-	char message[1024];
-	int i;
-	const socket_t *socket;
-	const netadr_t *address;
-
 	if( cls.demo.playing ) {
 		return;
 	}
@@ -259,55 +247,49 @@ static void CL_Rcon_f() {
 		return;
 	}
 
-	// wsw : jal : check for msg len abuse (thx to r1Q2)
-	if( strlen( Cmd_Args() ) + strlen( rcon_client_password->value ) + 16 >= sizeof( message ) ) {
-		Com_Printf( "Length of password + command exceeds maximum allowed length.\n" );
-		return;
-	}
-
+	char message[1024];
 	message[0] = (uint8_t)255;
 	message[1] = (uint8_t)255;
 	message[2] = (uint8_t)255;
 	message[3] = (uint8_t)255;
 	message[4] = 0;
 
+	// wsw : jal : check for msg len abuse (thx to r1Q2)
+	if( strlen( Cmd_Args() ) + strlen( rcon_client_password->value ) + 16 >= sizeof( message ) ) {
+		Com_Printf( "Length of password + command exceeds maximum allowed length.\n" );
+		return;
+	}
+
 	Q_strncatz( message, "rcon ", sizeof( message ) );
 
 	Q_strncatz( message, rcon_client_password->value, sizeof( message ) );
 	Q_strncatz( message, " ", sizeof( message ) );
+	Q_strncatz( message, Cmd_Args(), sizeof( message ) );
 
-	for( i = 1; i < Cmd_Argc(); i++ ) {
-		Q_strncatz( message, "\"", sizeof( message ) );
-		Q_strncatz( message, Cmd_Argv( i ), sizeof( message ) );
-		Q_strncatz( message, "\" ", sizeof( message ) );
-	}
-
-	if( cls.state >= CA_CONNECTED ) {
-		socket = cls.netchan.socket;
-		address = &cls.netchan.remoteAddress;
-	} else {
+	NetAddress address = cls.netchan.remoteAddress;
+	if( cls.state < CA_CONNECTED ) {
 		if( !strlen( rcon_address->value ) ) {
 			Com_Printf( "You must be connected, or set the 'rcon_address' cvar to issue rcon commands\n" );
 			return;
 		}
 
 		if( rcon_address->modified ) {
-			if( !NET_StringToAddress( rcon_address->value, &cls.rconaddress ) ) {
+			// TODO: split into port and hostname
+			if( !DNS( rcon_address->value, &cls.rconaddress ) ) {
 				Com_Printf( "Bad rcon_address.\n" );
 				return; // we don't clear modified, so it will whine the next time too
 			}
-			if( NET_GetAddressPort( &cls.rconaddress ) == 0 ) {
-				NET_SetAddressPort( &cls.rconaddress, PORT_SERVER );
+			if( cls.rconaddress.port == 0 ) {
+				cls.rconaddress.port = PORT_SERVER;
 			}
 
 			rcon_address->modified = false;
 		}
 
-		socket = cls.rconaddress.type == NA_IPv6 ? &cls.socket_udp6 : &cls.socket_udp;
-		address = &cls.rconaddress;
+		address = cls.rconaddress;
 	}
 
-	NET_SendPacket( socket, message, (int)strlen( message ) + 1, address );
+	UDPSend( cls.socket, address, message, strlen( message ) + 1 );
 }
 
 void CL_SetKeyDest( keydest_t key_dest ) {
@@ -388,8 +370,6 @@ void CL_Disconnect( const char *message ) {
 		CL_Disconnect_SendCommand(); // send a disconnect message to the server
 	}
 
-	cls.socket = NULL;
-
 	FREE( sys_allocator, cls.download_url );
 	cls.download_url = NULL;
 
@@ -469,20 +449,14 @@ void CL_ServerReconnect_f() {
 	CL_AddReliableCommand( "new" );
 }
 
-/*
-* CL_Reconnect_f
-*
-* User reconnect command.
-*/
 void CL_Reconnect_f() {
-	if( cls.serveraddress.type == NA_NOTRANSMIT ) {
+	if( cls.serveraddress == NULL_ADDRESS ) {
 		Com_Printf( "Can't reconnect, never connected\n" );
 		return;
 	}
 
-	netadr_t serveraddress = cls.serveraddress;
 	CL_Disconnect( NULL );
-	CL_Connect( &serveraddress );
+	CL_Connect( cls.serveraddress );
 }
 
 /*
@@ -490,7 +464,7 @@ void CL_Reconnect_f() {
 *
 * Responses to broadcasts, etc
 */
-static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *address, msg_t *msg ) {
+static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 	MSG_BeginReading( msg );
 	MSG_ReadInt32( msg ); // skip the -1
 
@@ -509,33 +483,28 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 	Cmd_TokenizeString( s );
 	const char * c = Cmd_Argv( 0 );
 
-	Com_DPrintf( "%s: %s\n", NET_AddressToString( address ), s );
-
 	if( StrEqual( c, "info" ) ) {
-		ParseGameServerResponse( msg, *address );
+		ParseGameServerResponse( msg, address );
 		return;
 	}
 
 	if( cls.demo.playing ) {
-		Com_DPrintf( "Received connectionless cmd \"%s\" from %s while playing a demo\n", s, NET_AddressToString( address ) );
 		return;
 	}
 
 	// server connection
 	if( StrEqual( c, "client_connect" ) ) {
 		if( cls.state == CA_CONNECTED ) {
-			Com_Printf( "Dup connect received.  Ignored.\n" );
+			Com_Printf( "Dup connect received. Ignored.\n" );
 			return;
 		}
 		// these two are from Q3
 		if( cls.state != CA_CONNECTING ) {
-			Com_Printf( "client_connect packet while not connecting.  Ignored.\n" );
+			Com_Printf( "client_connect packet while not connecting. Ignored.\n" );
 			return;
 		}
-		if( !NET_CompareAddress( address, &cls.serveraddress ) ) {
-			Com_Printf( "client_connect from a different address.  Ignored.\n" );
-			Com_Printf( "Was %s should have been %s\n", NET_AddressToString( address ),
-						NET_AddressToString( &cls.serveraddress ) );
+		if( address != cls.serveraddress ) {
+			assert( is_public_build );
 			return;
 		}
 
@@ -543,7 +512,7 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 
 		Q_strncpyz( cls.session, MSG_ReadStringLine( msg ), sizeof( cls.session ) );
 
-		Netchan_Setup( &cls.netchan, socket, address, Netchan_ClientSessionID() );
+		Netchan_Setup( &cls.netchan, address, cls.session_id );
 		memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 		CL_SetClientState( CA_HANDSHAKE );
 		CL_AddReliableCommand( "new" );
@@ -558,10 +527,8 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 			Com_Printf( "reject packet while not connecting, ignored\n" );
 			return;
 		}
-		if( !NET_CompareAddress( address, &cls.serveraddress ) ) {
-			Com_Printf( "reject from a different address, ignored\n" );
-			Com_Printf( "Was %s should have been %s\n", NET_AddressToString( address ),
-						NET_AddressToString( &cls.serveraddress ) );
+		if( address != cls.serveraddress ) {
+			assert( is_public_build );
 			return;
 		}
 
@@ -597,8 +564,8 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 	if( StrEqual( c, "print" ) ) {
 		// CA_CONNECTING is allowed, because old servers send protocol mismatch connection error message with it
 		if( ( ( cls.state != CA_UNINITIALIZED && cls.state != CA_DISCONNECTED ) &&
-			  NET_CompareAddress( address, &cls.serveraddress ) ) ||
-			( rcon_address->value[0] != '\0' && NET_CompareAddress( address, &cls.rconaddress ) ) ) {
+			  address == cls.serveraddress ) ||
+			( rcon_address->value[0] != '\0' && address == cls.rconaddress ) ) {
 			s = MSG_ReadString( msg );
 			Com_Printf( "%s", s );
 			return;
@@ -615,9 +582,8 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 			Com_Printf( "challenge packet while not connecting, ignored\n" );
 			return;
 		}
-		if( !NET_CompareAddress( address, &cls.serveraddress ) ) {
-			Com_Printf( "challenge from a different address, ignored\n" );
-			Com_Printf( "Was %s should have been %s\n", NET_AddressToString( address ), NET_AddressToString( &cls.serveraddress ) );
+		if( address != cls.serveraddress ) {
+			assert( is_public_build );
 			return;
 		}
 
@@ -630,22 +596,21 @@ static void CL_ConnectionlessPacket( const socket_t *socket, const netadr_t *add
 		return;
 	}
 
-	Com_Printf( "Unknown connectionless packet from %s\n%s\n", NET_AddressToString( address ), c );
+	assert( is_public_build );
 }
 
-static bool CL_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
-	int zerror;
-
+static bool CL_ProcessPacket( netchan_t * netchan, msg_t * msg ) {
 	if( !Netchan_Process( netchan, msg ) ) {
 		return false; // wasn't accepted for some reason
-
 	}
+
 	// now if compressed, expand it
 	MSG_BeginReading( msg );
 	MSG_ReadInt32( msg ); // sequence
 	MSG_ReadInt32( msg ); // sequence_ack
+	MSG_ReadUint64( msg ); // session_id
 	if( msg->compressed ) {
-		zerror = Netchan_DecompressMessage( msg );
+		int zerror = Netchan_DecompressMessage( msg );
 		if( zerror < 0 ) {
 			// compression error. Drop the packet
 			Com_Printf( "CL_ProcessPacket: Compression error %i. Dropping packet\n", zerror );
@@ -657,74 +622,47 @@ static bool CL_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 }
 
 void CL_ReadPackets() {
+	uint8_t data[ MAX_MSGLEN ];
+	NetAddress source;
+	size_t bytes_received = UDPReceive( cls.socket, &source, data, sizeof( data ) );
+	if( bytes_received == 0 ) {
+		return;
+	}
+
 	msg_t msg;
-	uint8_t msgData[MAX_MSGLEN];
-	int ret;
-	socket_t *socket;
-	netadr_t address;
+	MSG_Init( &msg, data, sizeof( data ) );
+	msg.cursize = bytes_received;
 
-	socket_t* sockets [] =
-	{
-		&cls.socket_loopback,
-		&cls.socket_udp,
-		&cls.socket_udp6,
-	};
-
-	MSG_Init( &msg, msgData, sizeof( msgData ) );
-
-	for( size_t socketind = 0; socketind < ARRAY_COUNT( sockets ); socketind++ ) {
-		socket = sockets[socketind];
-
-		while( socket->open && ( ret = NET_GetPacket( socket, &address, &msg ) ) != 0 ) {
-			if( ret == -1 ) {
-				Com_Printf( "Error receiving packet: %s\n", NET_ErrorString() );
-
-				continue;
-			}
-
-			// remote command packet
-			if( *(int *)msg.data == -1 ) {
-				CL_ConnectionlessPacket( socket, &address, &msg );
-				continue;
-			}
-
-			if( cls.demo.playing ) {
-				// only allow connectionless packets during demo playback
-				continue;
-			}
-
-			if( cls.state == CA_DISCONNECTED || cls.state == CA_CONNECTING ) {
-				Com_DPrintf( "%s: Not connected\n", NET_AddressToString( &address ) );
-				continue; // dump it if not connected
-			}
-
-			if( msg.cursize < 8 ) {
-				//wsw : r1q2[start]
-				//r1: delegated to DPrintf (someone could spam your console with crap otherwise)
-				Com_DPrintf( "%s: Runt packet\n", NET_AddressToString( &address ) );
-				//wsw : r1q2[end]
-				continue;
-			}
-
-			//
-			// packet from server
-			//
-			if( !NET_CompareAddress( &address, &cls.netchan.remoteAddress ) ) {
-				Com_DPrintf( "%s: Sequenced packet without connection\n", NET_AddressToString( &address ) );
-				continue;
-			}
-			if( !CL_ProcessPacket( &cls.netchan, &msg ) ) {
-				continue; // wasn't accepted for some reason, like only one fragment of bigger message
-
-			}
-			CL_ParseServerMessage( &msg );
-			cls.lastPacketReceivedTime = cls.realtime;
-		}
+	// remote command packet
+	if( *(int *)msg.data == -1 ) {
+		CL_ConnectionlessPacket( source, &msg );
+		return;
 	}
 
 	if( cls.demo.playing ) {
+		// only allow connectionless packets during demo playback
 		return;
 	}
+
+	if( cls.state == CA_DISCONNECTED || cls.state == CA_CONNECTING ) {
+		return;
+	}
+
+	if( msg.cursize < 8 ) {
+		return;
+	}
+
+	if( source != cls.netchan.remoteAddress ) {
+		assert( is_public_build );
+		return;
+	}
+
+	if( !CL_ProcessPacket( &cls.netchan, &msg ) ) {
+		return; // wasn't accepted for some reason, like only one fragment of bigger message
+	}
+
+	CL_ParseServerMessage( &msg );
+	cls.lastPacketReceivedTime = cls.realtime;
 
 	// not expected, but could happen if cls.realtime is cleared and lastPacketReceivedTime is not
 	if( cls.lastPacketReceivedTime > cls.realtime ) {
@@ -871,7 +809,6 @@ static Span< const char * > TabCompleteDemo( TempAllocator * a, const char * par
 }
 
 static void CL_InitLocal() {
-	Cvar *name;
 	TempAllocator temp = cls.frame_arena.temp();
 
 	cls.state = CA_DISCONNECTED;
@@ -892,14 +829,14 @@ static void CL_InitLocal() {
 	rcon_address = NewCvar( "rcon_address", "", 0 );
 
 	// wsw : debug netcode
-	cl_debug_serverCmd = NewCvar( "cl_debug_serverCmd", "0", CvarFlag_Archive | CvarFlag_Cheat );
-	cl_debug_timeDelta = NewCvar( "cl_debug_timeDelta", "0", CvarFlag_Archive /*|CvarFlag_Cheat*/ );
+	cl_debug_serverCmd = NewCvar( "cl_debug_serverCmd", "0", CvarFlag_Cheat );
+	cl_debug_timeDelta = NewCvar( "cl_debug_timeDelta", "0", 0 /*CvarFlag_Cheat*/ );
 
 	cl_devtools = NewCvar( "cl_devtools", "0", CvarFlag_Archive );
 
 	NewCvar( "password", "", CvarFlag_UserInfo );
 
-	name = NewCvar( "name", "", CvarFlag_UserInfo | CvarFlag_Archive );
+	Cvar * name = NewCvar( "name", "", CvarFlag_UserInfo | CvarFlag_Archive );
 	if( StrEqual( name->value, "" ) ) {
 		Cvar_Set( name->name, temp( "user{06}", RandomUniform( &cls.rng, 0, 1000000 ) ) );
 	}
@@ -1080,9 +1017,13 @@ void CL_UpdateSnapshot() {
 	}
 }
 
-void CL_Netchan_Transmit( msg_t *msg ) {
+void CL_Netchan_Transmit( msg_t * msg ) {
+	if( msg->cursize == 0 ) {
+		return;
+	}
+
 	// if we got here with unsent fragments, fire them all now
-	Netchan_PushAllFragments( &cls.netchan );
+	Netchan_PushAllFragments( cls.socket, &cls.netchan );
 
 	if( msg->cursize > 60 ) {
 		int zerror = Netchan_CompressMessage( msg );
@@ -1091,7 +1032,7 @@ void CL_Netchan_Transmit( msg_t *msg ) {
 		}
 	}
 
-	Netchan_Transmit( &cls.netchan, msg );
+	Netchan_Transmit( cls.socket, &cls.netchan, msg );
 	cls.lastPacketSentTime = cls.realtime;
 }
 
@@ -1158,9 +1099,7 @@ void CL_SendMessagesToServer( bool sendNow ) {
 			MSG_WriteIntBase128( &message, cls.lastExecutedServerCommand );
 			//write up the clc commands
 			CL_UpdateClientCommandsToServer( &message );
-			if( message.cursize > 0 ) {
-				CL_Netchan_Transmit( &message );
-			}
+			CL_Netchan_Transmit( &message );
 		}
 	} else if( sendNow || CL_MaxPacketsReached() ) {
 		// write the command ack
@@ -1174,9 +1113,7 @@ void CL_SendMessagesToServer( bool sendNow ) {
 		}
 		CL_UpdateClientCommandsToServer( &message );
 		CL_WriteUcmdsToMessage( &message );
-		if( message.cursize > 0 ) {
-			CL_Netchan_Transmit( &message );
-		}
+		CL_Netchan_Transmit( &message );
 	}
 }
 
@@ -1195,7 +1132,7 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 
 	// send packets to server
 	if( cls.netchan.unsentFragments ) {
-		Netchan_TransmitNextFragment( &cls.netchan );
+		Netchan_TransmitNextFragment( cls.socket, &cls.netchan );
 	} else {
 		CL_SendMessagesToServer( false );
 	}
@@ -1328,6 +1265,8 @@ void CL_Init() {
 	CSPRNG( entropy, sizeof( entropy ) );
 	cls.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
 
+	CSPRNG( &cls.session_id, sizeof( cls.session_id ) );
+
 	cls.monotonicTime = 0;
 
 	assert( !cl_initialized );
@@ -1355,24 +1294,7 @@ void CL_Init() {
 
 	CL_ClearState();
 
-	// loopback
-	netadr_t address;
-	NET_InitAddress( &address, NA_LOOPBACK );
-	if( !NET_OpenSocket( &cls.socket_loopback, SOCKET_LOOPBACK, &address, false ) ) {
-		Fatal( "Couldn't open the loopback socket: %s", NET_ErrorString() );
-	}
-
-	// IPv4
-	NET_InitAddress( &address, NA_IPv4 );
-	if( !NET_OpenSocket( &cls.socket_udp, SOCKET_UDP, &address, false ) ) {
-		Fatal( "Couldn't open UDP socket: %s", NET_ErrorString() );
-	}
-
-	// IPv6
-	NET_InitAddress( &address, NA_IPv6 );
-	if( !NET_OpenSocket( &cls.socket_udp6, SOCKET_UDP, &address, false ) ) {
-		Com_Printf( "Error: Couldn't open UDP6 socket: %s", NET_ErrorString() );
-	}
+	cls.socket = NewUDPClient( NonBlocking_Yes );
 
 	SCR_InitScreen();
 
@@ -1402,9 +1324,7 @@ void CL_Shutdown() {
 	CL_WriteConfiguration();
 
 	CL_Disconnect( NULL );
-	NET_CloseSocket( &cls.socket_loopback );
-	NET_CloseSocket( &cls.socket_udp );
-	NET_CloseSocket( &cls.socket_udp6 );
+	CloseSocket( cls.socket );
 
 	ShutdownDiscord();
 

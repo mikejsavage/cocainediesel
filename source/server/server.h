@@ -95,9 +95,6 @@ struct client_t {
 	int64_t userinfoLatchTimeout;
 
 	bool mv;                        // send multiview data to the client
-	bool individual_socket;         // client has it's own socket that has to be checked separately
-
-	socket_t socket;
 
 	char reliableCommands[MAX_RELIABLE_COMMANDS][MAX_STRING_CHARS];
 	int64_t reliableSequence;      // last added reliable message, not necesarily sent or acknowledged yet
@@ -154,7 +151,7 @@ struct client_t {
 #define MAX_SNAP_ENTITIES 64
 
 struct challenge_t {
-	netadr_t adr;
+	NetAddress adr;
 	int challenge;
 	int64_t time;
 };
@@ -186,9 +183,7 @@ struct server_static_t {
 
 	RNG rng;
 
-	socket_t socket_udp;
-	socket_t socket_udp6;
-	socket_t socket_loopback;
+	Socket socket;
 
 	int spawncount;                     // incremented each server start
 	                                    // used to check late spawns
@@ -223,17 +218,12 @@ extern server_constant_t svc;              // constant server info (trully persi
 extern server_static_t svs;                // persistant server info
 extern server_t sv;                 // local server
 
-extern Cvar *sv_ip;
 extern Cvar *sv_port;
-
-extern Cvar *sv_ip6;
-extern Cvar *sv_port6;
 
 extern Cvar *sv_downloadurl;
 
 extern Cvar *sv_maxclients;
 
-extern Cvar *sv_showRcon;
 extern Cvar *sv_showChallenge;
 extern Cvar *sv_showInfoQueries;
 
@@ -259,13 +249,12 @@ void SV_UserinfoChanged( client_t *cl );
 
 void SV_MasterHeartbeat();
 
-void SVC_MasterInfoResponse( const socket_t *socket, const netadr_t *address );
-int SVC_FakeConnect( const char *fakeUserinfo );
+int SVC_FakeConnect( char * userinfo );
 
 //
 // sv_oob.c
 //
-void SV_ConnectionlessPacket( const socket_t *socket, const netadr_t *address, msg_t *msg );
+void SV_ConnectionlessPacket( const NetAddress & address, msg_t * msg );
 void SV_InitMaster();
 void SV_UpdateMaster();
 
@@ -298,11 +287,6 @@ enum redirect_t {
 
 extern char sv_outputbuf[SV_OUTPUTBUF_LENGTH];
 
-struct flush_params_t {
-	const socket_t *socket;
-	const netadr_t *address;
-};
-
 void SV_FlushRedirect( int sv_redirected, const char *outputbuf, const void *extra );
 void SV_SendClientMessages();
 
@@ -316,7 +300,7 @@ void SV_BroadcastCommand( _Printf_format_string_ const char *format, ... );
 // sv_client.c
 //
 void SV_ParseClientMessage( client_t *client, msg_t *msg );
-bool SV_ClientConnect( const socket_t *socket, const netadr_t *address, client_t *client, char *userinfo,
+bool SV_ClientConnect( const NetAddress & address, client_t * client, char * userinfo,
 	u64 session_id, int challenge, bool fakeClient );
 
 #ifndef _MSC_VER

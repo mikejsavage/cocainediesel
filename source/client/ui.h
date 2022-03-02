@@ -15,8 +15,6 @@ void UI_ShowLoadoutMenu( Loadout loadout );
 void UI_ShowDemoMenu();
 void UI_HideMenu();
 
-void UI_AddToServerList( const char *adr, const char *info );
-
 struct ImGuiColorToken {
 	u8 token[ 6 ];
 	ImGuiColorToken( u8 r, u8 g, u8 b, u8 a );

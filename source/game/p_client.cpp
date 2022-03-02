@@ -606,10 +606,9 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 * Changing levels will NOT cause this to be called again, but
 * loadgames will.
 */
-bool ClientConnect( edict_t *ent, char *userinfo, const netadr_t * address, bool fakeClient ) {
+bool ClientConnect( edict_t *ent, char *userinfo, const NetAddress & address, bool fakeClient ) {
 	assert( ent );
 	assert( userinfo && Info_Validate( userinfo ) );
-	assert( address );
 
 	// verify that server gave us valid data
 	if( !Info_Validate( userinfo ) ) {
@@ -649,7 +648,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, const netadr_t * address, bool
 
 		G_PrintMsg( NULL, "%s\n", message );
 
-		Com_Printf( "%s connected from %s\n", ent->r.client->netname, NET_AddressToString( address ) );
+		Com_GGPrint( "{} connected from {}", ent->r.client->netname, address );
 	}
 
 	G_CallVotes_ResetClient( PLAYERNUM( ent ) );

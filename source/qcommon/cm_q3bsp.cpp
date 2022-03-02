@@ -24,6 +24,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/cm_local.h"
 #include "qcommon/patch.h"
 
+#define LittleFloat( l ) ( l )
+#define LittleLong( l ) ( l )
+
 #define MAX_LIGHTMAPS       4
 #define MAX_FACET_PLANES 32
 

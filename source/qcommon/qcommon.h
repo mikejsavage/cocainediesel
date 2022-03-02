@@ -24,7 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <stdint.h>
 #include <inttypes.h>
 
-#include "gameshared/q_arch.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
 #include "gameshared/q_collision.h"
@@ -201,176 +200,17 @@ NET
 ==============================================================
 */
 
-// net.h -- quake's interface to the networking layer
-
-#define PACKET_HEADER           10          // two ints, and a short
-
 #define MAX_RELIABLE_COMMANDS   64          // max string commands buffered for restransmit
 #define MAX_PACKETLEN           1400        // max size of a network packet
 #define MAX_MSGLEN              32768       // max length of a message, which may be fragmented into multiple packets
+
+#include "qcommon/net.h"
+#include "qcommon/net_chan.h"
 
 // wsw: Medar: doubled the MSGLEN as a temporary solution for multiview on bigger servers
 #define FRAGMENT_SIZE           ( MAX_PACKETLEN - 96 )
 #define FRAGMENT_LAST       (    1 << 14 )
 #define FRAGMENT_BIT            ( 1 << 31 )
-
-enum netadrtype_t {
-	NA_NOTRANSMIT,      // wsw : jal : fakeclients
-	NA_LOOPBACK,
-	NA_IPv4,
-	NA_IPv6,
-};
-
-struct IPv4 {
-	u8 ip[ 4 ];
-};
-
-struct IPv6 {
-	u8 ip[ 16 ];
-};
-
-struct netadr_t {
-	netadrtype_t type;
-	union {
-		IPv4 ipv4;
-		IPv6 ipv6;
-	};
-	u16 port;
-};
-
-bool operator==( const netadr_t & a, const netadr_t & b );
-
-enum socket_type_t {
-	SOCKET_LOOPBACK,
-	SOCKET_UDP,
-	SOCKET_TCP,
-};
-
-struct socket_t {
-	bool open;
-
-	socket_type_t type;
-	netadr_t address;
-	bool server;
-
-	bool connected;
-	netadr_t remoteAddress;
-
-	socket_handle_t handle;
-};
-
-enum connection_status_t {
-	CONNECTION_FAILED = -1,
-	CONNECTION_INPROGRESS = 0,
-	CONNECTION_SUCCEEDED = 1
-};
-
-enum net_error_t {
-	NET_ERR_UNKNOWN = -1,
-	NET_ERR_NONE = 0,
-
-	NET_ERR_CONNRESET,
-	NET_ERR_INPROGRESS,
-	NET_ERR_MSGSIZE,
-	NET_ERR_WOULDBLOCK,
-	NET_ERR_UNSUPPORTED,
-};
-
-void NET_Init();
-void NET_Shutdown();
-
-bool NET_OpenSocket( socket_t *socket, socket_type_t type, const netadr_t *address, bool server );
-void NET_CloseSocket( socket_t *socket );
-
-bool NET_Listen( const socket_t *socket );
-int NET_Accept( const socket_t *socket, socket_t *newsocket, netadr_t *address );
-
-int NET_GetPacket( const socket_t *socket, netadr_t *address, msg_t *message );
-bool NET_SendPacket( const socket_t *socket, const void *data, size_t length, const netadr_t *address );
-
-int NET_Get( const socket_t *socket, netadr_t *address, void *data, size_t length );
-int NET_Send( const socket_t *socket, const void *data, size_t length, const netadr_t *address );
-
-void NET_Sleep( int msec, socket_t *sockets[] );
-int NET_Monitor( int msec, socket_t *sockets[],
-	void ( *read_cb )( socket_t *socket, void* ),
-	void ( *write_cb )( socket_t *socket, void* ),
-	void ( *exception_cb )( socket_t *socket, void* ), void *privatep[] );
-const char *NET_ErrorString();
-
-#ifndef _MSC_VER
-void NET_SetErrorString( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-#else
-void NET_SetErrorString( _Printf_format_string_ const char *format, ... );
-#endif
-
-void NET_SetErrorStringFromLastError( const char *function );
-
-char *NET_AddressToString( const netadr_t *address );
-bool NET_StringToAddress( const char *s, netadr_t *address );
-
-u16 NET_GetAddressPort( const netadr_t *address );
-void NET_SetAddressPort( netadr_t *address, u16 port );
-
-u16 NET_ntohs( u16 x );
-
-bool NET_CompareAddress( const netadr_t *a, const netadr_t *b );
-bool NET_CompareBaseAddress( const netadr_t *a, const netadr_t *b );
-bool NET_IsLANAddress( const netadr_t *address );
-bool NET_IsLocalAddress( const netadr_t *address );
-void NET_InitAddress( netadr_t *address, netadrtype_t type );
-void NET_BroadcastAddress( netadr_t *address, u16 port );
-
-//============================================================================
-
-struct netchan_t {
-	const socket_t *socket;
-
-	int dropped;                // between last packet and previous
-
-	netadr_t remoteAddress;
-	u64 session_id;
-
-	// sequencing variables
-	int incomingSequence;
-	int incoming_acknowledged;
-	int outgoingSequence;
-
-	// incoming fragment assembly buffer
-	int fragmentSequence;
-	size_t fragmentLength;
-	uint8_t fragmentBuffer[MAX_MSGLEN];
-
-	// outgoing fragment buffer
-	// we need to space out the sending of large fragmented messages
-	bool unsentFragments;
-	size_t unsentFragmentStart;
-	size_t unsentLength;
-	uint8_t unsentBuffer[MAX_MSGLEN];
-	bool unsentIsCompressed;
-};
-
-extern netadr_t net_from;
-
-
-void Netchan_Init();
-void Netchan_Shutdown();
-void Netchan_Setup( netchan_t *chan, const socket_t *socket, const netadr_t *address, u64 session_id );
-bool Netchan_Process( netchan_t *chan, msg_t *msg );
-bool Netchan_Transmit( netchan_t *chan, msg_t *msg );
-bool Netchan_PushAllFragments( netchan_t *chan );
-bool Netchan_TransmitNextFragment( netchan_t *chan );
-int Netchan_CompressMessage( msg_t *msg );
-int Netchan_DecompressMessage( msg_t *msg );
-void Netchan_OutOfBand( const socket_t *socket, const netadr_t *address, size_t length, const uint8_t *data );
-
-#ifndef _MSC_VER
-void Netchan_OutOfBandPrint( const socket_t *socket, const netadr_t *address, const char *format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );
-#else
-void Netchan_OutOfBandPrint( const socket_t *socket, const netadr_t *address, _Printf_format_string_ const char *format, ... );
-#endif
-
-u64 Netchan_ClientSessionID();
 
 /*
 ==============================================================

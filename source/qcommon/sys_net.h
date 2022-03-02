@@ -1,31 +1,29 @@
-/*
-Copyright (C) 2007 Pekka Lampila
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
-
 #pragma once
 
-#include "gameshared/q_arch.h"
+#include "qcommon/types.h"
+#include "qcommon/net.h"
 
-void Sys_NET_Init();
-void Sys_NET_Shutdown();
+enum UDPOrTCP {
+	UDPOrTCP_UDP,
+	UDPOrTCP_TCP,
+};
 
-net_error_t Sys_NET_GetLastError();
+struct sockaddr;
+struct sockaddr_storage;
 
-void Sys_NET_SocketClose( socket_handle_t handle );
-bool Sys_NET_SocketMakeNonBlocking( socket_handle_t handle );
+void InitNetworking();
+void ShutdownNetworking();
+
+u64 OpenOSSocket( SocketFamily family, UDPOrTCP type, u16 port );
+bool BindOSSocket( u64 handle, const sockaddr * address, int address_size );
+void CloseOSSocket( u64 handle );
+
+void OSSocketMakeNonblocking( u64 handle );
+void OSSocketSetSockOptOne( u64 handle, int level, int opt );
+
+// these return false if the tcp connection was closed
+bool OSSocketSend( u64 handle, const void * data, size_t n, const sockaddr_storage * destination, size_t destination_size, size_t * sent );
+bool OSSocketReceive( u64 handle, void * data, size_t n, sockaddr_storage * source, size_t * received );
+
+void OSSocketListen( u64 handle );
+u64 OSSocketAccept( u64 handle, sockaddr_storage * address );

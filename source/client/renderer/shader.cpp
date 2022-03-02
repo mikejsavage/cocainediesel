@@ -154,35 +154,8 @@ static void LoadShaders() {
 	LoadShader( &shaders.blur, "glsl/blur.glsl" );
 	LoadShader( &shaders.postprocess, "glsl/postprocess.glsl" );
 
-	const char * update_no_feedback[] = {
-		"v_ParticlePosition",
-		"v_ParticleVelocity",
-		"v_ParticleAccelDragRest",
-		"v_ParticleUVWH",
-		"v_ParticleStartColor",
-		"v_ParticleEndColor",
-		"v_ParticleSize",
-		"v_ParticleAgeLifetime",
-		"v_ParticleFlags",
-	};
-	LoadShader( &shaders.particle_update, "glsl/particle_update.glsl", NULL, Span< const char *>( update_no_feedback, ARRAY_COUNT( update_no_feedback ) ), true );
-
-	const char * update_feedback[] = {
-		"v_ParticlePosition",
-		"v_ParticleVelocity",
-		"v_ParticleAccelDragRest",
-		"v_ParticleUVWH",
-		"v_ParticleStartColor",
-		"v_ParticleEndColor",
-		"v_ParticleSize",
-		"v_ParticleAgeLifetime",
-		"v_ParticleFlags",
-		"gl_NextBuffer",
-		"v_FeedbackPositionNormal",
-		"v_FeedbackColorParm",
-	};
-	LoadShader( &shaders.particle_update_feedback, "glsl/particle_update.glsl", "#define FEEDBACK 1\n", Span< const char *>( update_feedback, ARRAY_COUNT( update_feedback ) ), true );
-
+	LoadComputeShader( &shaders.particle_compute, "glsl/particle_compute.glsl", NULL );
+	LoadComputeShader( &shaders.particle_setup_indirect, "glsl/particle_setup_indirect.glsl", NULL );
 	LoadShader( &shaders.particle, "glsl/particle.glsl", NULL, Span< const char * >(), true );
 	LoadShader( &shaders.particle_model, "glsl/particle.glsl", "#define MODEL 1\n", Span< const char * >(), true );
 }

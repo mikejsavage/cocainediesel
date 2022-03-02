@@ -346,8 +346,6 @@ extern Cvar *cg_autoaction_spectator;
 
 extern Cvar *cg_projectileAntilagOffset;
 
-extern Cvar *cg_particleDebug;
-
 extern Cvar *cg_showServerDebugPrints;
 
 void CG_Init( unsigned int playerNum, bool demoplaying, const char *demoName, unsigned snapFrameTime );

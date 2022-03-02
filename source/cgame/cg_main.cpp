@@ -38,8 +38,6 @@ Cvar *cg_autoaction_screenshot;
 Cvar *cg_autoaction_spectator;
 Cvar *cg_showClamp;
 
-Cvar *cg_particleDebug;
-
 Cvar *cg_showServerDebugPrints;
 
 void CG_LocalPrint( const char *format, ... ) {
@@ -114,8 +112,6 @@ static void CG_RegisterVariables() {
 	cg_projectileAntilagOffset = NewCvar( "cg_projectileAntilagOffset", "1.0", CvarFlag_Archive );
 
 	cg_showClamp = NewCvar( "cg_showClamp", "0", CvarFlag_Developer );
-
-	cg_particleDebug = NewCvar( "cg_particleDebug", "0", CvarFlag_Developer );
 
 	cg_showServerDebugPrints = NewCvar( "cg_showServerDebugPrints", "0", CvarFlag_Archive );
 }

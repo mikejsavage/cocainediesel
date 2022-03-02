@@ -34,8 +34,9 @@ struct Shaders {
 
 	Shader scope;
 
-	Shader particle_update;
-	Shader particle_update_feedback;
+	Shader particle_compute;
+	Shader particle_setup_indirect;
+
 	Shader particle;
 	Shader particle_model;
 

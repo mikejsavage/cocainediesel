@@ -84,33 +84,26 @@ struct ParticleEvents {
 struct ParticleSystem {
 	size_t max_particles;
 
-	const Model * model;
-
 	BlendFunc blend_func;
 	float radius;
-
-	ParticleEvents on_collision;
-	ParticleEvents on_age;
-	ParticleEvents on_frame;
 
 	// dynamic stuff
 	bool initialized;
 
-	size_t num_particles;
 	size_t new_particles;
 	Span< GPUParticle > particles;
 	bool feedback;
-	Span< GPUParticleFeedback > particles_feedback;
-	Span< u32 > gpu_instances;
-	Span< s64 > gpu_instances_time;
 
-	GPUBuffer ibo;
 	GPUBuffer vb;
 	GPUBuffer vb2;
-	GPUBuffer vb_feedback;
+
+	GPUBuffer compute_count;
+	GPUBuffer compute_count2;
+
+	GPUBuffer compute_indirect;
+	GPUBuffer draw_indirect;
 
 	Mesh mesh;
-	Mesh update_mesh;
 };
 
 enum VisualEffectType : u8 {
@@ -186,11 +179,6 @@ struct ParticleEmitter {
 	float emission;
 
 	u32 flags;
-
-	bool feedback;
-	ParticleEvents on_collision;
-	ParticleEvents on_age;
-	ParticleEvents on_frame;
 };
 
 struct DecalEmitter {

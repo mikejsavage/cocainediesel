@@ -16,10 +16,6 @@
 #define PARTICLE_ROTATE 4u
 #define PARTICLE_STRETCH 8u
 
-#define FEEDBACK_NONE 0u
-#define FEEDBACK_AGE 1u
-#define FEEDBACK_COLLISION 2u
-
 static ParticleSystem particleSystems[ MAX_PARTICLE_SYSTEMS ];
 static u32 num_particleSystems;
 static Hashtable< MAX_PARTICLE_SYSTEMS * 2 > particleSystems_hashtable;
@@ -40,7 +36,7 @@ static DynamicLightEmitter dlightEmitters[ MAX_DECAL_EMITTERS ];
 static u32 num_dlightEmitters;
 static Hashtable< MAX_DLIGHT_EMITTERS * 2 > dlightEmitters_hashtable;
 
-constexpr u32 particles_per_emitter = 10000;
+constexpr u32 particles_per_emitter = 1000;
 
 bool ParseParticleEvents( Span< const char > * data, ParticleEvents * event ) {
 	while( true ) {
@@ -90,63 +86,59 @@ RandomDistribution ParseRandomDistribution( Span< const char > * data, ParseStop
 
 void DeleteParticleSystem( Allocator * a, ParticleSystem * ps );
 
+struct ElementsIndirect {
+	u32 count;
+	u32 primCount;
+	u32 firstIndex;
+	u32 baseVertex;
+	u32 baseInstance;
+};
+
 void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	DeleteParticleSystem( a, ps );
 
 	ps->particles = ALLOC_SPAN( a, GPUParticle, ps->max_particles );
-	ps->gpu_instances = ALLOC_SPAN( a, u32, ps->max_particles );
-	if( ps->feedback ) {
-		ps->particles_feedback = ALLOC_SPAN( a, GPUParticleFeedback, ps->max_particles );
-		memset( ps->particles_feedback.ptr, 0, ps->particles_feedback.num_bytes() );
-		ps->vb_feedback = NewGPUBuffer( ps->particles_feedback.begin(), ps->max_particles * sizeof( GPUParticleFeedback ) );
-	}
-	else {
-		ps->gpu_instances_time = ALLOC_SPAN( a, s64, ps->max_particles );
-	}
-	ps->ibo = NewGPUBuffer( ps->max_particles * sizeof( ps->gpu_instances[ 0 ] ) );
 	ps->vb = NewParticleGPUBuffer( ps->max_particles );
 	ps->vb2 = NewParticleGPUBuffer( ps->max_particles );
 
-	if( !ps->model ) {
-		{
-			constexpr Vec2 verts[] = {
-				Vec2( -0.5f, -0.5f ),
-				Vec2( 0.5f, -0.5f ),
-				Vec2( -0.5f, 0.5f ),
-				Vec2( 0.5f, 0.5f ),
-			};
+	u32 count = 0;
+	ps->compute_count = NewGPUBuffer( &count, sizeof( u32 ), "compute_count" );
+	ps->compute_count2 = NewGPUBuffer( &count, sizeof( u32 ), "compute_count" );
 
-			constexpr Vec2 uvs[] = {
-				Vec2( 0.0f, 0.0f ),
-				Vec2( 1.0f, 0.0f ),
-				Vec2( 0.0f, 1.0f ),
-				Vec2( 1.0f, 1.0f ),
-			};
+	u32 counts[] = { 1, 1, 1 };
+	ps->compute_indirect = NewGPUBuffer( counts, sizeof( counts ), "compute_indirect" );
 
-			constexpr u16 indices[] = { 0, 1, 2, 3 };
-
-			MeshConfig mesh_config;
-			mesh_config.name = "Particle quad";
-			mesh_config.positions = NewGPUBuffer( verts, sizeof( verts ) );
-			mesh_config.positions_format = VertexFormat_Floatx2;
-			mesh_config.tex_coords = NewGPUBuffer( uvs, sizeof( uvs ) );
-			mesh_config.indices = NewGPUBuffer( indices, sizeof( indices ) );
-			mesh_config.num_vertices = ARRAY_COUNT( indices );
-			mesh_config.primitive_type = PrimitiveType_TriangleStrip;
-
-			ps->mesh = NewMesh( mesh_config );
-		}
-	}
+	ElementsIndirect indirect = { };
+	indirect.count = 4;
+	ps->draw_indirect = NewGPUBuffer( &indirect, sizeof( indirect ), "draw_indirect" );
 
 	{
-		MeshConfig mesh_config;
-		mesh_config.name = "???";
-		mesh_config.indices = ps->ibo;
-		mesh_config.indices_format = IndexFormat_U32;
-		mesh_config.num_vertices = 1;
-		mesh_config.primitive_type = PrimitiveType_Points;
+		constexpr Vec2 verts[] = {
+			Vec2( -0.5f, -0.5f ),
+			Vec2( 0.5f, -0.5f ),
+			Vec2( -0.5f, 0.5f ),
+			Vec2( 0.5f, 0.5f ),
+		};
 
-		ps->update_mesh = NewMesh( mesh_config );
+		constexpr Vec2 uvs[] = {
+			Vec2( 0.0f, 0.0f ),
+			Vec2( 1.0f, 0.0f ),
+			Vec2( 0.0f, 1.0f ),
+			Vec2( 1.0f, 1.0f ),
+		};
+
+		constexpr u16 indices[] = { 0, 1, 2, 3 };
+
+		MeshConfig mesh_config;
+		mesh_config.name = "Particle quad";
+		mesh_config.positions = NewGPUBuffer( verts, sizeof( verts ) );
+		mesh_config.positions_format = VertexFormat_Floatx2;
+		mesh_config.tex_coords = NewGPUBuffer( uvs, sizeof( uvs ) );
+		mesh_config.indices = NewGPUBuffer( indices, sizeof( indices ) );
+		mesh_config.num_vertices = ARRAY_COUNT( indices );
+		mesh_config.primitive_type = PrimitiveType_TriangleStrip;
+
+		ps->mesh = NewMesh( mesh_config );
 	}
 
 	ps->initialized = true;
@@ -326,18 +318,6 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			}
 			else if( key == "emission" ) {
 				emitter->emission = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
-			}
-			else if( key == "on_collision" ) {
-				ParseParticleEvents( data, &emitter->on_collision );
-				emitter->feedback = true;
-			}
-			else if( key == "on_age" ) {
-				ParseParticleEvents( data, &emitter->on_age );
-				emitter->feedback = true;
-			}
-			else if( key == "on_frame" ) {
-				ParseParticleEvents( data, &emitter->on_frame );
-				emitter->feedback = true;
 			}
 		}
 	}
@@ -602,57 +582,14 @@ void CreateParticleSystems() {
 	for( size_t i = 0; i < num_particleEmitters; i++ ) {
 		ParticleEmitter * emitter = &particleEmitters[ i ];
 		if( emitter->num_materials ) {
-			if( !emitter->feedback ) {
-				if( emitter->blend_func == BlendFunc_Add ) {
-					emitter->particle_system = addSystem_hash;
-					addSystem->max_particles += particles_per_emitter;
-				}
-				else if( emitter->blend_func == BlendFunc_Blend ) {
-					emitter->particle_system = blendSystem_hash;
-					blendSystem->max_particles += particles_per_emitter;
-				}
+			if( emitter->blend_func == BlendFunc_Add ) {
+				emitter->particle_system = addSystem_hash;
+				addSystem->max_particles += particles_per_emitter;
 			}
-			else {
-				ParticleSystem ps = { };
-				ps.max_particles += particles_per_emitter;
-				ps.blend_func = emitter->blend_func;
-				ps.feedback = true;
-				ps.on_collision = emitter->on_collision;
-				ps.on_age = emitter->on_age;
-				ps.on_frame = emitter->on_frame;
-
-				// TODO(msc): lol
-				u64 hash = Random64( &cls.rng );
-				u64 idx = num_particleSystems;
-				if( !particleSystems_hashtable.get( hash, &idx ) ) {
-					particleSystems_hashtable.add( hash, idx );
-					num_particleSystems++;
-				}
-				particleSystems[ idx ] = ps;
-				emitter->particle_system = hash;
+			else if( emitter->blend_func == BlendFunc_Blend ) {
+				emitter->particle_system = blendSystem_hash;
+				blendSystem->max_particles += particles_per_emitter;
 			}
-		}
-		else {
-			// models
-			ParticleSystem ps = { };
-			ps.model = FindModel( emitter->model );
-			ps.max_particles += particles_per_emitter;
-			u64 hash = Random64( &cls.rng );
-			if( emitter->feedback ) {
-				ps.blend_func = emitter->blend_func;
-				ps.feedback = true;
-				ps.on_collision = emitter->on_collision;
-				ps.on_age = emitter->on_age;
-				ps.on_frame = emitter->on_frame;
-			}
-			u64 idx = num_particleSystems;
-			if( !particleSystems_hashtable.get( hash, &idx ) ) {
-				particleSystems_hashtable.add( hash, idx );
-				num_particleSystems++;
-			}
-			particleSystems[ idx ] = ps;
-
-			emitter->particle_system = hash;
 		}
 	}
 
@@ -718,16 +655,9 @@ void DeleteParticleSystem( Allocator * a, ParticleSystem * ps ) {
 		return;
 	}
 	FREE( a, ps->particles.ptr );
-	FREE( a, ps->particles_feedback.ptr );
-	FREE( a, ps->gpu_instances.ptr );
-	FREE( a, ps->gpu_instances_time.ptr );
-	DeleteGPUBuffer( ps->ibo );
 	DeleteGPUBuffer( ps->vb );
 	DeleteGPUBuffer( ps->vb2 );
-	DeleteGPUBuffer( ps->vb_feedback );
-
 	DeleteMesh( ps->mesh );
-	DeleteMesh( ps->update_mesh );
 
 	ps->initialized = false;
 }
@@ -742,183 +672,77 @@ void ShutdownVisualEffects() {
 	ShutdownParticleSystems();
 }
 
-bool ParticleFeedback( ParticleSystem * ps, GPUParticleFeedback * feedback ) {
-	StringHash despawn = StringHash( "despawn" );
-	bool result = true;
-	Vec3 position = Floor( feedback->position_normal );
-	Vec3 normal = ( ( feedback->position_normal - position ) - 0.5f ) / 0.49f;
-	Vec4 color = Vec4( sRGBToLinear( feedback->color ), 1.0f );
-
-	if( feedback->parm & FEEDBACK_COLLISION ) {
-		for( u8 i = 0; i < ps->on_collision.num_events; i++ ) {
-			StringHash event = ps->on_collision.events[ i ];
-			if( event == despawn ) {
-				result = false;
-			}
-			else {
-				DoVisualEffect( event, position, normal, 1.0f, color );
-			}
-		}
-	}
-
-	if( feedback->parm & FEEDBACK_AGE ) {
-		result = false;
-		for( u8 i = 0; i < ps->on_age.num_events; i++ ) {
-			StringHash event = ps->on_age.events[ i ];
-			if( event == despawn ) {
-				result = false;
-			}
-			else {
-				DoVisualEffect( event, position, normal, 1.0f, color );
-			}
-		}
-	}
-
-	for( u8 i = 0; i < ps->on_frame.num_events; i++ ) {
-		StringHash event = ps->on_frame.events[ i ];
-		if( event == despawn ) {
-			result = false;
-		}
-		else {
-			DoVisualEffect( event, position, normal, 1.0f, color );
-		}
-	}
-
-	return result;
-};
-
 void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
-	TracyZoneScopedN( "Update particles" );
-
-	size_t previous_num_particles = ps->num_particles;
-
 	{
-		TracyZoneScopedN( "Despawn expired particles" );
-
-		if( ps->feedback ) {
-			ReadGPUBuffer( ps->vb_feedback, ps->particles_feedback.begin(), ps->num_particles * sizeof( GPUParticleFeedback ) );
-
-			for( size_t i = 0; i < ps->num_particles; i++ ) {
-				size_t index = ps->gpu_instances[ i ];
-				GPUParticleFeedback feedback = ps->particles_feedback[ index ];
-				if( !ParticleFeedback( ps, &feedback ) ) {
-					ps->num_particles--;
-					Swap2( &ps->gpu_instances[ i ], &ps->gpu_instances[ ps->num_particles ] );
-					i--;
-				}
-			}
-		} else {
-			for( size_t i = 0; i < ps->num_particles; i++ ) {
-				if( ps->gpu_instances_time[ i ] < cls.gametime ) {
-					ps->num_particles--;
-					Swap2( &ps->gpu_instances[ i ], &ps->gpu_instances[ ps->num_particles ] );
-					Swap2( &ps->gpu_instances_time[ i ], &ps->gpu_instances_time[ ps->num_particles ] );
-					i--;
-				}
-			}
+		PipelineState pipeline;
+		pipeline.pass = frame_static.particle_update_pass;
+		pipeline.shader = &shaders.particle_compute;
+		pipeline.set_buffer( "b_ParticlesIn", ps->vb );
+		pipeline.set_buffer( "b_ParticlesOut", ps->vb2 );
+		pipeline.set_buffer( "b_ComputeCountIn", ps->compute_count );
+		pipeline.set_buffer( "b_ComputeCountOut", ps->compute_count2 );
+		u32 collision = cl.map == NULL ? 0 : 1;
+		pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, ps->radius, dt, u32( ps->new_particles ) ) );
+		if( collision ) {
+			pipeline.set_buffer( "b_BSPNodeLinks", cl.map->nodeBuffer );
+			pipeline.set_buffer( "b_BSPLeaves", cl.map->leafBuffer );
+			pipeline.set_buffer( "b_BSPBrushes", cl.map->brushBuffer );
+			pipeline.set_buffer( "b_BSPPlanes", cl.map->planeBuffer );
 		}
+		DispatchComputeIndirect( pipeline, ps->compute_indirect );
 	}
 
 	{
-		TracyZoneScopedN( "Spawn new particles" );
-		if( ps->new_particles > 0 ) {
-			WriteGPUBuffer( ps->vb, ps->particles.begin(), ps->new_particles * sizeof( GPUParticle ), previous_num_particles * sizeof( GPUParticle ) );
-			for( size_t i = 0; i < ps->new_particles; i++ ) {
-				ps->gpu_instances[ ps->num_particles + i ] = previous_num_particles + i;
-				if( !ps->feedback ) {
-					ps->gpu_instances_time[ ps->num_particles + i ] = cls.gametime + ps->particles[ i ].lifetime * 1000.0f;
-				}
-			}
-		}
+		PipelineState pipeline;
+		pipeline.pass = frame_static.particle_update_pass;
+		pipeline.shader = &shaders.particle_setup_indirect;
+		pipeline.set_buffer( "b_NextComputeCount", ps->compute_count );
+		pipeline.set_buffer( "b_ComputeCount", ps->compute_count2 );
+		pipeline.set_buffer( "b_ComputeIndirect", ps->compute_indirect );
+		pipeline.set_buffer( "b_DrawIndirect", ps->draw_indirect );
+		pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( u32( ps->new_particles ) ) );
+		DispatchCompute( pipeline, 1, 1, 1 );
 	}
 
-	ps->num_particles += ps->new_particles;
+	WriteGPUBuffer( ps->vb2, ps->particles.begin(), ps->new_particles * sizeof( GPUParticle ) );
+
 	ps->new_particles = 0;
-
-	{
-		TracyZoneScopedN( "Upload index buffer" );
-		WriteGPUBuffer( ps->ibo, ps->gpu_instances.begin(), ps->num_particles * sizeof( ps->gpu_instances[ 0 ] ) );
-	}
-
-	{
-		TracyZoneScopedN( "Reset order" );
-		for( size_t i = 0; i < ps->num_particles; i++ ) {
-			ps->gpu_instances[ i ] = i;
-		}
-	}
 }
 
 void DrawParticleSystem( ParticleSystem * ps, float dt ) {
-	if( ps->num_particles == 0 )
-		return;
-
-	TracyZoneScoped;
-
-	if( ps->feedback ) {
-		UpdateParticlesFeedback( ps->update_mesh, ps->vb, ps->vb2, ps->vb_feedback, ps->radius, ps->num_particles, dt );
-	}
-	else {
-		UpdateParticles( ps->update_mesh, ps->vb, ps->vb2, ps->radius, ps->num_particles, dt );
-	}
-
-	if( ps->model ) {
-		DrawInstancedParticles( ps->vb2, ps->model, ps->num_particles );
-	}
-	else {
-		DrawInstancedParticles( ps->mesh, ps->vb2, ps->blend_func, ps->num_particles );
-	}
+	PipelineState pipeline;
+	pipeline.pass = frame_static.transparent_pass;
+	pipeline.shader = &shaders.particle;
+	pipeline.blend_func = ps->blend_func;
+	pipeline.write_depth = false;
+	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
+	pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
+	DrawElementsIndirect( ps->mesh, pipeline, ps->vb2, ps->draw_indirect );
 
 	Swap2( &ps->vb, &ps->vb2 );
+	Swap2( &ps->compute_count, &ps->compute_count2 );
 }
 
 void DrawParticles() {
 	float dt = cls.frametime / 1000.0f;
 
-	s64 total_particles = 0;
 	s64 total_new_particles = 0;
 
 	for( size_t i = 0; i < num_particleSystems; i++ ) {
 		if( particleSystems[ i ].initialized ) {
-			total_particles += particleSystems[ i ].num_particles;
 			total_new_particles += particleSystems[ i ].new_particles;
 			UpdateParticleSystem( &particleSystems[ i ], dt );
 			DrawParticleSystem( &particleSystems[ i ], dt );
 		}
 	}
 
-	TracyCPlot( "Particles", total_particles );
 	TracyCPlot( "New Particles", total_new_particles );
-
-	if( cg_particleDebug != NULL && cg_particleDebug->integer ) {
-		const ImGuiIO & io = ImGui::GetIO();
-		float width_frac = Lerp( 0.25f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.15f );
-		Vec2 size = io.DisplaySize * Vec2( width_frac, 0.5f );
-		ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs;
-
-
-		ImGui::SetNextWindowSize( ImVec2( size.x, size.y ) );
-		ImGui::SetNextWindowPos( ImVec2( io.DisplaySize.x - size.x, 100.0f ), ImGuiCond_Always );
-		ImGui::Begin( "particle statistics", WindowZOrder_Chat, flags );
-
-
-		ImGui::Text( "%i visual effects", num_visualEffectGroups );
-		ImGui::Text( "%i particle emitters", num_particleEmitters );
-		ImGui::Text( "%i decal emitters", num_decalEmitters );
-
-		for( size_t i = 0; i < num_particleSystems; i++ ) {
-			ParticleSystem * ps = &particleSystems[ i ];
-			if( ps->initialized ) {
-				ImGui::Text( "ps: %zu, num: %zu / %zu", i, ps->num_particles, ps->max_particles );
-			}
-		}
-
-		ImGui::End();
-	}
 }
 
 static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float rotation, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 start_color, Vec4 end_color, float start_size, float end_size, u32 flags ) {
 	TracyZoneScopedN( "Store Particle" );
-	if( ps->num_particles + ps->new_particles == ps->max_particles )
+	if( ps->new_particles == ps->max_particles )
 		return;
 
 	GPUParticle & particle = ps->particles[ ps->new_particles ];
@@ -993,11 +817,8 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 	start_color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
 	start_color = Clamp01( start_color );
 
-	Vec4 uvwh = Vec4( 0.0f );
-	if( ps->model ) {
-		EmitParticle( ps, lifetime, position, dir * speed, angle, rotation, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, start_color, end_color, size, emitter->end_size, emitter->flags );
-	}
-	else if( emitter->num_materials ) {
+	if( emitter->num_materials ) {
+		Vec4 uvwh = Vec4( 0.0f );
 		if( TryFindDecal( emitter->materials[ RandomUniform( &cls.rng, 0, emitter->num_materials - 1 ) ], &uvwh ) ) {
 			EmitParticle( ps, lifetime, position, dir * speed, angle, rotation, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, start_color, end_color, size, emitter->end_size, emitter->flags );
 		}
@@ -1166,8 +987,12 @@ void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal, float count, V
 void ClearParticles() {
 	for( size_t i = 0; i < num_particleSystems; i++ ) {
 		if( particleSystems[ i ].initialized ) {
-			particleSystems[ i ].num_particles = 0;
-			particleSystems[ i ].new_particles = 0;
+			ParticleSystem * ps = &particleSystems[ i ];
+			ps->new_particles = 0;
+			
+			u32 count = 0;
+			WriteGPUBuffer( ps->compute_count, &count, 0 );
+			WriteGPUBuffer( ps->compute_count2, &count, 0 );
 		}
 	}
 }

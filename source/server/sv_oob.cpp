@@ -303,7 +303,7 @@ static void SVC_DirectConnect( const NetAddress & address ) {
 		return;
 	}
 
-	u64 session_id = StringToU64( Cmd_Argv( 2 ), 0 );
+	u64 session_id = SpanToU64( MakeSpan( Cmd_Argv( 2 ) ), 0 );
 	int challenge = atoi( Cmd_Argv( 3 ) );
 
 	if( !Info_Validate( Cmd_Argv( 4 ) ) ) {

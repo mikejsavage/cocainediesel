@@ -74,21 +74,44 @@ bool EqualIgnoringPort( const NetAddress & a, const NetAddress & b ) {
 
 void format( FormatBuffer * fb, const NetAddress & address, const FormatOpts & opts ) {
 	sockaddr_storage sockaddr = NetAddressToSockaddr( address, NULL );
-	char buf[ 64 ];
+	char ntop[ INET6_ADDRSTRLEN ];
 
 	const void * src = ( const void * ) &( ( const sockaddr_in * ) &sockaddr )->sin_addr;
-	if( sockaddr.ss_family == AF_INET6 ) {
+	if( address.family == SocketFamily_IPv6 ) {
 		src = ( const void * ) &( ( const sockaddr_in6 * ) &sockaddr )->sin6_addr;
 	}
-	inet_ntop( sockaddr.ss_family, src, buf, sizeof( buf ) );
+	inet_ntop( sockaddr.ss_family, src, ntop, sizeof( ntop ) );
 
-	Q_strncatz( buf, ":", sizeof( buf ) );
-
-	char port[ 16 ];
-	ggformat( port, sizeof( port ), "{}", address.port );
-	Q_strncatz( buf, port, sizeof( buf ) );
+	char buf[ 64 ];
+	if( address.family == SocketFamily_IPv4 ) {
+		ggformat( buf, sizeof( buf ), "{}:{}", ntop, address.port );
+	}
+	else {
+		ggformat( buf, sizeof( buf ), "[{}]:{}", ntop, address.port );
+	}
 
 	format( fb, buf, opts );
+}
+
+char * SplitIntoHostnameAndPort( Allocator * a, const char * str, u16 * port ) {
+	*port = 0;
+
+	bool is_portless_ipv6 = false;
+	if( str[ 0 ] != '[' ) {
+		const char * first_colon = strchr( str, ':' );
+		if( first_colon != NULL ) {
+			const char *  second_colon = strchr( first_colon + 1, ':' );
+			is_portless_ipv6 = second_colon != NULL;
+		}
+	}
+
+	const char * last_colon = strrchr( str, ':' );
+	if( last_colon == NULL || is_portless_ipv6 ) {
+		return CopyString( a, str );
+	}
+
+	*port = SpanToU64( MakeSpan( last_colon + 1 ), 0 );
+	return ( *a )( "{}", Span< const char >( str, last_colon - str ) );
 }
 
 bool DNS( const char * hostname, NetAddress * address, DNSFamily family ) {

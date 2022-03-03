@@ -218,27 +218,23 @@ bool TrySpanToFloat( Span< const char > str, float * x ) {
 	return end == buf + str.n;
 }
 
-bool TryStringToU64( const char * str, u64 * x ) {
-	if( strlen( str ) == 0 )
+bool TrySpanToU64( Span< const char > str, u64 * x ) {
+	if( str.n == 0 )
 		return false;
 
 	u64 res = 0;
-	while( true ) {
-		if( *str == '\0' )
-			break;
-
-		if( *str < '0' || *str > '9' )
+	for( char c : str ) {
+		if( c < '0' || c > '9' )
 			return false;
 
 		if( U64_MAX / 10 < res )
 			return false;
 
-		u64 digit = *str - '0';
+		u64 digit = c - '0';
 		if( U64_MAX - digit < res )
 			return false;
 
 		res = res * 10 + digit;
-		str++;
 	}
 
 	*x = res;
@@ -255,9 +251,9 @@ float SpanToFloat( Span< const char > token, float def ) {
 	return TrySpanToFloat( token, &x ) ? x : def;
 }
 
-u64 StringToU64( const char * str, u64 def ) {
+u64 SpanToU64( Span< const char > str, u64 def ) {
 	u64 x;
-	return TryStringToU64( str, &x ) ? x : def;
+	return TrySpanToU64( str, &x ) ? x : def;
 }
 
 int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop ) {

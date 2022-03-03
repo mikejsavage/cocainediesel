@@ -217,15 +217,15 @@ static void CL_Connect_f() {
 		arg += password.n + 1;
 	}
 
+	u16 port;
+	const char * hostname = SplitIntoHostnameAndPort( &temp, arg, &port );
+
 	NetAddress address;
-	// TODO: split into port and hostname
-	if( !DNS( arg, &address ) ) {
+	if( !DNS( hostname, &address ) ) {
 		Com_Printf( "Bad server address\n" );
 		return;
 	}
-	if( address.port == 0 ) {
-		address.port = PORT_SERVER;
-	}
+	address.port = port == 0 ? PORT_SERVER : port;
 
 	CL_Connect( address );
 }
@@ -274,14 +274,16 @@ static void CL_Rcon_f() {
 		}
 
 		if( rcon_address->modified ) {
-			// TODO: split into port and hostname
-			if( !DNS( rcon_address->value, &cls.rconaddress ) ) {
+			TempAllocator temp = cls.frame_arena.temp();
+
+			u16 port;
+			const char * hostname = SplitIntoHostnameAndPort( &temp, rcon_address->value, &port );
+
+			if( !DNS( hostname, &cls.rconaddress ) ) {
 				Com_Printf( "Bad rcon_address.\n" );
 				return; // we don't clear modified, so it will whine the next time too
 			}
-			if( cls.rconaddress.port == 0 ) {
-				cls.rconaddress.port = PORT_SERVER;
-			}
+			cls.rconaddress.port = port == 0 ? PORT_SERVER : 0;
 
 			rcon_address->modified = false;
 		}

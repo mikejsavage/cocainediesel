@@ -57,6 +57,7 @@ enum DNSFamily {
 	DNSFamily_IPv6,
 };
 
+char * SplitIntoHostnameAndPort( Allocator * a, const char * str, u16 * port );
 bool DNS( const char * hostname, NetAddress * address, DNSFamily family = DNSFamily_Any );
 
 Socket NewUDPClient( NonBlockingBool nonblocking );

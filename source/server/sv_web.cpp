@@ -266,7 +266,7 @@ static void SV_Web_ParseStartLine( sv_http_request_t * request, char * line ) {
 static void SV_Web_AnalyzeHeader( sv_http_request_t * request, const char * key, const char * value ) {
 	if( StrCaseEqual( key, "Content-Length" ) ) {
 		u64 length;
-		bool ok = TryStringToU64( value, &length );
+		bool ok = TrySpanToU64( MakeSpan( value ), &length );
 		if( !ok ) {
 			request->error = HTTP_RESP_BAD_REQUEST;
 		}

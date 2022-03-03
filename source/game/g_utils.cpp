@@ -801,7 +801,7 @@ edict_t *G_PlayerForText( const char *text ) {
 	}
 
 	u64 num;
-	if( TryStringToU64( text, &num ) && num < u64( server_gs.maxclients ) && game.edicts[ num + 1 ].r.inuse ) {
+	if( TrySpanToU64( MakeSpan( text ), &num ) && num < u64( server_gs.maxclients ) && game.edicts[ num + 1 ].r.inuse ) {
 		return &game.edicts[ num + 1 ];
 	}
 

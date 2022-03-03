@@ -254,7 +254,7 @@ void CG_SC_Obituary() {
 	DamageType damage_type;
 	damage_type.encoded = atoi( Cmd_Argv( 4 ) );
 	bool wallbang = atoi( Cmd_Argv( 5 ) ) == 1;
-	u64 entropy = StringToU64( Cmd_Argv( 6 ), 0 );
+	u64 entropy = SpanToU64( MakeSpan( Cmd_Argv( 6 ) ), 0 );
 
 	const char * victim = PlayerName( victimNum - 1 );
 	const char * attacker = attackerNum == 0 ? NULL : PlayerName( attackerNum - 1 );

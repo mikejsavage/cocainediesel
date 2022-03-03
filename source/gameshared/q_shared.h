@@ -42,11 +42,11 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 
 bool TrySpanToInt( Span< const char > str, int * x );
 bool TrySpanToFloat( Span< const char > str, float * x );
-bool TryStringToU64( const char * str, u64 * x );
+bool TrySpanToU64( Span< const char > str, u64 * x );
 
 int SpanToInt( Span< const char > token, int def );
 float SpanToFloat( Span< const char > token, float def );
-u64 StringToU64( const char * str, u64 def );
+u64 SpanToU64( Span< const char > str, u64 def );
 
 int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop );
 float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop );

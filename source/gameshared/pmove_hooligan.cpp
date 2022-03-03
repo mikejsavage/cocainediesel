@@ -4,11 +4,10 @@
 static constexpr float pm_jumpupspeed = 260.0f;
 static constexpr float pm_dashupspeed = 160.0f;
 static constexpr float pm_dashspeed = 550.0f;
+static constexpr float jump_detection = 0.35f;
 
 static constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
 static constexpr float pm_wjbouncefactor = 0.4f;
-
-static constexpr float num_cells = 4;
 
 static constexpr float stamina_usewj = 0.5f; //50%
 static constexpr float stamina_usedash = 0.25f; //50%
@@ -37,7 +36,7 @@ static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 
 
 static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( !StaminaAvailableImmediate( ps, stamina_usewj ) ) {
+	if( !StaminaAvailableImmediate( ps, stamina_usewj ) || ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
 		return;
 	}
 
@@ -86,7 +85,8 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 
 
 static void PM_HooliganDash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( !StaminaAvailableImmediate( ps, stamina_usedash ) ) {
+	if( !StaminaAvailableImmediate( ps, stamina_usedash ) ||
+		( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_stored == 0.0f ) ) {
 		return;
 	}
 
@@ -96,10 +96,13 @@ static void PM_HooliganDash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		pml->forwardPush = pm_dashspeed;
 	}
 
+	if( ps->pmove.stamina_stored == 0.0f ) {
+		StaminaUseImmediate( ps, stamina_usedash );
+	}
+
 	ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
 	ps->pmove.stamina_state = Stamina_UsedAbility;
-
-	StaminaUseImmediate( ps, stamina_usedash );
+	ps->pmove.stamina_stored = jump_detection;
 	Dash( pm, pml, pmove_gs, dashdir, pm_dashspeed, pm_dashupspeed );
 }
 
@@ -116,7 +119,9 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 		return;
 	}
 
-	if( pressed && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
+	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
+
+	if( pressed ) {
 		if( pm->groundentity == -1 ) {
 			PM_HooliganWalljump( pm, pml, pmove_gs, ps );
 		} else {
@@ -127,6 +132,5 @@ static void PM_HooliganSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pm
 
 
 void PM_HooliganInit( pmove_t * pm, pml_t * pml ) {
-	pm->playerState->pmove.stamina_stored = num_cells;
 	PM_InitPerk( pm, pml, Perk_Hooligan, PM_HooliganJump, PM_HooliganSpecial );
 }

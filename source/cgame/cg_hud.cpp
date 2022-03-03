@@ -93,7 +93,7 @@ static const LuauConst<StringHash> asset_constants[] = {
 	{ "bomb", StringHash( "hud/icons/bomb" ) },
 	{ "cam", StringHash( "hud/icons/cam" ) },
 	{ "guy", StringHash( "hud/icons/guy" ) },
-	{ "net", StringHash( "hud/iconsnet" ) },
+	{ "net", StringHash( "hud/icons/net" ) },
 };
 
 static int CG_GetSpeed() {

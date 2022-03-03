@@ -14,13 +14,16 @@
 static Texture atlas_texture;
 static Material atlas_material;
 
-static ImFont * AddFontAsset( StringHash path, float pixel_size ) {
+static ImFont * AddFontAsset( StringHash path, float pixel_size, bool idi_nahui = false ) {
 	Span< const u8 > data = AssetBinary( path );
 	ImFontConfig config;
 	config.FontData = ( void * ) data.ptr;
 	config.FontDataOwnedByAtlas = false;
 	config.FontDataSize = data.n;
 	config.SizePixels = pixel_size;
+	if( idi_nahui ) {
+		config.GlyphRanges = ImGui::GetIO().Fonts->GetGlyphRangesCyrillic();
+	}
 	return ImGui::GetIO().Fonts->AddFont( &config );
 }
 
@@ -68,6 +71,7 @@ void CL_InitImGui() {
 		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f );
 		cls.medium_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 28.0f );
 		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
+		cls.idi_nahui_font = AddFontAsset( "fonts/OpenSans-SemiBold.ttf", 24.0f, true );
 
 		io.Fonts->Build();
 

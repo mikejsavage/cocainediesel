@@ -772,37 +772,30 @@ static void MainMenu() {
 		return normalized < 0.5f ? Unlerp( 0.0f, normalized, 0.5f ) : Unlerp( 1.0f, normalized, 0.5f );
 	};
 
-	auto glitch = []( s64 x ) {
-		s64 a = x % 697;
-		s64 b = x % 531;
-		return a + b < 300;
-	};
-
-	ImGui::SetCursorPosX( 40.0f * triangel( cls.monotonicTime, 631 ) );
+	// ImGui::SetCursorPosX( 40.0f * triangel( cls.monotonicTime, 331 ) );
+	u32 ukraine_blue = IM_COL32( 0, 87, 183, 255 );
+	u32 ukraine_yellow = IM_COL32( 255, 215, 0, 255 );
 	ImGui::PushFont( cls.large_font );
+	ImGui::PushStyleColor( ImGuiCol_Text, ukraine_blue );
+	ImGui::Text( "UKRAINE" );
+	ImGui::PopStyleColor();
+	ImGui::SameLine();
+	ImGui::PushStyleColor( ImGuiCol_Text, ukraine_yellow );
+	ImGui::Text( "DIESEL" );
+	ImGui::PopStyleColor();
+	ImGui::PopFont();
 
-	if( Cvar_Bool( "cg_colorBlind" ) ) {
-		ImGui::PushStyleColor( ImGuiCol_Text, CG_TeamColorVec4( TEAM_BETA ) );
-		if( glitch( cls.monotonicTime / 8 ) )
-			ImGui::Text( "COLOURBLIN" );
-		else
-			ImGui::Text( "COLORBLIN" );
+	ImGui::SetCursorPosX( -1000.0f + 500.0f * sinf( cls.monotonicTime / 1001.0f ) );
+	ImGui::PushFont( cls.idi_nahui_font );
+	constexpr const char * idi_nahui = u8"\u0418\u0434\u0438 \u043d\u0430 \u0445\u0443\u0439";
+	for( int i = 0; i < 100; i++ ) {
+		ImGui::PushStyleColor( ImGuiCol_Text, i % 2 == 0 ? ukraine_blue : ukraine_yellow );
+		ImGui::Text( idi_nahui );
 		ImGui::PopStyleColor();
-
-		ImGui::SameLine();
-		ImGui::Text( "D" );
-		ImGui::SameLine();
-
-		ImGui::PushStyleColor( ImGuiCol_Text, CG_TeamColorVec4( TEAM_ALPHA ) );
-		ImGui::Text( "IESEL" );
-		ImGui::PopStyleColor();
+		if( i < 99 ) {
+			ImGui::SameLine();
+		}
 	}
-	else {
-		ImGui::PushStyleColor( ImGuiCol_Text, glitch( cls.monotonicTime ) ? IM_COL32( 255, 255, 255, 255 ) : IM_COL32( 32, 182, 252, 255 ) );
-		ImGui::Text( "VACCAINE PFIZEL" );
-		ImGui::PopStyleColor();
-	}
-
 	ImGui::PopFont();
 
 	if( ImGui::Button( "FIND SERVERS" ) ) {

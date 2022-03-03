@@ -201,6 +201,7 @@ struct client_static_t {
 	ImFont * medium_font;
 	ImFont * medium_italic_font;
 	ImFont * console_font;
+	ImFont * idi_nahui_font;
 };
 
 extern client_static_t cls;

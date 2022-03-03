@@ -664,7 +664,7 @@ void Draw2DBox( float x, float y, float w, float h, const Material * material, V
 }
 
 void Draw2DBoxUV( float x, float y, float w, float h, Vec2 topleft_uv, Vec2 bottomright_uv, const Material * material, Vec4 color ) {
-	if( w <= 0.0f || h <= 0.0f )
+	if( w <= 0.0f || h <= 0.0f || color.w <= 0.0f )
 		return;
 
 	RGBA8 rgba = LinearTosRGB( color );

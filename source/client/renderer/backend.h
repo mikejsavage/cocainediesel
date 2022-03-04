@@ -354,8 +354,6 @@ void WriteGPUBuffer( GPUBuffer buf, Span< T > data, u32 offset = 0 ) {
 	WriteGPUBuffer( buf, data.ptr, data.num_bytes(), offset );
 }
 
-GPUBuffer NewParticleGPUBuffer( u32 n );
-
 Texture NewTexture( const TextureConfig & config );
 void DeleteTexture( Texture texture );
 

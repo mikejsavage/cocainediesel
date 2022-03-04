@@ -1017,7 +1017,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleSize, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, start_size ) );
 		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleAgeLifetime, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, age ) );
 		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleFlags, VertexFormat_U32x1, sizeof( GPUParticle ), offsetof( GPUParticle, flags ) );
-		
+
 		glVertexAttribDivisor( VertexAttribute_ParticlePosition, 1 );
 		glVertexAttribDivisor( VertexAttribute_ParticleVelocity, 1 );
 		glVertexAttribDivisor( VertexAttribute_ParticleAccelDragRest, 1 );
@@ -1029,7 +1029,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glVertexAttribDivisor( VertexAttribute_ParticleFlags, 1 );
 
 		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		
+
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, dc.indirect.buffer );
 		glDrawElementsIndirect( primitive, type, 0 );
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
@@ -1221,17 +1221,9 @@ void ReadGPUBuffer( GPUBuffer buf, void * data, u32 len, u32 offset ) {
 	glGetNamedBufferSubData( buf.buffer, offset, len, data );
 }
 
-GPUBuffer NewParticleGPUBuffer( u32 n ) {
-	GPUBuffer buf = { DSACreateBuffer( false ) };
-	glNamedBufferStorage( buf.buffer, n * sizeof( GPUParticle ), NULL, GL_DYNAMIC_STORAGE_BIT );
-	DebugLabel( GL_BUFFER, buf.buffer, "particles" );
-	return buf;
-}
-
 GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name ) {
 	GPUBuffer buf = { DSACreateBuffer( false ) };
-	// TODO: probably want more control over flags than this
-	glNamedBufferStorage( buf.buffer, len, data, data != NULL ? 0 : GL_DYNAMIC_STORAGE_BIT );
+	glNamedBufferStorage( buf.buffer, len, data, GL_DYNAMIC_STORAGE_BIT );
 
 	if( name != NULL ) {
 		DebugLabel( GL_BUFFER, buf.buffer, name );

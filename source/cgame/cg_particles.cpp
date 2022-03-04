@@ -98,8 +98,8 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	DeleteParticleSystem( a, ps );
 
 	ps->particles = ALLOC_SPAN( a, GPUParticle, ps->max_particles );
-	ps->vb = NewParticleGPUBuffer( ps->max_particles );
-	ps->vb2 = NewParticleGPUBuffer( ps->max_particles );
+	ps->vb = NewGPUBuffer( ps->max_particles * sizeof( GPUParticle ), "particles" );
+	ps->vb2 = NewGPUBuffer( ps->max_particles * sizeof( GPUParticle ), "particles" );
 
 	u32 count = 0;
 	ps->compute_count = NewGPUBuffer( &count, sizeof( u32 ), "compute_count" );
@@ -989,10 +989,10 @@ void ClearParticles() {
 		if( particleSystems[ i ].initialized ) {
 			ParticleSystem * ps = &particleSystems[ i ];
 			ps->new_particles = 0;
-			
+
 			u32 count = 0;
-			WriteGPUBuffer( ps->compute_count, &count, 0 );
-			WriteGPUBuffer( ps->compute_count2, &count, 0 );
+			WriteGPUBuffer( ps->compute_count, &count, sizeof( count ) );
+			WriteGPUBuffer( ps->compute_count2, &count, sizeof( count ) );
 		}
 	}
 }

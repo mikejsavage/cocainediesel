@@ -54,14 +54,14 @@ static Span< Span< const char > > BuildShaderSrcs( TempAllocator * temp, const c
 	return srcs.span();
 }
 
-static void LoadShader( Shader * shader, const char * path, const char * defines = NULL, Span< const char * > feedback_varyings = Span< const char * >(), bool particle_vertex_attribs = false ) {
+static void LoadShader( Shader * shader, const char * path, const char * defines = NULL, bool particle_vertex_attribs = false ) {
 	TracyZoneScoped;
 
 	TempAllocator temp = cls.frame_arena.temp();
 	Span< Span< const char > > srcs = BuildShaderSrcs( &temp, path, defines );
 
 	Shader new_shader;
-	if( !NewShader( &new_shader, srcs, feedback_varyings, particle_vertex_attribs ) )
+	if( !NewShader( &new_shader, srcs, particle_vertex_attribs ) )
 		return;
 
 	DeleteShader( *shader );
@@ -156,8 +156,8 @@ static void LoadShaders() {
 
 	LoadComputeShader( &shaders.particle_compute, "glsl/particle_compute.glsl", NULL );
 	LoadComputeShader( &shaders.particle_setup_indirect, "glsl/particle_setup_indirect.glsl", NULL );
-	LoadShader( &shaders.particle, "glsl/particle.glsl", NULL, Span< const char * >(), true );
-	LoadShader( &shaders.particle_model, "glsl/particle.glsl", "#define MODEL 1\n", Span< const char * >(), true );
+	LoadShader( &shaders.particle, "glsl/particle.glsl", NULL, true );
+	LoadShader( &shaders.particle_model, "glsl/particle.glsl", "#define MODEL 1\n", true );
 }
 
 void InitShaders() {

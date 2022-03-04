@@ -61,7 +61,6 @@ struct DrawCall {
 	u32 num_instances;
 	GPUBuffer instance_data;
 	GPUBuffer update_data;
-	GPUBuffer feedback_data;
 
 	u32 dispatch_size[ 3 ];
 	GPUBuffer indirect;
@@ -1714,32 +1713,21 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 	return true;
 }
 
-bool NewShader( Shader * shader, Span< Span< const char > > srcs, Span< const char * > feedback_varyings, bool particle_vertex_attribs ) {
+bool NewShader( Shader * shader, Span< Span< const char > > srcs, bool particle_vertex_attribs ) {
 	*shader = { };
-	bool feedback = feedback_varyings.n > 0;
 
 	GLuint vs = CompileShader( GL_VERTEX_SHADER, srcs );
 	if( vs == 0 )
 		return false;
 	defer { glDeleteShader( vs ); };
 
-	GLuint fs = 0;
-	if( !feedback ) {
-		fs = CompileShader( GL_FRAGMENT_SHADER, srcs );
-		if( fs == 0 )
-			return false;
-	}
-	defer {
-		if( fs != 0 ) {
-			glDeleteShader( fs );
-		}
-	};
+	GLuint fs = CompileShader( GL_FRAGMENT_SHADER, srcs );
+	if( fs == 0 )
+		return false;
 
 	shader->program = glCreateProgram();
 	glAttachShader( shader->program, vs );
-	if( !feedback ) {
-		glAttachShader( shader->program, fs );
-	}
+	glAttachShader( shader->program, fs );
 
 	if( particle_vertex_attribs ) {
 		glBindAttribLocation( shader->program, VertexAttribute_Position, "a_Position" );
@@ -1771,13 +1759,8 @@ bool NewShader( Shader * shader, Span< Span< const char > > srcs, Span< const ch
 		glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow2, "a_ModelTransformRow2" );
 	}
 
-	if( !feedback ) {
-		glBindFragDataLocation( shader->program, 0, "f_Albedo" );
-		glBindFragDataLocation( shader->program, 1, "f_Normal" );
-	}
-	else {
-		glTransformFeedbackVaryings( shader->program, feedback_varyings.n, feedback_varyings.begin(), GL_INTERLEAVED_ATTRIBS );
-	}
+	glBindFragDataLocation( shader->program, 0, "f_Albedo" );
+	glBindFragDataLocation( shader->program, 1, "f_Normal" );
 
 	return LinkShader( shader, shader->program );
 }

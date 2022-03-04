@@ -92,7 +92,6 @@ struct ParticleSystem {
 
 	size_t new_particles;
 	Span< GPUParticle > particles;
-	bool feedback;
 
 	GPUBuffer vb;
 	GPUBuffer vb2;

@@ -234,6 +234,9 @@ static bool SendFileChunk( Socket socket, FILE * f, size_t offset, size_t * sent
 		if( !TCPSend( socket, buf + *sent, r - *sent, &w ) ) {
 			return false;
 		}
+		if( w == 0 ) {
+			break;
+		}
 		*sent += w;
 	}
 
@@ -251,8 +254,9 @@ static void SendResponse( HTTPConnection * con ) {
 			con->should_close = true;
 			return;
 		}
-		if( sent == 0 )
+		if( sent == 0 ) {
 			break;
+		}
 
 		response->headers_sent += sent;
 		con->last_activity = Sys_Milliseconds();
@@ -268,8 +272,9 @@ static void SendResponse( HTTPConnection * con ) {
 			con->should_close = true;
 			return;
 		}
-		if( sent == 0 )
+		if( sent == 0 ) {
 			break;
+		}
 
 		response->file_sent += sent;
 		con->last_activity = Sys_Milliseconds();

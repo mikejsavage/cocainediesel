@@ -268,6 +268,9 @@ static void SendResponse( HTTPConnection * con ) {
 			con->should_close = true;
 			return;
 		}
+		if( sent == 0 )
+			break;
+
 		response->file_sent += sent;
 		con->last_activity = Sys_Milliseconds();
 	}

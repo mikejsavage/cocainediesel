@@ -303,7 +303,7 @@ static void AcceptIncomingConnection() {
 		}
 
 		HTTPConnection * con = TryAllocConnection();
-		if( !con ) {
+		if( con == NULL ) {
 			CloseSocket( client );
 			break;
 		}

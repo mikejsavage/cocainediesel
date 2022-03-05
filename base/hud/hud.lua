@@ -237,13 +237,13 @@ local function DrawPlayerBar( state )
 		return
 	end
 
-	local offset = state.viewport_width * 0.015
-	local stamina_bar_height = state.viewport_width * 0.014
-	local health_bar_height = state.viewport_width * 0.023
-	local empty_bar_height = state.viewport_width * 0.021
-	local padding = math.floor( offset/5 );
+	local offset = state.viewport_width * 0.01
+	local stamina_bar_height = state.viewport_width * 0.012
+	local health_bar_height = state.viewport_width * 0.022
+	local empty_bar_height = state.viewport_width * 0.019
+	local padding = math.floor( offset * 0.3 );
 
-	local width = state.viewport_width * 0.24
+	local width = state.viewport_width * 0.21
 	local height = stamina_bar_height + health_bar_height + empty_bar_height + padding * 4
 
 	local x = offset

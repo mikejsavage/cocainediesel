@@ -672,8 +672,10 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 		G_PrintMsg( NULL, "%s disconnected (%s)\n", ent->r.client->netname, reason );
 	}
 
-	CreateCorpse( ent, NULL, WorldDamage_Suicide, 0 ); //create a corpse
-
+	if( ent->s.type == ET_PLAYER ) {
+		CreateCorpse( ent, NULL, WorldDamage_Suicide, 0 ); //create a corpse
+	}
+	
 	ent->r.inuse = false;
 	ent->s.svflags = SVF_NOCLIENT;
 

@@ -4,7 +4,7 @@
 static constexpr float pm_jumpupspeed = 260.0f;
 static constexpr float pm_dashupspeed = 160.0f;
 static constexpr float pm_dashspeed = 550.0f;
-static constexpr float jump_detection = 0.35f;
+static constexpr float jump_detection = 0.3f;
 
 static constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
 static constexpr float pm_wjbouncefactor = 0.4f;
@@ -85,8 +85,7 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 
 
 static void PM_HooliganDash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( !StaminaAvailableImmediate( ps, stamina_usedash ) ||
-		( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_stored == 0.0f ) ) {
+	if( !StaminaAvailableImmediate( ps, stamina_usedash ) ) {
 		return;
 	}
 

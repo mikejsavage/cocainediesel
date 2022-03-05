@@ -76,29 +76,6 @@ static void FreeConnection( HTTPConnection * con ) {
 	*con = { };
 }
 
-static size_t SendFileChunk( HTTPConnection * con, FILE * f, size_t offset ) {
-	fseek( f, offset, SEEK_SET );
-
-	char buf[ 8192 ];
-	size_t r = fread( buf, 1, sizeof( buf ), f );
-	if( r < sizeof( buf ) && ferror( f ) ) {
-		con->should_close = true;
-		return 0;
-	}
-
-	size_t sent = 0;
-	while( sent < r ) {
-		size_t w;
-		if( !TCPSend( con->socket, buf + sent, r - sent, &w ) ) {
-			con->should_close = true;
-			return 0;
-		}
-		sent += w;
-	}
-
-	return sent;
-}
-
 static const char * ResponseCodeMessage( HTTPResponseCode code ) {
 	switch( code ) {
 		case HTTPResponseCode_Ok: return "OK";
@@ -242,6 +219,27 @@ static void ReceiveRequest( HTTPConnection * con ) {
 	}
 }
 
+static bool SendFileChunk( Socket socket, FILE * f, size_t offset, size_t * sent ) {
+	fseek( f, offset, SEEK_SET );
+
+	char buf[ 8192 ];
+	size_t r = fread( buf, 1, sizeof( buf ), f );
+	if( r < sizeof( buf ) && ferror( f ) ) {
+		return false;
+	}
+
+	*sent = 0;
+	while( *sent < r ) {
+		size_t w;
+		if( !TCPSend( socket, buf + *sent, r - *sent, &w ) ) {
+			return false;
+		}
+		*sent += w;
+	}
+
+	return true;
+}
+
 static void SendResponse( HTTPConnection * con ) {
 	if( !con->received_request )
 		return;
@@ -265,9 +263,11 @@ static void SendResponse( HTTPConnection * con ) {
 	}
 
 	while( response->file_sent < response->file_size ) {
-		size_t sent = SendFileChunk( con, response->file, response->file_sent );
-		if( sent == 0 )
-			break;
+		size_t sent;
+		if( !SendFileChunk( con->socket, response->file, response->file_sent, &sent ) ) {
+			con->should_close = true;
+			return;
+		}
 		response->file_sent += sent;
 		con->last_activity = Sys_Milliseconds();
 	}

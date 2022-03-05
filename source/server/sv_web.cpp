@@ -44,7 +44,7 @@ struct HTTPConnection {
 
 	int64_t last_activity;
 
-	char request[ 128 ];
+	char request[ 256 ];
 	size_t request_size;
 
 	HTTPResponse response;
@@ -151,6 +151,7 @@ static HTTPResponseCode RouteRequest( HTTPConnection * con, Span< const char > m
 
 	if( head_request ) {
 		fclose( response->file );
+		response->file_sent = response->file_size;
 		response->file = NULL;
 	}
 

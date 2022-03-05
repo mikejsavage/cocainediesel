@@ -376,11 +376,10 @@ static void WebServerThread( void * param ) {
 	}
 
 	for( HTTPConnection & con : connections ) {
-		if( con.address != NULL_ADDRESS )
-			continue;
-
-		CloseSocket( con.socket );
-		FreeConnection( &con );
+		if( con.address != NULL_ADDRESS ) {
+			CloseSocket( con.socket );
+			FreeConnection( &con );
+		}
 	}
 }
 

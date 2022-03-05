@@ -352,13 +352,11 @@ void SV_DemoGetUrl_f( edict_t * ent );
 
 #define SV_SetDemoMetaKeyValue( k,v ) svs.demo.meta_data_realsize = SNAP_SetDemoMetaKeyValue( svs.demo.meta_data, sizeof( svs.demo.meta_data ), svs.demo.meta_data_realsize, k, v )
 
-bool SV_IsDemoDownloadRequest( const char *request );
-
 //
 // sv_web.c
 //
-void SV_Web_Init();
-void SV_Web_Shutdown();
+void InitWebServer();
+void ShutdownWebServer();
 
 //
 // snap_write

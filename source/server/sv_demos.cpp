@@ -338,8 +338,3 @@ void SV_DemoGetUrl_f( edict_t * ent ) {
 
 	PF_GameCmd( ent, temp( "downloaddemo \"{}/{}\"", GetDemoDir( &temp ), demos[ id - 1 ] ) );
 }
-
-bool SV_IsDemoDownloadRequest( const char * request ) {
-	TempAllocator temp = svs.frame_arena.temp();
-	return StartsWith( request, GetDemoDir( &temp ) ) && EndsWith( request, APP_DEMO_EXTENSION_STR );
-}

@@ -33,6 +33,7 @@ require( "libs.mbedtls" )
 require( "libs.meshoptimizer" )
 require( "libs.monocypher" )
 require( "libs.openal" )
+require( "libs.picohttpparser" )
 require( "libs.rgbcx" )
 require( "libs.stb" )
 require( "libs.tracy" )
@@ -100,6 +101,7 @@ do
 			"meshoptimizer",
 			"monocypher",
 			"openal",
+			"picohttpparser",
 			"stb_image",
 			"stb_image_write",
 			"stb_rect_pack",
@@ -157,6 +159,7 @@ do
 			"ggentropy",
 			"ggformat",
 			"monocypher",
+			"picohttpparser",
 			"tracy",
 			"zlib",
 			"zstd",

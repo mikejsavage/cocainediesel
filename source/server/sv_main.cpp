@@ -466,7 +466,7 @@ void SV_Init() {
 	//init the master servers list
 	SV_InitMaster();
 
-	SV_Web_Init();
+	InitWebServer();
 
 	sv_initialized = true;
 
@@ -483,7 +483,7 @@ void SV_Shutdown( const char *finalmsg ) {
 	}
 	sv_initialized = false;
 
-	SV_Web_Shutdown();
+	ShutdownWebServer();
 	SV_ShutdownGame( finalmsg, false );
 
 	SV_ShutdownOperatorCommands();

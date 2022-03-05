@@ -1,152 +1,66 @@
-/*
-Copyright (C) 2013 Victor Luchits
-
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
-See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
-
-*/
+#include <atomic>
 
 #include "server/server.h"
+#include "qcommon/application.h"
 #include "qcommon/fs.h"
+#include "qcommon/net.h"
 #include "qcommon/string.h"
 #include "qcommon/threads.h"
+#include "gameshared/q_shared.h"
+
+#include "picohttpparser/picohttpparser.h"
 
 #include "tracy/Tracy.hpp"
 
-static constexpr size_t MAX_INCOMING_HTTP_CONNECTIONS = 48;
-static constexpr int MAX_INCOMING_HTTP_CONNECTIONS_PER_ADDR = 3;
-
-static constexpr s64 INCOMING_HTTP_CONNECTION_RECV_TIMEOUT = 50000;
-static constexpr s64 INCOMING_HTTP_CONNECTION_SEND_TIMEOUT = 15000;
+static constexpr s64 REQUEST_TIMEOUT = 10000; // 10s
+static constexpr s64 RESPONSE_INACTIVITY_TIMEOUT = 15000; // 15s
 
 // server checks for shutdown this frequently so don't make it too big
 static constexpr s64 HTTP_SERVER_SLEEP_TIME = 50;
 
-enum http_query_method_t {
-	HTTP_METHOD_NONE,
-	HTTP_METHOD_GET,
-	HTTP_METHOD_HEAD,
+enum HTTPResponseCode {
+	HTTPResponseCode_Ok = 200,
+	HTTPResponseCode_BadRequest = 400,
+	HTTPResponseCode_Forbidden = 403,
+	HTTPResponseCode_NotFound = 404,
 };
 
-enum http_response_code_t {
-	HTTP_RESP_NONE = 0,
-	HTTP_RESP_OK = 200,
-	HTTP_RESP_BAD_REQUEST = 400,
-	HTTP_RESP_FORBIDDEN = 403,
-	HTTP_RESP_NOT_FOUND = 404,
-	HTTP_RESP_REQUEST_TOO_LARGE = 413,
-};
-
-enum sv_http_connstate_t {
-	HTTP_CONN_STATE_NONE,
-	HTTP_CONN_STATE_RECV,
-	HTTP_CONN_STATE_SEND,
-};
-
-struct sv_http_stream_t {
-	size_t header_length;
-	char header_buf[256];
-	size_t header_buf_p;
-	bool header_done;
-};
-
-struct sv_http_request_t {
-	http_query_method_t method;
-	http_response_code_t error;
-	sv_http_stream_t stream;
-
-	char * resource;
-	const char * query_string;
-
-	bool got_start_line;
-};
-
-struct sv_http_response_t {
-	http_response_code_t code;
-	sv_http_stream_t stream;
+struct HTTPResponse {
+	char headers[ 256 ];
+	size_t headers_size;
+	size_t headers_sent;
 
 	FILE * file;
-	char * filename;
-	size_t filesize;
-	size_t filesent;
+	size_t file_size;
+	size_t file_sent;
 };
 
-struct sv_http_connection_t {
-	bool open;
-	sv_http_connstate_t state;
+struct HTTPConnection {
+	bool should_close;
+	bool received_request;
 
 	Socket socket;
 	NetAddress address;
 
-	int64_t last_active;
+	int64_t last_activity;
 
-	sv_http_request_t request;
-	sv_http_response_t response;
+	char request[ 128 ];
+	size_t request_size;
+
+	HTTPResponse response;
 };
 
-static volatile bool sv_http_running = false;
+static std::atomic< bool > web_server_running = false;
 
-static sv_http_connection_t sv_http_connections[MAX_INCOMING_HTTP_CONNECTIONS];
+static HTTPConnection connections[ 32 ];
 
 static ArenaAllocator web_server_arena;
 static Socket web_server_socket;
-// TODO: this should be fully async and doesn't need to run on a thread anymore
 static Thread * web_server_thread = NULL;
 
-// ============================================================================
-
-static void SV_Web_ResetStream( sv_http_stream_t * stream ) {
-	stream->header_done = false;
-	stream->header_length = 0;
-	stream->header_buf_p = 0;
-}
-
-static void SV_Web_ResetRequest( sv_http_request_t * request ) {
-	if( request->resource ) {
-		FREE( sys_allocator, request->resource );
-		request->resource = NULL;
-	}
-
-	request->query_string = "";
-	SV_Web_ResetStream( &request->stream );
-
-	request->got_start_line = false;
-	request->error = HTTP_RESP_NONE;
-}
-
-static void SV_Web_ResetResponse( sv_http_response_t * response ) {
-	if( response->filename ) {
-		FREE( sys_allocator, response->filename );
-		response->filename = NULL;
-	}
-	if( response->file ) {
-		fclose( response->file );
-		response->file = NULL;
-	}
-
-	response->filesize = 0;
-	response->filesent = 0;
-
-	SV_Web_ResetStream( &response->stream );
-
-	response->code = HTTP_RESP_NONE;
-}
-
-static sv_http_connection_t * SV_Web_AllocConnection() {
-	for( sv_http_connection_t & con : sv_http_connections ) {
-		if( con.state == HTTP_CONN_STATE_NONE ) {
+static HTTPConnection * TryAllocConnection() {
+	for( HTTPConnection & con : connections ) {
+		if( con.address == NULL_ADDRESS ) {
 			return &con;
 		}
 	}
@@ -154,46 +68,21 @@ static sv_http_connection_t * SV_Web_AllocConnection() {
 	return NULL;
 }
 
-static void SV_Web_FreeConnection( sv_http_connection_t * con ) {
-	SV_Web_ResetRequest( &con->request );
-	SV_Web_ResetResponse( &con->response );
-
-	con->state = HTTP_CONN_STATE_NONE;
-}
-
-static void SV_Web_ShutdownConnections() {
-	for( sv_http_connection_t & con : sv_http_connections ) {
-		if( con.state == HTTP_CONN_STATE_NONE )
-			continue;
-
-		if( con.open ) {
-			CloseSocket( con.socket );
-			SV_Web_FreeConnection( &con );
-		}
-	}
-}
-
-static bool SV_Web_ConnectionLimitReached( const NetAddress & address ) {
-	int n = 0;
-	for( const sv_http_connection_t & con : sv_http_connections ) {
-		if( con.state != HTTP_CONN_STATE_NONE && address == con.address ) {
-			n++;
-			if( n >= MAX_INCOMING_HTTP_CONNECTIONS_PER_ADDR ) {
-				return true;
-			}
-		}
+static void FreeConnection( HTTPConnection * con ) {
+	if( con->response.file != NULL ) {
+		fclose( con->response.file );
 	}
 
-	return false;
+	*con = { };
 }
 
-static size_t SendFileChunk( sv_http_connection_t * con, FILE * f, size_t offset ) {
+static size_t SendFileChunk( HTTPConnection * con, FILE * f, size_t offset ) {
 	fseek( f, offset, SEEK_SET );
 
 	char buf[ 8192 ];
 	size_t r = fread( buf, 1, sizeof( buf ), f );
 	if( r < sizeof( buf ) && ferror( f ) ) {
-		con->open = false;
+		con->should_close = true;
 		return 0;
 	}
 
@@ -201,7 +90,7 @@ static size_t SendFileChunk( sv_http_connection_t * con, FILE * f, size_t offset
 	while( sent < r ) {
 		size_t w;
 		if( !TCPSend( con->socket, buf + sent, r - sent, &w ) ) {
-			con->open = false;
+			con->should_close = true;
 			return 0;
 		}
 		sent += w;
@@ -210,309 +99,209 @@ static size_t SendFileChunk( sv_http_connection_t * con, FILE * f, size_t offset
 	return sent;
 }
 
-static void SV_Web_ParseStartLine( sv_http_request_t * request, char * line ) {
-	char * ptr;
-	char * token, * delim;
-
-	ptr = line;
-
-	token = ptr;
-	ptr = strchr( token, ' ' );
-	if( !ptr ) {
-		request->error = HTTP_RESP_BAD_REQUEST;
-		return;
-	}
-	*ptr = '\0';
-
-	if( StrCaseEqual( token, "GET" ) ) {
-		request->method = HTTP_METHOD_GET;
-	} else if( StrCaseEqual( token, "HEAD" ) ) {
-		request->method = HTTP_METHOD_HEAD;
-	} else {
-		request->error = HTTP_RESP_BAD_REQUEST;
-	}
-
-	token = ptr + 1;
-	while( *token <= ' ' || *token == '/' ) {
-		token++;
-	}
-	ptr = strrchr( token, ' ' );
-	if( !ptr ) {
-		request->error = HTTP_RESP_BAD_REQUEST;
-		return;
-	}
-	*ptr = '\0';
-
-	request->resource = CopyString( sys_allocator, strlen( token ) > 0 ? token : "/" );
-	Q_urldecode( request->resource, request->resource, strlen( request->resource ) + 1 );
-
-	// split resource into filepath and query string
-	delim = strstr( request->resource, "?" );
-	if( delim ) {
-		*delim = '\0';
-		request->query_string = delim + 1;
-	}
-
-	token = ptr + 1;
-	while( *token <= ' ' ) {
-		token++;
-	}
-
-	if( !StrEqual( token, "HTTP/1.1" ) ) {
-		request->error = HTTP_RESP_BAD_REQUEST;
-	}
-}
-
-static void SV_Web_AnalyzeHeader( sv_http_request_t * request, const char * key, const char * value ) {
-	if( StrCaseEqual( key, "Content-Length" ) ) {
-		u64 length;
-		bool ok = TrySpanToU64( MakeSpan( value ), &length );
-		if( !ok ) {
-			request->error = HTTP_RESP_BAD_REQUEST;
-		}
-		else if( length > 0 ) {
-			request->error = HTTP_RESP_REQUEST_TOO_LARGE;
-		}
-	}
-}
-
-/*
-* SV_Web_ParseHeaderLine
-*
-* Parses and splits the header line into key-value pair
-*/
-static void SV_Web_ParseHeaderLine( sv_http_request_t * request, char * line ) {
-	char * value;
-	size_t offset;
-	const char * colon;
-	const char * key;
-
-	if( request->error ) {
-		return;
-	}
-
-	colon = strchr( line, ':' );
-	if( !colon ) {
-		return;
-	}
-
-	offset = colon - line;
-	line[offset] = '\0';
-	key = Q_trim( line );
-	value = line + offset + 1;
-
-	// ltrim
-	while( *value <= ' ' ) {
-		value++;
-	}
-	SV_Web_AnalyzeHeader( request, key, value );
-}
-
-static size_t SV_Web_ParseHeaders( sv_http_request_t * request, char * data ) {
-	char * line, * p;
-
-	line = data;
-	while( ( p = strstr( line, "\r\n" ) ) != NULL ) {
-		if( p == line ) {
-			line = p + 2;
-			request->stream.header_done = true;
-			break;
-		}
-
-		*p = *( p + 1 ) = '\0';
-
-		if( request->got_start_line ) {
-			SV_Web_ParseHeaderLine( request, line );
-		} else {
-			SV_Web_ParseStartLine( request, line );
-			request->got_start_line = true;
-		}
-
-		line = p + 2;
-	}
-	return ( line - data );
-}
-
-static const char * SV_Web_ResponseCodeMessage( http_response_code_t code ) {
+static const char * ResponseCodeMessage( HTTPResponseCode code ) {
 	switch( code ) {
-		case HTTP_RESP_OK: return "OK";
-		case HTTP_RESP_BAD_REQUEST: return "Bad Request";
-		case HTTP_RESP_FORBIDDEN: return "Forbidden";
-		case HTTP_RESP_NOT_FOUND: return "Not Found";
-		case HTTP_RESP_REQUEST_TOO_LARGE: return "Request Entity Too Large";
-		default: return "Unknown Error";
+		case HTTPResponseCode_Ok: return "OK";
+		case HTTPResponseCode_BadRequest: return "Bad Request";
+		case HTTPResponseCode_Forbidden: return "Forbidden";
+		case HTTPResponseCode_NotFound: return "Not Found";
 	}
+
+	assert( false );
+	return "";
 }
 
-static void SV_Web_RouteRequest( const sv_http_request_t * request, sv_http_response_t * response ) {
-	response->filename = CopyString( sys_allocator, request->resource );
-
-	if( request->method != HTTP_METHOD_GET && request->method != HTTP_METHOD_HEAD ) {
-		response->code = HTTP_RESP_BAD_REQUEST;
-		return;
+static HTTPResponseCode RouteRequest( HTTPConnection * con, Span< const char > method, Span< const char > path_with_leading_slash, const phr_header * headers, size_t num_headers ) {
+	for( size_t i = 0; i < num_headers; i++ ) {
+		Span< const char > header = Span< const char >( headers[ i ].name, headers[ i ].name_len );
+		if( StrCaseEqual( header, "Content-Length" ) ) {
+			Span< const char > value = Span< const char >( headers[ i ].value, headers[ i ].value_len );
+			if( SpanToInt( value, 0 ) != 0 ) {
+				return HTTPResponseCode_BadRequest;
+			}
+		}
 	}
 
-	// check for malicious URL's
-	if( !COM_ValidateRelativeFilename( request->resource ) ) {
-		response->code = HTTP_RESP_FORBIDDEN;
-		return;
+	bool head_request = StrCaseEqual( method, "HEAD" );
+	if( !head_request && !StrCaseEqual( method, "GET" ) ) {
+		return HTTPResponseCode_BadRequest;
 	}
 
-	if( !EndsWith( request->resource, ".bsp.zst" ) && !SV_IsDemoDownloadRequest( request->resource ) ) {
-		response->code = HTTP_RESP_FORBIDDEN;
-		return;
+	TempAllocator temp = web_server_arena.temp();
+
+	Span< const char > path = path_with_leading_slash + 1;
+	char * null_terminated_path = temp( "{}", path );
+
+	// check for malicious URLs
+	if( !COM_ValidateRelativeFilename( null_terminated_path ) ) {
+		return HTTPResponseCode_Forbidden;
 	}
 
-	response->file = OpenFile( sys_allocator, request->resource, "rb" );
+	if( !EndsWith( path, ".bsp.zst" ) && !EndsWith( path, APP_DEMO_EXTENSION_STR ) ) {
+		return HTTPResponseCode_Forbidden;
+	}
+
+	HTTPResponse * response = &con->response;
+	response->file = OpenFile( sys_allocator, null_terminated_path, "rb" );
 	if( response->file == NULL ) {
-		response->code = HTTP_RESP_NOT_FOUND;
-		return;
+		return HTTPResponseCode_NotFound;
 	}
 
-	response->filesize = FileSize( response->file );
-	response->code = HTTP_RESP_OK;
+	response->file_size = FileSize( response->file );
+
+	if( head_request ) {
+		fclose( response->file );
+		response->file = NULL;
+	}
+
+	return HTTPResponseCode_Ok;
 }
 
-static void SV_Web_MakeResponse( sv_http_connection_t * con ) {
-	sv_http_request_t * request = &con->request;
-	sv_http_response_t * response = &con->response;
-	sv_http_stream_t * resp_stream = &response->stream;
+static void MakeResponse( HTTPConnection * con, Span< const char > method, Span< const char > path, const phr_header * request_headers, size_t num_headers ) {
+	HTTPResponseCode code = RouteRequest( con, method, path, request_headers, num_headers );
 
-	if( request->error != 0 ) {
-		response->code = request->error;
-	}
-	else {
-		SV_Web_RouteRequest( request, response );
-
-		if( response->file != NULL ) {
-			Com_GGPrint( "HTTP serving file '{}' to {}", response->filename, con->address );
-		}
-
-		if( request->method == HTTP_METHOD_HEAD && response->file != NULL ) {
-			fclose( response->file );
-			response->file = NULL;
-		}
+	HTTPResponse * response = &con->response;
+	if( response->file != NULL ) {
+		Com_GGPrint( "HTTP serving file '{}' to {}", path, con->address );
 	}
 
-	String< sizeof( resp_stream->header_buf ) - 1 > headers;
-	headers.append( "HTTP/1.1 {} {}\r\n", response->code, SV_Web_ResponseCodeMessage( response->code ) );
+	String< sizeof( con->response.headers ) - 1 > headers;
+	headers.append( "HTTP/1.1 {} {}\r\n", code, ResponseCodeMessage( code ) );
 	headers.append( "Server: " APPLICATION "\r\n" );
 
-	if( response->code == HTTP_RESP_OK ) {
-		headers.append( "Content-Length: {}\r\n", response->filesize );
-		headers.append( "Content-Disposition: attachment; filename=\"{}\"\r\n", FileName( response->filename ) );
+	if( code == HTTPResponseCode_Ok ) {
+		headers.append( "Content-Length: {}\r\n", response->file_size );
+		headers.append( "Content-Disposition: attachment; filename=\"{}\"\r\n", FileName( path ) );
 		headers += "\r\n";
 	}
 	else {
-		String< 64 > error( "{} {}\n", response->code, SV_Web_ResponseCodeMessage( response->code ) );
-
+		String< 64 > error( "{} {}\n", code, ResponseCodeMessage( code ) );
 		headers.append( "Content-Type: text/plain\r\n" );
 		headers.append( "Content-Length: {}\r\n", error.length() );
 		headers += "\r\n";
 		headers += error;
 	}
 
-	ggformat( resp_stream->header_buf, sizeof( resp_stream->header_buf ), "{}", headers );
+	assert( headers.length() < headers.capacity() );
 
-	resp_stream->header_length = headers.length();
-	con->state = HTTP_CONN_STATE_SEND;
+	Q_strncpyz( response->headers, headers.c_str(), sizeof( response->headers ) );
+	response->headers_size = headers.length();
 }
 
-static void SV_Web_ReceiveRequest( sv_http_connection_t * con ) {
-	if( con->state != HTTP_CONN_STATE_RECV )
+static void ReceiveRequest( HTTPConnection * con ) {
+	if( con->received_request )
 		return;
 
-	sv_http_request_t * request = &con->request;
-	while( !request->stream.header_done ) {
-		char * recvbuf = request->stream.header_buf + request->stream.header_buf_p;
-		size_t recvbuf_size = sizeof( request->stream.header_buf ) - request->stream.header_buf_p;
-		if( recvbuf_size <= 1 ) {
-			request->error = HTTP_RESP_BAD_REQUEST;
-			break;
-		}
-
+	while( true ) {
 		size_t received;
-		if( !TCPReceive( con->socket, recvbuf, recvbuf_size - 1, &received ) ) {
-			con->open = false;
-			return;
-		}
-		if( received == 0 )
+		if( !TCPReceive( con->socket, con->request + con->request_size, sizeof( con->request ) - con->request_size, &received ) ) {
+			con->should_close = true;
 			break;
+		}
+		if( received == 0 ) {
+			break;
+		}
 
-		con->last_active = Sys_Milliseconds();
+		size_t last_request_size = con->request_size;
+		con->request_size += received;
 
-		recvbuf[ received ] = '\0';
-		size_t advance = SV_Web_ParseHeaders( request, request->stream.header_buf );
-		if( !advance ) {
-			request->stream.header_buf_p += received;
+		// don't update last_activity, we want to kill the connection
+		// if they don't send a request in time
+
+		const char * method;
+		size_t method_len;
+
+		const char * path;
+		size_t path_len;
+		int minor_version;
+
+		phr_header headers[ 16 ];
+		size_t num_headers = ARRAY_COUNT( headers );
+
+		ssize_t ok = phr_parse_request( con->request, con->request_size, &method, &method_len, &path, &path_len, &minor_version, headers, &num_headers, last_request_size );
+		if( ok == -1 ) {
+			con->should_close = true;
+			break;
+		}
+		if( ok == -2 ) {
+			if( con->request_size == sizeof( con->request ) ) {
+				con->should_close = true;
+				break;
+			}
 			continue;
 		}
 
-		char * end = request->stream.header_buf + advance;
-		size_t rem = ( request->stream.header_buf_p + received ) - advance;
-		memmove( request->stream.header_buf, end, rem );
-		request->stream.header_buf_p = rem;
-		request->stream.header_length += advance;
+		MakeResponse( con,
+			Span< const char >( method, method_len ),
+			Span< const char >( path, path_len ),
+			headers, num_headers );
 
-		if( request->error ) {
-			break;
-		}
-	}
-
-	if( request->error || request->stream.header_done ) {
-		SV_Web_MakeResponse( con );
+		con->received_request = true;
+		break;
 	}
 }
 
-static void SV_Web_SendResponse( sv_http_connection_t * con ) {
-	if( con->state != HTTP_CONN_STATE_SEND )
+static void SendResponse( HTTPConnection * con ) {
+	if( !con->received_request )
 		return;
 
-	sv_http_response_t * response = &con->response;
-	sv_http_stream_t * stream = &response->stream;
-
-	while( stream->header_buf_p < stream->header_length ) {
-		const char * sendbuf = stream->header_buf + stream->header_buf_p;
-		size_t sendbuf_size = stream->header_length - stream->header_buf_p;
+	HTTPResponse * response = &con->response;
+	while( response->headers_sent < response->headers_size ) {
 		size_t sent;
-		if( !TCPSend( con->socket, sendbuf, sendbuf_size, &sent ) ) {
-			con->open = false;
+		if( !TCPSend( con->socket, response->headers + response->headers_sent, response->headers_size - response->headers_sent, &sent ) ) {
+			con->should_close = true;
 			return;
 		}
 		if( sent == 0 )
 			break;
 
-		stream->header_buf_p += sent;
-		con->last_active = Sys_Milliseconds();
+		response->headers_sent += sent;
+		con->last_activity = Sys_Milliseconds();
 	}
 
-	if( stream->header_buf_p < stream->header_length ) {
+	if( response->headers_sent < response->headers_size ) {
 		return;
 	}
 
-	while( response->filesent < response->filesize ) {
-		size_t sent = SendFileChunk( con, response->file, response->filesent );
+	while( response->file_sent < response->file_size ) {
+		size_t sent = SendFileChunk( con, response->file, response->file_sent );
 		if( sent == 0 )
 			break;
-		response->filesent += sent;
-		con->last_active = Sys_Milliseconds();
+		response->file_sent += sent;
+		con->last_activity = Sys_Milliseconds();
 	}
 
-	if( response->filesent == response->filesize ) {
-		con->open = false;
+	if( response->file_sent == response->file_size ) {
+		con->should_close = true;
 	}
 }
 
-static void SV_Web_Accept() {
+static bool IPConnectionLimitReached( const NetAddress & address ) {
+	constexpr int max_connections_per_ip = 3;
+
+	int n = 0;
+	for( const HTTPConnection & con : connections ) {
+		if( con.address != NULL_ADDRESS && address == con.address ) {
+			n++;
+			if( n >= max_connections_per_ip ) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+static void AcceptIncomingConnection() {
 	Socket client;
 	NetAddress address;
 	while( TCPAccept( web_server_socket, NonBlocking_Yes, &client, &address ) ) {
-		if( SV_Web_ConnectionLimitReached( address ) ) {
+		if( IPConnectionLimitReached( address ) ) {
 			CloseSocket( client );
 			continue;
 		}
 
-		sv_http_connection_t * con = SV_Web_AllocConnection();
+		HTTPConnection * con = TryAllocConnection();
 		if( !con ) {
 			CloseSocket( client );
 			break;
@@ -520,28 +309,26 @@ static void SV_Web_Accept() {
 
 		con->socket = client;
 		con->address = address;
-		con->last_active = Sys_Milliseconds();
-		con->open = true;
-		con->state = HTTP_CONN_STATE_RECV;
+		con->last_activity = Sys_Milliseconds();
 	}
 }
 
-static void SV_Web_Frame() {
+static void WebServerFrame() {
 	TracyZoneScoped;
 
-	Socket sockets[ MAX_INCOMING_HTTP_CONNECTIONS + 1 ];
-	sv_http_connection_t * socket_to_connection[ ARRAY_COUNT( sockets ) ];
+	Socket sockets[ ARRAY_COUNT( connections ) + 1 ];
+	HTTPConnection * socket_to_connection[ ARRAY_COUNT( sockets ) ];
 	size_t n = 0;
 
 	sockets[ n ] = web_server_socket;
 	n++;
 
-	for( sv_http_connection_t & con : sv_http_connections ) {
-		if( con.state == HTTP_CONN_STATE_NONE )
-			continue;
-		sockets[ n ] = con.socket;
-		socket_to_connection[ n ] = &con;
-		n++;
+	for( HTTPConnection & con : connections ) {
+		if( con.address != NULL_ADDRESS ) {
+			sockets[ n ] = con.socket;
+			socket_to_connection[ n ] = &con;
+			n++;
+		}
 	}
 
 	TempAllocator temp = web_server_arena.temp();
@@ -549,69 +336,74 @@ static void SV_Web_Frame() {
 	WaitForSockets( &temp, sockets, n, HTTP_SERVER_SLEEP_TIME, WaitForSocketWriteable_Yes, results );
 
 	if( results[ 0 ].readable ) {
-		SV_Web_Accept();
+		AcceptIncomingConnection();
 	}
 
 	for( size_t i = 1; i < n; i++ ) {
 		if( results[ i ].readable ) {
-			SV_Web_ReceiveRequest( socket_to_connection[ i ] );
+			ReceiveRequest( socket_to_connection[ i ] );
 		}
 		if( results[ i ].writeable ) {
-			SV_Web_SendResponse( socket_to_connection[ i ] );
+			SendResponse( socket_to_connection[ i ] );
 		}
 	}
 
-	for( sv_http_connection_t & con : sv_http_connections ) {
-		if( con.state == HTTP_CONN_STATE_NONE )
+	s64 now = Sys_Milliseconds();
+
+	for( HTTPConnection & con : connections ) {
+		if( con.address == NULL_ADDRESS )
 			continue;
 
-		if( con.open ) {
-			s64 timeout = con.state == HTTP_CONN_STATE_RECV ? INCOMING_HTTP_CONNECTION_RECV_TIMEOUT : INCOMING_HTTP_CONNECTION_SEND_TIMEOUT;
-			if( Sys_Milliseconds() > con.last_active + timeout ) {
-				ggprint( "{} {} timeout\n", con.last_active, Sys_Milliseconds() );
-				con.open = false;
-			}
+		s64 timeout = con.received_request ? RESPONSE_INACTIVITY_TIMEOUT : REQUEST_TIMEOUT;
+		if( Sys_Milliseconds() > con.last_activity + timeout ) {
+			con.should_close = true;
 		}
 
-		if( !con.open ) {
+		if( con.should_close ) {
 			CloseSocket( con.socket );
-			SV_Web_FreeConnection( &con );
+			FreeConnection( &con );
 		}
 	}
 }
 
-static void SV_Web_ThreadProc( void * param ) {
+static void WebServerThread( void * param ) {
 #if TRACY_ENABLE
 	tracy::SetThreadName( "Web server thread" );
 #endif
 
-	while( sv_http_running ) {
-		SV_Web_Frame();
+	while( web_server_running ) {
+		WebServerFrame();
 	}
 
-	SV_Web_ShutdownConnections();
+	for( HTTPConnection & con : connections ) {
+		if( con.address != NULL_ADDRESS )
+			continue;
+
+		CloseSocket( con.socket );
+		FreeConnection( &con );
+	}
 }
 
-void SV_Web_Init() {
-	sv_http_running = false;
+void InitWebServer() {
+	web_server_running = false;
 
 	if( !StrEqual( sv_downloadurl->value, "" ) ) {
 		return;
 	}
 
-	memset( sv_http_connections, 0, sizeof( sv_http_connections ) );
-	sv_http_running = true;
+	memset( connections, 0, sizeof( connections ) );
+	web_server_running = true;
 
 	constexpr size_t web_server_arena_size = 128 * 1024; // 128KB
 	void * web_server_arena_memory = ALLOC_SIZE( sys_allocator, web_server_arena_size, 16 );
 	web_server_arena = ArenaAllocator( web_server_arena_memory, web_server_arena_size );
 
 	web_server_socket = NewTCPServer( sv_port->integer, NonBlocking_Yes );
-	web_server_thread = NewThread( SV_Web_ThreadProc );
+	web_server_thread = NewThread( WebServerThread );
 }
 
-void SV_Web_Shutdown() {
-	sv_http_running = false;
+void ShutdownWebServer() {
+	web_server_running = false;
 	JoinThread( web_server_thread );
 	CloseSocket( web_server_socket );
 	FREE( sys_allocator, web_server_arena.get_memory() );

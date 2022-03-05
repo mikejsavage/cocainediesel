@@ -85,6 +85,7 @@ Span< const char > FileExtension( Span< const char > path );
 Span< const char > FileExtension( const char * path );
 Span< const char > StripExtension( Span< const char > path );
 Span< const char > StripExtension( const char * path );
+Span< const char > FileName( Span< const char > path );
 Span< const char > FileName( const char * path );
 Span< const char > BasePath( const char * path );
 

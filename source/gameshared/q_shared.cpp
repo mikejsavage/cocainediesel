@@ -381,10 +381,13 @@ Span< const char > StripExtension( const char * path ) {
 	return StripExtension( MakeSpan( path ) );
 }
 
+Span< const char > FileName( Span< const char > path ) {
+	Span< const char > name = MemRChr( path, '/', true );
+	return name == "" ? path : name + 1;
+}
+
 Span< const char > FileName( const char * path ) {
-	const char * filename = strrchr( path, '/' );
-	filename = filename == NULL ? path : filename + 1;
-	return MakeSpan( filename );
+	return FileName( MakeSpan( path ) );
 }
 
 Span< const char > BasePath( const char * path ) {

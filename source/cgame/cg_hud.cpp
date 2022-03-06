@@ -91,7 +91,6 @@ static const LuauConst<int> numeric_constants[] = {
 static const LuauConst<StringHash> asset_constants[] = {
 	{ "diagonal_pattern", StringHash( "hud/diagonal_pattern" ) },
 	{ "bomb", StringHash( "hud/icons/bomb" ) },
-	{ "cam", StringHash( "hud/icons/cam" ) },
 	{ "guy", StringHash( "hud/icons/guy" ) },
 	{ "net", StringHash( "hud/icons/net" ) },
 };

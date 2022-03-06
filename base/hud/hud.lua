@@ -350,7 +350,7 @@ local function DrawDevInfo( state )
 		color = "#fffb",
 		border = "#000b",
 		font = "bold",
-		font_size = state.viewport_height / 50,
+		font_size = 20,
 		alignment = "right top",
 	}
 
@@ -379,19 +379,23 @@ local function DrawChasing( state )
 		return
 	end
 
-	local pos = state.viewport_width * 0.01
-	local scale = state.viewport_width * 0.05
+	local offset = state.viewport_width * 0.02
+	local scale_text = state.viewport_width * 0.016
+	local scale_name = state.viewport_width * 0.05
 
 	local options = {
 		color = "#fffb",
 		border = "#000b",
-		font = "bold",
-		font_size = scale,
-		alignment = "left middle",
+		font = "normal",
+		font_size = scale_text,
+		alignment = "left bottom",
 	}
 
-	cd.box( pos, pos, scale, scale, "#fff", assets.cam )
-	cd.text( options, pos + scale * 1.2, pos + scale * 0.5, cd.getPlayerName( state.chasing ) )
+	cd.text( options, offset, offset, "Spectating :" )
+
+	options.font_size = scale_name
+	options.font = "bold"
+	cd.text( options, offset, offset + state.viewport_width * 0.038, cd.getPlayerName( state.chasing ) )
 end
 
 

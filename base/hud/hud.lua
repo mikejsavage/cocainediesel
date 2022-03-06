@@ -297,16 +297,17 @@ local function DrawPlayerBar( state )
 		end
 	else
 		if state.perk == Perk_Midget and state.stamina <= 0 and state.stamina_state == Stamina_UsingAbility then
-			bg_color = cd.attentionGettingColor()
-			bg_color.a = 0.05
+			local c = cd.attentionGettingColor()
+			c.a = 0.05
+			cd.box( x, y, width, stamina_bar_height, c )
 		elseif state.perk == Perk_Jetpack then
 			local s = 1 - math.min( 1.0, state.stamina + 0.5 )
-			bg_color = RGBALinear( 0.06 + s * 0.8, 0.06 + s * 0.1, 0.06 + s * 0.1, 0.5 + 0.5 * state.stamina )
+			cd.box( x, y, width, stamina_bar_height, RGBALinear( 0.06 + s * 0.8, 0.06 + s * 0.1, 0.06 + s * 0.1, 0.5 + 0.5 * state.stamina ) )
+		else
+			cd.box( x, y, width, stamina_bar_height, bg_color )
 		end
 
-		cd.box( x, y, width, stamina_bar_height, bg_color )
 		cd.box( x, y, width * state.stamina, stamina_bar_height, stamina_color )
-
 		cd.boxuv( x, y,
 			width * state.stamina, stamina_bar_height,
 			0, 0, (width * state.stamina)/8, stamina_bar_height/8, --8 is the size of the texture

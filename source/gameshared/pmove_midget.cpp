@@ -51,16 +51,19 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 			}
 			StaminaUse( ps, pml, stamina_use );
 		}
+
 		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
+	}
+
+	//don't remove this, this avoids having issues when 'pressed' is set to the wrong value in some local states.
+	if( !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility ) {
+		ps->pmove.stamina_state = Stamina_UsedAbility;
 	}
 
 	if( !pressed ) {
 		float factor = ( ps->pmove.stamina_stored - ps->pmove.stamina );
-		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility ) {
-			if( factor > stamina_jump_limit ) {
-				Jump( pm, pml, pmove_gs, ps, pm_chargedjumpspeed * factor, JumpType_MidgetCharge, false );
-			}
-			ps->pmove.stamina_state = Stamina_UsedAbility;
+		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility && factor > stamina_jump_limit ) {
+			Jump( pm, pml, pmove_gs, ps, pm_chargedjumpspeed * factor, JumpType_MidgetCharge, false );
 		}
 		ps->pmove.stamina_stored = 0.0f;
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;

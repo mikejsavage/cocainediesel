@@ -301,7 +301,7 @@ static bool IPConnectionLimitReached( const NetAddress & address ) {
 	return false;
 }
 
-static void AcceptIncomingConnection() {
+static void AcceptIncomingConnections() {
 	Socket client;
 	NetAddress address;
 	while( TCPAccept( web_server_socket, NonBlocking_Yes, &client, &address ) ) {
@@ -345,7 +345,7 @@ static void WebServerFrame() {
 	WaitForSockets( &temp, sockets, n, HTTP_SERVER_SLEEP_TIME, WaitForSocketWriteable_Yes, results );
 
 	if( results[ 0 ].readable ) {
-		AcceptIncomingConnection();
+		AcceptIncomingConnections();
 	}
 
 	for( size_t i = 1; i < n; i++ ) {

@@ -14,3 +14,5 @@ lib( "discord", {
 	"libs/discord/rpc_connection.cpp",
 	"libs/discord/serialization.cpp",
 } )
+
+gcc_obj_cxxflags( "libs/discord/.*", "-Wno-unknown-pragmas" )

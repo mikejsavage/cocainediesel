@@ -139,7 +139,6 @@ extern int damageFlagsOfDeath;
 
 extern Cvar *sv_password;
 extern Cvar *g_operator_password;
-extern Cvar *developer;
 
 extern Cvar *g_maxvelocity;
 

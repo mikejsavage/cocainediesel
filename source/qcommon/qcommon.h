@@ -253,11 +253,9 @@ void Com_EndRedirect();
 
 #ifndef _MSC_VER
 void Com_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-void Com_DPrintf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 void Com_Error( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
 #else
 void Com_Printf( _Printf_format_string_ const char *format, ... );
-void Com_DPrintf( _Printf_format_string_ const char *format, ... );
 void Com_Error( _Printf_format_string_ const char *format, ... );
 #endif
 
@@ -288,7 +286,6 @@ void Com_SetDemoPlaying( bool state );
 server_state_t Com_ServerState();
 void Com_SetServerState( server_state_t state );
 
-extern Cvar *developer;
 extern const bool is_dedicated_server;
 
 void Qcommon_Init( int argc, char **argv );

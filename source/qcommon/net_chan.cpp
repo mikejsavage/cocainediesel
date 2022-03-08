@@ -146,19 +146,15 @@ static int Netchan_ZLibCompressChunk( const uint8_t *source, unsigned long sourc
 			result = destLen; // returns the new length into destLen
 			break;
 		case Z_MEM_ERROR:
-			Com_DPrintf( "ZLib data error! Z_MEM_ERROR on compress.\n" );
 			result = -1;
 			break;
 		case Z_BUF_ERROR:
-			Com_DPrintf( "ZLib data error! Z_BUF_ERROR on compress.\n" );
 			result = -1;
 			break;
 		case Z_STREAM_ERROR:
-			Com_DPrintf( "ZLib data error! Z_STREAM_ERROR on compress.\n" );
 			result = -1;
 			break;
 		default:
-			Com_DPrintf( "ZLib data error! Error code %i on compress.\n", zlerror );
 			result = -1;
 			break;
 	}
@@ -176,19 +172,15 @@ static int Netchan_ZLibDecompressChunk( const uint8_t *source, unsigned long sou
 			result = destLen; // returns the new length into destLen
 			break;
 		case Z_MEM_ERROR:
-			Com_DPrintf( "ZLib data error! Z_MEM_ERROR on decompress.\n" );
 			result = -1;
 			break;
 		case Z_BUF_ERROR:
-			Com_DPrintf( "ZLib data error! Z_BUF_ERROR on decompress.\n" );
 			result = -1;
 			break;
 		case Z_DATA_ERROR:
-			Com_DPrintf( "ZLib data error! Z_DATA_ERROR on decompress.\n" );
 			result = -1;
 			break;
 		default:
-			Com_DPrintf( "ZLib data error! Error code %i on decompress.\n", zlerror );
 			result = -1;
 			break;
 	}

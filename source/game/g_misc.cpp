@@ -125,9 +125,6 @@ void SP_func_wall( edict_t * self, const spawn_temp_t * st ) {
 	// yell if the spawnflags are odd
 	if( self->spawnflags & 4 ) {
 		if( !( self->spawnflags & 2 ) ) {
-			if( developer->integer ) {
-				Com_Printf( "func_wall START_ON without TOGGLE\n" );
-			}
 			self->spawnflags |= 2;
 		}
 	}

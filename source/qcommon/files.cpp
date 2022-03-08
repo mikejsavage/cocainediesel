@@ -191,7 +191,6 @@ int FS_FOpenAbsoluteFile( const char *filename, int *filenum, int mode ) {
 		f = fopen( filename, modestr );
 	}
 	if( !f && !gzf ) {
-		Com_DPrintf( "FS_FOpenAbsoluteFile: can't %s %s\n", ( mode == FS_READ ? "find" : "write to" ), filename );
 		return -1;
 	}
 

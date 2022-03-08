@@ -118,11 +118,6 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 	// if we would be losing an old command that hasn't been acknowledged, we must drop the connection
 	// we check == instead of >= so a broadcast print added by SV_DropClient() doesn't cause a recursive drop client
 	if( client->reliableSequence - client->reliableAcknowledge == MAX_RELIABLE_COMMANDS + 1 ) {
-		//Com_Printf( "===== pending server commands =====\n" );
-		for( i = client->reliableAcknowledge + 1; i <= client->reliableSequence; i++ ) {
-			Com_DPrintf( "cmd %5d: %s\n", i, client->reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )] );
-		}
-		Com_DPrintf( "cmd %5d: %s\n", i, cmd );
 		SV_DropClient( client, "%s", "Error: Server command overflow" );
 		return;
 	}
@@ -272,11 +267,7 @@ bool SV_Netchan_Transmit( netchan_t *netchan, msg_t *msg ) {
 		return false;
 	}
 
-	int zerror = Netchan_CompressMessage( msg );
-	if( zerror < 0 ) { // it's compression error, just send uncompressed
-		Com_DPrintf( "SV_Netchan_Transmit (ignoring compression): Compression error %i\n", zerror );
-	}
-
+	Netchan_CompressMessage( msg );
 	return Netchan_Transmit( svs.socket, netchan, msg );
 }
 

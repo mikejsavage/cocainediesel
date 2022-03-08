@@ -34,7 +34,6 @@ static bool com_quit;
 
 static jmp_buf abortframe;     // an ERR_DROP occured, exit the entire frame
 
-Cvar *developer;
 Cvar *timescale;
 
 static Cvar *logconsole = NULL;
@@ -189,26 +188,6 @@ void Com_Printf( const char *format, ... ) {
 }
 
 /*
-* Com_DPrintf
-*
-* A Com_Printf that only shows up if the "developer" cvar is set
-*/
-void Com_DPrintf( const char *format, ... ) {
-	va_list argptr;
-	char msg[MAX_PRINTMSG];
-
-	if( !developer || !developer->integer ) {
-		return; // don't confuse non-developers with techie stuff...
-
-	}
-	va_start( argptr, format );
-	vsnprintf( msg, sizeof( msg ), format, argptr );
-	va_end( argptr );
-
-	Com_Printf( "%s", msg );
-}
-
-/*
  * Quit when run on the server, disconnect when run on the client
  */
 void Com_Error( const char *format, ... ) {
@@ -272,14 +251,9 @@ void Qcommon_Init( int argc, char ** argv ) {
 
 	InitFS();
 	FS_Init();
-
-	// prepare enough of the subsystems to handle
-	// cvar and command buffer management
 	Cmd_Init();
 	Cvar_PreInit();
 	Key_Init(); // need to be able to bind keys before running configs
-
-	developer = NewCvar( "developer", "0", 0 );
 
 	if( !is_dedicated_server ) {
 		ExecDefaultCfg();
@@ -301,15 +275,10 @@ void Qcommon_Init( int argc, char ** argv ) {
 	AddCommand( "quit", Com_DeferQuit );
 
 	timescale = NewCvar( "timescale", "1.0", CvarFlag_Cheat );
-	if( is_dedicated_server ) {
-		logconsole = NewCvar( "logconsole", "server.log", CvarFlag_Archive );
-	}
-	else {
-		logconsole = NewCvar( "logconsole", "", CvarFlag_Archive );
-	}
+	logconsole = NewCvar( "logconsole", is_dedicated_server ? "server.log" : "", CvarFlag_Archive );
 	logconsole_append = NewCvar( "logconsole_append", "1", CvarFlag_Archive );
-	logconsole_flush =  NewCvar( "logconsole_flush", "0", CvarFlag_Archive );
-	logconsole_timestamp =  NewCvar( "logconsole_timestamp", "0", CvarFlag_Archive );
+	logconsole_flush = NewCvar( "logconsole_flush", "0", CvarFlag_Archive );
+	logconsole_timestamp = NewCvar( "logconsole_timestamp", "0", CvarFlag_Archive );
 
 	NewCvar( "gamename", APPLICATION_NOSPACES, CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 

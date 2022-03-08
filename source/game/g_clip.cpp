@@ -262,17 +262,6 @@ static void GClip_Init_AreaGrid( areagrid_t *areagrid, Vec3 world_mins, Vec3 wor
 	}
 
 	memset( areagrid->entmarknumber, 0, sizeof( areagrid->entmarknumber ) );
-
-	if( developer->integer ) {
-		Com_Printf( "areagrid settings: divisions %ix%ix1 : box %f %f %f "
-					": %f %f %f size %f %f %f grid %f %f %f (mingrid %f)\n",
-					AREA_GRID, AREA_GRID,
-					areagrid->mins.x, areagrid->mins.y, areagrid->mins.z,
-					areagrid->maxs.x, areagrid->maxs.y, areagrid->maxs.z,
-					areagrid->size.x, areagrid->size.y, areagrid->size.z,
-					1.0f / areagrid->scale.x, 1.0f / areagrid->scale.y, 1.0f / areagrid->scale.z,
-					AREA_GRIDMINSIZE );
-	}
 }
 
 /*
@@ -529,10 +518,8 @@ void GClip_LinkEntity( edict_t *ent ) {
 			// but nothing should ever need more than that
 			if( ent->r.areanum > -1 && ent->r.areanum != area ) {
 				if( ent->r.areanum2 > -1 && ent->r.areanum2 != area ) {
-					if( developer->integer ) {
-						Com_Printf( "Object touching 3 areas at %f %f %f\n",
-								  ent->r.absmin.x, ent->r.absmin.y, ent->r.absmin.z );
-					}
+					Com_Printf( "Object touching 3 areas at %f %f %f\n",
+						ent->r.absmin.x, ent->r.absmin.y, ent->r.absmin.z );
 				}
 				ent->r.areanum2 = area;
 			} else {

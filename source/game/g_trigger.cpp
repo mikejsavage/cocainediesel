@@ -350,9 +350,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, Plane *plane, int su
 
 	dest = G_Find( NULL, &edict_t::name, self->target );
 	if( !dest ) {
-		if( developer->integer ) {
-			Com_Printf( "Couldn't find destination.\n" );
-		}
+		Com_Printf( "Couldn't find destination.\n" );
 		return;
 	}
 
@@ -374,9 +372,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, Plane *plane, int su
 
 void SP_trigger_teleport( edict_t * ent, const spawn_temp_t * st ) {
 	if( ent->target == EMPTY_HASH ) {
-		if( developer->integer ) {
-			Com_Printf( "teleporter without a target.\n" );
-		}
+		Com_Printf( "teleporter without a target.\n" );
 		G_FreeEdict( ent );
 		return;
 	}

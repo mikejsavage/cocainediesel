@@ -157,8 +157,9 @@ void CG_SC_AutoRecordAction( const char *action ) {
 			Cbuf_ExecuteLine( "stop cancel silent" );
 			autorecording = false;
 		}
-	} else if( developer->integer ) {
-		Com_Printf( "CG_SC_AutoRecordAction: Unknown action: %s\n", action );
+	}
+	else {
+		assert( false );
 	}
 }
 

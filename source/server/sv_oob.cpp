@@ -294,12 +294,9 @@ static void SVC_GetChallenge( const NetAddress & address ) {
 * A connection request that did not come from the master
 */
 static void SVC_DirectConnect( const NetAddress & address ) {
-	Com_DPrintf( "SVC_DirectConnect (%s)\n", Cmd_Args() );
-
 	int version = atoi( Cmd_Argv( 1 ) );
 	if( version != APP_PROTOCOL_VERSION ) {
 		Netchan_OutOfBandPrint( svs.socket, address, "reject\n%i\nServer and client don't have the same version\n", 0 );
-		Com_DPrintf( "    rejected connect from protocol %i\n", version );
 		return;
 	}
 
@@ -375,7 +372,6 @@ static void SVC_DirectConnect( const NetAddress & address ) {
 	}
 	if( !newcl ) {
 		Netchan_OutOfBandPrint( svs.socket, address, "reject\n%i\nServer is full\n", DROP_FLAG_AUTORECONNECT );
-		Com_DPrintf( "Server is full. Rejected a connection.\n" );
 		return;
 	}
 	if( newcl->state && newcl->edict && ( newcl->edict->s.svflags & SVF_FAKECLIENT ) ) {
@@ -411,13 +407,11 @@ int SVC_FakeConnect( char * userinfo ) {
 		}
 	}
 	if( newcl == NULL ) {
-		Com_DPrintf( "Rejected a connection.\n" );
 		return -1;
 	}
 
 	// get the game a chance to reject this connection or modify the userinfo
 	if( !SV_ClientConnect( NULL_ADDRESS, newcl, userinfo, 0, -1, true ) ) {
-		Com_DPrintf( "Game rejected a connection.\n" );
 		return -1;
 	}
 

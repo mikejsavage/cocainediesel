@@ -156,8 +156,6 @@ CLIENT COMMAND EXECUTION
 * This will be sent on the initial connection and upon each server load.
 */
 static void SV_New_f( client_t *client ) {
-	Com_DPrintf( "New() from %s\n", client->name );
-
 	// if in CS_AWAITING we have sent the response packet the new once already,
 	// but client might have not got it so we send it again
 	if( client->state >= CS_SPAWNED ) {
@@ -202,13 +200,8 @@ static void SV_New_f( client_t *client ) {
 }
 
 static void SV_Configstrings_f( client_t *client ) {
-	int start;
-
 	if( client->state == CS_CONNECTING ) {
-		Com_DPrintf( "Start Configstrings() from %s\n", client->name );
 		client->state = CS_CONNECTED;
-	} else {
-		Com_DPrintf( "Configstrings() from %s\n", client->name );
 	}
 
 	if( client->state != CS_CONNECTED ) {
@@ -223,7 +216,7 @@ static void SV_Configstrings_f( client_t *client ) {
 		return;
 	}
 
-	start = atoi( Cmd_Argv( 2 ) );
+	int start = atoi( Cmd_Argv( 2 ) );
 	if( start < 0 ) {
 		start = 0;
 	}
@@ -246,12 +239,6 @@ static void SV_Configstrings_f( client_t *client ) {
 }
 
 static void SV_Baselines_f( client_t *client ) {
-	int start;
-	SyncEntityState nullstate;
-	SyncEntityState *base;
-
-	Com_DPrintf( "Baselines() from %s\n", client->name );
-
 	if( client->state != CS_CONNECTED ) {
 		Com_Printf( "baselines not valid -- already spawned\n" );
 		return;
@@ -264,18 +251,19 @@ static void SV_Baselines_f( client_t *client ) {
 		return;
 	}
 
-	start = atoi( Cmd_Argv( 2 ) );
+	int start = atoi( Cmd_Argv( 2 ) );
 	if( start < 0 ) {
 		start = 0;
 	}
 
+	SyncEntityState nullstate;
 	memset( &nullstate, 0, sizeof( nullstate ) );
 
 	// write a packet full of data
 	SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
 
 	while( tmpMessage.cursize < FRAGMENT_SIZE * 3 && start < MAX_EDICTS ) {
-		base = &sv.baselines[start];
+		SyncEntityState * base = &sv.baselines[start];
 		if( base->number != 0 ) {
 			MSG_WriteUint8( &tmpMessage, svc_spawnbaseline );
 			MSG_WriteDeltaEntity( &tmpMessage, &nullstate, base, true );
@@ -295,8 +283,6 @@ static void SV_Baselines_f( client_t *client ) {
 }
 
 static void SV_Begin_f( client_t *client ) {
-	Com_DPrintf( "Begin() from %s\n", client->name );
-
 	// wsw : r1q2[start] : could be abused to respawn or cause spam/other mod-specific problems
 	if( client->state != CS_CONNECTED ) {
 		if( is_dedicated_server ) {

@@ -336,7 +336,6 @@ bool CG_ScoreboardShown();
 //
 // cg_main.c
 //
-extern Cvar *developer;
 extern Cvar *cg_showClamp;
 
 // wsw

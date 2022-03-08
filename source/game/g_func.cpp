@@ -740,9 +740,7 @@ again:
 
 	ent = G_PickTarget( self->target );
 	if( !ent ) {
-		if( developer->integer ) {
-			Com_GGPrint( "train_next: bad target {}\n", self->target );
-		}
+		Com_GGPrint( "train_next: bad target {}\n", self->target );
 		return;
 	}
 
@@ -751,9 +749,7 @@ again:
 	// check for a teleport path_corner
 	if( ent->spawnflags & 1 ) {
 		if( !first ) {
-			if( developer->integer ) {
-				Com_GGPrint( "connected teleport path_corners, see {} at {}", ent->classname, ent->s.origin );
-			}
+			Com_GGPrint( "connected teleport path_corners, see {} at {}", ent->classname, ent->s.origin );
 
 			return;
 		}
@@ -797,17 +793,13 @@ static void func_train_find( edict_t *self ) {
 	edict_t *ent;
 
 	if( self->target == EMPTY_HASH ) {
-		if( developer->integer ) {
-			Com_Printf( "train_find: no target\n" );
-		}
+		Com_Printf( "train_find: no target\n" );
 		return;
 	}
 
 	ent = G_PickTarget( self->target );
 	if( !ent ) {
-		if( developer->integer ) {
-			Com_GGPrint( "train_find: target {} not found\n", self->target );
-		}
+		Com_GGPrint( "train_find: target {} not found\n", self->target );
 		return;
 	}
 

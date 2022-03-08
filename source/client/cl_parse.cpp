@@ -87,10 +87,7 @@ SERVER CONNECTING MESSAGES
 */
 
 static void CL_ParseServerData( msg_t *msg ) {
-	Com_DPrintf( "Serverdata packet received.\n" );
-
 	// wipe the client_state_t struct
-
 	CL_ClearState();
 	CL_SetClientState( CA_CONNECTED );
 

@@ -105,7 +105,6 @@ static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 		int zerror = Netchan_DecompressMessage( msg );
 		if( zerror < 0 ) {
 			// compression error. Drop the packet
-			Com_DPrintf( "SV_ProcessPacket: Compression error %i. Dropping packet\n", zerror );
 			return false;
 		}
 	}

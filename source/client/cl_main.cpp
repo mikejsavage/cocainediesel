@@ -405,8 +405,6 @@ void CL_Changing_f() {
 		CL_Stop_f();
 	}
 
-	Com_DPrintf( "CL:Changing\n" );
-
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 
 	// ignore snapshots from previous connection
@@ -615,7 +613,6 @@ static bool CL_ProcessPacket( netchan_t * netchan, msg_t * msg ) {
 		int zerror = Netchan_DecompressMessage( msg );
 		if( zerror < 0 ) {
 			// compression error. Drop the packet
-			Com_Printf( "CL_ProcessPacket: Compression error %i. Dropping packet\n", zerror );
 			return false;
 		}
 	}
@@ -1028,10 +1025,7 @@ void CL_Netchan_Transmit( msg_t * msg ) {
 	Netchan_PushAllFragments( cls.socket, &cls.netchan );
 
 	if( msg->cursize > 60 ) {
-		int zerror = Netchan_CompressMessage( msg );
-		if( zerror < 0 ) { // it's compression error, just send uncompressed
-			Com_DPrintf( "CL_Netchan_Transmit (ignoring compression): Compression error %i\n", zerror );
-		}
+		Netchan_CompressMessage( msg );
 	}
 
 	Netchan_Transmit( cls.socket, &cls.netchan, msg );

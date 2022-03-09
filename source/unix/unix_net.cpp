@@ -78,7 +78,7 @@ bool OSSocketSend( u64 handle, const void * data, size_t n, const sockaddr_stora
 				*sent = 0;
 				return true;
 			}
-			if( errno == ECONNRESET ) {
+			if( errno == ECONNRESET || errno == ENETUNREACH ) {
 				return false;
 			}
 			FatalErrno( "sendto" );

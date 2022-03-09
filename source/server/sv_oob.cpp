@@ -21,12 +21,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server/server.h"
 #include "qcommon/version.h"
 
-static NetAddress sv_masters[ ARRAY_COUNT( MASTER_SERVERS ) ];
+struct SvMasterServer {
+	NetAddress ipv4, ipv6;
+};
 
-extern Cvar *sv_hostname;
-extern Cvar *rcon_password;         // password for remote server commands
-extern Cvar *sv_iplimit;
+static SvMasterServer master_servers[ ARRAY_COUNT( MASTER_SERVERS ) ];
 
+extern Cvar * sv_hostname;
+extern Cvar * rcon_password;         // password for remote server commands
+extern Cvar * sv_iplimit;
 
 //==============================================================================
 //
@@ -35,7 +38,7 @@ extern Cvar *sv_iplimit;
 //==============================================================================
 
 static void SV_ResolveMaster() {
-	memset( sv_masters, 0, sizeof( sv_masters ) );
+	memset( master_servers, 0, sizeof( master_servers ) );
 
 	if( sv.state > ss_game ) {
 		return;
@@ -46,13 +49,25 @@ static void SV_ResolveMaster() {
 	}
 
 	for( size_t i = 0; i < ARRAY_COUNT( MASTER_SERVERS ); i++ ) {
-		if( !DNS( MASTER_SERVERS[ i ], &sv_masters[ i ] ) ) {
+		bool ipv4 = DNS( MASTER_SERVERS[ i ], &master_servers[ i ].ipv4, DNSFamily_IPv4 );
+		bool ipv6 = DNS( MASTER_SERVERS[ i ], &master_servers[ i ].ipv6, DNSFamily_IPv6 );
+
+		if( !ipv4 && !ipv6 ) {
 			Com_Printf( "Can't resolve master server: %s\n", MASTER_SERVERS[ i ] );
 			continue;
 		}
-		sv_masters[ i ].port = PORT_MASTER;
 
-		Com_GGPrint( "Added new master server #{} at {}", i, sv_masters[ i ] );
+		Com_GGPrintNL( "Added new master server #{} at", i );
+
+		if( ipv4 ) {
+			master_servers[ i ].ipv4.port = PORT_MASTER;
+			Com_GGPrintNL( " {}", master_servers[ i ].ipv4 );
+		}
+		if( ipv6 ) {
+			master_servers[ i ].ipv6.port = PORT_MASTER;
+			Com_GGPrintNL( "{}{}", ipv4 ? " and " : " ", master_servers[ i ].ipv6 );
+		}
+		Com_Printf( "\n" );
 	}
 
 	svc.lastMasterResolve = Sys_Milliseconds();
@@ -84,17 +99,17 @@ void SV_MasterHeartbeat() {
 		return;
 	}
 
-	// never go public when not acting as a game server
 	if( sv.state > ss_game ) {
 		return;
 	}
 
-	// send to group master
-	// TODO: separate ipv4 and ipv6 heartbeats
-	for( const NetAddress & master : sv_masters ) {
-		if( master != NULL_ADDRESS ) {
-			// warning: "DarkPlaces" is a protocol name here, not a game name. Do not replace it.
-			Netchan_OutOfBandPrint( svs.socket, master, "heartbeat DarkPlaces\n" );
+	for( const SvMasterServer & master : master_servers ) {
+		// warning: "DarkPlaces" is a protocol name here, not a game name. Do not replace it.
+		if( master.ipv4 != NULL_ADDRESS ) {
+			Netchan_OutOfBandPrint( svs.socket, master.ipv4, "heartbeat DarkPlaces\n" );
+		}
+		if( master.ipv6 != NULL_ADDRESS ) {
+			Netchan_OutOfBandPrint( svs.socket, master.ipv6, "heartbeat DarkPlaces\n" );
 		}
 	}
 }

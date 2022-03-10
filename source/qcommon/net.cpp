@@ -310,7 +310,7 @@ bool TCPSend( Socket socket, const void * data, size_t n, size_t * sent ) {
 bool TCPReceive( Socket socket, void * data, size_t n, size_t * received ) {
 	assert( socket.type == SocketType_TCPClient );
 
-	u64 handle = socket.ipv4 == 0 ? socket.ipv4 : socket.ipv4;
+	u64 handle = socket.ipv4 == 0 ? socket.ipv6 : socket.ipv4;
 	assert( handle != 0 );
 
 	return OSSocketReceive( handle, data, n, NULL, received );

@@ -218,16 +218,6 @@ void SP_speaker_wall( edict_t * ent, const spawn_temp_t * st );
 
 void SP_jumppad( edict_t * ent, const spawn_temp_t * st );
 
-// item spawnflags
-#define ITEM_TRIGGER_SPAWN  0x00000001
-#define ITEM_NO_TOUCH       0x00000002
-// 6 bits reserved for editor flags
-// 8 bits used as power cube id bits for coop games
-#define DROPPED_ITEM        0x00010000
-#define DROPPED_PLAYER_ITEM 0x00020000
-#define ITEM_TARGETS_USED   0x00040000
-#define ITEM_IGNORE_MAX     0x00080000
-
 //
 // g_cmds.c
 //

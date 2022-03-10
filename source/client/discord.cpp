@@ -2,7 +2,6 @@
 #include "qcommon/qcommon.h"
 #include "gameshared/q_shared.h"
 #include "qcommon/fs.h"
-#include "qcommon/library.h"
 #include "qcommon/string.h"
 #include "client/client.h"
 #include "cgame/cg_local.h"

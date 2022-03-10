@@ -64,7 +64,6 @@ do
 			"source/unix/unix_client.cpp",
 			"source/unix/unix_console.cpp",
 			"source/unix/unix_fs.cpp",
-			"source/unix/unix_library.cpp",
 			"source/unix/unix_livepp.cpp",
 			"source/unix/unix_net.cpp",
 			"source/unix/unix_sys.cpp",

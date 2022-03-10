@@ -249,17 +249,3 @@ Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor 
 
 	return Span< const char * >( results, num_results );
 }
-
-Library OpenLibrary( Allocator * a, const char * path ) {
-	wchar_t * wide_path = UTF8ToWide( a, path );
-	defer { FREE( a, wide_path ); };
-	return { LoadLibraryW( wide_path ) };
-}
-
-void CloseLibrary( Library library ) {
-	FreeLibrary( HMODULE( library.handle ) );
-}
-
-void * GetLibraryFunction( Library library, const char * name ) {
-	return GetProcAddress( HMODULE( library.handle ), name );
-}

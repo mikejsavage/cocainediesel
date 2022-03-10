@@ -465,8 +465,6 @@ void SV_Init() {
 	//init the master servers list
 	SV_InitMaster();
 
-	InitWebServer();
-
 	sv_initialized = true;
 
 	if( is_dedicated_server ) {
@@ -482,7 +480,6 @@ void SV_Shutdown( const char *finalmsg ) {
 	}
 	sv_initialized = false;
 
-	ShutdownWebServer();
 	SV_ShutdownGame( finalmsg, false );
 
 	SV_ShutdownOperatorCommands();

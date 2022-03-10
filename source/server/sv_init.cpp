@@ -118,6 +118,8 @@ void SV_InitGame() {
 		SV_ShutdownGame( "Server restarted", true );
 	}
 
+	InitWebServer();
+
 	u64 entropy[ 2 ];
 	CSPRNG( entropy, sizeof( entropy ) );
 	svs.rng = NewRNG( entropy[ 0 ], entropy[ 1 ] );
@@ -213,6 +215,8 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 		CM_Free( CM_Server, svs.cms );
 		svs.cms = NULL;
 	}
+
+	ShutdownWebServer();
 
 	Com_SetServerState( ss_dead );
 	svs.initialized = false;

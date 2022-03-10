@@ -8,7 +8,6 @@
 #include "qcommon/application.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
-#include "qcommon/library.h"
 #include "qcommon/sys_fs.h"
 
 bool Sys_FS_CreateDirectory( const char *path ) {

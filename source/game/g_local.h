@@ -232,7 +232,6 @@ void G_AddCommand( const char *name, gamecommandfunc_t cmdfunc );
 //
 // g_utils.c
 //
-#define G_LEVELPOOL_BASE_SIZE   45 * 1024 * 1024
 
 bool KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback );
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );

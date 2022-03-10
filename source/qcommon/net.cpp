@@ -150,8 +150,13 @@ static u64 OpenSocket( SocketFamily family, UDPOrTCP type, NonBlockingBool nonbl
 	else {
 		OSSocketSetSockOptOne( handle, IPPROTO_TCP, TCP_NODELAY );
 	}
+
 	if( family == SocketFamily_IPv6 ) {
 		OSSocketSetSockOptOne( handle, IPPROTO_IPV6, IPV6_V6ONLY );
+	}
+
+	if( port != 0 ) {
+		OSSocketSetSockOptOne( handle, SOL_SOCKET, SO_REUSEADDR );
 	}
 
 	sockaddr_in address4;

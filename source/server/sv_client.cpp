@@ -203,8 +203,7 @@ static void SV_Configstrings_f( client_t *client, msg_t args ) {
 	}
 
 	// handle the case of a level changing while a client was connecting
-	int adsf = MSG_ReadInt32( &args );
-	if( adsf != svs.spawncount ) {
+	if( MSG_ReadInt32( &args ) != svs.spawncount ) {
 		Com_Printf( "SV_Configstrings_f from different level\n" );
 		SV_SendServerCommand( client, "reconnect" );
 		return;

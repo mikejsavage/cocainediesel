@@ -124,7 +124,7 @@ void MSG_ReadData( msg_t *sb, void *buffer, size_t length );
 // define this 0 to disable compression of demo files
 #define SNAP_DEMO_GZ                    FS_GZ
 
-void SNAP_RecordDemoMessage( int demofile, msg_t *msg, int offset );
+void SNAP_RecordDemoMessage( int demofile, const msg_t * msg, size_t offset );
 int SNAP_ReadDemoMessage( int demofile, msg_t *msg );
 void SNAP_BeginDemoRecording( TempAllocator * temp, int demofile, unsigned int spawncount, unsigned int snapFrameTime,
 	const char *configstrings, SyncEntityState *baselines );

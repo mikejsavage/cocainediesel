@@ -308,6 +308,8 @@ void CL_ParseServerMessage( msg_t *msg ) {
 		Com_Printf( "------------------\n" );
 	}
 
+	size_t msg_header_offset = msg->readcount;
+
 	// parse the message
 	while( msg->readcount < msg->cursize ) {
 		int cmd = MSG_ReadUint8( msg );
@@ -420,6 +422,6 @@ void CL_ParseServerMessage( msg_t *msg ) {
 	// after we have parsed the frame
 	//
 	if( cls.demo.recording && !cls.demo.waiting ) {
-		CL_WriteDemoMessage( msg );
+		CL_WriteDemoMessage( msg, msg_header_offset );
 	}
 }

@@ -36,18 +36,18 @@ static char dummy_meta_data[SNAP_MAX_DEMO_META_DATA_SIZE];
 *
 * Writes given message to demofile
 */
-void SNAP_RecordDemoMessage( int demofile, msg_t *msg, int offset ) {
+void SNAP_RecordDemoMessage( int demofile, const msg_t * msg, size_t offset ) {
 	if( !demofile ) {
 		return;
 	}
 
 	// now write the entire message to the file, prefixed by length
-	int len = msg->cursize - offset;
-	if( len <= 0 ) {
+	u32 len = checked_cast< u32 >( msg->cursize - offset );
+	if( len == 0 ) {
 		return;
 	}
 
-	FS_Write( &len, 4, demofile );
+	FS_Write( &len, sizeof( u32 ), demofile );
 	FS_Write( msg->data + offset, len, demofile );
 }
 

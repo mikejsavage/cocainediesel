@@ -288,7 +288,7 @@ void CL_WriteUcmdsToMessage( msg_t *msg );
 //
 // cl_demo.c
 //
-void CL_WriteDemoMessage( msg_t *msg );
+void CL_WriteDemoMessage( const msg_t * msg, size_t offset );
 void CL_DemoCompleted();
 void CL_PlayDemo_f();
 void CL_YoloDemo_f();

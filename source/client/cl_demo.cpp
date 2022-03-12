@@ -29,14 +29,13 @@ static void CL_PauseDemo( bool paused );
 *
 * Dumps the current net message, prefixed by the length
 */
-void CL_WriteDemoMessage( msg_t *msg ) {
+void CL_WriteDemoMessage( const msg_t * msg, size_t offset ) {
 	if( cls.demo.file <= 0 ) {
 		cls.demo.recording = false;
 		return;
 	}
 
-	// the first eight bytes are just packet sequencing stuff
-	SNAP_RecordDemoMessage( cls.demo.file, msg, 8 );
+	SNAP_RecordDemoMessage( cls.demo.file, msg, offset );
 }
 
 /*

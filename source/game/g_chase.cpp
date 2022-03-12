@@ -266,7 +266,7 @@ void G_ChaseStep( edict_t *ent, int step ) {
 	}
 }
 
-void Cmd_ChaseCam_f( edict_t *ent ) {
+void Cmd_Spectate( edict_t * ent ) {
 	if( ent->s.team != TEAM_SPECTATOR ) {
 		G_Teams_JoinTeam( ent, TEAM_SPECTATOR );
 		if( !CheckFlood( ent, false ) ) { // prevent 'joined spectators' spam
@@ -275,7 +275,7 @@ void Cmd_ChaseCam_f( edict_t *ent ) {
 	}
 }
 
-void Cmd_SwitchChaseCamMode_f( edict_t *ent ) {
+void Cmd_ToggleFreeFly( edict_t * ent ) {
 	if( ent->s.team == TEAM_SPECTATOR ) {
 		if( ent->r.client->resp.chase.active ) {
 			G_Chase_SetChaseActive( ent, false );

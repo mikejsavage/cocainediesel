@@ -75,24 +75,9 @@ static void CG_SC_Debug() {
 	}
 }
 
-static void SendServerCommand() {
-	if( cls.demo.playing ) {
-		return;
-	}
-
-	char buf[ 1024 ];
-	snprintf( buf, sizeof( buf ), "%s %s", Cmd_Argv( 0 ), Cmd_Args() );
-	CL_AddReliableCommand( buf );
-}
-
 void CG_ConfigString( int i ) {
 	if( i == CS_AUTORECORDSTATE ) {
 		CG_SC_AutoRecordAction( cl.configstrings[ i ] );
-	}
-	else if( i >= CS_GAMECOMMANDS && i < CS_GAMECOMMANDS + MAX_GAMECOMMANDS ) {
-		if( !cgs.demoPlaying && !StrEqual( cl.configstrings[ i ], "" ) ) {
-			AddCommand( cl.configstrings[ i ], SendServerCommand );
-		}
 	}
 }
 
@@ -378,9 +363,14 @@ static void CG_Viewpos_f() {
 
 // local cgame commands
 struct cgcmd_t {
-	const char *name;
+	const char * name;
 	void ( *func )();
 	bool allowdemo;
+};
+
+struct ClientToServerCommand {
+	const char * name;
+	ClientCommandType command;
 };
 
 static const cgcmd_t cgcmds[] = {
@@ -395,31 +385,98 @@ static const cgcmd_t cgcmds[] = {
 	{ "viewpos", CG_Viewpos_f, true },
 };
 
+static const ClientToServerCommand game_commands_no_args[] = {
+	{ "noclip", ClientCommand_Noclip },
+	{ "suicide", ClientCommand_Suicide },
+	{ "spectate", ClientCommand_Spectate },
+	{ "chasenext", ClientCommand_ChaseNext },
+	{ "chaseprev", ClientCommand_ChasePrev },
+	{ "togglefreefly", ClientCommand_ToggleFreeFly },
+	{ "timeout", ClientCommand_Timeout },
+	{ "timein", ClientCommand_Timein },
+	{ "demolist", ClientCommand_DemoList },
+	{ "ready", ClientCommand_Ready },
+	{ "unready", ClientCommand_Unready },
+	{ "toggleready", ClientCommand_ToggleReady },
+	{ "spray", ClientCommand_Spray },
+	{ "drop", ClientCommand_DropBomb },
+	{ "loadoutmenu", ClientCommand_LoadoutMenu },
+};
+
+static const ClientToServerCommand game_commands_yes_args[] = {
+	{ "position", ClientCommand_Position },
+	{ "say", ClientCommand_Say },
+	{ "say_team", ClientCommand_SayTeam },
+	{ "callvote", ClientCommand_Callvote },
+	{ "vote", ClientCommand_Vote },
+	{ "op", ClientCommand_Operator },
+	{ "opcall", ClientCommand_OpCall },
+	{ "join", ClientCommand_Join },
+	{ "vsay", ClientCommand_Vsay },
+	{ "setloadout", ClientCommand_SetLoadout },
+};
+
+static void ReliableCommandNoArgs() {
+	for( ClientToServerCommand cmd : game_commands_no_args ) {
+		if( StrCaseEqual( cmd.name, Cmd_Argv( 0 ) ) ) {
+			CL_AddReliableCommand( cmd.command );
+			return;
+		}
+	}
+
+	assert( false );
+}
+
+static void ReliableCommandYesArgs() {
+	for( ClientToServerCommand cmd : game_commands_yes_args ) {
+		if( StrCaseEqual( cmd.name, Cmd_Argv( 0 ) ) ) {
+			msg_t * args = CL_AddReliableCommand( cmd.command );
+			MSG_WriteString( args, Cmd_Args() );
+			return;
+		}
+	}
+
+	assert( false );
+}
+
 void CG_RegisterCGameCommands() {
-	for( const cgcmd_t & cmd : cgcmds ) {
+	for( cgcmd_t cmd : cgcmds ) {
 		if( cgs.demoPlaying && !cmd.allowdemo ) {
 			continue;
 		}
 		AddCommand( cmd.name, cmd.func );
 	}
+
+	if( cgs.demoPlaying ) {
+		return;
+	}
+
+	for( ClientToServerCommand cmd : game_commands_no_args ) {
+		AddCommand( cmd.name, ReliableCommandNoArgs );
+	}
+
+	for( ClientToServerCommand cmd : game_commands_yes_args ) {
+		AddCommand( cmd.name, ReliableCommandYesArgs );
+	}
 }
 
 void CG_UnregisterCGameCommands() {
-	if( !cgs.demoPlaying ) {
-		// remove game commands
-		for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
-			const char * name = cl.configstrings[CS_GAMECOMMANDS + i];
-			if( !StrEqual( name, "" ) ) {
-				RemoveCommand( name );
-			}
-		}
-	}
-
-	// remove local commands
 	for( const cgcmd_t & cmd : cgcmds ) {
 		if( cgs.demoPlaying && !cmd.allowdemo ) {
 			continue;
 		}
+		RemoveCommand( cmd.name );
+	}
+
+	if( cgs.demoPlaying ) {
+		return;
+	}
+
+	for( ClientToServerCommand cmd : game_commands_no_args ) {
+		RemoveCommand( cmd.name );
+	}
+
+	for( ClientToServerCommand cmd : game_commands_yes_args ) {
 		RemoveCommand( cmd.name );
 	}
 }

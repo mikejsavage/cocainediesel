@@ -85,14 +85,11 @@ static Cvar * net_showfragments;
 * Sends an out-of-band datagram
 */
 static void Netchan_OutOfBand( Socket socket, const NetAddress & address, const void * data, size_t length ) {
-	msg_t send;
 	uint8_t send_buf[MAX_PACKETLEN];
-
-	// write the packet header
-	MSG_Init( &send, send_buf, sizeof( send_buf ) );
+	msg_t send = NewMSGWriter( send_buf, sizeof( send_buf ) );
 
 	MSG_WriteInt32( &send, -1 ); // -1 sequence means out of band
-	MSG_WriteData( &send, data, length );
+	MSG_Write( &send, data, length );
 
 	UDPSend( socket, address, send.data, send.cursize );
 }
@@ -212,7 +209,7 @@ int Netchan_CompressMessage( msg_t * msg ) {
 
 	//write it back into the original container
 	MSG_Clear( msg );
-	MSG_CopyData( msg, msg_process_data, length );
+	MSG_Write( msg, msg_process_data, length );
 	msg->compressed = true;
 
 	return length; // return the new size
@@ -241,7 +238,7 @@ int Netchan_DecompressMessage( msg_t * msg ) {
 
 	//write it back into the original container
 	msg->cursize = msg->readcount;
-	MSG_CopyData( msg, msg_process_data, length );
+	MSG_Write( msg, msg_process_data, length );
 	msg->compressed = false;
 
 	return length;
@@ -265,14 +262,8 @@ static void Netchan_DropAllFragments( netchan_t * chan ) {
 * Send one fragment of the current message
 */
 bool Netchan_TransmitNextFragment( Socket socket, netchan_t * chan ) {
-	msg_t send;
 	uint8_t send_buf[MAX_PACKETLEN];
-	int fragmentLength;
-	bool last;
-
-	// write the packet header
-	MSG_Init( &send, send_buf, sizeof( send_buf ) );
-	MSG_Clear( &send );
+	msg_t send = NewMSGWriter( send_buf, sizeof( send_buf ) );
 
 	if( net_showfragments->integer ) {
 		// Com_Printf( "Transmit fragment (%s) (id:%i)\n", DescribeSocket( chan->socket ), chan->outgoingSequence );
@@ -290,6 +281,8 @@ bool Netchan_TransmitNextFragment( Socket socket, netchan_t * chan ) {
 	MSG_WriteUint64( &send, chan->session_id );
 
 	// copy the reliable message to the packet first
+	int fragmentLength;
+	bool last;
 	if( chan->unsentFragmentStart + FRAGMENT_SIZE > chan->unsentLength ) {
 		fragmentLength = chan->unsentLength - chan->unsentFragmentStart;
 		last = true;
@@ -300,7 +293,7 @@ bool Netchan_TransmitNextFragment( Socket socket, netchan_t * chan ) {
 
 	MSG_WriteInt16( &send, chan->unsentFragmentStart );
 	MSG_WriteInt16( &send, ( last ? ( fragmentLength | FRAGMENT_LAST ) : fragmentLength ) );
-	MSG_CopyData( &send, chan->unsentBuffer + chan->unsentFragmentStart, fragmentLength );
+	MSG_Write( &send, chan->unsentBuffer + chan->unsentFragmentStart, fragmentLength );
 
 	// send the datagram
 	if( UDPSend( socket, chan->remoteAddress, send.data, send.cursize ) != send.cursize ) {
@@ -349,9 +342,6 @@ bool Netchan_PushAllFragments( Socket socket, netchan_t * chan ) {
 * A 0 length will still generate a packet.
 */
 bool Netchan_Transmit( Socket socket, netchan_t * chan, msg_t * msg ) {
-	msg_t send;
-	uint8_t send_buf[MAX_PACKETLEN];
-
 	assert( msg );
 
 	if( msg->cursize > MAX_MSGLEN ) {
@@ -373,9 +363,8 @@ bool Netchan_Transmit( Socket socket, netchan_t * chan, msg_t * msg ) {
 	}
 
 	// write the packet header
-	MSG_Init( &send, send_buf, sizeof( send_buf ) );
-	MSG_Clear( &send );
-
+	uint8_t send_buf[MAX_PACKETLEN];
+	msg_t send = NewMSGWriter( send_buf, sizeof( send_buf ) );
 	MSG_WriteInt32( &send, chan->outgoingSequence );
 	// wsw : jal : by now our header sends incoming ack too (q3 doesn't)
 	// wsw : jal : also add compressed information if it's compressed
@@ -389,7 +378,7 @@ bool Netchan_Transmit( Socket socket, netchan_t * chan, msg_t * msg ) {
 
 	MSG_WriteUint64( &send, chan->session_id );
 
-	MSG_CopyData( &send, msg->data, msg->cursize );
+	MSG_Write( &send, msg->data, msg->cursize );
 
 	// send the datagram
 	if( UDPSend( socket, chan->remoteAddress, send.data, send.cursize ) != send.cursize ) {
@@ -550,7 +539,7 @@ bool Netchan_Process( netchan_t * chan, msg_t * msg ) {
 		msg->compressed = compressed;
 
 		headerlength = msg->cursize;
-		MSG_CopyData( msg, chan->fragmentBuffer, chan->fragmentLength );
+		MSG_Write( msg, chan->fragmentBuffer, chan->fragmentLength );
 		msg->readcount = headerlength; // put read pointer after header again
 		chan->fragmentLength = 0;
 

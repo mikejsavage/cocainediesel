@@ -73,47 +73,30 @@ CLIENT RELIABLE COMMAND COMMUNICATION
 =======================================================================
 */
 
-/*
-* CL_AddReliableCommand
-*
-* The given command will be transmitted to the server, and is gauranteed to
-* not have future UserCommand executed before it is executed
-*/
-void CL_AddReliableCommand( const char *cmd ) {
-	int index;
-
-	if( !cmd || !strlen( cmd ) ) {
-		return;
-	}
-
+msg_t * CL_AddReliableCommand( ClientCommandType command ) {
 	// if we would be losing an old command that hasn't been acknowledged,
 	// we must drop the connection
 	if( cls.reliableSequence > cls.reliableAcknowledge + MAX_RELIABLE_COMMANDS ) {
 		cls.reliableAcknowledge = cls.reliableSequence; // try to avoid loops
 		Com_Error( "Client command overflow %" PRIi64 " %" PRIi64, cls.reliableAcknowledge, cls.reliableSequence );
 	}
+
 	cls.reliableSequence++;
-	index = cls.reliableSequence & ( MAX_RELIABLE_COMMANDS - 1 );
-	Q_strncpyz( cls.reliableCommands[index], cmd, sizeof( cls.reliableCommands[index] ) );
+
+	size_t index = cls.reliableSequence % MAX_RELIABLE_COMMANDS;
+	cls.reliableCommands[ index ] = { };
+	cls.reliableCommands[ index ].command = command;
+	cls.reliableCommands[ index ].args = NewMSGWriter( cls.reliableCommands[ index ].args_buf, sizeof( cls.reliableCommands[ index ].args_buf ) );
+	return &cls.reliableCommands[ index ].args;
 }
 
-/*
-* CL_UpdateClientCommandsToServer
-*
-* Add the pending commands to the message
-*/
-void CL_UpdateClientCommandsToServer( msg_t *msg ) {
-	int64_t i;
-
-	// write any unacknowledged clientCommands
-	for( i = cls.reliableAcknowledge + 1; i <= cls.reliableSequence; i++ ) {
-		if( !strlen( cls.reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )] ) ) {
-			continue;
-		}
-
+static void SerializeReliableCommands( msg_t * msg ) {
+	for( size_t i = cls.reliableAcknowledge + 1; i <= cls.reliableSequence; i++ ) {
+		size_t index = i % MAX_RELIABLE_COMMANDS;
 		MSG_WriteUint8( msg, clc_clientcommand );
 		MSG_WriteIntBase128( msg, i );
-		MSG_WriteString( msg, cls.reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )] );
+		MSG_WriteUint8( msg, cls.reliableCommands[ index ].command );
+		MSG_WriteMsg( msg, cls.reliableCommands[ index ].args );
 	}
 
 	cls.reliableSent = cls.reliableSequence;
@@ -331,11 +314,11 @@ void CL_ClearState() {
 */
 static void CL_Disconnect_SendCommand() {
 	// wsw : jal : send the packet 3 times to make sure isn't lost
-	CL_AddReliableCommand( "disconnect" );
+	CL_AddReliableCommand( ClientCommand_Disconnect );
 	CL_SendMessagesToServer( true );
-	CL_AddReliableCommand( "disconnect" );
+	CL_AddReliableCommand( ClientCommand_Disconnect );
 	CL_SendMessagesToServer( true );
-	CL_AddReliableCommand( "disconnect" );
+	CL_AddReliableCommand( ClientCommand_Disconnect );
 	CL_SendMessagesToServer( true );
 }
 
@@ -446,7 +429,7 @@ void CL_ServerReconnect_f() {
 
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 	CL_SetClientState( CA_HANDSHAKE );
-	CL_AddReliableCommand( "new" );
+	CL_AddReliableCommand( ClientCommand_New );
 }
 
 void CL_Reconnect_f() {
@@ -515,7 +498,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 		Netchan_Setup( &cls.netchan, address, cls.session_id );
 		memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 		CL_SetClientState( CA_HANDSHAKE );
-		CL_AddReliableCommand( "new" );
+		CL_AddReliableCommand( ClientCommand_New );
 		return;
 	}
 
@@ -628,9 +611,7 @@ void CL_ReadPackets() {
 		return;
 	}
 
-	msg_t msg;
-	MSG_Init( &msg, data, sizeof( data ) );
-	msg.cursize = bytes_received;
+	msg_t msg = NewMSGReader( data, bytes_received, sizeof( data ) );
 
 	// remote command packet
 	if( *(int *)msg.data == -1 ) {
@@ -690,7 +671,8 @@ void CL_FinishConnect() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	CL_GameModule_Init();
-	CL_AddReliableCommand( temp( "begin {}\n", precache_spawncount ) );
+	msg_t * args = CL_AddReliableCommand( ClientCommand_Begin );
+	MSG_WriteInt32( args, precache_spawncount );
 }
 
 static bool AddDownloadedMap( const char * filename, Span< const u8 > compressed ) {
@@ -1073,9 +1055,6 @@ static bool CL_MaxPacketsReached() {
 }
 
 void CL_SendMessagesToServer( bool sendNow ) {
-	msg_t message;
-	uint8_t messageData[MAX_MSGLEN];
-
 	if( cls.state == CA_DISCONNECTED || cls.state == CA_CONNECTING ) {
 		return;
 	}
@@ -1084,8 +1063,8 @@ void CL_SendMessagesToServer( bool sendNow ) {
 		return;
 	}
 
-	MSG_Init( &message, messageData, sizeof( messageData ) );
-	MSG_Clear( &message );
+	uint8_t messageData[MAX_MSGLEN];
+	msg_t message = NewMSGWriter( messageData, sizeof( messageData ) );
 
 	// send only reliable commands during connecting time
 	if( cls.state < CA_ACTIVE ) {
@@ -1094,7 +1073,7 @@ void CL_SendMessagesToServer( bool sendNow ) {
 			MSG_WriteUint8( &message, clc_svcack );
 			MSG_WriteIntBase128( &message, cls.lastExecutedServerCommand );
 			//write up the clc commands
-			CL_UpdateClientCommandsToServer( &message );
+			SerializeReliableCommands( &message );
 			CL_Netchan_Transmit( &message );
 		}
 	} else if( sendNow || CL_MaxPacketsReached() ) {
@@ -1104,10 +1083,11 @@ void CL_SendMessagesToServer( bool sendNow ) {
 		// send a userinfo update if needed
 		if( userinfo_modified ) {
 			TempAllocator temp = cls.frame_arena.temp();
-			CL_AddReliableCommand( temp( "usri \"{}\"", Cvar_GetUserInfo() ) );
+			msg_t * args = CL_AddReliableCommand( ClientCommand_UserInfo );
+			MSG_WriteString( args, Cvar_GetUserInfo() );
 			userinfo_modified = false;
 		}
-		CL_UpdateClientCommandsToServer( &message );
+		SerializeReliableCommands( &message );
 		CL_WriteUcmdsToMessage( &message );
 		CL_Netchan_Transmit( &message );
 	}

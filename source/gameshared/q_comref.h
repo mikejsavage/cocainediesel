@@ -79,8 +79,7 @@ enum pmtype_t {
 
 //precache stuff begins here
 #define CS_PLAYERINFOS      32
-#define CS_GAMECOMMANDS     ( CS_PLAYERINFOS + MAX_CLIENTS )
-#define MAX_CONFIGSTRINGS   ( CS_GAMECOMMANDS + MAX_GAMECOMMANDS )
+#define MAX_CONFIGSTRINGS   ( CS_PLAYERINFOS + MAX_CLIENTS )
 
 //==============================================
 

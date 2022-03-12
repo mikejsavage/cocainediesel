@@ -587,7 +587,9 @@ static void G_CallVotes_CheckState() {
 	server_gs.gameState.callvote_yes_votes = yeses;
 }
 
-void G_CallVotes_CmdVote( edict_t *ent ) {
+void G_CallVotes_CmdVote( edict_t *ent, msg_t args ) {
+	Cmd_TokenizeString( MSG_ReadString( &args ) );
+
 	const char *vote;
 	int vote_id;
 
@@ -733,14 +735,17 @@ bool G_Callvotes_HasVoted( edict_t * ent ) {
 	return clientVoted[ PLAYERNUM( ent ) ] != VOTED_NOTHING;
 }
 
-void G_CallVote_Cmd( edict_t *ent ) {
+void G_CallVote_Cmd( edict_t *ent, msg_t args ) {
+	Cmd_TokenizeString( MSG_ReadString( &args ) );
 	if( ent->s.svflags & SVF_FAKECLIENT ) {
 		return;
 	}
 	G_CallVote( ent, false );
 }
 
-void G_OperatorVote_Cmd( edict_t *ent ) {
+void G_OperatorVote_Cmd( edict_t *ent, msg_t args ) {
+	Cmd_TokenizeString( MSG_ReadString( &args ) );
+
 	edict_t *other;
 	int forceVote;
 

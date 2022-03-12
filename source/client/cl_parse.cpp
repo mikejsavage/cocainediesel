@@ -129,7 +129,9 @@ static void CL_ParseServerData( msg_t *msg ) {
 	}
 
 	// get the configstrings request
-	CL_AddReliableCommand( temp( "configstrings {} 0", cl.servercount ) );
+	msg_t * args = CL_AddReliableCommand( ClientCommand_ConfigStrings );
+	MSG_WriteInt32( args, cl.servercount );
+	MSG_WriteUint32( args, 0 );
 }
 
 static void CL_ParseBaseline( msg_t *msg ) {
@@ -217,7 +219,7 @@ static void CL_UpdateConfigString( int idx, const char *s ) {
 	CL_GameModule_ConfigString( idx );
 }
 
-static void CL_ForwardToServer_f() {
+static void CL_RequestMore( ClientCommandType command ) {
 	if( cls.demo.playing ) {
 		return;
 	}
@@ -227,10 +229,17 @@ static void CL_ForwardToServer_f() {
 		return;
 	}
 
-	// don't forward the first argument
-	if( Cmd_Argc() > 1 ) {
-		CL_AddReliableCommand( Cmd_Args() );
-	}
+	msg_t * args = CL_AddReliableCommand( command );
+	MSG_WriteInt32( args, atoi( Cmd_Argv( 1 ) ) );
+	MSG_WriteUint32( args, atoi( Cmd_Argv( 2 ) ) );
+}
+
+static void CL_RequestMoreBaselines() {
+	CL_RequestMore( ClientCommand_Baselines );
+}
+
+static void CL_RequestMoreConfigstrings() {
+	CL_RequestMore( ClientCommand_ConfigStrings );
 }
 
 static void CL_ParseConfigstringCommand() {
@@ -261,7 +270,8 @@ static svcmd_t svcmds[] = {
 	{ "reconnect", CL_ServerReconnect_f },
 	{ "changing", CL_Changing_f },
 	{ "precache", CL_Precache_f },
-	{ "cmd", CL_ForwardToServer_f },
+	{ "baselines", CL_RequestMoreBaselines },
+	{ "configstrings", CL_RequestMoreConfigstrings },
 	{ "cs", CL_ParseConfigstringCommand },
 	{ "disconnect", CL_ServerDisconnect_f },
 
@@ -342,9 +352,9 @@ void CL_ParseServerMessage( msg_t *msg ) {
 					break;
 				}
 				cls.lastExecutedServerCommand = cmdNum;
-			}
+				CL_ParseServerCommand( msg );
+			} break;
 
-			// fall through
 			case svc_servercs: // configstrings from demo files. they don't have acknowledge
 				CL_ParseServerCommand( msg );
 				break;

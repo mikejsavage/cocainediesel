@@ -122,9 +122,7 @@ static void SV_ReadPackets() {
 		return;
 	}
 
-	msg_t msg;
-	MSG_Init( &msg, data, sizeof( data ) );
-	msg.cursize = bytes_received;
+	msg_t msg = NewMSGReader( data, bytes_received, sizeof( data ) );
 
 	// check for connectionless packet (0xffffffff) first
 	if( *(int *)msg.data == -1 ) {
@@ -453,7 +451,7 @@ void SV_Init() {
 	sv_debug_serverCmd = NewCvar( "sv_debug_serverCmd", "0", 0 );
 
 	// this is a message holder for shared use
-	MSG_Init( &tmpMessage, tmpMessageData, sizeof( tmpMessageData ) );
+	tmpMessage = NewMSGWriter( tmpMessageData, sizeof( tmpMessageData ) );
 
 	// init server updates ratio
 	constexpr float pps = 20.0f;

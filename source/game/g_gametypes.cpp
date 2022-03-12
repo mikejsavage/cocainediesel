@@ -502,13 +502,6 @@ const edict_t * GT_CallSelectDeadcam() {
 	return NULL;
 }
 
-bool GT_CallGameCommand( gclient_t * client, const char * cmd, const char * args, int argc ) {
-	if( level.gametype.Command != NULL ) {
-		return level.gametype.Command( client, cmd, args, argc );
-	}
-	return false;
-}
-
 static bool IsGladiatorMap() {
 	return G_GetWorldspawnKey( "gametype" ) == "gladiator";
 }

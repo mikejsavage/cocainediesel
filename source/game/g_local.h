@@ -168,18 +168,18 @@ extern Cvar *g_autorecord;
 extern Cvar *g_autorecord_maxdemos;
 extern Cvar *g_allow_spectator_voting;
 
-void G_Teams_Join_Cmd( edict_t *ent );
-bool G_Teams_JoinTeam( edict_t *ent, int team );
+void G_Teams_Join_Cmd( edict_t * ent );
+bool G_Teams_JoinTeam( edict_t * ent, int team );
 void G_Teams_UpdateMembersList();
-bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent );
-void G_Teams_SetTeam( edict_t *ent, int team );
+bool G_Teams_JoinAnyTeam( edict_t * ent, bool silent );
+void G_Teams_SetTeam( edict_t * ent, int team );
 
-void Cmd_Say_f( edict_t *ent, bool arg0, bool checkflood );
+void Cmd_Say_f( edict_t * ent, bool arg0, bool checkflood );
 void G_Say_Team( edict_t *who, const char *inmsg, bool checkflood );
 
-void G_Match_Ready( edict_t *ent );
-void G_Match_NotReady( edict_t *ent );
-void G_Match_ToggleReady( edict_t *ent );
+void G_Match_Ready( edict_t * ent );
+void G_Match_NotReady( edict_t * ent );
+void G_Match_ToggleReady( edict_t * ent );
 void G_Match_CheckReadys();
 void G_EndMatch();
 
@@ -222,51 +222,50 @@ void SP_jumppad( edict_t * ent, const spawn_temp_t * st );
 // g_cmds.c
 //
 
-typedef void ( *gamecommandfunc_t )( edict_t * );
+typedef void ( *gamecommandfunc_t )( edict_t * ent, msg_t args );
 
-bool CheckFlood( edict_t *ent, bool teamonly );
+bool CheckFlood( edict_t * ent, bool teamonly );
 void G_InitGameCommands();
-void G_PrecacheGameCommands();
-void G_AddCommand( const char *name, gamecommandfunc_t cmdfunc );
+void G_AddCommand( ClientCommandType command, gamecommandfunc_t cmdfunc );
 
 //
 // g_utils.c
 //
 
-bool KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback );
+bool KillBox( edict_t * ent, DamageType damage_type, Vec3 knockback );
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );
 edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash value );
 edict_t * G_PickRandomEnt( StringHash edict_t::* field, StringHash value );
 edict_t * G_PickTarget( StringHash name );
-void G_UseTargets( edict_t *ent, edict_t *activator );
+void G_UseTargets( edict_t * ent, edict_t *activator );
 void G_SetMovedir( Vec3 * angles, Vec3 * movedir );
-void G_InitMover( edict_t *ent );
+void G_InitMover( edict_t * ent );
 
 void G_InitEdict( edict_t *e );
 edict_t *G_Spawn();
 void G_FreeEdict( edict_t *e );
 
-void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority );
+void G_AddEvent( edict_t * ent, int event, u64 parm, bool highPriority );
 edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin );
-void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm );
+void G_MorphEntityIntoEvent( edict_t * ent, int event, u64 parm );
 
-void G_CallThink( edict_t *ent );
+void G_CallThink( edict_t * ent );
 void G_CallTouch( edict_t *self, edict_t *other, Plane *plane, int surfFlags );
 void G_CallUse( edict_t *self, edict_t *other, edict_t *activator );
 void G_CallStop( edict_t *self );
-void G_CallPain( edict_t *ent, edict_t *attacker, float kick, float damage );
-void G_CallDie( edict_t *ent, edict_t *inflictor, edict_t *attacker, int assistorNo, DamageType damage_type, int damage );
+void G_CallPain( edict_t * ent, edict_t *attacker, float kick, float damage );
+void G_CallDie( edict_t * ent, edict_t *inflictor, edict_t *attacker, int assistorNo, DamageType damage_type, int damage );
 
 #ifndef _MSC_VER
-void G_PrintMsg( edict_t *ent, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
-void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, ... ) __attribute__( ( format( printf, 4, 5 ) ) );
-void G_CenterPrintMsg( edict_t *ent, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
+void G_PrintMsg( edict_t * ent, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
+void G_ChatMsg( edict_t * ent, edict_t *who, bool teamonly, const char *format, ... ) __attribute__( ( format( printf, 4, 5 ) ) );
+void G_CenterPrintMsg( edict_t * ent, const char *format, ... ) __attribute__( ( format( printf, 2, 3 ) ) );
 #else
-void G_PrintMsg( edict_t *ent, _Printf_format_string_ const char *format, ... );
-void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, _Printf_format_string_ const char *format, ... );
-void G_CenterPrintMsg( edict_t *ent, _Printf_format_string_ const char *format, ... );
+void G_PrintMsg( edict_t * ent, _Printf_format_string_ const char *format, ... );
+void G_ChatMsg( edict_t * ent, edict_t *who, bool teamonly, _Printf_format_string_ const char *format, ... );
+void G_CenterPrintMsg( edict_t * ent, _Printf_format_string_ const char *format, ... );
 #endif
-void G_ClearCenterPrint( edict_t *ent );
+void G_ClearCenterPrint( edict_t * ent );
 
 void G_DebugPrint( const char * format, ... );
 
@@ -277,11 +276,11 @@ void G_LocalSound( edict_t *owner, int channel, StringHash sound );
 
 #define G_ISGHOSTING( x ) ( ( x )->r.solid == SOLID_NOT )
 
-void G_TeleportEffect( edict_t *ent, bool in );
-void G_RespawnEffect( edict_t *ent );
-int G_SolidMaskForEnt( edict_t *ent );
-void G_CheckGround( edict_t *ent );
-void G_CategorizePosition( edict_t *ent );
+void G_TeleportEffect( edict_t * ent, bool in );
+void G_RespawnEffect( edict_t * ent );
+int G_SolidMaskForEnt( edict_t * ent );
+void G_CheckGround( edict_t * ent );
+void G_CategorizePosition( edict_t * ent );
 void G_ReleaseClientPSEvent( gclient_t *client );
 void G_AddPlayerStateEvent( gclient_t *client, int event, u64 parm );
 void G_ClearPlayerStateEvents( gclient_t *client );
@@ -290,7 +289,7 @@ void G_ClearPlayerStateEvents( gclient_t *client );
 void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, edict_t *ignore );
 edict_t *G_PlayerForText( const char *text );
 
-void G_SetBoundsForSpanEntity( edict_t *ent, float size );
+void G_SetBoundsForSpanEntity( edict_t * ent, float size );
 
 //
 // g_callvotes.c
@@ -298,11 +297,11 @@ void G_SetBoundsForSpanEntity( edict_t *ent, float size );
 void G_CallVotes_Init();
 void G_FreeCallvotes();
 void G_CallVotes_ResetClient( int n );
-void G_CallVotes_CmdVote( edict_t *ent );
 void G_CallVotes_Think();
-bool G_Callvotes_HasVoted( edict_t *ent );
-void G_CallVote_Cmd( edict_t *ent );
-void G_OperatorVote_Cmd( edict_t *ent );
+bool G_Callvotes_HasVoted( edict_t * ent );
+void G_CallVote_Cmd( edict_t * ent, msg_t args );
+void G_CallVotes_CmdVote( edict_t * ent, msg_t args );
+void G_OperatorVote_Cmd( edict_t * ent, msg_t args );
 
 //
 // g_trigger.c
@@ -334,13 +333,13 @@ int G_PointContents4D( Vec3 p, int timeDelta );
 void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask, int timeDelta );
 void GClip_BackUpCollisionFrame();
 int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int timeDelta );
-void G_SplashFrac4D( const edict_t *ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage );
+void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage );
 void GClip_ClearWorld();
 void GClip_SetBrushModel( edict_t * ent );
-void GClip_SetAreaPortalState( edict_t *ent, bool open );
-void GClip_LinkEntity( edict_t *ent );
-void GClip_UnlinkEntity( edict_t *ent );
-void GClip_TouchTriggers( edict_t *ent );
+void GClip_SetAreaPortalState( edict_t * ent, bool open );
+void GClip_LinkEntity( edict_t * ent );
+void GClip_UnlinkEntity( edict_t * ent );
+void GClip_TouchTriggers( edict_t * ent );
 void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin );
 SyncEntityState *G_GetEntityStateForDeltaTime( int entNum, int deltaTime );
 int GClip_FindInRadius( Vec3 org, float rad, int *list, int maxcount );
@@ -353,7 +352,7 @@ bool IsHeadshot( int entNum, Vec3 hit, int timeDelta );
 #define AREA_SOLID      1
 #define AREA_TRIGGERS   2
 int GClip_AreaEdicts( Vec3 mins, Vec3 maxs, int *list, int maxcount, int areatype, int timeDelta );
-bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t *ent );
+bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t * ent );
 
 //
 // g_combat.c
@@ -390,29 +389,29 @@ void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm );
 //
 // g_chasecam	//newgametypes
 //
-void G_ChasePlayer( edict_t *ent );
-void G_ChaseStep( edict_t *ent, int step );
-void Cmd_SwitchChaseCamMode_f( edict_t *ent );
-void Cmd_ChaseCam_f( edict_t *ent );
+void G_ChasePlayer( edict_t * ent );
+void G_ChaseStep( edict_t * ent, int step );
+void Cmd_ToggleFreeFly( edict_t * ent );
+void Cmd_Spectate( edict_t * ent );
 void G_EndServerFrames_UpdateChaseCam();
 
 //
 // g_client.c
 //
-void ClientUserinfoChanged( edict_t *ent, char *userinfo );
+void ClientUserinfoChanged( edict_t * ent, char *userinfo );
 void G_Client_UpdateActivity( gclient_t *client );
 void G_Client_InactivityRemove( gclient_t *client );
 void G_ClientRespawn( edict_t *self, bool ghost );
 score_stats_t * G_ClientGetStats( edict_t * ent );
-void G_ClientClearStats( edict_t *ent );
+void G_ClientClearStats( edict_t * ent );
 void G_GhostClient( edict_t *self );
-void ClientThink( edict_t *ent, UserCommand *cmd, int timeDelta );
-void G_ClientThink( edict_t *ent );
-void G_CheckClientRespawnClick( edict_t *ent );
-bool ClientConnect( edict_t *ent, char *userinfo, const NetAddress & address, bool fakeClient );
-void ClientDisconnect( edict_t *ent, const char *reason );
-void ClientBegin( edict_t *ent );
-void ClientCommand( edict_t *ent );
+void ClientThink( edict_t * ent, UserCommand *cmd, int timeDelta );
+void G_ClientThink( edict_t * ent );
+void G_CheckClientRespawnClick( edict_t * ent );
+bool ClientConnect( edict_t * ent, char *userinfo, const NetAddress & address, bool fakeClient );
+void ClientDisconnect( edict_t * ent, const char *reason );
+void ClientBegin( edict_t * ent );
+void ClientCommand( edict_t * ent, ClientCommandType command, msg_t args );
 void G_PredictedEvent( int entNum, int ev, u64 parm );
 void G_PredictedFireWeapon( int entNum, u64 weapon_and_entropy );
 void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm );
@@ -445,23 +444,23 @@ void G_RemoveCommands();
 //
 // p_view.c
 //
-void G_ClientEndSnapFrame( edict_t *ent );
+void G_ClientEndSnapFrame( edict_t * ent );
 void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, Vec3 dir );
-void G_ClientDamageFeedback( edict_t *ent );
+void G_ClientDamageFeedback( edict_t * ent );
 
 //
 // p_hud.c
 //
 
 
-void G_SetClientStats( edict_t *ent );
+void G_SetClientStats( edict_t * ent );
 void G_Snap_UpdateWeaponListMessages();
 
 //
 // g_phys.c
 //
 void SV_Impact( edict_t *e1, trace_t *trace );
-void G_RunEntity( edict_t *ent );
+void G_RunEntity( edict_t * ent );
 
 //
 // g_main.c

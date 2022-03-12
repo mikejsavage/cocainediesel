@@ -26,10 +26,19 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #define MAX_MSG_STRING_CHARS    2048
 
-void MSG_Init( msg_t *msg, uint8_t *data, size_t length ) {
-	memset( msg, 0, sizeof( *msg ) );
-	msg->data = data;
-	msg->maxsize = length;
+msg_t NewMSGWriter( u8 * data, size_t n ) {
+	msg_t msg = { };
+	msg.data = data;
+	msg.maxsize = n;
+	return msg;
+}
+
+msg_t NewMSGReader( u8 * data, size_t n, size_t data_size ) {
+	msg_t msg = { };
+	msg.data = data;
+	msg.maxsize = data_size;
+	msg.cursize = n;
+	return msg;
 }
 
 void MSG_Clear( msg_t *msg ) {
@@ -68,8 +77,8 @@ struct DeltaBuffer {
 static void MSG_WriteDeltaBuffer( msg_t * msg, const DeltaBuffer & delta ) {
 	MSG_WriteUintBase128( msg, delta.num_fields );
 	u8 bytes = ( delta.num_fields + 7 ) / 8;
-	MSG_WriteData( msg, delta.field_mask, bytes );
-	MSG_WriteData( msg, delta.buf, delta.cursor - delta.buf );
+	MSG_Write( msg, delta.field_mask, bytes );
+	MSG_Write( msg, delta.buf, delta.cursor - delta.buf );
 }
 
 static DeltaBuffer MSG_StartReadingDeltaBuffer( msg_t * msg ) {
@@ -250,67 +259,27 @@ static void DeltaAngle( DeltaBuffer * buf, Vec3 & v, const Vec3 & baseline ) {
 //==================================================
 
 
-void MSG_WriteData( msg_t *msg, const void *data, size_t length ) {
-	MSG_CopyData( msg, data, length );
+void MSG_Write( msg_t * msg, const void * data, size_t length ) {
+	memcpy( MSG_GetSpace( msg, length ), data, length );
 }
 
-void MSG_CopyData( msg_t *buf, const void *data, size_t length ) {
-	memcpy( MSG_GetSpace( buf, length ), data, length );
+void MSG_WriteZeroes( msg_t * msg, size_t n ) {
+	memset( MSG_GetSpace( msg, n ), 0, n );
 }
 
-void MSG_WriteInt8( msg_t *msg, int c ) {
-	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 1 );
-	buf[0] = ( char )c;
+template< typename T >
+void MSG_WriteFundamental( msg_t * msg, T x ) {
+	memcpy( MSG_GetSpace( msg, sizeof( T ) ), &x, sizeof( T ) );
 }
 
-void MSG_WriteUint8( msg_t *msg, int c ) {
-	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 1 );
-	buf[0] = ( uint8_t )( c & 0xff );
-}
-
-void MSG_WriteInt16( msg_t *msg, int c ) {
-	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 2 );
-	buf[0] = ( uint8_t )( c & 0xff );
-	buf[1] = ( uint8_t )( ( c >> 8 ) & 0xff );
-}
-
-void MSG_WriteUint16( msg_t *msg, unsigned c ) {
-	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 2 );
-	buf[0] = ( uint8_t )( c & 0xff );
-	buf[1] = ( uint8_t )( ( c >> 8 ) & 0xff );
-}
-
-void MSG_WriteInt32( msg_t *msg, int c ) {
-	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 4 );
-	buf[0] = ( uint8_t )( c & 0xff );
-	buf[1] = ( uint8_t )( ( c >> 8 ) & 0xff );
-	buf[2] = ( uint8_t )( ( c >> 16 ) & 0xff );
-	buf[3] = ( uint8_t )( c >> 24 );
-}
-
-void MSG_WriteInt64( msg_t *msg, int64_t c ) {
-	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 8 );
-	buf[0] = ( uint8_t )( c & 0xffL );
-	buf[1] = ( uint8_t )( ( c >> 8L ) & 0xffL );
-	buf[2] = ( uint8_t )( ( c >> 16L ) & 0xffL );
-	buf[3] = ( uint8_t )( ( c >> 24L ) & 0xffL );
-	buf[4] = ( uint8_t )( ( c >> 32L ) & 0xffL );
-	buf[5] = ( uint8_t )( ( c >> 40L ) & 0xffL );
-	buf[6] = ( uint8_t )( ( c >> 48L ) & 0xffL );
-	buf[7] = ( uint8_t )( c >> 56L );
-}
-
-void MSG_WriteUint64( msg_t *msg, uint64_t c ) {
-	uint8_t *buf = ( uint8_t* )MSG_GetSpace( msg, 8 );
-	buf[0] = ( uint8_t )( c & 0xffL );
-	buf[1] = ( uint8_t )( ( c >> 8L ) & 0xffL );
-	buf[2] = ( uint8_t )( ( c >> 16L ) & 0xffL );
-	buf[3] = ( uint8_t )( ( c >> 24L ) & 0xffL );
-	buf[4] = ( uint8_t )( ( c >> 32L ) & 0xffL );
-	buf[5] = ( uint8_t )( ( c >> 40L ) & 0xffL );
-	buf[6] = ( uint8_t )( ( c >> 48L ) & 0xffL );
-	buf[7] = ( uint8_t )( c >> 56L );
-}
+void MSG_WriteInt8( msg_t * msg, s8 x ) { MSG_WriteFundamental( msg, x ); }
+void MSG_WriteUint8( msg_t * msg, u8 x ) { MSG_WriteFundamental( msg, x ); }
+void MSG_WriteInt16( msg_t * msg, s16 x ) { MSG_WriteFundamental( msg, x ); }
+void MSG_WriteUint16( msg_t * msg, u16 x ) { MSG_WriteFundamental( msg, x ); }
+void MSG_WriteInt32( msg_t * msg, s32 x ) { MSG_WriteFundamental( msg, x ); }
+void MSG_WriteUint32( msg_t * msg, u32 x ) { MSG_WriteFundamental( msg, x ); }
+void MSG_WriteInt64( msg_t * msg, s64 x ) { MSG_WriteFundamental( msg, x ); }
+void MSG_WriteUint64( msg_t * msg, u64 x ) { MSG_WriteFundamental( msg, x ); }
 
 void MSG_WriteUintBase128( msg_t *msg, uint64_t c ) {
 	uint8_t buf[10];
@@ -324,7 +293,7 @@ void MSG_WriteUintBase128( msg_t *msg, uint64_t c ) {
 		len++;
 	} while( c );
 
-	MSG_WriteData( msg, buf, len );
+	MSG_Write( msg, buf, len );
 }
 
 void MSG_WriteIntBase128( msg_t *msg, int64_t c ) {
@@ -335,16 +304,21 @@ void MSG_WriteIntBase128( msg_t *msg, int64_t c ) {
 
 void MSG_WriteString( msg_t *msg, const char *s ) {
 	if( !s ) {
-		MSG_WriteData( msg, "", 1 );
+		MSG_Write( msg, "", 1 );
 	} else {
 		int l = strlen( s );
 		if( l >= MAX_MSG_STRING_CHARS ) {
 			Com_Printf( "MSG_WriteString: MAX_MSG_STRING_CHARS overflow" );
-			MSG_WriteData( msg, "", 1 );
+			MSG_Write( msg, "", 1 );
 			return;
 		}
-		MSG_WriteData( msg, s, l + 1 );
+		MSG_Write( msg, s, l + 1 );
 	}
+}
+
+void MSG_WriteMsg( msg_t * msg, msg_t other ) {
+	MSG_WriteUint16( msg, checked_cast< u16 >( other.cursize ) );
+	MSG_Write( msg, other.data, other.cursize );
 }
 
 //==================================================
@@ -355,83 +329,27 @@ void MSG_BeginReading( msg_t *msg ) {
 	msg->readcount = 0;
 }
 
-int MSG_ReadInt8( msg_t *msg ) {
-	int i = (signed char)msg->data[msg->readcount++];
-	if( msg->readcount > msg->cursize ) {
-		i = -1;
-	}
-	return i;
-}
-
-
-int MSG_ReadUint8( msg_t *msg ) {
-	msg->readcount++;
-	if( msg->readcount > msg->cursize ) {
-		return 0;
+template< typename T >
+T MSG_ReadFundamental( msg_t * msg, T def ) {
+	if( msg->readcount + sizeof( T ) > msg->cursize ) {
+		msg->readcount += sizeof( T );
+		return def;
 	}
 
-	return ( unsigned char )( msg->data[msg->readcount - 1] );
+	T x;
+	memcpy( &x, &msg->data[ msg->readcount ], sizeof( T ) );
+	msg->readcount += sizeof( T );
+	return x;
 }
 
-int16_t MSG_ReadInt16( msg_t *msg ) {
-	msg->readcount += 2;
-	if( msg->readcount > msg->cursize ) {
-		return -1;
-	}
-	return ( int16_t )( msg->data[msg->readcount - 2] | ( msg->data[msg->readcount - 1] << 8 ) );
-}
-
-uint16_t MSG_ReadUint16( msg_t *msg ) {
-	msg->readcount += 2;
-	if( msg->readcount > msg->cursize ) {
-		return 0;
-	}
-	return ( uint16_t )( msg->data[msg->readcount - 2] | ( msg->data[msg->readcount - 1] << 8 ) );
-}
-
-int MSG_ReadInt32( msg_t *msg ) {
-	msg->readcount += 4;
-	if( msg->readcount > msg->cursize ) {
-		return -1;
-	}
-
-	return msg->data[msg->readcount - 4]
-		   | ( msg->data[msg->readcount - 3] << 8 )
-		   | ( msg->data[msg->readcount - 2] << 16 )
-		   | ( msg->data[msg->readcount - 1] << 24 );
-}
-
-int64_t MSG_ReadInt64( msg_t *msg ) {
-	msg->readcount += 8;
-	if( msg->readcount > msg->cursize ) {
-		return -1;
-	}
-
-	return ( int64_t )msg->data[msg->readcount - 8]
-		| ( ( int64_t )msg->data[msg->readcount - 7] << 8L )
-		| ( ( int64_t )msg->data[msg->readcount - 6] << 16L )
-		| ( ( int64_t )msg->data[msg->readcount - 5] << 24L )
-		| ( ( int64_t )msg->data[msg->readcount - 4] << 32L )
-		| ( ( int64_t )msg->data[msg->readcount - 3] << 40L )
-		| ( ( int64_t )msg->data[msg->readcount - 2] << 48L )
-		| ( ( int64_t )msg->data[msg->readcount - 1] << 56L );
-}
-
-uint64_t MSG_ReadUint64( msg_t *msg ) {
-	msg->readcount += 8;
-	if( msg->readcount > msg->cursize ) {
-		return 0;
-	}
-
-	return ( uint64_t )msg->data[msg->readcount - 8]
-		| ( ( uint64_t )msg->data[msg->readcount - 7] << 8L )
-		| ( ( uint64_t )msg->data[msg->readcount - 6] << 16L )
-		| ( ( uint64_t )msg->data[msg->readcount - 5] << 24L )
-		| ( ( uint64_t )msg->data[msg->readcount - 4] << 32L )
-		| ( ( uint64_t )msg->data[msg->readcount - 3] << 40L )
-		| ( ( uint64_t )msg->data[msg->readcount - 2] << 48L )
-		| ( ( uint64_t )msg->data[msg->readcount - 1] << 56L );
-}
+s8 MSG_ReadInt8( msg_t * msg ) { return MSG_ReadFundamental< s8 >( msg, -1 ); }
+u8 MSG_ReadUint8( msg_t * msg ) { return MSG_ReadFundamental< u8 >( msg, 0 ); }
+s16 MSG_ReadInt16( msg_t * msg ) { return MSG_ReadFundamental< s16 >( msg, -1 ); }
+u16 MSG_ReadUint16( msg_t * msg ) { return MSG_ReadFundamental< u16 >( msg, 0 ); }
+s32 MSG_ReadInt32( msg_t * msg ) { return MSG_ReadFundamental< s32 >( msg, -1 ); }
+u32 MSG_ReadUint32( msg_t * msg ) { return MSG_ReadFundamental< u32 >( msg, 0 ); }
+s64 MSG_ReadInt64( msg_t * msg ) { return MSG_ReadFundamental< s64 >( msg, -1 ); }
+u64 MSG_ReadUint64( msg_t * msg ) { return MSG_ReadFundamental< u64 >( msg, 0 ); }
 
 uint64_t MSG_ReadUintBase128( msg_t *msg ) {
 	size_t len = 0;
@@ -497,6 +415,17 @@ char *MSG_ReadString( msg_t *msg ) {
 
 char *MSG_ReadStringLine( msg_t *msg ) {
 	return MSG_ReadString2( msg, true );
+}
+
+msg_t MSG_ReadMsg( msg_t * msg ) {
+	u16 len = MSG_ReadUint16( msg );
+	if( msg->readcount + len > msg->cursize ) {
+		return { };
+	}
+
+	msg_t result = NewMSGReader( &msg->data[ msg->readcount ], len, len );
+	MSG_SkipData( msg, len );
+	return result;
 }
 
 //==================================================

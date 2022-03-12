@@ -29,8 +29,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 		MSG_Clear( msg ); \
 	}
 
-static char dummy_meta_data[SNAP_MAX_DEMO_META_DATA_SIZE];
-
 /*
 * SNAP_RecordDemoMessage
 *
@@ -98,8 +96,8 @@ static void SNAP_DemoMetaDataMessage( msg_t *msg, const char *meta_data, size_t 
 	meta_data_ofs = msg->cursize - meta_data_ofs;
 	MSG_WriteInt32( msg, meta_data_realsize );       // real size
 	MSG_WriteInt32( msg, SNAP_MAX_DEMO_META_DATA_SIZE ); // max size
-	MSG_WriteData( msg, meta_data, meta_data_realsize );
-	MSG_WriteData( msg, dummy_meta_data, SNAP_MAX_DEMO_META_DATA_SIZE - meta_data_realsize );
+	MSG_Write( msg, meta_data, meta_data_realsize );
+	MSG_WriteZeroes( msg, SNAP_MAX_DEMO_META_DATA_SIZE - meta_data_realsize );
 
 	int demoinfo_end = msg->cursize;
 	demoinfo_len = msg->cursize - demoinfo_len;
@@ -129,12 +127,8 @@ static void SNAP_RecordDemoMetaDataMessage( int demofile, msg_t *msg ) {
 
 void SNAP_BeginDemoRecording( TempAllocator * temp, int demofile, unsigned int spawncount, unsigned int snapFrameTime,
 		const char *configstrings, SyncEntityState *baselines ) {
-	msg_t msg;
 	uint8_t msg_buffer[MAX_MSGLEN];
-	SyncEntityState nullstate;
-	SyncEntityState *base;
-
-	MSG_Init( &msg, msg_buffer, sizeof( msg_buffer ) );
+	msg_t msg = NewMSGWriter( msg_buffer, sizeof( msg_buffer ) );
 
 	SNAP_DemoMetaDataMessage( &msg, "", 0 );
 
@@ -160,10 +154,11 @@ void SNAP_BeginDemoRecording( TempAllocator * temp, int demofile, unsigned int s
 	}
 
 	// baselines
+	SyncEntityState nullstate;
 	memset( &nullstate, 0, sizeof( nullstate ) );
 
 	for( int i = 0; i < MAX_EDICTS; i++ ) {
-		base = &baselines[i];
+		const SyncEntityState * base = &baselines[i];
 		if( base->number != 0 ) {
 			MSG_WriteUint8( &msg, svc_spawnbaseline );
 			MSG_WriteDeltaEntity( &msg, &nullstate, base, true );
@@ -215,9 +210,8 @@ void SNAP_StopDemoRecording( int demofile ) {
 }
 
 void SNAP_WriteDemoMetaData( const char * filename, const char * meta_data, size_t meta_data_realsize ) {
-	msg_t msg;
 	uint8_t msg_buffer[MAX_MSGLEN];
-	MSG_Init( &msg, msg_buffer, sizeof( msg_buffer ) );
+	msg_t msg = NewMSGWriter( msg_buffer, sizeof( msg_buffer ) );
 
 	// write to a temp file
 	char * tmpn = ( *sys_allocator )( "{}.tmp", filename );

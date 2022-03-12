@@ -70,52 +70,56 @@ struct msg_t {
 	bool compressed;
 };
 
-// msg.c
-void MSG_Init( msg_t *buf, uint8_t *data, size_t length );
-void MSG_Clear( msg_t *buf );
-void *MSG_GetSpace( msg_t *buf, size_t length );
-void MSG_WriteData( msg_t *msg, const void *data, size_t length );
-void MSG_CopyData( msg_t *buf, const void *data, size_t length );
-int MSG_SkipData( msg_t *sb, size_t length );
+msg_t NewMSGReader( u8 * data, size_t n, size_t data_size );
+msg_t NewMSGWriter( u8 * data, size_t n );
+void MSG_Clear( msg_t * msg );
+void *MSG_GetSpace( msg_t * msg, size_t length );
+void MSG_Write( msg_t * msg, const void * data, size_t length );
+void MSG_WriteZeroes( msg_t * msg, size_t n );
+int MSG_SkipData( msg_t * msg, size_t length );
 
 //============================================================================
 
 struct UserCommand;
 
-void MSG_WriteInt8( msg_t *sb, int c );
-void MSG_WriteUint8( msg_t *sb, int c );
-void MSG_WriteInt16( msg_t *sb, int c );
-void MSG_WriteUint16( msg_t *sb, unsigned c );
-void MSG_WriteInt32( msg_t *sb, int c );
-void MSG_WriteInt64( msg_t *sb, int64_t c );
-void MSG_WriteUint64( msg_t *sb, uint64_t c );
-void MSG_WriteUintBase128( msg_t *msg, uint64_t c );
-void MSG_WriteIntBase128( msg_t *msg, int64_t c );
-void MSG_WriteString( msg_t *sb, const char *s );
+void MSG_WriteInt8( msg_t * msg, s8 x );
+void MSG_WriteUint8( msg_t * msg, u8 x );
+void MSG_WriteInt16( msg_t * msg, s16 x );
+void MSG_WriteUint16( msg_t * msg, u16 x );
+void MSG_WriteInt32( msg_t * msg, s32 x );
+void MSG_WriteUint32( msg_t * msg, u32 x );
+void MSG_WriteInt64( msg_t * msg, s64 x );
+void MSG_WriteUint64( msg_t * msg, u64 x );
+void MSG_WriteUintBase128( msg_t * msg, uint64_t c );
+void MSG_WriteIntBase128( msg_t * msg, int64_t c );
+void MSG_WriteString( msg_t * msg, const char *s );
 void MSG_WriteDeltaUsercmd( msg_t * msg, const UserCommand * baseline , const UserCommand * cmd );
 void MSG_WriteEntityNumber( msg_t * msg, int number, bool remove );
 void MSG_WriteDeltaEntity( msg_t * msg, const SyncEntityState * baseline, const SyncEntityState * ent, bool force );
 void MSG_WriteDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, const SyncPlayerState * player );
 void MSG_WriteDeltaGameState( msg_t * msg, const SyncGameState * baseline, const SyncGameState * state );
+void MSG_WriteMsg( msg_t * msg, msg_t other );
 
-void MSG_BeginReading( msg_t *sb );
-int MSG_ReadInt8( msg_t *msg );
-int MSG_ReadUint8( msg_t *msg );
-int16_t MSG_ReadInt16( msg_t *sb );
-uint16_t MSG_ReadUint16( msg_t *sb );
-int MSG_ReadInt32( msg_t *sb );
-int64_t MSG_ReadInt64( msg_t *sb );
-uint64_t MSG_ReadUint64( msg_t *sb );
-uint64_t MSG_ReadUintBase128( msg_t *msg );
-int64_t MSG_ReadIntBase128( msg_t *msg );
-char *MSG_ReadString( msg_t *sb );
-char *MSG_ReadStringLine( msg_t *sb );
+void MSG_BeginReading( msg_t * msg );
+s8 MSG_ReadInt8( msg_t * msg );
+u8 MSG_ReadUint8( msg_t * msg );
+s16 MSG_ReadInt16( msg_t * msg );
+u16 MSG_ReadUint16( msg_t * msg );
+s32 MSG_ReadInt32( msg_t * msg );
+u32 MSG_ReadUint32( msg_t * msg );
+s64 MSG_ReadInt64( msg_t * msg );
+u64 MSG_ReadUint64( msg_t * msg );
+uint64_t MSG_ReadUintBase128( msg_t * msg );
+int64_t MSG_ReadIntBase128( msg_t * msg );
+char *MSG_ReadString( msg_t * msg );
+char *MSG_ReadStringLine( msg_t * msg );
 void MSG_ReadDeltaUsercmd( msg_t * msg, const UserCommand * baseline, UserCommand * cmd );
 int MSG_ReadEntityNumber( msg_t * msg, bool * remove );
 void MSG_ReadDeltaEntity( msg_t * msg, const SyncEntityState * baseline, SyncEntityState * ent );
 void MSG_ReadDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, SyncPlayerState * player );
 void MSG_ReadDeltaGameState( msg_t * msg, const SyncGameState * baseline, SyncGameState * state );
-void MSG_ReadData( msg_t *sb, void *buffer, size_t length );
+void MSG_ReadData( msg_t * msg, void *buffer, size_t length );
+msg_t MSG_ReadMsg( msg_t * msg );
 
 //============================================================================
 

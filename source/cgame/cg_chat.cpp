@@ -100,11 +100,11 @@ static void SendChat() {
 static int InputCallback( ImGuiInputTextCallbackData * data ) {
 	if( data->EventChar == ' ' ) {
 		S_StartGlobalSound( "sounds/typewriter/space", CHAN_AUTO, 1.0f, 1.0f );
-		Cbuf_Add( "typewriterspace" );
+		CL_AddReliableCommand( ClientCommand_TypewriterSpace );
 	}
 	else {
 		S_StartGlobalSound( "sounds/typewriter/clack", CHAN_AUTO, 1.0f, 1.0f );
-		Cbuf_Add( "typewriterclack" );
+		CL_AddReliableCommand( ClientCommand_TypewriterClack );
 	}
 	return 0;
 }

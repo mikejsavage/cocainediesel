@@ -916,7 +916,7 @@ static void GameMenuButton( const char * label, const char * command, bool * cli
 
 static void SendLoadout() {
 	TempAllocator temp = cls.frame_arena.temp();
-	Cbuf_Add( "weapselect {}", loadout );
+	Cbuf_Add( "setloadout {}", loadout );
 }
 
 static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
@@ -1119,10 +1119,10 @@ static void GameMenu() {
 			}
 
 
-			GameMenuButton( "Spectate", "chase", &should_close );
+			GameMenuButton( "Spectate", "spectate", &should_close );
 
 			if( team_based ) {
-				GameMenuButton( "Change weapons", "gametypemenu", &should_close );
+				GameMenuButton( "Change weapons", "loadoutmenu", &should_close );
 			}
 		}
 

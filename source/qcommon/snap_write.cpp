@@ -185,7 +185,7 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 			} else {
 				int bytes = ( maxtarget + 7 ) / 8;
 				MSG_WriteUint8( msg, bytes );
-				MSG_WriteData( msg, targets, bytes );
+				MSG_Write( msg, targets, bytes );
 			}
 		}
 

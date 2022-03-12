@@ -334,8 +334,6 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 
 	InitGametype();
 
-	G_PrecacheGameCommands(); // adding commands after this point won't update them to the client
-
 	SpawnMapEntities();
 
 	// always start in warmup match state and let the thinking code

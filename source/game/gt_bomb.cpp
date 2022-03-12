@@ -177,14 +177,14 @@ static void GiveInventory( edict_t * ent ) {
 	G_GivePerk( ent, loadout.perk );
 }
 
-static void ShowShop( s32 player_num ) {
-	if( PLAYERENT( player_num )->s.team == TEAM_SPECTATOR ) {
+static void ShowShop( edict_t * ent ) {
+	if( ent->s.team == TEAM_SPECTATOR ) {
 		return;
 	}
 
 	TempAllocator temp = svs.frame_arena.temp();
-	const Loadout & loadout = bomb_state.loadouts[ player_num ];
-	PF_GameCmd( PLAYERENT( player_num ), temp( "changeloadout {}", loadout ) );
+	const Loadout & loadout = bomb_state.loadouts[ PLAYERNUM( ent ) ];
+	PF_GameCmd( ent, temp( "changeloadout {}", loadout ) );
 }
 
 static Loadout DefaultLoadout() {
@@ -1088,32 +1088,6 @@ static void SetTeamProgress( int team, int percent, BombProgress type ) {
 	}
 }
 
-static bool GT_Bomb_Command( gclient_t * client, const char * cmd_, const char * args, int argc ) {
-	if( cmd_ == NULL || args == NULL ) {
-		return false;
-	}
-	Span< const char > cmd = MakeSpan( cmd_ );
-
-	if( cmd == "drop" ) {
-		if( PLAYERNUM( client ) == bomb_state.carrier && bomb_state.bomb.state == BombState_Carried ) {
-			DropBomb( BombDropReason_Normal );
-		}
-		return true;
-	}
-
-	if( cmd == "gametypemenu" ) {
-		ShowShop( PLAYERNUM( client ) );
-		return true;
-	}
-
-	if( cmd == "weapselect" ) {
-		SetLoadout( PLAYERENT( PLAYERNUM( client ) ), args, false );
-		return true;
-	}
-
-	return false;
-}
-
 static const edict_t * GT_Bomb_SelectSpawnPoint( const edict_t * ent ) {
 	if( ent->s.team == AttackingTeam() ) {
 		edict_t * spawn = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" );
@@ -1287,9 +1261,19 @@ static void GT_Bomb_InitGametype() {
 	bomb_state.carrier = -1;
 	bomb_state.defuser = -1;
 
-	G_AddCommand( "drop", NULL ); // TODO: this sucks
-	G_AddCommand( "gametypemenu", NULL );
-	G_AddCommand( "weapselect", NULL );
+	G_AddCommand( ClientCommand_DropBomb, []( edict_t * ent, msg_t args ) {
+		if( ent->s.number == bomb_state.carrier && bomb_state.bomb.state == BombState_Carried ) {
+			DropBomb( BombDropReason_Normal );
+		}
+	} );
+
+	G_AddCommand( ClientCommand_LoadoutMenu, []( edict_t * ent, msg_t args ) {
+		ShowShop( ent );
+	} );
+
+	G_AddCommand( ClientCommand_SetLoadout, []( edict_t * ent, msg_t args ) {
+		SetLoadout( ent, MSG_ReadString( &args ), false );
+	} );
 
 	g_bomb_roundtime = NewCvar( "g_bomb_roundtime", "61", CvarFlag_Archive );
 	g_bomb_bombtimer = NewCvar( "g_bomb_bombtimer", "30", CvarFlag_Archive );
@@ -1332,7 +1316,6 @@ Gametype GetBombGametype() {
 	gt.PlayerKilled = GT_Bomb_PlayerKilled;
 	gt.SelectSpawnPoint = GT_Bomb_SelectSpawnPoint;
 	gt.SelectDeadcam = GT_Bomb_SelectDeadcam;
-	gt.Command = GT_Bomb_Command;
 	gt.Shutdown = GT_Bomb_Shutdown;
 	gt.MapHotloaded = ResetBombSites;
 	gt.SpawnEntity = GT_Bomb_SpawnEntity;

@@ -277,7 +277,7 @@ void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t s
 	}
 
 	if( data && size ) {
-		MSG_Init( msg, data, size );
+		*msg = NewMSGWriter( data, size );
 	}
 	MSG_Clear( msg );
 

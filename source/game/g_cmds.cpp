@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Teleports client to specified position
 * If client is not spectator teleporting is only done if position is free and teleport effects are drawn.
 */
-static bool G_Teleport( edict_t *ent, Vec3 origin, Vec3 angles ) {
+static bool G_Teleport( edict_t * ent, Vec3 origin, Vec3 angles ) {
 	if( !ent->r.inuse || !ent->r.client ) {
 		return false;
 	}
@@ -69,7 +69,7 @@ static bool G_Teleport( edict_t *ent, Vec3 origin, Vec3 angles ) {
 
 //=================================================================================
 
-static void Cmd_Noclip_f( edict_t *ent ) {
+static void Cmd_Noclip_f( edict_t * ent, msg_t args ) {
 	const char *msg;
 
 	if( sv_cheats->integer == 0 ) {
@@ -88,7 +88,7 @@ static void Cmd_Noclip_f( edict_t *ent ) {
 	G_PrintMsg( ent, "%s", msg );
 }
 
-static void Cmd_GameOperator_f( edict_t *ent ) {
+static void Cmd_GameOperator_f( edict_t * ent, msg_t args ) {
 	if( StrEqual( g_operator_password->value, "" ) ) {
 		G_PrintMsg( ent, "Operator is disabled in this server\n" );
 		return;
@@ -111,7 +111,7 @@ static void Cmd_GameOperator_f( edict_t *ent ) {
 	G_PrintMsg( ent, "Incorrect operator password.\n" );
 }
 
-static void Cmd_Kill_f( edict_t *ent ) {
+static void Cmd_Kill_f( edict_t * ent, msg_t args ) {
 	if( ent->r.solid == SOLID_NOT ) {
 		return;
 	}
@@ -122,15 +122,15 @@ static void Cmd_Kill_f( edict_t *ent ) {
 	G_Killed( ent, ent, ent, -1, WorldDamage_Suicide, 100000 );
 }
 
-void Cmd_ChaseNext_f( edict_t *ent ) {
+void Cmd_ChaseNext_f( edict_t * ent, msg_t args ) {
 	G_ChaseStep( ent, 1 );
 }
 
-void Cmd_ChasePrev_f( edict_t *ent ) {
+void Cmd_ChasePrev_f( edict_t * ent, msg_t args ) {
 	G_ChaseStep( ent, -1 );
 }
 
-static void Cmd_Position_f( edict_t *ent ) {
+static void Cmd_Position_f( edict_t * ent, msg_t args ) {
 	const char *action;
 
 	if( !sv_cheats->integer && server_gs.gameState.match_state > MatchState_Warmup &&
@@ -182,7 +182,7 @@ static void Cmd_Position_f( edict_t *ent ) {
 	}
 }
 
-bool CheckFlood( edict_t *ent, bool teamonly ) {
+bool CheckFlood( edict_t * ent, bool teamonly ) {
 	int i;
 	gclient_t *client;
 
@@ -274,7 +274,7 @@ bool CheckFlood( edict_t *ent, bool teamonly ) {
 	return false;
 }
 
-void Cmd_Say_f( edict_t *ent, bool arg0, bool checkflood ) {
+void Cmd_Say_f( edict_t * ent, bool arg0, bool checkflood ) {
 	char *p;
 	char text[2048];
 	size_t arg0len = 0;
@@ -307,7 +307,7 @@ void Cmd_Say_f( edict_t *ent, bool arg0, bool checkflood ) {
 	G_ChatMsg( NULL, ent, false, "%s", text );
 }
 
-static void Cmd_SayCmd_f( edict_t * ent ) {
+static void Cmd_SayCmd_f( edict_t * ent, msg_t args ) {
 	if( !G_ISGHOSTING( ent ) ) {
 		edict_t * event = G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/typewriter/return" );
 		event->s.ownerNum = ent->s.number;
@@ -316,7 +316,7 @@ static void Cmd_SayCmd_f( edict_t * ent ) {
 	Cmd_Say_f( ent, false, true );
 }
 
-static void Cmd_SayTeam_f( edict_t * ent ) {
+static void Cmd_SayTeam_f( edict_t * ent, msg_t args ) {
 	if( !G_ISGHOSTING( ent ) ) {
 		edict_t * event = G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/typewriter/return" );
 		event->s.ownerNum = ent->s.number;
@@ -325,7 +325,7 @@ static void Cmd_SayTeam_f( edict_t * ent ) {
 	G_Say_Team( ent, Cmd_Args(), true );
 }
 
-static void Cmd_Clack_f( edict_t * ent ) {
+static void Cmd_Clack_f( edict_t * ent, msg_t args ) {
 	bool space = StrCaseEqual( Cmd_Argv( 0 ), "typewriterspace" );
 	if( !G_ISGHOSTING( ent ) ) {
 		StringHash sound = space ? StringHash( "sounds/typewriter/space" ) : StringHash( "sounds/typewriter/clack" );
@@ -335,7 +335,7 @@ static void Cmd_Clack_f( edict_t * ent ) {
 	}
 }
 
-static void Cmd_Spray_f( edict_t * ent ) {
+static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	if( G_ISGHOSTING( ent ) )
 		return;
 
@@ -386,7 +386,7 @@ static const g_vsays_t g_vsays[] = {
 	{ NULL, 0 }
 };
 
-static void G_vsay_f( edict_t *ent ) {
+static void G_vsay_f( edict_t * ent, msg_t args ) {
 	if( G_ISGHOSTING( ent ) && server_gs.gameState.match_state < MatchState_PostMatch ) {
 		return;
 	}
@@ -413,7 +413,7 @@ static void G_vsay_f( edict_t *ent ) {
 	G_PrintMsg( ent, "Unknown vsay %s", Cmd_Argv( 1 ) );
 }
 
-static void Cmd_Join_f( edict_t *ent ) {
+static void Cmd_Join_f( edict_t * ent, msg_t args ) {
 	if( CheckFlood( ent, false ) ) {
 		return;
 	}
@@ -421,7 +421,7 @@ static void Cmd_Join_f( edict_t *ent ) {
 	G_Teams_Join_Cmd( ent );
 }
 
-static void Cmd_Timeout_f( edict_t *ent ) {
+static void Cmd_Timeout_f( edict_t * ent, msg_t args ) {
 	int num;
 
 	if( ent->s.team == TEAM_SPECTATOR || server_gs.gameState.match_state != MatchState_Playing ) {
@@ -462,7 +462,7 @@ static void Cmd_Timeout_f( edict_t *ent ) {
 	level.timeout.endtime = level.timeout.time + TIMEOUT_TIME + FRAMETIME;
 }
 
-static void Cmd_Timein_f( edict_t *ent ) {
+static void Cmd_Timein_f( edict_t * ent, msg_t args ) {
 	int num;
 
 	if( ent->s.team == TEAM_SPECTATOR ) {
@@ -505,111 +505,59 @@ static void Cmd_Timein_f( edict_t *ent ) {
 //	client commands
 //===========================================================
 
-typedef struct
-{
-	char name[MAX_CONFIGSTRING_CHARS];
-	gamecommandfunc_t func;
-} g_gamecommands_t;
+static gamecommandfunc_t g_Commands[ ClientCommand_Count ];
 
-g_gamecommands_t g_Commands[MAX_GAMECOMMANDS];
-
-void G_PrecacheGameCommands() {
-	for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
-		PF_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
-	}
-}
-
-void G_AddCommand( const char *name, gamecommandfunc_t callback ) {
-	// see if we already had it in game side
-	int i;
-	for( i = 0; i < MAX_GAMECOMMANDS; i++ ) {
-		if( !g_Commands[i].name[0] ) {
-			break;
-		}
-		if( StrCaseEqual( g_Commands[i].name, name ) ) {
-			// update func if different
-			if( g_Commands[i].func != callback ) {
-				g_Commands[i].func = ( gamecommandfunc_t )callback;
-			}
-			return;
-		}
-	}
-
-	assert( i < MAX_GAMECOMMANDS );
-
-	// we don't have it, add it
-	g_Commands[i].func = ( gamecommandfunc_t )callback;
-	Q_strncpyz( g_Commands[i].name, name, sizeof( g_Commands[i].name ) );
-
-	// add the configstring if the precache process was already done
-	if( level.canSpawnEntities ) {
-		PF_ConfigString( CS_GAMECOMMANDS + i, g_Commands[i].name );
-	}
+void G_AddCommand( ClientCommandType command, gamecommandfunc_t callback ) {
+	assert( g_Commands[ command ] == NULL );
+	g_Commands[ command ] = callback;
 }
 
 void G_InitGameCommands() {
 	memset( g_Commands, 0, sizeof( g_Commands ) );
 
-	G_AddCommand( "position", Cmd_Position_f );
-	G_AddCommand( "say", Cmd_SayCmd_f );
-	G_AddCommand( "say_team", Cmd_SayTeam_f );
-	G_AddCommand( "noclip", Cmd_Noclip_f );
-	G_AddCommand( "kill", Cmd_Kill_f );
-	G_AddCommand( "chase", Cmd_ChaseCam_f );
-	G_AddCommand( "chasenext", Cmd_ChaseNext_f );
-	G_AddCommand( "chaseprev", Cmd_ChasePrev_f );
-	G_AddCommand( "camswitch", Cmd_SwitchChaseCamMode_f );
-	G_AddCommand( "timeout", Cmd_Timeout_f );
-	G_AddCommand( "timein", Cmd_Timein_f );
-	G_AddCommand( "demolist", SV_DemoList_f );
-	G_AddCommand( "demogeturl", SV_DemoGetUrl_f );
+	G_AddCommand( ClientCommand_Position, Cmd_Position_f );
+	G_AddCommand( ClientCommand_Say, Cmd_SayCmd_f );
+	G_AddCommand( ClientCommand_SayTeam, Cmd_SayTeam_f );
+	G_AddCommand( ClientCommand_Noclip, Cmd_Noclip_f );
+	G_AddCommand( ClientCommand_Suicide, Cmd_Kill_f );
+	G_AddCommand( ClientCommand_Spectate, []( edict_t * ent, msg_t args ) { Cmd_Spectate( ent ); } );
+	G_AddCommand( ClientCommand_ChaseNext, Cmd_ChaseNext_f );
+	G_AddCommand( ClientCommand_ChasePrev, Cmd_ChasePrev_f );
+	G_AddCommand( ClientCommand_ToggleFreeFly, []( edict_t * ent, msg_t args ) { Cmd_ToggleFreeFly( ent ); } );
+	G_AddCommand( ClientCommand_Timeout, Cmd_Timeout_f );
+	G_AddCommand( ClientCommand_Timein, Cmd_Timein_f );
+	G_AddCommand( ClientCommand_DemoList, []( edict_t * ent, msg_t args ) { SV_DemoList_f( ent ); } );
+	G_AddCommand( ClientCommand_DemoGetURL, SV_DemoGetUrl_f );
 
 	// callvotes commands
-	G_AddCommand( "callvote", G_CallVote_Cmd );
-	G_AddCommand( "vote", G_CallVotes_CmdVote );
+	G_AddCommand( ClientCommand_Callvote, G_CallVote_Cmd );
+	G_AddCommand( ClientCommand_Vote, G_CallVotes_CmdVote );
 
-	G_AddCommand( "opcall", G_OperatorVote_Cmd );
-	G_AddCommand( "operator", Cmd_GameOperator_f );
-	G_AddCommand( "op", Cmd_GameOperator_f );
+	G_AddCommand( ClientCommand_Operator, Cmd_GameOperator_f );
+	G_AddCommand( ClientCommand_OpCall, G_OperatorVote_Cmd );
 
 	// teams commands
-	G_AddCommand( "ready", G_Match_Ready );
-	G_AddCommand( "unready", G_Match_NotReady );
-	G_AddCommand( "notready", G_Match_NotReady );
-	G_AddCommand( "toggleready", G_Match_ToggleReady );
-	G_AddCommand( "join", Cmd_Join_f );
+	G_AddCommand( ClientCommand_Ready, []( edict_t * ent, msg_t args ) { G_Match_Ready( ent ); } );
+	G_AddCommand( ClientCommand_Unready, []( edict_t * ent, msg_t args ) { G_Match_NotReady( ent ); } );
+	G_AddCommand( ClientCommand_ToggleReady, []( edict_t * ent, msg_t args ) { G_Match_ToggleReady( ent ); } );
+	G_AddCommand( ClientCommand_Join, Cmd_Join_f );
 
-	G_AddCommand( "typewriterclack", Cmd_Clack_f );
-	G_AddCommand( "typewriterspace", Cmd_Clack_f );
+	G_AddCommand( ClientCommand_TypewriterClack, Cmd_Clack_f );
+	G_AddCommand( ClientCommand_TypewriterSpace, Cmd_Clack_f );
 
-	G_AddCommand( "spray", Cmd_Spray_f );
+	G_AddCommand( ClientCommand_Spray, Cmd_Spray_f );
 
-	G_AddCommand( "vsay", G_vsay_f );
+	G_AddCommand( ClientCommand_Vsay, G_vsay_f );
 }
 
-void ClientCommand( edict_t *ent ) {
-	if( !ent->r.client || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
-		return; // not fully in game yet
-	}
-
+void ClientCommand( edict_t * ent, ClientCommandType command, msg_t args ) {
 	const char * cmd = Cmd_Argv( 0 );
 
 	G_Client_UpdateActivity( ent->r.client ); // activity detected
 
-	for( int i = 0; i < MAX_GAMECOMMANDS; i++ ) {
-		if( !g_Commands[i].name[0] ) {
-			break;
-		}
-
-		if( StrCaseEqual( g_Commands[i].name, cmd ) ) {
-			if( g_Commands[i].func ) {
-				g_Commands[i].func( ent );
-			} else {
-				GT_CallGameCommand( ent->r.client, cmd, Cmd_Args(), Cmd_Argc() - 1 );
-			}
-			return;
-		}
+	if( g_Commands[ command ] == NULL ) {
+		return;
 	}
 
-	G_PrintMsg( ent, "Bad user command: %s\n", cmd );
+	g_Commands[ command ]( ent, args );
 }

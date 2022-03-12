@@ -127,7 +127,7 @@ void CL_Record_f() {
 	cls.demo.name = CopyString( sys_allocator, Cmd_Argv( 1 ) );
 
 	// don't start saving messages until a non-delta compressed message is received
-	CL_AddReliableCommand( "nodelta" ); // request non delta compressed frame from server
+	CL_AddReliableCommand( ClientCommand_NoDelta ); // request non delta compressed frame from server
 	cls.demo.waiting = true;
 }
 
@@ -179,7 +179,6 @@ static void CL_ReadDemoMessage() {
 	static uint8_t msgbuf[MAX_MSGLEN];
 	static msg_t demomsg;
 	static bool init = true;
-	int read;
 
 	if( !demofilehandle ) {
 		CL_Disconnect( NULL );
@@ -187,11 +186,11 @@ static void CL_ReadDemoMessage() {
 	}
 
 	if( init ) {
-		MSG_Init( &demomsg, msgbuf, sizeof( msgbuf ) );
+		demomsg = NewMSGReader( msgbuf, 0, sizeof( msgbuf ) );
 		init = false;
 	}
 
-	read = SNAP_ReadDemoMessage( demofilehandle, &demomsg );
+	int read = SNAP_ReadDemoMessage( demofilehandle, &demomsg );
 	if( read == -1 ) {
 		CL_Disconnect( NULL );
 		return;

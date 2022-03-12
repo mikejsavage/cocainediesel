@@ -176,10 +176,17 @@ struct client_static_t {
 	const Material * white_material;
 
 	// these are our reliable messages that go to the server
-	int64_t reliableSequence;          // the last one we put in the list to be sent
-	int64_t reliableSent;              // the last one we sent to the server
-	int64_t reliableAcknowledge;       // the last one the server has executed
-	char reliableCommands[MAX_RELIABLE_COMMANDS][MAX_STRING_CHARS];
+	size_t reliableSequence;          // the last one we put in the list to be sent
+	size_t reliableSent;              // the last one we sent to the server
+	size_t reliableAcknowledge;       // the last one the server has executed
+
+	struct ReliableCommand {
+		ClientCommandType command;
+		u8 args_buf[ MAX_STRING_CHARS ];
+		msg_t args;
+	};
+
+	ReliableCommand reliableCommands[ MAX_RELIABLE_COMMANDS ];
 
 	// reliable messages received from server
 	int64_t lastExecutedServerCommand;          // last server command grabbed or executed with CL_GetServerCommand
@@ -233,8 +240,7 @@ extern SyncEntityState cl_baselines[MAX_EDICTS];
 //
 void CL_Init();
 
-void CL_UpdateClientCommandsToServer( msg_t *msg );
-void CL_AddReliableCommand( const char *cmd );
+msg_t * CL_AddReliableCommand( ClientCommandType command );
 void CL_Netchan_Transmit( msg_t *msg );
 void CL_SendMessagesToServer( bool sendNow );
 void CL_RestartTimeDeltas( int newTimeDelta );

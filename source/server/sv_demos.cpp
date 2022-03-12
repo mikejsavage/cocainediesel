@@ -54,8 +54,6 @@ void SV_Demo_WriteSnap() {
 	TracyZoneScoped;
 
 	int i;
-	msg_t msg;
-	uint8_t msg_buffer[MAX_MSGLEN];
 
 	if( !svs.demo.file ) {
 		return;
@@ -73,7 +71,8 @@ void SV_Demo_WriteSnap() {
 		return;
 	}
 
-	MSG_Init( &msg, msg_buffer, sizeof( msg_buffer ) );
+	uint8_t msg_buffer[MAX_MSGLEN];
+	msg_t msg = NewMSGWriter( msg_buffer, sizeof( msg_buffer ) );
 
 	SV_BuildClientFrameSnap( &svs.demo.client );
 
@@ -316,7 +315,9 @@ void SV_DemoList_f( edict_t * ent ) {
 	PF_GameCmd( ent, output.c_str() );
 }
 
-void SV_DemoGetUrl_f( edict_t * ent ) {
+void SV_DemoGetUrl_f( edict_t * ent, msg_t args ) {
+	Cmd_TokenizeString( MSG_ReadString( &args ) );
+
 	if( Cmd_Argc() != 2 ) {
 		return;
 	}

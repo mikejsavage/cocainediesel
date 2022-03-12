@@ -239,7 +239,7 @@ void G_Teams_Join_Cmd( edict_t *ent ) {
 	int team = GS_TeamFromName( t );
 	if( team != -1 ) {
 		if( team == TEAM_SPECTATOR ) { // special handling for spectator team
-			Cmd_ChaseCam_f( ent );
+			Cmd_Spectate( ent );
 			return;
 		}
 		if( team == ent->s.team ) {

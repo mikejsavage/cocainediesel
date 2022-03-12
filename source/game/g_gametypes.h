@@ -14,7 +14,6 @@ struct Gametype {
 	void ( *PlayerKilled )( edict_t * victim, edict_t * attacker, edict_t * inflictor );
 	const edict_t * ( *SelectSpawnPoint )( const edict_t * ent );
 	const edict_t * ( *SelectDeadcam )();
-	bool ( *Command )( gclient_t * client, const char * cmd, const char * args, int argc );
 	void ( *Shutdown )();
 	bool ( *SpawnEntity )( StringHash classname, edict_t * ent );
 	void ( *MapHotloaded )();
@@ -51,6 +50,5 @@ void GT_CallPlayerRespawned( edict_t * ent, int old_team, int new_team );
 void GT_CallPlayerKilled( edict_t * victim, edict_t * attacker, edict_t * inflictor );
 const edict_t * GT_CallSelectSpawnPoint( const edict_t * ent );
 const edict_t * GT_CallSelectDeadcam();
-bool GT_CallGameCommand( gclient_t * client, const char * cmd, const char * args, int argc );
 
 Span< const char > G_GetWorldspawnKey( const char * key );

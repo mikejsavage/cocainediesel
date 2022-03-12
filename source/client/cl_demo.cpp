@@ -249,6 +249,8 @@ void CL_LatchedDemoJump() {
 }
 
 static void CL_StartDemo( const char * demoname, bool yolo ) {
+	CL_Disconnect( NULL );
+
 	const char * ext = FileExtension( demoname ) == "" ? APP_DEMO_EXTENSION_STR : "";
 	char * filename;
 	if( COM_ValidateRelativeFilename( demoname ) ) {

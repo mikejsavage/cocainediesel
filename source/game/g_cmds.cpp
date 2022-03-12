@@ -551,13 +551,9 @@ void G_InitGameCommands() {
 }
 
 void ClientCommand( edict_t * ent, ClientCommandType command, msg_t args ) {
-	const char * cmd = Cmd_Argv( 0 );
-
 	G_Client_UpdateActivity( ent->r.client ); // activity detected
 
-	if( g_Commands[ command ] == NULL ) {
-		return;
+	if( g_Commands[ command ] != NULL ) {
+		g_Commands[ command ]( ent, args );
 	}
-
-	g_Commands[ command ]( ent, args );
 }

@@ -364,7 +364,7 @@ static void WebServerFrame() {
 			continue;
 
 		s64 timeout = con.received_request ? RESPONSE_INACTIVITY_TIMEOUT : REQUEST_TIMEOUT;
-		if( Sys_Milliseconds() > con.last_activity + timeout ) {
+		if( now > con.last_activity + timeout ) {
 			con.should_close = true;
 		}
 

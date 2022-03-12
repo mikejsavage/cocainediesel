@@ -488,7 +488,6 @@ void CG_JetpackEffect( centity_t * cent ) {
 		return;
 	}
 
-	bool viewer = ISVIEWERENTITY( cent->current.number );
 	float volume = cent->jetpack_boost ? 4.0f : 1.0f;
 
 	if( cent->localEffects[ LOCALEFFECT_JETPACK ] <= cl.serverTime ) {

@@ -161,7 +161,6 @@ struct client_static_t {
 	NetAddress rconaddress;       // address where we are sending rcon messages, to ignore other print packets
 
 	char * download_url;              // http://<httpaddress>/
-	bool download_url_is_game_server;
 
 	bool rejected;          // these are used when the server rejects our connection
 	char rejectmessage[80];
@@ -199,8 +198,6 @@ struct client_static_t {
 	// times when we got/sent last valid packets from/to server
 	int64_t lastPacketSentTime;
 	int64_t lastPacketReceivedTime;
-
-	char session[MAX_INFO_VALUE];
 
 	ImFont * huge_font;
 	ImFont * large_font;

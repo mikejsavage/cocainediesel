@@ -403,7 +403,7 @@ static void SVC_DirectConnect( const NetAddress & address ) {
 	}
 
 	// send the connect packet to the client
-	Netchan_OutOfBandPrint( svs.socket, address, "client_connect\n%s", newcl->session );
+	Netchan_OutOfBandPrint( svs.socket, address, "client_connect" );
 }
 
 /*

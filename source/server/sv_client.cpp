@@ -80,13 +80,6 @@ bool SV_ClientConnect( const NetAddress & address, client_t * client, char * use
 	Q_strncpyz( client->userinfo, userinfo, sizeof( client->userinfo ) );
 	SV_UserinfoChanged( client );
 
-	// generate session id
-	for( size_t i = 0; i < sizeof( client->session ) - 1; i++ ) {
-		const char symbols[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-		client->session[i] = RandomElement( &svs.rng, symbols );
-	}
-	client->session[ sizeof( client->session ) - 1 ] = '\0';
-
 	return true;
 }
 

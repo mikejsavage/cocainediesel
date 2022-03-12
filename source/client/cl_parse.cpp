@@ -62,16 +62,7 @@ bool CL_DownloadFile( const char * filename, DownloadCompleteCallback callback )
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const char * url = temp( "{}/{}", cls.download_url, filename );
-	if( cls.download_url_is_game_server ) {
-		const char * headers[] = {
-			temp( "X-Client: {}", cl.playernum ),
-			temp( "X-Session: {}", cls.session ),
-		};
-		StartDownload( url, OnDownloadDone, headers, ARRAY_COUNT( headers ) );
-	}
-	else {
-		StartDownload( url, OnDownloadDone, NULL, 0 );
-	}
+	StartDownload( url, OnDownloadDone, NULL, 0 );
 
 	Com_Printf( "Downloading %s\n", url );
 
@@ -119,13 +110,11 @@ static void CL_ParseServerData( msg_t *msg ) {
 	cl.playernum = MSG_ReadInt16( msg );
 
 	const char * download_url = MSG_ReadString( msg );
-	if( strlen( download_url ) > 0 ) {
+	if( !StrEqual( download_url, "" ) ) {
 		cls.download_url = CopyString( sys_allocator, download_url );
-		cls.download_url_is_game_server = false;
 	}
 	else {
 		cls.download_url = CopyString( sys_allocator, temp( "http://{}", cls.serveraddress ) );
-		cls.download_url_is_game_server = true;
 	}
 
 	// get the configstrings request

@@ -493,8 +493,6 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 
 		cls.rejected = false;
 
-		Q_strncpyz( cls.session, MSG_ReadStringLine( msg ), sizeof( cls.session ) );
-
 		Netchan_Setup( &cls.netchan, address, cls.session_id );
 		memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 		CL_SetClientState( CA_HANDSHAKE );

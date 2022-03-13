@@ -590,9 +590,6 @@ static void G_CallVotes_CheckState() {
 void G_CallVotes_CmdVote( edict_t *ent, msg_t args ) {
 	Cmd_TokenizeString( MSG_ReadString( &args ) );
 
-	const char *vote;
-	int vote_id;
-
 	if( !ent->r.client ) {
 		return;
 	}
@@ -605,7 +602,8 @@ void G_CallVotes_CmdVote( edict_t *ent, msg_t args ) {
 		return;
 	}
 
-	vote = Cmd_Argv( 1 );
+	const char * vote = Cmd_Argv( 0 );
+	int vote_id;
 	if( StrCaseEqual( vote, "yes" ) ) {
 		vote_id = VOTED_YES;
 	}
@@ -658,7 +656,7 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 		return;
 	}
 
-	const char * votename = Cmd_Argv( 1 );
+	const char * votename = Cmd_Argv( 0 );
 	if( !votename || !votename[0] ) {
 		G_CallVotes_PrintUsagesToPlayer( ent );
 		return;
@@ -687,18 +685,18 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 	}
 
 	//we got a valid type. Get the parameters if any
-	if( callvote->expectedargs != Cmd_Argc() - 2 ) {
+	if( callvote->expectedargs != Cmd_Argc() - 1 ) {
 		if( callvote->expectedargs != -1 &&
-			( callvote->expectedargs != -2 || Cmd_Argc() - 2 > 0 ) ) {
+			( callvote->expectedargs != -2 || Cmd_Argc() - 1 > 0 ) ) {
 			// wrong number of parametres
 			G_CallVotes_PrintHelpToPlayer( ent, callvote );
 			return;
 		}
 	}
 
-	callvoteState.vote.argc = Cmd_Argc() - 2;
+	callvoteState.vote.argc = Cmd_Argc() - 1;
 	for( int i = 0; i < callvoteState.vote.argc; i++ ) {
-		callvoteState.vote.argv[i] = CopyString( sys_allocator, Cmd_Argv( i + 2 ) );
+		callvoteState.vote.argv[i] = CopyString( sys_allocator, Cmd_Argv( i + 1 ) );
 	}
 
 	callvoteState.vote.callvote = callvote;
@@ -761,15 +759,15 @@ void G_OperatorVote_Cmd( edict_t *ent, msg_t args ) {
 		return;
 	}
 
-	if( StrCaseEqual( Cmd_Argv( 1 ), "help" ) ) {
+	if( StrCaseEqual( Cmd_Argv( 0 ), "help" ) ) {
 		G_PrintMsg( ent, "Opcall can be used with all callvotes and the following commands:\n" );
 		G_PrintMsg( ent, "-help\n - passvote\n- cancelvote\n- putteam\n" );
 		return;
 	}
 
-	if( StrCaseEqual( Cmd_Argv( 1 ), "cancelvote" ) ) {
+	if( StrCaseEqual( Cmd_Argv( 0 ), "cancelvote" ) ) {
 		forceVote = VOTED_NO;
-	} else if( StrCaseEqual( Cmd_Argv( 1 ), "passvote" ) ) {
+	} else if( StrCaseEqual( Cmd_Argv( 0 ), "passvote" ) ) {
 		forceVote = VOTED_YES;
 	} else {
 		forceVote = VOTED_NOTHING;
@@ -797,9 +795,9 @@ void G_OperatorVote_Cmd( edict_t *ent, msg_t args ) {
 		return;
 	}
 
-	if( StrCaseEqual( Cmd_Argv( 1 ), "putteam" ) ) {
-		const char *splayer = Cmd_Argv( 2 );
-		const char *steam = Cmd_Argv( 3 );
+	if( StrCaseEqual( Cmd_Argv( 0 ), "putteam" ) ) {
+		const char *splayer = Cmd_Argv( 1 );
+		const char *steam = Cmd_Argv( 2 );
 		edict_t *playerEnt;
 		int newTeam;
 

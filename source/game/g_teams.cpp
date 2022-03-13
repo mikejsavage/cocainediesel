@@ -225,12 +225,14 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 	return false;
 }
 
-void G_Teams_Join_Cmd( edict_t *ent ) {
+void G_Teams_Join_Cmd( edict_t *ent, msg_t args ) {
 	if( !ent->r.client || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return;
 	}
 
-	const char * t = Cmd_Argv( 1 );
+	Cmd_TokenizeString( MSG_ReadString( &args ) );
+
+	const char * t = Cmd_Argv( 0 );
 	if( !t || *t == 0 ) {
 		G_Teams_JoinAnyTeam( ent, false );
 		return;

@@ -418,7 +418,7 @@ static void Cmd_Join_f( edict_t * ent, msg_t args ) {
 		return;
 	}
 
-	G_Teams_Join_Cmd( ent );
+	G_Teams_Join_Cmd( ent, args );
 }
 
 static void Cmd_Timeout_f( edict_t * ent, msg_t args ) {

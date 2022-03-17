@@ -280,7 +280,7 @@ static void SettingsControls() {
 			KeyBindButton( "Use gadget", "+gadget" );
 			KeyBindButton( "Plant bomb", "+plant" );
 			KeyBindButton( "Drop bomb", "drop" );
-			KeyBindButton( "Shop", "gametypemenu" );
+			KeyBindButton( "Shop", "loadoutmenu" );
 			KeyBindButton( "Scoreboard", "+scores" );
 
 			ImGui::Separator();

@@ -101,7 +101,7 @@ local function DrawHotkeys( state, options, x, y )
 	y -= options.font_size * 0.1
 	if state.can_change_loadout then
 		options.color = "#fff"
-		cd.text( options, x, y, "Press "..cd.getBind( "gametypemenu" ).." to change loadout" )
+		cd.text( options, x, y, "Press "..cd.getBind( "loadoutmenu" ).." to change loadout" )
 	elseif state.can_plant then
 		options.color = cd.plantableColor()
 		cd.text( options, x, y, "Press "..cd.getBind( "+plant" ).." to plant" )

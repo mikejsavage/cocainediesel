@@ -44,10 +44,11 @@ static RichPresence old_presence;
 
 void InitDiscord() {
 	TracyZoneScoped;
-	old_presence = { };
 
 	constexpr const char * application_id = "882369979406753812";
 	Discord_Initialize( application_id, NULL, 1, NULL );
+
+	old_presence = { };
 }
 
 void DiscordFrame() {

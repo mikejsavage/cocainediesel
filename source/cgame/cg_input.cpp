@@ -249,11 +249,6 @@ int CG_GetBoundKeycodes( const char *cmd, int keys[ 2 ] ) {
  * mouse
  */
 
-static Cvar *m_accelStyle;
-static Cvar *m_accelOffset;
-static Cvar *m_accelPow;
-static Cvar *m_sensCap;
-
 static Vec2 mouse_movement;
 
 static float CG_GetSensitivityScale() {
@@ -264,51 +259,8 @@ static float CG_GetSensitivityScale() {
 	return 1.0f;
 }
 
-// TODO: these belong somewhere else
-static Vec2 SignedOne( Vec2 v ) {
-	return Vec2( SignedOne( v.x ), SignedOne( v.y ) );
-}
-
-static Vec2 Abs( Vec2 v ) {
-	return Vec2( Abs( v.x ), Abs( v.y ) );
-}
-
-static Vec2 Pow( Vec2 v, float e ) {
-	return Vec2( powf( v.x, e ), powf( v.y, e ) );
-}
-
-void CG_MouseMove( int frameTime, Vec2 m ) {
-	float sens = Cvar_Float( "sensitivity" );
-
-	if( Cvar_Float( "m_accel" ) != 0.0f && frameTime != 0 ) {
-		// QuakeLive-style mouse acceleration, ported from ioquake3
-		// original patch by Gabriel Schnoering and TTimo
-		if( m_accelStyle->integer == 1 ) {
-			Vec2 base = Abs( m ) / float( frameTime );
-			Vec2 power = Pow( base / m_accelOffset->number, Cvar_Float( "m_accel" ) );
-			m += SignedOne( m ) * power * m_accelOffset->number;
-		} else if( m_accelStyle->integer == 2 ) {
-			// ch : similar to normal acceleration with offset and variable pow mechanisms
-
-			// sanitize values
-			float accelPow = Max2( m_accelPow->number, 1.0f );
-			float accelOffset = Max2( m_accelOffset->number, 0.0f );
-
-			float rate = Max2( Length( m ) / float( frameTime ) - accelOffset, 0.0f );
-			sens += powf( rate * Cvar_Float( "m_accel" ), accelPow - 1.0f );
-
-			if( m_sensCap->number > 0 ) {
-				sens = Min2( sens, m_sensCap->number );
-			}
-		} else {
-			float rate = Length( m ) / float( frameTime );
-			sens += rate * Cvar_Float( "m_accel" );
-		}
-	}
-
-	sens *= CG_GetSensitivityScale();
-
-	mouse_movement = m * sens;
+void CG_MouseMove( Vec2 m ) {
+	mouse_movement = m * Cvar_Float( "sensitivity" ) * CG_GetSensitivityScale();
 }
 
 Vec3 CG_GetDeltaViewAngles() {
@@ -367,11 +319,6 @@ void CG_InitInput() {
 	AddCommand( "-gadget", IN_GadgetUp );
 	AddCommand( "+reload", IN_ReloadDown );
 	AddCommand( "-reload", IN_ReloadUp );
-
-	m_accelStyle = NewCvar( "m_accelStyle", "0", CvarFlag_Archive );
-	m_accelOffset = NewCvar( "m_accelOffset", "0", CvarFlag_Archive );
-	m_accelPow = NewCvar( "m_accelPow", "2", CvarFlag_Archive );
-	m_sensCap = NewCvar( "m_sensCap", "0", CvarFlag_Archive );
 }
 
 void CG_ShutdownInput() {

@@ -76,7 +76,7 @@ struct cgame_export_t {
 
 	bool ( *NewFrameSnapshot )( snapshot_t *newSnapshot, snapshot_t *currentSnapshot );
 
-	void ( *MouseMove )( int frameTime, Vec2 m );
+	void ( *MouseMove )( Vec2 m );
 
 	u8 ( *GetButtonBits )();
 	u8 ( *GetButtonDownEdges )();

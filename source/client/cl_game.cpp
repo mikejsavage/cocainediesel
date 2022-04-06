@@ -125,8 +125,8 @@ u8 CL_GameModule_GetButtonDownEdges() {
 	return 0;
 }
 
-void CL_GameModule_MouseMove( int frameTime, Vec2 d ) {
+void CL_GameModule_MouseMove( Vec2 d ) {
 	if( cge ) {
-		cge->MouseMove( frameTime, d );
+		cge->MouseMove( d );
 	}
 }

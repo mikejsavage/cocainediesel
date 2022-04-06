@@ -461,7 +461,7 @@ void CG_DrawChat();
 void CG_InitInput();
 void CG_ShutdownInput();
 void CG_ClearInputState();
-void CG_MouseMove( int frameTime, Vec2 m );
+void CG_MouseMove( Vec2 m );
 u8 CG_GetButtonBits();
 u8 CG_GetButtonDownEdges();
 Vec3 CG_GetDeltaViewAngles();

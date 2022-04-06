@@ -279,7 +279,7 @@ u8 CL_GameModule_GetButtonBits();
 u8 CL_GameModule_GetButtonDownEdges();
 void CL_GameModule_AddViewAngles( Vec3 * viewAngles );
 void CL_GameModule_AddMovement( Vec3 * movement );
-void CL_GameModule_MouseMove( int frameTime, Vec2 m );
+void CL_GameModule_MouseMove( Vec2 m );
 
 //
 // cl_input.c

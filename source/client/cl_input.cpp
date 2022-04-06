@@ -34,7 +34,7 @@ static void CL_CreateNewUserCommand( int realMsec );
 */
 static void CL_UpdateGameInput( Vec2 movement, int frameTime ) {
 	if( cls.key_dest == key_game && cls.state == CA_ACTIVE ) {
-		CL_GameModule_MouseMove( frameTime, movement );
+		CL_GameModule_MouseMove( movement );
 		cl.viewangles += CG_GetDeltaViewAngles();
 	}
 }

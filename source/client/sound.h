@@ -37,7 +37,13 @@ Span< const char * > GetAudioDevices( Allocator * a );
 
 void SoundFrame( Vec3 origin, Vec3 velocity, const mat3_t axis );
 
-PlayingSFXHandle PlaySFX( StringHash name, const PlaySFXConfig & config );
+// helper functions for common PlaySFX patterns
+PlaySFXConfig PlaySFXConfigGlobal( float volume = 1.0f );
+PlaySFXConfig PlaySFXConfigPosition( Vec3 position, float volume = 1.0f );
+PlaySFXConfig PlaySFXConfigEntity( int ent_num, float volume = 1.0f );
+PlaySFXConfig PlaySFXConfigLineSegment( Vec3 start, Vec3 end, float volume = 1.0f );
+
+PlayingSFXHandle PlaySFX( StringHash name, const PlaySFXConfig & config = PlaySFXConfigGlobal() );
 PlayingSFXHandle PlayImmediateSFX( StringHash name, PlayingSFXHandle handle, const PlaySFXConfig & config );
 void StopSFX( PlayingSFXHandle handle );
 
@@ -45,16 +51,3 @@ void StopAllSounds( bool stopMusic );
 
 void StartMenuMusic();
 void StopMenuMusic();
-
-// TODO: legacy API, should probably stop using these
-PlayingSFXHandle S_StartFixedSound( StringHash name, Vec3 position, float volume, float pitch );
-PlayingSFXHandle S_StartEntitySound( StringHash name, int ent_num, float volume, float pitch );
-PlayingSFXHandle S_StartEntitySound( StringHash name, int ent_num, float volume, float pitch, u64 entropy );
-PlayingSFXHandle S_StartGlobalSound( StringHash name, float volume, float pitch );
-PlayingSFXHandle S_StartGlobalSound( StringHash name, float volume, float pitch, u64 entropy );
-PlayingSFXHandle S_StartLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch );
-
-PlayingSFXHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, PlayingSFXHandle handle );
-PlayingSFXHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, u64 entropy, PlayingSFXHandle handle );
-PlayingSFXHandle S_ImmediateFixedSound( StringHash name, Vec3 pos, float volume, float pitch, PlayingSFXHandle handle );
-PlayingSFXHandle S_ImmediateLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch, PlayingSFXHandle handle );

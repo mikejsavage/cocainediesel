@@ -91,7 +91,7 @@ static void SendChat() {
 		const char * cmd = chat.mode == ChatMode_SayTeam ? "say_team" : "say";
 		Cbuf_Add( "{} {}", cmd, chat.input );
 
-		S_StartGlobalSound( "sounds/typewriter/return", 1.0f, 1.0f );
+		PlaySFX( "sounds/typewriter/return" );
 	}
 
 	CloseChat();
@@ -99,11 +99,11 @@ static void SendChat() {
 
 static int InputCallback( ImGuiInputTextCallbackData * data ) {
 	if( data->EventChar == ' ' ) {
-		S_StartGlobalSound( "sounds/typewriter/space", 1.0f, 1.0f );
+		PlaySFX( "sounds/typewriter/space" );
 		CL_AddReliableCommand( ClientCommand_TypewriterSpace );
 	}
 	else {
-		S_StartGlobalSound( "sounds/typewriter/clack", 1.0f, 1.0f );
+		PlaySFX( "sounds/typewriter/clack" );
 		CL_AddReliableCommand( ClientCommand_TypewriterClack );
 	}
 	return 0;

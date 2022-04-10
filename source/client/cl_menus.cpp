@@ -571,7 +571,7 @@ static void SettingsAudio() {
 	}
 
 	if( ImGui::Button( "Test" ) ) {
-		S_StartGlobalSound( "sounds/announcer/bomb/ace", 1.0f, 1.0f );
+		PlaySFX( "sounds/announcer/bomb/ace" );
 	}
 
 	ImGui::Separator();

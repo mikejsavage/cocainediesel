@@ -42,13 +42,14 @@ void CG_PlayerSound( int entnum, PlayerSound ps, bool stop_current ) {
 		pitch = CG_PlayerPitch( entnum );
 	}
 
-	PlayingSFXHandle handle;
-	if( ISVIEWERENTITY( entnum ) ) {
-		handle = S_StartGlobalSound( sfx, 1.0f, pitch );
+	PlaySFXConfig config = PlaySFXConfigGlobal();
+	config.pitch = pitch;
+	if( !ISVIEWERENTITY( entnum ) ) {
+		config.spatialisation = SpatialisationMethod_Entity;
+		config.ent_num = entnum;
 	}
-	else {
-		handle = S_StartEntitySound( sfx, entnum, 1.0f, pitch );
-	}
+
+	PlayingSFXHandle handle = PlaySFX( sfx, config );
 
 	if( stop_current ) {
 		centity_t * cent = &cg_entities[ entnum ];

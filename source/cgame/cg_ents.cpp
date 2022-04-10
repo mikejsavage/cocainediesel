@@ -546,7 +546,7 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	bool fixed = cent->current.positioned_sound;
 
 	if( cent->current.svflags & SVF_BROADCAST ) {
-		S_StartGlobalSound( cent->current.sound, 1.0f, 1.0f );
+		PlaySFX( cent->current.sound );
 		return;
 	}
 
@@ -565,13 +565,13 @@ void CG_SoundEntityNewState( centity_t *cent ) {
 	}
 
 	if( fixed ) {
-		S_StartFixedSound( cent->current.sound, cent->current.origin, 1.0f, 1.0f );
+		PlaySFX( cent->current.sound, PlaySFXConfigPosition( cent->current.origin ) );
 	}
 	else if( ISVIEWERENTITY( owner ) ) {
-		S_StartGlobalSound( cent->current.sound, 1.0f, 1.0f );
+		PlaySFX( cent->current.sound );
 	}
 	else {
-		S_StartEntitySound( cent->current.sound, owner, 1.0f, 1.0f );
+		PlaySFX( cent->current.sound, PlaySFXConfigEntity( owner ) );
 	}
 }
 
@@ -623,22 +623,24 @@ static void CG_UpdateSpikes( centity_t * cent ) {
 	int64_t old_delta = cg.oldFrame.serverTime - cent->current.linearMovementTimeStamp;
 	int64_t delta = cg.frame.serverTime - cent->current.linearMovementTimeStamp;
 
+	StringHash sound = EMPTY_HASH;
 	if( old_delta <= 0 && delta >= 0 ) {
-		S_StartEntitySound( "sounds/spikes/arm", cent->current.number, 1.0f, 1.0f );
+		sound = "sounds/spikes/arm";
 	}
 	else if( old_delta < 1000 && delta >= 1000 ) {
-		S_StartEntitySound( "sounds/spikes/deploy", cent->current.number, 1.0f, 1.0f );
+		sound = "sounds/spikes/deploy";
 	}
 	else if( old_delta < 1050 && delta >= 1050 ) {
-		S_StartEntitySound( "sounds/spikes/glint", cent->current.number, 1.0f, 1.0f );
+		sound = "sounds/spikes/glint";
 	}
 	else if( old_delta < 1500 && delta >= 1500 ) {
-		S_StartEntitySound( "sounds/spikes/retract", cent->current.number, 1.0f, 1.0f );
+		sound = "sounds/spikes/retract";
 	}
+	PlaySFX( sound, PlaySFXConfigEntity( cent->current.number ) );
 }
 
 void CG_EntityLoopSound( centity_t * cent, SyncEntityState * state ) {
-	cent->sound = S_ImmediateEntitySound( state->sound, state->number, 1.0f, 1.0f, true, cent->sound );
+	cent->sound = PlayImmediateSFX( state->sound, cent->sound, PlaySFXConfigEntity( state->number ) );
 }
 
 static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
@@ -757,9 +759,13 @@ void DrawEntities() {
 				CG_AddBombSite( cent );
 				break;
 
-			case ET_LASER:
+			case ET_LASER: {
 				CG_AddLaserEnt( cent );
-				cent->sound = S_ImmediateLineSound( state->sound, cent->interpolated.origin, cent->interpolated.origin2, 1.0f, 1.0f, cent->sound );
+
+				Vec3 start = cent->interpolated.origin;
+				Vec3 end = cent->interpolated.origin2;
+				cent->sound = PlayImmediateSFX( state->sound, cent->sound, PlaySFXConfigLineSegment( start, end ) );
+			} break;
 
 			case ET_SPIKES:
 				DrawEntityModel( cent );

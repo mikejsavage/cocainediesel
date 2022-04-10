@@ -802,6 +802,42 @@ void SoundFrame( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 	s_musicvolume->modified = false;
 }
 
+PlaySFXConfig PlaySFXConfigGlobal( float volume ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_None;
+	config.volume = volume;
+	config.pitch = 1.0f;
+	return config;
+}
+
+PlaySFXConfig PlaySFXConfigPosition( Vec3 position, float volume ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_Position;
+	config.position = position;
+	config.volume = volume;
+	config.pitch = 1.0f;
+	return config;
+}
+
+PlaySFXConfig PlaySFXConfigEntity( int ent_num, float volume ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_Entity;
+	config.ent_num = ent_num;
+	config.volume = volume;
+	config.pitch = 1.0f;
+	return config;
+}
+
+PlaySFXConfig PlaySFXConfigLineSegment( Vec3 start, Vec3 end, float volume ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_LineSegment;
+	config.line_segment.start = start;
+	config.line_segment.end = end;
+	config.volume = volume;
+	config.pitch = 1.0f;
+	return config;
+}
+
 static PlayingSFX * FindEmptyPlayingSFX( int ent_num ) {
 	if( num_playing_sound_effects == ARRAY_COUNT( playing_sound_effects ) )
 		return NULL;
@@ -876,102 +912,6 @@ void StopSFX( PlayingSFXHandle handle ) {
 	if( !playing_sounds_hashtable.get( handle.handle, &idx ) )
 		return;
 	StopSFX( &playing_sound_effects[ idx ] );
-}
-
-PlayingSFXHandle S_StartFixedSound( StringHash name, Vec3 position, float volume, float pitch ) {
-	PlaySFXConfig config = { };
-	config.spatialisation = SpatialisationMethod_Position;
-	config.position = position;
-	config.volume = volume;
-	config.pitch = pitch;
-	return PlaySFX( name, config );
-}
-
-PlayingSFXHandle S_StartEntitySound( StringHash name, int ent_num, float volume, float pitch ) {
-	PlaySFXConfig config = { };
-	config.spatialisation = SpatialisationMethod_Entity;
-	config.ent_num = ent_num;
-	config.volume = volume;
-	config.pitch = pitch;
-	return PlaySFX( name, config );
-}
-
-PlayingSFXHandle S_StartEntitySound( StringHash name, int ent_num, float volume, float pitch, u64 entropy ) {
-	PlaySFXConfig config = { };
-	config.spatialisation = SpatialisationMethod_Entity;
-	config.ent_num = ent_num;
-	config.volume = volume;
-	config.pitch = pitch;
-	config.has_entropy = true;
-	config.entropy = entropy;
-	return PlaySFX( name, config );
-}
-
-PlayingSFXHandle S_StartGlobalSound( StringHash name, float volume, float pitch ) {
-	PlaySFXConfig config = { };
-	config.spatialisation = SpatialisationMethod_None;
-	config.volume = volume;
-	config.pitch = pitch;
-	return PlaySFX( name, config );
-}
-
-PlayingSFXHandle S_StartGlobalSound( StringHash name, float volume, float pitch, u64 entropy ) {
-	PlaySFXConfig config = { };
-	config.spatialisation = SpatialisationMethod_None;
-	config.volume = volume;
-	config.pitch = pitch;
-	config.has_entropy = true;
-	config.entropy = entropy;
-	return PlaySFX( name, config );
-}
-
-PlayingSFXHandle S_StartLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch ) {
-	PlaySFXConfig config = { };
-	config.spatialisation = SpatialisationMethod_LineSegment;
-	config.line_segment.start = start;
-	config.line_segment.end = end;
-	config.volume = volume;
-	config.pitch = pitch;
-	return PlaySFX( name, config );
-}
-
-PlayingSFXHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, PlayingSFXHandle handle ) {
-	PlaySFXConfig config = { };
-	config.spatialisation = SpatialisationMethod_Entity;
-	config.ent_num = ent_num;
-	config.volume = volume;
-	config.pitch = pitch;
-	return PlayImmediateSFX( name, handle, config );
-}
-
-PlayingSFXHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, u64 entropy, PlayingSFXHandle handle ) {
-	PlaySFXConfig config = { };
-	config.spatialisation = SpatialisationMethod_Entity;
-	config.ent_num = ent_num;
-	config.volume = volume;
-	config.pitch = pitch;
-	config.has_entropy = true;
-	config.entropy = entropy;
-	return PlayImmediateSFX( name, handle, config );
-}
-
-PlayingSFXHandle S_ImmediateFixedSound( StringHash name, Vec3 position, float volume, float pitch, PlayingSFXHandle handle ) {
-	PlaySFXConfig config = { };
-	config.spatialisation = SpatialisationMethod_Position;
-	config.position = position;
-	config.volume = volume;
-	config.pitch = pitch;
-	return PlayImmediateSFX( name, handle, config );
-}
-
-PlayingSFXHandle S_ImmediateLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch, PlayingSFXHandle handle ) {
-	PlaySFXConfig config = { };
-	config.spatialisation = SpatialisationMethod_LineSegment;
-	config.line_segment.start = start;
-	config.line_segment.end = end;
-	config.volume = volume;
-	config.pitch = pitch;
-	return PlayImmediateSFX( name, handle, config );
 }
 
 void StopAllSounds( bool stop_music ) {

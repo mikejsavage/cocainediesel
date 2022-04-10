@@ -838,14 +838,6 @@ PlaySFXConfig PlaySFXConfigLineSegment( Vec3 start, Vec3 end, float volume ) {
 	return config;
 }
 
-static PlayingSFX * FindEmptyPlayingSFX( int ent_num ) {
-	if( num_playing_sound_effects == ARRAY_COUNT( playing_sound_effects ) )
-		return NULL;
-
-	num_playing_sound_effects++;
-	return &playing_sound_effects[ num_playing_sound_effects - 1 ];
-}
-
 PlayingSFX * PlaySFXInternal( StringHash name, const PlaySFXConfig & config ) {
 	if( !initialized )
 		return NULL;

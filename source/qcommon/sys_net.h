@@ -14,7 +14,7 @@ struct sockaddr_storage;
 void InitNetworking();
 void ShutdownNetworking();
 
-u64 OpenOSSocket( SocketFamily family, UDPOrTCP type, u16 port );
+u64 OpenOSSocket( AddressFamily family, UDPOrTCP type, u16 port );
 bool BindOSSocket( u64 handle, const sockaddr * address, int address_size );
 void CloseOSSocket( u64 handle );
 

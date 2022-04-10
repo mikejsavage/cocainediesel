@@ -20,8 +20,8 @@ static int HandleToOSSocket( u64 handle ) {
 	return checked_cast< int >( handle - 1 );
 }
 
-u64 OpenOSSocket( SocketFamily family, UDPOrTCP type, u16 port ) {
-	int first_arg = family == SocketFamily_IPv4 ? AF_INET : AF_INET6;
+u64 OpenOSSocket( AddressFamily family, UDPOrTCP type, u16 port ) {
+	int first_arg = family == AddressFamily_IPv4 ? AF_INET : AF_INET6;
 	int second_arg = type == UDPOrTCP_UDP ? SOCK_DGRAM : SOCK_STREAM;
 	int third_arg = type == UDPOrTCP_UDP ? IPPROTO_UDP : IPPROTO_TCP;
 

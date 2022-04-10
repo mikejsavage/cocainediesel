@@ -12,13 +12,13 @@ static NetAddress SockaddrToNetAddress( const sockaddr_storage * sockaddr ) {
 	NetAddress address = { };
 	if( sockaddr->ss_family == AF_INET ) {
 		const sockaddr_in * ipv4 = ( const sockaddr_in * ) sockaddr;
-		address.family = SocketFamily_IPv4;
+		address.family = AddressFamily_IPv4;
 		address.port = ntohs( ipv4->sin_port );
 		memcpy( &address.ipv4, &ipv4->sin_addr.s_addr, sizeof( address.ipv4 ) );
 	}
 	else {
 		const sockaddr_in6 * ipv6 = ( const sockaddr_in6 * ) sockaddr;
-		address.family = SocketFamily_IPv6;
+		address.family = AddressFamily_IPv6;
 		address.port = ntohs( ipv6->sin6_port );
 		memcpy( &address.ipv6, &ipv6->sin6_addr.s6_addr, sizeof( address.ipv6 ) );
 	}
@@ -27,7 +27,7 @@ static NetAddress SockaddrToNetAddress( const sockaddr_storage * sockaddr ) {
 
 static sockaddr_storage NetAddressToSockaddr( NetAddress address, socklen_t * size ) {
 	sockaddr_storage sockaddr = { };
-	if( address.family == SocketFamily_IPv4 ) {
+	if( address.family == AddressFamily_IPv4 ) {
 		sockaddr_in & ipv4 = ( sockaddr_in & ) sockaddr;
 		sockaddr.ss_family = AF_INET;
 		ipv4.sin_port = htons( address.port );
@@ -59,7 +59,7 @@ static bool operator==( const IPv6 & a, const IPv6 & b ) {
 bool operator==( const NetAddress & a, const NetAddress & b ) {
 	if( a.family != b.family || a.port != b.port )
 		return false;
-	return a.family == SocketFamily_IPv4 ? a.ipv4 == b.ipv4 : a.ipv6 == b.ipv6;
+	return a.family == AddressFamily_IPv4 ? a.ipv4 == b.ipv4 : a.ipv6 == b.ipv6;
 }
 
 bool operator!=( const NetAddress & a, const NetAddress & b ) {
@@ -69,7 +69,7 @@ bool operator!=( const NetAddress & a, const NetAddress & b ) {
 bool EqualIgnoringPort( const NetAddress & a, const NetAddress & b ) {
 	if( a.family != b.family )
 		return false;
-	return a.family == SocketFamily_IPv4 ? a.ipv4 == b.ipv4 : a.ipv6 == b.ipv6;
+	return a.family == AddressFamily_IPv4 ? a.ipv4 == b.ipv4 : a.ipv6 == b.ipv6;
 }
 
 void format( FormatBuffer * fb, const NetAddress & address, const FormatOpts & opts ) {
@@ -77,13 +77,13 @@ void format( FormatBuffer * fb, const NetAddress & address, const FormatOpts & o
 	char ntop[ INET6_ADDRSTRLEN ];
 
 	const void * src = ( const void * ) &( ( const sockaddr_in * ) &sockaddr )->sin_addr;
-	if( address.family == SocketFamily_IPv6 ) {
+	if( address.family == AddressFamily_IPv6 ) {
 		src = ( const void * ) &( ( const sockaddr_in6 * ) &sockaddr )->sin6_addr;
 	}
 	inet_ntop( sockaddr.ss_family, src, ntop, sizeof( ntop ) );
 
 	char buf[ 64 ];
-	if( address.family == SocketFamily_IPv4 ) {
+	if( address.family == AddressFamily_IPv4 ) {
 		ggformat( buf, sizeof( buf ), "{}:{}", ntop, address.port );
 	}
 	else {
@@ -134,7 +134,7 @@ bool DNS( const char * hostname, NetAddress * address, DNSFamily family ) {
 	return true;
 }
 
-static u64 OpenSocket( SocketFamily family, UDPOrTCP type, NonBlockingBool nonblocking, u16 port ) {
+static u64 OpenSocket( AddressFamily family, UDPOrTCP type, NonBlockingBool nonblocking, u16 port ) {
 	u64 handle = OpenOSSocket( family, type, port );
 	if( handle == 0 ) {
 		return 0;
@@ -151,7 +151,7 @@ static u64 OpenSocket( SocketFamily family, UDPOrTCP type, NonBlockingBool nonbl
 		OSSocketSetSockOptOne( handle, IPPROTO_TCP, TCP_NODELAY );
 	}
 
-	if( family == SocketFamily_IPv6 ) {
+	if( family == AddressFamily_IPv6 ) {
 		OSSocketSetSockOptOne( handle, IPPROTO_IPV6, IPV6_V6ONLY );
 	}
 
@@ -169,8 +169,8 @@ static u64 OpenSocket( SocketFamily family, UDPOrTCP type, NonBlockingBool nonbl
 	address6.sin6_port = htons( port );
 	address6.sin6_addr = in6addr_any;
 
-	const sockaddr * address = family == SocketFamily_IPv4 ? ( const sockaddr * ) &address4 : ( const sockaddr * ) &address6;
-	int address_size = family == SocketFamily_IPv4 ? sizeof( address4 ) : sizeof( address6 );
+	const sockaddr * address = family == AddressFamily_IPv4 ? ( const sockaddr * ) &address4 : ( const sockaddr * ) &address6;
+	int address_size = family == AddressFamily_IPv4 ? sizeof( address4 ) : sizeof( address6 );
 
 	if( !BindOSSocket( handle, address, address_size ) ) {
 		CloseOSSocket( handle );
@@ -183,25 +183,25 @@ static u64 OpenSocket( SocketFamily family, UDPOrTCP type, NonBlockingBool nonbl
 Socket NewUDPClient( NonBlockingBool nonblocking ) {
 	Socket socket = { };
 	socket.type = SocketType_UDPClient;
-	socket.ipv4 = OpenSocket( SocketFamily_IPv4, UDPOrTCP_UDP, nonblocking, 0 );
-	socket.ipv6 = OpenSocket( SocketFamily_IPv6, UDPOrTCP_UDP, nonblocking, 0 );
+	socket.ipv4 = OpenSocket( AddressFamily_IPv4, UDPOrTCP_UDP, nonblocking, 0 );
+	socket.ipv6 = OpenSocket( AddressFamily_IPv6, UDPOrTCP_UDP, nonblocking, 0 );
 	return socket;
 }
 
 Socket NewUDPServer( u16 port, NonBlockingBool nonblocking ) {
 	Socket socket = { };
 	socket.type = SocketType_UDPServer;
-	socket.ipv4 = OpenSocket( SocketFamily_IPv4, UDPOrTCP_UDP, nonblocking, port );
-	socket.ipv6 = OpenSocket( SocketFamily_IPv6, UDPOrTCP_UDP, nonblocking, port );
+	socket.ipv4 = OpenSocket( AddressFamily_IPv4, UDPOrTCP_UDP, nonblocking, port );
+	socket.ipv6 = OpenSocket( AddressFamily_IPv6, UDPOrTCP_UDP, nonblocking, port );
 	return socket;
 }
 
 Socket NewTCPServer( u16 port, NonBlockingBool nonblocking ) {
 	Socket socket = { };
 	socket.type = SocketType_TCPServer;
-	socket.ipv4 = OpenSocket( SocketFamily_IPv4, UDPOrTCP_TCP, nonblocking, port );
+	socket.ipv4 = OpenSocket( AddressFamily_IPv4, UDPOrTCP_TCP, nonblocking, port );
 	OSSocketListen( socket.ipv4 );
-	socket.ipv6 = OpenSocket( SocketFamily_IPv6, UDPOrTCP_TCP, nonblocking, port );
+	socket.ipv6 = OpenSocket( AddressFamily_IPv6, UDPOrTCP_TCP, nonblocking, port );
 	OSSocketListen( socket.ipv6 );
 	return socket;
 }
@@ -222,7 +222,7 @@ size_t UDPSend( Socket socket, NetAddress destination, const void * data, size_t
 		return 0;
 	}
 
-	u64 handle = destination.family == SocketFamily_IPv4 ? socket.ipv4 : socket.ipv6;
+	u64 handle = destination.family == AddressFamily_IPv4 ? socket.ipv4 : socket.ipv6;
 	if( handle == 0 ) {
 		return 0;
 	}
@@ -323,7 +323,7 @@ bool TCPReceive( Socket socket, void * data, size_t n, size_t * received ) {
 
 NetAddress GetBroadcastAddress( u16 port ) {
 	NetAddress address = { };
-	address.family = SocketFamily_IPv4;
+	address.family = AddressFamily_IPv4;
 	address.port = port;
 
 	u32 broadcast = htonl( INADDR_BROADCAST );
@@ -334,7 +334,7 @@ NetAddress GetBroadcastAddress( u16 port ) {
 
 NetAddress GetLoopbackAddress( u16 port ) {
 	NetAddress address = { };
-	address.family = SocketFamily_IPv4;
+	address.family = AddressFamily_IPv4;
 	address.port = port;
 	address.ipv4.ip[ 0 ] = 127;
 	address.ipv4.ip[ 1 ] = 0;

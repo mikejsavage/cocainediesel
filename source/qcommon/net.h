@@ -2,9 +2,9 @@
 
 #include "qcommon/types.h"
 
-enum SocketFamily {
-	SocketFamily_IPv4,
-	SocketFamily_IPv6,
+enum AddressFamily {
+	AddressFamily_IPv4,
+	AddressFamily_IPv6,
 };
 
 struct IPv4 {
@@ -16,7 +16,7 @@ struct IPv6 {
 };
 
 struct NetAddress {
-	SocketFamily family;
+	AddressFamily family;
 	union {
 		IPv4 ipv4;
 		IPv6 ipv6;

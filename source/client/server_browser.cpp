@@ -58,7 +58,7 @@ static void GetMasterServerAddress( void * data ) {
 }
 
 static void QueryMasterServer( MasterServer * master ) {
-	const char * command = master->address.family == SocketFamily_IPv4 ? "getservers" : "getserversExt";
+	const char * command = master->address.family == AddressFamily_IPv4 ? "getservers" : "getserversExt";
 
 	TempAllocator temp = cls.frame_arena.temp();
 	const char * query = temp( "{} {} {} full empty", command, APPLICATION_NOSPACES, APP_PROTOCOL_VERSION );
@@ -118,7 +118,7 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 		NetAddress address = NULL_ADDRESS;
 
 		if( separator == '\\' ) {
-			address.family = SocketFamily_IPv4;
+			address.family = AddressFamily_IPv4;
 			MSG_ReadData( msg, &address.ipv4, sizeof( address.ipv4 ) );
 		}
 		else if( separator == '/' ) {
@@ -127,7 +127,7 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 				break;
 			}
 
-			address.family = SocketFamily_IPv6;
+			address.family = AddressFamily_IPv6;
 			MSG_ReadData( msg, &address.ipv6, sizeof( address.ipv6 ) );
 		}
 		else {

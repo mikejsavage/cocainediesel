@@ -281,9 +281,9 @@ struct SyncEntityState {
 	StringHash material;
 	RGBA8 color;
 
-	int channel;                    // ET_SOUNDEVENT
+	bool positioned_sound; // ET_SOUNDEVENT
 
-	int ownerNum;                   // ET_EVENT specific
+	int ownerNum; // ET_EVENT specific
 
 	unsigned int effects;
 

@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 void RailgunImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 color ) {
 	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, color );
-	S_StartFixedSound( "weapons/eb/hit", pos, CHAN_AUTO, 1.0f, 1.0f );
+	S_StartFixedSound( "weapons/eb/hit", pos, 1.0f, 1.0f );
 }
 
 static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
@@ -78,10 +78,10 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 	if( cent->localEffects[ LOCALEFFECT_LASERBEAM ] <= cl.serverTime ) {
 		if( cent->localEffects[ LOCALEFFECT_LASERBEAM ] ) {
 			if( ISVIEWERENTITY( cent->current.number ) ) {
-				S_StartGlobalSound( "weapons/lg/stop", CHAN_AUTO, 1.0f, 1.0f );
+				S_StartGlobalSound( "weapons/lg/stop", 1.0f, 1.0f );
 			}
 			else {
-				S_StartEntitySound( "weapons/lg/stop", cent->current.number, CHAN_AUTO, 1.0f, 1.0f );
+				S_StartEntitySound( "weapons/lg/stop", cent->current.number, 1.0f, 1.0f );
 			}
 		}
 		cent->localEffects[ LOCALEFFECT_LASERBEAM ] = 0;
@@ -161,10 +161,10 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 	StringHash sfx = weaponInfo->fire_sound;
 
 	if( ISVIEWERENTITY( entNum ) ) {
-		S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
+		S_StartGlobalSound( sfx, 1.0f, 1.0f );
 	}
 	else {
-		S_StartEntitySound( sfx, entNum, CHAN_AUTO, 1.0f, 1.0f );
+		S_StartEntitySound( sfx, entNum, 1.0f, 1.0f );
 	}
 
 	if( weapon != Weapon_Laser && ISVIEWERENTITY( entNum ) ) {
@@ -231,10 +231,10 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 		}
 		else {
 			BulletImpact( &trace, team_color, 24 );
-			S_StartFixedSound( "weapons/bullet_impact", trace.endpos, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "weapons/bullet_impact", trace.endpos, 1.0f, 1.0f );
 
 			if( !ISVIEWERENTITY( owner ) ) {
-				S_StartLineSound( "weapons/bullet_whizz", origin, trace.endpos, CHAN_AUTO, 1.0f, 1.0f );
+				S_StartLineSound( "weapons/bullet_whizz", origin, trace.endpos, 1.0f, 1.0f );
 			}
 		}
 
@@ -284,7 +284,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, owner, MASK_SHOT );
 
 	if( trace.ent != -1 ) {
-		S_StartFixedSound( "weapons/rg/hit", trace.endpos, CHAN_AUTO, 1.0f, 1.0f );
+		S_StartFixedSound( "weapons/rg/hit", trace.endpos, 1.0f, 1.0f );
 	}
 }
 
@@ -317,11 +317,11 @@ void AddAnnouncerSpeaker( const centity_t * cent ) {
 
 static void PlayAnnouncerSound( StringHash sound ) {
 	if( num_speakers == 0 ) {
-		S_StartLocalSound( sound, CHAN_AUTO, 1.0f, 1.0f );
+		S_StartGlobalSound( sound, 1.0f, 1.0f );
 	}
 	else {
 		for( size_t i = 0; i < num_speakers; i++ ) {
-			S_StartFixedSound( sound, speaker_origins[ i ], CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( sound, speaker_origins[ i ], 1.0f, 1.0f );
 		}
 	}
 }
@@ -385,10 +385,10 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 	StringHash sound = cgs.media.sfxVSaySounds[ vsay ];
 
 	if( client_gs.gameState.match_state >= MatchState_PostMatch ) {
-		S_StartGlobalSound( sound, CHAN_AUTO, 1.0f, 1.0f, entropy );
+		S_StartGlobalSound( sound, 1.0f, 1.0f, entropy );
 	}
 	else {
-		cent->vsay_sound = S_ImmediateEntitySound( sound, entNum, 1.0f, CG_PlayerPitch( entNum ), false, entropy, cent->vsay_sound );
+		cent->playing_vsay = S_StartEntitySound( sound, entNum, 1.0f, CG_PlayerPitch( entNum ), entropy );
 	}
 }
 
@@ -408,10 +408,10 @@ static void CG_Event_Fall( const SyncEntityState * state, u64 parm, bool viewer 
 	float volume = ( parm - 40 ) / 300.0f;
 	float pitch = 1.0f - volume * 0.125f;
 	if( viewer ) {
-		S_StartLocalSound( "players/fall", CHAN_AUTO, volume, pitch );
+		S_StartGlobalSound( "players/fall", volume, pitch );
 	}
 	else {
-		S_StartEntitySound( "players/fall", state->number, CHAN_AUTO, volume, pitch );
+		S_StartEntitySound( "players/fall", state->number, volume, pitch );
 	}
 }
 
@@ -420,12 +420,12 @@ static void CG_Event_Pain( SyncEntityState * state, u64 parm ) {
 	if( parm >= ARRAY_COUNT( sounds ) )
 		return;
 
-	CG_PlayerSound( state->number, CHAN_AUTO, sounds[ parm ] );
+	CG_PlayerSound( state->number, sounds[ parm ], false );
 	constexpr int animations[] = { TORSO_PAIN1, TORSO_PAIN2, TORSO_PAIN3 };
 	CG_PModel_AddAnimation( state->number, 0, RandomElement( &cls.rng, animations ), 0, EVENT_CHANNEL );
 }
 
-static void CG_Event_Die( int entNum, u64 parm ) {
+static void CG_Event_Die( int corpse_ent, u64 parm ) {
 	constexpr struct {
 		int dead, dying;
 	} animations[] = {
@@ -434,12 +434,16 @@ static void CG_Event_Die( int entNum, u64 parm ) {
 		{ BOTH_DEAD3, BOTH_DEATH3 },
 	};
 
+	int player_ent = cg_entities[ corpse_ent ].prev.ownerNum;
+
 	bool void_death = ( parm & 1 ) != 0;
 	u64 animation = ( parm >> 1 ) % ARRAY_COUNT( animations );
 
-	CG_PlayerSound( entNum, CHAN_AUTO, void_death ? PlayerSound_Void : PlayerSound_Death );
-	CG_PModel_AddAnimation( entNum, animations[ animation ].dead, animations[ animation ].dead, ANIM_NONE, BASE_CHANNEL );
-	CG_PModel_AddAnimation( entNum, animations[ animation ].dying, animations[ animation ].dying, ANIM_NONE, EVENT_CHANNEL );
+	CG_PlayerSound( corpse_ent, void_death ? PlayerSound_Void : PlayerSound_Death, false );
+	CG_PModel_AddAnimation( corpse_ent, animations[ animation ].dead, animations[ animation ].dead, ANIM_NONE, BASE_CHANNEL );
+	CG_PModel_AddAnimation( corpse_ent, animations[ animation ].dying, animations[ animation ].dying, ANIM_NONE, EVENT_CHANNEL );
+
+	StopSFX( cg_entities[ player_ent ].playing_vsay );
 }
 
 static void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
@@ -448,7 +452,7 @@ static void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
 		return;
 
 	CG_PModel_AddAnimation( state->number, animations[ parm ], 0, 0, EVENT_CHANNEL );
-	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Dash );
+	CG_PlayerSound( state->number, PlayerSound_Dash, true );
 
 	// since most dash animations jump with right leg, reset the jump to start with left leg after a dash
 	cg_entities[ state->number ].jumpedLeft = true;
@@ -473,7 +477,7 @@ static void CG_Event_WallJump( SyncEntityState * state, u64 parm, int ev ) {
 		CG_PModel_AddAnimation( state->number, LEGS_WALLJUMP, 0, 0, EVENT_CHANNEL );
 	}
 
-	CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump );
+	CG_PlayerSound( state->number, PlayerSound_WallJump, true );
 }
 
 static void CG_Event_Jetpack( const SyncEntityState * ent, u64 parm ) {
@@ -493,10 +497,10 @@ void CG_JetpackEffect( centity_t * cent ) {
 	if( cent->localEffects[ LOCALEFFECT_JETPACK ] <= cl.serverTime ) {
 		if( cent->localEffects[ LOCALEFFECT_JETPACK ] ) {
 			if( ISVIEWERENTITY( cent->current.number ) ) {
-				S_StartGlobalSound( "perks/jetpack/stop", CHAN_AUTO, volume, 1.0f );
+				S_StartGlobalSound( "perks/jetpack/stop", volume, 1.0f );
 			}
 			else {
-				S_StartEntitySound( "perks/jetpack/stop", cent->current.number, CHAN_AUTO, volume, 1.0f );
+				S_StartEntitySound( "perks/jetpack/stop", cent->current.number, volume, 1.0f );
 			}
 		}
 		cent->localEffects[ LOCALEFFECT_JETPACK ] = 0;
@@ -517,9 +521,9 @@ void CG_JetpackEffect( centity_t * cent ) {
 static void CG_PlayJumpSound( const SyncEntityState * state, JumpType j ) {
 	switch( j ) {
 	case JumpType_Normal:
-		return CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_Jump );
+		return CG_PlayerSound( state->number, PlayerSound_Jump, true );
 	case JumpType_MidgetCharge:
-		return CG_PlayerSound( state->number, CHAN_BODY, PlayerSound_WallJump );
+		return CG_PlayerSound( state->number, PlayerSound_WallJump, true );
 	}
 }
 
@@ -589,10 +593,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 
 			if( viewer ) {
-				S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
+				S_StartGlobalSound( sfx, 1.0f, 1.0f );
 			}
 			else {
-				S_StartFixedSound( sfx, ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+				S_StartFixedSound( sfx, ent->origin, 1.0f, 1.0f );
 			}
 		} break;
 
@@ -666,19 +670,19 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 			int owner = predicted ? ent->number : ent->ownerNum;
 			if( viewer ) {
-				S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
+				S_StartGlobalSound( sfx, 1.0f, 1.0f );
 			}
 			else {
-				S_StartEntitySound( sfx, owner, CHAN_AUTO, 1.0f, 1.0f );
+				S_StartEntitySound( sfx, owner, 1.0f, 1.0f );
 			}
 		} break;
 
 		case EV_NOAMMOCLICK:
 			if( viewer ) {
-				S_StartGlobalSound( "weapons/noammo", CHAN_AUTO, 1.0f, 1.0f );
+				S_StartGlobalSound( "weapons/noammo", 1.0f, 1.0f );
 			}
 			else {
-				S_StartFixedSound( "weapons/noammo", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+				S_StartFixedSound( "weapons/noammo", ent->origin, 1.0f, 1.0f );
 			}
 			break;
 
@@ -689,11 +693,11 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			StringHash sfx = GetWeaponModelMetadata( WeaponType( parm ) )->reload_sound;
 
 			if( viewer ) {
-				S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
+				S_StartGlobalSound( sfx, 1.0f, 1.0f );
 				CG_ViewWeapon_AddAnimation( ent->number, "reload" );
 			}
 			else {
-				S_StartFixedSound( sfx, ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+				S_StartFixedSound( sfx, ent->origin, 1.0f, 1.0f );
 			}
 		} break;
 
@@ -706,10 +710,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			StringHash sfx = ev == EV_ZOOM_IN ? weapon->zoom_in_sound : weapon->zoom_out_sound;
 
 			if( viewer ) {
-				S_StartGlobalSound( sfx, CHAN_AUTO, 1.0f, 1.0f );
+				S_StartGlobalSound( sfx, 1.0f, 1.0f );
 			}
 			else {
-				S_StartFixedSound( sfx, ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+				S_StartFixedSound( sfx, ent->origin, 1.0f, 1.0f );
 			}
 		} break;
 
@@ -793,22 +797,22 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_PLAYER_TELEPORT_IN:
-			S_StartFixedSound( "sounds/world/tele_in", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "sounds/world/tele_in", ent->origin, 1.0f, 1.0f );
 			break;
 
 		case EV_PLAYER_TELEPORT_OUT:
-			S_StartFixedSound( "sounds/world/tele_in", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "sounds/world/tele_in", ent->origin, 1.0f, 1.0f );
 			break;
 
 		case EV_ARBULLET_EXPLOSION: {
 			Vec3 normal = U64ToDir( parm );
 			DoVisualEffect( "weapons/ar/explosion", ent->origin, normal, 1.0f, team_color );
-			S_StartFixedSound( "weapons/ar/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "weapons/ar/explode", ent->origin, 1.0f, 1.0f );
 		} break;
 
 		case EV_BUBBLE_EXPLOSION:
 			DoVisualEffect( "weapons/bg/explosion", ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, team_color );
-			S_StartFixedSound( "weapons/bg/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "weapons/bg/explode", ent->origin, 1.0f, 1.0f );
 			break;
 
 		case EV_BOLT_EXPLOSION: {
@@ -819,32 +823,32 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_GRENADE_EXPLOSION: {
 			Vec3 normal = U64ToDir( parm );
 			DoVisualEffect( "vfx/explosion", ent->origin, normal, 1.0f, team_color );
-			S_StartFixedSound( "weapons/gl/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "weapons/gl/explode", ent->origin, 1.0f, 1.0f );
 		} break;
 
 		case EV_STICKY_EXPLOSION: {
 			Vec3 normal = U64ToDir( parm );
 			DoVisualEffect( "weapons/sticky/explosion", ent->origin, normal, 1.0f, team_color );
 			if( parm == 0 ) {
-				S_StartFixedSound( "weapons/sticky/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+				S_StartFixedSound( "weapons/sticky/explode", ent->origin, 1.0f, 1.0f );
 			}
 		} break;
 
 		case EV_STICKY_IMPACT: {
 			Vec3 normal = U64ToDir( parm );
 			DoVisualEffect( "weapons/sticky/impact", ent->origin, normal, 24, team_color );
-			S_StartFixedSound( "weapons/sticky/impact", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "weapons/sticky/impact", ent->origin, 1.0f, 1.0f );
 		} break;
 
 		case EV_ROCKET_EXPLOSION: {
 			Vec3 normal = U64ToDir( parm );
 			DoVisualEffect( "vfx/explosion", ent->origin, normal, 1.0f, team_color );
-			S_StartFixedSound( "weapons/rl/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "weapons/rl/explode", ent->origin, 1.0f, 1.0f );
 		} break;
 
 		case EV_GRENADE_BOUNCE: {
 			float volume = Min2( 1.0f, parm / float( U16_MAX ) );
-			S_StartEntitySound( "weapons/gl/bounce", ent->number, CHAN_AUTO, volume, 1.0f );
+			S_StartEntitySound( "weapons/gl/bounce", ent->number, volume, 1.0f );
 		} break;
 
 		case EV_BLADE_IMPACT:
@@ -854,31 +858,31 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_RIFLEBULLET_IMPACT: {
 			Vec3 normal = U64ToDir( parm );
 			DoVisualEffect( "vfx/bulletsparks", ent->origin, normal, 24, team_color );
-			S_StartFixedSound( "weapons/bullet_impact", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "weapons/bullet_impact", ent->origin, 1.0f, 1.0f );
 		} break;
 
 		case EV_STAKE_IMPACT: {
 			Vec3 normal = U64ToDir( parm );
 			DoVisualEffect( "weapons/stake/hit", ent->origin, normal, 1.0f, team_color );
-			S_StartFixedSound( "weapons/stake/hit", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "weapons/stake/hit", ent->origin, 1.0f, 1.0f );
 		} break;
 
 		case EV_STAKE_IMPALE: {
 			Vec3 normal = U64ToDir( parm );
 			DoVisualEffect( "weapons/stake/impale", ent->origin, normal, 1.0f, team_color );
-			S_StartFixedSound( "weapons/stake/impale", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "weapons/stake/impale", ent->origin, 1.0f, 1.0f );
 		} break;
 
 		case EV_BLAST_IMPACT: {
 			Vec3 normal = U64ToDir( parm );
 			DoVisualEffect( "weapons/mb/hit", ent->origin, normal, 1.0f, team_color );
-			S_StartFixedSound( "weapons/mb/hit", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "weapons/mb/hit", ent->origin, 1.0f, 1.0f );
 		} break;
 
 		case EV_BLAST_BOUNCE: {
 			Vec3 normal = U64ToDir( parm );
 			DoVisualEffect( "weapons/mb/bounce", ent->origin, normal, 1.0f, team_color );
-			S_StartFixedSound( "weapons/mb/bounce", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "weapons/mb/bounce", ent->origin, 1.0f, 1.0f );
 		} break;
 
 		case EV_BLOOD: {
@@ -940,7 +944,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_TRAIN_STOP:
 		case EV_TRAIN_START: {
 			Vec3 origin = ent->origin + ( ent->bounds.mins + ent->bounds.maxs ) * 0.5f;
-			S_StartFixedSound( StringHash( parm ), origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( StringHash( parm ), origin, 1.0f, 1.0f );
 		} break;
 
 		case EV_VSAY:
@@ -948,12 +952,12 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_TBAG:
-			S_StartFixedSound( "sounds/tbag/tbag", ent->origin, CHAN_AUTO, parm / 255.0f, 1.0f );
+			S_StartFixedSound( "sounds/tbag/tbag", ent->origin, parm / 255.0f, 1.0f );
 			break;
 
 		case EV_SPRAY:
 			AddSpray( ent->origin, ent->origin2, ent->angles, ent->scale.z, parm );
-			S_StartFixedSound( "sounds/spray/spray", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "sounds/spray/spray", ent->origin, 1.0f, 1.0f );
 			break;
 
 		case EV_DAMAGE:
@@ -961,7 +965,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_HEADSHOT:
-			S_StartFixedSound( "sounds/headshot/headshot", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "sounds/headshot/headshot", ent->origin, 1.0f, 1.0f );
 			break;
 
 		case EV_VFX:
@@ -969,22 +973,22 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_SUICIDE_BOMB_ANNOUNCEMENT:
-			S_StartEntitySound( "sounds/vsay/helena", ent->number, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartEntitySound( "sounds/vsay/helena", ent->number, 1.0f, 1.0f );
 			break;
 
 		case EV_SUICIDE_BOMB_BEEP:
-			S_StartEntitySound( "sounds/beep", ent->number, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartEntitySound( "sounds/beep", ent->number, 1.0f, 1.0f );
 			break;
 
 		case EV_SUICIDE_BOMB_EXPLODE: {
 			Vec3 normal = U64ToDir( parm );
 			DoVisualEffect( "vfx/explosion", ent->origin, normal, 1.0f, team_color );
-			S_StartFixedSound( "weapons/rl/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "weapons/rl/explode", ent->origin, 1.0f, 1.0f );
 		} break;
 
 		case EV_STUN_GRENADE_EXPLOSION:
 			DoVisualEffect( "gadgets/flash/explode", ent->origin, Vec3(), 1.0f, vec4_white );
-			S_StartFixedSound( "gadgets/flash/explode", ent->origin, CHAN_AUTO, 1.0f, 1.0f );
+			S_StartFixedSound( "gadgets/flash/explode", ent->origin, 1.0f, 1.0f );
 			break;
 	}
 }
@@ -1032,11 +1036,11 @@ static void CG_FirePlayerStateEvents() {
 		switch( cg.frame.playerState.events[ count ].type ) {
 			case PSEV_HIT:
 				if( parm < 4 ) { // hit of some caliber
-					S_StartLocalSound( cgs.media.sfxWeaponHit[ parm ], CHAN_AUTO, 1.0f, 1.0f );
+					S_StartGlobalSound( cgs.media.sfxWeaponHit[ parm ], 1.0f, 1.0f );
 					CG_ScreenCrosshairDamageUpdate();
 				}
 				else { // killed an enemy
-					S_StartLocalSound( "sounds/misc/kill", CHAN_AUTO, 1.0f, 1.0f );
+					S_StartGlobalSound( "sounds/misc/kill", 1.0f, 1.0f );
 					CG_ScreenCrosshairDamageUpdate();
 				}
 				break;

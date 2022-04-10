@@ -40,7 +40,7 @@ static void ClientObituary( edict_t * self, edict_t * inflictor, edict_t * attac
 				Com_GGPrint( "\"{}\" suicide {}", self->r.client->netname, damage_type.encoded );
 			}
 
-			G_PositionedSound( self->s.origin, CHAN_AUTO, "sounds/trombone/sad" );
+			G_PositionedSound( self->s.origin, "sounds/trombone/sad" );
 		}
 
 		G_Obituary( self, attacker, topAssistEntNo, damage_type, wallbang );

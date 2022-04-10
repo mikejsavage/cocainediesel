@@ -309,7 +309,7 @@ void Cmd_Say_f( edict_t * ent, bool arg0, bool checkflood ) {
 
 static void Cmd_SayCmd_f( edict_t * ent, msg_t args ) {
 	if( !G_ISGHOSTING( ent ) ) {
-		edict_t * event = G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/typewriter/return" );
+		edict_t * event = G_PositionedSound( ent->s.origin, "sounds/typewriter/return" );
 		event->s.ownerNum = ent->s.number;
 		event->s.svflags |= SVF_NEVEROWNER;
 	}
@@ -318,7 +318,7 @@ static void Cmd_SayCmd_f( edict_t * ent, msg_t args ) {
 
 static void Cmd_SayTeam_f( edict_t * ent, msg_t args ) {
 	if( !G_ISGHOSTING( ent ) ) {
-		edict_t * event = G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/typewriter/return" );
+		edict_t * event = G_PositionedSound( ent->s.origin, "sounds/typewriter/return" );
 		event->s.ownerNum = ent->s.number;
 		event->s.svflags |= SVF_NEVEROWNER;
 	}
@@ -329,7 +329,7 @@ static void Cmd_Clack_f( edict_t * ent, msg_t args ) {
 	bool space = StrCaseEqual( Cmd_Argv( 0 ), "typewriterspace" );
 	if( !G_ISGHOSTING( ent ) ) {
 		StringHash sound = space ? StringHash( "sounds/typewriter/space" ) : StringHash( "sounds/typewriter/clack" );
-		edict_t * event = G_PositionedSound( ent->s.origin, CHAN_AUTO, sound );
+		edict_t * event = G_PositionedSound( ent->s.origin, sound );
 		event->s.ownerNum = ent->s.number;
 		event->s.svflags |= SVF_NEVEROWNER;
 	}

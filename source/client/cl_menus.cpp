@@ -571,7 +571,7 @@ static void SettingsAudio() {
 	}
 
 	if( ImGui::Button( "Test" ) ) {
-		S_StartLocalSound( "sounds/announcer/bomb/ace", CHAN_AUTO, 1.0f, 1.0f );
+		S_StartGlobalSound( "sounds/announcer/bomb/ace", 1.0f, 1.0f );
 	}
 
 	ImGui::Separator();
@@ -1308,7 +1308,7 @@ void UI_ShowConnectingScreen() {
 void UI_ShowMainMenu() {
 	uistate = UIState_MainMenu;
 	mainmenu_state = MainMenuState_ServerBrowser;
-	S_StartMenuMusic();
+	StartMenuMusic();
 	Refresh();
 }
 

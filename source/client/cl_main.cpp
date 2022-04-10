@@ -358,7 +358,7 @@ void CL_Disconnect( const char *message ) {
 	FREE( sys_allocator, cls.download_url );
 	cls.download_url = NULL;
 
-	S_StopAllSounds( false );
+	StopAllSounds( false );
 
 	CL_GameModule_Shutdown();
 
@@ -421,7 +421,7 @@ void CL_ServerReconnect_f() {
 	cls.rejected = false;
 
 	CL_GameModule_Shutdown();
-	S_StopAllSounds( true );
+	StopAllSounds( true );
 
 	Com_Printf( "Reconnecting...\n" );
 
@@ -705,7 +705,7 @@ void CL_Precache_f() {
 			CL_GameModule_Init();
 		} else {
 			CL_GameModule_Reset();
-			S_StopAllSounds( false );
+			StopAllSounds( false );
 		}
 
 		cls.demo.play_ignore_next_frametime = true;
@@ -775,7 +775,7 @@ void CL_SetClientState( connstate_t state ) {
 		case CA_ACTIVE:
 			Con_Close();
 			UI_HideMenu();
-			S_StopBackgroundTrack();
+			StopMenuMusic();
 			CL_SetKeyDest( key_game );
 			break;
 		default:
@@ -1213,7 +1213,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 
 	// update audio
 	if( cls.state != CA_ACTIVE ) {
-		S_Update( Vec3( 0 ), Vec3( 0 ), axis_identity );
+		SoundFrame( Vec3( 0 ), Vec3( 0 ), axis_identity );
 	}
 
 	allRealMsec = 0;
@@ -1262,7 +1262,7 @@ void CL_Init() {
 
 	cls.white_material = FindMaterial( "$whiteimage" );
 
-	if( !S_Init() ) {
+	if( !InitSound() ) {
 		Com_Printf( S_COLOR_RED "Couldn't initialise audio engine\n" );
 	}
 
@@ -1293,7 +1293,7 @@ void CL_Shutdown() {
 		return;
 	}
 
-	S_StopAllSounds( true );
+	StopAllSounds( true );
 
 	CL_WriteConfiguration();
 
@@ -1306,7 +1306,7 @@ void CL_Shutdown() {
 	CL_ShutdownImGui();
 
 	CL_GameModule_Shutdown();
-	S_Shutdown();
+	ShutdownSound();
 	ShutdownMaps();
 	ShutdownRenderer();
 	DestroyWindow();

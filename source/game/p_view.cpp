@@ -179,11 +179,11 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	//
 	if( !old_waterlevel && waterlevel ) {
 		if( ent->watertype & CONTENTS_LAVA ) {
-			G_Sound( ent, CHAN_AUTO, "sounds/world/lava_in" );
+			G_Sound( ent, "sounds/world/lava_in" );
 		} else if( ent->watertype & CONTENTS_SLIME ) {
-			G_Sound( ent, CHAN_AUTO, "sounds/world/water_in" );
+			G_Sound( ent, "sounds/world/water_in" );
 		} else if( ent->watertype & CONTENTS_WATER ) {
-			G_Sound( ent, CHAN_AUTO, "sounds/world/water_in" );
+			G_Sound( ent, "sounds/world/water_in" );
 		}
 	}
 
@@ -192,11 +192,11 @@ static void G_PlayerWorldEffects( edict_t *ent ) {
 	//
 	if( old_waterlevel && !waterlevel ) {
 		if( old_watertype & CONTENTS_LAVA ) {
-			G_Sound( ent, CHAN_AUTO, "sounds/world/lava_out" );
+			G_Sound( ent, "sounds/world/lava_out" );
 		} else if( old_watertype & CONTENTS_SLIME ) {
-			G_Sound( ent, CHAN_AUTO, "sounds/world/water_out" );
+			G_Sound( ent, "sounds/world/water_out" );
 		} else if( old_watertype & CONTENTS_WATER ) {
-			G_Sound( ent, CHAN_AUTO, "sounds/world/water_out" );
+			G_Sound( ent, "sounds/world/water_out" );
 		}
 	}
 

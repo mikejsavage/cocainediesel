@@ -134,7 +134,7 @@ void G_UseTargets( edict_t *ent, edict_t *activator ) {
 		G_CenterPrintMsg( activator, "%s", ent->message );
 
 		if( ent->sound != EMPTY_HASH ) {
-			G_Sound( activator, CHAN_AUTO, ent->sound );
+			G_Sound( activator, ent->sound );
 		}
 	}
 
@@ -513,18 +513,17 @@ void G_DebugPrint( const char * format, ... ) {
 // SOUNDS
 //==================================================
 
-static edict_t *_G_SpawnSound( int channel, StringHash sound ) {
+static edict_t * _G_SpawnSound( StringHash sound ) {
 	edict_t * ent = G_Spawn();
 	ent->s.svflags &= ~SVF_NOCLIENT;
 	ent->s.svflags |= SVF_SOUNDCULL;
 	ent->s.type = ET_SOUNDEVENT;
-	ent->s.channel = channel;
 	ent->s.sound = sound;
 
 	return ent;
 }
 
-edict_t *G_Sound( edict_t *owner, int channel, StringHash sound ) {
+edict_t * G_Sound( edict_t * owner, StringHash sound ) {
 	if( sound == EMPTY_HASH ) {
 		return NULL;
 	}
@@ -533,7 +532,7 @@ edict_t *G_Sound( edict_t *owner, int channel, StringHash sound ) {
 		return NULL; // event entities can't be owner of sound entities
 	}
 
-	edict_t * ent = _G_SpawnSound( channel, sound );
+	edict_t * ent = _G_SpawnSound( sound );
 	ent->s.ownerNum = owner->s.number;
 
 	const cmodel_t * cmodel = CM_TryFindCModel( CM_Server, owner->s.model );
@@ -548,29 +547,30 @@ edict_t *G_Sound( edict_t *owner, int channel, StringHash sound ) {
 	return ent;
 }
 
-edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound ) {
+edict_t * G_PositionedSound( Vec3 origin, StringHash sound ) {
 	if( sound == EMPTY_HASH ) {
 		return NULL;
 	}
 
-	edict_t * ent = _G_SpawnSound( channel, sound );
-	if( origin != Vec3( 0.0f ) ) {
-		ent->s.channel |= CHAN_FIXED;
-		ent->s.origin = origin;
-	}
-	else {
-		ent->s.svflags |= SVF_BROADCAST;
-	}
+	edict_t * ent = _G_SpawnSound( sound );
+	ent->s.positioned_sound = true;
+	ent->s.origin = origin;
 
 	GClip_LinkEntity( ent );
 	return ent;
 }
 
-void G_GlobalSound( int channel, StringHash sound ) {
-	G_PositionedSound( Vec3( 0.0f ), channel, sound );
+void G_GlobalSound( StringHash sound ) {
+	if( sound == EMPTY_HASH )
+		return;
+
+	edict_t * ent = _G_SpawnSound( sound );
+	ent->s.svflags |= SVF_BROADCAST;
+
+	GClip_LinkEntity( ent );
 }
 
-void G_LocalSound( edict_t * owner, int channel, StringHash sound ) {
+void G_LocalSound( edict_t * owner, StringHash sound ) {
 	if( sound == EMPTY_HASH )
 		return;
 
@@ -578,7 +578,7 @@ void G_LocalSound( edict_t * owner, int channel, StringHash sound ) {
 		return; // event entities can't be owner of sound entities
 	}
 
-	edict_t * ent = _G_SpawnSound( channel, sound );
+	edict_t * ent = _G_SpawnSound( sound );
 	ent->s.ownerNum = ENTNUM( owner );
 	ent->s.svflags |= SVF_ONLYOWNER | SVF_BROADCAST;
 

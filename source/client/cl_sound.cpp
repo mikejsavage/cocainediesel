@@ -41,32 +41,16 @@ struct SoundEffect {
 	u8 num_sounds;
 };
 
-enum PlayingSoundType {
-	PlayingSoundType_Global, // plays at max volume everywhere
-	PlayingSoundType_Position, // plays from some point in the world
-	PlayingSoundType_Entity, // moves with an entity
-	PlayingSoundType_Line, // play sound from closest point on a line
-};
+struct PlayingSFX {
+	PlayingSFXHandle handle;
+	PlaySFXConfig config;
 
-struct PlayingSound {
-	PlayingSoundType type;
 	StringHash hash;
 	const SoundEffect * sfx;
 	s64 start_time;
-	int ent_num;
-	int channel;
-	float volume;
-	float pitch;
 
-	u32 entropy;
-	bool has_entropy;
-
-	ImmediateSoundHandle immediate_handle;
-	bool touched_since_last_update;
-	bool loop;
-
-	Vec3 origin;
-	Vec3 end;
+	bool immediate;
+	bool keep_playing_immediate;
 
 	ALuint sources[ ARRAY_COUNT( &SoundEffect::sounds ) ];
 	bool started[ ARRAY_COUNT( &SoundEffect::sounds ) ];
@@ -99,11 +83,10 @@ static Hashtable< MAX_SOUND_EFFECTS * 2 > sound_effects_hashtable;
 static ALuint free_sound_sources[ MAX_PLAYING_SOUNDS ];
 static u32 num_free_sound_sources;
 
-static PlayingSound playing_sound_effects[ MAX_PLAYING_SOUNDS ];
+static PlayingSFX playing_sound_effects[ MAX_PLAYING_SOUNDS ];
 static u32 num_playing_sound_effects;
-
-static Hashtable< MAX_PLAYING_SOUNDS * 2 > immediate_sounds_hashtable;
-static u64 immediate_sounds_autoinc;
+static Hashtable< MAX_PLAYING_SOUNDS * 2 > playing_sounds_hashtable;
+static u64 playing_sounds_autoinc;
 
 static ALuint music_source;
 static bool music_playing;
@@ -204,7 +187,7 @@ static void CheckedALSourceStop( ALuint source ) {
 	CheckALErrors( "alSourceStop( {} )", source );
 }
 
-static bool S_InitAL() {
+static bool InitOpenAL() {
 	TracyZoneScoped;
 
 	al_device = NULL;
@@ -251,7 +234,7 @@ static bool S_InitAL() {
 
 	if( alGetError() != AL_NO_ERROR ) {
 		Com_Printf( S_COLOR_RED "Failed to allocate sound sources\n" );
-		S_Shutdown();
+		ShutdownSound();
 		return false;
 	}
 
@@ -309,7 +292,7 @@ static void AddSound( const char * path, int num_samples, int channels, int samp
 	}
 	else {
 		restart_music = music_playing;
-		S_StopAllSounds( true );
+		StopAllSounds( true );
 		alDeleteBuffers( 1, &sounds[ idx ].buf );
 	}
 
@@ -321,7 +304,7 @@ static void AddSound( const char * path, int num_samples, int channels, int samp
 	sounds[ idx ].mono = channels == 1;
 
 	if( restart_music ) {
-		S_StartMenuMusic();
+		StartMenuMusic();
 	}
 
 	free( samples );
@@ -540,16 +523,16 @@ static void HotloadSoundEffects() {
 	}
 }
 
-bool S_Init() {
+bool InitSound() {
 	TracyZoneScoped;
 
 	num_sounds = 0;
 	num_sound_effects = 0;
 	num_playing_sound_effects = 0;
-	immediate_sounds_autoinc = 1;
+	playing_sounds_autoinc = 1;
 	sounds_hashtable.clear();
 	sound_effects_hashtable.clear();
-	immediate_sounds_hashtable.clear();
+	playing_sounds_hashtable.clear();
 	music_playing = false;
 	initialized = false;
 
@@ -559,7 +542,7 @@ bool S_Init() {
 	s_musicvolume = NewCvar( "s_musicvolume", "1", CvarFlag_Archive );
 	s_muteinbackground = NewCvar( "s_muteinbackground", "1", CvarFlag_Archive );
 
-	if( !S_InitAL() )
+	if( !InitOpenAL() )
 		return false;
 
 	LoadSounds();
@@ -570,13 +553,13 @@ bool S_Init() {
 	return true;
 }
 
-void S_Shutdown() {
+void ShutdownSound() {
 	TracyZoneScoped;
 
 	if( !initialized )
 		return;
 
-	S_StopAllSounds( true );
+	StopAllSounds( true );
 
 	alDeleteSources( ARRAY_COUNT( free_sound_sources ), free_sound_sources );
 	alDeleteSources( 1, &music_source );
@@ -618,15 +601,15 @@ static const SoundEffect * FindSoundEffect( StringHash name ) {
 	return &sound_effects[ idx ];
 }
 
-static bool StartSound( PlayingSound * ps, u8 i ) {
+static bool StartSound( PlayingSFX * ps, u8 i ) {
 	SoundEffect::PlaybackConfig config = ps->sfx->sounds[ i ];
 
 	int idx;
-	if( !ps->has_entropy ) {
+	if( !ps->config.has_entropy ) {
 		idx = RandomUniform( &cls.rng, 0, config.num_random_sounds );
 	}
 	else {
-		RNG rng = NewRNG( ps->entropy, 0 );
+		RNG rng = NewRNG( ps->config.entropy, 0 );
 		idx = RandomUniform( &rng, 0, config.num_random_sounds );
 	}
 
@@ -639,7 +622,7 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 		return false;
 	}
 
-	if( !sound.mono && ps->type != PlayingSoundType_Global ) {
+	if( !sound.mono && ps->config.spatialisation != SpatialisationMethod_None ) {
 		Com_Printf( S_COLOR_YELLOW "Positioned sounds must be mono!\n" );
 		return false;
 	}
@@ -649,45 +632,45 @@ static bool StartSound( PlayingSound * ps, u8 i ) {
 	ps->sources[ i ] = source;
 
 	CheckedALSource( source, AL_BUFFER, sound.buf );
-	CheckedALSource( source, AL_GAIN, ps->volume * config.volume * s_volume->number );
-	CheckedALSource( source, AL_PITCH, ps->pitch * config.pitch + ( RandomFloat11( &cls.rng ) * config.pitch_random * config.pitch * ps->pitch ) );
+	CheckedALSource( source, AL_GAIN, ps->config.volume * config.volume * s_volume->number );
+	CheckedALSource( source, AL_PITCH, ps->config.pitch * config.pitch + ( RandomFloat11( &cls.rng ) * config.pitch_random * config.pitch * ps->config.pitch ) );
 	CheckedALSource( source, AL_REFERENCE_DISTANCE, S_DEFAULT_ATTENUATION_REFDISTANCE );
 	CheckedALSource( source, AL_MAX_DISTANCE, S_DEFAULT_ATTENUATION_MAXDISTANCE );
 	CheckedALSource( source, AL_ROLLOFF_FACTOR, config.attenuation );
 
-	switch( ps->type ) {
-		case PlayingSoundType_Global:
+	switch( ps->config.spatialisation ) {
+		case SpatialisationMethod_None:
 			CheckedALSource( source, AL_POSITION, Vec3( 0.0f ) );
 			CheckedALSource( source, AL_VELOCITY, Vec3( 0.0f ) );
 			CheckedALSource( source, AL_SOURCE_RELATIVE, AL_TRUE );
 			break;
 
-		case PlayingSoundType_Position:
-			CheckedALSource( source, AL_POSITION, ps->origin );
+		case SpatialisationMethod_Position:
+			CheckedALSource( source, AL_POSITION, ps->config.position );
 			CheckedALSource( source, AL_VELOCITY, Vec3( 0.0f ) );
 			CheckedALSource( source, AL_SOURCE_RELATIVE, AL_FALSE );
 			break;
 
-		case PlayingSoundType_Entity:
-			CheckedALSource( source, AL_POSITION, cg_entities[ ps->ent_num ].interpolated.origin );
-			CheckedALSource( source, AL_VELOCITY, cg_entities[ ps->ent_num ].velocity );
+		case SpatialisationMethod_Entity:
+			CheckedALSource( source, AL_POSITION, cg_entities[ ps->config.ent_num ].interpolated.origin );
+			CheckedALSource( source, AL_VELOCITY, cg_entities[ ps->config.ent_num ].velocity );
 			CheckedALSource( source, AL_SOURCE_RELATIVE, AL_FALSE );
 			break;
 
-		case PlayingSoundType_Line:
-			CheckedALSource( source, AL_POSITION, ps->origin );
-			CheckedALSource( source, AL_VELOCITY, Vec3( 0.0f ) ); // TODO
+		case SpatialisationMethod_LineSegment:
+			CheckedALSource( source, AL_POSITION, ps->config.line_segment.start );
+			CheckedALSource( source, AL_VELOCITY, ps->config.line_segment.end - ps->config.line_segment.start );
 			CheckedALSource( source, AL_SOURCE_RELATIVE, AL_FALSE );
 			break;
 	}
 
-	CheckedALSource( source, AL_LOOPING, ps->immediate_handle.x != 0 && ps->loop ? AL_TRUE : AL_FALSE );
+	CheckedALSource( source, AL_LOOPING, ps->immediate ? AL_TRUE : AL_FALSE );
 	CheckedALSourcePlay( source );
 
 	return true;
 }
 
-static void StopSound( PlayingSound * ps, u8 i ) {
+static void StopSound( PlayingSFX * ps, u8 i ) {
 	CheckedALSourceStop( ps->sources[ i ] );
 	CheckedALSource( ps->sources[ i ], AL_BUFFER, 0 );
 	free_sound_sources[ num_free_sound_sources ] = ps->sources[ i ];
@@ -695,28 +678,50 @@ static void StopSound( PlayingSound * ps, u8 i ) {
 	ps->stopped[ i ] = true;
 }
 
-static void UpdateSound( PlayingSound * ps, float volume, float pitch ) {
-	ps->volume = volume;
-	ps->pitch = pitch;
+static void StopSFX( PlayingSFX * ps ) {
+	for( u8 i = 0; i < ps->sfx->num_sounds; i++ ) {
+		if( ps->started[ i ] && !ps->stopped[ i ] ) {
+			StopSound( ps, i );
+		}
+	}
+
+	// remove-swap it from playing_sound_effects
+	num_playing_sound_effects--;
+	Swap2( ps, &playing_sound_effects[ num_playing_sound_effects ] );
+
+	{
+		bool ok = playing_sounds_hashtable.update( ps->handle.handle, ps - playing_sound_effects );
+		assert( ok );
+	}
+
+	{
+		bool ok = playing_sounds_hashtable.remove( playing_sound_effects[ num_playing_sound_effects ].handle.handle );
+		assert( ok );
+	}
+}
+
+static void UpdateSound( PlayingSFX * ps, float volume, float pitch ) {
+	ps->config.volume = volume;
+	ps->config.pitch = pitch;
 
 	for( size_t i = 0; i < ps->sfx->num_sounds; i++ ) {
 		if( ps->started[ i ] ) {
 			const SoundEffect::PlaybackConfig * config = &ps->sfx->sounds[ i ];
-			CheckedALSource( ps->sources[ i ], AL_GAIN, ps->volume * config->volume * s_volume->number );
-			CheckedALSource( ps->sources[ i ], AL_PITCH, ps->pitch * config->pitch + ( RandomFloat11( &cls.rng ) * config->pitch_random * config->pitch * ps->pitch ) );
+			CheckedALSource( ps->sources[ i ], AL_GAIN, ps->config.volume * config->volume * s_volume->number );
+			CheckedALSource( ps->sources[ i ], AL_PITCH, ps->config.pitch * config->pitch + ( RandomFloat11( &cls.rng ) * config->pitch_random * config->pitch * ps->config.pitch ) );
 		}
 	}
 }
 
-void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
+void SoundFrame( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 	TracyZoneScoped;
 
 	if( !initialized )
 		return;
 
 	if( s_device->modified ) {
-		S_Shutdown();
-		S_Init();
+		ShutdownSound();
+		InitSound();
 		s_device->modified = false;
 	}
 
@@ -730,12 +735,9 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 	CheckedALListener( AL_ORIENTATION, axis );
 
 	for( size_t i = 0; i < num_playing_sound_effects; i++ ) {
-		PlayingSound * ps = &playing_sound_effects[ i ];
+		PlayingSFX * ps = &playing_sound_effects[ i ];
 		float t = ( cls.monotonicTime - ps->start_time ) * 0.001f;
 		bool all_stopped = true;
-
-		bool not_touched = ps->immediate_handle.x != 0 && !ps->touched_since_last_update;
-		ps->touched_since_last_update = false;
 
 		for( u8 j = 0; j < ps->sfx->num_sounds; j++ ) {
 			if( ps->started[ j ] ) {
@@ -743,7 +745,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 					continue;
 
 				ALint state = CheckedALGetSource( ps->sources[ j ], AL_SOURCE_STATE );
-				if( not_touched || state == AL_STOPPED ) {
+				if( state == AL_STOPPED ) {
 					StopSound( ps, j );
 				}
 				else {
@@ -762,44 +764,31 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 			}
 		}
 
-		if( all_stopped ) {
-			if( ps->immediate_handle.x != 0 ) {
-				bool ok = immediate_sounds_hashtable.remove( ps->immediate_handle.x );
-				assert( ok );
-			}
-
-			// remove-swap it from playing_sound_effects
-			num_playing_sound_effects--;
-			if( ps != &playing_sound_effects[ num_playing_sound_effects ] ) {
-				Swap2( ps, &playing_sound_effects[ num_playing_sound_effects ] );
-
-				if( ps->immediate_handle.x != 0 ) {
-					bool ok = immediate_sounds_hashtable.update( ps->immediate_handle.x, ps - playing_sound_effects );
-					assert( ok );
-				}
-			}
-
+		bool stop_immediate = ps->immediate && !ps->keep_playing_immediate;
+		if( stop_immediate || all_stopped ) {
+			StopSFX( ps );
 			i--;
 			continue;
 		}
+		ps->keep_playing_immediate = false;
 
 		for( u8 j = 0; j < ps->sfx->num_sounds; j++ ) {
 			if( !ps->started[ j ] || ps->stopped[ j ] )
 				continue;
 
 			if( s_volume->modified ) {
-				CheckedALSource( ps->sources[ j ], AL_GAIN, ps->volume * ps->sfx->sounds[ j ].volume * s_volume->number );
+				CheckedALSource( ps->sources[ j ], AL_GAIN, ps->config.volume * ps->sfx->sounds[ j ].volume * s_volume->number );
 			}
 
-			if( ps->type == PlayingSoundType_Entity ) {
-				CheckedALSource( ps->sources[ j ], AL_POSITION, cg_entities[ ps->ent_num ].interpolated.origin );
-				CheckedALSource( ps->sources[ j ], AL_VELOCITY, cg_entities[ ps->ent_num ].velocity );
+			if( ps->config.spatialisation == SpatialisationMethod_Entity ) {
+				CheckedALSource( ps->sources[ j ], AL_POSITION, cg_entities[ ps->config.ent_num ].interpolated.origin );
+				CheckedALSource( ps->sources[ j ], AL_VELOCITY, cg_entities[ ps->config.ent_num ].velocity );
 			}
-			else if( ps->type == PlayingSoundType_Position ) {
-				CheckedALSource( ps->sources[ j ], AL_POSITION, ps->origin );
+			else if( ps->config.spatialisation == SpatialisationMethod_Position ) {
+				CheckedALSource( ps->sources[ j ], AL_POSITION, ps->config.position );
 			}
-			else if( ps->type == PlayingSoundType_Line ) {
-				Vec3 p = ClosestPointOnSegment( ps->origin, ps->end, origin );
+			else if( ps->config.spatialisation == SpatialisationMethod_LineSegment ) {
+				Vec3 p = ClosestPointOnSegment( ps->config.line_segment.start, ps->config.line_segment.end, origin );
 				CheckedALSource( ps->sources[ j ], AL_POSITION, p );
 			}
 		}
@@ -813,21 +802,7 @@ void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 	s_musicvolume->modified = false;
 }
 
-static PlayingSound * FindEmptyPlayingSound( int ent_num, int channel ) {
-	if( channel != 0 ) {
-		for( u32 i = 0; i < num_playing_sound_effects; i++ ) {
-			PlayingSound * ps = &playing_sound_effects[ i ];
-			if( ps->ent_num == ent_num && ps->channel == channel ) {
-				for( u8 j = 0; j < ps->sfx->num_sounds; j++ ) {
-					if( ps->started[ j ] && !ps->stopped[ j ] ) {
-						StopSound( ps, j );
-					}
-				}
-				return ps;
-			}
-		}
-	}
-
+static PlayingSFX * FindEmptyPlayingSFX( int ent_num ) {
 	if( num_playing_sound_effects == ARRAY_COUNT( playing_sound_effects ) )
 		return NULL;
 
@@ -835,7 +810,7 @@ static PlayingSound * FindEmptyPlayingSound( int ent_num, int channel ) {
 	return &playing_sound_effects[ num_playing_sound_effects - 1 ];
 }
 
-static PlayingSound * StartSoundEffect( StringHash name, int ent_num, int channel, float volume, float pitch, PlayingSoundType type ) {
+PlayingSFX * PlaySFXInternal( StringHash name, const PlaySFXConfig & config ) {
 	if( !initialized )
 		return NULL;
 
@@ -843,166 +818,181 @@ static PlayingSound * StartSoundEffect( StringHash name, int ent_num, int channe
 	if( sfx == NULL )
 		return NULL;
 
-	PlayingSound * ps = FindEmptyPlayingSound( ent_num, channel );
-	if( ps == NULL ) {
+	if( num_playing_sound_effects == ARRAY_COUNT( playing_sound_effects ) ) {
 		Com_Printf( S_COLOR_YELLOW "Too many playing sound effects!\n" );
 		return NULL;
 	}
 
+	PlayingSFX * ps = &playing_sound_effects[ num_playing_sound_effects ];
+
 	*ps = { };
-	ps->type = type;
+	ps->config = config;
 	ps->hash = name;
 	ps->sfx = sfx;
+
+	ps->handle = { playing_sounds_autoinc };
+	playing_sounds_autoinc++;
+
 	ps->start_time = cls.monotonicTime;
-	ps->ent_num = ent_num;
-	ps->channel = channel;
-	ps->volume = volume;
-	ps->pitch = pitch;
-	ps->touched_since_last_update = true;
+
+	bool ok = playing_sounds_hashtable.add( ps->handle.handle, num_playing_sound_effects );
+	assert( ok );
+	num_playing_sound_effects++;
 
 	return ps;
 }
 
-void S_StartFixedSound( StringHash name, Vec3 origin, int channel, float volume, float pitch ) {
-	PlayingSound * ps = StartSoundEffect( name, 0, channel, volume, pitch, PlayingSoundType_Position );
+PlayingSFXHandle PlaySFX( StringHash name, const PlaySFXConfig & config ) {
+	PlayingSFX * ps = PlaySFXInternal( name, config );
 	if( ps == NULL )
-		return;
-	ps->origin = origin;
+		return { };
+	return ps->handle;
 }
 
-void S_StartEntitySound( StringHash name, int ent_num, int channel, float volume, float pitch ) {
-	StartSoundEffect( name, ent_num, channel, volume, pitch, PlayingSoundType_Entity );
-}
-
-void S_StartEntitySound( StringHash name, int ent_num, int channel, float volume, float pitch, u32 sfx_entropy ) {
-	PlayingSound * ps = StartSoundEffect( name, ent_num, channel, volume, pitch, PlayingSoundType_Entity );
-	if( ps == NULL )
-		return;
-	ps->entropy = sfx_entropy;
-	ps->has_entropy = true;
-}
-
-void S_StartGlobalSound( StringHash name, int channel, float volume, float pitch ) {
-	StartSoundEffect( name, 0, channel, volume, pitch, PlayingSoundType_Global );
-}
-
-void S_StartGlobalSound( StringHash name, int channel, float volume, float pitch, u32 sfx_entropy ) {
-	PlayingSound * ps = StartSoundEffect( name, 0, channel, volume, pitch, PlayingSoundType_Global );
-	if( ps == NULL )
-		return;
-	ps->entropy = sfx_entropy;
-	ps->has_entropy = true;
-}
-
-void S_StartLocalSound( StringHash name, int channel, float volume, float pitch ) {
-	StartSoundEffect( name, -1, channel, volume, pitch, PlayingSoundType_Global );
-}
-
-void S_StartLineSound( StringHash name, Vec3 start, Vec3 end, int channel, float volume, float pitch) {
-	PlayingSound * ps = StartSoundEffect( name, -1, channel, volume, pitch, PlayingSoundType_Line );
-	if( ps == NULL )
-		return;
-	ps->origin = start;
-	ps->end = end;
-}
-
-static ImmediateSoundHandle StartImmediateSound( StringHash name, int ent_num, float volume, float pitch, bool loop, u32 sfx_entropy, PlayingSoundType type, ImmediateSoundHandle handle ) {
-	if( name == EMPTY_HASH ) {
-		return { 0 };
-	}
-
+PlayingSFXHandle PlayImmediateSFX( StringHash name, PlayingSFXHandle handle, const PlaySFXConfig & config ) {
 	u64 idx;
-	bool found = immediate_sounds_hashtable.get( handle.x, &idx );
-	if( handle.x != 0 && found && playing_sound_effects[ idx ].hash == name ) {
-		if( playing_sound_effects[ idx ].volume != volume || playing_sound_effects[ idx ].pitch != pitch ) {
-			UpdateSound( &playing_sound_effects[ idx ], volume, pitch );
+	if( playing_sounds_hashtable.get( handle.handle, &idx ) ) {
+		PlayingSFX * ps = &playing_sound_effects[ idx ];
+		if( ps->hash == name ) {
+			ps->keep_playing_immediate = true;
+			UpdateSound( ps, config.volume, config.pitch );
+			return handle;
 		}
-		playing_sound_effects[ idx ].touched_since_last_update = true;
-	}
-	else {
-		PlayingSound * ps = StartSoundEffect( name, ent_num, CHAN_AUTO, volume, pitch, type );
-		if( ps == NULL )
-			return { 0 };
-
-		handle = { immediate_sounds_autoinc };
-
-		immediate_sounds_autoinc++;
-		if( immediate_sounds_autoinc == 0 )
-			immediate_sounds_autoinc++;
-
-		ps->immediate_handle = handle;
-		ps->loop = loop;
-		ps->entropy = sfx_entropy;
-		idx = ps - playing_sound_effects;
-
-		immediate_sounds_hashtable.add( handle.x, idx );
+		StopSFX( &playing_sound_effects[ idx ] );
 	}
 
-	return handle;
+	PlayingSFX * ps = PlaySFXInternal( name, config );
+	if( ps == NULL )
+		return { };
+
+	ps->immediate = true;
+	ps->keep_playing_immediate = true;
+
+	return ps->handle;
 }
 
-ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, bool loop, ImmediateSoundHandle handle ) {
-	return StartImmediateSound( name, ent_num, volume, pitch, loop, 0, PlayingSoundType_Entity, handle );
-}
-
-ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, bool loop, u32 sfx_entropy, ImmediateSoundHandle handle ) {
-	return StartImmediateSound( name, ent_num, volume, pitch, loop, sfx_entropy, PlayingSoundType_Entity, handle );
-}
-
-ImmediateSoundHandle S_ImmediateFixedSound( StringHash name, Vec3 origin, float volume, float pitch, ImmediateSoundHandle handle ) {
-	handle = StartImmediateSound( name, -1, volume, pitch, true, 0, PlayingSoundType_Position, handle );
-	if( handle.x == 0 )
-		return handle;
-
+void StopSFX( PlayingSFXHandle handle ) {
 	u64 idx;
-	bool ok = immediate_sounds_hashtable.get( handle.x, &idx );
-	assert( ok );
-
-	PlayingSound * ps = &playing_sound_effects[ idx ];
-	ps->origin = origin;
-
-	return handle;
+	if( !playing_sounds_hashtable.get( handle.handle, &idx ) )
+		return;
+	StopSFX( &playing_sound_effects[ idx ] );
 }
 
-ImmediateSoundHandle S_ImmediateLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch, ImmediateSoundHandle handle ) {
-	handle = StartImmediateSound( name, -1, volume, pitch, true, 0, PlayingSoundType_Line, handle );
-	if( handle.x == 0 )
-		return handle;
-
-	u64 idx;
-	bool ok = immediate_sounds_hashtable.get( handle.x, &idx );
-	assert( ok );
-
-	PlayingSound * ps = &playing_sound_effects[ idx ];
-	ps->origin = start;
-	ps->end = end;
-
-	return handle;
+PlayingSFXHandle S_StartFixedSound( StringHash name, Vec3 position, float volume, float pitch ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_Position;
+	config.position = position;
+	config.volume = volume;
+	config.pitch = pitch;
+	return PlaySFX( name, config );
 }
 
-void S_StopAllSounds( bool stop_music ) {
+PlayingSFXHandle S_StartEntitySound( StringHash name, int ent_num, float volume, float pitch ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_Entity;
+	config.ent_num = ent_num;
+	config.volume = volume;
+	config.pitch = pitch;
+	return PlaySFX( name, config );
+}
+
+PlayingSFXHandle S_StartEntitySound( StringHash name, int ent_num, float volume, float pitch, u64 entropy ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_Entity;
+	config.ent_num = ent_num;
+	config.volume = volume;
+	config.pitch = pitch;
+	config.has_entropy = true;
+	config.entropy = entropy;
+	return PlaySFX( name, config );
+}
+
+PlayingSFXHandle S_StartGlobalSound( StringHash name, float volume, float pitch ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_None;
+	config.volume = volume;
+	config.pitch = pitch;
+	return PlaySFX( name, config );
+}
+
+PlayingSFXHandle S_StartGlobalSound( StringHash name, float volume, float pitch, u64 entropy ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_None;
+	config.volume = volume;
+	config.pitch = pitch;
+	config.has_entropy = true;
+	config.entropy = entropy;
+	return PlaySFX( name, config );
+}
+
+PlayingSFXHandle S_StartLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_LineSegment;
+	config.line_segment.start = start;
+	config.line_segment.end = end;
+	config.volume = volume;
+	config.pitch = pitch;
+	return PlaySFX( name, config );
+}
+
+PlayingSFXHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, PlayingSFXHandle handle ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_Entity;
+	config.ent_num = ent_num;
+	config.volume = volume;
+	config.pitch = pitch;
+	return PlayImmediateSFX( name, handle, config );
+}
+
+PlayingSFXHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, u64 entropy, PlayingSFXHandle handle ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_Entity;
+	config.ent_num = ent_num;
+	config.volume = volume;
+	config.pitch = pitch;
+	config.has_entropy = true;
+	config.entropy = entropy;
+	return PlayImmediateSFX( name, handle, config );
+}
+
+PlayingSFXHandle S_ImmediateFixedSound( StringHash name, Vec3 position, float volume, float pitch, PlayingSFXHandle handle ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_Position;
+	config.position = position;
+	config.volume = volume;
+	config.pitch = pitch;
+	return PlayImmediateSFX( name, handle, config );
+}
+
+PlayingSFXHandle S_ImmediateLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch, PlayingSFXHandle handle ) {
+	PlaySFXConfig config = { };
+	config.spatialisation = SpatialisationMethod_LineSegment;
+	config.line_segment.start = start;
+	config.line_segment.end = end;
+	config.volume = volume;
+	config.pitch = pitch;
+	return PlayImmediateSFX( name, handle, config );
+}
+
+void StopAllSounds( bool stop_music ) {
 	if( !initialized )
 		return;
 
 	for( u32 i = 0; i < num_playing_sound_effects; i++ ) {
-		PlayingSound * ps = &playing_sound_effects[ i ];
-		for( u8 j = 0; j < ps->sfx->num_sounds; j++ ) {
-			if( ps->started[ j ] && !ps->stopped[ j ] ) {
-				StopSound( ps, j );
-			}
-		}
+		PlayingSFX * ps = &playing_sound_effects[ i ];
+		StopSFX( ps );
 	}
 
 	num_playing_sound_effects = 0;
 
 	if( stop_music ) {
-		S_StopBackgroundTrack();
+		StopMenuMusic();
 	}
 
-	immediate_sounds_hashtable.clear();
+	playing_sounds_hashtable.clear();
 }
 
-void S_StartMenuMusic() {
+void StartMenuMusic() {
 	if( !initialized )
 		return;
 
@@ -1023,7 +1013,7 @@ void S_StartMenuMusic() {
 	music_playing = true;
 }
 
-void S_StopBackgroundTrack() {
+void StopMenuMusic() {
 	if( initialized && music_playing ) {
 		CheckedALSourceStop( music_source );
 		CheckedALSource( music_source, AL_BUFFER, 0 );

@@ -106,17 +106,6 @@ struct gs_state_t {
 #define ATTN_IDLE               2.5f    // stuff around you
 #define ATTN_STATIC             5.0f    // diminish very rapidly with distance
 
-// sound channels
-// CHAN_AUTO never willingly overrides
-enum {
-	CHAN_AUTO,
-	CHAN_BODY,
-
-	CHAN_TOTAL,
-
-	CHAN_FIXED = 128
-};
-
 //==================================================================
 
 #define ISWALKABLEPLANE( x ) ( ( (Plane *)x )->normal.z >= 0.7f )

@@ -489,9 +489,9 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 
 	if( !wasinwater && isinwater ) {
-		G_PositionedSound( old_origin, CHAN_AUTO, "sounds/misc/hit_water" );
+		G_PositionedSound( old_origin, "sounds/misc/hit_water" );
 	} else if( wasinwater && !isinwater ) {
-		G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/misc/hit_water" );
+		G_PositionedSound( ent->s.origin, "sounds/misc/hit_water" );
 	}
 
 	GClip_LinkEntity( ent );
@@ -528,9 +528,9 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	ent->waterlevel = G_PointContents( ent->s.origin ) & MASK_WATER;
 
 	if( !wasinwater && ent->waterlevel ) {
-		G_PositionedSound( start, CHAN_AUTO, "sounds/misc/hit_water" );
+		G_PositionedSound( start, "sounds/misc/hit_water" );
 	} else if( wasinwater && !ent->waterlevel ) {
-		G_PositionedSound( ent->s.origin, CHAN_AUTO, "sounds/misc/hit_water" );
+		G_PositionedSound( ent->s.origin, "sounds/misc/hit_water" );
 	}
 
 	ent->s.angles += ent->avelocity * FRAMETIME;

@@ -480,13 +480,13 @@ static void GT_Gladiator_PlayerKilled( edict_t * victim, edict_t * attacker, edi
 	if( gladiator_state.state > GladiatorRoundState_None && gladiator_state.state < GladiatorRoundState_Post ) {
 		AddLoser( PLAYERNUM( victim ) );
 		if( victim->velocity.z < -1600.0f && victim->health < 100 ) {
-			G_GlobalSound( CHAN_AUTO, "sounds/gladiator/smackdown" );
+			G_GlobalSound( "sounds/gladiator/smackdown" );
 		}
 	}
 
 	if( gladiator_state.state == GladiatorRoundState_Pre ) {
 		G_ClientGetStats( victim )->score--;
-		G_LocalSound( victim, CHAN_AUTO, "sounds/gladiator/ouch" );
+		G_LocalSound( victim, "sounds/gladiator/ouch" );
 	}
 }
 

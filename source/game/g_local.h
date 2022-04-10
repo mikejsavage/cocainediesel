@@ -269,10 +269,10 @@ void G_ClearCenterPrint( edict_t * ent );
 
 void G_DebugPrint( const char * format, ... );
 
-edict_t *G_Sound( edict_t *owner, int channel, StringHash sound );
-edict_t *G_PositionedSound( Vec3 origin, int channel, StringHash sound );
-void G_GlobalSound( int channel, StringHash sound );
-void G_LocalSound( edict_t *owner, int channel, StringHash sound );
+edict_t * G_Sound( edict_t * owner, StringHash sound );
+edict_t * G_PositionedSound( Vec3 origin, StringHash sound );
+void G_GlobalSound( StringHash sound );
+void G_LocalSound( edict_t * owner, StringHash sound );
 
 #define G_ISGHOSTING( x ) ( ( x )->r.solid == SOLID_NOT )
 

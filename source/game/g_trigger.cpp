@@ -158,7 +158,7 @@ static void G_JumpPadSound( edict_t *ent ) {
 
 	Vec3 org = ent->s.origin + 0.5f * ( ent->r.mins + ent->r.maxs );
 
-	G_PositionedSound( org, CHAN_AUTO, ent->moveinfo.sound_start );
+	G_PositionedSound( org, ent->moveinfo.sound_start );
 }
 
 #define MIN_TRIGGER_PUSH_REBOUNCE_TIME 100
@@ -275,18 +275,6 @@ static void hurt_touch( edict_t *self, edict_t *other, Plane *plane, int surfFla
 		damage = other->health + 1;
 	}
 
-	if( self->spawnflags & ( 32 | 64 ) ) { // KILL, FALL
-		// play the death sound
-		if( self->sound != EMPTY_HASH ) {
-			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->sound );
-			other->pain_debounce_time = level.time + 25;
-		}
-	} else if( !( self->spawnflags & 4 ) && self->sound != EMPTY_HASH ) {
-		if( (int)( level.time * 0.001 ) & 1 ) {
-			G_Sound( other, CHAN_AUTO | CHAN_FIXED, self->sound );
-		}
-	}
-
 	G_Damage( other, self, world, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, damage, damage, 0, WorldDamage_Trigger );
 }
 
@@ -364,7 +352,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, Plane *plane, int su
 			org = self->s.origin;
 		}
 
-		G_PositionedSound( org, CHAN_AUTO, self->sound );
+		G_PositionedSound( org, self->sound );
 	}
 
 	G_TeleportPlayer( other, dest );

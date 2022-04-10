@@ -54,8 +54,7 @@ void CL_GetCurrentState( int64_t *incomingAcknowledged, int64_t *outgoingSequenc
 }
 
 void CL_GameModule_Init() {
-	// stop all playing sounds
-	S_StopAllSounds( true );
+	StopAllSounds( true );
 
 	CL_GameModule_Shutdown();
 

@@ -18,7 +18,7 @@ static void TouchJumppad( edict_t * ent, edict_t * other, Plane * plane, int sur
 		other->velocity = GS_EvaluateJumppad( &ent->s, other->velocity );
 	}
 
-	G_PositionedSound( ent->s.origin, CHAN_AUTO, "entities/jumppad/trigger" );
+	G_PositionedSound( ent->s.origin, "entities/jumppad/trigger" );
 }
 
 static void FindJumppadTarget( edict_t * ent ) {

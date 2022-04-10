@@ -628,7 +628,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	CG_ReleaseAnnouncerEvents();
 
-	S_Update( cg.view.origin, cg.view.velocity, cg.view.axis );
+	SoundFrame( cg.view.origin, cg.view.velocity, cg.view.axis );
 
 	CG_Draw2D();
 

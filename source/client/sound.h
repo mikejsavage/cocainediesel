@@ -2,33 +2,59 @@
 
 #include "qcommon/types.h"
 
-struct ImmediateSoundHandle {
-	u64 x;
+struct PlayingSFXHandle {
+	u64 handle;
+};
+
+enum SpatialisationMethod {
+	SpatialisationMethod_None, // plays at max volume everywhere
+	SpatialisationMethod_Position, // plays from some point in the world
+	SpatialisationMethod_Entity, // moves with an entity
+	SpatialisationMethod_LineSegment, // play sound from closest point on a line segment
+};
+
+struct PlaySFXConfig {
+	SpatialisationMethod spatialisation;
+	union {
+		Vec3 position;
+		int ent_num;
+		struct { Vec3 start, end; } line_segment;
+	};
+
+	float volume;
+	float pitch;
+
+	u64 entropy;
+	bool has_entropy;
 };
 
 extern Cvar * s_device;
 
-bool S_Init();
-void S_Shutdown();
+bool InitSound();
+void ShutdownSound();
 
 Span< const char * > GetAudioDevices( Allocator * a );
 
-void S_Update( Vec3 origin, Vec3 velocity, const mat3_t axis );
+void SoundFrame( Vec3 origin, Vec3 velocity, const mat3_t axis );
 
-void S_StartFixedSound( StringHash name, Vec3 origin, int channel, float volume, float pitch );
-void S_StartEntitySound( StringHash name, int ent_num, int channel, float volume, float pitch );
-void S_StartEntitySound( StringHash name, int ent_num, int channel, float volume, float pitch, u32 sfx_entropy );
-void S_StartGlobalSound( StringHash name, int channel, float volume, float pitch );
-void S_StartGlobalSound( StringHash name, int channel, float volume, float pitch, u32 sfx_entropy );
-void S_StartLocalSound( StringHash name, int channel, float volume, float pitch );
-void S_StartLineSound( StringHash name, Vec3 start, Vec3 end, int channel, float volume, float pitch );
+PlayingSFXHandle PlaySFX( StringHash name, const PlaySFXConfig & config );
+PlayingSFXHandle PlayImmediateSFX( StringHash name, PlayingSFXHandle handle, const PlaySFXConfig & config );
+void StopSFX( PlayingSFXHandle handle );
 
-ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, bool loop, ImmediateSoundHandle handle );
-ImmediateSoundHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, bool loop, u32 sfx_entropy, ImmediateSoundHandle handle );
-ImmediateSoundHandle S_ImmediateFixedSound( StringHash name, Vec3 pos, float volume, float pitch, ImmediateSoundHandle handle );
-ImmediateSoundHandle S_ImmediateLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch, ImmediateSoundHandle handle );
+void StopAllSounds( bool stopMusic );
 
-void S_StopAllSounds( bool stopMusic );
+void StartMenuMusic();
+void StopMenuMusic();
 
-void S_StartMenuMusic();
-void S_StopBackgroundTrack();
+// TODO: legacy API, should probably stop using these
+PlayingSFXHandle S_StartFixedSound( StringHash name, Vec3 position, float volume, float pitch );
+PlayingSFXHandle S_StartEntitySound( StringHash name, int ent_num, float volume, float pitch );
+PlayingSFXHandle S_StartEntitySound( StringHash name, int ent_num, float volume, float pitch, u64 entropy );
+PlayingSFXHandle S_StartGlobalSound( StringHash name, float volume, float pitch );
+PlayingSFXHandle S_StartGlobalSound( StringHash name, float volume, float pitch, u64 entropy );
+PlayingSFXHandle S_StartLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch );
+
+PlayingSFXHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, PlayingSFXHandle handle );
+PlayingSFXHandle S_ImmediateEntitySound( StringHash name, int ent_num, float volume, float pitch, u64 entropy, PlayingSFXHandle handle );
+PlayingSFXHandle S_ImmediateFixedSound( StringHash name, Vec3 pos, float volume, float pitch, PlayingSFXHandle handle );
+PlayingSFXHandle S_ImmediateLineSound( StringHash name, Vec3 start, Vec3 end, float volume, float pitch, PlayingSFXHandle handle );

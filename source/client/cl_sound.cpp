@@ -568,7 +568,7 @@ void ShutdownSound() {
 		alDeleteBuffers( 1, &sounds[ i ].buf );
 	}
 
-	CheckALErrors( "S_Shutdown" );
+	CheckALErrors( "ShutdownSound" );
 
 	alcDestroyContext( al_context );
 	alcCloseDevice( al_device );
@@ -910,12 +910,9 @@ void StopAllSounds( bool stop_music ) {
 	if( !initialized )
 		return;
 
-	for( u32 i = 0; i < num_playing_sound_effects; i++ ) {
-		PlayingSFX * ps = &playing_sound_effects[ i ];
-		StopSFX( ps );
+	while( num_playing_sound_effects > 0 ) {
+		StopSFX( &playing_sound_effects[ 0 ] );
 	}
-
-	num_playing_sound_effects = 0;
 
 	if( stop_music ) {
 		StopMenuMusic();

@@ -423,101 +423,6 @@ static void PlotVRAMUsage() {
 	}
 }
 
-static GLuint DSACreateBuffer( bool ubo ) {
-	GLuint buf;
-	if( GLAD_GL_ARB_direct_state_access != 0 ) {
-		glCreateBuffers( 1, &buf );
-	}
-	else {
-		GLenum target = ubo ? GL_UNIFORM_BUFFER : GL_SHADER_STORAGE_BUFFER;
-		glGenBuffers( 1, &buf );
-		glBindBuffer( target, buf );
-		glBindBuffer( target, 0 );
-	}
-	return buf;
-}
-
-static void DSAHacks() {
-	if( GLAD_GL_ARB_direct_state_access == 0 ) {
-		glCreateVertexArrays = []( GLsizei n, GLuint * vaos ) {
-			assert( n == 1 );
-			glGenVertexArrays( 1, vaos );
-			glBindVertexArray( vaos[ 0 ] );
-			glBindVertexArray( 0 );
-		};
-		glVertexArrayElementBuffer = []( GLuint vao, GLuint buf ) {
-			glBindVertexArray( vao );
-			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, buf );
-			glBindVertexArray( 0 );
-		};
-		glEnableVertexArrayAttrib = glEnableVertexArrayAttribEXT;
-
-		glNamedBufferStorage = glNamedBufferStorageEXT;
-		glNamedBufferSubData = glNamedBufferSubDataEXT;
-		glGetNamedBufferSubData = glGetNamedBufferSubDataEXT;
-		glMapNamedBufferRange = glMapNamedBufferRangeEXT;
-		glUnmapNamedBuffer = glUnmapNamedBufferEXT;
-
-		glCreateTextures = []( GLenum target, GLsizei n, GLuint * textures ) {
-			assert( n == 1 );
-			glGenTextures( 1, textures );
-			glBindTexture( target, textures[ 0 ] );
-			glBindTexture( target, 0 );
-		};
-
-		glCreateFramebuffers = []( GLsizei n, GLuint * fbos ) {
-			assert( n == 1 );
-			glGenFramebuffers( 1, fbos );
-			glBindFramebuffer( GL_FRAMEBUFFER, fbos[ 0 ] );
-			glBindFramebuffer( GL_FRAMEBUFFER, 0 );
-		};
-		glCheckNamedFramebufferStatus = glCheckNamedFramebufferStatusEXT;
-		glNamedFramebufferTextureLayer = glNamedFramebufferTextureLayerEXT;
-		glNamedFramebufferTexture = glNamedFramebufferTextureEXT;
-		glNamedFramebufferDrawBuffers = glFramebufferDrawBuffersEXT;
-		glBlitNamedFramebuffer = []( GLuint src, GLuint dst, GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter ) {
-			GLint bound;
-			glGetIntegerv( GL_DRAW_FRAMEBUFFER_BINDING, &bound );
-			assert( bound >= 0 && GLuint( bound ) == dst );
-
-			glBindFramebuffer( GL_READ_FRAMEBUFFER, src );
-			glBlitFramebuffer( srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter );
-			glBindFramebuffer( GL_READ_FRAMEBUFFER, 0 );
-		};
-	}
-	else if( GLAD_GL_EXT_direct_state_access == 0 ) {
-		glVertexArrayVertexAttribOffsetEXT = []( GLuint vao, GLuint buffer, GLuint index, GLint num_components, GLenum type, GLboolean normalized, GLsizei stride, GLintptr offset ) {
-			glVertexArrayVertexBuffer( vao, index, buffer, 0, stride );
-			glVertexArrayAttribFormat( vao, index, num_components, type, normalized, offset );
-		};
-		glVertexArrayVertexAttribIOffsetEXT = []( GLuint vao, GLuint buffer, GLuint index, GLint num_components, GLenum type, GLsizei stride, GLintptr offset ) {
-			glVertexArrayVertexBuffer( vao, index, buffer, 0, stride );
-			glVertexArrayAttribIFormat( vao, index, num_components, type, offset );
-		};
-
-		glTextureStorage2DEXT = []( GLuint tex, GLenum target, GLsizei mips, GLenum format, GLsizei w, GLsizei h ) { glTextureStorage2D( tex, mips, format, w, h ); };
-		glTextureStorage3DEXT = []( GLuint tex, GLenum target, GLsizei mips, GLenum format, GLsizei w, GLsizei h, GLsizei d ) { glTextureStorage3D( tex, mips, format, w, h, d ); };
-		glTextureStorage2DMultisampleEXT = []( GLuint tex, GLenum target, GLsizei samples, GLenum format, GLsizei w, GLsizei h, GLboolean fixed_sample_locations ) {
-			glTextureStorage2DMultisample( tex, samples, format, w, h, fixed_sample_locations );
-		};
-		glTextureParameterfEXT = []( GLuint tex, GLenum target, GLenum param, GLfloat value ) { glTextureParameterf( tex, param, value ); };
-		glTextureParameterfvEXT = []( GLuint tex, GLenum target, GLenum param, const GLfloat * values ) { glTextureParameterfv( tex, param, values ); };
-		glTextureParameteriEXT = []( GLuint tex, GLenum target, GLenum param, GLint value ) { glTextureParameteri( tex, param, value ); };
-		glTextureSubImage2DEXT = []( GLuint tex, GLenum target, GLint mip, GLint x, GLint y, GLsizei w, GLsizei h, GLenum format, GLenum type, const void * data ) {
-			glTextureSubImage2D( tex, mip, x, y, w, h, format, type, data );
-		};
-		glCompressedTextureSubImage2DEXT = []( GLuint tex, GLenum target, GLint mip, GLint x, GLint y, GLsizei w, GLsizei h, GLenum format, GLsizei n, const void * data ) {
-			glCompressedTextureSubImage2D( tex, mip, x, y, w, h, format, n, data );
-		};
-		glCompressedTextureSubImage3DEXT = []( GLuint tex, GLenum target, GLint mip, GLint x, GLint y, GLint z, GLsizei w, GLsizei h, GLsizei d, GLenum format, GLsizei n, const void * data ) {
-			glCompressedTextureSubImage3D( tex, mip, x, y, z, w, h, d, format, n, data );
-		};
-		glBindMultiTextureEXT = []( GLuint unit, GLenum target, GLuint tex ) {
-			glBindTextureUnit( unit - GL_TEXTURE0, tex );
-		};
-	}
-}
-
 static StreamingBuffer NewStreamingBuffer( u32 len, const char * name, bool ubo );
 
 void InitRenderBackend() {
@@ -529,9 +434,6 @@ void InitRenderBackend() {
 			const char * name;
 			int loaded;
 		} required_extensions[] = {
-			{ "GL_ARB_buffer_storage", GLAD_GL_ARB_buffer_storage },
-			{ "GL_ARB_clip_control", GLAD_GL_ARB_clip_control },
-			{ "GL_ARB_direct_state_access/GL_EXT_direct_state_access", GLAD_GL_ARB_direct_state_access + GLAD_GL_EXT_direct_state_access },
 			{ "GL_EXT_texture_compression_s3tc", GLAD_GL_EXT_texture_compression_s3tc },
 			{ "GL_EXT_texture_filter_anisotropic", GLAD_GL_EXT_texture_filter_anisotropic },
 			{ "GL_EXT_texture_sRGB", GLAD_GL_EXT_texture_sRGB },
@@ -557,8 +459,6 @@ void InitRenderBackend() {
 			Fatal( "GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS too small" );
 		}
 	}
-
-	DSAHacks();
 
 	{
 		GLint context_flags;
@@ -712,12 +612,10 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 				if( pipeline.textures[ j ].name_hash == name_hash ) {
 					const Texture * texture = pipeline.textures[ j ].texture;
 					if( texture != prev_texture ) {
-						GLenum target = texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 						if( prev_texture != NULL && prev_texture->msaa != texture->msaa ) {
-							GLenum prev_target = prev_texture->msaa ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
-							glBindMultiTextureEXT( GL_TEXTURE0 + i, prev_target, 0 );
+							glBindTextureUnit( i, 0 );
 						}
-						glBindMultiTextureEXT( GL_TEXTURE0 + i, target, texture->texture );
+						glBindTextureUnit( i, texture->texture );
 						prev_bindings.textures[ i ] = texture;
 					}
 					found = true;
@@ -727,8 +625,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		}
 
 		if( !found && prev_texture != NULL ) {
-			GLenum prev_target = prev_texture->msaa ? GL_TEXTURE_2D : GL_TEXTURE_2D_MULTISAMPLE;
-			glBindMultiTextureEXT( GL_TEXTURE0 + i, prev_target, 0 );
+			glBindTextureUnit( i, 0 );
 			prev_bindings.textures[ i ] = NULL;
 		}
 	}
@@ -771,7 +668,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 				if( pipeline.texture_arrays[ j ].name_hash == name_hash ) {
 					TextureArray texture = pipeline.texture_arrays[ j ].ta;
 					if( texture.texture != prev_texture.texture ) {
-						glBindMultiTextureEXT( GL_TEXTURE0 + tex_unit, GL_TEXTURE_2D_ARRAY, texture.texture );
+						glBindTextureUnit( tex_unit, texture.texture );
 						prev_bindings.texture_arrays[ i ] = texture;
 					}
 					found = true;
@@ -781,7 +678,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 		}
 
 		if( !found ) {
-			glBindMultiTextureEXT( GL_TEXTURE0 + tex_unit, GL_TEXTURE_2D_ARRAY, 0 );
+			glBindTextureUnit( tex_unit, 0 );
 			prev_bindings.texture_arrays[ i ] = { };
 		}
 	}
@@ -905,11 +802,12 @@ static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexForma
 	VertexFormatToGL( format, &type, &num_components, &integral, &normalized, stride == 0 ? &stride : NULL );
 
 	glEnableVertexArrayAttrib( vao, index );
+	glVertexArrayVertexBuffer( vao, index, buffer, 0, stride );
 	if( integral && !normalized ) {
-		glVertexArrayVertexAttribIOffsetEXT( vao, buffer, index, num_components, type, stride, offset );
+		glVertexArrayAttribIFormat( vao, index, num_components, type, offset );
 	}
 	else {
-		glVertexArrayVertexAttribOffsetEXT( vao, buffer, index, num_components, type, normalized, stride, offset );
+		glVertexArrayAttribFormat( vao, index, num_components, type, normalized, offset );
 	}
 }
 
@@ -1221,7 +1119,8 @@ void ReadGPUBuffer( GPUBuffer buf, void * data, u32 len, u32 offset ) {
 }
 
 GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name ) {
-	GPUBuffer buf = { DSACreateBuffer( false ) };
+	GPUBuffer buf = { };
+	glCreateBuffers( 1, &buf.buffer );
 	glNamedBufferStorage( buf.buffer, len, data, GL_DYNAMIC_STORAGE_BIT );
 
 	if( name != NULL ) {
@@ -1258,7 +1157,7 @@ static StreamingBuffer NewStreamingBuffer( u32 len, const char * name, bool ubo 
 
 	for( size_t i = 0; i < ARRAY_COUNT( stream.buffers ); i++ ) {
 		GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
-		stream.buffers[ i ].buffer = DSACreateBuffer( ubo );
+		glCreateBuffers( 1, &stream.buffers[ i ].buffer );
 		glNamedBufferStorage( stream.buffers[ i ].buffer, len, NULL, flags );
 
 		if( name != NULL ) {
@@ -1312,20 +1211,20 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 		return texture;
 	}
 
-	glTextureStorage2DEXT( texture.texture, target, config.num_mipmaps, internal_format, config.width, config.height );
+	glTextureStorage2D( texture.texture, config.num_mipmaps, internal_format, config.width, config.height );
 
-	glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
-	glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
+	glTextureParameteri( texture.texture, GL_TEXTURE_WRAP_S, TextureWrapToGL( config.wrap ) );
+	glTextureParameteri( texture.texture, GL_TEXTURE_WRAP_T, TextureWrapToGL( config.wrap ) );
 
 	GLenum min_filter = GL_NONE;
 	GLenum mag_filter = GL_NONE;
 	TextureFilterToGL( config.filter, &min_filter, &mag_filter );
-	glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_MIN_FILTER, min_filter );
-	glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_MAG_FILTER, mag_filter );
-	glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
+	glTextureParameteri( texture.texture, GL_TEXTURE_MIN_FILTER, min_filter );
+	glTextureParameteri( texture.texture, GL_TEXTURE_MAG_FILTER, mag_filter );
+	glTextureParameteri( texture.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
 
 	if( config.wrap == TextureWrap_Border ) {
-		glTextureParameterfvEXT( texture.texture, target, GL_TEXTURE_BORDER_COLOR, config.border_color.ptr() );
+		glTextureParameterfv( texture.texture, GL_TEXTURE_BORDER_COLOR, config.border_color.ptr() );
 	}
 
 	if( !CompressedTextureFormat( config.format ) ) {
@@ -1333,40 +1232,40 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 
 		if( channels == GL_RED ) {
 			if( config.format == TextureFormat_A_U8 ) {
-				glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-				glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-				glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-				glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_A, GL_RED );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_ONE );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_ONE );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_ONE );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_RED );
 			}
 			else {
-				glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_R, GL_RED );
-				glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_G, GL_RED );
-				glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_B, GL_RED );
-				glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_A, GL_ONE );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
+				glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_ONE );
 			}
 		}
 		else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
-			glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_R, GL_RED );
-			glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_G, GL_RED );
-			glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_B, GL_RED );
-			glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
 		}
 
 		if( config.data != NULL ) {
-			glTextureSubImage2DEXT( texture.texture, target, 0, 0, 0,
+			glTextureSubImage2D( texture.texture, 0, 0, 0,
 				config.width, config.height, channels, type, config.data );
 		}
 	}
 	else {
 		assert( config.data != NULL );
 
-		glTextureParameterfEXT( texture.texture, target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
+		glTextureParameterf( texture.texture, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
 
 		if( config.format == TextureFormat_BC4 ) {
-			glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-			glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-			glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-			glTextureParameteriEXT( texture.texture, target, GL_TEXTURE_SWIZZLE_A, GL_RED );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_R, GL_ONE );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_G, GL_ONE );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_B, GL_ONE );
+			glTextureParameteri( texture.texture, GL_TEXTURE_SWIZZLE_A, GL_RED );
 		}
 
 		const char * cursor = ( const char * ) config.data;
@@ -1376,7 +1275,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 			u32 size = ( BitsPerPixel( config.format ) * w * h ) / 8;
 			assert( size < S32_MAX );
 
-			glCompressedTextureSubImage2DEXT( texture.texture, target, i, 0, 0,
+			glCompressedTextureSubImage2D( texture.texture, i, 0, 0,
 				w, h, internal_format, size, cursor );
 
 			cursor += size;
@@ -1403,17 +1302,17 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 
 	GLenum internal_format, channels, type;
 	TextureFormatToGL( config.format, &internal_format, &channels, &type );
-	glTextureStorage3DEXT( ta.texture, GL_TEXTURE_2D_ARRAY, config.num_mipmaps, internal_format, config.width, config.height, config.layers );
+	glTextureStorage3D( ta.texture, config.num_mipmaps, internal_format, config.width, config.height, config.layers );
 
-	glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT );
-	glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT );
-	glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
-	glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-	glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
+	glTextureParameteri( ta.texture, GL_TEXTURE_WRAP_S, GL_REPEAT );
+	glTextureParameteri( ta.texture, GL_TEXTURE_WRAP_T, GL_REPEAT );
+	glTextureParameteri( ta.texture, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR );
+	glTextureParameteri( ta.texture, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	glTextureParameteri( ta.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
 
 	if( config.format == TextureFormat_Shadow ) {
-		glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
-		glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
+		glTextureParameteri( ta.texture, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL );
+		glTextureParameteri( ta.texture, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE );
 	}
 
 	if( !CompressedTextureFormat( config.format ) ) {
@@ -1421,32 +1320,32 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 
 		if( channels == GL_RED ) {
 			if( config.format == TextureFormat_A_U8 ) {
-				glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_R, GL_ONE );
-				glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_G, GL_ONE );
-				glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_B, GL_ONE );
-				glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_A, GL_RED );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_R, GL_ONE );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_G, GL_ONE );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_B, GL_ONE );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_A, GL_RED );
 			}
 			else {
-				glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_R, GL_RED );
-				glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_G, GL_RED );
-				glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_B, GL_RED );
-				glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_A, GL_ONE );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
+				glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_A, GL_ONE );
 			}
 		}
 		else if( channels == GL_RG && config.format == TextureFormat_RA_U8 ) {
-			glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_R, GL_RED );
-			glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_G, GL_RED );
-			glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_B, GL_RED );
-			glTextureParameteriEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
+			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_R, GL_RED );
+			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_G, GL_RED );
+			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_B, GL_RED );
+			glTextureParameteri( ta.texture, GL_TEXTURE_SWIZZLE_A, GL_GREEN );
 		}
 
 		if( config.data != NULL ) {
-			glTextureSubImage3DEXT( ta.texture, GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0,
+			glTextureSubImage3D( ta.texture, 0, 0, 0, 0,
 				config.width, config.height, config.layers, channels, type, config.data );
 		}
 	}
 	else {
-		glTextureParameterfEXT( ta.texture, GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
+		glTextureParameterf( ta.texture, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
 
 		const char * cursor = ( const char * ) config.data;
 		for( u32 i = 0; i < config.num_mipmaps; i++ ) {
@@ -1455,7 +1354,7 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 			u32 size = ( BitsPerPixel( config.format ) * w * h * config.layers ) / 8;
 			assert( size < S32_MAX );
 
-			glCompressedTextureSubImage3DEXT( ta.texture, GL_TEXTURE_2D_ARRAY, i, 0, 0, 0,
+			glCompressedTextureSubImage3D( ta.texture, i, 0, 0, 0,
 				w, h, config.layers, internal_format, size, cursor );
 
 			cursor += size;

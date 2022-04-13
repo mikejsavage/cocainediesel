@@ -20,7 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server/server.h"
 #include "qcommon/cmodel.h"
-#include "qcommon/version.h"
 
 void PF_DropClient( edict_t *ent, const char *message ) {
 	int p;

@@ -5,9 +5,9 @@
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/renderer/renderer.h"
-#include "qcommon/version.h"
-#include "qcommon/maplist.h"
+#include "gameshared/maplist.h"
 #include "qcommon/array.h"
+#include "qcommon/version.h"
 
 #include "cgame/cg_local.h"
 

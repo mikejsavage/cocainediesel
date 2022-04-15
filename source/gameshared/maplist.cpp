@@ -1,10 +1,9 @@
-#include <algorithm>
-
+#include "gameshared/maplist.h"
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
-#include "qcommon/maplist.h"
+#include "qcommon/sort.h"
 
 static NonRAIIDynamicArray< char * > maps;
 
@@ -46,7 +45,7 @@ void RefreshMapList( Allocator * a ) {
 		}
 	}
 
-	std::sort( maps.begin(), maps.end(), SortCStringsComparator );
+	Sort( maps.begin(), maps.end(), SortCStringsComparator );
 }
 
 Span< const char * > GetMapList() {

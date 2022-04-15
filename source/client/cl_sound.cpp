@@ -1,10 +1,9 @@
-#include <algorithm> // std::sort
-
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/hash.h"
 #include "qcommon/array.h"
 #include "qcommon/hashtable.h"
+#include "qcommon/sort.h"
 #include "client/client.h"
 #include "client/assets.h"
 #include "client/sound.h"
@@ -327,7 +326,8 @@ static void LoadSounds() {
 			}
 		}
 
-		std::sort( jobs.begin(), jobs.end(), []( const DecodeSoundJob & a, const DecodeSoundJob & b ) {
+		// decode bigger oggs first for better packing
+		Sort( jobs.begin(), jobs.end(), []( const DecodeSoundJob & a, const DecodeSoundJob & b ) {
 			return a.in.ogg.n > b.in.ogg.n;
 		} );
 	}

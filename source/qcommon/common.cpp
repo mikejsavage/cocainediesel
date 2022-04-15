@@ -23,8 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/csprng.h"
 #include "qcommon/fpe.h"
 #include "qcommon/fs.h"
-#include "qcommon/maplist.h"
 #include "qcommon/threads.h"
+#include "gameshared/maplist.h"
 
 #include <errno.h>
 #include <setjmp.h>

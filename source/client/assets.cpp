@@ -1,5 +1,3 @@
-#include <algorithm>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -9,6 +7,7 @@
 #include "qcommon/fs.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
+#include "qcommon/sort.h"
 #include "qcommon/string.h"
 #include "qcommon/threads.h"
 #include "client/assets.h"
@@ -199,7 +198,7 @@ void HotloadAssets( TempAllocator * temp ) {
 
 	const char * buf[ 1024 ];
 	Span< const char * > changes = PollFSChangeMonitor( temp, fs_change_monitor, buf, ARRAY_COUNT( buf ) );
-	std::sort( changes.begin(), changes.end(), SortCStringsComparator );
+	Sort( changes.begin(), changes.end(), SortCStringsComparator );
 
 	for( size_t i = 0; i < changes.n; i++ ) {
 		if( i > 0 && StrEqual( changes[ i ], changes[ i - 1 ] ) )

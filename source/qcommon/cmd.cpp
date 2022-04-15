@@ -1,10 +1,9 @@
-#include <algorithm> // std::sort
-
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
+#include "qcommon/sort.h"
 #include "qcommon/string.h"
 
 struct ConsoleCommand {
@@ -346,7 +345,7 @@ Span< const char * > TabCompleteCommand( TempAllocator * a, const char * partial
 		}
 	}
 
-	std::sort( results.begin(), results.end(), SortCStringsComparator );
+	Sort( results.begin(), results.end(), SortCStringsComparator );
 
 	return results.span();
 }
@@ -361,7 +360,7 @@ Span< const char * > SearchCommands( Allocator * a, const char * partial ) {
 		}
 	}
 
-	std::sort( results.begin(), results.end(), SortCStringsComparator );
+	Sort( results.begin(), results.end(), SortCStringsComparator );
 
 	return results.span();
 }
@@ -412,7 +411,7 @@ Span< const char * > TabCompleteFilename( TempAllocator * a, const char * partia
 	NonRAIIDynamicArray< const char * > results( a );
 	FindMatchingFilesRecursive( a, &results, &base_path, partial, base_path.length() + 1, extension );
 
-	std::sort( results.begin(), results.end(), SortCStringsComparator );
+	Sort( results.begin(), results.end(), SortCStringsComparator );
 
 	return results.span();
 }

@@ -1,4 +1,3 @@
-#include <algorithm> // std::stable_sort
 #include <new>
 
 #include "glad/glad.h"
@@ -9,6 +8,7 @@
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
 #include "qcommon/hash.h"
+#include "qcommon/sort.h"
 #include "qcommon/string.h"
 #include "client/renderer/renderer.h"
 
@@ -783,14 +783,6 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	prev_pipeline = pipeline;
 }
 
-static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
-	if( a.pipeline.pass != b.pipeline.pass )
-		return a.pipeline.pass < b.pipeline.pass;
-	if( !render_passes[ a.pipeline.pass ].sorted )
-		return false;
-	return a.pipeline.shader < b.pipeline.shader;
-}
-
 static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
 	if( buffer == 0 )
 		return;
@@ -1018,7 +1010,16 @@ void RenderBackendSubmitFrame() {
 
 	{
 		TracyZoneScopedN( "Sort draw calls" );
-		std::stable_sort( draw_calls.begin(), draw_calls.end(), SortDrawCall );
+		TempAllocator temp = cls.frame_arena.temp();
+		StableSort( &temp, draw_calls.begin(), draw_calls.end(),
+			[]( const DrawCall & a, const DrawCall & b ) {
+				if( a.pipeline.pass != b.pipeline.pass )
+					return a.pipeline.pass < b.pipeline.pass;
+				if( !render_passes[ a.pipeline.pass ].sorted )
+					return false;
+				return a.pipeline.shader < b.pipeline.shader;
+			}
+		);
 	}
 
 	SetupRenderPass( render_passes[ 0 ] );

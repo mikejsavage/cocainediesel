@@ -1,9 +1,8 @@
-#include <algorithm> // std::sort
-
 #include "qcommon/base.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
+#include "qcommon/sort.h"
 #include "qcommon/span2d.h"
 #include "gameshared/q_shared.h"
 #include "client/client.h"
@@ -845,7 +844,7 @@ void InitMaterials() {
 				}
 			}
 
-			std::sort( jobs.begin(), jobs.end(), []( const DecodeSTBTextureJob & a, const DecodeSTBTextureJob & b ) {
+			Sort( jobs.begin(), jobs.end(), []( const DecodeSTBTextureJob & a, const DecodeSTBTextureJob & b ) {
 				return a.in.data.n > b.in.data.n;
 			} );
 		}

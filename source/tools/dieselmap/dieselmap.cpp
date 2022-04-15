@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <math.h>
 
 #include "parsing.h"
@@ -8,6 +7,7 @@
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/qfiles.h"
+#include "qcommon/sort.h"
 #include "qcommon/span2d.h"
 #include "qcommon/string.h"
 #include "qcommon/hash.h"
@@ -681,7 +681,7 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, DynamicArray< MaterialMes
 		}
 
 		// sort CCW around the centroid
-		std::sort( projected, projected + verts.n, []( ProjectedVert a, ProjectedVert b ) {
+		Sort( projected, projected + verts.n, []( ProjectedVert a, ProjectedVert b ) {
 			return a.theta < b.theta;
 		} );
 
@@ -983,7 +983,7 @@ static CandidatePlanes BuildCandidatePlanes( Allocator * a, Span< const u32 > br
 
 		{
 			TracyZoneScopedN( "sort" );
-			std::sort( axis.begin(), axis.end(), []( const CandidatePlane & a, const CandidatePlane & b ) {
+			Sort( axis.begin(), axis.end(), []( const CandidatePlane & a, const CandidatePlane & b ) {
 				if( a.distance == b.distance )
 					return a.start_edge < b.start_edge;
 				return a.distance < b.distance;

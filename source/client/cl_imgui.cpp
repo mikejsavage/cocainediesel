@@ -1,10 +1,9 @@
-#include <algorithm>
-
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_internal.h"
 
 #include "qcommon/base.h"
+#include "qcommon/sort.h"
 #include "qcommon/string.h"
 #include "qcommon/utf8.h"
 #include "client/client.h"
@@ -234,10 +233,12 @@ void CL_ImGuiBeginFrame() {
 void CL_ImGuiEndFrame() {
 	TracyZoneScoped;
 
+	TempAllocator temp = cls.frame_arena.temp();
+
 	// ImGui::ShowDemoWindow();
 
 	ImGuiContext * ctx = ImGui::GetCurrentContext();
-	std::stable_sort( ctx->Windows.begin(), ctx->Windows.end(),
+	StableSort( &temp, ctx->Windows.begin(), ctx->Windows.end(),
 		[]( const ImGuiWindow * a, const ImGuiWindow * b ) {
 			return a->BeginOrderWithinContext < b->BeginOrderWithinContext;
 		}

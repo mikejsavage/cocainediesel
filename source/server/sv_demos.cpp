@@ -18,14 +18,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
-#include <algorithm>
-
 #include <ctype.h>
 #include <time.h>
 
 #include "server/server.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
+#include "qcommon/sort.h"
 #include "qcommon/string.h"
 #include "qcommon/version.h"
 
@@ -249,7 +248,7 @@ static Span< char * > GetServerDemos( TempAllocator * temp ) {
 		demos.add( CopyString( sys_allocator, name ) );
 	}
 
-	std::sort( demos.begin(), demos.end(), SortCStringsComparator );
+	Sort( demos.begin(), demos.end(), SortCStringsComparator );
 
 	return demos.span();
 }

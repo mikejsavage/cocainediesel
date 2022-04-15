@@ -1,9 +1,8 @@
-#include <algorithm> // std::sort
-
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/qfiles.h"
 #include "qcommon/array.h"
+#include "qcommon/sort.h"
 #include "qcommon/span2d.h"
 #include "client/client.h"
 #include "client/assets.h"
@@ -388,7 +387,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 		}
 	}
 
-	std::sort( draw_calls.begin(), draw_calls.end(), []( const BSPDrawCall & a, const BSPDrawCall & b ) {
+	Sort( draw_calls.begin(), draw_calls.end(), []( const BSPDrawCall & a, const BSPDrawCall & b ) {
 		return a.material < b.material;
 	} );
 

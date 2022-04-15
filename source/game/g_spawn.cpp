@@ -405,7 +405,6 @@ void G_LoadMap( const char * name ) {
 
 	u64 hash = Hash64( name );
 	svs.cms = CM_LoadMap( CM_Server, data, hash );
-	svs.ent_string_checksum = Hash64( CM_EntityString( svs.cms ), CM_EntityStringLen( svs.cms ) );
 
 	server_gs.gameState.map = StringHash( hash );
 	server_gs.gameState.map_checksum = svs.cms->checksum;

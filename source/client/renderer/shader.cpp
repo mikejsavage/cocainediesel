@@ -158,6 +158,9 @@ static void LoadShaders() {
 	LoadComputeShader( &shaders.particle_setup_indirect, "glsl/particle_setup_indirect.glsl", NULL );
 	LoadShader( &shaders.particle, "glsl/particle.glsl", NULL, true );
 	LoadShader( &shaders.particle_model, "glsl/particle.glsl", "#define MODEL 1\n", true );
+
+	const char * culling_defines = temp( "#define TILE_SIZE {}\n", TILE_SIZE );
+	LoadComputeShader( &shaders.culling, "glsl/culling.glsl", culling_defines );
 }
 
 void InitShaders() {

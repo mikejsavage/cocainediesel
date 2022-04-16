@@ -46,6 +46,8 @@ struct Shaders {
 
 	Shader blur;
 	Shader postprocess;
+
+	Shader culling;
 };
 
 extern Shaders shaders;

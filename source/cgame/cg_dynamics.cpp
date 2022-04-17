@@ -215,12 +215,12 @@ void AllocateDecalBuffers() {
 
 	TracyZoneScopedN( "Reallocate tile buffers" );
 
-	u32 rows = ( frame_static.viewport_height + TILE_SIZE - 1 ) / TILE_SIZE;
-	u32 cols = ( frame_static.viewport_width + TILE_SIZE - 1 ) / TILE_SIZE;
-
 	DeleteGPUBuffer( decal_tiles_buffer );
 	DeleteGPUBuffer( dlight_tiles_buffer );
 	DeleteGPUBuffer( dynamic_count );
+
+	u32 rows = ( frame_static.viewport_height + TILE_SIZE - 1 ) / TILE_SIZE;
+	u32 cols = ( frame_static.viewport_width + TILE_SIZE - 1 ) / TILE_SIZE;
 
 	decal_tiles_buffer = NewGPUBuffer( rows * cols * sizeof( GPUDecalTile ), "Decal tile indices" );
 	dlight_tiles_buffer = NewGPUBuffer( rows * cols * sizeof( GPUDynamicLightTile ), "Dynamic light tile indices" );

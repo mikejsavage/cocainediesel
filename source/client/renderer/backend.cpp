@@ -77,6 +77,7 @@ static NonRAIIDynamicArray< DrawCall > draw_calls;
 
 static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
 static NonRAIIDynamicArray< GPUBuffer > deferred_buffer_deletes;
+static NonRAIIDynamicArray< StreamingBuffer > deferred_streaming_buffer_deletes;
 
 #if TRACY_ENABLE
 alignas( tracy::GpuCtxScope ) static char renderpass_zone_memory[ sizeof( tracy::GpuCtxScope ) ];
@@ -435,6 +436,11 @@ static void RunDeferredDeletes() {
 		DeleteGPUBuffer( buffer );
 	}
 	deferred_buffer_deletes.clear();
+
+	for( const StreamingBuffer & stream : deferred_streaming_buffer_deletes ) {
+		DeleteStreamingBuffer( stream );
+	}
+	deferred_streaming_buffer_deletes.clear();
 }
 
 void InitRenderBackend() {
@@ -497,6 +503,7 @@ void InitRenderBackend() {
 
 	deferred_mesh_deletes.init( sys_allocator );
 	deferred_buffer_deletes.init( sys_allocator );
+	deferred_streaming_buffer_deletes.init( sys_allocator );
 
 	glEnable( GL_DEPTH_TEST );
 	glDepthFunc( GL_LESS );
@@ -546,6 +553,7 @@ void ShutdownRenderBackend() {
 
 	deferred_mesh_deletes.shutdown();
 	deferred_buffer_deletes.shutdown();
+	deferred_streaming_buffer_deletes.shutdown();
 }
 
 void RenderBackendBeginFrame() {
@@ -1186,6 +1194,10 @@ void DeleteStreamingBuffer( StreamingBuffer stream ) {
 		DeleteGPUBuffer( buf );
 	}
 	FREE( sys_allocator, stream.name.ptr );
+}
+
+void DeferDeleteStreamingBuffer( StreamingBuffer stream ) {
+	deferred_streaming_buffer_deletes.add( stream );
 }
 
 static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {

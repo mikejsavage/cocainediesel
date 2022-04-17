@@ -29,7 +29,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <errno.h>
 #include <setjmp.h>
 
-static bool com_quit;
+static bool quitting;
 
 static jmp_buf abortframe;     // an ERR_DROP occured, exit the entire frame
 
@@ -205,7 +205,7 @@ void Com_Error( const char *format, ... ) {
 }
 
 void Com_DeferQuit() {
-	com_quit = true;
+	quitting = true;
 }
 
 server_state_t Com_ServerState() {
@@ -239,6 +239,8 @@ void Key_Shutdown();
 
 void Qcommon_Init( int argc, char ** argv ) {
 	TracyZoneScoped;
+
+	quitting = false;
 
 	if( !is_public_build ) {
 		EnableFPE();
@@ -331,7 +333,7 @@ bool Qcommon_Frame( unsigned int realMsec ) {
 	SV_Frame( realMsec, gameMsec );
 	CL_Frame( realMsec, gameMsec );
 
-	return !com_quit;
+	return !quitting;
 }
 
 void Qcommon_Shutdown() {

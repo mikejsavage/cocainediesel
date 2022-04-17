@@ -83,6 +83,9 @@ void InitDecals() {
 
 	decals_buffer = NewStreamingBuffer( sizeof( decals ), "Decals" );
 	dlights_buffer = NewStreamingBuffer( sizeof( dlights ), "Dynamic lights" );
+	decal_tiles_buffer = { };
+	dlight_tiles_buffer = { };
+	dynamic_count = { };
 }
 
 void ShutdownDecals() {
@@ -207,13 +210,17 @@ void DrawPersistentDynamicLights() {
 }
 
 void AllocateDecalBuffers() {
-	if( !frame_static.viewport_resized )
+	if( decal_tiles_buffer.buffer != 0 && !frame_static.viewport_resized )
 		return;
 
 	TracyZoneScopedN( "Reallocate tile buffers" );
 
 	u32 rows = ( frame_static.viewport_height + TILE_SIZE - 1 ) / TILE_SIZE;
 	u32 cols = ( frame_static.viewport_width + TILE_SIZE - 1 ) / TILE_SIZE;
+
+	DeleteGPUBuffer( decal_tiles_buffer );
+	DeleteGPUBuffer( dlight_tiles_buffer );
+	DeleteGPUBuffer( dynamic_count );
 
 	decal_tiles_buffer = NewGPUBuffer( rows * cols * sizeof( GPUDecalTile ), "Decal tile indices" );
 	dlight_tiles_buffer = NewGPUBuffer( rows * cols * sizeof( GPUDynamicLightTile ), "Dynamic light tile indices" );

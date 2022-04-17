@@ -13,6 +13,8 @@ enum ShadowQuality {
 	ShadowQuality_Medium,
 	ShadowQuality_High,
 	ShadowQuality_Ultra,
+
+	ShadowQuality_Count
 };
 
 struct ShadowParameters {

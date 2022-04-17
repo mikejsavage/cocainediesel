@@ -111,8 +111,10 @@ void InitRenderer() {
 	r_shadow_quality = NewCvar( "r_shadow_quality", "1", CvarFlag_Archive );
 
 	frame_static = { };
-	frame_static.viewport_resized = true;
+	last_viewport_width = 0;
+	last_viewport_height = 0;
 	last_msaa = 0;
+	last_shadow_quality = ShadowQuality_Count;
 
 	{
 		int w, h;

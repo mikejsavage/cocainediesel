@@ -79,6 +79,9 @@ struct GPUDynamicCount {
 };
 
 void InitDecals() {
+	num_decals = 0;
+	num_dlights = 0;
+
 	num_persistent_decals = 0;
 	num_persistent_dlights = 0;
 

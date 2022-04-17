@@ -111,8 +111,7 @@ void InitRenderer() {
 	r_shadow_quality = NewCvar( "r_shadow_quality", "1", CvarFlag_Archive );
 
 	frame_static = { };
-	last_viewport_width = U32_MAX;
-	last_viewport_height = U32_MAX;
+	frame_static.viewport_resized = true;
 	last_msaa = 0;
 
 	{
@@ -420,20 +419,20 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.viewport_width = Max2( u32( 1 ), viewport_width );
 	frame_static.viewport_height = Max2( u32( 1 ), viewport_height );
 	frame_static.viewport = Vec2( frame_static.viewport_width, frame_static.viewport_height );
+	frame_static.viewport_resized = frame_static.viewport_width != last_viewport_width || frame_static.viewport_height != last_viewport_height;
 	frame_static.aspect_ratio = float( frame_static.viewport_width ) / float( frame_static.viewport_height );
 	frame_static.msaa_samples = r_samples->integer;
 	frame_static.shadow_quality = ShadowQuality( r_shadow_quality->integer );
 	frame_static.shadow_parameters = GetShadowParameters( frame_static.shadow_quality );
 
-	if( viewport_width != last_viewport_width || viewport_height != last_viewport_height || frame_static.msaa_samples != last_msaa || frame_static.shadow_quality != last_shadow_quality ) {
+	if( frame_static.viewport_resized || frame_static.msaa_samples != last_msaa || frame_static.shadow_quality != last_shadow_quality ) {
 		CreateFramebuffers();
-		last_viewport_width = viewport_width;
-		last_viewport_height = viewport_height;
-		last_msaa = frame_static.msaa_samples;
-		last_shadow_quality = frame_static.shadow_quality;
 	}
 
-	bool msaa = frame_static.msaa_samples;
+	last_viewport_width = viewport_width;
+	last_viewport_height = viewport_height;
+	last_msaa = frame_static.msaa_samples;
+	last_shadow_quality = frame_static.shadow_quality;
 
 	frame_static.ortho_view_uniforms = UploadViewUniforms( Mat4::Identity(), Mat4::Identity(), OrthographicProjection( 0, 0, viewport_width, viewport_height, -1, 1 ), Mat4::Identity(), Vec3( 0 ), frame_static.viewport, -1, frame_static.msaa_samples, Vec3() );
 	frame_static.identity_model_uniforms = UploadModelUniforms( Mat4::Identity() );
@@ -465,6 +464,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.shadowmap_pass[ i ] = AddRenderPass( "Write shadowmap", &write_shadowmap_tracy, frame_static.shadowmap_fb[ i ], ClearColor_Dont, ClearDepth_Do );
 	}
 
+	bool msaa = frame_static.msaa_samples;
 	if( msaa ) {
 		frame_static.world_opaque_prepass_pass = AddRenderPass( "Render world opaque Prepass", &world_opaque_prepass_tracy, frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
 		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.msaa_fb );

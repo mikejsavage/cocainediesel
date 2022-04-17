@@ -11,8 +11,6 @@ static StreamingBuffer dlights_buffer;
 static GPUBuffer dlight_tiles_buffer;
 static GPUBuffer dynamic_count;
 
-static u32 last_viewport_width, last_viewport_height;
-
 // gets copied directly to GPU so packing order is important
 struct Decal {
 	Vec3 origin_normal; // floor( origin ) + ( normal * 0.49 + 0.5 )
@@ -83,9 +81,6 @@ struct GPUDynamicCount {
 void InitDecals() {
 	num_persistent_decals = 0;
 	num_persistent_dlights = 0;
-
-	last_viewport_width = U32_MAX;
-	last_viewport_height = U32_MAX;
 
 	decals_buffer = NewStreamingBuffer( sizeof( decals ), "Decals" );
 	dlights_buffer = NewStreamingBuffer( sizeof( dlights ), "Dynamic lights" );
@@ -213,7 +208,7 @@ void DrawPersistentDynamicLights() {
 }
 
 void AllocateDecalBuffers() {
-	if( frame_static.viewport_width == last_viewport_width && frame_static.viewport_height == last_viewport_height )
+	if( !frame_static.viewport_resized )
 		return;
 
 	TracyZoneScopedN( "Reallocate tile buffers" );
@@ -224,9 +219,6 @@ void AllocateDecalBuffers() {
 	decal_tiles_buffer = NewGPUBuffer( rows * cols * sizeof( GPUDecalTile ), "Decal tile indices" );
 	dlight_tiles_buffer = NewGPUBuffer( rows * cols * sizeof( GPUDynamicLightTile ), "Dynamic light tile indices" );
 	dynamic_count = NewGPUBuffer( rows * cols * sizeof( GPUDynamicCount ), "Dynamics tile counts" );
-
-	last_viewport_width = frame_static.viewport_width;
-	last_viewport_height = frame_static.viewport_height;
 }
 
 void UploadDecalBuffers() {

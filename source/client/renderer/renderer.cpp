@@ -511,8 +511,6 @@ static Mat4 InverseScaleTranslation( Mat4 m ) {
 void SetupShadowCascades() {
 	TracyZoneScoped;
 	const float near_plane = 4.0f;
-	// const float cascade_dist[ 5 ] = { near_plane, 256.0f, 768.0f, 2304.0f, 6912.0f };
-	// const float cascade_dist[ 5 ] = { near_plane, 16.0f, 64.0f, 512.0f, 4096.0f };
 	float cascade_dist[ 5 ];
 	const u32 num_planes = ARRAY_COUNT( cascade_dist );
 	const u32 num_cascades = num_planes - 1;

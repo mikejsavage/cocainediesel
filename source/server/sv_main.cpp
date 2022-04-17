@@ -423,7 +423,7 @@ void SV_Init() {
 
 	rcon_password = NewCvar( "rcon_password", "", 0 );
 	sv_hostname = NewCvar( "sv_hostname", APPLICATION " server", CvarFlag_ServerInfo | CvarFlag_Archive );
-	sv_timeout = NewCvar( "sv_timeout", "125", 0 );
+	sv_timeout = NewCvar( "sv_timeout", "15", 0 );
 	sv_zombietime = NewCvar( "sv_zombietime", "2", 0 );
 	sv_showChallenge = NewCvar( "sv_showChallenge", "0", 0 );
 	sv_showInfoQueries = NewCvar( "sv_showInfoQueries", "0", 0 );

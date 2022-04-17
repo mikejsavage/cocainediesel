@@ -61,6 +61,7 @@ struct FrameStatic {
 	TextureArray shadowmap_texture_array;
 
 	u8 particle_update_pass;
+	u8 tile_culling_pass;
 	u8 shadowmap_pass[ 4 ];
 	u8 world_opaque_prepass_pass;
 	u8 world_opaque_pass;

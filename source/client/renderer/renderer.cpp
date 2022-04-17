@@ -443,6 +443,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 #define TRACY_HACK( name ) { name, __FUNCTION__, __FILE__, uint32_t( __LINE__ ), 0 }
 	static const tracy::SourceLocationData particle_update_tracy = TRACY_HACK( "Update particles" );
+	static const tracy::SourceLocationData tile_culling_tracy = TRACY_HACK( "Decal/dlight tile culling" );
 	static const tracy::SourceLocationData write_shadowmap_tracy = TRACY_HACK( "Write shadowmap" );
 	static const tracy::SourceLocationData world_opaque_prepass_tracy = TRACY_HACK( "World z-prepass" );
 	static const tracy::SourceLocationData world_opaque_tracy = TRACY_HACK( "Render world opaque" );
@@ -459,6 +460,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 #undef TRACY_HACK
 
 	frame_static.particle_update_pass = AddRenderPass( "Particle Update", &particle_update_tracy );
+	frame_static.tile_culling_pass = AddRenderPass( "Decal/dlight tile culling", &tile_culling_tracy );
 
 	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
 		frame_static.shadowmap_pass[ i ] = AddRenderPass( "Write shadowmap", &write_shadowmap_tracy, frame_static.shadowmap_fb[ i ], ClearColor_Dont, ClearDepth_Do );

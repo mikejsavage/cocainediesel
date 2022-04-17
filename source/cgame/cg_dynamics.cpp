@@ -231,7 +231,7 @@ void UploadDecalBuffers() {
 	memcpy( GetStreamingBufferMapping( dlights_buffer ), dlights, num_dlights * sizeof( DynamicLight ) );
 
 	PipelineState pipeline;
-	pipeline.pass = frame_static.particle_update_pass;
+	pipeline.pass = frame_static.tile_culling_pass;
 	pipeline.shader = &shaders.culling;
 	pipeline.set_buffer( "b_Decals", GetStreamingBufferBuffer( decals_buffer ) );
 	pipeline.set_buffer( "b_Dlights", GetStreamingBufferBuffer( dlights_buffer ) );

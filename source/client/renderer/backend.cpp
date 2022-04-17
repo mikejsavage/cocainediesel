@@ -423,6 +423,19 @@ static void PlotVRAMUsage() {
 	}
 }
 
+static void RunDeferredDeletes() {
+	TracyZoneScoped;
+
+	for( const Mesh & mesh : deferred_mesh_deletes ) {
+		DeleteMesh( mesh );
+	}
+	deferred_mesh_deletes.clear();
+
+	for( const GPUBuffer & buffer : deferred_buffer_deletes ) {
+		DeleteGPUBuffer( buffer );
+	}
+	deferred_buffer_deletes.clear();
+}
 
 void InitRenderBackend() {
 	TracyZoneScoped;
@@ -525,6 +538,8 @@ void ShutdownRenderBackend() {
 	for( UBO ubo : ubos ) {
 		DeleteStreamingBuffer( ubo.stream );
 	}
+
+	RunDeferredDeletes();
 
 	render_passes.shutdown();
 	draw_calls.shutdown();
@@ -1052,20 +1067,7 @@ void RenderBackendSubmitFrame() {
 		SetPipelineState( no_scissor_test, true );
 	}
 
-	{
-		TracyZoneScopedN( "Deferred deletes" );
-
-		for( const Mesh & mesh : deferred_mesh_deletes ) {
-			DeleteMesh( mesh );
-		}
-		deferred_mesh_deletes.clear();
-
-		for( const GPUBuffer & buffer : deferred_buffer_deletes ) {
-			DeleteGPUBuffer( buffer );
-		}
-
-		deferred_buffer_deletes.clear();
-	}
+	RunDeferredDeletes();
 
 	fences[ frame_counter % ARRAY_COUNT( fences ) ] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
 	frame_counter++;

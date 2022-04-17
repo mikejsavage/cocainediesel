@@ -46,12 +46,8 @@ STATIC_ASSERT( sizeof( DynamicLight ) == 1 * 4 * sizeof( float ) );
 STATIC_ASSERT( sizeof( DynamicLight ) % alignof( DynamicLight ) == 0 );
 
 static constexpr u32 MAX_DECALS = 100000;
-static constexpr u32 MAX_DECALS_PER_TILE = 50;
-
 static constexpr u32 MAX_DLIGHTS = 100000;
-static constexpr u32 MAX_DLIGHTS_PER_TILE = 50;
-
-static constexpr u32 MAX_DYNAMICS_PER_SET = 500;
+static constexpr u32 MAX_PER_TILE = 50; // must match glsl
 
 static Decal decals[ MAX_DECALS ];
 static u32 num_decals;
@@ -66,11 +62,11 @@ static PersistentDynamicLight persistent_dlights[ MAX_DLIGHTS ];
 static u32 num_persistent_dlights;
 
 struct GPUDecalTile {
-	u32 decals[ MAX_DECALS_PER_TILE ];
+	u32 decals[ MAX_PER_TILE ];
 };
 
 struct GPUDynamicLightTile {
-	u32 dlights[ MAX_DLIGHTS_PER_TILE ];
+	u32 dlights[ MAX_PER_TILE ];
 };
 
 struct GPUDynamicCount {
@@ -235,7 +231,7 @@ void UploadDecalBuffers() {
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.tile_culling_pass;
-	pipeline.shader = &shaders.culling;
+	pipeline.shader = &shaders.tile_culling;
 	pipeline.set_buffer( "b_Decals", GetStreamingBufferBuffer( decals_buffer ) );
 	pipeline.set_buffer( "b_Dlights", GetStreamingBufferBuffer( dlights_buffer ) );
 	pipeline.set_buffer( "b_TileCounts", dynamic_count );

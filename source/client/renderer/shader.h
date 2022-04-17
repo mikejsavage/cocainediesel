@@ -40,14 +40,14 @@ struct Shaders {
 	Shader particle;
 	Shader particle_model;
 
+	Shader tile_culling;
+
 	Shader skybox;
 
 	Shader text;
 
 	Shader blur;
 	Shader postprocess;
-
-	Shader culling;
 };
 
 extern Shaders shaders;

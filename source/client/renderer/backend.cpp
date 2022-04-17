@@ -423,7 +423,6 @@ static void PlotVRAMUsage() {
 	}
 }
 
-static StreamingBuffer NewStreamingBuffer( u32 len, const char * name, bool ubo );
 
 void InitRenderBackend() {
 	TracyZoneScoped;
@@ -511,7 +510,7 @@ void InitRenderBackend() {
 
 	for( size_t i = 0; i < ARRAY_COUNT( ubos ); i++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		ubos[ i ].stream = NewStreamingBuffer( UNIFORM_BUFFER_SIZE, temp( "UBO {}", i ), true );
+		ubos[ i ].stream = NewStreamingBuffer( UNIFORM_BUFFER_SIZE, temp( "UBO {}", i ) );
 	}
 
 	in_frame = false;
@@ -1148,7 +1147,7 @@ void DeferDeleteGPUBuffer( GPUBuffer buf ) {
 	deferred_buffer_deletes.add( buf );
 }
 
-static StreamingBuffer NewStreamingBuffer( u32 len, const char * name, bool ubo ) {
+StreamingBuffer NewStreamingBuffer( u32 len, const char * name ) {
 	StreamingBuffer stream = { };
 
 	if( name != NULL ) {
@@ -1169,10 +1168,6 @@ static StreamingBuffer NewStreamingBuffer( u32 len, const char * name, bool ubo 
 	}
 
 	return stream;
-}
-
-StreamingBuffer NewStreamingBuffer( u32 len, const char * name ) {
-	return NewStreamingBuffer( len, name, false );
 }
 
 u8 * GetStreamingBufferMapping( StreamingBuffer stream ) {

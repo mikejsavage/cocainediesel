@@ -10,10 +10,6 @@
 #include "qcommon/fs.h"
 #include "qcommon/sys_fs.h"
 
-bool Sys_FS_CreateDirectory( const char *path ) {
-	return CreateDirectoryA( path, NULL ) != 0 || GetLastError() == ERROR_ALREADY_EXISTS;
-}
-
 static char * ReplaceBackslashes( char * path ) {
 	char * cursor = path;
 	while( ( cursor = strchr( cursor, '\\' ) ) != NULL ) {

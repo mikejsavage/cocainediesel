@@ -71,8 +71,6 @@ enum pmtype_t {
 #define CS_HOSTNAME         0
 #define CS_MAXCLIENTS       1
 
-#define CS_AUTORECORDSTATE  2
-
 #define CS_MATCHSCORE       5
 
 #define CS_CALLVOTE 6

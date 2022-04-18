@@ -33,9 +33,6 @@ Cvar *cg_thirdPersonRange;
 
 Cvar *cg_projectileAntilagOffset;
 
-Cvar *cg_autoaction_demo;
-Cvar *cg_autoaction_screenshot;
-Cvar *cg_autoaction_spectator;
 Cvar *cg_showClamp;
 
 Cvar *cg_showServerDebugPrints;
@@ -105,10 +102,6 @@ static void CG_RegisterVariables() {
 	cg_thirdPersonAngle = NewCvar( "cg_thirdPersonAngle", "0", 0 );
 	cg_thirdPersonRange = NewCvar( "cg_thirdPersonRange", "90", 0 );
 
-	cg_autoaction_demo = NewCvar( "cg_autoaction_demo", "0", CvarFlag_Archive );
-	cg_autoaction_screenshot = NewCvar( "cg_autoaction_screenshot", "0", CvarFlag_Archive );
-	cg_autoaction_spectator = NewCvar( "cg_autoaction_spectator", "0", CvarFlag_Archive );
-
 	cg_projectileAntilagOffset = NewCvar( "cg_projectileAntilagOffset", "1.0", CvarFlag_Archive );
 
 	cg_showClamp = NewCvar( "cg_showClamp", "0", CvarFlag_Developer );
@@ -123,12 +116,6 @@ const char * PlayerName( int i ) {
 
 	Span< const char[ MAX_CONFIGSTRING_CHARS ] > names( cl.configstrings + CS_PLAYERINFOS, client_gs.maxclients );
 	return names[ i ];
-}
-
-static void CG_RegisterConfigStrings() {
-	for( int i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
-		CG_ConfigString( i );
-	}
 }
 
 void CG_Reset() {
@@ -166,8 +153,6 @@ void CG_Init( unsigned int playerNum,
 	memset( &cgs, 0, sizeof( cg_static_t ) );
 
 	memset( cg_entities, 0, sizeof( cg_entities ) );
-
-	CG_RegisterConfigStrings();
 
 	CG_InitGameShared();
 

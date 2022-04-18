@@ -24,13 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 Cvar *g_warmup_timelimit;
 Cvar *g_scorelimit;
 
-static void G_Match_SetAutorecordState( const char *state ) {
-	PF_ConfigString( CS_AUTORECORDSTATE, state );
-}
-
 void G_Match_Autorecord_Start() {
-	G_Match_SetAutorecordState( "start" );
-
 	if( !g_autorecord->integer )
 		return;
 
@@ -60,8 +54,6 @@ void G_Match_Autorecord_Start() {
 }
 
 void G_Match_Autorecord_Stop() {
-	G_Match_SetAutorecordState( "stop" );
-
 	if( g_autorecord->integer ) {
 		Cbuf_Add( "{}", "serverrecordstop 1" );
 
@@ -72,8 +64,6 @@ void G_Match_Autorecord_Stop() {
 }
 
 void G_Match_Autorecord_Cancel() {
-	G_Match_SetAutorecordState( "cancel" );
-
 	if( g_autorecord->integer ) {
 		Cbuf_Add( "{}", "serverrecordcancel 1" );
 	}

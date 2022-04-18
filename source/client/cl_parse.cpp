@@ -203,9 +203,6 @@ static void CL_UpdateConfigString( int idx, const char *s ) {
 	}
 
 	Q_strncpyz( cl.configstrings[idx], s, sizeof( cl.configstrings[idx] ) );
-
-	// allow cgame to update it too
-	CL_GameModule_ConfigString( idx );
 }
 
 static void CL_RequestMore( ClientCommandType command ) {

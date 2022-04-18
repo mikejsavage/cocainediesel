@@ -270,7 +270,6 @@ void CL_GetCurrentState( int64_t *incomingAcknowledged, int64_t *outgoingSequenc
 void CL_GameModule_Init();
 void CL_GameModule_Reset();
 void CL_GameModule_Shutdown();
-void CL_GameModule_ConfigString( int number );
 void CL_GameModule_EscapeKey();
 bool CL_GameModule_NewSnapshot( int pendingSnapshot );
 void CL_GameModule_RenderView();

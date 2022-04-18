@@ -340,10 +340,6 @@ bool CG_ScoreboardShown();
 extern Cvar *cg_showClamp;
 
 // wsw
-extern Cvar *cg_autoaction_demo;
-extern Cvar *cg_autoaction_screenshot;
-extern Cvar *cg_autoaction_spectator;
-
 extern Cvar *cg_projectileAntilagOffset;
 
 extern Cvar *cg_showServerDebugPrints;
@@ -368,9 +364,7 @@ const char * PlayerName( int i );
 //
 // cg_svcmds.c
 //
-void CG_ConfigString( int idx );
 void CG_GameCommand( const char *command );
-void CG_SC_AutoRecordAction( const char *action );
 
 //
 // cg_teams.c

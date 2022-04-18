@@ -68,8 +68,6 @@ struct cgame_export_t {
 
 	void ( *Shutdown )();
 
-	void ( *ConfigString )( int number );
-
 	void ( *EscapeKey )();
 
 	void ( *RenderView )( unsigned extrapolationTime );

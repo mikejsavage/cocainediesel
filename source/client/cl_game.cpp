@@ -85,12 +85,6 @@ void CL_GameModule_EscapeKey() {
 	}
 }
 
-void CL_GameModule_ConfigString( int number ) {
-	if( cge ) {
-		cge->ConfigString( number );
-	}
-}
-
 bool CL_GameModule_NewSnapshot( int pendingSnapshot ) {
 	snapshot_t *currentSnap, *newSnap;
 

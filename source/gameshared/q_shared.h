@@ -37,7 +37,6 @@ enum ParseStopOnNewLine {
 	Parse_StopOnNewLine,
 };
 
-Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop );
 Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop );
 
 bool TrySpanToInt( Span< const char > str, int * x );

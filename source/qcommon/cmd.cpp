@@ -367,7 +367,8 @@ Span< const char * > SearchCommands( Allocator * a, const char * partial ) {
 }
 
 Span< const char * > TabCompleteArgument( TempAllocator * a, const char * partial ) {
-	Span< const char > command_name = ParseToken( &partial, Parse_StopOnNewLine );
+	Span< const char > partial_span = MakeSpan( partial );
+	Span< const char > command_name = ParseToken( &partial_span, Parse_StopOnNewLine );
 
 	const ConsoleCommand * command = FindCommand( command_name );
 	if( command == NULL || command->tab_completion_callback == NULL ) {

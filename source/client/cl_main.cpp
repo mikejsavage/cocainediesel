@@ -951,7 +951,7 @@ int CL_SmoothTimeDeltas() {
 /*
 * CL_UpdateSnapshot - Check for pending snapshots, and fire if needed
 */
-void CL_UpdateSnapshot() {
+static void CL_UpdateSnapshot() {
 	TracyZoneScoped;
 
 	snapshot_t  *snap;

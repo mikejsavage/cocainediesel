@@ -665,8 +665,8 @@ static void PM_CheckSpecialMovement() {
 static void PM_FlyMove() {
 	// accelerate
 	float special = 1 + int( ( pm->cmd.buttons & BUTTON_ATTACK2 ) != 0 );
-	float fmove = pm->cmd.forwardmove * special;
-	float smove = pm->cmd.sidemove * special;
+	float fmove = pm->cmd.forwardmove * special / 127.0f;
+	float smove = pm->cmd.sidemove * special / 127.0f;
 	float umove = (int( (pm->cmd.buttons & BUTTON_ABILITY1) != 0 ) - int( (pm->cmd.buttons & BUTTON_ABILITY2) != 0 )) * special;
 
 	Vec3 wishdir = pml.forward * fmove + pml.right * smove;
@@ -751,8 +751,8 @@ static void PM_BeginMove() {
 	pml.previous_origin = pm->playerState->pmove.origin;
 
 	pml.frametime = pm->cmd.msec * 0.001;
-	pml.forwardPush = pm->cmd.forwardmove;
-	pml.sidePush = pm->cmd.sidemove;
+	pml.forwardPush = pm->cmd.forwardmove / 127.0f;
+	pml.sidePush = pm->cmd.sidemove / 127.0f;
 
 	pml.groundAccel = default_accelerate;
 	pml.airAccel = default_airaccelerate;

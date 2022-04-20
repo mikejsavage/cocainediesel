@@ -202,9 +202,16 @@ u8 CG_GetButtonDownEdges() {
 }
 
 Vec2 CG_GetMovement() {
-	return Vec2(
+	Vec2 keyboard = Vec2(
 		( button_right.down ? 1.0f : 0.0f ) - ( button_left.down ? 1.0f : 0.0f ),
 		( button_forward.down ? 1.0f : 0.0f ) - ( button_back.down ? 1.0f : 0.0f )
+	);
+
+	Vec2 joystick = GetJoystickMovement();
+
+	return Vec2(
+		Clamp( -1.0f, keyboard.x + joystick.x, 1.0f ),
+		Clamp( -1.0f, keyboard.y + joystick.y, 1.0f )
 	);
 }
 

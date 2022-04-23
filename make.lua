@@ -37,7 +37,6 @@ require( "libs.picohttpparser" )
 require( "libs.rgbcx" )
 require( "libs.stb" )
 require( "libs.tracy" )
-require( "libs.zlib" )
 require( "libs.zstd" )
 
 require( "source.tools.bc4" )
@@ -106,7 +105,6 @@ do
 			"stb_rect_pack",
 			"stb_vorbis",
 			"tracy",
-			"zlib",
 			"zstd",
 			platform_libs,
 		},
@@ -160,7 +158,6 @@ do
 			"monocypher",
 			"picohttpparser",
 			"tracy",
-			"zlib",
 			"zstd",
 		},
 

@@ -103,7 +103,6 @@ struct Framebuffer {
 };
 
 struct StreamingBuffer {
-	Span< char > name;
 	GPUBuffer buffers[ 3 ];
 	u8 * mappings[ 3 ];
 };

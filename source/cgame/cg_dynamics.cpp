@@ -75,17 +75,21 @@ struct GPUDynamicCount {
 };
 
 void InitDecals() {
-	num_decals = 0;
-	num_dlights = 0;
-
-	num_persistent_decals = 0;
-	num_persistent_dlights = 0;
+	ResetDecals();
 
 	decals_buffer = NewStreamingBuffer( sizeof( decals ), "Decals" );
 	dlights_buffer = NewStreamingBuffer( sizeof( dlights ), "Dynamic lights" );
 	decal_tiles_buffer = { };
 	dlight_tiles_buffer = { };
 	dynamic_count = { };
+}
+
+void ResetDecals() {
+	num_decals = 0;
+	num_dlights = 0;
+
+	num_persistent_decals = 0;
+	num_persistent_dlights = 0;
 }
 
 void ShutdownDecals() {

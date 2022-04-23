@@ -129,7 +129,7 @@ void CG_Reset() {
 	CG_ClearInputState();
 
 	CG_InitDamageNumbers();
-	InitDecals();
+	ResetDecals();
 	InitPersistentBeams();
 	InitSprays();
 	ClearParticles();

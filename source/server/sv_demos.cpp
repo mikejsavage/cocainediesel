@@ -28,37 +28,25 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
 #include "qcommon/version.h"
+#include "gameshared/demo.h"
+
+static RecordDemoContext record_demo_context = { };
+static client_t demo_client;
+static s64 demo_gametime;
+static time_t demo_utc_time;
 
 static const char * GetDemoDir( TempAllocator * temp ) {
 	return StrEqual( sv_demodir->value, "" ) ? "demos" : ( *temp )( "demos/{}", sv_demodir->value );
 }
 
-static void SV_Demo_WriteMessage( msg_t *msg ) {
-	assert( svs.demo.file );
-	if( !svs.demo.file ) {
-		return;
-	}
-
-	SNAP_RecordDemoMessage( svs.demo.file, msg, 0 );
-}
-
-static void SV_Demo_WriteStartMessages() {
-	memset( svs.demo.meta_data, 0, sizeof( svs.demo.meta_data ) );
-	svs.demo.meta_data_realsize = 0;
-
-	TempAllocator temp = svs.frame_arena.temp();
-	SNAP_BeginDemoRecording( &temp, svs.demo.file, svs.spawncount, svc.snapFrameTime, sv.configstrings[0], sv.baselines );
-}
-
 void SV_Demo_WriteSnap() {
 	TracyZoneScoped;
 
-	int i;
-
-	if( !svs.demo.file ) {
+	if( record_demo_context.file == NULL ) {
 		return;
 	}
 
+	int i;
 	for( i = 0; i < sv_maxclients->integer; i++ ) {
 		if( svs.clients[i].state >= CS_SPAWNED && svs.clients[i].edict &&
 			!( svs.clients[i].edict->s.svflags & SVF_NOCLIENT ) ) {
@@ -74,30 +62,37 @@ void SV_Demo_WriteSnap() {
 	uint8_t msg_buffer[MAX_MSGLEN];
 	msg_t msg = NewMSGWriter( msg_buffer, sizeof( msg_buffer ) );
 
-	SV_BuildClientFrameSnap( &svs.demo.client );
+	SV_BuildClientFrameSnap( &demo_client );
 
-	SV_WriteFrameSnapToClient( &svs.demo.client, &msg );
+	SV_WriteFrameSnapToClient( &demo_client, &msg );
 
-	SV_AddReliableCommandsToMessage( &svs.demo.client, &msg );
+	SV_AddReliableCommandsToMessage( &demo_client, &msg );
 
-	SV_Demo_WriteMessage( &msg );
+	WriteDemoMessage( &record_demo_context, msg );
 
-	svs.demo.duration = svs.gametime - svs.demo.basetime;
-	svs.demo.client.lastframe = sv.framenum; // FIXME: is this needed?
+	demo_client.lastframe = sv.framenum; // FIXME: is this needed?
+}
+
+void SV_Demo_AddServerCommand( const char * command ) {
+	if( record_demo_context.file == NULL ) {
+		return;
+	}
+
+	SV_AddServerCommand( &demo_client, command );
 }
 
 static void SV_Demo_InitClient() {
-	memset( &svs.demo.client, 0, sizeof( svs.demo.client ) );
+	memset( &demo_client, 0, sizeof( demo_client ) );
 
-	svs.demo.client.mv = true;
+	demo_client.mv = true;
 
-	svs.demo.client.reliableAcknowledge = 0;
-	svs.demo.client.reliableSequence = 0;
-	svs.demo.client.reliableSent = 0;
-	memset( svs.demo.client.reliableCommands, 0, sizeof( svs.demo.client.reliableCommands ) );
+	demo_client.reliableAcknowledge = 0;
+	demo_client.reliableSequence = 0;
+	demo_client.reliableSent = 0;
+	memset( demo_client.reliableCommands, 0, sizeof( demo_client.reliableCommands ) );
 
-	svs.demo.client.lastframe = sv.framenum - 1;
-	svs.demo.client.nodelta = false;
+	demo_client.lastframe = sv.framenum - 1;
+	demo_client.nodelta = false;
 }
 
 void SV_Demo_Start_f() {
@@ -106,7 +101,7 @@ void SV_Demo_Start_f() {
 		return;
 	}
 
-	if( svs.demo.file ) {
+	if( record_demo_context.temp_file != NULL ) {
 		Com_Printf( "Already recording\n" );
 		return;
 	}
@@ -128,107 +123,60 @@ void SV_Demo_Start_f() {
 		return;
 	}
 
-	//
-	// open the demo file
-	//
-
 	if( !COM_ValidateRelativeFilename( Cmd_Argv( 1 ) ) ) {
 		Com_Printf( "Invalid filename.\n" );
 		return;
 	}
 
 	TempAllocator temp = svs.frame_arena.temp();
-	svs.demo.filename = ( *sys_allocator )( "{}/{}.cddemo", GetDemoDir( &temp ), Cmd_Argv( 1 ) );
-	COM_SanitizeFilePath( svs.demo.filename );
+	char * filename = temp( "{}/{}.cddemo", GetDemoDir( &temp ), Cmd_Argv( 1 ) );
+	COM_SanitizeFilePath( filename );
 
-	svs.demo.tempname = ( *sys_allocator )( "{}.rec", svs.demo.filename );
+	Com_Printf( "Recording server demo: %s\n", filename );
 
-	// open it
-	if( FS_FOpenAbsoluteFile( svs.demo.tempname, &svs.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
-		Com_Printf( "Error: Couldn't open file: %s\n", svs.demo.tempname );
-		FREE( sys_allocator, svs.demo.filename );
-		svs.demo.filename = NULL;
-		FREE( sys_allocator, svs.demo.tempname );
-		svs.demo.tempname = NULL;
+	bool recording = StartRecordingDemo( &temp, &record_demo_context, filename, svs.spawncount, svc.snapFrameTime, sv.configstrings[ 0 ], sv.baselines );
+	if( !recording )
 		return;
-	}
-
-	Com_Printf( "Recording server demo: %s\n", svs.demo.filename );
 
 	SV_Demo_InitClient();
 
-	// write serverdata, configstrings and baselines
-	svs.demo.duration = 0;
-	svs.demo.basetime = svs.gametime;
-	svs.demo.localtime = time( NULL );
-	SV_Demo_WriteStartMessages();
+	demo_gametime = svs.gametime;
+	demo_utc_time = checked_cast< s64 >( time( NULL ) );
 
 	// write one nodelta frame
-	svs.demo.client.nodelta = true;
+	demo_client.nodelta = true;
 	SV_Demo_WriteSnap();
-	svs.demo.client.nodelta = false;
+	demo_client.nodelta = false;
 }
 
-static void SV_Demo_Stop( bool cancel, bool silent ) {
-	if( !svs.demo.file ) {
+void SV_Demo_Stop( bool silent ) {
+	if( record_demo_context.file == NULL ) {
 		if( !silent ) {
-			Com_Printf( "No server demo recording in progress\n" );
+			Com_Printf( "Not recording a demo.\n" );
 		}
 		return;
 	}
 
+	Com_Printf( "Saving demo: %s\n", record_demo_context.filename );
+
 	TempAllocator temp = svs.frame_arena.temp();
 
-	if( cancel ) {
-		Com_Printf( "Cancelled server demo recording: %s\n", svs.demo.filename );
-	}
-	else {
-		SNAP_StopDemoRecording( svs.demo.file );
-		Com_Printf( "Stopped server demo recording: %s\n", svs.demo.filename );
-	}
+	DemoMetadata metadata = { };
+	metadata.metadata_version = DEMO_METADATA_VERSION;
+	metadata.game_version = MakeSpan( CopyString( &temp, APP_VERSION ) );
+	metadata.server = MakeSpan( sv.configstrings[ CS_HOSTNAME ] );
+	metadata.map = MakeSpan( sv.mapname );
+	metadata.utc_time = demo_utc_time;
+	metadata.duration_seconds = ( svs.gametime - demo_gametime ) / 1000;
 
-	FS_FCloseFile( svs.demo.file );
-	svs.demo.file = 0;
+	StopRecordingDemo( &temp, &record_demo_context, metadata );
+	record_demo_context = { };
 
-	if( cancel ) {
-		if( !RemoveFile( &temp, svs.demo.tempname ) ) {
-			Com_Printf( "Error: Failed to delete the temporary server demo file\n" );
-		}
-	}
-	else {
-		// write some meta information about the match/demo
-		SV_SetDemoMetaKeyValue( "hostname", sv.configstrings[CS_HOSTNAME] );
-		SV_SetDemoMetaKeyValue( "localtime", temp( "{}", (int64_t)svs.demo.localtime ) );
-		SV_SetDemoMetaKeyValue( "multipov", "1" );
-		SV_SetDemoMetaKeyValue( "duration", temp( "{}", (int)ceilf( (double)svs.demo.duration / 1000.0 ) ) );
-		SV_SetDemoMetaKeyValue( "mapname", sv.mapname );
-		SV_SetDemoMetaKeyValue( "matchscore", sv.configstrings[CS_MATCHSCORE] );
-		SV_SetDemoMetaKeyValue( "version", APP_VERSION );
-
-		SNAP_WriteDemoMetaData( svs.demo.tempname, svs.demo.meta_data, svs.demo.meta_data_realsize );
-
-		if( !MoveFile( &temp, svs.demo.tempname, svs.demo.filename, MoveFile_DoReplace ) ) {
-			Com_Printf( "Error: Failed to rename the server demo file\n" );
-		}
-	}
-
-	svs.demo.localtime = 0;
-	svs.demo.basetime = svs.demo.duration = 0;
-
-	SNAP_FreeClientFrames( &svs.demo.client );
-
-	FREE( sys_allocator, svs.demo.filename );
-	svs.demo.filename = NULL;
-	FREE( sys_allocator, svs.demo.tempname );
-	svs.demo.tempname = NULL;
+	SNAP_FreeClientFrames( &demo_client );
 }
 
 void SV_Demo_Stop_f() {
-	SV_Demo_Stop( false, atoi( Cmd_Argv( 1 ) ) != 0 );
-}
-
-void SV_Demo_Cancel_f() {
-	SV_Demo_Stop( true, atoi( Cmd_Argv( 1 ) ) != 0 );
+	SV_Demo_Stop( false );
 }
 
 static Span< char * > GetServerDemos( TempAllocator * temp ) {

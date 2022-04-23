@@ -1197,9 +1197,9 @@ void CG_DemocamInit() {
 		return;
 	}
 
-	if( !*cgs.demoName ) {
-		Com_Error( "CG_DemocamInit: no demo name string\n" );
-	}
+	// if( !*cgs.demoName ) {
+	// 	Com_Error( "CG_DemocamInit: no demo name string\n" );
+	// }
 
 	// see if there is any script for this demo, and load it
 	TempAllocator temp = cls.frame_arena.temp();

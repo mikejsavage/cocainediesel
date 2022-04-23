@@ -194,9 +194,7 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 		return;
 	}
 
-	if( svs.demo.file ) {
-		SV_Demo_Stop_f();
-	}
+	SV_Demo_Stop( true );
 
 	SV_FinalMessage( finalmsg, reconnect );
 
@@ -229,9 +227,7 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 void SV_Map( const char * map, bool devmap ) {
 	TracyZoneScoped;
 
-	if( svs.demo.file ) {
-		SV_Demo_Stop_f();
-	}
+	SV_Demo_Stop( true );
 
 	if( sv.state == ss_dead ) {
 		SV_InitGame(); // the game is just starting

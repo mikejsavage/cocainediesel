@@ -63,12 +63,6 @@ void G_Match_Autorecord_Stop() {
 	}
 }
 
-void G_Match_Autorecord_Cancel() {
-	if( g_autorecord->integer ) {
-		Cbuf_Add( "{}", "serverrecordcancel 1" );
-	}
-}
-
 static void G_Match_CheckStateAbort() {
 	bool any = false;
 	bool enough;
@@ -109,7 +103,6 @@ static void G_Match_CheckStateAbort() {
 		if( any ) {
 			G_ClearCenterPrint( NULL );
 		}
-		G_Match_Autorecord_Cancel();
 		G_Match_LaunchState( MatchState_Warmup );
 		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, true );
 	}
@@ -124,11 +117,6 @@ static void G_Match_CheckStateAbort() {
 }
 
 void G_Match_LaunchState( MatchState matchState ) {
-	// give the gametype a chance to refuse the state change, or to set up things for it
-	if( !GT_CallMatchStateFinished( matchState ) ) {
-		return;
-	}
-
 	G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
 
 	if( matchState == MatchState_PostMatch ) {
@@ -150,6 +138,8 @@ void G_Match_LaunchState( MatchState matchState ) {
 			break;
 
 		case MatchState_Playing:
+			G_Match_Autorecord_Start();
+
 			server_gs.gameState.match_state = MatchState_Playing;
 			server_gs.gameState.match_duration = 0;
 			server_gs.gameState.match_state_start_time = svs.gametime;
@@ -164,6 +154,8 @@ void G_Match_LaunchState( MatchState matchState ) {
 			break;
 
 		case MatchState_WaitExit:
+			G_Match_Autorecord_Stop();
+
 			server_gs.gameState.match_state = MatchState_WaitExit;
 			server_gs.gameState.match_duration = 3000;
 			server_gs.gameState.match_state_start_time = svs.gametime;
@@ -455,10 +447,6 @@ Span< const char > G_GetWorldspawnKey( const char * key ) {
 
 void GT_CallMatchStateStarted() {
 	level.gametype.MatchStateStarted();
-}
-
-bool GT_CallMatchStateFinished( MatchState incomingMatchState ) {
-	return level.gametype.MatchStateFinished( incomingMatchState );
 }
 
 void GT_CallPlayerConnected( edict_t * ent ) {

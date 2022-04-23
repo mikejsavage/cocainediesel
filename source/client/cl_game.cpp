@@ -58,7 +58,7 @@ void CL_GameModule_Init() {
 	CL_GameModule_Shutdown();
 
 	cge = GetCGameAPI();
-	cge->Init( cl.playernum, cls.demo.playing, cls.demo.playing ? cls.demo.filename : "", cl.snapFrameTime );
+	cge->Init( cl.playernum, CL_DemoPlaying(), "", cl.snapFrameTime );
 	cls.cgameActive = true;
 }
 
@@ -99,7 +99,7 @@ bool CL_GameModule_NewSnapshot( int pendingSnapshot ) {
 
 void CL_GameModule_RenderView() {
 	if( cge && cls.cgameActive ) {
-		cge->RenderView( cl_extrapolate->integer && !cls.demo.playing ? cl_extrapolationTime->integer : 0 );
+		cge->RenderView( cl_extrapolate->integer && !CL_DemoPlaying() ? cl_extrapolationTime->integer : 0 );
 	}
 }
 

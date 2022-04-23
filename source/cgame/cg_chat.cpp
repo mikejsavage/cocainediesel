@@ -35,7 +35,7 @@ struct Chat {
 static Chat chat;
 
 static void OpenChat() {
-	if( !cls.demo.playing ) {
+	if( !CL_DemoPlaying() ) {
 		bool team = StrCaseEqual( Cmd_Argv( 0 ), "messagemode2" );
 		chat.mode = team ? ChatMode_SayTeam : ChatMode_Say;
 		chat.input[ 0 ] = '\0';

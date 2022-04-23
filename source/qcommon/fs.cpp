@@ -57,7 +57,7 @@ size_t FileSize( FILE * file ) {
 }
 
 char * ReadFileString( Allocator * a, const char * path, size_t * len ) {
-	FILE * file = OpenFile( a, path, "rb" );
+	FILE * file = OpenFile( a, path, OpenFile_Read );
 	if( file == NULL )
 		return NULL;
 
@@ -79,7 +79,7 @@ char * ReadFileString( Allocator * a, const char * path, size_t * len ) {
 }
 
 Span< u8 > ReadFileBinary( Allocator * a, const char * path ) {
-	FILE * file = OpenFile( a, path, "rb" );
+	FILE * file = OpenFile( a, path, OpenFile_Read );
 	if( file == NULL )
 		return Span< u8 >();
 
@@ -96,7 +96,7 @@ Span< u8 > ReadFileBinary( Allocator * a, const char * path ) {
 }
 
 bool FileExists( Allocator * temp, const char * path ) {
-	FILE * file = OpenFile( temp, path, "rb" );
+	FILE * file = OpenFile( temp, path, OpenFile_Read );
 	if( file == NULL )
 		return false;
 	fclose( file );
@@ -136,7 +136,7 @@ bool WriteFile( TempAllocator * temp, const char * path, const void * data, size
 	if( !CreatePathForFile( temp, path ) )
 		return false;
 
-	FILE * file = OpenFile( temp, path, "wb" );
+	FILE * file = OpenFile( temp, path, OpenFile_WriteOverwrite );
 	if( file == NULL )
 		return false;
 
@@ -144,6 +144,21 @@ bool WriteFile( TempAllocator * temp, const char * path, const void * data, size
 	fclose( file );
 
 	return w == len;
+}
+
+const char * OpenFileModeToString( OpenFileMode mode ) {
+	switch( mode ) {
+		case OpenFile_Read: return "rb";
+		case OpenFile_WriteNew: return "wbx";
+		case OpenFile_WriteOverwrite: return "wb";
+		case OpenFile_ReadWriteNew: return "w+bx";
+		case OpenFile_ReadWriteOverwrite: return "w+b";
+		case OpenFile_AppendNew: return "abx";
+		case OpenFile_AppendOverwrite: return "ab";
+	}
+
+	assert( false );
+	return NULL;
 }
 
 bool ReadPartialFile( FILE * file, void * data, size_t len, size_t * bytes_read ) {
@@ -159,4 +174,10 @@ void Seek( FILE * file, size_t cursor ) {
 	if( fseek( file, checked_cast< long >( cursor ), SEEK_SET ) != 0 ) {
 		FatalErrno( "fseek" );
 	}
+}
+
+bool CloseFile( FILE * file ) {
+	bool ok = ferror( file ) == 0;
+	fclose( file );
+	return ok;
 }

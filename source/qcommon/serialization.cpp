@@ -1,25 +1,47 @@
 #include "qcommon/base.h"
-#include "serialization.h"
+#include "qcommon/array.h"
+#include "qcommon/serialization.h"
+
+SerializationBuffer NewDeserializationBuffer( Allocator * a, const void * buf, size_t buf_size ) {
+	SerializationBuffer sb = { };
+	sb.serializing = false;
+	sb.a = a;
+	sb.input_cursor = ( const char * ) buf;
+	sb.input_end = sb.input_cursor + buf_size;
+	return sb;
+}
+
+SerializationBuffer NewSerializationBuffer( DynamicArray< u8 > * buf ) {
+	SerializationBuffer sb = { };
+	sb.serializing = true;
+	sb.output_buf = buf;
+	return sb;
+}
 
 template< typename T >
 static void SerializeFundamental( SerializationBuffer * buf, T & x ) {
-	if( buf->error || size_t( buf->end - buf->cursor ) < sizeof( T ) ) {
-		buf->error = true;
-		if( !buf->serializing )
-			memset( &x, 0, sizeof( T ) );
+	if( buf->error ) {
 		return;
 	}
 
 	if( buf->serializing ) {
-		memcpy( buf->cursor, &x, sizeof( T ) );
+		size_t old_size = buf->output_buf->extend( sizeof( T ) );
+		memcpy( buf->output_buf->ptr() + old_size, &x, sizeof( T ) );
 	}
 	else {
-		memcpy( &x, buf->cursor, sizeof( T ) );
-	}
+		if( buf->input_cursor < buf->input_end && size_t( buf->input_end - buf->input_cursor ) >= sizeof( T ) ) {
+			memcpy( &x, buf->input_cursor, sizeof( T ) );
+		}
+		else {
+			buf->error = true;
+			x = { };
+		}
 
-	buf->cursor += sizeof( T );
+		buf->input_cursor += sizeof( T );
+	}
 }
 
+void Serialize( SerializationBuffer * buf, char & x ) { SerializeFundamental( buf, x ); }
 void Serialize( SerializationBuffer * buf, s8 & x ) { SerializeFundamental( buf, x ); }
 void Serialize( SerializationBuffer * buf, s16 & x ) { SerializeFundamental( buf, x ); }
 void Serialize( SerializationBuffer * buf, s32 & x ) { SerializeFundamental( buf, x ); }

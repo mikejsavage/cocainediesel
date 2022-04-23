@@ -126,8 +126,8 @@ static void CL_SendConnectPacket() {
 	userinfo_modified = false;
 
 	TempAllocator temp = cls.frame_arena.temp();
-	Netchan_OutOfBandPrint( cls.socket, cls.serveraddress, "%s", temp( "connect {} {} {} \"{}\"\n",
-		APP_PROTOCOL_VERSION, cls.session_id, cls.challenge, Cvar_GetUserInfo() ) );
+	Netchan_OutOfBandPrint( cls.socket, cls.serveraddress, "%s",
+		temp( "connect {} {} {} \"{}\"\n", APP_PROTOCOL_VERSION, cls.session_id, cls.challenge, Cvar_GetUserInfo() ) );
 }
 
 /*
@@ -138,7 +138,7 @@ static void CL_SendConnectPacket() {
 static void CL_CheckForResend() {
 	int64_t realtime = cls.monotonicTime;
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		return;
 	}
 
@@ -221,7 +221,7 @@ static void CL_Connect_f() {
 * an unconnected command.
 */
 static void CL_Rcon_f() {
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		return;
 	}
 
@@ -345,11 +345,9 @@ void CL_Disconnect( const char *message ) {
 	cls.connect_count = 0;
 	cls.rejected = false;
 
-	if( cls.demo.recording ) {
-		CL_Stop_f();
-	}
+	CL_StopRecording( true );
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		CL_DemoCompleted();
 	} else {
 		CL_Disconnect_SendCommand(); // send a disconnect message to the server
@@ -384,9 +382,7 @@ void CL_Disconnect_f() {
 * drop to full console
 */
 void CL_Changing_f() {
-	if( cls.demo.recording ) {
-		CL_Stop_f();
-	}
+	CL_StopRecording( true );
 
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 
@@ -402,7 +398,7 @@ void CL_Changing_f() {
 * The server is changing levels
 */
 void CL_ServerReconnect_f() {
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		return;
 	}
 
@@ -413,9 +409,7 @@ void CL_ServerReconnect_f() {
 
 	CancelDownload();
 
-	if( cls.demo.recording ) {
-		CL_Stop_f();
-	}
+	CL_StopRecording( true );
 
 	cls.connect_count = 0;
 	cls.rejected = false;
@@ -471,7 +465,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 		return;
 	}
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		return;
 	}
 
@@ -617,7 +611,7 @@ void CL_ReadPackets() {
 		return;
 	}
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		// only allow connectionless packets during demo playback
 		return;
 	}
@@ -700,15 +694,14 @@ static bool AddDownloadedMap( const char * filename, Span< const u8 > compressed
 * before allowing the client into the server
 */
 void CL_Precache_f() {
-	if( cls.demo.playing ) {
-		if( !cls.demo.play_jump ) {
+	if( CL_DemoPlaying() ) {
+		if( !CL_DemoSeeking() ) {
 			CL_GameModule_Init();
-		} else {
+		}
+		else {
 			CL_GameModule_Reset();
 			StopAllSounds( false );
 		}
-
-		cls.demo.play_ignore_next_frametime = true;
 
 		return;
 	}
@@ -785,6 +778,10 @@ void CL_SetClientState( connstate_t state ) {
 
 static Span< const char * > TabCompleteDemo( TempAllocator * a, const char * partial ) {
 	return TabCompleteFilenameHomeDir( a, partial, "demos", APP_DEMO_EXTENSION_STR );
+}
+
+static void CL_Stop_f() {
+	CL_StopRecording( false );
 }
 
 static void CL_InitLocal() {
@@ -876,7 +873,7 @@ void CL_AdjustServerTime( unsigned int gameMsec ) {
 	TracyZoneScoped;
 
 	// hurry up if coming late (unless in demos)
-	if( !cls.demo.playing ) {
+	if( !CL_DemoPlaying() ) {
 		if( ( cl.newServerTimeDelta < cl.serverTimeDelta ) && gameMsec > 0 ) {
 			cl.serverTimeDelta--;
 		}
@@ -920,7 +917,7 @@ int CL_SmoothTimeDeltas() {
 	double delta;
 	snapshot_t  *snap;
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		if( cl.currentSnapNum <= 0 ) { // if first snap
 			return cl.serverTimeDeltas[cl.pendingSnapNum & MASK_TIMEDELTAS_BACKUP];
 		}
@@ -983,13 +980,13 @@ static void CL_UpdateSnapshot() {
 				cl_extrapolationTime->modified = false;
 			}
 
-			if( !cls.demo.playing && cl_extrapolate->integer ) {
+			if( !CL_DemoPlaying() && cl_extrapolate->integer ) {
 				cl.newServerTimeDelta += cl_extrapolationTime->integer;
 			}
 
 			// if we don't have current snap (or delay is too big) don't wait to fire the pending one
-			if( ( !cls.demo.play_jump && cl.currentSnapNum <= 0 ) ||
-				( !cls.demo.playing && Abs( cl.newServerTimeDelta - cl.serverTimeDelta ) > 200 ) ) {
+			if( ( !CL_DemoSeeking() && cl.currentSnapNum <= 0 ) ||
+				( !CL_DemoPlaying() && Abs( cl.newServerTimeDelta - cl.serverTimeDelta ) > 200 ) ) {
 				cl.serverTimeDelta = cl.newServerTimeDelta;
 			}
 		}
@@ -1031,7 +1028,7 @@ static bool CL_MaxPacketsReached() {
 	float minTime = ( 1000.0f / cl_pps->number );
 
 	// don't let cl_pps be smaller than sv_pps
-	if( cls.state == CA_ACTIVE && !cls.demo.playing && cl.snapFrameTime ) {
+	if( cls.state == CA_ACTIVE && !CL_DemoPlaying() && cl.snapFrameTime ) {
 		if( (unsigned int)minTime > cl.snapFrameTime ) {
 			minTime = cl.snapFrameTime;
 		}
@@ -1057,7 +1054,7 @@ void CL_SendMessagesToServer( bool sendNow ) {
 		return;
 	}
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		return;
 	}
 
@@ -1099,7 +1096,7 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 		cls.lastPacketReceivedTime = cls.realtime;
 	}
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		CL_ReadDemoPackets(); // fetch results from demo file
 	}
 	CL_ReadPackets(); // fetch results from server
@@ -1136,17 +1133,11 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	cls.monotonicTime += realMsec;
 	cls.realtime += realMsec;
 
-	if( cls.demo.playing && cls.demo.play_ignore_next_frametime ) {
-		gameMsec = 0;
-		cls.demo.play_ignore_next_frametime = false;
-	}
-
-	if( cls.demo.playing ) {
-		if( cls.demo.paused ) {
+	if( CL_DemoPlaying() ) {
+		if( CL_DemoPaused() ) {
 			gameMsec = 0;
-		} else {
-			CL_LatchedDemoJump();
 		}
+		CL_LatchedDemoJump();
 	}
 
 	cls.gametime += gameMsec;
@@ -1193,7 +1184,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		HotloadAssets( &temp );
 	}
 
-	cls.frametime = cls.demo.paused ? 0 : allGameMsec;
+	cls.frametime = allGameMsec;
 	cls.realFrameTime = allRealMsec;
 	if( allRealMsec < minMsec ) { // is compensating for a too slow frame
 		extraMsec = Clamp( 0, extraMsec - ( minMsec - allRealMsec ), 100 );

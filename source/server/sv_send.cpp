@@ -158,10 +158,7 @@ void SV_SendServerCommand( client_t *cl, const char *format, ... ) {
 		SV_AddServerCommand( client, message );
 	}
 
-	// add to demo
-	if( svs.demo.file ) {
-		SV_AddServerCommand( &svs.demo.client, message );
-	}
+	SV_Demo_AddServerCommand( message );
 }
 
 /*

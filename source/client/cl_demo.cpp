@@ -18,72 +18,68 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include <time.h>
+
 #include "client/client.h"
 #include "qcommon/fs.h"
 #include "qcommon/version.h"
+#include "gameshared/demo.h"
 
-static void CL_PauseDemo( bool paused );
+static RecordDemoContext record_demo_context = { };
+static s64 record_demo_gametime;
+static time_t record_demo_utc_time;
+static bool record_demo_waiting = false;
+static char * record_demo_filename = NULL;
 
-/*
-* CL_WriteDemoMessage
-*
-* Dumps the current net message, prefixed by the length
-*/
-void CL_WriteDemoMessage( const msg_t * msg, size_t offset ) {
-	if( cls.demo.file <= 0 ) {
-		cls.demo.recording = false;
-		return;
-	}
+static DemoMetadata playing_demo_metadata;
+static msg_t playing_demo_contents = { };
+static bool playing_demo_paused;
+static bool playing_demo_seek;
+static bool playing_demo_seek_latch;
+static s64 playing_demo_seek_time;
 
-	SNAP_RecordDemoMessage( cls.demo.file, msg, offset );
+static bool yolodemo;
+
+bool CL_DemoPlaying() {
+	return playing_demo_contents.data != NULL;
 }
 
-/*
-* CL_Stop_f
-*
-* stop recording a demo
-*/
-void CL_Stop_f() {
-	if( !cls.demo.recording ) {
-		Com_Printf( "Not recording a demo.\n" );
+bool CL_DemoPaused() {
+	return playing_demo_paused;
+}
+
+bool CL_DemoSeeking() {
+	return playing_demo_seek;
+}
+
+bool CL_YoloDemo() {
+	return yolodemo;
+}
+
+static bool CL_DemoRecording() {
+	return record_demo_waiting || record_demo_context.file != NULL;
+}
+
+void CL_WriteDemoMessage( msg_t msg, size_t offset ) {
+	if( record_demo_context.file == NULL )
 		return;
-	}
+	WriteDemoMessage( &record_demo_context, msg, offset );
+}
+
+void CL_DemoBaseline( const snapshot_t * snap ) {
+	if( !record_demo_waiting || snap->delta )
+		return;
+
+	record_demo_gametime = cls.gametime;
+	record_demo_utc_time = time( NULL );
+	record_demo_waiting = false;
+
+	defer { FREE( sys_allocator, record_demo_filename ); };
 
 	TempAllocator temp = cls.frame_arena.temp();
-
-	// finish up
-	SNAP_StopDemoRecording( cls.demo.file );
-
-	// write some meta information about the match/demo
-	CL_SetDemoMetaKeyValue( "hostname", cl.configstrings[CS_HOSTNAME] );
-	CL_SetDemoMetaKeyValue( "localtime", temp( "{}", (int64_t)cls.demo.localtime ) );
-	CL_SetDemoMetaKeyValue( "multipov", "0" );
-	CL_SetDemoMetaKeyValue( "duration", temp( "{}", (int)ceilf( (double)cls.demo.duration / 1000.0 ) ) );
-	CL_SetDemoMetaKeyValue( "mapname", cl.map->name );
-	CL_SetDemoMetaKeyValue( "matchscore", cl.configstrings[CS_MATCHSCORE] );
-	CL_SetDemoMetaKeyValue( "version", APP_VERSION );
-
-	FS_FCloseFile( cls.demo.file );
-
-	SNAP_WriteDemoMetaData( cls.demo.filename, cls.demo.meta_data, cls.demo.meta_data_realsize );
-
-	Com_Printf( "Stopped demo: %s\n", cls.demo.filename );
-
-	cls.demo.file = 0; // file id
-	FREE( sys_allocator, cls.demo.filename );
-	FREE( sys_allocator, cls.demo.name );
-	cls.demo.filename = NULL;
-	cls.demo.name = NULL;
-	cls.demo.recording = false;
+	StartRecordingDemo( &temp, &record_demo_context, record_demo_filename, cl.servercount, cl.snapFrameTime, cl.configstrings[ 0 ], cl_baselines );
 }
 
-/*
-* CL_Record_f
-*
-* record <demoname>
-*
-* Begins recording a demo from the current position
-*/
 void CL_Record_f() {
 	if( cls.state != CA_ACTIVE ) {
 		Com_Printf( "You must be in a level to record.\n" );
@@ -95,12 +91,12 @@ void CL_Record_f() {
 		return;
 	}
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		Com_Printf( "You can't record from another demo.\n" );
 		return;
 	}
 
-	if( cls.demo.recording ) {
+	if( CL_DemoRecording() ) {
 		Com_Printf( "Already recording.\n" );
 		return;
 	}
@@ -110,142 +106,83 @@ void CL_Record_f() {
 		return;
 	}
 
-	char * filename = ( *sys_allocator )( "{}/demos/{}" APP_DEMO_EXTENSION_STR, HomeDirPath(), Cmd_Argv( 1 ) );
-	COM_SanitizeFilePath( filename );
+	record_demo_filename = ( *sys_allocator )( "{}/demos/{}" APP_DEMO_EXTENSION_STR, HomeDirPath(), Cmd_Argv( 1 ) );
+	COM_SanitizeFilePath( record_demo_filename );
 
-	if( FS_FOpenAbsoluteFile( filename, &cls.demo.file, FS_WRITE | SNAP_DEMO_GZ ) == -1 ) {
-		Com_Printf( "Error: Couldn't create the demo file: %s\n", filename );
-		FREE( sys_allocator, filename );
-		return;
-	}
-
-	Com_Printf( "Recording demo: %s\n", filename );
-
-	cls.demo.filename = filename;
-	cls.demo.recording = true;
-	cls.demo.basetime = cls.demo.duration = cls.demo.time = 0;
-	cls.demo.name = CopyString( sys_allocator, Cmd_Argv( 1 ) );
+	Com_Printf( "Recording demo: %s\n", record_demo_filename );
 
 	// don't start saving messages until a non-delta compressed message is received
 	CL_AddReliableCommand( ClientCommand_NoDelta ); // request non delta compressed frame from server
-	cls.demo.waiting = true;
+	record_demo_waiting = true;
 }
 
-
-//================================================================
-//
-//	WARSOW : CLIENT SIDE DEMO PLAYBACK
-//
-//================================================================
-
-// demo file
-static int demofilehandle;
-static int demofilelen, demofilelentotal;
-
-/*
-* CL_DemoCompleted
-*
-* Close the demo file and disable demo state. Called from disconnection process
-*/
-void CL_DemoCompleted() {
-	if( demofilehandle ) {
-		FS_FCloseFile( demofilehandle );
-		demofilehandle = 0;
+void CL_StopRecording( bool silent ) {
+	if( !CL_DemoRecording() ) {
+		if( !silent ) {
+			Com_Printf( "Not recording a demo.\n" );
+		}
+		return;
 	}
-	demofilelen = demofilelentotal = 0;
 
-	cls.demo.playing = false;
-	cls.demo.basetime = cls.demo.duration = cls.demo.time = 0;
-	FREE( sys_allocator, cls.demo.filename );
-	cls.demo.filename = NULL;
-	FREE( sys_allocator, cls.demo.name );
-	cls.demo.name = NULL;
+	if( record_demo_waiting ) {
+		FREE( sys_allocator, record_demo_filename );
+		record_demo_filename = NULL;
+		record_demo_waiting = false;
+		return;
+	}
 
-	Com_SetDemoPlaying( false );
+	Com_Printf( "Saving demo: %s\n", record_demo_context.filename );
 
-	CL_PauseDemo( false );
+	TempAllocator temp = cls.frame_arena.temp();
+
+	DemoMetadata metadata = { };
+	metadata.metadata_version = DEMO_METADATA_VERSION;
+	metadata.game_version = MakeSpan( CopyString( &temp, APP_VERSION ) );
+	metadata.server = MakeSpan( cl.configstrings[ CS_HOSTNAME ] );
+	metadata.map = MakeSpan( CopyString( &temp, cl.map->name ) );
+	metadata.utc_time = record_demo_utc_time;
+	metadata.duration_seconds = ( cls.gametime - record_demo_gametime ) / 1000;
+
+	StopRecordingDemo( &temp, &record_demo_context, metadata );
+
+	record_demo_context = { };
+}
+
+void CL_DemoCompleted() {
+	FREE( sys_allocator, playing_demo_metadata.game_version.ptr );
+	FREE( sys_allocator, playing_demo_metadata.server.ptr );
+	FREE( sys_allocator, playing_demo_metadata.map.ptr );
+	FREE( sys_allocator, playing_demo_contents.data );
+	playing_demo_contents = { };
 
 	Com_Printf( "Demo completed\n" );
-
-	memset( &cls.demo, 0, sizeof( cls.demo ) );
 }
 
-/*
-* CL_ReadDemoMessage
-*
-* Read a packet from the demo file and send it to the messages parser
-*/
-static void CL_ReadDemoMessage() {
-	static uint8_t msgbuf[MAX_MSGLEN];
-	static msg_t demomsg;
-	static bool init = true;
-
-	if( !demofilehandle ) {
-		CL_Disconnect( NULL );
-		return;
-	}
-
-	if( init ) {
-		demomsg = NewMSGReader( msgbuf, 0, sizeof( msgbuf ) );
-		init = false;
-	}
-
-	int read = SNAP_ReadDemoMessage( demofilehandle, &demomsg );
-	if( read == -1 ) {
-		CL_Disconnect( NULL );
-		return;
-	}
-
-	CL_ParseServerMessage( &demomsg );
-}
-
-/*
-* CL_ReadDemoPackets
-*
-* See if it's time to read a new demo packet
-*/
 void CL_ReadDemoPackets() {
-	if( cls.demo.paused ) {
-		return;
-	}
-
-	while( cls.demo.playing && ( cl.receivedSnapNum <= 0 || !cl.snapShots[cl.receivedSnapNum & UPDATE_MASK].valid || cl.snapShots[cl.receivedSnapNum & UPDATE_MASK].serverTime < cl.serverTime ) ) {
-		CL_ReadDemoMessage();
-		if( cls.demo.paused ) {
+	while( ( cl.receivedSnapNum <= 0 || !cl.snapShots[cl.receivedSnapNum & UPDATE_MASK].valid || cl.snapShots[cl.receivedSnapNum & UPDATE_MASK].serverTime < cl.serverTime ) ) {
+		msg_t msg = MSG_ReadMsg( &playing_demo_contents );
+		if( msg.data == NULL ) {
+			CL_Disconnect( NULL );
 			return;
 		}
+		CL_ParseServerMessage( &msg );
 	}
-
-	cls.demo.time = cls.gametime;
-	cls.demo.play_jump = false;
 }
 
-/*
-* CL_LatchedDemoJump
-*
-* See if it's time to read a new demo packet
-*/
 void CL_LatchedDemoJump() {
-	if( cls.demo.paused || !cls.demo.play_jump_latched ) {
+	if( !playing_demo_seek_latch ) {
 		return;
 	}
 
-	cls.gametime = cls.demo.play_jump_time;
+	cls.gametime = playing_demo_seek_time;
+	cl.currentSnapNum = cl.pendingSnapNum = cl.receivedSnapNum = 0;
 
-	if( cl.serverTime < cl.snapShots[cl.receivedSnapNum & UPDATE_MASK].serverTime ) {
-		cl.pendingSnapNum = 0;
-	}
+	playing_demo_contents.readcount = 0;
 
 	CL_AdjustServerTime( 1 );
 
-	if( cl.serverTime < cl.snapShots[cl.receivedSnapNum & UPDATE_MASK].serverTime ) {
-		demofilelen = demofilelentotal;
-		FS_Seek( demofilehandle, 0, FS_SEEK_SET );
-		cl.currentSnapNum = cl.receivedSnapNum = 0;
-	}
-
-	cls.demo.play_jump = true;
-	cls.demo.play_jump_latched = false;
+	playing_demo_seek = true;
+	playing_demo_seek_latch = false;
 }
 
 static void CL_StartDemo( const char * demoname, bool yolo ) {
@@ -257,24 +194,32 @@ static void CL_StartDemo( const char * demoname, bool yolo ) {
 		filename = ( *sys_allocator )( "{}/demos/{}{}", HomeDirPath(), demoname, ext );
 	}
 	else {
-		filename = ( *sys_allocator )( "{}{}", HomeDirPath(), demoname, ext );
+		filename = ( *sys_allocator )( "{}{}", demoname, ext );
+	}
+	defer { FREE( sys_allocator, filename ); };
+
+	Span< u8 > demo = ReadFileBinary( sys_allocator, filename );
+	if( demo.ptr == NULL ) {
+		Com_Printf( S_COLOR_YELLOW "%s doesn't exist\n", filename );
+		return;
+	}
+	defer { FREE( sys_allocator, demo.ptr ); };
+
+	Span< u8 > decompressed;
+	bool ok = ReadDemoMetadata( sys_allocator, &playing_demo_metadata, demo ) && DecompressDemo( sys_allocator, &decompressed, demo );
+	if( !ok ) {
+		Com_Printf( S_COLOR_YELLOW "Demo is corrupt\n" );
+		return;
 	}
 
-	demofilelentotal = FS_FOpenAbsoluteFile( filename, &demofilehandle, FS_READ | SNAP_DEMO_GZ );
-	demofilelen = demofilelentotal;
+	playing_demo_contents = NewMSGReader( decompressed.ptr, decompressed.n, decompressed.n );
+	playing_demo_paused = false;
+	playing_demo_seek = false;
+	playing_demo_seek_latch = false;
+	yolodemo = yolo;
+
 
 	CL_SetClientState( CA_HANDSHAKE );
-	Com_SetDemoPlaying( true );
-	cls.demo.playing = true;
-	cls.demo.basetime = cls.demo.duration = cls.demo.time = 0;
-
-	cls.demo.play_ignore_next_frametime = false;
-	cls.demo.play_jump = false;
-	cls.demo.filename = filename;
-	cls.demo.name = CopyString( sys_allocator, demoname );
-	cls.demo.yolo = yolo;
-
-	CL_PauseDemo( false );
 }
 
 void CL_PlayDemo_f() {
@@ -293,34 +238,17 @@ void CL_YoloDemo_f() {
 	CL_StartDemo( Cmd_Argv( 1 ), true );
 }
 
-static void CL_PauseDemo( bool paused ) {
-	cls.demo.paused = paused;
-}
-
 void CL_PauseDemo_f() {
-	if( !cls.demo.playing ) {
+	if( !CL_DemoPlaying() ) {
 		Com_Printf( "Can only demopause when playing a demo.\n" );
 		return;
 	}
 
-	if( Cmd_Argc() > 1 ) {
-		if( StrCaseEqual( Cmd_Argv( 1 ), "on" ) ) {
-			CL_PauseDemo( true );
-		} else if( StrCaseEqual( Cmd_Argv( 1 ), "off" ) ) {
-			CL_PauseDemo( false );
-		}
-		return;
-	}
-
-	CL_PauseDemo( !cls.demo.paused );
+	playing_demo_paused = !playing_demo_paused;
 }
 
 void CL_DemoJump_f() {
-	bool relative;
-	int time;
-	const char *p;
-
-	if( !cls.demo.playing ) {
+	if( !CL_DemoPlaying() ) {
 		Com_Printf( "Can only demojump when playing a demo\n" );
 		return;
 	}
@@ -332,15 +260,15 @@ void CL_DemoJump_f() {
 		return;
 	}
 
-	p = Cmd_Argv( 1 );
+	const char * p = Cmd_Argv( 1 );
 
+	bool relative = false;
 	if( Cmd_Argv( 1 )[0] == '+' || Cmd_Argv( 1 )[0] == '-' ) {
 		relative = true;
 		p++;
-	} else {
-		relative = false;
 	}
 
+	int time;
 	if( strchr( p, ':' ) ) {
 		time = ( atoi( p ) * 60 + atoi( strchr( p, ':' ) + 1 ) ) * 1000;
 	} else {
@@ -352,9 +280,9 @@ void CL_DemoJump_f() {
 	}
 
 	if( relative ) {
-		cls.demo.play_jump_time = cls.gametime + time;
+		playing_demo_seek_time = Max2( s64( 0 ), cls.gametime + time );
 	} else {
-		cls.demo.play_jump_time = time; // gametime always starts from 0
+		playing_demo_seek_time = Max2( 0, time ); // gametime always starts from 0
 	}
-	cls.demo.play_jump_latched = true;
+	playing_demo_seek_latch = true;
 }

@@ -4,6 +4,16 @@
 
 #include "qcommon/types.h"
 
+enum OpenFileMode {
+	OpenFile_Read,
+	OpenFile_WriteNew,
+	OpenFile_WriteOverwrite,
+	OpenFile_ReadWriteNew,
+	OpenFile_ReadWriteOverwrite,
+	OpenFile_AppendNew,
+	OpenFile_AppendOverwrite,
+};
+
 enum MoveFileReplace {
 	MoveFile_DoReplace,
 	MoveFile_DontReplace,
@@ -19,7 +29,8 @@ const char * OldHomeDirPath();
 char * ReadFileString( Allocator * a, const char * path, size_t * len = NULL );
 Span< u8 > ReadFileBinary( Allocator * a, const char * path );
 
-FILE * OpenFile( Allocator * a, const char * path, const char * mode );
+FILE * OpenFile( Allocator * a, const char * path, OpenFileMode mode );
+bool CloseFile( FILE * file );
 bool ReadPartialFile( FILE * file, void * data, size_t len, size_t * bytes_read );
 bool WritePartialFile( FILE * file, const void * data, size_t len );
 void Seek( FILE * file, size_t cursor );

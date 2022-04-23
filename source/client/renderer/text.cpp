@@ -95,7 +95,7 @@ const Font * RegisterFont( const char * path ) {
 			return NULL;
 		}
 
-		if( !Deserialize( *font, data.ptr, data.n ) ) {
+		if( !Deserialize( NULL, font, data.ptr, data.n ) ) {
 			Com_Printf( S_COLOR_RED "Couldn't load MSDF spec from %s\n", msdf_path.c_str() );
 			return NULL;
 		}

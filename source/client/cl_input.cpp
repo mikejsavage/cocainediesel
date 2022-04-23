@@ -114,7 +114,7 @@ void CL_WriteUcmdsToMessage( msg_t *msg ) {
 	unsigned int ucmdFirst;
 	unsigned int ucmdHead;
 
-	if( !msg || cls.state < CA_ACTIVE || cls.demo.playing ) {
+	if( !msg || cls.state < CA_ACTIVE || CL_DemoPlaying() ) {
 		return;
 	}
 
@@ -200,7 +200,7 @@ static bool CL_NextUserCommandTimeReached( int realMsec ) {
 	// the cvar is developer only
 	//clamp( maxucmds, 10, 90 ); // don't let people abuse cl_ucmdFPS
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		minMsec = 1;
 	} else {
 		minMsec = ( 1000.0f / maxucmds );

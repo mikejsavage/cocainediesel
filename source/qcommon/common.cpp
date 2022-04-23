@@ -46,7 +46,6 @@ static FILE * log_file = NULL;
 
 static server_state_t server_state = ss_dead;
 static connstate_t client_state = CA_UNINITIALIZED;
-static bool demo_playing = false;
 
 /*
 ============================================================================
@@ -126,7 +125,7 @@ static void Com_ReopenConsoleLog() {
 	Com_CloseConsoleLog( false, false );
 
 	if( logconsole && logconsole->value && logconsole->value[0] ) {
-		const char * mode = logconsole_append && logconsole_append->integer ? "a" : "w";
+		OpenFileMode mode = logconsole_append && logconsole_append->integer ? OpenFile_AppendOverwrite : OpenFile_WriteOverwrite;
 		log_file = OpenFile( sys_allocator, logconsole->value, mode );
 		if( log_file == NULL ) {
 			snprintf( errmsg, sizeof( errmsg ), "Couldn't open log file: %s (%s)\n", logconsole->value, strerror( errno ) );
@@ -224,14 +223,6 @@ void Com_SetClientState( connstate_t state ) {
 	client_state = state;
 }
 
-bool Com_DemoPlaying() {
-	return demo_playing;
-}
-
-void Com_SetDemoPlaying( bool state ) {
-	demo_playing = state;
-}
-
 //============================================================================
 
 void Key_Init();
@@ -251,7 +242,6 @@ void Qcommon_Init( int argc, char ** argv ) {
 	com_print_mutex = NewMutex();
 
 	InitFS();
-	FS_Init();
 	Cmd_Init();
 	Cvar_PreInit();
 	Key_Init(); // need to be able to bind keys before running configs
@@ -352,7 +342,6 @@ void Qcommon_Shutdown() {
 
 	Com_CloseConsoleLog( true, true );
 
-	FS_Shutdown();
 	ShutdownFS();
 
 	ShutdownCSPRNG();

@@ -1210,7 +1210,7 @@ static void DemoMenu() {
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
-		GameMenuButton( cls.demo.paused ? "Play" : "Pause", "demopause" );
+		GameMenuButton( CL_DemoPaused() ? "Play" : "Pause", "demopause" );
 
 		ImGui::Columns( 2, NULL, false );
 		ImGui::SetColumnWidth( 0, half );

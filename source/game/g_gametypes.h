@@ -5,7 +5,6 @@ extern Cvar *g_warmup_timelimit;
 struct Gametype {
 	void ( *Init )();
 	void ( *MatchStateStarted )();
-	bool ( *MatchStateFinished )( MatchState incomingMatchState );
 	void ( *Think )();
 	void ( *PlayerRespawning )( edict_t * ent );
 	void ( *PlayerRespawned )( edict_t * ent, int old_team, int new_team );
@@ -37,13 +36,11 @@ void G_Teams_Init();
 
 void G_Match_Autorecord_Start();
 void G_Match_Autorecord_Stop();
-void G_Match_Autorecord_Cancel();
 bool G_Match_ScorelimitHit();
 bool G_Match_TimelimitHit();
 
 void G_RunGametype();
 void GT_CallMatchStateStarted();
-bool GT_CallMatchStateFinished( MatchState incomingMatchState );
 void GT_CallPlayerConnected( edict_t * ent );
 void GT_CallPlayerRespawning( edict_t * ent );
 void GT_CallPlayerRespawned( edict_t * ent, int old_team, int new_team );

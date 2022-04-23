@@ -46,7 +46,7 @@ bool HasFlag( u64 bits, u64 bit ) {
 }
 
 bool Cvar_CheatsAllowed() {
-	return Com_ClientState() < CA_CONNECTED || Com_DemoPlaying() || ( Com_ServerState() && Cvar_Bool( "sv_cheats" ) );
+	return Com_ClientState() < CA_CONNECTED || CL_DemoPlaying() || ( Com_ServerState() && Cvar_Bool( "sv_cheats" ) );
 }
 
 static bool Cvar_InfoValidate( const char *s, bool name ) {

@@ -76,9 +76,9 @@ char * GetExePath( Allocator * a ) {
 	return ReplaceBackslashes( WideToUTF8( a, buf.ptr() ) );
 }
 
-FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {
+FILE * OpenFile( Allocator * a, const char * path, OpenFileMode mode ) {
 	wchar_t * wide_path = UTF8ToWide( a, path );
-	wchar_t * wide_mode = UTF8ToWide( a, mode );
+	wchar_t * wide_mode = UTF8ToWide( a, OpenFileModeToString( mode ) );
 	defer { FREE( a, wide_path ); };
 	defer { FREE( a, wide_mode ); };
 	return _wfopen( wide_path, wide_mode );

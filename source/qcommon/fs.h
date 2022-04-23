@@ -22,7 +22,7 @@ Span< u8 > ReadFileBinary( Allocator * a, const char * path );
 FILE * OpenFile( Allocator * a, const char * path, const char * mode );
 bool ReadPartialFile( FILE * file, void * data, size_t len, size_t * bytes_read );
 bool WritePartialFile( FILE * file, const void * data, size_t len );
-bool Seek( FILE * file, size_t cursor );
+void Seek( FILE * file, size_t cursor );
 size_t FileSize( FILE * file );
 
 bool FileExists( Allocator * temp, const char * path );

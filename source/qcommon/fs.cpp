@@ -47,11 +47,12 @@ const char * OldHomeDirPath() {
 	return old_home_dir_path;
 }
 
-// TODO: some kind of better handling
 size_t FileSize( FILE * file ) {
-	fseek( file, 0, SEEK_END );
+	if( fseek( file, 0, SEEK_END ) != 0 ) {
+		FatalErrno( "fseek" );
+	}
 	size_t size = ftell( file );
-	fseek( file, 0, SEEK_SET );
+	Seek( file, 0 );
 	return size;
 }
 
@@ -147,13 +148,15 @@ bool WriteFile( TempAllocator * temp, const char * path, const void * data, size
 
 bool ReadPartialFile( FILE * file, void * data, size_t len, size_t * bytes_read ) {
 	*bytes_read = fread( data, 1, len, file );
-	return *bytes_read > 0 && ferror( file ) == 0;
+	return ferror( file ) == 0;
 }
 
 bool WritePartialFile( FILE * file, const void * data, size_t len ) {
-	return fwrite( data, 1, len, file ) == len;
+	return fwrite( data, 1, len, file ) == len && ferror( file ) == 0;
 }
 
-bool Seek( FILE * file, size_t cursor ) {
-	return fseek( file, checked_cast< long >( cursor ), SEEK_SET );
+void Seek( FILE * file, size_t cursor ) {
+	if( fseek( file, checked_cast< long >( cursor ), SEEK_SET ) != 0 ) {
+		FatalErrno( "fseek" );
+	}
 }

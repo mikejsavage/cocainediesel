@@ -220,7 +220,7 @@ static void ReceiveRequest( HTTPConnection * con ) {
 }
 
 static bool SendFileChunk( Socket socket, FILE * f, size_t offset, size_t * sent ) {
-	fseek( f, offset, SEEK_SET );
+	Seek( f, offset );
 
 	char buf[ 8192 ];
 	size_t r = fread( buf, 1, sizeof( buf ), f );

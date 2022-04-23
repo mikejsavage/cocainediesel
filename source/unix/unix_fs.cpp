@@ -238,18 +238,3 @@ Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor 
 
 	return Span< const char * >( results, num_results );
 }
-
-File OpenFile( Allocator * a, const char * path, OpenFileMode mode ) {
-	File file = { };
-
-	int flags = 0;
-	switch( mode ) {
-		case OpenFile_Read: flags = O_RDONLY; break;
-		case OpenFile_WriteNew: flags = O_WRONLY | O_CREAT | O_EXCL; break;
-		case OpenFile_WriteOverwrite: flags = O_WRONLY | O_CREAT | O_TRUNC; break;
-		case OpenFile_ReadWriteNew: flags = O_RDWR | O_CREAT | O_TRUNC; break;
-		case OpenFile_ReadWriteOverwrite: flags = O_RDWR | O_CREAT | O_TRUNC; break;
-	}
-
-	int fd = open( path, flags, 0666 );
-}

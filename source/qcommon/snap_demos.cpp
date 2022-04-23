@@ -136,7 +136,7 @@ void SNAP_BeginDemoRecording( TempAllocator * temp, int demofile, unsigned int s
 
 	// serverdata message
 	MSG_WriteUint8( &msg, svc_serverdata );
-	MSG_WriteInt32( &msg, APP_PROTOCOL_VERSION );
+	MSG_WriteUint32( &msg, APP_PROTOCOL_VERSION );
 	MSG_WriteInt32( &msg, spawncount );
 	MSG_WriteInt16( &msg, (unsigned short)snapFrameTime );
 	MSG_WriteInt16( &msg, -1 ); // playernum

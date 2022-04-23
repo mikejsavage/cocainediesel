@@ -83,7 +83,7 @@ static void CL_ParseServerData( msg_t *msg ) {
 	CL_SetClientState( CA_CONNECTED );
 
 	// parse protocol version number
-	int i = MSG_ReadInt32( msg );
+	u32 i = MSG_ReadUint32( msg );
 
 	if( i != APP_PROTOCOL_VERSION ) {
 		if( cls.demo.playing ) {

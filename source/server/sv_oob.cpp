@@ -309,7 +309,7 @@ static void SVC_GetChallenge( const NetAddress & address ) {
 * A connection request that did not come from the master
 */
 static void SVC_DirectConnect( const NetAddress & address ) {
-	int version = atoi( Cmd_Argv( 1 ) );
+	u64 version = SpanToU64( MakeSpan( Cmd_Argv( 1 ) ), U64_MAX );
 	if( version != APP_PROTOCOL_VERSION ) {
 		Netchan_OutOfBandPrint( svs.socket, address, "reject\n%i\nServer and client don't have the same version\n", 0 );
 		return;

@@ -164,7 +164,7 @@ static void SV_New_f( client_t *client, msg_t args ) {
 
 	// send the serverdata
 	MSG_WriteUint8( &tmpMessage, svc_serverdata );
-	MSG_WriteInt32( &tmpMessage, APP_PROTOCOL_VERSION );
+	MSG_WriteUint32( &tmpMessage, APP_PROTOCOL_VERSION );
 	MSG_WriteInt32( &tmpMessage, svs.spawncount );
 	MSG_WriteInt16( &tmpMessage, (unsigned short)svc.snapFrameTime );
 

@@ -116,8 +116,8 @@ local function DrawBoxOutline( x, y, sizeX, sizeY, outline_size )
 end
 
 local function AmmoColor( frac )
-	return RGBALinear( 
-		(red.r - red.r*frac + yellow.r*frac), 
+	return RGBALinear(
+		(red.r - red.r*frac + yellow.r*frac),
 		(red.g - red.g*frac + yellow.g*frac),
 		(red.b - red.b*frac + yellow.b*frac), 1 )
 end
@@ -410,7 +410,7 @@ local function DrawCallvote( state )
 	if string.len( state.vote ) == 0 then
 		return
 	end
-	
+
 	local width = state.viewport_width * 0.25
 	local height = state.viewport_width * 0.08
 
@@ -423,7 +423,7 @@ local function DrawCallvote( state )
 	local xright = offset + width - padding
 	local ytop = offset + padding
 	local ybottom = offset + height - padding
-	
+
 	if not state.has_voted then
 		cd.box( offset, offset, width, height, "#000a" )
 		text_color = cd.attentionGettingColor()
@@ -447,6 +447,70 @@ local function DrawCallvote( state )
 
 	options.alignment = "right bottom"
 	cd.text( options, xright, ybottom, "["..cd.getBind("vote no").."] Vote no" )
+end
+
+local function DrawYogaStuff( state )
+	local perk = {
+		background_color = "#fff",
+		border = 4,
+		border_color = dark_grey,
+		width = "3.5vw",
+		aspect_ratio = 1,
+		margin_right = 4,
+	}
+
+	local gadget = {
+		width = "3.5vw",
+		height = "100%",
+		flow = "column",
+		children = {
+			{
+				background_color = "#fff4",
+				grow = 1,
+				content = "hello",
+			},
+			{
+				aspect_ratio = 1,
+				background_color = yellow,
+				border = 4,
+				border_color = dark_grey,
+				content = cd.getGadgetIcon( state.gadget ),
+			},
+		},
+	}
+
+	cd.yoga( {
+		absolute_position = true,
+		align_items = "flex-end",
+		left = "1.5vw",
+		right = "1.5vw",
+		top = "1.5vw",
+		height = "8%",
+		children = { perk, gadget },
+	} )
+
+	-- local weapon_icons = { }
+	-- for i = 1, 4 do
+	-- 	weapon_icons[ i ] = {
+	-- 		aspect_ratio = 1,
+	-- 		margin_right = "0.75vw",
+	-- 		background_color = RGBALinear( 1, 1, 1, i / 4 ),
+	-- 		height = "100%",
+	-- 		border_color = "#000",
+	-- 		border = 2,
+	-- 		border_bottom = 10,
+	-- 	}
+	-- end
+        --
+	-- cd.yoga( {
+	-- 	absolute_position = true,
+	-- 	left = "1.5vw",
+	-- 	right = "1.5vw",
+	-- 	top = "1.5vw",
+	-- 	height = "15%",
+	-- 	background_color = "#f00",
+	-- 	children = weapon_icons,
+	-- } )
 end
 
 return function( state )
@@ -474,4 +538,6 @@ return function( state )
 	end
 
 	DrawCallvote( state )
+
+	-- DrawYogaStuff( state )
 end

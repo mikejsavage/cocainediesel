@@ -22,21 +22,39 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <ctype.h>
 
 #include "qcommon/base.h"
-#include "qcommon/string.h"
+#include "qcommon/fpe.h"
 #include "qcommon/time.h"
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/text.h"
 #include "cgame/cg_local.h"
 
+#include "imgui/imgui.h"
+
 #include "luau/lua.h"
 #include "luau/lualib.h"
 #include "luau/luacode.h"
+
+#include "yoga/Yoga.h"
 
 static const Vec4 light_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
 static constexpr Vec4 dark_gray = vec4_dark;
 
 static lua_State * hud_L;
+
+static YGConfigRef yoga_config;
+
+static constexpr size_t yoga_arena_size = 1024 * 64; // 64KB
+static void * yoga_arena_memory;
+static ArenaAllocator yoga_arena;
+
+static bool show_inspector;
+static struct {
+	bool hovered;
+	float x, y, w, h;
+	float margin_top, margin_left, margin_right, margin_bottom;
+	float padding_top, padding_left, padding_right, padding_bottom;
+} inspecting;
 
 template <typename T>
 struct LuauConst {
@@ -1047,10 +1065,467 @@ static int HUD_DrawObituaries( lua_State * L ) {
 	return 0;
 }
 
+using YogaLengthCallback = void ( * )( YGNodeRef node, float x );
+
+template< typename T >
+using YogaLengthCallbackArg = void ( * )( YGNodeRef node, T arg, float x );
+
+static void CheckYogaLength( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallback set_pixels, YogaLengthCallback set_percent ) {
+	lua_getfield( L, idx, key );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnil( L, -1 ) )
+		return;
+
+	if( lua_type( L, -1 ) == LUA_TNUMBER ) {
+		set_pixels( node, lua_tonumber( L, -1 ) );
+		return;
+	}
+
+	if( lua_type( L, -1 ) == LUA_TSTRING ) {
+		Span< const char > str = LuaToSpan( L, -1 );
+
+		if( EndsWith( str, "%" ) ) {
+			float percent;
+			if( !TrySpanToFloat( str.slice( 0, str.n - 1 ), &percent ) )
+				luaL_error( L, "length doesn't parse as a percent: %s", str.ptr );
+			set_percent( node, percent );
+			return;
+		}
+
+		if( EndsWith( str, "vw" ) ) {
+			float vw;
+			if( !TrySpanToFloat( str.slice( 0, str.n - 2 ), &vw ) )
+				luaL_error( L, "length doesn't parse as a vw: %s", str.ptr );
+			set_pixels( node, floorf( vw * 0.01f * frame_static.viewport_width ) );
+			return;
+		}
+
+		luaL_error( L, "length doesn't parse as anything: %s", str.ptr );
+		return;
+	}
+
+	luaL_error( L, "nah" );
+}
+
+template< typename T >
+void CheckYogaLengthArg( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallbackArg< T > set_pixels, YogaLengthCallbackArg< T > set_percent, T arg ) {
+	lua_getfield( L, idx, key );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnil( L, -1 ) )
+		return;
+
+	if( lua_type( L, -1 ) == LUA_TNUMBER ) {
+		set_pixels( node, arg, lua_tonumber( L, -1 ) );
+		return;
+	}
+
+	if( lua_type( L, -1 ) == LUA_TSTRING ) {
+		Span< const char > str = LuaToSpan( L, -1 );
+
+		if( EndsWith( str, "%" ) ) {
+			float percent;
+			if( !TrySpanToFloat( str.slice( 0, str.n - 1 ), &percent ) )
+				luaL_error( L, "length doesn't parse as a percent: %s", str.ptr );
+			set_percent( node, arg, percent );
+			return;
+		}
+
+		if( EndsWith( str, "vw" ) ) {
+			float vw;
+			if( !TrySpanToFloat( str.slice( 0, str.n - 2 ), &vw ) )
+				luaL_error( L, "length doesn't parse as a vw: %s", str.ptr );
+			set_pixels( node, arg, vw * 0.01f * frame_static.viewport_width );
+			return;
+		}
+
+		luaL_error( L, "length doesn't parse as anything: %s", str.ptr );
+		return;
+	}
+
+	luaL_error( L, "nah" );
+}
+
+static void CheckYogaLengthAllEdges( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallbackArg< YGEdge > set_pixels, YogaLengthCallbackArg< YGEdge > set_percent ) {
+	CheckYogaLengthArg( L, idx, key, node, set_pixels, set_percent, YGEdgeTop );
+	CheckYogaLengthArg( L, idx, key, node, set_pixels, set_percent, YGEdgeLeft );
+	CheckYogaLengthArg( L, idx, key, node, set_pixels, set_percent, YGEdgeRight );
+	CheckYogaLengthArg( L, idx, key, node, set_pixels, set_percent, YGEdgeBottom );
+}
+
+template< typename T >
+void CheckYogaNumberArg( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallbackArg< T > set, T arg ) {
+	lua_getfield( L, -1, key );
+	defer { lua_pop( L, 1 ); };
+	if( lua_isnoneornil( L, -1 ) ) {
+		return;
+	}
+	if( lua_type( L, -1 ) != LUA_TNUMBER ) {
+		luaL_error( L, "%s must be a number", key );
+	}
+
+	set( node, arg, lua_tonumber( L, -1 ) );
+}
+
+static void CheckYogaNumberAllEdges( lua_State * L, int idx, const char * key, YGNodeRef node, YogaLengthCallbackArg< YGEdge > set ) {
+	CheckYogaNumberArg( L, idx, key, node, set, YGEdgeTop );
+	CheckYogaNumberArg( L, idx, key, node, set, YGEdgeLeft );
+	CheckYogaNumberArg( L, idx, key, node, set, YGEdgeRight );
+	CheckYogaNumberArg( L, idx, key, node, set, YGEdgeBottom );
+}
+
+static YGFlexDirection CheckYogaFlexDirection( lua_State * L, int idx ) {
+	constexpr const YGFlexDirection flex_directions[] = {
+		YGFlexDirectionRow,
+		YGFlexDirectionRowReverse,
+		YGFlexDirectionColumn,
+		YGFlexDirectionColumnReverse,
+	};
+
+	constexpr const char * names[] = {
+		"row",
+		"row-reverse",
+		"column",
+		"column-reverse",
+	};
+
+	return flex_directions[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
+}
+
+static YGAlign CheckYogaAlign( lua_State * L, int idx ) {
+	constexpr const YGAlign aligns[] = {
+		YGAlignStretch,
+		YGAlignFlexStart,
+		YGAlignCenter,
+		YGAlignFlexEnd,
+		YGAlignBaseline,
+		YGAlignSpaceBetween,
+		YGAlignSpaceAround,
+	};
+
+	constexpr const char * names[] = {
+		"stretch",
+		"flex-start",
+		"center",
+		"flex-end",
+		"baseline",
+		"space-between",
+		"space-around",
+	};
+
+	return aligns[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
+}
+
+static YGJustify CheckYogaJustify( lua_State * L, int idx ) {
+	constexpr const YGJustify justifies[] = {
+		YGJustifyFlexStart,
+		YGJustifyCenter,
+		YGJustifyFlexEnd,
+		YGJustifySpaceBetween,
+		YGJustifySpaceAround,
+		YGJustifySpaceEvenly,
+	};
+
+	constexpr const char * names[] = {
+		"flex-start",
+		"center",
+		"flex-end",
+		"space-between",
+		"space-around",
+		"space-evenly",
+	};
+
+	return justifies[ luaL_checkoption( L, idx, names[ 0 ], names ) ];
+}
+
+struct OurYogaNodeStuff {
+	Vec4 background_color;
+	Vec4 border_color;
+
+	const char * text;
+	StringHash material;
+	int render_callback;
+};
+
+static OurYogaNodeStuff OurYogaNodeStuffDefaults() {
+	OurYogaNodeStuff defaults;
+
+	defaults.background_color = Vec4( 0.0f );
+	defaults.border_color = vec4_black;
+
+	defaults.text = NULL;
+	defaults.material = EMPTY_HASH;
+	defaults.render_callback = LUA_NOREF;
+
+	return defaults;
+}
+
+static YGNodeRef NewYogaNode( YGConfigRef config ) {
+	YGNodeRef node = YGNodeNewWithConfig( yoga_config );
+
+	// set borders to 0 or they come out as nans on the other side, we
+	// can't do isnan in this file because we compile the game with fastmath
+	YGNodeStyleSetBorder( node, YGEdgeTop, 0.0f );
+	YGNodeStyleSetBorder( node, YGEdgeLeft, 0.0f );
+	YGNodeStyleSetBorder( node, YGEdgeRight, 0.0f );
+	YGNodeStyleSetBorder( node, YGEdgeBottom, 0.0f );
+
+	return node;
+}
+
+static YGNodeRef LuauYogaNodeRecursive( ArenaAllocator * temp, lua_State * L ) {
+	TracyZoneScoped;
+
+	if( lua_type( L, -1 ) != LUA_TTABLE ) {
+		luaL_error( L, "node should be a table" );
+	}
+
+	YGNodeRef node = NewYogaNode( yoga_config );
+	OurYogaNodeStuff * ours = ALLOC( temp, OurYogaNodeStuff );
+	*ours = OurYogaNodeStuffDefaults();
+	YGNodeSetContext( node, ours );
+
+	lua_getfield( L, -1, "absolute_position" );
+	if( lua_toboolean( L, -1 ) ) {
+		YGNodeStyleSetPositionType( node, YGPositionTypeAbsolute );
+	}
+	lua_pop( L, 1 );
+
+	lua_getfield( L, -1, "aspect_ratio" );
+	if( !lua_isnil( L, -1 ) ) {
+		YGNodeStyleSetAspectRatio( node, luaL_checknumber( L, -1 ) );
+	}
+	lua_pop( L, 1 );
+
+	lua_getfield( L, -1, "background_color" );
+	if( !lua_isnil( L, -1 ) ) {
+		ours->background_color = CheckColor( L, -1 );
+	}
+	lua_pop( L, 1 );
+
+	lua_getfield( L, -1, "border_color" );
+	if( !lua_isnil( L, -1 ) ) {
+		ours->border_color = CheckColor( L, -1 );
+	}
+	lua_pop( L, 1 );
+
+	lua_getfield( L, -1, "flow" );
+	YGNodeStyleSetFlexDirection( node, CheckYogaFlexDirection( L, -1 ) );
+	lua_pop( L, 1 );
+
+	lua_getfield( L, -1, "align_items" );
+	YGNodeStyleSetAlignItems( node, CheckYogaAlign( L, -1 ) );
+	lua_pop( L, 1 );
+
+	lua_getfield( L, -1, "justify_content" );
+	YGNodeStyleSetJustifyContent( node, CheckYogaJustify( L, -1 ) );
+	lua_pop( L, 1 );
+
+	lua_getfield( L, -1, "grow" );
+	if( !lua_isnil( L, -1 ) ) {
+		YGNodeStyleSetFlexGrow( node, luaL_checknumber( L, -1 ) );
+	}
+	lua_pop( L, 1 );
+
+	CheckYogaLengthArg( L, -1, "top", node, YGNodeStyleSetPosition, YGNodeStyleSetPositionPercent, YGEdgeTop );
+	CheckYogaLengthArg( L, -1, "left", node, YGNodeStyleSetPosition, YGNodeStyleSetPositionPercent, YGEdgeLeft );
+	CheckYogaLengthArg( L, -1, "right", node, YGNodeStyleSetPosition, YGNodeStyleSetPositionPercent, YGEdgeRight );
+	CheckYogaLengthArg( L, -1, "bottom", node, YGNodeStyleSetPosition, YGNodeStyleSetPositionPercent, YGEdgeBottom );
+
+	CheckYogaNumberAllEdges( L, -1, "border", node, YGNodeStyleSetBorder );
+	CheckYogaNumberArg( L, -1, "border_top", node, YGNodeStyleSetBorder, YGEdgeTop );
+	CheckYogaNumberArg( L, -1, "border_left", node, YGNodeStyleSetBorder, YGEdgeLeft );
+	CheckYogaNumberArg( L, -1, "border_right", node, YGNodeStyleSetBorder, YGEdgeRight );
+	CheckYogaNumberArg( L, -1, "border_bottom", node, YGNodeStyleSetBorder, YGEdgeBottom );
+
+	CheckYogaLengthAllEdges( L, -1, "margin", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent );
+	CheckYogaLengthArg( L, -1, "margin_top", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent, YGEdgeTop );
+	CheckYogaLengthArg( L, -1, "margin_left", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent, YGEdgeLeft );
+	CheckYogaLengthArg( L, -1, "margin_right", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent, YGEdgeRight );
+	CheckYogaLengthArg( L, -1, "margin_bottom", node, YGNodeStyleSetMargin, YGNodeStyleSetMarginPercent, YGEdgeBottom );
+
+	CheckYogaLengthAllEdges( L, -1, "padding", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent );
+	CheckYogaLengthArg( L, -1, "padding_top", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent, YGEdgeTop );
+	CheckYogaLengthArg( L, -1, "padding_left", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent, YGEdgeLeft );
+	CheckYogaLengthArg( L, -1, "padding_right", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent, YGEdgeRight );
+	CheckYogaLengthArg( L, -1, "padding_bottom", node, YGNodeStyleSetPadding, YGNodeStyleSetPaddingPercent, YGEdgeBottom );
+
+	CheckYogaLength( L, -1, "width", node, YGNodeStyleSetWidth, YGNodeStyleSetWidthPercent );
+	CheckYogaLength( L, -1, "height", node, YGNodeStyleSetHeight, YGNodeStyleSetHeightPercent );
+
+	lua_getfield( L, -1, "content" );
+	if( lua_type( L, -1 ) == LUA_TSTRING ) {
+		ours->text = CopyString( temp, lua_tostring( L, -1 ) );
+	}
+	if( lua_type( L, -1 ) == LUA_TLIGHTUSERDATA ) {
+		ours->material = CheckHash( L, -1 );
+	}
+	lua_pop( L, 1 );
+
+	lua_getfield( L, -1, "children" );
+	if( !lua_isnil( L, -1 ) ) {
+		luaL_checktype( L, 1, LUA_TTABLE );
+
+		for( size_t i = 0; i < lua_objlen( L, -1 ); i++ ) {
+			lua_pushnumber( L, i + 1 );
+			lua_gettable( L, -2 );
+			YGNodeRef child = LuauYogaNodeRecursive( temp, L );
+			YGNodeInsertChild( node, child, i );
+			lua_pop( L, 1 );
+		}
+	}
+	lua_pop( L, 1 );
+
+	return node;
+}
+
+static void RenderYogaNodeRecursive( Vec2 cursor, YGNodeRef node, bool show_in_inspector ) {
+	TracyZoneScoped;
+
+	cursor += Vec2( YGNodeLayoutGetLeft( node ), YGNodeLayoutGetTop( node ) );
+
+	bool pop = false;
+
+	const OurYogaNodeStuff * ours = ( const OurYogaNodeStuff * ) YGNodeGetContext( node );
+	if( ours != NULL ) {
+		float w = YGNodeLayoutGetWidth( node );
+		float h = YGNodeLayoutGetHeight( node );
+		float border_top = YGNodeLayoutGetBorder( node, YGEdgeTop );
+		float border_left = YGNodeLayoutGetBorder( node, YGEdgeLeft );
+		float border_right = YGNodeLayoutGetBorder( node, YGEdgeRight );
+		float border_bottom = YGNodeLayoutGetBorder( node, YGEdgeBottom );
+
+		float padding_top = YGNodeLayoutGetPadding( node, YGEdgeTop );
+		float padding_left = YGNodeLayoutGetPadding( node, YGEdgeLeft );
+		float padding_right = YGNodeLayoutGetPadding( node, YGEdgeRight );
+		float padding_bottom = YGNodeLayoutGetPadding( node, YGEdgeBottom );
+
+		float content_top = cursor.y + border_top + padding_top;
+		float content_left = cursor.x + border_left + padding_left;
+		float content_width = w - border_left - padding_left - border_right - padding_right;
+		float content_height = h - border_top - padding_top - border_bottom - padding_bottom;
+
+		Draw2DBox(
+			cursor.x + border_left,
+			cursor.y + border_top,
+			w - border_left - border_right,
+			h - border_top - border_bottom,
+			cls.white_material,
+			ours->background_color );
+
+		// draw the borders like a table with legs on the floor
+		Draw2DBox( cursor.x, cursor.y,
+			w, border_top,
+			cls.white_material, ours->border_color );
+		Draw2DBox( cursor.x, cursor.y + border_top,
+			border_left, h - border_top - border_bottom,
+			cls.white_material, ours->border_color );
+		Draw2DBox( cursor.x + w - border_right, cursor.y + border_top,
+			border_right, h - border_top - border_bottom,
+			cls.white_material, ours->border_color );
+		Draw2DBox( cursor.x, cursor.y + h - border_bottom,
+			w, border_bottom,
+			cls.white_material, ours->border_color );
+
+		if( ours->text != NULL ) {
+			DrawText( cgs.fontNormal, h, ours->text,
+				Alignment_LeftTop, content_left, content_top,
+				vec4_white );
+		}
+
+		if( ours->material != EMPTY_HASH ) {
+			Draw2DBox( content_left, content_top, content_width, content_height, FindMaterial( ours->material ), vec4_white );
+		}
+
+
+		if( show_in_inspector ) {
+			const char * label = "Node";
+			if( ours->text != NULL ) {
+				label = ours->text;
+			}
+			else if( ours->material != EMPTY_HASH ) {
+				label = "Icon";
+			}
+			else if( ours->render_callback != LUA_NOREF ) {
+				label = "Custom render callback";
+			}
+
+			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen;
+			if( YGNodeGetChildCount( node ) == 0 ) {
+				flags = ImGuiTreeNodeFlags_Leaf;
+			}
+
+			if( show_inspector ) {
+				pop = ImGui::TreeNodeEx( label, flags );
+				if( ImGui::IsItemHovered() ) {
+					inspecting.hovered = true;
+
+					inspecting.x = content_left;
+					inspecting.y = content_top;
+					inspecting.w = content_width;
+					inspecting.h = content_height;
+
+					inspecting.margin_top = YGNodeLayoutGetMargin( node, YGEdgeTop );
+					inspecting.margin_left = YGNodeLayoutGetMargin( node, YGEdgeLeft );
+					inspecting.margin_right = YGNodeLayoutGetMargin( node, YGEdgeRight );
+					inspecting.margin_bottom = YGNodeLayoutGetMargin( node, YGEdgeBottom );
+
+					inspecting.padding_top = padding_top;
+					inspecting.padding_left = padding_left;
+					inspecting.padding_right = padding_right;
+					inspecting.padding_bottom = padding_bottom;
+				}
+			}
+		}
+	}
+
+	for( u32 i = 0; i < YGNodeGetChildCount( node ); i++ ) {
+		RenderYogaNodeRecursive( cursor, YGNodeGetChild( node, i ), pop || ours == NULL );
+	}
+
+	if( show_inspector && pop ) {
+		ImGui::TreePop();
+	}
+}
+
+static int LuauYoga( lua_State * L ) {
+	TracyZoneScoped;
+	DisableFPEScoped;
+
+	YGNodeRef root = NewYogaNode( yoga_config );
+	YGNodeStyleSetWidth( root, frame_static.viewport_width );
+	YGNodeStyleSetHeight( root, frame_static.viewport_height );
+
+	// if we error out of this we leak all the node contexts. facebook
+	// deleted the allocator overrides so we can't do anything on the yoga
+	// side, but we temp allocate our per-node data so at least it doesn't assert
+	YGNodeRef node = LuauYogaNodeRecursive( &yoga_arena, L );
+	YGNodeInsertChild( root, node, 0 );
+
+	{
+		TracyZoneScopedN( "Yoga layout" );
+		YGNodeCalculateLayout( root, frame_static.viewport_width, frame_static.viewport_height, YGDirectionLTR );
+	}
+
+	RenderYogaNodeRecursive( Vec2( 0.0f ), root, true );
+	YGNodeFreeRecursive( node );
+
+	return 0;
+}
+
+static int YogaLog( YGConfigRef config, YGNodeRef node, YGLogLevel level, const char * format, va_list args ) {
+	char buf[ 1024 ];
+	int len = vsnprintf( buf, sizeof( buf ), format, args );
+	Com_Printf( "%s\n", buf );
+	return len;
+}
+
 void CG_InitHUD() {
 	TracyZoneScoped;
 
 	hud_L = NULL;
+	show_inspector = false;
+
+	AddCommand( "toggleuiinspector", []() { show_inspector = !show_inspector; } );
 
 	size_t bytecode_size;
 	char * bytecode = luau_compile( AssetString( "hud/hud.lua" ).ptr, AssetBinary( "hud/hud.lua" ).n, NULL, &bytecode_size );
@@ -1092,6 +1567,8 @@ void CG_InitHUD() {
 		{ "drawObituaries", HUD_DrawObituaries },
 		{ "drawPointed", HUD_DrawPointed },
 		{ "drawDamageNumbers", HUD_DrawDamageNumbers },
+
+		{ "yoga", LuauYoga },
 
 		{ NULL, NULL }
 	};
@@ -1145,16 +1622,29 @@ void CG_InitHUD() {
 		lua_close( hud_L );
 		hud_L = NULL;
 	}
+
+	yoga_config = YGConfigNew();
+	YGConfigSetUseWebDefaults( yoga_config, true );
+	YGConfigSetLogger( yoga_config, YogaLog );
+
+	yoga_arena_memory = ALLOC_SIZE( sys_allocator, yoga_arena_size, 16 );
+	yoga_arena = ArenaAllocator( yoga_arena_memory, yoga_arena_size );
 }
 
 void CG_ShutdownHUD() {
 	if( hud_L != NULL ) {
 		lua_close( hud_L );
+		YGConfigFree( yoga_config );
+		FREE( sys_allocator, yoga_arena_memory );
 	}
+
+	RemoveCommand( "toggleuiinspector" );
 }
 
 void CG_DrawHUD() {
 	TracyZoneScoped;
+
+	yoga_arena.clear();
 
 	bool hotload = false;
 	for( const char * path : ModifiedAssetPaths() ) {
@@ -1165,8 +1655,10 @@ void CG_DrawHUD() {
 	}
 
 	if( hotload ) {
+		bool was_showing_inspector = show_inspector;
 		CG_ShutdownHUD();
 		CG_InitHUD();
+		show_inspector = was_showing_inspector;
 	}
 
 	if( hud_L == NULL )
@@ -1323,5 +1815,36 @@ void CG_DrawHUD() {
 	}
 	lua_setfield( hud_L, -2, "weapons" );
 
+	bool still_showing_inspector = show_inspector;
+	ImGuiStyle old_style = ImGui::GetStyle();
+	ImGui::GetStyle() = ImGuiStyle();
+	if( show_inspector ) {
+		ImGui::Begin( "UI inspector", &still_showing_inspector );
+	}
+
+	inspecting = { };
 	CallWithStackTrace( hud_L, 1, 0 );
+
+	if( inspecting.hovered ) {
+		Draw2DBox( inspecting.x, inspecting.y, inspecting.w, inspecting.h, cls.white_material, Vec4( 0.0f, 1.0f, 1.0f, 0.25f ) );
+
+		Vec4 margin_color = Vec4( 1.0f, 1.0f, 0.0f, 0.25f );
+		Draw2DBox( inspecting.x - inspecting.margin_left - inspecting.padding_left, inspecting.y - inspecting.margin_top - inspecting.padding_top, inspecting.w + inspecting.margin_left + inspecting.margin_right + inspecting.padding_left + inspecting.padding_right, inspecting.margin_top, cls.white_material, margin_color );
+		Draw2DBox( inspecting.x - inspecting.margin_left - inspecting.padding_left, inspecting.y - inspecting.padding_top, inspecting.margin_left, inspecting.h + inspecting.padding_top + inspecting.padding_bottom, cls.white_material, margin_color );
+		Draw2DBox( inspecting.x + inspecting.w + inspecting.padding_right, inspecting.y - inspecting.padding_top, inspecting.margin_right, inspecting.h + inspecting.padding_top + inspecting.padding_bottom, cls.white_material, margin_color );
+		Draw2DBox( inspecting.x - inspecting.margin_left - inspecting.padding_left, inspecting.y + inspecting.h + inspecting.padding_bottom, inspecting.w + inspecting.margin_left + inspecting.margin_right + inspecting.padding_left + inspecting.padding_right, inspecting.margin_bottom, cls.white_material, margin_color );
+
+		Vec4 padding_color = Vec4( 1.0f, 0.0f, 1.0f, 0.25f );
+		Draw2DBox( inspecting.x - inspecting.padding_left, inspecting.y - inspecting.padding_top, inspecting.w + inspecting.padding_left + inspecting.padding_right, inspecting.padding_top, cls.white_material, padding_color );
+		Draw2DBox( inspecting.x - inspecting.padding_left, inspecting.y, inspecting.padding_left, inspecting.h, cls.white_material, padding_color );
+		Draw2DBox( inspecting.x + inspecting.w, inspecting.y, inspecting.padding_right, inspecting.h, cls.white_material, padding_color );
+		Draw2DBox( inspecting.x - inspecting.padding_left, inspecting.y + inspecting.h, inspecting.w + inspecting.padding_left + inspecting.padding_right, inspecting.padding_bottom, cls.white_material, padding_color );
+	}
+
+	if( show_inspector ) {
+		ImGui::End();
+		show_inspector = still_showing_inspector;
+	}
+
+	ImGui::GetStyle() = old_style;
 }

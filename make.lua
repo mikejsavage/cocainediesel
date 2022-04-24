@@ -37,6 +37,7 @@ require( "libs.picohttpparser" )
 require( "libs.rgbcx" )
 require( "libs.stb" )
 require( "libs.tracy" )
+require( "libs.yoga" )
 require( "libs.zstd" )
 
 require( "source.tools.bc4" )
@@ -106,6 +107,7 @@ do
 			"stb_rect_pack",
 			"stb_vorbis",
 			"tracy",
+			"yoga",
 			"zstd",
 			platform_libs,
 		},

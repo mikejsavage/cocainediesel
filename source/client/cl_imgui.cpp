@@ -101,6 +101,7 @@ void CL_InitImGui() {
 		style.WindowPadding = ImVec2( 32, 32 );
 		style.WindowBorderSize = 0;
 		style.PopupBorderSize = 0;
+
 		style.Colors[ ImGuiCol_Button ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
 		style.Colors[ ImGuiCol_ButtonHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
 		style.Colors[ ImGuiCol_ButtonActive ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );

@@ -94,12 +94,13 @@ static void Cmd_GameOperator_f( edict_t * ent, msg_t args ) {
 		return;
 	}
 
-	if( Cmd_Argc() < 2 ) {
-		G_PrintMsg( ent, "Usage: 'operator <password>' or 'op <password>'\n" );
+	const char * password = MSG_ReadString( &args );
+	if( StrEqual( password, "" ) ) {
+		G_PrintMsg( ent, "Usage: op <password>\n" );
 		return;
 	}
 
-	if( StrEqual( Cmd_Argv( 1 ), g_operator_password->value ) ) {
+	if( StrEqual( password, g_operator_password->value ) ) {
 		if( !ent->r.client->isoperator ) {
 			G_PrintMsg( NULL, "%s" S_COLOR_WHITE " is now a game operator\n", ent->r.client->netname );
 		}
@@ -131,8 +132,6 @@ void Cmd_ChasePrev_f( edict_t * ent, msg_t args ) {
 }
 
 static void Cmd_Position_f( edict_t * ent, msg_t args ) {
-	const char *action;
-
 	if( !sv_cheats->integer && server_gs.gameState.match_state > MatchState_Warmup &&
 		ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
 		G_PrintMsg( ent, "Position command is only available in warmup and in spectator mode.\n" );
@@ -145,7 +144,9 @@ static void Cmd_Position_f( edict_t * ent, msg_t args ) {
 	}
 	ent->r.client->teamstate.position_lastcmd = svs.realtime;
 
-	action = Cmd_Argv( 1 );
+	Cmd_TokenizeString( MSG_ReadString( &args ) );
+
+	const char * action = Cmd_Argv( 1 );
 
 	if( StrCaseEqual( action, "save" ) ) {
 		ent->r.client->teamstate.position_saved = true;
@@ -274,65 +275,36 @@ bool CheckFlood( edict_t * ent, bool teamonly ) {
 	return false;
 }
 
-void Cmd_Say_f( edict_t * ent, bool arg0, bool checkflood ) {
-	char *p;
-	char text[2048];
-	size_t arg0len = 0;
+static void TypewriterSound( edict_t * ent, StringHash sound ) {
+	if( G_ISGHOSTING( ent ) )
+		return;
+	edict_t * event = G_PositionedSound( ent->s.origin, sound );
+	event->s.ownerNum = ent->s.number;
+	event->s.svflags |= SVF_NEVEROWNER;
+}
 
-	if( checkflood ) {
-		if( CheckFlood( ent, false ) ) {
-			return;
-		}
-	}
-
-	if( Cmd_Argc() < 2 && !arg0 ) {
+static void Say( edict_t * ent, const char * message, bool teamonly, bool checkflood ) {
+	if( checkflood && CheckFlood( ent, false ) ) {
 		return;
 	}
-
-	text[0] = 0;
-
-	if( arg0 ) {
-		Q_strncatz( text, Cmd_Argv( 0 ), sizeof( text ) );
-		Q_strncatz( text, " ", sizeof( text ) );
-		arg0len = strlen( text );
-		Q_strncatz( text, Cmd_Args(), sizeof( text ) );
-	} else {
-		p = Cmd_Args();
-		Q_strncatz( text, p, sizeof( text ) );
-	}
-
-	// don't let text be too long for malicious reasons
-	text[arg0len + ( MAX_CHAT_BYTES - 1 )] = 0;
-
-	G_ChatMsg( NULL, ent, false, "%s", text );
+	TypewriterSound( ent, "sounds/typewriter/space" );
+	G_ChatMsg( NULL, ent, teamonly, "%s", message );
 }
 
 static void Cmd_SayCmd_f( edict_t * ent, msg_t args ) {
-	if( !G_ISGHOSTING( ent ) ) {
-		edict_t * event = G_PositionedSound( ent->s.origin, "sounds/typewriter/return" );
-		event->s.ownerNum = ent->s.number;
-		event->s.svflags |= SVF_NEVEROWNER;
-	}
-	Cmd_Say_f( ent, false, true );
+	Say( ent, MSG_ReadString( &args ), false, true );
 }
 
 static void Cmd_SayTeam_f( edict_t * ent, msg_t args ) {
-	if( !G_ISGHOSTING( ent ) ) {
-		edict_t * event = G_PositionedSound( ent->s.origin, "sounds/typewriter/return" );
-		event->s.ownerNum = ent->s.number;
-		event->s.svflags |= SVF_NEVEROWNER;
-	}
-	G_Say_Team( ent, Cmd_Args(), true );
+	Say( ent, MSG_ReadString( &args ), true, true );
 }
 
 static void Cmd_Clack_f( edict_t * ent, msg_t args ) {
-	bool space = StrCaseEqual( Cmd_Argv( 0 ), "typewriterspace" );
-	if( !G_ISGHOSTING( ent ) ) {
-		StringHash sound = space ? StringHash( "sounds/typewriter/space" ) : StringHash( "sounds/typewriter/clack" );
-		edict_t * event = G_PositionedSound( ent->s.origin, sound );
-		event->s.ownerNum = ent->s.number;
-		event->s.svflags |= SVF_NEVEROWNER;
-	}
+	TypewriterSound( ent, "sounds/typewriter/clack" );
+}
+
+static void Cmd_ClackSpace_f( edict_t * ent, msg_t args ) {
+	TypewriterSound( ent, "sounds/typewriter/space" );
 }
 
 static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
@@ -382,8 +354,6 @@ static const g_vsays_t g_vsays[] = {
 	{ "fart", Vsay_Fart },
 	{ "zombie", Vsay_Zombie },
 	{ "larp", Vsay_Larp },
-
-	{ NULL, 0 }
 };
 
 static void G_vsay_f( edict_t * ent, msg_t args ) {
@@ -396,12 +366,14 @@ static void G_vsay_f( edict_t * ent, msg_t args ) {
 	}
 	ent->r.client->level.last_vsay = svs.realtime;
 
-	for( const g_vsays_t * vsay = g_vsays; vsay->name; vsay++ ) {
-		if( !StrCaseEqual( Cmd_Argv( 1 ), vsay->name ) )
+	const char * arg = MSG_ReadString( &args );
+
+	for( auto vsay : g_vsays ) {
+		if( !StrCaseEqual( arg, vsay.name ) )
 			continue;
 
 		u64 entropy = Random32( &svs.rng );
-		u64 parm = u64( vsay->id ) | ( entropy << 16 );
+		u64 parm = u64( vsay.id ) | ( entropy << 16 );
 
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
 		event->s.svflags |= SVF_BROADCAST; // force sending even when not in PVS
@@ -410,7 +382,7 @@ static void G_vsay_f( edict_t * ent, msg_t args ) {
 		return;
 	}
 
-	G_PrintMsg( ent, "Unknown vsay %s", Cmd_Argv( 1 ) );
+	G_PrintMsg( ent, "Unknown vsay %s\n", arg );
 }
 
 static void Cmd_Join_f( edict_t * ent, msg_t args ) {
@@ -543,7 +515,7 @@ void G_InitGameCommands() {
 	G_AddCommand( ClientCommand_Join, Cmd_Join_f );
 
 	G_AddCommand( ClientCommand_TypewriterClack, Cmd_Clack_f );
-	G_AddCommand( ClientCommand_TypewriterSpace, Cmd_Clack_f );
+	G_AddCommand( ClientCommand_TypewriterSpace, Cmd_ClackSpace_f );
 
 	G_AddCommand( ClientCommand_Spray, Cmd_Spray_f );
 

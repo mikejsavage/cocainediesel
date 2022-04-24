@@ -1,6 +1,7 @@
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/string.h"
+#include "qcommon/time.h"
 
 #include "imgui/imgui.h"
 
@@ -14,7 +15,7 @@ enum ChatMode {
 };
 
 struct ChatMessage {
-	s64 time;
+	Time time;
 	char text[ CHAT_MESSAGE_SIZE ];
 };
 
@@ -28,8 +29,6 @@ struct Chat {
 
 	bool at_bottom;
 	bool scroll_to_bottom;
-
-	s64 lastHighlightTime;
 };
 
 static Chat chat;
@@ -79,11 +78,6 @@ void CG_AddChat( const char * str ) {
 	}
 }
 
-#define GAMECHAT_NOTIFY_TIME        5000
-#define GAMECHAT_WAIT_OUT_TIME      4000
-#define GAMECHAT_HIGHLIGHT_TIME     4000
-#define GAMECHAT_FADE_OUT_TIME      ( GAMECHAT_NOTIFY_TIME - GAMECHAT_WAIT_OUT_TIME )
-
 static void SendChat() {
 	if( strlen( chat.input ) > 0 ) {
 		TempAllocator temp = cls.frame_arena.temp();
@@ -110,6 +104,8 @@ static int InputCallback( ImGuiInputTextCallbackData * data ) {
 }
 
 void CG_DrawChat() {
+	constexpr Time CHAT_NOTIFY_TIME = Seconds( 5 );
+
 	TempAllocator temp = cls.frame_arena.temp();
 
 	float width_frac = Lerp( 0.5f, Unlerp01( 1024.0f, float( frame_static.viewport_width ), 1920.0f ), 0.3f );
@@ -144,7 +140,7 @@ void CG_DrawChat() {
 		size_t idx = ( chat.history_head + i ) % ARRAY_COUNT( chat.history );
 		const ChatMessage * msg = &chat.history[ idx ];
 
-		if( chat.mode == ChatMode_None && cls.monotonicTime > msg->time + GAMECHAT_NOTIFY_TIME ) {
+		if( chat.mode == ChatMode_None && cls.monotonicTime > msg->time + CHAT_NOTIFY_TIME ) {
 			ImGui::Dummy( ImGui::CalcTextSize( msg->text, NULL, false, wrap_width ) );
 		}
 		else {

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "client/client.h"
 #include "client/assets.h"
+#include "client/discord.h"
 #include "client/downloads.h"
 #include "client/threadpool.h"
 #include "client/demo_browser.h"
@@ -32,8 +33,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/hash.h"
 #include "qcommon/fs.h"
 #include "qcommon/livepp.h"
-#include "client/discord.h"
 #include "qcommon/string.h"
+#include "qcommon/time.h"
 #include "qcommon/version.h"
 #include "gameshared/gs_public.h"
 
@@ -136,8 +137,6 @@ static void CL_SendConnectPacket() {
 * Resend a connect message if the last one has timed out
 */
 static void CL_CheckForResend() {
-	int64_t realtime = cls.monotonicTime;
-
 	if( CL_DemoPlaying() ) {
 		return;
 	}
@@ -149,7 +148,7 @@ static void CL_CheckForResend() {
 
 	// resend if we haven't gotten a reply yet
 	if( cls.state == CA_CONNECTING ) {
-		if( realtime - cls.connect_time < 3000 ) {
+		if( cls.connect_time.exists && cls.monotonicTime - cls.connect_time.value < Seconds( 3 ) ) {
 			return;
 		}
 		if( cls.connect_count > 3 ) {
@@ -157,7 +156,7 @@ static void CL_CheckForResend() {
 			return;
 		}
 		cls.connect_count++;
-		cls.connect_time = realtime; // for retransmit requests
+		cls.connect_time = cls.monotonicTime;
 
 		Com_GGPrint( "Connecting to {}...", cls.serveraddress );
 
@@ -174,7 +173,7 @@ void CL_Connect( const NetAddress & address ) {
 
 	CL_SetClientState( CA_CONNECTING );
 
-	cls.connect_time = -99999; // CL_CheckForResend() will fire immediately
+	cls.connect_time = NONE; // CL_CheckForResend() will fire immediately
 	cls.connect_count = 0;
 	cls.rejected = false;
 	cls.lastPacketReceivedTime = cls.realtime; // reset the timeout limit
@@ -341,7 +340,7 @@ void CL_Disconnect( const char *message ) {
 
 	SV_ShutdownGame( "Owner left the listen server", false );
 
-	cls.connect_time = 0;
+	cls.connect_time = NONE;
 	cls.connect_count = 0;
 	cls.rejected = false;
 
@@ -419,7 +418,7 @@ void CL_ServerReconnect_f() {
 
 	Com_Printf( "Reconnecting...\n" );
 
-	cls.connect_time = Sys_Milliseconds() - 1500;
+	cls.connect_time = cls.monotonicTime;
 
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 	CL_SetClientState( CA_HANDSHAKE );
@@ -565,7 +564,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 		cls.challenge = atoi( Cmd_Argv( 1 ) );
 		//wsw : r1q2[start]
 		//r1: reset the timer so we don't send dup. getchallenges
-		cls.connect_time = Sys_Milliseconds();
+		cls.connect_time = cls.monotonicTime;
 		//wsw : r1q2[end]
 		CL_SendConnectPacket();
 		return;
@@ -1130,7 +1129,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	static int allRealMsec = 0, allGameMsec = 0, extraMsec = 0;
 	static float roundingMsec = 0.0f;
 
-	cls.monotonicTime += realMsec;
+	cls.monotonicTime += Milliseconds( realMsec );
 	cls.realtime += realMsec;
 
 	if( CL_DemoPlaying() ) {
@@ -1232,7 +1231,7 @@ void CL_Init() {
 
 	CSPRNG( &cls.session_id, sizeof( cls.session_id ) );
 
-	cls.monotonicTime = 0;
+	cls.monotonicTime = { };
 
 	assert( !cl_initialized );
 

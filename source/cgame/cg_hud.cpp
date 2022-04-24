@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 #include "qcommon/string.h"
+#include "qcommon/time.h"
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/text.h"
@@ -136,7 +137,7 @@ enum obituary_type_t {
 
 struct obituary_t {
 	obituary_type_t type;
-	int64_t time;
+	Time time;
 	char victim[MAX_INFO_VALUE];
 	int victim_team;
 	char attacker[MAX_INFO_VALUE];
@@ -149,7 +150,7 @@ static obituary_t cg_obituaries[MAX_OBITUARIES];
 static int cg_obituaries_current = -1;
 
 struct {
-	s64 time;
+	Time time;
 	u64 entropy;
 	obituary_type_t type;
 	DamageType damage_type;
@@ -380,7 +381,7 @@ static const Material * DamageTypeToIcon( DamageType type ) {
 static void GlitchText( Span< char > msg ) {
 	constexpr const char glitches[] = { '#', '@', '~', '$' };
 
-	RNG rng = NewRNG( cls.monotonicTime / 67, 0 );
+	RNG rng = NewRNG( cls.monotonicTime.flicks / ( GGTIME_FLICKS_PER_SECOND / 14 ), 0 );
 
 	for( char & c : msg ) {
 		if( Probability( &rng, 0.03f ) ) {
@@ -413,7 +414,7 @@ void CG_DrawScope() {
 			float offset = Min2( frame_static.viewport_width, frame_static.viewport_height ) * 0.1f;
 
 			{
-				float distance = Length( trace.endpos - cg.view.origin ) + sinf( float( cls.monotonicTime ) / 128.0f ) * 0.5f + sinf( float( cls.monotonicTime ) / 257.0f ) * 0.25f;
+				float distance = Length( trace.endpos - cg.view.origin ) + Sin( cls.monotonicTime, Milliseconds( 804 ) ) * 0.5f + Sin( cls.monotonicTime, Milliseconds( 1619 ) ) * 0.25f;
 
 				char * msg = temp( "{.2}m", distance / 32.0f );
 				GlitchText( Span< char >( msg + strlen( msg ) - 3, 2 ) );
@@ -425,7 +426,7 @@ void CG_DrawScope() {
 				Vec4 color = AttentionGettingColor();
 				color.w = frac;
 
-				RNG obituary_rng = NewRNG( cls.monotonicTime / 1000, 0 );
+				RNG obituary_rng = NewRNG( cls.monotonicTime.flicks / GGTIME_FLICKS_PER_SECOND, 0 );
 				char * msg = temp( "{}?", RandomElement( &obituary_rng, normal_obituaries ) );
 				GlitchText( Span< char >( msg, strlen( msg ) - 1 ) );
 
@@ -938,7 +939,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 	int num = 0;
 	int i = next;
 	do {
-		if( cg_obituaries[i].type != OBITUARY_NONE && cls.monotonicTime - cg_obituaries[i].time <= 5000 ) {
+		if( cg_obituaries[i].type != OBITUARY_NONE && cls.monotonicTime - cg_obituaries[i].time <= Seconds( 5 ) ) {
 			num++;
 		}
 		if( ++i >= MAX_OBITUARIES ) {
@@ -967,7 +968,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 			i = 0;
 		}
 
-		if( obr->type == OBITUARY_NONE || cls.monotonicTime - obr->time > 5000 ) {
+		if( obr->type == OBITUARY_NONE || cls.monotonicTime - obr->time > Seconds( 5 ) ) {
 			continue;
 		}
 
@@ -1025,9 +1026,9 @@ static int HUD_DrawObituaries( lua_State * L ) {
 			float h = 128.0f;
 			float yy = frame_static.viewport.y * 0.5f - h * 0.5f;
 
-			float t = float( cls.monotonicTime - self_obituary.time ) / 500.0f;
+			float t = ToSeconds( cls.monotonicTime - self_obituary.time );
 
-			Draw2DBox( 0, yy, frame_static.viewport.x, h, cls.white_material, Vec4( 0, 0, 0, Min2( 0.5f, t * 0.5f ) ) );
+			Draw2DBox( 0, yy, frame_static.viewport.x, h, cls.white_material, Vec4( 0, 0, 0, Min2( 0.5f, t ) ) );
 
 			if( t >= 1.0f ) {
 				RNG rng = NewRNG( self_obituary.entropy, 0 );
@@ -1035,9 +1036,9 @@ static int HUD_DrawObituaries( lua_State * L ) {
 				TempAllocator temp = cls.frame_arena.temp();
 				const char * obituary = MakeObituary( &temp, &rng, self_obituary.type, self_obituary.damage_type );
 
-				float size = Lerp( h * 0.5f, Unlerp01( 1.0f, t, 20.0f ), h * 5.0f );
+				float size = Lerp( h * 0.5f, Unlerp01( 1.0f, t, 10.0f ), h * 5.0f );
 				Vec4 color = AttentionGettingColor();
-				color.w = Unlerp01( 1.0f, t, 2.0f );
+				color.w = Unlerp01( 0.5f, t, 1.0f );
 				DrawText( cgs.fontNormal, size, obituary, Alignment_CenterMiddle, frame_static.viewport.x * 0.5f, frame_static.viewport.y * 0.5f, color );
 			}
 		}

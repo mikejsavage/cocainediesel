@@ -114,7 +114,7 @@ struct client_static_t {
 	connstate_t state;          // only set through CL_SetClientState
 	keydest_t key_dest;
 
-	int64_t monotonicTime; // starts at 0 when the game is launched, increases forever
+	Time monotonicTime; // starts at 0 when the game is launched, increases forever
 
 	int64_t framecount;
 	int64_t realtime;               // always increasing, no clamping, etc
@@ -128,8 +128,8 @@ struct client_static_t {
 	bool cgameActive;
 
 	// connection information
-	NetAddress serveraddress;         // address of that server
-	int64_t connect_time;               // for connection retransmits
+	NetAddress serveraddress; // address of that server
+	Optional< Time > connect_time; // for connection retransmits
 	int connect_count;
 
 	NetAddress rconaddress;       // address where we are sending rcon messages, to ignore other print packets

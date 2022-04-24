@@ -1,7 +1,8 @@
 #include "qcommon/base.h"
 #include "qcommon/array.h"
-#include "qcommon/threads.h"
 #include "qcommon/locked.h"
+#include "qcommon/threads.h"
+#include "qcommon/time.h"
 #include "qcommon/version.h"
 #include "client/client.h"
 #include "client/server_browser.h"
@@ -83,7 +84,7 @@ void RefreshServerBrowser() {
 	// query LAN servers
 	{
 		TempAllocator temp = cls.frame_arena.temp();
-		const char * query = temp( "info {}", cls.monotonicTime );
+		const char * query = temp( "info {}", cls.monotonicTime.flicks );
 
 		NetAddress broadcast = GetBroadcastAddress( PORT_SERVER );
 		Netchan_OutOfBandPrint( cls.socket, broadcast, "%s", query );
@@ -165,7 +166,7 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 	if( ok ) {
 		// query game servers
 		TempAllocator temp = cls.frame_arena.temp();
-		const char * query = temp( "info {}", cls.monotonicTime );
+		const char * query = temp( "info {}", cls.monotonicTime.flicks );
 
 		for( size_t i = old_num_servers; i < servers.size(); i++ ) {
 			NetAddress address = servers[ i ].address;
@@ -178,14 +179,14 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 }
 
 void ParseGameServerResponse( msg_t * msg, const NetAddress & address ) {
-	s64 timestamp;
+	Time timestamp;
 	char name[ 128 ];
 	char map[ 32 ];
 	int num_players;
 	int max_players;
 
 	const char * info = MSG_ReadString( msg );
-	int parsed = sscanf( info, "%" SCNi64 "\\\\n\\\\%127[^\\]\\\\m\\\\%31[^\\]\\\\u\\\\%d/%d\\\\EOT", &timestamp, name, map, &num_players, &max_players );
+	int parsed = sscanf( info, "%" SCNu64 "\\\\n\\\\%127[^\\]\\\\m\\\\%31[^\\]\\\\u\\\\%d/%d\\\\EOT", &timestamp.flicks, name, map, &num_players, &max_players );
 	if( parsed != 5 ) {
 		return;
 	}
@@ -206,7 +207,7 @@ void ParseGameServerResponse( msg_t * msg, const NetAddress & address ) {
 	server->have_details = true;
 	Q_strncpyz( server->name, name, sizeof( server->name ) );
 	Q_strncpyz( server->map, map, sizeof( server->map ) );
-	server->ping = cls.monotonicTime - timestamp;
+	server->ping = ToSeconds( Min2( cls.monotonicTime - timestamp, Milliseconds( 9999 ) ) ) * 1000.0f;
 	server->num_players = num_players;
 	server->max_players = max_players;
 }

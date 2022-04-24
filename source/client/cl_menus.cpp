@@ -5,9 +5,10 @@
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/renderer/renderer.h"
-#include "qcommon/version.h"
-#include "qcommon/maplist.h"
 #include "qcommon/array.h"
+#include "qcommon/maplist.h"
+#include "qcommon/time.h"
+#include "qcommon/version.h"
 
 #include "cgame/cg_local.h"
 
@@ -779,7 +780,7 @@ static void MainMenu() {
 	ImGui::PopStyleColor();
 	ImGui::PopFont();
 
-	ImGui::SetCursorPosX( -1000.0f + 500.0f * sinf( cls.monotonicTime / 1001.0f ) );
+	ImGui::SetCursorPosX( -1000.0f + 500.0f * Sin( cls.monotonicTime, Milliseconds( 6029 ) ) );
 	ImGui::PushFont( cls.idi_nahui_font );
 	constexpr const char * idi_nahui = u8"\u0418\u0434\u0438 \u043d\u0430 \u0445\u0443\u0439";
 	for( int i = 0; i < 100; i++ ) {
@@ -862,7 +863,7 @@ static void MainMenu() {
 
 		const char * buf = APP_VERSION u8" \u00A9 AHA CHEERS";
 		ImVec2 size = ImGui::CalcTextSize( buf );
-		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - window_padding.x - 1 - sinf( cls.monotonicTime / 29.0f ) );
+		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - window_padding.x - 1.0f - Sin( cls.monotonicTime, Milliseconds( 182 ) ) );
 
 		if( ImGui::Button( buf ) ) {
 			ImGui::OpenPopup( "Credits" );

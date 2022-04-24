@@ -92,6 +92,7 @@ do
 			"freetype",
 			"ggentropy",
 			"ggformat",
+			"ggtime",
 			"glad",
 			"glfw3",
 			"jsmn",
@@ -155,6 +156,7 @@ do
 		libs = {
 			"ggentropy",
 			"ggformat",
+			"ggtime",
 			"monocypher",
 			"picohttpparser",
 			"tracy",

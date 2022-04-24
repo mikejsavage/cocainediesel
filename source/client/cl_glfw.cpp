@@ -531,19 +531,15 @@ int main( int argc, char ** argv ) {
 	Con_Init();
 	Qcommon_Init( argc, argv );
 
-	int64_t oldtime = Sys_Milliseconds();
+	s64 oldtime = Sys_Milliseconds();
 	while( !glfwWindowShouldClose( window ) ) {
-		int64_t newtime;
-		int dt;
+		s64 dt = 0;
 		{
 			TracyZoneScopedN( "Interframe" );
-
-			// find time spent rendering last frame
-			do {
-				newtime = Sys_Milliseconds();
-				dt = newtime - oldtime;
-			} while( dt == 0 );
-			oldtime = newtime;
+			while( dt == 0 ) {
+				dt = Sys_Milliseconds() - oldtime;
+			}
+			oldtime += dt;
 		}
 
 		glfwPollEvents();

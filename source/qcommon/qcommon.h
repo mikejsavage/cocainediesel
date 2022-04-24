@@ -266,7 +266,6 @@ void Sys_Init();
 void ShowErrorMessage( const char * msg, const char * file, int line );
 
 int64_t Sys_Milliseconds();
-uint64_t Sys_Microseconds();
 void Sys_Sleep( unsigned int millis );
 bool Sys_FormatTimestamp( char * buf, size_t buf_size, const char * fmt, s64 time );
 bool Sys_FormatCurrentTime( char * buf, size_t buf_size, const char * fmt );

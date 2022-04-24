@@ -2,6 +2,7 @@
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
+#include "qcommon/time.h"
 #include "client/client.h"
 #include "client/demo_browser.h"
 #include "gameshared/demo.h"
@@ -46,10 +47,10 @@ static Span< u8 > ReadFirst1kBytes( TempAllocator * temp, const char * path ) {
 }
 
 void DemoBrowserFrame() {
-	constexpr s64 microseconds_to_spend_per_frame = 2000;
-	s64 start_time = Sys_Microseconds();
+	constexpr Time time_to_spend_per_frame = Milliseconds( 2 );
+	Time start_time = Now();
 
-	while( metadata_load_cursor < demos.size() && Sys_Microseconds() - start_time < microseconds_to_spend_per_frame ) {
+	while( metadata_load_cursor < demos.size() && Now() - start_time < time_to_spend_per_frame ) {
 		DemoBrowserEntry * demo = &demos[ metadata_load_cursor ];
 		metadata_load_cursor++;
 

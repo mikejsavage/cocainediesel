@@ -4,40 +4,27 @@
 
 const bool is_dedicated_server = true;
 
-void Sys_InitTime();
-
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
 }
 
-void Sys_Init() {
-	SetConsoleOutputCP( CP_UTF8 );
-	Sys_InitTime();
-}
-
 int main( int argc, char ** argv ) {
-	int64_t oldtime, newtime, time;
-
 	Qcommon_Init( argc, argv );
 
-	oldtime = Sys_Milliseconds();
-
+	s64 oldtime = Sys_Milliseconds();
 	while( true ) {
 		TracyCFrameMark;
 
-		do {
+		s64 dt = 0;
+		{
 			TracyZoneScopedN( "Interframe" );
-
-			newtime = Sys_Milliseconds();
-			time = newtime - oldtime;
-			if( time > 0 ) {
-				break;
+			while( dt == 0 ) {
+				dt = Sys_Milliseconds() - oldtime;
 			}
-			Sys_Sleep( 0 );
-		} while( 1 );
-		oldtime = newtime;
+			oldtime += dt;
+		}
 
-		if( !Qcommon_Frame( time ) ) {
+		if( !Qcommon_Frame( dt ) ) {
 			break;
 		}
 	}

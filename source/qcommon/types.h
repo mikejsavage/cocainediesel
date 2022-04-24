@@ -197,6 +197,10 @@ struct Span {
  * maths types
  */
 
+struct Time {
+	u64 flicks;
+};
+
 struct Vec2 {
 	float x, y;
 

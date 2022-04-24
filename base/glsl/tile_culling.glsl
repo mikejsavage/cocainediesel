@@ -59,7 +59,10 @@ bool SphereCone( vec3 sphere_origin, float sphere_radius, vec3 cone_origin, vec3
 	t = max( t, 0.0 );
 	vec3 point_on_cone = cone_origin + t * cone_slant;
 
-	return distance( point_on_cone, sphere_origin ) - sphere_radius < 0.0;
+	vec3 cone_surface_to_sphere = sphere_origin - point_on_cone;
+	float signed_dist = length( cone_surface_to_sphere ) * sign( dot( cone_slant - cone_axis, cone_surface_to_sphere ) );
+
+	return signed_dist < sphere_radius;
 }
 
 bool SphereInTile( vec3 origin, float radius, vec3 tile_direction, float cone_tan ) {

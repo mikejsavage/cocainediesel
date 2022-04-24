@@ -954,6 +954,9 @@ static void Perks( Vec2 icon_size ) {
 	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
 
 	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
+		if( !GetPerkDef( i )->enabled )
+			continue;
+
 		const Material * icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );
 		if( LoadoutButton( GetPerkDef( i )->name, icon_size, icon, loadout.perk == i ) ) {
 			loadout.perk = i;

@@ -105,10 +105,10 @@ void operator++( GadgetType & x, int );
 enum PerkType : u8 {
 	Perk_None,
 
-	Perk_Ninja,
 	Perk_Hooligan,
 	Perk_Midget,
 	Perk_Jetpack,
+	Perk_Ninja,
 	Perk_Boomer,
 
 	Perk_Count

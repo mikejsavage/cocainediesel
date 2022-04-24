@@ -232,6 +232,8 @@ static bool ParseLoadout( Loadout * loadout, const char * loadout_string ) {
 		int perk;
 		if( !TrySpanToInt( token, &perk ) || perk <= Perk_None || perk >= Perk_Count )
 			return false;
+		if( !GetPerkDef( PerkType( perk ) )->enabled )
+			return false;
 		loadout->perk = PerkType( perk );
 	}
 

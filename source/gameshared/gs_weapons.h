@@ -64,6 +64,7 @@ struct GadgetDef {
 };
 
 struct PerkDef {
+	bool enabled;
 	const char * name;
 	const char * short_name;
 	float health;

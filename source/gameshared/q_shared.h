@@ -132,12 +132,6 @@ char *Q_strlwr( char *s );
 char *Q_trim( char *s );
 void RemoveTrailingZeroesFloat( char * str );
 
-/**
- * Converts the given URL-encoded string to a null-terminated plain string. Returns
- * total (untruncated) length of the resulting string.
- */
-size_t Q_urldecode( const char *src, char *dst, size_t dst_size );
-
 //
 // key / value info strings
 //
@@ -158,27 +152,6 @@ Span< const char > ParseWorldspawnKey( Span< const char > entities, const char *
 
 constexpr float S_DEFAULT_ATTENUATION_MAXDISTANCE = 8192.0f;
 constexpr float S_DEFAULT_ATTENUATION_REFDISTANCE = 250.0f;
-
-//==============================================================
-//
-//FILESYSTEM
-//
-//==============================================================
-
-
-#define FS_READ             0
-#define FS_WRITE            1
-#define FS_APPEND           2
-#define FS_GZ               0x100   // compress on write and decompress on read automatically
-#define FS_UPDATE           0x200
-
-#define FS_RWA_MASK         ( FS_READ | FS_WRITE | FS_APPEND )
-
-#define FS_SEEK_CUR         0
-#define FS_SEEK_SET         1
-#define FS_SEEK_END         2
-
-//==============================================================
 
 // connection state of the client in the server
 enum sv_client_state_t {

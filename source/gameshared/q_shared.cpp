@@ -421,33 +421,6 @@ void RemoveTrailingZeroesFloat( char * str ) {
 	str[ len + 1 ] = '\0';
 }
 
-#define hex2dec( x ) ( ( ( x ) <= '9' ? ( x ) - '0' : ( ( x ) <= 'F' ) ? ( x ) - 'A' + 10 : ( x ) - 'a' + 10 ) )
-size_t Q_urldecode( const char *src, char *dst, size_t dst_size ) {
-	char *dst_start = dst, *dst_end = dst + dst_size - 1;
-	const char *src_end;
-
-	if( !src || !dst || !dst_size ) {
-		return 0;
-	}
-
-	src_end = src + strlen( src );
-	while( src < src_end ) {
-		if( dst == dst_end ) {
-			break;
-		}
-		if( ( *src == '%' ) && ( src + 2 < src_end ) &&
-			( isxdigit( src[1] ) && isxdigit( src[2] ) ) ) {
-			*dst++ = ( hex2dec( src[1] ) << 4 ) + hex2dec( src[2] );
-			src += 3;
-		} else {
-			*dst++ = *src++;
-		}
-	}
-
-	*dst = '\0';
-	return dst - dst_start;
-}
-
 //=====================================================================
 //
 //  INFO STRINGS

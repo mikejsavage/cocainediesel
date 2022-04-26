@@ -78,8 +78,6 @@ void BuildBoxPoints( Vec3 p[8], Vec3 org, Vec3 mins, Vec3 maxs );
 float WidescreenFov( float fov );
 float CalcHorizontalFov( float fov_y, float width, float height );
 
-#define Q_rint( x ) ( ( x ) < 0 ? ( (int)( ( x ) - 0.5f ) ) : ( (int)( ( x ) + 0.5f ) ) )
-
 bool PlaneFromPoints( Vec3 verts[3], Plane *plane );
 
 bool ComparePlanes( Vec3 p1normal, float p1dist, Vec3 p2normal, float p2dist );

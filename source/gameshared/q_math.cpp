@@ -283,9 +283,13 @@ void SnapVector( Vec3 * normal ) {
 void SnapPlane( Vec3 * normal, float *dist ) {
 	SnapVector( normal );
 
+#define Q_rint( x ) ( ( x ) < 0 ? ( (int)( ( x ) - 0.5f ) ) : ( (int)( ( x ) + 0.5f ) ) )
+
 	if( Abs( *dist - Q_rint( *dist ) ) < PLANE_DIST_EPSILON ) {
 		*dist = Q_rint( *dist );
 	}
+
+#undef Q_rint
 }
 
 void ClearBounds( Vec3 * mins, Vec3 * maxs ) {

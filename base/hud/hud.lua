@@ -443,10 +443,10 @@ local function DrawCallvote( state )
 
 	options.font_size *= 0.8
 	options.alignment = "left bottom"
-	cd.text( options, xleft, ybottom, "["..cd.getBind("vote yes").."] Vote yes" )
+	cd.text( options, xleft, ybottom, "["..cd.getBind("vote_yes").."] Vote yes" )
 
 	options.alignment = "right bottom"
-	cd.text( options, xright, ybottom, "["..cd.getBind("vote no").."] Vote no" )
+	cd.text( options, xright, ybottom, "["..cd.getBind("vote_no").."] Vote no" )
 end
 
 local function DrawYogaStuff( state )

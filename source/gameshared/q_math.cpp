@@ -214,19 +214,6 @@ EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b ) {
 	return EulerDegrees2( AngleDelta( a.pitch, b.pitch ), AngleDelta( a.yaw, b.yaw ) );
 }
 
-float WidescreenFov( float fov ) {
-	return atanf( tanf( fov / 360.0f * PI ) * 0.75f ) * ( 360.0f / PI );
-}
-
-float CalcHorizontalFov( float fov_y, float width, float height ) {
-	if( fov_y < 1 || fov_y > 179 ) {
-		Fatal( "Bad vertical fov: %f", fov_y );
-	}
-
-	float x = width * tanf( fov_y / 360.0f * PI );
-	return atanf( x / height ) * 360.0f / PI;
-}
-
 /*
 * PlaneFromPoints
 */

@@ -393,6 +393,9 @@ float CG_CalcViewFov();
 void CG_RenderView( unsigned extrapolationTime );
 bool CG_ChaseStep( int step );
 
+float WidescreenFov( float fov );
+float CalcHorizontalFov( const char * caller, float fov_y, float width, float height );
+
 //
 // cg_lents.c
 //

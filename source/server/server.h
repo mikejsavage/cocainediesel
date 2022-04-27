@@ -203,6 +203,7 @@ extern Cvar *sv_port;
 
 extern Cvar *sv_downloadurl;
 
+extern Cvar *sv_hostname;
 extern Cvar *sv_maxclients;
 
 extern Cvar *sv_showChallenge;
@@ -244,7 +245,6 @@ void SV_UpdateMaster();
 //
 void SV_InitGame();
 void SV_Map( const char *level, bool devmap );
-void SV_SetServerConfigStrings();
 
 //
 // sv_send.c
@@ -309,9 +309,6 @@ void SV_BuildClientFrameSnap( client_t *client );
 //
 // sv_game.c
 //
-void SV_InitGameProgs();
-void SV_ShutdownGameProgs();
-
 void PF_DropClient( edict_t *ent, const char *message );
 int PF_GetClientState( int numClient );
 void PF_GameCmd( edict_t *ent, const char *cmd );

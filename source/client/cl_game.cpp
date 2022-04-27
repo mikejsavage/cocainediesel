@@ -58,7 +58,7 @@ void CL_GameModule_Init() {
 	CL_GameModule_Shutdown();
 
 	cge = GetCGameAPI();
-	cge->Init( cl.playernum, CL_DemoPlaying(), "", cl.snapFrameTime );
+	cge->Init( cl.playernum, cl.max_clients, CL_DemoPlaying(), "", cl.snapFrameTime );
 	cls.cgameActive = true;
 }
 

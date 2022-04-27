@@ -352,6 +352,9 @@ void CL_Disconnect( const char *message ) {
 		CL_Disconnect_SendCommand(); // send a disconnect message to the server
 	}
 
+	FREE( sys_allocator, cls.server_name );
+	cls.server_name = NULL;
+
 	FREE( sys_allocator, cls.download_url );
 	cls.download_url = NULL;
 

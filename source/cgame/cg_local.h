@@ -344,7 +344,7 @@ extern Cvar *cg_projectileAntilagOffset;
 
 extern Cvar *cg_showServerDebugPrints;
 
-void CG_Init( unsigned int playerNum, bool demoplaying, const char *demoName, unsigned snapFrameTime );
+void CG_Init( unsigned int playerNum, int max_clients, bool demoplaying, const char *demoName, unsigned snapFrameTime );
 void CG_Shutdown();
 
 #ifndef _MSC_VER

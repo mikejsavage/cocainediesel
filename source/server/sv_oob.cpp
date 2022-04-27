@@ -27,7 +27,6 @@ struct SvMasterServer {
 
 static SvMasterServer master_servers[ ARRAY_COUNT( MASTER_SERVERS ) ];
 
-extern Cvar * sv_hostname;
 extern Cvar * rcon_password;         // password for remote server commands
 extern Cvar * sv_iplimit;
 

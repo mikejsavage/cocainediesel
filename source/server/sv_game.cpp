@@ -104,33 +104,10 @@ const char *PF_GetConfigString( int index ) {
 	return sv.configstrings[ index ];
 }
 
-//==============================================
-
-/*
-* SV_ShutdownGameProgs
-*
-* Called when either the entire server is being killed, or
-* it is changing to a different game directory.
-*/
-void SV_ShutdownGameProgs() {
-	G_Shutdown();
-}
-
 void SV_LocateEntities( edict_t *edicts, int num_edicts, int max_edicts ) {
 	sv.gi.edicts = edicts;
 	sv.gi.clients = svs.clients;
 	sv.gi.num_edicts = num_edicts;
 	sv.gi.max_edicts = max_edicts;
 	sv.gi.max_clients = Min2( num_edicts, sv_maxclients->integer );
-}
-
-/*
-* SV_InitGameProgs
-*
-* Init the game subsystem for a new map
-*/
-void SV_InitGameProgs() {
-	SV_SetServerConfigStrings();
-
-	G_Init( svc.snapFrameTime );
 }

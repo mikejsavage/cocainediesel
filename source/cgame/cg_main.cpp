@@ -76,15 +76,10 @@ static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 	return &cent->current;
 }
 
-static void CG_InitGameShared() {
-	int maxclients = atoi( cl.configstrings[ CS_MAXCLIENTS ] );
-	if( maxclients < 1 || maxclients > MAX_CLIENTS ) {
-		maxclients = MAX_CLIENTS;
-	}
-
+static void CG_InitGameShared( int max_clients ) {
 	client_gs = { };
 	client_gs.module = GS_MODULE_CGAME;
-	client_gs.maxclients = maxclients;
+	client_gs.maxclients = max_clients;
 
 	client_gs.api.PredictedEvent = CG_PredictedEvent;
 	client_gs.api.PredictedFireWeapon = CG_PredictedFireWeapon;
@@ -146,7 +141,7 @@ static void PrintMap() {
 	Com_Printf( "Current map: %s\n", cl.map == NULL ? "null" : cl.map->name );
 }
 
-void CG_Init( unsigned int playerNum,
+void CG_Init( unsigned int playerNum, int max_clients,
 			  bool demoplaying, const char *demoName,
 			  unsigned snapFrameTime ) {
 	memset( &cg, 0, sizeof( cg_state_t ) );
@@ -154,7 +149,7 @@ void CG_Init( unsigned int playerNum,
 
 	memset( cg_entities, 0, sizeof( cg_entities ) );
 
-	CG_InitGameShared();
+	CG_InitGameShared( max_clients );
 
 	// save local player number
 	cgs.playerNum = playerNum;

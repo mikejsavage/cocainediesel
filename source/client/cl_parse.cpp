@@ -106,8 +106,9 @@ static void CL_ParseServerData( msg_t *msg ) {
 	Cvar_ForceSet( "cl_extrapolationTime", temp( "{}", cl.snapFrameTime / 2 ) );
 	cl_extrapolationTime->modified = false;
 
-	// parse player entity number
+	cl.max_clients = MSG_ReadUint8( msg );
 	cl.playernum = MSG_ReadInt16( msg );
+	cls.server_name = CopyString( sys_allocator, MSG_ReadString( msg ) );
 
 	const char * download_url = MSG_ReadString( msg );
 	if( !StrEqual( download_url, "" ) ) {

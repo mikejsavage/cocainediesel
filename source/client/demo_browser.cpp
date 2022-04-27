@@ -67,7 +67,7 @@ void DemoBrowserFrame() {
 		ggformat( demo->server, sizeof( demo->server ), "{}", metadata.server );
 		ggformat( demo->map, sizeof( demo->map ), "{}", metadata.map );
 		ggformat( demo->version, sizeof( demo->version ), "{}", metadata.game_version );
-		Sys_FormatTimestamp( demo->date, sizeof( demo->date ), "%Y-%m-%d %H:%M", metadata.utc_time );
+		FormatTimestamp( demo->date, sizeof( demo->date ), "%Y-%m-%d %H:%M", metadata.utc_time );
 	}
 }
 

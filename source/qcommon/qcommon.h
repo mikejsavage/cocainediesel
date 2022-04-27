@@ -267,8 +267,6 @@ void ShowErrorMessage( const char * msg, const char * file, int line );
 
 int64_t Sys_Milliseconds();
 void Sys_Sleep( unsigned int millis );
-bool Sys_FormatTimestamp( char * buf, size_t buf_size, const char * fmt, s64 time );
-bool Sys_FormatCurrentTime( char * buf, size_t buf_size, const char * fmt );
 
 const char * Sys_ConsoleInput();
 void Sys_ConsoleOutput( const char * string );

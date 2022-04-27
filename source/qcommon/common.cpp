@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/fs.h"
 #include "qcommon/maplist.h"
 #include "qcommon/threads.h"
+#include "qcommon/time.h"
 
 #include <errno.h>
 #include <setjmp.h>
@@ -175,7 +176,7 @@ void Com_Printf( const char *format, ... ) {
 	if( log_file != NULL ) {
 		if( logconsole_timestamp && logconsole_timestamp->integer ) {
 			char timestamp[MAX_PRINTMSG];
-			Sys_FormatCurrentTime( timestamp, sizeof( timestamp ), "%Y-%m-%dT%H:%M:%SZ " );
+			FormatCurrentTime( timestamp, sizeof( timestamp ), "%Y-%m-%dT%H:%M:%SZ " );
 			WritePartialFile( log_file, timestamp, strlen( timestamp ) );
 		}
 		WritePartialFile( log_file, msg, strlen( msg ) );

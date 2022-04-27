@@ -6,6 +6,9 @@
 void InitTime();
 Time Now();
 
+bool FormatTimestamp( char * buf, size_t buf_size, const char * fmt, s64 time );
+bool FormatCurrentTime( char * buf, size_t buf_size, const char * fmt );
+
 constexpr Time Milliseconds( u64 ms ) { return { ms * GGTIME_FLICKS_PER_SECOND / 1000 }; }
 constexpr Time Milliseconds( int ms ) { return Milliseconds( u64( ms ) ); }
 constexpr Time Milliseconds( double ms ) { return { u64( ms * GGTIME_FLICKS_PER_SECOND / 1000.0 ) }; }

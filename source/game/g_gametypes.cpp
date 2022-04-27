@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 #include "qcommon/cmodel.h"
+#include "qcommon/time.h"
 
 Cvar *g_warmup_timelimit;
 Cvar *g_scorelimit;
@@ -46,7 +47,7 @@ void G_Match_Autorecord_Start() {
 		return;
 
 	char date[ 128 ];
-	Sys_FormatCurrentTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
+	FormatCurrentTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
 
 	snprintf( level.autorecord_name, sizeof( level.autorecord_name ), "%s_%s_auto%04i", date, sv.mapname, RandomUniform( &svs.rng, 1, 10000 ) );
 

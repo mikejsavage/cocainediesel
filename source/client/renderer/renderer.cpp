@@ -2,6 +2,7 @@
 #include "qcommon/qcommon.h"
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
+#include "qcommon/time.h"
 #include "client/client.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/blue_noise.h"
@@ -49,7 +50,7 @@ static void TakeScreenshot() {
 
 	int ok = stbi_write_png_to_func( []( void * context, void * png, int png_size ) {
 		char date[ 256 ];
-		Sys_FormatCurrentTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
+		FormatCurrentTime( date, sizeof( date ), "%y%m%d_%H%M%S" );
 
 		TempAllocator temp = cls.frame_arena.temp();
 

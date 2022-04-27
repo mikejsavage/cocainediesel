@@ -68,8 +68,7 @@ enum pmtype_t {
 // the server to all connected clients.
 //
 
-#define CS_CALLVOTE 0
-#define CS_PLAYERINFOS      1
+#define CS_PLAYERINFOS      0
 #define MAX_CONFIGSTRINGS   ( CS_PLAYERINFOS + MAX_CLIENTS )
 
 //==============================================

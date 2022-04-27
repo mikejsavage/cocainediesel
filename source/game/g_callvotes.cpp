@@ -438,7 +438,7 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 		}
 	}
 
-	PF_ConfigString( CS_CALLVOTE, "" );
+	Q_strncpyz( server_gs.gameState.callvote, "", sizeof( server_gs.gameState.callvote ) );
 
 	server_gs.gameState.callvote_required_votes = 0;
 	server_gs.gameState.callvote_yes_votes = 0;
@@ -710,7 +710,7 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 
 	ent->r.client->level.callvote_when = callvoteState.timeout;
 
-	PF_ConfigString( CS_CALLVOTE, G_CallVotes_String( &callvoteState.vote ) );
+	Q_strncpyz( server_gs.gameState.callvote, G_CallVotes_String( &callvoteState.vote ), sizeof( server_gs.gameState.callvote ) );
 
 	G_PrintMsg( NULL, "%s" S_COLOR_WHITE " requested to vote " S_COLOR_YELLOW "%s\n",
 				ent->r.client->netname, G_CallVotes_String( &callvoteState.vote ) );

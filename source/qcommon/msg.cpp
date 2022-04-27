@@ -225,6 +225,30 @@ static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 	Delta( buf, rgba.a, baseline.a );
 }
 
+template< size_t N >
+static void DeltaString( DeltaBuffer * buf, char ( &str )[ N ], const char ( &baseline )[ N ] ) {
+	if( buf->serializing ) {
+		bool diff = !StrEqual( str, baseline );
+		AddBit( buf, diff );
+		if( diff ) {
+			size_t n = strlen( str );
+			AddBytes( buf, &n, sizeof( n ) );
+			AddBytes( buf, str, n );
+		}
+	}
+	else {
+		if( GetBit( buf ) ) {
+			size_t n;
+			GetBytes( buf, &n, sizeof( n ) );
+			GetBytes( buf, str, n );
+			str[ n ] = '\0';
+		}
+		else {
+			Q_strncpyz( str, baseline, N );
+		}
+	}
+}
+
 template< typename E >
 void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
 	using T = typename std::underlying_type< E >::type;
@@ -690,6 +714,8 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
+
+	DeltaString( buf, state.callvote, baseline.callvote );
 	Delta( buf, state.callvote_required_votes, baseline.callvote_required_votes );
 	Delta( buf, state.callvote_yes_votes, baseline.callvote_yes_votes );
 

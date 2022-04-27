@@ -1756,7 +1756,7 @@ void CG_DrawHUD() {
 		lua_setfield( hud_L, -2, "chasing" );
 	}
 
-	lua_pushstring( hud_L, cl.configstrings[ CS_CALLVOTE ] );
+	lua_pushstring( hud_L, client_gs.gameState.callvote );
 	lua_setfield( hud_L, -2, "vote" );
 
 	lua_pushnumber( hud_L, client_gs.gameState.callvote_required_votes );

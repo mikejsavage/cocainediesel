@@ -330,8 +330,6 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	}
 
 	// initialize game subsystems
-	PF_ConfigString( CS_MATCHSCORE, "" );
-
 	G_InitGameCommands();
 
 	G_Teams_Init();

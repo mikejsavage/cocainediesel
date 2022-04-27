@@ -297,7 +297,8 @@ void G_CallVotes_ResetClient( int n );
 void G_CallVotes_Think();
 bool G_Callvotes_HasVoted( edict_t * ent );
 void G_CallVote_Cmd( edict_t * ent, msg_t args );
-void G_CallVotes_CmdVote( edict_t * ent, msg_t args );
+void G_CallVotes_VoteYes( edict_t * ent, msg_t args );
+void G_CallVotes_VoteNo( edict_t * ent, msg_t args );
 void G_OperatorVote_Cmd( edict_t * ent, msg_t args );
 
 //

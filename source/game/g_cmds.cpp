@@ -503,7 +503,8 @@ void G_InitGameCommands() {
 
 	// callvotes commands
 	G_AddCommand( ClientCommand_Callvote, G_CallVote_Cmd );
-	G_AddCommand( ClientCommand_Vote, G_CallVotes_CmdVote );
+	G_AddCommand( ClientCommand_VoteYes, G_CallVotes_VoteYes );
+	G_AddCommand( ClientCommand_VoteNo, G_CallVotes_VoteNo );
 
 	G_AddCommand( ClientCommand_Operator, Cmd_GameOperator_f );
 	G_AddCommand( ClientCommand_OpCall, G_OperatorVote_Cmd );

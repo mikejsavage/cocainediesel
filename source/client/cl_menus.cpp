@@ -329,8 +329,8 @@ static void SettingsControls() {
 		}
 
 		if( ImGui::BeginTabItem( "Misc" ) ) {
-			KeyBindButton( "Vote yes", "vote yes" );
-			KeyBindButton( "Vote no", "vote no" );
+			KeyBindButton( "Vote yes", "vote_yes" );
+			KeyBindButton( "Vote no", "vote_no" );
 			KeyBindButton( "Join team", "join" );
 			KeyBindButton( "Ready", "toggleready" );
 			KeyBindButton( "Spectate", "chase" );

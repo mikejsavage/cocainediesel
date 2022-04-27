@@ -468,7 +468,7 @@ Vec2 GetJoystickMovement() {
 		acc.x += axes[ GLFW_GAMEPAD_AXIS_LEFT_X ];
 		acc.y -= axes[ GLFW_GAMEPAD_AXIS_LEFT_Y ];
 
-		constexpr float deadzone = 0.1f;
+		constexpr float deadzone = 0.25f;
 		acc.x = Unlerp01( deadzone, Abs( acc.x ), 1.0f ) * SignedOne( acc.x );
 		acc.y = Unlerp01( deadzone, Abs( acc.y ), 1.0f ) * SignedOne( acc.y );
 	}

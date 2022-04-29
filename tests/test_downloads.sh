@@ -3,6 +3,8 @@
 # TODO clean up properly if it fails
 set -eou pipefail
 
+cd "$(dirname "$0")"
+
 mkdir test_downloads_workdir
 cd test_downloads_workdir
 

@@ -15,10 +15,10 @@ cp ../../base/maps/carfentanil.bsp.zst base/maps
 ./server &
 sleep 0.25s
 
-curl localhost:44400/base/maps/carfentanil.bsp.zst --silent --output carfentanil.bsp.zst
+curl localhost:44400/base/maps/carfentanil.bsp.zst --silent --show-error --output carfentanil.bsp.zst
 cmp carfentanil.bsp.zst base/maps/carfentanil.bsp.zst
 
-! curl localhost:44400/base/maps/bad.bsp.zst
+! curl --fail localhost:44400/base/maps/bad.bsp.zst
 
 kill %1
 

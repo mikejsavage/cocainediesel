@@ -36,8 +36,8 @@ bool WritePartialFile( FILE * file, const void * data, size_t len );
 void Seek( FILE * file, size_t cursor );
 size_t FileSize( FILE * file );
 
-bool FileExists( Allocator * temp, const char * path );
-bool WriteFile( TempAllocator * temp, const char * path, const void * data, size_t len );
+bool FileExists( Allocator * a, const char * path );
+bool WriteFile( Allocator * a, const char * path, const void * data, size_t len );
 bool MoveFile( Allocator * a, const char * old_path, const char * new_path, MoveFileReplace replace );
 bool RemoveFile( Allocator * a, const char * path );
 

@@ -30,6 +30,7 @@ bin( "dieselmap", {
 	libs = {
 		"ggformat",
 		"tracy",
+		"zstd",
 	},
 
 	msvc_extra_ldflags = "ole32.lib",

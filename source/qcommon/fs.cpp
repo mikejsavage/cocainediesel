@@ -95,8 +95,8 @@ Span< u8 > ReadFileBinary( Allocator * a, const char * path ) {
 	return Span< u8 >( contents, size );
 }
 
-bool FileExists( Allocator * temp, const char * path ) {
-	FILE * file = OpenFile( temp, path, OpenFile_Read );
+bool FileExists( Allocator * a, const char * path ) {
+	FILE * file = OpenFile( a, path, OpenFile_Read );
 	if( file == NULL )
 		return false;
 	fclose( file );
@@ -132,11 +132,11 @@ bool CreatePathForFile( Allocator * a, const char * path ) {
 	return true;
 }
 
-bool WriteFile( TempAllocator * temp, const char * path, const void * data, size_t len ) {
-	if( !CreatePathForFile( temp, path ) )
+bool WriteFile( Allocator * a, const char * path, const void * data, size_t len ) {
+	if( !CreatePathForFile( a, path ) )
 		return false;
 
-	FILE * file = OpenFile( temp, path, OpenFile_WriteOverwrite );
+	FILE * file = OpenFile( a, path, OpenFile_WriteOverwrite );
 	if( file == NULL )
 		return false;
 

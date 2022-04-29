@@ -8,6 +8,9 @@ build_script:
 - sh: ggbuild/ninja.linux -v -k 0
 - sh: ggbuild/lua.linux ggbuild/ninja_timeline.lua
 
+test_script:
+- sh: tests/test_downloads.sh
+
 artifacts:
 - path: release
   name: cocaine_diesel_linux

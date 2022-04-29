@@ -1,7 +1,7 @@
 #! /usr/bin/env bash
 
 # TODO clean up properly if it fails
-set -eou pipefail
+set -eoux pipefail
 
 cd "$(dirname "$0")"
 

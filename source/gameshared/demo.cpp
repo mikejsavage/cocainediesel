@@ -93,7 +93,7 @@ static void MaybeWriteDemoMessage( RecordDemoContext * ctx, msg_t * msg, bool fo
 static void CheckedZstdSetParameter( ZSTD_CStream * zstd, ZSTD_cParameter parameter, int value ) {
 	size_t err = ZSTD_CCtx_setParameter( zstd, parameter, value );
 	if( ZSTD_isError( err ) ) {
-		Fatal( "ZSTD_CCtx_setParameter( {}, {} ): {}", parameter, value, ZSTD_getErrorName( err ) );
+		Fatal( "ZSTD_CCtx_setParameter( %d, %d ): %s", parameter, value, ZSTD_getErrorName( err ) );
 	}
 }
 

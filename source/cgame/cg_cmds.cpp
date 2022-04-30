@@ -82,8 +82,8 @@ static void CG_Cmd_DemoGet_f() {
 		return;
 	}
 
-	TempAllocator temp = cls.frame_arena.temp();
-	Cbuf_ExecuteLine( temp( "demogeturl {}", Cmd_Argv( 1 ) ) );
+	msg_t * args = CL_AddReliableCommand( ClientCommand_DemoGetURL );
+	MSG_WriteString( args, Cmd_Argv( 1 ) );
 
 	demo_requested = true;
 }

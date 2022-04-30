@@ -266,7 +266,7 @@ void SV_DemoList_f( edict_t * ent ) {
 void SV_DemoGetUrl_f( edict_t * ent, msg_t args ) {
 	Cmd_TokenizeString( MSG_ReadString( &args ) );
 
-	if( Cmd_Argc() != 2 ) {
+	if( Cmd_Argc() != 1 ) {
 		return;
 	}
 
@@ -278,7 +278,7 @@ void SV_DemoGetUrl_f( edict_t * ent, msg_t args ) {
 		}
 	};
 
-	Span< const char > arg = MakeSpan( Cmd_Argv( 1 ) );
+	Span< const char > arg = MakeSpan( Cmd_Argv( 0 ) );
 	int id;
 	if( !TrySpanToInt( arg, &id ) || id <= 0 || id > demos.n ) {
 		PF_GameCmd( ent, "pr \"demoget <id from demolist>\"\n" );

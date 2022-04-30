@@ -1252,7 +1252,7 @@ static void GT_Bomb_InitGametype() {
 	bomb_state.defuser = -1;
 
 	G_AddCommand( ClientCommand_DropBomb, []( edict_t * ent, msg_t args ) {
-		if( ent->s.number == bomb_state.carrier && bomb_state.bomb.state == BombState_Carried ) {
+		if( PLAYERNUM( ent ) == bomb_state.carrier && bomb_state.bomb.state == BombState_Carried ) {
 			DropBomb( BombDropReason_Normal );
 		}
 	} );

@@ -251,10 +251,6 @@ void Qcommon_Init( int argc, char ** argv ) {
 		ExecDefaultCfg();
 		Cbuf_ExecuteLine( "exec config.cfg" );
 		Cbuf_ExecuteLine( "exec autoexec.cfg" );
-		if( is_public_build ) {
-			Cbuf_ExecuteLine( "execold config.cfg" );
-			Cbuf_ExecuteLine( "execold autoexec.cfg" );
-		}
 	}
 	else {
 		Cbuf_ExecuteLine( "config dedicated_autoexec.cfg" );

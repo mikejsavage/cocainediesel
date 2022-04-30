@@ -1,7 +1,7 @@
 #include "gameshared/movement.h"
 
 static constexpr float pm_jumpspeed = 250.0f;
-static constexpr float pm_chargedjumpspeed = 700.0f;
+static constexpr float pm_chargedjumpspeed = 1000.0f;
 
 static constexpr float pm_minbounceupspeed = 120.0f;
 static constexpr float pm_wallbouncefactor = 0.25f;

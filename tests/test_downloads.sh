@@ -13,7 +13,7 @@ mkdir -p base/maps
 cp ../../base/maps/carfentanil.bsp.zst base/maps
 
 ./server &
-sleep 1s
+sleep 5s
 
 curl localhost:44400/base/maps/carfentanil.bsp.zst --silent --show-error --output carfentanil.bsp.zst
 cmp carfentanil.bsp.zst base/maps/carfentanil.bsp.zst

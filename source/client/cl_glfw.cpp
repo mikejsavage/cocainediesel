@@ -542,7 +542,10 @@ int main( int argc, char ** argv ) {
 			oldtime += dt;
 		}
 
-		glfwPollEvents();
+		{
+			TracyZoneScopedN( "glfwPollEvents" );
+			glfwPollEvents();
+		}
 
 		if( !Qcommon_Frame( dt ) ) {
 			break;

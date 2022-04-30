@@ -704,15 +704,14 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 		case EV_SUICIDE_BOMB_EXPLODE: {
 			ent->health = 0;
 
-			edict_t stupid = { };
-			stupid.s.origin = ent->s.origin;
-			stupid.projectileInfo.maxDamage = 100;
-			stupid.projectileInfo.minDamage = 25;
-			stupid.projectileInfo.maxKnockback = 150;
-			stupid.projectileInfo.minKnockback = 75;
-			stupid.projectileInfo.radius = 150;
+			// TODO: horrible
+			ent->projectileInfo.maxDamage = 100;
+			ent->projectileInfo.minDamage = 25;
+			ent->projectileInfo.maxKnockback = 150;
+			ent->projectileInfo.minKnockback = 75;
+			ent->projectileInfo.radius = 150;
 
-			G_RadiusDamage( &stupid, ent, NULL, ent, Gadget_SuicideBomb );
+			G_RadiusDamage( ent, ent, NULL, ent, Gadget_SuicideBomb );
 
 			G_Killed( ent, ent, ent, -1, Gadget_SuicideBomb, 10000 );
 			G_AddEvent( ent, ev, parm, true );

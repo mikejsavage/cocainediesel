@@ -1037,7 +1037,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	ImGui::EndTable();
 
 	int loadoutKeys[ 2 ] = { };
-	CG_GetBoundKeycodes( "gametypemenu", loadoutKeys );
+	CG_GetBoundKeycodes( "loadoutmenu", loadoutKeys );
 
 	bool should_close = false;
 	if( ImGui::Hotkey( loadoutKeys[ 0 ] ) || ImGui::Hotkey( loadoutKeys[ 1 ] ) ) {

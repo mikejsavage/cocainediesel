@@ -661,19 +661,20 @@ bool ClientConnect( edict_t *ent, char *userinfo, const NetAddress & address, bo
 * Called when a player drops from the server.
 * Will not be called between levels.
 */
-void ClientDisconnect( edict_t *ent, const char *reason ) {
+void ClientDisconnect( edict_t * ent, const char * reason ) {
 	if( !ent->r.client || !ent->r.inuse ) {
 		return;
 	}
 
-	if( !reason ) {
+	if( reason == NULL ) {
 		G_PrintMsg( NULL, "%s disconnected\n", ent->r.client->netname );
-	} else {
+	}
+	else {
 		G_PrintMsg( NULL, "%s disconnected (%s)\n", ent->r.client->netname, reason );
 	}
 
 	if( ent->s.type == ET_PLAYER ) {
-		CreateCorpse( ent, NULL, WorldDamage_Suicide, 0 ); //create a corpse
+		G_Killed( ent, NULL, world, -1, WorldDamage_Suicide, 0 );
 	}
 
 	ent->r.inuse = false;

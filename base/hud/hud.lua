@@ -156,7 +156,7 @@ local function DrawPerk( state, x, y, size, outline_size )
 end
 
 local function DrawUtility( state, options, x, y, size, outline_size )
-	if state.gadget ~= Gadget_None then
+	if state.gadget ~= Gadget_None and state.gadget_ammo ~= 0 then
 		options.font_size = size * 0.3
 		if hotkeys( state ) then
 			options.color = "#fff"

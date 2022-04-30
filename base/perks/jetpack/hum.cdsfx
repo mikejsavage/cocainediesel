@@ -1,5 +1,5 @@
 {
-	attenuation distant
+	attenuation idle
 	sound ./hum
 	volume 0.5
 }

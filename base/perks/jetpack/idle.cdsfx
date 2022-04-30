@@ -1,6 +1,6 @@
 {
 	attenuation idle
 	sound ./idle
-	volume 1.0
+	volume 2.0
 	pitch_random 0.25
 }

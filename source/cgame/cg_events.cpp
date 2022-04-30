@@ -502,7 +502,7 @@ void CG_JetpackEffect( centity_t * cent ) {
 		return;
 	}
 
-	float volume = cent->jetpack_boost ? 4.0f : 1.0f;
+	float volume = cent->jetpack_boost ? 1.5f : 1.0f;
 
 	if( cent->localEffects[ LOCALEFFECT_JETPACK ] <= cl.serverTime ) {
 		if( cent->localEffects[ LOCALEFFECT_JETPACK ] ) {

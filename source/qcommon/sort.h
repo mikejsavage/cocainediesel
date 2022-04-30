@@ -3,6 +3,9 @@
 #include "qcommon/types.h"
 #include "gameshared/q_math.h"
 
+// TODO: timsort for StableSort?
+// TODO: heapsort for Introsort recursion limit
+
 template< typename T >
 bool DefaultLessThan( const T & a, const T & b ) {
 	return a < b;
@@ -75,7 +78,6 @@ void Introsort( T * begin, T * end, F less_than, u32 recursion_depth ) {
 	if( n <= use_insertion_sort_below ) {
 		InsertionSort( begin, end, less_than );
 	}
-	// TODO: fall back to heap sort if we go too deep
 	// else if( recursion_depth == 0 ) {
 	// }
 	else {
@@ -86,9 +88,57 @@ void Introsort( T * begin, T * end, F less_than, u32 recursion_depth ) {
 }
 
 template< typename T, typename F >
+void MergeSortMerge( T * begin, T * mid, T * end, T * scratch, F less_than ) {
+	T * left_cursor = begin;
+	T * right_cursor = mid;
+	T * scratch_cursor = scratch;
+
+	while( left_cursor < mid && right_cursor < end ) {
+		if( less_than( *left_cursor, *right_cursor ) ) {
+			*scratch_cursor = *left_cursor;
+			left_cursor++;
+		}
+		else {
+			*scratch_cursor = *right_cursor;
+			right_cursor++;
+		}
+		scratch_cursor++;
+	}
+
+	while( left_cursor < mid ) {
+		*scratch_cursor = *left_cursor;
+		left_cursor++;
+		scratch_cursor++;
+	}
+
+	while( right_cursor < mid ) {
+		*scratch_cursor = *right_cursor;
+		right_cursor++;
+		scratch_cursor++;
+	}
+
+	memcpy( begin, scratch, ( scratch_cursor - scratch ) * sizeof( T ) );
+}
+
+template< typename T, typename F >
+void MergeSort( T * begin, T * end, T * scratch, F less_than ) {
+	if( ( end - begin ) <= 1 )
+		return;
+
+	T * mid = begin + ( end - begin ) / 2;
+	MergeSort( begin, mid, scratch, less_than );
+	MergeSort( mid, end, scratch, less_than );
+	MergeSortMerge( begin, mid, end, scratch, less_than );
+}
+
+template< typename T, typename F = decltype( DefaultLessThan< T > ) >
 void Sort( T * begin, T * end, F less_than = DefaultLessThan< T > ) {
 	u32 recursion_limit = 2 * Log2( end - begin );
 	Introsort( begin, end, less_than, recursion_limit );
 }
 
-// TODO: stable sort (merge sort/tim sort)
+template< typename T, typename F = decltype( DefaultLessThan< T > ) >
+void StableSort( Allocator * a, T * begin, T * end, F less_than = DefaultLessThan< T > ) {
+	T * scratch = ALLOC_MANY( a, T, end - begin );
+	MergeSort( begin, end, scratch, less_than );
+}

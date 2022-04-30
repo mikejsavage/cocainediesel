@@ -30,19 +30,27 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 	if( ps->using_gadget ) {
 		const GadgetDef * def = GetGadgetDef( ps->gadget );
 
-		if( ps->weapon_state == WeaponState_Cooking ) {
-			float charge = float( ps->weapon_state_time ) / float( def->cook_time );
-			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 9.0f;
-			viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_UP ) * pull_back;
-			angles->x -= Lerp( 0.0f, pull_back, 4.0f );
-		} else if( ps->weapon_state == WeaponState_SwitchingIn  ) {
+		if( ps->weapon_state == WeaponState_SwitchingIn ) {
 			float frac = 1.0f - float( ps->weapon_state_time ) / float( def->switch_in_time );
 			frac *= frac; //smoother curve
 			viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_UP ) * frac * 10.0f;
 			angles->x += Lerp( 0.0f, frac, 60.0f );
 		}
-
-	} else {
+		else if( ps->weapon_state == WeaponState_Cooking ) {
+			float charge = float( ps->weapon_state_time ) / float( def->cook_time );
+			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 9.0f;
+			viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_UP ) * pull_back;
+			angles->x -= Lerp( 0.0f, pull_back, 4.0f );
+		}
+		else if( ps->weapon_state == WeaponState_Throwing ) {
+			float frac = float( ps->weapon_state_time ) / float( def->using_time );
+			viewweapon->origin += FromQFAxis( cg.view.axis, AXIS_FORWARD ) * frac * 16.0f;
+		}
+		else if( ps->weapon_state == WeaponState_SwitchingOut ) {
+			viewweapon->origin.z -= 1000.0f; // TODO: lol
+		}
+	}
+	else {
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		if( ps->weapon == Weapon_None )
 			return;

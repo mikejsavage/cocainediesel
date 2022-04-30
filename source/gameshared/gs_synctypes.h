@@ -184,10 +184,12 @@ enum BombDown {
 	BombDown_Planting,
 };
 
-enum BombProgress {
+enum BombProgress : u8 {
 	BombProgress_Nothing,
 	BombProgress_Planting,
 	BombProgress_Defusing,
+
+	BombProgress_Count
 };
 
 #define GAMESTAT_FLAG_PAUSED ( 1 << 0 )
@@ -385,7 +387,7 @@ struct SyncPlayerState {
 	int team;
 	int real_team;
 
-	u8 progress_type; // enum BombProgress
+	BombProgress progress_type;
 	u8 progress;
 
 	int pointed_player;

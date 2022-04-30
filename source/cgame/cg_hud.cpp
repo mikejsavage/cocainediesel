@@ -105,6 +105,9 @@ static const LuauConst<int> numeric_constants[] = {
 	{ "RoundType_MatchPoint", RoundType_MatchPoint },
 	{ "RoundType_Overtime", RoundType_Overtime },
 	{ "RoundType_OvertimeMatchPoint", RoundType_OvertimeMatchPoint },
+
+	{ "BombProgress_Planting", BombProgress_Planting },
+	{ "BombProgress_Defusing", BombProgress_Defusing },
 };
 
 static const LuauConst<StringHash> asset_constants[] = {
@@ -1720,6 +1723,9 @@ void CG_DrawHUD() {
 
 	lua_pushnumber( hud_L, cg.predictedPlayerState.progress );
 	lua_setfield( hud_L, -2, "bomb_progress" );
+
+	lua_pushnumber( hud_L, cg.predictedPlayerState.progress_type );
+	lua_setfield( hud_L, -2, "bomb_progress_type" );
 
 	lua_pushboolean( hud_L, GS_TeamBasedGametype( &client_gs ) );
 	lua_setfield( hud_L, -2, "teambased" );

@@ -218,6 +218,10 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 	playerState->zoom_time = Lerp( ops->zoom_time, cg.lerpfrac, ps->zoom_time );
 	playerState->flashed = Lerp( ops->flashed, cg.lerpfrac, ps->flashed );
 
+	if( ops->progress_type == ps->progress_type ) {
+		playerState->progress = Lerp( ops->progress, cg.lerpfrac, ps->progress );
+	}
+
 	// TODO: this should probably go through UpdateWeapons
 	if( ps->weapon_state_time >= ops->weapon_state_time ) {
 		playerState->weapon_state_time = Lerp( ops->weapon_state_time, cg.lerpfrac, ps->weapon_state_time );

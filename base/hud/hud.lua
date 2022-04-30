@@ -47,7 +47,7 @@ local function DrawTopInfo( state )
 			seconds = seconds % 60
 
 			if minutes < 1 and seconds < 11 and seconds ~= 0 then
-				options.color = "#f00"
+				options.color = "#f00" -- TODO: attention getting red
 			end
 			cd.text( options, posX, state.viewport_height * 0.012, string.format( "%d:%02i", minutes, seconds ) )
 		elseif state.teambased then
@@ -367,10 +367,17 @@ end
 
 local function DrawBombProgress( state )
 	if state.bomb_progress ~= 0 then
-		local width = state.viewport_width * 0.3
-		local progress = state.bomb_progress/100
-		local color = RGBALinear( 1, 1, 1, progress )
-		cd.box( (state.viewport_width - width)/2, state.viewport_height * 0.7, width * progress, state.viewport_height / 30, color )
+		local width = state.viewport_width * 0.2
+		local height = state.viewport_height / 30
+		local y = state.viewport_height * 0.8
+		local progress = state.bomb_progress / 100
+
+		cd.box( ( state.viewport_width - width ) * 0.5, y, width, height, "#2228" )
+		cd.box( ( state.viewport_width - width * progress ) * 0.5, y, width * progress, height, cd.getTeamColor( TEAM_ALLY ) )
+
+		local text = { color = "#fff", border = "#000", font_size = height * 0.75, alignment = "center middle" }
+		local message = if state.bomb_progress_type == BombProgress_Planting then "Planting..." else "Defusing..."
+		cd.text( text, state.viewport_width * 0.5, y + height * 0.4, message )
 	end
 end
 

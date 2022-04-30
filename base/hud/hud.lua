@@ -52,7 +52,7 @@ local function DrawTopInfo( state )
 			cd.text( options, posX, state.viewport_height * 0.012, string.format( "%d:%02i", minutes, seconds ) )
 		elseif state.teambased then
 			local size = state.viewport_height * 0.055
-			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, dark_grey, assets.bomb )
+			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )
 		end
 
 
@@ -66,7 +66,7 @@ local function DrawTopInfo( state )
 			local scaleX = state.viewport_height / 40
 			local scaleY = scaleX * 1.6
 			local step = scaleX
-			local grey = "#555"
+			local grey = "#222"
 			local material = assets.guy
 
 			local color = cd.getTeamColor( TEAM_ALPHA )

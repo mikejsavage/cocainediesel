@@ -665,6 +665,10 @@ static void PackDecalAtlas() {
 		num_mipmaps = Min2( texture->num_mipmaps, num_mipmaps );
 	}
 
+	if( num_decals == 0 ) {
+		num_mipmaps = 1;
+	}
+
 	// rect packing
 	u32 num_unpacked = num_decals;
 	u32 num_layers = 0;
@@ -676,7 +680,7 @@ static void PackDecalAtlas() {
 		stbrp_init_target( &packer, DECAL_ATLAS_SIZE, DECAL_ATLAS_SIZE, nodes, ARRAY_COUNT( nodes ) );
 		stbrp_setup_allow_out_of_mem( &packer, 1 );
 
-		bool all_packed = stbrp_pack_rects( &packer, rects, num_unpacked ) != 0;
+		bool all_packed = stbrp_pack_rects( &packer, rects, num_unpacked ) == 1;
 		bool none_packed = true;
 
 		static RGBA8 pixels[ DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE ];

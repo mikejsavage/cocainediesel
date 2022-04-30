@@ -286,8 +286,8 @@ static void SettingsControls() {
 
 			ImGui::Separator();
 
-			KeyBindButton( "Chat", "messagemode" );
-			KeyBindButton( "Team chat", "messagemode2" );
+			KeyBindButton( "Chat", "chat" );
+			KeyBindButton( "Team chat", "teamchat" );
 			KeyBindButton( "Spray", "spray" );
 
 			ImGui::EndTabItem();

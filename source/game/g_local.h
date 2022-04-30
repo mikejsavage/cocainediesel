@@ -779,7 +779,7 @@ struct game_locals_t {
 
 extern game_locals_t game;
 
-#define world game.edicts
+constexpr edict_t * world = &game.edicts[ 0 ];
 
 static inline int ENTNUM( const edict_t *x ) { return x - game.edicts; }
 static inline int ENTNUM( const gclient_t *x ) { return x - game.clients + 1; }

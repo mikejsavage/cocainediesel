@@ -54,8 +54,8 @@ char * GetExePath( Allocator * a ) {
 	return buf.ptr();
 }
 
-FILE * OpenFile( Allocator * a, const char * path, const char * mode ) {
-	return fopen( path, mode );
+FILE * OpenFile( Allocator * a, const char * path, OpenFileMode mode ) {
+	return fopen( path, OpenFileModeToString( mode ) );
 }
 
 bool MoveFile( Allocator * a, const char * old_path, const char * new_path, MoveFileReplace replace ) {

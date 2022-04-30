@@ -8,8 +8,6 @@
 extern "C" __declspec( dllexport ) DWORD NvOptimusEnablement = 1;
 extern "C" __declspec( dllexport ) int AmdPowerXpressRequestHighPerformance = 1;
 
-void Sys_InitTime();
-
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 #if NDEBUG
 	MessageBoxA( NULL, msg, "Error", MB_OK );
@@ -18,11 +16,6 @@ void ShowErrorMessage( const char * msg, const char * file, int line ) {
 		_CrtDbgBreak();
 	}
 #endif
-}
-
-void Sys_Init() {
-	SetConsoleOutputCP( CP_UTF8 );
-	Sys_InitTime();
 }
 
 bool Sys_BeingDebugged() {

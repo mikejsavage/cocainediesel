@@ -180,7 +180,7 @@ static void SubmitPostprocessPass() {
 
 	static float chasing_amount = 0.0f;
 	constexpr float chasing_speed = 4.0f;
-	bool chasing = cls.cgameActive && !cls.demo.playing && cg.predictedPlayerState.team != TEAM_SPECTATOR && cg.predictedPlayerState.POVnum != cgs.playerNum + 1;
+	bool chasing = cls.cgameActive && !CL_DemoPlaying() && cg.predictedPlayerState.team != TEAM_SPECTATOR && cg.predictedPlayerState.POVnum != cgs.playerNum + 1;
 	if( chasing ) {
 		chasing_amount += cls.frametime * 0.001f * chasing_speed;
 	} else {

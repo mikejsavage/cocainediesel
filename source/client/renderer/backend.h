@@ -103,7 +103,6 @@ struct Framebuffer {
 };
 
 struct StreamingBuffer {
-	Span< char > name;
 	GPUBuffer buffers[ 3 ];
 	u8 * mappings[ 3 ];
 };
@@ -343,6 +342,7 @@ StreamingBuffer NewStreamingBuffer( u32 len, const char * name = NULL );
 u8 * GetStreamingBufferMapping( StreamingBuffer stream );
 GPUBuffer GetStreamingBufferBuffer( StreamingBuffer stream );
 void DeleteStreamingBuffer( StreamingBuffer buf );
+void DeferDeleteStreamingBuffer( StreamingBuffer buf );
 
 template< typename T >
 GPUBuffer NewGPUBuffer( Span< T > data, const char * name = NULL ) {

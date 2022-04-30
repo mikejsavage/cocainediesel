@@ -105,10 +105,10 @@ void operator++( GadgetType & x, int );
 enum PerkType : u8 {
 	Perk_None,
 
-	Perk_Ninja,
 	Perk_Hooligan,
 	Perk_Midget,
 	Perk_Jetpack,
+	Perk_Ninja,
 	Perk_Boomer,
 
 	Perk_Count
@@ -239,6 +239,8 @@ struct SyncGameState {
 	s64 match_state_start_time;
 	s64 match_duration;
 	s64 clock_override;
+
+	char callvote[ 32 ];
 	u8 callvote_required_votes;
 	u8 callvote_yes_votes;
 
@@ -423,7 +425,8 @@ enum ClientCommandType : u8 {
 	ClientCommand_DemoList,
 	ClientCommand_DemoGetURL,
 	ClientCommand_Callvote,
-	ClientCommand_Vote,
+	ClientCommand_VoteYes,
+	ClientCommand_VoteNo,
 	ClientCommand_Operator,
 	ClientCommand_OpCall,
 	ClientCommand_Ready,

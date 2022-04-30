@@ -14,6 +14,8 @@
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
 
+#include "zstd/zstd.h"
+
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
 }
@@ -1020,7 +1022,7 @@ static s32 MakeLeaf( BSP * bsp, Span< const u32 > brush_ids ) {
 	return -s32( leaf_id + 1 );
 }
 
-static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds, CandidatePlanes candidate_planes, MinMax3 node_bounds, u32 max_depth ) {
+static s32 BuildKDTreeRecursive( ArenaAllocator * arena, BSP * bsp, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds, CandidatePlanes candidate_planes, MinMax3 node_bounds, u32 max_depth ) {
 	TracyZoneScoped;
 
 	if( brush_ids.n <= 1 || max_depth == 0 ) {
@@ -1102,8 +1104,8 @@ static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u3
 	MinMax3 below_bounds, above_bounds;
 	Split( node_bounds, best_axis, distance, &below_bounds, &above_bounds );
 
-	DynamicArray< u32 > below_brushes( temp );
-	DynamicArray< u32 > above_brushes( temp );
+	DynamicArray< u32 > below_brushes( arena );
+	DynamicArray< u32 > above_brushes( arena );
 
 	{
 		TracyZoneScopedN( "Classify above/below" );
@@ -1127,9 +1129,9 @@ static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u3
 		TracyZoneScopedN( "Split candidate planes" );
 
 		for( int i = 0; i < 3; i++ ) {
-			Span< CandidatePlane > axis_below = ALLOC_SPAN( temp, CandidatePlane, below_brushes.size() * 2 );
+			Span< CandidatePlane > axis_below = ALLOC_SPAN( arena, CandidatePlane, below_brushes.size() * 2 );
 			size_t below_count = 0;
-			Span< CandidatePlane > axis_above = ALLOC_SPAN( temp, CandidatePlane, above_brushes.size() * 2 );
+			Span< CandidatePlane > axis_above = ALLOC_SPAN( arena, CandidatePlane, above_brushes.size() * 2 );
 			size_t above_count = 0;
 
 			for( size_t j = 0; j < candidate_planes.axes[ i ].n; j++ ) {
@@ -1147,15 +1149,15 @@ static s32 BuildKDTreeRecursive( TempAllocator * temp, BSP * bsp, Span< const u3
 		}
 	}
 
-	node.children[ 1 ] = BuildKDTreeRecursive( temp, bsp, below_brushes.span(), brush_bounds, below_planes, below_bounds, max_depth - 1 );
-	node.children[ 0 ] = BuildKDTreeRecursive( temp, bsp, above_brushes.span(), brush_bounds, above_planes, above_bounds, max_depth - 1 );
+	node.children[ 1 ] = BuildKDTreeRecursive( arena, bsp, below_brushes.span(), brush_bounds, below_planes, below_bounds, max_depth - 1 );
+	node.children[ 0 ] = BuildKDTreeRecursive( arena, bsp, above_brushes.span(), brush_bounds, above_planes, above_bounds, max_depth - 1 );
 
 	( *bsp->nodes )[ node_id ] = node;
 
 	return node_id;
 }
 
-static void BuildKDTree( TempAllocator * temp, BSP * bsp, Span< const MinMax3 > brush_bounds ) {
+static void BuildKDTree( ArenaAllocator * arena, BSP * bsp, Span< const MinMax3 > brush_bounds ) {
 	TracyZoneScoped;
 
 	MinMax3 tree_bounds = MinMax3::Empty();
@@ -1165,14 +1167,14 @@ static void BuildKDTree( TempAllocator * temp, BSP * bsp, Span< const MinMax3 > 
 
 	u32 max_depth = roundf( 8.0f + 1.3f * Log2( bsp->brushes->size() ) );
 
-	DynamicArray< u32 > all_brushes( temp );
+	DynamicArray< u32 > all_brushes( arena );
 	for( u32 i = 0; i < ( *bsp->models )[ 0 ].num_brushes; i++ ) {
 		all_brushes.add( i );
 	}
 
-	CandidatePlanes candidate_planes = BuildCandidatePlanes( temp, all_brushes.span(), brush_bounds );
+	CandidatePlanes candidate_planes = BuildCandidatePlanes( arena, all_brushes.span(), brush_bounds );
 
-	BuildKDTreeRecursive( temp, bsp, all_brushes.span(), brush_bounds, candidate_planes, tree_bounds, max_depth );
+	BuildKDTreeRecursive( arena, bsp, all_brushes.span(), brush_bounds, candidate_planes, tree_bounds, max_depth );
 
 	if( bsp->nodes->size() == 0 ) {
 		Plane split;
@@ -1208,10 +1210,20 @@ void Pack( DynamicArray< u8 > & packed, BSPHeader * header, BSPLump lump, Span< 
 	ggprint( "lump {-20} is size {.2}MB\n", lump_names[ lump ], data.num_bytes() / 1000.0f / 1000.0f );
 }
 
-static void WriteBSP( TempAllocator * temp, const char * path, BSP * bsp ) {
+static void WriteFileOrComplain( ArenaAllocator * arena, const char * path, const void * data, size_t len ) {
+	if( WriteFile( arena, path, data, len ) ) {
+		printf( "Wrote %s\n", path );
+	}
+	else {
+		char * msg = ( *arena )( "Can't write {}", path );
+		perror( msg );
+	}
+}
+
+static void WriteBSP( ArenaAllocator * arena, const char * path, BSP * bsp, bool compress ) {
 	TracyZoneScoped;
 
-	DynamicArray< u8 > packed( temp );
+	DynamicArray< u8 > packed( arena );
 
 	BSPHeader header = { };
 	memcpy( &header.magic, "IBSP", 4 );
@@ -1233,13 +1245,20 @@ static void WriteBSP( TempAllocator * temp, const char * path, BSP * bsp ) {
 
 	memcpy( &packed[ header_offset ], &header, sizeof( header ) );
 
-	if( WriteFile( temp, path, packed.ptr(), packed.num_bytes() ) ) {
-		printf( "Wrote %s\n", path );
+	if( !compress ) {
+		WriteFileOrComplain( arena, path, packed.ptr(), packed.num_bytes() );
 	}
 	else {
-		char * msg = ( *sys_allocator )( "Can't write {}", path );
-		perror( msg );
-		FREE( sys_allocator, msg );
+		printf( "Compressing, this is slow...\n" );
+
+		size_t compressed_max_size = ZSTD_compressBound( packed.size() );
+		u8 * compressed = ALLOC_MANY( arena, u8, compressed_max_size );
+		size_t compressed_size = ZSTD_compress( compressed, compressed_max_size, packed.ptr(), packed.size(), ZSTD_maxCLevel() );
+		if( ZSTD_isError( compressed_size ) ) {
+			Fatal( "Compression failed: %s", ZSTD_getErrorName( compressed_size ) );
+		}
+
+		WriteFileOrComplain( arena, ( *arena )( "{}.zst", path ), compressed, compressed_size );
 	}
 }
 
@@ -1254,17 +1273,20 @@ static Span< const char > GetKey( Span< const KeyValue > kvs, const char * key )
 }
 
 int main( int argc, char ** argv ) {
-	if( argc != 2 ) {
-		printf( "Usage: %s <file.map>\n", argv[ 0 ] );
+	if( argc != 2 && !( argc == 3 && StrEqual( argv[ 1 ], "--compress" ) ) ) {
+		printf( "Usage: %s [--compress] <file.map>\n", argv[ 0 ] );
 		return 1;
 	}
 
-	DynamicString bsp_path( sys_allocator, "{}.bsp", StripExtension( argv[ 1 ] ) );
+	const char * map_path = argc == 2 ? argv[ 1 ] : argv[ 2 ];
+	bool compress = argc == 3;
+
+	DynamicString bsp_path( sys_allocator, "{}.bsp", StripExtension( map_path ) );
 
 	size_t carfentanil_len;
-	char * carfentanil = ReadFileString( sys_allocator, argv[ 1 ], &carfentanil_len );
+	char * carfentanil = ReadFileString( sys_allocator, map_path, &carfentanil_len );
 	if( carfentanil == NULL ) {
-		char * msg = ( *sys_allocator )( "Can't read {}", argv[ 1 ] );
+		char * msg = ( *sys_allocator )( "Can't read {}", map_path );
 		perror( msg );
 		FREE( sys_allocator, msg );
 		return 1;
@@ -1273,7 +1295,6 @@ int main( int argc, char ** argv ) {
 
 	constexpr size_t arena_size = 1024 * 1024 * 1024; // 1GB
 	ArenaAllocator arena( ALLOC_SIZE( sys_allocator, arena_size, 16 ), arena_size );
-	TempAllocator temp = arena.temp();
 
 	InitFS();
 	InitMaterials();
@@ -1439,7 +1460,7 @@ int main( int argc, char ** argv ) {
 
 	TracyCFrameMark;
 
-	BuildKDTree( &temp, &bsp, brush_bounds.span() );
+	BuildKDTree( &arena, &bsp, brush_bounds.span() );
 
 	for( const Entity & entity : entities ) {
 		if( GetKey( entity.kvs.span(), "classname" ) == "func_group" )
@@ -1460,7 +1481,7 @@ int main( int argc, char ** argv ) {
 		bsp.entities->append( "}}\n" );
 	}
 
-	WriteBSP( &temp, bsp_path.c_str(), &bsp );
+	WriteBSP( &arena, bsp_path.c_str(), &bsp, compress );
 
 	// TODO: perf
 	// - remove sorts and optimise sorts for debug

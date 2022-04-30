@@ -331,6 +331,20 @@ static void CG_UpdateChaseCam() {
 	}
 }
 
+float WidescreenFov( float fov ) {
+	return atanf( tanf( fov / 360.0f * PI ) * 0.75f ) * ( 360.0f / PI );
+}
+
+float CalcHorizontalFov( const char * caller, float fov_y, float width, float height ) {
+	if( fov_y < 1 || fov_y > 179 ) {
+		Com_Printf( S_COLOR_YELLOW "Bad vertical fov: caller = %s, fov_y = %f, width = %f, height = %f\n", caller, fov_y, width, height );
+		return 100.0f;
+	}
+
+	float x = width * tanf( fov_y / 360.0f * PI );
+	return atanf( x / height ) * 360.0f / PI;
+}
+
 static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	memset( view, 0, sizeof( cg_viewdef_t ) );
 
@@ -421,7 +435,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		}
 	}
 
-	view->fov_x = CalcHorizontalFov( view->fov_y, frame_static.viewport_width, frame_static.viewport_height );
+	view->fov_x = CalcHorizontalFov( "SetupViewDef", view->fov_y, frame_static.viewport_width, frame_static.viewport_height );
 
 	Matrix3_FromAngles( view->angles, view->axis );
 

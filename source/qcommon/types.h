@@ -194,8 +194,38 @@ struct Span {
 };
 
 /*
+ * Optional
+ */
+
+struct NoneType { };
+constexpr NoneType NONE = { };
+
+template< typename T >
+struct Optional {
+	T value;
+	bool exists;
+
+	Optional() = default;
+
+	template< typename S >
+	Optional( const S & other ) { *this = other; }
+
+	void operator=( NoneType ) { exists = false; }
+	void operator=( const T & other ) {
+		value = other;
+		exists = true;
+	}
+
+	operator bool() const { return exists; }
+};
+
+/*
  * maths types
  */
+
+struct Time {
+	u64 flicks;
+};
 
 struct Vec2 {
 	float x, y;

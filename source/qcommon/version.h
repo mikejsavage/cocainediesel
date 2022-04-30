@@ -1,5 +1,5 @@
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
-#include "gitversion.h"
+#include "qcommon/gitversion.h"
 
-constexpr int APP_PROTOCOL_VERSION = int( Hash32_CT( APP_VERSION, sizeof( APP_VERSION ) ) % S32_MAX );
+constexpr u32 APP_PROTOCOL_VERSION = Hash32_CT( APP_VERSION, sizeof( APP_VERSION ) );

@@ -7,6 +7,7 @@
 #include "client/renderer/renderer.h"
 #include "gameshared/maplist.h"
 #include "qcommon/array.h"
+#include "qcommon/time.h"
 #include "qcommon/version.h"
 
 #include "cgame/cg_local.h"
@@ -285,8 +286,8 @@ static void SettingsControls() {
 
 			ImGui::Separator();
 
-			KeyBindButton( "Chat", "messagemode" );
-			KeyBindButton( "Team chat", "messagemode2" );
+			KeyBindButton( "Chat", "chat" );
+			KeyBindButton( "Team chat", "teamchat" );
 			KeyBindButton( "Spray", "spray" );
 
 			ImGui::EndTabItem();
@@ -307,7 +308,6 @@ static void SettingsControls() {
 		if( ImGui::BeginTabItem( "Mouse" ) ) {
 			CvarSliderFloat( "Sensitivity", "sensitivity", sensivity_range[ 0 ], sensivity_range[ 1 ] );
 			CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f );
-			CvarSliderFloat( "Acceleration", "m_accel", 0.0f, 1.0f );
 			CvarCheckbox( "Invert Y axis", "m_invertY" );
 
 			ImGui::EndTabItem();
@@ -328,8 +328,8 @@ static void SettingsControls() {
 		}
 
 		if( ImGui::BeginTabItem( "Misc" ) ) {
-			KeyBindButton( "Vote yes", "vote yes" );
-			KeyBindButton( "Vote no", "vote no" );
+			KeyBindButton( "Vote yes", "vote_yes" );
+			KeyBindButton( "Vote no", "vote_no" );
 			KeyBindButton( "Join team", "join" );
 			KeyBindButton( "Ready", "toggleready" );
 			KeyBindButton( "Spectate", "chase" );
@@ -779,7 +779,7 @@ static void MainMenu() {
 	ImGui::PopStyleColor();
 	ImGui::PopFont();
 
-	ImGui::SetCursorPosX( -1000.0f + 500.0f * sinf( cls.monotonicTime / 1001.0f ) );
+	ImGui::SetCursorPosX( -1000.0f + 500.0f * Sin( cls.monotonicTime, Milliseconds( 6029 ) ) );
 	ImGui::PushFont( cls.idi_nahui_font );
 	constexpr const char * idi_nahui = u8"\u0418\u0434\u0438 \u043d\u0430 \u0445\u0443\u0439";
 	for( int i = 0; i < 100; i++ ) {
@@ -862,7 +862,7 @@ static void MainMenu() {
 
 		const char * buf = APP_VERSION u8" \u00A9 AHA CHEERS";
 		ImVec2 size = ImGui::CalcTextSize( buf );
-		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - window_padding.x - 1 - sinf( cls.monotonicTime / 29.0f ) );
+		ImGui::SetCursorPosX( ImGui::GetWindowWidth() - size.x - window_padding.x - 1.0f - Sin( cls.monotonicTime, Milliseconds( 182 ) ) );
 
 		if( ImGui::Button( buf ) ) {
 			ImGui::OpenPopup( "Credits" );
@@ -953,6 +953,9 @@ static void Perks( Vec2 icon_size ) {
 	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
 
 	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
+		if( !GetPerkDef( i )->enabled )
+			continue;
+
 		const Material * icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );
 		if( LoadoutButton( GetPerkDef( i )->name, icon_size, icon, loadout.perk == i ) ) {
 			loadout.perk = i;
@@ -1034,7 +1037,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	ImGui::EndTable();
 
 	int loadoutKeys[ 2 ] = { };
-	CG_GetBoundKeycodes( "gametypemenu", loadoutKeys );
+	CG_GetBoundKeycodes( "loadoutmenu", loadoutKeys );
 
 	bool should_close = false;
 	if( ImGui::Hotkey( loadoutKeys[ 0 ] ) || ImGui::Hotkey( loadoutKeys[ 1 ] ) ) {
@@ -1210,7 +1213,7 @@ static void DemoMenu() {
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
-		GameMenuButton( cls.demo.paused ? "Play" : "Pause", "demopause" );
+		GameMenuButton( CL_DemoPaused() ? "Play" : "Pause", "demopause" );
 
 		ImGui::Columns( 2, NULL, false );
 		ImGui::SetColumnWidth( 0, half );

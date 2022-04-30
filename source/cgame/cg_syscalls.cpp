@@ -27,8 +27,6 @@ cgame_export_t * GetCGameAPI() {
 	globals.Reset = CG_Reset;
 	globals.Shutdown = CG_Shutdown;
 
-	globals.ConfigString = CG_ConfigString;
-
 	globals.EscapeKey = CG_EscapeKey;
 
 	globals.RenderView = CG_RenderView;

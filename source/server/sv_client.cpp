@@ -162,26 +162,21 @@ static void SV_New_f( client_t *client, msg_t args ) {
 	//
 	SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
 
+	// set up the entity for the client
+	int playernum = client - svs.clients;
+	edict_t * ent = EDICT_NUM( playernum + 1 );
+	ent->s.number = playernum + 1;
+	client->edict = ent;
+
 	// send the serverdata
 	MSG_WriteUint8( &tmpMessage, svc_serverdata );
-	MSG_WriteInt32( &tmpMessage, APP_PROTOCOL_VERSION );
+	MSG_WriteUint32( &tmpMessage, APP_PROTOCOL_VERSION );
 	MSG_WriteInt32( &tmpMessage, svs.spawncount );
 	MSG_WriteInt16( &tmpMessage, (unsigned short)svc.snapFrameTime );
-
-	int playernum = client - svs.clients;
+	MSG_WriteUint8( &tmpMessage, sv_maxclients->integer );
 	MSG_WriteInt16( &tmpMessage, playernum );
-
-	//
-	// game server
-	//
-	if( sv.state == ss_game ) {
-		// set up the entity for the client
-		edict_t * ent = EDICT_NUM( playernum + 1 );
-		ent->s.number = playernum + 1;
-		client->edict = ent;
-
-		MSG_WriteString( &tmpMessage, sv_downloadurl->value );
-	}
+	MSG_WriteString( &tmpMessage, sv_hostname->value );
+	MSG_WriteString( &tmpMessage, sv_downloadurl->value );
 
 	SV_ClientResetCommandBuffers( client );
 

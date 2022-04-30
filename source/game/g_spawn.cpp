@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/fs.h"
 #include "game/g_local.h"
 
+static u64 entity_id_seq;
+
 enum EntityFieldType {
 	EntityField_Int,
 	EntityField_Float,
@@ -238,6 +240,8 @@ static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent, spawn_te
 }
 
 static void G_FreeEntities() {
+	ResetEntityIDSequence();
+
 	if( !level.time ) {
 		memset( game.edicts, 0, game.maxentities * sizeof( game.edicts[0] ) );
 	}
@@ -326,8 +330,6 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	}
 
 	// initialize game subsystems
-	PF_ConfigString( CS_MATCHSCORE, "" );
-
 	G_InitGameCommands();
 
 	G_Teams_Init();
@@ -405,7 +407,6 @@ void G_LoadMap( const char * name ) {
 
 	u64 hash = Hash64( name );
 	svs.cms = CM_LoadMap( CM_Server, data, hash );
-	svs.ent_string_checksum = Hash64( CM_EntityString( svs.cms ), CM_EntityStringLen( svs.cms ) );
 
 	server_gs.gameState.map = StringHash( hash );
 	server_gs.gameState.map_checksum = svs.cms->checksum;
@@ -444,4 +445,12 @@ static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st ) {
 	const char * model_name = "*0";
 	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), svs.cms->base_hash ) );
 	GClip_SetBrushModel( ent );
+}
+
+EntityID NewEntity() {
+	return { entity_id_seq++ };
+}
+
+void ResetEntityIDSequence() {
+	entity_id_seq = 1;
 }

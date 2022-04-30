@@ -5,6 +5,7 @@
 #include "qcommon/base.h"
 #include "qcommon/sort.h"
 #include "qcommon/string.h"
+#include "qcommon/time.h"
 #include "qcommon/utf8.h"
 #include "client/client.h"
 #include "client/assets.h"
@@ -99,6 +100,7 @@ void CL_InitImGui() {
 		style.WindowPadding = ImVec2( 32, 32 );
 		style.WindowBorderSize = 0;
 		style.PopupBorderSize = 0;
+
 		style.Colors[ ImGuiCol_Button ] = ImVec4( 0.125f, 0.125f, 0.125f, 1.f );
 		style.Colors[ ImGuiCol_ButtonHovered ] = ImVec4( 0.25f, 0.25f, 0.25f, 1.f );
 		style.Colors[ ImGuiCol_ButtonActive ] = ImVec4( 0.5f, 0.5f, 0.5f, 1.f );
@@ -304,15 +306,15 @@ void WindowCenterTextXY( const char * str ) {
 	ImGui::Text( "%s", str );
 }
 
-Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, float div ) {
-	float t = sinf( cls.monotonicTime / div ) * 0.5f + 1.0f;
+Vec4 CustomAttentionGettingColor( Vec4 from, Vec4 to, Time period ) {
+	float t = Sin( cls.monotonicTime, period ) * 0.5f + 1.0f;
 	return Lerp( from, t, to );
 }
 
 Vec4 AttentionGettingColor() {
-	return CustomAttentionGettingColor( vec4_red, sRGBToLinear( rgba8_diesel_yellow ), 20.0f );
+	return CustomAttentionGettingColor( vec4_red, sRGBToLinear( rgba8_diesel_yellow ), Milliseconds( 125 ) );
 }
 
 Vec4 PlantableColor() {
-	return CustomAttentionGettingColor( vec4_dark, sRGBToLinear( rgba8_diesel_green ), 20.0f );
+	return CustomAttentionGettingColor( vec4_dark, sRGBToLinear( rgba8_diesel_green ), Milliseconds( 125 ) );
 }

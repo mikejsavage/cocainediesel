@@ -21,6 +21,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qcommon.h"
 #include "qcommon/csprng.h"
 
+#include "zstd/zstd.h"
+
 /*
 
 packet header
@@ -124,124 +126,31 @@ void Netchan_Setup( netchan_t * chan, const NetAddress & address, u64 session_id
 	chan->outgoingSequence = 1;
 }
 
+void Netchan_CompressMessage( msg_t * msg ) {
+	static u8 compressed[ MAX_MSGLEN ];
+	size_t compressed_size = ZSTD_compress( compressed, sizeof( compressed ), msg->data, msg->cursize, ZSTD_CLEVEL_DEFAULT );
+	if( ZSTD_isError( compressed_size ) || compressed_size >= msg->cursize )
+		return;
 
-static uint8_t msg_process_data[MAX_MSGLEN];
-
-//=============================================================
-// Zlib compression
-//=============================================================
-
-#include "zlib/zlib.h"
-
-static int Netchan_ZLibCompressChunk( const uint8_t *source, unsigned long sourceLen, uint8_t *dest, unsigned long destLen,
-									  int level, int wbits ) {
-	int result, zlerror;
-
-	zlerror = compress2( dest, &destLen, source, sourceLen, level );
-	switch( zlerror ) {
-		case Z_OK:
-			result = destLen; // returns the new length into destLen
-			break;
-		case Z_MEM_ERROR:
-			result = -1;
-			break;
-		case Z_BUF_ERROR:
-			result = -1;
-			break;
-		case Z_STREAM_ERROR:
-			result = -1;
-			break;
-		default:
-			result = -1;
-			break;
-	}
-
-	return result;
-}
-
-static int Netchan_ZLibDecompressChunk( const uint8_t *source, unsigned long sourceLen, uint8_t *dest, unsigned long destLen,
-										int wbits ) {
-	int result, zlerror;
-
-	zlerror = uncompress( dest, &destLen, source, sourceLen );
-	switch( zlerror ) {
-		case Z_OK:
-			result = destLen; // returns the new length into destLen
-			break;
-		case Z_MEM_ERROR:
-			result = -1;
-			break;
-		case Z_BUF_ERROR:
-			result = -1;
-			break;
-		case Z_DATA_ERROR:
-			result = -1;
-			break;
-		default:
-			result = -1;
-			break;
-	}
-
-	return result;
-}
-
-int Netchan_CompressMessage( msg_t * msg ) {
-	int length;
-
-	if( msg == NULL || !msg->data ) {
-		return 0;
-	}
-
-	// zero-fill our buffer
-	length = 0;
-	memset( msg_process_data, 0, sizeof( msg_process_data ) );
-
-	//compress the message
-	length = Netchan_ZLibCompressChunk( msg->data, msg->cursize,
-										msg_process_data, sizeof( msg_process_data ), Z_BEST_COMPRESSION, -MAX_WBITS );
-	if( length < 0 ) { // failed to compress, return the error
-		return length;
-	}
-
-	if( (size_t)length >= msg->cursize || length >= MAX_MSGLEN ) {
-		return 0; // compressed was bigger. Send uncompressed
-	}
-
-	//write it back into the original container
 	MSG_Clear( msg );
-	MSG_Write( msg, msg_process_data, length );
+	MSG_Write( msg, compressed, compressed_size );
 	msg->compressed = true;
-
-	return length; // return the new size
 }
 
-int Netchan_DecompressMessage( msg_t * msg ) {
-	int length;
+bool Netchan_DecompressMessage( msg_t * msg ) {
+	if( !msg->compressed )
+		return true;
 
-	if( msg == NULL || !msg->data ) {
-		return 0;
-	}
+	static u8 decompressed[ MAX_MSGLEN ];
+	size_t decompressed_size = ZSTD_decompress( decompressed, sizeof( decompressed ) - msg->readcount, msg->data + msg->readcount, msg->cursize - msg->readcount );
+	if( ZSTD_isError( decompressed_size ) )
+		return false;
 
-	if( msg->compressed == false ) {
-		return 0;
-	}
-
-	length = Netchan_ZLibDecompressChunk( msg->data + msg->readcount, msg->cursize - msg->readcount, msg_process_data, ( sizeof( msg_process_data ) - msg->readcount ), -MAX_WBITS );
-	if( length < 0 ) {
-		return length;
-	}
-
-	if( ( msg->readcount + length ) >= msg->maxsize ) {
-		Com_Printf( "Netchan_DecompressMessage: Packet too big\n" );
-		return -1;
-	}
-
-	//write it back into the original container
 	msg->cursize = msg->readcount;
-	MSG_Write( msg, msg_process_data, length );
+	MSG_Write( msg, decompressed, decompressed_size );
 	msg->compressed = false;
 
-	return length;
+	return true;
 }
 
 /*

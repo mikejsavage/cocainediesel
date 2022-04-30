@@ -119,7 +119,7 @@ int main( int argc, char ** argv ) {
 
 	DynamicString dds_path( sys_allocator, "{}.dds", argv[ 1 ] );
 
-	FILE * dds = OpenFile( sys_allocator, dds_path.c_str(), "wb" );
+	FILE * dds = OpenFile( sys_allocator, dds_path.c_str(), OpenFile_WriteOverwrite );
 	if( dds == NULL ) {
 		printf( "Can't open %s for writing\n", dds_path.c_str() );
 		return 1;

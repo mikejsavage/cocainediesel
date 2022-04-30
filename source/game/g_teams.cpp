@@ -69,7 +69,7 @@ void G_Teams_UpdateMembersList() {
 	}
 }
 
-void G_Teams_SetTeam( edict_t *ent, int team ) {
+void G_Teams_SetTeam( edict_t * ent, int team ) {
 	assert( ent && ent->r.inuse && ent->r.client );
 	assert( team >= TEAM_SPECTATOR && team < GS_MAX_TEAMS );
 
@@ -208,7 +208,7 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 		team = alpha->score <= beta->score ? TEAM_ALPHA : TEAM_BETA;
 	}
 
-	if( team == ent->s.team ) { // he is at the right team
+	if( team == ent->s.team ) {
 		if( !silent ) {
 			G_PrintMsg( ent, "Couldn't find a better team than team %s.\n", GS_TeamName( ent->s.team ) );
 		}
@@ -225,64 +225,33 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 	return false;
 }
 
-void G_Teams_Join_Cmd( edict_t *ent, msg_t args ) {
+void G_Teams_Join_Cmd( edict_t * ent, msg_t args ) {
 	if( !ent->r.client || PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
 		return;
 	}
 
-	Cmd_TokenizeString( MSG_ReadString( &args ) );
-
-	const char * t = Cmd_Argv( 0 );
-	if( !t || *t == 0 ) {
+	const char * t = MSG_ReadString( &args );
+	if( StrEqual( t, "" ) ) {
 		G_Teams_JoinAnyTeam( ent, false );
 		return;
 	}
 
 	int team = GS_TeamFromName( t );
-	if( team != -1 ) {
-		if( team == TEAM_SPECTATOR ) { // special handling for spectator team
-			Cmd_Spectate( ent );
-			return;
-		}
-		if( team == ent->s.team ) {
-			G_PrintMsg( ent, "You are already in %s team\n", GS_TeamName( team ) );
-			return;
-		}
-		if( G_Teams_JoinTeam( ent, team ) ) {
-			G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
-			return;
-		}
-	} else {
+	if( team == -1 ) {
 		G_PrintMsg( ent, "No such team.\n" );
 		return;
 	}
-}
 
-void G_Say_Team( edict_t *who, const char *inmsg, bool checkflood ) {
-	if( who->s.team != TEAM_SPECTATOR && !level.gametype.isTeamBased ) {
-		Cmd_Say_f( who, false, true );
+	if( team == TEAM_SPECTATOR ) { // special handling for spectator team
+		Cmd_Spectate( ent );
 		return;
 	}
-
-	if( checkflood && CheckFlood( who, true ) ) {
+	if( team == ent->s.team ) {
+		G_PrintMsg( ent, "You are already in %s team\n", GS_TeamName( team ) );
 		return;
 	}
-
-	char msgbuf[256];
-	Q_strncpyz( msgbuf, inmsg, sizeof( msgbuf ) );
-
-	char * msg = msgbuf;
-	if( *msg == '\"' ) {
-		msg[strlen( msg ) - 1] = 0;
-		msg++;
+	if( G_Teams_JoinTeam( ent, team ) ) {
+		G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
+		return;
 	}
-
-	if( who->s.team == TEAM_SPECTATOR ) {
-		// if speccing, also check for non-team flood
-		if( checkflood && CheckFlood( who, false ) ) {
-			return;
-		}
-	}
-
-	G_ChatMsg( NULL, who, true, "%s", msg );
 }

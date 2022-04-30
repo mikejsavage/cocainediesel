@@ -77,6 +77,7 @@ static NonRAIIDynamicArray< DrawCall > draw_calls;
 
 static NonRAIIDynamicArray< Mesh > deferred_mesh_deletes;
 static NonRAIIDynamicArray< GPUBuffer > deferred_buffer_deletes;
+static NonRAIIDynamicArray< StreamingBuffer > deferred_streaming_buffer_deletes;
 
 #if TRACY_ENABLE
 alignas( tracy::GpuCtxScope ) static char renderpass_zone_memory[ sizeof( tracy::GpuCtxScope ) ];
@@ -423,7 +424,24 @@ static void PlotVRAMUsage() {
 	}
 }
 
-static StreamingBuffer NewStreamingBuffer( u32 len, const char * name, bool ubo );
+static void RunDeferredDeletes() {
+	TracyZoneScoped;
+
+	for( const Mesh & mesh : deferred_mesh_deletes ) {
+		DeleteMesh( mesh );
+	}
+	deferred_mesh_deletes.clear();
+
+	for( const GPUBuffer & buffer : deferred_buffer_deletes ) {
+		DeleteGPUBuffer( buffer );
+	}
+	deferred_buffer_deletes.clear();
+
+	for( const StreamingBuffer & stream : deferred_streaming_buffer_deletes ) {
+		DeleteStreamingBuffer( stream );
+	}
+	deferred_streaming_buffer_deletes.clear();
+}
 
 void InitRenderBackend() {
 	TracyZoneScoped;
@@ -485,6 +503,7 @@ void InitRenderBackend() {
 
 	deferred_mesh_deletes.init( sys_allocator );
 	deferred_buffer_deletes.init( sys_allocator );
+	deferred_streaming_buffer_deletes.init( sys_allocator );
 
 	glEnable( GL_DEPTH_TEST );
 	glDepthFunc( GL_LESS );
@@ -511,7 +530,7 @@ void InitRenderBackend() {
 
 	for( size_t i = 0; i < ARRAY_COUNT( ubos ); i++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
-		ubos[ i ].stream = NewStreamingBuffer( UNIFORM_BUFFER_SIZE, temp( "UBO {}", i ), true );
+		ubos[ i ].stream = NewStreamingBuffer( UNIFORM_BUFFER_SIZE, temp( "UBO {}", i ) );
 	}
 
 	in_frame = false;
@@ -527,11 +546,14 @@ void ShutdownRenderBackend() {
 		DeleteStreamingBuffer( ubo.stream );
 	}
 
+	RunDeferredDeletes();
+
 	render_passes.shutdown();
 	draw_calls.shutdown();
 
 	deferred_mesh_deletes.shutdown();
 	deferred_buffer_deletes.shutdown();
+	deferred_streaming_buffer_deletes.shutdown();
 }
 
 void RenderBackendBeginFrame() {
@@ -1054,20 +1076,7 @@ void RenderBackendSubmitFrame() {
 		SetPipelineState( no_scissor_test, true );
 	}
 
-	{
-		TracyZoneScopedN( "Deferred deletes" );
-
-		for( const Mesh & mesh : deferred_mesh_deletes ) {
-			DeleteMesh( mesh );
-		}
-		deferred_mesh_deletes.clear();
-
-		for( const GPUBuffer & buffer : deferred_buffer_deletes ) {
-			DeleteGPUBuffer( buffer );
-		}
-
-		deferred_buffer_deletes.clear();
-	}
+	RunDeferredDeletes();
 
 	fences[ frame_counter % ARRAY_COUNT( fences ) ] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
 	frame_counter++;
@@ -1149,12 +1158,8 @@ void DeferDeleteGPUBuffer( GPUBuffer buf ) {
 	deferred_buffer_deletes.add( buf );
 }
 
-static StreamingBuffer NewStreamingBuffer( u32 len, const char * name, bool ubo ) {
+StreamingBuffer NewStreamingBuffer( u32 len, const char * name ) {
 	StreamingBuffer stream = { };
-
-	if( name != NULL ) {
-		stream.name = MakeSpan( CopyString( sys_allocator, name ) );
-	}
 
 	for( size_t i = 0; i < ARRAY_COUNT( stream.buffers ); i++ ) {
 		GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
@@ -1172,10 +1177,6 @@ static StreamingBuffer NewStreamingBuffer( u32 len, const char * name, bool ubo 
 	return stream;
 }
 
-StreamingBuffer NewStreamingBuffer( u32 len, const char * name ) {
-	return NewStreamingBuffer( len, name, false );
-}
-
 u8 * GetStreamingBufferMapping( StreamingBuffer stream ) {
 	return stream.mappings[ frame_counter % ARRAY_COUNT( stream.mappings ) ];
 }
@@ -1189,7 +1190,10 @@ void DeleteStreamingBuffer( StreamingBuffer stream ) {
 		glUnmapNamedBuffer( buf.buffer );
 		DeleteGPUBuffer( buf );
 	}
-	FREE( sys_allocator, stream.name.ptr );
+}
+
+void DeferDeleteStreamingBuffer( StreamingBuffer stream ) {
+	deferred_streaming_buffer_deletes.add( stream );
 }
 
 static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {

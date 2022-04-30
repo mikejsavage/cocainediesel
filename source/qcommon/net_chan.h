@@ -35,8 +35,8 @@ bool Netchan_Process( netchan_t * chan, msg_t * msg );
 bool Netchan_Transmit( Socket socket, netchan_t * chan, msg_t * msg );
 bool Netchan_PushAllFragments( Socket socket, netchan_t * chan );
 bool Netchan_TransmitNextFragment( Socket socket, netchan_t * chan );
-int Netchan_CompressMessage( msg_t * msg );
-int Netchan_DecompressMessage( msg_t * msg );
+void Netchan_CompressMessage( msg_t * msg );
+bool Netchan_DecompressMessage( msg_t * msg );
 
 #ifndef _MSC_VER
 void Netchan_OutOfBandPrint( Socket socket, const NetAddress & address, const char * format, ... ) __attribute__( ( format( printf, 3, 4 ) ) );

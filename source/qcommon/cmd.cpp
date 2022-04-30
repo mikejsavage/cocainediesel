@@ -177,20 +177,6 @@ static void Cmd_Exec_f() {
 	ExecConfig( path.c_str() );
 }
 
-static void Cmd_ExecOld_f() {
-	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "Usage: execold <filename>\n" );
-		return;
-	}
-
-	DynamicString path( sys_allocator, "{}/base/{}", OldHomeDirPath(), Cmd_Argv( 1 ) );
-	if( FileExtension( path.c_str() ) == "" ) {
-		path += ".cfg";
-	}
-
-	ExecConfig( path.c_str() );
-}
-
 static void Cmd_Config_f() {
 	if( Cmd_Argc() < 2 ) {
 		Com_Printf( "Usage: config <filename>\n" );
@@ -366,7 +352,8 @@ Span< const char * > SearchCommands( Allocator * a, const char * partial ) {
 }
 
 Span< const char * > TabCompleteArgument( TempAllocator * a, const char * partial ) {
-	Span< const char > command_name = ParseToken( &partial, Parse_StopOnNewLine );
+	Span< const char > partial_span = MakeSpan( partial );
+	Span< const char > command_name = ParseToken( &partial_span, Parse_StopOnNewLine );
 
 	const ConsoleCommand * command = FindCommand( command_name );
 	if( command == NULL || command->tab_completion_callback == NULL ) {
@@ -431,7 +418,6 @@ static Span< const char * > TabCompleteConfig( TempAllocator * a, const char * p
 
 void Cmd_Init() {
 	AddCommand( "exec", Cmd_Exec_f );
-	AddCommand( "execold", Cmd_ExecOld_f );
 	AddCommand( "config", Cmd_Config_f );
 	AddCommand( "find", Cmd_Find_f );
 
@@ -445,7 +431,6 @@ void Cmd_Init() {
 
 void Cmd_Shutdown() {
 	RemoveCommand( "exec" );
-	RemoveCommand( "execold" );
 	RemoveCommand( "config" );
 	RemoveCommand( "find" );
 

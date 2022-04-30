@@ -5,7 +5,7 @@
 
 const bool is_dedicated_server = true;
 
-sig_atomic_t received_shutdown_signal;
+sig_atomic_t received_shutdown_signal = 0;
 
 static void ShutdownSignal( int sig ) {
 	received_shutdown_signal = 1;
@@ -18,32 +18,26 @@ static void QuitOnSignal( int sig ) {
 }
 
 int main( int argc, char ** argv ) {
-	unsigned int oldtime, newtime, time;
-
-	received_shutdown_signal = 0;
 	QuitOnSignal( SIGINT );
 	QuitOnSignal( SIGQUIT );
 	QuitOnSignal( SIGTERM );
 
 	Qcommon_Init( argc, argv );
 
-	oldtime = Sys_Milliseconds();
+	s64 oldtime = Sys_Milliseconds();
 	while( true ) {
 		TracyCFrameMark;
 
-		// find time spent rendering last frame
-		do {
+		s64 dt = 0;
+		{
 			TracyZoneScopedN( "Interframe" );
-
-			newtime = Sys_Milliseconds();
-			time = newtime - oldtime;
-			if( time > 0 ) {
-				break;
+			while( dt == 0 ) {
+				dt = Sys_Milliseconds() - oldtime;
 			}
-		} while( 1 );
-		oldtime = newtime;
+			oldtime += dt;
+		}
 
-		if( !Qcommon_Frame( time ) || received_shutdown_signal == 1 ) {
+		if( !Qcommon_Frame( dt ) || received_shutdown_signal == 1 ) {
 			break;
 		}
 	}

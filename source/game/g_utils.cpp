@@ -196,6 +196,7 @@ void G_FreeEdict( edict_t *ed ) {
 void G_InitEdict( edict_t *e ) {
 	memset( e, 0, sizeof( *e ) );
 	e->s.number = ENTNUM( e );
+	e->id = NewEntity();
 	e->r.inuse = true;
 
 	e->s.scale = Vec3( 1.0f );

@@ -33,6 +33,7 @@ void SwapBuffers();
 
 void GetFramebufferSize( int * width, int * height );
 Vec2 GetMouseMovement();
+Vec2 GetJoystickMovement();
 void VID_CheckChanges();
 
 void FlashWindow();

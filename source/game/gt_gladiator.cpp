@@ -503,18 +503,6 @@ static void GT_Gladiator_ThinkRules() {
 	Think();
 }
 
-static bool GT_Gladiator_MatchStateFinished( MatchState incomingMatchState ) {
-	if( server_gs.gameState.match_state <= MatchState_Warmup && incomingMatchState > MatchState_Warmup && incomingMatchState < MatchState_PostMatch ) {
-		G_Match_Autorecord_Start();
-	}
-
-	if( server_gs.gameState.match_state == MatchState_PostMatch ) {
-		G_Match_Autorecord_Stop();
-	}
-
-	return true;
-}
-
 static void GT_Gladiator_MatchStateStarted() {
 	switch( server_gs.gameState.match_state ) {
 		case MatchState_Warmup:
@@ -571,7 +559,6 @@ Gametype GetGladiatorGametype() {
 
 	gt.Init = GT_Gladiator_InitGametype;
 	gt.MatchStateStarted = GT_Gladiator_MatchStateStarted;
-	gt.MatchStateFinished = GT_Gladiator_MatchStateFinished;
 	gt.Think = GT_Gladiator_ThinkRules;
 	gt.PlayerRespawned = GT_Gladiator_PlayerRespawned;
 	gt.PlayerKilled = GT_Gladiator_PlayerKilled;

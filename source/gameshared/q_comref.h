@@ -68,17 +68,7 @@ enum pmtype_t {
 // the server to all connected clients.
 //
 
-#define CS_HOSTNAME         0
-#define CS_MAXCLIENTS       1
-
-#define CS_AUTORECORDSTATE  2
-
-#define CS_MATCHSCORE       5
-
-#define CS_CALLVOTE 6
-
-//precache stuff begins here
-#define CS_PLAYERINFOS      32
+#define CS_PLAYERINFOS      0
 #define MAX_CONFIGSTRINGS   ( CS_PLAYERINFOS + MAX_CLIENTS )
 
 //==============================================

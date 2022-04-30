@@ -37,7 +37,7 @@ require( "libs.picohttpparser" )
 require( "libs.rgbcx" )
 require( "libs.stb" )
 require( "libs.tracy" )
-require( "libs.zlib" )
+require( "libs.yoga" )
 require( "libs.zstd" )
 
 require( "source.tools.bc4" )
@@ -93,6 +93,7 @@ do
 			"freetype",
 			"ggentropy",
 			"ggformat",
+			"ggtime",
 			"glad",
 			"glfw3",
 			"jsmn",
@@ -106,7 +107,7 @@ do
 			"stb_rect_pack",
 			"stb_vorbis",
 			"tracy",
-			"zlib",
+			"yoga",
 			"zstd",
 			platform_libs,
 		},
@@ -157,10 +158,10 @@ do
 		libs = {
 			"ggentropy",
 			"ggformat",
+			"ggtime",
 			"monocypher",
 			"picohttpparser",
 			"tracy",
-			"zlib",
 			"zstd",
 		},
 

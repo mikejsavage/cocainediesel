@@ -121,22 +121,6 @@ void MSG_ReadDeltaGameState( msg_t * msg, const SyncGameState * baseline, SyncGa
 void MSG_ReadData( msg_t * msg, void *buffer, size_t length );
 msg_t MSG_ReadMsg( msg_t * msg );
 
-//============================================================================
-
-#define SNAP_MAX_DEMO_META_DATA_SIZE    16 * 1024
-
-// define this 0 to disable compression of demo files
-#define SNAP_DEMO_GZ                    FS_GZ
-
-void SNAP_RecordDemoMessage( int demofile, const msg_t * msg, size_t offset );
-int SNAP_ReadDemoMessage( int demofile, msg_t *msg );
-void SNAP_BeginDemoRecording( TempAllocator * temp, int demofile, unsigned int spawncount, unsigned int snapFrameTime,
-	const char *configstrings, SyncEntityState *baselines );
-void SNAP_StopDemoRecording( int demofile );
-void SNAP_WriteDemoMetaData( const char *filename, const char *meta_data, size_t meta_data_realsize );
-size_t SNAP_SetDemoMetaKeyValue( char *meta_data, size_t meta_data_max_size, size_t meta_data_realsize,
-								 const char *key, const char *value );
-
 /*
 ==============================================================
 
@@ -175,7 +159,6 @@ enum svc_ops_e {
 	svc_clcack,
 	svc_servercs,           //tmp jalfixme : send reliable commands as unreliable
 	svc_frame,
-	svc_demoinfo,
 };
 
 //==============================================
@@ -215,31 +198,6 @@ NET
 #define FRAGMENT_SIZE           ( MAX_PACKETLEN - 96 )
 #define FRAGMENT_LAST       (    1 << 14 )
 #define FRAGMENT_BIT            ( 1 << 31 )
-
-/*
-==============================================================
-
-FILESYSTEM
-
-==============================================================
-*/
-
-void        FS_Init();
-void        FS_Shutdown();
-
-// // game and base files
-// file streaming
-int     FS_FOpenAbsoluteFile( const char *filename, int *filenum, int mode );
-void    FS_FCloseFile( int file );
-
-int     FS_Read( void *buffer, size_t len, int file );
-
-int     FS_Write( const void *buffer, size_t len, int file );
-int     FS_Seek( int file, int offset, int whence );
-int     FS_Flush( int file );
-
-void    FS_SetCompressionLevel( int file, int level );
-int     FS_GetCompressionLevel( int file );
 
 /*
 ==============================================================
@@ -308,10 +266,7 @@ void Sys_Init();
 void ShowErrorMessage( const char * msg, const char * file, int line );
 
 int64_t Sys_Milliseconds();
-uint64_t Sys_Microseconds();
 void Sys_Sleep( unsigned int millis );
-bool Sys_FormatTimestamp( char * buf, size_t buf_size, const char * fmt, s64 time );
-bool Sys_FormatCurrentTime( char * buf, size_t buf_size, const char * fmt );
 
 const char * Sys_ConsoleInput();
 void Sys_ConsoleOutput( const char * string );
@@ -329,9 +284,11 @@ CLIENT / SERVER SYSTEMS
 */
 
 void CL_Init();
-void CL_Disconnect( const char *message );
 void CL_Shutdown();
 void CL_Frame( int realMsec, int gameMsec );
+void CL_Disconnect( const char *message );
+bool CL_DemoPlaying();
+
 void Con_Print( const char *text );
 
 void SV_Init();

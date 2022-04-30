@@ -15,8 +15,7 @@
 
 struct Asset {
 	char * path;
-	char * data;
-	size_t len;
+	Span< u8 > data;
 	bool compressed;
 };
 
@@ -40,7 +39,7 @@ enum IsCompressedBool : bool {
 	IsCompressed_Yes = true,
 };
 
-static void AddAsset( const char * path, u64 hash, char * contents, size_t len, IsCompressedBool compressed ) {
+static void AddAsset( const char * path, u64 hash, Span< u8 > data, IsCompressedBool compressed ) {
 	Lock( assets_mutex );
 	defer { Unlock( assets_mutex ); };
 
@@ -55,7 +54,7 @@ static void AddAsset( const char * path, u64 hash, char * contents, size_t len, 
 	Asset * a;
 	if( exists ) {
 		a = &assets[ idx ];
-		FREE( sys_allocator, a->data );
+		FREE( sys_allocator, a->data.ptr );
 	}
 	else {
 		a = &assets[ num_assets ];
@@ -63,8 +62,7 @@ static void AddAsset( const char * path, u64 hash, char * contents, size_t len, 
 		asset_paths[ num_assets ] = a->path;
 	}
 
-	a->data = contents;
-	a->len = len;
+	a->data = data;
 	a->compressed = compressed;
 
 	modified_asset_paths[ num_modified_assets ] = a->path;
@@ -92,15 +90,9 @@ static void DecompressAsset( TempAllocator * temp, void * data ) {
 	char * path_with_zst = ( *temp )( "{}.zst", job->path );
 	Span< u8 > decompressed;
 	if( Decompress( path_with_zst, sys_allocator, job->compressed, &decompressed ) ) {
-		// TODO: we need to add a null terminator too so AssetString etc works
-		char * decompressed_and_terminated = ALLOC_MANY( sys_allocator, char, decompressed.n + 1 );
-		memcpy( decompressed_and_terminated, decompressed.ptr, decompressed.n );
-		decompressed_and_terminated[ decompressed.n ] = '\0';
-
-		AddAsset( job->path, job->hash, decompressed_and_terminated, decompressed.n, IsCompressed_Yes );
+		AddAsset( job->path, job->hash, decompressed, IsCompressed_Yes );
 	}
 
-	FREE( sys_allocator, decompressed.ptr );
 	FREE( sys_allocator, job->path );
 	FREE( sys_allocator, job->compressed.ptr );
 	FREE( sys_allocator, job );
@@ -137,21 +129,20 @@ static void LoadAsset( TempAllocator * temp, const char * game_path, const char 
 		}
 	}
 
-	size_t len;
-	char * contents = ReadFileString( sys_allocator, full_path, &len );
-	if( contents == NULL )
+	Span< u8 > contents = ReadFileBinary( sys_allocator, full_path );
+	if( contents.ptr == NULL )
 		return;
 
 	if( compressed ) {
 		DecompressAssetJob * job = ALLOC( sys_allocator, DecompressAssetJob );
 		job->path = ( *sys_allocator )( "{}", game_path_no_zst );
 		job->hash = hash;
-		job->compressed = Span< u8 >( ( u8 * ) contents, len );
+		job->compressed = contents;
 
 		ThreadPoolDo( DecompressAsset, job );
 	}
 	else {
-		AddAsset( game_path, hash, contents, len, IsCompressed_No );
+		AddAsset( game_path, hash, contents, IsCompressed_No );
 	}
 }
 
@@ -226,7 +217,7 @@ void ShutdownAssets() {
 
 	for( u32 i = 0; i < num_assets; i++ ) {
 		FREE( sys_allocator, assets[ i ].path );
-		FREE( sys_allocator, assets[ i ].data );
+		FREE( sys_allocator, assets[ i ].data.ptr );
 	}
 
 	DeleteFSChangeMonitor( sys_allocator, fs_change_monitor );
@@ -238,7 +229,7 @@ Span< const char > AssetString( StringHash path ) {
 	u64 i;
 	if( !assets_hashtable.get( path.hash, &i ) )
 		return Span< const char >();
-	return Span< const char >( assets[ i ].data, assets[ i ].len );
+	return assets[ i ].data.cast< const char >();
 }
 
 Span< const char > AssetString( const char * path ) {

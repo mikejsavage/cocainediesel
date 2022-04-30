@@ -33,9 +33,6 @@ Cvar *cg_thirdPersonRange;
 
 Cvar *cg_projectileAntilagOffset;
 
-Cvar *cg_autoaction_demo;
-Cvar *cg_autoaction_screenshot;
-Cvar *cg_autoaction_spectator;
 Cvar *cg_showClamp;
 
 Cvar *cg_showServerDebugPrints;
@@ -79,15 +76,10 @@ static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 	return &cent->current;
 }
 
-static void CG_InitGameShared() {
-	int maxclients = atoi( cl.configstrings[ CS_MAXCLIENTS ] );
-	if( maxclients < 1 || maxclients > MAX_CLIENTS ) {
-		maxclients = MAX_CLIENTS;
-	}
-
+static void CG_InitGameShared( int max_clients ) {
 	client_gs = { };
 	client_gs.module = GS_MODULE_CGAME;
-	client_gs.maxclients = maxclients;
+	client_gs.maxclients = max_clients;
 
 	client_gs.api.PredictedEvent = CG_PredictedEvent;
 	client_gs.api.PredictedFireWeapon = CG_PredictedFireWeapon;
@@ -105,10 +97,6 @@ static void CG_RegisterVariables() {
 	cg_thirdPersonAngle = NewCvar( "cg_thirdPersonAngle", "0", 0 );
 	cg_thirdPersonRange = NewCvar( "cg_thirdPersonRange", "90", 0 );
 
-	cg_autoaction_demo = NewCvar( "cg_autoaction_demo", "0", CvarFlag_Archive );
-	cg_autoaction_screenshot = NewCvar( "cg_autoaction_screenshot", "0", CvarFlag_Archive );
-	cg_autoaction_spectator = NewCvar( "cg_autoaction_spectator", "0", CvarFlag_Archive );
-
 	cg_projectileAntilagOffset = NewCvar( "cg_projectileAntilagOffset", "1.0", CvarFlag_Archive );
 
 	cg_showClamp = NewCvar( "cg_showClamp", "0", CvarFlag_Developer );
@@ -125,12 +113,6 @@ const char * PlayerName( int i ) {
 	return names[ i ];
 }
 
-static void CG_RegisterConfigStrings() {
-	for( int i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
-		CG_ConfigString( i );
-	}
-}
-
 void CG_Reset() {
 	CG_ResetPModels();
 
@@ -142,7 +124,7 @@ void CG_Reset() {
 	CG_ClearInputState();
 
 	CG_InitDamageNumbers();
-	InitDecals();
+	ResetDecals();
 	InitPersistentBeams();
 	InitSprays();
 	ClearParticles();
@@ -159,7 +141,7 @@ static void PrintMap() {
 	Com_Printf( "Current map: %s\n", cl.map == NULL ? "null" : cl.map->name );
 }
 
-void CG_Init( unsigned int playerNum,
+void CG_Init( unsigned int playerNum, int max_clients,
 			  bool demoplaying, const char *demoName,
 			  unsigned snapFrameTime ) {
 	memset( &cg, 0, sizeof( cg_state_t ) );
@@ -167,9 +149,7 @@ void CG_Init( unsigned int playerNum,
 
 	memset( cg_entities, 0, sizeof( cg_entities ) );
 
-	CG_RegisterConfigStrings();
-
-	CG_InitGameShared();
+	CG_InitGameShared( max_clients );
 
 	// save local player number
 	cgs.playerNum = playerNum;

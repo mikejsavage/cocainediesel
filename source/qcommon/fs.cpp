@@ -6,7 +6,6 @@
 
 static char * root_dir_path;
 static char * home_dir_path;
-static char * old_home_dir_path;
 
 static char * FindRootDir( Allocator * a ) {
 	char * root = GetExePath( a );
@@ -19,20 +18,15 @@ void InitFS() {
 
 	if( !is_public_build ) {
 		home_dir_path = CopyString( sys_allocator, root_dir_path );
-		old_home_dir_path = CopyString( sys_allocator, home_dir_path );
 	}
 	else {
 		home_dir_path = FindHomeDirectory( sys_allocator );
-
-		const char * fmt = IFDEF( PLATFORM_WINDOWS ) ? "{} 0.0" : "{}-0.0";
-		old_home_dir_path = ( *sys_allocator )( fmt, home_dir_path );
 	}
 }
 
 void ShutdownFS() {
 	FREE( sys_allocator, root_dir_path );
 	FREE( sys_allocator, home_dir_path );
-	FREE( sys_allocator, old_home_dir_path );
 }
 
 const char * RootDirPath() {
@@ -43,20 +37,17 @@ const char * HomeDirPath() {
 	return home_dir_path;
 }
 
-const char * OldHomeDirPath() {
-	return old_home_dir_path;
-}
-
-// TODO: some kind of better handling
 size_t FileSize( FILE * file ) {
-	fseek( file, 0, SEEK_END );
+	if( fseek( file, 0, SEEK_END ) != 0 ) {
+		FatalErrno( "fseek" );
+	}
 	size_t size = ftell( file );
-	fseek( file, 0, SEEK_SET );
+	Seek( file, 0 );
 	return size;
 }
 
 char * ReadFileString( Allocator * a, const char * path, size_t * len ) {
-	FILE * file = OpenFile( a, path, "rb" );
+	FILE * file = OpenFile( a, path, OpenFile_Read );
 	if( file == NULL )
 		return NULL;
 
@@ -78,7 +69,7 @@ char * ReadFileString( Allocator * a, const char * path, size_t * len ) {
 }
 
 Span< u8 > ReadFileBinary( Allocator * a, const char * path ) {
-	FILE * file = OpenFile( a, path, "rb" );
+	FILE * file = OpenFile( a, path, OpenFile_Read );
 	if( file == NULL )
 		return Span< u8 >();
 
@@ -94,8 +85,8 @@ Span< u8 > ReadFileBinary( Allocator * a, const char * path ) {
 	return Span< u8 >( contents, size );
 }
 
-bool FileExists( Allocator * temp, const char * path ) {
-	FILE * file = OpenFile( temp, path, "rb" );
+bool FileExists( Allocator * a, const char * path ) {
+	FILE * file = OpenFile( a, path, OpenFile_Read );
 	if( file == NULL )
 		return false;
 	fclose( file );
@@ -131,11 +122,11 @@ bool CreatePathForFile( Allocator * a, const char * path ) {
 	return true;
 }
 
-bool WriteFile( TempAllocator * temp, const char * path, const void * data, size_t len ) {
-	if( !CreatePathForFile( temp, path ) )
+bool WriteFile( Allocator * a, const char * path, const void * data, size_t len ) {
+	if( !CreatePathForFile( a, path ) )
 		return false;
 
-	FILE * file = OpenFile( temp, path, "wb" );
+	FILE * file = OpenFile( a, path, OpenFile_WriteOverwrite );
 	if( file == NULL )
 		return false;
 
@@ -145,15 +136,38 @@ bool WriteFile( TempAllocator * temp, const char * path, const void * data, size
 	return w == len;
 }
 
+const char * OpenFileModeToString( OpenFileMode mode ) {
+	switch( mode ) {
+		case OpenFile_Read: return "rb";
+		case OpenFile_WriteNew: return "wbx";
+		case OpenFile_WriteOverwrite: return "wb";
+		case OpenFile_ReadWriteNew: return "w+bx";
+		case OpenFile_ReadWriteOverwrite: return "w+b";
+		case OpenFile_AppendNew: return "abx";
+		case OpenFile_AppendOverwrite: return "ab";
+	}
+
+	assert( false );
+	return NULL;
+}
+
 bool ReadPartialFile( FILE * file, void * data, size_t len, size_t * bytes_read ) {
 	*bytes_read = fread( data, 1, len, file );
-	return *bytes_read > 0 && ferror( file ) == 0;
+	return ferror( file ) == 0;
 }
 
 bool WritePartialFile( FILE * file, const void * data, size_t len ) {
-	return fwrite( data, 1, len, file ) == len;
+	return fwrite( data, 1, len, file ) == len && ferror( file ) == 0;
 }
 
-bool Seek( FILE * file, size_t cursor ) {
-	return fseek( file, checked_cast< long >( cursor ), SEEK_SET );
+void Seek( FILE * file, size_t cursor ) {
+	if( fseek( file, checked_cast< long >( cursor ), SEEK_SET ) != 0 ) {
+		FatalErrno( "fseek" );
+	}
+}
+
+bool CloseFile( FILE * file ) {
+	bool ok = ferror( file ) == 0;
+	fclose( file );
+	return ok;
 }

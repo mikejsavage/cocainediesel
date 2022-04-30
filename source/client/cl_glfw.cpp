@@ -452,6 +452,30 @@ Vec2 GetMouseMovement() {
 	return delta;
 }
 
+Vec2 GetJoystickMovement() {
+	Vec2 acc = Vec2( 0.0f );
+
+	for( int i = GLFW_JOYSTICK_1; i <= GLFW_JOYSTICK_LAST; i++ ) {
+		if( !glfwJoystickPresent( i ) )
+			continue;
+
+		int n;
+		const float * axes = glfwGetJoystickAxes( i, &n );
+
+		if( n < 2 )
+			continue;
+
+		acc.x += axes[ GLFW_GAMEPAD_AXIS_LEFT_X ];
+		acc.y -= axes[ GLFW_GAMEPAD_AXIS_LEFT_Y ];
+
+		constexpr float deadzone = 0.25f;
+		acc.x = Unlerp01( deadzone, Abs( acc.x ), 1.0f ) * SignedOne( acc.x );
+		acc.y = Unlerp01( deadzone, Abs( acc.y ), 1.0f ) * SignedOne( acc.y );
+	}
+
+	return acc;
+}
+
 void GlfwInputFrame() {
 	// show cursor if there are any imgui windows accepting inputs
 	bool gui_active = false;
@@ -507,22 +531,21 @@ int main( int argc, char ** argv ) {
 	Con_Init();
 	Qcommon_Init( argc, argv );
 
-	int64_t oldtime = Sys_Milliseconds();
+	s64 oldtime = Sys_Milliseconds();
 	while( !glfwWindowShouldClose( window ) ) {
-		int64_t newtime;
-		int dt;
+		s64 dt = 0;
 		{
 			TracyZoneScopedN( "Interframe" );
-
-			// find time spent rendering last frame
-			do {
-				newtime = Sys_Milliseconds();
-				dt = newtime - oldtime;
-			} while( dt == 0 );
-			oldtime = newtime;
+			while( dt == 0 ) {
+				dt = Sys_Milliseconds() - oldtime;
+			}
+			oldtime += dt;
 		}
 
-		glfwPollEvents();
+		{
+			TracyZoneScopedN( "glfwPollEvents" );
+			glfwPollEvents();
+		}
 
 		if( !Qcommon_Frame( dt ) ) {
 			break;

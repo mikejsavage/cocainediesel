@@ -5,6 +5,7 @@
 #include "client/renderer/types.h"
 
 void InitDecals();
+void ResetDecals();
 void ShutdownDecals();
 
 void DrawDecal( Vec3 origin, Vec3 normal, float radius, float angle, StringHash name, Vec4 color, float height = 0.0f );

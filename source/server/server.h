@@ -153,18 +153,6 @@ struct challenge_t {
 	int64_t time;
 };
 
-// for server side demo recording
-struct server_static_demo_t {
-	int file;
-	char *filename;
-	char *tempname;
-	time_t localtime;
-	int64_t basetime, duration;
-	client_t client;                // special client for writing the messages
-	char meta_data[SNAP_MAX_DEMO_META_DATA_SIZE];
-	size_t meta_data_realsize;
-};
-
 struct client_entities_t {
 	unsigned num_entities;      // maxclients->integer*UPDATE_BACKUP*MAX_PACKET_ENTITIES
 	unsigned next_entities;     // next client_entity to use
@@ -190,11 +178,7 @@ struct server_static_t {
 
 	challenge_t challenges[MAX_CHALLENGES]; // to prevent invalid IPs from connecting
 
-	server_static_demo_t demo;
-
-	CollisionModel *cms;                // passed to CM-functions
-
-	u64 ent_string_checksum;
+	CollisionModel * cms;                // passed to CM-functions
 };
 
 struct server_constant_t {
@@ -219,6 +203,7 @@ extern Cvar *sv_port;
 
 extern Cvar *sv_downloadurl;
 
+extern Cvar *sv_hostname;
 extern Cvar *sv_maxclients;
 
 extern Cvar *sv_showChallenge;
@@ -260,7 +245,6 @@ void SV_UpdateMaster();
 //
 void SV_InitGame();
 void SV_Map( const char *level, bool devmap );
-void SV_SetServerConfigStrings();
 
 //
 // sv_send.c
@@ -325,9 +309,6 @@ void SV_BuildClientFrameSnap( client_t *client );
 //
 // sv_game.c
 //
-void SV_InitGameProgs();
-void SV_ShutdownGameProgs();
-
 void PF_DropClient( edict_t *ent, const char *message );
 int PF_GetClientState( int numClient );
 void PF_GameCmd( edict_t *ent, const char *cmd );
@@ -339,15 +320,14 @@ void SV_LocateEntities( edict_t *edicts, int num_edicts, int max_edicts );
 // sv_demos.c
 //
 void SV_Demo_WriteSnap();
+void SV_Demo_AddServerCommand( const char * command );
+void SV_Demo_Stop( bool silent );
 void SV_Demo_Start_f();
 void SV_Demo_Stop_f();
-void SV_Demo_Cancel_f();
 void SV_Demo_Purge_f();
 
 void SV_DemoList_f( edict_t * ent );
 void SV_DemoGetUrl_f( edict_t * ent, msg_t args );
-
-#define SV_SetDemoMetaKeyValue( k,v ) svs.demo.meta_data_realsize = SNAP_SetDemoMetaKeyValue( svs.demo.meta_data, sizeof( svs.demo.meta_data ), svs.demo.meta_data_realsize, k, v )
 
 //
 // sv_web.c

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/base.h"
 #include "client/client.h"
 #include "client/assets.h"
+#include "client/discord.h"
 #include "client/downloads.h"
 #include "client/threadpool.h"
 #include "client/demo_browser.h"
@@ -32,8 +33,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/hash.h"
 #include "qcommon/fs.h"
 #include "qcommon/livepp.h"
-#include "client/discord.h"
 #include "qcommon/string.h"
+#include "qcommon/time.h"
 #include "qcommon/version.h"
 #include "gameshared/gs_public.h"
 
@@ -126,8 +127,8 @@ static void CL_SendConnectPacket() {
 	userinfo_modified = false;
 
 	TempAllocator temp = cls.frame_arena.temp();
-	Netchan_OutOfBandPrint( cls.socket, cls.serveraddress, "%s", temp( "connect {} {} {} \"{}\"\n",
-		APP_PROTOCOL_VERSION, cls.session_id, cls.challenge, Cvar_GetUserInfo() ) );
+	Netchan_OutOfBandPrint( cls.socket, cls.serveraddress, "%s",
+		temp( "connect {} {} {} \"{}\"\n", APP_PROTOCOL_VERSION, cls.session_id, cls.challenge, Cvar_GetUserInfo() ) );
 }
 
 /*
@@ -136,9 +137,7 @@ static void CL_SendConnectPacket() {
 * Resend a connect message if the last one has timed out
 */
 static void CL_CheckForResend() {
-	int64_t realtime = cls.monotonicTime;
-
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		return;
 	}
 
@@ -149,7 +148,7 @@ static void CL_CheckForResend() {
 
 	// resend if we haven't gotten a reply yet
 	if( cls.state == CA_CONNECTING ) {
-		if( realtime - cls.connect_time < 3000 ) {
+		if( cls.connect_time.exists && cls.monotonicTime - cls.connect_time.value < Seconds( 3 ) ) {
 			return;
 		}
 		if( cls.connect_count > 3 ) {
@@ -157,7 +156,7 @@ static void CL_CheckForResend() {
 			return;
 		}
 		cls.connect_count++;
-		cls.connect_time = realtime; // for retransmit requests
+		cls.connect_time = cls.monotonicTime;
 
 		Com_GGPrint( "Connecting to {}...", cls.serveraddress );
 
@@ -174,7 +173,7 @@ void CL_Connect( const NetAddress & address ) {
 
 	CL_SetClientState( CA_CONNECTING );
 
-	cls.connect_time = -99999; // CL_CheckForResend() will fire immediately
+	cls.connect_time = NONE; // CL_CheckForResend() will fire immediately
 	cls.connect_count = 0;
 	cls.rejected = false;
 	cls.lastPacketReceivedTime = cls.realtime; // reset the timeout limit
@@ -221,7 +220,7 @@ static void CL_Connect_f() {
 * an unconnected command.
 */
 static void CL_Rcon_f() {
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		return;
 	}
 
@@ -341,19 +340,20 @@ void CL_Disconnect( const char *message ) {
 
 	SV_ShutdownGame( "Owner left the listen server", false );
 
-	cls.connect_time = 0;
+	cls.connect_time = NONE;
 	cls.connect_count = 0;
 	cls.rejected = false;
 
-	if( cls.demo.recording ) {
-		CL_Stop_f();
-	}
+	CL_StopRecording( true );
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		CL_DemoCompleted();
 	} else {
 		CL_Disconnect_SendCommand(); // send a disconnect message to the server
 	}
+
+	FREE( sys_allocator, cls.server_name );
+	cls.server_name = NULL;
 
 	FREE( sys_allocator, cls.download_url );
 	cls.download_url = NULL;
@@ -384,9 +384,7 @@ void CL_Disconnect_f() {
 * drop to full console
 */
 void CL_Changing_f() {
-	if( cls.demo.recording ) {
-		CL_Stop_f();
-	}
+	CL_StopRecording( true );
 
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 
@@ -402,7 +400,7 @@ void CL_Changing_f() {
 * The server is changing levels
 */
 void CL_ServerReconnect_f() {
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		return;
 	}
 
@@ -413,9 +411,7 @@ void CL_ServerReconnect_f() {
 
 	CancelDownload();
 
-	if( cls.demo.recording ) {
-		CL_Stop_f();
-	}
+	CL_StopRecording( true );
 
 	cls.connect_count = 0;
 	cls.rejected = false;
@@ -425,7 +421,7 @@ void CL_ServerReconnect_f() {
 
 	Com_Printf( "Reconnecting...\n" );
 
-	cls.connect_time = Sys_Milliseconds() - 1500;
+	cls.connect_time = cls.monotonicTime;
 
 	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 	CL_SetClientState( CA_HANDSHAKE );
@@ -471,7 +467,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 		return;
 	}
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		return;
 	}
 
@@ -571,7 +567,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 		cls.challenge = atoi( Cmd_Argv( 1 ) );
 		//wsw : r1q2[start]
 		//r1: reset the timer so we don't send dup. getchallenges
-		cls.connect_time = Sys_Milliseconds();
+		cls.connect_time = cls.monotonicTime;
 		//wsw : r1q2[end]
 		CL_SendConnectPacket();
 		return;
@@ -617,7 +613,7 @@ void CL_ReadPackets() {
 		return;
 	}
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		// only allow connectionless packets during demo playback
 		return;
 	}
@@ -700,15 +696,14 @@ static bool AddDownloadedMap( const char * filename, Span< const u8 > compressed
 * before allowing the client into the server
 */
 void CL_Precache_f() {
-	if( cls.demo.playing ) {
-		if( !cls.demo.play_jump ) {
+	if( CL_DemoPlaying() ) {
+		if( !CL_DemoSeeking() ) {
 			CL_GameModule_Init();
-		} else {
+		}
+		else {
 			CL_GameModule_Reset();
 			StopAllSounds( false );
 		}
-
-		cls.demo.play_ignore_next_frametime = true;
 
 		return;
 	}
@@ -787,6 +782,10 @@ static Span< const char * > TabCompleteDemo( TempAllocator * a, const char * par
 	return TabCompleteFilenameHomeDir( a, partial, "demos", APP_DEMO_EXTENSION_STR );
 }
 
+static void CL_Stop_f() {
+	CL_StopRecording( false );
+}
+
 static void CL_InitLocal() {
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -833,7 +832,6 @@ static void CL_InitLocal() {
 
 	NewCvar( "sensitivity", "3", CvarFlag_Archive );
 	NewCvar( "horizontalsensscale", "1", CvarFlag_Archive );
-	NewCvar( "m_accel", "0", CvarFlag_Archive );
 	NewCvar( "m_invertY", "0", CvarFlag_Archive );
 
 	AddCommand( "connect", CL_Connect_f );
@@ -876,7 +874,7 @@ void CL_AdjustServerTime( unsigned int gameMsec ) {
 	TracyZoneScoped;
 
 	// hurry up if coming late (unless in demos)
-	if( !cls.demo.playing ) {
+	if( !CL_DemoPlaying() ) {
 		if( ( cl.newServerTimeDelta < cl.serverTimeDelta ) && gameMsec > 0 ) {
 			cl.serverTimeDelta--;
 		}
@@ -920,7 +918,7 @@ int CL_SmoothTimeDeltas() {
 	double delta;
 	snapshot_t  *snap;
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		if( cl.currentSnapNum <= 0 ) { // if first snap
 			return cl.serverTimeDeltas[cl.pendingSnapNum & MASK_TIMEDELTAS_BACKUP];
 		}
@@ -951,7 +949,7 @@ int CL_SmoothTimeDeltas() {
 /*
 * CL_UpdateSnapshot - Check for pending snapshots, and fire if needed
 */
-void CL_UpdateSnapshot() {
+static void CL_UpdateSnapshot() {
 	TracyZoneScoped;
 
 	snapshot_t  *snap;
@@ -983,13 +981,13 @@ void CL_UpdateSnapshot() {
 				cl_extrapolationTime->modified = false;
 			}
 
-			if( !cls.demo.playing && cl_extrapolate->integer ) {
+			if( !CL_DemoPlaying() && cl_extrapolate->integer ) {
 				cl.newServerTimeDelta += cl_extrapolationTime->integer;
 			}
 
 			// if we don't have current snap (or delay is too big) don't wait to fire the pending one
-			if( ( !cls.demo.play_jump && cl.currentSnapNum <= 0 ) ||
-				( !cls.demo.playing && Abs( cl.newServerTimeDelta - cl.serverTimeDelta ) > 200 ) ) {
+			if( ( !CL_DemoSeeking() && cl.currentSnapNum <= 0 ) ||
+				( !CL_DemoPlaying() && Abs( cl.newServerTimeDelta - cl.serverTimeDelta ) > 200 ) ) {
 				cl.serverTimeDelta = cl.newServerTimeDelta;
 			}
 		}
@@ -1031,7 +1029,7 @@ static bool CL_MaxPacketsReached() {
 	float minTime = ( 1000.0f / cl_pps->number );
 
 	// don't let cl_pps be smaller than sv_pps
-	if( cls.state == CA_ACTIVE && !cls.demo.playing && cl.snapFrameTime ) {
+	if( cls.state == CA_ACTIVE && !CL_DemoPlaying() && cl.snapFrameTime ) {
 		if( (unsigned int)minTime > cl.snapFrameTime ) {
 			minTime = cl.snapFrameTime;
 		}
@@ -1057,7 +1055,7 @@ void CL_SendMessagesToServer( bool sendNow ) {
 		return;
 	}
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		return;
 	}
 
@@ -1099,7 +1097,7 @@ static void CL_NetFrame( int realMsec, int gameMsec ) {
 		cls.lastPacketReceivedTime = cls.realtime;
 	}
 
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		CL_ReadDemoPackets(); // fetch results from demo file
 	}
 	CL_ReadPackets(); // fetch results from server
@@ -1133,20 +1131,14 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	static int allRealMsec = 0, allGameMsec = 0, extraMsec = 0;
 	static float roundingMsec = 0.0f;
 
-	cls.monotonicTime += realMsec;
+	cls.monotonicTime += Milliseconds( realMsec );
 	cls.realtime += realMsec;
 
-	if( cls.demo.playing && cls.demo.play_ignore_next_frametime ) {
-		gameMsec = 0;
-		cls.demo.play_ignore_next_frametime = false;
-	}
-
-	if( cls.demo.playing ) {
-		if( cls.demo.paused ) {
+	if( CL_DemoPlaying() ) {
+		if( CL_DemoPaused() ) {
 			gameMsec = 0;
-		} else {
-			CL_LatchedDemoJump();
 		}
+		CL_LatchedDemoJump();
 	}
 
 	cls.gametime += gameMsec;
@@ -1193,7 +1185,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 		HotloadAssets( &temp );
 	}
 
-	cls.frametime = cls.demo.paused ? 0 : allGameMsec;
+	cls.frametime = allGameMsec;
 	cls.realFrameTime = allRealMsec;
 	if( allRealMsec < minMsec ) { // is compensating for a too slow frame
 		extraMsec = Clamp( 0, extraMsec - ( minMsec - allRealMsec ), 100 );
@@ -1241,7 +1233,7 @@ void CL_Init() {
 
 	CSPRNG( &cls.session_id, sizeof( cls.session_id ) );
 
-	cls.monotonicTime = 0;
+	cls.monotonicTime = { };
 
 	assert( !cl_initialized );
 

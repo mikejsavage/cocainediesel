@@ -83,6 +83,7 @@ struct client_state_t {
 	// server state information
 	//
 	int servercount;        // server identification for prespawns
+	int max_clients;
 	int playernum;
 
 	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
@@ -105,32 +106,6 @@ enum keydest_t {
 	key_menu,
 };
 
-struct cl_demo_t {
-	char *name;
-
-	bool recording;
-	bool waiting;       // don't record until a non-delta message is received
-	bool playing;
-	bool paused;        // A boolean to test if demo is paused -- PLX
-
-	int file;
-	char *filename;
-
-	time_t localtime;       // time of day of demo recording
-	int64_t time;           // milliseconds passed since the start of the demo
-	int64_t duration, basetime;
-
-	bool play_jump;
-	bool play_jump_latched;
-	int64_t play_jump_time;
-	bool play_ignore_next_frametime;
-
-	char meta_data[SNAP_MAX_DEMO_META_DATA_SIZE];
-	size_t meta_data_realsize;
-
-	bool yolo;
-};
-
 struct client_static_t {
 	ArenaAllocator frame_arena;
 
@@ -140,7 +115,7 @@ struct client_static_t {
 	connstate_t state;          // only set through CL_SetClientState
 	keydest_t key_dest;
 
-	int64_t monotonicTime; // starts at 0 when the game is launched, increases forever
+	Time monotonicTime; // starts at 0 when the game is launched, increases forever
 
 	int64_t framecount;
 	int64_t realtime;               // always increasing, no clamping, etc
@@ -154,12 +129,13 @@ struct client_static_t {
 	bool cgameActive;
 
 	// connection information
-	NetAddress serveraddress;         // address of that server
-	int64_t connect_time;               // for connection retransmits
+	NetAddress serveraddress; // address of that server
+	Optional< Time > connect_time; // for connection retransmits
 	int connect_count;
 
 	NetAddress rconaddress;       // address where we are sending rcon messages, to ignore other print packets
 
+	char * server_name;
 	char * download_url;              // http://<httpaddress>/
 
 	bool rejected;          // these are used when the server rejects our connection
@@ -168,9 +144,6 @@ struct client_static_t {
 	netchan_t netchan;
 
 	int challenge;              // from the server to use for connecting
-
-	// demo recording info must be here, so it isn't cleared on level change
-	cl_demo_t demo;
 
 	const Material * white_material;
 
@@ -270,7 +243,6 @@ void CL_GetCurrentState( int64_t *incomingAcknowledged, int64_t *outgoingSequenc
 void CL_GameModule_Init();
 void CL_GameModule_Reset();
 void CL_GameModule_Shutdown();
-void CL_GameModule_ConfigString( int number );
 void CL_GameModule_EscapeKey();
 bool CL_GameModule_NewSnapshot( int pendingSnapshot );
 void CL_GameModule_RenderView();
@@ -291,17 +263,20 @@ void CL_WriteUcmdsToMessage( msg_t *msg );
 //
 // cl_demo.c
 //
-void CL_WriteDemoMessage( const msg_t * msg, size_t offset );
+void CL_WriteDemoMessage( msg_t msg, size_t offset );
+void CL_DemoBaseline( const snapshot_t * snap );
 void CL_DemoCompleted();
 void CL_PlayDemo_f();
 void CL_YoloDemo_f();
 void CL_ReadDemoPackets();
 void CL_LatchedDemoJump();
-void CL_Stop_f();
 void CL_Record_f();
+bool CL_DemoPaused();
+bool CL_DemoSeeking();
+bool CL_YoloDemo();
+void CL_StopRecording( bool silent );
 void CL_PauseDemo_f();
 void CL_DemoJump_f();
-#define CL_SetDemoMetaKeyValue( k,v ) cls.demo.meta_data_realsize = SNAP_SetDemoMetaKeyValue( cls.demo.meta_data, sizeof( cls.demo.meta_data ), cls.demo.meta_data_realsize, k, v )
 
 //
 // cl_parse.c
@@ -336,4 +311,4 @@ void CL_ImGuiEndFrame();
 // snap_read
 //
 void SNAP_ParseBaseline( msg_t *msg, SyncEntityState *baselines );
-snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *backup, SyncEntityState *baselines, int showNet );
+snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t *backup, SyncEntityState *baselines, int showNet );

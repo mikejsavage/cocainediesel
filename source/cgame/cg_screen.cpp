@@ -21,35 +21,22 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/text.h"
+#include "qcommon/time.h"
 
-Cvar *cg_showPointedPlayer;
-Cvar *cg_draw2D;
+Cvar * cg_showPointedPlayer;
+Cvar * cg_draw2D;
 
-Cvar *cg_crosshair_size;
-Cvar *cg_crosshair_gap;
-Cvar *cg_crosshair_dynamic;
+Cvar * cg_crosshair_size;
+Cvar * cg_crosshair_gap;
+Cvar * cg_crosshair_dynamic;
 
 static constexpr float playerNamesAlpha = 0.4f;
 static constexpr float playerNamesZfar = 1024.0f;
 static constexpr float playerNamesZclose = 112.0f;
 static constexpr float playerNamesZgrow = 2.5f;
 
-static constexpr int64_t crosshairDamageTime = 200;
-
-static constexpr int64_t crosshairTimeOffset = 75;
-static constexpr float crosshairTimeSpeed = 0.25f;
-static constexpr float crosshairRefireTimeSpeed = 1.6f;
-static constexpr float crosshairReFireSizeRatio = 0.002f;
-static constexpr float crosshairFireGap = 0.25f;
-static constexpr float crosshairFireSizeRatio = 0.125f;
-
-static int64_t scr_damagetime = 0;
-static int64_t scr_shoottime = 0;
-static s16 current_refire_time = 0;
-
-static constexpr int maxCrosshairSize = 50;
-static constexpr int maxCrosshairGapSize = 50;
-
+static Time scr_damagetime = { };
+static Time dynamic_crosshair_recover_time = { };
 
 /*
 ===============================================================================
@@ -69,7 +56,7 @@ static int scr_centertime_off;
 * Called for important messages that should stay in the center of the screen
 * for a few moments
 */
-void CG_CenterPrint( const char *str ) {
+void CG_CenterPrint( const char * str ) {
 	Q_strncpyz( scr_centerstring, str, sizeof( scr_centerstring ) );
 	scr_centertime_off = centerTimeOff;
 }
@@ -93,7 +80,7 @@ void CG_ScreenCrosshairDamageUpdate() {
 
 static bool CG_IsShownCrosshair() {
 	WeaponType weapon = cg.predictedPlayerState.weapon;
-	return  cg.predictedPlayerState.health > 0 &&
+	return cg.predictedPlayerState.health > 0 &&
 			!( weapon == Weapon_Knife || weapon == Weapon_Sniper ) &&
 			!( weapon == Weapon_AutoSniper && cg.predictedPlayerState.zoom_time > 0 );
 }
@@ -101,9 +88,9 @@ static bool CG_IsShownCrosshair() {
 void CG_ScreenCrosshairShootUpdate( u16 refire_time ) {
 	if( !CG_IsShownCrosshair() )
 		return;
-
-	current_refire_time = Max2( (int64_t)0, current_refire_time + scr_shoottime + crosshairTimeOffset - cls.monotonicTime ) + refire_time * crosshairRefireTimeSpeed;
-	scr_shoottime = cls.monotonicTime - crosshairTimeOffset;
+	constexpr float min_gap = 5.0f;
+	float gap = min_gap + ToSeconds( Milliseconds( refire_time ) ) * 10.0f;
+	dynamic_crosshair_recover_time = cls.monotonicTime + Seconds( logf( gap ) * 0.1f );
 }
 
 static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
@@ -111,18 +98,22 @@ static void CG_FillRect( int x, int y, int w, int h, Vec4 color ) {
 }
 
 void CG_DrawCrosshair( int x, int y ) {
+	static constexpr int maxCrosshairSize = 50;
+	static constexpr int maxCrosshairGapSize = 50;
+
 	if( !CG_IsShownCrosshair() )
 		return;
 
-	Vec4 color = cls.monotonicTime - scr_damagetime <= crosshairDamageTime ? vec4_red : vec4_white; 
+	static constexpr Time crosshairDamageTime = Milliseconds( 200 );
+	Vec4 color = cls.monotonicTime - scr_damagetime <= crosshairDamageTime ? vec4_red : vec4_white;
 
 	int size = Clamp( 1, cg_crosshair_size->integer, maxCrosshairSize );
 	int gap = Clamp( 0, cg_crosshair_gap->integer, maxCrosshairGapSize );
-	if( cg_crosshair_dynamic->integer ) {
-		float diff = 1000.0f / ( ( cls.monotonicTime - scr_shoottime ) * crosshairTimeSpeed );
-		float refire_ratio = Max2( 1.0f, 1.0f + ( current_refire_time + scr_shoottime + crosshairTimeOffset - cls.monotonicTime ) * crosshairReFireSizeRatio );
-		gap += diff * crosshairFireGap * refire_ratio;
-		size += diff * crosshairFireSizeRatio * refire_ratio;
+	if( cg_crosshair_dynamic->integer && cls.monotonicTime < dynamic_crosshair_recover_time ) {
+		float dt = ToSeconds( dynamic_crosshair_recover_time - cls.monotonicTime );
+		float diff = expf( dt * 10.0f );
+		gap += diff;
+		size += diff * 0.5f;
 	}
 
 	CG_FillRect( x - 2, y - 2 - size - gap, 4, 4 + size, vec4_black );
@@ -131,13 +122,11 @@ void CG_DrawCrosshair( int x, int y ) {
 	CG_FillRect( x - 2 - size - gap, y - 2, 4 + size, 4, vec4_black );
 	CG_FillRect( x - 2 + gap, y - 2, 4 + size, 4, vec4_black );
 
-
 	CG_FillRect( x - 1, y - 1 - gap - size, 2, 2 + size, color );
 	CG_FillRect( x - 1, y - 1 + gap, 2, 2 + size, color );
 
 	CG_FillRect( x - 1 - size - gap, y - 1, 2 + size, 2, color );
 	CG_FillRect( x - 1 + gap, y - 1, 2 + size, 2, color );
-
 }
 
 void CG_DrawPlayerNames( const Font * font, float font_size, Vec4 color, bool border ) {

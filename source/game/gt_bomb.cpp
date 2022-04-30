@@ -232,6 +232,8 @@ static bool ParseLoadout( Loadout * loadout, const char * loadout_string ) {
 		int perk;
 		if( !TrySpanToInt( token, &perk ) || perk <= Perk_None || perk >= Perk_Count )
 			return false;
+		if( !GetPerkDef( PerkType( perk ) )->enabled )
+			return false;
 		loadout->perk = PerkType( perk );
 	}
 
@@ -1220,18 +1222,6 @@ static void GT_Bomb_Think() {
 	// GENERIC_UpdateMatchScore(); TODO
 }
 
-static bool GT_Bomb_MatchStateFinished( MatchState incomingMatchState ) {
-	if( server_gs.gameState.match_state <= MatchState_Warmup && incomingMatchState > MatchState_Warmup && incomingMatchState < MatchState_PostMatch ) {
-		G_Match_Autorecord_Start();
-	}
-
-	if( server_gs.gameState.match_state == MatchState_PostMatch ) {
-		G_Match_Autorecord_Stop();
-	}
-
-	return true;
-}
-
 static void GT_Bomb_MatchStateStarted() {
 	switch( server_gs.gameState.match_state ) {
 		case MatchState_Warmup:
@@ -1308,7 +1298,6 @@ Gametype GetBombGametype() {
 
 	gt.Init = GT_Bomb_InitGametype;
 	gt.MatchStateStarted = GT_Bomb_MatchStateStarted;
-	gt.MatchStateFinished = GT_Bomb_MatchStateFinished;
 	gt.Think = GT_Bomb_Think;
 	gt.PlayerConnected = GT_Bomb_PlayerConnected;
 	gt.PlayerRespawning = GT_Bomb_PlayerRespawning;

@@ -340,15 +340,11 @@ bool CG_ScoreboardShown();
 extern Cvar *cg_showClamp;
 
 // wsw
-extern Cvar *cg_autoaction_demo;
-extern Cvar *cg_autoaction_screenshot;
-extern Cvar *cg_autoaction_spectator;
-
 extern Cvar *cg_projectileAntilagOffset;
 
 extern Cvar *cg_showServerDebugPrints;
 
-void CG_Init( unsigned int playerNum, bool demoplaying, const char *demoName, unsigned snapFrameTime );
+void CG_Init( unsigned int playerNum, int max_clients, bool demoplaying, const char *demoName, unsigned snapFrameTime );
 void CG_Shutdown();
 
 #ifndef _MSC_VER
@@ -368,9 +364,7 @@ const char * PlayerName( int i );
 //
 // cg_svcmds.c
 //
-void CG_ConfigString( int idx );
 void CG_GameCommand( const char *command );
-void CG_SC_AutoRecordAction( const char *action );
 
 //
 // cg_teams.c
@@ -398,6 +392,9 @@ float CG_ViewSmoothFallKick();
 float CG_CalcViewFov();
 void CG_RenderView( unsigned extrapolationTime );
 bool CG_ChaseStep( int step );
+
+float WidescreenFov( float fov );
+float CalcHorizontalFov( const char * caller, float fov_y, float width, float height );
 
 //
 // cg_lents.c

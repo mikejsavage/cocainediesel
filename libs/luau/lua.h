@@ -44,7 +44,7 @@ typedef int (*lua_Continuation)(lua_State* L, int status);
 ** prototype for memory-allocation functions
 */
 
-typedef void* (*lua_Alloc)(lua_State* L, void* ud, void* ptr, size_t osize, size_t nsize);
+typedef void* (*lua_Alloc)(void* ud, void* ptr, size_t osize, size_t nsize);
 
 /* non-return type */
 #define l_noret void LUA_NORETURN
@@ -172,25 +172,26 @@ LUA_API const char* lua_pushvfstring(lua_State* L, const char* fmt, va_list argp
 LUA_API LUA_PRINTF_ATTR(2, 3) const char* lua_pushfstringL(lua_State* L, const char* fmt, ...);
 LUA_API void lua_pushcclosurek(lua_State* L, lua_CFunction fn, const char* debugname, int nup, lua_Continuation cont);
 LUA_API void lua_pushboolean(lua_State* L, int b);
-LUA_API void lua_pushlightuserdata(lua_State* L, void* p);
 LUA_API int lua_pushthread(lua_State* L);
+
+LUA_API void lua_pushlightuserdata(lua_State* L, void* p);
+LUA_API void* lua_newuserdatatagged(lua_State* L, size_t sz, int tag);
+LUA_API void* lua_newuserdatadtor(lua_State* L, size_t sz, void (*dtor)(void*));
 
 /*
 ** get functions (Lua -> stack)
 */
-LUA_API void lua_gettable(lua_State* L, int idx);
-LUA_API void lua_getfield(lua_State* L, int idx, const char* k);
-LUA_API void lua_rawgetfield(lua_State* L, int idx, const char* k);
-LUA_API void lua_rawget(lua_State* L, int idx);
-LUA_API void lua_rawgeti(lua_State* L, int idx, int n);
+LUA_API int lua_gettable(lua_State* L, int idx);
+LUA_API int lua_getfield(lua_State* L, int idx, const char* k);
+LUA_API int lua_rawgetfield(lua_State* L, int idx, const char* k);
+LUA_API int lua_rawget(lua_State* L, int idx);
+LUA_API int lua_rawgeti(lua_State* L, int idx, int n);
 LUA_API void lua_createtable(lua_State* L, int narr, int nrec);
 
 LUA_API void lua_setreadonly(lua_State* L, int idx, int enabled);
 LUA_API int lua_getreadonly(lua_State* L, int idx);
 LUA_API void lua_setsafeenv(lua_State* L, int idx, int enabled);
 
-LUA_API void* lua_newuserdatatagged(lua_State* L, size_t sz, int tag);
-LUA_API void* lua_newuserdatadtor(lua_State* L, size_t sz, void (*dtor)(void*));
 LUA_API int lua_getmetatable(lua_State* L, int objindex);
 LUA_API void lua_getfenv(lua_State* L, int idx);
 
@@ -229,25 +230,60 @@ LUA_API void lua_setthreaddata(lua_State* L, void* data);
 
 enum lua_GCOp
 {
+    /* stop and resume incremental garbage collection */
     LUA_GCSTOP,
     LUA_GCRESTART,
+
+    /* run a full GC cycle; not recommended for latency sensitive applications */
     LUA_GCCOLLECT,
+
+    /* return the heap size in KB and the remainder in bytes */
     LUA_GCCOUNT,
     LUA_GCCOUNTB,
+
+    /* return 1 if GC is active (not stopped); note that GC may not be actively collecting even if it's running */
     LUA_GCISRUNNING,
 
-    // garbage collection is handled by 'assists' that perform some amount of GC work matching pace of allocation
-    // explicit GC steps allow to perform some amount of work at custom points to offset the need for GC assists
-    // note that GC might also be paused for some duration (until bytes allocated meet the threshold)
-    // if an explicit step is performed during this pause, it will trigger the start of the next collection cycle
+    /*
+    ** perform an explicit GC step, with the step size specified in KB
+    **
+    ** garbage collection is handled by 'assists' that perform some amount of GC work matching pace of allocation
+    ** explicit GC steps allow to perform some amount of work at custom points to offset the need for GC assists
+    ** note that GC might also be paused for some duration (until bytes allocated meet the threshold)
+    ** if an explicit step is performed during this pause, it will trigger the start of the next collection cycle
+    */
     LUA_GCSTEP,
 
+    /*
+    ** tune GC parameters G (goal), S (step multiplier) and step size (usually best left ignored)
+    **
+    ** garbage collection is incremental and tries to maintain the heap size to balance memory and performance overhead
+    ** this overhead is determined by G (goal) which is the ratio between total heap size and the amount of live data in it
+    ** G is specified in percentages; by default G=200% which means that the heap is allowed to grow to ~2x the size of live data.
+    **
+    ** collector tries to collect S% of allocated bytes by interrupting the application after step size bytes were allocated.
+    ** when S is too small, collector may not be able to catch up and the effective goal that can be reached will be larger.
+    ** S is specified in percentages; by default S=200% which means that collector will run at ~2x the pace of allocations.
+    **
+    ** it is recommended to set S in the interval [100 / (G - 100), 100 + 100 / (G - 100))] with a minimum value of 150%; for example:
+    ** - for G=200%, S should be in the interval [150%, 200%]
+    ** - for G=150%, S should be in the interval [200%, 300%]
+    ** - for G=125%, S should be in the interval [400%, 500%]
+    */
     LUA_GCSETGOAL,
     LUA_GCSETSTEPMUL,
     LUA_GCSETSTEPSIZE,
 };
 
 LUA_API int lua_gc(lua_State* L, int what, int data);
+
+/*
+** memory statistics
+** all allocated bytes are attributed to the memory category of the running thread (0..LUA_MEMORY_CATEGORIES-1)
+*/
+
+LUA_API void lua_setmemcat(lua_State* L, int category);
+LUA_API size_t lua_totalbytes(lua_State* L, int category);
 
 /*
 ** miscellaneous functions
@@ -264,6 +300,8 @@ LUA_API uintptr_t lua_encodepointer(lua_State* L, uintptr_t p);
 LUA_API double lua_clock();
 
 LUA_API void lua_setuserdatadtor(lua_State* L, int tag, void (*dtor)(void*));
+
+LUA_API void lua_clonefunction(lua_State* L, int idx);
 
 /*
 ** reference system, can be used to pin objects
@@ -324,6 +362,7 @@ typedef struct lua_Debug lua_Debug; /* activation record */
 /* Functions to be called by the debugger in specific events */
 typedef void (*lua_Hook)(lua_State* L, lua_Debug* ar);
 
+LUA_API int lua_stackdepth(lua_State* L);
 LUA_API int lua_getinfo(lua_State* L, int level, const char* what, lua_Debug* ar);
 LUA_API int lua_getargument(lua_State* L, int level, int n);
 LUA_API const char* lua_getlocal(lua_State* L, int level, int n);

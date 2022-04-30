@@ -1,6 +1,7 @@
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/string.h"
+#include "qcommon/time.h"
 
 #include "imgui/imgui.h"
 
@@ -9,12 +10,12 @@ constexpr size_t CHAT_HISTORY_SIZE = 64;
 
 enum ChatMode {
 	ChatMode_None,
-	ChatMode_Say,
-	ChatMode_SayTeam,
+	ChatMode_All,
+	ChatMode_Team,
 };
 
 struct ChatMessage {
-	s64 time;
+	Time time;
 	char text[ CHAT_MESSAGE_SIZE ];
 };
 
@@ -28,16 +29,13 @@ struct Chat {
 
 	bool at_bottom;
 	bool scroll_to_bottom;
-
-	s64 lastHighlightTime;
 };
 
 static Chat chat;
 
-static void OpenChat() {
-	if( !cls.demo.playing ) {
-		bool team = StrCaseEqual( Cmd_Argv( 0 ), "messagemode2" );
-		chat.mode = team ? ChatMode_SayTeam : ChatMode_Say;
+static void OpenChat( ChatMode mode ) {
+	if( !CL_DemoPlaying() ) {
+		chat.mode = mode;
 		chat.input[ 0 ] = '\0';
 		chat.scroll_to_bottom = true;
 		CL_SetKeyDest( key_ImGui );
@@ -53,13 +51,13 @@ static void CloseChat() {
 void CG_InitChat() {
 	chat = { };
 
-	AddCommand( "messagemode", OpenChat );
-	AddCommand( "messagemode2", OpenChat );
+	AddCommand( "chat", []() { OpenChat( ChatMode_All ); } );
+	AddCommand( "teamchat", []() { OpenChat( ChatMode_Team ); } );
 }
 
 void CG_ShutdownChat() {
-	RemoveCommand( "messagemode" );
-	RemoveCommand( "messagemode2" );
+	RemoveCommand( "chat" );
+	RemoveCommand( "teamchat" );
 }
 
 void CG_AddChat( const char * str ) {
@@ -79,16 +77,11 @@ void CG_AddChat( const char * str ) {
 	}
 }
 
-#define GAMECHAT_NOTIFY_TIME        5000
-#define GAMECHAT_WAIT_OUT_TIME      4000
-#define GAMECHAT_HIGHLIGHT_TIME     4000
-#define GAMECHAT_FADE_OUT_TIME      ( GAMECHAT_NOTIFY_TIME - GAMECHAT_WAIT_OUT_TIME )
-
 static void SendChat() {
 	if( strlen( chat.input ) > 0 ) {
 		TempAllocator temp = cls.frame_arena.temp();
 
-		const char * cmd = chat.mode == ChatMode_SayTeam ? "say_team" : "say";
+		const char * cmd = chat.mode == ChatMode_Team ? "say_team" : "say";
 		Cbuf_Add( "{} {}", cmd, chat.input );
 
 		PlaySFX( "sounds/typewriter/return" );
@@ -110,6 +103,8 @@ static int InputCallback( ImGuiInputTextCallbackData * data ) {
 }
 
 void CG_DrawChat() {
+	constexpr Time CHAT_NOTIFY_TIME = Seconds( 5 );
+
 	TempAllocator temp = cls.frame_arena.temp();
 
 	float width_frac = Lerp( 0.5f, Unlerp01( 1024.0f, float( frame_static.viewport_width ), 1920.0f ), 0.3f );
@@ -144,7 +139,7 @@ void CG_DrawChat() {
 		size_t idx = ( chat.history_head + i ) % ARRAY_COUNT( chat.history );
 		const ChatMessage * msg = &chat.history[ idx ];
 
-		if( chat.mode == ChatMode_None && cls.monotonicTime > msg->time + GAMECHAT_NOTIFY_TIME ) {
+		if( chat.mode == ChatMode_None && cls.monotonicTime > msg->time + CHAT_NOTIFY_TIME ) {
 			ImGui::Dummy( ImGui::CalcTextSize( msg->text, NULL, false, wrap_width ) );
 		}
 		else {
@@ -171,7 +166,7 @@ void CG_DrawChat() {
 
 	if( chat.mode != ChatMode_None ) {
 		RGB8 color = { 50, 50, 50 };
-		if( chat.mode == ChatMode_SayTeam ) {
+		if( chat.mode == ChatMode_Team ) {
 			color = CG_TeamColor( TEAM_ALLY );
 		}
 

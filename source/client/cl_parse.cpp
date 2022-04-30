@@ -83,13 +83,13 @@ static void CL_ParseServerData( msg_t *msg ) {
 	CL_SetClientState( CA_CONNECTED );
 
 	// parse protocol version number
-	int i = MSG_ReadInt32( msg );
+	u32 i = MSG_ReadUint32( msg );
 
 	if( i != APP_PROTOCOL_VERSION ) {
-		if( cls.demo.playing ) {
+		if( CL_DemoPlaying() ) {
 			Com_Printf( S_COLOR_YELLOW "This demo was recorded with an old version of the game and may be broken!\n" );
-			if( !cls.demo.yolo ) {
-				Com_Error( "Run yolodemo %s to force load it", cls.demo.name );
+			if( !CL_YoloDemo() ) {
+				Com_Error( "Use yolodemo to force load it" );
 			}
 		}
 		else {
@@ -106,8 +106,9 @@ static void CL_ParseServerData( msg_t *msg ) {
 	Cvar_ForceSet( "cl_extrapolationTime", temp( "{}", cl.snapFrameTime / 2 ) );
 	cl_extrapolationTime->modified = false;
 
-	// parse player entity number
+	cl.max_clients = MSG_ReadUint8( msg );
 	cl.playernum = MSG_ReadInt16( msg );
+	cls.server_name = CopyString( sys_allocator, MSG_ReadString( msg ) );
 
 	const char * download_url = MSG_ReadString( msg );
 	if( !StrEqual( download_url, "" ) ) {
@@ -128,67 +129,43 @@ static void CL_ParseBaseline( msg_t *msg ) {
 }
 
 static void CL_ParseFrame( msg_t *msg ) {
-	snapshot_t *snap, *oldSnap;
-	int delta;
+	const snapshot_t * oldSnap = ( cl.receivedSnapNum > 0 ) ? &cl.snapShots[cl.receivedSnapNum & UPDATE_MASK] : NULL;
+	const snapshot_t * snap = SNAP_ParseFrame( msg, oldSnap, cl.snapShots, cl_baselines, cl_shownet->integer );
+	if( !snap->valid )
+		return;
 
-	oldSnap = ( cl.receivedSnapNum > 0 ) ? &cl.snapShots[cl.receivedSnapNum & UPDATE_MASK] : NULL;
+	cl.receivedSnapNum = snap->serverFrame;
 
-	snap = SNAP_ParseFrame( msg, oldSnap, cl.snapShots, cl_baselines, cl_shownet->integer );
-	if( snap->valid ) {
-		cl.receivedSnapNum = snap->serverFrame;
+	CL_DemoBaseline( snap );
 
-		if( cls.demo.recording ) {
-			if( cls.demo.waiting && !snap->delta ) {
-				cls.demo.waiting = false; // we can start recording now
-				cls.demo.basetime = snap->serverTime;
-				cls.demo.localtime = time( NULL );
-
-				memset( cls.demo.meta_data, 0, sizeof( cls.demo.meta_data ) );
-				cls.demo.meta_data_realsize = 0;
-
-				// write out messages to hold the startup information
-				TempAllocator temp = cls.frame_arena.temp();
-				SNAP_BeginDemoRecording( &temp, cls.demo.file, 0x10000 + cl.servercount, cl.snapFrameTime,
-										 cl.configstrings[0], cl_baselines );
-
-				// the rest of the demo file will be individual frames
-			}
-
-			if( !cls.demo.waiting ) {
-				cls.demo.duration = snap->serverTime - cls.demo.basetime;
-			}
-			cls.demo.time = cls.demo.duration;
+	if( cl_debug_timeDelta->integer ) {
+		if( oldSnap != NULL && ( oldSnap->serverFrame + 1 != snap->serverFrame ) ) {
+			Com_Printf( S_COLOR_RED "***** SnapShot lost\n" );
 		}
+	}
 
+	// the first snap, fill all the timeDeltas with the same value
+	// don't let delta add big jumps to the smoothing ( a stable connection produces jumps inside +-3 range)
+	int delta = ( snap->serverTime - cl.snapFrameTime ) - cls.gametime;
+	if( cl.currentSnapNum <= 0 || delta < cl.newServerTimeDelta - 175 || delta > cl.newServerTimeDelta + 175 ) {
+		CL_RestartTimeDeltas( delta );
+	} else {
 		if( cl_debug_timeDelta->integer ) {
-			if( oldSnap != NULL && ( oldSnap->serverFrame + 1 != snap->serverFrame ) ) {
-				Com_Printf( S_COLOR_RED "***** SnapShot lost\n" );
+			if( delta < cl.newServerTimeDelta - (int)cl.snapFrameTime ) {
+				Com_Printf( S_COLOR_CYAN "***** timeDelta low clamp\n" );
+			} else if( delta > cl.newServerTimeDelta + (int)cl.snapFrameTime ) {
+				Com_Printf( S_COLOR_CYAN "***** timeDelta high clamp\n" );
 			}
 		}
 
-		// the first snap, fill all the timeDeltas with the same value
-		// don't let delta add big jumps to the smoothing ( a stable connection produces jumps inside +-3 range)
-		delta = ( snap->serverTime - cl.snapFrameTime ) - cls.gametime;
-		if( cl.currentSnapNum <= 0 || delta < cl.newServerTimeDelta - 175 || delta > cl.newServerTimeDelta + 175 ) {
-			CL_RestartTimeDeltas( delta );
-		} else {
-			if( cl_debug_timeDelta->integer ) {
-				if( delta < cl.newServerTimeDelta - (int)cl.snapFrameTime ) {
-					Com_Printf( S_COLOR_CYAN "***** timeDelta low clamp\n" );
-				} else if( delta > cl.newServerTimeDelta + (int)cl.snapFrameTime ) {
-					Com_Printf( S_COLOR_CYAN "***** timeDelta high clamp\n" );
-				}
-			}
+		delta = Clamp( cl.newServerTimeDelta - (int)cl.snapFrameTime, delta, cl.newServerTimeDelta + (int)cl.snapFrameTime );
 
-			delta = Clamp( cl.newServerTimeDelta - (int)cl.snapFrameTime, delta, cl.newServerTimeDelta + (int)cl.snapFrameTime );
-
-			cl.serverTimeDeltas[cl.receivedSnapNum & MASK_TIMEDELTAS_BACKUP] = delta;
-		}
+		cl.serverTimeDeltas[cl.receivedSnapNum & MASK_TIMEDELTAS_BACKUP] = delta;
 	}
 }
 
 static void CL_UpdateConfigString( int idx, const char *s ) {
-	if( cl_debug_serverCmd->integer && ( cls.state >= CA_ACTIVE || cls.demo.playing ) ) {
+	if( cl_debug_serverCmd->integer && ( cls.state >= CA_ACTIVE || CL_DemoPlaying() ) ) {
 		Com_Printf( "CL_ParseConfigstringCommand(%i): \"%s\"\n", idx, s );
 	}
 
@@ -203,13 +180,10 @@ static void CL_UpdateConfigString( int idx, const char *s ) {
 	}
 
 	Q_strncpyz( cl.configstrings[idx], s, sizeof( cl.configstrings[idx] ) );
-
-	// allow cgame to update it too
-	CL_GameModule_ConfigString( idx );
 }
 
 static void CL_RequestMore( ClientCommandType command ) {
-	if( cls.demo.playing ) {
+	if( CL_DemoPlaying() ) {
 		return;
 	}
 
@@ -277,7 +251,7 @@ static void CL_ParseServerCommand( msg_t *msg ) {
 	Cmd_TokenizeString( text );
 	s = Cmd_Argv( 0 );
 
-	if( cl_debug_serverCmd->integer && ( cls.state < CA_ACTIVE || cls.demo.playing ) ) {
+	if( cl_debug_serverCmd->integer && ( cls.state < CA_ACTIVE || CL_DemoPlaying() ) ) {
 		Com_Printf( "CL_ParseServerCommand: \"%s\"\n", text );
 	}
 
@@ -373,26 +347,6 @@ void CL_ParseServerMessage( msg_t *msg ) {
 				CL_ParseFrame( msg );
 				break;
 
-			case svc_demoinfo: {
-				assert( cls.demo.playing );
-
-				MSG_ReadInt32( msg );
-				MSG_ReadInt32( msg );
-				cls.demo.meta_data_realsize = (size_t)MSG_ReadInt32( msg );
-				size_t meta_data_maxsize = (size_t)MSG_ReadInt32( msg );
-
-				// sanity check
-				if( cls.demo.meta_data_realsize > meta_data_maxsize ) {
-					cls.demo.meta_data_realsize = meta_data_maxsize;
-				}
-				if( cls.demo.meta_data_realsize > sizeof( cls.demo.meta_data ) ) {
-					cls.demo.meta_data_realsize = sizeof( cls.demo.meta_data );
-				}
-
-				MSG_ReadData( msg, cls.demo.meta_data, cls.demo.meta_data_realsize );
-				MSG_SkipData( msg, meta_data_maxsize - cls.demo.meta_data_realsize );
-			} break;
-
 			case svc_playerinfo:
 			case svc_packetentities:
 			case svc_match:
@@ -413,14 +367,5 @@ void CL_ParseServerMessage( msg_t *msg ) {
 
 	CL_AddNetgraph();
 
-	//
-	// if recording demos, copy the message out
-	//
-	//
-	// we don't know if it is ok to save a demo message until
-	// after we have parsed the frame
-	//
-	if( cls.demo.recording && !cls.demo.waiting ) {
-		CL_WriteDemoMessage( msg, msg_header_offset );
-	}
+	CL_WriteDemoMessage( *msg, msg_header_offset );
 }

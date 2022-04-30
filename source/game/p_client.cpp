@@ -675,7 +675,7 @@ void ClientDisconnect( edict_t *ent, const char *reason ) {
 	if( ent->s.type == ET_PLAYER ) {
 		CreateCorpse( ent, NULL, WorldDamage_Suicide, 0 ); //create a corpse
 	}
-	
+
 	ent->r.inuse = false;
 	ent->s.svflags = SVF_NOCLIENT;
 
@@ -713,7 +713,7 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 
 			G_RadiusDamage( &stupid, ent, NULL, ent, Gadget_SuicideBomb );
 
-			G_Killed( ent, ent, ent, 0, Gadget_SuicideBomb, 10000 );
+			G_Killed( ent, ent, ent, -1, Gadget_SuicideBomb, 10000 );
 			G_AddEvent( ent, ev, parm, true );
 		} break;
 

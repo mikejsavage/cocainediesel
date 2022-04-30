@@ -822,17 +822,7 @@ const PerkDef perk_defs[] = {
 	{ },
 
 	{
-		/* name             */ "NINJA",
-		/* short name       */ "ninja",
-		/* health           */ 100,
-		/* scale            */ Vec3( 1 ),
-		/* weight           */ 1.0f,
-		/* max speed        */ 400.0f,
-		/* side speed       */ 320.0f,
-		/* max air speed    */ 600.0f,
-	},
-
-	{
+		/* enabled          */ true,
 		/* name             */ "HOOLIGAN",
 		/* short name       */ "hooligan",
 		/* health           */ 100,
@@ -844,17 +834,19 @@ const PerkDef perk_defs[] = {
 	},
 
 	{
+		/* enabled          */ true,
 		/* name             */ "MIDGET",
 		/* short name       */ "midget",
 		/* health           */ 65,
 		/* scale            */ Vec3( 0.8f, 0.8f, 0.625f ),
 		/* weight           */ 0.8f,
-		/* max speed        */ 500.0f,
+		/* max speed        */ 320.0f,
 		/* side speed       */ 500.0f,
 		/* max air speed    */ 600.0f,
 	},
 
 	{
+		/* enabled          */ true,
 		/* name             */ "JETPACK",
 		/* short name       */ "jetpack",
 		/* health           */ 80,
@@ -866,6 +858,19 @@ const PerkDef perk_defs[] = {
 	},
 
 	{
+		/* enabled          */ false,
+		/* name             */ "NINJA",
+		/* short name       */ "ninja",
+		/* health           */ 100,
+		/* scale            */ Vec3( 1 ),
+		/* weight           */ 1.0f,
+		/* max speed        */ 400.0f,
+		/* side speed       */ 320.0f,
+		/* max air speed    */ 600.0f,
+	},
+
+	{
+		/* enabled          */ false,
 		/* name             */ "BOOMER",
 		/* short name       */ "boomer",
 		/* health           */ 150,

@@ -40,7 +40,6 @@ const char * const svc_strings[256] = {
 	"svc_clcack",
 	"svc_servercs", // reliable command as unreliable for demos
 	"svc_frame",
-	"svc_demoinfo",
 };
 
 void _SHOWNET( msg_t *msg, const char *s, int shownet ) {
@@ -289,7 +288,7 @@ static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snap
 /*
 * SNAP_ParseFrame
 */
-snapshot_t *SNAP_ParseFrame( msg_t *msg, snapshot_t *lastFrame, snapshot_t *backup, SyncEntityState *baselines, int showNet ) {
+snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t *backup, SyncEntityState *baselines, int showNet ) {
 	snapshot_t  *deltaframe;
 	int numplayers;
 	char *text;

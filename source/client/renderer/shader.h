@@ -40,6 +40,8 @@ struct Shaders {
 	Shader particle;
 	Shader particle_model;
 
+	Shader tile_culling;
+
 	Shader skybox;
 
 	Shader text;

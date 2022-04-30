@@ -89,60 +89,6 @@ static bool IsWhitespace( char c ) {
  * this can return an empty string if it parses empty quotes
  * check for ret.ptr == NULL to see if you hit the end of the string
  */
-Span< const char > ParseToken( const char ** ptr, ParseStopOnNewLine stop ) {
-	const char * cursor = *ptr;
-	if( cursor == NULL ) {
-		return MakeSpan( "" );
-	}
-
-	// skip leading whitespace
-	while( IsWhitespace( *cursor ) ) {
-		if( *cursor == '\0' ) {
-			*ptr = NULL;
-			return Span< const char >( NULL, 0 );
-		}
-
-		if( *cursor == '\n' && stop == Parse_StopOnNewLine ) {
-			*ptr = cursor;
-			return Span< const char >( NULL, 0 );
-		}
-
-		cursor++;
-	}
-
-	bool quoted = false;
-	if( *cursor == '\"' ) {
-		quoted = true;
-		cursor++;
-	}
-
-	Span< const char > span( cursor, 0 );
-
-	if( !quoted ) {
-		while( !IsWhitespace( *cursor ) ) {
-			cursor++;
-			span.n++;
-		}
-	}
-	else {
-		while( *cursor != '\0' && *cursor != '\"' ) {
-			cursor++;
-			span.n++;
-		}
-
-		if( *cursor == '\"' )
-			cursor++;
-	}
-
-	*ptr = cursor;
-
-	return span;
-}
-
-/*
- * this can return an empty string if it parses empty quotes
- * check for ret.ptr == NULL to see if you hit the end of the string
- */
 Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop ) {
 	Span< const char > c = *cursor;
 
@@ -473,33 +419,6 @@ void RemoveTrailingZeroesFloat( char * str ) {
 	}
 
 	str[ len + 1 ] = '\0';
-}
-
-#define hex2dec( x ) ( ( ( x ) <= '9' ? ( x ) - '0' : ( ( x ) <= 'F' ) ? ( x ) - 'A' + 10 : ( x ) - 'a' + 10 ) )
-size_t Q_urldecode( const char *src, char *dst, size_t dst_size ) {
-	char *dst_start = dst, *dst_end = dst + dst_size - 1;
-	const char *src_end;
-
-	if( !src || !dst || !dst_size ) {
-		return 0;
-	}
-
-	src_end = src + strlen( src );
-	while( src < src_end ) {
-		if( dst == dst_end ) {
-			break;
-		}
-		if( ( *src == '%' ) && ( src + 2 < src_end ) &&
-			( isxdigit( src[1] ) && isxdigit( src[2] ) ) ) {
-			*dst++ = ( hex2dec( src[1] ) << 4 ) + hex2dec( src[2] );
-			src += 3;
-		} else {
-			*dst++ = *src++;
-		}
-	}
-
-	*dst = '\0';
-	return dst - dst_start;
 }
 
 //=====================================================================

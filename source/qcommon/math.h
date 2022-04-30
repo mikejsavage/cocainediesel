@@ -12,6 +12,7 @@ extern "C" float atan2f( float, float );
 extern "C" float sqrtf( float );
 extern "C" float cbrtf( float );
 extern "C" float powf( float, float );
+extern "C" float expf( float );
 extern "C" float logf( float );
 extern "C" float fmodf( float, float );
 extern "C" double fmod( double, double );

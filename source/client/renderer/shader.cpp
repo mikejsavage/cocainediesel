@@ -7,6 +7,24 @@
 
 Shaders shaders;
 
+static const char * FindInclude( Span< const char > str ) {
+	while( true ) {
+		const char * before_hash = ( const char * ) memchr( str.ptr, '#', str.n );
+		if( before_hash == NULL )
+			break;
+
+		str += before_hash - str.ptr;
+		if( StartsWith( str, "#include" ) )
+			return str.ptr;
+
+		if( str.n == 0 )
+			break;
+		str++;
+	}
+
+	return NULL;
+}
+
 static Span< Span< const char > > BuildShaderSrcs( TempAllocator * temp, const char * path, const char * defines ) {
 	TracyZoneScoped;
 	TracyZoneText( path, strlen( path ) );
@@ -18,25 +36,27 @@ static Span< Span< const char > > BuildShaderSrcs( TempAllocator * temp, const c
 	}
 
 	Span< const char > glsl = AssetString( path );
-	const char * ptr = glsl.ptr;
-	if( ptr == NULL ) {
+	if( glsl.ptr == NULL ) {
 		// TODO
 	}
+
+	Span< const char > cursor = glsl;
 
 	srcs.add( MakeSpan( "#line 1\n" ) );
 
 	while( true ) {
-		const char * before_include = strstr( ptr, "#include" );
+		const char * before_include = FindInclude( cursor );
 		if( before_include == NULL )
 			break;
 
-		if( before_include != ptr ) {
-			srcs.add( Span< const char >( ptr, before_include - ptr ) );
+		size_t length_to_include = before_include - cursor.ptr;
+		if( length_to_include > 0 ) {
+			srcs.add( cursor.slice( 0, length_to_include ) );
 		}
 
-		ptr = before_include + strlen( "#include" );
+		cursor += length_to_include + strlen( "#include" );
 
-		Span< const char > include = ParseToken( &ptr, Parse_StopOnNewLine );
+		Span< const char > include = ParseToken( &cursor, Parse_StopOnNewLine );
 		StringHash hash = StringHash( Hash64( include.ptr, include.n, Hash64( "glsl/" ) ) );
 
 		Span< const char > contents = AssetString( hash );
@@ -49,7 +69,9 @@ static Span< Span< const char > > BuildShaderSrcs( TempAllocator * temp, const c
 		srcs.add( MakeSpan( "#line 1\n" ) );
 	}
 
-	srcs.add( MakeSpan( ptr ) );
+	if( cursor.n > 0 ) {
+		srcs.add( cursor );
+	}
 
 	return srcs.span();
 }
@@ -158,6 +180,9 @@ static void LoadShaders() {
 	LoadComputeShader( &shaders.particle_setup_indirect, "glsl/particle_setup_indirect.glsl", NULL );
 	LoadShader( &shaders.particle, "glsl/particle.glsl", NULL, true );
 	LoadShader( &shaders.particle_model, "glsl/particle.glsl", "#define MODEL 1\n", true );
+
+	const char * culling_defines = temp( "#define TILE_SIZE {}\n", TILE_SIZE );
+	LoadComputeShader( &shaders.tile_culling, "glsl/tile_culling.glsl", culling_defines );
 }
 
 void InitShaders() {

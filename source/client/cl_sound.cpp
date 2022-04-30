@@ -1,9 +1,10 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/hash.h"
 #include "qcommon/array.h"
+#include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/sort.h"
+#include "qcommon/time.h"
 #include "client/client.h"
 #include "client/assets.h"
 #include "client/sound.h"
@@ -29,7 +30,7 @@ struct SoundEffect {
 		StringHash sounds[ 128 ];
 		u8 num_random_sounds;
 
-		float delay;
+		Time delay;
 		float volume;
 		float pitch;
 		float pitch_random;
@@ -46,7 +47,7 @@ struct PlayingSFX {
 
 	StringHash hash;
 	const SoundEffect * sfx;
-	s64 start_time;
+	Time start_time;
 
 	bool immediate;
 	bool keep_playing_immediate;
@@ -417,10 +418,12 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 				config->num_random_sounds++;
 			}
 			else if( key == "delay" ) {
-				if( !TrySpanToFloat( value, &config->delay ) ) {
+				float delay;
+				if( !TrySpanToFloat( value, &delay ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to delay should be a number\n" );
 					return false;
 				}
+				config->delay = Seconds( double( delay ) );
 			}
 			else if( key == "volume" ) {
 				if( !TrySpanToFloat( value, &config->volume ) ) {
@@ -736,7 +739,7 @@ void SoundFrame( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 
 	for( size_t i = 0; i < num_playing_sound_effects; i++ ) {
 		PlayingSFX * ps = &playing_sound_effects[ i ];
-		float t = ( cls.monotonicTime - ps->start_time ) * 0.001f;
+		Time t = cls.monotonicTime - ps->start_time;
 		bool all_stopped = true;
 
 		for( u8 j = 0; j < ps->sfx->num_sounds; j++ ) {

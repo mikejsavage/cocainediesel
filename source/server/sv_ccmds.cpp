@@ -132,7 +132,6 @@ void SV_InitOperatorCommands() {
 
 	AddCommand( "serverrecord", SV_Demo_Start_f );
 	AddCommand( "serverrecordstop", SV_Demo_Stop_f );
-	AddCommand( "serverrecordcancel", SV_Demo_Cancel_f );
 
 	if( is_dedicated_server ) {
 		AddCommand( "serverrecordpurge", SV_Demo_Purge_f );
@@ -152,7 +151,6 @@ void SV_ShutdownOperatorCommands() {
 
 	RemoveCommand( "serverrecord" );
 	RemoveCommand( "serverrecordstop" );
-	RemoveCommand( "serverrecordcancel" );
 
 	if( is_dedicated_server ) {
 		RemoveCommand( "serverrecordpurge" );

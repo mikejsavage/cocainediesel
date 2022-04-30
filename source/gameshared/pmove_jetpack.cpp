@@ -61,7 +61,7 @@ static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmo
 	} else if( ps->pmove.stamina_state != Stamina_Reloading && ps->pmove.stamina_state != Stamina_UsedAbility ) {
 		StaminaRecover( ps, pml, refuel_air );
 	}
-	
+
 	if( pressed && StaminaAvailable( ps, pml, fuel_use_boost ) && ps->pmove.stamina_state != Stamina_Reloading ) {
 		Vec3 fwd, right;
 		AngleVectors( pm->playerState->viewangles, &fwd, &right, NULL );

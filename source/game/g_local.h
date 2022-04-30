@@ -174,9 +174,6 @@ void G_Teams_UpdateMembersList();
 bool G_Teams_JoinAnyTeam( edict_t * ent, bool silent );
 void G_Teams_SetTeam( edict_t * ent, int team );
 
-void Cmd_Say_f( edict_t * ent, bool arg0, bool checkflood );
-void G_Say_Team( edict_t *who, const char *inmsg, bool checkflood );
-
 void G_Match_Ready( edict_t * ent );
 void G_Match_NotReady( edict_t * ent );
 void G_Match_ToggleReady( edict_t * ent );
@@ -300,7 +297,8 @@ void G_CallVotes_ResetClient( int n );
 void G_CallVotes_Think();
 bool G_Callvotes_HasVoted( edict_t * ent );
 void G_CallVote_Cmd( edict_t * ent, msg_t args );
-void G_CallVotes_CmdVote( edict_t * ent, msg_t args );
+void G_CallVotes_VoteYes( edict_t * ent, msg_t args );
+void G_CallVotes_VoteNo( edict_t * ent, msg_t args );
 void G_OperatorVote_Cmd( edict_t * ent, msg_t args );
 
 //
@@ -490,6 +488,13 @@ void G_ResetLevel();
 void G_InitLevel( const char *mapname, int64_t levelTime );
 void G_LoadMap( const char * name );
 
+struct EntityID {
+	u64 id;
+};
+
+EntityID NewEntity();
+void ResetEntityIDSequence();
+
 //============================================================================
 
 struct projectileinfo_t {
@@ -648,6 +653,8 @@ struct edict_t {
 	// EXPECTS THE FIELDS IN THAT ORDER!
 
 	//================================
+
+	EntityID id;
 
 	int linkcount;
 

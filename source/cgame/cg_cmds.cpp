@@ -75,79 +75,6 @@ static void CG_SC_Debug() {
 	}
 }
 
-void CG_ConfigString( int i ) {
-	if( i == CS_AUTORECORDSTATE ) {
-		CG_SC_AutoRecordAction( cl.configstrings[ i ] );
-	}
-}
-
-static const char *CG_SC_AutoRecordName() {
-	static char name[MAX_STRING_CHARS];
-
-	char date[ 128 ];
-	Sys_FormatCurrentTime( date, sizeof( date ), "%Y-%m-%d_%H-%M" );
-
-	snprintf( name, sizeof( name ), "%s_%s_%04i", date, cl.map->name, RandomUniform( &cls.rng, 0, 10000 ) );
-
-	return name;
-}
-
-void CG_SC_AutoRecordAction( const char *action ) {
-	static bool autorecording = false;
-	const char *name;
-	bool spectator;
-
-	if( !action[0] ) {
-		return;
-	}
-
-	// filter out autorecord commands when playing a demo
-	if( cgs.demoPlaying ) {
-		return;
-	}
-
-	// TODO: AutoRecordName segfaults without this because sometimes we
-	// receive configstrings before the map when connecting
-	if( cls.state != CA_ACTIVE ) {
-		return;
-	}
-
-	if( cg.frame.playerState.pmove.pm_type == PM_SPECTATOR || cg.frame.playerState.pmove.pm_type == PM_CHASECAM ) {
-		spectator = true;
-	} else {
-		spectator = false;
-	}
-
-	name = CG_SC_AutoRecordName();
-
-	TempAllocator temp = cls.frame_arena.temp();
-
-	if( StrCaseEqual( action, "start" ) ) {
-		if( cg_autoaction_demo->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			Cbuf_ExecuteLine( "stop silent" );
-			Cbuf_ExecuteLine( temp( "record autorecord/{} silent", name ) );
-			autorecording = true;
-		}
-	} else if( StrCaseEqual( action, "stop" ) ) {
-		if( autorecording ) {
-			Cbuf_ExecuteLine( "stop silent" );
-			autorecording = false;
-		}
-
-		if( cg_autoaction_screenshot->integer && ( !spectator || cg_autoaction_spectator->integer ) ) {
-			Cbuf_ExecuteLine( temp( "screenshot autorecord/{} silent", name ) );
-		}
-	} else if( StrCaseEqual( action, "cancel" ) ) {
-		if( autorecording ) {
-			Cbuf_ExecuteLine( "stop cancel silent" );
-			autorecording = false;
-		}
-	}
-	else {
-		assert( false );
-	}
-}
-
 static bool demo_requested = false;
 static void CG_Cmd_DemoGet_f() {
 	if( demo_requested ) {
@@ -155,8 +82,8 @@ static void CG_Cmd_DemoGet_f() {
 		return;
 	}
 
-	TempAllocator temp = cls.frame_arena.temp();
-	Cbuf_ExecuteLine( temp( "demogeturl {}", Cmd_Argv( 1 ) ) );
+	msg_t * args = CL_AddReliableCommand( ClientCommand_DemoGetURL );
+	MSG_WriteString( args, Cmd_Argv( 1 ) );
 
 	demo_requested = true;
 }
@@ -408,7 +335,8 @@ static const ClientToServerCommand game_commands_yes_args[] = {
 	{ "say", ClientCommand_Say },
 	{ "say_team", ClientCommand_SayTeam },
 	{ "callvote", ClientCommand_Callvote },
-	{ "vote", ClientCommand_Vote },
+	{ "vote_yes", ClientCommand_VoteYes },
+	{ "vote_no", ClientCommand_VoteNo },
 	{ "op", ClientCommand_Operator },
 	{ "opcall", ClientCommand_OpCall },
 	{ "join", ClientCommand_Join },

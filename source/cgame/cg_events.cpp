@@ -243,9 +243,7 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 
 	Mat4 muzzle_transform = GetMuzzleTransform( owner );
 
-	if( weapon != Weapon_Pistol ) {
-		AddPersistentBeam( muzzle_transform.col3.xyz(), trace.endpos, 1.0f, team_color, "weapons/tracer", 0.2f, 0.1f );
-	}
+	AddPersistentBeam( muzzle_transform.col3.xyz(), trace.endpos, 1.0f, team_color, "weapons/tracer", 0.2f, 0.1f );
 }
 
 static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_color ) {

@@ -224,7 +224,7 @@ Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor 
 	const inotify_event * cursor = ( const inotify_event * ) buf;
 	while( ( const char * ) cursor < buf + bytes_read ) {
 		if( ( cursor->mask & IN_ISDIR ) == 0 ) {
-			u64 idx;
+			u64 idx = 0;
 			bool ok = monitor->wd_to_path.get( Hash64( cursor->wd ), &idx );
 			assert( ok );
 

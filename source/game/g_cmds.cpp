@@ -287,7 +287,7 @@ static void Say( edict_t * ent, const char * message, bool teamonly, bool checkf
 	if( checkflood && CheckFlood( ent, false ) ) {
 		return;
 	}
-	TypewriterSound( ent, "sounds/typewriter/space" );
+	TypewriterSound( ent, "sounds/typewriter/return" );
 	G_ChatMsg( NULL, ent, teamonly, "%s", message );
 }
 

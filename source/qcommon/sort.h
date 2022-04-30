@@ -4,16 +4,13 @@
 #include "gameshared/q_math.h"
 
 template< typename T >
-using LessThan = bool ( * )( const T & a, const T & b );
-
-template< typename T >
 bool DefaultLessThan( const T & a, const T & b ) {
 	return a < b;
 }
 
 // TODO: cheat and use memmove lol
-template< typename T >
-void InsertionSort( T * begin, T * end, LessThan< T > less_than = DefaultLessThan< T > ) {
+template< typename T, typename F >
+void InsertionSort( T * begin, T * end, F less_than ) {
 	if( begin == end )
 		return;
 
@@ -34,8 +31,8 @@ void InsertionSort( T * begin, T * end, LessThan< T > less_than = DefaultLessTha
 	}
 }
 
-template< typename T >
-T IntrosortMedian( const T & a, const T & b, const T & c, LessThan< T > less_than ) {
+template< typename T, typename F >
+T IntrosortMedian( const T & a, const T & b, const T & c, F less_than ) {
 	if( less_than( a, b ) ) {
 		if( less_than( b, c ) ) return b;
 		if( less_than( a, c ) ) return c;
@@ -47,8 +44,8 @@ T IntrosortMedian( const T & a, const T & b, const T & c, LessThan< T > less_tha
 	return b;
 }
 
-template< typename T >
-T * IntrosortPartition( T * begin, T * end, LessThan< T > less_than ) {
+template< typename T, typename F >
+T * IntrosortPartition( T * begin, T * end, F less_than ) {
 	T pivot = IntrosortMedian( *begin, *( end - 1 ), *( begin + ( end - begin ) / 2 ), less_than );
 
 	end--;
@@ -67,8 +64,8 @@ T * IntrosortPartition( T * begin, T * end, LessThan< T > less_than ) {
 	return begin;
 }
 
-template< typename T >
-void Introsort( T * begin, T * end, LessThan< T > less_than, u32 recursion_depth ) {
+template< typename T, typename F >
+void Introsort( T * begin, T * end, F less_than, u32 recursion_depth ) {
 	constexpr size_t use_insertion_sort_below = 28;
 
 	size_t n = end - begin;
@@ -88,8 +85,8 @@ void Introsort( T * begin, T * end, LessThan< T > less_than, u32 recursion_depth
 	}
 }
 
-template< typename T >
-void Sort( T * begin, T * end, LessThan< T > less_than = DefaultLessThan< T > ) {
+template< typename T, typename F >
+void Sort( T * begin, T * end, F less_than = DefaultLessThan< T > ) {
 	u32 recursion_limit = 2 * Log2( end - begin );
 	Introsort( begin, end, less_than, recursion_limit );
 }

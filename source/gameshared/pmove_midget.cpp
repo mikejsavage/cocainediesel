@@ -8,7 +8,6 @@ static constexpr float pm_wallbouncefactor = 0.25f;
 
 static constexpr float stamina_use = 2.5f;
 static constexpr float stamina_recover = 1.55f;
-static constexpr float stamina_jump_limit = 0.5f; //avoids jump spamming
 
 
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
@@ -35,7 +34,7 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 
 //in this one we don't care about pressing special
 static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	bool can_start_charge = ps->pmove.stamina_state == Stamina_Normal && ps->pmove.stamina > stamina_jump_limit;
+	bool can_start_charge = ps->pmove.stamina_state == Stamina_Normal && (pm_chargedjumpspeed * ps->pmove.stamina) > pm_jumpspeed;
 
 	if( ps->pmove.stamina_state == Stamina_Normal ) {
 		StaminaRecover( ps, pml, stamina_recover );
@@ -61,9 +60,9 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 	}
 
 	if( !pressed ) {
-		float factor = ( ps->pmove.stamina_stored - ps->pmove.stamina );
-		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility && factor > stamina_jump_limit ) {
-			Jump( pm, pml, pmove_gs, ps, pm_chargedjumpspeed * factor, JumpType_MidgetCharge, false );
+		float special_jumpspeed = pm_chargedjumpspeed * ( ps->pmove.stamina_stored - ps->pmove.stamina );
+		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility && special_jumpspeed > pm_jumpspeed ) {
+			Jump( pm, pml, pmove_gs, ps, special_jumpspeed, JumpType_MidgetCharge, false );
 		}
 		ps->pmove.stamina_stored = 0.0f;
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;

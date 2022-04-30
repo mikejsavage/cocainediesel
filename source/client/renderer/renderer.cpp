@@ -272,10 +272,21 @@ static Mat4 ViewMatrix( Vec3 position, EulerDegrees3 angles ) {
 	float yaw = Radians( angles.yaw );
 	float sy = sinf( yaw );
 	float cy = cosf( yaw );
+	float roll = Radians( angles.roll );
+	float sr = sinf( roll );
+	float cr = cosf( roll );
 
 	Vec3 forward = Vec3( cp * cy, cp * sy, -sp );
-	Vec3 right = Vec3( sy, -cy, 0 );
-	Vec3 up = Vec3( sp * cy, sp * sy, cp );
+	Vec3 right = Vec3(
+		sy * cr - sp * cy * sr,
+		-cy * cr - sp * sy * sr,
+		-cp * sr
+	);
+	Vec3 up = Vec3(
+		sy * sr + sp * cy * cr,
+		-cy * sr + sp * sy * cr,
+		cp * cr
+	);
 
 	Mat4 rotation(
 		right.x, right.y, right.z, 0,

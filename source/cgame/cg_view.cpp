@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/skybox.h"
+#include "qcommon/time.h"
 
 ChasecamState chaseCam;
 
@@ -349,6 +350,21 @@ float CalcHorizontalFov( const char * caller, float fov_y, float width, float he
 	return atanf( x / height ) * 360.0f / PI;
 }
 
+static void ScreenShake( cg_viewdef_t * view ) {
+	if( !client_gs.gameState.bomb.exploding )
+		return;
+
+	s64 dt = cl.serverTime - client_gs.gameState.bomb.exploded_at;
+
+	// TODO: we need this because the game drops you into busted noclip when you have noone to spec
+	if( dt >= 3000 )
+		return;
+
+	float shake_amount = Unlerp01( s64( 0 ), dt, s64( 1000 ) );
+
+	view->angles.z = shake_amount * 20.0f * Sin( cls.monotonicTime, Milliseconds( 250 ) );
+}
+
 static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	memset( view, 0, sizeof( cg_viewdef_t ) );
 
@@ -407,6 +423,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 			CG_Recoil( cg.predictedPlayerState.weapon );
 
 			CG_ViewSmoothPredictedSteps( &view->origin ); // smooth out stair climbing
+
+			ScreenShake( view );
 		} else {
 			cg.predictingTimeStamp = cl.serverTime;
 			cg.predictFrom = 0;

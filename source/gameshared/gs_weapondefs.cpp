@@ -781,8 +781,8 @@ const GadgetDef gadget_defs[] = {
 		/* min knockback    */ 0,
 		/* splash radius    */ 0,
 		/* timeout          */ 5000,
-		/* speed            */ 2000,
-		/* min speed        */ 750,
+		/* speed            */ 2500,
+		/* min speed        */ 1500,
 	},
 
 	{
@@ -804,9 +804,9 @@ const GadgetDef gadget_defs[] = {
 		/* min damage       */ 120,
 		/* min knockback    */ 0,
 		/* splash_radius    */ 2000,
-		/* timeout          */ 2500,
+		/* timeout          */ 1500,
 		/* speed            */ 1500,
-		/* min speed        */ 150,
+		/* min speed        */ 1000,
 	},
 };
 
@@ -816,7 +816,6 @@ const GadgetDef * GetGadgetDef( GadgetType gadget ) {
 	assert( gadget < Gadget_Count );
 	return &gadget_defs[ gadget ];
 }
-
 
 const PerkDef perk_defs[] = {
 	{ },

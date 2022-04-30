@@ -938,9 +938,9 @@ static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	const GadgetDef * def = GetGadgetDef( Gadget_ThrowingAxe );
 
 	ProjectileStats stats = GadgetProjectileStats( Gadget_ThrowingAxe );
-	float unlerped_cook = Unlerp01( u64( 0 ), charge_time, u64( def->cook_time ) );
-	stats.max_damage = Lerp( def->min_damage, unlerped_cook, def->damage );
-	stats.speed = Lerp( def->min_speed, unlerped_cook, def->speed );
+	float cook_frac = Unlerp01( u64( 0 ), charge_time, u64( def->cook_time ) );
+	stats.max_damage = Lerp( def->min_damage, cook_frac, def->damage );
+	stats.speed = Lerp( def->min_speed, cook_frac, def->speed );
 
 	edict_t * axe = FireProjectile( self, start, angles, timeDelta, stats, TouchThrowingAxe, ET_THROWING_AXE, MASK_SHOT );
 	axe->classname = "throwing axe";

@@ -840,7 +840,7 @@ const PerkDef perk_defs[] = {
 		/* health           */ 65,
 		/* scale            */ Vec3( 0.8f, 0.8f, 0.625f ),
 		/* weight           */ 0.8f,
-		/* max speed        */ 280.0f,
+		/* max speed        */ 320.0f,
 		/* side speed       */ 500.0f,
 		/* max air speed    */ 600.0f,
 	},

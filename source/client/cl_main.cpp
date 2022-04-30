@@ -832,7 +832,6 @@ static void CL_InitLocal() {
 
 	NewCvar( "sensitivity", "3", CvarFlag_Archive );
 	NewCvar( "horizontalsensscale", "1", CvarFlag_Archive );
-	NewCvar( "m_accel", "0", CvarFlag_Archive );
 	NewCvar( "m_invertY", "0", CvarFlag_Archive );
 
 	AddCommand( "connect", CL_Connect_f );

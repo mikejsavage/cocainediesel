@@ -308,7 +308,6 @@ static void SettingsControls() {
 		if( ImGui::BeginTabItem( "Mouse" ) ) {
 			CvarSliderFloat( "Sensitivity", "sensitivity", sensivity_range[ 0 ], sensivity_range[ 1 ] );
 			CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f );
-			CvarSliderFloat( "Acceleration", "m_accel", 0.0f, 1.0f );
 			CvarCheckbox( "Invert Y axis", "m_invertY" );
 
 			ImGui::EndTabItem();

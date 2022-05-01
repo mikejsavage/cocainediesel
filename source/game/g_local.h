@@ -235,6 +235,7 @@ struct EntityID {
 
 EntityID NewEntity();
 void ResetEntityIDSequence();
+edict_t * GetEntity( EntityID id );
 
 bool KillBox( edict_t * ent, DamageType damage_type, Vec3 knockback );
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );

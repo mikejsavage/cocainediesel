@@ -33,6 +33,11 @@ void ResetEntityIDSequence() {
 	entity_id_seq = 1;
 }
 
+edict_t * GetEntity( EntityID id ) {
+	u64 idx;
+	return entity_id_hashtable.get( id.id, &idx ) ? &game.edicts[ idx ] : NULL;
+}
+
 edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash value ) {
 	if( cursor == NULL ) {
 		cursor = world;

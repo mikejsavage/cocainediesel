@@ -100,7 +100,6 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 4.0f;
 			viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_FORWARD ) * pull_back;
 		}
-
 	}
 
 	// gun angles from bobbing

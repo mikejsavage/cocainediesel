@@ -49,7 +49,6 @@ void InitTrigger( edict_t * ent ) {
 static void multi_trigger( edict_t *ent ) {
 	if( G_TriggerWait( ent ) ) {
 		return;     // already been triggered
-
 	}
 	G_UseTargets( ent, ent->activator );
 

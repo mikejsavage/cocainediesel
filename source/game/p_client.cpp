@@ -890,7 +890,6 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 			}
 			if( j != i ) {
 				continue; // duplicated
-
 			}
 			// player can't touch projectiles, only projectiles can touch the player
 			G_CallTouch( other, ent, NULL, 0 );

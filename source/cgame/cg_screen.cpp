@@ -429,7 +429,6 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 				DrawText( cgs.fontNormal, goal_size, msg, Alignment_CenterMiddle, coords.x, y, color, true );
 			}
 		}
-
 	}
 }
 

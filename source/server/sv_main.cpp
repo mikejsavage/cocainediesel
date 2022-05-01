@@ -391,7 +391,6 @@ void SV_UserinfoChanged( client_t *client ) {
 		return;
 	}
 	Q_strncpyz( client->name, val, sizeof( client->name ) );
-
 }
 
 void SV_Init() {

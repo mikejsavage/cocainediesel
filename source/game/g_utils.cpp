@@ -296,7 +296,6 @@ void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority ) {
 		return; // no low priority event to overwrite
 	} else {
 		ent->numEvents++; // numEvents is only used to vary the overwritten event
-
 	}
 	ent->s.events[eventNum].type = event;
 	ent->s.events[eventNum].parm = parm;

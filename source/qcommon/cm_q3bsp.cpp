@@ -269,7 +269,6 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 		}
 		if( j != 3 ) {
 			continue; // only test non-axial edges
-
 		}
 		// try the six possible slanted axials from this edge
 		for( int axis = 0; axis < 3; axis++ ) {

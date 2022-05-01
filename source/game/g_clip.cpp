@@ -728,7 +728,6 @@ static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 			angles = touch->s.angles;
 		} else {
 			angles = Vec3( 0.0f ); // boxes don't rotate
-
 		}
 
 		trace_t trace;

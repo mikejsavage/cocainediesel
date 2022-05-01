@@ -725,7 +725,6 @@ static void train_wait( edict_t *self ) {
 	} else {
 		train_next( self );
 	}
-
 }
 
 void train_next( edict_t *self ) {

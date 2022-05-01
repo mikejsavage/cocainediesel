@@ -399,11 +399,9 @@ int64_t MSG_ReadIntBase128( msg_t *msg ) {
 }
 
 void MSG_ReadData( msg_t *msg, void *data, size_t length ) {
-	unsigned int i;
-
-	for( i = 0; i < length; i++ )
+	for( size_t i = 0; i < length; i++ ) {
 		( (uint8_t *)data )[i] = MSG_ReadUint8( msg );
-
+	}
 }
 
 int MSG_SkipData( msg_t *msg, size_t length ) {

@@ -284,14 +284,14 @@ Span< const char > StripPrefix( Span< const char > str, const char * prefix ) {
 }
 
 bool CaseContains( const char * haystack, const char * needle ) {
-	if( strlen( needle ) > strlen( haystack ) )
+	Span< const char > h = MakeSpan( haystack );
+	Span< const char > n = MakeSpan( needle );
+	if( n.n > h.n )
 		return false;
 
-	Span< const char > n = MakeSpan( needle );
-	size_t diff = strlen( haystack ) - strlen( needle );
-	for( size_t i = 0; i < diff; i++ ) {
-		Span< const char > h = Span< const char >( haystack + i, n.n );
-		if( StrCaseEqual( h, n ) ) {
+	size_t diff = h.n - n.n;
+	for( size_t i = 0; i <= diff; i++ ) {
+		if( StrCaseEqual( h.slice( i, i + n.n ), n ) ) {
 			return true;
 		}
 	}

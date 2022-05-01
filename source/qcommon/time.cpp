@@ -10,7 +10,7 @@ void InitTime() {
 		zero_time = ggtime();
 	}
 	else {
-		zero_time = ggtime() - Seconds( 60 * 60 * 24 * 365 ).flicks;
+		zero_time = ggtime() - Minutes( 60 * 24 * 365 ).flicks;
 	}
 }
 
@@ -37,11 +37,11 @@ Time Hz( u64 hz ) {
 }
 
 bool operator==( Time lhs, Time rhs ) { return lhs.flicks == rhs.flicks; }
-bool operator!=( Time lhs, Time rhs ) { return !( lhs == rhs ); }
+bool operator!=( Time lhs, Time rhs ) { return lhs.flicks != rhs.flicks; }
 bool operator<( Time lhs, Time rhs ) { return lhs.flicks < rhs.flicks; }
-bool operator<=( Time lhs, Time rhs ) { return lhs < rhs || lhs == rhs; }
+bool operator<=( Time lhs, Time rhs ) { return lhs.flicks <= rhs.flicks; }
 bool operator>( Time lhs, Time rhs ) { return lhs.flicks > rhs.flicks; }
-bool operator>=( Time lhs, Time rhs ) { return lhs > rhs || lhs == rhs; }
+bool operator>=( Time lhs, Time rhs ) { return lhs.flicks >= rhs.flicks; }
 Time operator+( Time lhs, Time rhs ) { return { lhs.flicks + rhs.flicks }; }
 Time operator-( Time lhs, Time rhs ) { return { lhs.flicks - rhs.flicks }; }
 

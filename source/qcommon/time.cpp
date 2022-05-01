@@ -6,7 +6,12 @@
 static u64 zero_time;
 
 void InitTime() {
-	zero_time = ggtime();
+	if( is_public_build ) {
+		zero_time = ggtime();
+	}
+	else {
+		zero_time = ggtime() - Seconds( 60 * 60 * 24 * 365 ).flicks;
+	}
 }
 
 static void AssertSmallEnoughToCastToFloat( Time t ) {

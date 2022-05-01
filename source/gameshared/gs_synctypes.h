@@ -296,7 +296,7 @@ struct SyncEntityState {
 	// are automatically cleared each frame
 	SyncEvent events[ 2 ];
 
-	int counterNum;                 // ET_GENERIC
+	char site_letter;
 	RGBA8 silhouetteColor;
 	int radius;                     // spikes always extended, BombDown stuff, EV_BLOOD damage, ...
 

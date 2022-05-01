@@ -177,6 +177,7 @@ static void DeltaFundamental( DeltaBuffer * buf, T & x, const T & baseline ) {
 	}
 }
 
+static void Delta( DeltaBuffer * buf, char & x, char baseline ) { DeltaFundamental( buf, x, baseline ); }
 static void Delta( DeltaBuffer * buf, s8 & x, s8 baseline ) { DeltaFundamental( buf, x, baseline ); }
 static void Delta( DeltaBuffer * buf, s16 & x, s16 baseline ) { DeltaFundamental( buf, x, baseline ); }
 static void Delta( DeltaBuffer * buf, s32 & x, s32 baseline ) { DeltaFundamental( buf, x, baseline ); }
@@ -482,7 +483,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.model2, baseline.model2 );
 	Delta( buf, ent.animating, baseline.animating );
 	Delta( buf, ent.animation_time, baseline.animation_time );
-	Delta( buf, ent.counterNum, baseline.counterNum );
+	Delta( buf, ent.site_letter, baseline.site_letter );
 	Delta( buf, ent.positioned_sound, baseline.positioned_sound );
 	DeltaEnum( buf, ent.weapon, baseline.weapon, Weapon_Count );
 	Delta( buf, ent.radius, baseline.radius );

@@ -357,7 +357,7 @@ void CG_AddBombSite( centity_t * cent ) {
 
 	BombSite * site = &bomb_sites[ num_bomb_sites ];
 	site->origin = cent->current.origin;
-	site->letter = cent->current.counterNum;
+	site->letter = cent->current.site_letter;
 
 	num_bomb_sites++;
 }

@@ -328,7 +328,7 @@ static void SpawnBombSite( edict_t * ent ) {
 	site->hud->r.solid = SOLID_NOT;
 	site->hud->s.origin = bomb_state.sites[ i ].indicator->s.origin;
 	site->hud->s.svflags = SVF_BROADCAST;
-	site->hud->s.counterNum = letter;
+	site->hud->s.site_letter = letter;
 	GClip_LinkEntity( site->hud );
 
 	site->letter = letter;
@@ -339,7 +339,7 @@ static void SpawnBombSite( edict_t * ent ) {
 static void PlantAreaThink( edict_t * ent ) {
 	edict_t * target = G_Find( NULL, &edict_t::name, ent->target );
 	if( target != NULL ) {
-		ent->s.counterNum = GetSiteFromIndicator( target );
+		ent->s.site_letter = GetSiteFromIndicator( target );
 		return;
 	}
 	Com_GGPrint( "plant_area at {} has no targets, removing...", ent->s.origin );
@@ -359,7 +359,7 @@ static void PlantAreaTouch( edict_t * self, edict_t * other, Plane * plane, int 
 		return;
 	}
 
-	BombSiteCarrierTouched( self->s.counterNum );
+	BombSiteCarrierTouched( self->s.site_letter );
 }
 
 static void SpawnPlantArea( edict_t * ent ) {

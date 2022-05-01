@@ -242,6 +242,7 @@ void Qcommon_Init( int argc, char ** argv ) {
 
 	com_print_mutex = NewMutex();
 
+	InitTime();
 	InitFS();
 	Cmd_Init();
 	Cvar_PreInit();

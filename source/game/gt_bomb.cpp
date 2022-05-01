@@ -293,13 +293,15 @@ static void BombSiteCarrierTouched( u32 site ) {
 	}
 }
 
-static s32 GetSiteFromIndicator( edict_t * ent ) {
+static u32 GetSiteFromIndicator( edict_t * ent ) {
 	for( u32 i = 0; i < bomb_state.num_sites; i++ ) {
 		if( bomb_state.sites[ i ].indicator == ent ) {
 			return i;
 		}
 	}
-	return -1;
+
+	assert( false );
+	return 0;
 }
 
 static void ResetBombSites() {
@@ -339,7 +341,7 @@ static void SpawnBombSite( edict_t * ent ) {
 static void PlantAreaThink( edict_t * ent ) {
 	edict_t * target = G_Find( NULL, &edict_t::name, ent->target );
 	if( target != NULL ) {
-		ent->s.site_letter = GetSiteFromIndicator( target );
+		ent->s.ownerNum = GetSiteFromIndicator( target );
 		return;
 	}
 	Com_GGPrint( "plant_area at {} has no targets, removing...", ent->s.origin );
@@ -359,7 +361,7 @@ static void PlantAreaTouch( edict_t * self, edict_t * other, Plane * plane, int 
 		return;
 	}
 
-	BombSiteCarrierTouched( self->s.site_letter );
+	BombSiteCarrierTouched( self->s.ownerNum );
 }
 
 static void SpawnPlantArea( edict_t * ent ) {

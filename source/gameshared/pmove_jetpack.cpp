@@ -20,7 +20,7 @@ static constexpr float refuel_air = 0.0f;
 
 static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( pressed ) {
-		if( pm->groundentity != -1 && !( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) ) {
+		if( pm->groundentity != -1 ) {
 			Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, JumpType_Normal, true );
 		}
 

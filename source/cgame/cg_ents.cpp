@@ -428,6 +428,8 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 
 	cent->interpolated.animating = cent->prev.animating;
 	cent->interpolated.animation_time = Lerp( cent->prev.animation_time, cg.lerpfrac, cent->current.animation_time );
+
+	cent->interpolated.color = RGBA8( CG_TeamColor( cent->prev.team ) );
 }
 
 static void DrawEntityModel( centity_t * cent ) {
@@ -619,8 +621,6 @@ static void CG_LerpSpikes( centity_t * cent ) {
 }
 
 static void CG_UpdateSpikes( centity_t * cent ) {
-	CG_UpdateGenericEnt( cent );
-
 	if( cent->current.linearMovementTimeStamp == 0 )
 		return;
 
@@ -886,12 +886,10 @@ void CG_UpdateEntities() {
 			case ET_STAKE:
 			case ET_BLAST:
 			case ET_THROWING_AXE:
-				CG_UpdateGenericEnt( cent );
 				break;
 
 			case ET_PLAYER:
 			case ET_CORPSE:
-				CG_UpdateGenericEnt( cent );
 				CG_UpdatePlayerModelEnt( cent );
 				break;
 
@@ -925,7 +923,6 @@ void CG_UpdateEntities() {
 				break;
 
 			case ET_SPEAKER:
-				CG_UpdateGenericEnt( cent );
 				AddAnnouncerSpeaker( cent );
 				break;
 

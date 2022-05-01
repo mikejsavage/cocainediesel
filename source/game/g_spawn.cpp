@@ -24,8 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/fs.h"
 #include "game/g_local.h"
 
-static u64 entity_id_seq;
-
 enum EntityFieldType {
 	EntityField_Int,
 	EntityField_Float,
@@ -240,8 +238,6 @@ static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent, spawn_te
 }
 
 static void G_FreeEntities() {
-	ResetEntityIDSequence();
-
 	if( !level.time ) {
 		memset( game.edicts, 0, game.maxentities * sizeof( game.edicts[0] ) );
 	}
@@ -308,6 +304,8 @@ static void SpawnMapEntities() {
 * parsing textual entity definitions out of an ent file.
 */
 void G_InitLevel( const char *mapname, int64_t levelTime ) {
+	ResetEntityIDSequence();
+
 	GClip_ClearWorld(); // clear areas links
 
 	memset( &level, 0, sizeof( level_locals_t ) );
@@ -445,12 +443,4 @@ static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st ) {
 	const char * model_name = "*0";
 	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), svs.cms->base_hash ) );
 	GClip_SetBrushModel( ent );
-}
-
-EntityID NewEntity() {
-	return { entity_id_seq++ };
-}
-
-void ResetEntityIDSequence() {
-	entity_id_seq = 1;
 }

@@ -20,6 +20,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 #include "qcommon/cmodel.h"
+#include "qcommon/hashtable.h"
+
+static u64 entity_id_seq;
+static Hashtable< MAX_EDICTS * 2 > entity_id_hashtable;
+
+EntityID NewEntity() {
+	return { entity_id_seq++ };
+}
+
+void ResetEntityIDSequence() {
+	entity_id_seq = 1;
+}
 
 edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash value ) {
 	if( cursor == NULL ) {
@@ -184,6 +196,9 @@ void G_FreeEdict( edict_t *ed ) {
 
 	GClip_UnlinkEntity( ed );
 
+	bool ok = entity_id_hashtable.remove( ed->id.id );
+	assert( ok );
+
 	memset( ed, 0, sizeof( *ed ) );
 	ed->s.number = ENTNUM( ed );
 	ed->s.svflags = SVF_NOCLIENT;
@@ -194,10 +209,18 @@ void G_FreeEdict( edict_t *ed ) {
 }
 
 void G_InitEdict( edict_t *e ) {
+	if( e->r.inuse ) {
+		bool ok = entity_id_hashtable.remove( e->id.id );
+		assert( ok );
+	}
+
 	memset( e, 0, sizeof( *e ) );
 	e->s.number = ENTNUM( e );
 	e->id = NewEntity();
 	e->r.inuse = true;
+
+	bool ok = entity_id_hashtable.add( e->id.id, e->s.number );
+	assert( ok );
 
 	e->s.scale = Vec3( 1.0f );
 

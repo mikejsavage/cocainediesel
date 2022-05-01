@@ -229,6 +229,13 @@ void G_AddCommand( ClientCommandType command, gamecommandfunc_t cmdfunc );
 // g_utils.c
 //
 
+struct EntityID {
+	u64 id;
+};
+
+EntityID NewEntity();
+void ResetEntityIDSequence();
+
 bool KillBox( edict_t * ent, DamageType damage_type, Vec3 knockback );
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker );
 edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash value );
@@ -487,13 +494,6 @@ void G_RespawnLevel();
 void G_ResetLevel();
 void G_InitLevel( const char *mapname, int64_t levelTime );
 void G_LoadMap( const char * name );
-
-struct EntityID {
-	u64 id;
-};
-
-EntityID NewEntity();
-void ResetEntityIDSequence();
 
 //============================================================================
 

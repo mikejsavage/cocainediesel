@@ -681,7 +681,9 @@ static bool AddDownloadedMap( const char * filename, Span< const u8 > compressed
 		return false;
 	}
 
-	if( !AddMap( data, filename + strlen( "base/" ) ) ) {
+	TempAllocator temp = cls.frame_arena.temp();
+	Span< const char > clean_filename = StripPrefix( StripExtension( filename ), "base/" );
+	if( !AddMap( data, temp( "{}", clean_filename ) ) ) {
 		Com_Printf( "Downloaded map is corrupt.\n" );
 		return false;
 	}

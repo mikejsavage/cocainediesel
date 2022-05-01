@@ -275,7 +275,11 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 
 	cg.frame = *frame;
 	client_gs.gameState = frame->gameState;
+
 	cl.map = FindMap( client_gs.gameState.map );
+	if( cl.map == NULL ) {
+		Com_Error( "You don't have the map" );
+	}
 
 	if( cg_projectileAntilagOffset->number > 1.0f || cg_projectileAntilagOffset->number < 0.0f ) {
 		Cvar_ForceSet( "cg_projectileAntilagOffset", cg_projectileAntilagOffset->default_value );

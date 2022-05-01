@@ -191,7 +191,7 @@ void G_SetMovedir( Vec3 * angles, Vec3 * movedir ) {
 }
 
 void G_FreeEdict( edict_t *ed ) {
-	if( ed == NULL )
+	if( ed == NULL || !ed->r.inuse )
 		return;
 
 	GClip_UnlinkEntity( ed );

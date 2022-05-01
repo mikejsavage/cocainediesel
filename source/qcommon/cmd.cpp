@@ -21,8 +21,9 @@ static String< 1024 > command_buffer;
 static ConsoleCommand commands[ MAX_COMMANDS ];
 static Hashtable< MAX_COMMANDS * 2 > commands_hashtable;
 
-static Span< const char > GrabLine( Span< const char > str ) {
+static Span< const char > GrabLine( Span< const char > str, bool * eof ) {
 	const char * newline = ( const char * ) memchr( str.ptr, '\n', str.n );
+	*eof = newline == NULL;
 	return newline == NULL ? str : str.slice( 0, newline - str.ptr );
 }
 
@@ -71,12 +72,16 @@ void Cbuf_ExecuteLine( const char * line ) {
 static void Cbuf_Execute( const char * str, bool skip_comments ) {
 	Span< const char > cursor = MakeSpan( str );
 	while( cursor.n > 0 ) {
-		Span< const char > line = GrabLine( cursor );
+		bool eof;
+		Span< const char > line = GrabLine( cursor, &eof );
 		if( !skip_comments || !StartsWith( line, "//" ) ) {
 			Cbuf_ExecuteLine( line, true );
 		}
 
-		cursor += line.n + 1;
+		cursor += line.n;
+		if( !eof ) {
+			cursor++;
+		}
 	}
 }
 

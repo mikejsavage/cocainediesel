@@ -295,7 +295,6 @@ void CL_CancelDownload();
 //
 void SCR_InitScreen();
 void SCR_UpdateScreen();
-void SCR_DebugGraph( float value, float r, float g, float b );
 
 void CL_AddNetgraph();
 

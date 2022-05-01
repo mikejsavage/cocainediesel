@@ -38,6 +38,22 @@ BAR GRAPHS
 ===============================================================================
 */
 
+typedef struct {
+	float value;
+	Vec4 color;
+} graphsamp_t;
+
+static int current;
+static graphsamp_t values[1024];
+
+static void SCR_DebugGraph( float value, float r, float g, float b ) {
+	values[current].value = value;
+	values[current].color = Vec4( r, g, b, 1.0f );
+
+	current++;
+	current &= 1023;
+}
+
 /*
 * CL_AddNetgraph
 *
@@ -63,23 +79,6 @@ void CL_AddNetgraph() {
 		ping = 30;
 	}
 	SCR_DebugGraph( ping, 1.0f, 0.75f, 0.06f );
-}
-
-
-typedef struct {
-	float value;
-	Vec4 color;
-} graphsamp_t;
-
-static int current;
-static graphsamp_t values[1024];
-
-void SCR_DebugGraph( float value, float r, float g, float b ) {
-	values[current].value = value;
-	values[current].color = Vec4( r, g, b, 1.0f );
-
-	current++;
-	current &= 1023;
 }
 
 static void SCR_DrawFillRect( int x, int y, int w, int h, Vec4 color ) {

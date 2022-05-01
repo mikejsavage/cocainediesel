@@ -448,7 +448,7 @@ static void DrawEntityModel( centity_t * cent ) {
 	Vec4 color = sRGBToLinear( cent->interpolated.color );
 
 	MatrixPalettes palettes = { };
-	if( cent->interpolated.animating ) {
+	if( cent->interpolated.animating && model->num_animations > 0 ) { // TODO: this is fragile and we should do something better
 		Span< TRS > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
 		palettes = ComputeMatrixPalettes( &temp, model, pose );
 	}

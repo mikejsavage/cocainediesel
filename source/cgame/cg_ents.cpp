@@ -799,6 +799,7 @@ void CG_LerpEntities() {
 		SyncEntityState * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
 		int number = state->number;
 		centity_t * cent = &cg_entities[number];
+		cent->interpolated = { };
 
 		switch( cent->type ) {
 			case ET_GENERIC:

@@ -106,7 +106,7 @@
   To make a jump pad, place this entity at the highest point of the jump and target it with a trigger_push entity.
 </point>
 
-<point name="model" color="1 .5 .25" box="-16 -16 -16 16 16 16" model="{ path : model }">
+<point name="model" color="1 .5 .25" box="-16 -16 -16 16 16 16">
   Place a model to be loaded at runtime
   <model key="model" name="Model File">Path/name of model to use (e.g. models/mapobjects/teleporter/teleporter.md3).</model>
   <angle key="angle" name="Yaw Angle">Direction in which model will be oriented.</angle>
@@ -128,21 +128,18 @@
   A jumppad
   <target key="target" name="Target">this points to the target_position to which the player will jump.</target>
   <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
-  <model key="model" name="Model File" value="entities/jumppad/model.glb">Don't touch this</model>
   <flag key="PAINKILLER" name="PAINKILLER" bit="0">Player keeps sideways momentum</flag>
 </point>
 
 <point name="spike" color="1 0 0" box="-16 -16 -16 16 16 16" model="models/spikes/spike_base.glb">
   A spike trap
   <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
-  <model key="model" name="Model File" value="models/spikes/spike_base.glb">Don't touch this</model>
   <flag key="ALWAYS_EXTENDED" name="ALWAYS_EXTENDED" bit="0">Always extended</flag>
 </point>
 
 <point name="spikes" color="1 0 0" box="-16 -16 -16 16 16 16" model="models/spikes/spikes_base.glb">
   A spike trap
   <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
-  <model key="model" name="Model File" value="models/spikes/spikes_base.glb">Don't touch this</model>
   <flag key="ALWAYS_EXTENDED" name="ALWAYS_EXTENDED" bit="0">Always extended</flag>
 </point>
 

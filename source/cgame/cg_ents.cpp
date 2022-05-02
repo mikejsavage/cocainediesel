@@ -265,6 +265,8 @@ static void CG_UpdatePlayerState() {
 * a new frame snap has been received from the server
 */
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
+	TracyZoneScoped;
+
 	assert( frame );
 
 	if( lerpframe ) {

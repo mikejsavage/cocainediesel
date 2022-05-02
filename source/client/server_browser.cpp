@@ -7,6 +7,8 @@
 #include "client/client.h"
 #include "client/server_browser.h"
 
+#include "tracy/Tracy.hpp"
+
 struct MasterServer {
 	NetAddress address;
 	Thread * resolver_thread;
@@ -40,6 +42,10 @@ Span< const ServerBrowserEntry > GetServerBrowserEntries() {
 }
 
 static void GetMasterServerAddress( void * data ) {
+#if TRACY_ENABLE
+	tracy::SetThreadName( "Master server resolver" );
+#endif
+
 	size_t idx = size_t( uintptr_t( data ) );
 
 	NetAddress address = NULL_ADDRESS;

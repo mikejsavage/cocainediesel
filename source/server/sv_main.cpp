@@ -309,17 +309,6 @@ static bool SV_RunGameFrame( int msec ) {
 	return false;
 }
 
-static void SV_CheckDefaultMap() {
-	if( svc.autostarted ) {
-		return;
-	}
-
-	svc.autostarted = true;
-	if( is_dedicated_server ) {
-		printf( "WTF\n" );
-	}
-}
-
 void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 	TracyZoneScoped;
 
@@ -332,7 +321,6 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 
 	// if server is not active, do nothing
 	if( !svs.initialized ) {
-		SV_CheckDefaultMap();
 		return;
 	}
 

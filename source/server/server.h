@@ -185,7 +185,6 @@ struct server_constant_t {
 	int64_t nextHeartbeat;
 	unsigned int snapFrameTime;     // msecs between server packets
 	unsigned int gameFrameTime;     // msecs between game code executions
-	bool autostarted;
 	int64_t lastMasterResolve;
 };
 

@@ -21,7 +21,6 @@
 #define CONCAT_HELPER( a, b ) a##b
 #define CONCAT( a, b ) CONCAT_HELPER( a, b )
 #define COUNTER_NAME( x ) CONCAT( x, __COUNTER__ )
-#define LINE_NAME( x ) CONCAT( x, __LINE__ )
 
 #define IFDEF( x ) ( STRINGIFY( x )[ 0 ] == '1' && STRINGIFY( x )[ 1 ] == '\0' )
 

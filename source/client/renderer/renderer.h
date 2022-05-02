@@ -1,11 +1,11 @@
 #pragma once
 
 #include "qcommon/types.h"
+#include "qcommon/srgb.h"
 #include "client/renderer/backend.h"
 #include "client/renderer/material.h"
 #include "client/renderer/model.h"
 #include "client/renderer/shader.h"
-#include "client/renderer/srgb.h"
 #include "cgame/ref.h"
 
 enum ShadowQuality {

@@ -154,6 +154,5 @@ void SP_model( edict_t * ent, const spawn_temp_t * st ) {
 void SP_decal( edict_t * ent, const spawn_temp_t * st ) {
 	ent->s.svflags &= ~SVF_NOCLIENT;
 	ent->s.type = ET_DECAL;
-	ent->s.radius = st->radius;
 	GClip_LinkEntity( ent );
 }

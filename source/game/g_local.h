@@ -105,7 +105,6 @@ struct spawn_temp_t {
 	int lip;
 	int distance;
 	int height;
-	float radius;
 	StringHash noise;
 	StringHash noise_start;
 	StringHash noise_stop;

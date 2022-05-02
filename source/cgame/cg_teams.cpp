@@ -1,5 +1,5 @@
 #include "cgame/cg_local.h"
-#include "client/renderer/srgb.h"
+#include "qcommon/srgb.h"
 
 bool CG_IsAlly( int team ) {
 	if( team == TEAM_ALLY || team == TEAM_ENEMY )

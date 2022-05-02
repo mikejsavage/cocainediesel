@@ -740,7 +740,7 @@ void DrawEntities() {
 			case ET_DECAL: {
 				Vec3 normal;
 				AngleVectors( cent->current.angles, &normal, NULL, NULL );
-				DrawDecal( cent->current.origin, normal, cent->current.radius, cent->current.angles.z, cent->current.material, sRGBToLinear( cent->current.color ) );
+				DrawDecal( cent->current.origin, normal, cent->current.scale.x, 0.0f, cent->current.material, sRGBToLinear( cent->current.color ) );
 			} break;
 
 			case ET_LASERBEAM:

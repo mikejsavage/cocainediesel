@@ -7,7 +7,6 @@
 #include "client/renderer/renderer.h"
 #include "client/renderer/blue_noise.h"
 #include "client/renderer/skybox.h"
-#include "client/renderer/srgb.h"
 #include "client/renderer/text.h"
 
 #include "client/maps.h"

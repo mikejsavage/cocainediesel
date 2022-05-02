@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/compression.h"
 #include "qcommon/cmodel.h"
 #include "qcommon/fs.h"
+#include "qcommon/srgb.h"
 #include "game/g_local.h"
 
 enum EntityFieldType {
@@ -75,7 +76,6 @@ static constexpr EntityField entity_keys[] = {
 	// temp spawn vars -- only valid when the spawn function is called
 	{ "lip", STOFS( lip ), EntityField_Int, true },
 	{ "distance", STOFS( distance ), EntityField_Int, true },
-	{ "radius", STOFS( radius ), EntityField_Float, true },
 	{ "height", STOFS( height ), EntityField_Int, true },
 	{ "noise", STOFS( noise ), EntityField_StringHash, true },
 	{ "noise_start", STOFS( noise_start ), EntityField_StringHash, true },
@@ -196,12 +196,12 @@ static void ED_ParseField( Span< const char > key, Span< const char > value, edi
 			} break;
 
 			case EntityField_RGBA: {
-				RGBA8 rgba;
-				rgba.r = ParseInt( &value, 255, Parse_StopOnNewLine );
-				rgba.g = ParseInt( &value, 255, Parse_StopOnNewLine );
-				rgba.b = ParseInt( &value, 255, Parse_StopOnNewLine );
-				rgba.a = ParseInt( &value, 255, Parse_StopOnNewLine );
-				*(RGBA8 *)( b + f.ofs ) = rgba;
+				Vec4 rgba;
+				rgba.x = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
+				rgba.y = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
+				rgba.z = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
+				rgba.w = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
+				*(RGBA8 *)( b + f.ofs ) = LinearTosRGB( rgba );
 			} break;
 		}
 		return;

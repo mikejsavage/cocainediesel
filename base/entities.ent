@@ -8,27 +8,24 @@
   <boolean key="_ignoreleaks" name="Keep Light Entities" value="1">Set to 1 to shut up the map compiler</boolean>
 </group>
 
-<point name="spawn_gladiator" color="0 0.2 1" box="-16 -16 -24 16 16 40">
+<point name="spawn_gladiator" color="0 0.2 1" box="-16 -16 -24 16 16 40" model="players/rigg/model.glb">
   Gladiator spawn point
   <angle key="angle" name="Yaw Angle">View angle, yaw</angle>
   <angles key="angles" name="Pitch Yaw Roll">View angles, pitch/yaw/roll</angles>
-  <model key="model" name="Model File" value="players/rigg/model.glb">Don't touch this</model>
   <flag key="SUSPENDED" name="SUSPENDED" bit="0">don't drop the spawn to the floor</flag>
 </point>
 
-<point name="spawn_bomb_attacking" color="0 0.2 1" box="-16 -16 -24 16 16 40">
+<point name="spawn_bomb_attacking" color="0 0.2 1" box="-16 -16 -24 16 16 40" model="players/rigg/model.glb">
   Bomb attacker spawn point
   <angle key="angle" name="Yaw Angle">View angle, yaw</angle>
   <angles key="angles" name="Pitch Yaw Roll">View angles, pitch/yaw/roll</angles>
-  <model key="model" name="Model File" value="players/rigg/model.glb">Don't touch this</model>
   <flag key="SUSPENDED" name="SUSPENDED" bit="0">don't drop the spawn to the floor</flag>
 </point>
 
-<point name="spawn_bomb_defending" color="1 0.1 0.25" box="-16 -16 -24 16 16 40">
+<point name="spawn_bomb_defending" color="1 0.1 0.25" box="-16 -16 -24 16 16 40" model="players/rigg/model.glb">
   Bomb defending spawn point
   <angle key="angle" name="Yaw Angle">View angle, yaw</angle>
   <angles key="angles" name="Pitch Yaw Roll">View angles, pitch/yaw/roll</angles>
-  <model key="model" name="Model File" value="players/rigg/model.glb">Don't touch this</model>
   <flag key="SUSPENDED" name="SUSPENDED" bit="0">don't drop the spawn to the floor</flag>
 </point>
 
@@ -109,7 +106,7 @@
   To make a jump pad, place this entity at the highest point of the jump and target it with a trigger_push entity.
 </point>
 
-<point name="model" color="1 .5 .25" box="-16 -16 -16 16 16 16">
+<point name="model" color="1 .5 .25" box="-16 -16 -16 16 16 16" model="{ path : model }">
   Place a model to be loaded at runtime
   <model key="model" name="Model File">Path/name of model to use (e.g. models/mapobjects/teleporter/teleporter.md3).</model>
   <angle key="angle" name="Yaw Angle">Direction in which model will be oriented.</angle>
@@ -119,13 +116,15 @@
 </point>
 
 <point name="decal" color="1 0 0" box="-8 -8 -8 8 8 8">
-  Place a decal to be loaded at runtime
+  Place a decal to be loaded at runtime. MAKE SURE RADIANT ISN'T SETTING modelscale_vec, DECALS ONLY SUPPORT UNIFORM SCALING
   <texture key="material" name="material">Name of material</texture>
-  <real key="radius" name="radius">Decal radius</real>
-  <color key="color" name="color">Decal color, RGBA 0-255</color>
+  <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
+  <real key="modelscale" name="Uniform Scale" value="16">Radius</real>
+  <color key="color" name="color" value="1 1 1 1">Decal color, RGBA 0-1</color>
+  <model key="model" name="Model File" value="entities/decal/radiant_model.glb">We need this key so radiant lets you scale the ent, ignore</model>
 </point>
 
-<point name="jumppad" color="0 .5 0" box="-32 -32 0 32 32 24">
+<point name="jumppad" color="0 .5 0" box="-32 -32 0 32 32 24" model="entities/jumppad/model.glb">
   A jumppad
   <target key="target" name="Target">this points to the target_position to which the player will jump.</target>
   <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
@@ -133,31 +132,29 @@
   <flag key="PAINKILLER" name="PAINKILLER" bit="0">Player keeps sideways momentum</flag>
 </point>
 
-<point name="spike" color="1 0 0" box="-16 -16 -16 16 16 16">
+<point name="spike" color="1 0 0" box="-16 -16 -16 16 16 16" model="models/spikes/spike_base.glb">
   A spike trap
   <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
   <model key="model" name="Model File" value="models/spikes/spike_base.glb">Don't touch this</model>
   <flag key="ALWAYS_EXTENDED" name="ALWAYS_EXTENDED" bit="0">Always extended</flag>
 </point>
 
-<point name="spikes" color="1 0 0" box="-16 -16 -16 16 16 16">
+<point name="spikes" color="1 0 0" box="-16 -16 -16 16 16 16" model="models/spikes/spikes_base.glb">
   A spike trap
   <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
   <model key="model" name="Model File" value="models/spikes/spikes_base.glb">Don't touch this</model>
   <flag key="ALWAYS_EXTENDED" name="ALWAYS_EXTENDED" bit="0">Always extended</flag>
 </point>
 
-<point name="speaker_wall" color="1 1 0" box="-32 -32 -16 32 32 16">
+<point name="speaker_wall" color="1 1 0" box="-32 -32 -16 32 32 16" model="models/speakers/speaker_wall.glb">
   A speaker hanging off the wall, place the box origin on the wall and the speaker points in the direction of the arrow
   <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
-  <model key="model" name="Model File" value="models/speakers/speaker_wall.glb">Don't touch this</model>
 </point>
 
-<point name="deadcam" color="0.5 0.5 0.5" box="-4 -8 -4 4 14 4">
+<point name="deadcam" color="0.5 0.5 0.5" box="-4 -8 -4 4 14 4" model="models/deadcam/radiant_model.glb">
   Look through this camera when all your teammates are dead
   <targetname key="targetname" name="Target Name">The deadcam's name, set your bomb_site deadcam key to this</targetname>
   <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
-  <model key="model" name="Model File" value="models/camera.glb">Don't touch this</model>
 </point>
 
 <point name="target_laser" color="0 0.5 0" box="-8 -8 -8 8 8 8">

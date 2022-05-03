@@ -54,6 +54,7 @@ struct Material {
 	bool double_sided = false;
 	bool decal = false;
 	bool mask_outlines = false;
+	bool outlined = true;
 	bool shaded = false;
 	float specular = 0.0f;
 	float shininess = 64.0f;

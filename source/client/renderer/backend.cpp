@@ -151,6 +151,11 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			*channels = GL_RED;
 			*type = GL_UNSIGNED_BYTE;
 			return;
+		case TextureFormat_R_UI8:
+			*internal = GL_R8UI;
+			*channels = GL_RED;
+			*type = GL_UNSIGNED_BYTE;
+			return;
 		case TextureFormat_R_U16:
 			*internal = GL_R16;
 			*channels = GL_RED;
@@ -514,6 +519,7 @@ void InitRenderBackend() {
 	glDisable( GL_BLEND );
 
 	glEnable( GL_FRAMEBUFFER_SRGB );
+	glDisable( GL_DITHER );
 
 	glPixelStorei( GL_PACK_ALIGNMENT, 1 );
 	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
@@ -1394,12 +1400,12 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 		height = texture.height;
 	}
 
-	if( config.normal_attachment.width != 0 ) {
-		Texture texture = NewTextureSamples( config.normal_attachment, config.msaa_samples );
+	if( config.mask_attachment.width != 0 ) {
+		Texture texture = NewTextureSamples( config.mask_attachment, config.msaa_samples );
 		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT1, texture.texture, 0 );
 		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
 
-		fb.normal_texture = texture;
+		fb.mask_texture = texture;
 
 		width = texture.width;
 		height = texture.height;
@@ -1426,7 +1432,7 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 	return fb;
 }
 
-Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, Texture * depth_texture ) {
+Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * mask_texture, Texture * depth_texture ) {
 	Framebuffer fb = { };
 
 	glCreateFramebuffers( 1, &fb.fbo );
@@ -1436,19 +1442,21 @@ Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, 
 	GLenum bufs[ 2 ] = { GL_NONE, GL_NONE };
 	if( albedo_texture != NULL ) {
 		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT0, albedo_texture->texture, 0 );
+		fb.albedo_texture = *albedo_texture;
 		bufs[ 0 ] = GL_COLOR_ATTACHMENT0;
 		width = albedo_texture->width;
 		height = albedo_texture->height;
 	}
-	if( normal_texture != NULL ) {
-		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT1, normal_texture->texture, 0 );
+	if( mask_texture != NULL ) {
+		glNamedFramebufferTexture( fb.fbo, GL_COLOR_ATTACHMENT1, mask_texture->texture, 0 );
+		fb.mask_texture = *mask_texture;
 		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
-		width = normal_texture->width;
-		height = normal_texture->height;
+		width = mask_texture->width;
+		height = mask_texture->height;
 	}
 	if( depth_texture != NULL ) {
 		glNamedFramebufferTexture( fb.fbo, GL_DEPTH_ATTACHMENT, depth_texture->texture, 0 );
-		bufs[ 1 ] = GL_COLOR_ATTACHMENT1;
+		fb.depth_texture = *depth_texture;
 		width = depth_texture->width;
 		height = depth_texture->height;
 	}
@@ -1484,7 +1492,7 @@ void DeleteFramebuffer( Framebuffer fb ) {
 
 	glDeleteFramebuffers( 1, &fb.fbo );
 	DeleteTexture( fb.albedo_texture );
-	DeleteTexture( fb.normal_texture );
+	DeleteTexture( fb.mask_texture );
 	DeleteTexture( fb.depth_texture );
 }
 
@@ -1570,7 +1578,7 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 		GLenum type;
 		glGetActiveUniform( program, i, sizeof( name ), &len, &size, &type, name );
 
-		if( type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_MULTISAMPLE ) {
+		if( type == GL_SAMPLER_2D || type == GL_SAMPLER_2D_MULTISAMPLE || type == GL_UNSIGNED_INT_SAMPLER_2D || type == GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE ) {
 			if( num_textures == ARRAY_COUNT( shader->textures ) ) {
 				glDeleteProgram( program );
 				Com_Printf( S_COLOR_YELLOW "Too many samplers in shader\n" );
@@ -1663,7 +1671,7 @@ bool NewShader( Shader * shader, Span< Span< const char > > srcs, bool particle_
 	}
 
 	glBindFragDataLocation( shader->program, 0, "f_Albedo" );
-	glBindFragDataLocation( shader->program, 1, "f_Normal" );
+	glBindFragDataLocation( shader->program, 1, "f_Mask" );
 
 	return LinkShader( shader, shader->program );
 }

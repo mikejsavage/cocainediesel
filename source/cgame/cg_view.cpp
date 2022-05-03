@@ -514,26 +514,6 @@ static void DrawWorld() {
 			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
 		}
 	}
-
-	{
-		bool msaa = frame_static.msaa_samples >= 1;
-
-		PipelineState pipeline;
-		pipeline.pass = frame_static.add_world_outlines_pass;
-		pipeline.shader = msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer;
-		pipeline.depth_func = DepthFunc_Disabled;
-		pipeline.blend_func = BlendFunc_Blend;
-		pipeline.write_depth = false;
-
-		constexpr RGBA8 gray = RGBA8( 30, 30, 30, 255 );
-
-		const Framebuffer & fb = msaa ? frame_static.msaa_fb : frame_static.postprocess_fb;
-		pipeline.set_texture( "u_DepthTexture", &fb.depth_texture );
-		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-		pipeline.set_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
-		DrawFullscreenMesh( pipeline );
-	}
 }
 
 static void DrawSilhouettes() {
@@ -552,6 +532,27 @@ static void DrawSilhouettes() {
 		pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
 		DrawFullscreenMesh( pipeline );
 	}
+}
+
+static void DrawOutlines() {
+	bool msaa = frame_static.msaa_samples >= 1;
+
+	PipelineState pipeline;
+	pipeline.pass = frame_static.add_outlines_pass;
+	pipeline.shader = msaa ? &shaders.postprocess_world_gbuffer_msaa : &shaders.postprocess_world_gbuffer;
+	pipeline.depth_func = DepthFunc_Disabled;
+	pipeline.blend_func = BlendFunc_Blend;
+	pipeline.write_depth = false;
+
+	constexpr RGBA8 gray = RGBA8( 30, 30, 30, 255 );
+
+	const Framebuffer & fb = msaa ? frame_static.msaa_fb_masked : frame_static.postprocess_fb_masked;
+	pipeline.set_texture( "u_DepthTexture", &fb.depth_texture );
+	pipeline.set_texture( "u_MaskTexture", &fb.mask_texture );
+	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
+	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.set_uniform( "u_Outline", UploadUniformBlock( sRGBToLinear( gray ) ) );
+	DrawFullscreenMesh( pipeline );
 }
 
 void CG_RenderView( unsigned extrapolationTime ) {
@@ -649,6 +650,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DoVisualEffect( "vfx/rain", cg.view.origin );
 
 	DrawWorld();
+	DrawOutlines();
 	DrawSilhouettes();
 	DrawEntities();
 	CG_AddViewWeapon( &cg.weapon );

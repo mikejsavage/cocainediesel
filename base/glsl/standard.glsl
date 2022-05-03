@@ -84,6 +84,9 @@ void main() {
 #else
 
 out vec4 f_Albedo;
+out uint f_Mask;
+
+const uint MASK_CURVED = 1u;
 
 uniform sampler2D u_BaseTexture;
 
@@ -117,6 +120,7 @@ layout( std430 ) readonly buffer b_DynamicTiles {
 
 void main() {
 	vec3 normal = normalize( v_Normal );
+	f_Mask = length( fwidth( normal ) ) < 0.000001 ? 0u : MASK_CURVED;
 #if APPLY_DRAWFLAT
 #if INSTANCED
 	vec4 diffuse = v_MaterialColor;

@@ -1088,7 +1088,12 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	PipelineState pipeline;
-	pipeline.pass = material->blend_func == BlendFunc_Disabled ? frame_static.nonworld_opaque_pass : frame_static.transparent_pass;
+	if( material->blend_func == BlendFunc_Disabled ) {
+		pipeline.pass = material->outlined ? frame_static.nonworld_opaque_outlined_pass : frame_static.nonworld_opaque_pass;
+	}
+	else {
+		pipeline.pass = frame_static.transparent_pass;
+	}
 	pipeline.cull_face = material->double_sided ? CullFace_Disabled : CullFace_Back;
 	pipeline.blend_func = material->blend_func;
 

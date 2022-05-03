@@ -22,6 +22,7 @@ enum DepthFunc : u8 {
 enum TextureFormat : u8 {
 	TextureFormat_R_U8,
 	TextureFormat_R_S8,
+	TextureFormat_R_UI8,
 	TextureFormat_R_U16,
 
 	TextureFormat_A_U8,
@@ -96,7 +97,7 @@ struct TextureArray {
 struct Framebuffer {
 	u32 fbo;
 	Texture albedo_texture;
-	Texture normal_texture;
+	Texture mask_texture;
 	Texture depth_texture;
 	TextureArray texture_array;
 	u32 width, height;
@@ -308,7 +309,7 @@ struct RenderPass {
 
 struct FramebufferConfig {
 	TextureConfig albedo_attachment = { };
-	TextureConfig normal_attachment = { };
+	TextureConfig mask_attachment = { };
 	TextureConfig depth_attachment = { };
 	int msaa_samples = 0;
 };

@@ -56,6 +56,8 @@ struct FrameStatic {
 	Framebuffer silhouette_gbuffer;
 	Framebuffer msaa_fb;
 	Framebuffer postprocess_fb;
+	Framebuffer msaa_fb_masked;
+	Framebuffer postprocess_fb_masked;
 	Framebuffer msaa_fb_onlycolor;
 	Framebuffer postprocess_fb_onlycolor;
 	Framebuffer shadowmap_fb[ 4 ];
@@ -67,12 +69,15 @@ struct FrameStatic {
 	u8 shadowmap_pass[ 4 ];
 	u8 world_opaque_prepass_pass;
 	u8 world_opaque_pass;
-	u8 add_world_outlines_pass;
+	
+	u8 sky_pass;
 
 	u8 write_silhouette_gbuffer_pass;
 
+	u8 nonworld_opaque_outlined_pass;
+	u8 add_outlines_pass;
 	u8 nonworld_opaque_pass;
-	u8 sky_pass;
+
 	u8 transparent_pass;
 
 	u8 add_silhouettes_pass;

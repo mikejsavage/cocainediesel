@@ -20,12 +20,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server/server.h"
 #include "qcommon/version.h"
+#include "qcommon/time.h"
 
 //============================================================================
 //
 //		CLIENT
 //
 //============================================================================
+
+constexpr Time USERINFO_UPDATE_RATE_LIMIT = Seconds( 2 );
 
 void SV_ClientResetCommandBuffers( client_t *client ) {
 	// reset the reliable commands buffer
@@ -76,7 +79,7 @@ bool SV_ClientConnect( const NetAddress & address, client_t * client, char * use
 	}
 
 	// parse some info from the info strings
-	client->userinfoLatchTimeout = Sys_Milliseconds() + USERINFO_UPDATE_COOLDOWN_MSEC;
+	client->userinfoLatchTimeout = Now() + USERINFO_UPDATE_RATE_LIMIT;
 	Q_strncpyz( client->userinfo, userinfo, sizeof( client->userinfo ) );
 	SV_UserinfoChanged( client );
 
@@ -302,14 +305,14 @@ static void SV_UserinfoCommand_f( client_t *client, msg_t args ) {
 		return;
 	}
 
-	s64 time = Sys_Milliseconds();
+	Time time = Now();
 	if( client->userinfoLatchTimeout > time ) {
 		Q_strncpyz( client->userinfoLatched, info, sizeof( client->userinfo ) );
 	} else {
 		Q_strncpyz( client->userinfo, info, sizeof( client->userinfo ) );
 
 		client->userinfoLatched[0] = '\0';
-		client->userinfoLatchTimeout = time + USERINFO_UPDATE_COOLDOWN_MSEC;
+		client->userinfoLatchTimeout = time + USERINFO_UPDATE_RATE_LIMIT;
 
 		SV_UserinfoChanged( client );
 	}

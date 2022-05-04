@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server/server.h"
 #include "qcommon/version.h"
 #include "qcommon/csprng.h"
+#include "qcommon/time.h"
 
 static bool sv_initialized = false;
 
@@ -213,7 +214,7 @@ static void SV_CheckLatchedUserinfoChanges() {
 
 	client_t *cl;
 	int i;
-	int64_t time = Sys_Milliseconds();
+	Time time = Now();
 
 	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
 		if( cl->state == CS_FREE || cl->state == CS_ZOMBIE ) {

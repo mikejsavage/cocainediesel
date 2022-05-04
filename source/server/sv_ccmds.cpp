@@ -21,14 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server/server.h"
 #include "qcommon/fs.h"
 #include "qcommon/maplist.h"
-
-
-//===============================================================================
-//
-//OPERATOR CONSOLE ONLY COMMANDS
-//
-//These commands can only be entered from stdin or by a remote operator datagram
-//===============================================================================
+#include "qcommon/time.h"
 
 /*
 * SV_Map_f
@@ -105,7 +98,7 @@ void SV_Status_f() {
 }
 
 static void SV_Heartbeat_f() {
-	svc.nextHeartbeat = Sys_Milliseconds();
+	svc.nextHeartbeat = Now();
 }
 
 /*

@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server/server.h"
 #include "qcommon/version.h"
+#include "qcommon/time.h"
 
 struct SvMasterServer {
 	NetAddress ipv4, ipv6;
@@ -69,30 +70,30 @@ static void SV_ResolveMaster() {
 		Com_Printf( "\n" );
 	}
 
-	svc.lastMasterResolve = Sys_Milliseconds();
+	svc.lastMasterResolve = Now();
 }
 
 void SV_InitMaster() {
 	SV_ResolveMaster();
 
-	svc.nextHeartbeat = Sys_Milliseconds();
+	svc.nextHeartbeat = Now();
 }
 
 void SV_UpdateMaster() {
 	// refresh master server IP addresses periodically
-	if( svc.lastMasterResolve + TTL_MASTERS < Sys_Milliseconds() ) {
+	if( svc.lastMasterResolve + Days( 1 ) < Now() ) {
 		SV_ResolveMaster();
 	}
 }
 
 void SV_MasterHeartbeat() {
-	int64_t time = Sys_Milliseconds();
+	Time time = Now();
 
 	if( svc.nextHeartbeat > time ) {
 		return;
 	}
 
-	svc.nextHeartbeat = time + HEARTBEAT_SECONDS * 1000;
+	svc.nextHeartbeat = time + Minutes( 5 );
 
 	if( !sv_public->integer ) {
 		return;

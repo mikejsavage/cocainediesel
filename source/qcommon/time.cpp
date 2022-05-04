@@ -10,7 +10,9 @@ void InitTime() {
 		zero_time = ggtime();
 	}
 	else {
-		zero_time = ggtime() - Minutes( 60 * 24 * 365 ).flicks;
+		// start at 1 year to catch float precision bugs
+		// we still have such bugs so only do it in debug for now
+		zero_time = ggtime() - Days( 365 ).flicks;
 	}
 }
 

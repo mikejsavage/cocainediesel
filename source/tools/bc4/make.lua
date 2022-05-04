@@ -1,5 +1,6 @@
 local windows_srcs = {
 	"source/windows/win_fs.cpp",
+	"source/windows/win_sys.cpp",
 	"source/windows/win_threads.cpp",
 }
 

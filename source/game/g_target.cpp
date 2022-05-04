@@ -70,7 +70,7 @@ static void target_laser_think( edict_t *self ) {
 		if( !game.edicts[tr.ent].r.client ) {
 			if( self->spawnflags & 0x80000000 ) {
 				self->spawnflags &= ~0x80000000;
-				G_SpawnEvent( EV_LASER_SPARKS, DirToU64( tr.plane.normal ), &tr.endpos );
+				// G_SpawnEvent( EV_LASER_SPARKS, DirToU64( tr.plane.normal ), &tr.endpos );
 			}
 			break;
 		}

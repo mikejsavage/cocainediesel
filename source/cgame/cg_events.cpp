@@ -763,33 +763,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			CG_Event_Die( ent->ownerNum, parm );
 			break;
 
-		case EV_EXPLOSION1:
-			CG_GenericExplosion( ent->origin, Vec3( 0.0f ), parm * 8 );
+		case EV_BOMB_EXPLOSION:
+			DoVisualEffect( "models/bomb/explosion", ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, vec4_white );
+			PlaySFX( "models/bomb/explode", PlaySFXConfigPosition( ent->origin ) );
 			break;
-
-		case EV_EXPLOSION2:
-			CG_GenericExplosion( ent->origin, Vec3( 0.0f ), parm * 16 );
-			break;
-
-		case EV_SPARKS: {
-			// Vec3 dir = U64ToDir( parm );
-			// if( ent->damage > 0 ) {
-			// 	count = Clamp( 1, int( ent->damage * 0.25f ), 10 );
-			// } else {
-			// 	count = 6;
-			// }
-
-			// CG_ParticleEffect( ent->origin, dir, 1.0f, 0.67f, 0.0f, count );
-		} break;
-
-		case EV_LASER_SPARKS: {
-			// Vec3 dir = U64ToDir( parm );
-			// CG_ParticleEffect2( ent->origin, dir,
-			// 					COLOR_R( ent->colorRGBA ) * ( 1.0 / 255.0 ),
-			// 					COLOR_G( ent->colorRGBA ) * ( 1.0 / 255.0 ),
-			// 					COLOR_B( ent->colorRGBA ) * ( 1.0 / 255.0 ),
-			// 					ent->counterNum );
-		} break;
 
 		case EV_GIB:
 			SpawnGibs( ent->origin, ent->origin2, parm, team_color );
@@ -856,10 +833,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			float volume = Min2( 1.0f, parm / float( U16_MAX ) );
 			PlaySFX( "weapons/gl/bounce", PlaySFXConfigEntity( ent->number, volume ) );
 		} break;
-
-		case EV_BLADE_IMPACT:
-			// CG_BladeImpact( ent->origin, ent->origin2 );
-			break;
 
 		case EV_RIFLEBULLET_IMPACT: {
 			Vec3 normal = U64ToDir( parm );

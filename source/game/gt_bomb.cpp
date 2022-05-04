@@ -613,7 +613,7 @@ static void BombExplode() {
 	server_gs.gameState.bomb.exploding = true;
 	server_gs.gameState.bomb.exploded_at = svs.gametime; // TODO: only place where gameTime is used, dno
 
-	G_SpawnEvent( EV_EXPLOSION1, bomb_explosion_effect_radius, &bomb_state.bomb.model->s.origin );
+	G_SpawnEvent( EV_BOMB_EXPLOSION, bomb_explosion_effect_radius, &bomb_state.bomb.model->s.origin );
 
 	G_Sound( bomb_state.bomb.model, "models/bomb/explode" );
 }

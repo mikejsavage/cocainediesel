@@ -29,6 +29,8 @@ struct Chat {
 
 	bool at_bottom;
 	bool scroll_to_bottom;
+
+	Time last_typewriter_event;
 };
 
 static Chat chat;
@@ -91,6 +93,11 @@ static void SendChat() {
 }
 
 static int InputCallback( ImGuiInputTextCallbackData * data ) {
+	if( cls.monotonicTime == chat.last_typewriter_event )
+		return 0;
+
+	chat.last_typewriter_event = cls.monotonicTime;
+
 	if( data->EventChar == ' ' ) {
 		PlaySFX( "sounds/typewriter/space" );
 		CL_AddReliableCommand( ClientCommand_TypewriterSpace );
@@ -99,6 +106,7 @@ static int InputCallback( ImGuiInputTextCallbackData * data ) {
 		PlaySFX( "sounds/typewriter/clack" );
 		CL_AddReliableCommand( ClientCommand_TypewriterClack );
 	}
+
 	return 0;
 }
 

@@ -175,7 +175,7 @@ void CG_DrawChat() {
 	if( chat.mode != ChatMode_None ) {
 		RGB8 color = { 50, 50, 50 };
 		if( chat.mode == ChatMode_Team ) {
-			color = CG_TeamColor( TEAM_ALLY );
+			color = AllyColor();
 		}
 
 		ImGui::PushStyleColor( ImGuiCol_FrameBg, IM_COL32( color.r, color.g, color.b, 50 ) );

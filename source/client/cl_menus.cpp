@@ -1083,7 +1083,6 @@ static void GameMenu() {
 				ImGui::SetColumnWidth( 0, half );
 				ImGui::SetColumnWidth( 1, half );
 
-
 				PushButtonColor( CG_TeamColorVec4( TEAM_ALPHA ) * 0.5f );
 				GameMenuButton( "Join Corona", "join cocaine", &should_close, 0 );
 				ImGui::PopStyleColor( 3 );
@@ -1108,13 +1107,11 @@ static void GameMenu() {
 				}
 			}
 
-
 			if( team_based ) {
-				PushButtonColor( CG_TeamColorVec4( TEAM_ENEMY ) * 0.5f );
+				PushButtonColor( EnemyColorVec4() * 0.5f );
 				GameMenuButton( "Switch team", "join", &should_close );
 				ImGui::PopStyleColor( 3 );
 			}
-
 
 			GameMenuButton( "Spectate", "spectate", &should_close );
 

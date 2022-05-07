@@ -265,7 +265,7 @@ void CG_DrawScoreboard() {
 			for( u8 i = 0; i < team_info->num_players; i++ ) {
 				SyncScoreboardPlayer * player = &client_gs.gameState.players[ team_info->player_indices[ i ] - 1 ];
 
-				RGB8 team_color = TEAM_COLORS[ i % ARRAY_COUNT( TEAM_COLORS ) ];
+				RGB8 team_color = CG_TeamColor( i % 2 == 0 ? TEAM_ALPHA : TEAM_BETA );
 
 				float bg_scale = player->alive ? 0.75f : 0.5f;
 				team_color.r *= bg_scale;

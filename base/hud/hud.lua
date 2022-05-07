@@ -269,7 +269,7 @@ local function DrawPlayerBar( state )
 	width -= padding * 2
 
 	local bg_color = RGBALinear( 0.04, 0.04, 0.04, 1 )
-	local stamina_color = cd.getTeamColor( TEAM_ALLY )
+	local stamina_color = cd.allyColor()
 
 	if state.perk == Perk_Hooligan then
 		cd.box( x, y, width, stamina_bar_height, bg_color )
@@ -373,7 +373,7 @@ local function DrawBombProgress( state )
 		local progress = state.bomb_progress / 100
 
 		cd.box( ( state.viewport_width - width ) * 0.5, y, width, height, "#2228" )
-		cd.box( ( state.viewport_width - width * progress ) * 0.5, y, width * progress, height, cd.getTeamColor( TEAM_ALLY ) )
+		cd.box( ( state.viewport_width - width * progress ) * 0.5, y, width * progress, height, cd.allyColor() )
 
 		local text = { color = "#fff", border = "#000", font_size = height * 0.75, alignment = "center middle" }
 		local message = if state.bomb_progress_type == BombProgress_Planting then "Planting..." else "Defusing..."

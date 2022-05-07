@@ -36,13 +36,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 constexpr float FOV = 107.9f; // chosen to upset everyone equally
 
-constexpr RGB8 TEAM_COLORS[] = {
-	RGB8( 40, 204, 255 ),
-	RGB8( 255, 24, 96 ),
-	RGB8( 255, 150, 40 ),
-	RGB8( 190, 0, 240 ),
-};
-
 enum {
 	LOCALEFFECT_VSAY_TIMEOUT,
 	LOCALEFFECT_LASERBEAM,
@@ -369,9 +362,12 @@ void CG_GameCommand( const char *command );
 //
 // cg_teams.c
 //
-bool CG_IsAlly( int team );
 RGB8 CG_TeamColor( int team );
+RGB8 AllyColor();
+RGB8 EnemyColor();
 Vec4 CG_TeamColorVec4( int team );
+Vec4 AllyColorVec4();
+Vec4 EnemyColorVec4();
 
 //
 // cg_view.c

@@ -203,9 +203,6 @@ enum {
 	TEAM_BETA,
 
 	GS_MAX_TEAMS,
-
-	TEAM_ALLY,
-	TEAM_ENEMY,
 };
 
 struct SyncScoreboardPlayer {

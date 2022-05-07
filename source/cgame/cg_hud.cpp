@@ -67,8 +67,6 @@ static const LuauConst<int> numeric_constants[] = {
 	{ "TEAM_PLAYERS", TEAM_PLAYERS },
 	{ "TEAM_ALPHA", TEAM_ALPHA },
 	{ "TEAM_BETA", TEAM_BETA },
-	{ "TEAM_ALLY", TEAM_ALLY },
-	{ "TEAM_ENEMY", TEAM_ENEMY },
 
 	{ "WeaponState_Reloading", WeaponState_Reloading },
 	{ "WeaponState_StagedReloading", WeaponState_StagedReloading },
@@ -824,6 +822,14 @@ static int LuauGetTeamColor( lua_State * L ) {
 	return Vec4ToLuauColor( L, CG_TeamColorVec4( luaL_checknumber( L, 1 ) ) );
 }
 
+static int LuauAllyColor( lua_State * L ) {
+	return Vec4ToLuauColor( L, AllyColorVec4() );
+}
+
+static int LuauEnemyColor( lua_State * L ) {
+	return Vec4ToLuauColor( L, EnemyColorVec4() );
+}
+
 static int LuauAttentionGettingColor( lua_State * L ) {
 	return Vec4ToLuauColor( L, AttentionGettingColor() );
 }
@@ -1551,6 +1557,8 @@ void CG_InitHUD() {
 
 		{ "getBind", LuauGetBind },
 		{ "getTeamColor", LuauGetTeamColor },
+		{ "allyColor", LuauAllyColor },
+		{ "enemyColor", LuauEnemyColor },
 		{ "attentionGettingColor", LuauAttentionGettingColor },
 		{ "plantableColor", LuauPlantableColor },
 		{ "getPlayerName", LuauGetPlayerName },

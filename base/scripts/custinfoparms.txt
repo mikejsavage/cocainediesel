@@ -1,8 +1,0 @@
-{
-	wallbangable 0x4000
-	weaponclip 0x20000
-}
-
-{
-	noWallJump 0x80000
-}

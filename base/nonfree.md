@@ -1,9 +1,5 @@
-sounds/bomb/bombtimer.ogg
-sounds/movers/door_start.ogg
-sounds/movers/door_stop.ogg
 sounds/world/jumppad.ogg
 sounds/world/lava_in.ogg
 sounds/world/lava_out.ogg
-sounds/world/tele_in.ogg
 sounds/world/underlava.ogg
 sounds/world/underwater.ogg

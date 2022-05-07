@@ -124,15 +124,13 @@ static void CG_FlashGameWindow() {
 }
 
 float CG_CalcViewFov() {
-	float hardcoded_fov = 107.9f;
-
 	WeaponType weapon = cg.predictedPlayerState.weapon;
 	if( weapon == Weapon_None )
-		return hardcoded_fov;
+		return FOV;
 
 	float zoom_fov = GS_GetWeaponDef( weapon )->zoom_fov;
 	float frac = float( cg.predictedPlayerState.zoom_time ) / float( ZOOMTIME );
-	return Lerp( hardcoded_fov, frac, float( zoom_fov ) );
+	return Lerp( FOV, frac, float( zoom_fov ) );
 }
 
 static void CG_CalcViewBob() {

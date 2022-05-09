@@ -221,7 +221,7 @@ static const char * SelectablePlayerList() {
 	DynamicArray< const char * > players( &temp );
 
 	for( int i = 0; i < client_gs.maxclients; i++ ) {
-		const char * name = PlayerName( i ); 
+		const char * name = PlayerName( i );
 		if( strlen( name ) != 0 && !ISVIEWERENTITY( i + 1 ) ) {
 			players.add( name );
 		}
@@ -879,6 +879,12 @@ static void MainMenu() {
 			ImGui::Text( "MSC - programming" );
 			ImGui::Text( "MikeJS - programming" );
 			ImGui::Text( "Obani - music & fx & programming" );
+			ImGui::Separator();
+			ImGui::Text( "jwzr - medical research" );
+			ImGui::Text( "naxeron - chief propagandist" );
+			ImGui::Text( "Rhodanathema" );
+			ImGui::Text( "zmiles" );
+			ImGui::Separator();
 			ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
 			ImGui::Spacing();
 

@@ -883,7 +883,7 @@ static void MainMenu() {
 			ImGui::Text( "jwzr - medical research" );
 			ImGui::Text( "naxeron - chief propagandist" );
 			ImGui::Text( "Rhodanathema - chief technical ceo of gameplay and forward-thinking design developments" );
-			ImGui::Text( "zmiles" );
+			ImGui::Text( "zmiles - american cultural advisor" );
 			ImGui::Separator();
 			ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
 			ImGui::Spacing();

@@ -11,6 +11,8 @@ struct RecordDemoContext {
 	char * temp_filename;
 	FILE * temp_file;
 
+	size_t decompressed_size;
+
 	ZSTD_CCtx_s * zstd;
 
 	void * in_buf;
@@ -32,9 +34,17 @@ struct DemoMetadata {
 	Span< char > map;
 	s64 utc_time;
 	u64 duration_seconds;
+	u64 decompressed_size;
 };
 
-constexpr u32 DEMO_METADATA_VERSION = 1;
+enum DemoMetadataVersions : u32 {
+	DemoMetadataVersion_Initial = 1,
+	DemoMetadataVersion_AddDurationAndDecompressedSize,
+
+	DemoMetadataVersion_Count
+};
+
+constexpr u32 DEMO_METADATA_VERSION = DemoMetadataVersion_Count - 1;
 constexpr const char DEMO_METADATA_MAGIC[ sizeof( DemoHeader::magic ) ] = "cddemo";
 
 bool StartRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const char * filename, unsigned int spawncount, unsigned int snapFrameTime,
@@ -43,4 +53,4 @@ void WriteDemoMessage( RecordDemoContext * ctx, msg_t msg, size_t skip = 0 );
 void StopRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const DemoMetadata & metadata );
 
 bool ReadDemoMetadata( Allocator * a, DemoMetadata * metadata, Span< const u8 > contents );
-bool DecompressDemo( Allocator * a, Span< u8 > * decompressed, Span< const u8 > contents );
+bool DecompressDemo( Allocator * a, const DemoMetadata & metadata, Span< u8 > * decompressed, Span< const u8 > demo );

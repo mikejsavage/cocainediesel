@@ -32,11 +32,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 static void Serialize( SerializationBuffer * buf, DemoMetadata & meta ) {
 	*buf & meta.metadata_version & meta.server & meta.map & meta.game_version & meta.utc_time;
 
-	if( meta.metadata_version >= 2 ) {
-		*buf & meta.duration_seconds;
-	}
-	else if( !buf->serializing ) {
-		meta.duration_seconds = 123;
+	if( meta.metadata_version >= DemoMetadataVersion_AddDurationAndDecompressedSize ) {
+		*buf & meta.duration_seconds & meta.decompressed_size;
 	}
 }
 
@@ -69,6 +66,8 @@ static void WriteToDemo( RecordDemoContext * ctx, const void * buf, size_t n ) {
 			ctx->in_buf_cursor = 0;
 		}
 	}
+
+	ctx->decompressed_size += n;
 }
 
 void WriteDemoMessage( RecordDemoContext * ctx, msg_t msg, size_t skip ) {
@@ -238,32 +237,46 @@ void StopRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const Dem
 	}
 }
 
-static const DemoHeader * ReadDemoHeader( Span< const u8 > contents ) {
-	if( contents.n < sizeof( DemoHeader ) )
+static const DemoHeader * ReadDemoHeader( Span< const u8 > demo ) {
+	if( demo.n < sizeof( DemoHeader ) )
 		return NULL;
 
-	const DemoHeader * header = ( const DemoHeader * ) contents.ptr;
+	const DemoHeader * header = ( const DemoHeader * ) demo.ptr;
 	if( memcmp( &header->magic, DEMO_METADATA_MAGIC, sizeof( DEMO_METADATA_MAGIC ) ) != 0 )
 		return NULL;
 
-	if( contents.n < sizeof( DemoHeader ) + header->metadata_size )
+	if( demo.n < sizeof( DemoHeader ) + header->metadata_size )
 		return NULL;
 
 	return header;
 }
 
-bool ReadDemoMetadata( Allocator * a, DemoMetadata * metadata, Span< const u8 > contents ) {
-	const DemoHeader * header = ReadDemoHeader( contents );
+bool ReadDemoMetadata( Allocator * a, DemoMetadata * metadata, Span< const u8 > demo ) {
+	*metadata = { };
+
+	const DemoHeader * header = ReadDemoHeader( demo );
 	if( header == NULL )
 		return false;
 
-	Span< const u8 > serialised_metadata = contents.slice( sizeof( DemoHeader ), sizeof( DemoHeader ) + header->metadata_size );
+	Span< const u8 > serialised_metadata = demo.slice( sizeof( DemoHeader ), sizeof( DemoHeader ) + header->metadata_size );
 	return Deserialize( a, metadata, serialised_metadata.ptr, serialised_metadata.n );
 }
 
-bool DecompressDemo( Allocator * a, Span< u8 > * decompressed, Span< const u8 > contents ) {
-	const DemoHeader * header = ReadDemoHeader( contents );
-	if( header == NULL )
+bool DecompressDemo( Allocator * a, const DemoMetadata & metadata, Span< u8 > * decompressed, Span< const u8 > demo ) {
+	TracyZoneScoped;
+
+	const DemoHeader * header = ReadDemoHeader( demo );
+	assert( header != NULL );
+
+	*decompressed = ALLOC_SPAN( a, u8, metadata.decompressed_size );
+	Span< const u8 > compressed = demo.slice( sizeof( DemoHeader ) + header->metadata_size, demo.n );
+
+	size_t r = ZSTD_decompress( decompressed->ptr, decompressed->n, compressed.ptr, compressed.n );
+	if( r != decompressed->n ) {
+		Com_Printf( S_COLOR_RED "Can't decompress demo: %s\n", ZSTD_getErrorName( r ) );
+		FREE( sys_allocator, decompressed->ptr );
 		return false;
-	return Decompress( "TODO", a, contents.slice( sizeof( DemoHeader ) + header->metadata_size, contents.n ), decompressed );
+	}
+
+	return true;
 }

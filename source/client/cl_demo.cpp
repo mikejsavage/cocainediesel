@@ -142,6 +142,7 @@ void CL_StopRecording( bool silent ) {
 	metadata.map = MakeSpan( CopyString( &temp, cl.map->name ) );
 	metadata.utc_time = record_demo_utc_time;
 	metadata.duration_seconds = ( cls.gametime - record_demo_gametime ) / 1000;
+	metadata.decompressed_size = record_demo_context.decompressed_size;
 
 	StopRecordingDemo( &temp, &record_demo_context, metadata );
 
@@ -210,7 +211,9 @@ static void CL_StartDemo( const char * demoname, bool yolo ) {
 	defer { FREE( sys_allocator, demo.ptr ); };
 
 	Span< u8 > decompressed;
-	bool ok = ReadDemoMetadata( sys_allocator, &playing_demo_metadata, demo ) && DecompressDemo( sys_allocator, &decompressed, demo );
+	bool ok = true;
+	ok = ok && ReadDemoMetadata( sys_allocator, &playing_demo_metadata, demo );
+	ok = ok && DecompressDemo( sys_allocator, playing_demo_metadata, &decompressed, demo );
 	if( !ok ) {
 		Com_Printf( S_COLOR_YELLOW "Demo is corrupt\n" );
 		FreeDemoMetadata();
@@ -222,7 +225,6 @@ static void CL_StartDemo( const char * demoname, bool yolo ) {
 	playing_demo_seek = false;
 	playing_demo_seek_latch = false;
 	yolodemo = yolo;
-
 
 	CL_SetClientState( CA_HANDSHAKE );
 }

@@ -40,6 +40,8 @@ bool WriteFile( Allocator * a, const char * path, const void * data, size_t len 
 bool MoveFile( Allocator * a, const char * old_path, const char * new_path, MoveFileReplace replace );
 bool RemoveFile( Allocator * a, const char * path );
 
+bool CreatePathForFile( Allocator * a, const char * path );
+
 struct ListDirHandle {
 	char impl[ 64 ];
 };

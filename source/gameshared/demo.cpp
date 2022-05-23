@@ -103,6 +103,11 @@ bool StartRecordingDemo(
 ) {
 	*ctx = { };
 
+	if( !CreatePathForFile( temp, filename ) ) {
+		Com_Printf( S_COLOR_YELLOW "Can't open %s for writing\n", filename );
+		return false;
+	}
+
 	ctx->file = OpenFile( temp, filename, OpenFile_ReadWriteOverwrite );
 	if( ctx->file == NULL ) {
 		Com_Printf( S_COLOR_YELLOW "Can't open %s for writing\n", filename );

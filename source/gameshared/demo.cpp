@@ -50,7 +50,7 @@ static void FlushDemo( RecordDemoContext * ctx, bool last ) {
 		if( !WritePartialFile( ctx->temp_file, out.dst, out.pos ) )
 			break;
 
-		bool done = last ? remaining == 0 : in.pos == ctx->in_buf_cursor;
+		bool done = last ? remaining == 0 : in.pos == in.size;
 		if( done )
 			break;
 	}
@@ -59,7 +59,7 @@ static void FlushDemo( RecordDemoContext * ctx, bool last ) {
 static void WriteToDemo( RecordDemoContext * ctx, const void * buf, size_t n ) {
 	size_t cursor = 0;
 	while( cursor < n ) {
-		size_t to_copy = Min2( n, ctx->in_buf_capacity - ctx->in_buf_cursor );
+		size_t to_copy = Min2( n - cursor, ctx->in_buf_capacity - ctx->in_buf_cursor );
 		memcpy( ( u8 * ) ctx->in_buf + ctx->in_buf_cursor, ( u8 * ) buf + cursor, to_copy );
 		ctx->in_buf_cursor += to_copy;
 		cursor += to_copy;

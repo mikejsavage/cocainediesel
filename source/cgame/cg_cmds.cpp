@@ -161,7 +161,9 @@ static void CG_SC_ChangeLoadout() {
 }
 
 static void CG_SC_SaveLoadout() {
-	Cvar_Set( "cg_loadout", Cmd_Args() );
+	if( !cgs.demoPlaying ) {
+		Cvar_Set( "cg_loadout", Cmd_Args() );
+	}
 }
 
 struct ServerCommand {

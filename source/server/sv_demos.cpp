@@ -168,6 +168,7 @@ void SV_Demo_Stop( bool silent ) {
 	metadata.map = MakeSpan( sv.mapname );
 	metadata.utc_time = demo_utc_time;
 	metadata.duration_seconds = ( svs.gametime - demo_gametime ) / 1000;
+	metadata.decompressed_size = record_demo_context.decompressed_size;
 
 	StopRecordingDemo( &temp, &record_demo_context, metadata );
 	record_demo_context = { };

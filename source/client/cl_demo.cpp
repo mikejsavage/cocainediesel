@@ -148,10 +148,14 @@ void CL_StopRecording( bool silent ) {
 	record_demo_context = { };
 }
 
-void CL_DemoCompleted() {
+static void FreeDemoMetadata() {
 	FREE( sys_allocator, playing_demo_metadata.game_version.ptr );
 	FREE( sys_allocator, playing_demo_metadata.server.ptr );
 	FREE( sys_allocator, playing_demo_metadata.map.ptr );
+}
+
+void CL_DemoCompleted() {
+	FreeDemoMetadata();
 	FREE( sys_allocator, playing_demo_contents.data );
 	playing_demo_contents = { };
 
@@ -209,6 +213,7 @@ static void CL_StartDemo( const char * demoname, bool yolo ) {
 	bool ok = ReadDemoMetadata( sys_allocator, &playing_demo_metadata, demo ) && DecompressDemo( sys_allocator, &decompressed, demo );
 	if( !ok ) {
 		Com_Printf( S_COLOR_YELLOW "Demo is corrupt\n" );
+		FreeDemoMetadata();
 		return;
 	}
 

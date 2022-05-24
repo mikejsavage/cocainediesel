@@ -6,14 +6,15 @@
 #include "qcommon/net.h"
 #include "qcommon/string.h"
 #include "qcommon/threads.h"
+#include "qcommon/time.h"
 #include "gameshared/q_shared.h"
 
 #include "picohttpparser/picohttpparser.h"
 
 #include "tracy/Tracy.hpp"
 
-static constexpr s64 REQUEST_TIMEOUT = 10000; // 10s
-static constexpr s64 RESPONSE_INACTIVITY_TIMEOUT = 15000; // 15s
+static constexpr Time REQUEST_TIMEOUT = Seconds( 10 );
+static constexpr Time RESPONSE_INACTIVITY_TIMEOUT = Seconds( 15 );
 
 // server checks for shutdown this frequently so don't make it too big
 static constexpr s64 HTTP_SERVER_SLEEP_TIME = 50;
@@ -42,7 +43,7 @@ struct HTTPConnection {
 	Socket socket;
 	NetAddress address;
 
-	int64_t last_activity;
+	Time last_activity;
 
 	char request[ 256 ];
 	size_t request_size;
@@ -243,7 +244,7 @@ static bool SendFileChunk( Socket socket, FILE * f, size_t offset, size_t * sent
 	return true;
 }
 
-static void SendResponse( HTTPConnection * con ) {
+static void SendResponse( HTTPConnection * con, Time now ) {
 	if( !con->received_request )
 		return;
 
@@ -259,7 +260,7 @@ static void SendResponse( HTTPConnection * con ) {
 		}
 
 		response->headers_sent += sent;
-		con->last_activity = Sys_Milliseconds();
+		con->last_activity = now;
 	}
 
 	if( response->headers_sent < response->headers_size ) {
@@ -277,7 +278,7 @@ static void SendResponse( HTTPConnection * con ) {
 		}
 
 		response->file_sent += sent;
-		con->last_activity = Sys_Milliseconds();
+		con->last_activity = now;
 	}
 
 	if( response->file_sent == response->file_size ) {
@@ -301,7 +302,7 @@ static bool IPConnectionLimitReached( const NetAddress & address ) {
 	return false;
 }
 
-static void AcceptIncomingConnections() {
+static void AcceptIncomingConnections( Time now ) {
 	Socket client;
 	NetAddress address;
 	while( TCPAccept( web_server_socket, NonBlocking_Yes, &client, &address ) ) {
@@ -318,7 +319,7 @@ static void AcceptIncomingConnections() {
 
 		con->socket = client;
 		con->address = address;
-		con->last_activity = Sys_Milliseconds();
+		con->last_activity = now;
 	}
 }
 
@@ -344,8 +345,10 @@ static void WebServerFrame() {
 	WaitForSocketResult results[ ARRAY_COUNT( sockets ) ];
 	WaitForSockets( &temp, sockets, n, HTTP_SERVER_SLEEP_TIME, WaitForSocketWriteable_Yes, results );
 
+	Time now = Now();
+
 	if( results[ 0 ].readable ) {
-		AcceptIncomingConnections();
+		AcceptIncomingConnections( now );
 	}
 
 	for( size_t i = 1; i < n; i++ ) {
@@ -353,17 +356,15 @@ static void WebServerFrame() {
 			ReceiveRequest( socket_to_connection[ i ] );
 		}
 		if( results[ i ].writeable ) {
-			SendResponse( socket_to_connection[ i ] );
+			SendResponse( socket_to_connection[ i ], now );
 		}
 	}
-
-	s64 now = Sys_Milliseconds();
 
 	for( HTTPConnection & con : connections ) {
 		if( con.address == NULL_ADDRESS )
 			continue;
 
-		s64 timeout = con.received_request ? RESPONSE_INACTIVITY_TIMEOUT : REQUEST_TIMEOUT;
+		Time timeout = con.received_request ? RESPONSE_INACTIVITY_TIMEOUT : REQUEST_TIMEOUT;
 		if( now > con.last_activity + timeout ) {
 			con.should_close = true;
 		}

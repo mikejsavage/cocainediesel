@@ -5,7 +5,7 @@ set -eoux pipefail
 
 cd "$(dirname "$0")"
 
-mkdir test_downloads_workdir
+mkdir -p test_downloads_workdir
 cd test_downloads_workdir
 
 cp ../../release/server .

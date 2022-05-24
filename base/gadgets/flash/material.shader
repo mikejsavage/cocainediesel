@@ -5,7 +5,7 @@ weapons/stungrenade
 	shininess 8
 	{
 		map $whiteimage
-		rgbgen const 0.128 0.128 0.128
+		rgbgen const 0.18 0.18 0.18
 	}
 }
 

@@ -5,7 +5,7 @@ weapons/9mm/texture
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -16,7 +16,7 @@ weapons/br/texture
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -27,7 +27,7 @@ weapons/bg
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -38,7 +38,7 @@ weapons/deagle/texture
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -49,7 +49,7 @@ weapons/eb/texture
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -60,7 +60,7 @@ weapons/gb/texture
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -71,7 +71,7 @@ models/weapons/gl
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -82,7 +82,7 @@ models/weapons/lg
 	shininess 6
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -115,7 +115,7 @@ models/weapons/lg_bolts
 	shininess 25
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -126,7 +126,7 @@ models/weapons/lg_nuts
 	shininess 25
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -148,7 +148,7 @@ weapons/mb/texture
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -160,7 +160,7 @@ weapons/mg/texture
 	cull disable
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -171,7 +171,7 @@ weapons/ar/texture
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -182,7 +182,7 @@ weapons/pg
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -193,7 +193,7 @@ weapons/rg/texture
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -204,7 +204,7 @@ weapons/rifle/texture
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -215,7 +215,7 @@ weapons/rl/texture
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -227,7 +227,7 @@ weapons/sniper/texture
 	cull disable
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -238,7 +238,7 @@ weapons/stake/texture
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -249,7 +249,7 @@ weapons/road
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -260,7 +260,7 @@ weapons/stickybanger/texture
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 
@@ -271,6 +271,6 @@ weapons/minigun
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }

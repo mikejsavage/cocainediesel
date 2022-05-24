@@ -5,7 +5,7 @@ weapons/sticky/spikes
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.128 0.128 0.128
+		rgbGen const 0.18 0.18 0.18
 	}
 }
 

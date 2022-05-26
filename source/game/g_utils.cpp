@@ -640,7 +640,7 @@ bool KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
 		}
 
 		// nail it
-		G_Damage( &game.edicts[tr.ent], ent, ent, knockback, Vec3( 0.0f ), ent->s.origin, 100000, Length( knockback ), 0, damage_type );
+		G_Damage( &game.edicts[tr.ent], ent, ent, knockback, Vec3( 0.0f ), ent->s.origin, 200, Length( knockback ), 0, damage_type );
 		telefragged = true;
 
 		// if we didn't kill it, fail

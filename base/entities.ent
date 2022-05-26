@@ -125,9 +125,10 @@
 </point>
 
 <point name="jumppad" color="0 .5 0" box="-32 -32 0 32 32 24" model="entities/jumppad/model.glb">
-  A jumppad
+  A jumppad. Either point it at a target_position or set power manually
   <target key="target" name="Target">this points to the target_position to which the player will jump.</target>
   <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
+  <real key="power" name="Power">Jumppad power. Default is 512, which is medium-high strength</real>
   <flag key="PAINKILLER" name="PAINKILLER" bit="0">Player keeps sideways momentum</flag>
 </point>
 

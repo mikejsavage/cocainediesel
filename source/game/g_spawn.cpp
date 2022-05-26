@@ -84,6 +84,7 @@ static constexpr EntityField entity_keys[] = {
 	{ "gameteam", STOFS( gameteam ), EntityField_Int, true },
 	{ "size", STOFS( size ), EntityField_Int, true },
 	{ "spawn_probability", STOFS( spawn_probability ), EntityField_Float, true },
+	{ "power", STOFS( power ), EntityField_Float, true },
 };
 
 static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st );

@@ -111,6 +111,7 @@ struct spawn_temp_t {
 	int gameteam;
 	int size;
 	float spawn_probability;
+	float power;
 };
 
 struct score_stats_t {

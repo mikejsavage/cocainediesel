@@ -65,7 +65,7 @@ void SP_jumppad( edict_t * ent, const spawn_temp_t * st ) {
 	ent->nextThink = level.time + 1;
 	ent->s.svflags &= ~SVF_NOCLIENT;
 	ent->s.type = ET_PAINKILLER_JUMPPAD;
-	ent->s.origin2 = up * 512.0f;
+	ent->s.origin2 = up * ( st->power == 0.0f ? 512.0f : st->power );
 	ent->s.model = "entities/jumppad/model";
 
 	GClip_LinkEntity( ent );

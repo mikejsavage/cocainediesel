@@ -369,18 +369,19 @@ void Matrix3_FromAngles( Vec3 angles, mat3_t m ) {
 	m[8] = up.z;
 }
 
+int PositiveMod( int x, int y ) {
+	int res = x % y;
+	return res < 0 ? res + y : res;
+}
+
 float PositiveMod( float x, float y ) {
 	float res = fmodf( x, y );
-	if( res < 0 )
-		res += y;
-	return res;
+	return res < 0 ? res + y : res;
 }
 
 double PositiveMod( double x, double y ) {
 	double res = fmod( x, y );
-	if( res < 0 )
-		res += y;
-	return res;
+	return res < 0 ? res + y : res;
 }
 
 Vec3 UniformSampleOnSphere( RNG * rng ) {

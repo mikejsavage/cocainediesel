@@ -24,8 +24,8 @@ static constexpr u32 bomb_drop_retake_delay = 1000;
 static constexpr float bomb_arm_defuse_radius = 36.0f;
 static constexpr float bomb_throw_speed = 550.0f;
 static constexpr u32 bomb_explosion_effect_radius = 256;
-static constexpr int initial_attackers = TEAM_ALPHA;
-static constexpr int initial_defenders = TEAM_BETA;
+static constexpr Team initial_attackers = Team_One;
+static constexpr Team initial_defenders = Team_Two;
 static constexpr int site_explosion_points = 10;
 static constexpr int site_explosion_max_delay = 1000;
 static constexpr float site_explosion_max_dist = 512.0f;
@@ -104,9 +104,9 @@ static struct {
 static bool BombCanPlant();
 static void BombStartPlanting( edict_t * carrier_ent, u32 site );
 static void BombSetCarrier( s32 player_num, bool no_sound );
-static void RoundWonBy( int winner );
+static void RoundWonBy( Team winner );
 static void RoundNewState( RoundState state );
-static void SetTeamProgress( int team, int percent, BombProgress type );
+static void SetTeamProgress( Team team, int percent, BombProgress type );
 static void UpdateScore( s32 player_num );
 
 static void Show( edict_t * ent ) {
@@ -125,7 +125,7 @@ static bool EntCanSee( edict_t * ent, Vec3 point ) {
 	return tr.startsolid || tr.allsolid || tr.ent == -1;
 }
 
-static s32 FirstNearbyTeammate( Vec3 origin, int team ) {
+static s32 FirstNearbyTeammate( Vec3 origin, Team team ) {
 	int touch[ MAX_EDICTS ];
 	int num_touch = GClip_FindInRadius( origin, bomb_arm_defuse_radius, touch, ARRAY_COUNT( touch ) );
 	for( int i = 0; i < num_touch; i++ ) {
@@ -139,15 +139,15 @@ static s32 FirstNearbyTeammate( Vec3 origin, int team ) {
 	return -1;
 }
 
-static int OtherTeam( int team ) {
+static Team OtherTeam( Team team ) {
 	return team == initial_attackers ? initial_defenders : initial_attackers;
 }
 
-static int AttackingTeam() {
+static Team AttackingTeam() {
 	return server_gs.gameState.bomb.attacking_team;
 }
 
-static int DefendingTeam() {
+static Team DefendingTeam() {
 	return OtherTeam( AttackingTeam() );
 }
 
@@ -178,7 +178,7 @@ static void GiveInventory( edict_t * ent ) {
 }
 
 static void ShowShop( edict_t * ent ) {
-	if( ent->s.team == TEAM_SPECTATOR ) {
+	if( ent->s.team == Team_None ) {
 		return;
 	}
 
@@ -759,31 +759,14 @@ static void BombGiveToRandom() {
 
 // round.as
 
-static void RespawnAllPlayers( bool ghost = false ) {
+static void RespawnAllPlayers( bool ghost ) {
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = PLAYERENT( i );
 		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
 			GClip_UnlinkEntity( ent );
-		}
-	}
-
-	for( int i = 0; i < server_gs.maxclients; i++ ) {
-		edict_t * ent = PLAYERENT( i );
-		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
 			G_ClientRespawn( ent, ghost );
 		}
 	}
-}
-
-static u32 PlayersAliveOnTeam( int team ) {
-	u32 alive = 0;
-	for( u32 i = 0; i < server_gs.gameState.teams[ team ].num_players; i++ ) {
-		edict_t * ent = PLAYERENT( server_gs.gameState.teams[ team ].player_indices[ i ] - 1 );
-		if( !G_ISGHOSTING( ent ) && ent->health > 0 ) {
-			alive++;
-		}
-	}
-	return alive;
 }
 
 static void EnableMovementFor( s32 playernum ) {
@@ -795,7 +778,7 @@ static void EnableMovementFor( s32 playernum ) {
 static void EnableMovement() {
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = PLAYERENT( i );
-		if( PF_GetClientState( i ) >= CS_SPAWNED && ent->s.team != TEAM_SPECTATOR ) {
+		if( PF_GetClientState( i ) >= CS_SPAWNED && ent->s.team != Team_None ) {
 			EnableMovementFor( i );
 		}
 	}
@@ -811,22 +794,22 @@ static void DisableMovementFor( s32 playernum ) {
 static void DisableMovement() {
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = PLAYERENT( i );
-		if( PF_GetClientState( i ) >= CS_SPAWNED && ent->s.team != TEAM_SPECTATOR ) {
+		if( PF_GetClientState( i ) >= CS_SPAWNED && ent->s.team != Team_None ) {
 			DisableMovementFor( i );
 		}
 	}
 }
 
-static void PlayXvXSound( int team_that_died ) {
+static void PlayXvXSound( Team team_that_died ) {
 	u32 alive = PlayersAliveOnTeam( team_that_died );
 
-	int other_team = OtherTeam( team_that_died );
+	Team other_team = OtherTeam( team_that_died );
 	u32 alive_other_team = PlayersAliveOnTeam( other_team );
 
 	if( alive == 1 ) {
 		if( alive_other_team == 1 ) {
 			if( bomb_state.was_1vx ) {
-				G_AnnouncerSound( NULL, "sounds/announcer/bomb/1v1", GS_MAX_TEAMS, false, NULL );
+				G_AnnouncerSound( NULL, "sounds/announcer/bomb/1v1", Team_Count, false, NULL );
 			}
 		}
 		else if( alive_other_team >= 3 ) {
@@ -851,21 +834,14 @@ static void SetTeams() {
 }
 
 static void NewGame() {
-	server_gs.gameState.round_num = 0;
 	level.gametype.autoRespawn = false;
-
-	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		for( int i = 0; i < server_gs.gameState.teams[ team ].num_players; i++ ) {
-			int entnum = server_gs.gameState.teams[ team ].player_indices[ i ];
-			*G_ClientGetStats( PLAYERENT( entnum - 1 ) ) = { };
-		}
-	}
+	server_gs.gameState.round_num = 0;
 
 	RoundNewState( RoundState_Countdown );
 }
 
-static void RoundWonBy( int winner ) {
-	int loser = winner == AttackingTeam() ? DefendingTeam() : AttackingTeam();
+static void RoundWonBy( Team winner ) {
+	Team loser = winner == AttackingTeam() ? DefendingTeam() : AttackingTeam();
 
 	G_AnnouncerSound( NULL, "sounds/announcer/bomb/team_scored", winner, true, NULL );
 	G_AnnouncerSound( NULL, "sounds/announcer/bomb/enemy_scored", loser, true, NULL );
@@ -880,13 +856,11 @@ static void EndGame() {
 
 	RespawnAllPlayers( true );
 
-	// GENERIC_UpdateMatchScore();
-
-	G_AnnouncerSound( NULL, "sounds/announcer/game_over", GS_MAX_TEAMS, true, NULL );
+	G_AnnouncerSound( NULL, "sounds/announcer/game_over", Team_Count, true, NULL );
 }
 
 static bool ScoreLimitHit() {
-	return G_Match_ScorelimitHit() && Abs( int( server_gs.gameState.teams[ TEAM_ALPHA ].score ) - int( server_gs.gameState.teams[ TEAM_BETA ].score ) ) > 1;
+	return G_Match_ScorelimitHit() && Abs( int( server_gs.gameState.teams[ Team_One ].score ) - int( server_gs.gameState.teams[ Team_Two ].score ) ) > 1;
 }
 
 static void SetRoundType() {
@@ -894,8 +868,8 @@ static void SetRoundType() {
 
 	u32 limit = g_scorelimit->integer;
 
-	u8 alpha_score = server_gs.gameState.teams[ TEAM_ALPHA ].score;
-	u8 beta_score = server_gs.gameState.teams[ TEAM_BETA ].score;
+	u8 alpha_score = server_gs.gameState.teams[ Team_One ].score;
+	u8 beta_score = server_gs.gameState.teams[ Team_Two ].score;
 	bool match_point = alpha_score == limit - 1 || beta_score == limit - 1;
 	bool overtime = server_gs.gameState.round_num > ( limit - 1 ) * 2;
 
@@ -935,7 +909,7 @@ static void RoundNewState( RoundState state ) {
 			SpawnBomb();
 			SpawnBombHUD();
 			ResetKillCounters();
-			RespawnAllPlayers();
+			RespawnAllPlayers( false );
 			DisableMovement();
 			SetRoundType();
 			BombGiveToRandom();
@@ -957,7 +931,7 @@ static void RoundNewState( RoundState state ) {
 
 		case RoundState_Post: {
 			if( ScoreLimitHit() ) {
-				G_Match_LaunchState( MatchState( server_gs.gameState.match_state + 1 ) );
+				G_Match_LaunchState( MatchState_PostMatch );
 				return;
 			}
 
@@ -983,18 +957,18 @@ static void RoundThink() {
 			bomb_state.countdown = remaining_seconds;
 
 			if( remaining_seconds == countdown_max ) {
-				G_AnnouncerSound( NULL, "sounds/announcer/ready", GS_MAX_TEAMS, false, NULL );
+				G_AnnouncerSound( NULL, "sounds/announcer/ready", Team_Count, false, NULL );
 			}
 			else {
 				if( remaining_seconds < 4 ) {
 					TempAllocator temp = svs.frame_arena.temp();
-					G_AnnouncerSound( NULL, StringHash( temp( "sounds/announcer/{}", remaining_seconds ) ), GS_MAX_TEAMS, false, NULL );
+					G_AnnouncerSound( NULL, StringHash( temp( "sounds/announcer/{}", remaining_seconds ) ), Team_Count, false, NULL );
 				}
 			}
 		}
 
-		server_gs.gameState.bomb.alpha_players_total = PlayersAliveOnTeam( TEAM_ALPHA );
-		server_gs.gameState.bomb.beta_players_total = PlayersAliveOnTeam( TEAM_BETA );
+		server_gs.gameState.bomb.alpha_players_total = PlayersAliveOnTeam( Team_One );
+		server_gs.gameState.bomb.beta_players_total = PlayersAliveOnTeam( Team_Two );
 
 		bomb_state.last_time = bomb_state.round_state_end - level.time + int( g_bomb_roundtime->number * 1000.0f );
 		server_gs.gameState.clock_override = bomb_state.last_time;
@@ -1079,7 +1053,7 @@ static void UpdateScore( s32 player_num ) {
 	stats->score = int( stats->kills * 0.5 + stats->total_damage_given * 0.01 );
 }
 
-static void SetTeamProgress( int team, int percent, BombProgress type ) {
+static void SetTeamProgress( Team team, int percent, BombProgress type ) {
 	for( u32 i = 0; i < server_gs.gameState.teams[ team ].num_players; i++ ) {
 		edict_t * ent = PLAYERENT( server_gs.gameState.teams[ team ].player_indices[ i ] - 1 );
 		gclient_t * client = ent->r.client;
@@ -1093,7 +1067,7 @@ static void SetTeamProgress( int team, int percent, BombProgress type ) {
 	}
 }
 
-static const edict_t * GT_Bomb_SelectSpawnPoint( const edict_t * ent ) {
+static const edict_t * Bomb_SelectSpawnPoint( const edict_t * ent ) {
 	if( ent->s.team == AttackingTeam() ) {
 		edict_t * spawn = G_PickRandomEnt( &edict_t::classname, "spawn_bomb_attacking" );
 		if( spawn != NULL ) {
@@ -1109,44 +1083,41 @@ static const edict_t * GT_Bomb_SelectSpawnPoint( const edict_t * ent ) {
 	return G_PickRandomEnt( &edict_t::classname, "team_CTF_alphaspawn" );
 }
 
-static const edict_t * GT_Bomb_SelectDeadcam() {
+static const edict_t * Bomb_SelectDeadcam() {
 	if( bomb_state.bomb.state < BombState_Planted )
 		return NULL;
 	return G_PickTarget( bomb_state.sites[ bomb_state.site ].indicator->deadcam );
 }
 
-static void GT_Bomb_PlayerConnected( edict_t * ent ) {
+static void Bomb_PlayerConnected( edict_t * ent ) {
 	SetLoadout( ent, Info_ValueForKey( ent->r.client->userinfo, "cg_loadout" ), true );
 }
 
-static void GT_Bomb_PlayerRespawning( edict_t * ent ) {
+static void Bomb_PlayerRespawning( edict_t * ent ) {
 	if( PLAYERNUM( ent ) == bomb_state.carrier ) {
 		DropBomb( BombDropReason_ChangingTeam );
 	}
 }
 
-static void GT_Bomb_PlayerRespawned( edict_t * ent, int old_team, int new_team ) {
-	gclient_t * client = ent->r.client;
-	client->ps.pmove.features |= PMFEAT_TEAMGHOST;
-
+static void Bomb_PlayerRespawned( edict_t * ent, Team old_team, Team new_team ) {
 	MatchState match_state = server_gs.gameState.match_state;
 	RoundState round_state = server_gs.gameState.round_state;
 
 	if( match_state <= MatchState_Warmup ) {
-		client->ps.can_change_loadout = new_team >= TEAM_ALPHA;
+		ent->r.client->ps.can_change_loadout = new_team >= Team_One;
 	}
 
 	if( new_team != old_team && match_state == MatchState_Playing ) {
-		if( old_team != TEAM_SPECTATOR ) {
+		if( old_team != Team_None ) {
 			PlayXvXSound( old_team );
 		}
-		if( round_state == RoundState_Countdown && new_team != TEAM_SPECTATOR ) {
+		if( round_state == RoundState_Countdown && new_team != Team_None ) {
 			G_ClientRespawn( ent, false ); // TODO: why does this not really respawn them?
 			return;
 		}
 	}
 
-	if( new_team == TEAM_SPECTATOR ) {
+	if( new_team == Team_None ) {
 		return;
 	}
 
@@ -1161,7 +1132,7 @@ static void GT_Bomb_PlayerRespawned( edict_t * ent, int old_team, int new_team )
 	GiveInventory( ent );
 }
 
-static void GT_Bomb_PlayerKilled( edict_t * victim, edict_t * attacker, edict_t * inflictor ) {
+static void Bomb_PlayerKilled( edict_t * victim, edict_t * attacker, edict_t * inflictor ) {
 	if( server_gs.gameState.match_state != MatchState_Playing || server_gs.gameState.round_state >= RoundState_Finished ) {
 		return;
 	}
@@ -1173,21 +1144,16 @@ static void GT_Bomb_PlayerKilled( edict_t * victim, edict_t * attacker, edict_t 
 	if( attacker != NULL && attacker->r.client != NULL && attacker->s.team != victim->s.team ) {
 		bomb_state.kills_this_round[ PLAYERNUM( attacker ) ]++;
 
-		u32 required_for_ace = attacker->s.team == TEAM_ALPHA ? server_gs.gameState.bomb.beta_players_total : server_gs.gameState.bomb.alpha_players_total;
+		u32 required_for_ace = attacker->s.team == Team_One ? server_gs.gameState.bomb.beta_players_total : server_gs.gameState.bomb.alpha_players_total;
 		if( required_for_ace >= 3 && bomb_state.kills_this_round[ PLAYERNUM( attacker ) ] == required_for_ace ) {
-			G_AnnouncerSound( NULL, "sounds/announcer/bomb/ace", GS_MAX_TEAMS, false, NULL );
+			G_AnnouncerSound( NULL, "sounds/announcer/bomb/ace", Team_Count, false, NULL );
 		}
 	}
 
 	PlayXvXSound( victim->s.team );
 }
 
-static void GT_Bomb_Think() {
-	if( G_Match_TimelimitHit() ) {
-		G_Match_LaunchState( MatchState( server_gs.gameState.match_state + 1 ) );
-		G_ClearCenterPrint( NULL );
-	}
-
+static void Bomb_Think() {
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		UpdateScore( i );
 	}
@@ -1198,8 +1164,8 @@ static void GT_Bomb_Think() {
 
 	RoundThink();
 
-	u32 aliveAlpha = PlayersAliveOnTeam( TEAM_ALPHA );
-	u32 aliveBeta = PlayersAliveOnTeam( TEAM_BETA );
+	u32 aliveAlpha = PlayersAliveOnTeam( Team_One );
+	u32 aliveBeta = PlayersAliveOnTeam( Team_Two );
 
 	server_gs.gameState.bomb.alpha_players_alive = aliveAlpha;
 	server_gs.gameState.bomb.beta_players_alive = aliveBeta;
@@ -1221,17 +1187,15 @@ static void GT_Bomb_Think() {
 		carrier->r.client->ps.carrying_bomb = true;
 		carrier->r.client->ps.can_plant = bomb_state.carrier_can_plant_time >= level.time - 50;
 	}
-
-	// GENERIC_UpdateMatchScore(); TODO
 }
 
-static void GT_Bomb_MatchStateStarted() {
+static void Bomb_MatchStateStarted() {
 	switch( server_gs.gameState.match_state ) {
 		case MatchState_Warmup:
 			break;
 
 		case MatchState_Countdown:
-			G_AnnouncerSound( NULL, "sounds/announcer/get_ready_to_fight", GS_MAX_TEAMS, false, NULL );
+			G_AnnouncerSound( NULL, "sounds/announcer/get_ready_to_fight", Team_Count, false, NULL );
 			break;
 
 		case MatchState_Playing:
@@ -1247,7 +1211,8 @@ static void GT_Bomb_MatchStateStarted() {
 	}
 }
 
-static void GT_Bomb_InitGametype() {
+static void Bomb_Init() {
+	server_gs.gameState.gametype = Gametype_Bomb;
 	server_gs.gameState.bomb.attacking_team = initial_attackers;
 
 	bomb_state = { };
@@ -1274,10 +1239,7 @@ static void GT_Bomb_InitGametype() {
 	g_bomb_defusetime = NewCvar( "g_bomb_defusetime", "4", CvarFlag_Archive );
 }
 
-static void GT_Bomb_Shutdown() {
-}
-
-static bool GT_Bomb_SpawnEntity( StringHash classname, edict_t * ent ) {
+static bool Bomb_SpawnEntity( StringHash classname, edict_t * ent ) {
 	if( classname == "bomb_site" || classname == "misc_capture_area_indicator" ) {
 		SpawnBombSite( ent );
 		return true;
@@ -1296,23 +1258,22 @@ static bool GT_Bomb_SpawnEntity( StringHash classname, edict_t * ent ) {
 	return false;
 }
 
-Gametype GetBombGametype() {
-	Gametype gt = { };
+GametypeSpec GetBombGametype() {
+	GametypeSpec gt = { };
 
-	gt.Init = GT_Bomb_InitGametype;
-	gt.MatchStateStarted = GT_Bomb_MatchStateStarted;
-	gt.Think = GT_Bomb_Think;
-	gt.PlayerConnected = GT_Bomb_PlayerConnected;
-	gt.PlayerRespawning = GT_Bomb_PlayerRespawning;
-	gt.PlayerRespawned = GT_Bomb_PlayerRespawned;
-	gt.PlayerKilled = GT_Bomb_PlayerKilled;
-	gt.SelectSpawnPoint = GT_Bomb_SelectSpawnPoint;
-	gt.SelectDeadcam = GT_Bomb_SelectDeadcam;
-	gt.Shutdown = GT_Bomb_Shutdown;
+	gt.Init = Bomb_Init;
+	gt.MatchStateStarted = Bomb_MatchStateStarted;
+	gt.Think = Bomb_Think;
+	gt.PlayerConnected = Bomb_PlayerConnected;
+	gt.PlayerRespawning = Bomb_PlayerRespawning;
+	gt.PlayerRespawned = Bomb_PlayerRespawned;
+	gt.PlayerKilled = Bomb_PlayerKilled;
+	gt.SelectSpawnPoint = Bomb_SelectSpawnPoint;
+	gt.SelectDeadcam = Bomb_SelectDeadcam;
 	gt.MapHotloaded = ResetBombSites;
-	gt.SpawnEntity = GT_Bomb_SpawnEntity;
+	gt.SpawnEntity = Bomb_SpawnEntity;
 
-	gt.isTeamBased = true;
+	gt.numTeams = 2;
 	gt.removeInactivePlayers = true;
 	gt.selfDamage = true;
 	gt.autoRespawn = true;

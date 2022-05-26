@@ -11,18 +11,14 @@ static constexpr RGB8 COLORBLIND_TEAM_COLORS[] = {
 	RGB8( 190, 0, 240 ),
 };
 
-static bool IsAlly( int team ) {
-	int myteam = cg.predictedPlayerState.team;
-	if( myteam == TEAM_SPECTATOR )
-		return team == TEAM_ALPHA;
-	if( myteam == TEAM_PLAYERS )
-		return false;
-	return team == myteam;
+static bool IsAlly( Team team ) {
+	Team my_team = cg.predictedPlayerState.team;
+	if( my_team == Team_None )
+		return team == Team_One;
+	return team == my_team;
 }
 
-RGB8 CG_TeamColor( int team ) {
-	if( team == TEAM_PLAYERS )
-		return RGB8( 255, 255, 255 );
+RGB8 CG_TeamColor( Team team ) {
 	return IsAlly( team ) ? AllyColor() : EnemyColor();
 }
 
@@ -40,7 +36,7 @@ static Vec4 RGB8ToVec4( RGB8 rgb ) {
 	return Vec4( sRGBToLinear( rgb ), 1.0f );
 }
 
-Vec4 CG_TeamColorVec4( int team ) {
+Vec4 CG_TeamColorVec4( Team team ) {
 	return RGB8ToVec4( CG_TeamColor( team ) );
 }
 

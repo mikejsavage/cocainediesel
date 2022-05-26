@@ -72,11 +72,11 @@ static void AI_SpecThink( edict_t * self ) {
 	if( !level.canSpawnEntities )
 		return;
 
-	if( self->r.client->team == TEAM_SPECTATOR ) {
+	if( self->r.client->team == Team_None ) {
 		// try to join a team
 		G_Teams_JoinAnyTeam( self, false );
 
-		if( self->r.client->team == TEAM_SPECTATOR ) { // couldn't join, delay the next think
+		if( self->r.client->team == Team_None ) { // couldn't join, delay the next think
 			self->nextThink = level.time + 100;
 		} else {
 			self->nextThink = level.time + 1;

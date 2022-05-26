@@ -31,7 +31,7 @@ static bool CanHit( const edict_t * projectile, const edict_t * target ) {
 		return false;
 
 	constexpr s64 projectile_ignore_teammates_time = 50;
-	if( projectile->s.team != TEAM_PLAYERS && projectile->s.team == target->s.team && level.time - projectile->timeStamp < projectile_ignore_teammates_time )
+	if( projectile->s.team != Team_None && projectile->s.team == target->s.team && level.time - projectile->timeStamp < projectile_ignore_teammates_time )
 		return false;
 
 	return true;

@@ -1058,7 +1058,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 }
 
 static void GameMenu() {
-	bool spectating = cg.predictedPlayerState.real_team == TEAM_SPECTATOR;
+	bool spectating = cg.predictedPlayerState.real_team == Team_None;
 	bool ready = false;
 
 	if( client_gs.gameState.match_state <= MatchState_Warmup ) {
@@ -1079,31 +1079,9 @@ static void GameMenu() {
 		ImGui::Begin( "gamemenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
-		bool team_based = GS_TeamBasedGametype( &client_gs );
 
 		if( spectating ) {
-			if( team_based ) {
-				GameMenuButton( "Auto-join", "join", &should_close );
-
-				ImGui::Columns( 2, NULL, false );
-				ImGui::SetColumnWidth( 0, half );
-				ImGui::SetColumnWidth( 1, half );
-
-				PushButtonColor( CG_TeamColorVec4( TEAM_ALPHA ) * 0.5f );
-				GameMenuButton( "Join Corona", "join cocaine", &should_close, 0 );
-				ImGui::PopStyleColor( 3 );
-
-				ImGui::NextColumn();
-
-				PushButtonColor( CG_TeamColorVec4( TEAM_BETA ) * 0.5f );
-				GameMenuButton( "Join Diesel", "join diesel", &should_close, 1 );
-				ImGui::PopStyleColor( 3 );
-
-				ImGui::NextColumn();
-			}
-			else {
-				GameMenuButton( "Join Game", "join", &should_close );
-			}
+			GameMenuButton( "Join Game", "join", &should_close );
 			ImGui::Columns( 1 );
 		}
 		else {
@@ -1113,15 +1091,10 @@ static void GameMenu() {
 				}
 			}
 
-			if( team_based ) {
-				PushButtonColor( EnemyColorVec4() * 0.5f );
-				GameMenuButton( "Switch team", "join", &should_close );
-				ImGui::PopStyleColor( 3 );
-			}
-
 			GameMenuButton( "Spectate", "spectate", &should_close );
 
-			if( team_based ) {
+			// TODO
+			if( true ) {
 				GameMenuButton( "Change weapons", "loadoutmenu", &should_close );
 			}
 		}

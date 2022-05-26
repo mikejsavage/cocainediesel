@@ -62,7 +62,7 @@ void DiscordFrame() {
 	else if( cls.state == CA_ACTIVE ) {
 		presence.playing = true;
 
-		if( cg.predictedPlayerState.real_team == TEAM_SPECTATOR ) {
+		if( cg.predictedPlayerState.real_team == Team_None ) {
 			presence.first_line.format( "SPECTATING" );
 		}
 		else if( client_gs.gameState.match_state <= MatchState_Warmup ) {
@@ -72,10 +72,9 @@ void DiscordFrame() {
 			presence.first_line.format( "ROUND {}", client_gs.gameState.round_num );
 		}
 
-		bool is_bomb = GS_TeamBasedGametype( &client_gs );
-		if( is_bomb ) {
-			u8 alpha_score = client_gs.gameState.teams[ TEAM_ALPHA ].score;
-			u8 beta_score = client_gs.gameState.teams[ TEAM_BETA ].score;
+		if( client_gs.gameState.gametype == Gametype_Bomb ) {
+			u8 alpha_score = client_gs.gameState.teams[ Team_One ].score;
+			u8 beta_score = client_gs.gameState.teams[ Team_Two ].score;
 
 			if( client_gs.gameState.match_state >= MatchState_Playing ) {
 				presence.second_line.format( "{} - {}", alpha_score, beta_score );
@@ -85,7 +84,7 @@ void DiscordFrame() {
 		presence.large_image.format( "map-{}", cl.map->name );
 		presence.large_image_tooltip.format( "Playing on {}", cl.map->name );
 
-		const char * gt = is_bomb ? "bomb" : "gladiator";
+		const char * gt = client_gs.gameState.gametype == Gametype_Bomb ? "bomb" : "gladiator";
 		presence.small_image.format( "gt-{}", gt );
 	}
 	else {

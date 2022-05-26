@@ -35,7 +35,7 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, Vec3 angles ) {
 		trace_t tr;
 
 		G_Trace( &tr, origin, ent->r.mins, ent->r.maxs, origin, ent, MASK_PLAYERSOLID );
-		if( ( tr.fraction != 1.0f || tr.startsolid ) && ( game.edicts[ tr.ent ].s.team != TEAM_PLAYERS && game.edicts[ tr.ent ].s.team != ent->s.team ) ) {
+		if( ( tr.fraction != 1.0f || tr.startsolid ) && game.edicts[ tr.ent ].s.team != ent->s.team ) {
 			return false;
 		}
 
@@ -392,30 +392,23 @@ static void Cmd_Join_f( edict_t * ent, msg_t args ) {
 }
 
 static void Cmd_Timeout_f( edict_t * ent, msg_t args ) {
-	int num;
-
-	if( ent->s.team == TEAM_SPECTATOR || server_gs.gameState.match_state != MatchState_Playing ) {
+	if( ent->s.team == Team_None || server_gs.gameState.match_state != MatchState_Playing ) {
 		return;
 	}
 
-	if( level.gametype.isTeamBased ) {
-		num = ent->s.team;
-	} else {
-		num = ENTNUM( ent ) - 1;
-	}
+	Team team = ent->s.team;
 
 	if( GS_MatchPaused( &server_gs ) && ( level.timeout.endtime - level.timeout.time ) >= 2 * TIMEIN_TIME ) {
 		G_PrintMsg( ent, "Timeout already in progress\n" );
 		return;
 	}
 
-	if( g_maxtimeouts->integer != -1 && level.timeout.used[num] >= g_maxtimeouts->integer ) {
+	if( g_maxtimeouts->integer != -1 && level.timeout.used[team] >= g_maxtimeouts->integer ) {
 		if( g_maxtimeouts->integer == 0 ) {
 			G_PrintMsg( ent, "Timeouts are not allowed on this server\n" );
-		} else if( level.gametype.isTeamBased ) {
+		}
+		else {
 			G_PrintMsg( ent, "Your team doesn't have any timeouts left\n" );
-		} else {
-			G_PrintMsg( ent, "You don't have any timeouts left\n" );
 		}
 		return;
 	}
@@ -423,19 +416,17 @@ static void Cmd_Timeout_f( edict_t * ent, msg_t args ) {
 	G_PrintMsg( NULL, "%s%s called a timeout\n", ent->r.client->netname, S_COLOR_WHITE );
 
 	if( !GS_MatchPaused( &server_gs ) ) {
-		G_AnnouncerSound( NULL, StringHash( "sounds/announcer/timeout" ), GS_MAX_TEAMS, true, NULL );
+		G_AnnouncerSound( NULL, StringHash( "sounds/announcer/timeout" ), Team_Count, true, NULL );
 	}
 
-	level.timeout.used[num]++;
+	level.timeout.used[team]++;
 	G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, true );
-	level.timeout.caller = num;
+	level.timeout.caller = team;
 	level.timeout.endtime = level.timeout.time + TIMEOUT_TIME + FRAMETIME;
 }
 
 static void Cmd_Timein_f( edict_t * ent, msg_t args ) {
-	int num;
-
-	if( ent->s.team == TEAM_SPECTATOR ) {
+	if( ent->s.team == Team_None ) {
 		return;
 	}
 
@@ -449,24 +440,14 @@ static void Cmd_Timein_f( edict_t * ent, msg_t args ) {
 		return;
 	}
 
-	if( level.gametype.isTeamBased ) {
-		num = ent->s.team;
-	} else {
-		num = ENTNUM( ent ) - 1;
-	}
-
-	if( level.timeout.caller != num ) {
-		if( level.gametype.isTeamBased ) {
-			G_PrintMsg( ent, "Your team didn't call this timeout.\n" );
-		} else {
-			G_PrintMsg( ent, "You didn't call this timeout.\n" );
-		}
+	if( ent->s.team != level.timeout.caller ) {
+		G_PrintMsg( ent, "Your team didn't call this timeout.\n" );
 		return;
 	}
 
 	level.timeout.endtime = level.timeout.time + TIMEIN_TIME + FRAMETIME;
 
-	G_AnnouncerSound( NULL, StringHash( "sounds/announcer/timein" ), GS_MAX_TEAMS, true, NULL );
+	G_AnnouncerSound( NULL, StringHash( "sounds/announcer/timein" ), Team_Count, true, NULL );
 
 	G_PrintMsg( NULL, "%s%s called a timein\n", ent->r.client->netname, S_COLOR_WHITE );
 }

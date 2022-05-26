@@ -25,7 +25,7 @@ static void G_Chase_SetChaseActive( edict_t *ent, bool active ) {
 }
 
 static bool G_Chase_IsValidTarget( const edict_t * ent, const edict_t * target ) {
-	bool teamonly = ent->s.team >= TEAM_ALPHA;
+	bool teamonly = ent->s.team != Team_None;
 
 	if( !ent || !target ) {
 		return false;
@@ -35,7 +35,7 @@ static bool G_Chase_IsValidTarget( const edict_t * ent, const edict_t * target )
 		return false;
 	}
 
-	if( target->s.team < TEAM_PLAYERS || target->s.team >= GS_MAX_TEAMS || target == ent ) {
+	if( target->s.team == Team_None || target == ent ) {
 		return false;
 	}
 
@@ -47,7 +47,7 @@ static bool G_Chase_IsValidTarget( const edict_t * ent, const edict_t * target )
 		return false;
 	}
 
-	if( G_ISGHOSTING( target ) && !target->deadflag && target->s.team != TEAM_SPECTATOR ) {
+	if( G_ISGHOSTING( target ) && !target->deadflag && target->s.team != Team_None ) {
 		return false; // ghosts that are neither dead, nor speccing (probably originating from gt-specific rules)
 	}
 
@@ -106,7 +106,7 @@ static void G_EndFrame_UpdateChaseCam( edict_t *ent ) {
 
 void G_EndServerFrames_UpdateChaseCam() {
 	// do it by teams, so spectators can copy the chasecam information from players
-	for( int team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
+	for( int team = Team_One; team < Team_One + level.gametype.numTeams; team++ ) {
 		SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
 		for( u8 i = 0; i < current_team->num_players; i++ ) {
 			edict_t * ent = game.edicts + current_team->player_indices[i];
@@ -120,7 +120,7 @@ void G_EndServerFrames_UpdateChaseCam() {
 	}
 
 	// Do spectators last
-	SyncTeamState * spec_team = &server_gs.gameState.teams[ TEAM_SPECTATOR ];
+	SyncTeamState * spec_team = &server_gs.gameState.teams[ Team_None ];
 	for( u8 i = 0; i < spec_team->num_players; i++ ) {
 		edict_t * ent = game.edicts + spec_team->player_indices[ i ];
 		if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED ) {
@@ -150,7 +150,6 @@ void G_ChasePlayer( edict_t * ent ) {
 	}
 
 	// try to find a teammate
-	bool teamonly = ent->s.team >= TEAM_ALPHA;
 	gclient_t * client = ent->r.client;
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
@@ -178,97 +177,59 @@ void G_ChasePlayer( edict_t * ent ) {
 	}
 
 	client->resp.chase.active = false;
-	if( !teamonly ) {
-		ent->movetype = MOVETYPE_NOCLIP;
-	}
 }
 
-void G_ChaseStep( edict_t *ent, int step ) {
-	edict_t *newtarget = NULL;
-
+void G_ChaseStep( edict_t * ent, int step ) {
 	assert( Abs( step ) <= 1 );
 
 	if( !ent->r.client->resp.chase.active ) {
 		return;
 	}
 
-	int start = ent->r.client->resp.chase.target;
-	int i = -1;
-	bool player_found = false; // needed to prevent an infinite loop if there are no players
-	// find the team of the previously chased player and his index in the sorted list
-	int team;
-	for( team = TEAM_PLAYERS; team < GS_MAX_TEAMS; team++ ) {
-		const SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
-		u8 j;
-		for( j = 0; j < current_team->num_players; j++ ) {
-			player_found = true;
-			if( current_team->player_indices[ j ] == start ) {
-				i = j;
+	int old_target = ent->r.client->resp.chase.target;
+	Optional< Team > old_target_team = NONE;
+	Optional< u8 > old_target_idx = NONE;
+
+	for( int i = 0; i < level.gametype.numTeams; i++ ) {
+		const SyncTeamState * team = &server_gs.gameState.teams[ Team_One + i ];
+		for( u8 j = 0; j < team->num_players; j++ ) {
+			if( team->player_indices[ j ] == old_target ) {
+				old_target_team = Team( Team_One + i );
+				old_target_idx = j;
 				break;
 			}
 		}
-		if( j != current_team->num_players ) {
-			break;
-		}
 	}
 
+	edict_t * new_target = NULL;
 	if( step == 0 ) {
 		// keep chasing the current player if possible
-		if( i >= 0 && G_Chase_IsValidTarget( ent, game.edicts + start ) ) {
-			newtarget = game.edicts + start;
-		} else {
+		if( old_target_team.exists && G_Chase_IsValidTarget( ent, &game.edicts[ old_target ] ) ) {
+			new_target = &game.edicts[ old_target ];
+		}
+		else {
 			step = 1;
 		}
 	}
 
-	if( !newtarget && player_found ) {
-		// reset the team if the previously chased player was not found
-		if( team == GS_MAX_TEAMS ) {
-			team = TEAM_PLAYERS;
-		}
+	if( new_target == 0 && old_target_team.exists ) {
 		for( int j = 0; j < server_gs.maxclients; j++ ) {
-			// at this point step is -1 or 1
-			i += step;
-
-			// change to the previous team if we skipped before the start of this one
-			// the loop assures empty teams before this team are skipped as well
-			while( i < 0 ) {
-				team--;
-				if( team < TEAM_PLAYERS ) {
-					team = GS_MAX_TEAMS - 1;
-				}
-				i = server_gs.gameState.teams[ team ].num_players - 1;
-			}
-
-			// similarly, change to the next team if we skipped past the end of this one
-			while( i >= server_gs.gameState.teams[ team ].num_players ) {
-				team++;
-				if( team == GS_MAX_TEAMS ) {
-					team = TEAM_PLAYERS;
-				}
-				i = 0;
-			}
-			int actual = server_gs.gameState.teams[ team ].player_indices[i];
-			if( actual == start ) {
-				break; // back at the original player, no need to waste time
-			}
-			if( G_Chase_IsValidTarget( ent, game.edicts + actual ) ) {
-				newtarget = game.edicts + actual;
+			int candidate = PositiveMod( old_target + j * step, server_gs.maxclients );
+			if( G_Chase_IsValidTarget( ent, PLAYERENT( candidate ) ) ) {
+				new_target = PLAYERENT( candidate );
 				break;
 			}
-
-			// make another step if this player is not valid
 		}
 	}
 
-	if( newtarget ) {
-		ent->r.client->resp.chase.target = ENTNUM( newtarget );
+	if( new_target != NULL ) {
+		ent->r.client->resp.chase.target = ENTNUM( new_target );
 	}
 }
 
 void Cmd_Spectate( edict_t * ent ) {
-	if( ent->s.team != TEAM_SPECTATOR ) {
-		G_Teams_JoinTeam( ent, TEAM_SPECTATOR );
+	if( ent->s.team != Team_None ) {
+		G_Teams_JoinTeam( ent, Team_None );
 		if( !CheckFlood( ent, false ) ) { // prevent 'joined spectators' spam
 			G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
 		}
@@ -276,7 +237,7 @@ void Cmd_Spectate( edict_t * ent ) {
 }
 
 void Cmd_ToggleFreeFly( edict_t * ent ) {
-	if( ent->s.team == TEAM_SPECTATOR ) {
+	if( ent->s.team == Team_None ) {
 		if( ent->r.client->resp.chase.active ) {
 			G_Chase_SetChaseActive( ent, false );
 			ent->movetype = MOVETYPE_NOCLIP;

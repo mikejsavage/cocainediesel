@@ -50,7 +50,7 @@ static bool G_Teams_CompareMembers( int a, int b ) {
 * creating a quick list each time we need it.
 */
 void G_Teams_UpdateMembersList() {
-	for( int team = TEAM_SPECTATOR; team < GS_MAX_TEAMS; team++ ) {
+	for( int team = Team_None; team < Team_Count; team++ ) {
 		SyncTeamState * current_team = &server_gs.gameState.teams[ team ];
 		current_team->num_players = 0;
 
@@ -69,11 +69,22 @@ void G_Teams_UpdateMembersList() {
 	}
 }
 
-void G_Teams_SetTeam( edict_t * ent, int team ) {
-	assert( ent && ent->r.inuse && ent->r.client );
-	assert( team >= TEAM_SPECTATOR && team < GS_MAX_TEAMS );
+u8 PlayersAliveOnTeam( Team team ) {
+	u8 alive = 0;
+	for( u8 i = 0; i < server_gs.gameState.teams[ team ].num_players; i++ ) {
+		edict_t * ent = PLAYERENT( server_gs.gameState.teams[ team ].player_indices[ i ] - 1 );
+		if( !G_ISGHOSTING( ent ) && ent->health > 0 ) {
+			alive++;
+		}
+	}
+	return alive;
+}
 
-	if( ent->r.client->team != TEAM_SPECTATOR && team != TEAM_SPECTATOR ) {
+void G_Teams_SetTeam( edict_t * ent, Team team ) {
+	assert( ent && ent->r.inuse && ent->r.client );
+	assert( team >= Team_None && team < Team_Count );
+
+	if( ent->r.client->team != Team_None && team != Team_None ) {
 		// keep scores when switching between non-spectating teams
 		int64_t timeStamp = ent->r.client->teamstate.timeStamp;
 		memset( &ent->r.client->teamstate, 0, sizeof( ent->r.client->teamstate ) );
@@ -85,13 +96,13 @@ void G_Teams_SetTeam( edict_t * ent, int team ) {
 		ent->r.client->teamstate.timeStamp = level.time;
 	}
 
-	if( ent->r.client->team == TEAM_SPECTATOR || team == TEAM_SPECTATOR ) {
+	if( ent->r.client->team == Team_None || team == Team_None ) {
 		level.ready[PLAYERNUM( ent )] = false;
 	}
 
 	ent->r.client->team = team;
 
-	if( team == TEAM_SPECTATOR || !level.gametype.autoRespawn ) {
+	if( team == Team_None || !level.gametype.autoRespawn ) {
 		G_ClientRespawn( ent, true );
 	}
 	else {
@@ -108,11 +119,11 @@ enum {
 	ER_TEAM_UNEVEN,
 };
 
-static bool G_Teams_CanKeepEvenTeam( int leaving, int joining ) {
+static bool G_Teams_CanKeepEvenTeam( Team leaving, Team joining ) {
 	int max = 0;
 	int min = server_gs.maxclients + 1;
 
-	for( int i = TEAM_ALPHA; i < GS_MAX_TEAMS; i++ ) {
+	for( int i = Team_One; i < Team_Count; i++ ) {
 		u8 numplayers = server_gs.gameState.teams[ i ].num_players;
 		if( i == leaving ) {
 			numplayers--;
@@ -132,13 +143,13 @@ static bool G_Teams_CanKeepEvenTeam( int leaving, int joining ) {
 	return server_gs.gameState.teams[ joining ].num_players + 1 == min || Abs( max - min ) <= 1;
 }
 
-static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
-	if( team < 0 || team >= GS_MAX_TEAMS ) {
+static int G_GameTypes_DenyJoinTeam( edict_t *ent, Team team ) {
+	if( team < 0 || team >= Team_Count ) {
 		Com_Printf( "WARNING: 'G_GameTypes_CanJoinTeam' parsing a unrecognized team value\n" );
 		return ER_TEAM_INVALID;
 	}
 
-	if( team == TEAM_SPECTATOR ) {
+	if( team == Team_None ) {
 		return ER_TEAM_OK;
 	}
 
@@ -146,12 +157,9 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 		return ER_TEAM_MATCHSTATE;
 	}
 
-	if( !level.gametype.isTeamBased ) {
-		return team == TEAM_PLAYERS ? ER_TEAM_OK : ER_TEAM_INVALID;
-	}
-
-	if( team != TEAM_ALPHA && team != TEAM_BETA )
+	if( team >= Team_One + level.gametype.numTeams ) {
 		return ER_TEAM_INVALID;
+	}
 
 	if( !g_teams_allow_uneven->integer && !G_Teams_CanKeepEvenTeam( ent->s.team, team ) ) {
 		return ER_TEAM_UNEVEN;
@@ -160,7 +168,7 @@ static int G_GameTypes_DenyJoinTeam( edict_t *ent, int team ) {
 	return ER_TEAM_OK;
 }
 
-bool G_Teams_JoinTeam( edict_t *ent, int team ) {
+bool G_Teams_JoinTeam( edict_t *ent, Team team ) {
 	int error;
 
 	G_Teams_UpdateMembersList(); // make sure we have up-to-date data
@@ -185,37 +193,43 @@ bool G_Teams_JoinTeam( edict_t *ent, int team ) {
 bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 	G_Teams_UpdateMembersList(); // make sure we have up-to-date data
 
-	if( !level.gametype.isTeamBased ) {
-		if( ent->s.team == TEAM_PLAYERS ) {
-			return false;
+	const SyncTeamState * teams = server_gs.gameState.teams;
+
+	bool all_same_count = true;
+	for( int i = 0; i < level.gametype.numTeams; i++ ) {
+		if( teams[ Team_One + i ].num_players != teams[ Team_One ].num_players ) {
+			all_same_count = false;
+			break;
 		}
-		if( G_Teams_JoinTeam( ent, TEAM_PLAYERS ) ) {
-			if( !silent ) {
-				G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
+	}
+
+	Team best_team = Team_None;
+	u8 best_value = U8_MAX;
+	if( all_same_count ) {
+		for( int i = 0; i < level.gametype.numTeams; i++ ) {
+			if( best_team == Team_None || teams[ Team_One + i ].score < best_value ) {
+				best_team = Team( Team_One + i );
+				best_value = teams[ Team_One + i ].score;
 			}
 		}
-		return true;
-	}
-
-	const SyncTeamState * alpha = &server_gs.gameState.teams[ TEAM_ALPHA ];
-	const SyncTeamState * beta = &server_gs.gameState.teams[ TEAM_BETA ];
-
-	int team;
-	if( alpha->num_players != beta->num_players ) {
-		team = alpha->num_players <= beta->num_players ? TEAM_ALPHA : TEAM_BETA;
 	}
 	else {
-		team = alpha->score <= beta->score ? TEAM_ALPHA : TEAM_BETA;
+		for( int i = 0; i < level.gametype.numTeams; i++ ) {
+			if( best_team == Team_None || teams[ Team_One + i ].num_players < best_value ) {
+				best_team = Team( Team_One + i );
+				best_value = teams[ Team_One + i ].num_players;
+			}
+		}
 	}
 
-	if( team == ent->s.team ) {
+	if( best_team == ent->s.team ) {
 		if( !silent ) {
 			G_PrintMsg( ent, "Couldn't find a better team than team %s.\n", GS_TeamName( ent->s.team ) );
 		}
 		return false;
 	}
 
-	if( G_Teams_JoinTeam( ent, team ) ) {
+	if( G_Teams_JoinTeam( ent, best_team ) ) {
 		if( !silent ) {
 			G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
 		}
@@ -236,13 +250,13 @@ void G_Teams_Join_Cmd( edict_t * ent, msg_t args ) {
 		return;
 	}
 
-	int team = GS_TeamFromName( t );
+	Team team = GS_TeamFromName( t );
 	if( team == -1 ) {
 		G_PrintMsg( ent, "No such team.\n" );
 		return;
 	}
 
-	if( team == TEAM_SPECTATOR ) { // special handling for spectator team
+	if( team == Team_None ) { // special handling for spectator team
 		Cmd_Spectate( ent );
 		return;
 	}

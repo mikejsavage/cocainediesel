@@ -39,24 +39,23 @@ local function DrawTopInfo( state )
 			end
 		end
 	elseif state.match_state == MatchState_Playing then
-		options.font_size = state.viewport_height / 25
-		local seconds = cd.getClockTime()
-
-		if seconds >= 0 then
-			local minutes = seconds / 60
-			seconds = seconds % 60
-
-			if minutes < 1 and seconds < 11 and seconds ~= 0 then
-				options.color = "#f00" -- TODO: attention getting red
-			end
-			cd.text( options, posX, state.viewport_height * 0.012, string.format( "%d:%02i", minutes, seconds ) )
-		elseif state.gametype == Gametype_Bomb then
-			local size = state.viewport_height * 0.055
-			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )
-		end
-
-
 		if state.gametype == Gametype_Bomb then
+			options.font_size = state.viewport_height / 25
+
+			local seconds = cd.getClockTime()
+			if seconds >= 0 then
+				local minutes = seconds / 60
+				seconds = seconds % 60
+
+				if minutes < 1 and seconds < 11 and seconds ~= 0 then
+					options.color = "#f00" -- TODO: attention getting red
+				end
+				cd.text( options, posX, state.viewport_height * 0.012, string.format( "%d:%02i", minutes, seconds ) )
+			else
+				local size = state.viewport_height * 0.055
+				cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )
+			end
+
 			options.color = cd.getTeamColor( TEAM_ALPHA )
 			cd.text( options, posX - posX / 11, state.viewport_height * 0.012, state.scoreAlpha )
 			options.color = cd.getTeamColor( TEAM_BETA )

@@ -220,7 +220,7 @@ void G_ExitLevel() {
 
 		if( loadmap ) {
 			ent->r.client->connecting = true; // set all connected players as "reconnecting"
-			ent->s.team = TEAM_SPECTATOR;
+			ent->s.team = Team_None;
 		}
 	}
 }

@@ -447,7 +447,7 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 				;   // wtf?
 			} else if( teamonly ) {
 				Com_Printf( "[%s] %s %s\n",
-						  who->r.client->ps.team == TEAM_SPECTATOR ? "SPEC" : "TEAM", who->r.client->netname, msg );
+						  who->r.client->ps.team == Team_None ? "SPEC" : "TEAM", who->r.client->netname, msg );
 			} else {
 				Com_Printf( "%s: %s\n", who->r.client->netname, msg );
 			}
@@ -843,9 +843,9 @@ edict_t *G_PlayerForText( const char *text ) {
 	return NULL;
 }
 
-void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, edict_t *ignore ) {
+void G_AnnouncerSound( edict_t *targ, StringHash sound, Team team, bool queued, edict_t *ignore ) {
 	int psev = queued ? PSEV_ANNOUNCER_QUEUED : PSEV_ANNOUNCER;
-	int playerTeam;
+	Team playerTeam;
 
 	if( targ ) { // only for a given player
 		if( !targ->r.client || PF_GetClientState( PLAYERNUM( targ ) ) < CS_SPAWNED ) {
@@ -870,11 +870,11 @@ void G_AnnouncerSound( edict_t *targ, StringHash sound, int team, bool queued, e
 			}
 
 			// team filter
-			if( team >= TEAM_SPECTATOR && team < GS_MAX_TEAMS ) {
+			if( team >= Team_None && team < Team_Count ) {
 				playerTeam = ent->s.team;
 
 				// if in chasecam, assume the player is in the chased player team
-				if( playerTeam == TEAM_SPECTATOR && ent->r.client->resp.chase.active
+				if( playerTeam == Team_None && ent->r.client->resp.chase.active
 					&& ent->r.client->resp.chase.target > 0 ) {
 					playerTeam = game.edicts[ent->r.client->resp.chase.target].s.team;
 				}

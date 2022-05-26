@@ -603,7 +603,7 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd
 }
 
 bool GS_CanEquip( const SyncPlayerState * ps, WeaponType weapon ) {
-	return ( ps->pmove.features & PMFEAT_WEAPONSWITCH ) != 0 && FindWeapon( ps, weapon ) != NULL;
+	return FindWeapon( ps, weapon ) != NULL;
 }
 
 void format( FormatBuffer * fb, const Loadout & loadout, const FormatOpts & opts ) {

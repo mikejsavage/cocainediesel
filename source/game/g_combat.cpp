@@ -20,10 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "game/g_local.h"
 
-bool G_IsTeamDamage( SyncEntityState *targ, SyncEntityState *attacker ) {
-	if( !level.gametype.isTeamBased )
-		return false;
-	return targ->number != attacker->number && targ->team == attacker->team;
+bool G_IsTeamDamage( SyncEntityState * target, SyncEntityState * attacker ) {
+	return target->number != attacker->number && target->team == attacker->team;
 }
 
 static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, Plane *plane, Vec3 pos, int timeDelta ) {

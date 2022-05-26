@@ -70,7 +70,7 @@ static void ListPlayersExcept( edict_t * ent, String< MAX_STRING_CHARS > * msg, 
 		const edict_t * e = &game.edicts[ i + 1 ];
 		if( !e->r.inuse || e == ent )
 			continue;
-		if( !include_specs && e->s.team == TEAM_SPECTATOR )
+		if( !include_specs && e->s.team == Team_None )
 			continue;
 		msg->append( "\n{}: {}", i, e->r.client->netname );
 	}
@@ -156,7 +156,7 @@ static bool G_VoteStartValidate( callvotedata_t *vote, bool first ) {
 			continue;
 		}
 
-		if( ent->s.team > TEAM_SPECTATOR && !level.ready[PLAYERNUM( ent )] ) {
+		if( ent->s.team > Team_None && !level.ready[PLAYERNUM( ent )] ) {
 			notreadys++;
 		}
 	}
@@ -177,7 +177,7 @@ static void G_VoteStartPassed( callvotedata_t *vote ) {
 			continue;
 		}
 
-		if( ent->s.team > TEAM_SPECTATOR && !level.ready[PLAYERNUM( ent )] ) {
+		if( ent->s.team > Team_None && !level.ready[PLAYERNUM( ent )] ) {
 			level.ready[PLAYERNUM( ent )] = true;
 			G_Match_CheckReadys();
 		}
@@ -207,7 +207,7 @@ static bool G_VoteSpectateValidate( callvotedata_t *vote, bool first ) {
 		if( who == -1 ) {
 			G_PrintMsg( vote->caller, "%sNo such player\n", S_COLOR_RED );
 			return false;
-		} else if( tokick->s.team == TEAM_SPECTATOR ) {
+		} else if( tokick->s.team == Team_None ) {
 			G_PrintMsg( vote->caller, "Player %s%s%s is already spectator.\n", S_COLOR_WHITE,
 						tokick->r.client->netname, S_COLOR_RED );
 
@@ -220,7 +220,7 @@ static bool G_VoteSpectateValidate( callvotedata_t *vote, bool first ) {
 		who = vote->target;
 	}
 
-	if( !game.edicts[who + 1].r.inuse || game.edicts[who + 1].s.team == TEAM_SPECTATOR ) {
+	if( !game.edicts[who + 1].r.inuse || game.edicts[who + 1].s.team == Team_None ) {
 		return false;
 	}
 
@@ -232,14 +232,14 @@ static void G_VoteSpectatePassed( callvotedata_t *vote ) {
 	edict_t * ent = &game.edicts[vote->target + 1];
 
 	// may have disconnect along the callvote time
-	if( !ent->r.inuse || !ent->r.client || ent->s.team == TEAM_SPECTATOR ) {
+	if( !ent->r.inuse || !ent->r.client || ent->s.team == Team_None ) {
 		return;
 	}
 
 	G_PrintMsg( NULL, "Player %s%s moved to spectators %s%s.\n", ent->r.client->netname, S_COLOR_WHITE,
 				GS_TeamName( ent->s.team ), S_COLOR_WHITE );
 
-	G_Teams_SetTeam( ent, TEAM_SPECTATOR );
+	G_Teams_SetTeam( ent, Team_None );
 }
 
 
@@ -313,7 +313,7 @@ static bool G_VoteTimeoutValidate( callvotedata_t *vote, bool first ) {
 
 static void G_VoteTimeoutPassed( callvotedata_t *vote ) {
 	G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, true );
-	level.timeout.caller = 0;
+	level.timeout.caller = Team_None;
 	level.timeout.endtime = level.timeout.time + TIMEOUT_TIME + FRAMETIME;
 }
 
@@ -786,7 +786,7 @@ void G_OperatorVote_Cmd( edict_t *ent, msg_t args ) {
 		const char *splayer = Cmd_Argv( 1 );
 		const char *steam = Cmd_Argv( 2 );
 		edict_t *playerEnt;
-		int newTeam;
+		Team newTeam;
 
 		if( !steam || !steam[0] || !splayer || !splayer[0] ) {
 			G_PrintMsg( ent, "Usage 'putteam <player id > <team name>'.\n" );

@@ -63,10 +63,11 @@ struct LuauConst {
 };
 
 static const LuauConst<int> numeric_constants[] = {
-	{ "TEAM_SPECTATOR", TEAM_SPECTATOR },
-	{ "TEAM_PLAYERS", TEAM_PLAYERS },
-	{ "TEAM_ALPHA", TEAM_ALPHA },
-	{ "TEAM_BETA", TEAM_BETA },
+	{ "Team_None", Team_None },
+	{ "Team_One", Team_One },
+	{ "Team_Two", Team_Two },
+	{ "Team_Three", Team_Three },
+	{ "Team_Four", Team_Four },
 
 	{ "WeaponState_Reloading", WeaponState_Reloading },
 	{ "WeaponState_StagedReloading", WeaponState_StagedReloading },
@@ -83,6 +84,9 @@ static const LuauConst<int> numeric_constants[] = {
 	{ "Stamina_Reloading", Stamina_Reloading },
 	{ "Stamina_UsingAbility", Stamina_UsingAbility },
 	{ "Stamina_UsedAbility", Stamina_UsedAbility },
+
+	{ "Gametype_Bomb", Gametype_Bomb },
+	{ "Gametype_Gladiator", Gametype_Gladiator },
 
 	{ "MatchState_Warmup", MatchState_Warmup },
 	{ "MatchState_Countdown", MatchState_Countdown },
@@ -158,9 +162,9 @@ struct obituary_t {
 	obituary_type_t type;
 	Time time;
 	char victim[MAX_INFO_VALUE];
-	int victim_team;
+	Team victim_team;
 	char attacker[MAX_INFO_VALUE];
-	int attacker_team;
+	Team attacker_team;
 	DamageType damage_type;
 	bool wallbang;
 };
@@ -296,7 +300,7 @@ void CG_SC_Obituary() {
 		current->attacker_team = cg_entities[ attackerNum ].current.team;
 	}
 
-	int assistor_team = assistor == NULL ? -1 : cg_entities[ topAssistorNum ].current.team;
+	Team assistor_team = assistor == NULL ? Team_None : cg_entities[ topAssistorNum ].current.team;
 
 	if( cg.view.playerPrediction && ISVIEWERENTITY( victimNum ) ) {
 		self_obituary.entropy = 0;
@@ -819,7 +823,7 @@ static int Vec4ToLuauColor( lua_State * L, Vec4 color ) {
 }
 
 static int LuauGetTeamColor( lua_State * L ) {
-	return Vec4ToLuauColor( L, CG_TeamColorVec4( luaL_checknumber( L, 1 ) ) );
+	return Vec4ToLuauColor( L, CG_TeamColorVec4( Team( luaL_checkinteger( L, 1 ) ) ) ); // TODO: check in range
 }
 
 static int LuauAllyColor( lua_State * L ) {
@@ -1048,7 +1052,7 @@ static int HUD_DrawObituaries( lua_State * L ) {
 		yoffset += line_height;
 	} while( i != next );
 
-	if( cg.predictedPlayerState.health <= 0 && cg.predictedPlayerState.team != TEAM_SPECTATOR ) {
+	if( cg.predictedPlayerState.health <= 0 && cg.predictedPlayerState.team != Team_None ) {
 		if( self_obituary.entropy != 0 ) {
 			float h = 128.0f;
 			float yy = frame_static.viewport.y * 0.5f - h * 0.5f;
@@ -1735,8 +1739,8 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, cg.predictedPlayerState.progress_type );
 	lua_setfield( hud_L, -2, "bomb_progress_type" );
 
-	lua_pushboolean( hud_L, GS_TeamBasedGametype( &client_gs ) );
-	lua_setfield( hud_L, -2, "teambased" );
+	lua_pushnumber( hud_L, client_gs.gameState.gametype );
+	lua_setfield( hud_L, -2, "gametype" );
 
 	lua_pushnumber( hud_L, client_gs.gameState.match_state );
 	lua_setfield( hud_L, -2, "match_state" );
@@ -1747,7 +1751,7 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, client_gs.gameState.round_type );
 	lua_setfield( hud_L, -2, "round_type" );
 
-	lua_pushnumber( hud_L, client_gs.gameState.teams[ TEAM_ALPHA ].score );
+	lua_pushnumber( hud_L, client_gs.gameState.teams[ Team_One ].score );
 	lua_setfield( hud_L, -2, "scoreAlpha" );
 
 	lua_pushnumber( hud_L, client_gs.gameState.bomb.alpha_players_alive );
@@ -1756,7 +1760,7 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, client_gs.gameState.bomb.alpha_players_total );
 	lua_setfield( hud_L, -2, "totalAlpha" );
 
-	lua_pushnumber( hud_L, client_gs.gameState.teams[ TEAM_BETA ].score );
+	lua_pushnumber( hud_L, client_gs.gameState.teams[ Team_Two ].score );
 	lua_setfield( hud_L, -2, "scoreBeta" );
 
 	lua_pushnumber( hud_L, client_gs.gameState.bomb.beta_players_alive );

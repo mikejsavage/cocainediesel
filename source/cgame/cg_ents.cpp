@@ -499,7 +499,7 @@ static void DrawEntityModel( centity_t * cent ) {
 
 static void CG_AddPlayerEnt( centity_t *cent ) {
 	// if set to invisible, skip
-	if( cent->current.team == TEAM_SPECTATOR ) { // TODO remove?
+	if( cent->current.team == Team_None ) { // TODO remove?
 		return;
 	}
 

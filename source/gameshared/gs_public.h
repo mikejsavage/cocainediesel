@@ -94,7 +94,6 @@ struct gs_state_t {
 	gs_module_api_t api;
 };
 
-#define GS_TeamBasedGametype( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_ISTEAMBASED ) != 0 )
 #define GS_MatchPaused( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_PAUSED ) != 0 )
 #define GS_MatchWaiting( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_WAITING ) != 0 )
 
@@ -132,8 +131,8 @@ void Pmove( const gs_state_t * gs, pmove_t *pmove );
 #define HEALTH_TO_INT( x )    ( ( x ) < 1.0f ? (int)ceilf( ( x ) ) : (int)floorf( ( x ) + 0.5f ) )
 
 // teams
-const char *GS_TeamName( int team );
-int GS_TeamFromName( const char *teamname );
+const char * GS_TeamName( Team team );
+Team GS_TeamFromName( const char * name );
 
 //===============================================================
 
@@ -148,11 +147,8 @@ int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec
 #define PMFEAT_ABILITIES        ( 1 << 0 )
 #define PMFEAT_SCOPE            ( 1 << 1 )
 #define PMFEAT_GHOSTMOVE        ( 1 << 2 )
-#define PMFEAT_WEAPONSWITCH     ( 1 << 3 )
-#define PMFEAT_TEAMGHOST        ( 1 << 4 )
 
 #define PMFEAT_ALL              ( 0xFFFF )
-#define PMFEAT_DEFAULT          ( PMFEAT_ALL & ~PMFEAT_GHOSTMOVE & ~PMFEAT_TEAMGHOST )
 
 enum DamageCategory {
 	DamageCategory_Weapon,

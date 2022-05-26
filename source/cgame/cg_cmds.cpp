@@ -50,12 +50,12 @@ static void CG_SC_ChatPrint() {
 	}
 
 	const char * name = PlayerName( who - 1 );
-	int team = cg_entities[ who ].current.team;
-	RGB8 team_color = team == TEAM_SPECTATOR ? RGB8( 128, 128, 128 ) : CG_TeamColor( team );
+	Team team = cg_entities[ who ].current.team;
+	RGB8 team_color = team == Team_None ? RGB8( 128, 128, 128 ) : CG_TeamColor( team );
 
 	const char * prefix = "";
 	if( teamonly ) {
-		prefix = team == TEAM_SPECTATOR ? "[SPEC] " : "[TEAM] ";
+		prefix = team == Team_None ? "[SPEC] " : "[TEAM] ";
 	}
 
 	ImGuiColorToken color( team_color );

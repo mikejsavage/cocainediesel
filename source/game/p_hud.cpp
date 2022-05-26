@@ -88,17 +88,16 @@ void G_SetClientStats( edict_t * ent ) {
 	ps->voted = G_Callvotes_HasVoted( ent );
 	ps->team = ent->s.team;
 	ps->real_team = ent->s.team;
-	ps->health = ent->s.team == TEAM_SPECTATOR ? 0 : HEALTH_TO_INT( ent->health );
+	ps->health = ent->s.team == Team_None ? 0 : HEALTH_TO_INT( ent->health );
 	ps->max_health = HEALTH_TO_INT( ent->max_health );
 
 	ps->pointed_player = 0;
 	ps->pointed_health = 0;
-	if( level.gametype.isTeamBased ) {
-		unsigned int pointed = G_FindPointedPlayer( ent );
-		edict_t * e = &game.edicts[ pointed ];
-		if( e->s.team == ent->s.team ) {
-			ps->pointed_player = pointed;
-			ps->pointed_health = HEALTH_TO_INT( e->health );
-		}
+
+	unsigned int pointed = G_FindPointedPlayer( ent );
+	edict_t * e = &game.edicts[ pointed ];
+	if( e->s.team == ent->s.team ) {
+		ps->pointed_player = pointed;
+		ps->pointed_health = HEALTH_TO_INT( e->health );
 	}
 }

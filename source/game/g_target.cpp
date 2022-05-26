@@ -57,8 +57,7 @@ static void target_laser_think( edict_t *self ) {
 		// hurt it if we can
 		if( game.edicts[tr.ent].takedamage ) {
 			if( game.edicts[tr.ent].r.client && self->activator->r.client ) {
-				if( !level.gametype.isTeamBased ||
-					game.edicts[tr.ent].s.team != self->activator->s.team ) {
+				if( game.edicts[tr.ent].s.team != self->activator->s.team ) {
 					G_Damage( &game.edicts[tr.ent], self, self->activator, self->moveinfo.movedir, self->moveinfo.movedir, tr.endpos, 5, 0, 0, WorldDamage_Laser );
 				}
 			} else {

@@ -96,11 +96,8 @@ void SP_trigger_multiple( edict_t * ent, const spawn_temp_t * st ) {
 		ent->sound = st->noise;
 	}
 
-	// gameteam field from editor
-	if( st->gameteam >= TEAM_SPECTATOR && st->gameteam < GS_MAX_TEAMS ) {
-		ent->s.team = st->gameteam;
-	} else {
-		ent->s.team = TEAM_SPECTATOR;
+	if( st->gameteam >= Team_None && st->gameteam < Team_Count ) {
+		ent->s.team = Team( st->gameteam );
 	}
 
 	if( !ent->wait ) {
@@ -218,11 +215,8 @@ void SP_trigger_push( edict_t * self, const spawn_temp_t * st ) {
 
 	self->moveinfo.sound_start = st->noise != EMPTY_HASH ? st->noise : StringHash( "sounds/world/jumppad" );
 
-	// gameteam field from editor
-	if( st->gameteam >= TEAM_SPECTATOR && st->gameteam < GS_MAX_TEAMS ) {
-		self->s.team = st->gameteam;
-	} else {
-		self->s.team = TEAM_SPECTATOR;
+	if( st->gameteam >= Team_None && st->gameteam < Team_Count ) {
+		self->s.team = Team( st->gameteam );
 	}
 
 	self->touch = trigger_push_touch;
@@ -286,11 +280,8 @@ void SP_trigger_hurt( edict_t * self, const spawn_temp_t * st ) {
 
 	self->sound = st->noise;
 
-	// gameteam field from editor
-	if( st->gameteam >= TEAM_SPECTATOR && st->gameteam < GS_MAX_TEAMS ) {
-		self->s.team = st->gameteam;
-	} else {
-		self->s.team = TEAM_SPECTATOR;
+	if( st->gameteam >= Team_None && st->gameteam < Team_Count ) {
+		self->s.team = Team( st->gameteam );
 	}
 
 	self->touch = hurt_touch;
@@ -321,7 +312,7 @@ static void TeleporterTouch( edict_t *self, edict_t *other, Plane *plane, int su
 		return;
 	}
 
-	if( ( self->s.team != TEAM_SPECTATOR ) && ( self->s.team != other->s.team ) ) {
+	if( ( self->s.team != Team_None ) && ( self->s.team != other->s.team ) ) {
 		return;
 	}
 	if( self->spawnflags & 1 && other->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
@@ -366,11 +357,8 @@ void SP_trigger_teleport( edict_t * ent, const spawn_temp_t * st ) {
 
 	ent->sound = st->noise;
 
-	// gameteam field from editor
-	if( st->gameteam >= TEAM_SPECTATOR && st->gameteam < GS_MAX_TEAMS ) {
-		ent->s.team = st->gameteam;
-	} else {
-		ent->s.team = TEAM_SPECTATOR;
+	if( st->gameteam >= Team_None && st->gameteam < Team_Count ) {
+		ent->s.team = Team( st->gameteam );
 	}
 
 	InitTrigger( ent );

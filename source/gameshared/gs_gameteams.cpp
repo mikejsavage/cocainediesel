@@ -17,33 +17,28 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-#include "qcommon/base.h"
+#include "qcommon/types.h"
 #include "gameshared/q_shared.h"
+#include "gameshared/gs_synctypes.h"
 
-static const char *gs_teamNames[] = {
+static const char * gs_teamNames[] = {
 	"SPECTATOR",
-	"PLAYERS",
 	"COCAINE",
 	"DIESEL",
+	"THREE",
+	"FOUR",
 };
 
-const char *GS_TeamName( int team ) {
-	if( team < 0 || team >= int( ARRAY_COUNT( gs_teamNames ) ) ) {
-		return NULL;
-	}
-	return gs_teamNames[team];
+const char * GS_TeamName( Team team ) {
+	return gs_teamNames[ team ];
 }
 
-int GS_TeamFromName( const char *teamname ) {
-	if( !teamname || !teamname[0] ) {
-		return -1; // invalid
-	}
-
+Team GS_TeamFromName( const char * name ) {
 	for( int i = 0; i < int( ARRAY_COUNT( gs_teamNames ) ); i++ ) {
-		if( StrCaseEqual( gs_teamNames[i], teamname ) ) {
-			return i;
+		if( StrCaseEqual( gs_teamNames[ i ], name ) ) {
+			return Team( i );
 		}
 	}
 
-	return -1; // invalid
+	return Team_None;
 }

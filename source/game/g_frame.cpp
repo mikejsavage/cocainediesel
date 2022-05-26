@@ -50,7 +50,7 @@ static void G_Timeout_Update( unsigned int msec ) {
 	level.timeout.time += msec;
 	if( level.timeout.endtime && level.timeout.time >= level.timeout.endtime ) {
 		level.timeout.time = 0;
-		level.timeout.caller = -1;
+		level.timeout.caller = Team_None;
 		G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, false );
 
 		timeout_printtime = 0;
@@ -62,14 +62,14 @@ static void G_Timeout_Update( unsigned int msec ) {
 			int seconds_left = (int)( ( level.timeout.endtime - level.timeout.time ) / 1000.0 + 0.5 );
 
 			if( seconds_left == ( TIMEIN_TIME * 2 ) / 1000 ) {
-				G_AnnouncerSound( NULL, StringHash( "sounds/announcer/ready" ), GS_MAX_TEAMS, false, NULL );
+				G_AnnouncerSound( NULL, StringHash( "sounds/announcer/ready" ), Team_Count, false, NULL );
 			} else if( seconds_left >= 1 && seconds_left <= 3 ) {
 				constexpr StringHash countdown[] = {
 					"sounds/announcer/1",
 					"sounds/announcer/2",
 					"sounds/announcer/3",
 				};
-				G_AnnouncerSound( NULL, countdown[ seconds_left + 1 ], GS_MAX_TEAMS, false, NULL );
+				G_AnnouncerSound( NULL, countdown[ seconds_left + 1 ], Team_Count, false, NULL );
 			}
 
 			G_CenterPrintMsg( NULL, "Match will resume in %i %s", seconds_left, seconds_left == 1 ? "second" : "seconds" );
@@ -79,21 +79,6 @@ static void G_Timeout_Update( unsigned int msec ) {
 
 		timeout_printtime = level.timeout.time;
 	}
-}
-
-/*
-* G_UpdateServerInfo
-* update the cvars which show the match state at server browsers
-*/
-static void G_UpdateServerInfo() {
-	if( server_gs.gameState.match_state >= MatchState_Playing && level.gametype.isTeamBased ) {
-		String< MAX_INFO_STRING > score( "{}: {} {}: {}",
-			GS_TeamName( TEAM_ALPHA ), server_gs.gameState.teams[ TEAM_ALPHA ].score,
-			GS_TeamName( TEAM_BETA ), server_gs.gameState.teams[ TEAM_BETA ].score );
-	}
-
-	// g_needpass
-	Cvar_ForceSet( "g_needpass", StrEqual( sv_password->value, "" ) ? "0" : "1" );
 }
 
 static void G_UpdateClientScoreboard( edict_t * ent ) {
@@ -137,11 +122,6 @@ void G_CheckCvars() {
 		}
 		g_warmup_timelimit->modified = false;
 	}
-
-	// update gameshared server settings
-
-	// FIXME: This should be restructured so gameshared settings are the master settings
-	G_GamestatSetFlag( GAMESTAT_FLAG_ISTEAMBASED, level.gametype.isTeamBased );
 }
 
 //===================================================================
@@ -239,8 +219,7 @@ void G_SnapFrame() {
 	edict_t *ent;
 	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
 
-	//others
-	G_UpdateServerInfo();
+	Cvar_ForceSet( "g_needpass", StrEqual( sv_password->value, "" ) ? "0" : "1" );
 
 	// exit level
 	if( level.exitNow ) {

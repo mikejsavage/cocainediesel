@@ -712,10 +712,18 @@ static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 		}
 
 		if( touch->r.client != NULL ) {
-			int teammask = clip->contentmask & ( CONTENTS_TEAMALPHA | CONTENTS_TEAMBETA );
+			int teammask = clip->contentmask & ( CONTENTS_TEAM_ONE | CONTENTS_TEAM_TWO | CONTENTS_TEAM_THREE | CONTENTS_TEAM_FOUR );
 			if( teammask != 0 ) {
-				int team = teammask == CONTENTS_TEAMALPHA ? TEAM_ALPHA : TEAM_BETA;
-				if( touch->s.team != team )
+				Team clip_team = Team_None;
+				for( int team = Team_One; team < Team_Count; team++ ) {
+					if( teammask == CONTENTS_TEAM_ONE << ( team - Team_One ) ) {
+						clip_team = Team( team );
+						break;
+					}
+				}
+				assert( clip_team != Team_None );
+
+				if( touch->s.team == clip_team )
 					continue;
 			}
 		}

@@ -485,7 +485,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.positioned_sound, baseline.positioned_sound );
 	DeltaEnum( buf, ent.weapon, baseline.weapon, Weapon_Count );
 	Delta( buf, ent.radius, baseline.radius );
-	Delta( buf, ent.team, baseline.team );
+	DeltaEnum( buf, ent.team, baseline.team, Team_Count );
 	Delta( buf, ent.scale, baseline.scale );
 
 	Delta( buf, ent.origin2, baseline.origin2 );
@@ -643,8 +643,8 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	DeltaEnum( buf, player.last_weapon, baseline.last_weapon, Weapon_Count );
 	Delta( buf, player.zoom_time, baseline.zoom_time );
 
-	Delta( buf, player.team, baseline.team );
-	Delta( buf, player.real_team, baseline.real_team );
+	DeltaEnum( buf, player.team, baseline.team, Team_Count );
+	DeltaEnum( buf, player.real_team, baseline.real_team, Team_Count );
 
 	DeltaEnum( buf, player.progress_type, baseline.progress_type, BombProgress_Count );
 	Delta( buf, player.progress, baseline.progress );
@@ -698,7 +698,7 @@ static void Delta( DeltaBuffer * buf, SyncTeamState & team, const SyncTeamState 
 }
 
 static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGameState & baseline ) {
-	Delta( buf, bomb.attacking_team, baseline.attacking_team );
+	DeltaEnum( buf, bomb.attacking_team, baseline.attacking_team, Team_Count );
 	Delta( buf, bomb.alpha_players_alive, baseline.alpha_players_alive );
 	Delta( buf, bomb.alpha_players_total, baseline.alpha_players_total );
 	Delta( buf, bomb.beta_players_alive, baseline.beta_players_alive );
@@ -708,6 +708,7 @@ static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGa
 }
 
 static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState & baseline ) {
+	DeltaEnum( buf, state.gametype, baseline.gametype, Gametype_Count );
 	Delta( buf, state.flags, baseline.flags );
 	DeltaEnum( buf, state.match_state, baseline.match_state, MatchState_Count );
 	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );

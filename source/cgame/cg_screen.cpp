@@ -366,8 +366,8 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 	if( client_gs.gameState.match_state > MatchState_Playing )
 		return;
 
-	int my_team = cg.predictedPlayerState.team;
-	bool show_labels = my_team != TEAM_SPECTATOR && client_gs.gameState.match_state == MatchState_Playing;
+	Team my_team = cg.predictedPlayerState.team;
+	bool show_labels = my_team != Team_None && client_gs.gameState.match_state == MatchState_Playing;
 
 	Vec4 yellow = sRGBToLinear( rgba8_diesel_yellow );
 

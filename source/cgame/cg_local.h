@@ -228,7 +228,7 @@ extern cg_state_t cg;
 
 #define ISVIEWERENTITY( entNum )  ( cg.predictedPlayerState.POVnum > 0 && (int)cg.predictedPlayerState.POVnum == ( entNum ) && cg.view.type == VIEWDEF_PLAYERVIEW )
 
-#define ISREALSPECTATOR()       ( cg.frame.playerState.real_team == TEAM_SPECTATOR )
+#define ISREALSPECTATOR()       ( cg.frame.playerState.real_team == Team_None )
 
 extern centity_t cg_entities[MAX_EDICTS];
 
@@ -362,10 +362,10 @@ void CG_GameCommand( const char *command );
 //
 // cg_teams.c
 //
-RGB8 CG_TeamColor( int team );
+RGB8 CG_TeamColor( Team team );
 RGB8 AllyColor();
 RGB8 EnemyColor();
-Vec4 CG_TeamColorVec4( int team );
+Vec4 CG_TeamColorVec4( Team team );
 Vec4 AllyColorVec4();
 Vec4 EnemyColorVec4();
 

@@ -821,11 +821,12 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 			}
 			if( ps->pmove.features & PMFEAT_GHOSTMOVE ) {
 				pm->contentmask = MASK_DEADSOLID;
-			} else if( ps->pmove.features & PMFEAT_TEAMGHOST ) {
-				int team = pmove_gs->api.GetEntityState( ps->POVnum, 0 )->team;
-				pm->contentmask = team == TEAM_ALPHA ? MASK_ALPHAPLAYERSOLID : MASK_BETAPLAYERSOLID;
-			} else {
+			}
+			else {
 				pm->contentmask = MASK_PLAYERSOLID;
+				if( ps->team >= Team_One ) {
+					pm->contentmask |= CONTENTS_TEAM_ONE << ( ps->team - Team_One );
+				}
 			}
 			break;
 	}

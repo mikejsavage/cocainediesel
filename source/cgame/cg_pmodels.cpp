@@ -777,7 +777,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 	}
 
 	bool draw_model = !ISVIEWERENTITY( cent->current.number ) || cg.view.thirdperson;
-	bool same_team = GS_TeamBasedGametype( &client_gs ) && cg.predictedPlayerState.team == cent->current.team;
+	bool same_team = cg.predictedPlayerState.team == cent->current.team;
 	bool draw_silhouette = draw_model && ( ISREALSPECTATOR() || same_team );
 
 	{

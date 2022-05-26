@@ -400,10 +400,8 @@ void SP_func_door( edict_t * ent, const spawn_temp_t * st ) {
 	int lip = st->lip != 0 ? st->lip : 8;
 
 	if( st->gameteam ) {
-		if( st->gameteam >= TEAM_SPECTATOR && st->gameteam < GS_MAX_TEAMS ) {
-			ent->s.team = st->gameteam;
-		} else {
-			ent->s.team = TEAM_SPECTATOR;
+		if( st->gameteam >= Team_None && st->gameteam < Team_Count ) {
+			ent->s.team = Team( st->gameteam );
 		}
 	}
 

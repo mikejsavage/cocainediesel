@@ -112,14 +112,12 @@ static void Cmd_GameOperator_f( edict_t * ent, msg_t args ) {
 	G_PrintMsg( ent, "Incorrect operator password.\n" );
 }
 
-static void Cmd_Kill_f( edict_t * ent, msg_t args ) {
+static void Cmd_Suicide_f( edict_t * ent, msg_t args ) {
 	if( ent->r.solid == SOLID_NOT ) {
 		return;
 	}
 
 	ent->health = 0;
-
-	// wsw : pb : fix /kill command
 	G_Killed( ent, ent, ent, -1, WorldDamage_Suicide, 100000 );
 }
 
@@ -491,7 +489,7 @@ void G_InitGameCommands() {
 	G_AddCommand( ClientCommand_Say, Cmd_SayCmd_f );
 	G_AddCommand( ClientCommand_SayTeam, Cmd_SayTeam_f );
 	G_AddCommand( ClientCommand_Noclip, Cmd_Noclip_f );
-	G_AddCommand( ClientCommand_Suicide, Cmd_Kill_f );
+	G_AddCommand( ClientCommand_Suicide, Cmd_Suicide_f );
 	G_AddCommand( ClientCommand_Spectate, []( edict_t * ent, msg_t args ) { Cmd_Spectate( ent ); } );
 	G_AddCommand( ClientCommand_ChaseNext, Cmd_ChaseNext_f );
 	G_AddCommand( ClientCommand_ChasePrev, Cmd_ChasePrev_f );

@@ -39,11 +39,36 @@ static void Cmd_ConsoleKick_f() {
 	PF_DropClient( ent, "Kicked" );
 }
 
+static void Cmd_ConsoleKill_f() {
+	if( Cmd_Argc() != 2 ) {
+		Com_Printf( "Usage: kill <bot id or name>\n" );
+		return;
+	}
+
+	edict_t * ent = G_PlayerForText( Cmd_Argv( 1 ) );
+	if( ent == NULL ) {
+		Com_Printf( S_COLOR_YELLOW "No such player\n" );
+		return;
+	}
+	if( ( ent->s.svflags & SVF_FAKECLIENT ) == 0 ) {
+		Com_Printf( S_COLOR_YELLOW "They aren't a bot\n" );
+		return;
+	}
+
+	if( ent->r.solid == SOLID_NOT ) {
+		return;
+	}
+
+	ent->health = 0;
+	G_Killed( ent, ent, ent, -1, WorldDamage_Suicide, 100000 );
+}
+
 void G_AddServerCommands() {
 	if( is_dedicated_server ) {
 		AddCommand( "say", Cmd_ConsoleSay_f );
 	}
 	AddCommand( "kick", Cmd_ConsoleKick_f );
+	AddCommand( "kill", Cmd_ConsoleKill_f );
 }
 
 void G_RemoveCommands() {
@@ -51,4 +76,5 @@ void G_RemoveCommands() {
 		RemoveCommand( "say" );
 	}
 	RemoveCommand( "kick" );
+	RemoveCommand( "kill" );
 }

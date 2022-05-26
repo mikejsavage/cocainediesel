@@ -26,9 +26,6 @@ static constexpr float bomb_throw_speed = 550.0f;
 static constexpr u32 bomb_explosion_effect_radius = 256;
 static constexpr Team initial_attackers = Team_One;
 static constexpr Team initial_defenders = Team_Two;
-static constexpr int site_explosion_points = 10;
-static constexpr int site_explosion_max_delay = 1000;
-static constexpr float site_explosion_max_dist = 512.0f;
 static constexpr MinMax3 bomb_bounds( Vec3( -16.0f ), Vec3( 16.0f, 16.0f, 48.0f ) );
 static constexpr float bomb_hud_offset = 32.0f;
 
@@ -286,8 +283,8 @@ static void BombSiteCarrierTouched( u32 site ) {
 	bomb_state.carrier_can_plant_time = level.time;
 	if( BombCanPlant() ) {
 		edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
-
-		if( carrier_ent->r.client->ucmd.buttons & BUTTON_PLANT ) {
+		Vec3 velocity = carrier_ent->velocity;
+		if( ( carrier_ent->r.client->ucmd.buttons & BUTTON_PLANT ) != 0 && level.time - bomb_state.bomb.action_time >= 1000 && Length( velocity ) < bomb_max_plant_speed ) {
 			BombStartPlanting( carrier_ent, site );
 		}
 	}

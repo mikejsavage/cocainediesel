@@ -343,10 +343,6 @@ const cmodel_t *CG_CModelForEntity( int entNum ) {
 	return CM_ModelForBBox( cl.map->cms, cent->current.bounds.mins, cent->current.bounds.maxs );
 }
 
-static void CG_UpdateGenericEnt( centity_t *cent ) {
-	cent->interpolated.color = RGBA8( CG_TeamColor( cent->prev.team ) );
-}
-
 void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 	cent->linearProjectileCanDraw = CG_UpdateLinearProjectilePosition( cent );
 

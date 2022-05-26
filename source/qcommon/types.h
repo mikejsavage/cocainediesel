@@ -207,8 +207,11 @@ struct Optional {
 
 	Optional() = default;
 
-	template< typename S >
-	Optional( const S & other ) { *this = other; }
+	Optional( NoneType ) { exists = false; }
+	Optional( const T & other ) {
+		value = other;
+		exists = true;
+	}
 
 	void operator=( NoneType ) { exists = false; }
 	void operator=( const T & other ) {

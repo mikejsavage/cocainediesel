@@ -269,6 +269,10 @@ function prebuilt_dll( lib_name, dll )
 	prebuilt_dlls[ lib_name ] = dll
 end
 
+function global_cxxflags( flags )
+	cxxflags = cxxflags .. " " .. flags
+end
+
 function obj_cxxflags( pattern, flags )
 	table.insert( objs_extra_flags, { pattern = pattern, flags = flags } )
 end
@@ -285,17 +289,25 @@ local function toolchain_helper( t, f )
 	end
 end
 
+msvc_global_cxxflags = toolchain_helper( "msvc", global_cxxflags )
 msvc_obj_cxxflags = toolchain_helper( "msvc", obj_cxxflags )
 msvc_obj_replace_cxxflags = toolchain_helper( "msvc", obj_replace_cxxflags )
 
+gcc_global_cxxflags = toolchain_helper( "gcc", global_cxxflags )
 gcc_obj_cxxflags = toolchain_helper( "gcc", obj_cxxflags )
 gcc_obj_replace_cxxflags = toolchain_helper( "gcc", obj_replace_cxxflags )
 
-printf( "builddir = build" )
-printf( "cxxflags = %s", cxxflags )
-printf( "ldflags = %s", ldflags )
+local function rule_for_src( src_name )
+	local ext = src_name:match( "([^%.]+)$" )
+	return ( { cpp = "cpp" } )[ ext ]
+end
 
-if toolchain == "msvc" then
+function write_ninja_script()
+	printf( "builddir = build" )
+	printf( "cxxflags = %s", cxxflags )
+	printf( "ldflags = %s", ldflags )
+
+	if toolchain == "msvc" then
 
 printf( [[
 rule cpp
@@ -320,7 +332,7 @@ rule copy
     description = $in
 ]] )
 
-elseif toolchain == "gcc" then
+	elseif toolchain == "gcc" then
 
 printf( "cpp = %s", rightmost( "cxx" ) )
 printf( [[
@@ -339,7 +351,7 @@ rule copy
     description = $in
 ]] )
 
-if config ~= "release" then
+		if config ~= "release" then
 
 printf( [[
 rule bin
@@ -347,7 +359,7 @@ rule bin
     description = $out
 ]] )
 
-else
+		else
 
 printf( [[
 rule bin
@@ -355,16 +367,9 @@ rule bin
     description = $out
 ]] )
 
-end
+		end
+	end
 
-end
-
-local function rule_for_src( src_name )
-	local ext = src_name:match( "([^%.]+)$" )
-	return ( { cpp = "cpp" } )[ ext ]
-end
-
-function write_ninja_script()
 	for _, flag in ipairs( objs_flags ) do
 		for name, cfg in pairs( objs ) do
 			if name:match( flag.pattern ) then

@@ -683,7 +683,6 @@ static void PackDecalAtlas() {
 		bool all_packed = stbrp_pack_rects( &packer, rects, num_unpacked ) == 1;
 		bool none_packed = true;
 
-		static RGBA8 pixels[ DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE ];
 		for( u32 i = 0; i < num_unpacked; i++ ) {
 			if( !rects[ i ].was_packed )
 				continue;

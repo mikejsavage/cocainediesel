@@ -192,7 +192,7 @@ local function join_libs( names )
 end
 
 local function printf( form, ... )
-	print( form:format( ... ) )
+	print( form and form:format( ... ) or "" )
 end
 
 local function glob_impl( dir, rel, res, prefix, suffix, recursive )
@@ -322,6 +322,7 @@ function write_ninja_script()
 	printf( "builddir = build" )
 	printf( "cxxflags = %s", cxxflags )
 	printf( "ldflags = %s", ldflags )
+	printf()
 
 	if toolchain == "msvc" then
 
@@ -413,13 +414,13 @@ rule bin
 		end
 	end
 
-	print()
+	printf()
 
 	for lib_name, srcs in sort_by_key( libs ) do
 		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join_srcs( srcs, obj_suffix ) )
 	end
 
-	print()
+	printf()
 
 	for lib_name, dll in sort_by_key( prebuilt_dlls ) do
 		local src_path = "libs/" .. lib_name .. "/" ..  dll .. dll_suffix
@@ -432,7 +433,7 @@ rule bin
 		printf( "build %s: copy %s", dst_path, src_path );
 	end
 
-	print()
+	printf()
 
 	for bin_name, cfg in sort_by_key( bins ) do
 		local srcs = { cfg.srcs }

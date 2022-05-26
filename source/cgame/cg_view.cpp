@@ -81,48 +81,6 @@ bool CG_ChaseStep( int step ) {
 	return false;
 }
 
-/*
-* CG_FlashGameWindow
-*
-* Flashes game window in case of important events (match state changes, etc) for user to notice
-*/
-static void CG_FlashGameWindow() {
-	static int oldState = -1;
-	bool flash = false;
-	static u8 oldAlphaScore, oldBetaScore;
-	static bool scoresSet = false;
-
-	// notify player of important match states
-	int newState = client_gs.gameState.match_state;
-	if( oldState != newState ) {
-		switch( newState ) {
-			case MatchState_Countdown:
-			case MatchState_Playing:
-			case MatchState_PostMatch:
-				flash = true;
-				break;
-			default:
-				break;
-		}
-
-		oldState = newState;
-	}
-
-	// notify player of teams scoring in team-based gametypes
-	if( !scoresSet ||
-		( oldAlphaScore != client_gs.gameState.teams[ TEAM_ALPHA ].score || oldBetaScore != client_gs.gameState.teams[ TEAM_BETA ].score ) ) {
-		oldAlphaScore = client_gs.gameState.teams[ TEAM_ALPHA ].score;
-		oldBetaScore = client_gs.gameState.teams[ TEAM_BETA ].score;
-
-		flash = scoresSet && GS_TeamBasedGametype( &client_gs );
-		scoresSet = true;
-	}
-
-	if( flash ) {
-		FlashWindow();
-	}
-}
-
 float CG_CalcViewFov() {
 	WeaponType weapon = cg.predictedPlayerState.weapon;
 	if( weapon == Weapon_None )
@@ -621,8 +579,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		cgs.textSizeMedium = SYSTEM_FONT_MEDIUM_SIZE * scale;
 		cgs.textSizeBig = SYSTEM_FONT_BIG_SIZE * scale;
 	}
-
-	CG_FlashGameWindow(); // notify player of important game events
 
 	AllocateDecalBuffers();
 

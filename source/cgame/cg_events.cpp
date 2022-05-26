@@ -951,6 +951,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			DoVisualEffect( StringHash( parm ), ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1, vec4_white );
 			break;
 
+		case EV_FLASH_WINDOW:
+			FlashWindow();
+			break;
+
 		case EV_SUICIDE_BOMB_ANNOUNCEMENT:
 			PlaySFX( "sounds/vsay/helena", PlaySFXConfigEntity( ent->number ) );
 			break;

@@ -306,6 +306,8 @@ enum EventType {
 
 	EV_VFX,
 
+	EV_FLASH_WINDOW,
+
 	MAX_EVENTS = 128
 };
 

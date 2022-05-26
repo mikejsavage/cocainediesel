@@ -7,8 +7,8 @@ static constexpr RGB8 TEAM_COLORS[] = {
 };
 
 static constexpr RGB8 COLORBLIND_TEAM_COLORS[] = {
+	RGB8( 40, 204, 255 ),
 	RGB8( 255, 150, 40 ),
-	RGB8( 190, 0, 240 ),
 };
 
 static bool IsAlly( Team team ) {

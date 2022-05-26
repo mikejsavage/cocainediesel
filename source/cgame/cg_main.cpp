@@ -174,6 +174,7 @@ void CG_Init( unsigned int playerNum, int max_clients,
 
 	CG_RegisterMedia();
 
+	CG_SC_ResetObituaries();
 	CG_InitHUD();
 
 	InitDecals();

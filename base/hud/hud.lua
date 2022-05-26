@@ -50,13 +50,13 @@ local function DrawTopInfo( state )
 				options.color = "#f00" -- TODO: attention getting red
 			end
 			cd.text( options, posX, state.viewport_height * 0.012, string.format( "%d:%02i", minutes, seconds ) )
-		elseif state.teambased then
+		elseif state.gametype == Gametype_Bomb then
 			local size = state.viewport_height * 0.055
 			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )
 		end
 
 
-		if state.teambased then
+		if state.gametype == Gametype_Bomb then
 			options.color = cd.getTeamColor( TEAM_ALPHA )
 			cd.text( options, posX - posX / 11, state.viewport_height * 0.012, state.scoreAlpha )
 			options.color = cd.getTeamColor( TEAM_BETA )

@@ -92,10 +92,10 @@ const char * ShadowQualityToString( ShadowQuality mode ) {
 
 static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 	switch( mode ) {
-		case ShadowQuality_Low:    return { 2, 256.0f, 2048.0f, 2048.0f, 2048.0f, 1024, 2 };
-		case ShadowQuality_Medium: return { 4, 256.0f, 768.0f, 2304.0f, 6912.0f, 1024, 2 };
-		case ShadowQuality_High:   return { 4, 256.0f, 768.0f, 2304.0f, 6912.0f, 2048, 4 };
-		case ShadowQuality_Ultra:  return { 4, 256.0f, 768.0f, 2304.0f, 6912.0f, 4096, 4 };
+		case ShadowQuality_Low:    return { 2, { 256.0f, 2048.0f, 2048.0f, 2048.0f }, 1024, 2 };
+		case ShadowQuality_Medium: return { 4, { 256.0f, 768.0f, 2304.0f, 6912.0f }, 1024, 2 };
+		case ShadowQuality_High:   return { 4, { 256.0f, 768.0f, 2304.0f, 6912.0f }, 2048, 4 };
+		case ShadowQuality_Ultra:  return { 4, { 256.0f, 768.0f, 2304.0f, 6912.0f }, 4096, 4 };
 	}
 
 	assert( false );

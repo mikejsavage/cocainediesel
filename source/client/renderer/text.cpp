@@ -18,8 +18,6 @@
 
 #include "stb/stb_image.h"
 
-static constexpr size_t MAX_CHARS_PER_FRAME = 100000;
-
 struct Glyph {
 	MinMax2 bounds;
 	MinMax2 uv_bounds;

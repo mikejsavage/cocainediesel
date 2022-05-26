@@ -1,10 +1,6 @@
 #include "gameshared/movement.h"
 #include "gameshared/gs_weapons.h"
 
-
-static constexpr float pm_defaultspeed = 400.0f;
-static constexpr float pm_sidewalkspeed = 320.0f;
-
 static constexpr float pm_wallclimbspeed = 200.0f;
 
 static constexpr float pm_dashspeed = 550.0f;
@@ -54,7 +50,7 @@ static void PM_NinjaSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 	if( ps->pmove.stamina_state == Stamina_Normal && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
 		StaminaRecover( ps, pml, stamina_recover );
 	}
-	
+
 	if( ps->pmove.knockback_time > 0 ) { // can not start a new dash during knockback time
 		return;
 	}

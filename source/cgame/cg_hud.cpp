@@ -38,7 +38,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "yoga/Yoga.h"
 
 static const Vec4 light_gray = sRGBToLinear( RGBA8( 96, 96, 96, 255 ) );
-static constexpr Vec4 dark_gray = vec4_dark;
 
 static lua_State * hud_L;
 

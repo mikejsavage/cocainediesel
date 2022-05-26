@@ -341,7 +341,6 @@ struct pmove_state_t {
 	s16 no_shooting_time;
 
 	s16 knockback_time;
-	s16 tbag_time;
 	float stamina;
 	float stamina_stored;
 	StaminaState stamina_state;

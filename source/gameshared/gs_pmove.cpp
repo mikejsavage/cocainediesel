@@ -24,12 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static constexpr float pm_ladderspeed = 300.0f;
 
-static constexpr s16 MAX_TBAG_TIME = 2000;
-static constexpr s16 TBAG_THRESHOLD = 1000;
-static constexpr s16 TBAG_AMOUNT_PER_CROUCH = 500;
-
-//===============================================================
-
 // all of the locals will be zeroed before each
 // pmove, just to make damn sure we don't have
 // any differences when running on client or server
@@ -685,17 +679,6 @@ static void PM_AdjustBBox() {
 		return;
 	}
 
-	/*if( pml.upPush == 0 && ( pm->cmd.buttons & BUTTON_PLANT ) ) {
-		if( pmove_gs->gameState.round_state >= RoundState_Finished ) {
-			pm->playerState->pmove.tbag_time = Min2( pm->playerState->pmove.tbag_time + TBAG_AMOUNT_PER_CROUCH, int( MAX_TBAG_TIME ) );
-
-			if( pm->playerState->pmove.tbag_time >= TBAG_THRESHOLD ) {
-				float frac = Unlerp( TBAG_THRESHOLD, pm->playerState->pmove.tbag_time, MAX_TBAG_TIME );
-				pmove_gs->api.PredictedEvent( pm->playerState->POVnum, EV_TBAG, frac * 255 );
-			}
-		}
-	}*/ //Remove for now because it's annoying
-
 	pm->mins = pm->scale * playerbox_stand_mins;
 	pm->maxs = pm->scale * playerbox_stand_maxs;
 	pm->playerState->viewheight = pm->scale.z * playerbox_stand_viewheight;
@@ -850,13 +833,11 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 
 		ps->pmove.no_shooting_time = Max2( 0, ps->pmove.no_shooting_time - pm->cmd.msec );
 		ps->pmove.knockback_time = Max2( 0, ps->pmove.knockback_time - pm->cmd.msec );
-		ps->pmove.tbag_time = Max2( 0, ps->pmove.tbag_time - pm->cmd.msec );
 	}
 
 	if( ps->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
 		if( !GS_MatchPaused( pmove_gs ) ) {
 			ps->pmove.knockback_time = 0;
-			ps->pmove.tbag_time = 0;
 			ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_TELEPORT );
 
 			PM_AdjustBBox();

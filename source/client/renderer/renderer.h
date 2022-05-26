@@ -69,7 +69,7 @@ struct FrameStatic {
 	u8 shadowmap_pass[ 4 ];
 	u8 world_opaque_prepass_pass;
 	u8 world_opaque_pass;
-	
+
 	u8 sky_pass;
 
 	u8 write_silhouette_gbuffer_pass;

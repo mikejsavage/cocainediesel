@@ -251,7 +251,7 @@ void G_Teams_Join_Cmd( edict_t * ent, msg_t args ) {
 	}
 
 	Team team = GS_TeamFromName( t );
-	if( team == -1 ) {
+	if( team == Team_None ) {
 		G_PrintMsg( ent, "No such team.\n" );
 		return;
 	}

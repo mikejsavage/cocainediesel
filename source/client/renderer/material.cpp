@@ -684,7 +684,6 @@ static void PackDecalAtlas() {
 		bool none_packed = true;
 
 		static RGBA8 pixels[ DECAL_ATLAS_SIZE * DECAL_ATLAS_SIZE ];
-		Span2D< RGBA8 > image( pixels, DECAL_ATLAS_SIZE, DECAL_ATLAS_SIZE );
 		for( u32 i = 0; i < num_unpacked; i++ ) {
 			if( !rects[ i ].was_packed )
 				continue;

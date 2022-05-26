@@ -297,6 +297,22 @@ gcc_global_cxxflags = toolchain_helper( "gcc", global_cxxflags )
 gcc_obj_cxxflags = toolchain_helper( "gcc", obj_cxxflags )
 gcc_obj_replace_cxxflags = toolchain_helper( "gcc", obj_replace_cxxflags )
 
+local function sort_by_key( t )
+	local ret = { }
+	for k, v in pairs( t ) do
+		table.insert( ret, { key = k, value = v } )
+	end
+	table.sort( ret, function( a, b ) return a.key < b.key end )
+
+	function iter()
+		for _, x in ipairs( ret ) do
+			coroutine.yield( x.key, x.value )
+		end
+	end
+
+	return coroutine.wrap( iter )
+end
+
 local function rule_for_src( src_name )
 	local ext = src_name:match( "([^%.]+)$" )
 	return ( { cpp = "cpp" } )[ ext ]
@@ -386,7 +402,7 @@ rule bin
 		end
 	end
 
-	for src_name, cfg in pairs( objs ) do
+	for src_name, cfg in sort_by_key( objs ) do
 		local rule = rule_for_src( src_name )
 		printf( "build %s/%s%s: %s %s", dir, src_name, obj_suffix, rule, src_name )
 		if cfg.cxxflags then
@@ -397,11 +413,15 @@ rule bin
 		end
 	end
 
-	for lib_name, srcs in pairs( libs ) do
+	print()
+
+	for lib_name, srcs in sort_by_key( libs ) do
 		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join_srcs( srcs, obj_suffix ) )
 	end
 
-	for lib_name, dll in pairs( prebuilt_dlls ) do
+	print()
+
+	for lib_name, dll in sort_by_key( prebuilt_dlls ) do
 		local src_path = "libs/" .. lib_name .. "/" ..  dll .. dll_suffix
 		local dst_path = output_dir .. dll .. dll_suffix
 		if OS == "windows" then
@@ -412,7 +432,9 @@ rule bin
 		printf( "build %s: copy %s", dst_path, src_path );
 	end
 
-	for bin_name, cfg in pairs( bins ) do
+	print()
+
+	for bin_name, cfg in sort_by_key( bins ) do
 		local srcs = { cfg.srcs }
 
 		if OS == "windows" and cfg.rc then

@@ -205,5 +205,49 @@ void HotloadShaders() {
 }
 
 void ShutdownShaders() {
+	DeleteShader( shaders.standard );
+	DeleteShader( shaders.standard_shaded );
+	DeleteShader( shaders.standard_vertexcolors );
+
+	DeleteShader( shaders.standard_skinned );
+	DeleteShader( shaders.standard_skinned_shaded );
+	DeleteShader( shaders.standard_skinned_vertexcolors );
+
+	DeleteShader( shaders.standard_instanced );
+	DeleteShader( shaders.standard_shaded_instanced );
+	DeleteShader( shaders.standard_vertexcolors_instanced );
+
+	DeleteShader( shaders.depth_only );
+	DeleteShader( shaders.depth_only_instanced );
+	DeleteShader( shaders.depth_only_skinned );
+
+	DeleteShader( shaders.world );
+	DeleteShader( shaders.postprocess_world_gbuffer );
+	DeleteShader( shaders.postprocess_world_gbuffer_msaa );
+
+	DeleteShader( shaders.write_silhouette_gbuffer );
+	DeleteShader( shaders.write_silhouette_gbuffer_instanced );
+	DeleteShader( shaders.write_silhouette_gbuffer_skinned );
+	DeleteShader( shaders.postprocess_silhouette_gbuffer );
+
+	DeleteShader( shaders.outline );
+	DeleteShader( shaders.outline_instanced );
+	DeleteShader( shaders.outline_skinned );
+
+	DeleteShader( shaders.scope );
+
+	DeleteShader( shaders.particle_compute );
+	DeleteShader( shaders.particle_setup_indirect );
+
+	DeleteShader( shaders.particle );
+	DeleteShader( shaders.particle_model );
+
+	DeleteShader( shaders.tile_culling );
+
+	DeleteShader( shaders.skybox );
+
 	DeleteShader( shaders.text );
+
+	DeleteShader( shaders.blur );
+	DeleteShader( shaders.postprocess );
 }

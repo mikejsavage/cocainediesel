@@ -113,7 +113,7 @@ const WeaponDef weapon_defs[] = {
 		/* zoom inaccuracy      */ 0.0f,
 
 		// damages
-		/* damage               */ 9,
+		/* damage               */ 8,
 		/* self damage          */ 0,
 		/* wallbang damage      */ 0.5f,
 		/* knockback            */ 10,
@@ -280,7 +280,7 @@ const WeaponDef weapon_defs[] = {
 		/* category             */ WeaponCategory_Secondary,
 
 		/* projectile count     */ 1,
-		/* clip size            */ 5,
+		/* clip size            */ 8,
 		/* reload time          */ 600,
 		/* staged reload time   */ 600,
 
@@ -418,8 +418,8 @@ const WeaponDef weapon_defs[] = {
 		/* splash min knockback */ 25,
 
 		// projectile def
-		/* speed                */ 650,
-		/* spread               */ 0,
+		/* speed                */ 900,
+		/* spread               */ 3,
 	},
 
 	{
@@ -687,7 +687,7 @@ const WeaponDef weapon_defs[] = {
 		/* category             */ WeaponCategory_Secondary,
 
 		/* projectile count     */ 1,
-		/* clip size            */ 12,
+		/* clip size            */ 15,
 		/* reload time          */ 2000,
 		/* staged reload time   */ 0,
 
@@ -705,7 +705,7 @@ const WeaponDef weapon_defs[] = {
 		/* zoom inaccuracy      */ 0.0f,
 
 		// damages
-		/* damage               */ 10,
+		/* damage               */ 12,
 		/* self damage          */ 1,
 		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 20,
@@ -880,7 +880,6 @@ const PerkDef perk_defs[] = {
 		/* max air speed    */ 600.0f,
 	}
 };
-
 
 const PerkDef * GetPerkDef( PerkType perk ) {
 	assert( perk < Perk_Count );

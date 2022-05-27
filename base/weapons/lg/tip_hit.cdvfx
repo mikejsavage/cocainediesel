@@ -91,4 +91,24 @@
     lifetime 0.05
     emission 400
   }
+
+  particles {
+    material textures/vfx/lightning1
+    blendfunc add
+    rotate
+    stretch
+
+    position sphere 0 0
+    speed 460
+    speed_distribution uniform 60
+
+    color 1.0 1.0 1.0 1.0
+    color_override
+    end_color 1.0 1.0 1.0 0.0
+
+    size 24 0
+
+    lifetime 0.15
+    count 1
+  }
 }

@@ -1635,6 +1635,7 @@ bool NewShader( Shader * shader, Span< Span< const char > > srcs, bool particle_
 	GLuint fs = CompileShader( GL_FRAGMENT_SHADER, srcs );
 	if( fs == 0 )
 		return false;
+	defer { glDeleteShader( fs ); };
 
 	shader->program = glCreateProgram();
 	glAttachShader( shader->program, vs );

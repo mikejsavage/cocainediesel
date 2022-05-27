@@ -218,8 +218,6 @@ struct Optional {
 		value = other;
 		exists = true;
 	}
-
-	operator bool() const { return exists; }
 };
 
 /*

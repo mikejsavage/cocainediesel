@@ -594,11 +594,13 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 }
 
 static void RailgunAltDeploy( edict_t * ent ) {
-	edict_t * event = G_SpawnEvent( EV_RAIL_ALT, DirToU64( ent->s.angles ), &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_RAIL_ALT, 0, &ent->s.origin );
 	event->s.ownerNum = ent->s.ownerNum;
+	event->s.angles = ent->s.angles;
 
 	edict_t * owner = &game.edicts[ ent->s.ownerNum ];
 	W_Fire_Railgun( owner, ent->s.origin, ent->s.angles, 0 );
+
 	G_FreeEdict( ent );
 }
 

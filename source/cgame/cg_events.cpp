@@ -825,8 +825,11 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		} break;
 
 		case EV_RAIL_ALT: {
+			Vec3 dir;
+			AngleVectors( ent->angles, &dir, NULL, NULL );
+
 			CG_FireWeaponEvent( ent->ownerNum, Weapon_Railgun );
-			FireRailgun( ent->origin, U64ToDir( parm ), ent->ownerNum );
+			FireRailgun( ent->origin, dir, ent->ownerNum );
 		} break;
 
 		case EV_ROCKET_EXPLOSION: {

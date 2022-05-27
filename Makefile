@@ -12,23 +12,23 @@ endif
 
 debug:
 	@$(LUA) make.lua > build.ninja
-	@$(NINJA)
+	@$(NINJA) -k 0
 
 asan:
 	@$(LUA) make.lua asan > build.ninja
-	@$(NINJA)
+	@$(NINJA) -k 0
 
 tsan:
 	@$(LUA) make.lua tsan > build.ninja
-	@$(NINJA)
+	@$(NINJA) -k 0
 
 bench:
 	@$(LUA) make.lua bench > build.ninja
-	@$(NINJA)
+	@$(NINJA) -k 0
 
 release:
 	@$(LUA) make.lua release > build.ninja
-	@$(NINJA)
+	@$(NINJA) -k 0
 
 clean:
 	@$(LUA) make.lua debug > build.ninja

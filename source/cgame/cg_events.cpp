@@ -49,7 +49,7 @@ static Mat4 GetMuzzleTransform( int ent ) {
 	return cg_entPModels[ ent ].muzzle_transform;
 }
 
-static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum ) {
+static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
 
 	float range = def->range;
@@ -65,10 +65,9 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum ) {
 		RailgunImpact( trace.endpos, trace.plane.normal, trace.surfFlags, color );
 	}
 
-	Mat4 muzzle_transform = GetMuzzleTransform( ownerNum );
-
-	AddPersistentBeam( muzzle_transform.col3.xyz(), trace.endpos, 16.0f, color, "weapons/eb/beam", 0.25f, 0.1f );
-	RailTrailParticles( muzzle_transform.col3.xyz(), trace.endpos, color );
+	Vec3 fx_origin = from_origin ? origin : GetMuzzleTransform( ownerNum ).col3.xyz();
+	AddPersistentBeam( fx_origin, trace.endpos, 16.0f, color, "weapons/eb/beam", 0.25f, 0.1f );
+	RailTrailParticles( fx_origin, trace.endpos, color );
 }
 
 void CG_LaserBeamEffect( centity_t * cent ) {
@@ -652,7 +651,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			AngleVectors( angles, &dir, NULL, NULL );
 
 			if( weapon == Weapon_Railgun ) {
-				FireRailgun( origin, dir, owner );
+				FireRailgun( origin, dir, owner, false );
 			}
 			else if( weapon == Weapon_Shotgun ) {
 				CG_Event_FireShotgun( origin, dir, owner, team_color );
@@ -829,7 +828,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			AngleVectors( ent->angles, &dir, NULL, NULL );
 
 			CG_FireWeaponEvent( ent->ownerNum, Weapon_Railgun );
-			FireRailgun( ent->origin, dir, ent->ownerNum );
+			FireRailgun( ent->origin, dir, ent->ownerNum, true );
 		} break;
 
 		case EV_ROCKET_EXPLOSION: {

@@ -56,9 +56,9 @@ local function DrawTopInfo( state )
 				cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )
 			end
 
-			options.color = cd.getTeamColor( TEAM_ALPHA )
+			options.color = cd.getTeamColor( Team_One )
 			cd.text( options, posX - posX / 11, state.viewport_height * 0.012, state.scoreAlpha )
-			options.color = cd.getTeamColor( TEAM_BETA )
+			options.color = cd.getTeamColor( Team_Two )
 			cd.text( options, posX + posX / 11, state.viewport_height * 0.012, state.scoreBeta )
 
 			local y = state.viewport_height * 0.008
@@ -68,7 +68,7 @@ local function DrawTopInfo( state )
 			local grey = "#222"
 			local material = assets.guy
 
-			local color = cd.getTeamColor( TEAM_ALPHA )
+			local color = cd.getTeamColor( Team_One )
 			local x = posX - posX * 0.2
 
 			for i = 0, state.totalAlpha - 1, 1 do
@@ -79,7 +79,7 @@ local function DrawTopInfo( state )
 				end
 			end
 
-			color = cd.getTeamColor( TEAM_BETA )
+			color = cd.getTeamColor( Team_Two )
 			x = posX + posX * 0.2
 
 			for i = 0, state.totalBeta - 1, 1 do

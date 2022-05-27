@@ -184,15 +184,16 @@ static void DeleteFramebuffers() {
 void ShutdownRenderer() {
 	TracyZoneScoped;
 
+	ShutdownVisualEffects();
 	ShutdownModels();
 	ShutdownSkybox();
 	ShutdownText();
 	ShutdownMaterials();
-	ShutdownVisualEffects();
 	ShutdownShaders();
 
 	DeleteTexture( blue_noise );
 	DeleteMesh( fullscreen_mesh );
+	DeleteMesh( dynamic_geometry_mesh );
 	DeleteFramebuffers();
 
 	RemoveCommand( "screenshot" );

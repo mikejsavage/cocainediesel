@@ -657,6 +657,10 @@ void DeleteParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	FREE( a, ps->particles.ptr );
 	DeleteGPUBuffer( ps->vb );
 	DeleteGPUBuffer( ps->vb2 );
+	DeleteGPUBuffer( ps->compute_count );
+	DeleteGPUBuffer( ps->compute_count2 );
+	DeleteGPUBuffer( ps->compute_indirect );
+	DeleteGPUBuffer( ps->draw_indirect );
 	DeleteMesh( ps->mesh );
 
 	ps->initialized = false;

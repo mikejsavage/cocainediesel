@@ -198,15 +198,35 @@ static ProjectileStats GadgetProjectileStats( GadgetType gadget ) {
 	return stats;
 }
 
+static edict_t * GenEntity( edict_t * owner, Vec3 pos, Vec3 angles, EntityType ent_type, int timeout ) {
+	edict_t * ent = G_Spawn();
+	ent->s.origin = pos;
+	ent->olds.origin = pos;
+	ent->s.angles = angles;
+
+	ent->r.solid = SOLID_NOT;
+
+	ent->r.mins = Vec3( 0.0f );
+	ent->r.maxs = Vec3( 0.0f );
+
+	ent->r.owner = owner;
+	ent->s.ownerNum = owner->s.number;
+	ent->nextThink = level.time + timeout;
+	ent->think = G_FreeEdict;
+	ent->timeout = level.time + timeout;
+	ent->timeStamp = level.time;
+	ent->s.team = owner->s.team;
+	ent->s.type = ent_type;
+
+	return ent;
+}
+
 static edict_t * FireProjectile(
 	edict_t * owner,
 	Vec3 start, Vec3 angles,
 	int timeDelta,
 	ProjectileStats stats, EdictTouchCallback touch, EntityType ent_type, int clipmask ) {
-	edict_t * projectile = G_Spawn();
-	projectile->s.origin = start;
-	projectile->olds.origin = start;
-	projectile->s.angles = angles;
+	edict_t * projectile = GenEntity( owner, start, angles, ent_type, stats.timeout );
 
 	Vec3 dir;
 	AngleVectors( angles, &dir, NULL, NULL );
@@ -219,18 +239,8 @@ static edict_t * FireProjectile(
 	projectile->r.clipmask = clipmask;
 	projectile->s.svflags = SVF_PROJECTILE;
 
-	projectile->r.mins = Vec3( 0.0f );
-	projectile->r.maxs = Vec3( 0.0f );
-
-	projectile->r.owner = owner;
-	projectile->touch = touch;
-	projectile->nextThink = level.time + stats.timeout;
-	projectile->think = G_FreeEdict;
-	projectile->timeout = level.time + stats.timeout;
-	projectile->timeStamp = level.time;
 	projectile->timeDelta = timeDelta;
-	projectile->s.team = owner->s.team;
-	projectile->s.type = ent_type;
+	projectile->touch = touch;
 
 	projectile->projectileInfo.minDamage = stats.min_damage;
 	projectile->projectileInfo.maxDamage = stats.max_damage;
@@ -583,6 +593,24 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	}
 }
 
+static void RailgunAltDeploy( edict_t * ent ) {
+	edict_t * event = G_SpawnEvent( EV_RAIL_ALT, DirToU64( ent->s.angles ), &ent->s.origin );
+	event->s.ownerNum = ent->s.ownerNum;
+
+	edict_t * owner = &game.edicts[ ent->s.ownerNum ];
+	W_Fire_Railgun( owner, ent->s.origin, ent->s.angles, 0 );
+	G_FreeEdict( ent );
+}
+
+static void W_Fire_RailgunAlt( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
+	edict_t * ent = GenEntity( self, start, angles, ET_RAILGUN, def->reload_time );
+
+	ent->classname = "railgunalt";
+	ent->think = RailgunAltDeploy;
+}
+
+
 static void G_Laser_Think( edict_t * ent ) {
 	edict_t * owner = &game.edicts[ ent->s.ownerNum ];
 
@@ -808,7 +836,7 @@ void W_Fire_Road( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	bullet->s.sound = "weapons/road/trail";
 }
 
-void G_FireWeapon( edict_t * ent, u64 parm ) {
+void G_FireWeapon( edict_t * ent, u64 parm, bool alt ) {
 	WeaponType weapon = WeaponType( parm & 0xFF );
 
 	Vec3 origin, angles;
@@ -888,7 +916,11 @@ void G_FireWeapon( edict_t * ent, u64 parm ) {
 			break;
 
 		case Weapon_Railgun:
-			W_Fire_Railgun( ent, origin, angles, timeDelta );
+			if( alt ) {
+				W_Fire_RailgunAlt( ent, origin, angles, timeDelta );
+			} else {
+				W_Fire_Railgun( ent, origin, angles, timeDelta );
+			}
 			break;
 
 		case Weapon_Rifle:

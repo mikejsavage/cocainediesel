@@ -82,7 +82,7 @@ struct gs_module_api_t {
 	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
 	int ( *PointContents )( Vec3 point, int timeDelta );
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
-	void ( *PredictedFireWeapon )( int entNum, u64 weapon_and_entropy );
+	void ( *PredictedFireWeapon )( int entNum, u64 weapon_and_entropy, bool alt );
 	void ( *PredictedUseGadget )( int entNum, GadgetType gadget, u64 parm );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, Vec3 previous_origin );
 };
@@ -227,6 +227,7 @@ enum EventType {
 
 	EV_WEAPONACTIVATE,
 	EV_FIREWEAPON,
+	EV_ALTFIREWEAPON,
 	EV_USEGADGET,
 	EV_SMOOTHREFIREWEAPON,
 	EV_NOAMMOCLICK,
@@ -262,6 +263,7 @@ enum EventType {
 
 	EV_GRENADE_BOUNCE,
 	EV_GRENADE_EXPLOSION,
+	EV_RAIL_ALT,
 	EV_ROCKET_EXPLOSION,
 	EV_ARBULLET_EXPLOSION,
 	EV_BUBBLE_EXPLOSION,

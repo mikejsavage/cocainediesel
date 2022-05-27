@@ -620,6 +620,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 			break;
 
+		case EV_ALTFIREWEAPON: break;
 		case EV_FIREWEAPON: {
 			WeaponType weapon = WeaponType( parm & 0xFF );
 			if( weapon <= Weapon_None || weapon >= Weapon_Count )
@@ -821,6 +822,11 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			Vec3 normal = U64ToDir( parm );
 			DoVisualEffect( "weapons/sticky/impact", ent->origin, normal, 24, team_color );
 			PlaySFX( "weapons/sticky/impact", PlaySFXConfigPosition( ent->origin ) );
+		} break;
+
+		case EV_RAIL_ALT: {
+			CG_FireWeaponEvent( ent->ownerNum, Weapon_Railgun );
+			FireRailgun( ent->origin, U64ToDir( parm ), ent->ownerNum );
 		} break;
 
 		case EV_ROCKET_EXPLOSION: {

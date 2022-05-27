@@ -466,13 +466,13 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 1,
 		/* clip size            */ 0,
-		/* reload time          */ 500, // time to fully charge for rail
+		/* reload time          */ 1000, // time to fully charge for rail
 		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_SLOW,
 		/* weapon down time     */ WEAPONDOWN_TIME,
-		/* refire time          */ 1000,
+		/* refire time          */ 2000,
 		/* timeout / range      */ HITSCAN_RANGE,
 		/* max recoil           */ EulerDegrees2( 150.0f, 40.0f ),
 		/* min recoil           */ EulerDegrees2( 100.0f, -40.0f ),

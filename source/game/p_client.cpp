@@ -698,7 +698,7 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 
 	switch( ev ) {
 		case EV_SMOOTHREFIREWEAPON: // update the firing
-			G_FireWeapon( ent, parm );
+			G_FireWeapon( ent, parm, false );
 			break; // don't send the event
 
 		case EV_SUICIDE_BOMB_EXPLODE: {
@@ -723,9 +723,9 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 	}
 }
 
-void G_PredictedFireWeapon( int entNum, u64 parm ) {
+void G_PredictedFireWeapon( int entNum, u64 parm, bool alt ) {
 	edict_t * ent = &game.edicts[ entNum ];
-	G_FireWeapon( ent, parm );
+	G_FireWeapon( ent, parm, alt );
 
 	Vec3 start = ent->s.origin;
 	start.z += ent->r.client->ps.viewheight;

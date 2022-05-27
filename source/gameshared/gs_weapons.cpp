@@ -173,7 +173,7 @@ static void FireWeapon( const gs_state_t * gs, SyncPlayerState * ps, const UserC
 	}
 	else {
 		u64 parm = ps->weapon | ( cmd->entropy << 8 ) | ( u64( ps->zoom_time ) << 24 ) ;
-		gs->api.PredictedFireWeapon( ps->POVnum, parm );
+		gs->api.PredictedFireWeapon( ps->POVnum, parm, false );
 	}
 
 	if( def->clip_size > 0 ) {
@@ -385,13 +385,19 @@ static ItemState railgun_states[] = {
 
 	ItemState( WeaponState_Idle, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		if( cmd->buttons & BUTTON_ATTACK1 ) {
-			return WeaponState_Cooking;
+			gs->api.PredictedFireWeapon( ps->POVnum, Weapon_Railgun, false );
+			return WeaponState_Firing;
+		}
+
+		if( cmd->buttons & BUTTON_ATTACK2 ) {
+			gs->api.PredictedFireWeapon( ps->POVnum, Weapon_Railgun, true );
+			return WeaponState_Firing;
 		}
 
 		return AllowWeaponSwitch( gs, ps, WeaponState_Idle );
 	} ),
 
-	ItemState( WeaponState_Cooking, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
+	/*ItemState( WeaponState_Cooking, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
 		if( ( cmd->buttons & BUTTON_ATTACK1 ) == 0 && ps->weapon_state_time >= def->reload_time ) {
 			gs->api.PredictedFireWeapon( ps->POVnum, Weapon_Railgun );
@@ -401,7 +407,7 @@ static ItemState railgun_states[] = {
 		ps->weapon_state_time = Min2( def->reload_time, ps->weapon_state_time );
 
 		return state;
-	} ),
+	} ),*/
 };
 
 static const ItemState generic_throwable_states[] = {

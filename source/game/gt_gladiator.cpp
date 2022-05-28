@@ -450,8 +450,8 @@ static bool Gladiator_SpawnEntity( StringHash classname, edict_t * ent ) {
 	return false;
 }
 
-GametypeSpec GetGladiatorGametype() {
-	GametypeSpec gt = { };
+GametypeDef GetGladiatorGametype() {
+	GametypeDef gt = { };
 
 	gt.Init = Gladiator_Init;
 	gt.MatchStateStarted = Gladiator_MatchStateStarted;

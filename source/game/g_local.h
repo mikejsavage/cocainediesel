@@ -87,7 +87,7 @@ struct level_locals_t {
 
 	bool exitNow;
 
-	GametypeSpec gametype;
+	GametypeDef gametype;
 
 	bool ready[MAX_CLIENTS];
 

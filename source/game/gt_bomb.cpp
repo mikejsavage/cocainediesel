@@ -1255,8 +1255,8 @@ static bool Bomb_SpawnEntity( StringHash classname, edict_t * ent ) {
 	return false;
 }
 
-GametypeSpec GetBombGametype() {
-	GametypeSpec gt = { };
+GametypeDef GetBombGametype() {
+	GametypeDef gt = { };
 
 	gt.Init = Bomb_Init;
 	gt.MatchStateStarted = Bomb_MatchStateStarted;

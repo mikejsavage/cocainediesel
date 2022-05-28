@@ -423,7 +423,7 @@ static void Gladiator_Init() {
 	server_gs.gameState.gametype = Gametype_Gladiator;
 
 	gladiator_state = { };
-	gladiator_state.randomize_arena = G_GetWorldspawnKey( "randomise_arena" ) != "";
+	gladiator_state.randomize_arena = G_GetWorldspawnKey( "randomize_arena" ) != "";
 
 	for( TeamQueue & team : gladiator_state.teams ) {
 		for( int & slot : team.players ) {

@@ -149,6 +149,8 @@ void CG_Init( unsigned int playerNum, int max_clients,
 
 	memset( cg_entities, 0, sizeof( cg_entities ) );
 
+	MaybeResetShadertoyTime( true );
+
 	CG_InitGameShared( max_clients );
 
 	// save local player number

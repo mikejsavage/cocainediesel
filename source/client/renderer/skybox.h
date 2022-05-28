@@ -4,4 +4,4 @@
 
 void InitSkybox();
 void ShutdownSkybox();
-void DrawSkybox();
+void DrawSkybox( Time time );

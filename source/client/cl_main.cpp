@@ -1134,6 +1134,7 @@ void CL_Frame( int realMsec, int gameMsec ) {
 	static float roundingMsec = 0.0f;
 
 	cls.monotonicTime += Milliseconds( realMsec );
+	cls.shadertoy_time += Milliseconds( gameMsec );
 	cls.realtime += realMsec;
 
 	if( CL_DemoPlaying() ) {
@@ -1236,6 +1237,7 @@ void CL_Init() {
 	CSPRNG( &cls.session_id, sizeof( cls.session_id ) );
 
 	cls.monotonicTime = { };
+	cls.shadertoy_time = { };
 
 	assert( !cl_initialized );
 

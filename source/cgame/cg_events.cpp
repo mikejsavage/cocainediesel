@@ -763,6 +763,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			CG_Event_Die( ent->ownerNum, parm );
 			break;
 
+		case EV_RESPAWN:
+			MaybeResetShadertoyTime( true );
+			break;
+
 		case EV_BOMB_EXPLOSION:
 			DoVisualEffect( "models/bomb/explosion", ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, vec4_white );
 			PlaySFX( "models/bomb/explode", PlaySFXConfigPosition( ent->origin ) );

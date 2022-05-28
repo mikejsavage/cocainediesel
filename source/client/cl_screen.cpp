@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/renderer.h"
 #include "cgame/cg_local.h"
 #include "qcommon/cmodel.h"
+#include "qcommon/time.h"
 
 static Cvar *scr_netgraph;
 static Cvar *scr_timegraph;
@@ -188,7 +189,7 @@ static void SubmitPostprocessPass() {
 	chasing_amount = Clamp01( chasing_amount );
 
 	PostprocessUniforms uniforms = { };
-	uniforms.time = float( Sys_Milliseconds() ) * 0.001f;
+	uniforms.time = ToSeconds( cls.shadertoy_time );
 	uniforms.damage = damage_effect;
 	uniforms.crt = chasing_amount;
 	uniforms.brightness = 0.0f;

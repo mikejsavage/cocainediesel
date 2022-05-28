@@ -1,6 +1,7 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
+#include "qcommon/time.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/material.h"
 
@@ -37,7 +38,7 @@ void ShutdownSkybox() {
 	DeleteMesh( sky_mesh );
 }
 
-void DrawSkybox() {
+void DrawSkybox( Time time ) {
 	TracyZoneScoped;
 
 	PipelineState pipeline;
@@ -45,7 +46,7 @@ void DrawSkybox() {
 	pipeline.pass = frame_static.sky_pass;
 	pipeline.cull_face = CullFace_Front;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_Time", UploadUniformBlock( float( Sys_Milliseconds() ) / 1000.0f ) );
+	pipeline.set_uniform( "u_Time", UploadUniformBlock( ToSeconds( time ) ) );
 	pipeline.set_texture( "u_Noise", FindMaterial( "textures/noise" )->texture );
 	pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
 	pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );

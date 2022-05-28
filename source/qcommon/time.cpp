@@ -17,7 +17,7 @@ void InitTime() {
 }
 
 static void AssertSmallEnoughToCastToFloat( Time t ) {
-	assert( t.flicks < GGTIME_FLICKS_PER_SECOND * 1000 );
+	assert( t < Hours( 2 ) );
 }
 
 Time Now() {

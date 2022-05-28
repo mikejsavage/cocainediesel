@@ -117,6 +117,8 @@ struct client_static_t {
 
 	Time monotonicTime; // starts at 0 when the game is launched, increases forever
 
+	Time shadertoy_time; // starts at 0 when the game is launched, periodically gets reset
+
 	int64_t framecount;
 	int64_t realtime;               // always increasing, no clamping, etc
 	int64_t gametime;               // always increasing, no clamping, etc

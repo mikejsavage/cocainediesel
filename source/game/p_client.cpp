@@ -350,6 +350,11 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		client->ps.viewangles = Vec3( self->s.angles );
 
 		KillBox( self, WorldDamage_Telefrag, Vec3( 0.0f ) );
+
+		edict_t * ev = G_SpawnEvent( EV_RESPAWN, 0, NULL );
+		ev->s.svflags |= SVF_ONLYOWNER | SVF_BROADCAST;
+		ev->s.ownerNum = ENTNUM( self );
+
 	}
 	else {
 		G_ChasePlayer( self );

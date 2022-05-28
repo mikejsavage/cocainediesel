@@ -582,6 +582,8 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	AllocateDecalBuffers();
 
+	MaybeResetShadertoyTime( false );
+
 	CG_UpdateChaseCam();
 
 	if( CG_DemoCam_Update() ) {
@@ -613,7 +615,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawPersistentBeams();
 	DrawPersistentDecals();
 	DrawPersistentDynamicLights();
-	DrawSkybox();
+	DrawSkybox( cls.shadertoy_time );
 	DrawSprays();
 
 	DrawModelInstances();
@@ -625,4 +627,12 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	CG_Draw2D();
 
 	UploadDecalBuffers();
+}
+
+void MaybeResetShadertoyTime( bool respawned ) {
+	bool early_reset = respawned && cls.shadertoy_time > Hours( 1 );
+	bool force_reset = cls.shadertoy_time > Hours( 1.5f );
+	if( early_reset || force_reset ) {
+		cls.shadertoy_time = { };
+	}
 }

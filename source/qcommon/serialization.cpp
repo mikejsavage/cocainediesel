@@ -63,7 +63,6 @@ void Serialize( SerializationBuffer * buf, Vec2 & v ) { *buf & v.x & v.y; }
 void Serialize( SerializationBuffer * buf, Vec3 & v ) { *buf & v.x & v.y & v.z; }
 void Serialize( SerializationBuffer * buf, Vec4 & v ) { *buf & v.x & v.y & v.z & v.w; }
 
-void Serialize( SerializationBuffer * buf, Mat2 & m ) { *buf & m.col0 & m.col1; }
 void Serialize( SerializationBuffer * buf, Mat3 & m ) { *buf & m.col0 & m.col1 & m.col2; }
 void Serialize( SerializationBuffer * buf, Mat4 & m ) { *buf & m.col0 & m.col1 & m.col2 & m.col3; }
 

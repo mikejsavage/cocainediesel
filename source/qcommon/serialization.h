@@ -47,7 +47,6 @@ void Serialize( SerializationBuffer * buf, Vec2 & v );
 void Serialize( SerializationBuffer * buf, Vec3 & v );
 void Serialize( SerializationBuffer * buf, Vec4 & v );
 
-void Serialize( SerializationBuffer * buf, Mat2 & m );
 void Serialize( SerializationBuffer * buf, Mat3 & m );
 void Serialize( SerializationBuffer * buf, Mat4 & m );
 void Serialize( SerializationBuffer * buf, Quaternion & q );

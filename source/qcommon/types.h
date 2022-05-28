@@ -299,21 +299,6 @@ struct Vec4 {
 	}
 };
 
-struct Mat2 {
-	Vec2 col0, col1;
-
-	Mat2() = default;
-	constexpr Mat2( Vec2 c0, Vec2 c1 ) : col0( c0 ), col1( c1 ) { }
-	constexpr Mat2( float e00, float e01, float e10, float e11 ) : col0( e00, e10 ), col1( e01, e11 ) { }
-
-	Vec2 row0() const { return Vec2( col0.x, col1.x ); }
-	Vec2 row1() const { return Vec2( col0.y, col1.y ); }
-
-	float * ptr() { return col0.ptr(); }
-
-	static constexpr Mat2 Identity() { return Mat2( 1, 0, 0, 1 ); }
-};
-
 struct Mat3 {
 	Vec3 col0, col1, col2;
 

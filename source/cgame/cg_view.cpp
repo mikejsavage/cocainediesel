@@ -171,6 +171,7 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 	}
 
 	playerState->pmove.velocity = Lerp( ops->pmove.velocity, cg.lerpfrac, ps->pmove.velocity );
+	playerState->pmove.stamina = Lerp( ops->pmove.stamina, cg.lerpfrac, ps->pmove.stamina );
 
 	playerState->zoom_time = Lerp( ops->zoom_time, cg.lerpfrac, ps->zoom_time );
 	playerState->flashed = Lerp( ops->flashed, cg.lerpfrac, ps->flashed );

@@ -43,7 +43,8 @@ void applyDecals( uint count, int tile_index, inout vec4 diffuse, inout vec3 nor
 			break;
 		}
 
-		Decal decal = decals[ decal_tiles[ tile_index ].indices[ i ] ];
+		uint idx = count - i - 1;
+		Decal decal = decals[ decal_tiles[ tile_index ].indices[ idx ] ];
 
 		vec3 origin = floor( decal.origin_normal );
 		float radius = floor( decal.radius_angle );

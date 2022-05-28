@@ -65,6 +65,17 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin )
 		RailgunImpact( trace.endpos, trace.plane.normal, trace.surfFlags, color );
 	}
 
+	if( from_origin ) {
+		PlaySFXConfig event_sound;
+		event_sound.spatialisation = SpatialisationMethod_LineSegment;
+		event_sound.line_segment = { origin, end };
+		event_sound.volume = 1.0f;
+		event_sound.pitch = 0.9f;
+		event_sound.has_entropy = false;
+
+		PlaySFX( GetWeaponModelMetadata( Weapon_Railgun )->fire_sound, event_sound );
+	}
+
 	Vec3 fx_origin = from_origin ? origin : GetMuzzleTransform( ownerNum ).col3.xyz();
 	AddPersistentBeam( fx_origin, trace.endpos, 16.0f, color, "weapons/eb/beam", 0.25f, 0.1f );
 	RailTrailParticles( fx_origin, trace.endpos, color );
@@ -826,8 +837,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_RAIL_ALT: {
 			Vec3 dir;
 			AngleVectors( ent->angles, &dir, NULL, NULL );
-
-			CG_FireWeaponEvent( ent->ownerNum, Weapon_Railgun );
 			FireRailgun( ent->origin, dir, ent->ownerNum, true );
 		} break;
 

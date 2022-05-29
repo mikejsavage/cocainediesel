@@ -182,19 +182,6 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( int entity_id, const P
 	return face_meshes;
 }
 
-struct KDTreeNode {
-	bool leaf;
-
-	// node stuff
-	u8 axis;
-	float distance;
-	u32 above_child;
-
-	// leaf stuff
-	u32 first_brush;
-	u32 num_brushes;
-};
-
 struct CandidatePlane {
 	float distance;
 	u32 brush_id;
@@ -538,16 +525,6 @@ static void WriteFileOrComplain( ArenaAllocator * arena, const char * path, cons
 	}
 }
 
-static Span< const char > GetKey( Span< const ParsedKeyValue > kvs, const char * key ) {
-	for( ParsedKeyValue kv : kvs ) {
-		if( StrCaseEqual( kv.key, key ) ) {
-			return kv.value;
-		}
-	}
-
-	return Span< const char >( NULL, 0 );
-}
-
 static constexpr const char * map_section_names[] = {
 	"EntityData",
 	"EntityKeyValues",
@@ -583,7 +560,7 @@ void PackCDMap( DynamicArray< u8 > & packed, MapHeader * header, MapSectionType 
 	ggprint( "Section {-20} is size {.2}MB\n", map_section_names[ section ], data.num_bytes() / 1000.0f / 1000.0f );
 }
 
-static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData * map ) {
+static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData * map, bool compress ) {
 	TracyZoneScoped;
 
 	DynamicArray< u8 > packed( arena );
@@ -609,7 +586,31 @@ static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData
 
 	memcpy( &packed[ 0 ], &header, sizeof( header ) );
 
-	WriteFileOrComplain( arena, path, packed.ptr(), packed.num_bytes() );
+	if( !compress ) {
+		WriteFileOrComplain( arena, path, packed.ptr(), packed.num_bytes() );
+	}
+	else {
+		printf( "Compressing, this is slow...\n" );
+
+		size_t compressed_max_size = ZSTD_compressBound( packed.size() );
+		u8 * compressed = ALLOC_MANY( arena, u8, compressed_max_size );
+		size_t compressed_size = ZSTD_compress( compressed, compressed_max_size, packed.ptr(), packed.size(), ZSTD_maxCLevel() );
+		if( ZSTD_isError( compressed_size ) ) {
+			Fatal( "Compression failed: %s", ZSTD_getErrorName( compressed_size ) );
+		}
+
+		WriteFileOrComplain( arena, ( *arena )( "{}.zst", path ), compressed, compressed_size );
+	}
+}
+
+static Span< const char > GetKey( Span< const ParsedKeyValue > kvs, const char * key ) {
+	for( ParsedKeyValue kv : kvs ) {
+		if( StrCaseEqual( kv.key, key ) ) {
+			return kv.value;
+		}
+	}
+
+	return Span< const char >( NULL, 0 );
 }
 
 int main( int argc, char ** argv ) {
@@ -763,7 +764,7 @@ int main( int argc, char ** argv ) {
 	flattened.vertex_indices = flat_vertex_indices.span();
 
 	const char * cdmap_path = arena( "{}.cdmap", StripExtension( src_path ) );
-	WriteCDMap( &arena, cdmap_path, &flattened );
+	WriteCDMap( &arena, cdmap_path, &flattened, compress );
 
 	// TODO: generate render geometry
 	// - figure out what postprocessing we need e.g. welding

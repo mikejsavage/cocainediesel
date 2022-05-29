@@ -42,11 +42,6 @@ enum {
 
 typedef float mat3_t[9];
 
-struct Plane {
-	Vec3 normal;
-	float distance;
-};
-
 constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 
 #define PlaneDiff( point, plane ) ( Dot( ( point ), ( plane )->normal ) - ( plane )->distance )
@@ -109,9 +104,6 @@ Mat4 TransformKToDir( Vec3 dir );
 
 MinMax3 Union( MinMax3 bounds, Vec3 p );
 MinMax3 Union( MinMax3 a, MinMax3 b );
-
-bool PlaneFrom3Points( Plane * plane, Vec3 a, Vec3 b, Vec3 c );
-bool Intersect3PlanesPoint( Vec3 * p, Plane plane1, Plane plane2, Plane plane3 );
 
 u32 Log2( u64 x );
 

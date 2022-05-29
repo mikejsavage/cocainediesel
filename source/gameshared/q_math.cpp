@@ -481,36 +481,6 @@ MinMax3 Union( MinMax3 a, MinMax3 b ) {
 	);
 }
 
-bool PlaneFrom3Points( Plane * plane, Vec3 a, Vec3 b, Vec3 c ) {
-	Vec3 ab = b - a;
-	Vec3 ac = c - a;
-
-	Vec3 normal = SafeNormalize( Cross( ac, ab ) );
-	if( normal == Vec3( 0.0f ) )
-		return false;
-
-	plane->normal = normal;
-	plane->distance = Dot( a, normal );
-
-	return true;
-}
-
-bool Intersect3PlanesPoint( Vec3 * p, Plane plane1, Plane plane2, Plane plane3 ) {
-	constexpr float epsilon = 0.001f;
-
-	Vec3 n2xn3 = Cross( plane2.normal, plane3.normal );
-	float n1_n2xn3 = Dot( plane1.normal, n2xn3 );
-
-	if( Abs( n1_n2xn3 ) < epsilon )
-		return false;
-
-	Vec3 n3xn1 = Cross( plane3.normal, plane1.normal );
-	Vec3 n1xn2 = Cross( plane1.normal, plane2.normal );
-
-	*p = ( plane1.distance * n2xn3 + plane2.distance * n3xn1 + plane3.distance * n1xn2 ) / n1_n2xn3;
-	return true;
-}
-
 u32 Log2( u64 x ) {
 	u32 log = 0;
 	x >>= 1;

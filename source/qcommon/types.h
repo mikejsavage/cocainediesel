@@ -409,6 +409,11 @@ struct Quaternion {
 	}
 };
 
+struct Plane {
+	Vec3 normal;
+	float distance;
+};
+
 struct MinMax1 {
 	float lo, hi;
 

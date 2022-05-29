@@ -14,6 +14,8 @@ static char * FindRootDir( Allocator * a ) {
 }
 
 void InitFS() {
+	TracyZoneScoped;
+
 	root_dir_path = FindRootDir( sys_allocator );
 
 	if( !is_public_build ) {

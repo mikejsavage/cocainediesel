@@ -153,7 +153,7 @@ void main() {
 
 #if APPLY_DECALS || APPLY_DLIGHTS
 	float tile_size = float( TILE_SIZE );
-	int tile_row = int( ( u_ViewportSize.y - gl_FragCoord.y ) / tile_size );
+	int tile_row = int( ( u_ViewportSize.y - gl_FragCoord.y - 1.0 ) / tile_size );
 	int tile_col = int( gl_FragCoord.x / tile_size );
 	int cols = int( u_ViewportSize.x + tile_size - 1 ) / int( tile_size );
 	int tile_index = tile_row * cols + tile_col;

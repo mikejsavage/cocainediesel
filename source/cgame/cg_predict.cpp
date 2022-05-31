@@ -46,7 +46,7 @@ void CG_PredictedEvent( int entNum, int ev, u64 parm ) {
 }
 
 void CG_PredictedFireWeapon( int entNum, u64 parm, bool alt ) {
-	CG_PredictedEvent( entNum, alt ? EV_ALTFIREWEAPON : EV_FIREWEAPON, parm );
+	CG_PredictedEvent( entNum, alt ? EV_FIREWEAPONALT : EV_FIREWEAPON, parm );
 }
 
 void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm ) {

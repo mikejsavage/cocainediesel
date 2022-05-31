@@ -630,7 +630,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 			break;
 
-		case EV_ALTFIREWEAPON: break;
+		case EV_FIREWEAPONALT: break;
 		case EV_FIREWEAPON: {
 			WeaponType weapon = WeaponType( parm & 0xFF );
 			if( weapon <= Weapon_None || weapon >= Weapon_Count )

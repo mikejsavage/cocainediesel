@@ -929,7 +929,7 @@ void StartMenuMusic() {
 		return;
 
 	Sound sound;
-	if( !FindSound( "sounds/music/menu_1", &sound ) )
+	if( !FindSound( "sounds/music/longcovid", &sound ) )
 		return;
 
 	if( music_playing )

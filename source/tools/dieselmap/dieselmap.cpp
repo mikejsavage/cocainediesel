@@ -693,8 +693,6 @@ int main( int argc, char ** argv ) {
 
 			entity.brushes.clear();
 			entity.patches.clear();
-
-			// TODO: we need to merge entity 0 meshes again
 		}
 	}
 

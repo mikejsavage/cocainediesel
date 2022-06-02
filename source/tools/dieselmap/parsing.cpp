@@ -6,162 +6,10 @@
 #include "qcommon/array.h"
 #include "qcommon/hash.h"
 #include "qcommon/span2d.h"
-#include "gameshared/q_shared.h"
 
 #include "parsing.h"
 
 #include <string.h>
-
-// generic stuff
-
-constexpr Span< const char > NullSpan( NULL, 0 );
-
-inline Span< const char > SkipLiteral( Span< const char > str, const char * lit ) {
-	return StartsWith( str, lit ) ? str + strlen( lit ) : NullSpan;
-}
-
-inline Span< const char > PEGRange( Span< const char > str, char lo, char hi ) {
-	return str.n > 0 && str[ 0 ] >= lo && str[ 0 ] <= hi ? str + 1 : NullSpan;
-}
-
-inline Span< const char > PEGSet( Span< const char > str, const char * set ) {
-	if( str.n == 0 )
-		return NullSpan;
-
-	for( size_t i = 0; i < strlen( set ); i++ ) {
-		if( str[ 0 ] == set[ i ] ) {
-			return str + 1;
-		}
-	}
-
-	return NullSpan;
-}
-
-inline Span< const char > PEGNotSet( Span< const char > str, const char * set ) {
-	if( str.n == 0 )
-		return NullSpan;
-
-	for( size_t i = 0; i < strlen( set ); i++ ) {
-		if( str[ 0 ] == set[ i ] ) {
-			return NullSpan;
-		}
-	}
-
-	return str + 1;
-}
-
-template< typename F >
-Span< const char > PEGCapture( Span< const char > * capture, Span< const char > str, F f ) {
-	Span< const char > res = f( str );
-	if( res.ptr != NULL ) {
-		*capture = Span< const char >( str.ptr, res.ptr - str.ptr );
-	}
-	return res;
-}
-
-template< typename F1, typename F2 >
-Span< const char > PEGOr( Span< const char > str, F1 parser1, F2 parser2 ) {
-	Span< const char > res1 = parser1( str );
-	return res1.ptr == NULL ? parser2( str ) : res1;
-}
-
-template< typename F1, typename F2, typename F3 >
-Span< const char > PEGOr( Span< const char > str, F1 parser1, F2 parser2, F3 parser3 ) {
-	Span< const char > res1 = parser1( str );
-	if( res1.ptr != NULL )
-		return res1;
-
-	Span< const char > res2 = parser2( str );
-	if( res2.ptr != NULL )
-		return res2;
-
-	return parser3( str );
-}
-
-template< typename F >
-Span< const char > PEGOptional( Span< const char > str, F parser ) {
-	Span< const char > res = parser( str );
-	return res.ptr == NULL ? str : res;
-}
-
-template< typename F >
-Span< const char > PEGNOrMore( Span< const char > str, size_t n, F parser ) {
-	size_t parsed = 0;
-
-	while( true ) {
-		Span< const char > next = parser( str );
-		if( next.ptr == NULL ) {
-			return parsed >= n ? str : NullSpan;
-		}
-		str = next;
-		parsed++;
-	}
-}
-
-template< typename T, typename F >
-Span< const char > CaptureNOrMore( std::vector< T > * array, Span< const char > str, size_t n, F parser ) {
-	Span< const char > res = PEGNOrMore( str, n, [ &array, &parser ]( Span< const char > str ) {
-		T elem;
-		Span< const char > res = parser( &elem, str );
-		if( res.ptr != NULL ) {
-			array->push_back( elem );
-		}
-		return res;
-	} );
-
-	if( res.ptr == NULL ) {
-		array->clear();
-	}
-
-	return res;
-}
-
-template< typename T, typename F >
-Span< const char > ParseUpToN( T * array, size_t * num_parsed, size_t n, Span< const char > str, F parser ) {
-	*num_parsed = 0;
-
-	while( true ) {
-		T elem;
-		Span< const char > res = parser( &elem, str );
-		if( res.ptr == NULL )
-			return str;
-
-		if( *num_parsed == n )
-			return NullSpan;
-
-		array[ *num_parsed ] = elem;
-		*num_parsed += 1;
-		str = res;
-	}
-}
-
-constexpr const char * whitespace_chars = " \r\n\t";
-
-inline Span< const char > SkipWhitespace( Span< const char > str ) {
-	return PEGNOrMore( str, 0, []( Span< const char > str ) {
-		return PEGSet( str, whitespace_chars );
-	} );
-}
-
-static Span< const char > SkipToken( Span< const char > str, const char * token ) {
-	str = SkipWhitespace( str );
-	str = SkipLiteral( str, token );
-	return str;
-}
-
-inline Span< const char > ParseWord( Span< const char > * capture, Span< const char > str ) {
-	str = SkipWhitespace( str );
-	return PEGCapture( capture, str, []( Span< const char > str ) {
-		return PEGNOrMore( str, 1, []( Span< const char > str ) {
-			return PEGNotSet( str, whitespace_chars );
-		} );
-	} );
-}
-
-template< typename T, size_t N, typename F >
-Span< const char > ParseUpToN( StaticArray< T, N > * array, Span< const char > str, F parser ) {
-	return ParseUpToN( array->elems, &array->n, N, str, parser );
-}
 
 static Span< const char > ParseNOrMoreDigits( size_t n, Span< const char > str ) {
 	return PEGNOrMore( str, n, []( Span< const char > str ) {
@@ -386,9 +234,6 @@ static Span< const char > ParseEntity( ParsedEntity * entity, Span< const char >
 
 	str = ParseUpToN( &entity->kvs, str, ParseKeyValue );
 
-	entity->brushes.init( sys_allocator );
-	entity->patches.init( sys_allocator );
-
 	while( true ) {
 		ParsedBrush brush;
 		ParsedPatch patch;
@@ -409,19 +254,14 @@ static Span< const char > ParseEntity( ParsedEntity * entity, Span< const char >
 		str = res;
 
 		if( is_patch ) {
-			entity->patches.add( patch );
+			entity->patches.push_back( patch );
 		}
 		else {
-			entity->brushes.add( brush );
+			entity->brushes.push_back( brush );
 		}
 	}
 
 	str = SkipToken( str, "}" );
-
-	if( str.ptr == NULL ) {
-		entity->brushes.shutdown();
-		entity->patches.shutdown();
-	}
 
 	return str;
 }
@@ -459,7 +299,7 @@ std::vector< ParsedEntity > ParseEntities( Span< char > map ) {
 
 	Span< const char > cursor = map;
 	cursor = CaptureNOrMore( &entities, cursor, 1, ParseEntity );
-	cursor = SkipWhitespace( map );
+	cursor = SkipWhitespace( cursor );
 
 	bool ok = cursor.ptr != NULL && cursor.n == 0;
 	if( !ok ) {

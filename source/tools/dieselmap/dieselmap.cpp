@@ -22,14 +22,24 @@ void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
 }
 
+static void LogDebugInstructions() {
+	static bool done_once = false;
+	if( !done_once ) {
+		printf( "You can jump to the broken brushes listed below by doing:\n" );
+		printf( "Radiant: Misc > Find Brush...\n" );
+		printf( "Radiant: Edit > Select by Line Number\n" );
+	}
+	done_once = true;
+}
+
 template< typename T >
 Span< const T > VectorToSpan( const std::vector< T > & v ) {
-	return Span< const T >( &v[ 0 ], v.size() );
+	return Span< const T >( v.data(), v.size() );
 }
 
 struct CompiledMesh {
 	u64 material = 0;
-	std::vector< Vec3 > vertices;
+	std::vector< MapVertex > vertices;
 	std::vector< u32 > indices;
 };
 
@@ -94,7 +104,7 @@ static Vec2 ProjectFaceVert( Vec3 centroid, Vec3 tangent, Vec3 bitangent, Vec3 p
 	return Vec2( Dot( d, tangent ), Dot( d, bitangent ) );
 }
 
-static std::vector< Vec3 > TriangulateFace( Span< const Plane > brush, size_t face ) {
+static std::vector< Vec3 > BrushFaceToHull( Span< const Plane > brush, size_t face ) {
 	// generate a set of candidate points
 	std::vector< Vec3 > points;
 	for( size_t i = 0; i < brush.n; i++ ) {
@@ -134,10 +144,7 @@ static std::vector< Vec3 > TriangulateFace( Span< const Plane > brush, size_t fa
 	std::vector< SortedPoint > projected_points;
 	for( Vec3 p : points ) {
 		Vec2 projected = ProjectFaceVert( centroid, tangent, bitangent, p );
-
-		SortedPoint sorted;
-		sorted.p = p;
-		sorted.theta = atan2f( projected.y, projected.x );
+		projected_points.push_back( { p, atan2f( projected.y, projected.x ) } );
 	}
 
 	std::sort( projected_points.begin(), projected_points.end(), []( const SortedPoint & a, const SortedPoint & b ) {
@@ -159,6 +166,7 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( int entity_id, const P
 		Plane plane;
 		const ParsedBrushFace & face = brush.faces.elems[ i ];
 		if( !PlaneFrom3Points( &plane, face.plane[ 0 ], face.plane[ 1 ], face.plane[ 2 ] ) ) {
+			LogDebugInstructions();
 			Fatal( "[entity %d brush %d/line %d] has a non-planar face", entity_id, brush.id, brush.line_number );
 		}
 		planes.push_back( plane );
@@ -169,11 +177,26 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( int entity_id, const P
 	for( size_t i = 0; i < planes.size(); i++ ) {
 		CompiledMesh material_mesh;
 		material_mesh.material = brush.faces.span()[ i ].material_hash;
-		material_mesh.vertices = TriangulateFace( VectorToSpan( planes ), i );
+		assert( material_mesh.material != 0 );
 
-		// TODO: this is not triangulating anything...
-		for( u32 j = 0; j < checked_cast< u32 >( material_mesh.vertices.size() ); j++ ) {
-			material_mesh.indices.push_back( j );
+		std::vector< Vec3 > hull = BrushFaceToHull( VectorToSpan( planes ), i );
+		Vec3 normal = planes[ i ].normal;
+		for( Vec3 position : hull ) {
+			MapVertex v = { position, normal };
+			material_mesh.vertices.push_back( v );
+		}
+
+		if( material_mesh.vertices.size() < 3 ) {
+			LogDebugInstructions();
+			printf( "[entity %d brush %d/line %d] triangulation failed, if the brush is mega huge it ran into precision issues\n", entity_id, brush.id, brush.line_number );
+			printf( "this isn't a fatal error but your map will have a hole in it\n" );
+			continue;
+		}
+
+		for( size_t j = 0; j < material_mesh.vertices.size() - 2; j++ ) {
+			material_mesh.indices.push_back( 0 );
+			material_mesh.indices.push_back( j + 2 );
+			material_mesh.indices.push_back( j + 1 );
 		}
 
 		face_meshes.push_back( material_mesh );
@@ -260,6 +283,11 @@ static u32 MakeLeaf( CompiledKDTree * tree, Span< const u32 > brush_ids ) {
 }
 
 static u32 BuildKDTreeRecursive( CompiledKDTree * tree, Span< const u32 > brush_ids, Span< const MinMax3 > brush_bounds, CandidatePlanes candidate_planes, MinMax3 node_bounds, u32 max_depth ) {
+	/*
+	 * this is copied from Physically Based Rendering
+	 * https://pbr-book.org/3ed-2018/Primitives_and_Intersection_Acceleration/Kd-Tree_Accelerator
+	 */
+
 	TracyZoneScoped;
 
 	if( brush_ids.n <= 1 || max_depth == 0 ) {
@@ -412,8 +440,8 @@ static CompiledMesh MergeMeshes( Span< const CompiledMesh > meshes ) {
 
 	for( const CompiledMesh & mesh : meshes ) {
 		size_t base_vertex = merged.vertices.size();
-		for( Vec3 p : mesh.vertices ) {
-			merged.vertices.push_back( p );
+		for( MapVertex v : mesh.vertices ) {
+			merged.vertices.push_back( v );
 		}
 		for( u32 idx : mesh.indices ) {
 			merged.indices.push_back( idx + base_vertex );
@@ -427,7 +455,6 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 	TracyZoneScoped;
 
 	std::vector< CompiledMesh > face_meshes;
-
 	for( const ParsedBrush & brush : entity.brushes ) {
 		std::vector< CompiledMesh > brush_meshes = BrushToCompiledMeshes( entity.id, brush );
 		for( const CompiledMesh & mesh : brush_meshes ) {
@@ -451,10 +478,10 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 	size_t material_start_index = 0;
 
 	for( size_t i = 1; i < face_meshes.size(); i++ ) {
-		if( face_meshes[ i ].material == material_start_index )
+		if( face_meshes[ i ].material == face_meshes[ material_start_index ].material )
 			continue;
 
-		Span< const CompiledMesh > meshes_with_the_same_material( &face_meshes[ material_start_index ], i - material_start_index );
+		Span< const CompiledMesh > meshes_with_the_same_material( &face_meshes[ material_start_index ], i - material_start_index + 1 );
 		CompiledMesh merged = MergeMeshes( meshes_with_the_same_material );
 		if( merged.indices.size() > 0 ) {
 			merged_meshes.push_back( merged );
@@ -481,6 +508,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 			Plane plane;
 			const ParsedBrushFace & face = brush.faces.elems[ i ];
 			if( !PlaneFrom3Points( &plane, face.plane[ 0 ], face.plane[ 1 ], face.plane[ 2 ] ) ) {
+				LogDebugInstructions();
 				Fatal( "[entity %d brush %d/line %d] has a non-planar face", entity.id, brush.id, brush.line_number );
 			}
 			planes.push_back( plane );
@@ -489,7 +517,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 		// compute brush bounds
 		MinMax3 bounds = MinMax3::Empty();
 		for( size_t i = 0; i < planes.size(); i++ ) {
-			std::vector< Vec3 > points = TriangulateFace( VectorToSpan( planes ), i );
+			std::vector< Vec3 > points = BrushFaceToHull( VectorToSpan( planes ), i );
 			for( Vec3 p : points ) {
 				bounds = Union( bounds, p );
 			}
@@ -525,10 +553,10 @@ static void WriteFileOrComplain( ArenaAllocator * arena, const char * path, cons
 	}
 }
 
-static constexpr const char * map_section_names[] = {
+static constexpr const char * section_names[] = {
+	"Entities",
 	"EntityData",
 	"EntityKeyValues",
-	"Entities",
 
 	"Models",
 
@@ -545,19 +573,23 @@ static constexpr const char * map_section_names[] = {
 
 template< typename T >
 void PackCDMap( DynamicArray< u8 > & packed, MapHeader * header, MapSectionType section, Span< const T > data ) {
-	size_t padding = packed.num_bytes() % alignof( T );
-	if( padding != 0 )
-		padding = alignof( T ) - padding;
-	size_t before_padding = packed.extend( padding );
-	memset( &packed[ before_padding ], 0, packed.size() - before_padding ); // zero out alignment and struct padding bytes
+	if( data.n > 0 ) {
+		size_t misalignment = packed.num_bytes() % alignof( T );
+		if( misalignment != 0 ) {
+			size_t padding = alignof( T ) - misalignment;
+			size_t before_padding = packed.extend( padding );
+			memset( &packed[ before_padding ], 0, padding );
+			if( padding > 0 ) printf( "adding %zu padding before %s\n", padding, section_names[ section ] );
+		}
 
-	size_t offset = packed.extend( data.num_bytes() );
-	memcpy( &packed[ offset ], data.ptr, data.num_bytes() );
+		size_t offset = packed.extend( data.num_bytes() );
+		memcpy( &packed[ offset ], data.ptr, data.num_bytes() );
 
-	header->sections[ section ].offset = checked_cast< u32 >( offset );
-	header->sections[ section ].size = checked_cast< u32 >( data.num_bytes() );
+		header->sections[ section ].offset = checked_cast< u32 >( offset );
+		header->sections[ section ].size = checked_cast< u32 >( data.num_bytes() );
+	}
 
-	ggprint( "Section {-20} is size {.2}MB\n", map_section_names[ section ], data.num_bytes() / 1000.0f / 1000.0f );
+	ggprint( "{-20} {.2}MB {}\n", section_names[ section ], data.num_bytes() / 1000.0f / 1000.0f, data.n );
 }
 
 static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData * map, bool compress ) {
@@ -572,24 +604,27 @@ static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData
 	packed.extend( sizeof( header ) );
 	memset( packed.ptr(), 0, packed.size() ); // zero out padding bytes
 
-	PackCDMap( packed, &header, MapSection_EntityData, map->entity_data );
 	PackCDMap( packed, &header, MapSection_Entities, map->entities );
+	PackCDMap( packed, &header, MapSection_EntityData, map->entity_data );
+	PackCDMap( packed, &header, MapSection_EntityKeyValues, map->entity_kvs );
 	PackCDMap( packed, &header, MapSection_Models, map->models );
 	PackCDMap( packed, &header, MapSection_Nodes, map->nodes );
 	PackCDMap( packed, &header, MapSection_Brushes, map->brushes );
 	PackCDMap( packed, &header, MapSection_BrushIndices, map->brush_indices );
 	PackCDMap( packed, &header, MapSection_BrushPlanes, map->brush_planes );
-	PackCDMap( packed, &header, MapSection_BrushPlaneIndices, map->brush_plane_indices );
+	// PackCDMap( packed, &header, MapSection_BrushPlaneIndices, map->brush_plane_indices );
 	PackCDMap( packed, &header, MapSection_Meshes, map->meshes );
 	PackCDMap( packed, &header, MapSection_Vertices, map->vertices );
 	PackCDMap( packed, &header, MapSection_VertexIndices, map->vertex_indices );
 
-	memcpy( &packed[ 0 ], &header, sizeof( header ) );
+	memcpy( packed.ptr(), &header, sizeof( header ) );
 
 	if( !compress ) {
 		WriteFileOrComplain( arena, path, packed.ptr(), packed.num_bytes() );
 	}
 	else {
+		TracyZoneScopedN( "ZSTD_compress" );
+
 		printf( "Compressing, this is slow...\n" );
 
 		size_t compressed_max_size = ZSTD_compressBound( packed.size() );
@@ -649,11 +684,17 @@ int main( int argc, char ** argv ) {
 			if( GetKey( entity.kvs.span(), "classname" ) != "func_group" )
 				continue;
 
-			entities[ 0 ].brushes.add_many( entity.brushes.span() );
-			entities[ 0 ].patches.add_many( entity.patches.span() );
+			for( const ParsedBrush & brush : entity.brushes ) {
+				entities[ 0 ].brushes.push_back( brush );
+			}
+			for( const ParsedPatch & patch : entity.patches ) {
+				entities[ 0 ].patches.push_back( patch );
+			}
 
 			entity.brushes.clear();
 			entity.patches.clear();
+
+			// TODO: we need to merge entity 0 meshes again
 		}
 	}
 
@@ -668,8 +709,13 @@ int main( int argc, char ** argv ) {
 			compiled.render_geometry = GenerateRenderGeometry( entity );
 			compiled.collision_geometry = GenerateCollisionGeometry( entity ); // TODO: patches
 
-			// TODO: keyvalues
+			for( ParsedKeyValue kv : entity.kvs.span() ) {
+				compiled.key_values.push_back( kv );
+			}
+
 			// TODO: assign model IDs
+
+			compiled_entities.push_back( compiled );
 		}
 	}
 
@@ -694,26 +740,26 @@ int main( int argc, char ** argv ) {
 	// }
 
 	// flatten everything into linear arrays
+	DynamicArray< MapEntity > flat_entities( &arena );
 	DynamicArray< char > flat_entity_data( &arena );
 	DynamicArray< MapEntityKeyValue > flat_entity_key_values( &arena );
-	DynamicArray< MapEntity > flat_entities( &arena );
 	DynamicArray< MapModel > flat_models( &arena );
 	DynamicArray< MapKDTreeNode > flat_nodes( &arena );
 	DynamicArray< MapBrush > flat_brushes( &arena );
 	DynamicArray< u32 > flat_brush_indices( &arena );
 	DynamicArray< Plane > flat_brush_planes( &arena );
-	DynamicArray< u32 > flat_brush_plane_indices( &arena );
+	// DynamicArray< u32 > flat_brush_plane_indices( &arena );
 	DynamicArray< MapMesh > flat_meshes( &arena );
 	DynamicArray< MapVertex > flat_vertices( &arena );
 	DynamicArray< u32 > flat_vertex_indices( &arena );
 
 	{
-		TracyZoneScopedN( "Flatten" );
+		TracyZoneScopedN( "Flatten key-values" );
 
 		for( const CompiledEntity & entity : compiled_entities ) {
 			MapEntity map_entity;
 			map_entity.first_key_value = checked_cast< u32 >( flat_entity_key_values.size() );
-			map_entity.num_key_values = entity.key_values.size();
+			map_entity.num_key_values = checked_cast< u32 >( entity.key_values.size() );
 
 			for( const ParsedKeyValue kv : entity.key_values ) {
 				MapEntityKeyValue map_kv;
@@ -726,39 +772,65 @@ int main( int argc, char ** argv ) {
 				flat_entity_data.add_many( kv.value );
 			}
 
+			flat_entities.add( map_entity );
+		}
+	}
+
+	{
+		TracyZoneScopedN( "Flatten render/collision geometry" );
+
+		for( const CompiledEntity & entity : compiled_entities ) {
+			size_t base_mesh = flat_meshes.size();
+
+			u32 first_mesh = checked_cast< u32 >( flat_meshes.size() );
+
+			for( const CompiledMesh & mesh : entity.render_geometry ) {
+				MapMesh map_mesh;
+				map_mesh.material = mesh.material;
+				map_mesh.first_vertex_index = flat_vertex_indices.size();
+				flat_meshes.add( map_mesh );
+
+				flat_vertices.add_many( VectorToSpan( mesh.vertices ) );
+
+				size_t base_vertex = flat_vertices.size();
+				for( u32 idx : mesh.indices ) {
+					flat_vertex_indices.add( base_vertex + idx );
+				}
+			}
+
+			// TODO: set base node
 			size_t base_node = flat_nodes.size();
 			size_t base_brush = flat_brushes.size();
 			size_t base_brush_plane = flat_brush_planes.size();
 			flat_nodes.add_many( VectorToSpan( entity.collision_geometry.nodes ) );
 			flat_brushes.add_many( VectorToSpan( entity.collision_geometry.brushes ) );
 			flat_brush_planes.add_many( VectorToSpan( entity.collision_geometry.planes ) );
+			// flat_brush_plane_indices.add_many( VectorToSpan( entity.collision_geometry.plane_indices ) );
 			// TODO: indices
 
+			if( entity.render_geometry.size() > 0 || entity.collision_geometry.nodes.size() > 0 ) {
+				MapModel model = { };
+				model.bounds = { }; // TODO
+				model.root_node = { }; // TODO
+				model.first_mesh = first_mesh;
+				model.num_meshes = entity.render_geometry.size();
 
-			size_t base_mesh = flat_meshes.size();
-
-			for( const CompiledMesh & mesh : entity.render_geometry ) {
-				MapMesh map_mesh;
-				map_mesh.material = mesh.material;
-				map_mesh.first_vertex_index = flat_vertex_indices.size();
-				// TODO: do this right so glDrawElements w/ offset works
+				flat_models.add( model );
 			}
-			size_t base_vertex = flat_vertices.size();
-
-			// TODO: models
 		}
 	}
 
 	// write to disk
 	MapData flattened;
-	flattened.entity_data = flat_entity_data.span();
 	flattened.entities = flat_entities.span();
+	flattened.entity_data = flat_entity_data.span();
+	flattened.entity_kvs = flat_entity_key_values.span();
 	flattened.models = flat_models.span();
 	flattened.nodes = flat_nodes.span();
 	flattened.brushes = flat_brushes.span();
 	flattened.brush_indices = flat_brush_indices.span();
 	flattened.brush_planes = flat_brush_planes.span();
-	flattened.brush_plane_indices = flat_brush_plane_indices.span();
+	// flattened.brush_plane_indices = flat_brush_plane_indices.span();
 	flattened.meshes = flat_meshes.span();
 	flattened.vertices = flat_vertices.span();
 	flattened.vertex_indices = flat_vertex_indices.span();
@@ -772,11 +844,7 @@ int main( int argc, char ** argv ) {
 	// - extend void render geometry
 	// - extend void brushes
 	//
-	// TODO: generate all models
-	// - kdtree per model after new format
-	//
 	// TODO: new map format
-	// - see bsp2.cpp
 	// - flip CW to CCW winding. q3 bsp was CW lol
 
 	FREE( sys_allocator, arena.get_memory() );

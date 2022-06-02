@@ -3,9 +3,9 @@
 #include "qcommon/types.h"
 
 enum MapSectionType {
+	MapSection_Entities,
 	MapSection_EntityData,
 	MapSection_EntityKeyValues,
-	MapSection_Entities,
 
 	MapSection_Models,
 
@@ -35,15 +35,15 @@ struct MapHeader {
 constexpr const char CDMAP_MAGIC[ sizeof( MapHeader::magic ) ] = "cdmap";
 constexpr u32 CDMAP_FORMAT_VERSION = 1;
 
+struct MapEntity {
+	u32 first_key_value;
+	u32 num_key_values;
+};
+
 struct MapEntityKeyValue {
 	u32 offset;
 	u32 key_size;
 	u32 value_size;
-};
-
-struct MapEntity {
-	u32 first_key_value;
-	u32 num_key_values;
 };
 
 struct MapModel {
@@ -89,9 +89,9 @@ struct MapVertex {
 };
 
 struct MapData {
+	Span< const MapEntity > entities;
 	Span< const char > entity_data;
 	Span< const MapEntityKeyValue > entity_kvs;
-	Span< const MapEntity > entities;
 
 	Span< const MapModel > models;
 

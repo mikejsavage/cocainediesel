@@ -23,6 +23,17 @@ struct Map {
 	GPUBuffer planeBuffer;
 };
 
+struct MapRenderData {
+	Mesh mesh;
+
+	float fog_strength;
+
+	GPUBuffer nodes;
+	GPUBuffer leaves;
+	GPUBuffer brushes;
+	GPUBuffer planes;
+};
+
 void InitMaps();
 void ShutdownMaps();
 
@@ -32,3 +43,7 @@ bool AddMap( Span< const u8 > data, const char * path );
 
 const Map * FindMap( StringHash name );
 const Map * FindMap( const char * name );
+
+struct MapData;
+MapRenderData NewMapRenderData( const MapData & map, const char * name );
+void DeleteMapRenderData( const MapRenderData & render_data );

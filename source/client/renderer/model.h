@@ -129,6 +129,25 @@ struct Model {
 	u8 num_animations;
 };
 
+enum ModelType {
+	ModelType_GLTF,
+	ModelType_Map,
+};
+
+struct GLTFRenderData { };
+struct MapRenderData2 { };
+
+struct ModelRenderData {
+	ModelType type;
+	union {
+		GLTFRenderData gltf;
+		MapRenderData2 map;
+	};
+};
+
+const ModelRenderData * FindRenderModel( StringHash name );
+const ModelRenderData * FindRenderModel( const char * name );
+
 void InitModels();
 void HotloadModels();
 void ShutdownModels();
@@ -140,10 +159,6 @@ const Model * FindMapModel( StringHash name );
 void DeleteModel( Model * model );
 
 bool LoadGLTFModel( Model * model, const char * path );
-
-struct Map;
-bool LoadBSPRenderData( const char * filename, Map * map, u64 base_hash, Span< const u8 > data );
-void DeleteBSPRenderData( Map * map );
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline );
 void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );

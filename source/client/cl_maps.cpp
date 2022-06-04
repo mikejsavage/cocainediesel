@@ -4,10 +4,12 @@
 #include "qcommon/compression.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
+#include "client/client.h"
 #include "client/assets.h"
 #include "client/maps.h"
 #include "client/renderer/model.h"
 #include "game/hotload_map.h"
+#include "gameshared/cdmap.h"
 
 constexpr u32 MAX_MAPS = 128;
 constexpr u32 MAX_MAP_MODELS = 1024;
@@ -21,7 +23,7 @@ static Hashtable< MAX_MAP_MODELS * 2 > map_models_hashtable;
 static void DeleteMap( Map * map ) {
 	FREE( sys_allocator, const_cast< char * >( map->name ) );
 	CM_Free( CM_Client, map->cms );
-	DeleteBSPRenderData( map );
+	DeleteMapRenderData( map->render_data );
 }
 
 static void FillMapModelsHashtable() {
@@ -48,11 +50,13 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 	Span< const char > name = StripPrefix( StripExtension( path ), "maps/" );
 	u64 hash = Hash64( name );
 
-	Map map = { };
-	// TODO: need more map validation because they can be downloaded from the server
-	if( !LoadBSPRenderData( path, &map, hash, data ) ) {
+	MapData map;
+	DecodeMapResult res = DecodeMap( &map, data );
+	if( res != DecodeMapResult_Ok ) {
 		return false;
 	}
+
+	MapRenderData render_data = NewMapRenderData( map, path );
 
 	u64 idx = num_maps;
 	if( !maps_hashtable.get( hash, &idx ) ) {
@@ -63,13 +67,9 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 		DeleteMap( &maps[ idx ] );
 	}
 
-	map.name = ( *sys_allocator )( "{}", name );
-	map.cms = CM_LoadMap( CM_Client, data, hash );
-	if( map.cms == NULL ) {
-		Fatal( "CM_LoadMap" );
-	}
+	render_data.name = ( *sys_allocator )( "{}", name );
 
-	maps[ idx ] = map;
+	maps[ idx ] = render_data;
 
 	FillMapModelsHashtable();
 
@@ -81,9 +81,11 @@ void InitMaps() {
 
 	num_maps = 0;
 
+	TempAllocator temp = cls.frame_arena.temp();
+
 	for( const char * path : AssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
-		if( ext != ".bsp" )
+		if( ext != ".cdmap" )
 			continue;
 
 		AddMap( AssetBinary( path ), path );
@@ -97,7 +99,7 @@ void HotloadMaps() {
 
 	for( const char * path : ModifiedAssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
-		if( ext != ".bsp" )
+		if( ext != ".cdmap" )
 			continue;
 
 		AddMap( AssetBinary( path ), path );

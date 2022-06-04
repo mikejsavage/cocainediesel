@@ -572,7 +572,7 @@ static constexpr const char * section_names[] = {
 };
 
 template< typename T >
-void PackCDMap( DynamicArray< u8 > & packed, MapHeader * header, MapSectionType section, Span< const T > data ) {
+void Pack( DynamicArray< u8 > & packed, MapHeader * header, MapSectionType section, Span< const T > data ) {
 	if( data.n > 0 ) {
 		size_t misalignment = packed.num_bytes() % alignof( T );
 		if( misalignment != 0 ) {
@@ -604,18 +604,18 @@ static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData
 	packed.extend( sizeof( header ) );
 	memset( packed.ptr(), 0, packed.size() ); // zero out padding bytes
 
-	PackCDMap( packed, &header, MapSection_Entities, map->entities );
-	PackCDMap( packed, &header, MapSection_EntityData, map->entity_data );
-	PackCDMap( packed, &header, MapSection_EntityKeyValues, map->entity_kvs );
-	PackCDMap( packed, &header, MapSection_Models, map->models );
-	PackCDMap( packed, &header, MapSection_Nodes, map->nodes );
-	PackCDMap( packed, &header, MapSection_Brushes, map->brushes );
-	PackCDMap( packed, &header, MapSection_BrushIndices, map->brush_indices );
-	PackCDMap( packed, &header, MapSection_BrushPlanes, map->brush_planes );
-	// PackCDMap( packed, &header, MapSection_BrushPlaneIndices, map->brush_plane_indices );
-	PackCDMap( packed, &header, MapSection_Meshes, map->meshes );
-	PackCDMap( packed, &header, MapSection_Vertices, map->vertices );
-	PackCDMap( packed, &header, MapSection_VertexIndices, map->vertex_indices );
+	Pack( packed, &header, MapSection_Entities, map->entities );
+	Pack( packed, &header, MapSection_EntityData, map->entity_data );
+	Pack( packed, &header, MapSection_EntityKeyValues, map->entity_kvs );
+	Pack( packed, &header, MapSection_Models, map->models );
+	Pack( packed, &header, MapSection_Nodes, map->nodes );
+	Pack( packed, &header, MapSection_Brushes, map->brushes );
+	Pack( packed, &header, MapSection_BrushIndices, map->brush_indices );
+	Pack( packed, &header, MapSection_BrushPlanes, map->brush_planes );
+	// Pack( packed, &header, MapSection_BrushPlaneIndices, map->brush_plane_indices );
+	Pack( packed, &header, MapSection_Meshes, map->meshes );
+	Pack( packed, &header, MapSection_Vertices, map->vertices );
+	Pack( packed, &header, MapSection_VertexIndices, map->vertex_indices );
 
 	memcpy( packed.ptr(), &header, sizeof( header ) );
 

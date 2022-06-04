@@ -193,10 +193,7 @@ void SP_post_match_camera( edict_t * ent, const spawn_temp_t * st );
 //
 void SP_func_rotating( edict_t * ent, const spawn_temp_t * st );
 void SP_func_door( edict_t * ent, const spawn_temp_t * st );
-void SP_func_door_rotating( edict_t * ent, const spawn_temp_t * st );
 void SP_func_train( edict_t * ent, const spawn_temp_t * st );
-void SP_func_wall( edict_t * ent, const spawn_temp_t * st );
-void SP_func_static( edict_t * ent, const spawn_temp_t * st );
 
 //
 // g_spikes
@@ -314,12 +311,8 @@ void G_OperatorVote_Cmd( edict_t * ent, msg_t args );
 // g_trigger.c
 //
 void SP_trigger_teleport( edict_t * ent, const spawn_temp_t * st );
-void SP_trigger_always( edict_t * ent, const spawn_temp_t * st );
-void SP_trigger_once( edict_t * ent, const spawn_temp_t * st );
-void SP_trigger_multiple( edict_t * ent, const spawn_temp_t * st );
 void SP_trigger_push( edict_t * ent, const spawn_temp_t * st );
 void SP_trigger_hurt( edict_t * ent, const spawn_temp_t * st );
-void SP_trigger_key( edict_t * ent, const spawn_temp_t * st );
 
 void InitTrigger( edict_t * self );
 bool G_TriggerWait( edict_t * ent );
@@ -440,7 +433,6 @@ void player_think( edict_t *self );
 //
 void SP_target_laser( edict_t * ent, const spawn_temp_t * st );
 void SP_target_position( edict_t * ent, const spawn_temp_t * st );
-void SP_target_delay( edict_t * ent, const spawn_temp_t * st );
 
 //
 // g_svcmds.c

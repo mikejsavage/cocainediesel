@@ -83,69 +83,6 @@ void SP_path_corner( edict_t * self, const spawn_temp_t * st ) {
 	GClip_LinkEntity( self );
 }
 
-//========================================================
-//
-//	FUNC_*
-//
-//========================================================
-
-static void func_wall_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	if( self->r.solid == SOLID_NOT ) {
-		self->r.solid = SOLID_YES;
-		self->s.svflags &= ~SVF_NOCLIENT;
-		KillBox( self, WorldDamage_Crush, Vec3( 0.0f ) );
-	} else {
-		self->r.solid = SOLID_NOT;
-		self->s.svflags |= SVF_NOCLIENT;
-	}
-	GClip_LinkEntity( self );
-
-	if( !( self->spawnflags & 2 ) ) {
-		self->use = NULL;
-	}
-}
-
-void SP_func_wall( edict_t * self, const spawn_temp_t * st ) {
-	G_InitMover( self );
-	self->r.solid = SOLID_NOT;
-
-	// just a wall
-	if( ( self->spawnflags & 7 ) == 0 ) {
-		self->r.solid = SOLID_YES;
-		GClip_LinkEntity( self );
-		return;
-	}
-
-	// it must be TRIGGER_SPAWN
-	if( !( self->spawnflags & 1 ) ) {
-		//		Com_Printf ("func_wall missing TRIGGER_SPAWN\n");
-		self->spawnflags |= 1;
-	}
-
-	// yell if the spawnflags are odd
-	if( self->spawnflags & 4 ) {
-		if( !( self->spawnflags & 2 ) ) {
-			self->spawnflags |= 2;
-		}
-	}
-
-	self->use = func_wall_use;
-	if( self->spawnflags & 4 ) {
-		self->r.solid = SOLID_YES;
-	} else {
-		self->r.solid = SOLID_NOT;
-		self->s.svflags |= SVF_NOCLIENT;
-	}
-	GClip_LinkEntity( self );
-}
-
-void SP_func_static( edict_t * ent, const spawn_temp_t * st ) {
-	G_InitMover( ent );
-	ent->movetype = MOVETYPE_NONE;
-	ent->s.svflags = SVF_BROADCAST;
-	GClip_LinkEntity( ent );
-}
-
 void SP_model( edict_t * ent, const spawn_temp_t * st ) {
 	ent->s.svflags &= ~SVF_NOCLIENT;
 	GClip_LinkEntity( ent );

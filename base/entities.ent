@@ -67,14 +67,6 @@
   If the target is horizontally aligned with the trigger the player's velocity will be set to reach the target after one second.
 </group>
 
-<group name="trigger_multiple" color=".5 .5 .5">
-  Variable size repeatable trigger. It will fire the entities it targets when touched by player. Can be made to operate like a trigger_once entity by setting the "wait" key to -1. It can also be activated by another trigger that targets it.
-  <real key="wait" name="Repeat Time" value="0.5">Time in seconds until trigger becomes re-triggerable after it's been touched (default 0.5, -1 = trigger once).</real>
-  <sound key="noise" name="Sound File">override default noise ("silent" doesn't make any noise)</sound>
-  <target key="target" name="Target">This points to the entity to activate.</target>
-  <targetname key="targetname" name="Target Name">Activating trigger points to this.</targetname>
-</group>
-
 <group name="trigger_hurt" color=".5 .5 .5">
   Any player that touches this will be hurt by "dmg" points of damage once per server frame (very fast). A sizzling sound is also played while the player is being hurt.
   <integer key="dmg" name="Damage Inflicted" value="5">Number of points of damage inflicted to player per server frame (default 5 - integer values only).</integer>

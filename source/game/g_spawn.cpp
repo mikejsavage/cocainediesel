@@ -101,21 +101,14 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 	{ "deadcam", SP_post_match_camera },
 
 	{ "func_door", SP_func_door },
-	{ "func_door_rotating", SP_func_door_rotating },
 	{ "func_rotating", SP_func_rotating },
 	{ "func_train", SP_func_train },
-	{ "func_wall", SP_func_wall },
-	{ "func_static", SP_func_static },
 
-	{ "trigger_always", SP_trigger_always },
-	{ "trigger_once", SP_trigger_once },
-	{ "trigger_multiple", SP_trigger_multiple },
 	{ "trigger_push", SP_trigger_push },
 	{ "trigger_hurt", SP_trigger_hurt },
 
 	{ "target_laser", SP_target_laser },
 	{ "target_position", SP_target_position },
-	{ "target_delay", SP_target_delay },
 
 	{ "path_corner", SP_path_corner },
 

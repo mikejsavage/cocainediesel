@@ -152,26 +152,3 @@ void SP_target_laser( edict_t * ent, const spawn_temp_t * st ) {
 }
 
 void SP_target_position( edict_t * self, const spawn_temp_t * st ) { }
-
-static void target_delay_think( edict_t * ent ) {
-	G_UseTargets( ent, ent->activator );
-}
-
-static void target_delay_use( edict_t *ent, edict_t *other, edict_t *activator ) {
-	ent->nextThink = level.time + ent->wait + ent->wait_randomness * RandomFloat11( &svs.rng );
-	ent->think = target_delay_think;
-	ent->activator = activator;
-}
-
-void SP_target_delay( edict_t * ent, const spawn_temp_t * st ) {
-	// check the "delay" key for backwards compatibility with Q3 maps
-	if( ent->delay ) {
-		ent->wait = ent->delay;
-	}
-	if( !ent->wait ) {
-		ent->wait = 1000;
-	}
-
-	ent->delay = 0;
-	ent->use = target_delay_use;
-}

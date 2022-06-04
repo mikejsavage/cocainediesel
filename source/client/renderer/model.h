@@ -129,19 +129,29 @@ struct Model {
 	u8 num_animations;
 };
 
+struct MapRenderData {
+	Mesh mesh;
+
+	float fog_strength;
+
+	GPUBuffer nodes;
+	GPUBuffer leaves;
+	GPUBuffer brushes;
+	GPUBuffer planes;
+};
+
 enum ModelType {
 	ModelType_GLTF,
 	ModelType_Map,
 };
 
 struct GLTFRenderData { };
-struct MapRenderData2 { };
 
 struct ModelRenderData {
 	ModelType type;
 	union {
 		GLTFRenderData gltf;
-		MapRenderData2 map;
+		MapRenderData map;
 	};
 };
 
@@ -152,11 +162,7 @@ void InitModels();
 void HotloadModels();
 void ShutdownModels();
 
-const Model * FindModel( StringHash name );
-const Model * FindModel( const char * name );
-const Model * FindMapModel( StringHash name );
-
-void DeleteModel( Model * model );
+void DeleteModelRenderData( ModelRenderData * model );
 
 bool LoadGLTFModel( Model * model, const char * path );
 

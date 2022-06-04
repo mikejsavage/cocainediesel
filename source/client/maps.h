@@ -13,25 +13,7 @@ struct Map {
 	Model * models;
 	u32 num_models;
 
-	float fog_strength;
-
 	CollisionModel * cms;
-
-	GPUBuffer nodeBuffer;
-	GPUBuffer leafBuffer;
-	GPUBuffer brushBuffer;
-	GPUBuffer planeBuffer;
-};
-
-struct MapRenderData {
-	Mesh mesh;
-
-	float fog_strength;
-
-	GPUBuffer nodes;
-	GPUBuffer leaves;
-	GPUBuffer brushes;
-	GPUBuffer planes;
 };
 
 void InitMaps();
@@ -45,5 +27,6 @@ const Map * FindMap( StringHash name );
 const Map * FindMap( const char * name );
 
 struct MapData;
+struct MapRenderData;
 MapRenderData NewMapRenderData( const MapData & map, const char * name );
 void DeleteMapRenderData( const MapRenderData & render_data );

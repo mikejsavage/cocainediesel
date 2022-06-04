@@ -1,7 +1,5 @@
 #include "qcommon/base.h"
-#include "client/client.h"
 #include "client/renderer/renderer.h"
-#include "client/maps.h"
 #include "gameshared/cdmap.h"
 
 MapRenderData NewMapRenderData( const MapData & map, const char * name ) {

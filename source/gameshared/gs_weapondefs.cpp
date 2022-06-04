@@ -2,14 +2,14 @@
 #include "qcommon/qcommon.h"
 #include "gameshared/gs_weapons.h"
 
-#define INSTANT 0
+static constexpr int HITSCAN = 0;
 
-#define WEAPONDOWN_TIME 50
-#define WEAPONUP_TIME_FAST 150
-#define WEAPONUP_TIME_NORMAL 350
-#define WEAPONUP_TIME_SLOW 750
-#define WEAPONUP_TIME_VERY_SLOW 1000
-#define HITSCAN_RANGE 9001
+static constexpr int WEAPONDOWN_TIME = 50;
+static constexpr int WEAPONUP_TIME_FAST = 150;
+static constexpr int WEAPONUP_TIME_NORMAL = 350;
+static constexpr int WEAPONUP_TIME_SLOW = 750;
+static constexpr int WEAPONUP_TIME_VERY_SLOW = 1000;
+static constexpr int HITSCAN_RANGE = 9001;
 
 const WeaponDef weapon_defs[] = {
 	{ "", "", WeaponCategory_Count }, // Weapon_None
@@ -47,7 +47,7 @@ const WeaponDef weapon_defs[] = {
 		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ INSTANT,
+		/* speed                */ HITSCAN,
 		/* spread               */ 20,
 	},
 
@@ -84,7 +84,7 @@ const WeaponDef weapon_defs[] = {
 		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ INSTANT,
+		/* speed                */ HITSCAN,
 		/* spread               */ 0,
 	},
 
@@ -122,7 +122,7 @@ const WeaponDef weapon_defs[] = {
 		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ INSTANT,
+		/* speed                */ HITSCAN,
 		/* spread               */ 0,
 	},
 
@@ -159,7 +159,7 @@ const WeaponDef weapon_defs[] = {
 		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ INSTANT,
+		/* speed                */ HITSCAN,
 		/* spread               */ 0,
 	},
 
@@ -196,7 +196,7 @@ const WeaponDef weapon_defs[] = {
 		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ INSTANT,
+		/* speed                */ HITSCAN,
 		/* spread               */ 50,
 	},
 
@@ -233,7 +233,7 @@ const WeaponDef weapon_defs[] = {
 		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ INSTANT,
+		/* speed                */ HITSCAN,
 		/* spread               */ 0,
 	},
 
@@ -455,7 +455,7 @@ const WeaponDef weapon_defs[] = {
 		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ INSTANT,
+		/* speed                */ HITSCAN,
 		/* spread               */ 0,
 	},
 
@@ -492,7 +492,7 @@ const WeaponDef weapon_defs[] = {
 		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ INSTANT,
+		/* speed                */ HITSCAN,
 		/* spread               */ 0,
 	},
 
@@ -529,7 +529,7 @@ const WeaponDef weapon_defs[] = {
 		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ INSTANT,
+		/* speed                */ HITSCAN,
 		/* spread               */ 0,
 	},
 
@@ -566,7 +566,7 @@ const WeaponDef weapon_defs[] = {
 		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ INSTANT,
+		/* speed                */ HITSCAN,
 		/* spread               */ 0, // fuse time
 	},
 
@@ -751,7 +751,7 @@ const WeaponDef weapon_defs[] = {
 		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ INSTANT,
+		/* speed                */ HITSCAN,
 		/* spread               */ 250,
 	},
 #endif

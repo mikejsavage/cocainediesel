@@ -688,10 +688,10 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		u32 collision = cl.map == NULL ? 0 : 1;
 		pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, ps->radius, dt, u32( ps->new_particles ) ) );
 		if( collision ) {
-			pipeline.set_buffer( "b_BSPNodeLinks", cl.map->nodeBuffer );
-			pipeline.set_buffer( "b_BSPLeaves", cl.map->leafBuffer );
-			pipeline.set_buffer( "b_BSPBrushes", cl.map->brushBuffer );
-			pipeline.set_buffer( "b_BSPPlanes", cl.map->planeBuffer );
+			pipeline.set_buffer( "b_BSPNodeLinks", cl.map->render_data.nodes );
+			pipeline.set_buffer( "b_BSPLeaves", cl.map->render_data.leaves );
+			pipeline.set_buffer( "b_BSPBrushes", cl.map->render_data.brushes );
+			pipeline.set_buffer( "b_BSPPlanes", cl.map->render_data.planes );
 		}
 		DispatchComputeIndirect( pipeline, ps->compute_indirect );
 	}

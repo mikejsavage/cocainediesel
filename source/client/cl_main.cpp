@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/assets.h"
 #include "client/discord.h"
 #include "client/downloads.h"
+#include "client/gltf.h"
 #include "client/threadpool.h"
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
@@ -1245,6 +1246,7 @@ void CL_Init() {
 	ThreadPoolFinish();
 
 	InitRenderer();
+	InitGLTFModels();
 	InitMaps();
 
 	cls.white_material = FindMaterial( "$whiteimage" );
@@ -1295,6 +1297,7 @@ void CL_Shutdown() {
 	CL_GameModule_Shutdown();
 	ShutdownSound();
 	ShutdownMaps();
+	ShutdownGLTFModels();
 	ShutdownRenderer();
 	DestroyWindow();
 

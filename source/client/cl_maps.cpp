@@ -15,9 +15,9 @@ constexpr u32 MAX_MAPS = 128;
 constexpr u32 MAX_MAP_MODELS = 1024;
 
 static Map maps[ MAX_MAPS ];
-static u32 num_maps;
 static Hashtable< MAX_MAPS * 2 > maps_hashtable;
 
+static MapSubModelRenderData map_models[ MAX_MAP_MODELS ];
 static Hashtable< MAX_MAP_MODELS * 2 > map_models_hashtable;
 
 static void DeleteMap( Map * map ) {
@@ -31,14 +31,18 @@ static void FillMapModelsHashtable() {
 
 	map_models_hashtable.clear();
 
-	for( u32 i = 0; i < num_maps; i++ ) {
+	for( u32 i = 0; i < maps_hashtable.size(); i++ ) {
 		const Map * map = &maps[ i ];
-		for( u32 j = 0; j < map->num_models; j++ ) {
+		for( size_t j = 0; j < map->data.models.n; j++ ) {
 			String< 16 > suffix( "*{}", j );
 			u64 hash = Hash64( suffix.c_str(), suffix.length(), map->base_hash );
 
 			assert( map_models_hashtable.size() < MAX_MAP_MODELS );
-			map_models_hashtable.add( hash, uintptr_t( &map->models[ j ] ) );
+			map_models[ map_models_hashtable.size() ] = {
+				StringHash( map->base_hash ),
+				checked_cast< u32 >( j )
+			};
+			map_models_hashtable.add( hash, map_models_hashtable.size() );
 		}
 	}
 }
@@ -50,26 +54,36 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 	Span< const char > name = StripPrefix( StripExtension( path ), "maps/" );
 	u64 hash = Hash64( name );
 
-	MapData map;
-	DecodeMapResult res = DecodeMap( &map, data );
+	Map map = { };
+
+	DecodeMapResult res = DecodeMap( &map.data, data );
 	if( res != DecodeMapResult_Ok ) {
 		return false;
 	}
 
-	MapRenderData render_data = NewMapRenderData( map, path );
+	map.name = ( *sys_allocator )( "{}", name );
+	map.base_hash = hash;
+	map.render_data = NewMapRenderData( map.data, path, hash );
 
-	u64 idx = num_maps;
+	u64 idx = maps_hashtable.size();
 	if( !maps_hashtable.get( hash, &idx ) ) {
-		maps_hashtable.add( hash, num_maps );
-		num_maps++;
+		maps_hashtable.add( hash, maps_hashtable.size() );
 	}
 	else {
 		DeleteMap( &maps[ idx ] );
 	}
 
-	render_data.name = ( *sys_allocator )( "{}", name );
+	{
+		// TODO: trash
+		TempAllocator temp = cls.frame_arena.temp();
+		const char * bsp_path = temp( "{}.bsp", StripExtension( path ) );
+		map.cms = CM_LoadMap( CM_Client, AssetBinary( bsp_path ), hash );
+		if( map.cms == NULL ) {
+			Fatal( "CM_LoadMap" );
+		}
+	}
 
-	maps[ idx ] = render_data;
+	maps[ idx ] = map;
 
 	FillMapModelsHashtable();
 
@@ -79,9 +93,8 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 void InitMaps() {
 	TracyZoneScoped;
 
-	num_maps = 0;
-
-	TempAllocator temp = cls.frame_arena.temp();
+	maps_hashtable.clear();
+	map_models_hashtable.clear();
 
 	for( const char * path : AssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
@@ -116,9 +129,12 @@ void HotloadMaps() {
 void ShutdownMaps() {
 	TracyZoneScoped;
 
-	for( u32 i = 0; i < num_maps; i++ ) {
+	for( u32 i = 0; i < maps_hashtable.size(); i++ ) {
 		DeleteMap( &maps[ i ] );
 	}
+
+	maps_hashtable.clear();
+	map_models_hashtable.clear();
 }
 
 const Map * FindMap( StringHash name ) {
@@ -132,9 +148,9 @@ const Map * FindMap( const char * name ) {
 	return FindMap( StringHash( name ) );
 }
 
-const Model * FindMapModel( StringHash name ) {
+const MapSubModelRenderData * FindMapSubModelRenderData( StringHash name ) {
 	u64 idx;
 	if( !map_models_hashtable.get( name.hash, &idx ) )
 		return NULL;
-	return ( const Model * ) uintptr_t( idx );
+	return &map_models[ idx ];
 }

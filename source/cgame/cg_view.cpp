@@ -433,20 +433,27 @@ static void DrawWorld() {
 
 	const char * suffix = "*0";
 	u64 hash = Hash64( suffix, strlen( suffix ), cl.map->base_hash );
-	const Model * model = FindModel( StringHash( hash ) );
+	const MapSubModelRenderData * model = FindMapSubModelRenderData( StringHash( hash ) );
+	if( model == NULL )
+		return;
 
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
+	const Map * map = FindMap( model->base_hash );
+
+	u32 first_mesh = map->data.models[ model->sub_model ].first_mesh;
+	for( u32 i = 0; i < map->data.models[ model->sub_model ].num_meshes; i++ ) {
+		const MapMesh & mesh = map->data.meshes[ i + first_mesh ];
+		const Material * material = FindMaterial( StringHash( mesh.material ), &world_material );
+
+		if( material->blend_func == BlendFunc_Disabled ) {
 			for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
 				PipelineState pipeline;
 				pipeline.pass = frame_static.shadowmap_pass[ j ];
 				pipeline.shader = &shaders.depth_only;
 				pipeline.clamp_depth = true;
-				// pipeline.cull_face = CullFace_Disabled;
 				pipeline.set_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
 				pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 
-				DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+				DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
 			}
 		}
 
@@ -457,17 +464,17 @@ static void DrawWorld() {
 			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 
-			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+			DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
 		}
 
 		{
-			PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
+			PipelineState pipeline = MaterialToPipelineState( material );
 			pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 			pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
 			pipeline.write_depth = false;
 			pipeline.depth_func = DepthFunc_Equal;
 
-			DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
+			DrawMesh( map->render_data.mesh, pipeline, mesh.num_vertices, mesh.first_vertex_index );
 		}
 	}
 }
@@ -593,7 +600,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	}
 
 	RendererSetView( cg.view.origin, EulerDegrees3( cg.view.angles ), cg.view.fov_y );
-	frame_static.fog_uniforms = UploadUniformBlock( cl.map->fog_strength );
+	frame_static.fog_uniforms = UploadUniformBlock( cl.map->render_data.fog_strength );
 
 	CG_LerpEntities();  // interpolate packet entities positions
 

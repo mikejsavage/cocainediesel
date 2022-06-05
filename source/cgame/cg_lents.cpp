@@ -33,7 +33,10 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 
 	float player_radius = playerbox_stand_maxs.x;
 
-	const Model * model = FindModel( "models/gibs/gib" );
+	const GLTFRenderData * model = FindGLTFRenderData( "models/gibs/gib" );
+	if( model == NULL )
+		return;
+
 	float gib_radius = model->bounds.maxs.x;
 
 	constexpr float epsilon = 0.1f;
@@ -87,7 +90,7 @@ void DrawGibs() {
 
 	float dt = cls.frametime * 0.001f;
 
-	const Model * model = FindModel( "models/gibs/gib" );
+	const GLTFRenderData * model = FindGLTFRenderData( "models/gibs/gib" );
 	Vec3 gravity = Vec3( 0, 0, -GRAVITY );
 
 	for( u32 i = 0; i < num_gibs; i++ ) {
@@ -123,7 +126,7 @@ void DrawGibs() {
 		DrawModelConfig config = { };
 		config.draw_model.enabled = true;
 		config.draw_shadows.enabled = true;
-		DrawModel( config, model, transform, gib->color );
+		DrawGLTFModel( config, model, transform, gib->color );
 
 		gib->origin = next_origin;
 	}

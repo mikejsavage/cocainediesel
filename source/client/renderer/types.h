@@ -87,6 +87,7 @@ struct MatrixPalettes {
 struct Font;
 struct Material;
 struct ModelRenderData;
+struct DrawModelConfig;
 struct PipelineState;
 
 enum InstanceType {

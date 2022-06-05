@@ -5,6 +5,8 @@
 #include "client/renderer/backend.h"
 #include "client/renderer/material.h"
 #include "client/renderer/model.h"
+#include "client/renderer/gltf.h"
+#include "client/renderer/cdmap.h"
 #include "client/renderer/shader.h"
 #include "cgame/ref.h"
 

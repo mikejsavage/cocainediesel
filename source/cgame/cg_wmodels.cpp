@@ -34,7 +34,7 @@ static WeaponModelMetadata BuildWeaponModelMetadata( WeaponType weapon ) {
 
 	const char * name = GS_GetWeaponDef( weapon )->short_name;
 
-	metadata.model = FindModel( temp( "weapons/{}/model", name ) );
+	metadata.model = StringHash( temp( "weapons/{}/model", name ) );
 
 	ParseWeaponModelConfig( &metadata, temp( "weapons/{}/model.cfg", name ) );
 
@@ -53,7 +53,7 @@ static GadgetModelMetadata BuildGadgetModelMetadata( GadgetType gadget ) {
 
 	GadgetModelMetadata metadata;
 
-	metadata.model = FindModel( temp( "gadgets/{}/model", name ) );
+	metadata.model = StringHash( temp( "gadgets/{}/model", name ) );
 	metadata.use_sound = StringHash( temp( "gadgets/{}/use", name ) );
 	metadata.switch_in_sound = StringHash( temp( "gadgets/{}/switch_in", name ) );
 

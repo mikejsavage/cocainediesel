@@ -813,6 +813,10 @@ static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexForma
 	if( buffer == 0 )
 		return;
 
+	// TODO: ultra hack
+	if( stride > 0 && index != VertexAttribute_Position && offset == 0 )
+		return;
+
 	GLenum type;
 	int num_components;
 	bool integral;
@@ -1016,7 +1020,8 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	}
 	else if( dc.mesh.indices.buffer != 0 ) {
 		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		const void * offset = ( const void * ) uintptr_t( dc.index_offset );
+		size_t index_size = dc.mesh.indices_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
+		const void * offset = ( const void * ) uintptr_t( dc.index_offset * index_size );
 		glDrawElements( primitive, dc.num_vertices, type, offset );
 	}
 	else {

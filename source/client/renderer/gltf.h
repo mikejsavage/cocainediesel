@@ -10,21 +10,16 @@ enum InterpolationMode {
 };
 
 enum ModelVfxType {
-	ModelVfxType_Generic,
+	ModelVfxType_None,
 	ModelVfxType_Vfx,
 	ModelVfxType_DynamicLight,
 	ModelVfxType_Decal,
 };
 
 struct GLTFRenderData {
-	struct Primitive {
-		StringHash material;
-		Mesh mesh;
-	};
-
 	template< typename T >
 	struct AnimationSample {
-		T sample;
+		T value;
 		float time;
 	};
 
@@ -62,11 +57,13 @@ struct GLTFRenderData {
 	};
 
 	struct Node {
-		u32 name;
+		StringHash name;
 
 		Mat4 global_transform;
 		TRS local_transform;
-		u8 primitive;
+
+		StringHash material;
+		Mesh mesh;
 
 		u8 parent;
 		u8 first_child;
@@ -88,21 +85,31 @@ struct GLTFRenderData {
 		u8 node_idx;
 	};
 
+	char * name;
+
 	Mat4 transform;
 	MinMax3 bounds;
-	u8 camera_node;
+	Optional< u8 > camera_node;
 
-	Span< Primitive > primitives;
 	Span< Node > nodes;
 	Span< Joint > skin;
 	Span< StringHash > animations;
 };
 
 struct cgltf_data;
-bool NewGLTFRenderData( GLTFRenderData * render_data, const cgltf_data * gltf, const char * path );
+bool NewGLTFRenderData( GLTFRenderData * render_data, cgltf_data * gltf, const char * path );
 void DeleteGLTFRenderData( GLTFRenderData * render_data );
 
+const GLTFRenderData * FindGLTFRenderData( StringHash name );
+
+void DrawGLTFModel( const DrawModelConfig & config, const GLTFRenderData * render_data, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
+
+bool FindNodeByName( const GLTFRenderData * model, StringHash name, u8 * idx );
+bool FindAnimationByName( const GLTFRenderData * model, StringHash name, u8 * idx );
+
 Span< TRS > SampleAnimation( Allocator * a, const GLTFRenderData * model, float t, u8 animation = 0 );
-MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * model, Span< const TRS > local_poses );
-bool FindNodeByName( const GLTFRenderData * model, u32 name, u8 * idx );
 void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const GLTFRenderData * model, u8 upper_root_joint );
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * model, Span< const TRS > local_poses );
+
+void InitGLTFInstancing();
+void ShutdownGLTFInstancing();

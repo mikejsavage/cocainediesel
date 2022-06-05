@@ -4,8 +4,11 @@
 #include "qcommon/string.h"
 #include "qcommon/time.h"
 #include "client/client.h"
+#include "client/gltf.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/blue_noise.h"
+#include "client/renderer/cdmap.h"
+#include "client/renderer/gltf.h"
 #include "client/renderer/skybox.h"
 #include "client/renderer/text.h"
 
@@ -163,7 +166,6 @@ void InitRenderer() {
 	InitMaterials();
 	InitText();
 	InitSkybox();
-	InitModels();
 	InitVisualEffects();
 }
 
@@ -185,7 +187,6 @@ void ShutdownRenderer() {
 	TracyZoneScoped;
 
 	ShutdownVisualEffects();
-	ShutdownModels();
 	ShutdownSkybox();
 	ShutdownText();
 	ShutdownMaterials();
@@ -423,7 +424,7 @@ struct SourceLocationData {
 void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	HotloadShaders();
 	HotloadMaterials();
-	HotloadModels();
+	HotloadGLTFModels();
 	HotloadMaps();
 	HotloadVisualEffects();
 
@@ -685,7 +686,7 @@ void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh )
 	WriteGPUBuffer( dynamic_geometry_mesh.colors, mesh.colors, mesh.num_vertices * sizeof( mesh.colors[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.colors[ 0 ] ) );
 	WriteGPUBuffer( dynamic_geometry_mesh.indices, mesh.indices, mesh.num_indices * sizeof( mesh.indices[ 0 ] ), dynamic_geometry_num_indices * sizeof( mesh.indices[ 0 ] ) );
 
-	DrawMesh( dynamic_geometry_mesh, pipeline, mesh.num_indices, dynamic_geometry_num_indices * sizeof( mesh.indices[ 0 ] ) );
+	DrawMesh( dynamic_geometry_mesh, pipeline, mesh.num_indices, dynamic_geometry_num_indices );
 
 	dynamic_geometry_num_vertices += mesh.num_vertices;
 	dynamic_geometry_num_indices += mesh.num_indices;
@@ -719,4 +720,36 @@ UniformBlock UploadMaterialStaticUniforms( const Vec2 & texture_size, float spec
 
 UniformBlock UploadMaterialDynamicUniforms( const Vec4 & color, Vec3 tcmod_row0, Vec3 tcmod_row1 ) {
 	return UploadUniformBlock( color, tcmod_row0, tcmod_row1 );
+}
+
+ModelRenderData FindModelRenderData( StringHash name ) {
+	ModelRenderData render_data = { };
+
+	const GLTFRenderData * gltf = FindGLTFRenderData( name );
+	if( gltf != NULL ) {
+		render_data.type = ModelType_GLTF;
+		render_data.gltf = gltf;
+		return render_data;
+	}
+
+	const MapSubModelRenderData * map = FindMapSubModelRenderData( name );
+	if( map != NULL ) {
+		render_data.type = ModelType_Map;
+		render_data.map = map;
+		return render_data;
+	}
+
+	return render_data;
+}
+
+ModelRenderData FindModelRenderData( const char * name ) {
+	return FindModelRenderData( StringHash( name ) );
+}
+
+void DrawModel( DrawModelConfig config, ModelRenderData render_data, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes ) {
+	switch( render_data.type ) {
+		case ModelType_None: break;
+		case ModelType_GLTF: DrawGLTFModel( config, render_data.gltf, transform, color, palettes ); break;
+		case ModelType_Map: DrawMapModel( config, render_data.map, transform, color ); break;
+	}
 }

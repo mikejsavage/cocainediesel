@@ -2,8 +2,6 @@
 
 #include "qcommon/types.h"
 #include "client/renderer/types.h"
-#include "client/renderer/cdmap.h"
-#include "client/renderer/gltf.h"
 
 struct DrawModelConfig {
 	struct DrawModel {
@@ -28,24 +26,26 @@ struct DrawModelConfig {
 };
 
 enum ModelType {
+	ModelType_None,
 	ModelType_GLTF,
 	ModelType_Map,
 };
 
+struct GLTFRenderData;
+struct MapSubModelRenderData;
 struct ModelRenderData {
 	ModelType type;
 	union {
-		GLTFRenderData gltf;
-		MapRenderData map;
+		const GLTFRenderData * gltf;
+		const MapSubModelRenderData * map;
 	};
 };
 
-const ModelRenderData * FindRenderModel( StringHash name );
-const ModelRenderData * FindRenderModel( const char * name );
+ModelRenderData FindModelRenderData( StringHash name );
+ModelRenderData FindModelRenderData( const char * name );
 
 void InitModels();
 void HotloadModels();
 void ShutdownModels();
 
-void DrawModelPrimitive( const GLTFRenderData * model, const GLTFRenderData::Primitive * primitive, const PipelineState & pipeline );
-void DrawModel( DrawModelConfig config, const ModelRenderData * model, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );
+void DrawModel( DrawModelConfig config, ModelRenderData render_data, const Mat4 & transform, const Vec4 & color, MatrixPalettes palettes = MatrixPalettes() );

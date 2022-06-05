@@ -218,7 +218,7 @@ static void SubmitDrawCalls() {
 
 					pipeline.set_texture( "u_BaseTexture", pcmd->TextureId.material->texture );
 
-					DrawMesh( mesh, pipeline, pcmd->ElemCount, pcmd->IdxOffset * sizeof( ImDrawIdx ) );
+					DrawMesh( mesh, pipeline, pcmd->ElemCount, pcmd->IdxOffset );
 				}
 			}
 		}

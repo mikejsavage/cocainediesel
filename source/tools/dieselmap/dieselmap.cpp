@@ -179,6 +179,9 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( int entity_id, const P
 		material_mesh.material = brush.faces.span()[ i ].material_hash;
 		assert( material_mesh.material != 0 );
 
+		if( IsNodrawMaterial( material_mesh.material ) )
+			continue;
+
 		std::vector< Vec3 > hull = BrushFaceToHull( VectorToSpan( planes ), i );
 		Vec3 normal = planes[ i ].normal;
 		for( Vec3 position : hull ) {
@@ -195,8 +198,8 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( int entity_id, const P
 
 		for( size_t j = 0; j < material_mesh.vertices.size() - 2; j++ ) {
 			material_mesh.indices.push_back( 0 );
-			material_mesh.indices.push_back( j + 2 );
 			material_mesh.indices.push_back( j + 1 );
+			material_mesh.indices.push_back( j + 2 );
 		}
 
 		face_meshes.push_back( material_mesh );
@@ -499,6 +502,12 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 	TracyZoneScoped;
 
 	CompiledKDTree kd_tree;
+	kd_tree.bounds = MinMax3::Empty();
+
+	if( entity.brushes.size() == 0 ) {
+		return kd_tree;
+	}
+
 	std::vector< MinMax3 > brush_bounds;
 
 	for( const ParsedBrush & brush : entity.brushes ) {
@@ -786,11 +795,11 @@ int main( int argc, char ** argv ) {
 				MapMesh map_mesh;
 				map_mesh.material = mesh.material;
 				map_mesh.first_vertex_index = flat_vertex_indices.size();
+				map_mesh.num_vertices = mesh.indices.size();
 				flat_meshes.add( map_mesh );
 
-				flat_vertices.add_many( VectorToSpan( mesh.vertices ) );
-
 				size_t base_vertex = flat_vertices.size();
+				flat_vertices.add_many( VectorToSpan( mesh.vertices ) );
 				for( u32 idx : mesh.indices ) {
 					flat_vertex_indices.add( base_vertex + idx );
 				}

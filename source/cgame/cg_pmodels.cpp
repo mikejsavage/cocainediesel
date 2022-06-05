@@ -61,6 +61,10 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 		return false;
 	}
 
+	const GLTFRenderData * model = FindGLTFRenderData( meta->model );
+	if( model == NULL )
+		return false;
+
 	while( true ) {
 		Span< const char > cmd = ParseToken( &cursor, Parse_DontStopOnNewLine );
 		if( cmd == "" )
@@ -68,23 +72,23 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 
 		if( cmd == "upper_rotator_joints" ) {
 			Span< const char > node_name0 = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( meta->model, Hash32( node_name0 ), &meta->upper_rotator_nodes[ 0 ] );
+			FindNodeByName( model, StringHash( node_name0 ), &meta->upper_rotator_nodes[ 0 ] );
 
 			Span< const char > node_name1 = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( meta->model, Hash32( node_name1 ), &meta->upper_rotator_nodes[ 1 ] );
+			FindNodeByName( model, StringHash( node_name1 ), &meta->upper_rotator_nodes[ 1 ] );
 		}
 		else if( cmd == "head_rotator_joint" ) {
 			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( meta->model, Hash32( node_name ), &meta->head_rotator_node );
+			FindNodeByName( model, StringHash( node_name ), &meta->head_rotator_node );
 		}
 		else if( cmd == "upper_root_joint" ) {
 			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
-			FindNodeByName( meta->model, Hash32( node_name ), &meta->upper_root_node );
+			FindNodeByName( model, StringHash( node_name ), &meta->upper_root_node );
 		}
 		else if( cmd == "tag" ) {
 			Span< const char > node_name = ParseToken( &cursor, Parse_StopOnNewLine );
 			u8 node_idx;
-			if( FindNodeByName( meta->model, Hash32( node_name ), &node_idx ) ) {
+			if( FindNodeByName( model, StringHash( node_name ), &node_idx ) ) {
 				Span< const char > tag_name = ParseToken( &cursor, Parse_StopOnNewLine );
 				PlayerModelMetadata::Tag * tag = &meta->tag_bomb;
 				if( tag_name == "tag_hat" )
@@ -181,7 +185,7 @@ void InitPlayerModels() {
 			u64 hash = Hash64( StripExtension( path ) );
 
 			PlayerModelMetadata * meta = &player_model_metadatas[ num_player_models ];
-			meta->model = FindModel( StringHash( hash ) );
+			meta->model = StringHash( hash );
 
 			TempAllocator temp = cls.frame_arena.temp();
 			const char * config_path = temp( "{}/model.cfg", dir );
@@ -685,7 +689,7 @@ static Quaternion EulerAnglesToQuaternion( EulerDegrees3 angles ) {
 	);
 }
 
-static Mat4 TransformTag( const Model * model, const Mat4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
+static Mat4 TransformTag( const GLTFRenderData * model, const Mat4 & transform, const MatrixPalettes & pose, const PlayerModelMetadata::Tag & tag ) {
 	return transform * model->transform * pose.node_transforms[ tag.node_idx ] * tag.transform;
 }
 
@@ -718,11 +722,13 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	TempAllocator temp = cls.frame_arena.temp();
 
+	const GLTFRenderData * model = FindGLTFRenderData( meta->model );
+
 	float lower_time, upper_time;
 	CG_GetAnimationTimes( meta, pmodel, cl.serverTime, &lower_time, &upper_time );
-	Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
-	Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
-	MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_node );
+	Span< TRS > lower = SampleAnimation( &temp, model, lower_time );
+	Span< TRS > upper = SampleAnimation( &temp, model, upper_time );
+	MergeLowerUpperPoses( lower, upper, model, meta->upper_root_node );
 
 	// add skeleton effects (pose is unmounted yet)
 	bool corpse = cent->current.type == ET_CORPSE;
@@ -758,7 +764,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		}
 	}
 
-	MatrixPalettes pose = ComputeMatrixPalettes( &temp, meta->model, lower );
+	MatrixPalettes pose = ComputeMatrixPalettes( &temp, model, lower );
 
 	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
 
@@ -789,7 +795,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			}
 		}
 
-		DrawModel( config, meta->model, transform, color, pose );
+		DrawGLTFModel( config, model, transform, color, pose );
 	}
 
 	Mat4 inverse_scale = Mat4Scale( 1.0f / cent->interpolated.scale );
@@ -797,7 +803,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 	// add weapon model
 	{
 		if( cent->current.weapon != Weapon_None ) {
-			const Model * weapon_model = GetWeaponModelMetadata( cent->current.weapon )->model;
+			const GLTFRenderData * weapon_model = FindGLTFRenderData( GetWeaponModelMetadata( cent->current.weapon )->model );
 			if( weapon_model != NULL ) {
 				Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon ) * inverse_scale;
 
@@ -810,10 +816,10 @@ void CG_DrawPlayer( centity_t * cent ) {
 					config.draw_silhouette.silhouette_color = color;
 				}
 
-				DrawModel( config, weapon_model, tag_transform, color );
+				DrawGLTFModel( config, weapon_model, tag_transform, color );
 
 				u8 muzzle;
-				if( FindNodeByName( weapon_model, Hash32( "muzzle" ), &muzzle ) ) {
+				if( FindNodeByName( weapon_model, "muzzle", &muzzle ) ) {
 					pmodel->muzzle_transform = tag_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
 				}
 				else {
@@ -825,13 +831,13 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	// add bomb/hat
 	{
-		const Model * attached_model = FindModel( cent->current.model2 );
+		const GLTFRenderData * attached_model = FindGLTFRenderData( cent->current.model2 );
 		if( attached_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_bomb;
 			if( cent->current.effects & EF_HAT )
 				tag = meta->tag_hat;
 
-			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag ) * inverse_scale;
+			Mat4 tag_transform = TransformTag( model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -839,7 +845,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			config.draw_silhouette.enabled = draw_silhouette;
 			config.draw_silhouette.silhouette_color = color;
 
-			DrawModel( config, attached_model, tag_transform, vec4_white );
+			DrawGLTFModel( config, attached_model, tag_transform, vec4_white );
 		}
 
 		attached_model = FindModel( cent->current.mask );

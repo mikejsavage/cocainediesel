@@ -1,7 +1,10 @@
 #pragma once
 
-struct MapRenderData {
-	u64 base_hash;
+#include "qcommon/types.h"
+#include "client/renderer/types.h"
+
+struct MapSubModelRenderData {
+	StringHash base_hash;
 	u32 sub_model;
 };
 
@@ -18,12 +21,6 @@ struct MapSharedRenderData {
 
 struct MapData;
 MapSharedRenderData NewMapRenderData( const MapData & map, const char * name, u64 base_hash );
-void DeleteMapRenderData( const MapRenderData & render_data );
+void DeleteMapRenderData( const MapSharedRenderData & render_data );
 
-// FindModelRenderData( ... ) -> MapRenderData
-// DrawModel( MapRenderData )
-// 	MapSharedRenderData = Find( base_hash )
-// 	MapData = Find( base_hash )
-// 	for( mesh : MapData.models[ sub_model ].meshes ) {
-// 		DrawMesh( mesh )
-// 	}
+void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData * render_data, const Mat4 & transform, const Vec4 & color );

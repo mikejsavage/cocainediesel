@@ -436,8 +436,8 @@ static void DrawEntityModel( centity_t * cent ) {
 		return;
 	}
 
-	const Model * model = FindModel( cent->prev.model );
-	if( model == NULL ) {
+	ModelRenderData model = FindModelRenderData( cent->prev.model );
+	if( model.type == ModelType_None ) {
 		return;
 	}
 
@@ -448,9 +448,9 @@ static void DrawEntityModel( centity_t * cent ) {
 	Vec4 color = sRGBToLinear( cent->interpolated.color );
 
 	MatrixPalettes palettes = { };
-	if( cent->interpolated.animating && model->num_animations > 0 ) { // TODO: this is fragile and we should do something better
-		Span< TRS > pose = SampleAnimation( &temp, model, cent->interpolated.animation_time );
-		palettes = ComputeMatrixPalettes( &temp, model, pose );
+	if( cent->interpolated.animating && model.type == ModelType_GLTF && model.gltf->animations.n > 0 ) { // TODO: this is fragile and we should do something better
+		Span< TRS > pose = SampleAnimation( &temp, model.gltf, cent->interpolated.animation_time );
+		palettes = ComputeMatrixPalettes( &temp, model.gltf, pose );
 	}
 
 	DrawModelConfig config = { };
@@ -465,32 +465,6 @@ static void DrawEntityModel( centity_t * cent ) {
 	}
 
 	DrawModel( config, model, transform, color, palettes );
-
-	if( cent->effects & EF_WORLD_MODEL ) {
-		UniformBlock model_uniforms = UploadModelUniforms( transform * model->transform );
-		for( u32 i = 0; i < model->num_primitives; i++ ) {
-			if( model->primitives[ i ].material->blend_func == BlendFunc_Disabled ) {
-				{
-					PipelineState pipeline = MaterialToPipelineState( model->primitives[ i ].material );
-					pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-					pipeline.set_uniform( "u_Model", model_uniforms );
-
-					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-				}
-				for( u32 j = 0; j < frame_static.shadow_parameters.num_cascades; j++ ) {
-					PipelineState pipeline;
-					pipeline.pass = frame_static.shadowmap_pass[ j ];
-					pipeline.shader = &shaders.depth_only;
-					pipeline.clamp_depth = true;
-					// pipeline.cull_face = CullFace_Disabled;
-					pipeline.set_uniform( "u_View", frame_static.shadowmap_view_uniforms[ j ] );
-					pipeline.set_uniform( "u_Model", model_uniforms );
-
-					DrawModelPrimitive( model, &model->primitives[ i ], pipeline );
-				}
-			}
-		}
-	}
 }
 
 static void CG_AddPlayerEnt( centity_t *cent ) {

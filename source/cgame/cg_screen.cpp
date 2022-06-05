@@ -330,12 +330,12 @@ void CG_AddBomb( centity_t * cent ) {
 
 	// TODO: this really does not belong here...
 	if( cent->interpolated.animating ) {
-		const Model * model = FindModel( "models/bomb/bomb" );
+		const GLTFRenderData * model = FindGLTFRenderData( "models/bomb/bomb" );
 		if( model == NULL )
 			return;
 
 		u8 tip_node;
-		if( !FindNodeByName( model, Hash32( "a" ), &tip_node ) )
+		if( !FindNodeByName( model, "a", &tip_node ) )
 			return;
 
 		TempAllocator temp = cls.frame_arena.temp();

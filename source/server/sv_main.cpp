@@ -403,7 +403,7 @@ void SV_Init() {
 
 	SV_InitOperatorCommands();
 
-	NewCvar( "protocol", temp( "{}", APP_PROTOCOL_VERSION ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
+	NewCvar( "protocol", temp( "{}", s32( APP_PROTOCOL_VERSION ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
 	sv_port = NewCvar( "sv_port", temp( "{}", PORT_SERVER ), CvarFlag_Archive | CvarFlag_ServerReadOnly );
 

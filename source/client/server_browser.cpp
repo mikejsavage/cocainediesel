@@ -68,7 +68,7 @@ static void QueryMasterServer( MasterServer * master ) {
 	const char * command = master->address.family == AddressFamily_IPv4 ? "getservers" : "getserversExt";
 
 	TempAllocator temp = cls.frame_arena.temp();
-	const char * query = temp( "{} {} {} full empty", command, APPLICATION_NOSPACES, APP_PROTOCOL_VERSION );
+	const char * query = temp( "{} {} {} full empty", command, APPLICATION_NOSPACES, s32( APP_PROTOCOL_VERSION ) );
 	Netchan_OutOfBandPrint( cls.socket, master->address, "%s", query );
 	master->query_next_frame = false;
 }

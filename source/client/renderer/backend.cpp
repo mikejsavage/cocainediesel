@@ -915,6 +915,9 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	TracyZoneScoped;
 	TracyGpuZone( "Draw call" );
 
+	if( dc.pipeline.shader->program == 0 )
+		return;
+
 	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
 
 	if( dc.instance_type == InstanceType_ComputeShader ) {

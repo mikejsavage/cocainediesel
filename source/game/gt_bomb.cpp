@@ -284,7 +284,7 @@ static void BombSiteCarrierTouched( u32 site ) {
 	if( BombCanPlant() ) {
 		edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
 		Vec3 velocity = carrier_ent->velocity;
-		if( ( carrier_ent->r.client->ucmd.buttons & BUTTON_PLANT ) != 0 && level.time - bomb_state.bomb.action_time >= 1000 && Length( velocity ) < bomb_max_plant_speed ) {
+		if( ( carrier_ent->r.client->ucmd.buttons & Button_Plant ) != 0 && level.time - bomb_state.bomb.action_time >= 1000 && Length( velocity ) < bomb_max_plant_speed ) {
 			BombStartPlanting( carrier_ent, site );
 		}
 	}
@@ -631,7 +631,7 @@ static void BombThink() {
 			edict_t * carrier_ent = PLAYERENT( bomb_state.carrier );
 			if( !EntCanSee( carrier_ent, bomb_state.bomb.model->s.origin ) ||
 				Length( carrier_ent->s.origin - bomb_state.bomb.model->s.origin ) > bomb_arm_defuse_radius ||
-				!( carrier_ent->r.client->ucmd.buttons & BUTTON_PLANT ) ) {
+				!( carrier_ent->r.client->ucmd.buttons & Button_Plant ) ) {
 				carrier_ent->r.client->ps.pmove.max_speed = -1;
 				SetTeamProgress( AttackingTeam(), 0, BombProgress_Nothing );
 				BombPickup();

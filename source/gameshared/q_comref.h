@@ -20,17 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-//
-// button bits
-//
-#define BUTTON_ATTACK1	( 1 << 0 )
-#define BUTTON_ATTACK2	( 1 << 1 )
-#define BUTTON_ABILITY1	( 1 << 2 )
-#define BUTTON_ABILITY2	( 1 << 3 )
-#define BUTTON_RELOAD	( 1 << 4 )
-#define BUTTON_GADGET	( 1 << 5 )
-#define BUTTON_PLANT	( 1 << 6 )
-
 // user command communications
 #define CMD_BACKUP  64  // allow a lot of command backups for very fast systems
 #define CMD_MASK    ( CMD_BACKUP - 1 )

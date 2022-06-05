@@ -401,9 +401,21 @@ struct SyncPlayerState {
 	int pointed_health;
 };
 
+enum UserCommandButton : u8 {
+	Button_Attack1 = 1 << 0,
+	Button_Attack2 = 1 << 1,
+	Button_Ability1 = 1 << 2,
+	Button_Ability2 = 1 << 3,
+	Button_Reload = 1 << 4,
+	Button_Gadget = 1 << 5,
+	Button_Plant = 1 << 6,
+};
+
+void operator|=( UserCommandButton & lhs, UserCommandButton rhs );
+
 struct UserCommand {
 	u8 msec;
-	u8 buttons, down_edges;
+	UserCommandButton buttons, down_edges;
 	u16 entropy;
 	s64 serverTimeStamp;
 	s16 angles[ 3 ];

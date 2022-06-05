@@ -552,8 +552,8 @@ static void Delta( DeltaBuffer * buf, UserCommand & cmd, const UserCommand & bas
 	Delta( buf, cmd.angles, baseline.angles );
 	Delta( buf, cmd.forwardmove, baseline.forwardmove );
 	Delta( buf, cmd.sidemove, baseline.sidemove );
-	Delta( buf, cmd.buttons, baseline.buttons );
-	Delta( buf, cmd.down_edges, baseline.down_edges );
+	DeltaEnum( buf, cmd.buttons, baseline.buttons, UserCommandButton( U8_MAX ) ); // TODO: dunno how to represent bitfields here
+	DeltaEnum( buf, cmd.down_edges, baseline.down_edges, UserCommandButton( U8_MAX ) );
 	Delta( buf, cmd.entropy, baseline.entropy );
 	DeltaEnum( buf, cmd.weaponSwitch, baseline.weaponSwitch, Weapon_Count );
 }

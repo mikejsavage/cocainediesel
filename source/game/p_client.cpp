@@ -941,7 +941,7 @@ void G_CheckClientRespawnClick( edict_t *ent ) {
 		constexpr int min_delay = 600;
 		constexpr int max_delay = 6000;
 
-		bool clicked = level.time > ent->deathTimeStamp + min_delay && ( ent->r.client->resp.snap.buttons & BUTTON_ATTACK1 );
+		bool clicked = level.time > ent->deathTimeStamp + min_delay && ( ent->r.client->resp.snap.buttons & Button_Attack1 );
 		bool timeout = level.time > ent->deathTimeStamp + max_delay;
 		if( clicked || timeout ) {
 			G_ClientRespawn( ent, false );

@@ -76,8 +76,8 @@ struct cgame_export_t {
 
 	void ( *MouseMove )( Vec2 m );
 
-	u8 ( *GetButtonBits )();
-	u8 ( *GetButtonDownEdges )();
+	UserCommandButton ( *GetButtonBits )();
+	UserCommandButton ( *GetButtonDownEdges )();
 };
 
 cgame_export_t *GetCGameAPI();

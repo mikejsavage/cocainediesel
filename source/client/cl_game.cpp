@@ -103,18 +103,18 @@ void CL_GameModule_RenderView() {
 	}
 }
 
-u8 CL_GameModule_GetButtonBits() {
+UserCommandButton CL_GameModule_GetButtonBits() {
 	if( cge ) {
 		return cge->GetButtonBits();
 	}
-	return 0;
+	return { };
 }
 
-u8 CL_GameModule_GetButtonDownEdges() {
+UserCommandButton CL_GameModule_GetButtonDownEdges() {
 	if( cge ) {
 		return cge->GetButtonDownEdges();
 	}
-	return 0;
+	return { };
 }
 
 void CL_GameModule_MouseMove( Vec2 d ) {

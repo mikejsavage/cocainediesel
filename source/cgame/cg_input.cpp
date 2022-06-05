@@ -124,69 +124,69 @@ static void IN_GadgetUp() { KeyUp( &button_gadget ); }
 static void IN_ReloadDown() { KeyDown( &button_reload ); }
 static void IN_ReloadUp() { KeyUp( &button_reload ); }
 
-u8 CG_GetButtonBits() {
-	u8 buttons = 0;
+UserCommandButton CG_GetButtonBits() {
+	UserCommandButton buttons = { };
 
 	if( button_attack1.down ) {
-		buttons |= BUTTON_ATTACK1;
+		buttons |= Button_Attack1;
 	}
 
 	if( button_attack2.down ) {
-		buttons |= BUTTON_ATTACK2;
+		buttons |= Button_Attack2;
 	}
 
 	if( button_gadget.down ) {
-		buttons |= BUTTON_GADGET;
+		buttons |= Button_Gadget;
 	}
 
 	if( button_ability1.down ) {
-		buttons |= BUTTON_ABILITY1;
+		buttons |= Button_Ability1;
 	}
 
 	if( button_ability2.down ) {
-		buttons |= BUTTON_ABILITY2;
+		buttons |= Button_Ability2;
 	}
 
 	if( button_reload.down ) {
-		buttons |= BUTTON_RELOAD;
+		buttons |= Button_Reload;
 	}
 
 	if( button_plant.down ) {
-		buttons |= BUTTON_PLANT;
+		buttons |= Button_Plant;
 	}
 
 	return buttons;
 }
 
-u8 CG_GetButtonDownEdges() {
-	u8 edges = 0;
+UserCommandButton CG_GetButtonDownEdges() {
+	UserCommandButton edges = { };
 
 	if( button_attack1.down && button_attack1.edge ) {
-		edges |= BUTTON_ATTACK1;
+		edges |= Button_Attack1;
 	}
 
 	if( button_attack2.down && button_attack2.edge ) {
-		edges |= BUTTON_ATTACK2;
+		edges |= Button_Attack2;
 	}
 
 	if( button_gadget.down && button_gadget.edge ) {
-		edges |= BUTTON_GADGET;
+		edges |= Button_Gadget;
 	}
 
 	if( button_ability1.down && button_ability1.edge ) {
-		edges |= BUTTON_ABILITY1;
+		edges |= Button_Ability1;
 	}
 
 	if( button_ability2.down && button_ability2.edge ) {
-		edges |= BUTTON_ABILITY2;
+		edges |= Button_Ability2;
 	}
 
 	if( button_reload.down && button_reload.edge ) {
-		edges |= BUTTON_RELOAD;
+		edges |= Button_Reload;
 	}
 
 	if( button_plant.down && button_plant.edge ) {
-		edges |= BUTTON_PLANT;
+		edges |= Button_Plant;
 	}
 
 

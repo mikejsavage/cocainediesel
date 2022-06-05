@@ -458,8 +458,8 @@ void CG_InitInput();
 void CG_ShutdownInput();
 void CG_ClearInputState();
 void CG_MouseMove( Vec2 m );
-u8 CG_GetButtonBits();
-u8 CG_GetButtonDownEdges();
+UserCommandButton CG_GetButtonBits();
+UserCommandButton CG_GetButtonDownEdges();
 Vec3 CG_GetDeltaViewAngles();
 Vec2 CG_GetMovement();
 

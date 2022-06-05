@@ -64,17 +64,17 @@ void Con_ToggleConsole() {
 		return;
 	}
 
-	if( console.visible ) {
-		CL_SetKeyDest( key_game );
-	}
-	else {
-		CL_SetKeyDest( key_ImGui );
-	}
-
 	Con_ClearInput();
 
 	console.scroll_to_bottom = true;
 	console.visible = !console.visible;
+
+	if( console.visible ) {
+		CL_SetKeyDest( key_ImGui );
+	}
+	else {
+		CL_SetKeyDest( key_game );
+	}
 }
 
 bool Con_IsVisible() {

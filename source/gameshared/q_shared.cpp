@@ -726,3 +726,7 @@ void operator++( PerkType & x, int ) {
 	using T = typename std::underlying_type< PerkType >::type;
 	x = PerkType( T( x ) + 1 );
 }
+
+void operator|=( UserCommandButton & lhs, UserCommandButton rhs ) {
+	lhs = UserCommandButton( lhs | rhs );
+}

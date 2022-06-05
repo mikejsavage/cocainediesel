@@ -370,7 +370,7 @@ static void PM_Aircontrol( Vec3 wishdir, float wishspeed ) {
 
 static Vec3 PM_LadderMove( Vec3 wishvel ) {
 	if( pml.ladder == Ladder_On && Abs( pml.velocity.z ) <= pm_ladderspeed ) {
-		if( pm->cmd.buttons & BUTTON_ABILITY1 ) { //jump
+		if( pm->cmd.buttons & Button_Ability1 ) { //jump
 			wishvel.z = pm_ladderspeed;
 		}
 		else if( pml.forwardPush > 0 ) {
@@ -658,10 +658,10 @@ static void PM_CheckSpecialMovement() {
 
 static void PM_FlyMove() {
 	// accelerate
-	float special = 1 + int( ( pm->cmd.buttons & BUTTON_ATTACK2 ) != 0 );
+	float special = 1 + int( ( pm->cmd.buttons & Button_Attack2 ) != 0 );
 	float fmove = pm->cmd.forwardmove * special / 127.0f;
 	float smove = pm->cmd.sidemove * special / 127.0f;
-	float umove = (int( (pm->cmd.buttons & BUTTON_ABILITY1) != 0 ) - int( (pm->cmd.buttons & BUTTON_ABILITY2) != 0 )) * special;
+	float umove = (int( (pm->cmd.buttons & Button_Ability1) != 0 ) - int( (pm->cmd.buttons & Button_Ability2) != 0 )) * special;
 
 	Vec3 wishdir = pml.forward * fmove + pml.right * smove;
 	wishdir.z += umove;
@@ -884,8 +884,8 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 		// Kurim
 		// Keep this order !
 		if( ps->pmove.pm_type == PM_NORMAL && ( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {
-			pml.ability1Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & BUTTON_ABILITY1 );
-			pml.ability2Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & BUTTON_ABILITY2 );
+			pml.ability1Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & Button_Ability1 );
+			pml.ability2Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & Button_Ability2 );
 		}
 
 		PM_Friction();

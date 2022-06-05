@@ -264,7 +264,7 @@ static void CG_UpdateChaseCam() {
 		return;
 	}
 
-	if( cmd.buttons & BUTTON_ATTACK1 ) {
+	if( cmd.buttons & Button_Attack1 ) {
 		if( cgs.demoPlaying || ISREALSPECTATOR() ) {
 			if( cgs.demoPlaying ) {
 				Cbuf_ExecuteLine( "democamswitch" );
@@ -279,10 +279,10 @@ static void CG_UpdateChaseCam() {
 	int chaseStep = 0;
 
 	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
-		if( cmd.sidemove > 0 || ( cmd.buttons & BUTTON_ATTACK2 ) ) {
+		if( cmd.sidemove > 0 || ( cmd.buttons & Button_Attack2 ) ) {
 			chaseStep = 1;
 		}
-		else if( cmd.sidemove < 0 || ( cmd.buttons & BUTTON_ATTACK1 ) ) {
+		else if( cmd.sidemove < 0 || ( cmd.buttons & Button_Attack1 ) ) {
 			chaseStep = -1;
 		}
 	}

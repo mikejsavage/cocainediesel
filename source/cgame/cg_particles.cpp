@@ -98,12 +98,12 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	DeleteParticleSystem( a, ps );
 
 	ps->particles = ALLOC_SPAN( a, GPUParticle, ps->max_particles );
-	ps->vb = NewGPUBuffer( ps->max_particles * sizeof( GPUParticle ), "particles" );
-	ps->vb2 = NewGPUBuffer( ps->max_particles * sizeof( GPUParticle ), "particles" );
+	ps->gpu_particles1 = NewGPUBuffer( ps->max_particles * sizeof( GPUParticle ), "particles flip" );
+	ps->gpu_particles2 = NewGPUBuffer( ps->max_particles * sizeof( GPUParticle ), "particles flop" );
 
 	u32 count = 0;
-	ps->compute_count = NewGPUBuffer( &count, sizeof( u32 ), "compute_count" );
-	ps->compute_count2 = NewGPUBuffer( &count, sizeof( u32 ), "compute_count" );
+	ps->compute_count1 = NewGPUBuffer( &count, sizeof( u32 ), "compute_count flip" );
+	ps->compute_count2 = NewGPUBuffer( &count, sizeof( u32 ), "compute_count flop" );
 
 	u32 counts[] = { 1, 1, 1 };
 	ps->compute_indirect = NewGPUBuffer( counts, sizeof( counts ), "compute_indirect" );
@@ -258,11 +258,11 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			else if( key == "angle_distribution" ) {
 				emitter->angle_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
 			}
-			else if( key == "rotation" ) {
-				emitter->rotation = Radians( ParseFloat( data, 0.0f, Parse_StopOnNewLine ) );
+			else if( key == "angular_velocity" ) {
+				emitter->angular_velocity = Radians( ParseFloat( data, 0.0f, Parse_StopOnNewLine ) );
 			}
-			else if( key == "rotation_distribution" ) {
-				emitter->rotation_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
+			else if( key == "angular_velocity_distribution" ) {
+				emitter->angular_velocity_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
 			}
 			else if( key == "size" ) {
 				emitter->start_size = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
@@ -655,9 +655,9 @@ void DeleteParticleSystem( Allocator * a, ParticleSystem * ps ) {
 		return;
 	}
 	FREE( a, ps->particles.ptr );
-	DeleteGPUBuffer( ps->vb );
-	DeleteGPUBuffer( ps->vb2 );
-	DeleteGPUBuffer( ps->compute_count );
+	DeleteGPUBuffer( ps->gpu_particles1 );
+	DeleteGPUBuffer( ps->gpu_particles2 );
+	DeleteGPUBuffer( ps->compute_count1 );
 	DeleteGPUBuffer( ps->compute_count2 );
 	DeleteGPUBuffer( ps->compute_indirect );
 	DeleteGPUBuffer( ps->draw_indirect );
@@ -681,9 +681,9 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		PipelineState pipeline;
 		pipeline.pass = frame_static.particle_update_pass;
 		pipeline.shader = &shaders.particle_compute;
-		pipeline.set_buffer( "b_ParticlesIn", ps->vb );
-		pipeline.set_buffer( "b_ParticlesOut", ps->vb2 );
-		pipeline.set_buffer( "b_ComputeCountIn", ps->compute_count );
+		pipeline.set_buffer( "b_ParticlesIn", ps->gpu_particles1 );
+		pipeline.set_buffer( "b_ParticlesOut", ps->gpu_particles2 );
+		pipeline.set_buffer( "b_ComputeCountIn", ps->compute_count1 );
 		pipeline.set_buffer( "b_ComputeCountOut", ps->compute_count2 );
 		u32 collision = cl.map == NULL ? 0 : 1;
 		pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, ps->radius, dt, u32( ps->new_particles ) ) );
@@ -700,7 +700,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		PipelineState pipeline;
 		pipeline.pass = frame_static.particle_update_pass;
 		pipeline.shader = &shaders.particle_setup_indirect;
-		pipeline.set_buffer( "b_NextComputeCount", ps->compute_count );
+		pipeline.set_buffer( "b_NextComputeCount", ps->compute_count1 );
 		pipeline.set_buffer( "b_ComputeCount", ps->compute_count2 );
 		pipeline.set_buffer( "b_ComputeIndirect", ps->compute_indirect );
 		pipeline.set_buffer( "b_DrawIndirect", ps->draw_indirect );
@@ -708,7 +708,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		DispatchCompute( pipeline, 1, 1, 1 );
 	}
 
-	WriteGPUBuffer( ps->vb2, ps->particles.begin(), ps->new_particles * sizeof( GPUParticle ) );
+	WriteGPUBuffer( ps->gpu_particles2, ps->particles.begin(), ps->new_particles * sizeof( GPUParticle ) );
 
 	ps->new_particles = 0;
 }
@@ -722,10 +722,11 @@ void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 	pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
-	DrawElementsIndirect( ps->mesh, pipeline, ps->vb2, ps->draw_indirect );
+	pipeline.set_buffer( "b_Particles", ps->gpu_particles2 );
+	DrawInstancedParticles( ps->mesh, pipeline, ps->draw_indirect );
 
-	Swap2( &ps->vb, &ps->vb2 );
-	Swap2( &ps->compute_count, &ps->compute_count2 );
+	Swap2( &ps->gpu_particles1, &ps->gpu_particles2 );
+	Swap2( &ps->compute_count1, &ps->compute_count2 );
 }
 
 void DrawParticles() {
@@ -744,7 +745,7 @@ void DrawParticles() {
 	TracyCPlot( "New Particles", total_new_particles );
 }
 
-static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float rotation, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 start_color, Vec4 end_color, float start_size, float end_size, u32 flags ) {
+static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float angular_velocity, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 start_color, Vec4 end_color, float start_size, float end_size, u32 flags ) {
 	TracyZoneScopedN( "Store Particle" );
 	if( ps->new_particles == ps->max_particles )
 		return;
@@ -753,7 +754,7 @@ static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Ve
 	particle.position = position;
 	particle.angle = angle;
 	particle.velocity = velocity;
-	particle.rotation_speed = rotation;
+	particle.angular_velocity = angular_velocity;
 	particle.acceleration = acceleration;
 	particle.drag = drag;
 	particle.restitution = restitution;
@@ -813,7 +814,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 
 	float speed = emitter->speed + SampleRandomDistribution( &cls.rng, emitter->speed_distribution );
 	float angle = emitter->angle + Radians( SampleRandomDistribution( &cls.rng, emitter->angle_distribution ) );
-	float rotation = emitter->rotation + Radians( SampleRandomDistribution( &cls.rng, emitter->rotation_distribution ) );
+	float angular_velocity = emitter->angular_velocity + Radians( SampleRandomDistribution( &cls.rng, emitter->angular_velocity_distribution ) );
 
 	start_color.x += SampleRandomDistribution( &cls.rng, emitter->red_distribution );
 	start_color.y += SampleRandomDistribution( &cls.rng, emitter->green_distribution );
@@ -824,7 +825,7 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 	if( emitter->num_materials ) {
 		Vec4 uvwh = Vec4( 0.0f );
 		if( TryFindDecal( emitter->materials[ RandomUniform( &cls.rng, 0, emitter->num_materials - 1 ) ], &uvwh ) ) {
-			EmitParticle( ps, lifetime, position, dir * speed, angle, rotation, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, start_color, end_color, size, emitter->end_size, emitter->flags );
+			EmitParticle( ps, lifetime, position, dir * speed, angle, angular_velocity, emitter->acceleration, emitter->drag, emitter->restitution, uvwh, start_color, end_color, size, emitter->end_size, emitter->flags );
 		}
 	}
 }
@@ -995,7 +996,7 @@ void ClearParticles() {
 			ps->new_particles = 0;
 
 			u32 count = 0;
-			WriteGPUBuffer( ps->compute_count, &count, sizeof( count ) );
+			WriteGPUBuffer( ps->compute_count1, &count, sizeof( count ) );
 			WriteGPUBuffer( ps->compute_count2, &count, sizeof( count ) );
 		}
 	}

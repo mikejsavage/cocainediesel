@@ -1,6 +1,7 @@
 #include "include/uniforms.glsl"
 #include "include/common.glsl"
 #include "include/fog.glsl"
+#include "include/particles.glsl"
 
 v2f vec3 v_Position;
 v2f vec2 v_TexCoord;
@@ -16,58 +17,48 @@ flat v2f vec4 v_Color;
 #endif
 in vec2 a_TexCoord;
 
-in vec4 a_ParticlePosition;
-in vec4 a_ParticleVelocity;
-in float a_ParticleAccelDragRest;
-in vec4 a_ParticleUVWH;
-in vec4 a_ParticleStartColor;
-in vec4 a_ParticleEndColor;
-in vec2 a_ParticleSize;
-in vec2 a_ParticleAgeLifetime;
-in uint a_ParticleFlags;
-
-// must match source
-#define PARTICLE_COLLISION_POINT 1u
-#define PARTICLE_COLLISION_SPHERE 2u
-#define PARTICLE_ROTATE 4u
-#define PARTICLE_STRETCH 8u
+layout( std430 ) readonly buffer b_Particles {
+	Particle particles[];
+};
 
 void main() {
-	float fage = a_ParticleAgeLifetime.x / a_ParticleAgeLifetime.y;
+	Particle particle = particles[ gl_InstanceID ];
 
-	v_Color = mix( sRGBToLinear( a_ParticleStartColor ), sRGBToLinear( a_ParticleEndColor ), fage );
+	float fage = particle.age / particle.lifetime;
+
+	v_Color = mix( sRGBToLinear( particle.start_color ), sRGBToLinear( particle.end_color ), fage );
 #if MODEL
 	v_TexCoord = a_TexCoord;
 #else
-	v_TexCoord = a_TexCoord * a_ParticleUVWH.zw + a_ParticleUVWH.xy;
-	v_Layer = floor( a_ParticleUVWH.x );
+	v_TexCoord = a_TexCoord * particle.uvwh.zw + particle.uvwh.xy;
+	v_Layer = floor( particle.uvwh.x );
 #endif
-	float scale = mix( a_ParticleSize.x, a_ParticleSize.y, fage );
+	float scale = mix( particle.start_size, particle.end_size, fage );
 
 #if MODEL
-	vec3 position = a_ParticlePosition.xyz + ( u_M * vec4( a_Position * scale, 1.0 ) ).xyz;
+	vec3 position = particle.position + ( u_M * vec4( a_Position * scale, 1.0 ) ).xyz;
 
 	v_Position = position;
 	gl_Position = u_P * u_V * vec4( position, 1.0 );
 #else
 	// stretched billboards based on
 	// https://github.com/turanszkij/WickedEngine/blob/master/WickedEngine/emittedparticleVS.hlsl
-	vec3 view_velocity = ( u_V * vec4( a_ParticleVelocity.xyz * 0.01, 0.0 ) ).xyz;
+	vec3 view_velocity = ( u_V * vec4( particle.velocity * 0.01, 0.0 ) ).xyz;
 	vec3 quadPos = vec3( scale * a_Position, 0.0 );
-	float angle = a_ParticlePosition.w;
-	if ( ( a_ParticleFlags & PARTICLE_ROTATE ) != 0u ) {
+	float angle = particle.angle;
+	if ( ( particle.flags & PARTICLE_ROTATE ) != 0u ) {
 		angle += atan( view_velocity.x, -view_velocity.y );
 	}
 	float ca = cos( angle );
 	float sa = sin( angle );
 	mat2 rot = mat2( ca, sa, -sa, ca );
 	quadPos.xy = rot * quadPos.xy;
-	if ( ( a_ParticleFlags & PARTICLE_STRETCH ) != 0u ) {
+	if ( ( particle.flags & PARTICLE_STRETCH ) != 0u ) {
 		vec3 stretch = dot( quadPos, view_velocity ) * view_velocity;
 		quadPos += normalize( stretch ) * clamp( length( stretch ), 0.0, scale );
 	}
-	v_Position = a_ParticlePosition.xyz;
-	gl_Position = u_P * ( u_V * vec4( a_ParticlePosition.xyz, 1.0 ) + vec4( quadPos, 0.0 ) );
+	v_Position = particle.position;
+	gl_Position = u_P * ( u_V * vec4( particle.position, 1.0 ) + vec4( quadPos, 0.0 ) );
 #endif
 }
 

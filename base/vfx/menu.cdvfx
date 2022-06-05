@@ -20,7 +20,7 @@
     blendfunc blend
 
     angle_distribution uniform 360
-    rotation_distribution uniform 20
+    angular_velocity_distribution uniform 20
 
     position sphere 750
 

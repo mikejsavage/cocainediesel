@@ -366,7 +366,7 @@ Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, 
 Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer );
 void DeleteFramebuffer( Framebuffer fb );
 
-bool NewShader( Shader * shader, Span< Span< const char > > srcs, bool particle_vertex_attribs = false );
+bool NewShader( Shader * shader, Span< Span< const char > > srcs );
 bool NewComputeShader( Shader * shader, Span< Span< const char > > srcs );
 void DeleteShader( Shader shader );
 
@@ -380,7 +380,7 @@ void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, GPUBu
 void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z );
 void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect );
 
-void DrawElementsIndirect( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer instance_data, GPUBuffer indirect );
+void DrawInstancedParticles( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer indirect );
 
 void DownloadFramebuffer( void * buf );
 

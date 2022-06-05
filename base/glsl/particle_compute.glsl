@@ -1,4 +1,5 @@
 #include "include/trace.glsl"
+#include "include/particles.glsl"
 
 layout( local_size_x = 64 ) in;
 
@@ -7,26 +8,6 @@ layout( std140 ) uniform u_ParticleUpdate {
 	float u_Radius;
 	float u_dt;
 	uint new_particles;
-};
-
-struct Particle {
-	vec3 position;
-	float angle;
-	vec3 velocity;
-	float angular_velocity;
-	float acceleration;
-	float drag;
-	float restitution;
-	float PADDING;
-	vec4 uvwh;
-	uint start_color;
-	uint end_color;
-	float start_size;
-	float end_size;
-	float age;
-	float lifetime;
-	uint flags;
-	uint PADDING2;
 };
 
 layout( std430 ) readonly buffer b_ParticlesIn {
@@ -45,12 +26,6 @@ layout( std430 ) coherent buffer b_ComputeCountOut {
 	uint out_num_particles;
 };
 
-// must match source
-#define PARTICLE_COLLISION_POINT 1u
-#define PARTICLE_COLLISION_SPHERE 2u
-#define PARTICLE_ROTATE 4u
-#define PARTICLE_STRETCH 8u
-
 bool collide( inout Particle particle, float dt ) {
 	if( u_Collision == 0 || ( particle.flags & ( PARTICLE_COLLISION_POINT | PARTICLE_COLLISION_SPHERE ) ) == 0 ) {
 		return false;
@@ -64,7 +39,7 @@ bool collide( inout Particle particle, float dt ) {
 	}
 	float asdf = 8.0;
 	float prestep = min( 0.1, particle.age );
-	
+
 	vec4 frac = Trace( particle.position - particle.velocity * dt * prestep, particle.velocity * dt * asdf, radius );
 	if( frac.w < 1.0 ) {
 		particle.position += particle.velocity * frac.w * dt / asdf;

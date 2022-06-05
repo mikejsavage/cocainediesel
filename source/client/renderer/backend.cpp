@@ -37,16 +37,6 @@ enum VertexAttribute : GLuint {
 	VertexAttribute_ModelTransformRow0,
 	VertexAttribute_ModelTransformRow1,
 	VertexAttribute_ModelTransformRow2,
-
-	VertexAttribute_ParticlePosition = VertexAttribute_Color,
-	VertexAttribute_ParticleVelocity,
-	VertexAttribute_ParticleAccelDragRest,
-	VertexAttribute_ParticleUVWH,
-	VertexAttribute_ParticleStartColor,
-	VertexAttribute_ParticleEndColor,
-	VertexAttribute_ParticleSize,
-	VertexAttribute_ParticleAgeLifetime,
-	VertexAttribute_ParticleFlags,
 };
 
 static const u32 UNIFORM_BUFFER_SIZE = 64 * 1024;
@@ -936,26 +926,6 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	GLenum primitive = PrimitiveTypeToGL( dc.mesh.primitive_type );
 
 	if( dc.instance_type == InstanceType_Particles ) {
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticlePosition, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, position ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleVelocity, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, velocity ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleAccelDragRest, VertexFormat_Floatx3, sizeof( GPUParticle ), offsetof( GPUParticle, acceleration ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleUVWH, VertexFormat_Floatx4, sizeof( GPUParticle ), offsetof( GPUParticle, uvwh ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleStartColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, start_color ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleEndColor, VertexFormat_U8x4_Norm, sizeof( GPUParticle ), offsetof( GPUParticle, end_color ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleSize, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, start_size ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleAgeLifetime, VertexFormat_Floatx2, sizeof( GPUParticle ), offsetof( GPUParticle, age ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ParticleFlags, VertexFormat_U32x1, sizeof( GPUParticle ), offsetof( GPUParticle, flags ) );
-
-		glVertexAttribDivisor( VertexAttribute_ParticlePosition, 1 );
-		glVertexAttribDivisor( VertexAttribute_ParticleVelocity, 1 );
-		glVertexAttribDivisor( VertexAttribute_ParticleAccelDragRest, 1 );
-		glVertexAttribDivisor( VertexAttribute_ParticleUVWH, 1 );
-		glVertexAttribDivisor( VertexAttribute_ParticleStartColor, 1 );
-		glVertexAttribDivisor( VertexAttribute_ParticleEndColor, 1 );
-		glVertexAttribDivisor( VertexAttribute_ParticleSize, 1 );
-		glVertexAttribDivisor( VertexAttribute_ParticleAgeLifetime, 1 );
-		glVertexAttribDivisor( VertexAttribute_ParticleFlags, 1 );
-
 		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, dc.indirect.buffer );
@@ -1627,7 +1597,7 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 	return true;
 }
 
-bool NewShader( Shader * shader, Span< Span< const char > > srcs, bool particle_vertex_attribs ) {
+bool NewShader( Shader * shader, Span< Span< const char > > srcs ) {
 	*shader = { };
 
 	GLuint vs = CompileShader( GL_VERTEX_SHADER, srcs );
@@ -1644,35 +1614,19 @@ bool NewShader( Shader * shader, Span< Span< const char > > srcs, bool particle_
 	glAttachShader( shader->program, vs );
 	glAttachShader( shader->program, fs );
 
-	if( particle_vertex_attribs ) {
-		glBindAttribLocation( shader->program, VertexAttribute_Position, "a_Position" );
-		glBindAttribLocation( shader->program, VertexAttribute_Normal, "a_Normal" );
-		glBindAttribLocation( shader->program, VertexAttribute_TexCoord, "a_TexCoord" );
-		glBindAttribLocation( shader->program, VertexAttribute_ParticlePosition, "a_ParticlePosition" );
-		glBindAttribLocation( shader->program, VertexAttribute_ParticleVelocity, "a_ParticleVelocity" );
-		glBindAttribLocation( shader->program, VertexAttribute_ParticleAccelDragRest, "a_ParticleAccelDragRest" );
-		glBindAttribLocation( shader->program, VertexAttribute_ParticleUVWH, "a_ParticleUVWH" );
-		glBindAttribLocation( shader->program, VertexAttribute_ParticleStartColor, "a_ParticleStartColor" );
-		glBindAttribLocation( shader->program, VertexAttribute_ParticleEndColor, "a_ParticleEndColor" );
-		glBindAttribLocation( shader->program, VertexAttribute_ParticleSize, "a_ParticleSize" );
-		glBindAttribLocation( shader->program, VertexAttribute_ParticleAgeLifetime, "a_ParticleAgeLifetime" );
-		glBindAttribLocation( shader->program, VertexAttribute_ParticleFlags, "a_ParticleFlags" );
-	}
-	else {
-		glBindAttribLocation( shader->program, VertexAttribute_Position, "a_Position" );
-		glBindAttribLocation( shader->program, VertexAttribute_Normal, "a_Normal" );
-		glBindAttribLocation( shader->program, VertexAttribute_TexCoord, "a_TexCoord" );
-		glBindAttribLocation( shader->program, VertexAttribute_Color, "a_Color" );
-		glBindAttribLocation( shader->program, VertexAttribute_JointIndices, "a_JointIndices" );
-		glBindAttribLocation( shader->program, VertexAttribute_JointWeights, "a_JointWeights" );
-		glBindAttribLocation( shader->program, VertexAttribute_MaterialColor, "a_MaterialColor" );
-		glBindAttribLocation( shader->program, VertexAttribute_MaterialTextureMatrix0, "a_MaterialTextureMatrix0" );
-		glBindAttribLocation( shader->program, VertexAttribute_MaterialTextureMatrix1, "a_MaterialTextureMatrix1" );
-		glBindAttribLocation( shader->program, VertexAttribute_OutlineHeight, "a_OutlineHeight" );
-		glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow0, "a_ModelTransformRow0" );
-		glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow1, "a_ModelTransformRow1" );
-		glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow2, "a_ModelTransformRow2" );
-	}
+	glBindAttribLocation( shader->program, VertexAttribute_Position, "a_Position" );
+	glBindAttribLocation( shader->program, VertexAttribute_Normal, "a_Normal" );
+	glBindAttribLocation( shader->program, VertexAttribute_TexCoord, "a_TexCoord" );
+	glBindAttribLocation( shader->program, VertexAttribute_Color, "a_Color" );
+	glBindAttribLocation( shader->program, VertexAttribute_JointIndices, "a_JointIndices" );
+	glBindAttribLocation( shader->program, VertexAttribute_JointWeights, "a_JointWeights" );
+	glBindAttribLocation( shader->program, VertexAttribute_MaterialColor, "a_MaterialColor" );
+	glBindAttribLocation( shader->program, VertexAttribute_MaterialTextureMatrix0, "a_MaterialTextureMatrix0" );
+	glBindAttribLocation( shader->program, VertexAttribute_MaterialTextureMatrix1, "a_MaterialTextureMatrix1" );
+	glBindAttribLocation( shader->program, VertexAttribute_OutlineHeight, "a_OutlineHeight" );
+	glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow0, "a_ModelTransformRow0" );
+	glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow1, "a_ModelTransformRow1" );
+	glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow2, "a_ModelTransformRow2" );
 
 	glBindFragDataLocation( shader->program, 0, "f_Albedo" );
 	glBindFragDataLocation( shader->program, 1, "f_Mask" );
@@ -1885,11 +1839,10 @@ void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect
 	draw_calls.add( dc );
 }
 
-void DrawElementsIndirect( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer instance_data, GPUBuffer indirect ) {
+void DrawInstancedParticles( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer indirect ) {
 	DrawCall dc = { };
 	dc.pipeline = pipeline;
 	dc.instance_type = InstanceType_Particles;
-	dc.instance_data = instance_data;
 	dc.mesh = mesh;
 	dc.indirect = indirect;
 	draw_calls.add( dc );

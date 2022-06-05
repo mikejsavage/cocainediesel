@@ -30,10 +30,7 @@ static Span< Span< const char > > BuildShaderSrcs( TempAllocator * temp, const c
 	TracyZoneText( path, strlen( path ) );
 
 	NonRAIIDynamicArray< Span< const char > > srcs( temp );
-
-	if( defines != NULL ) {
-		srcs.add( MakeSpan( defines ) );
-	}
+	srcs.add( MakeSpan( defines ) );
 
 	Span< const char > glsl = AssetString( path );
 	if( glsl.ptr == NULL ) {
@@ -76,21 +73,21 @@ static Span< Span< const char > > BuildShaderSrcs( TempAllocator * temp, const c
 	return srcs.span();
 }
 
-static void LoadShader( Shader * shader, const char * path, const char * defines = NULL, bool particle_vertex_attribs = false ) {
+static void LoadShader( Shader * shader, const char * path, const char * defines = "" ) {
 	TracyZoneScoped;
 
 	TempAllocator temp = cls.frame_arena.temp();
 	Span< Span< const char > > srcs = BuildShaderSrcs( &temp, path, defines );
 
 	Shader new_shader;
-	if( !NewShader( &new_shader, srcs, particle_vertex_attribs ) )
+	if( !NewShader( &new_shader, srcs ) )
 		return;
 
 	DeleteShader( *shader );
 	*shader = new_shader;
 }
 
-static void LoadComputeShader( Shader * shader, const char * path, const char * defines = NULL ) {
+static void LoadComputeShader( Shader * shader, const char * path, const char * defines = "" ) {
 	TracyZoneScoped;
 
 	TempAllocator temp = cls.frame_arena.temp();
@@ -176,10 +173,10 @@ static void LoadShaders() {
 	LoadShader( &shaders.blur, "glsl/blur.glsl" );
 	LoadShader( &shaders.postprocess, "glsl/postprocess.glsl" );
 
-	LoadComputeShader( &shaders.particle_compute, "glsl/particle_compute.glsl", NULL );
-	LoadComputeShader( &shaders.particle_setup_indirect, "glsl/particle_setup_indirect.glsl", NULL );
-	LoadShader( &shaders.particle, "glsl/particle.glsl", NULL, true );
-	LoadShader( &shaders.particle_model, "glsl/particle.glsl", "#define MODEL 1\n", true );
+	LoadComputeShader( &shaders.particle_compute, "glsl/particle_compute.glsl" );
+	LoadComputeShader( &shaders.particle_setup_indirect, "glsl/particle_setup_indirect.glsl" );
+	LoadShader( &shaders.particle, "glsl/particle.glsl" );
+	LoadShader( &shaders.particle_model, "glsl/particle.glsl", "#define MODEL 1\n" );
 
 	const char * culling_defines = temp( "#define TILE_SIZE {}\n", TILE_SIZE );
 	LoadComputeShader( &shaders.tile_culling, "glsl/tile_culling.glsl", culling_defines );

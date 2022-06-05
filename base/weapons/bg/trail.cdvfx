@@ -67,8 +67,8 @@
     material textures/vfx/twirl3
     blendfunc add
     rotate
-    rotation 245
-    rotation_distribution uniform 245
+    angular_velocity 245
+    angular_velocity_distribution uniform 245
 
     position line 0
 

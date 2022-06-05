@@ -93,10 +93,10 @@ struct ParticleSystem {
 	size_t new_particles;
 	Span< GPUParticle > particles;
 
-	GPUBuffer vb;
-	GPUBuffer vb2;
+	GPUBuffer gpu_particles1;
+	GPUBuffer gpu_particles2;
 
-	GPUBuffer compute_count;
+	GPUBuffer compute_count1;
 	GPUBuffer compute_count2;
 
 	GPUBuffer compute_indirect;
@@ -161,8 +161,8 @@ struct ParticleEmitter {
 	float angle;
 	RandomDistribution angle_distribution;
 
-	float rotation;
-	RandomDistribution rotation_distribution;
+	float angular_velocity;
+	RandomDistribution angular_velocity_distribution;
 
 	Vec4 start_color = Vec4( 1.0f ), end_color = Vec4( 1.0f );
 	RandomDistribution red_distribution, green_distribution, blue_distribution, alpha_distribution;

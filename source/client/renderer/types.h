@@ -57,7 +57,7 @@ struct GPUParticle {
 	Vec3 position;
 	float angle;
 	Vec3 velocity;
-	float rotation_speed;
+	float angular_velocity;
 	float acceleration;
 	float drag;
 	float restitution;

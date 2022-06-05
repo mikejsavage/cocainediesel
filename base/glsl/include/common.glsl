@@ -14,6 +14,24 @@ vec4 sRGBToLinear( vec4 srgb ) {
 	return vec4( sRGBToLinear( srgb.r ), sRGBToLinear( srgb.g ), sRGBToLinear( srgb.b ), srgb.a );
 }
 
+float DequantizeU8( uint x ) {
+	return x / 255.0f;
+}
+
+vec4 sRGBToLinear( uint srgb ) {
+	uint r = ( srgb >> 0u  ) & 0xffu;
+	uint g = ( srgb >> 8u  ) & 0xffu;
+	uint b = ( srgb >> 16u ) & 0xffu;
+	uint a = ( srgb >> 24u ) & 0xffu;
+
+	return vec4(
+		sRGBToLinear( DequantizeU8( r ) ),
+		sRGBToLinear( DequantizeU8( g ) ),
+		sRGBToLinear( DequantizeU8( b ) ),
+		sRGBToLinear( DequantizeU8( a ) )
+	);
+}
+
 float LinearTosRGB( float linear ) {
 	if( linear <= 0.0031308 )
 		return linear * 12.92;

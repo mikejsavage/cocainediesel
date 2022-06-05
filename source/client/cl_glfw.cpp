@@ -508,7 +508,7 @@ static void InputFrame() {
 	else if( running_in_debugger ) {
 		// don't grab input if we're running a debugger
 		relative_mouse_movement = Vec2( mouse_x, mouse_y ) - frame_static.viewport * 0.5f;
-		glfwSetCursorPos( window, last_mouse_x, last_mouse_y );
+		glfwSetCursorPos( window, frame_static.viewport.x * 0.5f, frame_static.viewport.y * 0.5f );
 		glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
 	}
 	else {

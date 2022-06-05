@@ -68,13 +68,6 @@ void Con_ToggleConsole() {
 
 	console.scroll_to_bottom = true;
 	console.visible = !console.visible;
-
-	if( console.visible ) {
-		CL_SetKeyDest( key_ImGui );
-	}
-	else {
-		CL_SetKeyDest( key_game );
-	}
 }
 
 bool Con_IsVisible() {
@@ -301,7 +294,7 @@ void Con_Draw() {
 	// make a fullscreen window so you can't interact with menus while console is open
 	ImGui::SetNextWindowPos( ImVec2() );
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-	ImGui::Begin( "console", WindowZOrder_Console, ImGuiWindowFlags_NoDecoration );
+	ImGui::Begin( "console", WindowZOrder_Console, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
 	{
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, bg );

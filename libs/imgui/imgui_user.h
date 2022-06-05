@@ -1,3 +1,5 @@
+constexpr ImGuiWindowFlags ImGuiWindowFlags_Interactive = 1 << 29;
+
 enum WindowZOrder {
 	WindowZOrder_Chat,
 	WindowZOrder_Scoreboard,

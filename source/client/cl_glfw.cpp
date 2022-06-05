@@ -12,10 +12,12 @@
 
 #include "stb/stb_image.h"
 
+const bool is_dedicated_server = false;
+
 GLFWwindow * window = NULL;
 
-static bool running_in_debugger = false;
-const bool is_dedicated_server = false;
+static bool running_in_debugger;
+static bool route_inputs_to_imgui;
 
 static int framebuffer_width, framebuffer_height;
 
@@ -91,14 +93,19 @@ static void OnMouseClicked( GLFWwindow *, int button, int action, int mods ) {
 
 	bool down = action == GLFW_PRESS;
 	ImGui::GetIO().KeysDown[ key ] = down;
-	Key_Event( key, down );
+
+	if( !route_inputs_to_imgui ) {
+		Key_Event( key, down );
+	}
 }
 
 static void OnScroll( GLFWwindow *, double x, double y ) {
 	if( y != 0 ) {
 		int key = y > 0 ? K_MWHEELUP : K_MWHEELDOWN;
-		Key_Event( key, true );
-		Key_Event( key, false );
+		if( !route_inputs_to_imgui ) {
+			Key_Event( key, true );
+			Key_Event( key, false );
+		}
 		ImGui::GetIO().KeysDownDuration[ key ] = 0;
 	}
 
@@ -242,7 +249,9 @@ static void OnKeyPressed( GLFWwindow *, int glfw_key, int scancode, int action, 
 
 	io.KeysDown[ key ] = down;
 
-	Key_Event( key, down );
+	if( !route_inputs_to_imgui ) {
+		Key_Event( key, down );
+	}
 }
 
 static void OnCharTyped( GLFWwindow *, unsigned int codepoint ) {
@@ -441,18 +450,10 @@ bool IsWindowFocused() {
 	return IFDEF( PLATFORM_LINUX ) ? true : glfwGetWindowAttrib( window, GLFW_FOCUSED );
 }
 
-static double last_mouse_x, last_mouse_y;
-
-Vec2 GetMouseMovement() {
-	double x, y;
-	glfwGetCursorPos( window, &x, &y );
-	Vec2 delta = Vec2( x - last_mouse_x, y - last_mouse_y );
-	last_mouse_x = x;
-	last_mouse_y = y;
-	return delta;
-}
-
 Vec2 GetJoystickMovement() {
+	if( route_inputs_to_imgui )
+		return Vec2( 0.0f );
+
 	Vec2 acc = Vec2( 0.0f );
 
 	for( int i = GLFW_JOYSTICK_1; i <= GLFW_JOYSTICK_LAST; i++ ) {
@@ -476,31 +477,49 @@ Vec2 GetJoystickMovement() {
 	return acc;
 }
 
-void GlfwInputFrame() {
-	// show cursor if there are any imgui windows accepting inputs
-	bool gui_active = false;
+static double last_mouse_x, last_mouse_y;
+static Vec2 relative_mouse_movement;
+
+Vec2 GetRelativeMouseMovement() {
+	return relative_mouse_movement;
+}
+
+static void InputFrame() {
+	// route inputs
+	route_inputs_to_imgui = false;
+
 	const ImGuiContext * ctx = ImGui::GetCurrentContext();
 	for( const ImGuiWindow * w : ctx->Windows ) {
-		if( w->Active && w->ParentWindow == NULL && ( w->Flags & ImGuiWindowFlags_NoMouseInputs ) == 0 ) {
-			gui_active = true;
+		if( w->Active && w->ParentWindow == NULL && ( w->Flags & ImGuiWindowFlags_Interactive ) != 0 ) {
+			route_inputs_to_imgui = true;
 			break;
 		}
 	}
 
-	if( gui_active ) {
+	// handle mouse movement
+	double mouse_x, mouse_y;
+	glfwGetCursorPos( window, &mouse_x, &mouse_y );
+
+	if( route_inputs_to_imgui ) {
+		relative_mouse_movement = Vec2( 0.0f );
 		glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
+		Key_ClearStates();
 	}
 	else if( running_in_debugger ) {
 		// don't grab input if we're running a debugger
-		last_mouse_x = frame_static.viewport_width / 2;
-		last_mouse_y = frame_static.viewport_height / 2;
+		relative_mouse_movement = Vec2( mouse_x, mouse_y ) - frame_static.viewport * 0.5f;
 		glfwSetCursorPos( window, last_mouse_x, last_mouse_y );
 		glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_NORMAL );
 	}
 	else {
+		relative_mouse_movement = Vec2( mouse_x - last_mouse_x, mouse_y - last_mouse_y );
 		glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
 	}
 
+	last_mouse_x = mouse_x;
+	last_mouse_y = mouse_y;
+
+	// break bools
 	break1 = glfwGetKey( window, GLFW_KEY_F1 );
 	break2 = glfwGetKey( window, GLFW_KEY_F2 );
 	break3 = glfwGetKey( window, GLFW_KEY_F3 );
@@ -541,6 +560,8 @@ int main( int argc, char ** argv ) {
 			}
 			oldtime += dt;
 		}
+
+		InputFrame();
 
 		{
 			TracyZoneScopedN( "glfwPollEvents" );

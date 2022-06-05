@@ -1836,7 +1836,7 @@ void CG_DrawHUD() {
 	ImGuiStyle old_style = ImGui::GetStyle();
 	ImGui::GetStyle() = ImGuiStyle();
 	if( show_inspector ) {
-		ImGui::Begin( "UI inspector", &still_showing_inspector );
+		ImGui::Begin( "UI inspector", &still_showing_inspector, ImGuiWindowFlags_Interactive );
 	}
 
 	inspecting = { };

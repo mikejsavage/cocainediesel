@@ -276,13 +276,6 @@ static void CL_Rcon_f() {
 	UDPSend( cls.socket, address, message, strlen( message ) + 1 );
 }
 
-void CL_SetKeyDest( keydest_t key_dest ) {
-	if( key_dest != cls.key_dest ) {
-		Key_ClearStates();
-		cls.key_dest = key_dest;
-	}
-}
-
 void CL_ClearState() {
 	// wipe the entire cl structure
 	memset( &cl, 0, sizeof( client_state_t ) );
@@ -756,13 +749,11 @@ void CL_SetClientState( connstate_t state ) {
 		case CA_DISCONNECTED:
 			Con_Close();
 			UI_ShowMainMenu();
-			CL_SetKeyDest( key_menu );
 			break;
 		case CA_CONNECTING:
 			cls.cgameActive = false;
 			Con_Close();
 			UI_ShowConnectingScreen();
-			CL_SetKeyDest( key_game );
 			break;
 		case CA_CONNECTED:
 			cls.cgameActive = false;
@@ -773,7 +764,6 @@ void CL_SetClientState( connstate_t state ) {
 			Con_Close();
 			UI_HideMenu();
 			StopMenuMusic();
-			CL_SetKeyDest( key_game );
 			break;
 		default:
 			break;

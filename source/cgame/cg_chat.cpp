@@ -40,14 +40,11 @@ static void OpenChat( ChatMode mode ) {
 		chat.mode = mode;
 		chat.input[ 0 ] = '\0';
 		chat.scroll_to_bottom = true;
-		CL_SetKeyDest( key_ImGui );
 	}
 }
 
 static void CloseChat() {
 	chat.mode = ChatMode_None;
-	if( !Con_IsVisible() )
-		CL_SetKeyDest( key_game );
 }
 
 void CG_InitChat() {
@@ -121,8 +118,11 @@ void CG_DrawChat() {
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground;
 	ImGuiWindowFlags log_flags = ImGuiWindowFlags_AlwaysUseWindowPadding;
 	if( chat.mode == ChatMode_None ) {
-		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
+		flags |= ImGuiWindowFlags_NoDecoration;
 		log_flags |= ImGuiWindowFlags_NoScrollbar;
+	}
+	else {
+		flags |= ImGuiWindowFlags_Interactive;
 	}
 
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );

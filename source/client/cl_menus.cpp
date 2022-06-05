@@ -759,7 +759,7 @@ static void MainMenu() {
 	ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
 
 	bool parteditor_wason = mainmenu_state == MainMenuState_ParticleEditor;
-	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoBackground;
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_Interactive;
 
 	ImGui::Begin( "mainmenu", WindowZOrder_Menu, flags );
 
@@ -1020,7 +1020,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
 	ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
 	ImGui::SetNextWindowSize( displaySize );
-	ImGui::Begin( "Loadout", NULL, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+	ImGui::Begin( "Loadout", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, Vec2( 0, displaySize.y * 0.02 ) );
 	Vec2 icon_size = Vec2( displaySize.x * 0.05f );
@@ -1076,7 +1076,7 @@ static void GameMenu() {
 	if( gamemenu_state == GameMenuState_Menu ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, 0, Vec2( 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 500, 0 ) );
-		ImGui::Begin( "gamemenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGui::Begin( "gamemenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
 
@@ -1128,7 +1128,7 @@ static void GameMenu() {
 		TempAllocator temp = cls.frame_arena.temp();
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( displaySize.x * 0.5f, -1 ) );
-		ImGui::Begin( "votemap", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGui::Begin( "votemap", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
 		static int e = 0;
 		ImGui::Columns( 2, NULL, false );
@@ -1158,14 +1158,13 @@ static void GameMenu() {
 	else if( gamemenu_state == GameMenuState_Settings ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( Max2( 800.f, displaySize.x * 0.65f ), Max2( 600.f, displaySize.y * 0.65f ) ) );
-		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
 		Settings();
 	}
 
 	if( ImGui::Hotkey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;
-		CL_SetKeyDest( key_game );
 	}
 
 	ImGui::End();
@@ -1184,7 +1183,7 @@ static void DemoMenu() {
 	if( demomenu_state == DemoMenuState_Menu ) {
 		ImGui::SetNextWindowPos( pos, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 600, 0 ) );
-		ImGui::Begin( "demomenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGui::Begin( "demomenu", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
 		ImGuiStyle & style = ImGui::GetStyle();
 		const double half = ImGui::GetWindowWidth() / 2 - style.ItemSpacing.x - style.ItemInnerSpacing.x;
@@ -1217,14 +1216,13 @@ static void DemoMenu() {
 	} else if( demomenu_state == DemoMenuState_Settings ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, ImGuiCond_Always, ImVec2( 0.5f, 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( Max2( 800.f, displaySize.x * 0.65f ), Max2( 600.f, displaySize.y * 0.65f ) ) );
-		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGui::Begin( "settings", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
 		Settings();
 	}
 
 	if( ImGui::Hotkey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;
-		CL_SetKeyDest( key_game );
 	}
 
 	ImGui::End();
@@ -1263,7 +1261,7 @@ void UI_Refresh() {
 		const char * connecting = "Connecting...";
 		ImGui::SetNextWindowPos( ImVec2() );
 		ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus );
+		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
 		ImGui::PushFont( cls.large_font );
 		ImGui::SetCursorPos( ( ImGui::GetWindowSize() - ImGui::CalcTextSize( connecting ) )/2 );
@@ -1297,7 +1295,6 @@ void UI_ShowGameMenu() {
 
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Menu;
-	CL_SetKeyDest( key_menu );
 }
 
 void UI_ShowDemoMenu() {
@@ -1306,7 +1303,6 @@ void UI_ShowDemoMenu() {
 
 	uistate = UIState_DemoMenu;
 	demomenu_state = DemoMenuState_Menu;
-	CL_SetKeyDest( key_menu );
 }
 
 void UI_HideMenu() {
@@ -1316,8 +1312,5 @@ void UI_HideMenu() {
 void UI_ShowLoadoutMenu( Loadout new_loadout ) {
 	uistate = UIState_GameMenu;
 	gamemenu_state = GameMenuState_Loadout;
-
 	loadout = new_loadout;
-
-	CL_SetKeyDest( key_menu );
 }

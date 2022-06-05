@@ -129,11 +129,9 @@ void CG_DrawScoreboard() {
 	float width_frac = Lerp( 0.8f, Unlerp01( 1024.0f, io.DisplaySize.x, 1920.0f ), 0.6f );
 	Vec2 size = io.DisplaySize * Vec2( width_frac, 0.8f );
 
-	ImGuiWindowFlags basic_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoInputs;
-
 	ImGui::SetNextWindowSize( ImVec2( size.x, -1 ) );
 	ImGui::SetNextWindowPos( io.DisplaySize * 0.5f, 0, Vec2( 0.5f ) );
-	ImGui::Begin( "scoreboard", WindowZOrder_Scoreboard, basic_flags | ImGuiWindowFlags_NoBackground );
+	ImGui::Begin( "scoreboard", WindowZOrder_Scoreboard, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoBackground );
 
 	float padding = 4;
 	float separator_height = ImGui::GetTextLineHeight() + 2 * padding;

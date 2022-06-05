@@ -28,11 +28,10 @@ void VID_Init();
 void CreateWindow( WindowMode mode );
 void DestroyWindow();
 
-void GlfwInputFrame();
 void SwapBuffers();
 
 void GetFramebufferSize( int * width, int * height );
-Vec2 GetMouseMovement();
+Vec2 GetRelativeMouseMovement();
 Vec2 GetJoystickMovement();
 void VID_CheckChanges();
 

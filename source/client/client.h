@@ -100,12 +100,6 @@ of server connections
 ==================================================================
 */
 
-enum keydest_t {
-	key_game,
-	key_ImGui,
-	key_menu,
-};
-
 struct client_static_t {
 	ArenaAllocator frame_arena;
 
@@ -113,7 +107,6 @@ struct client_static_t {
 
 	u64 session_id;
 	connstate_t state;          // only set through CL_SetClientState
-	keydest_t key_dest;
 
 	Time monotonicTime; // starts at 0 when the game is launched, increases forever
 
@@ -218,8 +211,6 @@ void CL_SendMessagesToServer( bool sendNow );
 void CL_RestartTimeDeltas( int newTimeDelta );
 void CL_AdjustServerTime( unsigned int gamemsec );
 
-void CL_SetKeyDest( keydest_t key_dest );
-void CL_SetOldKeyDest( keydest_t key_dest );
 void CL_SetClientState( connstate_t state );
 void CL_ClearState();
 void CL_ReadPackets();

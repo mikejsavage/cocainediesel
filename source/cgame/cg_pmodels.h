@@ -105,7 +105,7 @@ enum {
 };
 
 struct WeaponModelMetadata {
-	const Model * model;
+	StringHash model;
 
 	Vec3 handpositionOrigin;
 	Vec3 handpositionAngles;
@@ -118,7 +118,7 @@ struct WeaponModelMetadata {
 };
 
 struct GadgetModelMetadata {
-	const Model * model;
+	StringHash model;
 
 	StringHash use_sound;
 	StringHash switch_in_sound;
@@ -172,7 +172,7 @@ struct PlayerModelMetadata {
 		float loop_from; // we only loop the last part of the animation
 	};
 
-	const Model * model;
+	StringHash model;
 	StringHash sounds[ PlayerSound_Count ];
 
 	u8 upper_rotator_nodes[ 2 ];

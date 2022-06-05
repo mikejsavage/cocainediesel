@@ -10,6 +10,11 @@
 
 constexpr u32 MAX_MODELS = 1024;
 
+static ModelRenderData models[ MAX_MODELS ];
+static u32 num_models;
+static Hashtable< MAX_MODELS * 2 > models_hashtable;
+
+
 static Model gltf_models[ MAX_MODELS ];
 static u32 num_gltf_models;
 static Hashtable< MAX_MODELS * 2 > gltf_models_hashtable;
@@ -79,27 +84,6 @@ void InitModels() {
 }
 
 void DeleteModel( Model * model ) {
-	for( u32 i = 0; i < model->num_primitives; i++ ) {
-		if( model->primitives[ i ].num_vertices == 0 ) {
-			DeleteMesh( model->primitives[ i ].mesh );
-		}
-	}
-
-	for( u8 i = 0; i < model->num_nodes; i++ ) {
-		for( u8 j = 0; j < model->num_animations; j++ ) {
-			FREE( sys_allocator, model->nodes[ i ].animations[ j ].rotations.times );
-			FREE( sys_allocator, model->nodes[ i ].animations[ j ].translations.times );
-			FREE( sys_allocator, model->nodes[ i ].animations[ j ].scales.times );
-		}
-		FREE( sys_allocator, model->nodes[ i ].animations.ptr );
-	}
-
-	DeleteMesh( model->mesh );
-
-	FREE( sys_allocator, model->primitives );
-	FREE( sys_allocator, model->nodes );
-	FREE( sys_allocator, model->skin );
-	FREE( sys_allocator, model->animations );
 }
 
 void HotloadModels() {
@@ -404,133 +388,4 @@ void DrawModelInstances() {
 	DrawModelInstanceCollection( model_shadows_instance_collection, InstanceType_ModelShadows );
 	DrawModelInstanceCollection( model_outlines_instance_collection, InstanceType_ModelOutlines );
 	DrawModelInstanceCollection( model_silhouette_instance_collection, InstanceType_ModelSilhouette );
-}
-
-template< typename T, typename F >
-static T SampleAnimationChannel( const Model::AnimationChannel< T > & channel, float t, T def, F lerp ) {
-	if( channel.samples == NULL )
-		return def;
-	if( channel.num_samples == 1 )
-		return channel.samples[ 0 ];
-
-	t = Clamp( channel.times[ 0 ], t, channel.times[ channel.num_samples - 1 ] );
-
-	u32 sample = 0;
-	for( u32 i = 1; i < channel.num_samples; i++ ) {
-		if( channel.times[ i ] >= t ) {
-			sample = i - 1;
-			break;
-		}
-	}
-
-	// TODO: cubic
-	if( channel.interpolation == InterpolationMode_Step ) {
-		return channel.samples[ sample ];
-	}
-
-	float lerp_frac = ( t - channel.times[ sample ] ) / ( channel.times[ sample + 1 ] - channel.times[ sample ] );
-	return lerp( channel.samples[ sample ], lerp_frac, channel.samples[ sample + 1 ] );
-}
-
-// can't use overloaded function as a template parameter
-static Vec3 LerpVec3( Vec3 a, float t, Vec3 b ) { return Lerp( a, t, b ); }
-static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
-
-Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t, u8 animation ) {
-	TracyZoneScoped;
-
-	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, model->num_nodes );
-
-	for( u8 i = 0; i < model->num_nodes; i++ ) {
-		const Model::Node * node = &model->nodes[ i ];
-		local_poses[ i ].rotation = SampleAnimationChannel( node->animations[ animation ].rotations, t, node->local_transform.rotation, NLerp );
-		local_poses[ i ].translation = SampleAnimationChannel( node->animations[ animation ].translations, t, node->local_transform.translation, LerpVec3 );
-		local_poses[ i ].scale = SampleAnimationChannel( node->animations[ animation ].scales, t, node->local_transform.scale, LerpFloat );
-	}
-
-	return local_poses;
-}
-
-static Mat4 TRSToMat4( const TRS & trs ) {
-	Quaternion q = trs.rotation;
-	Vec3 t = trs.translation;
-	float s = trs.scale;
-
-	// return t * q * s;
-	return Mat4(
-		( 1.0f - 2 * q.y * q.y - 2.0f * q.z * q.z ) * s,
-		( 2.0f * q.x * q.y - 2.0f * q.z * q.w ) * s,
-		( 2.0f * q.x * q.z + 2.0f * q.y * q.w ) * s,
-		t.x,
-
-		( 2.0f * q.x * q.y + 2.0f * q.z * q.w ) * s,
-		( 1.0f - 2.0f * q.x * q.x - 2.0f * q.z * q.z ) * s,
-		( 2.0f * q.y * q.z - 2.0f * q.x * q.w ) * s,
-		t.y,
-
-		( 2.0f * q.x * q.z - 2.0f * q.y * q.w ) * s,
-		( 2.0f * q.y * q.z + 2.0f * q.x * q.w ) * s,
-		( 1.0f - 2.0f * q.x * q.x - 2.0f * q.y * q.y ) * s,
-		t.z,
-
-		0.0f, 0.0f, 0.0f, 1.0f
-	);
-}
-
-MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses ) {
-	TracyZoneScoped;
-
-	assert( local_poses.n == model->num_nodes );
-
-	MatrixPalettes palettes = { };
-	palettes.node_transforms = ALLOC_SPAN( a, Mat4, model->num_nodes );
-	if( model->num_joints != 0 ) {
-		palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, model->num_joints );
-	}
-
-	for( u8 i = 0; i < model->num_nodes; i++ ) {
-		u8 parent = model->nodes[ i ].parent;
-		if( parent == U8_MAX ) {
-			palettes.node_transforms[ i ] = TRSToMat4( local_poses[ i ] );
-		}
-		else {
-			palettes.node_transforms[ i ] = palettes.node_transforms[ parent ] * TRSToMat4( local_poses[ i ] );
-		}
-	}
-
-	for( u8 i = 0; i < model->num_joints; i++ ) {
-		u8 node_idx = model->skin[ i ].node_idx;
-		palettes.skinning_matrices[ i ] = palettes.node_transforms[ node_idx ] * model->skin[ i ].joint_to_bind;
-	}
-
-	return palettes;
-}
-
-bool FindNodeByName( const Model * model, u32 name, u8 * idx ) {
-	for( u8 i = 0; i < model->num_nodes; i++ ) {
-		if( model->nodes[ i ].name == name ) {
-			*idx = i;
-			return true;
-		}
-	}
-
-	return false;
-}
-
-static void MergePosesRecursive( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 i ) {
-	lower[ i ] = upper[ i ];
-
-	const Model::Node * node = &model->nodes[ i ];
-	if( node->sibling != U8_MAX )
-		MergePosesRecursive( lower, upper, model, node->sibling );
-	if( node->first_child != U8_MAX )
-		MergePosesRecursive( lower, upper, model, node->first_child );
-}
-
-void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_node ) {
-	lower[ upper_root_node ] = upper[ upper_root_node ];
-
-	const Model::Node * node = &model->nodes[ upper_root_node ];
-	if( node->first_child != U8_MAX )
-		MergePosesRecursive( lower, upper, model, node->first_child );
 }

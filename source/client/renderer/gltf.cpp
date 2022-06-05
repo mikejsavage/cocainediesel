@@ -41,6 +41,7 @@ static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
 }
 
 static VertexFormat VertexFormatFromGLTF( cgltf_type dim, cgltf_component_type component, bool normalized ) {
+	// TODO: support signed types
 	if( dim == cgltf_type_vec2 ) {
 		if( component == cgltf_component_type_r_8u )
 			return normalized ? VertexFormat_U8x2_Norm : VertexFormat_U8x2;
@@ -68,10 +69,11 @@ static VertexFormat VertexFormatFromGLTF( cgltf_type dim, cgltf_component_type c
 			return VertexFormat_Floatx4;
 	}
 
-	return VertexFormat_Floatx4; // TODO: actual error handling
+	assert( false );
+	return VertexFormat_Floatx4;
 }
 
-static void LoadGeometry( const char * filename, Model * model, const cgltf_node * node, const Mat4 & transform ) {
+static void LoadGeometry( const char * filename, GLTFRenderData * model, const cgltf_node * node, const Mat4 & transform ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const cgltf_primitive & prim = node->mesh->primitives[ 0 ];
@@ -131,7 +133,7 @@ static void LoadGeometry( const char * filename, Model * model, const cgltf_node
 	mesh_config.num_vertices = prim.indices->count;
 	mesh_config.ccw_winding = true;
 
-	Model::Primitive * primitive = &model->primitives[ model->num_primitives ];
+	GLTFRenderData::Primitive * primitive = &model->primitives[ model->num_primitives ];
 	model->num_primitives++;
 
 	primitive->mesh = NewMesh( mesh_config );
@@ -155,7 +157,7 @@ static GltfExtras LoadExtras( cgltf_data * gltf, cgltf_node * gltf_node ) {
 	cgltf_copy_extras_json( gltf, &gltf_node->extras, json_data, &json_size );
 	Span< const char > json( json_data, json_size );
 
-	GltfExtras extras = {};
+	GltfExtras extras = { };
 
 	jsmn_parser p;
 	constexpr u32 max_tokens = MAX_EXTRAS * 2 + 1;
@@ -189,12 +191,12 @@ static Span< const char > GetExtrasKey( const char * key, GltfExtras * extras ) 
 	return MakeSpan( "" );
 }
 
-static void LoadNode( const char * filename, Model * model, cgltf_data * gltf, cgltf_node * gltf_node, u8 * node_idx ) {
+static void LoadNode( const char * filename, GLTFRenderData * model, cgltf_data * gltf, cgltf_node * gltf_node, u8 * node_idx ) {
 	u8 idx = *node_idx;
 	*node_idx += 1;
 	SetNodeIdx( gltf_node, idx );
 
-	Model::Node * node = &model->nodes[ idx ];
+	GLTFRenderData::Node * node = &model->nodes[ idx ];
 	node->parent = gltf_node->parent != NULL ? GetNodeIdx( gltf_node->parent ) : U8_MAX;
 	node->primitive = U8_MAX;
 	node->name = gltf_node->name == NULL ? 0 : Hash32( gltf_node->name );
@@ -291,7 +293,7 @@ static InterpolationMode InterpolationModeFromGLTF( cgltf_interpolation_type int
 }
 
 template< typename T >
-static float LoadChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< T > * out_channel ) {
+static float LoadChannel( const cgltf_animation_channel * chan, GLTFRenderData::AnimationChannel< T > * out_channel ) {
 	constexpr size_t lanes = sizeof( T ) / sizeof( float );
 	size_t n = chan->sampler->input->count;
 
@@ -311,7 +313,7 @@ static float LoadChannel( const cgltf_animation_channel * chan, Model::Animation
 	return duration;
 }
 
-static float LoadScaleChannel( const cgltf_animation_channel * chan, Model::AnimationChannel< float > * out_channel ) {
+static float LoadScaleChannel( const cgltf_animation_channel * chan, GLTFRenderData::AnimationChannel< float > * out_channel ) {
 	size_t n = chan->sampler->input->count;
 
 	float * memory = ALLOC_MANY( sys_allocator, float, n * 2 );
@@ -337,7 +339,7 @@ static float LoadScaleChannel( const cgltf_animation_channel * chan, Model::Anim
 }
 
 template< typename T >
-static void CreateSingleSampleChannel( Model::AnimationChannel< T > * out_channel, T sample ) {
+static void CreateSingleSampleChannel( GLTFRenderData::AnimationChannel< T > * out_channel, T sample ) {
 	constexpr size_t lanes = sizeof( T ) / sizeof( float );
 
 	float * memory = ALLOC_MANY( sys_allocator, float, lanes + 1 );
@@ -349,7 +351,7 @@ static void CreateSingleSampleChannel( Model::AnimationChannel< T > * out_channe
 	out_channel->samples[ 0 ] = sample;
 }
 
-static void LoadAnimation( Model * model, const cgltf_animation * animation, u8 index = 0 ) {
+static void LoadAnimation( GLTFRenderData * model, const cgltf_animation * animation, u8 index = 0 ) {
 	float duration = 0.0f;
 	for( size_t i = 0; i < animation->channels_count; i++ ) {
 		const cgltf_animation_channel * chan = &animation->channels[ i ];
@@ -373,12 +375,12 @@ static void LoadAnimation( Model * model, const cgltf_animation * animation, u8 
 	model->animations[ index ].duration = duration;
 }
 
-static void LoadSkin( Model * model, const cgltf_skin * skin ) {
-	model->skin = ALLOC_MANY( sys_allocator, Model::Joint, skin->joints_count );
+static void LoadSkin( GLTFRenderData * model, const cgltf_skin * skin ) {
+	model->skin = ALLOC_MANY( sys_allocator, GLTFRenderData::Joint, skin->joints_count );
 	model->num_joints = skin->joints_count;
 
 	for( size_t i = 0; i < skin->joints_count; i++ ) {
-		Model::Joint * joint = &model->skin[ i ];
+		GLTFRenderData::Joint * joint = &model->skin[ i ];
 		joint->node_idx = GetNodeIdx( skin->joints[ i ] );
 
 		cgltf_bool ok = cgltf_accessor_read_float( skin->inverse_bind_matrices, i, joint->joint_to_bind.ptr(), 16 );
@@ -386,7 +388,88 @@ static void LoadSkin( Model * model, const cgltf_skin * skin ) {
 	}
 }
 
-bool LoadGLTFModel( Model * model, const char * path ) {
+static bool NewGLTFRenderData( GLTFRenderData * render_data, const cgltf_data * gltf, const char * path ) {
+	TracyZoneScoped;
+
+	*render_data = { };
+	render_data->bounds = MinMax3::Empty();
+
+	bool ok = false;
+	defer {
+		if( !ok ) {
+			DeleteGLTFRenderData( render_data );
+		}
+	};
+
+	constexpr Mat4 y_up_to_z_up(
+		1, 0, 0, 0,
+		0, 0, -1, 0,
+		0, 1, 0, 0,
+		0, 0, 0, 1
+	);
+	render_data->transform = y_up_to_z_up;
+
+	render_data->primitives = ALLOC_MANY( sys_allocator, render_data::Primitive, gltf->meshes_count );
+
+	render_data->nodes = ALLOC_MANY( sys_allocator, render_data::Node, gltf->nodes_count );
+	memset( render_data->nodes, 0, sizeof( render_data::Node ) * gltf->nodes_count );
+	render_data->num_nodes = gltf->nodes_count;
+
+	u8 node_idx = 0;
+	for( size_t i = 0; i < gltf->scene->nodes_count; i++ ) {
+		LoadNode( path, render_data, gltf, gltf->scene->nodes[ i ], &node_idx );
+		render_data->nodes[ GetNodeIdx( gltf->scene->nodes[ i ] ) ].sibling = U8_MAX;
+	}
+
+	if( gltf->animations_count > 0 ) {
+		render_data->num_animations = gltf->animations_count;
+		if( gltf->skins_count > 0 ) {
+			LoadSkin( render_data, &gltf->skins[ 0 ] );
+		}
+
+		render_data->animations = ALLOC_MANY( sys_allocator, render_data::Animation, gltf->animations_count );
+		for( size_t i = 0; i < render_data->num_nodes; i++ ) {
+			render_data->nodes[ i ].animations = ALLOC_SPAN( sys_allocator, render_data::NodeAnimation, gltf->animations_count );
+			memset( render_data->nodes[ i ].animations.ptr, 0, sizeof( render_data::NodeAnimation ) * gltf->animations_count );
+		}
+		for( size_t i = 0; i < gltf->animations_count; i++ ) {
+			LoadAnimation( render_data, &gltf->animations[ i ], i );
+		}
+	}
+
+	render_data->camera = U8_MAX;
+	for( size_t i = 0; i < gltf->nodes_count; i++ ) {
+		if( gltf->nodes[ i ].camera != NULL ) {
+			render_data->camera = GetNodeIdx( &gltf->nodes[ i ] );
+		}
+	}
+
+	ok = true;
+
+	return true;
+}
+
+static void DeleteGLTFRenderData( GLTFRenderData * render_data ) {
+	for( GLTFRenderData::Primitive primitive : render_data->primitives ) {
+		DeleteMesh( primtive.mesh );
+	}
+
+	for( GLTFRenderData::Node node : render_data->nodes ) {
+		for( size_t i = 0; i < render_data->animations.n; i++ ) {
+			FREE( sys_allocator, node.animations[ i ].rotations.samples );
+			FREE( sys_allocator, node.animations[ i ].translations.samples );
+			FREE( sys_allocator, node.animations[ i ].scales.samples );
+		}
+		FREE( sys_allocator, node.animations.ptr );
+	}
+
+	FREE( sys_allocator, model->primitives );
+	FREE( sys_allocator, model->nodes );
+	FREE( sys_allocator, model->skin );
+	FREE( sys_allocator, model->animations );
+}
+
+bool LoadGLTF( GLTFRenderData * render_data, const char * path ) {
 	TracyZoneScoped;
 	TracyZoneText( path, strlen( path ) );
 
@@ -430,51 +513,134 @@ bool LoadGLTFModel( Model * model, const char * path ) {
 		}
 	}
 
-	*model = { };
-	model->bounds = MinMax3::Empty();
+	return NewGLTFRenderData( render_data, gltf, path );
+}
 
-	constexpr Mat4 y_up_to_z_up(
-		1, 0, 0, 0,
-		0, 0, -1, 0,
-		0, 1, 0, 0,
-		0, 0, 0, 1
+template< typename T, typename F >
+static T SampleAnimationChannel( const Model::AnimationChannel< T > & channel, float t, T def, F lerp ) {
+	if( channel.samples == NULL )
+		return def;
+	if( channel.num_samples == 1 )
+		return channel.samples[ 0 ];
+
+	t = Clamp( channel.times[ 0 ], t, channel.times[ channel.num_samples - 1 ] );
+
+	u32 sample = 0;
+	for( u32 i = 1; i < channel.num_samples; i++ ) {
+		if( channel.times[ i ] >= t ) {
+			sample = i - 1;
+			break;
+		}
+	}
+
+	// TODO: cubic
+	if( channel.interpolation == InterpolationMode_Step ) {
+		return channel.samples[ sample ];
+	}
+
+	float lerp_frac = ( t - channel.times[ sample ] ) / ( channel.times[ sample + 1 ] - channel.times[ sample ] );
+	return lerp( channel.samples[ sample ], lerp_frac, channel.samples[ sample + 1 ] );
+}
+
+// can't use overloaded function as a template parameter
+static Vec3 LerpVec3( Vec3 a, float t, Vec3 b ) { return Lerp( a, t, b ); }
+static float LerpFloat( float a, float t, float b ) { return Lerp( a, t, b ); }
+
+Span< TRS > SampleAnimation( Allocator * a, const Model * model, float t, u8 animation ) {
+	TracyZoneScoped;
+
+	Span< TRS > local_poses = ALLOC_SPAN( a, TRS, model->num_nodes );
+
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		const Model::Node * node = &model->nodes[ i ];
+		local_poses[ i ].rotation = SampleAnimationChannel( node->animations[ animation ].rotations, t, node->local_transform.rotation, NLerp );
+		local_poses[ i ].translation = SampleAnimationChannel( node->animations[ animation ].translations, t, node->local_transform.translation, LerpVec3 );
+		local_poses[ i ].scale = SampleAnimationChannel( node->animations[ animation ].scales, t, node->local_transform.scale, LerpFloat );
+	}
+
+	return local_poses;
+}
+
+static Mat4 TRSToMat4( const TRS & trs ) {
+	Quaternion q = trs.rotation;
+	Vec3 t = trs.translation;
+	float s = trs.scale;
+
+	// return t * q * s;
+	return Mat4(
+		( 1.0f - 2 * q.y * q.y - 2.0f * q.z * q.z ) * s,
+		( 2.0f * q.x * q.y - 2.0f * q.z * q.w ) * s,
+		( 2.0f * q.x * q.z + 2.0f * q.y * q.w ) * s,
+		t.x,
+
+		( 2.0f * q.x * q.y + 2.0f * q.z * q.w ) * s,
+		( 1.0f - 2.0f * q.x * q.x - 2.0f * q.z * q.z ) * s,
+		( 2.0f * q.y * q.z - 2.0f * q.x * q.w ) * s,
+		t.y,
+
+		( 2.0f * q.x * q.z - 2.0f * q.y * q.w ) * s,
+		( 2.0f * q.y * q.z + 2.0f * q.x * q.w ) * s,
+		( 1.0f - 2.0f * q.x * q.x - 2.0f * q.y * q.y ) * s,
+		t.z,
+
+		0.0f, 0.0f, 0.0f, 1.0f
 	);
-	model->transform = y_up_to_z_up;
+}
 
-	model->primitives = ALLOC_MANY( sys_allocator, Model::Primitive, gltf->meshes_count );
+MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses ) {
+	TracyZoneScoped;
 
-	model->nodes = ALLOC_MANY( sys_allocator, Model::Node, gltf->nodes_count );
-	memset( model->nodes, 0, sizeof( Model::Node ) * gltf->nodes_count );
-	model->num_nodes = gltf->nodes_count;
+	assert( local_poses.n == model->num_nodes );
 
-	u8 node_idx = 0;
-	for( size_t i = 0; i < gltf->scene->nodes_count; i++ ) {
-		LoadNode( path, model, gltf, gltf->scene->nodes[ i ], &node_idx );
-		model->nodes[ GetNodeIdx( gltf->scene->nodes[ i ] ) ].sibling = U8_MAX;
+	MatrixPalettes palettes = { };
+	palettes.node_transforms = ALLOC_SPAN( a, Mat4, model->num_nodes );
+	if( model->num_joints != 0 ) {
+		palettes.skinning_matrices = ALLOC_SPAN( a, Mat4, model->num_joints );
 	}
 
-	if( gltf->animations_count > 0 ) {
-		model->num_animations = gltf->animations_count;
-		if( gltf->skins_count > 0 ) {
-			LoadSkin( model, &gltf->skins[ 0 ] );
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		u8 parent = model->nodes[ i ].parent;
+		if( parent == U8_MAX ) {
+			palettes.node_transforms[ i ] = TRSToMat4( local_poses[ i ] );
 		}
-
-		model->animations = ALLOC_MANY( sys_allocator, Model::Animation, gltf->animations_count );
-		for( size_t i = 0; i < model->num_nodes; i++ ) {
-			model->nodes[ i ].animations = ALLOC_SPAN( sys_allocator, Model::NodeAnimation, gltf->animations_count );
-			memset( model->nodes[ i ].animations.ptr, 0, sizeof( Model::NodeAnimation ) * gltf->animations_count );
-		}
-		for( size_t i = 0; i < gltf->animations_count; i++ ) {
-			LoadAnimation( model, &gltf->animations[ i ], i );
+		else {
+			palettes.node_transforms[ i ] = palettes.node_transforms[ parent ] * TRSToMat4( local_poses[ i ] );
 		}
 	}
 
-	model->camera = U8_MAX;
-	for( size_t i = 0; i < gltf->nodes_count; i++ ) {
-		if( gltf->nodes[ i ].camera != NULL ) {
-			model->camera = GetNodeIdx( &gltf->nodes[ i ] );
+	for( u8 i = 0; i < model->num_joints; i++ ) {
+		u8 node_idx = model->skin[ i ].node_idx;
+		palettes.skinning_matrices[ i ] = palettes.node_transforms[ node_idx ] * model->skin[ i ].joint_to_bind;
+	}
+
+	return palettes;
+}
+
+bool FindNodeByName( const Model * model, u32 name, u8 * idx ) {
+	for( u8 i = 0; i < model->num_nodes; i++ ) {
+		if( model->nodes[ i ].name == name ) {
+			*idx = i;
+			return true;
 		}
 	}
 
-	return true;
+	return false;
+}
+
+static void MergePosesRecursive( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 i ) {
+	lower[ i ] = upper[ i ];
+
+	const Model::Node * node = &model->nodes[ i ];
+	if( node->sibling != U8_MAX )
+		MergePosesRecursive( lower, upper, model, node->sibling );
+	if( node->first_child != U8_MAX )
+		MergePosesRecursive( lower, upper, model, node->first_child );
+}
+
+void MergeLowerUpperPoses( Span< TRS > lower, Span< const TRS > upper, const Model * model, u8 upper_root_node ) {
+	lower[ upper_root_node ] = upper[ upper_root_node ];
+
+	const Model::Node * node = &model->nodes[ upper_root_node ];
+	if( node->first_child != U8_MAX )
+		MergePosesRecursive( lower, upper, model, node->first_child );
 }

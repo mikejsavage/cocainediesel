@@ -297,15 +297,7 @@ void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transf
 		return;
 
 	bool animated = palettes.node_transforms.ptr != NULL;
-
-	// TODO: this should be figured out during model loading
-	bool any_skinned = false;
-	for( u8 i = 0; i < model->num_nodes; i++ ) {
-		if( model->nodes[ i ].skinned ) {
-			any_skinned = true;
-			break;
-		}
-	}
+	bool any_skinned = model->skin != NULL;
 
 	UniformBlock pose_uniforms = { };
 	if( any_skinned && animated ) {

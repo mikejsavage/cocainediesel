@@ -1,4 +1,5 @@
 #include "qcommon/base.h"
+#include "client/client.h"
 #include "client/renderer/renderer.h"
 #include "gameshared/cdmap.h"
 

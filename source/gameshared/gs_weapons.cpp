@@ -385,22 +385,16 @@ static ItemState railgun_states[] = {
 
 	ItemState( WeaponState_Idle, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		if( cmd->buttons & Button_Attack1 ) {
-			return WeaponState_Cooking;
-		}
-
-		return AllowWeaponSwitch( gs, ps, WeaponState_Idle );
-	} ),
-
-	ItemState( WeaponState_Cooking, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
-		const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
-		if( ( cmd->buttons & Button_Attack1 ) == 0 && ps->weapon_state_time >= def->reload_time ) {
 			gs->api.PredictedFireWeapon( ps->POVnum, Weapon_Railgun );
 			return WeaponState_Firing;
 		}
 
-		ps->weapon_state_time = Min2( def->reload_time, ps->weapon_state_time );
+		if( cmd->buttons & Button_Attack2 ) {
+			gs->api.PredictedAltFireWeapon( ps->POVnum, Weapon_Railgun );
+			return WeaponState_Firing;
+		}
 
-		return state;
+		return AllowWeaponSwitch( gs, ps, WeaponState_Idle );
 	} ),
 };
 

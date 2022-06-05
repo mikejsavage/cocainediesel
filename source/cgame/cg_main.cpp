@@ -83,6 +83,7 @@ static void CG_InitGameShared( int max_clients ) {
 
 	client_gs.api.PredictedEvent = CG_PredictedEvent;
 	client_gs.api.PredictedFireWeapon = CG_PredictedFireWeapon;
+	client_gs.api.PredictedAltFireWeapon = CG_PredictedAltFireWeapon;
 	client_gs.api.PredictedUseGadget = CG_PredictedUseGadget;
 	client_gs.api.Trace = CG_GS_Trace;
 	client_gs.api.GetEntityState = CG_GS_GetEntityState;

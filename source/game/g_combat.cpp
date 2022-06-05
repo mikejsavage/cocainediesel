@@ -325,12 +325,6 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 	int clamped_takedmg = HEALTH_TO_INT( take );
 
-	// add damage done to stats
-	if( statDmg && damage_category == DamageCategory_Weapon && client && attacker->r.client ) {
-		G_ClientGetStats( attacker )->accuracy_hits[ weapon ]++;
-		G_ClientGetStats( attacker )->accuracy_damage[ weapon ] += damage;
-	}
-
 	// accumulate given damage for hit sounds
 	if( targ != attacker && client && !targ->deadflag && attacker ) {
 		attacker->snap.damage_given += take;

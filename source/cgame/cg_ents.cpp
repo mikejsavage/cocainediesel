@@ -881,6 +881,7 @@ void CG_UpdateEntities() {
 			case ET_BUBBLE:
 			case ET_GRENADE:
 			case ET_RIFLEBULLET:
+			case ET_RAILGUN:
 			case ET_STAKE:
 			case ET_BLAST:
 			case ET_THROWING_AXE:

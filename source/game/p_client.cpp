@@ -741,6 +741,19 @@ void G_PredictedFireWeapon( int entNum, u64 parm ) {
 	event->s.team = ent->s.team;
 }
 
+void G_PredictedAltFireWeapon( int entNum, u64 parm ) {
+	edict_t * ent = &game.edicts[ entNum ];
+	G_AltFireWeapon( ent, parm );
+
+	Vec3 start = ent->s.origin;
+	start.z += ent->r.client->ps.viewheight;
+
+	edict_t * event = G_SpawnEvent( EV_ALTFIREWEAPON, parm, &start );
+	event->s.ownerNum = entNum;
+	event->s.origin2 = ent->r.client->ps.viewangles;
+	event->s.team = ent->s.team;
+}
+
 void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm ) {
 	edict_t * ent = &game.edicts[ entNum ];
 	G_UseGadget( ent, gadget, parm );

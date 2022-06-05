@@ -122,10 +122,6 @@ struct score_stats_t {
 	int score;
 	bool ready;
 
-	int accuracy_shots[ Weapon_Count ];
-	int accuracy_hits[ Weapon_Count ];
-	int accuracy_damage[ Weapon_Count ];
-	int accuracy_frags[ Weapon_Count ];
 	int total_damage_given;
 	int total_damage_received;
 };
@@ -384,6 +380,7 @@ void SP_decal( edict_t * ent, const spawn_temp_t * st );
 // g_weapon.c
 //
 void G_FireWeapon( edict_t * ent, u64 parm );
+void G_AltFireWeapon( edict_t * ent, u64 parm );
 void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm );
 
 //
@@ -413,7 +410,8 @@ void ClientDisconnect( edict_t * ent, const char *reason );
 void ClientBegin( edict_t * ent );
 void ClientCommand( edict_t * ent, ClientCommandType command, msg_t args );
 void G_PredictedEvent( int entNum, int ev, u64 parm );
-void G_PredictedFireWeapon( int entNum, u64 weapon_and_entropy );
+void G_PredictedFireWeapon( int entNum, u64 parm );
+void G_PredictedAltFireWeapon( int entNum, u64 parm );
 void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm );
 void G_SelectWeapon( edict_t * ent, int index );
 void G_GiveWeapon( edict_t * ent, WeaponType weapon );

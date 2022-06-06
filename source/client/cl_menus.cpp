@@ -876,8 +876,8 @@ static void MainMenu() {
 			ImGui::Text( "Dexter - programming" );
 			ImGui::Text( "general adnic - voice acting" );
 			ImGui::Text( "goochie - art & programming" );
-			ImGui::Text( "MSC - programming" );
 			ImGui::Text( "MikeJS - programming" );
+			ImGui::Text( "MSC - programming & art" );
 			ImGui::Text( "Obani - music & fx & programming" );
 			ImGui::Separator();
 			ImGui::Text( "jwzr - medical research" );

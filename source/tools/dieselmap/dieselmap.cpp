@@ -16,6 +16,8 @@
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
 
+#include "meshoptimizer/meshoptimizer.h"
+
 #include "zstd/zstd.h"
 
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
@@ -493,9 +495,36 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 		material_start_index = i + 1;
 	}
 
-	// TODO: meshopt
+	std::vector< CompiledMesh > optimized_meshes;
+	for( const CompiledMesh & merged : merged_meshes ) {
+		TracyZoneScopedN( "meshopt" );
 
-	return merged_meshes;
+		std::vector< u32 > remap( merged.indices.size() );
+		size_t unique_verts = meshopt_generateVertexRemap( remap.data(),
+			merged.indices.data(), merged.indices.size(),
+			merged.vertices.data(), merged.vertices.size(), sizeof( MapVertex ) );
+
+		CompiledMesh optimized;
+		optimized.material = merged.material;
+		optimized.vertices.resize( unique_verts );
+		optimized.indices.resize( merged.indices.size() );
+
+		MapVertex * vertices = optimized.vertices.data();
+		size_t num_vertices = optimized.vertices.size();
+		u32 * indices = optimized.indices.data();
+		size_t num_indices = optimized.indices.size();
+
+		{ TracyZoneScopedN( "meshopt_remapVertexBuffer" ); meshopt_remapVertexBuffer( vertices, vertices, num_vertices, sizeof( MapVertex ), remap.data() ); }
+		{ TracyZoneScopedN( "meshopt_remapIndexBuffer" ); meshopt_remapIndexBuffer( indices, indices, num_indices, remap.data() ); }
+		// optimizeVertexCache is extremely slow so don't bother
+		// { TracyZoneScopedN( "meshopt_optimizeVertexCache" ); meshopt_optimizeVertexCache( indices, indices, num_indices, num_vertices ); }
+		{ TracyZoneScopedN( "meshopt_optimizeOverdraw" ); meshopt_optimizeOverdraw( indices, indices, num_indices, &vertices[ 0 ].position.x, num_vertices, sizeof( MapVertex ), 1.05f ); }
+		{ TracyZoneScopedN( "meshopt_optimizeVertexFetch" ); meshopt_optimizeVertexFetch( vertices, indices, num_indices, vertices, num_vertices, sizeof( MapVertex ) ); }
+
+		optimized_meshes.push_back( optimized );
+	}
+
+	return optimized_meshes;
 }
 
 static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
@@ -633,8 +662,6 @@ static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData
 	}
 	else {
 		TracyZoneScopedN( "ZSTD_compress" );
-
-		printf( "Compressing, this is slow...\n" );
 
 		size_t compressed_max_size = ZSTD_compressBound( packed.size() );
 		u8 * compressed = ALLOC_MANY( arena, u8, compressed_max_size );

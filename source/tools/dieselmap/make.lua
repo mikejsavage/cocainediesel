@@ -31,6 +31,7 @@ bin( "dieselmap", {
 	libs = {
 		"ggformat",
 		"tracy",
+		"meshoptimizer",
 		"zstd",
 	},
 

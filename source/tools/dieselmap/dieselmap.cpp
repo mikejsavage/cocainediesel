@@ -638,7 +638,7 @@ static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData
 	packed.extend( sizeof( header ) );
 	memset( packed.ptr(), 0, packed.size() ); // zero out padding bytes
 
-	size_t last_alignment = 16;
+	size_t last_alignment = alignof( MapHeader );
 	Pack( packed, &header, MapSection_Meshes, map->meshes, &last_alignment );
 	Pack( packed, &header, MapSection_Entities, map->entities, &last_alignment );
 	Pack( packed, &header, MapSection_EntityKeyValues, map->entity_kvs, &last_alignment );

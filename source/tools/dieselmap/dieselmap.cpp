@@ -611,6 +611,7 @@ static constexpr const char * section_names[] = {
 
 template< typename T >
 void Pack( DynamicArray< u8 > & packed, MapHeader * header, MapSectionType section, Span< const T > data, size_t * last_alignment ) {
+	assert( packed.size() % alignof( T ) == 0 );
 	assert( alignof( T ) <= *last_alignment );
 	*last_alignment = alignof( T );
 

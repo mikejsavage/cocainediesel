@@ -28,12 +28,12 @@ struct MapSection {
 
 struct MapHeader {
 	char magic[ 8 ];
-	u32 format_version;
+	u64 format_version;
 	MapSection sections[ MapSection_Count ];
 };
 
 constexpr const char CDMAP_MAGIC[ sizeof( MapHeader::magic ) ] = "cdmap";
-constexpr u32 CDMAP_FORMAT_VERSION = 1;
+constexpr u64 CDMAP_FORMAT_VERSION = 1;
 
 struct MapEntity {
 	u32 first_key_value;

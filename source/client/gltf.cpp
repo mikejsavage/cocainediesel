@@ -11,7 +11,7 @@
 
 #include "cgltf/cgltf.h"
 
-constexpr u32 MAX_MODELS = 1024;
+static constexpr u32 MAX_MODELS = 1024;
 
 static GLTFRenderData gltf_models[ MAX_MODELS ];
 static u32 num_gltf_models;

@@ -51,7 +51,7 @@ struct CompiledKDTree {
 	std::vector< Plane > planes;
 
 	std::vector< MapKDTreeNode > nodes;
-	std::vector< u16 > brush_indices;
+	std::vector< u32 > brush_indices;
 };
 
 struct CompiledEntity {
@@ -811,6 +811,8 @@ int main( int argc, char ** argv ) {
 		TracyZoneScopedN( "Flatten render/collision geometry" );
 
 		for( const CompiledEntity & entity : compiled_entities ) {
+			MinMax3 bounds = { };
+
 			size_t base_mesh = flat_meshes.size();
 
 			u32 first_mesh = checked_cast< u32 >( flat_meshes.size() );
@@ -823,6 +825,9 @@ int main( int argc, char ** argv ) {
 				flat_meshes.add( map_mesh );
 
 				size_t base_vertex = flat_vertices.size();
+				for( MapVertex vert : mesh.vertices ) {
+					bounds = Union( bounds, vert.position );
+				}
 				flat_vertices.add_many( VectorToSpan( mesh.vertices ) );
 				for( u32 idx : mesh.indices ) {
 					flat_vertex_indices.add( base_vertex + idx );
@@ -836,12 +841,13 @@ int main( int argc, char ** argv ) {
 			flat_nodes.add_many( VectorToSpan( entity.collision_geometry.nodes ) );
 			flat_brushes.add_many( VectorToSpan( entity.collision_geometry.brushes ) );
 			flat_brush_planes.add_many( VectorToSpan( entity.collision_geometry.planes ) );
+			flat_brush_indices.add_many( VectorToSpan( entity.collision_geometry.brush_indices ) );
 			// flat_brush_plane_indices.add_many( VectorToSpan( entity.collision_geometry.plane_indices ) );
 			// TODO: indices
 
 			if( entity.render_geometry.size() > 0 || entity.collision_geometry.nodes.size() > 0 ) {
 				MapModel model = { };
-				model.bounds = { }; // TODO
+				model.bounds = bounds;
 				model.root_node = { }; // TODO
 				model.first_mesh = first_mesh;
 				model.num_meshes = entity.render_geometry.size();

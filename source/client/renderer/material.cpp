@@ -261,7 +261,7 @@ static void ParseRGBGen( Material * material, Span< const char > name, Span< con
 static void ParseAlphaGen( Material * material, Span< const char > name, Span< const char > * data ) {
 	Span< const char > token = ParseMaterialToken( data );
 	if( token == "entity" ) {
-		material->alphagen.type = ColorGenType_EntityWave;
+		material->alphagen.type = ColorGenType_Entity;
 	}
 	else if( token == "wave" ) {
 		material->alphagen.type = ColorGenType_Wave;

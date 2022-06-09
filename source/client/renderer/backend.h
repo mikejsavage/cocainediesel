@@ -207,36 +207,23 @@ struct PipelineState {
 };
 
 struct MeshConfig {
-	MeshConfig() {
-		positions = { };
-		normals = { };
-		tex_coords = { };
-		colors = { };
-		joints = { };
-		weights = { };
-	}
+	GPUBuffer positions = { };
+	GPUBuffer normals = { };
+	GPUBuffer tex_coords = { };
+	GPUBuffer colors = { };
+	GPUBuffer joints = { };
+	GPUBuffer weights = { };
 
-	GPUBuffer unified_buffer = { };
-	u32 stride = 0;
-
-	union {
-		struct {
-			GPUBuffer positions;
-			GPUBuffer normals;
-			GPUBuffer tex_coords;
-			GPUBuffer colors;
-			GPUBuffer joints;
-			GPUBuffer weights;
-		};
-		struct {
-			u32 positions_offset;
-			u32 normals_offset;
-			u32 tex_coords_offset;
-			u32 colors_offset;
-			u32 joints_offset;
-			u32 weights_offset;
-		};
-	};
+	struct {
+		GPUBuffer buffer = { };
+		u32 stride = 0;
+		Optional< u32 > positions_offset = NONE;
+		Optional< u32 > normals_offset = NONE;
+		Optional< u32 > tex_coords_offset = NONE;
+		Optional< u32 > colors_offset = NONE;
+		Optional< u32 > joints_offset = NONE;
+		Optional< u32 > weights_offset = NONE;
+	} unified;
 
 	const char * name = NULL;
 

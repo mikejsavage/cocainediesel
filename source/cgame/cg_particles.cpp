@@ -11,10 +11,10 @@
 #include "imgui/imgui.h"
 
 // must match glsl
-#define PARTICLE_COLLISION_POINT 1u
-#define PARTICLE_COLLISION_SPHERE 2u
-#define PARTICLE_ROTATE 4u
-#define PARTICLE_STRETCH 8u
+static constexpr u32 PARTICLE_COLLISION_POINT = 1;
+static constexpr u32 PARTICLE_COLLISION_SPHERE = 2;
+static constexpr u32 PARTICLE_ROTATE = 4;
+static constexpr u32 PARTICLE_STRETCH = 8;
 
 static ParticleSystem particleSystems[ MAX_PARTICLE_SYSTEMS ];
 static u32 num_particleSystems;

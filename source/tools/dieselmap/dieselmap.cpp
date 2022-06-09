@@ -877,7 +877,6 @@ int main( int argc, char ** argv ) {
 
 	// TODO: generate render geometry
 	// - figure out what postprocessing we need e.g. welding
-	// - meshopt, before patch brushes
 	// - extend void render geometry
 	// - extend void brushes
 	//

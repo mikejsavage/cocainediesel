@@ -8,10 +8,10 @@ MapSharedRenderData NewMapRenderData( const MapData & map, const char * name, u6
 
 	MeshConfig mesh_config;
 	mesh_config.name = name;
-	mesh_config.unified_buffer = NewGPUBuffer( map.vertices, temp( "{} vertices", name ) );
-	mesh_config.stride = sizeof( MapVertex );
-	mesh_config.positions_offset = offsetof( MapVertex, position );
-	mesh_config.normals_offset = offsetof( MapVertex, normal );
+	mesh_config.unified.buffer = NewGPUBuffer( map.vertices, temp( "{} vertices", name ) );
+	mesh_config.unified.stride = sizeof( MapVertex );
+	mesh_config.unified.positions_offset = offsetof( MapVertex, position );
+	mesh_config.unified.normals_offset = offsetof( MapVertex, normal );
 	mesh_config.indices = NewGPUBuffer( map.vertex_indices, temp( "{} indices", name ) );
 	mesh_config.indices_format = IndexFormat_U32;
 	mesh_config.num_vertices = map.vertex_indices.n;

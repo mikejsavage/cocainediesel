@@ -813,10 +813,6 @@ static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexForma
 	if( buffer == 0 )
 		return;
 
-	// TODO: ultra hack
-	if( stride > 0 && index != VertexAttribute_Position && offset == 0 )
-		return;
-
 	GLenum type;
 	int num_components;
 	bool integral;
@@ -831,6 +827,12 @@ static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexForma
 	else {
 		glVertexArrayAttribFormat( vao, index, num_components, type, normalized, offset );
 	}
+}
+
+static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexFormat format, u32 stride, Optional< u32 > offset ) {
+	if( !offset.exists )
+		return;
+	SetupAttribute( vao, buffer, index, format, stride, offset.value );
 }
 
 static void SubmitFramebufferBlit( const RenderPass & pass ) {
@@ -1700,7 +1702,7 @@ Mesh NewMesh( MeshConfig config ) {
 	glCreateVertexArrays( 1, &vao );
 	DebugLabel( GL_VERTEX_ARRAY, vao, config.name );
 
-	if( config.unified_buffer.buffer == 0 ) {
+	if( config.unified.buffer.buffer == 0 ) {
 		SetupAttribute( vao, config.positions.buffer, VertexAttribute_Position, config.positions_format );
 		SetupAttribute( vao, config.normals.buffer, VertexAttribute_Normal, config.normals_format );
 		SetupAttribute( vao, config.tex_coords.buffer, VertexAttribute_TexCoord, config.tex_coords_format );
@@ -1709,15 +1711,15 @@ Mesh NewMesh( MeshConfig config ) {
 		SetupAttribute( vao, config.weights.buffer, VertexAttribute_JointWeights, config.weights_format );
 	}
 	else {
-		assert( config.stride != 0 );
+		assert( config.unified.stride != 0 );
 
-		GLuint buffer = config.unified_buffer.buffer;
-		SetupAttribute( vao, buffer, VertexAttribute_Position, config.positions_format, config.stride, config.positions_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_Normal, config.normals_format, config.stride, config.normals_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_TexCoord, config.tex_coords_format, config.stride, config.tex_coords_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_Color, config.colors_format, config.stride, config.colors_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_JointIndices, config.joints_format, config.stride, config.joints_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_JointWeights, config.weights_format, config.stride, config.weights_offset );
+		GLuint buffer = config.unified.buffer.buffer;
+		SetupAttribute( vao, buffer, VertexAttribute_Position, config.positions_format, config.unified.stride, config.unified.positions_offset );
+		SetupAttribute( vao, buffer, VertexAttribute_Normal, config.normals_format, config.unified.stride, config.unified.normals_offset );
+		SetupAttribute( vao, buffer, VertexAttribute_TexCoord, config.tex_coords_format, config.unified.stride, config.unified.tex_coords_offset );
+		SetupAttribute( vao, buffer, VertexAttribute_Color, config.colors_format, config.unified.stride, config.unified.colors_offset );
+		SetupAttribute( vao, buffer, VertexAttribute_JointIndices, config.joints_format, config.unified.stride, config.unified.joints_offset );
+		SetupAttribute( vao, buffer, VertexAttribute_JointWeights, config.weights_format, config.unified.stride, config.unified.weights_offset );
 	}
 
 	glVertexArrayElementBuffer( vao, config.indices.buffer );
@@ -1727,7 +1729,10 @@ Mesh NewMesh( MeshConfig config ) {
 	mesh.primitive_type = config.primitive_type;
 	mesh.ccw_winding = config.ccw_winding;
 	mesh.vao = vao;
-	if( config.unified_buffer.buffer == 0 ) {
+	mesh.indices = config.indices;
+	mesh.indices_format = config.indices_format;
+
+	if( config.unified.buffer.buffer == 0 ) {
 		mesh.positions = config.positions;
 		mesh.normals = config.normals;
 		mesh.tex_coords = config.tex_coords;
@@ -1736,10 +1741,8 @@ Mesh NewMesh( MeshConfig config ) {
 		mesh.weights = config.weights;
 	}
 	else {
-		mesh.positions = config.unified_buffer;
+		mesh.positions = config.unified.buffer;
 	}
-	mesh.indices = config.indices;
-	mesh.indices_format = config.indices_format;
 
 	return mesh;
 }

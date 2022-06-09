@@ -177,12 +177,12 @@ static void SubmitDrawCalls() {
 
 		MeshConfig config;
 		config.name = temp( "ImGui - {}", n );
-		config.unified_buffer = NewGPUBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ), temp( "ImGui vertices - {}", n ) );
-		config.positions_offset = offsetof( ImDrawVert, pos );
-		config.tex_coords_offset = offsetof( ImDrawVert, uv );
-		config.colors_offset = offsetof( ImDrawVert, col );
+		config.unified.buffer = NewGPUBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ), temp( "ImGui vertices - {}", n ) );
+		config.unified.stride = sizeof( ImDrawVert );
+		config.unified.positions_offset = offsetof( ImDrawVert, pos );
+		config.unified.tex_coords_offset = offsetof( ImDrawVert, uv );
+		config.unified.colors_offset = offsetof( ImDrawVert, col );
 		config.positions_format = VertexFormat_Floatx2;
-		config.stride = sizeof( ImDrawVert );
 		config.indices = NewGPUBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( u16 ), temp( "ImGui indices - {}", n ) );
 		Mesh mesh = NewMesh( config );
 		DeferDeleteMesh( mesh );

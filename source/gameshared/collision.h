@@ -12,6 +12,7 @@ struct GLTFCollisionBrush {
 };
 
 struct GLTFCollisionData {
+	MinMax3 bounds;
 	Span< Vec3 > vertices;
 	Span< Plane > planes;
 	Span< GLTFCollisionBrush > brushes;

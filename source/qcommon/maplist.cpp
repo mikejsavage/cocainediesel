@@ -9,6 +9,8 @@
 static NonRAIIDynamicArray< char * > maps;
 
 void InitMapList() {
+	TracyZoneScoped;
+
 	maps.init( sys_allocator );
 	RefreshMapList( sys_allocator );
 }
@@ -27,6 +29,8 @@ void ShutdownMapList() {
 }
 
 void RefreshMapList( Allocator * a ) {
+	TracyZoneScoped;
+
 	FreeMaps();
 
 	char * path = ( *a )( "{}/base/maps", RootDirPath() );

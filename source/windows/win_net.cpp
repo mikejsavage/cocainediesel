@@ -33,6 +33,8 @@ static SOCKET HandleToOSSocket( u64 handle ) {
 }
 
 void InitNetworking() {
+	TracyZoneScoped;
+
 	WSADATA wsa_data;
 	if( WSAStartup( MAKEWORD( 2, 2 ), &wsa_data ) != 0 ) {
 		FatalWSA( "WSAStartup" );

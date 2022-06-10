@@ -42,6 +42,19 @@ static bool IsConvex( GLTFCollisionData data, GLTFCollisionBrush brush ) {
 	return true;
 }
 
+template< typename T >
+Span< T > DedupeSorted( Allocator * a, Span< T > sorted ) {
+	NonRAIIDynamicArray< T > deduped( a );
+
+	for( size_t i = 1; i < sorted.n; i++ ) {
+		if( sorted[ i ] != sorted[ i - 1 ] ) {
+			deduped.add( sorted );
+		}
+	}
+
+	return deduped.span();
+}
+
 bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * gltf, const char * path, u64 hash ) {
 	NonRAIIDynamicArray< Vec3 > vertices( sys_allocator );
 	NonRAIIDynamicArray< Plane > planes( sys_allocator );

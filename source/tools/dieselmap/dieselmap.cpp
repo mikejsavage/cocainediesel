@@ -29,7 +29,7 @@ static void LogDebugInstructions() {
 	if( !done_once ) {
 		printf( "You can jump to the broken brushes listed below by doing:\n" );
 		printf( "Radiant: Misc > Find Brush...\n" );
-		printf( "Radiant: Edit > Select by Line Number\n" );
+		printf( "TrenchBroom: Edit > Select by Line Number\n" );
 	}
 	done_once = true;
 }

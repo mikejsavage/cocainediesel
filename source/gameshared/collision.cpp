@@ -4,6 +4,7 @@
 #include "qcommon/string.h"
 #include "gameshared/cdmap.h"
 #include "gameshared/collision.h"
+#include "gameshared/editor_materials.h"
 #include "gameshared/q_collision.h"
 
 #include "cgltf/cgltf.h"
@@ -24,34 +25,6 @@ void ShutdownCollisionModelStorage( CollisionModelStorage * storage ) {
 	for( size_t i = 0; i < storage->gltfs_hashtable.size(); i++ ) {
 		DeleteGLTFCollisionData( storage->gltfs[ i ] );
 	}
-}
-
-struct EditorMaterial {
-	StringHash name;
-	bool visible;
-	u8 solidity;
-};
-
-static constexpr u8 CONTENTS_LADDER = 1234;
-constexpr const EditorMaterial editor_materials[] = {
-	{ "discard", false, CONTENTS_SOLID },
-	{ "ladder", false, CONTENTS_LADDER | CONTENTS_PLAYERCLIP },
-	{ "clip", false, CONTENTS_SOLID },
-	{ "playerclip", false, CONTENTS_PLAYERCLIP },
-	{ "weaponclip", false, CONTENTS_WEAPONCLIP },
-	{ "trigger", false, CONTENTS_SOLID },
-	{ "wallbangable", true, CONTENTS_WALLBANGABLE },
-	{ "door", true, CONTENTS_WEAPONCLIP },
-};
-
-static const EditorMaterial * FindEditorMaterial( StringHash name ) {
-	for( const EditorMaterial & material : editor_materials ) {
-		if( material.name == name ) {
-			return &material;
-		}
-	}
-
-	return NULL;
 }
 
 static bool IsConvex( GLTFCollisionData data, GLTFCollisionBrush brush ) {

@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "parsing.h"
-#include "materials.h"
 
 #include "qcommon/base.h"
 #include "qcommon/array.h"
@@ -13,6 +12,7 @@
 #include "qcommon/string.h"
 #include "qcommon/hash.h"
 #include "gameshared/cdmap.h"
+#include "gameshared/editor_materials.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
 
@@ -181,7 +181,8 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( int entity_id, const P
 		material_mesh.material = brush.faces.span()[ i ].material_hash;
 		assert( material_mesh.material != 0 );
 
-		if( IsNodrawMaterial( material_mesh.material ) )
+		const EditorMaterial * editor_material = FindEditorMaterial( StringHash( material_mesh.material ) );
+		if( editor_material != NULL && !editor_material->visible )
 			continue;
 
 		std::vector< Vec3 > hull = BrushFaceToHull( VectorToSpan( planes ), i );
@@ -703,9 +704,6 @@ int main( int argc, char ** argv ) {
 	constexpr size_t arena_size = 1024 * 1024 * 1024; // 1GB
 	ArenaAllocator arena( ALLOC_SIZE( sys_allocator, arena_size, 16 ), arena_size );
 
-	InitFS();
-	InitMaterials();
-
 	// parse the .map
 	std::vector< ParsedEntity > entities = ParseEntities( Span< char >( src, src_len ) );
 
@@ -884,9 +882,6 @@ int main( int argc, char ** argv ) {
 	// - flip CW to CCW winding. q3 bsp was CW lol
 
 	FREE( sys_allocator, arena.get_memory() );
-
-	ShutdownMaterials();
-	ShutdownFS();
 
 	return 0;
 }

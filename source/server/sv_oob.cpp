@@ -37,6 +37,8 @@ extern Cvar * sv_iplimit;
 //==============================================================================
 
 static void SV_ResolveMaster() {
+	TracyZoneScoped;
+
 	memset( master_servers, 0, sizeof( master_servers ) );
 
 	if( sv.state > ss_game ) {

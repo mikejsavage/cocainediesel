@@ -158,6 +158,8 @@ void Cbuf_AddLateCommands( int argc, char ** argv ) {
 }
 
 static void ExecConfig( const char * path ) {
+	TracyZoneScoped;
+
 	char * config = ReadFileString( sys_allocator, path );
 	defer { FREE( sys_allocator, config ); };
 	if( config == NULL ) {

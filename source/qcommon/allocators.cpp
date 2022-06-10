@@ -112,6 +112,8 @@ struct SystemAllocator final : public Allocator {
 	AllocationTracker tracker;
 
 	void * try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
+		TracyZoneScoped;
+
 		/*
 		 * https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/malloc?view=vs-2015
 		 * https://www.gnu.org/software/libc/manual/html_node/Aligned-Memory-Blocks.html
@@ -131,6 +133,8 @@ struct SystemAllocator final : public Allocator {
 	}
 
 	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
+		TracyZoneScoped;
+
 		assert( alignment <= 16 );
 
 		TracyCFree( ptr );
@@ -150,6 +154,7 @@ struct SystemAllocator final : public Allocator {
 	}
 
 	void deallocate( void * ptr, const char * func, const char * file, int line ) {
+		TracyZoneScoped;
 		TracyCFree( ptr );
 		tracker.untrack( ptr, func, file, line );
 		free( ptr );

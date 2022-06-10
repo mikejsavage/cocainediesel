@@ -8,6 +8,8 @@ static u8 entropy[ 40 ];
 static u64 ctr;
 
 void InitCSPRNG() {
+	TracyZoneScoped;
+
 	if( !ggentropy( entropy, sizeof( entropy ) ) ) {
 		Fatal( "ggentropy" );
 	}

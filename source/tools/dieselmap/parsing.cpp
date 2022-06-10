@@ -243,8 +243,7 @@ static Span< const char > ParseQ1Face( ParsedBrushFace * face, Span< const char 
 	str = ParsePlane( face->plane, str );
 	str = ParseWord( &face->material, str );
 
-	constexpr StringHash base_hash = "textures/";
-	face->material_hash = Hash64( face->material.ptr, face->material.num_bytes(), base_hash.hash );
+	face->material_hash = Hash64( face->material );
 
 	float u, v, angle, scale_x, scale_y;
 	str = ParseFloat( &u, str );

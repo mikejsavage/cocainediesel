@@ -72,6 +72,7 @@ struct MapKDTreeNode {
 STATIC_ASSERT( sizeof( MapKDTreeNode ) == 8 );
 
 struct MapBrush {
+	MinMax3 bounds;
 	u16 first_plane;
 	u8 num_planes;
 	u8 solidity;

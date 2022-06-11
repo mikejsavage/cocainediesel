@@ -515,8 +515,6 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 		u32 * indices = optimized.indices.data();
 		size_t num_indices = optimized.indices.size();
 
-		{ TracyZoneScopedN( "meshopt_remapVertexBuffer" ); meshopt_remapVertexBuffer( vertices, vertices, num_vertices, sizeof( MapVertex ), remap.data() ); }
-		{ TracyZoneScopedN( "meshopt_remapIndexBuffer" ); meshopt_remapIndexBuffer( indices, indices, num_indices, remap.data() ); }
 		{ TracyZoneScopedN( "meshopt_remapVertexBuffer" ); meshopt_remapVertexBuffer( vertices, merged.vertices.data(), merged.vertices.size(), sizeof( MapVertex ), remap.data() ); }
 		{ TracyZoneScopedN( "meshopt_remapIndexBuffer" ); meshopt_remapIndexBuffer( indices, merged.indices.data(), merged.indices.size(), remap.data() ); }
 		// optimizeVertexCache is extremely slow so don't bother
@@ -532,6 +530,7 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 
 static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 	TracyZoneScoped;
+	constexpr float epsilon = 0.001f;
 
 	CompiledKDTree kd_tree;
 	kd_tree.bounds = MinMax3::Empty();
@@ -567,13 +566,19 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 
 		// make MapBrush
 		MapBrush map_brush = { };
+		map_brush.bounds = bounds;
 		map_brush.first_plane = checked_cast< u16 >( kd_tree.planes.size() );
-		map_brush.num_planes = checked_cast< u8 >( planes.size() );
+		// map_brush.num_planes = checked_cast< u8 >( planes.size() );
 		map_brush.solidity = 0; // TODO
 
+		u8 num_planes = 0;
 		for( Plane plane : planes ) {
-			kd_tree.planes.push_back( plane );
+			if( Abs( plane.normal.x + plane.normal.y + plane.normal.z ) < epsilon ) {
+				num_planes++;
+				kd_tree.planes.push_back( plane );
+			}
 		}
+		map_brush.num_planes = num_planes;
 
 		kd_tree.brushes.push_back( map_brush );
 		kd_tree.bounds = Union( kd_tree.bounds, bounds );

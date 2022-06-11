@@ -610,7 +610,6 @@ static constexpr const char * section_names[] = {
 	"Brushes",
 	"BrushIndices",
 	"BrushPlanes",
-	"BrushPlaneIndices",
 
 	"Meshes",
 	"Vertices",
@@ -653,7 +652,6 @@ static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData
 	Pack( packed, &header, MapSection_Models, map->models, &last_alignment );
 	Pack( packed, &header, MapSection_Nodes, map->nodes, &last_alignment );
 	Pack( packed, &header, MapSection_BrushPlanes, map->brush_planes, &last_alignment );
-	// Pack( packed, &header, MapSection_BrushPlaneIndices, map->brush_plane_indices, &last_alignment );
 	Pack( packed, &header, MapSection_Vertices, map->vertices, &last_alignment );
 	Pack( packed, &header, MapSection_VertexIndices, map->vertex_indices, &last_alignment );
 	Pack( packed, &header, MapSection_BrushIndices, map->brush_indices, &last_alignment );
@@ -784,7 +782,6 @@ int main( int argc, char ** argv ) {
 	DynamicArray< MapBrush > flat_brushes( &arena );
 	DynamicArray< u32 > flat_brush_indices( &arena );
 	DynamicArray< Plane > flat_brush_planes( &arena );
-	// DynamicArray< u32 > flat_brush_plane_indices( &arena );
 	DynamicArray< MapMesh > flat_meshes( &arena );
 	DynamicArray< MapVertex > flat_vertices( &arena );
 	DynamicArray< u32 > flat_vertex_indices( &arena );
@@ -842,8 +839,6 @@ int main( int argc, char ** argv ) {
 			flat_brushes.add_many( VectorToSpan( entity.collision_geometry.brushes ) );
 			flat_brush_planes.add_many( VectorToSpan( entity.collision_geometry.planes ) );
 			flat_brush_indices.add_many( VectorToSpan( entity.collision_geometry.brush_indices ) );
-			// flat_brush_plane_indices.add_many( VectorToSpan( entity.collision_geometry.plane_indices ) );
-			// TODO: indices
 
 			if( entity.render_geometry.size() > 0 || entity.collision_geometry.nodes.size() > 0 ) {
 				MapModel model = { };
@@ -867,7 +862,6 @@ int main( int argc, char ** argv ) {
 	flattened.brushes = flat_brushes.span();
 	flattened.brush_indices = flat_brush_indices.span();
 	flattened.brush_planes = flat_brush_planes.span();
-	// flattened.brush_plane_indices = flat_brush_plane_indices.span();
 	flattened.meshes = flat_meshes.span();
 	flattened.vertices = flat_vertices.span();
 	flattened.vertex_indices = flat_vertex_indices.span();

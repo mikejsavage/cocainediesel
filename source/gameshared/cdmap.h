@@ -13,7 +13,6 @@ enum MapSectionType {
 	MapSection_Brushes,
 	MapSection_BrushIndices,
 	MapSection_BrushPlanes,
-	MapSection_BrushPlaneIndices,
 
 	MapSection_Meshes,
 	MapSection_Vertices,
@@ -100,7 +99,6 @@ struct MapData {
 	Span< const MapBrush > brushes;
 	Span< const u32 > brush_indices;
 	Span< const Plane > brush_planes;
-	Span< const u32 > brush_plane_indices;
 
 	Span< const MapMesh > meshes;
 	Span< const MapVertex > vertices;

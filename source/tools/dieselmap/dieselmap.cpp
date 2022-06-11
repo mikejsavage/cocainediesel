@@ -573,7 +573,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 
 		u8 num_planes = 0;
 		for( Plane plane : planes ) {
-			if( Abs( plane.normal.x + plane.normal.y + plane.normal.z ) < epsilon ) {
+			if( Abs( plane.normal.x + plane.normal.y + plane.normal.z ) < 1.0f - epsilon ) {
 				num_planes++;
 				kd_tree.planes.push_back( plane );
 			}

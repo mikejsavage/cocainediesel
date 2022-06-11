@@ -816,8 +816,6 @@ int main( int argc, char ** argv ) {
 		TracyZoneScopedN( "Flatten render/collision geometry" );
 
 		for( const CompiledEntity & entity : compiled_entities ) {
-			MinMax3 bounds = { };
-
 			size_t base_mesh = flat_meshes.size();
 
 			u32 first_mesh = checked_cast< u32 >( flat_meshes.size() );
@@ -830,9 +828,6 @@ int main( int argc, char ** argv ) {
 				flat_meshes.add( map_mesh );
 
 				size_t base_vertex = flat_vertices.size();
-				for( MapVertex vert : mesh.vertices ) {
-					bounds = Union( bounds, vert.position );
-				}
 				flat_vertices.add_many( VectorToSpan( mesh.vertices ) );
 				for( u32 idx : mesh.indices ) {
 					flat_vertex_indices.add( base_vertex + idx );
@@ -852,7 +847,7 @@ int main( int argc, char ** argv ) {
 
 			if( entity.render_geometry.size() > 0 || entity.collision_geometry.nodes.size() > 0 ) {
 				MapModel model = { };
-				model.bounds = bounds;
+				model.bounds = entity.collision_geometry.bounds;
 				model.root_node = { }; // TODO
 				model.first_mesh = first_mesh;
 				model.num_meshes = entity.render_geometry.size();

@@ -517,6 +517,8 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 
 		{ TracyZoneScopedN( "meshopt_remapVertexBuffer" ); meshopt_remapVertexBuffer( vertices, vertices, num_vertices, sizeof( MapVertex ), remap.data() ); }
 		{ TracyZoneScopedN( "meshopt_remapIndexBuffer" ); meshopt_remapIndexBuffer( indices, indices, num_indices, remap.data() ); }
+		{ TracyZoneScopedN( "meshopt_remapVertexBuffer" ); meshopt_remapVertexBuffer( vertices, merged.vertices.data(), merged.vertices.size(), sizeof( MapVertex ), remap.data() ); }
+		{ TracyZoneScopedN( "meshopt_remapIndexBuffer" ); meshopt_remapIndexBuffer( indices, merged.indices.data(), merged.indices.size(), remap.data() ); }
 		// optimizeVertexCache is extremely slow so don't bother
 		// { TracyZoneScopedN( "meshopt_optimizeVertexCache" ); meshopt_optimizeVertexCache( indices, indices, num_indices, num_vertices ); }
 		{ TracyZoneScopedN( "meshopt_optimizeOverdraw" ); meshopt_optimizeOverdraw( indices, indices, num_indices, &vertices[ 0 ].position.x, num_vertices, sizeof( MapVertex ), 1.05f ); }

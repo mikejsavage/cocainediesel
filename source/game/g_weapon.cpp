@@ -988,14 +988,6 @@ static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	axe->avelocity = Vec3( 360.0f * 4, 0.0f, 0.0f );
 }
 
-static void TouchStunGrenade( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
-	if( !CanHit( ent, other ) ) {
-		return;
-	}
-
-	G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Gadget_StunGrenade );
-}
-
 static void ExplodeStunGrenade( edict_t * grenade ) {
 	const GadgetDef * def = GetGadgetDef( Gadget_StunGrenade );
 
@@ -1025,10 +1017,24 @@ static void ExplodeStunGrenade( edict_t * grenade ) {
 			float angle_scale = Lerp( 0.25f, Unlerp( -1.0f, theta, 1.0f ), 1.0f );
 
 			ps->flashed = Min2( u32( ps->flashed ) + u32( distance_flash * angle_scale ), u32( U16_MAX ) );
+			if( other->s.team == grenade->s.team ) {
+				ps->flashed *= 0.25;
+			}
 		}
 	}
 
 	G_FreeEdict( grenade );
+}
+
+static void TouchStunGrenade( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+	if( !CanHit( ent, other ) ) {
+		return;
+	}
+
+	if( ENTNUM( other ) != 0 ) {
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Gadget_StunGrenade );
+		ExplodeStunGrenade( ent );
+	}
 }
 
 static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, u64 charge_time ) {

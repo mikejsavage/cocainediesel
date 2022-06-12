@@ -799,7 +799,7 @@ const GadgetDef gadget_defs[] = {
 		/* using time       */ 50,
 		/* cook time        */ 1200,
 		/* switch out time  */ 400 + WEAPONDOWN_TIME,
-		/* damage           */ 5,
+		/* damage           */ 10,
 		/* knockback        */ 0,
 		/* min damage       */ 120,
 		/* min knockback    */ 0,

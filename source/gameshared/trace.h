@@ -9,9 +9,10 @@ struct Intersection {
 };
 
 struct Ray {
-  Vec3 origin;
-  Vec3 direction;
-  float t_max;
+	Vec3 origin;
+	Vec3 direction; // normalized
+	Vec3 inv_dir;
+	float length;
 };
 
-bool Trace( const MapData * map, const MapModel * model, Ray ray, Intersection & enter, Intersection & leave );
+bool Trace( const MapData * map, const MapModel * model, Ray ray, Intersection * intersection );

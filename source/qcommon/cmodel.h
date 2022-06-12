@@ -20,6 +20,7 @@
 
 #include "gameshared/q_math.h"
 #include "gameshared/q_collision.h"
+#include "gameshared/cdmap.h"
 #include "qcommon/qfiles.h"
 #include "qcommon/hash.h"
 

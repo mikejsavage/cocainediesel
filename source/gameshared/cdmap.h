@@ -1,6 +1,7 @@
 #pragma once
 
 #include "qcommon/types.h"
+#include "gameshared/editor_materials.h"
 
 enum MapSectionType {
 	MapSection_Entities,
@@ -53,6 +54,12 @@ struct MapModel {
 };
 
 struct MapKDTreeNode {
+	static constexpr u32 LEAF = 3;
+
+	static bool is_leaf( MapKDTreeNode node ) {
+		return node.leaf.is_leaf == LEAF;
+	}
+
 	union {
 		struct {
 			float splitting_plane_distance;
@@ -74,7 +81,7 @@ struct MapBrush {
 	MinMax3 bounds;
 	u16 first_plane;
 	u8 num_planes;
-	u8 solidity;
+	SolidBits solidity;
 };
 
 struct MapMesh {

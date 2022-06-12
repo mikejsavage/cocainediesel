@@ -322,21 +322,21 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 	Vec2 spread = RandomSpreadPattern( self->r.client->ucmd.entropy, spreadness );
 
 
-	{
-		Ray ray;
-		ray.origin = start;
-		ray.direction = dir;
-		ray.t_max = def->range;
-		Intersection enter, leave;
-		bool hit = Trace( &svs.map, &svs.map.models[ 0 ], ray, enter, leave );
-		if( hit ) {
-			Vec3 pos = start + dir * enter.t;
-			Com_GGPrint( "hit {} {}", pos, enter.normal );
-		}
-		else {
-			Com_GGPrint( "not hit" );
-		}
-	}
+	// {
+	// 	Ray ray;
+	// 	ray.origin = start;
+	// 	ray.direction = dir;
+	// 	ray.t_max = def->range;
+	// 	Intersection enter, leave;
+	// 	bool hit = Trace( &svs.map, &svs.map.models[ 0 ], ray, enter, leave );
+	// 	if( hit ) {
+	// 		Vec3 pos = start + dir * enter.t;
+	// 		Com_GGPrint( "hit {} {}", pos, enter.normal );
+	// 	}
+	// 	else {
+	// 		Com_GGPrint( "not hit" );
+	// 	}
+	// }
 
 
 	trace_t trace, wallbang;

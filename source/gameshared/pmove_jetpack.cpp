@@ -14,7 +14,7 @@ static constexpr float fuel_use_jetpack = 0.125f;
 static constexpr float fuel_use_boost = 0.5f;
 static constexpr float fuel_min = 0.01f;
 
-static constexpr float refuel_min = 0.5f; //50%
+static constexpr float refuel_min = 1.0f; //50%
 static constexpr float refuel_ground = 0.5f;
 static constexpr float refuel_air = 0.0f;
 

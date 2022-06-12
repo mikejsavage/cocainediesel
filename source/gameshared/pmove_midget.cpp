@@ -7,6 +7,7 @@ static constexpr float pm_minbounceupspeed = 120.0f;
 static constexpr float pm_wallbouncefactor = 0.25f;
 
 static constexpr float stamina_use = 2.5f;
+static constexpr float stamina_use_jumped = 4.0f;
 static constexpr float stamina_recover = 1.55f;
 
 
@@ -57,6 +58,10 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 	//don't remove this, this avoids having issues when 'pressed' is set to the wrong value in some local states.
 	if( !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility ) {
 		ps->pmove.stamina_state = Stamina_UsedAbility;
+	}
+
+	if( ps->pmove.stamina_state == Stamina_UsedAbility ) {
+		StaminaUse( ps, pml, stamina_use_jumped );
 	}
 
 	if( !pressed ) {

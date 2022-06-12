@@ -301,7 +301,10 @@ local function DrawPlayerBar( state )
 			cd.box( x, y, width, stamina_bar_height, c )
 		elseif state.perk == Perk_Jetpack then
 			local s = 1 - math.min( 1.0, state.stamina + 0.5 )
-			cd.box( x, y, width, stamina_bar_height, RGBALinear( 0.06 + s * 0.8, 0.06 + s * 0.1, 0.06 + s * 0.1, 0.5 + 0.5 * state.stamina ) )
+			if state.stamina_state == Stamina_Reloading then
+				stamina_color = RGBALinear( 0.5, 0.08, 0.08, 1 )
+			end
+			cd.box( x, y, width, stamina_bar_height, RGBALinear( 0.06 + s * 0.8, 0.06 + s * 0.1, 0.06 + s * 0.1, 0.5 + 0.25 * state.stamina ) )
 		else
 			cd.box( x, y, width, stamina_bar_height, bg_color )
 		end

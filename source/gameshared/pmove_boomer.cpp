@@ -2,7 +2,7 @@
 #include "gameshared/gs_weapons.h"
 
 static constexpr float jump_upspeed = 260.0f;
-static constexpr float jump_detection = 0.06f;
+static constexpr float jump_detection = 0.06f; //slight jump buffering
 
 
 static constexpr float charge_groundAccel = 2.0f;

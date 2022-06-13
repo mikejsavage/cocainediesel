@@ -2,8 +2,10 @@
 #include "gameshared/gs_weapons.h"
 
 
-static constexpr float pm_jetpackspeed = 25.0f * 62.0f;
 static constexpr float pm_jumpspeed = 220.0f;
+static constexpr float jump_detection = 0.06f; //slight jump buffering
+
+static constexpr float pm_jetpackspeed = 25.0f * 62.0f;
 static constexpr float pm_maxjetpackupspeed = 150.0f;
 static constexpr float pm_maxjetpackupspeedslowdown = 0.75f;
 
@@ -20,8 +22,15 @@ static constexpr float refuel_air = 0.0f;
 
 
 static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+
 	if( pressed ) {
-		if( pm->groundentity != -1 && !(ps->pmove.pm_flags & PMF_ABILITY1_HELD) ) {
+		ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
+		
+		if( !(ps->pmove.pm_flags & PMF_ABILITY1_HELD) ) {
+			ps->pmove.stamina_stored = jump_detection;
+		}
+
+		if( pm->groundentity != -1 && ps->pmove.stamina_stored != 0.0f ) {
 			Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, JumpType_Normal, true );
 		}
 
@@ -59,7 +68,7 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 
 
 static void PM_JetpackSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( ps->pmove.stamina_state == Stamina_Normal || ps->pmove.stamina_state == Stamina_Reloading ) {
+	if( (ps->pmove.stamina_state == Stamina_Normal || ps->pmove.stamina_state == Stamina_Reloading) && !(ps->pmove.pm_flags & PMF_ABILITY2_HELD) ) {
 		StaminaRecover( ps, pml, refuel_ground );
 		if( ps->pmove.stamina >= refuel_min ) {
 			ps->pmove.stamina_state = Stamina_Normal;

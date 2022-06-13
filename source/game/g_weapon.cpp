@@ -990,6 +990,7 @@ static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 
 static void ExplodeStunGrenade( edict_t * grenade ) {
 	const GadgetDef * def = GetGadgetDef( Gadget_StunGrenade );
+	static constexpr float flash_distance = 2000.0f;
 
 	edict_t * event = G_SpawnEvent( EV_STUN_GRENADE_EXPLOSION, 0, &grenade->s.origin );
 	event->s.team = grenade->s.team;
@@ -1009,7 +1010,7 @@ static void ExplodeStunGrenade( edict_t * grenade ) {
 		G_Trace4D( &grenade_to_eye, grenade->s.origin, Vec3( 0.0f ), Vec3( 0.0f ), eye, grenade, MASK_SOLID, grenade->timeDelta );
 		if( grenade_to_eye.fraction == 1.0f ) {
 			float distance = Length( eye - grenade->s.origin );
-			u16 distance_flash = Lerp( u16( 0 ), Unlerp01( float( def->splash_radius ), distance, float( def->min_damage ) ), U16_MAX );
+			u16 distance_flash = Lerp( u16( 0 ), Unlerp01( float( flash_distance ), distance, float( def->min_damage ) ), U16_MAX );
 
 			Vec3 forward;
 			AngleVectors( ps->viewangles, &forward, NULL, NULL );

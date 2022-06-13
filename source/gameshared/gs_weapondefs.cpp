@@ -803,7 +803,7 @@ const GadgetDef gadget_defs[] = {
 		/* knockback        */ 80,
 		/* min damage       */ 120,
 		/* min knockback    */ 0,
-		/* splash_radius    */ 2000,
+		/* splash_radius    */ 300,
 		/* timeout          */ 1500,
 		/* speed            */ 1500,
 		/* min speed        */ 1000,

@@ -85,7 +85,7 @@ static bool IntersectBrush( const MapData * map, const MapBrush * brush, Ray ray
 		}
 
 		// end_dist - start_dist = n.(o + ld) - n.o = n.o - n.o + l(n.d) = l(n.d)
-		float t = -start_dist / ( end_dist - start_dist );
+		float t = -start_dist * ray.length / ( end_dist - start_dist );
 		if( t > best.t ) {
 			best = { t, plane->normal };
 		}

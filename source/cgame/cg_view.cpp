@@ -23,6 +23,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/skybox.h"
 #include "qcommon/time.h"
 
+#include "qcommon/cmodel.h"
+#include "gameshared/trace.h"
+
 ChasecamState chaseCam;
 
 int CG_LostMultiviewPOV();
@@ -634,6 +637,25 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	CG_Draw2D();
 
 	UploadDecalBuffers();
+
+	{
+		Vec3 start = cg.view.origin;
+		Vec3 end = cg.view.origin + FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 500.0f;
+
+		trace_t old_trace;
+		CM_TransformedBoxTrace( CM_Client, cl.map->cms, &old_trace, start, end, Vec3( 0.0f ), Vec3( 0.0f ), NULL, MASK_ALL, Vec3( 0.0f ), Vec3( 0.0f ) );
+
+		Ray ray = { start, Normalize( end - start ), 1.0f / Normalize( end - start ), Length( end - start ) };
+		Intersection intersection;
+		Trace( &cl.map->data, &cl.map->data.models[ 0 ], ray, &intersection );
+		Vec3 new_end = start + intersection.t * ray.direction;
+
+		if( Length( old_trace.endpos - new_end ) > 0.1f ) {
+			Com_GGPrint( "sucks to be you start={} old={} new={}", start, old_trace.endpos, new_end );
+			if( break1 ) __debugbreak();
+			Trace( &cl.map->data, &cl.map->data.models[ 0 ], ray, &intersection );
+		}
+	}
 }
 
 void MaybeResetShadertoyTime( bool respawned ) {

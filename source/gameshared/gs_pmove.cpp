@@ -933,7 +933,7 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 		pml.velocity.z = 0;
 	}
 
-	if( oldGroundEntity == -1 ) {
+	if( oldGroundEntity == -1 && pm->groundentity != -1 ) {
 		constexpr float min_fall_velocity = 200;
 		constexpr float max_fall_velocity = 800;
 

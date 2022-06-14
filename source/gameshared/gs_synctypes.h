@@ -344,6 +344,7 @@ struct pmove_state_t {
 	s16 knockback_time;
 	float stamina;
 	float stamina_stored;
+	float jump_buffering;
 	StaminaState stamina_state;
 
 	s16 max_speed;

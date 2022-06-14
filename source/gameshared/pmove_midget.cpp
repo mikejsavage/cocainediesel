@@ -1,35 +1,40 @@
 #include "gameshared/movement.h"
 
 static constexpr float pm_jumpspeed = 250.0f;
-static constexpr float pm_chargedjumpspeed = 1000.0f;
+static constexpr float jump_detection = 0.06f; //slight jump buffering
 
-static constexpr float pm_minbounceupspeed = 120.0f;
-static constexpr float pm_wallbouncefactor = 0.25f;
+static constexpr float pm_chargedjumpspeed = 975.0f;
+static constexpr float bounce_time = 2.0f;
 
 static constexpr float stamina_use = 2.5f;
 static constexpr float stamina_use_jumped = 4.0f;
 static constexpr float stamina_recover = 1.55f;
 
+static constexpr float floor_distance = STEPSIZE * 0.5f;
 
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( pm->groundentity == -1 ) {
-		return;
-	}
-
-	if( ps->pmove.stamina_state == Stamina_UsedAbility ) {
+	if( (pm->groundentity != -1 || pml->ladder) && (ps->pmove.stamina_state == Stamina_UsedAbility ) ) {
 		ps->pmove.stamina_state = Stamina_Normal;
 	}
 
-	if( !pressed ) {
-		return;
+	if( pressed ) {
+		ps->pmove.jump_buffering = Max2( 0.0f, ps->pmove.jump_buffering - pml->frametime );
+		
+		if( !(ps->pmove.pm_flags & PMF_ABILITY1_HELD) ) {
+			ps->pmove.jump_buffering = jump_detection;
+		}
+
+		ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
+
+		if( pm->groundentity == -1 || pml->ladder || ps->pmove.jump_buffering == 0.0f ) {
+			return;
+		}
+
+		Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, JumpType_Normal, true );
+	} else {
+		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
 	}
 
-	if( pml->ladder ) {
-		return;
-	}
-
-
-	Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, JumpType_Normal, true );
 }
 
 
@@ -41,7 +46,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 		StaminaRecover( ps, pml, stamina_recover );
 	}
 
-	if( pressed && !pml->ladder ) {
+	if( pressed ) {
 		if( ps->pmove.stamina_state == Stamina_UsingAbility ||
 			( can_start_charge && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) ) //a bit tricky but we don't want midget charge to start if we were already pressing before reaching can_start_charge
 		{
@@ -55,11 +60,6 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
 	}
 
-	//don't remove this, this avoids having issues when 'pressed' is set to the wrong value in some local states.
-	if( !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility ) {
-		ps->pmove.stamina_state = Stamina_UsedAbility;
-	}
-
 	if( ps->pmove.stamina_state == Stamina_UsedAbility ) {
 		StaminaUse( ps, pml, stamina_use_jumped );
 	}
@@ -67,46 +67,51 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 	if( !pressed ) {
 		float special_jumpspeed = pm_chargedjumpspeed * ( ps->pmove.stamina_stored - ps->pmove.stamina );
 		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility && special_jumpspeed > pm_jumpspeed ) {
-			Jump( pm, pml, pmove_gs, ps, special_jumpspeed, JumpType_MidgetCharge, false );
+			Vec3 fwd;
+			AngleVectors( pm->playerState->viewangles, &fwd, NULL, NULL );
+			Vec3 dashdir = fwd;
+
+			dashdir = Normalize( dashdir );
+			dashdir *= pm_chargedjumpspeed;
+
+			pm->groundentity = -1;
+			pml->velocity = dashdir;
+
+			ps->pmove.stamina_stored = bounce_time;
+
+			pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, JumpType_MidgetCharge );
+			ps->pmove.stamina_state = Stamina_UsedAbility;
 		}
-		ps->pmove.stamina_stored = 0.0f;
+
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
-
-	if( pm->groundentity != -1 ) {
+	
+	/*if( ps->pmove.stamina_stored == 0.0f || ps->pmove.stamina_state != Stamina_UsedAbility ) {
 		return;
 	}
 
-	if( pml->velocity.z < pm_minbounceupspeed ) {
-		return;
-	}
+	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
 
 	trace_t trace;
 	Vec3 point = pml->origin;
-	point.z -= STEPSIZE;
-	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
+	point.z -= floor_distance;
 
-	if( ( trace.fraction == 1 || ( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) &&
-		ps->pmove.stamina_state == Stamina_UsedAbility )
-	{
+	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, ps->POVnum, pm->contentmask, 0 );
+
+	if( trace.fraction == 1 || !trace.startsolid ) {
 		Vec3 normal( 0.0f );
-		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.1f, &normal );
+		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, true );
 		if( !Length( normal ) )
 			return;
 
-		float oldupvelocity = pml->velocity.z;
-		pml->velocity.z = 0.0;
-
-		float hspeed = Normalize2D( &pml->velocity );
-
+		float speed = Length( pml->velocity );
 		pml->velocity = GS_ClipVelocity( pml->velocity, normal, 1.0005f );
-		pml->velocity = pml->velocity + normal * pm_wallbouncefactor;
-
+		pml->velocity = pml->velocity + normal;
 		pml->velocity = Normalize( pml->velocity );
+		pml->velocity *= speed;
 
-		pml->velocity *= hspeed;
-		pml->velocity.z = oldupvelocity;
-	}
+		ps->pmove.stamina_stored = 0.0f;
+	}*/
 }
 
 

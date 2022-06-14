@@ -22,15 +22,14 @@ static constexpr float refuel_air = 0.0f;
 
 
 static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-
 	if( pressed ) {
-		ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
+		ps->pmove.jump_buffering = Max2( 0.0f, ps->pmove.jump_buffering - pml->frametime );
 
 		if( !(ps->pmove.pm_flags & PMF_ABILITY1_HELD) ) {
-			ps->pmove.stamina_stored = jump_detection;
+			ps->pmove.jump_buffering = jump_detection;
 		}
 
-		if( pm->groundentity != -1 && ps->pmove.stamina_stored != 0.0f ) {
+		if( pm->groundentity != -1 && ps->pmove.jump_buffering != 0.0f ) {
 			Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, JumpType_Normal, true );
 		}
 
@@ -56,7 +55,7 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 		ps->pmove.stamina_state = Stamina_UsedAbility;
 	}
 
-	if( ( pm->groundentity != -1 || pm->waterlevel >= 2 ) ) {
+	if( ( pm->groundentity != -1 || pm->waterlevel >= 2 || pml->ladder ) ) {
 		if( ps->pmove.stamina_state == Stamina_UsedAbility ) {
 			ps->pmove.stamina_state = Stamina_Reloading;
 		} else if( ps->pmove.stamina_state == Stamina_UsingAbility ) {

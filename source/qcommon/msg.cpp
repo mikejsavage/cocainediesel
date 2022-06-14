@@ -595,6 +595,7 @@ static void Delta( DeltaBuffer * buf, pmove_state_t & pmove, const pmove_state_t
 	Delta( buf, pmove.knockback_time, baseline.knockback_time );
 	Delta( buf, pmove.stamina, baseline.stamina );
 	Delta( buf, pmove.stamina_stored, baseline.stamina_stored );
+	Delta( buf, pmove.jump_buffering, baseline.jump_buffering );
 	DeltaEnum( buf, pmove.stamina_state, baseline.stamina_state, Stamina_Count );
 
 	Delta( buf, pmove.max_speed, baseline.max_speed );

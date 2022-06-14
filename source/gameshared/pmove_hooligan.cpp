@@ -21,7 +21,7 @@ static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		StaminaRecover( ps, pml, stamina_recover );
 	}
 
-	if( pm->groundentity == -1 ) {
+	if( pm->groundentity == -1 && !pml->ladder ) {
 		return;
 	}
 
@@ -53,7 +53,7 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 		( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) )
 	{
 		Vec3 normal( 0.0f );
-		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal );
+		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, false );
 		if( !Length( normal ) )
 			return;
 

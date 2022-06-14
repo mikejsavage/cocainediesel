@@ -22,21 +22,16 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 
 	if( pressed ) {
 		if( !( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) ) {
-			ps->pmove.stamina_stored = jump_detection;
+			ps->pmove.jump_buffering = jump_detection;
 		}
 
 		ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
-		ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
+		ps->pmove.jump_buffering = Max2( 0.0f, ps->pmove.jump_buffering - pml->frametime );
 
-		if( ( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) && ps->pmove.stamina_stored == 0.0f ) {
+		if( pm->groundentity == -1 || (( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) && ps->pmove.jump_buffering == 0.0f) ) {
 			return;
 		}
 
-		if( pm->groundentity == -1 ) {
-			return;
-		}
-
-		ps->pmove.stamina_stored = 0.0f;
 		Jump( pm, pml, pmove_gs, ps, jump_upspeed, JumpType_Normal, true );
 	} else {
 		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;

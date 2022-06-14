@@ -14,7 +14,7 @@ float Normalize2D( Vec3 * v ) {
 // nbTestDir is the number of directions to test around the player
 // maxZnormal is the max Z value of the normal of a poly to consider it a wall
 // normal becomes a pointer to the normal of the most appropriate wall
-void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal ) {
+void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal, bool z ) {
 	TracyZoneScoped;
 
 	float dist = 1.0;
@@ -28,7 +28,7 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 		Vec3 dir = Vec3(
 			pm->maxs.x * cosf( PI * 2.0f * t ) + pml->velocity.x * 0.015f,
 			pm->maxs.y * sinf( PI * 2.0f * t ) + pml->velocity.y * 0.015f,
-			0.0f
+			z ? pm->maxs.z * cosf( PI * 2.0f * t ) + pml->velocity.z * 0.015f : 0.0f
 		);
 		Vec3 end = pml->origin + dir;
 
@@ -104,6 +104,10 @@ void PM_InitPerk( pmove_t * pm, pml_t * pml, PerkType perk,
 
 
 void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, JumpType j, bool addvel ) {
+	if( pml->ladder ) {
+		return;
+	}
+	
 	pm->groundentity = -1;
 
 	// clip against the ground when jumping if moving that direction

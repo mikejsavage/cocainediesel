@@ -80,9 +80,12 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 			ps->pmove.stamina_stored = bounce_time;
 
 			pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, JumpType_MidgetCharge );
-			ps->pmove.stamina_state = Stamina_UsedAbility;
 		}
 
+		if( ps->pmove.stamina_state == Stamina_UsingAbility ) {
+			ps->pmove.stamina_state = Stamina_UsedAbility;
+		}
+		
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
 	

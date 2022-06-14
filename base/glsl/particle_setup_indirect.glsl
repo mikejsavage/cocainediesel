@@ -24,7 +24,7 @@ layout( std430 ) writeonly buffer b_ComputeIndirect {
 
 struct DrawElementsIndirectCommand {
 	uint count;
-	uint primCount;
+	uint instanceCount;
 	uint firstIndex;
 	uint baseVertex;
 	uint baseInstance;
@@ -37,6 +37,6 @@ layout( std430 ) writeonly buffer b_DrawIndirect {
 void main() {
 	num_particles += new_particles;
 	next_num_particles = 0;
-  compute_indirect.num_groups_x = num_particles / 64 + 1;
-  draw_indirect.primCount = num_particles;
+	compute_indirect.num_groups_x = num_particles / 64 + 1;
+	draw_indirect.instanceCount = num_particles;
 }

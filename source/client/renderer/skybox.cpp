@@ -20,7 +20,14 @@ void InitSkybox() {
 		Vec4(  1.0f, -1.0f, -1.0f, 0.0f ),
 	};
 
-	constexpr u16 indices[] = { 7, 6, 3, 2, 0, 6, 4, 7, 5, 3, 1, 0, 5, 4 };
+	constexpr u16 indices[] = {
+		6, 3, 7, 3, 6, 2,
+		2, 0, 3, 0, 2, 6,
+		6, 4, 0, 4, 6, 7,
+		7, 5, 4, 5, 7, 3,
+		5, 3, 1, 1, 3, 0,
+		0, 5, 1, 5, 0, 4,
+	};
 
 	MeshConfig mesh_config;
 	mesh_config.name = "Skybox";
@@ -28,7 +35,6 @@ void InitSkybox() {
 	mesh_config.positions_format = VertexFormat_Floatx4;
 	mesh_config.indices = NewGPUBuffer( indices, sizeof( indices ), "Skybox indices" );
 	mesh_config.num_vertices = ARRAY_COUNT( indices );
-	mesh_config.primitive_type = PrimitiveType_TriangleStrip;
 	mesh_config.ccw_winding = false;
 
 	sky_mesh = NewMesh( mesh_config );

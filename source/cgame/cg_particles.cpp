@@ -108,10 +108,6 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	u32 counts[] = { 1, 1, 1 };
 	ps->compute_indirect = NewGPUBuffer( counts, sizeof( counts ), "compute_indirect" );
 
-	ElementsIndirect indirect = { };
-	indirect.count = 4;
-	ps->draw_indirect = NewGPUBuffer( &indirect, sizeof( indirect ), "draw_indirect" );
-
 	{
 		constexpr Vec2 verts[] = {
 			Vec2( -0.5f, -0.5f ),
@@ -127,7 +123,7 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 			Vec2( 1.0f, 1.0f ),
 		};
 
-		constexpr u16 indices[] = { 0, 1, 2, 3 };
+		constexpr u16 indices[] = { 0, 1, 2, 2, 1, 3 };
 
 		MeshConfig mesh_config;
 		mesh_config.name = "Particle quad";
@@ -136,9 +132,12 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 		mesh_config.tex_coords = NewGPUBuffer( uvs, sizeof( uvs ) );
 		mesh_config.indices = NewGPUBuffer( indices, sizeof( indices ) );
 		mesh_config.num_vertices = ARRAY_COUNT( indices );
-		mesh_config.primitive_type = PrimitiveType_TriangleStrip;
 
 		ps->mesh = NewMesh( mesh_config );
+
+		ElementsIndirect indirect = { };
+		indirect.count = ARRAY_COUNT( indices );
+		ps->draw_indirect = NewGPUBuffer( &indirect, sizeof( indirect ), "draw_indirect" );
 	}
 
 	ps->initialized = true;

@@ -3,8 +3,9 @@
 static constexpr float pm_jumpspeed = 250.0f;
 static constexpr float jump_detection = 0.06f; //slight jump buffering
 
-static constexpr float pm_chargedjumpspeed = 975.0f;
+static constexpr float pm_chargedjumpspeed = 1000.0f;
 static constexpr float bounce_time = 2.0f;
+static constexpr float min_charge_speed = pm_jumpspeed * 2;
 
 static constexpr float stamina_use = 2.5f;
 static constexpr float stamina_use_jumped = 4.0f;
@@ -66,13 +67,13 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 	if( !pressed ) {
 		float special_jumpspeed = pm_chargedjumpspeed * ( ps->pmove.stamina_stored - ps->pmove.stamina );
-		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility && special_jumpspeed > pm_jumpspeed ) {
+		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility && special_jumpspeed > min_charge_speed ) {
 			Vec3 fwd;
 			AngleVectors( pm->playerState->viewangles, &fwd, NULL, NULL );
 			Vec3 dashdir = fwd;
 
 			dashdir = Normalize( dashdir );
-			dashdir *= pm_chargedjumpspeed;
+			dashdir *= special_jumpspeed;
 
 			pm->groundentity = -1;
 			pml->velocity = dashdir;
@@ -80,12 +81,14 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 			ps->pmove.stamina_stored = bounce_time;
 
 			pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, JumpType_MidgetCharge );
+		} else if( ps->pmove.stamina_state == Stamina_UsingAbility ) {
+			ps->pmove.stamina_state = Stamina_Normal;
 		}
 
 		if( ps->pmove.stamina_state == Stamina_UsingAbility ) {
 			ps->pmove.stamina_state = Stamina_UsedAbility;
 		}
-		
+
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
 	

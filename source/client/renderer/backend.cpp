@@ -120,8 +120,6 @@ static GLenum PrimitiveTypeToGL( PrimitiveType primitive_type ) {
 	switch( primitive_type ) {
 		case PrimitiveType_Triangles:
 			return GL_TRIANGLES;
-		case PrimitiveType_TriangleStrip:
-			return GL_TRIANGLE_STRIP;
 		case PrimitiveType_Points:
 			return GL_POINTS;
 		case PrimitiveType_Lines:
@@ -1687,9 +1685,6 @@ Mesh NewMesh( MeshConfig config ) {
 	switch( config.primitive_type ) {
 		case PrimitiveType_Triangles:
 			assert( config.num_vertices % 3 == 0 );
-			break;
-		case PrimitiveType_TriangleStrip:
-			assert( config.num_vertices >= 3 );
 			break;
 		case PrimitiveType_Points:
 			break;

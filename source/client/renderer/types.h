@@ -10,7 +10,6 @@ enum BlendFunc : u8 {
 
 enum PrimitiveType : u8 {
 	PrimitiveType_Triangles,
-	PrimitiveType_TriangleStrip,
 	PrimitiveType_Points,
 	PrimitiveType_Lines,
 };

@@ -238,7 +238,6 @@ struct MeshConfig {
 	GPUBuffer indices = { };
 	u32 num_vertices = 0;
 
-	PrimitiveType primitive_type = PrimitiveType_Triangles;
 	bool ccw_winding = true;
 };
 

@@ -8,12 +8,6 @@ enum BlendFunc : u8 {
 	BlendFunc_Add,
 };
 
-enum PrimitiveType : u8 {
-	PrimitiveType_Triangles,
-	PrimitiveType_Points,
-	PrimitiveType_Lines,
-};
-
 enum IndexFormat : u8 {
 	IndexFormat_U16,
 	IndexFormat_U32,
@@ -39,7 +33,6 @@ struct UniformBlock {
 
 struct Mesh {
 	u32 num_vertices;
-	PrimitiveType primitive_type;
 	u32 vao;
 	GPUBuffer positions;
 	GPUBuffer normals;

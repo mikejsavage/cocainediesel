@@ -116,20 +116,6 @@ static GLenum DepthFuncToGL( DepthFunc depth_func ) {
 	return GL_INVALID_ENUM;
 }
 
-static GLenum PrimitiveTypeToGL( PrimitiveType primitive_type ) {
-	switch( primitive_type ) {
-		case PrimitiveType_Triangles:
-			return GL_TRIANGLES;
-		case PrimitiveType_Points:
-			return GL_POINTS;
-		case PrimitiveType_Lines:
-			return GL_LINES;
-	}
-
-	assert( false );
-	return GL_INVALID_ENUM;
-}
-
 static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum * channels, GLenum * type ) {
 	switch( format ) {
 		case TextureFormat_R_U8:
@@ -943,13 +929,12 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	}
 
 	glBindVertexArray( dc.mesh.vao );
-	GLenum primitive = PrimitiveTypeToGL( dc.mesh.primitive_type );
 
 	if( dc.instance_type == InstanceType_Particles ) {
 		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, dc.indirect.buffer );
-		glDrawElementsIndirect( primitive, type, 0 );
+		glDrawElementsIndirect( GL_TRIANGLES, type, 0 );
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
 	}
 	else if( dc.instance_type == InstanceType_Model ) {
@@ -970,7 +955,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
 
 		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
+		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, type, 0, dc.num_instances );
 	}
 	else if( dc.instance_type == InstanceType_ModelShadows ) {
 		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 0 ] ) );
@@ -982,7 +967,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
 
 		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
+		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, type, 0, dc.num_instances );
 	}
 	else if( dc.instance_type == InstanceType_ModelOutlines ) {
 		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, color ) );
@@ -1000,7 +985,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
 
 		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
+		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, type, 0, dc.num_instances );
 	}
 	else if( dc.instance_type == InstanceType_ModelSilhouette ) {
 		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, color ) );
@@ -1016,16 +1001,16 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
 
 		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		glDrawElementsInstanced( primitive, dc.num_vertices, type, 0, dc.num_instances );
+		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, type, 0, dc.num_instances );
 	}
 	else if( dc.mesh.indices.buffer != 0 ) {
 		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 		size_t index_size = dc.mesh.indices_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
 		const void * offset = ( const void * ) uintptr_t( dc.index_offset * index_size );
-		glDrawElements( primitive, dc.num_vertices, type, offset );
+		glDrawElements( GL_TRIANGLES, dc.num_vertices, type, offset );
 	}
 	else {
-		glDrawArrays( primitive, dc.index_offset, dc.num_vertices );
+		glDrawArrays( GL_TRIANGLES, dc.index_offset, dc.num_vertices );
 	}
 
 	glBindVertexArray( 0 );
@@ -1682,17 +1667,6 @@ void DeleteShader( Shader shader ) {
 }
 
 Mesh NewMesh( MeshConfig config ) {
-	switch( config.primitive_type ) {
-		case PrimitiveType_Triangles:
-			assert( config.num_vertices % 3 == 0 );
-			break;
-		case PrimitiveType_Points:
-			break;
-		case PrimitiveType_Lines:
-			assert( config.num_vertices % 2 == 0 );
-			break;
-	}
-
 	GLuint vao;
 	glCreateVertexArrays( 1, &vao );
 	DebugLabel( GL_VERTEX_ARRAY, vao, config.name );
@@ -1721,7 +1695,6 @@ Mesh NewMesh( MeshConfig config ) {
 
 	Mesh mesh = { };
 	mesh.num_vertices = config.num_vertices;
-	mesh.primitive_type = config.primitive_type;
 	mesh.ccw_winding = config.ccw_winding;
 	mesh.vao = vao;
 	mesh.indices = config.indices;

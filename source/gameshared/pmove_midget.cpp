@@ -8,8 +8,7 @@ static constexpr float bounce_time = 2.0f;
 static constexpr float min_charge_speed = pm_jumpspeed * 2;
 
 static constexpr float stamina_use = 2.5f;
-static constexpr float stamina_use_jumped = 4.0f;
-static constexpr float stamina_recover = 1.55f;
+static constexpr float stamina_recover = 8.0f;
 
 static constexpr float floor_distance = STEPSIZE * 0.5f;
 
@@ -31,7 +30,7 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 			return;
 		}
 
-		Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, JumpType_Normal, true );
+		Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, true );
 	} else {
 		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
 	}
@@ -41,10 +40,10 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 
 //in this one we don't care about pressing special
 static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	bool can_start_charge = ps->pmove.stamina_state == Stamina_Normal && (pm_chargedjumpspeed * ps->pmove.stamina) > pm_jumpspeed;
+	bool can_start_charge = ps->pmove.stamina_state == Stamina_Normal;
 
 	if( ps->pmove.stamina_state == Stamina_Normal ) {
-		StaminaRecover( ps, pml, stamina_recover );
+		StaminaUse( ps, pml, stamina_recover );
 	}
 
 	if( pressed ) {
@@ -55,18 +54,18 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 				ps->pmove.stamina_stored = ps->pmove.stamina;
 				ps->pmove.stamina_state = Stamina_UsingAbility;
 			}
-			StaminaUse( ps, pml, stamina_use );
+			StaminaRecover( ps, pml, stamina_use );
 		}
 
 		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
 	}
 
 	if( ps->pmove.stamina_state == Stamina_UsedAbility ) {
-		StaminaUse( ps, pml, stamina_use_jumped );
+		StaminaUse( ps, pml, stamina_recover );
 	}
 
 	if( !pressed ) {
-		float special_jumpspeed = pm_chargedjumpspeed * ( ps->pmove.stamina_stored - ps->pmove.stamina );
+		float special_jumpspeed = pm_chargedjumpspeed * ps->pmove.stamina;
 		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility && special_jumpspeed > min_charge_speed ) {
 			Vec3 fwd;
 			AngleVectors( pm->playerState->viewangles, &fwd, NULL, NULL );

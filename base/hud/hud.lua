@@ -295,9 +295,8 @@ local function DrawPlayerBar( state )
 			cd.box( x + cell_width * i - padding/2, y, padding, stamina_bar_height, dark_grey )
 		end
 	else
-		if state.perk == Perk_Midget and state.stamina <= 0 and state.stamina_state == Stamina_UsingAbility then
-			local c = cd.attentionGettingColor()
-			c.a = 0.05
+		if state.perk == Perk_Midget and state.stamina_state == Stamina_UsedAbility then
+			local c = RGBALinear( 1.0, 0.5, 0.5, 0.1 )
 			cd.box( x, y, width, stamina_bar_height, c )
 		elseif state.perk == Perk_Jetpack then
 			local s = 1 - math.min( 1.0, state.stamina + 0.3 )

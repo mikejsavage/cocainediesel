@@ -30,7 +30,7 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 		}
 
 		if( pm->groundentity != -1 && ps->pmove.jump_buffering != 0.0f ) {
-			Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, JumpType_Normal, true );
+			Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, true );
 		}
 
 		ps->pmove.pm_flags |= PMF_ABILITY1_HELD;

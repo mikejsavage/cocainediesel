@@ -264,9 +264,7 @@ static void Cmd_TokenizeString( Span< const char > str ) {
 
 	strcpy( cmd_args, "" );
 
-	cmd_argc = 0;
-
-	while( cmd_argc < MAX_STRING_TOKENS ) {
+	for( cmd_argc = 0; cmd_argc < MAX_STRING_TOKENS; cmd_argc++ ) {
 		Span< const char > token = ParseToken( &str, Parse_StopOnNewLine );
 		if( token.ptr == NULL )
 			return;
@@ -280,14 +278,10 @@ static void Cmd_TokenizeString( Span< const char > str ) {
 				rest_of_line.n++;
 			}
 			ggformat( cmd_args, sizeof( cmd_args ), "{}", rest_of_line );
-			size_t n = strlen( cmd_args );
-			while( n > 0 && cmd_args[ n - 1 ] == ' ' ) {
+			for( size_t n = strlen( cmd_args ); n > 0 && cmd_args[ n - 1 ] == ' '; n-- ) {
 				cmd_args[ n - 1 ] = '\0';
-				n--;
 			}
 		}
-
-		cmd_argc++;
 	}
 }
 

@@ -31,7 +31,7 @@ static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 		return;
 	}
 
-	Jump( pm, pml, pmove_gs, ps, pm_jumpupspeed, JumpType_Normal, true );
+	Jump( pm, pml, pmove_gs, ps, pm_jumpupspeed, true );
 }
 
 

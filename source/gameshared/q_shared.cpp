@@ -34,15 +34,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Does NOT validate the string at all
 * Must be used before other functions are aplied to the string (or those functions might function improperly)
 */
-char *COM_SanitizeFilePath( char *path ) {
-	char *p;
-
+char *COM_SanitizeFilePath( char * path ) {
 	assert( path );
 
-	p = path;
-	while( *p && ( p = strchr( p, '\\' ) ) ) {
-		*p = '/';
-		p++;
+	for( ; *path && ( path = strchr( path, '\\' ) ); path++ ) {
+		*path = '/';
 	}
 
 	return path;
@@ -93,7 +89,7 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 	Span< const char > c = *cursor;
 
 	// skip leading whitespace
-	while( c.n == 0 || IsWhitespace( c[ 0 ] ) ) {
+	for( ; c.n == 0 || IsWhitespace( c[ 0 ] ); c++ ) {
 		if( c.n == 0 ) {
 			*cursor = c;
 			return Span< const char >( NULL, 0 );
@@ -103,8 +99,6 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 			*cursor = c;
 			return Span< const char >( NULL, 0 );
 		}
-
-		c++;
 	}
 
 	bool quoted = false;
@@ -641,7 +635,7 @@ void Info_RemoveKey( char *info, const char *key ) {
 		return;
 	}
 
-	while( 1 ) {
+	while( true ) {
 		char *start, *p;
 
 		p = Info_FindKey( info, key );

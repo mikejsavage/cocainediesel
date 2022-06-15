@@ -48,7 +48,7 @@ static void target_laser_think( edict_t *self ) {
 	edict_t *ignore = self;
 	Vec3 start = self->s.origin;
 	Vec3 end = start + self->moveinfo.movedir * 2048.0f;
-	while( 1 ) {
+	while( true ) {
 		G_Trace( &tr, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_SHOT );
 		if( tr.fraction == 1 ) {
 			break;

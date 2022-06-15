@@ -32,7 +32,7 @@ static void PM_BoomerJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 			return;
 		}
 
-		Jump( pm, pml, pmove_gs, ps, jump_upspeed, JumpType_Normal, true );
+		Jump( pm, pml, pmove_gs, ps, jump_upspeed, true );
 	} else {
 		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
 	}

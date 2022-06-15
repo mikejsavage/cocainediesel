@@ -315,16 +315,10 @@ static void CG_PredictSmoothSteps() {
 
 	CL_GetCurrentState( NULL, &outgoing, NULL );
 
-	i = outgoing;
-	while( predictiontime < PREDICTED_STEP_TIME ) {
-		if( outgoing - i >= CMD_BACKUP ) {
-			break;
-		}
-
+	for( i = outgoing; (outgoing - i) < CMD_BACKUP && predictiontime < PREDICTED_STEP_TIME; i-- ) {
 		frame = i & CMD_MASK;
 		CL_GetUserCmd( frame, &cmd );
 		predictiontime += cmd.msec;
-		i--;
 	}
 
 	// run frames

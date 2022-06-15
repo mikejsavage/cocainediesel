@@ -39,20 +39,12 @@ edict_t * GetEntity( EntityID id ) {
 }
 
 edict_t * G_Find( edict_t * cursor, StringHash edict_t::* field, StringHash value ) {
-	if( cursor == NULL ) {
-		cursor = world;
-	}
-	else {
-		cursor++;
-	}
-
 	const edict_t * end = game.edicts + game.numentities;
 
-	while( cursor < end ) {
+	for( cursor = cursor == NULL ? world : cursor + 1; ( cursor < end ); cursor++ ) {
 		if( cursor->r.inuse && cursor->*field == value ) {
 			return cursor;
 		}
-		cursor++;
 	}
 
 	return NULL;
@@ -629,7 +621,7 @@ bool KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
 	trace_t tr;
 	bool telefragged = false;
 
-	while( 1 ) {
+	while( true ) {
 		G_Trace( &tr, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, world, MASK_PLAYERSOLID );
 		if( ( tr.fraction == 1.0f && !tr.startsolid ) || tr.ent < 0 ) {
 			return telefragged;

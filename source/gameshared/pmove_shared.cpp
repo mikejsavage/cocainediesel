@@ -103,11 +103,11 @@ void PM_InitPerk( pmove_t * pm, pml_t * pml, PerkType perk,
 }
 
 
-void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, JumpType j, bool addvel ) {
+void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, float jumpspeed, bool addvel ) {
 	if( pml->ladder ) {
 		return;
 	}
-	
+
 	pm->groundentity = -1;
 
 	// clip against the ground when jumping if moving that direction
@@ -115,7 +115,7 @@ void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerSta
 		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane.normal, PM_OVERBOUNCE );
 	}
 
-	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, j );
+	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, JumpType_Normal );
 	pml->velocity.z = (addvel ? Max2( 0.0f, pml->velocity.z ) : 0.0f) + JumpVelocity( pm, jumpspeed );
 }
 
@@ -130,7 +130,7 @@ void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir,
 
 	dashdir.z = 0.0f;
 	if( Length( dashdir ) == 0.0f ) {
-		Jump( pm, pml, pmove_gs, pm->playerState, dash_upspeed, JumpType_Normal, true );
+		Jump( pm, pml, pmove_gs, pm->playerState, dash_upspeed, true );
 		return;
 	}
 

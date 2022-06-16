@@ -66,6 +66,7 @@ enum WeaponCategory {
 	WeaponCategory_Primary,
 	WeaponCategory_Secondary,
 	WeaponCategory_Backup,
+	WeaponCategory_Melee,
 
 	WeaponCategory_Count
 };

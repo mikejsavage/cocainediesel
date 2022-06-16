@@ -1811,10 +1811,11 @@ void CG_DrawHUD() {
 
 	lua_createtable( hud_L, Weapon_Count - 1, 0 );
 	for( size_t i = 0; i < ARRAY_COUNT( cg.predictedPlayerState.weapons ); i++ ) {
-		if( cg.predictedPlayerState.weapons[ i ].weapon == Weapon_None )
+		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapons[ i ].weapon );
+
+		if( cg.predictedPlayerState.weapons[ i ].weapon == Weapon_None || def->category == WeaponCategory_Melee )
 			continue;
 
-		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapons[ i ].weapon );
 
 		lua_pushnumber( hud_L, i + 1 );
 		lua_createtable( hud_L, 0, 4 );

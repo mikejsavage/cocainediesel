@@ -17,7 +17,7 @@ const WeaponDef weapon_defs[] = {
 	{
 		/* name                 */ "KNIFE",
 		/* short name           */ "gb",
-		/* category             */ WeaponCategory_Count,
+		/* category             */ WeaponCategory_Melee,
 
 		/* projectile count     */ 8,
 		/* clip size            */ 0,

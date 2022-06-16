@@ -1023,12 +1023,13 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	ImGui::Begin( "Loadout", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, Vec2( 0, displaySize.y * 0.02 ) );
-	Vec2 icon_size = Vec2( displaySize.x * 0.05f );
+	Vec2 icon_size = Vec2( displaySize.x * 0.04f );
 
 	int cols = 0;
 	cols = Max2( CountWeaponCategory( WeaponCategory_Primary ), cols );
 	cols = Max2( CountWeaponCategory( WeaponCategory_Secondary ), cols );
 	cols = Max2( CountWeaponCategory( WeaponCategory_Backup ), cols );
+	cols = Max2( CountWeaponCategory( WeaponCategory_Melee ), cols );
 	cols = Max2( int( Gadget_Count ) - 1, cols );
 	cols = Max2( int( Perk_Count ) - 1, cols );
 
@@ -1038,6 +1039,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 	LoadoutCategory( "PRIMARY", WeaponCategory_Primary, icon_size );
 	LoadoutCategory( "SECONDARY", WeaponCategory_Secondary, icon_size );
 	LoadoutCategory( "BACKUP", WeaponCategory_Backup, icon_size );
+	LoadoutCategory( "MELEE", WeaponCategory_Melee, icon_size );
 	Gadgets( icon_size );
 
 	ImGui::EndTable();

@@ -160,7 +160,6 @@ static void GiveInventory( edict_t * ent ) {
 
 	const Loadout & loadout = bomb_state.loadouts[ PLAYERNUM( ent ) ];
 
-	G_GiveWeapon( ent, Weapon_Knife );
 	for( u32 category = 0; category < WeaponCategory_Count; category++ ) {
 		WeaponType weapon = loadout.weapons[ category ];
 		G_GiveWeapon( ent, weapon );
@@ -189,6 +188,8 @@ static Loadout DefaultLoadout() {
 	loadout.weapons[ WeaponCategory_Primary ] = Weapon_RocketLauncher;
 	loadout.weapons[ WeaponCategory_Secondary ] = Weapon_Shotgun;
 	loadout.weapons[ WeaponCategory_Backup ] = Weapon_StakeGun;
+	loadout.weapons[ WeaponCategory_Melee ] = Weapon_Knife;
+
 	loadout.perk = Perk_Hooligan;
 
 	for( int i = 0; i < WeaponCategory_Count; i++ ) {
@@ -214,7 +215,7 @@ static bool ParseLoadout( Loadout * loadout, const char * loadout_string ) {
 		if( !TrySpanToInt( token, &weapon ) )
 			return false;
 
-		if( weapon <= Weapon_None || weapon >= Weapon_Count || weapon == Weapon_Knife )
+		if( weapon <= Weapon_None || weapon >= Weapon_Count )
 			return false;
 
 		WeaponCategory category = GS_GetWeaponDef( WeaponType( weapon ) )->category;

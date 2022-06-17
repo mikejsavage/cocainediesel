@@ -298,13 +298,9 @@ static void W_Fire_Blade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta
 static void W_Fire_Bat( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Bat );
 
-	float factor = Min2( 1.0f, ((float)game.edicts[ ENTNUM( self ) ].r.client->ps.weapon_state_time)/def->reload_time);
-	float damage = def->damage * factor;
-	float knockback = def->knockback * factor;
-
-	if( damage < def->min_damage ) {
-		return;
-	}
+	float charge = Min2( 1.0f, float( self->r.client->ps.weapon_state_time ) / float( def->reload_time ) );
+	float damage = Lerp( float( def->min_damage ), charge, float( def->damage ) );
+	float knockback = def->knockback * charge;
 
 	HitWithSpread( self, start, angles, def->range, def->spread, def->projectile_count, damage, knockback, Weapon_Bat, timeDelta );
 }

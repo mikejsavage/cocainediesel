@@ -58,7 +58,7 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 10,
 		/* clip size            */ 0,
-		/* reload time          */ 2000,
+		/* reload time          */ 1000,
 		/* staged reload time   */ 0,
 
 		// timings (in msecs)
@@ -80,7 +80,7 @@ const WeaponDef weapon_defs[] = {
 		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 220,
 		/* splash radius        */ 0,
-		/* splash min damage    */ 6,
+		/* splash min damage    */ 10,
 		/* splash min knockback */ 0,
 
 		// projectile def

@@ -66,10 +66,11 @@ struct FrameStatic {
 
 	u8 particle_update_pass;
 	u8 tile_culling_pass;
+
 	u8 shadowmap_pass[ 4 ];
+
 	u8 world_opaque_prepass_pass;
 	u8 world_opaque_pass;
-
 	u8 sky_pass;
 
 	u8 write_silhouette_gbuffer_pass;
@@ -83,9 +84,7 @@ struct FrameStatic {
 	u8 add_silhouettes_pass;
 
 	u8 ui_pass;
-
 	u8 postprocess_pass;
-
 	u8 post_ui_pass;
 };
 

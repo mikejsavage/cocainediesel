@@ -475,12 +475,12 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	static const tracy::SourceLocationData write_shadowmap_tracy = TRACY_HACK( "Write shadowmap" );
 	static const tracy::SourceLocationData world_opaque_prepass_tracy = TRACY_HACK( "World z-prepass" );
 	static const tracy::SourceLocationData world_opaque_tracy = TRACY_HACK( "Render world opaque" );
-	static const tracy::SourceLocationData add_outlines_tracy = TRACY_HACK( "Render outlines" );
+	static const tracy::SourceLocationData sky_tracy = TRACY_HACK( "Render sky" );
 	static const tracy::SourceLocationData write_silhouette_buffer_tracy = TRACY_HACK( "Write silhouette buffer" );
 	static const tracy::SourceLocationData nonworld_opaque_outlined_tracy = TRACY_HACK( "Render nonworld opaque outlined" );
+	static const tracy::SourceLocationData add_outlines_tracy = TRACY_HACK( "Render outlines" );
 	static const tracy::SourceLocationData nonworld_opaque_tracy = TRACY_HACK( "Render nonworld opaque" );
 	static const tracy::SourceLocationData msaa_tracy = TRACY_HACK( "Resolve MSAA" );
-	static const tracy::SourceLocationData sky_tracy = TRACY_HACK( "Render sky" );
 	static const tracy::SourceLocationData transparent_tracy = TRACY_HACK( "Render transparent" );
 	static const tracy::SourceLocationData silhouettes_tracy = TRACY_HACK( "Render silhouettes" );
 	static const tracy::SourceLocationData ui_tracy = TRACY_HACK( "Render game HUD" );
@@ -488,44 +488,44 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	static const tracy::SourceLocationData post_ui_tracy = TRACY_HACK( "Render non-game UI" );
 #undef TRACY_HACK
 
-	frame_static.particle_update_pass = AddRenderPass( "Particle Update", &particle_update_tracy );
-	frame_static.tile_culling_pass = AddRenderPass( "Decal/dlight tile culling", &tile_culling_tracy );
+	frame_static.particle_update_pass = AddRenderPass( &particle_update_tracy );
+	frame_static.tile_culling_pass = AddRenderPass( &tile_culling_tracy );
 
 	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
-		frame_static.shadowmap_pass[ i ] = AddRenderPass( "Write shadowmap", &write_shadowmap_tracy, frame_static.shadowmap_fb[ i ], ClearColor_Dont, ClearDepth_Do );
+		frame_static.shadowmap_pass[ i ] = AddRenderPass( &write_shadowmap_tracy, frame_static.shadowmap_fb[ i ], ClearColor_Dont, ClearDepth_Do );
 	}
 
 	bool msaa = frame_static.msaa_samples;
 	if( msaa ) {
-		frame_static.world_opaque_prepass_pass = AddRenderPass( "Render world opaque Prepass", &world_opaque_prepass_tracy, frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
-		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.msaa_fb_masked );
-		frame_static.sky_pass = AddRenderPass( "Render sky", &sky_tracy, frame_static.msaa_fb );
+		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.world_opaque_pass = AddRenderPass( &world_opaque_tracy, frame_static.msaa_fb_masked );
+		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.msaa_fb );
 	}
 	else {
-		frame_static.world_opaque_prepass_pass = AddRenderPass( "Render world opaque Prepass", &world_opaque_prepass_tracy, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
-		frame_static.world_opaque_pass = AddRenderPass( "Render world opaque", &world_opaque_tracy, frame_static.postprocess_fb_masked );
-		frame_static.sky_pass = AddRenderPass( "Render sky", &sky_tracy, frame_static.postprocess_fb );
+		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.world_opaque_pass = AddRenderPass( &world_opaque_tracy, frame_static.postprocess_fb_masked );
+		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.postprocess_fb );
 	}
 
-	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( "Write silhouette gbuffer", &write_silhouette_buffer_tracy, frame_static.silhouette_gbuffer, ClearColor_Do, ClearDepth_Dont );
+	frame_static.write_silhouette_gbuffer_pass = AddRenderPass( &write_silhouette_buffer_tracy, frame_static.silhouette_gbuffer, ClearColor_Do, ClearDepth_Dont );
 
 	if( msaa ) {
-		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( "Render nonworld opaque outlined", &nonworld_opaque_outlined_tracy, frame_static.msaa_fb_masked );
-		frame_static.add_outlines_pass = AddRenderPass( "Render outlines", &add_outlines_tracy, frame_static.msaa_fb_onlycolor );
-		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", &nonworld_opaque_tracy, frame_static.msaa_fb );
-		AddResolveMSAAPass( "Resolve MSAA", &msaa_tracy, frame_static.msaa_fb, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
+		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.msaa_fb_masked );
+		frame_static.add_outlines_pass = AddRenderPass( &add_outlines_tracy, frame_static.msaa_fb_onlycolor );
+		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.msaa_fb );
+		AddResolveMSAAPass( &msaa_tracy, frame_static.msaa_fb, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
 	}
 	else {
-		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( "Render nonworld opaque outlined", &nonworld_opaque_outlined_tracy, frame_static.postprocess_fb_masked );
-		frame_static.add_outlines_pass = AddRenderPass( "Render outlines", &add_outlines_tracy, frame_static.postprocess_fb_onlycolor );
-		frame_static.nonworld_opaque_pass = AddRenderPass( "Render nonworld opaque", &nonworld_opaque_tracy, frame_static.postprocess_fb );
+		frame_static.nonworld_opaque_outlined_pass = AddRenderPass( &nonworld_opaque_outlined_tracy, frame_static.postprocess_fb_masked );
+		frame_static.add_outlines_pass = AddRenderPass( &add_outlines_tracy, frame_static.postprocess_fb_onlycolor );
+		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.postprocess_fb );
 	}
 
-	frame_static.transparent_pass = AddRenderPass( "Render transparent", &transparent_tracy, frame_static.postprocess_fb );
-	frame_static.add_silhouettes_pass = AddRenderPass( "Render silhouettes", &silhouettes_tracy, frame_static.postprocess_fb );
-	frame_static.ui_pass = AddUnsortedRenderPass( "Render UI", &ui_tracy, frame_static.postprocess_fb );
-	frame_static.postprocess_pass = AddRenderPass( "Postprocess", &postprocess_tracy, ClearColor_Do );
-	frame_static.post_ui_pass = AddUnsortedRenderPass( "Render Post UI", &post_ui_tracy );
+	frame_static.transparent_pass = AddRenderPass( &transparent_tracy, frame_static.postprocess_fb );
+	frame_static.add_silhouettes_pass = AddRenderPass( &silhouettes_tracy, frame_static.postprocess_fb );
+	frame_static.ui_pass = AddUnsortedRenderPass( &ui_tracy, frame_static.postprocess_fb );
+	frame_static.postprocess_pass = AddRenderPass( &postprocess_tracy, ClearColor_Do );
+	frame_static.post_ui_pass = AddUnsortedRenderPass( &post_ui_tracy );
 }
 
 static Mat4 InverseScaleTranslation( Mat4 m ) {

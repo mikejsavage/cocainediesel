@@ -840,12 +840,12 @@ static void SubmitFramebufferBlit( const RenderPass & pass ) {
 
 static void SetupRenderPass( const RenderPass & pass ) {
 	TracyZoneScoped;
-	TracyZoneText( pass.name, strlen( pass.name ) );
+	TracyZoneText( pass.tracy->name, strlen( pass.tracy->name ) );
 #if TRACY_ENABLE
 	renderpass_zone = new (renderpass_zone_memory) tracy::GpuCtxScope( pass.tracy );
 #endif
 
-	glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.name );
+	glPushDebugGroup( GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.tracy->name );
 
 	const Framebuffer & fb = pass.target;
 	if( fb.fbo != prev_fbo ) {
@@ -1775,40 +1775,37 @@ void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, GPUBu
 	num_vertices_this_frame += dc.num_vertices * num_instances;
 }
 
-u8 AddRenderPass( const RenderPass & pass ) {
+static u8 AddRenderPass( const RenderPass & pass ) {
 	return checked_cast< u8 >( render_passes.add( pass ) );
 }
 
-u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color, ClearDepth clear_depth ) {
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color, ClearDepth clear_depth ) {
 	RenderPass pass;
 	pass.type = RenderPass_Normal;
 	pass.target = target;
-	pass.name = name;
 	pass.clear_color = clear_color == ClearColor_Do;
 	pass.clear_depth = clear_depth == ClearDepth_Do;
 	pass.tracy = tracy;
 	return AddRenderPass( pass );
 }
 
-u8 AddRenderPass( const char * name, const tracy::SourceLocationData * tracy, ClearColor clear_color, ClearDepth clear_depth ) {
+u8 AddRenderPass( const tracy::SourceLocationData * tracy, ClearColor clear_color, ClearDepth clear_depth ) {
 	Framebuffer target = { };
-	return AddRenderPass( name, tracy, target, clear_color, clear_depth );
+	return AddRenderPass( tracy, target, clear_color, clear_depth );
 }
 
-u8 AddUnsortedRenderPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer target ) {
+u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target ) {
 	RenderPass pass;
 	pass.type = RenderPass_Normal;
 	pass.target = target;
-	pass.name = name;
 	pass.sorted = false;
 	pass.tracy = tracy;
 	return AddRenderPass( pass );
 }
 
-void AddBlitPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color, ClearDepth clear_depth ) {
+void AddBlitPass( const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color, ClearDepth clear_depth ) {
 	RenderPass pass;
 	pass.type = RenderPass_Blit;
-	pass.name = name;
 	pass.tracy = tracy;
 	pass.blit_source = src;
 	pass.target = dst;
@@ -1817,8 +1814,8 @@ void AddBlitPass( const char * name, const tracy::SourceLocationData * tracy, Fr
 	AddRenderPass( pass );
 }
 
-void AddResolveMSAAPass( const char * name, const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color, ClearDepth clear_depth ) {
-	AddBlitPass( name, tracy, src, dst, clear_color, clear_depth );
+void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color, ClearDepth clear_depth ) {
+	AddBlitPass( tracy, src, dst, clear_color, clear_depth );
 }
 
 void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {

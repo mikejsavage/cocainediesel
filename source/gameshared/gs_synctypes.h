@@ -63,10 +63,10 @@ enum EntityType : u8 {
 };
 
 enum WeaponCategory {
+	WeaponCategory_Melee,
 	WeaponCategory_Primary,
 	WeaponCategory_Secondary,
 	WeaponCategory_Backup,
-	WeaponCategory_Melee,
 
 	WeaponCategory_Count
 };
@@ -75,6 +75,7 @@ enum WeaponType : u8 {
 	Weapon_None,
 
 	Weapon_Knife,
+	Weapon_Bat,
 	Weapon_Pistol,
 	Weapon_MachineGun,
 	Weapon_Deagle,

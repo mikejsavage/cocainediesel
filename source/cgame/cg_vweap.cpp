@@ -95,10 +95,12 @@ static void CG_ViewWeapon_AddAngleEffects( Vec3 * angles, cg_viewweapon_t * view
 			frac *= frac; //smoother curve
 			angles->x += Lerp( 0.0f, frac, 60.0f );
 		}
-		else if( ps->weapon == Weapon_Railgun && ps->weapon_state == WeaponState_Cooking ) {
+		else if( ps->weapon == Weapon_Bat && ps->weapon_state == WeaponState_Cooking ) {
 			float charge = float( ps->weapon_state_time ) / float( def->reload_time );
 			float pull_back = ( 1.0f - Square( 1.0f - charge ) ) * 4.0f;
 			viewweapon->origin -= FromQFAxis( cg.view.axis, AXIS_FORWARD ) * pull_back;
+			angles->x -= pull_back * 12.0f;
+			angles->y += pull_back * 2.0f;
 		}
 	}
 

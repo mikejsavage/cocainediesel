@@ -52,6 +52,43 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
+		/* name                 */ "BAT",
+		/* short name           */ "bat",
+		/* category             */ WeaponCategory_Melee,
+
+		/* projectile count     */ 10,
+		/* clip size            */ 0,
+		/* reload time          */ 2000,
+		/* staged reload time   */ 0,
+
+		// timings (in msecs)
+		/* weapon up time       */ WEAPONUP_TIME_FAST,
+		/* weapon down time     */ WEAPONDOWN_TIME,
+		/* refire time          */ 250,
+		/* timeout / range      */ 90,
+		/* max recoil           */ EulerDegrees2( 0.0f, 0.0f ),
+		/* min recoil           */ EulerDegrees2( 0.0f, 0.0f ),
+		/* recoil recovery      */ 0.0f,
+		/* firing mode          */ FiringMode_SemiAuto,
+
+		/* zoom fov             */ 0.0f,
+		/* zoom inaccuracy      */ 0.0f,
+
+		// damages
+		/* damage               */ 30,
+		/* self damage          */ 0,
+		/* wallbang damage      */ 0.0f,
+		/* knockback            */ 220,
+		/* splash radius        */ 0,
+		/* splash min damage    */ 6,
+		/* splash min knockback */ 0,
+
+		// projectile def
+		/* speed                */ HITSCAN,
+		/* spread               */ 40,
+	},
+
+	{
 		/* name                 */ "9MM",
 		/* short name           */ "9mm",
 		/* category             */ WeaponCategory_Backup,
@@ -69,7 +106,7 @@ const WeaponDef weapon_defs[] = {
 		/* max recoil           */ EulerDegrees2( 125.0f, 20.0f ),
 		/* min recoil           */ EulerDegrees2( 100.0f, -20.0f ),
 		/* recoil recovery      */ 2000.0f,
-		/* firing mode          */ FiringMode_SemiAuto,
+		/* firing mode          */ FiringMode_Auto,
 
 		/* zoom fov             */ 0.0f,
 		/* zoom inaccuracy      */ 0.0f,

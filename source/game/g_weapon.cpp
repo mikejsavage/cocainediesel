@@ -272,28 +272,41 @@ static edict_t * FireLinearProjectile(
 	return projectile;
 }
 
-static void W_Fire_Blade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Knife );
-
-	int traces = def->projectile_count;
-	float slash_angle = def->spread;
-
-	int dmgflags = 0;
-
+static void HitWithSpread( edict_t * self, Vec3 start, Vec3 angles, float range, float spread, int traces, float damage, float knockback, WeaponType weapon, int timeDelta ) {
 	for( int i = 0; i < traces; i++ ) {
 		Vec3 new_angles = angles;
-		new_angles.y += Lerp( -slash_angle, float( i ) / float( traces - 1 ), slash_angle );
+		new_angles.y += Lerp( -spread, float( i ) / float( traces - 1 ), spread );
 		Vec3 dir;
 		AngleVectors( new_angles, &dir, NULL, NULL );
-		Vec3 end = start + dir * def->range;
+		Vec3 end = start + dir * range;
 
 		trace_t trace;
 		G_Trace4D( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, self, MASK_SHOT, timeDelta );
 		if( trace.ent != -1 && game.edicts[ trace.ent ].takedamage ) {
-			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, def->damage, def->knockback, dmgflags, Weapon_Knife );
+			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, knockback, 0, weapon );
 			break;
 		}
 	}
+}
+
+static void W_Fire_Blade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Knife );
+
+	HitWithSpread( self, start, angles, def->range, def->spread, def->projectile_count, def->damage, def->knockback, Weapon_Knife, timeDelta );
+}
+
+static void W_Fire_Bat( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	const WeaponDef * def = GS_GetWeaponDef( Weapon_Bat );
+
+	float factor = Min2( 1.0f, ((float)game.edicts[ ENTNUM( self ) ].r.client->ps.weapon_state_time)/def->reload_time);
+	float damage = def->damage * factor;
+	float knockback = def->knockback * factor;
+
+	if( damage < def->min_damage ) {
+		return;
+	}
+
+	HitWithSpread( self, start, angles, def->range, def->spread, def->projectile_count, damage, knockback, Weapon_Bat, timeDelta );
 }
 
 static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, WeaponType weapon ) {
@@ -865,24 +878,21 @@ static void CallFireWeapon( edict_t * ent, u64 parm, bool alt ) {
 			W_Fire_Blade( ent, origin, angles, timeDelta );
 			break;
 
+		case Weapon_Bat:
+			W_Fire_Bat( ent, origin, angles, timeDelta );
+			break;
+
 		case Weapon_Pistol:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Pistol );
-			break;
-
 		case Weapon_MachineGun:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_MachineGun );
-			break;
-
 		case Weapon_Deagle:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Deagle );
+		case Weapon_BurstRifle:
+		case Weapon_Sniper:
+		case Weapon_AutoSniper:
+			W_Fire_Bullet( ent, origin, angles, timeDelta, weapon );
 			break;
 
 		case Weapon_Shotgun:
 			W_Fire_Shotgun( ent, origin, angles, timeDelta );
-			break;
-
-		case Weapon_BurstRifle:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_BurstRifle );
 			break;
 
 		case Weapon_StakeGun:
@@ -907,14 +917,6 @@ static void CallFireWeapon( edict_t * ent, u64 parm, bool alt ) {
 
 		case Weapon_Laser:
 			W_Fire_Lasergun( ent, origin, angles, timeDelta );
-			break;
-
-		case Weapon_Sniper:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_Sniper );
-			break;
-
-		case Weapon_AutoSniper:
-			W_Fire_Bullet( ent, origin, angles, timeDelta, Weapon_AutoSniper );
 			break;
 
 		case Weapon_Railgun:

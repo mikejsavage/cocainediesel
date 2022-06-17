@@ -81,7 +81,7 @@ void CG_ScreenCrosshairDamageUpdate() {
 static bool CG_IsShownCrosshair() {
 	WeaponType weapon = cg.predictedPlayerState.weapon;
 	return cg.predictedPlayerState.health > 0 &&
-			!( weapon == Weapon_Knife || weapon == Weapon_Sniper ) &&
+			!( weapon == Weapon_Knife || weapon == Weapon_Sniper || weapon == Weapon_Bat ) &&
 			!( weapon == Weapon_AutoSniper && cg.predictedPlayerState.zoom_time > 0 );
 }
 

@@ -1377,7 +1377,7 @@ static YGNodeRef LuauYogaNodeRecursive( ArenaAllocator * temp, lua_State * L ) {
 	if( !lua_isnil( L, -1 ) ) {
 		luaL_checktype( L, 1, LUA_TTABLE );
 
-		for( size_t i = 0; i < lua_objlen( L, -1 ); i++ ) {
+		for( int i = 0; i < lua_objlen( L, -1 ); i++ ) {
 			lua_pushnumber( L, i + 1 );
 			lua_gettable( L, -2 );
 			YGNodeRef child = LuauYogaNodeRecursive( temp, L );
@@ -1810,14 +1810,15 @@ void CG_DrawHUD() {
 	lua_setfield( hud_L, -2, "viewport_height" );
 
 	lua_createtable( hud_L, Weapon_Count - 1, 0 );
+	size_t j = 0;
+
 	for( size_t i = 0; i < ARRAY_COUNT( cg.predictedPlayerState.weapons ); i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapons[ i ].weapon );
 
 		if( cg.predictedPlayerState.weapons[ i ].weapon == Weapon_None || def->category == WeaponCategory_Melee )
 			continue;
 
-
-		lua_pushnumber( hud_L, i + 1 );
+		lua_pushnumber( hud_L, j + 1 );
 		lua_createtable( hud_L, 0, 4 );
 
 		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].weapon );
@@ -1830,6 +1831,7 @@ void CG_DrawHUD() {
 		lua_setfield( hud_L, -2, "max_ammo" );
 
 		lua_settable( hud_L, -3 );
+		j++;
 	}
 	lua_setfield( hud_L, -2, "weapons" );
 

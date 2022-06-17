@@ -273,7 +273,7 @@ local function DrawPlayerBar( state )
 	if state.perk == Perk_Hooligan then
 		cd.box( x, y, width, stamina_bar_height, bg_color )
 
-		local steps = 4
+		local steps = 2
 		local cell_width = width/steps
 		stamina_color.a = math.min( state.stamina * steps, 1 )
 		cd.box( x, y, cell_width, stamina_bar_height, stamina_color )

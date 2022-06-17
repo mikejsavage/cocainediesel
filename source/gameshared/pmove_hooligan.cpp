@@ -4,13 +4,11 @@
 static constexpr float pm_jumpupspeed = 260.0f;
 static constexpr float pm_dashupspeed = 160.0f;
 static constexpr float pm_dashspeed = 550.0f;
-static constexpr float jump_detection = 0.3f;
 
 static constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
 static constexpr float pm_wjbouncefactor = 0.4f;
 
 static constexpr float stamina_usewj = 0.5f; //50%
-static constexpr float stamina_usedash = 0.25f; //50%
 static constexpr float stamina_recover = 1.5f;
 
 static constexpr float floor_distance = STEPSIZE * 0.5f;
@@ -85,23 +83,13 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 
 
 static void PM_HooliganDash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
-	if( !StaminaAvailableImmediate( ps, stamina_usedash ) ) {
-		return;
-	}
-
 	Vec3 dashdir = pml->forward * pml->forwardPush + pml->right * pml->sidePush;
 	if( Length( dashdir ) < 0.01f ) { // if not moving, dash like a "forward dash"
 		dashdir = pml->forward;
 		pml->forwardPush = pm_dashspeed;
 	}
 
-	if( ps->pmove.stamina_stored == 0.0f ) {
-		StaminaUseImmediate( ps, stamina_usedash );
-	}
-
 	ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
-	ps->pmove.stamina_state = Stamina_UsedAbility;
-	ps->pmove.stamina_stored = jump_detection;
 	Dash( pm, pml, pmove_gs, dashdir, pm_dashspeed, pm_dashupspeed );
 }
 

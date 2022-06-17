@@ -1,19 +1,23 @@
 {
-  particles {
-    material textures/vfx/dirt1
-    blendfunc blend
+particles {
+    material textures/vfx/drop
+    material textures/vfx/drop2
     acceleration $gravity
-    collision point
+    blendfunc blend
+    stretch
     rotate
 
-    position cone 90 0
+    position point
 
     color 1.0 1.0 1.0 1.0
     color_override
 
-    speed 128
-    size 100 100
+    speed 400
+    speed_distribution normal 150
+    size 6 0
+    size_distribution uniform 4
     lifetime 0.4
-    count 3
+    lifetime_distribution uniform 0.2
+    count 50
   }
 }

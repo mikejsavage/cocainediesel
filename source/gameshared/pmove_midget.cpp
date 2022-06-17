@@ -4,8 +4,10 @@ static constexpr float pm_jumpspeed = 250.0f;
 static constexpr float jump_detection = 0.06f; //slight jump buffering
 
 static constexpr float pm_chargedjumpspeed = 1000.0f;
-static constexpr float bounce_time = 2.0f;
+static constexpr float slide_friction = 0.0f;
+static constexpr float slide_time = 2.0f;
 static constexpr float min_charge_speed = pm_jumpspeed * 2;
+
 
 static constexpr float stamina_use = 2.5f;
 static constexpr float stamina_recover = 8.0f;
@@ -42,6 +44,9 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	bool can_start_charge = ps->pmove.stamina_state == Stamina_Normal;
 
+	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
+	pml->friction = slide_friction + (pml->friction - slide_friction) * (slide_time - ps->pmove.stamina_stored)/slide_time;
+
 	if( ps->pmove.stamina_state == Stamina_Normal ) {
 		StaminaUse( ps, pml, stamina_recover );
 	}
@@ -51,7 +56,6 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 			( can_start_charge && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) ) //a bit tricky but we don't want midget charge to start if we were already pressing before reaching can_start_charge
 		{
 			if( can_start_charge ) {
-				ps->pmove.stamina_stored = ps->pmove.stamina;
 				ps->pmove.stamina_state = Stamina_UsingAbility;
 			}
 			StaminaRecover( ps, pml, stamina_use );
@@ -77,7 +81,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 			pm->groundentity = -1;
 			pml->velocity = dashdir;
 
-			ps->pmove.stamina_stored = bounce_time;
+			ps->pmove.stamina_stored = slide_time;
 
 			pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, JumpType_MidgetCharge );
 		} else if( ps->pmove.stamina_state == Stamina_UsingAbility ) {

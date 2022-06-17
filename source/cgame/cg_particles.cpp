@@ -676,7 +676,7 @@ void ShutdownVisualEffects() {
 	ShutdownParticleSystems();
 }
 
-void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
+static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	{
 		PipelineState pipeline;
 		pipeline.pass = frame_static.particle_update_pass;
@@ -713,7 +713,7 @@ void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 	ps->new_particles = 0;
 }
 
-void DrawParticleSystem( ParticleSystem * ps, float dt ) {
+static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	PipelineState pipeline;
 	pipeline.pass = frame_static.transparent_pass;
 	pipeline.shader = &shaders.particle;

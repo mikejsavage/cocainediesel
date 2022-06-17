@@ -89,7 +89,7 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 	Span< const char > c = *cursor;
 
 	// skip leading whitespace
-	for( ; c.n == 0 || IsWhitespace( c[ 0 ] ); c++ ) {
+	while( c.n == 0 || IsWhitespace( c[ 0 ] ) ) {
 		if( c.n == 0 ) {
 			*cursor = c;
 			return Span< const char >( NULL, 0 );
@@ -99,6 +99,8 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 			*cursor = c;
 			return Span< const char >( NULL, 0 );
 		}
+
+		c++;
 	}
 
 	bool quoted = false;

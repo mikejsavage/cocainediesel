@@ -398,11 +398,11 @@ static ItemState railgun_states[] = {
 	} ),
 };
 
-static const ItemState charge_states[] = {
+static const ItemState bat_states[] = {
 	generic_gun_switching_in_state,
 	generic_gun_switching_out_state,
 	generic_gun_refire_state,
-	
+
 	ItemState( WeaponState_Idle, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		if( cmd->buttons & Button_Attack1 ) {
 			return WeaponState_Cooking;
@@ -507,7 +507,7 @@ static const ItemState suicide_bomb_states[] = {
 
 constexpr static Span< const ItemState > dispatch_state_machine = MakeStateMachine( dispatch_states );
 constexpr static Span< const ItemState > generic_gun_state_machine = MakeStateMachine( generic_gun_states );
-constexpr static Span< const ItemState > charge_state_machine = MakeStateMachine( charge_states );
+constexpr static Span< const ItemState > bat_state_machine = MakeStateMachine( bat_states );
 constexpr static Span< const ItemState > railgun_state_machine = MakeStateMachine( railgun_states );
 constexpr static Span< const ItemState > generic_throwable_state_machine = MakeStateMachine( generic_throwable_states );
 constexpr static Span< const ItemState > suicide_bomb_state_machine = MakeStateMachine( suicide_bomb_states );
@@ -532,7 +532,7 @@ static Span< const ItemState > FindItemStateMachine( SyncPlayerState * ps ) {
 
 	switch( ps->weapon ) {
 		case Weapon_Bat:
-			return charge_state_machine;
+			return bat_state_machine;
 		case Weapon_Railgun:
 			return railgun_state_machine;
 		default:

@@ -292,6 +292,8 @@ struct RenderPass {
 
 	Framebuffer target = { };
 
+	bool barrier = false;
+
 	bool clear_color = false;
 	Vec4 color = Vec4( 0 );
 
@@ -324,6 +326,7 @@ void RenderBackendSubmitFrame();
 u8 AddRenderPass( const tracy::SourceLocationData * tracy, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
 u8 AddRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
 u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target = { } );
+u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target = { } );
 void AddBlitPass( const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
 void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, Framebuffer src, Framebuffer dst, ClearColor clear_color = ClearColor_Dont, ClearDepth clear_depth = ClearDepth_Dont );
 

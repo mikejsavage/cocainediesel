@@ -867,6 +867,10 @@ static void SetupRenderPass( const RenderPass & pass ) {
 		return;
 	}
 
+	if( pass.barrier ) {
+		glMemoryBarrier( GL_SHADER_STORAGE_BARRIER_BIT );
+	}
+
 	GLbitfield clear_mask = 0;
 	clear_mask |= pass.clear_color ? GL_COLOR_BUFFER_BIT : 0;
 	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
@@ -1792,6 +1796,15 @@ u8 AddRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target, C
 u8 AddRenderPass( const tracy::SourceLocationData * tracy, ClearColor clear_color, ClearDepth clear_depth ) {
 	Framebuffer target = { };
 	return AddRenderPass( tracy, target, clear_color, clear_depth );
+}
+
+u8 AddBarrierRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target ) {
+	RenderPass pass;
+	pass.type = RenderPass_Normal;
+	pass.target = target;
+	pass.barrier = true;
+	pass.tracy = tracy;
+	return AddRenderPass( pass );
 }
 
 u8 AddUnsortedRenderPass( const tracy::SourceLocationData * tracy, Framebuffer target ) {

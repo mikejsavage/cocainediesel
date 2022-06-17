@@ -698,7 +698,7 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 
 	{
 		PipelineState pipeline;
-		pipeline.pass = frame_static.particle_update_pass;
+		pipeline.pass = frame_static.particle_setup_indirect_pass;
 		pipeline.shader = &shaders.particle_setup_indirect;
 		pipeline.set_buffer( "b_NextComputeCount", ps->compute_count1 );
 		pipeline.set_buffer( "b_ComputeCount", ps->compute_count2 );

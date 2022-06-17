@@ -471,6 +471,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 #define TRACY_HACK( name ) { name, __FUNCTION__, __FILE__, uint32_t( __LINE__ ), 0 }
 	static const tracy::SourceLocationData particle_update_tracy = TRACY_HACK( "Update particles" );
+	static const tracy::SourceLocationData particle_setup_indirect_tracy = TRACY_HACK( "Write particle indirect draw buffer" );
 	static const tracy::SourceLocationData tile_culling_tracy = TRACY_HACK( "Decal/dlight tile culling" );
 	static const tracy::SourceLocationData write_shadowmap_tracy = TRACY_HACK( "Write shadowmap" );
 	static const tracy::SourceLocationData world_opaque_prepass_tracy = TRACY_HACK( "World z-prepass" );
@@ -489,6 +490,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 #undef TRACY_HACK
 
 	frame_static.particle_update_pass = AddRenderPass( &particle_update_tracy );
+	frame_static.particle_setup_indirect_pass = AddBarrierRenderPass( &particle_setup_indirect_tracy );
 	frame_static.tile_culling_pass = AddRenderPass( &tile_culling_tracy );
 
 	for( u32 i = 0; i < frame_static.shadow_parameters.num_cascades; i++ ) {
@@ -498,12 +500,12 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	bool msaa = frame_static.msaa_samples;
 	if( msaa ) {
 		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.msaa_fb, ClearColor_Do, ClearDepth_Do );
-		frame_static.world_opaque_pass = AddRenderPass( &world_opaque_tracy, frame_static.msaa_fb_masked );
+		frame_static.world_opaque_pass = AddBarrierRenderPass( &world_opaque_tracy, frame_static.msaa_fb_masked );
 		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.msaa_fb );
 	}
 	else {
 		frame_static.world_opaque_prepass_pass = AddRenderPass( &world_opaque_prepass_tracy, frame_static.postprocess_fb, ClearColor_Do, ClearDepth_Do );
-		frame_static.world_opaque_pass = AddRenderPass( &world_opaque_tracy, frame_static.postprocess_fb_masked );
+		frame_static.world_opaque_pass = AddBarrierRenderPass( &world_opaque_tracy, frame_static.postprocess_fb_masked );
 		frame_static.sky_pass = AddRenderPass( &sky_tracy, frame_static.postprocess_fb );
 	}
 
@@ -521,7 +523,7 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 		frame_static.nonworld_opaque_pass = AddRenderPass( &nonworld_opaque_tracy, frame_static.postprocess_fb );
 	}
 
-	frame_static.transparent_pass = AddRenderPass( &transparent_tracy, frame_static.postprocess_fb );
+	frame_static.transparent_pass = AddBarrierRenderPass( &transparent_tracy, frame_static.postprocess_fb );
 	frame_static.add_silhouettes_pass = AddRenderPass( &silhouettes_tracy, frame_static.postprocess_fb );
 	frame_static.ui_pass = AddUnsortedRenderPass( &ui_tracy, frame_static.postprocess_fb );
 	frame_static.postprocess_pass = AddRenderPass( &postprocess_tracy, ClearColor_Do );

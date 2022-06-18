@@ -273,6 +273,9 @@ static edict_t * FireLinearProjectile(
 }
 
 static void HitWithSpread( edict_t * self, Vec3 start, Vec3 angles, float range, float spread, int traces, float damage, float knockback, WeaponType weapon, int timeDelta ) {
+	Vec3 forward;
+	AngleVectors( angles, &forward, NULL, NULL );
+
 	for( int i = 0; i < traces; i++ ) {
 		Vec3 new_angles = angles;
 		new_angles.y += Lerp( -spread, float( i ) / float( traces - 1 ), spread );
@@ -283,7 +286,7 @@ static void HitWithSpread( edict_t * self, Vec3 start, Vec3 angles, float range,
 		trace_t trace;
 		G_Trace4D( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, self, MASK_SHOT, timeDelta );
 		if( trace.ent != -1 && game.edicts[ trace.ent ].takedamage ) {
-			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, knockback, 0, weapon );
+			G_Damage( &game.edicts[ trace.ent ], self, self, forward, forward, trace.endpos, damage, knockback, 0, weapon );
 			break;
 		}
 	}

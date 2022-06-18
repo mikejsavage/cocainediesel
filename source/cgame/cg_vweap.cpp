@@ -176,18 +176,6 @@ void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 	// finish
 	AnglesToAxis( gunAngles, viewweapon->axis );
 
-	if( cg.predictedPlayerState.zoom_time == 0 ) {
-		constexpr float gun_fov = 90.0f;
-		float gun_fov_y = WidescreenFov( gun_fov );
-		float gun_fov_x = CalcHorizontalFov( "CalcViewWeapon", gun_fov_y, frame_static.viewport_width, frame_static.viewport_height );
-
-		float fracWeapFOV = tanf( Radians( gun_fov_x ) * 0.5f ) / cg.view.fracDistFOV;
-
-		viewweapon->axis[AXIS_FORWARD] *= fracWeapFOV;
-		viewweapon->axis[AXIS_FORWARD + 1] *= fracWeapFOV;
-		viewweapon->axis[AXIS_FORWARD + 2] *= fracWeapFOV;
-	}
-
 	Mat4 gun_transform = FromAxisAndOrigin( viewweapon->axis, viewweapon->origin );
 	u8 muzzle;
 	if( FindNodeByName( model, Hash32( "muzzle" ), &muzzle ) ) {

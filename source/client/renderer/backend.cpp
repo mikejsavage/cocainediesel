@@ -3,7 +3,6 @@
 
 #include "glad/glad.h"
 
-#include "tracy/Tracy.hpp"
 #include "tracy/TracyOpenGL.hpp"
 
 #include "qcommon/base.h"
@@ -838,6 +837,18 @@ static void SubmitFramebufferBlit( const RenderPass & pass ) {
 	clear_mask |= pass.clear_depth ? GL_DEPTH_BUFFER_BIT : 0;
 	glBlitNamedFramebuffer( src.fbo, target.fbo, 0, 0, src.width, src.height, 0, 0, target.width, target.height, clear_mask, GL_NEAREST );
 }
+
+#if !TRACY_ENABLE
+namespace tracy {
+struct SourceLocationData {
+	const char * name;
+	const char * function;
+	const char * file;
+	uint32_t line;
+	uint32_t color;
+};
+}
+#endif
 
 static void SetupRenderPass( const RenderPass & pass ) {
 	TracyZoneScoped;

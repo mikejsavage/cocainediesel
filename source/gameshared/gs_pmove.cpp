@@ -19,8 +19,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
-#include "gameshared/movement.h"
 #include "qcommon/qfiles.h"
+#include "gameshared/movement.h"
 
 static constexpr float pm_ladderspeed = 300.0f;
 
@@ -881,6 +881,11 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 
 		PM_StepSlideMove();
 	} else {
+		if( pm->groundentity != -1 ) {
+			pm->playerState->last_touch.entnum = 0;
+			pm->playerState->last_touch.type = Weapon_None;
+		}
+
 		// Kurim
 		// Keep this order !
 		if( ps->pmove.pm_type == PM_NORMAL && ( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {

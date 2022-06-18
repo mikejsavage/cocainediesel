@@ -110,9 +110,13 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 		body->deadflag = DEAD_DEAD;
 	}
 
-	u64 parm = Random64( &svs.rng ) << 1;
+	u64 parm = Random64( &svs.rng ) << 2;
 	if( damage_type == WorldDamage_Void ) {
-		parm |= 1;
+		if( game.edicts[ ENTNUM( ent ) ].r.client->ps.last_touch.type == Weapon_Bat ) {
+			parm |= 0b10;
+		} else {
+			parm |= 0b01;
+		}
 	}
 
 	edict_t * event = G_SpawnEvent( EV_DIE, parm, NULL );

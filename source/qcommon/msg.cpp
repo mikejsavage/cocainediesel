@@ -649,9 +649,6 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 
 	DeltaEnum( buf, player.progress_type, baseline.progress_type, BombProgress_Count );
 	Delta( buf, player.progress, baseline.progress );
-
-	Delta( buf, player.pointed_player, baseline.pointed_player );
-	Delta( buf, player.pointed_health, baseline.pointed_health );
 }
 
 void MSG_WriteDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, const SyncPlayerState * player ) {

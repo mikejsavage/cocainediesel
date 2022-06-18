@@ -441,17 +441,10 @@ void G_RemoveCommands();
 //
 // p_view.c
 //
+void G_ClientSetStats( edict_t * ent );
 void G_ClientEndSnapFrame( edict_t * ent );
 void G_ClientAddDamageIndicatorImpact( gclient_t *client, int damage, Vec3 dir );
 void G_ClientDamageFeedback( edict_t * ent );
-
-//
-// p_hud.c
-//
-
-
-void G_SetClientStats( edict_t * ent );
-void G_Snap_UpdateWeaponListMessages();
 
 //
 // g_phys.c

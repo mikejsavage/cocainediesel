@@ -151,39 +151,6 @@ int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec
 
 #define PMFEAT_ALL              ( 0xFFFF )
 
-enum DamageCategory {
-	DamageCategory_Weapon,
-	DamageCategory_Gadget,
-	DamageCategory_World,
-};
-
-enum WorldDamage : u8 {
-	WorldDamage_Slime,
-	WorldDamage_Lava,
-	WorldDamage_Crush,
-	WorldDamage_Telefrag,
-	WorldDamage_Suicide,
-	WorldDamage_Explosion,
-
-	WorldDamage_Trigger,
-
-	WorldDamage_Laser,
-	WorldDamage_Spike,
-	WorldDamage_Void,
-};
-
-struct DamageType {
-	u8 encoded;
-
-	DamageType() = default;
-	DamageType( WeaponType weapon );
-	DamageType( GadgetType gadget );
-	DamageType( WorldDamage world );
-};
-
-bool operator==( DamageType a, DamageType b );
-bool operator!=( DamageType a, DamageType b );
-
 DamageCategory DecodeDamageType( DamageType type, WeaponType * weapon, GadgetType * gadget, WorldDamage * world );
 
 //

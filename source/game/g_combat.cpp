@@ -340,6 +340,9 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 		int topAssistorNo = G_FindTopAssistor( targ, attacker );
 		G_Killed( targ, inflictor, attacker, topAssistorNo, damage_type, clamped_takedmg );
 	} else {
+		SyncPlayerState * s = &game.edicts[ ENTNUM( targ ) ].r.client->ps;
+		s->last_touch.entnum = ENTNUM( attacker );
+		s->last_touch.type = damage_type;
 		G_AddAssistDamage( targ, attacker, clamped_takedmg );
 		G_CallPain( targ, attacker, knockback, take );
 	}

@@ -147,6 +147,7 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 static constexpr const char * PLAYER_SOUND_NAMES[] = {
 	"death",
 	"void_death",
+	"smackdown",
 	"jump",
 	"pain25", "pain50", "pain75", "pain100",
 	"walljump",

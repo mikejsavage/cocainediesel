@@ -447,10 +447,10 @@ static void CG_Event_Die( int corpse_ent, u64 parm ) {
 
 	int player_ent = cg_entities[ corpse_ent ].prev.ownerNum;
 
-	bool void_death = ( parm & 1 ) != 0;
-	u64 animation = ( parm >> 1 ) % ARRAY_COUNT( animations );
+	int void_death = ( parm & 0b11 );
+	u64 animation = ( parm >> 2 ) % ARRAY_COUNT( animations );
 
-	CG_PlayerSound( corpse_ent, void_death ? PlayerSound_Void : PlayerSound_Death, false );
+	CG_PlayerSound( corpse_ent, (void_death & 0b1) ? PlayerSound_Void : (void_death & 0b10) ? PlayerSound_Smackdown : PlayerSound_Death, false );
 	CG_PModel_AddAnimation( corpse_ent, animations[ animation ].dead, animations[ animation ].dead, ANIM_NONE, BASE_CHANNEL );
 	CG_PModel_AddAnimation( corpse_ent, animations[ animation ].dying, animations[ animation ].dying, ANIM_NONE, EVENT_CHANNEL );
 

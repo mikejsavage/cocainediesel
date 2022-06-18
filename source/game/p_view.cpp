@@ -230,6 +230,18 @@ static void G_SetClientSound( edict_t *ent ) {
 	}
 }
 
+void G_ClientSetStats( edict_t * ent ) {
+	gclient_t * client = ent->r.client;
+	SyncPlayerState * ps = &client->ps;
+
+	ps->ready = server_gs.gameState.match_state <= MatchState_Warmup && level.ready[ PLAYERNUM( ent ) ];
+	ps->voted = G_Callvotes_HasVoted( ent );
+	ps->team = ent->s.team;
+	ps->real_team = ent->s.team;
+	ps->health = ent->s.team == Team_None ? 0 : HEALTH_TO_INT( ent->health );
+	ps->max_health = HEALTH_TO_INT( ent->max_health );
+}
+
 /*
 * G_ClientEndSnapFrame
 *
@@ -246,7 +258,7 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 	// If the end of unit layout is displayed, don't give
 	// the player any normal movement attributes
 	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
-		G_SetClientStats( ent );
+		G_ClientSetStats( ent );
 	} else {
 		if( G_IsDead( ent ) ) {
 			G_Client_DeadView( ent );
@@ -254,7 +266,7 @@ void G_ClientEndSnapFrame( edict_t *ent ) {
 
 		G_PlayerWorldEffects( ent ); // burn from lava, etc
 		G_ClientDamageFeedback( ent ); // show damage taken along the snap
-		G_SetClientStats( ent );
+		G_ClientSetStats( ent );
 		G_SetClientSound( ent );
 	}
 

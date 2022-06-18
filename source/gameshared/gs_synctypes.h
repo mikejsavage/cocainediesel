@@ -62,6 +62,12 @@ enum EntityType : u8 {
 	EntityType_Count
 };
 
+enum DamageCategory {
+	DamageCategory_Weapon,
+	DamageCategory_Gadget,
+	DamageCategory_World,
+};
+
 enum WeaponCategory {
 	WeaponCategory_Melee,
 	WeaponCategory_Primary,
@@ -112,6 +118,33 @@ enum GadgetType : u8 {
 };
 
 void operator++( GadgetType & x, int );
+
+enum WorldDamage : u8 {
+	WorldDamage_Slime,
+	WorldDamage_Lava,
+	WorldDamage_Crush,
+	WorldDamage_Telefrag,
+	WorldDamage_Suicide,
+	WorldDamage_Explosion,
+
+	WorldDamage_Trigger,
+
+	WorldDamage_Laser,
+	WorldDamage_Spike,
+	WorldDamage_Void,
+};
+
+struct DamageType {
+	u8 encoded;
+
+	DamageType() = default;
+	DamageType( WeaponType weapon );
+	DamageType( GadgetType gadget );
+	DamageType( WorldDamage world );
+};
+
+bool operator==( DamageType a, DamageType b );
+bool operator!=( DamageType a, DamageType b );
 
 enum PerkType : u8 {
 	Perk_None,
@@ -357,6 +390,11 @@ struct WeaponSlot {
 	u8 ammo;
 };
 
+struct TouchInfo {
+	int entnum;
+	DamageType type;
+};
+
 struct SyncPlayerState {
 	pmove_state_t pmove;
 
@@ -383,6 +421,8 @@ struct SyncPlayerState {
 	s16 max_health;
 	u16 flashed;
 
+	TouchInfo last_touch;
+
 	WeaponState weapon_state;
 	u16 weapon_state_time;
 	s16 zoom_time;
@@ -400,9 +440,6 @@ struct SyncPlayerState {
 
 	BombProgress progress_type;
 	u8 progress;
-
-	int pointed_player;
-	int pointed_health;
 };
 
 enum UserCommandButton : u8 {

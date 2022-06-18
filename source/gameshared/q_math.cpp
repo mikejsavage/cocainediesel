@@ -437,11 +437,14 @@ Mat4 TransformKToDir( Vec3 dir ) {
 
 	Vec3 K = Vec3( 0, 0, 1 );
 
-	if( Abs( dir.z ) >= 0.9999f ) {
-		return dir.z > 0 ? Mat4::Identity() : -Mat4::Identity();
+	Vec3 axis;
+	if( Abs( dir.z ) < 0.9999f ) {
+		axis = Normalize( Cross( K, dir ) );
+	}
+	else {
+		axis = Vec3( 1.0f, 0.0f, 0.0f );
 	}
 
-	Vec3 axis = Normalize( Cross( K, dir ) );
 	float c = Dot( K, dir );
 	float s = sqrtf( 1.0f - c * c );
 

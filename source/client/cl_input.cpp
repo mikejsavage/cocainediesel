@@ -73,19 +73,17 @@ void CL_InitInput() {
 static void CL_RefreshUcmd( UserCommand *ucmd, int msec, bool ready ) {
 	ucmd->msec += msec;
 
-	if( ucmd->msec ) {
-		Vec2 movement = CG_GetMovement();
+	Vec2 movement = CG_GetMovement();
 
-		ucmd->sidemove = movement.x * 127.0f;
-		ucmd->forwardmove = movement.y * 127.0f;
+	ucmd->sidemove = movement.x * 127.0f;
+	ucmd->forwardmove = movement.y * 127.0f;
 
-		ucmd->buttons |= CL_GameModule_GetButtonBits();
-		ucmd->down_edges |= CL_GameModule_GetButtonDownEdges();
+	ucmd->buttons |= CL_GameModule_GetButtonBits();
+	ucmd->down_edges |= CL_GameModule_GetButtonDownEdges();
 
-		if( cl.weaponSwitch != Weapon_None ) {
-			ucmd->weaponSwitch = cl.weaponSwitch;
-			cl.weaponSwitch = Weapon_None;
-		}
+	if( cl.weaponSwitch != Weapon_None ) {
+		ucmd->weaponSwitch = cl.weaponSwitch;
+		cl.weaponSwitch = Weapon_None;
 	}
 
 	if( ready ) {

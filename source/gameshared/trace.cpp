@@ -57,8 +57,8 @@ static bool Contains( const MinMax3 & aabb, Vec3 p ) {
 }
 
 static bool IntersectBrush( const MapData * map, const MapBrush * brush, Ray ray, Intersection * intersection ) {
-	Intersection best, bounds_leave;
-	if( !IntersectAABB( brush->bounds, ray, &best, &bounds_leave ) )
+	Intersection enter, leave;
+	if( !IntersectAABB( brush->bounds, ray, &enter, &leave ) )
 		return false;
 
 	bool any_outside = !Contains( brush->bounds, ray.origin );
@@ -79,20 +79,28 @@ static bool IntersectBrush( const MapData * map, const MapBrush * brush, Ray ray
 			continue;
 		}
 
-		// hit backface
-		if( end_dist >= start_dist ) {
-			continue;
-		}
-
 		// end_dist - start_dist = n.(o + ld) - n.o = n.o - n.o + l(n.d) = l(n.d)
 		float t = -start_dist * ray.length / ( end_dist - start_dist );
-		if( t > best.t ) {
-			best = { t, plane->normal };
+
+		// hit frontface
+		if( end_dist <= start_dist ) {
+			if( t > enter.t ) {
+				enter = { t, plane->normal };
+			}
+		}
+		else {
+			if( t < leave.t ) {
+				leave = { t, plane->normal };
+			}
 		}
 	}
 
+	if( enter.t > leave.t ) {
+		return false;
+	}
+
 	constexpr Intersection fully_inside_intersection = { 0.0f, Vec3( 0.0f ) };
-	*intersection = any_outside ? best : fully_inside_intersection;
+	*intersection = any_outside ? enter : fully_inside_intersection;
 	return true;
 }
 

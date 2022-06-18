@@ -647,13 +647,20 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 		Ray ray = { start, Normalize( end - start ), 1.0f / Normalize( end - start ), Length( end - start ) };
 		Intersection intersection;
-		Trace( &cl.map->data, &cl.map->data.models[ 0 ], ray, &intersection );
-		Vec3 new_end = start + intersection.t * ray.direction;
+		if( Trace( &cl.map->data, &cl.map->data.models[ 0 ], ray, &intersection ) ) {
+			Vec3 new_end = start + intersection.t * ray.direction;
 
-		if( Length( old_trace.endpos - new_end ) > 0.1f ) {
-			Com_GGPrint( "sucks to be you start={} old={} new={}", start, old_trace.endpos, new_end );
-			if( break1 ) __debugbreak();
-			Trace( &cl.map->data, &cl.map->data.models[ 0 ], ray, &intersection );
+			DrawModelConfig config = { };
+			config.draw_model.enabled = true;
+			config.draw_shadows.enabled = true;
+			Mat4 transform = Mat4Translation( new_end ) * Mat4Scale( 16 ) * TransformKToDir( intersection.normal );
+			DrawGLTFModel( config, FindGLTFRenderData( "models/arrow" ), transform, vec4_white );
+
+			if( Length( old_trace.endpos - new_end ) > 0.1f ) {
+				Com_GGPrint( "sucks to be you start={} old={} new={}", start, old_trace.endpos, new_end );
+				if( break1 ) __debugbreak();
+				Trace( &cl.map->data, &cl.map->data.models[ 0 ], ray, &intersection );
+			}
 		}
 	}
 }

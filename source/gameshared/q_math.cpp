@@ -319,6 +319,13 @@ float RadiusFromBounds( Vec3 mins, Vec3 maxs ) {
 	return Length( corner );
 }
 
+CenterExtents3 ToCenterExtents( const MinMax3 & bounds ) {
+	CenterExtents3 aabb;
+	aabb.center = ( bounds.maxs + bounds.mins ) * 0.5f;
+	aabb.extents = ( bounds.maxs - bounds.mins ) * 0.5f;
+	return aabb;
+}
+
 //============================================================================
 
 void Matrix3_Identity( mat3_t m ) {

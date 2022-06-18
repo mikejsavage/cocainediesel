@@ -447,6 +447,10 @@ struct MinMax3 {
 	}
 };
 
+struct CenterExtents3 {
+	Vec3 center, extents;
+};
+
 struct RGB8 {
 	u8 r, g, b;
 

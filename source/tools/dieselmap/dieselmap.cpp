@@ -528,9 +528,18 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 	return optimized_meshes;
 }
 
+static bool IsNearlyAxial( Vec3 v ) {
+	for( int i = 0; i < 3; i++ ) {
+		if( Abs( v[ i ] ) >= 0.99999f ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 	TracyZoneScoped;
-	constexpr float epsilon = 0.001f;
 
 	CompiledKDTree kd_tree;
 	kd_tree.bounds = MinMax3::Empty();
@@ -551,6 +560,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 				LogDebugInstructions();
 				Fatal( "[entity %d brush %d/line %d] has a non-planar face", entity.id, brush.id, brush.line_number );
 			}
+
 			planes.push_back( plane );
 		}
 
@@ -570,14 +580,29 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 		map_brush.first_plane = checked_cast< u16 >( kd_tree.planes.size() );
 		map_brush.solidity = Solid_NotSolid; // TODO
 
-		u8 num_planes = 0;
+		size_t num_planes = 0;
+
+		// add non-axial planes
 		for( Plane plane : planes ) {
-			if( Abs( plane.normal.x + plane.normal.y + plane.normal.z ) < 1.0f - epsilon ) {
-				num_planes++;
+			if( !IsNearlyAxial( plane.normal ) ) {
 				kd_tree.planes.push_back( plane );
+				num_planes++;
 			}
 		}
-		map_brush.num_planes = num_planes;
+
+		// add axial bevel planes
+		for( int i = 0; i < 6; i++ ) {
+			Plane plane = { };
+			float sign = i % 2 == 0 ? -1.0f : 1.0f;
+			plane.normal[ i / 2 ] = sign;
+			plane.distance = sign * ( i % 2 == 0 ? bounds.mins : bounds.maxs )[ i / 2 ];
+
+			kd_tree.planes.push_back( plane );
+
+			num_planes++;
+		}
+
+		map_brush.num_planes = checked_cast< u8 >( num_planes );
 
 		kd_tree.brushes.push_back( map_brush );
 		kd_tree.bounds = Union( kd_tree.bounds, bounds );

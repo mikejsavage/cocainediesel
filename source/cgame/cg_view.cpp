@@ -646,8 +646,11 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		CM_TransformedBoxTrace( CM_Client, cl.map->cms, &old_trace, start, end, Vec3( 0.0f ), Vec3( 0.0f ), NULL, MASK_ALL, Vec3( 0.0f ), Vec3( 0.0f ) );
 
 		Ray ray = { start, Normalize( end - start ), 1.0f / Normalize( end - start ), Length( end - start ) };
+		Shape ray_shape = { ShapeType_Ray };
+		Shape aabb_shape = { ShapeType_AABB, { Vec3( 0.0f ), Vec3( 16.0f ) } };
+
 		Intersection intersection;
-		if( Trace( &cl.map->data, &cl.map->data.models[ 0 ], ray, &intersection ) ) {
+		if( Trace( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, &intersection ) ) {
 			Vec3 new_end = start + intersection.t * ray.direction;
 
 			DrawModelConfig config = { };
@@ -658,8 +661,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 			if( Length( old_trace.endpos - new_end ) > 0.1f ) {
 				Com_GGPrint( "sucks to be you start={} old={} new={}", start, old_trace.endpos, new_end );
-				if( break1 ) __debugbreak();
-				Trace( &cl.map->data, &cl.map->data.models[ 0 ], ray, &intersection );
 			}
 		}
 	}

@@ -1811,15 +1811,13 @@ void CG_DrawHUD() {
 
 	lua_createtable( hud_L, Weapon_Count - 1, 0 );
 
-	size_t num_weapon_icons = 0;
 	for( size_t i = 0; i < ARRAY_COUNT( cg.predictedPlayerState.weapons ); i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( cg.predictedPlayerState.weapons[ i ].weapon );
 
 		if( cg.predictedPlayerState.weapons[ i ].weapon == Weapon_None )
 			continue;
 
-		num_weapon_icons++;
-		lua_pushnumber( hud_L, num_weapon_icons ); //arrays start at 1 in lua
+		lua_pushnumber( hud_L, i + 1 ); // arrays start at 1 in lua
 		lua_createtable( hud_L, 0, 4 );
 
 		lua_pushnumber( hud_L, cg.predictedPlayerState.weapons[ i ].weapon );

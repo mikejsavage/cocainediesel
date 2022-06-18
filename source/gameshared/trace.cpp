@@ -50,13 +50,12 @@ static MinMax3 MinkowskiSum( const MinMax3 & bounds1, const CenterExtents3 & bou
 	return MinMax3( bounds1.mins + bounds2.extents, bounds1.maxs + bounds2.extents );
 }
 
-static float Support( const CenterExtents3 & aabb, Vec3 n ) {
-	return Abs( aabb.extents.x * n.x ) + Abs( aabb.extents.y * n.y ) + Abs( aabb.extents.z * n.z );
+static float Support( const CenterExtents3 & aabb, Vec3 dir ) {
+	return Abs( aabb.extents.x * dir.x ) + Abs( aabb.extents.y * dir.y ) + Abs( aabb.extents.z * dir.z );
 }
 
 static float AxialSupport( const CenterExtents3 & aabb, int axis, bool positive ) {
-	float sign = positive ? 1.0f : -1.0f;
-	return aabb.extents[ axis ] * sign;
+	return aabb.extents[ axis ];
 }
 
 static MinMax3 MinkowskiSum( const MinMax3 & bounds, const Shape & shape ) {
@@ -71,12 +70,12 @@ static MinMax3 MinkowskiSum( const MinMax3 & bounds, const Shape & shape ) {
 	return MinMax3::Empty();
 }
 
-static float Support( const Shape & shape, Vec3 n ) {
+static float Support( const Shape & shape, Vec3 dir ) {
 	switch( shape.type ) {
 		case ShapeType_Ray:
 			return 0.0f;
 		case ShapeType_AABB:
-			return Support( shape.aabb, n );
+			return Support( shape.aabb, dir );
 	}
 
 	assert( false );
@@ -201,7 +200,7 @@ bool Trace( const MapData * map, const MapModel * model, Ray ray, const Shape & 
 		if( !MapKDTreeNode::is_leaf( *node ) ) {
 			u32 axis = node->node.is_leaf_and_splitting_plane_axis;
 
-			float t_interval_start = ( node->node.splitting_plane_distance - ray.origin[ axis ] + AxialSupport( shape, axis, false ) ) * ray.inv_dir[ axis ];
+			float t_interval_start = ( node->node.splitting_plane_distance - ray.origin[ axis ] - AxialSupport( shape, axis, false ) ) * ray.inv_dir[ axis ];
 			float t_interval_end = ( node->node.splitting_plane_distance - ray.origin[ axis ] + AxialSupport( shape, axis, true ) ) * ray.inv_dir[ axis ];
 			if( t_interval_start > t_interval_end ) {
 				Swap2( &t_interval_start, &t_interval_end );

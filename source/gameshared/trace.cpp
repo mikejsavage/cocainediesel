@@ -47,9 +47,10 @@ static bool IntersectAABB( const MinMax3 & aabb, const Ray & ray, Intersection *
 }
 
 static MinMax3 MinkowskiSum( const MinMax3 & bounds1, const CenterExtents3 & bounds2 ) {
-	return MinMax3( bounds1.mins + bounds2.extents, bounds1.maxs + bounds2.extents );
+	return MinMax3( bounds1.mins - bounds2.extents, bounds1.maxs + bounds2.extents );
 }
 
+// TODO look at center too
 static float Support( const CenterExtents3 & aabb, Vec3 dir ) {
 	return Abs( aabb.extents.x * dir.x ) + Abs( aabb.extents.y * dir.y ) + Abs( aabb.extents.z * dir.z );
 }

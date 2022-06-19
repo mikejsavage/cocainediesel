@@ -1,6 +1,6 @@
 #include "gameshared/movement.h"
 
-static constexpr float charge_jump_speed = 1000.0f;
+static constexpr float charge_jump_speed = 950.0f;
 static constexpr float charge_min_speed = 350.0f;
 static constexpr float charge_slide_time = 1.0f;
 
@@ -13,7 +13,7 @@ static constexpr float stamina_recover = 8.0f;
 static constexpr float floor_distance = STEPSIZE * 0.5f;
 
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( (pm->groundentity != -1 || pml->ladder) && (ps->pmove.stamina_state == Stamina_UsedAbility ) ) {
+	if( (pm->groundentity != -1 || pml->ladder) && (ps->pmove.stamina == 0.0f ) ) {
 		ps->pmove.stamina_state = Stamina_Normal;
 	}
 
@@ -21,7 +21,6 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		pml->friction = slide_friction;
 		pml->maxSpeed *= slide_speed_fact;
 	}
-
 }
 
 
@@ -31,10 +30,6 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
 	pml->friction = slide_friction + (pml->friction - slide_friction) * (charge_slide_time - ps->pmove.stamina_stored)/charge_slide_time;
-
-	if( ps->pmove.stamina_state == Stamina_Normal ) {
-		StaminaUse( ps, pml, stamina_recover );
-	}
 
 	if( pressed ) {
 		if( ps->pmove.stamina_state == Stamina_UsingAbility ||

@@ -1,13 +1,11 @@
 #include "gameshared/movement.h"
 
-static constexpr float pm_jumpspeed = 250.0f;
-static constexpr float jump_detection = 0.06f; //slight jump buffering
+static constexpr float charge_jump_speed = 1000.0f;
+static constexpr float charge_min_speed = 350.0f;
+static constexpr float charge_slide_time = 1.0f;
 
-static constexpr float pm_chargedjumpspeed = 1000.0f;
-static constexpr float slide_friction = 0.0f;
-static constexpr float slide_time = 2.0f;
-static constexpr float min_charge_speed = pm_jumpspeed * 2;
-
+static constexpr float slide_friction = 0.8f;
+static constexpr float slide_speed_fact = 0.5f;
 
 static constexpr float stamina_use = 2.5f;
 static constexpr float stamina_recover = 8.0f;
@@ -19,22 +17,9 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		ps->pmove.stamina_state = Stamina_Normal;
 	}
 
-	if( pressed ) {
-		ps->pmove.jump_buffering = Max2( 0.0f, ps->pmove.jump_buffering - pml->frametime );
-		
-		if( !(ps->pmove.pm_flags & PMF_ABILITY1_HELD) ) {
-			ps->pmove.jump_buffering = jump_detection;
-		}
-
-		ps->pmove.pm_flags |= PMF_ABILITY1_HELD;
-
-		if( pm->groundentity == -1 || pml->ladder || ps->pmove.jump_buffering == 0.0f ) {
-			return;
-		}
-
-		Jump( pm, pml, pmove_gs, ps, pm_jumpspeed, true );
-	} else {
-		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
+	if( pressed && !pml->ladder ) {
+		pml->friction = slide_friction;
+		pml->maxSpeed *= slide_speed_fact;
 	}
 
 }
@@ -45,7 +30,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 	bool can_start_charge = ps->pmove.stamina_state == Stamina_Normal;
 
 	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
-	pml->friction = slide_friction + (pml->friction - slide_friction) * (slide_time - ps->pmove.stamina_stored)/slide_time;
+	pml->friction = slide_friction + (pml->friction - slide_friction) * (charge_slide_time - ps->pmove.stamina_stored)/charge_slide_time;
 
 	if( ps->pmove.stamina_state == Stamina_Normal ) {
 		StaminaUse( ps, pml, stamina_recover );
@@ -69,8 +54,8 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 	}
 
 	if( !pressed ) {
-		float special_jumpspeed = pm_chargedjumpspeed * ps->pmove.stamina;
-		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility && special_jumpspeed > min_charge_speed ) {
+		float special_jumpspeed = charge_jump_speed * ps->pmove.stamina;
+		if( ( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) && ps->pmove.stamina_state == Stamina_UsingAbility && special_jumpspeed > charge_min_speed ) {
 			Vec3 fwd;
 			AngleVectors( pm->playerState->viewangles, &fwd, NULL, NULL );
 			Vec3 dashdir = fwd;
@@ -81,7 +66,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 			pm->groundentity = -1;
 			pml->velocity = dashdir;
 
-			ps->pmove.stamina_stored = slide_time;
+			ps->pmove.stamina_stored = charge_slide_time;
 
 			pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, JumpType_MidgetCharge );
 		} else if( ps->pmove.stamina_state == Stamina_UsingAbility ) {

@@ -110,47 +110,36 @@ static bool IntersectBrush( const MapData * map, const MapBrush * brush, Ray ray
 	if( !IntersectAABB( MinkowskiSum( brush->bounds, shape ), ray, &enter, &leave ) )
 		return false;
 
-	bool any_outside = !Contains( brush->bounds, ray.origin );
 	for( u32 i = 0; i < brush->num_planes; i++ ) {
 		Plane plane = map->brush_planes[ brush->first_plane + i ];
 		plane.distance += Support( shape, -plane.normal );
 
-		float start_dist = Dot( plane.normal, ray.origin ) - plane.distance;
-		float end_dist = Dot( plane.normal, ray.origin + ray.direction * ray.length ) - plane.distance;
+		float dist = plane.distance - Dot( plane.normal, ray.origin );
+		float denom = Dot( plane.normal, ray.direction );
 
-		if( start_dist > 0.0f ) { // start outside
-			any_outside = true;
-			if( end_dist > 0.0f ) // fully outside
+		if( denom == 0.0f ) {
+			if( dist < 0.0f )
 				return false;
-		}
-
-		// fully inside
-		if( start_dist <= 0.0f && end_dist <= 0.0f ) {
 			continue;
 		}
 
-		// end_dist - start_dist = n.(o + ld) - n.o = n.o - n.o + l(n.d) = l(n.d)
-		float t = -start_dist * ray.length / ( end_dist - start_dist );
+		float t = dist / denom;
 
-		// hit frontface
-		if( end_dist <= start_dist ) {
-			if( t > enter.t ) {
+		if( denom < 0.0f ) {
+			if( t > leave.t )
+				return false;
+			if( t > enter.t )
 				enter = { t, plane.normal };
-			}
 		}
 		else {
-			if( t < leave.t ) {
+			if( t < enter.t )
+				return false;
+			if( t < leave.t )
 				leave = { t, plane.normal };
-			}
 		}
 	}
 
-	if( enter.t > leave.t ) {
-		return false;
-	}
-
-	constexpr Intersection fully_inside_intersection = { 0.0f, Vec3( 0.0f ) };
-	*intersection = any_outside ? enter : fully_inside_intersection;
+	*intersection = enter;
 	return true;
 }
 
@@ -201,34 +190,54 @@ bool Trace( const MapData * map, const MapModel * model, Ray ray, const Shape & 
 		if( !MapKDTreeNode::is_leaf( *node ) ) {
 			u32 axis = node->node.is_leaf_and_splitting_plane_axis;
 
-			float t_interval_start = ( node->node.splitting_plane_distance - ray.origin[ axis ] - AxialSupport( shape, axis, false ) ) * ray.inv_dir[ axis ];
-			float t_interval_end = ( node->node.splitting_plane_distance - ray.origin[ axis ] + AxialSupport( shape, axis, true ) ) * ray.inv_dir[ axis ];
-			if( t_interval_start > t_interval_end ) {
-				Swap2( &t_interval_start, &t_interval_end );
-			}
+			float splitting_interval_start = node->node.splitting_plane_distance - AxialSupport( shape, axis, true );
+			float splitting_interval_end = node->node.splitting_plane_distance + AxialSupport( shape, axis, false );
 
-			bool below_first =
-				( ray.origin[ axis ] < node->node.splitting_plane_distance ) ||
-				( ray.origin[ axis ] == node->node.splitting_plane_distance && ray.direction[ axis ] <= 0.0f );
+			float t_interval_start, t_interval_end;
+			bool start_in_first_child, reach_second_child;
+
 			const MapKDTreeNode * first_child = node + 1;
 			const MapKDTreeNode * second_child = &map->nodes[ node->node.front_child ];
-			if( !below_first ) {
-				Swap2( &first_child, &second_child );
+
+			if( ray.direction[ axis ] == 0.0f ) {
+				start_in_first_child = true;
+				if( ray.origin[ axis ] > node->node.splitting_plane_distance ) {
+					Swap2( &first_child, &second_child );
+				}
+				reach_second_child = ray.origin[ axis ] > splitting_interval_start && ray.origin[ axis ] < splitting_interval_end;
+
+				t_interval_start = t_min;
+				t_interval_end = t_max;
+			}
+			else {
+				t_interval_start = ( splitting_interval_start - ray.origin[ axis ] ) * ray.inv_dir[ axis ];
+				t_interval_end = ( splitting_interval_end - ray.origin[ axis ] ) * ray.inv_dir[ axis ];
+
+				if( ray.direction[ axis ] < 0.0f ) {
+					Swap2( &first_child, &second_child );
+					Swap2( &t_interval_start, &t_interval_end );
+				}
+
+				start_in_first_child = t_interval_end >= t_min;
+				reach_second_child = t_interval_start <= t_max;
 			}
 
-			if( t_interval_start > t_max || t_interval_start <= 0.0f ) {
-				node = first_child;
-			}
-			else if( t_interval_end < t_min ) {
+			if( !start_in_first_child ) {
 				node = second_child;
+				t_min = t_interval_start;
+			}
+			else if( !reach_second_child ) {
+				node = first_child;
+				t_max = t_interval_end;
 			}
 			else {
 				if( num_todo == ARRAY_COUNT( todo ) ) {
-					Fatal( "shit" ); // TODO
+					Fatal( "Trace hit max tree depth" );
 				}
 
 				todo[ num_todo ] = { second_child, t_interval_start, t_max };
 				num_todo++;
+
 				node = first_child;
 				t_max = t_interval_end;
 			}

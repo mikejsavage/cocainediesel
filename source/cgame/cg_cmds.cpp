@@ -250,7 +250,7 @@ static void ScrollWeapon( int step ) {
 		return;
 
 	WeaponType weapon = ps->weapons[ slot ].weapon;
-	if( weapon != Weapon_None && weapon != Weapon_Knife ) {
+	if( weapon != Weapon_None && GS_GetWeaponDef( weapon )->category != WeaponCategory_Melee ) {
 		SwitchWeapon( weapon );
 	}
 }

@@ -5,7 +5,7 @@ mask/base
 	shininess 8
 	{
 		map $whiteimage
-		rgbGen const 0.75 0.75 0.75
+		rgbGen const 1.0 1.0 1.0
 	}
 }
 

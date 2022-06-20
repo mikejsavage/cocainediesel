@@ -93,8 +93,6 @@ static void ClearMasksList() {
 static void SetMask( const char * mask_name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 	char * path = temp( "models/masks/{}", mask_name );
-	defer { FREE( (&temp), path ); };
-
 	Cvar_Set( "cg_mask", path );
 }
 
@@ -102,21 +100,17 @@ static void RefreshMasksList() {
 	TempAllocator temp = cls.frame_arena.temp();
 	ClearMasksList();
 
-	char * path = temp( "{}/base/models/masks", RootDirPath() );
-	defer { FREE( (&temp), path ); };
-
-	GetFileList( sys_allocator, &masks, path, ".glb" );
+	masks.add( (*sys_allocator)("  -  ") );
+	GetFileList( sys_allocator, &masks, temp( "{}/base/models/masks", RootDirPath() ), ".glb" );
 
 	const char * mask = Cvar_String( "cg_mask" );
 
 	if( !StrEqual( mask, "" ) ) {
 		for( size_t i = 0; i < masks.size(); i++ ) {
-			char * path = temp( "models/masks/{}", masks[ i ] );
-			if( StrEqual( mask, path ) ) {
+			if( StrEqual( mask, temp( "models/masks/{}", masks[ i ] ) ) ) {
 				selected_mask = i;
 				return;
 			}
-			FREE( (&temp), path );
 		}
 	}
 

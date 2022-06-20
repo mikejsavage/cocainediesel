@@ -329,7 +329,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->s.type = ET_PLAYER;
 		const char * mask_name = Info_ValueForKey( self->r.client->userinfo, "cg_mask" );
 		if( mask_name != NULL ) {
-			printf("%s\n", mask_name);
 			self->s.mask = StringHash( mask_name );
 		}
 		self->s.svflags |= SVF_FORCETEAM;

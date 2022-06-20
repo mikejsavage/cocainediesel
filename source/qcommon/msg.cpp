@@ -479,6 +479,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.ownerNum, baseline.ownerNum );
 	Delta( buf, ent.sound, baseline.sound );
 	Delta( buf, ent.model2, baseline.model2 );
+	Delta( buf, ent.mask, baseline.mask );
 	Delta( buf, ent.animating, baseline.animating );
 	Delta( buf, ent.animation_time, baseline.animation_time );
 	Delta( buf, ent.site_letter, baseline.site_letter );

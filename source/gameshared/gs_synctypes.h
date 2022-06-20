@@ -322,6 +322,7 @@ struct SyncEntityState {
 
 	StringHash model;
 	StringHash model2;
+	StringHash mask;
 
 	bool animating;
 	float animation_time;

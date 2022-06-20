@@ -25,6 +25,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 
+Cvar *cg_showMasks;
+
 constexpr u32 MAX_PLAYER_MODELS = 128;
 
 pmodel_t cg_entPModels[ MAX_EDICTS ];
@@ -89,6 +91,8 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 				PlayerModelMetadata::Tag * tag = &meta->tag_bomb;
 				if( tag_name == "tag_hat" )
 					tag = &meta->tag_hat;
+				else if( tag_name == "tag_mask" )
+					tag = &meta->tag_mask;
 				else if( tag_name == "tag_weapon" )
 					tag = &meta->tag_weapon;
 
@@ -840,6 +844,22 @@ void CG_DrawPlayer( centity_t * cent ) {
 			PlayerModelMetadata::Tag tag = meta->tag_bomb;
 			if( cent->current.effects & EF_HAT )
 				tag = meta->tag_hat;
+
+			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag ) * inverse_scale;
+
+			DrawModelConfig config = { };
+			config.draw_model.enabled = draw_model;
+			config.draw_shadows.enabled = true;
+			config.draw_silhouette.enabled = draw_silhouette;
+			config.draw_silhouette.silhouette_color = color;
+
+			DrawModel( config, attached_model, tag_transform, vec4_white );
+		}
+
+		attached_model = FindModel( cent->current.mask );
+
+		if( cg_showMasks->integer && attached_model != NULL ) {
+			PlayerModelMetadata::Tag tag = meta->tag_mask;
 
 			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag ) * inverse_scale;
 

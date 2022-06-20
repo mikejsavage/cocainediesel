@@ -93,6 +93,7 @@ static void CG_InitGameShared( int max_clients ) {
 
 static void CG_RegisterVariables() {
 	cg_showMiss = NewCvar( "cg_showMiss", "0", 0 );
+	cg_showMasks = NewCvar( "cg_showMasks", "0", 0 );
 
 	cg_thirdPerson = NewCvar( "cg_thirdPerson", "0", CvarFlag_Cheat );
 	cg_thirdPersonAngle = NewCvar( "cg_thirdPersonAngle", "0", 0 );

@@ -304,7 +304,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->max_health = 100;
 	self->health = self->max_health;
 
-
 	if( self->s.svflags & SVF_FAKECLIENT ) {
 		self->classname = "fakeclient";
 	} else {
@@ -328,6 +327,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 	else {
 		self->s.type = ET_PLAYER;
+		self->s.mask = "models/masks/first_mask";
 		self->s.svflags |= SVF_FORCETEAM;
 		self->r.solid = SOLID_YES;
 		self->movetype = MOVETYPE_PLAYER;

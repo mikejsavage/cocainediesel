@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+extern Cvar *cg_showMasks;
+
 enum {
 	LOWER = 0,
 	UPPER,
@@ -181,6 +183,7 @@ struct PlayerModelMetadata {
 
 	Tag tag_bomb;
 	Tag tag_hat;
+	Tag tag_mask;
 	Tag tag_weapon;
 
 	AnimationClip clips[ PMODEL_TOTAL_ANIMATIONS ];

@@ -327,7 +327,11 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 	else {
 		self->s.type = ET_PLAYER;
-		self->s.mask = "models/masks/first_mask";
+		const char * mask_name = Info_ValueForKey( self->r.client->userinfo, "cg_mask" );
+		if( mask_name != NULL ) {
+			printf("%s\n", mask_name);
+			self->s.mask = StringHash( mask_name );
+		}
 		self->s.svflags |= SVF_FORCETEAM;
 		self->r.solid = SOLID_YES;
 		self->movetype = MOVETYPE_PLAYER;

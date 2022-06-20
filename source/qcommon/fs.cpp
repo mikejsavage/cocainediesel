@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "qcommon/base.h"
 #include "qcommon/fs.h"
 #include "qcommon/utf8.h"
@@ -170,4 +172,22 @@ bool CloseFile( FILE * file ) {
 	bool ok = ferror( file ) == 0;
 	fclose( file );
 	return ok;
+}
+
+void GetFileList( Allocator * a, NonRAIIDynamicArray< char * > * array, const char * path, const char * ext ) {
+	ListDirHandle scan = BeginListDir( a, path );
+
+	const char * name;
+	bool dir;
+	while( ListDirNext( &scan, &name, &dir ) ) {
+		if( dir )
+			continue;
+
+		if( StrEqual( ext, FileExtension( name ) ) || StrEqual( ext, FileExtension( StripExtension( name ) ) ) ) {
+			char * file_name = ( *a )( "{}", StripExtension( StripExtension( name ) ) );
+			array->add( file_name );
+		}
+	}
+
+	std::sort( array->begin(), array->end(), SortCStringsComparator );
 }

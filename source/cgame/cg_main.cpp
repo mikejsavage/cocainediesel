@@ -26,6 +26,7 @@ cg_state_t cg;
 centity_t cg_entities[MAX_EDICTS];
 
 Cvar *cg_showMiss;
+Cvar *cg_mask;
 
 Cvar *cg_thirdPerson;
 Cvar *cg_thirdPersonAngle;
@@ -93,7 +94,7 @@ static void CG_InitGameShared( int max_clients ) {
 
 static void CG_RegisterVariables() {
 	cg_showMiss = NewCvar( "cg_showMiss", "0", 0 );
-	cg_showMasks = NewCvar( "cg_showMasks", "0", 0 );
+	cg_mask = NewCvar( "cg_mask", "", CvarFlag_Archive | CvarFlag_UserInfo );
 
 	cg_thirdPerson = NewCvar( "cg_thirdPerson", "0", CvarFlag_Cheat );
 	cg_thirdPersonAngle = NewCvar( "cg_thirdPersonAngle", "0", 0 );

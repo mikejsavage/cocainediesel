@@ -25,8 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
 
-Cvar *cg_showMasks;
-
 constexpr u32 MAX_PLAYER_MODELS = 128;
 
 pmodel_t cg_entPModels[ MAX_EDICTS ];
@@ -858,7 +856,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 		attached_model = FindModel( cent->current.mask );
 
-		if( cg_showMasks->integer && attached_model != NULL ) {
+		if( attached_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_mask;
 
 			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag ) * inverse_scale;

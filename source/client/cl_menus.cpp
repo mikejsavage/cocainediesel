@@ -6,6 +6,7 @@
 #include "client/server_browser.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/array.h"
+#include "qcommon/fs.h"
 #include "qcommon/maplist.h"
 #include "qcommon/time.h"
 #include "qcommon/version.h"
@@ -69,6 +70,9 @@ static SettingsState settings_state;
 static bool reset_video_settings;
 static float sensivity_range[] = { 0.25f, 10.f };
 
+static size_t selected_mask = 0;
+static NonRAIIDynamicArray< char * > masks;
+
 static void PushButtonColor( ImVec4 color ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, color );
 	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, ImVec4( color.x + 0.125f, color.y + 0.125f, color.z + 0.125f, color.w ) );
@@ -79,13 +83,55 @@ static void ResetServerBrowser() {
 	selected_server = -1;
 }
 
+static void ClearMasksList() {
+	for( char * mask : masks ) {
+		FREE( sys_allocator, mask );
+	}
+	masks.clear();
+}
+
+static void SetMask( const char * mask_name ) {
+	TempAllocator temp = cls.frame_arena.temp();
+	char * path = temp( "models/masks/{}", mask_name );
+	defer { FREE( (&temp), path ); };
+
+	Cvar_Set( "cg_mask", path );
+}
+
+static void RefreshMasksList() {
+	TempAllocator temp = cls.frame_arena.temp();
+	ClearMasksList();
+
+	char * path = temp( "{}/base/models/masks", RootDirPath() );
+	defer { FREE( (&temp), path ); };
+
+	GetFileList( sys_allocator, &masks, path, ".glb" );
+
+	const char * mask = Cvar_String( "cg_mask" );
+
+	if( !StrEqual( mask, "" ) ) {
+		for( size_t i = 0; i < masks.size(); i++ ) {
+			char * path = temp( "models/masks/{}", masks[ i ] );
+			if( StrEqual( mask, path ) ) {
+				selected_mask = i;
+				return;
+			}
+			FREE( (&temp), path );
+		}
+	}
+
+	SetMask( masks[ 0 ] );
+}
+
 static void Refresh() {
 	ResetServerBrowser();
 	RefreshServerBrowser();
 }
 
 void UI_Init() {
+	masks.init( sys_allocator );
 	ResetServerBrowser();
+	RefreshMasksList();
 	yolodemo = false;
 	// InitParticleMenuEffect();
 
@@ -96,6 +142,8 @@ void UI_Init() {
 }
 
 void UI_Shutdown() {
+	ClearMasksList();
+	masks.shutdown();
 	// ShutdownParticleEditor();
 }
 
@@ -244,6 +292,24 @@ static const char * SelectablePlayerList() {
 	return ( selected_player < players.size() ? players[ selected_player ] : "" );
 }
 
+static void MasksList() {
+	ImGui::PushItemWidth( 200 );
+	if( ImGui::BeginCombo( "##masks", masks[ selected_mask ] ) ) {
+		for( size_t i = 0; i < masks.size(); i++ ) {
+			if( ImGui::Selectable( masks[ i ], i == selected_mask ) ) {
+				selected_mask = i;
+				SetMask( masks[ i ] );
+			}
+
+			if( i == selected_mask ) {
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
+	}
+	ImGui::PopItemWidth();
+}
+
 static void SettingsGeneral() {
 	TempAllocator temp = cls.frame_arena.temp();
 
@@ -257,6 +323,7 @@ static void SettingsGeneral() {
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys" );
 	CvarCheckbox( "Show FPS", "cg_showFPS" );
 	CvarCheckbox( "Show speed", "cg_showSpeed" );
+	MasksList();
 }
 
 static void SettingsControls() {

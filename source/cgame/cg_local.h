@@ -332,6 +332,7 @@ bool CG_ScoreboardShown();
 // cg_main.c
 //
 extern Cvar *cg_showClamp;
+extern Cvar *cg_mask;
 
 // wsw
 extern Cvar *cg_projectileAntilagOffset;

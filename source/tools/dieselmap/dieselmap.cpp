@@ -161,7 +161,7 @@ static std::vector< Vec3 > BrushFaceToHull( Span< const Plane > brush, size_t fa
 	return sorted_points;
 }
 
-static std::vector< CompiledMesh > BrushToCompiledMeshes( int entity_id, const ParsedBrush & brush ) {
+static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & brush ) {
 	// convert 3 verts to planes
 	std::vector< Plane > planes;
 	for( size_t i = 0; i < brush.faces.n; i++ ) {
@@ -169,7 +169,7 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( int entity_id, const P
 		const ParsedBrushFace & face = brush.faces.elems[ i ];
 		if( !PlaneFrom3Points( &plane, face.plane[ 0 ], face.plane[ 1 ], face.plane[ 2 ] ) ) {
 			LogDebugInstructions();
-			Fatal( "[entity %d brush %d/line %d] has a non-planar face", entity_id, brush.id, brush.line_number );
+			Fatal( "[entity %zu brush %zu/line %zu] Has a non-planar face", brush.entity_id, brush.id, brush.line_number );
 		}
 		planes.push_back( plane );
 	}
@@ -194,8 +194,7 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( int entity_id, const P
 
 		if( material_mesh.vertices.size() < 3 ) {
 			LogDebugInstructions();
-			printf( "[entity %d brush %d/line %d] triangulation failed, if the brush is mega huge it ran into precision issues\n", entity_id, brush.id, brush.line_number );
-			printf( "this isn't a fatal error but your map will have a hole in it\n" );
+			printf( "[entity %zu brush %zu/line %zu] Triangulation failed, if the brush is mega huge it ran into precision issues. Your map will have a hole in it\n", brush.entity_id, brush.id, brush.line_number );
 			continue;
 		}
 
@@ -462,7 +461,7 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 
 	std::vector< CompiledMesh > face_meshes;
 	for( const ParsedBrush & brush : entity.brushes ) {
-		std::vector< CompiledMesh > brush_meshes = BrushToCompiledMeshes( entity.id, brush );
+		std::vector< CompiledMesh > brush_meshes = BrushToCompiledMeshes( brush );
 		for( const CompiledMesh & mesh : brush_meshes ) {
 			face_meshes.push_back( mesh );
 		}
@@ -558,7 +557,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 			const ParsedBrushFace & face = brush.faces.elems[ i ];
 			if( !PlaneFrom3Points( &plane, face.plane[ 0 ], face.plane[ 1 ], face.plane[ 2 ] ) ) {
 				LogDebugInstructions();
-				Fatal( "[entity %d brush %d/line %d] has a non-planar face", entity.id, brush.id, brush.line_number );
+				Fatal( "[entity %zu brush %zu/line %zu] Has a non-planar face", brush.entity_id, brush.id, brush.line_number );
 			}
 
 			planes.push_back( plane );

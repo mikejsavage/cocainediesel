@@ -46,8 +46,10 @@ struct ParsedBrushFace {
 };
 
 struct ParsedBrush {
-	int id;
-	int line_number;
+	size_t entity_id;
+	size_t id;
+	const char * first_char;
+	size_t line_number;
 
 	StaticArray< ParsedBrushFace, 32 > faces;
 };
@@ -58,8 +60,10 @@ struct ParsedControlPoint {
 };
 
 struct ParsedPatch {
-	int id;
-	int line_number;
+	size_t entity_id;
+	size_t id;
+	const char * first_char;
+	size_t line_number;
 
 	Span< const char > material;
 	u64 material_hash;
@@ -68,8 +72,6 @@ struct ParsedPatch {
 };
 
 struct ParsedEntity {
-	int id;
-
 	StaticArray< ParsedKeyValue, 16 > kvs;
 	std::vector< ParsedBrush > brushes;
 	std::vector< ParsedPatch > patches;

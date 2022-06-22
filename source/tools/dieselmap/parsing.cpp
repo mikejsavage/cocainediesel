@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <vector>
 
 #include "qcommon/base.h"
@@ -261,6 +262,7 @@ static Span< const char > ParseQ1Face( ParsedBrushFace * face, Span< const char 
 
 static Span< const char > ParseQ1Brush( ParsedBrush * brush, Span< const char > str ) {
 	str = SkipToken( str, "{" );
+	brush->first_char = str.ptr - 1;
 	str = ParseUpToN( &brush->faces, str, ParseQ1Face );
 	str = SkipToken( str, "}" );
 	return brush->faces.n >= 4 ? str : NullSpan;
@@ -292,6 +294,7 @@ static Span< const char > ParseQ3Face( ParsedBrushFace * face, Span< const char 
 
 static Span< const char > ParseQ3Brush( ParsedBrush * brush, Span< const char > str ) {
 	str = SkipToken( str, "{" );
+	brush->first_char = str.ptr - 1;
 	str = SkipToken( str, "brushDef" );
 	str = SkipToken( str, "{" );
 	str = ParseUpToN( &brush->faces, str, ParseQ3Face );
@@ -305,6 +308,7 @@ static Span< const char > ParsePatch( ParsedPatch * patch, Span< const char > st
 	patch->h = 0;
 
 	str = SkipToken( str, "{" );
+	patch->first_char = str.ptr - 1;
 	str = SkipToken( str, "patchDef2" );
 	str = SkipToken( str, "{" );
 
@@ -440,8 +444,23 @@ static void StripComments( Span< char > map ) {
 	}
 }
 
+static size_t LineNumber( size_t offset, const std::vector< size_t > new_lines ) {
+	return 1 + std::lower_bound( new_lines.begin(), new_lines.end(), offset ) - new_lines.begin();
+}
+
 std::vector< ParsedEntity > ParseEntities( Span< char > map ) {
 	TracyZoneScoped;
+
+	std::vector< size_t > new_lines;
+	{
+		TracyZoneScopedN( "Find new lines" );
+
+		for( size_t i = 0; i < map.n; i++ ) {
+			if( map[ i ] == '\n' ) {
+				new_lines.push_back( i );
+			}
+		}
+	}
 
 	std::vector< ParsedEntity > entities;
 
@@ -450,6 +469,29 @@ std::vector< ParsedEntity > ParseEntities( Span< char > map ) {
 	Span< const char > cursor = map;
 	cursor = CaptureNOrMore( &entities, cursor, 1, ParseEntity );
 	cursor = SkipWhitespace( cursor );
+
+	{
+		TracyZoneScopedN( "Assign line numbers" );
+
+		for( size_t i = 0; i < entities.size(); i++ ) {
+			ParsedEntity * entity = &entities[ i ];
+
+			for( size_t j = 0; j < entities[ i ].brushes.size(); j++ ) {
+				ParsedBrush * brush = &entity->brushes[ j ];
+				// store entity_id on the brushes since we merge func_group into ent 0
+				brush->entity_id = i;
+				brush->id = j;
+				brush->line_number = LineNumber( brush->first_char - map.ptr, new_lines );
+			}
+
+			for( size_t j = 0; j < entities[ i ].patches.size(); j++ ) {
+				ParsedPatch * patch = &entity->patches[ j ];
+				patch->entity_id = i;
+				patch->id = j;
+				patch->line_number = LineNumber( patch->first_char - map.ptr, new_lines );
+			}
+		}
+	}
 
 	bool ok = cursor.ptr != NULL && cursor.n == 0;
 	if( !ok ) {

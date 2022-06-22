@@ -1,12 +1,12 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
 
+#include "client/assets.h"
 #include "client/client.h"
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
 #include "client/renderer/renderer.h"
 #include "qcommon/array.h"
-#include "qcommon/fs.h"
 #include "qcommon/maplist.h"
 #include "qcommon/time.h"
 #include "qcommon/version.h"
@@ -72,6 +72,8 @@ static float sensivity_range[] = { 0.25f, 10.f };
 
 static size_t selected_mask = 0;
 static NonRAIIDynamicArray< char * > masks;
+static const char * masks_folder = "models/masks/";
+
 
 static void PushButtonColor( ImVec4 color ) {
 	ImGui::PushStyleColor( ImGuiCol_Button, color );
@@ -92,7 +94,7 @@ static void ClearMasksList() {
 
 static void SetMask( const char * mask_name ) {
 	TempAllocator temp = cls.frame_arena.temp();
-	char * path = temp( "models/masks/{}", mask_name );
+	char * path = temp( "{}{}", masks_folder, mask_name );
 	Cvar_Set( "cg_mask", path );
 }
 
@@ -100,17 +102,20 @@ static void RefreshMasksList() {
 	TempAllocator temp = cls.frame_arena.temp();
 	ClearMasksList();
 
-	masks.add( (*sys_allocator)("  -  ") );
-	GetFileList( sys_allocator, &masks, temp( "{}/base/models/masks", RootDirPath() ), ".glb" );
+	masks.add( ( *sys_allocator )( "  -  " ) );
+	for( const char * path : AssetPaths() ) {
+		if( !StartsWith( path, masks_folder ) || !EndsWith( path, ".glb" ) )
+			continue;
+
+		masks.add( ( *sys_allocator )("{}", StripPrefix( StripExtension( path ), masks_folder ) ) );
+	}
+
 
 	const char * mask = Cvar_String( "cg_mask" );
-
-	if( !StrEqual( mask, "" ) ) {
-		for( size_t i = 0; i < masks.size(); i++ ) {
-			if( StrEqual( mask, temp( "models/masks/{}", masks[ i ] ) ) ) {
-				selected_mask = i;
-				return;
-			}
+	for( size_t i = 0; i < masks.size(); i++ ) {
+		if( StrEqual( mask, temp( "{}{}", masks_folder, masks[ i ] ) ) ) {
+			selected_mask = i;
+			return;
 		}
 	}
 

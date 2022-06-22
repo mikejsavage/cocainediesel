@@ -650,7 +650,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		Shape aabb_shape = { ShapeType_AABB, { Vec3( 0.0f ), Vec3( 16.0f ) } };
 
 		Intersection intersection;
-		if( Trace( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, &intersection ) ) {
+		if( SweptShapeVsMap( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, &intersection ) ) {
 			Vec3 new_end = start + intersection.t * ray.direction;
 
 			DrawModelConfig config = { };
@@ -662,6 +662,11 @@ void CG_RenderView( unsigned extrapolationTime ) {
 			if( Length( old_trace.endpos - new_end ) > 0.1f ) {
 				Com_GGPrint( "sucks to be you start={} old={} new={}", start, old_trace.endpos, new_end );
 			}
+		}
+
+		if( break2 ) {
+			__debugbreak();
+			SweptShapeVsMap( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, &intersection );
 		}
 	}
 }

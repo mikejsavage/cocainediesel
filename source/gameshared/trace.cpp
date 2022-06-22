@@ -3,12 +3,12 @@
 #include "gameshared/q_shared.h"
 
 // TODO copied from pbr
-static float gamma( int n ) {
+static float Gamma( int n ) {
 	constexpr float epsilon = FLT_EPSILON * 0.5f;
 	return ( n * epsilon ) / ( 1.0f - n * epsilon );
 }
 
-static bool IntersectAABB( const MinMax3 & aabb, const Ray & ray, Intersection * enter_out, Intersection * leave_out ) {
+bool RayVsAABB( const MinMax3 & aabb, const Ray & ray, Intersection * enter_out, Intersection * leave_out ) {
 	constexpr Vec3 aabb_normals[] = {
 		Vec3( 1.0f, 0.0f, 0.0f ),
 		Vec3( 0.0f, 1.0f, 0.0f ),
@@ -25,7 +25,7 @@ static bool IntersectAABB( const MinMax3 & aabb, const Ray & ray, Intersection *
 			Swap2( &near, &far );
 		}
 
-		far *= 1.0f + 2.0f * gamma( 3 );
+		far *= 1.0f + 2.0f * Gamma( 3 );
 
 		if( near > enter.t ) {
 			// TODO: inline SignedOne
@@ -105,9 +105,9 @@ static bool Contains( const MinMax3 & aabb, Vec3 p ) {
 	return true;
 }
 
-static bool IntersectBrush( const MapData * map, const MapBrush * brush, Ray ray, const Shape & shape, Intersection * intersection ) {
+static bool SweptShapeVsMapBrush( const MapData * map, const MapBrush * brush, Ray ray, const Shape & shape, Intersection * intersection ) {
 	Intersection enter, leave;
-	if( !IntersectAABB( MinkowskiSum( brush->bounds, shape ), ray, &enter, &leave ) )
+	if( !RayVsAABB( MinkowskiSum( brush->bounds, shape ), ray, &enter, &leave ) )
 		return false;
 
 	for( u32 i = 0; i < brush->num_planes; i++ ) {
@@ -143,13 +143,13 @@ static bool IntersectBrush( const MapData * map, const MapBrush * brush, Ray ray
 	return true;
 }
 
-static bool IntersectLeaf( const MapData * map, const MapKDTreeNode * leaf, const Ray & ray, const Shape & shape, Intersection * intersection ) {
+static bool SweptShapeVsMapLeaf( const MapData * map, const MapKDTreeNode * leaf, const Ray & ray, const Shape & shape, Intersection * intersection ) {
 	Optional< Intersection > best = NONE;
 
 	for( u32 i = 0; i < leaf->leaf.num_brushes; i++ ) {
 		const MapBrush * brush = &map->brushes[ map->brush_indices[ leaf->leaf.first_brush + i ] ];
 		Intersection brush_intersection;
-		if( IntersectBrush( map, brush, ray, shape, &brush_intersection ) ) {
+		if( SweptShapeVsMapBrush( map, brush, ray, shape, &brush_intersection ) ) {
 			if( !best.exists || brush_intersection.t < best.value.t ) {
 				best = brush_intersection;
 			}
@@ -169,9 +169,9 @@ struct KDTreeTraversalWork {
 	float t_max;
 };
 
-bool Trace( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, Intersection * intersection ) {
+bool SweptShapeVsMap( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, Intersection * intersection ) {
 	Intersection bounds_enter, bounds_leave;
-	if( !IntersectAABB( MinkowskiSum( model->bounds, shape ), ray, &bounds_enter, &bounds_leave ) )
+	if( !RayVsAABB( MinkowskiSum( model->bounds, shape ), ray, &bounds_enter, &bounds_leave ) )
 		return false;
 
 	float t_min = bounds_enter.t;
@@ -244,7 +244,7 @@ bool Trace( const MapData * map, const MapModel * model, Ray ray, const Shape & 
 		}
 		else {
 			Intersection leaf_intersection;
-			if( IntersectLeaf( map, node, ray, shape, &leaf_intersection ) ) {
+			if( SweptShapeVsMapLeaf( map, node, ray, shape, &leaf_intersection ) ) {
 				if( !best.exists || leaf_intersection.t < best.value.t ) {
 					best = leaf_intersection;
 				}
@@ -267,4 +267,45 @@ bool Trace( const MapData * map, const MapModel * model, Ray ray, const Shape & 
 	}
 
 	return best.exists;
+}
+
+static bool Intersecting( const MinMax3 & a, const MinMax3 & b ) {
+	for( int i = 0; i < 3; i++ ) {
+		if( a.maxs[ i ] < b.mins[ i ] || a.mins[ i ] > b.maxs[ i ] ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, Intersection * intersection ) {
+	if( Intersecting( a, b ) ) {
+		*intersection = { 0.0f };
+		return true;
+	}
+
+	Vec3 v = vb - va;
+
+	float t_min = 0.0f;
+	float t_max = 1.0f;
+
+	for( int i = 0; i < 3; i++ ) {
+		if( v[ i ] < 0.0f ) {
+			if( b.maxs[ i ] < a.mins[ i ] ) return false;
+			if( a.maxs[ i ] < b.mins[ i ] ) t_min = Max2( ( a.maxs[ i ] - b.mins[ i ] ) / v[ i ], t_min );
+			if( b.maxs[ i ] > a.mins[ i ] ) t_max = Min2( ( a.mins[ i ] - b.maxs[ i ] ) / v[ i ], t_max );
+		}
+
+		if( v[ i ] > 0.0f ) {
+			if( b.mins[ i ] > a.maxs[ i ] ) return false;
+			if( b.maxs[ i ] < a.mins[ i ] ) t_min = Max2( ( a.mins[ i ] - b.maxs[ i ] ) / v[ i ], t_min );
+			if( a.maxs[ i ] > b.mins[ i ] ) t_max = Min2( ( a.maxs[ i ] - b.mins[ i ] ) / v[ i ], t_max );
+		}
+
+		if( t_min > t_max )
+			return false;
+	}
+
+	return true;
 }

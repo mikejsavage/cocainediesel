@@ -26,4 +26,8 @@ struct Ray {
 	float length;
 };
 
-bool Trace( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, Intersection * intersection );
+bool RayVsAABB( const MinMax3 & aabb, const Ray & ray, Intersection * enter, Intersection * leave );
+
+bool SweptShapeVsMap( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, Intersection * intersection );
+
+bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, Intersection * intersection );

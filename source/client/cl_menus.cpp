@@ -321,7 +321,6 @@ static void SettingsGeneral() {
 	CvarCheckbox( "Show chat", "cg_chat" );
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys" );
 	CvarCheckbox( "Show FPS", "cg_showFPS" );
-	CvarCheckbox( "Show speed", "cg_showSpeed" );
 	MasksList();
 }
 

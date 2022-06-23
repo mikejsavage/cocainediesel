@@ -193,10 +193,6 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 
 	CloseSocket( svs.socket );
 
-	for( int i = 0; i < sv_maxclients->integer; i++ ) {
-		SNAP_FreeClientFrames( &svs.clients[ i ] );
-	}
-
 	FREE( sys_allocator, svs.clients );
 	FREE( sys_allocator, svs.client_entities.entities );
 

@@ -130,12 +130,9 @@ void SV_DropClient( client_t *drop, const char *format, ... ) {
 		}
 	}
 
-	SNAP_FreeClientFrames( drop );
-
 	drop->state = CS_ZOMBIE;    // become free in a few seconds
 	drop->name[0] = 0;
 }
-
 
 /*
 ============================================================

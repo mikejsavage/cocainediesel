@@ -461,13 +461,9 @@ void GClip_UnlinkEntity( edict_t *ent ) {
 * Needs to be called any time an entity changes origin, mins, maxs,
 * or solid.  Automatically unlinks if needed.
 * sets ent->v.absmin and ent->v.absmax
-* sets ent->clusternums[] for pvs determination even if the entity is not solid
 */
 #define MAX_TOTAL_ENT_LEAFS 128
 void GClip_LinkEntity( edict_t *ent ) {
-	int leafs[MAX_TOTAL_ENT_LEAFS];
-	int clusters[MAX_TOTAL_ENT_LEAFS];
-
 	GClip_UnlinkEntity( ent ); // unlink from old position
 
 	if( ent == game.edicts ) {
@@ -500,63 +496,6 @@ void GClip_LinkEntity( edict_t *ent ) {
 	ent->r.absmin -= Vec3( 1.0f );
 	ent->r.absmax += Vec3( 1.0f );
 
-	// link to PVS leafs
-	ent->r.num_clusters = 0;
-	ent->r.areanum = ent->r.areanum2 = -1;
-
-	// get all leafs, including solids
-	int topnode;
-	int num_leafs = CM_BoxLeafnums( svs.cms, ent->r.absmin, ent->r.absmax,
-									 leafs, MAX_TOTAL_ENT_LEAFS, &topnode );
-
-	// set areas
-	for( int i = 0; i < num_leafs; i++ ) {
-		clusters[i] = CM_LeafCluster( svs.cms, leafs[i] );
-		int area = CM_LeafArea( svs.cms, leafs[i] );
-		if( area > -1 ) {
-			// doors may legally straggle two areas,
-			// but nothing should ever need more than that
-			if( ent->r.areanum > -1 && ent->r.areanum != area ) {
-				if( ent->r.areanum2 > -1 && ent->r.areanum2 != area ) {
-					Com_Printf( "Object touching 3 areas at %f %f %f\n",
-						ent->r.absmin.x, ent->r.absmin.y, ent->r.absmin.z );
-				}
-				ent->r.areanum2 = area;
-			} else {
-				ent->r.areanum = area;
-			}
-		}
-	}
-
-	if( num_leafs >= MAX_TOTAL_ENT_LEAFS ) {
-		// assume we missed some leafs, and mark by headnode
-		ent->r.num_clusters = -1;
-		ent->r.headnode = topnode;
-	} else {
-		ent->r.num_clusters = 0;
-		for( int i = 0; i < num_leafs; i++ ) {
-			if( clusters[i] == -1 ) {
-				continue; // not a visible leaf
-			}
-			int j;
-			for( j = 0; j < i; j++ ) {
-				if( clusters[j] == clusters[i] ) {
-					break;
-				}
-			}
-			if( j == i ) {
-				if( ent->r.num_clusters == MAX_ENT_CLUSTERS ) {
-					// assume we missed some leafs, and mark by headnode
-					ent->r.num_clusters = -1;
-					ent->r.headnode = topnode;
-					break;
-				}
-				ent->r.clusternums[ent->r.num_clusters] = clusters[i];
-				ent->r.num_clusters++;
-			}
-		}
-	}
-
 	// if first time, make sure old_origin is valid
 	if( !ent->linkcount ) {
 		ent->olds = ent->s;
@@ -566,24 +505,6 @@ void GClip_LinkEntity( edict_t *ent ) {
 
 	GClip_LinkEntity_AreaGrid( &g_areagrid, ent );
 }
-
-/*
-* GClip_SetAreaPortalState
-*
-* Finds an areaportal leaf entity is connected with,
-* and also finds two leafs from different areas connected
-* with the same entity.
-*/
-void GClip_SetAreaPortalState( edict_t *ent, bool open ) {
-	// entity must touch at least two areas
-	if( ent->r.areanum < 0 || ent->r.areanum2 < 0 ) {
-		return;
-	}
-
-	// change areaportal's state
-	CM_SetAreaPortalState( svs.cms, ent->r.areanum, ent->r.areanum2, open );
-}
-
 
 /*
 * GClip_AreaEdicts

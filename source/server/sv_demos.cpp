@@ -172,8 +172,6 @@ void SV_Demo_Stop( bool silent ) {
 
 	StopRecordingDemo( &temp, &record_demo_context, metadata );
 	record_demo_context = { };
-
-	SNAP_FreeClientFrames( &demo_client );
 }
 
 void SV_Demo_Stop_f() {

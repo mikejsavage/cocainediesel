@@ -776,10 +776,6 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 		for( j = 0; j < out->nummarkfaces; j++ ) {
 			out->contents |= cms->map_faces[out->markfaces[j]].contents;
 		}
-
-		if( out->area >= cms->numareas ) {
-			cms->numareas = out->area + 1;
-		}
 	}
 }
 
@@ -925,22 +921,6 @@ static void CMod_LoadBrushes( CollisionModel *cms, lump_t *l ) {
 	}
 }
 
-static void CMod_LoadVisibility( CollisionModel *cms, lump_t *l ) {
-	TracyZoneScoped;
-
-	cms->map_visdatasize = l->filelen;
-	if( !cms->map_visdatasize ) {
-		cms->map_pvs = NULL;
-		return;
-	}
-
-	cms->map_pvs = ( dvis_t * ) ALLOC_SIZE( sys_allocator, cms->map_visdatasize, 16 );
-	memcpy( cms->map_pvs, cms->cmod_base + l->fileofs, cms->map_visdatasize );
-
-	cms->map_pvs->numclusters = LittleLong( cms->map_pvs->numclusters );
-	cms->map_pvs->rowsize = LittleLong( cms->map_pvs->rowsize );
-}
-
 static void CMod_LoadEntityString( CollisionModel *cms, lump_t *l ) {
 	TracyZoneScoped;
 
@@ -990,7 +970,6 @@ void CM_LoadQ3BrushModel( CModelServerOrClient soc, CollisionModel * cms, Span< 
 	CMod_LoadLeafs( cms, &header.lumps[LUMP_LEAFS] );
 	CMod_LoadNodes( cms, &header.lumps[LUMP_NODES] );
 	CMod_LoadSubmodels( soc, cms, &header.lumps[LUMP_MODELS] );
-	CMod_LoadVisibility( cms, &header.lumps[LUMP_VISIBILITY] );
 	CMod_LoadEntityString( cms, &header.lumps[LUMP_ENTITIES] );
 
 	if( cms->numvertexes ) {

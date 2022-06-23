@@ -730,12 +730,6 @@ void G_CheckGround( edict_t *ent ) {
 	}
 }
 
-/*
-* G_SetBoundsForSpanEntity
-*
-* Set origin and origin2 and then call this before linkEntity
-* for laser entities for proper clipping against world leafs/clusters.
-*/
 void G_SetBoundsForSpanEntity( edict_t *ent, float size ) {
 	ClearBounds( &ent->r.absmin, &ent->r.absmax );
 	AddPointToBounds( ent->s.origin, &ent->r.absmin, &ent->r.absmax );

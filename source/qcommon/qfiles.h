@@ -35,9 +35,3 @@ enum BSPFaceType {
 	FaceType_Flare,
 	FaceType_Foliage,
 };
-
-struct dvis_t {
-	int numclusters;
-	int rowsize;
-	unsigned char data[1];
-};

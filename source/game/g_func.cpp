@@ -144,18 +144,6 @@ static constexpr int DOOR_START_OPEN = 1;
 static constexpr int DOOR_CRUSHER = 4;
 static constexpr int DOOR_TOGGLE = 32;
 
-static void door_use_areaportals( edict_t *self, bool open ) {
-	int iopen = open ? 1 : 0;
-
-	// make sure we don't open the same areaportal twice
-	if( self->style == iopen ) {
-		return;
-	}
-
-	self->style = iopen;
-	GClip_SetAreaPortalState( self, open );
-}
-
 static void door_go_down( edict_t *self );
 
 static void door_hit_top( edict_t *self ) {
@@ -171,7 +159,6 @@ static void door_hit_top( edict_t *self ) {
 
 static void door_hit_bottom( edict_t *self ) {
 	self->moveinfo.state = STATE_BOTTOM;
-	door_use_areaportals( self, false );
 }
 
 void door_go_down( edict_t *self ) {
@@ -211,7 +198,6 @@ static void door_go_up( edict_t *self, edict_t *activator ) {
 	Move_Calc( self, self->moveinfo.end_origin, door_hit_top );
 
 	G_UseTargets( self, activator );
-	door_use_areaportals( self, true );
 }
 
 static void door_use( edict_t *self, edict_t *other, edict_t *activator ) {
@@ -265,8 +251,6 @@ static void Think_SpawnDoorTrigger( edict_t *ent ) {
 	other->movetype = MOVETYPE_NONE;
 	other->touch = Touch_DoorTrigger;
 	GClip_LinkEntity( other );
-
-	door_use_areaportals( ent, ( ent->spawnflags & DOOR_START_OPEN ) != 0 );
 }
 
 static void door_blocked( edict_t *self, edict_t *other ) {
@@ -345,7 +329,6 @@ void SP_func_door( edict_t * ent, const spawn_temp_t * st ) {
 	GClip_LinkEntity( ent );
 
 	ent->style = -1;
-	door_use_areaportals( ent, ( ent->spawnflags & DOOR_START_OPEN ) != 0 );
 
 	if( ent->name == EMPTY_HASH ) {
 		ent->nextThink = level.time + 1;

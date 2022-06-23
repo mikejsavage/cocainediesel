@@ -329,7 +329,6 @@ int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int time
 void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage );
 void GClip_ClearWorld();
 void GClip_SetBrushModel( edict_t * ent );
-void GClip_SetAreaPortalState( edict_t * ent, bool open );
 void GClip_LinkEntity( edict_t * ent );
 void GClip_UnlinkEntity( edict_t * ent );
 void GClip_TouchTriggers( edict_t * ent );
@@ -719,7 +718,7 @@ struct edict_t {
 	s64 delay;                // before firing targets
 	s64 wait_randomness;
 
-	int style;                  // also used as areaportal number
+	int style;
 
 	// common data blocks
 	moveinfo_t moveinfo;        // func movers movement

@@ -20,8 +20,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#define MAX_ENT_CLUSTERS    16
-
 struct edict_t;
 struct gclient_t;
 
@@ -34,11 +32,6 @@ struct client_shared_t {
 struct entity_shared_t {
 	gclient_t *client;
 	bool inuse;
-
-	int num_clusters;           // if -1, use headnode instead
-	int clusternums[MAX_ENT_CLUSTERS];
-	int headnode;               // unused if num_clusters != -1
-	int areanum, areanum2;
 
 	//================================
 

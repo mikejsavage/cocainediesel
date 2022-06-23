@@ -374,7 +374,7 @@ static void G_vsay_f( edict_t * ent, msg_t args ) {
 		u64 parm = u64( vsay.id ) | ( entropy << 16 );
 
 		edict_t * event = G_SpawnEvent( EV_VSAY, parm, NULL );
-		event->s.svflags |= SVF_BROADCAST; // force sending even when not in PVS
+		event->s.svflags |= SVF_BROADCAST;
 		event->s.ownerNum = ent->s.number;
 
 		return;

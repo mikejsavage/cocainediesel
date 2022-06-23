@@ -181,7 +181,3 @@ void CM_InlineModelBounds( const CollisionModel *cms, const cmodel_t *cmodel, Ve
 
 void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, Vec3 start, Vec3 end, Vec3 mins, Vec3 maxs,
 							 const cmodel_t *cmodel, int brushmask, Vec3 origin, Vec3 angles );
-
-// call with topnode set to the headnode, returns with topnode
-// set to the first node that splits the box
-int CM_BoxLeafnums( CollisionModel *cms, Vec3 mins, Vec3 maxs, int *list, int listsize, int *topnode );

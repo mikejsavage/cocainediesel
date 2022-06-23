@@ -32,10 +32,12 @@ struct Ray {
 	float length;
 };
 
-bool RayVsAABB( const MinMax3 & aabb, const Ray & ray, Intersection * enter, Intersection * leave );
-bool RayVsOctagon( const MinMax3 & aabb, const Ray & ray, Intersection * enter, Intersection * leave );
-// TODO: ray vs capsule instead of octagon
+Ray MakeRayOriginDirection( Vec3 origin, Vec3 direction, float length );
+Ray MakeRayStartEnd( Vec3 start, Vec3 end );
 
+bool RayVsAABB( const Ray & ray, const MinMax3 & aabb, Intersection * enter, Intersection * leave );
+bool RayVsCapsule( const Ray & ray, const Capsule & capsule, float * t );
+
+// TODO: special case stationary traces
 bool SweptShapeVsMap( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, Intersection * intersection );
-
 bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, Intersection * intersection );

@@ -301,7 +301,7 @@ static void CM_BoxLeafnums_r( boxLeafsWork_t *bw, const CollisionModel *cms, int
 	}
 }
 
-int CM_BoxLeafnums( CollisionModel *cms, Vec3 mins, Vec3 maxs, int *list, int listsize, int *topnode ) {
+static int CM_BoxLeafnums( CollisionModel *cms, Vec3 mins, Vec3 maxs, int *list, int listsize, int *topnode ) {
 	boxLeafsWork_t bw;
 
 	bw.leaf_list = list;

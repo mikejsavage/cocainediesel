@@ -1,5 +1,6 @@
 #include "qcommon/types.h"
 #include "gameshared/cdmap.h"
+#include "gameshared/q_shared.h"
 
 #include <string.h>
 
@@ -43,4 +44,18 @@ DecodeMapResult DecodeMap( MapData * map, Span< const u8 > data ) {
 	ok = ok && DecodeMapSection( &map->vertex_indices, data, MapSection_VertexIndices );
 
 	return ok ? DecodeMapResult_Ok : DecodeMapResult_NotAMap;
+}
+
+Span< const char > GetWorldspawnKey( MapData * map, const char * key ) {
+	const MapEntity * worldspawn = &map->entities[ 0 ];
+
+	for( u32 i = 0; i < worldspawn->num_key_values; i++ ) {
+		const MapEntityKeyValue * kv = &map->entity_kvs[ i + worldspawn->first_key_value ];
+		Span< const char > k = map->entity_data.slice( kv->offset, kv->offset + kv->key_size );
+		if( StrEqual( k, key ) ) {
+			return map->entity_data.slice( kv->offset + kv->key_size, kv->offset + kv->key_size + kv->value_size );
+		}
+	}
+
+	return Span< const char >();
 }

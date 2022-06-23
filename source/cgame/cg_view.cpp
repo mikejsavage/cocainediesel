@@ -645,7 +645,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		trace_t old_trace;
 		CM_TransformedBoxTrace( CM_Client, cl.map->cms, &old_trace, start, end, Vec3( 0.0f ), Vec3( 0.0f ), NULL, MASK_ALL, Vec3( 0.0f ), Vec3( 0.0f ) );
 
-		Ray ray = { start, Normalize( end - start ), 1.0f / Normalize( end - start ), Length( end - start ) };
+		Ray ray = MakeRayStartEnd( start, end );
 		Shape ray_shape = { ShapeType_Ray };
 		Shape aabb_shape = { ShapeType_AABB, { Vec3( 0.0f ), Vec3( 16.0f ) } };
 

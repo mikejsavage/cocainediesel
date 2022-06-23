@@ -2,6 +2,19 @@
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
 
+Ray MakeRayOriginDirection( Vec3 origin, Vec3 direction, float length ) {
+	Ray ray;
+	ray.origin = origin;
+	ray.direction = direction;
+	ray.inv_dir = 1.0f / direction;
+	ray.length = length;
+	return ray;
+}
+
+Ray MakeRayStartEnd( Vec3 start, Vec3 end ) {
+	return MakeRayOriginDirection( start, SafeNormalize( end - start ), Length( end - start ) );
+}
+
 // TODO copied from pbr
 static float Gamma( int n ) {
 	constexpr float epsilon = FLT_EPSILON * 0.5f;
@@ -46,7 +59,7 @@ bool RayVsAABB( const MinMax3 & aabb, const Ray & ray, Intersection * enter_out,
 	return true;
 }
 
-bool RayVsSphere( const Sphere & sphere, const Ray & ray, float * t ) {
+bool RayVsSphere( const Ray & ray, const Sphere & sphere, float * t ) {
 	Vec3 m = ray.origin - sphere.center;
 	float b = Dot( m, ray.direction );
 	float c = Dot( m, m ) - Square( sphere.radius );
@@ -67,6 +80,10 @@ bool RayVsSphere( const Sphere & sphere, const Ray & ray, float * t ) {
 
 	*t = -b - sqrtf( d );
 	return *t <= ray.length;
+}
+
+bool RayVsCapsule( const Ray & ray, const Capsule & capsule, float * t ) {
+	return false;
 }
 
 static MinMax3 MinkowskiSum( const MinMax3 & bounds1, const CenterExtents3 & bounds2 ) {
@@ -130,7 +147,7 @@ static bool Contains( const MinMax3 & aabb, Vec3 p ) {
 
 static bool SweptShapeVsMapBrush( const MapData * map, const MapBrush * brush, Ray ray, const Shape & shape, Intersection * intersection ) {
 	Intersection enter, leave;
-	if( !RayVsAABB( MinkowskiSum( brush->bounds, shape ), ray, &enter, &leave ) )
+	if( !RayVsAABB( ray, MinkowskiSum( brush->bounds, shape ), &enter, &leave ) )
 		return false;
 
 	for( u32 i = 0; i < brush->num_planes; i++ ) {
@@ -149,17 +166,16 @@ static bool SweptShapeVsMapBrush( const MapData * map, const MapBrush * brush, R
 		float t = dist / denom;
 
 		if( denom < 0.0f ) {
-			if( t > leave.t )
-				return false;
 			if( t > enter.t )
 				enter = { t, plane.normal };
 		}
 		else {
-			if( t < enter.t )
-				return false;
 			if( t < leave.t )
 				leave = { t, plane.normal };
 		}
+
+		if( enter.t > leave.t )
+			return false;
 	}
 
 	*intersection = enter;
@@ -194,7 +210,7 @@ struct KDTreeTraversalWork {
 
 bool SweptShapeVsMap( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, Intersection * intersection ) {
 	Intersection bounds_enter, bounds_leave;
-	if( !RayVsAABB( MinkowskiSum( model->bounds, shape ), ray, &bounds_enter, &bounds_leave ) )
+	if( !RayVsAABB( ray, MinkowskiSum( model->bounds, shape ), &bounds_enter, &bounds_leave ) )
 		return false;
 
 	float t_min = bounds_enter.t;
@@ -315,15 +331,21 @@ bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, In
 
 	for( int i = 0; i < 3; i++ ) {
 		if( v[ i ] < 0.0f ) {
-			if( b.maxs[ i ] < a.mins[ i ] ) return false;
-			if( a.maxs[ i ] < b.mins[ i ] ) t_min = Max2( ( a.maxs[ i ] - b.mins[ i ] ) / v[ i ], t_min );
-			if( b.maxs[ i ] > a.mins[ i ] ) t_max = Min2( ( a.mins[ i ] - b.maxs[ i ] ) / v[ i ], t_max );
+			if( b.maxs[ i ] < a.mins[ i ] )
+				return false;
+			if( a.maxs[ i ] < b.mins[ i ] )
+				t_min = Max2( ( a.maxs[ i ] - b.mins[ i ] ) / v[ i ], t_min );
+			if( b.maxs[ i ] > a.mins[ i ] )
+				t_max = Min2( ( a.mins[ i ] - b.maxs[ i ] ) / v[ i ], t_max );
 		}
 
 		if( v[ i ] > 0.0f ) {
-			if( b.mins[ i ] > a.maxs[ i ] ) return false;
-			if( b.maxs[ i ] < a.mins[ i ] ) t_min = Max2( ( a.mins[ i ] - b.maxs[ i ] ) / v[ i ], t_min );
-			if( a.maxs[ i ] > b.mins[ i ] ) t_max = Min2( ( a.maxs[ i ] - b.mins[ i ] ) / v[ i ], t_max );
+			if( b.mins[ i ] > a.maxs[ i ] )
+				return false;
+			if( b.maxs[ i ] < a.mins[ i ] )
+				t_min = Max2( ( a.mins[ i ] - b.maxs[ i ] ) / v[ i ], t_min );
+			if( a.maxs[ i ] > b.mins[ i ] )
+				t_max = Min2( ( a.maxs[ i ] - b.mins[ i ] ) / v[ i ], t_max );
 		}
 
 		if( t_min > t_max )

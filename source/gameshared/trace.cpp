@@ -15,13 +15,13 @@ Ray MakeRayStartEnd( Vec3 start, Vec3 end ) {
 	return MakeRayOriginDirection( start, SafeNormalize( end - start ), Length( end - start ) );
 }
 
-// TODO copied from pbr
+// see PBR
 static float Gamma( int n ) {
 	constexpr float epsilon = FLT_EPSILON * 0.5f;
 	return ( n * epsilon ) / ( 1.0f - n * epsilon );
 }
 
-bool RayVsAABB( const MinMax3 & aabb, const Ray & ray, Intersection * enter_out, Intersection * leave_out ) {
+bool RayVsAABB( const Ray & ray, const MinMax3 & aabb, Intersection * enter_out, Intersection * leave_out ) {
 	constexpr Vec3 aabb_normals[] = {
 		Vec3( 1.0f, 0.0f, 0.0f ),
 		Vec3( 0.0f, 1.0f, 0.0f ),
@@ -82,9 +82,84 @@ bool RayVsSphere( const Ray & ray, const Sphere & sphere, float * t ) {
 	return *t <= ray.length;
 }
 
+// see RTCD
+// TODO: treat inside as solid
 bool RayVsCapsule( const Ray & ray, const Capsule & capsule, float * t ) {
-	return false;
+	Vec3 d = capsule.b - capsule.a;
+	Vec3 m = ray.origin - capsule.a;
+	Vec3 n = ray.direction * ray.length;
+
+	float md = Dot( m, d );
+	float nd = Dot( n, d );
+	float dd = Dot( d, d );
+	float nn = Dot( n, n );
+	float mn = Dot( m, n );
+
+	float a = dd * nn - nd * nd;
+	float k = Dot( m, m ) - capsule.radius * capsule.radius;
+	float c = dd * k - md * md;
+
+	if( a == 0.0f ) {
+		if( c > 0.0f )
+			return false;
+
+		if( md >= 0.0f && md <= dd ) {
+			*t = 0.0f;
+			return true;
+		}
+
+		Sphere cap;
+		cap.center = md < 0.0f ? capsule.a : capsule.b;
+		cap.radius = capsule.radius;
+		return RayVsSphere( ray, cap, t );
+	}
+
+	float b = dd * mn - nd * md;
+	float discr = b * b - a * c;
+	if( discr < 0.0f )
+		return false;
+
+	*t = ray.length * ( -b - sqrtf( discr ) ) / a;
+
+	float y = md + *t * nd;
+	if( y >= 0.0f && y <= dd )
+		return *t >= 0.0f && *t <= ray.length;
+
+	Sphere cap;
+	cap.center = y < 0.0f ? capsule.a : capsule.b;
+	cap.radius = capsule.radius;
+	return RayVsSphere( ray, cap, t );
 }
+
+/*
+float capIntersect( Vec3 ro, Vec3 rd, Vec3 pa, Vec3 pb, float r )
+{
+	vec3 d = pb - pa;
+	vec3 m = ro - pa;
+	float dd = dot(d,d);
+	float nd = dot(n,d);
+	float md = dot(m,d);
+	float nm = dot(n,m);
+	float mm = dot(m,m);
+	float nn = 1;
+	float a = dd*nn - nd*nd;
+	float b = dd*nm - md*nd;
+	float c = dd*mm - md*md - r*r*dd; // = dd * k - md * md, where k = mm - r*r
+	float h = b*b - a*c;
+	if( h >= 0.0 )
+	{
+		float t = (-b-sqrt(h))/a;
+		float y = md + t*nd;
+		if( y>0.0 && y<dd ) return t;
+		Vec3 oc = (y <= 0.0) ? m : ro - pb;
+		b = dot(n,oc);
+		c = dot(oc,oc) - r*r;
+		h = b*b - c;
+		if( h>0.0 ) return -b - sqrt(h);
+	}
+	return -1.0;
+}
+*/
 
 static MinMax3 MinkowskiSum( const MinMax3 & bounds1, const CenterExtents3 & bounds2 ) {
 	return MinMax3( bounds1.mins - bounds2.extents, bounds1.maxs + bounds2.extents );
@@ -318,6 +393,7 @@ static bool Intersecting( const MinMax3 & a, const MinMax3 & b ) {
 	return true;
 }
 
+// see RTCD
 bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, Intersection * intersection ) {
 	if( Intersecting( a, b ) ) {
 		*intersection = { 0.0f };

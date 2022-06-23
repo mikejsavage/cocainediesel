@@ -874,7 +874,7 @@ const PerkDef perk_defs[] = {
 		/* name             */ "MIDGET",
 		/* short name       */ "midget",
 		/* health           */ 65,
-		/* scale            */ Vec3( 0.8f, 0.8f, 0.625f ),
+		/* scale            */ Vec3( 1.1f, 1.1f, 0.7f ),
 		/* weight           */ 0.8f,
 		/* max speed        */ 350.0f,
 		/* side speed       */ 500.0f,

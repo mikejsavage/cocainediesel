@@ -13,7 +13,7 @@ static constexpr float stamina_recover = 8.0f;
 static constexpr float floor_distance = STEPSIZE * 0.5f;
 
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( (pm->groundentity != -1 || pml->ladder) && (ps->pmove.stamina == 0.0f ) ) {
+	if( (pm->groundentity != -1 || pml->ladder) && (ps->pmove.stamina == 0.0f) ) {
 		ps->pmove.stamina_state = Stamina_Normal;
 	}
 
@@ -39,6 +39,8 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 				ps->pmove.stamina_state = Stamina_UsingAbility;
 			}
 			StaminaRecover( ps, pml, stamina_use );
+
+			pmove_gs->api.PredictedEvent( ps->POVnum, EV_CHARGEJUMP, 0 );
 		}
 
 		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;

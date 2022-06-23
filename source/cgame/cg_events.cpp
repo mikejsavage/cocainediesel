@@ -736,6 +736,9 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_WALLJUMP:
 			CG_Event_WallJump( ent, parm, ev );
 			break;
+		case EV_CHARGEJUMP:
+			CG_PModel_AddAnimation( ent->number, LEGS_CROUCH_WALK, 0, 0, EVENT_CHANNEL );
+			break;
 
 		case EV_JETPACK:
 			CG_Event_Jetpack( ent, parm );

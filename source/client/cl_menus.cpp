@@ -294,6 +294,8 @@ static const char * SelectablePlayerList() {
 }
 
 static void MasksList() {
+	ImGui::Text( S_COLOR_WHITE "Mask" );
+
 	ImGui::PushItemWidth( 200 );
 	if( ImGui::BeginCombo( "##masks", masks[ selected_mask ] ) ) {
 		for( size_t i = 0; i < masks.size(); i++ ) {
@@ -323,6 +325,9 @@ static void SettingsGeneral() {
 	CvarCheckbox( "Show chat", "cg_chat" );
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys" );
 	CvarCheckbox( "Show FPS", "cg_showFPS" );
+
+	ImGui::Separator();
+
 	MasksList();
 }
 

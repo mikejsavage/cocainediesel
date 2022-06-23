@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/array.h"
@@ -30,7 +32,21 @@ void RefreshMapList( Allocator * a ) {
 	char * path = ( *a )( "{}/base/maps", RootDirPath() );
 	defer { FREE( a, path ); };
 
-	GetFileList( sys_allocator, &maps, path, ".bsp" );
+	ListDirHandle scan = BeginListDir( a, path );
+
+	const char * name;
+	bool dir;
+	while( ListDirNext( &scan, &name, &dir ) ) {
+		if( dir )
+			continue;
+
+		if( FileExtension( name ) == ".bsp" || FileExtension( StripExtension( name ) ) == ".bsp" ) {
+			char * map = ( *sys_allocator )( "{}", StripExtension( StripExtension( name ) ) );
+			maps.add( map );
+		}
+	}
+
+	std::sort( maps.begin(), maps.end(), SortCStringsComparator );
 }
 
 Span< const char * > GetMapList() {

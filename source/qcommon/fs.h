@@ -55,4 +55,3 @@ struct FSChangeMonitor;
 FSChangeMonitor * NewFSChangeMonitor( Allocator * a, const char * path );
 void DeleteFSChangeMonitor( Allocator * a, FSChangeMonitor * monitor );
 Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor * monitor, const char ** results, size_t n );
-void GetFileList( Allocator * a, NonRAIIDynamicArray< char * > * array, const char * path, const char * ext );

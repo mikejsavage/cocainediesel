@@ -67,7 +67,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 			pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, JumpType_MidgetCharge );
 		} else if( ps->pmove.stamina_state == Stamina_UsingAbility ) {
-			ps->pmove.stamina_state = Stamina_Normal;
+			ps->pmove.stamina_state = Stamina_UsedAbility;
 		}
 
 		if( ps->pmove.stamina_state == Stamina_UsingAbility ) {

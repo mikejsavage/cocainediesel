@@ -46,6 +46,29 @@ bool RayVsAABB( const MinMax3 & aabb, const Ray & ray, Intersection * enter_out,
 	return true;
 }
 
+bool RayVsSphere( const Sphere & sphere, const Ray & ray, float * t ) {
+	Vec3 m = ray.origin - sphere.center;
+	float b = Dot( m, ray.direction );
+	float c = Dot( m, m ) - Square( sphere.radius );
+
+	// start outside and pointing away
+	if( c > 0.0f && b > 0.0f )
+		return false;
+
+	// start inside
+	if( c <= 0.0f ) {
+		*t = 0.0f;
+		return true;
+	}
+
+	float d = b * b - c;
+	if( d < 0.0f )
+		return false;
+
+	*t = -b - sqrtf( d );
+	return *t <= ray.length;
+}
+
 static MinMax3 MinkowskiSum( const MinMax3 & bounds1, const CenterExtents3 & bounds2 ) {
 	return MinMax3( bounds1.mins - bounds2.extents, bounds1.maxs + bounds2.extents );
 }

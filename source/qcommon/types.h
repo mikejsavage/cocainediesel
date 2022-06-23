@@ -451,6 +451,16 @@ struct CenterExtents3 {
 	Vec3 center, extents;
 };
 
+struct Sphere {
+	Vec3 center;
+	float radius;
+};
+
+struct Capsule {
+	Vec3 a, b;
+	float radius;
+};
+
 struct RGB8 {
 	u8 r, g, b;
 

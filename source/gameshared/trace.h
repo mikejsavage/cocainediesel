@@ -6,12 +6,18 @@
 enum ShapeType {
 	ShapeType_Ray,
 	ShapeType_AABB,
+	ShapeType_Sphere,
+	ShapeType_Capsule,
 };
 
 struct Shape {
 	ShapeType type;
 
-	CenterExtents3 aabb;
+	union {
+		CenterExtents3 aabb;
+		Sphere sphere;
+		Capsule capsule;
+	};
 };
 
 struct Intersection {
@@ -27,6 +33,8 @@ struct Ray {
 };
 
 bool RayVsAABB( const MinMax3 & aabb, const Ray & ray, Intersection * enter, Intersection * leave );
+bool RayVsOctagon( const MinMax3 & aabb, const Ray & ray, Intersection * enter, Intersection * leave );
+// TODO: ray vs capsule instead of octagon
 
 bool SweptShapeVsMap( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, Intersection * intersection );
 

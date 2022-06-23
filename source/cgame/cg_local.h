@@ -277,7 +277,6 @@ void CG_PredictMovement();
 void CG_CheckPredictionError();
 void CG_BuildSolidList();
 void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask );
-int CG_PointContents( Vec3 point );
 void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin );
 
 //

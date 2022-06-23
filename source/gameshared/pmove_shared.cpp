@@ -77,12 +77,6 @@ void StaminaRecover( SyncPlayerState * ps, pml_t * pml, float recover ) {
 	ps->pmove.stamina = Min2( ps->pmove.stamina + recover * pml->frametime, 1.0f );
 }
 
-
-float JumpVelocity( pmove_t * pm, float vel ) {
-	return ( pm->waterlevel >= 2 ? 2 : 1 ) * vel;
-}
-
-
 void PM_InitPerk( pmove_t * pm, pml_t * pml, PerkType perk,
 				void (*ability1Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ),
 				void (*ability2Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool pressed ) )
@@ -116,7 +110,7 @@ void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerSta
 	}
 
 	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, JumpType_Normal );
-	pml->velocity.z = (addvel ? Max2( 0.0f, pml->velocity.z ) : 0.0f) + JumpVelocity( pm, jumpspeed );
+	pml->velocity.z = (addvel ? Max2( 0.0f, pml->velocity.z ) : 0.0f) + jumpspeed;
 }
 
 
@@ -136,7 +130,7 @@ void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir,
 
 	dashdir = Normalize( dashdir );
 
-	float upspeed = Max2( 0.0f, pml->velocity.z ) + JumpVelocity( pm, dash_upspeed );
+	float upspeed = Max2( 0.0f, pml->velocity.z ) + dash_upspeed;
 	float actual_velocity = Normalize2D( &pml->velocity );
 	if( actual_velocity <= dash_speed ) {
 		dashdir *= dash_speed;

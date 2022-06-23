@@ -140,12 +140,9 @@ static void G_ProjectileDistancePrestep( edict_t * projectile, float distance ) 
 	GClip_LinkEntity( projectile );
 	SV_Impact( projectile, &trace );
 
-	// set initial water state
 	if( !projectile->r.inuse ) {
 		return;
 	}
-
-	projectile->waterlevel = ( G_PointContents4D( projectile->s.origin, projectile->timeDelta ) & MASK_WATER ) ? true : false;
 
 	// ffs : hack for the assault rifle
 #ifdef ARBULLETHACK

@@ -373,10 +373,6 @@ static const Material * DamageTypeToIcon( DamageType type ) {
 	}
 
 	switch( world ) {
-		case WorldDamage_Slime:
-			return FindMaterial( "hud/icons/obituaries/slime" );
-		case WorldDamage_Lava:
-			return FindMaterial( "hud/icons/obituaries/lava" );
 		case WorldDamage_Crush:
 			return FindMaterial( "hud/icons/obituaries/crush" );
 		case WorldDamage_Telefrag:

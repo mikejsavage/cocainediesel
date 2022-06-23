@@ -46,30 +46,6 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 	gs->api.PredictedEvent( playerState->POVnum, EV_JUMP_PAD, 0 );
 }
 
-int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec3 maxs ) {
-	int waterlevel = 0;
-
-	Vec3 point = state->origin;
-	point.z += mins.z + 1;
-
-	int cont = gs->api.PointContents( point, 0 );
-	if( cont & MASK_WATER ) {
-		waterlevel = 1;
-		point.z += 26;
-		cont = gs->api.PointContents( point, 0 );
-		if( cont & MASK_WATER ) {
-			waterlevel = 2;
-			point.z += 22;
-			cont = gs->api.PointContents( point, 0 );
-			if( cont & MASK_WATER ) {
-				waterlevel = 3;
-			}
-		}
-	}
-
-	return waterlevel;
-}
-
 DamageType::DamageType( WeaponType weapon ) {
 	encoded = weapon;
 }

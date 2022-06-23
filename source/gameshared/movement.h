@@ -30,7 +30,6 @@ struct pml_t {
 
 	float groundAccel;
 	float airAccel;
-	float waterAccel;
 	float strafeBunnyAccel;
 
 	float friction;
@@ -56,8 +55,6 @@ bool StaminaAvailableImmediate( SyncPlayerState * ps, float need );
 void StaminaUse( SyncPlayerState * ps, pml_t * pml, float use );
 void StaminaUseImmediate( SyncPlayerState * ps, float use );
 void StaminaRecover( SyncPlayerState * ps, pml_t * pml, float recover );
-
-float JumpVelocity( pmove_t * pm, float vel );
 
 void PM_InitPerk( pmove_t * pm, pml_t * pml, PerkType perk,
 				void (*ability1Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool ),

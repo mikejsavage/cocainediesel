@@ -730,38 +730,6 @@ void G_CheckGround( edict_t *ent ) {
 	}
 }
 
-void G_CategorizePosition( edict_t *ent ) {
-	int cont;
-
-	//
-	// get waterlevel
-	//
-	Vec3 point = ent->s.origin;
-	point.z += ent->r.mins.z + 1.0f;
-	cont = G_PointContents( point );
-
-	if( !( cont & MASK_WATER ) ) {
-		ent->waterlevel = 0;
-		ent->watertype = 0;
-		return;
-	}
-
-	ent->watertype = cont;
-	ent->waterlevel = 1;
-	point.z += 26;
-	cont = G_PointContents( point );
-	if( !( cont & MASK_WATER ) ) {
-		return;
-	}
-
-	ent->waterlevel = 2;
-	point.z += 22;
-	cont = G_PointContents( point );
-	if( cont & MASK_WATER ) {
-		ent->waterlevel = 3;
-	}
-}
-
 /*
 * G_SetBoundsForSpanEntity
 *

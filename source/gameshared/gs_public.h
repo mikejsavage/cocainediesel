@@ -71,16 +71,12 @@ struct pmove_t {
 	Vec3 mins, maxs;          // bounding box size
 
 	int groundentity;
-	int watertype;
-	int waterlevel;
-
 	int contentmask;
 };
 
 struct gs_module_api_t {
 	void ( *Trace )( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta );
 	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
-	int ( *PointContents )( Vec3 point, int timeDelta );
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, u64 parm );
 	void ( *PredictedAltFireWeapon )( int entNum, u64 parm );
@@ -140,7 +136,6 @@ Team GS_TeamFromName( const char * name );
 // gs_misc.c
 Vec3 GS_EvaluateJumppad( const SyncEntityState * jumppad, Vec3 velocity );
 void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, const SyncEntityState * pusher );
-int GS_WaterLevel( const gs_state_t * gs, SyncEntityState *state, Vec3 mins, Vec3 maxs );
 
 //===============================================================
 

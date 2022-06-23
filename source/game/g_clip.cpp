@@ -620,48 +620,6 @@ static cmodel_t *GClip_CollisionModelForEntity( SyncEntityState *s, entity_share
 	}
 }
 
-
-/*
-* G_PointContents
-* returns the CONTENTS_* value from the world at the given point.
-* Quake 2 extends this to also check entities, to allow moving liquids
-*/
-static int GClip_PointContents( Vec3 p, int timeDelta ) {
-	TracyZoneScoped;
-
-	c4clipedict_t *clipEnt;
-	int touch[MAX_EDICTS];
-	int i, num;
-	int contents, c2;
-	cmodel_t *cmodel;
-
-	// get base contents from world
-	contents = CM_TransformedPointContents( CM_Server, svs.cms, p, NULL, Vec3( 0.0f ), Vec3( 0.0f ) );
-
-	// or in contents from all the other entities
-	num = GClip_AreaEdicts( p, p, touch, MAX_EDICTS, AREA_SOLID, timeDelta );
-
-	for( i = 0; i < num; i++ ) {
-		clipEnt = GClip_GetClipEdictForDeltaTime( touch[i], timeDelta );
-
-		// might intersect, so do an exact clip
-		cmodel = GClip_CollisionModelForEntity( &clipEnt->s, &clipEnt->r );
-
-		c2 = CM_TransformedPointContents( CM_Server, svs.cms, p, cmodel, clipEnt->s.origin, clipEnt->s.angles );
-		contents |= c2;
-	}
-
-	return contents;
-}
-
-int G_PointContents( Vec3 p ) {
-	return GClip_PointContents( p, 0 );
-}
-
-int G_PointContents4D( Vec3 p, int timeDelta ) {
-	return GClip_PointContents( p, timeDelta );
-}
-
 //===========================================================================
 
 typedef struct {
@@ -919,8 +877,6 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	ent->r.mins = pm->mins;
 	ent->r.maxs = pm->maxs;
 
-	ent->waterlevel = pm->waterlevel;
-	ent->watertype = pm->watertype;
 	if( pm->groundentity == -1 ) {
 		ent->groundentity = NULL;
 	} else {

@@ -120,8 +120,6 @@ enum GadgetType : u8 {
 void operator++( GadgetType & x, int );
 
 enum WorldDamage : u8 {
-	WorldDamage_Slime,
-	WorldDamage_Lava,
 	WorldDamage_Crush,
 	WorldDamage_Telefrag,
 	WorldDamage_Suicide,

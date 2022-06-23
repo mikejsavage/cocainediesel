@@ -55,7 +55,7 @@ static void PM_JetpackJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 		ps->pmove.stamina_state = Stamina_UsedAbility;
 	}
 
-	if( ( pm->groundentity != -1 || pm->waterlevel >= 2 || pml->ladder ) ) {
+	if( ( pm->groundentity != -1 || pml->ladder ) ) {
 		if( ps->pmove.stamina_state == Stamina_UsedAbility ) {
 			ps->pmove.stamina_state = Stamina_Reloading;
 		} else if( ps->pmove.stamina_state == Stamina_UsingAbility ) {

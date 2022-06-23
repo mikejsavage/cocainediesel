@@ -239,8 +239,6 @@ void G_GhostClient( edict_t *ent ) {
 	memset( &ent->snap, 0, sizeof( ent->snap ) );
 	memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
 	memset( &ent->r.client->resp.chase, 0, sizeof( ent->r.client->resp.chase ) );
-	ent->r.client->resp.old_waterlevel = 0;
-	ent->r.client->resp.old_watertype = 0;
 
 	ent->s.type = ET_GHOST;
 	ent->s.effects = 0;
@@ -296,8 +294,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->r.inuse = true;
 	self->mass = PLAYER_MASS;
 	self->r.clipmask = MASK_PLAYERSOLID;
-	self->waterlevel = 0;
-	self->watertype = 0;
 	self->s.svflags &= ~SVF_CORPSE;
 	self->enemy = NULL;
 	self->r.owner = NULL;
@@ -890,8 +886,6 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	ent->r.mins = pm.mins;
 	ent->r.maxs = pm.maxs;
 
-	ent->waterlevel = pm.waterlevel;
-	ent->watertype = pm.watertype;
 	if( pm.groundentity == -1 ) {
 		ent->groundentity = NULL;
 	} else {

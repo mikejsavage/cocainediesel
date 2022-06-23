@@ -108,9 +108,8 @@ static void CG_CalcViewBob() {
 	else {
 		if( !ISVIEWERENTITY( cg.view.POVent ) ) {
 			bobScale = 0.0f;
-		} else if( CG_PointContents( cg.view.origin ) & MASK_WATER ) {
-			bobScale =  0.75f;
-		} else {
+		}
+		else {
 			trace_t trace;
 
 			const centity_t * cent = &cg_entities[cg.view.POVent];

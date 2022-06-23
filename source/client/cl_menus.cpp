@@ -99,6 +99,8 @@ static void SetMask( const char * mask_name ) {
 }
 
 static void RefreshMasksList() {
+	TracyZoneScoped;
+
 	TempAllocator temp = cls.frame_arena.temp();
 	ClearMasksList();
 

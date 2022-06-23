@@ -279,7 +279,6 @@ void G_TeleportEffect( edict_t * ent, bool in );
 void G_RespawnEffect( edict_t * ent );
 int G_SolidMaskForEnt( edict_t * ent );
 void G_CheckGround( edict_t * ent );
-void G_CategorizePosition( edict_t * ent );
 void G_ReleaseClientPSEvent( gclient_t *client );
 void G_AddPlayerStateEvent( gclient_t *client, int event, u64 parm );
 void G_ClearPlayerStateEvents( gclient_t *client );
@@ -323,9 +322,7 @@ struct link_t {
 	int entNum;
 };
 
-int G_PointContents( Vec3 p );
 void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask );
-int G_PointContents4D( Vec3 p, int timeDelta );
 void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask, int timeDelta );
 void GClip_BackUpCollisionFrame();
 int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int timeDelta );
@@ -556,9 +553,6 @@ struct client_respawnreset_t {
 	SyncEvent events[MAX_CLIENT_EVENTS];
 	unsigned int eventsCurrent;
 	unsigned int eventsHead;
-
-	int old_waterlevel;
-	int old_watertype;
 };
 
 struct client_levelreset_t {
@@ -724,9 +718,6 @@ struct edict_t {
 	s64 wait;
 	s64 delay;                // before firing targets
 	s64 wait_randomness;
-
-	int watertype;
-	int waterlevel;
 
 	int style;                  // also used as areaportal number
 

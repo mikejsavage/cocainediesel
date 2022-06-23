@@ -49,7 +49,7 @@ static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 		if( StaminaAvailable( ps, pml, stamina_use ) ) {
 			StaminaUse( ps, pml, stamina_use );
 			pml->maxSpeed = charge_speed;
-			
+
 			pml->groundAccel = charge_groundAccel;
 			pml->friction = charge_friction;
 

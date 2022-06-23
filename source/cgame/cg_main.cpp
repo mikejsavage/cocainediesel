@@ -56,11 +56,6 @@ static void CG_GS_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end,
 	CG_Trace( t, start, mins, maxs, end, ignore, contentmask );
 }
 
-static int CG_GS_PointContents( Vec3 point, int timeDelta ) {
-	assert( !timeDelta );
-	return CG_PointContents( point );
-}
-
 static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 	centity_t *cent;
 
@@ -88,7 +83,6 @@ static void CG_InitGameShared( int max_clients ) {
 	client_gs.api.PredictedUseGadget = CG_PredictedUseGadget;
 	client_gs.api.Trace = CG_GS_Trace;
 	client_gs.api.GetEntityState = CG_GS_GetEntityState;
-	client_gs.api.PointContents = CG_GS_PointContents;
 	client_gs.api.PMoveTouchTriggers = CG_Predict_TouchTriggers;
 }
 

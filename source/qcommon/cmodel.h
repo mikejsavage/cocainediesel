@@ -200,9 +200,6 @@ cmodel_t *CM_ModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs );
 cmodel_t *CM_OctagonModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs );
 void CM_InlineModelBounds( const CollisionModel *cms, const cmodel_t *cmodel, Vec3 * mins, Vec3 * maxs );
 
-// returns an ORed contents mask
-int CM_TransformedPointContents( CModelServerOrClient soc, CollisionModel * cms, Vec3 p, cmodel_t *cmodel, Vec3 origin, Vec3 angles );
-
 void CM_TransformedBoxTrace( CModelServerOrClient soc, CollisionModel * cms, trace_t * tr, Vec3 start, Vec3 end, Vec3 mins, Vec3 maxs,
 							 const cmodel_t *cmodel, int brushmask, Vec3 origin, Vec3 angles );
 

@@ -281,15 +281,12 @@ static float CG_OutlineScaleForDist( const InterpolatedEntity * e, float maxdist
 #define ANIMMOVE_WALK       ( 1 << 4 )  // Player is pressing the walk key
 #define ANIMMOVE_RUN        ( 1 << 5 )  // Player is running
 #define ANIMMOVE_DUCK       ( 1 << 6 )  // Player is crouching
-#define ANIMMOVE_SWIM       ( 1 << 7 )  // Player is swimming
-#define ANIMMOVE_AIR        ( 1 << 8 )  // Player is at air, but not jumping
-#define ANIMMOVE_DEAD       ( 1 << 9 )  // Player is a corpse
+#define ANIMMOVE_AIR        ( 1 << 7 )  // Player is at air, but not jumping
+#define ANIMMOVE_DEAD       ( 1 << 8 )  // Player is a corpse
 
 static int CG_MoveFlagsToUpperAnimation( uint32_t moveflags, int carried_weapon ) {
 	if( moveflags & ANIMMOVE_DEAD )
 		return ANIM_NONE;
-	if( moveflags & ANIMMOVE_SWIM )
-		return TORSO_SWIM;
 
 	switch( carried_weapon ) {
 		case Weapon_Knife:
@@ -318,9 +315,6 @@ static int CG_MoveFlagsToUpperAnimation( uint32_t moveflags, int carried_weapon 
 static int CG_MoveFlagsToLowerAnimation( uint32_t moveflags ) {
 	if( moveflags & ANIMMOVE_DEAD )
 		return ANIM_NONE;
-
-	if( moveflags & ANIMMOVE_SWIM )
-		return ( moveflags & ANIMMOVE_FRONT ) ? LEGS_SWIM_FORWARD : LEGS_SWIM_NEUTRAL;
 
 	if( moveflags & ANIMMOVE_DUCK ) {
 		if( moveflags & ( ANIMMOVE_WALK | ANIMMOVE_RUN ) )
@@ -393,12 +387,6 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 vel
 	// if( maxs != playerbox_stand_maxs ) {
 	// 	moveflags |= ANIMMOVE_DUCK;
 	// }
-
-	// find out the water level
-	int waterlevel = GS_WaterLevel( &client_gs, state, mins, maxs );
-	if( waterlevel >= 2 || ( waterlevel && ( moveflags & ANIMMOVE_AIR ) ) ) {
-		moveflags |= ANIMMOVE_SWIM;
-	}
 
 	//find out what are the base movements the model is doing
 

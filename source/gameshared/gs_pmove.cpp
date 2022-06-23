@@ -37,11 +37,9 @@ static const gs_state_t * pmove_gs;
 constexpr float default_friction = 16; //  ( initially 6 )
 constexpr float default_accelerate = 16; // user intended acceleration when on ground or fly movement ( initially 10 )
 constexpr float default_airaccelerate = 0.5f; // user intended aceleration when on air
-constexpr float default_wateraccelerate = 12; // user intended acceleration when swimming ( initially 6 )
 constexpr float default_strafebunnyaccel = 60; // forward acceleration when strafe bunny hopping
 
 
-constexpr float pm_waterfriction = 16;
 constexpr float pm_decelerate = 16; // user intended deceleration when on ground
 constexpr float pm_airdecelerate = 1.0f; // air deceleration (not +strafe one, just at normal moving).
 
@@ -291,8 +289,6 @@ static void PM_StepSlideMove() {
 
 /*
 * PM_Friction -- Modified for wsw
-*
-* Handles both ground friction and water friction
 */
 static void PM_Friction() {
 	float speed = LengthSquared( pml.velocity );
@@ -386,29 +382,6 @@ static Vec3 PM_LadderMove( Vec3 wishvel ) {
 	}
 
 	return wishvel;
-}
-
-static void PM_WaterMove() {
-	TracyZoneScoped;
-
-	// user intentions
-	Vec3 wishvel = pml.forward * pml.forwardPush + pml.right * pml.sidePush;
-	wishvel.z -= pm_waterfriction;
-
-	wishvel = PM_LadderMove( wishvel );
-
-	Vec3 wishdir = wishvel;
-	float wishspeed = Length( wishdir );
-	wishdir = SafeNormalize( wishdir );
-
-	if( wishspeed > pml.maxSpeed ) {
-		wishspeed = pml.maxSpeed / wishspeed;
-		wishvel *= wishspeed;
-		wishspeed = pml.maxSpeed;
-	}
-
-	PM_Accelerate( wishdir, wishspeed, pml.waterAccel );
-	PM_StepSlideMove();
 }
 
 static void PM_Move() {
@@ -566,12 +539,6 @@ static void PM_CategorizePosition() {
 		else {
 			pm->groundentity = trace.ent;
 
-			// hitting solid ground will end a waterjump
-			if( pm->playerState->pmove.pm_flags & PMF_TIME_WATERJUMP ) {
-				pm->playerState->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_TELEPORT );
-				pm->playerState->pmove.pm_time = 0;
-			}
-
 			if( !( pm->playerState->pmove.pm_flags & PMF_ON_GROUND ) ) { // just hit the ground
 				pm->playerState->pmove.pm_flags |= PMF_ON_GROUND;
 			}
@@ -582,41 +549,9 @@ static void PM_CategorizePosition() {
 			pm->numtouch++;
 		}
 	}
-
-	//
-	// get waterlevel, accounting for ducking
-	//
-	pm->waterlevel = 0;
-	pm->watertype = 0;
-
-	int sample2 = pm->playerState->viewheight - pm->mins.z;
-	int sample1 = sample2 / 2;
-
-	Vec3 point = pml.origin;
-	point.z += pm->mins.z + 1.0f;
-	int cont = pmove_gs->api.PointContents( point, 0 );
-
-	if( cont & MASK_WATER ) {
-		pm->watertype = cont;
-		pm->waterlevel = 1;
-		point.z = pml.origin.z + pm->mins.z + sample1;
-		cont = pmove_gs->api.PointContents( point, 0 );
-		if( cont & MASK_WATER ) {
-			pm->waterlevel = 2;
-			point.z = pml.origin.z + pm->mins.z + sample2;
-			cont = pmove_gs->api.PointContents( point, 0 );
-			if( cont & MASK_WATER ) {
-				pm->waterlevel = 3;
-			}
-		}
-	}
 }
 
-
-
 static void PM_CheckSpecialMovement() {
-	int cont;
-
 	if( pm->playerState->pmove.pm_time ) {
 		return;
 	}
@@ -630,30 +565,6 @@ static void PM_CheckSpecialMovement() {
 	if( trace.fraction < 1 && ( trace.surfFlags & SURF_LADDER ) ) {
 		pml.ladder = Ladder_On;
 	}
-
-	// check for water jump
-	if( pm->waterlevel != 2 ) {
-		return;
-	}
-
-	spot = pml.origin + pml.forward * 30;
-	spot.z += 4;
-	cont = pmove_gs->api.PointContents( spot, 0 );
-	if( !( cont & CONTENTS_SOLID ) ) {
-		return;
-	}
-
-	spot.z += 16;
-	cont = pmove_gs->api.PointContents( spot, 0 );
-	if( cont ) {
-		return;
-	}
-	// jump out of water
-	pml.velocity = pml.forward * 50;
-	pml.velocity.z = 350;
-
-	pm->playerState->pmove.pm_flags |= PMF_TIME_WATERJUMP;
-	pm->playerState->pmove.pm_time = 255;
 }
 
 static void PM_FlyMove() {
@@ -720,8 +631,6 @@ static void PM_BeginMove() {
 	// clear results
 	pm->numtouch = 0;
 	pm->groundentity = -1;
-	pm->watertype = 0;
-	pm->waterlevel = 0;
 	pm->step = 0;
 
 	// clear all pmove local vars
@@ -739,7 +648,6 @@ static void PM_BeginMove() {
 
 	pml.groundAccel = default_accelerate;
 	pml.airAccel = default_airaccelerate;
-	pml.waterAccel = default_wateraccelerate;
 	pml.strafeBunnyAccel = default_strafebunnyaccel;
 
 	pml.friction = default_friction;
@@ -824,7 +732,7 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 				msec = 1;
 			}
 			if( msec >= ps->pmove.pm_time ) {
-				ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_TELEPORT );
+				ps->pmove.pm_flags &= ~PMF_TIME_TELEPORT;
 				ps->pmove.pm_time = 0;
 			} else {
 				ps->pmove.pm_time -= msec;
@@ -838,7 +746,7 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 	if( ps->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
 		if( !GS_MatchPaused( pmove_gs ) ) {
 			ps->pmove.knockback_time = 0;
-			ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_TELEPORT );
+			ps->pmove.pm_flags &= ~PMF_TIME_TELEPORT;
 
 			PM_AdjustBBox();
 		}
@@ -861,7 +769,7 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 	// set mins, maxs, viewheight amd fov
 	PM_AdjustBBox();
 
-	// set groundentity, watertype, and waterlevel
+	// set groundentity
 	PM_CategorizePosition();
 
 	int oldGroundEntity = pm->groundentity;
@@ -870,16 +778,6 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 
 	if( ps->pmove.pm_flags & PMF_TIME_TELEPORT ) {
 		// teleport pause stays exactly in place
-	} else if( ps->pmove.pm_flags & PMF_TIME_WATERJUMP ) {
-		// waterjump has no control, but falls
-		pml.velocity.z -= GRAVITY * pml.frametime;
-		if( pml.velocity.z < 0 ) {
-			// cancel as soon as we are falling down again
-			ps->pmove.pm_flags &= ~( PMF_TIME_WATERJUMP | PMF_TIME_TELEPORT );
-			ps->pmove.pm_time = 0;
-		}
-
-		PM_StepSlideMove();
 	} else {
 		if( pm->groundentity != -1 ) {
 			pm->playerState->last_touch.entnum = 0;
@@ -895,32 +793,28 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 
 		PM_Friction();
 
-		if( pm->waterlevel >= 2 ) {
-			PM_WaterMove();
-		} else {
-			Vec3 angles = ps->viewangles;
-			if( angles.x > 180 ) {
-				angles.x -= 360;
-			}
-			angles.x /= 3;
-
-			AngleVectors( angles, &pml.forward, &pml.right, &pml.up );
-
-			// hack to work when looking straight up and straight down
-			if( pml.forward.z == -1.0f ) {
-				pml.forward = pml.up;
-			} else if( pml.forward.z == 1.0f ) {
-				pml.forward = -pml.up;
-			} else {
-				pml.forward = pml.forward;
-			}
-			pml.forward.z = 0.0f;
-			pml.forward = SafeNormalize( pml.forward );
-			PM_Move();
+		Vec3 angles = ps->viewangles;
+		if( angles.x > 180 ) {
+			angles.x -= 360;
 		}
+		angles.x /= 3;
+
+		AngleVectors( angles, &pml.forward, &pml.right, &pml.up );
+
+		// hack to work when looking straight up and straight down
+		if( pml.forward.z == -1.0f ) {
+			pml.forward = pml.up;
+		} else if( pml.forward.z == 1.0f ) {
+			pml.forward = -pml.up;
+		} else {
+			pml.forward = pml.forward;
+		}
+		pml.forward.z = 0.0f;
+		pml.forward = SafeNormalize( pml.forward );
+		PM_Move();
 	}
 
-	// set groundentity, watertype, and waterlevel for final spot
+	// set groundentity for final spot
 	PM_CategorizePosition();
 	PM_EndMove();
 
@@ -943,17 +837,6 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 		constexpr float max_fall_velocity = 800;
 
 		float fall_delta = fallvelocity - Max2( 0.0f, -pml.velocity.z );
-
-		// scale velocity if in water
-		if( pm->waterlevel == 3 ) {
-			fall_delta = 0;
-		}
-		if( pm->waterlevel == 2 ) {
-			fall_delta *= 0.25f;
-		}
-		if( pm->waterlevel == 1 ) {
-			fall_delta *= 0.5f;
-		}
 
 		float frac = Unlerp01( min_fall_velocity, fall_delta, max_fall_velocity );
 		if( frac > 0 ) {

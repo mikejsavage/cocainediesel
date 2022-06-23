@@ -847,13 +847,15 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 			DrawGLTFModel( config, attached_model, tag_transform, vec4_white );
 		}
+	}
 
-		attached_model = FindModel( cent->current.mask );
-
-		if( attached_model != NULL ) {
+	// add mask
+	{
+		const GLTFRenderData * mask_model = FindGLTFRenderData( cent->current.mask );
+		if( mask_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_mask;
 
-			Mat4 tag_transform = TransformTag( meta->model, transform, pose, tag ) * inverse_scale;
+			Mat4 tag_transform = TransformTag( model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -861,7 +863,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			config.draw_silhouette.enabled = draw_silhouette;
 			config.draw_silhouette.silhouette_color = color;
 
-			DrawModel( config, attached_model, tag_transform, vec4_white );
+			DrawGLTFModel( config, mask_model, tag_transform, vec4_white );
 		}
 	}
 }

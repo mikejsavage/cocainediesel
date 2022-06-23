@@ -320,32 +320,6 @@ int CM_BoxLeafnums( CollisionModel *cms, Vec3 mins, Vec3 maxs, int *list, int li
 	return bw.leaf_count;
 }
 
-static inline int CM_BrushContents( cbrush_t *brush, Vec3 p ) {
-	int i;
-	cbrushside_t *brushside;
-
-	for( i = 0, brushside = brush->brushsides; i < brush->numsides; i++, brushside++ ) {
-		if( PlaneDiff( p, &brushside->plane ) > 0 ) {
-			return 0;
-		}
-	}
-
-	return brush->contents;
-}
-
-static inline int CM_PatchContents( cface_t *patch, Vec3 p ) {
-	int i, c;
-	cbrush_t *facet;
-
-	for( i = 0, facet = patch->facets; i < patch->numfacets; i++, facet++ ) {
-		if( ( c = CM_BrushContents( facet, p ) ) ) {
-			return c;
-		}
-	}
-
-	return 0;
-}
-
 /*
 ===============================================================================
 

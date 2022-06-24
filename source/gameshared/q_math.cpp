@@ -326,6 +326,19 @@ CenterExtents3 ToCenterExtents( const MinMax3 & bounds ) {
 	return aabb;
 }
 
+Capsule MakePlayerCapsule( const MinMax3 & bounds ) {
+	Vec3 center = ( bounds.maxs + bounds.mins ) * 0.5f;
+	Vec3 dim = bounds.maxs - bounds.mins;
+	assert( dim.z >= dim.x && dim.x == dim.y );
+
+	Capsule capsule;
+	capsule.radius = bounds.maxs.x;
+	capsule.a = Vec3( center.xy(), bounds.mins.z + capsule.radius );
+	capsule.b = Vec3( center.xy(), bounds.maxs.z - capsule.radius );
+
+	return capsule;
+}
+
 //============================================================================
 
 void Matrix3_Identity( mat3_t m ) {

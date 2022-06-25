@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/cmodel.h"
 #include "game/g_local.h"
 
-#include "gameshared/trace.h"
+#include "gameshared/intersection_tests.h"
 
 #define ARBULLETHACK // ffs : hack for the assault rifle
 

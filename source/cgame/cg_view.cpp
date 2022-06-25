@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/time.h"
 
 #include "qcommon/cmodel.h"
-#include "gameshared/trace.h"
+#include "gameshared/intersection_tests.h"
 
 ChasecamState chaseCam;
 

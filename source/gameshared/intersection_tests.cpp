@@ -1,4 +1,5 @@
-#include "gameshared/trace.h"
+#include "qcommon/base.h"
+#include "gameshared/intersection_tests.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
 

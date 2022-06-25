@@ -395,8 +395,6 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		}
 	}
 
-	Vec3 old_origin = ent->s.origin;
-
 	if( ent->accel != 0 ) {
 		if( ent->accel < 0 && Length( ent->velocity ) < 50 ) {
 			ent->velocity = Vec3( 0.0f );

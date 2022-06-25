@@ -257,7 +257,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->s.svflags &= ~SVF_NOCLIENT;
 
 	//if invalid be spectator
-	if( self->r.client->team < 0 || self->r.client->team >= Team_Count ) {
+	if( self->r.client->team >= Team_Count ) {
 		self->r.client->team = Team_None;
 	}
 

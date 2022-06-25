@@ -358,49 +358,7 @@ void SP_func_door( edict_t * ent, const spawn_temp_t * st ) {
 //====================================================================
 
 #define STATE_STOPPED       0
-#define STATE_ACCEL     1
-#define STATE_FULLSPEED     2
-#define STATE_DECEL     3
-
-static void Think_RotateAccel( edict_t *self ) {
-	if( self->moveinfo.current_speed >= self->speed ) { // has reached full speed
-		// if calculation causes it to go a little over, readjust
-		if( self->moveinfo.current_speed != self->speed ) {
-			self->avelocity = self->moveinfo.movedir * self->speed;
-			self->moveinfo.current_speed = self->speed;
-		}
-
-		self->think = NULL;
-		self->moveinfo.state = STATE_FULLSPEED;
-		return;
-	}
-
-	// if here, some more acceleration needs to be done
-	// add acceleration value to current speed to cause accel
-	self->moveinfo.current_speed += self->accel;
-	self->avelocity = self->moveinfo.movedir * self->moveinfo.current_speed;
-	self->nextThink = level.time + 1;
-}
-
-static void Think_RotateDecel( edict_t *self ) {
-	if( self->moveinfo.current_speed <= 0 ) { // has reached full stop
-		// if calculation cause it to go a little under, readjust
-		if( self->moveinfo.current_speed != 0 ) {
-			self->avelocity = Vec3( 0.0f );
-			self->moveinfo.current_speed = 0;
-		}
-
-		self->think = NULL;
-		self->moveinfo.state = STATE_STOPPED;
-		return;
-	}
-
-	// if here, some more deceleration needs to be done
-	// subtract deceleration value from current speed to cause decel
-	self->moveinfo.current_speed -= self->decel;
-	self->avelocity = self->moveinfo.movedir * self->moveinfo.current_speed;
-	self->nextThink = level.time + 1;
-}
+#define STATE_FULLSPEED     1
 
 static void rotating_blocked( edict_t *self, edict_t *other ) {
 	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, WorldDamage_Crush );
@@ -413,34 +371,15 @@ static void rotating_touch( edict_t *self, edict_t *other, Plane *plane, int sur
 }
 
 static void rotating_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	// first, figure out what state we are in
-	if( self->moveinfo.state == STATE_ACCEL || self->moveinfo.state == STATE_FULLSPEED ) {
-		// if decel is 0 then just stop
-		if( self->decel == 0 ) {
-			self->avelocity = Vec3( 0.0f );
-			self->moveinfo.current_speed = 0;
-			self->touch = NULL;
-			self->think = NULL;
-			self->moveinfo.state = STATE_STOPPED;
-		} else {
-			// otherwise decelerate
-			self->think = Think_RotateDecel;
-			self->nextThink = level.time + 1;
-			self->moveinfo.state = STATE_DECEL;
-		} // decelerate
+	if( self->moveinfo.state == STATE_FULLSPEED ) {
+		self->avelocity = Vec3( 0.0f );
+		self->touch = NULL;
+		self->think = NULL;
+		self->moveinfo.state = STATE_STOPPED;
 	} else {
 		self->s.sound = self->moveinfo.sound_middle;
-
-		// check if accel is 0.  If so, just start the rotation
-		if( self->accel == 0 ) {
-			self->avelocity = self->moveinfo.movedir * self->speed;
-			self->moveinfo.state = STATE_FULLSPEED;
-		} else {
-			// accelerate baybee
-			self->think = Think_RotateAccel;
-			self->nextThink = level.time + 1;
-			self->moveinfo.state = STATE_ACCEL;
-		}
+		self->avelocity = self->moveinfo.movedir * self->speed;
+		self->moveinfo.state = STATE_FULLSPEED;
 	}
 
 	// setup touch function if needed
@@ -481,20 +420,6 @@ void SP_func_rotating( edict_t * ent, const spawn_temp_t * st ) {
 	if( !ent->dmg ) {
 		ent->dmg = 2;
 	}
-
-	if( ent->accel < 0 ) { // sanity check
-		ent->accel = 0;
-	} else {
-		ent->accel *= 0.1f;
-	}
-
-	if( ent->decel < 0 ) { // sanity check
-		ent->decel = 0;
-	} else {
-		ent->decel *= 0.1f;
-	}
-
-	ent->moveinfo.current_speed = 0;
 
 	ent->use = rotating_use;
 	if( ent->dmg ) {

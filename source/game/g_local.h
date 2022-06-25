@@ -522,7 +522,6 @@ struct moveinfo_t {
 
 	// state data
 	int state;
-	float current_speed;    // used by func_rotating
 
 	void ( *endfunc )( edict_t * );
 	void ( *blocked )( edict_t *self, edict_t *other );
@@ -677,7 +676,6 @@ struct edict_t {
 
 	float angle;                // set in qe3, -1 = up, -2 = down
 	float speed;
-	float accel, decel;         // usef for func_rotating
 
 	int64_t timeStamp;
 	int64_t deathTimeStamp;

@@ -395,17 +395,6 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		}
 	}
 
-	if( ent->accel != 0 ) {
-		if( ent->accel < 0 && Length( ent->velocity ) < 50 ) {
-			ent->velocity = Vec3( 0.0f );
-		} else {
-			Vec3 acceldir;
-			acceldir = Normalize( ent->velocity );
-			acceldir = acceldir * ent->accel * FRAMETIME;
-			ent->velocity = ent->velocity + acceldir;
-		}
-	}
-
 	SV_CheckVelocity( ent );
 
 	// add gravity

@@ -649,7 +649,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		Shape aabb_shape = { ShapeType_AABB, { Vec3( 0.0f ), Vec3( 16.0f ) } };
 
 		Intersection intersection;
-		if( SweptShapeVsMap( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, &intersection ) ) {
+		if( SweptShapeVsMapModel( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, &intersection ) ) {
 			Vec3 new_end = start + intersection.t * ray.direction;
 
 			DrawModelConfig config = { };
@@ -665,7 +665,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 		if( break2 ) {
 			__debugbreak();
-			SweptShapeVsMap( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, &intersection );
+			SweptShapeVsMapModel( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, &intersection );
 		}
 	}
 }

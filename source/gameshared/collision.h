@@ -3,6 +3,7 @@
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
+#include "gameshared/cdmap.h"
 
 struct GLTFCollisionBrush {
 	u32 first_plane;
@@ -50,7 +51,6 @@ void ShutdownCollisionModelStorage( CollisionModelStorage * storage );
 struct cgltf_data;
 bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * gltf, const char * path, StringHash name );
 
-struct MapData;
 void LoadMapCollisionData( CollisionModelStorage * storage, const MapData * map, StringHash base_hash );
 
 const MapSharedCollisionData * FindMapSharedCollisionData( CollisionModelStorage * storage, StringHash name );

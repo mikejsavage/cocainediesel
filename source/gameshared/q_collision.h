@@ -50,6 +50,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // a trace is returned when a box is swept through the world
 typedef struct {
+	// TODO: delete allsolid
 	bool allsolid;          // if true, plane is not valid
 	bool startsolid;        // if true, the initial point was in a solid area
 	float fraction;             // time completed, 1.0 = didn't hit anything

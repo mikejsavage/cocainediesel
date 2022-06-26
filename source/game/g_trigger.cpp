@@ -39,7 +39,6 @@ bool G_TriggerWait( edict_t * ent ) {
 void InitTrigger( edict_t * ent ) {
 	ent->r.solid = SOLID_TRIGGER;
 	ent->movetype = MOVETYPE_NONE;
-	GClip_SetBrushModel( ent );
 	ent->s.svflags = SVF_NOCLIENT;
 }
 

@@ -305,6 +305,27 @@ struct SyncEvent {
 	s8 type;
 };
 
+enum CollisionModelType : u8 {
+	CollisionModelType_Point,
+	CollisionModelType_AABB,
+	CollisionModelType_Sphere,
+	CollisionModelType_Capsule,
+	CollisionModelType_MapModel,
+
+	CollisionModelType_Count
+};
+
+struct CollisionModel {
+	CollisionModelType type;
+
+	union {
+		MinMax3 aabb;
+		Sphere sphere;
+		Capsule capsule;
+		StringHash map_model;
+	};
+};
+
 struct SyncEntityState {
 	int number;
 
@@ -320,6 +341,8 @@ struct SyncEntityState {
 	StringHash model;
 	StringHash model2;
 	StringHash mask;
+
+	Optional< CollisionModel > override_collision_model;
 
 	bool animating;
 	float animation_time;

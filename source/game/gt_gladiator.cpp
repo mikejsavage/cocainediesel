@@ -2,8 +2,9 @@
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
-
 #include "game/g_local.h"
+#include "game/g_maps.h"
+#include "gameshared/cdmap.h"
 
 struct TeamQueue {
 	int players[ MAX_CLIENTS ];
@@ -64,7 +65,6 @@ static void GhostEveryone() {
 	}
 }
 
-void G_Aasdf(); // TODO
 static void PickRandomArena() {
 	if( !gladiator_state.randomize_arena )
 		return;
@@ -89,13 +89,12 @@ static void PickRandomArena() {
 		maps.add( temp( "gladiator/{}", StripExtension( StripExtension( name ) ) ) );
 	}
 
-	G_LoadMap( RandomElement( &svs.rng, maps.begin(), maps.size() ) );
-	G_Aasdf();
+	// G_LoadMap( RandomElement( &svs.rng, maps.begin(), maps.size() ) );
 }
 
 static void GiveLoadout() {
 	// TODO
-	Span< const char > loadout = G_GetWorldspawnKey( "loadout" );
+	Span< const char > loadout = GetWorldspawnKey( FindServerMap( server_gs.gameState.map ), "loadout" );
 	if( loadout != "" ) {
 		// GiveFixedLoadout( loadout );
 		return;
@@ -421,7 +420,7 @@ static void Gladiator_Init() {
 	server_gs.gameState.gametype = Gametype_Gladiator;
 
 	gladiator_state = { };
-	gladiator_state.randomize_arena = G_GetWorldspawnKey( "randomize_arena" ) != "";
+	gladiator_state.randomize_arena = GetWorldspawnKey( FindServerMap( server_gs.gameState.map ), "randomize_arena" ) != "";
 
 	for( TeamQueue & team : gladiator_state.teams ) {
 		for( int & slot : team.players ) {
@@ -434,8 +433,6 @@ static void Gladiator_Init() {
 
 static void Gladiator_Shutdown() {
 	if( gladiator_state.randomize_arena ) {
-		G_LoadMap( "gladiator" );
-		G_Aasdf();
 	}
 }
 

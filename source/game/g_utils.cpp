@@ -327,8 +327,6 @@ void G_InitMover( edict_t *ent ) {
 	ent->r.solid = SOLID_YES;
 	ent->movetype = MOVETYPE_PUSH;
 	ent->s.svflags &= ~SVF_NOCLIENT;
-
-	GClip_SetBrushModel( ent );
 }
 
 void G_CallThink( edict_t *ent ) {

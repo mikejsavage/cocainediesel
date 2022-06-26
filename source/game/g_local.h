@@ -322,13 +322,12 @@ struct link_t {
 	int entNum;
 };
 
-void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask );
-void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask, int timeDelta );
+void G_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, int contentmask );
+void G_Trace4D( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, int contentmask, int timeDelta );
 void GClip_BackUpCollisionFrame();
 int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int timeDelta );
 void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage );
 void GClip_ClearWorld();
-void GClip_SetBrushModel( edict_t * ent );
 void GClip_LinkEntity( edict_t * ent );
 void GClip_UnlinkEntity( edict_t * ent );
 void GClip_TouchTriggers( edict_t * ent );
@@ -337,14 +336,6 @@ SyncEntityState *G_GetEntityStateForDeltaTime( int entNum, int deltaTime );
 int GClip_FindInRadius( Vec3 org, float rad, int *list, int maxcount );
 
 bool IsHeadshot( int entNum, Vec3 hit, int timeDelta );
-
-// BoxEdicts() can return a list of either solid or trigger entities
-// FIXME: eliminate AREA_ distinction?
-#define AREA_ALL       -1
-#define AREA_SOLID      1
-#define AREA_TRIGGERS   2
-int GClip_AreaEdicts( Vec3 mins, Vec3 maxs, int *list, int maxcount, int areatype, int timeDelta );
-bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t * ent );
 
 //
 // g_combat.c

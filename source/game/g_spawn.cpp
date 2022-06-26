@@ -350,18 +350,6 @@ void G_HotloadMap() {
 	}
 }
 
-// TODO: game module init is a mess and I'm not sure how to clean this up
-void G_Aasdf() {
-	GClip_ClearWorld(); // clear areas links
-	G_ResetLevel();
-	for( int i = server_gs.maxclients + 1; i < game.maxentities; i++ ) {
-		edict_t * ent = &game.edicts[ i ];
-		if( ent->r.inuse ) {
-			ent->s.teleported = true;
-		}
-	}
-}
-
 static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st ) {
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.solid = SOLID_YES;
@@ -371,5 +359,9 @@ static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st ) {
 
 	const char * model_name = "*0";
 	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), server_gs.gameState.map.hash ) );
-	GClip_SetBrushModel( ent );
+
+	CollisionModel collision_model = { };
+	collision_model.type = CollisionModelType_MapModel;
+	collision_model.map_model = ent->s.model;
+	ent->s.override_collision_model = collision_model;
 }

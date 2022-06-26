@@ -175,7 +175,7 @@ static float AxialSupport( const CenterExtents3 & aabb, int axis, bool positive 
 	return aabb.extents[ axis ];
 }
 
-static MinMax3 MinkowskiSum( const MinMax3 & bounds, const Shape & shape ) {
+MinMax3 MinkowskiSum( const MinMax3 & bounds, const Shape & shape ) {
 	switch( shape.type ) {
 		case ShapeType_Ray:
 			return bounds;
@@ -284,7 +284,7 @@ struct KDTreeTraversalWork {
 	float t_max;
 };
 
-bool SweptShapeVsMap( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, Intersection * intersection ) {
+bool SweptShapeVsMapModel( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, Intersection * intersection ) {
 	Intersection bounds_enter, bounds_leave;
 	if( !RayVsAABB( ray, MinkowskiSum( model->bounds, shape ), &bounds_enter, &bounds_leave ) )
 		return false;

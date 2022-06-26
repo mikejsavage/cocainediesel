@@ -197,6 +197,27 @@ static void Delta( DeltaBuffer * buf, bool & b, bool baseline ) {
 	}
 }
 
+template< typename E >
+void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
+	using T = typename std::underlying_type< E >::type;
+	Delta( buf, ( T & ) x, ( const T & ) baseline );
+	if( x < 0 || x >= count ) {
+		buf->error = true;
+	}
+}
+
+template< typename T >
+void Delta( DeltaBuffer * buf, Optional< T > & x, const Optional< T > & baseline ) {
+	constexpr T null_baseline = T();
+
+	Delta( buf, x.exists, baseline.exists );
+
+	const T & baseline_to_delta_against = baseline.exists ? baseline.value : null_baseline;
+	if( x.exists ) {
+		Delta( buf, x.value, baseline_to_delta_against );
+	}
+}
+
 static void Delta( DeltaBuffer * buf, StringHash & hash, StringHash baseline ) {
 	DeltaFundamental( buf, hash.hash, baseline.hash );
 }
@@ -226,6 +247,46 @@ static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 	Delta( buf, rgba.a, baseline.a );
 }
 
+static void Delta( DeltaBuffer * buf, Sphere & s, const Sphere & baseline ) {
+	Delta( buf, s.center, baseline.center );
+	Delta( buf, s.radius, baseline.radius );
+}
+
+static void Delta( DeltaBuffer * buf, Capsule & c, const Capsule & baseline ) {
+	Delta( buf, c.a, baseline.a );
+	Delta( buf, c.b, baseline.b );
+	Delta( buf, c.radius, baseline.radius );
+}
+
+static void Delta( DeltaBuffer * buf, CollisionModel & cm, const CollisionModel & baseline ) {
+	constexpr CollisionModel null_baseline = { };
+
+	DeltaEnum( buf, cm.type, baseline.type, CollisionModelType_Count );
+
+	const CollisionModel * baseline_to_delta_against = cm.type == baseline.type ? &baseline : &null_baseline;
+
+	switch( cm.type ) {
+		case CollisionModelType_Point:
+			break;
+
+		case CollisionModelType_AABB:
+			Delta( buf, cm.aabb, baseline_to_delta_against->aabb );
+			break;
+
+		case CollisionModelType_Sphere:
+			Delta( buf, cm.sphere, baseline_to_delta_against->sphere );
+			break;
+
+		case CollisionModelType_Capsule:
+			Delta( buf, cm.capsule, baseline_to_delta_against->capsule );
+			break;
+
+		case CollisionModelType_MapModel:
+			Delta( buf, cm.map_model, baseline_to_delta_against->map_model );
+			break;
+	}
+}
+
 template< size_t N >
 static void DeltaString( DeltaBuffer * buf, char ( &str )[ N ], const char ( &baseline )[ N ] ) {
 	if( buf->serializing ) {
@@ -247,15 +308,6 @@ static void DeltaString( DeltaBuffer * buf, char ( &str )[ N ], const char ( &ba
 		else {
 			Q_strncpyz( str, baseline, N );
 		}
-	}
-}
-
-template< typename E >
-void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
-	using T = typename std::underlying_type< E >::type;
-	Delta( buf, ( T & ) x, ( const T & ) baseline );
-	if( x < 0 || x >= count ) {
-		buf->error = true;
 	}
 }
 
@@ -466,7 +518,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.origin, baseline.origin );
 	DeltaAngle( buf, ent.angles, baseline.angles );
 
-	Delta( buf, ent.bounds, baseline.bounds );
+	Delta( buf, ent.override_collision_model, baseline.override_collision_model );
 
 	Delta( buf, ent.teleported, baseline.teleported );
 

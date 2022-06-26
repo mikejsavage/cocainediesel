@@ -83,13 +83,6 @@ constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "excalibur
 #define SVF_FORCETEAM        ( 1 << 10 )      // this entity is always transmitted to clients with the same ent->s.team value
 #define SVF_NEVEROWNER       ( 1 << 11 )      // this entity is tramitted to everyone but its owner
 
-// edict->solid values
-enum solid_t {
-	SOLID_NOT,              // no interaction with other objects
-	SOLID_TRIGGER,          // only touch when inside, after moving
-	SOLID_YES               // touch on edge
-};
-
 // SyncEntityState->event values
 // entity events are for effects that take place relative
 // to an existing entities origin. Very network efficient.

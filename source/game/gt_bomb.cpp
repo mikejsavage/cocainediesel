@@ -365,7 +365,6 @@ static void PlantAreaTouch( edict_t * self, edict_t * other, Plane * plane, int 
 static void SpawnPlantArea( edict_t * ent ) {
 	ent->think = PlantAreaThink;
 	ent->touch = PlantAreaTouch;
-	GClip_SetBrushModel( ent );
 	ent->r.solid = SOLID_TRIGGER;
 	GClip_LinkEntity( ent );
 

@@ -18,7 +18,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 */
 
+#include "qcommon/base.h"
 #include "game/g_local.h"
+#include "game/g_maps.h"
+#include "gameshared/collision.h"
+#include "gameshared/intersection_tests.h"
 
 //===============================================================================
 //
@@ -33,14 +37,18 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // work better for lots of small objects, higher
 // values for large objects
 
+// FIXME: eliminate AREA_ distinction?
+#define AREA_ALL       -1
+#define AREA_SOLID      1
+#define AREA_TRIGGERS   2
+
 typedef struct
 {
 	link_t grid[AREA_GRIDNODES];
 	link_t outside;
 	Vec3 bias;
 	Vec3 scale;
-	Vec3 mins;
-	Vec3 maxs;
+	MinMax3 bounds;
 	Vec3 size;
 	int marknumber;
 
@@ -232,27 +240,23 @@ static void GClip_InsertLinkBefore( link_t *l, link_t *before, int entNum ) {
 /*
 * GClip_Init_AreaGrid
 */
-static void GClip_Init_AreaGrid( areagrid_t *areagrid, Vec3 world_mins, Vec3 world_maxs ) {
+static void GClip_Init_AreaGrid( areagrid_t *areagrid, MinMax3 bounds ) {
 	// the areagrid_marknumber is not allowed to be 0
 	if( areagrid->marknumber < 1 ) {
 		areagrid->marknumber = 1;
 	}
 
 	// choose either the world box size, or a larger box to ensure the grid isn't too fine
-	areagrid->size.x = Max2( world_maxs.x - world_mins.x, AREA_GRID * AREA_GRIDMINSIZE );
-	areagrid->size.y = Max2( world_maxs.y - world_mins.y, AREA_GRID * AREA_GRIDMINSIZE );
-	areagrid->size.z = Max2( world_maxs.z - world_mins.z, AREA_GRID * AREA_GRIDMINSIZE );
+	areagrid->size.x = Max2( bounds.maxs.x - bounds.mins.x, AREA_GRID * AREA_GRIDMINSIZE );
+	areagrid->size.y = Max2( bounds.maxs.y - bounds.mins.y, AREA_GRID * AREA_GRIDMINSIZE );
+	areagrid->size.z = Max2( bounds.maxs.z - bounds.mins.z, AREA_GRID * AREA_GRIDMINSIZE );
 
 	// figure out the corners of such a box, centered at the center of the world box
-	areagrid->mins.x = ( world_mins.x + world_maxs.x - areagrid->size.x ) * 0.5f;
-	areagrid->mins.y = ( world_mins.y + world_maxs.y - areagrid->size.y ) * 0.5f;
-	areagrid->mins.z = ( world_mins.z + world_maxs.z - areagrid->size.z ) * 0.5f;
-	areagrid->maxs.x = ( world_mins.x + world_maxs.x + areagrid->size.x ) * 0.5f;
-	areagrid->maxs.y = ( world_mins.y + world_maxs.y + areagrid->size.y ) * 0.5f;
-	areagrid->maxs.z = ( world_mins.z + world_maxs.z + areagrid->size.z ) * 0.5f;
+	areagrid->bounds.mins = ( bounds.mins + bounds.maxs - areagrid->size ) * 0.5f;
+	areagrid->bounds.maxs = ( bounds.mins + bounds.maxs + areagrid->size ) * 0.5f;
 
 	// now calculate the actual useful info from that
-	areagrid->bias = -areagrid->mins;
+	areagrid->bias = -areagrid->bounds.mins;
 	areagrid->scale = float( AREA_GRID ) / areagrid->size;
 
 	GClip_ClearLink( &areagrid->outside );
@@ -315,19 +319,15 @@ static void GClip_LinkEntity_AreaGrid( areagrid_t *areagrid, edict_t *ent ) {
 	}
 }
 
-/*
-* GClip_EntitiesInBox_AreaGrid
-*/
-static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, Vec3 mins, Vec3 maxs, int *list, int maxcount, int areatype, int timeDelta ) {
+static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, const MinMax3 & bounds, int *list, int maxcount, int areatype, int timeDelta ) {
 	int numlist;
 	link_t *grid;
 	link_t *l;
 	c4clipedict_t *clipEnt;
-	Vec3 paddedmins, paddedmaxs;
 	int igrid[3], igridmins[3], igridmaxs[3];
 
-	paddedmins = mins;
-	paddedmaxs = maxs;
+	Vec3 paddedmins = bounds.mins;
+	Vec3 paddedmaxs = bounds.maxs;
 
 	// FIXME: if areagrid_marknumber wraps, all entities need their
 	// ent->priv.server->areagridmarknumber reset
@@ -434,12 +434,8 @@ static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, Vec3 mins, Vec3 m
 * called after the world model has been loaded, before linking any entities
 */
 void GClip_ClearWorld() {
-	cmodel_t * world_model = CM_FindCModel( CM_Server, StringHash( svs.cms->world_hash ) );
-
-	Vec3 world_mins, world_maxs;
-	CM_InlineModelBounds( svs.cms, world_model, &world_mins, &world_maxs );
-
-	GClip_Init_AreaGrid( &g_areagrid, world_mins, world_maxs );
+	const MapData * map = FindServerMap( server_gs.gameState.map );
+	GClip_Init_AreaGrid( &g_areagrid, map->models[ 0 ].bounds );
 }
 
 /*
@@ -472,29 +468,6 @@ void GClip_LinkEntity( edict_t *ent ) {
 		return;
 	}
 
-	// set the size
-	ent->r.size = ent->r.maxs - ent->r.mins;
-
-	bool predicted_trigger = ent->r.solid == SOLID_TRIGGER && ( ent->s.type == ET_JUMPPAD || ent->s.type == ET_PAINKILLER_JUMPPAD );
-	bool transmit_bounds = ent->r.solid == SOLID_YES || predicted_trigger;
-	ent->s.bounds = transmit_bounds ? MinMax3( ent->r.mins, ent->r.maxs ) : MinMax3::Empty();
-
-	// set the abs box
-	if( CM_IsBrushModel( CM_Server, ent->s.model ) && ent->s.angles != Vec3( 0.0f ) ) {
-		// expand for rotation
-		float radius = RadiusFromBounds( ent->r.mins, ent->r.maxs );
-		ent->r.absmin = ent->s.origin - Vec3( radius );
-		ent->r.absmax = ent->s.origin + Vec3( radius );
-	} else {   // axis aligned
-		ent->r.absmin = ent->s.origin + ent->r.mins;
-		ent->r.absmax = ent->s.origin + ent->r.maxs;
-	}
-
-	// because movement is clipped an epsilon away from an actual edge,
-	// we must fully check even when bounding boxes don't quite touch
-	ent->r.absmin -= Vec3( 1.0f );
-	ent->r.absmax += Vec3( 1.0f );
-
 	// if first time, make sure old_origin is valid
 	if( !ent->linkcount ) {
 		ent->olds = ent->s;
@@ -514,68 +487,52 @@ void GClip_LinkEntity( edict_t *ent ) {
 * returns the number of pointers filled in
 * ??? does this always return the world?
 */
-int GClip_AreaEdicts( Vec3 mins, Vec3 maxs, int *list, int maxcount, int areatype, int timeDelta ) {
-	int count = GClip_EntitiesInBox_AreaGrid( &g_areagrid, mins, maxs, list, maxcount, areatype, timeDelta );
+static int GClip_AreaEdicts( const MinMax3 bounds, int *list, int maxcount, int areatype, int timeDelta ) {
+	int count = GClip_EntitiesInBox_AreaGrid( &g_areagrid, bounds, list, maxcount, areatype, timeDelta );
 	return Min2( count, maxcount );
-}
-
-/*
-* GClip_CollisionModelForEntity
-*
-* Returns a collision model that can be used for testing or clipping an
-* object of mins/maxs size.
-*/
-
-static cmodel_t *GClip_CollisionModelForEntity( SyncEntityState *s, entity_shared_t *r ) {
-	cmodel_t * model = CM_TryFindCModel( CM_Server, s->model );
-	if( model != NULL ) {
-		return model;
-	}
-
-	// create a temp hull from bounding box sizes
-	if( s->type == ET_PLAYER || s->type == ET_CORPSE ) {
-		return CM_OctagonModelForBBox( svs.cms, r->mins, r->maxs );
-	} else {
-		return CM_ModelForBBox( svs.cms, r->mins, r->maxs );
-	}
 }
 
 //===========================================================================
 
-typedef struct {
-	Vec3 boxmins, boxmaxs;    // enclose the test object along entire move
-	Vec3 mins, maxs;         // size of the moving object
-	Vec3 start, end;
-	trace_t *trace;
+struct TraceContext {
+	Shape shape;
+	Ray ray;
+
+	trace_t * trace;
 	int passent;
 	int contentmask;
-} moveclip_t;
+};
 
-/*
-* GClip_ClipMoveToEntities
-*/
-static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
+static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, int passent, int contentmask, int timeDelta ) {
 	TracyZoneScoped;
 
-	assert( clip->passent == -1 || ( clip->passent >= 0 && clip->passent < ARRAY_COUNT( game.edicts ) ) );
+	assert( passent == -1 || ( passent >= 0 && passent < ARRAY_COUNT( game.edicts ) ) );
+
+	trace_t best = { };
+	best.fraction = 1.0f;
+	best.ent = -1;
 
 	int touchlist[MAX_EDICTS];
-	int num = GClip_AreaEdicts( clip->boxmins, clip->boxmaxs, touchlist, MAX_EDICTS, AREA_SOLID, timeDelta );
 
-	// be careful, it is possible to have an entity in this
-	// list removed before we get to it (killtriggered)
+	MinMax3 ray_bounds = Union( Union( MinMax3::Empty(), ray.origin ), ray.origin + ray.direction * ray.length );
+	MinMax3 broadphase_bounds = MinkowskiSum( ray_bounds, shape );
+
+	int num = GClip_AreaEdicts( broadphase_bounds, touchlist, MAX_EDICTS, AREA_SOLID, timeDelta );
+
+	// be careful, it is possible to have an entity in this list removed before we get to it
 	for( int i = 0; i < num; i++ ) {
-		c4clipedict_t * touch = GClip_GetClipEdictForDeltaTime( touchlist[i], timeDelta );
-		if( clip->passent >= 0 ) {
+		const c4clipedict_t * touch = GClip_GetClipEdictForDeltaTime( touchlist[i], timeDelta );
+
+		if( passent >= 0 ) {
 			// when they are offseted in time, they can be a different pointer but be the same entity
-			if( touch->s.number == clip->passent ) {
+			if( touch->s.number == passent ) {
 				continue;
 			}
-			if( touch->r.owner && ( touch->r.owner->s.number == clip->passent ) ) {
+			if( touch->r.owner && ( touch->r.owner->s.number == passent ) ) {
 				continue;
 			}
-			if( game.edicts[clip->passent].r.owner
-				&& ( game.edicts[clip->passent].r.owner->s.number == touch->s.number ) ) {
+			if( game.edicts[passent].r.owner
+				&& ( game.edicts[passent].r.owner->s.number == touch->s.number ) ) {
 				continue;
 			}
 
@@ -585,12 +542,12 @@ static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 			}
 		}
 
-		if( ( touch->s.svflags & SVF_CORPSE ) && !( clip->contentmask & CONTENTS_CORPSE ) ) {
+		if( ( touch->s.svflags & SVF_CORPSE ) && !( contentmask & CONTENTS_CORPSE ) ) {
 			continue;
 		}
 
 		if( touch->r.client != NULL ) {
-			int teammask = clip->contentmask & ( CONTENTS_TEAM_ONE | CONTENTS_TEAM_TWO | CONTENTS_TEAM_THREE | CONTENTS_TEAM_FOUR );
+			int teammask = contentmask & ( CONTENTS_TEAM_ONE | CONTENTS_TEAM_TWO | CONTENTS_TEAM_THREE | CONTENTS_TEAM_FOUR );
 			if( teammask != 0 ) {
 				Team clip_team = Team_None;
 				for( int team = Team_One; team < Team_Count; team++ ) {
@@ -606,45 +563,77 @@ static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 			}
 		}
 
-		// might intersect, so do an exact clip
-		cmodel_t * cmodel = GClip_CollisionModelForEntity( &touch->s, &touch->r );
+		CollisionModel collision_model = { };
+		if( touch->s.override_collision_model.exists ) {
+			collision_model = touch->s.override_collision_model.value;
+		}
+		else {
+			const MapSubModelCollisionData * map_model = FindServerMapSubModelCollisionData( touch->s.model );
+			if( map_model == NULL ) {
+				continue;
+			}
 
-		Vec3 angles;
-		if( CM_IsBrushModel( CM_Server, touch->s.model ) ) {
-			angles = touch->s.angles;
-		} else {
-			angles = Vec3( 0.0f ); // boxes don't rotate
+			collision_model.type = CollisionModelType_MapModel;
+			collision_model.map_model = touch->s.model;
 		}
 
-		trace_t trace;
-		CM_TransformedBoxTrace( CM_Server, svs.cms, &trace, clip->start, clip->end,
-									 clip->mins, clip->maxs, cmodel, clip->contentmask,
-									 touch->s.origin, angles );
+		assert( touch->s.angles == Vec3( 0.0f ) );
 
-		if( trace.allsolid || trace.fraction < clip->trace->fraction ) {
+		trace_t trace = { };
+		trace.fraction = 1.0f;
+		trace.ent = -1;
+
+		// TODO: transform ray by -touch.transform!!!!!!!
+		Ray object_space_ray = { };
+
+		if( collision_model.type == CollisionModelType_MapModel ) {
+			const MapSubModelCollisionData * map_model = FindServerMapSubModelCollisionData( collision_model.map_model );
+			const MapData * map = FindServerMap( map_model->base_hash );
+
+			Intersection intersection;
+			SweptShapeVsMapModel( map, &map->models[ map_model->sub_model ], object_space_ray, shape, &intersection );
+			// update trace
+		}
+		else {
+			assert( shape.type == ShapeType_Ray );
+
+			switch( collision_model.type ) {
+				case CollisionModelType_Point:
+					break;
+
+				case CollisionModelType_AABB: {
+					Intersection enter, leave;
+					if( RayVsAABB( object_space_ray, collision_model.aabb, &enter, &leave ) ) {
+						// update trace
+					}
+				} break;
+
+				case CollisionModelType_Sphere: {
+					float t;
+					if( RayVsSphere( object_space_ray, collision_model.sphere, &t ) ) {
+						// update trace
+					}
+				} break;
+
+				case CollisionModelType_Capsule: {
+					float t;
+					if( RayVsCapsule( object_space_ray, collision_model.capsule, &t ) ) {
+						// update trace
+					}
+				} break;
+			}
+		}
+
+		if( trace.allsolid || trace.fraction < best.fraction ) {
 			trace.ent = touch->s.number;
-			*( clip->trace ) = trace;
-		} else if( trace.startsolid ) {
-			clip->trace->startsolid = true;
+			best = trace;
 		}
-		if( clip->trace->allsolid ) {
-			return;
+		else if( trace.startsolid ) {
+			best.startsolid = true;
 		}
 	}
-}
 
-
-/*
-* GClip_TraceBounds
-*/
-static void GClip_TraceBounds( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, Vec3 * boxmins, Vec3 * boxmaxs ) {
-	for( int i = 0; i < 3; i++ ) {
-		float near = Min2( start[ i ], end[ i ] );
-		float far = Max2( start[ i ], end[ i ] );
-
-		boxmins->ptr()[ i ] = near + mins[ i ] - 1.0f;
-		boxmaxs->ptr()[ i ] = far + maxs[ i ] + 1.0f;
-	}
+	return best;
 }
 
 /*
@@ -664,51 +653,31 @@ static void GClip_TraceBounds( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, Vec3 
 
 * passedict is explicitly excluded from clipping checks (normally NULL)
 */
-static void GClip_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs,
-						 Vec3 end, edict_t *passedict, int contentmask, int timeDelta ) {
+static void GClip_Trace( trace_t * trace, Vec3 start, Vec3 end, const MinMax3 & bounds, const edict_t * passedict, int contentmask, int timeDelta ) {
 	TracyZoneScoped;
 
-	moveclip_t clip;
+	Ray ray = MakeRayStartEnd( start, end );
+	int passent = passedict == NULL ? -1 : ENTNUM( passedict );
 
-	if( !tr ) {
-		return;
+	Shape shape;
+	if( bounds.mins == bounds.maxs ) {
+		assert( bounds.mins == Vec3( 0.0f ) );
+		shape.type = ShapeType_Ray;
+	}
+	else {
+		shape.type = ShapeType_AABB;
+		shape.aabb = ToCenterExtents( bounds );
 	}
 
-	if( passedict == world ) {
-		memset( tr, 0, sizeof( trace_t ) );
-		tr->fraction = 1;
-		tr->ent = -1;
-	} else {
-		// clip to world
-		CM_TransformedBoxTrace( CM_Server, svs.cms, tr, start, end, mins, maxs, NULL, contentmask, Vec3( 0.0f ), Vec3( 0.0f ) );
-		tr->ent = tr->fraction < 1.0f ? world->s.number : -1;
-		if( tr->fraction == 0 ) {
-			return; // blocked by the world
-		}
-	}
-
-	memset( &clip, 0, sizeof( moveclip_t ) );
-	clip.trace = tr;
-	clip.contentmask = contentmask;
-	clip.start = start;
-	clip.end = end;
-	clip.mins = mins;
-	clip.maxs = maxs;
-	clip.passent = passedict ? ENTNUM( passedict ) : -1;
-
-	// create the bounding box of the entire move
-	GClip_TraceBounds( start, mins, maxs, end, &clip.boxmins, &clip.boxmaxs );
-
-	// clip to other solid entities
-	GClip_ClipMoveToEntities( &clip, timeDelta );
+	*trace = GClip_ClipMoveToEntities( ray, shape, passent, contentmask, timeDelta );
 }
 
-void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask ) {
-	GClip_Trace( tr, start, mins, maxs, end, passedict, contentmask, 0 );
+void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, int contentmask ) {
+	GClip_Trace( tr, start, end, MinMax3( mins, maxs ), passedict, contentmask, 0 );
 }
 
-void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask, int timeDelta ) {
-	GClip_Trace( tr, start, mins, maxs, end, passedict, contentmask, timeDelta );
+void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, int contentmask, int timeDelta ) {
+	GClip_Trace( tr, start, end, MinMax3( mins, maxs ), passedict, contentmask, timeDelta );
 }
 
 bool IsHeadshot( int entNum, Vec3 hit, int timeDelta ) {
@@ -716,25 +685,7 @@ bool IsHeadshot( int entNum, Vec3 hit, int timeDelta ) {
 	return clip->r.absmax.z - hit.z <= 16.0f;
 }
 
-//===========================================================================
-
-
-/*
-* GClip_SetBrushModel
-*
-* Also sets mins and maxs for inline bmodels
-*/
-void GClip_SetBrushModel( edict_t * ent ) {
-	cmodel_t * cmodel = CM_TryFindCModel( CM_Server, ent->s.model );
-	if( cmodel != NULL ) {
-		CM_InlineModelBounds( svs.cms, cmodel, &ent->r.mins, &ent->r.maxs );
-	}
-}
-
-/*
-* GClip_EntityContact
-*/
-bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t *ent ) {
+static bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t *ent ) {
 	cmodel_t * model = CM_TryFindCModel( CM_Server, ent->s.model );
 	if( model != NULL ) {
 		trace_t tr;
@@ -749,7 +700,7 @@ bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t *ent ) {
 
 static void CallTouches( edict_t * ent, Vec3 mins, Vec3 maxs ) {
 	int touch[ MAX_EDICTS ];
-	int num = GClip_AreaEdicts( mins, maxs, touch, MAX_EDICTS, AREA_TRIGGERS, 0 );
+	int num = GClip_AreaEdicts( MinMax3( mins, maxs ), touch, MAX_EDICTS, AREA_TRIGGERS, 0 );
 
 	for( int i = 0; i < num; i++ ) {
 		edict_t * hit = &game.edicts[ touch[ i ] ];

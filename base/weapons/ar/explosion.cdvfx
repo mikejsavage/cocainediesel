@@ -40,7 +40,7 @@
 
     speed 10
 
-    color 0.2 0.2 0.2 0.5
+    color 0.2 0.2 0.2 1.0
     color_override
 
     size 16 0

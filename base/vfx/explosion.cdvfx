@@ -1,8 +1,8 @@
 {
-   dlight {
+  dlight {
     intensity 1000000
     lifetime 0.55
-    color 1 1 1 0
+    color 1 1 1 1
     color_override
   }
 
@@ -127,7 +127,7 @@
 
     speed 62
 
-    color 0.02 0.02 0.02 0.25
+    color 0.02 0.02 0.02 1.0
     end_color 0.0 0.0 0.0 0.5
 
 

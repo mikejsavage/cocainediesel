@@ -7,7 +7,7 @@
 
     speed 5
 
-    color 1.0 1.0 1.0 0.25
+    color 1.0 1.0 1.0 1.0
 
     size 24 12
     lifetime 0.2
@@ -22,7 +22,7 @@
 
     speed 5
 
-    color 1.0 1.0 1.0 0.55
+    color 1.0 1.0 1.0 1.0
     color_override
 
     size 52 0
@@ -74,7 +74,7 @@
 
     speed 2
 
-    color 1.0 1.0 1.0 0.2
+    color 1.0 1.0 1.0 1.0
     color_override
     size 26 0
     lifetime 0.75

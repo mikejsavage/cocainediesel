@@ -346,10 +346,7 @@ static void PM_Aircontrol( Vec3 wishdir, float wishspeed ) {
 	float zspeed = pml.velocity.z;
 	pml.velocity.z = 0;
 	float speed = Length( pml.velocity );
-	if( speed == 0.0f )
-		return;
-	
-	pml.velocity = Normalize( pml.velocity );
+	pml.velocity = SafeNormalize( pml.velocity );
 
 	float dot = Dot( pml.velocity, wishdir );
 	float k = pm_aircontrol * dot * dot * pml.frametime;

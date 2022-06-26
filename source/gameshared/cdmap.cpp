@@ -46,7 +46,7 @@ DecodeMapResult DecodeMap( MapData * map, Span< const u8 > data ) {
 	return ok ? DecodeMapResult_Ok : DecodeMapResult_NotAMap;
 }
 
-Span< const char > GetWorldspawnKey( MapData * map, const char * key ) {
+Span< const char > GetWorldspawnKey( const MapData * map, const char * key ) {
 	const MapEntity * worldspawn = &map->entities[ 0 ];
 
 	for( u32 i = 0; i < worldspawn->num_key_values; i++ ) {

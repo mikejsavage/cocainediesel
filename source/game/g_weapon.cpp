@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/base.h"
-#include "qcommon/cmodel.h"
 #include "game/g_local.h"
 
 #include "gameshared/intersection_tests.h"
@@ -419,8 +418,7 @@ static void W_Touch_Grenade( edict_t * ent, edict_t * other, Plane * plane, int 
 		return;
 	}
 
-	// don't explode on doors and plats that take damage
-	if( !other->takedamage || CM_IsBrushModel( CM_Server, other->s.model ) ) {
+	if( !other->takedamage ) {
 		Vec3 parallel = Project( ent->velocity, plane->normal );
 		Vec3 perpendicular = ent->velocity - parallel;
 
@@ -433,11 +431,9 @@ static void W_Touch_Grenade( edict_t * ent, edict_t * other, Plane * plane, int 
 		return;
 	}
 
-	if( other->takedamage ) {
-		Vec3 push_dir;
-		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false );
-		G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_GrenadeLauncher );
-	}
+	Vec3 push_dir;
+	G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false );
+	G_Damage( other, ent, ent->r.owner, push_dir, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_GrenadeLauncher );
 
 	ent->enemy = other;
 	W_Grenade_ExplodeDir( ent, plane ? plane->normal : Vec3( 0.0f ));
@@ -591,11 +587,6 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 		int hit_movetype = hit->movetype; // backup the original movetype as the entity may "die"
 		if( hit == world ) { // stop dead if hit the world
 			break;
-		}
-
-		// allow trail to go through BBOX entities ( players, gibs, etc )
-		if( !CM_IsBrushModel( CM_Server, hit->s.model ) ) {
-			ignore = hit;
 		}
 
 		if( hit != self && hit->takedamage ) {

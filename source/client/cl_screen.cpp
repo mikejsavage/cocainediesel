@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/client.h"
 #include "client/renderer/renderer.h"
 #include "cgame/cg_local.h"
-#include "qcommon/cmodel.h"
 #include "qcommon/time.h"
 
 static Cvar *scr_netgraph;

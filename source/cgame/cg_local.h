@@ -237,9 +237,6 @@ extern centity_t cg_entities[MAX_EDICTS];
 //
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe );
 
-struct cmodel_t;
-const cmodel_t *CG_CModelForEntity( int entNum );
-
 void CG_SoundEntityNewState( centity_t *cent );
 void DrawEntities();
 void CG_LerpEntities();

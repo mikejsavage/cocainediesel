@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "qcommon/qcommon.h"
-#include "qcommon/cmodel.h"
 #include "server/server.h"
 
 #if PLATFORM_WINDOWS
@@ -345,14 +344,14 @@ static float SNAP_GainForAttenuation( float dist ) {
 	return S_DEFAULT_ATTENUATION_REFDISTANCE / ( S_DEFAULT_ATTENUATION_REFDISTANCE + ATTN_DISTANT * ( dist - S_DEFAULT_ATTENUATION_REFDISTANCE ) );
 }
 
-static bool SNAP_SnapCullSoundEntity( CollisionModel *cms, edict_t *ent, Vec3 listener_origin ) {
+static bool SNAP_SnapCullSoundEntity( edict_t *ent, Vec3 listener_origin ) {
 	// extend the influence sphere cause the player could be moving
 	float dist = Length( listener_origin - ent->s.origin ) - 128;
 	float gain = SNAP_GainForAttenuation( dist < 0 ? 0 : dist );
 	return gain <= 0.05f;
 }
 
-static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *clent, client_snapshot_t *frame, Vec3 vieworg ) {
+static bool SNAP_SnapCullEntity( edict_t *ent, edict_t *clent, client_snapshot_t *frame, Vec3 vieworg ) {
 	// filters: this entity has been disabled for comunication
 	if( ent->s.svflags & SVF_NOCLIENT ) {
 		return true;
@@ -407,13 +406,13 @@ static bool SNAP_SnapCullEntity( CollisionModel *cms, edict_t *ent, edict_t *cle
 	}
 
 	if( snd_cull_only || ent->s.events[0].type || ent->s.sound != EMPTY_HASH ) {
-		snd_culled = SNAP_SnapCullSoundEntity( cms, ent, vieworg );
+		snd_culled = SNAP_SnapCullSoundEntity( ent, vieworg );
 	}
 
 	return snd_culled;
 }
 
-static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, edict_t *clent, Vec3 vieworg, client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
+static void SNAP_AddEntitiesVisibleAtOrigin( ginfo_t *gi, edict_t *clent, Vec3 vieworg, client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	// add the entities to the list
 	for( int entNum = 1; entNum < gi->num_edicts; entNum++ ) {
 		edict_t * ent = EDICT_NUM( entNum );
@@ -441,7 +440,7 @@ static void SNAP_AddEntitiesVisibleAtOrigin( CollisionModel *cms, ginfo_t *gi, e
 	}
 }
 
-static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_t *clent, Vec3 vieworg,
+static void SNAP_BuildSnapEntitiesList( ginfo_t *gi, edict_t *clent, Vec3 vieworg,
 										client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	entList->numSnapshotEntities = 0;
 	memset( entList->entityAddedToSnapList, 0, sizeof( entList->entityAddedToSnapList ) );
@@ -458,7 +457,7 @@ static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_
 		SNAP_AddEntNumToSnapList( entNum, entList );
 	}
 
-	SNAP_AddEntitiesVisibleAtOrigin( cms, gi, clent, vieworg, frame, entList );
+	SNAP_AddEntitiesVisibleAtOrigin( gi, clent, vieworg, frame, entList );
 
 	SNAP_SortSnapList( entList );
 }
@@ -469,7 +468,7 @@ static void SNAP_BuildSnapEntitiesList( CollisionModel *cms, ginfo_t *gi, edict_
 * Decides which entities are going to be visible to the client, and
 * copies off the playerstat and areabits.
 */
-void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
+void SNAP_BuildClientFrameSnap( ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
 	client_t *client,
 	SyncGameState *gameState, client_entities_t *client_entities
 ) {
@@ -531,7 +530,7 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 
 	// build up the list of visible entities
 	snapshotEntityNumbers_t entsList;
-	SNAP_BuildSnapEntitiesList( cms, gi, clent, org, frame, &entsList );
+	SNAP_BuildSnapEntitiesList( gi, clent, org, frame, &entsList );
 
 	// store current match state information
 	frame->gameState = *gameState;

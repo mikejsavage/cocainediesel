@@ -296,7 +296,6 @@ struct SyncGameState {
 	SyncScoreboardPlayer players[ MAX_CLIENTS ];
 
 	StringHash map;
-	u32 map_checksum;
 
 	SyncBombGameState bomb;
 };

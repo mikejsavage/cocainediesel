@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "server/server.h"
-#include "qcommon/cmodel.h"
 #include "qcommon/csprng.h"
 #include "qcommon/hash.h"
 
@@ -69,8 +68,6 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 	svs.gametime = 0;
 
 	sv.nextSnapTime = 1000;
-
-	G_LoadMap( mapname );
 
 	Cvar_ForceSet( "mapname", sv.mapname );
 
@@ -195,11 +192,6 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 
 	FREE( sys_allocator, svs.clients );
 	FREE( sys_allocator, svs.client_entities.entities );
-
-	if( svs.cms ) {
-		CM_Free( CM_Server, svs.cms );
-		svs.cms = NULL;
-	}
 
 	ShutdownWebServer();
 

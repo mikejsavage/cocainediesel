@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/fs.h"
 #include "qcommon/qcommon.h"
 #include "qcommon/string.h"
-#include "qcommon/cmodel.h"
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
@@ -561,29 +560,7 @@ void CG_DrawDemocam2D() {
 //===================================================================
 
 static bool CG_DemoCam_LookAt( int trackEnt, Vec3 vieworg, Vec3 * viewangles ) {
-	if( trackEnt < 1 || trackEnt >= MAX_EDICTS ) {
-		return false;
-	}
-
-	const centity_t * cent = &cg_entities[trackEnt];
-	if( cent->serverFrame != cg.frame.serverFrame ) {
-		return false;
-	}
-
-	// seems to be valid. Find the angles to look at this entity
-	Vec3 origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
-
-	// if having a bounding box, look to its center
-	const cmodel_t *cmodel = CG_CModelForEntity( trackEnt );
-	if( cmodel != NULL ) {
-		Vec3 mins, maxs;
-		CM_InlineModelBounds( cl.map->cms, cmodel, &mins, &maxs );
-		origin += mins + maxs;
-	}
-
-	Vec3 dir = Normalize( origin - vieworg );
-	*viewangles = VecToAngles( dir );
-	return true;
+	return false;
 }
 
 int CG_DemoCam_GetViewType() {
@@ -835,18 +812,10 @@ static int CG_Democam_CalcView() {
 					cam_velocity = Vec3( 0.0f );
 				} else {
 					Vec3 center, forward;
-					const cmodel_t *cmodel;
 					const float ft = (float)cls.frametime * 0.001f;
 
 					// find the trackEnt origin
 					center = Lerp( cg_entities[currentcam->trackEnt].prev.origin, cg.lerpfrac, cg_entities[currentcam->trackEnt].current.origin );
-
-					// if having a bounding box, look to its center
-					if( ( cmodel = CG_CModelForEntity( currentcam->trackEnt ) ) != NULL ) {
-						Vec3 mins, maxs;
-						CM_InlineModelBounds( cl.map->cms, cmodel, &mins, &maxs );
-						center += mins + maxs;
-					}
 
 					if( !cam_orbital_radius ) {
 						// cam is just started, find distance from cam to trackEnt and keep it as radius

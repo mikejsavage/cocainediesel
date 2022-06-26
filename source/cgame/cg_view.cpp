@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/skybox.h"
 #include "qcommon/time.h"
 
-#include "qcommon/cmodel.h"
 #include "gameshared/intersection_tests.h"
 
 ChasecamState chaseCam;
@@ -435,7 +434,7 @@ static void DrawWorld() {
 	TracyZoneScoped;
 
 	const char * suffix = "*0";
-	u64 hash = Hash64( suffix, strlen( suffix ), cl.map->base_hash );
+	u64 hash = Hash64( suffix, strlen( suffix ), cl.map->base_hash.hash );
 	const MapSubModelRenderData * model = FindMapSubModelRenderData( StringHash( hash ) );
 	if( model == NULL )
 		return;
@@ -642,8 +641,8 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		Vec3 start = cg.view.origin;
 		Vec3 end = cg.view.origin + FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 500.0f;
 
-		trace_t old_trace;
-		CM_TransformedBoxTrace( CM_Client, cl.map->cms, &old_trace, start, end, Vec3( 0.0f ), Vec3( 0.0f ), NULL, MASK_ALL, Vec3( 0.0f ), Vec3( 0.0f ) );
+		// trace_t old_trace;
+		// CM_TransformedBoxTrace( CM_Client, cl.map->cms, &old_trace, start, end, Vec3( 0.0f ), Vec3( 0.0f ), NULL, MASK_ALL, Vec3( 0.0f ), Vec3( 0.0f ) );
 
 		Ray ray = MakeRayStartEnd( start, end );
 		Shape ray_shape = { ShapeType_Ray };
@@ -659,9 +658,9 @@ void CG_RenderView( unsigned extrapolationTime ) {
 			Mat4 transform = Mat4Translation( new_end ) * Mat4Scale( 16 ) * TransformKToDir( intersection.normal );
 			DrawGLTFModel( config, FindGLTFRenderData( "models/arrow" ), transform, vec4_white );
 
-			if( Length( old_trace.endpos - new_end ) > 0.1f ) {
-				Com_GGPrint( "sucks to be you start={} old={} new={}", start, old_trace.endpos, new_end );
-			}
+			// if( Length( old_trace.endpos - new_end ) > 0.1f ) {
+			// 	Com_GGPrint( "sucks to be you start={} old={} new={}", start, old_trace.endpos, new_end );
+			// }
 		}
 
 		if( break2 ) {

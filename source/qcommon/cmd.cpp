@@ -1,11 +1,14 @@
 #include <algorithm> // std::sort
 
-#include "qcommon/qcommon.h"
+#include "qcommon/base.h"
 #include "qcommon/array.h"
+#include "qcommon/cmd.h"
+#include "qcommon/cvar.h"
 #include "qcommon/fs.h"
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
+#include "gameshared/q_shared.h"
 
 struct ConsoleCommand {
 	char * name;

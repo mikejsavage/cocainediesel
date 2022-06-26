@@ -46,5 +46,3 @@ void GT_CallPlayerRespawned( edict_t * ent, Team old_team, Team new_team );
 void GT_CallPlayerKilled( edict_t * victim, edict_t * attacker, edict_t * inflictor );
 const edict_t * GT_CallSelectSpawnPoint( const edict_t * ent );
 const edict_t * GT_CallSelectDeadcam();
-
-Span< const char > G_GetWorldspawnKey( const char * key );

@@ -19,8 +19,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
-#include "qcommon/cmodel.h"
 #include "qcommon/time.h"
+#include "game/g_maps.h"
+#include "gameshared/cdmap.h"
 
 Cvar *g_warmup_timelimit;
 Cvar *g_scorelimit;
@@ -402,10 +403,6 @@ void G_RunGametype() {
 	}
 }
 
-Span< const char > G_GetWorldspawnKey( const char * key ) {
-	return ParseWorldspawnKey( MakeSpan( CM_EntityString( svs.cms ) ), key );
-}
-
 void GT_CallMatchStateStarted() {
 	if( server_gs.gameState.match_state == MatchState_Playing ) {
 		for( int i = 0; i < server_gs.maxclients; i++ ) {
@@ -448,7 +445,7 @@ const edict_t * GT_CallSelectDeadcam() {
 }
 
 static bool IsGladiatorMap() {
-	return G_GetWorldspawnKey( "gametype" ) == "gladiator";
+	return GetWorldspawnKey( FindServerMap( server_gs.gameState.map ), "gametype" ) == "gladiator";
 }
 
 void InitGametype() {

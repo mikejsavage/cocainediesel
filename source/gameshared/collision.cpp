@@ -55,7 +55,7 @@ Span< T > DedupeSorted( Allocator * a, Span< T > sorted ) {
 	return deduped.span();
 }
 
-bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * gltf, const char * path, u64 hash ) {
+bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * gltf, const char * path, StringHash name ) {
 	NonRAIIDynamicArray< Vec3 > vertices( sys_allocator );
 	NonRAIIDynamicArray< Plane > planes( sys_allocator );
 	NonRAIIDynamicArray< GLTFCollisionBrush > brushes( sys_allocator );
@@ -98,8 +98,8 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 	}
 
 	u64 idx = storage->gltfs_hashtable.size();
-	if( !storage->gltfs_hashtable.get( hash, &idx ) ) {
-		storage->gltfs_hashtable.add( hash, storage->gltfs_hashtable.size() );
+	if( !storage->gltfs_hashtable.get( name.hash, &idx ) ) {
+		storage->gltfs_hashtable.add( name.hash, storage->gltfs_hashtable.size() );
 	}
 	else {
 		DeleteGLTFCollisionData( storage->gltfs[ idx ] );
@@ -119,9 +119,12 @@ static void FillMapModelsHashtable( CollisionModelStorage * storage ) {
 		const MapSharedCollisionData * map = &storage->maps[ i ];
 		for( size_t j = 0; j < map->data.models.n; j++ ) {
 			String< 16 > suffix( "*{}", j );
-			u64 hash = Hash64( suffix.c_str(), suffix.length(), map->base_hash );
+			u64 hash = Hash64( suffix.c_str(), suffix.length(), map->base_hash.hash );
 
-			assert( storage->map_models_hashtable.size() < ARRAY_COUNT( storage->map_models ) ); // TODO: check in release builds too
+			if( storage->map_models_hashtable.size() == ARRAY_COUNT( storage->map_models ) ) {
+				Fatal( "Too many map submodels" );
+			}
+
 			storage->map_models[ storage->map_models_hashtable.size() ] = {
 				StringHash( map->base_hash ),
 				checked_cast< u32 >( j )
@@ -131,18 +134,36 @@ static void FillMapModelsHashtable( CollisionModelStorage * storage ) {
 	}
 }
 
-void LoadMapCollisionData( CollisionModelStorage * storage, const MapData * data, u64 hash ) {
+void LoadMapCollisionData( CollisionModelStorage * storage, const MapData * data, StringHash base_hash ) {
 	TracyZoneScoped;
 
 	u64 idx = storage->maps_hashtable.size();
-	if( !storage->maps_hashtable.get( hash, &idx ) ) {
-		storage->maps_hashtable.add( hash, storage->maps_hashtable.size() );
+	if( !storage->maps_hashtable.get( base_hash.hash, &idx ) ) {
+		storage->maps_hashtable.add( base_hash.hash, storage->maps_hashtable.size() );
+	}
+
+	if( idx == ARRAY_COUNT( storage->maps ) ) {
+		Fatal( "Too many maps" );
 	}
 
 	MapSharedCollisionData map;
-	map.base_hash = hash;
+	map.base_hash = base_hash;
 	map.data = *data;
 	storage->maps[ idx ] = map;
 
 	FillMapModelsHashtable( storage );
+}
+
+const MapSharedCollisionData * FindMapSharedRenderData( CollisionModelStorage * storage, StringHash name ) {
+	u64 idx;
+	if( !storage->maps_hashtable.get( name.hash, &idx ) )
+		return NULL;
+	return &storage->maps[ idx ];
+}
+
+const MapSubModelCollisionData * FindMapSubModelRenderData( CollisionModelStorage * storage, StringHash name ) {
+	u64 idx;
+	if( !storage->map_models_hashtable.get( name.hash, &idx ) )
+		return NULL;
+	return &storage->map_models[ idx ];
 }

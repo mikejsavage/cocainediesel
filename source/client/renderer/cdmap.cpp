@@ -3,7 +3,7 @@
 #include "client/renderer/renderer.h"
 #include "gameshared/cdmap.h"
 
-MapSharedRenderData NewMapRenderData( const MapData & map, const char * name, u64 base_hash ) {
+MapSharedRenderData NewMapRenderData( const MapData & map, const char * name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	MeshConfig mesh_config;

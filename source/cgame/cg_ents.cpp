@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
-#include "qcommon/cmodel.h"
 #include "client/renderer/renderer.h"
 
 static void CG_UpdateEntities();
@@ -41,20 +40,21 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 		serverTime = cl.serverTime + cgs.extrapolationTime;
 	}
 
-	const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, state->model );
-	if( cmodel == NULL ) {
-		// add a time offset to counter antilag visualization
-		if( !cgs.demoPlaying && cg_projectileAntilagOffset->number > 0.0f &&
-			!ISVIEWERENTITY( state->ownerNum ) && ( cgs.playerNum + 1 != cg.predictedPlayerState.POVnum ) ) {
-			serverTime += state->linearMovementTimeDelta * cg_projectileAntilagOffset->number;
-		}
-	}
+	// TODO: see if commenting this out fixes non-lerped rockets while spectating
+	// const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, state->model );
+	// if( cmodel == NULL ) {
+	// 	// add a time offset to counter antilag visualization
+	// 	if( !cgs.demoPlaying && cg_projectileAntilagOffset->number > 0.0f &&
+	// 		!ISVIEWERENTITY( state->ownerNum ) && ( cgs.playerNum + 1 != cg.predictedPlayerState.POVnum ) ) {
+	// 		serverTime += state->linearMovementTimeDelta * cg_projectileAntilagOffset->number;
+	// 	}
+	// }
 
 	Vec3 origin;
 	int moveTime = GS_LinearMovement( state, serverTime, &origin );
 	state->origin = origin;
 
-	if( moveTime < 0 && cmodel == NULL ) {
+	if( moveTime < 0 ) {
 		// when flyTime is negative don't offset it backwards more than PROJECTILE_PRESTEP value
 		// FIXME: is this still valid?
 		float maxBackOffset;
@@ -168,10 +168,6 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 			  || cent->current.type == ET_GRENADE
 			  || cent->current.type == ET_CORPSE ) ) {
 			cent->canExtrapolate = true;
-		}
-
-		if( CM_IsBrushModel( CM_Client, cent->current.model ) ) { // disable extrapolation on movers
-			cent->canExtrapolate = false;
 		}
 	}
 }
@@ -316,31 +312,6 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	CG_FireEvents( true );
 
 	return true;
-}
-
-/*
-* CG_CModelForEntity
-*  get the collision model for the given entity, no matter if box or brush-model.
-*/
-const cmodel_t *CG_CModelForEntity( int entNum ) {
-	if( entNum < 0 || entNum >= MAX_EDICTS ) {
-		return NULL;
-	}
-
-	const centity_t * cent = &cg_entities[entNum];
-	if( cent->serverFrame != cg.frame.serverFrame ) { // not present in current frame
-		return NULL;
-	}
-
-	const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, cent->current.model );
-	if( cmodel != NULL )
-		return cmodel;
-
-	if( cent->type == ET_PLAYER || cent->type == ET_CORPSE ) {
-		return CM_OctagonModelForBBox( cl.map->cms, cent->current.bounds.mins, cent->current.bounds.maxs );
-	}
-
-	return CM_ModelForBBox( cl.map->cms, cent->current.bounds.mins, cent->current.bounds.maxs );
 }
 
 void CG_ExtrapolateLinearProjectile( centity_t *cent ) {

@@ -369,7 +369,7 @@ static void SpawnPlantArea( edict_t * ent ) {
 	ent->r.solid = SOLID_TRIGGER;
 	GClip_LinkEntity( ent );
 
-	ent->nextThink = level.time + 1000; // think this can just be + 1
+	ent->nextThink = level.time + 1;
 }
 
 // bomb.as

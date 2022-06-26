@@ -120,4 +120,4 @@ enum DecodeMapResult {
 
 DecodeMapResult DecodeMap( MapData * map, Span< const u8 > data );
 
-Span< const char > GetWorldspawnKey( MapData * map, const char * key );
+Span< const char > GetWorldspawnKey( const MapData * map, const char * key );

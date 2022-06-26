@@ -168,8 +168,6 @@ struct server_static_t {
 	client_entities_t client_entities;
 
 	challenge_t challenges[MAX_CHALLENGES]; // to prevent invalid IPs from connecting
-
-	CollisionModel * cms;                // passed to CM-functions
 };
 
 struct server_constant_t {
@@ -331,6 +329,6 @@ void ShutdownWebServer();
 void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
 	SyncEntityState *baselines, client_entities_t *client_entities );
 
-void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
+void SNAP_BuildClientFrameSnap( ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
 	client_t *client,
 	SyncGameState *gameState, client_entities_t *client_entities );

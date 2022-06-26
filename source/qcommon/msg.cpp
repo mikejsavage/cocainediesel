@@ -726,7 +726,6 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.players, baseline.players );
 
 	Delta( buf, state.map, baseline.map );
-	Delta( buf, state.map_checksum, baseline.map_checksum );
 
 	Delta( buf, state.bomb, baseline.bomb );
 }

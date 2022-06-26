@@ -1,6 +1,5 @@
 #include "qcommon/base.h"
 #include "qcommon/qcommon.h"
-#include "qcommon/cmodel.h"
 #include "qcommon/compression.h"
 #include "qcommon/hashtable.h"
 #include "qcommon/string.h"
@@ -10,6 +9,7 @@
 #include "client/renderer/model.h"
 #include "game/hotload_map.h"
 #include "gameshared/cdmap.h"
+#include "gameshared/collision.h"
 
 constexpr u32 MAX_MAPS = 128;
 constexpr u32 MAX_MAP_MODELS = 1024;
@@ -20,9 +20,10 @@ static Hashtable< MAX_MAPS * 2 > maps_hashtable;
 static MapSubModelRenderData map_models[ MAX_MAP_MODELS ];
 static Hashtable< MAX_MAP_MODELS * 2 > map_models_hashtable;
 
+static CollisionModelStorage collision_models;
+
 static void DeleteMap( Map * map ) {
 	FREE( sys_allocator, const_cast< char * >( map->name ) );
-	CM_Free( CM_Client, map->cms );
 	DeleteMapRenderData( map->render_data );
 }
 
@@ -35,7 +36,7 @@ static void FillMapModelsHashtable() {
 		const Map * map = &maps[ i ];
 		for( size_t j = 0; j < map->data.models.n; j++ ) {
 			String< 16 > suffix( "*{}", j );
-			u64 hash = Hash64( suffix.c_str(), suffix.length(), map->base_hash );
+			u64 hash = Hash64( suffix.c_str(), suffix.length(), map->base_hash.hash );
 
 			assert( map_models_hashtable.size() < ARRAY_COUNT( map_models ) ); // TODO: must be if Fatal because this matters in release builds too
 			map_models[ map_models_hashtable.size() ] = {
@@ -52,7 +53,7 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 	TracyZoneText( path, strlen( path ) );
 
 	Span< const char > name = StripPrefix( StripExtension( path ), "maps/" );
-	u64 hash = Hash64( name );
+	StringHash hash = StringHash( name );
 
 	Map map = { };
 
@@ -63,29 +64,21 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 
 	map.name = ( *sys_allocator )( "{}", name );
 	map.base_hash = hash;
-	map.render_data = NewMapRenderData( map.data, path, hash );
+	map.render_data = NewMapRenderData( map.data, path );
 
 	u64 idx = maps_hashtable.size();
-	if( !maps_hashtable.get( hash, &idx ) ) {
-		maps_hashtable.add( hash, maps_hashtable.size() );
+	if( !maps_hashtable.get( hash.hash, &idx ) ) {
+		maps_hashtable.add( hash.hash, maps_hashtable.size() );
 	}
 	else {
 		DeleteMap( &maps[ idx ] );
 	}
 
-	{
-		// TODO: trash
-		TempAllocator temp = cls.frame_arena.temp();
-		const char * bsp_path = temp( "{}.bsp", StripExtension( path ) );
-		map.cms = CM_LoadMap( CM_Client, AssetBinary( bsp_path ), hash );
-		if( map.cms == NULL ) {
-			Fatal( "CM_LoadMap" );
-		}
-	}
-
 	maps[ idx ] = map;
 
 	FillMapModelsHashtable();
+
+	LoadMapCollisionData( &collision_models, &map.data, hash );
 
 	return true;
 }
@@ -95,6 +88,8 @@ void InitMaps() {
 
 	maps_hashtable.clear();
 	map_models_hashtable.clear();
+
+	InitCollisionModelStorage( &collision_models );
 
 	for( const char * path : AssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
@@ -135,6 +130,8 @@ void ShutdownMaps() {
 
 	maps_hashtable.clear();
 	map_models_hashtable.clear();
+
+	ShutdownCollisionModelStorage( &collision_models );
 }
 
 const Map * FindMap( StringHash name ) {
@@ -153,4 +150,8 @@ const MapSubModelRenderData * FindMapSubModelRenderData( StringHash name ) {
 	if( !map_models_hashtable.get( name.hash, &idx ) )
 		return NULL;
 	return &map_models[ idx ];
+}
+
+const MapSubModelCollisionData * FindClientMapSubModelCollisionData( StringHash name ) {
+	return FindMapSubModelCollisionData( &collision_models, name );
 }

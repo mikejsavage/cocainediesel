@@ -5,15 +5,11 @@
 #include "client/renderer/cdmap.h"
 #include "gameshared/cdmap.h"
 
-struct CollisionModel;
-
 struct Map {
 	const char * name;
-	u64 base_hash;
+	StringHash base_hash;
 	MapData data;
 	MapSharedRenderData render_data;
-
-	CollisionModel * cms;
 };
 
 void InitMaps();
@@ -27,3 +23,6 @@ const Map * FindMap( StringHash name );
 const Map * FindMap( const char * name );
 
 const MapSubModelRenderData * FindMapSubModelRenderData( StringHash name );
+
+struct MapSubModelCollisionData;
+const MapSubModelCollisionData * FindClientMapSubModelCollisionData( StringHash name );

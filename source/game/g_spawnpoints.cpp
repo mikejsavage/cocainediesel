@@ -1,5 +1,4 @@
 #include "game/g_local.h"
-#include "qcommon/cmodel.h"
 #include "qcommon/rng.h"
 
 void SP_post_match_camera( edict_t * ent, const spawn_temp_t * st ) { }

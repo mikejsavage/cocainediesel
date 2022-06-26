@@ -81,3 +81,24 @@ extern bool break1;
 extern bool break2;
 extern bool break3;
 extern bool break4;
+
+/*
+ * Com_Print
+ */
+
+#if COMPILER_MSVC
+void Com_Printf( _Printf_format_string_ const char *format, ... );
+void Com_Error( _Printf_format_string_ const char *format, ... );
+#elif COMPILER_GCC_OR_CLANG
+void Com_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
+void Com_Error( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
+#endif
+
+template< typename... Rest >
+void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
+	char buf[ 4096 ];
+	ggformat( buf, sizeof( buf ), fmt, rest... );
+	Com_Printf( "%s", buf );
+}
+
+#define Com_GGPrint( fmt, ... ) Com_GGPrintNL( fmt "\n", ##__VA_ARGS__ )

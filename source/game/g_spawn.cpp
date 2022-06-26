@@ -20,10 +20,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 #include "qcommon/compression.h"
-#include "qcommon/cmodel.h"
 #include "qcommon/fs.h"
 #include "qcommon/srgb.h"
 #include "game/g_local.h"
+#include "game/g_maps.h"
+#include "gameshared/cdmap.h"
 
 enum EntityFieldType {
 	EntityField_Int,
@@ -37,7 +38,7 @@ enum EntityFieldType {
 };
 
 struct EntityField {
-	StringHash name;
+	const char * name;
 	size_t ofs;
 	EntityFieldType type;
 	bool temp;
@@ -142,11 +143,9 @@ static bool SpawnEntity( edict_t * ent, const spawn_temp_t * st ) {
 	return false;
 }
 
-static void ED_ParseField( Span< const char > key, Span< const char > value, edict_t * ent, spawn_temp_t * st ) {
-	StringHash key_hash = StringHash( key );
-
+static void ED_ParseField( Span< const char > key, Span< const char > value, StringHash map_base_hash, edict_t * ent, spawn_temp_t * st ) {
 	for( EntityField f : entity_keys ) {
-		if( f.name != key_hash )
+		if( StrEqual( key, f.name ) )
 			continue;
 
 		uint8_t *b;
@@ -162,7 +161,7 @@ static void ED_ParseField( Span< const char > key, Span< const char > value, edi
 				break;
 			case EntityField_Asset:
 				if( value[ 0 ] == '*' ) {
-					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value.ptr, value.n, svs.cms->base_hash ) );
+					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value.ptr, value.n, map_base_hash.hash ) );
 				}
 				else {
 					*(StringHash *)( b + f.ofs ) = StringHash( value );
@@ -206,31 +205,6 @@ static void ED_ParseField( Span< const char > key, Span< const char > value, edi
 	}
 }
 
-static void ED_ParseEntity( Span< const char > * cursor, edict_t * ent, spawn_temp_t * st ) {
-	while( true ) {
-		Span< const char > key = ParseToken( cursor, Parse_DontStopOnNewLine );
-		if( key == "}" )
-			break;
-		if( key.ptr == NULL ) {
-			Com_Error( "ED_ParseEntity: EOF without closing brace" );
-		}
-
-		Span< const char > value = ParseToken( cursor, Parse_StopOnNewLine );
-		if( value.ptr == NULL ) {
-			Com_Error( "ED_ParseEntity: EOF without closing brace" );
-		}
-		if( value == "}" ) {
-			Com_Error( "ED_ParseEntity: closing brace without data" );
-		}
-
-		ED_ParseField( key, value, ent, st );
-
-		if( StrCaseEqual( key, "classname" ) ) {
-			st->classname = value;
-		}
-	}
-}
-
 static void G_FreeEntities() {
 	if( !level.time ) {
 		memset( game.edicts, 0, game.maxentities * sizeof( game.edicts[0] ) );
@@ -251,30 +225,26 @@ static void SpawnMapEntities() {
 	level.spawnedTimeStamp = svs.gametime;
 	level.canSpawnEntities = true;
 
-	Span< const char > cursor = MakeSpan( CM_EntityString( svs.cms ) );
-	edict_t * ent = NULL;
-
-	while( true ) {
-		// parse the opening brace
-		Span< const char > brace = ParseToken( &cursor, Parse_DontStopOnNewLine );
-		if( brace == "" )
-			break;
-		if( brace != "{" ) {
-			Com_Error( "SpawnMapEntities: entity string doesn't begin with {" );
-		}
-
-		if( ent == NULL ) {
-			ent = world;
-			G_InitEdict( world );
-		}
-		else {
-			ent = G_Spawn();
-		}
+	const MapData * map = FindServerMap( server_gs.gameState.map );
+	for( size_t i = 0; i < map->entities.n; i++ ) {
+		const MapEntity * map_entity = &map->entities[ i ];
+		edict_t * ent = i == 0 ? world : G_Spawn();
 
 		spawn_temp_t st = { };
 		st.spawn_probability = 1.0f;
 
-		ED_ParseEntity( &cursor, ent, &st );
+		for( u32 j = 0; j < map_entity->num_key_values; j++ ) {
+			const MapEntityKeyValue * kv = &map->entity_kvs[ map_entity->first_key_value + j ];
+
+			Span< const char > key = map->entity_data.slice( kv->offset, kv->offset + kv->key_size );
+			Span< const char > value = map->entity_data.slice( kv->offset + kv->key_size, kv->offset + kv->key_size + kv->value_size );
+
+			ED_ParseField( key, value, server_gs.gameState.map, ent, &st );
+
+			if( key == "classname" ) {
+				st.classname = value;
+			}
+		}
 
 		bool ok = true;
 		bool rng = Probability( &svs.rng, st.spawn_probability );
@@ -308,7 +278,8 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	memset( &server_gs.gameState, 0, sizeof( server_gs.gameState ) );
 
 	server_gs.gameState.map = StringHash( mapname );
-	server_gs.gameState.map_checksum = svs.cms->checksum;
+
+	LoadServerMap( mapname );// TODO: errors???
 
 	G_FreeEntities();
 
@@ -368,46 +339,10 @@ void G_RespawnLevel() {
 	}
 }
 
-void G_LoadMap( const char * name ) {
-	TempAllocator temp = svs.frame_arena.temp();
-
-	if( svs.cms != NULL ) {
-		CM_Free( CM_Server, svs.cms );
-	}
-
-	Q_strncpyz( sv.mapname, name, sizeof( sv.mapname ) );
-
-	Span< u8 > data;
-	defer { FREE( sys_allocator, data.ptr ); };
-
-	const char * bsp_path = temp( "{}/base/maps/{}.bsp", RootDirPath(), name );
-	data = ReadFileBinary( sys_allocator, bsp_path );
-
-	if( data.ptr == NULL ) {
-		const char * zst_path = temp( "{}.zst", bsp_path );
-		Span< u8 > compressed = ReadFileBinary( sys_allocator, zst_path );
-		defer { FREE( sys_allocator, compressed.ptr ); };
-		if( compressed.ptr == NULL ) {
-			Fatal( "Couldn't find map %s", name );
-		}
-
-		bool ok = Decompress( zst_path, sys_allocator, compressed, &data );
-		if( !ok ) {
-			Fatal( "Couldn't decompress %s", zst_path );
-		}
-	}
-
-	u64 hash = Hash64( name );
-	svs.cms = CM_LoadMap( CM_Server, data, hash );
-
-	server_gs.gameState.map = StringHash( hash );
-	server_gs.gameState.map_checksum = svs.cms->checksum;
-}
-
 void G_HotloadMap() {
+	// TODO: come back to this
 	char map[ ARRAY_COUNT( sv.mapname ) ];
 	Q_strncpyz( map, sv.mapname, sizeof( map ) );
-	G_LoadMap( map );
 	G_ResetLevel();
 
 	if( level.gametype.MapHotloaded != NULL ) {
@@ -435,6 +370,6 @@ static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st ) {
 	ent->s.angles = Vec3( 0.0f );
 
 	const char * model_name = "*0";
-	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), svs.cms->base_hash ) );
+	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), server_gs.gameState.map.hash ) );
 	GClip_SetBrushModel( ent );
 }

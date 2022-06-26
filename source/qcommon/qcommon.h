@@ -58,10 +58,6 @@ inline Mat4 FromAxisAndOrigin( const mat3_t axis, Vec3 origin ) {
 
 //============================================================================
 
-struct CollisionModel;
-
-//============================================================================
-
 struct msg_t {
 	uint8_t *data;
 	size_t maxsize;
@@ -212,23 +208,6 @@ MISC
 void Com_BeginRedirect( int target, char *buffer, int buffersize,
 							   void ( *flush )( int, const char*, const void* ), const void *extra );
 void Com_EndRedirect();
-
-#ifndef _MSC_VER
-void Com_Printf( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-void Com_Error( const char *format, ... ) __attribute__( ( format( printf, 1, 2 ) ) );
-#else
-void Com_Printf( _Printf_format_string_ const char *format, ... );
-void Com_Error( _Printf_format_string_ const char *format, ... );
-#endif
-
-template< typename... Rest >
-void Com_GGPrintNL( const char * fmt, const Rest & ... rest ) {
-	char buf[ 4096 ];
-	ggformat( buf, sizeof( buf ), fmt, rest... );
-	Com_Printf( "%s", buf );
-}
-
-#define Com_GGPrint( fmt, ... ) Com_GGPrintNL( fmt "\n", ##__VA_ARGS__ )
 
 template< typename... Rest >
 void Com_GGError( const char * fmt, const Rest & ... rest ) {

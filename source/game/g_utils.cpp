@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
-#include "qcommon/cmodel.h"
 #include "qcommon/hashtable.h"
 
 static u64 entity_id_seq;
@@ -554,14 +553,7 @@ edict_t * G_Sound( edict_t * owner, StringHash sound ) {
 
 	edict_t * ent = _G_SpawnSound( sound );
 	ent->s.ownerNum = owner->s.number;
-
-	const cmodel_t * cmodel = CM_TryFindCModel( CM_Server, owner->s.model );
-	if( cmodel != NULL ) {
-		ent->s.origin = owner->s.origin;
-	}
-	else {
-		ent->s.origin = ( owner->r.absmin + owner->r.absmax ) * 0.5f;
-	}
+	ent->s.origin = ( owner->r.absmin + owner->r.absmax ) * 0.5f;
 
 	GClip_LinkEntity( ent );
 	return ent;

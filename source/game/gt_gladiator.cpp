@@ -5,8 +5,6 @@
 
 #include "game/g_local.h"
 
-#include "qcommon/cmodel.h"
-
 struct TeamQueue {
 	int players[ MAX_CLIENTS ];
 };

@@ -20,7 +20,7 @@ struct MapSharedRenderData {
 };
 
 struct MapData;
-MapSharedRenderData NewMapRenderData( const MapData & map, const char * name, u64 base_hash );
+MapSharedRenderData NewMapRenderData( const MapData & map, const char * name );
 void DeleteMapRenderData( const MapSharedRenderData & render_data );
 
 void DrawMapModel( const DrawModelConfig & config, const MapSubModelRenderData * render_data, const Mat4 & transform, const Vec4 & color );

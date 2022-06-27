@@ -128,8 +128,6 @@ struct client_static_t {
 	Optional< Time > connect_time; // for connection retransmits
 	int connect_count;
 
-	NetAddress rconaddress;       // address where we are sending rcon messages, to ignore other print packets
-
 	char * server_name;
 	char * download_url;              // http://<httpaddress>/
 

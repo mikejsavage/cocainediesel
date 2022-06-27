@@ -24,30 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 msg_t tmpMessage;
 uint8_t tmpMessageData[MAX_MSGLEN];
 
-
-
-//=============================================================================
-//
-//Com_Printf redirection
-//
-//=============================================================================
-
-char sv_outputbuf[SV_OUTPUTBUF_LENGTH];
-void SV_FlushRedirect( int sv_redirected, const char * outputbuf, const void * extra ) {
-	const NetAddress * address = ( const NetAddress * ) extra;
-
-	if( sv_redirected == RD_PACKET ) {
-		Netchan_OutOfBandPrint( svs.socket, *address, "print\n%s", outputbuf );
-	}
-}
-
-
-//=============================================================================
-//
-//EVENT MESSAGES
-//
-//=============================================================================
-
 void SV_AddGameCommand( client_t *client, const char *cmd ) {
 	int index;
 

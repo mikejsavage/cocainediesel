@@ -48,53 +48,6 @@ static FILE * log_file = NULL;
 static server_state_t server_state = ss_dead;
 static connstate_t client_state = CA_UNINITIALIZED;
 
-/*
-============================================================================
-
-CLIENT / SERVER interactions
-
-============================================================================
-*/
-
-static int rd_target;
-static char *rd_buffer;
-static int rd_buffersize;
-static void ( *rd_flush )( int target, const char *buffer, const void *extra );
-static const void *rd_extra;
-
-void Com_BeginRedirect( int target, char *buffer, int buffersize,
-						void ( *flush )( int, const char*, const void* ), const void *extra ) {
-	if( !target || !buffer || !buffersize || !flush ) {
-		return;
-	}
-
-	Lock( com_print_mutex );
-
-	rd_target = target;
-	rd_buffer = buffer;
-	rd_buffersize = buffersize;
-	rd_flush = flush;
-	rd_extra = extra;
-
-	*rd_buffer = 0;
-
-	Unlock( com_print_mutex );
-}
-
-void Com_EndRedirect() {
-	Lock( com_print_mutex );
-
-	rd_flush( rd_target, rd_buffer, rd_extra );
-
-	rd_target = 0;
-	rd_buffer = NULL;
-	rd_buffersize = 0;
-	rd_flush = NULL;
-	rd_extra = NULL;
-
-	Unlock( com_print_mutex );
-}
-
 static void Com_CloseConsoleLog( bool lock, bool shutdown ) {
 	if( shutdown ) {
 		lock = true;
@@ -157,16 +110,6 @@ void Com_Printf( const char *format, ... ) {
 	Lock( com_print_mutex );
 	defer { Unlock( com_print_mutex ); };
 
-	if( rd_target ) {
-		if( (int)( strlen( msg ) + strlen( rd_buffer ) ) > ( rd_buffersize - 1 ) ) {
-			rd_flush( rd_target, rd_buffer, rd_extra );
-			*rd_buffer = 0;
-		}
-		Q_strncatz( rd_buffer, msg, rd_buffersize );
-		return;
-	}
-
-	// also echo to debugging console
 	Sys_ConsoleOutput( msg );
 
 	Con_Print( msg );

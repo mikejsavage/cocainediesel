@@ -28,7 +28,6 @@ struct SvMasterServer {
 
 static SvMasterServer master_servers[ ARRAY_COUNT( MASTER_SERVERS ) ];
 
-extern Cvar * rcon_password;         // password for remote server commands
 extern Cvar * sv_iplimit;
 
 //==============================================================================
@@ -437,37 +436,6 @@ int SVC_FakeConnect( char * userinfo ) {
 	return NUM_FOR_EDICT( newcl->edict );
 }
 
-static bool Rcon_Validate() {
-	return StrEqual( rcon_password->value, "" ) || StrEqual( Cmd_Argv( 1 ), rcon_password->value );
-}
-
-/*
-* SVC_RemoteCommand
-*
-* A client issued an rcon command.
-* Shift down the remaining args
-* Redirect all printfs
-*/
-static void SVC_RemoteCommand( const NetAddress & address ) {
-	if( Rcon_Validate() ) {
-		Com_GGPrint( "Bad rcon from {}: {}", address, Cmd_Args() );
-	}
-	else {
-		Com_GGPrint( "Rcon from {}: {}", address, Cmd_Args() );
-	}
-
-	Com_BeginRedirect( RD_PACKET, sv_outputbuf, SV_OUTPUTBUF_LENGTH, SV_FlushRedirect, &address );
-
-	if( !Rcon_Validate() ) {
-		Com_Printf( "Bad rcon_password.\n" );
-	}
-	else {
-		Cbuf_ExecuteLine( Cmd_Args() );
-	}
-
-	Com_EndRedirect();
-}
-
 struct connectionless_cmd_t {
 	const char *name;
 	void ( *func )( const NetAddress & address );
@@ -479,7 +447,6 @@ static connectionless_cmd_t connectionless_cmds[] = {
 	{ "getstatus", SVC_GetStatusResponse },
 	{ "getchallenge", SVC_GetChallenge },
 	{ "connect", SVC_DirectConnect },
-	{ "rcon", SVC_RemoteCommand },
 };
 
 /*

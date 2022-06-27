@@ -251,16 +251,6 @@ void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t s
 bool SV_SendMessageToClient( client_t *client, msg_t *msg );
 void SV_ResetClientFrameCounters();
 
-enum redirect_t {
-	RD_NONE,
-	RD_PACKET,
-};
-
-#define SV_OUTPUTBUF_LENGTH ( MAX_MSGLEN - 16 )
-
-extern char sv_outputbuf[SV_OUTPUTBUF_LENGTH];
-
-void SV_FlushRedirect( int sv_redirected, const char *outputbuf, const void *extra );
 void SV_SendClientMessages();
 
 #ifndef _MSC_VER

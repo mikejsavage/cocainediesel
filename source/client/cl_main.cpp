@@ -38,9 +38,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/version.h"
 #include "gameshared/gs_public.h"
 
-Cvar *rcon_client_password;
-Cvar *rcon_address;
-
 Cvar *cl_timeout;
 Cvar *cl_maxfps;
 Cvar *cl_pps;
@@ -212,69 +209,6 @@ static void CL_Connect_f() {
 	CL_Connect( address );
 }
 
-
-/*
-* CL_Rcon_f
-*
-* Send the rest of the command line over as
-* an unconnected command.
-*/
-static void CL_Rcon_f() {
-	if( CL_DemoPlaying() ) {
-		return;
-	}
-
-	if( rcon_client_password->value[0] == '\0' ) {
-		Com_Printf( "You must set 'rcon_password' before issuing an rcon command.\n" );
-		return;
-	}
-
-	char message[1024];
-	message[0] = (uint8_t)255;
-	message[1] = (uint8_t)255;
-	message[2] = (uint8_t)255;
-	message[3] = (uint8_t)255;
-	message[4] = 0;
-
-	// wsw : jal : check for msg len abuse (thx to r1Q2)
-	if( strlen( Cmd_Args() ) + strlen( rcon_client_password->value ) + 16 >= sizeof( message ) ) {
-		Com_Printf( "Length of password + command exceeds maximum allowed length.\n" );
-		return;
-	}
-
-	Q_strncatz( message, "rcon ", sizeof( message ) );
-
-	Q_strncatz( message, rcon_client_password->value, sizeof( message ) );
-	Q_strncatz( message, " ", sizeof( message ) );
-	Q_strncatz( message, Cmd_Args(), sizeof( message ) );
-
-	NetAddress address = cls.netchan.remoteAddress;
-	if( cls.state < CA_CONNECTED ) {
-		if( !strlen( rcon_address->value ) ) {
-			Com_Printf( "You must be connected, or set the 'rcon_address' cvar to issue rcon commands\n" );
-			return;
-		}
-
-		if( rcon_address->modified ) {
-			TempAllocator temp = cls.frame_arena.temp();
-
-			u16 port;
-			const char * hostname = SplitIntoHostnameAndPort( &temp, rcon_address->value, &port );
-
-			if( !DNS( hostname, &cls.rconaddress ) ) {
-				Com_Printf( "Bad rcon_address.\n" );
-				return; // we don't clear modified, so it will whine the next time too
-			}
-			cls.rconaddress.port = port == 0 ? PORT_SERVER : 0;
-
-			rcon_address->modified = false;
-		}
-
-		address = cls.rconaddress;
-	}
-
-	UDPSend( cls.socket, address, message, strlen( message ) + 1 );
-}
 
 void CL_ClearState() {
 	// wipe the entire cl structure
@@ -530,21 +464,6 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 		return;
 	}
 
-	// print command from somewhere
-	if( StrEqual( c, "print" ) ) {
-		// CA_CONNECTING is allowed, because old servers send protocol mismatch connection error message with it
-		if( ( ( cls.state != CA_UNINITIALIZED && cls.state != CA_DISCONNECTED ) &&
-			  address == cls.serveraddress ) ||
-			( rcon_address->value[0] != '\0' && address == cls.rconaddress ) ) {
-			s = MSG_ReadString( msg );
-			Com_Printf( "%s", s );
-			return;
-		} else {
-			Com_Printf( "Print packet from unknown host, ignored\n" );
-			return;
-		}
-	}
-
 	// challenge from the server we are connecting to
 	if( StrEqual( c, "challenge" ) ) {
 		// these two are from Q3
@@ -795,9 +714,6 @@ static void CL_InitLocal() {
 	cl_shownet = NewCvar( "cl_shownet", "0", 0 );
 	cl_timeout = NewCvar( "cl_timeout", "120", 0 );
 
-	rcon_client_password = NewCvar( "rcon_password", "", 0 );
-	rcon_address = NewCvar( "rcon_address", "", 0 );
-
 	// wsw : debug netcode
 	cl_debug_serverCmd = NewCvar( "cl_debug_serverCmd", "0", CvarFlag_Cheat );
 	cl_debug_timeDelta = NewCvar( "cl_debug_timeDelta", "0", 0 /*CvarFlag_Cheat*/ );
@@ -836,7 +752,6 @@ static void CL_InitLocal() {
 	AddCommand( "yolodemo", CL_YoloDemo_f );
 	AddCommand( "demopause", CL_PauseDemo_f );
 	AddCommand( "demojump", CL_DemoJump_f );
-	AddCommand( "rcon", CL_Rcon_f );
 
 	SetTabCompletionCallback( "demo", TabCompleteDemo );
 	SetTabCompletionCallback( "yolodemo", TabCompleteDemo );
@@ -855,7 +770,6 @@ static void CL_ShutdownLocal() {
 	RemoveCommand( "yolodemo" );
 	RemoveCommand( "demopause" );
 	RemoveCommand( "demojump" );
-	RemoveCommand( "rcon" );
 }
 
 //============================================================================

@@ -1,6 +1,6 @@
 #include "gameshared/movement.h"
 
-static constexpr float charge_jump_speed = 950.0f;
+static constexpr float charge_jump_speed = 750.0f;
 static constexpr float charge_min_speed = 350.0f;
 static constexpr float charge_slide_time = 1.0f;
 

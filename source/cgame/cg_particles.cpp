@@ -829,10 +829,6 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 static void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 color ) {
 	TracyZoneScoped;
 
-	if( emitter == NULL ) {
-		return;
-	}
-
 	float dt = cls.frametime / 1000.0f;
 	u64 idx = num_particleSystems;
 	if( !particleSystems_hashtable.get( emitter->particle_system, &idx ) ) {

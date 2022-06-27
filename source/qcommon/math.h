@@ -1,24 +1,24 @@
 // include base.h instead of this
 
 // <math.h> is huge so manually declare the stuff we actually use
-extern "C" float cosf( float );
-extern "C" float sinf( float );
-extern "C" float tanf( float );
-extern "C" float acosf( float );
-extern "C" float asinf( float );
-extern "C" float atanf( float );
-extern "C" float atan2f( float, float );
+extern "C" float cosf( float ) throw();
+extern "C" float sinf( float ) throw();
+extern "C" float tanf( float ) throw();
+extern "C" float acosf( float ) throw();
+extern "C" float asinf( float ) throw();
+extern "C" float atanf( float ) throw();
+extern "C" float atan2f( float, float ) throw();
 
-extern "C" float sqrtf( float );
-extern "C" float cbrtf( float );
-extern "C" float powf( float, float );
-extern "C" float expf( float );
-extern "C" float logf( float );
-extern "C" float fmodf( float, float );
-extern "C" double fmod( double, double );
-extern "C" float floorf( float );
-extern "C" float ceilf( float );
-extern "C" float roundf( float );
+extern "C" float sqrtf( float ) throw();
+extern "C" float cbrtf( float ) throw();
+extern "C" float powf( float, float ) throw();
+extern "C" float expf( float ) throw();
+extern "C" float logf( float ) throw();
+extern "C" float fmodf( float, float ) throw();
+extern "C" double fmod( double, double ) throw();
+extern "C" float floorf( float ) throw();
+extern "C" float ceilf( float ) throw();
+extern "C" float roundf( float ) throw();
 
 constexpr float PI = 3.14159265358979323846f;
 

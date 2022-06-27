@@ -98,7 +98,6 @@ do
 			"glfw3",
 			"jsmn",
 			"luau",
-			"meshoptimizer",
 			"monocypher",
 			"openal",
 			"picohttpparser",

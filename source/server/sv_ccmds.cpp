@@ -101,18 +101,6 @@ static void SV_Heartbeat_f() {
 	svc.nextHeartbeat = Now();
 }
 
-/*
-* SV_KillServer_f
-* Kick everyone off, possibly in preparation for a new game
-*/
-static void SV_KillServer_f() {
-	if( !svs.initialized ) {
-		return;
-	}
-
-	SV_ShutdownGame( "Server was killed", false );
-}
-
 //===========================================================
 
 void SV_InitOperatorCommands() {
@@ -121,7 +109,6 @@ void SV_InitOperatorCommands() {
 
 	AddCommand( "map", SV_Map_f );
 	AddCommand( "devmap", SV_Map_f );
-	AddCommand( "killserver", SV_KillServer_f );
 
 	AddCommand( "serverrecord", SV_Demo_Start_f );
 	AddCommand( "serverrecordstop", SV_Demo_Stop_f );
@@ -140,7 +127,6 @@ void SV_ShutdownOperatorCommands() {
 
 	RemoveCommand( "map" );
 	RemoveCommand( "devmap" );
-	RemoveCommand( "killserver" );
 
 	RemoveCommand( "serverrecord" );
 	RemoveCommand( "serverrecordstop" );

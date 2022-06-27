@@ -104,12 +104,12 @@ static void RefreshMasksList() {
 	TempAllocator temp = cls.frame_arena.temp();
 	ClearMasksList();
 
-	masks.add( ( *sys_allocator )( "  -  " ) );
+	masks.add( CopyString( sys_allocator, "None" ) );
 	for( const char * path : AssetPaths() ) {
 		if( !StartsWith( path, masks_folder ) || !EndsWith( path, ".glb" ) )
 			continue;
 
-		masks.add( ( *sys_allocator )("{}", StripPrefix( StripExtension( path ), masks_folder ) ) );
+		masks.add( ( *sys_allocator )( "{}", StripPrefix( StripExtension( path ), masks_folder ) ) );
 	}
 
 
@@ -294,7 +294,7 @@ static const char * SelectablePlayerList() {
 }
 
 static void MasksList() {
-	ImGui::Text( S_COLOR_WHITE "Mask" );
+	SettingLabel( "Mask" );
 
 	ImGui::PushItemWidth( 200 );
 	if( ImGui::BeginCombo( "##masks", masks[ selected_mask ] ) ) {
@@ -325,8 +325,6 @@ static void SettingsGeneral() {
 	CvarCheckbox( "Show chat", "cg_chat" );
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys" );
 	CvarCheckbox( "Show FPS", "cg_showFPS" );
-
-	ImGui::Separator();
 
 	MasksList();
 }

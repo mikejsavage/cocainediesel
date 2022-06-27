@@ -133,7 +133,6 @@ extern Vec3 knockbackOfDeath;
 extern int damageFlagsOfDeath;
 
 extern Cvar *sv_password;
-extern Cvar *g_operator_password;
 
 extern Cvar *g_maxvelocity;
 
@@ -299,7 +298,6 @@ bool G_Callvotes_HasVoted( edict_t * ent );
 void G_CallVote_Cmd( edict_t * ent, msg_t args );
 void G_CallVotes_VoteYes( edict_t * ent, msg_t args );
 void G_CallVotes_VoteNo( edict_t * ent, msg_t args );
-void G_OperatorVote_Cmd( edict_t * ent, msg_t args );
 
 //
 // g_trigger.c
@@ -605,7 +603,6 @@ struct gclient_t {
 	bool connecting;
 
 	Team team;
-	bool isoperator;
 
 	UserCommand ucmd;
 	int timeDelta;              // time offset to adjust for shots collision (antilag)

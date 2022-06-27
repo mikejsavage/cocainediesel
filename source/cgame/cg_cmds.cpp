@@ -339,8 +339,6 @@ static const ClientToServerCommand game_commands_yes_args[] = {
 	{ "callvote", ClientCommand_Callvote },
 	{ "vote_yes", ClientCommand_VoteYes },
 	{ "vote_no", ClientCommand_VoteNo },
-	{ "op", ClientCommand_Operator },
-	{ "opcall", ClientCommand_OpCall },
 	{ "join", ClientCommand_Join },
 	{ "vsay", ClientCommand_Vsay },
 	{ "setloadout", ClientCommand_SetLoadout },

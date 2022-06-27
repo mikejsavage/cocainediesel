@@ -38,7 +38,6 @@ struct callvotetype_t;
 
 struct callvotedata_t {
 	edict_t *caller;
-	bool operatorcall;
 	const callvotetype_t *callvote;
 	int argc;
 	char *argv[MAX_STRING_TOKENS];
@@ -264,11 +263,6 @@ static bool G_VoteKickValidate( callvotedata_t *vote, bool first ) {
 		}
 
 		if( who != -1 ) {
-			if( game.edicts[who + 1].r.client->isoperator ) {
-				G_PrintMsg( vote->caller, S_COLOR_RED "%s is a game operator.\n", game.edicts[who + 1].r.client->netname );
-				return false;
-			}
-
 			// we save the player id to be kicked, so we don't later get
 			//confused by new ids or players changing names
 			vote->target = who;
@@ -564,7 +558,7 @@ static void G_CallVotes_CheckState() {
 	}
 
 	int needvotes = int( voters * callvoteElectPercent ) + 1;
-	if( yeses >= needvotes || callvoteState.vote.operatorcall ) {
+	if( yeses >= needvotes ) {
 		G_PrintMsg( NULL, "Vote %s%s%s passed\n", S_COLOR_YELLOW, G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
 		if( callvoteState.vote.callvote->execute != NULL ) {
 			callvoteState.vote.callvote->execute( &callvoteState.vote );
@@ -634,7 +628,16 @@ void G_CallVotes_Think() {
 	}
 }
 
-static void G_CallVote( edict_t *ent, bool isopcall ) {
+bool G_Callvotes_HasVoted( edict_t * ent ) {
+	return clientVote[ PLAYERNUM( ent ) ].exists;
+}
+
+void G_CallVote_Cmd( edict_t *ent, msg_t args ) {
+	Cmd_TokenizeString( MSG_ReadString( &args ) );
+	if( ent->s.svflags & SVF_FAKECLIENT ) {
+		return;
+	}
+
 	if( !g_callvote_enabled->integer ) {
 		G_PrintMsg( ent, "%sCallvoting is disabled on this server\n", S_COLOR_RED );
 		return;
@@ -667,8 +670,7 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 		return;
 	}
 
-	if( !isopcall && ent->r.client->level.callvote_when &&
-		( ent->r.client->level.callvote_when + callvoteCooldown > svs.realtime ) ) {
+	if( ent->r.client->level.callvote_when && ent->r.client->level.callvote_when + callvoteCooldown > svs.realtime ) {
 		G_PrintMsg( ent, "%sYou can not call a vote right now\n", S_COLOR_RED );
 		return;
 	}
@@ -690,7 +692,6 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 
 	callvoteState.vote.callvote = callvote;
 	callvoteState.vote.caller = ent;
-	callvoteState.vote.operatorcall = isopcall;
 
 	//validate if there's a validation func
 	if( callvote->validate != NULL && !callvote->validate( &callvoteState.vote, true ) ) {
@@ -716,105 +717,6 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 				ent->r.client->netname, G_CallVotes_String( &callvoteState.vote ) );
 
 	G_CallVotes_Think(); // make the first think
-}
-
-bool G_Callvotes_HasVoted( edict_t * ent ) {
-	return clientVote[ PLAYERNUM( ent ) ].exists;
-}
-
-void G_CallVote_Cmd( edict_t *ent, msg_t args ) {
-	Cmd_TokenizeString( MSG_ReadString( &args ) );
-	if( ent->s.svflags & SVF_FAKECLIENT ) {
-		return;
-	}
-	G_CallVote( ent, false );
-}
-
-void G_OperatorVote_Cmd( edict_t *ent, msg_t args ) {
-	Cmd_TokenizeString( MSG_ReadString( &args ) );
-
-	edict_t *other;
-	Optional< bool > forceVote = NONE;
-
-	if( !ent->r.client ) {
-		return;
-	}
-	if( ent->s.svflags & SVF_FAKECLIENT ) {
-		return;
-	}
-
-	if( !ent->r.client->isoperator ) {
-		G_PrintMsg( ent, "You are not a game operator\n" );
-		return;
-	}
-
-	if( StrCaseEqual( Cmd_Argv( 0 ), "help" ) ) {
-		G_PrintMsg( ent, "Opcall can be used with all callvotes and the following commands:\n" );
-		G_PrintMsg( ent, "-help\n - passvote\n- cancelvote\n- putteam\n" );
-		return;
-	}
-
-	if( StrCaseEqual( Cmd_Argv( 0 ), "cancelvote" ) ) {
-		forceVote = false;
-	} else if( StrCaseEqual( Cmd_Argv( 0 ), "passvote" ) ) {
-		forceVote = true;
-	}
-
-	if( forceVote.exists ) {
-		if( !callvoteState.vote.callvote ) {
-			G_PrintMsg( ent, "There's no callvote to cancel.\n" );
-			return;
-		}
-
-		for( other = game.edicts + 1; PLAYERNUM( other ) < server_gs.maxclients; other++ ) {
-			if( !other->r.inuse || PF_GetClientState( PLAYERNUM( other ) ) < CS_SPAWNED ) {
-				continue;
-			}
-			if( other->s.svflags & SVF_FAKECLIENT ) {
-				continue;
-			}
-
-			clientVote[PLAYERNUM( other )] = forceVote;
-		}
-
-		G_PrintMsg( NULL, "Callvote has been %s by %s\n",
-					forceVote.value == false ? "cancelled" : "passed", ent->r.client->netname );
-		return;
-	}
-
-	if( StrCaseEqual( Cmd_Argv( 0 ), "putteam" ) ) {
-		const char *splayer = Cmd_Argv( 1 );
-		const char *steam = Cmd_Argv( 2 );
-		edict_t *playerEnt;
-		Team newTeam;
-
-		if( !steam || !steam[0] || !splayer || !splayer[0] ) {
-			G_PrintMsg( ent, "Usage 'putteam <player id > <team name>'.\n" );
-			return;
-		}
-
-		if( ( newTeam = GS_TeamFromName( steam ) ) == Team_None ) {
-			G_PrintMsg( ent, "The team '%s' doesn't exist.\n", steam );
-			return;
-		}
-
-		if( ( playerEnt = G_PlayerForText( splayer ) ) == NULL ) {
-			G_PrintMsg( ent, "The player '%s' couldn't be found.\n", splayer );
-			return;
-		}
-
-		if( playerEnt->s.team == newTeam ) {
-			G_PrintMsg( ent, "The player '%s' is already in team '%s'.\n", playerEnt->r.client->netname, GS_TeamName( newTeam ) );
-			return;
-		}
-
-		G_Teams_SetTeam( playerEnt, newTeam );
-		G_PrintMsg( NULL, "%s was moved to team %s by %s.\n", playerEnt->r.client->netname, GS_TeamName( newTeam ), ent->r.client->netname );
-
-		return;
-	}
-
-	G_CallVote( ent, true );
 }
 
 void G_CallVotes_Init() {

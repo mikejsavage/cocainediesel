@@ -29,7 +29,6 @@ Vec3 knockbackOfDeath;
 int damageFlagsOfDeath;
 
 Cvar *sv_password;
-Cvar *g_operator_password;
 Cvar *g_select_empty;
 
 Cvar *g_maxvelocity;
@@ -122,7 +121,6 @@ void G_Init( unsigned int framemsec ) {
 	sv_cheats = NewCvar( "sv_cheats", is_public_build ? "0" : "1", CvarFlag_ServerReadOnly );
 
 	sv_password = NewCvar( "sv_password", "", 0 );
-	g_operator_password = NewCvar( "g_operator_password", "", CvarFlag_Archive );
 
 	g_projectile_prestep = NewCvar( "g_projectile_prestep", temp( "{}", PROJECTILE_PRESTEP ), CvarFlag_Developer );
 	g_numbots = NewCvar( "g_numbots", "0", CvarFlag_Archive );

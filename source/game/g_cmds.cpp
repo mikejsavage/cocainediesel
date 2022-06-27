@@ -88,30 +88,6 @@ static void Cmd_Noclip_f( edict_t * ent, msg_t args ) {
 	G_PrintMsg( ent, "%s", msg );
 }
 
-static void Cmd_GameOperator_f( edict_t * ent, msg_t args ) {
-	if( StrEqual( g_operator_password->value, "" ) ) {
-		G_PrintMsg( ent, "Operator is disabled in this server\n" );
-		return;
-	}
-
-	const char * password = MSG_ReadString( &args );
-	if( StrEqual( password, "" ) ) {
-		G_PrintMsg( ent, "Usage: op <password>\n" );
-		return;
-	}
-
-	if( StrEqual( password, g_operator_password->value ) ) {
-		if( !ent->r.client->isoperator ) {
-			G_PrintMsg( NULL, "%s" S_COLOR_WHITE " is now a game operator\n", ent->r.client->netname );
-		}
-
-		ent->r.client->isoperator = true;
-		return;
-	}
-
-	G_PrintMsg( ent, "Incorrect operator password.\n" );
-}
-
 static void Cmd_Suicide_f( edict_t * ent, msg_t args ) {
 	if( ent->r.solid == SOLID_NOT ) {
 		return;
@@ -484,9 +460,6 @@ void G_InitGameCommands() {
 	G_AddCommand( ClientCommand_Callvote, G_CallVote_Cmd );
 	G_AddCommand( ClientCommand_VoteYes, G_CallVotes_VoteYes );
 	G_AddCommand( ClientCommand_VoteNo, G_CallVotes_VoteNo );
-
-	G_AddCommand( ClientCommand_Operator, Cmd_GameOperator_f );
-	G_AddCommand( ClientCommand_OpCall, G_OperatorVote_Cmd );
 
 	// teams commands
 	G_AddCommand( ClientCommand_Ready, []( edict_t * ent, msg_t args ) { G_Match_Ready( ent ); } );

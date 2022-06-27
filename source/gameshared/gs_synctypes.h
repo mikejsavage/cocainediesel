@@ -488,8 +488,6 @@ enum ClientCommandType : u8 {
 	ClientCommand_Callvote,
 	ClientCommand_VoteYes,
 	ClientCommand_VoteNo,
-	ClientCommand_Operator,
-	ClientCommand_OpCall,
 	ClientCommand_Ready,
 	ClientCommand_Unready,
 	ClientCommand_ToggleReady,

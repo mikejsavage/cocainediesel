@@ -52,8 +52,6 @@ Cvar *g_antilag_timenudge;
 Cvar *g_autorecord;
 Cvar *g_autorecord_maxdemos;
 
-Cvar *g_deadbody_followkiller;
-
 Cvar *g_allow_spectator_voting;
 
 /*
@@ -128,7 +126,6 @@ void G_Init( unsigned int framemsec ) {
 
 	g_projectile_prestep = NewCvar( "g_projectile_prestep", temp( "{}", PROJECTILE_PRESTEP ), CvarFlag_Developer );
 	g_numbots = NewCvar( "g_numbots", "0", CvarFlag_Archive );
-	g_deadbody_followkiller = NewCvar( "g_deadbody_followkiller", "1", CvarFlag_Developer );
 	g_maxtimeouts = NewCvar( "g_maxtimeouts", "2", CvarFlag_Archive );
 	g_antilag_maxtimedelta = NewCvar( "g_antilag_maxtimedelta", "200", CvarFlag_Archive );
 	g_antilag_maxtimedelta->modified = true;

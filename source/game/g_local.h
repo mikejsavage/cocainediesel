@@ -152,7 +152,6 @@ extern Cvar *g_projectile_prestep;
 extern Cvar *g_numbots;
 extern Cvar *g_maxtimeouts;
 
-extern Cvar *g_deadbody_followkiller;
 extern Cvar *g_antilag_timenudge;
 extern Cvar *g_antilag_maxtimedelta;
 

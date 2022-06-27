@@ -74,9 +74,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->s.scale = ent->s.scale;
 	body->s.svflags = SVF_CORPSE | SVF_BROADCAST;
 	body->activator = ent;
-	if( g_deadbody_followkiller->integer ) {
-		body->enemy = attacker;
-	}
+	body->enemy = attacker;
 
 	//use flat yaw
 	body->s.angles.y = ent->s.angles.y;

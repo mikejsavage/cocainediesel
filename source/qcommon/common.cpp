@@ -251,7 +251,6 @@ void Qcommon_Init( int argc, char ** argv ) {
 	if( !is_dedicated_server ) {
 		ExecDefaultCfg();
 		Cbuf_ExecuteLine( "exec config.cfg" );
-		Cbuf_ExecuteLine( "exec autoexec.cfg" );
 	}
 	else {
 		Cbuf_ExecuteLine( "config dedicated_autoexec.cfg" );

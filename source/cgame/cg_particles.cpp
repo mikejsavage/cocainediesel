@@ -871,48 +871,6 @@ static void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition po
 	}
 }
 
-static void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count ) {
-	EmitParticles( emitter, pos, count, Vec4( 1.0f ) );
-}
-
-ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, Vec3 normal, float theta, float radius ) {
-	ParticleEmitterPosition pos = { };
-	pos.type = ParticleEmitterPosition_Sphere;
-	pos.origin = origin;
-	pos.normal = normal;
-	pos.theta = theta;
-	pos.radius = radius;
-	return pos;
-}
-
-static ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, float radius ) {
-	ParticleEmitterPosition pos = { };
-	pos.type = ParticleEmitterPosition_Sphere;
-	pos.origin = origin;
-	pos.normal = Vec3( 0.0f, 0.0f, 1.0f );
-	pos.theta = 180.0f;
-	pos.radius = radius;
-	return pos;
-}
-
-static ParticleEmitterPosition ParticleEmitterDisk( Vec3 origin, Vec3 normal, float radius ) {
-	ParticleEmitterPosition pos = { };
-	pos.type = ParticleEmitterPosition_Disk;
-	pos.origin = origin;
-	pos.normal = normal;
-	pos.radius = radius;
-	return pos;
-}
-
-static ParticleEmitterPosition ParticleEmitterLine( Vec3 origin, Vec3 end, float radius ) {
-	ParticleEmitterPosition pos = { };
-	pos.type = ParticleEmitterPosition_Line;
-	pos.origin = origin;
-	pos.end = end;
-	pos.radius = radius;
-	return pos;
-}
-
 static void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color, float lifetime_scale ) {
 	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) ) * lifetime_scale;
 	float size = Max2( 0.0f, emitter->size + SampleRandomDistribution( &cls.rng, emitter->size_distribution ) );

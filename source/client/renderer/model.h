@@ -71,7 +71,7 @@ struct Model {
 	};
 
 	struct DynamicLightNode {
-		Vec4 color;
+		Vec3 color;
 		float intensity;
 	};
 

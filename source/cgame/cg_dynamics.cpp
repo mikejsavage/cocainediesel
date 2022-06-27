@@ -164,25 +164,25 @@ void DrawPersistentDecals() {
 	}
 }
 
-void DrawDynamicLight( Vec3 origin, Vec4 color, float intensity ) {
+void DrawDynamicLight( Vec3 origin, Vec3 color, float intensity ) {
 	if( num_dlights == ARRAY_COUNT( dlights ) )
 		return;
 
 	DynamicLight * dlight = &dlights[ num_dlights ];
 
-	dlight->origin_color = Floor( origin ) + color.xyz() * 0.9f;
+	dlight->origin_color = Floor( origin ) + color * 0.9f;
 	dlight->radius = sqrtf( intensity / DLIGHT_CUTOFF );
 
 	num_dlights++;
 }
 
-void AddPersistentDynamicLight( Vec3 origin, Vec4 color, float intensity, s64 duration ) {
+void AddPersistentDynamicLight( Vec3 origin, Vec3 color, float intensity, s64 duration ) {
 	if( num_persistent_dlights == ARRAY_COUNT( persistent_dlights ) )
 		return;
 
 	PersistentDynamicLight * dlight = &persistent_dlights[ num_persistent_dlights ];
 
-	dlight->dlight.origin_color = Floor( origin ) + color.xyz() * 0.9f;
+	dlight->dlight.origin_color = Floor( origin ) + color * 0.9f;
 	dlight->dlight.radius = sqrtf( intensity / DLIGHT_CUTOFF );
 	dlight->start_intensity = intensity;
 	dlight->spawn_time = cl.serverTime;

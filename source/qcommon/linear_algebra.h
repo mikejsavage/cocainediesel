@@ -82,6 +82,7 @@ inline Vec3 operator/( float x, Vec3 v ) { return Vec3( x / v.x, x / v.y, x / v.
 
 inline void operator+=( Vec3 & lhs, Vec3 rhs ) { lhs = lhs + rhs; }
 inline void operator-=( Vec3 & lhs, Vec3 rhs ) { lhs = lhs - rhs; }
+inline void operator*=( Vec3 & lhs, Vec3 rhs ) { lhs = lhs * rhs; }
 
 inline void operator+=( Vec3 & v, float x ) { v = v + x; }
 inline void operator-=( Vec3 & v, float x ) { v = v - x; }
@@ -129,6 +130,14 @@ inline Vec3 Floor( Vec3 v ) {
 		floorf( v.x ),
 		floorf( v.y ),
 		floorf( v.z )
+	);
+}
+
+inline Vec3 Clamp( Vec3 lo, Vec3 v, Vec3 hi ) {
+	return Vec3(
+		Clamp( lo.x, v.x, hi.x ),
+		Clamp( lo.y, v.y, hi.y ),
+		Clamp( lo.z, v.z, hi.z )
 	);
 }
 

@@ -244,7 +244,7 @@ static void LoadNode( const char * filename, Model * model, cgltf_data * gltf, c
 		}
 		else if( type == "dlight" ) {
 			node->vfx_type = ModelVfxType_DynamicLight;
-			node->dlight_node.color = color;
+			node->dlight_node.color = color.xyz();
 			Span< const char > intensity = GetExtrasKey( "intensity", &extras );
 			node->dlight_node.intensity = ParseFloat( &intensity, 0.0f, Parse_DontStopOnNewLine );
 		}

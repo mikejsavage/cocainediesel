@@ -198,8 +198,8 @@ struct DecalEmitter {
 };
 
 struct DynamicLightEmitter {
-	Vec4 color = Vec4( 1.0f );
-	RandomDistribution red_distribution, green_distribution, blue_distribution, alpha_distribution;
+	Vec3 color = Vec3( 1.0f );
+	RandomDistribution red_distribution, green_distribution, blue_distribution;
 	bool color_override;
 
 	float intensity = 3200.0f;
@@ -212,14 +212,6 @@ struct DynamicLightEmitter {
 void InitVisualEffects();
 void HotloadVisualEffects();
 void ShutdownVisualEffects();
-
-ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, Vec3 normal, float theta = 180.0f, float radius = 0.0f );
-ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, float radius = 0.0f );
-ParticleEmitterPosition ParticleEmitterDisk( Vec3 origin, Vec3 normal, float radius = 0.0f );
-ParticleEmitterPosition ParticleEmitterLine( Vec3 origin, Vec3 end, float radius = 0.0f );
-
-void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 start_color );
-void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count );
 
 void DoVisualEffect( const char * name, Vec3 origin, Vec3 normal = Vec3( 0.0f, 0.0f, 1.0f ), float count = 1.0f, Vec4 color = Vec4( 1.0f ), float decal_lifetime_scale = 1.0f );
 void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal = Vec3( 0.0f, 0.0f, 1.0f ), float count = 1.0f, Vec4 color = Vec4( 1.0f ), float decal_lifetime_scale = 1.0f );

@@ -12,10 +12,10 @@
 #  define COMPILER_MSVC 1
 #elif defined( __clang__ )
 #  define COMPILER_CLANG 1
-#  define COMPILER_GCCORCLANG 1
+#  define COMPILER_GCC_OR_CLANG 1
 #elif defined( __GNUC__ )
 #  define COMPILER_GCC 1
-#  define COMPILER_GCCORCLANG 1
+#  define COMPILER_GCC_OR_CLANG 1
 #else
 #  error new compiler
 #endif

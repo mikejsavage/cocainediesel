@@ -2,7 +2,7 @@
 
 #include "qcommon/platform.h"
 
-#if COMPILER_GCCORCLANG
+#if __SANITIZE_ADDRESS__
 #include <sanitizer/asan_interface.h>
 #else
 #define ASAN_POISON_MEMORY_REGION( mem, size )

@@ -217,7 +217,6 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 	return clipent;
 }
 
-// ClearLink is used for new headnodes
 static void GClip_ClearLink( link_t *l ) {
 	l->prev = l->next = l;
 	l->entNum = 0;
@@ -237,9 +236,6 @@ static void GClip_InsertLinkBefore( link_t *l, link_t *before, int entNum ) {
 	l->entNum = entNum;
 }
 
-/*
-* GClip_Init_AreaGrid
-*/
 static void GClip_Init_AreaGrid( areagrid_t *areagrid, MinMax3 bounds ) {
 	// the areagrid_marknumber is not allowed to be 0
 	if( areagrid->marknumber < 1 ) {
@@ -267,9 +263,6 @@ static void GClip_Init_AreaGrid( areagrid_t *areagrid, MinMax3 bounds ) {
 	memset( areagrid->entmarknumber, 0, sizeof( areagrid->entmarknumber ) );
 }
 
-/*
-* GClip_UnlinkEntity_AreaGrid
-*/
 static void GClip_UnlinkEntity_AreaGrid( edict_t *ent ) {
 	for( int i = 0; i < MAX_ENT_AREAS; i++ ) {
 		if( !ent->areagrid[i].prev ) {
@@ -280,9 +273,6 @@ static void GClip_UnlinkEntity_AreaGrid( edict_t *ent ) {
 	}
 }
 
-/*
-* GClip_LinkEntity_AreaGrid
-*/
 static void GClip_LinkEntity_AreaGrid( areagrid_t *areagrid, edict_t *ent ) {
 	link_t *grid;
 	int igrid[3], igridmins[3], igridmaxs[3], gridnum, entitynumber;
@@ -494,14 +484,69 @@ static int GClip_AreaEdicts( const MinMax3 bounds, int *list, int maxcount, int 
 
 //===========================================================================
 
-struct TraceContext {
-	Shape shape;
-	Ray ray;
+static trace_t TraceVsEnt( const Ray & ray, const Shape & shape, const SyncEntityState * ent ) {
+	trace_t trace = { };
+	trace.fraction = 1.0f;
+	trace.ent = -1;
 
-	trace_t * trace;
-	int passent;
-	int contentmask;
-};
+	CollisionModel collision_model = { };
+	if( ent->override_collision_model.exists ) {
+		collision_model = ent->override_collision_model.value;
+	}
+	else {
+		const MapSubModelCollisionData * map_model = FindServerMapSubModelCollisionData( ent->model );
+		if( map_model == NULL )
+			return trace;
+
+		collision_model.type = CollisionModelType_MapModel;
+		collision_model.map_model = ent->model;
+	}
+
+	assert( ent->angles == Vec3( 0.0f ) );
+
+	// TODO: transform ray by -ent.transform!!!!!!!
+	Ray object_space_ray = { };
+
+	if( collision_model.type == CollisionModelType_MapModel ) {
+		const MapSubModelCollisionData * map_model = FindServerMapSubModelCollisionData( collision_model.map_model );
+		const MapData * map = FindServerMap( map_model->base_hash );
+
+		Intersection intersection;
+		SweptShapeVsMapModel( map, &map->models[ map_model->sub_model ], object_space_ray, shape, &intersection );
+		// update trace
+	}
+	else {
+		assert( shape.type == ShapeType_Ray );
+
+		switch( collision_model.type ) {
+			case CollisionModelType_Point:
+				break;
+
+			case CollisionModelType_AABB: {
+				Intersection enter, leave;
+				if( RayVsAABB( object_space_ray, collision_model.aabb, &enter, &leave ) ) {
+					// update trace
+				}
+			} break;
+
+			case CollisionModelType_Sphere: {
+				float t;
+				if( RayVsSphere( object_space_ray, collision_model.sphere, &t ) ) {
+					// update trace
+				}
+			} break;
+
+			case CollisionModelType_Capsule: {
+				float t;
+				if( RayVsCapsule( object_space_ray, collision_model.capsule, &t ) ) {
+					// update trace
+				}
+			} break;
+		}
+	}
+
+	return trace;
+}
 
 static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, int passent, int contentmask, int timeDelta ) {
 	TracyZoneScoped;
@@ -563,68 +608,9 @@ static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, i
 			}
 		}
 
-		CollisionModel collision_model = { };
-		if( touch->s.override_collision_model.exists ) {
-			collision_model = touch->s.override_collision_model.value;
-		}
-		else {
-			const MapSubModelCollisionData * map_model = FindServerMapSubModelCollisionData( touch->s.model );
-			if( map_model == NULL ) {
-				continue;
-			}
+		trace_t trace = TraceVsEnt( ray, shape, &touch->s );
 
-			collision_model.type = CollisionModelType_MapModel;
-			collision_model.map_model = touch->s.model;
-		}
-
-		assert( touch->s.angles == Vec3( 0.0f ) );
-
-		trace_t trace = { };
-		trace.fraction = 1.0f;
-		trace.ent = -1;
-
-		// TODO: transform ray by -touch.transform!!!!!!!
-		Ray object_space_ray = { };
-
-		if( collision_model.type == CollisionModelType_MapModel ) {
-			const MapSubModelCollisionData * map_model = FindServerMapSubModelCollisionData( collision_model.map_model );
-			const MapData * map = FindServerMap( map_model->base_hash );
-
-			Intersection intersection;
-			SweptShapeVsMapModel( map, &map->models[ map_model->sub_model ], object_space_ray, shape, &intersection );
-			// update trace
-		}
-		else {
-			assert( shape.type == ShapeType_Ray );
-
-			switch( collision_model.type ) {
-				case CollisionModelType_Point:
-					break;
-
-				case CollisionModelType_AABB: {
-					Intersection enter, leave;
-					if( RayVsAABB( object_space_ray, collision_model.aabb, &enter, &leave ) ) {
-						// update trace
-					}
-				} break;
-
-				case CollisionModelType_Sphere: {
-					float t;
-					if( RayVsSphere( object_space_ray, collision_model.sphere, &t ) ) {
-						// update trace
-					}
-				} break;
-
-				case CollisionModelType_Capsule: {
-					float t;
-					if( RayVsCapsule( object_space_ray, collision_model.capsule, &t ) ) {
-						// update trace
-					}
-				} break;
-			}
-		}
-
-		if( trace.allsolid || trace.fraction < best.fraction ) {
+		if( trace.fraction < best.fraction ) {
 			trace.ent = touch->s.number;
 			best = trace;
 		}
@@ -653,7 +639,7 @@ static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, i
 
 * passedict is explicitly excluded from clipping checks (normally NULL)
 */
-static void GClip_Trace( trace_t * trace, Vec3 start, Vec3 end, const MinMax3 & bounds, const edict_t * passedict, int contentmask, int timeDelta ) {
+static trace_t GClip_Trace( Vec3 start, Vec3 end, const MinMax3 & bounds, const edict_t * passedict, int contentmask, int timeDelta ) {
 	TracyZoneScoped;
 
 	Ray ray = MakeRayStartEnd( start, end );
@@ -669,15 +655,15 @@ static void GClip_Trace( trace_t * trace, Vec3 start, Vec3 end, const MinMax3 & 
 		shape.aabb = ToCenterExtents( bounds );
 	}
 
-	*trace = GClip_ClipMoveToEntities( ray, shape, passent, contentmask, timeDelta );
+	return GClip_ClipMoveToEntities( ray, shape, passent, contentmask, timeDelta );
 }
 
 void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, int contentmask ) {
-	GClip_Trace( tr, start, end, MinMax3( mins, maxs ), passedict, contentmask, 0 );
+	*tr = GClip_Trace( start, end, MinMax3( mins, maxs ), passedict, contentmask, 0 );
 }
 
 void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, int contentmask, int timeDelta ) {
-	GClip_Trace( tr, start, end, MinMax3( mins, maxs ), passedict, contentmask, timeDelta );
+	*tr = GClip_Trace( start, end, MinMax3( mins, maxs ), passedict, contentmask, timeDelta );
 }
 
 bool IsHeadshot( int entNum, Vec3 hit, int timeDelta ) {
@@ -685,22 +671,23 @@ bool IsHeadshot( int entNum, Vec3 hit, int timeDelta ) {
 	return clip->r.absmax.z - hit.z <= 16.0f;
 }
 
-static bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t *ent ) {
-	cmodel_t * model = CM_TryFindCModel( CM_Server, ent->s.model );
-	if( model != NULL ) {
-		trace_t tr;
-		CM_TransformedBoxTrace( CM_Server, svs.cms, &tr, Vec3( 0.0f ), Vec3( 0.0f ), mins, maxs, model,
-									 MASK_ALL, ent->s.origin, ent->s.angles );
+static bool EntityOverlapsAABB( const edict_t * ent, const CenterExtents3 & aabb ) {
+	Ray ray = MakeRayStartEnd( Vec3( 0.0f ), Vec3( 0.0f ) );
 
-		return tr.startsolid || tr.allsolid ? true : false;
-	}
+	Shape shape = { };
+	shape.type = ShapeType_AABB;
+	shape.aabb = aabb;
 
-	return BoundsOverlap( mins, maxs, ent->r.absmin, ent->r.absmax );
+	trace_t trace = TraceVsEnt( ray, shape, &ent->s );
+
+	return trace.fraction == 0.0f;
 }
 
-static void CallTouches( edict_t * ent, Vec3 mins, Vec3 maxs ) {
+static void CallTouches( edict_t * ent, const MinMax3 & bounds ) {
 	int touch[ MAX_EDICTS ];
-	int num = GClip_AreaEdicts( MinMax3( mins, maxs ), touch, MAX_EDICTS, AREA_TRIGGERS, 0 );
+	int num = GClip_AreaEdicts( bounds, touch, MAX_EDICTS, AREA_TRIGGERS, 0 );
+
+	CenterExtents3 aabb = ToCenterExtents( bounds );
 
 	for( int i = 0; i < num; i++ ) {
 		edict_t * hit = &game.edicts[ touch[ i ] ];
@@ -714,7 +701,8 @@ static void CallTouches( edict_t * ent, Vec3 mins, Vec3 maxs ) {
 			continue;
 		}
 
-		if( !GClip_EntityContact( mins, maxs, hit ) ) {
+		// TODO: this seems very bad
+		if( !EntityOverlapsAABB( hit, aabb ) ) {
 			continue;
 		}
 
@@ -764,7 +752,7 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	bounds = Union( bounds, pm->playerState->pmove.origin + pm->maxs );
 	bounds = Union( bounds, pm->playerState->pmove.origin + pm->mins );
 
-	CallTouches( ent, bounds.mins, bounds.maxs );
+	CallTouches( ent, bounds );
 }
 
 /*

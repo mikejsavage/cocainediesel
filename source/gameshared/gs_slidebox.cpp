@@ -21,13 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qcommon.h"
 #include "gameshared/gs_public.h"
 
-//==================================================
-// SNAP AND CLIP ORIGIN AND VELOCITY
-//==================================================
-
-/*
-* GS_ClipVelocity
-*/
 Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal, float overbounce ) {
 	float backoff = Dot( in, normal );
 	if( backoff <= 0 ) {
@@ -47,9 +40,6 @@ Vec3 GS_ClipVelocity( Vec3 in, Vec3 normal, float overbounce ) {
 	return out;
 }
 
-/*
-* GS_LinearMovement
-*/
 int GS_LinearMovement( const SyncEntityState *ent, int64_t time, Vec3 * dest ) {
 	int moveTime = time - ent->linearMovementTimeStamp;
 	if( moveTime < 0 ) {
@@ -72,9 +62,6 @@ int GS_LinearMovement( const SyncEntityState *ent, int64_t time, Vec3 * dest ) {
 	return moveTime;
 }
 
-/*
-* GS_LinearMovementDelta
-*/
 void GS_LinearMovementDelta( const SyncEntityState *ent, int64_t oldTime, int64_t curTime, Vec3 * dest ) {
 	Vec3 p1, p2;
 	GS_LinearMovement( ent, oldTime, &p1 );

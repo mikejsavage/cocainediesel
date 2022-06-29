@@ -26,68 +26,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_maps.h"
 #include "gameshared/cdmap.h"
 
-enum EntityFieldType {
-	EntityField_Int,
-	EntityField_Float,
-	EntityField_StringHash,
-	EntityField_Asset,
-	EntityField_Vec3,
-	EntityField_Angle,
-	EntityField_Scale,
-	EntityField_RGBA,
-};
-
-struct EntityField {
-	const char * name;
-	size_t ofs;
-	EntityFieldType type;
-	bool temp;
-};
-
-#define FOFS( x ) offsetof( edict_t, x )
-#define STOFS( x ) offsetof( spawn_temp_t, x )
-
-static constexpr EntityField entity_keys[] = {
-	{ "classname", FOFS( classname ), EntityField_StringHash },
-	{ "origin", FOFS( s.origin ), EntityField_Vec3 },
-	{ "model", FOFS( s.model ), EntityField_Asset },
-	{ "model2", FOFS( s.model2 ), EntityField_Asset },
-	{ "material", FOFS( s.material ), EntityField_Asset },
-	{ "color", FOFS( s.color ), EntityField_RGBA },
-	{ "spawnflags", FOFS( spawnflags ), EntityField_Int },
-	{ "speed", FOFS( speed ), EntityField_Float },
-	{ "target", FOFS( target ), EntityField_StringHash },
-	{ "targetname", FOFS( name ), EntityField_StringHash },
-	{ "pathtarget", FOFS( pathtarget ), EntityField_StringHash },
-	{ "killtarget", FOFS( killtarget ), EntityField_StringHash },
-	{ "deadcam", FOFS( deadcam ), EntityField_StringHash },
-	{ "wait", FOFS( wait ), EntityField_Int },
-	{ "delay", FOFS( delay ), EntityField_Int },
-	{ "style", FOFS( style ), EntityField_Int },
-	{ "count", FOFS( count ), EntityField_Int },
-	{ "health", FOFS( health ), EntityField_Float },
-	{ "dmg", FOFS( dmg ), EntityField_Int },
-	{ "angles", FOFS( s.angles ), EntityField_Vec3 },
-	{ "angle", FOFS( s.angles ), EntityField_Angle },
-	{ "modelscale_vec", FOFS( s.scale ), EntityField_Vec3 },
-	{ "modelscale", FOFS( s.scale ), EntityField_Scale },
-	{ "mass", FOFS( mass ), EntityField_Int },
-	{ "random", FOFS( wait_randomness ), EntityField_Int },
-
-	// temp spawn vars -- only valid when the spawn function is called
-	{ "lip", STOFS( lip ), EntityField_Int, true },
-	{ "distance", STOFS( distance ), EntityField_Int, true },
-	{ "height", STOFS( height ), EntityField_Int, true },
-	{ "noise", STOFS( noise ), EntityField_StringHash, true },
-	{ "noise_start", STOFS( noise_start ), EntityField_StringHash, true },
-	{ "noise_stop", STOFS( noise_stop ), EntityField_StringHash, true },
-	{ "pausetime", STOFS( pausetime ), EntityField_Float, true },
-	{ "gameteam", STOFS( gameteam ), EntityField_Int, true },
-	{ "size", STOFS( size ), EntityField_Int, true },
-	{ "spawn_probability", STOFS( spawn_probability ), EntityField_Float, true },
-	{ "power", STOFS( power ), EntityField_Float, true },
-};
-
 static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st );
 
 struct EntitySpawnCallback {
@@ -143,65 +81,125 @@ static bool SpawnEntity( edict_t * ent, const spawn_temp_t * st ) {
 	return false;
 }
 
-static void ED_ParseField( Span< const char > key, Span< const char > value, StringHash map_base_hash, edict_t * ent, spawn_temp_t * st ) {
-	for( EntityField f : entity_keys ) {
-		if( StrEqual( key, f.name ) )
-			continue;
+static bool DoField( const char * name, int * x, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+	*x = SpanToInt( value, 0 );
+	return true;
+}
 
-		uint8_t *b;
-		if( f.temp ) {
-			b = (uint8_t *)st;
-		} else {
-			b = (uint8_t *)ent;
-		}
+static bool DoField( const char * name, s64 * x, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+	*x = SpanToU64( value, 0 ); // TODO: wrong type
+	return true;
+}
 
-		switch( f.type ) {
-			case EntityField_StringHash:
-				*(StringHash *)( b + f.ofs ) = StringHash( value );
-				break;
-			case EntityField_Asset:
-				if( value[ 0 ] == '*' ) {
-					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value.ptr, value.n, map_base_hash.hash ) );
-				}
-				else {
-					*(StringHash *)( b + f.ofs ) = StringHash( value );
-				}
-				break;
-			case EntityField_Int:
-				*(int *)( b + f.ofs ) = SpanToInt( value, 0 );
-				break;
-			case EntityField_Float:
-				*(float *)( b + f.ofs ) = SpanToFloat( value, 0.0f );
-				break;
-			case EntityField_Angle:
-				*(Vec3 *)( b + f.ofs ) = Vec3( 0.0f, SpanToFloat( value, 0.0f ), 0.0f );
-				break;
-			case EntityField_Scale:
-				*(Vec3 *)( b + f.ofs ) = Vec3( SpanToFloat( value, 1.0f ) );
-				break;
+static bool DoField( const char * name, float * x, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+	*x = SpanToFloat( value, 0.0f );
+	return true;
+}
 
-			case EntityField_Vec3: {
-				Vec3 vec;
-				vec.x = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
-				vec.y = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
-				vec.z = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
-				*(Vec3 *)( b + f.ofs ) = vec;
-			} break;
+static bool DoField( const char * name, Vec3 * x, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+	*x = Vec3(
+		ParseFloat( &value, 0.0f, Parse_StopOnNewLine ),
+		ParseFloat( &value, 0.0f, Parse_StopOnNewLine ),
+		ParseFloat( &value, 0.0f, Parse_StopOnNewLine )
+	);
+	return true;
+}
 
-			case EntityField_RGBA: {
-				Vec4 rgba;
-				rgba.x = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
-				rgba.y = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
-				rgba.z = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
-				rgba.w = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
-				*(RGBA8 *)( b + f.ofs ) = LinearTosRGB( rgba );
-			} break;
-		}
-		return;
+static bool DoField( const char * name, RGBA8 * x, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+	// TODO: accept hex colors etc
+	*x = LinearTosRGB( Vec4(
+		ParseFloat( &value, 1.0f, Parse_StopOnNewLine ),
+		ParseFloat( &value, 1.0f, Parse_StopOnNewLine ),
+		ParseFloat( &value, 1.0f, Parse_StopOnNewLine ),
+		ParseFloat( &value, 1.0f, Parse_StopOnNewLine )
+	) );
+	return true;
+}
+
+static bool DoField( const char * name, StringHash * x, Span< const char > key, Span< const char > value ) {
+	if( !StrEqual( name, key ) )
+		return false;
+	*x = StringHash( value );
+	return true;
+}
+
+static bool DoField( const char * name, StringHash * x, Span< const char > key, Span< const char > value, StringHash map_base_hash ) {
+	if( !StrEqual( name, key ) )
+		return false;
+
+	if( value.n > 0 && value[ 0 ] == '*' ) {
+		*x = StringHash( Hash64( value.ptr, value.n, map_base_hash.hash ) );
+	}
+	else {
+		*x = StringHash( value );
 	}
 
-	if( key.n > 0 && key[ 0 ] != '_' ) {
-		Com_GGPrint( "{} is not a field", key );
+	return true;
+}
+
+static void ED_ParseField( Span< const char > key, Span< const char > value, StringHash map_base_hash, edict_t * ent, spawn_temp_t * st ) {
+	bool ok = false;
+
+	ok = ok || DoField( "classname", &ent->classname, key, value );
+	ok = ok || DoField( "origin", &ent->s.origin, key, value );
+	ok = ok || DoField( "model", &ent->s.model, key, value, map_base_hash );
+	ok = ok || DoField( "model2", &ent->s.model2, key, value, map_base_hash );
+	ok = ok || DoField( "material", &ent->s.material, key, value );
+	ok = ok || DoField( "color", &ent->s.color, key, value );
+	ok = ok || DoField( "spawnflags", &ent->spawnflags, key, value );
+	ok = ok || DoField( "speed", &ent->speed, key, value );
+	ok = ok || DoField( "target", &ent->target, key, value );
+	ok = ok || DoField( "targetname", &ent->name, key, value );
+	ok = ok || DoField( "pathtarget", &ent->pathtarget, key, value );
+	ok = ok || DoField( "killtarget", &ent->killtarget, key, value );
+	ok = ok || DoField( "deadcam", &ent->deadcam, key, value );
+	ok = ok || DoField( "wait", &ent->wait, key, value );
+	ok = ok || DoField( "delay", &ent->delay, key, value );
+	ok = ok || DoField( "style", &ent->style, key, value );
+	ok = ok || DoField( "count", &ent->count, key, value );
+	ok = ok || DoField( "health", &ent->health, key, value );
+	ok = ok || DoField( "dmg", &ent->dmg, key, value );
+	ok = ok || DoField( "angles", &ent->s.angles, key, value );
+	ok = ok || DoField( "modelscale", &ent->s.scale, key, value );
+	ok = ok || DoField( "mass", &ent->mass, key, value );
+	ok = ok || DoField( "random", &ent->wait_randomness, key, value );
+
+	// yaw
+	if( key == "angle" ) {
+		ent->s.angles = Vec3( 0.0f, SpanToFloat( value, 0.0f ), 0.0f );
+		ok = true;
+	}
+
+	// 1d scale
+	if( key == "modelscale" ) {
+		ent->s.scale = Vec3( SpanToFloat( value, 1.0f ) );
+		ok = true;
+	}
+
+	ok = ok || DoField( "lip", &st->lip, key, value );
+	ok = ok || DoField( "distance", &st->distance, key, value );
+	ok = ok || DoField( "height", &st->height, key, value );
+	ok = ok || DoField( "noise", &st->noise, key, value );
+	ok = ok || DoField( "noise_start", &st->noise_start, key, value );
+	ok = ok || DoField( "noise_stop", &st->noise_stop, key, value );
+	ok = ok || DoField( "pausetime", &st->pausetime, key, value );
+	ok = ok || DoField( "gameteam", &st->gameteam, key, value );
+	ok = ok || DoField( "size", &st->size, key, value );
+	ok = ok || DoField( "spawn_probability", &st->spawn_probability, key, value );
+	ok = ok || DoField( "power", &st->power, key, value );
+
+	if( !ok && key.n > 0 && key[ 0 ] != '_' ) {
+		Com_GGPrint( "{} is not a valid entity key", key );
 	}
 }
 

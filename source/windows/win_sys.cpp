@@ -11,9 +11,6 @@ void FatalGLE( const char * msg ) {
 	Fatal( "%s: %s (%d)", msg, buf, err );
 }
 
-void EnableFPE() { }
-void DisableFPE() { }
-
 void Sys_Init() {
 	SetConsoleOutputCP( CP_UTF8 );
 }

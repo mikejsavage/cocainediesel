@@ -695,13 +695,9 @@ static void ServerBrowser() {
 	ImGui::TextWrapped( "This game is very pre-alpha so there are probably 0 players online. Join the Discord to find games!" );
 	ImGui::Separator();
 
-	char server_filter[ 256 ] = { };
 	if( ImGui::Button( "Refresh" ) ) {
 		Refresh();
 	}
-	ImGui::AlignTextToFramePadding();
-	ImGui::SameLine(); ImGui::Text( "Search");
-	ImGui::SameLine(); ImGui::InputText( "##server_filter", server_filter, sizeof( server_filter ) );
 
 	ImGui::BeginChild( "servers" );
 	ImGui::Columns( 4, "serverbrowser", false );
@@ -720,22 +716,20 @@ static void ServerBrowser() {
 		if( !servers[ i ].have_details )
 			continue;
 
-		if( strstr( servers[ i ].name, server_filter ) != NULL ) {
-			if( ImGui::Selectable( servers[ i ].name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
-				if( ImGui::IsMouseDoubleClicked( 0 ) ) {
-					CL_Connect( servers[ i ].address );
-				}
-				selected_server = i;
+		if( ImGui::Selectable( servers[ i ].name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
+			if( ImGui::IsMouseDoubleClicked( 0 ) ) {
+				CL_Connect( servers[ i ].address );
 			}
-			ImGui::NextColumn();
-
-			ImGui::Text( "%s", servers[ i ].map );
-			ImGui::NextColumn();
-			ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
-			ImGui::NextColumn();
-			ImGui::Text( "%d", servers[ i ].ping );
-			ImGui::NextColumn();
+			selected_server = i;
 		}
+		ImGui::NextColumn();
+
+		ImGui::Text( "%s", servers[ i ].map );
+		ImGui::NextColumn();
+		ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
+		ImGui::NextColumn();
+		ImGui::Text( "%d", servers[ i ].ping );
+		ImGui::NextColumn();
 	}
 
 	ImGui::Columns( 1 );

@@ -1,24 +1,30 @@
 // include base.h instead of this
 
-// <math.h> is huge so manually declare the stuff we actually use
-extern "C" float cosf( float ) throw();
-extern "C" float sinf( float ) throw();
-extern "C" float tanf( float ) throw();
-extern "C" float acosf( float ) throw();
-extern "C" float asinf( float ) throw();
-extern "C" float atanf( float ) throw();
-extern "C" float atan2f( float, float ) throw();
+#if COMPILER_CLANG
+#define MATH_DECLARATION_NOTHROW throw()
+#else
+#define MATH_DECLARATION_NOTHROW
+#endif
 
-extern "C" float sqrtf( float ) throw();
-extern "C" float cbrtf( float ) throw();
-extern "C" float powf( float, float ) throw();
-extern "C" float expf( float ) throw();
-extern "C" float logf( float ) throw();
-extern "C" float fmodf( float, float ) throw();
-extern "C" double fmod( double, double ) throw();
-extern "C" float floorf( float ) throw();
-extern "C" float ceilf( float ) throw();
-extern "C" float roundf( float ) throw();
+// <math.h> is huge so manually declare the stuff we actually use
+extern "C" float cosf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float sinf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float tanf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float acosf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float asinf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float atanf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float atan2f( float, float ) MATH_DECLARATION_NOTHROW;
+
+extern "C" float sqrtf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float cbrtf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float powf( float, float ) MATH_DECLARATION_NOTHROW;
+extern "C" float expf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float logf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float fmodf( float, float ) MATH_DECLARATION_NOTHROW;
+extern "C" double fmod( double, double ) MATH_DECLARATION_NOTHROW;
+extern "C" float floorf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float ceilf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float roundf( float ) MATH_DECLARATION_NOTHROW;
 
 constexpr float PI = 3.14159265358979323846f;
 

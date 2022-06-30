@@ -58,7 +58,7 @@ struct DeferHelper {
 	ScopeExit< F > operator+( F f ) { return f; }
 };
 
-#define defer const auto & COUNTER_NAME( DEFER_ ) = DeferHelper() + [&]()
+#define defer [[maybe_unused]] const auto & COUNTER_NAME( DEFER_ ) = DeferHelper() + [&]()
 
 /*
  * Span

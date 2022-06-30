@@ -60,11 +60,11 @@ float Unlerp01( T lo, T x, T hi ) {
 }
 
 // some stubs to catch accidental double usage
-void sinf( double );
-void cosf( double );
-void tanf( double );
-void asinf( double );
-void acosf( double );
-void atanf( double );
-void atan2f( double );
-void sqrtf( double );
+void sinf( double ) = delete;
+void cosf( double ) = delete;
+void tanf( double ) = delete;
+void asinf( double ) = delete;
+void acosf( double ) = delete;
+void atanf( double ) = delete;
+void atan2f( double, double ) = delete;
+void sqrtf( double ) = delete;

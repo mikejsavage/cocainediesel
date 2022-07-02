@@ -12,7 +12,7 @@
     angle 360
     angle_distribution 1.0
 
-    color 0.0 0.0 0.0 1.0
+    color 0.0 0.0 0.0 0.75
 
     size 40 40
     size_distribution 1.0

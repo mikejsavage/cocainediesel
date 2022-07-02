@@ -447,7 +447,6 @@ void GClip_UnlinkEntity( edict_t *ent ) {
 * or solid.  Automatically unlinks if needed.
 * sets ent->v.absmin and ent->v.absmax
 */
-#define MAX_TOTAL_ENT_LEAFS 128
 void GClip_LinkEntity( edict_t *ent ) {
 	GClip_UnlinkEntity( ent ); // unlink from old position
 

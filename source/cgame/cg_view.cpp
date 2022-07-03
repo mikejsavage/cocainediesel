@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/skybox.h"
 #include "qcommon/time.h"
 
+#include "gameshared/collision.h"
 #include "gameshared/intersection_tests.h"
 
 ChasecamState chaseCam;
@@ -115,7 +116,8 @@ static void CG_CalcViewBob() {
 			trace_t trace;
 
 			const centity_t * cent = &cg_entities[cg.view.POVent];
-			Vec3 maxs = cent->current.bounds.mins;
+			MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), &cent->current );
+			Vec3 maxs = bounds.mins;
 			Vec3 mins = maxs - Vec3( 0.0f, 0.0f, 1.6f * STEPSIZE );
 
 			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, MASK_PLAYERSOLID );
@@ -650,17 +652,20 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 		Intersection intersection;
 		if( SweptShapeVsMapModel( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, &intersection ) ) {
-			Vec3 new_end = start + intersection.t * ray.direction;
+			if( intersection.normal != Vec3( 0.0f ) ) {
+				Vec3 new_end = start + intersection.t * ray.direction;
 
-			DrawModelConfig config = { };
-			config.draw_model.enabled = true;
-			config.draw_shadows.enabled = true;
-			Mat4 transform = Mat4Translation( new_end ) * Mat4Scale( 16 ) * TransformKToDir( intersection.normal );
-			DrawGLTFModel( config, FindGLTFRenderData( "models/arrow" ), transform, vec4_white );
 
-			// if( Length( old_trace.endpos - new_end ) > 0.1f ) {
-			// 	Com_GGPrint( "sucks to be you start={} old={} new={}", start, old_trace.endpos, new_end );
-			// }
+				DrawModelConfig config = { };
+				config.draw_model.enabled = true;
+				config.draw_shadows.enabled = true;
+				Mat4 transform = Mat4Translation( new_end ) * Mat4Scale( 16 ) * TransformKToDir( intersection.normal );
+				DrawGLTFModel( config, FindGLTFRenderData( "models/arrow" ), transform, vec4_white );
+
+				// if( Length( old_trace.endpos - new_end ) > 0.1f ) {
+				// 	Com_GGPrint( "sucks to be you start={} old={} new={}", start, old_trace.endpos, new_end );
+				// }
+			}
 		}
 
 		if( break2 ) {

@@ -148,57 +148,57 @@ static bool DoField( const char * name, StringHash * x, Span< const char > key, 
 }
 
 static void ED_ParseField( Span< const char > key, Span< const char > value, StringHash map_base_hash, edict_t * ent, spawn_temp_t * st ) {
-	bool ok = false;
+	bool used = false;
 
-	ok = ok || DoField( "classname", &ent->classname, key, value );
-	ok = ok || DoField( "origin", &ent->s.origin, key, value );
-	ok = ok || DoField( "model", &ent->s.model, key, value, map_base_hash );
-	ok = ok || DoField( "model2", &ent->s.model2, key, value, map_base_hash );
-	ok = ok || DoField( "material", &ent->s.material, key, value );
-	ok = ok || DoField( "color", &ent->s.color, key, value );
-	ok = ok || DoField( "spawnflags", &ent->spawnflags, key, value );
-	ok = ok || DoField( "speed", &ent->speed, key, value );
-	ok = ok || DoField( "target", &ent->target, key, value );
-	ok = ok || DoField( "targetname", &ent->name, key, value );
-	ok = ok || DoField( "pathtarget", &ent->pathtarget, key, value );
-	ok = ok || DoField( "killtarget", &ent->killtarget, key, value );
-	ok = ok || DoField( "deadcam", &ent->deadcam, key, value );
-	ok = ok || DoField( "wait", &ent->wait, key, value );
-	ok = ok || DoField( "delay", &ent->delay, key, value );
-	ok = ok || DoField( "style", &ent->style, key, value );
-	ok = ok || DoField( "count", &ent->count, key, value );
-	ok = ok || DoField( "health", &ent->health, key, value );
-	ok = ok || DoField( "dmg", &ent->dmg, key, value );
-	ok = ok || DoField( "angles", &ent->s.angles, key, value );
-	ok = ok || DoField( "modelscale", &ent->s.scale, key, value );
-	ok = ok || DoField( "mass", &ent->mass, key, value );
-	ok = ok || DoField( "random", &ent->wait_randomness, key, value );
+	used = used || DoField( "classname", &ent->classname, key, value );
+	used = used || DoField( "origin", &ent->s.origin, key, value );
+	used = used || DoField( "model", &ent->s.model, key, value, map_base_hash );
+	used = used || DoField( "model2", &ent->s.model2, key, value, map_base_hash );
+	used = used || DoField( "material", &ent->s.material, key, value );
+	used = used || DoField( "color", &ent->s.color, key, value );
+	used = used || DoField( "spawnflags", &ent->spawnflags, key, value );
+	used = used || DoField( "speed", &ent->speed, key, value );
+	used = used || DoField( "target", &ent->target, key, value );
+	used = used || DoField( "targetname", &ent->name, key, value );
+	used = used || DoField( "pathtarget", &ent->pathtarget, key, value );
+	used = used || DoField( "killtarget", &ent->killtarget, key, value );
+	used = used || DoField( "deadcam", &ent->deadcam, key, value );
+	used = used || DoField( "wait", &ent->wait, key, value );
+	used = used || DoField( "delay", &ent->delay, key, value );
+	used = used || DoField( "style", &ent->style, key, value );
+	used = used || DoField( "count", &ent->count, key, value );
+	used = used || DoField( "health", &ent->health, key, value );
+	used = used || DoField( "dmg", &ent->dmg, key, value );
+	used = used || DoField( "angles", &ent->s.angles, key, value );
+	used = used || DoField( "modelscale", &ent->s.scale, key, value );
+	used = used || DoField( "mass", &ent->mass, key, value );
+	used = used || DoField( "random", &ent->wait_randomness, key, value );
 
 	// yaw
 	if( key == "angle" ) {
 		ent->s.angles = Vec3( 0.0f, SpanToFloat( value, 0.0f ), 0.0f );
-		ok = true;
+		used = true;
 	}
 
 	// 1d scale
 	if( key == "modelscale" ) {
 		ent->s.scale = Vec3( SpanToFloat( value, 1.0f ) );
-		ok = true;
+		used = true;
 	}
 
-	ok = ok || DoField( "lip", &st->lip, key, value );
-	ok = ok || DoField( "distance", &st->distance, key, value );
-	ok = ok || DoField( "height", &st->height, key, value );
-	ok = ok || DoField( "noise", &st->noise, key, value );
-	ok = ok || DoField( "noise_start", &st->noise_start, key, value );
-	ok = ok || DoField( "noise_stop", &st->noise_stop, key, value );
-	ok = ok || DoField( "pausetime", &st->pausetime, key, value );
-	ok = ok || DoField( "gameteam", &st->gameteam, key, value );
-	ok = ok || DoField( "size", &st->size, key, value );
-	ok = ok || DoField( "spawn_probability", &st->spawn_probability, key, value );
-	ok = ok || DoField( "power", &st->power, key, value );
+	used = used || DoField( "lip", &st->lip, key, value );
+	used = used || DoField( "distance", &st->distance, key, value );
+	used = used || DoField( "height", &st->height, key, value );
+	used = used || DoField( "noise", &st->noise, key, value );
+	used = used || DoField( "noise_start", &st->noise_start, key, value );
+	used = used || DoField( "noise_stop", &st->noise_stop, key, value );
+	used = used || DoField( "pausetime", &st->pausetime, key, value );
+	used = used || DoField( "gameteam", &st->gameteam, key, value );
+	used = used || DoField( "size", &st->size, key, value );
+	used = used || DoField( "spawn_probability", &st->spawn_probability, key, value );
+	used = used || DoField( "power", &st->power, key, value );
 
-	if( !ok && key.n > 0 && key[ 0 ] != '_' ) {
+	if( !used && key.n > 0 && key[ 0 ] != '_' ) {
 		Com_GGPrint( "{} is not a valid entity key", key );
 	}
 }
@@ -226,7 +226,14 @@ static void SpawnMapEntities() {
 	const MapData * map = FindServerMap( server_gs.gameState.map );
 	for( size_t i = 0; i < map->entities.n; i++ ) {
 		const MapEntity * map_entity = &map->entities[ i ];
-		edict_t * ent = i == 0 ? world : G_Spawn();
+		edict_t * ent;
+		if( i == 0 ) {
+			ent = world;
+			G_InitEdict( ent );
+		}
+		else {
+			ent = G_Spawn();
+		}
 
 		spawn_temp_t st = { };
 		st.spawn_probability = 1.0f;
@@ -268,16 +275,13 @@ static void SpawnMapEntities() {
 void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	ResetEntityIDSequence();
 
-	GClip_ClearWorld(); // clear areas links
-
 	memset( &level, 0, sizeof( level_locals_t ) );
 	level.time = levelTime;
 
 	memset( &server_gs.gameState, 0, sizeof( server_gs.gameState ) );
-
 	server_gs.gameState.map = StringHash( mapname );
-
 	LoadServerMap( mapname );// TODO: errors???
+	GClip_ClearWorld(); // clear areas links
 
 	G_FreeEntities();
 
@@ -349,17 +353,11 @@ void G_HotloadMap() {
 }
 
 static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st ) {
+	ent->s.svflags &= ~SVF_NOCLIENT;
+
 	ent->movetype = MOVETYPE_PUSH;
 	ent->r.solid = SOLID_YES;
-	ent->r.inuse = true; // since the world doesn't use G_Spawn()
-	ent->s.origin = Vec3( 0.0f );
-	ent->s.angles = Vec3( 0.0f );
 
 	const char * model_name = "*0";
 	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), server_gs.gameState.map.hash ) );
-
-	CollisionModel collision_model = { };
-	collision_model.type = CollisionModelType_MapModel;
-	collision_model.map_model = ent->s.model;
-	ent->s.override_collision_model = collision_model;
 }

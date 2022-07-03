@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "gameshared/collision.h"
 
 static int cg_numSolids;
 static SyncEntityState *cg_solidList[MAX_PARSE_ENTITIES];
@@ -56,23 +57,19 @@ void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm ) {
 }
 
 void CG_CheckPredictionError() {
-	int delta[3];
-	int frame;
-
 	if( !cg.view.playerPrediction ) {
 		return;
 	}
 
 	// calculate the last UserCommand we sent that the server has processed
-	frame = cg.frame.ucmdExecuted & CMD_MASK;
+	int frame = cg.frame.ucmdExecuted & CMD_MASK;
 
 	// compare what the server returned with what we had predicted it to be
 	Vec3 origin = cg.predictedOrigins[frame];
 
 	if( cg.predictedGroundEntity != -1 ) {
-		SyncEntityState *ent = &cg_entities[cg.predictedGroundEntity].current;
-		const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, ent->model );
-		if( cmodel != NULL && ent->linearMovement ) {
+		const SyncEntityState * ent = &cg_entities[ cg.predictedGroundEntity ].current;
+		if( ent->linearMovement ) {
 			Vec3 move;
 			GS_LinearMovementDelta( ent, cg.oldFrame.serverTime, cg.frame.serverTime, &move );
 			origin = cg.predictedOrigins[frame] + move;
@@ -80,6 +77,7 @@ void CG_CheckPredictionError() {
 	}
 
 	Vec3 delta_vec = cg.frame.playerState.pmove.origin - origin;
+	int delta[ 3 ];
 	delta[ 0 ] = delta_vec.x;
 	delta[ 1 ] = delta_vec.y;
 	delta[ 2 ] = delta_vec.z;
@@ -109,7 +107,8 @@ void CG_BuildSolidList() {
 		if( ISEVENTENTITY( ent ) )
 			continue;
 
-		if( ent->bounds.mins == MinMax3::Empty().mins && ent->bounds.maxs == MinMax3::Empty().maxs )
+		MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), ent );
+		if( bounds.mins == MinMax3::Empty().mins && bounds.maxs == MinMax3::Empty().maxs )
 			continue;
 
 		switch( ent->type ) {
@@ -141,35 +140,20 @@ void CG_BuildSolidList() {
 }
 
 static bool CG_ClipEntityContact( Vec3 origin, Vec3 mins, Vec3 maxs, int entNum ) {
-	Vec3 entorigin, entangles;
-	int64_t serverTime = cg.frame.serverTime;
+	const centity_t * cent = &cg_entities[ entNum ];
 
-	// find the cmodel
-	const cmodel_t * cmodel = CG_CModelForEntity( entNum );
-	if( !cmodel ) {
-		return false;
-	}
+	Ray ray = MakeRayStartEnd( origin, origin );
 
-	const centity_t * cent = &cg_entities[entNum];
+	Shape shape = { };
+	shape.type = ShapeType_AABB;
+	shape.aabb = ToCenterExtents( MinMax3( mins, maxs ) );
 
-	// find the origin
-	if( !cmodel->builtin ) { // special value for bmodel
-		if( cent->current.linearMovement ) {
-			GS_LinearMovement( &cent->current, serverTime, &entorigin );
-		} else {
-			entorigin = cent->current.origin;
-		}
-		entangles = cent->current.angles;
-	} else {
-		entorigin = cent->current.origin;
-		entangles = Vec3( 0.0f ); // boxes don't rotate
-	}
+	SyncEntityState interpolated = cent->prev;
+	interpolated.origin = cent->interpolated.origin;
+	interpolated.scale = cent->interpolated.scale;
 
-	Vec3 absmins = origin + mins;
-	Vec3 absmaxs = origin + maxs;
-	trace_t tr;
-	CM_TransformedBoxTrace( CM_Client, cl.map->cms, &tr, Vec3( 0.0f ), Vec3( 0.0f ), absmins, absmaxs, cmodel, MASK_ALL, entorigin, entangles );
-	return tr.startsolid == true || tr.allsolid == true;
+	trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, &interpolated );
+	return trace.fraction == 0.0f;
 }
 
 void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
@@ -192,11 +176,15 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	}
 }
 
-static void CG_ClipMoveToEntities( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, trace_t *tr ) {
+static trace_t CG_ClipMoveToEntities( const Ray & ray, const Shape & shape, int ignore, int contentmask ) {
 	int64_t serverTime = cg.frame.serverTime;
 
+	trace_t best = { };
+	best.fraction = 1.0f;
+	best.ent = -1;
+
 	for( int i = 0; i < cg_numSolids; i++ ) {
-		const SyncEntityState * ent = cg_solidList[i];
+		const SyncEntityState * ent = cg_solidList[ i ];
 
 		if( ent->number == ignore ) {
 			continue;
@@ -223,47 +211,32 @@ static void CG_ClipMoveToEntities( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, i
 			}
 		}
 
-		const cmodel_t * cmodel = CG_CModelForEntity( ent->number );
-		Vec3 origin, angles;
-		if( !cmodel->builtin ) { // special value for bmodel
-			if( ent->linearMovement ) {
-				GS_LinearMovement( ent, serverTime, &origin );
-			} else {
-				origin = ent->origin;
-			}
-			angles = ent->angles;
-		} else {
-			origin = ent->origin;
-			angles = Vec3( 0.0f ); // boxes don't rotate
-		}
-
-		trace_t trace;
-		CM_TransformedBoxTrace( CM_Client, cl.map->cms, &trace, start, end, mins, maxs, cmodel, contentmask, origin, angles );
-		if( trace.allsolid || trace.fraction < tr->fraction ) {
-			trace.ent = ent->number;
-			*tr = trace;
-		} else if( trace.startsolid ) {
-			tr->startsolid = true;
-		}
-
-		if( tr->allsolid ) {
-			return;
+		trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, ent );
+		if( trace.fraction < best.fraction ) {
+			best = trace;
 		}
 	}
+
+	return best;
 }
 
-void CG_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask ) {
+void CG_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask ) {
 	TracyZoneScoped;
 
-	// check against world
-	CM_TransformedBoxTrace( CM_Client, cl.map->cms, t, start, end, mins, maxs, NULL, contentmask, Vec3( 0.0f ), Vec3( 0.0f ) );
-	t->ent = t->fraction < 1.0f ? 0 : -1; // world entity is 0
-	if( t->fraction == 0 ) {
-		return; // blocked by the world
+	Ray ray = MakeRayStartEnd( start, end );
+
+	MinMax3 bounds = MinMax3( mins, maxs );
+	Shape shape;
+	if( bounds.mins == bounds.maxs ) {
+		assert( bounds.mins == Vec3( 0.0f ) );
+		shape.type = ShapeType_Ray;
+	}
+	else {
+		shape.type = ShapeType_AABB;
+		shape.aabb = ToCenterExtents( bounds );
 	}
 
-	// check all other solid models
-	CG_ClipMoveToEntities( start, mins, maxs, end, ignore, contentmask, t );
+	*tr = CG_ClipMoveToEntities( ray, shape, ignore, contentmask );
 }
 
 static float predictedSteps[CMD_BACKUP]; // for step smoothing
@@ -398,8 +371,7 @@ void CG_PredictMovement() {
 	// compensate for ground entity movement
 	if( pm.groundentity != -1 ) {
 		const SyncEntityState * ent = &cg_entities[pm.groundentity].current;
-		const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, ent->model );
-		if( cmodel != NULL && ent->linearMovement ) {
+		if( ent->linearMovement ) {
 			Vec3 move;
 			s64 serverTime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime + cgs.extrapolationTime;
 			GS_LinearMovementDelta( ent, cg.frame.serverTime, serverTime, &move );

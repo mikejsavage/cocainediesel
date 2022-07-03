@@ -4,6 +4,9 @@
 #include "qcommon/hash.h"
 #include "qcommon/hashtable.h"
 #include "gameshared/cdmap.h"
+#include "gameshared/intersection_tests.h"
+#include "gameshared/gs_synctypes.h"
+#include "gameshared/q_collision.h"
 
 struct GLTFCollisionBrush {
 	u32 first_plane;
@@ -45,6 +48,8 @@ struct CollisionModelStorage {
 	Hashtable< MAX_MAP_MODELS * 2 > map_models_hashtable;
 };
 
+CollisionModel CollisionModelAABB( const MinMax3 & aabb );
+
 void InitCollisionModelStorage( CollisionModelStorage * storage );
 void ShutdownCollisionModelStorage( CollisionModelStorage * storage );
 
@@ -53,5 +58,10 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 
 void LoadMapCollisionData( CollisionModelStorage * storage, const MapData * map, StringHash base_hash );
 
-const MapSharedCollisionData * FindMapSharedCollisionData( CollisionModelStorage * storage, StringHash name );
-const MapSubModelCollisionData * FindMapSubModelCollisionData( CollisionModelStorage * storage, StringHash name );
+const MapSharedCollisionData * FindMapSharedCollisionData( const CollisionModelStorage * storage, StringHash name );
+const MapSubModelCollisionData * FindMapSubModelCollisionData( const CollisionModelStorage * storage, StringHash name );
+
+CollisionModel EntityCollisionModel( const SyncEntityState * ent );
+MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntityState * ent );
+
+trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent );

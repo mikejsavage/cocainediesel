@@ -336,7 +336,6 @@ struct SyncEntityState {
 	Vec3 origin;
 	Vec3 angles;
 	Vec3 origin2; // velocity for players/corpses. often used for endpoints, e.g. ET_BEAM and some events
-	MinMax3 bounds;
 
 	StringHash model;
 	StringHash model2;

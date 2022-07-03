@@ -41,9 +41,6 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 		if( trace.fraction == 1 )
 			continue; // no wall in this direction
 
-		if( trace.surfFlags & SURF_NOWALLJUMP )
-			continue;
-
 		if( trace.ent > 0 ) {
 			const SyncEntityState * state = pmove_gs->api.GetEntityState( trace.ent, 0 );
 			if( state->type == ET_PLAYER )

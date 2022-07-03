@@ -5,9 +5,18 @@
 #include "gameshared/cdmap.h"
 #include "gameshared/collision.h"
 #include "gameshared/editor_materials.h"
+#include "gameshared/intersection_tests.h"
+#include "gameshared/gs_synctypes.h"
 #include "gameshared/q_collision.h"
 
 #include "cgltf/cgltf.h"
+
+CollisionModel CollisionModelAABB( const MinMax3 & aabb ) {
+	CollisionModel model = { };
+	model.type = CollisionModelType_AABB;
+	model.aabb = aabb;
+	return model;
+}
 
 static void DeleteGLTFCollisionData( GLTFCollisionData data ) {
 	FREE( sys_allocator, data.vertices.ptr );
@@ -154,16 +163,152 @@ void LoadMapCollisionData( CollisionModelStorage * storage, const MapData * data
 	FillMapModelsHashtable( storage );
 }
 
-const MapSharedCollisionData * FindMapSharedRenderData( CollisionModelStorage * storage, StringHash name ) {
+const MapSharedCollisionData * FindMapSharedCollisionData( const CollisionModelStorage * storage, StringHash name ) {
 	u64 idx;
 	if( !storage->maps_hashtable.get( name.hash, &idx ) )
 		return NULL;
 	return &storage->maps[ idx ];
 }
 
-const MapSubModelCollisionData * FindMapSubModelRenderData( CollisionModelStorage * storage, StringHash name ) {
+const MapSubModelCollisionData * FindMapSubModelCollisionData( const CollisionModelStorage * storage, StringHash name ) {
 	u64 idx;
 	if( !storage->map_models_hashtable.get( name.hash, &idx ) )
 		return NULL;
 	return &storage->map_models[ idx ];
+}
+
+CollisionModel EntityCollisionModel( const SyncEntityState * ent ) {
+	if( ent->override_collision_model.exists ) {
+		return ent->override_collision_model.value;
+	}
+
+	CollisionModel model = { };
+	model.type = CollisionModelType_MapModel;
+	model.map_model = ent->model;
+	return model;
+}
+
+MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntityState * ent ) {
+	CollisionModel model = EntityCollisionModel( ent );
+
+	if( model.type == CollisionModelType_MapModel ) {
+		const MapSubModelCollisionData * map_model = FindMapSubModelCollisionData( storage, model.map_model );
+		if( map_model == NULL )
+			return MinMax3::Empty();
+		const MapSharedCollisionData * map = FindMapSharedCollisionData( storage, map_model->base_hash );
+		return map->data.models[ map_model->sub_model ].bounds;
+	}
+
+	CollisionModelType type = model.type;
+	assert( type == CollisionModelType_Point || type == CollisionModelType_AABB );
+
+	if( type == CollisionModelType_Point ) {
+		return MinMax3( Vec3( 0.0f ), Vec3( 0.0f ) );
+	}
+
+	return model.aabb;
+}
+
+trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent ) {
+	trace_t trace = { };
+	trace.fraction = 1.0f;
+	trace.ent = -1;
+
+	CollisionModel collision_model = EntityCollisionModel( ent );
+
+	if( ent->type != ET_PLAYER ) {
+		for( int i = 0; i < 3; i++ ) {
+			assert( PositiveMod( ent->angles[ i ], 90.0f ) == 0.0f );
+		}
+	}
+
+	// TODO: accomodate angles!!!!!!!!!
+	Vec3 object_space_origin = ( ray.origin - ent->origin ) / ent->scale;
+	Vec3 object_space_translation = ( ray.direction * ray.length ) / ent->scale;
+	Ray object_space_ray = MakeRayOriginDirection( object_space_origin, SafeNormalize( object_space_translation ), Length( object_space_translation ) );
+
+	if( collision_model.type == CollisionModelType_MapModel ) {
+		const MapSubModelCollisionData * map_model = FindMapSubModelCollisionData( storage, collision_model.map_model );
+		if( map_model == NULL )
+			return trace;
+		const MapSharedCollisionData * map = FindMapSharedCollisionData( storage, map_model->base_hash );
+
+		Intersection intersection;
+		SweptShapeVsMapModel( &map->data, &map->data.models[ map_model->sub_model ], object_space_ray, shape, &intersection );
+
+		trace.allsolid = false;
+		trace.startsolid = false;
+		trace.fraction = intersection.t / ( ray.length == 0.0f ? 1.0f : ray.length );
+		trace.endpos = ray.origin + ray.direction * intersection.t;
+		trace.plane = { intersection.normal, Dot( trace.endpos, intersection.normal ) };
+		trace.surfFlags = 0; // TODO
+		trace.contents = 0; // TODO
+		trace.ent = ent->number;
+	}
+	else if( shape.type == ShapeType_AABB ) {
+		assert( collision_model.type == CollisionModelType_AABB );
+		Intersection intersection;
+		if( SweptAABBVsAABB( ToMinMax( shape.aabb ), ray.direction * ray.length, collision_model.aabb, Vec3( 0.0f ), &intersection ) ) {
+			trace.allsolid = false;
+			trace.startsolid = false;
+			trace.fraction = intersection.t / ( ray.length == 0.0f ? 1.0f : ray.length );
+			trace.endpos = ray.origin + ray.direction * intersection.t;
+			trace.plane = { intersection.normal, Dot( trace.endpos, intersection.normal ) };
+			trace.surfFlags = 0; // TODO
+			trace.contents = 0; // TODO
+			trace.ent = ent->number;
+		}
+	}
+	else {
+		assert( shape.type == ShapeType_Ray );
+
+		switch( collision_model.type ) {
+			case CollisionModelType_Point:
+				break;
+
+			case CollisionModelType_AABB: {
+				Intersection enter, leave;
+				if( RayVsAABB( object_space_ray, collision_model.aabb, &enter, &leave ) ) {
+					trace.allsolid = false;
+					trace.startsolid = false;
+					trace.fraction = leave.t / ( ray.length == 0.0f ? 1.0f : ray.length );
+					trace.endpos = ray.origin + ray.direction * leave.t;
+					trace.plane = { leave.normal, Dot( trace.endpos, leave.normal ) };
+					trace.surfFlags = 0; // TODO
+					trace.contents = 0; // TODO
+					trace.ent = ent->number;
+				}
+			} break;
+
+			case CollisionModelType_Sphere: {
+				float t;
+				if( RayVsSphere( object_space_ray, collision_model.sphere, &t ) ) {
+					trace.allsolid = false;
+					trace.startsolid = false;
+					trace.fraction = t / ( ray.length == 0.0f ? 1.0f : ray.length );
+					trace.endpos = ray.origin + ray.direction * t;
+					trace.plane = { };
+					trace.surfFlags = 0; // TODO
+					trace.contents = 0; // TODO
+					trace.ent = ent->number;
+				}
+			} break;
+
+			case CollisionModelType_Capsule: {
+				float t;
+				if( RayVsCapsule( object_space_ray, collision_model.capsule, &t ) ) {
+					trace.allsolid = false;
+					trace.startsolid = false;
+					trace.fraction = t / ( ray.length == 0.0f ? 1.0f : ray.length );
+					trace.endpos = ray.origin + ray.direction * t;
+					trace.plane = { };
+					trace.surfFlags = 0; // TODO
+					trace.contents = 0; // TODO
+					trace.ent = ent->number;
+				}
+			} break;
+		}
+	}
+
+	return trace;
 }

@@ -152,6 +152,14 @@ const MapSubModelRenderData * FindMapSubModelRenderData( StringHash name ) {
 	return &map_models[ idx ];
 }
 
+const MapSharedCollisionData * FindClientMapSharedCollisionData( StringHash name ) {
+	return FindMapSharedCollisionData( &collision_models, name );
+}
+
 const MapSubModelCollisionData * FindClientMapSubModelCollisionData( StringHash name ) {
 	return FindMapSubModelCollisionData( &collision_models, name );
+}
+
+const CollisionModelStorage * ClientCollisionModelStorage() {
+	return &collision_models;
 }

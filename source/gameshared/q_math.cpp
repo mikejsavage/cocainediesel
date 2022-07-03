@@ -289,18 +289,6 @@ bool BoundsOverlap( const Vec3 & mins1, const Vec3 & maxs1, const Vec3 & mins2, 
 		maxs1.x >= mins2.x && maxs1.y >= mins2.y && maxs1.z >= mins2.z;
 }
 
-bool BoundsOverlapSphere( Vec3 mins, Vec3 maxs, Vec3 centre, float radius ) {
-	float dist_squared = 0;
-
-	for( int i = 0; i < 3; i++ ) {
-		float x = Clamp( mins[ i ], centre[ i ], maxs[ i ] );
-		float d = centre[ i ] - x;
-		dist_squared += d * d;
-	}
-
-	return dist_squared <= radius * radius;
-}
-
 void AddPointToBounds( Vec3 v, Vec3 * mins, Vec3 * maxs ) {
 	for( int i = 0; i < 3; i++ ) {
 		float x = v[ i ];
@@ -324,6 +312,10 @@ CenterExtents3 ToCenterExtents( const MinMax3 & bounds ) {
 	aabb.center = ( bounds.maxs + bounds.mins ) * 0.5f;
 	aabb.extents = ( bounds.maxs - bounds.mins ) * 0.5f;
 	return aabb;
+}
+
+MinMax3 ToMinMax( const CenterExtents3 & aabb ) {
+	return MinMax3( aabb.center - aabb.extents, aabb.center + aabb.extents );
 }
 
 Capsule MakePlayerCapsule( const MinMax3 & bounds ) {

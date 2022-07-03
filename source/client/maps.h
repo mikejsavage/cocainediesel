@@ -24,5 +24,11 @@ const Map * FindMap( const char * name );
 
 const MapSubModelRenderData * FindMapSubModelRenderData( StringHash name );
 
+struct MapSharedCollisionData;
+const MapSharedCollisionData * FindClientMapSharedCollisionData( StringHash name );
+
 struct MapSubModelCollisionData;
 const MapSubModelCollisionData * FindClientMapSubModelCollisionData( StringHash name );
+
+struct CollisionModelStorage;
+const CollisionModelStorage * ClientCollisionModelStorage();

@@ -83,3 +83,11 @@ const MapData * FindServerMap( StringHash name ) {
 const MapSubModelCollisionData * FindServerMapSubModelCollisionData( StringHash name ) {
 	return FindMapSubModelCollisionData( &collision_models, name );
 }
+
+MinMax3 ServerEntityBounds( const SyncEntityState * ent ) {
+	return EntityBounds( &collision_models, ent );
+}
+
+const CollisionModelStorage * ServerCollisionModelStorage() {
+	return &collision_models;
+}

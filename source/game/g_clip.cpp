@@ -288,11 +288,9 @@ static void GClip_LinkEntity_AreaGrid( areagrid_t *areagrid, edict_t *ent ) {
 	igridmins[0] = (int) floorf( ( ent->r.absmin.x + areagrid->bias.x ) * areagrid->scale.x );
 	igridmins[1] = (int) floorf( ( ent->r.absmin.y + areagrid->bias.y ) * areagrid->scale.y );
 
-	//igridmins[2] = (int) floorf( (ent->r.absmin[2] + areagrid->bias[2]) * areagrid->scale[2] );
 	igridmaxs[0] = (int) floorf( ( ent->r.absmax.x + areagrid->bias.x ) * areagrid->scale.x ) + 1;
 	igridmaxs[1] = (int) floorf( ( ent->r.absmax.y + areagrid->bias.y ) * areagrid->scale.y ) + 1;
 
-	//igridmaxs[2] = (int) floorf( (ent->r.absmax[2] + areagrid->bias[2]) * areagrid->scale[2] ) + 1;
 	if( igridmins[0] < 0 || igridmaxs[0] > AREA_GRID
 		|| igridmins[1] < 0 || igridmaxs[1] > AREA_GRID
 		|| ( ( igridmaxs[0] - igridmins[0] ) * ( igridmaxs[1] - igridmins[1] ) ) > MAX_ENT_AREAS ) {
@@ -310,11 +308,7 @@ static void GClip_LinkEntity_AreaGrid( areagrid_t *areagrid, edict_t *ent ) {
 }
 
 static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, const MinMax3 & bounds, int *list, int maxcount, int areatype, int timeDelta ) {
-	int numlist;
-	link_t *grid;
-	link_t *l;
-	c4clipedict_t *clipEnt;
-	int igrid[3], igridmins[3], igridmaxs[3];
+	assert( maxcount > 0 );
 
 	Vec3 paddedmins = bounds.mins;
 	Vec3 paddedmaxs = bounds.maxs;
@@ -323,34 +317,22 @@ static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, const MinMax3 & b
 	// ent->priv.server->areagridmarknumber reset
 	areagrid->marknumber++;
 
-	igridmins[0] = (int) floorf( ( paddedmins.x + areagrid->bias.x ) * areagrid->scale.x );
-	igridmins[1] = (int) floorf( ( paddedmins.y + areagrid->bias.y ) * areagrid->scale.y );
+	int igridmins[2];
+	igridmins[0] = int( Max2( 0.0f, ( paddedmins.x + areagrid->bias.x ) * areagrid->scale.x ) );
+	igridmins[1] = int( Max2( 0.0f, ( paddedmins.y + areagrid->bias.y ) * areagrid->scale.y ) );
 
-	//igridmins[2] = (int) ( (paddedmins[2] + areagrid->bias[2]) * areagrid->scale[2] );
-	igridmaxs[0] = (int) floorf( ( paddedmaxs.x + areagrid->bias.x ) * areagrid->scale.x ) + 1;
-	igridmaxs[1] = (int) floorf( ( paddedmaxs.y + areagrid->bias.y ) * areagrid->scale.y ) + 1;
+	int igridmaxs[2];
+	igridmaxs[0] = int( Min2( float( AREA_GRID ), ( paddedmaxs.x + areagrid->bias.x ) * areagrid->scale.x ) ) + 1;
+	igridmaxs[1] = int( Min2( float( AREA_GRID ), ( paddedmaxs.y + areagrid->bias.y ) * areagrid->scale.y ) ) + 1;
 
-	//igridmaxs[2] = (int) ( (paddedmaxs[2] + areagrid->bias[2]) * areagrid->scale[2] ) + 1;
-	igridmins[0] = Max2( 0, igridmins[0] );
-	igridmins[1] = Max2( 0, igridmins[1] );
-
-	//igridmins[2] = max( 0, igridmins[2] );
-	igridmaxs[0] = Min2( AREA_GRID, igridmaxs[0] );
-	igridmaxs[1] = Min2( AREA_GRID, igridmaxs[1] );
-
-	//igridmaxs[2] = min( AREA_GRID, igridmaxs[2] );
-
-	// paranoid debugging
-	//VectorSet( igridmins, 0, 0, 0 );VectorSet( igridmaxs, AREA_GRID, AREA_GRID, AREA_GRID );
-
-	numlist = 0;
+	int numlist = 0;
 
 	// add entities not linked into areagrid because they are too big or
 	// outside the grid bounds
 	if( areagrid->outside.next ) {
-		grid = &areagrid->outside;
-		for( l = grid->next; l != grid; l = l->next ) {
-			clipEnt = GClip_GetClipEdictForDeltaTime( l->entNum, timeDelta );
+		const link_t * grid = &areagrid->outside;
+		for( const link_t * l = grid->next; l != grid; l = l->next ) {
+			const c4clipedict_t * clipEnt = GClip_GetClipEdictForDeltaTime( l->entNum, timeDelta );
 
 			if( areagrid->entmarknumber[l->entNum] == areagrid->marknumber ) {
 				continue;
@@ -377,17 +359,20 @@ static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, const MinMax3 & b
 		}
 	}
 
-	// add grid linked entities
-	for( igrid[1] = igridmins[1]; igrid[1] < igridmaxs[1]; igrid[1]++ ) {
-		grid = areagrid->grid + igrid[1] * AREA_GRID + igridmins[0];
+	// always add the world
+	list[numlist] = 0;
+	numlist++;
 
-		for( igrid[0] = igridmins[0]; igrid[0] < igridmaxs[0]; igrid[0]++, grid++ ) {
+	// add grid linked entities
+	for( int y = igridmins[1]; y < igridmaxs[1]; y++ ) {
+		for( int x = igridmins[0]; x < igridmaxs[0]; x++ ) {
+			const link_t * grid = areagrid->grid + y * AREA_GRID + x;
 			if( !grid->next ) {
 				continue;
 			}
 
-			for( l = grid->next; l != grid; l = l->next ) {
-				clipEnt = GClip_GetClipEdictForDeltaTime( l->entNum, timeDelta );
+			for( const link_t * l = grid->next; l != grid; l = l->next ) {
+				const c4clipedict_t * clipEnt = GClip_GetClipEdictForDeltaTime( l->entNum, timeDelta );
 
 				if( areagrid->entmarknumber[l->entNum] == areagrid->marknumber ) {
 					continue;
@@ -483,70 +468,6 @@ static int GClip_AreaEdicts( const MinMax3 bounds, int *list, int maxcount, int 
 
 //===========================================================================
 
-static trace_t TraceVsEnt( const Ray & ray, const Shape & shape, const SyncEntityState * ent ) {
-	trace_t trace = { };
-	trace.fraction = 1.0f;
-	trace.ent = -1;
-
-	CollisionModel collision_model = { };
-	if( ent->override_collision_model.exists ) {
-		collision_model = ent->override_collision_model.value;
-	}
-	else {
-		const MapSubModelCollisionData * map_model = FindServerMapSubModelCollisionData( ent->model );
-		if( map_model == NULL )
-			return trace;
-
-		collision_model.type = CollisionModelType_MapModel;
-		collision_model.map_model = ent->model;
-	}
-
-	assert( ent->angles == Vec3( 0.0f ) );
-
-	// TODO: transform ray by -ent.transform!!!!!!!
-	Ray object_space_ray = { };
-
-	if( collision_model.type == CollisionModelType_MapModel ) {
-		const MapSubModelCollisionData * map_model = FindServerMapSubModelCollisionData( collision_model.map_model );
-		const MapData * map = FindServerMap( map_model->base_hash );
-
-		Intersection intersection;
-		SweptShapeVsMapModel( map, &map->models[ map_model->sub_model ], object_space_ray, shape, &intersection );
-		// update trace
-	}
-	else {
-		assert( shape.type == ShapeType_Ray );
-
-		switch( collision_model.type ) {
-			case CollisionModelType_Point:
-				break;
-
-			case CollisionModelType_AABB: {
-				Intersection enter, leave;
-				if( RayVsAABB( object_space_ray, collision_model.aabb, &enter, &leave ) ) {
-					// update trace
-				}
-			} break;
-
-			case CollisionModelType_Sphere: {
-				float t;
-				if( RayVsSphere( object_space_ray, collision_model.sphere, &t ) ) {
-					// update trace
-				}
-			} break;
-
-			case CollisionModelType_Capsule: {
-				float t;
-				if( RayVsCapsule( object_space_ray, collision_model.capsule, &t ) ) {
-					// update trace
-				}
-			} break;
-		}
-	}
-
-	return trace;
-}
-
 static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, int passent, int contentmask, int timeDelta ) {
 	TracyZoneScoped;
 
@@ -575,8 +496,7 @@ static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, i
 			if( touch->r.owner && ( touch->r.owner->s.number == passent ) ) {
 				continue;
 			}
-			if( game.edicts[passent].r.owner
-				&& ( game.edicts[passent].r.owner->s.number == touch->s.number ) ) {
+			if( game.edicts[passent].r.owner && ( game.edicts[passent].r.owner->s.number == touch->s.number ) ) {
 				continue;
 			}
 
@@ -607,14 +527,9 @@ static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, i
 			}
 		}
 
-		trace_t trace = TraceVsEnt( ray, shape, &touch->s );
-
+		trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &touch->s );
 		if( trace.fraction < best.fraction ) {
-			trace.ent = touch->s.number;
 			best = trace;
-		}
-		else if( trace.startsolid ) {
-			best.startsolid = true;
 		}
 	}
 
@@ -677,7 +592,7 @@ static bool EntityOverlapsAABB( const edict_t * ent, const CenterExtents3 & aabb
 	shape.type = ShapeType_AABB;
 	shape.aabb = aabb;
 
-	trace_t trace = TraceVsEnt( ray, shape, &ent->s );
+	trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &ent->s );
 
 	return trace.fraction == 0.0f;
 }
@@ -700,7 +615,7 @@ static void CallTouches( edict_t * ent, const MinMax3 & bounds ) {
 			continue;
 		}
 
-		// TODO: this seems very bad
+		// TODO: this isn't right if ent isn't aabb, but good enough for now
 		if( !EntityOverlapsAABB( hit, aabb ) ) {
 			continue;
 		}
@@ -709,12 +624,27 @@ static void CallTouches( edict_t * ent, const MinMax3 & bounds ) {
 	}
 }
 
-void GClip_TouchTriggers( edict_t *ent ) {
+void GClip_TouchTriggers( edict_t * ent ) {
 	if( !ent->r.inuse || ( ent->r.client && G_IsDead( ent ) ) ) {
 		return;
 	}
 
-	CallTouches( ent, ent->r.absmin, ent->r.absmax );
+	CollisionModel collision_model = { };
+	if( ent->s.override_collision_model.exists ) {
+		collision_model = ent->s.override_collision_model.value;
+	}
+
+	assert( collision_model.type == CollisionModelType_Point || collision_model.type == CollisionModelType_AABB );
+
+	MinMax3 bounds;
+	if( collision_model.type == CollisionModelType_Point ) {
+		bounds = MinMax3( Vec3( 0.0f ), Vec3( 0.0f ) );
+	}
+	else {
+		bounds = collision_model.aabb;
+	}
+
+	CallTouches( ent, bounds );
 }
 
 void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
@@ -744,6 +674,8 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 
 	GClip_LinkEntity( ent );
 
+	// TODO: this is very wrong, these are meant to be broadphase bounds
+	// but they get used as the actual trace bounds lol
 	// expand the search bounds to include the space between the previous and current origin
 	MinMax3 bounds = MinMax3::Empty();
 	bounds = Union( bounds, previous_origin + pm->maxs );
@@ -754,25 +686,37 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	CallTouches( ent, bounds );
 }
 
+static bool BoundsOverlapSphere( const MinMax3 & bounds, const Sphere & sphere ) {
+	float dist_squared = 0;
+
+	for( int i = 0; i < 3; i++ ) {
+		float x = Clamp( bounds.mins[ i ], sphere.center[ i ], bounds.maxs[ i ] );
+		float d = sphere.center[ i ] - x;
+		dist_squared += d * d;
+	}
+
+	return dist_squared <= Square( sphere.radius );
+}
+
 /*
 * GClip_FindInRadius4D
 * Returns entities that have their boxes within a spherical area
 */
 int GClip_FindInRadius4D( Vec3 origin, float radius, int * output, int maxcount, int timeDelta ) {
 	float aabb_size = radius * sqrtf( 2.0f ) + 1.0f;
-	Vec3 mins = origin - Vec3( aabb_size );
-	Vec3 maxs = origin + Vec3( aabb_size );
+	MinMax3 bounds = MinMax3( origin - aabb_size, origin + aabb_size );
+	Sphere sphere = { origin, radius };
 
 	int candidates[ MAX_EDICTS ];
-	int num = GClip_AreaEdicts( mins, maxs, candidates, MAX_EDICTS, AREA_ALL, timeDelta );
+	int num = GClip_AreaEdicts( bounds, candidates, MAX_EDICTS, AREA_ALL, timeDelta );
 
 	int n = 0;
 
 	for( int i = 0; i < num; i++ ) {
-		const edict_t * check = &game.edicts[ candidates[ i ] ];
+		const edict_t * other = &game.edicts[ candidates[ i ] ];
+		MinMax3 other_bounds = ServerEntityBounds( &other->s );
 
-		// make absolute mins and maxs
-		if( !BoundsOverlapSphere( check->r.absmin, check->r.absmax, origin, radius ) ) {
+		if( !BoundsOverlapSphere( other_bounds, sphere ) ) {
 			continue;
 		}
 

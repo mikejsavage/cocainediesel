@@ -25,7 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MAX_MAP_LEAFS       0x20000
 
 #define SURF_LADDER       0x8
-#define SURF_NOWALLJUMP   0x80000     // can not perform walljumps on this surface
 
 enum BSPFaceType {
 	FaceType_Bad,

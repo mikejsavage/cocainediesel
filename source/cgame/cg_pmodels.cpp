@@ -24,6 +24,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
 #include "client/renderer/model.h"
+#include "gameshared/collision.h"
 
 constexpr u32 MAX_PLAYER_MODELS = 128;
 
@@ -358,7 +359,7 @@ static int CG_MoveFlagsToLowerAnimation( uint32_t moveflags ) {
 	return LEGS_STAND_IDLE;
 }
 
-static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 velocity ) {
+static PlayerModelAnimationSet CG_GetBaseAnims( const SyncEntityState * state, Vec3 velocity ) {
 	constexpr float MOVEDIREPSILON = 0.3f;
 	constexpr float WALKEPSILON = 5.0f;
 	constexpr float RUNEPSILON = 220.0f;
@@ -374,15 +375,14 @@ static PlayerModelAnimationSet CG_GetBaseAnims( SyncEntityState *state, Vec3 vel
 		return a;
 	}
 
-	Vec3 mins = state->bounds.mins;
-	Vec3 maxs = state->bounds.maxs;
+	MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), state );
 
 	// determine if player is at ground, for walking or falling
 	// this is not like having groundEntity, we are more generous with
 	// the tracing size here to include small steps
 	Vec3 point = state->origin;
 	point.z -= 1.6f * STEPSIZE;
-	client_gs.api.Trace( &trace, state->origin, mins, maxs, point, state->number, MASK_PLAYERSOLID, 0 );
+	client_gs.api.Trace( &trace, state->origin, bounds.mins, bounds.maxs, point, state->number, MASK_PLAYERSOLID, 0 );
 	if( trace.ent == -1 || ( trace.fraction < 1.0f && !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
 		moveflags |= ANIMMOVE_AIR;
 	}

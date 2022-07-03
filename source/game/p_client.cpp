@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "gameshared/collision.h"
 
 static void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, DamageType mod, bool wallbang ) {
 	TempAllocator temp = svs.frame_arena.temp();
@@ -306,6 +307,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->classname = "player";
 	}
 
+	self->s.override_collision_model = CollisionModelAABB( MinMax3( playerbox_stand_mins, playerbox_stand_maxs ) );
 	self->r.mins = playerbox_stand_mins;
 	self->r.maxs = playerbox_stand_maxs;
 	self->velocity = Vec3( 0.0f );

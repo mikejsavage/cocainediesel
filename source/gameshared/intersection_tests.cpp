@@ -1,4 +1,5 @@
 #include "qcommon/base.h"
+#include "qcommon/fpe.h"
 #include "qcommon/testing.h"
 #include "gameshared/intersection_tests.h"
 #include "gameshared/q_math.h"
@@ -23,7 +24,23 @@ static float Gamma( int n ) {
 	return ( n * epsilon ) / ( 1.0f - n * epsilon );
 }
 
+static bool Contains( const MinMax3 & aabb, Vec3 p ) {
+	for( int i = 0; i < 3; i++ ) {
+		if( p[ i ] < aabb.mins[ i ] || p[ i ] > aabb.maxs[ i ] ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool RayVsAABB( const Ray & ray, const MinMax3 & aabb, Intersection * enter_out, Intersection * leave_out ) {
+	if( ray.length == 0.0f ) {
+		return Contains( aabb, ray.origin );
+	}
+
+	DisableFPEScoped;
+
 	constexpr Vec3 aabb_normals[] = {
 		Vec3( 1.0f, 0.0f, 0.0f ),
 		Vec3( 0.0f, 1.0f, 0.0f ),
@@ -212,16 +229,6 @@ static float AxialSupport( const Shape & shape, int axis, bool positive ) {
 	return 0;
 }
 
-static bool Contains( const MinMax3 & aabb, Vec3 p ) {
-	for( int i = 0; i < 3; i++ ) {
-		if( p[ i ] < aabb.mins[ i ] || p[ i ] > aabb.maxs[ i ] ) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
 static bool SweptShapeVsMapBrush( const MapData * map, const MapBrush * brush, Ray ray, const Shape & shape, Intersection * intersection ) {
 	Intersection enter, leave;
 	if( !RayVsAABB( ray, MinkowskiSum( brush->bounds, shape ), &enter, &leave ) )
@@ -403,6 +410,8 @@ bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, In
 	}
 
 	Vec3 v = vb - va;
+	if( v == Vec3( 0.0f ) )
+		return false;
 
 	float t_min = 0.0f;
 	float t_max = 1.0f;
@@ -434,6 +443,4 @@ bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, In
 }
 
 SELFTESTS( "Intersection tests", {
-	Vec3 a = Vec3( 1, 2, 3 );
-	TEST( "a", a == Vec3( 3, 2, 1 ) );
 } );

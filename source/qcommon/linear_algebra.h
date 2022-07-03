@@ -72,6 +72,7 @@ inline Vec2 Clamp( Vec2 lo, Vec2 v, Vec2 hi ) {
 inline Vec3 operator+( Vec3 lhs, Vec3 rhs ) { return Vec3( lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z ); }
 inline Vec3 operator-( Vec3 lhs, Vec3 rhs ) { return Vec3( lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z ); }
 inline Vec3 operator*( Vec3 lhs, Vec3 rhs ) { return Vec3( lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z ); }
+inline Vec3 operator/( Vec3 lhs, Vec3 rhs ) { return Vec3( lhs.x / rhs.x, lhs.y / rhs.y, lhs.z / rhs.z ); }
 
 inline Vec3 operator+( Vec3 v, float x ) { return Vec3( v.x + x, v.y + x, v.z + x ); }
 inline Vec3 operator-( Vec3 v, float x ) { return Vec3( v.x - x, v.y - x, v.z - x ); }

@@ -50,9 +50,9 @@ void ClearBounds( Vec3 * mins, Vec3 * maxs );
 void AddPointToBounds( Vec3 v, Vec3 * mins, Vec3 * maxs );
 float RadiusFromBounds( Vec3 mins, Vec3 maxs );
 bool BoundsOverlap( const Vec3 & mins1, const Vec3 & maxs1, const Vec3 & mins2, const Vec3 & maxs2 );
-bool BoundsOverlapSphere( Vec3 mins, Vec3 maxs, Vec3 centre, float radius );
 
 CenterExtents3 ToCenterExtents( const MinMax3 & bounds );
+MinMax3 ToMinMax( const CenterExtents3 & aabb );
 Capsule MakePlayerCapsule( const MinMax3 & bounds );
 
 u64 DirToU64( Vec3 dir );

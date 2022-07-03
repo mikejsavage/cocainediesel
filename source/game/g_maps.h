@@ -14,3 +14,8 @@ struct MapSubModelCollisionData;
 const MapData * FindServerMap( StringHash name );
 const MapSubModelCollisionData * FindServerMapSubModelCollisionData( StringHash name );
 
+struct SyncEntityState;
+MinMax3 ServerEntityBounds( const SyncEntityState * ent );
+
+struct CollisionModelStorage;
+const CollisionModelStorage * ServerCollisionModelStorage();

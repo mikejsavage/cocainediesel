@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "cgame/cg_local.h"
+#include "gameshared/collision.h"
 
 void RailgunImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 color ) {
 	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, color );
@@ -406,8 +407,10 @@ static void CG_Event_Fall( const SyncEntityState * state, u64 parm, bool viewer 
 		CG_StartFallKickEffect( ( parm + 5 ) * 10 );
 	}
 
+	MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), state );
+
 	Vec3 ground_position = state->origin;
-	ground_position.z += state->bounds.mins.z;
+	ground_position.z += bounds.mins.z;
 
 	if( parm < 40 )
 		return;
@@ -938,7 +941,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_BUTTON_FIRE:
 		case EV_TRAIN_STOP:
 		case EV_TRAIN_START: {
-			Vec3 origin = ent->origin + ( ent->bounds.mins + ent->bounds.maxs ) * 0.5f;
+			MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), ent );
+			Vec3 origin = ent->origin + ( bounds.mins + bounds.maxs ) * 0.5f;
 			PlaySFX( StringHash( parm ), PlaySFXConfigPosition( origin ) );
 		} break;
 

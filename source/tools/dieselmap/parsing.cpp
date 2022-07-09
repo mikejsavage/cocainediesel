@@ -14,11 +14,11 @@
 
 static constexpr Span< const char > NullSpan( NULL, 0 );
 
-static Span< const char > PEGRange( Span< const char > str, char lo, char hi ) {
+static Span< const char > ParseRange( Span< const char > str, char lo, char hi ) {
 	return str.n > 0 && str[ 0 ] >= lo && str[ 0 ] <= hi ? str + 1 : NullSpan;
 }
 
-static Span< const char > PEGSet( Span< const char > str, const char * set ) {
+static Span< const char > ParseSet( Span< const char > str, const char * set ) {
 	if( str.n == 0 )
 		return NullSpan;
 
@@ -31,7 +31,7 @@ static Span< const char > PEGSet( Span< const char > str, const char * set ) {
 	return NullSpan;
 }
 
-static Span< const char > PEGNotSet( Span< const char > str, const char * set ) {
+static Span< const char > ParseNotSet( Span< const char > str, const char * set ) {
 	if( str.n == 0 )
 		return NullSpan;
 
@@ -45,7 +45,7 @@ static Span< const char > PEGNotSet( Span< const char > str, const char * set ) 
 }
 
 template< typename F >
-Span< const char > PEGCapture( Span< const char > * capture, Span< const char > str, F f ) {
+Span< const char > Capture( Span< const char > * capture, Span< const char > str, F f ) {
 	Span< const char > res = f( str );
 	if( res.ptr != NULL ) {
 		*capture = Span< const char >( str.ptr, res.ptr - str.ptr );
@@ -54,13 +54,13 @@ Span< const char > PEGCapture( Span< const char > * capture, Span< const char > 
 }
 
 template< typename F1, typename F2 >
-Span< const char > PEGOr( Span< const char > str, F1 parser1, F2 parser2 ) {
+Span< const char > ParseOr( Span< const char > str, F1 parser1, F2 parser2 ) {
 	Span< const char > res1 = parser1( str );
 	return res1.ptr == NULL ? parser2( str ) : res1;
 }
 
 template< typename F1, typename F2, typename F3 >
-Span< const char > PEGOr( Span< const char > str, F1 parser1, F2 parser2, F3 parser3 ) {
+Span< const char > ParseOr( Span< const char > str, F1 parser1, F2 parser2, F3 parser3 ) {
 	Span< const char > res1 = parser1( str );
 	if( res1.ptr != NULL )
 		return res1;
@@ -73,13 +73,13 @@ Span< const char > PEGOr( Span< const char > str, F1 parser1, F2 parser2, F3 par
 }
 
 template< typename F >
-Span< const char > PEGOptional( Span< const char > str, F parser ) {
+Span< const char > ParseOptional( Span< const char > str, F parser ) {
 	Span< const char > res = parser( str );
 	return res.ptr == NULL ? str : res;
 }
 
 template< typename F >
-Span< const char > PEGNOrMore( Span< const char > str, size_t n, F parser ) {
+Span< const char > ParseNOrMore( Span< const char > str, size_t n, F parser ) {
 	size_t parsed = 0;
 
 	while( true ) {
@@ -94,7 +94,7 @@ Span< const char > PEGNOrMore( Span< const char > str, size_t n, F parser ) {
 
 template< typename T, typename F >
 Span< const char > CaptureNOrMore( std::vector< T > * array, Span< const char > str, size_t n, F parser ) {
-	Span< const char > res = PEGNOrMore( str, n, [ &array, &parser ]( Span< const char > str ) {
+	Span< const char > res = ParseNOrMore( str, n, [ &array, &parser ]( Span< const char > str ) {
 		T elem;
 		Span< const char > res = parser( &elem, str );
 		if( res.ptr != NULL ) {
@@ -137,8 +137,8 @@ Span< const char > ParseUpToN( StaticArray< T, N > * array, Span< const char > s
 static constexpr const char * whitespace_chars = " \r\n\t";
 
 static Span< const char > SkipWhitespace( Span< const char > str ) {
-	return PEGNOrMore( str, 0, []( Span< const char > str ) {
-		return PEGSet( str, whitespace_chars );
+	return ParseNOrMore( str, 0, []( Span< const char > str ) {
+		return ParseSet( str, whitespace_chars );
 	} );
 }
 
@@ -156,22 +156,22 @@ static Span< const char > SkipToken( Span< const char > str, const char * token 
 
 static Span< const char > ParseWord( Span< const char > * capture, Span< const char > str ) {
 	str = SkipWhitespace( str );
-	return PEGCapture( capture, str, []( Span< const char > str ) {
-		return PEGNOrMore( str, 1, []( Span< const char > str ) {
-			return PEGNotSet( str, whitespace_chars );
+	return Capture( capture, str, []( Span< const char > str ) {
+		return ParseNOrMore( str, 1, []( Span< const char > str ) {
+			return ParseNotSet( str, whitespace_chars );
 		} );
 	} );
 }
 
 static Span< const char > ParseNOrMoreDigits( size_t n, Span< const char > str ) {
-	return PEGNOrMore( str, n, []( Span< const char > str ) {
-		return PEGRange( str, '0', '9' );
+	return ParseNOrMore( str, n, []( Span< const char > str ) {
+		return ParseRange( str, '0', '9' );
 	} );
 }
 
-static Span< const char > PEGCapture( int * capture, Span< const char > str ) {
+static Span< const char > Capture( int * capture, Span< const char > str ) {
 	Span< const char > capture_str;
-	Span< const char > res = PEGCapture( &capture_str, str, []( Span< const char > str ) {
+	Span< const char > res = Capture( &capture_str, str, []( Span< const char > str ) {
 		return ParseNOrMoreDigits( 1, str );
 	} );
 
@@ -184,12 +184,12 @@ static Span< const char > PEGCapture( int * capture, Span< const char > str ) {
 	return res;
 }
 
-static Span< const char > PEGCapture( float * capture, Span< const char > str ) {
+static Span< const char > Capture( float * capture, Span< const char > str ) {
 	Span< const char > capture_str;
-	Span< const char > res = PEGCapture( &capture_str, str, []( Span< const char > str ) {
-		str = PEGOptional( str, []( Span< const char > str ) { return SkipLiteral( str, "-" ); } );
+	Span< const char > res = Capture( &capture_str, str, []( Span< const char > str ) {
+		str = ParseOptional( str, []( Span< const char > str ) { return SkipLiteral( str, "-" ); } );
 		str = ParseNOrMoreDigits( 1, str );
-		str = PEGOptional( str, []( Span< const char > str ) {
+		str = ParseOptional( str, []( Span< const char > str ) {
 			str = SkipLiteral( str, "." );
 			str = ParseNOrMoreDigits( 0, str );
 			return str;
@@ -208,7 +208,7 @@ static Span< const char > PEGCapture( float * capture, Span< const char > str ) 
 
 static Span< const char > ParseFloat( float * x, Span< const char > str ) {
 	str = SkipWhitespace( str );
-	str = PEGCapture( x, str );
+	str = Capture( x, str );
 	return str;
 }
 
@@ -231,7 +231,7 @@ static Span< const char > ParsePlane( Vec3 * points, Span< const char > str ) {
 // map specific stuff
 
 static Span< const char > SkipFlags( Span< const char > str ) {
-	str = PEGOr( str,
+	str = ParseOr( str,
 		[]( Span< const char > str ) { return SkipToken( str, "0" ); },
 		[]( Span< const char > str ) { return SkipToken( str, "134217728" ); } // detail bit
 	);
@@ -255,7 +255,7 @@ static Span< const char > ParseQ1Face( ParsedBrushFace * face, Span< const char 
 
 	// TODO: convert to transform
 
-	str = PEGOptional( str, SkipFlags );
+	str = ParseOptional( str, SkipFlags );
 
 	return str;
 }
@@ -319,9 +319,9 @@ static Span< const char > ParsePatch( ParsedPatch * patch, Span< const char > st
 	str = SkipToken( str, "(" );
 
 	str = SkipWhitespace( str );
-	str = PEGCapture( &patch->w, str );
+	str = Capture( &patch->w, str );
 	str = SkipWhitespace( str );
-	str = PEGCapture( &patch->h, str );
+	str = Capture( &patch->h, str );
 	str = SkipFlags( str );
 
 	str = SkipToken( str, ")" );
@@ -362,10 +362,10 @@ static Span< const char > ParsePatch( ParsedPatch * patch, Span< const char > st
 
 static Span< const char > ParseQuoted( Span< const char > * quoted, Span< const char > str ) {
 	str = SkipToken( str, "\"" );
-	str = PEGCapture( quoted, str, []( Span< const char > str ) {
-		return PEGNOrMore( str, 0, []( Span< const char > str ) {
-			return PEGOr( str,
-				[]( Span< const char > str ) { return PEGNotSet( str, "\\\"" ); },
+	str = Capture( quoted, str, []( Span< const char > str ) {
+		return ParseNOrMore( str, 0, []( Span< const char > str ) {
+			return ParseOr( str,
+				[]( Span< const char > str ) { return ParseNotSet( str, "\\\"" ); },
 				[]( Span< const char > str ) { return SkipLiteral( str, "\\\"" ); },
 				[]( Span< const char > str ) { return SkipLiteral( str, "\\\\" ); }
 			);
@@ -393,7 +393,7 @@ static Span< const char > ParseEntity( ParsedEntity * entity, Span< const char >
 		ParsedPatch patch;
 		bool is_patch = false;
 
-		Span< const char > res = PEGOr( str,
+		Span< const char > res = ParseOr( str,
 			[&]( Span< const char > str ) { return ParseQ1Brush( &brush, str ); },
 			[&]( Span< const char > str ) { return ParseQ3Brush( &brush, str ); },
 			[&]( Span< const char > str ) {
@@ -421,10 +421,10 @@ static Span< const char > ParseEntity( ParsedEntity * entity, Span< const char >
 }
 
 static Span< const char > ParseComment( Span< const char > * comment, Span< const char > str ) {
-	return PEGCapture( comment, str, []( Span< const char > str ) {
+	return Capture( comment, str, []( Span< const char > str ) {
 		str = SkipLiteral( str, "//" );
-		str = PEGNOrMore( str, 0, []( Span< const char > str ) {
-			return PEGNotSet( str, "\n" );
+		str = ParseNOrMore( str, 0, []( Span< const char > str ) {
+			return ParseNotSet( str, "\n" );
 		} );
 		return str;
 	} );

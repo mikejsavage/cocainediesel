@@ -12,12 +12,8 @@ struct StaticArray {
 	T elems[ N ];
 	size_t n;
 
-	bool full() const {
-		return n == N;
-	}
-
 	void add( const T & x ) {
-		if( full() ) {
+		if( n == N ) {
 			Fatal( "StaticArray::add" );
 		}
 		elems[ n ] = x;

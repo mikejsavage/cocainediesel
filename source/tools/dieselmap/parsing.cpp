@@ -12,7 +12,7 @@
 
 #include <string.h>
 
-constexpr Span< const char > NullSpan( NULL, 0 );
+static constexpr Span< const char > NullSpan( NULL, 0 );
 
 static Span< const char > PEGRange( Span< const char > str, char lo, char hi ) {
 	return str.n > 0 && str[ 0 ] >= lo && str[ 0 ] <= hi ? str + 1 : NullSpan;

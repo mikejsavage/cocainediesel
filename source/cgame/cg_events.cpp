@@ -386,7 +386,6 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 	StringHash sound = cgs.media.sfxVSaySounds[ vsay ];
 
 	PlaySFXConfig config = PlaySFXConfigGlobal();
-	config.has_entropy = true;
 	config.entropy = entropy;
 	if( client_gs.gameState.match_state >= MatchState_PostMatch ) {
 		PlaySFX( sound, config );

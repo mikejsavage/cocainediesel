@@ -608,11 +608,11 @@ static bool StartSound( PlayingSFX * ps, u8 i ) {
 	SoundEffect::PlaybackConfig config = ps->sfx->sounds[ i ];
 
 	int idx;
-	if( !ps->config.has_entropy ) {
+	if( !ps->config.entropy.exists ) {
 		idx = RandomUniform( &cls.rng, 0, config.num_random_sounds );
 	}
 	else {
-		RNG rng = NewRNG( ps->config.entropy, 0 );
+		RNG rng = NewRNG( ps->config.entropy.value, 0 );
 		idx = RandomUniform( &rng, 0, config.num_random_sounds );
 	}
 

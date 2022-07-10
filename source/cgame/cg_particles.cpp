@@ -202,12 +202,12 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			}
 			else if( key == "collision" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				if( value == "point" ) {
-					emitter->flags |= PARTICLE_COLLISION_POINT;
-				}
-				else if( value == "sphere" ) {
-					emitter->flags |= PARTICLE_COLLISION_SPHERE;
-				}
+				// if( value == "point" ) {
+				// 	emitter->flags |= PARTICLE_COLLISION_POINT;
+				// }
+				// else if( value == "sphere" ) {
+				// 	emitter->flags |= PARTICLE_COLLISION_SPHERE;
+				// }
 			}
 			else if( key == "stretch" ) {
 				emitter->flags |= PARTICLE_STRETCH;

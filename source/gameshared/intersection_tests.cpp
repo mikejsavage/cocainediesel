@@ -9,8 +9,12 @@ Ray MakeRayOriginDirection( Vec3 origin, Vec3 direction, float length ) {
 	Ray ray;
 	ray.origin = origin;
 	ray.direction = direction;
-	ray.inv_dir = direction == Vec3( 0.0f ) ? Vec3( 0.0f ) : 1.0f / direction;
 	ray.length = length;
+
+	for( int i = 0; i < 3; i++ ) {
+		ray.inv_dir[ i ] = direction[ i ] == 0.0f ? 0.0f : 1.0f / direction[ i ];
+	}
+
 	return ray;
 }
 

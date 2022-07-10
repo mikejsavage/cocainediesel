@@ -105,11 +105,9 @@ static bool DoField( const char * name, float * x, Span< const char > key, Span<
 static bool DoField( const char * name, Vec3 * x, Span< const char > key, Span< const char > value ) {
 	if( !StrEqual( name, key ) )
 		return false;
-	*x = Vec3(
-		ParseFloat( &value, 0.0f, Parse_StopOnNewLine ),
-		ParseFloat( &value, 0.0f, Parse_StopOnNewLine ),
-		ParseFloat( &value, 0.0f, Parse_StopOnNewLine )
-	);
+	for( int i = 0; i < 3; i++ ) {
+		( *x )[ i ] = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+	}
 	return true;
 }
 
@@ -117,12 +115,11 @@ static bool DoField( const char * name, RGBA8 * x, Span< const char > key, Span<
 	if( !StrEqual( name, key ) )
 		return false;
 	// TODO: accept hex colors etc
-	*x = LinearTosRGB( Vec4(
-		ParseFloat( &value, 1.0f, Parse_StopOnNewLine ),
-		ParseFloat( &value, 1.0f, Parse_StopOnNewLine ),
-		ParseFloat( &value, 1.0f, Parse_StopOnNewLine ),
-		ParseFloat( &value, 1.0f, Parse_StopOnNewLine )
-	) );
+	Vec4 vec4;
+	for( int i = 0; i < 4; i++ ) {
+		vec4[ i ] = ParseFloat( &value, 1.0f, Parse_StopOnNewLine );
+	}
+	*x = LinearTosRGB( vec4 );
 	return true;
 }
 
@@ -274,6 +271,9 @@ static void SpawnMapEntities() {
 */
 void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	ResetEntityIDSequence();
+
+	ShutdownServerCollisionModels();
+	InitServerCollisionModels();
 
 	memset( &level, 0, sizeof( level_locals_t ) );
 	level.time = levelTime;

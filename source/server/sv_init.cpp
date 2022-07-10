@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "server/server.h"
 #include "qcommon/csprng.h"
 #include "qcommon/hash.h"
+#include "game/g_maps.h"
 
 server_constant_t svc;              // constant server info (trully persistant since sv_init)
 server_static_t svs;                // persistant server info
@@ -100,7 +101,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 * SV_InitGame
 * A brand new game has been started
 */
-void SV_InitGame() {
+static void SV_InitGame() {
 	// make sure the client is down
 	CL_Disconnect( NULL );
 
@@ -110,6 +111,7 @@ void SV_InitGame() {
 	}
 
 	InitWebServer();
+	InitServerCollisionModels();
 
 	u64 entropy[ 2 ];
 	CSPRNG( entropy, sizeof( entropy ) );
@@ -194,6 +196,7 @@ void SV_ShutdownGame( const char *finalmsg, bool reconnect ) {
 	FREE( sys_allocator, svs.clients );
 	FREE( sys_allocator, svs.client_entities.entities );
 
+	ShutdownServerCollisionModels();
 	ShutdownWebServer();
 
 	Com_SetServerState( ss_dead );

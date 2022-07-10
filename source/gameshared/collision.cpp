@@ -209,10 +209,16 @@ MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntitySta
 	return model.aabb;
 }
 
-trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent ) {
+trace_t MakeMissedTrace( const Ray & ray ) {
 	trace_t trace = { };
 	trace.fraction = 1.0f;
+	trace.endpos = ray.origin + ray.direction * ray.length;
 	trace.ent = -1;
+	return trace;
+}
+
+trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent ) {
+	trace_t trace = MakeMissedTrace( ray );
 
 	CollisionModel collision_model = EntityCollisionModel( ent );
 
@@ -234,16 +240,15 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 		const MapSharedCollisionData * map = FindMapSharedCollisionData( storage, map_model->base_hash );
 
 		Intersection intersection;
-		SweptShapeVsMapModel( &map->data, &map->data.models[ map_model->sub_model ], object_space_ray, shape, &intersection );
-
-		trace.allsolid = false;
-		trace.startsolid = false;
-		trace.fraction = intersection.t / ( ray.length == 0.0f ? 1.0f : ray.length );
-		trace.endpos = ray.origin + ray.direction * intersection.t;
-		trace.plane = { intersection.normal, Dot( trace.endpos, intersection.normal ) };
-		trace.surfFlags = 0; // TODO
-		trace.contents = 0; // TODO
-		trace.ent = ent->number;
+		if( SweptShapeVsMapModel( &map->data, &map->data.models[ map_model->sub_model ], object_space_ray, shape, &intersection ) ) {
+			trace.allsolid = false;
+			trace.startsolid = false;
+			trace.fraction = intersection.t / ( ray.length == 0.0f ? 1.0f : ray.length );
+			trace.plane = { intersection.normal, Dot( trace.endpos, intersection.normal ) };
+			trace.surfFlags = 0; // TODO
+			trace.contents = 0; // TODO
+			trace.ent = ent->number;
+		}
 	}
 	else if( shape.type == ShapeType_AABB ) {
 		assert( collision_model.type == CollisionModelType_AABB );
@@ -252,7 +257,6 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 			trace.allsolid = false;
 			trace.startsolid = false;
 			trace.fraction = intersection.t / ( ray.length == 0.0f ? 1.0f : ray.length );
-			trace.endpos = ray.origin + ray.direction * intersection.t;
 			trace.plane = { intersection.normal, Dot( trace.endpos, intersection.normal ) };
 			trace.surfFlags = 0; // TODO
 			trace.contents = 0; // TODO
@@ -272,7 +276,6 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 					trace.allsolid = false;
 					trace.startsolid = false;
 					trace.fraction = leave.t / ( ray.length == 0.0f ? 1.0f : ray.length );
-					trace.endpos = ray.origin + ray.direction * leave.t;
 					trace.plane = { leave.normal, Dot( trace.endpos, leave.normal ) };
 					trace.surfFlags = 0; // TODO
 					trace.contents = 0; // TODO
@@ -286,7 +289,6 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 					trace.allsolid = false;
 					trace.startsolid = false;
 					trace.fraction = t / ( ray.length == 0.0f ? 1.0f : ray.length );
-					trace.endpos = ray.origin + ray.direction * t;
 					trace.plane = { };
 					trace.surfFlags = 0; // TODO
 					trace.contents = 0; // TODO
@@ -300,7 +302,6 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 					trace.allsolid = false;
 					trace.startsolid = false;
 					trace.fraction = t / ( ray.length == 0.0f ? 1.0f : ray.length );
-					trace.endpos = ray.origin + ray.direction * t;
 					trace.plane = { };
 					trace.surfFlags = 0; // TODO
 					trace.contents = 0; // TODO
@@ -309,6 +310,8 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 			} break;
 		}
 	}
+
+	trace.endpos = ray.origin + ray.direction * ray.length * trace.fraction;
 
 	return trace;
 }

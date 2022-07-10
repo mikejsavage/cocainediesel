@@ -231,7 +231,6 @@ void SV_UpdateMaster();
 //
 // sv_init.c
 //
-void SV_InitGame();
 void SV_Map( const char *level, bool devmap );
 
 //

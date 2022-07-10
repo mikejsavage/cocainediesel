@@ -473,9 +473,7 @@ static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, i
 
 	assert( passent == -1 || ( passent >= 0 && passent < ARRAY_COUNT( game.edicts ) ) );
 
-	trace_t best = { };
-	best.fraction = 1.0f;
-	best.ent = -1;
+	trace_t best = MakeMissedTrace( ray );
 
 	int touchlist[MAX_EDICTS];
 

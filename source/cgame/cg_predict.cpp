@@ -179,9 +179,7 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 static trace_t CG_ClipMoveToEntities( const Ray & ray, const Shape & shape, int ignore, int contentmask ) {
 	int64_t serverTime = cg.frame.serverTime;
 
-	trace_t best = { };
-	best.fraction = 1.0f;
-	best.ent = -1;
+	trace_t best = MakeMissedTrace( ray );
 
 	for( int i = 0; i < cg_numSolids; i++ ) {
 		const SyncEntityState * ent = cg_solidList[ i ];

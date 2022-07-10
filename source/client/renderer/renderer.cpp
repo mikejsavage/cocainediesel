@@ -56,8 +56,7 @@ static void TakeScreenshot() {
 
 		TempAllocator temp = cls.frame_arena.temp();
 
-		char * dir = temp( "{}/screenshots", HomeDirPath() );
-		DynamicString path( &temp, "{}/{}", dir, date );
+		DynamicString path( &temp, "{}/screenshots/{}", HomeDirPath(), date );
 
 		if( StrEqual( date, last_screenshot_date ) ) {
 			same_date_count++;

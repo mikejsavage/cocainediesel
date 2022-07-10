@@ -106,7 +106,7 @@ static bool G_VoteMapValidate( callvotedata_t *data, bool first ) {
 	Q_strncpyz( mapname, data->argv[0], sizeof( mapname ) );
 	COM_SanitizeFilePath( mapname );
 
-	if( StrCaseEqual( sv.mapname, mapname ) ) {
+	if( StrEqual( sv.mapname, mapname ) ) {
 		G_PrintMsg( data->caller, "%sYou are already on that map\n", S_COLOR_RED );
 		return false;
 	}
@@ -127,7 +127,7 @@ static bool G_VoteMapValidate( callvotedata_t *data, bool first ) {
 }
 
 static void G_VoteMapPassed( callvotedata_t *vote ) {
-	Q_strncpyz( level.callvote_map, Q_strlwr( vote->argv[0] ), sizeof( level.callvote_map ) );
+	Q_strncpyz( level.callvote_map, vote->argv[0], sizeof( level.callvote_map ) );
 	G_EndMatch();
 }
 

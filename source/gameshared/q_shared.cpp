@@ -365,18 +365,6 @@ void Q_strncatz( char *dest, const char *src, size_t size ) {
 	}
 }
 
-char *Q_strlwr( char *s ) {
-	char *p;
-
-	if( s ) {
-		for( p = s; *s; s++ )
-			*s = tolower( *s );
-		return p;
-	}
-
-	return NULL;
-}
-
 #define IS_TRIMMED_CHAR( s ) ( ( s ) == ' ' || ( s ) == '\t' || ( s ) == '\r' || ( s ) == '\n' )
 char *Q_trim( char *s ) {
 	char *t = s;

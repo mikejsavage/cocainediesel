@@ -352,22 +352,22 @@ bool SweptShapeVsMapModel( const MapData * map, const MapModel * model, Ray ray,
 
 			if( !start_in_first_child ) {
 				node = second_child;
-				t_min = t_interval_start;
+				t_min = Max2( t_min, t_interval_start );
 			}
 			else if( !reach_second_child ) {
 				node = first_child;
-				t_max = t_interval_end;
+				t_max = Min2( t_max, t_interval_end );
 			}
 			else {
 				if( num_todo == ARRAY_COUNT( todo ) ) {
 					Fatal( "Trace hit max tree depth" );
 				}
 
-				todo[ num_todo ] = { second_child, t_interval_start, t_max };
+				todo[ num_todo ] = { second_child, Max2( t_min, t_interval_start ), t_max };
 				num_todo++;
 
 				node = first_child;
-				t_max = t_interval_end;
+				t_max = Min2( t_max, t_interval_end );
 			}
 		}
 		else {

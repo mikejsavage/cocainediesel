@@ -43,8 +43,6 @@ bool RayVsAABB( const Ray & ray, const MinMax3 & aabb, Intersection * enter_out,
 		return Contains( aabb, ray.origin );
 	}
 
-	DisableFPEScoped;
-
 	constexpr Vec3 aabb_normals[] = {
 		Vec3( 1.0f, 0.0f, 0.0f ),
 		Vec3( 0.0f, 1.0f, 0.0f ),
@@ -55,6 +53,9 @@ bool RayVsAABB( const Ray & ray, const MinMax3 & aabb, Intersection * enter_out,
 	Intersection leave = { ray.length };
 
 	for( int i = 0; i < 3; i++ ) {
+		if( ray.direction[ i ] == 0.0f )
+			continue;
+
 		float near = ( aabb.mins[ i ] - ray.origin[ i ] ) * ray.inv_dir[ i ];
 		float far = ( aabb.maxs[ i ] - ray.origin[ i ] ) * ray.inv_dir[ i ];
 		if( ray.direction[ i ] < 0.0f ) {

@@ -749,9 +749,6 @@ int main( int argc, char ** argv ) {
 			for( const ParsedPatch & patch : entity.patches ) {
 				entities[ 0 ].patches.push_back( patch );
 			}
-
-			entity.brushes.clear();
-			entity.patches.clear();
 		}
 	}
 
@@ -762,6 +759,9 @@ int main( int argc, char ** argv ) {
 		TracyZoneScopedN( "Compile entities" );
 
 		for( ParsedEntity & entity : entities ) {
+			if( GetKey( entity.kvs.span(), "classname" ) == "func_group" )
+				continue;
+
 			CompiledEntity compiled;
 			compiled.render_geometry = GenerateRenderGeometry( entity );
 			compiled.collision_geometry = GenerateCollisionGeometry( entity ); // TODO: patches

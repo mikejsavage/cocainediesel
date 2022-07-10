@@ -311,6 +311,12 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 		}
 	}
 
+	if( trace.plane.normal != Vec3( 0.0f ) ) {
+		constexpr float epsilon = 1.0f / 32.0f;
+		trace.fraction += epsilon / Dot( ray.direction, trace.plane.normal );
+		trace.fraction = Max2( trace.fraction, 0.0f );
+	}
+
 	trace.endpos = ray.origin + ray.direction * ray.length * trace.fraction;
 
 	return trace;

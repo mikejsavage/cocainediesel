@@ -149,26 +149,6 @@ void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent ) {
 	*bitangent = Vec3( b, s + v.y * v.y * a, -v.y );
 }
 
-void BuildBoxPoints( Vec3 p[8], Vec3 org, Vec3 mins, Vec3 maxs ) {
-	p[0] = org + mins;
-	p[1] = org + maxs;
-	p[2] = Vec3( p[0].x, p[0].y, p[1].z );
-	p[3] = Vec3( p[0].x, p[1].y, p[0].z );
-	p[4] = Vec3( p[0].x, p[1].y, p[1].z );
-	p[5] = Vec3( p[1].x, p[1].y, p[0].z );
-	p[6] = Vec3( p[1].x, p[0].y, p[1].z );
-	p[7] = Vec3( p[1].x, p[0].y, p[0].z );
-}
-
-/*
-* ProjectPointOntoVector
-*/
-void ProjectPointOntoVector( Vec3 point, Vec3 vStart, Vec3 vDir, Vec3 * vProj ) {
-	Vec3 pVec = point - vStart;
-	// project onto the directional vector for this segment
-	*vProj = vStart + vDir * Dot( pVec, vDir );
-}
-
 //============================================================================
 
 static float LerpAngle( float a, float t, float b ) {
@@ -212,71 +192,6 @@ Vec3 AngleDelta( Vec3 angle1, Vec3 angle2 ) {
 
 EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b ) {
 	return EulerDegrees2( AngleDelta( a.pitch, b.pitch ), AngleDelta( a.yaw, b.yaw ) );
-}
-
-/*
-* PlaneFromPoints
-*/
-bool PlaneFromPoints( Vec3 verts[3], Plane *plane ) {
-	if( verts[ 0 ] == verts[ 1 ] || verts[ 0 ] == verts[ 2 ] || verts[ 1 ] == verts[ 2 ] )
-		return false;
-
-	Vec3 v1 = verts[1] - verts[0];
-	Vec3 v2 = verts[2] - verts[0];
-	plane->normal = Normalize( Cross( v2, v1 ) );
-	plane->distance = Dot( verts[0], plane->normal );
-
-	return true;
-}
-
-#define PLANE_NORMAL_EPSILON    0.00001f
-#define PLANE_DIST_EPSILON  0.01f
-
-/*
-* ComparePlanes
-*/
-bool ComparePlanes( Vec3 p1normal, float p1dist, Vec3 p2normal, float p2dist ) {
-	if( Abs( p1normal.x - p2normal.x ) < PLANE_NORMAL_EPSILON
-		&& Abs( p1normal.y - p2normal.y ) < PLANE_NORMAL_EPSILON
-		&& Abs( p1normal.z - p2normal.z ) < PLANE_NORMAL_EPSILON
-		&& Abs( p1dist - p2dist ) < PLANE_DIST_EPSILON ) {
-		return true;
-	}
-
-	return false;
-}
-
-/*
-* SnapVector
-*/
-void SnapVector( Vec3 * normal ) {
-	for( int i = 0; i < 3; i++ ) {
-		if( Abs( normal->ptr()[i] - 1 ) < PLANE_NORMAL_EPSILON ) {
-			*normal = Vec3( 0.0f );
-			normal->ptr()[i] = 1;
-			break;
-		}
-		if( Abs( normal->ptr()[i] - -1 ) < PLANE_NORMAL_EPSILON ) {
-			*normal = Vec3( 0.0f );
-			normal->ptr()[i] = -1;
-			break;
-		}
-	}
-}
-
-/*
-* SnapPlane
-*/
-void SnapPlane( Vec3 * normal, float *dist ) {
-	SnapVector( normal );
-
-#define Q_rint( x ) ( ( x ) < 0 ? ( (int)( ( x ) - 0.5f ) ) : ( (int)( ( x ) + 0.5f ) ) )
-
-	if( Abs( *dist - Q_rint( *dist ) ) < PLANE_DIST_EPSILON ) {
-		*dist = Q_rint( *dist );
-	}
-
-#undef Q_rint
 }
 
 Plane PlaneFromNormalAndPoint( Vec3 normal, Vec3 p ) {
@@ -436,10 +351,6 @@ float SampleNormalDistribution( RNG * rng ) {
 
 Vec3 Project( Vec3 a, Vec3 b ) {
 	return Dot( a, b ) / LengthSquared( b ) * b;
-}
-
-Vec3 ClosestPointOnLine( Vec3 p0, Vec3 p1, Vec3 p ) {
-	return p0 + Project( p - p0, p1 - p0 );
 }
 
 Vec3 ClosestPointOnSegment( Vec3 start, Vec3 end, Vec3 p ) {

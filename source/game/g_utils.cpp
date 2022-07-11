@@ -335,7 +335,7 @@ void G_CallThink( edict_t *ent ) {
 	}
 }
 
-void G_CallTouch( edict_t *self, edict_t *other, Plane *plane, int surfFlags ) {
+void G_CallTouch( edict_t *self, edict_t *other, Plane plane, int surfFlags ) {
 	if( self == other ) {
 		return;
 	}
@@ -607,31 +607,26 @@ void G_LocalSound( edict_t * owner, StringHash sound ) {
 * Kills all entities that would touch the proposed new positioning
 * of ent.  Ent should be unlinked before calling this!
 */
-bool KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
-	trace_t tr;
-	bool telefragged = false;
-
+void KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
 	while( true ) {
+		trace_t tr;
 		G_Trace( &tr, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, world, MASK_PLAYERSOLID );
-		if( ( tr.fraction == 1.0f && !tr.startsolid ) || tr.ent < 0 ) {
-			return telefragged;
+		if( tr.fraction == 1.0f ) {
+			break;
 		}
 
 		if( tr.ent == ENTNUM( world ) ) {
-			return telefragged; // found the world (but a player could be in there too). suicide?
+			break; // found the world (but a player could be in there too). suicide?
 		}
 
 		// nail it
 		G_Damage( &game.edicts[tr.ent], ent, ent, knockback, Vec3( 0.0f ), ent->s.origin, 200, Length( knockback ), 0, damage_type );
-		telefragged = true;
 
 		// if we didn't kill it, fail
 		if( game.edicts[tr.ent].r.solid ) {
-			return telefragged;
+			break;
 		}
 	}
-
-	return telefragged; // all clear
 }
 
 float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
@@ -683,40 +678,22 @@ int G_SolidMaskForEnt( edict_t *ent ) {
 }
 
 void G_CheckGround( edict_t *ent ) {
+	float up_speed_limit = ent->r.client == NULL ? 1.0f : 180.0f;
+
 	trace_t trace;
+	Vec3 ground_point = ent->s.origin - Vec3( 0.0f, 0.0f, 0.25f );
+	G_Trace( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, ground_point, ent, G_SolidMaskForEnt( ent ) );
 
-	if( ent->r.client && ent->velocity.z > 180 ) {
+	if( ent->velocity.z > up_speed_limit || !ISWALKABLEPLANE( &trace.plane ) ) {
 		ent->groundentity = NULL;
 		ent->groundentity_linkcount = 0;
 		return;
 	}
 
-	// if the hull point one-quarter unit down is solid the entity is on ground
-	Vec3 point = ent->s.origin;
-	point.z -= 0.25f;
-
-	G_Trace( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, point, ent, G_SolidMaskForEnt( ent ) );
-
-	// check steepness
-	if( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) {
-		ent->groundentity = NULL;
-		ent->groundentity_linkcount = 0;
-		return;
-	}
-
-	if( ent->velocity.z > 1.0f && !ent->r.client && !trace.startsolid ) {
-		ent->groundentity = NULL;
-		ent->groundentity_linkcount = 0;
-		return;
-	}
-
-	if( !trace.startsolid && !trace.allsolid ) {
-		//VectorCopy( trace.endpos, ent->s.origin );
-		ent->groundentity = &game.edicts[trace.ent];
-		ent->groundentity_linkcount = ent->groundentity->linkcount;
-		if( ent->velocity.z < 0.0f ) {
-			ent->velocity.z = 0.0f;
-		}
+	ent->groundentity = &game.edicts[trace.ent];
+	ent->groundentity_linkcount = ent->groundentity->linkcount;
+	if( ent->velocity.z < 0.0f ) {
+		ent->velocity.z = 0.0f;
 	}
 }
 

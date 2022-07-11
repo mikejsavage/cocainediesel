@@ -119,7 +119,7 @@ static bool EntCanSee( edict_t * ent, Vec3 point ) {
 	Vec3 center = ent->s.origin + 0.5f * ( ent->r.mins + ent->r.maxs );
 	trace_t tr;
 	G_Trace( &tr, center, Vec3( 0.0f ), Vec3( 0.0f ), point, ent, MASK_SOLID );
-	return tr.startsolid || tr.allsolid || tr.ent == -1;
+	return tr.fraction == 1.0f;
 }
 
 static s32 FirstNearbyTeammate( Vec3 origin, Team team ) {
@@ -346,7 +346,7 @@ static void PlantAreaThink( edict_t * ent ) {
 	G_FreeEdict( ent );
 }
 
-static void PlantAreaTouch( edict_t * self, edict_t * other, Plane * plane, int surfFlags ) {
+static void PlantAreaTouch( edict_t * self, edict_t * other, Plane plane, int surfFlags ) {
 	if( other->r.client == NULL ) {
 		return;
 	}
@@ -373,7 +373,7 @@ static void SpawnPlantArea( edict_t * ent ) {
 
 // bomb.as
 
-static void BombTouch( edict_t * self, edict_t * other, Plane * plane, int surfFlags ) {
+static void BombTouch( edict_t * self, edict_t * other, Plane plane, int surfFlags ) {
 	if( server_gs.gameState.match_state != MatchState_Playing ) {
 		return;
 	}
@@ -696,7 +696,8 @@ static void BombThink() {
 				bomb_state.bomb.model->projectileInfo.radius = 9999;
 
 				// apply a 1 damage explosion just for the kb
-				G_RadiusDamage( bomb_state.bomb.model, NULL, NULL, bomb_state.bomb.model, WorldDamage_Explosion );
+				Plane plane = PlaneFromNormalAndPoint( Vec3( 0.0f, 0.0f, 1.0f ), bomb_state.bomb.model->s.origin );
+				G_RadiusDamage( bomb_state.bomb.model, NULL, plane, bomb_state.bomb.model, WorldDamage_Explosion );
 
 				for( int i = 0; i < server_gs.maxclients; i++ ) {
 					G_Damage( PLAYERENT( i ), world, world, Vec3( 0.0f ), Vec3( 0.0f ), bomb_state.bomb.model->s.origin, 100.0f, 0.0f, 0, WorldDamage_Explosion );
@@ -722,7 +723,7 @@ static bool BombCanPlant() {
 	trace_t tr;
 	G_Trace( &tr, start, mins, maxs, end, carrier_ent, MASK_SOLID );
 
-	return !tr.startsolid && tr.plane.normal.z >= cosf( Radians( 30 ) );
+	return tr.plane.normal.z >= cosf( Radians( 30 ) );
 }
 
 static void BombGiveToRandom() {

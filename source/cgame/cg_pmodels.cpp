@@ -383,7 +383,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( const SyncEntityState * state, V
 	Vec3 point = state->origin;
 	point.z -= 1.6f * STEPSIZE;
 	client_gs.api.Trace( &trace, state->origin, bounds.mins, bounds.maxs, point, state->number, MASK_PLAYERSOLID, 0 );
-	if( trace.ent == -1 || ( trace.fraction < 1.0f && !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
+	if( trace.ent == -1 || ( trace.fraction < 1.0f && !ISWALKABLEPLANE( &trace.plane ) && trace.fraction > 0 ) ) {
 		moveflags |= ANIMMOVE_AIR;
 	}
 

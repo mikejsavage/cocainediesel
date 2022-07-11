@@ -38,7 +38,7 @@ static bool CanHit( const edict_t * projectile, const edict_t * target ) {
 	return true;
 }
 
-static void W_Explode_ARBullet( edict_t * ent, edict_t * other, Plane * plane ) {
+static void W_Explode_ARBullet( edict_t * ent, edict_t * other, Plane plane ) {
 	if( other != NULL && other->takedamage ) {
 		Vec3 push_dir;
 		G_SplashFrac4D( other, ent->s.origin, ent->projectileInfo.radius, &push_dir, NULL, ent->timeDelta, false );
@@ -53,7 +53,7 @@ static void W_Explode_ARBullet( edict_t * ent, edict_t * other, Plane * plane ) 
 	G_FreeEdict( ent );
 }
 
-static void W_Touch_ARBullet( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static void W_Touch_ARBullet( edict_t * ent, edict_t * other, Plane plane, int surfFlags ) {
 	if( !CanHit( ent, other ) ) {
 		return;
 	}
@@ -78,12 +78,7 @@ static void W_ARBullet_Backtrace( edict_t * ent, Vec3 start ) {
 		if( tr.fraction == 1.0f )
 			break;
 
-		if( tr.allsolid || tr.startsolid ) {
-			W_Touch_ARBullet( ent, &game.edicts[ tr.ent ], NULL, 0 );
-		}
-		else {
-			W_Touch_ARBullet( ent, &game.edicts[ tr.ent ], &tr.plane, tr.surfFlags );
-		}
+		W_Touch_ARBullet( ent, &game.edicts[ tr.ent ], &tr.plane, tr.surfFlags );
 
 		iter++;
 	} while( ent->r.inuse && ent->s.origin != oldorigin && iter < 5 );
@@ -111,7 +106,7 @@ static void W_Think_ARBullet( edict_t * ent ) {
 	W_ARBullet_Backtrace( ent, start );
 }
 
-static void W_AutoTouch_ARBullet( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static void W_AutoTouch_ARBullet( edict_t * ent, edict_t * other, Plane plane, int surfFlags ) {
 	W_Think_ARBullet( ent );
 	if( ent->r.inuse ) {
 		W_Touch_ARBullet( ent, other, plane, surfFlags );
@@ -411,7 +406,7 @@ static void W_Grenade_Explode( edict_t * ent ) {
 	W_Grenade_ExplodeDir( ent, Vec3( 0.0f ));
 }
 
-static void W_Touch_Grenade( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static void W_Touch_Grenade( edict_t * ent, edict_t * other, Plane plane, int surfFlags ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_GrenadeLauncher );
 
 	if( !CanHit( ent, other ) ) {
@@ -450,7 +445,7 @@ static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	grenade->think = W_Grenade_Explode;
 }
 
-static void W_Touch_Stake( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static void W_Touch_Stake( edict_t * ent, edict_t * other, Plane plane, int surfFlags ) {
 	if( !CanHit( ent, other ) ) {
 		return;
 	}
@@ -482,7 +477,7 @@ static void W_Fire_Stake( edict_t * self, Vec3 start, Vec3 angles, int timeDelta
 	stake->s.sound = "weapons/stake/trail";
 }
 
-static void W_Touch_Rocket( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static void W_Touch_Rocket( edict_t * ent, edict_t * other, Plane plane, int surfFlags ) {
 	if( !CanHit( ent, other ) ) {
 		return;
 	}
@@ -715,7 +710,7 @@ static void W_Fire_Lasergun( edict_t * self, Vec3 start, Vec3 angles, int timeDe
 	GClip_LinkEntity( laser );
 }
 
-static void W_Touch_RifleBullet( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static void W_Touch_RifleBullet( edict_t * ent, edict_t * other, Plane plane, int surfFlags ) {
 	if( !CanHit( ent, other ) ) {
 		return;
 	}
@@ -766,7 +761,7 @@ static void StickyExplode( edict_t * ent ) {
 	StickyExplodeNormal( ent, Vec3( 0.0f ), false );
 }
 
-static void W_Touch_Sticky( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static void W_Touch_Sticky( edict_t * ent, edict_t * other, Plane plane, int surfFlags ) {
 	if( !CanHit( ent, other ) ) {
 		return;
 	}
@@ -807,7 +802,7 @@ void W_Fire_Sticky( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	bullet->think = StickyExplode;
 }
 
-static void W_Touch_Blast( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static void W_Touch_Blast( edict_t * ent, edict_t * other, Plane plane, int surfFlags ) {
 	if( !CanHit( ent, other ) ) {
 		return;
 	}
@@ -969,7 +964,7 @@ void G_AltFireWeapon( edict_t * ent, u64 parm ) {
 	CallFireWeapon( ent, parm, true );
 }
 
-static void TouchThrowingAxe( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static void TouchThrowingAxe( edict_t * ent, edict_t * other, Plane plane, int surfFlags ) {
 	if( !CanHit( ent, other ) ) {
 		return;
 	}
@@ -1038,7 +1033,7 @@ static void ExplodeStunGrenade( edict_t * grenade ) {
 	G_FreeEdict( grenade );
 }
 
-static void TouchStunGrenade( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static void TouchStunGrenade( edict_t * ent, edict_t * other, Plane plane, int surfFlags ) {
 	if( !CanHit( ent, other ) ) {
 		return;
 	}

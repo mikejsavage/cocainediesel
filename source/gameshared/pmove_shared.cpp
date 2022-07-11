@@ -35,7 +35,7 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 		trace_t trace;
 		pmove_gs->api.Trace( &trace, pml->origin, mins, maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
 
-		if( trace.allsolid )
+		if( trace.plane.normal == Vec3( 0.0f ) )
 			return;
 
 		if( trace.fraction == 1 )

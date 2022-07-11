@@ -121,7 +121,7 @@ static void CG_CalcViewBob() {
 			Vec3 mins = maxs - Vec3( 0.0f, 0.0f, 1.6f * STEPSIZE );
 
 			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, MASK_PLAYERSOLID );
-			if( trace.startsolid || trace.allsolid ) {
+			if( trace.fraction == 0.0f ) {
 				bobScale = 2.5f;
 			}
 		}

@@ -1,6 +1,6 @@
 #include "game/g_local.h"
 
-static void TouchJumppad( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static void TouchJumppad( edict_t * ent, edict_t * other, Plane plane, int surfFlags ) {
 	if( G_TriggerWait( ent ) ) {
 		return;
 	}

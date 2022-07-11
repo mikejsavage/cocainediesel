@@ -74,6 +74,7 @@ void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent );
 void BuildBoxPoints( Vec3 p[8], Vec3 org, Vec3 mins, Vec3 maxs );
 
 bool PlaneFromPoints( Vec3 verts[3], Plane *plane );
+Plane PlaneFromNormalAndPoint( Vec3 normal, Vec3 p );
 
 bool ComparePlanes( Vec3 p1normal, float p1dist, Vec3 p2normal, float p2dist );
 void SnapVector( Vec3 * normal );

@@ -88,8 +88,7 @@ void SV_Impact( edict_t *e1, trace_t *trace ) {
 		}
 
 		if( e2->r.solid != SOLID_NOT ) {
-			Plane dummy = { };
-			G_CallTouch( e2, e1, dummy, 0 );
+			G_CallTouch( e2, e1, Plane(), 0 );
 		}
 	}
 }
@@ -122,9 +121,7 @@ retry:
 	}
 
 	G_Trace4D( &trace, start, ent->r.mins, ent->r.maxs, end, ent, mask, ent->timeDelta );
-	if( ent->movetype == MOVETYPE_PUSH || !trace.startsolid ) {
-		ent->s.origin = trace.endpos;
-	}
+	ent->s.origin = trace.endpos;
 
 	GClip_LinkEntity( ent );
 
@@ -442,7 +439,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 			// LA: hopefully will fix grenades bouncing down slopes
 			// method taken from Darkplaces sourcecode
-			if( trace.allsolid ||
+			if( trace.fraction == 0.0f ||
 				( ISWALKABLEPLANE( &trace.plane ) &&
 				  Abs( Dot( trace.plane.normal, ent->velocity ) ) < 40
 				)
@@ -457,7 +454,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 			// in movetype_toss things stop dead when touching ground
 
 			// walkable or trapped inside solid brush
-			if( trace.allsolid || ISWALKABLEPLANE( &trace.plane ) ) {
+			if( trace.fraction == 0.0f || ISWALKABLEPLANE( &trace.plane ) ) {
 				ent->groundentity = trace.ent < 0 ? world : &game.edicts[trace.ent];
 				ent->groundentity_linkcount = ent->groundentity->linkcount;
 				ent->velocity = Vec3( 0.0f );

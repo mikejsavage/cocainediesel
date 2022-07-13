@@ -618,8 +618,7 @@ static void CallTouches( edict_t * ent, const MinMax3 & bounds ) {
 			continue;
 		}
 
-		Plane dummy = { };
-		G_CallTouch( hit, ent, dummy, 0 );
+		G_CallTouch( hit, ent, Plane(), 0 );
 	}
 }
 

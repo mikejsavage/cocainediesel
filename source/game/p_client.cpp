@@ -721,8 +721,7 @@ void G_PredictedEvent( int entNum, int ev, u64 parm ) {
 			ent->projectileInfo.minKnockback = 75;
 			ent->projectileInfo.radius = 150;
 
-			Plane dummy = { };
-			G_RadiusDamage( ent, ent, dummy, ent, Gadget_SuicideBomb );
+			G_RadiusDamage( ent, ent, Plane(), ent, Gadget_SuicideBomb );
 
 			G_Killed( ent, ent, ent, -1, Gadget_SuicideBomb, 10000 );
 			G_AddEvent( ent, ev, parm, true );
@@ -914,8 +913,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 				continue; // duplicated
 			}
 			// player can't touch projectiles, only projectiles can touch the player
-			Plane dummy = { };
-			G_CallTouch( other, ent, dummy, 0 );
+			G_CallTouch( other, ent, Plane(), 0 );
 		}
 	}
 

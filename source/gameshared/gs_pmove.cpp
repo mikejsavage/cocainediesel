@@ -233,9 +233,6 @@ static void PM_StepSlideMove() {
 	Vec3 up = start_o + Vec3( 0.0f, 0.0f, STEPSIZE );
 
 	pmove_gs->api.Trace( &trace, up, pm->mins, pm->maxs, up, pm->playerState->POVnum, pm->contentmask, 0 );
-	if( trace.allsolid ) {
-		return; // can't step up
-	}
 
 	// try sliding above
 	pml.origin = up;
@@ -246,9 +243,7 @@ static void PM_StepSlideMove() {
 	// push down the final amount
 	Vec3 down = pml.origin - Vec3( 0.0f, 0.0f, STEPSIZE );
 	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, down, pm->playerState->POVnum, pm->contentmask, 0 );
-	if( !trace.allsolid ) {
-		pml.origin = trace.endpos;
-	}
+	pml.origin = trace.endpos;
 
 	up = pml.origin;
 
@@ -256,7 +251,7 @@ static void PM_StepSlideMove() {
 	float down_dist = LengthSquared( down_o.xy() - start_o.xy() );
 	float up_dist = LengthSquared( up.xy() - start_o.xy() );
 
-	if( down_dist >= up_dist || trace.allsolid || ( trace.fraction != 1.0f && !ISWALKABLEPLANE( &trace.plane ) ) ) {
+	if( down_dist >= up_dist || ( trace.fraction != 1.0f && !ISWALKABLEPLANE( &trace.plane ) ) ) {
 		pml.origin = down_o;
 		pml.velocity = down_v;
 		return;
@@ -480,8 +475,7 @@ static void PM_GroundTrace( trace_t *trace ) {
 
 static bool PM_GoodPosition( Vec3 origin, trace_t *trace ) {
 	pmove_gs->api.Trace( trace, origin, pm->mins, pm->maxs, origin, pm->playerState->POVnum, pm->contentmask, 0 );
-
-	return !trace->allsolid;
+	return trace->fraction > 0.0f;
 }
 
 static void PM_UnstickPosition( trace_t *trace ) {
@@ -521,7 +515,7 @@ static void PM_CategorizePosition() {
 		// see if standing on something solid
 		PM_GroundTrace( &trace );
 
-		if( trace.allsolid ) {
+		if( trace.fraction == 0.0f ) {
 			// try to unstick position
 			PM_UnstickPosition( &trace );
 		}
@@ -530,7 +524,7 @@ static void PM_CategorizePosition() {
 		pml.groundsurfFlags = trace.surfFlags;
 		pml.groundcontents = trace.contents;
 
-		if( trace.fraction == 1 || ( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) ) {
+		if( trace.fraction == 1 || !ISWALKABLEPLANE( &trace.plane ) ) {
 			pm->groundentity = -1;
 			pm->playerState->pmove.pm_flags &= ~PMF_ON_GROUND;
 		}

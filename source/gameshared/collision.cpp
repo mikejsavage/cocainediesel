@@ -241,8 +241,6 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 
 		Intersection intersection;
 		if( SweptShapeVsMapModel( &map->data, &map->data.models[ map_model->sub_model ], object_space_ray, shape, &intersection ) ) {
-			trace.allsolid = false;
-			trace.startsolid = false;
 			trace.fraction = intersection.t / ( ray.length == 0.0f ? 1.0f : ray.length );
 			trace.plane = { intersection.normal, Dot( trace.endpos, intersection.normal ) };
 			trace.surfFlags = 0; // TODO
@@ -254,8 +252,6 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 		assert( collision_model.type == CollisionModelType_AABB );
 		Intersection intersection;
 		if( SweptAABBVsAABB( ToMinMax( shape.aabb ), ray.direction * ray.length, collision_model.aabb, Vec3( 0.0f ), &intersection ) ) {
-			trace.allsolid = false;
-			trace.startsolid = false;
 			trace.fraction = intersection.t / ( ray.length == 0.0f ? 1.0f : ray.length );
 			trace.plane = { intersection.normal, Dot( trace.endpos, intersection.normal ) };
 			trace.surfFlags = 0; // TODO
@@ -273,8 +269,6 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 			case CollisionModelType_AABB: {
 				Intersection enter, leave;
 				if( RayVsAABB( object_space_ray, collision_model.aabb, &enter, &leave ) ) {
-					trace.allsolid = false;
-					trace.startsolid = false;
 					trace.fraction = leave.t / ( ray.length == 0.0f ? 1.0f : ray.length );
 					trace.plane = { leave.normal, Dot( trace.endpos, leave.normal ) };
 					trace.surfFlags = 0; // TODO
@@ -286,8 +280,6 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 			case CollisionModelType_Sphere: {
 				float t;
 				if( RayVsSphere( object_space_ray, collision_model.sphere, &t ) ) {
-					trace.allsolid = false;
-					trace.startsolid = false;
 					trace.fraction = t / ( ray.length == 0.0f ? 1.0f : ray.length );
 					trace.plane = { };
 					trace.surfFlags = 0; // TODO
@@ -299,8 +291,6 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 			case CollisionModelType_Capsule: {
 				float t;
 				if( RayVsCapsule( object_space_ray, collision_model.capsule, &t ) ) {
-					trace.allsolid = false;
-					trace.startsolid = false;
 					trace.fraction = t / ( ray.length == 0.0f ? 1.0f : ray.length );
 					trace.plane = { };
 					trace.surfFlags = 0; // TODO

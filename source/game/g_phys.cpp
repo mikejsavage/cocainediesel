@@ -41,7 +41,7 @@ static bool EntityOverlapsAnything( edict_t *ent ) {
 	int mask = ent->r.clipmask ? ent->r.clipmask : MASK_SOLID;
 	trace_t trace;
 	G_Trace4D( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, ent, mask, ent->timeDelta );
-	return trace.startsolid;
+	return trace.fraction == 0.0f;
 }
 
 static void SV_CheckVelocity( edict_t *ent ) {
@@ -84,11 +84,12 @@ void SV_Impact( edict_t *e1, trace_t *trace ) {
 		e2 = &game.edicts[trace->ent];
 
 		if( e1->r.solid != SOLID_NOT ) {
-			G_CallTouch( e1, e2, &trace->plane, trace->surfFlags );
+			G_CallTouch( e1, e2, trace->plane, trace->surfFlags );
 		}
 
 		if( e2->r.solid != SOLID_NOT ) {
-			G_CallTouch( e2, e1, NULL, 0 );
+			Plane dummy = { };
+			G_CallTouch( e2, e1, dummy, 0 );
 		}
 	}
 }

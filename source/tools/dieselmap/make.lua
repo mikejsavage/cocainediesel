@@ -36,4 +36,5 @@ bin( "dieselmap", {
 
 	msvc_extra_ldflags = "ole32.lib",
 	gcc_extra_ldflags = "-lm -lpthread",
+	static_linux_release_build = true,
 } )

@@ -15,4 +15,4 @@ lib( "discord", {
 	"libs/discord/serialization.cpp",
 } )
 
-gcc_obj_cxxflags( "libs/discord/.*", "-Wno-unknown-pragmas" )
+gcc_obj_cxxflags( "libs/discord/.*", "-w" )

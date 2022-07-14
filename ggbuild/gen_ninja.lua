@@ -39,13 +39,14 @@ configs[ "linux" ] = {
 
 	toolchain = "gcc",
 	cxx = "g++",
+	ar = "ar",
 
-	cxxflags = "-c -fdiagnostics-color",
-	ldflags = "-fuse-ld=gold",
+	cxxflags = "-c -g -fdiagnostics-color",
+	ldflags = "-fuse-ld=gold -no-pie",
 }
 
 configs[ "linux-debug" ] = {
-	cxxflags = "-O0 -ggdb3 -fno-omit-frame-pointer",
+	cxxflags = "-fno-omit-frame-pointer",
 }
 configs[ "linux-asan" ] = {
 	bin_suffix = "-asan",
@@ -60,8 +61,11 @@ configs[ "linux-tsan" ] = {
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-release" ] = {
-	cxxflags = "-ggdb3 -O2 -DNDEBUG",
-	ldflags = "",
+	cxx = "ggbuild/zig/zig c++",
+	ar = "ggbuild/zig/zig ar",
+
+	cxxflags = "-O2 -DNDEBUG",
+	ldflags = "-lc -lc++ -fno-PIE",
 	output_dir = "release/",
 }
 configs[ "linux-bench" ] = {
@@ -123,7 +127,7 @@ local dll_suffix = rightmost( "dll_suffix" )
 local prebuilt_lib_dir = rightmost( "prebuilt_lib_dir" )
 prebuilt_lib_dir = prebuilt_lib_dir == "" and OS_config or prebuilt_lib_dir
 local cxxflags = concat( "cxxflags" )
-local ldflags = concat( "ldflags" )
+local ldflags = rightmost( "ldflags" )
 
 toolchain = rightmost( "toolchain" )
 
@@ -352,6 +356,7 @@ rule copy
 	elseif toolchain == "gcc" then
 
 printf( "cpp = %s", rightmost( "cxx" ) )
+printf( "ar = %s", rightmost( "ar" ) )
 printf( [[
 rule cpp
     command = $cpp -MD -MF $out.d $cxxflags $extra_cxxflags -c -o $out $in
@@ -360,7 +365,7 @@ rule cpp
     deps = gcc
 
 rule lib
-    command = ar rs $out $in
+    command = $ar rs $out $in
     description = $out
 
 rule copy
@@ -372,7 +377,7 @@ rule copy
 
 printf( [[
 rule bin
-    command = $cpp -o $out $in $ldflags $extra_ldflags
+    command = g++ -o $out $in $ldflags $extra_ldflags
     description = $out
 ]] )
 
@@ -380,7 +385,11 @@ rule bin
 
 printf( [[
 rule bin
-    command = $cpp -o $out $in $ldflags $extra_ldflags;objcopy --only-keep-debug $out $out.debug;strip $out
+    command = ggbuild/zig/zig build-exe --name $out $in $ldflags $extra_ldflags && objcopy --only-keep-debug $out $out.debug && strip $out
+    description = $out
+
+rule bin-static
+    command = ggbuild/zig/zig build-exe --name $out $in $ldflags $extra_ldflags -target x86_64-linux-musl -static && objcopy --only-keep-debug $out $out.debug && strip $out
     description = $out
 ]] )
 
@@ -446,8 +455,9 @@ rule bin
 		end
 
 		local full_name = output_dir .. bin_name .. bin_suffix
-		printf( "build %s: bin %s %s",
+		printf( "build %s: %s %s %s",
 			full_name,
+			( OS == "linux" and config == "release" and cfg.static_linux_release_build ) and "bin-static" or "bin",
 			join_srcs( srcs, obj_suffix ),
 			join_libs( cfg.libs )
 		)

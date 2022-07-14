@@ -10,7 +10,7 @@ msvc_global_cxxflags( "/fp:fast /GR- /EHs-c-" )
 
 gcc_global_cxxflags( "-std=c++17 -msse3 -ffast-math -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fvisibility=hidden" )
 gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security" ) -- -Wconversion
-gcc_global_cxxflags( "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-implicit-fallthrough -Wno-format-truncation" )
+gcc_global_cxxflags( "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-implicit-fallthrough" )
 gcc_global_cxxflags( "-Werror=vla -Werror=format-security -Werror=unused-value" )
 
 if config == "release" then
@@ -113,7 +113,7 @@ do
 
 		rc = "source/windows/client",
 
-		gcc_extra_ldflags = "-lm -lpthread -ldl -lX11 -no-pie -static-libstdc++",
+		gcc_extra_ldflags = "-lm -lpthread -ldl -lX11",
 		msvc_extra_ldflags = "gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib /SUBSYSTEM:WINDOWS",
 	} )
 
@@ -164,8 +164,9 @@ do
 			"zstd",
 		},
 
-		gcc_extra_ldflags = "-lm -lpthread -no-pie -static-libstdc++",
+		gcc_extra_ldflags = "-lm -lpthread",
 		msvc_extra_ldflags = "ole32.lib ws2_32.lib crypt32.lib",
+		static_linux_release_build = true,
 	} )
 end
 

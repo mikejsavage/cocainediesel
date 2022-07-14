@@ -31,6 +31,7 @@ bin( "bc4", {
 		"tracy",
 	},
 
-	gcc_extra_ldflags = "-lm -lpthread -ldl -no-pie -static-libstdc++",
+	gcc_extra_ldflags = "-lm -lpthread -ldl",
 	msvc_extra_ldflags = "ole32.lib",
+	static_linux_release_build = true,
 } )

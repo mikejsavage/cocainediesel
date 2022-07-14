@@ -65,7 +65,7 @@ configs[ "linux-release" ] = {
 	ar = "ggbuild/zig/zig ar",
 
 	cxxflags = "-O2 -DNDEBUG",
-	ldflags = "-lc -lc++ -fno-PIE",
+	ldflags = "",
 	output_dir = "release/",
 }
 configs[ "linux-bench" ] = {
@@ -385,11 +385,11 @@ rule bin
 
 printf( [[
 rule bin
-    command = ggbuild/zig/zig build-exe --name $out $in $ldflags $extra_ldflags && objcopy --only-keep-debug $out $out.debug && strip $out
+    command = g++ -o $out $in -no-pie $ldflags $extra_ldflags && objcopy --only-keep-debug $out $out.debug && strip $out
     description = $out
 
 rule bin-static
-    command = ggbuild/zig/zig build-exe --name $out $in $ldflags $extra_ldflags -target x86_64-linux-musl -static && objcopy --only-keep-debug $out $out.debug && strip $out
+    command = ggbuild/zig/zig build-exe --name $out $in -lc -lc++ -fno-PIE $ldflags $extra_ldflags -target x86_64-linux-musl -static && objcopy --only-keep-debug $out $out.debug && strip $out
     description = $out
 ]] )
 

@@ -36,7 +36,7 @@ static u32 MipSize( u32 w, u32 h, u32 level ) {
 
 int main( int argc, char ** argv ) {
 	if( argc != 2 ) {
-		printf( "Usage: bc4 <single channel image.png>\n" );
+		printf( "Usage: %s <single channel image.png>\n", argv[ 0 ] );
 		return 1;
 	}
 

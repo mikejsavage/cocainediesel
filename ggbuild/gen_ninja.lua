@@ -8,7 +8,6 @@ configs[ "windows" ] = {
 	bin_suffix = ".exe",
 	obj_suffix = ".obj",
 	lib_suffix = ".lib",
-	dll_suffix = ".dll",
 
 	toolchain = "msvc",
 
@@ -35,7 +34,6 @@ configs[ "linux" ] = {
 	obj_suffix = ".o",
 	lib_prefix = "lib",
 	lib_suffix = ".a",
-	dll_suffix = ".so",
 
 	toolchain = "gcc",
 	cxx = "g++",
@@ -123,7 +121,6 @@ local bin_suffix = rightmost( "bin_suffix" )
 local obj_suffix = rightmost( "obj_suffix" )
 local lib_prefix = rightmost( "lib_prefix" )
 local lib_suffix = rightmost( "lib_suffix" )
-local dll_suffix = rightmost( "dll_suffix" )
 local prebuilt_lib_dir = rightmost( "prebuilt_lib_dir" )
 prebuilt_lib_dir = prebuilt_lib_dir == "" and OS_config or prebuilt_lib_dir
 local cxxflags = concat( "cxxflags" )
@@ -144,7 +141,6 @@ local bins_extra_flags = { }
 
 local libs = { }
 local prebuilt_libs = { }
-local prebuilt_dlls = { }
 
 local function flatten_into( res, t )
 	for _, x in ipairs( t ) do
@@ -176,23 +172,19 @@ end
 
 local function join_libs( names )
 	local joined = { }
-	local dlls = { }
 	for _, lib in ipairs( flatten( names ) ) do
 		local prebuilt_lib = prebuilt_libs[ lib ]
-		local prebuilt_dll = prebuilt_dlls[ lib ]
 
 		if prebuilt_lib then
 			for _, archive in ipairs( prebuilt_lib ) do
 				table.insert( joined, "libs/" .. lib .. "/" .. prebuilt_lib_dir .. "/" .. lib_prefix .. archive .. lib_suffix )
 			end
-		elseif prebuilt_dll then
-			table.insert( dlls, output_dir .. prebuilt_dll .. dll_suffix )
 		else
 			table.insert( joined, dir .. "/" .. lib_prefix .. lib .. lib_suffix )
 		end
 	end
 
-	return table.concat( joined, " " ) .. " | " .. table.concat( dlls )
+	return table.concat( joined, " " )
 end
 
 local function printf( form, ... )
@@ -268,11 +260,6 @@ function prebuilt_lib( lib_name, archives )
 	prebuilt_libs[ lib_name ] = archives or { lib_name }
 end
 
-function prebuilt_dll( lib_name, dll )
-	assert( not prebuilt_dlls[ lib_name ] )
-	prebuilt_dlls[ lib_name ] = dll
-end
-
 function global_cxxflags( flags )
 	cxxflags = cxxflags .. " " .. flags
 end
@@ -315,11 +302,6 @@ local function sort_by_key( t )
 	end
 
 	return coroutine.wrap( iter )
-end
-
-local function rule_for_src( src_name )
-	local ext = src_name:match( "([^%.]+)$" )
-	return ( { cpp = "cpp" } )[ ext ]
 end
 
 function write_ninja_script()
@@ -413,8 +395,7 @@ rule bin-static
 	end
 
 	for src_name, cfg in sort_by_key( objs ) do
-		local rule = rule_for_src( src_name )
-		printf( "build %s/%s%s: %s %s", dir, src_name, obj_suffix, rule, src_name )
+		printf( "build %s/%s%s: cpp %s", dir, src_name, obj_suffix, src_name )
 		if cfg.cxxflags then
 			printf( "    cxxflags = %s", cfg.cxxflags )
 		end
@@ -430,17 +411,6 @@ rule bin-static
 	end
 
 	printf()
-
-	for lib_name, dll in sort_by_key( prebuilt_dlls ) do
-		local src_path = "libs/" .. lib_name .. "/" ..  dll .. dll_suffix
-		local dst_path = output_dir .. dll .. dll_suffix
-		if OS == "windows" then
-			-- copy goes beserk without this
-			src_path = src_path:gsub( "/", "\\" )
-			dst_path = dst_path:gsub( "/", "\\" )
-		end
-		printf( "build %s: copy %s", dst_path, src_path );
-	end
 
 	printf()
 

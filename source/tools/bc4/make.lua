@@ -32,6 +32,6 @@ bin( "bc4", {
 	},
 
 	gcc_extra_ldflags = "-lm -lpthread -ldl",
-	msvc_extra_ldflags = "ole32.lib",
+	msvc_extra_ldflags = "ole32.lib shell32.lib user32.lib advapi32.lib",
 	static_linux_release_build = true,
 } )

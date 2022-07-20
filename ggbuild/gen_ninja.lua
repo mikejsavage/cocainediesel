@@ -12,15 +12,15 @@ configs[ "windows" ] = {
 	toolchain = "msvc",
 
 	cxxflags = "/c /Oi /Gm- /nologo",
-	ldflags = "user32.lib shell32.lib advapi32.lib dbghelp.lib /NOLOGO",
 }
 
 configs[ "windows-debug" ] = {
 	cxxflags = "/MTd /Z7 /FC",
-	ldflags = "/DEBUG /DEBUG:FULL /FUNCTIONPADMIN /OPT:NOREF /OPT:NOICF",
+	ldflags = "/NOLOGO /DEBUG /DEBUG:FULL /FUNCTIONPADMIN /OPT:NOREF /OPT:NOICF",
 }
 configs[ "windows-release" ] = {
 	cxxflags = "/O2 /MT /DNDEBUG",
+	ldflags = "/NOLOGO",
 	output_dir = "release/",
 }
 configs[ "windows-bench" ] = {
@@ -40,22 +40,22 @@ configs[ "linux" ] = {
 	ar = "ar",
 
 	cxxflags = "-c -g -fdiagnostics-color",
-	ldflags = "-fuse-ld=gold -no-pie",
 }
 
 configs[ "linux-debug" ] = {
 	cxxflags = "-fno-omit-frame-pointer",
+	ldflags = "-fuse-ld=gold -no-pie",
 }
 configs[ "linux-asan" ] = {
 	bin_suffix = "-asan",
 	cxxflags = configs[ "linux-debug" ].cxxflags .. " -fsanitize=address",
-	ldflags = "-fsanitize=address -static-libasan",
+	ldflags = configs[ "linux-debug" ].ldflags .. "-fsanitize=address -static-libasan",
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-tsan" ] = {
 	bin_suffix = "-tsan",
 	cxxflags = configs[ "linux-debug" ].cxxflags .. " -fsanitize=thread",
-	ldflags = "-fsanitize=thread -static-libtsan",
+	ldflags = configs[ "linux-debug" ].ldflags .. "-fsanitize=thread -static-libtsan",
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-release" ] = {

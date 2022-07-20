@@ -264,18 +264,15 @@ local function DrawStaminaBar( state, x, y, width, height, padding, bg_color )
 
 		local steps = 2
 		local cell_width = width/steps
+		stamina_color.a = math.min( state.stamina * steps, 1 )
+		cd.box( x, y, cell_width, height, stamina_color )
 
-		for i = 0, steps - 1, 1 do
-			if (state.stamina * steps) >= (i + 1) then
-				cd.box( x + cell_width * i, y, cell_width, height, stamina_color )
-			else
-				stamina_color.a = 0.1
-				cd.box( x + cell_width * i, y, cell_width * (state.stamina * steps - i), height, stamina_color )
-				break
-			end
+		for i = 0, steps, 1 do
+			stamina_color.a = math.clamp( state.stamina * steps - i, 0, 1 )
+			cd.box( x + cell_width * i, y, cell_width, height, stamina_color )
 		end
 
-		local uvwidth = width * math.floor( state.stamina * steps )/steps
+		local uvwidth = width * math.floor( state.stamina * steps + 0.99 )/steps
 		if state.stamina > 0 then
 			cd.boxuv( x, y,
 				uvwidth, height,
@@ -287,7 +284,7 @@ local function DrawStaminaBar( state, x, y, width, height, padding, bg_color )
 			cd.box( x + cell_width * i - padding/2, y, padding, height, dark_grey )
 		end
 	else
-		if state.perk == Perk_Midget and state.stamina_state == Stamina_UsedAbility then
+		if state.perk == Perk_Wheel and state.stamina_state == Stamina_UsedAbility then
 			local c = RGBALinear( 1.0, 0.5, 0.5, 0.1 )
 			cd.box( x, y, width, height, c )
 		elseif state.perk == Perk_Jetpack then

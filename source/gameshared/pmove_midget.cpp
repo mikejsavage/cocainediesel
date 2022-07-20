@@ -6,9 +6,14 @@ static constexpr float jumpspeed = 280.0f;
 
 static constexpr float climbfriction = 10.0f;
 
-static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( (pm->groundentity != -1 || pml->ladder) && (ps->pmove.stamina == 0.0f) ) {
-		ps->pmove.stamina_state = Stamina_Normal;
+static constexpr float stamina_use = 0.15f;
+static constexpr float stamina_use_moving = 0.3f;
+static constexpr float stamina_recover = 1.0f;
+
+
+static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
+	if( !StaminaAvailable( ps, pml, stamina_use ) ) {
+		return false;
 	}
 
 	Vec3 spot = pml->origin + pml->forward;

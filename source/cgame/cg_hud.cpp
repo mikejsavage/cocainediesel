@@ -76,6 +76,7 @@ static const LuauConst<int> numeric_constants[] = {
 	{ "Perk_Ninja", Perk_Ninja },
 	{ "Perk_Hooligan", Perk_Hooligan },
 	{ "Perk_Midget", Perk_Midget },
+	{ "Perk_Wheel", Perk_Wheel },
 	{ "Perk_Jetpack", Perk_Jetpack },
 	{ "Perk_Boomer", Perk_Boomer },
 

@@ -662,6 +662,7 @@ static void PM_InitPerk() {
 	switch( pm->playerState->perk ) {
 		case Perk_Hooligan: PM_HooliganInit( pm, &pml ); break;
 		case Perk_Midget: PM_MidgetInit( pm, &pml ); break;
+		case Perk_Wheel: PM_WheelInit( pm, &pml ); break;
 		case Perk_Jetpack: PM_JetpackInit( pm, &pml ); break;
 		case Perk_Ninja: PM_NinjaInit( pm, &pml ); break;
 		case Perk_Boomer: PM_BoomerInit( pm, &pml ); break;

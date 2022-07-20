@@ -67,5 +67,6 @@ void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir,
 void PM_NinjaInit( pmove_t * pm, pml_t * pml );
 void PM_HooliganInit( pmove_t * pm, pml_t * pml );
 void PM_MidgetInit( pmove_t * pm, pml_t * pml );
+void PM_WheelInit( pmove_t * pm, pml_t * pml );
 void PM_JetpackInit( pmove_t * pm, pml_t * pml );
 void PM_BoomerInit( pmove_t * pm, pml_t * pml );

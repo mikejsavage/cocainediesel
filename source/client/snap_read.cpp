@@ -104,15 +104,13 @@ void SNAP_ParseBaseline( msg_t *msg, SyncEntityState *baselines ) {
 * rest of the data stream.
 */
 static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot_t *newframe, SyncEntityState *baselines, int shownet ) {
-	int newnum;
-	bool remove;
 	SyncEntityState *oldstate = NULL;
-	int oldindex, oldnum;
+	int oldnum;
 
 	newframe->numEntities = 0;
 
 	// delta from the entities present in oldframe
-	oldindex = 0;
+	int oldindex = 0;
 	if( !oldframe ) {
 		oldnum = 99999;
 	} else if( oldindex >= oldframe->numEntities ) {
@@ -123,16 +121,16 @@ static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot
 	}
 
 	while( true ) {
-		newnum = MSG_ReadEntityNumber( msg, &remove );
-		if( newnum >= MAX_EDICTS ) {
+		bool remove;
+		int newnum = MSG_ReadEntityNumber( msg, &remove );
+		if( newnum == MAX_EDICTS ) {
+			break;
+		}
+		if( newnum > MAX_EDICTS ) {
 			Com_Error( "CL_ParsePacketEntities: bad number:%i", newnum );
 		}
 		if( msg->readcount > msg->cursize ) {
 			Com_Error( "CL_ParsePacketEntities: end of message" );
-		}
-
-		if( !newnum ) {
-			break;
 		}
 
 		while( oldnum < newnum ) {

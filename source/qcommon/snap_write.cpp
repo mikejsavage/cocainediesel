@@ -83,7 +83,7 @@ static void SNAP_EmitPacketEntities( ginfo_t *gi, client_snapshot_t *from, clien
 		}
 	}
 
-	MSG_WriteEntityNumber( msg, 0, false ); // end of packetentities
+	MSG_WriteEntityNumber( msg, MAX_EDICTS, false ); // end of packetentities
 }
 
 static void SNAP_WriteDeltaGameStateToClient( client_snapshot_t *from, client_snapshot_t *to, msg_t *msg ) {
@@ -326,12 +326,9 @@ static bool SNAP_AddEntNumToSnapList( int entNum, snapshotEntityNumbers_t *entLi
 }
 
 static void SNAP_SortSnapList( snapshotEntityNumbers_t *entsList ) {
-	int i;
-
 	entsList->numSnapshotEntities = 0;
 
-	// avoid adding world to the list by all costs
-	for( i = 1; i < MAX_EDICTS; i++ ) {
+	for( int i = 0; i < MAX_EDICTS; i++ ) {
 		if( entsList->entityAddedToSnapList[i >> 3] & (1 << (i & 7)) ) {
 			entsList->snapshotEntities[entsList->numSnapshotEntities++] = i;
 		}
@@ -414,7 +411,7 @@ static bool SNAP_SnapCullEntity( edict_t *ent, edict_t *clent, client_snapshot_t
 
 static void SNAP_AddEntitiesVisibleAtOrigin( ginfo_t *gi, edict_t *clent, Vec3 vieworg, client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
 	// add the entities to the list
-	for( int entNum = 1; entNum < gi->num_edicts; entNum++ ) {
+	for( int entNum = 0; entNum < gi->num_edicts; entNum++ ) {
 		edict_t * ent = EDICT_NUM( entNum );
 
 		// fix number if broken

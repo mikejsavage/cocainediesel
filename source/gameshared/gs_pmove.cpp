@@ -339,7 +339,7 @@ static void PM_Aircontrol( Vec3 wishdir, float wishspeed ) {
 	float zspeed = pml.velocity.z;
 	pml.velocity.z = 0;
 	float speed = Length( pml.velocity );
-	pml.velocity = Normalize( pml.velocity );
+	pml.velocity = SafeNormalize( pml.velocity );
 
 	float dot = Dot( pml.velocity, wishdir );
 	float k = pm_aircontrol * dot * dot * pml.frametime;
@@ -475,7 +475,7 @@ static void PM_GroundTrace( trace_t *trace ) {
 
 static bool PM_GoodPosition( Vec3 origin, trace_t *trace ) {
 	pmove_gs->api.Trace( trace, origin, pm->mins, pm->maxs, origin, pm->playerState->POVnum, pm->contentmask, 0 );
-	return trace->fraction > 0.0f;
+	return trace->ent == -1;
 }
 
 static void PM_UnstickPosition( trace_t *trace ) {

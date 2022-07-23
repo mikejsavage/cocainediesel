@@ -226,17 +226,15 @@ static trace_t FUCKING_HELL( const Ray & ray, const Shape & shape, const Interse
 	plane_reference_point += Support( shape, -intersection.normal );
 	trace.plane = PlaneFromNormalAndPoint( intersection.normal, plane_reference_point );
 
+	float rolled_back_fraction = trace.fraction;
+
 	constexpr float epsilon = 1.0f / 32.0f;
 	if( intersection.normal != Vec3( 0.0f ) ) {
-		trace.fraction += epsilon / Dot( ray.direction, intersection.normal );
-		trace.fraction = Max2( trace.fraction, 0.0f );
-	}
-	else {
-		// TODO: check this is consistent with the old code
-		trace.fraction = Max2( trace.fraction - epsilon, 0.0f );
+		rolled_back_fraction += epsilon / Dot( ray.direction, intersection.normal );
+		rolled_back_fraction = Max2( rolled_back_fraction, 0.0f );
 	}
 
-	trace.endpos = ray.origin + ray.direction * ray.length * trace.fraction;
+	trace.endpos = ray.origin + ray.direction * ray.length * rolled_back_fraction;
 
 	return trace;
 }

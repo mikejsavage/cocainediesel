@@ -40,6 +40,8 @@ static bool Contains( const MinMax3 & aabb, Vec3 p ) {
 
 bool RayVsAABB( const Ray & ray, const MinMax3 & aabb, Intersection * enter_out, Intersection * leave_out ) {
 	if( ray.length == 0.0f ) {
+		*enter_out = { };
+		*leave_out = { };
 		return Contains( aabb, ray.origin );
 	}
 

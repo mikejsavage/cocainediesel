@@ -106,7 +106,7 @@ static int PM_SlideMove() {
 
 		trace_t trace;
 		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
-		if( trace.fraction == 0.0f ) { // trapped into a solid
+		if( trace.fraction == 0.0f && trace.plane.normal == Vec3( 0.0f ) ) { // trapped into a solid
 			pml.origin = last_valid_origin;
 			return SLIDEMOVEFLAG_TRAPPED;
 		}
@@ -521,8 +521,6 @@ static void PM_CategorizePosition() {
 		}
 
 		pml.groundplane = trace.plane;
-		pml.groundsurfFlags = trace.surfFlags;
-		pml.groundcontents = trace.contents;
 
 		if( trace.fraction == 1 || !ISWALKABLEPLANE( &trace.plane ) ) {
 			pm->groundentity = -1;

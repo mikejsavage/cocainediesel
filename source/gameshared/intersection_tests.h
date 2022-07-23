@@ -36,6 +36,7 @@ Ray MakeRayOriginDirection( Vec3 origin, Vec3 direction, float length );
 Ray MakeRayStartEnd( Vec3 start, Vec3 end );
 
 MinMax3 MinkowskiSum( const MinMax3 & bounds, const Shape & shape );
+float Support( const Shape & shape, Vec3 dir );
 
 bool RayVsAABB( const Ray & ray, const MinMax3 & aabb, Intersection * enter, Intersection * leave );
 bool RayVsSphere( const Ray & ray, const Sphere & sphere, float * t );

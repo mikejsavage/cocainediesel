@@ -217,6 +217,30 @@ trace_t MakeMissedTrace( const Ray & ray ) {
 	return trace;
 }
 
+static trace_t FUCKING_HELL( const Ray & ray, const Shape & shape, const Intersection & intersection, int ent ) {
+	trace_t trace = { };
+	trace.fraction = ray.length == 0.0f ? 1.0f : intersection.t / ray.length;
+	trace.ent = ent;
+
+	Vec3 plane_reference_point = ray.origin + ray.direction * ray.length * trace.fraction;
+	plane_reference_point += Support( shape, -intersection.normal );
+	trace.plane = PlaneFromNormalAndPoint( intersection.normal, plane_reference_point );
+
+	constexpr float epsilon = 1.0f / 32.0f;
+	if( intersection.normal != Vec3( 0.0f ) ) {
+		trace.fraction += epsilon / Dot( ray.direction, intersection.normal );
+		trace.fraction = Max2( trace.fraction, 0.0f );
+	}
+	else {
+		// TODO: check this is consistent with the old code
+		trace.fraction = Max2( trace.fraction - epsilon, 0.0f );
+	}
+
+	trace.endpos = ray.origin + ray.direction * ray.length * trace.fraction;
+
+	return trace;
+}
+
 trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent ) {
 	trace_t trace = MakeMissedTrace( ray );
 
@@ -239,24 +263,23 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 			return trace;
 		const MapSharedCollisionData * map = FindMapSharedCollisionData( storage, map_model->base_hash );
 
+		if( break2 ) __debugbreak();
 		Intersection intersection;
 		if( SweptShapeVsMapModel( &map->data, &map->data.models[ map_model->sub_model ], object_space_ray, shape, &intersection ) ) {
-			trace.fraction = ray.length == 0.0f ? 1.0f : intersection.t / ray.length;
-			trace.plane = { intersection.normal, Dot( trace.endpos, intersection.normal ) };
-			trace.surfFlags = 0; // TODO
-			trace.contents = 0; // TODO
-			trace.ent = ent->number;
+			trace = FUCKING_HELL( ray, shape, intersection, ent->number );
 		}
 	}
 	else if( shape.type == ShapeType_AABB ) {
 		assert( collision_model.type == CollisionModelType_AABB );
+
+		MinMax3 object_space_aabb = ToMinMax( shape.aabb );
+		object_space_aabb.mins += object_space_origin;
+		object_space_aabb.maxs += object_space_origin;
+
 		Intersection intersection;
-		if( SweptAABBVsAABB( ToMinMax( shape.aabb ), ray.direction * ray.length, collision_model.aabb, Vec3( 0.0f ), &intersection ) ) {
-			trace.fraction = intersection.t / ( ray.length == 0.0f ? 1.0f : ray.length );
-			trace.plane = { intersection.normal, Dot( trace.endpos, intersection.normal ) };
-			trace.surfFlags = 0; // TODO
-			trace.contents = 0; // TODO
-			trace.ent = ent->number;
+		if( SweptAABBVsAABB( object_space_aabb, ray.direction * ray.length, collision_model.aabb, Vec3( 0.0f ), &intersection ) ) {
+			intersection.t *= ray.length; // TODO: make this consistent with the rest...
+			trace = FUCKING_HELL( ray, shape, intersection, ent->number );
 		}
 	}
 	else {
@@ -269,45 +292,25 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 			case CollisionModelType_AABB: {
 				Intersection enter, leave;
 				if( RayVsAABB( object_space_ray, collision_model.aabb, &enter, &leave ) ) {
-					trace.fraction = ray.length == 0.0f ? 1.0f : enter.t / ray.length;
-					trace.plane = { leave.normal, Dot( trace.endpos, leave.normal ) };
-					trace.surfFlags = 0; // TODO
-					trace.contents = 0; // TODO
-					trace.ent = ent->number;
+					trace = FUCKING_HELL( ray, shape, enter, ent->number );
 				}
 			} break;
 
 			case CollisionModelType_Sphere: {
 				float t;
 				if( RayVsSphere( object_space_ray, collision_model.sphere, &t ) ) {
-					trace.fraction = ray.length == 0.0f ? 1.0f : t / ray.length;
-					trace.plane = { };
-					trace.surfFlags = 0; // TODO
-					trace.contents = 0; // TODO
-					trace.ent = ent->number;
+					trace = FUCKING_HELL( ray, shape, { t }, ent->number );
 				}
 			} break;
 
 			case CollisionModelType_Capsule: {
 				float t;
 				if( RayVsCapsule( object_space_ray, collision_model.capsule, &t ) ) {
-					trace.fraction = ray.length == 0.0f ? 1.0f : t / ray.length;
-					trace.plane = { };
-					trace.surfFlags = 0; // TODO
-					trace.contents = 0; // TODO
-					trace.ent = ent->number;
+					trace = FUCKING_HELL( ray, shape, { t }, ent->number );
 				}
 			} break;
 		}
 	}
-
-	if( trace.plane.normal != Vec3( 0.0f ) ) {
-		constexpr float epsilon = 1.0f / 32.0f;
-		trace.fraction += epsilon / Dot( ray.direction, trace.plane.normal );
-		trace.fraction = Max2( trace.fraction, 0.0f );
-	}
-
-	trace.endpos = ray.origin + ray.direction * ray.length * trace.fraction;
 
 	return trace;
 }

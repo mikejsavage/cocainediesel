@@ -212,7 +212,7 @@ MinMax3 MinkowskiSum( const MinMax3 & bounds, const Shape & shape ) {
 	return MinMax3::Empty();
 }
 
-static float Support( const Shape & shape, Vec3 dir ) {
+float Support( const Shape & shape, Vec3 dir ) {
 	switch( shape.type ) {
 		case ShapeType_Ray:
 			return 0.0f;
@@ -409,10 +409,16 @@ static bool Intersecting( const MinMax3 & a, const MinMax3 & b ) {
 	return true;
 }
 
+static Vec3 MakeNormal( int axis, bool positive ) {
+	Vec3 n = Vec3( 0.0f );
+	n[ axis ] = positive ? 1.0f : -1.0f;
+	return n;
+}
+
 // see RTCD
 bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, Intersection * intersection ) {
 	if( Intersecting( a, b ) ) {
-		*intersection = { 0.0f };
+		*intersection = { };
 		return true;
 	}
 
@@ -422,13 +428,16 @@ bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, In
 
 	float t_min = 0.0f;
 	float t_max = 1.0f;
+	Vec3 intersection_normal = Vec3( 0.0f );
 
 	for( int i = 0; i < 3; i++ ) {
 		if( v[ i ] < 0.0f ) {
 			if( b.maxs[ i ] < a.mins[ i ] )
 				return false;
-			if( a.maxs[ i ] < b.mins[ i ] )
+			if( a.maxs[ i ] < b.mins[ i ] ) {
 				t_min = Max2( ( a.maxs[ i ] - b.mins[ i ] ) / v[ i ], t_min );
+				intersection_normal = MakeNormal( i, true );
+			}
 			if( b.maxs[ i ] > a.mins[ i ] )
 				t_max = Min2( ( a.mins[ i ] - b.maxs[ i ] ) / v[ i ], t_max );
 		}
@@ -436,8 +445,10 @@ bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, In
 		if( v[ i ] > 0.0f ) {
 			if( b.mins[ i ] > a.maxs[ i ] )
 				return false;
-			if( b.maxs[ i ] < a.mins[ i ] )
+			if( b.maxs[ i ] < a.mins[ i ] ) {
 				t_min = Max2( ( a.mins[ i ] - b.maxs[ i ] ) / v[ i ], t_min );
+				intersection_normal = MakeNormal( i, false );
+			}
 			if( a.maxs[ i ] > b.mins[ i ] )
 				t_max = Min2( ( a.maxs[ i ] - b.mins[ i ] ) / v[ i ], t_max );
 		}
@@ -445,6 +456,8 @@ bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, In
 		if( t_min > t_max )
 			return false;
 	}
+
+	*intersection = { t_min, intersection_normal };
 
 	return true;
 }

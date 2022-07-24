@@ -35,6 +35,8 @@ static void CheckMultiError( const char * func, CURLMcode err ) {
 }
 
 void InitDownloads() {
+	TracyZoneScoped;
+
 	curl_global_init( CURL_GLOBAL_DEFAULT );
 	curl = curl_multi_init();
 	if( curl == NULL ) {

@@ -24,6 +24,8 @@ static Locked< MasterServers > locked_master_servers;
 static NonRAIIDynamicArray< ServerBrowserEntry > servers;
 
 void InitServerBrowser() {
+	TracyZoneScoped;
+
 	locked_master_servers.data = { };
 	locked_master_servers.mutex = NewMutex();
 

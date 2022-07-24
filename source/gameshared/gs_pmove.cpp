@@ -510,6 +510,7 @@ static void PM_CategorizePosition() {
 		pm->groundentity = -1;
 	}
 	else {
+		if( break3 ) __debugbreak();
 		trace_t trace;
 
 		// see if standing on something solid

@@ -211,6 +211,8 @@ static void CL_Connect_f() {
 
 
 void CL_ClearState() {
+	TracyZoneScoped;
+
 	// wipe the entire cl structure
 	memset( &cl, 0, sizeof( client_state_t ) );
 	memset( cl_baselines, 0, sizeof( cl_baselines ) );

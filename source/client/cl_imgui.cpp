@@ -32,6 +32,8 @@ struct GLFWwindow;
 extern GLFWwindow * window;
 
 void CL_InitImGui() {
+	TracyZoneScoped;
+
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGui_ImplGlfw_InitForOpenGL( window, false );

@@ -713,9 +713,6 @@ static void ServerBrowser() {
 
 	Span< const ServerBrowserEntry > servers = GetServerBrowserEntries();
 	for( size_t i = 0; i < servers.n; i++ ) {
-		if( !servers[ i ].have_details )
-			continue;
-
 		if( ImGui::Selectable( servers[ i ].name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
 			if( ImGui::IsMouseDoubleClicked( 0 ) ) {
 				CL_Connect( servers[ i ].address );

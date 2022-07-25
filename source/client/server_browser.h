@@ -5,8 +5,7 @@
 
 struct ServerBrowserEntry {
 	NetAddress address;
-
-	bool have_details;
+	u64 id;
 	char name[ 128 ];
 	char map[ 64 ];
 	int ping;

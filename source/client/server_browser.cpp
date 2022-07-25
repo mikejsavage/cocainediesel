@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "qcommon/base.h"
 #include "qcommon/array.h"
 #include "qcommon/locked.h"
@@ -115,11 +117,14 @@ void RefreshServerBrowser() {
 }
 
 void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	MSG_BeginReading( msg );
 	MSG_ReadInt32( msg ); // skip the -1
 	MSG_SkipData( msg, strlen( allow_ipv6 ? "getserversExtResponse" : "getServersResponse" ) );
 
-	size_t old_num_servers = servers.size();
+	DynamicArray< NetAddress > game_servers_to_query( &temp );
+
 	bool ok = false;
 
 	while( true ) {
@@ -156,66 +161,60 @@ void ParseMasterServerResponse( msg_t * msg, bool allow_ipv6 ) {
 			break;
 		}
 
-		bool is_new = true;
-		for( const ServerBrowserEntry & server : servers ) {
-			if( server.address == address ) {
-				is_new = false;
-				break;
-			}
-		}
-
-		if( is_new ) {
-			ServerBrowserEntry server = { };
-			server.address = address;
-			servers.add( server );
-		}
+		game_servers_to_query.add( address );
 	}
 
-	if( ok ) {
-		// query game servers
-		TempAllocator temp = cls.frame_arena.temp();
-		const char * query = temp( "info {}", cls.monotonicTime.flicks );
-
-		for( size_t i = old_num_servers; i < servers.size(); i++ ) {
-			NetAddress address = servers[ i ].address;
-			Netchan_OutOfBandPrint( cls.socket, address, "%s", query );
-		}
+	if( !ok ) {
+		return;
 	}
-	else {
-		servers.resize( old_num_servers );
+
+	std::sort( game_servers_to_query.begin(), game_servers_to_query.end(), []( const NetAddress & a, const NetAddress & b ) {
+		if( a.family != b.family )
+			return a.family < b.family;
+		if( a.port != b.port )
+			return a.port < b.port;
+		int cmp = a.family == AddressFamily_IPv4 ? memcmp( a.ipv4.ip, b.ipv4.ip, sizeof( a.ipv4.ip ) ) : memcmp( a.ipv6.ip, b.ipv6.ip, sizeof( a.ipv6.ip ) );
+		return cmp < 0;
+	} );
+
+	const char * query = temp( "info {}", cls.monotonicTime.flicks );
+	for( size_t i = 0; i < game_servers_to_query.size(); i++ ) {
+		if( i > 0 && game_servers_to_query[ i ] == game_servers_to_query[ i - 1 ] )
+			continue;
+		Netchan_OutOfBandPrint( cls.socket, game_servers_to_query[ i ], "%s", query );
 	}
 }
 
 void ParseGameServerResponse( msg_t * msg, const NetAddress & address ) {
+	// parse the response
 	Time timestamp;
 	char name[ 128 ];
 	char map[ 32 ];
 	int num_players;
 	int max_players;
+	u64 server_id;
 
 	const char * info = MSG_ReadString( msg );
-	int parsed = sscanf( info, "%" SCNu64 "\\\\n\\\\%127[^\\]\\\\m\\\\%31[^\\]\\\\u\\\\%d/%d\\\\EOT", &timestamp.flicks, name, map, &num_players, &max_players );
-	if( parsed != 5 ) {
+	int parsed = sscanf( info, "%" SCNu64 "\\\\n\\\\%127[^\\]\\\\m\\\\%31[^\\]\\\\u\\\\%d/%d\\\\id\\\\%" SCNu64 "\\\\EOT",
+		&timestamp.flicks, name, map, &num_players, &max_players, &server_id );
+	if( parsed != 6 ) {
 		return;
 	}
 
-	ServerBrowserEntry * server = NULL;
-	for( ServerBrowserEntry & s : servers ) {
-		if( s.address == address ) {
-			server = &s;
-			break;
+	// dedupe by address and also dedupe ipv4/ipv6 by serverid
+	for( const ServerBrowserEntry & other : servers ) {
+		if( other.id == server_id || other.address == address ) {
+			return;
 		}
 	}
 
-	if( server == NULL ) {
-		server = servers.add();
-		server->address = address;
-	}
+	ServerBrowserEntry server = { };
+	server.id = server_id;
+	Q_strncpyz( server.name, name, sizeof( server.name ) );
+	Q_strncpyz( server.map, map, sizeof( server.map ) );
+	server.ping = ToSeconds( Min2( cls.monotonicTime - timestamp, Milliseconds( 9999 ) ) ) * 1000.0f;
+	server.num_players = num_players;
+	server.max_players = max_players;
 
-	server->have_details = true;
-	Q_strncpyz( server->name, name, sizeof( server->name ) );
-	Q_strncpyz( server->map, map, sizeof( server->map ) );
-	server->ping = ToSeconds( Min2( cls.monotonicTime - timestamp, Milliseconds( 9999 ) ) ) * 1000.0f;
-	server->num_players = num_players;
-	server->max_players = max_players;
+	servers.add( server );
 }

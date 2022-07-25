@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server/server.h"
 #include "qcommon/version.h"
+#include "qcommon/string.h"
 #include "qcommon/time.h"
 
 struct SvMasterServer {
@@ -175,66 +176,6 @@ static char *SV_LongInfoString( bool fullStatus ) {
 	return status;
 }
 
-/*
-* SV_ShortInfoString
-* Generates a short info string for broadcast scan replies
-*/
-#define MAX_STRING_SVCINFOSTRING 180
-#define MAX_SVCINFOSTRING_LEN ( MAX_STRING_SVCINFOSTRING - 4 )
-static char *SV_ShortInfoString() {
-	static char string[MAX_STRING_SVCINFOSTRING];
-	char hostname[64];
-	char entry[20];
-
-	int bots = 0;
-	int count = 0;
-	for( int i = 0; i < sv_maxclients->integer; i++ ) {
-		if( svs.clients[i].state >= CS_CONNECTED ) {
-			if( svs.clients[i].edict->s.svflags & SVF_FAKECLIENT ) {
-				bots++;
-			} else {
-				count++;
-			}
-		}
-	}
-	int maxcount = sv_maxclients->integer - bots;
-
-	//format:
-	//" \377\377\377\377info\\n\\server_name\\m\\map name\\u\\clients/maxclients\\EOT "
-
-	Q_strncpyz( hostname, sv_hostname->value, sizeof( hostname ) );
-	snprintf( string, sizeof( string ),
-				 "\\\\n\\\\%s\\\\m\\\\%s\\\\u\\\\%2i/%2i\\\\",
-				 hostname,
-				 sv.mapname,
-				 Min2( count, 99 ),
-				 Min2( maxcount, 99 )
-				 );
-
-	size_t len = strlen( string );
-
-	const char * password = Cvar_String( "sv_password" );
-	if( password[0] != '\0' ) {
-		snprintf( entry, sizeof( entry ), "p\\\\1\\\\" );
-		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {
-			Q_strncatz( string, entry, sizeof( string ) );
-			len = strlen( string );
-		}
-	}
-
-	if( bots ) {
-		snprintf( entry, sizeof( entry ), "b\\\\%2i\\\\", Min2( bots, 99 ) );
-		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {
-			Q_strncatz( string, entry, sizeof( string ) );
-			len = strlen( string );
-		}
-	}
-
-	// finish it
-	Q_strncatz( string, "EOT", sizeof( string ) );
-	return string;
-}
-
 //==============================================================================
 //
 //OUT OF BAND COMMANDS
@@ -243,10 +184,39 @@ static char *SV_ShortInfoString() {
 
 static void SVC_InfoResponse( const NetAddress & address ) {
 	if( sv_showInfoQueries->integer ) {
-		Com_GGPrint( "Info Packet {}", address );
+		Com_GGPrint( "Info Packet {} {}", address, Cmd_Argv( 1 ) );
 	}
 
-	Netchan_OutOfBandPrint( svs.socket, address, "info\n%s%s", Cmd_Argv( 1 ), SV_ShortInfoString() );
+	int num_players = 0;
+	int num_bots = 0;
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		if( svs.clients[i].state >= CS_CONNECTED ) {
+			if( svs.clients[i].edict->s.svflags & SVF_FAKECLIENT ) {
+				num_bots++;
+			}
+			else {
+				num_players++;
+			}
+		}
+	}
+	int max_players = sv_maxclients->integer - num_bots;
+
+	String< 256 > response( "info\n{}\\\\n\\\\{}\\\\m\\\\{}\\\\u\\\\{}/{}\\\\id\\\\{}",
+		Cmd_Argv( 1 ),
+		Cvar_String( "sv_hostname" ),
+		sv.mapname,
+		Min2( num_players, 99 ),
+		Min2( max_players, 99 ),
+		Cvar_String( "serverid" )
+	);
+
+	if( strlen( Cvar_String( "sv_password" ) ) > 0 ) {
+		response += "\\\\p\\\\1";
+	}
+
+	response += "\\\\EOT";
+
+	Netchan_OutOfBandPrint( svs.socket, address, "%s", response.c_str() );
 }
 
 static void MasterOrLivesowResponse( const NetAddress & address, const char * command, bool include_players ) {

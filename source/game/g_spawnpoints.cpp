@@ -22,7 +22,7 @@ void DropSpawnToFloor( edict_t * ent ) {
 	Com_GGPrint( "drop spawn from {} to {}", ent->s.origin, tr.endpos );
 
 	// move it 1 unit away from the plane
-	ent->s.origin = tr.endpos + tr.plane.normal;
+	ent->s.origin = tr.endpos + tr.normal;
 }
 
 void SelectSpawnPoint( const edict_t * ent, const edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles ) {

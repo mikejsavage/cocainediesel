@@ -52,7 +52,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 struct trace_t {
 	float fraction;             // time completed, 1.0 = didn't hit anything
 	Vec3 endpos;              // final position
-	Plane plane;             // surface normal at impact
+	Vec3 contact;
+	Vec3 normal;             // surface normal at impact
 	int surfFlags;              // surface hit
 	int contents;               // contents on other side of surface hit
 	int ent;                    // not set by CM_*() functions

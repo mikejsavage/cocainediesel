@@ -335,13 +335,13 @@ void G_CallThink( edict_t *ent ) {
 	}
 }
 
-void G_CallTouch( edict_t *self, edict_t *other, Plane plane, int surfFlags ) {
+void G_CallTouch( edict_t *self, edict_t *other, Vec3 normal, int surfFlags ) {
 	if( self == other ) {
 		return;
 	}
 
 	if( self->touch ) {
-		self->touch( self, other, plane, surfFlags );
+		self->touch( self, other, normal, surfFlags );
 	}
 }
 
@@ -684,7 +684,7 @@ void G_CheckGround( edict_t *ent ) {
 	Vec3 ground_point = ent->s.origin - Vec3( 0.0f, 0.0f, 0.25f );
 	G_Trace( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, ground_point, ent, G_SolidMaskForEnt( ent ) );
 
-	if( ent->velocity.z > up_speed_limit || !ISWALKABLEPLANE( &trace.plane ) ) {
+	if( ent->velocity.z > up_speed_limit || !ISWALKABLEPLANE( trace.normal ) ) {
 		ent->groundentity = NULL;
 		ent->groundentity_linkcount = 0;
 		return;

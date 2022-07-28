@@ -84,11 +84,11 @@ void SV_Impact( edict_t *e1, trace_t *trace ) {
 		e2 = &game.edicts[trace->ent];
 
 		if( e1->r.solid != SOLID_NOT ) {
-			G_CallTouch( e1, e2, trace->plane, trace->surfFlags );
+			G_CallTouch( e1, e2, trace->normal, trace->surfFlags );
 		}
 
 		if( e2->r.solid != SOLID_NOT ) {
-			G_CallTouch( e2, e1, Plane(), 0 );
+			G_CallTouch( e2, e1, Vec3( 0.0f ), 0 );
 		}
 	}
 }
@@ -427,7 +427,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 			restitution = 0.5f;
 		}
 
-		Vec3 impulse = -Dot( ent->velocity, trace.plane.normal ) * trace.plane.normal;
+		Vec3 impulse = -Dot( ent->velocity, trace.normal ) * trace.normal;
 		ent->velocity += ( 1.0f + restitution ) * impulse;
 
 		ent->num_bounces++;
@@ -440,8 +440,8 @@ static void SV_Physics_Toss( edict_t *ent ) {
 			// LA: hopefully will fix grenades bouncing down slopes
 			// method taken from Darkplaces sourcecode
 			if( trace.fraction == 0.0f ||
-				( ISWALKABLEPLANE( &trace.plane ) &&
-				  Abs( Dot( trace.plane.normal, ent->velocity ) ) < 40
+				( ISWALKABLEPLANE( trace.normal ) &&
+				  Abs( Dot( trace.normal, ent->velocity ) ) < 40
 				)
 			) {
 				ent->groundentity = &game.edicts[trace.ent];
@@ -454,7 +454,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 			// in movetype_toss things stop dead when touching ground
 
 			// walkable or trapped inside solid brush
-			if( trace.fraction == 0.0f || ISWALKABLEPLANE( &trace.plane ) ) {
+			if( trace.fraction == 0.0f || ISWALKABLEPLANE( trace.normal ) ) {
 				ent->groundentity = trace.ent < 0 ? world : &game.edicts[trace.ent];
 				ent->groundentity_linkcount = ent->groundentity->linkcount;
 				ent->velocity = Vec3( 0.0f );

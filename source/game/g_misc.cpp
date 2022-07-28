@@ -29,7 +29,7 @@ void ThrowSmallPileOfGibs( edict_t *self, Vec3 knockback, int damage ) {
 	event->s.origin2 = self->velocity + knockback;
 }
 
-static void path_corner_touch( edict_t *self, edict_t *other, Plane plane, int surfFlags ) {
+static void path_corner_touch( edict_t *self, edict_t *other, Vec3 normal, int surfFlags ) {
 	Vec3 v;
 	edict_t *next;
 

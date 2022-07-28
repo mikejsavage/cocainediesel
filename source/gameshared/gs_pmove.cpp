@@ -94,7 +94,7 @@ static int PM_SlideMove() {
 
 	if( pm->groundentity != -1 ) { // clip velocity to ground, no need to wait
 		// if the ground is not horizontal (a ramp) clipping will slow the player down
-		if( pml.groundplane.normal.z == 1.0f && pml.velocity.z < 0.0f ) {
+		if( pml.groundplane.z == 1.0f && pml.velocity.z < 0.0f ) {
 			pml.velocity.z = 0.0f;
 		}
 	}
@@ -124,7 +124,7 @@ static int PM_SlideMove() {
 		// at this point we are blocked but not trapped.
 
 		blockedmask |= SLIDEMOVEFLAG_BLOCKED;
-		if( trace.plane.normal.z < SLIDEMOVE_PLANEINTERACT_EPSILON ) { // is it a vertical wall?
+		if( trace.normal.z < SLIDEMOVE_PLANEINTERACT_EPSILON ) { // is it a vertical wall?
 			blockedmask |= SLIDEMOVEFLAG_WALL_BLOCKED;
 		}
 
@@ -137,8 +137,8 @@ static int PM_SlideMove() {
 		{
 			int i;
 			for( i = 0; i < numplanes; i++ ) {
-				if( Dot( trace.plane.normal, planes[i] ) > ( 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) ) {
-					pml.velocity = trace.plane.normal + pml.velocity;
+				if( Dot( trace.normal, planes[i] ) > ( 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) ) {
+					pml.velocity = trace.normal + pml.velocity;
 					break;
 				}
 			}
@@ -154,7 +154,7 @@ static int PM_SlideMove() {
 		}
 
 		// put the actual plane in the list
-		planes[numplanes] = trace.plane.normal;
+		planes[numplanes] = trace.normal;
 		numplanes++;
 
 		//
@@ -251,21 +251,21 @@ static void PM_StepSlideMove() {
 	float down_dist = LengthSquared( down_o.xy() - start_o.xy() );
 	float up_dist = LengthSquared( up.xy() - start_o.xy() );
 
-	if( down_dist >= up_dist || ( trace.fraction != 1.0f && !ISWALKABLEPLANE( &trace.plane ) ) ) {
+	if( down_dist >= up_dist || ( trace.fraction != 1.0f && !ISWALKABLEPLANE( trace.normal ) ) ) {
 		pml.origin = down_o;
 		pml.velocity = down_v;
 		return;
 	}
 
 	// only add the stepping output when it was a vertical step (second case is at the exit of a ramp)
-	if( ( blocked & SLIDEMOVEFLAG_WALL_BLOCKED ) || trace.plane.normal.z == 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+	if( ( blocked & SLIDEMOVEFLAG_WALL_BLOCKED ) || trace.normal.z == 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 		pm->step = pml.origin.z - pml.previous_origin.z;
 	}
 
 	// Preserve speed when sliding up ramps
 	float hspeed = Length( start_v.xy() );
-	if( hspeed && ISWALKABLEPLANE( &trace.plane ) ) {
-		if( trace.plane.normal.z >= 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
+	if( hspeed && ISWALKABLEPLANE( trace.normal ) ) {
+		if( trace.normal.z >= 1.0f - SLIDEMOVE_PLANEINTERACT_EPSILON ) {
 			pml.velocity = start_v;
 		} else {
 			Normalize2D( &pml.velocity );
@@ -521,9 +521,9 @@ static void PM_CategorizePosition() {
 			PM_UnstickPosition( &trace );
 		}
 
-		pml.groundplane = trace.plane;
+		pml.groundplane = trace.normal;
 
-		if( trace.fraction == 1 || !ISWALKABLEPLANE( &trace.plane ) ) {
+		if( trace.fraction == 1 || !ISWALKABLEPLANE( trace.normal ) ) {
 			pm->groundentity = -1;
 			pm->playerState->pmove.pm_flags &= ~PMF_ON_GROUND;
 		}

@@ -194,10 +194,6 @@ EulerDegrees2 AngleDelta( EulerDegrees2 a, EulerDegrees2 b ) {
 	return EulerDegrees2( AngleDelta( a.pitch, b.pitch ), AngleDelta( a.yaw, b.yaw ) );
 }
 
-Plane PlaneFromNormalAndPoint( Vec3 normal, Vec3 p ) {
-	return { normal, Dot( normal, p ) };
-}
-
 void ClearBounds( Vec3 * mins, Vec3 * maxs ) {
 	*mins = Vec3( 999999.0f );
 	*maxs = Vec3( -999999.0f );

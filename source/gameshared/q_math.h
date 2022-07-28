@@ -70,8 +70,6 @@ Vec3 VecToAngles( Vec3 vec );
 void AnglesToAxis( Vec3 angles, mat3_t axis );
 void OrthonormalBasis( Vec3 v, Vec3 * tangent, Vec3 * bitangent );
 
-Plane PlaneFromNormalAndPoint( Vec3 normal, Vec3 p );
-
 void Matrix3_Identity( mat3_t m );
 void Matrix3_Copy( const mat3_t m1, mat3_t m2 );
 void Matrix3_Multiply( const mat3_t m1, const mat3_t m2, mat3_t out );

@@ -111,7 +111,7 @@ void DrawGibs() {
 		else if( trace.fraction != 1.0f ) {
 			gib->lifetime = 0;
 
-			GibImpact( trace.endpos, trace.plane.normal, gib->color, gib->scale );
+			GibImpact( trace.endpos, trace.normal, gib->color, gib->scale );
 		}
 
 		gib->lifetime -= dt;

@@ -24,7 +24,7 @@ bool G_IsTeamDamage( SyncEntityState * target, SyncEntityState * attacker ) {
 	return target->number != attacker->number && target->team == attacker->team;
 }
 
-static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, Plane plane, Vec3 pos, int timeDelta ) {
+static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, Vec3 normal, Vec3 pos, int timeDelta ) {
 	constexpr float SPLASH_DAMAGE_TRACE_FRAC_EPSILON = 1.0f / 32.0f;
 
 	trace_t trace;
@@ -42,7 +42,7 @@ static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, Plane plane, V
 	}
 
 	// up by 9 units to account for stairs
-	Vec3 origin = pos + plane.normal * 9.0f;
+	Vec3 origin = pos + normal * 9.0f;
 
 	// This is for players
 	G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), targ->s.origin, inflictor, MASK_SOLID, timeDelta );
@@ -392,7 +392,7 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 	*pushdir = SafeNormalize( center_of_mass - point );
 }
 
-void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t *attacker, Vec3 pos, Plane plane, int timeDelta ) {
+void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t *attacker, Vec3 pos, Vec3 normal, int timeDelta ) {
 	assert( radius >= 0.0f );
 	assert( minknockback >= 0.0f && maxknockback >= 0.0f );
 
@@ -410,14 +410,14 @@ void G_RadiusKnockback( float maxknockback, float minknockback, float radius, ed
 		if( frac == 0.0f )
 			continue;
 
-		if( G_CanSplashDamage( ent, NULL, plane, pos, timeDelta ) ) {
+		if( G_CanSplashDamage( ent, NULL, normal, pos, timeDelta ) ) {
 			float knockback = Lerp( minknockback, frac, maxknockback );
 			G_KnockBackPush( ent, attacker, pushDir, knockback, 0 );
 		}
 	}
 }
 
-void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Plane plane, edict_t *ignore, DamageType damage_type ) {
+void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Vec3 normal, edict_t *ignore, DamageType damage_type ) {
 	assert( inflictor );
 
 	float maxdamage = inflictor->projectileInfo.maxDamage;
@@ -452,7 +452,7 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Plane plane, edict_t
 		if( frac == 0.0f )
 			continue;
 
-		if( G_CanSplashDamage( ent, inflictor, plane, inflictor->s.origin, inflictor->timeDelta ) ) {
+		if( G_CanSplashDamage( ent, inflictor, normal, inflictor->s.origin, inflictor->timeDelta ) ) {
 			float damage = Lerp( mindamage, frac, maxdamage );
 			float knockback = Lerp( minknockback, frac, maxknockback );
 			G_Damage( ent, inflictor, attacker, pushDir, inflictor->velocity, inflictor->s.origin, damage, knockback, DAMAGE_RADIUS, damage_type );

@@ -28,7 +28,7 @@ void RailgunImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 color ) {
 
 static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
 	// decal_lifetime_scale is a shitty hack to help reduce decal spam with shotgun
-	DoVisualEffect( "vfx/bullet_impact", trace->endpos, trace->plane.normal, num_particles, color, decal_lifetime_scale );
+	DoVisualEffect( "vfx/bullet_impact", trace->endpos, trace->normal, num_particles, color, decal_lifetime_scale );
 }
 
 static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
@@ -36,7 +36,7 @@ static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles
 	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
 		return;
 
-	DoVisualEffect( "vfx/wallbang_impact", trace->endpos, trace->plane.normal, num_particles, color, decal_lifetime_scale );
+	DoVisualEffect( "vfx/wallbang_impact", trace->endpos, trace->normal, num_particles, color, decal_lifetime_scale );
 }
 
 static Mat4 GetMuzzleTransform( int ent ) {
@@ -63,7 +63,7 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin )
 	trace_t trace;
 	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.view.POVent, MASK_WALLBANG );
 	if( trace.ent != -1 ) {
-		RailgunImpact( trace.endpos, trace.plane.normal, trace.surfFlags, color );
+		RailgunImpact( trace.endpos, trace.normal, trace.surfFlags, color );
 	}
 
 	if( from_origin ) {
@@ -120,7 +120,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 
 		Vec4 color = CG_TeamColorVec4( cent->current.team );
 		DrawDynamicLight( trace->endpos, color, 10000.0f );
-		DoVisualEffect( "weapons/lg/tip_hit", trace->endpos, trace->plane.normal, 1.0f, color );
+		DoVisualEffect( "weapons/lg/tip_hit", trace->endpos, trace->normal, 1.0f, color );
 
 		cent->lg_tip_sound = PlayImmediateSFX( "weapons/lg/tip_hit", cent->lg_tip_sound, PlaySFXConfigPosition( trace->endpos ) );
 	}, cent );
@@ -924,7 +924,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 					float min_size = Lerp( 20.0f, Unlerp01( 5, damage, 50 ), 64.0f );
 					float size = min_size * RandomUniformFloat( &cls.rng, 0.75f, 1.5f );
 
-					AddPersistentDecal( trace.endpos, trace.plane.normal, size, angle, RandomElement( &cls.rng, decals ), team_color, 30000, 10.0f );
+					AddPersistentDecal( trace.endpos, trace.normal, size, angle, RandomElement( &cls.rng, decals ), team_color, 30000, 10.0f );
 				}
 
 				p -= 1.0f;

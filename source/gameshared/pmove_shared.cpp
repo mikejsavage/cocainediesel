@@ -35,7 +35,7 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 		trace_t trace;
 		pmove_gs->api.Trace( &trace, pml->origin, mins, maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
 
-		if( trace.plane.normal == Vec3( 0.0f ) )
+		if( trace.normal == Vec3( 0.0f ) )
 			return;
 
 		if( trace.fraction == 1 )
@@ -47,9 +47,9 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 				continue;
 		}
 
-		if( dist > trace.fraction && Abs( trace.plane.normal.z ) < maxZnormal ) {
+		if( dist > trace.fraction && Abs( trace.normal.z ) < maxZnormal ) {
 			dist = trace.fraction;
-			*normal = trace.plane.normal;
+			*normal = trace.normal;
 		}
 	}
 }
@@ -102,8 +102,8 @@ void Jump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerSta
 	pm->groundentity = -1;
 
 	// clip against the ground when jumping if moving that direction
-	if( pml->groundplane.normal.z > 0 && pml->velocity.z > 0 && Dot( pml->groundplane.normal.xy(), pml->velocity.xy() ) > 0 ) {
-		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane.normal, PM_OVERBOUNCE );
+	if( pml->groundplane.z > 0 && pml->velocity.z > 0 && Dot( pml->groundplane.xy(), pml->velocity.xy() ) > 0 ) {
+		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane, PM_OVERBOUNCE );
 	}
 
 	pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, JumpType_Normal );
@@ -115,8 +115,8 @@ void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir,
 	pm->groundentity = -1;
 
 	// clip against the ground when jumping if moving that direction
-	if( pml->groundplane.normal.z > 0 && pml->velocity.z < 0 && Dot( pml->groundplane.normal.xy(), pml->velocity.xy() ) > 0 ) {
-		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane.normal, PM_OVERBOUNCE );
+	if( pml->groundplane.z > 0 && pml->velocity.z < 0 && Dot( pml->groundplane.xy(), pml->velocity.xy() ) > 0 ) {
+		pml->velocity = GS_ClipVelocity( pml->velocity, pml->groundplane, PM_OVERBOUNCE );
 	}
 
 	dashdir.z = 0.0f;

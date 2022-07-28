@@ -16,7 +16,7 @@ struct pml_t {
 	// special handling for looking straight up or down
 	float frametime;
 
-	Plane groundplane;
+	Vec3 groundplane;
 
 	Vec3 previous_origin;
 	LadderMovement ladder;

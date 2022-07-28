@@ -220,21 +220,19 @@ trace_t MakeMissedTrace( const Ray & ray ) {
 static trace_t FUCKING_HELL( const Ray & ray, const Shape & shape, const Intersection & intersection, int ent ) {
 	trace_t trace = { };
 	trace.fraction = ray.length == 0.0f ? 1.0f : intersection.t / ray.length;
+	trace.normal = intersection.normal;
 	trace.ent = ent;
+	trace.contact = ray.origin + ray.direction * ray.length * trace.fraction + Support( shape, -trace.normal );
 
-	Vec3 plane_reference_point = ray.origin + ray.direction * ray.length * trace.fraction;
-	plane_reference_point += Support( shape, -intersection.normal );
-	trace.plane = PlaneFromNormalAndPoint( intersection.normal, plane_reference_point );
-
-	float rolled_back_fraction = trace.fraction;
-
+	// step back endpos slightly so objects don't get stuck inside each other
 	constexpr float epsilon = 1.0f / 32.0f;
+	float stepped_back_fraction = trace.fraction;
 	if( intersection.normal != Vec3( 0.0f ) ) {
-		rolled_back_fraction += epsilon / Dot( ray.direction, intersection.normal );
-		rolled_back_fraction = Max2( rolled_back_fraction, 0.0f );
+		stepped_back_fraction += epsilon / Dot( ray.direction, intersection.normal );
+		stepped_back_fraction = Max2( stepped_back_fraction, 0.0f );
 	}
 
-	trace.endpos = ray.origin + ray.direction * ray.length * rolled_back_fraction;
+	trace.endpos = ray.origin + ray.direction * ray.length * stepped_back_fraction;
 
 	return trace;
 }

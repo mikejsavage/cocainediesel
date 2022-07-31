@@ -157,47 +157,17 @@ bool RayVsCapsule( const Ray & ray, const Capsule & capsule, float * t ) {
 	return RayVsSphere( ray, cap, t );
 }
 
-/*
-float capIntersect( Vec3 ro, Vec3 rd, Vec3 pa, Vec3 pb, float r )
-{
-	vec3 d = pb - pa;
-	vec3 m = ro - pa;
-	float dd = dot(d,d);
-	float nd = dot(n,d);
-	float md = dot(m,d);
-	float nm = dot(n,m);
-	float mm = dot(m,m);
-	float nn = 1;
-	float a = dd*nn - nd*nd;
-	float b = dd*nm - md*nd;
-	float c = dd*mm - md*md - r*r*dd; // = dd * k - md * md, where k = mm - r*r
-	float h = b*b - a*c;
-	if( h >= 0.0 )
-	{
-		float t = (-b-sqrt(h))/a;
-		float y = md + t*nd;
-		if( y>0.0 && y<dd ) return t;
-		Vec3 oc = (y <= 0.0) ? m : ro - pb;
-		b = dot(n,oc);
-		c = dot(oc,oc) - r*r;
-		h = b*b - c;
-		if( h>0.0 ) return -b - sqrt(h);
-	}
-	return -1.0;
-}
-*/
-
 static MinMax3 MinkowskiSum( const MinMax3 & bounds1, const CenterExtents3 & bounds2 ) {
-	return MinMax3( bounds1.mins - bounds2.extents, bounds1.maxs + bounds2.extents );
+	return MinMax3( bounds1.mins + bounds2.center - bounds2.extents, bounds1.maxs - bounds2.center + bounds2.extents );
 }
 
-// TODO look at center too
 static float Support( const CenterExtents3 & aabb, Vec3 dir ) {
-	return Abs( aabb.extents.x * dir.x ) + Abs( aabb.extents.y * dir.y ) + Abs( aabb.extents.z * dir.z );
+	return Abs( aabb.extents.x * dir.x ) + Abs( aabb.extents.y * dir.y ) + Abs( aabb.extents.z * dir.z )
+		+ Abs( aabb.center.x * dir.x ) + Abs( aabb.center.y * dir.y ) + Abs( aabb.center.z * dir.z );
 }
 
 static float AxialSupport( const CenterExtents3 & aabb, int axis, bool positive ) {
-	return aabb.extents[ axis ];
+	return ( aabb.center[ axis ] * positive ? 1.0f : -1.0f ) + aabb.extents[ axis ];
 }
 
 MinMax3 MinkowskiSum( const MinMax3 & bounds, const Shape & shape ) {

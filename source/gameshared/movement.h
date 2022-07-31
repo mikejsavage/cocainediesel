@@ -39,9 +39,9 @@ struct pml_t {
 constexpr float PM_OVERBOUNCE = 1.01f;
 constexpr float SLIDEMOVE_PLANEINTERACT_EPSILON = 0.05f;
 
-#define SLIDEMOVEFLAG_BLOCKED       	( 1 << 1 )   // it was blocked at some point, doesn't mean it didn't slide along the blocking object
-#define SLIDEMOVEFLAG_TRAPPED       	( 1 << 2 )
-#define SLIDEMOVEFLAG_WALL_BLOCKED  	( 1 << 3 )
+#define SLIDEMOVEFLAG_BLOCKED       	( 1 << 0 )   // it was blocked at some point, doesn't mean it didn't slide along the blocking object
+#define SLIDEMOVEFLAG_TRAPPED       	( 1 << 1 )
+#define SLIDEMOVEFLAG_WALL_BLOCKED  	( 1 << 2 )
 
 
 //shared

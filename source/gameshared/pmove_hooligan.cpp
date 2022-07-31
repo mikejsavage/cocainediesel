@@ -5,7 +5,7 @@ static constexpr float pm_jumpupspeed = 260.0f;
 static constexpr float pm_dashupspeed = 160.0f;
 static constexpr float pm_dashspeed = 550.0f;
 
-static constexpr float pm_wjupspeed = ( 350.0f * GRAVITY_COMPENSATE );
+static constexpr float pm_wjupspeed = 371.875f;
 static constexpr float pm_wjbouncefactor = 0.4f;
 
 static constexpr float stamina_usewj = 0.5f; //50%

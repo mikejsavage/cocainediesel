@@ -204,10 +204,6 @@ static int PM_SlideMove() {
 		}
 	}
 
-	if( pm->playerState->pmove.pm_time ) {
-		pml.velocity = old_velocity;
-	}
-
 	return blockedmask;
 }
 
@@ -510,7 +506,6 @@ static void PM_CategorizePosition() {
 		pm->groundentity = -1;
 	}
 	else {
-		if( break3 ) __debugbreak();
 		trace_t trace;
 
 		// see if standing on something solid
@@ -543,10 +538,6 @@ static void PM_CategorizePosition() {
 }
 
 static void PM_CheckSpecialMovement() {
-	if( pm->playerState->pmove.pm_time ) {
-		return;
-	}
-
 	pml.ladder = Ladder_Off;
 
 	// check for ladder
@@ -672,8 +663,12 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 
 	SyncPlayerState * ps = pm->playerState;
 
+	if( break3 ) __debugbreak();
+
 	// clear all pmove local vars
 	PM_BeginMove();
+
+	pml_t old_pml = pml;
 
 	float fallvelocity = Max2( 0.0f, -pml.velocity.z );
 
@@ -714,22 +709,6 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 	}
 
 	if( !GS_MatchPaused( pmove_gs ) ) {
-		// drop timing counters
-		if( ps->pmove.pm_time ) {
-			int msec;
-
-			msec = pm->cmd.msec >> 3;
-			if( !msec ) {
-				msec = 1;
-			}
-			if( msec >= ps->pmove.pm_time ) {
-				ps->pmove.pm_flags &= ~PMF_TIME_TELEPORT;
-				ps->pmove.pm_time = 0;
-			} else {
-				ps->pmove.pm_time -= msec;
-			}
-		}
-
 		ps->pmove.no_shooting_time = Max2( 0, ps->pmove.no_shooting_time - pm->cmd.msec );
 		ps->pmove.knockback_time = Max2( 0, ps->pmove.knockback_time - pm->cmd.msec );
 	}
@@ -737,7 +716,6 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 	if( ps->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
 		if( !GS_MatchPaused( pmove_gs ) ) {
 			ps->pmove.knockback_time = 0;
-			ps->pmove.pm_flags &= ~PMF_TIME_TELEPORT;
 
 			PM_AdjustBBox();
 		}
@@ -767,43 +745,39 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 
 	PM_CheckSpecialMovement();
 
-	if( ps->pmove.pm_flags & PMF_TIME_TELEPORT ) {
-		// teleport pause stays exactly in place
-	} else {
-		if( pm->groundentity != -1 ) {
-			pm->playerState->last_touch.entnum = 0;
-			pm->playerState->last_touch.type = Weapon_None;
-		}
-
-		// Kurim
-		// Keep this order !
-		if( ps->pmove.pm_type == PM_NORMAL && ( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {
-			pml.ability1Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & Button_Ability1 );
-			pml.ability2Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & Button_Ability2 );
-		}
-
-		PM_Friction();
-
-		Vec3 angles = ps->viewangles;
-		if( angles.x > 180 ) {
-			angles.x -= 360;
-		}
-		angles.x /= 3;
-
-		AngleVectors( angles, &pml.forward, &pml.right, &pml.up );
-
-		// hack to work when looking straight up and straight down
-		if( pml.forward.z == -1.0f ) {
-			pml.forward = pml.up;
-		} else if( pml.forward.z == 1.0f ) {
-			pml.forward = -pml.up;
-		} else {
-			pml.forward = pml.forward;
-		}
-		pml.forward.z = 0.0f;
-		pml.forward = SafeNormalize( pml.forward );
-		PM_Move();
+	if( pm->groundentity != -1 ) {
+		pm->playerState->last_touch.entnum = 0;
+		pm->playerState->last_touch.type = Weapon_None;
 	}
+
+	// Kurim
+	// Keep this order !
+	if( ps->pmove.pm_type == PM_NORMAL && ( pm->playerState->pmove.features & PMFEAT_ABILITIES ) ) {
+		pml.ability1Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & Button_Ability1 );
+		pml.ability2Callback( pm, &pml, pmove_gs, pm->playerState, pm->cmd.buttons & Button_Ability2 );
+	}
+
+	PM_Friction();
+
+	Vec3 angles = ps->viewangles;
+	if( angles.x > 180 ) {
+		angles.x -= 360;
+	}
+	angles.x /= 3;
+
+	AngleVectors( angles, &pml.forward, &pml.right, &pml.up );
+
+	// hack to work when looking straight up and straight down
+	if( pml.forward.z == -1.0f ) {
+		pml.forward = pml.up;
+	} else if( pml.forward.z == 1.0f ) {
+		pml.forward = -pml.up;
+	} else {
+		pml.forward = pml.forward;
+	}
+	pml.forward.z = 0.0f;
+	pml.forward = SafeNormalize( pml.forward );
+	PM_Move();
 
 	// set groundentity for final spot
 	PM_CategorizePosition();
@@ -832,6 +806,13 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 		float frac = Unlerp01( min_fall_velocity, fall_delta, max_fall_velocity );
 		if( frac > 0 ) {
 			pmove_gs->api.PredictedEvent( ps->POVnum, EV_FALL, frac * 255 );
+		}
+	}
+
+	if( break4 ) {
+		if( pml.origin.z > old_pml.origin.z ) {
+			pml = old_pml;
+			__debugbreak(); // please jump to top and try again
 		}
 	}
 }

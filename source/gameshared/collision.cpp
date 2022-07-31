@@ -222,17 +222,17 @@ static trace_t FUCKING_HELL( const Ray & ray, const Shape & shape, const Interse
 	trace.fraction = ray.length == 0.0f ? 1.0f : intersection.t / ray.length;
 	trace.normal = intersection.normal;
 	trace.ent = ent;
-	trace.contact = ray.origin + ray.direction * ray.length * trace.fraction + Support( shape, -trace.normal );
+	trace.contact = ray.origin + ray.direction * intersection.t - trace.normal * Support( shape, -trace.normal );
 
 	// step back endpos slightly so objects don't get stuck inside each other
 	constexpr float epsilon = 1.0f / 32.0f;
-	float stepped_back_fraction = trace.fraction;
+	float stepped_back_t = intersection.t;
 	if( intersection.normal != Vec3( 0.0f ) ) {
-		stepped_back_fraction += epsilon / Dot( ray.direction, intersection.normal );
-		stepped_back_fraction = Max2( stepped_back_fraction, 0.0f );
+		stepped_back_t += epsilon / Dot( ray.direction, intersection.normal );
+		stepped_back_t = Max2( stepped_back_t, 0.0f );
 	}
 
-	trace.endpos = ray.origin + ray.direction * ray.length * stepped_back_fraction;
+	trace.endpos = ray.origin + ray.direction * stepped_back_t;
 
 	return trace;
 }

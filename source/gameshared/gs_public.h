@@ -37,9 +37,7 @@ constexpr Vec3 playerbox_gib_mins = Vec3( -16, -16, 0 );
 constexpr Vec3 playerbox_gib_maxs = Vec3( 16, 16, 16 );
 constexpr int playerbox_gib_viewheight = 8;
 
-#define BASEGRAVITY 800
-#define GRAVITY 850
-#define GRAVITY_COMPENSATE ( (float)GRAVITY / (float)BASEGRAVITY )
+constexpr float GRAVITY = 850.0f;
 
 constexpr int PLAYER_MASS = 200;
 

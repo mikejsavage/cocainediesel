@@ -428,8 +428,6 @@ void G_TeleportPlayer( edict_t *player, edict_t *dest ) {
 	client->ps.pmove.delta_angles[ 1 ] = ANGLE2SHORT( client->ps.viewangles.y ) - client->ucmd.angles[ 1 ];
 	client->ps.pmove.delta_angles[ 2 ] = ANGLE2SHORT( client->ps.viewangles.z ) - client->ucmd.angles[ 2 ];
 
-	client->ps.pmove.pm_flags |= PMF_TIME_TELEPORT;
-	client->ps.pmove.pm_time = 1; // force the minimum no control delay
 	player->s.teleported = true;
 
 	// update the entity from the pmove
@@ -802,7 +800,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 
 	gclient_t *client;
 	int i, j;
-	static pmove_t pm;
+	pmove_t pm;
 	int delta, count;
 
 	client = ent->r.client;

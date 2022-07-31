@@ -151,13 +151,13 @@ void CG_StartFallKickEffect( int bounceTime ) {
 
 //============================================================================
 
-static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
+static void CG_InterpolatePlayerState( SyncPlayerState * playerState ) {
 	const SyncPlayerState * ps = &cg.frame.playerState;
 	const SyncPlayerState * ops = &cg.oldFrame.playerState;
 
 	*playerState = *ops;
 
-	bool teleported = ( ps->pmove.pm_flags & PMF_TIME_TELEPORT ) != 0;
+	bool teleported = false; // TODO: syncentitystate::teleported!
 
 	if( Abs( ops->pmove.origin.x - ps->pmove.origin.x ) > 256
 		|| Abs( ops->pmove.origin.y - ps->pmove.origin.y ) > 256
@@ -368,6 +368,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	} else {
 		CG_DemoCam_GetViewDef( view );
 	}
+
+	Com_GGPrint( "pos:{.2} vel:{.2}", cg.predictedPlayerState.pmove.origin.z, cg.predictedPlayerState.pmove.velocity.z );
 
 	if( view->type == VIEWDEF_PLAYERVIEW ) {
 		Vec3 viewoffset;

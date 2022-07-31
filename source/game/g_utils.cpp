@@ -30,6 +30,7 @@ EntityID NewEntity() {
 
 void ResetEntityIDSequence() {
 	entity_id_seq = 1;
+	entity_id_hashtable.clear();
 }
 
 edict_t * GetEntity( EntityID id ) {

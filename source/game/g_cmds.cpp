@@ -46,8 +46,6 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, Vec3 angles ) {
 	ent->s.teleported = true;
 
 	ent->velocity = Vec3( 0.0f );
-	ent->r.client->ps.pmove.pm_time = 1;
-	ent->r.client->ps.pmove.pm_flags |= PMF_TIME_TELEPORT;
 
 	if( ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
 		G_TeleportEffect( ent, true );

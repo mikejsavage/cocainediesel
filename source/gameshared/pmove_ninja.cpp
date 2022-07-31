@@ -4,7 +4,7 @@
 static constexpr float pm_wallclimbspeed = 200.0f;
 
 static constexpr float pm_dashspeed = 550.0f;
-static constexpr float pm_dashupspeed = ( 180.0f * GRAVITY_COMPENSATE );
+static constexpr float pm_dashupspeed = 191.25f;
 
 static constexpr float stamina_use = 0.2f;
 static constexpr float stamina_use_moving = 0.3f;

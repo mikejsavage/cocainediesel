@@ -390,7 +390,6 @@ struct pmove_state_t {
 	                            // changed by spawns, rotating objects, and teleporters
 
 	int pm_flags;               // ducked, jump_held, etc
-	int pm_time;
 
 	u16 features;
 

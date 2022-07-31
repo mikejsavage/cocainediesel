@@ -587,6 +587,7 @@ void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd
 
 	if( ps->pmove.no_shooting_time > 0 ) {
 		cmd.buttons = UserCommandButton( cmd.buttons & ~Button_Attack1 );
+		cmd.buttons = UserCommandButton( cmd.buttons & ~Button_Attack2 );
 		cmd.buttons = UserCommandButton( cmd.buttons & ~Button_Gadget );
 	}
 

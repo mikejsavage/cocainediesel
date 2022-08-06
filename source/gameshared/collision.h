@@ -65,4 +65,4 @@ CollisionModel EntityCollisionModel( const SyncEntityState * ent );
 MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntityState * ent );
 
 trace_t MakeMissedTrace( const Ray & ray );
-trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent );
+trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent, SolidBits solid_mask );

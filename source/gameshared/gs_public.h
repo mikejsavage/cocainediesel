@@ -69,11 +69,11 @@ struct pmove_t {
 	Vec3 mins, maxs;          // bounding box size
 
 	int groundentity;
-	int contentmask;
+	SolidBits solid_mask;
 };
 
 struct gs_module_api_t {
-	void ( *Trace )( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta );
+	void ( *Trace )( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta );
 	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, u64 parm );

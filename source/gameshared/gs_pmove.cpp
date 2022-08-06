@@ -105,7 +105,7 @@ static int PM_SlideMove() {
 		Vec3 end = pml.origin + pml.velocity * remainingTime;
 
 		trace_t trace;
-		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
+		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->solid_mask, 0 );
 		if( trace.fraction == 0.0f ) { // trapped into a solid
 			pml.origin = last_valid_origin;
 			return SLIDEMOVEFLAG_TRAPPED;
@@ -228,7 +228,7 @@ static void PM_StepSlideMove() {
 
 	Vec3 up = start_o + Vec3( 0.0f, 0.0f, STEPSIZE );
 
-	pmove_gs->api.Trace( &trace, up, pm->mins, pm->maxs, up, pm->playerState->POVnum, pm->contentmask, 0 );
+	pmove_gs->api.Trace( &trace, up, pm->mins, pm->maxs, up, pm->playerState->POVnum, pm->solid_mask, 0 );
 
 	// try sliding above
 	pml.origin = up;
@@ -238,7 +238,7 @@ static void PM_StepSlideMove() {
 
 	// push down the final amount
 	Vec3 down = pml.origin - Vec3( 0.0f, 0.0f, STEPSIZE );
-	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, down, pm->playerState->POVnum, pm->contentmask, 0 );
+	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, down, pm->playerState->POVnum, pm->solid_mask, 0 );
 	pml.origin = trace.endpos;
 
 	up = pml.origin;
@@ -466,11 +466,11 @@ static void PM_Move() {
 */
 static void PM_GroundTrace( trace_t *trace ) {
 	Vec3 point = pml.origin - Vec3( 0.0f, 0.0f, 0.25f );
-	pmove_gs->api.Trace( trace, pml.origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->contentmask, 0 );
+	pmove_gs->api.Trace( trace, pml.origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->solid_mask, 0 );
 }
 
 static bool PM_GoodPosition( Vec3 origin, trace_t *trace ) {
-	pmove_gs->api.Trace( trace, origin, pm->mins, pm->maxs, origin, pm->playerState->POVnum, pm->contentmask, 0 );
+	pmove_gs->api.Trace( trace, origin, pm->mins, pm->maxs, origin, pm->playerState->POVnum, pm->solid_mask, 0 );
 	return trace->ent == -1;
 }
 
@@ -543,8 +543,8 @@ static void PM_CheckSpecialMovement() {
 	// check for ladder
 	Vec3 spot = pml.origin + pml.forward;
 	trace_t trace;
-	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->contentmask, 0 );
-	if( trace.fraction < 1 && ( trace.surfFlags & SURF_LADDER ) ) {
+	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->solid_mask, 0 );
+	if( trace.fraction < 1 && ( trace.solidity & Solid_Ladder ) ) {
 		pml.ladder = Ladder_On;
 	}
 }
@@ -672,21 +672,21 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 
 	PM_InitPerk();
 
-	// assign a contentmask for the movement type
+	// assign a solidity for the movement type
 	switch( ps->pmove.pm_type ) {
 		case PM_FREEZE:
 		case PM_CHASECAM:
 			if( pmove_gs->module == GS_MODULE_GAME ) {
 				ps->pmove.pm_flags |= PMF_NO_PREDICTION;
 			}
-			pm->contentmask = 0;
+			pm->solid_mask = Solid_NotSolid;
 			break;
 
 		case PM_SPECTATOR:
 			if( pmove_gs->module == GS_MODULE_GAME ) {
 				ps->pmove.pm_flags &= ~PMF_NO_PREDICTION;
 			}
-			pm->contentmask = 0;
+			pm->solid_mask = Solid_NotSolid;
 			break;
 
 		default:
@@ -695,7 +695,7 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 				ps->pmove.pm_flags &= ~PMF_NO_PREDICTION;
 			}
 			if( ps->pmove.features & PMFEAT_GHOSTMOVE ) {
-				pm->contentmask = MASK_DEADSOLID;
+				pm->solid_mask = Solid_Solid;
 			}
 			else {
 				pm->contentmask = MASK_PLAYERSOLID;

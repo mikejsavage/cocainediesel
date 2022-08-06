@@ -651,7 +651,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		Shape aabb_shape = { ShapeType_AABB, { Vec3( 0.0f ), Vec3( 16.0f ) } };
 
 		Intersection intersection;
-		if( SweptShapeVsMapModel( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, &intersection ) ) {
+		if( SweptShapeVsMapModel( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, Solid_Solid, &intersection ) ) {
 			if( intersection.normal != Vec3( 0.0f ) ) {
 				Vec3 new_end = start + intersection.t * ray.direction;
 

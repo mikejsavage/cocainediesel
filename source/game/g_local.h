@@ -322,8 +322,8 @@ struct link_t {
 	int entNum;
 };
 
-void G_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, int contentmask );
-void G_Trace4D( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, int contentmask, int timeDelta );
+void G_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, SolidBits solid_mask );
+void G_Trace4D( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int timeDelta );
 void GClip_BackUpCollisionFrame();
 int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int timeDelta );
 void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage );

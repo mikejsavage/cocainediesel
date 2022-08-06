@@ -20,7 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-#include "gameshared/q_math.h"
+#include "qcommon/types.h"
 
 // lower bits are stronger, and will eat weaker brushes completely
 #define CONTENTS_SOLID          1           // an eye is never valid in a solid
@@ -48,13 +48,29 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define MASK_SHOT           ( CONTENTS_SOLID | CONTENTS_WEAPONCLIP | CONTENTS_BODY | CONTENTS_CORPSE | CONTENTS_WALLBANGABLE )
 #define MASK_WALLBANG       ( CONTENTS_SOLID | CONTENTS_WEAPONCLIP | CONTENTS_BODY | CONTENTS_CORPSE )
 
-// a trace is returned when a box is swept through the world
+enum SolidBits : u8 {
+	Solid_NotSolid = 0,
+	Solid_PlayerClip = ( 1 << 1 ),
+	Solid_WeaponClip = ( 1 << 2 ),
+	Solid_Wallbangable = ( 1 << 3 ),
+	Solid_Ladder = ( 1 << 4 ),
+	Solid_Trigger = ( 1 << 5 ),
+
+	Solid_Player = ( 1 << 6 ),
+};
+
+constexpr SolidBits Solid_Solid = SolidBits( Solid_PlayerClip | Solid_WeaponClip | Solid_Wallbangable );
+constexpr SolidBits Solid_Opaque = SolidBits( Solid_WeaponClip | Solid_Wallbangable );
+constexpr SolidBits Solid_Wallbang = SolidBits( Solid_WeaponClip | Solid_Player );
+constexpr SolidBits Solid_Shot = SolidBits( Solid_WeaponClip | Solid_Wallbangable | Solid_Player );
+
+constexpr SolidBits Solid_Everything = SolidBits( U8_MAX );
+
 struct trace_t {
 	float fraction;             // time completed, 1.0 = didn't hit anything
 	Vec3 endpos;              // final position
 	Vec3 contact;
 	Vec3 normal;             // surface normal at impact
-	int surfFlags;              // surface hit
-	int contents;               // contents on other side of surface hit
+	SolidBits solidity;
 	int ent;                    // not set by CM_*() functions
 };

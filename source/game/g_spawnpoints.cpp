@@ -11,7 +11,7 @@ void DropSpawnToFloor( edict_t * ent ) {
 	Vec3 end = ent->s.origin - Vec3( 0.0f, 0.0f, 1024.0f );
 
 	trace_t tr;
-	G_Trace( &tr, start, mins, maxs, end, ent, MASK_SOLID );
+	G_Trace( &tr, start, mins, maxs, end, ent, Solid_Solid );
 
 	if( tr.fraction == 0.0f ) {
 		Com_GGPrint( "Spawn starts inside solid, removing..." );

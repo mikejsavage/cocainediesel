@@ -59,13 +59,13 @@ Cvar *g_allow_spectator_voting;
 /*
 * G_GS_Trace - Used only for gameshared linking
 */
-static void G_GS_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta ) {
+static void G_GS_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta ) {
 	edict_t *passent = NULL;
 	if( ignore >= 0 && ignore < MAX_EDICTS ) {
 		passent = &game.edicts[ignore];
 	}
 
-	G_Trace4D( tr, start, mins, maxs, end, passent, contentmask, timeDelta );
+	G_Trace4D( tr, start, mins, maxs, end, passent, solid_mask, timeDelta );
 }
 
 /*

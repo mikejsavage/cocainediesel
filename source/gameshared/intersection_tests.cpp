@@ -207,7 +207,10 @@ static float AxialSupport( const Shape & shape, int axis, bool positive ) {
 	return 0;
 }
 
-static bool SweptShapeVsMapBrush( const MapData * map, const MapBrush * brush, Ray ray, const Shape & shape, Intersection * intersection ) {
+static bool SweptShapeVsMapBrush( const MapData * map, const MapBrush * brush, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
+	if( ( brush->solidity & solid_mask ) == 0 )
+		return false;
+
 	Intersection enter, leave;
 	if( !RayVsAABB( ray, MinkowskiSum( brush->bounds, shape ), &enter, &leave ) )
 		return false;
@@ -244,13 +247,13 @@ static bool SweptShapeVsMapBrush( const MapData * map, const MapBrush * brush, R
 	return true;
 }
 
-static bool SweptShapeVsMapLeaf( const MapData * map, const MapKDTreeNode * leaf, const Ray & ray, const Shape & shape, Intersection * intersection ) {
+static bool SweptShapeVsMapLeaf( const MapData * map, const MapKDTreeNode * leaf, const Ray & ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
 	Optional< Intersection > best = NONE;
 
 	for( u32 i = 0; i < leaf->leaf.num_brushes; i++ ) {
 		const MapBrush * brush = &map->brushes[ map->brush_indices[ leaf->leaf.first_brush + i ] ];
 		Intersection brush_intersection;
-		if( SweptShapeVsMapBrush( map, brush, ray, shape, &brush_intersection ) ) {
+		if( SweptShapeVsMapBrush( map, brush, ray, shape, solid_mask, &brush_intersection ) ) {
 			if( !best.exists || brush_intersection.t < best.value.t ) {
 				best = brush_intersection;
 			}
@@ -270,7 +273,7 @@ struct KDTreeTraversalWork {
 	float t_max;
 };
 
-bool SweptShapeVsMapModel( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, Intersection * intersection ) {
+bool SweptShapeVsMapModel( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
 	Intersection bounds_enter, bounds_leave;
 	if( !RayVsAABB( ray, MinkowskiSum( model->bounds, shape ), &bounds_enter, &bounds_leave ) )
 		return false;
@@ -345,7 +348,7 @@ bool SweptShapeVsMapModel( const MapData * map, const MapModel * model, Ray ray,
 		}
 		else {
 			Intersection leaf_intersection;
-			if( SweptShapeVsMapLeaf( map, node, ray, shape, &leaf_intersection ) ) {
+			if( SweptShapeVsMapLeaf( map, node, ray, shape, solid_mask, &leaf_intersection ) ) {
 				if( !best.exists || leaf_intersection.t < best.value.t ) {
 					best = leaf_intersection;
 				}

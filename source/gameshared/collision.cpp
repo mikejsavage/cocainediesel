@@ -8,6 +8,7 @@
 #include "gameshared/intersection_tests.h"
 #include "gameshared/gs_synctypes.h"
 #include "gameshared/q_collision.h"
+#include "gameshared/q_math.h"
 
 #include "cgltf/cgltf.h"
 
@@ -237,7 +238,7 @@ static trace_t FUCKING_HELL( const Ray & ray, const Shape & shape, const Interse
 	return trace;
 }
 
-trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent ) {
+trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent, SolidBits solid_mask ) {
 	trace_t trace = MakeMissedTrace( ray );
 
 	CollisionModel collision_model = EntityCollisionModel( ent );
@@ -260,7 +261,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 		const MapSharedCollisionData * map = FindMapSharedCollisionData( storage, map_model->base_hash );
 
 		Intersection intersection;
-		if( SweptShapeVsMapModel( &map->data, &map->data.models[ map_model->sub_model ], object_space_ray, shape, &intersection ) ) {
+		if( SweptShapeVsMapModel( &map->data, &map->data.models[ map_model->sub_model ], object_space_ray, shape, solid_mask, &intersection ) ) {
 			trace = FUCKING_HELL( ray, shape, intersection, ent->number );
 		}
 	}

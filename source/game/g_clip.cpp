@@ -468,7 +468,7 @@ static int GClip_AreaEdicts( const MinMax3 bounds, int *list, int maxcount, int 
 
 //===========================================================================
 
-static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, int passent, int contentmask, int timeDelta ) {
+static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, int passent, SolidBits solid_mask, int timeDelta ) {
 	TracyZoneScoped;
 
 	assert( passent == -1 || ( passent >= 0 && passent < ARRAY_COUNT( game.edicts ) ) );
@@ -504,10 +504,6 @@ static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, i
 			}
 		}
 
-		if( ( touch->s.svflags & SVF_CORPSE ) && !( contentmask & CONTENTS_CORPSE ) ) {
-			continue;
-		}
-
 		if( touch->r.client != NULL ) {
 			int teammask = contentmask & ( CONTENTS_TEAM_ONE | CONTENTS_TEAM_TWO | CONTENTS_TEAM_THREE | CONTENTS_TEAM_FOUR );
 			if( teammask != 0 ) {
@@ -525,7 +521,7 @@ static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, i
 			}
 		}
 
-		trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &touch->s );
+		trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &touch->s, solid_mask );
 		if( trace.fraction < best.fraction ) {
 			best = trace;
 		}
@@ -534,24 +530,7 @@ static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, i
 	return best;
 }
 
-/*
-* G_Trace
-*
-* Moves the given mins/maxs volume through the world from start to end.
-*
-* Passedict and edicts owned by passedict are explicitly not checked.
-* ------------------------------------------------------------------
-* mins and maxs are relative
-
-* if the entire move stays in a solid volume, trace.allsolid will be set,
-* trace.startsolid will be set, and trace.fraction will be 0
-
-* if the starting point is in a solid, it will be allowed to move out
-* to an open area
-
-* passedict is explicitly excluded from clipping checks (normally NULL)
-*/
-static trace_t GClip_Trace( Vec3 start, Vec3 end, const MinMax3 & bounds, const edict_t * passedict, int contentmask, int timeDelta ) {
+static trace_t GClip_Trace( Vec3 start, Vec3 end, const MinMax3 & bounds, const edict_t * passedict, SolidBits solid_mask, int timeDelta ) {
 	TracyZoneScoped;
 
 	Ray ray = MakeRayStartEnd( start, end );
@@ -567,15 +546,15 @@ static trace_t GClip_Trace( Vec3 start, Vec3 end, const MinMax3 & bounds, const 
 		shape.aabb = ToCenterExtents( bounds );
 	}
 
-	return GClip_ClipMoveToEntities( ray, shape, passent, contentmask, timeDelta );
+	return GClip_ClipMoveToEntities( ray, shape, passent, solid_mask, timeDelta );
 }
 
-void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, int contentmask ) {
-	*tr = GClip_Trace( start, end, MinMax3( mins, maxs ), passedict, contentmask, 0 );
+void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, SolidBits solid_mask ) {
+	*tr = GClip_Trace( start, end, MinMax3( mins, maxs ), passedict, solid_mask, 0 );
 }
 
-void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, int contentmask, int timeDelta ) {
-	*tr = GClip_Trace( start, end, MinMax3( mins, maxs ), passedict, contentmask, timeDelta );
+void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int timeDelta ) {
+	*tr = GClip_Trace( start, end, MinMax3( mins, maxs ), passedict, solid_mask, timeDelta );
 }
 
 bool IsHeadshot( int entNum, Vec3 hit, int timeDelta ) {
@@ -590,7 +569,7 @@ static bool EntityOverlapsAABB( const edict_t * ent, const CenterExtents3 & aabb
 	shape.type = ShapeType_AABB;
 	shape.aabb = aabb;
 
-	trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &ent->s );
+	trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, Solid_Everything, &ent->s );
 
 	return trace.fraction == 0.0f;
 }

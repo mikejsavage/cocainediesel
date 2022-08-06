@@ -188,10 +188,6 @@ static trace_t CG_ClipMoveToEntities( const Ray & ray, const Shape & shape, int 
 			continue;
 		}
 
-		if( !( contentmask & CONTENTS_CORPSE ) && ent->type == ET_CORPSE ) {
-			continue;
-		}
-
 		if( ent->type == ET_PLAYER ) {
 			int teammask = contentmask & ( CONTENTS_TEAM_ONE | CONTENTS_TEAM_TWO | CONTENTS_TEAM_THREE | CONTENTS_TEAM_FOUR );
 			if( teammask != 0 ) {

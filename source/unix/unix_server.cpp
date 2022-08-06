@@ -5,7 +5,7 @@
 
 const bool is_dedicated_server = true;
 
-sig_atomic_t received_shutdown_signal = 0;
+static sig_atomic_t received_shutdown_signal = 0;
 
 static void ShutdownSignal( int sig ) {
 	received_shutdown_signal = 1;

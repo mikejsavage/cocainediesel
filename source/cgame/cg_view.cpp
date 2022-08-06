@@ -369,8 +369,6 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		CG_DemoCam_GetViewDef( view );
 	}
 
-	Com_GGPrint( "pos:{.2} vel:{.2}", cg.predictedPlayerState.pmove.origin.z, cg.predictedPlayerState.pmove.velocity.z );
-
 	if( view->type == VIEWDEF_PLAYERVIEW ) {
 		Vec3 viewoffset;
 

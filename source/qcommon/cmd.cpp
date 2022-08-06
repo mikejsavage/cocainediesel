@@ -200,13 +200,10 @@ static void Cmd_Config_f() {
 }
 
 static void Cmd_Find_f() {
-	if( Cmd_Argc() < 2 ) {
-		Com_Printf( "Usage: find <partial>\n" );
-		return;
-	}
+	const char * needle = Cmd_Argc() < 2 ? "" : Cmd_Argv( 1 );
 
-	Span< const char * > cmds = SearchCommands( sys_allocator, Cmd_Argv( 1 ) );
-	Span< const char * > cvars = SearchCvars( sys_allocator, Cmd_Argv( 1 ) );
+	Span< const char * > cmds = SearchCommands( sys_allocator, needle );
+	Span< const char * > cvars = SearchCvars( sys_allocator, needle );
 	defer {
 		FREE( sys_allocator, cmds.ptr );
 		FREE( sys_allocator, cvars.ptr );

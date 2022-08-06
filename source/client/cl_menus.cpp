@@ -219,12 +219,18 @@ static void KeyBindButton( const char * label, const char * command ) {
 	}
 
 	if( ImGui::BeginPopupModal( label, NULL, ImGuiWindowFlags_NoDecoration ) ) {
-		ImGui::Text( "Press a key to set a new bind, or press ESCAPE to cancel." );
+		ImGui::Text( "Press a key to set a new bind, or press DEL to delete it (ESCAPE to cancel)" );
 
 		ImGuiIO & io = ImGui::GetIO();
 		for( size_t i = 0; i < ARRAY_COUNT( io.KeysDown ); i++ ) {
 			if( ImGui::IsKeyPressed( i ) ) {
-				if( i != K_ESCAPE ) {
+				if( i == K_DEL ) {
+					int keys[ 2 ];
+					int num_keys = CG_GetBoundKeycodes( command, keys );
+					for( int i = 0; i < num_keys; i++ ) {
+						Key_SetBinding( keys[ i ], NULL );
+					}
+				} else if( i != K_ESCAPE ) {
 					Key_SetBinding( i, command );
 				}
 				ImGui::CloseCurrentPopup();
@@ -333,6 +339,12 @@ static void SettingsControls() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	ImGui::BeginChild( "binds" );
+
+	PushButtonColor( ImVec4( 0.375f, 0.f, 0.f, 0.75f ) );
+	if( ImGui::Button("Reset to default") ) {
+		Key_Unbindall();
+		ExecDefaultCfg();
+	} ImGui::PopStyleColor( 3 );
 
 	if( ImGui::BeginTabBar( "##binds", ImGuiTabBarFlags_None ) ) {
 		if( ImGui::BeginTabItem( "Game" ) ) {

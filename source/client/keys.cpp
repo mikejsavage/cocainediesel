@@ -170,7 +170,7 @@ static void Key_Unbind_f() {
 	Key_SetBinding( key, NULL );
 }
 
-static void Key_Unbindall() {
+void Key_Unbindall() {
 	for( int i = 0; i < int( ARRAY_COUNT( keybindings ) ); i++ ) {
 		if( keybindings[ i ] ) {
 			Key_SetBinding( i, NULL );

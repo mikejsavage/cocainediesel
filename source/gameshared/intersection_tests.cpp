@@ -168,7 +168,7 @@ static float Support( const CenterExtents3 & aabb, Vec3 dir ) {
 }
 
 static float AxialSupport( const CenterExtents3 & aabb, int axis, bool positive ) {
-	return ( aabb.center[ axis ] * ( positive ? 1.0f : -1.0f ) ) + aabb.extents[ axis ];
+	return ( aabb.center[ axis ] * ( positive ? 1.0f : -1.0f ) ) + Abs( aabb.extents[ axis ] );
 }
 
 MinMax3 MinkowskiSum( const MinMax3 & bounds, const Shape & shape ) {

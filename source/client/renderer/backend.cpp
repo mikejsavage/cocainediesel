@@ -86,6 +86,7 @@ struct UBO {
 static UBO ubos[ 16 ]; // 1MB of uniform space
 static u32 ubo_offset_alignment;
 
+static bool amd;
 static float max_anisotropic_filtering;
 
 static PipelineState prev_pipeline;
@@ -504,6 +505,9 @@ void InitRenderBackend() {
 
 	glGetFloatv( GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &max_anisotropic_filtering );
 
+	const char * vendor = ( const char * ) glGetString( GL_VENDOR );
+	amd = StrEqual( vendor, "ATI Technologies Inc." ) || StrEqual( vendor, "AMD" );
+
 	GLint max_ubo_size;
 	glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &max_ubo_size );
 	assert( max_ubo_size >= s32( UNIFORM_BUFFER_SIZE ) );
@@ -912,6 +916,9 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 
 	if( dc.instance_type == InstanceType_ComputeShader ) {
 		glDispatchCompute( dc.dispatch_size[ 0 ], dc.dispatch_size[ 1 ], dc.dispatch_size[ 2 ] );
+		if( amd ) {
+			glMemoryBarrier( GL_SHADER_STORAGE_BARRIER_BIT );
+		}
 		return;
 	}
 
@@ -919,6 +926,9 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, dc.indirect.buffer );
 		glDispatchComputeIndirect( 0 );
 		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, 0 );
+		if( amd ) {
+			glMemoryBarrier( GL_SHADER_STORAGE_BARRIER_BIT );
+		}
 		return;
 	}
 

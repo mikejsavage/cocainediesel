@@ -667,11 +667,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 				// }
 			}
 		}
-
-		if( break2 ) {
-			__debugbreak();
-			SweptShapeVsMapModel( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, &intersection );
-		}
 	}
 }
 

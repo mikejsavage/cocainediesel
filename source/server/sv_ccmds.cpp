@@ -39,7 +39,7 @@ static void SV_Map_f() {
 	TempAllocator temp = svs.frame_arena.temp();
 
 	const char * map = Cmd_Argv( 1 );
-	const char * bsp_path = temp( "{}/base/maps/{}.bsp", RootDirPath(), map );
+	const char * bsp_path = temp( "{}/base/maps/{}.cdmap", RootDirPath(), map );
 	const char * zst_path = temp( "{}.zst", bsp_path );
 
 	if( !FileExists( &temp, bsp_path ) && !FileExists( &temp, zst_path ) ) {

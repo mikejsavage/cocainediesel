@@ -161,13 +161,14 @@ static MinMax3 MinkowskiSum( const MinMax3 & bounds1, const CenterExtents3 & bou
 	return MinMax3( bounds1.mins + bounds2.center - bounds2.extents, bounds1.maxs - bounds2.center + bounds2.extents );
 }
 
+// TODO look at center too
 static float Support( const CenterExtents3 & aabb, Vec3 dir ) {
 	return Abs( aabb.extents.x * dir.x ) + Abs( aabb.extents.y * dir.y ) + Abs( aabb.extents.z * dir.z )
-		+ Abs( aabb.center.x * dir.x ) + Abs( aabb.center.y * dir.y ) + Abs( aabb.center.z * dir.z );
+		+ aabb.center.x * dir.x + aabb.center.y * dir.y + aabb.center.z * dir.z;
 }
 
 static float AxialSupport( const CenterExtents3 & aabb, int axis, bool positive ) {
-	return ( aabb.center[ axis ] * positive ? 1.0f : -1.0f ) + aabb.extents[ axis ];
+	return ( aabb.center[ axis ] * ( positive ? 1.0f : -1.0f ) ) + aabb.extents[ axis ];
 }
 
 MinMax3 MinkowskiSum( const MinMax3 & bounds, const Shape & shape ) {

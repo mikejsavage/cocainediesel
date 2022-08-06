@@ -259,7 +259,6 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 			return trace;
 		const MapSharedCollisionData * map = FindMapSharedCollisionData( storage, map_model->base_hash );
 
-		if( break2 ) __debugbreak();
 		Intersection intersection;
 		if( SweptShapeVsMapModel( &map->data, &map->data.models[ map_model->sub_model ], object_space_ray, shape, &intersection ) ) {
 			trace = FUCKING_HELL( ray, shape, intersection, ent->number );

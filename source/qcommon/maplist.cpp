@@ -44,7 +44,7 @@ void RefreshMapList( Allocator * a ) {
 		if( dir )
 			continue;
 
-		if( FileExtension( name ) == ".bsp" || FileExtension( StripExtension( name ) ) == ".bsp" ) {
+		if( FileExtension( name ) == ".cdmap" || FileExtension( StripExtension( name ) ) == ".cdmap" ) {
 			char * map = ( *sys_allocator )( "{}", StripExtension( StripExtension( name ) ) );
 			maps.add( map );
 		}

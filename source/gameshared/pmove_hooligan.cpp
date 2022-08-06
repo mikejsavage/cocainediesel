@@ -11,8 +11,6 @@ static constexpr float pm_wjbouncefactor = 0.4f;
 static constexpr float stamina_usewj = 0.5f; //50%
 static constexpr float stamina_recover = 1.5f;
 
-static constexpr float floor_distance = STEPSIZE * 0.5f;
-
 
 static void PM_HooliganJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( ps->pmove.stamina_state == Stamina_Normal ) {
@@ -38,18 +36,18 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 		return;
 	}
 
+	// don't walljump if our height is smaller than a step
+	// unless jump is pressed or the player is moving faster than dash speed and upwards
+	constexpr float floor_distance = STEPSIZE * 0.5f;
 	trace_t trace;
 	Vec3 point = pml->origin;
 	point.z -= floor_distance;
-
-	// don't walljump if our height is smaller than a step
-	// unless jump is pressed or the player is moving faster than dash speed and upwards
-	float hspeed = Length( Vec3( pml->velocity.x, pml->velocity.y, 0 ) );
 	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, ps->POVnum, pm->contentmask, 0 );
 
+	float hspeed = Length( Vec3( pml->velocity.x, pml->velocity.y, 0 ) );
 	if( ( hspeed > pm_dashspeed && pml->velocity.z > 8 ) || trace.fraction == 1 || !ISWALKABLEPLANE( trace.normal ) ) {
 		Vec3 normal( 0.0f );
-		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, false );
+		PlayerTouchWall( pm, pml, pmove_gs, 0.3f, &normal, false );
 		if( !Length( normal ) )
 			return;
 

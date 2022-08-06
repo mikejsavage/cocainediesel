@@ -74,33 +74,6 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
-	
-	/*if( ps->pmove.stamina_stored == 0.0f || ps->pmove.stamina_state != Stamina_UsedAbility ) {
-		return;
-	}
-
-	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
-
-	trace_t trace;
-	Vec3 point = pml->origin;
-	point.z -= floor_distance;
-
-	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, ps->POVnum, pm->contentmask, 0 );
-
-	if( trace.fraction == 1 || !trace.startsolid ) {
-		Vec3 normal( 0.0f );
-		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, true );
-		if( !Length( normal ) )
-			return;
-
-		float speed = Length( pml->velocity );
-		pml->velocity = GS_ClipVelocity( pml->velocity, normal, 1.0005f );
-		pml->velocity = pml->velocity + normal;
-		pml->velocity = Normalize( pml->velocity );
-		pml->velocity *= speed;
-
-		ps->pmove.stamina_stored = 0.0f;
-	}*/
 }
 
 

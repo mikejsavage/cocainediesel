@@ -19,8 +19,6 @@ void DropSpawnToFloor( edict_t * ent ) {
 		return;
 	}
 
-	Com_GGPrint( "drop spawn from {} to {}", ent->s.origin, tr.endpos );
-
 	// move it 1 unit away from the plane
 	ent->s.origin = tr.endpos + tr.normal;
 }

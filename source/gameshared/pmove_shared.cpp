@@ -14,16 +14,18 @@ float Normalize2D( Vec3 * v ) {
 // nbTestDir is the number of directions to test around the player
 // maxZnormal is the max Z value of the normal of a poly to consider it a wall
 // normal becomes a pointer to the normal of the most appropriate wall
-void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal, bool z ) {
+void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, float maxZnormal, Vec3 * normal, bool z ) {
 	TracyZoneScoped;
 
-	float dist = 1.0;
+	constexpr int candidate_dirs = 12;
+
+	float dist = 1.0f;
 
 	Vec3 mins = Vec3( pm->mins.xy(), 0.0f );
 	Vec3 maxs = Vec3( pm->maxs.xy(), 0.0f );
 
-	for( int i = 0; i < nbTestDir; i++ ) {
-		float t = float( i ) / float( nbTestDir );
+	for( int i = 0; i < candidate_dirs; i++ ) {
+		float t = float( i ) / float( candidate_dirs );
 
 		Vec3 dir = Vec3(
 			pm->maxs.x * cosf( PI * 2.0f * t ) + pml->velocity.x * 0.015f,
@@ -35,11 +37,11 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 		trace_t trace;
 		pmove_gs->api.Trace( &trace, pml->origin, mins, maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
 
+		if( trace.fraction == 1.0f )
+			continue; // no wall in this direction
+
 		if( trace.normal == Vec3( 0.0f ) )
 			return;
-
-		if( trace.fraction == 1 )
-			continue; // no wall in this direction
 
 		if( trace.ent > 0 ) {
 			const SyncEntityState * state = pmove_gs->api.GetEntityState( trace.ent, 0 );

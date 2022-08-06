@@ -663,8 +663,6 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 
 	SyncPlayerState * ps = pm->playerState;
 
-	if( break3 ) __debugbreak();
-
 	// clear all pmove local vars
 	PM_BeginMove();
 
@@ -806,13 +804,6 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 		float frac = Unlerp01( min_fall_velocity, fall_delta, max_fall_velocity );
 		if( frac > 0 ) {
 			pmove_gs->api.PredictedEvent( ps->POVnum, EV_FALL, frac * 255 );
-		}
-	}
-
-	if( break4 ) {
-		if( pml.origin.z > old_pml.origin.z ) {
-			pml = old_pml;
-			__debugbreak(); // please jump to top and try again
 		}
 	}
 }

@@ -225,10 +225,10 @@ static void KeyBindButton( const char * label, const char * command ) {
 		for( size_t i = 0; i < ARRAY_COUNT( io.KeysDown ); i++ ) {
 			if( ImGui::IsKeyPressed( i ) ) {
 				if( i == K_DEL ) {
-					int keys[ 2 ];
-					int num_keys = CG_GetBoundKeycodes( command, keys );
-					for( int i = 0; i < num_keys; i++ ) {
-						Key_SetBinding( keys[ i ], NULL );
+					int binds[ 2 ];
+					int num_binds = CG_GetBoundKeycodes( command, binds );
+					for( int j = 0; j < num_binds; j++ ) {
+						Key_SetBinding( binds[ j ], NULL );
 					}
 				} else if( i != K_ESCAPE ) {
 					Key_SetBinding( i, command );

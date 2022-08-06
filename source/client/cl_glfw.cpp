@@ -249,7 +249,8 @@ static void OnKeyPressed( GLFWwindow *, int glfw_key, int scancode, int action, 
 
 	io.KeysDown[ key ] = down;
 
-	if( !route_inputs_to_imgui ) {
+	bool is_f_key = key >= K_F1 && key <= K_F12;
+	if( !route_inputs_to_imgui || is_f_key ) {
 		Key_Event( key, down );
 	}
 }

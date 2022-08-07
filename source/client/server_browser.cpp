@@ -209,6 +209,7 @@ void ParseGameServerResponse( msg_t * msg, const NetAddress & address ) {
 	}
 
 	ServerBrowserEntry server = { };
+	server.address = address;
 	server.id = server_id;
 	Q_strncpyz( server.name, name, sizeof( server.name ) );
 	Q_strncpyz( server.map, map, sizeof( server.map ) );

@@ -275,15 +275,18 @@ local function DrawPlayerBar( state )
 
 		local steps = 2
 		local cell_width = width/steps
-		stamina_color.a = math.min( state.stamina * steps, 1 )
-		cd.box( x, y, cell_width, stamina_bar_height, stamina_color )
 
-		for i = 0, steps, 1 do
-			stamina_color.a = math.clamp( state.stamina * steps - i, 0, 1 )
-			cd.box( x + cell_width * i, y, cell_width, stamina_bar_height, stamina_color )
+		for i = 0, steps - 1, 1 do
+			if (state.stamina * steps) >= (i + 1) then
+				cd.box( x + cell_width * i, y, cell_width, stamina_bar_height, stamina_color )
+			else
+				stamina_color.a = 0.1
+				cd.box( x + cell_width * i, y, cell_width * (state.stamina * steps - i), stamina_bar_height, stamina_color )
+				break
+			end
 		end
 
-		local uvwidth = width * math.floor( state.stamina * steps + 0.99 )/steps
+		local uvwidth = width * math.floor( state.stamina * steps )/steps
 		if state.stamina > 0 then
 			cd.boxuv( x, y,
 				uvwidth, stamina_bar_height,

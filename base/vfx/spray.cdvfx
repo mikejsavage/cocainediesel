@@ -7,7 +7,7 @@
     position cone 90 15
   
     speed -10
-    color 0.58 0.58 0.58 0.05
+    color 0.58 0.58 0.58 0.25
 
     size 12 80
     size_distribution uniform 12

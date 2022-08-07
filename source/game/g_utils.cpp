@@ -193,8 +193,8 @@ void G_FreeEdict( edict_t *ed ) {
 
 	GClip_UnlinkEntity( ed );
 
-	bool ok = entity_id_hashtable.remove( ed->id.id );
-	assert( ok );
+	// bool ok = entity_id_hashtable.remove( ed->id.id );
+	// assert( ok );
 
 	memset( ed, 0, sizeof( *ed ) );
 	ed->s.number = ENTNUM( ed );
@@ -206,18 +206,18 @@ void G_FreeEdict( edict_t *ed ) {
 }
 
 void G_InitEdict( edict_t *e ) {
-	if( e->r.inuse ) {
-		bool ok = entity_id_hashtable.remove( e->id.id );
-		assert( ok );
-	}
+	// if( e->r.inuse ) {
+	// 	bool ok = entity_id_hashtable.remove( e->id.id );
+	// 	assert( ok );
+	// }
 
 	memset( e, 0, sizeof( *e ) );
 	e->s.number = ENTNUM( e );
 	e->id = NewEntity();
 	e->r.inuse = true;
 
-	bool ok = entity_id_hashtable.add( e->id.id, e->s.number );
-	assert( ok );
+	// bool ok = entity_id_hashtable.add( e->id.id, e->s.number );
+	// assert( ok );
 
 	e->s.scale = Vec3( 1.0f );
 

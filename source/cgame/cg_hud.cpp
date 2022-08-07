@@ -1644,9 +1644,10 @@ void CG_InitHUD() {
 void CG_ShutdownHUD() {
 	if( hud_L != NULL ) {
 		lua_close( hud_L );
-		YGConfigFree( yoga_config );
-		FREE( sys_allocator, yoga_arena_memory );
 	}
+
+	YGConfigFree( yoga_config );
+	FREE( sys_allocator, yoga_arena_memory );
 
 	RemoveCommand( "toggleuiinspector" );
 }

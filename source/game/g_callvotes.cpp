@@ -235,8 +235,7 @@ static void G_VoteSpectatePassed( callvotedata_t *vote ) {
 		return;
 	}
 
-	G_PrintMsg( NULL, "Player %s%s moved to spectators %s%s.\n", ent->r.client->netname, S_COLOR_WHITE,
-				GS_TeamName( ent->s.team ), S_COLOR_WHITE );
+	G_PrintMsg( NULL, "%s moved to spectator.\n", ent->r.client->netname );
 
 	G_Teams_SetTeam( ent, Team_None );
 }

@@ -307,10 +307,10 @@ float CalcHorizontalFov( const char * caller, float fov_y, float width, float he
 }
 
 static void ScreenShake( cg_viewdef_t * view ) {
-	if( !client_gs.gameState.bomb.exploding )
+	if( !client_gs.gameState.exploding )
 		return;
 
-	s64 dt = cl.serverTime - client_gs.gameState.bomb.exploded_at;
+	s64 dt = cl.serverTime - client_gs.gameState.exploded_at;
 
 	// TODO: we need this because the game drops you into busted noclip when you have noone to spec
 	if( dt >= 3000 )

@@ -26,6 +26,14 @@ struct GametypeDef {
 void InitGametype();
 void ShutdownGametype();
 
+//
+// gt_utils.cpp
+//
+
+void ShowShop( edict_t * ent, msg_t m );
+void GiveInventory( edict_t * ent );
+void SetLoadout( edict_t * ent, const char * loadout_string, bool fallback_to_default );
+
 GametypeDef GetBombGametype();
 GametypeDef GetGladiatorGametype();
 

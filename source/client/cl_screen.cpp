@@ -166,9 +166,9 @@ static void SubmitPostprocessPass() {
 	float damage_effect = cg.view.type == VIEWDEF_PLAYERVIEW ? cg.damage_effect : 0.0f;
 
 	float contrast = 1.0f;
-	if( client_gs.gameState.bomb.exploding ) {
+	if( client_gs.gameState.exploding ) {
 		constexpr float duration = 4000.0f;
-		float t = ( cl.serverTime - client_gs.gameState.bomb.exploded_at ) / duration;
+		float t = ( cl.serverTime - client_gs.gameState.exploded_at ) / duration;
 
 		FlashStage( 0.00f, t, 0.05f, 1.0f, -1.0f, &contrast );
 		FlashStage( 0.05f, t, 0.10f, -1.0f, 1.0f, &contrast );

@@ -270,9 +270,6 @@ struct SyncBombGameState {
 	u8 alpha_players_total;
 	u8 beta_players_alive;
 	u8 beta_players_total;
-
-	bool exploding;
-	s64 exploded_at;
 };
 
 struct SyncGameState {
@@ -299,6 +296,8 @@ struct SyncGameState {
 	u32 map_checksum;
 
 	SyncBombGameState bomb;
+	bool exploding;
+	s64 exploded_at;
 };
 
 struct SyncEvent {
@@ -376,6 +375,8 @@ struct pmove_state_t {
 	s16 no_shooting_time;
 
 	s16 knockback_time;
+	s16 jumppad_time;
+
 	float stamina;
 	float stamina_stored;
 	float jump_buffering;

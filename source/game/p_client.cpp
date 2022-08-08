@@ -73,6 +73,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->s.team = ent->s.team;
 	body->s.scale = ent->s.scale;
 	body->s.svflags = SVF_CORPSE | SVF_BROADCAST;
+	body->s.mask = ent->s.mask;
 	body->activator = ent;
 	body->enemy = attacker;
 

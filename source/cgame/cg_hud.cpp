@@ -1717,6 +1717,9 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, cg.predictedPlayerState.pmove.stamina_state );
 	lua_setfield( hud_L, -2, "stamina_state" );
 
+	lua_pushboolean( hud_L, cg.predictedPlayerState.pmove.pm_type == PM_SPECTATOR );
+	lua_setfield( hud_L, -2, "ghost" );
+
 	lua_pushnumber( hud_L, cg.predictedPlayerState.team );
 	lua_setfield( hud_L, -2, "team" );
 

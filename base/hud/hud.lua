@@ -233,7 +233,7 @@ local function DrawWeaponBar( state, options, x, y, width, height, padding )
 end
 
 local function DrawPlayerBar( state )
-	if state.health <= 0 or state.team == TEAM_SPECTATOR or state.zooming then
+	if state.health <= 0 or state.ghost or state.zooming then
 		return
 	end
 

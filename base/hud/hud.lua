@@ -29,7 +29,7 @@ local function DrawTopInfo( state )
 	if state.match_state < MatchState_Playing then
 		cd.text( options, posX, state.viewport_height * 0.015, "WARMUP" )
 
-		if state.team ~= TEAM_SPECTATOR then
+		if state.ghost then
 			if state.ready or state.match_state == MatchState_Countdown then
 				options.color = "#5f6f"
 				cd.text( options, posX, posY, "READY" )

@@ -151,6 +151,7 @@ static void NewRound() {
 
 			G_ClientRespawn( ent, false );
 			GiveInventory( ent );
+			ent->r.client->ps.can_change_loadout = false;
 			ent->r.client->ps.pmove.no_shooting_time = countdown_seconds * 1000;
 
 			if( server_gs.gameState.teams[ Team_One + i ].score == top_score ) {
@@ -386,7 +387,9 @@ static void Gladiator_PlayerRespawned( edict_t * ent, Team old_team, Team new_te
 		return;
 	}
 
+
 	if( server_gs.gameState.match_state != MatchState_Playing ) {
+		ent->r.client->ps.can_change_loadout = new_team >= Team_One;
 		GiveInventory( ent );
 		G_RespawnEffect( ent );
 	}
@@ -476,7 +479,7 @@ GametypeDef GetGladiatorGametype() {
 
 	gt.numTeams = 4;
 	gt.removeInactivePlayers = true;
-	gt.selfDamage = false;
+	gt.selfDamage = true;
 	gt.autoRespawn = true;
 
 	return gt;

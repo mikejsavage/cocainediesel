@@ -401,6 +401,7 @@ static void SettingsControls() {
 			KeyBindButton( "Guyman pack", "vsay guyman" );
 			KeyBindButton( "Helena pack", "vsay helena" );
 			KeyBindButton( "Larp pack", "vsay larp" );
+			KeyBindButton( "Fam pack", "vsay fam" );
 			KeyBindButton( "Mike pack", "vsay mike" );
 			KeyBindButton( "User pack", "vsay user" );
 			KeyBindButton( "Valley pack", "vsay valley" );

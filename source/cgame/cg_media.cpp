@@ -35,6 +35,7 @@ void CG_RegisterMedia() {
 	cgs.media.sfxVSaySounds[ Vsay_BoomStick ] = "sounds/vsay/boomstick";
 	cgs.media.sfxVSaySounds[ Vsay_Acne ] = "sounds/vsay/acne";
 	cgs.media.sfxVSaySounds[ Vsay_Valley ] = "sounds/vsay/valley";
+	cgs.media.sfxVSaySounds[ Vsay_Fam ] = "sounds/vsay/fam";
 	cgs.media.sfxVSaySounds[ Vsay_Mike ] = "sounds/vsay/mike";
 	cgs.media.sfxVSaySounds[ Vsay_User ] = "sounds/vsay/user";
 	cgs.media.sfxVSaySounds[ Vsay_Guyman ] = "sounds/vsay/guyman";

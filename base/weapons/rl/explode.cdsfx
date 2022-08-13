@@ -1,7 +1,4 @@
 {
 	attenuation distant
-	sound ./explode1
-	sound ./explode2
-	sound ./explode3
-	sound ./explode4
+	find_sounds ./explode
 }

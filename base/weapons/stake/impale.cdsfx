@@ -1,5 +1,4 @@
 {
 	attenuation idle
-	sound ./impale1
-	sound ./impale2
+	find_sounds ./impale
 }

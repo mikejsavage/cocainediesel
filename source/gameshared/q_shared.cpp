@@ -279,6 +279,10 @@ Span< const char > StripPrefix( Span< const char > str, const char * prefix ) {
 	return StartsWith( str, prefix ) ? str + strlen( prefix ) : str;
 }
 
+Span< const char > StripSuffix( Span< const char > str, const char * suffix ) {
+	return EndsWith( str, suffix ) ? Span< const char >( str.ptr, str.n - strlen( suffix ) ) : str;
+}
+
 bool CaseContains( const char * haystack, const char * needle ) {
 	Span< const char > h = MakeSpan( haystack );
 	Span< const char > n = MakeSpan( needle );

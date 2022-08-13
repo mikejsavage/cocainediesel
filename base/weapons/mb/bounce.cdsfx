@@ -1,9 +1,5 @@
 {
 	attenuation idle
 	volume 0.25
-	sound ./bounce1
-	sound ./bounce2
-	sound ./bounce3
-	sound ./bounce4
-	sound ./bounce5
+	find_sounds ./bounce
 }

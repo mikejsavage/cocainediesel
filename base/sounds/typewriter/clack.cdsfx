@@ -1,10 +1,3 @@
 {
-	sound ./clack1
-	sound ./clack2
-	sound ./clack3
-	sound ./clack4
-	sound ./clack5
-	sound ./clack6
-	sound ./clack7
-	sound ./clack8
+	find_sounds ./clack
 }

@@ -1,12 +1,5 @@
 {
 	attenuation distant
-	sound ./impact1
-	sound ./impact2
-	sound ./impact3
-	sound ./impact4
-	sound ./impact5
-	sound ./impact6
-	sound ./impact7
-	sound ./impact8
+	find_sounds ./impact
 	volume 0.5
 }

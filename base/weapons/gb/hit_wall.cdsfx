@@ -1,4 +1,3 @@
 {
-	sound ./hit_wall1
-	sound ./hit_wall2
+	find_sounds ./hit_wall
 }

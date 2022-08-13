@@ -1,6 +1,3 @@
 {
-	sound ./white1
-	sound ./white2
-	sound ./white3
-	sound ./white4
+	find_sounds ./white
 }

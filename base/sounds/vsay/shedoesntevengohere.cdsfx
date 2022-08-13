@@ -1,4 +1,3 @@
 {
-	sound ./valley/shedoestevengohere1
-	sound ./valley/shedoestevengohere2
+	find_sounds ./valley/shedoestevengohere
 }

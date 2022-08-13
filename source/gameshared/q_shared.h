@@ -77,6 +77,7 @@ bool EndsWith( const char * str, const char * suffix );
 bool CaseStartsWith( const char * str, const char * prefix );
 
 Span< const char > StripPrefix( Span< const char > str, const char * prefix );
+Span< const char > StripSuffix( Span< const char > str, const char * suffix );
 
 bool CaseContains( const char * haystack, const char * needle );
 

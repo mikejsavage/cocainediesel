@@ -238,6 +238,43 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
+		/* name                 */ "DOUBLE BARREL",
+		/* short name           */ "doublebarrel",
+		/* category             */ WeaponCategory_Primary,
+
+		/* projectile count     */ 25,
+		/* clip size            */ 2,
+		/* reload time          */ 3000,
+		/* staged reload time   */ 0,
+
+		// timings (in msecs)
+		/* weapon up time       */ WEAPONUP_TIME_SLOW,
+		/* weapon down time     */ WEAPONDOWN_TIME,
+		/* refire time          */ 200,
+		/* timeout / range      */ HITSCAN_RANGE,
+		/* max recoil           */ EulerDegrees2( 325.0f, -50.0f ),
+		/* min recoil           */ EulerDegrees2( 275.0f, -40.0f ),
+		/* recoil recovery      */ 1500.0f,
+		/* firing mode          */ FiringMode_SemiAuto,
+
+		/* zoom fov             */ 0.0f,
+		/* zoom inaccuracy      */ 0.0f,
+
+		// damages
+		/* damage               */ 2,
+		/* self damage          */ 0,
+		/* wallbang damage      */ 0.5f,
+		/* knockback            */ 7,
+		/* splash radius        */ 0,
+		/* splash min damage    */ 0,
+		/* splash min knockback */ 0,
+
+		// projectile def
+		/* speed                */ HITSCAN,
+		/* spread               */ 100,
+	},
+
+	{
 		/* name                 */ "BURST",
 		/* short name           */ "br",
 		/* category             */ WeaponCategory_Primary,

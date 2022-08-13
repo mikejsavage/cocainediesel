@@ -338,8 +338,8 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 	}
 }
 
-static void W_Fire_Shotgun( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
+static void W_Fire_Shotgun( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, WeaponType weapon ) {
+	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
 	Vec3 dir, right, up;
 	AngleVectors( angles, &dir, &right, &up );
@@ -361,7 +361,7 @@ static void W_Fire_Shotgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 				damage *= def->wallbangdamage;
 			}
 
-			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, def->knockback, dmgflags, Weapon_Shotgun );
+			G_Damage( &game.edicts[ trace.ent ], self, self, dir, dir, trace.endpos, damage, def->knockback, dmgflags, weapon );
 
 			if( !G_IsTeamDamage( &game.edicts[ trace.ent ].s, &self->s ) && trace.ent <= MAX_CLIENTS ) {
 				damage_dealt[ trace.ent ] += damage;
@@ -888,7 +888,8 @@ static void CallFireWeapon( edict_t * ent, u64 parm, bool alt ) {
 			break;
 
 		case Weapon_Shotgun:
-			W_Fire_Shotgun( ent, origin, angles, timeDelta );
+		case Weapon_DoubleBarrel:
+			W_Fire_Shotgun( ent, origin, angles, timeDelta, weapon );
 			break;
 
 		case Weapon_StakeGun:

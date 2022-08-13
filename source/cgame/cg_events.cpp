@@ -188,6 +188,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 
 		case Weapon_MachineGun:
 		case Weapon_Shotgun:
+		case Weapon_DoubleBarrel:
 		case Weapon_AssaultRifle:
 		case Weapon_BubbleGun:
 		case Weapon_StakeGun:
@@ -249,8 +250,8 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 	AddPersistentBeam( muzzle_transform.col3.xyz(), trace.endpos, 1.0f, team_color, "weapons/tracer", 0.2f, 0.1f );
 }
 
-static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_color ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
+static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_color, WeaponType weapon ) {
+	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
 	Vec3 right, up;
 	ViewVectors( dir, &right, &up );
@@ -655,8 +656,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			if( weapon == Weapon_Railgun ) {
 				FireRailgun( origin, dir, owner, false );
 			}
-			else if( weapon == Weapon_Shotgun ) {
-				CG_Event_FireShotgun( origin, dir, owner, team_color );
+			else if( weapon == Weapon_Shotgun || weapon == Weapon_DoubleBarrel ) {
+				CG_Event_FireShotgun( origin, dir, owner, team_color, weapon );
 			}
 			else if( weapon == Weapon_Laser ) {
 				CG_Event_LaserBeam( origin, dir, owner );

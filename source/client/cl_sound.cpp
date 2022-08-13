@@ -368,10 +368,14 @@ static void HotloadSounds() {
 }
 
 static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span< const char > base_path ) {
+	TracyZoneScoped;
+
 	if( sfx->num_sounds == ARRAY_COUNT( sfx->sounds ) ) {
 		Com_Printf( S_COLOR_YELLOW "SFX with too many sections\n" );
 		return false;
 	}
+
+	TempAllocator temp = cls.frame_arena.temp();
 
 	u64 base_hash = Hash64( base_path );
 
@@ -418,28 +422,28 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 					config->sounds[ config->num_random_sounds ] = StringHash( Hash64( value.ptr, value.n ) );
 				}
 				config->num_random_sounds++;
-			} else if( key == "find_sounds" ) {
-				TempAllocator temp = cls.frame_arena.temp();
-				const char * prefix = NULL;
-				Span< const char > folder_path = StripSuffix( base_path, FileName( base_path.ptr ).ptr );
+			}
+			else if( key == "find_sounds" ) {
+				TracyZoneScopedN( "find_sounds" );
 
+				Span< const char > prefix = value;
 				if( value[ 0 ] == '.' ) {
-					value++;
-					prefix = temp("{}{}", folder_path, value );
+					prefix = MakeSpan( temp( "{}{}", base_path, value + 1 ) );
 				}
 
 				for( const char * path : AssetPaths() ) {
-					if( (( prefix != NULL && StartsWith( path, prefix ) ) || StartsWith( path, value.ptr )) && FileExtension( path ) == ".ogg" ) {
+					if( FileExtension( path ) == ".ogg" && StartsWith( MakeSpan( path ), prefix ) ) {
 						if( config->num_random_sounds == ARRAY_COUNT( config->sounds ) ) {
 							Com_Printf( S_COLOR_YELLOW "SFX with too many random sounds\n" );
 							return false;
 						}
 
-						config->sounds[ config->num_random_sounds ] = StringHash( Hash64( StripExtension( MakeSpan( path ) ) ) );
+						config->sounds[ config->num_random_sounds ] = StringHash( StripExtension( path ) );
 						config->num_random_sounds++;
 					}
 				}
-			} else if( key == "delay" ) {
+			}
+			else if( key == "delay" ) {
 				float delay;
 				if( !TrySpanToFloat( value, &delay ) ) {
 					Com_Printf( S_COLOR_YELLOW "Argument to delay should be a number\n" );

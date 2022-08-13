@@ -249,10 +249,14 @@ bool StrCaseEqual( const char * lhs, const char * rhs ) {
 	return StrCaseEqual( MakeSpan( lhs ), MakeSpan( rhs ) );
 }
 
-bool StartsWith( Span< const char > str, const char * prefix ) {
-	if( str.n < strlen( prefix ) )
+bool StartsWith( Span< const char > str, Span< const char > prefix ) {
+	if( str.n < prefix.n )
 		return false;
-	return memcmp( str.ptr, prefix, strlen( prefix ) ) == 0;
+	return memcmp( str.ptr, prefix.ptr, prefix.n ) == 0;
+}
+
+bool StartsWith( Span< const char > str, const char * prefix ) {
+	return StartsWith( str, MakeSpan( prefix ) );
 }
 
 bool StartsWith( const char * str, const char * prefix ) {
@@ -277,10 +281,6 @@ bool CaseStartsWith( const char * str, const char * prefix ) {
 
 Span< const char > StripPrefix( Span< const char > str, const char * prefix ) {
 	return StartsWith( str, prefix ) ? str + strlen( prefix ) : str;
-}
-
-Span< const char > StripSuffix( Span< const char > str, const char * suffix ) {
-	return EndsWith( str, suffix ) ? Span< const char >( str.ptr, str.n - strlen( suffix ) ) : str;
 }
 
 bool CaseContains( const char * haystack, const char * needle ) {

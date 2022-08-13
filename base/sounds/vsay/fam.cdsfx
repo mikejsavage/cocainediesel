@@ -1,4 +1,4 @@
 {
-    find_sounds ./fam
-    volume 0.7
+	find_sounds ./fam/
+	volume 0.7
 }

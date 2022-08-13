@@ -377,8 +377,6 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	u64 base_hash = Hash64( base_path );
-
 	while( true ) {
 		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
 		if( opening_brace == "" )
@@ -414,12 +412,11 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 					Com_Printf( S_COLOR_YELLOW "SFX with too many random sounds\n" );
 					return false;
 				}
-				if( value[ 0 ] == '.' ) {
-					value++;
-					config->sounds[ config->num_random_sounds ] = StringHash( Hash64( value.ptr, value.n, base_hash ) );
+				if( StartsWith( value, "." ) ) {
+					config->sounds[ config->num_random_sounds ] = StringHash( temp( "{}{}", base_path, value + 1 ) );
 				}
 				else {
-					config->sounds[ config->num_random_sounds ] = StringHash( Hash64( value.ptr, value.n ) );
+					config->sounds[ config->num_random_sounds ] = StringHash( value );
 				}
 				config->num_random_sounds++;
 			}
@@ -427,7 +424,7 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span
 				TracyZoneScopedN( "find_sounds" );
 
 				Span< const char > prefix = value;
-				if( value[ 0 ] == '.' ) {
+				if( StartsWith( value, "." ) ) {
 					prefix = MakeSpan( temp( "{}{}", base_path, value + 1 ) );
 				}
 

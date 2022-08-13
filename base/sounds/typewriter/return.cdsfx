@@ -1,4 +1,3 @@
 {
-	sound ./return1
-	sound ./return2
+	find_sounds ./return
 }

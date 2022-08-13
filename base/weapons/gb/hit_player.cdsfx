@@ -1,5 +1,3 @@
 {
-	sound ./hit_player1
-	sound ./hit_player2
-	sound ./hit_player3
+	find_sounds ./hit_player
 }

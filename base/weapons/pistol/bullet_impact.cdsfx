@@ -1,0 +1,5 @@
+{
+	attenuation idle
+	pitch_random 0.1
+	find_sounds weapons/bullet_impact
+}

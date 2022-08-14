@@ -159,6 +159,7 @@ struct ProjectileStats {
 	int max_knockback;
 	int speed;
 	int timeout;
+	float gravity_scale;
 	int splash_radius;
 	DamageType damage_type;
 };
@@ -173,6 +174,7 @@ static ProjectileStats WeaponProjectileStats( WeaponType weapon ) {
 	stats.max_knockback = def->knockback;
 	stats.speed = def->speed;
 	stats.timeout = def->range;
+	stats.gravity_scale = def->gravity_scale;
 	stats.splash_radius = def->splash_radius;
 	stats.damage_type = weapon;
 
@@ -235,6 +237,7 @@ static edict_t * FireProjectile(
 	projectile->r.solid = SOLID_YES;
 	projectile->r.clipmask = clipmask;
 	projectile->s.svflags = SVF_PROJECTILE;
+	projectile->s.gravityScale = stats.gravity_scale;
 
 	projectile->timeDelta = timeDelta;
 	projectile->touch = touch;
@@ -796,13 +799,16 @@ void W_Fire_Sticky( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	bullet->think = StickyExplode;
 }
 
-static void W_Touch_Blast( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static void W_Touch_BouncingProjectile( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
 	if( !CanHit( ent, other ) ) {
 		return;
 	}
 
+	DamageType damage_type = ent->projectileInfo.damage_type;
+	u64 dir = DirToU64( plane ? plane->normal : Vec3( 0.0f ));
+
 	if( other->takedamage ) {
-		edict_t * event = G_SpawnEvent( EV_BLAST_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
+		edict_t * event = G_SpawnEvent( damage_type == Weapon_Pistol ? EV_PISTOL_IMPACT : EV_BLAST_IMPACT, dir, &ent->s.origin );
 		event->s.team = ent->s.team;
 		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, ent->projectileInfo.damage_type );
 		ent->enemy = other;
@@ -810,10 +816,19 @@ static void W_Touch_Blast( edict_t * ent, edict_t * other, Plane * plane, int su
 		return;
 	}
 
-	edict_t * event = G_SpawnEvent( EV_BLAST_BOUNCE, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
+	edict_t * event = NULL;
+	u32 max_bounces = -1;
+	if( damage_type == Weapon_Pistol ) {
+		event = G_SpawnEvent( EV_PISTOL_BOUNCE, dir, &ent->s.origin );
+		max_bounces = 2;
+	} else {
+		event = G_SpawnEvent( EV_BLAST_BOUNCE, dir, &ent->s.origin );
+		max_bounces = 5;
+	}
+
 	event->s.team = ent->s.team;
 
-	if( ent->num_bounces >= 5 ) {
+	if( ent->num_bounces >= max_bounces ) {
 		G_FreeEdict( ent );
 	}
 }
@@ -829,20 +844,30 @@ void W_Fire_Blast( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 		Vec3 blast_dir = dir * def->range + right * spread.x + up * spread.y;
 		Vec3 blast_angles = VecToAngles( blast_dir );
 
-		edict_t * blast = FireProjectile( self, start, blast_angles, timeDelta, WeaponProjectileStats( Weapon_MasterBlaster ), W_Touch_Blast, ET_BLAST, MASK_SHOT );
+		edict_t * blast = FireProjectile( self, start, blast_angles, timeDelta, WeaponProjectileStats( Weapon_MasterBlaster ), W_Touch_BouncingProjectile, ET_BLAST, MASK_SHOT );
 
 		blast->classname = "blast";
-		blast->movetype = MOVETYPE_BOUNCEGRENADE;
+		blast->movetype = MOVETYPE_BOUNCE;
 		blast->stop = G_FreeEdict;
 		blast->s.sound = "weapons/mb/trail";
 	}
 }
 
+void W_Fire_Pistol( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Pistol ), W_Touch_BouncingProjectile, ET_PISTOLBULLET, MASK_SHOT );
+
+	bullet->classname = "pistol_bullet";
+	bullet->s.model = "weapons/pistol/bullet";
+	bullet->movetype = MOVETYPE_BOUNCE;
+	bullet->stop = G_FreeEdict;
+	bullet->s.sound = "weapons/bullet_whizz";
+}
+
 void W_Fire_Road( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RoadGun ), W_Touch_Blast, ET_BLAST, MASK_SHOT );
+	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RoadGun ), W_Touch_BouncingProjectile, ET_BLAST, MASK_SHOT );
 
 	bullet->classname = "zorg";
-	bullet->movetype = MOVETYPE_BOUNCEGRENADE;
+	bullet->movetype = MOVETYPE_BOUNCE;
 	bullet->stop = G_FreeEdict;
 	bullet->s.sound = "weapons/road/trail";
 }
@@ -878,13 +903,17 @@ static void CallFireWeapon( edict_t * ent, u64 parm, bool alt ) {
 			W_Fire_Bat( ent, origin, angles, timeDelta );
 			break;
 
-		case Weapon_Pistol:
+		case Weapon_9mm:
 		case Weapon_MachineGun:
 		case Weapon_Deagle:
 		case Weapon_BurstRifle:
 		case Weapon_Sniper:
 		case Weapon_AutoSniper:
 			W_Fire_Bullet( ent, origin, angles, timeDelta, weapon );
+			break;
+
+		case Weapon_Pistol:
+			W_Fire_Pistol( ent, origin, angles, timeDelta );
 			break;
 
 		case Weapon_Shotgun:

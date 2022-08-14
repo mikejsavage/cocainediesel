@@ -113,30 +113,28 @@ static trace_t SV_PushEntity( edict_t *ent, Vec3 push ) {
 	Vec3 start = ent->s.origin;
 	Vec3 end = start + push;
 
-retry:
-	if( ent->r.clipmask ) {
-		mask = ent->r.clipmask;
-	} else {
-		mask = MASK_SOLID;
-	}
+	while( true ) {
+		mask = ( ent->r.clipmask ) ? ent->r.clipmask : MASK_SOLID;
 
-	G_Trace4D( &trace, start, ent->r.mins, ent->r.maxs, end, ent, mask, ent->timeDelta );
-	if( ent->movetype == MOVETYPE_PUSH || !trace.startsolid ) {
-		ent->s.origin = trace.endpos;
-	}
-
-	GClip_LinkEntity( ent );
-
-	if( trace.fraction < 1.0f ) {
-		SV_Impact( ent, &trace );
-
-		// if the pushed entity went away and the pusher is still there
-		if( !game.edicts[trace.ent].r.inuse && ent->movetype == MOVETYPE_PUSH && ent->r.inuse ) {
-			// move the pusher back and try again
-			ent->s.origin = start;
-			GClip_LinkEntity( ent );
-			goto retry;
+		G_Trace4D( &trace, start, ent->r.mins, ent->r.maxs, end, ent, mask, ent->timeDelta );
+		if( ent->movetype == MOVETYPE_PUSH || !trace.startsolid ) {
+			ent->s.origin = trace.endpos;
 		}
+
+		GClip_LinkEntity( ent );
+
+		if( trace.fraction < 1.0f ) {
+			SV_Impact( ent, &trace );
+
+			// if the pushed entity went away and the pusher is still there
+			if( !game.edicts[trace.ent].r.inuse && ent->movetype == MOVETYPE_PUSH && ent->r.inuse ) {
+				// move the pusher back and try again
+				ent->s.origin = start;
+				GClip_LinkEntity( ent );
+				continue;
+			}
+		}
+		break;
 	}
 
 	if( ent->r.inuse ) {
@@ -399,7 +397,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 	// add gravity
 	if( ent->movetype != MOVETYPE_FLY && !ent->groundentity ) {
-		ent->velocity.z -= GRAVITY * FRAMETIME;
+		ent->velocity.z -= GRAVITY * FRAMETIME * ent->s.gravityScale;
 	}
 
 	// move origin

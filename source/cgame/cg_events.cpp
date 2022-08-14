@@ -180,7 +180,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_BLADE, 0, EVENT_CHANNEL );
 			break;
 
-		case Weapon_Pistol:
+		case Weapon_9mm:
 		case Weapon_Laser:
 		case Weapon_Deagle:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_PISTOL, 0, EVENT_CHANNEL );
@@ -662,7 +662,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			else if( weapon == Weapon_Laser ) {
 				CG_Event_LaserBeam( origin, dir, owner );
 			}
-			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_BurstRifle || weapon == Weapon_Sniper || weapon == Weapon_AutoSniper /* || weapon == Weapon_Minigun */ ) {
+			else if( weapon == Weapon_9mm || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_BurstRifle || weapon == Weapon_Sniper || weapon == Weapon_AutoSniper /* || weapon == Weapon_Minigun */ ) {
 				u16 entropy = parm >> 8;
 				s16 zoom_time = parm >> 24;
 				CG_Event_FireBullet( origin, dir, entropy, zoom_time, weapon, owner, team_color );
@@ -857,6 +857,18 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			Vec3 normal = U64ToDir( parm );
 			DoVisualEffect( "vfx/bulletsparks", ent->origin, normal, 24, team_color );
 			PlaySFX( "weapons/bullet_impact", PlaySFXConfigPosition( ent->origin ) );
+		} break;
+
+		case EV_PISTOL_IMPACT: {
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "weapons/pistol/bullet_impact", ent->origin, normal, 1.0f, team_color );
+			PlaySFX( "weapons/pistol/bullet_impact", PlaySFXConfigPosition( ent->origin ) );
+		} break;
+
+		case EV_PISTOL_BOUNCE: {
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "weapons/pistol/bounce", ent->origin, normal, 1.0f, team_color );
+			PlaySFX( "weapons/pistol/bounce", PlaySFXConfigPosition( ent->origin ) );
 		} break;
 
 		case EV_STAKE_IMPACT: {

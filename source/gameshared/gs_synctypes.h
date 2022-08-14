@@ -39,6 +39,7 @@ enum EntityType : u8 {
 	ET_BUBBLE,
 	ET_RAILGUN,
 	ET_RIFLEBULLET,
+	ET_PISTOLBULLET,
 	ET_STAKE,
 	ET_BLAST,
 
@@ -82,6 +83,7 @@ enum WeaponType : u8 {
 
 	Weapon_Knife,
 	Weapon_Bat,
+	Weapon_9mm,
 	Weapon_Pistol,
 	Weapon_MachineGun,
 	Weapon_Deagle,
@@ -354,6 +356,7 @@ struct SyncEntityState {
 	WeaponType weapon;
 	bool teleported;
 	Vec3 scale;
+	float gravityScale;
 
 	StringHash sound;
 

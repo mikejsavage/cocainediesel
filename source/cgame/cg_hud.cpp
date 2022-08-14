@@ -227,6 +227,8 @@ static const char * conjunctions[] = {
 	"AS WELL AS",
 	"ASSISTED BY",
 	"FEAT.",
+	"GEULIGO",
+	"JA",
 	"N'",
 	"PLUS",
 	"UND",

@@ -32,7 +32,7 @@ static bool IsAlly( Team team ) {
 
 RGB8 CG_TeamColor( Team team ) {
 	if( cg.frame.gameState.gametype == Gametype_Gladiator )
-		return Cvar_Bool( "cg_colorBlind" ) ? COLORBLIND_TEAM_COLORS[ team ] : TEAM_COLORS[ team ];
+		return Cvar_Bool( "cg_colorBlind" ) ? COLORBLIND_TEAM_COLORS[ team - Team_One ] : TEAM_COLORS[ team - Team_One ];
 	return IsAlly( team ) ? AllyColor() : EnemyColor();
 }
 

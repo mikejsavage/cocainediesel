@@ -174,6 +174,7 @@ enum {
 	Vsay_Mike,
 	Vsay_User,
 	Vsay_Guyman,
+	Vsay_Dodonga,
 	Vsay_Helena,
 	Vsay_Fart,
 	Vsay_Zombie,

@@ -369,7 +369,7 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 	u32 vsay = parm & 0xffff;
 	u32 entropy = parm >> 16;
 
-	if( vsay >= Vsay_Total ) {
+	if( vsay >= Vsay_Count ) {
 		return;
 	}
 
@@ -1027,6 +1027,13 @@ static void CG_FireEntityEvents( bool early ) {
  * This events are only received by this client, and only affect it.
  */
 static void CG_FirePlayerStateEvents() {
+	constexpr StringHash hitsounds[] = {
+		"sounds/misc/hit_0",
+		"sounds/misc/hit_1",
+		"sounds/misc/hit_2",
+		"sounds/misc/hit_3",
+	};
+
 	if( cg.view.POVent != ( int ) cg.frame.playerState.POVnum ) {
 		return;
 	}
@@ -1037,7 +1044,7 @@ static void CG_FirePlayerStateEvents() {
 		switch( cg.frame.playerState.events[ count ].type ) {
 			case PSEV_HIT:
 				if( parm < 4 ) { // hit of some caliber
-					PlaySFX( cgs.media.sfxWeaponHit[ parm ] );
+					PlaySFX( hitsounds[ parm ] );
 					CG_ScreenCrosshairDamageUpdate();
 				}
 				else { // killed an enemy

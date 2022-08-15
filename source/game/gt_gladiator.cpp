@@ -299,7 +299,6 @@ static void Gladiator_Think() {
 			if( !server_gs.gameState.exploding ) {
 				BombExplode();
 			} else if( server_gs.gameState.exploding && !gladiator_state.bomb_exploded && level.time - server_gs.gameState.exploded_at >= 1000 ) {
-				printf("ya\n");
 				BombKill();
 			}
 		}

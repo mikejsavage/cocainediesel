@@ -25,7 +25,7 @@ static void PM_WheelSlide( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 
 
 //in this one we don't care about pressing special
-static void PM_WheelSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	bool can_start_charge = ps->pmove.stamina_state == Stamina_Normal;
 
 	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
@@ -107,5 +107,5 @@ static void PM_WheelSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove
 
 
 void PM_WheelInit( pmove_t * pm, pml_t * pml ) {
-	PM_InitPerk( pm, pml, Perk_Midget, PM_WheelSlide, PM_WheelSpecial );
+	PM_InitPerk( pm, pml, Perk_Midget, PM_WheelJump, PM_WheelSlide );
 }

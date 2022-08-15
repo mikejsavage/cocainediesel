@@ -180,7 +180,7 @@ enum {
 	Vsay_Zombie,
 	Vsay_Larp,
 
-	Vsay_Total
+	Vsay_Count
 };
 
 // SyncEntityState->event values

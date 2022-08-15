@@ -399,6 +399,7 @@ static void SettingsControls() {
 			KeyBindButton( "Acne pack", "vsay acne" );
 			KeyBindButton( "Fart pack", "vsay fart" );
 			KeyBindButton( "Guyman pack", "vsay guyman" );
+			KeyBindButton( "Dodonga pack", "vsay dodonga" );
 			KeyBindButton( "Helena pack", "vsay helena" );
 			KeyBindButton( "Larp pack", "vsay larp" );
 			KeyBindButton( "Fam pack", "vsay fam" );

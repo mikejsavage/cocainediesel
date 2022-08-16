@@ -603,7 +603,7 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 }
 
 static void RailgunAltDeploy( edict_t * ent ) {
-	edict_t * event = G_SpawnEvent( EV_RAIL_ALT, 0, &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_RAIL_ALTFIRE, 0, &ent->s.origin );
 	event->s.ownerNum = ent->s.ownerNum;
 	event->s.angles = ent->s.angles;
 
@@ -615,10 +615,14 @@ static void RailgunAltDeploy( edict_t * ent ) {
 
 static void W_Fire_RailgunAlt( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
-	edict_t * ent = GenEntity( self, start, angles, ET_RAILGUN, def->reload_time );
-
+	edict_t * ent = GenEntity( self, start, angles, ET_RAILALT, def->reload_time );
 	ent->classname = "railgunalt";
 	ent->think = RailgunAltDeploy;
+
+	edict_t * event = G_SpawnEvent( EV_RAIL_ALTENT, 0, &ent->s.origin );
+	event->s.ownerNum = ent->s.ownerNum;
+	event->s.angles = ent->s.angles;
+	event->s.team = self->s.team;
 }
 
 

@@ -835,7 +835,12 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			PlaySFX( "weapons/sticky/impact", PlaySFXConfigPosition( ent->origin ) );
 		} break;
 
-		case EV_RAIL_ALT: {
+		case EV_RAIL_ALTENT: {
+			DoVisualEffect( "weapons/eb/charge", ent->origin, Vec3( 0.0f ), 1.0f, team_color );
+			PlaySFX( "weapons/eb/charge", PlaySFXConfigPosition( ent->origin ) );
+		} break;
+
+		case EV_RAIL_ALTFIRE: {
 			Vec3 dir;
 			AngleVectors( ent->angles, &dir, NULL, NULL );
 			FireRailgun( ent->origin, dir, ent->ownerNum, true );

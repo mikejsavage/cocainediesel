@@ -954,10 +954,10 @@ static void MainMenu() {
 			ImGui::Text( "MikeJS - programming" );
 			ImGui::Text( "MSC - programming & art" );
 			ImGui::Text( "Obani - music & fx & programming" );
+			ImGui::Text( "Rhodanathema - art" );
 			ImGui::Separator();
 			ImGui::Text( "jwzr - medical research" );
 			ImGui::Text( "naxeron - chief propagandist" );
-			ImGui::Text( "Rhodanathema - chief technical ceo of gameplay and forward-thinking design developments" );
 			ImGui::Text( "zmiles - american cultural advisor" );
 			ImGui::Separator();
 			ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );

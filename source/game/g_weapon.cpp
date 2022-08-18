@@ -289,16 +289,14 @@ static void HitWithSpread( edict_t * self, Vec3 start, Vec3 angles, float range,
 	}
 }
 
-static void HitOrStickToWall( edict_t * ent, edict_t * other, DamageType weapon, EventType hit, EventType wallhit ) {
+static void HitOrStickToWall( edict_t * ent, edict_t * other, DamageType weapon, EventType player_event, EventType wall_event ) {
 	if( other->takedamage ) {
 		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, weapon );
 		ent->enemy = other;
 
-		if( hit != EV_NONE ) {
-			edict_t * event = G_SpawnEvent( hit, DirToU64( -SafeNormalize( ent->velocity )), &ent->s.origin );
-			event->s.team = ent->s.team;
-		}
-		
+		edict_t * event = G_SpawnEvent( player_event, DirToU64( -SafeNormalize( ent->velocity ) ), &ent->s.origin );
+		event->s.team = ent->s.team;
+
 		G_FreeEdict( ent );
 	}
 	else {
@@ -307,10 +305,8 @@ static void HitOrStickToWall( edict_t * ent, edict_t * other, DamageType weapon,
 		ent->s.sound = EMPTY_HASH;
 		ent->avelocity = Vec3( 0.0f );
 
-		if( wallhit != EV_NONE ) {
-			edict_t * event = G_SpawnEvent( wallhit, DirToU64( -SafeNormalize( ent->velocity )), &ent->s.origin );
-			event->s.team = ent->s.team;
-		}
+		edict_t * event = G_SpawnEvent( wall_event, DirToU64( -SafeNormalize( ent->velocity ) ), &ent->s.origin );
+		event->s.team = ent->s.team;
 	}
 }
 

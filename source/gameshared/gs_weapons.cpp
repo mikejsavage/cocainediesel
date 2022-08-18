@@ -27,10 +27,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void GS_TraceBullet( const gs_state_t * gs, trace_t * trace, trace_t * wallbang_trace, Vec3 start, Vec3 dir, Vec3 right, Vec3 up, Vec2 spread, int range, int ignore, int timeDelta ) {
 	Vec3 end = start + dir * range + right * spread.x + up * spread.y;
 
-	gs->api.Trace( trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, MASK_WALLBANG, timeDelta );
+	gs->api.Trace( trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, Solid_Wallbang, timeDelta );
 
 	if( wallbang_trace != NULL ) {
-		gs->api.Trace( wallbang_trace, start, Vec3( 0.0f ), Vec3( 0.0f ), trace->endpos, ignore, MASK_SHOT, timeDelta );
+		gs->api.Trace( wallbang_trace, start, Vec3( 0.0f ), Vec3( 0.0f ), trace->endpos, ignore, Solid_Shot, timeDelta );
 	}
 }
 
@@ -58,7 +58,7 @@ void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec
 
 	trace->ent = 0;
 
-	gs->api.Trace( trace, origin, -maxs, maxs, end, ignore, MASK_SHOT, timeDelta );
+	gs->api.Trace( trace, origin, -maxs, maxs, end, ignore, Solid_Shot, timeDelta );
 	if( trace->ent != -1 && impact != NULL ) {
 		impact( trace, dir, data );
 	}

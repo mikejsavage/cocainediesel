@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "gameshared/collision.h"
 
-void RailgunImpact( Vec3 pos, Vec3 dir, int surfFlags, Vec4 color ) {
+static void RailgunImpact( Vec3 pos, Vec3 dir, Vec4 color ) {
 	DoVisualEffect( "weapons/eb/hit", pos, dir, 1.0f, color );
 	PlaySFX( "weapons/eb/hit", PlaySFXConfigPosition( pos ) );
 }
@@ -32,8 +32,7 @@ static void BulletImpact( const trace_t * trace, Vec4 color, int num_particles, 
 }
 
 static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles, float decal_lifetime_scale = 1.0f ) {
-	// TODO: should draw on entry/exit of all wallbanged surfaces
-	if( ( trace->contents & CONTENTS_WALLBANGABLE ) == 0 )
+	if( ( trace->solidity & Solid_Wallbangable ) == 0 )
 		return;
 
 	DoVisualEffect( "vfx/wallbang_impact", trace->endpos, trace->normal, num_particles, color, decal_lifetime_scale );
@@ -63,7 +62,7 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin )
 	trace_t trace;
 	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.view.POVent, MASK_WALLBANG );
 	if( trace.ent != -1 ) {
-		RailgunImpact( trace.endpos, trace.normal, trace.surfFlags, color );
+		RailgunImpact( trace.endpos, trace.normal, color );
 	}
 
 	if( from_origin ) {
@@ -813,7 +812,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_BOLT_EXPLOSION: {
 			Vec3 normal = U64ToDir( parm );
-			RailgunImpact( ent->origin, normal, 0, team_color );
+			RailgunImpact( ent->origin, normal, team_color );
 		} break;
 
 		case EV_GRENADE_EXPLOSION: {

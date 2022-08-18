@@ -1,6 +1,5 @@
 #include "qcommon/base.h"
 #include "qcommon/fpe.h"
-#include "qcommon/testing.h"
 #include "gameshared/intersection_tests.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
@@ -434,6 +433,3 @@ bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, In
 
 	return true;
 }
-
-SELFTESTS( "Intersection tests", {
-} );

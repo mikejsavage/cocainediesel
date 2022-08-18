@@ -700,6 +700,36 @@ static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData
 	}
 }
 
+static void WriteObj( ArenaAllocator * arena, const char * path, const MapData * map ) {
+	DynamicString obj( arena );
+
+	const MapModel * model = &map->models[ 0 ];
+
+	for( size_t i = 0; i < map->vertices.n; i++ ) {
+		Vec3 p = map->vertices[ i ].position;
+		Vec3 n = map->vertices[ i ].normal;
+		obj.append( "v {} {} {}\n", p.x, p.y, p.z );
+		obj.append( "vn {} {} {}\n", n.x, n.y, n.z );
+	}
+
+	for( u32 i = 0; i < model->num_meshes; i++ ) {
+		const MapMesh * mesh = &map->meshes[ i + model->first_mesh ];
+
+		for( u32 j = 0; j < mesh->num_vertices; j += 3 ) {
+			obj.append( "f {}//{} {}//{} {}//{}\n",
+				map->vertex_indices[ j + 0 + mesh->first_vertex_index ],
+				map->vertex_indices[ j + 0 + mesh->first_vertex_index ],
+				map->vertex_indices[ j + 1 + mesh->first_vertex_index ],
+				map->vertex_indices[ j + 1 + mesh->first_vertex_index ],
+				map->vertex_indices[ j + 2 + mesh->first_vertex_index ],
+				map->vertex_indices[ j + 2 + mesh->first_vertex_index ]
+			);
+		}
+	}
+
+	WriteFileOrComplain( arena, path, obj.c_str(), obj.length() );
+}
+
 static Span< const char > GetKey( Span< const ParsedKeyValue > kvs, const char * key ) {
 	for( ParsedKeyValue kv : kvs ) {
 		if( StrCaseEqual( kv.key, key ) ) {
@@ -710,14 +740,39 @@ static Span< const char > GetKey( Span< const ParsedKeyValue > kvs, const char *
 	return Span< const char >( NULL, 0 );
 }
 
-int main( int argc, char ** argv ) {
-	if( argc != 2 && !( argc == 3 && StrEqual( argv[ 1 ], "--compress" ) ) ) {
-		printf( "Usage: %s [--compress] <file.map>\n", argv[ 0 ] );
-		return 1;
-	}
+static bool ParseArg( const char * arg, bool * compress, bool * write_obj ) {
+	*compress = *compress || StrEqual( arg, "--compress" );
+	*write_obj = *write_obj || StrEqual( arg, "--obj" );
+	return StrEqual( arg, "--compress" ) || StrEqual( arg, "--obj" );
+}
 
-	const char * src_path = argc == 2 ? argv[ 1 ] : argv[ 2 ];
-	bool compress = argc == 3;
+int main( int argc, char ** argv ) {
+	bool compress = false;
+	bool write_obj = false;
+	const char * src_path = NULL;
+
+	{
+		bool ok = true;
+
+		if( argc < 2 || argc > 4 ) {
+			ok = false;
+		}
+
+		if( argc == 3 ) {
+			ok = ok && ParseArg( argv[ 1 ], &compress, &write_obj );
+		}
+
+		if( argc == 4 ) {
+			ok = ok && ParseArg( argv[ 2 ], &compress, &write_obj );
+		}
+
+		if( !ok ) {
+			printf( "Usage: %s [--compress] [--obj] <file.map>\n", argv[ 0 ] );
+			return 1;
+		}
+
+		src_path = argv[ argc - 1 ];
+	}
 
 	size_t src_len;
 	char * src = ReadFileString( sys_allocator, src_path, &src_len );
@@ -891,6 +946,11 @@ int main( int argc, char ** argv ) {
 
 	const char * cdmap_path = arena( "{}.cdmap", StripExtension( src_path ) );
 	WriteCDMap( &arena, cdmap_path, &flattened, compress );
+
+	if( write_obj ) {
+		const char * obj_path = arena( "{}.obj", StripExtension( src_path ) );
+		WriteObj( &arena, obj_path, &flattened );
+	}
 
 	// TODO: generate render geometry
 	// - figure out what postprocessing we need e.g. welding

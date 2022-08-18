@@ -289,6 +289,31 @@ static void HitWithSpread( edict_t * self, Vec3 start, Vec3 angles, float range,
 	}
 }
 
+static void HitOrStickToWall( edict_t * ent, edict_t * other, DamageType weapon, EventType hit, EventType wallhit ) {
+	if( other->takedamage ) {
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, weapon );
+		ent->enemy = other;
+
+		if( hit != EV_NONE ) {
+			edict_t * event = G_SpawnEvent( hit, DirToU64( -SafeNormalize( ent->velocity )), &ent->s.origin );
+			event->s.team = ent->s.team;
+		}
+		
+		G_FreeEdict( ent );
+	}
+	else {
+		ent->s.type = ET_GENERIC;
+		ent->movetype = MOVETYPE_NONE;
+		ent->s.sound = EMPTY_HASH;
+		ent->avelocity = Vec3( 0.0f );
+
+		if( wallhit != EV_NONE ) {
+			edict_t * event = G_SpawnEvent( wallhit, DirToU64( -SafeNormalize( ent->velocity )), &ent->s.origin );
+			event->s.team = ent->s.team;
+		}
+	}
+}
+
 static void W_Fire_Blade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Knife );
 
@@ -439,22 +464,7 @@ static void W_Touch_Stake( edict_t * ent, edict_t * other, Plane * plane, int su
 		return;
 	}
 
-	if( other->takedamage ) {
-		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_StakeGun );
-		ent->enemy = other;
-		edict_t * event = G_SpawnEvent( EV_STAKE_IMPALE, DirToU64( -SafeNormalize( ent->velocity )), &ent->s.origin );
-		event->s.team = ent->s.team;
-		G_FreeEdict( ent );
-	}
-	else {
-		ent->s.type = ET_GENERIC;
-		// ent->think = G_FreeEdict;
-		// ent->nextThink = level.time + def->range;
-		ent->movetype = MOVETYPE_NONE;
-		ent->s.sound = EMPTY_HASH;
-		edict_t * event = G_SpawnEvent( EV_STAKE_IMPACT, DirToU64( -SafeNormalize( ent->velocity )), &ent->s.origin );
-		event->s.team = ent->s.team;
-	}
+	HitOrStickToWall( ent, other, Weapon_StakeGun, EV_STAKE_IMPALE, EV_STAKE_IMPACT );
 }
 
 static void W_Fire_Stake( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
@@ -967,11 +977,7 @@ static void TouchThrowingAxe( edict_t * ent, edict_t * other, Plane * plane, int
 		return;
 	}
 
-	// edict_t * event = G_SpawnEvent( EV_AXE_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
-	// event->s.team = ent->s.team;
-
-	G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Gadget_ThrowingAxe );
-	G_FreeEdict( ent );
+	HitOrStickToWall( ent, other, Gadget_ThrowingAxe, EV_AXE_HIT, EV_AXE_IMPACT );
 }
 
 static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, u64 charge_time ) {

@@ -992,6 +992,16 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			PlaySFX( "weapons/rl/explode", PlaySFXConfigPosition( ent->origin ) );
 		} break;
 
+		case EV_AXE_HIT:
+			PlaySFX( "gadgets/hatchet/hit", PlaySFXConfigPosition( ent->origin ) );
+			break;
+
+		case EV_AXE_IMPACT: {
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "gadgets/hatchet/impact", ent->origin, normal, 1.0f, team_color );
+			PlaySFX( "gadgets/hatchet/impact", PlaySFXConfigPosition( ent->origin ) );
+		} break;
+
 		case EV_STUN_GRENADE_EXPLOSION:
 			DoVisualEffect( "gadgets/flash/explode", ent->origin, Vec3(), 1.0f, vec4_white );
 			PlaySFX( "gadgets/flash/explode", PlaySFXConfigPosition( ent->origin ) );

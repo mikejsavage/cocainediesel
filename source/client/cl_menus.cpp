@@ -1239,6 +1239,8 @@ static void GameMenu() {
 
 		Settings();
 	}
+	
+	ImGui::SetWindowFocus();
 
 	if( ImGui::Hotkey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;

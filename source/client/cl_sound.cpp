@@ -367,11 +367,15 @@ static void HotloadSounds() {
 	}
 }
 
-static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 base_hash ) {
+static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span< const char > base_path ) {
+	TracyZoneScoped;
+
 	if( sfx->num_sounds == ARRAY_COUNT( sfx->sounds ) ) {
 		Com_Printf( S_COLOR_YELLOW "SFX with too many sections\n" );
 		return false;
 	}
+
+	TempAllocator temp = cls.frame_arena.temp();
 
 	while( true ) {
 		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
@@ -408,14 +412,33 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 					Com_Printf( S_COLOR_YELLOW "SFX with too many random sounds\n" );
 					return false;
 				}
-				if( value[ 0 ] == '.' ) {
-					value++;
-					config->sounds[ config->num_random_sounds ] = StringHash( Hash64( value.ptr, value.n, base_hash ) );
+				if( StartsWith( value, "." ) ) {
+					config->sounds[ config->num_random_sounds ] = StringHash( temp( "{}{}", base_path, value + 1 ) );
 				}
 				else {
-					config->sounds[ config->num_random_sounds ] = StringHash( Hash64( value.ptr, value.n ) );
+					config->sounds[ config->num_random_sounds ] = StringHash( value );
 				}
 				config->num_random_sounds++;
+			}
+			else if( key == "find_sounds" ) {
+				TracyZoneScopedN( "find_sounds" );
+
+				Span< const char > prefix = value;
+				if( StartsWith( value, "." ) ) {
+					prefix = MakeSpan( temp( "{}{}", base_path, value + 1 ) );
+				}
+
+				for( const char * path : AssetPaths() ) {
+					if( FileExtension( path ) == ".ogg" && StartsWith( MakeSpan( path ), prefix ) ) {
+						if( config->num_random_sounds == ARRAY_COUNT( config->sounds ) ) {
+							Com_Printf( S_COLOR_YELLOW "SFX with too many random sounds\n" );
+							return false;
+						}
+
+						config->sounds[ config->num_random_sounds ] = StringHash( StripExtension( path ) );
+						config->num_random_sounds++;
+					}
+				}
 			}
 			else if( key == "delay" ) {
 				float delay;
@@ -486,11 +509,10 @@ static void LoadSoundEffect( const char * path ) {
 	TracyZoneText( path, strlen( path ) );
 
 	Span< const char > data = AssetString( path );
-	u64 base_hash = Hash64( BasePath( path ) );
 
 	SoundEffect sfx = { };
 
-	if( !ParseSoundEffect( &sfx, &data, base_hash ) ) {
+	if( !ParseSoundEffect( &sfx, &data, BasePath( path ) ) ) {
 		Com_Printf( S_COLOR_YELLOW "Couldn't load %s\n", path );
 		return;
 	}

@@ -249,10 +249,14 @@ bool StrCaseEqual( const char * lhs, const char * rhs ) {
 	return StrCaseEqual( MakeSpan( lhs ), MakeSpan( rhs ) );
 }
 
-bool StartsWith( Span< const char > str, const char * prefix ) {
-	if( str.n < strlen( prefix ) )
+bool StartsWith( Span< const char > str, Span< const char > prefix ) {
+	if( str.n < prefix.n )
 		return false;
-	return memcmp( str.ptr, prefix, strlen( prefix ) ) == 0;
+	return memcmp( str.ptr, prefix.ptr, prefix.n ) == 0;
+}
+
+bool StartsWith( Span< const char > str, const char * prefix ) {
+	return StartsWith( str, MakeSpan( prefix ) );
 }
 
 bool StartsWith( const char * str, const char * prefix ) {

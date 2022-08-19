@@ -29,7 +29,7 @@ local function DrawTopInfo( state )
 	if state.match_state < MatchState_Playing then
 		cd.text( options, posX, state.viewport_height * 0.015, "WARMUP" )
 
-		if state.team ~= TEAM_SPECTATOR then
+		if state.ghost then
 			if state.ready or state.match_state == MatchState_Countdown then
 				options.color = "#5f6f"
 				cd.text( options, posX, posY, "READY" )
@@ -39,23 +39,24 @@ local function DrawTopInfo( state )
 			end
 		end
 	elseif state.match_state == MatchState_Playing then
-		if state.gametype == Gametype_Bomb then
-			options.font_size = state.viewport_height / 25
 
-			local seconds = cd.getClockTime()
-			if seconds >= 0 then
-				local minutes = seconds / 60
-				seconds = seconds % 60
+		options.font_size = state.viewport_height / 25
 
-				if minutes < 1 and seconds < 11 and seconds ~= 0 then
-					options.color = "#f00" -- TODO: attention getting red
-				end
-				cd.text( options, posX, state.viewport_height * 0.012, string.format( "%d:%02i", minutes, seconds ) )
-			else
-				local size = state.viewport_height * 0.055
-				cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )
+		local seconds = cd.getClockTime()
+		if seconds >= 0 then
+			local minutes = seconds / 60
+			seconds = seconds % 60
+
+			if minutes < 1 and seconds < 11 and seconds ~= 0 then
+				options.color = "#f00" -- TODO: attention getting red
 			end
+			cd.text( options, posX, state.viewport_height * 0.012, string.format( "%d:%02i", minutes, seconds ) )
+		elseif state.gametype == Gametype_Bomb then
+			local size = state.viewport_height * 0.055
+			cd.box( posX - size/2.4, state.viewport_height * 0.025 - size/2, size, size, "#fff", assets.bomb )
+		end
 
+		if state.gametype == Gametype_Bomb then
 			options.color = cd.getTeamColor( Team_One )
 			cd.text( options, posX - posX / 11, state.viewport_height * 0.012, state.scoreAlpha )
 			options.color = cd.getTeamColor( Team_Two )
@@ -91,6 +92,30 @@ local function DrawTopInfo( state )
 			end
 		end
 	end
+end
+
+local function DrawChasing( state, x1, y1, x2, y2 )
+	if not state.chasing then
+		return
+	end
+
+	local scale_text = state.viewport_width * 0.0198
+	local scale_name = state.viewport_width * 0.03
+
+	local options = {
+		color = "#eeef",
+		border = "#000b",
+		font = "normal",
+		font_size = scale_text,
+		alignment = "left bottom",
+	}
+
+	cd.text( options, x1, y1 - scale_text * 0.5, "Spectating :" )
+
+	options.color = "#ffff"
+	options.font_size = scale_name
+	options.font = "bold"
+	cd.text( options, x2, y2 - scale_name * 0.25, cd.getPlayerName( state.chasing ) )
 end
 
 local function DrawHotkeys( state, options, x, y )
@@ -231,8 +256,63 @@ local function DrawWeaponBar( state, options, x, y, width, height, padding )
 	end
 end
 
+local function DrawStaminaBar( state, x, y, width, height, padding, bg_color )
+	local stamina_color = cd.allyColor()
+
+	if state.perk == Perk_Hooligan then
+		cd.box( x, y, width, height, bg_color )
+
+		local steps = 2
+		local cell_width = width/steps
+
+		for i = 0, steps - 1, 1 do
+			if (state.stamina * steps) >= (i + 1) then
+				cd.box( x + cell_width * i, y, cell_width, height, stamina_color )
+			else
+				stamina_color.a = 0.1
+				cd.box( x + cell_width * i, y, cell_width * (state.stamina * steps - i), height, stamina_color )
+				break
+			end
+		end
+
+		local uvwidth = width * math.floor( state.stamina * steps )/steps
+		if state.stamina > 0 then
+			cd.boxuv( x, y,
+				uvwidth, height,
+				0, 0, uvwidth/8, height/8, --8 is the size of the texture
+				RGBALinear( 0, 0, 0, 0.5 ), assets.diagonal_pattern )
+		end
+
+		for i = 1, steps - 1, 1 do
+			cd.box( x + cell_width * i - padding/2, y, padding, height, dark_grey )
+		end
+	else
+		if state.perk == Perk_Midget and state.stamina_state == Stamina_UsedAbility then
+			local c = RGBALinear( 1.0, 0.5, 0.5, 0.1 )
+			cd.box( x, y, width, height, c )
+		elseif state.perk == Perk_Jetpack then
+			local s = 1 - math.min( 1.0, state.stamina + 0.3 )
+			if state.stamina_state == Stamina_Reloading then
+				s = 1 - math.min( 1.0, state.stamina - 0.15 )
+			end
+
+			stamina_color.r = math.min( 1.0, stamina_color.r + s )
+			stamina_color.g = math.max( 0.0, stamina_color.g - s )
+			stamina_color.b = math.max( 0.0, stamina_color.b - s * 2.0 )
+		else
+			cd.box( x, y, width, height, bg_color )
+		end
+
+		cd.box( x, y, width * state.stamina, height, stamina_color )
+		cd.boxuv( x, y,
+			width * state.stamina, height,
+			0, 0, (width * state.stamina)/8, height/8, --8 is the size of the texture
+			RGBALinear( 0, 0, 0, 0.5 ), assets.diagonal_pattern )
+	end
+end
+
 local function DrawPlayerBar( state )
-	if state.health <= 0 or state.team == TEAM_SPECTATOR or state.zooming then
+	if state.health <= 0 or state.ghost or state.zooming then
 		return
 	end
 
@@ -248,7 +328,6 @@ local function DrawPlayerBar( state )
 	local x = offset
 	local y = state.viewport_height - offset - height
 
-
 	local perks_utility_size = state.viewport_width * 0.035
 	local perkX = x + padding
 	local perkY = y - perks_utility_size - padding * 2
@@ -257,6 +336,7 @@ local function DrawPlayerBar( state )
 		font = "bolditalic",
 		alignment = "left top",
 	}
+	DrawChasing( state, perkX, perkY, perkX + perks_utility_size * 2 + padding * 5, perkY )
 	DrawPerk( state, perkX, perkY, perks_utility_size, padding )
 	DrawUtility( state, weapons_options, perkX + perks_utility_size + padding * 3 , perkY, perks_utility_size, padding )
 	DrawWeaponBar( state, weapons_options, x + width + padding, y, height * 0.85, height, padding )
@@ -268,55 +348,7 @@ local function DrawPlayerBar( state )
 	width -= padding * 2
 
 	local bg_color = RGBALinear( 0.04, 0.04, 0.04, 1 )
-	local stamina_color = cd.allyColor()
-
-	if state.perk == Perk_Hooligan then
-		cd.box( x, y, width, stamina_bar_height, bg_color )
-
-		local steps = 2
-		local cell_width = width/steps
-		stamina_color.a = math.min( state.stamina * steps, 1 )
-		cd.box( x, y, cell_width, stamina_bar_height, stamina_color )
-
-		for i = 0, steps, 1 do
-			stamina_color.a = math.clamp( state.stamina * steps - i, 0, 1 )
-			cd.box( x + cell_width * i, y, cell_width, stamina_bar_height, stamina_color )
-		end
-
-		local uvwidth = width * math.floor( state.stamina * steps + 0.99 )/steps
-		if state.stamina > 0 then
-			cd.boxuv( x, y,
-				uvwidth, stamina_bar_height,
-				0, 0, uvwidth/8, stamina_bar_height/8, --8 is the size of the texture
-				RGBALinear( 0, 0, 0, 0.5 ), assets.diagonal_pattern )
-		end
-
-		for i = 1, steps - 1, 1 do
-			cd.box( x + cell_width * i - padding/2, y, padding, stamina_bar_height, dark_grey )
-		end
-	else
-		if state.perk == Perk_Midget and state.stamina_state == Stamina_UsedAbility then
-			local c = RGBALinear( 1.0, 0.5, 0.5, 0.1 )
-			cd.box( x, y, width, stamina_bar_height, c )
-		elseif state.perk == Perk_Jetpack then
-			local s = 1 - math.min( 1.0, state.stamina + 0.3 )
-			if state.stamina_state == Stamina_Reloading then
-				s = 1 - math.min( 1.0, state.stamina - 0.15 )
-			end
-
-			stamina_color.r = math.min( 1.0, stamina_color.r + s )
-			stamina_color.g = math.max( 0.0, stamina_color.g - s )
-			stamina_color.b = math.max( 0.0, stamina_color.b - s * 2.0 )
-		else
-			cd.box( x, y, width, stamina_bar_height, bg_color )
-		end
-
-		cd.box( x, y, width * state.stamina, stamina_bar_height, stamina_color )
-		cd.boxuv( x, y,
-			width * state.stamina, stamina_bar_height,
-			0, 0, (width * state.stamina)/8, stamina_bar_height/8, --8 is the size of the texture
-			RGBALinear( 0, 0, 0, 0.5 ), assets.diagonal_pattern )
-	end
+	DrawStaminaBar( state, x, y, width, stamina_bar_height, padding, bg_color )
 
 	y += stamina_bar_height + padding
 
@@ -384,31 +416,6 @@ local function DrawBombProgress( state )
 		cd.text( text, state.viewport_width * 0.5, y + height * 0.4, message )
 	end
 end
-
-local function DrawChasing( state )
-	if not state.chasing then
-		return
-	end
-
-	local offset = state.viewport_width * 0.02
-	local scale_text = state.viewport_width * 0.016
-	local scale_name = state.viewport_width * 0.05
-
-	local options = {
-		color = "#fffb",
-		border = "#000b",
-		font = "normal",
-		font_size = scale_text,
-		alignment = "left bottom",
-	}
-
-	cd.text( options, offset, offset, "Spectating :" )
-
-	options.font_size = scale_name
-	options.font = "bold"
-	cd.text( options, offset, offset + state.viewport_width * 0.038, cd.getPlayerName( state.chasing ) )
-end
-
 
 local function DrawLagging( state )
 	if state.lagging then
@@ -535,8 +542,6 @@ return function( state )
 		DrawDevInfo( state )
 
 		DrawBombProgress( state )
-
-		DrawChasing( state )
 
 		cd.drawCrosshair()
 		cd.drawDamageNumbers( state.viewport_height / 30, state.viewport_height / 50 ) -- obituary msg size, dmg numbers size

@@ -1,0 +1,4 @@
+{
+	find_sounds ./fam/
+	volume 0.7
+}

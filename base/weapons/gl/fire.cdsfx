@@ -6,6 +6,5 @@
 {
 	attenuation distant
 	volume 0.5
-	sound ./fire_spring1
-	sound ./fire_spring2
+	find_sounds ./fire_spring
 }

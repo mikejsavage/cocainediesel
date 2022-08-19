@@ -219,12 +219,18 @@ static void KeyBindButton( const char * label, const char * command ) {
 	}
 
 	if( ImGui::BeginPopupModal( label, NULL, ImGuiWindowFlags_NoDecoration ) ) {
-		ImGui::Text( "Press a key to set a new bind, or press ESCAPE to cancel." );
+		ImGui::Text( "Press a key to set a new bind, or press DEL to delete it (ESCAPE to cancel)" );
 
 		ImGuiIO & io = ImGui::GetIO();
 		for( size_t i = 0; i < ARRAY_COUNT( io.KeysDown ); i++ ) {
 			if( ImGui::IsKeyPressed( i ) ) {
-				if( i != K_ESCAPE ) {
+				if( i == K_DEL ) {
+					int binds[ 2 ];
+					int num_binds = CG_GetBoundKeycodes( command, binds );
+					for( int j = 0; j < num_binds; j++ ) {
+						Key_SetBinding( binds[ j ], NULL );
+					}
+				} else if( i != K_ESCAPE ) {
 					Key_SetBinding( i, command );
 				}
 				ImGui::CloseCurrentPopup();
@@ -334,6 +340,12 @@ static void SettingsControls() {
 
 	ImGui::BeginChild( "binds" );
 
+	PushButtonColor( ImVec4( 0.375f, 0.f, 0.f, 0.75f ) );
+	if( ImGui::Button("Reset to default") ) {
+		Key_Unbindall();
+		ExecDefaultCfg();
+	} ImGui::PopStyleColor( 3 );
+
 	if( ImGui::BeginTabBar( "##binds", ImGuiTabBarFlags_None ) ) {
 		if( ImGui::BeginTabItem( "Game" ) ) {
 			KeyBindButton( "Forward", "+forward" );
@@ -387,8 +399,10 @@ static void SettingsControls() {
 			KeyBindButton( "Acne pack", "vsay acne" );
 			KeyBindButton( "Fart pack", "vsay fart" );
 			KeyBindButton( "Guyman pack", "vsay guyman" );
+			KeyBindButton( "Dodonga pack", "vsay dodonga" );
 			KeyBindButton( "Helena pack", "vsay helena" );
 			KeyBindButton( "Larp pack", "vsay larp" );
+			KeyBindButton( "Fam pack", "vsay fam" );
 			KeyBindButton( "Mike pack", "vsay mike" );
 			KeyBindButton( "User pack", "vsay user" );
 			KeyBindButton( "Valley pack", "vsay valley" );
@@ -940,10 +954,10 @@ static void MainMenu() {
 			ImGui::Text( "MikeJS - programming" );
 			ImGui::Text( "MSC - programming & art" );
 			ImGui::Text( "Obani - music & fx & programming" );
+			ImGui::Text( "Rhodanathema - art" );
 			ImGui::Separator();
 			ImGui::Text( "jwzr - medical research" );
 			ImGui::Text( "naxeron - chief propagandist" );
-			ImGui::Text( "Rhodanathema - chief technical ceo of gameplay and forward-thinking design developments" );
 			ImGui::Text( "zmiles - american cultural advisor" );
 			ImGui::Separator();
 			ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );

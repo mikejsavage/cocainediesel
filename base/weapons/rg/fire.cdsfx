@@ -1,9 +1,6 @@
 {
 	attenuation distant
-	sound ./fire1
-	sound ./fire2
-	sound ./fire3
-	sound ./fire4
+	find_sounds ./fire
 }
 
 {

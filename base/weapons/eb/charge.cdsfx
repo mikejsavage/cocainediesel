@@ -1,0 +1,5 @@
+{
+	attenuation norm
+	find_sounds ./charge
+	volume 0.5
+}

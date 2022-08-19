@@ -102,7 +102,7 @@ bool OSSocketSend( u64 handle, const void * data, size_t n, const sockaddr_stora
 			*sent = 0;
 			return true;
 		}
-		if( error == WSAECONNABORTED || error == WSAECONNRESET || error == WSAEHOSTUNREACH ) {
+		if( error == WSAENETUNREACH || error == WSAENETRESET || error == WSAECONNABORTED || error == WSAECONNRESET || error == WSAEHOSTUNREACH ) {
 			return false;
 		}
 		FatalWSA( "sendto" );

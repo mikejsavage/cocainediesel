@@ -15,7 +15,7 @@ static u32 num_gltf_models;
 static Hashtable< MAX_MODELS * 2 > gltf_models_hashtable;
 
 constexpr u32 MAX_INSTANCES = 1024;
-constexpr u32 MAX_INSTANCE_GROUPS = 128;
+constexpr u32 MAX_INSTANCE_GROUPS = 256;
 
 template< typename T >
 struct ModelInstanceGroup {
@@ -154,7 +154,11 @@ template< typename T >
 static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, const Model * model, const Model::Primitive * primitive, PipelineState pipeline, T & instance, u64 hash ) {
 	u64 idx = collection.num_groups;
 	if( !collection.groups_hashtable.get( hash, &idx ) ) {
-		assert( collection.num_groups < ARRAY_COUNT( collection.groups ) );
+		if( collection.num_groups == ARRAY_COUNT( collection.groups ) ) {
+			Com_Printf( S_COLOR_YELLOW "Too many instancing groups!\n" );
+			return;
+		}
+
 		collection.groups_hashtable.add( hash, collection.num_groups );
 		collection.groups[ idx ].pipeline = pipeline;
 		collection.groups[ idx ].model = model;
@@ -162,7 +166,11 @@ static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, 
 		collection.num_groups++;
 	}
 
-	assert( collection.groups[ idx ].num_instances < ARRAY_COUNT( collection.groups[ idx ].instances ) );
+	if( collection.groups[ idx ].num_instances == ARRAY_COUNT( collection.groups[ idx ].instances ) ) {
+		Com_Printf( S_COLOR_YELLOW "Too many instanced draws!\n" );
+		return;
+	}
+
 	collection.groups[ idx ].instances[ collection.groups[ idx ].num_instances++ ] = instance;
 }
 

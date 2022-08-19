@@ -1,27 +1,3 @@
 {
-	sound ./zombie/zombie-01
-	sound ./zombie/zombie-02
-	sound ./zombie/zombie-03
-	sound ./zombie/zombie-04
-	sound ./zombie/zombie-05
-	sound ./zombie/zombie-06
-	sound ./zombie/zombie-07
-	sound ./zombie/zombie-08
-	sound ./zombie/zombie-09
-	sound ./zombie/zombie-10
-	sound ./zombie/zombie-11
-	sound ./zombie/zombie-12
-	sound ./zombie/zombie-13
-	sound ./zombie/zombie-14
-	sound ./zombie/zombie-15
-	sound ./zombie/zombie-16
-	sound ./zombie/zombie-17
-	sound ./zombie/zombie-18
-	sound ./zombie/zombie-19
-	sound ./zombie/zombie-20
-	sound ./zombie/zombie-21
-	sound ./zombie/zombie-22
-	sound ./zombie/zombie-23
-	sound ./zombie/zombie-24
-	sound ./zombie/zombie-25
+	find_sounds ./zombie/
 }

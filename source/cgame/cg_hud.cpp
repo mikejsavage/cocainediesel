@@ -226,6 +226,8 @@ static const char * conjunctions[] = {
 	"AS WELL AS",
 	"ASSISTED BY",
 	"FEAT.",
+	"GEULIGO",
+	"JA",
 	"N'",
 	"PLUS",
 	"UND",
@@ -1644,9 +1646,10 @@ void CG_InitHUD() {
 void CG_ShutdownHUD() {
 	if( hud_L != NULL ) {
 		lua_close( hud_L );
-		YGConfigFree( yoga_config );
-		FREE( sys_allocator, yoga_arena_memory );
 	}
+
+	YGConfigFree( yoga_config );
+	FREE( sys_allocator, yoga_arena_memory );
 
 	RemoveCommand( "toggleuiinspector" );
 }
@@ -1715,6 +1718,9 @@ void CG_DrawHUD() {
 
 	lua_pushnumber( hud_L, cg.predictedPlayerState.pmove.stamina_state );
 	lua_setfield( hud_L, -2, "stamina_state" );
+
+	lua_pushboolean( hud_L, cg.predictedPlayerState.pmove.pm_type == PM_SPECTATOR );
+	lua_setfield( hud_L, -2, "ghost" );
 
 	lua_pushnumber( hud_L, cg.predictedPlayerState.team );
 	lua_setfield( hud_L, -2, "team" );

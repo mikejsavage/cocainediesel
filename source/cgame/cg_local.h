@@ -106,8 +106,7 @@ struct centity_t {
 #include "cgame/cg_pmodels.h"
 
 struct cgs_media_t {
-	StringHash sfxWeaponHit[ 4 ];
-	StringHash sfxVSaySounds[ Vsay_Total ];
+	StringHash sfxVSaySounds[ Vsay_Count ];
 
 	StringHash shaderWeaponIcon[ Weapon_Count ];
 	StringHash shaderGadgetIcon[ Gadget_Count ];

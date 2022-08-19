@@ -1,7 +1,5 @@
 {
 	attenuation distant
 	volume 0.1
-	sound ./explode1
-	sound ./explode2
-	sound ./explode3
+	find_sounds ./explode
 }

@@ -54,11 +54,11 @@ enum movetype_t {
 	MOVETYPE_NOCLIP,    // like MOVETYPE_PLAYER, but not clipped
 	MOVETYPE_PUSH,      // no clip to world, push on box contact
 	MOVETYPE_STOP,      // no clip to world, stops on box contact
-	MOVETYPE_FLY,
 	MOVETYPE_TOSS,      // gravity
 	MOVETYPE_LINEARPROJECTILE, // extra size to monsters
 	MOVETYPE_BOUNCE,
 	MOVETYPE_BOUNCEGRENADE,
+	MOVETYPE_BOUNCENOGRAVITY,
 };
 
 #define TIMEOUT_TIME                    180000

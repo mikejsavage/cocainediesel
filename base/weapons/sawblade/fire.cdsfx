@@ -1,0 +1,5 @@
+{
+	volume 1.0
+	find_sounds ./fire
+	pitch_random 0.1
+}

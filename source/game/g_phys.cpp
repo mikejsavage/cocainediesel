@@ -396,8 +396,8 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	SV_CheckVelocity( ent );
 
 	// add gravity
-	if( ent->movetype != MOVETYPE_FLY && !ent->groundentity ) {
-		ent->velocity.z -= GRAVITY * FRAMETIME * ent->s.gravityScale;
+	if( ent->movetype != MOVETYPE_BOUNCENOGRAVITY && !ent->groundentity ) {
+		ent->velocity.z -= GRAVITY * FRAMETIME;
 	}
 
 	// move origin
@@ -409,10 +409,9 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 	trace_t trace = SV_PushEntity( ent, move );
 	if( trace.fraction < 1.0f ) {
-		float restitution = 0.0f;
-		if( ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
-			restitution = 0.5f;
-		}
+		float restitution = ent->movetype == MOVETYPE_BOUNCENOGRAVITY ? 1.0f :
+							ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ? 0.5f :
+							0.0f;
 
 		Vec3 impulse = -Dot( ent->velocity, trace.plane.normal ) * trace.plane.normal;
 		ent->velocity += ( 1.0f + restitution ) * impulse;
@@ -421,7 +420,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 		// stop if on ground
 
-		if( ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
+		if( ent->movetype != MOVETYPE_TOSS ) {
 			// stop dead on allsolid
 
 			// LA: hopefully will fix grenades bouncing down slopes
@@ -524,12 +523,8 @@ void G_RunEntity( edict_t *ent ) {
 			break;
 		case MOVETYPE_BOUNCE:
 		case MOVETYPE_BOUNCEGRENADE:
-			SV_Physics_Toss( ent );
-			break;
+		case MOVETYPE_BOUNCENOGRAVITY:
 		case MOVETYPE_TOSS:
-			SV_Physics_Toss( ent );
-			break;
-		case MOVETYPE_FLY:
 			SV_Physics_Toss( ent );
 			break;
 		case MOVETYPE_LINEARPROJECTILE:

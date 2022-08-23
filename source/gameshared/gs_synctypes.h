@@ -42,6 +42,7 @@ enum EntityType : u8 {
 	ET_PISTOLBULLET,
 	ET_STAKE,
 	ET_BLAST,
+	ET_SAWBLADE,
 
 	ET_THROWING_AXE,
 
@@ -103,6 +104,7 @@ enum WeaponType : u8 {
 	Weapon_MasterBlaster,
 	Weapon_RoadGun,
 	Weapon_StickyGun,
+	Weapon_Sawblade,
 	// Weapon_Minigun,
 
 	Weapon_Count
@@ -356,7 +358,6 @@ struct SyncEntityState {
 	WeaponType weapon;
 	bool teleported;
 	Vec3 scale;
-	float gravityScale;
 
 	StringHash sound;
 

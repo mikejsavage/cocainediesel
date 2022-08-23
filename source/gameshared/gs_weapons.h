@@ -41,7 +41,6 @@ struct WeaponDef {
 	float min_knockback;
 
 	int speed;
-	float gravity_scale;
 	float spread;
 };
 

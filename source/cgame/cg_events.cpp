@@ -573,6 +573,17 @@ static void CG_Event_Jump( SyncEntityState * state, u64 parm ) {
 	}
 }
 
+static void DoEntFX( SyncEntityState * ent, u64 parm, Vec4 color, const char * VFX, const char * SFX ) {
+	if( VFX != NULL ) {
+		Vec3 normal = U64ToDir( parm );
+		DoVisualEffect( VFX, ent->origin, normal, 1.0f, color );
+	}
+
+	if( SFX != NULL ) {
+		PlaySFX( StringHash( SFX ), PlaySFXConfigPosition( ent->origin ) );
+	}
+}
+
 void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 	bool viewer = ISVIEWERENTITY( ent->number );
 
@@ -777,8 +788,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_BOMB_EXPLOSION:
-			DoVisualEffect( "models/bomb/explosion", ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, vec4_white );
-			PlaySFX( "models/bomb/explode", PlaySFXConfigPosition( ent->origin ) );
+			DoEntFX( ent, parm, vec4_white, "models/bomb/explosion", "models/bomb/explode" );
 			break;
 
 		case EV_GIB:
@@ -800,15 +810,12 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			PlaySFX( "sounds/world/tele_in", PlaySFXConfigPosition( ent->origin ) );
 			break;
 
-		case EV_ARBULLET_EXPLOSION: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/ar/explosion", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/ar/explode", PlaySFXConfigPosition( ent->origin ) );
-		} break;
+		case EV_ARBULLET_EXPLOSION:
+			DoEntFX( ent, parm, team_color, "weapons/ar/explosion", "weapons/ar/explode" );
+			break;
 
 		case EV_BUBBLE_EXPLOSION:
-			DoVisualEffect( "weapons/bg/explosion", ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, team_color );
-			PlaySFX( "weapons/bg/explode", PlaySFXConfigPosition( ent->origin ) );
+			DoEntFX( ent, parm, team_color, "weapons/bg/explosion", "weapons/bg/explode" );
 			break;
 
 		case EV_BOLT_EXPLOSION: {
@@ -816,11 +823,9 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			RailgunImpact( ent->origin, normal, 0, team_color );
 		} break;
 
-		case EV_GRENADE_EXPLOSION: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "vfx/explosion", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/gl/explode", PlaySFXConfigPosition( ent->origin ) );
-		} break;
+		case EV_GRENADE_EXPLOSION:
+			DoEntFX( ent, parm, team_color, "vfx/explosion", "weapons/gl/explode" );
+			break;
 
 		case EV_STICKY_EXPLOSION: {
 			Vec3 normal = U64ToDir( parm );
@@ -830,11 +835,17 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 		} break;
 
-		case EV_STICKY_IMPACT: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/sticky/impact", ent->origin, normal, 24, team_color );
-			PlaySFX( "weapons/sticky/impact", PlaySFXConfigPosition( ent->origin ) );
-		} break;
+		case EV_STICKY_IMPACT:
+			DoEntFX( ent, parm, team_color, "weapons/sticky/impact", "weapons/sticky/impact" );
+			break;
+
+		case EV_SAWBLADE_BOUNCE:
+			DoEntFX( ent, parm, team_color, "weapons/sawblade/bounce", "weapons/sawblade/bounce" );
+			break;
+
+		case EV_SAWBLADE_IMPACT:
+			DoEntFX( ent, parm, team_color, "weapons/sawblade/blade_impact", "weapons/sawblade/blade_impact" );
+			break;
 
 		case EV_RAIL_ALT: {
 			Vec3 dir;
@@ -842,58 +853,42 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			FireRailgun( ent->origin, dir, ent->ownerNum, true );
 		} break;
 
-		case EV_ROCKET_EXPLOSION: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "vfx/explosion", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/rl/explode", PlaySFXConfigPosition( ent->origin ) );
-		} break;
+		case EV_ROCKET_EXPLOSION:
+			DoEntFX( ent, parm, team_color, "vfx/explosion", "weapons/rl/explode" );
+			break;
 
 		case EV_GRENADE_BOUNCE: {
 			float volume = Min2( 1.0f, parm / float( U16_MAX ) );
 			PlaySFX( "weapons/gl/bounce", PlaySFXConfigEntity( ent->number, volume ) );
 		} break;
 
-		case EV_RIFLEBULLET_IMPACT: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "vfx/bulletsparks", ent->origin, normal, 24, team_color );
-			PlaySFX( "weapons/bullet_impact", PlaySFXConfigPosition( ent->origin ) );
-		} break;
+		case EV_RIFLEBULLET_IMPACT:
+			DoEntFX( ent, parm, team_color, "vfx/bulletsparks", "weapons/bullet_impact" );
+			break;
 
-		case EV_PISTOL_IMPACT: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/pistol/bullet_impact", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/pistol/bullet_impact", PlaySFXConfigPosition( ent->origin ) );
-		} break;
+		case EV_PISTOL_BOUNCE:
+			DoEntFX( ent, parm, team_color, "weapons/pistol/bounce", "weapons/pistol/bounce" );
+			break;
 
-		case EV_PISTOL_BOUNCE: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/pistol/bounce", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/pistol/bounce", PlaySFXConfigPosition( ent->origin ) );
-		} break;
+		case EV_PISTOL_IMPACT:
+			DoEntFX( ent, parm, team_color, "weapons/pistol/bullet_impact", "weapons/pistol/bullet_impact" );
+			break;
 
-		case EV_STAKE_IMPACT: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/stake/hit", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/stake/hit", PlaySFXConfigPosition( ent->origin ) );
-		} break;
+		case EV_STAKE_IMPACT:
+			DoEntFX( ent, parm, team_color, "weapons/stake/hit", "weapons/stake/hit" );
+			break;
 
-		case EV_STAKE_IMPALE: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/stake/impale", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/stake/impale", PlaySFXConfigPosition( ent->origin ) );
-		} break;
+		case EV_STAKE_IMPALE:
+			DoEntFX( ent, parm, team_color, "weapons/stake/impale", "weapons/stake/impale" );
+			break;
 
-		case EV_BLAST_IMPACT: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/mb/hit", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/mb/hit", PlaySFXConfigPosition( ent->origin ) );
-		} break;
+		case EV_BLAST_IMPACT:
+			DoEntFX( ent, parm, team_color, "weapons/mb/hit", "weapons/mb/hit" );
+			break;
 
-		case EV_BLAST_BOUNCE: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/mb/bounce", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/mb/bounce", PlaySFXConfigPosition( ent->origin ) );
-		} break;
+		case EV_BLAST_BOUNCE:
+			DoEntFX( ent, parm, team_color, "weapons/mb/bounce", "weapons/mb/bounce" );
+			break;
 
 		case EV_BLOOD: {
 			Vec3 dir = ent->origin2;
@@ -994,15 +989,12 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			PlaySFX( "sounds/beep", PlaySFXConfigEntity( ent->number ) );
 			break;
 
-		case EV_SUICIDE_BOMB_EXPLODE: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "vfx/explosion", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/rl/explode", PlaySFXConfigPosition( ent->origin ) );
-		} break;
+		case EV_SUICIDE_BOMB_EXPLODE:
+			DoEntFX( ent, parm, team_color, "vfx/explosion", "weapons/rl/explode" );
+			break;
 
 		case EV_STUN_GRENADE_EXPLOSION:
-			DoVisualEffect( "gadgets/flash/explode", ent->origin, Vec3(), 1.0f, vec4_white );
-			PlaySFX( "gadgets/flash/explode", PlaySFXConfigPosition( ent->origin ) );
+			DoEntFX( ent, parm, vec4_white, "gadgets/flash/explode", "gadgets/flash/explode" );
 			break;
 	}
 }

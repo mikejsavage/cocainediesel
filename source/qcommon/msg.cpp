@@ -488,7 +488,6 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.radius, baseline.radius );
 	DeltaEnum( buf, ent.team, baseline.team, Team_Count );
 	Delta( buf, ent.scale, baseline.scale );
-	Delta( buf, ent.gravityScale, baseline.gravityScale );
 
 	Delta( buf, ent.origin2, baseline.origin2 );
 

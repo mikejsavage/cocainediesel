@@ -86,12 +86,15 @@ bool Cvar_Bool( const char * name ) {
 }
 
 void SetCvar( Cvar * cvar, const char * value ) {
-	cvar->modified = cvar->value == NULL || !StrEqual( value, cvar->value );
+	if( cvar->value != NULL && StrEqual( value, cvar->value ) ) {
+		return;
+	}
 
 	FREE( sys_allocator, cvar->value );
 	cvar->value = CopyString( sys_allocator, value );
 	cvar->number = SpanToFloat( MakeSpan( cvar->value ), 0.0f );
 	cvar->integer = SpanToInt( MakeSpan( cvar->value ), 0 );
+	cvar->modified = true;
 
 	if( HasFlag( cvar->flags, CvarFlag_UserInfo ) ) {
 		userinfo_modified = true;

@@ -216,6 +216,8 @@ void G_ClearSnap() {
 * It's time to send a new snap, so set the world up for sending
 */
 void G_SnapFrame() {
+	TracyZoneScoped;
+
 	edict_t *ent;
 	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
 

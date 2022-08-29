@@ -270,7 +270,11 @@ static void CG_Cmd_PrevWeapon_f() {
 		return;
 	}
 
-	ScrollWeapon( -1 );
+	if( GS_GetWeaponDef( cg.predictedPlayerState.weapon )->category == WeaponCategory_Melee ) {
+		SwitchWeapon( cg.predictedPlayerState.last_weapon );
+	} else {
+		ScrollWeapon( -1 );
+	}
 }
 
 static void CG_Cmd_LastWeapon_f() {

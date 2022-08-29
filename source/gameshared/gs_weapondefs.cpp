@@ -279,7 +279,7 @@ const WeaponDef weapon_defs[] = {
 		/* short name           */ "doublebarrel",
 		/* category             */ WeaponCategory_Primary,
 
-		/* projectile count     */ 25,
+		/* projectile count     */ 30,
 		/* clip size            */ 2,
 		/* reload time          */ 3000,
 		/* staged reload time   */ 0,

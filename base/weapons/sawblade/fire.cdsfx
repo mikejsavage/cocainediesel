@@ -3,3 +3,9 @@
 	find_sounds ./fire
 	pitch_random 0.1
 }
+
+{
+	volume 0.25
+	pitch 1.25
+	find_sounds weapons/whizz
+}

@@ -25,10 +25,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 void CG_RegisterMedia() {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	for( int i = 0; i < 4; i++ ) {
-		cgs.media.sfxWeaponHit[ i ] = StringHash( temp( "sounds/misc/hit_{}", i ) );
-	}
-
 	cgs.media.sfxVSaySounds[ Vsay_Sorry ] = "sounds/vsay/sorry";
 	cgs.media.sfxVSaySounds[ Vsay_Thanks ] = "sounds/vsay/thanks";
 	cgs.media.sfxVSaySounds[ Vsay_GoodGame ] = "sounds/vsay/goodgame";
@@ -39,6 +35,7 @@ void CG_RegisterMedia() {
 	cgs.media.sfxVSaySounds[ Vsay_Mike ] = "sounds/vsay/mike";
 	cgs.media.sfxVSaySounds[ Vsay_User ] = "sounds/vsay/user";
 	cgs.media.sfxVSaySounds[ Vsay_Guyman ] = "sounds/vsay/guyman";
+	cgs.media.sfxVSaySounds[ Vsay_Dodonga ] = "sounds/vsay/dodonga";
 	cgs.media.sfxVSaySounds[ Vsay_Helena ] = "sounds/vsay/helena";
 	cgs.media.sfxVSaySounds[ Vsay_Fart ] = "sounds/vsay/fart";
 	cgs.media.sfxVSaySounds[ Vsay_Zombie ] = "sounds/vsay/zombie";

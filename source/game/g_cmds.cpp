@@ -325,6 +325,7 @@ static const g_vsays_t g_vsays[] = {
 	{ "mike", Vsay_Mike },
 	{ "user", Vsay_User },
 	{ "guyman", Vsay_Guyman },
+	{ "dodonga", Vsay_Dodonga },
 	{ "helena", Vsay_Helena },
 	{ "fart", Vsay_Fart },
 	{ "zombie", Vsay_Zombie },

@@ -288,14 +288,15 @@ static void Gladiator_Think() {
 	}
 
 	if( server_gs.gameState.round_state == RoundState_Round ) {
-		s64 round_time = gladiator_state.round_state_start + int( g_glad_bombtimer->number * 1000.0f ) - level.time;
+		u64 round_end = gladiator_state.round_state_start + int( g_glad_bombtimer->number * 1000.0f );
+		u64 round_time = round_end - level.time;
 
-		if( round_time > 0 ) {
+		if( round_end >= level.time ) {
 			server_gs.gameState.clock_override = round_time;
 		} else {
 			server_gs.gameState.clock_override = -1;
 			
-			if( !server_gs.gameState.exploding && round_time == 0 ) {
+			if( !server_gs.gameState.exploding ) {
 				BombExplode();
 			} else if( server_gs.gameState.exploding && !gladiator_state.bomb_exploded && level.time - server_gs.gameState.exploded_at >= 1000 ) {
 				BombKill();
@@ -443,7 +444,7 @@ static void Gladiator_Init() {
 		SetLoadout( ent, MSG_ReadString( &args ), false );
 	} );
 
-	g_glad_bombtimer = NewCvar( "g_glad_bombtimer", "30", CvarFlag_Archive );
+	g_glad_bombtimer = NewCvar( "g_glad_bombtimer", "40", CvarFlag_Archive );
 
 	PickRandomArena();
 }

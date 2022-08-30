@@ -892,10 +892,10 @@ void CG_UpdateEntities() {
 			case ET_GRENADE:
 			case ET_RIFLEBULLET:
 			case ET_PISTOLBULLET:
-			case ET_RAILGUN:
 			case ET_STAKE:
 			case ET_BLAST:
 			case ET_SAWBLADE:
+			case ET_RAILALT:
 			case ET_THROWING_AXE:
 				break;
 

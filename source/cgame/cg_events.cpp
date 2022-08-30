@@ -370,7 +370,7 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 	u32 vsay = parm & 0xffff;
 	u32 entropy = parm >> 16;
 
-	if( vsay >= Vsay_Total ) {
+	if( vsay >= Vsay_Count ) {
 		return;
 	}
 
@@ -847,7 +847,12 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			DoEntFX( ent, parm, team_color, "weapons/sawblade/blade_impact", "weapons/sawblade/blade_impact" );
 			break;
 
-		case EV_RAIL_ALT: {
+		case EV_RAIL_ALTENT: {
+			DoVisualEffect( "weapons/eb/charge", ent->origin, Vec3( 0.0f ), 1.0f, team_color );
+			PlaySFX( "weapons/eb/charge", PlaySFXConfigPosition( ent->origin ) );
+		} break;
+
+		case EV_RAIL_ALTFIRE: {
 			Vec3 dir;
 			AngleVectors( ent->angles, &dir, NULL, NULL );
 			FireRailgun( ent->origin, dir, ent->ownerNum, true );
@@ -993,6 +998,16 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			DoEntFX( ent, parm, team_color, "vfx/explosion", "weapons/rl/explode" );
 			break;
 
+		case EV_AXE_HIT:
+			PlaySFX( "gadgets/hatchet/hit", PlaySFXConfigPosition( ent->origin ) );
+			break;
+
+		case EV_AXE_IMPACT: {
+			Vec3 normal = U64ToDir( parm );
+			DoVisualEffect( "gadgets/hatchet/impact", ent->origin, normal, 1.0f, team_color );
+			PlaySFX( "gadgets/hatchet/impact", PlaySFXConfigPosition( ent->origin ) );
+		} break;
+
 		case EV_STUN_GRENADE_EXPLOSION:
 			DoEntFX( ent, parm, vec4_white, "gadgets/flash/explode", "gadgets/flash/explode" );
 			break;
@@ -1032,6 +1047,13 @@ static void CG_FireEntityEvents( bool early ) {
  * This events are only received by this client, and only affect it.
  */
 static void CG_FirePlayerStateEvents() {
+	constexpr StringHash hitsounds[] = {
+		"sounds/misc/hit_0",
+		"sounds/misc/hit_1",
+		"sounds/misc/hit_2",
+		"sounds/misc/hit_3",
+	};
+
 	if( cg.view.POVent != ( int ) cg.frame.playerState.POVnum ) {
 		return;
 	}
@@ -1042,7 +1064,7 @@ static void CG_FirePlayerStateEvents() {
 		switch( cg.frame.playerState.events[ count ].type ) {
 			case PSEV_HIT:
 				if( parm < 4 ) { // hit of some caliber
-					PlaySFX( cgs.media.sfxWeaponHit[ parm ] );
+					PlaySFX( hitsounds[ parm ] );
 					CG_ScreenCrosshairDamageUpdate();
 				}
 				else { // killed an enemy

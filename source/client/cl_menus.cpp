@@ -399,6 +399,7 @@ static void SettingsControls() {
 			KeyBindButton( "Acne pack", "vsay acne" );
 			KeyBindButton( "Fart pack", "vsay fart" );
 			KeyBindButton( "Guyman pack", "vsay guyman" );
+			KeyBindButton( "Dodonga pack", "vsay dodonga" );
 			KeyBindButton( "Helena pack", "vsay helena" );
 			KeyBindButton( "Larp pack", "vsay larp" );
 			KeyBindButton( "Fam pack", "vsay fam" );
@@ -953,10 +954,10 @@ static void MainMenu() {
 			ImGui::Text( "MikeJS - programming" );
 			ImGui::Text( "MSC - programming & art" );
 			ImGui::Text( "Obani - music & fx & programming" );
+			ImGui::Text( "Rhodanathema - art" );
 			ImGui::Separator();
 			ImGui::Text( "jwzr - medical research" );
 			ImGui::Text( "naxeron - chief propagandist" );
-			ImGui::Text( "Rhodanathema - chief technical ceo of gameplay and forward-thinking design developments" );
 			ImGui::Text( "zmiles - american cultural advisor" );
 			ImGui::Separator();
 			ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
@@ -1238,6 +1239,8 @@ static void GameMenu() {
 
 		Settings();
 	}
+	
+	ImGui::SetWindowFocus();
 
 	if( ImGui::Hotkey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;

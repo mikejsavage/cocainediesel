@@ -48,7 +48,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ HITSCAN,
-		/* spread               */ 20,
+		/* spread               */ 30,
 	},
 
 	{
@@ -64,8 +64,8 @@ const WeaponDef weapon_defs[] = {
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_FAST,
 		/* weapon down time     */ WEAPONDOWN_TIME,
-		/* refire time          */ 250,
-		/* timeout / range      */ 90,
+		/* refire time          */ 350,
+		/* timeout / range      */ 70,
 		/* max recoil           */ EulerDegrees2( 0.0f, 0.0f ),
 		/* min recoil           */ EulerDegrees2( 0.0f, 0.0f ),
 		/* recoil recovery      */ 0.0f,

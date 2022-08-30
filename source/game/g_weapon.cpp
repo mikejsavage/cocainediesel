@@ -289,6 +289,27 @@ static void HitWithSpread( edict_t * self, Vec3 start, Vec3 angles, float range,
 	}
 }
 
+static void HitOrStickToWall( edict_t * ent, edict_t * other, DamageType weapon, EventType player_event, EventType wall_event ) {
+	if( other->takedamage ) {
+		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, weapon );
+		ent->enemy = other;
+
+		edict_t * event = G_SpawnEvent( player_event, DirToU64( -SafeNormalize( ent->velocity ) ), &ent->s.origin );
+		event->s.team = ent->s.team;
+
+		G_FreeEdict( ent );
+	}
+	else {
+		ent->s.type = ET_GENERIC;
+		ent->movetype = MOVETYPE_NONE;
+		ent->s.sound = EMPTY_HASH;
+		ent->avelocity = Vec3( 0.0f );
+
+		edict_t * event = G_SpawnEvent( wall_event, DirToU64( -SafeNormalize( ent->velocity ) ), &ent->s.origin );
+		event->s.team = ent->s.team;
+	}
+}
+
 static void W_Fire_Blade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Knife );
 
@@ -439,22 +460,7 @@ static void W_Touch_Stake( edict_t * ent, edict_t * other, Plane * plane, int su
 		return;
 	}
 
-	if( other->takedamage ) {
-		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Weapon_StakeGun );
-		ent->enemy = other;
-		edict_t * event = G_SpawnEvent( EV_STAKE_IMPALE, DirToU64( -SafeNormalize( ent->velocity )), &ent->s.origin );
-		event->s.team = ent->s.team;
-		G_FreeEdict( ent );
-	}
-	else {
-		ent->s.type = ET_GENERIC;
-		// ent->think = G_FreeEdict;
-		// ent->nextThink = level.time + def->range;
-		ent->movetype = MOVETYPE_NONE;
-		ent->s.sound = EMPTY_HASH;
-		edict_t * event = G_SpawnEvent( EV_STAKE_IMPACT, DirToU64( -SafeNormalize( ent->velocity )), &ent->s.origin );
-		event->s.team = ent->s.team;
-	}
+	HitOrStickToWall( ent, other, Weapon_StakeGun, EV_STAKE_IMPALE, EV_STAKE_IMPACT );
 }
 
 static void W_Fire_Stake( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
@@ -603,7 +609,7 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 }
 
 static void RailgunAltDeploy( edict_t * ent ) {
-	edict_t * event = G_SpawnEvent( EV_RAIL_ALT, 0, &ent->s.origin );
+	edict_t * event = G_SpawnEvent( EV_RAIL_ALTFIRE, 0, &ent->s.origin );
 	event->s.ownerNum = ent->s.ownerNum;
 	event->s.angles = ent->s.angles;
 
@@ -615,10 +621,14 @@ static void RailgunAltDeploy( edict_t * ent ) {
 
 static void W_Fire_RailgunAlt( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
-	edict_t * ent = GenEntity( self, start, angles, ET_RAILGUN, def->reload_time );
-
+	edict_t * ent = GenEntity( self, start, angles, ET_RAILALT, def->reload_time );
 	ent->classname = "railgunalt";
 	ent->think = RailgunAltDeploy;
+
+	edict_t * event = G_SpawnEvent( EV_RAIL_ALTENT, 0, &ent->s.origin );
+	event->s.ownerNum = ent->s.ownerNum;
+	event->s.angles = ent->s.angles;
+	event->s.team = self->s.team;
 }
 
 
@@ -1008,11 +1018,7 @@ static void TouchThrowingAxe( edict_t * ent, edict_t * other, Plane * plane, int
 		return;
 	}
 
-	// edict_t * event = G_SpawnEvent( EV_AXE_IMPACT, DirToU64( plane ? plane->normal : Vec3( 0.0f )), &ent->s.origin );
-	// event->s.team = ent->s.team;
-
-	G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Gadget_ThrowingAxe );
-	G_FreeEdict( ent );
+	HitOrStickToWall( ent, other, Gadget_ThrowingAxe, EV_AXE_HIT, EV_AXE_IMPACT );
 }
 
 static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, u64 charge_time ) {

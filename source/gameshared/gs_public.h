@@ -174,12 +174,13 @@ enum {
 	Vsay_Mike,
 	Vsay_User,
 	Vsay_Guyman,
+	Vsay_Dodonga,
 	Vsay_Helena,
 	Vsay_Fart,
 	Vsay_Zombie,
 	Vsay_Larp,
 
-	Vsay_Total
+	Vsay_Count
 };
 
 // SyncEntityState->event values
@@ -229,7 +230,8 @@ enum EventType {
 
 	EV_GRENADE_BOUNCE,
 	EV_GRENADE_EXPLOSION,
-	EV_RAIL_ALT,
+	EV_RAIL_ALTENT,
+	EV_RAIL_ALTFIRE,
 	EV_ROCKET_EXPLOSION,
 	EV_ARBULLET_EXPLOSION,
 	EV_BUBBLE_EXPLOSION,
@@ -245,6 +247,9 @@ enum EventType {
 	EV_STICKY_IMPACT,
 	EV_SAWBLADE_BOUNCE,
 	EV_SAWBLADE_IMPACT,
+
+	EV_AXE_HIT,
+	EV_AXE_IMPACT,
 
 	EV_STUN_GRENADE_EXPLOSION,
 

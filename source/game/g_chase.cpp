@@ -25,8 +25,6 @@ static void G_Chase_SetChaseActive( edict_t *ent, bool active ) {
 }
 
 static bool G_Chase_IsValidTarget( const edict_t * ent, const edict_t * target ) {
-	bool teamonly = ent->s.team != Team_None;
-
 	if( !ent || !target ) {
 		return false;
 	}
@@ -39,16 +37,23 @@ static bool G_Chase_IsValidTarget( const edict_t * ent, const edict_t * target )
 		return false;
 	}
 
-	if( teamonly && G_ISGHOSTING( target ) ) {
-		return false;
-	}
-
-	if( teamonly && target->s.team != ent->s.team ) {
+	if( G_ISGHOSTING( target ) ) {
 		return false;
 	}
 
 	if( G_ISGHOSTING( target ) && !target->deadflag && target->s.team != Team_None ) {
 		return false; // ghosts that are neither dead, nor speccing (probably originating from gt-specific rules)
+	}
+
+	if( target->s.team != ent->s.team ) {
+		SyncTeamState * current_team = &server_gs.gameState.teams[ ent->s.team ];
+
+		for( u8 i = 0; i < current_team->num_players; i++ ) {
+			edict_t * e = game.edicts + current_team->player_indices[i];
+			if( !G_ISGHOSTING( e ) ) {
+				return false;
+			}
+		}
 	}
 
 	return true;

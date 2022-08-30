@@ -287,15 +287,10 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			}
 			else if( key == "end_color" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				if( value[ 0 ] == '$' ) {
-					// TODO variables
-				}
-				else {
-					float r = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
-					float g = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
-					float b = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
-					emitter->end_color = Vec4( r, g, b, 0.0f );
-				}
+				float r = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+				float g = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+				float b = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+				emitter->end_color = Vec4( r, g, b, 0.0f );
 			}
 			else if( key == "red_distribution" ) {
 				emitter->red_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );

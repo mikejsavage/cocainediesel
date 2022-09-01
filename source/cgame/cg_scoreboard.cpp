@@ -12,7 +12,8 @@ bool CG_ScoreboardShown() {
 	return cg.showScoreboard;
 }
 
-static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float line_height ) {
+static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float line_height, Gametype gt ) {
+	bool bomb_gt = gt == Gametype_Bomb;
 	SyncScoreboardPlayer * player = &client_gs.gameState.players[ playerIndex - 1 ];
 
 	// icon
@@ -50,18 +51,24 @@ static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float l
 	ImGui::NextColumn();
 
 	// stats
-	ImGui::AlignTextToFramePadding();
-	ColumnCenterText( temp( "{}", player->score ) );
+	if( bomb_gt ) {
+		ImGui::AlignTextToFramePadding();
+		ColumnCenterText( temp( "{}", player->score ) );
+	}
+
 	ImGui::NextColumn();
-	ImGui::AlignTextToFramePadding();
-	ColumnCenterText( temp( "{}", player->kills ) );
+	if( bomb_gt ) {
+		ImGui::AlignTextToFramePadding();
+		ColumnCenterText( temp( "{}", player->kills ) );
+	}
+
 	ImGui::NextColumn();
 	ImGui::AlignTextToFramePadding();
 	ColumnCenterText( temp( "{}", player->ping ) );
 	ImGui::NextColumn();
 }
 
-static void DrawTeamScoreboard( TempAllocator & temp, Team team, ImFont * score_font, u8 min_tabs, float col_width ) {
+static void DrawTeamScoreboard( TempAllocator & temp, Team team, ImFont * score_font, u8 min_tabs, float col_width, Gametype gt ) {
 	const SyncTeamState * team_info = &client_gs.gameState.teams[ team ];
 
 	RGB8 color = CG_TeamColor( team );
@@ -103,7 +110,7 @@ static void DrawTeamScoreboard( TempAllocator & temp, Team team, ImFont * score_
 		ImGui::SetColumnWidth( 4, col_width );
 
 		for( u8 i = 0; i < team_info->num_players; i++ ) {
-			DrawPlayerScoreboard( temp, team_info->player_indices[ i ], line_height );
+			DrawPlayerScoreboard( temp, team_info->player_indices[ i ], line_height, gt );
 		}
 
 		ImGui::EndChild();
@@ -146,10 +153,9 @@ void CG_DrawScoreboard() {
 	};
 
 	float col_width = 80;
+	float score_width = ( client_gs.gameState.gametype == Gametype_Bomb ? 5 : 2 ) * ( ImGui::GetTextLineHeight() + 2 * 8 );
 
 	if( client_gs.gameState.gametype == Gametype_Bomb ) {
-		float score_width = 5 * ( ImGui::GetTextLineHeight() + 2 * 8 );
-
 		{
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
 			ImGui::BeginChild( "scoreboardheader", ImVec2( 0, separator_height ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
@@ -175,7 +181,7 @@ void CG_DrawScoreboard() {
 			ImGui::PopStyleColor();
 		}
 
-		DrawTeamScoreboard( temp, Team_One, cls.huge_font, 5, col_width );
+		DrawTeamScoreboard( temp, Team_One, cls.huge_font, 5, col_width, client_gs.gameState.gametype );
 
 		{
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
@@ -199,7 +205,7 @@ void CG_DrawScoreboard() {
 			ImGui::PopStyleColor();
 		}
 
-		DrawTeamScoreboard( temp, Team_Two, cls.huge_font, 5, col_width );
+		DrawTeamScoreboard( temp, Team_Two, cls.huge_font, 5, col_width, client_gs.gameState.gametype );
 
 		{
 			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
@@ -224,8 +230,27 @@ void CG_DrawScoreboard() {
 		}
 	}
 	else {
+		{
+			ImGui::PushStyleColor( ImGuiCol_ChildBg, IM_COL32( 0, 0, 0, 255 ) );
+			ImGui::BeginChild( "scoreboardheader", ImVec2( 0, separator_height ), false, ImGuiWindowFlags_AlwaysUseWindowPadding );
+
+			ImGui::Columns( 3, NULL, false );
+			ImGui::SetColumnWidth( 0, score_width );
+			ImGui::SetColumnWidth( 1, size.x - score_width - col_width );
+			ImGui::SetColumnWidth( 2, col_width );
+
+			ColumnCenterText( "SCORE" );
+			ImGui::NextColumn();
+			ImGui::NextColumn();
+			ColumnCenterText( "PING" );
+			ImGui::NextColumn();
+
+			ImGui::EndChild();
+			ImGui::PopStyleColor();
+		}
+
 		for( Team i = Team_One; i < Team_Count; i = Team( i + 1 ) ) {
-			DrawTeamScoreboard( temp, i, cls.large_font, 2, col_width );
+			DrawTeamScoreboard( temp, i, cls.large_font, 2, col_width, client_gs.gameState.gametype );
 		}
 		// const SyncTeamState * team_info = &client_gs.gameState.teams[ TEAM_PLAYERS ];
                 //

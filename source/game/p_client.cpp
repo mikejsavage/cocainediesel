@@ -135,9 +135,19 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	return body;
 }
 
+static void ReleaseWeapons( edict_t * ent ) {
+	SyncPlayerState * ps = &ent->r.client->ps;
+
+	if( ps->using_gadget && GetGadgetDef( ps->gadget )->drop_on_death ) {
+		server_gs.api.PredictedUseGadget( ps->POVnum, ps->gadget, ps->weapon_state_time );
+	}
+}
+
 void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, DamageType damage_type, int damage ) {
 	snap_edict_t snap_backup = ent->snap;
 	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
+
+	ReleaseWeapons( ent );
 
 	ent->avelocity = Vec3( 0.0f );
 

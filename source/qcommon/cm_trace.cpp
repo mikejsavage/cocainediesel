@@ -185,6 +185,9 @@ cmodel_t *CM_OctagonModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs ) {
 	size[0] = mins - offset;
 	size[1] = maxs - offset;
 
+	if( size[1].x == 0 && size[1].y == 0 )
+		return NULL;
+
 	cms->oct_cmodel->cyl_offset = offset;
 	cms->oct_cmodel->mins = size[0];
 	cms->oct_cmodel->maxs = size[1];

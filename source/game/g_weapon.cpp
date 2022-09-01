@@ -1083,7 +1083,7 @@ static void TouchStunGrenade( edict_t * ent, edict_t * other, Plane * plane, int
 		return;
 	}
 
-	if( ENTNUM( other ) != 0 ) {
+	if( other->takedamage ) {
 		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Gadget_StunGrenade );
 		ExplodeStunGrenade( ent );
 	}

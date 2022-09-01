@@ -808,6 +808,7 @@ const GadgetDef gadget_defs[] = {
 		/* name             */ "AXE",
 		/* short name       */ "hatchet",
 		/* uses             */ 2,
+		/* drop on death    */ false,
 		/* switch in time   */ WEAPONUP_TIME_FAST,
 		/* using time       */ 50,
 		/* cook time        */ 700,
@@ -826,12 +827,14 @@ const GadgetDef gadget_defs[] = {
 		/* name             */ "AMERICA",
 		/* short name       */ "suicidevest",
 		/* uses             */ 1,
+		/* drop on death    */ false,
 	},
 
 	{
 		/* name             */ "FLASH",
 		/* short name       */ "flash",
 		/* uses             */ 2,
+		/* drop on death    */ true,
 		/* switch in time   */ WEAPONUP_TIME_FAST,
 		/* using time       */ 50,
 		/* cook time        */ 1200,

@@ -316,9 +316,11 @@ static void ScreenShake( cg_viewdef_t * view ) {
 	if( dt >= 3000 )
 		return;
 
-	float shake_amount = Unlerp01( s64( 0 ), dt, s64( 1000 ) );
+	float shake_amount = 0.5f + Unlerp01( s64( 0 ), dt, s64( 2000 ) ) * 3.0f;
 
-	view->angles.z = shake_amount * 20.0f * Sin( cls.monotonicTime, Milliseconds( 250 ) );
+	view->origin.x += shake_amount * RandomFloat11( &cls.rng );
+	view->origin.y += shake_amount * RandomFloat11( &cls.rng );
+	view->origin.z += shake_amount * RandomFloat11( &cls.rng );
 }
 
 static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
@@ -379,8 +381,6 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 			CG_Recoil( cg.predictedPlayerState.weapon );
 
 			CG_ViewSmoothPredictedSteps( &view->origin ); // smooth out stair climbing
-
-			ScreenShake( view );
 		} else {
 			cg.predictingTimeStamp = cl.serverTime;
 			cg.predictFrom = 0;
@@ -402,6 +402,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	} else if( view->type == VIEWDEF_DEMOCAM ) {
 		view->fov_y = WidescreenFov( CG_DemoCam_GetOrientation( &view->origin, &view->angles, &view->velocity ) );
 	}
+
+	ScreenShake( view );
 
 	if( cg.predictedPlayerState.health <= 0 && cg.predictedPlayerState.team != Team_None ) {
 		AddDamageEffect();

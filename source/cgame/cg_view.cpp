@@ -420,7 +420,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
 	view->fracDistFOV = tanf( Radians( view->fov_x ) * 0.5f );
 
 	if( view->thirdperson ) {
-		CG_ThirdPersonOffsetView( view, view->type == VIEWDEF_PLAYERVIEW && (cmd->buttons & Button_Attack2)  );
+		CG_ThirdPersonOffsetView( view, view->type == VIEWDEF_PLAYERVIEW && cg_thirdPerson->integer == 2 );
 	}
 
 	if( !view->playerPrediction ) {

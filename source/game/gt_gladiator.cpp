@@ -212,7 +212,7 @@ static void NewRoundState( RoundState newState ) {
 		} break;
 
 		case RoundState_Post: {
-			gladiator_state.round_state_end = level.time + 1000;
+			gladiator_state.round_state_end = level.time + (gladiator_state.bomb_exploded ? 1500 : 1000); //it's too short when the bomb explodes
 
 			Team winner = Team_None;
 			for( int i = 0; i < server_gs.maxclients; i++ ) {
@@ -298,7 +298,7 @@ static void Gladiator_Think() {
 			
 			if( !server_gs.gameState.exploding ) {
 				BombExplode();
-			} else if( server_gs.gameState.exploding && !gladiator_state.bomb_exploded && level.time - server_gs.gameState.exploded_at >= 1000 ) {
+			} else if( server_gs.gameState.exploding && !gladiator_state.bomb_exploded ) {
 				BombKill();
 			}
 		}

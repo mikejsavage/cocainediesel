@@ -314,7 +314,7 @@ static void ScreenShake( cg_viewdef_t * view ) {
 	if( dt >= 3000 )
 		return;
 
-	float shake_amount = 0.5f + Unlerp01( s64( 0 ), dt, s64( 2000 ) ) * 3.0f;
+	float shake_amount = Unlerp01( s64( 3000 ), dt, s64( 0 ) ) * 4.0f;
 
 	view->origin.x += shake_amount * RandomFloat11( &cls.rng );
 	view->origin.y += shake_amount * RandomFloat11( &cls.rng );

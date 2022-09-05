@@ -379,7 +379,6 @@ struct ChasecamState {
 extern ChasecamState chaseCam;
 
 extern Cvar *cg_thirdPerson;
-extern Cvar *cg_thirdPersonAngle;
 extern Cvar *cg_thirdPersonRange;
 
 void CG_StartFallKickEffect( int bounceTime );

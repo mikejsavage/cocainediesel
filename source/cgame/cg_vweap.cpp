@@ -124,13 +124,7 @@ void CG_ViewWeapon_AddAnimation( int ent_num, StringHash anim ) {
 
 void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	const Model * model;
-	if( !ps->using_gadget ) {
-		model = GetWeaponModelMetadata( ps->weapon )->model;
-	}
-	else {
-		model = GetGadgetModelMetadata( ps->gadget )->model;
-	}
+	const Model * model = GetEquippedModelMetadata( ps );
 
 	if( model == NULL )
 		return;
@@ -192,13 +186,7 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 		return;
 
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	const Model * model;
-	if( !ps->using_gadget ) {
-		model = GetWeaponModelMetadata( ps->weapon )->model;
-	}
-	else {
-		model = GetGadgetModelMetadata( ps->gadget )->model;
-	}
+	const Model * model = GetEquippedModelMetadata( ps );
 
 	if( model == NULL ) {
 		return;

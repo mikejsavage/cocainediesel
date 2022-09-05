@@ -569,7 +569,7 @@ static void BombThink() {
 
 		case BombState_Exploding: {
 			// BombSiteStepExplosion( bomb_state.site );
-			if( level.time - server_gs.gameState.exploded_at >= 1000 && !bomb_state.bomb.killed_everyone ) {
+			if( !bomb_state.bomb.killed_everyone ) {
 				bomb_state.bomb.model->projectileInfo.maxDamage = 1.0f;
 				bomb_state.bomb.model->projectileInfo.minDamage = 1.0f;
 				bomb_state.bomb.model->projectileInfo.maxKnockback = 400.0f;

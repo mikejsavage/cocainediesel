@@ -72,17 +72,21 @@ void InitWeaponModels() {
 	}
 }
 
-const WeaponModelMetadata * GetWeaponModelMetadata( const WeaponType weapon ) {
+const WeaponModelMetadata * GetWeaponModelMetadata( WeaponType weapon ) {
 	assert( weapon < Weapon_Count );
 	return &weapon_model_metadata[ weapon ];
 }
 
-const GadgetModelMetadata * GetGadgetModelMetadata( const GadgetType gadget ) {
+const GadgetModelMetadata * GetGadgetModelMetadata( GadgetType gadget ) {
 	assert( gadget < Gadget_Count );
 	return &gadget_model_metadata[ gadget ];
 }
 
 const Model * GetEquippedModelMetadata( const SyncPlayerState * ps ) {
+	if( ps->weapon >= Weapon_Count || (ps->using_gadget && ps->gadget >= Gadget_Count) ) {
+		return NULL;
+	}
+	
 	return ps->using_gadget ?
 		GetGadgetModelMetadata( ps->gadget )->model :
 		GetWeaponModelMetadata( ps->weapon )->model;

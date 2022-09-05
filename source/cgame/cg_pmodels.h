@@ -224,8 +224,9 @@ void CG_PModel_ClearEventAnimations( int entNum );
 // cg_wmodels.c
 //
 void InitWeaponModels();
-const WeaponModelMetadata * GetWeaponModelMetadata( WeaponType weapon );
-const GadgetModelMetadata * GetGadgetModelMetadata( GadgetType gadget );
+const WeaponModelMetadata * GetWeaponModelMetadata( const WeaponType weapon );
+const GadgetModelMetadata * GetGadgetModelMetadata( const GadgetType gadget );
+const Model * GetEquippedModelMetadata( const SyncPlayerState * ps );
 
 //=================================================
 //				VIEW WEAPON

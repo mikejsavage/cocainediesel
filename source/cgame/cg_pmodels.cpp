@@ -796,29 +796,28 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	// add weapon model
 	{
-		if( cent->current.weapon != Weapon_None ) {
-			const Model * weapon_model = GetWeaponModelMetadata( cent->current.weapon )->model;
-			if( weapon_model != NULL ) {
-				Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon ) * inverse_scale;
+		SyncPlayerState * ps = &cg.frame.playerStates[ cent->current.number - 1 ];
+		const Model * model = GetEquippedModelMetadata( ps );
+		if( model != NULL ) {
+			Mat4 tag_transform = TransformTag( model, transform, pose, meta->tag_weapon ) * inverse_scale;
 
-				DrawModelConfig config = { };
-				config.draw_model.enabled = draw_model;
-				config.draw_shadows.enabled = true;
+			DrawModelConfig config = { };
+			config.draw_model.enabled = draw_model;
+			config.draw_shadows.enabled = true;
 
-				if( draw_silhouette ) {
-					config.draw_silhouette.enabled = true;
-					config.draw_silhouette.silhouette_color = color;
-				}
+			if( draw_silhouette ) {
+				config.draw_silhouette.enabled = true;
+				config.draw_silhouette.silhouette_color = color;
+			}
 
-				DrawModel( config, weapon_model, tag_transform, color );
+			DrawModel( config, model, tag_transform, color );
 
-				u8 muzzle;
-				if( FindNodeByName( weapon_model, Hash32( "muzzle" ), &muzzle ) ) {
-					pmodel->muzzle_transform = tag_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
-				}
-				else {
-					pmodel->muzzle_transform = tag_transform;
-				}
+			u8 muzzle;
+			if( FindNodeByName( model, Hash32( "muzzle" ), &muzzle ) ) {
+				pmodel->muzzle_transform = tag_transform * model->transform * model->nodes[ muzzle ].global_transform;
+			}
+			else {
+				pmodel->muzzle_transform = tag_transform;
 			}
 		}
 	}

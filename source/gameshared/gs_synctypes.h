@@ -356,6 +356,7 @@ struct SyncEntityState {
 	int linearMovementTimeDelta;
 
 	WeaponType weapon;
+	GadgetType gadget;
 	bool teleported;
 	Vec3 scale;
 

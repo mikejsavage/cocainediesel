@@ -931,6 +931,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	}
 
 	UpdateWeapons( &server_gs, &client->ps, *ucmd, client->timeDelta );
+	client->ps.flashed -= Min2( client->ps.flashed, u16( ucmd->msec * 0.001f * U16_MAX / 3.0f ) );
 	ent->s.weapon = client->ps.weapon;
 	ent->s.gadget = client->ps.using_gadget ? client->ps.gadget : Gadget_None;
 

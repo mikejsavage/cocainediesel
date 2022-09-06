@@ -1069,11 +1069,11 @@ static void ExplodeStunGrenade( edict_t * grenade ) {
 			ps->flashed = Min2( u32( ps->flashed ) + u32( distance_flash * angle_scale ), u32( U16_MAX ) );
 			if( other->s.team == grenade->s.team ) {
 				ps->flashed *= 0.25;
-			} else {
-				G_RadiusKnockback( def->knockback, def->min_knockback, def->splash_radius, grenade, grenade->s.origin, NULL, 0 );
 			}
 		}
 	}
+
+	G_RadiusKnockback( def->knockback, def->min_knockback, def->splash_radius, grenade, grenade->s.origin, NULL, 0 );
 
 	G_FreeEdict( grenade );
 }

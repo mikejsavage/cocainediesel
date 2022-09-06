@@ -932,6 +932,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 
 	UpdateWeapons( &server_gs, &client->ps, *ucmd, client->timeDelta );
 	ent->s.weapon = client->ps.weapon;
+	ent->s.gadget = client->ps.using_gadget ? client->ps.gadget : Gadget_None;
 
 	client->resp.snap.buttons |= ucmd->buttons;
 }

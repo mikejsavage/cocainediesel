@@ -142,7 +142,6 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 // pmove->pm_features
 #define PMFEAT_ABILITIES        ( 1 << 0 )
 #define PMFEAT_SCOPE            ( 1 << 1 )
-#define PMFEAT_GHOSTMOVE        ( 1 << 2 )
 
 #define PMFEAT_ALL              ( 0xFFFF )
 

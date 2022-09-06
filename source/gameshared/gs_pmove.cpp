@@ -570,17 +570,14 @@ static void PM_CheckSpecialMovement() {
 static void PM_FlyMove() {
 	// accelerate
 	float special = 1 + int( ( pm->cmd.buttons & Button_Attack2 ) != 0 );
-	float fmove = pm->cmd.forwardmove * special / 127.0f;
-	float smove = pm->cmd.sidemove * special / 127.0f;
-	float umove = (int( (pm->cmd.buttons & Button_Ability1) != 0 ) - int( (pm->cmd.buttons & Button_Ability2) != 0 )) * special;
+	Vec3 fwd, right;
+	AngleVectors( pm->playerState->viewangles, &fwd, &right, NULL );
 
-	Vec3 wishdir = pml.forward * fmove + pml.right * smove;
-	wishdir.z += umove;
-
-	float wishspeed = Length( wishdir );
+	Vec3 wishdir = pml.forwardPush * fwd + pml.sidePush * right;
 	wishdir = SafeNormalize( wishdir );
 
-	pml.velocity = pm_specspeed * wishspeed * wishdir;
+	pml.velocity = wishdir * pm_specspeed * special;
+	pml.velocity.z += (int( (pm->cmd.buttons & Button_Ability1) != 0 ) - int( (pm->cmd.buttons & Button_Ability2) != 0 )) * pm_specspeed * special;
 	pml.origin += pml.velocity * pml.frametime;
 }
 

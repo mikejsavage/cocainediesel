@@ -83,10 +83,6 @@ const GadgetModelMetadata * GetGadgetModelMetadata( GadgetType gadget ) {
 }
 
 const Model * GetEquippedModelMetadata( const SyncPlayerState * ps ) {
-	if( ps->weapon >= Weapon_Count || (ps->using_gadget && ps->gadget >= Gadget_Count) ) {
-		return NULL;
-	}
-	
 	return ps->using_gadget ?
 		GetGadgetModelMetadata( ps->gadget )->model :
 		GetWeaponModelMetadata( ps->weapon )->model;

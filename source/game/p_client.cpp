@@ -339,7 +339,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->s.svflags |= SVF_FORCETEAM;
 		self->r.solid = SOLID_YES;
 		self->movetype = MOVETYPE_PLAYER;
-		client->ps.pmove.features = PMFEAT_ALL & ~PMFEAT_GHOSTMOVE;
 	}
 
 	ClientUserinfoChanged( self, client->userinfo );

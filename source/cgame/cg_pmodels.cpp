@@ -93,6 +93,8 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 					tag = &meta->tag_mask;
 				else if( tag_name == "tag_weapon" )
 					tag = &meta->tag_weapon;
+				else if( tag_name == "tag_gadget" )
+					tag = &meta->tag_gadget;
 
 				float forward = ParseFloat( &cursor, 0.0f, Parse_StopOnNewLine );
 				float right = ParseFloat( &cursor, 0.0f, Parse_StopOnNewLine );
@@ -798,14 +800,15 @@ void CG_DrawPlayer( centity_t * cent ) {
 	{
 		if( cent->current.weapon != Weapon_None || cent->current.gadget != Gadget_None ) {
 			const Model * model;
-			if( cent->current.gadget != Gadget_None ) {
+			bool gadget = cent->current.gadget != Gadget_None;
+			if( gadget ) {
 				model = GetGadgetModelMetadata( cent->current.gadget )->model;
 			} else {
 				model = GetWeaponModelMetadata( cent->current.weapon )->model;
 			}
 
 			if( model != NULL ) {
-				Mat4 tag_transform = TransformTag( model, transform, pose, meta->tag_weapon ) * inverse_scale;
+				Mat4 tag_transform = TransformTag( model, transform, pose, gadget ? meta->tag_gadget : meta->tag_weapon ) * inverse_scale;
 
 				DrawModelConfig config = { };
 				config.draw_model.enabled = draw_model;

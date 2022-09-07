@@ -183,6 +183,7 @@ struct PlayerModelMetadata {
 	Tag tag_hat;
 	Tag tag_mask;
 	Tag tag_weapon;
+	Tag tag_gadget;
 
 	AnimationClip clips[ PMODEL_TOTAL_ANIMATIONS ];
 };

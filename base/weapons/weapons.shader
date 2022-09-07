@@ -64,7 +64,7 @@ weapons/eb/texture
 	}
 }
 
-weapons/gb/texture
+weapons/knife/texture
 {
 	shaded
 	specular 10

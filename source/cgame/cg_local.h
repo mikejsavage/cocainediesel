@@ -302,8 +302,8 @@ void CG_InitDamageNumbers();
 void CG_AddDamageNumber( SyncEntityState * ent, u64 parm );
 void CG_DrawDamageNumbers( float obi_size, float dmg_size );
 
-void CG_AddBomb( centity_t * cent );
-void CG_AddBombSite( centity_t * cent );
+void CG_AddBombIndicator( const centity_t * cent );
+void CG_AddBombSiteIndicator( const centity_t * cent );
 void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size );
 void CG_ResetBombHUD();
 

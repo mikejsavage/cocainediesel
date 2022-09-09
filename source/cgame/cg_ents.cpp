@@ -754,11 +754,11 @@ void DrawEntities() {
 				break;
 
 			case ET_BOMB:
-				CG_AddBomb( cent );
+				CG_AddBombIndicator( cent );
 				break;
 
 			case ET_BOMB_SITE:
-				CG_AddBombSite( cent );
+				CG_AddBombSiteIndicator( cent );
 				break;
 
 			case ET_LASER: {

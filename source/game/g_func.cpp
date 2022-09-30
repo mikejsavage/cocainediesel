@@ -215,7 +215,7 @@ static void door_use( edict_t *self, edict_t *other, edict_t *activator ) {
 	door_go_up( self, activator );
 }
 
-static void Touch_DoorTrigger( edict_t *self, edict_t *other, Vec3 normal, int surfFlags ) {
+static void Touch_DoorTrigger( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask ) {
 	if( G_IsDead( other ) ) {
 		return;
 	}
@@ -387,7 +387,7 @@ static void rotating_blocked( edict_t *self, edict_t *other ) {
 	G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, WorldDamage_Crush );
 }
 
-static void rotating_touch( edict_t *self, edict_t *other, Vec3 normal, int surfFlags ) {
+static void rotating_touch( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask ) {
 	if( self->avelocity != Vec3( 0.0f ) ) {
 		G_Damage( other, self, self, Vec3( 0.0f ), Vec3( 0.0f ), other->s.origin, self->dmg, 1, 0, WorldDamage_Crush );
 	}

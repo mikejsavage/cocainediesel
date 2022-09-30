@@ -249,7 +249,7 @@ edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin );
 void G_MorphEntityIntoEvent( edict_t * ent, int event, u64 parm );
 
 void G_CallThink( edict_t * ent );
-void G_CallTouch( edict_t *self, edict_t *other, Vec3 normal, int surfFlags );
+void G_CallTouch( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask );
 void G_CallUse( edict_t *self, edict_t *other, edict_t *activator );
 void G_CallStop( edict_t *self );
 void G_CallPain( edict_t * ent, edict_t *attacker, float kick, float damage );
@@ -277,7 +277,7 @@ void G_LocalSound( edict_t * owner, StringHash sound );
 
 void G_TeleportEffect( edict_t * ent, bool in );
 void G_RespawnEffect( edict_t * ent );
-int G_SolidMaskForEnt( edict_t * ent );
+SolidBits G_SolidMaskForEnt( edict_t * ent );
 void G_CheckGround( edict_t * ent );
 void G_ReleaseClientPSEvent( gclient_t *client );
 void G_AddPlayerStateEvent( gclient_t *client, int event, u64 parm );
@@ -612,7 +612,7 @@ struct snap_edict_t {
 	float damage_given;
 };
 
-using EdictTouchCallback = void ( * )( edict_t * self, edict_t * other, Vec3 normal, int surfFlags );
+using EdictTouchCallback = void ( * )( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask );
 
 struct edict_t {
 	SyncEntityState s;

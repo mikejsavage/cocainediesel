@@ -336,13 +336,13 @@ void G_CallThink( edict_t *ent ) {
 	}
 }
 
-void G_CallTouch( edict_t *self, edict_t *other, Vec3 normal, int surfFlags ) {
+void G_CallTouch( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask ) {
 	if( self == other ) {
 		return;
 	}
 
 	if( self->touch ) {
-		self->touch( self, other, normal, surfFlags );
+		self->touch( self, other, normal, solid_mask );
 	}
 }
 
@@ -611,7 +611,7 @@ void G_LocalSound( edict_t * owner, StringHash sound ) {
 void KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
 	while( true ) {
 		trace_t tr;
-		G_Trace( &tr, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, world, MASK_PLAYERSOLID );
+		G_Trace( &tr, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, world, Solid_Solid );
 		if( tr.fraction == 1.0f ) {
 			break;
 		}
@@ -674,8 +674,8 @@ void G_RespawnEffect( edict_t *ent ) {
 	G_SpawnTeleportEffect( ent, true, false );
 }
 
-int G_SolidMaskForEnt( edict_t *ent ) {
-	return ent->r.clipmask ? ent->r.clipmask : MASK_SOLID;
+SolidBits G_SolidMaskForEnt( edict_t *ent ) {
+	return ent->r.solidity ? ent->r.solidity : Solid_Solid;
 }
 
 void G_CheckGround( edict_t *ent ) {

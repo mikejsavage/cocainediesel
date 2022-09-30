@@ -42,7 +42,7 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 	trace_t trace;
 	Vec3 point = pml->origin;
 	point.z -= floor_distance;
-	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, ps->POVnum, pm->contentmask, 0 );
+	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, ps->POVnum, pm->solid_mask, 0 );
 
 	float hspeed = Length( Vec3( pml->velocity.x, pml->velocity.y, 0 ) );
 	if( ( hspeed > pm_dashspeed && pml->velocity.z > 8 ) || trace.fraction == 1 || !ISWALKABLEPLANE( trace.normal ) ) {

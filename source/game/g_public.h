@@ -46,6 +46,6 @@ struct entity_shared_t {
 	Vec3 mins, maxs;
 	Vec3 absmin, absmax, size;
 	solid_t solid;
-	int clipmask;
+	SolidBits solidity;
 	edict_t *owner;
 };

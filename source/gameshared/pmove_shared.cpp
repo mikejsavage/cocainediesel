@@ -35,7 +35,7 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, fl
 		Vec3 end = pml->origin + dir;
 
 		trace_t trace;
-		pmove_gs->api.Trace( &trace, pml->origin, mins, maxs, end, pm->playerState->POVnum, pm->contentmask, 0 );
+		pmove_gs->api.Trace( &trace, pml->origin, mins, maxs, end, pm->playerState->POVnum, pm->solid_mask, 0 );
 
 		if( trace.fraction == 1.0f )
 			continue; // no wall in this direction

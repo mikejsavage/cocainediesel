@@ -577,7 +577,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 		MapBrush map_brush = { };
 		map_brush.bounds = bounds;
 		map_brush.first_plane = checked_cast< u16 >( kd_tree.planes.size() );
-		map_brush.solidity = Solid_NotSolid; // TODO
+		map_brush.solidity = Solid_Solid; // TODO
 
 		size_t num_planes = 0;
 

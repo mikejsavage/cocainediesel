@@ -33,7 +33,7 @@ static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, Vec3 normal, V
 	if( targ->movetype == MOVETYPE_PUSH ) {
 		// NOT FOR PLAYERS only for entities that can push the players
 		Vec3 dest = ( targ->r.absmin + targ->r.absmax ) * 0.5f;
-		G_Trace4D( &trace, pos, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, MASK_SOLID, timeDelta );
+		G_Trace4D( &trace, pos, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, Solid_Solid, timeDelta );
 		if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 			return true;
 		}
@@ -44,42 +44,20 @@ static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, Vec3 normal, V
 	// up by 9 units to account for stairs
 	Vec3 origin = pos + normal * 9.0f;
 
-	// This is for players
-	G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), targ->s.origin, inflictor, MASK_SOLID, timeDelta );
-	if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
-		return true;
-	}
+	constexpr Vec3 directions[] = {
+		Vec3( 0.0f, 0.0f, 0.0f ),
+		Vec3( 15.0f, 15.0f, 0.0f ),
+		Vec3( 15.0f, -15.0f, 0.0f ),
+		Vec3( -15.0f, 15.0f, 0.0f ),
+		Vec3( -15.0f, -15.0f, 0.0f ),
+	};
 
-	Vec3 dest = targ->s.origin;
-	dest.x += 15.0f;
-	dest.y += 15.0f;
-	G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, MASK_SOLID, timeDelta );
-	if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
-		return true;
-	}
-
-	dest = targ->s.origin;
-	dest.x += 15.0f;
-	dest.y -= 15.0f;
-	G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, MASK_SOLID, timeDelta );
-	if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
-		return true;
-	}
-
-	dest = targ->s.origin;
-	dest.x -= 15.0f;
-	dest.y += 15.0f;
-	G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, MASK_SOLID, timeDelta );
-	if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
-		return true;
-	}
-
-	dest = targ->s.origin;
-	dest.x -= 15.0f;
-	dest.y -= 15.0f;
-	G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, MASK_SOLID, timeDelta );
-	if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
-		return true;
+	for( size_t i = 0; i < ARRAY_COUNT( directions ); i++ ) {
+		Vec3 dest = targ->s.origin + directions[ i ];
+		G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, Solid_Solid, timeDelta );
+		if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
+			return true;
+		}
 	}
 
 	return false;

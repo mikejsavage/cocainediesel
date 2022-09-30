@@ -152,7 +152,7 @@ static bool CG_ClipEntityContact( Vec3 origin, Vec3 mins, Vec3 maxs, int entNum 
 	interpolated.origin = cent->interpolated.origin;
 	interpolated.scale = cent->interpolated.scale;
 
-	trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, &interpolated );
+	trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, &interpolated, Solid_Everything );
 	return trace.fraction == 0.0f;
 }
 
@@ -176,7 +176,7 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	}
 }
 
-static trace_t CG_ClipMoveToEntities( const Ray & ray, const Shape & shape, int ignore, int contentmask ) {
+static trace_t CG_ClipMoveToEntities( const Ray & ray, const Shape & shape, int ignore, SolidBits solid_mask ) {
 	int64_t serverTime = cg.frame.serverTime;
 
 	trace_t best = MakeMissedTrace( ray );
@@ -188,24 +188,11 @@ static trace_t CG_ClipMoveToEntities( const Ray & ray, const Shape & shape, int 
 			continue;
 		}
 
-		if( ent->type == ET_PLAYER ) {
-			int teammask = contentmask & ( CONTENTS_TEAM_ONE | CONTENTS_TEAM_TWO | CONTENTS_TEAM_THREE | CONTENTS_TEAM_FOUR );
-			if( teammask != 0 ) {
-				Team clip_team = Team_None;
-				for( int team = Team_One; team < Team_Count; team++ ) {
-					if( teammask == CONTENTS_TEAM_ONE << ( team - Team_One ) ) {
-						clip_team = Team( team );
-						break;
-					}
-				}
-				assert( clip_team != Team_None );
-
-				if( ent->team == clip_team )
-					continue;
-			}
+		if( ent->type == ET_PLAYER && ent->team == cg_entities[ ignore ].current.team ) {
+			continue;
 		}
 
-		trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, ent );
+		trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, ent, solid_mask );
 		if( trace.fraction < best.fraction ) {
 			best = trace;
 		}
@@ -214,7 +201,7 @@ static trace_t CG_ClipMoveToEntities( const Ray & ray, const Shape & shape, int 
 	return best;
 }
 
-void CG_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask ) {
+void CG_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, SolidBits solid_mask ) {
 	TracyZoneScoped;
 
 	Ray ray = MakeRayStartEnd( start, end );
@@ -230,7 +217,7 @@ void CG_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ign
 		shape.aabb = ToCenterExtents( bounds );
 	}
 
-	*tr = CG_ClipMoveToEntities( ray, shape, ignore, contentmask );
+	*tr = CG_ClipMoveToEntities( ray, shape, ignore, solid_mask );
 }
 
 static float predictedSteps[CMD_BACKUP]; // for step smoothing

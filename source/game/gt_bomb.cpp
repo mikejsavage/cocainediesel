@@ -118,7 +118,7 @@ static void Hide( edict_t * ent ) {
 static bool EntCanSee( edict_t * ent, Vec3 point ) {
 	Vec3 center = ent->s.origin + 0.5f * ( ent->r.mins + ent->r.maxs );
 	trace_t tr;
-	G_Trace( &tr, center, Vec3( 0.0f ), Vec3( 0.0f ), point, ent, MASK_SOLID );
+	G_Trace( &tr, center, Vec3( 0.0f ), Vec3( 0.0f ), point, ent, Solid_Solid );
 	return tr.fraction == 1.0f;
 }
 
@@ -346,7 +346,7 @@ static void PlantAreaThink( edict_t * ent ) {
 	G_FreeEdict( ent );
 }
 
-static void PlantAreaTouch( edict_t * self, edict_t * other, Vec3 normal, int surfFlags ) {
+static void PlantAreaTouch( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
 	if( other->r.client == NULL ) {
 		return;
 	}
@@ -373,7 +373,7 @@ static void SpawnPlantArea( edict_t * ent ) {
 
 // bomb.as
 
-static void BombTouch( edict_t * self, edict_t * other, Vec3 normal, int surfFlags ) {
+static void BombTouch( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
 	if( server_gs.gameState.match_state != MatchState_Playing ) {
 		return;
 	}
@@ -503,7 +503,7 @@ static void DropBomb( BombDropReason reason ) {
 	}
 
 	trace_t tr;
-	G_Trace( &tr, start, bomb_bounds.mins, bomb_bounds.maxs, end, carrier_ent, MASK_SOLID );
+	G_Trace( &tr, start, bomb_bounds.mins, bomb_bounds.maxs, end, carrier_ent, Solid_Solid );
 
 	bomb_state.bomb.model->movetype = MOVETYPE_TOSS;
 	bomb_state.bomb.model->r.owner = carrier_ent;
@@ -526,7 +526,7 @@ static void BombStartPlanting( edict_t * carrier_ent, u32 site ) {
 	end.z -= 512.0f;
 
 	trace_t tr;
-	G_Trace( &tr, start, bomb_bounds.mins, bomb_bounds.maxs, end, carrier_ent, MASK_SOLID );
+	G_Trace( &tr, start, bomb_bounds.mins, bomb_bounds.maxs, end, carrier_ent, Solid_Solid );
 
 	Vec3 angles( 0.0f, RandomUniformFloat( &svs.rng, 0.0f, 360.0f ), 0.0f );
 
@@ -720,7 +720,7 @@ static bool BombCanPlant() {
 	Vec3 maxs = carrier_ent->r.maxs;
 
 	trace_t tr;
-	G_Trace( &tr, start, mins, maxs, end, carrier_ent, MASK_SOLID );
+	G_Trace( &tr, start, mins, maxs, end, carrier_ent, Solid_Solid );
 
 	return ISWALKABLEPLANE( tr.normal );
 }

@@ -694,15 +694,7 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 			if( pmove_gs->module == GS_MODULE_GAME ) {
 				ps->pmove.pm_flags &= ~PMF_NO_PREDICTION;
 			}
-			if( ps->pmove.features & PMFEAT_GHOSTMOVE ) {
-				pm->solid_mask = Solid_Solid;
-			}
-			else {
-				pm->contentmask = MASK_PLAYERSOLID;
-				if( ps->team >= Team_One ) {
-					pm->contentmask |= CONTENTS_TEAM_ONE << ( ps->team - Team_One );
-				}
-			}
+			pm->solid_mask = Solid_Solid;
 			break;
 	}
 

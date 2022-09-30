@@ -504,21 +504,8 @@ static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, i
 			}
 		}
 
-		if( touch->r.client != NULL ) {
-			int teammask = contentmask & ( CONTENTS_TEAM_ONE | CONTENTS_TEAM_TWO | CONTENTS_TEAM_THREE | CONTENTS_TEAM_FOUR );
-			if( teammask != 0 ) {
-				Team clip_team = Team_None;
-				for( int team = Team_One; team < Team_Count; team++ ) {
-					if( teammask == CONTENTS_TEAM_ONE << ( team - Team_One ) ) {
-						clip_team = Team( team );
-						break;
-					}
-				}
-				assert( clip_team != Team_None );
-
-				if( touch->s.team == clip_team )
-					continue;
-			}
+		if( touch->r.client != NULL && touch->s.team == game.edicts[ passent ].s.team ) {
+			continue;
 		}
 
 		trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &touch->s, solid_mask );
@@ -569,7 +556,7 @@ static bool EntityOverlapsAABB( const edict_t * ent, const CenterExtents3 & aabb
 	shape.type = ShapeType_AABB;
 	shape.aabb = aabb;
 
-	trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, Solid_Everything, &ent->s );
+	trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &ent->s, Solid_Everything );
 
 	return trace.fraction == 0.0f;
 }
@@ -597,7 +584,7 @@ static void CallTouches( edict_t * ent, const MinMax3 & bounds ) {
 			continue;
 		}
 
-		G_CallTouch( hit, ent, Vec3( 0.0f ), 0 );
+		G_CallTouch( hit, ent, Vec3( 0.0f ), Solid_NotSolid );
 	}
 }
 

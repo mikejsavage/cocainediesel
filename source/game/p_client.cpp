@@ -294,7 +294,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->viewheight = playerbox_stand_viewheight;
 	self->r.inuse = true;
 	self->mass = PLAYER_MASS;
-	self->r.clipmask = MASK_PLAYERSOLID;
+	self->r.solidity = Solid_Solid;
 	self->s.svflags &= ~SVF_CORPSE;
 	self->enemy = NULL;
 	self->r.owner = NULL;
@@ -911,7 +911,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 				continue; // duplicated
 			}
 			// player can't touch projectiles, only projectiles can touch the player
-			G_CallTouch( other, ent, Vec3( 0.0f ), 0 );
+			G_CallTouch( other, ent, Vec3( 0.0f ), Solid_NotSolid );
 		}
 	}
 

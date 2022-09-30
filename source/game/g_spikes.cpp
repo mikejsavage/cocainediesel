@@ -20,7 +20,7 @@ static void SpikesDeploy( edict_t * self ) {
 	}
 }
 
-static void SpikesTouched( edict_t * self, edict_t * other, Vec3 normal, int surfFlags ) {
+static void SpikesTouched( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
 	if( other->s.type != ET_PLAYER )
 		return;
 

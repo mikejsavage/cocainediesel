@@ -120,7 +120,7 @@ static void CG_CalcViewBob() {
 			Vec3 maxs = bounds.mins;
 			Vec3 mins = maxs - Vec3( 0.0f, 0.0f, 1.6f * STEPSIZE );
 
-			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, MASK_PLAYERSOLID );
+			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, Solid_Opaque );
 			if( trace.fraction == 0.0f ) {
 				bobScale = 2.5f;
 			}
@@ -211,7 +211,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 
 	// find the spot the player is looking at
 	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * 512.0f;
-	CG_Trace( &trace, view->origin, mins, maxs, dest, view->POVent, MASK_SOLID );
+	CG_Trace( &trace, view->origin, mins, maxs, dest, view->POVent, Solid_Solid );
 
 	// calculate pitch to look at the same spot from camera
 	Vec3 stop = trace.endpos - view->origin;
@@ -224,12 +224,12 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	Matrix3_FromAngles( view->angles, view->axis );
 
 	// move towards destination
-	CG_Trace( &trace, view->origin, mins, maxs, chase_dest, view->POVent, MASK_SOLID );
+	CG_Trace( &trace, view->origin, mins, maxs, chase_dest, view->POVent, Solid_Solid );
 
 	if( trace.fraction != 1.0f ) {
 		stop = trace.endpos;
 		stop.z += ( 1.0f - trace.fraction ) * 32;
-		CG_Trace( &trace, view->origin, mins, maxs, stop, view->POVent, MASK_SOLID );
+		CG_Trace( &trace, view->origin, mins, maxs, stop, view->POVent, Solid_Solid );
 		chase_dest = trace.endpos;
 	}
 

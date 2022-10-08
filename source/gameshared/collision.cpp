@@ -215,6 +215,7 @@ trace_t MakeMissedTrace( const Ray & ray ) {
 	trace.fraction = 1.0f;
 	trace.endpos = ray.origin + ray.direction * ray.length;
 	trace.ent = -1;
+	trace.solidity = Solid_NotSolid;
 	return trace;
 }
 
@@ -223,6 +224,7 @@ static trace_t FUCKING_HELL( const Ray & ray, const Shape & shape, const Interse
 	trace.fraction = ray.length == 0.0f ? 1.0f : intersection.t / ray.length;
 	trace.normal = intersection.normal;
 	trace.ent = ent;
+	trace.solidity = intersection.solidity;
 	trace.contact = ray.origin + ray.direction * intersection.t - trace.normal * Support( shape, -trace.normal );
 
 	// step back endpos slightly so objects don't get stuck inside each other

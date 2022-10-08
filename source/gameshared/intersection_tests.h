@@ -23,6 +23,7 @@ struct Shape {
 struct Intersection {
 	float t;
 	Vec3 normal;
+	SolidBits solidity;
 };
 
 struct Ray {

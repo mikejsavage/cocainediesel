@@ -241,6 +241,7 @@ static bool SweptShapeVsMapBrush( const MapData * map, const MapBrush * brush, R
 			return false;
 	}
 
+	enter.solidity = brush->solidity;
 	*intersection = enter;
 	return true;
 }

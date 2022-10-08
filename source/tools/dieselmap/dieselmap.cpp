@@ -551,6 +551,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 
 	for( const ParsedBrush & brush : entity.brushes ) {
 		// convert triple-vert planes to normal-distance planes
+		const EditorMaterial * editor_material = NULL;
 		std::vector< Plane > planes;
 		for( size_t i = 0; i < brush.faces.n; i++ ) {
 			Plane plane;
@@ -560,7 +561,18 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 				Fatal( "[entity %zu brush %zu/line %zu] Has a non-planar face", brush.entity_id, brush.id, brush.line_number );
 			}
 
+			const EditorMaterial * plane_material = FindEditorMaterial( StringHash( face.material_hash ) );
+			if( editor_material != NULL && editor_material != plane_material ) {
+				// LogDebugInstructions();
+				// Fatal( "[entity %zu brush %zu/line %zu] Has inconsistent materials", brush.entity_id, brush.id, brush.line_number );
+			}
+			editor_material = plane_material;
+
 			planes.push_back( plane );
+		}
+
+		if( editor_material == NULL ) {
+			editor_material = FindEditorMaterial( StringHash( "editor/clip" ) ); // default material
 		}
 
 		// compute brush bounds
@@ -577,7 +589,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 		MapBrush map_brush = { };
 		map_brush.bounds = bounds;
 		map_brush.first_plane = checked_cast< u16 >( kd_tree.planes.size() );
-		map_brush.solidity = Solid_Solid; // TODO
+		map_brush.solidity = editor_material->solidity;
 
 		size_t num_planes = 0;
 

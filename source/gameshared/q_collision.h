@@ -22,32 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/types.h"
 
-// lower bits are stronger, and will eat weaker brushes completely
-#define CONTENTS_SOLID          1           // an eye is never valid in a solid
-
-#define CONTENTS_WALLBANGABLE   0x4000
-
-#define CONTENTS_PLAYERCLIP     0x10000
-#define CONTENTS_WEAPONCLIP     0x20000
-
-#define CONTENTS_TEAM_ONE       0x100000
-#define CONTENTS_TEAM_TWO       0x200000
-#define CONTENTS_TEAM_THREE     0x400000
-#define CONTENTS_TEAM_FOUR      0x800000
-
-#define CONTENTS_BODY           0x2000000   // should never be on a brush, only in game
-#define CONTENTS_CORPSE         0x4000000
-#define CONTENTS_TRIGGER        0x40000000
-
-// content masks
-#define MASK_ALL            ( -1 )
-#define MASK_SOLID          ( CONTENTS_SOLID | CONTENTS_WEAPONCLIP | CONTENTS_WALLBANGABLE )
-#define MASK_PLAYERSOLID    ( CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_BODY | CONTENTS_WALLBANGABLE )
-#define MASK_DEADSOLID      ( CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_WALLBANGABLE )
-#define MASK_OPAQUE         ( CONTENTS_SOLID | CONTENTS_WALLBANGABLE )
-#define MASK_SHOT           ( CONTENTS_SOLID | CONTENTS_WEAPONCLIP | CONTENTS_BODY | CONTENTS_CORPSE | CONTENTS_WALLBANGABLE )
-#define MASK_WALLBANG       ( CONTENTS_SOLID | CONTENTS_WEAPONCLIP | CONTENTS_BODY | CONTENTS_CORPSE )
-
 enum SolidBits : u8 {
 	Solid_NotSolid = 0,
 	Solid_PlayerClip = ( 1 << 1 ),

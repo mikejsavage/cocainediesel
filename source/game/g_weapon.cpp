@@ -129,7 +129,7 @@ static void G_ProjectileDistancePrestep( edict_t * projectile, float distance ) 
 	Vec3 dest = projectile->s.origin + dir * distance;
 
 	trace_t trace;
-	G_Trace4D( &trace, projectile->s.origin, projectile->r.mins, projectile->r.maxs, dest, projectile->r.owner, projectile->r.solidity, projectile->timeDelta );
+	G_Trace4D( &trace, projectile->s.origin, projectile->r.mins, projectile->r.maxs, dest, projectile->r.owner, projectile->s.solidity, projectile->timeDelta );
 
 	projectile->s.origin = trace.endpos;
 	projectile->olds.origin = trace.endpos;
@@ -230,7 +230,7 @@ static edict_t * FireProjectile(
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 
 	projectile->r.solid = SOLID_YES;
-	projectile->r.solidity = solid_mask;
+	projectile->s.solidity = solid_mask;
 	projectile->s.svflags = SVF_PROJECTILE;
 
 	projectile->timeDelta = timeDelta;
@@ -367,7 +367,7 @@ static void W_Fire_Shotgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 
 		trace_t trace, wallbang;
 		GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM( self ), timeDelta );
-		if( trace.ent != -1 && game.edicts[ trace.ent ].takedamage ) {
+		if( trace.HitSomething() && game.edicts[ trace.ent ].takedamage ) {
 			int dmgflags = trace.endpos == wallbang.endpos ? 0 : DAMAGE_WALLBANG;
 			float damage = def->damage;
 

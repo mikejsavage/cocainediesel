@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 static bool EntityOverlapsAnything( edict_t *ent ) {
-	SolidBits mask = ent->r.solidity ? ent->r.solidity : Solid_Solid;
+	SolidBits mask = ent->s.solidity ? ent->s.solidity : Solid_Solid;
 	trace_t trace;
 	G_Trace4D( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, ent, mask, ent->timeDelta );
 	return trace.GotNowhere();
@@ -114,8 +114,8 @@ static trace_t SV_PushEntity( edict_t *ent, Vec3 push ) {
 	Vec3 end = start + push;
 
 retry:
-	if( ent->r.solidity ) {
-		mask = ent->r.solidity;
+	if( ent->s.solidity ) {
+		mask = ent->s.solidity;
 	} else {
 		mask = Solid_Solid;
 	}
@@ -421,7 +421,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	}
 
 	trace_t trace = SV_PushEntity( ent, move );
-	if( trace.fraction < 1.0f ) {
+	if( trace.HitSomething() ) {
 		float restitution = 0.0f;
 		if( ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
 			restitution = 0.5f;
@@ -489,7 +489,7 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	Vec3 start, end;
 	trace_t trace;
 
-	SolidBits mask = ( ent->r.solidity ) ? ent->r.solidity : Solid_Solid;
+	SolidBits mask = ( ent->s.solidity ) ? ent->s.solidity : Solid_Solid;
 
 	// find its current position given the starting timeStamp
 	float endFlyTime = float( svs.gametime - ent->s.linearMovementTimeStamp ) * 0.001f;

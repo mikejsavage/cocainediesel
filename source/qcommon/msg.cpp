@@ -519,6 +519,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	DeltaAngle( buf, ent.angles, baseline.angles );
 
 	Delta( buf, ent.override_collision_model, baseline.override_collision_model );
+	DeltaEnum( buf, ent.solidity, baseline.solidity, Solid_Everything );
 
 	Delta( buf, ent.teleported, baseline.teleported );
 

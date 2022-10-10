@@ -2,6 +2,7 @@
 
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
+#include "gameshared/q_collision.h"
 
 constexpr int MAX_CLIENTS = 16;
 constexpr int MAX_EDICTS = 1024; // must change protocol to increase more
@@ -342,6 +343,7 @@ struct SyncEntityState {
 	StringHash mask;
 
 	Optional< CollisionModel > override_collision_model;
+	SolidBits solidity;
 
 	bool animating;
 	float animation_time;

@@ -290,6 +290,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 			case CollisionModelType_AABB: {
 				Intersection enter, leave;
 				if( RayVsAABB( object_space_ray, collision_model.aabb, &enter, &leave ) ) {
+					enter.solidity = ent->solidity;
 					trace = FUCKING_HELL( ray, shape, enter, ent->number );
 				}
 			} break;

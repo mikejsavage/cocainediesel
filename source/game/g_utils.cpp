@@ -675,7 +675,7 @@ void G_RespawnEffect( edict_t *ent ) {
 }
 
 SolidBits G_SolidMaskForEnt( edict_t *ent ) {
-	return ent->r.solidity ? ent->r.solidity : Solid_Solid;
+	return ent->s.solidity ? ent->s.solidity : Solid_Solid;
 }
 
 void G_CheckGround( edict_t *ent ) {

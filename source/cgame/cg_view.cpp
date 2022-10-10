@@ -121,7 +121,7 @@ static void CG_CalcViewBob() {
 			Vec3 mins = maxs - Vec3( 0.0f, 0.0f, 1.6f * STEPSIZE );
 
 			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, Solid_Opaque );
-			if( trace.fraction == 0.0f ) {
+			if( trace.GotNowhere() ) {
 				bobScale = 2.5f;
 			}
 		}
@@ -226,7 +226,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 	// move towards destination
 	CG_Trace( &trace, view->origin, mins, maxs, chase_dest, view->POVent, Solid_Solid );
 
-	if( trace.fraction != 1.0f ) {
+	if( trace.HitSomething() ) {
 		stop = trace.endpos;
 		stop.z += ( 1.0f - trace.fraction ) * 32;
 		CG_Trace( &trace, view->origin, mins, maxs, stop, view->POVent, Solid_Solid );

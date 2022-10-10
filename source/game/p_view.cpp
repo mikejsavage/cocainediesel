@@ -61,7 +61,7 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 	// move towards destination
 	G_Trace( &trace, *vieworg, mins, maxs, chase_dest, passent, Solid_Opaque );
 
-	if( trace.fraction != 1.0f ) {
+	if( trace.HitSomething()) {
 		stop = trace.endpos;
 		stop.z += ( 1.0f - trace.fraction ) * 32;
 		G_Trace( &trace, *vieworg, mins, maxs, stop, passent, Solid_Opaque );
@@ -89,7 +89,7 @@ static void G_Client_DeadView( edict_t *ent ) {
 	if( body->enemy && ( body->enemy != ent ) ) {
 		trace_t trace;
 		G_Trace( &trace, ent->s.origin, Vec3( 0.0f ), Vec3( 0.0f ), body->enemy->s.origin, body, Solid_Opaque );
-		if( trace.fraction != 1.0f ) {
+		if( trace.HitSomething() ) {
 			body->enemy = NULL;
 		} else {
 			client->ps.viewangles.y = LookAtKillerYAW( ent, NULL, body->enemy );

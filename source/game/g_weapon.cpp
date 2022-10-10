@@ -279,7 +279,7 @@ static void HitWithSpread( edict_t * self, Vec3 start, Vec3 angles, float range,
 
 		trace_t trace;
 		G_Trace4D( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, self, Solid_Shot, timeDelta );
-		if( trace.ent != -1 && game.edicts[ trace.ent ].takedamage ) {
+		if( trace.HitSomething() && game.edicts[ trace.ent ].takedamage ) {
 			G_Damage( &game.edicts[ trace.ent ], self, self, forward, forward, trace.endpos, damage, knockback, 0, weapon );
 			break;
 		}
@@ -336,7 +336,7 @@ static void W_Fire_Bullet( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 
 	trace_t trace, wallbang;
 	GS_TraceBullet( &server_gs, &trace, &wallbang, start, dir, right, up, spread, def->range, ENTNUM( self ), timeDelta );
-	if( trace.ent != -1 && game.edicts[ trace.ent ].takedamage ) {
+	if( trace.HitSomething() && game.edicts[ trace.ent ].takedamage ) {
 		int dmgflags = DAMAGE_KNOCKBACK_SOFT;
 		float damage = def->damage;
 
@@ -574,7 +574,7 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 		from = tr.endpos;
 		ignore = NULL;
 
-		if( tr.ent == -1 ) {
+		if( tr.HitNothing() ) {
 			break;
 		}
 

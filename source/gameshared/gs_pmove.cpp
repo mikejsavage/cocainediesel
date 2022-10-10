@@ -106,7 +106,7 @@ static int PM_SlideMove() {
 
 		trace_t trace;
 		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->solid_mask, 0 );
-		if( trace.fraction == 0.0f ) { // trapped into a solid
+		if( trace.GotNowhere() ) { // trapped into a solid
 			pml.origin = last_valid_origin;
 			return SLIDEMOVEFLAG_TRAPPED;
 		}
@@ -114,7 +114,7 @@ static int PM_SlideMove() {
 		pml.origin = trace.endpos;
 		last_valid_origin = trace.endpos;
 
-		if( trace.fraction == 1 ) {
+		if( trace.HitNothing() ) {
 			break; // move done
 		}
 
@@ -247,7 +247,7 @@ static void PM_StepSlideMove() {
 	float down_dist = LengthSquared( down_o.xy() - start_o.xy() );
 	float up_dist = LengthSquared( up.xy() - start_o.xy() );
 
-	if( down_dist >= up_dist || ( trace.fraction != 1.0f && !ISWALKABLEPLANE( trace.normal ) ) ) {
+	if( down_dist >= up_dist || trace.GotNowhere() || ( trace.HitSomething() && !ISWALKABLEPLANE( trace.normal ) ) ) {
 		pml.origin = down_o;
 		pml.velocity = down_v;
 		return;
@@ -471,7 +471,7 @@ static void PM_GroundTrace( trace_t *trace ) {
 
 static bool PM_GoodPosition( Vec3 origin, trace_t *trace ) {
 	pmove_gs->api.Trace( trace, origin, pm->mins, pm->maxs, origin, pm->playerState->POVnum, pm->solid_mask, 0 );
-	return trace->ent == -1;
+	return trace->fraction > 0.0f;
 }
 
 static void PM_UnstickPosition( trace_t *trace ) {
@@ -511,14 +511,14 @@ static void PM_CategorizePosition() {
 		// see if standing on something solid
 		PM_GroundTrace( &trace );
 
-		if( trace.fraction == 0.0f ) {
+		if( trace.GotNowhere() ) {
 			// try to unstick position
 			PM_UnstickPosition( &trace );
 		}
 
 		pml.groundplane = trace.normal;
 
-		if( trace.fraction == 1 || !ISWALKABLEPLANE( trace.normal ) ) {
+		if( trace.HitNothing() || !ISWALKABLEPLANE( trace.normal ) ) {
 			pm->groundentity = -1;
 			pm->playerState->pmove.pm_flags &= ~PMF_ON_GROUND;
 		}
@@ -530,7 +530,7 @@ static void PM_CategorizePosition() {
 			}
 		}
 
-		if( pm->numtouch < MAXTOUCH && trace.fraction < 1.0f ) {
+		if( pm->numtouch < MAXTOUCH && trace.HitSomething() ) {
 			pm->touchents[pm->numtouch] = trace.ent;
 			pm->numtouch++;
 		}
@@ -544,7 +544,7 @@ static void PM_CheckSpecialMovement() {
 	Vec3 spot = pml.origin + pml.forward;
 	trace_t trace;
 	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->solid_mask, 0 );
-	if( trace.fraction < 1 && ( trace.solidity & Solid_Ladder ) ) {
+	if( trace.HitSomething() && ( trace.solidity & Solid_Ladder ) ) {
 		pml.ladder = Ladder_On;
 	}
 }

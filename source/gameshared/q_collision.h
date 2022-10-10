@@ -67,10 +67,26 @@ constexpr SolidBits Solid_Shot = SolidBits( Solid_WeaponClip | Solid_Wallbangabl
 constexpr SolidBits Solid_Everything = SolidBits( U8_MAX );
 
 struct trace_t {
-	float fraction;             // time completed, 1.0 = didn't hit anything
-	Vec3 endpos;              // final position
+	float fraction;
+	Vec3 endpos;
 	Vec3 contact;
-	Vec3 normal;             // surface normal at impact
+	Vec3 normal;
 	SolidBits solidity;
-	int ent;                    // not set by CM_*() functions
+	int ent;
+
+	bool HitSomething() {
+		return this->ent > -1;
+	}
+
+	bool HitNothing() {
+		return this->ent == -1;
+	}
+
+	bool GotSomewhere() {
+		return this->fraction > 0.0f;
+	}
+
+	bool GotNowhere() {
+		return this->fraction == 0.0f;
+	}
 };

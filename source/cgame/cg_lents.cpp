@@ -105,10 +105,10 @@ void DrawGibs() {
 		trace_t trace;
 		CG_Trace( &trace, gib->origin, bounds.mins, bounds.maxs, next_origin, 0, Solid_Solid );
 
-		if( trace.fraction == 0.0f ) {
+		if( trace.GotNowhere() ) {
 			gib->lifetime = 0;
 		}
-		else if( trace.fraction != 1.0f ) {
+		else if( trace.HitSomething() ) {
 			gib->lifetime = 0;
 
 			GibImpact( trace.endpos, trace.normal, gib->color, gib->scale );

@@ -19,7 +19,7 @@ static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Sy
 	Vec3 spot = pml->origin + pml->forward;
 	trace_t trace;
 	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->solid_mask, 0 );
-	return trace.fraction < 1;
+	return trace.HitSomething();
 }
 
 

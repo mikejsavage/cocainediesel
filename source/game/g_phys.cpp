@@ -41,7 +41,7 @@ static bool EntityOverlapsAnything( edict_t *ent ) {
 	SolidBits mask = ent->r.solidity ? ent->r.solidity : Solid_Solid;
 	trace_t trace;
 	G_Trace4D( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, ent, mask, ent->timeDelta );
-	return trace.fraction == 0.0f;
+	return trace.GotNowhere();
 }
 
 static void SV_CheckVelocity( edict_t *ent ) {
@@ -80,7 +80,7 @@ static void SV_RunThink( edict_t *ent ) {
 void SV_Impact( edict_t *e1, trace_t *trace ) {
 	edict_t *e2;
 
-	if( trace->ent != -1 ) {
+	if( trace->HitSomething() ) {
 		e2 = &game.edicts[trace->ent];
 
 		if( e1->r.solid != SOLID_NOT ) {
@@ -125,7 +125,7 @@ retry:
 
 	GClip_LinkEntity( ent );
 
-	if( trace.fraction < 1.0f ) {
+	if( trace.HitSomething() ) {
 		SV_Impact( ent, &trace );
 
 		// if the pushed entity went away and the pusher is still there
@@ -439,7 +439,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 			// LA: hopefully will fix grenades bouncing down slopes
 			// method taken from Darkplaces sourcecode
-			if( trace.fraction == 0.0f ||
+			if( trace.GotNowhere() ||
 				( ISWALKABLEPLANE( trace.normal ) &&
 				  Abs( Dot( trace.normal, ent->velocity ) ) < 40
 				)
@@ -454,8 +454,8 @@ static void SV_Physics_Toss( edict_t *ent ) {
 			// in movetype_toss things stop dead when touching ground
 
 			// walkable or trapped inside solid brush
-			if( trace.fraction == 0.0f || ISWALKABLEPLANE( trace.normal ) ) {
-				ent->groundentity = trace.ent < 0 ? world : &game.edicts[trace.ent];
+			if( trace.GotNowhere() || ISWALKABLEPLANE( trace.normal ) ) {
+				ent->groundentity = trace.HitNothing() ? world : &game.edicts[trace.ent];
 				ent->groundentity_linkcount = ent->groundentity->linkcount;
 				ent->velocity = Vec3( 0.0f );
 				ent->avelocity = Vec3( 0.0f );

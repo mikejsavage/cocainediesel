@@ -13,7 +13,7 @@ void DropSpawnToFloor( edict_t * ent ) {
 	trace_t tr;
 	G_Trace( &tr, start, mins, maxs, end, ent, Solid_Solid );
 
-	if( tr.fraction == 0.0f ) {
+	if( tr.GotNowhere() ) {
 		Com_GGPrint( "Spawn starts inside solid, removing..." );
 		G_FreeEdict( ent );
 		return;

@@ -59,7 +59,7 @@ void GS_TraceLaserBeam( const gs_state_t * gs, trace_t * trace, Vec3 origin, Vec
 	trace->ent = 0;
 
 	gs->api.Trace( trace, origin, -maxs, maxs, end, ignore, Solid_Shot, timeDelta );
-	if( trace->ent != -1 && impact != NULL ) {
+	if( trace->HitSomething() && impact != NULL ) {
 		impact( trace, dir, data );
 	}
 }

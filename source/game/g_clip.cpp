@@ -558,7 +558,7 @@ static bool EntityOverlapsAABB( const edict_t * ent, const CenterExtents3 & aabb
 
 	trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &ent->s, Solid_Everything );
 
-	return trace.fraction == 0.0f;
+	return trace.GotNowhere();
 }
 
 static void CallTouches( edict_t * ent, const MinMax3 & bounds ) {

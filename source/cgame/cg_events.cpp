@@ -61,7 +61,7 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin )
 
 	trace_t trace;
 	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.view.POVent, Solid_Wallbang );
-	if( trace.ent != -1 ) {
+	if( trace.HitSomething() ) {
 		RailgunImpact( trace.endpos, trace.normal, color );
 	}
 
@@ -139,7 +139,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 		cent->lg_beam_sound = PlayImmediateSFX( "weapons/lg/beam", cent->lg_beam_sound, PlaySFXConfigLineSegment( start, end ) );
 	}
 
-	if( trace.fraction == 1.0f ) {
+	if( trace.HitNothing() ) {
 		DoVisualEffect( "weapons/lg/tip_miss", end, Vec3( 0.0f, 0.0f, 1.0f ), 1, color );
 		cent->lg_tip_sound = PlayImmediateSFX( "weapons/lg/tip_miss", cent->lg_tip_sound, PlaySFXConfigPosition( end ) );
 	}
@@ -228,7 +228,7 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 	trace_t trace, wallbang;
 	GS_TraceBullet( &client_gs, &trace, &wallbang, origin, dir, right, up, spread, range, owner, 0 );
 
-	if( trace.ent != -1 ) {
+	if( trace.HitSomething() ) {
 		if( trace.ent > 0 && cg_entities[ trace.ent ].current.type == ET_PLAYER ) {
 			// flesh impact sound
 		}
@@ -268,7 +268,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 		float distance = Length( trace.endpos - origin );
 		float decal_p = Lerp( 0.25f, Unlerp( 0.0f, distance, 256.0f ), 0.5f );
 		if( Probability( &cls.rng, decal_p ) ) {
-			if( trace.ent != -1 ) {
+			if( trace.HitSomething() ) {
 				BulletImpact( &trace, team_color, 4, 0.5f );
 			}
 
@@ -284,7 +284,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	trace_t trace;
 	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, owner, Solid_Shot );
 
-	if( trace.ent != -1 ) {
+	if( trace.HitSomething() ) {
 		PlaySFX( "weapons/rg/hit", PlaySFXConfigPosition( trace.endpos ) );
 	}
 }
@@ -904,7 +904,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				trace_t trace;
 				CG_Trace( &trace, ent->origin, Vec3( -4.0f ), Vec3( 4.0f ), end, 0, Solid_Solid );
 
-				if( trace.fraction < 1.0f ) {
+				if( trace.HitSomething() ) {
 					constexpr StringHash decals[] = {
 						"textures/blood_decals/blood1",
 						"textures/blood_decals/blood2",

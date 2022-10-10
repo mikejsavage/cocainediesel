@@ -153,7 +153,7 @@ static bool CG_ClipEntityContact( Vec3 origin, Vec3 mins, Vec3 maxs, int entNum 
 	interpolated.scale = cent->interpolated.scale;
 
 	trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, &interpolated, Solid_Everything );
-	return trace.fraction == 0.0f;
+	return trace.GotNowhere();
 }
 
 void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {

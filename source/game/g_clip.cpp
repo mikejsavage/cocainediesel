@@ -502,10 +502,10 @@ static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, i
 			if( touch->s.svflags & SVF_PROJECTILE ) {
 				continue;
 			}
-		}
 
-		if( touch->r.client != NULL && touch->s.team == game.edicts[ passent ].s.team ) {
-			continue;
+			if( touch->r.client != NULL && touch->s.team == game.edicts[ passent ].s.team ) {
+				continue;
+			}
 		}
 
 		trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &touch->s, solid_mask );

@@ -160,14 +160,14 @@ local function flatten( t )
 	return res
 end
 
-local function join_srcs( names, suffix )
+local function join_srcs( names )
 	if not names then
 		return ""
 	end
 
 	local flat = flatten( names )
 	for i = 1, #flat do
-		flat[ i ] = dir .. "/" .. flat[ i ] .. suffix
+		flat[ i ] = dir .. "/" .. flat[ i ] .. obj_suffix
 	end
 	return table.concat( flat, " " )
 end
@@ -414,7 +414,7 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 	printf()
 
 	for lib_name, srcs in sort_by_key( libs ) do
-		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join_srcs( srcs, obj_suffix ) )
+		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join_srcs( srcs ) )
 	end
 
 	printf()
@@ -435,7 +435,7 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 		printf( "build %s: %s %s %s | %s",
 			full_name,
 			( use_zig and cfg.static_linux_release_build ) and "bin-static" or "bin",
-			join_srcs( srcs, obj_suffix ),
+			join_srcs( srcs ),
 			join_libs( cfg.libs ),
 			( use_zig and cfg.static_linux_release_build ) and "ggbuild/zig/zig" or ""
 		)

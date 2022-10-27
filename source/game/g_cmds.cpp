@@ -120,7 +120,7 @@ static void Cmd_Position_f( edict_t * ent, msg_t args ) {
 
 	Cmd_TokenizeString( MSG_ReadString( &args ) );
 
-	const char * action = Cmd_Argv( 1 );
+	const char * action = Cmd_Argv( 0 );
 
 	if( StrCaseEqual( action, "save" ) ) {
 		ent->r.client->teamstate.position_saved = true;
@@ -137,9 +137,9 @@ static void Cmd_Position_f( edict_t * ent, msg_t args ) {
 				G_PrintMsg( ent, "Position not available.\n" );
 			}
 		}
-	} else if( StrCaseEqual( action, "set" ) && Cmd_Argc() == 7 ) {
-		Vec3 origin = Vec3( atof( Cmd_Argv( 2 ) ), atof( Cmd_Argv( 3 ) ), atof( Cmd_Argv( 4 ) ) );
-		Vec3 angles = Vec3( atof( Cmd_Argv( 5 ) ), atof( Cmd_Argv( 6 ) ), 0.0f );
+	} else if( StrCaseEqual( action, "set" ) && Cmd_Argc() == 6 ) {
+		Vec3 origin = Vec3( atof( Cmd_Argv( 1 ) ), atof( Cmd_Argv( 2 ) ), atof( Cmd_Argv( 3 ) ) );
+		Vec3 angles = Vec3( atof( Cmd_Argv( 4 ) ), atof( Cmd_Argv( 5 ) ), 0.0f );
 
 		if( G_Teleport( ent, origin, angles ) ) {
 			G_PrintMsg( ent, "Position set.\n" );

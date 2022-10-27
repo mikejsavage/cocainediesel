@@ -142,9 +142,9 @@ static void Cmd_Position_f( edict_t * ent, msg_t args ) {
 		Vec3 angles = Vec3( atof( Cmd_Argv( 5 ) ), atof( Cmd_Argv( 6 ) ), 0.0f );
 
 		if( G_Teleport( ent, origin, angles ) ) {
-			G_PrintMsg( ent, "Position not available.\n" );
-		} else {
 			G_PrintMsg( ent, "Position set.\n" );
+		} else {
+			G_PrintMsg( ent, "Position not available.\n" );
 		}
 	} else {
 		G_PrintMsg( ent,

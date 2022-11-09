@@ -16,8 +16,6 @@
 #define GLFW_INCLUDE_NONE
 #include "glfw3/GLFW/glfw3.h"
 
-#include "glad/glad.h"
-
 enum UIState {
 	UIState_Hidden,
 	UIState_MainMenu,

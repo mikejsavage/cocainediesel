@@ -528,6 +528,12 @@ void ShutdownRenderBackend() {
 
 	RunDeferredDeletes();
 
+	for( GLsync fence : fences ) {
+		if( fence != 0 ) {
+			glDeleteSync( fence );
+		}
+	}
+
 	render_passes.shutdown();
 	draw_calls.shutdown();
 

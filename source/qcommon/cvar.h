@@ -10,7 +10,6 @@ enum CvarFlags {
 	CvarFlag_ReadOnly       = 1 << 4,
 	CvarFlag_ServerReadOnly = 1 << 5,
 	CvarFlag_Developer      = 1 << 6,
-	CvarFlag_FromConfig     = 1 << 7,
 };
 
 struct Cvar {
@@ -19,6 +18,7 @@ struct Cvar {
 	char * default_value;
 
 	CvarFlags flags;
+	bool from_config;
 	float number;
 	int integer;
 	bool modified;

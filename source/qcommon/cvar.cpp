@@ -116,7 +116,7 @@ Cvar * NewCvar( const char * name, const char * value, u32 flags ) {
 	Cvar * old_cvar = FindCvar( name );
 	if( old_cvar != NULL ) {
 		assert( StrEqual( old_cvar->default_value, value ) );
-		assert( ( old_cvar->flags & ~CvarFlag_FromConfig ) == CvarFlags( flags ) );
+		assert( old_cvar->flags == flags );
 		return old_cvar;
 	}
 
@@ -135,7 +135,7 @@ Cvar * NewCvar( const char * name, const char * value, u32 flags ) {
 	u64 idx;
 	if( !HasFlag( flags, CvarFlag_ReadOnly ) && config_entries_hashtable.get( hash, &idx ) ) {
 		SetCvar( cvar, config_entries[ idx ].value );
-		cvar->flags = CvarFlags( cvar->flags | CvarFlag_FromConfig );
+		cvar->from_config = true;
 	}
 	else {
 		SetCvar( cvar, value );
@@ -284,7 +284,7 @@ static void Cvar_Reset_f() {
 	if( cvar == NULL )
 		return;
 	Cvar_Set( cvar->name, cvar->default_value );
-	cvar->flags = CvarFlags( cvar->flags & ~CvarFlag_FromConfig );
+	cvar->from_config = false;
 }
 
 void Cvar_WriteVariables( DynamicString * config ) {
@@ -294,7 +294,7 @@ void Cvar_WriteVariables( DynamicString * config ) {
 		const Cvar * cvar = &cvars[ i ];
 		if( !HasFlag( cvar->flags, CvarFlag_Archive ) )
 			continue;
-		if( !HasFlag( cvar->flags, CvarFlag_FromConfig ) && StrEqual( cvar->value, cvar->default_value ) )
+		if( !cvar->from_config && StrEqual( cvar->value, cvar->default_value ) )
 			continue;
 		lines.add( ( *sys_allocator )( "set {} \"{}\"\r\n", cvar->name, cvar->value ) );
 	}

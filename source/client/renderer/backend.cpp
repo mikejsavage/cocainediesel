@@ -437,7 +437,7 @@ void InitRenderBackend() {
 			{ "GL_EXT_texture_sRGB_decode", GLAD_GL_EXT_texture_sRGB_decode },
 		};
 
-		String< 1024 > missing_extensions( "Your GPU doesn't have some required OpenGL extensions:" );
+		String< 1024 > missing_extensions( "Your GPU is insane and doesn't have some required OpenGL extensions:" );
 		bool any_missing = false;
 		for( auto ext : required_extensions ) {
 			if( ext.loaded == 0 ) {
@@ -453,7 +453,7 @@ void InitRenderBackend() {
 		GLint vert_buffers;
 		glGetIntegerv( GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &vert_buffers );
 		if( vert_buffers >= 0 && size_t( vert_buffers ) < ARRAY_COUNT( &Shader::buffers ) ) {
-			Fatal( "GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS too small" );
+			Fatal( "Your GPU is too old, GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS is too small" );
 		}
 	}
 

@@ -51,20 +51,20 @@ float SampleShadowMapOptimizedPCF( vec3 shadowPos, vec3 shadowPosDX, vec3 shadow
 	base_uv -= 0.5;
 	base_uv *= inv_shadowmap_size;
 
-	float uw0 = (4 - 3 * s);
-	float uw1 = 7;
-	float uw2 = (1 + 3 * s);
+	float uw0 = (4.0 - 3.0 * s);
+	float uw1 = 7.0;
+	float uw2 = (1.0 + 3.0 * s);
 
-	float u0 = (3 - 2 * s) / uw0 - 2;
-	float u1 = (3 + s) / uw1;
-	float u2 = s / uw2 + 2;
+	float u0 = (3.0 - 2.0 * s) / uw0 - 2.0;
+	float u1 = (3.0 + s) / uw1;
+	float u2 = s / uw2 + 2.0;
 
-	float vw0 = (4 - 3 * t);
-	float vw1 = 7;
-	float vw2 = (1 + 3 * t);
+	float vw0 = (4.0 - 3.0 * t);
+	float vw1 = 7.0;
+	float vw2 = (1.0 + 3.0 * t);
 
-	float v0 = (3 - 2 * t) / vw0 - 2;
-	float v1 = (3 + t) / vw1;
+	float v0 = (3.0 - 2.0 * t) / vw0 - 2;
+	float v1 = (3.0 + t) / vw1;
 	float v2 = t / vw2 + 2;
 
 	float sum = 0.0;
@@ -81,7 +81,7 @@ float SampleShadowMapOptimizedPCF( vec3 shadowPos, vec3 shadowPosDX, vec3 shadow
 	sum += uw1 * vw2 * SampleShadowMap( base_uv, u1, v2, inv_shadowmap_size, cascadeIdx, lightDepth, receiverPlaneDepthBias );
 	sum += uw2 * vw2 * SampleShadowMap( base_uv, u2, v2, inv_shadowmap_size, cascadeIdx, lightDepth, receiverPlaneDepthBias );
 
-	return sum * 1.0 / 144;
+	return sum * 1.0 / 144.0;
 }
 
 void GetCascadeOffsetScale( int cascadeIdx, out vec3 cascadeOffset, out vec3 cascadeScale ) {

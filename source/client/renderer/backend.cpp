@@ -1474,40 +1474,26 @@ void DeleteFramebuffer( Framebuffer fb ) {
 	DeleteTexture( fb.depth_texture );
 }
 
-#define MAX_GLSL_UNIFORM_JOINTS 100
+static GLuint CompileShader( GLenum type, const char * src ) {
+	constexpr int MAX_GLSL_UNIFORM_JOINTS = 100;
+	constexpr const char * VERTEX_SHADER_PRELUDE =
+		"#define VERTEX_SHADER 1\n"
+		"#define v2f out\n";
+	constexpr const char * FRAGMENT_SHADER_PRELUDE =
+		"#define FRAGMENT_SHADER 1\n"
+		"#define v2f in\n";
 
-static constexpr const char * VERTEX_SHADER_PRELUDE =
-	"#define VERTEX_SHADER 1\n"
-	"#define v2f out\n";
-
-static constexpr const char * FRAGMENT_SHADER_PRELUDE =
-	"#define FRAGMENT_SHADER 1\n"
-	"#define v2f in\n";
-
-static GLuint CompileShader( GLenum type, Span< Span< const char > > srcs ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	DynamicArray< const char * > src_ptrs( &temp );
-	DynamicArray< int > src_lens( &temp );
-
-	src_ptrs.add( "#version 430 core\n" );
-	src_lens.add( -1 );
-
+	DynamicString prelude( &temp, "#version 430 core\n" );
 	if( type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER ) {
-		src_ptrs.add( type == GL_VERTEX_SHADER ? VERTEX_SHADER_PRELUDE : FRAGMENT_SHADER_PRELUDE );
-		src_lens.add( -1 );
-
-		src_ptrs.add( "#define MAX_JOINTS " STRINGIFY( MAX_GLSL_UNIFORM_JOINTS ) "\n" );
-		src_lens.add( -1 );
+		prelude.append( "{}", type == GL_VERTEX_SHADER ? VERTEX_SHADER_PRELUDE : FRAGMENT_SHADER_PRELUDE );
+		prelude.append( "#define MAX_JOINTS {}\n", MAX_GLSL_UNIFORM_JOINTS );
 	}
 
-	for( Span< const char > fragment : srcs ) {
-		src_ptrs.add( fragment.ptr );
-		src_lens.add( checked_cast< int >( fragment.n ) );
-	}
-
+	const char * full_src = temp( "{}{}", prelude, src );
 	GLuint shader = glCreateShader( type );
-	glShaderSource( shader, src_ptrs.size(), src_ptrs.ptr(), src_lens.ptr() );
+	glShaderSource( shader, 1, &full_src, NULL );
 	glCompileShader( shader );
 
 	GLint status;
@@ -1602,20 +1588,25 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 	return true;
 }
 
-bool NewShader( Shader * shader, Span< Span< const char > > srcs ) {
+bool NewShader( Shader * shader, const char * src, const char * name ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	*shader = { };
 
-	GLuint vs = CompileShader( GL_VERTEX_SHADER, srcs );
+	GLuint vs = CompileShader( GL_VERTEX_SHADER, src );
 	if( vs == 0 )
 		return false;
+	DebugLabel( GL_SHADER, vs, temp( "{} [VS]", name ) );
 	defer { glDeleteShader( vs ); };
 
-	GLuint fs = CompileShader( GL_FRAGMENT_SHADER, srcs );
+	GLuint fs = CompileShader( GL_FRAGMENT_SHADER, src );
 	if( fs == 0 )
 		return false;
+	DebugLabel( GL_SHADER, fs, temp( "{} [FS]", name ) );
 	defer { glDeleteShader( fs ); };
 
 	shader->program = glCreateProgram();
+	DebugLabel( GL_PROGRAM, shader->program, name );
 	glAttachShader( shader->program, vs );
 	glAttachShader( shader->program, fs );
 
@@ -1639,15 +1630,19 @@ bool NewShader( Shader * shader, Span< Span< const char > > srcs ) {
 	return LinkShader( shader, shader->program );
 }
 
-bool NewComputeShader( Shader * shader, Span< Span< const char > > srcs ) {
+bool NewComputeShader( Shader * shader, const char * src, const char * name ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	*shader = { };
 
-	GLuint cs = CompileShader( GL_COMPUTE_SHADER, srcs );
+	GLuint cs = CompileShader( GL_COMPUTE_SHADER, src );
 	if( cs == 0 )
 		return false;
+	DebugLabel( GL_SHADER, cs, temp( "{} [CS]", name ) );
 	defer { glDeleteShader( cs ); };
 
 	shader->program = glCreateProgram();
+	DebugLabel( GL_PROGRAM, shader->program, name );
 	glAttachShader( shader->program, cs );
 
 	return LinkShader( shader, shader->program );

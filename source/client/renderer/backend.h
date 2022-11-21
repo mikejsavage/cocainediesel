@@ -365,8 +365,8 @@ Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * normal_texture, 
 Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer );
 void DeleteFramebuffer( Framebuffer fb );
 
-bool NewShader( Shader * shader, Span< Span< const char > > srcs );
-bool NewComputeShader( Shader * shader, Span< Span< const char > > srcs );
+bool NewShader( Shader * shader, const char * src, const char * name );
+bool NewComputeShader( Shader * shader, const char * src, const char * name );
 void DeleteShader( Shader shader );
 
 Mesh NewMesh( MeshConfig config );

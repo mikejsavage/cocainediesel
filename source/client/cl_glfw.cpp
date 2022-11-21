@@ -265,7 +265,7 @@ static void OnGlfwError( int code, const char * message ) {
 		return;
 
 	if( code == GLFW_VERSION_UNAVAILABLE ) {
-		Fatal( "Your PC is too old. You need a GPU that can support OpenGL 4.5" );
+		Fatal( "Your GPU is too old, you need a GPU that supports OpenGL 4.5" );
 	}
 
 	Fatal( "GLFW error %d: %s", code, message );

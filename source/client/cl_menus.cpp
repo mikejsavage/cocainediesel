@@ -387,6 +387,7 @@ static void SettingsControls() {
 
 		if( ImGui::BeginTabItem( "Mouse" ) ) {
 			CvarSliderFloat( "Sensitivity", "sensitivity", sensivity_range[ 0 ], sensivity_range[ 1 ] );
+			ImGui::Text( "Sensitivity is the same as CSGO/TF2/etc" );
 			CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f );
 			CvarCheckbox( "Invert Y axis", "m_invertY" );
 

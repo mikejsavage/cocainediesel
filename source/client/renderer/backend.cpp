@@ -465,7 +465,7 @@ void InitRenderBackend() {
 
 			glEnable( GL_DEBUG_OUTPUT );
 			glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
-			glDebugMessageCallback( ( GLDEBUGPROC ) DebugOutputCallback, NULL );
+			glDebugMessageCallback( DebugOutputCallback, NULL );
 			glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE );
 		}
 	}

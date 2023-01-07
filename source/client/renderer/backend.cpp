@@ -1485,7 +1485,7 @@ static GLuint CompileShader( GLenum type, const char * src ) {
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	DynamicString prelude( &temp, "#version 430 core\n" );
+	DynamicString prelude( &temp, "#version 450 core\n" );
 	if( type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER ) {
 		prelude.append( "{}", type == GL_VERTEX_SHADER ? VERTEX_SHADER_PRELUDE : FRAGMENT_SHADER_PRELUDE );
 		prelude.append( "#define MAX_JOINTS {}\n", MAX_GLSL_UNIFORM_JOINTS );

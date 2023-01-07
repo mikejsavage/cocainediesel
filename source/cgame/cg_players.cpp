@@ -30,7 +30,7 @@ static StringHash GetPlayerSound( int entnum, PlayerSound ps ) {
 }
 
 float CG_PlayerPitch( int entnum ) {
-	constexpr float basis = Length( Vec3( 1 ) );
+	float basis = Length( Vec3( 1 ) );
 	return 1.0f / ( Length( cg_entities[ entnum ].current.scale ) / basis );
 }
 

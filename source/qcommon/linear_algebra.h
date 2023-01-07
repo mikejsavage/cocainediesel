@@ -31,7 +31,7 @@ constexpr float Dot( Vec2 lhs, Vec2 rhs ) {
 	return lhs.x * rhs.x + lhs.y * rhs.y;
 }
 
-constexpr float Length( Vec2 v ) {
+inline float Length( Vec2 v ) {
 	return sqrtf( v.x * v.x + v.y * v.y );
 }
 
@@ -39,12 +39,12 @@ constexpr float LengthSquared( Vec2 v ) {
 	return v.x * v.x + v.y * v.y;
 }
 
-constexpr Vec2 Normalize( Vec2 v ) {
+inline Vec2 Normalize( Vec2 v ) {
 	assert( v != Vec2( 0.0f ) );
 	return v / Length( v );
 }
 
-constexpr Vec2 SafeNormalize( Vec2 v ) {
+inline Vec2 SafeNormalize( Vec2 v ) {
 	if( v == Vec2( 0.0f ) )
 		return v;
 	return Normalize( v );
@@ -106,7 +106,7 @@ constexpr Vec3 Cross( Vec3 lhs, Vec3 rhs ) {
 	);
 }
 
-constexpr float Length( Vec3 v ) {
+inline float Length( Vec3 v ) {
 	return sqrtf( v.x * v.x + v.y * v.y + v.z * v.z );
 }
 
@@ -114,18 +114,18 @@ constexpr float LengthSquared( Vec3 v ) {
 	return v.x * v.x + v.y * v.y + v.z * v.z;
 }
 
-constexpr Vec3 Normalize( Vec3 v ) {
+inline Vec3 Normalize( Vec3 v ) {
 	assert( v != Vec3( 0.0f ) );
 	return v / Length( v );
 }
 
-constexpr Vec3 SafeNormalize( Vec3 v ) {
+inline Vec3 SafeNormalize( Vec3 v ) {
 	if( v == Vec3( 0.0f ) )
 		return v;
 	return Normalize( v );
 }
 
-constexpr Vec3 Floor( Vec3 v ) {
+inline Vec3 Floor( Vec3 v ) {
 	return Vec3(
 		floorf( v.x ),
 		floorf( v.y ),
@@ -199,11 +199,11 @@ constexpr float Dot( Vec4 lhs, Vec4 rhs ) {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
 }
 
-constexpr float Length( Vec4 v ) {
+inline float Length( Vec4 v ) {
 	return sqrtf( v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w );
 }
 
-constexpr Vec4 Normalize( Vec4 v ) {
+inline Vec4 Normalize( Vec4 v ) {
 	assert( v != Vec4( 0.0f ) );
 	return v / Length( v );
 }
@@ -340,15 +340,15 @@ constexpr float Dot( Quaternion lhs, Quaternion rhs ) {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
 }
 
-constexpr float Length( Quaternion q ) {
+inline float Length( Quaternion q ) {
 	return sqrtf( q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w );
 }
 
-constexpr Quaternion Normalize( Quaternion q ) {
+inline Quaternion Normalize( Quaternion q ) {
 	return q / Length( q );
 }
 
-constexpr Quaternion NLerp( Quaternion from, float t, Quaternion to ) {
+inline Quaternion NLerp( Quaternion from, float t, Quaternion to ) {
 	float lt = 1.0f - t;
 	float rt = Dot( from, to ) > 0 ? t : -t;
 	return Normalize( from * lt + to * rt );

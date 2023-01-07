@@ -129,13 +129,13 @@ constexpr T Max2( const T & a, const T & b ) {
 }
 
 template< typename T >
-T Clamp( const T & lo, const T & x, const T & hi ) {
+constexpr T Clamp( const T & lo, const T & x, const T & hi ) {
 	assert( lo <= hi );
 	return Max2( lo, Min2( x, hi ) );
 }
 
 template< typename T >
-T Clamp01( const T & x ) {
+constexpr T Clamp01( const T & x ) {
 	return Clamp( T( 0.0f ), x, T( 1.0f ) );
 }
 
@@ -310,9 +310,9 @@ struct Mat3 {
 		float e20, float e21, float e22
 	) : col0( e00, e10, e20 ), col1( e01, e11, e21 ), col2( e02, e12, e22 ) { }
 
-	Vec3 row0() const { return Vec3( col0.x, col1.x, col2.x ); }
-	Vec3 row1() const { return Vec3( col0.y, col1.y, col2.y ); }
-	Vec3 row2() const { return Vec3( col0.z, col1.z, col2.z ); }
+	constexpr Vec3 row0() const { return Vec3( col0.x, col1.x, col2.x ); }
+	constexpr Vec3 row1() const { return Vec3( col0.y, col1.y, col2.y ); }
+	constexpr Vec3 row2() const { return Vec3( col0.z, col1.z, col2.z ); }
 
 	float * ptr() { return col0.ptr(); }
 
@@ -337,10 +337,10 @@ struct alignas( 16 ) Mat4 {
 		float e30, float e31, float e32, float e33
 	) : col0( e00, e10, e20, e30 ), col1( e01, e11, e21, e31 ), col2( e02, e12, e22, e32 ), col3( e03, e13, e23, e33 ) { }
 
-	Vec4 row0() const { return Vec4( col0.x, col1.x, col2.x, col3.x ); }
-	Vec4 row1() const { return Vec4( col0.y, col1.y, col2.y, col3.y ); }
-	Vec4 row2() const { return Vec4( col0.z, col1.z, col2.z, col3.z ); }
-	Vec4 row3() const { return Vec4( col0.w, col1.w, col2.w, col3.w ); }
+	constexpr Vec4 row0() const { return Vec4( col0.x, col1.x, col2.x, col3.x ); }
+	constexpr Vec4 row1() const { return Vec4( col0.y, col1.y, col2.y, col3.y ); }
+	constexpr Vec4 row2() const { return Vec4( col0.z, col1.z, col2.z, col3.z ); }
+	constexpr Vec4 row3() const { return Vec4( col0.w, col1.w, col2.w, col3.w ); }
 
 	float * ptr() { return col0.ptr(); }
 

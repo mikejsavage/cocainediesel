@@ -369,7 +369,7 @@ rule bin
 
 printf( [[
 rule bin
-    command = g++ -o $out $in -no-pie $ldflags $extra_ldflags && objcopy --only-keep-debug $out $out.debug && strip $out
+    command = g++ -o $out $in -no-pie -static-libstdc++ $ldflags $extra_ldflags && objcopy --only-keep-debug $out $out.debug && strip $out
     description = $out
 
 rule bin-static

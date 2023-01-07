@@ -94,16 +94,6 @@ enum {
 	PMODEL_TOTAL_ANIMATIONS,
 };
 
-enum {
-	WEAPANIM_NOANIM,
-	WEAPANIM_STANDBY,
-	WEAPANIM_ATTACK,
-	WEAPANIM_WEAPDOWN,
-	WEAPANIM_WEAPONUP,
-
-	VWEAP_MAXANIMS
-};
-
 struct WeaponModelMetadata {
 	const Model * model;
 

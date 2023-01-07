@@ -92,9 +92,6 @@ struct centity_t {
 	Vec3 linearProjectileViewerSource;
 	Vec3 linearProjectileViewerVelocity;
 
-	Vec3 teleportedTo;
-	Vec3 teleportedFrom;
-
 	// used for client side animation of player models
 	int lastVelocitiesFrames[4];
 	Vec4 lastVelocities[4];

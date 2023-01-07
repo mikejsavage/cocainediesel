@@ -364,10 +364,10 @@ struct alignas( 16 ) Mat3x4 {
 		float e20, float e21, float e22, float e23
 	) : col0( e00, e10, e20 ), col1( e01, e11, e21 ), col2( e02, e12, e22 ), col3( e03, e13, e23 ) { }
 
-	Vec4 row0() const { return Vec4( col0.x, col1.x, col2.x, col3.x ); }
-	Vec4 row1() const { return Vec4( col0.y, col1.y, col2.y, col3.y ); }
-	Vec4 row2() const { return Vec4( col0.z, col1.z, col2.z, col3.z ); }
-	Vec4 row3() const { return Vec4( 0, 0, 0, 1 ); }
+	constexpr Vec4 row0() const { return Vec4( col0.x, col1.x, col2.x, col3.x ); }
+	constexpr Vec4 row1() const { return Vec4( col0.y, col1.y, col2.y, col3.y ); }
+	constexpr Vec4 row2() const { return Vec4( col0.z, col1.z, col2.z, col3.z ); }
+	constexpr Vec4 row3() const { return Vec4( 0, 0, 0, 1 ); }
 
 	float * ptr() { return col0.ptr(); }
 

@@ -1685,7 +1685,9 @@ Mesh NewMesh( MeshConfig config ) {
 		SetupAttribute( vao, buffer, VertexAttribute_JointWeights, config.weights_format, config.stride, config.weights_offset );
 	}
 
-	glVertexArrayElementBuffer( vao, config.indices.buffer );
+	if( config.indices.buffer != 0 ) {
+		glVertexArrayElementBuffer( vao, config.indices.buffer );
+	}
 
 	Mesh mesh = { };
 	mesh.num_vertices = config.num_vertices;

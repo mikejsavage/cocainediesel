@@ -163,7 +163,7 @@ static void MakeResponse( HTTPConnection * con, Span< const char > method, Span<
 
 	assert( headers.length() < headers.capacity() );
 
-	Q_strncpyz( response->headers, headers.c_str(), sizeof( response->headers ) );
+	SafeStrCpy( response->headers, headers.c_str(), sizeof( response->headers ) );
 	response->headers_size = headers.length();
 }
 

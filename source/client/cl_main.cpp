@@ -104,7 +104,7 @@ void CL_ServerDisconnect_f() {
 	char menuparms[MAX_STRING_CHARS];
 	char reason[MAX_STRING_CHARS];
 
-	Q_strncpyz( reason, Cmd_Argv( 1 ), sizeof( reason ) );
+	SafeStrCpy( reason, Cmd_Argv( 1 ), sizeof( reason ) );
 
 	CL_Disconnect_f();
 
@@ -442,7 +442,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 
 		rejectflag = atoi( MSG_ReadStringLine( msg ) );
 
-		Q_strncpyz( cls.rejectmessage, MSG_ReadStringLine( msg ), sizeof( cls.rejectmessage ) );
+		SafeStrCpy( cls.rejectmessage, MSG_ReadStringLine( msg ), sizeof( cls.rejectmessage ) );
 		if( strlen( cls.rejectmessage ) > sizeof( cls.rejectmessage ) - 2 ) {
 			cls.rejectmessage[strlen( cls.rejectmessage ) - 2] = '.';
 			cls.rejectmessage[strlen( cls.rejectmessage ) - 1] = '.';

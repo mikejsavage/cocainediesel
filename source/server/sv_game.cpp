@@ -89,7 +89,7 @@ void PF_ConfigString( int index, const char *val ) {
 	}
 
 	// change the string in sv
-	Q_strncpyz( sv.configstrings[index], val, sizeof( sv.configstrings[index] ) );
+	SafeStrCpy( sv.configstrings[index], val, sizeof( sv.configstrings[index] ) );
 
 	if( sv.state != ss_loading ) {
 		SV_SendServerCommand( NULL, "cs %i \"%s\"", index, val );

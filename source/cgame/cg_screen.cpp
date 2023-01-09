@@ -57,7 +57,7 @@ static int scr_centertime_off;
 * for a few moments
 */
 void CG_CenterPrint( const char * str ) {
-	Q_strncpyz( scr_centerstring, str, sizeof( scr_centerstring ) );
+	SafeStrCpy( scr_centerstring, str, sizeof( scr_centerstring ) );
 	scr_centertime_off = centerTimeOff;
 }
 
@@ -278,7 +278,7 @@ void CG_DrawDamageNumbers( float obi_size, float dmg_size ) {
 		Vec4 color;
 		float font_size;
 		if( obituary ) {
-			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
+			SafeStrCpy( buf, dn.obituary, sizeof( buf ) );
 			color = AttentionGettingColor();
 			font_size = Lerp( obi_size, frac * frac, 0.0f );
 		}

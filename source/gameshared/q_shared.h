@@ -126,9 +126,8 @@ STATIC_ASSERT( MAX_NAME_CHARS <= MAX_CONFIGSTRING_CHARS );
 // strings
 //=============================================
 
-void Q_strncpyz( char *dest, const char *src, size_t size );
-void Q_strncatz( char *dest, const char *src, size_t size );
-
+void SafeStrCpy( char * dst, const char * src, size_t dst_size );
+void SafeStrCat( char * dst, const char * src, size_t dst_size );
 char *Q_trim( char *s );
 void RemoveTrailingZeroesFloat( char * str );
 

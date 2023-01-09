@@ -130,7 +130,7 @@ static char *SV_LongInfoString( bool fullStatus ) {
 	size_t statusLength;
 	size_t tempstrLength;
 
-	Q_strncpyz( status, Cvar_GetServerInfo(), sizeof( status ) );
+	SafeStrCpy( status, Cvar_GetServerInfo(), sizeof( status ) );
 
 	statusLength = strlen( status );
 
@@ -154,7 +154,7 @@ static char *SV_LongInfoString( bool fullStatus ) {
 	if( statusLength + tempstrLength >= sizeof( status ) ) {
 		return status; // can't hold any more
 	}
-	Q_strncpyz( status + statusLength, tempstr, sizeof( status ) - statusLength );
+	SafeStrCpy( status + statusLength, tempstr, sizeof( status ) - statusLength );
 	statusLength += tempstrLength;
 
 	if( fullStatus ) {
@@ -167,7 +167,7 @@ static char *SV_LongInfoString( bool fullStatus ) {
 				if( statusLength + tempstrLength >= sizeof( status ) ) {
 					break; // can't hold any more
 				}
-				Q_strncpyz( status + statusLength, tempstr, sizeof( status ) - statusLength );
+				SafeStrCpy( status + statusLength, tempstr, sizeof( status ) - statusLength );
 				statusLength += tempstrLength;
 			}
 		}
@@ -295,7 +295,7 @@ static void SVC_DirectConnect( const NetAddress & address ) {
 	}
 
 	char userinfo[ MAX_INFO_STRING ];
-	Q_strncpyz( userinfo, Cmd_Argv( 4 ), sizeof( userinfo ) );
+	SafeStrCpy( userinfo, Cmd_Argv( 4 ), sizeof( userinfo ) );
 
 	// see if the challenge is valid
 	{

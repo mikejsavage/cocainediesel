@@ -220,7 +220,7 @@ static void SV_CheckLatchedUserinfoChanges() {
 		}
 
 		if( cl->userinfoLatched[0] && cl->userinfoLatchTimeout <= time ) {
-			Q_strncpyz( cl->userinfo, cl->userinfoLatched, sizeof( cl->userinfo ) );
+			SafeStrCpy( cl->userinfo, cl->userinfoLatched, sizeof( cl->userinfo ) );
 
 			cl->userinfoLatched[0] = '\0';
 
@@ -377,7 +377,7 @@ void SV_UserinfoChanged( client_t *client ) {
 		SV_DropClient( client, "%s", "Error: No name set" );
 		return;
 	}
-	Q_strncpyz( client->name, val, sizeof( client->name ) );
+	SafeStrCpy( client->name, val, sizeof( client->name ) );
 }
 
 void SV_Init() {

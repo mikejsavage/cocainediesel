@@ -512,8 +512,8 @@ void CG_DrawDemocam2D() {
 		snprintf( strack, sizeof( strack ), "%i", currentcam->trackEnt );
 		snprintf( sfov, sizeof( sfov ), "%i", currentcam->fov );
 	} else {
-		Q_strncpyz( strack, "NO", sizeof( strack ) );
-		Q_strncpyz( sfov, "NO", sizeof( sfov ) );
+		SafeStrCpy( strack, "NO", sizeof( strack ) );
+		SafeStrCpy( sfov, "NO", sizeof( sfov ) );
 	}
 
 	// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP,
@@ -532,15 +532,15 @@ void CG_DrawDemocam2D() {
 
 	//cam_type_name = "none";
 	//cam_timestamp = 0;
-	Q_strncpyz( sfov, "NO", sizeof( sfov ) );
+	SafeStrCpy( sfov, "NO", sizeof( sfov ) );
 	if( nextcam ) {
 		//cam_type_name = cam_TypeNames[nextcam->type];
 		//cam_timestamp = nextcam->timeStamp;
 		snprintf( strack, sizeof( strack ), "%i", nextcam->trackEnt );
 		snprintf( sfov, sizeof( sfov ), "%i", nextcam->fov );
 	} else {
-		Q_strncpyz( strack, "NO", sizeof( strack ) );
-		Q_strncpyz( sfov, "NO", sizeof( sfov ) );
+		SafeStrCpy( strack, "NO", sizeof( strack ) );
+		SafeStrCpy( sfov, "NO", sizeof( sfov ) );
 	}
 
 	// trap_SCR_DrawString( xpos, ypos, ALIGN_LEFT_TOP,

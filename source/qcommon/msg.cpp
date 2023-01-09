@@ -245,7 +245,7 @@ static void DeltaString( DeltaBuffer * buf, char ( &str )[ N ], const char ( &ba
 			str[ n ] = '\0';
 		}
 		else {
-			Q_strncpyz( str, baseline, N );
+			SafeStrCpy( str, baseline, N );
 		}
 	}
 }

@@ -39,7 +39,7 @@ void SV_AddGameCommand( client_t *client, const char *cmd ) {
 
 	client->gameCommandCurrent++;
 	index = client->gameCommandCurrent & ( MAX_RELIABLE_COMMANDS - 1 );
-	Q_strncpyz( client->gameCommands[index].command, cmd, sizeof( client->gameCommands[index].command ) );
+	SafeStrCpy( client->gameCommands[index].command, cmd, sizeof( client->gameCommands[index].command ) );
 	if( client->lastSentFrameNum ) {
 		client->gameCommands[index].framenum = client->lastSentFrameNum + 1;
 	} else {
@@ -83,7 +83,7 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 				// is there any room? (should check for sizeof client->reliableCommands[0]?)
 				if( ( otherLen + len ) < MAX_STRING_CHARS ) {
 					// yahoo, put it in here
-					Q_strncatz( otherCmd, cmd + 2, MAX_STRING_CHARS - 1 );
+					SafeStrCat( otherCmd, cmd + 2, MAX_STRING_CHARS - 1 );
 					return;
 				}
 			}
@@ -98,7 +98,7 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 		return;
 	}
 	index = client->reliableSequence & ( MAX_RELIABLE_COMMANDS - 1 );
-	Q_strncpyz( client->reliableCommands[index], cmd, sizeof( client->reliableCommands[index] ) );
+	SafeStrCpy( client->reliableCommands[index], cmd, sizeof( client->reliableCommands[index] ) );
 }
 
 /*

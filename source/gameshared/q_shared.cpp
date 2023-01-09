@@ -351,22 +351,26 @@ bool SortCStringsComparator( const char * a, const char * b ) {
 //
 //============================================================================
 
-void Q_strncpyz( char *dest, const char *src, size_t size ) {
-	if( size ) {
-		while( --size && ( *dest++ = *src++ ) ) ;
-		*dest = '\0';
-	}
+void SafeStrCpy( char * dst, const char * src, size_t dst_size ) {
+	if( dst_size == 0 )
+		return;
+	size_t src_len = strlen( src );
+	size_t to_copy = src_len < dst_size ? src_len : dst_size - 1;
+	memcpy( dst, src, to_copy );
+	dst[ to_copy ] = '\0';
 }
 
-void Q_strncatz( char *dest, const char *src, size_t size ) {
-	if( size ) {
-		while( --size && *dest++ ) ;
-		if( size ) {
-			dest--; size++;
-			while( --size && ( *dest++ = *src++ ) ) ;
-		}
-		*dest = '\0';
-	}
+void SafeStrCat( char * dst, const char * src, size_t dst_size ) {
+	if( dst_size == 0 )
+		return;
+
+	size_t dst_len = strlen( dst );
+	if( dst_len >= dst_size - 1 )
+		return;
+
+	size_t to_copy = Min2( strlen( src ), dst_size - dst_len - 1 );
+	memcpy( dst + dst_len, src, to_copy );
+	dst[ dst_len + to_copy ] = '\0';
 }
 
 #define IS_TRIMMED_CHAR( s ) ( ( s ) == ' ' || ( s ) == '\t' || ( s ) == '\r' || ( s ) == '\n' )
@@ -674,7 +678,7 @@ bool Info_SetValueForKey( char *info, const char *key, const char *value ) {
 		return false;
 	}
 
-	Q_strncatz( info, pair, MAX_INFO_STRING );
+	SafeStrCat( info, pair, MAX_INFO_STRING );
 
 	return true;
 }

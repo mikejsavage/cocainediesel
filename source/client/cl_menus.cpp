@@ -157,7 +157,7 @@ static void CvarTextbox( const char * label, const char * cvar_name ) {
 	SettingLabel( label );
 
 	char buf[ maxlen + 1 ];
-	Q_strncpyz( buf, Cvar_String( cvar_name ), sizeof( buf ) );
+	SafeStrCpy( buf, Cvar_String( cvar_name ), sizeof( buf ) );
 
 	ImGui::PushID( cvar_name );
 	ImGui::InputText( "", buf, sizeof( buf ) );

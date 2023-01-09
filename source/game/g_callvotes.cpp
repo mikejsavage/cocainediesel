@@ -103,7 +103,7 @@ static bool G_VoteMapValidate( callvotedata_t *data, bool first ) {
 		return false;
 	}
 
-	Q_strncpyz( mapname, data->argv[0], sizeof( mapname ) );
+	SafeStrCpy( mapname, data->argv[0], sizeof( mapname ) );
 	COM_SanitizeFilePath( mapname );
 
 	if( StrEqual( sv.mapname, mapname ) ) {
@@ -127,7 +127,7 @@ static bool G_VoteMapValidate( callvotedata_t *data, bool first ) {
 }
 
 static void G_VoteMapPassed( callvotedata_t *vote ) {
-	Q_strncpyz( level.callvote_map, vote->argv[0], sizeof( level.callvote_map ) );
+	SafeStrCpy( level.callvote_map, vote->argv[0], sizeof( level.callvote_map ) );
 	G_EndMatch();
 }
 
@@ -431,7 +431,7 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 		}
 	}
 
-	Q_strncpyz( server_gs.gameState.callvote, "", sizeof( server_gs.gameState.callvote ) );
+	SafeStrCpy( server_gs.gameState.callvote, "", sizeof( server_gs.gameState.callvote ) );
 
 	server_gs.gameState.callvote_required_votes = 0;
 	server_gs.gameState.callvote_yes_votes = 0;
@@ -482,11 +482,11 @@ static const char *G_CallVotes_ArgsToString( const callvotedata_t *vote ) {
 	argstring[0] = 0;
 
 	if( vote->argc > 0 ) {
-		Q_strncatz( argstring, vote->argv[0], sizeof( argstring ) );
+		SafeStrCat( argstring, vote->argv[0], sizeof( argstring ) );
 	}
 	for( int i = 1; i < vote->argc; i++ ) {
-		Q_strncatz( argstring, " ", sizeof( argstring ) );
-		Q_strncatz( argstring, vote->argv[i], sizeof( argstring ) );
+		SafeStrCat( argstring, " ", sizeof( argstring ) );
+		SafeStrCat( argstring, vote->argv[i], sizeof( argstring ) );
 	}
 
 	return argstring;
@@ -710,7 +710,7 @@ void G_CallVote_Cmd( edict_t *ent, msg_t args ) {
 
 	ent->r.client->level.callvote_when = callvoteState.timeout;
 
-	Q_strncpyz( server_gs.gameState.callvote, G_CallVotes_String( &callvoteState.vote ), sizeof( server_gs.gameState.callvote ) );
+	SafeStrCpy( server_gs.gameState.callvote, G_CallVotes_String( &callvoteState.vote ), sizeof( server_gs.gameState.callvote ) );
 
 	G_PrintMsg( NULL, "%s" S_COLOR_WHITE " requested to vote " S_COLOR_YELLOW "%s\n",
 				ent->r.client->netname, G_CallVotes_String( &callvoteState.vote ) );

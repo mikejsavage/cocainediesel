@@ -293,11 +293,11 @@ void CG_SC_Obituary() {
 	current->wallbang = wallbang;
 
 	if( victim != NULL ) {
-		Q_strncpyz( current->victim, victim, sizeof( current->victim ) );
+		SafeStrCpy( current->victim, victim, sizeof( current->victim ) );
 		current->victim_team = cg_entities[ victimNum ].current.team;
 	}
 	if( attacker != NULL ) {
-		Q_strncpyz( current->attacker, attacker, sizeof( current->attacker ) );
+		SafeStrCpy( current->attacker, attacker, sizeof( current->attacker ) );
 		current->attacker_team = cg_entities[ attackerNum ].current.team;
 	}
 

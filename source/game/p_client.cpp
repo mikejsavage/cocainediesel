@@ -530,14 +530,14 @@ static void G_SetName( edict_t * ent, const char * original_name ) {
 	}
 
 	char name[ MAX_NAME_CHARS + 1 ];
-	Q_strncpyz( name, original_name, sizeof( name ) );
+	SafeStrCpy( name, original_name, sizeof( name ) );
 
 	int c_ascii = G_SanitizeUserString( name, sizeof( name ) );
 	if( !c_ascii ) {
-		Q_strncpyz( name, "Player", sizeof( name ) );
+		SafeStrCpy( name, "Player", sizeof( name ) );
 	}
 
-	Q_strncpyz( ent->r.client->netname, name, sizeof( ent->r.client->netname ) );
+	SafeStrCpy( ent->r.client->netname, name, sizeof( ent->r.client->netname ) );
 
 	int trynum = 0;
 	while( trynum < MAX_CLIENTS ) {
@@ -597,7 +597,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	cl = ent->r.client;
 
 	// set name, it's validated and possibly changed first
-	Q_strncpyz( oldname, cl->netname, sizeof( oldname ) );
+	SafeStrCpy( oldname, cl->netname, sizeof( oldname ) );
 	G_SetName( ent, Info_ValueForKey( userinfo, "name" ) );
 	if( oldname[0] && !StrCaseEqual( oldname, cl->netname ) && !CheckFlood( ent, false ) ) {
 		G_PrintMsg( NULL, "%s is now known as %s\n", oldname, cl->netname );
@@ -608,7 +608,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	}
 
 	// save off the userinfo in case we want to check something later
-	Q_strncpyz( cl->userinfo, userinfo, sizeof( cl->userinfo ) );
+	SafeStrCpy( cl->userinfo, userinfo, sizeof( cl->userinfo ) );
 
 	G_UpdatePlayerInfoString( PLAYERNUM( ent ) );
 }

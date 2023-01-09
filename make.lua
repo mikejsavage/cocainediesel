@@ -113,7 +113,7 @@ do
 
 		rc = "source/windows/client",
 
-		gcc_extra_ldflags = "-lm -lpthread -ldl -lX11",
+		gcc_extra_ldflags = "-lm -lpthread -ldl",
 		msvc_extra_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib /SUBSYSTEM:WINDOWS",
 	} )
 

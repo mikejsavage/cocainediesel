@@ -179,7 +179,7 @@ static void CL_UpdateConfigString( int idx, const char *s ) {
 		Com_Printf( "%s%s\n", S_COLOR_WHITE, s );
 	}
 
-	Q_strncpyz( cl.configstrings[idx], s, sizeof( cl.configstrings[idx] ) );
+	SafeStrCpy( cl.configstrings[idx], s, sizeof( cl.configstrings[idx] ) );
 }
 
 static void CL_RequestMore( ClientCommandType command ) {

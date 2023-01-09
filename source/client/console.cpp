@@ -169,9 +169,9 @@ static void TabCompletion( char * buf, size_t buf_size ) {
 		shared_prefix = FindCommonPrefix( shared_prefix, cvars );
 		shared_prefix = FindCommonPrefix( shared_prefix, commands );
 
-		Q_strncpyz( buf, temp( "{}", shared_prefix ), buf_size );
+		SafeStrCpy( buf, temp( "{}", shared_prefix ), buf_size );
 		if( cvars.n + commands.n == 1 ) {
-			Q_strncatz( buf, " ", buf_size );
+			SafeStrCat( buf, " ", buf_size );
 		}
 		else {
 			PrintCompletions( commands, S_COLOR_RED, "command" );
@@ -191,7 +191,7 @@ static void TabCompletion( char * buf, size_t buf_size ) {
 		Span< const char > shared_prefix = FindCommonPrefix( Span< const char >(), arguments );
 		while( *space == ' ' )
 			space++;
-		Q_strncpyz( space, temp( "{}", shared_prefix ), buf_size - ( space - buf ) );
+		SafeStrCpy( space, temp( "{}", shared_prefix ), buf_size - ( space - buf ) );
 	}
 }
 

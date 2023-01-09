@@ -375,7 +375,7 @@ void G_LoadMap( const char * name ) {
 		CM_Free( CM_Server, svs.cms );
 	}
 
-	Q_strncpyz( sv.mapname, name, sizeof( sv.mapname ) );
+	SafeStrCpy( sv.mapname, name, sizeof( sv.mapname ) );
 
 	Span< u8 > data;
 	defer { FREE( sys_allocator, data.ptr ); };
@@ -406,7 +406,7 @@ void G_LoadMap( const char * name ) {
 
 void G_HotloadMap() {
 	char map[ ARRAY_COUNT( sv.mapname ) ];
-	Q_strncpyz( map, sv.mapname, sizeof( map ) );
+	SafeStrCpy( map, sv.mapname, sizeof( map ) );
 	G_LoadMap( map );
 	G_ResetLevel();
 

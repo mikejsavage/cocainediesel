@@ -59,13 +59,13 @@ configs[ "linux-tsan" ] = {
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-release" ] = {
-	zig = true,
 	cxx = "ggbuild/zig/zig c++",
 	ar = "ggbuild/zig/zig ar",
 
 	cxxflags = "-O2 -DNDEBUG",
 	ldflags = "",
 	output_dir = "release/",
+	can_static_link = true,
 }
 configs[ "linux-bench" ] = {
 	bin_suffix = "-bench",
@@ -128,7 +128,7 @@ local cxxflags = concat( "cxxflags" )
 local ldflags = rightmost( "ldflags" )
 
 local toolchain = rightmost( "toolchain" )
-local use_zig = rightmost( "zig" ) == true
+local can_static_link = rightmost( "can_static_link" ) == true
 
 local dir = "build/" .. OS_config
 local output = { }
@@ -402,7 +402,7 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 	end
 
 	for src_name, cfg in sort_by_key( objs ) do
-		printf( "build %s/%s%s: cpp %s | %s", dir, src_name, obj_suffix, src_name, use_zig and "ggbuild/zig/zig" or "" )
+		printf( "build %s/%s%s: cpp %s | %s", dir, src_name, obj_suffix, src_name, can_static_link and "ggbuild/zig/zig" or "" )
 		if cfg.cxxflags then
 			printf( "    cxxflags = %s", cfg.cxxflags )
 		end
@@ -434,10 +434,10 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 		local full_name = output_dir .. bin_name .. bin_suffix
 		printf( "build %s: %s %s %s | %s",
 			full_name,
-			( use_zig and cfg.static_linux_release_build ) and "bin-static" or "bin",
+			( can_static_link and not cfg.no_static_link ) and "bin-static" or "bin",
 			join_srcs( srcs ),
 			join_libs( cfg.libs ),
-			( use_zig and cfg.static_linux_release_build ) and "ggbuild/zig/zig" or ""
+			( can_static_link and not cfg.no_static_link ) and "ggbuild/zig/zig" or ""
 		)
 
 		local ldflags_key = toolchain .. "_ldflags"

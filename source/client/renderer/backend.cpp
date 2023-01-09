@@ -812,7 +812,18 @@ static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexForma
 	glEnableVertexArrayAttrib( vao, index );
 	glVertexArrayVertexBuffer( vao, index, buffer, 0, stride );
 	if( integral && !normalized ) {
-		glVertexArrayAttribIFormat( vao, index, num_components, type, offset );
+		/*
+		 * wintel driver ignores the type and treats everything as u32
+		 * non-DSA call works fine so fall back to that here
+		 *
+		 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
+		 *
+		 * glVertexArrayAttribIFormat( vao, index, num_components, type, offset );
+		 */
+
+		glBindVertexArray( vao );
+		glVertexAttribIFormat( index, num_components, type, offset );
+		glBindVertexArray( 0 );
 	}
 	else {
 		glVertexArrayAttribFormat( vao, index, num_components, type, normalized, offset );

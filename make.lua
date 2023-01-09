@@ -115,6 +115,7 @@ do
 
 		gcc_extra_ldflags = "-lm -lpthread -ldl",
 		msvc_extra_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib /SUBSYSTEM:WINDOWS",
+		no_static_link = true,
 	} )
 
 	obj_cxxflags( "source/client/renderer/text.cpp", "-I libs/freetype" )
@@ -166,7 +167,6 @@ do
 
 		gcc_extra_ldflags = "-lm -lpthread",
 		msvc_extra_ldflags = "ole32.lib ws2_32.lib crypt32.lib shell32.lib user32.lib advapi32.lib",
-		static_linux_release_build = true,
 	} )
 end
 

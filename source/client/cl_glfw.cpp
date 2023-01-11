@@ -18,6 +18,7 @@ const bool is_dedicated_server = false;
 GLFWwindow * window = NULL;
 
 static bool running_in_debugger;
+static bool running_in_renderdoc;
 static bool route_inputs_to_imgui;
 
 static int framebuffer_width, framebuffer_height;
@@ -239,7 +240,7 @@ static void OnKeyPressed( GLFWwindow *, int glfw_key, int scancode, int action, 
 	}
 
 	// renderdoc uses F12 to trigger a capture
-	if( glfw_key == GLFW_KEY_F12 && IsRenderDocAttached() ) {
+	if( glfw_key == GLFW_KEY_F12 && running_in_renderdoc ) {
 		return;
 	}
 
@@ -540,6 +541,7 @@ void SwapBuffers() {
 
 int main( int argc, char ** argv ) {
 	running_in_debugger = !is_public_build && Sys_BeingDebugged();
+	running_in_renderdoc = IsRenderDocAttached();
 
 	{
 		TracyZoneScopedN( "Init GLFW" );

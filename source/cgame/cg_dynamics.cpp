@@ -3,6 +3,7 @@
 #include "qcommon/span2d.h"
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
+#include "client/renderer/shader_constants.h"
 #include "qcommon/array.h"
 
 static StreamingBuffer decals_buffer;
@@ -47,7 +48,6 @@ STATIC_ASSERT( sizeof( DynamicLight ) % alignof( DynamicLight ) == 0 );
 
 static constexpr u32 MAX_DECALS = 100000;
 static constexpr u32 MAX_DLIGHTS = 100000;
-static constexpr u32 MAX_PER_TILE = 50; // must match glsl
 
 static Decal decals[ MAX_DECALS ];
 static u32 num_decals;
@@ -62,11 +62,11 @@ static PersistentDynamicLight persistent_dlights[ MAX_DLIGHTS ];
 static u32 num_persistent_dlights;
 
 struct GPUDecalTile {
-	u32 decals[ MAX_PER_TILE ];
+	u32 decals[ FORWARD_PLUS_TILE_CAPACITY ];
 };
 
 struct GPUDynamicLightTile {
-	u32 dlights[ MAX_PER_TILE ];
+	u32 dlights[ FORWARD_PLUS_TILE_CAPACITY ];
 };
 
 struct GPUDynamicCount {
@@ -213,6 +213,10 @@ void DrawPersistentDynamicLights() {
 	}
 }
 
+static u32 PixelsToTiles( u32 pixels ) {
+	return ( pixels + FORWARD_PLUS_TILE_SIZE - 1 ) / FORWARD_PLUS_TILE_SIZE;
+}
+
 void AllocateDecalBuffers() {
 	if( decal_tiles_buffer.buffer != 0 && !frame_static.viewport_resized )
 		return;
@@ -223,8 +227,8 @@ void AllocateDecalBuffers() {
 	DeleteGPUBuffer( dlight_tiles_buffer );
 	DeleteGPUBuffer( dynamic_count );
 
-	u32 rows = ( frame_static.viewport_height + TILE_SIZE - 1 ) / TILE_SIZE;
-	u32 cols = ( frame_static.viewport_width + TILE_SIZE - 1 ) / TILE_SIZE;
+	u32 rows = PixelsToTiles( frame_static.viewport_height );
+	u32 cols = PixelsToTiles( frame_static.viewport_width );
 
 	decal_tiles_buffer = NewGPUBuffer( rows * cols * sizeof( GPUDecalTile ), "Decal tile indices" );
 	dlight_tiles_buffer = NewGPUBuffer( rows * cols * sizeof( GPUDynamicLightTile ), "Dynamic light tile indices" );
@@ -234,8 +238,8 @@ void AllocateDecalBuffers() {
 void UploadDecalBuffers() {
 	TracyZoneScoped;
 
-	u32 rows = ( frame_static.viewport_height + TILE_SIZE - 1 ) / TILE_SIZE;
-	u32 cols = ( frame_static.viewport_width + TILE_SIZE - 1 ) / TILE_SIZE;
+	u32 rows = PixelsToTiles( frame_static.viewport_height );
+	u32 cols = PixelsToTiles( frame_static.viewport_width );
 
 	memcpy( GetStreamingBufferMapping( decals_buffer ), decals, num_decals * sizeof( Decal ) );
 	memcpy( GetStreamingBufferMapping( dlights_buffer ), dlights, num_dlights * sizeof( DynamicLight ) );
@@ -249,7 +253,7 @@ void UploadDecalBuffers() {
 	pipeline.set_buffer( "b_DecalTiles", decal_tiles_buffer );
 	pipeline.set_buffer( "b_DLightTiles", dlight_tiles_buffer );
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_TileCulling", UploadUniformBlock( u32( cols ), u32( rows ), u32( num_decals ), u32( num_dlights ) ) );
+	pipeline.set_uniform( "u_TileCulling", UploadUniformBlock( cols, rows, u32( num_decals ), u32( num_dlights ) ) );
 	DispatchCompute( pipeline, ( cols * rows ) / 64 + 1, 1, 1 );
 
 	num_decals = 0;

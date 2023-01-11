@@ -22,6 +22,10 @@ bool Sys_BeingDebugged() {
 	return IsDebuggerPresent() != 0;
 }
 
+bool IsRenderDocAttached() {
+	return GetModuleHandleA( "renderdoc.dll" ) != NULL;
+}
+
 bool Sys_OpenInWebBrowser( const char * url ) {
 	int ok = int( intptr_t( ShellExecuteA( NULL, "open", url, NULL, NULL, SW_SHOWDEFAULT ) ) );
 	return ok > 32;

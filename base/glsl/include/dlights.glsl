@@ -1,5 +1,5 @@
 struct DynamicLightTile {
-	uint indices[ 50 ]; // NOTE(msc): 50 = MAX_DLIGHTS_PER_TILE
+	uint indices[ FORWARD_PLUS_TILE_CAPACITY ];
 };
 
 layout( std430 ) readonly buffer b_DynamicLightTiles {

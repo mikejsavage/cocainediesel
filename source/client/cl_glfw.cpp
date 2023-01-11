@@ -1,6 +1,7 @@
 #include "client/client.h"
 #include "client/icon.h"
 #include "client/renderer/renderer.h"
+#include "qcommon/renderdoc.h"
 
 #include "glad/glad.h"
 
@@ -234,6 +235,11 @@ static void OnKeyPressed( GLFWwindow *, int glfw_key, int scancode, int action, 
 		if( down ) {
 			Con_ToggleConsole();
 		}
+		return;
+	}
+
+	// renderdoc uses F12 to trigger a capture
+	if( glfw_key == GLFW_KEY_F12 && IsRenderDocAttached() ) {
 		return;
 	}
 

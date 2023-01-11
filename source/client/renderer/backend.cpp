@@ -1485,26 +1485,26 @@ void DeleteFramebuffer( Framebuffer fb ) {
 	DeleteTexture( fb.depth_texture );
 }
 
-static GLuint CompileShader( GLenum type, const char * src ) {
-	constexpr int MAX_GLSL_UNIFORM_JOINTS = 100;
-	constexpr const char * VERTEX_SHADER_PRELUDE =
-		"#define VERTEX_SHADER 1\n"
-		"#define v2f out\n";
-	constexpr const char * FRAGMENT_SHADER_PRELUDE =
-		"#define FRAGMENT_SHADER 1\n"
-		"#define v2f in\n";
-
+static GLuint CompileShader( GLenum type, const char * body ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	DynamicString prelude( &temp, "#version 450 core\n" );
+	DynamicString src( &temp, "#version 450 core\n" );
 	if( type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER ) {
-		prelude.append( "{}", type == GL_VERTEX_SHADER ? VERTEX_SHADER_PRELUDE : FRAGMENT_SHADER_PRELUDE );
-		prelude.append( "#define MAX_JOINTS {}\n", MAX_GLSL_UNIFORM_JOINTS );
+		constexpr const char * vertex_shader_prelude =
+			"#define VERTEX_SHADER 1\n"
+			"#define v2f out\n";
+		constexpr const char * fragment_shader_prelude =
+			"#define FRAGMENT_SHADER 1\n"
+			"#define v2f in\n";
+
+		src += type == GL_VERTEX_SHADER ? vertex_shader_prelude : fragment_shader_prelude;
 	}
 
-	const char * full_src = temp( "{}{}", prelude, src );
+	src += body;
+
 	GLuint shader = glCreateShader( type );
-	glShaderSource( shader, 1, &full_src, NULL );
+	const char * nice_api = src.c_str();
+	glShaderSource( shader, 1, &nice_api, NULL );
 	glCompileShader( shader );
 
 	GLint status;

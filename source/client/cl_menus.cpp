@@ -1151,6 +1151,17 @@ static void GameMenu() {
 
 	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
 
+	/*
+	 * bad hack to fix being able to click outside of the ingame menus and
+	 * breaking the escape to close hotkey
+	 *
+	 * unconditionally setting focus breaks stuff like dropdown menus so do
+	 * this instead
+	 */
+	if( !ImGui::IsWindowFocused( ImGuiFocusedFlags_AnyWindow ) ) {
+		ImGui::SetNextWindowFocus();
+	}
+
 	if( gamemenu_state == GameMenuState_Menu ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, 0, Vec2( 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 500, 0 ) );

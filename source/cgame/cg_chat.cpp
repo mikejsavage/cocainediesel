@@ -118,8 +118,8 @@ void CG_DrawChat() {
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground;
 	ImGuiWindowFlags log_flags = ImGuiWindowFlags_AlwaysUseWindowPadding;
 	if( chat.mode == ChatMode_None ) {
-		flags |= ImGuiWindowFlags_NoDecoration;
-		log_flags |= ImGuiWindowFlags_NoScrollbar;
+		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
+		log_flags |= ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoInputs;
 	}
 	else {
 		flags |= ImGuiWindowFlags_Interactive;

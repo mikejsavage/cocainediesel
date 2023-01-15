@@ -1089,7 +1089,9 @@ static void Gadgets( Vec2 icon_size ) {
 	}
 }
 
-static bool LoadoutMenu( Vec2 displaySize ) {
+static bool LoadoutMenu() {
+	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+
 	ImGui::PushFont( cls.medium_italic_font );
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
 	ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
@@ -1196,7 +1198,7 @@ static void GameMenu() {
 		ImGui::Columns( 1 );
 	}
 	else if( gamemenu_state == GameMenuState_Loadout ) {
-		if( LoadoutMenu( displaySize ) ) {
+		if( LoadoutMenu() ) {
 			should_close = true;
 		}
 	}
@@ -1238,8 +1240,6 @@ static void GameMenu() {
 
 		Settings();
 	}
-	
-	ImGui::SetWindowFocus();
 
 	if( ImGui::Hotkey( K_ESCAPE ) || should_close ) {
 		uistate = UIState_Hidden;

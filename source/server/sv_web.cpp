@@ -377,9 +377,7 @@ static void WebServerFrame() {
 }
 
 static void WebServerThread( void * param ) {
-#if TRACY_ENABLE
 	tracy::SetThreadName( "Web server thread" );
-#endif
 
 	while( web_server_running ) {
 		WebServerFrame();

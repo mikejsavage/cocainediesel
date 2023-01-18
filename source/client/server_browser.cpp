@@ -46,9 +46,7 @@ Span< const ServerBrowserEntry > GetServerBrowserEntries() {
 }
 
 static void GetMasterServerAddress( void * data ) {
-#if TRACY_ENABLE
 	tracy::SetThreadName( "Master server resolver" );
-#endif
 
 	size_t idx = size_t( uintptr_t( data ) );
 

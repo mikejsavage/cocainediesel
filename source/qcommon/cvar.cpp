@@ -107,7 +107,7 @@ void Cvar_SetInteger( const char * name, int value ) {
 	Cvar_Set( name, buf );
 }
 
-Cvar * NewCvar( const char * name, const char * value, u32 flags ) {
+Cvar * NewCvar( const char * name, const char * value, CvarFlags flags ) {
 	if( HasFlag( flags, CvarFlag_UserInfo ) || HasFlag( flags, CvarFlag_ServerInfo ) ) {
 		assert( Cvar_InfoValidate( name, true ) );
 		assert( Cvar_InfoValidate( value, true ) );

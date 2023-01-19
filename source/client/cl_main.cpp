@@ -713,12 +713,12 @@ static void CL_InitLocal() {
 
 	cl_hotloadAssets = NewCvar( "cl_hotloadAssets", is_public_build ? "0" : "1", CvarFlag_Archive );
 
-	cl_shownet = NewCvar( "cl_shownet", "0", 0 );
-	cl_timeout = NewCvar( "cl_timeout", "120", 0 );
+	cl_shownet = NewCvar( "cl_shownet", "0" );
+	cl_timeout = NewCvar( "cl_timeout", "120" );
 
 	// wsw : debug netcode
 	cl_debug_serverCmd = NewCvar( "cl_debug_serverCmd", "0", CvarFlag_Cheat );
-	cl_debug_timeDelta = NewCvar( "cl_debug_timeDelta", "0", 0 /*CvarFlag_Cheat*/ );
+	cl_debug_timeDelta = NewCvar( "cl_debug_timeDelta", "0", CvarFlags( 0 ) /*CvarFlag_Cheat*/ );
 
 	cl_devtools = NewCvar( "cl_devtools", "0", CvarFlag_Archive );
 

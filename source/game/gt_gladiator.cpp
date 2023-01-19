@@ -12,8 +12,8 @@ struct TeamQueue {
 };
 
 static struct GladiatorState {
-	u64 round_state_start;
-	u64 round_state_end;
+	s64 round_state_start;
+	s64 round_state_end;
 	s32 countdown;
 
 	TeamQueue teams[ Team_Count ];
@@ -265,7 +265,7 @@ static void Gladiator_Think() {
 	}
 
 	if( gladiator_state.round_state_end != 0 ) {
-		if( gladiator_state.round_state_end < u64( level.time ) ) {
+		if( gladiator_state.round_state_end < level.time ) {
 			NewRoundState( RoundState( server_gs.gameState.round_state + 1 ) );
 			return;
 		}
@@ -288,8 +288,8 @@ static void Gladiator_Think() {
 	}
 
 	if( server_gs.gameState.round_state == RoundState_Round ) {
-		u64 round_end = gladiator_state.round_state_start + int( g_glad_bombtimer->number * 1000.0f );
-		u64 round_time = round_end - level.time;
+		s64 round_end = gladiator_state.round_state_start + int( g_glad_bombtimer->number * 1000.0f );
+		s64 round_time = round_end - level.time;
 
 		if( round_end >= level.time ) {
 			server_gs.gameState.clock_override = round_time;

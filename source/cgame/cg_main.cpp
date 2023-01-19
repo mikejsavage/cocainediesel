@@ -86,7 +86,7 @@ static void CG_InitGameShared( int max_clients ) {
 }
 
 static void CG_RegisterVariables() {
-	cg_showMiss = NewCvar( "cg_showMiss", "0", 0 );
+	cg_showMiss = NewCvar( "cg_showMiss", "0" );
 	cg_mask = NewCvar( "cg_mask", "", CvarFlag_Archive | CvarFlag_UserInfo );
 
 	cg_thirdPerson = NewCvar( "cg_thirdPerson", "0", CvarFlag_Developer );

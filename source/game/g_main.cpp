@@ -113,14 +113,14 @@ void G_Init( unsigned int framemsec ) {
 	game.frametime = game.snapFrameTime;
 	game.numBots = 0;
 
-	g_maxvelocity = NewCvar( "g_maxvelocity", "16000", 0 );
+	g_maxvelocity = NewCvar( "g_maxvelocity", "16000" );
 	if( g_maxvelocity->integer < 20 ) {
 		Cvar_SetInteger( "g_maxvelocity", 20 );
 	}
 
 	sv_cheats = NewCvar( "sv_cheats", is_public_build ? "0" : "1", CvarFlag_ServerReadOnly );
 
-	sv_password = NewCvar( "sv_password", "", 0 );
+	sv_password = NewCvar( "sv_password", "" );
 
 	g_projectile_prestep = NewCvar( "g_projectile_prestep", temp( "{}", PROJECTILE_PRESTEP ), CvarFlag_Developer );
 	g_numbots = NewCvar( "g_numbots", "0", CvarFlag_Archive );
@@ -133,16 +133,16 @@ void G_Init( unsigned int framemsec ) {
 	g_allow_spectator_voting = NewCvar( "g_allow_spectator_voting", "1", CvarFlag_Archive );
 
 	// flood control
-	g_floodprotection_messages = NewCvar( "g_floodprotection_messages", "4", 0 );
+	g_floodprotection_messages = NewCvar( "g_floodprotection_messages", "4" );
 	g_floodprotection_messages->modified = true;
-	g_floodprotection_team = NewCvar( "g_floodprotection_team", "0", 0 );
+	g_floodprotection_team = NewCvar( "g_floodprotection_team", "0" );
 	g_floodprotection_team->modified = true;
-	g_floodprotection_seconds = NewCvar( "g_floodprotection_seconds", "4", 0 );
+	g_floodprotection_seconds = NewCvar( "g_floodprotection_seconds", "4" );
 	g_floodprotection_seconds->modified = true;
-	g_floodprotection_penalty = NewCvar( "g_floodprotection_delay", "2", 0 );
+	g_floodprotection_penalty = NewCvar( "g_floodprotection_delay", "2" );
 	g_floodprotection_penalty->modified = true;
 
-	g_inactivity_maxtime = NewCvar( "g_inactivity_maxtime", "90.0", 0 );
+	g_inactivity_maxtime = NewCvar( "g_inactivity_maxtime", "90.0" );
 	g_inactivity_maxtime->modified = true;
 
 	// helper cvars to show current status in serverinfo reply

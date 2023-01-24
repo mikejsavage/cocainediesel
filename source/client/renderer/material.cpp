@@ -1047,7 +1047,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	if( material->alphagen.type == ColorGenType_Constant ) {
-		color.w = material->rgbgen.args[ 0 ];
+		color.w = material->alphagen.args[ 0 ];
 	}
 	else if( material->alphagen.type == ColorGenType_Wave || material->alphagen.type == ColorGenType_EntityWave ) {
 		float wave = EvaluateWaveFunc( material->rgbgen.wave );

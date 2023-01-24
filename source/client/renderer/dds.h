@@ -13,6 +13,7 @@ enum DDSTextureFormat : u32 {
 	DDSTextureFormat_BC5 = FourCC( "ATI2" ),
 };
 
+constexpr u32 DDSTextureFormatFlag_FourCC = 0x4;
 constexpr u32 DDSMagic = FourCC( "DDS " );
 
 struct DDSHeader {
@@ -21,7 +22,8 @@ struct DDSHeader {
 	u32 height, width;
 	u32 shit1[ 2 ];
 	u32 mipmap_count;
-	u32 shit2[ 13 ];
+	u32 shit2[ 12 ];
+	u32 format_flags;
 	DDSTextureFormat format;
 	u32 shit3[ 10 ];
 };

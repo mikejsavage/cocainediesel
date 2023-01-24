@@ -245,7 +245,7 @@ static void DeltaString( DeltaBuffer * buf, char ( &str )[ N ], const char ( &ba
 			str[ n ] = '\0';
 		}
 		else {
-			Q_strncpyz( str, baseline, N );
+			SafeStrCpy( str, baseline, N );
 		}
 	}
 }
@@ -485,6 +485,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.site_letter, baseline.site_letter );
 	Delta( buf, ent.positioned_sound, baseline.positioned_sound );
 	DeltaEnum( buf, ent.weapon, baseline.weapon, Weapon_Count );
+	DeltaEnum( buf, ent.gadget, baseline.gadget, Gadget_Count );
 	Delta( buf, ent.radius, baseline.radius );
 	DeltaEnum( buf, ent.team, baseline.team, Team_Count );
 	Delta( buf, ent.scale, baseline.scale );

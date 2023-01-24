@@ -59,13 +59,13 @@ configs[ "linux-tsan" ] = {
 	prebuilt_lib_dir = "linux-debug",
 }
 configs[ "linux-release" ] = {
-	zig = true,
 	cxx = "ggbuild/zig/zig c++",
 	ar = "ggbuild/zig/zig ar",
 
 	cxxflags = "-O2 -DNDEBUG",
 	ldflags = "",
 	output_dir = "release/",
+	can_static_link = true,
 }
 configs[ "linux-bench" ] = {
 	bin_suffix = "-bench",
@@ -128,7 +128,7 @@ local cxxflags = concat( "cxxflags" )
 local ldflags = rightmost( "ldflags" )
 
 local toolchain = rightmost( "toolchain" )
-local use_zig = rightmost( "zig" ) == true
+local can_static_link = rightmost( "can_static_link" ) == true
 
 local dir = "build/" .. OS_config
 local output = { }
@@ -160,14 +160,14 @@ local function flatten( t )
 	return res
 end
 
-local function join_srcs( names, suffix )
+local function join_srcs( names )
 	if not names then
 		return ""
 	end
 
 	local flat = flatten( names )
 	for i = 1, #flat do
-		flat[ i ] = dir .. "/" .. flat[ i ] .. suffix
+		flat[ i ] = dir .. "/" .. flat[ i ] .. obj_suffix
 	end
 	return table.concat( flat, " " )
 end
@@ -369,7 +369,7 @@ rule bin
 
 printf( [[
 rule bin
-    command = g++ -o $out $in -no-pie $ldflags $extra_ldflags && objcopy --only-keep-debug $out $out.debug && strip $out
+    command = g++ -o $out $in -no-pie -static-libstdc++ $ldflags $extra_ldflags && objcopy --only-keep-debug $out $out.debug && strip $out
     description = $out
 
 rule bin-static
@@ -402,7 +402,7 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 	end
 
 	for src_name, cfg in sort_by_key( objs ) do
-		printf( "build %s/%s%s: cpp %s | %s", dir, src_name, obj_suffix, src_name, use_zig and "ggbuild/zig/zig" or "" )
+		printf( "build %s/%s%s: cpp %s | %s", dir, src_name, obj_suffix, src_name, can_static_link and "ggbuild/zig/zig" or "" )
 		if cfg.cxxflags then
 			printf( "    cxxflags = %s", cfg.cxxflags )
 		end
@@ -414,7 +414,7 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 	printf()
 
 	for lib_name, srcs in sort_by_key( libs ) do
-		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join_srcs( srcs, obj_suffix ) )
+		printf( "build %s/%s%s%s: lib %s", dir, lib_prefix, lib_name, lib_suffix, join_srcs( srcs ) )
 	end
 
 	printf()
@@ -434,10 +434,10 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 		local full_name = output_dir .. bin_name .. bin_suffix
 		printf( "build %s: %s %s %s | %s",
 			full_name,
-			( use_zig and cfg.static_linux_release_build ) and "bin-static" or "bin",
-			join_srcs( srcs, obj_suffix ),
+			( can_static_link and not cfg.no_static_link ) and "bin-static" or "bin",
+			join_srcs( srcs ),
 			join_libs( cfg.libs ),
-			( use_zig and cfg.static_linux_release_build ) and "ggbuild/zig/zig" or ""
+			( can_static_link and not cfg.no_static_link ) and "ggbuild/zig/zig" or ""
 		)
 
 		local ldflags_key = toolchain .. "_ldflags"

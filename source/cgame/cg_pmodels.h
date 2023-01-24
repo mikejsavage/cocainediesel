@@ -94,16 +94,6 @@ enum {
 	PMODEL_TOTAL_ANIMATIONS,
 };
 
-enum {
-	WEAPANIM_NOANIM,
-	WEAPANIM_STANDBY,
-	WEAPANIM_ATTACK,
-	WEAPANIM_WEAPDOWN,
-	WEAPANIM_WEAPONUP,
-
-	VWEAP_MAXANIMS
-};
-
 struct WeaponModelMetadata {
 	const Model * model;
 
@@ -183,6 +173,7 @@ struct PlayerModelMetadata {
 	Tag tag_hat;
 	Tag tag_mask;
 	Tag tag_weapon;
+	Tag tag_gadget;
 
 	AnimationClip clips[ PMODEL_TOTAL_ANIMATIONS ];
 };
@@ -226,6 +217,7 @@ void CG_PModel_ClearEventAnimations( int entNum );
 void InitWeaponModels();
 const WeaponModelMetadata * GetWeaponModelMetadata( WeaponType weapon );
 const GadgetModelMetadata * GetGadgetModelMetadata( GadgetType gadget );
+const Model * GetEquippedModelMetadata( const SyncPlayerState * ps );
 
 //=================================================
 //				VIEW WEAPON

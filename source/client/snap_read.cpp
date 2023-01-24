@@ -335,7 +335,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t
 			gcmd = &newframe->gamecommands[newframe->numgamecommands - 1];
 			gcmd->all = true;
 
-			Q_strncpyz( newframe->gamecommandsData + newframe->gamecommandsDataHead, text,
+			SafeStrCpy( newframe->gamecommandsData + newframe->gamecommandsDataHead, text,
 						sizeof( newframe->gamecommandsData ) - newframe->gamecommandsDataHead );
 			gcmd->commandOffset = newframe->gamecommandsDataHead;
 			newframe->gamecommandsDataHead += strlen( text ) + 1;

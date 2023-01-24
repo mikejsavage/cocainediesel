@@ -729,7 +729,7 @@ static void PackDecalAtlas() {
 		texture_bc4_data[ texture_idx ] = Span< const BC4Block >( bc4.ptr, bc4.w * bc4.h );
 	}
 
-	// copy texture data into atlases, convert RGBA to BC4 as needed
+	// copy texture data into atlases
 	u32 num_blocks = 0;
 	for( u32 i = 0; i < num_mipmaps; i++ ) {
 		num_blocks += Square( DECAL_ATLAS_BLOCK_SIZE >> i );
@@ -1047,7 +1047,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	if( material->alphagen.type == ColorGenType_Constant ) {
-		color.w = material->rgbgen.args[ 0 ];
+		color.w = material->alphagen.args[ 0 ];
 	}
 	else if( material->alphagen.type == ColorGenType_Wave || material->alphagen.type == ColorGenType_EntityWave ) {
 		float wave = EvaluateWaveFunc( material->rgbgen.wave );

@@ -104,7 +104,7 @@ void CL_ServerDisconnect_f() {
 	char menuparms[MAX_STRING_CHARS];
 	char reason[MAX_STRING_CHARS];
 
-	Q_strncpyz( reason, Cmd_Argv( 1 ), sizeof( reason ) );
+	SafeStrCpy( reason, Cmd_Argv( 1 ), sizeof( reason ) );
 
 	CL_Disconnect_f();
 
@@ -442,7 +442,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 
 		rejectflag = atoi( MSG_ReadStringLine( msg ) );
 
-		Q_strncpyz( cls.rejectmessage, MSG_ReadStringLine( msg ), sizeof( cls.rejectmessage ) );
+		SafeStrCpy( cls.rejectmessage, MSG_ReadStringLine( msg ), sizeof( cls.rejectmessage ) );
 		if( strlen( cls.rejectmessage ) > sizeof( cls.rejectmessage ) - 2 ) {
 			cls.rejectmessage[strlen( cls.rejectmessage ) - 2] = '.';
 			cls.rejectmessage[strlen( cls.rejectmessage ) - 1] = '.';
@@ -713,12 +713,12 @@ static void CL_InitLocal() {
 
 	cl_hotloadAssets = NewCvar( "cl_hotloadAssets", is_public_build ? "0" : "1", CvarFlag_Archive );
 
-	cl_shownet = NewCvar( "cl_shownet", "0", 0 );
-	cl_timeout = NewCvar( "cl_timeout", "120", 0 );
+	cl_shownet = NewCvar( "cl_shownet", "0" );
+	cl_timeout = NewCvar( "cl_timeout", "120" );
 
 	// wsw : debug netcode
 	cl_debug_serverCmd = NewCvar( "cl_debug_serverCmd", "0", CvarFlag_Cheat );
-	cl_debug_timeDelta = NewCvar( "cl_debug_timeDelta", "0", 0 /*CvarFlag_Cheat*/ );
+	cl_debug_timeDelta = NewCvar( "cl_debug_timeDelta", "0", CvarFlags( 0 ) /*CvarFlag_Cheat*/ );
 
 	cl_devtools = NewCvar( "cl_devtools", "0", CvarFlag_Archive );
 

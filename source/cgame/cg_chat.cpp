@@ -62,7 +62,7 @@ void CG_ShutdownChat() {
 void CG_AddChat( const char * str ) {
 	size_t idx = ( chat.history_head + chat.history_len ) % ARRAY_COUNT( chat.history );
 	chat.history[ idx ].time = cls.monotonicTime;
-	Q_strncpyz( chat.history[ idx ].text, str, sizeof( chat.history[ idx ].text ) );
+	SafeStrCpy( chat.history[ idx ].text, str, sizeof( chat.history[ idx ].text ) );
 
 	if( chat.history_len < ARRAY_COUNT( chat.history ) ) {
 		chat.history_len++;
@@ -118,8 +118,8 @@ void CG_DrawChat() {
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground;
 	ImGuiWindowFlags log_flags = ImGuiWindowFlags_AlwaysUseWindowPadding;
 	if( chat.mode == ChatMode_None ) {
-		flags |= ImGuiWindowFlags_NoDecoration;
-		log_flags |= ImGuiWindowFlags_NoScrollbar;
+		flags |= ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs;
+		log_flags |= ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoInputs;
 	}
 	else {
 		flags |= ImGuiWindowFlags_Interactive;

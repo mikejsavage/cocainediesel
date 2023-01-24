@@ -111,12 +111,12 @@ static void SCR_DrawDebugGraph() {
 }
 
 void SCR_InitScreen() {
-	scr_netgraph = NewCvar( "netgraph", "0", 0 );
-	scr_timegraph = NewCvar( "timegraph", "0", 0 );
-	scr_debuggraph = NewCvar( "debuggraph", "0", 0 );
-	scr_graphheight = NewCvar( "graphheight", "32", 0 );
-	scr_graphscale = NewCvar( "graphscale", "1", 0 );
-	scr_graphshift = NewCvar( "graphshift", "0", 0 );
+	scr_netgraph = NewCvar( "netgraph", "0" );
+	scr_timegraph = NewCvar( "timegraph", "0" );
+	scr_debuggraph = NewCvar( "debuggraph", "0" );
+	scr_graphheight = NewCvar( "graphheight", "32" );
+	scr_graphscale = NewCvar( "graphscale", "1" );
+	scr_graphshift = NewCvar( "graphshift", "0" );
 }
 
 static void SCR_RenderView() {

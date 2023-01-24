@@ -115,6 +115,7 @@ int main( int argc, char ** argv ) {
 	dds_header.height = h;
 	dds_header.width = w;
 	dds_header.mipmap_count = num_levels;
+	dds_header.format_flags = DDSTextureFormatFlag_FourCC;
 	dds_header.format = DDSTextureFormat_BC4;
 
 	DynamicString dds_path( sys_allocator, "{}.dds", argv[ 1 ] );

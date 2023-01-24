@@ -81,3 +81,9 @@ const GadgetModelMetadata * GetGadgetModelMetadata( GadgetType gadget ) {
 	assert( gadget < Gadget_Count );
 	return &gadget_model_metadata[ gadget ];
 }
+
+const Model * GetEquippedModelMetadata( const SyncPlayerState * ps ) {
+	return ps->using_gadget ?
+		GetGadgetModelMetadata( ps->gadget )->model :
+		GetWeaponModelMetadata( ps->weapon )->model;
+}

@@ -93,6 +93,8 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 					tag = &meta->tag_mask;
 				else if( tag_name == "tag_weapon" )
 					tag = &meta->tag_weapon;
+				else if( tag_name == "tag_gadget" )
+					tag = &meta->tag_gadget;
 
 				float forward = ParseFloat( &cursor, 0.0f, Parse_StopOnNewLine );
 				float right = ParseFloat( &cursor, 0.0f, Parse_StopOnNewLine );
@@ -796,10 +798,17 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	// add weapon model
 	{
-		if( cent->current.weapon != Weapon_None ) {
-			const Model * weapon_model = GetWeaponModelMetadata( cent->current.weapon )->model;
-			if( weapon_model != NULL ) {
-				Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon ) * inverse_scale;
+		if( cent->current.weapon != Weapon_None || cent->current.gadget != Gadget_None ) {
+			const Model * model;
+			bool gadget = cent->current.gadget != Gadget_None;
+			if( gadget ) {
+				model = GetGadgetModelMetadata( cent->current.gadget )->model;
+			} else {
+				model = GetWeaponModelMetadata( cent->current.weapon )->model;
+			}
+
+			if( model != NULL ) {
+				Mat4 tag_transform = TransformTag( model, transform, pose, gadget ? meta->tag_gadget : meta->tag_weapon ) * inverse_scale;
 
 				DrawModelConfig config = { };
 				config.draw_model.enabled = draw_model;
@@ -810,11 +819,11 @@ void CG_DrawPlayer( centity_t * cent ) {
 					config.draw_silhouette.silhouette_color = color;
 				}
 
-				DrawModel( config, weapon_model, tag_transform, color );
+				DrawModel( config, model, tag_transform, color );
 
 				u8 muzzle;
-				if( FindNodeByName( weapon_model, Hash32( "muzzle" ), &muzzle ) ) {
-					pmodel->muzzle_transform = tag_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
+				if( FindNodeByName( model, Hash32( "muzzle" ), &muzzle ) ) {
+					pmodel->muzzle_transform = tag_transform * model->transform * model->nodes[ muzzle ].global_transform;
 				}
 				else {
 					pmodel->muzzle_transform = tag_transform;

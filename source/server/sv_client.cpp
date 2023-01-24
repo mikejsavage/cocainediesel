@@ -80,7 +80,7 @@ bool SV_ClientConnect( const NetAddress & address, client_t * client, char * use
 
 	// parse some info from the info strings
 	client->userinfoLatchTimeout = Now() + USERINFO_UPDATE_RATE_LIMIT;
-	Q_strncpyz( client->userinfo, userinfo, sizeof( client->userinfo ) );
+	SafeStrCpy( client->userinfo, userinfo, sizeof( client->userinfo ) );
 	SV_UserinfoChanged( client );
 
 	return true;
@@ -104,7 +104,7 @@ void SV_DropClient( client_t *drop, const char *format, ... ) {
 		va_end( argptr );
 		reason = string;
 	} else {
-		Q_strncpyz( string, "User disconnected", sizeof( string ) );
+		SafeStrCpy( string, "User disconnected", sizeof( string ) );
 		reason = NULL;
 	}
 
@@ -307,9 +307,9 @@ static void SV_UserinfoCommand_f( client_t *client, msg_t args ) {
 
 	Time time = Now();
 	if( client->userinfoLatchTimeout > time ) {
-		Q_strncpyz( client->userinfoLatched, info, sizeof( client->userinfo ) );
+		SafeStrCpy( client->userinfoLatched, info, sizeof( client->userinfo ) );
 	} else {
-		Q_strncpyz( client->userinfo, info, sizeof( client->userinfo ) );
+		SafeStrCpy( client->userinfo, info, sizeof( client->userinfo ) );
 
 		client->userinfoLatched[0] = '\0';
 		client->userinfoLatchTimeout = time + USERINFO_UPDATE_RATE_LIMIT;

@@ -220,7 +220,7 @@ static void SV_CheckLatchedUserinfoChanges() {
 		}
 
 		if( cl->userinfoLatched[0] && cl->userinfoLatchTimeout <= time ) {
-			Q_strncpyz( cl->userinfo, cl->userinfoLatched, sizeof( cl->userinfo ) );
+			SafeStrCpy( cl->userinfo, cl->userinfoLatched, sizeof( cl->userinfo ) );
 
 			cl->userinfoLatched[0] = '\0';
 
@@ -377,7 +377,7 @@ void SV_UserinfoChanged( client_t *client ) {
 		SV_DropClient( client, "%s", "Error: No name set" );
 		return;
 	}
-	Q_strncpyz( client->name, val, sizeof( client->name ) );
+	SafeStrCpy( client->name, val, sizeof( client->name ) );
 }
 
 void SV_Init() {
@@ -409,10 +409,10 @@ void SV_Init() {
 	sv_downloadurl = NewCvar( "sv_downloadurl", "", CvarFlag_Archive | CvarFlag_ServerReadOnly );
 
 	sv_hostname = NewCvar( "sv_hostname", APPLICATION " server", CvarFlag_ServerInfo | CvarFlag_Archive );
-	sv_timeout = NewCvar( "sv_timeout", "15", 0 );
-	sv_zombietime = NewCvar( "sv_zombietime", "2", 0 );
-	sv_showChallenge = NewCvar( "sv_showChallenge", "0", 0 );
-	sv_showInfoQueries = NewCvar( "sv_showInfoQueries", "0", 0 );
+	sv_timeout = NewCvar( "sv_timeout", "15" );
+	sv_zombietime = NewCvar( "sv_zombietime", "2" );
+	sv_showChallenge = NewCvar( "sv_showChallenge", "0" );
+	sv_showInfoQueries = NewCvar( "sv_showInfoQueries", "0" );
 
 	sv_public = NewCvar( "sv_public", is_public_build && is_dedicated_server ? "1" : "0", CvarFlag_ServerReadOnly );
 
@@ -434,7 +434,7 @@ void SV_Init() {
 	g_autorecord = NewCvar( "g_autorecord", is_dedicated_server ? "1" : "0", CvarFlag_Archive );
 	g_autorecord_maxdemos = NewCvar( "g_autorecord_maxdemos", "200", CvarFlag_Archive );
 
-	sv_debug_serverCmd = NewCvar( "sv_debug_serverCmd", "0", 0 );
+	sv_debug_serverCmd = NewCvar( "sv_debug_serverCmd", "0" );
 
 	// this is a message holder for shared use
 	tmpMessage = NewMSGWriter( tmpMessageData, sizeof( tmpMessageData ) );

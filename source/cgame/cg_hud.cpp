@@ -293,11 +293,11 @@ void CG_SC_Obituary() {
 	current->wallbang = wallbang;
 
 	if( victim != NULL ) {
-		Q_strncpyz( current->victim, victim, sizeof( current->victim ) );
+		SafeStrCpy( current->victim, victim, sizeof( current->victim ) );
 		current->victim_team = cg_entities[ victimNum ].current.team;
 	}
 	if( attacker != NULL ) {
-		Q_strncpyz( current->attacker, attacker, sizeof( current->attacker ) );
+		SafeStrCpy( current->attacker, attacker, sizeof( current->attacker ) );
 		current->attacker_team = cg_entities[ attackerNum ].current.team;
 	}
 
@@ -1722,8 +1722,15 @@ void CG_DrawHUD() {
 	lua_pushboolean( hud_L, cg.predictedPlayerState.pmove.pm_type == PM_SPECTATOR );
 	lua_setfield( hud_L, -2, "ghost" );
 
-	lua_pushnumber( hud_L, cg.predictedPlayerState.team );
-	lua_setfield( hud_L, -2, "team" );
+	if( cg.predictedPlayerState.team != Team_None ) {
+		lua_pushnumber( hud_L, cg.predictedPlayerState.team );
+		lua_setfield( hud_L, -2, "team" );
+	}
+
+	if( cg.predictedPlayerState.real_team != Team_None ) {
+		lua_pushnumber( hud_L, cg.predictedPlayerState.real_team );
+		lua_setfield( hud_L, -2, "real_team" );
+	}
 
 	lua_pushboolean( hud_L, cg.predictedPlayerState.carrying_bomb );
 	lua_setfield( hud_L, -2, "is_carrier" );

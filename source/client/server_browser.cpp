@@ -211,8 +211,8 @@ void ParseGameServerResponse( msg_t * msg, const NetAddress & address ) {
 	ServerBrowserEntry server = { };
 	server.address = address;
 	server.id = server_id;
-	Q_strncpyz( server.name, name, sizeof( server.name ) );
-	Q_strncpyz( server.map, map, sizeof( server.map ) );
+	SafeStrCpy( server.name, name, sizeof( server.name ) );
+	SafeStrCpy( server.map, map, sizeof( server.map ) );
 	server.ping = ToSeconds( Min2( cls.monotonicTime - timestamp, Milliseconds( 9999 ) ) ) * 1000.0f;
 	server.num_players = num_players;
 	server.max_players = max_players;

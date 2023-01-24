@@ -437,7 +437,7 @@ void InitRenderBackend() {
 			{ "GL_EXT_texture_sRGB_decode", GLAD_GL_EXT_texture_sRGB_decode },
 		};
 
-		String< 1024 > missing_extensions( "Your GPU doesn't have some required OpenGL extensions:" );
+		String< 1024 > missing_extensions( "Your GPU is insane and doesn't have some required OpenGL extensions:" );
 		bool any_missing = false;
 		for( auto ext : required_extensions ) {
 			if( ext.loaded == 0 ) {
@@ -453,7 +453,7 @@ void InitRenderBackend() {
 		GLint vert_buffers;
 		glGetIntegerv( GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &vert_buffers );
 		if( vert_buffers >= 0 && size_t( vert_buffers ) < ARRAY_COUNT( &Shader::buffers ) ) {
-			Fatal( "GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS too small" );
+			Fatal( "Your GPU is too old, GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS is too small" );
 		}
 	}
 
@@ -465,7 +465,7 @@ void InitRenderBackend() {
 
 			glEnable( GL_DEBUG_OUTPUT );
 			glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
-			glDebugMessageCallback( ( GLDEBUGPROC ) DebugOutputCallback, NULL );
+			glDebugMessageCallback( DebugOutputCallback, NULL );
 			glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE );
 		}
 	}
@@ -527,6 +527,12 @@ void ShutdownRenderBackend() {
 	}
 
 	RunDeferredDeletes();
+
+	for( GLsync fence : fences ) {
+		if( fence != 0 ) {
+			glDeleteSync( fence );
+		}
+	}
 
 	render_passes.shutdown();
 	draw_calls.shutdown();
@@ -806,7 +812,18 @@ static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexForma
 	glEnableVertexArrayAttrib( vao, index );
 	glVertexArrayVertexBuffer( vao, index, buffer, 0, stride );
 	if( integral && !normalized ) {
-		glVertexArrayAttribIFormat( vao, index, num_components, type, offset );
+		/*
+		 * wintel driver ignores the type and treats everything as u32
+		 * non-DSA call works fine so fall back to that here
+		 *
+		 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
+		 *
+		 * glVertexArrayAttribIFormat( vao, index, num_components, type, offset );
+		 */
+
+		glBindVertexArray( vao );
+		glVertexAttribIFormat( index, num_components, type, offset );
+		glBindVertexArray( 0 );
 	}
 	else {
 		glVertexArrayAttribFormat( vao, index, num_components, type, normalized, offset );
@@ -1468,40 +1485,26 @@ void DeleteFramebuffer( Framebuffer fb ) {
 	DeleteTexture( fb.depth_texture );
 }
 
-#define MAX_GLSL_UNIFORM_JOINTS 100
-
-static constexpr const char * VERTEX_SHADER_PRELUDE =
-	"#define VERTEX_SHADER 1\n"
-	"#define v2f out\n";
-
-static constexpr const char * FRAGMENT_SHADER_PRELUDE =
-	"#define FRAGMENT_SHADER 1\n"
-	"#define v2f in\n";
-
-static GLuint CompileShader( GLenum type, Span< Span< const char > > srcs ) {
+static GLuint CompileShader( GLenum type, const char * body ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	DynamicArray< const char * > src_ptrs( &temp );
-	DynamicArray< int > src_lens( &temp );
-
-	src_ptrs.add( "#version 430 core\n" );
-	src_lens.add( -1 );
-
+	DynamicString src( &temp, "#version 450 core\n" );
 	if( type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER ) {
-		src_ptrs.add( type == GL_VERTEX_SHADER ? VERTEX_SHADER_PRELUDE : FRAGMENT_SHADER_PRELUDE );
-		src_lens.add( -1 );
+		constexpr const char * vertex_shader_prelude =
+			"#define VERTEX_SHADER 1\n"
+			"#define v2f out\n";
+		constexpr const char * fragment_shader_prelude =
+			"#define FRAGMENT_SHADER 1\n"
+			"#define v2f in\n";
 
-		src_ptrs.add( "#define MAX_JOINTS " STRINGIFY( MAX_GLSL_UNIFORM_JOINTS ) "\n" );
-		src_lens.add( -1 );
+		src += type == GL_VERTEX_SHADER ? vertex_shader_prelude : fragment_shader_prelude;
 	}
 
-	for( Span< const char > fragment : srcs ) {
-		src_ptrs.add( fragment.ptr );
-		src_lens.add( checked_cast< int >( fragment.n ) );
-	}
+	src += body;
 
 	GLuint shader = glCreateShader( type );
-	glShaderSource( shader, src_ptrs.size(), src_ptrs.ptr(), src_lens.ptr() );
+	const char * nice_api = src.c_str();
+	glShaderSource( shader, 1, &nice_api, NULL );
 	glCompileShader( shader );
 
 	GLint status;
@@ -1596,20 +1599,25 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 	return true;
 }
 
-bool NewShader( Shader * shader, Span< Span< const char > > srcs ) {
+bool NewShader( Shader * shader, const char * src, const char * name ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	*shader = { };
 
-	GLuint vs = CompileShader( GL_VERTEX_SHADER, srcs );
+	GLuint vs = CompileShader( GL_VERTEX_SHADER, src );
 	if( vs == 0 )
 		return false;
+	DebugLabel( GL_SHADER, vs, temp( "{} [VS]", name ) );
 	defer { glDeleteShader( vs ); };
 
-	GLuint fs = CompileShader( GL_FRAGMENT_SHADER, srcs );
+	GLuint fs = CompileShader( GL_FRAGMENT_SHADER, src );
 	if( fs == 0 )
 		return false;
+	DebugLabel( GL_SHADER, fs, temp( "{} [FS]", name ) );
 	defer { glDeleteShader( fs ); };
 
 	shader->program = glCreateProgram();
+	DebugLabel( GL_PROGRAM, shader->program, name );
 	glAttachShader( shader->program, vs );
 	glAttachShader( shader->program, fs );
 
@@ -1633,15 +1641,19 @@ bool NewShader( Shader * shader, Span< Span< const char > > srcs ) {
 	return LinkShader( shader, shader->program );
 }
 
-bool NewComputeShader( Shader * shader, Span< Span< const char > > srcs ) {
+bool NewComputeShader( Shader * shader, const char * src, const char * name ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	*shader = { };
 
-	GLuint cs = CompileShader( GL_COMPUTE_SHADER, srcs );
+	GLuint cs = CompileShader( GL_COMPUTE_SHADER, src );
 	if( cs == 0 )
 		return false;
+	DebugLabel( GL_SHADER, cs, temp( "{} [CS]", name ) );
 	defer { glDeleteShader( cs ); };
 
 	shader->program = glCreateProgram();
+	DebugLabel( GL_PROGRAM, shader->program, name );
 	glAttachShader( shader->program, cs );
 
 	return LinkShader( shader, shader->program );
@@ -1684,7 +1696,9 @@ Mesh NewMesh( MeshConfig config ) {
 		SetupAttribute( vao, buffer, VertexAttribute_JointWeights, config.weights_format, config.stride, config.weights_offset );
 	}
 
-	glVertexArrayElementBuffer( vao, config.indices.buffer );
+	if( config.indices.buffer != 0 ) {
+		glVertexArrayElementBuffer( vao, config.indices.buffer );
+	}
 
 	Mesh mesh = { };
 	mesh.num_vertices = config.num_vertices;

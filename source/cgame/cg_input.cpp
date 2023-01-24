@@ -220,7 +220,7 @@ bool CG_GetBoundKeysString( const char *cmd, char *keys, size_t keysSize ) {
 	int numKeys = CG_GetBoundKeycodes( cmd, keyCodes );
 
 	if( numKeys == 0 ) {
-		Q_strncpyz( keys, "UNBOUND", keysSize );
+		SafeStrCpy( keys, "UNBOUND", keysSize );
 	}
 	else if( numKeys == 1 ) {
 		ggformat( keys, keysSize, "{}", Key_KeynumToString( keyCodes[ 0 ] ) );

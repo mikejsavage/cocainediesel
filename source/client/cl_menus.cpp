@@ -16,8 +16,6 @@
 #define GLFW_INCLUDE_NONE
 #include "glfw3/GLFW/glfw3.h"
 
-#include "glad/glad.h"
-
 enum UIState {
 	UIState_Hidden,
 	UIState_MainMenu,
@@ -159,7 +157,7 @@ static void CvarTextbox( const char * label, const char * cvar_name ) {
 	SettingLabel( label );
 
 	char buf[ maxlen + 1 ];
-	Q_strncpyz( buf, Cvar_String( cvar_name ), sizeof( buf ) );
+	SafeStrCpy( buf, Cvar_String( cvar_name ), sizeof( buf ) );
 
 	ImGui::PushID( cvar_name );
 	ImGui::InputText( "", buf, sizeof( buf ) );
@@ -389,6 +387,7 @@ static void SettingsControls() {
 
 		if( ImGui::BeginTabItem( "Mouse" ) ) {
 			CvarSliderFloat( "Sensitivity", "sensitivity", sensivity_range[ 0 ], sensivity_range[ 1 ] );
+			ImGui::Text( "Sensitivity is the same as CSGO/TF2/etc" );
 			CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f );
 			CvarCheckbox( "Invert Y axis", "m_invertY" );
 
@@ -1090,7 +1089,9 @@ static void Gadgets( Vec2 icon_size ) {
 	}
 }
 
-static bool LoadoutMenu( Vec2 displaySize ) {
+static bool LoadoutMenu() {
+	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+
 	ImGui::PushFont( cls.medium_italic_font );
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
 	ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
@@ -1150,6 +1151,17 @@ static void GameMenu() {
 
 	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
 
+	/*
+	 * bad hack to fix being able to click outside of the ingame menus and
+	 * breaking the escape to close hotkey
+	 *
+	 * unconditionally setting focus breaks stuff like dropdown menus so do
+	 * this instead
+	 */
+	if( !ImGui::IsWindowFocused( ImGuiFocusedFlags_AnyWindow ) ) {
+		ImGui::SetNextWindowFocus();
+	}
+
 	if( gamemenu_state == GameMenuState_Menu ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, 0, Vec2( 0.5f ) );
 		ImGui::SetNextWindowSize( ImVec2( 500, 0 ) );
@@ -1197,7 +1209,7 @@ static void GameMenu() {
 		ImGui::Columns( 1 );
 	}
 	else if( gamemenu_state == GameMenuState_Loadout ) {
-		if( LoadoutMenu( displaySize ) ) {
+		if( LoadoutMenu() ) {
 			should_close = true;
 		}
 	}

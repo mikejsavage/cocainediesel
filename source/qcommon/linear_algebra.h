@@ -4,30 +4,30 @@
  * Vec2
  */
 
-inline Vec2 operator+( Vec2 lhs, Vec2 rhs ) { return Vec2( lhs.x + rhs.x, lhs.y + rhs.y ); }
-inline Vec2 operator-( Vec2 lhs, Vec2 rhs ) { return Vec2( lhs.x - rhs.x, lhs.y - rhs.y ); }
-inline Vec2 operator*( Vec2 lhs, Vec2 rhs ) { return Vec2( lhs.x * rhs.x, lhs.y * rhs.y ); }
-inline Vec2 operator/( Vec2 lhs, Vec2 rhs ) { return Vec2( lhs.x / rhs.x, lhs.y / rhs.y ); }
+constexpr Vec2 operator+( Vec2 lhs, Vec2 rhs ) { return Vec2( lhs.x + rhs.x, lhs.y + rhs.y ); }
+constexpr Vec2 operator-( Vec2 lhs, Vec2 rhs ) { return Vec2( lhs.x - rhs.x, lhs.y - rhs.y ); }
+constexpr Vec2 operator*( Vec2 lhs, Vec2 rhs ) { return Vec2( lhs.x * rhs.x, lhs.y * rhs.y ); }
+constexpr Vec2 operator/( Vec2 lhs, Vec2 rhs ) { return Vec2( lhs.x / rhs.x, lhs.y / rhs.y ); }
 
-inline Vec2 operator+( Vec2 v, float x ) { return Vec2( v.x + x, v.y + x ); }
-inline Vec2 operator-( Vec2 v, float x ) { return Vec2( v.x - x, v.y - x ); }
-inline Vec2 operator-( float x, Vec2 v ) { return Vec2( x - v.x, x - v.y ); }
-inline Vec2 operator*( Vec2 v, float scale ) { return Vec2( v.x * scale, v.y * scale ); }
-inline Vec2 operator*( float scale, Vec2 v ) { return v * scale; }
-inline Vec2 operator/( Vec2 v, float inv_scale ) { return v * ( 1.0f / inv_scale ); }
-inline Vec2 operator/( float x, Vec2 v ) { return Vec2( x / v.x, x / v.y ); }
+constexpr Vec2 operator+( Vec2 v, float x ) { return Vec2( v.x + x, v.y + x ); }
+constexpr Vec2 operator-( Vec2 v, float x ) { return Vec2( v.x - x, v.y - x ); }
+constexpr Vec2 operator-( float x, Vec2 v ) { return Vec2( x - v.x, x - v.y ); }
+constexpr Vec2 operator*( Vec2 v, float scale ) { return Vec2( v.x * scale, v.y * scale ); }
+constexpr Vec2 operator*( float scale, Vec2 v ) { return v * scale; }
+constexpr Vec2 operator/( Vec2 v, float inv_scale ) { return v * ( 1.0f / inv_scale ); }
+constexpr Vec2 operator/( float x, Vec2 v ) { return Vec2( x / v.x, x / v.y ); }
 
-inline void operator+=( Vec2 & lhs, Vec2 rhs ) { lhs = lhs + rhs; }
-inline void operator*=( Vec2 & lhs, Vec2 rhs ) { lhs = lhs * rhs; }
+constexpr void operator+=( Vec2 & lhs, Vec2 rhs ) { lhs = lhs + rhs; }
+constexpr void operator*=( Vec2 & lhs, Vec2 rhs ) { lhs = lhs * rhs; }
 
-inline void operator*=( Vec2 & v, float scale ) { v = v * scale; }
+constexpr void operator*=( Vec2 & v, float scale ) { v = v * scale; }
 
-inline Vec2 operator-( Vec2 v ) { return Vec2( -v.x, -v.y ); }
+constexpr Vec2 operator-( Vec2 v ) { return Vec2( -v.x, -v.y ); }
 
-inline bool operator==( Vec2 lhs, Vec2 rhs ) { return lhs.x == rhs.x && lhs.y == rhs.y; }
-inline bool operator!=( Vec2 lhs, Vec2 rhs ) { return !( lhs == rhs ); }
+constexpr bool operator==( Vec2 lhs, Vec2 rhs ) { return lhs.x == rhs.x && lhs.y == rhs.y; }
+constexpr bool operator!=( Vec2 lhs, Vec2 rhs ) { return !( lhs == rhs ); }
 
-inline float Dot( Vec2 lhs, Vec2 rhs ) {
+constexpr float Dot( Vec2 lhs, Vec2 rhs ) {
 	return lhs.x * rhs.x + lhs.y * rhs.y;
 }
 
@@ -35,7 +35,7 @@ inline float Length( Vec2 v ) {
 	return sqrtf( v.x * v.x + v.y * v.y );
 }
 
-inline float LengthSquared( Vec2 v ) {
+constexpr float LengthSquared( Vec2 v ) {
 	return v.x * v.x + v.y * v.y;
 }
 
@@ -50,15 +50,15 @@ inline Vec2 SafeNormalize( Vec2 v ) {
 	return Normalize( v );
 }
 
-inline Vec2 Min2( Vec2 a, Vec2 b ) {
+constexpr Vec2 Min2( Vec2 a, Vec2 b ) {
 	return Vec2( Min2( a.x, b.x ), Min2( a.y, b.y ) );
 }
 
-inline Vec2 Max2( Vec2 a, Vec2 b ) {
+constexpr Vec2 Max2( Vec2 a, Vec2 b ) {
 	return Vec2( Max2( a.x, b.x ), Max2( a.y, b.y ) );
 }
 
-inline Vec2 Clamp( Vec2 lo, Vec2 v, Vec2 hi ) {
+constexpr Vec2 Clamp( Vec2 lo, Vec2 v, Vec2 hi ) {
 	return Vec2(
 		Clamp( lo.x, v.x, hi.x ),
 		Clamp( lo.y, v.y, hi.y )
@@ -69,36 +69,36 @@ inline Vec2 Clamp( Vec2 lo, Vec2 v, Vec2 hi ) {
  * Vec3
  */
 
-inline Vec3 operator+( Vec3 lhs, Vec3 rhs ) { return Vec3( lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z ); }
-inline Vec3 operator-( Vec3 lhs, Vec3 rhs ) { return Vec3( lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z ); }
-inline Vec3 operator*( Vec3 lhs, Vec3 rhs ) { return Vec3( lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z ); }
+constexpr Vec3 operator+( Vec3 lhs, Vec3 rhs ) { return Vec3( lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z ); }
+constexpr Vec3 operator-( Vec3 lhs, Vec3 rhs ) { return Vec3( lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z ); }
+constexpr Vec3 operator*( Vec3 lhs, Vec3 rhs ) { return Vec3( lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z ); }
 
-inline Vec3 operator+( Vec3 v, float x ) { return Vec3( v.x + x, v.y + x, v.z + x ); }
-inline Vec3 operator-( Vec3 v, float x ) { return Vec3( v.x - x, v.y - x, v.z - x ); }
-inline Vec3 operator*( Vec3 v, float scale ) { return Vec3( v.x * scale, v.y * scale, v.z * scale ); }
-inline Vec3 operator*( float scale, Vec3 v ) { return v * scale; }
-inline Vec3 operator/( Vec3 v, float inv_scale ) { return v * ( 1.0f / inv_scale ); }
-inline Vec3 operator/( float x, Vec3 v ) { return Vec3( x / v.x, x / v.y, x / v.z ); }
+constexpr Vec3 operator+( Vec3 v, float x ) { return Vec3( v.x + x, v.y + x, v.z + x ); }
+constexpr Vec3 operator-( Vec3 v, float x ) { return Vec3( v.x - x, v.y - x, v.z - x ); }
+constexpr Vec3 operator*( Vec3 v, float scale ) { return Vec3( v.x * scale, v.y * scale, v.z * scale ); }
+constexpr Vec3 operator*( float scale, Vec3 v ) { return v * scale; }
+constexpr Vec3 operator/( Vec3 v, float inv_scale ) { return v * ( 1.0f / inv_scale ); }
+constexpr Vec3 operator/( float x, Vec3 v ) { return Vec3( x / v.x, x / v.y, x / v.z ); }
 
-inline void operator+=( Vec3 & lhs, Vec3 rhs ) { lhs = lhs + rhs; }
-inline void operator-=( Vec3 & lhs, Vec3 rhs ) { lhs = lhs - rhs; }
-inline void operator*=( Vec3 & lhs, Vec3 rhs ) { lhs = lhs * rhs; }
+constexpr void operator+=( Vec3 & lhs, Vec3 rhs ) { lhs = lhs + rhs; }
+constexpr void operator-=( Vec3 & lhs, Vec3 rhs ) { lhs = lhs - rhs; }
+constexpr void operator*=( Vec3 & lhs, Vec3 rhs ) { lhs = lhs * rhs; }
 
-inline void operator+=( Vec3 & v, float x ) { v = v + x; }
-inline void operator-=( Vec3 & v, float x ) { v = v - x; }
-inline void operator*=( Vec3 & v, float scale ) { v = v * scale; }
-inline void operator/=( Vec3 & v, float inv_scale ) { v = v / inv_scale; }
+constexpr void operator+=( Vec3 & v, float x ) { v = v + x; }
+constexpr void operator-=( Vec3 & v, float x ) { v = v - x; }
+constexpr void operator*=( Vec3 & v, float scale ) { v = v * scale; }
+constexpr void operator/=( Vec3 & v, float inv_scale ) { v = v / inv_scale; }
 
-inline Vec3 operator-( Vec3 v ) { return Vec3( -v.x, -v.y, -v.z ); }
+constexpr Vec3 operator-( Vec3 v ) { return Vec3( -v.x, -v.y, -v.z ); }
 
-inline bool operator==( Vec3 lhs, Vec3 rhs ) { return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z; }
-inline bool operator!=( Vec3 lhs, Vec3 rhs ) { return !( lhs == rhs ); }
+constexpr bool operator==( Vec3 lhs, Vec3 rhs ) { return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z; }
+constexpr bool operator!=( Vec3 lhs, Vec3 rhs ) { return !( lhs == rhs ); }
 
-inline float Dot( Vec3 lhs, Vec3 rhs ) {
+constexpr float Dot( Vec3 lhs, Vec3 rhs ) {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
 }
 
-inline Vec3 Cross( Vec3 lhs, Vec3 rhs ) {
+constexpr Vec3 Cross( Vec3 lhs, Vec3 rhs ) {
 	return Vec3(
 		lhs.y * rhs.z - rhs.y * lhs.z,
 		rhs.x * lhs.z - lhs.x * rhs.z,
@@ -110,7 +110,7 @@ inline float Length( Vec3 v ) {
 	return sqrtf( v.x * v.x + v.y * v.y + v.z * v.z );
 }
 
-inline float LengthSquared( Vec3 v ) {
+constexpr float LengthSquared( Vec3 v ) {
 	return v.x * v.x + v.y * v.y + v.z * v.z;
 }
 
@@ -133,7 +133,7 @@ inline Vec3 Floor( Vec3 v ) {
 	);
 }
 
-inline Vec3 Clamp( Vec3 lo, Vec3 v, Vec3 hi ) {
+constexpr Vec3 Clamp( Vec3 lo, Vec3 v, Vec3 hi ) {
 	return Vec3(
 		Clamp( lo.x, v.x, hi.x ),
 		Clamp( lo.y, v.y, hi.y ),
@@ -145,7 +145,7 @@ inline Vec3 Clamp( Vec3 lo, Vec3 v, Vec3 hi ) {
  * Mat3
  */
 
-inline Mat3 operator*( const Mat3 & lhs, const Mat3 & rhs ) {
+constexpr Mat3 operator*( const Mat3 & lhs, const Mat3 & rhs ) {
 	return Mat3(
 		Dot( lhs.row0(), rhs.col0 ),
 		Dot( lhs.row0(), rhs.col1 ),
@@ -161,7 +161,7 @@ inline Mat3 operator*( const Mat3 & lhs, const Mat3 & rhs ) {
 	);
 }
 
-inline Vec3 operator*( const Mat3 & m, Vec3 v ) {
+constexpr Vec3 operator*( const Mat3 & m, Vec3 v ) {
 	return Vec3(
 		Dot( m.row0(), v ),
 		Dot( m.row1(), v ),
@@ -169,7 +169,7 @@ inline Vec3 operator*( const Mat3 & m, Vec3 v ) {
 	);
 }
 
-inline Mat3 operator-( const Mat3 & m ) {
+constexpr Mat3 operator-( const Mat3 & m ) {
 	return Mat3( -m.col0, -m.col1, -m.col2 );
 }
 
@@ -177,25 +177,25 @@ inline Mat3 operator-( const Mat3 & m ) {
  * Vec4
  */
 
-inline Vec4 operator+( Vec4 lhs, Vec4 rhs ) { return Vec4( lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w + rhs.w ); }
-inline Vec4 operator-( Vec4 lhs, Vec4 rhs ) { return Vec4( lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w ); }
-inline Vec4 operator*( Vec4 lhs, Vec4 rhs ) { return Vec4( lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z, lhs.w * rhs.w ); }
+constexpr Vec4 operator+( Vec4 lhs, Vec4 rhs ) { return Vec4( lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z, lhs.w + rhs.w ); }
+constexpr Vec4 operator-( Vec4 lhs, Vec4 rhs ) { return Vec4( lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z, lhs.w - rhs.w ); }
+constexpr Vec4 operator*( Vec4 lhs, Vec4 rhs ) { return Vec4( lhs.x * rhs.x, lhs.y * rhs.y, lhs.z * rhs.z, lhs.w * rhs.w ); }
 
-inline Vec4 operator*( Vec4 v, float scale ) { return Vec4( v.x * scale, v.y * scale, v.z * scale, v.w * scale ); }
-inline Vec4 operator*( float scale, Vec4 v ) { return v * scale; }
-inline Vec4 operator/( Vec4 v, float inv_scale ) { return v * ( 1.0f / inv_scale ); }
+constexpr Vec4 operator*( Vec4 v, float scale ) { return Vec4( v.x * scale, v.y * scale, v.z * scale, v.w * scale ); }
+constexpr Vec4 operator*( float scale, Vec4 v ) { return v * scale; }
+constexpr Vec4 operator/( Vec4 v, float inv_scale ) { return v * ( 1.0f / inv_scale ); }
 
-inline void operator*=( Vec4 & lhs, Vec4 rhs ) { lhs = lhs * rhs; }
+constexpr void operator*=( Vec4 & lhs, Vec4 rhs ) { lhs = lhs * rhs; }
 
-inline void operator*=( Vec4 & v, float scale ) { v = v / scale; }
-inline void operator/=( Vec4 & v, float inv_scale ) { v = v / inv_scale; }
+constexpr void operator*=( Vec4 & v, float scale ) { v = v / scale; }
+constexpr void operator/=( Vec4 & v, float inv_scale ) { v = v / inv_scale; }
 
-inline Vec4 operator-( Vec4 v ) { return Vec4( -v.x, -v.y, -v.z, -v.w ); }
+constexpr Vec4 operator-( Vec4 v ) { return Vec4( -v.x, -v.y, -v.z, -v.w ); }
 
-inline bool operator==( Vec4 lhs, Vec4 rhs ) { return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z && lhs.w == rhs.w; }
-inline bool operator!=( Vec4 lhs, Vec4 rhs ) { return !( lhs == rhs ); }
+constexpr bool operator==( Vec4 lhs, Vec4 rhs ) { return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z && lhs.w == rhs.w; }
+constexpr bool operator!=( Vec4 lhs, Vec4 rhs ) { return !( lhs == rhs ); }
 
-inline float Dot( Vec4 lhs, Vec4 rhs ) {
+constexpr float Dot( Vec4 lhs, Vec4 rhs ) {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
 }
 
@@ -208,7 +208,7 @@ inline Vec4 Normalize( Vec4 v ) {
 	return v / Length( v );
 }
 
-inline Vec4 Clamp( Vec4 lo, Vec4 v, Vec4 hi ) {
+constexpr Vec4 Clamp( Vec4 lo, Vec4 v, Vec4 hi ) {
 	return Vec4(
 		Clamp( lo.x, v.x, hi.x ),
 		Clamp( lo.y, v.y, hi.y ),
@@ -221,7 +221,7 @@ inline Vec4 Clamp( Vec4 lo, Vec4 v, Vec4 hi ) {
  * Mat4
  */
 
-inline Mat4 Mat4Translation( float x, float y, float z ) {
+constexpr Mat4 Mat4Translation( float x, float y, float z ) {
 	return Mat4(
 		1, 0, 0, x,
 		0, 1, 0, y,
@@ -230,11 +230,11 @@ inline Mat4 Mat4Translation( float x, float y, float z ) {
 	);
 }
 
-inline Mat4 Mat4Translation( Vec3 v ) {
+constexpr Mat4 Mat4Translation( Vec3 v ) {
 	return Mat4Translation( v.x, v.y, v.z );
 }
 
-inline Mat4 Mat4Scale( float x, float y, float z ) {
+constexpr Mat4 Mat4Scale( float x, float y, float z ) {
 	return Mat4(
 		x, 0, 0, 0,
 		0, y, 0, 0,
@@ -243,15 +243,15 @@ inline Mat4 Mat4Scale( float x, float y, float z ) {
 	);
 }
 
-inline Mat4 Mat4Scale( float s ) {
+constexpr Mat4 Mat4Scale( float s ) {
 	return Mat4Scale( s, s, s );
 }
 
-inline Mat4 Mat4Scale( Vec3 v ) {
+constexpr Mat4 Mat4Scale( Vec3 v ) {
 	return Mat4Scale( v.x, v.y, v.z );
 }
 
-inline Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
+constexpr Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	return Mat4(
 		Dot( lhs.row0(), rhs.col0 ),
 		Dot( lhs.row0(), rhs.col1 ),
@@ -275,11 +275,11 @@ inline Mat4 operator*( const Mat4 & lhs, const Mat4 & rhs ) {
 	);
 }
 
-inline void operator*=( Mat4 & lhs, const Mat4 & rhs ) {
+constexpr void operator*=( Mat4 & lhs, const Mat4 & rhs ) {
 	lhs = lhs * rhs;
 }
 
-inline Vec4 operator*( const Mat4 & m, const Vec4 & v ) {
+constexpr Vec4 operator*( const Mat4 & m, const Vec4 & v ) {
 	return Vec4(
 		Dot( m.row0(), v ),
 		Dot( m.row1(), v ),
@@ -288,7 +288,7 @@ inline Vec4 operator*( const Mat4 & m, const Vec4 & v ) {
 	);
 }
 
-inline Mat4 operator-( const Mat4 & m ) {
+constexpr Mat4 operator-( const Mat4 & m ) {
 	return Mat4( -m.col0, -m.col1, -m.col2, -m.col3 );
 }
 
@@ -296,7 +296,7 @@ inline Mat4 operator-( const Mat4 & m ) {
  * Quaternion
  */
 
-inline Quaternion operator+( Quaternion lhs, Quaternion rhs ) {
+constexpr Quaternion operator+( Quaternion lhs, Quaternion rhs ) {
 	return Quaternion(
 		lhs.x + rhs.x,
 		lhs.y + rhs.y,
@@ -305,7 +305,7 @@ inline Quaternion operator+( Quaternion lhs, Quaternion rhs ) {
 	);
 }
 
-inline Quaternion operator*( Quaternion lhs, Quaternion rhs ) {
+constexpr Quaternion operator*( Quaternion lhs, Quaternion rhs ) {
 	return Quaternion(
 		lhs.w * rhs.x + lhs.x * rhs.w + lhs.y * rhs.z - lhs.z * rhs.y,
 		lhs.w * rhs.y + lhs.y * rhs.w + lhs.z * rhs.x - lhs.x * rhs.z,
@@ -314,11 +314,11 @@ inline Quaternion operator*( Quaternion lhs, Quaternion rhs ) {
 	);
 }
 
-inline void operator*=( Quaternion & lhs, Quaternion rhs ) {
+constexpr void operator*=( Quaternion & lhs, Quaternion rhs ) {
 	lhs = lhs * rhs;
 }
 
-inline Quaternion operator*( Quaternion q, float scale ) {
+constexpr Quaternion operator*( Quaternion q, float scale ) {
 	return Quaternion(
 		q.x * scale,
 		q.y * scale,
@@ -327,16 +327,16 @@ inline Quaternion operator*( Quaternion q, float scale ) {
 	);
 }
 
-inline Quaternion operator*( float scale, Quaternion q ) {
+constexpr Quaternion operator*( float scale, Quaternion q ) {
 	return q * scale;
 }
 
-inline Quaternion operator/( Quaternion q, float scale ) {
+constexpr Quaternion operator/( Quaternion q, float scale ) {
 	float inv_scale = 1.0f / scale;
 	return q * inv_scale;
 }
 
-inline float Dot( Quaternion lhs, Quaternion rhs ) {
+constexpr float Dot( Quaternion lhs, Quaternion rhs ) {
 	return lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z + lhs.w * rhs.w;
 }
 
@@ -358,7 +358,7 @@ inline Quaternion NLerp( Quaternion from, float t, Quaternion to ) {
  * MinMax3
  */
 
-inline MinMax3 operator*( MinMax3 bounds, float scale ) {
+constexpr MinMax3 operator*( MinMax3 bounds, float scale ) {
 	bounds.mins *= scale;
 	bounds.maxs *= scale;
 	return bounds;

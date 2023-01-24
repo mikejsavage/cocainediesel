@@ -1,6 +1,7 @@
 #include "client/client.h"
 #include "client/icon.h"
 #include "client/renderer/renderer.h"
+#include "qcommon/renderdoc.h"
 
 #include "glad/glad.h"
 
@@ -17,6 +18,7 @@ const bool is_dedicated_server = false;
 GLFWwindow * window = NULL;
 
 static bool running_in_debugger;
+static bool running_in_renderdoc;
 static bool route_inputs_to_imgui;
 
 static int framebuffer_width, framebuffer_height;
@@ -237,6 +239,11 @@ static void OnKeyPressed( GLFWwindow *, int glfw_key, int scancode, int action, 
 		return;
 	}
 
+	// renderdoc uses F12 to trigger a capture
+	if( glfw_key == GLFW_KEY_F12 && running_in_renderdoc ) {
+		return;
+	}
+
 	int key = TranslateGLFWKey( glfw_key );
 	if( key == 0 )
 		return;
@@ -265,7 +272,7 @@ static void OnGlfwError( int code, const char * message ) {
 		return;
 
 	if( code == GLFW_VERSION_UNAVAILABLE ) {
-		Fatal( "Your PC is too old. You need a GPU that can support OpenGL 4.5" );
+		Fatal( "Your GPU is too old, you need a GPU that supports OpenGL 4.5" );
 	}
 
 	Fatal( "GLFW error %d: %s", code, message );
@@ -534,6 +541,7 @@ void SwapBuffers() {
 
 int main( int argc, char ** argv ) {
 	running_in_debugger = !is_public_build && Sys_BeingDebugged();
+	running_in_renderdoc = IsRenderDocAttached();
 
 	{
 		TracyZoneScopedN( "Init GLFW" );

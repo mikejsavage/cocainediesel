@@ -190,7 +190,7 @@ static void CG_InterpolatePlayerState( SyncPlayerState *playerState ) {
 	}
 }
 
-static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
+static void CG_ThirdPersonOffsetView( cg_viewdef_t *view, bool hold_angle ) {
 	float dist, f, r;
 	trace_t trace;
 	Vec3 mins( -4.0f );
@@ -198,7 +198,8 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 
 	// calc exact destination
 	Vec3 chase_dest = view->origin;
-	r = Radians( cg_thirdPersonAngle->number );
+	Vec3 angles = hold_angle ? -view->angles : Vec3( 0.0f );
+	r = Radians( angles.y );
 	f = -cosf( r );
 	r = -sinf( r );
 	chase_dest += FromQFAxis( view->axis, AXIS_FORWARD ) * ( cg_thirdPersonRange->number * f );
@@ -216,7 +217,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 		dist = 1;
 	}
 	view->angles.x = Degrees( -atan2f( stop.z, dist ) );
-	view->angles.y -= cg_thirdPersonAngle->number;
+	view->angles.y -= angles.y;
 	Matrix3_FromAngles( view->angles, view->axis );
 
 	// move towards destination
@@ -254,16 +255,13 @@ float CG_ViewSmoothFallKick() {
 	return 0.0f;
 }
 
-static void CG_UpdateChaseCam() {
-	UserCommand cmd;
-	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
-
+static void CG_UpdateChaseCam( UserCommand * cmd ) {
 	if( chaseCam.key_pressed ) {
-		chaseCam.key_pressed = cmd.buttons != 0 || cmd.sidemove != 0 || cmd.forwardmove != 0;
+		chaseCam.key_pressed = cmd->buttons != 0 || cmd->sidemove != 0 || cmd->forwardmove != 0;
 		return;
 	}
 
-	if( cmd.buttons & Button_Attack1 ) {
+	if( cmd->buttons & Button_Attack1 ) {
 		if( cgs.demoPlaying || ISREALSPECTATOR() ) {
 			if( cgs.demoPlaying ) {
 				Cbuf_ExecuteLine( "democamswitch" );
@@ -278,10 +276,10 @@ static void CG_UpdateChaseCam() {
 	int chaseStep = 0;
 
 	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
-		if( cmd.sidemove > 0 || ( cmd.buttons & Button_Attack2 ) ) {
+		if( cmd->sidemove > 0 || ( cmd->buttons & Button_Attack2 ) ) {
 			chaseStep = 1;
 		}
-		else if( cmd.sidemove < 0 || ( cmd.buttons & Button_Attack1 ) ) {
+		else if( cmd->sidemove < 0 || ( cmd->buttons & Button_Attack1 ) ) {
 			chaseStep = -1;
 		}
 	}
@@ -316,12 +314,14 @@ static void ScreenShake( cg_viewdef_t * view ) {
 	if( dt >= 3000 )
 		return;
 
-	float shake_amount = Unlerp01( s64( 0 ), dt, s64( 1000 ) );
+	float shake_amount = Unlerp01( s64( 3000 ), dt, s64( 0 ) ) * 4.0f;
 
-	view->angles.z = shake_amount * 20.0f * Sin( cls.monotonicTime, Milliseconds( 250 ) );
+	view->origin.x += shake_amount * RandomFloat11( &cls.rng );
+	view->origin.y += shake_amount * RandomFloat11( &cls.rng );
+	view->origin.z += shake_amount * RandomFloat11( &cls.rng );
 }
 
-static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
+static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
 	memset( view, 0, sizeof( cg_viewdef_t ) );
 
 	//
@@ -372,15 +372,13 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 			CG_PredictMovement();
 
 			viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
-
 			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
+			
 			view->angles = cg.predictedPlayerState.viewangles;
 
 			CG_Recoil( cg.predictedPlayerState.weapon );
 
 			CG_ViewSmoothPredictedSteps( &view->origin ); // smooth out stair climbing
-
-			ScreenShake( view );
 		} else {
 			cg.predictingTimeStamp = cl.serverTime;
 			cg.predictFrom = 0;
@@ -403,6 +401,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		view->fov_y = WidescreenFov( CG_DemoCam_GetOrientation( &view->origin, &view->angles, &view->velocity ) );
 	}
 
+	ScreenShake( view );
+
 	if( cg.predictedPlayerState.health <= 0 && cg.predictedPlayerState.team != Team_None ) {
 		AddDamageEffect();
 	}
@@ -420,7 +420,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	view->fracDistFOV = tanf( Radians( view->fov_x ) * 0.5f );
 
 	if( view->thirdperson ) {
-		CG_ThirdPersonOffsetView( view );
+		CG_ThirdPersonOffsetView( view, view->type == VIEWDEF_PLAYERVIEW && cg_thirdPerson->integer == 2 );
 	}
 
 	if( !view->playerPrediction ) {
@@ -547,6 +547,9 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		}
 	}
 
+	UserCommand cmd;
+	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
+
 	if( cg_showClamp->integer ) {
 		if( cg.lerpfrac > 1.0f ) {
 			Com_Printf( "high clamp %f\n", cg.lerpfrac );
@@ -584,12 +587,12 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	MaybeResetShadertoyTime( false );
 
-	CG_UpdateChaseCam();
+	CG_UpdateChaseCam( &cmd );
 
 	if( CG_DemoCam_Update() ) {
-		CG_SetupViewDef( &cg.view, CG_DemoCam_GetViewType() );
+		CG_SetupViewDef( &cg.view, CG_DemoCam_GetViewType(), &cmd );
 	} else {
-		CG_SetupViewDef( &cg.view, VIEWDEF_PLAYERVIEW );
+		CG_SetupViewDef( &cg.view, VIEWDEF_PLAYERVIEW, &cmd );
 	}
 
 	RendererSetView( cg.view.origin, EulerDegrees3( cg.view.angles ), cg.view.fov_y );

@@ -2,7 +2,7 @@
 
 #include "qcommon/types.h"
 
-enum CvarFlags {
+enum CvarFlags : u32 {
 	CvarFlag_Archive        = 1 << 0,
 	CvarFlag_UserInfo       = 1 << 1,
 	CvarFlag_ServerInfo     = 1 << 2,
@@ -10,8 +10,11 @@ enum CvarFlags {
 	CvarFlag_ReadOnly       = 1 << 4,
 	CvarFlag_ServerReadOnly = 1 << 5,
 	CvarFlag_Developer      = 1 << 6,
-	CvarFlag_FromConfig     = 1 << 7,
 };
+
+constexpr CvarFlags operator|( CvarFlags a, CvarFlags b ) {
+	return CvarFlags( u32( a ) | u32( b ) );
+}
 
 struct Cvar {
 	char * name;
@@ -19,6 +22,7 @@ struct Cvar {
 	char * default_value;
 
 	CvarFlags flags;
+	bool from_config;
 	float number;
 	int integer;
 	bool modified;
@@ -28,7 +32,7 @@ struct Cvar {
 // that the client knows to send it to the server
 extern bool userinfo_modified;
 
-Cvar * NewCvar( const char * name, const char * value, u32 flags );
+Cvar * NewCvar( const char * name, const char * value, CvarFlags flags = CvarFlags( 0 ) );
 
 bool IsCvar( const char * name );
 const char * Cvar_String( const char * name );

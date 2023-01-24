@@ -1,6 +1,7 @@
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 
+#include <dlfcn.h>
 #include <err.h>
 #include <errno.h>
 #include <stdio.h>
@@ -54,4 +55,8 @@ bool Sys_BeingDebugged() {
 	}
 
 	return WEXITSTATUS( status ) == 1;
+}
+
+bool IsRenderDocAttached() {
+	return dlopen( "librenderdoc.so", RTLD_NOW | RTLD_NOLOAD ) != NULL;
 }

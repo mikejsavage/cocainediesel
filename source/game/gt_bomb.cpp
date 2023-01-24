@@ -53,9 +53,9 @@ static constexpr StringHash snd_announcements_def[ BombAnnouncement_Count ] = {
 
 static Cvar * g_bomb_roundtime;
 static Cvar * g_bomb_bombtimer;
-static Cvar * g_bomb_armtime;
-static Cvar * g_bomb_defusetime;
 
+static const float bomb_armtime = 1000.0f; //ms
+static const float bomb_defusetime = 4000.0f; //ms
 static const u32 max_sites = 26;
 static const int countdown_max = 6;
 
@@ -519,7 +519,7 @@ static void BombThink() {
 				break;
 			}
 
-			float frac = float( level.time - bomb_state.bomb.action_time ) / ( g_bomb_armtime->number * 1000.0f );
+			float frac = float( level.time - bomb_state.bomb.action_time ) / bomb_armtime;
 			if( frac >= 1.0f ) {
 				SetTeamProgress( AttackingTeam(), 0, BombProgress_Nothing );
 				BombPlanted();
@@ -553,7 +553,7 @@ static void BombThink() {
 			}
 			else {
 				bomb_state.defuse_progress += game.frametime;
-				float frac = bomb_state.defuse_progress / ( g_bomb_defusetime->number * 1000.0f );
+				float frac = bomb_state.defuse_progress / bomb_defusetime;
 				if( frac >= 1.0f ) {
 					BombDefused();
 					SetTeamProgress( DefendingTeam(), 100, BombProgress_Defusing );
@@ -569,7 +569,7 @@ static void BombThink() {
 
 		case BombState_Exploding: {
 			// BombSiteStepExplosion( bomb_state.site );
-			if( level.time - server_gs.gameState.exploded_at >= 1000 && !bomb_state.bomb.killed_everyone ) {
+			if( !bomb_state.bomb.killed_everyone ) {
 				bomb_state.bomb.model->projectileInfo.maxDamage = 1.0f;
 				bomb_state.bomb.model->projectileInfo.minDamage = 1.0f;
 				bomb_state.bomb.model->projectileInfo.maxKnockback = 400.0f;
@@ -1111,8 +1111,6 @@ static void Bomb_Init() {
 
 	g_bomb_roundtime = NewCvar( "g_bomb_roundtime", "61", CvarFlag_Archive );
 	g_bomb_bombtimer = NewCvar( "g_bomb_bombtimer", "30", CvarFlag_Archive );
-	g_bomb_armtime = NewCvar( "g_bomb_armtime", "1", CvarFlag_Archive );
-	g_bomb_defusetime = NewCvar( "g_bomb_defusetime", "4", CvarFlag_Archive );
 }
 
 static bool Bomb_SpawnEntity( StringHash classname, edict_t * ent ) {

@@ -135,9 +135,19 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	return body;
 }
 
+static void ReleaseWeapons( edict_t * ent ) {
+	SyncPlayerState * ps = &ent->r.client->ps;
+
+	if( ps->using_gadget && GetGadgetDef( ps->gadget )->drop_on_death ) {
+		server_gs.api.PredictedUseGadget( ps->POVnum, ps->gadget, ps->weapon_state_time );
+	}
+}
+
 void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, DamageType damage_type, int damage ) {
 	snap_edict_t snap_backup = ent->snap;
 	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
+
+	ReleaseWeapons( ent );
 
 	ent->avelocity = Vec3( 0.0f );
 
@@ -329,7 +339,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->s.svflags |= SVF_FORCETEAM;
 		self->r.solid = SOLID_YES;
 		self->movetype = MOVETYPE_PLAYER;
-		client->ps.pmove.features = PMFEAT_ALL & ~PMFEAT_GHOSTMOVE;
+		client->ps.pmove.features = PMFEAT_ALL;
 	}
 
 	ClientUserinfoChanged( self, client->userinfo );
@@ -520,14 +530,14 @@ static void G_SetName( edict_t * ent, const char * original_name ) {
 	}
 
 	char name[ MAX_NAME_CHARS + 1 ];
-	Q_strncpyz( name, original_name, sizeof( name ) );
+	SafeStrCpy( name, original_name, sizeof( name ) );
 
 	int c_ascii = G_SanitizeUserString( name, sizeof( name ) );
 	if( !c_ascii ) {
-		Q_strncpyz( name, "Player", sizeof( name ) );
+		SafeStrCpy( name, "Player", sizeof( name ) );
 	}
 
-	Q_strncpyz( ent->r.client->netname, name, sizeof( ent->r.client->netname ) );
+	SafeStrCpy( ent->r.client->netname, name, sizeof( ent->r.client->netname ) );
 
 	int trynum = 0;
 	while( trynum < MAX_CLIENTS ) {
@@ -587,7 +597,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	cl = ent->r.client;
 
 	// set name, it's validated and possibly changed first
-	Q_strncpyz( oldname, cl->netname, sizeof( oldname ) );
+	SafeStrCpy( oldname, cl->netname, sizeof( oldname ) );
 	G_SetName( ent, Info_ValueForKey( userinfo, "name" ) );
 	if( oldname[0] && !StrCaseEqual( oldname, cl->netname ) && !CheckFlood( ent, false ) ) {
 		G_PrintMsg( NULL, "%s is now known as %s\n", oldname, cl->netname );
@@ -598,7 +608,7 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	}
 
 	// save off the userinfo in case we want to check something later
-	Q_strncpyz( cl->userinfo, userinfo, sizeof( cl->userinfo ) );
+	SafeStrCpy( cl->userinfo, userinfo, sizeof( cl->userinfo ) );
 
 	G_UpdatePlayerInfoString( PLAYERNUM( ent ) );
 }
@@ -921,7 +931,9 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	}
 
 	UpdateWeapons( &server_gs, &client->ps, *ucmd, client->timeDelta );
+	client->ps.flashed -= Min2( client->ps.flashed, u16( ucmd->msec * 0.001f * U16_MAX / 3.0f ) );
 	ent->s.weapon = client->ps.weapon;
+	ent->s.gadget = client->ps.using_gadget ? client->ps.gadget : Gadget_None;
 
 	client->resp.snap.buttons |= ucmd->buttons;
 }

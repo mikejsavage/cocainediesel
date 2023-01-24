@@ -1,5 +1,5 @@
 struct DecalTile {
-	uint indices[ 50 ]; // TODO: 50 should be a define/const
+	uint indices[ FORWARD_PLUS_TILE_CAPACITY ];
 };
 
 layout( std430 ) readonly buffer b_DecalTiles {

@@ -57,7 +57,7 @@ static int scr_centertime_off;
 * for a few moments
 */
 void CG_CenterPrint( const char * str ) {
-	Q_strncpyz( scr_centerstring, str, sizeof( scr_centerstring ) );
+	SafeStrCpy( scr_centerstring, str, sizeof( scr_centerstring ) );
 	scr_centertime_off = centerTimeOff;
 }
 
@@ -278,7 +278,7 @@ void CG_DrawDamageNumbers( float obi_size, float dmg_size ) {
 		Vec4 color;
 		float font_size;
 		if( obituary ) {
-			Q_strncpyz( buf, dn.obituary, sizeof( buf ) );
+			SafeStrCpy( buf, dn.obituary, sizeof( buf ) );
 			color = AttentionGettingColor();
 			font_size = Lerp( obi_size, frac * frac, 0.0f );
 		}
@@ -297,7 +297,7 @@ void CG_DrawDamageNumbers( float obi_size, float dmg_size ) {
 
 //=============================================================================
 
-struct BombSite {
+struct BombSiteIndicator {
 	Vec3 origin;
 	char letter;
 };
@@ -309,16 +309,16 @@ enum BombState {
 	BombState_Planted,
 };
 
-struct Bomb {
+struct BombIndicator {
 	BombState state;
 	Vec3 origin;
 };
 
-static BombSite bomb_sites[ 26 ];
+static BombSiteIndicator bomb_sites[ 26 ];
 static size_t num_bomb_sites;
-static Bomb bomb;
+static BombIndicator bomb;
 
-void CG_AddBomb( centity_t * cent ) {
+void CG_AddBombIndicator( const centity_t * cent ) {
 	if( cent->current.svflags & SVF_ONLYTEAM ) {
 		bomb.state = cent->current.radius == BombDown_Dropped ? BombState_Dropped : BombState_Planting;
 	}
@@ -352,10 +352,10 @@ void CG_AddBomb( centity_t * cent ) {
 	}
 }
 
-void CG_AddBombSite( centity_t * cent ) {
+void CG_AddBombSiteIndicator( const centity_t * cent ) {
 	assert( num_bomb_sites < ARRAY_COUNT( bomb_sites ) );
 
-	BombSite * site = &bomb_sites[ num_bomb_sites ];
+	BombSiteIndicator * site = &bomb_sites[ num_bomb_sites ];
 	site->origin = cent->current.origin;
 	site->letter = cent->current.site_letter;
 
@@ -375,7 +375,7 @@ void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size ) {
 
 	if( bomb.state == BombState_Carried || bomb.state == BombState_Dropped ) {
 		for( size_t i = 0; i < num_bomb_sites; i++ ) {
-			const BombSite * site = &bomb_sites[ i ];
+			const BombSiteIndicator * site = &bomb_sites[ i ];
 			bool clamped;
 			Vec2 coords = WorldToScreenClamped( site->origin, Vec2( cgs.fontSystemMediumSize * 2 ), &clamped );
 

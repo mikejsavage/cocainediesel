@@ -1024,11 +1024,11 @@ static void ExplodeStunGrenade( edict_t * grenade ) {
 			ps->flashed = Min2( u32( ps->flashed ) + u32( distance_flash * angle_scale ), u32( U16_MAX ) );
 			if( other->s.team == grenade->s.team ) {
 				ps->flashed *= 0.25;
-			} else {
-				G_RadiusKnockback( def->knockback, def->min_knockback, def->splash_radius, grenade, grenade->s.origin, NULL, 0 );
 			}
 		}
 	}
+
+	G_RadiusKnockback( def->knockback, def->min_knockback, def->splash_radius, grenade, grenade->s.origin, NULL, 0 );
 
 	G_FreeEdict( grenade );
 }
@@ -1038,7 +1038,7 @@ static void TouchStunGrenade( edict_t * ent, edict_t * other, Plane * plane, int
 		return;
 	}
 
-	if( ENTNUM( other ) != 0 ) {
+	if( other->takedamage ) {
 		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, Gadget_StunGrenade );
 		ExplodeStunGrenade( ent );
 	}

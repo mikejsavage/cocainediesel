@@ -167,43 +167,6 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "PISTOL",
-		/* short name           */ "pistol",
-		/* category             */ WeaponCategory_Backup,
-
-		/* projectile count     */ 1,
-		/* clip size            */ 10,
-		/* reload time          */ 1500,
-		/* staged reload time   */ 0,
-
-		// timings (in msecs)
-		/* weapon up time       */ WEAPONUP_TIME_FAST,
-		/* weapon down time     */ WEAPONDOWN_TIME,
-		/* refire time          */ 250,
-		/* timeout / range      */ 2000,
-		/* max recoil           */ EulerDegrees2( 125.0f, 20.0f ),
-		/* min recoil           */ EulerDegrees2( 100.0f, -20.0f ),
-		/* recoil recovery      */ 2000.0f,
-		/* firing mode          */ FiringMode_SemiAuto,
-
-		/* zoom fov             */ 0.0f,
-		/* zoom inaccuracy      */ 0.0f,
-
-		// damages
-		/* damage               */ 10,
-		/* self damage          */ 0.0f,
-		/* wallbang damage      */ 0.5f,
-		/* knockback            */ 30,
-		/* splash radius        */ 0,
-		/* splash min damage    */ 0,
-		/* splash min knockback */ 0,
-
-		// projectile def
-		/* speed                */ 10000,
-		/* spread               */ 0,
-	},
-
-	{
 		/* name                 */ "SMG",
 		/* short name           */ "mg",
 		/* category             */ WeaponCategory_Secondary,

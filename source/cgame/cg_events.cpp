@@ -871,26 +871,12 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			DoEntFX( ent, parm, team_color, "vfx/bulletsparks", "weapons/bullet_impact" );
 			break;
 
-		case EV_PISTOL_IMPACT: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/pistol/bullet_impact", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/pistol/bullet_impact", PlaySFXConfigPosition( ent->origin ) );
-		} break;
-
-		case EV_PISTOL_BOUNCE: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/pistol/bounce", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/pistol/bounce", PlaySFXConfigPosition( ent->origin ) );
-		} break;
-
-		case EV_STAKE_IMPACT: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/stake/hit", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/stake/hit", PlaySFXConfigPosition( ent->origin ) );
-		} break;
-
 		case EV_PISTOL_IMPACT:
 			DoEntFX( ent, parm, team_color, "weapons/pistol/bullet_impact", "weapons/pistol/bullet_impact" );
+			break;
+
+		case EV_PISTOL_BOUNCE:
+			DoEntFX( ent, parm, team_color, "weapons/pistol/bounce", "weapons/pistol/bounce" );
 			break;
 
 		case EV_STAKE_IMPACT:

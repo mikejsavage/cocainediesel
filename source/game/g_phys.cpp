@@ -396,8 +396,8 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	SV_CheckVelocity( ent );
 
 	// add gravity
-	if( ent->movetype != MOVETYPE_BOUNCENOGRAVITY && !ent->groundentity ) {
-		ent->velocity.z -= GRAVITY * FRAMETIME;
+	if( ent->movetype != MOVETYPE_FLY && !ent->groundentity ) {
+		ent->velocity.z -= GRAVITY * FRAMETIME * ent->s.gravityScale;
 	}
 
 	// move origin

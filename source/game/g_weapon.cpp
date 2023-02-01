@@ -159,6 +159,7 @@ struct ProjectileStats {
 	int max_knockback;
 	int speed;
 	int timeout;
+	float gravity_scale;
 	int splash_radius;
 	DamageType damage_type;
 };
@@ -173,6 +174,7 @@ static ProjectileStats WeaponProjectileStats( WeaponType weapon ) {
 	stats.max_knockback = def->knockback;
 	stats.speed = def->speed;
 	stats.timeout = def->range;
+	stats.gravity_scale = def->gravity_scale;
 	stats.splash_radius = def->splash_radius;
 	stats.damage_type = weapon;
 
@@ -235,6 +237,7 @@ static edict_t * FireProjectile(
 	projectile->r.solid = SOLID_YES;
 	projectile->r.clipmask = clipmask;
 	projectile->s.svflags = SVF_PROJECTILE;
+	projectile->s.gravityScale = stats.gravity_scale;
 
 	projectile->timeDelta = timeDelta;
 	projectile->touch = touch;

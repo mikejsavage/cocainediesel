@@ -359,6 +359,7 @@ struct SyncEntityState {
 	GadgetType gadget;
 	bool teleported;
 	Vec3 scale;
+	float gravityScale;
 
 	StringHash sound;
 

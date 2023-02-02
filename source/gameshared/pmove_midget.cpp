@@ -10,8 +10,6 @@ static constexpr float slide_speed_fact = 0.5f;
 static constexpr float stamina_use = 2.5f;
 static constexpr float stamina_recover = 8.0f;
 
-static constexpr float floor_distance = STEPSIZE * 0.5f;
-
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( (pm->groundentity != -1 || pml->ladder) && (ps->pmove.stamina == 0.0f) ) {
 		ps->pmove.stamina_state = Stamina_Normal;
@@ -22,7 +20,6 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		pml->maxSpeed *= slide_speed_fact;
 	}
 }
-
 
 //in this one we don't care about pressing special
 static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
@@ -76,35 +73,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
-	
-	/*if( ps->pmove.stamina_stored == 0.0f || ps->pmove.stamina_state != Stamina_UsedAbility ) {
-		return;
-	}
-
-	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
-
-	trace_t trace;
-	Vec3 point = pml->origin;
-	point.z -= floor_distance;
-
-	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, ps->POVnum, pm->contentmask, 0 );
-
-	if( trace.fraction == 1 || !trace.startsolid ) {
-		Vec3 normal( 0.0f );
-		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, true );
-		if( !Length( normal ) )
-			return;
-
-		float speed = Length( pml->velocity );
-		pml->velocity = GS_ClipVelocity( pml->velocity, normal, 1.0005f );
-		pml->velocity = pml->velocity + normal;
-		pml->velocity = Normalize( pml->velocity );
-		pml->velocity *= speed;
-
-		ps->pmove.stamina_stored = 0.0f;
-	}*/
 }
-
 
 void PM_MidgetInit( pmove_t * pm, pml_t * pml ) {
 	PM_InitPerk( pm, pml, Perk_Midget, PM_MidgetJump, PM_MidgetSpecial );

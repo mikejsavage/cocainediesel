@@ -11,7 +11,7 @@ msvc_global_cxxflags( "/GR- /EHs-c-" )
 gcc_global_cxxflags( "-std=c++17 -msse4.2 -mpopcnt -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fno-math-errno -fvisibility=hidden" )
 gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security" ) -- -Wconversion
 gcc_global_cxxflags( "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-implicit-fallthrough" )
-gcc_global_cxxflags( "-Werror=vla -Werror=format-security -Werror=unused-value" )
+gcc_global_cxxflags( "-Werror -Wno-error=switch -Wno-error=sign-compare -Wno-error=dynamic-class-memaccess" )
 
 if config == "release" then
 	global_cxxflags( "-DPUBLIC_BUILD" )

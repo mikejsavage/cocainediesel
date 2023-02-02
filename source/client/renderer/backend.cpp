@@ -399,7 +399,7 @@ static void PlotVRAMUsage() {
 		GLint available_vram;
 		glGetIntegerv( GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &available_vram );
 
-		TracyCPlot( "VRAM usage", s64( total_vram - available_vram ) );
+		TracyPlotSample( "VRAM usage", s64( total_vram - available_vram ) );
 	}
 }
 
@@ -1079,10 +1079,10 @@ void RenderBackendSubmitFrame() {
 	for( const UBO & ubo : ubos ) {
 		ubo_bytes_used += ubo.bytes_used;
 	}
-	TracyCPlot( "UBO utilisation", float( ubo_bytes_used ) / float( UNIFORM_BUFFER_SIZE * ARRAY_COUNT( ubos ) ) );
+	TracyPlotSample( "UBO utilisation", float( ubo_bytes_used ) / float( UNIFORM_BUFFER_SIZE * ARRAY_COUNT( ubos ) ) );
 
-	TracyCPlot( "Draw calls", s64( draw_calls.size() ) );
-	TracyCPlot( "Vertices", s64( num_vertices_this_frame ) );
+	TracyPlotSample( "Draw calls", s64( draw_calls.size() ) );
+	TracyPlotSample( "Vertices", s64( num_vertices_this_frame ) );
 
 	TracyGpuCollect;
 }

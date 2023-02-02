@@ -732,7 +732,7 @@ void DrawParticles() {
 		}
 	}
 
-	TracyCPlot( "New Particles", total_new_particles );
+	TracyPlotSample( "New Particles", total_new_particles );
 }
 
 static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float angular_velocity, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 start_color, Vec4 end_color, float start_size, float end_size, u32 flags ) {

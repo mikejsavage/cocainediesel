@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <inttypes.h> // PRIu32
 #include <math.h>
 
 #include "parsing.h"
@@ -524,10 +525,6 @@ static bool PointInsideBrush( Span< const Plane > planes, Vec3 p ) {
 	return true;
 }
 
-static void format( FormatBuffer * fb, const Plane & plane, const FormatOpts & opts ) {
-	ggformat_impl( fb, "{.5}.X = {.1}", plane.normal, plane.distance );
-}
-
 static u32 AddMaterial( BSP * bsp, Span< const char > name, u64 hash ) {
 	for( size_t i = 0; i < bsp->materials->size(); i++ ) {
 		if( StrEqual( name, ( *bsp->materials )[ i ].name ) ) {
@@ -640,7 +637,7 @@ static void ProcessBrush( BSP * bsp, MinMax3 * bounds, DynamicArray< MaterialMes
 	for( size_t i = 0; i < brush.faces.n; i++ ) {
 		const Face & face = brush.faces.elems[ i ];
 		if( !PlaneFrom3Points( &planes[ i ], face.plane[ 0 ], face.plane[ 1 ], face.plane[ 2 ] ) ) {
-			Fatal( "[entity {} brush {}/line XXX] has a non-planar face", entity_id, brush_id );
+			Fatal( "[entity %" PRIu32 " brush %" PRIu32 "/line XXX] has a non-planar face", entity_id, brush_id );
 		}
 	}
 

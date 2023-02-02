@@ -21,7 +21,7 @@
 #define COUNTER_NAME( x ) CONCAT( x, __COUNTER__ )
 
 template< typename To, typename From >
-inline To bit_cast( const From & from ) {
+To bit_cast( const From & from ) {
 	STATIC_ASSERT( sizeof( To ) == sizeof( From ) );
 	To result;
 	memcpy( &result, &from, sizeof( result ) );

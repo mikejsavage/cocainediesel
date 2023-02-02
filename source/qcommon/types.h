@@ -110,7 +110,7 @@ constexpr size_t ARRAY_COUNT( M ( T::* )[ N ] ) {
 #define NONCOPYABLE( T ) T( const T & ) = delete; void operator=( const T & ) = delete
 
 template< typename To, typename From >
-inline To checked_cast( const From & from ) {
+To checked_cast( const From & from ) {
 	To result = To( from );
 	Assert( From( result ) == from );
 	return result;

@@ -109,18 +109,18 @@ void Cvar_SetInteger( const char * name, int value ) {
 
 Cvar * NewCvar( const char * name, const char * value, CvarFlags flags ) {
 	if( HasFlag( flags, CvarFlag_UserInfo ) || HasFlag( flags, CvarFlag_ServerInfo ) ) {
-		assert( Cvar_InfoValidate( name, true ) );
-		assert( Cvar_InfoValidate( value, true ) );
+		Assert( Cvar_InfoValidate( name, true ) );
+		Assert( Cvar_InfoValidate( value, true ) );
 	}
 
 	Cvar * old_cvar = FindCvar( name );
 	if( old_cvar != NULL ) {
-		assert( StrEqual( old_cvar->default_value, value ) );
-		assert( old_cvar->flags == flags );
+		Assert( StrEqual( old_cvar->default_value, value ) );
+		Assert( old_cvar->flags == flags );
 		return old_cvar;
 	}
 
-	assert( cvars_hashtable.size() < ARRAY_COUNT( cvars ) );
+	Assert( cvars_hashtable.size() < ARRAY_COUNT( cvars ) );
 
 	Cvar * cvar = &cvars[ cvars_hashtable.size() ];
 	*cvar = { };
@@ -130,7 +130,7 @@ Cvar * NewCvar( const char * name, const char * value, CvarFlags flags ) {
 
 	u64 hash = CaseHash64( name );
 	bool ok = cvars_hashtable.add( hash, cvars_hashtable.size() );
-	assert( ok );
+	Assert( ok );
 
 	u64 idx;
 	if( !HasFlag( flags, CvarFlag_ReadOnly ) && config_entries_hashtable.get( hash, &idx ) ) {
@@ -146,7 +146,7 @@ Cvar * NewCvar( const char * name, const char * value, CvarFlags flags ) {
 
 void Cvar_ForceSet( const char * name, const char * value ) {
 	Cvar * cvar = FindCvar( name );
-	assert( cvar != NULL );
+	Assert( cvar != NULL );
 	SetCvar( cvar, value );
 }
 

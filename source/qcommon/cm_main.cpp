@@ -76,7 +76,7 @@ static void CM_Clear( CModelServerOrClient soc, CollisionModel * cms ) {
 		FREE( sys_allocator, model->markbrushes );
 
 		bool ok = GetCModels( soc )->remove( hash );
-		assert( ok );
+		Assert( ok );
 	}
 
 	if( cms->map_nodes ) {
@@ -477,7 +477,7 @@ void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out ) {
 int CM_MergeVisSets( CollisionModel *cms, Vec3 org, uint8_t *pvs, uint8_t *areabits ) {
 	int area;
 
-	assert( pvs || areabits );
+	Assert( pvs || areabits );
 
 	if( pvs ) {
 		CM_MergePVS( cms, org, pvs );

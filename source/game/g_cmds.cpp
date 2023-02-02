@@ -161,10 +161,10 @@ bool CheckFlood( edict_t * ent, bool teamonly ) {
 	int i;
 	gclient_t *client;
 
-	assert( ent != NULL );
+	Assert( ent != NULL );
 
 	client = ent->r.client;
-	assert( client != NULL );
+	Assert( client != NULL );
 
 	if( g_floodprotection_messages->modified ) {
 		if( g_floodprotection_messages->integer < 0 ) {
@@ -437,7 +437,7 @@ static void Cmd_Timein_f( edict_t * ent, msg_t args ) {
 static gamecommandfunc_t g_Commands[ ClientCommand_Count ];
 
 void G_AddCommand( ClientCommandType command, gamecommandfunc_t callback ) {
-	assert( g_Commands[ command ] == NULL );
+	Assert( g_Commands[ command ] == NULL );
 	g_Commands[ command ] = callback;
 }
 

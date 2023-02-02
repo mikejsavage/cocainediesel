@@ -37,7 +37,7 @@ void InitSprays() {
 			continue;
 		}
 
-		assert( num_spray_assets < ARRAY_COUNT( spray_assets ) );
+		Assert( num_spray_assets < ARRAY_COUNT( spray_assets ) );
 
 		spray_assets[ num_spray_assets ] = StringHash( StripExtension( path ) );
 		num_spray_assets++;

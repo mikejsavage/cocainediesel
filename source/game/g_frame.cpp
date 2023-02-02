@@ -235,7 +235,7 @@ void G_SnapFrame() {
 
 	// set entity bits (prepare entities for being sent in the snap)
 	for( ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
-		assert( ent->s.number == ENTNUM( ent ) );
+		Assert( ent->s.number == ENTNUM( ent ) );
 
 		// temporary filter (Q2 system to ensure reliability)
 		// ignore ents without visible models unless they have an effect

@@ -16,7 +16,7 @@ static u64 OSSocketToHandle( int socket ) {
 }
 
 static int HandleToOSSocket( u64 handle ) {
-	assert( handle != 0 );
+	Assert( handle != 0 );
 	return checked_cast< int >( handle - 1 );
 }
 

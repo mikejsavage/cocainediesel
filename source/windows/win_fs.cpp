@@ -21,7 +21,7 @@ static char * ReplaceBackslashes( char * path ) {
 
 static wchar_t * UTF8ToWide( Allocator * a, const char * utf8 ) {
 	int len = MultiByteToWideChar( CP_UTF8, 0, utf8, -1, NULL, 0 );
-	assert( len != 0 );
+	Assert( len != 0 );
 
 	wchar_t * wide = ALLOC_MANY( a, wchar_t, len );
 	MultiByteToWideChar( CP_UTF8, 0, utf8, -1, wide, len );
@@ -31,7 +31,7 @@ static wchar_t * UTF8ToWide( Allocator * a, const char * utf8 ) {
 
 static char * WideToUTF8( Allocator * a, Span< const wchar_t > wide ) {
 	int len = WideCharToMultiByte( CP_UTF8, 0, wide.ptr, wide.n, NULL, 0, NULL, NULL );
-	assert( len != 0 );
+	Assert( len != 0 );
 
 	char * utf8 = ALLOC_MANY( a, char, len + 1 );
 	WideCharToMultiByte( CP_UTF8, 0, wide.ptr, wide.n, utf8, len, NULL, NULL );

@@ -412,7 +412,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 			return;
 		}
 		if( address != cls.serveraddress ) {
-			assert( is_public_build );
+			Assert( is_public_build );
 			return;
 		}
 
@@ -434,7 +434,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 			return;
 		}
 		if( address != cls.serveraddress ) {
-			assert( is_public_build );
+			Assert( is_public_build );
 			return;
 		}
 
@@ -474,7 +474,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 			return;
 		}
 		if( address != cls.serveraddress ) {
-			assert( is_public_build );
+			Assert( is_public_build );
 			return;
 		}
 
@@ -487,7 +487,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 		return;
 	}
 
-	assert( is_public_build );
+	Assert( is_public_build );
 }
 
 static bool CL_ProcessPacket( netchan_t * netchan, msg_t * msg ) {
@@ -541,7 +541,7 @@ void CL_ReadPackets() {
 	}
 
 	if( source != cls.netchan.remoteAddress ) {
-		assert( is_public_build );
+		Assert( is_public_build );
 		return;
 	}
 
@@ -1146,7 +1146,7 @@ void CL_Init() {
 	cls.monotonicTime = { };
 	cls.shadertoy_time = { };
 
-	assert( !cl_initialized );
+	Assert( !cl_initialized );
 
 	cl_initialized = true;
 

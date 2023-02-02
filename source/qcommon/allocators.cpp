@@ -125,7 +125,7 @@ struct SystemAllocator final : public Allocator {
 		 * multiple of eight (or sixteen on 64-bit systems)."
 		 */
 
-		assert( alignment <= 16 );
+		Assert( alignment <= 16 );
 		void * ptr = malloc( size );
 		TracyCAlloc( ptr, size );
 		tracker.track( ptr, func, file, line, size );
@@ -135,7 +135,7 @@ struct SystemAllocator final : public Allocator {
 	void * try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
 		TracyZoneScoped;
 
-		assert( alignment <= 16 );
+		Assert( alignment <= 16 );
 
 		TracyCFree( ptr );
 		tracker.untrack( ptr, func, file, line );
@@ -197,17 +197,17 @@ ArenaAllocator::ArenaAllocator( void * mem, size_t size ) {
 }
 
 void * ArenaAllocator::try_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	assert( num_temp_allocators == 0 );
+	Assert( num_temp_allocators == 0 );
 	return try_temp_allocate( size, alignment, func, file, line );
 }
 
 void * ArenaAllocator::try_reallocate( void * ptr, size_t current_size, size_t new_size, size_t alignment, const char * func, const char * file, int line ) {
-	assert( num_temp_allocators == 0 );
+	Assert( num_temp_allocators == 0 );
 	return try_temp_reallocate( ptr, current_size, new_size, alignment, func, file, line );
 }
 
 void * ArenaAllocator::try_temp_allocate( size_t size, size_t alignment, const char * func, const char * file, int line ) {
-	assert( IsPowerOf2( alignment ) );
+	Assert( IsPowerOf2( alignment ) );
 	u8 * aligned = ( u8 * ) ( size_t( cursor + alignment - 1 ) & ~( alignment - 1 ) );
 	if( aligned + size > top )
 		return NULL;
@@ -222,7 +222,7 @@ void * ArenaAllocator::try_temp_reallocate( void * ptr, size_t current_size, siz
 		return try_temp_allocate( new_size, alignment, func, file, line );
 
 	if( ptr == cursor - current_size && size_t( ptr ) % alignment == 0 ) {
-		assert( size_t( ptr ) % alignment == 0 );
+		Assert( size_t( ptr ) % alignment == 0 );
 		u8 * new_cursor = cursor - current_size + new_size;
 		if( new_cursor > top )
 			return NULL;
@@ -256,7 +256,7 @@ TempAllocator ArenaAllocator::temp() {
 }
 
 void ArenaAllocator::clear() {
-	assert( num_temp_allocators == 0 );
+	Assert( num_temp_allocators == 0 );
 	ASAN_POISON_MEMORY_REGION( memory, top - memory );
 	cursor = memory;
 	cursor_max = cursor;

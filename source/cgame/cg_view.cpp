@@ -516,7 +516,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	cg.frameCount++;
 
-	assert( cg.frame.valid );
+	Assert( cg.frame.valid );
 
 	{
 		// moved this from CG_Init here

@@ -96,7 +96,7 @@ void Patch_Evaluate( int comp, Vec3 * p, const int *numcp, const int *tess, Vec3
 	Vec3 v2( 0.0f );
 	Vec3 v3( 0.0f );
 
-	assert( comp <= 4 );
+	Assert( comp <= 4 );
 
 	if( stride == 0 ) {
 		stride = comp;

@@ -637,7 +637,7 @@ typedef struct {
 static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 	TracyZoneScoped;
 
-	assert( clip->passent == -1 || ( clip->passent >= 0 && clip->passent < ARRAY_COUNT( game.edicts ) ) );
+	Assert( clip->passent == -1 || ( clip->passent >= 0 && clip->passent < ARRAY_COUNT( game.edicts ) ) );
 
 	int touchlist[MAX_EDICTS];
 	int num = GClip_AreaEdicts( clip->boxmins, clip->boxmaxs, touchlist, MAX_EDICTS, AREA_SOLID, timeDelta );
@@ -679,7 +679,7 @@ static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 						break;
 					}
 				}
-				assert( clip_team != Team_None );
+				Assert( clip_team != Team_None );
 
 				if( touch->s.team == clip_team )
 					continue;
@@ -948,7 +948,7 @@ SyncEntityState *G_GetEntityStateForDeltaTime( int entNum, int deltaTime ) {
 		return NULL;
 	}
 
-	assert( entNum >= 0 && entNum < MAX_EDICTS );
+	Assert( entNum >= 0 && entNum < MAX_EDICTS );
 
 	clipEnt = GClip_GetClipEdictForDeltaTime( entNum, deltaTime );
 

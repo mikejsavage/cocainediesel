@@ -112,7 +112,7 @@ static GLenum DepthFuncToGL( DepthFunc depth_func ) {
 			return GL_ALWAYS;
 	}
 
-	assert( false );
+	Assert( false );
 	return GL_INVALID_ENUM;
 }
 
@@ -190,7 +190,7 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			return;
 	}
 
-	assert( false );
+	Assert( false );
 }
 
 static GLenum TextureWrapToGL( TextureWrap wrap ) {
@@ -205,7 +205,7 @@ static GLenum TextureWrapToGL( TextureWrap wrap ) {
 			return GL_CLAMP_TO_BORDER;
 	}
 
-	assert( false );
+	Assert( false );
 	return GL_INVALID_ENUM;
 }
 
@@ -222,7 +222,7 @@ static void TextureFilterToGL( TextureFilter filter, GLenum * min, GLenum * mag 
 			return;
 	}
 
-	assert( false );
+	Assert( false );
 }
 
 static u32 GLTypeSize( GLenum type ) {
@@ -234,7 +234,7 @@ static u32 GLTypeSize( GLenum type ) {
 			return 4;
 	}
 
-	assert( false );
+	Assert( false );
 	return 0;
 }
 
@@ -311,7 +311,7 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			break;
 
 		default:
-			assert( false );
+			Assert( false );
 	}
 
 	if( stride != NULL ) {
@@ -387,7 +387,7 @@ static void DebugOutputCallback(
 }
 
 static void DebugLabel( GLenum type, GLuint object, const char * label ) {
-	assert( label != NULL );
+	Assert( label != NULL );
 	glObjectLabel( type, object, -1, label );
 }
 
@@ -506,7 +506,7 @@ void InitRenderBackend() {
 
 	GLint max_ubo_size;
 	glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &max_ubo_size );
-	assert( max_ubo_size >= s32( UNIFORM_BUFFER_SIZE ) );
+	Assert( max_ubo_size >= s32( UNIFORM_BUFFER_SIZE ) );
 
 	for( size_t i = 0; i < ARRAY_COUNT( ubos ); i++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
@@ -545,7 +545,7 @@ void ShutdownRenderBackend() {
 void RenderBackendBeginFrame() {
 	TracyZoneScoped;
 
-	assert( !in_frame );
+	Assert( !in_frame );
 	in_frame = true;
 
 	render_passes.clear();
@@ -1029,8 +1029,8 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 void RenderBackendSubmitFrame() {
 	TracyZoneScoped;
 
-	assert( in_frame );
-	assert( render_passes.size() > 0 );
+	Assert( in_frame );
+	Assert( render_passes.size() > 0 );
 	in_frame = false;
 
 	{
@@ -1088,7 +1088,7 @@ void RenderBackendSubmitFrame() {
 }
 
 UniformBlock UploadUniforms( const void * data, size_t size ) {
-	assert( in_frame );
+	Assert( in_frame );
 
 	UBO * ubo = NULL;
 	u32 offset = 0;
@@ -1227,7 +1227,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	}
 
 	if( !CompressedTextureFormat( config.format ) ) {
-		assert( config.num_mipmaps == 1 );
+		Assert( config.num_mipmaps == 1 );
 
 		if( channels == GL_RED ) {
 			if( config.format == TextureFormat_A_U8 ) {
@@ -1256,7 +1256,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 		}
 	}
 	else {
-		assert( config.data != NULL );
+		Assert( config.data != NULL );
 
 		glTextureParameterf( texture.texture, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
 
@@ -1272,7 +1272,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 			u32 w = config.width >> i;
 			u32 h = config.height >> i;
 			u32 size = ( BitsPerPixel( config.format ) * w * h ) / 8;
-			assert( size < S32_MAX );
+			Assert( size < S32_MAX );
 
 			glCompressedTextureSubImage2D( texture.texture, i, 0, 0,
 				w, h, internal_format, size, cursor );
@@ -1315,7 +1315,7 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 	}
 
 	if( !CompressedTextureFormat( config.format ) ) {
-		assert( config.num_mipmaps == 1 );
+		Assert( config.num_mipmaps == 1 );
 
 		if( channels == GL_RED ) {
 			if( config.format == TextureFormat_A_U8 ) {
@@ -1351,7 +1351,7 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 			u32 w = config.width >> i;
 			u32 h = config.height >> i;
 			u32 size = ( BitsPerPixel( config.format ) * w * h * config.layers ) / 8;
-			assert( size < S32_MAX );
+			Assert( size < S32_MAX );
 
 			glCompressedTextureSubImage3D( ta.texture, i, 0, 0, 0,
 				w, h, config.layers, internal_format, size, cursor );
@@ -1412,8 +1412,8 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 
 	glNamedFramebufferDrawBuffers( fb.fbo, ARRAY_COUNT( bufs ), bufs );
 
-	assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
-	assert( width > 0 && height > 0 );
+	Assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	Assert( width > 0 && height > 0 );
 
 	fb.width = width;
 	fb.height = height;
@@ -1451,8 +1451,8 @@ Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * mask_texture, Te
 	}
 	glNamedFramebufferDrawBuffers( fb.fbo, ARRAY_COUNT( bufs ), bufs );
 
-	assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
-	assert( width > 0 && height > 0 );
+	Assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	Assert( width > 0 && height > 0 );
 
 	fb.width = width;
 	fb.height = height;
@@ -1467,7 +1467,7 @@ Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer ) {
 
 	glNamedFramebufferTextureLayer( fb.fbo, GL_DEPTH_ATTACHMENT, texture_array.texture, 0, layer );
 
-	assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	Assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
 
 	fb.width = frame_static.shadow_parameters.shadowmap_res;
 	fb.height = frame_static.shadow_parameters.shadowmap_res;
@@ -1685,7 +1685,7 @@ Mesh NewMesh( MeshConfig config ) {
 		SetupAttribute( vao, config.weights.buffer, VertexAttribute_JointWeights, config.weights_format );
 	}
 	else {
-		assert( config.stride != 0 );
+		Assert( config.stride != 0 );
 
 		GLuint buffer = config.unified_buffer.buffer;
 		SetupAttribute( vao, buffer, VertexAttribute_Position, config.positions_format, config.stride, config.positions_offset );
@@ -1741,9 +1741,9 @@ void DeferDeleteMesh( const Mesh & mesh ) {
 }
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 index_offset ) {
-	assert( in_frame );
-	assert( pipeline.pass != U8_MAX );
-	assert( pipeline.shader != NULL );
+	Assert( in_frame );
+	Assert( pipeline.pass != U8_MAX );
+	Assert( pipeline.shader != NULL );
 
 	DrawCall dc = { };
 	dc.mesh = mesh;
@@ -1756,9 +1756,9 @@ void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertic
 }
 
 void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer instance_data, u32 num_instances, InstanceType instance_type, u32 num_vertices_override, u32 index_offset ) {
-	assert( in_frame );
-	assert( pipeline.pass != U8_MAX );
-	assert( pipeline.shader != NULL );
+	Assert( in_frame );
+	Assert( pipeline.pass != U8_MAX );
+	Assert( pipeline.shader != NULL );
 
 	DrawCall dc = { };
 	dc.mesh = mesh;

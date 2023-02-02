@@ -97,7 +97,7 @@ static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 		case ShadowQuality_Ultra:  return { 4, { 256.0f, 768.0f, 2304.0f, 6912.0f }, 4096, 4 };
 	}
 
-	assert( false );
+	Assert( false );
 	return { };
 }
 
@@ -118,7 +118,7 @@ void InitRenderer() {
 	{
 		int w, h;
 		u8 * img = stbi_load_from_memory( blue_noise_png, blue_noise_png_len, &w, &h, NULL, 1 );
-		assert( img != NULL );
+		Assert( img != NULL );
 
 		TextureConfig config;
 		config.width = w;

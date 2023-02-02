@@ -40,7 +40,7 @@ constexpr float LengthSquared( Vec2 v ) {
 }
 
 inline Vec2 Normalize( Vec2 v ) {
-	assert( v != Vec2( 0.0f ) );
+	Assert( v != Vec2( 0.0f ) );
 	return v / Length( v );
 }
 
@@ -115,7 +115,7 @@ constexpr float LengthSquared( Vec3 v ) {
 }
 
 inline Vec3 Normalize( Vec3 v ) {
-	assert( v != Vec3( 0.0f ) );
+	Assert( v != Vec3( 0.0f ) );
 	return v / Length( v );
 }
 
@@ -204,7 +204,7 @@ inline float Length( Vec4 v ) {
 }
 
 inline Vec4 Normalize( Vec4 v ) {
-	assert( v != Vec4( 0.0f ) );
+	Assert( v != Vec4( 0.0f ) );
 	return v / Length( v );
 }
 

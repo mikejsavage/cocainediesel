@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Must be used before other functions are aplied to the string (or those functions might function improperly)
 */
 char *COM_SanitizeFilePath( char * path ) {
-	assert( path );
+	Assert( path );
 
 	for( ; *path && ( path = strchr( path, '\\' ) ); path++ ) {
 		*path = '/';
@@ -45,7 +45,7 @@ char *COM_SanitizeFilePath( char * path ) {
 }
 
 bool COM_ValidateFilename( const char *filename ) {
-	assert( filename );
+	Assert( filename );
 
 	if( !filename || !filename[0] ) {
 		return false;
@@ -420,7 +420,7 @@ void RemoveTrailingZeroesFloat( char * str ) {
 //=====================================================================
 
 static bool Info_ValidateValue( const char *value ) {
-	assert( value );
+	Assert( value );
 
 	if( !value ) {
 		return false;
@@ -446,7 +446,7 @@ static bool Info_ValidateValue( const char *value ) {
 }
 
 static bool Info_ValidateKey( const char *key ) {
-	assert( key );
+	Assert( key );
 
 	if( !key ) {
 		return false;
@@ -484,7 +484,7 @@ static bool Info_ValidateKey( const char *key ) {
 bool Info_Validate( const char *info ) {
 	const char *p, *start;
 
-	assert( info );
+	Assert( info );
 
 	if( !info ) {
 		return false;
@@ -544,8 +544,8 @@ static char *Info_FindKey( const char *info, const char *key ) {
 	const char *p, *start;
 	size_t key_len;
 
-	assert( Info_Validate( info ) );
-	assert( Info_ValidateKey( key ) );
+	Assert( Info_Validate( info ) );
+	Assert( Info_ValidateKey( key ) );
 
 	if( !Info_Validate( info ) || !Info_ValidateKey( key ) ) {
 		return NULL;
@@ -586,8 +586,8 @@ char *Info_ValueForKey( const char *info, const char *key ) {
 	const char *p, *start;
 	size_t len;
 
-	assert( info && Info_Validate( info ) );
-	assert( key && Info_ValidateKey( key ) );
+	Assert( info && Info_Validate( info ) );
+	Assert( key && Info_ValidateKey( key ) );
 
 	if( !Info_Validate( info ) || !Info_ValidateKey( key ) ) {
 		return NULL;
@@ -616,7 +616,7 @@ char *Info_ValueForKey( const char *info, const char *key ) {
 	}
 
 	if( len >= MAX_INFO_VALUE ) {
-		assert( false );
+		Assert( false );
 		return NULL;
 	}
 	strncpy( value[valueindex], start, len );
@@ -626,8 +626,8 @@ char *Info_ValueForKey( const char *info, const char *key ) {
 }
 
 void Info_RemoveKey( char *info, const char *key ) {
-	assert( info && Info_Validate( info ) );
-	assert( key && Info_ValidateKey( key ) );
+	Assert( info && Info_Validate( info ) );
+	Assert( key && Info_ValidateKey( key ) );
 
 	if( !Info_Validate( info ) || !Info_ValidateKey( key ) ) {
 		return;
@@ -662,9 +662,9 @@ void Info_RemoveKey( char *info, const char *key ) {
 bool Info_SetValueForKey( char *info, const char *key, const char *value ) {
 	char pair[MAX_INFO_KEY + MAX_INFO_VALUE + 1];
 
-	assert( info && Info_Validate( info ) );
-	assert( key && Info_ValidateKey( key ) );
-	assert( value && Info_ValidateValue( value ) );
+	Assert( info && Info_Validate( info ) );
+	Assert( key && Info_ValidateKey( key ) );
+	Assert( value && Info_ValidateValue( value ) );
 
 	if( !Info_Validate( info ) || !Info_ValidateKey( key ) || !Info_ValidateValue( value ) ) {
 		return false;

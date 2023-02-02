@@ -396,8 +396,8 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 }
 
 void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t *attacker, Vec3 pos, Plane *plane, int timeDelta ) {
-	assert( radius >= 0.0f );
-	assert( minknockback >= 0.0f && maxknockback >= 0.0f );
+	Assert( radius >= 0.0f );
+	Assert( minknockback >= 0.0f && maxknockback >= 0.0f );
 
 	int touch[MAX_EDICTS];
 	int numtouch = GClip_FindInRadius4D( pos, radius, touch, MAX_EDICTS, timeDelta );
@@ -421,7 +421,7 @@ void G_RadiusKnockback( float maxknockback, float minknockback, float radius, ed
 }
 
 void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Plane *plane, edict_t *ignore, DamageType damage_type ) {
-	assert( inflictor );
+	Assert( inflictor );
 
 	float maxdamage = inflictor->projectileInfo.maxDamage;
 	float mindamage = inflictor->projectileInfo.minDamage;
@@ -429,9 +429,9 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Plane *plane, edict_
 	float minknockback = inflictor->projectileInfo.minKnockback;
 	float radius = inflictor->projectileInfo.radius;
 
-	assert( radius >= 0.0f );
-	assert( mindamage >= 0.0f && minknockback >= 0.0f && mindamage <= maxdamage );
-	assert( maxdamage >= 0.0f && maxknockback >= 0.0f && mindamage <= maxdamage );
+	Assert( radius >= 0.0f );
+	Assert( mindamage >= 0.0f && minknockback >= 0.0f && mindamage <= maxdamage );
+	Assert( maxdamage >= 0.0f && maxknockback >= 0.0f && mindamage <= maxdamage );
 
 	int touch[MAX_EDICTS];
 	int numtouch = GClip_FindInRadius4D( inflictor->s.origin, radius, touch, MAX_EDICTS, inflictor->timeDelta );

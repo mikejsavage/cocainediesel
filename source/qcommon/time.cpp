@@ -17,7 +17,7 @@ void InitTime() {
 }
 
 static void AssertSmallEnoughToCastToFloat( Time t ) {
-	assert( t < Hours( 2 ) );
+	Assert( t < Hours( 2 ) );
 }
 
 Time Now() {
@@ -34,7 +34,7 @@ s64 Sys_Milliseconds() {
 }
 
 Time Hz( u64 hz ) {
-	assert( GGTIME_FLICKS_PER_SECOND % hz == 0 );
+	Assert( GGTIME_FLICKS_PER_SECOND % hz == 0 );
 	return { GGTIME_FLICKS_PER_SECOND / hz };
 }
 

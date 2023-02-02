@@ -28,7 +28,7 @@ static u64 OSSocketToHandle( SOCKET socket ) {
 }
 
 static SOCKET HandleToOSSocket( u64 handle ) {
-	assert( handle != 0 );
+	Assert( handle != 0 );
 	return checked_cast< SOCKET >( handle - 1 );
 }
 

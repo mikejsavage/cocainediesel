@@ -118,7 +118,7 @@ static void W_AutoTouch_ARBullet( edict_t * ent, edict_t * other, Plane * plane,
 }
 
 static void G_ProjectileDistancePrestep( edict_t * projectile, float distance ) {
-	assert( projectile->movetype == MOVETYPE_TOSS || projectile->movetype == MOVETYPE_LINEARPROJECTILE || projectile->movetype == MOVETYPE_BOUNCE || projectile->movetype == MOVETYPE_BOUNCEGRENADE );
+	Assert( projectile->movetype == MOVETYPE_TOSS || projectile->movetype == MOVETYPE_LINEARPROJECTILE || projectile->movetype == MOVETYPE_BOUNCE || projectile->movetype == MOVETYPE_BOUNCEGRENADE );
 
 	if( !distance ) {
 		return;

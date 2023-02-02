@@ -44,7 +44,7 @@ static Loadout DefaultLoadout() {
 	loadout.perk = Perk_Hooligan;
 
 	for( int i = 0; i < WeaponCategory_Count; i++ ) {
-		assert( loadout.weapons[ i ] != Weapon_None );
+		Assert( loadout.weapons[ i ] != Weapon_None );
 	}
 
 	loadout.gadget = Gadget_ThrowingAxe;

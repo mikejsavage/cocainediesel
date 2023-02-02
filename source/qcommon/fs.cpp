@@ -147,7 +147,7 @@ const char * OpenFileModeToString( OpenFileMode mode ) {
 		case OpenFile_AppendOverwrite: return "ab";
 	}
 
-	assert( false );
+	Assert( false );
 	return NULL;
 }
 

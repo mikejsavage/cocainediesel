@@ -51,7 +51,7 @@ static void Enqueue( TeamQueue * team, int player ) {
 		}
 	}
 
-	assert( false );
+	Assert( false );
 }
 
 static int Rotate( TeamQueue * team ) {

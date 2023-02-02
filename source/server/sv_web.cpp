@@ -85,7 +85,7 @@ static const char * ResponseCodeMessage( HTTPResponseCode code ) {
 		case HTTPResponseCode_NotFound: return "Not Found";
 	}
 
-	assert( false );
+	Assert( false );
 	return "";
 }
 
@@ -161,7 +161,7 @@ static void MakeResponse( HTTPConnection * con, Span< const char > method, Span<
 		headers += error;
 	}
 
-	assert( headers.length() < headers.capacity() );
+	Assert( headers.length() < headers.capacity() );
 
 	SafeStrCpy( response->headers, headers.c_str(), sizeof( response->headers ) );
 	response->headers_size = headers.length();

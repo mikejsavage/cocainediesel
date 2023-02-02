@@ -51,7 +51,7 @@ void CG_LocalPrint( const char *format, ... ) {
 }
 
 static void CG_GS_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta ) {
-	assert( !timeDelta );
+	Assert( !timeDelta );
 	CG_Trace( t, start, mins, maxs, end, ignore, contentmask );
 }
 
@@ -62,7 +62,7 @@ static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
 		return NULL;
 	}
 
-	assert( entNum >= 0 && entNum < MAX_EDICTS );
+	Assert( entNum >= 0 && entNum < MAX_EDICTS );
 	cent = &cg_entities[entNum];
 
 	if( cent->serverFrame != cg.frame.serverFrame ) {

@@ -68,42 +68,6 @@ void PF_GameCmd( edict_t * ent, const char * cmd ) {
 	}
 }
 
-void PF_ConfigString( int index, const char *val ) {
-	if( !val ) {
-		return;
-	}
-
-	if( index < 0 || index >= MAX_CONFIGSTRINGS ) {
-		Fatal( "configstring: bad index %i", index );
-	}
-
-	size_t len = strlen( val );
-	if( len >= sizeof( sv.configstrings[0] ) ) {
-		Com_Printf( "WARNING: 'PF_Configstring', configstring %i overflowed (%zu)\n", index, strlen( val ) );
-		len = sizeof( sv.configstrings[0] ) - 1;
-	}
-
-	// ignore if no changes
-	if( !strncmp( sv.configstrings[index], val, len ) && sv.configstrings[index][len] == '\0' ) {
-		return;
-	}
-
-	// change the string in sv
-	SafeStrCpy( sv.configstrings[index], val, sizeof( sv.configstrings[index] ) );
-
-	if( sv.state != ss_loading ) {
-		SV_SendServerCommand( NULL, "cs %i \"%s\"", index, val );
-	}
-}
-
-const char *PF_GetConfigString( int index ) {
-	if( index < 0 || index >= MAX_CONFIGSTRINGS ) {
-		return NULL;
-	}
-
-	return sv.configstrings[ index ];
-}
-
 void SV_LocateEntities( edict_t *edicts, int num_edicts, int max_edicts ) {
 	sv.gi.edicts = edicts;
 	sv.gi.clients = svs.clients;

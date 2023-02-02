@@ -85,7 +85,8 @@ static void G_UpdateClientScoreboard( edict_t * ent ) {
 	const score_stats_t * stats = G_ClientGetStats( ent );
 	SyncScoreboardPlayer * player = &server_gs.gameState.players[ PLAYERNUM( ent ) ];
 
-	player->ping = ent->r.client->r.ping;
+	SafeStrCpy( player->name, ent->r.client->name, sizeof( player->name ) );
+	player->ping = svs.clients[ NUM_FOR_EDICT( ent ) - 1 ].ping;
 	player->score = stats->score;
 	player->kills = stats->kills;
 	player->ready = stats->ready;

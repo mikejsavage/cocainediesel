@@ -438,10 +438,10 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 			} else if( !who->r.client ) {
 				;   // wtf?
 			} else if( teamonly ) {
-				Com_Printf( "[%s] %s %s\n",
-						  who->r.client->ps.team == Team_None ? "SPEC" : "TEAM", who->r.client->netname, msg );
+				const char * channel = who->r.client->ps.team == Team_None ? "SPEC" : "TEAM";
+				Com_Printf( "[%s] %s %s\n", channel, who->r.client->name, msg );
 			} else {
-				Com_Printf( "%s: %s\n", who->r.client->netname, msg );
+				Com_Printf( "%s: %s\n", who->r.client->name, msg );
 			}
 		}
 
@@ -795,7 +795,7 @@ edict_t *G_PlayerForText( const char *text ) {
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * e = &game.edicts[ i + 1 ];
-		if( StrCaseEqual( e->r.client->netname, text ) ) {
+		if( StrCaseEqual( e->r.client->name, text ) ) {
 			return e;
 		}
 	}

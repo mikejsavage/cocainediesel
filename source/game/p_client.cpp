@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "qcommon/base.h"
+#include "qcommon/utf8.h"
 
 static void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, DamageType mod, bool wallbang ) {
 	TempAllocator temp = svs.frame_arena.temp();
@@ -31,13 +33,13 @@ static void ClientObituary( edict_t * self, edict_t * inflictor, edict_t * attac
 		if( attacker != self ) { // regular death message
 			self->enemy = attacker;
 			if( is_dedicated_server ) {
-				Com_GGPrint( "\"{}\" \"{}\" {} {}", self->r.client->netname, attacker->r.client->netname, damage_type.encoded, wallbang ? 1 : 0 );
+				Com_GGPrint( "\"{}\" \"{}\" {} {}", self->r.client->name, attacker->r.client->name, damage_type.encoded, wallbang ? 1 : 0 );
 			}
 		}
 		else {      // suicide
 			self->enemy = NULL;
 			if( is_dedicated_server ) {
-				Com_GGPrint( "\"{}\" suicide {}", self->r.client->netname, damage_type.encoded );
+				Com_GGPrint( "\"{}\" suicide {}", self->r.client->name, damage_type.encoded );
 			}
 
 			G_PositionedSound( self->s.origin, "sounds/trombone/sad" );
@@ -48,7 +50,7 @@ static void ClientObituary( edict_t * self, edict_t * inflictor, edict_t * attac
 	else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
 		if( is_dedicated_server ) {
-			Com_GGPrint( "\"{}\" suicide {}", self->r.client->netname, damage_type.encoded );
+			Com_GGPrint( "\"{}\" suicide {}", self->r.client->name, damage_type.encoded );
 		}
 
 		G_Obituary( self, attacker == self ? self : world, topAssistEntNo, damage_type, wallbang );
@@ -224,7 +226,7 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 
 			G_Teams_SetTeam( ent, Team_None );
 
-			G_PrintMsg( NULL, "%s has been moved to spectator after %.1f seconds of inactivity\n", client->netname, g_inactivity_maxtime->number );
+			G_PrintMsg( NULL, "%s has been moved to spectator after %.1f seconds of inactivity\n", ent->r.client->name, g_inactivity_maxtime->number );
 		}
 	}
 }
@@ -477,7 +479,7 @@ void ClientBegin( edict_t *ent ) {
 		G_Teams_JoinTeam( ent, Team_None );
 	}
 
-	G_PrintMsg( NULL, "%s entered the game\n", client->netname );
+	G_PrintMsg( NULL, "%s entered the game\n", ent->r.client->name );
 
 	GT_CallPlayerConnected( ent );
 
@@ -486,133 +488,91 @@ void ClientBegin( edict_t *ent ) {
 	G_ClientEndSnapFrame( ent ); // make sure all view stuff is valid
 }
 
-/*
-* strip_highchars
-* kill all chars with code >= 127
-* (127 is not exactly a highchar, but we drop it, too)
-*/
-static void strip_highchars( char *in ) {
-	char *out = in;
-	for( ; *in; in++ )
-		if( ( unsigned char )*in < 127 ) {
-			*out++ = *in;
-		}
-	*out = 0;
+static Span< const char > Trim( Span< const char > str ) {
+	while( str.n > 0 && str[ 0 ] == ' ' ) {
+		str++;
+	}
+
+	while( str.n > 0 && str[ str.n - 1 ] == ' ' ) {
+		str = str.slice( 0, str.n - 1 );
+	}
+
+	return str;
 }
 
-static int G_SanitizeUserString( char *string, size_t size ) {
-	// life is hard, UTF-8 will have to go
-	strip_highchars( string );
+static Optional< Span< const char > > ValidateAndTrimName( const char * name ) {
+	// limit names to ASCII with at least one non-space char
+	Span< const char > trimmed = Trim( MakeSpan( name ) );
 
-	Q_trim( string );
-
-	// require at least one non-whitespace ascii char in the string
-	// (this will upset people who would like to have a name entirely in a non-latin
-	// script, but it makes damn sure you can't get an empty name by exploiting some
-	// utf-8 decoder quirk)
-	int c_ascii = 0;
-	for( int i = 0; string[i]; i++ ) {
-		if( string[i] > 32 && string[i] < 127 ) {
-			c_ascii++;
-		}
+	u32 state = 0;
+	u32 c = 0;
+	u32 num_non_spaces = 0;
+	for( size_t i = 0; i < trimmed.n; i++ ) {
+		if( DecodeUTF8( &state, &c, trimmed[ i ] ) != 0 )
+			continue;
+		if( c < ' ' || c >= '~' )
+			return NONE;
+		if( c != ' ' )
+			num_non_spaces++;
 	}
 
-	return c_ascii;
+	return state == 0 && num_non_spaces > 0 ? MakeOptional( trimmed ) : NONE;
 }
 
-static void G_SetName( edict_t * ent, const char * original_name ) {
-	if( !ent->r.client ) {
-		return;
-	}
+template< typename T >
+T Default( const Optional< T > & opt, const T & def ) {
+	return opt.exists ? opt.value : def;
+}
 
-	if( original_name == NULL ) {
-		original_name = "";
-	}
-
-	char name[ MAX_NAME_CHARS + 1 ];
-	SafeStrCpy( name, original_name, sizeof( name ) );
-
-	int c_ascii = G_SanitizeUserString( name, sizeof( name ) );
-	if( !c_ascii ) {
-		SafeStrCpy( name, "Player", sizeof( name ) );
-	}
-
-	SafeStrCpy( ent->r.client->netname, name, sizeof( ent->r.client->netname ) );
+static void G_SetName( edict_t * ent, const char * name ) {
+	Span< const char > trimmed = Default( ValidateAndTrimName( name ), MakeSpan( "Player" ) );
+	ggformat( ent->r.client->name, sizeof( ent->r.client->name ), "{}", trimmed );
 
 	int trynum = 0;
 	while( trynum < MAX_CLIENTS ) {
-		bool ok = true;
-
+		bool is_duplicate = false;
 		for( int i = 0; i < server_gs.maxclients; i++ ) {
 			const edict_t * other = game.edicts + 1 + i;
 			if( !other->r.inuse || !other->r.client || other == ent )
 				continue;
 
-			if( !StrEqual( other->r.client->netname, ent->r.client->netname ) )
-				continue;
-
-			char suffix[ MAX_NAME_CHARS + 1 ];
-			snprintf( suffix, sizeof( suffix ), "(%i)", trynum + 2 );
-
-			Span< const char > prefix = MakeSpan( name );
-			prefix.n = Min2( MAX_NAME_CHARS - strlen( suffix ), prefix.n );
-
-			ggformat( ent->r.client->netname, sizeof( ent->r.client->netname ), "{}{}", prefix, suffix );
-
-			trynum++;
-			ok = false;
-			break;
+			if( StrEqual( other->r.client->name, ent->r.client->name ) ) {
+				is_duplicate = true;
+				break;
+			}
 		}
 
-		if( ok )
+		if( !is_duplicate )
 			break;
+
+		char suffix[ MAX_NAME_CHARS + 1 ];
+		snprintf( suffix, sizeof( suffix ), "(%i)", trynum + 2 );
+
+		Span< const char > prefix = trimmed.slice( 0, Min2( MAX_NAME_CHARS - strlen( suffix ), trimmed.n ) );
+		ggformat( ent->r.client->name, sizeof( ent->r.client->name ), "{}{}", prefix, suffix );
+
+		trynum++;
 	}
 }
 
-static void G_UpdatePlayerInfoString( int playerNum ) {
-	const gclient_t * client = &game.clients[ playerNum ];
-	PF_ConfigString( CS_PLAYERINFOS + playerNum, client->netname );
-}
-
-/*
-* ClientUserinfoChanged
-* called whenever the player updates a userinfo variable.
-*
-* The game can override any of the settings in place
-* (forcing skins or names, etc) before copying it off.
-*/
-void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
-	char oldname[MAX_INFO_VALUE];
-	gclient_t *cl;
-
+void ClientUserinfoChanged( edict_t * ent, const char * userinfo ) {
 	Assert( ent && ent->r.client );
 	Assert( userinfo && Info_Validate( userinfo ) );
 
-	// check for malformed or illegal info strings
 	if( !Info_Validate( userinfo ) ) {
 		PF_DropClient( ent, "Error: Invalid userinfo" );
 		return;
 	}
 
-	cl = ent->r.client;
-
-	// set name, it's validated and possibly changed first
-	SafeStrCpy( oldname, cl->netname, sizeof( oldname ) );
+	char oldname[ MAX_NAME_CHARS + 1 ];
+	SafeStrCpy( oldname, ent->r.client->name, sizeof( oldname ) );
 	G_SetName( ent, Info_ValueForKey( userinfo, "name" ) );
-	if( oldname[0] && !StrCaseEqual( oldname, cl->netname ) && !CheckFlood( ent, false ) ) {
-		G_PrintMsg( NULL, "%s is now known as %s\n", oldname, cl->netname );
-	}
-	if( !Info_SetValueForKey( userinfo, "name", cl->netname ) ) {
-		PF_DropClient( ent, "Error: Couldn't set userinfo (name)" );
-		return;
+	if( !StrEqual( oldname, "" ) && !StrCaseEqual( oldname, ent->r.client->name ) && !CheckFlood( ent, false ) ) {
+		G_PrintMsg( NULL, "%s is now known as %s\n", oldname, ent->r.client->name );
 	}
 
-	// save off the userinfo in case we want to check something later
-	SafeStrCpy( cl->userinfo, userinfo, sizeof( cl->userinfo ) );
-
-	G_UpdatePlayerInfoString( PLAYERNUM( ent ) );
+	SafeStrCpy( ent->r.client->userinfo, userinfo, sizeof( ent->r.client->userinfo ) );
 }
-
 
 /*
 * ClientConnect
@@ -661,11 +621,11 @@ bool ClientConnect( edict_t *ent, char *userinfo, const NetAddress & address, bo
 	if( !fakeClient ) {
 		char message[MAX_STRING_CHARS];
 
-		snprintf( message, sizeof( message ), "%s connected", ent->r.client->netname );
+		snprintf( message, sizeof( message ), "%s connected", ent->r.client->name );
 
 		G_PrintMsg( NULL, "%s\n", message );
 
-		Com_GGPrint( "{} connected from {}", ent->r.client->netname, address );
+		Com_GGPrint( "{} connected from {}", ent->r.client->name, address );
 	}
 
 	G_CallVotes_ResetClient( PLAYERNUM( ent ) );
@@ -684,10 +644,10 @@ void ClientDisconnect( edict_t * ent, const char * reason ) {
 	}
 
 	if( reason == NULL ) {
-		G_PrintMsg( NULL, "%s disconnected\n", ent->r.client->netname );
+		G_PrintMsg( NULL, "%s disconnected\n", ent->r.client->name );
 	}
 	else {
-		G_PrintMsg( NULL, "%s disconnected (%s)\n", ent->r.client->netname, reason );
+		G_PrintMsg( NULL, "%s disconnected (%s)\n", ent->r.client->name, reason );
 	}
 
 	if( ent->s.type == ET_PLAYER ) {
@@ -700,7 +660,6 @@ void ClientDisconnect( edict_t * ent, const char * reason ) {
 	memset( ent->r.client, 0, sizeof( *ent->r.client ) );
 	ent->r.client->ps.playerNum = PLAYERNUM( ent );
 
-	PF_ConfigString( CS_PLAYERINFOS + PLAYERNUM( ent ), "" );
 	GClip_UnlinkEntity( ent );
 
 	G_Match_CheckReadys();

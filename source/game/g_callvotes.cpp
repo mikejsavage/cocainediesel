@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/maplist.h"
 #include "qcommon/string.h"
 
+static constexpr size_t MAX_CONFIGSTRING_CHARS = 64; // TODO: figure this out properly. max map name length too
+
 static Optional< bool > clientVote[MAX_CLIENTS];
 static s64 lastclientVote[MAX_CLIENTS];
 
@@ -71,7 +73,7 @@ static void ListPlayersExcept( edict_t * ent, String< MAX_STRING_CHARS > * msg, 
 			continue;
 		if( !include_specs && e->s.team == Team_None )
 			continue;
-		msg->append( "\n{}: {}", i, e->r.client->netname );
+		msg->append( "\n{}: {}", i, e->r.client->name );
 	}
 }
 
@@ -208,7 +210,7 @@ static bool G_VoteSpectateValidate( callvotedata_t *vote, bool first ) {
 			return false;
 		} else if( tokick->s.team == Team_None ) {
 			G_PrintMsg( vote->caller, "Player %s%s%s is already spectator.\n", S_COLOR_WHITE,
-						tokick->r.client->netname, S_COLOR_RED );
+						tokick->r.client->name, S_COLOR_RED );
 
 			return false;
 		} else {
@@ -223,7 +225,7 @@ static bool G_VoteSpectateValidate( callvotedata_t *vote, bool first ) {
 		return false;
 	}
 
-	vote->string.format( "{}", game.edicts[who + 1].r.client->netname );
+	vote->string.format( "{}", game.edicts[who + 1].r.client->name );
 	return true;
 }
 
@@ -235,7 +237,7 @@ static void G_VoteSpectatePassed( callvotedata_t *vote ) {
 		return;
 	}
 
-	G_PrintMsg( NULL, "%s moved to spectator.\n", ent->r.client->netname );
+	G_PrintMsg( NULL, "%s moved to spectator.\n", ent->r.client->name );
 
 	G_Teams_SetTeam( ent, Team_None );
 }
@@ -276,7 +278,7 @@ static bool G_VoteKickValidate( callvotedata_t *vote, bool first ) {
 	if( !game.edicts[who + 1].r.inuse )
 		return false;
 
-	vote->string.format( "{}", game.edicts[who + 1].r.client->netname );
+	vote->string.format( "{}", game.edicts[who + 1].r.client->name );
 	return true;
 }
 
@@ -493,21 +495,13 @@ static const char *G_CallVotes_ArgsToString( const callvotedata_t *vote ) {
 }
 
 static const char *G_CallVotes_Arguments( const callvotedata_t *vote ) {
-	const char *arguments;
-	if( vote->string.length() > 0 ) {
-		arguments = vote->string.c_str();
-	} else {
-		arguments = G_CallVotes_ArgsToString( vote );
-	}
-	return arguments;
+	return vote->string.length() > 0 ? vote->string.c_str() : G_CallVotes_ArgsToString( vote );
 }
 
 static const char *G_CallVotes_String( const callvotedata_t *vote ) {
-	const char *arguments;
-	static char string[MAX_CONFIGSTRING_CHARS];
-
-	arguments = G_CallVotes_Arguments( vote );
-	if( arguments[0] ) {
+	static char string[ MAX_CONFIGSTRING_CHARS ];
+	const char * arguments = G_CallVotes_Arguments( vote );
+	if( !StrEqual( arguments, "" ) ) {
 		snprintf( string, sizeof( string ), "%s %s", vote->callvote->name, arguments );
 		return string;
 	}
@@ -713,7 +707,7 @@ void G_CallVote_Cmd( edict_t *ent, msg_t args ) {
 	SafeStrCpy( server_gs.gameState.callvote, G_CallVotes_String( &callvoteState.vote ), sizeof( server_gs.gameState.callvote ) );
 
 	G_PrintMsg( NULL, "%s" S_COLOR_WHITE " requested to vote " S_COLOR_YELLOW "%s\n",
-				ent->r.client->netname, G_CallVotes_String( &callvoteState.vote ) );
+				ent->r.client->name, G_CallVotes_String( &callvoteState.vote ) );
 
 	G_CallVotes_Think(); // make the first think
 }

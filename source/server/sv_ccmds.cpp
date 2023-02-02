@@ -85,11 +85,10 @@ void SV_Status_f() {
 		} else if( cl->state == CS_CONNECTING ) {
 			Com_Printf( "AWAI " );
 		} else {
-			int ping = cl->ping < 9999 ? cl->ping : 9999;
-			Com_Printf( "%4i ", ping );
+			Com_Printf( "%4i ", Min2( cl->ping, 9999 ) );
 		}
 
-		Com_Printf( "%-32s", cl->name );
+		Com_Printf( "%-32s", cl->edict->r.client->name );
 		Com_Printf( "%7i ", (int)(svs.realtime - cl->lastPacketReceivedTime) );
 		Com_GGPrintNL( "{-22}", cl->netchan.remoteAddress );
 		Com_GGPrint( "{16x}", cl->netchan.session_id );

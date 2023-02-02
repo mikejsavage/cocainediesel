@@ -85,8 +85,6 @@ static void SV_CalcPings() {
 		else {
 			cl->ping = ( best + ( total / count ) ) * 0.5f;
 		}
-		// let the game dll know about the ping
-		cl->edict->r.client->r.ping = cl->ping;
 	}
 }
 
@@ -197,35 +195,6 @@ static void SV_CheckTimeouts() {
 	}
 }
 
-/*
-* SV_CheckLatchedUserinfoChanges
-*
-* To prevent flooding other players, consecutive userinfo updates are delayed,
-* and only the last one is applied.
-* Applies latched userinfo updates if the timeout is over.
-*/
-static void SV_CheckLatchedUserinfoChanges() {
-	TracyZoneScoped;
-
-	client_t *cl;
-	int i;
-	Time time = Now();
-
-	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
-		if( cl->state == CS_FREE || cl->state == CS_ZOMBIE ) {
-			continue;
-		}
-
-		if( cl->userinfoLatched[0] && cl->userinfoLatchTimeout <= time ) {
-			SafeStrCpy( cl->userinfo, cl->userinfoLatched, sizeof( cl->userinfo ) );
-
-			cl->userinfoLatched[0] = '\0';
-
-			SV_UserinfoChanged( cl );
-		}
-	}
-}
-
 #define WORLDFRAMETIME 16 // 62.5fps
 static bool SV_RunGameFrame( int msec ) {
 	TracyZoneScoped;
@@ -329,9 +298,6 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 	// get packets from clients
 	SV_ReadPackets();
 
-	// apply latched userinfo changes
-	SV_CheckLatchedUserinfoChanges();
-
 	// let everything in the world think and move
 	if( SV_RunGameFrame( gamemsec ) ) {
 		// send messages back to the clients that had packets read this frame
@@ -349,33 +315,6 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 }
 
 //============================================================================
-
-/*
-* SV_UserinfoChanged
-*
-* Pull specific info from a newly changed userinfo string
-* into a more C friendly form.
-*/
-void SV_UserinfoChanged( client_t *client ) {
-	Assert( client );
-	Assert( Info_Validate( client->userinfo ) );
-
-	// call prog code to allow overrides
-	ClientUserinfoChanged( client->edict, client->userinfo );
-
-	if( !Info_Validate( client->userinfo ) ) {
-		SV_DropClient( client, "%s", "Error: Invalid userinfo (after game)" );
-		return;
-	}
-
-	// we assume that game module deals with setting a correct name
-	char * val = Info_ValueForKey( client->userinfo, "name" );
-	if( !val || !val[0] ) {
-		SV_DropClient( client, "%s", "Error: No name set" );
-		return;
-	}
-	SafeStrCpy( client->name, val, sizeof( client->name ) );
-}
 
 void SV_Init() {
 	TracyZoneScoped;

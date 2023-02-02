@@ -466,7 +466,7 @@ static void BombDefused() {
 	bomb_state.bomb.state = BombState_Defused;
 
 	TempAllocator temp = svs.frame_arena.temp();
-	G_PrintMsg( NULL, "%s defused the bomb!\n", PLAYERENT( bomb_state.defuser )->r.client->netname );
+	G_PrintMsg( NULL, "%s defused the bomb!\n", PLAYERENT( bomb_state.defuser )->r.client->name );
 
 	G_Sound( bomb_state.bomb.model, "models/bomb/tss" );
 

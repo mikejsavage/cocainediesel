@@ -118,8 +118,7 @@ static void CL_ParseServerData( msg_t *msg ) {
 		cls.download_url = CopyString( sys_allocator, temp( "http://{}", cls.serveraddress ) );
 	}
 
-	// get the configstrings request
-	msg_t * args = CL_AddReliableCommand( ClientCommand_ConfigStrings );
+	msg_t * args = CL_AddReliableCommand( ClientCommand_Baselines );
 	MSG_WriteInt32( args, cl.servercount );
 	MSG_WriteUint32( args, 0 );
 }
@@ -164,24 +163,6 @@ static void CL_ParseFrame( msg_t *msg ) {
 	}
 }
 
-static void CL_UpdateConfigString( int idx, const char *s ) {
-	if( cl_debug_serverCmd->integer && ( cls.state >= CA_ACTIVE || CL_DemoPlaying() ) ) {
-		Com_Printf( "CL_ParseConfigstringCommand(%i): \"%s\"\n", idx, s );
-	}
-
-	if( idx < 0 || idx >= MAX_CONFIGSTRINGS ) {
-		Com_Error( "configstring > MAX_CONFIGSTRINGS" );
-	}
-
-	// wsw : jal : warn if configstring overflow
-	if( strlen( s ) >= MAX_CONFIGSTRING_CHARS ) {
-		Com_Printf( "%sWARNING:%s Configstring %i overflowed\n", S_COLOR_YELLOW, S_COLOR_WHITE, idx );
-		Com_Printf( "%s%s\n", S_COLOR_WHITE, s );
-	}
-
-	SafeStrCpy( cl.configstrings[idx], s, sizeof( cl.configstrings[idx] ) );
-}
-
 static void CL_RequestMore( ClientCommandType command ) {
 	if( CL_DemoPlaying() ) {
 		return;
@@ -201,28 +182,6 @@ static void CL_RequestMoreBaselines() {
 	CL_RequestMore( ClientCommand_Baselines );
 }
 
-static void CL_RequestMoreConfigstrings() {
-	CL_RequestMore( ClientCommand_ConfigStrings );
-}
-
-static void CL_ParseConfigstringCommand() {
-	int i, argc, idx;
-	const char *s;
-
-	if( Cmd_Argc() < 3 ) {
-		return;
-	}
-
-	// ch : configstrings may come batched now, so lets loop through them
-	argc = Cmd_Argc();
-	for( i = 1; i < argc - 1; i += 2 ) {
-		idx = atoi( Cmd_Argv( i ) );
-		s = Cmd_Argv( i + 1 );
-
-		CL_UpdateConfigString( idx, s );
-	}
-}
-
 typedef struct {
 	const char *name;
 	void ( *func )();
@@ -234,8 +193,6 @@ static svcmd_t svcmds[] = {
 	{ "changing", CL_Changing_f },
 	{ "precache", CL_Precache_f },
 	{ "baselines", CL_RequestMoreBaselines },
-	{ "configstrings", CL_RequestMoreConfigstrings },
-	{ "cs", CL_ParseConfigstringCommand },
 	{ "disconnect", CL_ServerDisconnect_f },
 
 	{ NULL, NULL }
@@ -318,7 +275,7 @@ void CL_ParseServerMessage( msg_t *msg ) {
 				CL_ParseServerCommand( msg );
 			} break;
 
-			case svc_servercs: // configstrings from demo files. they don't have acknowledge
+			case svc_unreliable:
 				CL_ParseServerCommand( msg );
 				break;
 

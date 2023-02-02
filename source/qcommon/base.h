@@ -70,6 +70,15 @@ Span< T > StaticSpan( T ( &arr )[ N ] ) {
 }
 
 /*
+ * Optional
+ */
+
+template< typename T >
+Optional< T > MakeOptional( const T & x ) {
+	return x;
+}
+
+/*
  * debug stuff
  */
 

@@ -162,7 +162,7 @@ static char *SV_LongInfoString( bool fullStatus ) {
 			cl = &svs.clients[i];
 			if( cl->state >= CS_CONNECTED ) {
 				snprintf( tempstr, sizeof( tempstr ), "%i %i \"%s\" %i\n",
-							 cl->edict->r.client->r.frags, cl->ping, cl->name, cl->edict->s.team );
+					cl->edict->r.client->r.frags, cl->ping, cl->edict->r.client->name, cl->edict->s.team );
 				tempstrLength = strlen( tempstr );
 				if( statusLength + tempstrLength >= sizeof( status ) ) {
 					break; // can't hold any more

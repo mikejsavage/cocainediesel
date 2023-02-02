@@ -80,7 +80,7 @@ struct level_locals_t {
 	int64_t spawnedTimeStamp; // time when map was restarted
 	int64_t finalMatchDuration;
 
-	char callvote_map[MAX_CONFIGSTRING_CHARS];
+	char callvote_map[128];
 	char autorecord_name[128];
 
 	bool canSpawnEntities; // security check to prevent entities being spawned before map entities
@@ -389,7 +389,7 @@ void G_EndServerFrames_UpdateChaseCam();
 //
 // g_client.c
 //
-void ClientUserinfoChanged( edict_t * ent, char *userinfo );
+void ClientUserinfoChanged( edict_t * ent, const char * userinfo );
 void G_Client_UpdateActivity( gclient_t *client );
 void G_Client_InactivityRemove( gclient_t *client );
 void G_ClientRespawn( edict_t *self, bool ghost );
@@ -593,12 +593,8 @@ struct gclient_t {
 	client_levelreset_t level;
 	client_teamreset_t teamstate;
 
-	//short ucmd_angles[3]; // last ucmd angles
-
-	// persistent info along all the time the client is connected
-
-	char userinfo[MAX_INFO_STRING];
-	char netname[MAX_NAME_CHARS + 1];
+	char userinfo[ MAX_INFO_STRING ];
+	char name[ MAX_NAME_CHARS + 1 ];
 
 	bool connecting;
 

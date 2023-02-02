@@ -43,9 +43,8 @@ struct server_t {
 	int64_t nextSnapTime;              // always sv.framenum * svc.snapFrameTime msec
 	int64_t framenum;
 
-	char mapname[MAX_CONFIGSTRING_CHARS];               // map name
+	char mapname[128];               // map name
 
-	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	SyncEntityState baselines[MAX_EDICTS];
 
 	//
@@ -81,10 +80,6 @@ struct game_command_t {
 struct client_t {
 	sv_client_state_t state;
 
-	char userinfo[MAX_INFO_STRING];         // name, etc
-	char userinfoLatched[MAX_INFO_STRING];  // flood prevention - actual userinfo updates are delayed
-	Time userinfoLatchTimeout;
-
 	bool mv;                        // send multiview data to the client
 
 	char reliableCommands[MAX_RELIABLE_COMMANDS][MAX_STRING_CHARS];
@@ -114,7 +109,6 @@ struct client_t {
 	int frame_latency[LATENCY_COUNTS];
 	int ping;
 	edict_t *edict;                 // EDICT_NUM(clientnum+1)
-	char name[MAX_INFO_VALUE];      // extracted from userinfo, high bits masked
 
 	client_snapshot_t snapShots[UPDATE_BACKUP]; // updates can be delta'd from here
 
@@ -218,9 +212,6 @@ void SV_WriteClientdataToMessage( client_t *client, msg_t *msg );
 void SV_InitOperatorCommands();
 void SV_ShutdownOperatorCommands();
 
-void SV_SendServerinfo( client_t *client );
-void SV_UserinfoChanged( client_t *cl );
-
 void SV_MasterHeartbeat();
 
 int SVC_FakeConnect( char * userinfo );
@@ -294,8 +285,6 @@ void SV_BuildClientFrameSnap( client_t *client );
 void PF_DropClient( edict_t *ent, const char *message );
 int PF_GetClientState( int numClient );
 void PF_GameCmd( edict_t *ent, const char *cmd );
-void PF_ConfigString( int index, const char *val );
-const char *PF_GetConfigString( int index );
 void SV_LocateEntities( edict_t *edicts, int num_edicts, int max_edicts );
 
 //

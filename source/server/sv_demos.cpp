@@ -134,7 +134,7 @@ void SV_Demo_Start_f() {
 
 	Com_Printf( "Recording server demo: %s\n", filename );
 
-	bool recording = StartRecordingDemo( &temp, &record_demo_context, filename, svs.spawncount, svc.snapFrameTime, server_gs.maxclients, sv.configstrings[ 0 ], sv.baselines );
+	bool recording = StartRecordingDemo( &temp, &record_demo_context, filename, svs.spawncount, svc.snapFrameTime, server_gs.maxclients, sv.baselines );
 	if( !recording )
 		return;
 

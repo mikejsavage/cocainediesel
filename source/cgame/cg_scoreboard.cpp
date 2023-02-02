@@ -14,7 +14,7 @@ bool CG_ScoreboardShown() {
 
 static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float line_height, Gametype gt ) {
 	bool bomb_gt = gt == Gametype_Bomb;
-	SyncScoreboardPlayer * player = &client_gs.gameState.players[ playerIndex - 1 ];
+	const SyncScoreboardPlayer * player = &client_gs.gameState.players[ playerIndex - 1 ];
 
 	// icon
 	bool warmup = client_gs.gameState.match_state == MatchState_Warmup || client_gs.gameState.match_state == MatchState_Countdown;
@@ -45,7 +45,7 @@ static void DrawPlayerScoreboard( TempAllocator & temp, int playerIndex, float l
 
 	// player name
 	u8 alpha = player->alive ? 255 : 75;
-	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), PlayerName( playerIndex - 1 ) );
+	DynamicString final_name( &temp, "{}{}", ImGuiColorToken( 0, 0, 0, alpha ), player->name );
 	ImGui::AlignTextToFramePadding();
 	ImGui::Text( "%s", final_name.c_str() );
 	ImGui::NextColumn();

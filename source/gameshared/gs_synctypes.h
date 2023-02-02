@@ -250,6 +250,7 @@ enum Team : u8 {
 };
 
 struct SyncScoreboardPlayer {
+	char name[ MAX_NAME_CHARS + 1 ];
 	int ping;
 	int score;
 	int kills;
@@ -468,7 +469,6 @@ struct UserCommand {
 
 enum ClientCommandType : u8 {
 	ClientCommand_New,
-	ClientCommand_ConfigStrings,
 	ClientCommand_Baselines,
 	ClientCommand_Begin,
 	ClientCommand_Disconnect,

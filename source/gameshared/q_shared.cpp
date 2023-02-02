@@ -373,25 +373,6 @@ void SafeStrCat( char * dst, const char * src, size_t dst_size ) {
 	dst[ dst_len + to_copy ] = '\0';
 }
 
-#define IS_TRIMMED_CHAR( s ) ( ( s ) == ' ' || ( s ) == '\t' || ( s ) == '\r' || ( s ) == '\n' )
-char *Q_trim( char *s ) {
-	char *t = s;
-	size_t len;
-
-	// remove leading whitespace
-	while( IS_TRIMMED_CHAR( *t ) ) t++;
-	len = strlen( s ) - ( t - s );
-	if( s != t ) {
-		memmove( s, t, len + 1 );
-	}
-
-	// remove trailing whitespace
-	while( len && IS_TRIMMED_CHAR( s[len - 1] ) )
-		s[--len] = '\0';
-
-	return s;
-}
-
 void RemoveTrailingZeroesFloat( char * str ) {
 	size_t len = strlen( str );
 	if( len == 0 )

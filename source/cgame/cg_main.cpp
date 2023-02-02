@@ -104,8 +104,7 @@ const char * PlayerName( int i ) {
 		return "";
 	}
 
-	Span< const char[ MAX_CONFIGSTRING_CHARS ] > names( cl.configstrings + CS_PLAYERINFOS, client_gs.maxclients );
-	return names[ i ];
+	return client_gs.gameState.players[ i ].name;
 }
 
 void CG_Reset() {

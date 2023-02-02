@@ -470,7 +470,7 @@ void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out ) {
 		}
 		src = CM_ClusterPVS( cms, leafs[i] );
 		for( j = 0; j < longs; j++ )
-			align_cast< int * >( out )[j] |= align_cast< const int * >( src )[ j ];
+			align_cast< int >( out )[j] |= align_cast< const int >( src )[ j ];
 	}
 }
 

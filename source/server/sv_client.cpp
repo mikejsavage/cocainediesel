@@ -28,8 +28,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //
 //============================================================================
 
-constexpr Time USERINFO_UPDATE_RATE_LIMIT = Seconds( 2 );
-
 void SV_ClientResetCommandBuffers( client_t *client ) {
 	// reset the reliable commands buffer
 	client->clientCommandExecuted = 0;
@@ -78,10 +76,7 @@ bool SV_ClientConnect( const NetAddress & address, client_t * client, char * use
 		Netchan_Setup( &client->netchan, address, session_id );
 	}
 
-	// parse some info from the info strings
-	client->userinfoLatchTimeout = Now() + USERINFO_UPDATE_RATE_LIMIT;
-	SafeStrCpy( client->userinfo, userinfo, sizeof( client->userinfo ) );
-	SV_UserinfoChanged( client );
+	ClientUserinfoChanged( client->edict, userinfo );
 
 	return true;
 }
@@ -124,16 +119,12 @@ void SV_DropClient( client_t *drop, const char *format, ... ) {
 			// call the prog function for removing a client
 			// this will remove the body, among other things
 			ClientDisconnect( drop->edict, reason );
-		} else if( drop->name[0] ) {
-			Com_Printf( "Connecting client %s%s disconnected (%s%s)\n", drop->name, S_COLOR_WHITE, reason,
-						S_COLOR_WHITE );
 		}
 	}
 
 	SNAP_FreeClientFrames( drop );
 
 	drop->state = CS_ZOMBIE;    // become free in a few seconds
-	drop->name[0] = 0;
 }
 
 
@@ -186,47 +177,15 @@ static void SV_New_f( client_t *client, msg_t args ) {
 	SV_SendMessageToClient( client, &tmpMessage );
 	Netchan_PushAllFragments( svs.socket, &client->netchan );
 
-	// don't let it send reliable commands until we get the first configstring request
+	// don't let it send reliable commands until we get the first baseline request
 	client->state = CS_CONNECTING;
 }
 
-static void SV_Configstrings_f( client_t *client, msg_t args ) {
+static void SV_Baselines_f( client_t *client, msg_t args ) {
 	if( client->state == CS_CONNECTING ) {
 		client->state = CS_CONNECTED;
 	}
 
-	if( client->state != CS_CONNECTED ) {
-		Com_Printf( "configstrings not valid -- already spawned\n" );
-		return;
-	}
-
-	// handle the case of a level changing while a client was connecting
-	if( MSG_ReadInt32( &args ) != svs.spawncount ) {
-		Com_Printf( "SV_Configstrings_f from different level\n" );
-		SV_SendServerCommand( client, "reconnect" );
-		return;
-	}
-
-	u32 start = MSG_ReadUint32( &args );
-
-	// write a packet full of data
-	while( start < MAX_CONFIGSTRINGS &&
-		   client->reliableSequence - client->reliableAcknowledge < MAX_RELIABLE_COMMANDS - 8 ) {
-		if( sv.configstrings[start][0] ) {
-			SV_SendServerCommand( client, "cs %i \"%s\"", start, sv.configstrings[start] );
-		}
-		start++;
-	}
-
-	// send next command
-	if( start == MAX_CONFIGSTRINGS ) {
-		SV_SendServerCommand( client, "baselines %i 0", svs.spawncount );
-	} else {
-		SV_SendServerCommand( client, "configstrings %i %i", svs.spawncount, start );
-	}
-}
-
-static void SV_Baselines_f( client_t *client, msg_t args ) {
 	if( client->state != CS_CONNECTED ) {
 		Com_Printf( "baselines not valid -- already spawned\n" );
 		return;
@@ -270,9 +229,6 @@ static void SV_Baselines_f( client_t *client, msg_t args ) {
 static void SV_Begin_f( client_t *client, msg_t args ) {
 	// wsw : r1q2[start] : could be abused to respawn or cause spam/other mod-specific problems
 	if( client->state != CS_CONNECTED ) {
-		if( is_dedicated_server ) {
-			Com_Printf( "SV_Begin_f: 'Begin' from already spawned client: %s.\n", client->name );
-		}
 		SV_DropClient( client, "Error: Begin while connected" );
 		return;
 	}
@@ -298,24 +254,8 @@ static void SV_Disconnect_f( client_t *client, msg_t args ) {
 	SV_DropClient( client, NULL );
 }
 
-static void SV_UserinfoCommand_f( client_t *client, msg_t args ) {
-	const char * info = MSG_ReadString( &args );
-	if( !Info_Validate( info ) ) {
-		SV_DropClient( client, "%s", "Error: Invalid userinfo" );
-		return;
-	}
-
-	Time time = Now();
-	if( client->userinfoLatchTimeout > time ) {
-		SafeStrCpy( client->userinfoLatched, info, sizeof( client->userinfo ) );
-	} else {
-		SafeStrCpy( client->userinfo, info, sizeof( client->userinfo ) );
-
-		client->userinfoLatched[0] = '\0';
-		client->userinfoLatchTimeout = time + USERINFO_UPDATE_RATE_LIMIT;
-
-		SV_UserinfoChanged( client );
-	}
+static void SV_UserinfoCommand_f( client_t * client, msg_t args ) {
+	ClientUserinfoChanged( client->edict, MSG_ReadString( &args ) );
 }
 
 static void SV_NoDelta_f( client_t *client, msg_t args ) {
@@ -329,7 +269,6 @@ static const struct {
 	void ( *callback )( client_t * client, msg_t args );
 } ucmds[] = {
 	{ ClientCommand_New, SV_New_f },
-	{ ClientCommand_ConfigStrings, SV_Configstrings_f },
 	{ ClientCommand_Baselines, SV_Baselines_f },
 	{ ClientCommand_Begin, SV_Begin_f },
 	{ ClientCommand_Disconnect, SV_Disconnect_f },

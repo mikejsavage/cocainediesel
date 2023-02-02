@@ -98,7 +98,7 @@ static void CheckedZstdSetParameter( ZSTD_CStream * zstd, ZSTD_cParameter parame
 
 bool StartRecordingDemo(
 	TempAllocator * temp, RecordDemoContext * ctx, const char * filename, unsigned int spawncount, unsigned int snapFrameTime,
-	int max_clients, const char * configstrings, SyncEntityState * baselines
+	int max_clients, const SyncEntityState * baselines
 ) {
 	*ctx = { };
 
@@ -148,17 +148,6 @@ bool StartRecordingDemo(
 	MSG_WriteString( &msg, filename ); // server name
 	MSG_WriteString( &msg, "" ); // download url
 
-	// config strings
-	for( int i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
-		const char *configstring = configstrings + i * MAX_CONFIGSTRING_CHARS;
-		if( configstring[0] ) {
-			MSG_WriteUint8( &msg, svc_servercs );
-			MSG_WriteString( &msg, ( *temp )( "cs {} \"{}\"", i, configstring ) );
-
-			MaybeWriteDemoMessage( ctx, &msg, false );
-		}
-	}
-
 	// baselines
 	SyncEntityState nullstate;
 	memset( &nullstate, 0, sizeof( nullstate ) );
@@ -176,7 +165,7 @@ bool StartRecordingDemo(
 	// client expects the server data to be in a separate packet
 	MaybeWriteDemoMessage( ctx, &msg, true );
 
-	MSG_WriteUint8( &msg, svc_servercs );
+	MSG_WriteUint8( &msg, svc_unreliable );
 	MSG_WriteString( &msg, "precache" );
 
 	MaybeWriteDemoMessage( ctx, &msg, true );

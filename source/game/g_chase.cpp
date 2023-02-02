@@ -236,7 +236,7 @@ void Cmd_Spectate( edict_t * ent ) {
 	if( ent->s.team != Team_None ) {
 		G_Teams_JoinTeam( ent, Team_None );
 		if( !CheckFlood( ent, false ) ) { // prevent 'joined spectators' spam
-			G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
+			G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->name, GS_TeamName( ent->s.team ) );
 		}
 	}
 }

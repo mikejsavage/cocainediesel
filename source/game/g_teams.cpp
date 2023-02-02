@@ -35,11 +35,8 @@ static bool G_Teams_CompareMembers( int a, int b ) {
 	edict_t * edict_a = game.edicts + a;
 	edict_t * edict_b = game.edicts + b;
 	int result = G_ClientGetStats( edict_a )->score - G_ClientGetStats( edict_b )->score;
-	if( !result ) {
-		result = strcmp( edict_a->r.client->netname, edict_b->r.client->netname );
-	}
-	if( !result ) {
-		result = ENTNUM( edict_a ) - ENTNUM( edict_b );
+	if( result == 0 ) {
+		result = strcmp( edict_a->r.client->name, edict_b->r.client->name );
 	}
 	return result > 0;
 }
@@ -231,7 +228,7 @@ bool G_Teams_JoinAnyTeam( edict_t *ent, bool silent ) {
 
 	if( G_Teams_JoinTeam( ent, best_team ) ) {
 		if( !silent ) {
-			G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
+			G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->name, GS_TeamName( ent->s.team ) );
 		}
 		return true;
 	}
@@ -265,7 +262,7 @@ void G_Teams_Join_Cmd( edict_t * ent, msg_t args ) {
 		return;
 	}
 	if( G_Teams_JoinTeam( ent, team ) ) {
-		G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->netname, GS_TeamName( ent->s.team ) );
+		G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->name, GS_TeamName( ent->s.team ) );
 		return;
 	}
 }

@@ -85,8 +85,6 @@ struct client_state_t {
 	int servercount;        // server identification for prespawns
 	int max_clients;
 	int playernum;
-
-	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 };
 
 extern client_state_t cl;

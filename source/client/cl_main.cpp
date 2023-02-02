@@ -166,8 +166,6 @@ void CL_Connect( const NetAddress & address ) {
 
 	cls.serveraddress = address;
 
-	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
-
 	CL_SetClientState( CA_CONNECTING );
 
 	cls.connect_time = NONE; // CL_CheckForResend() will fire immediately
@@ -315,8 +313,6 @@ void CL_Disconnect_f() {
 void CL_Changing_f() {
 	CL_StopRecording( true );
 
-	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
-
 	// ignore snapshots from previous connection
 	cl.pendingSnapNum = cl.currentSnapNum = cl.receivedSnapNum = 0;
 
@@ -352,7 +348,6 @@ void CL_ServerReconnect_f() {
 
 	cls.connect_time = cls.monotonicTime;
 
-	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 	CL_SetClientState( CA_HANDSHAKE );
 	CL_AddReliableCommand( ClientCommand_New );
 }
@@ -419,7 +414,6 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 		cls.rejected = false;
 
 		Netchan_Setup( &cls.netchan, address, cls.session_id );
-		memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 		CL_SetClientState( CA_HANDSHAKE );
 		CL_AddReliableCommand( ClientCommand_New );
 		return;

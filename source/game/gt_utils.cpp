@@ -15,7 +15,6 @@ void ShowShop( edict_t * ent, msg_t m ) {
 	PF_GameCmd( ent, temp( "changeloadout {}", loadout ) );
 }
 
-
 void GiveInventory( edict_t * ent ) {
 	ClearInventory( &ent->r.client->ps );
 

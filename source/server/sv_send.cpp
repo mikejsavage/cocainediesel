@@ -54,9 +54,6 @@ void SV_AddGameCommand( client_t *client, const char *cmd ) {
 * not have future snapshot_t executed before it is executed
 */
 void SV_AddServerCommand( client_t *client, const char *cmd ) {
-	int index;
-	unsigned int i;
-
 	if( !client ) {
 		return;
 	}
@@ -69,27 +66,6 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 		return;
 	}
 
-	// ch : To avoid overflow of messages from excessive amount of configstrings
-	// we batch them here. On incoming "cs" command, we'll trackback the queue
-	// to find a pending "cs" command that has space in it. If we'll find one,
-	// we'll batch this there, if not, we'll create a new one.
-	if( StrEqual( cmd, "cs " ) ) {
-		// length of the index/value (leave room for one space and null char)
-		size_t len = strlen( cmd ) - 1;
-		for( i = client->reliableSequence; i > client->reliableSent; i-- ) {
-			char * otherCmd = client->reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )];
-			if( StrEqual( otherCmd, "cs " ) ) {
-				size_t otherLen = strlen( otherCmd );
-				// is there any room? (should check for sizeof client->reliableCommands[0]?)
-				if( ( otherLen + len ) < MAX_STRING_CHARS ) {
-					// yahoo, put it in here
-					SafeStrCat( otherCmd, cmd + 2, MAX_STRING_CHARS - 1 );
-					return;
-				}
-			}
-		}
-	}
-
 	client->reliableSequence++;
 	// if we would be losing an old command that hasn't been acknowledged, we must drop the connection
 	// we check == instead of >= so a broadcast print added by SV_DropClient() doesn't cause a recursive drop client
@@ -97,7 +73,7 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 		SV_DropClient( client, "%s", "Error: Server command overflow" );
 		return;
 	}
-	index = client->reliableSequence & ( MAX_RELIABLE_COMMANDS - 1 );
+	int index = client->reliableSequence & ( MAX_RELIABLE_COMMANDS - 1 );
 	SafeStrCpy( client->reliableCommands[index], cmd, sizeof( client->reliableCommands[index] ) );
 }
 
@@ -105,7 +81,7 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 * SV_SendServerCommand
 *
 * Sends a reliable command string to be interpreted by
-* the client: "cs", "changing", "disconnect", etc
+* the client: "changing", "disconnect", etc
 * A NULL client will broadcast to all clients
 */
 void SV_SendServerCommand( client_t *cl, const char *format, ... ) {
@@ -300,9 +276,9 @@ void SV_BuildClientFrameSnap( client_t *client ) {
 		client, &server_gs.gameState, &svs.client_entities );
 }
 
-static bool SV_SendClientDatagram( client_t *client ) {
+static void SV_SendClientDatagram( client_t *client ) {
 	if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
-		return true;
+		return;
 	}
 
 	SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
@@ -315,7 +291,7 @@ static bool SV_SendClientDatagram( client_t *client ) {
 
 	SV_WriteFrameSnapToClient( client, &tmpMessage );
 
-	return SV_SendMessageToClient( client, &tmpMessage );
+	SV_SendMessageToClient( client, &tmpMessage );
 }
 
 void SV_SendClientMessages() {
@@ -336,18 +312,14 @@ void SV_SendClientMessages() {
 		}
 
 		if( client->state == CS_SPAWNED ) {
-			if( !SV_SendClientDatagram( client ) ) {
-				Com_Printf( "Error sending message to %s\n", client->name );
-			}
+			SV_SendClientDatagram( client );
 		} else {
 			// send pending reliable commands, or send heartbeats for not timing out
 			if( client->reliableSequence > client->reliableAcknowledge ||
 				svs.realtime - client->lastPacketSentTime > 1000 ) {
 				SV_InitClientMessage( client, &tmpMessage, NULL, 0 );
 				SV_AddReliableCommandsToMessage( client, &tmpMessage );
-				if( !SV_SendMessageToClient( client, &tmpMessage ) ) {
-					Com_Printf( "Error sending message to %s\n", client->name );
-				}
+				SV_SendMessageToClient( client, &tmpMessage );
 			}
 		}
 	}

@@ -38,7 +38,7 @@ const char * const svc_strings[256] = {
 	"svc_gamecommands",
 	"svc_match",
 	"svc_clcack",
-	"svc_servercs", // reliable command as unreliable for demos
+	"svc_unreliable",
 	"svc_frame",
 };
 

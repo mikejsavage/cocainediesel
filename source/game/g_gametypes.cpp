@@ -249,7 +249,7 @@ void G_Match_Ready( edict_t *ent ) {
 	level.ready[ PLAYERNUM( ent ) ] = true;
 	G_ClientGetStats( ent )->ready = true;
 
-	G_PrintMsg( NULL, "%s is %sREADY\n", ent->r.client->netname, S_COLOR_GREEN );
+	G_PrintMsg( NULL, "%s is %sREADY\n", ent->r.client->name, S_COLOR_GREEN );
 
 	G_Match_CheckReadys();
 }
@@ -273,7 +273,7 @@ void G_Match_NotReady( edict_t *ent ) {
 	level.ready[ PLAYERNUM( ent ) ] = false;
 	G_ClientGetStats( ent )->ready = false;
 
-	G_PrintMsg( NULL, "%s is %sNOT READY\n", ent->r.client->netname, S_COLOR_RED );
+	G_PrintMsg( NULL, "%s is %sNOT READY\n", ent->r.client->name, S_COLOR_RED );
 }
 
 void G_Match_ToggleReady( edict_t *ent ) {

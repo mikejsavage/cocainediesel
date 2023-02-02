@@ -391,7 +391,7 @@ static void Cmd_Timeout_f( edict_t * ent, msg_t args ) {
 		return;
 	}
 
-	G_PrintMsg( NULL, "%s%s called a timeout\n", ent->r.client->netname, S_COLOR_WHITE );
+	G_PrintMsg( NULL, "%s%s called a timeout\n", ent->r.client->name, S_COLOR_WHITE );
 
 	if( !GS_MatchPaused( &server_gs ) ) {
 		G_AnnouncerSound( NULL, StringHash( "sounds/announcer/timeout" ), Team_Count, true, NULL );
@@ -427,7 +427,7 @@ static void Cmd_Timein_f( edict_t * ent, msg_t args ) {
 
 	G_AnnouncerSound( NULL, StringHash( "sounds/announcer/timein" ), Team_Count, true, NULL );
 
-	G_PrintMsg( NULL, "%s%s called a timein\n", ent->r.client->netname, S_COLOR_WHITE );
+	G_PrintMsg( NULL, "%s%s called a timein\n", ent->r.client->name, S_COLOR_WHITE );
 }
 
 //===========================================================

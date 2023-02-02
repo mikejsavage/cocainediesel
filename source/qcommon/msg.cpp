@@ -683,6 +683,7 @@ void MSG_ReadDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, Sy
 //==================================================
 
 static void Delta( DeltaBuffer * buf, SyncScoreboardPlayer & player, const SyncScoreboardPlayer & baseline ) {
+	DeltaString( buf, player.name, baseline.name );
 	Delta( buf, player.ping, baseline.ping );
 	Delta( buf, player.score, baseline.score );
 	Delta( buf, player.kills, baseline.kills );

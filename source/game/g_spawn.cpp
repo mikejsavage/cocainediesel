@@ -158,27 +158,27 @@ static void ED_ParseField( Span< const char > key, Span< const char > value, edi
 
 		switch( f.type ) {
 			case EntityField_StringHash:
-				*(StringHash *)( b + f.ofs ) = StringHash( value );
+				*align_cast< StringHash * >( b + f.ofs ) = StringHash( value );
 				break;
 			case EntityField_Asset:
 				if( value[ 0 ] == '*' ) {
-					*(StringHash *)( b + f.ofs ) = StringHash( Hash64( value.ptr, value.n, svs.cms->base_hash ) );
+					*align_cast< StringHash * >( b + f.ofs ) = StringHash( Hash64( value.ptr, value.n, svs.cms->base_hash ) );
 				}
 				else {
-					*(StringHash *)( b + f.ofs ) = StringHash( value );
+					*align_cast< StringHash * >( b + f.ofs ) = StringHash( value );
 				}
 				break;
 			case EntityField_Int:
-				*(int *)( b + f.ofs ) = SpanToInt( value, 0 );
+				*align_cast< int * >( b + f.ofs ) = SpanToInt( value, 0 );
 				break;
 			case EntityField_Float:
-				*(float *)( b + f.ofs ) = SpanToFloat( value, 0.0f );
+				*align_cast< float * >( b + f.ofs ) = SpanToFloat( value, 0.0f );
 				break;
 			case EntityField_Angle:
-				*(Vec3 *)( b + f.ofs ) = Vec3( 0.0f, SpanToFloat( value, 0.0f ), 0.0f );
+				*align_cast< Vec3 * >( b + f.ofs ) = Vec3( 0.0f, SpanToFloat( value, 0.0f ), 0.0f );
 				break;
 			case EntityField_Scale:
-				*(Vec3 *)( b + f.ofs ) = Vec3( SpanToFloat( value, 1.0f ) );
+				*align_cast< Vec3 * >( b + f.ofs ) = Vec3( SpanToFloat( value, 1.0f ) );
 				break;
 
 			case EntityField_Vec3: {
@@ -186,7 +186,7 @@ static void ED_ParseField( Span< const char > key, Span< const char > value, edi
 				vec.x = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
 				vec.y = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
 				vec.z = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
-				*(Vec3 *)( b + f.ofs ) = vec;
+				*align_cast< Vec3 * >( b + f.ofs ) = vec;
 			} break;
 
 			case EntityField_RGBA: {

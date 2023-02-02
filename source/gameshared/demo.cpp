@@ -241,7 +241,7 @@ static const DemoHeader * ReadDemoHeader( Span< const u8 > demo ) {
 	if( demo.n < sizeof( DemoHeader ) )
 		return NULL;
 
-	const DemoHeader * header = ( const DemoHeader * ) demo.ptr;
+	const DemoHeader * header = align_cast< const DemoHeader * >( demo.ptr );
 	if( memcmp( &header->magic, DEMO_METADATA_MAGIC, sizeof( DEMO_METADATA_MAGIC ) ) != 0 )
 		return NULL;
 

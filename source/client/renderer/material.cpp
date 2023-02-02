@@ -475,7 +475,7 @@ static void LoadDDSTexture( const char * path ) {
 		return;
 	}
 
-	const DDSHeader * header = ( const DDSHeader * ) dds.ptr;
+	const DDSHeader * header = align_cast< const DDSHeader * >( dds.ptr );
 
 	TextureConfig config;
 	config.width = header->width;

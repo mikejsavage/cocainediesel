@@ -519,7 +519,7 @@ void CL_ReadPackets() {
 	msg_t msg = NewMSGReader( data, bytes_received, sizeof( data ) );
 
 	// remote command packet
-	if( *(int *)msg.data == -1 ) {
+	if( MSG_ReadInt32( &msg ) == -1 ) {
 		CL_ConnectionlessPacket( source, &msg );
 		return;
 	}

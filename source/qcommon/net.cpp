@@ -129,7 +129,9 @@ bool DNS( const char * hostname, NetAddress * address, DNSFamily family ) {
 		return false;
 	}
 
-	*address = SockaddrToNetAddress( ( const sockaddr_storage * ) addresses->ai_addr );
+	sockaddr_storage storage = { };
+	memcpy( &storage, addresses->ai_addr, sizeof( addresses->ai_addr ) );
+	*address = SockaddrToNetAddress( &storage );
 	freeaddrinfo( addresses );
 	return true;
 }

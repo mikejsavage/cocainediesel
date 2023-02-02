@@ -85,7 +85,7 @@ static void G_VoteMapExtraHelp( edict_t * ent, String< MAX_STRING_CHARS > * msg 
 
 	msg->append( "\n- Available maps:" );
 
-	Span< const char * > maps = GetMapList();
+	Span< const char * const > maps = GetMapList();
 	for( const char * map : maps ) {
 		msg->append( " {}", map );
 	}

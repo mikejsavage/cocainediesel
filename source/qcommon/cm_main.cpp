@@ -268,7 +268,7 @@ int CM_NumClusters( const CollisionModel *cms ) {
 	return cms->map_pvs ? cms->map_pvs->numclusters : 0;
 }
 
-static inline const uint8_t *CM_ClusterPVS( const CollisionModel *cms, int cluster ) {
+static const uint8_t *CM_ClusterPVS( const CollisionModel *cms, int cluster ) {
 	const dvis_t *vis = cms->map_pvs;
 
 	if( cluster == -1 || !vis ) {
@@ -470,7 +470,7 @@ void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out ) {
 		}
 		src = CM_ClusterPVS( cms, leafs[i] );
 		for( j = 0; j < longs; j++ )
-			( (int *)out )[j] |= ( (int *)src )[j];
+			align_cast< int * >( out )[j] |= align_cast< const int * >( src )[ j ];
 	}
 }
 

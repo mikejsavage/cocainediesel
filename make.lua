@@ -11,10 +11,11 @@ msvc_global_cxxflags( "/GR- /EHs-c-" )
 gcc_global_cxxflags( "-std=c++17 -msse4.2 -mpopcnt -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fno-math-errno -fvisibility=hidden" )
 gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security" ) -- -Wconversion
 gcc_global_cxxflags( "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-implicit-fallthrough" )
-gcc_global_cxxflags( "-Werror -Wno-error=switch -Wno-error=sign-compare -Wno-error=dynamic-class-memaccess" )
 
 if config == "release" then
 	global_cxxflags( "-DPUBLIC_BUILD" )
+	gcc_global_cxxflags( "-Werror" ) -- -Werror in dev is too annoying. TODO: make a whitelist instead
+	gcc_global_cxxflags( "-Wno-error=switch -Wno-error=sign-compare -Wno-error=dynamic-class-memaccess" ) -- these are difficult to fix
 else
 	global_cxxflags( "-DTRACY_ENABLE" )
 end

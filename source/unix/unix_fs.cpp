@@ -232,7 +232,7 @@ Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor 
 			num_results++;
 		}
 
-		cursor = align_cast< const inotify_event * >( ( ( const char * ) cursor ) + sizeof( *cursor ) + cursor->len );
+		cursor = align_cast< const inotify_event >( ( ( const char * ) cursor ) + sizeof( *cursor ) + cursor->len );
 	}
 
 	return Span< const char * >( results, num_results );

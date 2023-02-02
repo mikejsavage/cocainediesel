@@ -398,7 +398,7 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, const cshaderre
 	if( patch->numfacets ) {
 		u8 * fdata = ( u8 * ) ALLOC_SIZE( sys_allocator, patch->numfacets * sizeof( cbrush_t ) + totalsides * ( sizeof( cbrushside_t ) + sizeof( Plane ) ), 16 );
 
-		patch->facets = align_cast< cbrush_t * >( fdata );
+		patch->facets = align_cast< cbrush_t >( fdata );
 		fdata += patch->numfacets * sizeof( cbrush_t );
 		memcpy( patch->facets, facets, patch->numfacets * sizeof( cbrush_t ) );
 
@@ -406,7 +406,7 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, const cshaderre
 		for( int i = 0; i < patch->numfacets; i++ ) {
 			cbrush_t * facet = &patch->facets[ i ];
 
-			facet->brushsides = align_cast< cbrushside_t * >( fdata );
+			facet->brushsides = align_cast< cbrushside_t >( fdata );
 			fdata += facet->numsides * sizeof( cbrushside_t );
 
 			for( int j = 0; j < facet->numsides; j++ ) {
@@ -434,7 +434,7 @@ static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
 	const dshaderref_t *in;
 	cshaderref_t *out;
 
-	in = align_cast< const dshaderref_t * >( cms->cmod_base + l->fileofs );
+	in = align_cast< const dshaderref_t >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadSurfaces: funny lump size" );
 	}
@@ -480,7 +480,7 @@ static void CMod_LoadVertexes( CollisionModel *cms, lump_t *l ) {
 	const dvertex_t *in;
 	Vec3 *out;
 
-	in = align_cast< const dvertex_t * >( cms->cmod_base + l->fileofs );
+	in = align_cast< const dvertex_t >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMOD_LoadVertexes: funny lump size" );
 	}
@@ -507,7 +507,7 @@ static void CMod_LoadVertexes_RBSP( CollisionModel *cms, lump_t *l ) {
 	const rdvertex_t *in;
 	Vec3 *out;
 
-	in = align_cast< const rdvertex_t * >( cms->cmod_base + l->fileofs );
+	in = align_cast< const rdvertex_t >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadVertexes_RBSP: funny lump size" );
 	}
@@ -560,7 +560,7 @@ static void CMod_LoadFaces( CollisionModel *cms, lump_t *l ) {
 	const dface_t *in;
 	cface_t *out;
 
-	in = align_cast< const dface_t * >( cms->cmod_base + l->fileofs );
+	in = align_cast< const dface_t >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadFaces: funny lump size" );
 	}
@@ -590,7 +590,7 @@ static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 	const rdface_t *in;
 	cface_t *out;
 
-	in = align_cast< const rdface_t * >( cms->cmod_base + l->fileofs );
+	in = align_cast< const rdface_t >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadFaces_RBSP: funny lump size" );
 	}
@@ -616,7 +616,7 @@ static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, lump_t *l ) {
 	TracyZoneScoped;
 
-	const dmodel_t * in = align_cast< const dmodel_t * >( cms->cmod_base + l->fileofs );
+	const dmodel_t * in = align_cast< const dmodel_t >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadSubmodels: funny lump size" );
 	}
@@ -671,7 +671,7 @@ static void CMod_LoadNodes( CollisionModel *cms, lump_t *l ) {
 	const dnode_t *in;
 	cnode_t *out;
 
-	in = align_cast< const dnode_t * >( cms->cmod_base + l->fileofs );
+	in = align_cast< const dnode_t >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadNodes: funny lump size" );
 	}
@@ -703,7 +703,7 @@ static void CMod_LoadMarkFaces( CollisionModel *cms, lump_t *l ) {
 	int *out;
 	const int *in;
 
-	in = align_cast< const int * >( cms->cmod_base + l->fileofs );
+	in = align_cast< const int >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadMarkFaces: funny lump size" );
 	}
@@ -732,7 +732,7 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 	cleaf_t *out;
 	const dleaf_t *in;
 
-	in = align_cast< const dleaf_t * >( cms->cmod_base + l->fileofs );
+	in = align_cast< const dleaf_t >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadLeafs: funny lump size" );
 	}
@@ -786,7 +786,7 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 static void CMod_LoadPlanes( CollisionModel *cms, lump_t *l ) {
 	TracyZoneScoped;
 
-	const dplane_t * in = align_cast< const dplane_t * >( cms->cmod_base + l->fileofs );
+	const dplane_t * in = align_cast< const dplane_t >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadPlanes: funny lump size" );
 	}
@@ -815,7 +815,7 @@ static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
 	int *out;
 	const int *in;
 
-	in = align_cast< const int * >( cms->cmod_base + l->fileofs );
+	in = align_cast< const int >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadMarkBrushes: funny lump size" );
 	}
@@ -834,7 +834,7 @@ static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
 static void CMod_LoadBrushSides( CollisionModel *cms, lump_t *l ) {
 	TracyZoneScoped;
 
-	const dbrushside_t * in = align_cast< const dbrushside_t * >( cms->cmod_base + l->fileofs );
+	const dbrushside_t * in = align_cast< const dbrushside_t >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadBrushSides: funny lump size" );
 	}
@@ -865,7 +865,7 @@ static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
 	cbrushside_t *out;
 	const rdbrushside_t *in;
 
-	in = align_cast< const rdbrushside_t * >( cms->cmod_base + l->fileofs );
+	in = align_cast< const rdbrushside_t >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadBrushSides_RBSP: funny lump size" );
 	}
@@ -904,7 +904,7 @@ static void CMod_LoadBrushes( CollisionModel *cms, lump_t *l ) {
 	cbrush_t *out;
 	int shaderref;
 
-	in = align_cast< const dbrush_t * >( cms->cmod_base + l->fileofs );
+	in = align_cast< const dbrush_t >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadBrushes: funny lump size" );
 	}

@@ -500,12 +500,9 @@ static bool CL_ProcessPacket( netchan_t * netchan, msg_t * msg ) {
 	MSG_ReadInt32( msg ); // sequence
 	MSG_ReadInt32( msg ); // sequence_ack
 	MSG_ReadUint64( msg ); // session_id
+
 	if( msg->compressed ) {
-		int zerror = Netchan_DecompressMessage( msg );
-		if( zerror < 0 ) {
-			// compression error. Drop the packet
-			return false;
-		}
+		return Netchan_DecompressMessage( msg );
 	}
 
 	return true;

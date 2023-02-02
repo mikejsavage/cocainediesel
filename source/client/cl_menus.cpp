@@ -251,7 +251,7 @@ static void KeyBindButton( const char * label, const char * command ) {
 }
 
 static const char * SelectableMapList() {
-	Span< const char * > maps = GetMapList();
+	Span< const char * const > maps = GetMapList();
 	static size_t selected_map = 0;
 
 	ImGui::PushItemWidth( 200 );

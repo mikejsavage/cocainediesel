@@ -126,7 +126,7 @@ const Font * RegisterFont( const char * path ) {
 	// load ttf
 	{
 		DynamicString ttf_path( &temp, "{}.ttf", path );
-		Span< const FT_Byte > data = AssetBinary( ttf_path.c_str() ).cast< FT_Byte >();
+		Span< const FT_Byte > data = AssetBinary( ttf_path.c_str() ).cast< const FT_Byte >();
 		if( data.ptr == NULL ) {
 			Com_Printf( S_COLOR_RED "Couldn't read file %s\n", ttf_path.c_str() );
 			return NULL;

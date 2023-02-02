@@ -121,7 +121,7 @@ static void SV_ReadPackets() {
 	msg_t msg = NewMSGReader( data, bytes_received, sizeof( data ) );
 
 	// check for connectionless packet (0xffffffff) first
-	if( *(int *)msg.data == -1 ) {
+	if( MSG_ReadInt32( &msg ) == -1 ) {
 		SV_ConnectionlessPacket( source, &msg );
 		return;
 	}

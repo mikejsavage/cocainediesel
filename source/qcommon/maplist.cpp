@@ -53,8 +53,8 @@ void RefreshMapList( Allocator * a ) {
 	std::sort( maps.begin(), maps.end(), SortCStringsComparator );
 }
 
-Span< const char * > GetMapList() {
-	return maps.span().cast< const char * >();
+Span< const char * const > GetMapList() {
+	return maps.span().cast< const char * const >();
 }
 
 bool MapExists( const char * name ) {

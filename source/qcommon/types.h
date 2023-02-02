@@ -116,6 +116,22 @@ To checked_cast( const From & from ) {
 	return result;
 }
 
+#if COMPILER_MSVC
+template< typename To, typename From >
+To align_cast( From * from ) {
+	Assert( uintptr_t( from ) % alignof( To ) == 0 );
+	return reinterpret_cast< To >( from );
+}
+#else
+template< typename To, typename From >
+To align_cast( From * from ) {
+	Assert( uintptr_t( from ) % alignof( To ) == 0 );
+	// error if we cast away const, __builtin_assume_aligned returns void *
+	( void ) reinterpret_cast< To >( from );
+	return ( To ) __builtin_assume_aligned( from, alignof( To ) );
+}
+#endif
+
 template< typename T >
 constexpr T AlignPow2( T x, T alignment ) {
 	return ( x + alignment - 1 ) & ~( alignment - 1 );
@@ -203,8 +219,7 @@ struct Span {
 	template< typename S >
 	Span< S > cast() const {
 		Assert( num_bytes() % sizeof( S ) == 0 );
-		Assert( uintptr_t( ptr ) % alignof( S ) == 0 );
-		return Span< S >( ( S * ) ptr, num_bytes() / sizeof( S ) );
+		return Span< S >( align_cast< S * >( ptr ), num_bytes() / sizeof( S ) );
 	}
 };
 

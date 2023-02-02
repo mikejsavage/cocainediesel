@@ -192,7 +192,7 @@ struct BSPSpans {
 
 template< typename T >
 static bool ParseLump( Span< T > * span, Span< const u8 > data, BSPLump lump ) {
-	const BSPHeader * header = ( const BSPHeader * ) data.ptr;
+	const BSPHeader * header = align_cast< const BSPHeader * >( data.ptr );
 	BSPLumpLocation location = header->lumps[ lump ];
 
 	if( location.offset + location.length > data.n )
@@ -209,7 +209,7 @@ static bool ParseBSP( BSPSpans * bsp, Span< const u8 > data ) {
 	if( data.n < sizeof( BSPHeader ) )
 		return false;
 
-	const BSPHeader * header = ( const BSPHeader * ) data.ptr;
+	const BSPHeader * header = align_cast< const BSPHeader * >( data.ptr );
 	bsp->idbsp = memcmp( &header->magic, IDBSPHEADER, sizeof( header->magic ) ) == 0;
 
 	bool ok = true;

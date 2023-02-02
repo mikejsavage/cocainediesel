@@ -183,7 +183,7 @@ struct dbrush_t {
 	int shadernum;
 };
 
-static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 *verts, int numverts, cshaderref_t *shaderref, Plane *brushplanes ) {
+static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 *verts, int numverts, const cshaderref_t *shaderref, Plane *brushplanes ) {
 	Vec3 normal;
 	float distance;
 	Plane mainplane;
@@ -324,7 +324,7 @@ static int CM_CreateFacetFromPoints( CollisionModel *cms, cbrush_t *facet, Vec3 
 	return ( facet->numsides = numbrushplanes );
 }
 
-static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *shaderref, Vec3 *verts, int *patch_cp ) {
+static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, const cshaderref_t *shaderref, Vec3 *verts, const int *patch_cp ) {
 	TracyZoneScoped;
 
 	int step[2], size[2], flat[2];
@@ -398,14 +398,16 @@ static void CM_CreatePatch( CollisionModel *cms, cface_t *patch, cshaderref_t *s
 	if( patch->numfacets ) {
 		u8 * fdata = ( u8 * ) ALLOC_SIZE( sys_allocator, patch->numfacets * sizeof( cbrush_t ) + totalsides * ( sizeof( cbrushside_t ) + sizeof( Plane ) ), 16 );
 
-		patch->facets = ( cbrush_t * )fdata; fdata += patch->numfacets * sizeof( cbrush_t );
+		patch->facets = align_cast< cbrush_t * >( fdata );
+		fdata += patch->numfacets * sizeof( cbrush_t );
 		memcpy( patch->facets, facets, patch->numfacets * sizeof( cbrush_t ) );
 
 		int k = 0;
 		for( int i = 0; i < patch->numfacets; i++ ) {
 			cbrush_t * facet = &patch->facets[ i ];
 
-			facet->brushsides = ( cbrushside_t * )fdata; fdata += facet->numsides * sizeof( cbrushside_t );
+			facet->brushsides = align_cast< cbrushside_t * >( fdata );
+			fdata += facet->numsides * sizeof( cbrushside_t );
 
 			for( int j = 0; j < facet->numsides; j++ ) {
 				cbrushside_t * s = &facet->brushsides[ j ];
@@ -429,10 +431,10 @@ static void CMod_LoadSurfaces( CollisionModel *cms, lump_t *l ) {
 	int count;
 	char *buffer;
 	size_t len, bufLen, bufSize;
-	dshaderref_t *in;
+	const dshaderref_t *in;
 	cshaderref_t *out;
 
-	in = ( dshaderref_t * )( cms->cmod_base + l->fileofs );
+	in = align_cast< const dshaderref_t * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadSurfaces: funny lump size" );
 	}
@@ -475,10 +477,10 @@ static void CMod_LoadVertexes( CollisionModel *cms, lump_t *l ) {
 
 	int i;
 	int count;
-	dvertex_t *in;
+	const dvertex_t *in;
 	Vec3 *out;
 
-	in = ( dvertex_t * )( cms->cmod_base + l->fileofs );
+	in = align_cast< const dvertex_t * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMOD_LoadVertexes: funny lump size" );
 	}
@@ -502,10 +504,10 @@ static void CMod_LoadVertexes_RBSP( CollisionModel *cms, lump_t *l ) {
 
 	int i;
 	int count;
-	rdvertex_t *in;
+	const rdvertex_t *in;
 	Vec3 *out;
 
-	in = ( rdvertex_t * )( cms->cmod_base + l->fileofs );
+	in = align_cast< const rdvertex_t * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadVertexes_RBSP: funny lump size" );
 	}
@@ -524,7 +526,7 @@ static void CMod_LoadVertexes_RBSP( CollisionModel *cms, lump_t *l ) {
 	}
 }
 
-static inline void CMod_LoadFace( CollisionModel *cms, cface_t *out, int shadernum, int firstvert, int numverts, int *patch_cp ) {
+static inline void CMod_LoadFace( CollisionModel *cms, cface_t *out, int shadernum, int firstvert, int numverts, const int *patch_cp ) {
 	TracyZoneScoped;
 
 	cshaderref_t *shaderref;
@@ -539,8 +541,6 @@ static inline void CMod_LoadFace( CollisionModel *cms, cface_t *out, int shadern
 		return;
 	}
 
-	patch_cp[0] = LittleLong( patch_cp[0] );
-	patch_cp[1] = LittleLong( patch_cp[1] );
 	if( patch_cp[0] <= 0 || patch_cp[1] <= 0 ) {
 		return;
 	}
@@ -557,10 +557,10 @@ static void CMod_LoadFaces( CollisionModel *cms, lump_t *l ) {
 	TracyZoneScoped;
 
 	int i, count;
-	dface_t *in;
+	const dface_t *in;
 	cface_t *out;
 
-	in = ( dface_t * )( cms->cmod_base + l->fileofs );
+	in = align_cast< const dface_t * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadFaces: funny lump size" );
 	}
@@ -587,10 +587,10 @@ static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 	TracyZoneScoped;
 
 	int i, count;
-	rdface_t *in;
+	const rdface_t *in;
 	cface_t *out;
 
-	in = ( rdface_t * )( cms->cmod_base + l->fileofs );
+	in = align_cast< const rdface_t * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadFaces_RBSP: funny lump size" );
 	}
@@ -616,7 +616,7 @@ static void CMod_LoadFaces_RBSP( CollisionModel *cms, lump_t *l ) {
 static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, lump_t *l ) {
 	TracyZoneScoped;
 
-	const dmodel_t * in = ( dmodel_t * )( cms->cmod_base + l->fileofs );
+	const dmodel_t * in = align_cast< const dmodel_t * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadSubmodels: funny lump size" );
 	}
@@ -668,10 +668,10 @@ static void CMod_LoadNodes( CollisionModel *cms, lump_t *l ) {
 
 	int i;
 	int count;
-	dnode_t *in;
+	const dnode_t *in;
 	cnode_t *out;
 
-	in = ( dnode_t * )( cms->cmod_base + l->fileofs );
+	in = align_cast< const dnode_t * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadNodes: funny lump size" );
 	}
@@ -701,9 +701,9 @@ static void CMod_LoadMarkFaces( CollisionModel *cms, lump_t *l ) {
 	int i, j;
 	int count;
 	int *out;
-	int *in;
+	const int *in;
 
-	in = ( int * )( cms->cmod_base + l->fileofs );
+	in = align_cast< const int * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadMarkFaces: funny lump size" );
 	}
@@ -730,9 +730,9 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 	int i, j, k;
 	int count;
 	cleaf_t *out;
-	dleaf_t *in;
+	const dleaf_t *in;
 
-	in = ( dleaf_t * )( cms->cmod_base + l->fileofs );
+	in = align_cast< const dleaf_t * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadLeafs: funny lump size" );
 	}
@@ -786,7 +786,7 @@ static void CMod_LoadLeafs( CollisionModel *cms, lump_t *l ) {
 static void CMod_LoadPlanes( CollisionModel *cms, lump_t *l ) {
 	TracyZoneScoped;
 
-	dplane_t * in = ( dplane_t * )( cms->cmod_base + l->fileofs );
+	const dplane_t * in = align_cast< const dplane_t * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadPlanes: funny lump size" );
 	}
@@ -813,9 +813,9 @@ static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
 	int i;
 	int count;
 	int *out;
-	int *in;
+	const int *in;
 
-	in = ( int * )( cms->cmod_base + l->fileofs );
+	in = align_cast< const int * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadMarkBrushes: funny lump size" );
 	}
@@ -834,7 +834,7 @@ static void CMod_LoadMarkBrushes( CollisionModel *cms, lump_t *l ) {
 static void CMod_LoadBrushSides( CollisionModel *cms, lump_t *l ) {
 	TracyZoneScoped;
 
-	dbrushside_t * in = ( dbrushside_t * )( cms->cmod_base + l->fileofs );
+	const dbrushside_t * in = align_cast< const dbrushside_t * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadBrushSides: funny lump size" );
 	}
@@ -863,9 +863,9 @@ static void CMod_LoadBrushSides_RBSP( CollisionModel *cms, lump_t *l ) {
 	int i, j;
 	int count;
 	cbrushside_t *out;
-	rdbrushside_t *in;
+	const rdbrushside_t *in;
 
-	in = ( rdbrushside_t * )( cms->cmod_base + l->fileofs );
+	in = align_cast< const rdbrushside_t * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadBrushSides_RBSP: funny lump size" );
 	}
@@ -900,11 +900,11 @@ static void CMod_LoadBrushes( CollisionModel *cms, lump_t *l ) {
 
 	int i;
 	int count;
-	dbrush_t *in;
+	const dbrush_t *in;
 	cbrush_t *out;
 	int shaderref;
 
-	in = ( dbrush_t * )( cms->cmod_base + l->fileofs );
+	in = align_cast< const dbrush_t * >( cms->cmod_base + l->fileofs );
 	if( l->filelen % sizeof( *in ) ) {
 		Fatal( "CMod_LoadBrushes: funny lump size" );
 	}

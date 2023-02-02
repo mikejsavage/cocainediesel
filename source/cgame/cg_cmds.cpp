@@ -356,7 +356,7 @@ static void ReliableCommandNoArgs() {
 		}
 	}
 
-	assert( false );
+	Assert( false );
 }
 
 static void ReliableCommandYesArgs() {
@@ -368,7 +368,7 @@ static void ReliableCommandYesArgs() {
 		}
 	}
 
-	assert( false );
+	Assert( false );
 }
 
 void CG_RegisterCGameCommands() {

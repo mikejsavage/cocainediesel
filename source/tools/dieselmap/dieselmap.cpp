@@ -537,7 +537,7 @@ static u32 AddMaterial( BSP * bsp, Span< const char > name, u64 hash ) {
 
 	BSPMaterial material = { };
 	GetMaterialFlags( hash, &material.surface_flags, &material.content_flags );
-	assert( name.n + 1 < sizeof( material.name ) );
+	Assert( name.n + 1 < sizeof( material.name ) );
 	memcpy( material.name, name.ptr, name.n );
 	return bsp->materials->add( material );
 }

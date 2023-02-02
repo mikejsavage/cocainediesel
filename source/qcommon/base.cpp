@@ -25,6 +25,10 @@ void FatalErrno( const char * msg ) {
 	Fatal( "%s: %s (%d)", msg, strerror( errno ), errno );
 }
 
+void AssertFail( const char * str, const char * file, int line ) {
+    FatalImpl( file, line, "Assertion failed: %s", str );
+}
+
 void format( FormatBuffer * fb, Span< const char > span, const FormatOpts & opts ) {
 	if( fb->capacity > 0 && fb->len < fb->capacity - 1 ) {
 		size_t len = Min2( span.n, fb->capacity - fb->len - 1 );

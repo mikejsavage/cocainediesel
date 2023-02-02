@@ -144,7 +144,7 @@ void PumpDownloads() {
 		if( msg == NULL )
 			break;
 
-		assert( msg->msg == CURLMSG_DONE );
+		Assert( msg->msg == CURLMSG_DONE );
 
 		CurlRequestContext * context;
 		CheckEasyError( "curl_easy_getinfo", curl_easy_getinfo( msg->easy_handle, CURLINFO_PRIVATE, &context ) );

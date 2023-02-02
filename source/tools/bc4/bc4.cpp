@@ -108,7 +108,7 @@ int main( int argc, char ** argv ) {
 		}
 	}
 
-	assert( bc4_cursor == bc4.num_bytes() );
+	Assert( bc4_cursor == bc4.num_bytes() );
 
 	DDSHeader dds_header = { };
 	dds_header.magic = DDSMagic;

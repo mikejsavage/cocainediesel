@@ -114,7 +114,7 @@ void ThreadPoolDo( JobCallback callback, void * data ) {
 
 	Lock( jobs_mutex );
 
-	assert( jobs_not_started < ARRAY_COUNT( jobs ) );
+	Assert( jobs_not_started < ARRAY_COUNT( jobs ) );
 
 	Job * job = &jobs[ ( jobs_head + jobs_not_started ) % ARRAY_COUNT( jobs ) ];
 	job->callback = callback;
@@ -131,7 +131,7 @@ void ParallelFor( void * datum, size_t n, size_t stride, JobCallback callback ) 
 
 	Lock( jobs_mutex );
 
-	assert( n <= ARRAY_COUNT( jobs ) - jobs_not_started );
+	Assert( n <= ARRAY_COUNT( jobs ) - jobs_not_started );
 
 	for( size_t i = 0; i < n; i++ ) {
 		Job * job = &jobs[ ( jobs_head + jobs_not_started ) % ARRAY_COUNT( jobs ) ];

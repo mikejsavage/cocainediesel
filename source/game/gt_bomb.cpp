@@ -178,7 +178,7 @@ static u32 GetSiteFromIndicator( edict_t * ent ) {
 		}
 	}
 
-	assert( false );
+	Assert( false );
 	return 0;
 }
 

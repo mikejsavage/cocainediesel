@@ -2,7 +2,7 @@
 
 static StringHash GetPlayerSound( int entnum, PlayerSound ps ) {
 	const PlayerModelMetadata * meta = GetPlayerModelMetadata( entnum );
-	assert( meta != NULL );
+	Assert( meta != NULL );
 	if( meta == NULL ) {
 		Com_Printf( "Player model metadata is null\n" );
 		return EMPTY_HASH;

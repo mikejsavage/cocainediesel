@@ -194,7 +194,7 @@ void G_FreeEdict( edict_t *ed ) {
 	GClip_UnlinkEntity( ed );
 
 	// bool ok = entity_id_hashtable.remove( ed->id.id );
-	// assert( ok );
+	// Assert( ok );
 
 	memset( ed, 0, sizeof( *ed ) );
 	ed->s.number = ENTNUM( ed );
@@ -208,7 +208,7 @@ void G_FreeEdict( edict_t *ed ) {
 void G_InitEdict( edict_t *e ) {
 	// if( e->r.inuse ) {
 	// 	bool ok = entity_id_hashtable.remove( e->id.id );
-	// 	assert( ok );
+	// 	Assert( ok );
 	// }
 
 	memset( e, 0, sizeof( *e ) );
@@ -217,7 +217,7 @@ void G_InitEdict( edict_t *e ) {
 	e->r.inuse = true;
 
 	// bool ok = entity_id_hashtable.add( e->id.id, e->s.number );
-	// assert( ok );
+	// Assert( ok );
 
 	e->s.scale = Vec3( 1.0f );
 
@@ -762,7 +762,7 @@ void G_ReleaseClientPSEvent( gclient_t *client ) {
 * This event is only sent to this client inside its SyncPlayerState.
 */
 void G_AddPlayerStateEvent( gclient_t *client, int ev, u64 parm ) {
-	assert( ev >= 0 && ev < PSEV_MAX_EVENTS );
+	Assert( ev >= 0 && ev < PSEV_MAX_EVENTS );
 	if( client == NULL )
 		return;
 

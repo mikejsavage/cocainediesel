@@ -86,7 +86,7 @@ u32 BitsPerPixel( TextureFormat format ) {
 			return 8;
 
 		default:
-			assert( false );
+			Assert( false );
 			return 0;
 	}
 }
@@ -381,7 +381,7 @@ static void UnloadTexture( u64 idx ) {
 static u64 AddTexture( const char * name, u64 hash, const TextureConfig & config ) {
 	TracyZoneScoped;
 
-	assert( num_textures < ARRAY_COUNT( textures ) );
+	Assert( num_textures < ARRAY_COUNT( textures ) );
 
 	u64 idx = num_textures;
 	if( !textures_hashtable.get( hash, &idx ) ) {
@@ -653,7 +653,7 @@ static void PackDecalAtlas() {
 			Com_GGPrint( S_COLOR_YELLOW "{} has a small number of mipmaps ({}) and will mess up the decal atlas", materials[ i ].name, texture->num_mipmaps );
 		}
 
-		assert( num_decals < ARRAY_COUNT( rects ) );
+		Assert( num_decals < ARRAY_COUNT( rects ) );
 
 		stbrp_rect * rect = &rects[ num_decals ];
 		num_decals++;
@@ -752,7 +752,7 @@ static void PackDecalAtlas() {
 			const Material * material = &materials[ rects[ i ].id ];
 			u64 decal_idx;
 			bool ok = decals_hashtable.get( material->hash, &decal_idx );
-			assert( ok );
+			Assert( ok );
 
 			u32 layer_idx = u32( decal_uvwhs[ decal_idx ].x );
 			Span2D< BC4Block > layer( layer_mipmap + mipmap_dim * mipmap_dim * layer_idx, mipmap_dim, mipmap_dim );
@@ -761,7 +761,7 @@ static void PackDecalAtlas() {
 
 			u32 mipped_x = rects[ i ].x >> mipmap_idx;
 			u32 mipped_y = rects[ i ].y >> mipmap_idx;
-			assert( mipped_x % 4 == 0 && mipped_y % 4 == 0 );
+			Assert( mipped_x % 4 == 0 && mipped_y % 4 == 0 );
 			CopySpan2D( layer.slice( mipped_x / 4, mipped_y / 4, bc4.w, bc4.h ), bc4 );
 		}
 	}
@@ -1106,7 +1106,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 
 		u64 idx = num_material_static_uniforms;
 		if( !material_static_uniforms_hashtable.get( hash, &idx ) ) {
-			assert( num_material_static_uniforms < ARRAY_COUNT( material_static_uniforms ) );
+			Assert( num_material_static_uniforms < ARRAY_COUNT( material_static_uniforms ) );
 			material_static_uniforms_hashtable.add( hash, num_material_static_uniforms );
 			material_static_uniforms[ idx ] = UploadMaterialStaticUniforms( Vec2( material->texture->width, material->texture->height ), material->specular, material->shininess );
 			num_material_static_uniforms++;

@@ -185,7 +185,7 @@ void G_ChasePlayer( edict_t * ent ) {
 }
 
 void G_ChaseStep( edict_t * ent, int step ) {
-	assert( Abs( step ) <= 1 );
+	Assert( Abs( step ) <= 1 );
 
 	if( !ent->r.client->resp.chase.active ) {
 		return;

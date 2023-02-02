@@ -49,7 +49,7 @@ void MSG_Clear( msg_t *msg ) {
 void *MSG_GetSpace( msg_t *msg, size_t length ) {
 	void *ptr;
 
-	assert( msg->cursize + length <= msg->maxsize );
+	Assert( msg->cursize + length <= msg->maxsize );
 	if( msg->cursize + length > msg->maxsize ) {
 		Fatal( "MSG_GetSpace: overflowed" );
 	}

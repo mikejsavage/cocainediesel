@@ -289,16 +289,16 @@ void Cmd_TokenizeString( const char * str ) {
 }
 
 void AddCommand( const char * name, ConsoleCommandCallback callback ) {
-	assert( callback != NULL );
+	Assert( callback != NULL );
 
 	ConsoleCommand * old_command = FindCommand( name );
 	if( old_command != NULL ) {
-		assert( old_command->callback == callback && old_command->disabled );
+		Assert( old_command->callback == callback && old_command->disabled );
 		old_command->disabled = false;
 		return;
 	}
 
-	assert( commands_hashtable.size() < ARRAY_COUNT( commands ) );
+	Assert( commands_hashtable.size() < ARRAY_COUNT( commands ) );
 
 	ConsoleCommand * command = &commands[ commands_hashtable.size() ];
 	*command = { };
@@ -307,7 +307,7 @@ void AddCommand( const char * name, ConsoleCommandCallback callback ) {
 
 	u64 hash = CaseHash64( name );
 	bool ok = commands_hashtable.add( hash, commands_hashtable.size() );
-	assert( ok );
+	Assert( ok );
 }
 
 void RemoveCommand( const char * name ) {
@@ -316,7 +316,7 @@ void RemoveCommand( const char * name ) {
 
 void SetTabCompletionCallback( const char * name, TabCompletionCallback callback ) {
 	ConsoleCommand * command = FindCommand( name );
-	assert( command->tab_completion_callback == NULL || command->tab_completion_callback == callback );
+	Assert( command->tab_completion_callback == NULL || command->tab_completion_callback == callback );
 	command->tab_completion_callback = callback;
 }
 
@@ -439,7 +439,7 @@ void Cmd_Shutdown() {
 
 	for( size_t i = 0; i < commands_hashtable.size(); i++ ) {
 		ConsoleCommand * command = &commands[ i ];
-		assert( command->disabled );
+		Assert( command->disabled );
 		FREE( sys_allocator, command->name );
 	}
 }

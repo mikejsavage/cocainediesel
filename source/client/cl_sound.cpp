@@ -271,8 +271,8 @@ static void AddSound( const char * path, int num_samples, int channels, int samp
 
 	u64 idx = num_sounds;
 	if( !sounds_hashtable.get( hash, &idx ) ) {
-		assert( num_sounds < ARRAY_COUNT( sounds ) );
-		assert( num_sound_effects < ARRAY_COUNT( sound_effects ) );
+		Assert( num_sounds < ARRAY_COUNT( sounds ) );
+		Assert( num_sound_effects < ARRAY_COUNT( sound_effects ) );
 
 		sounds_hashtable.add( hash, num_sounds );
 		num_sounds++;
@@ -716,12 +716,12 @@ static void StopSFX( PlayingSFX * ps ) {
 
 	{
 		bool ok = playing_sounds_hashtable.update( ps->handle.handle, ps - playing_sound_effects );
-		assert( ok );
+		Assert( ok );
 	}
 
 	{
 		bool ok = playing_sounds_hashtable.remove( playing_sound_effects[ num_playing_sound_effects ].handle.handle );
-		assert( ok );
+		Assert( ok );
 	}
 }
 
@@ -889,7 +889,7 @@ PlayingSFX * PlaySFXInternal( StringHash name, const PlaySFXConfig & config ) {
 	ps->start_time = cls.monotonicTime;
 
 	bool ok = playing_sounds_hashtable.add( ps->handle.handle, num_playing_sound_effects );
-	assert( ok );
+	Assert( ok );
 	num_playing_sound_effects++;
 
 	return ps;

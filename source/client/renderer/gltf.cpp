@@ -224,8 +224,8 @@ static void LoadNode( const char * filename, Model * model, cgltf_data * gltf, c
 
 	if( gltf_node->has_scale ) {
 		// TODO
-		// assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 1 ] - 1.0f ) < 0.001f );
-		// assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 2 ] - 1.0f ) < 0.001f );
+		// Assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 1 ] - 1.0f ) < 0.001f );
+		// Assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 2 ] - 1.0f ) < 0.001f );
 		node->local_transform.scale = gltf_node->scale[ 0 ];
 	}
 
@@ -304,7 +304,7 @@ static float LoadChannel( const cgltf_animation_channel * chan, Model::Animation
 	for( size_t i = 0; i < n; i++ ) {
 		cgltf_bool ok = cgltf_accessor_read_float( chan->sampler->input, i, &out_channel->times[ i ], 1 );
 		ok = ok && cgltf_accessor_read_float( chan->sampler->output, i, out_channel->samples[ i ].ptr(), lanes );
-		assert( ok != 0 );
+		Assert( ok != 0 );
 	}
 
 	float duration = chan->sampler->input->max[ 0 ] - chan->sampler->input->min[ 0 ];
@@ -326,8 +326,8 @@ static float LoadScaleChannel( const cgltf_animation_channel * chan, Model::Anim
 		float scale[ 3 ];
 		cgltf_accessor_read_float( chan->sampler->output, i, scale, 3 );
 
-		assert( Abs( scale[ 0 ] - scale[ 1 ] ) < 0.001f );
-		assert( Abs( scale[ 0 ] - scale[ 2 ] ) < 0.001f );
+		Assert( Abs( scale[ 0 ] - scale[ 1 ] ) < 0.001f );
+		Assert( Abs( scale[ 0 ] - scale[ 2 ] ) < 0.001f );
 
 		out_channel->samples[ i ] = scale[ 0 ];
 	}
@@ -355,7 +355,7 @@ static void LoadAnimation( Model * model, const cgltf_animation * animation, u8 
 		const cgltf_animation_channel * chan = &animation->channels[ i ];
 
 		u8 node_idx = GetNodeIdx( chan->target_node );
-		assert( node_idx != U8_MAX );
+		Assert( node_idx != U8_MAX );
 
 		float channel_duration = 0.0f;
 		if( chan->target_path == cgltf_animation_path_type_translation ) {
@@ -382,7 +382,7 @@ static void LoadSkin( Model * model, const cgltf_skin * skin ) {
 		joint->node_idx = GetNodeIdx( skin->joints[ i ] );
 
 		cgltf_bool ok = cgltf_accessor_read_float( skin->inverse_bind_matrices, i, joint->joint_to_bind.ptr(), 16 );
-		assert( ok != 0 );
+		Assert( ok != 0 );
 	}
 }
 

@@ -797,7 +797,7 @@ const WeaponDef weapon_defs[] = {
 STATIC_ASSERT( ARRAY_COUNT( weapon_defs ) == Weapon_Count );
 
 const WeaponDef * GS_GetWeaponDef( WeaponType weapon ) {
-	assert( weapon < Weapon_Count );
+	Assert( weapon < Weapon_Count );
 	return &weapon_defs[ weapon ];
 }
 
@@ -853,7 +853,7 @@ const GadgetDef gadget_defs[] = {
 STATIC_ASSERT( ARRAY_COUNT( gadget_defs ) == Gadget_Count );
 
 const GadgetDef * GetGadgetDef( GadgetType gadget ) {
-	assert( gadget < Gadget_Count );
+	Assert( gadget < Gadget_Count );
 	return &gadget_defs[ gadget ];
 }
 
@@ -934,6 +934,6 @@ const PerkDef perk_defs[] = {
 };
 
 const PerkDef * GetPerkDef( PerkType perk ) {
-	assert( perk < Perk_Count );
+	Assert( perk < Perk_Count );
 	return &perk_defs[ perk ];
 }

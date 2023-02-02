@@ -73,12 +73,12 @@ void InitWeaponModels() {
 }
 
 const WeaponModelMetadata * GetWeaponModelMetadata( WeaponType weapon ) {
-	assert( weapon < Weapon_Count );
+	Assert( weapon < Weapon_Count );
 	return &weapon_model_metadata[ weapon ];
 }
 
 const GadgetModelMetadata * GetGadgetModelMetadata( GadgetType gadget ) {
-	assert( gadget < Gadget_Count );
+	Assert( gadget < Gadget_Count );
 	return &gadget_model_metadata[ gadget ];
 }
 

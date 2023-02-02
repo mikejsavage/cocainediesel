@@ -360,8 +360,8 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 * into a more C friendly form.
 */
 void SV_UserinfoChanged( client_t *client ) {
-	assert( client );
-	assert( Info_Validate( client->userinfo ) );
+	Assert( client );
+	Assert( Info_Validate( client->userinfo ) );
 
 	// call prog code to allow overrides
 	ClientUserinfoChanged( client->edict, client->userinfo );
@@ -383,7 +383,7 @@ void SV_UserinfoChanged( client_t *client ) {
 void SV_Init() {
 	TracyZoneScoped;
 
-	assert( !sv_initialized );
+	Assert( !sv_initialized );
 
 	memset( &sv, 0, sizeof( sv ) );
 	memset( &svs, 0, sizeof( svs ) );

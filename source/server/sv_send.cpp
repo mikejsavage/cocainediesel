@@ -35,7 +35,7 @@ void SV_AddGameCommand( client_t *client, const char *cmd ) {
 		return;
 	}
 
-	assert( strlen( cmd ) < MAX_STRING_CHARS );
+	Assert( strlen( cmd ) < MAX_STRING_CHARS );
 
 	client->gameCommandCurrent++;
 	index = client->gameCommandCurrent & ( MAX_RELIABLE_COMMANDS - 1 );
@@ -261,7 +261,7 @@ void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t s
 }
 
 bool SV_SendMessageToClient( client_t *client, msg_t *msg ) {
-	assert( client );
+	Assert( client );
 
 	if( client->edict && ( client->edict->s.svflags & SVF_FAKECLIENT ) ) {
 		return true;

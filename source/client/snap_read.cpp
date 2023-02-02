@@ -88,7 +88,7 @@ static void SNAP_ParseDeltaEntity( msg_t *msg, snapshot_t *frame, int newnum, Sy
 void SNAP_ParseBaseline( msg_t *msg, SyncEntityState *baselines ) {
 	bool remove;
 	int newnum = MSG_ReadEntityNumber( msg, &remove );
-	assert( !remove );
+	Assert( !remove );
 
 	if( !remove ) {
 		SyncEntityState nullstate = { };

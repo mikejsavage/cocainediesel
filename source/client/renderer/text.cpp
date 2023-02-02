@@ -79,7 +79,7 @@ const Font * RegisterFont( const char * path ) {
 		}
 	}
 
-	assert( num_fonts < ARRAY_COUNT( fonts ) );
+	Assert( num_fonts < ARRAY_COUNT( fonts ) );
 
 	Font * font = &fonts[ num_fonts ];
 	font->path_hash = path_hash;

@@ -217,7 +217,7 @@ static void CG_ClipMoveToEntities( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, i
 						break;
 					}
 				}
-				assert( clip_team != Team_None );
+				Assert( clip_team != Team_None );
 
 				if( ent->team == clip_team )
 					continue;

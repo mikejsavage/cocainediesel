@@ -398,7 +398,7 @@ Vec3 UniformSampleInsideSphere( RNG * rng ) {
 }
 
 Vec3 UniformSampleCone( RNG * rng, float theta ) {
-	assert( theta >= 0.0f && theta <= PI );
+	Assert( theta >= 0.0f && theta <= PI );
 	float z = RandomUniformFloat( rng, cosf( theta ), 1.0f );
 	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
 	float phi = 2.0f * PI * RandomFloat01( rng );

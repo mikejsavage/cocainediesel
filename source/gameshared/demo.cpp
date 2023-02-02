@@ -71,7 +71,7 @@ static void WriteToDemo( RecordDemoContext * ctx, const void * buf, size_t n ) {
 }
 
 void WriteDemoMessage( RecordDemoContext * ctx, msg_t msg, size_t skip ) {
-	assert( skip <= msg.cursize );
+	Assert( skip <= msg.cursize );
 	u16 len = checked_cast< u16 >( msg.cursize - skip );
 	if( len == 0 ) {
 		return;
@@ -185,7 +185,7 @@ bool StartRecordingDemo(
 }
 
 void StopRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const DemoMetadata & metadata ) {
-	assert( metadata.metadata_version == DEMO_METADATA_VERSION );
+	Assert( metadata.metadata_version == DEMO_METADATA_VERSION );
 
 	FlushDemo( ctx, true );
 
@@ -266,7 +266,7 @@ bool DecompressDemo( Allocator * a, const DemoMetadata & metadata, Span< u8 > * 
 	TracyZoneScoped;
 
 	const DemoHeader * header = ReadDemoHeader( demo );
-	assert( header != NULL );
+	Assert( header != NULL );
 
 	*decompressed = ALLOC_SPAN( a, u8, metadata.decompressed_size );
 	Span< const u8 > compressed = demo.slice( sizeof( DemoHeader ) + header->metadata_size, demo.n );

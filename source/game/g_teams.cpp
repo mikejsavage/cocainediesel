@@ -81,8 +81,8 @@ u8 PlayersAliveOnTeam( Team team ) {
 }
 
 void G_Teams_SetTeam( edict_t * ent, Team team ) {
-	assert( ent && ent->r.inuse && ent->r.client );
-	assert( team >= Team_None && team < Team_Count );
+	Assert( ent && ent->r.inuse && ent->r.client );
+	Assert( team >= Team_None && team < Team_Count );
 
 	if( ent->r.client->team != Team_None && team != Team_None ) {
 		// keep scores when switching between non-spectating teams

@@ -216,7 +216,7 @@ void CloseSocket( Socket socket ) {
 }
 
 size_t UDPSend( Socket socket, NetAddress destination, const void * data, size_t n ) {
-	assert( socket.type == SocketType_UDPClient || socket.type == SocketType_UDPServer );
+	Assert( socket.type == SocketType_UDPClient || socket.type == SocketType_UDPServer );
 
 	if( destination == NULL_ADDRESS ) {
 		return 0;
@@ -236,7 +236,7 @@ size_t UDPSend( Socket socket, NetAddress destination, const void * data, size_t
 }
 
 size_t UDPReceive( Socket socket, NetAddress * source, void * data, size_t n ) {
-	assert( socket.type == SocketType_UDPClient || socket.type == SocketType_UDPServer );
+	Assert( socket.type == SocketType_UDPClient || socket.type == SocketType_UDPServer );
 
 	if( socket.ipv4 != 0 ) {
 		sockaddr_storage sockaddr;
@@ -262,7 +262,7 @@ size_t UDPReceive( Socket socket, NetAddress * source, void * data, size_t n ) {
 }
 
 bool TCPAccept( Socket server, NonBlockingBool nonblocking, Socket * client, NetAddress * address ) {
-	assert( server.type == SocketType_TCPServer );
+	Assert( server.type == SocketType_TCPServer );
 
 	if( server.ipv4 != 0 ) {
 		sockaddr_storage sockaddr;
@@ -304,19 +304,19 @@ bool TCPAccept( Socket server, NonBlockingBool nonblocking, Socket * client, Net
 }
 
 bool TCPSend( Socket socket, const void * data, size_t n, size_t * sent ) {
-	assert( socket.type == SocketType_TCPClient );
+	Assert( socket.type == SocketType_TCPClient );
 
 	u64 handle = socket.ipv4 == 0 ? socket.ipv6 : socket.ipv4;
-	assert( handle != 0 );
+	Assert( handle != 0 );
 
 	return OSSocketSend( handle, data, n, NULL, 0, sent );
 }
 
 bool TCPReceive( Socket socket, void * data, size_t n, size_t * received ) {
-	assert( socket.type == SocketType_TCPClient );
+	Assert( socket.type == SocketType_TCPClient );
 
 	u64 handle = socket.ipv4 == 0 ? socket.ipv6 : socket.ipv4;
-	assert( handle != 0 );
+	Assert( handle != 0 );
 
 	return OSSocketReceive( handle, data, n, NULL, received );
 }

@@ -61,7 +61,7 @@ static void ClientObituary( edict_t * self, edict_t * inflictor, edict_t * attac
 //=======================================================
 
 static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage_type, int damage ) {
-	assert( ent->s.type == ET_PLAYER );
+	Assert( ent->s.type == ET_PLAYER );
 
 	edict_t * body = G_Spawn();
 
@@ -585,8 +585,8 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 	char oldname[MAX_INFO_VALUE];
 	gclient_t *cl;
 
-	assert( ent && ent->r.client );
-	assert( userinfo && Info_Validate( userinfo ) );
+	Assert( ent && ent->r.client );
+	Assert( userinfo && Info_Validate( userinfo ) );
 
 	// check for malformed or illegal info strings
 	if( !Info_Validate( userinfo ) ) {
@@ -624,8 +624,8 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 * loadgames will.
 */
 bool ClientConnect( edict_t *ent, char *userinfo, const NetAddress & address, bool fakeClient ) {
-	assert( ent );
-	assert( userinfo && Info_Validate( userinfo ) );
+	Assert( ent );
+	Assert( userinfo && Info_Validate( userinfo ) );
 
 	// verify that server gave us valid data
 	if( !Info_Validate( userinfo ) ) {
@@ -709,7 +709,7 @@ void ClientDisconnect( edict_t * ent, const char * reason ) {
 //==============================================================
 
 void G_PredictedEvent( int entNum, int ev, u64 parm ) {
-	assert( ev != EV_FIREWEAPON );
+	Assert( ev != EV_FIREWEAPON );
 
 	edict_t *ent = &game.edicts[entNum];
 

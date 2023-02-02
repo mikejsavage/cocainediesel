@@ -353,7 +353,7 @@ void CG_AddBombIndicator( const centity_t * cent ) {
 }
 
 void CG_AddBombSiteIndicator( const centity_t * cent ) {
-	assert( num_bomb_sites < ARRAY_COUNT( bomb_sites ) );
+	Assert( num_bomb_sites < ARRAY_COUNT( bomb_sites ) );
 
 	BombSiteIndicator * site = &bomb_sites[ num_bomb_sites ];
 	site->origin = cent->current.origin;

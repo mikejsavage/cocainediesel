@@ -251,7 +251,7 @@ bool Netchan_PushAllFragments( Socket socket, netchan_t * chan ) {
 * A 0 length will still generate a packet.
 */
 bool Netchan_Transmit( Socket socket, netchan_t * chan, msg_t * msg ) {
-	assert( msg );
+	Assert( msg );
 
 	if( msg->cursize > MAX_MSGLEN ) {
 		Com_Error( "Netchan_Transmit: Excessive length = %li", msg->cursize );

@@ -69,12 +69,12 @@ public:
 	}
 
 	char & operator[]( size_t i ) {
-		assert( i < N );
+		Assert( i < N );
 		return buf[ i ];
 	}
 
 	const char & operator[]( size_t i ) const {
-		assert( i < N );
+		Assert( i < N );
 		return buf[ i ];
 	}
 

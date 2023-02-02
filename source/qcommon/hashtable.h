@@ -23,7 +23,7 @@ public:
 	}
 
 	bool add( u64 key, u64 value ) {
-		assert( key != EmptyKey );
+		Assert( key != EmptyKey );
 
 		if( n == N )
 			return false;

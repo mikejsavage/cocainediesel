@@ -52,7 +52,7 @@ static void LoadGLTF( const char * path ) {
 
 	u64 idx = num_gltf_models;
 	if( !gltf_models_hashtable.get( hash, &idx ) ) {
-		assert( num_gltf_models < ARRAY_COUNT( gltf_models ) );
+		Assert( num_gltf_models < ARRAY_COUNT( gltf_models ) );
 		gltf_models_hashtable.add( hash, num_gltf_models );
 		num_gltf_models++;
 	}
@@ -496,7 +496,7 @@ static Mat4 TRSToMat4( const TRS & trs ) {
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const Model * model, Span< const TRS > local_poses ) {
 	TracyZoneScoped;
 
-	assert( local_poses.n == model->num_nodes );
+	Assert( local_poses.n == model->num_nodes );
 
 	MatrixPalettes palettes = { };
 	palettes.node_transforms = ALLOC_SPAN( a, Mat4, model->num_nodes );

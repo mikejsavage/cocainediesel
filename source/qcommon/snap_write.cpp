@@ -544,7 +544,7 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 	client_t *client,
 	SyncGameState *gameState, client_entities_t *client_entities
 ) {
-	assert( gameState );
+	Assert( gameState );
 
 	edict_t * clent = client->edict;
 	Vec3 org;
@@ -555,7 +555,7 @@ void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameN
 		org = clent->s.origin;
 		org.z += clent->r.client->ps.viewheight;
 	} else {
-		assert( client->mv );
+		Assert( client->mv );
 		org = Vec3( 0.0f );
 	}
 

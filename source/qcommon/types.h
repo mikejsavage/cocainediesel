@@ -1,6 +1,5 @@
 #pragma once
 
-#include <assert.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <float.h>
@@ -81,6 +80,22 @@ void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t ne
  * helper functions that are useful in templates. so headers don't need to include base.h
  */
 
+#define STRINGIFY_HELPER( a ) #a
+#define IFDEF( x ) ( STRINGIFY_HELPER( x )[ 0 ] == '1' && STRINGIFY_HELPER( x )[ 1 ] == '\0' )
+
+constexpr bool is_public_build = IFDEF( PUBLIC_BUILD );
+
+void AssertFail( const char * str, const char * file, int line );
+#define Assert( p ) \
+	do { \
+		if constexpr ( is_public_build ) { \
+			( void ) sizeof( p ); \
+		} \
+		else { \
+			if( !( p ) ) AssertFail( #p, __FILE__, __LINE__ ); \
+		} \
+	} while( false )
+
 template< typename T, size_t N >
 constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
 	return N;
@@ -97,7 +112,7 @@ constexpr size_t ARRAY_COUNT( M ( T::* )[ N ] ) {
 template< typename To, typename From >
 inline To checked_cast( const From & from ) {
 	To result = To( from );
-	assert( From( result ) == from );
+	Assert( From( result ) == from );
 	return result;
 }
 
@@ -130,7 +145,7 @@ constexpr T Max2( const T & a, const T & b ) {
 
 template< typename T >
 constexpr T Clamp( const T & lo, const T & x, const T & hi ) {
-	assert( lo <= hi );
+	Assert( lo <= hi );
 	return Max2( lo, Min2( x, hi ) );
 }
 
@@ -157,12 +172,12 @@ struct Span {
 	size_t num_bytes() const { return sizeof( T ) * n; }
 
 	T & operator[]( size_t i ) const {
-		assert( i < n );
+		Assert( i < n );
 		return ptr[ i ];
 	}
 
 	Span< T > operator+( size_t i ) const {
-		assert( i <= n );
+		Assert( i <= n );
 		return Span< T >( ptr + i, n - i );
 	}
 
@@ -171,7 +186,7 @@ struct Span {
 	}
 
 	void operator++( int ) {
-		assert( n > 0 );
+		Assert( n > 0 );
 		ptr++;
 		n--;
 	}
@@ -180,15 +195,15 @@ struct Span {
 	T * end() const { return ptr + n; }
 
 	Span< T > slice( size_t start, size_t one_past_end ) const {
-		assert( start <= one_past_end );
-		assert( one_past_end <= n );
+		Assert( start <= one_past_end );
+		Assert( one_past_end <= n );
 		return Span< T >( ptr + start, one_past_end - start );
 	}
 
 	template< typename S >
 	Span< S > cast() const {
-		assert( num_bytes() % sizeof( S ) == 0 );
-		assert( uintptr_t( ptr ) % alignof( S ) == 0 );
+		Assert( num_bytes() % sizeof( S ) == 0 );
+		Assert( uintptr_t( ptr ) % alignof( S ) == 0 );
 		return Span< S >( ( S * ) ptr, num_bytes() / sizeof( S ) );
 	}
 };
@@ -239,12 +254,12 @@ struct Vec2 {
 	const float * ptr() const { return &x; }
 
 	float & operator[]( size_t i ) {
-		assert( i < 2 );
+		Assert( i < 2 );
 		return ptr()[ i ];
 	}
 
 	float operator[]( size_t i ) const {
-		assert( i < 2 );
+		Assert( i < 2 );
 		return ptr()[ i ];
 	}
 };
@@ -263,12 +278,12 @@ struct Vec3 {
 	const float * ptr() const { return &x; }
 
 	float & operator[]( size_t i ) {
-		assert( i < 3 );
+		Assert( i < 3 );
 		return ptr()[ i ];
 	}
 
 	float operator[]( size_t i ) const {
-		assert( i < 3 );
+		Assert( i < 3 );
 		return ptr()[ i ];
 	}
 };
@@ -289,12 +304,12 @@ struct Vec4 {
 	const float * ptr() const { return &x; }
 
 	float & operator[]( size_t i ) {
-		assert( i < 4 );
+		Assert( i < 4 );
 		return ptr()[ i ];
 	}
 
 	float operator[]( size_t i ) const {
-		assert( i < 4 );
+		Assert( i < 4 );
 		return ptr()[ i ];
 	}
 };

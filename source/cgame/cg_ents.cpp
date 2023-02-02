@@ -267,7 +267,7 @@ static void CG_UpdatePlayerState() {
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	TracyZoneScoped;
 
-	assert( frame );
+	Assert( frame );
 
 	if( lerpframe ) {
 		cg.oldFrame = *lerpframe;

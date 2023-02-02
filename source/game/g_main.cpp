@@ -87,15 +87,6 @@ static void G_InitGameShared() {
 	server_gs.api.PMoveTouchTriggers = G_PMoveTouchTriggers;
 }
 
-void G_GamestatSetFlag( int flag, bool b ) {
-	if( b ) {
-		server_gs.gameState.flags |= flag;
-	}
-	else {
-		server_gs.gameState.flags &= ~flag;
-	}
-}
-
 /*
 * G_Init
 *

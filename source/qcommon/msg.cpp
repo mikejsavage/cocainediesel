@@ -708,8 +708,8 @@ static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGa
 
 static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState & baseline ) {
 	DeltaEnum( buf, state.gametype, baseline.gametype, Gametype_Count );
-	Delta( buf, state.flags, baseline.flags );
 	DeltaEnum( buf, state.match_state, baseline.match_state, MatchState_Count );
+	Delta( buf, state.paused, baseline.paused );
 	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );

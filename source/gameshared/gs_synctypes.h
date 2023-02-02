@@ -235,9 +235,6 @@ enum BombProgress : u8 {
 	BombProgress_Count
 };
 
-#define GAMESTAT_FLAG_PAUSED ( 1 << 0 )
-#define GAMESTAT_FLAG_WAITING ( 1 << 1 )
-
 enum Team : u8 {
 	Team_None,
 
@@ -277,8 +274,8 @@ struct SyncBombGameState {
 struct SyncGameState {
 	Gametype gametype;
 
-	u16 flags;
 	MatchState match_state;
+	bool paused;
 	s64 match_state_start_time;
 	s64 match_duration;
 	s64 clock_override;

@@ -402,7 +402,7 @@ void CG_PredictMovement() {
 		const cmodel_t * cmodel = CM_TryFindCModel( CM_Client, ent->model );
 		if( cmodel != NULL && ent->linearMovement ) {
 			Vec3 move;
-			s64 serverTime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime + cgs.extrapolationTime;
+			s64 serverTime = client_gs.gameState.paused ? cg.frame.serverTime : cl.serverTime + cgs.extrapolationTime;
 			GS_LinearMovementDelta( ent, cg.frame.serverTime, serverTime, &move );
 			cg.predictedPlayerState.pmove.origin = cg.predictedPlayerState.pmove.origin + move;
 		}

@@ -376,7 +376,7 @@ static void Cmd_Timeout_f( edict_t * ent, msg_t args ) {
 
 	Team team = ent->s.team;
 
-	if( GS_MatchPaused( &server_gs ) && ( level.timeout.endtime - level.timeout.time ) >= 2 * TIMEIN_TIME ) {
+	if( server_gs.gameState.paused && ( level.timeout.endtime - level.timeout.time ) >= 2 * TIMEIN_TIME ) {
 		G_PrintMsg( ent, "Timeout already in progress\n" );
 		return;
 	}
@@ -393,12 +393,13 @@ static void Cmd_Timeout_f( edict_t * ent, msg_t args ) {
 
 	G_PrintMsg( NULL, "%s%s called a timeout\n", ent->r.client->name, S_COLOR_WHITE );
 
-	if( !GS_MatchPaused( &server_gs ) ) {
+	if( !server_gs.gameState.paused ) {
 		G_AnnouncerSound( NULL, StringHash( "sounds/announcer/timeout" ), Team_Count, true, NULL );
 	}
 
+	server_gs.gameState.paused = true;
+
 	level.timeout.used[team]++;
-	G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, true );
 	level.timeout.caller = team;
 	level.timeout.endtime = level.timeout.time + TIMEOUT_TIME + FRAMETIME;
 }
@@ -408,7 +409,7 @@ static void Cmd_Timein_f( edict_t * ent, msg_t args ) {
 		return;
 	}
 
-	if( !GS_MatchPaused( &server_gs ) ) {
+	if( !server_gs.gameState.paused ) {
 		G_PrintMsg( ent, "No timeout in progress.\n" );
 		return;
 	}

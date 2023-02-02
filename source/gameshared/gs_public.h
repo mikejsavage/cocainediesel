@@ -91,9 +91,6 @@ struct gs_state_t {
 	gs_module_api_t api;
 };
 
-#define GS_MatchPaused( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_PAUSED ) != 0 )
-#define GS_MatchWaiting( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_WAITING ) != 0 )
-
 //==================================================================
 
 #define ATTN_NONE               0.0f    // full volume the entire level

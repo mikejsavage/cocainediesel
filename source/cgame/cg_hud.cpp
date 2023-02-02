@@ -908,7 +908,7 @@ static int LuauGetClockTime( lua_State * L ) {
 		}
 	}
 	else {
-		curtime = ( GS_MatchWaiting( &client_gs ) || GS_MatchPaused( &client_gs ) ) ? cg.frame.serverTime : cl.serverTime;
+		curtime = client_gs.gameState.match_state == MatchState_Warmup || client_gs.gameState.paused ? cg.frame.serverTime : cl.serverTime;
 		duration = client_gs.gameState.match_duration;
 		startTime = client_gs.gameState.match_state_start_time;
 

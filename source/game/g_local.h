@@ -453,7 +453,6 @@ void G_RunEntity( edict_t * ent );
 void G_Init( unsigned int framemsec );
 void G_Shutdown();
 void G_ExitLevel();
-void G_GamestatSetFlag( int flag, bool b );
 void G_Timeout_Reset();
 
 //

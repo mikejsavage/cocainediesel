@@ -296,7 +296,7 @@ static void G_VoteKickPassed( callvotedata_t *vote ) {
 * timeout
 */
 static bool G_VoteTimeoutValidate( callvotedata_t *vote, bool first ) {
-	if( GS_MatchPaused( &server_gs ) && ( level.timeout.endtime - level.timeout.time ) >= 2 * TIMEIN_TIME ) {
+	if( server_gs.gameState.paused && ( level.timeout.endtime - level.timeout.time ) >= 2 * TIMEIN_TIME ) {
 		if( first ) {
 			G_PrintMsg( vote->caller, "%sTimeout already in progress\n", S_COLOR_RED );
 		}
@@ -307,7 +307,7 @@ static bool G_VoteTimeoutValidate( callvotedata_t *vote, bool first ) {
 }
 
 static void G_VoteTimeoutPassed( callvotedata_t *vote ) {
-	G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, true );
+	server_gs.gameState.paused = true;
 	level.timeout.caller = Team_None;
 	level.timeout.endtime = level.timeout.time + TIMEOUT_TIME + FRAMETIME;
 }
@@ -316,7 +316,7 @@ static void G_VoteTimeoutPassed( callvotedata_t *vote ) {
 * timein
 */
 static bool G_VoteTimeinValidate( callvotedata_t *vote, bool first ) {
-	if( !GS_MatchPaused( &server_gs ) ) {
+	if( !server_gs.gameState.paused ) {
 		if( first ) {
 			G_PrintMsg( vote->caller, "%sNo timeout in progress\n", S_COLOR_RED );
 		}

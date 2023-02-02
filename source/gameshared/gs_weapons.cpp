@@ -570,7 +570,7 @@ void ClearInventory( SyncPlayerState * ps ) {
 }
 
 void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd, int timeDelta ) {
-	if( GS_MatchPaused( gs ) ) {
+	if( gs->gameState.paused ) {
 		return;
 	}
 

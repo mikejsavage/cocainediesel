@@ -13,9 +13,6 @@
 
 #include "imgui/imgui.h"
 
-#include "freetype/ft2build.h"
-#include FT_FREETYPE_H
-
 #include "stb/stb_image.h"
 
 struct Glyph {
@@ -26,7 +23,6 @@ struct Glyph {
 
 struct Font {
 	u32 path_hash;
-	FT_Face face; // TODO: unused. might get used for kerning?
 	Texture atlas;
 	Material material;
 
@@ -37,29 +33,17 @@ struct Font {
 	Glyph glyphs[ 256 ];
 };
 
-static FT_Library freetype;
-
 static Font fonts[ 64 ];
 static size_t num_fonts;
 
-bool InitText() {
-	int err = FT_Init_FreeType( &freetype );
-	if( err != 0 ) {
-		Com_Printf( S_COLOR_RED "Error initializing FreeType library: %d\n", err );
-		return false;
-	}
-
+void InitText() {
 	num_fonts = 0;
-
-	return true;
 }
 
 void ShutdownText() {
 	for( size_t i = 0; i < num_fonts; i++ ) {
 		DeleteTexture( fonts[ i ].atlas );
-		FT_Done_Face( fonts[ i ].face );
 	}
-	FT_Done_FreeType( freetype );
 }
 
 static void Serialize( SerializationBuffer * buf, Font & font ) {
@@ -121,22 +105,6 @@ const Font * RegisterFont( const char * path ) {
 
 		font->atlas = NewTexture( config );
 		font->material.texture = &font->atlas;
-	}
-
-	// load ttf
-	{
-		DynamicString ttf_path( &temp, "{}.ttf", path );
-		Span< const FT_Byte > data = AssetBinary( ttf_path.c_str() ).cast< const FT_Byte >();
-		if( data.ptr == NULL ) {
-			Com_Printf( S_COLOR_RED "Couldn't read file %s\n", ttf_path.c_str() );
-			return NULL;
-		}
-
-		int err = FT_New_Memory_Face( freetype, data.ptr, data.n, 0, &font->face );
-		if( err != 0 ) {
-			Com_Printf( S_COLOR_RED "Couldn't load font face from %s\n", ttf_path.c_str() );
-			return NULL;
-		}
 	}
 
 	num_fonts++;

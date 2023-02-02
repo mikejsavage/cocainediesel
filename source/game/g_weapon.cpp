@@ -809,39 +809,29 @@ void W_Fire_Sticky( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	bullet->think = StickyExplode;
 }
 
-static void W_Touch_BouncingProjectile( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+static bool BouncingProjectile( edict_t * ent, edict_t * other, Plane * plane, int surfFlags, int max_bounces, EventType ev_impact, EventType ev_bounce ) {
 	if( !CanHit( ent, other ) ) {
-		return;
+		return false;
 	}
 
-	DamageType damage_type = ent->projectileInfo.damage_type;
 	u64 dir = DirToU64( plane ? plane->normal : Vec3( 0.0f ));
-
 	if( other->takedamage ) {
-		edict_t * event = G_SpawnEvent( damage_type == Weapon_Pistol ? EV_PISTOL_IMPACT : damage_type == Weapon_Sawblade ? EV_SAWBLADE_IMPACT : EV_BLAST_IMPACT, dir, &ent->s.origin );
+		edict_t * event = G_SpawnEvent( ev_impact, dir, &ent->s.origin );
 		event->s.team = ent->s.team;
 		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, ent->projectileInfo.damage_type );
 		ent->enemy = other;
 		G_FreeEdict( ent );
-		return;
+		return false;
 	}
 
-	edict_t * event = NULL;
-	u32 max_bounces = -1;
-	if( damage_type == Weapon_Pistol ) {
-		event = G_SpawnEvent( EV_PISTOL_BOUNCE, dir, &ent->s.origin );
-		max_bounces = 2;
-	} else if( damage_type == Weapon_Sawblade ) {
-		event = G_SpawnEvent( EV_SAWBLADE_BOUNCE, dir, &ent->s.origin );
-		max_bounces = 7;
-	} else { //Weapon_MasterBlaster || Weapon_RoadGun
-		event = G_SpawnEvent( EV_BLAST_BOUNCE, dir, &ent->s.origin );
-		max_bounces = 5;
-	}
-
+	edict_t * event = G_SpawnEvent( ev_bounce, dir, &ent->s.origin );
 	event->s.team = ent->s.team;
 
-	if( ent->num_bounces >= max_bounces ) {
+	return ent->num_bounces >= max_bounces;
+}
+
+static void W_Touch_Blast( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+	if( BouncingProjectile( ent, other, plane, surfFlags, 5, EV_BLAST_IMPACT, EV_BLAST_BOUNCE ) ) {
 		G_FreeEdict( ent );
 	}
 }
@@ -857,7 +847,7 @@ void W_Fire_Blast( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 		Vec3 blast_dir = dir * def->range + right * spread.x + up * spread.y;
 		Vec3 blast_angles = VecToAngles( blast_dir );
 
-		edict_t * blast = FireProjectile( self, start, blast_angles, timeDelta, WeaponProjectileStats( Weapon_MasterBlaster ), W_Touch_BouncingProjectile, ET_BLAST, MASK_SHOT );
+		edict_t * blast = FireProjectile( self, start, blast_angles, timeDelta, WeaponProjectileStats( Weapon_MasterBlaster ), W_Touch_Blast, ET_BLAST, MASK_SHOT );
 
 		blast->classname = "blast";
 		blast->movetype = MOVETYPE_BOUNCE;
@@ -866,8 +856,14 @@ void W_Fire_Blast( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	}
 }
 
+static void W_Touch_Pistol( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+	if( BouncingProjectile( ent, other, plane, surfFlags, 2, EV_PISTOL_IMPACT, EV_PISTOL_BOUNCE ) ) {
+		G_FreeEdict( ent );
+	}
+}
+
 void W_Fire_Pistol( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Pistol ), W_Touch_BouncingProjectile, ET_PISTOLBULLET, MASK_SHOT );
+	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Pistol ), W_Touch_Pistol, ET_PISTOLBULLET, MASK_SHOT );
 
 	bullet->classname = "pistol_bullet";
 	bullet->s.model = "weapons/pistol/bullet";
@@ -876,8 +872,14 @@ void W_Fire_Pistol( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	bullet->s.sound = "weapons/bullet_whizz";
 }
 
+static void W_Touch_Sawblade( edict_t * ent, edict_t * other, Plane * plane, int surfFlags ) {
+	if( BouncingProjectile( ent, other, plane, surfFlags, 7, EV_SAWBLADE_IMPACT, EV_SAWBLADE_BOUNCE ) ) {
+		HitOrStickToWall( ent, other, Weapon_Sawblade, EV_SAWBLADE_IMPACT, EV_SAWBLADE_IMPACT );
+	}
+}
+
 void W_Fire_Sawblade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	edict_t * blade = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Sawblade ), W_Touch_BouncingProjectile, ET_SAWBLADE, MASK_SHOT );
+	edict_t * blade = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_Sawblade ), W_Touch_Sawblade, ET_SAWBLADE, MASK_SHOT );
 
 	blade->classname = "sawblade";
 	blade->s.model = "weapons/sawblade/bullet";
@@ -888,7 +890,7 @@ void W_Fire_Sawblade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 }
 
 void W_Fire_Road( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RoadGun ), W_Touch_BouncingProjectile, ET_BLAST, MASK_SHOT );
+	edict_t * bullet = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RoadGun ), W_Touch_Blast, ET_BLAST, MASK_SHOT );
 
 	bullet->classname = "zorg";
 	bullet->movetype = MOVETYPE_BOUNCE;

@@ -1347,14 +1347,12 @@ void UI_Refresh() {
 			DrawParticleMenuEffect();
 		}
 
-		const char * connecting = "Connecting...";
 		ImGui::SetNextWindowPos( ImVec2() );
 		ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
+		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration );
 
 		ImGui::PushFont( cls.large_font );
-		ImGui::SetCursorPos( ( ImGui::GetWindowSize() - ImGui::CalcTextSize( connecting ) )/2 );
-		ImGui::Text( "%s", connecting );
+		WindowCenterTextXY( "Connecting..." );
 		ImGui::PopFont();
 
 		ImGui::End();

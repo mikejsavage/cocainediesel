@@ -825,7 +825,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	client->ps.pmove.velocity = ent->velocity;
 	client->ps.viewangles = ent->s.angles;
 
-	if( server_gs.gameState.match_state >= MatchState_PostMatch || GS_MatchPaused( &server_gs )
+	if( server_gs.gameState.match_state >= MatchState_PostMatch || server_gs.gameState.paused
 		|| ( ent->movetype != MOVETYPE_PLAYER && ent->movetype != MOVETYPE_NOCLIP ) ) {
 		client->ps.pmove.pm_type = PM_FREEZE;
 	} else if( ent->movetype == MOVETYPE_NOCLIP ) {

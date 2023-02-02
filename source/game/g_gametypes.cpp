@@ -66,7 +66,6 @@ void G_Match_Autorecord_Stop() {
 
 static void G_Match_CheckStateAbort() {
 	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
-		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
 		return;
 	}
 
@@ -79,18 +78,9 @@ static void G_Match_CheckStateAbort() {
 
 	bool playable = teams_with_players >= 2;
 
-	// if waiting, turn on match states when enough players joined
-	if( GS_MatchWaiting( &server_gs ) && playable ) {
-		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
-	}
-	// turn off active match states if not enough players left
-	else if( server_gs.gameState.match_state == MatchState_Warmup && !playable && server_gs.gameState.match_duration ) {
-		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, true );
-	}
-	else if( server_gs.gameState.match_state == MatchState_Countdown && !playable ) {
+	if( server_gs.gameState.match_state == MatchState_Countdown && !playable ) {
 		G_ClearCenterPrint( NULL );
 		G_Match_LaunchState( MatchState_Warmup );
-		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, true );
 	}
 	// match running, but not enough players left
 	else if( server_gs.gameState.match_state == MatchState_Playing && !playable ) {
@@ -101,8 +91,6 @@ static void G_Match_CheckStateAbort() {
 }
 
 void G_Match_LaunchState( MatchState matchState ) {
-	G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
-
 	if( matchState == MatchState_PostMatch ) {
 		level.finalMatchDuration = svs.gametime - server_gs.gameState.match_state_start_time;
 	}

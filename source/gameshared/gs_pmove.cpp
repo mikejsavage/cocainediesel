@@ -726,7 +726,7 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 			break;
 	}
 
-	if( !GS_MatchPaused( pmove_gs ) ) {
+	if( !pmove_gs->gameState.paused ) {
 		// drop timing counters
 		if( ps->pmove.pm_time ) {
 			int msec;
@@ -748,7 +748,7 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 	}
 
 	if( ps->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
-		if( !GS_MatchPaused( pmove_gs ) ) {
+		if( !pmove_gs->gameState.paused ) {
 			ps->pmove.knockback_time = 0;
 			ps->pmove.pm_flags &= ~PMF_TIME_TELEPORT;
 

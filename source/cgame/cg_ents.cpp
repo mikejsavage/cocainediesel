@@ -35,7 +35,7 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 	}
 
 	int64_t serverTime;
-	if( GS_MatchPaused( &client_gs ) ) {
+	if( client_gs.gameState.paused ) {
 		serverTime = cg.frame.serverTime;
 	} else {
 		serverTime = cl.serverTime + cgs.extrapolationTime;

@@ -33,7 +33,7 @@ static void FillMapModelsHashtable() {
 		const Map * map = &maps[ i ];
 		for( u32 j = 0; j < map->num_models; j++ ) {
 			String< 16 > suffix( "*{}", j );
-			u64 hash = Hash64( suffix.c_str(), suffix.length(), map->base_hash );
+			u64 hash = Hash64( suffix.span(), map->base_hash );
 
 			Assert( map_models_hashtable.size() < MAX_MAP_MODELS );
 			map_models_hashtable.add( hash, uintptr_t( &map->models[ j ] ) );

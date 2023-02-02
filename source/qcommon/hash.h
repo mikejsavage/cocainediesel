@@ -3,8 +3,11 @@
 #include "qcommon/types.h"
 
 // fnv1a
-u32 Hash32( const void * data, size_t n, u32 basis = U32( 2166136261 ) );
-u64 Hash64( const void * data, size_t n, u64 basis = U64( 14695981039346656037 ) );
+constexpr u32 FNV1A_BASIS_32 = U32( 2166136261 );
+constexpr u64 FNV1A_BASIS_64 = U64( 14695981039346656037 );
+
+u32 Hash32( const void * data, size_t n, u32 basis = FNV1A_BASIS_32 );
+u64 Hash64( const void * data, size_t n, u64 basis = FNV1A_BASIS_64 );
 
 u32 Hash32( const char * str );
 u64 Hash64( const char * str );
@@ -12,13 +15,13 @@ u64 Hash64( const char * str );
 u64 Hash64( u64 x );
 
 template< typename T >
-u32 Hash32( Span< const T > data ) {
-	return Hash32( data.ptr, data.num_bytes() );
+u32 Hash32( Span< const T > data, u32 basis = FNV1A_BASIS_32 ) {
+	return Hash32( data.ptr, data.num_bytes(), basis );
 }
 
 template< typename T >
-u64 Hash64( Span< const T > data ) {
-	return Hash64( data.ptr, data.num_bytes() );
+u64 Hash64( Span< const T > data, u64 basis = FNV1A_BASIS_64 ) {
+	return Hash64( data.ptr, data.num_bytes(), basis );
 }
 
 // case insensitive hashing
@@ -26,7 +29,7 @@ u64 CaseHash64( Span< const char > str );
 u64 CaseHash64( const char * str );
 
 // compile time hashing
-constexpr u32 Hash32_CT( const char * data, size_t n, u32 hash = U32( 2166136261 ) ) {
+constexpr u32 Hash32_CT( const char * data, size_t n, u32 hash = FNV1A_BASIS_32 ) {
 	constexpr u32 prime = U32( 16777619 );
 	for( size_t i = 0; i < n; i++ ) {
 		hash = ( hash ^ data[ i ] ) * prime;
@@ -34,7 +37,7 @@ constexpr u32 Hash32_CT( const char * data, size_t n, u32 hash = U32( 2166136261
 	return hash;
 }
 
-constexpr u64 Hash64_CT( const char * data, size_t n, u64 hash = U64( 14695981039346656037 ) ) {
+constexpr u64 Hash64_CT( const char * data, size_t n, u64 hash = FNV1A_BASIS_64 ) {
 	constexpr u64 prime = U64( 1099511628211 );
 	for( size_t i = 0; i < n; i++ ) {
 		hash = ( hash ^ data[ i ] ) * prime;

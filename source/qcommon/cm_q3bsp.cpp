@@ -629,7 +629,7 @@ static void CMod_LoadSubmodels( CModelServerOrClient soc, CollisionModel *cms, l
 
 	for( int i = 0; i < count; i++, in++ ) {
 		String< 16 > suffix( "*{}", i );
-		u64 hash = Hash64( suffix.c_str(), suffix.length(), cms->base_hash );
+		u64 hash = Hash64( suffix.span(), cms->base_hash );
 
 		cmodel_t * model = CM_NewCModel( soc, hash );
 

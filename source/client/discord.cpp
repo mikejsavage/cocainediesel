@@ -13,9 +13,9 @@ struct RichPresence {
 	bool playing;
 	String< 127 > first_line;
 	String< 127 > second_line;
-	String< 127 > large_image;
+	String< 31 > large_image;
 	String< 127 > large_image_tooltip;
-	String< 127 > small_image;
+	String< 31 > small_image;
 	String< 127 > small_image_tooltip;
 };
 

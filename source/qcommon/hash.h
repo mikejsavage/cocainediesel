@@ -3,8 +3,8 @@
 #include "qcommon/types.h"
 
 // fnv1a
-constexpr u32 FNV1A_BASIS_32 = U32( 2166136261 );
-constexpr u64 FNV1A_BASIS_64 = U64( 14695981039346656037 );
+constexpr u32 FNV1A_BASIS_32 = 2166136261_u32;
+constexpr u64 FNV1A_BASIS_64 = 14695981039346656037_u64;
 
 u32 Hash32( const void * data, size_t n, u32 basis = FNV1A_BASIS_32 );
 u64 Hash64( const void * data, size_t n, u64 basis = FNV1A_BASIS_64 );
@@ -30,7 +30,7 @@ u64 CaseHash64( const char * str );
 
 // compile time hashing
 constexpr u32 Hash32_CT( const char * data, size_t n, u32 hash = FNV1A_BASIS_32 ) {
-	constexpr u32 prime = U32( 16777619 );
+	constexpr u32 prime = 16777619_u32;
 	for( size_t i = 0; i < n; i++ ) {
 		hash = ( hash ^ data[ i ] ) * prime;
 	}
@@ -38,7 +38,7 @@ constexpr u32 Hash32_CT( const char * data, size_t n, u32 hash = FNV1A_BASIS_32 
 }
 
 constexpr u64 Hash64_CT( const char * data, size_t n, u64 hash = FNV1A_BASIS_64 ) {
-	constexpr u64 prime = U64( 1099511628211 );
+	constexpr u64 prime = 1099511628211_u64;
 	for( size_t i = 0; i < n; i++ ) {
 		hash = ( hash ^ data[ i ] ) * prime;
 	}
@@ -71,7 +71,7 @@ inline bool operator==( StringHash a, StringHash b ) { return a.hash == b.hash; 
 inline bool operator!=( StringHash a, StringHash b ) { return !( a == b ); }
 
 // define this as hash = 0 so memset( 0 ) can be used to reset StringHashes
-constexpr StringHash EMPTY_HASH = StringHash( U64( 0 ) );
+constexpr StringHash EMPTY_HASH = StringHash( 0_u64 );
 
 struct FormatBuffer;
 struct FormatOpts;

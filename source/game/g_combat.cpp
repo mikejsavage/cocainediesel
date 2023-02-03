@@ -24,7 +24,7 @@ bool G_IsTeamDamage( SyncEntityState * target, SyncEntityState * attacker ) {
 	return target->number != attacker->number && target->team == attacker->team;
 }
 
-static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, Plane *plane, Vec3 pos, int timeDelta ) {
+static bool G_CanSplashDamage( const edict_t *targ, const edict_t *inflictor, const Plane *plane, Vec3 pos, int timeDelta ) {
 	constexpr float SPLASH_DAMAGE_TRACE_FRAC_EPSILON = 1.0f / 32.0f;
 
 	trace_t trace;
@@ -317,7 +317,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 		// shotgun calls G_Damage for every bullet, so we accumulate damage
 		// in W_Fire_Shotgun and send events from there instead
-		if( damage_type != Weapon_Shotgun ) {
+		if( damage_type != Weapon_Shotgun && damage_type != Weapon_DoubleBarrel ) {
 			bool headshot = dflags & DAMAGE_HEADSHOT;
 			SpawnDamageEvents( attacker, targ, take, headshot, point, dmgdir, statDmg );
 		}
@@ -420,7 +420,7 @@ void G_RadiusKnockback( float maxknockback, float minknockback, float radius, ed
 	}
 }
 
-void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Plane *plane, edict_t *ignore, DamageType damage_type ) {
+void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, const Plane *plane, edict_t *ignore, DamageType damage_type ) {
 	Assert( inflictor );
 
 	float maxdamage = inflictor->projectileInfo.maxDamage;

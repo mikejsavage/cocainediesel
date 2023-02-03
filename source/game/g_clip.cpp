@@ -745,7 +745,7 @@ static void GClip_TraceBounds( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, Vec3 
 * passedict is explicitly excluded from clipping checks (normally NULL)
 */
 static void GClip_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs,
-						 Vec3 end, edict_t *passedict, int contentmask, int timeDelta ) {
+						 Vec3 end, const edict_t *passedict, int contentmask, int timeDelta ) {
 	TracyZoneScoped;
 
 	moveclip_t clip;
@@ -783,11 +783,11 @@ static void GClip_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs,
 	GClip_ClipMoveToEntities( &clip, timeDelta );
 }
 
-void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask ) {
+void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t *passedict, int contentmask ) {
 	GClip_Trace( tr, start, mins, maxs, end, passedict, contentmask, 0 );
 }
 
-void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask, int timeDelta ) {
+void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t *passedict, int contentmask, int timeDelta ) {
 	GClip_Trace( tr, start, mins, maxs, end, passedict, contentmask, timeDelta );
 }
 

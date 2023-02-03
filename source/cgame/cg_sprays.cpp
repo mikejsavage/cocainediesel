@@ -82,6 +82,7 @@ void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, float scale, u64 entropy )
 		num_sprays++;
 	}
 
+	PlaySFX( "sounds/spray/spray", PlaySFXConfigPosition( origin ) );
 	DoVisualEffect( "vfx/spray", origin - forward * 8.0f, forward );
 }
 

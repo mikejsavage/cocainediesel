@@ -177,6 +177,10 @@ cmodel_t *CM_ModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs ) {
 * Internally offset to be symmetric on all sides.
 */
 cmodel_t *CM_OctagonModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs ) {
+	if( mins == maxs ) {
+		return CM_ModelForBBox( cms, mins, maxs );
+	}
+
 	float a, b, d, t;
 	float sina, cosa;
 	Vec3 offset, size[2];
@@ -184,9 +188,6 @@ cmodel_t *CM_OctagonModelForBBox( CollisionModel *cms, Vec3 mins, Vec3 maxs ) {
 	offset = ( mins + maxs ) * 0.5f;
 	size[0] = mins - offset;
 	size[1] = maxs - offset;
-
-	if( size[1].x == 0 && size[1].y == 0 )
-		return NULL;
 
 	cms->oct_cmodel->cyl_offset = offset;
 	cms->oct_cmodel->mins = size[0];

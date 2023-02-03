@@ -141,7 +141,7 @@ const WeaponDef weapon_defs[] = {
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_FAST,
 		/* weapon down time     */ WEAPONDOWN_TIME,
-		/* refire time          */ 250,
+		/* refire time          */ 125,
 		/* timeout / range      */ 2000,
 		/* max recoil           */ EulerDegrees2( 125.0f, 20.0f ),
 		/* min recoil           */ EulerDegrees2( 100.0f, -20.0f ),

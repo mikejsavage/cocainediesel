@@ -1027,7 +1027,7 @@ static void TouchThrowingAxe( edict_t * ent, edict_t * other, const Plane * plan
 		return;
 	}
 
-	HitOrStickToWall( ent, other, Gadget_ThrowingAxe, "gadgets/hatchet/hit", "gadgets/hatchet/hit" );
+	HitOrStickToWall( ent, other, Gadget_ThrowingAxe, "gadgets/hatchet/hit", "gadgets/hatchet/impact" );
 }
 
 static void UseThrowingAxe( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, u64 charge_time ) {

@@ -955,6 +955,7 @@ const GadgetDef gadget_defs[] = {
 		/* timeout          */ 5000,
 		/* speed            */ 2500,
 		/* min speed        */ 2000,
+		/* gravity scale	*/ 1.0f,
 	},
 
 	{
@@ -981,6 +982,7 @@ const GadgetDef gadget_defs[] = {
 		/* timeout          */ 1500,
 		/* speed            */ 1500,
 		/* min speed        */ 1000,
+		/* gravity scale	*/ 1.0f,
 	},
 };
 

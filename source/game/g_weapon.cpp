@@ -191,6 +191,7 @@ static ProjectileStats GadgetProjectileStats( GadgetType gadget ) {
 	stats.max_knockback = def->knockback;
 	stats.speed = def->speed;
 	stats.timeout = def->timeout;
+	stats.gravity_scale = def->gravity_scale;
 	stats.splash_radius = def->splash_radius;
 	stats.damage_type = gadget;
 

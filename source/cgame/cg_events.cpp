@@ -49,6 +49,14 @@ static Mat4 GetMuzzleTransform( int ent ) {
 	return cg_entPModels[ ent ].muzzle_transform;
 }
 
+static void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
+	constexpr int max_ions = 256;
+	float distance_between_particles = 4.0f;
+	float len = Length( end - start );
+	float count = Min2( len / distance_between_particles + 1.0f, float( max_ions ) );
+	DoVisualEffect( "weapons/eb/trail", start, end, count, color );
+}
+
 static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_Railgun );
 

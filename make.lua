@@ -9,8 +9,8 @@ msvc_global_cxxflags( "/wd4611" ) -- setjmp warning
 msvc_global_cxxflags( "/GR- /EHs-c-" )
 
 gcc_global_cxxflags( "-std=c++17 -msse4.2 -mpopcnt -fno-exceptions -fno-rtti -fno-strict-aliasing -fno-strict-overflow -fno-math-errno -fvisibility=hidden" )
-gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security" ) -- -Wconversion
-gcc_global_cxxflags( "-Wno-unused-parameter -Wno-missing-field-initializers -Wno-implicit-fallthrough" )
+gcc_global_cxxflags( "-Wall -Wextra -Wcast-align -Wvla -Wformat-security -Wimplicit-fallthrough" ) -- -Wconversion
+gcc_global_cxxflags( "-Wno-unused-parameter -Wno-missing-field-initializers" )
 
 if config == "release" then
 	global_cxxflags( "-DPUBLIC_BUILD" )

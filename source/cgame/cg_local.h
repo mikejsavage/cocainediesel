@@ -403,8 +403,6 @@ void DrawGibs();
 //
 // cg_effects.c
 //
-void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color );
-
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material );
 
 void InitPersistentBeams();

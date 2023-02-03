@@ -1,14 +1,6 @@
 #include "cgame/cg_local.h"
 #include "client/renderer/renderer.h"
 
-void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
-	constexpr int max_ions = 256;
-	float distance_between_particles = 4.0f;
-	float len = Length( end - start );
-	float count = Min2( len / distance_between_particles + 1.0f, float( max_ions ) );
-	DoVisualEffect( "weapons/eb/trail", start, end, count, color );
-}
-
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material_name ) {
 	if( start == end || start == frame_static.position )
 		return;

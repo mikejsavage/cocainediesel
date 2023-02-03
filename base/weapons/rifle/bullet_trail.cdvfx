@@ -10,8 +10,8 @@
     color_override
 
     speed 0
-    size 16 0
-    lifetime 0.25
-    emission 64
+    size 24 0
+    lifetime 0.15
+    emission 256
   }
 }

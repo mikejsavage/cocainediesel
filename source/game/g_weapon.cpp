@@ -517,8 +517,8 @@ static void FireBubble( edict_t * owner, Vec3 start, Vec3 angles, int timeDelta 
 	bubble->s.type = ET_BUBBLE;
 	bubble->classname = "bubble";
 	bubble->s.sound = "weapons/bg/trail";
-	arbullet->projectileInfo.explosion_vfx = "weapons/bg/explosion";
-	arbullet->projectileInfo.explosion_sfx = "weapons/bg/explode";
+	bubble->projectileInfo.explosion_vfx = "weapons/bg/explosion";
+	bubble->projectileInfo.explosion_sfx = "weapons/bg/explode";
 
 	bubble->touch = W_AutoTouch_ARBullet;
 	bubble->think = W_Think_ARBullet;

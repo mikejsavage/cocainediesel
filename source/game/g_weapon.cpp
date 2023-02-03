@@ -491,6 +491,8 @@ static void W_Fire_Rocket( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 	rocket->classname = "rocket";
 	rocket->s.model = "weapons/rl/rocket";
 	rocket->s.sound = "weapons/rl/trail";
+	rocket->projectileInfo.explosion_vfx = "vfx/explosion";
+	rocket->projectileInfo.explosion_sfx = "weapons/rl/explode";
 	rocket->touch = W_Touch_Rocket;
 }
 
@@ -501,6 +503,8 @@ static void W_Fire_ARBullet( edict_t * self, Vec3 start, Vec3 angles, int timeDe
 	arbullet->classname = "arbullet";
 	arbullet->s.model = "weapons/ar/projectile";
 	arbullet->s.sound = "weapons/ar/trail";
+	arbullet->projectileInfo.explosion_vfx = "weapons/ar/explosion";
+	arbullet->projectileInfo.explosion_sfx = "weapons/ar/explode";
 
 	arbullet->touch = W_AutoTouch_ARBullet;
 	arbullet->think = W_Think_ARBullet;
@@ -513,6 +517,8 @@ static void FireBubble( edict_t * owner, Vec3 start, Vec3 angles, int timeDelta 
 	bubble->s.type = ET_BUBBLE;
 	bubble->classname = "bubble";
 	bubble->s.sound = "weapons/bg/trail";
+	arbullet->projectileInfo.explosion_vfx = "weapons/bg/explosion";
+	arbullet->projectileInfo.explosion_sfx = "weapons/bg/explode";
 
 	bubble->touch = W_AutoTouch_ARBullet;
 	bubble->think = W_Think_ARBullet;

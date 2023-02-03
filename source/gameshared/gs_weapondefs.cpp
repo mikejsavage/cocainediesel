@@ -48,6 +48,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ HITSCAN,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 30,
 	},
 
@@ -85,6 +86,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ HITSCAN,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 40,
 	},
 
@@ -122,6 +124,45 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ HITSCAN,
+		/* gravity scale        */ 1.0f,
+		/* spread               */ 0,
+	},
+
+	{
+		/* name                 */ "PISTOL",
+		/* short name           */ "pistol",
+		/* category             */ WeaponCategory_Backup,
+
+		/* projectile count     */ 1,
+		/* clip size            */ 10,
+		/* reload time          */ 1500,
+		/* staged reload time   */ 0,
+
+		// timings (in msecs)
+		/* weapon up time       */ WEAPONUP_TIME_FAST,
+		/* weapon down time     */ WEAPONDOWN_TIME,
+		/* refire time          */ 250,
+		/* timeout / range      */ 2000,
+		/* max recoil           */ EulerDegrees2( 125.0f, 20.0f ),
+		/* min recoil           */ EulerDegrees2( 100.0f, -20.0f ),
+		/* recoil recovery      */ 2000.0f,
+		/* firing mode          */ FiringMode_SemiAuto,
+
+		/* zoom fov             */ 0.0f,
+		/* zoom inaccuracy      */ 0.0f,
+
+		// damages
+		/* damage               */ 10,
+		/* self damage          */ 0.0f,
+		/* wallbang damage      */ 0.5f,
+		/* knockback            */ 30,
+		/* splash radius        */ 0,
+		/* splash min damage    */ 0,
+		/* splash min knockback */ 0,
+
+		// projectile def
+		/* speed                */ 2000,
+		/* gravity scale        */ 0.0f,
 		/* spread               */ 0,
 	},
 
@@ -160,6 +201,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ HITSCAN,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
 	},
 
@@ -197,6 +239,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ HITSCAN,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
 	},
 
@@ -234,7 +277,46 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ HITSCAN,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 50,
+	},
+
+	{
+		/* name                 */ "DOUBLE-BARREL",
+		/* short name           */ "doublebarrel",
+		/* category             */ WeaponCategory_Primary,
+
+		/* projectile count     */ 30,
+		/* clip size            */ 2,
+		/* reload time          */ 3000,
+		/* staged reload time   */ 0,
+
+		// timings (in msecs)
+		/* weapon up time       */ WEAPONUP_TIME_SLOW,
+		/* weapon down time     */ WEAPONDOWN_TIME,
+		/* refire time          */ 200,
+		/* timeout / range      */ HITSCAN_RANGE,
+		/* max recoil           */ EulerDegrees2( 325.0f, -50.0f ),
+		/* min recoil           */ EulerDegrees2( 275.0f, -40.0f ),
+		/* recoil recovery      */ 1500.0f,
+		/* firing mode          */ FiringMode_SemiAuto,
+
+		/* zoom fov             */ 0.0f,
+		/* zoom inaccuracy      */ 0.0f,
+
+		// damages
+		/* damage               */ 2,
+		/* self damage          */ 0,
+		/* wallbang damage      */ 0.5f,
+		/* knockback            */ 7,
+		/* splash radius        */ 0,
+		/* splash min damage    */ 0,
+		/* splash min knockback */ 0,
+
+		// projectile def
+		/* speed                */ HITSCAN,
+		/* gravity scale        */ 1.0f,
+		/* spread               */ 100,
 	},
 
 	{
@@ -271,6 +353,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ HITSCAN,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
 	},
 
@@ -308,6 +391,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ 2000,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
 	},
 
@@ -345,6 +429,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ 1400,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
 	},
 
@@ -382,6 +467,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ 1400,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
 	},
 
@@ -419,6 +505,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ 3500,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0.0f,
 	},
 
@@ -456,6 +543,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ 900,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 3,
 	},
 
@@ -493,6 +581,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ HITSCAN,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
 	},
 
@@ -530,6 +619,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ HITSCAN,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
 	},
 
@@ -567,6 +657,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ HITSCAN,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
 	},
 
@@ -604,6 +695,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ HITSCAN,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0, // fuse time
 	},
 
@@ -641,6 +733,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ 5500,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
 	},
 
@@ -678,6 +771,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ 3000,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 30,
 	},
 
@@ -715,6 +809,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ 3000,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
 	},
 
@@ -752,7 +847,45 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ 3000,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 1750,
+	},
+
+	{
+		/* name                 */ "SAWBLADE",
+		/* short name           */ "sawblade",
+		/* category             */ WeaponCategory_Secondary,
+
+		/* projectile count     */ 1,
+		/* clip size            */ 6,
+		/* reload time          */ 3000,
+		/* staged reload time   */ 0,
+
+		// timings (in msecs)
+		/* weapon up time       */ WEAPONUP_TIME_FAST,
+		/* weapon down time     */ WEAPONDOWN_TIME,
+		/* refire time          */ 400,
+		/* timeout / range      */ 4000,
+		/* max recoil           */ EulerDegrees2( 125.0f, 5.0f ),
+		/* min recoil           */ EulerDegrees2( 100.0f, -5.0f ),
+		/* recoil recovery      */ 1750.0f,
+		/* firing mode          */ FiringMode_SemiAuto,
+
+		/* zoom fov             */ 0.0f,
+		/* zoom inaccuracy      */ 0.0f,
+
+		// damages
+		/* damage               */ 30,
+		/* self damage          */ 1,
+		/* wallbang damage      */ 0.0f,
+		/* knockback            */ 100,
+		/* splash radius        */ 0,
+		/* splash min damage    */ 0,
+		/* splash min knockback */ 0,
+
+		// projectile def
+		/* speed                */ 2000,
+		/* spread               */ 0,
 	},
 
 #if 0
@@ -789,6 +922,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ HITSCAN,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 250,
 	},
 #endif
@@ -821,6 +955,7 @@ const GadgetDef gadget_defs[] = {
 		/* timeout          */ 5000,
 		/* speed            */ 2500,
 		/* min speed        */ 2000,
+		/* gravity scale    */ 1.0f,
 	},
 
 	{
@@ -847,6 +982,7 @@ const GadgetDef gadget_defs[] = {
 		/* timeout          */ 1500,
 		/* speed            */ 1500,
 		/* min speed        */ 1000,
+		/* gravity scale    */ 1.0f,
 	},
 };
 

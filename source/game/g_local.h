@@ -54,11 +54,11 @@ enum movetype_t {
 	MOVETYPE_NOCLIP,    // like MOVETYPE_PLAYER, but not clipped
 	MOVETYPE_PUSH,      // no clip to world, push on box contact
 	MOVETYPE_STOP,      // no clip to world, stops on box contact
-	MOVETYPE_FLY,
 	MOVETYPE_TOSS,      // gravity
 	MOVETYPE_LINEARPROJECTILE, // extra size to monsters
 	MOVETYPE_BOUNCE,
 	MOVETYPE_BOUNCEGRENADE,
+	MOVETYPE_BOUNCENOGRAVITY,
 };
 
 #define TIMEOUT_TIME                    180000
@@ -319,8 +319,8 @@ struct link_t {
 	int entNum;
 };
 
-void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask );
-void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, edict_t *passedict, int contentmask, int timeDelta );
+void G_Trace( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t *passedict, int contentmask );
+void G_Trace4D( trace_t *tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t *passedict, int contentmask, int timeDelta );
 void GClip_BackUpCollisionFrame();
 int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int timeDelta );
 void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage );
@@ -353,7 +353,7 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, DamageType damage_type );
 void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage, bool headshot, Vec3 pos, Vec3 dir, bool showNumbers );
 void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t *attacker, Vec3 pos, Plane *plane, int timeDelta );
-void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Plane *plane, edict_t *ignore, DamageType damage_type );
+void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, const Plane *plane, edict_t *ignore, DamageType damage_type );
 
 // damage flags
 #define DAMAGE_RADIUS         ( 1 << 0 )  // damage was indirect
@@ -482,6 +482,8 @@ struct projectileinfo_t {
 	float minKnockback;
 	float maxKnockback;
 	DamageType damage_type;
+	StringHash explosion_vfx;
+	StringHash explosion_sfx;
 };
 
 struct chasecam_t {
@@ -612,7 +614,7 @@ struct snap_edict_t {
 	float damage_given;
 };
 
-using EdictTouchCallback = void ( * )( edict_t * self, edict_t * other, Plane * plane, int surfFlags );
+using EdictTouchCallback = void ( * )( edict_t * self, edict_t * other, const Plane * plane, int surfFlags );
 
 struct edict_t {
 	SyncEntityState s;
@@ -679,6 +681,7 @@ struct edict_t {
 	const char *message;
 
 	int mass;
+	float gravity_scale;
 
 	edict_t *movetarget;
 

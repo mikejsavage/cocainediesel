@@ -93,7 +93,6 @@ void SV_Impact( edict_t *e1, trace_t *trace ) {
 	}
 }
 
-
 //===============================================================================
 //
 //PUSHMOVE
@@ -108,35 +107,32 @@ void SV_Impact( edict_t *e1, trace_t *trace ) {
 */
 static trace_t SV_PushEntity( edict_t *ent, Vec3 push ) {
 	trace_t trace;
-	int mask;
 
 	Vec3 start = ent->s.origin;
 	Vec3 end = start + push;
 
-retry:
-	if( ent->r.clipmask ) {
-		mask = ent->r.clipmask;
-	} else {
-		mask = MASK_SOLID;
-	}
+	while( true ) {
+		int mask = ent->r.clipmask ? ent->r.clipmask : MASK_SOLID;
 
-	G_Trace4D( &trace, start, ent->r.mins, ent->r.maxs, end, ent, mask, ent->timeDelta );
-	if( ent->movetype == MOVETYPE_PUSH || !trace.startsolid ) {
-		ent->s.origin = trace.endpos;
-	}
-
-	GClip_LinkEntity( ent );
-
-	if( trace.fraction < 1.0f ) {
-		SV_Impact( ent, &trace );
-
-		// if the pushed entity went away and the pusher is still there
-		if( !game.edicts[trace.ent].r.inuse && ent->movetype == MOVETYPE_PUSH && ent->r.inuse ) {
-			// move the pusher back and try again
-			ent->s.origin = start;
-			GClip_LinkEntity( ent );
-			goto retry;
+		G_Trace4D( &trace, start, ent->r.mins, ent->r.maxs, end, ent, mask, ent->timeDelta );
+		if( ent->movetype == MOVETYPE_PUSH || !trace.startsolid ) {
+			ent->s.origin = trace.endpos;
 		}
+
+		GClip_LinkEntity( ent );
+
+		if( trace.fraction < 1.0f ) {
+			SV_Impact( ent, &trace );
+
+			// if the pushed entity went away and the pusher is still there
+			if( !game.edicts[trace.ent].r.inuse && ent->movetype == MOVETYPE_PUSH && ent->r.inuse ) {
+				// move the pusher back and try again
+				ent->s.origin = start;
+				GClip_LinkEntity( ent );
+				continue;
+			}
+		}
+		break;
 	}
 
 	if( ent->r.inuse ) {
@@ -398,8 +394,8 @@ static void SV_Physics_Toss( edict_t *ent ) {
 	SV_CheckVelocity( ent );
 
 	// add gravity
-	if( ent->movetype != MOVETYPE_FLY && !ent->groundentity ) {
-		ent->velocity.z -= GRAVITY * FRAMETIME;
+	if( !ent->groundentity ) {
+		ent->velocity.z -= GRAVITY * FRAMETIME * ent->gravity_scale;
 	}
 
 	// move origin
@@ -411,10 +407,9 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 	trace_t trace = SV_PushEntity( ent, move );
 	if( trace.fraction < 1.0f ) {
-		float restitution = 0.0f;
-		if( ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
-			restitution = 0.5f;
-		}
+		float restitution = ent->movetype == MOVETYPE_BOUNCENOGRAVITY ? 1.0f :
+							ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ? 0.5f :
+							0.0f;
 
 		Vec3 impulse = -Dot( ent->velocity, trace.plane.normal ) * trace.plane.normal;
 		ent->velocity += ( 1.0f + restitution ) * impulse;
@@ -423,7 +418,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 		// stop if on ground
 
-		if( ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
+		if( ent->movetype != MOVETYPE_TOSS ) {
 			// stop dead on allsolid
 
 			// LA: hopefully will fix grenades bouncing down slopes
@@ -526,12 +521,8 @@ void G_RunEntity( edict_t *ent ) {
 			break;
 		case MOVETYPE_BOUNCE:
 		case MOVETYPE_BOUNCEGRENADE:
-			SV_Physics_Toss( ent );
-			break;
+		case MOVETYPE_BOUNCENOGRAVITY:
 		case MOVETYPE_TOSS:
-			SV_Physics_Toss( ent );
-			break;
-		case MOVETYPE_FLY:
 			SV_Physics_Toss( ent );
 			break;
 		case MOVETYPE_LINEARPROJECTILE:

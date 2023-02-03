@@ -39,8 +39,10 @@ enum EntityType : u8 {
 	ET_BUBBLE,
 	ET_RAILALT,
 	ET_RIFLEBULLET,
+	ET_PISTOLBULLET,
 	ET_STAKE,
 	ET_BLAST,
+	ET_SAWBLADE,
 
 	ET_THROWING_AXE,
 
@@ -82,10 +84,12 @@ enum WeaponType : u8 {
 
 	Weapon_Knife,
 	Weapon_Bat,
+	Weapon_9mm,
 	Weapon_Pistol,
 	Weapon_MachineGun,
 	Weapon_Deagle,
 	Weapon_Shotgun,
+	Weapon_DoubleBarrel,
 	Weapon_BurstRifle,
 	Weapon_StakeGun,
 	Weapon_GrenadeLauncher,
@@ -100,6 +104,7 @@ enum WeaponType : u8 {
 	Weapon_MasterBlaster,
 	Weapon_RoadGun,
 	Weapon_StickyGun,
+	Weapon_Sawblade,
 	// Weapon_Minigun,
 
 	Weapon_Count

@@ -771,13 +771,13 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	bool draw_model = !ISVIEWERENTITY( cent->current.number ) || cg.view.thirdperson;
 	bool same_team = cg.predictedPlayerState.team == cent->current.team;
-	bool draw_silhouette = draw_model && ( ISREALSPECTATOR() || same_team );
+	bool draw_silhouette = !corpse && draw_model && ( ISREALSPECTATOR() || same_team );
 
 	{
 		DrawModelConfig config = { };
 		config.draw_model.enabled = draw_model;
 		config.draw_shadows.enabled = true;
-		if( !corpse && draw_silhouette ) {
+		if( draw_silhouette ) {
 			config.draw_silhouette.enabled = true;
 			config.draw_silhouette.silhouette_color = color;
 		}

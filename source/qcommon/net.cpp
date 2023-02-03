@@ -130,7 +130,7 @@ bool DNS( const char * hostname, NetAddress * address, DNSFamily family ) {
 	}
 
 	sockaddr_storage storage = { };
-	memcpy( &storage, &addresses->ai_addr, sizeof( addresses->ai_addr ) );
+	memcpy( &storage, addresses->ai_addr, sizeof( *addresses->ai_addr ) );
 	*address = SockaddrToNetAddress( &storage );
 	freeaddrinfo( addresses );
 	return true;

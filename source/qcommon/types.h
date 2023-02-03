@@ -34,14 +34,19 @@ constexpr u16 U16_MAX = UINT16_MAX;
 constexpr u32 U32_MAX = UINT32_MAX;
 constexpr u64 U64_MAX = UINT64_MAX;
 
-#define S8 INT8_C
-#define S16 INT16_C
-#define S32 INT32_C
-#define S64 INT64_C
-#define U8 UINT8_C
-#define U16 UINT16_C
-#define U32 UINT32_C
-#define U64 UINT64_C
+constexpr u32 operator""_u32( unsigned long long value ) {
+	if( value > U32_MAX ) {
+		throw;
+	}
+	return value;
+}
+
+constexpr u64 operator""_u64( unsigned long long value ) {
+	if( value > U64_MAX ) {
+		throw;
+	}
+	return value;
+}
 
 /*
  * Allocator

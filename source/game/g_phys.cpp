@@ -407,8 +407,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 	trace_t trace = SV_PushEntity( ent, move );
 	if( trace.fraction < 1.0f ) {
-		float restitution = ent->movetype == MOVETYPE_BOUNCENOGRAVITY ? 1.0f :
-							ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ? 0.5f :
+		float restitution = ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ? 1.0f/(1.0f + ent->gravity_scale) :
 							0.0f;
 
 		Vec3 impulse = -Dot( ent->velocity, trace.plane.normal ) * trace.plane.normal;
@@ -521,7 +520,6 @@ void G_RunEntity( edict_t *ent ) {
 			break;
 		case MOVETYPE_BOUNCE:
 		case MOVETYPE_BOUNCEGRENADE:
-		case MOVETYPE_BOUNCENOGRAVITY:
 		case MOVETYPE_TOSS:
 			SV_Physics_Toss( ent );
 			break;

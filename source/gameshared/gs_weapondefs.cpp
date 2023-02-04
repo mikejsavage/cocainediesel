@@ -857,8 +857,8 @@ const WeaponDef weapon_defs[] = {
 		/* category             */ WeaponCategory_Secondary,
 
 		/* projectile count     */ 1,
-		/* clip size            */ 6,
-		/* reload time          */ 3000,
+		/* clip size            */ 5,
+		/* reload time          */ 2000,
 		/* staged reload time   */ 0,
 
 		// timings (in msecs)

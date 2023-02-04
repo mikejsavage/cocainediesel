@@ -872,7 +872,7 @@ void W_Fire_Pistol( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	bullet->s.type = ET_PISTOLBULLET;
 	bullet->classname = "pistol_bullet";
 	bullet->s.model = "weapons/pistol/bullet";
-	bullet->movetype = MOVETYPE_BOUNCENOGRAVITY;
+	bullet->movetype = MOVETYPE_BOUNCE;
 	bullet->s.sound = "weapons/bullet_whizz";
 	bullet->touch = W_Touch_Pistol;
 	bullet->stop = G_FreeEdict;
@@ -890,7 +890,7 @@ void W_Fire_Sawblade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	blade->s.type = ET_SAWBLADE;
 	blade->classname = "sawblade";
 	blade->s.model = "weapons/sawblade/bullet";
-	blade->movetype = MOVETYPE_BOUNCENOGRAVITY;
+	blade->movetype = MOVETYPE_BOUNCE;
 	blade->s.sound = "weapons/sawblade/trail";
 	blade->avelocity = Vec3( 0.0f, -360.0f, 0.0 );
 	blade->touch = W_Touch_Sawblade;

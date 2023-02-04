@@ -58,7 +58,6 @@ enum movetype_t {
 	MOVETYPE_LINEARPROJECTILE, // extra size to monsters
 	MOVETYPE_BOUNCE,
 	MOVETYPE_BOUNCEGRENADE,
-	MOVETYPE_BOUNCENOGRAVITY,
 };
 
 #define TIMEOUT_TIME                    180000

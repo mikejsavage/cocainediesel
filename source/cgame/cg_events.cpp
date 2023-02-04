@@ -603,6 +603,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			//  PREDICTABLE EVENTS
 
 		case EV_WEAPONACTIVATE: {
+			StopSFX( cg_entities[ ent->number ].playing_reload );
+
 			CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
 			CG_ViewWeapon_AddAnimation( ent->number, "activate" );
 
@@ -691,6 +693,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_USEGADGET: {
+			StopSFX( cg_entities[ ent->number ].playing_reload );
+
 			GadgetType gadget = GadgetType( parm & 0xFF );
 			StringHash sfx = GetGadgetModelMetadata( gadget )->use_sound;
 
@@ -718,13 +722,17 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 			StringHash sfx = GetWeaponModelMetadata( WeaponType( parm ) )->reload_sound;
 
+			PlayingSFXHandle sound;
+
 			if( viewer ) {
-				PlaySFX( sfx );
+				sound = PlaySFX( sfx );
 				CG_ViewWeapon_AddAnimation( ent->number, "reload" );
 			}
 			else {
-				PlaySFX( sfx, PlaySFXConfigPosition( ent->origin ) );
+				sound = PlaySFX( sfx, PlaySFXConfigPosition( ent->origin ) );
 			}
+
+			cg_entities[ ent->number ].playing_reload = sound;
 		} break;
 
 		case EV_ZOOM_IN:

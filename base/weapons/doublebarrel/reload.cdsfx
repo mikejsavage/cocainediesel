@@ -1,4 +1,16 @@
 {
+	delay 0.75
+	volume 0.9
+	pitch 0.9
 	attenuation idle
-	sound ./reload
+	sound weapons/rg/reload
 }
+
+{
+	delay 1.75
+	volume 0.9
+	pitch 0.9
+	attenuation idle
+	sound weapons/rg/reload
+}
+

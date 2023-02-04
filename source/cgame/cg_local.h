@@ -87,6 +87,7 @@ struct centity_t {
 
 	PlayingSFXHandle playing_body_sound;
 	PlayingSFXHandle playing_vsay;
+	PlayingSFXHandle playing_reload;
 
 	bool linearProjectileCanDraw;
 	Vec3 linearProjectileViewerSource;

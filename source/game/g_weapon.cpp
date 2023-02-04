@@ -827,6 +827,7 @@ static bool BouncingProjectile( edict_t * ent, edict_t * other, const Plane * pl
 		return false;
 	}
 
+	ent->s.angles = VecToAngles( -ent->velocity );
 	SpawnFX( ent, plane, bounce_fx, bounce_fx );
 
 	return ent->num_bounces >= max_bounces;
@@ -861,7 +862,7 @@ void W_Fire_Blast( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 }
 
 static void W_Touch_Pistol( edict_t * ent, edict_t * other, const Plane * plane, int surfFlags ) {
-	if( BouncingProjectile( ent, other, plane, surfFlags, 2, "weapons/pistol/bullet_impact", "weapons/pistol/bounce" ) ) {
+	if( BouncingProjectile( ent, other, plane, surfFlags, 1, "weapons/pistol/bullet_impact", "weapons/pistol/bounce" ) ) {
 		G_FreeEdict( ent );
 	}
 }

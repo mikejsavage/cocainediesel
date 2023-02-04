@@ -118,6 +118,7 @@ enum GadgetType : u8 {
 	Gadget_ThrowingAxe,
 	Gadget_SuicideBomb,
 	Gadget_StunGrenade,
+	Gadget_Rocket,
 
 	Gadget_Count
 };

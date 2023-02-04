@@ -466,6 +466,25 @@ static const ItemState generic_throwable_states[] = {
 	} ),
 };
 
+static const ItemState instant_throw_states[] = {
+	ItemState( WeaponState_Firing, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
+		gs->api.PredictedUseGadget( ps->POVnum, ps->gadget, ps->weapon_state_time );
+		ps->gadget_ammo--;
+		return WeaponState_SwitchingOut;
+	} ),
+
+	ItemState( WeaponState_SwitchingOut, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
+		const GadgetDef * def = GetGadgetDef( ps->gadget );
+		if( ps->weapon_state_time >= def->switch_out_time ) {
+			ps->using_gadget = false;
+			ps->pending_weapon = ps->last_weapon;
+			return WeaponState_Dispatch;
+		}
+
+		return state;
+	} ),
+};
+
 static bool SuicideBombStage( SyncPlayerState * ps, int stage, u64 delay ) {
 	if( ps->gadget_ammo >= stage )
 		return false;
@@ -510,6 +529,7 @@ constexpr static Span< const ItemState > generic_gun_state_machine = MakeStateMa
 constexpr static Span< const ItemState > bat_state_machine = MakeStateMachine( bat_states );
 constexpr static Span< const ItemState > railgun_state_machine = MakeStateMachine( railgun_states );
 constexpr static Span< const ItemState > generic_throwable_state_machine = MakeStateMachine( generic_throwable_states );
+constexpr static Span< const ItemState > instan_throw_state_machine = MakeStateMachine( instant_throw_states );
 constexpr static Span< const ItemState > suicide_bomb_state_machine = MakeStateMachine( suicide_bomb_states );
 
 static Span< const ItemState > FindItemStateMachine( SyncPlayerState * ps ) {
@@ -523,7 +543,8 @@ static Span< const ItemState > FindItemStateMachine( SyncPlayerState * ps ) {
 			// 	return generic_throwable_state_machine;
 			case Gadget_ThrowingAxe:
 			case Gadget_StunGrenade:
-				return generic_throwable_state_machine;
+			case Gadget_Rocket:
+				return instan_throw_state_machine;
 
 			case Gadget_SuicideBomb:
 				return suicide_bomb_state_machine;

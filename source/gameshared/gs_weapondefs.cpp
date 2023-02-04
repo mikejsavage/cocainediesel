@@ -984,6 +984,26 @@ const GadgetDef gadget_defs[] = {
 		/* min speed        */ 1000,
 		/* gravity scale    */ 1.0f,
 	},
+
+	{
+		/* name             */ "ROCKET",
+		/* short name       */ "rocket",
+		/* uses             */ 2,
+		/* drop on death    */ false,
+		/* switch in time   */ 0,
+		/* using time       */ 0,
+		/* cook time        */ 0,
+		/* switch out time  */ 50 + WEAPONDOWN_TIME,
+		/* damage           */ 40,
+		/* knockback        */ 100,
+		/* min damage       */ 10,
+		/* min knockback    */ 50,
+		/* splash_radius    */ 120,
+		/* timeout          */ 10000,
+		/* speed            */ 1400,
+		/* min speed        */ 1000,
+		/* gravity scale    */ 1.0f,
+	},
 };
 
 STATIC_ASSERT( ARRAY_COUNT( gadget_defs ) == Gadget_Count );

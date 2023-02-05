@@ -523,6 +523,7 @@ static Span< const ItemState > FindItemStateMachine( SyncPlayerState * ps ) {
 			case Gadget_ThrowingAxe:
 			case Gadget_StunGrenade:
 			case Gadget_Rocket:
+			case Gadget_Shuriken:
 				return generic_throwable_state_machine;
 
 			case Gadget_SuicideBomb:

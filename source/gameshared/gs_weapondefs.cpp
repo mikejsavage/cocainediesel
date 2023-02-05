@@ -995,6 +995,24 @@ const GadgetDef gadget_defs[] = {
 		/* cook time        */ 0,
 		/* switch out time  */ 50 + WEAPONDOWN_TIME,
 	},
+
+	{
+		/* name             */ "SHURIKEN",
+		/* short name       */ "shuriken",
+		/* uses             */ 4,
+		/* drop on death    */ false,
+		/* switch in time   */ 0,
+		/* using time       */ 0,
+		/* cook time        */ 0,
+		/* switch out time  */ 200 + WEAPONDOWN_TIME,
+		/* damage           */ 30,
+		/* knockback        */ 60,
+		/* min damage       */ 30,
+		/* min knockback    */ 0,
+		/* splash radius    */ 0,
+		/* timeout          */ 5000,
+		/* speed            */ 4000,
+	},
 };
 
 STATIC_ASSERT( ARRAY_COUNT( gadget_defs ) == Gadget_Count );

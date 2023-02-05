@@ -44,6 +44,7 @@ enum EntityType : u8 {
 	ET_BLAST,
 	ET_SAWBLADE,
 
+	ET_SHURIKEN,
 	ET_THROWING_AXE,
 
 	ET_LASERBEAM,
@@ -119,6 +120,7 @@ enum GadgetType : u8 {
 	Gadget_SuicideBomb,
 	Gadget_StunGrenade,
 	Gadget_Rocket,
+	Gadget_Shuriken,
 
 	Gadget_Count
 };

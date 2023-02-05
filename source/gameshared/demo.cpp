@@ -89,7 +89,7 @@ static void MaybeWriteDemoMessage( RecordDemoContext * ctx, msg_t * msg, bool fo
 	MSG_Clear( msg );
 }
 
-static void CheckedZstdSetParameter( ZSTD_CStream * zstd, ZSTD_cParameter parameter, int value ) {
+static void CheckedZstdSetParameter( ZSTD_CCtx * zstd, ZSTD_cParameter parameter, int value ) {
 	size_t err = ZSTD_CCtx_setParameter( zstd, parameter, value );
 	if( ZSTD_isError( err ) ) {
 		Fatal( "ZSTD_CCtx_setParameter( %d, %d ): %s", parameter, value, ZSTD_getErrorName( err ) );
@@ -123,9 +123,9 @@ bool StartRecordingDemo(
 	}
 	ctx->filename = CopyString( sys_allocator, filename );
 
-	ctx->zstd = ZSTD_createCStream();
+	ctx->zstd = ZSTD_createCCtx();
 	if( ctx->zstd == NULL ) {
-		Fatal( "ZSTD_createCStream" );
+		Fatal( "ZSTD_createCCtx" );
 	}
 	CheckedZstdSetParameter( ctx->zstd, ZSTD_c_compressionLevel, ZSTD_CLEVEL_DEFAULT );
 	CheckedZstdSetParameter( ctx->zstd, ZSTD_c_checksumFlag, 1 );
@@ -193,7 +193,7 @@ void StopRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const Dem
 		RemoveFile( temp, ctx->temp_filename );
 		FREE( sys_allocator, ctx->temp_filename );
 
-		ZSTD_freeCStream( ctx->zstd );
+		ZSTD_freeCCtx( ctx->zstd );
 		FREE( sys_allocator, ctx->in_buf );
 		FREE( sys_allocator, ctx->out_buf );
 	};

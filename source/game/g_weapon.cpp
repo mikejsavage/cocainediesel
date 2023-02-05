@@ -1134,8 +1134,6 @@ static void TouchShuriken( edict_t * ent, edict_t * other, const Plane * plane, 
 }
 
 static void UseShuriken( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	const GadgetDef * def = GetGadgetDef( Gadget_Shuriken );
-
 	edict_t * shuriken = FireLinearProjectile( self, start, angles, timeDelta, GadgetProjectileStats( Gadget_Shuriken ) );
 	shuriken->s.type = ET_SHURIKEN;
 	shuriken->classname = "shuriken";

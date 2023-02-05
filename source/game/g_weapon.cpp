@@ -1130,7 +1130,7 @@ static void TouchShuriken( edict_t * ent, edict_t * other, const Plane * plane, 
 		return;
 	}
 
-	HitOrStickToWall( ent, other, Gadget_Shuriken, "gadgets/hatchet/hit", "gadgets/hatchet/impact" );
+	HitOrStickToWall( ent, other, Gadget_Shuriken, "gadgets/shuriken/hit", "gadgets/hatchet/impact" );
 }
 
 static void UseShuriken( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {

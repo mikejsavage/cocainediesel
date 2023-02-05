@@ -323,8 +323,11 @@ static void HitOrStickToWall( edict_t * ent, edict_t * other, DamageType weapon,
 		ent->movetype = MOVETYPE_NONE;
 		ent->s.sound = EMPTY_HASH;
 		ent->avelocity = Vec3( 0.0f );
+		ent->s.linearMovement = false;
 
 		SpawnFX( ent, -SafeNormalize( ent->velocity ), wall_fx, wall_fx );
+
+		ent->velocity = Vec3( 0.0f );
 	}
 }
 
@@ -1122,6 +1125,26 @@ static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	grenade->think = ExplodeStunGrenade;
 }
 
+static void TouchShuriken( edict_t * ent, edict_t * other, const Plane * plane, int surfFlags ) {
+	if( !CanHit( ent, other ) ) {
+		return;
+	}
+
+	HitOrStickToWall( ent, other, Gadget_Shuriken, "gadgets/hatchet/hit", "gadgets/hatchet/impact" );
+}
+
+static void UseShuriken( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	const GadgetDef * def = GetGadgetDef( Gadget_Shuriken );
+
+	edict_t * shuriken = FireLinearProjectile( self, start, angles, timeDelta, GadgetProjectileStats( Gadget_Shuriken ) );
+	shuriken->s.type = ET_SHURIKEN;
+	shuriken->classname = "shuriken";
+	shuriken->s.model = "gadgets/shuriken/model";
+	shuriken->s.sound = "gadgets/shuriken/trail";
+	shuriken->avelocity = Vec3( 0.0f, 360.0f, 0.0f );
+	shuriken->touch = TouchShuriken;
+}
+
 void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm ) {
 	Vec3 origin = ent->s.origin;
 	origin.z += ent->r.client->ps.viewheight;
@@ -1142,5 +1165,7 @@ void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm ) {
 		case Gadget_Rocket:
 			W_Fire_Rocket( ent, origin, angles, timeDelta );
 			break;
+		case Gadget_Shuriken:
+			UseShuriken( ent, origin, angles, timeDelta );
 	}
 }

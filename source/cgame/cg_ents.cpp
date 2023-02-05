@@ -350,6 +350,8 @@ void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 	cent->interpolated.origin2 = cent->current.origin;
 	cent->interpolated.scale = cent->current.scale;
 
+	cent->interpolated.color = RGBA8( CG_TeamColor( cent->prev.team ) );
+
 	AnglesToAxis( cent->current.angles, cent->interpolated.axis );
 }
 
@@ -728,7 +730,10 @@ void DrawEntities() {
 				DrawEntityTrail( cent, "weapons/axe/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
-
+			case ET_SHURIKEN:
+				DrawEntityModel( cent );
+				CG_EntityLoopSound( cent, state );
+				break;
 			case ET_PLAYER:
 				CG_AddPlayerEnt( cent );
 				CG_EntityLoopSound( cent, state );
@@ -822,6 +827,7 @@ void CG_LerpEntities() {
 			case ET_BLAST:
 			case ET_SAWBLADE:
 			case ET_THROWING_AXE:
+			case ET_SHURIKEN:
 			case ET_PLAYER:
 			case ET_CORPSE:
 			case ET_GHOST:
@@ -898,6 +904,7 @@ void CG_UpdateEntities() {
 			case ET_SAWBLADE:
 			case ET_RAILALT:
 			case ET_THROWING_AXE:
+			case ET_SHURIKEN:
 				break;
 
 			case ET_PLAYER:

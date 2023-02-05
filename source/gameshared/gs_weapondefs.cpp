@@ -134,7 +134,7 @@ const WeaponDef weapon_defs[] = {
 		/* category             */ WeaponCategory_Backup,
 
 		/* projectile count     */ 1,
-		/* clip size            */ 10,
+		/* clip size            */ 15,
 		/* reload time          */ 1500,
 		/* staged reload time   */ 0,
 
@@ -152,7 +152,7 @@ const WeaponDef weapon_defs[] = {
 		/* zoom inaccuracy      */ 0.0f,
 
 		// damages
-		/* damage               */ 10,
+		/* damage               */ 15,
 		/* self damage          */ 0.0f,
 		/* wallbang damage      */ 0.5f,
 		/* knockback            */ 30,

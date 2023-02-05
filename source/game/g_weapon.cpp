@@ -1122,10 +1122,6 @@ static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	grenade->think = ExplodeStunGrenade;
 }
 
-static void UseRocket( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, u64 charge_time ) {
-	W_Fire_Rocket( self, start, angles, timeDelta );
-}
-
 void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm ) {
 	Vec3 origin = ent->s.origin;
 	origin.z += ent->r.client->ps.viewheight;
@@ -1142,8 +1138,9 @@ void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm ) {
 		case Gadget_StunGrenade:
 			UseStunGrenade( ent, origin, angles, timeDelta, parm );
 			break;
+
 		case Gadget_Rocket:
-			UseRocket( ent, origin, angles, timeDelta, parm );
+			W_Fire_Rocket( ent, origin, angles, timeDelta );
 			break;
 	}
 }

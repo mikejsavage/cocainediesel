@@ -188,7 +188,7 @@ void Qcommon_Init( int argc, char ** argv ) {
 	InitTime();
 	InitFS();
 	Cmd_Init();
-	Cvar_PreInit();
+	Cvar_Init();
 	Key_Init(); // need to be able to bind keys before running configs
 
 	if( !is_dedicated_server ) {
@@ -200,8 +200,6 @@ void Qcommon_Init( int argc, char ** argv ) {
 	}
 
 	Cbuf_AddEarlyCommands( argc, argv );
-
-	Cvar_Init();
 
 	AddCommand( "quit", Com_DeferQuit );
 

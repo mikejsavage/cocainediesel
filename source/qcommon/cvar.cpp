@@ -335,26 +335,16 @@ const char * Cvar_GetServerInfo() {
 	return MakeInfoString( CvarFlag_ServerInfo );
 }
 
-void Cvar_PreInit() {
+void Cvar_Init() {
 	cvars_hashtable.clear();
 	config_entries_hashtable.clear();
 
 	AddCommand( "set", SetConfigCvar );
-	AddCommand( "seta", SetConfigCvar );
-	AddCommand( "setau", SetConfigCvar );
-	AddCommand( "setas", SetConfigCvar );
-}
-
-void Cvar_Init() {
-	RemoveCommand( "set" );
-	RemoveCommand( "seta" );
-	RemoveCommand( "setau" );
-	RemoveCommand( "setas" );
-
 	AddCommand( "reset", Cvar_Reset_f );
 }
 
 void Cvar_Shutdown() {
+	RemoveCommand( "set" );
 	RemoveCommand( "reset" );
 
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {

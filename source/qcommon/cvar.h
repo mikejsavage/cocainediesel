@@ -55,7 +55,6 @@ void ResetCheatCvars();
 class DynamicString;
 void Cvar_WriteVariables( DynamicString * config );
 
-void Cvar_PreInit();
 void Cvar_Init();
 void Cvar_Shutdown();
 const char * Cvar_GetUserInfo();

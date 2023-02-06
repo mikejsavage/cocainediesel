@@ -463,6 +463,7 @@ static void CG_Event_Die( int corpse_ent, u64 parm ) {
 	CG_PModel_AddAnimation( corpse_ent, animations[ animation ].dying, animations[ animation ].dying, ANIM_NONE, EVENT_CHANNEL );
 
 	StopSFX( cg_entities[ player_ent ].playing_vsay );
+	StopSFX( cg_entities[ player_ent ].playing_reload );
 }
 
 static void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
@@ -729,7 +730,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				CG_ViewWeapon_AddAnimation( ent->number, "reload" );
 			}
 			else {
-				sound = PlaySFX( sfx, PlaySFXConfigPosition( ent->origin ) );
+				sound = PlaySFX( sfx, PlaySFXConfigEntity( ent->number ) );
 			}
 
 			cg_entities[ ent->number ].playing_reload = sound;

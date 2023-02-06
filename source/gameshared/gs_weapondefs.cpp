@@ -284,9 +284,9 @@ const WeaponDef weapon_defs[] = {
 	{
 		/* name                 */ "DOUBLE-BARREL",
 		/* short name           */ "doublebarrel",
-		/* category             */ WeaponCategory_Primary,
+		/* category             */ WeaponCategory_Secondary,
 
-		/* projectile count     */ 30,
+		/* projectile count     */ 28,
 		/* clip size            */ 2,
 		/* reload time          */ 3000,
 		/* staged reload time   */ 0,
@@ -316,7 +316,7 @@ const WeaponDef weapon_defs[] = {
 		// projectile def
 		/* speed                */ HITSCAN,
 		/* gravity scale        */ 1.0f,
-		/* spread               */ 100,
+		/* spread               */ 200,
 	},
 
 	{
@@ -854,7 +854,7 @@ const WeaponDef weapon_defs[] = {
 	{
 		/* name                 */ "SAWBLADE",
 		/* short name           */ "sawblade",
-		/* category             */ WeaponCategory_Secondary,
+		/* category             */ WeaponCategory_Primary,
 
 		/* projectile count     */ 1,
 		/* clip size            */ 5,
@@ -875,7 +875,7 @@ const WeaponDef weapon_defs[] = {
 		/* zoom inaccuracy      */ 0.0f,
 
 		// damages
-		/* damage               */ 30,
+		/* damage               */ 35,
 		/* self damage          */ 1,
 		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 100,

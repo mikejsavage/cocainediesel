@@ -576,18 +576,18 @@ struct DecalAtlasLayer {
 static BC4Block FastBC4( Span2D< const RGBA8 > rgba ) {
 	BC4Block result;
 
-	result.data[ 0 ] = 255;
-	result.data[ 1 ] = 0;
+	result.endpoints[ 0 ] = 255;
+	result.endpoints[ 1 ] = 0;
 
-	constexpr u8 selector_lut[] = { 1, 7, 6, 5, 4, 3, 2, 0 };
+	constexpr u8 index_lut[] = { 1, 7, 6, 5, 4, 3, 2, 0 };
 
-	u64 selectors = 0;
+	u64 indices = 0;
 	for( size_t i = 0; i < 16; i++ ) {
-		u64 selector = selector_lut[ rgba( i % 4, i / 4 ).a >> 5 ];
-		selectors |= selector << ( i * 3 );
+		u64 index = index_lut[ rgba( i % 4, i / 4 ).a >> 5 ];
+		indices |= index << ( i * 3 );
 	}
 
-	memcpy( &result.data[ 2 ], &selectors, 6 );
+	memcpy( result.indices, &indices, sizeof( result.indices ) );
 
 	return result;
 }

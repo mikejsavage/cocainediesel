@@ -1133,6 +1133,18 @@ static void TouchShuriken( edict_t * ent, edict_t * other, const Plane * plane, 
 	HitOrStickToWall( ent, other, Gadget_Shuriken, "gadgets/shuriken/hit", "gadgets/hatchet/impact" );
 }
 
+static void UseRocket( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+	edict_t * rocket = FireLinearProjectile( self, start, angles, timeDelta, GadgetProjectileStats( Gadget_Rocket ) );
+
+	rocket->s.type = ET_ROCKET;
+	rocket->classname = "rocket";
+	rocket->s.model = "weapons/rl/rocket";
+	rocket->s.sound = "weapons/rl/trail";
+	rocket->projectileInfo.explosion_vfx = "vfx/explosion";
+	rocket->projectileInfo.explosion_sfx = "weapons/rl/explode";
+	rocket->touch = W_Touch_Rocket;
+}
+
 static void UseShuriken( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	edict_t * shuriken = FireLinearProjectile( self, start, angles, timeDelta, GadgetProjectileStats( Gadget_Shuriken ) );
 	shuriken->s.type = ET_SHURIKEN;
@@ -1161,7 +1173,7 @@ void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm ) {
 			break;
 
 		case Gadget_Rocket:
-			W_Fire_Rocket( ent, origin, angles, timeDelta );
+			UseRocket( ent, origin, angles, timeDelta );
 			break;
 		case Gadget_Shuriken:
 			UseShuriken( ent, origin, angles, timeDelta );

@@ -994,6 +994,15 @@ const GadgetDef gadget_defs[] = {
 		/* using time       */ 200,
 		/* cook time        */ 0,
 		/* switch out time  */ 50 + WEAPONDOWN_TIME,
+		/* damage           */ 40,
+		/* knockback        */ 100,
+		/* min damage       */ 10,
+		/* min knockback    */ 50,
+		/* splash_radius    */ 120,
+		/* timeout          */ 10000,
+		/* speed            */ 1400,
+		/* min speed        */ 1400,
+		/* gravity scale    */ 1.0f,
 	},
 
 	{

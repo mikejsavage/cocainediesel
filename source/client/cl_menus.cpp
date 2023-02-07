@@ -998,50 +998,37 @@ static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
 }
 
 static bool LoadoutButton( const char * label, Vec2 icon_size, const Material * icon, bool selected ) {
-	ImGui::TableNextColumn();
+	Vec2 start_pos = ImGui::GetCursorPos();
+	ImGui::GetCursorPos();
 
-	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
-	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
-	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
-	defer { ImGui::PopStyleColor( 3 ); };
-
-	ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 1 );
-	ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
-	defer { ImGui::PopStyleVar( 2 ); };
+	bool clicked = ImGui::InvisibleButton( label, ImVec2( -1, icon_size.y ) );
 
 	Vec2 half_pixel = HalfPixelSize( icon );
-	Vec4 color = RGBA8ToVec4NosRGB( selected ? rgba8_diesel_yellow : rgba8_white ); // TODO...
+	Vec4 color = RGBA8ToVec4NosRGB( selected ? rgba8_diesel_yellow : ImGui::IsItemHovered() ? rgba8_diesel_green : rgba8_white ); // TODO...
+
+
+	ImGui::SetCursorPos( start_pos );
+	ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel, color, Vec4( 0.0f ) );
+	ImGui::SameLine();
+	ImGui::Dummy( ImVec2( icon_size.x * 0.2f, 0 ) );
+	ImGui::SameLine();
 
 	ImGui::PushStyleColor( ImGuiCol_Text, color );
-	ImGui::PushStyleColor( ImGuiCol_Border, color );
-	defer { ImGui::PopStyleColor( 2 ); };
-
-	ImGui::PushID( label );
-	CellCenter( icon_size.x );
-	bool clicked = ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
-	ImGui::PopID();
-
-	CellCenterText( label );
+	CenterTextY( label, icon_size.y );
+	ImGui::PopStyleColor();
 
 	return clicked;
 }
 
-static void Perks( Vec2 icon_size ) {
-	ImGui::TableNextRow();
-	ImGui::TableSetColumnIndex( 0 );
-	ImGui::Text( "CLASS" );
-	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+static void InitCategory( const char * category_name, float padding ) {
+	ImGui::TableNextColumn();
 
-	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
-		if( !GetPerkDef( i )->enabled )
-			continue;
-
-		const Material * icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );
-		if( LoadoutButton( GetPerkDef( i )->name, icon_size, icon, loadout.perk == i ) ) {
-			loadout.perk = i;
-			SendLoadout();
-		}
-	}
+	ImGui::PushStyleColor( ImGuiCol_Text, RGBA8ToVec4NosRGB( rgba8_diesel_yellow ) );
+	ImGui::PushFont( cls.big_italic_font );
+	ImGui::Text( category_name );
+	ImGui::PopFont();
+	ImGui::PopStyleColor();
+	ImGui::Dummy( ImVec2( 0, padding ) );
 }
 
 static int CountWeaponCategory( WeaponCategory category ) {
@@ -1056,10 +1043,7 @@ static int CountWeaponCategory( WeaponCategory category ) {
 }
 
 static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
-	ImGui::TableNextRow();
-	ImGui::TableSetColumnIndex( 0 );
-	ImGui::Text( "%s", label );
-	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+	InitCategory( label, icon_size.y * 0.8 );
 
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( i );
@@ -1071,13 +1055,27 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 			}
 		}
 	}
+
 }
 
+static void Perks( Vec2 icon_size ) {
+	InitCategory( "CLASS", icon_size.y * 0.8 );
+
+	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
+		if( !GetPerkDef( i )->enabled )
+			continue;
+
+		const Material * icon = FindMaterial( cgs.media.shaderPerkIcon[ i ] );
+		if( LoadoutButton( GetPerkDef( i )->name, icon_size, icon, loadout.perk == i ) ) {
+			loadout.perk = i;
+			SendLoadout();
+		}
+	}
+}
+
+
 static void Gadgets( Vec2 icon_size ) {
-	ImGui::TableNextRow();
-	ImGui::TableSetColumnIndex( 0 );
-	ImGui::Text( "GADGET" );
-	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+	InitCategory( "GADGET", icon_size.y * 0.8 );
 
 	for( GadgetType i = GadgetType( Gadget_None + 1 ); i < Gadget_Count; i++ ) {
 		const GadgetDef * def = GetGadgetDef( i );
@@ -1087,6 +1085,7 @@ static void Gadgets( Vec2 icon_size ) {
 			SendLoadout();
 		}
 	}
+
 }
 
 static bool LoadoutMenu() {
@@ -1094,29 +1093,53 @@ static bool LoadoutMenu() {
 
 	ImGui::PushFont( cls.medium_italic_font );
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
+	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
+	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0.0f, 0.0f ) );
+
 	ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
 	ImGui::SetNextWindowSize( displaySize );
 	ImGui::Begin( "Loadout", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
-	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, Vec2( 0, displaySize.y * 0.02 ) );
-	Vec2 icon_size = Vec2( displaySize.x * 0.04f );
+	{
+		size_t title_height = displaySize.y * 0.15f;
+		ImGui::PushStyleColor( ImGuiCol_ChildBg, Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+		ImGui::BeginChild( "loadout title", ImVec2( -1, title_height ) );
 
-	int cols = 0;
+		ImGui::Dummy( ImVec2( displaySize.x * 0.02f, 0.0f ) );
+		ImGui::SameLine();
+
+		ImGui::PushFont( cls.large_italic_font );
+		CenterTextY( "LOADOUT", title_height );
+		ImGui::PopFont();
+
+		ImGui::EndChild();
+		ImGui::PopStyleColor();
+	}
+
+	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, Vec2( 0.0f ) );
+	Vec2 icon_size = Vec2( displaySize.y * 0.075f );
+
+	/*int cols = 0;
 	cols = Max2( CountWeaponCategory( WeaponCategory_Primary ), cols );
 	cols = Max2( CountWeaponCategory( WeaponCategory_Secondary ), cols );
 	cols = Max2( CountWeaponCategory( WeaponCategory_Backup ), cols );
 	cols = Max2( CountWeaponCategory( WeaponCategory_Melee ), cols );
 	cols = Max2( int( Gadget_Count ) - 1, cols );
-	cols = Max2( int( Perk_Count ) - 1, cols );
+	cols = Max2( int( Perk_Count ) - 1, cols );*/
 
-	ImGui::BeginTable( "loadoutmenu", cols + 1 );
+	ImGui::Dummy( ImVec2( 0.0f, displaySize.x * 0.01f ) );
+	ImGui::Dummy( ImVec2( displaySize.x * 0.02f, 0.0f ) );
+	ImGui::SameLine();
+
+	ImGui::BeginTable( "loadoutmenu", 6 );
+	ImGui::NextColumn();
 
 	Perks( icon_size );
 	LoadoutCategory( "PRIMARY", WeaponCategory_Primary, icon_size );
 	LoadoutCategory( "SECONDARY", WeaponCategory_Secondary, icon_size );
 	LoadoutCategory( "BACKUP", WeaponCategory_Backup, icon_size );
-	LoadoutCategory( "MELEE", WeaponCategory_Melee, icon_size );
 	Gadgets( icon_size );
+	LoadoutCategory( "MELEE", WeaponCategory_Melee, icon_size );
 
 	ImGui::EndTable();
 
@@ -1128,7 +1151,7 @@ static bool LoadoutMenu() {
 		should_close = true;
 	}
 
-	ImGui::PopStyleVar();
+	ImGui::PopStyleVar( 3 );
 	ImGui::PopStyleColor();
 	ImGui::PopFont();
 

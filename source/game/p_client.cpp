@@ -140,8 +140,8 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 static void ReleaseWeapons( edict_t * ent ) {
 	SyncPlayerState * ps = &ent->r.client->ps;
 
-	if( ps->using_gadget && GetGadgetDef( ps->gadget )->drop_on_death ) {
-		server_gs.api.PredictedUseGadget( ps->POVnum, ps->gadget, ps->weapon_state_time );
+	if( ps->using_gadget ) {
+		server_gs.api.PredictedUseGadget( ps->POVnum, ps->gadget, ps->weapon_state_time, true );
 	}
 }
 
@@ -725,9 +725,9 @@ void G_PredictedAltFireWeapon( int entNum, u64 parm ) {
 	event->s.team = ent->s.team;
 }
 
-void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm ) {
+void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead ) {
 	edict_t * ent = &game.edicts[ entNum ];
-	G_UseGadget( ent, gadget, parm );
+	G_UseGadget( ent, gadget, parm, dead );
 
 	Vec3 start = ent->s.origin;
 	start.z += ent->r.client->ps.viewheight;

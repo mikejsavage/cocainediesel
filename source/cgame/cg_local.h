@@ -269,7 +269,7 @@ extern Cvar *cg_showMiss;
 void CG_PredictedEvent( int entNum, int ev, u64 parm );
 void CG_PredictedFireWeapon( int entNum, u64 parm );
 void CG_PredictedAltFireWeapon( int entNum, u64 parm );
-void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm );
+void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead );
 void CG_PredictMovement();
 void CG_CheckPredictionError();
 void CG_BuildSolidList();

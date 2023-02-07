@@ -73,6 +73,8 @@ void CL_InitImGui() {
 		cls.big_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 48.0f );
 		cls.medium_font = AddFontAsset( "fonts/Decalotype-Black.ttf", 28.0f );
 		cls.medium_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 28.0f );
+		cls.big_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 48.0f );
+		cls.large_italic_font = AddFontAsset( "fonts/Decalotype-BlackItalic.ttf", 64.0f );
 		cls.console_font = AddFontAsset( "fonts/Decalotype-Bold.ttf", 14.0f );
 		cls.idi_nahui_font = AddFontAsset( "fonts/OpenSans-SemiBold.ttf", 24.0f, true );
 
@@ -277,6 +279,13 @@ ImGuiColorToken::ImGuiColorToken( RGBA8 rgba ) : ImGuiColorToken( rgba.r, rgba.g
 void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts & opts ) {
 	format( fb, ( const char * ) token.token );
 }
+
+void CenterTextY( const char * str, float height ) {
+	float text_height = ImGui::CalcTextSize( str ).y;
+	ImGui::SetCursorPosY( ImGui::GetCursorPosY() + 0.5f * ( height - text_height ) );
+	ImGui::Text( str );
+}
+
 
 void CellCenter( float item_width ) {
 	float cell_width = ImGui::GetContentRegionAvail().x;

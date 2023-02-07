@@ -141,7 +141,7 @@ const WeaponDef weapon_defs[] = {
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_FAST,
 		/* weapon down time     */ WEAPONDOWN_TIME,
-		/* refire time          */ 125,
+		/* refire time          */ 120,
 		/* timeout / range      */ 2000,
 		/* max recoil           */ EulerDegrees2( 125.0f, 20.0f ),
 		/* min recoil           */ EulerDegrees2( 100.0f, -20.0f ),
@@ -939,7 +939,7 @@ const GadgetDef gadget_defs[] = {
 	{ },
 
 	{
-		/* name             */ "AXE",
+		/* name             */ "HATCHET",
 		/* short name       */ "hatchet",
 		/* uses             */ 2,
 		/* drop on death    */ false,

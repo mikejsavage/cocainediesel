@@ -68,6 +68,7 @@ struct centity_t {
 
 	// effects
 	PlayingSFXHandle sound;
+	u64 last_noammo_sound;
 	Vec3 trailOrigin;         // for particle trails
 
 	// local effects from events timers

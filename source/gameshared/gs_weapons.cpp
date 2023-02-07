@@ -178,9 +178,6 @@ static void FireWeapon( const gs_state_t * gs, SyncPlayerState * ps, const UserC
 
 	if( def->clip_size > 0 ) {
 		slot->ammo--;
-		if( slot->ammo == 0 ) {
-			gs->api.PredictedEvent( ps->POVnum, EV_NOAMMOCLICK, 0 );
-		}
 	}
 }
 
@@ -334,6 +331,10 @@ static ItemState generic_gun_states[] = {
 	ItemState( WeaponState_Reloading, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		if( ps->weapon_state_time == 0 ) {
 			gs->api.PredictedEvent( ps->POVnum, EV_RELOAD, ps->weapon );
+		}
+
+		if( cmd->buttons & Button_Attack1 ) {
+			gs->api.PredictedEvent( ps->POVnum, EV_NOAMMOCLICK, ps->weapon_state_time );
 		}
 
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );

@@ -1031,17 +1031,6 @@ static void InitCategory( const char * category_name, float padding ) {
 	ImGui::Dummy( ImVec2( 0, padding ) );
 }
 
-static int CountWeaponCategory( WeaponCategory category ) {
-	int n = 0;
-	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
-		const WeaponDef * def = GS_GetWeaponDef( i );
-		if( def->category == category ) {
-			n++;
-		}
-	}
-	return n;
-}
-
 static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
 	InitCategory( label, icon_size.y * 0.8 );
 
@@ -1118,14 +1107,6 @@ static bool LoadoutMenu() {
 
 	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, Vec2( 0.0f ) );
 	Vec2 icon_size = Vec2( displaySize.y * 0.075f );
-
-	/*int cols = 0;
-	cols = Max2( CountWeaponCategory( WeaponCategory_Primary ), cols );
-	cols = Max2( CountWeaponCategory( WeaponCategory_Secondary ), cols );
-	cols = Max2( CountWeaponCategory( WeaponCategory_Backup ), cols );
-	cols = Max2( CountWeaponCategory( WeaponCategory_Melee ), cols );
-	cols = Max2( int( Gadget_Count ) - 1, cols );
-	cols = Max2( int( Perk_Count ) - 1, cols );*/
 
 	ImGui::Dummy( ImVec2( 0.0f, displaySize.x * 0.01f ) );
 	ImGui::Dummy( ImVec2( displaySize.x * 0.02f, 0.0f ) );

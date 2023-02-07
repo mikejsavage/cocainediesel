@@ -1,10 +1,15 @@
 {
 	attenuation static
-	volume 0.35
+	volume 0.2
 	sound ./trail
 }
 {
 	attenuation static
-	volume 0.1
+	volume 0.15
 	sound ./trail2
+}
+{
+	attenuation static
+	volume 0.2
+	sound ./trail3
 }

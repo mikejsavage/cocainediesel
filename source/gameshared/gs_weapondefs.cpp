@@ -282,14 +282,14 @@ const WeaponDef weapon_defs[] = {
 	},
 
 	{
-		/* name                 */ "DOUBLE-BARREL",
+		/* name                 */ "SAWN-OFF",
 		/* short name           */ "doublebarrel",
 		/* category             */ WeaponCategory_Secondary,
 
-		/* projectile count     */ 28,
+		/* projectile count     */ 26,
 		/* clip size            */ 2,
-		/* reload time          */ 3000,
-		/* staged reload time   */ 0,
+		/* reload time          */ 1000,
+		/* staged reload time   */ 1000,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_SLOW,
@@ -316,7 +316,7 @@ const WeaponDef weapon_defs[] = {
 		// projectile def
 		/* speed                */ HITSCAN,
 		/* gravity scale        */ 1.0f,
-		/* spread               */ 200,
+		/* spread               */ 125,
 	},
 
 	{

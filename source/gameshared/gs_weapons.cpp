@@ -435,7 +435,7 @@ static const ItemState generic_throwable_states[] = {
 		const GadgetDef * def = GetGadgetDef( ps->gadget );
 
 		if( ( cmd->buttons & Button_Gadget ) == 0 || def->cook_time == 0 ) {
-			gs->api.PredictedUseGadget( ps->POVnum, ps->gadget, ps->weapon_state_time );
+			gs->api.PredictedUseGadget( ps->POVnum, ps->gadget, ps->weapon_state_time, false );
 			ps->gadget_ammo--;
 			return WeaponState_Throwing;
 		}

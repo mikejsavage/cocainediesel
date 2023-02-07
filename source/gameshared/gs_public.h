@@ -80,7 +80,7 @@ struct gs_module_api_t {
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, u64 parm );
 	void ( *PredictedAltFireWeapon )( int entNum, u64 parm );
-	void ( *PredictedUseGadget )( int entNum, GadgetType gadget, u64 parm );
+	void ( *PredictedUseGadget )( int entNum, GadgetType gadget, u64 parm, bool dead );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, Vec3 previous_origin );
 };
 

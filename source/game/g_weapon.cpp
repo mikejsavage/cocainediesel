@@ -1109,11 +1109,16 @@ static void TouchStunGrenade( edict_t * ent, edict_t * other, const Plane * plan
 	}
 }
 
-static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, u64 charge_time ) {
+static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, u64 charge_time, bool dead ) {
 	const GadgetDef * def = GetGadgetDef( Gadget_StunGrenade );
 
 	ProjectileStats stats = GadgetProjectileStats( Gadget_StunGrenade );
-	stats.speed = Lerp( def->min_speed, Unlerp01( u64( 0 ), charge_time, u64( def->cook_time ) ), def->speed );
+
+	if( dead ) {
+		stats.speed = 1;
+	} else {
+		stats.speed = Lerp( def->min_speed, Unlerp01( u64( 0 ), charge_time, u64( def->cook_time ) ), def->speed );
+	}
 
 	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, stats );
 	grenade->s.type = ET_GRENADE;
@@ -1155,7 +1160,10 @@ static void UseShuriken( edict_t * self, Vec3 start, Vec3 angles, int timeDelta 
 	shuriken->touch = TouchShuriken;
 }
 
-void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm ) {
+void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm, bool dead ) {
+	if( !GetGadgetDef( gadget )->drop_on_death && dead )
+		return;
+
 	Vec3 origin = ent->s.origin;
 	origin.z += ent->r.client->ps.viewheight;
 
@@ -1169,13 +1177,15 @@ void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm ) {
 			break;
 
 		case Gadget_StunGrenade:
-			UseStunGrenade( ent, origin, angles, timeDelta, parm );
+			UseStunGrenade( ent, origin, angles, timeDelta, parm, dead );
 			break;
 
 		case Gadget_Rocket:
 			UseRocket( ent, origin, angles, timeDelta );
 			break;
+
 		case Gadget_Shuriken:
 			UseShuriken( ent, origin, angles, timeDelta );
+			break;
 	}
 }

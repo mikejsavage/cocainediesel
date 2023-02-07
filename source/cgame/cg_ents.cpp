@@ -707,6 +707,11 @@ void DrawEntities() {
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_PISTOLBULLET:
+				//change angle after bounce
+				if( cent->velocity != Vec3( 0.0f ) ) {
+					AnglesToAxis( VecToAngles( cent->velocity ), cent->interpolated.axis );
+				}
+
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/pistol/bullet_trail" );
 				CG_EntityLoopSound( cent, state );

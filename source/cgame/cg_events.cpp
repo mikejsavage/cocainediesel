@@ -709,12 +709,17 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		} break;
 
 		case EV_NOAMMOCLICK:
+			if( (parm - cg_entities[ ent->number ].last_noammo_sound) <= 150 )
+				return;
+
 			if( viewer ) {
 				PlaySFX( "weapons/noammo" );
 			}
 			else {
 				PlaySFX( "weapons/noammo", PlaySFXConfigPosition( ent->origin ) );
 			}
+
+			cg_entities[ ent->number ].last_noammo_sound = parm;
 			break;
 
 		case EV_RELOAD: {
@@ -734,6 +739,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 
 			cg_entities[ ent->number ].playing_reload = sound;
+			cg_entities[ ent->number ].last_noammo_sound = 0;
 		} break;
 
 		case EV_ZOOM_IN:

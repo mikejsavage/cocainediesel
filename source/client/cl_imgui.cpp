@@ -283,7 +283,7 @@ void format( FormatBuffer * fb, const ImGuiColorToken & token, const FormatOpts 
 void CenterTextY( const char * str, float height ) {
 	float text_height = ImGui::CalcTextSize( str ).y;
 	ImGui::SetCursorPosY( ImGui::GetCursorPosY() + 0.5f * ( height - text_height ) );
-	ImGui::Text( str );
+	ImGui::Text( "%s", str );
 }
 
 

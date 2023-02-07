@@ -1025,7 +1025,7 @@ static void InitCategory( const char * category_name, float padding ) {
 
 	ImGui::PushStyleColor( ImGuiCol_Text, RGBA8ToVec4NosRGB( rgba8_diesel_yellow ) );
 	ImGui::PushFont( cls.big_italic_font );
-	ImGui::Text( category_name );
+	ImGui::Text( "%s", category_name );
 	ImGui::PopFont();
 	ImGui::PopStyleColor();
 	ImGui::Dummy( ImVec2( 0, padding ) );

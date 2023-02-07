@@ -830,7 +830,6 @@ static bool BouncingProjectile( edict_t * ent, edict_t * other, const Plane * pl
 		return false;
 	}
 
-	ent->s.angles = VecToAngles( -ent->velocity );
 	SpawnFX( ent, plane, bounce_fx, bounce_fx );
 
 	return ent->num_bounces >= max_bounces;

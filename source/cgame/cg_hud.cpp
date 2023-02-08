@@ -400,7 +400,7 @@ static const Material * DamageTypeToIcon( DamageType type ) {
 //=============================================================================
 
 static void GlitchText( Span< char > msg ) {
-	constexpr const char glitches[] = { '#', '@', '~', '$' };
+	constexpr char glitches[] = { '#', '@', '~', '$' };
 
 	RNG rng = NewRNG( cls.monotonicTime.flicks / ( GGTIME_FLICKS_PER_SECOND / 14 ), 0 );
 
@@ -699,7 +699,7 @@ static int LuauDraw2DBoxUV( lua_State * L ) {
 }
 
 static Alignment CheckAlignment( lua_State * L, int idx ) {
-	constexpr const Alignment alignments[] = {
+	constexpr Alignment alignments[] = {
 		Alignment_LeftTop,
 		Alignment_CenterTop,
 		Alignment_RightTop,
@@ -1185,7 +1185,7 @@ static void CheckYogaNumberAllEdges( lua_State * L, int idx, const char * key, Y
 }
 
 static YGFlexDirection CheckYogaFlexDirection( lua_State * L, int idx ) {
-	constexpr const YGFlexDirection flex_directions[] = {
+	constexpr YGFlexDirection flex_directions[] = {
 		YGFlexDirectionRow,
 		YGFlexDirectionRowReverse,
 		YGFlexDirectionColumn,
@@ -1203,7 +1203,7 @@ static YGFlexDirection CheckYogaFlexDirection( lua_State * L, int idx ) {
 }
 
 static YGAlign CheckYogaAlign( lua_State * L, int idx ) {
-	constexpr const YGAlign aligns[] = {
+	constexpr YGAlign aligns[] = {
 		YGAlignStretch,
 		YGAlignFlexStart,
 		YGAlignCenter,
@@ -1227,7 +1227,7 @@ static YGAlign CheckYogaAlign( lua_State * L, int idx ) {
 }
 
 static YGJustify CheckYogaJustify( lua_State * L, int idx ) {
-	constexpr const YGJustify justifies[] = {
+	constexpr YGJustify justifies[] = {
 		YGJustifyFlexStart,
 		YGJustifyCenter,
 		YGJustifyFlexEnd,
@@ -1550,7 +1550,7 @@ void CG_InitHUD() {
 		Fatal( "luaL_newstate" );
 	}
 
-	constexpr const luaL_Reg cdlib[] = {
+	constexpr luaL_Reg cdlib[] = {
 		{ "print", LuauPrint },
 		{ "asset", LuauAsset },
 		{ "box", LuauDraw2DBox },

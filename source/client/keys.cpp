@@ -129,7 +129,7 @@ int Key_StringToKeynum( const char *str ) {
 }
 
 Span< const char > Key_KeynumToString( int keynum ) {
-	static constexpr const char uppercase_ascii[] = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~";
+	constexpr char uppercase_ascii[] = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~";
 
 	if( keynum >= '!' && keynum <= '~' ) {
 		return Span< const char >( uppercase_ascii + keynum - '!', 1 );

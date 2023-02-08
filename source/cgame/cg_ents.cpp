@@ -97,7 +97,6 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 		cent->current = *state;
 		cent->serverFrame = cg.frame.serverFrame;
 
-		cent->velocity = Vec3( 0.0f );
 		cent->canExtrapolate = false;
 
 		cent->linearProjectileCanDraw = CG_UpdateLinearProjectilePosition( cent );
@@ -145,7 +144,6 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 
 		cent->canExtrapolatePrev = cent->canExtrapolate;
 		cent->canExtrapolate = false;
-		cent->velocity = Vec3( 0.0f );
 		cent->serverFrame = cg.frame.serverFrame;
 
 		// set up velocities for this entity
@@ -374,54 +372,48 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 	if( ISVIEWERENTITY( cent->current.number ) || cg.view.POVent == cent->current.number ) {
 		cent->interpolated.origin = cg.predictedPlayerState.pmove.origin;
 		cent->interpolated.origin2 = cent->interpolated.origin;
-	} else {
-		if( cgs.extrapolationTime && cent->canExtrapolate ) { // extrapolation
-			Vec3 origin, xorigin1, xorigin2;
+	} else if( cgs.extrapolationTime && cent->canExtrapolate ) { // extrapolation
+		Vec3 origin, xorigin1, xorigin2;
 
-			float lerpfrac = Clamp01( cg.lerpfrac );
+		float lerpfrac = Clamp01( cg.lerpfrac );
 
-			// extrapolation with half-snapshot smoothing
-			if( cg.xerpTime >= 0 || !cent->canExtrapolatePrev ) {
-				xorigin1 = cent->current.origin + cent->velocity * cg.xerpTime;
-			} else {
-				xorigin1 = cent->current.origin + cent->velocity * cg.xerpTime;
-				if( cent->canExtrapolatePrev ) {
-					Vec3 oldPosition = cent->prev.origin + cent->prevVelocity * cg.oldXerpTime;
-					xorigin1 = Lerp( oldPosition, cg.xerpSmoothFrac, xorigin1 );
-				}
-			}
-
-
-			// extrapolation with full-snapshot smoothing
-			xorigin2 = cent->current.origin + cent->velocity * cg.xerpTime;
-			if( cent->canExtrapolatePrev ) {
-				Vec3 oldPosition = cent->prev.origin + cent->prevVelocity * cg.oldXerpTime;
-				xorigin2 = Lerp( oldPosition, lerpfrac, xorigin2 );
-			}
-
-			origin = Lerp( xorigin1, 0.5f, xorigin2 );
-
-			if( cent->microSmooth == 2 ) {
-				Vec3 oldsmoothorigin = Lerp( cent->microSmoothOrigin2, 0.65f, cent->microSmoothOrigin );
-				cent->interpolated.origin = Lerp( origin, 0.5f, oldsmoothorigin );
-			} else if( cent->microSmooth == 1 ) {
-				cent->interpolated.origin = Lerp( origin, 0.5f, cent->microSmoothOrigin );
-			} else {
-				cent->interpolated.origin = origin;
-			}
-
-			if( cent->microSmooth ) {
-				cent->microSmoothOrigin2 = Vec3( cent->microSmoothOrigin );
-			}
-
-			cent->microSmoothOrigin = origin;
-			cent->microSmooth = Min2( 2, cent->microSmooth + 1 );
-
-			cent->interpolated.origin2 = cent->interpolated.origin;
-		} else {   // plain interpolation
-			cent->interpolated.origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
-			cent->interpolated.origin2 = cent->interpolated.origin;
+		// extrapolation with half-snapshot smoothing
+		xorigin1 = cent->current.origin + cent->velocity * cg.xerpTime;
+		if( cg.xerpTime < 0 && cent->canExtrapolatePrev ) {
+			Vec3 oldPosition = cent->prev.origin + cent->prevVelocity * cg.oldXerpTime;
+			xorigin1 = Lerp( oldPosition, cg.xerpSmoothFrac, xorigin1 );
 		}
+
+
+		// extrapolation with full-snapshot smoothing
+		xorigin2 = cent->current.origin + cent->velocity * cg.xerpTime;
+		if( cent->canExtrapolatePrev ) {
+			Vec3 oldPosition = cent->prev.origin + cent->prevVelocity * cg.oldXerpTime;
+			xorigin2 = Lerp( oldPosition, lerpfrac, xorigin2 );
+		}
+
+		origin = Lerp( xorigin1, 0.5f, xorigin2 );
+
+		if( cent->microSmooth == 2 ) {
+			Vec3 oldsmoothorigin = Lerp( cent->microSmoothOrigin2, 0.65f, cent->microSmoothOrigin );
+			cent->interpolated.origin = Lerp( origin, 0.5f, oldsmoothorigin );
+		} else if( cent->microSmooth == 1 ) {
+			cent->interpolated.origin = Lerp( origin, 0.5f, cent->microSmoothOrigin );
+		} else {
+			cent->interpolated.origin = origin;
+		}
+
+		if( cent->microSmooth ) {
+			cent->microSmoothOrigin2 = Vec3( cent->microSmoothOrigin );
+		}
+
+		cent->microSmoothOrigin = origin;
+		cent->microSmooth = Min2( 2, cent->microSmooth + 1 );
+
+		cent->interpolated.origin2 = cent->interpolated.origin;
+	} else {   // plain interpolation
+		cent->interpolated.origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
+		cent->interpolated.origin2 = cent->interpolated.origin;
 	}
 
 	cent->interpolated.scale = Lerp( cent->prev.scale, cg.lerpfrac, cent->current.scale );

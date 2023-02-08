@@ -3,3 +3,9 @@
 	sound ./fire
 	volume 0.7
 }
+
+{
+	attenuation distant
+	sound weapons/noammo
+	volume 0.75
+}

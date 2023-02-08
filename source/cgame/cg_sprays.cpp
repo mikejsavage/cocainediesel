@@ -17,7 +17,7 @@ struct Spray {
 static StringHash spray_assets[ 4096 ];
 static size_t num_spray_assets;
 
-constexpr static s64 SPRAY_LIFETIME = 60000;
+static constexpr s64 SPRAY_LIFETIME = 60000;
 
 static Spray sprays[ 1024 ];
 static size_t sprays_head;

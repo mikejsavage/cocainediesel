@@ -128,19 +128,11 @@ struct ItemState {
 	WeaponState state;
 	ItemStateThinkCallback think;
 
-	ItemState( WeaponState s, ItemStateThinkCallback t ) {
-		state = s;
-		think = t;
-	}
+	constexpr ItemState( WeaponState s, ItemStateThinkCallback t ) : state( s ), think( t ) { }
 };
 
 static ItemStateTransition GenericDelay( WeaponState state, SyncPlayerState * ps, s64 delay, ItemStateTransition next ) {
 	return ps->weapon_state_time >= delay ? next : state;
-}
-
-template< size_t N >
-constexpr static Span< const ItemState > MakeStateMachine( const ItemState ( &states )[ N ] ) {
-	return Span< const ItemState >( states, N );
 }
 
 static void HandleZoom( const gs_state_t * gs, SyncPlayerState * ps, const UserCommand * cmd ) {
@@ -205,7 +197,7 @@ static ItemStateTransition Dispatch( const gs_state_t * gs, WeaponState state, S
 	return WeaponState_SwitchingIn;
 }
 
-static ItemState dispatch_states[] = {
+static constexpr const ItemState dispatch_states[] = {
 	ItemState( WeaponState_Dispatch, Dispatch ),
 	ItemState( WeaponState_DispatchQuiet, Dispatch ),
 };
@@ -226,13 +218,13 @@ static ItemStateTransition AllowWeaponSwitch( const gs_state_t * gs, SyncPlayerS
 	return WeaponState_SwitchingOut;
 }
 
-static ItemState generic_gun_switching_in_state =
+static constexpr ItemState generic_gun_switching_in_state =
 	ItemState( WeaponState_SwitchingIn, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		return AllowWeaponSwitch( gs, ps, GenericDelay( state, ps, def->switch_in_time, WeaponState_Idle ) );
 	} );
 
-static ItemState generic_gun_switching_out_state =
+static constexpr ItemState generic_gun_switching_out_state =
 	ItemState( WeaponState_SwitchingOut, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		if( ps->weapon_state_time >= def->switch_out_time ) {
@@ -244,13 +236,13 @@ static ItemState generic_gun_switching_out_state =
 		return state;
 	} );
 
-static ItemState generic_gun_refire_state =
+static constexpr ItemState generic_gun_refire_state =
 	ItemState( WeaponState_Firing, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		const WeaponDef * def = GS_GetWeaponDef( ps->weapon );
 		return GenericDelay( state, ps, def->refire_time, AllowWeaponSwitch( gs, ps, WeaponState_Idle ) );
 	} );
 
-static ItemState generic_gun_states[] = {
+static constexpr ItemState generic_gun_states[] = {
 	generic_gun_switching_in_state,
 	generic_gun_switching_out_state,
 	generic_gun_refire_state,
@@ -379,7 +371,7 @@ static ItemState generic_gun_states[] = {
 	} ),
 };
 
-static ItemState railgun_states[] = {
+static constexpr const ItemState railgun_states[] = {
 	generic_gun_switching_in_state,
 	generic_gun_switching_out_state,
 	generic_gun_refire_state,
@@ -399,7 +391,7 @@ static ItemState railgun_states[] = {
 	} ),
 };
 
-static const ItemState bat_states[] = {
+static constexpr const ItemState bat_states[] = {
 	generic_gun_switching_in_state,
 	generic_gun_switching_out_state,
 	generic_gun_refire_state,
@@ -426,7 +418,7 @@ static const ItemState bat_states[] = {
 	} ),
 };
 
-static const ItemState generic_throwable_states[] = {
+static constexpr const ItemState generic_throwable_states[] = {
 	ItemState( WeaponState_SwitchingIn, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		const GadgetDef * def = GetGadgetDef( ps->gadget );
 		return AllowWeaponSwitch( gs, ps, GenericDelay( state, ps, def->switch_in_time, WeaponState_Cooking ) );
@@ -479,7 +471,7 @@ static bool SuicideBombStage( SyncPlayerState * ps, int stage, u64 delay ) {
 	return true;
 }
 
-static const ItemState suicide_bomb_states[] = {
+static constexpr const ItemState suicide_bomb_states[] = {
 	ItemState( WeaponState_Firing, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
 		if( SuicideBombStage( ps, 2, 0 ) ) {
 			// TODO: randomise
@@ -507,12 +499,12 @@ static const ItemState suicide_bomb_states[] = {
 	} ),
 };
 
-constexpr static Span< const ItemState > dispatch_state_machine = MakeStateMachine( dispatch_states );
-constexpr static Span< const ItemState > generic_gun_state_machine = MakeStateMachine( generic_gun_states );
-constexpr static Span< const ItemState > bat_state_machine = MakeStateMachine( bat_states );
-constexpr static Span< const ItemState > railgun_state_machine = MakeStateMachine( railgun_states );
-constexpr static Span< const ItemState > generic_throwable_state_machine = MakeStateMachine( generic_throwable_states );
-constexpr static Span< const ItemState > suicide_bomb_state_machine = MakeStateMachine( suicide_bomb_states );
+static constexpr Span< const ItemState > dispatch_state_machine = StaticSpan( dispatch_states );
+static constexpr Span< const ItemState > generic_gun_state_machine = StaticSpan( generic_gun_states );
+static constexpr Span< const ItemState > bat_state_machine = StaticSpan( bat_states );
+static constexpr Span< const ItemState > railgun_state_machine = StaticSpan( railgun_states );
+static constexpr Span< const ItemState > generic_throwable_state_machine = StaticSpan( generic_throwable_states );
+static constexpr Span< const ItemState > suicide_bomb_state_machine = StaticSpan( suicide_bomb_states );
 
 static Span< const ItemState > FindItemStateMachine( SyncPlayerState * ps ) {
 	if( ps->weapon == Weapon_None && !ps->using_gadget ) {

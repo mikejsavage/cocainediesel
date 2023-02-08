@@ -65,7 +65,7 @@ Span< const char > MakeSpan( const char * str );
 void format( FormatBuffer * fb, Span< const char > arr, const FormatOpts & opts );
 
 template< typename T, size_t N >
-Span< T > StaticSpan( T ( &arr )[ N ] ) {
+constexpr Span< T > StaticSpan( T ( &arr )[ N ] ) {
 	return Span< T >( arr, N );
 }
 

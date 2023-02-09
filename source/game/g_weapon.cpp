@@ -824,7 +824,7 @@ static bool BouncingProjectile( edict_t * ent, edict_t * other, const Plane * pl
 	}
 
 	if( other->takedamage ) {
-		SpawnFX( ent, plane, hit_fx, hit_fx ); 
+		SpawnFX( ent, plane, hit_fx, hit_fx );
 		G_Damage( other, ent, ent->r.owner, ent->velocity, ent->velocity, ent->s.origin, ent->projectileInfo.maxDamage, ent->projectileInfo.maxKnockback, 0, ent->projectileInfo.damage_type );
 		G_FreeEdict( ent );
 		return false;
@@ -1120,7 +1120,7 @@ static void UseStunGrenade( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	}
 
 	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, stats );
-	grenade->s.type = ET_GRENADE;
+	grenade->s.type = ET_STUNGRENADE;
 	grenade->classname = "stun grenade";
 	grenade->movetype = MOVETYPE_BOUNCE;
 	grenade->s.model = "gadgets/flash/model";

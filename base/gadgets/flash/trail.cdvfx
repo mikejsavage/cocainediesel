@@ -1,0 +1,39 @@
+{
+  particles {
+    material textures/vfx/glow1
+    blendfunc add
+
+    position line 0
+
+    collision point
+
+    speed 5
+
+    color 1.0 1.0 1.0 1.0
+    end_color 0.0 0.5 1.0
+    color_override
+
+    size 16 32
+    lifetime 0.3
+
+    emission 192
+  }
+
+  particles {
+    material textures/vfx/flare1
+    blendfunc add
+
+    position line 0
+
+    collision point
+
+    speed 0
+
+    color 1.0 1.0 1.0 1.0
+
+    size 14 0
+    lifetime 0.5
+
+    emission 256
+  }
+}

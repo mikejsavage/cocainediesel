@@ -29,6 +29,7 @@ bin( "bc4", {
 		"stb_image",
 		"stb_image_resize",
 		"tracy",
+		"zstd",
 	},
 
 	gcc_extra_ldflags = "-lm -lpthread -ldl",

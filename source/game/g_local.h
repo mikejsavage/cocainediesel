@@ -220,10 +220,6 @@ void G_AddCommand( ClientCommandType command, gamecommandfunc_t cmdfunc );
 // g_utils.c
 //
 
-struct EntityID {
-	u64 id;
-};
-
 EntityID NewEntity();
 void ResetEntityIDSequence();
 edict_t * GetEntity( EntityID id );
@@ -623,8 +619,6 @@ struct edict_t {
 	// EXPECTS THE FIELDS IN THAT ORDER!
 
 	//================================
-
-	EntityID id;
 
 	int linkcount;
 

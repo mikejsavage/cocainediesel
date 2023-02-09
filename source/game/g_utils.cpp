@@ -213,7 +213,7 @@ void G_InitEdict( edict_t *e ) {
 
 	memset( e, 0, sizeof( *e ) );
 	e->s.number = ENTNUM( e );
-	e->id = NewEntity();
+	e->s.id = NewEntity();
 	e->r.inuse = true;
 
 	// bool ok = entity_id_hashtable.add( e->id.id, e->s.number );

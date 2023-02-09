@@ -166,7 +166,7 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 
 		if( ( cent->current.type == ET_GENERIC || cent->current.type == ET_PLAYER
 			  || cent->current.type == ET_GRENADE
-			  || cent->current.type == ET_CORPSE ) ) {
+			  || cent->current.type == ET_CORPSE || cent->current.type == ET_STUNGRENADE ) ) {
 			cent->canExtrapolate = true;
 		}
 
@@ -684,6 +684,12 @@ void DrawEntities() {
 				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
+			case ET_STUNGRENADE:
+				DrawEntityModel( cent );
+				DrawEntityTrail( cent, "gadgets/flash/trail" );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				CG_EntityLoopSound( cent, state );
+				break;
 			case ET_ARBULLET:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/ar/trail" );
@@ -823,6 +829,7 @@ void CG_LerpEntities() {
 			case ET_ARBULLET:
 			case ET_BUBBLE:
 			case ET_GRENADE:
+			case ET_STUNGRENADE:
 			case ET_RIFLEBULLET:
 			case ET_PISTOLBULLET:
 			case ET_STAKE:
@@ -899,6 +906,7 @@ void CG_UpdateEntities() {
 			case ET_ARBULLET:
 			case ET_BUBBLE:
 			case ET_GRENADE:
+			case ET_STUNGRENADE:
 			case ET_RIFLEBULLET:
 			case ET_PISTOLBULLET:
 			case ET_STAKE:

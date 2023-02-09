@@ -311,8 +311,13 @@ struct SyncEvent {
 	s8 type;
 };
 
+struct EntityID {
+	u64 id;
+};
+
 struct SyncEntityState {
 	int number;
+	EntityID id;
 
 	unsigned int svflags;
 

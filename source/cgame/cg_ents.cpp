@@ -160,6 +160,8 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 			}
 
 			cent->velocity = ( cent->current.origin - cent->prev.origin ) * 1000.0f / snapTime;
+		} else {
+			cent->velocity = Vec3( 0.0f );
 		}
 
 		if( ( cent->current.type == ET_GENERIC || cent->current.type == ET_PLAYER

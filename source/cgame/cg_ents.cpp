@@ -648,6 +648,7 @@ static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
 
 	Vec4 color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
 	DoVisualEffect( name, cent->interpolated.origin, cent->trailOrigin, 1.0f, color );
+	DrawTrail( cent->current.id.id, cent->interpolated.origin, 16.0f, color, "simpletrail", 500 );
 }
 
 void DrawEntities() {
@@ -720,6 +721,7 @@ void DrawEntities() {
 				break;
 			case ET_SAWBLADE:
 				DrawEntityModel( cent );
+				DrawEntityTrail( cent, EMPTY_HASH );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_THROWING_AXE:
@@ -729,6 +731,7 @@ void DrawEntities() {
 				break;
 			case ET_SHURIKEN:
 				DrawEntityModel( cent );
+				DrawEntityTrail( cent, EMPTY_HASH );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_PLAYER:

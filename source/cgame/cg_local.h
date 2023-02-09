@@ -412,6 +412,13 @@ void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHas
 void DrawPersistentBeams();
 
 //
+// cg_trails.cpp
+//
+void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, u64 duration );
+void InitTrails();
+void DrawTrails();
+
+//
 //	cg_vweap.c - client weapon
 //
 void CG_AddViewWeapon( cg_viewweapon_t *viewweapon );

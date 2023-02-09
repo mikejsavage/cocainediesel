@@ -869,7 +869,7 @@ const WeaponDef weapon_defs[] = {
 		/* max recoil           */ EulerDegrees2( 125.0f, 5.0f ),
 		/* min recoil           */ EulerDegrees2( 100.0f, -5.0f ),
 		/* recoil recovery      */ 1750.0f,
-		/* firing mode          */ FiringMode_SemiAuto,
+		/* firing mode          */ FiringMode_Auto,
 
 		/* zoom fov             */ 0.0f,
 		/* zoom inaccuracy      */ 0.0f,

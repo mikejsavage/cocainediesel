@@ -117,10 +117,10 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 		};
 
 		constexpr Vec2 uvs[] = {
-			Vec2( 0.0f, 0.0f ),
-			Vec2( 1.0f, 0.0f ),
 			Vec2( 0.0f, 1.0f ),
 			Vec2( 1.0f, 1.0f ),
+			Vec2( 0.0f, 0.0f ),
+			Vec2( 1.0f, 0.0f ),
 		};
 
 		constexpr u16 indices[] = { 0, 1, 2, 2, 1, 3 };

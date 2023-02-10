@@ -39,8 +39,10 @@ static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles
 }
 
 static Mat4 GetMuzzleTransform( int ent ) {
-	if( ent < 1 || ent > client_gs.maxclients )
-		return Mat4::Identity();
+	if( ent < 1 || ent > client_gs.maxclients ) {
+		centity_t * cent = &cg_entities[ ent ];
+		return Mat4Translation( cent->current.origin );
+	}
 
 	if( ISVIEWERENTITY( ent ) && !cg.view.thirdperson ) {
 		return cg.weapon.muzzle_transform;

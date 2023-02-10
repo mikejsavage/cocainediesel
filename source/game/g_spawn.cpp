@@ -85,6 +85,7 @@ static constexpr EntityField entity_keys[] = {
 	{ "size", STOFS( size ), EntityField_Int, true },
 	{ "spawn_probability", STOFS( spawn_probability ), EntityField_Float, true },
 	{ "power", STOFS( power ), EntityField_Float, true },
+	{ "weapon", STOFS( weapon ), EntityField_StringHash, true },
 };
 
 static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st );
@@ -120,6 +121,7 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 
 	{ "spike", SP_spike },
 	{ "spikes", SP_spikes },
+	{ "shooter", SP_shooter },
 	{ "jumppad", SP_jumppad },
 
 	{ "speaker_wall", SP_speaker_wall },

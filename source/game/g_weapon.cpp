@@ -802,7 +802,7 @@ static void W_Touch_Sticky( edict_t * ent, edict_t * other, const Plane * plane,
 void W_Fire_Sticky( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	const WeaponDef * def = GS_GetWeaponDef( Weapon_StickyGun );
 
-	float spreadness = def->zoom_spread * ( 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME ) );
+	float spreadness = self->r.client != NULL ? def->zoom_spread * ( 1.0f - float( self->r.client->ps.zoom_time ) / float( ZOOMTIME ) ) : def->zoom_spread;
 	Vec2 spread = UniformSampleInsideCircle( &svs.rng ) * spreadness;
 	angles.x += spread.x;
 	angles.y += spread.y;

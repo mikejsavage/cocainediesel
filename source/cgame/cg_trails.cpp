@@ -76,7 +76,6 @@ void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash m
 		Trail &trail = trails[ idx ];
 		trail.unique_id = unique_id;
 		trail.width = width;
-		trail.color = color;
 		trail.material = material;
 		trail.duration = duration;
 		trail.offset = 0.0f;
@@ -84,6 +83,7 @@ void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash m
 		trail.points.clear();
 	}
 	Trail &trail = trails[ idx ];
+	trail.color = color;
 
 	TrailPoint new_point;
 	new_point.p = point;

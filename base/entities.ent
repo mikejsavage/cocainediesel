@@ -157,4 +157,10 @@
   <flag key="START_ON" name="START_ON" bit="0">when set, the laser will start on in the game.</flag>
 </point>
 
+<point name="shooter" color="1 0 0" box="-8 -8 -8 8 8 8">
+  A shooter
+  <angles key="angles" name="Pitch Yaw Roll">angles, pitch/yaw/roll</angles>
+  <string key="weapon" name="Weapon">weapon shortname</string>
+</point>
+
 </classes>

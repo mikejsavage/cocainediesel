@@ -111,6 +111,7 @@ struct spawn_temp_t {
 	int size;
 	float spawn_probability;
 	float power;
+	StringHash weapon;
 };
 
 struct score_stats_t {
@@ -193,6 +194,11 @@ void SP_func_train( edict_t * ent, const spawn_temp_t * st );
 //
 void SP_spike( edict_t * ent, const spawn_temp_t * st );
 void SP_spikes( edict_t * ent, const spawn_temp_t * st );
+
+//
+// g_shooter
+//
+void SP_shooter( edict_t * ent, const spawn_temp_t * st );
 
 //
 // g_speakers

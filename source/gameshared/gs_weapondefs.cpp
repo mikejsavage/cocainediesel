@@ -834,7 +834,7 @@ const WeaponDef weapon_defs[] = {
 		/* firing mode          */ FiringMode_Auto,
 
 		/* zoom fov             */ 0.0f,
-		/* zoom inaccuracy      */ 0.0f,
+		/* zoom inaccuracy      */ 0.0f, // actual spread
 
 		// damages
 		/* damage               */ 12,
@@ -848,7 +848,7 @@ const WeaponDef weapon_defs[] = {
 		// projectile def
 		/* speed                */ 3000,
 		/* gravity scale        */ 1.0f,
-		/* spread               */ 1750,
+		/* spread               */ 1750, // fuse time for sticky
 	},
 
 	{

@@ -1221,6 +1221,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	glTextureParameteri( texture.texture, GL_TEXTURE_MIN_FILTER, min_filter );
 	glTextureParameteri( texture.texture, GL_TEXTURE_MAG_FILTER, mag_filter );
 	glTextureParameteri( texture.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
+	glTextureParameterf( texture.texture, GL_TEXTURE_LOD_BIAS, -1.0f );
 
 	if( config.wrap == TextureWrap_Border ) {
 		glTextureParameterfv( texture.texture, GL_TEXTURE_BORDER_COLOR, config.border_color.ptr() );

@@ -1,5 +1,4 @@
 #include "include/uniforms.glsl"
-#include "include/common.glsl"
 
 uniform sampler2D u_BaseTexture;
 

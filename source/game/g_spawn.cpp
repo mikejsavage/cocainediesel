@@ -312,6 +312,8 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	server_gs.gameState.map = StringHash( mapname );
 	server_gs.gameState.map_checksum = svs.cms->checksum;
 
+	G_SunCycle( 0 );
+
 	G_FreeEntities();
 
 	// link client fields on player ents

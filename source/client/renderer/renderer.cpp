@@ -652,7 +652,7 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	frame_static.vertical_fov = vertical_fov;
 	frame_static.near_plane = near_plane;
 
-	float t = Clamp01( Unlerp01( client_gs.gameState.sun_moved_from, cls.gametime, client_gs.gameState.sun_moved_to ) );
+	float t = Unlerp01( client_gs.gameState.sun_moved_from, cls.gametime, client_gs.gameState.sun_moved_to );
 	Vec3 sun_angles = LerpAngles( client_gs.gameState.sun_angles_from, t, client_gs.gameState.sun_angles_to );
 	AngleVectors( sun_angles, &frame_static.light_direction, NULL, NULL );
 

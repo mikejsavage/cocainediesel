@@ -1,17 +1,10 @@
 uniform sampler2DArrayShadow u_ShadowmapTextureArray;
 
-#define USE_DEPTH_PLANE_BIAS 0
-#define FILTER_ACROSS_CASCADES 1
 const float blend_threshold = 0.5;
 
 float SampleShadowMap( vec2 base_uv, float u, float v, vec2 inv_shadowmap_size, int cascadeIdx, float depth, vec2 receiverPlaneDepthBias ) {
 	vec2 uv = base_uv + vec2( u, v ) * inv_shadowmap_size;
-#if USE_DEPTH_PLANE_BIAS
-	float z = depth + dot( vec2( u, v ) * inv_shadowmap_size, receiverPlaneDepthBias );
-#else
-	float z = depth;
-#endif
-	return texture( u_ShadowmapTextureArray, vec4( uv, cascadeIdx, z ) );
+	return texture( u_ShadowmapTextureArray, vec4( uv, cascadeIdx, depth ) );
 }
 
 vec2 ComputeReceiverPlaneDepthBias( vec3 texCoordDX, vec3 texCoordDY ) {
@@ -35,14 +28,8 @@ float SampleShadowMapOptimizedPCF( vec3 shadowPos, vec3 shadowPosDX, vec3 shadow
 
 	float lightDepth = shadowPos.z;
 
-#if USE_DEPTH_PLANE_BIAS
-	vec2 receiverPlaneDepthBias = ComputeReceiverPlaneDepthBias( shadowPosDX, shadowPosDY );
-	float fractionalSamplingError = 2 * dot( inv_shadowmap_size, abs( receiverPlaneDepthBias ) );
-	lightDepth -= min( fractionalSamplingError, 0.01 );
-#else
 	vec2 receiverPlaneDepthBias = vec2( 0.0 );
 	lightDepth -= 0.001;
-#endif
 
 	vec2 uv = shadowPos.xy * shadowmap_size;
 	vec2 base_uv = floor( uv + 0.5 );
@@ -141,17 +128,15 @@ float GetLight( vec3 normal ) {
 		float plane = GetCascadePlane( i );
 		if( view_distance <= plane ) {
 			float light = ShadowCascade( v_Position, normal, i );
-			#if FILTER_ACROSS_CASCADES
-				float fade_factor = ( plane - view_distance ) / plane;
-				if( fade_factor < blend_threshold ) {
-					float next_light = 1.0; // fade to nothing if we're on last cascade
-					if( i + 1 < u_ShadowCascades ) {
-						next_light = ShadowCascade( v_Position, normal, i + 1 );
-					}
-					float lerp_amt = smoothstep( 0.0, blend_threshold, fade_factor );
-					light = mix( next_light, light, lerp_amt );
+			float fade_factor = ( plane - view_distance ) / plane;
+			if( fade_factor < blend_threshold ) {
+				float next_light = 1.0; // fade to nothing if we're on last cascade
+				if( i + 1 < u_ShadowCascades ) {
+					next_light = ShadowCascade( v_Position, normal, i + 1 );
 				}
-			#endif
+				float lerp_amt = smoothstep( 0.0, blend_threshold, fade_factor );
+				light = mix( next_light, light, lerp_amt );
+			}
 			return light;
 		}
 	}

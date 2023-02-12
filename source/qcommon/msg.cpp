@@ -733,6 +733,11 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.bomb, baseline.bomb );
 	Delta( buf, state.exploding, baseline.exploding );
 	Delta( buf, state.exploded_at, baseline.exploded_at );
+
+	DeltaAngle( buf, state.sun_angles_from, baseline.sun_angles_from );
+	DeltaAngle( buf, state.sun_angles_to, baseline.sun_angles_to );
+	Delta( buf, state.sun_moved_from, baseline.sun_moved_from );
+	Delta( buf, state.sun_moved_to, baseline.sun_moved_to );
 }
 
 void MSG_WriteDeltaGameState( msg_t * msg, const SyncGameState * baseline, const SyncGameState * state ) {

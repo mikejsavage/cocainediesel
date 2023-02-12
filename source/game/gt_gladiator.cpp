@@ -122,6 +122,7 @@ static void NewRound() {
 	server_gs.gameState.exploding = false;
 
 	PickRandomArena();
+	G_SunCycle( 1500 );
 
 	gladiator_state.round_state_end = level.time + countdown_seconds * 1000;
 	gladiator_state.countdown = 4;

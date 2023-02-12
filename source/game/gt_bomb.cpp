@@ -792,6 +792,7 @@ static void RoundNewState( RoundState state ) {
 			SetRoundType();
 			BombGiveToRandom();
 			G_SpawnEvent( EV_FLASH_WINDOW, 0, NULL );
+			G_SunCycle( 3000 );
 		} break;
 
 		case RoundState_Round: {

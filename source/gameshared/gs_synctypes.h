@@ -306,6 +306,11 @@ struct SyncGameState {
 	SyncBombGameState bomb;
 	bool exploding;
 	s64 exploded_at;
+
+	Vec3 sun_angles_from;
+	Vec3 sun_angles_to;
+	s64 sun_moved_from;
+	s64 sun_moved_to;
 };
 
 struct SyncEvent {

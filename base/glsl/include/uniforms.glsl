@@ -48,5 +48,3 @@ layout( std140 ) uniform u_ShadowMaps {
 	vec3 u_CascadeScaleC;
 	vec3 u_CascadeScaleD;
 };
-
-uniform vec2 u_BlendMix;

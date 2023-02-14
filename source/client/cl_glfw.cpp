@@ -468,6 +468,9 @@ Vec2 GetJoystickMovement() {
 		if( !glfwJoystickPresent( i ) )
 			continue;
 
+		if( !glfwJoystickIsGamepad( i ) )
+			continue;
+
 		int n;
 		const float * axes = glfwGetJoystickAxes( i, &n );
 

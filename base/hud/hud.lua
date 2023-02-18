@@ -292,9 +292,6 @@ local function DrawStaminaBar( state, x, y, width, height, padding, bg_color )
 			cd.box( x, y, width, height, c )
 		elseif state.perk == Perk_Jetpack then
 			local s = 1 - math.min( 1.0, state.stamina + 0.3 )
-			if state.stamina_state == Stamina_Reloading then
-				s = 1 - math.min( 1.0, state.stamina - 0.15 )
-			end
 
 			stamina_color.r = math.min( 1.0, stamina_color.r + s )
 			stamina_color.g = math.max( 0.0, stamina_color.g - s )

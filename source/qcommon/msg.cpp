@@ -227,19 +227,27 @@ static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 }
 
 template< size_t N >
+constexpr auto SmallestSufficientIntType() {
+	if constexpr ( N < ( 1_u64 << 8 ) ) { return u8(); }
+	else if constexpr ( N < ( 1_u64 << 16 ) ) { return u16(); }
+	else if constexpr ( N < ( 1_u64 << 32 ) ) { return u32(); }
+	else { return u64(); }
+}
+
+template< size_t N >
 static void DeltaString( DeltaBuffer * buf, char ( &str )[ N ], const char ( &baseline )[ N ] ) {
 	if( buf->serializing ) {
 		bool diff = !StrEqual( str, baseline );
 		AddBit( buf, diff );
 		if( diff ) {
-			size_t n = strlen( str );
+			decltype( SmallestSufficientIntType< N >() ) n = strlen( str );
 			AddBytes( buf, &n, sizeof( n ) );
 			AddBytes( buf, str, n );
 		}
 	}
 	else {
 		if( GetBit( buf ) ) {
-			size_t n;
+			decltype( SmallestSufficientIntType< N >() ) n;
 			GetBytes( buf, &n, sizeof( n ) );
 			GetBytes( buf, str, n );
 			str[ n ] = '\0';

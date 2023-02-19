@@ -7,8 +7,8 @@ static constexpr float charge_slide_time = 1.0f;
 static constexpr float slide_friction = 0.25f;
 static constexpr float slide_speed_fact = 0.5f;
 
-static constexpr float stamina_use = 2.5f;
-static constexpr float stamina_recover = 8.0f;
+static constexpr float stamina_use = 5.0f;
+static constexpr float stamina_recover = 10.0f;
 
 static constexpr float floor_distance = STEPSIZE * 0.5f;
 

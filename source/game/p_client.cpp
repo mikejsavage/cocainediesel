@@ -137,7 +137,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	return body;
 }
 
-static void ReleaseWeapons( edict_t * ent ) {
+static void DropHeldItem( edict_t * ent ) {
 	SyncPlayerState * ps = &ent->r.client->ps;
 
 	if( ps->using_gadget ) {
@@ -149,7 +149,7 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAss
 	snap_edict_t snap_backup = ent->snap;
 	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
 
-	ReleaseWeapons( ent );
+	DropHeldItem( ent );
 
 	ent->avelocity = Vec3( 0.0f );
 

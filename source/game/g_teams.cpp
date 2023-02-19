@@ -27,6 +27,7 @@ Cvar *g_teams_allow_uneven;
 void G_Teams_Init() {
 	g_teams_maxplayers = NewCvar( "g_teams_maxplayers", "0", CvarFlag_Archive );
 	g_teams_allow_uneven = NewCvar( "g_teams_allow_uneven", "1", CvarFlag_Archive );
+	NewCvar( "g_force_even_teams", "0", CvarFlag_Archive );
 
 	memset( server_gs.gameState.teams, 0, sizeof( server_gs.gameState.teams ) );
 }
@@ -264,5 +265,107 @@ void G_Teams_Join_Cmd( edict_t * ent, msg_t args ) {
 	if( G_Teams_JoinTeam( ent, team ) ) {
 		G_PrintMsg( NULL, "%s joined the %s team.\n", ent->r.client->name, GS_TeamName( ent->s.team ) );
 		return;
+	}
+}
+
+void GhostEveryone() {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		edict_t * ent = PLAYERENT( i );
+		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
+			G_ClientRespawn( ent, true );
+		}
+	}
+}
+
+void InitRespawnQueues( RespawnQueues * queues ) {
+	for( RespawnQueues::Queue & queue : queues->teams ) {
+		for( int & slot : queue.players ) {
+			slot = -1;
+		}
+	}
+}
+
+static void RemoveIndexFromRespawnQueue( RespawnQueues::Queue * queue, size_t idx ) {
+	queue->players[ idx ] = -1; // in case this is the last element
+	memcpy( &queue->players[ idx ], &queue->players[ idx + 1 ], ARRAY_COUNT( queue->players ) - ( idx + 1 ) );
+}
+
+void RemovePlayerFromRespawnQueues( RespawnQueues * queues, int player ) {
+	for( RespawnQueues::Queue & queue : queues->teams ) {
+		for( size_t i = 0; i < ARRAY_COUNT( queue.players ); i++ ) {
+			if( queue.players[ i ] == player ) {
+				RemoveIndexFromRespawnQueue( &queue, i );
+			}
+		}
+	}
+}
+
+void RemoveDisconnectedPlayersFromRespawnQueues( RespawnQueues * queues ) {
+	// drop disconnected players
+	int disconnected[ MAX_CLIENTS ] = { };
+	size_t num_disconnected = 0;
+
+	for( const RespawnQueues::Queue & queue : queues->teams ) {
+		for( int player : queue.players ) {
+			if( !PLAYERENT( player )->r.inuse ) {
+				disconnected[ num_disconnected ] = player;
+				num_disconnected++;
+			}
+		}
+	}
+
+	for( size_t i = 0; i < num_disconnected; i++ ) {
+		RemovePlayerFromRespawnQueues( queues, disconnected[ i ] );
+	}
+}
+
+void EnqueueRespawn( RespawnQueues * queues, Team team, int player ) {
+	for( int & slot : queues->teams[ team ].players ) {
+		if( slot == -1 ) {
+			slot = player;
+			return;
+		}
+	}
+
+	Assert( false );
+}
+
+static Optional< int > DequeueRespawn( RespawnQueues * queues, Team team ) {
+	RespawnQueues::Queue * queue = &queues->teams[ team ];
+
+	int player = queue->players[ 0 ];
+	if( player == -1 )
+		return NONE;
+
+	RemoveIndexFromRespawnQueue( queue, 0 );
+	EnqueueRespawn( queues, team, player );
+	return player;
+}
+
+void SpawnTeams( RespawnQueues * queues ) {
+	u8 even_n = U8_MAX;
+	for( int i = 0; i < level.gametype.numTeams; i++ ) {
+		const SyncTeamState * team = &server_gs.gameState.teams[ Team_One + i ];
+		if( team->num_players > 0 ) {
+			even_n = Min2( even_n, team->num_players );
+		}
+	}
+
+	for( int i = 0; i < level.gametype.numTeams; i++ ) {
+		u8 num_on_team = server_gs.gameState.teams[ Team_One + i ].num_players;
+		u8 num_to_spawn = Cvar_Bool( "g_force_even_teams" ) ? even_n : num_on_team;
+
+		for( u8 j = 0; j < num_to_spawn; j++ ) {
+			Optional< int > player = DequeueRespawn( queues, Team( Team_One + i ) );
+			edict_t * ent = PLAYERENT( player.value );
+			G_ClientRespawn( ent, false );
+		}
+
+		for( u8 j = 0; j < num_on_team - num_to_spawn; j++ ) {
+			int player = queues->teams[ Team_One + i ].players[ j ];
+			edict_t * ent = PLAYERENT( player );
+			G_PrintMsg( NULL, "%s is sitting out to make the teams even\n", ent->r.client->name );
+			G_ClientRespawn( ent, true );
+		}
 	}
 }

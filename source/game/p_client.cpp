@@ -145,6 +145,25 @@ static void DropHeldItem( edict_t * ent ) {
 	}
 }
 
+static void G_GhostClient( edict_t *ent ) {
+	ent->movetype = MOVETYPE_NONE;
+	ent->r.solid = SOLID_NOT;
+
+	memset( &ent->snap, 0, sizeof( ent->snap ) );
+	memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
+	memset( &ent->r.client->resp.chase, 0, sizeof( ent->r.client->resp.chase ) );
+
+	ent->s.type = ET_GHOST;
+	ent->s.effects = 0;
+	ent->s.sound = EMPTY_HASH;
+	ent->viewheight = 0;
+	ent->takedamage = DAMAGE_NO;
+
+	ClearInventory( &ent->r.client->ps );
+
+	GClip_LinkEntity( ent );
+}
+
 void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, DamageType damage_type, int damage ) {
 	snap_edict_t snap_backup = ent->snap;
 	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
@@ -241,25 +260,6 @@ void G_ClientClearStats( edict_t * ent ) {
 	}
 
 	memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
-}
-
-void G_GhostClient( edict_t *ent ) {
-	ent->movetype = MOVETYPE_NONE;
-	ent->r.solid = SOLID_NOT;
-
-	memset( &ent->snap, 0, sizeof( ent->snap ) );
-	memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
-	memset( &ent->r.client->resp.chase, 0, sizeof( ent->r.client->resp.chase ) );
-
-	ent->s.type = ET_GHOST;
-	ent->s.effects = 0;
-	ent->s.sound = EMPTY_HASH;
-	ent->viewheight = 0;
-	ent->takedamage = DAMAGE_NO;
-
-	ClearInventory( &ent->r.client->ps );
-
-	GClip_LinkEntity( ent );
 }
 
 void G_ClientRespawn( edict_t *self, bool ghost ) {

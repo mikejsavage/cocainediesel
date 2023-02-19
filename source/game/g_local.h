@@ -161,14 +161,6 @@ extern Cvar *g_autorecord;
 extern Cvar *g_autorecord_maxdemos;
 extern Cvar *g_allow_spectator_voting;
 
-void G_Teams_Join_Cmd( edict_t * ent, msg_t args );
-bool G_Teams_JoinTeam( edict_t * ent, Team team );
-void G_Teams_UpdateMembersList();
-bool G_Teams_JoinAnyTeam( edict_t * ent, bool silent );
-void G_Teams_SetTeam( edict_t * ent, Team team );
-
-u8 PlayersAliveOnTeam( Team team );
-
 void G_Match_Ready( edict_t * ent );
 void G_Match_NotReady( edict_t * ent );
 void G_Match_ToggleReady( edict_t * ent );
@@ -181,6 +173,32 @@ void G_EndMatch();
 void DropSpawnToFloor( edict_t * ent );
 void SelectSpawnPoint( const edict_t * ent, const edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles );
 void SP_post_match_camera( edict_t * ent, const spawn_temp_t * st );
+
+// g_teams
+
+void G_Teams_Join_Cmd( edict_t * ent, msg_t args );
+bool G_Teams_JoinTeam( edict_t * ent, Team team );
+void G_Teams_UpdateMembersList();
+bool G_Teams_JoinAnyTeam( edict_t * ent, bool silent );
+void G_Teams_SetTeam( edict_t * ent, Team team );
+
+u8 PlayersAliveOnTeam( Team team );
+
+void GhostEveryone();
+
+struct RespawnQueues {
+	struct Queue {
+		int players[ MAX_CLIENTS ];
+	};
+
+	Queue teams[ Team_Count ];
+};
+
+void InitRespawnQueues( RespawnQueues * queues );
+void RemovePlayerFromRespawnQueues( RespawnQueues * queues, int player );
+void RemoveDisconnectedPlayersFromRespawnQueues( RespawnQueues * queues );
+void EnqueueRespawn( RespawnQueues * queues, Team team, int player );
+void SpawnTeams( RespawnQueues * queues );
 
 //
 // g_func.c
@@ -398,7 +416,6 @@ void G_Client_InactivityRemove( gclient_t *client );
 void G_ClientRespawn( edict_t *self, bool ghost );
 score_stats_t * G_ClientGetStats( edict_t * ent );
 void G_ClientClearStats( edict_t * ent );
-void G_GhostClient( edict_t *self );
 void ClientThink( edict_t * ent, UserCommand *cmd, int timeDelta );
 void G_ClientThink( edict_t * ent );
 void G_CheckClientRespawnClick( edict_t * ent );

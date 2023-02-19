@@ -337,6 +337,35 @@ static void G_VoteTimeinPassed( callvotedata_t *vote ) {
 	level.timeout.endtime = level.timeout.time + TIMEIN_TIME + FRAMETIME;
 }
 
+/*
+ * forceeven
+ */
+static bool G_VoteForceEvenValidate( callvotedata_t * vote, bool first ) {
+	if( StrEqual( vote->argv[ 0 ], "0" ) ) {
+		if( !Cvar_Bool( "g_force_even_teams" ) ) {
+			G_PrintMsg( vote->caller, S_COLOR_RED "Already off\n" );
+			return false;
+		}
+
+		return true;
+	}
+
+	if( StrEqual( vote->argv[ 0 ], "1" ) ) {
+		if( !Cvar_Bool( "g_force_even_teams" ) ) {
+			G_PrintMsg( vote->caller, S_COLOR_RED "Already on\n" );
+			return false;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+static void G_VoteForceEvenPassed( callvotedata_t * vote ) {
+	Cvar_Set( "g_force_even_teams", vote->argv[ 0 ] );
+}
+
 //===================================================================
 // Common functions
 //===================================================================
@@ -406,6 +435,17 @@ static callvotetype_t votes[] = {
 		NULL,
 		NULL,
 		"Resumes the game if in timeout",
+	},
+
+	{
+		"forceeven",
+		0,
+		G_VoteForceEvenValidate,
+		G_VoteForceEvenPassed,
+		NULL,
+		NULL,
+		NULL,
+		"Force even teams",
 	},
 };
 

@@ -76,7 +76,6 @@ struct pmove_t {
 
 struct gs_module_api_t {
 	void ( *Trace )( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, int contentmask, int timeDelta );
-	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, u64 parm );
 	void ( *PredictedAltFireWeapon )( int entNum, u64 parm );

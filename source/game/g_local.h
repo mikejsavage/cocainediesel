@@ -352,7 +352,6 @@ void GClip_LinkEntity( edict_t * ent );
 void GClip_UnlinkEntity( edict_t * ent );
 void GClip_TouchTriggers( edict_t * ent );
 void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin );
-SyncEntityState *G_GetEntityStateForDeltaTime( int entNum, int deltaTime );
 int GClip_FindInRadius( Vec3 org, float rad, int *list, int maxcount );
 
 bool IsHeadshot( int entNum, Vec3 hit, int timeDelta );

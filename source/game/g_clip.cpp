@@ -940,17 +940,3 @@ void G_SplashFrac4D( const edict_t *ent, Vec3 hitpoint, float maxradius, Vec3 * 
 	const c4clipedict_t *clipEnt = GClip_GetClipEdictForDeltaTime( ENTNUM( ent ), timeDelta );
 	G_SplashFrac( &clipEnt->s, &clipEnt->r, hitpoint, maxradius, pushdir, frac, selfdamage );
 }
-
-SyncEntityState *G_GetEntityStateForDeltaTime( int entNum, int deltaTime ) {
-	c4clipedict_t *clipEnt;
-
-	if( entNum == -1 ) {
-		return NULL;
-	}
-
-	Assert( entNum >= 0 && entNum < MAX_EDICTS );
-
-	clipEnt = GClip_GetClipEdictForDeltaTime( entNum, deltaTime );
-
-	return &clipEnt->s;
-}

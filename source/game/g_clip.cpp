@@ -650,13 +650,22 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	CallTouches( ent, bounds );
 }
 
+static bool BoundsValid( const MinMax3 & bounds ) {
+	for( int i = 0; i < 3; i++ ) {
+		if( bounds.mins[ i ] > bounds.maxs[ i ] )
+			return false;
+	}
+
+	return true;
+}
+
 static bool BoundsOverlapSphere( const MinMax3 & bounds, const Sphere & sphere ) {
+	if( !BoundsValid( bounds ) )
+		return false;
 
 	float dist_squared = 0;
 
 	for( int i = 0; i < 3; i++ ) {
-		if( bounds.mins[ i ] > bounds.maxs[ i ] )
-			return false;
 		float x = Clamp( bounds.mins[ i ], sphere.center[ i ], bounds.maxs[ i ] );
 		float d = sphere.center[ i ] - x;
 		dist_squared += d * d;

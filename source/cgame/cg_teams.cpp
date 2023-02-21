@@ -24,7 +24,7 @@ static constexpr RGB8 COLORBLIND_TEAM_COLORS[] = {
 };
 
 static bool IsAlly( Team team ) {
-	Team my_team = cg.predictedPlayerState.team;
+	Team my_team = cg.predictedPlayerState.real_team;
 	if( my_team == Team_None )
 		return team == Team_One;
 	return team == my_team;

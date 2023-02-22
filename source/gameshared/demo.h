@@ -1,9 +1,9 @@
 #pragma once
 
 #include "qcommon/types.h"
-#include "qcommon/qcommon.h"
 
 struct ZSTD_CCtx_s;
+struct SyncEntityState;
 
 struct RecordDemoContext {
 	char * filename;

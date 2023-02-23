@@ -9,6 +9,10 @@
 
 const bool is_dedicated_server = true;
 
+void ShowErrorMessage( const char * msg, const char * file, int line ) {
+	printf( "%s (%s:%d)\n", msg, file, line );
+}
+
 static sig_atomic_t received_shutdown_signal = 0;
 
 static void ShutdownSignal( int sig ) {

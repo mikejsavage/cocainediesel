@@ -102,8 +102,4 @@ void Sys_ConsoleOutput( const char * str ) {
 	printf( "%s\033[0m", print_from );
 }
 
-void ShowErrorMessage( const char * msg, const char * file, int line ) {
-	printf( "%s (%s:%d)\n", msg, file, line );
-}
-
 #endif // #ifdef PLATFORM_UNIX

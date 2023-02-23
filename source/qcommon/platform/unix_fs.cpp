@@ -64,13 +64,25 @@ ListDirHandle BeginListDir( Allocator * a, const char * path ) {
 	return ImplToOpaque( handle );
 }
 
+#if PLATFORM_MACOS
+
+using PlatformDirent = dirent;
+auto PlatformReaddir = readdir;
+
+#else
+
+using PlatformDirent = dirent64;
+auto PlatformReaddir = readdir64;
+
+#endif
+
 bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	ListDirHandleImpl handle = OpaqueToImpl( *opaque );
 	if( handle.dir == NULL )
 		return false;
 
-	dirent64 * dirent;
-	while( ( dirent = readdir64( handle.dir ) ) != NULL ) {
+	PlatformDirent * dirent;
+	while( ( dirent = PlatformReaddir( handle.dir ) ) != NULL ) {
 		if( StrEqual( dirent->d_name, "." ) || StrEqual( dirent->d_name, ".." ) )
 			continue;
 

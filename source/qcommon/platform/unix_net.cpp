@@ -34,6 +34,10 @@ u64 OpenOSSocket( AddressFamily family, UDPOrTCP type, u16 port ) {
 		FatalErrno( "socket" );
 	}
 
+#if PLATFORM_MACOS
+	OSSocketSetSockOptOne( OSSocketToHandle( s ), SOL_SOCKET, SO_NOSIGPIPE );
+#endif
+
 	return OSSocketToHandle( s );
 }
 
@@ -69,10 +73,16 @@ void OSSocketSetSockOptOne( u64 handle, int level, int opt ) {
 }
 
 bool OSSocketSend( u64 handle, const void * data, size_t n, const sockaddr_storage * destination, size_t destination_size, size_t * sent ) {
+#if PLATFORM_MACOS
+	constexpr int sendto_flags = 0;
+#else
+	constexpr int sendto_flags = MSG_NOSIGNAL;
+#endif
+
 	int socket = HandleToOSSocket( handle );
 
 	while( true ) {
-		int ret = sendto( socket, ( const char * ) data, checked_cast< int >( n ), MSG_NOSIGNAL,
+		int ret = sendto( socket, ( const char * ) data, checked_cast< int >( n ), sendto_flags,
 			( const sockaddr * ) destination, checked_cast< int >( destination_size ) );
 		if( ret == -1 ) {
 			if( errno == EINTR ) {

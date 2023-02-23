@@ -42,14 +42,16 @@ static void SerializeFundamental( SerializationBuffer * buf, T & x ) {
 }
 
 void Serialize( SerializationBuffer * buf, char & x ) { SerializeFundamental( buf, x ); }
-void Serialize( SerializationBuffer * buf, s8 & x ) { SerializeFundamental( buf, x ); }
-void Serialize( SerializationBuffer * buf, s16 & x ) { SerializeFundamental( buf, x ); }
-void Serialize( SerializationBuffer * buf, s32 & x ) { SerializeFundamental( buf, x ); }
-void Serialize( SerializationBuffer * buf, s64 & x ) { SerializeFundamental( buf, x ); }
-void Serialize( SerializationBuffer * buf, u8 & x ) { SerializeFundamental( buf, x ); }
-void Serialize( SerializationBuffer * buf, u16 & x ) { SerializeFundamental( buf, x ); }
-void Serialize( SerializationBuffer * buf, u32 & x ) { SerializeFundamental( buf, x ); }
-void Serialize( SerializationBuffer * buf, u64 & x ) { SerializeFundamental( buf, x ); }
+void Serialize( SerializationBuffer * buf, signed char & x ) { SerializeFundamental( buf, x ); }
+void Serialize( SerializationBuffer * buf, short & x ) { SerializeFundamental( buf, x ); }
+void Serialize( SerializationBuffer * buf, int & x ) { SerializeFundamental( buf, x ); }
+void Serialize( SerializationBuffer * buf, long & x ) { SerializeFundamental( buf, x ); }
+void Serialize( SerializationBuffer * buf, long long & x ) { SerializeFundamental( buf, x ); }
+void Serialize( SerializationBuffer * buf, unsigned char & x ) { SerializeFundamental( buf, x ); }
+void Serialize( SerializationBuffer * buf, unsigned short & x ) { SerializeFundamental( buf, x ); }
+void Serialize( SerializationBuffer * buf, unsigned int & x ) { SerializeFundamental( buf, x ); }
+void Serialize( SerializationBuffer * buf, unsigned long & x ) { SerializeFundamental( buf, x ); }
+void Serialize( SerializationBuffer * buf, unsigned long long & x ) { SerializeFundamental( buf, x ); }
 void Serialize( SerializationBuffer * buf, float & x ) { SerializeFundamental( buf, x ); }
 void Serialize( SerializationBuffer * buf, double & x ) { SerializeFundamental( buf, x ); }
 

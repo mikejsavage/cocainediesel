@@ -18,10 +18,10 @@
 
 #if defined( _WIN32 )
 #  define PLATFORM_WINDOWS 1
-#elif defined( __linux__ )
-#  define PLATFORM_LINUX 1
 #elif defined( __APPLE__ )
 #  define PLATFORM_MACOS 1
+#elif defined( __linux__ )
+#  define PLATFORM_LINUX 1
 #elif defined( __OpenBSD__ )
 #  define PLATFORM_OPENBSD 1
 #else
@@ -42,10 +42,7 @@ static uint64_t to_flicks( uint64_t x, uint64_t xs_per_second ) {
 
 #if PLATFORM_WINDOWS
 
-#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
-#endif
-
 #include <windows.h>
 
 uint64_t ggtime() {
@@ -56,6 +53,26 @@ uint64_t ggtime() {
 	QueryPerformanceFrequency( &freq );
 
 	return to_flicks( now.QuadPart, freq.QuadPart );
+}
+
+#elif PLATFORM_MACOS
+
+#include <mach/mach_time.h>
+
+static constexpr uint64_t NS_PER_SECOND = UINT64_C( 1000000000 );
+
+uint64_t ggtime() {
+	// TODO: no idea if this is correct, numer/denom are both 1 on my
+	// machine and I didn't put much thought into it. need to think about
+	// this properly (and upstream it)
+	mach_timebase_info_data_t scale;
+	mach_timebase_info( &scale );
+	uint64_t ticks = mach_absolute_time();
+
+	uint64_t a = ( ticks / scale.denom ) * scale.numer;
+	uint64_t b = ( ( ticks % scale.denom ) * scale.numer ) / scale.denom;
+
+	return to_flicks( a + b, NS_PER_SECOND );
 }
 
 #elif PLATFORM_LINUX || PLATFORM_OPENBSD

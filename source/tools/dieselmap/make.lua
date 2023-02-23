@@ -22,6 +22,6 @@ bin( "dieselmap", {
 		"zstd",
 	},
 
-	msvc_extra_ldflags = "ole32.lib shell32.lib user32.lib advapi32.lib",
-	gcc_extra_ldflags = "-lm -lpthread",
+	windows_ldflags = "ole32.lib shell32.lib user32.lib advapi32.lib",
+	linux_ldflags = "-lm -lpthread",
 } )

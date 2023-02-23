@@ -76,7 +76,6 @@ configs[ "linux-release" ] = {
 	ar = "ggbuild/zig/zig ar",
 
 	cxxflags = "-O2 -DNDEBUG",
-	ldflags = "",
 	output_dir = "release/",
 	can_static_link = true,
 }
@@ -447,13 +446,9 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 			( can_static_link and not cfg.no_static_link ) and "ggbuild/zig/zig" or ""
 		)
 
-		local ldflags_key = toolchain .. "_ldflags"
-		local extra_ldflags_key = toolchain .. "_extra_ldflags"
+		local ldflags_key = OS .. "_ldflags"
 		if cfg[ ldflags_key ] then
 			printf( "    ldflags = %s", cfg[ ldflags_key ] )
-		end
-		if cfg[ extra_ldflags_key ] then
-			printf( "    extra_ldflags = %s", cfg[ extra_ldflags_key ] )
 		end
 
 		printf( "default %s", full_name )

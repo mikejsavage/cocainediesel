@@ -21,6 +21,6 @@ bin( "bc4", {
 		"zstd",
 	},
 
-	gcc_extra_ldflags = "-lm -lpthread -ldl",
-	msvc_extra_ldflags = "ole32.lib shell32.lib user32.lib advapi32.lib",
+	windows_ldflags = "ole32.lib shell32.lib user32.lib advapi32.lib",
+	linux_ldflags = "-lm -lpthread -ldl",
 } )

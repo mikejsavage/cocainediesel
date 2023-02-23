@@ -74,26 +74,7 @@ configs[ "linux-bench" ] = {
 	prebuilt_lib_dir = "linux-release",
 }
 
-local function identify_host()
-	local dll_ext = package.cpath:match( "(%a+)$" )
-
-	if dll_ext == "dll" then
-		return "windows"
-	end
-
-	local p = assert( io.popen( "uname -s" ) )
-	local uname = assert( p:read( "*all" ) ):gsub( "%s*$", "" )
-	assert( p:close() )
-
-	if uname == "Linux" then
-		return "linux"
-	end
-
-	io.stderr:write( "can't identify host OS" )
-	os.exit( 1 )
-end
-
-OS = identify_host()
+OS = os.name:lower()
 config = arg[ 1 ] or "debug"
 
 local OS_config = OS .. "-" .. config

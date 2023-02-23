@@ -1,5 +1,9 @@
+#include "qcommon/platform.h"
+
+#if PLATFORM_WINDOWS
+
 #define _WIN32_WINNT 0x4000
-#include "windows/miniwindows.h"
+#include "qcommon/platform/windows_mini_windows_h.h"
 #include <stdlib.h>
 #include <crtdbg.h>
 #include <shellapi.h>
@@ -35,3 +39,5 @@ int main( int argc, char ** argv );
 int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, char * szCmdLine, int iCmdShow ) {
 	return main( __argc, __argv );
 }
+
+#endif // #ifdef PLATFORM_WINDOWS

@@ -1,8 +1,12 @@
+#include "qcommon/platform.h"
+
+#if PLATFORM_UNIX
+
 #include <errno.h>
 #include <poll.h>
 #include <sys/ioctl.h>
 
-#include "unix/unix_net.h"
+#include "qcommon/platform/unix_net_headers.h"
 
 #include "qcommon/base.h"
 #include "qcommon/array.h"
@@ -182,3 +186,5 @@ void WaitForSockets( TempAllocator * temp, const Socket * sockets, size_t num_so
 		results[ idx ].writeable = results[ idx ].writeable || ( fds[ i ].revents & POLLOUT ) != 0;
 	}
 }
+
+#endif // #ifdef PLATFORM_UNIX

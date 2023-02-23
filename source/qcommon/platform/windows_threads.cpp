@@ -1,4 +1,8 @@
-#include "windows/miniwindows.h"
+#include "qcommon/platform.h"
+
+#if PLATFORM_WINDOWS
+
+#include "qcommon/platform/windows_mini_windows_h.h"
 #include <process.h>
 
 #include "qcommon/base.h"
@@ -102,3 +106,5 @@ u32 GetCoreCount() {
 	GetSystemInfo( &info );
 	return info.dwNumberOfProcessors;
 }
+
+#endif // #ifdef PLATFORM_WINDOWS

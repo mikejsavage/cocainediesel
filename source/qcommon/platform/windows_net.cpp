@@ -1,7 +1,11 @@
-#include "windows/miniwindows.h"
+#include "qcommon/platform.h"
+
+#if PLATFORM_WINDOWS
+
+#include "qcommon/platform/windows_mini_windows_h.h"
 #include <io.h>
 
-#include "windows/win_net.h"
+#include "qcommon/platform/windows_net_headers.h"
 
 #include "qcommon/base.h"
 #include "qcommon/sys_net.h"
@@ -211,3 +215,5 @@ void WaitForSockets( TempAllocator * temp, const Socket * sockets, size_t num_so
 		}
 	}
 }
+
+#endif // #ifdef PLATFORM_WINDOWS

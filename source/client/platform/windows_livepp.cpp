@@ -1,10 +1,14 @@
+#include "qcommon/platform.h"
+
+#if PLATFORM_WINDOWS
+
 /*
  * Live++ license means we have to use a shim DLL to load it, ask Mike
  */
 
-#include "windows/miniwindows.h"
+#include "qcommon/platform/windows_mini_windows_h.h"
 
-#include "qcommon/qcommon.h"
+#include "qcommon/base.h"
 
 using F = void ( * )();
 
@@ -35,3 +39,5 @@ void LivePPFrame() {
 		livepp_Frame();
 	}
 }
+
+#endif // #ifdef PLATFORM_WINDOWS

@@ -1,3 +1,7 @@
+#include "qcommon/platform.h"
+
+#if PLATFORM_LINUX
+
 #include <sys/ptrace.h>
 #include <sys/wait.h>
 
@@ -60,3 +64,5 @@ bool Sys_BeingDebugged() {
 bool IsRenderDocAttached() {
 	return dlopen( "librenderdoc.so", RTLD_NOW | RTLD_NOLOAD ) != NULL;
 }
+
+#endif // #ifdef PLATFORM_LINUX

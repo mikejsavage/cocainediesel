@@ -1,3 +1,7 @@
+#include "qcommon/platform.h"
+
+#if PLATFORM_UNIX
+
 #include <signal.h>
 #include <unistd.h>
 
@@ -47,3 +51,4 @@ int main( int argc, char ** argv ) {
 	return 0;
 }
 
+#endif // #ifdef PLATFORM_UNIX

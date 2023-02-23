@@ -1,4 +1,8 @@
-#include "windows/miniwindows.h"
+#include "qcommon/platform.h"
+
+#if PLATFORM_WINDOWS
+
+#include "qcommon/platform/windows_mini_windows_h.h"
 
 #include "qcommon/types.h"
 #include "qcommon/qcommon.h"
@@ -167,3 +171,5 @@ void Sys_ConsoleOutput( const char * str ) {
 	WriteConsole( output, print_from, strlen( print_from ), &written, NULL );
 	SetConsoleTextAttribute( output, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE );
 }
+
+#endif // #ifdef PLATFORM_WINDOWS

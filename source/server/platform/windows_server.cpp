@@ -1,4 +1,8 @@
-#include "windows/miniwindows.h"
+#include "qcommon/platform.h"
+
+#if PLATFORM_WINDOWS
+
+#include "qcommon/platform/windows_mini_windows_h.h"
 
 #include "qcommon/qcommon.h"
 
@@ -33,3 +37,5 @@ int main( int argc, char ** argv ) {
 
 	return 0;
 }
+
+#endif // #ifdef PLATFORM_WINDOWS

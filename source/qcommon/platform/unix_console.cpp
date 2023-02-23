@@ -1,3 +1,7 @@
+#include "qcommon/platform.h"
+
+#if PLATFORM_UNIX
+
 #include <sys/types.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -101,3 +105,5 @@ void Sys_ConsoleOutput( const char * str ) {
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
 }
+
+#endif // #ifdef PLATFORM_UNIX

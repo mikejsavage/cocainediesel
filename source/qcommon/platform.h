@@ -4,6 +4,7 @@
 #  define PLATFORM_WINDOWS 1
 #elif defined( __linux__ )
 #  define PLATFORM_LINUX 1
+#  define PLATFORM_UNIX 1
 #else
 #  error new platform
 #endif

@@ -1,5 +1,5 @@
-#include "../qcommon/application.h"
-#include "../qcommon/gitversion.h"
+#include "../../qcommon/application.h"
+#include "../../qcommon/gitversion.h"
 
 1000 ICON DISCARDABLE "icon.ico"
 

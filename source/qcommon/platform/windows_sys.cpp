@@ -1,5 +1,9 @@
+#include "qcommon/platform.h"
+
+#if PLATFORM_WINDOWS
+
 #include "qcommon/base.h"
-#include "windows/miniwindows.h"
+#include "qcommon/platform/windows_mini_windows_h.h"
 
 void FatalGLE( const char * msg ) {
 	int err = GetLastError();
@@ -14,3 +18,5 @@ void FatalGLE( const char * msg ) {
 void Sys_Init() {
 	SetConsoleOutputCP( CP_UTF8 );
 }
+
+#endif // #ifdef PLATFORM_WINDOWS

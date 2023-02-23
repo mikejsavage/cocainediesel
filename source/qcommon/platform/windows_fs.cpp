@@ -1,4 +1,8 @@
-#include "windows/miniwindows.h"
+#include "qcommon/platform.h"
+
+#if PLATFORM_WINDOWS
+
+#include "qcommon/platform/windows_mini_windows_h.h"
 #include <io.h>
 #include <shlobj.h>
 #include <objbase.h>
@@ -244,3 +248,5 @@ Span< const char * > PollFSChangeMonitor( TempAllocator * temp, FSChangeMonitor 
 
 	return Span< const char * >( results, num_results );
 }
+
+#endif // #ifdef PLATFORM_WINDOWS

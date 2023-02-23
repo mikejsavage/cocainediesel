@@ -1,13 +1,15 @@
+#include "qcommon/platform.h"
+
+#if PLATFORM_UNIX
+
 #include "qcommon/base.h"
 
 #include <pthread.h>
-#include <semaphore.h>
 #include <unistd.h>
 #include <errno.h>
 
 struct Thread { pthread_t thread; };
 struct Mutex { pthread_mutex_t mutex; };
-struct Semaphore { sem_t sem; };
 
 struct ThreadStartData {
 	void ( *callback )( void * );
@@ -85,42 +87,6 @@ void Unlock( Mutex * mutex ) {
 	}
 }
 
-Semaphore * NewSemaphore() {
-	sem_t s;
-	if( sem_init( &s, 0, 0 ) != 0 ) {
-		FatalErrno( "sem_init" );
-	}
-
-	Semaphore * sem = ALLOC( sys_allocator, Semaphore );
-	sem->sem = s;
-	return sem;
-}
-
-void DeleteSemaphore( Semaphore * sem ) {
-	if( sem_destroy( &sem->sem ) != 0 ) {
-		FatalErrno( "sem_destroy" );
-	}
-	FREE( sys_allocator, sem );
-}
-
-void Signal( Semaphore * sem, int n ) {
-	for( int i = 0; i < n; i++ ) {
-		if( sem_post( &sem->sem ) != 0 && errno != EOVERFLOW ) {
-			FatalErrno( "sem_post" );
-		}
-	}
-}
-
-void Wait( Semaphore * sem ) {
-	while( true ) {
-		if( sem_wait( &sem->sem ) == 0 )
-			break;
-		if( errno == EINTR )
-			continue;
-		FatalErrno( "sem_wait" );
-	}
-}
-
 u32 GetCoreCount() {
 	long ok = sysconf( _SC_NPROCESSORS_ONLN );
 	if( ok == -1 ) {
@@ -128,3 +94,5 @@ u32 GetCoreCount() {
 	}
 	return checked_cast< u32 >( ok );
 }
+
+#endif // #ifdef PLATFORM_UNIX

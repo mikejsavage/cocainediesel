@@ -448,7 +448,7 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 
 		local ldflags_key = OS .. "_ldflags"
 		if cfg[ ldflags_key ] then
-			printf( "    ldflags = %s", cfg[ ldflags_key ] )
+			printf( "    extra_ldflags = %s", cfg[ ldflags_key ] )
 		end
 
 		printf( "default %s", full_name )

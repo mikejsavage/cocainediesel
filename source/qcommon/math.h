@@ -1,6 +1,6 @@
 // include base.h instead of this
 
-#if COMPILER_CLANG
+#if PLATFORM_LINUX && COMPILER_CLANG
 #define MATH_DECLARATION_NOTHROW throw()
 #else
 #define MATH_DECLARATION_NOTHROW

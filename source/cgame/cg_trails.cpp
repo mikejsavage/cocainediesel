@@ -58,14 +58,14 @@ constexpr size_t MAX_TRAILS = 512;
 
 static Trail trails[ MAX_TRAILS ];
 static Hashtable< MAX_TRAILS * 2 > trails_hashtable;
-static size_t num_trails;
+static u32 num_trails;
 
 void InitTrails() {
 	num_trails = 0;
 }
 
 void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, u64 duration ) {
-	size_t idx = num_trails;
+	u64 idx = num_trails;
 	if( !trails_hashtable.get( unique_id, &idx ) ) {
 		if( num_trails == MAX_TRAILS ) {
 			Com_Printf( S_COLOR_YELLOW "Warning: Too many trails\n" );
@@ -220,7 +220,7 @@ static void DrawActualTrail( Trail & trail ) {
 }
 
 void DrawTrails() {
-	for( size_t i = 0; i < num_trails; i++ ) {
+	for( u32 i = 0; i < num_trails; i++ ) {
 		if( !UpdateTrail( trails[ i ] ) ) {
 			trails_hashtable.remove( trails[ i ].unique_id );
 			Swap2( &trails[ i ], &trails[ num_trails - 1 ] );

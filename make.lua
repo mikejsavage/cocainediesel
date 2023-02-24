@@ -45,7 +45,7 @@ require( "source.tools.bc4" )
 require( "source.tools.dieselmap" )
 
 do
-	local platform_libs = OS == "windows" and { } or { "mbedtls" }
+	local platform_libs = OS == "linux" and { "mbedtls" } or { }
 
 	bin( "client", {
 		srcs = {

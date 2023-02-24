@@ -209,7 +209,7 @@ int CM_PointLeafnum( const CollisionModel *cms, Vec3 p );
 
 // call with topnode set to the headnode, returns with topnode
 // set to the first node that splits the box
-int CM_BoxLeafnums( CollisionModel *cms, Vec3 mins, Vec3 maxs, int *list, int listsize, int *topnode );
+int CM_BoxLeafnums( const CollisionModel *cms, Vec3 mins, Vec3 maxs, int *list, int listsize, int *topnode );
 
 int CM_LeafCluster( const CollisionModel *cms, int leafnum );
 int CM_LeafArea( const CollisionModel *cms, int leafnum );
@@ -217,7 +217,7 @@ int CM_LeafArea( const CollisionModel *cms, int leafnum );
 void CM_SetAreaPortalState( CollisionModel *cms, int area1, int area2, bool open );
 bool CM_AreasConnected( const CollisionModel *cms, int area1, int area2 );
 
-void CM_WriteAreaBits( CollisionModel *cms, uint8_t *buffer );
-bool CM_HeadnodeVisible( CollisionModel *cms, int headnode, uint8_t *visbits );
+void CM_WriteAreaBits( const CollisionModel *cms, uint8_t *buffer );
+bool CM_HeadnodeVisible( const CollisionModel *cms, int headnode, const uint8_t *visbits );
 
-void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out );
+void CM_MergePVS( const CollisionModel *cms, Vec3 org, uint8_t *out );

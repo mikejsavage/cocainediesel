@@ -1064,10 +1064,10 @@ const PerkDef perk_defs[] = {
 		/* short name       */ "wheel",
 		/* health           */ 90,
 		/* scale            */ Vec3( 0.9f, 0.9f, 0.9f ),
-		/* weight           */ 0.8f,
-		/* max speed        */ 350.0f,
-		/* side speed       */ 500.0f,
-		/* max air speed    */ 600.0f,
+		/* weight           */ 0.9f,
+		/* max speed        */ 700.0f,
+		/* side speed       */ 700.0f,
+		/* max air speed    */ 700.0f,
 	},
 
 	{

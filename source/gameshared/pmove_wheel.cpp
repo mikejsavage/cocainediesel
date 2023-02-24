@@ -1,8 +1,11 @@
 #include "gameshared/movement.h"
 
-static constexpr float charge_jump_speed = 750.0f;
-static constexpr float charge_min_speed = 350.0f;
+static constexpr float charge_jump_speed = 800.0f;
+static constexpr float charge_min_speed = 400.0f;
 static constexpr float charge_slide_time = 1.0f;
+
+static constexpr float min_bounce_speed = 250.0f;
+static constexpr float bounce_factor = 0.5f;
 
 static constexpr float slide_friction = 0.25f;
 static constexpr float slide_speed_fact = 0.5f;
@@ -10,7 +13,7 @@ static constexpr float slide_speed_fact = 0.5f;
 static constexpr float stamina_use = 5.0f;
 static constexpr float stamina_recover = 10.0f;
 
-static constexpr float floor_distance = STEPSIZE * 0.5f;
+static constexpr float floor_distance = STEPSIZE;
 
 static void PM_WheelSlide( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( (pm->groundentity != -1 || pml->ladder) && (ps->pmove.stamina == 0.0f) ) {
@@ -77,32 +80,42 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
 	
-	/*if( ps->pmove.stamina_stored == 0.0f || ps->pmove.stamina_state != Stamina_UsedAbility ) {
-		return;
-	}
 
-	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
-
+	//bounce
 	trace_t trace;
 	Vec3 point = pml->origin;
 	point.z -= floor_distance;
 
 	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, ps->POVnum, pm->contentmask, 0 );
 
-	if( trace.fraction == 1 || !trace.startsolid ) {
+	if( pm->groundentity == -1 && ps->pmove.stamina_state == Stamina_UsedAbility &&
+		!ISWALKABLEPLANE( &trace.plane ) &&
+		(trace.fraction == 1 || !trace.startsolid) )
+	{
 		Vec3 normal( 0.0f );
 		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, true );
 		if( !Length( normal ) )
 			return;
 
-		float speed = Length( pml->velocity );
-		pml->velocity = GS_ClipVelocity( pml->velocity, normal, 1.0005f );
-		pml->velocity = pml->velocity + normal;
-		pml->velocity = Normalize( pml->velocity );
-		pml->velocity *= speed;
+		//don't want to bounce everywhere while falling imo
+		Vec3 velocity2 = pml->velocity;
+		if( velocity2.z < 0 ) {
+			velocity2.z = 0;
+		}
 
-		ps->pmove.stamina_stored = 0.0f;
-	}*/
+		float speed = Length( velocity2 );
+		pml->velocity = GS_ClipVelocity( pml->velocity, normal, 1.0005f );
+		if( speed > min_bounce_speed ) {
+			pml->velocity = pml->velocity + normal * speed * bounce_factor;
+		}
+	}
+
+	if( ps->pmove.stamina_stored == 0.0f || ps->pmove.stamina_state != Stamina_UsedAbility ) {
+		return;
+	}
+
+	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
+
 }
 
 

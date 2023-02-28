@@ -251,7 +251,6 @@ static void OnKeyPressed( GLFWwindow *, int glfw_key, int scancode, int action, 
 	ImGuiIO & io = ImGui::GetIO();
 
 	io.KeyCtrl = io.KeysDown[ K_LCTRL ] || io.KeysDown[ K_RCTRL ];
-	io.KeyShift = io.KeysDown[ K_LSHIFT ] || io.KeysDown[ K_RSHIFT ];
 	io.KeyAlt = io.KeysDown[ K_LALT ] || io.KeysDown[ K_RALT ];
 
 	io.KeysDown[ key ] = down;

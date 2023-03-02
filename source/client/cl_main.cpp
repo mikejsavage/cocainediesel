@@ -76,7 +76,7 @@ msg_t * CL_AddReliableCommand( ClientCommandType command ) {
 	// we must drop the connection
 	if( cls.reliableSequence > cls.reliableAcknowledge + MAX_RELIABLE_COMMANDS ) {
 		cls.reliableAcknowledge = cls.reliableSequence; // try to avoid loops
-		Com_Error( "Client command overflow %" PRIi64 " %" PRIi64, cls.reliableAcknowledge, cls.reliableSequence );
+		Com_Error( "Client command overflow %zu %zu", cls.reliableAcknowledge, cls.reliableSequence );
 	}
 
 	cls.reliableSequence++;

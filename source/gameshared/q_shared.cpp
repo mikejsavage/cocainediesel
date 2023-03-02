@@ -23,7 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <type_traits>
 
 #include "qcommon/qcommon.h"
-#include "qcommon/strtonum.h"
 
 //============================================================================
 
@@ -132,34 +131,6 @@ Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine s
 	return token;
 }
 
-bool TrySpanToInt( Span< const char > str, int * x ) {
-	char buf[ 128 ];
-	if( str.n >= sizeof( buf ) )
-		return false;
-
-	memcpy( buf, str.ptr, str.n );
-	buf[ str.n ] = '\0';
-
-	const char * err = NULL;
-	*x = strtonum( buf, INT_MIN, INT_MAX, &err );
-
-	return err == NULL;
-}
-
-bool TrySpanToFloat( Span< const char > str, float * x ) {
-	char buf[ 128 ];
-	if( str.n == 0 || str.n >= sizeof( buf ) )
-		return false;
-
-	memcpy( buf, str.ptr, str.n );
-	buf[ str.n ] = '\0';
-
-	char * end;
-	*x = strtof( buf, &end );
-
-	return end == buf + str.n;
-}
-
 bool TrySpanToU64( Span< const char > str, u64 * x ) {
 	if( str.n == 0 )
 		return false;
@@ -183,6 +154,54 @@ bool TrySpanToU64( Span< const char > str, u64 * x ) {
 	return true;
 }
 
+bool TrySpanToS64( Span< const char > str, s64 * x ) {
+	if( str.n == 0 )
+		return false;
+
+	if( str[ 0 ] == '-' ) {
+		u64 u;
+		if( !TrySpanToU64( str + 1, &u ) || u > u64( -S64_MIN ) )
+			return false;
+		*x = -s64( u );
+		return true;
+	}
+
+	u64 u;
+	if( !TrySpanToU64( str, &u ) || u > S64_MAX )
+		return false;
+	*x = u;
+	return true;
+}
+
+bool TrySpanToInt( Span< const char > str, int * x ) {
+	s64 x64;
+	if( !TrySpanToS64( str, &x64 ) )
+		return false;
+	if( x64 < INT_MIN || x64 > INT_MIN )
+		return false;
+	*x = int( x64 );
+	return true;
+}
+
+bool TrySpanToFloat( Span< const char > str, float * x ) {
+	char buf[ 128 ];
+	if( str.n == 0 || str.n >= sizeof( buf ) )
+		return false;
+
+	memcpy( buf, str.ptr, str.n );
+	buf[ str.n ] = '\0';
+
+	char * end;
+	*x = strtof( buf, &end );
+
+	return end == buf + str.n;
+}
+
+u64 SpanToU64( Span< const char > str, u64 def ) {
+	u64 x;
+	return TrySpanToU64( str, &x ) ? x : def;
+}
+
 int SpanToInt( Span< const char > token, int def ) {
 	int x;
 	return TrySpanToInt( token, &x ) ? x : def;
@@ -191,11 +210,6 @@ int SpanToInt( Span< const char > token, int def ) {
 float SpanToFloat( Span< const char > token, float def ) {
 	float x;
 	return TrySpanToFloat( token, &x ) ? x : def;
-}
-
-u64 SpanToU64( Span< const char > str, u64 def ) {
-	u64 x;
-	return TrySpanToU64( str, &x ) ? x : def;
 }
 
 int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop ) {

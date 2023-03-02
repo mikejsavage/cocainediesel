@@ -12,7 +12,6 @@ bin( "dieselmap", {
 
 		"source/gameshared/q_math.cpp",
 		"source/gameshared/q_shared.cpp",
-		"source/qcommon/strtonum.cpp",
 		"source/qcommon/rng.cpp",
 	},
 

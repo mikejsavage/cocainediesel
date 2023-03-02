@@ -177,7 +177,7 @@ bool TrySpanToInt( Span< const char > str, int * x ) {
 	s64 x64;
 	if( !TrySpanToS64( str, &x64 ) )
 		return false;
-	if( x64 < INT_MIN || x64 > INT_MIN )
+	if( x64 < INT_MIN || x64 > INT_MAX )
 		return false;
 	*x = int( x64 );
 	return true;

@@ -236,7 +236,7 @@ MinMax3 ToMinMax( const CenterExtents3 & aabb ) {
 Capsule MakePlayerCapsule( const MinMax3 & bounds ) {
 	Vec3 center = ( bounds.maxs + bounds.mins ) * 0.5f;
 	Vec3 dim = bounds.maxs - bounds.mins;
-	assert( dim.z >= dim.x && dim.x == dim.y );
+	Assert( dim.z >= dim.x && dim.x == dim.y );
 
 	Capsule capsule;
 	capsule.radius = bounds.maxs.x;
@@ -325,7 +325,7 @@ Vec3 UniformSampleInsideSphere( RNG * rng ) {
 }
 
 Vec3 UniformSampleCone( RNG * rng, float theta ) {
-	assert( theta >= 0.0f && theta <= PI );
+	Assert( theta >= 0.0f && theta <= PI );
 	float z = RandomUniformFloat( rng, cosf( theta ), 1.0f );
 	float r = sqrtf( Max2( 0.0f, 1.0f - z * z ) );
 	float phi = 2.0f * PI * RandomFloat01( rng );

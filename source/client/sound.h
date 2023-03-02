@@ -24,8 +24,7 @@ struct PlaySFXConfig {
 	float volume;
 	float pitch;
 
-	u64 entropy;
-	bool has_entropy;
+	Optional< u64 > entropy;
 };
 
 extern Cvar * s_device;

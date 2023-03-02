@@ -49,7 +49,7 @@ void MSG_Clear( msg_t *msg ) {
 void *MSG_GetSpace( msg_t *msg, size_t length ) {
 	void *ptr;
 
-	assert( msg->cursize + length <= msg->maxsize );
+	Assert( msg->cursize + length <= msg->maxsize );
 	if( msg->cursize + length > msg->maxsize ) {
 		Fatal( "MSG_GetSpace: overflowed" );
 	}
@@ -288,25 +288,33 @@ static void Delta( DeltaBuffer * buf, CollisionModel & cm, const CollisionModel 
 }
 
 template< size_t N >
+constexpr auto SmallestSufficientIntType() {
+	if constexpr ( N < ( 1_u64 << 8 ) ) { return u8(); }
+	else if constexpr ( N < ( 1_u64 << 16 ) ) { return u16(); }
+	else if constexpr ( N < ( 1_u64 << 32 ) ) { return u32(); }
+	else { return u64(); }
+}
+
+template< size_t N >
 static void DeltaString( DeltaBuffer * buf, char ( &str )[ N ], const char ( &baseline )[ N ] ) {
 	if( buf->serializing ) {
 		bool diff = !StrEqual( str, baseline );
 		AddBit( buf, diff );
 		if( diff ) {
-			size_t n = strlen( str );
+			decltype( SmallestSufficientIntType< N >() ) n = strlen( str );
 			AddBytes( buf, &n, sizeof( n ) );
 			AddBytes( buf, str, n );
 		}
 	}
 	else {
 		if( GetBit( buf ) ) {
-			size_t n;
+			decltype( SmallestSufficientIntType< N >() ) n;
 			GetBytes( buf, &n, sizeof( n ) );
 			GetBytes( buf, str, n );
 			str[ n ] = '\0';
 		}
 		else {
-			Q_strncpyz( str, baseline, N );
+			SafeStrCpy( str, baseline, N );
 		}
 	}
 }
@@ -519,7 +527,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	DeltaAngle( buf, ent.angles, baseline.angles );
 
 	Delta( buf, ent.override_collision_model, baseline.override_collision_model );
-	DeltaEnum( buf, ent.solidity, baseline.solidity, Solid_Everything );
+	DeltaEnum( buf, ent.solidity, baseline.solidity, SolidBits( SolidMask_Everything + 1 ) );
 
 	Delta( buf, ent.teleported, baseline.teleported );
 
@@ -538,6 +546,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.site_letter, baseline.site_letter );
 	Delta( buf, ent.positioned_sound, baseline.positioned_sound );
 	DeltaEnum( buf, ent.weapon, baseline.weapon, Weapon_Count );
+	DeltaEnum( buf, ent.gadget, baseline.gadget, Gadget_Count );
 	Delta( buf, ent.radius, baseline.radius );
 	DeltaEnum( buf, ent.team, baseline.team, Team_Count );
 	Delta( buf, ent.scale, baseline.scale );
@@ -553,6 +562,8 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.linearMovementTimeDelta, baseline.linearMovementTimeDelta );
 
 	Delta( buf, ent.silhouetteColor, baseline.silhouetteColor );
+
+	Delta( buf, ent.id.id, baseline.id.id );
 }
 
 void MSG_WriteEntityNumber( msg_t *msg, int number, bool remove ) {
@@ -734,6 +745,7 @@ void MSG_ReadDeltaPlayerState( msg_t * msg, const SyncPlayerState * baseline, Sy
 //==================================================
 
 static void Delta( DeltaBuffer * buf, SyncScoreboardPlayer & player, const SyncScoreboardPlayer & baseline ) {
+	DeltaString( buf, player.name, baseline.name );
 	Delta( buf, player.ping, baseline.ping );
 	Delta( buf, player.score, baseline.score );
 	Delta( buf, player.kills, baseline.kills );
@@ -754,14 +766,12 @@ static void Delta( DeltaBuffer * buf, SyncBombGameState & bomb, const SyncBombGa
 	Delta( buf, bomb.alpha_players_total, baseline.alpha_players_total );
 	Delta( buf, bomb.beta_players_alive, baseline.beta_players_alive );
 	Delta( buf, bomb.beta_players_total, baseline.beta_players_total );
-	Delta( buf, bomb.exploding, baseline.exploding );
-	Delta( buf, bomb.exploded_at, baseline.exploded_at );
 }
 
 static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState & baseline ) {
 	DeltaEnum( buf, state.gametype, baseline.gametype, Gametype_Count );
-	Delta( buf, state.flags, baseline.flags );
 	DeltaEnum( buf, state.match_state, baseline.match_state, MatchState_Count );
+	Delta( buf, state.paused, baseline.paused );
 	Delta( buf, state.match_state_start_time, baseline.match_state_start_time );
 	Delta( buf, state.match_duration, baseline.match_duration );
 	Delta( buf, state.clock_override, baseline.clock_override );
@@ -780,6 +790,13 @@ static void Delta( DeltaBuffer * buf, SyncGameState & state, const SyncGameState
 	Delta( buf, state.map, baseline.map );
 
 	Delta( buf, state.bomb, baseline.bomb );
+	Delta( buf, state.exploding, baseline.exploding );
+	Delta( buf, state.exploded_at, baseline.exploded_at );
+
+	DeltaAngle( buf, state.sun_angles_from, baseline.sun_angles_from );
+	DeltaAngle( buf, state.sun_angles_to, baseline.sun_angles_to );
+	Delta( buf, state.sun_moved_from, baseline.sun_moved_from );
+	Delta( buf, state.sun_moved_to, baseline.sun_moved_to );
 }
 
 void MSG_WriteDeltaGameState( msg_t * msg, const SyncGameState * baseline, const SyncGameState * state ) {

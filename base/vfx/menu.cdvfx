@@ -1,41 +1,39 @@
 {
   particles {
-    material weapons/9mm/icon
-    material weapons/br/icon
-    material weapons/bg/icon
-    material weapons/deagle/icon
-    material weapons/eb/icon
-    material weapons/gb/icon
-    material weapons/gl/icon
-    material weapons/rl/icon
-    material weapons/lg/icon
-    material weapons/mg/icon
-    material weapons/ar/icon
-    material weapons/rg/icon
-    material weapons/rifle/icon
-    material weapons/sniper/icon
-    material weapons/road/icon
-    material weapons/minigun/icon
+    material textures/sprays/user
+    material textures/sprays/angry
+    material textures/sprays/gr
+    material textures/sprays/bentodog
+    material textures/sprays/bglasses
+    material textures/sprays/bistemadsmile
+    material textures/sprays/bogdanoff
+    material textures/sprays/bojo
+    material textures/sprays/bom
+    material textures/sprays/boobs
+    material textures/sprays/catcr
+    material textures/sprays/cd_font
+    material textures/sprays/cock4
+    material textures/sprays/cr
+    material textures/sprays/dickbutt
+    material textures/sprays/dudedead
+    material textures/sprays/fuckyou
+    material textures/sprays/ggkor
+    material textures/sprays/gitgud
 
     blendfunc blend
 
-    angle_distribution uniform 360
-    angular_velocity_distribution uniform 20
+    acceleration -15
 
-    position sphere 750
+    angular_velocity_distribution uniform 70
 
-    color 0.1 0.1 0.1 1.0
+    position sphere 800
+
+    color 0.05 0.05 0.05 0.85
     end_color 0.0 0.0 0.0
 
-    red_distribution uniform 0.01
-    green_distribution uniform 0.01
-    blue_distribution uniform 0.01
-
-    speed 2
-    speed_distribution uniform 0.5
-
-    size 0 200
+    size 0 100
     lifetime 5
-    emission 50
+    lifetime_distribution uniform 3
+    emission 150
   }
 }

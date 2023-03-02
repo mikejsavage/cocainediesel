@@ -16,8 +16,6 @@
 #define GLFW_INCLUDE_NONE
 #include "glfw3/GLFW/glfw3.h"
 
-#include "glad/glad.h"
-
 enum UIState {
 	UIState_Hidden,
 	UIState_MainMenu,
@@ -104,12 +102,12 @@ static void RefreshMasksList() {
 	TempAllocator temp = cls.frame_arena.temp();
 	ClearMasksList();
 
-	masks.add( ( *sys_allocator )( "  -  " ) );
+	masks.add( CopyString( sys_allocator, "None" ) );
 	for( const char * path : AssetPaths() ) {
 		if( !StartsWith( path, masks_folder ) || !EndsWith( path, ".glb" ) )
 			continue;
 
-		masks.add( ( *sys_allocator )("{}", StripPrefix( StripExtension( path ), masks_folder ) ) );
+		masks.add( ( *sys_allocator )( "{}", StripPrefix( StripExtension( path ), masks_folder ) ) );
 	}
 
 
@@ -159,7 +157,7 @@ static void CvarTextbox( const char * label, const char * cvar_name ) {
 	SettingLabel( label );
 
 	char buf[ maxlen + 1 ];
-	Q_strncpyz( buf, Cvar_String( cvar_name ), sizeof( buf ) );
+	SafeStrCpy( buf, Cvar_String( cvar_name ), sizeof( buf ) );
 
 	ImGui::PushID( cvar_name );
 	ImGui::InputText( "", buf, sizeof( buf ) );
@@ -219,12 +217,18 @@ static void KeyBindButton( const char * label, const char * command ) {
 	}
 
 	if( ImGui::BeginPopupModal( label, NULL, ImGuiWindowFlags_NoDecoration ) ) {
-		ImGui::Text( "Press a key to set a new bind, or press ESCAPE to cancel." );
+		ImGui::Text( "Press a key to set a new bind, or press DEL to delete it (ESCAPE to cancel)" );
 
 		ImGuiIO & io = ImGui::GetIO();
 		for( size_t i = 0; i < ARRAY_COUNT( io.KeysDown ); i++ ) {
 			if( ImGui::IsKeyPressed( i ) ) {
-				if( i != K_ESCAPE ) {
+				if( i == K_DEL ) {
+					int binds[ 2 ];
+					int num_binds = CG_GetBoundKeycodes( command, binds );
+					for( int j = 0; j < num_binds; j++ ) {
+						Key_SetBinding( binds[ j ], NULL );
+					}
+				} else if( i != K_ESCAPE ) {
 					Key_SetBinding( i, command );
 				}
 				ImGui::CloseCurrentPopup();
@@ -247,7 +251,7 @@ static void KeyBindButton( const char * label, const char * command ) {
 }
 
 static const char * SelectableMapList() {
-	Span< const char * > maps = GetMapList();
+	Span< const char * const > maps = GetMapList();
 	static size_t selected_map = 0;
 
 	ImGui::PushItemWidth( 200 );
@@ -294,6 +298,8 @@ static const char * SelectablePlayerList() {
 }
 
 static void MasksList() {
+	SettingLabel( "Mask" );
+
 	ImGui::PushItemWidth( 200 );
 	if( ImGui::BeginCombo( "##masks", masks[ selected_mask ] ) ) {
 		for( size_t i = 0; i < masks.size(); i++ ) {
@@ -323,6 +329,7 @@ static void SettingsGeneral() {
 	CvarCheckbox( "Show chat", "cg_chat" );
 	CvarCheckbox( "Show hotkeys", "cg_showHotkeys" );
 	CvarCheckbox( "Show FPS", "cg_showFPS" );
+
 	MasksList();
 }
 
@@ -330,6 +337,12 @@ static void SettingsControls() {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	ImGui::BeginChild( "binds" );
+
+	PushButtonColor( ImVec4( 0.375f, 0.f, 0.f, 0.75f ) );
+	if( ImGui::Button("Reset to default") ) {
+		Key_Unbindall();
+		ExecDefaultCfg();
+	} ImGui::PopStyleColor( 3 );
 
 	if( ImGui::BeginTabBar( "##binds", ImGuiTabBarFlags_None ) ) {
 		if( ImGui::BeginTabItem( "Game" ) ) {
@@ -374,6 +387,7 @@ static void SettingsControls() {
 
 		if( ImGui::BeginTabItem( "Mouse" ) ) {
 			CvarSliderFloat( "Sensitivity", "sensitivity", sensivity_range[ 0 ], sensivity_range[ 1 ] );
+			ImGui::Text( "Sensitivity is the same as CSGO/TF2/etc" );
 			CvarSliderFloat( "Horizontal sensitivity", "horizontalsensscale", 0.5f, 2.0f );
 			CvarCheckbox( "Invert Y axis", "m_invertY" );
 
@@ -384,8 +398,10 @@ static void SettingsControls() {
 			KeyBindButton( "Acne pack", "vsay acne" );
 			KeyBindButton( "Fart pack", "vsay fart" );
 			KeyBindButton( "Guyman pack", "vsay guyman" );
+			KeyBindButton( "Dodonga pack", "vsay dodonga" );
 			KeyBindButton( "Helena pack", "vsay helena" );
 			KeyBindButton( "Larp pack", "vsay larp" );
+			KeyBindButton( "Fam pack", "vsay fam" );
 			KeyBindButton( "Mike pack", "vsay mike" );
 			KeyBindButton( "User pack", "vsay user" );
 			KeyBindButton( "Valley pack", "vsay valley" );
@@ -692,13 +708,9 @@ static void ServerBrowser() {
 	ImGui::TextWrapped( "This game is very pre-alpha so there are probably 0 players online. Join the Discord to find games!" );
 	ImGui::Separator();
 
-	char server_filter[ 256 ] = { };
 	if( ImGui::Button( "Refresh" ) ) {
 		Refresh();
 	}
-	ImGui::AlignTextToFramePadding();
-	ImGui::SameLine(); ImGui::Text( "Search");
-	ImGui::SameLine(); ImGui::InputText( "##server_filter", server_filter, sizeof( server_filter ) );
 
 	ImGui::BeginChild( "servers" );
 	ImGui::Columns( 4, "serverbrowser", false );
@@ -714,25 +726,20 @@ static void ServerBrowser() {
 
 	Span< const ServerBrowserEntry > servers = GetServerBrowserEntries();
 	for( size_t i = 0; i < servers.n; i++ ) {
-		if( !servers[ i ].have_details )
-			continue;
-
-		if( strstr( servers[ i ].name, server_filter ) != NULL ) {
-			if( ImGui::Selectable( servers[ i ].name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
-				if( ImGui::IsMouseDoubleClicked( 0 ) ) {
-					CL_Connect( servers[ i ].address );
-				}
-				selected_server = i;
+		if( ImGui::Selectable( servers[ i ].name, i == selected_server, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowDoubleClick ) ) {
+			if( ImGui::IsMouseDoubleClicked( 0 ) ) {
+				CL_Connect( servers[ i ].address );
 			}
-			ImGui::NextColumn();
-
-			ImGui::Text( "%s", servers[ i ].map );
-			ImGui::NextColumn();
-			ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
-			ImGui::NextColumn();
-			ImGui::Text( "%d", servers[ i ].ping );
-			ImGui::NextColumn();
+			selected_server = i;
 		}
+		ImGui::NextColumn();
+
+		ImGui::Text( "%s", servers[ i ].map );
+		ImGui::NextColumn();
+		ImGui::Text( "%d/%d", servers[ i ].num_players, servers[ i ].max_players );
+		ImGui::NextColumn();
+		ImGui::Text( "%d", servers[ i ].ping );
+		ImGui::NextColumn();
 	}
 
 	ImGui::Columns( 1 );
@@ -946,10 +953,10 @@ static void MainMenu() {
 			ImGui::Text( "MikeJS - programming" );
 			ImGui::Text( "MSC - programming & art" );
 			ImGui::Text( "Obani - music & fx & programming" );
+			ImGui::Text( "Rhodanathema - art" );
 			ImGui::Separator();
 			ImGui::Text( "jwzr - medical research" );
 			ImGui::Text( "naxeron - chief propagandist" );
-			ImGui::Text( "Rhodanathema - chief technical ceo of gameplay and forward-thinking design developments" );
 			ImGui::Text( "zmiles - american cultural advisor" );
 			ImGui::Separator();
 			ImGui::Text( "Special thanks to the Warsow team except for slk and MWAGA" );
@@ -991,39 +998,57 @@ static Vec4 RGBA8ToVec4NosRGB( RGBA8 rgba ) {
 }
 
 static bool LoadoutButton( const char * label, Vec2 icon_size, const Material * icon, bool selected ) {
-	ImGui::TableNextColumn();
+	Vec2 start_pos = ImGui::GetCursorPos();
+	ImGui::GetCursorPos();
 
-	ImGui::PushStyleColor( ImGuiCol_Button, vec4_black );
-	ImGui::PushStyleColor( ImGuiCol_ButtonHovered, Vec4( 0.1f, 0.1f, 0.1f, 1.0f ) );
-	ImGui::PushStyleColor( ImGuiCol_ButtonActive, Vec4( 0.2f, 0.2f, 0.2f, 1.0f ) );
-	defer { ImGui::PopStyleColor( 3 ); };
-
-	ImGui::PushStyleVar( ImGuiStyleVar_FrameBorderSize, 1 );
-	ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0 );
-	defer { ImGui::PopStyleVar( 2 ); };
+	bool clicked = ImGui::InvisibleButton( label, ImVec2( -1, icon_size.y ) );
 
 	Vec2 half_pixel = HalfPixelSize( icon );
-	Vec4 color = RGBA8ToVec4NosRGB( selected ? rgba8_diesel_yellow : rgba8_white ); // TODO...
+	Vec4 color = RGBA8ToVec4NosRGB( selected ? rgba8_diesel_yellow : ImGui::IsItemHovered() ? rgba8_diesel_green : rgba8_white ); // TODO...
+
+
+	ImGui::SetCursorPos( start_pos );
+	ImGui::Image( icon, icon_size, half_pixel, 1.0f - half_pixel, color, Vec4( 0.0f ) );
+	ImGui::SameLine();
+	ImGui::Dummy( ImVec2( icon_size.x * 0.2f, 0 ) );
+	ImGui::SameLine();
 
 	ImGui::PushStyleColor( ImGuiCol_Text, color );
-	ImGui::PushStyleColor( ImGuiCol_Border, color );
-	defer { ImGui::PopStyleColor( 2 ); };
-
-	ImGui::PushID( label );
-	CellCenter( icon_size.x );
-	bool clicked = ImGui::ImageButton( icon, icon_size, half_pixel, 1.0f - half_pixel, 5, Vec4( 0.0f ), color );
-	ImGui::PopID();
-
-	CellCenterText( label );
+	CenterTextY( label, icon_size.y );
+	ImGui::PopStyleColor();
 
 	return clicked;
 }
 
+static void InitCategory( const char * category_name, float padding ) {
+	ImGui::TableNextColumn();
+
+	ImGui::PushStyleColor( ImGuiCol_Text, RGBA8ToVec4NosRGB( rgba8_diesel_yellow ) );
+	ImGui::PushFont( cls.big_italic_font );
+	ImGui::Text( "%s", category_name );
+	ImGui::PopFont();
+	ImGui::PopStyleColor();
+	ImGui::Dummy( ImVec2( 0, padding ) );
+}
+
+static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
+	InitCategory( label, icon_size.y * 0.8 );
+
+	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
+		const WeaponDef * def = GS_GetWeaponDef( i );
+		if( def->category == category ) {
+			const Material * icon = FindMaterial( cgs.media.shaderWeaponIcon[ i ] );
+			if( LoadoutButton( def->name, icon_size, icon, loadout.weapons[ def->category ] == i ) ) {
+				loadout.weapons[ def->category ] = i;
+				SendLoadout();
+			}
+		}
+	}
+
+}
+
 static void Perks( Vec2 icon_size ) {
-	ImGui::TableNextRow();
-	ImGui::TableSetColumnIndex( 0 );
-	ImGui::Text( "CLASS" );
-	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+	InitCategory( "CLASS", icon_size.y * 0.8 );
 
 	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
 		if( !GetPerkDef( i )->enabled )
@@ -1037,40 +1062,9 @@ static void Perks( Vec2 icon_size ) {
 	}
 }
 
-static int CountWeaponCategory( WeaponCategory category ) {
-	int n = 0;
-	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
-		const WeaponDef * def = GS_GetWeaponDef( i );
-		if( def->category == category ) {
-			n++;
-		}
-	}
-	return n;
-}
-
-static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
-	ImGui::TableNextRow();
-	ImGui::TableSetColumnIndex( 0 );
-	ImGui::Text( "%s", label );
-	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
-
-	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
-		const WeaponDef * def = GS_GetWeaponDef( i );
-		if( def->category == category ) {
-			const Material * icon = FindMaterial( cgs.media.shaderWeaponIcon[ i ] );
-			if( LoadoutButton( def->name, icon_size, icon, loadout.weapons[ def->category ] == i ) ) {
-				loadout.weapons[ def->category ] = i;
-				SendLoadout();
-			}
-		}
-	}
-}
 
 static void Gadgets( Vec2 icon_size ) {
-	ImGui::TableNextRow();
-	ImGui::TableSetColumnIndex( 0 );
-	ImGui::Text( "GADGET" );
-	ImGui::Dummy( ImVec2( 0, icon_size.y * 1.5f ) );
+	InitCategory( "GADGET", icon_size.y * 0.8 );
 
 	for( GadgetType i = GadgetType( Gadget_None + 1 ); i < Gadget_Count; i++ ) {
 		const GadgetDef * def = GetGadgetDef( i );
@@ -1080,34 +1074,53 @@ static void Gadgets( Vec2 icon_size ) {
 			SendLoadout();
 		}
 	}
+
 }
 
-static bool LoadoutMenu( Vec2 displaySize ) {
+static bool LoadoutMenu() {
+	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+
 	ImGui::PushFont( cls.medium_italic_font );
 	ImGui::PushStyleColor( ImGuiCol_WindowBg, IM_COL32( 0x1a, 0x1a, 0x1a, 255 ) );
+	ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
+	ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0.0f, 0.0f ) );
+
 	ImGui::SetNextWindowPos( Vec2( 0, 0 ) );
 	ImGui::SetNextWindowSize( displaySize );
 	ImGui::Begin( "Loadout", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
-	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, Vec2( 0, displaySize.y * 0.02 ) );
-	Vec2 icon_size = Vec2( displaySize.x * 0.04f );
+	{
+		size_t title_height = displaySize.y * 0.15f;
+		ImGui::PushStyleColor( ImGuiCol_ChildBg, Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+		ImGui::BeginChild( "loadout title", ImVec2( -1, title_height ) );
 
-	int cols = 0;
-	cols = Max2( CountWeaponCategory( WeaponCategory_Primary ), cols );
-	cols = Max2( CountWeaponCategory( WeaponCategory_Secondary ), cols );
-	cols = Max2( CountWeaponCategory( WeaponCategory_Backup ), cols );
-	cols = Max2( CountWeaponCategory( WeaponCategory_Melee ), cols );
-	cols = Max2( int( Gadget_Count ) - 1, cols );
-	cols = Max2( int( Perk_Count ) - 1, cols );
+		ImGui::Dummy( ImVec2( displaySize.x * 0.02f, 0.0f ) );
+		ImGui::SameLine();
 
-	ImGui::BeginTable( "loadoutmenu", cols + 1 );
+		ImGui::PushFont( cls.large_italic_font );
+		CenterTextY( "LOADOUT", title_height );
+		ImGui::PopFont();
+
+		ImGui::EndChild();
+		ImGui::PopStyleColor();
+	}
+
+	ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, Vec2( 0.0f ) );
+	Vec2 icon_size = Vec2( displaySize.y * 0.075f );
+
+	ImGui::Dummy( ImVec2( 0.0f, displaySize.x * 0.01f ) );
+	ImGui::Dummy( ImVec2( displaySize.x * 0.02f, 0.0f ) );
+	ImGui::SameLine();
+
+	ImGui::BeginTable( "loadoutmenu", 6 );
+	ImGui::NextColumn();
 
 	Perks( icon_size );
 	LoadoutCategory( "PRIMARY", WeaponCategory_Primary, icon_size );
 	LoadoutCategory( "SECONDARY", WeaponCategory_Secondary, icon_size );
 	LoadoutCategory( "BACKUP", WeaponCategory_Backup, icon_size );
-	LoadoutCategory( "MELEE", WeaponCategory_Melee, icon_size );
 	Gadgets( icon_size );
+	LoadoutCategory( "MELEE", WeaponCategory_Melee, icon_size );
 
 	ImGui::EndTable();
 
@@ -1119,7 +1132,7 @@ static bool LoadoutMenu( Vec2 displaySize ) {
 		should_close = true;
 	}
 
-	ImGui::PopStyleVar();
+	ImGui::PopStyleVar( 3 );
 	ImGui::PopStyleColor();
 	ImGui::PopFont();
 
@@ -1141,6 +1154,17 @@ static void GameMenu() {
 	bool should_close = false;
 
 	ImVec2 displaySize = ImGui::GetIO().DisplaySize;
+
+	/*
+	 * bad hack to fix being able to click outside of the ingame menus and
+	 * breaking the escape to close hotkey
+	 *
+	 * unconditionally setting focus breaks stuff like dropdown menus so do
+	 * this instead
+	 */
+	if( !ImGui::IsWindowFocused( ImGuiFocusedFlags_AnyWindow ) ) {
+		ImGui::SetNextWindowFocus();
+	}
 
 	if( gamemenu_state == GameMenuState_Menu ) {
 		ImGui::SetNextWindowPos( displaySize * 0.5f, 0, Vec2( 0.5f ) );
@@ -1189,7 +1213,7 @@ static void GameMenu() {
 		ImGui::Columns( 1 );
 	}
 	else if( gamemenu_state == GameMenuState_Loadout ) {
-		if( LoadoutMenu( displaySize ) ) {
+		if( LoadoutMenu() ) {
 			should_close = true;
 		}
 	}
@@ -1327,14 +1351,12 @@ void UI_Refresh() {
 			DrawParticleMenuEffect();
 		}
 
-		const char * connecting = "Connecting...";
 		ImGui::SetNextWindowPos( ImVec2() );
 		ImGui::SetNextWindowSize( ImVec2( frame_static.viewport_width, frame_static.viewport_height ) );
-		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
+		ImGui::Begin( "mainmenu", WindowZOrder_Menu, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoDecoration );
 
 		ImGui::PushFont( cls.large_font );
-		ImGui::SetCursorPos( ( ImGui::GetWindowSize() - ImGui::CalcTextSize( connecting ) )/2 );
-		ImGui::Text( "%s", connecting );
+		WindowCenterTextXY( "Connecting..." );
 		ImGui::PopFont();
 
 		ImGui::End();

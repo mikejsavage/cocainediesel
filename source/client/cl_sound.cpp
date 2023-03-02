@@ -271,8 +271,8 @@ static void AddSound( const char * path, int num_samples, int channels, int samp
 
 	u64 idx = num_sounds;
 	if( !sounds_hashtable.get( hash, &idx ) ) {
-		assert( num_sounds < ARRAY_COUNT( sounds ) );
-		assert( num_sound_effects < ARRAY_COUNT( sound_effects ) );
+		Assert( num_sounds < ARRAY_COUNT( sounds ) );
+		Assert( num_sound_effects < ARRAY_COUNT( sound_effects ) );
 
 		sounds_hashtable.add( hash, num_sounds );
 		num_sounds++;
@@ -367,11 +367,15 @@ static void HotloadSounds() {
 	}
 }
 
-static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 base_hash ) {
+static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, Span< const char > base_path ) {
+	TracyZoneScoped;
+
 	if( sfx->num_sounds == ARRAY_COUNT( sfx->sounds ) ) {
 		Com_Printf( S_COLOR_YELLOW "SFX with too many sections\n" );
 		return false;
 	}
+
+	TempAllocator temp = cls.frame_arena.temp();
 
 	while( true ) {
 		Span< const char > opening_brace = ParseToken( data, Parse_DontStopOnNewLine );
@@ -408,14 +412,33 @@ static bool ParseSoundEffect( SoundEffect * sfx, Span< const char > * data, u64 
 					Com_Printf( S_COLOR_YELLOW "SFX with too many random sounds\n" );
 					return false;
 				}
-				if( value[ 0 ] == '.' ) {
-					value++;
-					config->sounds[ config->num_random_sounds ] = StringHash( Hash64( value.ptr, value.n, base_hash ) );
+				if( StartsWith( value, "." ) ) {
+					config->sounds[ config->num_random_sounds ] = StringHash( temp( "{}{}", base_path, value + 1 ) );
 				}
 				else {
-					config->sounds[ config->num_random_sounds ] = StringHash( Hash64( value.ptr, value.n ) );
+					config->sounds[ config->num_random_sounds ] = StringHash( value );
 				}
 				config->num_random_sounds++;
+			}
+			else if( key == "find_sounds" ) {
+				TracyZoneScopedN( "find_sounds" );
+
+				Span< const char > prefix = value;
+				if( StartsWith( value, "." ) ) {
+					prefix = MakeSpan( temp( "{}{}", base_path, value + 1 ) );
+				}
+
+				for( const char * path : AssetPaths() ) {
+					if( FileExtension( path ) == ".ogg" && StartsWith( MakeSpan( path ), prefix ) ) {
+						if( config->num_random_sounds == ARRAY_COUNT( config->sounds ) ) {
+							Com_Printf( S_COLOR_YELLOW "SFX with too many random sounds\n" );
+							return false;
+						}
+
+						config->sounds[ config->num_random_sounds ] = StringHash( StripExtension( path ) );
+						config->num_random_sounds++;
+					}
+				}
 			}
 			else if( key == "delay" ) {
 				float delay;
@@ -486,11 +509,10 @@ static void LoadSoundEffect( const char * path ) {
 	TracyZoneText( path, strlen( path ) );
 
 	Span< const char > data = AssetString( path );
-	u64 base_hash = Hash64( BasePath( path ) );
 
 	SoundEffect sfx = { };
 
-	if( !ParseSoundEffect( &sfx, &data, base_hash ) ) {
+	if( !ParseSoundEffect( &sfx, &data, BasePath( path ) ) ) {
 		Com_Printf( S_COLOR_YELLOW "Couldn't load %s\n", path );
 		return;
 	}
@@ -608,11 +630,11 @@ static bool StartSound( PlayingSFX * ps, u8 i ) {
 	SoundEffect::PlaybackConfig config = ps->sfx->sounds[ i ];
 
 	int idx;
-	if( !ps->config.has_entropy ) {
+	if( !ps->config.entropy.exists ) {
 		idx = RandomUniform( &cls.rng, 0, config.num_random_sounds );
 	}
 	else {
-		RNG rng = NewRNG( ps->config.entropy, 0 );
+		RNG rng = NewRNG( ps->config.entropy.value, 0 );
 		idx = RandomUniform( &rng, 0, config.num_random_sounds );
 	}
 
@@ -694,12 +716,12 @@ static void StopSFX( PlayingSFX * ps ) {
 
 	{
 		bool ok = playing_sounds_hashtable.update( ps->handle.handle, ps - playing_sound_effects );
-		assert( ok );
+		Assert( ok );
 	}
 
 	{
 		bool ok = playing_sounds_hashtable.remove( playing_sound_effects[ num_playing_sound_effects ].handle.handle );
-		assert( ok );
+		Assert( ok );
 	}
 }
 
@@ -867,7 +889,7 @@ PlayingSFX * PlaySFXInternal( StringHash name, const PlaySFXConfig & config ) {
 	ps->start_time = cls.monotonicTime;
 
 	bool ok = playing_sounds_hashtable.add( ps->handle.handle, num_playing_sound_effects );
-	assert( ok );
+	Assert( ok );
 	num_playing_sound_effects++;
 
 	return ps;

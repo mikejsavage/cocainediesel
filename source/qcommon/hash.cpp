@@ -20,8 +20,8 @@ u64 Hash64( const char * str ) {
 }
 
 u64 Hash64( u64 x ) {
-	x = ( x ^ ( x >> 30 ) ) * U64( 0xbf58476d1ce4e5b9 );
-	x = ( x ^ ( x >> 27 ) ) * U64( 0x94d049bb133111eb );
+	x = ( x ^ ( x >> 30 ) ) * 0xbf58476d1ce4e5b9_u64;
+	x = ( x ^ ( x >> 27 ) ) * 0x94d049bb133111eb_u64;
 	x = x ^ ( x >> 31 );
 	return x;
 }

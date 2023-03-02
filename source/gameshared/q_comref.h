@@ -49,21 +49,9 @@ enum pmtype_t {
 #define ANGLE2SHORT( x )    ( (int)( ( x ) * 65536 / 360 ) & 65535 )
 #define SHORT2ANGLE( x )    ( ( x ) * ( 360.0 / 65536 ) )
 
-#define MAX_GAMECOMMANDS    256     // command names for command completion
-
-//
-// config strings are a general means of communication from
-// the server to all connected clients.
-//
-
-#define CS_PLAYERINFOS      0
-#define MAX_CONFIGSTRINGS   ( CS_PLAYERINFOS + MAX_CLIENTS )
-
 //==============================================
 
 constexpr const char * MASTER_SERVERS[] = { "dpmaster.deathmask.net", "excalibur.nvg.ntnu.no" };
-#define SERVER_PINGING_TIMEOUT              50
-#define LAN_SERVER_PINGING_TIMEOUT          20
 
 // SyncEntityState is the information conveyed from the server
 // in an update message about entities that the client will

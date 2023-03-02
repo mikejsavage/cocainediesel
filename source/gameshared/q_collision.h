@@ -33,12 +33,12 @@ enum SolidBits : u8 {
 	Solid_Player = ( 1 << 6 ),
 };
 
-constexpr SolidBits Solid_Solid = SolidBits( Solid_PlayerClip | Solid_WeaponClip | Solid_Wallbangable );
-constexpr SolidBits Solid_Opaque = SolidBits( Solid_WeaponClip | Solid_Wallbangable );
-constexpr SolidBits Solid_Wallbang = SolidBits( Solid_WeaponClip | Solid_Player );
-constexpr SolidBits Solid_Shot = SolidBits( Solid_WeaponClip | Solid_Wallbangable | Solid_Player );
+constexpr SolidBits SolidMask_AnySolid = SolidBits( Solid_PlayerClip | Solid_WeaponClip | Solid_Wallbangable );
+constexpr SolidBits SolidMask_Opaque = SolidBits( Solid_WeaponClip | Solid_Wallbangable );
+constexpr SolidBits SolidMask_WallbangShot = SolidBits( Solid_WeaponClip | Solid_Player );
+constexpr SolidBits SolidMask_Shot = SolidBits( Solid_WeaponClip | Solid_Wallbangable | Solid_Player );
 
-constexpr SolidBits Solid_Everything = SolidBits( U8_MAX );
+constexpr SolidBits SolidMask_Everything = SolidBits( U8_MAX );
 
 struct trace_t {
 	float fraction;
@@ -48,19 +48,8 @@ struct trace_t {
 	SolidBits solidity;
 	int ent;
 
-	bool HitSomething() {
-		return this->ent > -1;
-	}
-
-	bool HitNothing() {
-		return this->ent == -1;
-	}
-
-	bool GotSomewhere() {
-		return this->fraction > 0.0f;
-	}
-
-	bool GotNowhere() {
-		return this->fraction == 0.0f;
-	}
+	bool HitSomething() const { return ent > -1; }
+	bool HitNothing() const { return ent == -1; }
+	bool GotSomewhere() const { return fraction > 0.0f; }
+	bool GotNowhere() const { return fraction == 0.0f; }
 };

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <assert.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <float.h>
@@ -35,14 +34,22 @@ constexpr u16 U16_MAX = UINT16_MAX;
 constexpr u32 U32_MAX = UINT32_MAX;
 constexpr u64 U64_MAX = UINT64_MAX;
 
-#define S8 INT8_C
-#define S16 INT16_C
-#define S32 INT32_C
-#define S64 INT64_C
-#define U8 UINT8_C
-#define U16 UINT16_C
-#define U32 UINT32_C
-#define U64 UINT64_C
+inline void integer_constant_too_big() { }
+
+// TODO: make these consteval
+constexpr u32 operator""_u32( unsigned long long value ) {
+	if( value > U32_MAX ) {
+		integer_constant_too_big();
+	}
+	return value;
+}
+
+constexpr u64 operator""_u64( unsigned long long value ) {
+	if( value > U64_MAX ) {
+		integer_constant_too_big();
+	}
+	return value;
+}
 
 /*
  * Allocator
@@ -81,6 +88,22 @@ void * ReallocManyHelper( Allocator * a, void * ptr, size_t current_n, size_t ne
  * helper functions that are useful in templates. so headers don't need to include base.h
  */
 
+#define STRINGIFY_HELPER( a ) #a
+#define IFDEF( x ) ( STRINGIFY_HELPER( x )[ 0 ] == '1' && STRINGIFY_HELPER( x )[ 1 ] == '\0' )
+
+constexpr bool is_public_build = IFDEF( PUBLIC_BUILD );
+
+void AssertFail( const char * str, const char * file, int line );
+#define Assert( p ) \
+	do { \
+		if constexpr ( is_public_build ) { \
+			( void ) sizeof( p ); \
+		} \
+		else { \
+			if( !( p ) ) AssertFail( #p, __FILE__, __LINE__ ); \
+		} \
+	} while( false )
+
 template< typename T, size_t N >
 constexpr size_t ARRAY_COUNT( const T ( &arr )[ N ] ) {
 	return N;
@@ -95,11 +118,27 @@ constexpr size_t ARRAY_COUNT( M ( T::* )[ N ] ) {
 #define NONCOPYABLE( T ) T( const T & ) = delete; void operator=( const T & ) = delete
 
 template< typename To, typename From >
-inline To checked_cast( const From & from ) {
+To checked_cast( const From & from ) {
 	To result = To( from );
-	assert( From( result ) == from );
+	Assert( From( result ) == from );
 	return result;
 }
+
+#if COMPILER_MSVC
+template< typename To, typename From >
+To * align_cast( From * from ) {
+	Assert( uintptr_t( from ) % alignof( To ) == 0 );
+	return reinterpret_cast< To * >( from );
+}
+#else
+template< typename To, typename From >
+To * align_cast( From * from ) {
+	Assert( uintptr_t( from ) % alignof( To ) == 0 );
+	// error if we cast away const, __builtin_assume_aligned returns void *
+	( void ) reinterpret_cast< To * >( from );
+	return ( To * ) __builtin_assume_aligned( from, alignof( To * ) );
+}
+#endif
 
 template< typename T >
 constexpr T AlignPow2( T x, T alignment ) {
@@ -129,13 +168,13 @@ constexpr T Max2( const T & a, const T & b ) {
 }
 
 template< typename T >
-T Clamp( const T & lo, const T & x, const T & hi ) {
-	assert( lo <= hi );
+constexpr T Clamp( const T & lo, const T & x, const T & hi ) {
+	Assert( lo <= hi );
 	return Max2( lo, Min2( x, hi ) );
 }
 
 template< typename T >
-T Clamp01( const T & x ) {
+constexpr T Clamp01( const T & x ) {
 	return Clamp( T( 0.0f ), x, T( 1.0f ) );
 }
 
@@ -157,12 +196,12 @@ struct Span {
 	size_t num_bytes() const { return sizeof( T ) * n; }
 
 	T & operator[]( size_t i ) const {
-		assert( i < n );
+		Assert( i < n );
 		return ptr[ i ];
 	}
 
 	Span< T > operator+( size_t i ) const {
-		assert( i <= n );
+		Assert( i <= n );
 		return Span< T >( ptr + i, n - i );
 	}
 
@@ -171,7 +210,7 @@ struct Span {
 	}
 
 	void operator++( int ) {
-		assert( n > 0 );
+		Assert( n > 0 );
 		ptr++;
 		n--;
 	}
@@ -180,16 +219,15 @@ struct Span {
 	T * end() const { return ptr + n; }
 
 	Span< T > slice( size_t start, size_t one_past_end ) const {
-		assert( start <= one_past_end );
-		assert( one_past_end <= n );
+		Assert( start <= one_past_end );
+		Assert( one_past_end <= n );
 		return Span< T >( ptr + start, one_past_end - start );
 	}
 
 	template< typename S >
 	Span< S > cast() const {
-		assert( num_bytes() % sizeof( S ) == 0 );
-		assert( uintptr_t( ptr ) % alignof( S ) == 0 );
-		return Span< S >( ( S * ) ptr, num_bytes() / sizeof( S ) );
+		Assert( num_bytes() % sizeof( S ) == 0 );
+		return Span< S >( align_cast< S >( ptr ), num_bytes() / sizeof( S ) );
 	}
 };
 
@@ -239,12 +277,12 @@ struct Vec2 {
 	const float * ptr() const { return &x; }
 
 	float & operator[]( size_t i ) {
-		assert( i < 2 );
+		Assert( i < 2 );
 		return ptr()[ i ];
 	}
 
 	float operator[]( size_t i ) const {
-		assert( i < 2 );
+		Assert( i < 2 );
 		return ptr()[ i ];
 	}
 };
@@ -263,12 +301,12 @@ struct Vec3 {
 	const float * ptr() const { return &x; }
 
 	float & operator[]( size_t i ) {
-		assert( i < 3 );
+		Assert( i < 3 );
 		return ptr()[ i ];
 	}
 
 	float operator[]( size_t i ) const {
-		assert( i < 3 );
+		Assert( i < 3 );
 		return ptr()[ i ];
 	}
 };
@@ -289,12 +327,12 @@ struct Vec4 {
 	const float * ptr() const { return &x; }
 
 	float & operator[]( size_t i ) {
-		assert( i < 4 );
+		Assert( i < 4 );
 		return ptr()[ i ];
 	}
 
 	float operator[]( size_t i ) const {
-		assert( i < 4 );
+		Assert( i < 4 );
 		return ptr()[ i ];
 	}
 };
@@ -310,9 +348,9 @@ struct Mat3 {
 		float e20, float e21, float e22
 	) : col0( e00, e10, e20 ), col1( e01, e11, e21 ), col2( e02, e12, e22 ) { }
 
-	Vec3 row0() const { return Vec3( col0.x, col1.x, col2.x ); }
-	Vec3 row1() const { return Vec3( col0.y, col1.y, col2.y ); }
-	Vec3 row2() const { return Vec3( col0.z, col1.z, col2.z ); }
+	constexpr Vec3 row0() const { return Vec3( col0.x, col1.x, col2.x ); }
+	constexpr Vec3 row1() const { return Vec3( col0.y, col1.y, col2.y ); }
+	constexpr Vec3 row2() const { return Vec3( col0.z, col1.z, col2.z ); }
 
 	float * ptr() { return col0.ptr(); }
 
@@ -337,10 +375,10 @@ struct alignas( 16 ) Mat4 {
 		float e30, float e31, float e32, float e33
 	) : col0( e00, e10, e20, e30 ), col1( e01, e11, e21, e31 ), col2( e02, e12, e22, e32 ), col3( e03, e13, e23, e33 ) { }
 
-	Vec4 row0() const { return Vec4( col0.x, col1.x, col2.x, col3.x ); }
-	Vec4 row1() const { return Vec4( col0.y, col1.y, col2.y, col3.y ); }
-	Vec4 row2() const { return Vec4( col0.z, col1.z, col2.z, col3.z ); }
-	Vec4 row3() const { return Vec4( col0.w, col1.w, col2.w, col3.w ); }
+	constexpr Vec4 row0() const { return Vec4( col0.x, col1.x, col2.x, col3.x ); }
+	constexpr Vec4 row1() const { return Vec4( col0.y, col1.y, col2.y, col3.y ); }
+	constexpr Vec4 row2() const { return Vec4( col0.z, col1.z, col2.z, col3.z ); }
+	constexpr Vec4 row3() const { return Vec4( col0.w, col1.w, col2.w, col3.w ); }
 
 	float * ptr() { return col0.ptr(); }
 
@@ -364,10 +402,10 @@ struct alignas( 16 ) Mat3x4 {
 		float e20, float e21, float e22, float e23
 	) : col0( e00, e10, e20 ), col1( e01, e11, e21 ), col2( e02, e12, e22 ), col3( e03, e13, e23 ) { }
 
-	Vec4 row0() const { return Vec4( col0.x, col1.x, col2.x, col3.x ); }
-	Vec4 row1() const { return Vec4( col0.y, col1.y, col2.y, col3.y ); }
-	Vec4 row2() const { return Vec4( col0.z, col1.z, col2.z, col3.z ); }
-	Vec4 row3() const { return Vec4( 0, 0, 0, 1 ); }
+	constexpr Vec4 row0() const { return Vec4( col0.x, col1.x, col2.x, col3.x ); }
+	constexpr Vec4 row1() const { return Vec4( col0.y, col1.y, col2.y, col3.y ); }
+	constexpr Vec4 row2() const { return Vec4( col0.z, col1.z, col2.z, col3.z ); }
+	constexpr Vec4 row3() const { return Vec4( 0, 0, 0, 1 ); }
 
 	float * ptr() { return col0.ptr(); }
 

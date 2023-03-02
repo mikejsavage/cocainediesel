@@ -23,9 +23,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/types.h"
 #include "gameshared/q_math.h"
 
-constexpr u32 TILE_SIZE = 32; // forward+ tile size
-constexpr float DLIGHT_CUTOFF = 0.5f;
-
 struct InterpolatedEntity {
 	mat3_t axis;
 	Vec3 origin, origin2;

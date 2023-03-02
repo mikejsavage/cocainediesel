@@ -86,7 +86,7 @@ u32 BitsPerPixel( TextureFormat format ) {
 			return 8;
 
 		default:
-			assert( false );
+			Assert( false );
 			return 0;
 	}
 }
@@ -381,7 +381,7 @@ static void UnloadTexture( u64 idx ) {
 static u64 AddTexture( const char * name, u64 hash, const TextureConfig & config ) {
 	TracyZoneScoped;
 
-	assert( num_textures < ARRAY_COUNT( textures ) );
+	Assert( num_textures < ARRAY_COUNT( textures ) );
 
 	u64 idx = num_textures;
 	if( !textures_hashtable.get( hash, &idx ) ) {
@@ -475,7 +475,7 @@ static void LoadDDSTexture( const char * path ) {
 		return;
 	}
 
-	const DDSHeader * header = ( const DDSHeader * ) dds.ptr;
+	const DDSHeader * header = align_cast< const DDSHeader >( dds.ptr );
 
 	TextureConfig config;
 	config.width = header->width;
@@ -576,18 +576,18 @@ struct DecalAtlasLayer {
 static BC4Block FastBC4( Span2D< const RGBA8 > rgba ) {
 	BC4Block result;
 
-	result.data[ 0 ] = 255;
-	result.data[ 1 ] = 0;
+	result.endpoints[ 0 ] = 255;
+	result.endpoints[ 1 ] = 0;
 
-	constexpr u8 selector_lut[] = { 1, 7, 6, 5, 4, 3, 2, 0 };
+	constexpr u8 index_lut[] = { 1, 7, 6, 5, 4, 3, 2, 0 };
 
-	u64 selectors = 0;
+	u64 indices = 0;
 	for( size_t i = 0; i < 16; i++ ) {
-		u64 selector = selector_lut[ rgba( i % 4, i / 4 ).a >> 5 ];
-		selectors |= selector << ( i * 3 );
+		u64 index = index_lut[ rgba( i % 4, i / 4 ).a >> 5 ];
+		indices |= index << ( i * 3 );
 	}
 
-	memcpy( &result.data[ 2 ], &selectors, 6 );
+	memcpy( result.indices, &indices, sizeof( result.indices ) );
 
 	return result;
 }
@@ -653,7 +653,7 @@ static void PackDecalAtlas() {
 			Com_GGPrint( S_COLOR_YELLOW "{} has a small number of mipmaps ({}) and will mess up the decal atlas", materials[ i ].name, texture->num_mipmaps );
 		}
 
-		assert( num_decals < ARRAY_COUNT( rects ) );
+		Assert( num_decals < ARRAY_COUNT( rects ) );
 
 		stbrp_rect * rect = &rects[ num_decals ];
 		num_decals++;
@@ -729,7 +729,7 @@ static void PackDecalAtlas() {
 		texture_bc4_data[ texture_idx ] = Span< const BC4Block >( bc4.ptr, bc4.w * bc4.h );
 	}
 
-	// copy texture data into atlases, convert RGBA to BC4 as needed
+	// copy texture data into atlases
 	u32 num_blocks = 0;
 	for( u32 i = 0; i < num_mipmaps; i++ ) {
 		num_blocks += Square( DECAL_ATLAS_BLOCK_SIZE >> i );
@@ -752,7 +752,7 @@ static void PackDecalAtlas() {
 			const Material * material = &materials[ rects[ i ].id ];
 			u64 decal_idx;
 			bool ok = decals_hashtable.get( material->hash, &decal_idx );
-			assert( ok );
+			Assert( ok );
 
 			u32 layer_idx = u32( decal_uvwhs[ decal_idx ].x );
 			Span2D< BC4Block > layer( layer_mipmap + mipmap_dim * mipmap_dim * layer_idx, mipmap_dim, mipmap_dim );
@@ -761,7 +761,7 @@ static void PackDecalAtlas() {
 
 			u32 mipped_x = rects[ i ].x >> mipmap_idx;
 			u32 mipped_y = rects[ i ].y >> mipmap_idx;
-			assert( mipped_x % 4 == 0 && mipped_y % 4 == 0 );
+			Assert( mipped_x % 4 == 0 && mipped_y % 4 == 0 );
 			CopySpan2D( layer.slice( mipped_x / 4, mipped_y / 4, bc4.w, bc4.h ), bc4 );
 		}
 	}
@@ -1047,7 +1047,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 	}
 
 	if( material->alphagen.type == ColorGenType_Constant ) {
-		color.w = material->rgbgen.args[ 0 ];
+		color.w = material->alphagen.args[ 0 ];
 	}
 	else if( material->alphagen.type == ColorGenType_Wave || material->alphagen.type == ColorGenType_EntityWave ) {
 		float wave = EvaluateWaveFunc( material->rgbgen.wave );
@@ -1106,7 +1106,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 
 		u64 idx = num_material_static_uniforms;
 		if( !material_static_uniforms_hashtable.get( hash, &idx ) ) {
-			assert( num_material_static_uniforms < ARRAY_COUNT( material_static_uniforms ) );
+			Assert( num_material_static_uniforms < ARRAY_COUNT( material_static_uniforms ) );
 			material_static_uniforms_hashtable.add( hash, num_material_static_uniforms );
 			material_static_uniforms[ idx ] = UploadMaterialStaticUniforms( Vec2( material->texture->width, material->texture->height ), material->specular, material->shininess );
 			num_material_static_uniforms++;

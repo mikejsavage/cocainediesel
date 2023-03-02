@@ -54,7 +54,6 @@ enum movetype_t {
 	MOVETYPE_NOCLIP,    // like MOVETYPE_PLAYER, but not clipped
 	MOVETYPE_PUSH,      // no clip to world, push on box contact
 	MOVETYPE_STOP,      // no clip to world, stops on box contact
-	MOVETYPE_FLY,
 	MOVETYPE_TOSS,      // gravity
 	MOVETYPE_LINEARPROJECTILE, // extra size to monsters
 	MOVETYPE_BOUNCE,
@@ -80,7 +79,7 @@ struct level_locals_t {
 	int64_t spawnedTimeStamp; // time when map was restarted
 	int64_t finalMatchDuration;
 
-	char callvote_map[MAX_CONFIGSTRING_CHARS];
+	char callvote_map[128];
 	char autorecord_name[128];
 
 	bool canSpawnEntities; // security check to prevent entities being spawned before map entities
@@ -112,6 +111,7 @@ struct spawn_temp_t {
 	int size;
 	float spawn_probability;
 	float power;
+	StringHash weapon;
 };
 
 struct score_stats_t {
@@ -133,7 +133,6 @@ extern Vec3 knockbackOfDeath;
 extern int damageFlagsOfDeath;
 
 extern Cvar *sv_password;
-extern Cvar *g_operator_password;
 
 extern Cvar *g_maxvelocity;
 
@@ -152,7 +151,6 @@ extern Cvar *g_projectile_prestep;
 extern Cvar *g_numbots;
 extern Cvar *g_maxtimeouts;
 
-extern Cvar *g_deadbody_followkiller;
 extern Cvar *g_antilag_timenudge;
 extern Cvar *g_antilag_maxtimedelta;
 
@@ -162,14 +160,6 @@ extern Cvar *g_teams_allow_uneven;
 extern Cvar *g_autorecord;
 extern Cvar *g_autorecord_maxdemos;
 extern Cvar *g_allow_spectator_voting;
-
-void G_Teams_Join_Cmd( edict_t * ent, msg_t args );
-bool G_Teams_JoinTeam( edict_t * ent, Team team );
-void G_Teams_UpdateMembersList();
-bool G_Teams_JoinAnyTeam( edict_t * ent, bool silent );
-void G_Teams_SetTeam( edict_t * ent, Team team );
-
-u8 PlayersAliveOnTeam( Team team );
 
 void G_Match_Ready( edict_t * ent );
 void G_Match_NotReady( edict_t * ent );
@@ -184,6 +174,32 @@ void DropSpawnToFloor( edict_t * ent );
 void SelectSpawnPoint( const edict_t * ent, const edict_t ** spawnpoint, Vec3 * origin, Vec3 * angles );
 void SP_post_match_camera( edict_t * ent, const spawn_temp_t * st );
 
+// g_teams
+
+void G_Teams_Join_Cmd( edict_t * ent, msg_t args );
+bool G_Teams_JoinTeam( edict_t * ent, Team team );
+void G_Teams_UpdateMembersList();
+bool G_Teams_JoinAnyTeam( edict_t * ent, bool silent );
+void G_Teams_SetTeam( edict_t * ent, Team team );
+
+u8 PlayersAliveOnTeam( Team team );
+
+void GhostEveryone();
+
+struct RespawnQueues {
+	struct Queue {
+		int players[ MAX_CLIENTS ];
+	};
+
+	Queue teams[ Team_Count ];
+};
+
+void InitRespawnQueues( RespawnQueues * queues );
+void RemovePlayerFromRespawnQueues( RespawnQueues * queues, int player );
+void RemoveDisconnectedPlayersFromRespawnQueues( RespawnQueues * queues );
+void EnqueueRespawn( RespawnQueues * queues, Team team, int player );
+void SpawnTeams( RespawnQueues * queues );
+
 //
 // g_func.c
 //
@@ -196,6 +212,11 @@ void SP_func_train( edict_t * ent, const spawn_temp_t * st );
 //
 void SP_spike( edict_t * ent, const spawn_temp_t * st );
 void SP_spikes( edict_t * ent, const spawn_temp_t * st );
+
+//
+// g_shooter
+//
+void SP_shooter( edict_t * ent, const spawn_temp_t * st );
 
 //
 // g_speakers
@@ -223,10 +244,6 @@ void G_AddCommand( ClientCommandType command, gamecommandfunc_t cmdfunc );
 // g_utils.c
 //
 
-struct EntityID {
-	u64 id;
-};
-
 EntityID NewEntity();
 void ResetEntityIDSequence();
 edict_t * GetEntity( EntityID id );
@@ -249,7 +266,7 @@ edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin );
 void G_MorphEntityIntoEvent( edict_t * ent, int event, u64 parm );
 
 void G_CallThink( edict_t * ent );
-void G_CallTouch( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask );
+void G_CallTouch( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask );
 void G_CallUse( edict_t *self, edict_t *other, edict_t *activator );
 void G_CallStop( edict_t *self );
 void G_CallPain( edict_t * ent, edict_t *attacker, float kick, float damage );
@@ -289,6 +306,8 @@ edict_t *G_PlayerForText( const char *text );
 
 void G_SetBoundsForSpanEntity( edict_t * ent, float size );
 
+void G_SunCycle( u64 time );
+
 //
 // g_callvotes.c
 //
@@ -300,7 +319,6 @@ bool G_Callvotes_HasVoted( edict_t * ent );
 void G_CallVote_Cmd( edict_t * ent, msg_t args );
 void G_CallVotes_VoteYes( edict_t * ent, msg_t args );
 void G_CallVotes_VoteNo( edict_t * ent, msg_t args );
-void G_OperatorVote_Cmd( edict_t * ent, msg_t args );
 
 //
 // g_trigger.c
@@ -332,7 +350,6 @@ void GClip_LinkEntity( edict_t * ent );
 void GClip_UnlinkEntity( edict_t * ent );
 void GClip_TouchTriggers( edict_t * ent );
 void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin );
-SyncEntityState *G_GetEntityStateForDeltaTime( int entNum, int deltaTime );
 int GClip_FindInRadius( Vec3 org, float rad, int *list, int maxcount );
 
 bool IsHeadshot( int entNum, Vec3 hit, int timeDelta );
@@ -345,8 +362,8 @@ void G_Killed( edict_t *targ, edict_t *inflictor, edict_t *attacker, int topAssi
 void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 point, float maxradius, Vec3 * pushdir, float *frac, bool selfdamage );
 void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, DamageType damage_type );
 void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage, bool headshot, Vec3 pos, Vec3 dir, bool showNumbers );
-void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t *attacker, Vec3 pos, Vec3 normal, int timeDelta );
-void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Vec3 normal, edict_t *ignore, DamageType damage_type );
+void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t *attacker, Vec3 pos, Optional< Vec3 > normal, int timeDelta );
+void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Optional< Vec3 > normal, edict_t *ignore, DamageType damage_type );
 
 // damage flags
 #define DAMAGE_RADIUS         ( 1 << 0 )  // damage was indirect
@@ -368,7 +385,7 @@ void SP_decal( edict_t * ent, const spawn_temp_t * st );
 //
 void G_FireWeapon( edict_t * ent, u64 parm );
 void G_AltFireWeapon( edict_t * ent, u64 parm );
-void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm );
+void G_UseGadget( edict_t * ent, GadgetType gadget, u64 parm, bool dead );
 
 //
 // g_chasecam	//newgametypes
@@ -382,13 +399,12 @@ void G_EndServerFrames_UpdateChaseCam();
 //
 // g_client.c
 //
-void ClientUserinfoChanged( edict_t * ent, char *userinfo );
+void ClientUserinfoChanged( edict_t * ent, const char * userinfo );
 void G_Client_UpdateActivity( gclient_t *client );
 void G_Client_InactivityRemove( gclient_t *client );
 void G_ClientRespawn( edict_t *self, bool ghost );
 score_stats_t * G_ClientGetStats( edict_t * ent );
 void G_ClientClearStats( edict_t * ent );
-void G_GhostClient( edict_t *self );
 void ClientThink( edict_t * ent, UserCommand *cmd, int timeDelta );
 void G_ClientThink( edict_t * ent );
 void G_CheckClientRespawnClick( edict_t * ent );
@@ -399,7 +415,7 @@ void ClientCommand( edict_t * ent, ClientCommandType command, msg_t args );
 void G_PredictedEvent( int entNum, int ev, u64 parm );
 void G_PredictedFireWeapon( int entNum, u64 parm );
 void G_PredictedAltFireWeapon( int entNum, u64 parm );
-void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm );
+void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead );
 void G_SelectWeapon( edict_t * ent, int index );
 void G_GiveWeapon( edict_t * ent, WeaponType weapon );
 void G_GivePerk( edict_t * ent, PerkType perk );
@@ -446,7 +462,6 @@ void G_RunEntity( edict_t * ent );
 void G_Init( unsigned int framemsec );
 void G_Shutdown();
 void G_ExitLevel();
-void G_GamestatSetFlag( int flag, bool b );
 void G_Timeout_Reset();
 
 //
@@ -465,7 +480,6 @@ void G_SnapFrame();
 void G_RespawnLevel();
 void G_ResetLevel();
 void G_InitLevel( const char *mapname, int64_t levelTime );
-void G_LoadMap( const char * name );
 
 //============================================================================
 
@@ -476,6 +490,8 @@ struct projectileinfo_t {
 	float minKnockback;
 	float maxKnockback;
 	DamageType damage_type;
+	StringHash explosion_vfx;
+	StringHash explosion_sfx;
 };
 
 struct chasecam_t {
@@ -512,7 +528,6 @@ struct moveinfo_t {
 
 	// state data
 	int state;
-	float current_speed;    // used by func_rotating
 
 	void ( *endfunc )( edict_t * );
 	void ( *blocked )( edict_t *self, edict_t *other );
@@ -587,17 +602,12 @@ struct gclient_t {
 	client_levelreset_t level;
 	client_teamreset_t teamstate;
 
-	//short ucmd_angles[3]; // last ucmd angles
-
-	// persistent info along all the time the client is connected
-
-	char userinfo[MAX_INFO_STRING];
-	char netname[MAX_NAME_CHARS + 1];
+	char userinfo[ MAX_INFO_STRING ];
+	char name[ MAX_NAME_CHARS + 1 ];
 
 	bool connecting;
 
 	Team team;
-	bool isoperator;
 
 	UserCommand ucmd;
 	int timeDelta;              // time offset to adjust for shots collision (antilag)
@@ -622,8 +632,6 @@ struct edict_t {
 	// EXPECTS THE FIELDS IN THAT ORDER!
 
 	//================================
-
-	EntityID id;
 
 	int linkcount;
 
@@ -667,7 +675,6 @@ struct edict_t {
 
 	float angle;                // set in qe3, -1 = up, -2 = down
 	float speed;
-	float accel, decel;         // usef for func_rotating
 
 	int64_t timeStamp;
 	int64_t deathTimeStamp;
@@ -680,6 +687,7 @@ struct edict_t {
 	const char *message;
 
 	int mass;
+	float gravity_scale;
 
 	edict_t *movetarget;
 

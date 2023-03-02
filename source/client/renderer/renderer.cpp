@@ -100,7 +100,7 @@ static ShadowParameters GetShadowParameters( ShadowQuality mode ) {
 		case ShadowQuality_Ultra:  return { 4, { 256.0f, 768.0f, 2304.0f, 6912.0f }, 4096, 4 };
 	}
 
-	assert( false );
+	Assert( false );
 	return { };
 }
 
@@ -121,7 +121,7 @@ void InitRenderer() {
 	{
 		int w, h;
 		u8 * img = stbi_load_from_memory( blue_noise_png, blue_noise_png_len, &w, &h, NULL, 1 );
-		assert( img != NULL );
+		Assert( img != NULL );
 
 		TextureConfig config;
 		config.width = w;
@@ -653,10 +653,12 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 	frame_static.vertical_fov = vertical_fov;
 	frame_static.near_plane = near_plane;
 
-	frame_static.light_direction = Normalize( Vec3( 1.0f, 2.0f, -3.0f ) );
-	// frame_static.light_direction.x = cosf( float( cls.monotonicTime ) * 0.0001f ) * 2.0f;
-	// frame_static.light_direction.y = sinf( float( cls.monotonicTime ) * 0.0001f ) * 2.0f;
-	// frame_static.light_direction = Normalize( frame_static.light_direction );
+	float t = 1.0f;
+	if( client_gs.gameState.sun_moved_from != client_gs.gameState.sun_moved_to ) {
+		t = Unlerp01( client_gs.gameState.sun_moved_from, cls.gametime, client_gs.gameState.sun_moved_to );
+	}
+	Vec3 sun_angles = LerpAngles( client_gs.gameState.sun_angles_from, t, client_gs.gameState.sun_angles_to );
+	AngleVectors( sun_angles, &frame_static.light_direction, NULL, NULL );
 
 	SetupShadowCascades();
 

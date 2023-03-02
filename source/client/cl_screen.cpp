@@ -110,12 +110,12 @@ static void SCR_DrawDebugGraph() {
 }
 
 void SCR_InitScreen() {
-	scr_netgraph = NewCvar( "netgraph", "0", 0 );
-	scr_timegraph = NewCvar( "timegraph", "0", 0 );
-	scr_debuggraph = NewCvar( "debuggraph", "0", 0 );
-	scr_graphheight = NewCvar( "graphheight", "32", 0 );
-	scr_graphscale = NewCvar( "graphscale", "1", 0 );
-	scr_graphshift = NewCvar( "graphshift", "0", 0 );
+	scr_netgraph = NewCvar( "netgraph", "0" );
+	scr_timegraph = NewCvar( "timegraph", "0" );
+	scr_debuggraph = NewCvar( "debuggraph", "0" );
+	scr_graphheight = NewCvar( "graphheight", "32" );
+	scr_graphscale = NewCvar( "graphscale", "1" );
+	scr_graphshift = NewCvar( "graphshift", "0" );
 }
 
 static void SCR_RenderView() {
@@ -160,9 +160,9 @@ static void SubmitPostprocessPass() {
 	float damage_effect = cg.view.type == VIEWDEF_PLAYERVIEW ? cg.damage_effect : 0.0f;
 
 	float contrast = 1.0f;
-	if( client_gs.gameState.bomb.exploding ) {
+	if( client_gs.gameState.exploding ) {
 		constexpr float duration = 4000.0f;
-		float t = ( cl.serverTime - client_gs.gameState.bomb.exploded_at ) / duration;
+		float t = ( cl.serverTime - client_gs.gameState.exploded_at ) / duration;
 
 		FlashStage( 0.00f, t, 0.05f, 1.0f, -1.0f, &contrast );
 		FlashStage( 0.05f, t, 0.10f, -1.0f, 1.0f, &contrast );

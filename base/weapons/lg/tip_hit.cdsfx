@@ -1,5 +1,3 @@
 {
-	sound ./tip_hit1
-	sound ./tip_hit2
-	sound ./tip_hit3
+	find_sounds ./tip_hit
 }

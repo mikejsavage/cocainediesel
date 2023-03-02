@@ -34,7 +34,7 @@ static bool CG_UpdateLinearProjectilePosition( centity_t *cent ) {
 	}
 
 	int64_t serverTime;
-	if( GS_MatchPaused( &client_gs ) ) {
+	if( client_gs.gameState.paused ) {
 		serverTime = cg.frame.serverTime;
 	} else {
 		serverTime = cl.serverTime + cgs.extrapolationTime;
@@ -97,7 +97,6 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 		cent->current = *state;
 		cent->serverFrame = cg.frame.serverFrame;
 
-		cent->velocity = Vec3( 0.0f );
 		cent->canExtrapolate = false;
 
 		cent->linearProjectileCanDraw = CG_UpdateLinearProjectilePosition( cent );
@@ -145,7 +144,6 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 
 		cent->canExtrapolatePrev = cent->canExtrapolate;
 		cent->canExtrapolate = false;
-		cent->velocity = Vec3( 0.0f );
 		cent->serverFrame = cg.frame.serverFrame;
 
 		// set up velocities for this entity
@@ -162,11 +160,13 @@ static void CG_NewPacketEntityState( SyncEntityState *state ) {
 			}
 
 			cent->velocity = ( cent->current.origin - cent->prev.origin ) * 1000.0f / snapTime;
+		} else {
+			cent->velocity = Vec3( 0.0f );
 		}
 
 		if( ( cent->current.type == ET_GENERIC || cent->current.type == ET_PLAYER
 			  || cent->current.type == ET_GRENADE
-			  || cent->current.type == ET_CORPSE ) ) {
+			  || cent->current.type == ET_CORPSE || cent->current.type == ET_STUNGRENADE ) ) {
 			cent->canExtrapolate = true;
 		}
 	}
@@ -263,7 +263,7 @@ static void CG_UpdatePlayerState() {
 bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	TracyZoneScoped;
 
-	assert( frame );
+	Assert( frame );
 
 	if( lerpframe ) {
 		cg.oldFrame = *lerpframe;
@@ -321,6 +321,8 @@ void CG_ExtrapolateLinearProjectile( centity_t *cent ) {
 	cent->interpolated.origin2 = cent->current.origin;
 	cent->interpolated.scale = cent->current.scale;
 
+	cent->interpolated.color = RGBA8( CG_TeamColor( cent->prev.team ) );
+
 	AnglesToAxis( cent->current.angles, cent->interpolated.axis );
 }
 
@@ -343,54 +345,48 @@ void CG_LerpGenericEnt( centity_t *cent ) {
 	if( ISVIEWERENTITY( cent->current.number ) || cg.view.POVent == cent->current.number ) {
 		cent->interpolated.origin = cg.predictedPlayerState.pmove.origin;
 		cent->interpolated.origin2 = cent->interpolated.origin;
-	} else {
-		if( cgs.extrapolationTime && cent->canExtrapolate ) { // extrapolation
-			Vec3 origin, xorigin1, xorigin2;
+	} else if( cgs.extrapolationTime && cent->canExtrapolate ) { // extrapolation
+		Vec3 origin, xorigin1, xorigin2;
 
-			float lerpfrac = Clamp01( cg.lerpfrac );
+		float lerpfrac = Clamp01( cg.lerpfrac );
 
-			// extrapolation with half-snapshot smoothing
-			if( cg.xerpTime >= 0 || !cent->canExtrapolatePrev ) {
-				xorigin1 = cent->current.origin + cent->velocity * cg.xerpTime;
-			} else {
-				xorigin1 = cent->current.origin + cent->velocity * cg.xerpTime;
-				if( cent->canExtrapolatePrev ) {
-					Vec3 oldPosition = cent->prev.origin + cent->prevVelocity * cg.oldXerpTime;
-					xorigin1 = Lerp( oldPosition, cg.xerpSmoothFrac, xorigin1 );
-				}
-			}
-
-
-			// extrapolation with full-snapshot smoothing
-			xorigin2 = cent->current.origin + cent->velocity * cg.xerpTime;
-			if( cent->canExtrapolatePrev ) {
-				Vec3 oldPosition = cent->prev.origin + cent->prevVelocity * cg.oldXerpTime;
-				xorigin2 = Lerp( oldPosition, lerpfrac, xorigin2 );
-			}
-
-			origin = Lerp( xorigin1, 0.5f, xorigin2 );
-
-			if( cent->microSmooth == 2 ) {
-				Vec3 oldsmoothorigin = Lerp( cent->microSmoothOrigin2, 0.65f, cent->microSmoothOrigin );
-				cent->interpolated.origin = Lerp( origin, 0.5f, oldsmoothorigin );
-			} else if( cent->microSmooth == 1 ) {
-				cent->interpolated.origin = Lerp( origin, 0.5f, cent->microSmoothOrigin );
-			} else {
-				cent->interpolated.origin = origin;
-			}
-
-			if( cent->microSmooth ) {
-				cent->microSmoothOrigin2 = Vec3( cent->microSmoothOrigin );
-			}
-
-			cent->microSmoothOrigin = origin;
-			cent->microSmooth = Min2( 2, cent->microSmooth + 1 );
-
-			cent->interpolated.origin2 = cent->interpolated.origin;
-		} else {   // plain interpolation
-			cent->interpolated.origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
-			cent->interpolated.origin2 = cent->interpolated.origin;
+		// extrapolation with half-snapshot smoothing
+		xorigin1 = cent->current.origin + cent->velocity * cg.xerpTime;
+		if( cg.xerpTime < 0 && cent->canExtrapolatePrev ) {
+			Vec3 oldPosition = cent->prev.origin + cent->prevVelocity * cg.oldXerpTime;
+			xorigin1 = Lerp( oldPosition, cg.xerpSmoothFrac, xorigin1 );
 		}
+
+
+		// extrapolation with full-snapshot smoothing
+		xorigin2 = cent->current.origin + cent->velocity * cg.xerpTime;
+		if( cent->canExtrapolatePrev ) {
+			Vec3 oldPosition = cent->prev.origin + cent->prevVelocity * cg.oldXerpTime;
+			xorigin2 = Lerp( oldPosition, lerpfrac, xorigin2 );
+		}
+
+		origin = Lerp( xorigin1, 0.5f, xorigin2 );
+
+		if( cent->microSmooth == 2 ) {
+			Vec3 oldsmoothorigin = Lerp( cent->microSmoothOrigin2, 0.65f, cent->microSmoothOrigin );
+			cent->interpolated.origin = Lerp( origin, 0.5f, oldsmoothorigin );
+		} else if( cent->microSmooth == 1 ) {
+			cent->interpolated.origin = Lerp( origin, 0.5f, cent->microSmoothOrigin );
+		} else {
+			cent->interpolated.origin = origin;
+		}
+
+		if( cent->microSmooth ) {
+			cent->microSmoothOrigin2 = Vec3( cent->microSmoothOrigin );
+		}
+
+		cent->microSmoothOrigin = origin;
+		cent->microSmooth = Min2( 2, cent->microSmooth + 1 );
+
+		cent->interpolated.origin2 = cent->interpolated.origin;
+	} else {   // plain interpolation
+		cent->interpolated.origin = Lerp( cent->prev.origin, cg.lerpfrac, cent->current.origin );
+		cent->interpolated.origin2 = cent->interpolated.origin;
 	}
 
 	cent->interpolated.scale = Lerp( cent->prev.scale, cg.lerpfrac, cent->current.scale );
@@ -599,6 +595,7 @@ static void DrawEntityTrail( const centity_t * cent, StringHash name ) {
 
 	Vec4 color = Vec4( CG_TeamColorVec4( cent->current.team ).xyz(), 0.5f );
 	DoVisualEffect( name, cent->interpolated.origin, cent->trailOrigin, 1.0f, color );
+	DrawTrail( Hash64( cent->current.id.id ), cent->interpolated.origin, 16.0f, color, "simpletrail", 500 );
 }
 
 void DrawEntities() {
@@ -623,30 +620,46 @@ void DrawEntities() {
 			case ET_ROCKET:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/rl/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ), 25600.0f );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 25600.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_GRENADE:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/gl/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ), 6400.0f );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
+				CG_EntityLoopSound( cent, state );
+				break;
+			case ET_STUNGRENADE:
+				DrawEntityModel( cent );
+				DrawEntityTrail( cent, "gadgets/flash/trail" );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_ARBULLET:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/ar/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ), 6400.0f );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_BUBBLE:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/bg/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ), 6400.0f );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 6400.0f );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_RIFLEBULLET:
 				DrawEntityModel( cent );
 				DrawEntityTrail( cent, "weapons/rifle/bullet_trail" );
+				CG_EntityLoopSound( cent, state );
+				break;
+			case ET_PISTOLBULLET:
+				//change angle after bounce
+				if( cent->velocity != Vec3( 0.0f ) ) {
+					AnglesToAxis( VecToAngles( cent->velocity ), cent->interpolated.axis );
+				}
+
+				DrawEntityModel( cent );
+				DrawEntityTrail( cent, "weapons/pistol/bullet_trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_STAKE:
@@ -656,7 +669,12 @@ void DrawEntities() {
 				break;
 			case ET_BLAST:
 				DrawEntityTrail( cent, "weapons/mb/trail" );
-				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ), 3200.0f );
+				DrawDynamicLight( cent->interpolated.origin, CG_TeamColorVec4( cent->current.team ).xyz(), 3200.0f );
+				CG_EntityLoopSound( cent, state );
+				break;
+			case ET_SAWBLADE:
+				DrawEntityModel( cent );
+				DrawEntityTrail( cent, EMPTY_HASH );
 				CG_EntityLoopSound( cent, state );
 				break;
 			case ET_THROWING_AXE:
@@ -664,7 +682,11 @@ void DrawEntities() {
 				DrawEntityTrail( cent, "weapons/axe/trail" );
 				CG_EntityLoopSound( cent, state );
 				break;
-
+			case ET_SHURIKEN:
+				DrawEntityModel( cent );
+				DrawEntityTrail( cent, EMPTY_HASH );
+				CG_EntityLoopSound( cent, state );
+				break;
 			case ET_PLAYER:
 				CG_AddPlayerEnt( cent );
 				CG_EntityLoopSound( cent, state );
@@ -699,11 +721,11 @@ void DrawEntities() {
 				break;
 
 			case ET_BOMB:
-				CG_AddBomb( cent );
+				CG_AddBombIndicator( cent );
 				break;
 
 			case ET_BOMB_SITE:
-				CG_AddBombSite( cent );
+				CG_AddBombSiteIndicator( cent );
 				break;
 
 			case ET_LASER: {
@@ -752,10 +774,14 @@ void CG_LerpEntities() {
 			case ET_ARBULLET:
 			case ET_BUBBLE:
 			case ET_GRENADE:
+			case ET_STUNGRENADE:
 			case ET_RIFLEBULLET:
+			case ET_PISTOLBULLET:
 			case ET_STAKE:
 			case ET_BLAST:
+			case ET_SAWBLADE:
 			case ET_THROWING_AXE:
+			case ET_SHURIKEN:
 			case ET_PLAYER:
 			case ET_CORPSE:
 			case ET_GHOST:
@@ -825,11 +851,15 @@ void CG_UpdateEntities() {
 			case ET_ARBULLET:
 			case ET_BUBBLE:
 			case ET_GRENADE:
+			case ET_STUNGRENADE:
 			case ET_RIFLEBULLET:
-			case ET_RAILGUN:
+			case ET_PISTOLBULLET:
 			case ET_STAKE:
 			case ET_BLAST:
+			case ET_SAWBLADE:
+			case ET_RAILALT:
 			case ET_THROWING_AXE:
+			case ET_SHURIKEN:
 				break;
 
 			case ET_PLAYER:

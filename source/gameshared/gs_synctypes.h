@@ -3,6 +3,7 @@
 #include "qcommon/types.h"
 #include "qcommon/hash.h"
 #include "gameshared/q_collision.h"
+#include "gameshared/q_shared.h"
 
 constexpr int MAX_CLIENTS = 16;
 constexpr int MAX_EDICTS = 1024; // must change protocol to increase more
@@ -36,13 +37,17 @@ enum EntityType : u8 {
 
 	ET_ROCKET,
 	ET_GRENADE,
+	ET_STUNGRENADE,
 	ET_ARBULLET,
 	ET_BUBBLE,
-	ET_RAILGUN,
+	ET_RAILALT,
 	ET_RIFLEBULLET,
+	ET_PISTOLBULLET,
 	ET_STAKE,
 	ET_BLAST,
+	ET_SAWBLADE,
 
+	ET_SHURIKEN,
 	ET_THROWING_AXE,
 
 	ET_LASERBEAM,
@@ -83,10 +88,12 @@ enum WeaponType : u8 {
 
 	Weapon_Knife,
 	Weapon_Bat,
+	Weapon_9mm,
 	Weapon_Pistol,
 	Weapon_MachineGun,
 	Weapon_Deagle,
 	Weapon_Shotgun,
+	Weapon_DoubleBarrel,
 	Weapon_BurstRifle,
 	Weapon_StakeGun,
 	Weapon_GrenadeLauncher,
@@ -101,6 +108,7 @@ enum WeaponType : u8 {
 	Weapon_MasterBlaster,
 	Weapon_RoadGun,
 	Weapon_StickyGun,
+	Weapon_Sawblade,
 	// Weapon_Minigun,
 
 	Weapon_Count
@@ -114,6 +122,8 @@ enum GadgetType : u8 {
 	Gadget_ThrowingAxe,
 	Gadget_SuicideBomb,
 	Gadget_StunGrenade,
+	Gadget_Rocket,
+	Gadget_Shuriken,
 
 	Gadget_Count
 };
@@ -235,9 +245,6 @@ enum BombProgress : u8 {
 	BombProgress_Count
 };
 
-#define GAMESTAT_FLAG_PAUSED ( 1 << 0 )
-#define GAMESTAT_FLAG_WAITING ( 1 << 1 )
-
 enum Team : u8 {
 	Team_None,
 
@@ -250,6 +257,7 @@ enum Team : u8 {
 };
 
 struct SyncScoreboardPlayer {
+	char name[ MAX_NAME_CHARS + 1 ];
 	int ping;
 	int score;
 	int kills;
@@ -271,16 +279,13 @@ struct SyncBombGameState {
 	u8 alpha_players_total;
 	u8 beta_players_alive;
 	u8 beta_players_total;
-
-	bool exploding;
-	s64 exploded_at;
 };
 
 struct SyncGameState {
 	Gametype gametype;
 
-	u16 flags;
 	MatchState match_state;
+	bool paused;
 	s64 match_state_start_time;
 	s64 match_duration;
 	s64 clock_override;
@@ -299,6 +304,13 @@ struct SyncGameState {
 	StringHash map;
 
 	SyncBombGameState bomb;
+	bool exploding;
+	s64 exploded_at;
+
+	Vec3 sun_angles_from;
+	Vec3 sun_angles_to;
+	s64 sun_moved_from;
+	s64 sun_moved_to;
 };
 
 struct SyncEvent {
@@ -327,8 +339,13 @@ struct CollisionModel {
 	};
 };
 
+struct EntityID {
+	u64 id;
+};
+
 struct SyncEntityState {
 	int number;
+	EntityID id;
 
 	unsigned int svflags;
 
@@ -375,6 +392,7 @@ struct SyncEntityState {
 	int linearMovementTimeDelta;
 
 	WeaponType weapon;
+	GadgetType gadget;
 	bool teleported;
 	Vec3 scale;
 
@@ -398,6 +416,8 @@ struct pmove_state_t {
 	s16 no_shooting_time;
 
 	s16 knockback_time;
+	s16 jumppad_time;
+
 	float stamina;
 	float stamina_stored;
 	float jump_buffering;
@@ -487,7 +507,6 @@ struct UserCommand {
 
 enum ClientCommandType : u8 {
 	ClientCommand_New,
-	ClientCommand_ConfigStrings,
 	ClientCommand_Baselines,
 	ClientCommand_Begin,
 	ClientCommand_Disconnect,
@@ -510,8 +529,6 @@ enum ClientCommandType : u8 {
 	ClientCommand_Callvote,
 	ClientCommand_VoteYes,
 	ClientCommand_VoteNo,
-	ClientCommand_Operator,
-	ClientCommand_OpCall,
 	ClientCommand_Ready,
 	ClientCommand_Unready,
 	ClientCommand_ToggleReady,

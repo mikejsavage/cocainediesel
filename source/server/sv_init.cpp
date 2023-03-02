@@ -63,7 +63,7 @@ static void SV_SpawnServer( const char *mapname, bool devmap ) {
 
 	// wipe the entire per-level structure
 	memset( &sv, 0, sizeof( sv ) );
-	Q_strncpyz( sv.mapname, mapname, sizeof( sv.mapname ) );
+	SafeStrCpy( sv.mapname, mapname, sizeof( sv.mapname ) );
 
 	SV_ResetClientFrameCounters();
 	svs.realtime = Sys_Milliseconds();

@@ -68,6 +68,7 @@ struct centity_t {
 
 	// effects
 	PlayingSFXHandle sound;
+	u64 last_noammo_sound;
 	Vec3 trailOrigin;         // for particle trails
 
 	// local effects from events timers
@@ -87,13 +88,11 @@ struct centity_t {
 
 	PlayingSFXHandle playing_body_sound;
 	PlayingSFXHandle playing_vsay;
+	PlayingSFXHandle playing_reload;
 
 	bool linearProjectileCanDraw;
 	Vec3 linearProjectileViewerSource;
 	Vec3 linearProjectileViewerVelocity;
-
-	Vec3 teleportedTo;
-	Vec3 teleportedFrom;
 
 	// used for client side animation of player models
 	int lastVelocitiesFrames[4];
@@ -106,8 +105,7 @@ struct centity_t {
 #include "cgame/cg_pmodels.h"
 
 struct cgs_media_t {
-	StringHash sfxWeaponHit[ 4 ];
-	StringHash sfxVSaySounds[ Vsay_Total ];
+	StringHash sfxVSaySounds[ Vsay_Count ];
 
 	StringHash shaderWeaponIcon[ Weapon_Count ];
 	StringHash shaderGadgetIcon[ Gadget_Count ];
@@ -269,7 +267,7 @@ extern Cvar *cg_showMiss;
 void CG_PredictedEvent( int entNum, int ev, u64 parm );
 void CG_PredictedFireWeapon( int entNum, u64 parm );
 void CG_PredictedAltFireWeapon( int entNum, u64 parm );
-void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm );
+void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead );
 void CG_PredictMovement();
 void CG_CheckPredictionError();
 void CG_BuildSolidList();
@@ -300,8 +298,8 @@ void CG_InitDamageNumbers();
 void CG_AddDamageNumber( SyncEntityState * ent, u64 parm );
 void CG_DrawDamageNumbers( float obi_size, float dmg_size );
 
-void CG_AddBomb( centity_t * cent );
-void CG_AddBombSite( centity_t * cent );
+void CG_AddBombIndicator( const centity_t * cent );
+void CG_AddBombSiteIndicator( const centity_t * cent );
 void CG_DrawBombHUD( int name_size, int goal_size, int bomb_msg_size );
 void CG_ResetBombHUD();
 
@@ -377,7 +375,6 @@ struct ChasecamState {
 extern ChasecamState chaseCam;
 
 extern Cvar *cg_thirdPerson;
-extern Cvar *cg_thirdPersonAngle;
 extern Cvar *cg_thirdPersonRange;
 
 void CG_StartFallKickEffect( int bounceTime );
@@ -405,13 +402,18 @@ void DrawGibs();
 //
 // cg_effects.c
 //
-void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color );
-
 void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material );
 
 void InitPersistentBeams();
 void AddPersistentBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash material, float duration, float fade_time );
 void DrawPersistentBeams();
+
+//
+// cg_trails.cpp
+//
+void DrawTrail( u64 unique_id, Vec3 point, float width, Vec4 color, StringHash material, u64 duration );
+void InitTrails();
+void DrawTrails();
 
 //
 //	cg_vweap.c - client weapon

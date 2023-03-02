@@ -98,6 +98,8 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 					tag = &meta->tag_mask;
 				else if( tag_name == "tag_weapon" )
 					tag = &meta->tag_weapon;
+				else if( tag_name == "tag_gadget" )
+					tag = &meta->tag_gadget;
 
 				float forward = ParseFloat( &cursor, 0.0f, Parse_StopOnNewLine );
 				float right = ParseFloat( &cursor, 0.0f, Parse_StopOnNewLine );
@@ -296,7 +298,7 @@ static int CG_MoveFlagsToUpperAnimation( uint32_t moveflags, int carried_weapon 
 	switch( carried_weapon ) {
 		case Weapon_Knife:
 			return TORSO_HOLD_BLADE;
-		case Weapon_Pistol:
+		case Weapon_9mm:
 		case Weapon_Laser:
 		case Weapon_Deagle:
 			return TORSO_HOLD_PISTOL;
@@ -775,13 +777,13 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	bool draw_model = !ISVIEWERENTITY( cent->current.number ) || cg.view.thirdperson;
 	bool same_team = cg.predictedPlayerState.team == cent->current.team;
-	bool draw_silhouette = draw_model && ( ISREALSPECTATOR() || same_team );
+	bool draw_silhouette = !corpse && draw_model && ( ISREALSPECTATOR() || same_team );
 
 	{
 		DrawModelConfig config = { };
 		config.draw_model.enabled = draw_model;
 		config.draw_shadows.enabled = true;
-		if( !corpse && draw_silhouette ) {
+		if( draw_silhouette ) {
 			config.draw_silhouette.enabled = true;
 			config.draw_silhouette.silhouette_color = color;
 		}
@@ -802,29 +804,28 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	// add weapon model
 	{
-		if( cent->current.weapon != Weapon_None ) {
-			const GLTFRenderData * weapon_model = FindGLTFRenderData( GetWeaponModelMetadata( cent->current.weapon )->model );
-			if( weapon_model != NULL ) {
-				Mat4 tag_transform = TransformTag( weapon_model, transform, pose, meta->tag_weapon ) * inverse_scale;
+		const GLTFRenderData * weapon_model = GetEquippedItemRenderData( &cent->current );
+		if( weapon_model != NULL ) {
+			PlayerModelMetadata::Tag tag = cent->current.gadget == Gadget_None ? meta->tag_weapon : meta->tag_gadget;
+			Mat4 tag_transform = TransformTag( weapon_model, transform, pose, tag ) * inverse_scale;
 
-				DrawModelConfig config = { };
-				config.draw_model.enabled = draw_model;
-				config.draw_shadows.enabled = true;
+			DrawModelConfig config = { };
+			config.draw_model.enabled = draw_model;
+			config.draw_shadows.enabled = true;
 
-				if( draw_silhouette ) {
-					config.draw_silhouette.enabled = true;
-					config.draw_silhouette.silhouette_color = color;
-				}
+			if( draw_silhouette ) {
+				config.draw_silhouette.enabled = true;
+				config.draw_silhouette.silhouette_color = color;
+			}
 
-				DrawGLTFModel( config, weapon_model, tag_transform, color );
+			DrawGLTFModel( config, weapon_model, tag_transform, color );
 
-				u8 muzzle;
-				if( FindNodeByName( weapon_model, "muzzle", &muzzle ) ) {
-					pmodel->muzzle_transform = tag_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
-				}
-				else {
-					pmodel->muzzle_transform = tag_transform;
-				}
+			u8 muzzle;
+			if( FindNodeByName( weapon_model, "muzzle", &muzzle ) ) {
+				pmodel->muzzle_transform = tag_transform * weapon_model->transform * weapon_model->nodes[ muzzle ].global_transform;
+			}
+			else {
+				pmodel->muzzle_transform = tag_transform;
 			}
 		}
 	}
@@ -837,7 +838,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 			if( cent->current.effects & EF_HAT )
 				tag = meta->tag_hat;
 
-			Mat4 tag_transform = TransformTag( model, transform, pose, tag ) * inverse_scale;
+			Mat4 tag_transform = TransformTag( attached_model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;
@@ -855,7 +856,7 @@ void CG_DrawPlayer( centity_t * cent ) {
 		if( mask_model != NULL ) {
 			PlayerModelMetadata::Tag tag = meta->tag_mask;
 
-			Mat4 tag_transform = TransformTag( model, transform, pose, tag ) * inverse_scale;
+			Mat4 tag_transform = TransformTag( mask_model, transform, pose, tag ) * inverse_scale;
 
 			DrawModelConfig config = { };
 			config.draw_model.enabled = draw_model;

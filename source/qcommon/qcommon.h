@@ -136,7 +136,7 @@ constexpr u16 PORT_SERVER = 44400;
 #define UPDATE_MASK ( UPDATE_BACKUP - 1 )
 
 //==================
-// the svc_strings[] array in snapshot.c should mirror this
+// the svc_strings[] array in snap_read should mirror this
 //==================
 extern const char * const svc_strings[256];
 void _SHOWNET( msg_t *msg, const char *s, int shownet );
@@ -145,15 +145,15 @@ void _SHOWNET( msg_t *msg, const char *s, int shownet );
 // server to client
 //
 enum svc_ops_e {
-	svc_servercmd,          // [string] string
-	svc_serverdata,         // [int] protocol ...
+	svc_servercmd,
+	svc_serverdata,
 	svc_spawnbaseline,
-	svc_playerinfo,         // variable
-	svc_packetentities,     // [...]
+	svc_playerinfo,
+	svc_packetentities,
 	svc_gamecommands,
 	svc_match,
 	svc_clcack,
-	svc_servercs,           //tmp jalfixme : send reliable commands as unreliable
+	svc_unreliable,
 	svc_frame,
 };
 
@@ -204,17 +204,6 @@ MISC
 */
 
 #define MAX_PRINTMSG    3072
-
-void Com_BeginRedirect( int target, char *buffer, int buffersize,
-							   void ( *flush )( int, const char*, const void* ), const void *extra );
-void Com_EndRedirect();
-
-template< typename... Rest >
-void Com_GGError( const char * fmt, const Rest & ... rest ) {
-	char buf[ 4096 ];
-	ggformat( buf, sizeof( buf ), fmt, rest... );
-	Com_Error( "%s", buf );
-}
 
 void Com_DeferQuit();
 

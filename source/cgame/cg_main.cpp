@@ -29,7 +29,6 @@ Cvar *cg_showMiss;
 Cvar *cg_mask;
 
 Cvar *cg_thirdPerson;
-Cvar *cg_thirdPersonAngle;
 Cvar *cg_thirdPersonRange;
 
 Cvar *cg_projectileAntilagOffset;
@@ -52,24 +51,8 @@ void CG_LocalPrint( const char *format, ... ) {
 }
 
 static void CG_GS_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta ) {
-	assert( !timeDelta );
+	Assert( !timeDelta );
 	CG_Trace( t, start, mins, maxs, end, ignore, solid_mask );
-}
-
-static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
-	centity_t *cent;
-
-	if( entNum == -1 ) {
-		return NULL;
-	}
-
-	assert( entNum >= 0 && entNum < MAX_EDICTS );
-	cent = &cg_entities[entNum];
-
-	if( cent->serverFrame != cg.frame.serverFrame ) {
-		return NULL;
-	}
-	return &cent->current;
 }
 
 static void CG_InitGameShared( int max_clients ) {
@@ -82,17 +65,15 @@ static void CG_InitGameShared( int max_clients ) {
 	client_gs.api.PredictedAltFireWeapon = CG_PredictedAltFireWeapon;
 	client_gs.api.PredictedUseGadget = CG_PredictedUseGadget;
 	client_gs.api.Trace = CG_GS_Trace;
-	client_gs.api.GetEntityState = CG_GS_GetEntityState;
 	client_gs.api.PMoveTouchTriggers = CG_Predict_TouchTriggers;
 }
 
 static void CG_RegisterVariables() {
-	cg_showMiss = NewCvar( "cg_showMiss", "0", 0 );
+	cg_showMiss = NewCvar( "cg_showMiss", "0" );
 	cg_mask = NewCvar( "cg_mask", "", CvarFlag_Archive | CvarFlag_UserInfo );
 
-	cg_thirdPerson = NewCvar( "cg_thirdPerson", "0", CvarFlag_Cheat );
-	cg_thirdPersonAngle = NewCvar( "cg_thirdPersonAngle", "0", 0 );
-	cg_thirdPersonRange = NewCvar( "cg_thirdPersonRange", "90", 0 );
+	cg_thirdPerson = NewCvar( "cg_thirdPerson", "0", CvarFlag_Developer );
+	cg_thirdPersonRange = NewCvar( "cg_thirdPersonRange", "90", CvarFlag_Developer );
 
 	cg_projectileAntilagOffset = NewCvar( "cg_projectileAntilagOffset", "1.0", CvarFlag_Archive );
 
@@ -106,8 +87,7 @@ const char * PlayerName( int i ) {
 		return "";
 	}
 
-	Span< const char[ MAX_CONFIGSTRING_CHARS ] > names( cl.configstrings + CS_PLAYERINFOS, client_gs.maxclients );
-	return names[ i ];
+	return client_gs.gameState.players[ i ].name;
 }
 
 void CG_Reset() {

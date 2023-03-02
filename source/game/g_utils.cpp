@@ -193,8 +193,8 @@ void G_FreeEdict( edict_t *ed ) {
 
 	GClip_UnlinkEntity( ed );
 
-	bool ok = entity_id_hashtable.remove( ed->id.id );
-	assert( ok );
+	// bool ok = entity_id_hashtable.remove( ed->id.id );
+	// Assert( ok );
 
 	memset( ed, 0, sizeof( *ed ) );
 	ed->s.number = ENTNUM( ed );
@@ -206,20 +206,21 @@ void G_FreeEdict( edict_t *ed ) {
 }
 
 void G_InitEdict( edict_t *e ) {
-	if( e->r.inuse ) {
-		bool ok = entity_id_hashtable.remove( e->id.id );
-		assert( ok );
-	}
+	// if( e->r.inuse ) {
+	// 	bool ok = entity_id_hashtable.remove( e->id.id );
+	// 	Assert( ok );
+	// }
 
 	memset( e, 0, sizeof( *e ) );
 	e->s.number = ENTNUM( e );
-	e->id = NewEntity();
+	e->s.id = NewEntity();
 	e->r.inuse = true;
 
-	bool ok = entity_id_hashtable.add( e->id.id, e->s.number );
-	assert( ok );
+	// bool ok = entity_id_hashtable.add( e->id.id, e->s.number );
+	// Assert( ok );
 
 	e->s.scale = Vec3( 1.0f );
+	e->gravity_scale = 1.0f;
 
 	// mark all entities to not be sent by default
 	e->s.svflags = SVF_NOCLIENT;
@@ -336,7 +337,7 @@ void G_CallThink( edict_t *ent ) {
 	}
 }
 
-void G_CallTouch( edict_t *self, edict_t *other, Vec3 normal, SolidBits solid_mask ) {
+void G_CallTouch( edict_t * self, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
 	if( self == other ) {
 		return;
 	}
@@ -436,10 +437,10 @@ void G_ChatMsg( edict_t *ent, edict_t *who, bool teamonly, const char *format, .
 			} else if( !who->r.client ) {
 				;   // wtf?
 			} else if( teamonly ) {
-				Com_Printf( "[%s] %s %s\n",
-						  who->r.client->ps.team == Team_None ? "SPEC" : "TEAM", who->r.client->netname, msg );
+				const char * channel = who->r.client->ps.team == Team_None ? "SPEC" : "TEAM";
+				Com_Printf( "[%s] %s %s\n", channel, who->r.client->name, msg );
 			} else {
-				Com_Printf( "%s: %s\n", who->r.client->netname, msg );
+				Com_Printf( "%s: %s\n", who->r.client->name, msg );
 			}
 		}
 
@@ -611,7 +612,7 @@ void G_LocalSound( edict_t * owner, StringHash sound ) {
 void KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
 	while( true ) {
 		trace_t tr;
-		G_Trace( &tr, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, world, Solid_Solid );
+		G_Trace( &tr, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, world, SolidMask_AnySolid );
 		if( tr.fraction == 1.0f ) {
 			break;
 		}
@@ -675,7 +676,7 @@ void G_RespawnEffect( edict_t *ent ) {
 }
 
 SolidBits G_SolidMaskForEnt( edict_t *ent ) {
-	return ent->s.solidity ? ent->s.solidity : Solid_Solid;
+	return ent->s.solidity ? ent->s.solidity : SolidMask_AnySolid;
 }
 
 void G_CheckGround( edict_t *ent ) {
@@ -724,7 +725,7 @@ void G_ReleaseClientPSEvent( gclient_t *client ) {
 * This event is only sent to this client inside its SyncPlayerState.
 */
 void G_AddPlayerStateEvent( gclient_t *client, int ev, u64 parm ) {
-	assert( ev >= 0 && ev < PSEV_MAX_EVENTS );
+	Assert( ev >= 0 && ev < PSEV_MAX_EVENTS );
 	if( client == NULL )
 		return;
 
@@ -757,7 +758,7 @@ edict_t *G_PlayerForText( const char *text ) {
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * e = &game.edicts[ i + 1 ];
-		if( StrCaseEqual( e->r.client->netname, text ) ) {
+		if( StrCaseEqual( e->r.client->name, text ) ) {
 			return e;
 		}
 	}
@@ -809,4 +810,12 @@ void G_AnnouncerSound( edict_t *targ, StringHash sound, Team team, bool queued, 
 			G_AddPlayerStateEvent( ent->r.client, psev, sound.hash );
 		}
 	}
+}
+
+void G_SunCycle( u64 time ) {
+	float yaw = 3.420f + 24.0f * RandomUniformFloat( &svs.rng, 0.0f, 15.0f ); // idk, some random angle that doesn't hit 90° etc
+	server_gs.gameState.sun_angles_from = server_gs.gameState.sun_angles_to;
+	server_gs.gameState.sun_angles_to = Vec3( 53.31f, yaw, 0.0f );
+	server_gs.gameState.sun_moved_from = svs.gametime;
+	server_gs.gameState.sun_moved_to = svs.gametime + time;
 }

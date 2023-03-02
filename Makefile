@@ -1,44 +1,46 @@
 all: debug
 .PHONY: debug asan tsan bench release clean
 
-LUA = ggbuild/lua.linux
-NINJA = ggbuild/ninja.linux
+EXE = linux
 
 WSLENV ?= notwsl
 ifndef WSLENV
-	LUA = ggbuild/lua.exe
-	NINJA = ggbuild/ninja.exe
+	EXE = exe
+else
+	ifeq ($(shell uname -s),Darwin)
+		EXE = macos
+	endif
 endif
 
 debug:
-	@$(LUA) make.lua > build.ninja
-	@$(NINJA) -k 0
+	@ggbuild/lua.$(EXE) make.lua > build.ninja
+	@ggbuild/ninja.$(EXE) -k 0
 
 asan:
-	@$(LUA) make.lua asan > build.ninja
-	@$(NINJA) -k 0
+	@ggbuild/lua.$(EXE) make.lua asan > build.ninja
+	@ggbuild/ninja.$(EXE) -k 0
 
 tsan:
-	@$(LUA) make.lua tsan > build.ninja
-	@$(NINJA) -k 0
+	@ggbuild/lua.$(EXE) make.lua tsan > build.ninja
+	@ggbuild/ninja.$(EXE) -k 0
 
 bench:
-	@$(LUA) make.lua bench > build.ninja
-	@$(NINJA) -k 0
+	@ggbuild/lua.$(EXE) make.lua bench > build.ninja
+	@ggbuild/ninja.$(EXE) -k 0
 
 release:
-	@$(LUA) make.lua release > build.ninja
-	@$(NINJA) -k 0
+	@ggbuild/lua.$(EXE) make.lua release > build.ninja
+	@ggbuild/ninja.$(EXE) -k 0
 
 clean:
-	@$(LUA) make.lua debug > build.ninja
-	@$(NINJA) -t clean || true
-	@$(LUA) make.lua asan > build.ninja || true
-	@$(NINJA) -t clean || true
-	@$(LUA) make.lua tsan > build.ninja || true
-	@$(NINJA) -t clean || true
-	@$(LUA) make.lua bench > build.ninja || true
-	@$(NINJA) -t clean || true
+	@ggbuild/lua.$(EXE) make.lua debug > build.ninja
+	@ggbuild/ninja.$(EXE) -t clean || true
+	@ggbuild/lua.$(EXE) make.lua asan > build.ninja || true
+	@ggbuild/ninja.$(EXE) -t clean || true
+	@ggbuild/lua.$(EXE) make.lua tsan > build.ninja || true
+	@ggbuild/ninja.$(EXE) -t clean || true
+	@ggbuild/lua.$(EXE) make.lua bench > build.ninja || true
+	@ggbuild/ninja.$(EXE) -t clean || true
 	@rm -f source/qcommon/gitversion.h
 	@rm -rf build release
 	@rm -f -- *.exp *.ilk *.ilp *.lib *.pdb

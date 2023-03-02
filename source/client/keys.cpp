@@ -129,7 +129,7 @@ int Key_StringToKeynum( const char *str ) {
 }
 
 Span< const char > Key_KeynumToString( int keynum ) {
-	static constexpr const char uppercase_ascii[] = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~";
+	constexpr const char * uppercase_ascii = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~";
 
 	if( keynum >= '!' && keynum <= '~' ) {
 		return Span< const char >( uppercase_ascii + keynum - '!', 1 );
@@ -170,7 +170,7 @@ static void Key_Unbind_f() {
 	Key_SetBinding( key, NULL );
 }
 
-static void Key_Unbindall() {
+void Key_Unbindall() {
 	for( int i = 0; i < int( ARRAY_COUNT( keybindings ) ); i++ ) {
 		if( keybindings[ i ] ) {
 			Key_SetBinding( i, NULL );

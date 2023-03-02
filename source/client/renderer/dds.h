@@ -14,6 +14,7 @@ enum DDSTextureFormat : u32 {
 };
 
 constexpr u32 DDSMagic = FourCC( "DDS " );
+constexpr u32 DDSTextureFormatFlag_FourCC = 0x4;
 
 struct DDSHeader {
 	u32 magic;
@@ -21,11 +22,13 @@ struct DDSHeader {
 	u32 height, width;
 	u32 shit1[ 2 ];
 	u32 mipmap_count;
-	u32 shit2[ 13 ];
+	u32 shit2[ 12 ];
+	u32 format_flags;
 	DDSTextureFormat format;
 	u32 shit3[ 10 ];
 };
 
 struct BC4Block {
-	u8 data[ 8 ];
+	u8 endpoints[ 2 ];
+	u8 indices[ 6 ];
 };

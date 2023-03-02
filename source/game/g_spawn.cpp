@@ -59,6 +59,7 @@ static constexpr EntitySpawnCallback spawn_callbacks[] = {
 
 	{ "spike", SP_spike },
 	{ "spikes", SP_spikes },
+	{ "shooter", SP_shooter },
 	{ "jumppad", SP_jumppad },
 
 	{ "speaker_wall", SP_speaker_wall },
@@ -283,6 +284,8 @@ void G_InitLevel( const char *mapname, int64_t levelTime ) {
 	LoadServerMap( mapname );// TODO: errors???
 	GClip_ClearWorld(); // clear areas links
 
+	G_SunCycle( 0 );
+
 	G_FreeEntities();
 
 	// link client fields on player ents
@@ -344,7 +347,7 @@ void G_RespawnLevel() {
 void G_HotloadMap() {
 	// TODO: come back to this
 	char map[ ARRAY_COUNT( sv.mapname ) ];
-	Q_strncpyz( map, sv.mapname, sizeof( map ) );
+	SafeStrCpy( map, sv.mapname, sizeof( map ) );
 	G_ResetLevel();
 
 	if( level.gametype.MapHotloaded != NULL ) {

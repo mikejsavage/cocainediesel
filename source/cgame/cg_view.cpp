@@ -120,7 +120,7 @@ static void CG_CalcViewBob() {
 			Vec3 maxs = bounds.mins;
 			Vec3 mins = maxs - Vec3( 0.0f, 0.0f, 1.6f * STEPSIZE );
 
-			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, Solid_Opaque );
+			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, SolidMask_Opaque );
 			if( trace.GotNowhere() ) {
 				bobScale = 2.5f;
 			}
@@ -194,7 +194,7 @@ static void CG_InterpolatePlayerState( SyncPlayerState * playerState ) {
 	}
 }
 
-static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
+static void CG_ThirdPersonOffsetView( cg_viewdef_t *view, bool hold_angle ) {
 	float dist, f, r;
 	trace_t trace;
 	Vec3 mins( -4.0f );
@@ -202,7 +202,8 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 
 	// calc exact destination
 	Vec3 chase_dest = view->origin;
-	r = Radians( cg_thirdPersonAngle->number );
+	Vec3 angles = hold_angle ? -view->angles : Vec3( 0.0f );
+	r = Radians( angles.y );
 	f = -cosf( r );
 	r = -sinf( r );
 	chase_dest += FromQFAxis( view->axis, AXIS_FORWARD ) * ( cg_thirdPersonRange->number * f );
@@ -211,7 +212,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 
 	// find the spot the player is looking at
 	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * 512.0f;
-	CG_Trace( &trace, view->origin, mins, maxs, dest, view->POVent, Solid_Solid );
+	CG_Trace( &trace, view->origin, mins, maxs, dest, view->POVent, SolidMask_AnySolid );
 
 	// calculate pitch to look at the same spot from camera
 	Vec3 stop = trace.endpos - view->origin;
@@ -220,16 +221,16 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view ) {
 		dist = 1;
 	}
 	view->angles.x = Degrees( -atan2f( stop.z, dist ) );
-	view->angles.y -= cg_thirdPersonAngle->number;
+	view->angles.y -= angles.y;
 	Matrix3_FromAngles( view->angles, view->axis );
 
 	// move towards destination
-	CG_Trace( &trace, view->origin, mins, maxs, chase_dest, view->POVent, Solid_Solid );
+	CG_Trace( &trace, view->origin, mins, maxs, chase_dest, view->POVent, SolidMask_AnySolid );
 
 	if( trace.HitSomething() ) {
 		stop = trace.endpos;
 		stop.z += ( 1.0f - trace.fraction ) * 32;
-		CG_Trace( &trace, view->origin, mins, maxs, stop, view->POVent, Solid_Solid );
+		CG_Trace( &trace, view->origin, mins, maxs, stop, view->POVent, SolidMask_AnySolid );
 		chase_dest = trace.endpos;
 	}
 
@@ -258,16 +259,13 @@ float CG_ViewSmoothFallKick() {
 	return 0.0f;
 }
 
-static void CG_UpdateChaseCam() {
-	UserCommand cmd;
-	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
-
+static void CG_UpdateChaseCam( UserCommand * cmd ) {
 	if( chaseCam.key_pressed ) {
-		chaseCam.key_pressed = cmd.buttons != 0 || cmd.sidemove != 0 || cmd.forwardmove != 0;
+		chaseCam.key_pressed = cmd->buttons != 0 || cmd->sidemove != 0 || cmd->forwardmove != 0;
 		return;
 	}
 
-	if( cmd.buttons & Button_Attack1 ) {
+	if( cmd->buttons & Button_Attack1 ) {
 		if( cgs.demoPlaying || ISREALSPECTATOR() ) {
 			if( cgs.demoPlaying ) {
 				Cbuf_ExecuteLine( "democamswitch" );
@@ -282,10 +280,10 @@ static void CG_UpdateChaseCam() {
 	int chaseStep = 0;
 
 	if( cg.view.type == VIEWDEF_PLAYERVIEW ) {
-		if( cmd.sidemove > 0 || ( cmd.buttons & Button_Attack2 ) ) {
+		if( cmd->sidemove > 0 || ( cmd->buttons & Button_Attack2 ) ) {
 			chaseStep = 1;
 		}
-		else if( cmd.sidemove < 0 || ( cmd.buttons & Button_Attack1 ) ) {
+		else if( cmd->sidemove < 0 || ( cmd->buttons & Button_Attack1 ) ) {
 			chaseStep = -1;
 		}
 	}
@@ -311,21 +309,23 @@ float CalcHorizontalFov( const char * caller, float fov_y, float width, float he
 }
 
 static void ScreenShake( cg_viewdef_t * view ) {
-	if( !client_gs.gameState.bomb.exploding )
+	if( !client_gs.gameState.exploding )
 		return;
 
-	s64 dt = cl.serverTime - client_gs.gameState.bomb.exploded_at;
+	s64 dt = cl.serverTime - client_gs.gameState.exploded_at;
 
 	// TODO: we need this because the game drops you into busted noclip when you have noone to spec
 	if( dt >= 3000 )
 		return;
 
-	float shake_amount = Unlerp01( s64( 0 ), dt, s64( 1000 ) );
+	float shake_amount = Unlerp01( s64( 3000 ), dt, s64( 0 ) ) * 4.0f;
 
-	view->angles.z = shake_amount * 20.0f * Sin( cls.monotonicTime, Milliseconds( 250 ) );
+	view->origin.x += shake_amount * RandomFloat11( &cls.rng );
+	view->origin.y += shake_amount * RandomFloat11( &cls.rng );
+	view->origin.z += shake_amount * RandomFloat11( &cls.rng );
 }
 
-static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
+static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
 	memset( view, 0, sizeof( cg_viewdef_t ) );
 
 	//
@@ -376,15 +376,13 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 			CG_PredictMovement();
 
 			viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
-
 			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
+			
 			view->angles = cg.predictedPlayerState.viewangles;
 
 			CG_Recoil( cg.predictedPlayerState.weapon );
 
 			CG_ViewSmoothPredictedSteps( &view->origin ); // smooth out stair climbing
-
-			ScreenShake( view );
 		} else {
 			cg.predictingTimeStamp = cl.serverTime;
 			cg.predictFrom = 0;
@@ -407,6 +405,8 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 		view->fov_y = WidescreenFov( CG_DemoCam_GetOrientation( &view->origin, &view->angles, &view->velocity ) );
 	}
 
+	ScreenShake( view );
+
 	if( cg.predictedPlayerState.health <= 0 && cg.predictedPlayerState.team != Team_None ) {
 		AddDamageEffect();
 	}
@@ -424,7 +424,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type ) {
 	view->fracDistFOV = tanf( Radians( view->fov_x ) * 0.5f );
 
 	if( view->thirdperson ) {
-		CG_ThirdPersonOffsetView( view );
+		CG_ThirdPersonOffsetView( view, view->type == VIEWDEF_PLAYERVIEW && cg_thirdPerson->integer == 2 );
 	}
 
 	if( !view->playerPrediction ) {
@@ -527,7 +527,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	cg.frameCount++;
 
-	assert( cg.frame.valid );
+	Assert( cg.frame.valid );
 
 	{
 		// moved this from CG_Init here
@@ -557,6 +557,9 @@ void CG_RenderView( unsigned extrapolationTime ) {
 			cg.xerpSmoothFrac = 0.0f;
 		}
 	}
+
+	UserCommand cmd;
+	CL_GetUserCmd( CL_GetCurrentUserCmdNum() - 1, &cmd );
 
 	if( cg_showClamp->integer ) {
 		if( cg.lerpfrac > 1.0f ) {
@@ -595,12 +598,12 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	MaybeResetShadertoyTime( false );
 
-	CG_UpdateChaseCam();
+	CG_UpdateChaseCam( &cmd );
 
 	if( CG_DemoCam_Update() ) {
-		CG_SetupViewDef( &cg.view, CG_DemoCam_GetViewType() );
+		CG_SetupViewDef( &cg.view, CG_DemoCam_GetViewType(), &cmd );
 	} else {
-		CG_SetupViewDef( &cg.view, VIEWDEF_PLAYERVIEW );
+		CG_SetupViewDef( &cg.view, VIEWDEF_PLAYERVIEW, &cmd );
 	}
 
 	RendererSetView( cg.view.origin, EulerDegrees3( cg.view.angles ), cg.view.fov_y );
@@ -626,6 +629,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	DrawPersistentBeams();
 	DrawPersistentDecals();
 	DrawPersistentDynamicLights();
+	DrawTrails();
 	DrawSkybox( cls.shadertoy_time );
 	DrawSprays();
 
@@ -651,7 +655,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		Shape aabb_shape = { ShapeType_AABB, { Vec3( 0.0f ), Vec3( 16.0f ) } };
 
 		Intersection intersection;
-		if( SweptShapeVsMapModel( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, Solid_Solid, &intersection ) ) {
+		if( SweptShapeVsMapModel( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, SolidMask_AnySolid, &intersection ) ) {
 			if( intersection.normal != Vec3( 0.0f ) ) {
 				Vec3 new_end = start + intersection.t * ray.direction;
 

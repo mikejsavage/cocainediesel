@@ -32,14 +32,16 @@ void Serialize( const T & x, DynamicArray< u8 > * buf ) {
 }
 
 void Serialize( SerializationBuffer * buf, char & x );
-void Serialize( SerializationBuffer * buf, s8 & x );
-void Serialize( SerializationBuffer * buf, s16 & x );
-void Serialize( SerializationBuffer * buf, s32 & x );
-void Serialize( SerializationBuffer * buf, s64 & x );
-void Serialize( SerializationBuffer * buf, u8 & x );
-void Serialize( SerializationBuffer * buf, u16 & x );
-void Serialize( SerializationBuffer * buf, u32 & x );
-void Serialize( SerializationBuffer * buf, u64 & x );
+void Serialize( SerializationBuffer * buf, signed char & x );
+void Serialize( SerializationBuffer * buf, short & x );
+void Serialize( SerializationBuffer * buf, int & x );
+void Serialize( SerializationBuffer * buf, long & x );
+void Serialize( SerializationBuffer * buf, long long & x );
+void Serialize( SerializationBuffer * buf, unsigned char & x );
+void Serialize( SerializationBuffer * buf, unsigned short & x );
+void Serialize( SerializationBuffer * buf, unsigned int & x );
+void Serialize( SerializationBuffer * buf, unsigned long & x );
+void Serialize( SerializationBuffer * buf, unsigned long long & x );
 void Serialize( SerializationBuffer * buf, float & x );
 void Serialize( SerializationBuffer * buf, double & x );
 void Serialize( SerializationBuffer * buf, bool & b );

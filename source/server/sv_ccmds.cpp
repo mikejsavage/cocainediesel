@@ -85,11 +85,10 @@ void SV_Status_f() {
 		} else if( cl->state == CS_CONNECTING ) {
 			Com_Printf( "AWAI " );
 		} else {
-			int ping = cl->ping < 9999 ? cl->ping : 9999;
-			Com_Printf( "%4i ", ping );
+			Com_Printf( "%4i ", Min2( cl->ping, 9999 ) );
 		}
 
-		Com_Printf( "%-32s", cl->name );
+		Com_Printf( "%-32s", cl->edict->r.client->name );
 		Com_Printf( "%7i ", (int)(svs.realtime - cl->lastPacketReceivedTime) );
 		Com_GGPrintNL( "{-22}", cl->netchan.remoteAddress );
 		Com_GGPrint( "{16x}", cl->netchan.session_id );
@@ -101,18 +100,6 @@ static void SV_Heartbeat_f() {
 	svc.nextHeartbeat = Now();
 }
 
-/*
-* SV_KillServer_f
-* Kick everyone off, possibly in preparation for a new game
-*/
-static void SV_KillServer_f() {
-	if( !svs.initialized ) {
-		return;
-	}
-
-	SV_ShutdownGame( "Server was killed", false );
-}
-
 //===========================================================
 
 void SV_InitOperatorCommands() {
@@ -121,7 +108,6 @@ void SV_InitOperatorCommands() {
 
 	AddCommand( "map", SV_Map_f );
 	AddCommand( "devmap", SV_Map_f );
-	AddCommand( "killserver", SV_KillServer_f );
 
 	AddCommand( "serverrecord", SV_Demo_Start_f );
 	AddCommand( "serverrecordstop", SV_Demo_Stop_f );
@@ -140,7 +126,6 @@ void SV_ShutdownOperatorCommands() {
 
 	RemoveCommand( "map" );
 	RemoveCommand( "devmap" );
-	RemoveCommand( "killserver" );
 
 	RemoveCommand( "serverrecord" );
 	RemoveCommand( "serverrecordstop" );

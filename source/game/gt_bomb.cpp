@@ -53,9 +53,9 @@ static constexpr StringHash snd_announcements_def[ BombAnnouncement_Count ] = {
 
 static Cvar * g_bomb_roundtime;
 static Cvar * g_bomb_bombtimer;
-static Cvar * g_bomb_armtime;
-static Cvar * g_bomb_defusetime;
 
+static const float bomb_armtime = 1000.0f; //ms
+static const float bomb_defusetime = 4000.0f; //ms
 static const u32 max_sites = 26;
 static const int countdown_max = 6;
 
@@ -76,7 +76,6 @@ static struct {
 
 	// TODO: player.as
 	u32 kills_this_round[ MAX_CLIENTS ];
-	Loadout loadouts[ MAX_CLIENTS ];
 
 	s32 carrier;
 	s64 carrier_can_plant_time;
@@ -92,6 +91,8 @@ static struct {
 		s32 dropper;
 		bool killed_everyone;
 	} bomb;
+
+	RespawnQueues respawn_queues;
 
 	BombSite sites[ max_sites ];
 	u32 num_sites;
@@ -118,7 +119,7 @@ static void Hide( edict_t * ent ) {
 static bool EntCanSee( edict_t * ent, Vec3 point ) {
 	Vec3 center = ent->s.origin + 0.5f * ( ent->r.mins + ent->r.maxs );
 	trace_t tr;
-	G_Trace( &tr, center, Vec3( 0.0f ), Vec3( 0.0f ), point, ent, Solid_Solid );
+	G_Trace( &tr, center, Vec3( 0.0f ), Vec3( 0.0f ), point, ent, SolidMask_AnySolid );
 	return tr.fraction == 1.0f;
 }
 
@@ -153,125 +154,6 @@ static void Announce( BombAnnouncement announcement ) {
 	G_AnnouncerSound( NULL, snd_announcements_def[ announcement ], DefendingTeam(), true, NULL );
 }
 
-// player.as
-
-static void GiveInventory( edict_t * ent ) {
-	ClearInventory( &ent->r.client->ps );
-
-	const Loadout & loadout = bomb_state.loadouts[ PLAYERNUM( ent ) ];
-
-	for( u32 category = 0; category < WeaponCategory_Count; category++ ) {
-		WeaponType weapon = loadout.weapons[ category ];
-		G_GiveWeapon( ent, weapon );
-	}
-
-	G_SelectWeapon( ent, 1 );
-
-	ent->r.client->ps.gadget = loadout.gadget;
-	ent->r.client->ps.gadget_ammo = GetGadgetDef( loadout.gadget )->uses;
-
-	G_GivePerk( ent, loadout.perk );
-}
-
-static void ShowShop( edict_t * ent ) {
-	if( ent->s.team == Team_None ) {
-		return;
-	}
-
-	TempAllocator temp = svs.frame_arena.temp();
-	const Loadout & loadout = bomb_state.loadouts[ PLAYERNUM( ent ) ];
-	PF_GameCmd( ent, temp( "changeloadout {}", loadout ) );
-}
-
-static Loadout DefaultLoadout() {
-	Loadout loadout = { };
-	loadout.weapons[ WeaponCategory_Primary ] = Weapon_RocketLauncher;
-	loadout.weapons[ WeaponCategory_Secondary ] = Weapon_Shotgun;
-	loadout.weapons[ WeaponCategory_Backup ] = Weapon_StakeGun;
-	loadout.weapons[ WeaponCategory_Melee ] = Weapon_Knife;
-
-	loadout.perk = Perk_Hooligan;
-
-	for( int i = 0; i < WeaponCategory_Count; i++ ) {
-		assert( loadout.weapons[ i ] != Weapon_None );
-	}
-
-	loadout.gadget = Gadget_ThrowingAxe;
-
-	return loadout;
-}
-
-static bool ParseLoadout( Loadout * loadout, const char * loadout_string ) {
-	if( loadout_string == NULL )
-		return false;
-
-	*loadout = { };
-
-	Span< const char > cursor = MakeSpan( loadout_string );
-
-	for( int i = 0; i < WeaponCategory_Count; i++ ) {
-		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
-		int weapon;
-		if( !TrySpanToInt( token, &weapon ) )
-			return false;
-
-		if( weapon <= Weapon_None || weapon >= Weapon_Count )
-			return false;
-
-		WeaponCategory category = GS_GetWeaponDef( WeaponType( weapon ) )->category;
-		if( category != i )
-			return false;
-
-		loadout->weapons[ category ] = WeaponType( weapon );
-	}
-
-	{
-		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
-		int perk;
-		if( !TrySpanToInt( token, &perk ) || perk <= Perk_None || perk >= Perk_Count )
-			return false;
-		if( !GetPerkDef( PerkType( perk ) )->enabled )
-			return false;
-		loadout->perk = PerkType( perk );
-	}
-
-	{
-		Span< const char > token = ParseToken( &cursor, Parse_DontStopOnNewLine );
-		int gadget;
-		if( !TrySpanToInt( token, &gadget ) || gadget <= Gadget_None || gadget >= Gadget_Count )
-			return false;
-		loadout->gadget = GadgetType( gadget );
-	}
-
-	return cursor.ptr != NULL && cursor.n == 0;
-}
-
-static void SetLoadout( edict_t * ent, const char * loadout_string, bool fallback_to_default ) {
-	Loadout loadout;
-	if( !ParseLoadout( &loadout, loadout_string ) ) {
-		if( !fallback_to_default )
-			return;
-		loadout = DefaultLoadout();
-	}
-
-	TempAllocator temp = svs.frame_arena.temp();
-	PF_GameCmd( ent, temp( "saveloadout {}", loadout ) );
-
-	bomb_state.loadouts[ PLAYERNUM( ent ) ] = loadout;
-
-	if( G_ISGHOSTING( ent ) ) {
-		return;
-	}
-
-	if( server_gs.gameState.match_state == MatchState_Warmup || server_gs.gameState.match_state == MatchState_Countdown ) {
-		GiveInventory( ent );
-	}
-
-	if( server_gs.gameState.match_state == MatchState_Playing && server_gs.gameState.round_state == RoundState_Countdown ) {
-		GiveInventory( ent );
-	}
-}
-
 static void ResetKillCounters() {
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		bomb_state.kills_this_round[ i ] = 0;
@@ -298,7 +180,7 @@ static u32 GetSiteFromIndicator( edict_t * ent ) {
 		}
 	}
 
-	assert( false );
+	Assert( false );
 	return 0;
 }
 
@@ -503,7 +385,7 @@ static void DropBomb( BombDropReason reason ) {
 	}
 
 	trace_t tr;
-	G_Trace( &tr, start, bomb_bounds.mins, bomb_bounds.maxs, end, carrier_ent, Solid_Solid );
+	G_Trace( &tr, start, bomb_bounds.mins, bomb_bounds.maxs, end, carrier_ent, SolidMask_AnySolid );
 
 	bomb_state.bomb.model->movetype = MOVETYPE_TOSS;
 	bomb_state.bomb.model->r.owner = carrier_ent;
@@ -526,7 +408,7 @@ static void BombStartPlanting( edict_t * carrier_ent, u32 site ) {
 	end.z -= 512.0f;
 
 	trace_t tr;
-	G_Trace( &tr, start, bomb_bounds.mins, bomb_bounds.maxs, end, carrier_ent, Solid_Solid );
+	G_Trace( &tr, start, bomb_bounds.mins, bomb_bounds.maxs, end, carrier_ent, SolidMask_AnySolid );
 
 	Vec3 angles( 0.0f, RandomUniformFloat( &svs.rng, 0.0f, 360.0f ), 0.0f );
 
@@ -585,7 +467,7 @@ static void BombDefused() {
 	bomb_state.bomb.state = BombState_Defused;
 
 	TempAllocator temp = svs.frame_arena.temp();
-	G_PrintMsg( NULL, "%s defused the bomb!\n", PLAYERENT( bomb_state.defuser )->r.client->netname );
+	G_PrintMsg( NULL, "%s defused the bomb!\n", PLAYERENT( bomb_state.defuser )->r.client->name );
 
 	G_Sound( bomb_state.bomb.model, "models/bomb/tss" );
 
@@ -607,8 +489,8 @@ static void BombExplode() {
 	bomb_state.bomb.state = BombState_Exploding;
 	bomb_state.defuser = -1;
 
-	server_gs.gameState.bomb.exploding = true;
-	server_gs.gameState.bomb.exploded_at = svs.gametime; // TODO: only place where gameTime is used, dno
+	server_gs.gameState.exploding = true;
+	server_gs.gameState.exploded_at = svs.gametime; // TODO: only place where gameTime is used, dno
 
 	G_SpawnEvent( EV_BOMB_EXPLOSION, bomb_explosion_effect_radius, &bomb_state.bomb.model->s.origin );
 
@@ -638,7 +520,7 @@ static void BombThink() {
 				break;
 			}
 
-			float frac = float( level.time - bomb_state.bomb.action_time ) / ( g_bomb_armtime->number * 1000.0f );
+			float frac = float( level.time - bomb_state.bomb.action_time ) / bomb_armtime;
 			if( frac >= 1.0f ) {
 				SetTeamProgress( AttackingTeam(), 0, BombProgress_Nothing );
 				BombPlanted();
@@ -672,7 +554,7 @@ static void BombThink() {
 			}
 			else {
 				bomb_state.defuse_progress += game.frametime;
-				float frac = bomb_state.defuse_progress / ( g_bomb_defusetime->number * 1000.0f );
+				float frac = bomb_state.defuse_progress / bomb_defusetime;
 				if( frac >= 1.0f ) {
 					BombDefused();
 					SetTeamProgress( DefendingTeam(), 100, BombProgress_Defusing );
@@ -688,7 +570,7 @@ static void BombThink() {
 
 		case BombState_Exploding: {
 			// BombSiteStepExplosion( bomb_state.site );
-			if( level.time - server_gs.gameState.bomb.exploded_at >= 1000 && !bomb_state.bomb.killed_everyone ) {
+			if( !bomb_state.bomb.killed_everyone ) {
 				bomb_state.bomb.model->projectileInfo.maxDamage = 1.0f;
 				bomb_state.bomb.model->projectileInfo.minDamage = 1.0f;
 				bomb_state.bomb.model->projectileInfo.maxKnockback = 400.0f;
@@ -720,7 +602,7 @@ static bool BombCanPlant() {
 	Vec3 maxs = carrier_ent->r.maxs;
 
 	trace_t tr;
-	G_Trace( &tr, start, mins, maxs, end, carrier_ent, Solid_Solid );
+	G_Trace( &tr, start, mins, maxs, end, carrier_ent, SolidMask_AnySolid );
 
 	return ISWALKABLEPLANE( tr.normal );
 }
@@ -755,16 +637,6 @@ static void BombGiveToRandom() {
 }
 
 // round.as
-
-static void RespawnAllPlayers( bool ghost ) {
-	for( int i = 0; i < server_gs.maxclients; i++ ) {
-		edict_t * ent = PLAYERENT( i );
-		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
-			GClip_UnlinkEntity( ent );
-			G_ClientRespawn( ent, ghost );
-		}
-	}
-}
 
 static void EnableMovementFor( s32 playernum ) {
 	edict_t * ent = PLAYERENT( playernum );
@@ -850,9 +722,7 @@ static void RoundWonBy( Team winner ) {
 
 static void EndGame() {
 	RoundNewState( RoundState_None );
-
-	RespawnAllPlayers( true );
-
+	GhostEveryone();
 	G_AnnouncerSound( NULL, "sounds/announcer/game_over", Team_Count, true, NULL );
 }
 
@@ -899,18 +769,20 @@ static void RoundNewState( RoundState state ) {
 			bomb_state.round_check_end = true;
 			bomb_state.round_state_end = level.time + 5000;
 			level.gametype.removeInactivePlayers = false;
-			server_gs.gameState.bomb.exploding = false;
+			server_gs.gameState.exploding = false;
 			bomb_state.was_1vx = false;
 			ResetBombSites();
 			G_ResetLevel();
 			SpawnBomb();
 			SpawnBombHUD();
 			ResetKillCounters();
-			RespawnAllPlayers( false );
+			GhostEveryone();
+			SpawnTeams( &bomb_state.respawn_queues );
 			DisableMovement();
 			SetRoundType();
 			BombGiveToRandom();
 			G_SpawnEvent( EV_FLASH_WINDOW, 0, NULL );
+			G_SunCycle( 3000 );
 		} break;
 
 		case RoundState_Round: {
@@ -942,6 +814,8 @@ static void RoundThink() {
 	if( server_gs.gameState.round_state == RoundState_None ) {
 		return;
 	}
+
+	RemoveDisconnectedPlayersFromRespawnQueues( &bomb_state.respawn_queues );
 
 	if( server_gs.gameState.round_state == RoundState_Countdown ) {
 		int remaining_seconds = int( ( bomb_state.round_state_end - level.time ) * 0.001f ) + 1;
@@ -1097,6 +971,14 @@ static void Bomb_PlayerRespawning( edict_t * ent ) {
 }
 
 static void Bomb_PlayerRespawned( edict_t * ent, Team old_team, Team new_team ) {
+	if( old_team != new_team ) {
+		RemovePlayerFromRespawnQueues( &bomb_state.respawn_queues, PLAYERNUM( ent ) );
+
+		if( new_team != Team_None ) {
+			EnqueueRespawn( &bomb_state.respawn_queues, new_team, PLAYERNUM( ent ) );
+		}
+	}
+
 	MatchState match_state = server_gs.gameState.match_state;
 	RoundState round_state = server_gs.gameState.round_state;
 
@@ -1216,15 +1098,15 @@ static void Bomb_Init() {
 	bomb_state.carrier = -1;
 	bomb_state.defuser = -1;
 
+	InitRespawnQueues( &bomb_state.respawn_queues );
+
 	G_AddCommand( ClientCommand_DropBomb, []( edict_t * ent, msg_t args ) {
 		if( PLAYERNUM( ent ) == bomb_state.carrier && bomb_state.bomb.state == BombState_Carried ) {
 			DropBomb( BombDropReason_Normal );
 		}
 	} );
 
-	G_AddCommand( ClientCommand_LoadoutMenu, []( edict_t * ent, msg_t args ) {
-		ShowShop( ent );
-	} );
+	G_AddCommand( ClientCommand_LoadoutMenu, ShowShop );
 
 	G_AddCommand( ClientCommand_SetLoadout, []( edict_t * ent, msg_t args ) {
 		SetLoadout( ent, MSG_ReadString( &args ), false );
@@ -1232,8 +1114,6 @@ static void Bomb_Init() {
 
 	g_bomb_roundtime = NewCvar( "g_bomb_roundtime", "61", CvarFlag_Archive );
 	g_bomb_bombtimer = NewCvar( "g_bomb_bombtimer", "30", CvarFlag_Archive );
-	g_bomb_armtime = NewCvar( "g_bomb_armtime", "1", CvarFlag_Archive );
-	g_bomb_defusetime = NewCvar( "g_bomb_defusetime", "4", CvarFlag_Archive );
 }
 
 static bool Bomb_SpawnEntity( StringHash classname, edict_t * ent ) {

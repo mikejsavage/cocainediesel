@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/maplist.h"
 #include "qcommon/string.h"
 
+static constexpr size_t MAX_CONFIGSTRING_CHARS = 64; // TODO: figure this out properly. max map name length too
+
 static Optional< bool > clientVote[MAX_CLIENTS];
 static s64 lastclientVote[MAX_CLIENTS];
 
@@ -38,7 +40,6 @@ struct callvotetype_t;
 
 struct callvotedata_t {
 	edict_t *caller;
-	bool operatorcall;
 	const callvotetype_t *callvote;
 	int argc;
 	char *argv[MAX_STRING_TOKENS];
@@ -72,7 +73,7 @@ static void ListPlayersExcept( edict_t * ent, String< MAX_STRING_CHARS > * msg, 
 			continue;
 		if( !include_specs && e->s.team == Team_None )
 			continue;
-		msg->append( "\n{}: {}", i, e->r.client->netname );
+		msg->append( "\n{}: {}", i, e->r.client->name );
 	}
 }
 
@@ -86,7 +87,7 @@ static void G_VoteMapExtraHelp( edict_t * ent, String< MAX_STRING_CHARS > * msg 
 
 	msg->append( "\n- Available maps:" );
 
-	Span< const char * > maps = GetMapList();
+	Span< const char * const > maps = GetMapList();
 	for( const char * map : maps ) {
 		msg->append( " {}", map );
 	}
@@ -104,7 +105,7 @@ static bool G_VoteMapValidate( callvotedata_t *data, bool first ) {
 		return false;
 	}
 
-	Q_strncpyz( mapname, data->argv[0], sizeof( mapname ) );
+	SafeStrCpy( mapname, data->argv[0], sizeof( mapname ) );
 	COM_SanitizeFilePath( mapname );
 
 	if( StrEqual( sv.mapname, mapname ) ) {
@@ -128,7 +129,7 @@ static bool G_VoteMapValidate( callvotedata_t *data, bool first ) {
 }
 
 static void G_VoteMapPassed( callvotedata_t *vote ) {
-	Q_strncpyz( level.callvote_map, vote->argv[0], sizeof( level.callvote_map ) );
+	SafeStrCpy( level.callvote_map, vote->argv[0], sizeof( level.callvote_map ) );
 	G_EndMatch();
 }
 
@@ -209,7 +210,7 @@ static bool G_VoteSpectateValidate( callvotedata_t *vote, bool first ) {
 			return false;
 		} else if( tokick->s.team == Team_None ) {
 			G_PrintMsg( vote->caller, "Player %s%s%s is already spectator.\n", S_COLOR_WHITE,
-						tokick->r.client->netname, S_COLOR_RED );
+						tokick->r.client->name, S_COLOR_RED );
 
 			return false;
 		} else {
@@ -224,7 +225,7 @@ static bool G_VoteSpectateValidate( callvotedata_t *vote, bool first ) {
 		return false;
 	}
 
-	vote->string.format( "{}", game.edicts[who + 1].r.client->netname );
+	vote->string.format( "{}", game.edicts[who + 1].r.client->name );
 	return true;
 }
 
@@ -236,8 +237,7 @@ static void G_VoteSpectatePassed( callvotedata_t *vote ) {
 		return;
 	}
 
-	G_PrintMsg( NULL, "Player %s%s moved to spectators %s%s.\n", ent->r.client->netname, S_COLOR_WHITE,
-				GS_TeamName( ent->s.team ), S_COLOR_WHITE );
+	G_PrintMsg( NULL, "%s moved to spectator.\n", ent->r.client->name );
 
 	G_Teams_SetTeam( ent, Team_None );
 }
@@ -264,11 +264,6 @@ static bool G_VoteKickValidate( callvotedata_t *vote, bool first ) {
 		}
 
 		if( who != -1 ) {
-			if( game.edicts[who + 1].r.client->isoperator ) {
-				G_PrintMsg( vote->caller, S_COLOR_RED "%s is a game operator.\n", game.edicts[who + 1].r.client->netname );
-				return false;
-			}
-
 			// we save the player id to be kicked, so we don't later get
 			//confused by new ids or players changing names
 			vote->target = who;
@@ -283,7 +278,7 @@ static bool G_VoteKickValidate( callvotedata_t *vote, bool first ) {
 	if( !game.edicts[who + 1].r.inuse )
 		return false;
 
-	vote->string.format( "{}", game.edicts[who + 1].r.client->netname );
+	vote->string.format( "{}", game.edicts[who + 1].r.client->name );
 	return true;
 }
 
@@ -301,7 +296,7 @@ static void G_VoteKickPassed( callvotedata_t *vote ) {
 * timeout
 */
 static bool G_VoteTimeoutValidate( callvotedata_t *vote, bool first ) {
-	if( GS_MatchPaused( &server_gs ) && ( level.timeout.endtime - level.timeout.time ) >= 2 * TIMEIN_TIME ) {
+	if( server_gs.gameState.paused && ( level.timeout.endtime - level.timeout.time ) >= 2 * TIMEIN_TIME ) {
 		if( first ) {
 			G_PrintMsg( vote->caller, "%sTimeout already in progress\n", S_COLOR_RED );
 		}
@@ -312,7 +307,7 @@ static bool G_VoteTimeoutValidate( callvotedata_t *vote, bool first ) {
 }
 
 static void G_VoteTimeoutPassed( callvotedata_t *vote ) {
-	G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, true );
+	server_gs.gameState.paused = true;
 	level.timeout.caller = Team_None;
 	level.timeout.endtime = level.timeout.time + TIMEOUT_TIME + FRAMETIME;
 }
@@ -321,7 +316,7 @@ static void G_VoteTimeoutPassed( callvotedata_t *vote ) {
 * timein
 */
 static bool G_VoteTimeinValidate( callvotedata_t *vote, bool first ) {
-	if( !GS_MatchPaused( &server_gs ) ) {
+	if( !server_gs.gameState.paused ) {
 		if( first ) {
 			G_PrintMsg( vote->caller, "%sNo timeout in progress\n", S_COLOR_RED );
 		}
@@ -340,6 +335,35 @@ static bool G_VoteTimeinValidate( callvotedata_t *vote, bool first ) {
 
 static void G_VoteTimeinPassed( callvotedata_t *vote ) {
 	level.timeout.endtime = level.timeout.time + TIMEIN_TIME + FRAMETIME;
+}
+
+/*
+ * forceeven
+ */
+static bool G_VoteForceEvenValidate( callvotedata_t * vote, bool first ) {
+	if( StrEqual( vote->argv[ 0 ], "0" ) ) {
+		if( !Cvar_Bool( "g_force_even_teams" ) ) {
+			G_PrintMsg( vote->caller, S_COLOR_RED "Already off\n" );
+			return false;
+		}
+
+		return true;
+	}
+
+	if( StrEqual( vote->argv[ 0 ], "1" ) ) {
+		if( !Cvar_Bool( "g_force_even_teams" ) ) {
+			G_PrintMsg( vote->caller, S_COLOR_RED "Already on\n" );
+			return false;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+static void G_VoteForceEvenPassed( callvotedata_t * vote ) {
+	Cvar_Set( "g_force_even_teams", vote->argv[ 0 ] );
 }
 
 //===================================================================
@@ -412,6 +436,17 @@ static callvotetype_t votes[] = {
 		NULL,
 		"Resumes the game if in timeout",
 	},
+
+	{
+		"forceeven",
+		0,
+		G_VoteForceEvenValidate,
+		G_VoteForceEvenPassed,
+		NULL,
+		NULL,
+		NULL,
+		"Force even teams",
+	},
 };
 
 void G_CallVotes_ResetClient( int n ) {
@@ -438,7 +473,7 @@ static void G_CallVotes_Reset( bool vote_happened ) {
 		}
 	}
 
-	Q_strncpyz( server_gs.gameState.callvote, "", sizeof( server_gs.gameState.callvote ) );
+	SafeStrCpy( server_gs.gameState.callvote, "", sizeof( server_gs.gameState.callvote ) );
 
 	server_gs.gameState.callvote_required_votes = 0;
 	server_gs.gameState.callvote_yes_votes = 0;
@@ -489,32 +524,24 @@ static const char *G_CallVotes_ArgsToString( const callvotedata_t *vote ) {
 	argstring[0] = 0;
 
 	if( vote->argc > 0 ) {
-		Q_strncatz( argstring, vote->argv[0], sizeof( argstring ) );
+		SafeStrCat( argstring, vote->argv[0], sizeof( argstring ) );
 	}
 	for( int i = 1; i < vote->argc; i++ ) {
-		Q_strncatz( argstring, " ", sizeof( argstring ) );
-		Q_strncatz( argstring, vote->argv[i], sizeof( argstring ) );
+		SafeStrCat( argstring, " ", sizeof( argstring ) );
+		SafeStrCat( argstring, vote->argv[i], sizeof( argstring ) );
 	}
 
 	return argstring;
 }
 
 static const char *G_CallVotes_Arguments( const callvotedata_t *vote ) {
-	const char *arguments;
-	if( vote->string.length() > 0 ) {
-		arguments = vote->string.c_str();
-	} else {
-		arguments = G_CallVotes_ArgsToString( vote );
-	}
-	return arguments;
+	return vote->string.length() > 0 ? vote->string.c_str() : G_CallVotes_ArgsToString( vote );
 }
 
 static const char *G_CallVotes_String( const callvotedata_t *vote ) {
-	const char *arguments;
-	static char string[MAX_CONFIGSTRING_CHARS];
-
-	arguments = G_CallVotes_Arguments( vote );
-	if( arguments[0] ) {
+	static char string[ MAX_CONFIGSTRING_CHARS ];
+	const char * arguments = G_CallVotes_Arguments( vote );
+	if( !StrEqual( arguments, "" ) ) {
 		snprintf( string, sizeof( string ), "%s %s", vote->callvote->name, arguments );
 		return string;
 	}
@@ -564,7 +591,7 @@ static void G_CallVotes_CheckState() {
 	}
 
 	int needvotes = int( voters * callvoteElectPercent ) + 1;
-	if( yeses >= needvotes || callvoteState.vote.operatorcall ) {
+	if( yeses >= needvotes ) {
 		G_PrintMsg( NULL, "Vote %s%s%s passed\n", S_COLOR_YELLOW, G_CallVotes_String( &callvoteState.vote ), S_COLOR_WHITE );
 		if( callvoteState.vote.callvote->execute != NULL ) {
 			callvoteState.vote.callvote->execute( &callvoteState.vote );
@@ -634,7 +661,16 @@ void G_CallVotes_Think() {
 	}
 }
 
-static void G_CallVote( edict_t *ent, bool isopcall ) {
+bool G_Callvotes_HasVoted( edict_t * ent ) {
+	return clientVote[ PLAYERNUM( ent ) ].exists;
+}
+
+void G_CallVote_Cmd( edict_t *ent, msg_t args ) {
+	Cmd_TokenizeString( MSG_ReadString( &args ) );
+	if( ent->s.svflags & SVF_FAKECLIENT ) {
+		return;
+	}
+
 	if( !g_callvote_enabled->integer ) {
 		G_PrintMsg( ent, "%sCallvoting is disabled on this server\n", S_COLOR_RED );
 		return;
@@ -667,8 +703,7 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 		return;
 	}
 
-	if( !isopcall && ent->r.client->level.callvote_when &&
-		( ent->r.client->level.callvote_when + callvoteCooldown > svs.realtime ) ) {
+	if( ent->r.client->level.callvote_when && ent->r.client->level.callvote_when + callvoteCooldown > svs.realtime ) {
 		G_PrintMsg( ent, "%sYou can not call a vote right now\n", S_COLOR_RED );
 		return;
 	}
@@ -690,7 +725,6 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 
 	callvoteState.vote.callvote = callvote;
 	callvoteState.vote.caller = ent;
-	callvoteState.vote.operatorcall = isopcall;
 
 	//validate if there's a validation func
 	if( callvote->validate != NULL && !callvote->validate( &callvoteState.vote, true ) ) {
@@ -710,111 +744,12 @@ static void G_CallVote( edict_t *ent, bool isopcall ) {
 
 	ent->r.client->level.callvote_when = callvoteState.timeout;
 
-	Q_strncpyz( server_gs.gameState.callvote, G_CallVotes_String( &callvoteState.vote ), sizeof( server_gs.gameState.callvote ) );
+	SafeStrCpy( server_gs.gameState.callvote, G_CallVotes_String( &callvoteState.vote ), sizeof( server_gs.gameState.callvote ) );
 
 	G_PrintMsg( NULL, "%s" S_COLOR_WHITE " requested to vote " S_COLOR_YELLOW "%s\n",
-				ent->r.client->netname, G_CallVotes_String( &callvoteState.vote ) );
+				ent->r.client->name, G_CallVotes_String( &callvoteState.vote ) );
 
 	G_CallVotes_Think(); // make the first think
-}
-
-bool G_Callvotes_HasVoted( edict_t * ent ) {
-	return clientVote[ PLAYERNUM( ent ) ].exists;
-}
-
-void G_CallVote_Cmd( edict_t *ent, msg_t args ) {
-	Cmd_TokenizeString( MSG_ReadString( &args ) );
-	if( ent->s.svflags & SVF_FAKECLIENT ) {
-		return;
-	}
-	G_CallVote( ent, false );
-}
-
-void G_OperatorVote_Cmd( edict_t *ent, msg_t args ) {
-	Cmd_TokenizeString( MSG_ReadString( &args ) );
-
-	edict_t *other;
-	Optional< bool > forceVote = NONE;
-
-	if( !ent->r.client ) {
-		return;
-	}
-	if( ent->s.svflags & SVF_FAKECLIENT ) {
-		return;
-	}
-
-	if( !ent->r.client->isoperator ) {
-		G_PrintMsg( ent, "You are not a game operator\n" );
-		return;
-	}
-
-	if( StrCaseEqual( Cmd_Argv( 0 ), "help" ) ) {
-		G_PrintMsg( ent, "Opcall can be used with all callvotes and the following commands:\n" );
-		G_PrintMsg( ent, "-help\n - passvote\n- cancelvote\n- putteam\n" );
-		return;
-	}
-
-	if( StrCaseEqual( Cmd_Argv( 0 ), "cancelvote" ) ) {
-		forceVote = false;
-	} else if( StrCaseEqual( Cmd_Argv( 0 ), "passvote" ) ) {
-		forceVote = true;
-	}
-
-	if( forceVote.exists ) {
-		if( !callvoteState.vote.callvote ) {
-			G_PrintMsg( ent, "There's no callvote to cancel.\n" );
-			return;
-		}
-
-		for( other = game.edicts + 1; PLAYERNUM( other ) < server_gs.maxclients; other++ ) {
-			if( !other->r.inuse || PF_GetClientState( PLAYERNUM( other ) ) < CS_SPAWNED ) {
-				continue;
-			}
-			if( other->s.svflags & SVF_FAKECLIENT ) {
-				continue;
-			}
-
-			clientVote[PLAYERNUM( other )] = forceVote;
-		}
-
-		G_PrintMsg( NULL, "Callvote has been %s by %s\n",
-					forceVote.value == false ? "cancelled" : "passed", ent->r.client->netname );
-		return;
-	}
-
-	if( StrCaseEqual( Cmd_Argv( 0 ), "putteam" ) ) {
-		const char *splayer = Cmd_Argv( 1 );
-		const char *steam = Cmd_Argv( 2 );
-		edict_t *playerEnt;
-		Team newTeam;
-
-		if( !steam || !steam[0] || !splayer || !splayer[0] ) {
-			G_PrintMsg( ent, "Usage 'putteam <player id > <team name>'.\n" );
-			return;
-		}
-
-		if( ( newTeam = GS_TeamFromName( steam ) ) < 0 ) {
-			G_PrintMsg( ent, "The team '%s' doesn't exist.\n", steam );
-			return;
-		}
-
-		if( ( playerEnt = G_PlayerForText( splayer ) ) == NULL ) {
-			G_PrintMsg( ent, "The player '%s' couldn't be found.\n", splayer );
-			return;
-		}
-
-		if( playerEnt->s.team == newTeam ) {
-			G_PrintMsg( ent, "The player '%s' is already in team '%s'.\n", playerEnt->r.client->netname, GS_TeamName( newTeam ) );
-			return;
-		}
-
-		G_Teams_SetTeam( playerEnt, newTeam );
-		G_PrintMsg( NULL, "%s was moved to team %s by %s.\n", playerEnt->r.client->netname, GS_TeamName( newTeam ), ent->r.client->netname );
-
-		return;
-	}
-
-	G_CallVote( ent, true );
 }
 
 void G_CallVotes_Init() {

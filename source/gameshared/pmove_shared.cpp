@@ -43,11 +43,8 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, fl
 		if( trace.normal == Vec3( 0.0f ) )
 			return;
 
-		if( trace.ent > 0 ) {
-			const SyncEntityState * state = pmove_gs->api.GetEntityState( trace.ent, 0 );
-			if( state->type == ET_PLAYER )
-				continue;
-		}
+		if( trace.solidity & Solid_Player )
+			continue;
 
 		if( dist > trace.fraction && Abs( trace.normal.z ) < maxZnormal ) {
 			dist = trace.fraction;

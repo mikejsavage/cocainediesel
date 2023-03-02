@@ -27,20 +27,17 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/threadpool.h"
 #include "client/demo_browser.h"
 #include "client/server_browser.h"
+#include "client/livepp.h"
 #include "client/renderer/renderer.h"
 #include "server/server.h"
 #include "qcommon/compression.h"
 #include "qcommon/csprng.h"
 #include "qcommon/hash.h"
 #include "qcommon/fs.h"
-#include "qcommon/livepp.h"
 #include "qcommon/string.h"
 #include "qcommon/time.h"
 #include "qcommon/version.h"
 #include "gameshared/gs_public.h"
-
-Cvar *rcon_client_password;
-Cvar *rcon_address;
 
 Cvar *cl_timeout;
 Cvar *cl_maxfps;
@@ -108,7 +105,7 @@ void CL_ServerDisconnect_f() {
 	char menuparms[MAX_STRING_CHARS];
 	char reason[MAX_STRING_CHARS];
 
-	Q_strncpyz( reason, Cmd_Argv( 1 ), sizeof( reason ) );
+	SafeStrCpy( reason, Cmd_Argv( 1 ), sizeof( reason ) );
 
 	CL_Disconnect_f();
 
@@ -170,8 +167,6 @@ void CL_Connect( const NetAddress & address ) {
 
 	cls.serveraddress = address;
 
-	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
-
 	CL_SetClientState( CA_CONNECTING );
 
 	cls.connect_time = NONE; // CL_CheckForResend() will fire immediately
@@ -214,70 +209,9 @@ static void CL_Connect_f() {
 }
 
 
-/*
-* CL_Rcon_f
-*
-* Send the rest of the command line over as
-* an unconnected command.
-*/
-static void CL_Rcon_f() {
-	if( CL_DemoPlaying() ) {
-		return;
-	}
-
-	if( rcon_client_password->value[0] == '\0' ) {
-		Com_Printf( "You must set 'rcon_password' before issuing an rcon command.\n" );
-		return;
-	}
-
-	char message[1024];
-	message[0] = (uint8_t)255;
-	message[1] = (uint8_t)255;
-	message[2] = (uint8_t)255;
-	message[3] = (uint8_t)255;
-	message[4] = 0;
-
-	// wsw : jal : check for msg len abuse (thx to r1Q2)
-	if( strlen( Cmd_Args() ) + strlen( rcon_client_password->value ) + 16 >= sizeof( message ) ) {
-		Com_Printf( "Length of password + command exceeds maximum allowed length.\n" );
-		return;
-	}
-
-	Q_strncatz( message, "rcon ", sizeof( message ) );
-
-	Q_strncatz( message, rcon_client_password->value, sizeof( message ) );
-	Q_strncatz( message, " ", sizeof( message ) );
-	Q_strncatz( message, Cmd_Args(), sizeof( message ) );
-
-	NetAddress address = cls.netchan.remoteAddress;
-	if( cls.state < CA_CONNECTED ) {
-		if( !strlen( rcon_address->value ) ) {
-			Com_Printf( "You must be connected, or set the 'rcon_address' cvar to issue rcon commands\n" );
-			return;
-		}
-
-		if( rcon_address->modified ) {
-			TempAllocator temp = cls.frame_arena.temp();
-
-			u16 port;
-			const char * hostname = SplitIntoHostnameAndPort( &temp, rcon_address->value, &port );
-
-			if( !DNS( hostname, &cls.rconaddress ) ) {
-				Com_Printf( "Bad rcon_address.\n" );
-				return; // we don't clear modified, so it will whine the next time too
-			}
-			cls.rconaddress.port = port == 0 ? PORT_SERVER : 0;
-
-			rcon_address->modified = false;
-		}
-
-		address = cls.rconaddress;
-	}
-
-	UDPSend( cls.socket, address, message, strlen( message ) + 1 );
-}
-
 void CL_ClearState() {
+	TracyZoneScoped;
+
 	// wipe the entire cl structure
 	memset( &cl, 0, sizeof( client_state_t ) );
 	memset( cl_baselines, 0, sizeof( cl_baselines ) );
@@ -380,8 +314,6 @@ void CL_Disconnect_f() {
 void CL_Changing_f() {
 	CL_StopRecording( true );
 
-	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
-
 	// ignore snapshots from previous connection
 	cl.pendingSnapNum = cl.currentSnapNum = cl.receivedSnapNum = 0;
 
@@ -417,7 +349,6 @@ void CL_ServerReconnect_f() {
 
 	cls.connect_time = cls.monotonicTime;
 
-	memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 	CL_SetClientState( CA_HANDSHAKE );
 	CL_AddReliableCommand( ClientCommand_New );
 }
@@ -477,14 +408,13 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 			return;
 		}
 		if( address != cls.serveraddress ) {
-			assert( is_public_build );
+			Assert( is_public_build );
 			return;
 		}
 
 		cls.rejected = false;
 
 		Netchan_Setup( &cls.netchan, address, cls.session_id );
-		memset( cl.configstrings, 0, sizeof( cl.configstrings ) );
 		CL_SetClientState( CA_HANDSHAKE );
 		CL_AddReliableCommand( ClientCommand_New );
 		return;
@@ -499,7 +429,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 			return;
 		}
 		if( address != cls.serveraddress ) {
-			assert( is_public_build );
+			Assert( is_public_build );
 			return;
 		}
 
@@ -507,7 +437,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 
 		rejectflag = atoi( MSG_ReadStringLine( msg ) );
 
-		Q_strncpyz( cls.rejectmessage, MSG_ReadStringLine( msg ), sizeof( cls.rejectmessage ) );
+		SafeStrCpy( cls.rejectmessage, MSG_ReadStringLine( msg ), sizeof( cls.rejectmessage ) );
 		if( strlen( cls.rejectmessage ) > sizeof( cls.rejectmessage ) - 2 ) {
 			cls.rejectmessage[strlen( cls.rejectmessage ) - 2] = '.';
 			cls.rejectmessage[strlen( cls.rejectmessage ) - 1] = '.';
@@ -531,21 +461,6 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 		return;
 	}
 
-	// print command from somewhere
-	if( StrEqual( c, "print" ) ) {
-		// CA_CONNECTING is allowed, because old servers send protocol mismatch connection error message with it
-		if( ( ( cls.state != CA_UNINITIALIZED && cls.state != CA_DISCONNECTED ) &&
-			  address == cls.serveraddress ) ||
-			( rcon_address->value[0] != '\0' && address == cls.rconaddress ) ) {
-			s = MSG_ReadString( msg );
-			Com_Printf( "%s", s );
-			return;
-		} else {
-			Com_Printf( "Print packet from unknown host, ignored\n" );
-			return;
-		}
-	}
-
 	// challenge from the server we are connecting to
 	if( StrEqual( c, "challenge" ) ) {
 		// these two are from Q3
@@ -554,7 +469,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 			return;
 		}
 		if( address != cls.serveraddress ) {
-			assert( is_public_build );
+			Assert( is_public_build );
 			return;
 		}
 
@@ -567,7 +482,7 @@ static void CL_ConnectionlessPacket( const NetAddress & address, msg_t * msg ) {
 		return;
 	}
 
-	assert( is_public_build );
+	Assert( is_public_build );
 }
 
 static bool CL_ProcessPacket( netchan_t * netchan, msg_t * msg ) {
@@ -580,12 +495,9 @@ static bool CL_ProcessPacket( netchan_t * netchan, msg_t * msg ) {
 	MSG_ReadInt32( msg ); // sequence
 	MSG_ReadInt32( msg ); // sequence_ack
 	MSG_ReadUint64( msg ); // session_id
+
 	if( msg->compressed ) {
-		int zerror = Netchan_DecompressMessage( msg );
-		if( zerror < 0 ) {
-			// compression error. Drop the packet
-			return false;
-		}
+		return Netchan_DecompressMessage( msg );
 	}
 
 	return true;
@@ -602,7 +514,7 @@ void CL_ReadPackets() {
 	msg_t msg = NewMSGReader( data, bytes_received, sizeof( data ) );
 
 	// remote command packet
-	if( *(int *)msg.data == -1 ) {
+	if( MSG_ReadInt32( &msg ) == -1 ) {
 		CL_ConnectionlessPacket( source, &msg );
 		return;
 	}
@@ -621,7 +533,7 @@ void CL_ReadPackets() {
 	}
 
 	if( source != cls.netchan.remoteAddress ) {
-		assert( is_public_build );
+		Assert( is_public_build );
 		return;
 	}
 
@@ -793,15 +705,12 @@ static void CL_InitLocal() {
 
 	cl_hotloadAssets = NewCvar( "cl_hotloadAssets", is_public_build ? "0" : "1", CvarFlag_Archive );
 
-	cl_shownet = NewCvar( "cl_shownet", "0", 0 );
-	cl_timeout = NewCvar( "cl_timeout", "120", 0 );
-
-	rcon_client_password = NewCvar( "rcon_password", "", 0 );
-	rcon_address = NewCvar( "rcon_address", "", 0 );
+	cl_shownet = NewCvar( "cl_shownet", "0" );
+	cl_timeout = NewCvar( "cl_timeout", "120" );
 
 	// wsw : debug netcode
 	cl_debug_serverCmd = NewCvar( "cl_debug_serverCmd", "0", CvarFlag_Cheat );
-	cl_debug_timeDelta = NewCvar( "cl_debug_timeDelta", "0", 0 /*CvarFlag_Cheat*/ );
+	cl_debug_timeDelta = NewCvar( "cl_debug_timeDelta", "0", CvarFlags( 0 ) /*CvarFlag_Cheat*/ );
 
 	cl_devtools = NewCvar( "cl_devtools", "0", CvarFlag_Archive );
 
@@ -837,7 +746,6 @@ static void CL_InitLocal() {
 	AddCommand( "yolodemo", CL_YoloDemo_f );
 	AddCommand( "demopause", CL_PauseDemo_f );
 	AddCommand( "demojump", CL_DemoJump_f );
-	AddCommand( "rcon", CL_Rcon_f );
 
 	SetTabCompletionCallback( "demo", TabCompleteDemo );
 	SetTabCompletionCallback( "yolodemo", TabCompleteDemo );
@@ -856,7 +764,6 @@ static void CL_ShutdownLocal() {
 	RemoveCommand( "yolodemo" );
 	RemoveCommand( "demopause" );
 	RemoveCommand( "demojump" );
-	RemoveCommand( "rcon" );
 }
 
 //============================================================================
@@ -1231,7 +1138,7 @@ void CL_Init() {
 	cls.monotonicTime = { };
 	cls.shadertoy_time = { };
 
-	assert( !cl_initialized );
+	Assert( !cl_initialized );
 
 	cl_initialized = true;
 

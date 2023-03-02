@@ -89,7 +89,7 @@ static void LoadGLTF( const char * path ) {
 
 	u64 idx = num_gltf_models;
 	if( !gltf_models_hashtable.get( hash, &idx ) ) {
-		assert( num_gltf_models < ARRAY_COUNT( gltf_models ) );
+		Assert( num_gltf_models < ARRAY_COUNT( gltf_models ) );
 		gltf_models_hashtable.add( hash, num_gltf_models );
 		num_gltf_models++;
 	}

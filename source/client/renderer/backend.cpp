@@ -3,6 +3,7 @@
 
 #include "glad/glad.h"
 
+#include "tracy/Tracy.hpp"
 #include "tracy/TracyOpenGL.hpp"
 
 #include "qcommon/base.h"
@@ -112,7 +113,7 @@ static GLenum DepthFuncToGL( DepthFunc depth_func ) {
 			return GL_ALWAYS;
 	}
 
-	assert( false );
+	Assert( false );
 	return GL_INVALID_ENUM;
 }
 
@@ -190,7 +191,7 @@ static void TextureFormatToGL( TextureFormat format, GLenum * internal, GLenum *
 			return;
 	}
 
-	assert( false );
+	Assert( false );
 }
 
 static GLenum TextureWrapToGL( TextureWrap wrap ) {
@@ -205,7 +206,7 @@ static GLenum TextureWrapToGL( TextureWrap wrap ) {
 			return GL_CLAMP_TO_BORDER;
 	}
 
-	assert( false );
+	Assert( false );
 	return GL_INVALID_ENUM;
 }
 
@@ -222,7 +223,7 @@ static void TextureFilterToGL( TextureFilter filter, GLenum * min, GLenum * mag 
 			return;
 	}
 
-	assert( false );
+	Assert( false );
 }
 
 static u32 GLTypeSize( GLenum type ) {
@@ -234,7 +235,7 @@ static u32 GLTypeSize( GLenum type ) {
 			return 4;
 	}
 
-	assert( false );
+	Assert( false );
 	return 0;
 }
 
@@ -311,7 +312,7 @@ static void VertexFormatToGL( VertexFormat format, GLenum * type, int * num_comp
 			break;
 
 		default:
-			assert( false );
+			Assert( false );
 	}
 
 	if( stride != NULL ) {
@@ -387,7 +388,7 @@ static void DebugOutputCallback(
 }
 
 static void DebugLabel( GLenum type, GLuint object, const char * label ) {
-	assert( label != NULL );
+	Assert( label != NULL );
 	glObjectLabel( type, object, -1, label );
 }
 
@@ -399,7 +400,7 @@ static void PlotVRAMUsage() {
 		GLint available_vram;
 		glGetIntegerv( GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &available_vram );
 
-		TracyCPlot( "VRAM usage", s64( total_vram - available_vram ) );
+		TracyPlotSample( "VRAM usage", s64( total_vram - available_vram ) );
 	}
 }
 
@@ -437,7 +438,7 @@ void InitRenderBackend() {
 			{ "GL_EXT_texture_sRGB_decode", GLAD_GL_EXT_texture_sRGB_decode },
 		};
 
-		String< 1024 > missing_extensions( "Your GPU doesn't have some required OpenGL extensions:" );
+		String< 1024 > missing_extensions( "Your GPU is insane and doesn't have some required OpenGL extensions:" );
 		bool any_missing = false;
 		for( auto ext : required_extensions ) {
 			if( ext.loaded == 0 ) {
@@ -453,7 +454,7 @@ void InitRenderBackend() {
 		GLint vert_buffers;
 		glGetIntegerv( GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS, &vert_buffers );
 		if( vert_buffers >= 0 && size_t( vert_buffers ) < ARRAY_COUNT( &Shader::buffers ) ) {
-			Fatal( "GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS too small" );
+			Fatal( "Your GPU is too old, GL_MAX_VERTEX_SHADER_STORAGE_BLOCKS is too small" );
 		}
 	}
 
@@ -465,7 +466,7 @@ void InitRenderBackend() {
 
 			glEnable( GL_DEBUG_OUTPUT );
 			glEnable( GL_DEBUG_OUTPUT_SYNCHRONOUS );
-			glDebugMessageCallback( ( GLDEBUGPROC ) DebugOutputCallback, NULL );
+			glDebugMessageCallback( DebugOutputCallback, NULL );
 			glDebugMessageControl( GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, NULL, GL_TRUE );
 		}
 	}
@@ -506,7 +507,7 @@ void InitRenderBackend() {
 
 	GLint max_ubo_size;
 	glGetIntegerv( GL_MAX_UNIFORM_BLOCK_SIZE, &max_ubo_size );
-	assert( max_ubo_size >= s32( UNIFORM_BUFFER_SIZE ) );
+	Assert( max_ubo_size >= s32( UNIFORM_BUFFER_SIZE ) );
 
 	for( size_t i = 0; i < ARRAY_COUNT( ubos ); i++ ) {
 		TempAllocator temp = cls.frame_arena.temp();
@@ -528,6 +529,12 @@ void ShutdownRenderBackend() {
 
 	RunDeferredDeletes();
 
+	for( GLsync fence : fences ) {
+		if( fence != 0 ) {
+			glDeleteSync( fence );
+		}
+	}
+
 	render_passes.shutdown();
 	draw_calls.shutdown();
 
@@ -539,7 +546,7 @@ void ShutdownRenderBackend() {
 void RenderBackendBeginFrame() {
 	TracyZoneScoped;
 
-	assert( !in_frame );
+	Assert( !in_frame );
 	in_frame = true;
 
 	render_passes.clear();
@@ -806,7 +813,18 @@ static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexForma
 	glEnableVertexArrayAttrib( vao, index );
 	glVertexArrayVertexBuffer( vao, index, buffer, 0, stride );
 	if( integral && !normalized ) {
-		glVertexArrayAttribIFormat( vao, index, num_components, type, offset );
+		/*
+		 * wintel driver ignores the type and treats everything as u32
+		 * non-DSA call works fine so fall back to that here
+		 *
+		 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
+		 *
+		 * glVertexArrayAttribIFormat( vao, index, num_components, type, offset );
+		 */
+
+		glBindVertexArray( vao );
+		glVertexAttribIFormat( index, num_components, type, offset );
+		glBindVertexArray( 0 );
 	}
 	else {
 		glVertexArrayAttribFormat( vao, index, num_components, type, normalized, offset );
@@ -1019,8 +1037,8 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 void RenderBackendSubmitFrame() {
 	TracyZoneScoped;
 
-	assert( in_frame );
-	assert( render_passes.size() > 0 );
+	Assert( in_frame );
+	Assert( render_passes.size() > 0 );
 	in_frame = false;
 
 	{
@@ -1069,16 +1087,16 @@ void RenderBackendSubmitFrame() {
 	for( const UBO & ubo : ubos ) {
 		ubo_bytes_used += ubo.bytes_used;
 	}
-	TracyCPlot( "UBO utilisation", float( ubo_bytes_used ) / float( UNIFORM_BUFFER_SIZE * ARRAY_COUNT( ubos ) ) );
+	TracyPlotSample( "UBO utilisation", float( ubo_bytes_used ) / float( UNIFORM_BUFFER_SIZE * ARRAY_COUNT( ubos ) ) );
 
-	TracyCPlot( "Draw calls", s64( draw_calls.size() ) );
-	TracyCPlot( "Vertices", s64( num_vertices_this_frame ) );
+	TracyPlotSample( "Draw calls", s64( draw_calls.size() ) );
+	TracyPlotSample( "Vertices", s64( num_vertices_this_frame ) );
 
 	TracyGpuCollect;
 }
 
 UniformBlock UploadUniforms( const void * data, size_t size ) {
-	assert( in_frame );
+	Assert( in_frame );
 
 	UBO * ubo = NULL;
 	u32 offset = 0;
@@ -1211,13 +1229,14 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 	glTextureParameteri( texture.texture, GL_TEXTURE_MIN_FILTER, min_filter );
 	glTextureParameteri( texture.texture, GL_TEXTURE_MAG_FILTER, mag_filter );
 	glTextureParameteri( texture.texture, GL_TEXTURE_MAX_LEVEL, config.num_mipmaps - 1 );
+	glTextureParameterf( texture.texture, GL_TEXTURE_LOD_BIAS, -1.0f );
 
 	if( config.wrap == TextureWrap_Border ) {
 		glTextureParameterfv( texture.texture, GL_TEXTURE_BORDER_COLOR, config.border_color.ptr() );
 	}
 
 	if( !CompressedTextureFormat( config.format ) ) {
-		assert( config.num_mipmaps == 1 );
+		Assert( config.num_mipmaps == 1 );
 
 		if( channels == GL_RED ) {
 			if( config.format == TextureFormat_A_U8 ) {
@@ -1246,7 +1265,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 		}
 	}
 	else {
-		assert( config.data != NULL );
+		Assert( config.data != NULL );
 
 		glTextureParameterf( texture.texture, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropic_filtering );
 
@@ -1262,7 +1281,7 @@ static Texture NewTextureSamples( TextureConfig config, int msaa_samples ) {
 			u32 w = config.width >> i;
 			u32 h = config.height >> i;
 			u32 size = ( BitsPerPixel( config.format ) * w * h ) / 8;
-			assert( size < S32_MAX );
+			Assert( size < S32_MAX );
 
 			glCompressedTextureSubImage2D( texture.texture, i, 0, 0,
 				w, h, internal_format, size, cursor );
@@ -1305,7 +1324,7 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 	}
 
 	if( !CompressedTextureFormat( config.format ) ) {
-		assert( config.num_mipmaps == 1 );
+		Assert( config.num_mipmaps == 1 );
 
 		if( channels == GL_RED ) {
 			if( config.format == TextureFormat_A_U8 ) {
@@ -1341,7 +1360,7 @@ TextureArray NewTextureArray( const TextureArrayConfig & config ) {
 			u32 w = config.width >> i;
 			u32 h = config.height >> i;
 			u32 size = ( BitsPerPixel( config.format ) * w * h * config.layers ) / 8;
-			assert( size < S32_MAX );
+			Assert( size < S32_MAX );
 
 			glCompressedTextureSubImage3D( ta.texture, i, 0, 0, 0,
 				w, h, config.layers, internal_format, size, cursor );
@@ -1402,8 +1421,8 @@ Framebuffer NewFramebuffer( const FramebufferConfig & config ) {
 
 	glNamedFramebufferDrawBuffers( fb.fbo, ARRAY_COUNT( bufs ), bufs );
 
-	assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
-	assert( width > 0 && height > 0 );
+	Assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	Assert( width > 0 && height > 0 );
 
 	fb.width = width;
 	fb.height = height;
@@ -1441,8 +1460,8 @@ Framebuffer NewFramebuffer( Texture * albedo_texture, Texture * mask_texture, Te
 	}
 	glNamedFramebufferDrawBuffers( fb.fbo, ARRAY_COUNT( bufs ), bufs );
 
-	assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
-	assert( width > 0 && height > 0 );
+	Assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	Assert( width > 0 && height > 0 );
 
 	fb.width = width;
 	fb.height = height;
@@ -1457,7 +1476,7 @@ Framebuffer NewShadowFramebuffer( TextureArray texture_array, u32 layer ) {
 
 	glNamedFramebufferTextureLayer( fb.fbo, GL_DEPTH_ATTACHMENT, texture_array.texture, 0, layer );
 
-	assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
+	Assert( glCheckNamedFramebufferStatus( fb.fbo, GL_FRAMEBUFFER ) == GL_FRAMEBUFFER_COMPLETE );
 
 	fb.width = frame_static.shadow_parameters.shadowmap_res;
 	fb.height = frame_static.shadow_parameters.shadowmap_res;
@@ -1475,40 +1494,26 @@ void DeleteFramebuffer( Framebuffer fb ) {
 	DeleteTexture( fb.depth_texture );
 }
 
-#define MAX_GLSL_UNIFORM_JOINTS 100
-
-static constexpr const char * VERTEX_SHADER_PRELUDE =
-	"#define VERTEX_SHADER 1\n"
-	"#define v2f out\n";
-
-static constexpr const char * FRAGMENT_SHADER_PRELUDE =
-	"#define FRAGMENT_SHADER 1\n"
-	"#define v2f in\n";
-
-static GLuint CompileShader( GLenum type, Span< Span< const char > > srcs ) {
+static GLuint CompileShader( GLenum type, const char * body ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
-	DynamicArray< const char * > src_ptrs( &temp );
-	DynamicArray< int > src_lens( &temp );
-
-	src_ptrs.add( "#version 430 core\n" );
-	src_lens.add( -1 );
-
+	DynamicString src( &temp, "#version 450 core\n" );
 	if( type == GL_VERTEX_SHADER || type == GL_FRAGMENT_SHADER ) {
-		src_ptrs.add( type == GL_VERTEX_SHADER ? VERTEX_SHADER_PRELUDE : FRAGMENT_SHADER_PRELUDE );
-		src_lens.add( -1 );
+		constexpr const char * vertex_shader_prelude =
+			"#define VERTEX_SHADER 1\n"
+			"#define v2f out\n";
+		constexpr const char * fragment_shader_prelude =
+			"#define FRAGMENT_SHADER 1\n"
+			"#define v2f in\n";
 
-		src_ptrs.add( "#define MAX_JOINTS " STRINGIFY( MAX_GLSL_UNIFORM_JOINTS ) "\n" );
-		src_lens.add( -1 );
+		src += type == GL_VERTEX_SHADER ? vertex_shader_prelude : fragment_shader_prelude;
 	}
 
-	for( Span< const char > fragment : srcs ) {
-		src_ptrs.add( fragment.ptr );
-		src_lens.add( checked_cast< int >( fragment.n ) );
-	}
+	src += body;
 
 	GLuint shader = glCreateShader( type );
-	glShaderSource( shader, src_ptrs.size(), src_ptrs.ptr(), src_lens.ptr() );
+	const char * nice_api = src.c_str();
+	glShaderSource( shader, 1, &nice_api, NULL );
 	glCompileShader( shader );
 
 	GLint status;
@@ -1603,20 +1608,25 @@ static bool LinkShader( Shader * shader, GLuint program ) {
 	return true;
 }
 
-bool NewShader( Shader * shader, Span< Span< const char > > srcs ) {
+bool NewShader( Shader * shader, const char * src, const char * name ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	*shader = { };
 
-	GLuint vs = CompileShader( GL_VERTEX_SHADER, srcs );
+	GLuint vs = CompileShader( GL_VERTEX_SHADER, src );
 	if( vs == 0 )
 		return false;
+	DebugLabel( GL_SHADER, vs, temp( "{} [VS]", name ) );
 	defer { glDeleteShader( vs ); };
 
-	GLuint fs = CompileShader( GL_FRAGMENT_SHADER, srcs );
+	GLuint fs = CompileShader( GL_FRAGMENT_SHADER, src );
 	if( fs == 0 )
 		return false;
+	DebugLabel( GL_SHADER, fs, temp( "{} [FS]", name ) );
 	defer { glDeleteShader( fs ); };
 
 	shader->program = glCreateProgram();
+	DebugLabel( GL_PROGRAM, shader->program, name );
 	glAttachShader( shader->program, vs );
 	glAttachShader( shader->program, fs );
 
@@ -1640,15 +1650,19 @@ bool NewShader( Shader * shader, Span< Span< const char > > srcs ) {
 	return LinkShader( shader, shader->program );
 }
 
-bool NewComputeShader( Shader * shader, Span< Span< const char > > srcs ) {
+bool NewComputeShader( Shader * shader, const char * src, const char * name ) {
+	TempAllocator temp = cls.frame_arena.temp();
+
 	*shader = { };
 
-	GLuint cs = CompileShader( GL_COMPUTE_SHADER, srcs );
+	GLuint cs = CompileShader( GL_COMPUTE_SHADER, src );
 	if( cs == 0 )
 		return false;
+	DebugLabel( GL_SHADER, cs, temp( "{} [CS]", name ) );
 	defer { glDeleteShader( cs ); };
 
 	shader->program = glCreateProgram();
+	DebugLabel( GL_PROGRAM, shader->program, name );
 	glAttachShader( shader->program, cs );
 
 	return LinkShader( shader, shader->program );
@@ -1680,7 +1694,7 @@ Mesh NewMesh( MeshConfig config ) {
 		SetupAttribute( vao, config.weights.buffer, VertexAttribute_JointWeights, config.weights_format );
 	}
 	else {
-		assert( config.unified.stride != 0 );
+		Assert( config.unified.stride != 0 );
 
 		GLuint buffer = config.unified.buffer.buffer;
 		SetupAttribute( vao, buffer, VertexAttribute_Position, config.positions_format, config.unified.stride, config.unified.positions_offset );
@@ -1691,7 +1705,9 @@ Mesh NewMesh( MeshConfig config ) {
 		SetupAttribute( vao, buffer, VertexAttribute_JointWeights, config.weights_format, config.unified.stride, config.unified.weights_offset );
 	}
 
-	glVertexArrayElementBuffer( vao, config.indices.buffer );
+	if( config.indices.buffer != 0 ) {
+		glVertexArrayElementBuffer( vao, config.indices.buffer );
+	}
 
 	Mesh mesh = { };
 	mesh.num_vertices = config.num_vertices;
@@ -1735,9 +1751,9 @@ void DeferDeleteMesh( const Mesh & mesh ) {
 }
 
 void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 index_offset ) {
-	assert( in_frame );
-	assert( pipeline.pass != U8_MAX );
-	assert( pipeline.shader != NULL );
+	Assert( in_frame );
+	Assert( pipeline.pass != U8_MAX );
+	Assert( pipeline.shader != NULL );
 
 	DrawCall dc = { };
 	dc.mesh = mesh;
@@ -1750,9 +1766,9 @@ void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertic
 }
 
 void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer instance_data, u32 num_instances, InstanceType instance_type, u32 num_vertices_override, u32 index_offset ) {
-	assert( in_frame );
-	assert( pipeline.pass != U8_MAX );
-	assert( pipeline.shader != NULL );
+	Assert( in_frame );
+	Assert( pipeline.pass != U8_MAX );
+	Assert( pipeline.shader != NULL );
 
 	DrawCall dc = { };
 	dc.mesh = mesh;

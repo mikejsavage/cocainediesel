@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 static bool EntityOverlapsAnything( edict_t *ent ) {
-	SolidBits mask = ent->s.solidity ? ent->s.solidity : Solid_Solid;
+	SolidBits mask = ent->s.solidity ? ent->s.solidity : SolidMask_AnySolid;
 	trace_t trace;
 	G_Trace4D( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, ent, mask, ent->timeDelta );
 	return trace.GotNowhere();
@@ -93,7 +93,6 @@ void SV_Impact( edict_t *e1, trace_t *trace ) {
 	}
 }
 
-
 //===============================================================================
 //
 //PUSHMOVE
@@ -117,7 +116,7 @@ retry:
 	if( ent->s.solidity ) {
 		mask = ent->s.solidity;
 	} else {
-		mask = Solid_Solid;
+		mask = SolidMask_AnySolid;
 	}
 
 	G_Trace4D( &trace, start, ent->r.mins, ent->r.maxs, end, ent, mask, ent->timeDelta );
@@ -393,24 +392,11 @@ static void SV_Physics_Toss( edict_t *ent ) {
 		}
 	}
 
-	Vec3 old_origin = ent->s.origin;
-
-	if( ent->accel != 0 ) {
-		if( ent->accel < 0 && Length( ent->velocity ) < 50 ) {
-			ent->velocity = Vec3( 0.0f );
-		} else {
-			Vec3 acceldir;
-			acceldir = Normalize( ent->velocity );
-			acceldir = acceldir * ent->accel * FRAMETIME;
-			ent->velocity = ent->velocity + acceldir;
-		}
-	}
-
 	SV_CheckVelocity( ent );
 
 	// add gravity
-	if( ent->movetype != MOVETYPE_FLY && !ent->groundentity ) {
-		ent->velocity.z -= GRAVITY * FRAMETIME;
+	if( !ent->groundentity ) {
+		ent->velocity.z -= GRAVITY * FRAMETIME * ent->gravity_scale;
 	}
 
 	// move origin
@@ -422,10 +408,8 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 	trace_t trace = SV_PushEntity( ent, move );
 	if( trace.HitSomething() ) {
-		float restitution = 0.0f;
-		if( ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
-			restitution = 0.5f;
-		}
+		float restitution = ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ? 1.0f/(1.0f + ent->gravity_scale) :
+							0.0f;
 
 		Vec3 impulse = -Dot( ent->velocity, trace.normal ) * trace.normal;
 		ent->velocity += ( 1.0f + restitution ) * impulse;
@@ -434,7 +418,7 @@ static void SV_Physics_Toss( edict_t *ent ) {
 
 		// stop if on ground
 
-		if( ent->movetype == MOVETYPE_BOUNCE || ent->movetype == MOVETYPE_BOUNCEGRENADE ) {
+		if( ent->movetype != MOVETYPE_TOSS ) {
 			// stop dead on allsolid
 
 			// LA: hopefully will fix grenades bouncing down slopes
@@ -489,7 +473,7 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	Vec3 start, end;
 	trace_t trace;
 
-	SolidBits mask = ( ent->s.solidity ) ? ent->s.solidity : Solid_Solid;
+	SolidBits mask = ( ent->s.solidity ) ? ent->s.solidity : SolidMask_AnySolid;
 
 	// find its current position given the starting timeStamp
 	float endFlyTime = float( svs.gametime - ent->s.linearMovementTimeStamp ) * 0.001f;
@@ -536,12 +520,7 @@ void G_RunEntity( edict_t *ent ) {
 			break;
 		case MOVETYPE_BOUNCE:
 		case MOVETYPE_BOUNCEGRENADE:
-			SV_Physics_Toss( ent );
-			break;
 		case MOVETYPE_TOSS:
-			SV_Physics_Toss( ent );
-			break;
-		case MOVETYPE_FLY:
 			SV_Physics_Toss( ent );
 			break;
 		case MOVETYPE_LINEARPROJECTILE:

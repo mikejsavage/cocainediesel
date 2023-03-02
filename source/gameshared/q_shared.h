@@ -69,6 +69,7 @@ template< size_t N > bool operator==( const char ( &str )[ N ], Span< const char
 template< size_t N > bool operator!=( Span< const char > span, const char ( &str )[ N ] ) { return !( span == str ); }
 template< size_t N > bool operator!=( const char ( &str )[ N ], Span< const char > span ) { return !( span == str ); }
 
+bool StartsWith( Span< const char > str, Span< const char > prefix );
 bool StartsWith( Span< const char > str, const char * prefix );
 bool StartsWith( const char * str, const char * prefix );
 bool EndsWith( Span< const char > str, const char * suffix );
@@ -98,13 +99,7 @@ bool SortCStringsComparator( const char * a, const char * b );
 
 #define MAX_STRING_CHARS            1024        // max length of a string passed to Cmd_TokenizeString
 #define MAX_STRING_TOKENS           256         // max tokens resulting from Cmd_TokenizeString
-#define MAX_TOKEN_CHARS             1024        // max length of an individual token
-#define MAX_CONFIGSTRING_CHARS      64          // max length of a configstring string
-
 #define MAX_NAME_CHARS              32          // max length of a player name, not including trailing \0
-STATIC_ASSERT( MAX_NAME_CHARS <= MAX_CONFIGSTRING_CHARS );
-
-#define MAX_CHAT_BYTES              151         // max length of a chat message, including color tokens and trailing \0
 
 //=============================================
 // string colors
@@ -125,10 +120,8 @@ STATIC_ASSERT( MAX_NAME_CHARS <= MAX_CONFIGSTRING_CHARS );
 // strings
 //=============================================
 
-void Q_strncpyz( char *dest, const char *src, size_t size );
-void Q_strncatz( char *dest, const char *src, size_t size );
-
-char *Q_trim( char *s );
+void SafeStrCpy( char * dst, const char * src, size_t dst_size );
+void SafeStrCat( char * dst, const char * src, size_t dst_size );
 void RemoveTrailingZeroesFloat( char * str );
 
 //
@@ -157,7 +150,7 @@ enum sv_client_state_t {
 	CS_FREE,            // can be reused for a new connection
 	CS_ZOMBIE,          // client has been disconnected, but don't reuse
 	                    // connection for a couple seconds
-	CS_CONNECTING,      // has send a "new" command, is awaiting for fetching configstrings
+	CS_CONNECTING,      // has send a "new" command, is awaiting for fetching baselines
 	CS_CONNECTED,       // has been assigned to a client_t, but not in game yet
 	CS_SPAWNED          // client is fully in game
 };

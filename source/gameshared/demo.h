@@ -1,9 +1,9 @@
 #pragma once
 
 #include "qcommon/types.h"
-#include "qcommon/qcommon.h"
 
 struct ZSTD_CCtx_s;
+struct SyncEntityState;
 
 struct RecordDemoContext {
 	char * filename;
@@ -48,7 +48,7 @@ constexpr u32 DEMO_METADATA_VERSION = DemoMetadataVersion_Count - 1;
 constexpr const char DEMO_METADATA_MAGIC[ sizeof( DemoHeader::magic ) ] = "cddemo";
 
 bool StartRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const char * filename, unsigned int spawncount, unsigned int snapFrameTime,
-	int max_clients, const char * configstrings, SyncEntityState * baselines );
+	int max_clients, const SyncEntityState * baselines );
 void WriteDemoMessage( RecordDemoContext * ctx, msg_t msg, size_t skip = 0 );
 void StopRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const DemoMetadata & metadata );
 

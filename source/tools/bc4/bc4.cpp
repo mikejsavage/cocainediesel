@@ -2,11 +2,15 @@
 #include "qcommon/fs.h"
 #include "qcommon/span2d.h"
 #include "qcommon/string.h"
+#include "gameshared/q_shared.h"
 #include "client/renderer/dds.h"
 
 #include "rgbcx/rgbcx.h"
+
 #include "stb/stb_image.h"
 #include "stb/stb_image_resize.h"
+
+#include "zstd/zstd.h"
 
 void ShowErrorMessage( const char * msg, const char * file, int line ) {
 	printf( "%s (%s:%d)\n", msg, file, line );
@@ -34,28 +38,42 @@ static u32 MipSize( u32 w, u32 h, u32 level ) {
 	return w * h;
 }
 
+// TODO: should put this in qcommon/compression but gotta get rid of the Com_Printfs first
+static Span< u8 > Compress( Allocator * a, Span< const u8 > data ) {
+	size_t max_size = ZSTD_compressBound( data.n );
+	u8 * compressed = ALLOC_MANY( a, u8, max_size );
+	size_t compressed_size = ZSTD_compress( compressed, max_size, data.ptr, data.n, ZSTD_maxCLevel() );
+	if( ZSTD_isError( compressed_size ) ) {
+		Fatal( "ZSTD_compress: %s", ZSTD_getErrorName( compressed_size ) );
+	}
+	return Span< u8 >( compressed, compressed_size );
+}
+
 int main( int argc, char ** argv ) {
-	if( argc != 2 ) {
-		printf( "Usage: bc4 <single channel image.png>\n" );
+	if( argc != 2 && !( argc == 4 && StrEqual( argv[ 1 ], "--output-dir" ) ) ) {
+		printf( "Usage: %s [--output-dir dir] <file.png>\n", argv[ 0 ] );
 		return 1;
 	}
 
-	int w, h, comp;
-	u8 * pixels = stbi_load( argv[ 1 ], &w, &h, &comp, 1 );
-	if( pixels == NULL ) {
-		printf( "Can't load image: %s\n", stbi_failure_reason() );
-		return 1;
+	const char * png_path = argc == 2 ? argv[ 1 ] : argv[ 3 ];
+	const char * output_dir = argc == 2 ? "." : argv[ 2 ];
+
+	int w, h, num_channels;
+	u8 * png = stbi_load( png_path, &w, &h, &num_channels, 0 );
+	if( png == NULL ) {
+		Fatal( "Can't load image: %s", stbi_failure_reason() );
 	}
-	defer { stbi_image_free( pixels ); };
+	defer { stbi_image_free( png ); };
+
+	u8 * alpha_channel = ALLOC_MANY( sys_allocator, u8, w * h );
+	defer { FREE( sys_allocator, alpha_channel ); };
+	for( size_t i = 0; i < checked_cast< size_t >( w * h ); i++ ) {
+		alpha_channel[ i ] = png[ i * num_channels + num_channels - 1 ];
+	}
 
 	bool generate_mipmaps = IsPowerOf2( w ) && IsPowerOf2( h );
 	if( !generate_mipmaps ) {
-		printf( "Image isn't pow2 sized so we aren't computing mipmaps: %s\n", argv[ 1 ] );
-	}
-
-	if( comp != 1 ) {
-		printf( "Image must be single channel\n" );
-		return 1;
+		printf( "Image isn't pow2 sized so we aren't computing mipmaps: %s\n", png_path );
 	}
 
 	u32 num_levels = generate_mipmaps ? BlockFormatMipLevels( w, h ) : 1;
@@ -64,6 +82,7 @@ int main( int argc, char ** argv ) {
 		total_size += MipSize( w, h, i );
 	}
 
+	// TODO: should use the stuff in material.cpp instead of duplicating it here
 	constexpr u32 BC4BitsPerPixel = 4;
 	constexpr u32 BC4BlockSize = ( 4 * 4 * BC4BitsPerPixel ) / 8;
 
@@ -83,14 +102,13 @@ int main( int argc, char ** argv ) {
 		MipDims( &mip_w, &mip_h, w, h, i );
 
 		int ok = stbir_resize_uint8(
-			pixels, w, h, 0,
+			alpha_channel, w, h, 0,
 			resized, mip_w, mip_h, 0,
 			1
 		);
 
 		if( ok == 0 ) {
-			printf( "stb_image_resize died lol\n" );
-			return 1;
+			Fatal( "stb_image_resize died lol" );
 		}
 
 		Span2D< const u8 > mip = Span2D< u8 >( resized, mip_w, mip_h );
@@ -108,26 +126,28 @@ int main( int argc, char ** argv ) {
 		}
 	}
 
-	assert( bc4_cursor == bc4.num_bytes() );
+	Assert( bc4_cursor == bc4.num_bytes() );
 
 	DDSHeader dds_header = { };
 	dds_header.magic = DDSMagic;
 	dds_header.height = h;
 	dds_header.width = w;
 	dds_header.mipmap_count = num_levels;
+	dds_header.format_flags = DDSTextureFormatFlag_FourCC;
 	dds_header.format = DDSTextureFormat_BC4;
 
-	DynamicString dds_path( sys_allocator, "{}.dds", argv[ 1 ] );
+	Span< u8 > packed = ALLOC_SPAN( sys_allocator, u8, sizeof( dds_header ) + bc4.num_bytes() );
+	defer { FREE( sys_allocator, packed.ptr ); };
+	memcpy( packed.ptr, &dds_header, sizeof( dds_header ) );
+	memcpy( packed.ptr + sizeof( dds_header ), bc4.ptr, bc4.num_bytes() );
 
-	FILE * dds = OpenFile( sys_allocator, dds_path.c_str(), OpenFile_WriteOverwrite );
-	if( dds == NULL ) {
-		printf( "Can't open %s for writing\n", dds_path.c_str() );
-		return 1;
+	Span< u8 > compressed = Compress( sys_allocator, packed );
+	defer { FREE( sys_allocator, compressed.ptr ); };
+
+	DynamicString dds_path( sys_allocator, "{}/{}.dds.zst", output_dir, StripExtension( png_path ) );
+	if( !WriteFile( sys_allocator, dds_path.c_str(), compressed.ptr, compressed.num_bytes() ) ) {
+		FatalErrno( "WriteFile" );
 	}
-
-	fwrite( &dds_header, sizeof( dds_header ), 1, dds );
-	fwrite( bc4.ptr, sizeof( bc4[ 0 ] ), bc4.n, dds );
-	fclose( dds );
 
 	return 0;
 }

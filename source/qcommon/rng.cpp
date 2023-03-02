@@ -62,7 +62,7 @@ int RandomUniform( RNG * rng, int lo, int hi ) {
 
 // http://www.rng-random.org/posts/bounded-rands.html
 int RandomUniformExact( RNG * rng, int lo, int hi ) {
-	assert( lo <= hi );
+	Assert( lo <= hi );
 	uint32_t range = uint32_t( hi ) - uint32_t( lo );
 	uint32_t x = Random32( rng );
 

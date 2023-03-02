@@ -67,7 +67,6 @@ void G_Match_Autorecord_Stop() {
 
 static void G_Match_CheckStateAbort() {
 	if( server_gs.gameState.match_state >= MatchState_PostMatch ) {
-		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
 		return;
 	}
 
@@ -80,18 +79,9 @@ static void G_Match_CheckStateAbort() {
 
 	bool playable = teams_with_players >= 2;
 
-	// if waiting, turn on match states when enough players joined
-	if( GS_MatchWaiting( &server_gs ) && playable ) {
-		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
-	}
-	// turn off active match states if not enough players left
-	else if( server_gs.gameState.match_state == MatchState_Warmup && !playable && server_gs.gameState.match_duration ) {
-		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, true );
-	}
-	else if( server_gs.gameState.match_state == MatchState_Countdown && !playable ) {
+	if( server_gs.gameState.match_state == MatchState_Countdown && !playable ) {
 		G_ClearCenterPrint( NULL );
 		G_Match_LaunchState( MatchState_Warmup );
-		G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, true );
 	}
 	// match running, but not enough players left
 	else if( server_gs.gameState.match_state == MatchState_Playing && !playable ) {
@@ -102,8 +92,6 @@ static void G_Match_CheckStateAbort() {
 }
 
 void G_Match_LaunchState( MatchState matchState ) {
-	G_GamestatSetFlag( GAMESTAT_FLAG_WAITING, false );
-
 	if( matchState == MatchState_PostMatch ) {
 		level.finalMatchDuration = svs.gametime - server_gs.gameState.match_state_start_time;
 	}
@@ -250,7 +238,7 @@ void G_Match_Ready( edict_t *ent ) {
 	level.ready[ PLAYERNUM( ent ) ] = true;
 	G_ClientGetStats( ent )->ready = true;
 
-	G_PrintMsg( NULL, "%s is %sREADY\n", ent->r.client->netname, S_COLOR_GREEN );
+	G_PrintMsg( NULL, "%s is %sREADY\n", ent->r.client->name, S_COLOR_GREEN );
 
 	G_Match_CheckReadys();
 }
@@ -274,7 +262,7 @@ void G_Match_NotReady( edict_t *ent ) {
 	level.ready[ PLAYERNUM( ent ) ] = false;
 	G_ClientGetStats( ent )->ready = false;
 
-	G_PrintMsg( NULL, "%s is %sNOT READY\n", ent->r.client->netname, S_COLOR_RED );
+	G_PrintMsg( NULL, "%s is %sNOT READY\n", ent->r.client->name, S_COLOR_RED );
 }
 
 void G_Match_ToggleReady( edict_t *ent ) {
@@ -284,9 +272,6 @@ void G_Match_ToggleReady( edict_t *ent ) {
 		G_Match_NotReady( ent );
 	}
 }
-
-//======================================================
-//		Game types
 
 static bool G_EachNewSecond() {
 	static int lastsecond;

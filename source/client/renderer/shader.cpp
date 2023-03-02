@@ -1,9 +1,10 @@
 #include "qcommon/base.h"
-#include "qcommon/qcommon.h"
 #include "qcommon/array.h"
+#include "qcommon/string.h"
 #include "client/client.h"
 #include "client/assets.h"
 #include "client/renderer/renderer.h"
+#include "client/renderer/shader_constants.h"
 
 Shaders shaders;
 
@@ -25,12 +26,16 @@ static const char * FindInclude( Span< const char > str ) {
 	return NULL;
 }
 
-static Span< Span< const char > > BuildShaderSrcs( TempAllocator * temp, const char * path, const char * defines ) {
+static void BuildShaderSrcs( DynamicString * src, const char * path, const char * variant_switches ) {
 	TracyZoneScoped;
 	TracyZoneText( path, strlen( path ) );
 
-	NonRAIIDynamicArray< Span< const char > > srcs( temp );
-	srcs.add( MakeSpan( defines ) );
+	src->append( "#define FORWARD_PLUS_TILE_SIZE {}\n", FORWARD_PLUS_TILE_SIZE );
+	src->append( "#define FORWARD_PLUS_TILE_CAPACITY {}\n", FORWARD_PLUS_TILE_CAPACITY );
+	src->append( "#define DLIGHT_CUTOFF {}\n", DLIGHT_CUTOFF );
+	src->append( "#define SKINNED_MODEL_MAX_JOINTS {}\n", SKINNED_MODEL_MAX_JOINTS );
+
+	src->append( "{}", variant_switches );
 
 	Span< const char > glsl = AssetString( path );
 	if( glsl.ptr == NULL ) {
@@ -39,8 +44,6 @@ static Span< Span< const char > > BuildShaderSrcs( TempAllocator * temp, const c
 
 	Span< const char > cursor = glsl;
 
-	srcs.add( MakeSpan( "#line 1\n" ) );
-
 	while( true ) {
 		const char * before_include = FindInclude( cursor );
 		if( before_include == NULL )
@@ -48,7 +51,7 @@ static Span< Span< const char > > BuildShaderSrcs( TempAllocator * temp, const c
 
 		size_t length_to_include = before_include - cursor.ptr;
 		if( length_to_include > 0 ) {
-			srcs.add( cursor.slice( 0, length_to_include ) );
+			src->append( "{}", cursor.slice( 0, length_to_include ) );
 		}
 
 		cursor += length_to_include + strlen( "#include" );
@@ -61,40 +64,38 @@ static Span< Span< const char > > BuildShaderSrcs( TempAllocator * temp, const c
 			// TODO
 		}
 
-		srcs.add( MakeSpan( "#line 1\n" ) );
-		srcs.add( contents );
-		srcs.add( MakeSpan( "#line 1\n" ) );
+		src->append( "{}", contents );
 	}
 
 	if( cursor.n > 0 ) {
-		srcs.add( cursor );
+		src->append( "{}", cursor );
 	}
-
-	return srcs.span();
 }
 
-static void LoadShader( Shader * shader, const char * path, const char * defines = "" ) {
+static void LoadShader( Shader * shader, const char * path, const char * variant_switches = "" ) {
 	TracyZoneScoped;
 
 	TempAllocator temp = cls.frame_arena.temp();
-	Span< Span< const char > > srcs = BuildShaderSrcs( &temp, path, defines );
+	DynamicString src( &temp );
+	BuildShaderSrcs( &src, path, variant_switches );
 
 	Shader new_shader;
-	if( !NewShader( &new_shader, srcs ) )
+	if( !NewShader( &new_shader, src.c_str(), path ) )
 		return;
 
 	DeleteShader( *shader );
 	*shader = new_shader;
 }
 
-static void LoadComputeShader( Shader * shader, const char * path, const char * defines = "" ) {
+static void LoadComputeShader( Shader * shader, const char * path, const char * variant_switches = "" ) {
 	TracyZoneScoped;
 
 	TempAllocator temp = cls.frame_arena.temp();
-	Span< Span< const char > > srcs = BuildShaderSrcs( &temp, path, defines );
+	DynamicString src( &temp );
+	BuildShaderSrcs( &src, path, variant_switches );
 
 	Shader new_shader;
-	if( !NewComputeShader( &new_shader, srcs ) )
+	if( !NewComputeShader( &new_shader, src.c_str(), path ) )
 		return;
 
 	DeleteShader( *shader );
@@ -111,44 +112,22 @@ static void LoadShaders() {
 	LoadShader( &shaders.standard_vertexcolors, "glsl/standard.glsl", "#define VERTEX_COLORS 1\n" );
 	LoadShader( &shaders.standard_skinned, "glsl/standard.glsl", "#define SKINNED 1\n" );
 	LoadShader( &shaders.standard_skinned_vertexcolors, "glsl/standard.glsl", "#define SKINNED 1\n#define VERTEX_COLORS 1\n" );
-
-	const char * standard_shaded_defines = temp(
-		"#define APPLY_DLIGHTS 1\n"
-		"#define SHADED 1\n"
-		"#define TILE_SIZE {}\n"
-		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
-	LoadShader( &shaders.standard_shaded, "glsl/standard.glsl", standard_shaded_defines );
-
-	const char * standard_skinned_shaded_defines = temp(
-		"#define SKINNED 1\n"
-		"#define APPLY_DLIGHTS 1\n"
-		"#define SHADED 1\n"
-		"#define TILE_SIZE {}\n"
-		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
-	LoadShader( &shaders.standard_skinned_shaded, "glsl/standard.glsl", standard_skinned_shaded_defines );
+	LoadShader( &shaders.standard_shaded, "glsl/standard.glsl", "#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
+	LoadShader( &shaders.standard_skinned_shaded, "glsl/standard.glsl", "#define SKINNED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
 
 	// standard instanced
 	LoadShader( &shaders.standard_instanced, "glsl/standard.glsl", "#define INSTANCED 1\n" );
 	LoadShader( &shaders.standard_vertexcolors_instanced, "glsl/standard.glsl", "#define VERTEX_COLORS 1\n" );
-
-	const char * standard_shaded_instanced_defines = temp(
-		"#define INSTANCED 1\n"
-		"#define APPLY_DLIGHTS 1\n"
-		"#define SHADED 1\n"
-		"#define TILE_SIZE {}\n"
-		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
-	LoadShader( &shaders.standard_shaded_instanced, "glsl/standard.glsl", standard_shaded_instanced_defines );
+	LoadShader( &shaders.standard_shaded_instanced, "glsl/standard.glsl", "#define INSTANCED 1\n#define APPLY_DLIGHTS 1\n#define SHADED 1\n" );
 
 	// rest
-	const char * world_defines = temp(
+	constexpr const char * world_defines =
 		"#define APPLY_DRAWFLAT 1\n"
 		"#define APPLY_FOG 1\n"
 		"#define APPLY_DECALS 1\n"
 		"#define APPLY_DLIGHTS 1\n"
 		"#define APPLY_SHADOWS 1\n"
-		"#define SHADED 1\n"
-		"#define TILE_SIZE {}\n"
-		"#define DLIGHT_CUTOFF {}\n", TILE_SIZE, DLIGHT_CUTOFF );
+		"#define SHADED 1\n";
 	LoadShader( &shaders.world, "glsl/standard.glsl", world_defines );
 
 	LoadShader( &shaders.depth_only, "glsl/depth_only.glsl" );
@@ -178,8 +157,7 @@ static void LoadShaders() {
 	LoadShader( &shaders.particle, "glsl/particle.glsl" );
 	LoadShader( &shaders.particle_model, "glsl/particle.glsl", "#define MODEL 1\n" );
 
-	const char * culling_defines = temp( "#define TILE_SIZE {}\n", TILE_SIZE );
-	LoadComputeShader( &shaders.tile_culling, "glsl/tile_culling.glsl", culling_defines );
+	LoadComputeShader( &shaders.tile_culling, "glsl/tile_culling.glsl" );
 }
 
 void InitShaders() {

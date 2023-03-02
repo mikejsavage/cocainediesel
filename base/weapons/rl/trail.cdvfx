@@ -53,13 +53,11 @@
 
     speed 2
 
-    color 0.58 0.58 0.58 0.5
+    color 0.58 0.58 0.58 1.0
 
     size 6 2
     lifetime 1
 
     emission 200
-
   }
-  
 }

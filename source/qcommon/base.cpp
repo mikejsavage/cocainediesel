@@ -21,8 +21,12 @@ void FatalImpl( const char * file, int line, const char * format, ... ) {
 	abort();
 }
 
-void FatalErrno( const char * msg ) {
-	Fatal( "%s: %s (%d)", msg, strerror( errno ), errno );
+void FatalErrnoImpl( const char * msg, const char * file, int line ) {
+	FatalImpl( file, line, "%s: %s (%d)", msg, strerror( errno ), errno );
+}
+
+void AssertFail( const char * str, const char * file, int line ) {
+	FatalImpl( file, line, "Assertion failed: %s", str );
 }
 
 void format( FormatBuffer * fb, Span< const char > span, const FormatOpts & opts ) {

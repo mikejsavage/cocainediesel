@@ -35,6 +35,8 @@ static void CheckMultiError( const char * func, CURLMcode err ) {
 }
 
 void InitDownloads() {
+	TracyZoneScoped;
+
 	curl_global_init( CURL_GLOBAL_DEFAULT );
 	curl = curl_multi_init();
 	if( curl == NULL ) {
@@ -142,7 +144,7 @@ void PumpDownloads() {
 		if( msg == NULL )
 			break;
 
-		assert( msg->msg == CURLMSG_DONE );
+		Assert( msg->msg == CURLMSG_DONE );
 
 		CurlRequestContext * context;
 		CheckEasyError( "curl_easy_getinfo", curl_easy_getinfo( msg->easy_handle, CURLINFO_PRIVATE, &context ) );

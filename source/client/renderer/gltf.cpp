@@ -79,7 +79,7 @@ static VertexFormat VertexFormatFromGLTF( cgltf_type dim, cgltf_component_type c
 			return VertexFormat_Floatx4;
 	}
 
-	assert( false );
+	Assert( false );
 	return VertexFormat_Floatx4;
 }
 
@@ -228,8 +228,8 @@ static void LoadNode( GLTFRenderData * model, cgltf_data * gltf, cgltf_node * gl
 
 	if( gltf_node->has_scale ) {
 		// TODO
-		// assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 1 ] - 1.0f ) < 0.001f );
-		// assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 2 ] - 1.0f ) < 0.001f );
+		// Assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 1 ] - 1.0f ) < 0.001f );
+		// Assert( Abs( gltf_node->scale[ 0 ] / gltf_node->scale[ 2 ] - 1.0f ) < 0.001f );
 		node->local_transform.scale = gltf_node->scale[ 0 ];
 	}
 
@@ -248,7 +248,7 @@ static void LoadNode( GLTFRenderData * model, cgltf_data * gltf, cgltf_node * gl
 		}
 		else if( type == "dlight" ) {
 			node->vfx_type = ModelVfxType_DynamicLight;
-			node->dlight_node.color = color;
+			node->dlight_node.color = color.xyz();
 			Span< const char > intensity = GetExtrasKey( "intensity", &extras );
 			node->dlight_node.intensity = ParseFloat( &intensity, 0.0f, Parse_DontStopOnNewLine );
 		}
@@ -303,7 +303,7 @@ static float LoadChannel( const cgltf_animation_channel * chan, GLTFRenderData::
 	for( size_t i = 0; i < n; i++ ) {
 		cgltf_bool ok = cgltf_accessor_read_float( chan->sampler->input, i, &out_channel->samples[ i ].time, 1 );
 		ok = ok && cgltf_accessor_read_float( chan->sampler->output, i, out_channel->samples[ i ].value.ptr(), lanes );
-		assert( ok != 0 );
+		Assert( ok != 0 );
 	}
 
 	float duration = chan->sampler->input->max[ 0 ] - chan->sampler->input->min[ 0 ];
@@ -322,8 +322,8 @@ static float LoadScaleChannel( const cgltf_animation_channel * chan, GLTFRenderD
 		float scale[ 3 ];
 		cgltf_accessor_read_float( chan->sampler->output, i, scale, 3 );
 
-		assert( Abs( scale[ 0 ] - scale[ 1 ] ) < 0.001f );
-		assert( Abs( scale[ 0 ] - scale[ 2 ] ) < 0.001f );
+		Assert( Abs( scale[ 0 ] - scale[ 1 ] ) < 0.001f );
+		Assert( Abs( scale[ 0 ] - scale[ 2 ] ) < 0.001f );
 
 		out_channel->samples[ i ].value = scale[ 0 ];
 	}
@@ -344,7 +344,7 @@ static void LoadAnimation( GLTFRenderData * model, const cgltf_animation * anima
 		const cgltf_animation_channel * chan = &animation->channels[ i ];
 
 		u8 node_idx = GetNodeIdx( chan->target_node );
-		assert( node_idx != U8_MAX );
+		Assert( node_idx != U8_MAX );
 
 		float channel_duration = 0.0f;
 		if( chan->target_path == cgltf_animation_path_type_translation ) {
@@ -369,7 +369,7 @@ static void LoadSkin( GLTFRenderData * model, const cgltf_skin * skin ) {
 		joint->node_idx = GetNodeIdx( skin->joints[ i ] );
 
 		cgltf_bool ok = cgltf_accessor_read_float( skin->inverse_bind_matrices, i, joint->joint_to_bind.ptr(), 16 );
-		assert( ok != 0 );
+		Assert( ok != 0 );
 	}
 }
 
@@ -525,7 +525,7 @@ static Mat4 TRSToMat4( const TRS & trs ) {
 MatrixPalettes ComputeMatrixPalettes( Allocator * a, const GLTFRenderData * render_data, Span< const TRS > local_poses ) {
 	TracyZoneScoped;
 
-	assert( local_poses.n == render_data->nodes.n );
+	Assert( local_poses.n == render_data->nodes.n );
 
 	MatrixPalettes palettes = { };
 	palettes.node_transforms = ALLOC_SPAN( a, Mat4, render_data->nodes.n );
@@ -621,14 +621,14 @@ template< typename T >
 static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, const Mesh & mesh, const PipelineState & pipeline, T & instance, u64 hash ) {
 	u64 idx = collection.num_groups;
 	if( !collection.groups_hashtable.get( hash, &idx ) ) {
-		assert( collection.num_groups < ARRAY_COUNT( collection.groups ) );
+		Assert( collection.num_groups < ARRAY_COUNT( collection.groups ) );
 		collection.groups_hashtable.add( hash, collection.num_groups );
 		collection.groups[ idx ].pipeline = pipeline;
 		collection.groups[ idx ].mesh = mesh;
 		collection.num_groups++;
 	}
 
-	assert( collection.groups[ idx ].num_instances < ARRAY_COUNT( collection.groups[ idx ].instances ) );
+	Assert( collection.groups[ idx ].num_instances < ARRAY_COUNT( collection.groups[ idx ].instances ) );
 	collection.groups[ idx ].instances[ collection.groups[ idx ].num_instances++ ] = instance;
 }
 

@@ -82,22 +82,22 @@ public:
 	}
 
 	T & operator[]( size_t i ) {
-		assert( i < n );
+		Assert( i < n );
 		return elems[ i ];
 	}
 
 	const T & operator[]( size_t i ) const {
-		assert( i < n );
+		Assert( i < n );
 		return elems[ i ];
 	}
 
 	T & top() {
-		assert( n > 0 );
+		Assert( n > 0 );
 		return elems[ n - 1 ];
 	}
 
 	const T & top() const {
-		assert( n > 0 );
+		Assert( n > 0 );
 		return elems[ n - 1 ];
 	}
 

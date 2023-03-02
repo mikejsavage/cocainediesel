@@ -28,10 +28,8 @@ layout( std430 ) readonly buffer b_Dlights {
 	DynamicLight dlights[];
 };
 
-const uint max_per_tile = 50; // must match c++
-
 struct Tile {
-	uint indices[ max_per_tile ];
+	uint indices[ FORWARD_PLUS_TILE_CAPACITY ];
 };
 
 layout( std430 ) writeonly buffer b_DecalTiles {
@@ -70,8 +68,8 @@ bool SphereInTile( vec3 origin, float radius, vec3 tile_direction, float cone_ta
 }
 
 void CullTile( uvec2 tile ) {
-	vec2 tile_min = TILE_SIZE * ( tile.xy ) / u_ViewportSize.xy * 2.0 - 1.0;
-	vec2 tile_max = TILE_SIZE * ( tile.xy + 1 ) / u_ViewportSize.xy * 2.0 - 1.0;
+	vec2 tile_min = FORWARD_PLUS_TILE_SIZE * ( tile.xy ) / u_ViewportSize.xy * 2.0 - 1.0;
+	vec2 tile_max = FORWARD_PLUS_TILE_SIZE * ( tile.xy + 1 ) / u_ViewportSize.xy * 2.0 - 1.0;
 	// opengl y flip
 	tile_min.y = -tile_min.y;
 	tile_max.y = -tile_max.y;
@@ -88,7 +86,7 @@ void CullTile( uvec2 tile ) {
 	Tile decal_tile;
 	uint decal_count = 0;
 	for( int i = 0; i < num_decals; i++ ) {
-		if( decal_count == max_per_tile )
+		if( decal_count == FORWARD_PLUS_TILE_CAPACITY )
 			break;
 
 		Decal decal = decals[ i ];
@@ -103,7 +101,7 @@ void CullTile( uvec2 tile ) {
 	Tile dlight_tile;
 	uint dlight_count = 0;
 	for( int i = 0; i < num_dlights; i++ ) {
-		if( dlight_count == max_per_tile )
+		if( dlight_count == FORWARD_PLUS_TILE_CAPACITY )
 			break;
 
 		DynamicLight dlight = dlights[ i ];

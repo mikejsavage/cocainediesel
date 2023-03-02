@@ -32,8 +32,6 @@ Cvar *sv_downloadurl;
 Cvar *sv_timeout;            // seconds without any message
 Cvar *sv_zombietime;         // seconds to sink messages after disconnect
 
-Cvar *rcon_password;         // password for remote server commands
-
 Cvar *sv_maxclients;
 
 Cvar *sv_showChallenge;
@@ -87,8 +85,6 @@ static void SV_CalcPings() {
 		else {
 			cl->ping = ( best + ( total / count ) ) * 0.5f;
 		}
-		// let the game dll know about the ping
-		cl->edict->r.client->r.ping = cl->ping;
 	}
 }
 
@@ -102,12 +98,9 @@ static bool SV_ProcessPacket( netchan_t *netchan, msg_t *msg ) {
 	MSG_ReadInt32( msg ); // sequence
 	MSG_ReadInt32( msg ); // sequence_ack
 	MSG_ReadUint64( msg ); // session_id
+
 	if( msg->compressed ) {
-		int zerror = Netchan_DecompressMessage( msg );
-		if( zerror < 0 ) {
-			// compression error. Drop the packet
-			return false;
-		}
+		return Netchan_DecompressMessage( msg );
 	}
 
 	return true;
@@ -126,7 +119,7 @@ static void SV_ReadPackets() {
 	msg_t msg = NewMSGReader( data, bytes_received, sizeof( data ) );
 
 	// check for connectionless packet (0xffffffff) first
-	if( *(int *)msg.data == -1 ) {
+	if( MSG_ReadInt32( &msg ) == -1 ) {
 		SV_ConnectionlessPacket( source, &msg );
 		return;
 	}
@@ -198,35 +191,6 @@ static void SV_CheckTimeouts() {
 			cl->lastPacketReceivedTime + 1000 * sv_timeout->number < svs.realtime ) {
 			SV_DropClient( cl, "%s", "Error: Connection timed out" );
 			cl->state = CS_FREE; // don't bother with zombie state
-		}
-	}
-}
-
-/*
-* SV_CheckLatchedUserinfoChanges
-*
-* To prevent flooding other players, consecutive userinfo updates are delayed,
-* and only the last one is applied.
-* Applies latched userinfo updates if the timeout is over.
-*/
-static void SV_CheckLatchedUserinfoChanges() {
-	TracyZoneScoped;
-
-	client_t *cl;
-	int i;
-	Time time = Now();
-
-	for( i = 0, cl = svs.clients; i < sv_maxclients->integer; i++, cl++ ) {
-		if( cl->state == CS_FREE || cl->state == CS_ZOMBIE ) {
-			continue;
-		}
-
-		if( cl->userinfoLatched[0] && cl->userinfoLatchTimeout <= time ) {
-			Q_strncpyz( cl->userinfo, cl->userinfoLatched, sizeof( cl->userinfo ) );
-
-			cl->userinfoLatched[0] = '\0';
-
-			SV_UserinfoChanged( cl );
 		}
 	}
 }
@@ -334,9 +298,6 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 	// get packets from clients
 	SV_ReadPackets();
 
-	// apply latched userinfo changes
-	SV_CheckLatchedUserinfoChanges();
-
 	// let everything in the world think and move
 	if( SV_RunGameFrame( gamemsec ) ) {
 		// send messages back to the clients that had packets read this frame
@@ -355,37 +316,10 @@ void SV_Frame( unsigned realmsec, unsigned gamemsec ) {
 
 //============================================================================
 
-/*
-* SV_UserinfoChanged
-*
-* Pull specific info from a newly changed userinfo string
-* into a more C friendly form.
-*/
-void SV_UserinfoChanged( client_t *client ) {
-	assert( client );
-	assert( Info_Validate( client->userinfo ) );
-
-	// call prog code to allow overrides
-	ClientUserinfoChanged( client->edict, client->userinfo );
-
-	if( !Info_Validate( client->userinfo ) ) {
-		SV_DropClient( client, "%s", "Error: Invalid userinfo (after game)" );
-		return;
-	}
-
-	// we assume that game module deals with setting a correct name
-	char * val = Info_ValueForKey( client->userinfo, "name" );
-	if( !val || !val[0] ) {
-		SV_DropClient( client, "%s", "Error: No name set" );
-		return;
-	}
-	Q_strncpyz( client->name, val, sizeof( client->name ) );
-}
-
 void SV_Init() {
 	TracyZoneScoped;
 
-	assert( !sv_initialized );
+	Assert( !sv_initialized );
 
 	memset( &sv, 0, sizeof( sv ) );
 	memset( &svs, 0, sizeof( svs ) );
@@ -404,17 +338,17 @@ void SV_Init() {
 	SV_InitOperatorCommands();
 
 	NewCvar( "protocol", temp( "{}", s32( APP_PROTOCOL_VERSION ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
+	NewCvar( "serverid", temp( "{}", Random64( &svs.rng ) ), CvarFlag_ServerInfo | CvarFlag_ReadOnly );
 
 	sv_port = NewCvar( "sv_port", temp( "{}", PORT_SERVER ), CvarFlag_Archive | CvarFlag_ServerReadOnly );
 
 	sv_downloadurl = NewCvar( "sv_downloadurl", "", CvarFlag_Archive | CvarFlag_ServerReadOnly );
 
-	rcon_password = NewCvar( "rcon_password", "", 0 );
 	sv_hostname = NewCvar( "sv_hostname", APPLICATION " server", CvarFlag_ServerInfo | CvarFlag_Archive );
-	sv_timeout = NewCvar( "sv_timeout", "15", 0 );
-	sv_zombietime = NewCvar( "sv_zombietime", "2", 0 );
-	sv_showChallenge = NewCvar( "sv_showChallenge", "0", 0 );
-	sv_showInfoQueries = NewCvar( "sv_showInfoQueries", "0", 0 );
+	sv_timeout = NewCvar( "sv_timeout", "15" );
+	sv_zombietime = NewCvar( "sv_zombietime", "2" );
+	sv_showChallenge = NewCvar( "sv_showChallenge", "0" );
+	sv_showInfoQueries = NewCvar( "sv_showInfoQueries", "0" );
 
 	sv_public = NewCvar( "sv_public", is_public_build && is_dedicated_server ? "1" : "0", CvarFlag_ServerReadOnly );
 
@@ -436,7 +370,7 @@ void SV_Init() {
 	g_autorecord = NewCvar( "g_autorecord", is_dedicated_server ? "1" : "0", CvarFlag_Archive );
 	g_autorecord_maxdemos = NewCvar( "g_autorecord_maxdemos", "200", CvarFlag_Archive );
 
-	sv_debug_serverCmd = NewCvar( "sv_debug_serverCmd", "0", 0 );
+	sv_debug_serverCmd = NewCvar( "sv_debug_serverCmd", "0" );
 
 	// this is a message holder for shared use
 	tmpMessage = NewMSGWriter( tmpMessageData, sizeof( tmpMessageData ) );

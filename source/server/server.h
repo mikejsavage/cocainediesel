@@ -43,9 +43,8 @@ struct server_t {
 	int64_t nextSnapTime;              // always sv.framenum * svc.snapFrameTime msec
 	int64_t framenum;
 
-	char mapname[MAX_CONFIGSTRING_CHARS];               // map name
+	char mapname[128];               // map name
 
-	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 	SyncEntityState baselines[MAX_EDICTS];
 
 	//
@@ -79,10 +78,6 @@ struct game_command_t {
 struct client_t {
 	sv_client_state_t state;
 
-	char userinfo[MAX_INFO_STRING];         // name, etc
-	char userinfoLatched[MAX_INFO_STRING];  // flood prevention - actual userinfo updates are delayed
-	Time userinfoLatchTimeout;
-
 	bool mv;                        // send multiview data to the client
 
 	char reliableCommands[MAX_RELIABLE_COMMANDS][MAX_STRING_CHARS];
@@ -112,7 +107,6 @@ struct client_t {
 	int frame_latency[LATENCY_COUNTS];
 	int ping;
 	edict_t *edict;                 // EDICT_NUM(clientnum+1)
-	char name[MAX_INFO_VALUE];      // extracted from userinfo, high bits masked
 
 	client_snapshot_t snapShots[UPDATE_BACKUP]; // updates can be delta'd from here
 
@@ -214,9 +208,6 @@ void SV_WriteClientdataToMessage( client_t *client, msg_t *msg );
 void SV_InitOperatorCommands();
 void SV_ShutdownOperatorCommands();
 
-void SV_SendServerinfo( client_t *client );
-void SV_UserinfoChanged( client_t *cl );
-
 void SV_MasterHeartbeat();
 
 int SVC_FakeConnect( char * userinfo );
@@ -246,16 +237,6 @@ void SV_InitClientMessage( client_t *client, msg_t *msg, uint8_t *data, size_t s
 bool SV_SendMessageToClient( client_t *client, msg_t *msg );
 void SV_ResetClientFrameCounters();
 
-enum redirect_t {
-	RD_NONE,
-	RD_PACKET,
-};
-
-#define SV_OUTPUTBUF_LENGTH ( MAX_MSGLEN - 16 )
-
-extern char sv_outputbuf[SV_OUTPUTBUF_LENGTH];
-
-void SV_FlushRedirect( int sv_redirected, const char *outputbuf, const void *extra );
 void SV_SendClientMessages();
 
 #ifndef _MSC_VER
@@ -299,8 +280,6 @@ void SV_BuildClientFrameSnap( client_t *client );
 void PF_DropClient( edict_t *ent, const char *message );
 int PF_GetClientState( int numClient );
 void PF_GameCmd( edict_t *ent, const char *cmd );
-void PF_ConfigString( int index, const char *val );
-const char *PF_GetConfigString( int index );
 void SV_LocateEntities( edict_t *edicts, int num_edicts, int max_edicts );
 
 //
@@ -326,8 +305,8 @@ void ShutdownWebServer();
 // snap_write
 //
 void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
-	SyncEntityState *baselines, client_entities_t *client_entities );
+	const SyncEntityState *baselines, const client_entities_t *client_entities );
 
-void SNAP_BuildClientFrameSnap( ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
+void SNAP_BuildClientFrameSnap( const ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
 	client_t *client,
-	SyncGameState *gameState, client_entities_t *client_entities );
+	const SyncGameState *gameState, client_entities_t *client_entities );

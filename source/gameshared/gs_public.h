@@ -74,11 +74,10 @@ struct pmove_t {
 
 struct gs_module_api_t {
 	void ( *Trace )( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta );
-	SyncEntityState *( *GetEntityState )( int entNum, int deltaTime );
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, u64 parm );
 	void ( *PredictedAltFireWeapon )( int entNum, u64 parm );
-	void ( *PredictedUseGadget )( int entNum, GadgetType gadget, u64 parm );
+	void ( *PredictedUseGadget )( int entNum, GadgetType gadget, u64 parm, bool dead );
 	void ( *PMoveTouchTriggers )( pmove_t *pm, Vec3 previous_origin );
 };
 
@@ -88,9 +87,6 @@ struct gs_state_t {
 	SyncGameState gameState;
 	gs_module_api_t api;
 };
-
-#define GS_MatchPaused( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_PAUSED ) != 0 )
-#define GS_MatchWaiting( gs ) ( ( ( gs )->gameState.flags & GAMESTAT_FLAG_WAITING ) != 0 )
 
 //==================================================================
 
@@ -140,7 +136,6 @@ void GS_TouchPushTrigger( const gs_state_t * gs, SyncPlayerState * playerState, 
 // pmove->pm_features
 #define PMFEAT_ABILITIES        ( 1 << 0 )
 #define PMFEAT_SCOPE            ( 1 << 1 )
-#define PMFEAT_GHOSTMOVE        ( 1 << 2 )
 
 #define PMFEAT_ALL              ( 0xFFFF )
 
@@ -168,15 +163,17 @@ enum {
 
 	Vsay_Acne,
 	Vsay_Valley,
+	Vsay_Fam,
 	Vsay_Mike,
 	Vsay_User,
 	Vsay_Guyman,
+	Vsay_Dodonga,
 	Vsay_Helena,
 	Vsay_Fart,
 	Vsay_Zombie,
 	Vsay_Larp,
 
-	Vsay_Total
+	Vsay_Count
 };
 
 // SyncEntityState->event values
@@ -199,6 +196,7 @@ enum EventType {
 	EV_DASH,
 
 	EV_WALLJUMP,
+	EV_CHARGEJUMP,
 	EV_JETPACK,
 	EV_JUMP,
 	EV_JUMP_PAD,
@@ -223,22 +221,13 @@ enum EventType {
 	EV_BLOOD,
 	EV_GIB,
 
-	EV_GRENADE_BOUNCE,
-	EV_GRENADE_EXPLOSION,
-	EV_RAIL_ALT,
-	EV_ROCKET_EXPLOSION,
-	EV_ARBULLET_EXPLOSION,
-	EV_BUBBLE_EXPLOSION,
-	EV_BOLT_EXPLOSION,
-	EV_RIFLEBULLET_IMPACT,
-	EV_STAKE_IMPALE,
-	EV_STAKE_IMPACT,
-	EV_BLAST_BOUNCE,
-	EV_BLAST_IMPACT,
-	EV_STICKY_EXPLOSION,
-	EV_STICKY_IMPACT,
+	EV_FX,
 
-	EV_STUN_GRENADE_EXPLOSION,
+	EV_GRENADE_BOUNCE,
+	EV_RAIL_ALTENT,
+	EV_RAIL_ALTFIRE,
+	EV_BOLT_EXPLOSION,
+	EV_STICKY_EXPLOSION,
 
 	EV_BOMB_EXPLOSION,
 

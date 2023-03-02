@@ -18,6 +18,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "game/g_local.h"
+#include "qcommon/base.h"
+#include "qcommon/utf8.h"
 #include "gameshared/collision.h"
 
 static void G_Obituary( edict_t * victim, edict_t * attacker, int topAssistEntNo, DamageType mod, bool wallbang ) {
@@ -32,13 +34,13 @@ static void ClientObituary( edict_t * self, edict_t * inflictor, edict_t * attac
 		if( attacker != self ) { // regular death message
 			self->enemy = attacker;
 			if( is_dedicated_server ) {
-				Com_GGPrint( "\"{}\" \"{}\" {} {}", self->r.client->netname, attacker->r.client->netname, damage_type.encoded, wallbang ? 1 : 0 );
+				Com_GGPrint( "\"{}\" \"{}\" {} {}", self->r.client->name, attacker->r.client->name, damage_type.encoded, wallbang ? 1 : 0 );
 			}
 		}
 		else {      // suicide
 			self->enemy = NULL;
 			if( is_dedicated_server ) {
-				Com_GGPrint( "\"{}\" suicide {}", self->r.client->netname, damage_type.encoded );
+				Com_GGPrint( "\"{}\" suicide {}", self->r.client->name, damage_type.encoded );
 			}
 
 			G_PositionedSound( self->s.origin, "sounds/trombone/sad" );
@@ -49,7 +51,7 @@ static void ClientObituary( edict_t * self, edict_t * inflictor, edict_t * attac
 	else {      // wrong place, suicide, etc.
 		self->enemy = NULL;
 		if( is_dedicated_server ) {
-			Com_GGPrint( "\"{}\" suicide {}", self->r.client->netname, damage_type.encoded );
+			Com_GGPrint( "\"{}\" suicide {}", self->r.client->name, damage_type.encoded );
 		}
 
 		G_Obituary( self, attacker == self ? self : world, topAssistEntNo, damage_type, wallbang );
@@ -62,7 +64,7 @@ static void ClientObituary( edict_t * self, edict_t * inflictor, edict_t * attac
 //=======================================================
 
 static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage_type, int damage ) {
-	assert( ent->s.type == ET_PLAYER );
+	Assert( ent->s.type == ET_PLAYER );
 
 	edict_t * body = G_Spawn();
 
@@ -74,10 +76,9 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->s.team = ent->s.team;
 	body->s.scale = ent->s.scale;
 	body->s.svflags = SVF_CORPSE | SVF_BROADCAST;
+	body->s.mask = ent->s.mask;
 	body->activator = ent;
-	if( g_deadbody_followkiller->integer ) {
-		body->enemy = attacker;
-	}
+	body->enemy = attacker;
 
 	//use flat yaw
 	body->s.angles.y = ent->s.angles.y;
@@ -137,9 +138,38 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	return body;
 }
 
+static void DropHeldItem( edict_t * ent ) {
+	SyncPlayerState * ps = &ent->r.client->ps;
+
+	if( ps->using_gadget ) {
+		server_gs.api.PredictedUseGadget( ps->POVnum, ps->gadget, ps->weapon_state_time, true );
+	}
+}
+
+static void G_GhostClient( edict_t *ent ) {
+	ent->movetype = MOVETYPE_NONE;
+	ent->r.solid = SOLID_NOT;
+
+	memset( &ent->snap, 0, sizeof( ent->snap ) );
+	memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
+	memset( &ent->r.client->resp.chase, 0, sizeof( ent->r.client->resp.chase ) );
+
+	ent->s.type = ET_GHOST;
+	ent->s.effects = 0;
+	ent->s.sound = EMPTY_HASH;
+	ent->viewheight = 0;
+	ent->takedamage = DAMAGE_NO;
+
+	ClearInventory( &ent->r.client->ps );
+
+	GClip_LinkEntity( ent );
+}
+
 void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, DamageType damage_type, int damage ) {
 	snap_edict_t snap_backup = ent->snap;
 	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
+
+	DropHeldItem( ent );
 
 	ent->avelocity = Vec3( 0.0f );
 
@@ -216,7 +246,7 @@ void G_Client_InactivityRemove( gclient_t *client ) {
 
 			G_Teams_SetTeam( ent, Team_None );
 
-			G_PrintMsg( NULL, "%s has been moved to spectator after %.1f seconds of inactivity\n", client->netname, g_inactivity_maxtime->number );
+			G_PrintMsg( NULL, "%s has been moved to spectator after %.1f seconds of inactivity\n", ent->r.client->name, g_inactivity_maxtime->number );
 		}
 	}
 }
@@ -233,32 +263,13 @@ void G_ClientClearStats( edict_t * ent ) {
 	memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
 }
 
-void G_GhostClient( edict_t *ent ) {
-	ent->movetype = MOVETYPE_NONE;
-	ent->r.solid = SOLID_NOT;
-
-	memset( &ent->snap, 0, sizeof( ent->snap ) );
-	memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
-	memset( &ent->r.client->resp.chase, 0, sizeof( ent->r.client->resp.chase ) );
-
-	ent->s.type = ET_GHOST;
-	ent->s.effects = 0;
-	ent->s.sound = EMPTY_HASH;
-	ent->viewheight = 0;
-	ent->takedamage = DAMAGE_NO;
-
-	ClearInventory( &ent->r.client->ps );
-
-	GClip_LinkEntity( ent );
-}
-
 void G_ClientRespawn( edict_t *self, bool ghost ) {
 	GT_CallPlayerRespawning( self );
 
 	self->s.svflags &= ~SVF_NOCLIENT;
 
 	//if invalid be spectator
-	if( self->r.client->team < 0 || self->r.client->team >= Team_Count ) {
+	if( self->r.client->team >= Team_Count ) {
 		self->r.client->team = Team_None;
 	}
 
@@ -294,7 +305,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	self->viewheight = playerbox_stand_viewheight;
 	self->r.inuse = true;
 	self->mass = PLAYER_MASS;
-	self->s.solidity = Solid_Solid;
+	self->s.solidity = SolidMask_AnySolid;
 	self->s.svflags &= ~SVF_CORPSE;
 	self->enemy = NULL;
 	self->r.owner = NULL;
@@ -332,7 +343,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->s.svflags |= SVF_FORCETEAM;
 		self->r.solid = SOLID_YES;
 		self->movetype = MOVETYPE_PLAYER;
-		client->ps.pmove.features = PMFEAT_ALL & ~PMFEAT_GHOSTMOVE;
+		client->ps.pmove.features = PMFEAT_ALL;
 	}
 
 	ClientUserinfoChanged( self, client->userinfo );
@@ -468,7 +479,7 @@ void ClientBegin( edict_t *ent ) {
 		G_Teams_JoinTeam( ent, Team_None );
 	}
 
-	G_PrintMsg( NULL, "%s entered the game\n", client->netname );
+	G_PrintMsg( NULL, "%s entered the game\n", ent->r.client->name );
 
 	GT_CallPlayerConnected( ent );
 
@@ -477,133 +488,86 @@ void ClientBegin( edict_t *ent ) {
 	G_ClientEndSnapFrame( ent ); // make sure all view stuff is valid
 }
 
-/*
-* strip_highchars
-* kill all chars with code >= 127
-* (127 is not exactly a highchar, but we drop it, too)
-*/
-static void strip_highchars( char *in ) {
-	char *out = in;
-	for( ; *in; in++ )
-		if( ( unsigned char )*in < 127 ) {
-			*out++ = *in;
-		}
-	*out = 0;
+static Span< const char > Trim( Span< const char > str ) {
+	while( str.n > 0 && str[ 0 ] == ' ' ) {
+		str++;
+	}
+
+	while( str.n > 0 && str[ str.n - 1 ] == ' ' ) {
+		str = str.slice( 0, str.n - 1 );
+	}
+
+	return str;
 }
 
-static int G_SanitizeUserString( char *string, size_t size ) {
-	// life is hard, UTF-8 will have to go
-	strip_highchars( string );
+static Optional< Span< const char > > ValidateAndTrimName( const char * name ) {
+	// limit names to ASCII with at least one non-space char
+	Span< const char > trimmed = Trim( MakeSpan( name ) );
 
-	Q_trim( string );
-
-	// require at least one non-whitespace ascii char in the string
-	// (this will upset people who would like to have a name entirely in a non-latin
-	// script, but it makes damn sure you can't get an empty name by exploiting some
-	// utf-8 decoder quirk)
-	int c_ascii = 0;
-	for( int i = 0; string[i]; i++ ) {
-		if( string[i] > 32 && string[i] < 127 ) {
-			c_ascii++;
-		}
+	u32 state = 0;
+	u32 c = 0;
+	u32 num_non_spaces = 0;
+	for( size_t i = 0; i < trimmed.n; i++ ) {
+		if( DecodeUTF8( &state, &c, trimmed[ i ] ) != 0 )
+			continue;
+		if( c < ' ' || c >= '~' )
+			return NONE;
+		if( c != ' ' )
+			num_non_spaces++;
 	}
 
-	return c_ascii;
+	return state == 0 && num_non_spaces > 0 ? MakeOptional( trimmed ) : NONE;
 }
 
-static void G_SetName( edict_t * ent, const char * original_name ) {
-	if( !ent->r.client ) {
-		return;
-	}
-
-	if( original_name == NULL ) {
-		original_name = "";
-	}
-
-	char name[ MAX_NAME_CHARS + 1 ];
-	Q_strncpyz( name, original_name, sizeof( name ) );
-
-	int c_ascii = G_SanitizeUserString( name, sizeof( name ) );
-	if( !c_ascii ) {
-		Q_strncpyz( name, "Player", sizeof( name ) );
-	}
-
-	Q_strncpyz( ent->r.client->netname, name, sizeof( ent->r.client->netname ) );
+static void G_SetName( edict_t * ent, const char * name ) {
+	Span< const char > trimmed = Default( ValidateAndTrimName( name ), MakeSpan( "Player" ) );
+	ggformat( ent->r.client->name, sizeof( ent->r.client->name ), "{}", trimmed );
 
 	int trynum = 0;
 	while( trynum < MAX_CLIENTS ) {
-		bool ok = true;
-
+		bool is_duplicate = false;
 		for( int i = 0; i < server_gs.maxclients; i++ ) {
 			const edict_t * other = game.edicts + 1 + i;
 			if( !other->r.inuse || !other->r.client || other == ent )
 				continue;
 
-			if( !StrEqual( other->r.client->netname, ent->r.client->netname ) )
-				continue;
-
-			char suffix[ MAX_NAME_CHARS + 1 ];
-			snprintf( suffix, sizeof( suffix ), "(%i)", trynum + 2 );
-
-			Span< const char > prefix = MakeSpan( name );
-			prefix.n = Min2( MAX_NAME_CHARS - strlen( suffix ), prefix.n );
-
-			ggformat( ent->r.client->netname, sizeof( ent->r.client->netname ), "{}{}", prefix, suffix );
-
-			trynum++;
-			ok = false;
-			break;
+			if( StrEqual( other->r.client->name, ent->r.client->name ) ) {
+				is_duplicate = true;
+				break;
+			}
 		}
 
-		if( ok )
+		if( !is_duplicate )
 			break;
+
+		char suffix[ MAX_NAME_CHARS + 1 ];
+		snprintf( suffix, sizeof( suffix ), "(%i)", trynum + 2 );
+
+		Span< const char > prefix = trimmed.slice( 0, Min2( MAX_NAME_CHARS - strlen( suffix ), trimmed.n ) );
+		ggformat( ent->r.client->name, sizeof( ent->r.client->name ), "{}{}", prefix, suffix );
+
+		trynum++;
 	}
 }
 
-static void G_UpdatePlayerInfoString( int playerNum ) {
-	const gclient_t * client = &game.clients[ playerNum ];
-	PF_ConfigString( CS_PLAYERINFOS + playerNum, client->netname );
-}
+void ClientUserinfoChanged( edict_t * ent, const char * userinfo ) {
+	Assert( ent && ent->r.client );
+	Assert( userinfo && Info_Validate( userinfo ) );
 
-/*
-* ClientUserinfoChanged
-* called whenever the player updates a userinfo variable.
-*
-* The game can override any of the settings in place
-* (forcing skins or names, etc) before copying it off.
-*/
-void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
-	char oldname[MAX_INFO_VALUE];
-	gclient_t *cl;
-
-	assert( ent && ent->r.client );
-	assert( userinfo && Info_Validate( userinfo ) );
-
-	// check for malformed or illegal info strings
 	if( !Info_Validate( userinfo ) ) {
 		PF_DropClient( ent, "Error: Invalid userinfo" );
 		return;
 	}
 
-	cl = ent->r.client;
-
-	// set name, it's validated and possibly changed first
-	Q_strncpyz( oldname, cl->netname, sizeof( oldname ) );
+	char oldname[ MAX_NAME_CHARS + 1 ];
+	SafeStrCpy( oldname, ent->r.client->name, sizeof( oldname ) );
 	G_SetName( ent, Info_ValueForKey( userinfo, "name" ) );
-	if( oldname[0] && !StrCaseEqual( oldname, cl->netname ) && !CheckFlood( ent, false ) ) {
-		G_PrintMsg( NULL, "%s is now known as %s\n", oldname, cl->netname );
-	}
-	if( !Info_SetValueForKey( userinfo, "name", cl->netname ) ) {
-		PF_DropClient( ent, "Error: Couldn't set userinfo (name)" );
-		return;
+	if( !StrEqual( oldname, "" ) && !StrCaseEqual( oldname, ent->r.client->name ) && !CheckFlood( ent, false ) ) {
+		G_PrintMsg( NULL, "%s is now known as %s\n", oldname, ent->r.client->name );
 	}
 
-	// save off the userinfo in case we want to check something later
-	Q_strncpyz( cl->userinfo, userinfo, sizeof( cl->userinfo ) );
-
-	G_UpdatePlayerInfoString( PLAYERNUM( ent ) );
+	SafeStrCpy( ent->r.client->userinfo, userinfo, sizeof( ent->r.client->userinfo ) );
 }
-
 
 /*
 * ClientConnect
@@ -615,8 +579,8 @@ void ClientUserinfoChanged( edict_t *ent, char *userinfo ) {
 * loadgames will.
 */
 bool ClientConnect( edict_t *ent, char *userinfo, const NetAddress & address, bool fakeClient ) {
-	assert( ent );
-	assert( userinfo && Info_Validate( userinfo ) );
+	Assert( ent );
+	Assert( userinfo && Info_Validate( userinfo ) );
 
 	// verify that server gave us valid data
 	if( !Info_Validate( userinfo ) ) {
@@ -652,11 +616,11 @@ bool ClientConnect( edict_t *ent, char *userinfo, const NetAddress & address, bo
 	if( !fakeClient ) {
 		char message[MAX_STRING_CHARS];
 
-		snprintf( message, sizeof( message ), "%s connected", ent->r.client->netname );
+		snprintf( message, sizeof( message ), "%s connected", ent->r.client->name );
 
 		G_PrintMsg( NULL, "%s\n", message );
 
-		Com_GGPrint( "{} connected from {}", ent->r.client->netname, address );
+		Com_GGPrint( "{} connected from {}", ent->r.client->name, address );
 	}
 
 	G_CallVotes_ResetClient( PLAYERNUM( ent ) );
@@ -675,10 +639,10 @@ void ClientDisconnect( edict_t * ent, const char * reason ) {
 	}
 
 	if( reason == NULL ) {
-		G_PrintMsg( NULL, "%s disconnected\n", ent->r.client->netname );
+		G_PrintMsg( NULL, "%s disconnected\n", ent->r.client->name );
 	}
 	else {
-		G_PrintMsg( NULL, "%s disconnected (%s)\n", ent->r.client->netname, reason );
+		G_PrintMsg( NULL, "%s disconnected (%s)\n", ent->r.client->name, reason );
 	}
 
 	if( ent->s.type == ET_PLAYER ) {
@@ -691,7 +655,6 @@ void ClientDisconnect( edict_t * ent, const char * reason ) {
 	memset( ent->r.client, 0, sizeof( *ent->r.client ) );
 	ent->r.client->ps.playerNum = PLAYERNUM( ent );
 
-	PF_ConfigString( CS_PLAYERINFOS + PLAYERNUM( ent ), "" );
 	GClip_UnlinkEntity( ent );
 
 	G_Match_CheckReadys();
@@ -700,7 +663,7 @@ void ClientDisconnect( edict_t * ent, const char * reason ) {
 //==============================================================
 
 void G_PredictedEvent( int entNum, int ev, u64 parm ) {
-	assert( ev != EV_FIREWEAPON );
+	Assert( ev != EV_FIREWEAPON );
 
 	edict_t *ent = &game.edicts[entNum];
 
@@ -757,9 +720,9 @@ void G_PredictedAltFireWeapon( int entNum, u64 parm ) {
 	event->s.team = ent->s.team;
 }
 
-void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm ) {
+void G_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead ) {
 	edict_t * ent = &game.edicts[ entNum ];
-	G_UseGadget( ent, gadget, parm );
+	G_UseGadget( ent, gadget, parm, dead );
 
 	Vec3 start = ent->s.origin;
 	start.z += ent->r.client->ps.viewheight;
@@ -857,7 +820,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	client->ps.pmove.velocity = ent->velocity;
 	client->ps.viewangles = ent->s.angles;
 
-	if( server_gs.gameState.match_state >= MatchState_PostMatch || GS_MatchPaused( &server_gs )
+	if( server_gs.gameState.match_state >= MatchState_PostMatch || server_gs.gameState.paused
 		|| ( ent->movetype != MOVETYPE_PLAYER && ent->movetype != MOVETYPE_NOCLIP ) ) {
 		client->ps.pmove.pm_type = PM_FREEZE;
 	} else if( ent->movetype == MOVETYPE_NOCLIP ) {
@@ -922,7 +885,9 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	}
 
 	UpdateWeapons( &server_gs, &client->ps, *ucmd, client->timeDelta );
+	client->ps.flashed -= Min2( client->ps.flashed, u16( ucmd->msec * 0.001f * U16_MAX / 3.0f ) );
 	ent->s.weapon = client->ps.weapon;
+	ent->s.gadget = client->ps.using_gadget ? client->ps.gadget : Gadget_None;
 
 	client->resp.snap.buttons |= ucmd->buttons;
 }

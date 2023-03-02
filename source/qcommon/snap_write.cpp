@@ -30,15 +30,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 *
 * Writes a delta update of an SyncEntityState list to the message.
 */
-static void SNAP_EmitPacketEntities( ginfo_t *gi, client_snapshot_t *from, client_snapshot_t *to, msg_t *msg, SyncEntityState *baselines, SyncEntityState *client_entities, int num_client_entities ) {
+static void SNAP_EmitPacketEntities( ginfo_t *gi, client_snapshot_t *from, client_snapshot_t *to, msg_t *msg, const SyncEntityState *baselines, const SyncEntityState *client_entities, int num_client_entities ) {
 	MSG_WriteUint8( msg, svc_packetentities );
 
 	int from_num_entities = from == NULL ? 0 : from->num_entities;
 	int newindex = 0;
 	int oldindex = 0;
 	while( newindex < to->num_entities || oldindex < from_num_entities ) {
-		SyncEntityState * oldent;
-		SyncEntityState * newent;
+		const SyncEntityState * oldent;
+		const SyncEntityState * newent;
 		int oldnum, newnum;
 		if( newindex >= to->num_entities ) {
 			newent = NULL;
@@ -86,7 +86,7 @@ static void SNAP_EmitPacketEntities( ginfo_t *gi, client_snapshot_t *from, clien
 	MSG_WriteEntityNumber( msg, MAX_EDICTS, false ); // end of packetentities
 }
 
-static void SNAP_WriteDeltaGameStateToClient( client_snapshot_t *from, client_snapshot_t *to, msg_t *msg ) {
+static void SNAP_WriteDeltaGameStateToClient( const client_snapshot_t *from, client_snapshot_t *to, msg_t *msg ) {
 	MSG_WriteUint8( msg, svc_match );
 	MSG_WriteDeltaGameState( msg, from ? &from->gameState : NULL, &to->gameState );
 }
@@ -96,13 +96,13 @@ static void SNAP_WritePlayerstateToClient( msg_t *msg, const SyncPlayerState *op
 	MSG_WriteDeltaPlayerState( msg, ops, ps );
 }
 
-static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum ) {
+static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, const client_t *client, msg_t *msg, int64_t frameNum ) {
 	int positions[MAX_CLIENTS];
 
 	// find the first command to send from every client
 	int maxnumtargets = 0;
 	for( int i = 0; i < gi->max_clients; i++ ) {
-		client_t * cl = gi->clients + i;
+		const client_t * cl = gi->clients + i;
 
 		if( cl->state < CS_SPAWNED || ( ( !cl->edict || ( cl->edict->s.svflags & SVF_NOCLIENT ) ) && cl != client ) ) {
 			continue;
@@ -133,7 +133,7 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 
 		// we find the message with the earliest framenum, and collect all recipients for that
 		for( int i = 0; i < gi->max_clients; i++ ) {
-			client_t * cl = gi->clients + i;
+			const client_t * cl = gi->clients + i;
 
 			if( cl->state < CS_SPAWNED || ( ( !cl->edict || ( cl->edict->s.svflags & SVF_NOCLIENT ) ) && cl != client ) ) {
 				continue;
@@ -197,7 +197,7 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, client_t *client, msg_t *ms
 }
 
 void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
-								  SyncEntityState *baselines, client_entities_t *client_entities ) {
+								  const SyncEntityState *baselines, const client_entities_t *client_entities ) {
 	// this is the frame we are creating
 	client_snapshot_t * frame = &client->snapShots[frameNum & UPDATE_MASK];
 
@@ -341,14 +341,14 @@ static float SNAP_GainForAttenuation( float dist ) {
 	return S_DEFAULT_ATTENUATION_REFDISTANCE / ( S_DEFAULT_ATTENUATION_REFDISTANCE + ATTN_DISTANT * ( dist - S_DEFAULT_ATTENUATION_REFDISTANCE ) );
 }
 
-static bool SNAP_SnapCullSoundEntity( edict_t *ent, Vec3 listener_origin ) {
+static bool SNAP_SnapCullSoundEntity( const edict_t * ent, Vec3 listener_origin ) {
 	// extend the influence sphere cause the player could be moving
 	float dist = Length( listener_origin - ent->s.origin ) - 128;
 	float gain = SNAP_GainForAttenuation( dist < 0 ? 0 : dist );
 	return gain <= 0.05f;
 }
 
-static bool SNAP_SnapCullEntity( edict_t *ent, edict_t *clent, client_snapshot_t *frame, Vec3 vieworg ) {
+static bool SNAP_SnapCullEntity( const edict_t * ent, const edict_t * clent, const client_snapshot_t * frame, Vec3 vieworg ) {
 	// filters: this entity has been disabled for comunication
 	if( ent->s.svflags & SVF_NOCLIENT ) {
 		return true;
@@ -409,7 +409,7 @@ static bool SNAP_SnapCullEntity( edict_t *ent, edict_t *clent, client_snapshot_t
 	return snd_culled;
 }
 
-static void SNAP_AddEntitiesVisibleAtOrigin( ginfo_t *gi, edict_t *clent, Vec3 vieworg, client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
+static void SNAP_AddEntitiesVisibleAtOrigin( const ginfo_t * gi, const edict_t * clent, Vec3 vieworg, const client_snapshot_t * frame, snapshotEntityNumbers_t * entList ) {
 	// add the entities to the list
 	for( int entNum = 0; entNum < gi->num_edicts; entNum++ ) {
 		edict_t * ent = EDICT_NUM( entNum );
@@ -437,18 +437,14 @@ static void SNAP_AddEntitiesVisibleAtOrigin( ginfo_t *gi, edict_t *clent, Vec3 v
 	}
 }
 
-static void SNAP_BuildSnapEntitiesList( ginfo_t *gi, edict_t *clent, Vec3 vieworg,
-										client_snapshot_t *frame, snapshotEntityNumbers_t *entList ) {
+static void SNAP_BuildSnapEntitiesList( const ginfo_t * gi, const edict_t * clent, Vec3 vieworg, const client_snapshot_t * frame, snapshotEntityNumbers_t * entList ) {
 	entList->numSnapshotEntities = 0;
 	memset( entList->entityAddedToSnapList, 0, sizeof( entList->entityAddedToSnapList ) );
 
 	// always add the client entity
 	if( clent ) {
 		int entNum = NUM_FOR_EDICT( clent );
-		if( clent->s.number != entNum ) {
-			Com_Printf( "FIXING CLENT->S.NUMBER: %i %i!!!\n", clent->s.number, entNum );
-			clent->s.number = entNum;
-		}
+		Assert( clent->s.number == entNum );
 
 		// FIXME we should send all the entities who's POV we are sending if frame->multipov
 		SNAP_AddEntNumToSnapList( entNum, entList );
@@ -465,13 +461,13 @@ static void SNAP_BuildSnapEntitiesList( ginfo_t *gi, edict_t *clent, Vec3 viewor
 * Decides which entities are going to be visible to the client, and
 * copies off the playerstat and areabits.
 */
-void SNAP_BuildClientFrameSnap( ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
-	client_t *client,
-	SyncGameState *gameState, client_entities_t *client_entities
+void SNAP_BuildClientFrameSnap( const ginfo_t * gi, int64_t frameNum, int64_t timeStamp,
+	client_t * client,
+	const SyncGameState * gameState, client_entities_t * client_entities
 ) {
-	assert( gameState );
+	Assert( gameState );
 
-	edict_t * clent = client->edict;
+	const edict_t * clent = client->edict;
 	Vec3 org;
 	if( clent && !clent->r.client ) {   // allow NULL ent for server record
 		return;     // not in game yet
@@ -480,7 +476,7 @@ void SNAP_BuildClientFrameSnap( ginfo_t *gi, int64_t frameNum, int64_t timeStamp
 		org = clent->s.origin;
 		org.z += clent->r.client->ps.viewheight;
 	} else {
-		assert( client->mv );
+		Assert( client->mv );
 		org = Vec3( 0.0f );
 	}
 

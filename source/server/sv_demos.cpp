@@ -134,7 +134,7 @@ void SV_Demo_Start_f() {
 
 	Com_Printf( "Recording server demo: %s\n", filename );
 
-	bool recording = StartRecordingDemo( &temp, &record_demo_context, filename, svs.spawncount, svc.snapFrameTime, server_gs.maxclients, sv.configstrings[ 0 ], sv.baselines );
+	bool recording = StartRecordingDemo( &temp, &record_demo_context, filename, svs.spawncount, svc.snapFrameTime, server_gs.maxclients, sv.baselines );
 	if( !recording )
 		return;
 
@@ -201,6 +201,10 @@ static Span< char * > GetServerDemos( TempAllocator * temp ) {
 	return demos.span();
 }
 
+static bool IsDigit( char c ) {
+	return c >= '0' && c <= '9';
+}
+
 void SV_Demo_Purge_f() {
 	if( !is_dedicated_server ) {
 		return;
@@ -218,7 +222,7 @@ void SV_Demo_Purge_f() {
 	for( const char * demo : demos ) {
 		// terrible, but isdigit( '\0' ) is false so this is safe
 		const char * _auto = strstr( demo, "_auto" );
-		if( _auto != NULL && isdigit( _auto[ 5 ] ) && isdigit( _auto[ 6 ] ) && isdigit( _auto[ 7 ] ) && isdigit( _auto[ 8 ] ) ) {
+		if( _auto != NULL && IsDigit( _auto[ 5 ] ) && IsDigit( _auto[ 6 ] ) && IsDigit( _auto[ 7 ] ) && IsDigit( _auto[ 8 ] ) ) {
 			auto_demos.add( demo );
 		}
 	}

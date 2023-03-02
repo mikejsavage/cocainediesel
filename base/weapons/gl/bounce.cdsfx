@@ -1,4 +1,3 @@
 {
-	sound ./bounce1
-	sound ./bounce2
+	find_sounds ./bounce
 }

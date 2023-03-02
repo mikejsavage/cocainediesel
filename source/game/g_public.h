@@ -24,7 +24,6 @@ struct edict_t;
 struct gclient_t;
 
 struct client_shared_t {
-	int ping;
 	int health;
 	int frags;
 };

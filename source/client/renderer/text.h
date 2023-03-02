@@ -4,7 +4,7 @@
 
 struct Font;
 
-bool InitText();
+void InitText();
 void ShutdownText();
 
 const Font * RegisterFont( const char * path );

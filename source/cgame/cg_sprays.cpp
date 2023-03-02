@@ -17,7 +17,7 @@ struct Spray {
 static StringHash spray_assets[ 4096 ];
 static size_t num_spray_assets;
 
-constexpr static s64 SPRAY_LIFETIME = 60000;
+static constexpr s64 SPRAY_LIFETIME = 60000;
 
 static Spray sprays[ 1024 ];
 static size_t sprays_head;
@@ -37,7 +37,7 @@ void InitSprays() {
 			continue;
 		}
 
-		assert( num_spray_assets < ARRAY_COUNT( spray_assets ) );
+		Assert( num_spray_assets < ARRAY_COUNT( spray_assets ) );
 
 		spray_assets[ num_spray_assets ] = StringHash( StripExtension( path ) );
 		num_spray_assets++;
@@ -82,6 +82,7 @@ void AddSpray( Vec3 origin, Vec3 normal, Vec3 angles, float scale, u64 entropy )
 		num_sprays++;
 	}
 
+	PlaySFX( "sounds/spray/spray", PlaySFXConfigPosition( origin ) );
 	DoVisualEffect( "vfx/spray", origin - forward * 8.0f, forward );
 }
 

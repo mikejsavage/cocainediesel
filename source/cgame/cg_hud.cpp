@@ -226,6 +226,8 @@ static const char * conjunctions[] = {
 	"AS WELL AS",
 	"ASSISTED BY",
 	"FEAT.",
+	"GEULIGO",
+	"JA",
 	"N'",
 	"PLUS",
 	"UND",
@@ -291,11 +293,11 @@ void CG_SC_Obituary() {
 	current->wallbang = wallbang;
 
 	if( victim != NULL ) {
-		Q_strncpyz( current->victim, victim, sizeof( current->victim ) );
+		SafeStrCpy( current->victim, victim, sizeof( current->victim ) );
 		current->victim_team = cg_entities[ victimNum ].current.team;
 	}
 	if( attacker != NULL ) {
-		Q_strncpyz( current->attacker, attacker, sizeof( current->attacker ) );
+		SafeStrCpy( current->attacker, attacker, sizeof( current->attacker ) );
 		current->attacker_team = cg_entities[ attackerNum ].current.team;
 	}
 
@@ -397,7 +399,7 @@ static const Material * DamageTypeToIcon( DamageType type ) {
 //=============================================================================
 
 static void GlitchText( Span< char > msg ) {
-	constexpr const char glitches[] = { '#', '@', '~', '$' };
+	constexpr char glitches[] = { '#', '@', '~', '$' };
 
 	RNG rng = NewRNG( cls.monotonicTime.flicks / ( GGTIME_FLICKS_PER_SECOND / 14 ), 0 );
 
@@ -426,7 +428,7 @@ void CG_DrawScope() {
 			trace_t trace;
 			Vec3 forward = -frame_static.V.row2().xyz();
 			Vec3 end = cg.view.origin + forward * 10000.0f;
-			CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.predictedPlayerState.POVnum, Solid_Shot );
+			CG_Trace( &trace, cg.view.origin, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.predictedPlayerState.POVnum, SolidMask_Shot );
 
 			TempAllocator temp = cls.frame_arena.temp();
 			float offset = Min2( frame_static.viewport_width, frame_static.viewport_height ) * 0.1f;
@@ -696,7 +698,7 @@ static int LuauDraw2DBoxUV( lua_State * L ) {
 }
 
 static Alignment CheckAlignment( lua_State * L, int idx ) {
-	constexpr const Alignment alignments[] = {
+	constexpr Alignment alignments[] = {
 		Alignment_LeftTop,
 		Alignment_CenterTop,
 		Alignment_RightTop,
@@ -905,7 +907,7 @@ static int LuauGetClockTime( lua_State * L ) {
 		}
 	}
 	else {
-		curtime = ( GS_MatchWaiting( &client_gs ) || GS_MatchPaused( &client_gs ) ) ? cg.frame.serverTime : cl.serverTime;
+		curtime = client_gs.gameState.match_state == MatchState_Warmup || client_gs.gameState.paused ? cg.frame.serverTime : cl.serverTime;
 		duration = client_gs.gameState.match_duration;
 		startTime = client_gs.gameState.match_state_start_time;
 
@@ -1182,7 +1184,7 @@ static void CheckYogaNumberAllEdges( lua_State * L, int idx, const char * key, Y
 }
 
 static YGFlexDirection CheckYogaFlexDirection( lua_State * L, int idx ) {
-	constexpr const YGFlexDirection flex_directions[] = {
+	constexpr YGFlexDirection flex_directions[] = {
 		YGFlexDirectionRow,
 		YGFlexDirectionRowReverse,
 		YGFlexDirectionColumn,
@@ -1200,7 +1202,7 @@ static YGFlexDirection CheckYogaFlexDirection( lua_State * L, int idx ) {
 }
 
 static YGAlign CheckYogaAlign( lua_State * L, int idx ) {
-	constexpr const YGAlign aligns[] = {
+	constexpr YGAlign aligns[] = {
 		YGAlignStretch,
 		YGAlignFlexStart,
 		YGAlignCenter,
@@ -1224,7 +1226,7 @@ static YGAlign CheckYogaAlign( lua_State * L, int idx ) {
 }
 
 static YGJustify CheckYogaJustify( lua_State * L, int idx ) {
-	constexpr const YGJustify justifies[] = {
+	constexpr YGJustify justifies[] = {
 		YGJustifyFlexStart,
 		YGJustifyCenter,
 		YGJustifyFlexEnd,
@@ -1547,7 +1549,7 @@ void CG_InitHUD() {
 		Fatal( "luaL_newstate" );
 	}
 
-	constexpr const luaL_Reg cdlib[] = {
+	constexpr luaL_Reg cdlib[] = {
 		{ "print", LuauPrint },
 		{ "asset", LuauAsset },
 		{ "box", LuauDraw2DBox },
@@ -1644,9 +1646,10 @@ void CG_InitHUD() {
 void CG_ShutdownHUD() {
 	if( hud_L != NULL ) {
 		lua_close( hud_L );
-		YGConfigFree( yoga_config );
-		FREE( sys_allocator, yoga_arena_memory );
 	}
+
+	YGConfigFree( yoga_config );
+	FREE( sys_allocator, yoga_arena_memory );
 
 	RemoveCommand( "toggleuiinspector" );
 }
@@ -1716,8 +1719,18 @@ void CG_DrawHUD() {
 	lua_pushnumber( hud_L, cg.predictedPlayerState.pmove.stamina_state );
 	lua_setfield( hud_L, -2, "stamina_state" );
 
-	lua_pushnumber( hud_L, cg.predictedPlayerState.team );
-	lua_setfield( hud_L, -2, "team" );
+	lua_pushboolean( hud_L, cg.predictedPlayerState.pmove.pm_type == PM_SPECTATOR );
+	lua_setfield( hud_L, -2, "ghost" );
+
+	if( cg.predictedPlayerState.team != Team_None ) {
+		lua_pushnumber( hud_L, cg.predictedPlayerState.team );
+		lua_setfield( hud_L, -2, "team" );
+	}
+
+	if( cg.predictedPlayerState.real_team != Team_None ) {
+		lua_pushnumber( hud_L, cg.predictedPlayerState.real_team );
+		lua_setfield( hud_L, -2, "real_team" );
+	}
 
 	lua_pushboolean( hud_L, cg.predictedPlayerState.carrying_bomb );
 	lua_setfield( hud_L, -2, "is_carrier" );

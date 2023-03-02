@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "server/server.h"
 #include "qcommon/version.h"
+#include "qcommon/string.h"
 #include "qcommon/time.h"
 
 struct SvMasterServer {
@@ -28,7 +29,6 @@ struct SvMasterServer {
 
 static SvMasterServer master_servers[ ARRAY_COUNT( MASTER_SERVERS ) ];
 
-extern Cvar * rcon_password;         // password for remote server commands
 extern Cvar * sv_iplimit;
 
 //==============================================================================
@@ -130,7 +130,7 @@ static char *SV_LongInfoString( bool fullStatus ) {
 	size_t statusLength;
 	size_t tempstrLength;
 
-	Q_strncpyz( status, Cvar_GetServerInfo(), sizeof( status ) );
+	SafeStrCpy( status, Cvar_GetServerInfo(), sizeof( status ) );
 
 	statusLength = strlen( status );
 
@@ -154,7 +154,7 @@ static char *SV_LongInfoString( bool fullStatus ) {
 	if( statusLength + tempstrLength >= sizeof( status ) ) {
 		return status; // can't hold any more
 	}
-	Q_strncpyz( status + statusLength, tempstr, sizeof( status ) - statusLength );
+	SafeStrCpy( status + statusLength, tempstr, sizeof( status ) - statusLength );
 	statusLength += tempstrLength;
 
 	if( fullStatus ) {
@@ -162,78 +162,18 @@ static char *SV_LongInfoString( bool fullStatus ) {
 			cl = &svs.clients[i];
 			if( cl->state >= CS_CONNECTED ) {
 				snprintf( tempstr, sizeof( tempstr ), "%i %i \"%s\" %i\n",
-							 cl->edict->r.client->r.frags, cl->ping, cl->name, cl->edict->s.team );
+					cl->edict->r.client->r.frags, cl->ping, cl->edict->r.client->name, cl->edict->s.team );
 				tempstrLength = strlen( tempstr );
 				if( statusLength + tempstrLength >= sizeof( status ) ) {
 					break; // can't hold any more
 				}
-				Q_strncpyz( status + statusLength, tempstr, sizeof( status ) - statusLength );
+				SafeStrCpy( status + statusLength, tempstr, sizeof( status ) - statusLength );
 				statusLength += tempstrLength;
 			}
 		}
 	}
 
 	return status;
-}
-
-/*
-* SV_ShortInfoString
-* Generates a short info string for broadcast scan replies
-*/
-#define MAX_STRING_SVCINFOSTRING 180
-#define MAX_SVCINFOSTRING_LEN ( MAX_STRING_SVCINFOSTRING - 4 )
-static char *SV_ShortInfoString() {
-	static char string[MAX_STRING_SVCINFOSTRING];
-	char hostname[64];
-	char entry[20];
-
-	int bots = 0;
-	int count = 0;
-	for( int i = 0; i < sv_maxclients->integer; i++ ) {
-		if( svs.clients[i].state >= CS_CONNECTED ) {
-			if( svs.clients[i].edict->s.svflags & SVF_FAKECLIENT ) {
-				bots++;
-			} else {
-				count++;
-			}
-		}
-	}
-	int maxcount = sv_maxclients->integer - bots;
-
-	//format:
-	//" \377\377\377\377info\\n\\server_name\\m\\map name\\u\\clients/maxclients\\EOT "
-
-	Q_strncpyz( hostname, sv_hostname->value, sizeof( hostname ) );
-	snprintf( string, sizeof( string ),
-				 "\\\\n\\\\%s\\\\m\\\\%s\\\\u\\\\%2i/%2i\\\\",
-				 hostname,
-				 sv.mapname,
-				 Min2( count, 99 ),
-				 Min2( maxcount, 99 )
-				 );
-
-	size_t len = strlen( string );
-
-	const char * password = Cvar_String( "sv_password" );
-	if( password[0] != '\0' ) {
-		snprintf( entry, sizeof( entry ), "p\\\\1\\\\" );
-		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {
-			Q_strncatz( string, entry, sizeof( string ) );
-			len = strlen( string );
-		}
-	}
-
-	if( bots ) {
-		snprintf( entry, sizeof( entry ), "b\\\\%2i\\\\", Min2( bots, 99 ) );
-		if( MAX_SVCINFOSTRING_LEN - len > strlen( entry ) ) {
-			Q_strncatz( string, entry, sizeof( string ) );
-			len = strlen( string );
-		}
-	}
-
-	// finish it
-	Q_strncatz( string, "EOT", sizeof( string ) );
-	return string;
 }
 
 //==============================================================================
@@ -244,10 +184,39 @@ static char *SV_ShortInfoString() {
 
 static void SVC_InfoResponse( const NetAddress & address ) {
 	if( sv_showInfoQueries->integer ) {
-		Com_GGPrint( "Info Packet {}", address );
+		Com_GGPrint( "Info Packet {} {}", address, Cmd_Argv( 1 ) );
 	}
 
-	Netchan_OutOfBandPrint( svs.socket, address, "info\n%s%s", Cmd_Argv( 1 ), SV_ShortInfoString() );
+	int num_players = 0;
+	int num_bots = 0;
+	for( int i = 0; i < sv_maxclients->integer; i++ ) {
+		if( svs.clients[i].state >= CS_CONNECTED ) {
+			if( svs.clients[i].edict->s.svflags & SVF_FAKECLIENT ) {
+				num_bots++;
+			}
+			else {
+				num_players++;
+			}
+		}
+	}
+	int max_players = sv_maxclients->integer - num_bots;
+
+	String< 256 > response( "info\n{}\\\\n\\\\{}\\\\m\\\\{}\\\\u\\\\{}/{}\\\\id\\\\{}",
+		Cmd_Argv( 1 ),
+		Cvar_String( "sv_hostname" ),
+		sv.mapname,
+		Min2( num_players, 99 ),
+		Min2( max_players, 99 ),
+		Cvar_String( "serverid" )
+	);
+
+	if( strlen( Cvar_String( "sv_password" ) ) > 0 ) {
+		response += "\\\\p\\\\1";
+	}
+
+	response += "\\\\EOT";
+
+	Netchan_OutOfBandPrint( svs.socket, address, "%s", response.c_str() );
 }
 
 static void MasterOrLivesowResponse( const NetAddress & address, const char * command, bool include_players ) {
@@ -326,7 +295,7 @@ static void SVC_DirectConnect( const NetAddress & address ) {
 	}
 
 	char userinfo[ MAX_INFO_STRING ];
-	Q_strncpyz( userinfo, Cmd_Argv( 4 ), sizeof( userinfo ) );
+	SafeStrCpy( userinfo, Cmd_Argv( 4 ), sizeof( userinfo ) );
 
 	// see if the challenge is valid
 	{
@@ -439,37 +408,6 @@ int SVC_FakeConnect( char * userinfo ) {
 	return NUM_FOR_EDICT( newcl->edict );
 }
 
-static bool Rcon_Validate() {
-	return StrEqual( rcon_password->value, "" ) || StrEqual( Cmd_Argv( 1 ), rcon_password->value );
-}
-
-/*
-* SVC_RemoteCommand
-*
-* A client issued an rcon command.
-* Shift down the remaining args
-* Redirect all printfs
-*/
-static void SVC_RemoteCommand( const NetAddress & address ) {
-	if( Rcon_Validate() ) {
-		Com_GGPrint( "Bad rcon from {}: {}", address, Cmd_Args() );
-	}
-	else {
-		Com_GGPrint( "Rcon from {}: {}", address, Cmd_Args() );
-	}
-
-	Com_BeginRedirect( RD_PACKET, sv_outputbuf, SV_OUTPUTBUF_LENGTH, SV_FlushRedirect, &address );
-
-	if( !Rcon_Validate() ) {
-		Com_Printf( "Bad rcon_password.\n" );
-	}
-	else {
-		Cbuf_ExecuteLine( Cmd_Args() );
-	}
-
-	Com_EndRedirect();
-}
-
 struct connectionless_cmd_t {
 	const char *name;
 	void ( *func )( const NetAddress & address );
@@ -481,7 +419,6 @@ static connectionless_cmd_t connectionless_cmds[] = {
 	{ "getstatus", SVC_GetStatusResponse },
 	{ "getchallenge", SVC_GetChallenge },
 	{ "connect", SVC_DirectConnect },
-	{ "rcon", SVC_RemoteCommand },
 };
 
 /*

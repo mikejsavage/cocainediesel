@@ -270,7 +270,11 @@ static void CG_Cmd_PrevWeapon_f() {
 		return;
 	}
 
-	ScrollWeapon( -1 );
+	if( GS_GetWeaponDef( cg.predictedPlayerState.weapon )->category == WeaponCategory_Melee ) {
+		SwitchWeapon( cg.predictedPlayerState.last_weapon );
+	} else {
+		ScrollWeapon( -1 );
+	}
 }
 
 static void CG_Cmd_LastWeapon_f() {
@@ -339,8 +343,6 @@ static const ClientToServerCommand game_commands_yes_args[] = {
 	{ "callvote", ClientCommand_Callvote },
 	{ "vote_yes", ClientCommand_VoteYes },
 	{ "vote_no", ClientCommand_VoteNo },
-	{ "op", ClientCommand_Operator },
-	{ "opcall", ClientCommand_OpCall },
 	{ "join", ClientCommand_Join },
 	{ "vsay", ClientCommand_Vsay },
 	{ "setloadout", ClientCommand_SetLoadout },
@@ -354,7 +356,7 @@ static void ReliableCommandNoArgs() {
 		}
 	}
 
-	assert( false );
+	Assert( false );
 }
 
 static void ReliableCommandYesArgs() {
@@ -366,7 +368,7 @@ static void ReliableCommandYesArgs() {
 		}
 	}
 
-	assert( false );
+	Assert( false );
 }
 
 void CG_RegisterCGameCommands() {

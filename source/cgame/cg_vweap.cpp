@@ -117,14 +117,7 @@ void CG_ViewWeapon_AddAnimation( int ent_num, StringHash anim ) {
 
 void CG_CalcViewWeapon( cg_viewweapon_t * viewweapon ) {
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	const GLTFRenderData * model;
-	if( !ps->using_gadget ) {
-		model = FindGLTFRenderData( GetWeaponModelMetadata( ps->weapon )->model );
-	}
-	else {
-		model = FindGLTFRenderData( GetGadgetModelMetadata( ps->gadget )->model );
-	}
-
+	const GLTFRenderData * model = GetEquippedItemRenderData( ps );
 	if( model == NULL )
 		return;
 
@@ -185,13 +178,7 @@ void CG_AddViewWeapon( cg_viewweapon_t * viewweapon ) {
 		return;
 
 	const SyncPlayerState * ps = &cg.predictedPlayerState;
-	const GLTFRenderData * model;
-	if( !ps->using_gadget ) {
-		model = FindGLTFRenderData( GetWeaponModelMetadata( ps->weapon )->model );
-	}
-	else {
-		model = FindGLTFRenderData( GetGadgetModelMetadata( ps->gadget )->model );
-	}
+	const GLTFRenderData * model = GetEquippedItemRenderData( ps );
 
 	if( model == NULL ) {
 		return;

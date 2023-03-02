@@ -6,7 +6,7 @@ template< size_t N >
 class Hashtable {
 	STATIC_ASSERT( IsPowerOf2( N ) );
 
-	static constexpr u64 DeletedBit = U64( 1 ) << U64( 63 );
+	static constexpr u64 DeletedBit = 1_u64 << 63_u64;
 	static constexpr u64 EmptyKey = 0;
 
 	struct Entry {
@@ -23,7 +23,7 @@ public:
 	}
 
 	bool add( u64 key, u64 value ) {
-		assert( key != EmptyKey );
+		Assert( key != EmptyKey );
 
 		if( n == N )
 			return false;

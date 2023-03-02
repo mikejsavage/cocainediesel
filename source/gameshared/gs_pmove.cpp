@@ -552,18 +552,27 @@ static void PM_CheckSpecialMovement() {
 static void PM_FlyMove() {
 	// accelerate
 	float special = 1 + int( ( pm->cmd.buttons & Button_Attack2 ) != 0 );
-	float fmove = pm->cmd.forwardmove * special / 127.0f;
-	float smove = pm->cmd.sidemove * special / 127.0f;
-	float umove = (int( (pm->cmd.buttons & Button_Ability1) != 0 ) - int( (pm->cmd.buttons & Button_Ability2) != 0 )) * special;
+	Vec3 fwd, right;
+	AngleVectors( pm->playerState->viewangles, &fwd, &right, NULL );
 
-	Vec3 wishdir = pml.forward * fmove + pml.right * smove;
-	wishdir.z += umove;
-
-	float wishspeed = Length( wishdir );
+	Vec3 wishdir = pml.forwardPush * fwd + pml.sidePush * right;
 	wishdir = SafeNormalize( wishdir );
 
-	pml.velocity = pm_specspeed * wishspeed * wishdir;
-	pml.origin += pml.velocity * pml.frametime;
+	pml.velocity = wishdir * pm_specspeed * special;
+	pml.velocity.z += (int( (pm->cmd.buttons & Button_Ability1) != 0 ) - int( (pm->cmd.buttons & Button_Ability2) != 0 )) * pm_specspeed * special;
+	
+	Vec3 origin = pml.origin;
+	Vec3 velocity = pml.velocity;
+
+	int blocked = PM_SlideMove();
+
+	if( blocked & SLIDEMOVEFLAG_TRAPPED ) { //noclip if we're blocked
+		pml.origin = origin + velocity * pml.frametime;
+	} else {
+		pml.origin = origin;
+		pml.velocity = velocity;
+		PM_StepSlideMove();
+	}
 }
 
 static void PM_AdjustBBox() {
@@ -694,17 +703,18 @@ void Pmove( const gs_state_t * gs, pmove_t * pmove ) {
 			if( pmove_gs->module == GS_MODULE_GAME ) {
 				ps->pmove.pm_flags &= ~PMF_NO_PREDICTION;
 			}
-			pm->solid_mask = Solid_Solid;
+			// NOMERGE(kdtree): needs per-team solidity and such
+			pm->solid_mask = Solid_PlayerClip;
 			break;
 	}
 
-	if( !GS_MatchPaused( pmove_gs ) ) {
+	if( !pmove_gs->gameState.paused ) {
 		ps->pmove.no_shooting_time = Max2( 0, ps->pmove.no_shooting_time - pm->cmd.msec );
 		ps->pmove.knockback_time = Max2( 0, ps->pmove.knockback_time - pm->cmd.msec );
 	}
 
 	if( ps->pmove.pm_type != PM_NORMAL ) { // includes dead, freeze, chasecam...
-		if( !GS_MatchPaused( pmove_gs ) ) {
+		if( !pmove_gs->gameState.paused ) {
 			ps->pmove.knockback_time = 0;
 
 			PM_AdjustBBox();

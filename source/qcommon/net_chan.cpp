@@ -251,7 +251,7 @@ bool Netchan_PushAllFragments( Socket socket, netchan_t * chan ) {
 * A 0 length will still generate a packet.
 */
 bool Netchan_Transmit( Socket socket, netchan_t * chan, msg_t * msg ) {
-	assert( msg );
+	Assert( msg );
 
 	if( msg->cursize > MAX_MSGLEN ) {
 		Com_Error( "Netchan_Transmit: Excessive length = %li", msg->cursize );
@@ -466,9 +466,9 @@ bool Netchan_Process( netchan_t * chan, msg_t * msg ) {
 }
 
 void Netchan_Init() {
-	showpackets = NewCvar( "showpackets", "0", 0 );
-	showdrop = NewCvar( "showdrop", "0", 0 );
-	net_showfragments = NewCvar( "net_showfragments", "0", 0 );
+	showpackets = NewCvar( "showpackets", "0" );
+	showdrop = NewCvar( "showdrop", "0" );
+	net_showfragments = NewCvar( "net_showfragments", "0" );
 }
 
 void Netchan_Shutdown() {

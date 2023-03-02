@@ -1,4 +1,3 @@
 {
-	sound ./pain100_1
-	sound ./pain100_2
+	find_sounds ./pain100
 }

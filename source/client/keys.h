@@ -118,6 +118,7 @@ void Key_Shutdown();
 void Key_SetBinding( int keynum, const char *binding );
 const char *Key_GetBindingBuf( int binding );
 void Key_ClearStates();
+void Key_Unbindall();
 
 Span< const char > Key_KeynumToString( int keynum );
 int Key_StringToKeynum( const char *str );

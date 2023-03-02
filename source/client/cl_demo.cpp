@@ -77,7 +77,7 @@ void CL_DemoBaseline( const snapshot_t * snap ) {
 	defer { FREE( sys_allocator, record_demo_filename ); };
 
 	TempAllocator temp = cls.frame_arena.temp();
-	StartRecordingDemo( &temp, &record_demo_context, record_demo_filename, cl.servercount, cl.snapFrameTime, client_gs.maxclients, cl.configstrings[ 0 ], cl_baselines );
+	StartRecordingDemo( &temp, &record_demo_context, record_demo_filename, cl.servercount, cl.snapFrameTime, client_gs.maxclients, cl_baselines );
 }
 
 void CL_Record_f() {

@@ -73,11 +73,25 @@ void InitWeaponModels() {
 }
 
 const WeaponModelMetadata * GetWeaponModelMetadata( WeaponType weapon ) {
-	assert( weapon < Weapon_Count );
+	Assert( weapon < Weapon_Count );
 	return &weapon_model_metadata[ weapon ];
 }
 
 const GadgetModelMetadata * GetGadgetModelMetadata( GadgetType gadget ) {
-	assert( gadget < Gadget_Count );
+	Assert( gadget < Gadget_Count );
 	return &gadget_model_metadata[ gadget ];
+}
+
+const GLTFRenderData * GetEquippedItemRenderData( const SyncEntityState * ent ) {
+	StringHash model = ent->gadget != Gadget_None ?
+		GetGadgetModelMetadata( ent->gadget )->model :
+		GetWeaponModelMetadata( ent->weapon )->model;
+	return FindGLTFRenderData( model );
+}
+
+const GLTFRenderData * GetEquippedItemRenderData( const SyncPlayerState * ps ) {
+	StringHash model = ps->using_gadget ?
+		GetGadgetModelMetadata( ps->gadget )->model :
+		GetWeaponModelMetadata( ps->weapon )->model;
+	return FindGLTFRenderData( model );
 }

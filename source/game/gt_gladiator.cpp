@@ -6,62 +6,37 @@
 #include "game/g_maps.h"
 #include "gameshared/cdmap.h"
 
-struct TeamQueue {
-	int players[ MAX_CLIENTS ];
-};
-
 static struct GladiatorState {
-	u64 round_state_start;
-	u64 round_state_end;
+	s64 round_state_start;
+	s64 round_state_end;
 	s32 countdown;
 
-	TeamQueue teams[ Team_Count ];
+	RespawnQueues respawn_queues;
 
 	bool randomize_arena;
+
+	s64 bomb_action_time;
+	bool bomb_exploded;
 } gladiator_state;
 
 static constexpr int countdown_seconds = 2;
+static constexpr u32 bomb_explosion_effect_radius = 1024;
+static Cvar * g_glad_bombtimer;
 
-static void RemovePlayerFromQueue( TeamQueue * team, size_t idx ) {
-	team->players[ idx ] = -1; // in case this is the last element
-	memcpy( &team->players[ idx ], &team->players[ idx + 1 ], ARRAY_COUNT( team->players ) - ( idx + 1 ) );
+static void BombExplode() {
+	server_gs.gameState.exploding = true;
+	server_gs.gameState.exploded_at = svs.gametime;
+
+	Vec3 zero( 0.0f );
+	G_SpawnEvent( EV_BOMB_EXPLOSION, bomb_explosion_effect_radius, &zero );
 }
 
-static void RemovePlayerFromAllQueues( int player ) {
-	for( TeamQueue & team : gladiator_state.teams ) {
-		for( size_t i = 0; i < ARRAY_COUNT( team.players ); i++ ) {
-			if( team.players[ i ] == player ) {
-				RemovePlayerFromQueue( &team, i );
-			}
-		}
-	}
-}
+static void BombKill() {
+	Vec3 zero( 0.0f );
+	gladiator_state.bomb_exploded = true;
 
-static void Enqueue( TeamQueue * team, int player ) {
-	for( int & slot : team->players ) {
-		if( slot == -1 ) {
-			slot = player;
-			return;
-		}
-	}
-
-	assert( false );
-}
-
-static int Rotate( TeamQueue * team ) {
-	int player = team->players[ 0 ];
-	RemovePlayerFromQueue( team, 0 );
-	Enqueue( team, player );
-	return player;
-}
-
-static void GhostEveryone() {
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
-		edict_t * ent = PLAYERENT( i );
-		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
-			GClip_UnlinkEntity( ent );
-			G_ClientRespawn( ent, true );
-		}
+		G_Damage( PLAYERENT( i ), world, world, zero, zero, zero, 100.0f, 0.0f, 0, WorldDamage_Explosion );
 	}
 }
 
@@ -92,81 +67,20 @@ static void PickRandomArena() {
 	// G_LoadMap( RandomElement( &svs.rng, maps.begin(), maps.size() ) );
 }
 
-static void GiveLoadout() {
-	// TODO
-	Span< const char > loadout = GetWorldspawnKey( FindServerMap( server_gs.gameState.map ), "loadout" );
-	if( loadout != "" ) {
-		// GiveFixedLoadout( loadout );
-		return;
-	}
-
-	WeaponType weap1 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count ) );
-	WeaponType weap2 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 ) );
-
-	u8 p = RandomUniform( &svs.rng, 0, 3 ); //we'll randomize properly when all the hud stuff and perks fit the game
-	PerkType perk = p == 0 ? Perk_Hooligan : p == 1 ? Perk_Midget : Perk_Jetpack;
-
-	if( weap2 >= weap1 ) {
-		weap2++;
-	}
-
-	for( int i = 0; i < server_gs.maxclients; i++ ) {
-		edict_t * ent = PLAYERENT( i );
-		if( G_ISGHOSTING( ent ) )
-			continue;
-
-		G_GiveWeapon( ent, weap1 );
-		G_GiveWeapon( ent, weap2 );
-		G_SelectWeapon( ent, 0 );
-		G_GivePerk( ent, perk );
-	}
-}
-
 static void NewRound() {
 	server_gs.gameState.round_num++;
+	server_gs.gameState.exploding = false;
 
 	PickRandomArena();
+	G_SunCycle( 1500 );
 
 	gladiator_state.round_state_end = level.time + countdown_seconds * 1000;
 	gladiator_state.countdown = 4;
+	gladiator_state.bomb_exploded = false;
 
 	// set up teams
 	GhostEveryone();
-
-	u8 players_per_team = U8_MAX;
-	u8 top_score = 0;
-	for( int i = 0; i < level.gametype.numTeams; i++ ) {
-		const SyncTeamState * team = &server_gs.gameState.teams[ Team_One + i ];
-		top_score = Max2( top_score, team->score );
-
-		if( team->num_players > 0 ) {
-			players_per_team = Min2( players_per_team, team->num_players );
-		}
-	}
-
-	for( int i = 0; i < level.gametype.numTeams; i++ ) {
-		for( u8 j = 0; j < players_per_team; j++ ) {
-			int player = Rotate( &gladiator_state.teams[ Team_One + i ] );
-			if( player == -1 )
-				continue;
-
-			edict_t * ent = PLAYERENT( player );
-
-			G_ClientRespawn( ent, false );
-			ent->r.client->ps.pmove.no_shooting_time = countdown_seconds * 1000;
-
-			if( server_gs.gameState.teams[ Team_One + i ].score == top_score ) {
-				ent->s.model2 = "models/crown/crown";
-				ent->s.effects |= EF_HAT;
-			}
-			else {
-				ent->s.model2 = EMPTY_HASH;
-				ent->s.effects &= ~EF_HAT;
-			}
-		}
-	}
-
-	GiveLoadout();
+	SpawnTeams( &gladiator_state.respawn_queues );
 
 	// check for match point
 	server_gs.gameState.round_type = RoundType_Normal;
@@ -203,6 +117,7 @@ static void NewRoundState( RoundState newState ) {
 
 		case RoundState_Round: {
 			gladiator_state.countdown = 0;
+			gladiator_state.round_state_start = level.time;
 			gladiator_state.round_state_end = 0;
 			G_AnnouncerSound( NULL, "sounds/gladiator/fight", Team_Count, false, NULL );
 			G_ClearCenterPrint( NULL );
@@ -214,7 +129,7 @@ static void NewRoundState( RoundState newState ) {
 		} break;
 
 		case RoundState_Post: {
-			gladiator_state.round_state_end = level.time + 1000;
+			gladiator_state.round_state_end = level.time + (gladiator_state.bomb_exploded ? 1500 : 1000); //it's too short when the bomb explodes
 
 			Team winner = Team_None;
 			for( int i = 0; i < server_gs.maxclients; i++ ) {
@@ -225,7 +140,7 @@ static void NewRoundState( RoundState newState ) {
 				}
 			}
 
-			if( winner == Team_None ) {
+			if( winner == Team_None && !gladiator_state.bomb_exploded ) {
 				G_AnnouncerSound( NULL, "sounds/gladiator/wowyourterrible", Team_Count, false, NULL );
 			}
 			else {
@@ -266,8 +181,10 @@ static void Gladiator_Think() {
 		return;
 	}
 
+	RemoveDisconnectedPlayersFromRespawnQueues( &gladiator_state.respawn_queues );
+
 	if( gladiator_state.round_state_end != 0 ) {
-		if( gladiator_state.round_state_end < u64( level.time ) ) {
+		if( gladiator_state.round_state_end < level.time ) {
 			NewRoundState( RoundState( server_gs.gameState.round_state + 1 ) );
 			return;
 		}
@@ -290,21 +207,20 @@ static void Gladiator_Think() {
 	}
 
 	if( server_gs.gameState.round_state == RoundState_Round ) {
-		// drop disconnected players
-		int disconnected[ MAX_CLIENTS ] = { };
-		size_t num_disconnected = 0;
+		s64 round_end = gladiator_state.round_state_start + int( g_glad_bombtimer->number * 1000.0f );
+		s64 round_time = round_end - level.time;
 
-		for( const TeamQueue & team : gladiator_state.teams ) {
-			for( int player : team.players ) {
-				if( !PLAYERENT( player )->r.inuse ) {
-					disconnected[ num_disconnected ] = player;
-					num_disconnected++;
-				}
-			}
+		if( round_end >= level.time ) {
+			server_gs.gameState.clock_override = round_time;
 		}
+		else {
+			server_gs.gameState.clock_override = -1;
 
-		for( size_t i = 0; i < num_disconnected; i++ ) {
-			RemovePlayerFromAllQueues( disconnected[ i ] );
+			if( !server_gs.gameState.exploding ) {
+				BombExplode();
+			} else if( server_gs.gameState.exploding && !gladiator_state.bomb_exploded ) {
+				BombKill();
+			}
 		}
 
 		// check if anyone won
@@ -318,6 +234,8 @@ static void Gladiator_Think() {
 		if( teams_with_players <= 1 ) {
 			NewRoundState( RoundState_Finished );
 		}
+	} else {
+		server_gs.gameState.clock_override = -1;
 	}
 }
 
@@ -357,12 +275,16 @@ static const edict_t * Gladiator_SelectSpawnPoint( const edict_t * ent ) {
 	return spawn;
 }
 
+static void Gladiator_PlayerConnected( edict_t * ent ) {
+	SetLoadout( ent, Info_ValueForKey( ent->r.client->userinfo, "cg_loadout" ), true );
+}
+
 static void Gladiator_PlayerRespawned( edict_t * ent, Team old_team, Team new_team ) {
 	if( old_team != new_team ) {
-		RemovePlayerFromAllQueues( PLAYERNUM( ent ) );
+		RemovePlayerFromRespawnQueues( &gladiator_state.respawn_queues, PLAYERNUM( ent ) );
 
 		if( new_team != Team_None ) {
-			Enqueue( &gladiator_state.teams[ new_team ], PLAYERNUM( ent ) );
+			EnqueueRespawn( &gladiator_state.respawn_queues, new_team, PLAYERNUM( ent ) );
 		}
 	}
 
@@ -370,18 +292,29 @@ static void Gladiator_PlayerRespawned( edict_t * ent, Team old_team, Team new_te
 		return;
 	}
 
-	if( server_gs.gameState.match_state != MatchState_Playing ) {
-		WeaponType weap1 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count ) );
-		WeaponType weap2 = WeaponType( RandomUniform( &svs.rng, Weapon_None + 1, Weapon_Count - 1 ) );
+	GiveInventory( ent );
 
-		if( weap2 >= weap1 ) {
-			weap2++;
+	if( server_gs.gameState.match_state == MatchState_Playing ) {
+		ent->r.client->ps.can_change_loadout = false;
+		ent->r.client->ps.pmove.no_shooting_time = countdown_seconds * 1000;
+
+		u8 top_score = 0;
+		for( int i = 0; i < level.gametype.numTeams; i++ ) {
+			const SyncTeamState * team = &server_gs.gameState.teams[ Team_One + i ];
+			top_score = Max2( top_score, team->score );
 		}
 
-		G_GiveWeapon( ent, weap1 );
-		G_GiveWeapon( ent, weap2 );
-		G_SelectWeapon( ent, 0 );
-		G_GivePerk( ent, Perk_Hooligan );
+		if( server_gs.gameState.teams[ ent->s.team ].score == top_score ) {
+			ent->s.model2 = "models/crown/crown";
+			ent->s.effects |= EF_HAT;
+		}
+		else {
+			ent->s.model2 = EMPTY_HASH;
+			ent->s.effects &= ~EF_HAT;
+		}
+	}
+	else {
+		ent->r.client->ps.can_change_loadout = true;
 		G_RespawnEffect( ent );
 	}
 }
@@ -422,11 +355,15 @@ static void Gladiator_Init() {
 	gladiator_state = { };
 	gladiator_state.randomize_arena = GetWorldspawnKey( FindServerMap( server_gs.gameState.map ), "randomize_arena" ) != "";
 
-	for( TeamQueue & team : gladiator_state.teams ) {
-		for( int & slot : team.players ) {
-			slot = -1;
-		}
-	}
+	InitRespawnQueues( &gladiator_state.respawn_queues );
+
+	G_AddCommand( ClientCommand_LoadoutMenu, ShowShop );
+
+	G_AddCommand( ClientCommand_SetLoadout, []( edict_t * ent, msg_t args ) {
+		SetLoadout( ent, MSG_ReadString( &args ), false );
+	} );
+
+	g_glad_bombtimer = NewCvar( "g_glad_bombtimer", "40", CvarFlag_Archive );
 
 	PickRandomArena();
 }
@@ -451,6 +388,7 @@ GametypeDef GetGladiatorGametype() {
 	gt.Init = Gladiator_Init;
 	gt.MatchStateStarted = Gladiator_MatchStateStarted;
 	gt.Think = Gladiator_Think;
+	gt.PlayerConnected = Gladiator_PlayerConnected;
 	gt.PlayerRespawned = Gladiator_PlayerRespawned;
 	gt.PlayerKilled = Gladiator_PlayerKilled;
 	gt.SelectSpawnPoint = Gladiator_SelectSpawnPoint;
@@ -459,7 +397,7 @@ GametypeDef GetGladiatorGametype() {
 
 	gt.numTeams = 4;
 	gt.removeInactivePlayers = true;
-	gt.selfDamage = false;
+	gt.selfDamage = true;
 	gt.autoRespawn = true;
 
 	return gt;

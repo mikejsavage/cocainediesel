@@ -1,24 +1,30 @@
 // include base.h instead of this
 
-// <math.h> is huge so manually declare the stuff we actually use
-extern "C" float cosf( float );
-extern "C" float sinf( float );
-extern "C" float tanf( float );
-extern "C" float acosf( float );
-extern "C" float asinf( float );
-extern "C" float atanf( float );
-extern "C" float atan2f( float, float );
+#if PLATFORM_LINUX && COMPILER_CLANG
+#define MATH_DECLARATION_NOTHROW throw()
+#else
+#define MATH_DECLARATION_NOTHROW
+#endif
 
-extern "C" float sqrtf( float );
-extern "C" float cbrtf( float );
-extern "C" float powf( float, float );
-extern "C" float expf( float );
-extern "C" float logf( float );
-extern "C" float fmodf( float, float );
-extern "C" double fmod( double, double );
-extern "C" float floorf( float );
-extern "C" float ceilf( float );
-extern "C" float roundf( float );
+// <math.h> is huge so manually declare the stuff we actually use
+extern "C" float cosf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float sinf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float tanf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float acosf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float asinf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float atanf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float atan2f( float, float ) MATH_DECLARATION_NOTHROW;
+
+extern "C" float sqrtf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float cbrtf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float powf( float, float ) MATH_DECLARATION_NOTHROW;
+extern "C" float expf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float logf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float fmodf( float, float ) MATH_DECLARATION_NOTHROW;
+extern "C" double fmod( double, double ) MATH_DECLARATION_NOTHROW;
+extern "C" float floorf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float ceilf( float ) MATH_DECLARATION_NOTHROW;
+extern "C" float roundf( float ) MATH_DECLARATION_NOTHROW;
 
 constexpr float PI = 3.14159265358979323846f;
 
@@ -54,11 +60,11 @@ float Unlerp01( T lo, T x, T hi ) {
 }
 
 // some stubs to catch accidental double usage
-void sinf( double );
-void cosf( double );
-void tanf( double );
-void asinf( double );
-void acosf( double );
-void atanf( double );
-void atan2f( double );
-void sqrtf( double );
+void sinf( double ) = delete;
+void cosf( double ) = delete;
+void tanf( double ) = delete;
+void asinf( double ) = delete;
+void acosf( double ) = delete;
+void atanf( double ) = delete;
+void atan2f( double, double ) = delete;
+void sqrtf( double ) = delete;

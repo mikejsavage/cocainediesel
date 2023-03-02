@@ -1,5 +1,0 @@
-{
-	sound ./hit_player1
-	sound ./hit_player2
-	sound ./hit_player3
-}

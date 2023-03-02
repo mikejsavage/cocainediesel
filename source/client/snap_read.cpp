@@ -38,7 +38,7 @@ const char * const svc_strings[256] = {
 	"svc_gamecommands",
 	"svc_match",
 	"svc_clcack",
-	"svc_servercs", // reliable command as unreliable for demos
+	"svc_unreliable",
 	"svc_frame",
 };
 
@@ -88,7 +88,7 @@ static void SNAP_ParseDeltaEntity( msg_t *msg, snapshot_t *frame, int newnum, Sy
 void SNAP_ParseBaseline( msg_t *msg, SyncEntityState *baselines ) {
 	bool remove;
 	int newnum = MSG_ReadEntityNumber( msg, &remove );
-	assert( !remove );
+	Assert( !remove );
 
 	if( !remove ) {
 		SyncEntityState nullstate = { };
@@ -333,7 +333,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t
 			gcmd = &newframe->gamecommands[newframe->numgamecommands - 1];
 			gcmd->all = true;
 
-			Q_strncpyz( newframe->gamecommandsData + newframe->gamecommandsDataHead, text,
+			SafeStrCpy( newframe->gamecommandsData + newframe->gamecommandsDataHead, text,
 						sizeof( newframe->gamecommandsData ) - newframe->gamecommandsDataHead );
 			gcmd->commandOffset = newframe->gamecommandsDataHead;
 			newframe->gamecommandsDataHead += strlen( text ) + 1;

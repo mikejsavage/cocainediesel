@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "game/g_local.h"
 
 void G_Timeout_Reset() {
-	G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, false );
+	server_gs.gameState.paused = false;
 	level.timeout = { };
 }
 
@@ -36,7 +36,7 @@ static void G_Timeout_Update( unsigned int msec ) {
 	static int timeout_printtime = 0;
 	static int timeout_last_endtime = 0;
 
-	if( !GS_MatchPaused( &server_gs ) ) {
+	if( !server_gs.gameState.paused ) {
 		return;
 	}
 
@@ -51,7 +51,7 @@ static void G_Timeout_Update( unsigned int msec ) {
 	if( level.timeout.endtime && level.timeout.time >= level.timeout.endtime ) {
 		level.timeout.time = 0;
 		level.timeout.caller = Team_None;
-		G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, false );
+		server_gs.gameState.paused = false;
 
 		timeout_printtime = 0;
 		timeout_last_endtime = -1;
@@ -85,7 +85,8 @@ static void G_UpdateClientScoreboard( edict_t * ent ) {
 	const score_stats_t * stats = G_ClientGetStats( ent );
 	SyncScoreboardPlayer * player = &server_gs.gameState.players[ PLAYERNUM( ent ) ];
 
-	player->ping = ent->r.client->r.ping;
+	SafeStrCpy( player->name, ent->r.client->name, sizeof( player->name ) );
+	player->ping = svs.clients[ NUM_FOR_EDICT( ent ) - 1 ].ping;
 	player->score = stats->score;
 	player->kills = stats->kills;
 	player->ready = stats->ready;
@@ -194,12 +195,12 @@ void G_ClearSnap() {
 
 	// recover some info, let players respawn and finally clear the snap structures
 	for( ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
-		if( !GS_MatchPaused( &server_gs ) ) {
+		if( !server_gs.gameState.paused ) {
 			// copy origin to old origin ( this old_origin is for snaps )
 			G_CheckClientRespawnClick( ent );
 		}
 
-		if( GS_MatchPaused( &server_gs ) ) {
+		if( server_gs.gameState.paused ) {
 			ent->s.sound = entity_sound_backup[ENTNUM( ent )];
 		}
 
@@ -216,6 +217,8 @@ void G_ClearSnap() {
 * It's time to send a new snap, so set the world up for sending
 */
 void G_SnapFrame() {
+	TracyZoneScoped;
+
 	edict_t *ent;
 	svs.realtime = Sys_Milliseconds(); // level.time etc. might not be real time
 
@@ -233,7 +236,7 @@ void G_SnapFrame() {
 
 	// set entity bits (prepare entities for being sent in the snap)
 	for( ent = &game.edicts[0]; ENTNUM( ent ) < game.numentities; ent++ ) {
-		assert( ent->s.number == ENTNUM( ent ) );
+		Assert( ent->s.number == ENTNUM( ent ) );
 
 		// temporary filter (Q2 system to ensure reliability)
 		// ignore ents without visible models unless they have an effect
@@ -242,7 +245,7 @@ void G_SnapFrame() {
 			continue;
 		}
 
-		if( GS_MatchPaused( &server_gs ) ) {
+		if( server_gs.gameState.paused ) {
 			// when in timeout, we don't send entity sounds
 			entity_sound_backup[ENTNUM( ent )] = ent->s.sound;
 			ent->s.sound = EMPTY_HASH;
@@ -304,7 +307,7 @@ void G_RunFrame( unsigned int msec ) {
 
 	G_CallVotes_Think();
 
-	if( GS_MatchPaused( &server_gs ) ) {
+	if( server_gs.gameState.paused ) {
 		unsigned int serverTimeDelta = svs.gametime - game.prevServerTime;
 		// freeze match clock and linear projectiles
 		server_gs.gameState.match_state_start_time += serverTimeDelta;
@@ -320,7 +323,7 @@ void G_RunFrame( unsigned int msec ) {
 	}
 
 	// reset warmup clock if not enough players
-	if( GS_MatchWaiting( &server_gs ) ) {
+	if( server_gs.gameState.match_state == MatchState_Warmup ) {
 		server_gs.gameState.match_state_start_time = svs.gametime;
 	}
 

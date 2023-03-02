@@ -53,7 +53,7 @@ void CG_PredictedAltFireWeapon( int entNum, u64 parm ) {
 	CG_PredictedEvent( entNum, EV_ALTFIREWEAPON, parm );
 }
 
-void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm ) {
+void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead ) {
 }
 
 void CG_CheckPredictionError() {
@@ -152,7 +152,7 @@ static bool CG_ClipEntityContact( Vec3 origin, Vec3 mins, Vec3 maxs, int entNum 
 	interpolated.origin = cent->interpolated.origin;
 	interpolated.scale = cent->interpolated.scale;
 
-	trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, &interpolated, Solid_Everything );
+	trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, &interpolated, SolidMask_Everything );
 	return trace.GotNowhere();
 }
 
@@ -204,12 +204,17 @@ static trace_t CG_ClipMoveToEntities( const Ray & ray, const Shape & shape, int 
 void CG_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, SolidBits solid_mask ) {
 	TracyZoneScoped;
 
+	if( solid_mask == Solid_NotSolid ) {
+		*tr = MakeMissedTrace( ray );
+		return;
+	}
+
 	Ray ray = MakeRayStartEnd( start, end );
 
 	MinMax3 bounds = MinMax3( mins, maxs );
 	Shape shape;
 	if( bounds.mins == bounds.maxs ) {
-		assert( bounds.mins == Vec3( 0.0f ) );
+		Assert( bounds.mins == Vec3( 0.0f ) );
 		shape.type = ShapeType_Ray;
 	}
 	else {
@@ -276,12 +281,9 @@ static void CG_PredictSmoothSteps() {
 void CG_PredictMovement() {
 	TracyZoneScoped;
 
-	int64_t ucmdExecuted, ucmdHead;
-	int64_t frame;
-	pmove_t pm;
-
+	int64_t ucmdHead;
 	CL_GetCurrentState( NULL, &ucmdHead, NULL );
-	ucmdExecuted = cg.frame.ucmdExecuted;
+	int64_t ucmdExecuted = cg.frame.ucmdExecuted;
 
 	if( ucmdHead - cg.predictFrom >= CMD_BACKUP ) {
 		cg.predictFrom = 0;
@@ -308,16 +310,16 @@ void CG_PredictMovement() {
 	}
 
 	// copy current state to pmove
-	memset( &pm, 0, sizeof( pm ) );
+	pmove_t pm = { };
 	pm.playerState = &cg.predictedPlayerState;
 	pm.scale = cg_entities[cg.frame.playerState.POVnum].interpolated.scale;
 
 	// clear the triggered toggles for this prediction round
-	memset( &cg_triggersListTriggered, false, sizeof( cg_triggersListTriggered ) );
+	memset( &cg_triggersListTriggered, 0, sizeof( cg_triggersListTriggered ) );
 
 	// run frames
 	while( ++ucmdExecuted <= ucmdHead ) {
-		frame = ucmdExecuted & CMD_MASK;
+		int64_t frame = ucmdExecuted & CMD_MASK;
 		CL_GetUserCmd( frame, &pm.cmd );
 
 		ucmdReady = ( pm.cmd.serverTimeStamp != 0 );
@@ -354,7 +356,7 @@ void CG_PredictMovement() {
 		const SyncEntityState * ent = &cg_entities[pm.groundentity].current;
 		if( ent->linearMovement ) {
 			Vec3 move;
-			s64 serverTime = GS_MatchPaused( &client_gs ) ? cg.frame.serverTime : cl.serverTime + cgs.extrapolationTime;
+			s64 serverTime = client_gs.gameState.paused ? cg.frame.serverTime : cl.serverTime + cgs.extrapolationTime;
 			GS_LinearMovementDelta( ent, cg.frame.serverTime, serverTime, &move );
 			cg.predictedPlayerState.pmove.origin = cg.predictedPlayerState.pmove.origin + move;
 		}

@@ -1,6 +1,6 @@
 #include "gameshared/movement.h"
 
-static constexpr float charge_jump_speed = 950.0f;
+static constexpr float charge_jump_speed = 750.0f;
 static constexpr float charge_min_speed = 350.0f;
 static constexpr float charge_slide_time = 1.0f;
 
@@ -10,10 +10,8 @@ static constexpr float slide_speed_fact = 0.5f;
 static constexpr float stamina_use = 2.5f;
 static constexpr float stamina_recover = 8.0f;
 
-static constexpr float floor_distance = STEPSIZE * 0.5f;
-
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
-	if( (pm->groundentity != -1 || pml->ladder) && (ps->pmove.stamina == 0.0f ) ) {
+	if( (pm->groundentity != -1 || pml->ladder) && (ps->pmove.stamina == 0.0f) ) {
 		ps->pmove.stamina_state = Stamina_Normal;
 	}
 
@@ -22,7 +20,6 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 		pml->maxSpeed *= slide_speed_fact;
 	}
 }
-
 
 //in this one we don't care about pressing special
 static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
@@ -39,6 +36,8 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 				ps->pmove.stamina_state = Stamina_UsingAbility;
 			}
 			StaminaRecover( ps, pml, stamina_use );
+
+			pmove_gs->api.PredictedEvent( ps->POVnum, EV_CHARGEJUMP, 0 );
 		}
 
 		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
@@ -65,7 +64,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 			pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, JumpType_MidgetCharge );
 		} else if( ps->pmove.stamina_state == Stamina_UsingAbility ) {
-			ps->pmove.stamina_state = Stamina_Normal;
+			ps->pmove.stamina_state = Stamina_UsedAbility;
 		}
 
 		if( ps->pmove.stamina_state == Stamina_UsingAbility ) {
@@ -75,7 +74,6 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
 	}
 }
-
 
 void PM_MidgetInit( pmove_t * pm, pml_t * pml ) {
 	PM_InitPerk( pm, pml, Perk_Midget, PM_MidgetJump, PM_MidgetSpecial );

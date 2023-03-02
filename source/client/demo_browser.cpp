@@ -11,6 +11,7 @@ static NonRAIIDynamicArray< DemoBrowserEntry > demos;
 static size_t metadata_load_cursor;
 
 void InitDemoBrowser() {
+	TracyZoneScoped;
 	demos.init( sys_allocator );
 }
 

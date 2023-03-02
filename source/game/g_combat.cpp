@@ -24,7 +24,7 @@ bool G_IsTeamDamage( SyncEntityState * target, SyncEntityState * attacker ) {
 	return target->number != attacker->number && target->team == attacker->team;
 }
 
-static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, Vec3 normal, Vec3 pos, int timeDelta ) {
+static bool G_CanSplashDamage( const edict_t *targ, const edict_t *inflictor, Optional< Vec3 > normal, Vec3 pos, int timeDelta ) {
 	constexpr float SPLASH_DAMAGE_TRACE_FRAC_EPSILON = 1.0f / 32.0f;
 
 	trace_t trace;
@@ -33,7 +33,7 @@ static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, Vec3 normal, V
 	if( targ->movetype == MOVETYPE_PUSH ) {
 		// NOT FOR PLAYERS only for entities that can push the players
 		Vec3 dest = ( targ->r.absmin + targ->r.absmax ) * 0.5f;
-		G_Trace4D( &trace, pos, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, Solid_Solid, timeDelta );
+		G_Trace4D( &trace, pos, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, SolidMask_AnySolid, timeDelta );
 		if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 			return true;
 		}
@@ -42,7 +42,7 @@ static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, Vec3 normal, V
 	}
 
 	// up by 9 units to account for stairs
-	Vec3 origin = pos + normal * 9.0f;
+	Vec3 origin = pos + Default( normal, Vec3( 0.0f ) ) * 9.0f;
 
 	constexpr Vec3 directions[] = {
 		Vec3( 0.0f, 0.0f, 0.0f ),
@@ -54,7 +54,7 @@ static bool G_CanSplashDamage( edict_t *targ, edict_t *inflictor, Vec3 normal, V
 
 	for( size_t i = 0; i < ARRAY_COUNT( directions ); i++ ) {
 		Vec3 dest = targ->s.origin + directions[ i ];
-		G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, Solid_Solid, timeDelta );
+		G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, SolidMask_AnySolid, timeDelta );
 		if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 			return true;
 		}
@@ -195,21 +195,6 @@ void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage
 	}
 }
 
-/*
-* G_Damage
-* targ		entity that is being damaged
-* inflictor	entity that is causing the damage
-* attacker	entity that caused the inflictor to damage targ
-* example: targ=enemy, inflictor=rocket, attacker=player
-*
-* dir			direction of the attack
-* point		point at which the damage is being inflicted
-* normal		normal vector from that point
-* damage		amount of damage being inflicted
-* knockback	force to be applied against targ as a result of the damage
-*
-* dflags		these flags are used to control how T_Damage works
-*/
 void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdir, Vec3 dmgdir, Vec3 point, float damage, float knockback, int dflags, DamageType damage_type ) {
 	gclient_t *client;
 
@@ -292,7 +277,7 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 		// shotgun calls G_Damage for every bullet, so we accumulate damage
 		// in W_Fire_Shotgun and send events from there instead
-		if( damage_type != Weapon_Shotgun ) {
+		if( damage_type != Weapon_Shotgun && damage_type != Weapon_DoubleBarrel ) {
 			bool headshot = dflags & DAMAGE_HEADSHOT;
 			SpawnDamageEvents( attacker, targ, take, headshot, point, dmgdir, statDmg );
 		}
@@ -370,9 +355,9 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 	*pushdir = SafeNormalize( center_of_mass - point );
 }
 
-void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t *attacker, Vec3 pos, Vec3 normal, int timeDelta ) {
-	assert( radius >= 0.0f );
-	assert( minknockback >= 0.0f && maxknockback >= 0.0f );
+void G_RadiusKnockback( float maxknockback, float minknockback, float radius, edict_t *attacker, Vec3 pos, Optional< Vec3 > normal, int timeDelta ) {
+	Assert( radius >= 0.0f );
+	Assert( minknockback >= 0.0f && maxknockback >= 0.0f );
 
 	int touch[MAX_EDICTS];
 	int numtouch = GClip_FindInRadius4D( pos, radius, touch, MAX_EDICTS, timeDelta );
@@ -395,8 +380,8 @@ void G_RadiusKnockback( float maxknockback, float minknockback, float radius, ed
 	}
 }
 
-void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Vec3 normal, edict_t *ignore, DamageType damage_type ) {
-	assert( inflictor );
+void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Optional< Vec3 > normal, edict_t *ignore, DamageType damage_type ) {
+	Assert( inflictor );
 
 	float maxdamage = inflictor->projectileInfo.maxDamage;
 	float mindamage = inflictor->projectileInfo.minDamage;
@@ -404,9 +389,9 @@ void G_RadiusDamage( edict_t *inflictor, edict_t *attacker, Vec3 normal, edict_t
 	float minknockback = inflictor->projectileInfo.minKnockback;
 	float radius = inflictor->projectileInfo.radius;
 
-	assert( radius >= 0.0f );
-	assert( mindamage >= 0.0f && minknockback >= 0.0f && mindamage <= maxdamage );
-	assert( maxdamage >= 0.0f && maxknockback >= 0.0f && mindamage <= maxdamage );
+	Assert( radius >= 0.0f );
+	Assert( mindamage >= 0.0f && minknockback >= 0.0f && mindamage <= maxdamage );
+	Assert( maxdamage >= 0.0f && maxknockback >= 0.0f && mindamage <= maxdamage );
 
 	int touch[MAX_EDICTS];
 	int numtouch = GClip_FindInRadius4D( inflictor->s.origin, radius, touch, MAX_EDICTS, inflictor->timeDelta );

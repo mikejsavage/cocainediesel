@@ -180,7 +180,7 @@ MinMax3 MinkowskiSum( const MinMax3 & bounds, const Shape & shape ) {
 			return MinkowskiSum( bounds, shape.aabb );
 	}
 
-	assert( false );
+	Assert( false );
 	return MinMax3::Empty();
 }
 
@@ -192,7 +192,7 @@ float Support( const Shape & shape, Vec3 dir ) {
 			return Support( shape.aabb, dir );
 	}
 
-	assert( false );
+	Assert( false );
 	return 0;
 }
 
@@ -204,7 +204,7 @@ static float AxialSupport( const Shape & shape, int axis, bool positive ) {
 			return AxialSupport( shape.aabb, axis, positive );
 	}
 
-	assert( false );
+	Assert( false );
 	return 0;
 }
 

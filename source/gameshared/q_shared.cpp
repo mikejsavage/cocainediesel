@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 * Must be used before other functions are aplied to the string (or those functions might function improperly)
 */
 char *COM_SanitizeFilePath( char * path ) {
-	assert( path );
+	Assert( path );
 
 	for( ; *path && ( path = strchr( path, '\\' ) ); path++ ) {
 		*path = '/';
@@ -45,7 +45,7 @@ char *COM_SanitizeFilePath( char * path ) {
 }
 
 bool COM_ValidateFilename( const char *filename ) {
-	assert( filename );
+	Assert( filename );
 
 	if( !filename || !filename[0] ) {
 		return false;
@@ -249,10 +249,14 @@ bool StrCaseEqual( const char * lhs, const char * rhs ) {
 	return StrCaseEqual( MakeSpan( lhs ), MakeSpan( rhs ) );
 }
 
-bool StartsWith( Span< const char > str, const char * prefix ) {
-	if( str.n < strlen( prefix ) )
+bool StartsWith( Span< const char > str, Span< const char > prefix ) {
+	if( str.n < prefix.n )
 		return false;
-	return memcmp( str.ptr, prefix, strlen( prefix ) ) == 0;
+	return memcmp( str.ptr, prefix.ptr, prefix.n ) == 0;
+}
+
+bool StartsWith( Span< const char > str, const char * prefix ) {
+	return StartsWith( str, MakeSpan( prefix ) );
 }
 
 bool StartsWith( const char * str, const char * prefix ) {
@@ -347,41 +351,26 @@ bool SortCStringsComparator( const char * a, const char * b ) {
 //
 //============================================================================
 
-void Q_strncpyz( char *dest, const char *src, size_t size ) {
-	if( size ) {
-		while( --size && ( *dest++ = *src++ ) ) ;
-		*dest = '\0';
-	}
+void SafeStrCpy( char * dst, const char * src, size_t dst_size ) {
+	if( dst_size == 0 )
+		return;
+	size_t src_len = strlen( src );
+	size_t to_copy = src_len < dst_size ? src_len : dst_size - 1;
+	memcpy( dst, src, to_copy );
+	dst[ to_copy ] = '\0';
 }
 
-void Q_strncatz( char *dest, const char *src, size_t size ) {
-	if( size ) {
-		while( --size && *dest++ ) ;
-		if( size ) {
-			dest--; size++;
-			while( --size && ( *dest++ = *src++ ) ) ;
-		}
-		*dest = '\0';
-	}
-}
+void SafeStrCat( char * dst, const char * src, size_t dst_size ) {
+	if( dst_size == 0 )
+		return;
 
-#define IS_TRIMMED_CHAR( s ) ( ( s ) == ' ' || ( s ) == '\t' || ( s ) == '\r' || ( s ) == '\n' )
-char *Q_trim( char *s ) {
-	char *t = s;
-	size_t len;
+	size_t dst_len = strlen( dst );
+	if( dst_len >= dst_size - 1 )
+		return;
 
-	// remove leading whitespace
-	while( IS_TRIMMED_CHAR( *t ) ) t++;
-	len = strlen( s ) - ( t - s );
-	if( s != t ) {
-		memmove( s, t, len + 1 );
-	}
-
-	// remove trailing whitespace
-	while( len && IS_TRIMMED_CHAR( s[len - 1] ) )
-		s[--len] = '\0';
-
-	return s;
+	size_t to_copy = Min2( strlen( src ), dst_size - dst_len - 1 );
+	memcpy( dst + dst_len, src, to_copy );
+	dst[ dst_len + to_copy ] = '\0';
 }
 
 void RemoveTrailingZeroesFloat( char * str ) {
@@ -412,7 +401,7 @@ void RemoveTrailingZeroesFloat( char * str ) {
 //=====================================================================
 
 static bool Info_ValidateValue( const char *value ) {
-	assert( value );
+	Assert( value );
 
 	if( !value ) {
 		return false;
@@ -438,7 +427,7 @@ static bool Info_ValidateValue( const char *value ) {
 }
 
 static bool Info_ValidateKey( const char *key ) {
-	assert( key );
+	Assert( key );
 
 	if( !key ) {
 		return false;
@@ -476,7 +465,7 @@ static bool Info_ValidateKey( const char *key ) {
 bool Info_Validate( const char *info ) {
 	const char *p, *start;
 
-	assert( info );
+	Assert( info );
 
 	if( !info ) {
 		return false;
@@ -536,8 +525,8 @@ static char *Info_FindKey( const char *info, const char *key ) {
 	const char *p, *start;
 	size_t key_len;
 
-	assert( Info_Validate( info ) );
-	assert( Info_ValidateKey( key ) );
+	Assert( Info_Validate( info ) );
+	Assert( Info_ValidateKey( key ) );
 
 	if( !Info_Validate( info ) || !Info_ValidateKey( key ) ) {
 		return NULL;
@@ -578,8 +567,8 @@ char *Info_ValueForKey( const char *info, const char *key ) {
 	const char *p, *start;
 	size_t len;
 
-	assert( info && Info_Validate( info ) );
-	assert( key && Info_ValidateKey( key ) );
+	Assert( info && Info_Validate( info ) );
+	Assert( key && Info_ValidateKey( key ) );
 
 	if( !Info_Validate( info ) || !Info_ValidateKey( key ) ) {
 		return NULL;
@@ -608,7 +597,7 @@ char *Info_ValueForKey( const char *info, const char *key ) {
 	}
 
 	if( len >= MAX_INFO_VALUE ) {
-		assert( false );
+		Assert( false );
 		return NULL;
 	}
 	strncpy( value[valueindex], start, len );
@@ -618,8 +607,8 @@ char *Info_ValueForKey( const char *info, const char *key ) {
 }
 
 void Info_RemoveKey( char *info, const char *key ) {
-	assert( info && Info_Validate( info ) );
-	assert( key && Info_ValidateKey( key ) );
+	Assert( info && Info_Validate( info ) );
+	Assert( key && Info_ValidateKey( key ) );
 
 	if( !Info_Validate( info ) || !Info_ValidateKey( key ) ) {
 		return;
@@ -654,9 +643,9 @@ void Info_RemoveKey( char *info, const char *key ) {
 bool Info_SetValueForKey( char *info, const char *key, const char *value ) {
 	char pair[MAX_INFO_KEY + MAX_INFO_VALUE + 1];
 
-	assert( info && Info_Validate( info ) );
-	assert( key && Info_ValidateKey( key ) );
-	assert( value && Info_ValidateValue( value ) );
+	Assert( info && Info_Validate( info ) );
+	Assert( key && Info_ValidateKey( key ) );
+	Assert( value && Info_ValidateValue( value ) );
 
 	if( !Info_Validate( info ) || !Info_ValidateKey( key ) || !Info_ValidateValue( value ) ) {
 		return false;
@@ -670,7 +659,7 @@ bool Info_SetValueForKey( char *info, const char *key, const char *value ) {
 		return false;
 	}
 
-	Q_strncatz( info, pair, MAX_INFO_STRING );
+	SafeStrCat( info, pair, MAX_INFO_STRING );
 
 	return true;
 }

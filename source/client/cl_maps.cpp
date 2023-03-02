@@ -38,7 +38,7 @@ static void FillMapModelsHashtable() {
 			String< 16 > suffix( "*{}", j );
 			u64 hash = Hash64( suffix.c_str(), suffix.length(), map->base_hash.hash );
 
-			assert( map_models_hashtable.size() < ARRAY_COUNT( map_models ) ); // TODO: must be if Fatal because this matters in release builds too
+			Assert( map_models_hashtable.size() < ARRAY_COUNT( map_models ) ); // TODO: must be if Fatal because this matters in release builds too
 			map_models[ map_models_hashtable.size() ] = {
 				StringHash( map->base_hash ),
 				checked_cast< u32 >( j )

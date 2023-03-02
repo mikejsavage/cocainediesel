@@ -2,14 +2,14 @@
   dlight {
     intensity 500
     lifetime 2.0
-    color 1 1 1 1
+    color 1 1 1
     color_override
   }
 
   dlight {
     intensity 500
     lifetime 0.2
-    color 1 1 1 1
+    color 1 1 1
     color_override
   }
 

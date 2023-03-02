@@ -4,9 +4,6 @@
 }
 {
 	attenuation idle
-	sound ./hit1
-	sound ./hit2
-	sound ./hit3
-	sound ./hit4
+	find_sounds ./hit
 	volume 0.55
 }

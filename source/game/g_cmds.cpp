@@ -33,7 +33,7 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, Vec3 angles ) {
 
 	if( ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
 		trace_t tr;
-		G_Trace( &tr, origin, ent->r.mins, ent->r.maxs, origin, ent, Solid_Solid );
+		G_Trace( &tr, origin, ent->r.mins, ent->r.maxs, origin, ent, SolidMask_AnySolid );
 		if( tr.fraction != 1.0f && game.edicts[ tr.ent ].s.team != ent->s.team ) {
 			return false;
 		}
@@ -85,30 +85,6 @@ static void Cmd_Noclip_f( edict_t * ent, msg_t args ) {
 	G_PrintMsg( ent, "%s", msg );
 }
 
-static void Cmd_GameOperator_f( edict_t * ent, msg_t args ) {
-	if( StrEqual( g_operator_password->value, "" ) ) {
-		G_PrintMsg( ent, "Operator is disabled in this server\n" );
-		return;
-	}
-
-	const char * password = MSG_ReadString( &args );
-	if( StrEqual( password, "" ) ) {
-		G_PrintMsg( ent, "Usage: op <password>\n" );
-		return;
-	}
-
-	if( StrEqual( password, g_operator_password->value ) ) {
-		if( !ent->r.client->isoperator ) {
-			G_PrintMsg( NULL, "%s" S_COLOR_WHITE " is now a game operator\n", ent->r.client->netname );
-		}
-
-		ent->r.client->isoperator = true;
-		return;
-	}
-
-	G_PrintMsg( ent, "Incorrect operator password.\n" );
-}
-
 static void Cmd_Suicide_f( edict_t * ent, msg_t args ) {
 	if( ent->r.solid == SOLID_NOT ) {
 		return;
@@ -141,7 +117,7 @@ static void Cmd_Position_f( edict_t * ent, msg_t args ) {
 
 	Cmd_TokenizeString( MSG_ReadString( &args ) );
 
-	const char * action = Cmd_Argv( 1 );
+	const char * action = Cmd_Argv( 0 );
 
 	if( StrCaseEqual( action, "save" ) ) {
 		ent->r.client->teamstate.position_saved = true;
@@ -158,14 +134,14 @@ static void Cmd_Position_f( edict_t * ent, msg_t args ) {
 				G_PrintMsg( ent, "Position not available.\n" );
 			}
 		}
-	} else if( StrCaseEqual( action, "set" ) && Cmd_Argc() == 7 ) {
-		Vec3 origin = Vec3( atof( Cmd_Argv( 2 ) ), atof( Cmd_Argv( 3 ) ), atof( Cmd_Argv( 4 ) ) );
-		Vec3 angles = Vec3( atof( Cmd_Argv( 5 ) ), atof( Cmd_Argv( 6 ) ), 0.0f );
+	} else if( StrCaseEqual( action, "set" ) && Cmd_Argc() == 6 ) {
+		Vec3 origin = Vec3( atof( Cmd_Argv( 1 ) ), atof( Cmd_Argv( 2 ) ), atof( Cmd_Argv( 3 ) ) );
+		Vec3 angles = Vec3( atof( Cmd_Argv( 4 ) ), atof( Cmd_Argv( 5 ) ), 0.0f );
 
 		if( G_Teleport( ent, origin, angles ) ) {
-			G_PrintMsg( ent, "Position not available.\n" );
-		} else {
 			G_PrintMsg( ent, "Position set.\n" );
+		} else {
+			G_PrintMsg( ent, "Position not available.\n" );
 		}
 	} else {
 		G_PrintMsg( ent,
@@ -182,10 +158,10 @@ bool CheckFlood( edict_t * ent, bool teamonly ) {
 	int i;
 	gclient_t *client;
 
-	assert( ent != NULL );
+	Assert( ent != NULL );
 
 	client = ent->r.client;
-	assert( client != NULL );
+	Assert( client != NULL );
 
 	if( g_floodprotection_messages->modified ) {
 		if( g_floodprotection_messages->integer < 0 ) {
@@ -317,7 +293,7 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	Vec3 end = start + forward * range;
 
 	trace_t trace;
-	G_Trace( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ent, Solid_Opaque );
+	G_Trace( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ent, SolidMask_Opaque );
 
 	if( trace.ent != 0 )
 		return;
@@ -342,9 +318,11 @@ static const g_vsays_t g_vsays[] = {
 	{ "boomstick", Vsay_BoomStick },
 	{ "acne", Vsay_Acne },
 	{ "valley", Vsay_Valley },
+	{ "fam", Vsay_Fam },
 	{ "mike", Vsay_Mike },
 	{ "user", Vsay_User },
 	{ "guyman", Vsay_Guyman },
+	{ "dodonga", Vsay_Dodonga },
 	{ "helena", Vsay_Helena },
 	{ "fart", Vsay_Fart },
 	{ "zombie", Vsay_Zombie },
@@ -395,7 +373,7 @@ static void Cmd_Timeout_f( edict_t * ent, msg_t args ) {
 
 	Team team = ent->s.team;
 
-	if( GS_MatchPaused( &server_gs ) && ( level.timeout.endtime - level.timeout.time ) >= 2 * TIMEIN_TIME ) {
+	if( server_gs.gameState.paused && ( level.timeout.endtime - level.timeout.time ) >= 2 * TIMEIN_TIME ) {
 		G_PrintMsg( ent, "Timeout already in progress\n" );
 		return;
 	}
@@ -410,14 +388,15 @@ static void Cmd_Timeout_f( edict_t * ent, msg_t args ) {
 		return;
 	}
 
-	G_PrintMsg( NULL, "%s%s called a timeout\n", ent->r.client->netname, S_COLOR_WHITE );
+	G_PrintMsg( NULL, "%s%s called a timeout\n", ent->r.client->name, S_COLOR_WHITE );
 
-	if( !GS_MatchPaused( &server_gs ) ) {
+	if( !server_gs.gameState.paused ) {
 		G_AnnouncerSound( NULL, StringHash( "sounds/announcer/timeout" ), Team_Count, true, NULL );
 	}
 
+	server_gs.gameState.paused = true;
+
 	level.timeout.used[team]++;
-	G_GamestatSetFlag( GAMESTAT_FLAG_PAUSED, true );
 	level.timeout.caller = team;
 	level.timeout.endtime = level.timeout.time + TIMEOUT_TIME + FRAMETIME;
 }
@@ -427,7 +406,7 @@ static void Cmd_Timein_f( edict_t * ent, msg_t args ) {
 		return;
 	}
 
-	if( !GS_MatchPaused( &server_gs ) ) {
+	if( !server_gs.gameState.paused ) {
 		G_PrintMsg( ent, "No timeout in progress.\n" );
 		return;
 	}
@@ -446,7 +425,7 @@ static void Cmd_Timein_f( edict_t * ent, msg_t args ) {
 
 	G_AnnouncerSound( NULL, StringHash( "sounds/announcer/timein" ), Team_Count, true, NULL );
 
-	G_PrintMsg( NULL, "%s%s called a timein\n", ent->r.client->netname, S_COLOR_WHITE );
+	G_PrintMsg( NULL, "%s%s called a timein\n", ent->r.client->name, S_COLOR_WHITE );
 }
 
 //===========================================================
@@ -456,7 +435,7 @@ static void Cmd_Timein_f( edict_t * ent, msg_t args ) {
 static gamecommandfunc_t g_Commands[ ClientCommand_Count ];
 
 void G_AddCommand( ClientCommandType command, gamecommandfunc_t callback ) {
-	assert( g_Commands[ command ] == NULL );
+	Assert( g_Commands[ command ] == NULL );
 	g_Commands[ command ] = callback;
 }
 
@@ -481,9 +460,6 @@ void G_InitGameCommands() {
 	G_AddCommand( ClientCommand_Callvote, G_CallVote_Cmd );
 	G_AddCommand( ClientCommand_VoteYes, G_CallVotes_VoteYes );
 	G_AddCommand( ClientCommand_VoteNo, G_CallVotes_VoteNo );
-
-	G_AddCommand( ClientCommand_Operator, Cmd_GameOperator_f );
-	G_AddCommand( ClientCommand_OpCall, G_OperatorVote_Cmd );
 
 	// teams commands
 	G_AddCommand( ClientCommand_Ready, []( edict_t * ent, msg_t args ) { G_Match_Ready( ent ); } );

@@ -5,7 +5,7 @@ in uvec4 a_JointIndices;
 in vec4 a_JointWeights;
 
 layout( std140 ) uniform u_Pose {
-	mat4 u_SkinningMatrices[ MAX_JOINTS ];
+	mat4 u_SkinningMatrices[ SKINNED_MODEL_MAX_JOINTS ];
 };
 
 void Skin( inout vec4 position, inout vec3 normal ) {

@@ -41,6 +41,7 @@ struct WeaponDef {
 	float min_knockback;
 
 	int speed;
+	float gravity_scale;
 	float spread;
 };
 
@@ -48,6 +49,7 @@ struct GadgetDef {
 	const char * name;
 	const char * short_name;
 	int uses;
+	bool drop_on_death;
 
 	u16 switch_in_time;
 	u16 using_time;
@@ -61,6 +63,7 @@ struct GadgetDef {
 	s64 timeout;
 	int speed;
 	int min_speed;
+	float gravity_scale;
 };
 
 struct PerkDef {

@@ -39,14 +39,24 @@ static void WallbangImpact( const trace_t * trace, Vec4 color, int num_particles
 }
 
 static Mat4 GetMuzzleTransform( int ent ) {
-	if( ent < 1 || ent > client_gs.maxclients )
-		return Mat4::Identity();
+	if( ent < 1 || ent > client_gs.maxclients ) {
+		centity_t * cent = &cg_entities[ ent ];
+		return Mat4Translation( cent->current.origin );
+	}
 
 	if( ISVIEWERENTITY( ent ) && !cg.view.thirdperson ) {
 		return cg.weapon.muzzle_transform;
 	}
 
 	return cg_entPModels[ ent ].muzzle_transform;
+}
+
+static void RailTrailParticles( Vec3 start, Vec3 end, Vec4 color ) {
+	constexpr int max_ions = 256;
+	float distance_between_particles = 4.0f;
+	float len = Length( end - start );
+	float count = Min2( len / distance_between_particles + 1.0f, float( max_ions ) );
+	DoVisualEffect( "weapons/eb/trail", start, end, count, color );
 }
 
 static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin ) {
@@ -60,7 +70,7 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin )
 	Vec4 color = CG_TeamColorVec4( owner->current.team );
 
 	trace_t trace;
-	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.view.POVent, Solid_Wallbang );
+	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.view.POVent, SolidMask_WallbangShot );
 	if( trace.HitSomething() ) {
 		RailgunImpact( trace.endpos, trace.normal, color );
 	}
@@ -118,7 +128,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 		centity_t * cent = ( centity_t * ) data;
 
 		Vec4 color = CG_TeamColorVec4( cent->current.team );
-		DrawDynamicLight( trace->endpos, color, 10000.0f );
+		DrawDynamicLight( trace->endpos, color.xyz(), 10000.0f );
 		DoVisualEffect( "weapons/lg/tip_hit", trace->endpos, trace->normal, 1.0f, color );
 
 		cent->lg_tip_sound = PlayImmediateSFX( "weapons/lg/tip_hit", cent->lg_tip_sound, PlaySFXConfigPosition( trace->endpos ) );
@@ -140,7 +150,7 @@ void CG_LaserBeamEffect( centity_t * cent ) {
 	}
 
 	if( trace.HitNothing() ) {
-		DoVisualEffect( "weapons/lg/tip_miss", end, Vec3( 0.0f, 0.0f, 1.0f ), 1, color );
+		DoVisualEffect( "weapons/lg/tip_miss", end, Vec3( 0.0f ), 1, color );
 		cent->lg_tip_sound = PlayImmediateSFX( "weapons/lg/tip_miss", cent->lg_tip_sound, PlaySFXConfigPosition( end ) );
 	}
 }
@@ -180,7 +190,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_BLADE, 0, EVENT_CHANNEL );
 			break;
 
-		case Weapon_Pistol:
+		case Weapon_9mm:
 		case Weapon_Laser:
 		case Weapon_Deagle:
 			CG_PModel_AddAnimation( entNum, 0, TORSO_SHOOT_PISTOL, 0, EVENT_CHANNEL );
@@ -188,6 +198,7 @@ static void CG_FireWeaponEvent( int entNum, WeaponType weapon ) {
 
 		case Weapon_MachineGun:
 		case Weapon_Shotgun:
+		case Weapon_DoubleBarrel:
 		case Weapon_AssaultRifle:
 		case Weapon_BubbleGun:
 		case Weapon_StakeGun:
@@ -249,8 +260,8 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 	AddPersistentBeam( muzzle_transform.col3.xyz(), trace.endpos, 1.0f, team_color, "weapons/tracer", 0.2f, 0.1f );
 }
 
-static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_color ) {
-	const WeaponDef * def = GS_GetWeaponDef( Weapon_Shotgun );
+static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_color, WeaponType weapon ) {
+	const WeaponDef * def = GS_GetWeaponDef( weapon );
 
 	Vec3 right, up;
 	ViewVectors( dir, &right, &up );
@@ -282,7 +293,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	Vec3 end = origin + dir * def->range;
 
 	trace_t trace;
-	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, owner, Solid_Shot );
+	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, owner, SolidMask_Shot );
 
 	if( trace.HitSomething() ) {
 		PlaySFX( "weapons/rg/hit", PlaySFXConfigPosition( trace.endpos ) );
@@ -369,7 +380,7 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 	u32 vsay = parm & 0xffff;
 	u32 entropy = parm >> 16;
 
-	if( vsay >= Vsay_Total ) {
+	if( vsay >= Vsay_Count ) {
 		return;
 	}
 
@@ -386,7 +397,6 @@ static void CG_StartVsay( int entNum, u64 parm ) {
 	StringHash sound = cgs.media.sfxVSaySounds[ vsay ];
 
 	PlaySFXConfig config = PlaySFXConfigGlobal();
-	config.has_entropy = true;
 	config.entropy = entropy;
 	if( client_gs.gameState.match_state >= MatchState_PostMatch ) {
 		PlaySFX( sound, config );
@@ -457,6 +467,7 @@ static void CG_Event_Die( int corpse_ent, u64 parm ) {
 	CG_PModel_AddAnimation( corpse_ent, animations[ animation ].dying, animations[ animation ].dying, ANIM_NONE, EVENT_CHANNEL );
 
 	StopSFX( cg_entities[ player_ent ].playing_vsay );
+	StopSFX( cg_entities[ player_ent ].playing_reload );
 }
 
 static void CG_Event_Dash( SyncEntityState * state, u64 parm ) {
@@ -575,6 +586,12 @@ static void CG_Event_Jump( SyncEntityState * state, u64 parm ) {
 	}
 }
 
+static void DoEntFX( const SyncEntityState * ent, u64 parm, Vec4 color, StringHash vfx, StringHash sfx ) {
+	Vec3 normal = U64ToDir( parm );
+	DoVisualEffect( vfx, ent->origin, normal, 1.0f, color );
+	PlaySFX( sfx, PlaySFXConfigPosition( ent->origin ) );
+}
+
 void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 	bool viewer = ISVIEWERENTITY( ent->number );
 
@@ -591,6 +608,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			//  PREDICTABLE EVENTS
 
 		case EV_WEAPONACTIVATE: {
+			StopSFX( cg_entities[ ent->number ].playing_reload );
+
 			CG_PModel_AddAnimation( ent->number, 0, TORSO_WEAPON_SWITCHIN, 0, EVENT_CHANNEL );
 			CG_ViewWeapon_AddAnimation( ent->number, "activate" );
 
@@ -658,13 +677,13 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			if( weapon == Weapon_Railgun ) {
 				FireRailgun( origin, dir, owner, false );
 			}
-			else if( weapon == Weapon_Shotgun ) {
-				CG_Event_FireShotgun( origin, dir, owner, team_color );
+			else if( weapon == Weapon_Shotgun || weapon == Weapon_DoubleBarrel ) {
+				CG_Event_FireShotgun( origin, dir, owner, team_color, weapon );
 			}
 			else if( weapon == Weapon_Laser ) {
 				CG_Event_LaserBeam( origin, dir, owner );
 			}
-			else if( weapon == Weapon_Pistol || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_BurstRifle || weapon == Weapon_Sniper || weapon == Weapon_AutoSniper /* || weapon == Weapon_Minigun */ ) {
+			else if( weapon == Weapon_9mm || weapon == Weapon_MachineGun || weapon == Weapon_Deagle || weapon == Weapon_BurstRifle || weapon == Weapon_Sniper || weapon == Weapon_AutoSniper /* || weapon == Weapon_Minigun */ ) {
 				u16 entropy = parm >> 8;
 				s16 zoom_time = parm >> 24;
 				CG_Event_FireBullet( origin, dir, entropy, zoom_time, weapon, owner, team_color );
@@ -679,6 +698,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_USEGADGET: {
+			StopSFX( cg_entities[ ent->number ].playing_reload );
+
 			GadgetType gadget = GadgetType( parm & 0xFF );
 			StringHash sfx = GetGadgetModelMetadata( gadget )->use_sound;
 
@@ -692,12 +713,17 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		} break;
 
 		case EV_NOAMMOCLICK:
+			if( (parm - cg_entities[ ent->number ].last_noammo_sound) <= 150 )
+				return;
+
 			if( viewer ) {
 				PlaySFX( "weapons/noammo" );
 			}
 			else {
 				PlaySFX( "weapons/noammo", PlaySFXConfigPosition( ent->origin ) );
 			}
+
+			cg_entities[ ent->number ].last_noammo_sound = parm;
 			break;
 
 		case EV_RELOAD: {
@@ -706,13 +732,18 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 			StringHash sfx = GetWeaponModelMetadata( WeaponType( parm ) )->reload_sound;
 
+			PlayingSFXHandle sound;
+
 			if( viewer ) {
-				PlaySFX( sfx );
+				sound = PlaySFX( sfx );
 				CG_ViewWeapon_AddAnimation( ent->number, "reload" );
 			}
 			else {
-				PlaySFX( sfx, PlaySFXConfigPosition( ent->origin ) );
+				sound = PlaySFX( sfx, PlaySFXConfigEntity( ent->number ) );
 			}
+
+			cg_entities[ ent->number ].playing_reload = sound;
+			cg_entities[ ent->number ].last_noammo_sound = 0;
 		} break;
 
 		case EV_ZOOM_IN:
@@ -737,6 +768,9 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_WALLJUMP:
 			CG_Event_WallJump( ent, parm, ev );
+			break;
+		case EV_CHARGEJUMP:
+			CG_PModel_AddAnimation( ent->number, LEGS_STAND_IDLE, 0, 0, EVENT_CHANNEL );
 			break;
 
 		case EV_JETPACK:
@@ -776,8 +810,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			break;
 
 		case EV_BOMB_EXPLOSION:
-			DoVisualEffect( "models/bomb/explosion", ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, vec4_white );
-			PlaySFX( "models/bomb/explode", PlaySFXConfigPosition( ent->origin ) );
+			DoEntFX( ent, parm, vec4_white, "models/bomb/explosion", "models/bomb/explode" );
 			break;
 
 		case EV_GIB:
@@ -799,26 +832,9 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			PlaySFX( "sounds/world/tele_in", PlaySFXConfigPosition( ent->origin ) );
 			break;
 
-		case EV_ARBULLET_EXPLOSION: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/ar/explosion", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/ar/explode", PlaySFXConfigPosition( ent->origin ) );
-		} break;
-
-		case EV_BUBBLE_EXPLOSION:
-			DoVisualEffect( "weapons/bg/explosion", ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1.0f, team_color );
-			PlaySFX( "weapons/bg/explode", PlaySFXConfigPosition( ent->origin ) );
-			break;
-
 		case EV_BOLT_EXPLOSION: {
 			Vec3 normal = U64ToDir( parm );
 			RailgunImpact( ent->origin, normal, team_color );
-		} break;
-
-		case EV_GRENADE_EXPLOSION: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "vfx/explosion", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/gl/explode", PlaySFXConfigPosition( ent->origin ) );
 		} break;
 
 		case EV_STICKY_EXPLOSION: {
@@ -829,57 +845,20 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 		} break;
 
-		case EV_STICKY_IMPACT: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/sticky/impact", ent->origin, normal, 24, team_color );
-			PlaySFX( "weapons/sticky/impact", PlaySFXConfigPosition( ent->origin ) );
+		case EV_RAIL_ALTENT: {
+			DoVisualEffect( "weapons/eb/charge", ent->origin, Vec3( 0.0f ), 1.0f, team_color );
+			PlaySFX( "weapons/eb/charge", PlaySFXConfigPosition( ent->origin ) );
 		} break;
 
-		case EV_RAIL_ALT: {
+		case EV_RAIL_ALTFIRE: {
 			Vec3 dir;
 			AngleVectors( ent->angles, &dir, NULL, NULL );
 			FireRailgun( ent->origin, dir, ent->ownerNum, true );
 		} break;
 
-		case EV_ROCKET_EXPLOSION: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "vfx/explosion", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/rl/explode", PlaySFXConfigPosition( ent->origin ) );
-		} break;
-
 		case EV_GRENADE_BOUNCE: {
 			float volume = Min2( 1.0f, parm / float( U16_MAX ) );
 			PlaySFX( "weapons/gl/bounce", PlaySFXConfigEntity( ent->number, volume ) );
-		} break;
-
-		case EV_RIFLEBULLET_IMPACT: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "vfx/bulletsparks", ent->origin, normal, 24, team_color );
-			PlaySFX( "weapons/bullet_impact", PlaySFXConfigPosition( ent->origin ) );
-		} break;
-
-		case EV_STAKE_IMPACT: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/stake/hit", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/stake/hit", PlaySFXConfigPosition( ent->origin ) );
-		} break;
-
-		case EV_STAKE_IMPALE: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/stake/impale", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/stake/impale", PlaySFXConfigPosition( ent->origin ) );
-		} break;
-
-		case EV_BLAST_IMPACT: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/mb/hit", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/mb/hit", PlaySFXConfigPosition( ent->origin ) );
-		} break;
-
-		case EV_BLAST_BOUNCE: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "weapons/mb/bounce", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/mb/bounce", PlaySFXConfigPosition( ent->origin ) );
 		} break;
 
 		case EV_BLOOD: {
@@ -902,7 +881,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				Vec3 end = ent->origin + random_dir * 256.0f;
 
 				trace_t trace;
-				CG_Trace( &trace, ent->origin, Vec3( -4.0f ), Vec3( 4.0f ), end, 0, Solid_Solid );
+				CG_Trace( &trace, ent->origin, Vec3( -4.0f ), Vec3( 4.0f ), end, 0, SolidMask_AnySolid );
 
 				if( trace.HitSomething() ) {
 					constexpr StringHash decals[] = {
@@ -930,6 +909,10 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 		} break;
 
+		case EV_FX:
+			DoEntFX( ent, parm, team_color, ent->model, ent->model2 );
+			break;
+
 		// func movers
 		case EV_PLAT_HIT_TOP:
 		case EV_PLAT_HIT_BOTTOM:
@@ -955,7 +938,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 		case EV_SPRAY:
 			AddSpray( ent->origin, ent->origin2, ent->angles, ent->scale.z, parm );
-			PlaySFX( "sounds/spray/spray", PlaySFXConfigPosition( ent->origin ) );
 			break;
 
 		case EV_DAMAGE:
@@ -982,15 +964,8 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			PlaySFX( "sounds/beep", PlaySFXConfigEntity( ent->number ) );
 			break;
 
-		case EV_SUICIDE_BOMB_EXPLODE: {
-			Vec3 normal = U64ToDir( parm );
-			DoVisualEffect( "vfx/explosion", ent->origin, normal, 1.0f, team_color );
-			PlaySFX( "weapons/rl/explode", PlaySFXConfigPosition( ent->origin ) );
-		} break;
-
-		case EV_STUN_GRENADE_EXPLOSION:
-			DoVisualEffect( "gadgets/flash/explode", ent->origin, Vec3(), 1.0f, vec4_white );
-			PlaySFX( "gadgets/flash/explode", PlaySFXConfigPosition( ent->origin ) );
+		case EV_SUICIDE_BOMB_EXPLODE:
+			DoEntFX( ent, parm, team_color, "vfx/explosion", "weapons/rl/explode" );
 			break;
 	}
 }
@@ -1028,6 +1003,13 @@ static void CG_FireEntityEvents( bool early ) {
  * This events are only received by this client, and only affect it.
  */
 static void CG_FirePlayerStateEvents() {
+	constexpr StringHash hitsounds[] = {
+		"sounds/misc/hit_0",
+		"sounds/misc/hit_1",
+		"sounds/misc/hit_2",
+		"sounds/misc/hit_3",
+	};
+
 	if( cg.view.POVent != ( int ) cg.frame.playerState.POVnum ) {
 		return;
 	}
@@ -1038,7 +1020,7 @@ static void CG_FirePlayerStateEvents() {
 		switch( cg.frame.playerState.events[ count ].type ) {
 			case PSEV_HIT:
 				if( parm < 4 ) { // hit of some caliber
-					PlaySFX( cgs.media.sfxWeaponHit[ parm ] );
+					PlaySFX( hitsounds[ parm ] );
 					CG_ScreenCrosshairDamageUpdate();
 				}
 				else { // killed an enemy

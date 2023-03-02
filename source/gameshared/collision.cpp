@@ -201,7 +201,7 @@ MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntitySta
 	}
 
 	CollisionModelType type = model.type;
-	assert( type == CollisionModelType_Point || type == CollisionModelType_AABB );
+	Assert( type == CollisionModelType_Point || type == CollisionModelType_AABB );
 
 	if( type == CollisionModelType_Point ) {
 		return MinMax3( Vec3( 0.0f ), Vec3( 0.0f ) );
@@ -247,7 +247,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 
 	if( ent->type != ET_PLAYER ) {
 		for( int i = 0; i < 3; i++ ) {
-			assert( PositiveMod( ent->angles[ i ], 90.0f ) == 0.0f );
+			Assert( PositiveMod( ent->angles[ i ], 90.0f ) == 0.0f );
 		}
 	}
 
@@ -268,7 +268,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 		}
 	}
 	else if( shape.type == ShapeType_AABB ) {
-		assert( collision_model.type == CollisionModelType_AABB );
+		Assert( collision_model.type == CollisionModelType_AABB );
 
 		MinMax3 object_space_aabb = ToMinMax( shape.aabb );
 		object_space_aabb.mins += object_space_origin;
@@ -281,7 +281,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 		}
 	}
 	else {
-		assert( shape.type == ShapeType_Ray );
+		Assert( shape.type == ShapeType_Ray );
 
 		switch( collision_model.type ) {
 			case CollisionModelType_Point:

@@ -117,10 +117,10 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 		};
 
 		constexpr Vec2 uvs[] = {
-			Vec2( 0.0f, 0.0f ),
-			Vec2( 1.0f, 0.0f ),
 			Vec2( 0.0f, 1.0f ),
 			Vec2( 1.0f, 1.0f ),
+			Vec2( 0.0f, 0.0f ),
+			Vec2( 1.0f, 0.0f ),
 		};
 
 		constexpr u16 indices[] = { 0, 1, 2, 2, 1, 3 };
@@ -287,15 +287,10 @@ static bool ParseParticleEmitter( ParticleEmitter * emitter, Span< const char > 
 			}
 			else if( key == "end_color" ) {
 				Span< const char > value = ParseToken( data, Parse_StopOnNewLine );
-				if( value[ 0 ] == '$' ) {
-					// TODO variables
-				}
-				else {
-					float r = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
-					float g = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
-					float b = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
-					emitter->end_color = Vec4( r, g, b, 0.0f );
-				}
+				float r = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
+				float g = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+				float b = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
+				emitter->end_color = Vec4( r, g, b, 0.0f );
 			}
 			else if( key == "red_distribution" ) {
 				emitter->red_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
@@ -424,8 +419,7 @@ static bool ParseDynamicLightEmitter( DynamicLightEmitter * emitter, Span< const
 				float r = ParseFloat( &value, 0.0f, Parse_StopOnNewLine );
 				float g = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
 				float b = ParseFloat( data, 0.0f, Parse_StopOnNewLine );
-				float a = ParseFloat( data, 1.0f, Parse_StopOnNewLine );
-				emitter->color = Vec4( r, g, b, a );
+				emitter->color = Vec3( r, g, b );
 			}
 			else if( key == "red_distribution" ) {
 				emitter->red_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
@@ -435,9 +429,6 @@ static bool ParseDynamicLightEmitter( DynamicLightEmitter * emitter, Span< const
 			}
 			else if( key == "blue_distribution" ) {
 				emitter->blue_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
-			}
-			else if( key == "alpha_distribution" ) {
-				emitter->alpha_distribution = ParseRandomDistribution( data, Parse_StopOnNewLine );
 			}
 			else if( key == "color_override" ) {
 				emitter->color_override = true;
@@ -741,7 +732,7 @@ void DrawParticles() {
 		}
 	}
 
-	TracyCPlot( "New Particles", total_new_particles );
+	TracyPlotSample( "New Particles", total_new_particles );
 }
 
 static void EmitParticle( ParticleSystem * ps, float lifetime, Vec3 position, Vec3 velocity, float angle, float angular_velocity, float acceleration, float drag, float restitution, Vec4 uvwh, Vec4 start_color, Vec4 end_color, float start_size, float end_size, u32 flags ) {
@@ -829,12 +820,8 @@ static void EmitParticle( ParticleSystem * ps, const ParticleEmitter * emitter, 
 	}
 }
 
-void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 color ) {
+static void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count, Vec4 color ) {
 	TracyZoneScoped;
-
-	if( emitter == NULL ) {
-		return;
-	}
 
 	float dt = cls.frametime / 1000.0f;
 	u64 idx = num_particleSystems;
@@ -874,49 +861,7 @@ void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, floa
 	}
 }
 
-void EmitParticles( ParticleEmitter * emitter, ParticleEmitterPosition pos, float count ) {
-	EmitParticles( emitter, pos, count, Vec4( 1.0f ) );
-}
-
-ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, Vec3 normal, float theta, float radius ) {
-	ParticleEmitterPosition pos = { };
-	pos.type = ParticleEmitterPosition_Sphere;
-	pos.origin = origin;
-	pos.normal = normal;
-	pos.theta = theta;
-	pos.radius = radius;
-	return pos;
-}
-
-ParticleEmitterPosition ParticleEmitterSphere( Vec3 origin, float radius ) {
-	ParticleEmitterPosition pos = { };
-	pos.type = ParticleEmitterPosition_Sphere;
-	pos.origin = origin;
-	pos.normal = Vec3( 0.0f, 0.0f, 1.0f );
-	pos.theta = 180.0f;
-	pos.radius = radius;
-	return pos;
-}
-
-ParticleEmitterPosition ParticleEmitterDisk( Vec3 origin, Vec3 normal, float radius ) {
-	ParticleEmitterPosition pos = { };
-	pos.type = ParticleEmitterPosition_Disk;
-	pos.origin = origin;
-	pos.normal = normal;
-	pos.radius = radius;
-	return pos;
-}
-
-ParticleEmitterPosition ParticleEmitterLine( Vec3 origin, Vec3 end, float radius ) {
-	ParticleEmitterPosition pos = { };
-	pos.type = ParticleEmitterPosition_Line;
-	pos.origin = origin;
-	pos.end = end;
-	pos.radius = radius;
-	return pos;
-}
-
-void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color, float lifetime_scale ) {
+static void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color, float lifetime_scale ) {
 	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) ) * lifetime_scale;
 	float size = Max2( 0.0f, emitter->size + SampleRandomDistribution( &cls.rng, emitter->size_distribution ) );
 	float angle = RandomUniformFloat( &cls.rng, 0.0f, Radians( 360.0f ) );
@@ -934,18 +879,17 @@ void EmitDecal( DecalEmitter * emitter, Vec3 origin, Vec3 normal, Vec4 color, fl
 	AddPersistentDecal( origin, normal, size, angle, material, actual_color, lifetime * 1000.0f, emitter->height );
 }
 
-void EmitDynamicLight( DynamicLightEmitter * emitter, Vec3 origin, Vec4 color ) {
+static void EmitDynamicLight( DynamicLightEmitter * emitter, Vec3 origin, Vec3 color ) {
 	float lifetime = Max2( 0.0f, emitter->lifetime + SampleRandomDistribution( &cls.rng, emitter->lifetime_distribution ) );
 	float intensity = Max2( 0.0f, emitter->intensity + SampleRandomDistribution( &cls.rng, emitter->intensity_distribution ) );
 
-	Vec4 actual_color = emitter->color;
+	Vec3 actual_color = emitter->color;
 	if( emitter->color_override ) {
 		actual_color *= color;
 	}
 	actual_color.x += SampleRandomDistribution( &cls.rng, emitter->red_distribution );
 	actual_color.y += SampleRandomDistribution( &cls.rng, emitter->green_distribution );
 	actual_color.z += SampleRandomDistribution( &cls.rng, emitter->blue_distribution );
-	actual_color.w += SampleRandomDistribution( &cls.rng, emitter->alpha_distribution );
 	actual_color = Clamp01( actual_color );
 	AddPersistentDynamicLight( origin, actual_color, intensity, lifetime * 1000.0f );
 }
@@ -978,7 +922,7 @@ void DoVisualEffect( StringHash name, Vec3 origin, Vec3 normal, float count, Vec
 			u64 idx = num_dlightEmitters;
 			if( dlightEmitters_hashtable.get( e.hash, &idx ) ) {
 				DynamicLightEmitter * emitter = &dlightEmitters[ idx ];
-				EmitDynamicLight( emitter, origin, color );
+				EmitDynamicLight( emitter, origin, color.xyz() );
 			}
 		}
 	}

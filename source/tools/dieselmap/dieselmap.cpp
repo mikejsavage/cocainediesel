@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <inttypes.h> // PRIu32
 #include <math.h>
 
 #include <vector>

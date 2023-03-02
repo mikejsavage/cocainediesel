@@ -308,7 +308,7 @@ static void GClip_LinkEntity_AreaGrid( areagrid_t *areagrid, edict_t *ent ) {
 }
 
 static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, const MinMax3 & bounds, int *list, int maxcount, int areatype, int timeDelta ) {
-	assert( maxcount > 0 );
+	Assert( maxcount > 0 );
 
 	Vec3 paddedmins = bounds.mins;
 	Vec3 paddedmaxs = bounds.maxs;
@@ -471,7 +471,7 @@ static int GClip_AreaEdicts( const MinMax3 bounds, int *list, int maxcount, int 
 static trace_t GClip_ClipMoveToEntities( const Ray & ray, const Shape & shape, int passent, SolidBits solid_mask, int timeDelta ) {
 	TracyZoneScoped;
 
-	assert( passent == -1 || ( passent >= 0 && passent < ARRAY_COUNT( game.edicts ) ) );
+	Assert( passent == -1 || ( passent >= 0 && passent < ARRAY_COUNT( game.edicts ) ) );
 
 	trace_t best = MakeMissedTrace( ray );
 
@@ -525,7 +525,7 @@ static trace_t GClip_Trace( Vec3 start, Vec3 end, const MinMax3 & bounds, const 
 
 	Shape shape;
 	if( bounds.mins == bounds.maxs ) {
-		assert( bounds.mins == Vec3( 0.0f ) );
+		Assert( bounds.mins == Vec3( 0.0f ) );
 		shape.type = ShapeType_Ray;
 	}
 	else {
@@ -556,7 +556,7 @@ static bool EntityOverlapsAABB( const edict_t * ent, const CenterExtents3 & aabb
 	shape.type = ShapeType_AABB;
 	shape.aabb = aabb;
 
-	trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &ent->s, Solid_Everything );
+	trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &ent->s, SolidMask_Everything );
 
 	return trace.GotNowhere();
 }
@@ -598,7 +598,7 @@ void GClip_TouchTriggers( edict_t * ent ) {
 		collision_model = ent->s.override_collision_model.value;
 	}
 
-	assert( collision_model.type == CollisionModelType_Point || collision_model.type == CollisionModelType_AABB );
+	Assert( collision_model.type == CollisionModelType_Point || collision_model.type == CollisionModelType_AABB );
 
 	MinMax3 bounds;
 	if( collision_model.type == CollisionModelType_Point ) {
@@ -717,18 +717,4 @@ int GClip_FindInRadius( Vec3 origin, float radius, int * output, int maxcount ) 
 void G_SplashFrac4D( const edict_t *ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage ) {
 	const c4clipedict_t *clipEnt = GClip_GetClipEdictForDeltaTime( ENTNUM( ent ), timeDelta );
 	G_SplashFrac( &clipEnt->s, &clipEnt->r, hitpoint, maxradius, pushdir, frac, selfdamage );
-}
-
-SyncEntityState *G_GetEntityStateForDeltaTime( int entNum, int deltaTime ) {
-	c4clipedict_t *clipEnt;
-
-	if( entNum == -1 ) {
-		return NULL;
-	}
-
-	assert( entNum >= 0 && entNum < MAX_EDICTS );
-
-	clipEnt = GClip_GetClipEdictForDeltaTime( entNum, deltaTime );
-
-	return &clipEnt->s;
 }

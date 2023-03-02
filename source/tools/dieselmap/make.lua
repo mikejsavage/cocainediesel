@@ -1,16 +1,3 @@
-local windows_srcs = {
-	"source/windows/win_fs.cpp",
-	"source/windows/win_sys.cpp",
-	"source/windows/win_threads.cpp",
-}
-
-local linux_srcs = {
-	"source/unix/unix_fs.cpp",
-	"source/unix/unix_threads.cpp",
-}
-
-local platform_srcs = OS == "windows" and windows_srcs or linux_srcs
-
 bin( "dieselmap", {
 	srcs = {
 		"source/tools/dieselmap/*.cpp",
@@ -18,14 +5,16 @@ bin( "dieselmap", {
 		"source/qcommon/base.cpp",
 		"source/qcommon/fs.cpp",
 		"source/qcommon/hash.cpp",
+		"source/qcommon/utf8.cpp",
+		"source/qcommon/platform/*_fs.cpp",
+		"source/qcommon/platform/*_sys.cpp",
+		"source/qcommon/platform/*_threads.cpp",
 
 		"source/gameshared/q_math.cpp",
 		"source/gameshared/q_shared.cpp",
 		"source/gameshared/editor_materials.cpp",
 		"source/qcommon/strtonum.cpp",
 		"source/qcommon/rng.cpp",
-
-		platform_srcs,
 	},
 
 	libs = {
@@ -35,6 +24,6 @@ bin( "dieselmap", {
 		"zstd",
 	},
 
-	msvc_extra_ldflags = "ole32.lib",
-	gcc_extra_ldflags = "-lm -lpthread",
+	windows_ldflags = "ole32.lib shell32.lib user32.lib advapi32.lib",
+	linux_ldflags = "-lm -lpthread",
 } )

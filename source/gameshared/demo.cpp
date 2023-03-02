@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <errno.h>
 
 #include "qcommon/base.h"
+#include "qcommon/qcommon.h"
 #include "qcommon/version.h"
 #include "qcommon/array.h"
 #include "qcommon/compression.h"
@@ -71,7 +72,7 @@ static void WriteToDemo( RecordDemoContext * ctx, const void * buf, size_t n ) {
 }
 
 void WriteDemoMessage( RecordDemoContext * ctx, msg_t msg, size_t skip ) {
-	assert( skip <= msg.cursize );
+	Assert( skip <= msg.cursize );
 	u16 len = checked_cast< u16 >( msg.cursize - skip );
 	if( len == 0 ) {
 		return;
@@ -89,7 +90,7 @@ static void MaybeWriteDemoMessage( RecordDemoContext * ctx, msg_t * msg, bool fo
 	MSG_Clear( msg );
 }
 
-static void CheckedZstdSetParameter( ZSTD_CStream * zstd, ZSTD_cParameter parameter, int value ) {
+static void CheckedZstdSetParameter( ZSTD_CCtx * zstd, ZSTD_cParameter parameter, int value ) {
 	size_t err = ZSTD_CCtx_setParameter( zstd, parameter, value );
 	if( ZSTD_isError( err ) ) {
 		Fatal( "ZSTD_CCtx_setParameter( %d, %d ): %s", parameter, value, ZSTD_getErrorName( err ) );
@@ -98,7 +99,7 @@ static void CheckedZstdSetParameter( ZSTD_CStream * zstd, ZSTD_cParameter parame
 
 bool StartRecordingDemo(
 	TempAllocator * temp, RecordDemoContext * ctx, const char * filename, unsigned int spawncount, unsigned int snapFrameTime,
-	int max_clients, const char * configstrings, SyncEntityState * baselines
+	int max_clients, const SyncEntityState * baselines
 ) {
 	*ctx = { };
 
@@ -123,9 +124,9 @@ bool StartRecordingDemo(
 	}
 	ctx->filename = CopyString( sys_allocator, filename );
 
-	ctx->zstd = ZSTD_createCStream();
+	ctx->zstd = ZSTD_createCCtx();
 	if( ctx->zstd == NULL ) {
-		Fatal( "ZSTD_createCStream" );
+		Fatal( "ZSTD_createCCtx" );
 	}
 	CheckedZstdSetParameter( ctx->zstd, ZSTD_c_compressionLevel, ZSTD_CLEVEL_DEFAULT );
 	CheckedZstdSetParameter( ctx->zstd, ZSTD_c_checksumFlag, 1 );
@@ -148,17 +149,6 @@ bool StartRecordingDemo(
 	MSG_WriteString( &msg, filename ); // server name
 	MSG_WriteString( &msg, "" ); // download url
 
-	// config strings
-	for( int i = 0; i < MAX_CONFIGSTRINGS; i++ ) {
-		const char *configstring = configstrings + i * MAX_CONFIGSTRING_CHARS;
-		if( configstring[0] ) {
-			MSG_WriteUint8( &msg, svc_servercs );
-			MSG_WriteString( &msg, ( *temp )( "cs {} \"{}\"", i, configstring ) );
-
-			MaybeWriteDemoMessage( ctx, &msg, false );
-		}
-	}
-
 	// baselines
 	SyncEntityState nullstate;
 	memset( &nullstate, 0, sizeof( nullstate ) );
@@ -176,7 +166,7 @@ bool StartRecordingDemo(
 	// client expects the server data to be in a separate packet
 	MaybeWriteDemoMessage( ctx, &msg, true );
 
-	MSG_WriteUint8( &msg, svc_servercs );
+	MSG_WriteUint8( &msg, svc_unreliable );
 	MSG_WriteString( &msg, "precache" );
 
 	MaybeWriteDemoMessage( ctx, &msg, true );
@@ -185,7 +175,7 @@ bool StartRecordingDemo(
 }
 
 void StopRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const DemoMetadata & metadata ) {
-	assert( metadata.metadata_version == DEMO_METADATA_VERSION );
+	Assert( metadata.metadata_version == DEMO_METADATA_VERSION );
 
 	FlushDemo( ctx, true );
 
@@ -204,7 +194,7 @@ void StopRecordingDemo( TempAllocator * temp, RecordDemoContext * ctx, const Dem
 		RemoveFile( temp, ctx->temp_filename );
 		FREE( sys_allocator, ctx->temp_filename );
 
-		ZSTD_freeCStream( ctx->zstd );
+		ZSTD_freeCCtx( ctx->zstd );
 		FREE( sys_allocator, ctx->in_buf );
 		FREE( sys_allocator, ctx->out_buf );
 	};
@@ -241,7 +231,7 @@ static const DemoHeader * ReadDemoHeader( Span< const u8 > demo ) {
 	if( demo.n < sizeof( DemoHeader ) )
 		return NULL;
 
-	const DemoHeader * header = ( const DemoHeader * ) demo.ptr;
+	const DemoHeader * header = align_cast< const DemoHeader >( demo.ptr );
 	if( memcmp( &header->magic, DEMO_METADATA_MAGIC, sizeof( DEMO_METADATA_MAGIC ) ) != 0 )
 		return NULL;
 
@@ -266,7 +256,7 @@ bool DecompressDemo( Allocator * a, const DemoMetadata & metadata, Span< u8 > * 
 	TracyZoneScoped;
 
 	const DemoHeader * header = ReadDemoHeader( demo );
-	assert( header != NULL );
+	Assert( header != NULL );
 
 	*decompressed = ALLOC_SPAN( a, u8, metadata.decompressed_size );
 	Span< const u8 > compressed = demo.slice( sizeof( DemoHeader ) + header->metadata_size, demo.n );

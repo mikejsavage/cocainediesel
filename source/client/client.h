@@ -85,8 +85,6 @@ struct client_state_t {
 	int servercount;        // server identification for prespawns
 	int max_clients;
 	int playernum;
-
-	char configstrings[MAX_CONFIGSTRINGS][MAX_CONFIGSTRING_CHARS];
 };
 
 extern client_state_t cl;
@@ -127,8 +125,6 @@ struct client_static_t {
 	NetAddress serveraddress; // address of that server
 	Optional< Time > connect_time; // for connection retransmits
 	int connect_count;
-
-	NetAddress rconaddress;       // address where we are sending rcon messages, to ignore other print packets
 
 	char * server_name;
 	char * download_url;              // http://<httpaddress>/
@@ -172,6 +168,8 @@ struct client_static_t {
 	ImFont * big_font;
 	ImFont * medium_font;
 	ImFont * medium_italic_font;
+	ImFont * large_italic_font;
+	ImFont * big_italic_font;
 	ImFont * console_font;
 	ImFont * idi_nahui_font;
 };

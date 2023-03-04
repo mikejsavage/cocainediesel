@@ -527,7 +527,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	DeltaAngle( buf, ent.angles, baseline.angles );
 
 	Delta( buf, ent.override_collision_model, baseline.override_collision_model );
-	DeltaEnum( buf, ent.solidity, baseline.solidity, SolidBits( SolidMask_Everything + 1 ) );
+	DeltaEnum( buf, ent.solidity, baseline.solidity, SolidBits( SolidMask_Everything ) ); // NOMERGE(kdtree): DeltaEnumBitfield?
 
 	Delta( buf, ent.teleported, baseline.teleported );
 

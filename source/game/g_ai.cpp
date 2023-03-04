@@ -67,31 +67,24 @@ void AI_Respawn( edict_t * ent ) {
 }
 
 static void AI_SpecThink( edict_t * self ) {
-	self->nextThink = level.time + 100;
-
-	if( !level.canSpawnEntities )
-		return;
-
 	if( self->r.client->team == Team_None ) {
-		// try to join a team
 		G_Teams_JoinAnyTeam( self, false );
 
-		if( self->r.client->team == Team_None ) { // couldn't join, delay the next think
+		if( self->r.client->team == Team_None ) {
 			self->nextThink = level.time + 100;
-		} else {
-			self->nextThink = level.time + 1;
+			return;
 		}
-		return;
 	}
 
-	UserCommand ucmd;
-	memset( &ucmd, 0, sizeof( UserCommand ) );
+	UserCommand ucmd = { };
 
 	// set approximate ping and show values
 	ucmd.serverTimeStamp = svs.gametime;
-	ucmd.msec = (uint8_t)game.frametime;
+	ucmd.msec = u8( game.frametime );
 
 	ClientThink( self, &ucmd, 0 );
+
+	self->nextThink = level.time + 1;
 }
 
 static void AI_GameThink( edict_t * self ) {

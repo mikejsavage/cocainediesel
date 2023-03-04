@@ -750,7 +750,7 @@ void G_SetBoundsForSpanEntity( edict_t *ent, float size ) {
 void G_ReleaseClientPSEvent( gclient_t *client ) {
 	for( int i = 0; i < 2; i++ ) {
 		if( client->resp.eventsCurrent < client->resp.eventsHead ) {
-			client->ps.events[ i ] = client->resp.events[client->resp.eventsCurrent & MAX_CLIENT_EVENTS_MASK];
+			client->ps.events[ i ] = client->resp.events[ client->resp.eventsCurrent % ARRAY_COUNT( client->resp.events ) ];
 			client->resp.eventsCurrent++;
 		} else {
 			client->ps.events[ i ] = { };
@@ -767,7 +767,7 @@ void G_AddPlayerStateEvent( gclient_t *client, int ev, u64 parm ) {
 	if( client == NULL )
 		return;
 
-	SyncEvent * event = &client->resp.events[client->resp.eventsHead & MAX_CLIENT_EVENTS_MASK];
+	SyncEvent * event = &client->resp.events[ client->resp.eventsHead % ARRAY_COUNT( client->resp.events ) ];
 	client->resp.eventsHead++;
 	event->type = ev;
 	event->parm = parm;

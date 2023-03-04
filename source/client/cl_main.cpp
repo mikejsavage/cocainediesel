@@ -81,7 +81,7 @@ msg_t * CL_AddReliableCommand( ClientCommandType command ) {
 
 	cls.reliableSequence++;
 
-	size_t index = cls.reliableSequence % MAX_RELIABLE_COMMANDS;
+	size_t index = cls.reliableSequence % ARRAY_COUNT( cls.reliableCommands );
 	cls.reliableCommands[ index ] = { };
 	cls.reliableCommands[ index ].command = command;
 	cls.reliableCommands[ index ].args = NewMSGWriter( cls.reliableCommands[ index ].args_buf, sizeof( cls.reliableCommands[ index ].args_buf ) );
@@ -90,7 +90,7 @@ msg_t * CL_AddReliableCommand( ClientCommandType command ) {
 
 static void SerializeReliableCommands( msg_t * msg ) {
 	for( size_t i = cls.reliableAcknowledge + 1; i <= cls.reliableSequence; i++ ) {
-		size_t index = i % MAX_RELIABLE_COMMANDS;
+		size_t index = i % ARRAY_COUNT( cls.reliableCommands );
 		MSG_WriteUint8( msg, clc_clientcommand );
 		MSG_WriteIntBase128( msg, i );
 		MSG_WriteUint8( msg, cls.reliableCommands[ index ].command );
@@ -786,7 +786,7 @@ void CL_AdjustServerTime( unsigned int gameMsec ) {
 	cl.serverTime = cls.gametime + cl.serverTimeDelta;
 
 	// it launches a new snapshot when the timestamp of the CURRENT snap is reached.
-	if( cl.pendingSnapNum && ( cl.serverTime >= cl.snapShots[cl.currentSnapNum & UPDATE_MASK].serverTime ) ) {
+	if( cl.pendingSnapNum && ( cl.serverTime >= cl.snapShots[ cl.currentSnapNum % ARRAY_COUNT( cl.snapShots ) ].serverTime ) ) {
 		// fire next snapshot
 		if( CL_GameModule_NewSnapshot( cl.pendingSnapNum ) ) {
 			cl.previousSnapNum = cl.currentSnapNum;
@@ -814,27 +814,25 @@ void CL_RestartTimeDeltas( int newTimeDelta ) {
 }
 
 int CL_SmoothTimeDeltas() {
-	int i, count;
-	double delta;
-	snapshot_t  *snap;
-
 	if( CL_DemoPlaying() ) {
 		if( cl.currentSnapNum <= 0 ) { // if first snap
-			return cl.serverTimeDeltas[cl.pendingSnapNum & MASK_TIMEDELTAS_BACKUP];
+			return cl.serverTimeDeltas[ cl.pendingSnapNum % ARRAY_COUNT( cl.serverTimeDeltas ) ];
 		}
 
-		return cl.serverTimeDeltas[cl.currentSnapNum & MASK_TIMEDELTAS_BACKUP];
+		return cl.serverTimeDeltas[ cl.currentSnapNum % ARRAY_COUNT( cl.serverTimeDeltas ) ];
 	}
 
-	i = cl.receivedSnapNum - Min2( MAX_TIMEDELTAS_BACKUP, 8 );
+	int i = cl.receivedSnapNum - Min2( MAX_TIMEDELTAS_BACKUP, 8 );
 	if( i < 0 ) {
 		i = 0;
 	}
 
-	for( delta = 0, count = 0; i <= cl.receivedSnapNum; i++ ) {
-		snap = &cl.snapShots[i & UPDATE_MASK];
+	double delta = 0.0;
+	int count = 0;
+	for( ; i <= cl.receivedSnapNum; i++ ) {
+		const snapshot_t * snap = &cl.snapShots[ i % ARRAY_COUNT( cl.snapShots ) ];
 		if( snap->valid && snap->serverFrame == i ) {
-			delta += (double)cl.serverTimeDeltas[i & MASK_TIMEDELTAS_BACKUP];
+			delta += (double)cl.serverTimeDeltas[ i % ARRAY_COUNT( cl.serverTimeDeltas ) ];
 			count++;
 		}
 	}
@@ -859,8 +857,8 @@ static void CL_UpdateSnapshot() {
 	if( !cl.pendingSnapNum && ( cl.currentSnapNum != cl.receivedSnapNum ) ) {
 		snap = NULL;
 		for( i = cl.currentSnapNum + 1; i <= cl.receivedSnapNum; i++ ) {
-			if( cl.snapShots[i & UPDATE_MASK].valid && ( cl.snapShots[i & UPDATE_MASK].serverFrame > cl.currentSnapNum ) ) {
-				snap = &cl.snapShots[i & UPDATE_MASK];
+			if( cl.snapShots[ i % ARRAY_COUNT( cl.snapShots ) ].valid && ( cl.snapShots[ i % ARRAY_COUNT( cl.snapShots ) ].serverFrame > cl.currentSnapNum ) ) {
+				snap = &cl.snapShots[ i % ARRAY_COUNT( cl.snapShots ) ];
 				//torbenh: this break was the source of the lag bug at cl_fps < sv_pps
 				//break;
 			}

@@ -38,7 +38,7 @@ void SV_AddGameCommand( client_t *client, const char *cmd ) {
 	Assert( strlen( cmd ) < MAX_STRING_CHARS );
 
 	client->gameCommandCurrent++;
-	index = client->gameCommandCurrent & ( MAX_RELIABLE_COMMANDS - 1 );
+	index = client->gameCommandCurrent % ARRAY_COUNT( client->gameCommands );
 	SafeStrCpy( client->gameCommands[index].command, cmd, sizeof( client->gameCommands[index].command ) );
 	if( client->lastSentFrameNum ) {
 		client->gameCommands[index].framenum = client->lastSentFrameNum + 1;
@@ -73,7 +73,7 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 		SV_DropClient( client, "%s", "Error: Server command overflow" );
 		return;
 	}
-	int index = client->reliableSequence & ( MAX_RELIABLE_COMMANDS - 1 );
+	int index = client->reliableSequence % ARRAY_COUNT( client->reliableCommands );
 	SafeStrCpy( client->reliableCommands[index], cmd, sizeof( client->reliableCommands[index] ) );
 }
 
@@ -132,15 +132,15 @@ void SV_AddReliableCommandsToMessage( client_t *client, msg_t *msg ) {
 
 	// write any unacknowledged serverCommands
 	for( i = client->reliableAcknowledge + 1; i <= client->reliableSequence; i++ ) {
-		if( !strlen( client->reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )] ) ) {
+		if( !strlen( client->reliableCommands[i % ARRAY_COUNT( client->reliableCommands )] ) ) {
 			continue;
 		}
 		MSG_WriteUint8( msg, svc_servercmd );
 		MSG_WriteInt32( msg, i );
-		MSG_WriteString( msg, client->reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )] );
+		MSG_WriteString( msg, client->reliableCommands[i % ARRAY_COUNT( client->reliableCommands )] );
 		if( sv_debug_serverCmd->integer ) {
 			Com_Printf( "SV_AddServerCommandsToMessage(%i):%s\n", i,
-						client->reliableCommands[i & ( MAX_RELIABLE_COMMANDS - 1 )] );
+						client->reliableCommands[i % ARRAY_COUNT( client->reliableCommands )] );
 		}
 	}
 	client->reliableSent = client->reliableSequence;

@@ -5,8 +5,8 @@
 
 #include "imgui/imgui.h"
 
-constexpr size_t CHAT_MESSAGE_SIZE = 512;
-constexpr size_t CHAT_HISTORY_SIZE = 64;
+static constexpr size_t CHAT_MESSAGE_SIZE = 512;
+static constexpr size_t CHAT_HISTORY_SIZE = 64;
 
 enum ChatMode {
 	ChatMode_None,
@@ -68,7 +68,7 @@ void CG_AddChat( const char * str ) {
 		chat.history_len++;
 	}
 	else {
-		chat.history_head = ( chat.history_head + 1 ) % CHAT_HISTORY_SIZE;
+		chat.history_head = ( chat.history_head + 1 ) % ARRAY_COUNT( chat.history );
 	}
 
 	if( chat.at_bottom ) {

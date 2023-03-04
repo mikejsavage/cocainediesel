@@ -22,12 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 
-//==============================================================
-//
-//PATHLIB
-//
-//==============================================================
-
 char *COM_SanitizeFilePath( char *filename );
 bool COM_ValidateFilename( const char *filename );
 bool COM_ValidateRelativeFilename( const char *filename );
@@ -92,6 +86,10 @@ Span< const char > BasePath( const char * path );
 
 bool SortCStringsComparator( const char * a, const char * b );
 
+void SafeStrCpy( char * dst, const char * src, size_t dst_size );
+void SafeStrCat( char * dst, const char * src, size_t dst_size );
+void RemoveTrailingZeroesFloat( char * str );
+
 //==============================================================
 //
 // STRINGLIB
@@ -116,14 +114,6 @@ bool SortCStringsComparator( const char * a, const char * b );
 #define S_COLOR_WHITE   "\x1b\xff\xff\xff\xff"
 #define S_COLOR_ORANGE  "\x1b\xff\x80\x01\xff"
 #define S_COLOR_GREY    "\x1b\x80\x80\x80\xff"
-
-//=============================================
-// strings
-//=============================================
-
-void SafeStrCpy( char * dst, const char * src, size_t dst_size );
-void SafeStrCat( char * dst, const char * src, size_t dst_size );
-void RemoveTrailingZeroesFloat( char * str );
 
 //
 // key / value info strings

@@ -434,7 +434,7 @@ static void CG_DrawEntityNumbers() {
 	// int shadowOffset = Max2( 1, frame_static.viewport_height / 600 );
 
 	for( i = 0; i < cg.frame.numEntities; i++ ) {
-		entnum = cg.frame.parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )].number;
+		entnum = cg.frame.parsedEntities[ i % ARRAY_COUNT( cg.frame.parsedEntities ) ].number;
 		if( entnum < 1 || entnum >= MAX_EDICTS ) {
 			continue;
 		}

@@ -133,10 +133,7 @@ constexpr u16 PORT_SERVER = 44400;
 
 //=========================================
 
-#define UPDATE_BACKUP   32  // copies of SyncEntityState to keep buffered
-// must be power of two
-
-#define UPDATE_MASK ( UPDATE_BACKUP - 1 )
+constexpr s64 UPDATE_BACKUP = 32;  // copies of SyncEntityState to keep buffered. TODO should be u64?
 
 //==================
 // the svc_strings[] array in snap_read should mirror this

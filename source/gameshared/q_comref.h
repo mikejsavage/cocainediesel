@@ -21,8 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #pragma once
 
 // user command communications
-#define CMD_BACKUP  64  // allow a lot of command backups for very fast systems
-#define CMD_MASK    ( CMD_BACKUP - 1 )
+constexpr unsigned int CMD_BACKUP = 64; // allow a lot of command backups for very fast systems
 
 // pmove_state_t is the information necessary for client side movement
 // prediction

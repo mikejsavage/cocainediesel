@@ -58,14 +58,13 @@ void CG_PredictedUseGadget( int entNum, GadgetType gadget, u64 parm, bool dead )
 
 void CG_CheckPredictionError() {
 	int delta[3];
-	int frame;
 
 	if( !cg.view.playerPrediction ) {
 		return;
 	}
 
 	// calculate the last UserCommand we sent that the server has processed
-	frame = cg.frame.ucmdExecuted & CMD_MASK;
+	int frame = cg.frame.ucmdExecuted % ARRAY_COUNT( cg.predictedOrigins );
 
 	// compare what the server returned with what we had predicted it to be
 	Vec3 origin = cg.predictedOrigins[frame];
@@ -298,14 +297,14 @@ static void CG_PredictSmoothSteps() {
 	CL_GetCurrentState( NULL, &outgoing, NULL );
 
 	for( i = outgoing; (outgoing - i) < CMD_BACKUP && predictiontime < PREDICTED_STEP_TIME; i-- ) {
-		frame = i & CMD_MASK;
+		frame = i % ARRAY_COUNT( predictedSteps );
 		CL_GetUserCmd( frame, &cmd );
 		predictiontime += cmd.msec;
 	}
 
 	// run frames
 	while( ++i <= outgoing ) {
-		frame = i & CMD_MASK;
+		frame = i % ARRAY_COUNT( predictedSteps );
 		CL_GetUserCmd( frame, &cmd );
 		virtualtime += cmd.msec;
 
@@ -345,7 +344,7 @@ void CG_PredictMovement() {
 	cg.predictedPlayerState.POVnum = cgs.playerNum + 1;
 
 	// if we are too far out of date, just freeze
-	if( ucmdHead - ucmdExecuted >= CMD_BACKUP ) {
+	if( ucmdHead - ucmdExecuted >= ARRAY_COUNT( predictedSteps ) ) {
 		if( cg_showMiss->integer ) {
 			Com_Printf( "exceeded CMD_BACKUP\n" );
 		}
@@ -364,7 +363,7 @@ void CG_PredictMovement() {
 
 	// run frames
 	while( ++ucmdExecuted <= ucmdHead ) {
-		frame = ucmdExecuted & CMD_MASK;
+		frame = ucmdExecuted % ARRAY_COUNT( predictedSteps );
 		CL_GetUserCmd( frame, &pm.cmd );
 
 		ucmdReady = ( pm.cmd.serverTimeStamp != 0 );

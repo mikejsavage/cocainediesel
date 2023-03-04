@@ -24,8 +24,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/qcommon.h"
 
-//============================================================================
-
 /*
 * COM_SanitizeFilePath
 *
@@ -358,12 +356,6 @@ Span< const char > BasePath( const char * path ) {
 bool SortCStringsComparator( const char * a, const char * b ) {
 	return strcmp( a, b ) < 0;
 }
-
-//============================================================================
-//
-//					LIBRARY REPLACEMENT FUNCTIONS
-//
-//============================================================================
 
 void SafeStrCpy( char * dst, const char * src, size_t dst_size ) {
 	if( dst_size == 0 )

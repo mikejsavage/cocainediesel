@@ -128,7 +128,7 @@ static void CL_ParseBaseline( msg_t *msg ) {
 }
 
 static void CL_ParseFrame( msg_t *msg ) {
-	const snapshot_t * oldSnap = ( cl.receivedSnapNum > 0 ) ? &cl.snapShots[cl.receivedSnapNum & UPDATE_MASK] : NULL;
+	const snapshot_t * oldSnap = cl.receivedSnapNum > 0 ? &cl.snapShots[ cl.receivedSnapNum % ARRAY_COUNT( cl.snapShots ) ] : NULL;
 	const snapshot_t * snap = SNAP_ParseFrame( msg, oldSnap, cl.snapShots, cl_baselines, cl_shownet->integer );
 	if( !snap->valid )
 		return;
@@ -159,7 +159,7 @@ static void CL_ParseFrame( msg_t *msg ) {
 
 		delta = Clamp( cl.newServerTimeDelta - (int)cl.snapFrameTime, delta, cl.newServerTimeDelta + (int)cl.snapFrameTime );
 
-		cl.serverTimeDeltas[cl.receivedSnapNum & MASK_TIMEDELTAS_BACKUP] = delta;
+		cl.serverTimeDeltas[ cl.receivedSnapNum % ARRAY_COUNT( cl.serverTimeDeltas ) ] = delta;
 	}
 }
 

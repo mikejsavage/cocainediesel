@@ -211,7 +211,7 @@ bool CheckFlood( edict_t * ent, bool teamonly ) {
 		if( g_floodprotection_team->integer && g_floodprotection_penalty->number > 0 ) {
 			i = client->level.flood_team_whenhead - g_floodprotection_team->integer + 1;
 			if( i < 0 ) {
-				i = MAX_FLOOD_MESSAGES + i;
+				i = ARRAY_COUNT( client->level.flood_when ) + i;
 			}
 
 			if( client->level.flood_team_when[i] && client->level.flood_team_when[i] <= svs.realtime &&
@@ -222,13 +222,13 @@ bool CheckFlood( edict_t * ent, bool teamonly ) {
 			}
 		}
 
-		client->level.flood_team_whenhead = ( client->level.flood_team_whenhead + 1 ) % MAX_FLOOD_MESSAGES;
+		client->level.flood_team_whenhead = ( client->level.flood_team_whenhead + 1 ) % ARRAY_COUNT( client->level.flood_when );
 		client->level.flood_team_when[client->level.flood_team_whenhead] = svs.realtime;
 	} else {
 		if( g_floodprotection_messages->integer && g_floodprotection_penalty->number > 0 ) {
 			i = client->level.flood_whenhead - g_floodprotection_messages->integer + 1;
 			if( i < 0 ) {
-				i = MAX_FLOOD_MESSAGES + i;
+				i = ARRAY_COUNT( client->level.flood_when ) + i;
 			}
 
 			if( client->level.flood_when[i] && client->level.flood_when[i] <= svs.realtime &&
@@ -239,7 +239,7 @@ bool CheckFlood( edict_t * ent, bool teamonly ) {
 			}
 		}
 
-		client->level.flood_whenhead = ( client->level.flood_whenhead + 1 ) % MAX_FLOOD_MESSAGES;
+		client->level.flood_whenhead = ( client->level.flood_whenhead + 1 ) % ARRAY_COUNT( client->level.flood_when );
 		client->level.flood_when[client->level.flood_whenhead] = svs.realtime;
 	}
 

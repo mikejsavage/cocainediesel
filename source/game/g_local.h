@@ -537,10 +537,8 @@ struct moveinfo_t {
 };
 
 #define MAX_CLIENT_EVENTS   16
-#define MAX_CLIENT_EVENTS_MASK ( MAX_CLIENT_EVENTS - 1 )
 
 #define G_MAX_TIME_DELTAS   8
-#define G_MAX_TIME_DELTAS_MASK ( G_MAX_TIME_DELTAS - 1 )
 
 struct client_snapreset_t {
 	int buttons;

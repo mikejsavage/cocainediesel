@@ -110,7 +110,7 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, const client_t *client, msg
 
 		maxnumtargets++;
 		for( positions[i] = cl->gameCommandCurrent - MAX_RELIABLE_COMMANDS + 1; positions[i] <= cl->gameCommandCurrent; positions[i]++ ) {
-			int index = positions[i] & ( MAX_RELIABLE_COMMANDS - 1 );
+			int index = positions[i] % ARRAY_COUNT( cl->gameCommands );
 
 			// we need to check for too new commands too, because gamecommands for the next snap are generated
 			// all the time, and we might want to create a server demo frame or something in between snaps
@@ -143,7 +143,7 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, const client_t *client, msg
 				continue;
 			}
 
-			int index = positions[i] & ( MAX_RELIABLE_COMMANDS - 1 );
+			int index = positions[i] % ARRAY_COUNT( cl->gameCommands );
 
 			if( command && StrEqual( cl->gameCommands[index].command, command ) &&
 				framenum == cl->gameCommands[index].framenum ) {
@@ -199,7 +199,7 @@ static void SNAP_WriteMultiPOVCommands( ginfo_t *gi, const client_t *client, msg
 void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
 								  const SyncEntityState *baselines, const client_entities_t *client_entities ) {
 	// this is the frame we are creating
-	client_snapshot_t * frame = &client->snapShots[frameNum & UPDATE_MASK];
+	client_snapshot_t * frame = &client->snapShots[ frameNum % ARRAY_COUNT( client->snapShots ) ];
 
 	// we need to send nodelta frame until the client responds
 	if( client->nodelta ) {
@@ -215,13 +215,12 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 		// client is asking for a not compressed retransmit
 		oldframe = NULL;
 	}
-	//else if( frameNum >= client->lastframe + (UPDATE_BACKUP - 3) )
-	else if( frameNum >= client->lastframe + UPDATE_MASK ) {
+	else if( frameNum >= client->lastframe + UPDATE_BACKUP - 1 ) {
 		// client hasn't gotten a good message through in a long time
 		oldframe = NULL;
 	} else {
 		// we have a valid message to delta from
-		oldframe = &client->snapShots[client->lastframe & UPDATE_MASK];
+		oldframe = &client->snapShots[ client->lastframe % ARRAY_COUNT( client->snapShots ) ];
 		if( oldframe->multipov != frame->multipov ) {
 			oldframe = NULL;        // don't delta compress a frame of different POV type
 		}
@@ -252,7 +251,7 @@ void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int
 		SNAP_WriteMultiPOVCommands( gi, client, msg, frameNum );
 	} else {
 		for( int i = client->gameCommandCurrent - MAX_RELIABLE_COMMANDS + 1; i <= client->gameCommandCurrent; i++ ) {
-			int index = i & ( MAX_RELIABLE_COMMANDS - 1 );
+			int index = i % ARRAY_COUNT( client->gameCommands );
 
 			// check that it is valid command and that has not already been sent
 			// we can only allow commands from certain amount of old frames, so the short won't overflow
@@ -321,7 +320,7 @@ static bool SNAP_AddEntNumToSnapList( int entNum, snapshotEntityNumbers_t *entLi
 	}
 
 	entList->snapshotEntities[entList->numSnapshotEntities++] = entNum;
-	entList->entityAddedToSnapList[entNum >> 3] |=  (1 << (entNum & 7));
+	entList->entityAddedToSnapList[entNum >> 3] |= (1 << (entNum & 7));
 	return true;
 }
 
@@ -481,7 +480,7 @@ void SNAP_BuildClientFrameSnap( const ginfo_t * gi, int64_t frameNum, int64_t ti
 	}
 
 	// this is the frame we are creating
-	client_snapshot_t * frame = &client->snapShots[frameNum & UPDATE_MASK];
+	client_snapshot_t * frame = &client->snapShots[ frameNum % ARRAY_COUNT( client->snapShots ) ];
 	frame->sentTimeStamp = timeStamp;
 	frame->UcmdExecuted = client->UcmdExecuted;
 

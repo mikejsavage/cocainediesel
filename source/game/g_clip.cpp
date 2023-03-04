@@ -59,8 +59,7 @@ typedef struct
 
 static areagrid_t g_areagrid;
 
-#define CFRAME_UPDATE_BACKUP    64  // copies of SyncEntityState to keep buffered (1 second of backup at 62 fps).
-#define CFRAME_UPDATE_MASK  ( CFRAME_UPDATE_BACKUP - 1 )
+static constexpr size_t CFRAME_UPDATE_BACKUP = 64; // copies of SyncEntityState to keep buffered
 
 struct c4clipedict_t {
 	SyncEntityState s;
@@ -76,7 +75,7 @@ struct c4frame_t {
 	int64_t framenum;
 };
 
-static c4frame_t sv_collisionframes[CFRAME_UPDATE_BACKUP];
+static c4frame_t sv_collisionFrames[CFRAME_UPDATE_BACKUP];
 static int64_t sv_collisionFrameNum = 0;
 
 void GClip_BackUpCollisionFrame() {
@@ -86,7 +85,7 @@ void GClip_BackUpCollisionFrame() {
 
 	// fixme: should check for any validation here?
 
-	cframe = &sv_collisionframes[sv_collisionFrameNum & CFRAME_UPDATE_MASK];
+	cframe = &sv_collisionFrames[ sv_collisionFrameNum % ARRAY_COUNT( sv_collisionFrames ) ];
 	cframe->timestamp = svs.gametime;
 	cframe->framenum = sv_collisionFrameNum;
 	sv_collisionFrameNum++;
@@ -157,8 +156,8 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 
 	// find the first snap with timestamp < than realtime - backtime
 	cframenum = sv_collisionFrameNum;
-	for( bf = 1; bf < CFRAME_UPDATE_BACKUP && bf < sv_collisionFrameNum; bf++ ) { // never overpass limits
-		cframe = &sv_collisionframes[( cframenum - bf ) & CFRAME_UPDATE_MASK];
+	for( bf = 1; bf < ARRAY_COUNT( sv_collisionFrames ) && bf < sv_collisionFrameNum; bf++ ) { // never overpass limits
+		cframe = &sv_collisionFrames[ ( cframenum - bf ) % ARRAY_COUNT( sv_collisionFrames ) ];
 
 		// if solid has changed, we can't keep moving backwards
 		if( ent->r.solid != cframe->clipEdicts[entNum].r.solid
@@ -168,7 +167,7 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 				// we can't step back from first
 				cframe = NULL;
 			} else {
-				cframe = &sv_collisionframes[( cframenum - bf ) & CFRAME_UPDATE_MASK];
+				cframe = &sv_collisionFrames[ ( cframenum - bf ) % ARRAY_COUNT( sv_collisionFrames ) ];
 			}
 			break;
 		}
@@ -200,7 +199,7 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 			clipentNewer.s = ent->s;
 		} else {
 			// interpolate between 2 backed up
-			c4frame_t *cframeNewer = &sv_collisionframes[( cframenum - ( bf - 1 ) ) & CFRAME_UPDATE_MASK];
+			c4frame_t *cframeNewer = &sv_collisionFrames[ ( cframenum - ( bf - 1 ) ) % ARRAY_COUNT( sv_collisionFrames ) ];
 			lerpFrac = (float)( ( svs.gametime - backTime ) - cframe->timestamp )
 					   / (float)( cframeNewer->timestamp - cframe->timestamp );
 			clipentNewer = cframeNewer->clipEdicts[entNum];

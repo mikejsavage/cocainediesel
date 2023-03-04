@@ -787,8 +787,8 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 			i = 0;
 		}
 		for( count = 0, delta = 0; i < client->timeDeltasHead; i++ ) {
-			if( client->timeDeltas[i & G_MAX_TIME_DELTAS_MASK] < 0 ) {
-				delta += client->timeDeltas[i & G_MAX_TIME_DELTAS_MASK];
+			if( client->timeDeltas[ i % ARRAY_COUNT( client->timeDeltas ) ] < 0 ) {
+				delta += client->timeDeltas[ i % ARRAY_COUNT( client->timeDeltas ) ];
 				count++;
 			}
 		}
@@ -800,7 +800,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 			client->timeDelta = ( delta + timeDelta ) * 0.5;
 		}
 
-		client->timeDeltas[client->timeDeltasHead & G_MAX_TIME_DELTAS_MASK] = timeDelta;
+		client->timeDeltas[ client->timeDeltasHead % ARRAY_COUNT( client->timeDeltas ) ] = timeDelta;
 		client->timeDeltasHead++;
 	}
 

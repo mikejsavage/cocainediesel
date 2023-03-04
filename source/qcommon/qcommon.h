@@ -32,7 +32,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/application.h"
 #include "qcommon/cmd.h"
 #include "qcommon/cvar.h"
-#include "qcommon/strtonum.h"
 
 inline Vec3 FromQFAxis( const mat3_t m, int axis ) {
 	return Vec3( m[ axis + 0 ], m[ axis + 1 ], m[ axis + 2 ] );
@@ -130,10 +129,7 @@ constexpr u16 PORT_SERVER = 44400;
 
 //=========================================
 
-#define UPDATE_BACKUP   32  // copies of SyncEntityState to keep buffered
-// must be power of two
-
-#define UPDATE_MASK ( UPDATE_BACKUP - 1 )
+constexpr s64 UPDATE_BACKUP = 32;  // copies of SyncEntityState to keep buffered. TODO should be u64?
 
 //==================
 // the svc_strings[] array in snap_read should mirror this

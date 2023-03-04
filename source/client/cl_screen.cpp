@@ -50,8 +50,7 @@ static void SCR_DebugGraph( float value, float r, float g, float b ) {
 	values[current].value = value;
 	values[current].color = Vec4( r, g, b, 1.0f );
 
-	current++;
-	current &= 1023;
+	current = ( current + 1 ) % ARRAY_COUNT( values );
 }
 
 /*
@@ -73,7 +72,7 @@ void CL_AddNetgraph() {
 		SCR_DebugGraph( 30.0f, 0.655f, 0.231f, 0.169f );
 
 	// see what the latency was on this packet
-	ping = cls.realtime - cl.cmd_time[cls.ucmdAcknowledged & CMD_MASK];
+	ping = cls.realtime - cl.cmd_time[ cls.ucmdAcknowledged % ARRAY_COUNT( cl.cmd_time ) ];
 	ping /= 30;
 	if( ping > 30 ) {
 		ping = 30;
@@ -97,7 +96,7 @@ static void SCR_DrawDebugGraph() {
 	int s = ( w + 1024 - 1 ) / 1024; //scale for resolutions with width >1024
 
 	for( int a = 0; a < w; a++ ) {
-		int i = ( current - 1 - a + 1024 ) & 1023;
+		int i = ( current - 1 - a + 1024 ) % ARRAY_COUNT( values );
 		float v = values[i].value;
 		v = v * scr_graphscale->integer + scr_graphshift->integer;
 

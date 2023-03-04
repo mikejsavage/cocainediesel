@@ -42,7 +42,6 @@ constexpr RGBA8 rgba8_diesel_green = RGBA8( 44, 209, 89, 255 ); //yolo
 //=============================================================================
 
 #define MAX_TIMEDELTAS_BACKUP 8
-#define MASK_TIMEDELTAS_BACKUP ( MAX_TIMEDELTAS_BACKUP - 1 )
 
 //
 // the client_state_t structure is wiped completely at every

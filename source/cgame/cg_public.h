@@ -20,11 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #pragma once
 
-//
-// structs and variables shared with the main engine
-//
-
-#define MAX_PARSE_GAMECOMMANDS  256
+constexpr size_t MAX_PARSE_GAMECOMMANDS = 256;
+constexpr size_t MAX_PARSE_ENTITIES = 1024;
 
 struct gcommand_t {
 	bool all;
@@ -32,7 +29,6 @@ struct gcommand_t {
 	size_t commandOffset;           // offset of the data in gamecommandsData
 };
 
-#define MAX_PARSE_ENTITIES  1024
 struct snapshot_t {
 	bool valid;             // cleared if delta parsing was invalid
 	int64_t serverFrame;

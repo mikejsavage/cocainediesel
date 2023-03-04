@@ -62,7 +62,7 @@ void CG_CheckPredictionError() {
 	}
 
 	// calculate the last UserCommand we sent that the server has processed
-	int frame = cg.frame.ucmdExecuted & CMD_MASK;
+	int frame = cg.frame.ucmdExecuted % ARRAY_COUNT( cg.predictedOrigins );
 
 	// compare what the server returned with what we had predicted it to be
 	Vec3 origin = cg.predictedOrigins[frame];
@@ -204,12 +204,12 @@ static trace_t CG_ClipMoveToEntities( const Ray & ray, const Shape & shape, int 
 void CG_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, SolidBits solid_mask ) {
 	TracyZoneScoped;
 
+	Ray ray = MakeRayStartEnd( start, end );
+
 	if( solid_mask == Solid_NotSolid ) {
 		*tr = MakeMissedTrace( ray );
 		return;
 	}
-
-	Ray ray = MakeRayStartEnd( start, end );
 
 	MinMax3 bounds = MinMax3( mins, maxs );
 	Shape shape;
@@ -256,14 +256,14 @@ static void CG_PredictSmoothSteps() {
 	CL_GetCurrentState( NULL, &outgoing, NULL );
 
 	for( i = outgoing; (outgoing - i) < CMD_BACKUP && predictiontime < PREDICTED_STEP_TIME; i-- ) {
-		frame = i & CMD_MASK;
+		frame = i % ARRAY_COUNT( predictedSteps );
 		CL_GetUserCmd( frame, &cmd );
 		predictiontime += cmd.msec;
 	}
 
 	// run frames
 	while( ++i <= outgoing ) {
-		frame = i & CMD_MASK;
+		frame = i % ARRAY_COUNT( predictedSteps );
 		CL_GetUserCmd( frame, &cmd );
 		virtualtime += cmd.msec;
 
@@ -300,7 +300,7 @@ void CG_PredictMovement() {
 	cg.predictedPlayerState.POVnum = cgs.playerNum + 1;
 
 	// if we are too far out of date, just freeze
-	if( ucmdHead - ucmdExecuted >= CMD_BACKUP ) {
+	if( ucmdHead - ucmdExecuted >= ARRAY_COUNT( predictedSteps ) ) {
 		if( cg_showMiss->integer ) {
 			Com_Printf( "exceeded CMD_BACKUP\n" );
 		}
@@ -319,7 +319,7 @@ void CG_PredictMovement() {
 
 	// run frames
 	while( ++ucmdExecuted <= ucmdHead ) {
-		int64_t frame = ucmdExecuted & CMD_MASK;
+		int64_t frame = ucmdExecuted % ARRAY_COUNT( predictedSteps );
 		CL_GetUserCmd( frame, &pm.cmd );
 
 		ucmdReady = ( pm.cmd.serverTimeStamp != 0 );

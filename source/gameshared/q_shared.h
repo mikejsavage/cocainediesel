@@ -22,12 +22,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "qcommon/base.h"
 
-//==============================================================
-//
-//PATHLIB
-//
-//==============================================================
-
 char *COM_SanitizeFilePath( char *filename );
 bool COM_ValidateFilename( const char *filename );
 bool COM_ValidateRelativeFilename( const char *filename );
@@ -39,13 +33,14 @@ enum ParseStopOnNewLine {
 
 Span< const char > ParseToken( Span< const char > * cursor, ParseStopOnNewLine stop );
 
+bool TrySpanToU64( Span< const char > str, u64 * x );
+bool TrySpanToS64( Span< const char > str, s64 * x );
 bool TrySpanToInt( Span< const char > str, int * x );
 bool TrySpanToFloat( Span< const char > str, float * x );
-bool TrySpanToU64( Span< const char > str, u64 * x );
 
+u64 SpanToU64( Span< const char > str, u64 def );
 int SpanToInt( Span< const char > token, int def );
 float SpanToFloat( Span< const char > token, float def );
-u64 SpanToU64( Span< const char > str, u64 def );
 
 int ParseInt( Span< const char > * cursor, int def, ParseStopOnNewLine stop );
 float ParseFloat( Span< const char > * cursor, float def, ParseStopOnNewLine stop );
@@ -91,6 +86,10 @@ Span< const char > BasePath( const char * path );
 
 bool SortCStringsComparator( const char * a, const char * b );
 
+void SafeStrCpy( char * dst, const char * src, size_t dst_size );
+void SafeStrCat( char * dst, const char * src, size_t dst_size );
+void RemoveTrailingZeroesFloat( char * str );
+
 //==============================================================
 //
 // STRINGLIB
@@ -115,14 +114,6 @@ bool SortCStringsComparator( const char * a, const char * b );
 #define S_COLOR_WHITE   "\x1b\xff\xff\xff\xff"
 #define S_COLOR_ORANGE  "\x1b\xff\x80\x01\xff"
 #define S_COLOR_GREY    "\x1b\x80\x80\x80\xff"
-
-//=============================================
-// strings
-//=============================================
-
-void SafeStrCpy( char * dst, const char * src, size_t dst_size );
-void SafeStrCat( char * dst, const char * src, size_t dst_size );
-void RemoveTrailingZeroesFloat( char * str );
 
 //
 // key / value info strings

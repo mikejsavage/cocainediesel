@@ -306,13 +306,13 @@ UserCommand *SV_FindNextUserCommand( client_t *client ) {
 	if( client ) {
 		for( i = client->UcmdExecuted + 1; i <= client->UcmdReceived; i++ ) {
 			// skip backups if already executed
-			if( client->UcmdTime >= client->ucmds[i & CMD_MASK].serverTimeStamp ) {
+			if( client->UcmdTime >= client->ucmds[ i % ARRAY_COUNT( client->ucmds ) ].serverTimeStamp ) {
 				continue;
 			}
 
-			if( ucmd == NULL || client->ucmds[i & CMD_MASK].serverTimeStamp < higherTime ) {
-				higherTime = client->ucmds[i & CMD_MASK].serverTimeStamp;
-				ucmd = &client->ucmds[i & CMD_MASK];
+			if( ucmd == NULL || client->ucmds[ i % ARRAY_COUNT( client->ucmds ) ].serverTimeStamp < higherTime ) {
+				higherTime = client->ucmds[ i % ARRAY_COUNT( client->ucmds ) ].serverTimeStamp;
+				ucmd = &client->ucmds[ i % ARRAY_COUNT( client->ucmds ) ];
 			}
 		}
 	}
@@ -378,7 +378,7 @@ static void SV_ParseMoveCommand( client_t *client, msg_t *msg ) {
 	// read the number of ucmds we will receive
 	ucmdCount = (unsigned int)MSG_ReadUint8( msg );
 
-	if( ucmdCount > CMD_MASK ) {
+	if( ucmdCount >= CMD_BACKUP ) {
 		SV_DropClient( client, "%s", "Error: Ucmd overflow" );
 		return;
 	}
@@ -391,9 +391,9 @@ static void SV_ParseMoveCommand( client_t *client, msg_t *msg ) {
 		if( i == ucmdFirst ) { // first one isn't delta compressed
 			memset( &nullcmd, 0, sizeof( nullcmd ) );
 			// jalfixme: check for too old overflood
-			MSG_ReadDeltaUsercmd( msg, &nullcmd, &client->ucmds[i & CMD_MASK] );
+			MSG_ReadDeltaUsercmd( msg, &nullcmd, &client->ucmds[ i % ARRAY_COUNT( client->ucmds ) ] );
 		} else {
-			MSG_ReadDeltaUsercmd( msg, &client->ucmds[( i - 1 ) & CMD_MASK], &client->ucmds[i & CMD_MASK] );
+			MSG_ReadDeltaUsercmd( msg, &client->ucmds[ ( i - 1 ) % ARRAY_COUNT( client->ucmds ) ], &client->ucmds[ i % ARRAY_COUNT( client->ucmds ) ] );
 		}
 	}
 
@@ -407,9 +407,9 @@ static void SV_ParseMoveCommand( client_t *client, msg_t *msg ) {
 		client->lastframe = lastframe;
 		if( client->lastframe > 0 ) {
 			// FIXME: Medar: ping is in gametime, should be in realtime
-			//client->frame_latency[client->lastframe&(LATENCY_COUNTS-1)] = svs.gametime - (client->frames[client->lastframe & UPDATE_MASK].sentTimeStamp;
+			//client->frame_latency[client->lastframe%LATENCY_COUNTS] = svs.gametime - (client->frames[client->lastframe & UPDATE_MASK].sentTimeStamp;
 			// this is more accurate. A little bit hackish, but more accurate
-			client->frame_latency[client->lastframe & ( LATENCY_COUNTS - 1 )] = svs.gametime - ( client->ucmds[client->UcmdReceived & CMD_MASK].serverTimeStamp + svc.snapFrameTime );
+			client->frame_latency[ client->lastframe % ARRAY_COUNT( client->frame_latency ) ] = svs.gametime - ( client->ucmds[ client->UcmdReceived % ARRAY_COUNT( client->ucmds ) ].serverTimeStamp + svc.snapFrameTime );
 		}
 	}
 }

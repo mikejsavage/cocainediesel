@@ -32,10 +32,22 @@ void OrthonormalBasis( vec3 v, out vec3 tangent, out vec3 bitangent ) {
 	bitangent = vec3( b, s + v.y * v.y * a, -v.y );
 }
 
-void applyDecals( uint count, int tile_index, inout vec4 diffuse, inout vec3 normal ) {
+vec2 DecalUV( vec4 uvwh, vec3 pos, vec3 bottom_left, vec3 basis_u, vec3 basis_v, mat2 rotation ) {
+	vec2 uv = vec2( ProjectedScale( pos, bottom_left, basis_u ), ProjectedScale( pos, bottom_left, basis_v ) );
+	uv -= 0.5;
+	uv = rotation * uv;
+	uv += 0.5;
+	uv = uvwh.xy + uvwh.zw * uv;
+	return uv;
+}
+
+void ApplyDecals( uint count, int tile_index, inout vec4 diffuse, inout vec3 normal ) {
 	float accumulated_alpha = 1.0;
 	vec3 accumulated_color = vec3( 0.0 );
 	float accumulated_height = 0.0;
+
+	vec3 dPos_dx = dFdx( v_Position );
+	vec3 dPos_dy = dFdy( v_Position );
 
 	for( uint i = 0; i < count; i++ ) {
 		if( accumulated_alpha < 0.001 ) {
@@ -66,14 +78,13 @@ void applyDecals( uint count, int tile_index, inout vec4 diffuse, inout vec3 nor
 			float c = cos( angle );
 			float s = sin( angle );
 			mat2 rotation = mat2( c, s, -s, c );
-			vec2 uv = vec2( ProjectedScale( v_Position, bottom_left, basis_u ), ProjectedScale( v_Position, bottom_left, basis_v ) );
 
-			uv -= 0.5;
-			uv = rotation * uv;
-			uv += 0.5;
-			uv = uvwh.xy + uvwh.zw * uv;
+			// manually compute UV derivatives because auto derivatives are undefined inside incoherent branches
+			vec2 uv = DecalUV( uvwh, v_Position, bottom_left, basis_u, basis_v, rotation );
+			vec2 dUV_dx = DecalUV( uvwh, v_Position + dPos_dx, bottom_left, basis_u, basis_v, rotation ) - uv;
+			vec2 dUV_dy = DecalUV( uvwh, v_Position + dPos_dy, bottom_left, basis_u, basis_v, rotation ) - uv;
 
-			float alpha = texture( u_DecalAtlases, vec3( uv, layer ) ).r;
+			float alpha = textureGrad( u_DecalAtlases, vec3( uv, layer ), dUV_dx, dUV_dy ).r;
 			float inv_cos_45_degrees = 1.41421356237;
 			float decal_alpha = min( 1.0, alpha * decal_color.a * max( 0.0, dot( normal, decal_normal ) * inv_cos_45_degrees ) );
 			accumulated_color += decal_color.rgb * decal_alpha * accumulated_alpha;
@@ -81,6 +92,7 @@ void applyDecals( uint count, int tile_index, inout vec4 diffuse, inout vec3 nor
 			accumulated_height += decal_height * decal_alpha;
 		}
 	}
+
 	vec3 decal_normal = vec3( dFdx( accumulated_alpha ), dFdy( accumulated_alpha ), 0.0 ) * accumulated_height;
 	decal_normal = mat3( u_InverseV ) * decal_normal;
 	normal = normalize( normal + decal_normal );

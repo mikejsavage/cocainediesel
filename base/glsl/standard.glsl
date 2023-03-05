@@ -156,7 +156,7 @@ void main() {
 #endif
 
 #if APPLY_DECALS
-	applyDecals( dynamic_tile.num_decals, tile_index, diffuse, normal );
+	ApplyDecals( dynamic_tile.num_decals, tile_index, diffuse, normal );
 #endif
 
 #if SHADED

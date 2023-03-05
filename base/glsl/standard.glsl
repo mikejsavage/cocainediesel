@@ -74,11 +74,6 @@ void main() {
 #endif
 
 	gl_Position = u_P * u_V * u_M * Position;
-
-#if APPLY_SOFT_PARTICLE
-	vec4 modelPos = u_V * u_M * Position;
-	v_Depth = -modelPos.z;
-#endif
 }
 
 #else

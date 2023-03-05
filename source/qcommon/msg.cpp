@@ -206,6 +206,15 @@ void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
 	}
 }
 
+template< typename E >
+void DeltaBitfieldEnum( DeltaBuffer * buf, E & x, E baseline, E mask ) {
+	using T = typename std::underlying_type< E >::type;
+	Delta( buf, ( T & ) x, ( const T & ) baseline );
+	if( ( x & ~mask ) != 0 ) {
+		buf->error = true;
+	}
+}
+
 template< typename T >
 void Delta( DeltaBuffer * buf, Optional< T > & x, const Optional< T > & baseline ) {
 	constexpr T null_baseline = T();
@@ -527,7 +536,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	DeltaAngle( buf, ent.angles, baseline.angles );
 
 	Delta( buf, ent.override_collision_model, baseline.override_collision_model );
-	DeltaEnum( buf, ent.solidity, baseline.solidity, SolidBits( SolidMask_Everything ) ); // NOMERGE(kdtree): DeltaEnumBitfield?
+	DeltaBitfieldEnum( buf, ent.solidity, baseline.solidity, SolidMask_Everything );
 
 	Delta( buf, ent.teleported, baseline.teleported );
 

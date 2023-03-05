@@ -31,6 +31,8 @@ enum SolidBits : u8 {
 	Solid_Trigger = ( 1 << 5 ),
 
 	Solid_Player = ( 1 << 6 ),
+
+	Solid_MaskGenerator
 };
 
 constexpr SolidBits SolidMask_AnySolid = SolidBits( Solid_PlayerClip | Solid_WeaponClip | Solid_Wallbangable );
@@ -38,7 +40,7 @@ constexpr SolidBits SolidMask_Opaque = SolidBits( Solid_WeaponClip | Solid_Wallb
 constexpr SolidBits SolidMask_WallbangShot = SolidBits( Solid_WeaponClip | Solid_Player );
 constexpr SolidBits SolidMask_Shot = SolidBits( Solid_WeaponClip | Solid_Wallbangable | Solid_Player );
 
-constexpr SolidBits SolidMask_Everything = SolidBits( U8_MAX );
+constexpr SolidBits SolidMask_Everything = SolidBits( ( Solid_MaskGenerator - 1 ) * 2 - 1 );
 
 struct trace_t {
 	float fraction;

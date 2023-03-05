@@ -139,16 +139,10 @@ static void CheckedALListener( ALenum param, Vec3 v ) {
 	CheckALErrors( "alListenerfv( {}, {} )", param, v );
 }
 
-static void CheckedALListener( ALenum param, const mat3_t m ) {
-	float forward_and_up[ 6 ];
-	forward_and_up[ 0 ] = m[ AXIS_FORWARD ];
-	forward_and_up[ 1 ] = m[ AXIS_FORWARD + 1 ];
-	forward_and_up[ 2 ] = m[ AXIS_FORWARD + 2 ];
-	forward_and_up[ 3 ] = m[ AXIS_UP ];
-	forward_and_up[ 4 ] = m[ AXIS_UP + 1 ];
-	forward_and_up[ 5 ] = m[ AXIS_UP + 2 ];
-	alListenerfv( param, forward_and_up );
-	CheckALErrors( "alListenerfv( {}, {}/{} )", param, FromQFAxis( m, AXIS_FORWARD ), FromQFAxis( m, AXIS_UP ) );
+static void CheckedALListenerOrientation( Vec3 forward, Vec3 up ) {
+	Vec3 forward_and_up[ 2 ] = { forward, up };
+	alListenerfv( AL_ORIENTATION, forward_and_up[ 0 ].ptr() );
+	CheckALErrors( "alListenerfv( AL_ORIENTATION, {}/{} )", forward, up );
 }
 
 static ALint CheckedALGetSource( ALuint source, ALenum param ) {
@@ -738,7 +732,7 @@ static void UpdateSound( PlayingSFX * ps, float volume, float pitch ) {
 	}
 }
 
-void SoundFrame( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
+void SoundFrame( Vec3 origin, Vec3 velocity, Vec3 forward, Vec3 up ) {
 	TracyZoneScoped;
 
 	if( !initialized )
@@ -757,7 +751,7 @@ void SoundFrame( Vec3 origin, Vec3 velocity, const mat3_t axis ) {
 
 	CheckedALListener( AL_POSITION, origin );
 	CheckedALListener( AL_VELOCITY, velocity );
-	CheckedALListener( AL_ORIENTATION, axis );
+	CheckedALListenerOrientation( forward, up );
 
 	for( size_t i = 0; i < num_playing_sound_effects; i++ ) {
 		PlayingSFX * ps = &playing_sound_effects[ i ];

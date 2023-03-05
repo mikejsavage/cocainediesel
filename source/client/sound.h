@@ -34,7 +34,7 @@ void ShutdownSound();
 
 Span< const char * > GetAudioDevices( Allocator * a );
 
-void SoundFrame( Vec3 origin, Vec3 velocity, const mat3_t axis );
+void SoundFrame( Vec3 origin, Vec3 velocity, Vec3 forward, Vec3 up );
 
 // helper functions for common PlaySFX patterns
 PlaySFXConfig PlaySFXConfigGlobal( float volume = 1.0f );

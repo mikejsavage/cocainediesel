@@ -637,7 +637,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 
 	CG_ReleaseAnnouncerEvents();
 
-	SoundFrame( cg.view.origin, cg.view.velocity, cg.view.axis );
+	SoundFrame( cg.view.origin, cg.view.velocity, FromQFAxis( cg.view.axis, AXIS_FORWARD ), FromQFAxis( cg.view.axis, AXIS_UP ) );
 
 	CG_Draw2D();
 

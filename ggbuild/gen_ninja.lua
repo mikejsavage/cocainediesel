@@ -355,7 +355,7 @@ rule cpp
     deps = gcc
 
 rule lib
-    command = $ar rs $out $in
+    command = $ar cr $out $in
     description = $out
 
 rule copy

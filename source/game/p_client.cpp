@@ -501,6 +501,10 @@ static Span< const char > Trim( Span< const char > str ) {
 }
 
 static Optional< Span< const char > > ValidateAndTrimName( const char * name ) {
+	if( name == NULL ) {
+		return NONE;
+	}
+
 	// limit names to ASCII with at least one non-space char
 	Span< const char > trimmed = Trim( MakeSpan( name ) );
 
@@ -562,6 +566,10 @@ void ClientUserinfoChanged( edict_t * ent, const char * userinfo ) {
 	if( !Info_Validate( userinfo ) ) {
 		PF_DropClient( ent, "Error: Invalid userinfo" );
 		return;
+	}
+
+	if( Info_ValueForKey( userinfo, "name" ) == NULL ) {
+		G_DebugPrint( "Client userinfo with no name key: %s\n", userinfo );
 	}
 
 	char oldname[ MAX_NAME_CHARS + 1 ];

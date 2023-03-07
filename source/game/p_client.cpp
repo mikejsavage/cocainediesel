@@ -334,7 +334,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 	else {
 		self->s.type = ET_PLAYER;
-		const char * mask_name = Info_ValueForKey( self->r.client->userinfo, "cg_mask" );
+		const char * mask_name = Info_ValueForKey( client->userinfo, "cg_mask" );
 		if( mask_name != NULL ) {
 			self->s.mask = StringHash( mask_name );
 		}
@@ -343,8 +343,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->movetype = MOVETYPE_PLAYER;
 		client->ps.pmove.features = PMFEAT_ALL;
 	}
-
-	ClientUserinfoChanged( self, client->userinfo );
 
 	if( old_team != self->s.team ) {
 		G_Teams_UpdateMembersList();

@@ -307,6 +307,9 @@ void RemoveDisconnectedPlayersFromRespawnQueues( RespawnQueues * queues ) {
 
 	for( const RespawnQueues::Queue & queue : queues->teams ) {
 		for( int player : queue.players ) {
+			if( player == -1 )
+				break;
+
 			if( !PLAYERENT( player )->r.inuse ) {
 				disconnected[ num_disconnected ] = player;
 				num_disconnected++;

@@ -92,7 +92,7 @@ static struct {
 		bool killed_everyone;
 	} bomb;
 
-	RespawnQueues respawn_queues;
+	// RespawnQueues respawn_queues;
 
 	BombSite sites[ max_sites ];
 	u32 num_sites;
@@ -639,6 +639,16 @@ static void BombGiveToRandom() {
 
 // round.as
 
+static void RespawnAllPlayers( bool ghost ) {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		edict_t * ent = PLAYERENT( i );
+		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
+			GClip_UnlinkEntity( ent );
+			G_ClientRespawn( ent, ghost );
+		}
+	}
+}
+
 static void EnableMovementFor( s32 playernum ) {
 	edict_t * ent = PLAYERENT( playernum );
 	ent->r.client->ps.pmove.max_speed = -1;
@@ -723,7 +733,8 @@ static void RoundWonBy( Team winner ) {
 
 static void EndGame() {
 	RoundNewState( RoundState_None );
-	GhostEveryone();
+	// GhostEveryone();
+	RespawnAllPlayers( true );
 	G_AnnouncerSound( NULL, "sounds/announcer/game_over", Team_Count, true, NULL );
 }
 
@@ -777,8 +788,9 @@ static void RoundNewState( RoundState state ) {
 			SpawnBomb();
 			SpawnBombHUD();
 			ResetKillCounters();
-			GhostEveryone();
-			SpawnTeams( &bomb_state.respawn_queues );
+			// GhostEveryone();
+			// SpawnTeams( &bomb_state.respawn_queues );
+			RespawnAllPlayers( false );
 			DisableMovement();
 			SetRoundType();
 			BombGiveToRandom();
@@ -816,7 +828,7 @@ static void RoundThink() {
 		return;
 	}
 
-	RemoveDisconnectedPlayersFromRespawnQueues( &bomb_state.respawn_queues );
+	// RemoveDisconnectedPlayersFromRespawnQueues( &bomb_state.respawn_queues );
 
 	if( server_gs.gameState.round_state == RoundState_Countdown ) {
 		int remaining_seconds = int( ( bomb_state.round_state_end - level.time ) * 0.001f ) + 1;
@@ -972,13 +984,13 @@ static void Bomb_PlayerRespawning( edict_t * ent ) {
 }
 
 static void Bomb_PlayerRespawned( edict_t * ent, Team old_team, Team new_team ) {
-	if( old_team != new_team ) {
-		RemovePlayerFromRespawnQueues( &bomb_state.respawn_queues, PLAYERNUM( ent ) );
-
-		if( new_team != Team_None ) {
-			EnqueueRespawn( &bomb_state.respawn_queues, new_team, PLAYERNUM( ent ) );
-		}
-	}
+	// if( old_team != new_team ) {
+	// 	RemovePlayerFromRespawnQueues( &bomb_state.respawn_queues, PLAYERNUM( ent ) );
+        //
+	// 	if( new_team != Team_None ) {
+	// 		EnqueueRespawn( &bomb_state.respawn_queues, new_team, PLAYERNUM( ent ) );
+	// 	}
+	// }
 
 	MatchState match_state = server_gs.gameState.match_state;
 	RoundState round_state = server_gs.gameState.round_state;
@@ -1099,7 +1111,7 @@ static void Bomb_Init() {
 	bomb_state.carrier = -1;
 	bomb_state.defuser = -1;
 
-	InitRespawnQueues( &bomb_state.respawn_queues );
+	// InitRespawnQueues( &bomb_state.respawn_queues );
 
 	G_AddCommand( ClientCommand_DropBomb, []( edict_t * ent, msg_t args ) {
 		if( PLAYERNUM( ent ) == bomb_state.carrier && bomb_state.bomb.state == BombState_Carried ) {

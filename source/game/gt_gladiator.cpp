@@ -7,12 +7,16 @@
 
 #include "qcommon/cmodel.h"
 
+struct TeamQueue {
+	int players[ MAX_CLIENTS ];
+};
+
 static struct GladiatorState {
 	s64 round_state_start;
 	s64 round_state_end;
 	s32 countdown;
 
-	RespawnQueues respawn_queues;
+	TeamQueue teams[ Team_Count ];
 
 	bool randomize_arena;
 
@@ -23,6 +27,49 @@ static struct GladiatorState {
 static constexpr int countdown_seconds = 2;
 static constexpr u32 bomb_explosion_effect_radius = 1024;
 static Cvar * g_glad_bombtimer;
+
+static void RemovePlayerFromQueue( TeamQueue * team, size_t idx ) {
+	team->players[ idx ] = -1; // in case this is the last element
+	memcpy( &team->players[ idx ], &team->players[ idx + 1 ], ARRAY_COUNT( team->players ) - ( idx + 1 ) );
+}
+
+static void RemovePlayerFromAllQueues( int player ) {
+	for( TeamQueue & team : gladiator_state.teams ) {
+		for( size_t i = 0; i < ARRAY_COUNT( team.players ); i++ ) {
+			if( team.players[ i ] == player ) {
+				RemovePlayerFromQueue( &team, i );
+			}
+		}
+	}
+}
+
+static void Enqueue( TeamQueue * team, int player ) {
+	for( int & slot : team->players ) {
+		if( slot == -1 ) {
+			slot = player;
+			return;
+		}
+	}
+
+	Assert( false );
+}
+
+static int Rotate( TeamQueue * team ) {
+	int player = team->players[ 0 ];
+	RemovePlayerFromQueue( team, 0 );
+	Enqueue( team, player );
+	return player;
+}
+
+static void GhostEveryoneGladi() {
+	for( int i = 0; i < server_gs.maxclients; i++ ) {
+		edict_t * ent = PLAYERENT( i );
+		if( PF_GetClientState( i ) >= CS_SPAWNED ) {
+			GClip_UnlinkEntity( ent );
+			G_ClientRespawn( ent, true );
+		}
+	}
+}
 
 static void BombExplode() {
 	server_gs.gameState.exploding = true;
@@ -82,8 +129,42 @@ static void NewRound() {
 	gladiator_state.bomb_exploded = false;
 
 	// set up teams
-	GhostEveryone();
-	SpawnTeams( &gladiator_state.respawn_queues );
+	GhostEveryoneGladi();
+
+	u8 players_per_team = U8_MAX;
+	u8 top_score = 0;
+	for( int i = 0; i < level.gametype.numTeams; i++ ) {
+		const SyncTeamState * team = &server_gs.gameState.teams[ Team_One + i ];
+		top_score = Max2( top_score, team->score );
+
+		if( team->num_players > 0 ) {
+			players_per_team = Min2( players_per_team, team->num_players );
+		}
+	}
+
+	for( int i = 0; i < level.gametype.numTeams; i++ ) {
+		for( u8 j = 0; j < players_per_team; j++ ) {
+			int player = Rotate( &gladiator_state.teams[ Team_One + i ] );
+			if( player == -1 )
+				continue;
+
+			edict_t * ent = PLAYERENT( player );
+
+			G_ClientRespawn( ent, false );
+			GiveInventory( ent );
+			ent->r.client->ps.can_change_loadout = false;
+			ent->r.client->ps.pmove.no_shooting_time = countdown_seconds * 1000;
+
+			if( server_gs.gameState.teams[ Team_One + i ].score == top_score ) {
+				ent->s.model2 = "models/crown/crown";
+				ent->s.effects |= EF_HAT;
+			}
+			else {
+				ent->s.model2 = EMPTY_HASH;
+				ent->s.effects &= ~EF_HAT;
+			}
+		}
+	}
 
 	// check for match point
 	server_gs.gameState.round_type = RoundType_Normal;
@@ -184,8 +265,6 @@ static void Gladiator_Think() {
 		return;
 	}
 
-	RemoveDisconnectedPlayersFromRespawnQueues( &gladiator_state.respawn_queues );
-
 	if( gladiator_state.round_state_end != 0 ) {
 		if( gladiator_state.round_state_end < level.time ) {
 			NewRoundState( RoundState( server_gs.gameState.round_state + 1 ) );
@@ -215,15 +294,30 @@ static void Gladiator_Think() {
 
 		if( round_end >= level.time ) {
 			server_gs.gameState.clock_override = round_time;
-		}
-		else {
+		} else {
 			server_gs.gameState.clock_override = -1;
-
+			
 			if( !server_gs.gameState.exploding ) {
 				BombExplode();
 			} else if( server_gs.gameState.exploding && !gladiator_state.bomb_exploded ) {
 				BombKill();
 			}
+		}
+		// drop disconnected players
+		int disconnected[ MAX_CLIENTS ] = { };
+		size_t num_disconnected = 0;
+
+		for( const TeamQueue & team : gladiator_state.teams ) {
+			for( int player : team.players ) {
+				if( !PLAYERENT( player )->r.inuse ) {
+					disconnected[ num_disconnected ] = player;
+					num_disconnected++;
+				}
+			}
+		}
+
+		for( size_t i = 0; i < num_disconnected; i++ ) {
+			RemovePlayerFromAllQueues( disconnected[ i ] );
 		}
 
 		// check if anyone won
@@ -284,10 +378,10 @@ static void Gladiator_PlayerConnected( edict_t * ent ) {
 
 static void Gladiator_PlayerRespawned( edict_t * ent, Team old_team, Team new_team ) {
 	if( old_team != new_team ) {
-		RemovePlayerFromRespawnQueues( &gladiator_state.respawn_queues, PLAYERNUM( ent ) );
+		RemovePlayerFromAllQueues( PLAYERNUM( ent ) );
 
 		if( new_team != Team_None ) {
-			EnqueueRespawn( &gladiator_state.respawn_queues, new_team, PLAYERNUM( ent ) );
+			Enqueue( &gladiator_state.teams[ new_team ], PLAYERNUM( ent ) );
 		}
 	}
 
@@ -295,29 +389,10 @@ static void Gladiator_PlayerRespawned( edict_t * ent, Team old_team, Team new_te
 		return;
 	}
 
-	GiveInventory( ent );
 
-	if( server_gs.gameState.match_state == MatchState_Playing ) {
-		ent->r.client->ps.can_change_loadout = false;
-		ent->r.client->ps.pmove.no_shooting_time = countdown_seconds * 1000;
-
-		u8 top_score = 0;
-		for( int i = 0; i < level.gametype.numTeams; i++ ) {
-			const SyncTeamState * team = &server_gs.gameState.teams[ Team_One + i ];
-			top_score = Max2( top_score, team->score );
-		}
-
-		if( server_gs.gameState.teams[ ent->s.team ].score == top_score ) {
-			ent->s.model2 = "models/crown/crown";
-			ent->s.effects |= EF_HAT;
-		}
-		else {
-			ent->s.model2 = EMPTY_HASH;
-			ent->s.effects &= ~EF_HAT;
-		}
-	}
-	else {
-		ent->r.client->ps.can_change_loadout = true;
+	if( server_gs.gameState.match_state != MatchState_Playing ) {
+		ent->r.client->ps.can_change_loadout = new_team >= Team_One;
+		GiveInventory( ent );
 		G_RespawnEffect( ent );
 	}
 }
@@ -358,7 +433,11 @@ static void Gladiator_Init() {
 	gladiator_state = { };
 	gladiator_state.randomize_arena = G_GetWorldspawnKey( "randomize_arena" ) != "";
 
-	InitRespawnQueues( &gladiator_state.respawn_queues );
+	for( TeamQueue & team : gladiator_state.teams ) {
+		for( int & slot : team.players ) {
+			slot = -1;
+		}
+	}
 
 	G_AddCommand( ClientCommand_LoadoutMenu, ShowShop );
 

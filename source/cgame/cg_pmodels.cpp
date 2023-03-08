@@ -136,7 +136,7 @@ static bool ParsePlayerModelConfig( PlayerModelMetadata * meta, const char * fil
 		}
 	}
 
-	if( num_clips < PMODEL_TOTAL_ANIMATIONS ) {
+	if( num_clips > 1 && num_clips < PMODEL_TOTAL_ANIMATIONS ) {
 		Com_Printf( "%s: Not enough animations (%i)\n", filename, num_clips );
 		return false;
 	}
@@ -206,6 +206,10 @@ static const PlayerModelMetadata * GetPlayerModelMetadata( StringHash name ) {
 }
 
 const PlayerModelMetadata * GetPlayerModelMetadata( int ent_num ) {
+	const SyncEntityState * ent = &cg_entities[ ent_num ].current;
+	if( ent->perk == Perk_Jetpack ) {
+		return GetPlayerModelMetadata( "players/jetpack/model" );
+	}
 	return GetPlayerModelMetadata( "players/rigg/model" );
 }
 
@@ -720,47 +724,57 @@ void CG_DrawPlayer( centity_t * cent ) {
 
 	TempAllocator temp = cls.frame_arena.temp();
 
-	float lower_time, upper_time;
-	CG_GetAnimationTimes( meta, pmodel, cl.serverTime, &lower_time, &upper_time );
-	Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
-	Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
-	MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_node );
-
-	// add skeleton effects (pose is unmounted yet)
 	bool corpse = cent->current.type == ET_CORPSE;
-	if( !corpse ) {
-		Vec3 tmpangles;
-		// if it's our client use the predicted angles
-		if( cg.view.playerPrediction && ISVIEWERENTITY( cent->current.number ) ) {
-			tmpangles.y = cg.predictedPlayerState.viewangles.y;
-			tmpangles.x = 0;
-			tmpangles.z = 0;
+	MatrixPalettes pose = { };
+
+	if( meta->model->num_animations > 0 ) {
+		float lower_time, upper_time;
+		CG_GetAnimationTimes( meta, pmodel, cl.serverTime, &lower_time, &upper_time );
+		Span< TRS > lower = SampleAnimation( &temp, meta->model, lower_time );
+		Span< TRS > upper = SampleAnimation( &temp, meta->model, upper_time );
+		MergeLowerUpperPoses( lower, upper, meta->model, meta->upper_root_node );
+
+		// add skeleton effects (pose is unmounted yet)
+		if( !corpse ) {
+			Vec3 tmpangles;
+			// if it's our client use the predicted angles
+			if( cg.view.playerPrediction && ISVIEWERENTITY( cent->current.number ) ) {
+				tmpangles.y = cg.predictedPlayerState.viewangles.y;
+				tmpangles.x = 0;
+				tmpangles.z = 0;
+			}
+			else {
+				// apply interpolated LOWER angles to entity
+				tmpangles = LerpAngles( pmodel->oldangles[LOWER], cg.lerpfrac, pmodel->angles[LOWER] );
+			}
+
+			AnglesToAxis( tmpangles, cent->interpolated.axis );
+
+			// apply UPPER and HEAD angles to rotator nodes
+			// also add rotations from velocity leaning
+			{
+				EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ UPPER ], cg.lerpfrac, pmodel->angles[ UPPER ] ) * 0.5f );
+				Swap2( &angles.pitch, &angles.yaw ); // hack for rigg model
+
+				Quaternion q = EulerAnglesToQuaternion( angles );
+				lower[ meta->upper_rotator_nodes[ 0 ] ].rotation *= q;
+				lower[ meta->upper_rotator_nodes[ 1 ] ].rotation *= q;
+			}
+
+			{
+				EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ HEAD ], cg.lerpfrac, pmodel->angles[ HEAD ] ) );
+				lower[ meta->head_rotator_node ].rotation *= EulerAnglesToQuaternion( angles );
+			}
 		}
-		else {
-			// apply interpolated LOWER angles to entity
-			tmpangles = LerpAngles( pmodel->oldangles[LOWER], cg.lerpfrac, pmodel->angles[LOWER] );
-		}
 
-		AnglesToAxis( tmpangles, cent->interpolated.axis );
-
-		// apply UPPER and HEAD angles to rotator nodes
-		// also add rotations from velocity leaning
-		{
-			EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ UPPER ], cg.lerpfrac, pmodel->angles[ UPPER ] ) * 0.5f );
-			Swap2( &angles.pitch, &angles.yaw ); // hack for rigg model
-
-			Quaternion q = EulerAnglesToQuaternion( angles );
-			lower[ meta->upper_rotator_nodes[ 0 ] ].rotation *= q;
-			lower[ meta->upper_rotator_nodes[ 1 ] ].rotation *= q;
-		}
-
-		{
-			EulerDegrees3 angles = EulerDegrees3( LerpAngles( pmodel->oldangles[ HEAD ], cg.lerpfrac, pmodel->angles[ HEAD ] ) );
-			lower[ meta->head_rotator_node ].rotation *= EulerAnglesToQuaternion( angles );
+		pose = ComputeMatrixPalettes( &temp, meta->model, lower );
+	}
+	else {
+		pose.node_transforms = ALLOC_SPAN( &temp, Mat4, meta->model->num_nodes );
+		for( u8 i = 0; i < meta->model->num_nodes; i++ ) {
+			pose.node_transforms[ i ] = Mat4::Identity();
 		}
 	}
-
-	MatrixPalettes pose = ComputeMatrixPalettes( &temp, meta->model, lower );
 
 	Mat4 transform = FromAxisAndOrigin( cent->interpolated.axis, cent->interpolated.origin ) * Mat4Scale( cent->interpolated.scale );
 

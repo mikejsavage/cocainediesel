@@ -367,6 +367,7 @@ struct SyncEntityState {
 	int64_t linearMovementTimeStamp;
 	int linearMovementTimeDelta;
 
+	PerkType perk;
 	WeaponType weapon;
 	GadgetType gadget;
 	bool teleported;

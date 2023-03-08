@@ -484,6 +484,7 @@ static void Delta( DeltaBuffer * buf, SyncEntityState & ent, const SyncEntitySta
 	Delta( buf, ent.animation_time, baseline.animation_time );
 	Delta( buf, ent.site_letter, baseline.site_letter );
 	Delta( buf, ent.positioned_sound, baseline.positioned_sound );
+	DeltaEnum( buf, ent.perk, baseline.perk, Perk_Count );
 	DeltaEnum( buf, ent.weapon, baseline.weapon, Weapon_Count );
 	DeltaEnum( buf, ent.gadget, baseline.gadget, Gadget_Count );
 	Delta( buf, ent.radius, baseline.radius );

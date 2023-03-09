@@ -14,7 +14,7 @@ float Normalize2D( Vec3 * v ) {
 // nbTestDir is the number of directions to test around the player
 // maxZnormal is the max Z value of the normal of a poly to consider it a wall
 // normal becomes a pointer to the normal of the most appropriate wall
-void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal, bool z ) {
+void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, int nbTestDir, float maxZnormal, Vec3 * normal, bool z, int ignoreFlags ) {
 	TracyZoneScoped;
 
 	float dist = 1.0;
@@ -41,7 +41,7 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, in
 		if( trace.fraction == 1 )
 			continue; // no wall in this direction
 
-		if( trace.surfFlags & SURF_NOWALLJUMP )
+		if( trace.surfFlags & ignoreFlags )
 			continue;
 
 		if( trace.ent > 0 ) {
@@ -83,14 +83,15 @@ void PM_InitPerk( pmove_t * pm, pml_t * pml, PerkType perk,
 {
 	const PerkDef * def = GetPerkDef( perk );
 
-	pml->maxSpeed = pm->playerState->pmove.max_speed;
-	if( pml->maxSpeed < 0 ) {
-		pml->maxSpeed = def->max_speed;
+	pml->maxSpeed = def->max_speed;
+	if( pm->playerState->pmove.max_speed > 0 ) {
+		pml->maxSpeed = pm->playerState->pmove.max_speed;
 	}
-	pml->maxAirSpeed = def->max_airspeed;
 
 	pml->forwardPush *= def->max_speed;
 	pml->sidePush *= def->side_speed;
+	pml->groundAccel = def->ground_accel;
+	pml->airAccel = def->air_accel;
 
 	pml->ability1Callback = ability1Callback;
 	pml->ability2Callback = ability2Callback;

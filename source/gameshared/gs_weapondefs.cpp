@@ -1043,7 +1043,8 @@ const PerkDef perk_defs[] = {
 		/* weight           */ 1.0f,
 		/* max speed        */ 320.0f,
 		/* side speed       */ 320.0f,
-		/* max air speed    */ 800.0f,
+		/* ground accel		*/ 16.0f,
+		/* air accel		*/ 0.5f,
 	},
 
 	{
@@ -1052,10 +1053,11 @@ const PerkDef perk_defs[] = {
 		/* short name       */ "midget",
 		/* health           */ 65,
 		/* scale            */ Vec3( 0.8f, 0.8f, 0.6f ),
-		/* weight           */ 0.8f,
+		/* weight           */ 0.7f,
 		/* max speed        */ 400.0f,
 		/* side speed       */ 500.0f,
-		/* max air speed    */ 600.0f,
+		/* ground accel		*/ 16.0f,
+		/* air accel		*/ 0.5f,
 	},
 
 	{
@@ -1065,9 +1067,10 @@ const PerkDef perk_defs[] = {
 		/* health           */ 90,
 		/* scale            */ Vec3( 0.9f, 0.9f, 0.9f ),
 		/* weight           */ 0.9f,
-		/* max speed        */ 700.0f,
-		/* side speed       */ 700.0f,
-		/* max air speed    */ 700.0f,
+		/* max speed        */ 1000.0f,
+		/* side speed       */ 1000.0f,
+		/* ground accel		*/ 1.5f,
+		/* air accel		*/ 0.2f,
 	},
 
 	{
@@ -1079,7 +1082,8 @@ const PerkDef perk_defs[] = {
 		/* weight           */ 1.0f,
 		/* max speed        */ 320.0f,
 		/* side speed       */ 320.0f,
-		/* max air speed    */ 600.0f,
+		/* ground accel		*/ 16.0f,
+		/* air accel		*/ 0.5f,
 	},
 
 	{
@@ -1091,7 +1095,8 @@ const PerkDef perk_defs[] = {
 		/* weight           */ 1.0f,
 		/* max speed        */ 400.0f,
 		/* side speed       */ 320.0f,
-		/* max air speed    */ 600.0f,
+		/* ground accel		*/ 16.0f,
+		/* air accel		*/ 0.5f,
 	},
 
 	{
@@ -1103,7 +1108,8 @@ const PerkDef perk_defs[] = {
 		/* weight           */ 1.5f,
 		/* max speed        */ 300.0f,
 		/* side speed       */ 300.0f,
-		/* max air speed    */ 600.0f,
+		/* ground accel		*/ 16.0f,
+		/* air accel		*/ 0.5f,
 	}
 };
 

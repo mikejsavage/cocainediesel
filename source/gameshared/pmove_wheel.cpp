@@ -1,29 +1,29 @@
 #include "gameshared/movement.h"
+#include "qcommon/qfiles.h"
 
-static constexpr float charge_jump_speed = 800.0f;
+static constexpr float charge_jump_speed = 700.0f;
 static constexpr float charge_min_speed = 400.0f;
 static constexpr float charge_slide_time = 1.0f;
 
 static constexpr float min_bounce_speed = 250.0f;
 static constexpr float bounce_factor = 0.5f;
 
-static constexpr float slide_friction = 0.25f;
-static constexpr float slide_speed_fact = 0.5f;
+static constexpr float brake_friction = 16.0f;
+static constexpr float normal_friction = 2.0f;
 
 static constexpr float stamina_use = 5.0f;
 static constexpr float stamina_recover = 10.0f;
 
 static constexpr float floor_distance = STEPSIZE;
 
-static void PM_WheelSlide( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
+static void PM_WheelBrake( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( (pm->groundentity != -1 || pml->ladder) && (ps->pmove.stamina == 0.0f) ) {
 		ps->pmove.stamina_state = Stamina_Normal;
 	}
 
-	if( pressed && !pml->ladder ) {
-		pml->friction = slide_friction;
-		pml->maxSpeed *= slide_speed_fact;
-	}
+	pml->friction = pressed && !pml->ladder ? 
+					brake_friction :
+					normal_friction;
 }
 
 
@@ -32,7 +32,6 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 	bool can_start_charge = ps->pmove.stamina_state == Stamina_Normal;
 
 	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
-	pml->friction = slide_friction + (pml->friction - slide_friction) * (charge_slide_time - ps->pmove.stamina_stored)/charge_slide_time;
 
 	if( pressed ) {
 		if( ps->pmove.stamina_state == Stamina_UsingAbility ||
@@ -89,11 +88,11 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, ps->POVnum, pm->contentmask, 0 );
 
 	if( pm->groundentity == -1 && ps->pmove.stamina_state == Stamina_UsedAbility &&
-		!ISWALKABLEPLANE( &trace.plane ) &&
+		!ISWALKABLEPLANE( &trace.plane ) && !pml->ladder &&
 		(trace.fraction == 1 || !trace.startsolid) )
 	{
 		Vec3 normal( 0.0f );
-		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, true );
+		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, true, SURF_NOWALLJUMP | SURF_LADDER );
 		if( !Length( normal ) )
 			return;
 
@@ -120,5 +119,5 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 
 
 void PM_WheelInit( pmove_t * pm, pml_t * pml ) {
-	PM_InitPerk( pm, pml, Perk_Midget, PM_WheelJump, PM_WheelSlide );
+	PM_InitPerk( pm, pml, Perk_Wheel, PM_WheelJump, PM_WheelBrake );
 }

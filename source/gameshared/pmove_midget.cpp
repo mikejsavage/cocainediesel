@@ -92,5 +92,5 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 }
 
 void PM_MidgetInit( pmove_t * pm, pml_t * pml ) {
-	PM_InitPerk( pm, pml, Perk_Ninja, PM_MidgetJump, PM_MidgetSpecial );
+	PM_InitPerk( pm, pml, Perk_Midget, PM_MidgetJump, PM_MidgetSpecial );
 }

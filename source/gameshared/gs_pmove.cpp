@@ -655,8 +655,6 @@ static void PM_BeginMove() {
 	pml.forwardPush = pm->cmd.forwardmove / 127.0f;
 	pml.sidePush = pm->cmd.sidemove / 127.0f;
 
-	pml.groundAccel = default_accelerate;
-	pml.airAccel = default_airaccelerate;
 	pml.strafeBunnyAccel = default_strafebunnyaccel;
 
 	pml.friction = default_friction;
@@ -674,8 +672,7 @@ static void PM_InitPerk() {
 		case Perk_Wheel: PM_WheelInit( pm, &pml ); break;
 		case Perk_Jetpack: PM_JetpackInit( pm, &pml ); break;
 		case Perk_Ninja: PM_NinjaInit( pm, &pml ); break;
-		case Perk_Boomer: PM_BoomerInit( pm, &pml ); break;
-		default: PM_NinjaInit( pm, &pml ); break;
+		default: PM_BoomerInit( pm, &pml ); break;
 	}
 }
 

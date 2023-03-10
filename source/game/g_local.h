@@ -189,6 +189,7 @@ void GhostEveryone();
 struct RespawnQueues {
 	struct Queue {
 		int players[ MAX_CLIENTS ];
+		size_t n;
 	};
 
 	Queue teams[ Team_Count ];

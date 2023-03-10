@@ -336,7 +336,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 	else {
 		self->s.type = ET_PLAYER;
-		const char * mask_name = Info_ValueForKey( self->r.client->userinfo, "cg_mask" );
+		const char * mask_name = Info_ValueForKey( client->userinfo, "cg_mask" );
 		if( mask_name != NULL ) {
 			self->s.mask = StringHash( mask_name );
 		}
@@ -345,8 +345,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->movetype = MOVETYPE_PLAYER;
 		client->ps.pmove.features = PMFEAT_ALL;
 	}
-
-	ClientUserinfoChanged( self, client->userinfo );
 
 	if( old_team != self->s.team ) {
 		G_Teams_UpdateMembersList();
@@ -501,6 +499,10 @@ static Span< const char > Trim( Span< const char > str ) {
 }
 
 static Optional< Span< const char > > ValidateAndTrimName( const char * name ) {
+	if( name == NULL ) {
+		return NONE;
+	}
+
 	// limit names to ASCII with at least one non-space char
 	Span< const char > trimmed = Trim( MakeSpan( name ) );
 
@@ -557,6 +559,10 @@ void ClientUserinfoChanged( edict_t * ent, const char * userinfo ) {
 	if( !Info_Validate( userinfo ) ) {
 		PF_DropClient( ent, "Error: Invalid userinfo" );
 		return;
+	}
+
+	if( Info_ValueForKey( userinfo, "name" ) == NULL ) {
+		G_DebugPrint( "Client userinfo with no name key: %s\n", userinfo );
 	}
 
 	char oldname[ MAX_NAME_CHARS + 1 ];

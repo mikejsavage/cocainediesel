@@ -44,17 +44,16 @@ static bool G_CanSplashDamage( const edict_t *targ, const edict_t *inflictor, Op
 	// up by 9 units to account for stairs
 	Vec3 origin = pos + Default( normal, Vec3( 0.0f ) ) * 9.0f;
 
-	constexpr Vec3 directions[] = {
+	constexpr Vec3 offsets[] = {
 		Vec3( 0.0f, 0.0f, 0.0f ),
 		Vec3( 15.0f, 15.0f, 0.0f ),
-		Vec3( 15.0f, -15.0f, 0.0f ),
 		Vec3( -15.0f, 15.0f, 0.0f ),
+		Vec3( 15.0f, -15.0f, 0.0f ),
 		Vec3( -15.0f, -15.0f, 0.0f ),
 	};
 
-	for( size_t i = 0; i < ARRAY_COUNT( directions ); i++ ) {
-		Vec3 dest = targ->s.origin + directions[ i ];
-		G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, SolidMask_AnySolid, timeDelta );
+	for( Vec3 offset : offsets ) {
+		G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), targ->s.origin + offset, inflictor, SolidMask_AnySolid, timeDelta );
 		if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 			return true;
 		}

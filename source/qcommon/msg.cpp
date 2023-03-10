@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <type_traits>
 
 #include "qcommon/qcommon.h"
-#include "qcommon/half_float.h"
 #include "qcommon/serialization.h"
 
 #define MAX_MSG_STRING_CHARS    2048
@@ -197,24 +196,6 @@ static void Delta( DeltaBuffer * buf, bool & b, bool baseline ) {
 	}
 }
 
-template< typename E >
-void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
-	using T = typename std::underlying_type< E >::type;
-	Delta( buf, ( T & ) x, ( const T & ) baseline );
-	if( x < 0 || x >= count ) {
-		buf->error = true;
-	}
-}
-
-template< typename E >
-void DeltaBitfieldEnum( DeltaBuffer * buf, E & x, E baseline, E mask ) {
-	using T = typename std::underlying_type< E >::type;
-	Delta( buf, ( T & ) x, ( const T & ) baseline );
-	if( ( x & ~mask ) != 0 ) {
-		buf->error = true;
-	}
-}
-
 template< typename T >
 void Delta( DeltaBuffer * buf, Optional< T > & x, const Optional< T > & baseline ) {
 	constexpr T null_baseline = T();
@@ -328,11 +309,22 @@ static void DeltaString( DeltaBuffer * buf, char ( &str )[ N ], const char ( &ba
 	}
 }
 
-static void DeltaHalf( DeltaBuffer * buf, float & x, const float & baseline ) {
-	u16 half_x = FloatToHalf( x );
-	u16 half_baseline = FloatToHalf( baseline );
-	Delta( buf, half_x, half_baseline );
-	x = HalfToFloat( half_x );
+template< typename E >
+void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
+	using T = typename std::underlying_type< E >::type;
+	Delta( buf, ( T & ) x, ( const T & ) baseline );
+	if( x < 0 || x >= count ) {
+		buf->error = true;
+	}
+}
+
+template< typename E >
+void DeltaBitfieldEnum( DeltaBuffer * buf, E & x, E baseline, E mask ) {
+	using T = typename std::underlying_type< E >::type;
+	Delta( buf, ( T & ) x, ( const T & ) baseline );
+	if( ( x & ~mask ) != 0 ) {
+		buf->error = true;
+	}
 }
 
 static void DeltaAngle( DeltaBuffer * buf, float & x, const float & baseline ) {
@@ -689,7 +681,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	Delta( buf, player.POVnum, baseline.POVnum );
 	Delta( buf, player.playerNum, baseline.playerNum );
 
-	DeltaHalf( buf, player.viewheight, baseline.viewheight );
+	Delta( buf, player.viewheight, baseline.viewheight );
 
 	Delta( buf, player.weapons, baseline.weapons );
 	DeltaEnum( buf, player.gadget, baseline.gadget, Gadget_Count );

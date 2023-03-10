@@ -1043,11 +1043,8 @@ static void Bomb_Think() {
 
 	RoundThink();
 
-	u32 aliveAlpha = PlayersAliveOnTeam( Team_One );
-	u32 aliveBeta = PlayersAliveOnTeam( Team_Two );
-
-	server_gs.gameState.bomb.alpha_players_alive = aliveAlpha;
-	server_gs.gameState.bomb.beta_players_alive = aliveBeta;
+	server_gs.gameState.bomb.alpha_players_alive = PlayersAliveOnTeam( Team_One );
+	server_gs.gameState.bomb.beta_players_alive = PlayersAliveOnTeam( Team_Two );
 
 	for( int i = 0; i < server_gs.maxclients; i++ ) {
 		edict_t * ent = PLAYERENT( i );

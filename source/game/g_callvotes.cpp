@@ -351,7 +351,7 @@ static bool G_VoteForceEvenValidate( callvotedata_t * vote, bool first ) {
 	}
 
 	if( StrEqual( vote->argv[ 0 ], "1" ) ) {
-		if( !Cvar_Bool( "g_force_even_teams" ) ) {
+		if( Cvar_Bool( "g_force_even_teams" ) ) {
 			G_PrintMsg( vote->caller, S_COLOR_RED "Already on\n" );
 			return false;
 		}
@@ -439,12 +439,12 @@ static callvotetype_t votes[] = {
 
 	{
 		"forceeven",
-		0,
+		1,
 		G_VoteForceEvenValidate,
 		G_VoteForceEvenPassed,
 		NULL,
 		NULL,
-		NULL,
+		"0/1",
 		"Force even teams",
 	},
 };

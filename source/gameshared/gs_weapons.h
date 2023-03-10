@@ -77,6 +77,7 @@ struct PerkDef {
 	float side_speed;
 	float ground_accel;
 	float air_accel;
+	float ground_friction;
 };
 
 void UpdateWeapons( const gs_state_t * gs, SyncPlayerState * ps, UserCommand cmd, int timeDelta );

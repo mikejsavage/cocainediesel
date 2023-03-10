@@ -93,6 +93,8 @@ void PM_InitPerk( pmove_t * pm, pml_t * pml, PerkType perk,
 	pml->groundAccel = def->ground_accel;
 	pml->airAccel = def->air_accel;
 
+	pml->groundFriction = def->ground_friction;
+
 	pml->ability1Callback = ability1Callback;
 	pml->ability2Callback = ability2Callback;
 }

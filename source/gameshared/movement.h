@@ -32,7 +32,7 @@ struct pml_t {
 	float airAccel;
 	float strafeBunnyAccel;
 
-	float friction;
+	float groundFriction;
 
 	void (*ability1Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool );
 	void (*ability2Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool );

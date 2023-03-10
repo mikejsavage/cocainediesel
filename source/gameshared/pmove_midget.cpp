@@ -63,7 +63,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 
 	if( pressed && CanClimb( pm, pml, pmove_gs, ps ) ) {
 		pml->ladder = Ladder_Fake;
-		pml->friction = climbfriction;
+		pml->groundFriction = climbfriction;
 
 		Vec3 wishvel = pml->forward * pml->forwardPush + pml->right * pml->sidePush;
 		wishvel.z = 0.0;

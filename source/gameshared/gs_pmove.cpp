@@ -34,9 +34,9 @@ static const gs_state_t * pmove_gs;
 
 // movement parameters
 
-constexpr float default_friction = 16; //  ( initially 6 )
+/*constexpr float default_friction = 16; //  ( initially 6 )
 constexpr float default_accelerate = 16; // user intended acceleration when on ground or fly movement ( initially 10 )
-constexpr float default_airaccelerate = 0.5f; // user intended aceleration when on air
+constexpr float default_airaccelerate = 0.5f; // user intended aceleration when on air*/
 constexpr float default_strafebunnyaccel = 60; // forward acceleration when strafe bunny hopping
 
 
@@ -305,7 +305,7 @@ static void PM_Friction() {
 	if( pm->groundentity != -1 || pml.ladder ) {
 		if( pm->playerState->pmove.knockback_time <= 0 ) {
 			float control = speed < pm_decelerate ? pm_decelerate : speed;
-			drop += control * pml.friction * pml.frametime;
+			drop += control * pml.groundFriction * pml.frametime;
 		}
 	}
 
@@ -656,8 +656,6 @@ static void PM_BeginMove() {
 	pml.sidePush = pm->cmd.sidemove / 127.0f;
 
 	pml.strafeBunnyAccel = default_strafebunnyaccel;
-
-	pml.friction = default_friction;
 }
 
 static void PM_EndMove() {

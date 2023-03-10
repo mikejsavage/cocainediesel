@@ -51,7 +51,7 @@ static void PM_BoomerSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 			pml->maxSpeed = charge_speed;
 
 			pml->groundAccel = charge_groundAccel;
-			pml->friction = charge_friction;
+			pml->groundFriction = charge_friction;
 
 			pml->forwardPush = charge_speed;
 			pml->sidePush = pm->cmd.sidemove * charge_sidespeed;

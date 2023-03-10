@@ -13,7 +13,6 @@ static constexpr float charge_buffering = 0.1f;
 static constexpr float min_bounce_speed = 250.0f;
 static constexpr float bounce_factor = 0.5f;
 
-static constexpr float wheel_friction = 4.0f;
 
 static constexpr float stamina_use = 5.0f;
 static constexpr float stamina_recover = 10.0f;
@@ -25,8 +24,6 @@ static void PM_WheelCharge( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 		ps->pmove.stamina_state = Stamina_Normal;
 		ps->pmove.stamina_stored = charge_buffering;
 	}
-
-	pml->friction = wheel_friction;
 
 	if( pressed && ps->pmove.stamina_state != Stamina_UsedAbility && pm->groundentity == -1 && ps->pmove.stamina_stored == 0.0f ) {
 		Vec3 fwd;

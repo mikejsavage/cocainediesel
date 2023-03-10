@@ -258,6 +258,7 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mo
 	pipeline.shader = skinned ? &shaders.write_silhouette_gbuffer_skinned : &shaders.write_silhouette_gbuffer_instanced;
 	pipeline.pass = frame_static.write_silhouette_gbuffer_pass;
 	pipeline.write_depth = false;
+	pipeline.blend_func = BlendFunc_Disabled;
 
 	if( skinned ) {
 		pipeline.set_uniform( "u_Silhouette", silhouette_uniforms );

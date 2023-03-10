@@ -1069,7 +1069,7 @@ const PerkDef perk_defs[] = {
 		/* weight           */ 0.9f,
 		/* max speed        */ 1000.0f,
 		/* side speed       */ 1000.0f,
-		/* ground accel		*/ 1.5f,
+		/* ground accel		*/ 2.5f,
 		/* air accel		*/ 0.2f,
 	},
 

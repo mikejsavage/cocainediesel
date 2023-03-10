@@ -544,7 +544,7 @@ static void CG_PlayJumpSound( const SyncEntityState * state, JumpType j ) {
 	switch( j ) {
 	case JumpType_Normal:
 		return CG_PlayerSound( state->number, PlayerSound_Jump, true );
-	case JumpType_MidgetCharge:
+	case JumpType_WheelCharge:
 		return CG_PlayerSound( state->number, PlayerSound_WallJump, true );
 	}
 }

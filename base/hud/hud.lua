@@ -285,7 +285,7 @@ local function DrawStaminaBar( state, x, y, width, height, padding, bg_color )
 		end
 	else
 		if state.perk == Perk_Wheel and state.stamina_state == Stamina_UsedAbility then
-			local c = RGBALinear( 1.0, 0.5, 0.5, 0.1 )
+			local c = RGBALinear( 1.0, 0.25, 0.25, 0.1 )
 			cd.box( x, y, width, height, c )
 		elseif state.perk == Perk_Jetpack then
 			local s = 1 - math.min( 1.0, state.stamina + 0.3 )

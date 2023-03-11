@@ -644,31 +644,40 @@ void CG_RenderView( unsigned extrapolationTime ) {
 	UploadDecalBuffers();
 
 	{
-		Vec3 start = cg.view.origin;
-		Vec3 end = cg.view.origin + FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 500.0f;
+		static Vec3 start;
+		static Vec3 end;
 
-		// trace_t old_trace;
-		// CM_TransformedBoxTrace( CM_Client, cl.map->cms, &old_trace, start, end, Vec3( 0.0f ), Vec3( 0.0f ), NULL, MASK_ALL, Vec3( 0.0f ), Vec3( 0.0f ) );
+		if( break1 ) {
+			start = cg.view.origin;
+			end = start + FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 500.0f;
+		}
 
 		Ray ray = MakeRayStartEnd( start, end );
 		Shape ray_shape = { ShapeType_Ray };
-		Shape aabb_shape = { ShapeType_AABB, { Vec3( 0.0f ), Vec3( 16.0f ) } };
+		// Shape aabb_shape = { ShapeType_AABB, { Vec3( -16.0f, -16.0f, -32.0f ), Vec3( 16.0f, 16.0f, 32.0f ) } };
+		Shape aabb_shape = { ShapeType_AABB, ToCenterExtents( MinMax3( playerbox_stand_mins, playerbox_stand_maxs ) ) };
+
+		const bool aabb_or_ray = true;
 
 		Intersection intersection;
-		if( SweptShapeVsMapModel( &cl.map->data, &cl.map->data.models[ 0 ], ray, break1 ? aabb_shape : ray_shape, SolidMask_AnySolid, &intersection ) ) {
+		if( break2 ) __debugbreak();
+		if( SweptShapeVsMapModel( &cl.map->data, &cl.map->data.models[ 0 ], ray, aabb_or_ray ? aabb_shape : ray_shape, SolidMask_AnySolid, &intersection ) ) {
 			if( intersection.normal != Vec3( 0.0f ) ) {
 				Vec3 new_end = start + intersection.t * ray.direction;
-
+				Vec3 center = new_end;
+				if( aabb_or_ray ) center -= aabb_shape.aabb.center;
 
 				DrawModelConfig config = { };
 				config.draw_model.enabled = true;
 				config.draw_shadows.enabled = true;
-				Mat4 transform = Mat4Translation( new_end ) * Mat4Scale( 16 ) * TransformKToDir( intersection.normal );
-				DrawGLTFModel( config, FindGLTFRenderData( "models/arrow" ), transform, vec4_white );
-
-				// if( Length( old_trace.endpos - new_end ) > 0.1f ) {
-				// 	Com_GGPrint( "sucks to be you start={} old={} new={}", start, old_trace.endpos, new_end );
-				// }
+				Mat4 center_transform = Mat4Translation( center ) * Mat4Scale( 16 ) * TransformKToDir( intersection.normal );
+				DrawGLTFModel( config, FindGLTFRenderData( "models/arrow" ), center_transform, vec4_white );
+				if( aabb_or_ray ) {
+					Mat4 origin_transform = Mat4Translation( new_end ) * Mat4Scale( 4 );
+					DrawGLTFModel( config, FindGLTFRenderData( "models/sphere" ), origin_transform, vec4_white );
+					Mat4 box_transform = Mat4Translation( center ) * Mat4Scale( aabb_shape.aabb.extents );
+					DrawGLTFModel( config, FindGLTFRenderData( "models/box" ), box_transform, vec4_white );
+				}
 			}
 		}
 	}

@@ -257,6 +257,15 @@ void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
 	}
 }
 
+template< typename E >
+void DeltaBitfieldEnum( DeltaBuffer * buf, E & x, E baseline, E mask ) {
+	using T = typename std::underlying_type< E >::type;
+	Delta( buf, ( T & ) x, ( const T & ) baseline );
+	if( ( x & ~mask ) != 0 ) {
+		buf->error = true;
+	}
+}
+
 static void Delta( DeltaBuffer * buf, CollisionModel & cm, const CollisionModel & baseline ) {
 	constexpr CollisionModel null_baseline = { };
 
@@ -315,15 +324,6 @@ static void DeltaString( DeltaBuffer * buf, char ( &str )[ N ], const char ( &ba
 		else {
 			SafeStrCpy( str, baseline, N );
 		}
-	}
-}
-
-template< typename E >
-void DeltaBitfieldEnum( DeltaBuffer * buf, E & x, E baseline, E mask ) {
-	using T = typename std::underlying_type< E >::type;
-	Delta( buf, ( T & ) x, ( const T & ) baseline );
-	if( ( x & ~mask ) != 0 ) {
-		buf->error = true;
 	}
 }
 

@@ -284,10 +284,7 @@ local function DrawStaminaBar( state, x, y, width, height, padding, bg_color )
 			cd.box( x + cell_width * i - padding/2, y, padding, height, dark_grey )
 		end
 	else
-		if state.perk == Perk_Wheel and state.stamina_state == Stamina_UsedAbility then
-			local c = RGBALinear( 1.0, 0.25, 0.25, 0.1 )
-			cd.box( x, y, width, height, c )
-		elseif state.perk == Perk_Jetpack then
+		if state.perk == Perk_Wheel or state.perk == Perk_Jetpack then
 			local s = 1 - math.min( 1.0, state.stamina + 0.3 )
 			if state.stamina_state == Stamina_Reloading then
 				s = 1 - math.min( 1.0, state.stamina - 0.15 )

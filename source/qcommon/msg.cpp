@@ -248,6 +248,15 @@ static void Delta( DeltaBuffer * buf, Capsule & c, const Capsule & baseline ) {
 	Delta( buf, c.radius, baseline.radius );
 }
 
+template< typename E >
+void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
+	using T = typename std::underlying_type< E >::type;
+	Delta( buf, ( T & ) x, ( const T & ) baseline );
+	if( x < 0 || x >= count ) {
+		buf->error = true;
+	}
+}
+
 static void Delta( DeltaBuffer * buf, CollisionModel & cm, const CollisionModel & baseline ) {
 	constexpr CollisionModel null_baseline = { };
 
@@ -306,15 +315,6 @@ static void DeltaString( DeltaBuffer * buf, char ( &str )[ N ], const char ( &ba
 		else {
 			SafeStrCpy( str, baseline, N );
 		}
-	}
-}
-
-template< typename E >
-void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
-	using T = typename std::underlying_type< E >::type;
-	Delta( buf, ( T & ) x, ( const T & ) baseline );
-	if( x < 0 || x >= count ) {
-		buf->error = true;
 	}
 }
 

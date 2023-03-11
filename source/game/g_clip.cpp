@@ -309,97 +309,118 @@ static void GClip_LinkEntity_AreaGrid( areagrid_t *areagrid, edict_t *ent ) {
 static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, const MinMax3 & bounds, int *list, int maxcount, int areatype, int timeDelta ) {
 	Assert( maxcount > 0 );
 
-	Vec3 paddedmins = bounds.mins;
-	Vec3 paddedmaxs = bounds.maxs;
-
-	// FIXME: if areagrid_marknumber wraps, all entities need their
-	// ent->priv.server->areagridmarknumber reset
-	areagrid->marknumber++;
-
-	int igridmins[2];
-	igridmins[0] = int( Max2( 0.0f, ( paddedmins.x + areagrid->bias.x ) * areagrid->scale.x ) );
-	igridmins[1] = int( Max2( 0.0f, ( paddedmins.y + areagrid->bias.y ) * areagrid->scale.y ) );
-
-	int igridmaxs[2];
-	igridmaxs[0] = int( Min2( float( AREA_GRID ), ( paddedmaxs.x + areagrid->bias.x ) * areagrid->scale.x ) ) + 1;
-	igridmaxs[1] = int( Min2( float( AREA_GRID ), ( paddedmaxs.y + areagrid->bias.y ) * areagrid->scale.y ) ) + 1;
-
 	int numlist = 0;
-
-	// add entities not linked into areagrid because they are too big or
-	// outside the grid bounds
-	if( areagrid->outside.next ) {
-		const link_t * grid = &areagrid->outside;
-		for( const link_t * l = grid->next; l != grid; l = l->next ) {
-			const c4clipedict_t * clipEnt = GClip_GetClipEdictForDeltaTime( l->entNum, timeDelta );
-
-			if( areagrid->entmarknumber[l->entNum] == areagrid->marknumber ) {
-				continue;
-			}
-			areagrid->entmarknumber[l->entNum] = areagrid->marknumber;
-
-			if( !clipEnt->r.inuse ) {
-				continue; // deactivated
-			}
-			if( areatype == AREA_TRIGGERS && clipEnt->r.solid != SOLID_TRIGGER ) {
-				continue;
-			}
-			if( areatype == AREA_SOLID &&
-				( clipEnt->r.solid == SOLID_TRIGGER || clipEnt->r.solid == SOLID_NOT ) ) {
-				continue;
-			}
-
-			if( BoundsOverlap( paddedmins, paddedmaxs, clipEnt->r.absmin, clipEnt->r.absmax ) ) {
-				if( numlist < maxcount ) {
-					list[numlist] = l->entNum;
-				}
-				numlist++;
-			}
+	list[ numlist++ ] = 0;
+	for( int i = 1; i < MAX_EDICTS; i++ ) {
+		edict_t * ent = &game.edicts[ i ];
+		if( !ent->r.inuse ) {
+			continue;
 		}
-	}
-
-	// always add the world
-	list[numlist] = 0;
-	numlist++;
-
-	// add grid linked entities
-	for( int y = igridmins[1]; y < igridmaxs[1]; y++ ) {
-		for( int x = igridmins[0]; x < igridmaxs[0]; x++ ) {
-			const link_t * grid = areagrid->grid + y * AREA_GRID + x;
-			if( !grid->next ) {
-				continue;
-			}
-
-			for( const link_t * l = grid->next; l != grid; l = l->next ) {
-				const c4clipedict_t * clipEnt = GClip_GetClipEdictForDeltaTime( l->entNum, timeDelta );
-
-				if( areagrid->entmarknumber[l->entNum] == areagrid->marknumber ) {
-					continue;
-				}
-				areagrid->entmarknumber[l->entNum] = areagrid->marknumber;
-
-				if( !clipEnt->r.inuse ) {
-					continue; // deactivated
-				}
-				if( areatype == AREA_TRIGGERS && clipEnt->r.solid != SOLID_TRIGGER ) {
-					continue;
-				}
-				if( areatype == AREA_SOLID &&
-					( clipEnt->r.solid == SOLID_TRIGGER || clipEnt->r.solid == SOLID_NOT ) ) {
-					continue;
-				}
-
-				if( BoundsOverlap( paddedmins, paddedmaxs, clipEnt->r.absmin, clipEnt->r.absmax ) ) {
-					if( numlist < maxcount ) {
-						list[numlist] = l->entNum;
-					}
-					numlist++;
-				}
-			}
+		if( areatype == AREA_TRIGGERS && ent->r.solid != SOLID_TRIGGER ) {
+			continue;
+		}
+		if( areatype == AREA_SOLID && ent->r.solid != SOLID_YES ) {
+			continue;
+		}
+		list[ numlist++ ] = i;
+		if( numlist == maxcount ) {
+			return numlist;
 		}
 	}
 
 	return numlist;
+
+	// Vec3 paddedmins = bounds.mins;
+	// Vec3 paddedmaxs = bounds.maxs;
+
+	// // FIXME: if areagrid_marknumber wraps, all entities need their
+	// // ent->priv.server->areagridmarknumber reset
+	// areagrid->marknumber++;
+
+	// int igridmins[2];
+	// igridmins[0] = int( Max2( 0.0f, ( paddedmins.x + areagrid->bias.x ) * areagrid->scale.x ) );
+	// igridmins[1] = int( Max2( 0.0f, ( paddedmins.y + areagrid->bias.y ) * areagrid->scale.y ) );
+
+	// int igridmaxs[2];
+	// igridmaxs[0] = int( Min2( float( AREA_GRID ), ( paddedmaxs.x + areagrid->bias.x ) * areagrid->scale.x ) ) + 1;
+	// igridmaxs[1] = int( Min2( float( AREA_GRID ), ( paddedmaxs.y + areagrid->bias.y ) * areagrid->scale.y ) ) + 1;
+
+	// int numlist = 0;
+
+	// // add entities not linked into areagrid because they are too big or
+	// // outside the grid bounds
+	// if( areagrid->outside.next ) {
+	// 	const link_t * grid = &areagrid->outside;
+	// 	for( const link_t * l = grid->next; l != grid; l = l->next ) {
+	// 		const c4clipedict_t * clipEnt = GClip_GetClipEdictForDeltaTime( l->entNum, timeDelta );
+
+	// 		if( areagrid->entmarknumber[l->entNum] == areagrid->marknumber ) {
+	// 			continue;
+	// 		}
+	// 		areagrid->entmarknumber[l->entNum] = areagrid->marknumber;
+
+	// 		if( !clipEnt->r.inuse ) {
+	// 			continue; // deactivated
+	// 		}
+	// 		if( areatype == AREA_TRIGGERS && clipEnt->r.solid != SOLID_TRIGGER ) {
+	// 			continue;
+	// 		}
+	// 		if( areatype == AREA_SOLID &&
+	// 			( clipEnt->r.solid == SOLID_TRIGGER || clipEnt->r.solid == SOLID_NOT ) ) {
+	// 			continue;
+	// 		}
+
+	// 		if( BoundsOverlap( paddedmins, paddedmaxs, clipEnt->r.absmin, clipEnt->r.absmax ) ) {
+	// 			if( numlist < maxcount ) {
+	// 				list[numlist] = l->entNum;
+	// 			}
+	// 			numlist++;
+	// 		}
+	// 	}
+	// }
+
+	// // always add the world
+	// list[numlist] = 0;
+	// numlist++;
+
+	// // add grid linked entities
+	// for( int y = igridmins[1]; y < igridmaxs[1]; y++ ) {
+	// 	for( int x = igridmins[0]; x < igridmaxs[0]; x++ ) {
+	// 		const link_t * grid = areagrid->grid + y * AREA_GRID + x;
+	// 		if( !grid->next ) {
+	// 			continue;
+	// 		}
+
+	// 		for( const link_t * l = grid->next; l != grid; l = l->next ) {
+	// 			const c4clipedict_t * clipEnt = GClip_GetClipEdictForDeltaTime( l->entNum, timeDelta );
+
+	// 			if( areagrid->entmarknumber[l->entNum] == areagrid->marknumber ) {
+	// 				continue;
+	// 			}
+	// 			areagrid->entmarknumber[l->entNum] = areagrid->marknumber;
+
+	// 			if( !clipEnt->r.inuse ) {
+	// 				continue; // deactivated
+	// 			}
+	// 			if( areatype == AREA_TRIGGERS && clipEnt->r.solid != SOLID_TRIGGER ) {
+	// 				continue;
+	// 			}
+	// 			if( areatype == AREA_SOLID &&
+	// 				( clipEnt->r.solid == SOLID_TRIGGER || clipEnt->r.solid == SOLID_NOT ) ) {
+	// 				continue;
+	// 			}
+
+	// 			if( BoundsOverlap( paddedmins, paddedmaxs, clipEnt->r.absmin, clipEnt->r.absmax ) ) {
+	// 				if( numlist < maxcount ) {
+	// 					list[numlist] = l->entNum;
+	// 				}
+	// 				numlist++;
+	// 			}
+	// 		}
+	// 	}
+	// }
+
+	// return numlist;
 }
 
 

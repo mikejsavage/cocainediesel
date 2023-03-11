@@ -61,7 +61,7 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 	// move towards destination
 	G_Trace( &trace, *vieworg, mins, maxs, chase_dest, passent, SolidMask_Opaque );
 
-	if( trace.HitSomething()) {
+	if( trace.HitSomething() ) {
 		stop = trace.endpos;
 		stop.z += ( 1.0f - trace.fraction ) * 32;
 		G_Trace( &trace, *vieworg, mins, maxs, stop, passent, SolidMask_Opaque );

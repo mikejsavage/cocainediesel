@@ -120,7 +120,7 @@ static bool EntCanSee( edict_t * ent, Vec3 point ) {
 	Vec3 center = ent->s.origin + 0.5f * ( ent->r.mins + ent->r.maxs );
 	trace_t tr;
 	G_Trace( &tr, center, Vec3( 0.0f ), Vec3( 0.0f ), point, ent, SolidMask_AnySolid );
-	return tr.fraction == 1.0f;
+	return tr.HitNothing();
 }
 
 static s32 FirstNearbyTeammate( Vec3 origin, Team team ) {

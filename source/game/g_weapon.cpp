@@ -83,7 +83,7 @@ static void W_ARBullet_Backtrace( edict_t * ent, Vec3 start ) {
 
 		ent->s.origin = tr.endpos;
 
-		if( tr.fraction == 1.0f )
+		if( tr.HitNothing() )
 			break;
 
 		W_Touch_ARBullet( ent, &game.edicts[ tr.ent ], tr.normal, tr.solidity );

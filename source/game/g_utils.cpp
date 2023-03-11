@@ -613,7 +613,7 @@ void KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
 	while( true ) {
 		trace_t tr;
 		G_Trace( &tr, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, world, SolidMask_AnySolid );
-		if( tr.fraction == 1.0f ) {
+		if( tr.HitNothing() ) {
 			break;
 		}
 

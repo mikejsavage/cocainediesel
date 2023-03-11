@@ -111,8 +111,10 @@ static int PM_SlideMove() {
 			return SLIDEMOVEFLAG_TRAPPED;
 		}
 
-		pml.origin = trace.endpos;
-		last_valid_origin = trace.endpos;
+		if( trace.GotSomewhere() ) {
+			pml.origin = trace.endpos;
+			last_valid_origin = trace.endpos;
+		}
 
 		if( trace.HitNothing() ) {
 			break; // move done
@@ -229,6 +231,8 @@ static void PM_StepSlideMove() {
 	Vec3 up = start_o + Vec3( 0.0f, 0.0f, STEPSIZE );
 
 	pmove_gs->api.Trace( &trace, up, pm->mins, pm->maxs, up, pm->playerState->POVnum, pm->solid_mask, 0 );
+	if( trace.GotNowhere() ) // can't step up
+		return;
 
 	// try sliding above
 	pml.origin = up;
@@ -239,7 +243,8 @@ static void PM_StepSlideMove() {
 	// push down the final amount
 	Vec3 down = pml.origin - Vec3( 0.0f, 0.0f, STEPSIZE );
 	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, down, pm->playerState->POVnum, pm->solid_mask, 0 );
-	pml.origin = trace.endpos;
+	if( trace.GotSomewhere() )
+		pml.origin = trace.endpos;
 
 	up = pml.origin;
 
@@ -398,7 +403,7 @@ static void PM_Move() {
 		wishspeed = maxspeed;
 	}
 
-	if( pml.ladder ) {
+	if( pml.ladder != Ladder_Off ) {
 		PM_Accelerate( wishdir, wishspeed, pml.groundAccel );
 
 		if( wishvel.z == 0.0f ) {
@@ -471,7 +476,7 @@ static void PM_GroundTrace( trace_t *trace ) {
 
 static bool PM_GoodPosition( Vec3 origin, trace_t *trace ) {
 	pmove_gs->api.Trace( trace, origin, pm->mins, pm->maxs, origin, pm->playerState->POVnum, pm->solid_mask, 0 );
-	return trace->fraction > 0.0f;
+	return trace->GotSomewhere();
 }
 
 static void PM_UnstickPosition( trace_t *trace ) {

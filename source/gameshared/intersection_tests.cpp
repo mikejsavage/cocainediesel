@@ -160,16 +160,28 @@ bool RayVsCapsule( const Ray & ray, const Capsule & capsule, float * t ) {
 }
 
 static MinMax3 MinkowskiSum( const MinMax3 & bounds1, const CenterExtents3 & bounds2 ) {
-	return MinMax3( bounds1.mins + bounds2.center - bounds2.extents, bounds1.maxs - bounds2.center + bounds2.extents );
+	return MinMax3( bounds1.mins + bounds2.center - bounds2.extents, bounds1.maxs + bounds2.center + bounds2.extents );
+}
+
+static MinMax3 MinkowskiSum( const MinMax3 & bounds1, const Sphere & sphere ) {
+	return MinMax3( bounds1.mins + sphere.center - sphere.radius, bounds1.maxs + sphere.center + sphere.radius );
 }
 
 static float Support( const CenterExtents3 & aabb, Vec3 dir ) {
-	return Abs( aabb.extents.x * dir.x ) + Abs( aabb.extents.y * dir.y ) + Abs( aabb.extents.z * dir.z )
-		+ aabb.center.x * dir.x + aabb.center.y * dir.y + aabb.center.z * dir.z;
+	float radius = Abs( aabb.extents.x * dir.x ) + Abs( aabb.extents.y * dir.y ) + Abs( aabb.extents.z * dir.z );
+	return radius - Dot( aabb.center, dir );
+}
+
+static float Support( const Sphere & sphere, Vec3 dir ) {
+	return sphere.radius - Dot( sphere.center, dir );
 }
 
 static float AxialSupport( const CenterExtents3 & aabb, int axis, bool positive ) {
-	return ( aabb.center[ axis ] * ( positive ? 1.0f : -1.0f ) ) + Abs( aabb.extents[ axis ] );
+	return aabb.extents[ axis ] - ( positive ? 1.0f : -1.0f ) * aabb.center[ axis ];
+}
+
+static float AxialSupport( const Sphere & sphere, int axis, bool positive ) {
+	return sphere.radius - ( positive ? 1.0f : -1.0f ) * sphere.center[ axis ];
 }
 
 MinMax3 MinkowskiSum( const MinMax3 & bounds, const Shape & shape ) {
@@ -178,6 +190,8 @@ MinMax3 MinkowskiSum( const MinMax3 & bounds, const Shape & shape ) {
 			return bounds;
 		case ShapeType_AABB:
 			return MinkowskiSum( bounds, shape.aabb );
+		case ShapeType_Sphere:
+			return MinkowskiSum( bounds, shape.sphere );
 	}
 
 	Assert( false );
@@ -190,6 +204,8 @@ float Support( const Shape & shape, Vec3 dir ) {
 			return 0.0f;
 		case ShapeType_AABB:
 			return Support( shape.aabb, dir );
+		case ShapeType_Sphere:
+			return Support( shape.sphere, dir );
 	}
 
 	Assert( false );
@@ -202,6 +218,8 @@ static float AxialSupport( const Shape & shape, int axis, bool positive ) {
 			return 0.0f;
 		case ShapeType_AABB:
 			return AxialSupport( shape.aabb, axis, positive );
+		case ShapeType_Sphere:
+			return AxialSupport( shape.sphere, axis, positive );
 	}
 
 	Assert( false );
@@ -280,91 +298,84 @@ bool SweptShapeVsMapModel( const MapData * map, const MapModel * model, Ray ray,
 	if( !RayVsAABB( ray, MinkowskiSum( model->bounds, shape ), &bounds_enter, &bounds_leave ) )
 		return false;
 
-	float t_min = bounds_enter.t;
-	float t_max = bounds_leave.t;
-
 	KDTreeTraversalWork todo[ 64 ];
 	u32 num_todo = 0;
 
 	Optional< Intersection > best = NONE;
 
-	const MapKDTreeNode * node = &map->nodes[ model->root_node ];
+	KDTreeTraversalWork current = { &map->nodes[ model->root_node ], bounds_enter.t, bounds_leave.t };
+	KDTreeTraversalWork next;
 	while( true ) {
-		if( t_min > ray.length )
+		if( current.t_min > ray.length )
 			break;
 
-		if( !MapKDTreeNode::is_leaf( *node ) ) {
-			u32 axis = node->node.is_leaf_and_splitting_plane_axis;
+		if( !MapKDTreeNode::is_leaf( *current.node ) ) {
+			u32 axis = current.node->node.is_leaf_and_splitting_plane_axis;
 
-			float splitting_interval_start = node->node.splitting_plane_distance - AxialSupport( shape, axis, true );
-			float splitting_interval_end = node->node.splitting_plane_distance + AxialSupport( shape, axis, false );
+			const MapKDTreeNode * near_child = current.node + 1;
+			const MapKDTreeNode * far_child = &map->nodes[ current.node->node.front_child ];
 
-			float t_interval_start, t_interval_end;
-			bool start_in_first_child, reach_second_child;
+			// move the near splitting plane ahead by support function
+			float splitting_plane_near = current.node->node.splitting_plane_distance + AxialSupport( shape, axis, false );
+			// move the far splitting plane closer by support function
+			float splitting_plane_far = current.node->node.splitting_plane_distance - AxialSupport( shape, axis, true );
 
-			const MapKDTreeNode * first_child = node + 1;
-			const MapKDTreeNode * second_child = &map->nodes[ node->node.front_child ];
+			if( ray.direction[ axis ] < 0.0f ) {
+				// moving from far to near
+				Swap2( &near_child, &far_child );
+				Swap2( &splitting_plane_near, &splitting_plane_far );
+			}
 
 			if( ray.direction[ axis ] == 0.0f ) {
-				start_in_first_child = true;
-				if( ray.origin[ axis ] > node->node.splitting_plane_distance ) {
-					Swap2( &first_child, &second_child );
+				// moving parallel to the splitting plane
+				if( ray.origin[ axis ] <= splitting_plane_near ) {
+					// we start in the near child
+					next = { near_child, current.t_min, current.t_max };
+					if( ray.origin[ axis ] >= splitting_plane_far ) {
+						// we also reach the far child
+						todo[ num_todo++ ] = { far_child, current.t_min, current.t_max };
+					}
 				}
-				reach_second_child = ray.origin[ axis ] > splitting_interval_start && ray.origin[ axis ] < splitting_interval_end;
-
-				t_interval_start = t_min;
-				t_interval_end = t_max;
+				else {
+					// we start in the far child
+					next = { far_child, current.t_min, current.t_max };
+				}
 			}
 			else {
-				t_interval_start = ( splitting_interval_start - ray.origin[ axis ] ) * ray.inv_dir[ axis ];
-				t_interval_end = ( splitting_interval_end - ray.origin[ axis ] ) * ray.inv_dir[ axis ];
+				// not moving parallel to the splitting plane
+				float t_at_near = ( splitting_plane_near - ray.origin[ axis ] ) * ray.inv_dir[ axis ];
+				float t_at_far = ( splitting_plane_far - ray.origin[ axis ] ) * ray.inv_dir[ axis ];
 
-				if( ray.direction[ axis ] < 0.0f ) {
-					Swap2( &first_child, &second_child );
-					Swap2( &t_interval_start, &t_interval_end );
+				if( current.t_min <= t_at_near ) {
+					// we start in the near child
+					next = { near_child, current.t_min, Min2( current.t_max, t_at_near ) };
+					if( current.t_max >= t_at_far ) {
+						// we also reach the far child
+						todo[ num_todo++ ] = { far_child, Max2( current.t_min, t_at_far ), current.t_max };
+					}
 				}
-
-				start_in_first_child = t_interval_end >= t_min;
-				reach_second_child = t_interval_start <= t_max;
-			}
-
-			if( !start_in_first_child ) {
-				node = second_child;
-				t_min = Max2( t_min, t_interval_start );
-			}
-			else if( !reach_second_child ) {
-				node = first_child;
-				t_max = Min2( t_max, t_interval_end );
-			}
-			else {
-				if( num_todo == ARRAY_COUNT( todo ) ) {
-					Fatal( "Trace hit max tree depth" );
+				else {
+					// we start in the far child
+					next = { far_child, Max2( current.t_min, t_at_far ), current.t_max };
 				}
-
-				todo[ num_todo ] = { second_child, Max2( t_min, t_interval_start ), t_max };
-				num_todo++;
-
-				node = first_child;
-				t_max = Min2( t_max, t_interval_end );
 			}
+			if( num_todo == ARRAY_COUNT( todo ) )
+				Fatal( "Trace hit max tree depth" );
+			current = next;
 		}
 		else {
 			Intersection leaf_intersection;
-			if( SweptShapeVsMapLeaf( map, node, ray, shape, solid_mask, &leaf_intersection ) ) {
+			if( SweptShapeVsMapLeaf( map, current.node, ray, shape, solid_mask, &leaf_intersection ) ) {
 				if( !best.exists || leaf_intersection.t < best.value.t ) {
 					best = leaf_intersection;
 				}
 			}
 
-			if( num_todo > 0 ) {
-				num_todo--;
-				node = todo[ num_todo ].node;
-				t_min = todo[ num_todo ].t_min;
-				t_max = todo[ num_todo ].t_max;
-			}
-			else {
+			if( num_todo == 0 )
 				break;
-			}
+
+ 			num_todo--;
+			current = todo[ num_todo ];
 		}
 	}
 

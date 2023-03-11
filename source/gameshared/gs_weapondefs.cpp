@@ -1052,7 +1052,7 @@ const PerkDef perk_defs[] = {
 		/* enabled          */ true,
 		/* name             */ "MIDGET",
 		/* short name       */ "midget",
-		/* health           */ 65,
+		/* health           */ 70,
 		/* scale            */ Vec3( 0.8f, 0.8f, 0.6f ),
 		/* weight           */ 0.7f,
 		/* max speed        */ 400.0f,
@@ -1085,9 +1085,9 @@ const PerkDef perk_defs[] = {
 		/* weight           */ 1.0f,
 		/* max speed        */ 320.0f,
 		/* side speed       */ 320.0f,
-		/* ground accel		*/ 16.0f,
+		/* ground accel		*/ 6.0f,
 		/* air accel		*/ 0.5f,
-		/* ground friction	*/ 16.0f,
+		/* ground friction	*/ 6.0f,
 	},
 
 	{

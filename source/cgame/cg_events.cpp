@@ -590,6 +590,12 @@ static void DoEntFX( const SyncEntityState * ent, u64 parm, Vec4 color, StringHa
 	PlaySFX( sfx, PlaySFXConfigPosition( ent->origin ) );
 }
 
+static PlayingSFXHandle PlayViewerSound( StringHash sfx, SyncEntityState * ent, bool viewer ) {
+	return 	viewer ?
+			PlaySFX( sfx ) :
+			PlaySFX( sfx, PlaySFXConfigEntity( ent->number ) );
+}
+
 void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 	bool viewer = ISVIEWERENTITY( ent->number );
 
@@ -620,12 +626,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				sfx = GetGadgetModelMetadata( GadgetType( parm >> 1 ) )->switch_in_sound;
 			}
 
-			if( viewer ) {
-				PlaySFX( sfx );
-			}
-			else {
-				PlaySFX( sfx, PlaySFXConfigEntity( ent->number ) );
-			}
+			PlayViewerSound( sfx, ent, viewer );
 		} break;
 
 		case EV_SMOOTHREFIREWEAPON: // the server never sends this event
@@ -702,24 +703,14 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			StringHash sfx = GetGadgetModelMetadata( gadget )->use_sound;
 
 			int owner = predicted ? ent->number : ent->ownerNum;
-			if( viewer ) {
-				PlaySFX( sfx );
-			}
-			else {
-				PlaySFX( sfx, PlaySFXConfigEntity( owner ) );
-			}
+			PlayViewerSound( sfx, ent, viewer );
 		} break;
 
 		case EV_NOAMMOCLICK:
 			if( (parm - cg_entities[ ent->number ].last_noammo_sound) <= 150 )
 				return;
 
-			if( viewer ) {
-				PlaySFX( "weapons/noammo" );
-			}
-			else {
-				PlaySFX( "weapons/noammo", PlaySFXConfigPosition( ent->origin ) );
-			}
+			PlayViewerSound( "weapons/noammo", ent, viewer );
 
 			cg_entities[ ent->number ].last_noammo_sound = parm;
 			break;
@@ -822,14 +813,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 			break;
 
-		case EV_PLAYER_TELEPORT_IN:
-			PlaySFX( "sounds/world/tele_in", PlaySFXConfigPosition( ent->origin ) );
-			break;
-
-		case EV_PLAYER_TELEPORT_OUT:
-			PlaySFX( "sounds/world/tele_in", PlaySFXConfigPosition( ent->origin ) );
-			break;
-
 		case EV_BOLT_EXPLOSION: {
 			Vec3 normal = U64ToDir( parm );
 			RailgunImpact( ent->origin, normal, 0, team_color );
@@ -911,6 +894,14 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			DoEntFX( ent, parm, team_color, ent->model, ent->model2 );
 			break;
 
+		case EV_SOUND_ORIGIN:
+			PlaySFX( StringHash( parm ), PlaySFXConfigPosition( ent->origin ) );
+			break;
+
+		case EV_SOUND_ENT:
+			PlaySFX( StringHash( parm ), PlaySFXConfigEntity( ent->number ) );
+			break;
+
 		// func movers
 		case EV_PLAT_HIT_TOP:
 		case EV_PLAT_HIT_BOTTOM:
@@ -929,6 +920,14 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			CG_StartVsay( ent->ownerNum, parm );
 			break;
 
+		case EV_HONK: {
+			centity_t * cent = &cg_entities[ ent->ownerNum ];
+			if( cent->localEffects[ LOCALEFFECT_HONK_TIMEOUT ] < cl.serverTime ) {
+				cent->localEffects[ LOCALEFFECT_HONK_TIMEOUT ] = cl.serverTime + HONK_TIMEOUT;
+				PlaySFX( "perks/wheel/honk", PlaySFXConfigEntity( ent->number ) );
+			}
+		} break;
+
 		case EV_TBAG:
 			PlaySFX( "sounds/tbag/tbag", PlaySFXConfigPosition( ent->origin, parm / 255.0f ) );
 			break;
@@ -941,24 +940,12 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			CG_AddDamageNumber( ent, parm );
 			break;
 
-		case EV_HEADSHOT:
-			PlaySFX( "sounds/headshot/headshot", PlaySFXConfigPosition( ent->origin ) );
-			break;
-
 		case EV_VFX:
 			DoVisualEffect( StringHash( parm ), ent->origin, Vec3( 0.0f, 0.0f, 1.0f ), 1, vec4_white );
 			break;
 
 		case EV_FLASH_WINDOW:
 			FlashWindow();
-			break;
-
-		case EV_SUICIDE_BOMB_ANNOUNCEMENT:
-			PlaySFX( "sounds/vsay/helena", PlaySFXConfigEntity( ent->number ) );
-			break;
-
-		case EV_SUICIDE_BOMB_BEEP:
-			PlaySFX( "sounds/beep", PlaySFXConfigEntity( ent->number ) );
 			break;
 
 		case EV_SUICIDE_BOMB_EXPLODE:

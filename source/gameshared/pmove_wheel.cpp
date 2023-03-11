@@ -25,7 +25,17 @@ static void PM_WheelCharge( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 		ps->pmove.stamina_stored = charge_buffering;
 	}
 
-	if( pressed && ps->pmove.stamina_state != Stamina_UsedAbility && pm->groundentity == -1 && ps->pmove.stamina_stored == 0.0f ) {
+	if( pressed ) {
+		if( !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
+			pmove_gs->api.PredictedEvent( ps->POVnum, EV_HONK, 0 );
+		}
+		
+		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
+	} else {
+		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
+	}
+
+	/*if( pressed && ps->pmove.stamina_state != Stamina_UsedAbility && pm->groundentity == -1 && ps->pmove.stamina_stored == 0.0f ) {
 		Vec3 fwd;
 		AngleVectors( pm->playerState->viewangles, &fwd, NULL, NULL );
 		Vec3 dashdir = fwd;
@@ -37,7 +47,7 @@ static void PM_WheelCharge( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_
 
 		ps->pmove.stamina_state = Stamina_UsedAbility;
 		pmove_gs->api.PredictedEvent( ps->POVnum, EV_JUMP, JumpType_WheelCharge );
-	}
+	}*/
 }
 
 

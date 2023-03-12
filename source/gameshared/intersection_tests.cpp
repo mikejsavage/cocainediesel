@@ -160,16 +160,16 @@ bool RayVsCapsule( const Ray & ray, const Capsule & capsule, float * t ) {
 }
 
 static MinMax3 MinkowskiSum( const MinMax3 & bounds1, const CenterExtents3 & bounds2 ) {
-	return MinMax3( bounds1.mins + bounds2.center - bounds2.extents, bounds1.maxs + bounds2.center + bounds2.extents );
+	return MinMax3( bounds1.mins - bounds2.center - bounds2.extents, bounds1.maxs - bounds2.center + bounds2.extents );
 }
 
 static MinMax3 MinkowskiSum( const MinMax3 & bounds1, const Sphere & sphere ) {
-	return MinMax3( bounds1.mins + sphere.center - sphere.radius, bounds1.maxs + sphere.center + sphere.radius );
+	return MinMax3( bounds1.mins - sphere.center - sphere.radius, bounds1.maxs - sphere.center + sphere.radius );
 }
 
 static float Support( const CenterExtents3 & aabb, Vec3 dir ) {
 	float radius = Abs( aabb.extents.x * dir.x ) + Abs( aabb.extents.y * dir.y ) + Abs( aabb.extents.z * dir.z );
-	return radius - Dot( aabb.center, dir );
+	return radius + Dot( aabb.center, dir );
 }
 
 static float Support( const Sphere & sphere, Vec3 dir ) {
@@ -177,11 +177,11 @@ static float Support( const Sphere & sphere, Vec3 dir ) {
 }
 
 static float AxialSupport( const CenterExtents3 & aabb, int axis, bool positive ) {
-	return aabb.extents[ axis ] - ( positive ? 1.0f : -1.0f ) * aabb.center[ axis ];
+	return aabb.extents[ axis ] + ( positive ? 1.0f : -1.0f ) * aabb.center[ axis ];
 }
 
 static float AxialSupport( const Sphere & sphere, int axis, bool positive ) {
-	return sphere.radius - ( positive ? 1.0f : -1.0f ) * sphere.center[ axis ];
+	return sphere.radius + ( positive ? 1.0f : -1.0f ) * sphere.center[ axis ];
 }
 
 MinMax3 MinkowskiSum( const MinMax3 & bounds, const Shape & shape ) {

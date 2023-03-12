@@ -660,12 +660,11 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		const bool aabb_or_ray = true;
 
 		Intersection intersection;
-		if( break2 ) __debugbreak();
 		if( SweptShapeVsMapModel( &cl.map->data, &cl.map->data.models[ 0 ], ray, aabb_or_ray ? aabb_shape : ray_shape, SolidMask_AnySolid, &intersection ) ) {
 			if( intersection.normal != Vec3( 0.0f ) ) {
 				Vec3 new_end = start + intersection.t * ray.direction;
 				Vec3 center = new_end;
-				if( aabb_or_ray ) center -= aabb_shape.aabb.center;
+				if( aabb_or_ray ) center += aabb_shape.aabb.center;
 
 				DrawModelConfig config = { };
 				config.draw_model.enabled = true;

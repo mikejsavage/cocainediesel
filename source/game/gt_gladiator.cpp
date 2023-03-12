@@ -41,23 +41,6 @@ static void BombKill() {
 	}
 }
 
-static void BombExplode() {
-	server_gs.gameState.exploding = true;
-	server_gs.gameState.exploded_at = svs.gametime;
-
-	Vec3 zero( 0.0f );
-	G_SpawnEvent( EV_BOMB_EXPLOSION, bomb_explosion_effect_radius, &zero );
-}
-
-static void BombKill() {
-	Vec3 zero( 0.0f );
-	gladiator_state.bomb_exploded = true;
-
-	for( int i = 0; i < server_gs.maxclients; i++ ) {
-		G_Damage( PLAYERENT( i ), world, world, zero, zero, zero, 100.0f, 0.0f, 0, WorldDamage_Explosion );
-	}
-}
-
 void G_Aasdf(); // TODO
 static void PickRandomArena() {
 	if( !gladiator_state.randomize_arena )
@@ -376,14 +359,6 @@ static void Gladiator_Init() {
 	gladiator_state.randomize_arena = G_GetWorldspawnKey( "randomize_arena" ) != "";
 
 	InitRespawnQueues( &gladiator_state.respawn_queues );
-
-	G_AddCommand( ClientCommand_LoadoutMenu, ShowShop );
-
-	G_AddCommand( ClientCommand_SetLoadout, []( edict_t * ent, msg_t args ) {
-		SetLoadout( ent, MSG_ReadString( &args ), false );
-	} );
-
-	g_glad_bombtimer = NewCvar( "g_glad_bombtimer", "40", CvarFlag_Archive );
 
 	G_AddCommand( ClientCommand_LoadoutMenu, ShowShop );
 

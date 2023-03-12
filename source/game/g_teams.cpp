@@ -344,12 +344,14 @@ void SpawnTeams( RespawnQueues * queues ) {
 		}
 	}
 
+	bool even_teams = server_gs.gameState.gametype == Gametype_Gladiator || Cvar_Bool( "g_force_even_teams" );
+
 	for( int i = 0; i < level.gametype.numTeams; i++ ) {
 		const SyncTeamState * team = &server_gs.gameState.teams[ Team_One + i ];
 		if( team->num_players == 0 )
 			continue;
 
-		u8 num_to_spawn = Cvar_Bool( "g_force_even_teams" ) ? even_n : team->num_players;
+		u8 num_to_spawn = even_teams ? even_n : team->num_players;
 
 		for( u8 j = 0; j < num_to_spawn; j++ ) {
 			Optional< int > player = DequeueRespawn( queues, Team( Team_One + i ) );

@@ -928,10 +928,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			CG_StartVsay( ent->ownerNum, parm );
 			break;
 
-		case EV_TBAG:
-			PlaySFX( "sounds/tbag/tbag", PlaySFXConfigPosition( ent->origin, parm / 255.0f ) );
-			break;
-
 		case EV_SPRAY:
 			AddSpray( ent->origin, ent->origin2, ent->angles, ent->scale.z, parm );
 			break;

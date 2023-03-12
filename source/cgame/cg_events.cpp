@@ -589,10 +589,10 @@ static void DoEntFX( const SyncEntityState * ent, u64 parm, Vec4 color, StringHa
 	PlaySFX( sfx, PlaySFXConfigPosition( ent->origin ) );
 }
 
-static PlayingSFXHandle PlayViewerSound( StringHash sfx, SyncEntityState * ent, bool viewer ) {
+static PlayingSFXHandle PlayViewerSound( StringHash sfx, int ent_num, bool viewer ) {
 	return 	viewer ?
 			PlaySFX( sfx ) :
-			PlaySFX( sfx, PlaySFXConfigEntity( ent->number ) );
+			PlaySFX( sfx, PlaySFXConfigEntity( ent_num ) );
 }
 
 void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
@@ -625,7 +625,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				sfx = GetGadgetModelMetadata( GadgetType( parm >> 1 ) )->switch_in_sound;
 			}
 
-			PlayViewerSound( sfx, ent, viewer );
+			PlayViewerSound( sfx, ent->number, viewer );
 		} break;
 
 		case EV_SMOOTHREFIREWEAPON: // the server never sends this event
@@ -702,14 +702,14 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			StringHash sfx = GetGadgetModelMetadata( gadget )->use_sound;
 
 			int owner = predicted ? ent->number : ent->ownerNum;
-			PlayViewerSound( sfx, ent, viewer );
+			PlayViewerSound( sfx, owner, viewer );
 		} break;
 
 		case EV_NOAMMOCLICK:
 			if( (parm - cg_entities[ ent->number ].last_noammo_sound) <= 150 )
 				return;
 
-			PlayViewerSound( "weapons/noammo", ent, viewer );
+			PlayViewerSound( "weapons/noammo", ent->number, viewer );
 
 			cg_entities[ ent->number ].last_noammo_sound = parm;
 			break;

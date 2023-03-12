@@ -680,6 +680,50 @@ void CG_RenderView( unsigned extrapolationTime ) {
 			}
 		}
 	}
+
+	{
+		static Vec3 a_pos;
+		static Vec3 dir;
+
+		Shape a = { ShapeType_AABB, ToCenterExtents( MinMax3( playerbox_stand_mins, playerbox_stand_maxs ) ) };
+
+		if( break2 ) {
+			a_pos = cg.view.origin;
+			dir = FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 500.0f;
+			dir = Vec3( 0, 0, -500.0f );
+		}
+		Ray ray = MakeRayStartEnd( a_pos, a_pos + dir );
+
+		Shape b = { ShapeType_AABB, ToCenterExtents( MinMax3( playerbox_stand_mins, playerbox_stand_maxs ) ) };
+		Vec3 b_pos = Vec3( -180.0f, -400.0f, 24.0f );
+
+		MinMax3 a_object_space = ToMinMax( a.aabb );
+		a_object_space.mins += a_pos - b_pos;
+		a_object_space.maxs += a_pos - b_pos;
+
+		DrawModelConfig config = { };
+		config.draw_model.enabled = true;
+		config.draw_shadows.enabled = true;
+
+		Mat4 origin_transform = Mat4Translation( b_pos ) * Mat4Scale( 4 );
+		DrawGLTFModel( config, FindGLTFRenderData( "models/sphere" ), origin_transform, vec4_white );
+		Mat4 box_transform = Mat4Translation( b_pos + b.aabb.center ) * Mat4Scale( b.aabb.extents );
+		DrawGLTFModel( config, FindGLTFRenderData( "models/box" ), box_transform, vec4_white );
+
+		Intersection intersection;
+		if( SweptAABBVsAABB( a_object_space, ray.direction * ray.length, ToMinMax( b.aabb ), Vec3( 0.0f ), &intersection ) ) {
+			if( intersection.normal != Vec3( 0.0f ) ) {
+				Vec3 new_a_pos = a_pos + ray.direction * intersection.t * ray.length;
+
+				Mat4 center_transform = Mat4Translation( new_a_pos + a.aabb.center ) * Mat4Scale( 16 ) * TransformKToDir( intersection.normal );
+				DrawGLTFModel( config, FindGLTFRenderData( "models/arrow" ), center_transform, vec4_white );
+				Mat4 origin_transform = Mat4Translation( new_a_pos ) * Mat4Scale( 4 );
+				DrawGLTFModel( config, FindGLTFRenderData( "models/sphere" ), origin_transform, vec4_white );
+				Mat4 box_transform = Mat4Translation( new_a_pos + a.aabb.center ) * Mat4Scale( a.aabb.extents );
+				DrawGLTFModel( config, FindGLTFRenderData( "models/box" ), box_transform, vec4_white );
+			}
+		}
+	}
 }
 
 void MaybeResetShadertoyTime( bool respawned ) {

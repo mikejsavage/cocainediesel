@@ -158,6 +158,7 @@ enum PerkType : u8 {
 
 	Perk_Hooligan,
 	Perk_Midget,
+	Perk_Wheel,
 	Perk_Jetpack,
 	Perk_Ninja,
 	Perk_Boomer,

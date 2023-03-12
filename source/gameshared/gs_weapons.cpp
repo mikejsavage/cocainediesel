@@ -473,9 +473,12 @@ static bool SuicideBombStage( SyncPlayerState * ps, int stage, u64 delay ) {
 
 static constexpr ItemState suicide_bomb_states[] = {
 	ItemState( WeaponState_Firing, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
+		constexpr StringHash bomb_announcement = "sounds/vsay/helena";
+		constexpr StringHash bomb_beep = "sounds/beep";
+
 		if( SuicideBombStage( ps, 2, 0 ) ) {
 			// TODO: randomise
-			gs->api.PredictedEvent( ps->POVnum, EV_SUICIDE_BOMB_ANNOUNCEMENT, 0 );
+			gs->api.PredictedEvent( ps->POVnum, EV_SOUND_ENT, bomb_announcement.hash );
 		}
 
 		u64 beep_interval = 768;
@@ -484,7 +487,7 @@ static constexpr ItemState suicide_bomb_states[] = {
 
 		for( int beep = 3; beep < 3 + num_beeps; beep++ ) {
 			if( SuicideBombStage( ps, beep, beep_delay ) ) {
-				gs->api.PredictedEvent( ps->POVnum, EV_SUICIDE_BOMB_BEEP, 0 );
+				gs->api.PredictedEvent( ps->POVnum, EV_SOUND_ENT, bomb_beep.hash );
 			}
 
 			beep_interval = Max2( 64.0f, beep_interval / 1.5f );

@@ -204,8 +204,6 @@ enum EventType {
 	EV_JUMP_PAD,
 	EV_FALL,
 
-	EV_SUICIDE_BOMB_ANNOUNCEMENT,
-	EV_SUICIDE_BOMB_BEEP,
 	EV_SUICIDE_BOMB_EXPLODE,
 
 	// non predictable events
@@ -217,8 +215,6 @@ enum EventType {
 	EV_RESPAWN,
 
 	EV_PLAYER_RESPAWN,
-	EV_PLAYER_TELEPORT_IN,
-	EV_PLAYER_TELEPORT_OUT,
 
 	EV_BLOOD,
 	EV_GIB,
@@ -252,9 +248,10 @@ enum EventType {
 	EV_TRAIN_START,
 
 	EV_DAMAGE,
-	EV_HEADSHOT,
 
 	EV_VFX,
+	EV_SOUND_ORIGIN,
+	EV_SOUND_ENT,
 
 	EV_FLASH_WINDOW,
 
@@ -263,7 +260,7 @@ enum EventType {
 
 enum JumpType : u8 {
 	JumpType_Normal,
-	JumpType_MidgetCharge
+	JumpType_WheelDash,
 };
 
 enum playerstate_event_t {

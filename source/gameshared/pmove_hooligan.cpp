@@ -51,7 +51,7 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 		( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) )
 	{
 		Vec3 normal( 0.0f );
-		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, false );
+		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, false, 0 );
 		if( !Length( normal ) )
 			return;
 

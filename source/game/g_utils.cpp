@@ -664,8 +664,8 @@ float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
 
 static void G_SpawnTeleportEffect( edict_t *ent, bool respawn, bool in ) {
 	edict_t *event;
-	static const StringHash tele_in( "sounds/world/tele_in" );
-	static const StringHash tele_out( "sounds/world/tele_in" );
+	constexpr StringHash tele_in = "sounds/world/tele_in";
+	constexpr StringHash tele_out = "sounds/world/tele_in";
 
 	if( !ent || !ent->r.client ) {
 		return;

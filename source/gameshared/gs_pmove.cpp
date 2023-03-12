@@ -34,9 +34,6 @@ static const gs_state_t * pmove_gs;
 
 // movement parameters
 
-/*constexpr float default_friction = 16; //  ( initially 6 )
-constexpr float default_accelerate = 16; // user intended acceleration when on ground or fly movement ( initially 10 )
-constexpr float default_airaccelerate = 0.5f; // user intended aceleration when on air*/
 constexpr float default_strafebunnyaccel = 60; // forward acceleration when strafe bunny hopping
 
 

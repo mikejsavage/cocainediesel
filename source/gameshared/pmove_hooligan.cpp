@@ -1,6 +1,5 @@
 #include "gameshared/movement.h"
 #include "gameshared/gs_weapons.h"
-#include "qcommon/qfiles.h"
 
 static constexpr float pm_jumpupspeed = 260.0f;
 static constexpr float pm_dashupspeed = 160.0f;
@@ -52,7 +51,7 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 		( !ISWALKABLEPLANE( &trace.plane ) && !trace.startsolid ) )
 	{
 		Vec3 normal( 0.0f );
-		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, false, SURF_NOWALLJUMP );
+		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, false, 0 );
 		if( !Length( normal ) )
 			return;
 

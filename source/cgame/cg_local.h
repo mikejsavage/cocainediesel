@@ -33,13 +33,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "client/renderer/types.h"
 
 #define VSAY_TIMEOUT 2500
-#define HONK_TIMEOUT 3000
 
 constexpr float FOV = 107.9f; // chosen to upset everyone equally
 
 enum {
 	LOCALEFFECT_VSAY_TIMEOUT,
-	LOCALEFFECT_HONK_TIMEOUT,
 	LOCALEFFECT_LASERBEAM,
 	LOCALEFFECT_JETPACK,
 

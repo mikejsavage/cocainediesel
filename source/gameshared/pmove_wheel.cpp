@@ -91,7 +91,7 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 		(trace.fraction == 1 || !trace.startsolid) )
 	{
 		Vec3 normal( 0.0f );
-		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, true, SURF_NOWALLJUMP | SURF_LADDER );
+		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, true, SURF_LADDER );
 		if( !Length( normal ) )
 			return;
 

@@ -230,7 +230,6 @@ enum EventType {
 	EV_BOMB_EXPLOSION,
 
 	EV_VSAY,
-	EV_HONK,
 
 	EV_TBAG,
 	EV_SPRAY,

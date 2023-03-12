@@ -24,17 +24,6 @@ static void PM_WheelDash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 
 	StaminaRecover( ps, pml, ps->pmove.stamina_state == Stamina_Normal ? stamina_recover : stamina_recover_used );
 
-	//HONK
-	/*if( pressed ) {
-		if( !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
-			pmove_gs->api.PredictedEvent( ps->POVnum, EV_HONK, 0 );
-		}
-		
-		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
-	} else {
-		ps->pmove.pm_flags &= ~PMF_ABILITY2_HELD;
-	}*/
-
 	if( pressed ) {
 		if( ps->pmove.stamina == 1.0f && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
 			Vec3 fwd;

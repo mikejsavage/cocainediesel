@@ -231,7 +231,6 @@ enum EventType {
 
 	EV_VSAY,
 
-	EV_TBAG,
 	EV_SPRAY,
 
 	// func movers

@@ -1,6 +1,7 @@
 #include "client/client.h"
 #include "client/icon.h"
 #include "client/renderer/renderer.h"
+#include "qcommon/fpe.h"
 #include "qcommon/renderdoc.h"
 
 #include "glad/glad.h"
@@ -307,6 +308,10 @@ static WindowMode CompleteWindowMode( WindowMode mode ) {
 
 void CreateWindow( WindowMode mode ) {
 	TracyZoneScoped;
+
+#if PLATFORM_MACOS
+	DisableFPEScoped;
+#endif
 
 	glfwWindowHint( GLFW_CLIENT_API, GLFW_OPENGL_API );
 	glfwWindowHint( GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE );

@@ -272,9 +272,6 @@ void G_Match_ToggleReady( edict_t *ent ) {
 	}
 }
 
-//======================================================
-//		Game types
-
 static bool G_EachNewSecond() {
 	static int lastsecond;
 	static int second;

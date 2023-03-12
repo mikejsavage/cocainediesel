@@ -149,7 +149,7 @@ static bool CG_IsLagging() {
 
 //=============================================================================
 
-#define MAX_OBITUARIES 32
+static constexpr size_t MAX_OBITUARIES = 32;
 
 enum obituary_type_t {
 	OBITUARY_NONE,
@@ -286,7 +286,7 @@ void CG_SC_Obituary() {
 	const char * attacker = attackerNum == 0 ? NULL : PlayerName( attackerNum - 1 );
 	const char * assistor = topAssistorNum == -1 ? NULL : PlayerName( topAssistorNum - 1 );
 
-	cg_obituaries_current = ( cg_obituaries_current + 1 ) % MAX_OBITUARIES;
+	cg_obituaries_current = ( cg_obituaries_current + 1 ) % ARRAY_COUNT( cg_obituaries );
 	obituary_t * current = &cg_obituaries[ cg_obituaries_current ];
 	current->type = OBITUARY_NORMAL;
 	current->time = cls.monotonicTime;

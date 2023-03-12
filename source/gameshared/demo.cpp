@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <errno.h>
 
 #include "qcommon/base.h"
+#include "qcommon/qcommon.h"
 #include "qcommon/version.h"
 #include "qcommon/array.h"
 #include "qcommon/compression.h"

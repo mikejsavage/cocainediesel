@@ -26,14 +26,8 @@ static cgame_export_t *cge;
 
 gs_state_t client_gs;
 
-void CL_GetUserCmd( int frame, UserCommand *cmd ) {
-	if( cmd ) {
-		if( frame < 0 ) {
-			frame = 0;
-		}
-
-		*cmd = cl.cmds[frame & CMD_MASK];
-	}
+void CL_GetUserCmd( int frame, UserCommand * cmd ) {
+	*cmd = cl.cmds[ Max2( frame, 0 ) % ARRAY_COUNT( cl.cmds ) ];
 }
 
 int CL_GetCurrentUserCmdNum() {
@@ -86,11 +80,9 @@ void CL_GameModule_EscapeKey() {
 }
 
 bool CL_GameModule_NewSnapshot( int pendingSnapshot ) {
-	snapshot_t *currentSnap, *newSnap;
-
 	if( cge ) {
-		currentSnap = ( cl.currentSnapNum <= 0 ) ? NULL : &cl.snapShots[cl.currentSnapNum & UPDATE_MASK];
-		newSnap = &cl.snapShots[pendingSnapshot & UPDATE_MASK];
+		snapshot_t * currentSnap = cl.currentSnapNum <= 0 ? NULL : &cl.snapShots[ cl.currentSnapNum % ARRAY_COUNT( cl.snapShots ) ];
+		snapshot_t * newSnap = &cl.snapShots[ pendingSnapshot % ARRAY_COUNT( cl.snapShots ) ];
 		return cge->NewFrameSnapshot( newSnap, currentSnap );
 	}
 

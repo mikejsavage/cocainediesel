@@ -2,6 +2,19 @@ package.path = ( "./?.lua;./?/make.lua" ):gsub( "/", package.config:sub( 1, 1 ) 
 
 local lfs = require( "INTERNAL_LFS" )
 
+local function copy( t, extra )
+	local res = { }
+	for k, v in pairs( t ) do
+		res[ k ] = v
+	end
+	if extra then
+		for k, v in pairs( extra ) do
+			res[ k ] = v
+		end
+	end
+	return res
+end
+
 local configs = { }
 
 configs[ "windows" ] = {
@@ -63,7 +76,6 @@ configs[ "linux-release" ] = {
 	ar = "ggbuild/zig/zig ar",
 
 	cxxflags = "-O2 -DNDEBUG",
-	ldflags = "",
 	output_dir = "release/",
 	can_static_link = true,
 }
@@ -74,26 +86,20 @@ configs[ "linux-bench" ] = {
 	prebuilt_lib_dir = "linux-release",
 }
 
-local function identify_host()
-	local dll_ext = package.cpath:match( "(%a+)$" )
+configs[ "macos" ] = copy( configs[ "linux" ], {
+	cxx = "clang++",
+	cxxflags = configs[ "linux" ].cxxflags .. " -mmacosx-version-min=10.13",
+} )
+configs[ "macos-debug" ] = {
+	cxxflags = "-O0 -g -fno-omit-frame-pointer",
+}
+configs[ "macos-release" ] = {
+	cxxflags = "-O2 -DNDEBUG",
+	ldflags = "-Wl,-dead_strip -Wl,-x",
+	output_dir = "release/",
+}
 
-	if dll_ext == "dll" then
-		return "windows"
-	end
-
-	local p = assert( io.popen( "uname -s" ) )
-	local uname = assert( p:read( "*all" ) ):gsub( "%s*$", "" )
-	assert( p:close() )
-
-	if uname == "Linux" then
-		return "linux"
-	end
-
-	io.stderr:write( "can't identify host OS" )
-	os.exit( 1 )
-end
-
-OS = identify_host()
+OS = os.name:lower()
 config = arg[ 1 ] or "debug"
 
 local OS_config = OS .. "-" .. config
@@ -349,7 +355,7 @@ rule cpp
     deps = gcc
 
 rule lib
-    command = $ar rs $out $in
+    command = $ar cr $out $in
     description = $out
 
 rule copy
@@ -419,14 +425,11 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 
 	printf()
 
-	printf()
-
 	for bin_name, cfg in sort_by_key( bins ) do
 		local srcs = { cfg.srcs }
 
 		if OS == "windows" and cfg.rc then
 			srcs = { cfg.srcs, cfg.rc }
-			-- printf( "build %s/%s%s: rc %s.rc %s.xml", dir, cfg.rc, obj_suffix, cfg.rc, cfg.rc )
 			printf( "build %s/%s%s: rc %s.rc", dir, cfg.rc, obj_suffix, cfg.rc )
 			printf( "    in_rc = %s.rc", cfg.rc )
 		end
@@ -440,13 +443,9 @@ build ggbuild/zig/zig: ungzip ggbuild/zig/zig.gz
 			( can_static_link and not cfg.no_static_link ) and "ggbuild/zig/zig" or ""
 		)
 
-		local ldflags_key = toolchain .. "_ldflags"
-		local extra_ldflags_key = toolchain .. "_extra_ldflags"
+		local ldflags_key = OS .. "_ldflags"
 		if cfg[ ldflags_key ] then
-			printf( "    ldflags = %s", cfg[ ldflags_key ] )
-		end
-		if cfg[ extra_ldflags_key ] then
-			printf( "    extra_ldflags = %s", cfg[ extra_ldflags_key ] )
+			printf( "    extra_ldflags = %s", cfg[ ldflags_key ] )
 		end
 
 		printf( "default %s", full_name )

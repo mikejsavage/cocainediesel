@@ -164,7 +164,7 @@ void CL_DemoCompleted() {
 }
 
 void CL_ReadDemoPackets() {
-	while( ( cl.receivedSnapNum <= 0 || !cl.snapShots[cl.receivedSnapNum & UPDATE_MASK].valid || cl.snapShots[cl.receivedSnapNum & UPDATE_MASK].serverTime < cl.serverTime ) ) {
+	while( ( cl.receivedSnapNum <= 0 || !cl.snapShots[ cl.receivedSnapNum % ARRAY_COUNT( cl.snapShots ) ].valid || cl.snapShots[ cl.receivedSnapNum % ARRAY_COUNT( cl.snapShots ) ].serverTime < cl.serverTime ) ) {
 		msg_t msg = MSG_ReadMsg( &playing_demo_contents );
 		if( msg.data == NULL ) {
 			CL_Disconnect( NULL );

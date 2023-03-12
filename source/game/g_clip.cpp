@@ -52,8 +52,7 @@ typedef struct
 
 static areagrid_t g_areagrid;
 
-#define CFRAME_UPDATE_BACKUP    64  // copies of SyncEntityState to keep buffered (1 second of backup at 62 fps).
-#define CFRAME_UPDATE_MASK  ( CFRAME_UPDATE_BACKUP - 1 )
+static constexpr size_t CFRAME_UPDATE_BACKUP = 64; // copies of SyncEntityState to keep buffered
 
 struct c4clipedict_t {
 	SyncEntityState s;
@@ -69,7 +68,7 @@ struct c4frame_t {
 	int64_t framenum;
 };
 
-static c4frame_t sv_collisionframes[CFRAME_UPDATE_BACKUP];
+static c4frame_t sv_collisionFrames[CFRAME_UPDATE_BACKUP];
 static int64_t sv_collisionFrameNum = 0;
 
 void GClip_BackUpCollisionFrame() {
@@ -79,7 +78,7 @@ void GClip_BackUpCollisionFrame() {
 
 	// fixme: should check for any validation here?
 
-	cframe = &sv_collisionframes[sv_collisionFrameNum & CFRAME_UPDATE_MASK];
+	cframe = &sv_collisionFrames[ sv_collisionFrameNum % ARRAY_COUNT( sv_collisionFrames ) ];
 	cframe->timestamp = svs.gametime;
 	cframe->framenum = sv_collisionFrameNum;
 	sv_collisionFrameNum++;
@@ -150,8 +149,8 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 
 	// find the first snap with timestamp < than realtime - backtime
 	cframenum = sv_collisionFrameNum;
-	for( bf = 1; bf < CFRAME_UPDATE_BACKUP && bf < sv_collisionFrameNum; bf++ ) { // never overpass limits
-		cframe = &sv_collisionframes[( cframenum - bf ) & CFRAME_UPDATE_MASK];
+	for( bf = 1; bf < ARRAY_COUNT( sv_collisionFrames ) && bf < sv_collisionFrameNum; bf++ ) { // never overpass limits
+		cframe = &sv_collisionFrames[ ( cframenum - bf ) % ARRAY_COUNT( sv_collisionFrames ) ];
 
 		// if solid has changed, we can't keep moving backwards
 		if( ent->r.solid != cframe->clipEdicts[entNum].r.solid
@@ -161,7 +160,7 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 				// we can't step back from first
 				cframe = NULL;
 			} else {
-				cframe = &sv_collisionframes[( cframenum - bf ) & CFRAME_UPDATE_MASK];
+				cframe = &sv_collisionFrames[ ( cframenum - bf ) % ARRAY_COUNT( sv_collisionFrames ) ];
 			}
 			break;
 		}
@@ -193,7 +192,7 @@ static c4clipedict_t *GClip_GetClipEdictForDeltaTime( int entNum, int deltaTime 
 			clipentNewer.s = ent->s;
 		} else {
 			// interpolate between 2 backed up
-			c4frame_t *cframeNewer = &sv_collisionframes[( cframenum - ( bf - 1 ) ) & CFRAME_UPDATE_MASK];
+			c4frame_t *cframeNewer = &sv_collisionFrames[ ( cframenum - ( bf - 1 ) ) % ARRAY_COUNT( sv_collisionFrames ) ];
 			lerpFrac = (float)( ( svs.gametime - backTime ) - cframe->timestamp )
 					   / (float)( cframeNewer->timestamp - cframe->timestamp );
 			clipentNewer = cframeNewer->clipEdicts[entNum];
@@ -230,9 +229,6 @@ static void GClip_InsertLinkBefore( link_t *l, link_t *before, int entNum ) {
 	l->entNum = entNum;
 }
 
-/*
-* GClip_Init_AreaGrid
-*/
 static void GClip_Init_AreaGrid( areagrid_t *areagrid, Vec3 world_mins, Vec3 world_maxs ) {
 	// the areagrid_marknumber is not allowed to be 0
 	if( areagrid->marknumber < 1 ) {
@@ -264,9 +260,6 @@ static void GClip_Init_AreaGrid( areagrid_t *areagrid, Vec3 world_mins, Vec3 wor
 	memset( areagrid->entmarknumber, 0, sizeof( areagrid->entmarknumber ) );
 }
 
-/*
-* GClip_UnlinkEntity_AreaGrid
-*/
 static void GClip_UnlinkEntity_AreaGrid( edict_t *ent ) {
 	for( int i = 0; i < MAX_ENT_AREAS; i++ ) {
 		if( !ent->areagrid[i].prev ) {
@@ -277,9 +270,6 @@ static void GClip_UnlinkEntity_AreaGrid( edict_t *ent ) {
 	}
 }
 
-/*
-* GClip_LinkEntity_AreaGrid
-*/
 static void GClip_LinkEntity_AreaGrid( areagrid_t *areagrid, edict_t *ent ) {
 	link_t *grid;
 	int igrid[3], igridmins[3], igridmaxs[3], gridnum, entitynumber;
@@ -316,9 +306,6 @@ static void GClip_LinkEntity_AreaGrid( areagrid_t *areagrid, edict_t *ent ) {
 	}
 }
 
-/*
-* GClip_EntitiesInBox_AreaGrid
-*/
 static int GClip_EntitiesInBox_AreaGrid( areagrid_t *areagrid, Vec3 mins, Vec3 maxs, int *list, int maxcount, int areatype, int timeDelta ) {
 	int numlist;
 	link_t *grid;
@@ -631,9 +618,6 @@ typedef struct {
 	int contentmask;
 } moveclip_t;
 
-/*
-* GClip_ClipMoveToEntities
-*/
 static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 	TracyZoneScoped;
 
@@ -713,10 +697,6 @@ static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 	}
 }
 
-
-/*
-* GClip_TraceBounds
-*/
 static void GClip_TraceBounds( Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, Vec3 * boxmins, Vec3 * boxmaxs ) {
 	for( int i = 0; i < 3; i++ ) {
 		float near = Min2( start[ i ], end[ i ] );
@@ -811,9 +791,6 @@ void GClip_SetBrushModel( edict_t * ent ) {
 	}
 }
 
-/*
-* GClip_EntityContact
-*/
 bool GClip_EntityContact( Vec3 mins, Vec3 maxs, edict_t *ent ) {
 	cmodel_t * model = CM_TryFindCModel( CM_Server, ent->s.model );
 	if( model != NULL ) {
@@ -939,18 +916,4 @@ int GClip_FindInRadius( Vec3 origin, float radius, int * output, int maxcount ) 
 void G_SplashFrac4D( const edict_t *ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage ) {
 	const c4clipedict_t *clipEnt = GClip_GetClipEdictForDeltaTime( ENTNUM( ent ), timeDelta );
 	G_SplashFrac( &clipEnt->s, &clipEnt->r, hitpoint, maxradius, pushdir, frac, selfdamage );
-}
-
-SyncEntityState *G_GetEntityStateForDeltaTime( int entNum, int deltaTime ) {
-	c4clipedict_t *clipEnt;
-
-	if( entNum == -1 ) {
-		return NULL;
-	}
-
-	Assert( entNum >= 0 && entNum < MAX_EDICTS );
-
-	clipEnt = GClip_GetClipEdictForDeltaTime( entNum, deltaTime );
-
-	return &clipEnt->s;
 }

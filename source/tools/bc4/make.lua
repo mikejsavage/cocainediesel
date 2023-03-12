@@ -1,16 +1,3 @@
-local windows_srcs = {
-	"source/windows/win_fs.cpp",
-	"source/windows/win_sys.cpp",
-	"source/windows/win_threads.cpp",
-}
-
-local linux_srcs = {
-	"source/unix/unix_fs.cpp",
-	"source/unix/unix_threads.cpp",
-}
-
-local platform_srcs = OS == "windows" and windows_srcs or linux_srcs
-
 bin( "bc4", {
 	srcs = {
 		"source/tools/bc4/bc4.cpp",
@@ -18,9 +5,10 @@ bin( "bc4", {
 		"source/qcommon/base.cpp",
 		"source/qcommon/fs.cpp",
 		"source/qcommon/hash.cpp",
-		"source/qcommon/strtonum.cpp",
+		"source/qcommon/platform/*_fs.cpp",
+		"source/qcommon/platform/*_sys.cpp",
+		"source/qcommon/platform/*_threads.cpp",
 		"source/gameshared/q_shared.cpp",
-		platform_srcs,
 	},
 
 	libs = {
@@ -32,6 +20,6 @@ bin( "bc4", {
 		"zstd",
 	},
 
-	gcc_extra_ldflags = "-lm -lpthread -ldl",
-	msvc_extra_ldflags = "ole32.lib shell32.lib user32.lib advapi32.lib",
+	windows_ldflags = "ole32.lib shell32.lib user32.lib advapi32.lib",
+	linux_ldflags = "-lm -lpthread -ldl",
 } )

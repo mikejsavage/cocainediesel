@@ -13,5 +13,5 @@
 	if exist %vcvarsall% call %vcvarsall% amd64
 )
 
-ggbuild\lua.exe make.lua > build.ninja
+ggbuild\lua.exe make.lua %1 > build.ninja
 ggbuild\ninja.exe

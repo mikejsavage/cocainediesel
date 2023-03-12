@@ -1,7 +1,7 @@
 /*
- * ggentropy
+ * ggentropy v1.0
  *
- * Copyright (c) 2019 Michael Savage <mike@mikejsavage.co.uk>
+ * Copyright (c) Michael Savage <mike@mikejsavage.co.uk>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -21,22 +21,12 @@
 
 #elif defined( __linux__ )
 #  define PLATFORM_LINUX 1
-#  define PLATFORM_HAS_URANDOM 1
 
 #elif defined( __APPLE__ )
-#  define PLATFORM_MACOS 1
-
-#elif defined( __FreeBSD__ )
 #  define PLATFORM_HAS_ARC4RANDOM 1
 
-#elif defined( __OpenBSD__ )
+#elif defined( __FreeBSD__ ) || defined( __OpenBSD__ ) || defined( __NetBSD__ )
 #  define PLATFORM_HAS_ARC4RANDOM 1
-
-#elif defined( __NetBSD__ )
-#  define PLATFORM_HAS_ARC4RANDOM 1
-
-#elif defined( __sun )
-#  define PLATFORM_HAS_URANDOM 1
 
 #else
 #  error new platform
@@ -44,25 +34,6 @@
 
 #include <stddef.h>
 #include <assert.h>
-
-#if PLATFORM_HAS_URANDOM
-
-#include <stdio.h>
-
-static bool try_urandom( void * buf, size_t n ) {
-	assert( n <= 256 );
-
-	FILE * f = fopen( "/dev/urandom", "r" );
-	if( f == NULL )
-		return false;
-
-	size_t ok = fread( buf, 1, n, f );
-	fclose( f );
-
-	return ok == n;
-}
-
-#endif
 
 #if PLATFORM_WINDOWS
 
@@ -79,37 +50,13 @@ bool ggentropy( void * buf, size_t n ) {
 
 #elif PLATFORM_LINUX
 
-#include <errno.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 
 bool ggentropy( void * buf, size_t n ) {
 	assert( n <= 256 );
-
 	int ok = syscall( SYS_getrandom, buf, n, 0 );
-	if( ok >= 0 && size_t( ok ) == n )
-		return true;
-
-	if( errno != ENOSYS )
-		return false;
-
-	return try_urandom( buf, n );
-}
-
-#elif PLATFORM_MACOS
-
-#include <sys/random.h>
-
-bool ggentropy( void * buf, size_t n ) {
-	assert( n <= 256 );
-	return getentropy( buf, n ) == 0;
-}
-
-#elif PLATFORM_HAS_URANDOM
-
-bool ggentropy( void * buf, size_t n ) {
-	assert( n <= 256 );
-	return try_urandom( buf, n );
+	return ok >= 0 && size_t( ok ) == n;
 }
 
 #elif PLATFORM_HAS_ARC4RANDOM

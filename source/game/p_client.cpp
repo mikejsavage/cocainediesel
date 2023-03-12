@@ -137,7 +137,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	return body;
 }
 
-static void ReleaseWeapons( edict_t * ent ) {
+static void DropHeldItem( edict_t * ent ) {
 	SyncPlayerState * ps = &ent->r.client->ps;
 
 	if( ps->using_gadget ) {
@@ -145,11 +145,30 @@ static void ReleaseWeapons( edict_t * ent ) {
 	}
 }
 
+static void G_GhostClient( edict_t *ent ) {
+	ent->movetype = MOVETYPE_NONE;
+	ent->r.solid = SOLID_NOT;
+
+	memset( &ent->snap, 0, sizeof( ent->snap ) );
+	memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
+	memset( &ent->r.client->resp.chase, 0, sizeof( ent->r.client->resp.chase ) );
+
+	ent->s.type = ET_GHOST;
+	ent->s.effects = 0;
+	ent->s.sound = EMPTY_HASH;
+	ent->viewheight = 0;
+	ent->takedamage = DAMAGE_NO;
+
+	ClearInventory( &ent->r.client->ps );
+
+	GClip_LinkEntity( ent );
+}
+
 void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAssistorEntNo, DamageType damage_type, int damage ) {
 	snap_edict_t snap_backup = ent->snap;
 	client_snapreset_t resp_snap_backup = ent->r.client->resp.snap;
 
-	ReleaseWeapons( ent );
+	DropHeldItem( ent );
 
 	ent->avelocity = Vec3( 0.0f );
 
@@ -243,25 +262,6 @@ void G_ClientClearStats( edict_t * ent ) {
 	memset( G_ClientGetStats( ent ), 0, sizeof( score_stats_t ) );
 }
 
-void G_GhostClient( edict_t *ent ) {
-	ent->movetype = MOVETYPE_NONE;
-	ent->r.solid = SOLID_NOT;
-
-	memset( &ent->snap, 0, sizeof( ent->snap ) );
-	memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
-	memset( &ent->r.client->resp.chase, 0, sizeof( ent->r.client->resp.chase ) );
-
-	ent->s.type = ET_GHOST;
-	ent->s.effects = 0;
-	ent->s.sound = EMPTY_HASH;
-	ent->viewheight = 0;
-	ent->takedamage = DAMAGE_NO;
-
-	ClearInventory( &ent->r.client->ps );
-
-	GClip_LinkEntity( ent );
-}
-
 void G_ClientRespawn( edict_t *self, bool ghost ) {
 	GT_CallPlayerRespawning( self );
 
@@ -334,7 +334,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 	else {
 		self->s.type = ET_PLAYER;
-		const char * mask_name = Info_ValueForKey( self->r.client->userinfo, "cg_mask" );
+		const char * mask_name = Info_ValueForKey( client->userinfo, "cg_mask" );
 		if( mask_name != NULL ) {
 			self->s.mask = StringHash( mask_name );
 		}
@@ -343,8 +343,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->movetype = MOVETYPE_PLAYER;
 		client->ps.pmove.features = PMFEAT_ALL;
 	}
-
-	ClientUserinfoChanged( self, client->userinfo );
 
 	if( old_team != self->s.team ) {
 		G_Teams_UpdateMembersList();
@@ -501,6 +499,10 @@ static Span< const char > Trim( Span< const char > str ) {
 }
 
 static Optional< Span< const char > > ValidateAndTrimName( const char * name ) {
+	if( name == NULL ) {
+		return NONE;
+	}
+
 	// limit names to ASCII with at least one non-space char
 	Span< const char > trimmed = Trim( MakeSpan( name ) );
 
@@ -562,6 +564,10 @@ void ClientUserinfoChanged( edict_t * ent, const char * userinfo ) {
 	if( !Info_Validate( userinfo ) ) {
 		PF_DropClient( ent, "Error: Invalid userinfo" );
 		return;
+	}
+
+	if( Info_ValueForKey( userinfo, "name" ) == NULL ) {
+		G_DebugPrint( "Client userinfo with no name key: %s\n", userinfo );
 	}
 
 	char oldname[ MAX_NAME_CHARS + 1 ];
@@ -792,8 +798,8 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 			i = 0;
 		}
 		for( count = 0, delta = 0; i < client->timeDeltasHead; i++ ) {
-			if( client->timeDeltas[i & G_MAX_TIME_DELTAS_MASK] < 0 ) {
-				delta += client->timeDeltas[i & G_MAX_TIME_DELTAS_MASK];
+			if( client->timeDeltas[ i % ARRAY_COUNT( client->timeDeltas ) ] < 0 ) {
+				delta += client->timeDeltas[ i % ARRAY_COUNT( client->timeDeltas ) ];
 				count++;
 			}
 		}
@@ -805,7 +811,7 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 			client->timeDelta = ( delta + timeDelta ) * 0.5;
 		}
 
-		client->timeDeltas[client->timeDeltasHead & G_MAX_TIME_DELTAS_MASK] = timeDelta;
+		client->timeDeltas[ client->timeDeltasHead % ARRAY_COUNT( client->timeDeltas ) ] = timeDelta;
 		client->timeDeltasHead++;
 	}
 

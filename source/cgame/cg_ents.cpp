@@ -290,7 +290,7 @@ bool CG_NewFrameSnap( snapshot_t *frame, snapshot_t *lerpframe ) {
 	CG_UpdatePlayerState();
 
 	for( int i = 0; i < frame->numEntities; i++ ) {
-		CG_NewPacketEntityState( &frame->parsedEntities[i & ( MAX_PARSE_ENTITIES - 1 )] );
+		CG_NewPacketEntityState( &frame->parsedEntities[ i % ARRAY_COUNT( frame->parsedEntities ) ] );
 	}
 
 	if( !cg.frame.valid ) {
@@ -657,7 +657,7 @@ void DrawEntities() {
 	TracyZoneScoped;
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
-		SyncEntityState * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
+		SyncEntityState * state = &cg.frame.parsedEntities[ pnum % ARRAY_COUNT( cg.frame.parsedEntities ) ];
 		centity_t * cent = &cg_entities[state->number];
 
 		if( cent->current.linearMovement ) {
@@ -816,9 +816,9 @@ void CG_LerpEntities() {
 	TracyZoneScoped;
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
-		SyncEntityState * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
+		const SyncEntityState * state = &cg.frame.parsedEntities[ pnum % ARRAY_COUNT( cg.frame.parsedEntities ) ];
 		int number = state->number;
-		centity_t * cent = &cg_entities[number];
+		centity_t * cent = &cg_entities[ number ];
 		cent->interpolated = { };
 
 		switch( cent->type ) {
@@ -887,7 +887,7 @@ void CG_UpdateEntities() {
 	TracyZoneScoped;
 
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
-		SyncEntityState * state = &cg.frame.parsedEntities[pnum & ( MAX_PARSE_ENTITIES - 1 )];
+		SyncEntityState * state = &cg.frame.parsedEntities[ pnum % ARRAY_COUNT( cg.frame.parsedEntities ) ];
 
 		if( cgs.demoPlaying ) {
 			if( ( state->svflags & SVF_ONLYTEAM ) && cg.predictedPlayerState.team != state->team )

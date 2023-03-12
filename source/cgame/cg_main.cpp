@@ -55,22 +55,6 @@ static void CG_GS_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end,
 	CG_Trace( t, start, mins, maxs, end, ignore, contentmask );
 }
 
-static SyncEntityState *CG_GS_GetEntityState( int entNum, int deltaTime ) {
-	centity_t *cent;
-
-	if( entNum == -1 ) {
-		return NULL;
-	}
-
-	Assert( entNum >= 0 && entNum < MAX_EDICTS );
-	cent = &cg_entities[entNum];
-
-	if( cent->serverFrame != cg.frame.serverFrame ) {
-		return NULL;
-	}
-	return &cent->current;
-}
-
 static void CG_InitGameShared( int max_clients ) {
 	client_gs = { };
 	client_gs.module = GS_MODULE_CGAME;
@@ -81,7 +65,6 @@ static void CG_InitGameShared( int max_clients ) {
 	client_gs.api.PredictedAltFireWeapon = CG_PredictedAltFireWeapon;
 	client_gs.api.PredictedUseGadget = CG_PredictedUseGadget;
 	client_gs.api.Trace = CG_GS_Trace;
-	client_gs.api.GetEntityState = CG_GS_GetEntityState;
 	client_gs.api.PMoveTouchTriggers = CG_Predict_TouchTriggers;
 }
 

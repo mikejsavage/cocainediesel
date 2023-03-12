@@ -302,7 +302,6 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 
 //=========================================================
 #define CG_MAX_ANNOUNCER_EVENTS 32
-#define CG_MAX_ANNOUNCER_EVENTS_MASK ( CG_MAX_ANNOUNCER_EVENTS - 1 )
 #define CG_ANNOUNCER_EVENTS_FRAMETIME 1500 // the announcer will speak each 1.5 seconds
 struct cg_announcerevent_t {
 	StringHash sound;
@@ -354,7 +353,7 @@ void CG_AddAnnouncerEvent( StringHash sound, bool queued ) {
 	}
 
 	// add it
-	cg_announcerEvents[ cg_announcerEventsHead & CG_MAX_ANNOUNCER_EVENTS_MASK ].sound = sound;
+	cg_announcerEvents[ cg_announcerEventsHead % ARRAY_COUNT( cg_announcerEvents ) ].sound = sound;
 	cg_announcerEventsHead++;
 }
 
@@ -366,7 +365,7 @@ void CG_ReleaseAnnouncerEvents() {
 	}
 
 	if( cg_announcerEventsCurrent < cg_announcerEventsHead ) {
-		StringHash sound = cg_announcerEvents[ cg_announcerEventsCurrent & CG_MAX_ANNOUNCER_EVENTS_MASK ].sound;
+		StringHash sound = cg_announcerEvents[ cg_announcerEventsCurrent % ARRAY_COUNT( cg_announcerEvents ) ].sound;
 		PlayAnnouncerSound( sound );
 		cg_announcerEventsDelay = CG_ANNOUNCER_EVENTS_FRAMETIME; // wait
 		cg_announcerEventsCurrent++;
@@ -958,7 +957,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 
 static void CG_FireEntityEvents( bool early ) {
 	for( int pnum = 0; pnum < cg.frame.numEntities; pnum++ ) {
-		SyncEntityState * state = &cg.frame.parsedEntities[ pnum & ( MAX_PARSE_ENTITIES - 1 ) ];
+		SyncEntityState * state = &cg.frame.parsedEntities[ pnum % ARRAY_COUNT( cg.frame.parsedEntities ) ];
 
 		if( cgs.demoPlaying ) {
 			if( ( state->svflags & SVF_ONLYTEAM ) && cg.predictedPlayerState.team != state->team )

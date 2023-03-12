@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <type_traits>
 
 #include "qcommon/qcommon.h"
-#include "qcommon/half_float.h"
 #include "qcommon/serialization.h"
 
 #define MAX_MSG_STRING_CHARS    2048
@@ -227,19 +226,27 @@ static void Delta( DeltaBuffer * buf, RGBA8 & rgba, const RGBA8 & baseline ) {
 }
 
 template< size_t N >
+constexpr auto SmallestSufficientIntType() {
+	if constexpr ( N < ( 1_u64 << 8 ) ) { return u8(); }
+	else if constexpr ( N < ( 1_u64 << 16 ) ) { return u16(); }
+	else if constexpr ( N < ( 1_u64 << 32 ) ) { return u32(); }
+	else { return u64(); }
+}
+
+template< size_t N >
 static void DeltaString( DeltaBuffer * buf, char ( &str )[ N ], const char ( &baseline )[ N ] ) {
 	if( buf->serializing ) {
 		bool diff = !StrEqual( str, baseline );
 		AddBit( buf, diff );
 		if( diff ) {
-			size_t n = strlen( str );
+			decltype( SmallestSufficientIntType< N >() ) n = strlen( str );
 			AddBytes( buf, &n, sizeof( n ) );
 			AddBytes( buf, str, n );
 		}
 	}
 	else {
 		if( GetBit( buf ) ) {
-			size_t n;
+			decltype( SmallestSufficientIntType< N >() ) n;
 			GetBytes( buf, &n, sizeof( n ) );
 			GetBytes( buf, str, n );
 			str[ n ] = '\0';
@@ -257,13 +264,6 @@ void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
 	if( x < 0 || x >= count ) {
 		buf->error = true;
 	}
-}
-
-static void DeltaHalf( DeltaBuffer * buf, float & x, const float & baseline ) {
-	u16 half_x = FloatToHalf( x );
-	u16 half_baseline = FloatToHalf( baseline );
-	Delta( buf, half_x, half_baseline );
-	x = HalfToFloat( half_x );
 }
 
 static void DeltaAngle( DeltaBuffer * buf, float & x, const float & baseline ) {
@@ -620,7 +620,7 @@ static void Delta( DeltaBuffer * buf, SyncPlayerState & player, const SyncPlayer
 	Delta( buf, player.POVnum, baseline.POVnum );
 	Delta( buf, player.playerNum, baseline.playerNum );
 
-	DeltaHalf( buf, player.viewheight, baseline.viewheight );
+	Delta( buf, player.viewheight, baseline.viewheight );
 
 	Delta( buf, player.weapons, baseline.weapons );
 	DeltaEnum( buf, player.gadget, baseline.gadget, Gadget_Count );

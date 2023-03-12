@@ -1,7 +1,7 @@
 /*
- * ggentropy
+ * ggentropy v1.0
  *
- * Copyright (c) 2019 Michael Savage <mike@mikejsavage.co.uk>
+ * Copyright (c) Michael Savage <mike@mikejsavage.co.uk>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above

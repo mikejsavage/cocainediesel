@@ -378,7 +378,7 @@ bool CM_AreasConnected( const CollisionModel *cms, int area1, int area2 ) {
 	return false;
 }
 
-static int CM_MergeAreaBits( CollisionModel *cms, uint8_t *buffer, int area ) {
+static int CM_MergeAreaBits( const CollisionModel *cms, uint8_t *buffer, int area ) {
 	int i;
 
 	if( area < 0 ) {
@@ -394,7 +394,7 @@ static int CM_MergeAreaBits( CollisionModel *cms, uint8_t *buffer, int area ) {
 	return CM_AreaRowSize( cms );
 }
 
-void CM_WriteAreaBits( CollisionModel *cms, uint8_t *buffer ) {
+void CM_WriteAreaBits( const CollisionModel *cms, uint8_t *buffer ) {
 	int rowsize = CM_AreaRowSize( cms );
 	int bytes = rowsize * cms->numareas;
 
@@ -411,7 +411,7 @@ void CM_WriteAreaBits( CollisionModel *cms, uint8_t *buffer ) {
 * Returns true if any leaf under headnode has a cluster that
 * is potentially visible
 */
-bool CM_HeadnodeVisible( CollisionModel *cms, int nodenum, uint8_t *visbits ) {
+bool CM_HeadnodeVisible( const CollisionModel *cms, int nodenum, const uint8_t *visbits ) {
 	int cluster;
 	cnode_t *node;
 
@@ -438,7 +438,7 @@ bool CM_HeadnodeVisible( CollisionModel *cms, int nodenum, uint8_t *visbits ) {
 * CM_MergePVS
 * Merge PVS at origin into out
 */
-void CM_MergePVS( CollisionModel *cms, Vec3 org, uint8_t *out ) {
+void CM_MergePVS( const CollisionModel *cms, Vec3 org, uint8_t *out ) {
 	int leafs[128];
 	int i, j, count;
 	int longs;

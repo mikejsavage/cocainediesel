@@ -310,9 +310,9 @@ void ShutdownWebServer();
 // snap_write
 //
 void SNAP_WriteFrameSnapToClient( ginfo_t *gi, client_t *client, msg_t *msg, int64_t frameNum, int64_t gameTime,
-	SyncEntityState *baselines, client_entities_t *client_entities );
+	const SyncEntityState *baselines, const client_entities_t *client_entities );
 
-void SNAP_BuildClientFrameSnap( CollisionModel *cms, ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
+void SNAP_BuildClientFrameSnap( CollisionModel *cms, const ginfo_t *gi, int64_t frameNum, int64_t timeStamp,
 	client_t *client,
-	SyncGameState *gameState, client_entities_t *client_entities );
+	const SyncGameState *gameState, client_entities_t *client_entities );
 void SNAP_FreeClientFrames( client_t * client );

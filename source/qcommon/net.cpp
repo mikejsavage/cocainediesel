@@ -3,9 +3,9 @@
 #include "qcommon/sys_net.h"
 
 #if PLATFORM_WINDOWS
-#include "windows/win_net.h"
-#else
-#include "unix/unix_net.h"
+#include "qcommon/platform/windows_net_headers.h"
+#elif PLATFORM_UNIX
+#include "qcommon/platform/unix_net_headers.h"
 #endif
 
 static NetAddress SockaddrToNetAddress( const sockaddr_storage * sockaddr ) {

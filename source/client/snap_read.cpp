@@ -21,14 +21,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/qcommon.h"
 #include "cgame/cg_public.h"
 
-/*
-=========================================================================
-
-UTILITY FUNCTIONS
-
-=========================================================================
-*/
-
 const char * const svc_strings[256] = {
 	"svc_servercmd",
 	"svc_serverdata",
@@ -48,24 +40,10 @@ void _SHOWNET( msg_t *msg, const char *s, int shownet ) {
 	}
 }
 
-/*
-=========================================================================
-
-FRAME PARSING
-
-=========================================================================
-*/
-
-/*
-* SNAP_ParseDeltaGameState
-*/
 static void SNAP_ParseDeltaGameState( msg_t *msg, snapshot_t *oldframe, snapshot_t *newframe ) {
 	MSG_ReadDeltaGameState( msg, oldframe ? &oldframe->gameState : NULL, &newframe->gameState );
 }
 
-/*
-* SNAP_ParsePlayerstate
-*/
 static void SNAP_ParsePlayerstate( msg_t *msg, const SyncPlayerState *oldstate, SyncPlayerState *state ) {
 	MSG_ReadDeltaPlayerState( msg, oldstate, state );
 }
@@ -76,15 +54,12 @@ static void SNAP_ParsePlayerstate( msg_t *msg, const SyncPlayerState *oldstate, 
 * Parses deltas from the given base and adds the resulting entity to the current frame
 */
 static void SNAP_ParseDeltaEntity( msg_t *msg, snapshot_t *frame, int newnum, SyncEntityState *old ) {
-	SyncEntityState * state = &frame->parsedEntities[frame->numEntities & ( MAX_PARSE_ENTITIES - 1 )];
+	SyncEntityState * state = &frame->parsedEntities[ frame->numEntities % ARRAY_COUNT( frame->parsedEntities ) ];
 	frame->numEntities++;
 	MSG_ReadDeltaEntity( msg, old, state );
 	state->number = newnum;
 }
 
-/*
-* SNAP_ParseBaseline
-*/
 void SNAP_ParseBaseline( msg_t *msg, SyncEntityState *baselines ) {
 	bool remove;
 	int newnum = MSG_ReadEntityNumber( msg, &remove );
@@ -118,7 +93,7 @@ static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot
 	} else if( oldindex >= oldframe->numEntities ) {
 		oldnum = 99999;
 	} else {
-		oldstate = &oldframe->parsedEntities[oldindex & ( MAX_PARSE_ENTITIES - 1 )];
+		oldstate = &oldframe->parsedEntities[ oldindex % ARRAY_COUNT( oldframe->parsedEntities ) ];
 		oldnum = oldstate->number;
 	}
 
@@ -141,14 +116,14 @@ static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot
 				Com_Printf( "   unchanged: %i\n", oldnum );
 			}
 
-			newframe->parsedEntities[newframe->numEntities & ( MAX_PARSE_ENTITIES - 1 )] = *oldstate;
+			newframe->parsedEntities[ newframe->numEntities % ARRAY_COUNT( newframe->parsedEntities ) ] = *oldstate;
 			newframe->numEntities++;
 
 			oldindex++;
 			if( oldindex >= oldframe->numEntities ) {
 				oldnum = 99999;
 			} else {
-				oldstate = &oldframe->parsedEntities[oldindex & ( MAX_PARSE_ENTITIES - 1 )];
+				oldstate = &oldframe->parsedEntities[ oldindex % ARRAY_COUNT( oldframe->parsedEntities ) ];
 				oldnum = oldstate->number;
 			}
 		}
@@ -184,7 +159,7 @@ static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot
 				if( oldindex >= oldframe->numEntities ) {
 					oldnum = 99999;
 				} else {
-					oldstate = &oldframe->parsedEntities[oldindex & ( MAX_PARSE_ENTITIES - 1 )];
+					oldstate = &oldframe->parsedEntities[ oldindex % ARRAY_COUNT( oldframe->parsedEntities ) ];
 					oldnum = oldstate->number;
 				}
 				continue;
@@ -201,7 +176,7 @@ static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot
 			if( oldindex >= oldframe->numEntities ) {
 				oldnum = 99999;
 			} else {
-				oldstate = &oldframe->parsedEntities[oldindex & ( MAX_PARSE_ENTITIES - 1 )];
+				oldstate = &oldframe->parsedEntities[ oldindex % ARRAY_COUNT( oldframe->parsedEntities ) ];
 				oldnum = oldstate->number;
 			}
 			continue;
@@ -215,32 +190,26 @@ static void SNAP_ParsePacketEntities( msg_t *msg, snapshot_t *oldframe, snapshot
 			Com_Printf( "   unchanged: %i\n", oldnum );
 		}
 
-		newframe->parsedEntities[newframe->numEntities & ( MAX_PARSE_ENTITIES - 1 )] = *oldstate;
+		newframe->parsedEntities[ newframe->numEntities % ARRAY_COUNT( newframe->parsedEntities ) ] = *oldstate;
 		newframe->numEntities++;
 
 		oldindex++;
 		if( oldindex >= oldframe->numEntities ) {
 			oldnum = 99999;
 		} else {
-			oldstate = &oldframe->parsedEntities[oldindex & ( MAX_PARSE_ENTITIES - 1 )];
+			oldstate = &oldframe->parsedEntities[ oldindex % ARRAY_COUNT( oldframe->parsedEntities ) ];
 			oldnum = oldstate->number;
 		}
 	}
 }
 
-/*
-* SNAP_ParseFrameHeader
-*/
 static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snapshot_t *backup ) {
-	int64_t serverTime;
-	int flags, snapNum;
-
 	// get the snapshot id
-	serverTime = MSG_ReadIntBase128( msg );
-	snapNum = MSG_ReadUintBase128( msg );
+	s64 serverTime = MSG_ReadIntBase128( msg );
+	int snapNum = MSG_ReadUintBase128( msg );
 
 	if( backup ) {
-		newframe = &backup[snapNum & UPDATE_MASK];
+		newframe = &backup[snapNum % CMD_BACKUP];
 	}
 
 	memset( newframe, 0, sizeof( snapshot_t ) );
@@ -250,7 +219,7 @@ static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snap
 	newframe->deltaFrameNum = MSG_ReadUintBase128( msg );
 	newframe->ucmdExecuted = MSG_ReadUintBase128( msg );
 
-	flags = MSG_ReadUint8( msg );
+	u8 flags = MSG_ReadUint8( msg );
 	newframe->delta = ( flags & FRAMESNAP_FLAG_DELTA ) ? true : false;
 	newframe->multipov = ( flags & FRAMESNAP_FLAG_MULTIPOV ) ? true : false;
 	newframe->allentities = ( flags & FRAMESNAP_FLAG_ALLENTITIES ) ? true : false;
@@ -268,7 +237,7 @@ static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snap
 		if( newframe->deltaFrameNum <= 0 ) {
 			Com_Printf( "Invalid delta frame (not supposed to happen!).\n" );
 		} else if( backup ) {
-			snapshot_t *deltaframe = &backup[newframe->deltaFrameNum & UPDATE_MASK];
+			snapshot_t *deltaframe = &backup[newframe->deltaFrameNum % CMD_BACKUP];
 			if( !deltaframe->valid ) {
 				// should never happen
 				Com_Printf( "Delta from invalid frame (not supposed to happen!).\n" );
@@ -285,9 +254,6 @@ static snapshot_t *SNAP_ParseFrameHeader( msg_t *msg, snapshot_t *newframe, snap
 	return newframe;
 }
 
-/*
-* SNAP_ParseFrame
-*/
 snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t *backup, SyncEntityState *baselines, int showNet ) {
 	snapshot_t  *deltaframe;
 	int numplayers;
@@ -307,7 +273,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t
 
 	if( newframe->delta ) {
 		if( newframe->deltaFrameNum > 0 ) {
-			deltaframe = &backup[newframe->deltaFrameNum & UPDATE_MASK];
+			deltaframe = &backup[newframe->deltaFrameNum % CMD_BACKUP];
 		}
 	}
 
@@ -325,7 +291,7 @@ snapshot_t *SNAP_ParseFrame( msg_t *msg, const snapshot_t *lastFrame, snapshot_t
 		if( newframe->valid &&
 			( !lastFrame || !lastFrame->valid || newframe->serverFrame > lastFrame->serverFrame + framediff ) ) {
 			newframe->numgamecommands++;
-			if( newframe->numgamecommands > MAX_PARSE_GAMECOMMANDS ) {
+			if( newframe->numgamecommands > ARRAY_COUNT( newframe->gamecommands ) ) {
 				Com_Error( "SNAP_ParseFrame: too many gamecommands" );
 			}
 			if( newframe->gamecommandsDataHead + strlen( text ) >= sizeof( newframe->gamecommandsData ) ) {

@@ -28,12 +28,13 @@
 .vs/
 .vscode/
 
-*.asd
-*.dll
-*.so
-*.exe
-*.exp
-*.ilk
-*.lib
-*.pdb
+/*.asd
+/*.dll
+/*.so
+/*.exe
+/*.exp
+/*.ilk
+/*.lib
+/*.pdb
+
 *.cddemo

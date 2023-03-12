@@ -90,7 +90,7 @@ static void CL_RefreshUcmd( UserCommand *ucmd, int msec, bool ready ) {
 		ucmd->serverTimeStamp = cl.serverTime; // return the time stamp to the server
 
 		if( cl.cmdNum > 0 ) {
-			ucmd->msec = ucmd->serverTimeStamp - cl.cmds[( cl.cmdNum - 1 ) & CMD_MASK].serverTimeStamp;
+			ucmd->msec = ucmd->serverTimeStamp - cl.cmds[ ( cl.cmdNum - 1 ) % ARRAY_COUNT( cl.cmds ) ].serverTimeStamp;
 		} else {
 			ucmd->msec = 20;
 		}
@@ -139,14 +139,14 @@ void CL_WriteUcmdsToMessage( msg_t *msg ) {
 	}
 
 	// if this happens, the player is in a freezing lag. Send him the less possible data
-	if( ( ucmdHead - ucmdFirst ) + resendCount > CMD_MASK * 0.5 ) {
+	if( ( ucmdHead - ucmdFirst ) + resendCount >= CMD_BACKUP / 2 ) {
 		resendCount = 0;
 	}
 
 	// move the start backwards to the resend point
 	ucmdFirst = ( ucmdFirst > resendCount ) ? ucmdFirst - resendCount : ucmdFirst;
 
-	if( ucmdHead - ucmdFirst > CMD_MASK ) { // ran out of updates, seduce the send to try to recover activity
+	if( ucmdHead - ucmdFirst >= CMD_BACKUP ) { // ran out of updates, seduce the send to try to recover activity
 		ucmdFirst = ucmdHead - 3;
 	}
 
@@ -159,7 +159,7 @@ void CL_WriteUcmdsToMessage( msg_t *msg ) {
 	if( cl.receivedSnapNum <= 0 ) {
 		MSG_WriteInt32( msg, -1 );
 	} else {
-		MSG_WriteInt32( msg, cl.snapShots[cl.receivedSnapNum & UPDATE_MASK].serverFrame );
+		MSG_WriteInt32( msg, cl.snapShots[ cl.receivedSnapNum % ARRAY_COUNT( cl.snapShots ) ].serverFrame );
 	}
 
 	// Write the actual ucmds
@@ -173,7 +173,7 @@ void CL_WriteUcmdsToMessage( msg_t *msg ) {
 
 	// write the ucmds
 	for( unsigned int i = ucmdFirst; i < ucmdHead; i++ ) {
-		const UserCommand * cmd = &cl.cmds[i & CMD_MASK];
+		const UserCommand * cmd = &cl.cmds[ i % ARRAY_COUNT( cl.cmds ) ];
 		MSG_WriteDeltaUsercmd( msg, oldcmd, cmd );
 		oldcmd = cmd;
 	}
@@ -238,20 +238,20 @@ static void CL_CreateNewUserCommand( int realMsec ) {
 
 	if( !CL_NextUserCommandTimeReached( realMsec ) ) {
 		// refresh current command with up to date data for movement prediction
-		CL_RefreshUcmd( &cl.cmds[cls.ucmdHead & CMD_MASK], realMsec, false );
+		CL_RefreshUcmd( &cl.cmds[ cls.ucmdHead % ARRAY_COUNT( cl.cmds ) ], realMsec, false );
 		return;
 	}
 
 	cl.cmdNum = cls.ucmdHead;
-	cl.cmd_time[cl.cmdNum & CMD_MASK] = cls.realtime;
+	cl.cmd_time[ cl.cmdNum % ARRAY_COUNT( cl.cmds ) ] = cls.realtime;
 
-	ucmd = &cl.cmds[cl.cmdNum & CMD_MASK];
+	ucmd = &cl.cmds[ cl.cmdNum % ARRAY_COUNT( cl.cmds ) ];
 
 	CL_RefreshUcmd( ucmd, realMsec, true );
 
 	// advance head and init the new command
 	cls.ucmdHead++;
-	ucmd = &cl.cmds[cls.ucmdHead & CMD_MASK];
+	ucmd = &cl.cmds[ cls.ucmdHead % ARRAY_COUNT( cl.cmds ) ];
 	memset( ucmd, 0, sizeof( UserCommand ) );
 	ucmd->entropy = Random32( &cls.rng );
 

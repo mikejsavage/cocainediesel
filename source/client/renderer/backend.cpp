@@ -3,6 +3,7 @@
 
 #include "glad/glad.h"
 
+#include "tracy/Tracy.hpp"
 #include "tracy/TracyOpenGL.hpp"
 
 #include "qcommon/base.h"

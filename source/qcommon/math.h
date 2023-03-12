@@ -1,6 +1,6 @@
 // include base.h instead of this
 
-#if COMPILER_CLANG
+#if PLATFORM_LINUX && COMPILER_CLANG
 #define MATH_DECLARATION_NOTHROW throw()
 #else
 #define MATH_DECLARATION_NOTHROW
@@ -28,19 +28,19 @@ extern "C" float roundf( float ) MATH_DECLARATION_NOTHROW;
 
 constexpr float PI = 3.14159265358979323846f;
 
-inline constexpr float Radians( float d ) { return d * PI / 180.0f; }
-inline constexpr float Degrees( float r ) { return r * 180.0f / PI; }
+constexpr float Radians( float d ) { return d * PI / 180.0f; }
+constexpr float Degrees( float r ) { return r * 180.0f / PI; }
 
 template< typename T >
 T Abs( const T & x ) {
 	return x >= 0 ? x : -x;
 }
 
-inline float Square( float x ) {
+constexpr float Square( float x ) {
 	return x * x;
 }
 
-inline float Cube( float x ) {
+constexpr float Cube( float x ) {
 	return x * x * x;
 }
 

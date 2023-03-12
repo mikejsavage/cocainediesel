@@ -1136,14 +1136,15 @@ static void TouchShuriken( edict_t * ent, edict_t * other, const Plane * plane, 
 }
 
 static void UseRocket( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	edict_t * rocket = FireLinearProjectile( self, start, angles, timeDelta, GadgetProjectileStats( Gadget_Rocket ) );
+	edict_t * rocket = FireProjectile( self, start, angles, timeDelta, GadgetProjectileStats( Gadget_Rocket ) );
 
 	rocket->s.type = ET_ROCKET;
+	rocket->movetype = MOVETYPE_BOUNCE;
 	rocket->classname = "rocket";
-	rocket->s.model = "weapons/rl/rocket";
-	rocket->s.sound = "weapons/rl/trail";
-	rocket->projectileInfo.explosion_vfx = "vfx/explosion";
-	rocket->projectileInfo.explosion_sfx = "weapons/rl/explode";
+	rocket->s.model = "gadgets/rocket/model";
+	rocket->s.sound = "gadgets/rocket/trail";
+	rocket->projectileInfo.explosion_vfx = "gadgets/rocket/explode";
+	rocket->projectileInfo.explosion_sfx = "gadgets/rocket/explode";
 	rocket->touch = W_Touch_Rocket;
 }
 

@@ -45,34 +45,7 @@ require( "source.tools.bc4" )
 require( "source.tools.dieselmap" )
 
 do
-	local platform_srcs
-	local platform_libs
-
-	if OS == "windows" then
-		platform_srcs = {
-			"source/windows/win_client.cpp",
-			"source/windows/win_console.cpp",
-			"source/windows/win_fs.cpp",
-			"source/windows/win_livepp.cpp",
-			"source/windows/win_net.cpp",
-			"source/windows/win_sys.cpp",
-			"source/windows/win_threads.cpp",
-			"source/windows/win_time.cpp",
-		}
-		platform_libs = { }
-	else
-		platform_srcs = {
-			"source/unix/unix_client.cpp",
-			"source/unix/unix_console.cpp",
-			"source/unix/unix_fs.cpp",
-			"source/unix/unix_livepp.cpp",
-			"source/unix/unix_net.cpp",
-			"source/unix/unix_sys.cpp",
-			"source/unix/unix_threads.cpp",
-			"source/unix/unix_time.cpp",
-		}
-		platform_libs = { "mbedtls" }
-	end
+	local platform_libs = OS == "linux" and { "mbedtls" } or { }
 
 	bin( "client", {
 		srcs = {
@@ -80,9 +53,8 @@ do
 			"source/client/**.cpp",
 			"source/game/**.cpp",
 			"source/gameshared/*.cpp",
-			"source/qcommon/*.cpp",
+			"source/qcommon/**.cpp",
 			"source/server/sv_*.cpp",
-			platform_srcs
 		},
 
 		libs = {
@@ -112,46 +84,21 @@ do
 			platform_libs,
 		},
 
-		rc = "source/windows/client",
+		rc = "source/client/platform/client",
 
-		gcc_extra_ldflags = "-lm -lpthread -ldl",
-		msvc_extra_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib /SUBSYSTEM:WINDOWS",
+		windows_ldflags = "shell32.lib gdi32.lib ole32.lib oleaut32.lib ws2_32.lib crypt32.lib winmm.lib version.lib imm32.lib advapi32.lib /SUBSYSTEM:WINDOWS",
+		linux_ldflags = "-lm -lpthread -ldl",
 		no_static_link = true,
 	} )
 end
 
 do
-	local platform_srcs
-
-	if OS == "windows" then
-		platform_srcs = {
-			"source/windows/win_console.cpp",
-			"source/windows/win_fs.cpp",
-			"source/windows/win_net.cpp",
-			"source/windows/win_server.cpp",
-			"source/windows/win_sys.cpp",
-			"source/windows/win_threads.cpp",
-			"source/windows/win_time.cpp",
-		}
-	else
-		platform_srcs = {
-			"source/unix/unix_console.cpp",
-			"source/unix/unix_fs.cpp",
-			"source/unix/unix_net.cpp",
-			"source/unix/unix_server.cpp",
-			"source/unix/unix_sys.cpp",
-			"source/unix/unix_threads.cpp",
-			"source/unix/unix_time.cpp",
-		}
-	end
-
 	bin( "server", {
 		srcs = {
 			"source/game/**.cpp",
 			"source/gameshared/*.cpp",
-			"source/qcommon/*.cpp",
-			"source/server/*.cpp",
-			platform_srcs
+			"source/qcommon/**.cpp",
+			"source/server/**.cpp",
 		},
 
 		libs = {
@@ -164,8 +111,8 @@ do
 			"zstd",
 		},
 
-		gcc_extra_ldflags = "-lm -lpthread",
-		msvc_extra_ldflags = "ole32.lib ws2_32.lib crypt32.lib shell32.lib user32.lib advapi32.lib",
+		windows_ldflags = "ole32.lib ws2_32.lib crypt32.lib shell32.lib user32.lib advapi32.lib",
+		linux_ldflags = "-lm -lpthread",
 	} )
 end
 

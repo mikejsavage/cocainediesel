@@ -261,7 +261,7 @@ enum EventType {
 
 enum JumpType : u8 {
 	JumpType_Normal,
-	JumpType_WheelDash
+	JumpType_WheelDash,
 };
 
 enum playerstate_event_t {

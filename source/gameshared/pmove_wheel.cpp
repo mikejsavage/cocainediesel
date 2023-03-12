@@ -10,7 +10,6 @@ static constexpr float jump_buffering = 0.1f;
 static constexpr float min_bounce_speed = 250.0f;
 static constexpr float bounce_factor = 0.5f;
 
-
 static constexpr float stamina_recover = 0.65f;
 static constexpr float stamina_recover_used = 0.2f;
 
@@ -51,8 +50,6 @@ static void PM_WheelDash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 	}
 }
 
-
-//in this one we don't care about pressing special
 static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( pressed ) {
 		if( ps->pmove.stamina_stored > 0.0 && !( ps->pmove.pm_flags & PMF_ABILITY1_HELD ) ) {
@@ -65,7 +62,7 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 	} else {
 		ps->pmove.pm_flags &= ~PMF_ABILITY1_HELD;
 	}
-	
+
 	ps->pmove.stamina_stored = Max2( 0.0f, ps->pmove.stamina_stored - pml->frametime );
 
 	//bounce
@@ -81,7 +78,7 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 	{
 		Vec3 normal( 0.0f );
 		PlayerTouchWall( pm, pml, pmove_gs, 12, 0.3f, &normal, true, SURF_LADDER );
-		if( !Length( normal ) )
+		if( normal == Vec3( 0.0f ) )
 			return;
 
 		//don't want to bounce everywhere while falling imo
@@ -97,7 +94,6 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 		}
 	}
 }
-
 
 void PM_WheelInit( pmove_t * pm, pml_t * pml ) {
 	PM_InitPerk( pm, pml, Perk_Wheel, PM_WheelJump, PM_WheelDash );

@@ -662,8 +662,7 @@ float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
 //
 //==============================================================================
 
-static void G_SpawnTeleportEffect( edict_t *ent, bool respawn, bool in ) {
-	edict_t *event;
+static void G_SpawnTeleportEffect( edict_t * ent, bool respawn, bool in ) {
 	constexpr StringHash tele_in = "sounds/world/tele_in";
 	constexpr StringHash tele_out = "sounds/world/tele_in";
 
@@ -676,9 +675,11 @@ static void G_SpawnTeleportEffect( edict_t *ent, bool respawn, bool in ) {
 	}
 
 	// add a teleportation effect
+	edict_t * event;
 	if( respawn ) {
 		event = G_SpawnEvent( EV_PLAYER_RESPAWN, 0, &ent->s.origin );
-	} else {
+	}
+	else {
 		event = G_SpawnEvent( EV_SOUND_ORIGIN, in ? tele_in.hash : tele_out.hash, &ent->s.origin );
 	}
 	event->s.ownerNum = ENTNUM( ent );

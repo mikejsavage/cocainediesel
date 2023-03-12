@@ -541,10 +541,10 @@ void CG_JetpackEffect( centity_t * cent ) {
 
 static void CG_PlayJumpSound( const SyncEntityState * state, JumpType j ) {
 	switch( j ) {
-	case JumpType_Normal:
-		return CG_PlayerSound( state->number, PlayerSound_Jump, true );
-	case JumpType_WheelDash:
-		return CG_PlayerSound( state->number, PlayerSound_WallJump, true );
+		case JumpType_Normal:
+			return CG_PlayerSound( state->number, PlayerSound_Jump, true );
+		case JumpType_WheelDash:
+			return CG_PlayerSound( state->number, PlayerSound_WallJump, true );
 	}
 }
 
@@ -590,9 +590,10 @@ static void DoEntFX( const SyncEntityState * ent, u64 parm, Vec4 color, StringHa
 }
 
 static PlayingSFXHandle PlayEntityOrFirstPersonSFX( StringHash sfx, int ent_num ) {
-	return 	ISVIEWERENTITY( ent_num ) ?
-			PlaySFX( sfx ) :
-			PlaySFX( sfx, PlaySFXConfigEntity( ent_num ) );
+	if( ISVIEWERENTITY( ent_num ) ) {
+		return PlaySFX( sfx )
+	}
+	return PlaySFX( sfx, PlaySFXConfigEntity( ent_num ) );
 }
 
 void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {

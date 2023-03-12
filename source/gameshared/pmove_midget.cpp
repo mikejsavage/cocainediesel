@@ -10,7 +10,6 @@ static constexpr float stamina_use = 0.15f;
 static constexpr float stamina_use_moving = 0.3f;
 static constexpr float stamina_recover = 1.0f;
 
-
 static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps ) {
 	if( !StaminaAvailable( ps, pml, stamina_use ) ) {
 		return false;
@@ -31,7 +30,6 @@ static bool CanClimb( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Sy
 	return false;
 }
 
-
 static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( pm->groundentity == -1 ) {
 		return;
@@ -45,7 +43,6 @@ static void PM_MidgetJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_g
 
 	Jump( pm, pml, pmove_gs, ps, jumpspeed, true );
 }
-
 
 static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, SyncPlayerState * ps, bool pressed ) {
 	if( ps->pmove.stamina_state == Stamina_Normal && !( ps->pmove.pm_flags & PMF_ABILITY2_HELD ) ) {
@@ -70,7 +67,7 @@ static void PM_MidgetSpecial( pmove_t * pm, pml_t * pml, const gs_state_t * pmov
 		ps->pmove.stamina_state = Stamina_UsingAbility;
 		ps->pmove.pm_flags |= PMF_ABILITY2_HELD;
 
-		if( !Length( wishvel ) ) {
+		if( wishvel == Vec3( 0.0f ) ) {
 			StaminaUse( ps, pml, stamina_use );
 			return;
 		}

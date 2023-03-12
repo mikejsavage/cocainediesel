@@ -473,8 +473,8 @@ static bool SuicideBombStage( SyncPlayerState * ps, int stage, u64 delay ) {
 
 static constexpr ItemState suicide_bomb_states[] = {
 	ItemState( WeaponState_Firing, []( const gs_state_t * gs, WeaponState state, SyncPlayerState * ps, const UserCommand * cmd ) -> ItemStateTransition {
-		static const StringHash bomb_announcement( "sounds/vsay/helena" );
-		static const StringHash bomb_beep( "sounds/beep" );
+		constexpr StringHash bomb_announcement = "sounds/vsay/helena";
+		constexpr StringHash bomb_beep = "sounds/beep";
 
 		if( SuicideBombStage( ps, 2, 0 ) ) {
 			// TODO: randomise

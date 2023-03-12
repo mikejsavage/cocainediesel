@@ -404,6 +404,7 @@ static Vec3 MakeNormal( int axis, bool positive ) {
 
 // see RTCD
 bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, Intersection * intersection ) {
+	// Com_GGPrint( "aabb vs aabb {} {} vs {} {}\n", a.mins, a.maxs, b.mins, b.maxs );
 	if( Intersecting( a, b ) ) {
 		*intersection = { };
 		return true;
@@ -418,30 +419,45 @@ bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, In
 	Vec3 intersection_normal = Vec3( 0.0f );
 
 	for( int i = 0; i < 3; i++ ) {
+		if( v[ i ] == 0.0f ) {
+			if( b.maxs[ i ] < a.mins[ i ] || b.mins[ i ] > a.maxs[ i ] )
+				return false;
+		}
+
 		if( v[ i ] < 0.0f ) {
 			if( b.maxs[ i ] < a.mins[ i ] )
 				return false;
 			if( a.maxs[ i ] < b.mins[ i ] ) {
-				t_min = Max2( ( a.maxs[ i ] - b.mins[ i ] ) / v[ i ], t_min );
-				intersection_normal = MakeNormal( i, true );
+				float t = ( a.maxs[ i ] - b.mins[ i ] ) / v[ i ];
+				if( t > t_min ) {
+					t_min = t;
+					intersection_normal = MakeNormal( i, false );
+				}
 			}
-			if( b.maxs[ i ] > a.mins[ i ] )
-				t_max = Min2( ( a.mins[ i ] - b.maxs[ i ] ) / v[ i ], t_max );
+			if( b.maxs[ i ] > a.mins[ i ] ) {
+				float t = ( a.mins[ i ] - b.maxs[ i ] ) / v[ i ];
+				t_max = Min2( t, t_max );
+			}
 		}
 
 		if( v[ i ] > 0.0f ) {
 			if( b.mins[ i ] > a.maxs[ i ] )
 				return false;
 			if( b.maxs[ i ] < a.mins[ i ] ) {
-				t_min = Max2( ( a.mins[ i ] - b.maxs[ i ] ) / v[ i ], t_min );
-				intersection_normal = MakeNormal( i, false );
+				float t = ( a.mins[ i ] - b.maxs[ i ] ) / v[ i ];
+				if( t > t_min ) {
+					t_min = t;
+					intersection_normal = MakeNormal( i, true );
+				}
 			}
-			if( a.maxs[ i ] > b.mins[ i ] )
-				t_max = Min2( ( a.maxs[ i ] - b.mins[ i ] ) / v[ i ], t_max );
+			if( a.maxs[ i ] > b.mins[ i ] ) {
+				float t = ( a.maxs[ i ] - b.mins[ i ] ) / v[ i ];
+				t_max = Min2( t, t_max );
+			}
 		}
 
-		if( t_min > t_max )
-			return false;
+	if( t_min > t_max )
+		return false;
 	}
 
 	*intersection = { t_min, intersection_normal };

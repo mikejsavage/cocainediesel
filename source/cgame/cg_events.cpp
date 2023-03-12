@@ -508,6 +508,13 @@ static void CG_Event_Jetpack( const SyncEntityState * ent, u64 parm ) {
 	cent->localEffects[ LOCALEFFECT_JETPACK ] = cl.serverTime + 50;
 }
 
+static PlayingSFXHandle PlayEntityOrFirstPersonSFX( StringHash sfx, int ent_num, float volume = 1.0f ) {
+	if( ISVIEWERENTITY( ent_num ) ) {
+		return PlaySFX( sfx, PlaySFXConfigGlobal( volume ) );
+	}
+	return PlaySFX( sfx, PlaySFXConfigEntity( ent_num, volume ) );
+}
+
 void CG_JetpackEffect( centity_t * cent ) {
 	if( cent->localEffects[ LOCALEFFECT_JETPACK ] == 0 ) {
 		return;
@@ -517,12 +524,7 @@ void CG_JetpackEffect( centity_t * cent ) {
 
 	if( cent->localEffects[ LOCALEFFECT_JETPACK ] <= cl.serverTime ) {
 		if( cent->localEffects[ LOCALEFFECT_JETPACK ] ) {
-			if( ISVIEWERENTITY( cent->current.number ) ) {
-				PlaySFX( "perks/jetpack/stop", PlaySFXConfigGlobal( volume ) );
-			}
-			else {
-				PlaySFX( "perks/jetpack/stop", PlaySFXConfigEntity( cent->current.number, volume ) );
-			}
+			PlayEntityOrFirstPersonSFX( "perks/jetpack/stop", cent->current.number, volume );
 		}
 		cent->localEffects[ LOCALEFFECT_JETPACK ] = 0;
 		cent->jetpack_sound = PlayImmediateSFX( "perks/jetpack/idle", cent->jetpack_sound, PlaySFXConfigEntity( cent->current.number ) );
@@ -587,13 +589,6 @@ static void DoEntFX( const SyncEntityState * ent, u64 parm, Vec4 color, StringHa
 	Vec3 normal = U64ToDir( parm );
 	DoVisualEffect( vfx, ent->origin, normal, 1.0f, color );
 	PlaySFX( sfx, PlaySFXConfigPosition( ent->origin ) );
-}
-
-static PlayingSFXHandle PlayEntityOrFirstPersonSFX( StringHash sfx, int ent_num ) {
-	if( ISVIEWERENTITY( ent_num ) ) {
-		return PlaySFX( sfx )
-	}
-	return PlaySFX( sfx, PlaySFXConfigEntity( ent_num ) );
 }
 
 void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
@@ -719,19 +714,12 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			if( parm <= Weapon_None || parm >= Weapon_Count )
 				return;
 
-			StringHash sfx = GetWeaponModelMetadata( WeaponType( parm ) )->reload_sound;
-
-			PlayingSFXHandle sound;
-
 			if( viewer ) {
-				sound = PlaySFX( sfx );
 				CG_ViewWeapon_AddAnimation( ent->number, "reload" );
 			}
-			else {
-				sound = PlaySFX( sfx, PlaySFXConfigEntity( ent->number ) );
-			}
 
-			cg_entities[ ent->number ].playing_reload = sound;
+			StringHash sfx = GetWeaponModelMetadata( WeaponType( parm ) )->reload_sound;
+			cg_entities[ ent->number ].playing_reload = PlayEntityOrFirstPersonSFX( sfx, ent->number );
 			cg_entities[ ent->number ].last_noammo_sound = 0;
 		} break;
 

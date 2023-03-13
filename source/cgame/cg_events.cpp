@@ -638,13 +638,18 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			}
 			break;
 
-		case EV_FIREWEAPON: {
+		case EV_FIREWEAPON:
+		case EV_ALTFIREWEAPON: {
 			WeaponType weapon = WeaponType( parm & 0xFF );
 			if( weapon <= Weapon_None || weapon >= Weapon_Count )
 				return;
 
 			// check the owner for predicted case
 			if( ISVIEWERENTITY( ent->ownerNum ) && ev < PREDICTABLE_EVENTS_MAX && predicted != cg.view.playerPrediction ) {
+				return;
+			}
+
+			if( weapon == Weapon_Railgun && ev == EV_ALTFIREWEAPON ) {
 				return;
 			}
 
@@ -687,9 +692,6 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 			// 	cg.predictedPlayerState.pmove.velocity -= dir * GS_GetWeaponDef( Weapon_Minigun )->knockback;
 			// }
 		} break;
-
-		case EV_ALTFIREWEAPON:
-			break;
 
 		case EV_USEGADGET: {
 			StopSFX( cg_entities[ ent->number ].playing_reload );

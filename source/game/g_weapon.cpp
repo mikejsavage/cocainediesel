@@ -492,10 +492,10 @@ static void W_Fire_Rocket( edict_t * self, Vec3 start, Vec3 angles, int timeDelt
 	if( altfire ) {
 		rocket = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RocketLauncher ) );
 		rocket->movetype = MOVETYPE_BOUNCE;
-	} else {
+	}
+	else {
 		rocket = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RocketLauncher ) );
 	}
-
 
 	rocket->s.type = ET_ROCKET;
 	rocket->classname = "rocket";

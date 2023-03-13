@@ -469,7 +469,7 @@ const WeaponDef weapon_defs[] = {
 		/* speed                */ 1400,
 		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
-		/* has_altfire			*/ true,
+		/* has_altfire          */ true,
 	},
 
 	{

@@ -486,8 +486,16 @@ static void W_Touch_Rocket( edict_t * ent, edict_t * other, const Plane * plane,
 	Explode( ent, other, plane );
 }
 
-static void W_Fire_Rocket( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	edict_t * rocket = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RocketLauncher ) );
+static void W_Fire_Rocket( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, bool altfire ) {
+	edict_t * rocket;
+
+	if( altfire ) {
+		rocket = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RocketLauncher ) );
+		rocket->movetype = MOVETYPE_BOUNCE;
+	} else {
+		rocket = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RocketLauncher ) );
+	}
+
 
 	rocket->s.type = ET_ROCKET;
 	rocket->classname = "rocket";
@@ -967,7 +975,7 @@ static void CallFireWeapon( edict_t * ent, u64 parm, bool alt ) {
 			break;
 
 		case Weapon_RocketLauncher:
-			W_Fire_Rocket( ent, origin, angles, timeDelta );
+			W_Fire_Rocket( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_AssaultRifle:

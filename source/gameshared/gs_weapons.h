@@ -43,6 +43,7 @@ struct WeaponDef {
 	int speed;
 	float gravity_scale;
 	float spread;
+	bool has_altfire;
 };
 
 struct GadgetDef {

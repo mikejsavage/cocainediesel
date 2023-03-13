@@ -96,6 +96,9 @@ Mat4 TransformKToDir( Vec3 dir );
 MinMax3 Union( MinMax3 bounds, Vec3 p );
 MinMax3 Union( MinMax3 a, MinMax3 b );
 
+MinMax1 Union( MinMax1 bounds, float x );
+MinMax1 Union( MinMax1 a, MinMax1 b );
+
 u32 Log2( u64 x );
 
 u16 Bswap( u16 x );

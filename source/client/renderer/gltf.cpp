@@ -87,6 +87,8 @@ static void LoadGeometry( GLTFRenderData * render_data, u8 node_idx, const cgltf
 	TempAllocator temp = cls.frame_arena.temp();
 
 	const cgltf_primitive & prim = node->mesh->primitives[ 0 ];
+	if( prim.material && StartsWith( prim.material->name, "editor/" ) )
+		return;
 
 	MeshConfig mesh_config;
 	mesh_config.name = temp( "{} nodes[{}]", render_data->name, node->name );

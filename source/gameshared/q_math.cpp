@@ -407,6 +407,14 @@ MinMax3 Union( MinMax3 a, MinMax3 b ) {
 	);
 }
 
+MinMax1 Union( MinMax1 a, float x ) {
+	return MinMax1( Min2( a.lo, x ), Max2( a.hi, x ) );
+}
+
+MinMax1 Union( MinMax1 a, MinMax1 b ) {
+	return MinMax1( Min2( a.lo, b.lo ), Max2( a.hi, b.hi ) );
+}
+
 u32 Log2( u64 x ) {
 	u32 log = 0;
 	x >>= 1;

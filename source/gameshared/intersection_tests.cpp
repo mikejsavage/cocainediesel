@@ -3,6 +3,7 @@
 #include "gameshared/intersection_tests.h"
 #include "gameshared/q_math.h"
 #include "gameshared/q_shared.h"
+#include "gameshared/collision.h"
 
 Ray MakeRayOriginDirection( Vec3 origin, Vec3 direction, float length ) {
 	Ray ray;
@@ -463,4 +464,118 @@ bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, In
 	*intersection = { t_min, intersection_normal };
 
 	return true;
+}
+
+static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, GLTFCollisionBrush & brush, Mat4 transform, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
+	constexpr Vec3 bevel_axes[] = {
+		Vec3( 1, 0, 0 ),
+		Vec3( 0, 1, 0 ),
+		Vec3( 0, 0, 1 ),
+	};
+
+	Intersection enter = { 0.0f };
+	Intersection leave = { ray.length };
+
+	auto CheckPlane = [&]( Plane plane ) -> bool {
+		plane.distance += Support( shape, -plane.normal );
+
+		float dist = plane.distance - Dot( plane.normal, ray.origin );
+		float denom = Dot( plane.normal, ray.direction );
+
+		if( denom == 0.0f ) {
+			if( dist < 0.0f )
+				return false;
+			return true;
+		}
+
+		float t = dist / denom;
+
+		if( denom < 0.0f ) {
+			if( t > enter.t )
+				enter = { t, plane.normal };
+		}
+		else {
+			if( t < leave.t )
+				leave = { t, plane.normal };
+		}
+
+		if( enter.t > leave.t )
+			return false;
+
+		return true;
+	};
+
+	if( ( brush.solidity & solid_mask ) == 0 )
+		return false;
+
+	MinMax1 bevel_bounds[ ARRAY_COUNT( bevel_axes ) ];
+
+	for( size_t i = 0; i < ARRAY_COUNT( bevel_axes ); i++ ) {
+		bevel_bounds[ i ] = { FLT_MAX, -FLT_MAX };
+	}
+
+	// check non-bevel planes
+	for( size_t i = 0; i < brush.num_planes; i++ ) {
+		Plane plane = gltf->planes[ brush.first_plane + i ];
+		Vec3 p = ( transform * Vec4( plane.normal * plane.distance, 1.0f ) ).xyz();
+		plane.normal = SafeNormalize( ( transform * Vec4( plane.normal, 0.0f ) ).xyz() );
+		plane.distance = Dot( p, plane.normal );
+
+		bool is_bevel_axis = false;
+		for( size_t j = 0; j < ARRAY_COUNT( bevel_axes ); j++ ) {
+			if( Abs( Dot( plane.normal, bevel_axes[ j ] ) ) >= 0.99999f ) {
+				is_bevel_axis = true;
+				break;
+			}
+		}
+
+		if( is_bevel_axis )
+			continue;
+
+		if( !CheckPlane( plane ) )
+			return false;
+	}
+
+	// check bevel planes
+	for( size_t i = 0; i < brush.num_vertices; i++ ) {
+		Vec3 vert = gltf->vertices[ brush.first_vertex + i ];
+		vert = ( transform * Vec4( vert, 1.0f ) ).xyz();
+		for( size_t j = 0; j < ARRAY_COUNT( bevel_axes ); j++ ) {
+			float axis = Dot( vert, bevel_axes[ j ] );
+			bevel_bounds[ j ] = Union( bevel_bounds[ j ], axis );
+		}
+	}
+
+	for( int i = 0; i < ARRAY_COUNT( bevel_axes ); i++ ) {
+		Plane pos = { bevel_axes[ i ], bevel_bounds[ i ].hi };
+		Plane neg = { -bevel_axes[ i ], -bevel_bounds[ i ].lo };
+
+		if( !CheckPlane( pos ) )
+			return false;
+		if( !CheckPlane( neg ) )
+			return false;
+	}
+
+	enter.solidity = brush.solidity;
+	*intersection = enter;
+	return true;
+}
+
+bool SweptShapeVsGLTF( const GLTFCollisionData * gltf, Mat4 transform, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection ) {
+	Optional< Intersection > best = NONE;
+
+	for( GLTFCollisionBrush & brush : gltf->brushes ) {
+		Intersection brush_intersection;
+		if( SweptShapeVsGLTFBrush( gltf, brush, transform, ray, shape, solid_mask, &brush_intersection ) ) {
+			if( !best.exists || brush_intersection.t < best.value.t ) {
+				brush_intersection.solidity = brush.solidity;
+				best = brush_intersection;
+			}
+		}
+	}
+
+	if( best.exists )
+		*intersection = best.value;
+
+	return best.exists;
 }

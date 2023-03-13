@@ -46,3 +46,6 @@ bool RayVsCapsule( const Ray & ray, const Capsule & capsule, float * t );
 // TODO: special case stationary traces
 bool SweptShapeVsMapModel( const MapData * map, const MapModel * model, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection );
 bool SweptAABBVsAABB( const MinMax3 & a, Vec3 va, const MinMax3 & b, Vec3 vb, Intersection * intersection );
+
+struct GLTFCollisionData;
+bool SweptShapeVsGLTF( const GLTFCollisionData * gltf, Mat4 transform, Ray ray, const Shape & shape, SolidBits solid_mask, Intersection * intersection );

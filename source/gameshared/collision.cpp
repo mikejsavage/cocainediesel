@@ -42,8 +42,7 @@ static bool IsConvex( GLTFCollisionData data, GLTFCollisionBrush brush ) {
 		Plane plane = data.planes[ brush.first_plane + i ];
 		for( u32 j = 0; j < brush.num_vertices; j++ ) {
 			Vec3 v = data.vertices[ brush.first_vertex + j ];
-			// TODO: probably needs epsilon
-			if( Dot( plane.normal, v ) - plane.distance > 0 ) {
+			if( Dot( plane.normal, v ) - plane.distance > 0.001f ) {
 				return false;
 			}
 		}
@@ -65,43 +64,136 @@ Span< T > DedupeSorted( Allocator * a, Span< T > sorted ) {
 	return deduped.span();
 }
 
+static Span< const u8 > AccessorToSpan( const cgltf_accessor * accessor ) {
+	cgltf_size offset = accessor->offset + accessor->buffer_view->offset;
+	return Span< const u8 >( ( const u8 * ) accessor->buffer_view->buffer->data + offset, accessor->count * accessor->stride );
+}
+
+static bool PlaneFrom3Points( Plane * plane, Vec3 a, Vec3 b, Vec3 c ) {
+	Vec3 ab = b - a;
+	Vec3 ac = c - a;
+
+	Vec3 normal = SafeNormalize( Cross( ac, ab ) );
+	if( normal == Vec3( 0.0f ) )
+		return false;
+
+	plane->normal = normal;
+	plane->distance = Dot( a, normal );
+
+	return true;
+}
+
 bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * gltf, const char * path, StringHash name ) {
+	// Com_Printf( "load %s\n", path );
+
 	NonRAIIDynamicArray< Vec3 > vertices( sys_allocator );
 	NonRAIIDynamicArray< Plane > planes( sys_allocator );
 	NonRAIIDynamicArray< GLTFCollisionBrush > brushes( sys_allocator );
+	GLTFCollisionData data;
 
 	for( size_t i = 0; i < gltf->nodes_count; i++ ) {
 		const cgltf_node * node = &gltf->nodes[ i ];
 		if( node->mesh == NULL )
 			continue;
 
-		const cgltf_primitive * prim = &node->mesh->primitives[ 0 ];
-		if( prim->material == NULL )
+		const cgltf_primitive & prim = node->mesh->primitives[ 0 ];
+		if( prim.material == NULL )
 			continue;
 
-		const EditorMaterial * material = FindEditorMaterial( StringHash( prim->material->name ) );
+		const EditorMaterial * material = FindEditorMaterial( StringHash( prim.material->name ) );
 		if( material == NULL )
 			continue;
 
 		Mat4 transform;
 		cgltf_node_transform_world( node, transform.ptr() );
 
-		// TODO: make post-transform hull (deduped verts)
-		// TODO: make planes from post-transform triangles
-		// TODO: sort by planes and merge similar
+		GLTFCollisionBrush brush = { };
+		brush.first_plane = planes.size();
+		brush.first_vertex = vertices.size();
+		brush.solidity = material->solidity;
+
+		Span< const Vec3 > gltf_verts;
+		for( size_t j = 0; j < prim.attributes_count; j++ ) {
+			const cgltf_attribute & attr = prim.attributes[ j ];
+			if( attr.type == cgltf_attribute_type_position ) {
+				gltf_verts = AccessorToSpan( attr.data ).cast< const Vec3 >();
+
+				Vec3 min, max;
+				for( int k = 0; k < 3; k++ ) {
+					min[ k ] = attr.data->min[ k ];
+					max[ k ] = attr.data->max[ k ];
+				}
+				data.bounds = Union( data.bounds, ( transform * Vec4( min, 1.0f ) ).xyz() );
+				data.bounds = Union( data.bounds, ( transform * Vec4( max, 1.0f ) ).xyz() );
+			}
+		}
+
+		for( size_t j = 0; j < gltf_verts.n; j++ ) {
+			bool found = false;
+			for( Vec3 & vert : vertices ) {
+				if( Length( gltf_verts[ j ] - vert ) < 0.01f ) {
+					found = true;
+					break;
+				}
+			}
+			if( found ) {
+				continue;
+			}
+			vertices.add( gltf_verts[ j ] );
+		}
+
+		Span< const u8 > indices_data = AccessorToSpan( prim.indices );
+		Assert( prim.indices->count % 3 == 0 );
+		for( size_t j = 0; j < prim.indices->count; j += 3 ) {
+			u32 a, b, c;
+			if( prim.indices->component_type == cgltf_component_type_r_16u ) {
+				a = indices_data.cast< const u16 >()[ j + 0 ];
+				b = indices_data.cast< const u16 >()[ j + 1 ];
+				c = indices_data.cast< const u16 >()[ j + 2 ];
+			}
+			else {
+				a = indices_data.cast< const u32 >()[ j + 0 ];
+				b = indices_data.cast< const u32 >()[ j + 1 ];
+				c = indices_data.cast< const u32 >()[ j + 2 ];
+			}
+
+			Plane plane;
+			if( !PlaneFrom3Points( &plane, gltf_verts[ a ], gltf_verts[ c ], gltf_verts[ b ] ) ) {
+				return false;
+			}
+
+			bool found = false;
+			for( Plane & other_plane : planes ) {
+				if( Abs( plane.distance - other_plane.distance ) < 0.01f && Dot( plane.normal, other_plane.normal ) >= 0.99999f ) {
+					found = true;
+					break;
+				}
+			}
+			if( found ) {
+				continue;
+			}
+
+			planes.add( plane );
+		}
+		brush.num_planes = planes.size() - brush.first_plane;
+		brush.num_vertices = vertices.size() - brush.first_vertex;
+
+		brushes.add( brush );
 	}
+
+	// TODO: remove verts that are not on the boundary of the complete hull?
 
 	if( brushes.size() == 0 ) {
 		return true;
 	}
 
-	GLTFCollisionData data;
 	data.vertices = vertices.span();
 	data.planes = planes.span();
 	data.brushes = brushes.span();
 
 	for( GLTFCollisionBrush brush : data.brushes ) {
 		if( !IsConvex( data, brush ) ) {
+			Fatal( "failed convexity check" );
 			DeleteGLTFCollisionData( data );
 			return false;
 		}
@@ -118,6 +210,13 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 	storage->gltfs[ idx ] = data;
 
 	return true;
+}
+
+const GLTFCollisionData * FindGLTFSharedCollisionData( const CollisionModelStorage * storage, StringHash name ) {
+	u64 idx;
+	if( !storage->gltfs_hashtable.get( name.hash, &idx ) )
+		return NULL;
+	return &storage->gltfs[ idx ];
 }
 
 static void FillMapModelsHashtable( CollisionModelStorage * storage ) {

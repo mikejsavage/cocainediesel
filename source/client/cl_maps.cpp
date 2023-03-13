@@ -11,6 +11,8 @@
 #include "gameshared/cdmap.h"
 #include "gameshared/collision.h"
 
+#include "cgltf/cgltf.h"
+
 constexpr u32 MAX_MAPS = 128;
 constexpr u32 MAX_MAP_MODELS = 1024;
 
@@ -83,6 +85,50 @@ bool AddMap( Span< const u8 > data, const char * path ) {
 	return true;
 }
 
+// like cgltf_load_buffers, but doesn't try to load URIs
+static bool LoadBinaryBuffers( cgltf_data * data ) {
+	if( data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin ) {
+		if( data->bin_size < data->buffers[0].size )
+			return false;
+		data->buffers[0].data = const_cast< void * >( data->bin );
+	}
+
+	for( cgltf_size i = 0; i < data->buffers_count; i++ ) {
+		if( data->buffers[i].data == NULL )
+			return false;
+	}
+
+	return true;
+}
+
+
+bool AddGLTFModel( Span< const u8 > data, const char * path ) {
+	cgltf_options options = { };
+	options.type = cgltf_file_type_glb;
+
+	cgltf_data * gltf;
+	if( cgltf_parse( &options, data.ptr, data.num_bytes(), &gltf ) != cgltf_result_success ) {
+		Com_Printf( S_COLOR_YELLOW "%s isn't a GLTF file\n", path );
+		return false;
+	}
+
+	defer { cgltf_free( gltf ); };
+
+	if( !LoadBinaryBuffers( gltf ) ) {
+		Com_Printf( S_COLOR_YELLOW "Couldn't load buffers in %s\n", path );
+		return false;
+	}
+
+	if( cgltf_validate( gltf ) != cgltf_result_success ) {
+		Com_Printf( S_COLOR_YELLOW "%s is invalid GLTF\n", path );
+		return false;
+	}
+
+  StringHash name = StringHash( path );
+  LoadGLTFCollisionData( &collision_models, gltf, path, name );
+	return true;
+}
+
 void InitMaps() {
 	TracyZoneScoped;
 
@@ -93,10 +139,10 @@ void InitMaps() {
 
 	for( const char * path : AssetPaths() ) {
 		Span< const char > ext = FileExtension( path );
-		if( ext != ".cdmap" )
-			continue;
-
-		AddMap( AssetBinary( path ), path );
+		if( ext == ".cdmap" )
+			AddMap( AssetBinary( path ), path );
+		else if( ext == ".glb" )
+			AddGLTFModel( AssetBinary( path ), path );
 	}
 }
 

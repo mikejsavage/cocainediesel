@@ -13,6 +13,7 @@ struct GLTFCollisionBrush {
 	u32 num_planes;
 	u32 first_vertex;
 	u32 num_vertices;
+	SolidBits solidity;
 };
 
 struct GLTFCollisionData {
@@ -55,6 +56,8 @@ void ShutdownCollisionModelStorage( CollisionModelStorage * storage );
 
 struct cgltf_data;
 bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * gltf, const char * path, StringHash name );
+
+const GLTFCollisionData * FindGLTFSharedCollisionData( const CollisionModelStorage * storage, StringHash name );
 
 void LoadMapCollisionData( CollisionModelStorage * storage, const MapData * map, StringHash base_hash );
 

@@ -690,7 +690,6 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		if( break2 ) {
 			a_pos = cg.view.origin;
 			dir = FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 500.0f;
-			dir = Vec3( 0, 0, -500.0f );
 		}
 		Ray ray = MakeRayStartEnd( a_pos, a_pos + dir );
 
@@ -720,6 +719,66 @@ void CG_RenderView( unsigned extrapolationTime ) {
 				Mat4 origin_transform = Mat4Translation( new_a_pos ) * Mat4Scale( 4 );
 				DrawGLTFModel( config, FindGLTFRenderData( "models/sphere" ), origin_transform, vec4_white );
 				Mat4 box_transform = Mat4Translation( new_a_pos + a.aabb.center ) * Mat4Scale( a.aabb.extents );
+				DrawGLTFModel( config, FindGLTFRenderData( "models/box" ), box_transform, vec4_white );
+			}
+		}
+	}
+
+	{
+		static Vec3 start;
+		static Vec3 end;
+
+		if( break4 ) {
+			start = cg.view.origin;
+			end = start + FromQFAxis( cg.view.axis, AXIS_FORWARD ) * 500.0f;
+		}
+
+		Ray ray = MakeRayStartEnd( start, end );
+		Shape ray_shape = { ShapeType_Ray };
+		// Shape aabb_shape = { ShapeType_AABB, { Vec3( -16.0f, -16.0f, -32.0f ), Vec3( 16.0f, 16.0f, 32.0f ) } };
+		Shape aabb_shape = { ShapeType_AABB, ToCenterExtents( MinMax3( playerbox_stand_mins, playerbox_stand_maxs ) ) };
+
+		DrawModelConfig config = { };
+		config.draw_model.enabled = true;
+		config.draw_shadows.enabled = true;
+
+		Vec3 dumpster_pos = Vec3( 50.0f, -400.0f, 0.0f );
+
+		Mat4 dumpster_rotation;
+		{
+			float theta = -1.234f;
+			float c = cosf( theta );
+			float s = sinf( theta );
+			dumpster_rotation = Mat4(
+				c, -s, 0, 0,
+				s, c, 0, 0,
+				0, 0, 1, 0,
+				0, 0, 0, 1
+			);
+		}
+
+		Mat4 dumpster_transform = Mat4Translation( dumpster_pos ) * dumpster_rotation * Mat4Scale( 32.0f );
+		const GLTFRenderData * model = FindGLTFRenderData( "models/world/dumpster_clipped" );
+		DrawGLTFModel( config, model, dumpster_transform, vec4_white );
+
+		Mat4 dumpster_gltf_transform = dumpster_transform * model->transform;
+		Intersection intersection;
+		TempAllocator temp = cls.frame_arena.temp();
+		const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( ClientCollisionModelStorage(), "models/world/dumpster_clipped.glb" );
+		if( SweptShapeVsGLTF( gltf, dumpster_gltf_transform, ray, aabb_shape, SolidMask_AnySolid, &intersection ) ) {
+			if( intersection.normal != Vec3( 0.0f ) ) {
+				Vec3 new_end = start + intersection.t * ray.direction;
+				Vec3 center = new_end;
+				center += aabb_shape.aabb.center;
+
+				DrawModelConfig config = { };
+				config.draw_model.enabled = true;
+				config.draw_shadows.enabled = true;
+				Mat4 center_transform = Mat4Translation( center ) * Mat4Scale( 16 ) * TransformKToDir( intersection.normal );
+				DrawGLTFModel( config, FindGLTFRenderData( "models/arrow" ), center_transform, vec4_white );
+				Mat4 origin_transform = Mat4Translation( new_end ) * Mat4Scale( 4 );
+				DrawGLTFModel( config, FindGLTFRenderData( "models/sphere" ), origin_transform, vec4_white );
+				Mat4 box_transform = Mat4Translation( center ) * Mat4Scale( aabb_shape.aabb.extents );
 				DrawGLTFModel( config, FindGLTFRenderData( "models/box" ), box_transform, vec4_white );
 			}
 		}

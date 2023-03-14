@@ -510,20 +510,20 @@ static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, GLTFCollision
 
 	MinMax1 bevel_bounds[ ARRAY_COUNT( bevel_axes ) ];
 
-	for( size_t i = 0; i < ARRAY_COUNT( bevel_axes ); i++ ) {
-		bevel_bounds[ i ] = { FLT_MAX, -FLT_MAX };
+	for( MinMax1 & bevel_bound : bevel_bounds ) {
+		bevel_bound = { FLT_MAX, -FLT_MAX };
 	}
 
 	// check non-bevel planes
-	for( size_t i = 0; i < brush.num_planes; i++ ) {
-		Plane plane = gltf->planes[ brush.first_plane + i ];
+	Span< Plane > brush_planes = gltf->planes.slice( brush.first_plane, brush.first_plane + brush.num_planes );
+	for( Plane plane : brush_planes ) {
 		Vec3 p = ( transform * Vec4( plane.normal * plane.distance, 1.0f ) ).xyz();
 		plane.normal = SafeNormalize( ( transform * Vec4( plane.normal, 0.0f ) ).xyz() );
 		plane.distance = Dot( p, plane.normal );
 
 		bool is_bevel_axis = false;
-		for( size_t j = 0; j < ARRAY_COUNT( bevel_axes ); j++ ) {
-			if( Abs( Dot( plane.normal, bevel_axes[ j ] ) ) >= 0.99999f ) {
+		for( const Vec3 & bevel_axis : bevel_axes ) {
+			if( Abs( Dot( plane.normal, bevel_axis ) ) >= 0.99999f ) {
 				is_bevel_axis = true;
 				break;
 			}
@@ -537,8 +537,8 @@ static bool SweptShapeVsGLTFBrush( const GLTFCollisionData * gltf, GLTFCollision
 	}
 
 	// check bevel planes
-	for( size_t i = 0; i < brush.num_vertices; i++ ) {
-		Vec3 vert = gltf->vertices[ brush.first_vertex + i ];
+	Span< Vec3 > brush_vertices = gltf->vertices.slice( brush.first_vertex, brush.first_vertex + brush.num_vertices );
+	for( Vec3 vert : brush_vertices ) {
 		vert = ( transform * Vec4( vert, 1.0f ) ).xyz();
 		for( size_t j = 0; j < ARRAY_COUNT( bevel_axes ); j++ ) {
 			float axis = Dot( vert, bevel_axes[ j ] );

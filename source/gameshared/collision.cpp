@@ -133,10 +133,17 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 			}
 		}
 
-		for( size_t j = 0; j < gltf_verts.n; j++ ) {
+		constexpr Mat3 y_up_to_z_up(
+			1, 0, 0,
+			0, 0, -1,
+			0, 1, 0
+		);
+
+		for( Vec3 gltf_vert : gltf_verts ) {
+			gltf_vert = y_up_to_z_up * gltf_vert;
 			bool found = false;
 			for( Vec3 & vert : vertices ) {
-				if( Length( gltf_verts[ j ] - vert ) < 0.01f ) {
+				if( Length( gltf_vert - vert ) < 0.01f ) {
 					found = true;
 					break;
 				}
@@ -144,7 +151,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 			if( found ) {
 				continue;
 			}
-			vertices.add( gltf_verts[ j ] );
+			vertices.add( gltf_vert );
 		}
 
 		Span< const u8 > indices_data = AccessorToSpan( prim.indices );
@@ -163,7 +170,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 			}
 
 			Plane plane;
-			if( !PlaneFrom3Points( &plane, gltf_verts[ a ], gltf_verts[ c ], gltf_verts[ b ] ) ) {
+			if( !PlaneFrom3Points( &plane, y_up_to_z_up * gltf_verts[ a ], y_up_to_z_up * gltf_verts[ c ], y_up_to_z_up * gltf_verts[ b ] ) ) {
 				return false;
 			}
 
@@ -314,14 +321,7 @@ MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntitySta
 		const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( storage, model.gltf_model );
 		if( gltf == NULL )
 			return MinMax3::Empty();
-
-		constexpr Mat4 y_up_to_z_up(
-			1, 0, 0, 0,
-			0, 0, -1, 0,
-			0, 1, 0, 0,
-			0, 0, 0, 1
-		);
-		Mat4 transform = Mat4Translation( ent->origin ) * Mat4Rotation( EulerDegrees3( ent->angles ) ) *  Mat4Scale( ent->scale ) * y_up_to_z_up;
+		Mat4 transform = Mat4Translation( ent->origin ) * Mat4Rotation( EulerDegrees3( ent->angles ) ) * Mat4Scale( ent->scale );
 		return GLTFBounds( gltf, transform );
 	}
 
@@ -397,13 +397,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 		if( gltf == NULL )
 			return trace;
 
-		constexpr Mat4 y_up_to_z_up(
-			1, 0, 0, 0,
-			0, 0, -1, 0,
-			0, 1, 0, 0,
-			0, 0, 0, 1
-		);
-		Mat4 transform = Mat4Translation( ent->origin ) * Mat4Rotation( EulerDegrees3( ent->angles ) ) *  Mat4Scale( ent->scale ) * y_up_to_z_up;
+		Mat4 transform = Mat4Translation( ent->origin ) * Mat4Rotation( EulerDegrees3( ent->angles ) ) * Mat4Scale( ent->scale );
 		
 		Intersection intersection;
 		if( SweptShapeVsGLTF( gltf, transform, ray, shape, solid_mask, &intersection ) ) {

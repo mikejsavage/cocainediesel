@@ -83,9 +83,7 @@ static bool PlaneFrom3Points( Plane * plane, Vec3 a, Vec3 b, Vec3 c ) {
 	return true;
 }
 
-bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * gltf, const char * path, StringHash name ) {
-	// Com_Printf( "load %s\n", path );
-
+bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * gltf, Span< const char > path, StringHash name ) {
 	NonRAIIDynamicArray< Vec3 > vertices( sys_allocator );
 	NonRAIIDynamicArray< Plane > planes( sys_allocator );
 	NonRAIIDynamicArray< GLTFCollisionBrush > brushes( sys_allocator );

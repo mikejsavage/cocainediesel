@@ -59,8 +59,7 @@ static bool AddGLTFModel( Span< const u8 > data, Span< const char > path ) {
 	}
 
   StringHash name = StringHash( path );
-  if( LoadGLTFCollisionData( &collision_models, gltf, path, name ) )
-		Com_Printf( "loaded %s\n", path );
+  LoadGLTFCollisionData( &collision_models, gltf, path, name );
 
 	return true;
 }
@@ -90,7 +89,6 @@ static void LoadModelsRecursive( TempAllocator * temp, DynamicString * path, siz
 
 void InitServerCollisionModels() {
 	InitCollisionModelStorage( &collision_models );
-	collision_models.client = false;
 
 	TempAllocator temp = svs.frame_arena.temp();
 	DynamicString base( &temp, "{}/base", RootDirPath() );

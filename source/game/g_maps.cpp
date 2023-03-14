@@ -1,10 +1,13 @@
 #include "qcommon/base.h"
 #include "qcommon/compression.h"
 #include "qcommon/fs.h"
+#include "qcommon/string.h"
 #include "game/g_maps.h"
 #include "gameshared/cdmap.h"
 #include "gameshared/collision.h"
 #include "server/server.h"
+
+#include "cgltf/cgltf.h"
 
 static CollisionModelStorage collision_models;
 
@@ -16,8 +19,82 @@ struct ServerMapData {
 static ServerMapData maps[ CollisionModelStorage::MAX_MAPS ];
 static size_t num_maps;
 
+// like cgltf_load_buffers, but doesn't try to load URIs
+static bool LoadBinaryBuffers( cgltf_data * data ) {
+	if( data->buffers_count && data->buffers[0].data == NULL && data->buffers[0].uri == NULL && data->bin ) {
+		if( data->bin_size < data->buffers[0].size )
+			return false;
+		data->buffers[0].data = const_cast< void * >( data->bin );
+	}
+
+	for( cgltf_size i = 0; i < data->buffers_count; i++ ) {
+		if( data->buffers[i].data == NULL )
+			return false;
+	}
+
+	return true;
+}
+
+
+static bool AddGLTFModel( Span< const u8 > data, Span< const char > path ) {
+	cgltf_options options = { };
+	options.type = cgltf_file_type_glb;
+
+	cgltf_data * gltf;
+	if( cgltf_parse( &options, data.ptr, data.num_bytes(), &gltf ) != cgltf_result_success ) {
+		Com_Printf( S_COLOR_YELLOW "%s isn't a GLTF file\n", path );
+		return false;
+	}
+
+	defer { cgltf_free( gltf ); };
+
+	if( !LoadBinaryBuffers( gltf ) ) {
+		Com_Printf( S_COLOR_YELLOW "Couldn't load buffers in %s\n", path );
+		return false;
+	}
+
+	if( cgltf_validate( gltf ) != cgltf_result_success ) {
+		Com_Printf( S_COLOR_YELLOW "%s is invalid GLTF\n", path );
+		return false;
+	}
+
+  StringHash name = StringHash( path );
+  if( LoadGLTFCollisionData( &collision_models, gltf, path, name ) )
+		Com_Printf( "loaded %s\n", path );
+
+	return true;
+}
+
+static void LoadModelsRecursive( TempAllocator * temp, DynamicString * path, size_t skip ) {
+  ListDirHandle scan = BeginListDir( temp, path->c_str() );
+
+  const char * name;
+  bool dir;
+  while( ListDirNext( &scan, &name, &dir ) ) {
+		// skip ., .., .git, etc
+		if( name[ 0 ] == '.' )
+			continue;
+
+		size_t old_len = path->length();
+		path->append( "/{}", name );
+		if( dir ) {
+			LoadModelsRecursive( temp, path, skip );
+		}
+		else if( FileExtension( path->c_str() ) == ".glb" ) {
+			Span< u8 > data = ReadFileBinary( temp, path->c_str() );
+			AddGLTFModel( data, StripExtension( path->c_str() + skip ) );
+		}
+		path->truncate( old_len );
+  }
+}
+
 void InitServerCollisionModels() {
 	InitCollisionModelStorage( &collision_models );
+	collision_models.client = false;
+
+	TempAllocator temp = svs.frame_arena.temp();
+	DynamicString base( &temp, "{}/base", RootDirPath() );
+	LoadModelsRecursive( &temp, &base, base.length() + 1 );
 
 	num_maps = 0;
 }

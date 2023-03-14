@@ -325,7 +325,7 @@ void SV_Init() {
 	memset( &svs, 0, sizeof( svs ) );
 	memset( &svc, 0, sizeof( svc ) );
 
-	constexpr size_t frame_arena_size = 1024 * 1024; // 1MB
+	constexpr size_t frame_arena_size = 1024 * 1024 * 32; // 32MB
 	void * frame_arena_memory = ALLOC_SIZE( sys_allocator, frame_arena_size, 16 );
 	svs.frame_arena = ArenaAllocator( frame_arena_memory, frame_arena_size );
 

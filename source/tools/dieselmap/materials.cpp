@@ -20,7 +20,7 @@ struct Material {
 static char * shader_files[ 1024 ];
 static u32 num_shader_files;
 
-static Material materials[ 1024 ];
+static Material materials[ 4096 ];
 static u32 num_materials;
 
 static Span< const char > ParseLine( Span< const char > * line, Span< const char > str ) {

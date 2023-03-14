@@ -764,7 +764,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		Mat4 dumpster_gltf_transform = dumpster_transform * model->transform;
 		Intersection intersection;
 		TempAllocator temp = cls.frame_arena.temp();
-		const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( ClientCollisionModelStorage(), "models/world/dumpster_clipped.glb" );
+		const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( ClientCollisionModelStorage(), "models/world/dumpster_clipped" );
 		if( SweptShapeVsGLTF( gltf, dumpster_gltf_transform, ray, aabb_shape, SolidMask_AnySolid, &intersection ) ) {
 			if( intersection.normal != Vec3( 0.0f ) ) {
 				Vec3 new_end = start + intersection.t * ray.direction;

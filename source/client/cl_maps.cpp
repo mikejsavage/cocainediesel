@@ -102,7 +102,7 @@ static bool LoadBinaryBuffers( cgltf_data * data ) {
 }
 
 
-bool AddGLTFModel( Span< const u8 > data, const char * path ) {
+static bool AddGLTFModel( Span< const u8 > data, Span< const char > path ) {
 	cgltf_options options = { };
 	options.type = cgltf_file_type_glb;
 
@@ -142,7 +142,7 @@ void InitMaps() {
 		if( ext == ".cdmap" )
 			AddMap( AssetBinary( path ), path );
 		else if( ext == ".glb" )
-			AddGLTFModel( AssetBinary( path ), path );
+			AddGLTFModel( AssetBinary( path ), StripExtension( path ) );
 	}
 }
 

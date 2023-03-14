@@ -446,8 +446,12 @@ static void W_Touch_Grenade( edict_t * ent, edict_t * other, const Plane * plane
 	Explode( ent, other, plane );
 }
 
-static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, bool altfire ) {
 	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_GrenadeLauncher ) );
+
+	if( altfire ) {
+		grenade->velocity *= 0.5;
+	}
 
 	grenade->s.type = ET_GRENADE;
 	grenade->classname = "grenade";
@@ -971,7 +975,7 @@ static void CallFireWeapon( edict_t * ent, u64 parm, bool alt ) {
 			break;
 
 		case Weapon_GrenadeLauncher:
-			W_Fire_Grenade( ent, origin, angles, timeDelta );
+			W_Fire_Grenade( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_RocketLauncher:

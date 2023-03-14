@@ -753,6 +753,14 @@ static Span< const char > GetKey( Span< const ParsedKeyValue > kvs, const char *
 	return Span< const char >( NULL, 0 );
 }
 
+static void SetKey( Span< ParsedKeyValue > kvs, const char * key, Span< const char > value ) {
+	for( ParsedKeyValue & kv : kvs ) {
+		if( StrCaseEqual( kv.key, key ) ) {
+			kv.value = value;
+		}
+	}
+}
+
 static bool ParseArg( const char * arg, bool * compress, bool * write_obj ) {
 	*compress = *compress || StrEqual( arg, "--compress" );
 	*write_obj = *write_obj || StrEqual( arg, "--obj" );
@@ -820,6 +828,18 @@ int main( int argc, char ** argv ) {
 		}
 	}
 
+	// fix up entity models
+	{
+		TracyZoneScopedN( "fix up entity models" );
+
+		for( ParsedEntity & entity : entities ) {
+			Span< const char > model = GetKey( entity.kvs.span(), "model" );
+			if( FileExtension( model ) == ".glb" ) {
+				SetKey( entity.kvs.span(), "model", StripExtension( model ) );
+			}
+		}
+	}
+
 	// generate geometries
 	std::vector< CompiledEntity > compiled_entities;
 
@@ -843,26 +863,6 @@ int main( int argc, char ** argv ) {
 			compiled_entities.push_back( compiled );
 		}
 	}
-
-	// fix up entity models
-	// for( const ParsedEntity & entity : entities ) {
-	// 	if( GetKey( entity.kvs.span(), "classname" ) == "func_group" )
-	// 		continue;
-        //
-	// 	bsp.entities->append( "{{\n" );
-	// 	for( ParsedKeyValue kv : entity.kvs.span() ) {
-	// 		if( kv.key == "model" && FileExtension( kv.value ) == ".glb" ) {
-	// 			bsp.entities->append( "\t\"{}\" \"{}\"\n", kv.key, StripExtension( kv.value ) );
-	// 		}
-	// 		else {
-	// 			bsp.entities->append( "\t\"{}\" \"{}\"\n", kv.key, kv.value );
-	// 		}
-	// 	}
-	// 	if( entity.brushes.size() > 0 ) {
-	// 		bsp.entities->append( "\t\"model\" \"*{}\"\n", entity.model_id );
-	// 	}
-	// 	bsp.entities->append( "}}\n" );
-	// }
 
 	// flatten everything into linear arrays
 	DynamicArray< MapEntity > flat_entities( &arena );

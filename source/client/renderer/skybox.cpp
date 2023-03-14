@@ -55,6 +55,5 @@ void DrawSkybox( Time time ) {
 	pipeline.set_uniform( "u_Time", UploadUniformBlock( ToSeconds( time ) ) );
 	pipeline.set_texture( "u_Noise", FindMaterial( "textures/noise" )->texture );
 	pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
-	pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
 	DrawMesh( sky_mesh, pipeline );
 }

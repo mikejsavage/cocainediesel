@@ -466,8 +466,6 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.identity_material_static_uniforms = UploadMaterialStaticUniforms( Vec2( 0 ), 0.0f, 64.0f );
 	frame_static.identity_material_dynamic_uniforms = UploadMaterialDynamicUniforms( vec4_white );
 
-	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
-
 #define TRACY_HACK( name ) { name, __FUNCTION__, __FILE__, uint32_t( __LINE__ ), 0 }
 	static const tracy::SourceLocationData particle_update_tracy = TRACY_HACK( "Update particles" );
 	static const tracy::SourceLocationData particle_setup_indirect_tracy = TRACY_HACK( "Write particle indirect draw buffer" );

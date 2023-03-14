@@ -393,6 +393,38 @@ Mat4 TransformKToDir( Vec3 dir ) {
 	return rotation;
 }
 
+Mat4 Mat4Rotation( EulerDegrees3 angles ) {
+	float pitch = Radians( angles.pitch );
+	float sp = sinf( pitch );
+	float cp = cosf( pitch );
+	Mat4 rp(
+		cp, 0, sp, 0,
+		0, 1, 0, 0,
+		-sp, 0, cp, 0,
+		0, 0, 0, 1
+	);
+	float yaw = Radians( angles.yaw );
+	float sy = sinf( yaw );
+	float cy = cosf( yaw );
+	Mat4 ry(
+		cy, -sy, 0, 0,
+		sy, cy, 0, 0,
+		0, 0, 1, 0,
+		0, 0, 0, 1
+	);
+	float roll = Radians( angles.roll );
+	float sr = sinf( roll );
+	float cr = cosf( roll );
+	Mat4 rr(
+		1, 0, 0, 0,
+		0, cr, -sr, 0,
+		0, sr, cr, 0,
+		0, 0, 0, 1
+	);
+
+	return rp * ry * rr;
+}
+
 MinMax3 Union( MinMax3 bounds, Vec3 p ) {
 	return MinMax3(
 		Vec3( Min2( bounds.mins.x, p.x ), Min2( bounds.mins.y, p.y ), Min2( bounds.mins.z, p.z ) ),

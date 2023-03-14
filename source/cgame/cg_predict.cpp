@@ -107,6 +107,11 @@ void CG_BuildSolidList() {
 		if( ISEVENTENTITY( ent ) )
 			continue;
 
+		if( ent->override_collision_model.exists && ent->override_collision_model.value.type == CollisionModelType_GLTF ) {
+			cg_solidList[cg_numSolids++] = &cg_entities[ ent->number ].current;
+			continue;
+		}
+
 		MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), ent );
 		if( bounds.mins == MinMax3::Empty().mins && bounds.maxs == MinMax3::Empty().maxs )
 			continue;

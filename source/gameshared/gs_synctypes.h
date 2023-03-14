@@ -324,6 +324,7 @@ enum CollisionModelType : u8 {
 	CollisionModelType_Sphere,
 	CollisionModelType_Capsule,
 	CollisionModelType_MapModel,
+	CollisionModelType_GLTF,
 
 	CollisionModelType_Count
 };
@@ -336,6 +337,7 @@ struct CollisionModel {
 		Sphere sphere;
 		Capsule capsule;
 		StringHash map_model;
+		StringHash gltf_model;
 	};
 };
 

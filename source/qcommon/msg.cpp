@@ -292,6 +292,10 @@ static void Delta( DeltaBuffer * buf, CollisionModel & cm, const CollisionModel 
 		case CollisionModelType_MapModel:
 			Delta( buf, cm.map_model, baseline_to_delta_against->map_model );
 			break;
+
+		case CollisionModelType_GLTF:
+			Delta( buf, cm.gltf_model, baseline_to_delta_against->gltf_model );
+			break;
 	}
 }
 

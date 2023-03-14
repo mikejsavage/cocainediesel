@@ -50,12 +50,13 @@ struct CollisionModelStorage {
 };
 
 CollisionModel CollisionModelAABB( const MinMax3 & aabb );
+CollisionModel CollisionModelGLTF( StringHash name );
 
 void InitCollisionModelStorage( CollisionModelStorage * storage );
 void ShutdownCollisionModelStorage( CollisionModelStorage * storage );
 
 struct cgltf_data;
-bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * gltf, const char * path, StringHash name );
+bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * gltf, Span< const char > path, StringHash name );
 
 const GLTFCollisionData * FindGLTFSharedCollisionData( const CollisionModelStorage * storage, StringHash name );
 

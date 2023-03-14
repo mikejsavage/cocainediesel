@@ -19,6 +19,13 @@ CollisionModel CollisionModelAABB( const MinMax3 & aabb ) {
 	return model;
 }
 
+CollisionModel CollisionModelGLTF( StringHash name ) {
+	CollisionModel model = { };
+	model.type = CollisionModelType_GLTF;
+	model.gltf_model = name;
+	return model;
+}
+
 static void DeleteGLTFCollisionData( GLTFCollisionData data ) {
 	FREE( sys_allocator, data.vertices.ptr );
 	FREE( sys_allocator, data.planes.ptr );
@@ -87,7 +94,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 	NonRAIIDynamicArray< Vec3 > vertices( sys_allocator );
 	NonRAIIDynamicArray< Plane > planes( sys_allocator );
 	NonRAIIDynamicArray< GLTFCollisionBrush > brushes( sys_allocator );
-	GLTFCollisionData data;
+	GLTFCollisionData data = { };
 
 	for( size_t i = 0; i < gltf->nodes_count; i++ ) {
 		const cgltf_node * node = &gltf->nodes[ i ];
@@ -179,10 +186,8 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		brushes.add( brush );
 	}
 
-	// TODO: remove verts that are not on the boundary of the complete hull?
-
 	if( brushes.size() == 0 ) {
-		return true;
+		return false;
 	}
 
 	data.vertices = vertices.span();
@@ -208,6 +213,14 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 	storage->gltfs[ idx ] = data;
 
 	return true;
+}
+
+static MinMax3 GLTFBounds( const GLTFCollisionData * gltf, Mat4 transform ) {
+	MinMax3 bounds = MinMax3::Empty();
+	for( Vec3 & vert : gltf->vertices ) {
+		bounds = Union( bounds, vert );
+	}
+	return bounds;
 }
 
 const GLTFCollisionData * FindGLTFSharedCollisionData( const CollisionModelStorage * storage, StringHash name ) {
@@ -297,6 +310,21 @@ MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntitySta
 		return map->data.models[ map_model->sub_model ].bounds;
 	}
 
+	if( model.type == CollisionModelType_GLTF ) {
+		const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( storage, model.gltf_model );
+		if( gltf == NULL )
+			return MinMax3::Empty();
+
+		constexpr Mat4 y_up_to_z_up(
+			1, 0, 0, 0,
+			0, 0, -1, 0,
+			0, 1, 0, 0,
+			0, 0, 0, 1
+		);
+		Mat4 transform = Mat4Translation( ent->origin ) * Mat4Rotation( EulerDegrees3( ent->angles ) ) *  Mat4Scale( ent->scale ) * y_up_to_z_up;
+		return GLTFBounds( gltf, transform );
+	}
+
 	CollisionModelType type = model.type;
 	Assert( type == CollisionModelType_Point || type == CollisionModelType_AABB );
 
@@ -342,7 +370,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 
 	CollisionModel collision_model = EntityCollisionModel( ent );
 
-	if( ent->type != ET_PLAYER ) {
+	if( ent->type != ET_PLAYER && collision_model.type != CollisionModelType_GLTF ) {
 		for( int i = 0; i < 3; i++ ) {
 			Assert( PositiveMod( ent->angles[ i ], 90.0f ) == 0.0f );
 		}
@@ -361,6 +389,24 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 
 		Intersection intersection;
 		if( SweptShapeVsMapModel( &map->data, &map->data.models[ map_model->sub_model ], object_space_ray, shape, solid_mask, &intersection ) ) {
+			trace = FUCKING_HELL( ray, shape, intersection, ent->number );
+		}
+	}
+	else if( collision_model.type == CollisionModelType_GLTF ) {
+		const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( storage, collision_model.gltf_model );
+		if( gltf == NULL )
+			return trace;
+
+		constexpr Mat4 y_up_to_z_up(
+			1, 0, 0, 0,
+			0, 0, -1, 0,
+			0, 1, 0, 0,
+			0, 0, 0, 1
+		);
+		Mat4 transform = Mat4Translation( ent->origin ) * Mat4Rotation( EulerDegrees3( ent->angles ) ) *  Mat4Scale( ent->scale ) * y_up_to_z_up;
+		
+		Intersection intersection;
+		if( SweptShapeVsGLTF( gltf, transform, ray, shape, solid_mask, &intersection ) ) {
 			trace = FUCKING_HELL( ray, shape, intersection, ent->number );
 		}
 	}

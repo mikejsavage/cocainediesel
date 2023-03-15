@@ -874,7 +874,7 @@ void W_Fire_Blast( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 }
 
 static void W_Touch_Pistol( edict_t * ent, edict_t * other, const Plane * plane, int surfFlags ) {
-	if( BouncingProjectile( ent, other, plane, surfFlags, 1, "weapons/pistol/bullet_impact", "weapons/pistol/bullet_impact" ) ) {
+	if( BouncingProjectile( ent, other, plane, surfFlags, 3, "weapons/pistol/bullet_impact", "weapons/pistol/bullet_impact" ) ) {
 		G_FreeEdict( ent );
 	}
 }

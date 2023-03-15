@@ -134,7 +134,7 @@ const WeaponDef weapon_defs[] = {
 		/* category             */ WeaponCategory_Backup,
 
 		/* projectile count     */ 1,
-		/* clip size            */ 15,
+		/* clip size            */ 20,
 		/* reload time          */ 1500,
 		/* staged reload time   */ 0,
 
@@ -154,14 +154,14 @@ const WeaponDef weapon_defs[] = {
 		// damages
 		/* damage               */ 15,
 		/* self damage          */ 0.0f,
-		/* wallbang damage      */ 0.5f,
+		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 30,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
 		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ 2000,
+		/* speed                */ 4000,
 		/* gravity scale        */ 0.0f,
 		/* spread               */ 0,
 	},
@@ -480,33 +480,33 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 1,
 		/* clip size            */ 30,
-		/* reload time          */ 2500,
+		/* reload time          */ 2000,
 		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
 		/* weapon down time     */ WEAPONDOWN_TIME,
-		/* refire time          */ 50,
+		/* refire time          */ 40,
 		/* timeout / range      */ 10000,
-		/* max recoil           */ EulerDegrees2( 80.0f, 25.0f ),
-		/* min recoil           */ EulerDegrees2( 50.0f, -25.0f ),
-		/* recoil recovery      */ 1350.0f,
+		/* max recoil           */ EulerDegrees2( 65.0f, 15.0f ),
+		/* min recoil           */ EulerDegrees2( 45.0f, -15.0f ),
+		/* recoil recovery      */ 1250.0f,
 		/* firing mode          */ FiringMode_Auto,
 
 		/* zoom fov             */ 0.0f,
 		/* zoom inaccuracy      */ 0.0f,
 
 		// damages
-		/* damage               */ 8,
+		/* damage               */ 6,
 		/* self damage          */ 1,
 		/* wallbang damage      */ 1.0f, //not implemented
 		/* knockback            */ 30,
-		/* splash radius        */ 45,
-		/* splash min damage    */ 8,
-		/* splash min knockback */ 5,
+		/* splash radius        */ 0,
+		/* splash min damage    */ 0,
+		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ 3500,
+		/* speed                */ 4500,
 		/* gravity scale        */ 1.0f,
 		/* spread               */ 0.0f,
 	},

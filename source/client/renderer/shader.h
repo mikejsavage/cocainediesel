@@ -46,7 +46,6 @@ struct Shaders {
 
 	Shader text;
 
-	Shader blur;
 	Shader postprocess;
 };
 

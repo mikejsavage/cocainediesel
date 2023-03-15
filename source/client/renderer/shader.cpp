@@ -149,7 +149,6 @@ static void LoadShaders() {
 	LoadShader( &shaders.scope, "glsl/scope.glsl" );
 	LoadShader( &shaders.skybox, "glsl/skybox.glsl" );
 	LoadShader( &shaders.text, "glsl/text.glsl" );
-	LoadShader( &shaders.blur, "glsl/blur.glsl" );
 	LoadShader( &shaders.postprocess, "glsl/postprocess.glsl" );
 
 	LoadComputeShader( &shaders.particle_compute, "glsl/particle_compute.glsl" );
@@ -223,6 +222,5 @@ void ShutdownShaders() {
 
 	DeleteShader( shaders.text );
 
-	DeleteShader( shaders.blur );
 	DeleteShader( shaders.postprocess );
 }

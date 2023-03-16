@@ -876,6 +876,8 @@ void W_Fire_Blast( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 static void W_Touch_Pistol( edict_t * ent, edict_t * other, const Plane * plane, int surfFlags ) {
 	if( BouncingProjectile( ent, other, plane, surfFlags, 3, "weapons/pistol/bullet_impact", "weapons/pistol/bullet_impact" ) ) {
 		G_FreeEdict( ent );
+	} else {
+		ent->gravity_scale = GS_GetWeaponDef( Weapon_Pistol )->gravity_scale;
 	}
 }
 
@@ -889,6 +891,7 @@ void W_Fire_Pistol( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	bullet->s.sound = "weapons/bullet_whizz";
 	bullet->touch = W_Touch_Pistol;
 	bullet->stop = G_FreeEdict;
+	bullet->gravity_scale = 0.0;
 }
 
 static void W_Touch_Sawblade( edict_t * ent, edict_t * other, const Plane * plane, int surfFlags ) {

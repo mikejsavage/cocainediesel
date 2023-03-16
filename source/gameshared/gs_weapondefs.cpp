@@ -162,7 +162,7 @@ const WeaponDef weapon_defs[] = {
 
 		// projectile def
 		/* speed                */ 4000,
-		/* gravity scale        */ 0.0f,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
 	},
 

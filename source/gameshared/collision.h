@@ -8,6 +8,8 @@
 #include "gameshared/gs_synctypes.h"
 #include "gameshared/q_collision.h"
 
+#include <functional>
+
 struct GLTFCollisionBrush {
 	u32 first_plane;
 	u32 num_planes;
@@ -70,3 +72,8 @@ MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntitySta
 
 trace_t MakeMissedTrace( const Ray & ray );
 trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent, SolidBits solid_mask );
+
+void LinkEntity( const CollisionModelStorage * storage, const SyncEntityState * ent );
+void UnlinkEntity( const CollisionModelStorage * storage, const SyncEntityState * ent );
+
+void TraverseBVH( MinMax3 bounds, std::function< void ( u32 entity, u32 total ) > callback );

@@ -225,7 +225,7 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 static MinMax3 GLTFBounds( const GLTFCollisionData * gltf, Mat4 transform ) {
 	MinMax3 bounds = MinMax3::Empty();
 	for( Vec3 & vert : gltf->vertices ) {
-		bounds = Union( bounds, vert );
+		bounds = Union( bounds, ( transform * Vec4( vert, 1.0f ) ).xyz() );
 	}
 	return bounds;
 }
@@ -370,7 +370,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 
 	CollisionModel collision_model = EntityCollisionModel( ent );
 
-	if( ent->type != ET_PLAYER && collision_model.type != CollisionModelType_GLTF ) {
+	if( ent->type != ET_PLAYER && ent->type != ET_GHOST && collision_model.type != CollisionModelType_GLTF ) {
 		for( int i = 0; i < 3; i++ ) {
 			Assert( PositiveMod( ent->angles[ i ], 90.0f ) == 0.0f );
 		}

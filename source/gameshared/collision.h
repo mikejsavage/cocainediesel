@@ -73,7 +73,35 @@ MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntitySta
 trace_t MakeMissedTrace( const Ray & ray );
 trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent, SolidBits solid_mask );
 
-void LinkEntity( const CollisionModelStorage * storage, const SyncEntityState * ent );
-void UnlinkEntity( const CollisionModelStorage * storage, const SyncEntityState * ent );
 
-void TraverseBVH( MinMax3 bounds, std::function< void ( u32 entity, u32 total ) > callback );
+
+constexpr size_t MAX_PRIMITIVES = MAX_EDICTS;
+constexpr size_t BVH_NODE_SIZE = 2;
+constexpr size_t BVH_NODES = ( MAX_PRIMITIVES - 1 ) / ( BVH_NODE_SIZE - 1 );
+
+struct BVHNode {
+	u32 level;
+	u32 first_child_index;
+	MinMax3 bounds;
+};
+
+struct Primitive {
+	u32 entity_id;
+	u32 morton_id;
+	MinMax3 bounds;
+	Vec3 center;
+};
+
+struct BVH {
+	BVHNode nodes[ BVH_NODES ];
+	Primitive primitives[ MAX_PRIMITIVES ];
+	size_t num_primitives;
+};
+
+void LinkEntity( BVH * bvh, const CollisionModelStorage * storage, const SyncEntityState * ent );
+void PrepareEntity( BVH * bvh, const CollisionModelStorage * storage, const SyncEntityState * ent );
+void BuildBVH( BVH * bvh, const CollisionModelStorage * storage );
+void UnlinkEntity( BVH * bvh, const CollisionModelStorage * storage, const SyncEntityState * ent );
+
+void TraverseBVH( BVH * bvh, MinMax3 bounds, std::function< void ( u32 entity, u32 total ) > callback );
+void ClearBVH( BVH * bvh );

@@ -21,12 +21,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "gameshared/collision.h"
 
-static int cg_numSolids;
-static SyncEntityState *cg_solidList[MAX_PARSE_ENTITIES];
+static BVH cg_bvh;
 
-static int cg_numTriggers;
-static SyncEntityState *cg_triggersList[MAX_PARSE_ENTITIES];
-static bool cg_triggersListTriggered[MAX_PARSE_ENTITIES];
+// static int cg_numSolids;
+// static SyncEntityState *cg_solidList[MAX_PARSE_ENTITIES];
+
+// static int cg_numTriggers;
+// static SyncEntityState *cg_triggersList[MAX_PARSE_ENTITIES];
+// static bool cg_triggersListTriggered[MAX_PARSE_ENTITIES];
 
 static bool ucmdReady = false;
 
@@ -98,8 +100,9 @@ void CG_CheckPredictionError() {
 }
 
 void CG_BuildSolidList() {
-	cg_numSolids = 0;
-	cg_numTriggers = 0;
+	// TODO: idk, this is ugly
+
+	ClearBVH( &cg_bvh );
 
 	for( int i = 0; i < cg.frame.numEntities; i++ ) {
 		const SyncEntityState * ent = &cg.frame.parsedEntities[ i ];
@@ -108,7 +111,8 @@ void CG_BuildSolidList() {
 			continue;
 
 		if( ent->override_collision_model.exists && ent->override_collision_model.value.type == CollisionModelType_GLTF ) {
-			cg_solidList[cg_numSolids++] = &cg_entities[ ent->number ].current;
+			PrepareEntity( &cg_bvh, ClientCollisionModelStorage(), ent );
+			// cg_solidList[cg_numSolids++] = &cg_entities[ ent->number ].current;
 			continue;
 		}
 
@@ -134,14 +138,18 @@ void CG_BuildSolidList() {
 
 			case ET_JUMPPAD:
 			case ET_PAINKILLER_JUMPPAD:
-				cg_triggersList[cg_numTriggers++] = &cg_entities[ ent->number ].current;
+				LinkEntity( &cg_bvh, ClientCollisionModelStorage(), ent );
+				// cg_triggersList[cg_numTriggers++] = &cg_entities[ ent->number ].current;
 				break;
 
 			default:
-				cg_solidList[cg_numSolids++] = &cg_entities[ ent->number ].current;
+				LinkEntity( &cg_bvh, ClientCollisionModelStorage(), ent );
+				// cg_solidList[cg_numSolids++] = &cg_entities[ ent->number ].current;
 				break;
 		}
 	}
+
+	BuildBVH( &cg_bvh, ClientCollisionModelStorage() );
 }
 
 static bool CG_ClipEntityContact( Vec3 origin, Vec3 mins, Vec3 maxs, int entNum ) {
@@ -167,43 +175,20 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 		return;
 	}
 
-	for( int i = 0; i < cg_numTriggers; i++ ) {
-		const SyncEntityState * state = cg_triggersList[i];
+	// TODO: triggers
 
-		if( state->type == ET_JUMPPAD || state->type == ET_PAINKILLER_JUMPPAD ) {
-			if( !cg_triggersListTriggered[i] ) {
-				if( CG_ClipEntityContact( pm->playerState->pmove.origin, pm->mins, pm->maxs, state->number ) ) {
-					GS_TouchPushTrigger( &client_gs, pm->playerState, state );
-					cg_triggersListTriggered[i] = true;
-				}
-			}
-		}
-	}
-}
+	// for( int i = 0; i < cg_numTriggers; i++ ) {
+	// 	const SyncEntityState * state = cg_triggersList[i];
 
-static trace_t CG_ClipMoveToEntities( const Ray & ray, const Shape & shape, int ignore, SolidBits solid_mask ) {
-	int64_t serverTime = cg.frame.serverTime;
-
-	trace_t best = MakeMissedTrace( ray );
-
-	for( int i = 0; i < cg_numSolids; i++ ) {
-		const SyncEntityState * ent = cg_solidList[ i ];
-
-		if( ent->number == ignore ) {
-			continue;
-		}
-
-		if( ent->type == ET_PLAYER && ent->team == cg_entities[ ignore ].current.team ) {
-			continue;
-		}
-
-		trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, ent, solid_mask );
-		if( trace.fraction < best.fraction ) {
-			best = trace;
-		}
-	}
-
-	return best;
+	// 	if( state->type == ET_JUMPPAD || state->type == ET_PAINKILLER_JUMPPAD ) {
+	// 		if( !cg_triggersListTriggered[i] ) {
+	// 			if( CG_ClipEntityContact( pm->playerState->pmove.origin, pm->mins, pm->maxs, state->number ) ) {
+	// 				GS_TouchPushTrigger( &client_gs, pm->playerState, state );
+	// 				cg_triggersListTriggered[i] = true;
+	// 			}
+	// 		}
+	// 	}
+	// }
 }
 
 void CG_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, SolidBits solid_mask ) {
@@ -227,7 +212,30 @@ void CG_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ign
 		shape.aabb = ToCenterExtents( bounds );
 	}
 
-	*tr = CG_ClipMoveToEntities( ray, shape, ignore, solid_mask );
+	MinMax3 ray_bounds = Union( Union( MinMax3::Empty(), ray.origin ), ray.origin + ray.direction * ray.length );
+	MinMax3 broadphase_bounds = MinkowskiSum( ray_bounds, shape );
+
+	*tr = MakeMissedTrace( ray );
+
+	u32 bvh_total = 0;
+	u32 bvh_tested = 0;
+
+	TraverseBVH( &cg_bvh, broadphase_bounds, [&]( u32 entity, u32 total ) {
+		bvh_total = total;
+		bvh_tested++;
+		SyncEntityState * touch = &cg.frame.parsedEntities[ entity ];
+		
+		if( touch->number == ignore )
+			return;
+		if( touch->type == ET_PLAYER && touch->team == cg_entities[ ignore ].current.team )
+			return;
+
+		trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, touch, solid_mask );
+		if( trace.fraction < tr->fraction ) {
+			*tr = trace;
+		}
+	} );
+	// Com_GGPrint( "bounds: {} {}, tested {} out of {}", broadphase_bounds.mins, broadphase_bounds.maxs, bvh_tested, bvh_total );
 }
 
 static float predictedSteps[CMD_BACKUP]; // for step smoothing
@@ -320,7 +328,7 @@ void CG_PredictMovement() {
 	pm.scale = cg_entities[cg.frame.playerState.POVnum].interpolated.scale;
 
 	// clear the triggered toggles for this prediction round
-	memset( &cg_triggersListTriggered, 0, sizeof( cg_triggersListTriggered ) );
+	// memset( &cg_triggersListTriggered, 0, sizeof( cg_triggersListTriggered ) );
 
 	// run frames
 	while( ++ucmdExecuted <= ucmdHead ) {

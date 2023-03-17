@@ -6,6 +6,8 @@
 
 #include <algorithm>
 
+static BVH g_bvh;
+
 void G_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, SolidBits solid_mask ) {
 	TracyZoneScoped;
 
@@ -33,7 +35,7 @@ void G_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const ed
 	u32 bvh_total = 0;
 	u32 bvh_tested = 0;
 
-	TraverseBVH( broadphase_bounds, [&]( u32 entity, u32 total ) {
+	TraverseBVH( &g_bvh, broadphase_bounds, [&]( u32 entity, u32 total ) {
 		bvh_total = total;
 		bvh_tested++;
 		edict_t * touch = &game.edicts[ entity ];
@@ -55,7 +57,7 @@ void G_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const ed
 		}
 	} );
 
-	Com_GGPrint( "bounds: {} {}, tested {} out of {}", broadphase_bounds.mins, broadphase_bounds.maxs, bvh_tested, bvh_total );
+	// Com_GGPrint( "bounds: {} {}, tested {} out of {}", broadphase_bounds.mins, broadphase_bounds.maxs, bvh_tested, bvh_total );
 }
 
 void G_Trace4D( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int timeDelta ) {
@@ -67,14 +69,16 @@ int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int time
 	return 0;
 }
 void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage ) {}
-void GClip_ClearWorld() {}
+void GClip_ClearWorld() {
+	ClearBVH( &g_bvh );
+}
 
 void GClip_LinkEntity( edict_t * ent ) {
-	LinkEntity( ServerCollisionModelStorage(), &ent->s );
+	LinkEntity( &g_bvh, ServerCollisionModelStorage(), &ent->s );
 }
 
 void GClip_UnlinkEntity( edict_t * ent ) {
-	UnlinkEntity( ServerCollisionModelStorage(), &ent->s );
+	UnlinkEntity( &g_bvh, ServerCollisionModelStorage(), &ent->s );
 }
 
 void GClip_TouchTriggers( edict_t * ent ) {}

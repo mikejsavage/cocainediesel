@@ -42,18 +42,13 @@ struct BVHNode {
 
 struct Primitive {
 	u32 entity_id;
+	u32 morton_id;
 	MinMax3 bounds;
 	Vec3 center;
 };
 
-struct Morton {
-	u32 morton_id;
-	u32 primitive_id;
-};
-
 static BVHNode nodes[ BVH_NODES ];
 static Primitive primitives[ MAX_PRIMITIVES ];
-static Morton mortons[ MAX_PRIMITIVES ];
 static size_t num_primitives;
 
 constexpr u32 ExpandBits( u32 x ) {
@@ -93,8 +88,8 @@ static void BuildBVHLevel( size_t level, size_t num_levels ) {
 		if( is_leaf ) {
 			first_child_index = BVH_NODE_SIZE * i;
 			for( size_t j = 0; j < BVH_NODE_SIZE; j++ ) {
-				size_t primitive_idx = mortons[ first_child_index + j ].primitive_id;
-				if( primitive_idx + 1 >= num_primitives )
+				size_t primitive_idx = first_child_index + j;
+				if( primitive_idx >= num_primitives )
 					continue;
 				node_bounds = Union( node_bounds, primitives[ primitive_idx ].bounds );
 			}
@@ -123,12 +118,10 @@ static void BuildBVH( const CollisionModelStorage * storage ) {
 
 	for( size_t i = 0; i < num_primitives; i++ ) {
 		Primitive & primitive = primitives[ i ];
-		Morton & morton = mortons[ i ];
-		morton.primitive_id = i;
-		morton.morton_id = MortonID( primitive.center, global_bounds );
+		primitive.morton_id = MortonID( primitive.center, global_bounds );
 	}
 
-	std::sort( mortons, mortons + num_primitives, []( Morton a, Morton b ) {
+	std::sort( primitives, primitives + num_primitives, []( Primitive a, Primitive b ) {
 		return a.morton_id < b.morton_id;
 	} );
 
@@ -139,7 +132,6 @@ static void BuildBVH( const CollisionModelStorage * storage ) {
 	}
 }
 
-// void TraverseBVH( MinMax3 bounds, TraverseBVHCallback callback ) {
 void TraverseBVH( MinMax3 bounds, std::function< void ( u32 entity, u32 total ) > callback ) {
 	TracyZoneScoped;
 
@@ -156,15 +148,15 @@ void TraverseBVH( MinMax3 bounds, std::function< void ( u32 entity, u32 total ) 
 		size_t current_node = todo[ --num_todo ];
 		BVHNode & node = nodes[ current_node ];
 
-		bool is_leaf = node.level + 1 == num_levels;
+		bool is_leaf = node.level + 1 >= num_levels;
 		if( is_leaf ) {
 			for( size_t i = 0; i < BVH_NODE_SIZE; i++ ) {
-				size_t primitive_idx = mortons[ node.first_child_index + i ].primitive_id;
-				if( primitive_idx + 1 >= num_primitives )
+				size_t primitive_idx = node.first_child_index + i;
+				if( primitive_idx >= num_primitives )
 					continue;
 				Primitive & primitive = primitives[ primitive_idx ];
 				if( Intersecting( bounds, primitive.bounds ) ) {
-					callback( primitive.entity_id, num_primitives );
+					callback( primitive.entity_id, num_primitives + 1 );
 				}
 			}
 		}
@@ -205,6 +197,9 @@ void LinkEntity( const CollisionModelStorage * storage, const SyncEntityState * 
 	MinMax3 bounds = EntityBounds( storage, ent );
 	if( bounds.mins == MinMax3::Empty().mins && bounds.maxs == MinMax3::Empty().maxs )
 		return;
+
+	bounds.mins += ent->origin;
+	bounds.maxs += ent->origin;
 
 	Primitive & primitive = GetPrimitive( ent->number );
 	primitive.entity_id = ent->number;

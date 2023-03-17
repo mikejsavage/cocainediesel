@@ -321,7 +321,8 @@ MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntitySta
 		const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( storage, model.gltf_model );
 		if( gltf == NULL )
 			return MinMax3::Empty();
-		Mat4 transform = Mat4Translation( ent->origin ) * Mat4Rotation( EulerDegrees3( ent->angles ) ) * Mat4Scale( ent->scale );
+		// Mat4 transform = Mat4Translation( ent->origin ) * Mat4Rotation( EulerDegrees3( ent->angles ) ) * Mat4Scale( ent->scale );
+		Mat4 transform = Mat4Rotation( EulerDegrees3( ent->angles ) ) * Mat4Scale( ent->scale );
 		return GLTFBounds( gltf, transform );
 	}
 

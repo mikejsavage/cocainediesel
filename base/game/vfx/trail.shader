@@ -2,7 +2,7 @@ simpletrail
 {
 	{
 		blendfunc add
-		map vfx/trails/widebeam
+		map game/vfx/widebeam
 		rgbgen entity
 		alphagen entity
 	}

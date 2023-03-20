@@ -1,3 +1,11 @@
+models/objects/gibs/gib
+{
+	{
+		map $whiteimage
+		rgbGen entity
+	}
+}
+
 models/indicators/crown
 {
 	cull none

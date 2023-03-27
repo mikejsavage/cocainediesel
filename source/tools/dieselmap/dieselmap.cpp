@@ -653,9 +653,11 @@ static constexpr const char * section_names[] = {
 	"BrushPlanes",
 
 	"Meshes",
-	"Vertices",
+	"VertexPositions",
+	"VertexNormals",
 	"VertexIndices",
 };
+STATIC_ASSERT( ARRAY_COUNT( section_names ) == MapSection_Count );
 
 template< typename T >
 void Pack( DynamicArray< u8 > & packed, MapHeader * header, MapSectionType section, Span< const T > data, size_t * last_alignment ) {

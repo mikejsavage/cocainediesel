@@ -22,24 +22,6 @@ struct SameType< T, T > { static constexpr bool value = true; };
 
 STATIC_ASSERT( ( SameType< u32, GLuint >::value ) );
 
-enum VertexAttribute : GLuint {
-	VertexAttribute_Position,
-	VertexAttribute_Normal,
-	VertexAttribute_TexCoord,
-	VertexAttribute_Color,
-	VertexAttribute_JointIndices,
-	VertexAttribute_JointWeights,
-
-	// instance stuff
-	VertexAttribute_MaterialColor,
-	VertexAttribute_MaterialTextureMatrix0,
-	VertexAttribute_MaterialTextureMatrix1,
-	VertexAttribute_OutlineHeight,
-	VertexAttribute_ModelTransformRow0,
-	VertexAttribute_ModelTransformRow1,
-	VertexAttribute_ModelTransformRow2,
-};
-
 static const u32 UNIFORM_BUFFER_SIZE = 64 * 1024;
 
 struct DrawCall {
@@ -577,7 +559,7 @@ static bool operator!=( PipelineState::Scissor a, PipelineState::Scissor b ) {
 	return a.x != b.x || a.y != b.y || a.w != b.w || a.h != b.h;
 }
 
-static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
+static void SetPipelineState( PipelineState pipeline, bool cw_winding ) {
 	TracyGpuZone( "Set pipeline state" );
 
 	if( pipeline.shader != NULL && ( prev_pipeline.shader == NULL || pipeline.shader->program != prev_pipeline.shader->program ) ) {
@@ -724,7 +706,7 @@ static void SetPipelineState( PipelineState pipeline, bool ccw_winding ) {
 	}
 
 	// backface culling
-	if( pipeline.cull_face != CullFace_Disabled && !ccw_winding ) {
+	if( pipeline.cull_face != CullFace_Disabled && cw_winding ) {
 		pipeline.cull_face = pipeline.cull_face == CullFace_Front ? CullFace_Back : CullFace_Front;
 	}
 
@@ -800,7 +782,7 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 	return a.pipeline.shader < b.pipeline.shader;
 }
 
-static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
+static void SetupAttribute( GLuint vao, GLuint buffer, VertexAttributeType attribute, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
 	if( buffer == 0 )
 		return;
 
@@ -810,8 +792,8 @@ static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexForma
 	GLboolean normalized;
 	VertexFormatToGL( format, &type, &num_components, &integral, &normalized, stride == 0 ? &stride : NULL );
 
-	glEnableVertexArrayAttrib( vao, index );
-	glVertexArrayVertexBuffer( vao, index, buffer, 0, stride );
+	glEnableVertexArrayAttrib( vao, attribute );
+	glVertexArrayVertexBuffer( vao, attribute, buffer, 0, stride );
 	if( integral && !normalized ) {
 		/*
 		 * wintel driver ignores the type and treats everything as u32
@@ -819,15 +801,15 @@ static void SetupAttribute( GLuint vao, GLuint buffer, GLuint index, VertexForma
 		 *
 		 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
 		 *
-		 * glVertexArrayAttribIFormat( vao, index, num_components, type, offset );
+		 * glVertexArrayAttribIFormat( vao, attribute, num_components, type, offset );
 		 */
 
 		glBindVertexArray( vao );
-		glVertexAttribIFormat( index, num_components, type, offset );
+		glVertexAttribIFormat( attribute, num_components, type, offset );
 		glBindVertexArray( 0 );
 	}
 	else {
-		glVertexArrayAttribFormat( vao, index, num_components, type, normalized, offset );
+		glVertexArrayAttribFormat( vao, attribute, num_components, type, normalized, offset );
 	}
 }
 
@@ -926,7 +908,9 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	if( dc.pipeline.shader->program == 0 )
 		return;
 
-	SetPipelineState( dc.pipeline, dc.mesh.ccw_winding );
+	SetPipelineState( dc.pipeline, dc.mesh.cw_winding );
+
+	GLenum index_type = dc.mesh.index_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 
 	if( dc.instance_type == InstanceType_ComputeShader ) {
 		glDispatchCompute( dc.dispatch_size[ 0 ], dc.dispatch_size[ 1 ], dc.dispatch_size[ 2 ] );
@@ -943,10 +927,8 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 	glBindVertexArray( dc.mesh.vao );
 
 	if( dc.instance_type == InstanceType_Particles ) {
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, dc.indirect.buffer );
-		glDrawElementsIndirect( GL_TRIANGLES, type, 0 );
+		glDrawArraysIndirect( GL_TRIANGLES, 0 );
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
 	}
 	else if( dc.instance_type == InstanceType_Model ) {
@@ -966,8 +948,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
 
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, type, 0, dc.num_instances );
+		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, index_type, 0, dc.num_instances );
 	}
 	else if( dc.instance_type == InstanceType_ModelShadows ) {
 		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 0 ] ) );
@@ -978,8 +959,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
 
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, type, 0, dc.num_instances );
+		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, index_type, 0, dc.num_instances );
 	}
 	else if( dc.instance_type == InstanceType_ModelOutlines ) {
 		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, color ) );
@@ -996,8 +976,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
 
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, type, 0, dc.num_instances );
+		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, index_type, 0, dc.num_instances );
 	}
 	else if( dc.instance_type == InstanceType_ModelSilhouette ) {
 		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, color ) );
@@ -1012,13 +991,11 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
 		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
 
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, type, 0, dc.num_instances );
+		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, index_type, 0, dc.num_instances );
 	}
-	else if( dc.mesh.indices.buffer != 0 ) {
-		GLenum type = dc.mesh.indices_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+	else if( dc.mesh.index_buffer.buffer != 0 ) {
 		const void * offset = ( const void * ) uintptr_t( dc.index_offset );
-		glDrawElements( GL_TRIANGLES, dc.num_vertices, type, offset );
+		glDrawElements( GL_TRIANGLES, dc.num_vertices, index_type, offset );
 	}
 	else {
 		glDrawArrays( GL_TRIANGLES, dc.index_offset, dc.num_vertices );
@@ -1673,52 +1650,60 @@ void DeleteShader( Shader shader ) {
 	glDeleteProgram( shader.program );
 }
 
-Mesh NewMesh( MeshConfig config ) {
+Mesh NewMesh( const MeshConfig & config ) {
 	GLuint vao;
 	glCreateVertexArrays( 1, &vao );
 	DebugLabel( GL_VERTEX_ARRAY, vao, config.name );
 
-	if( config.unified_buffer.buffer == 0 ) {
-		SetupAttribute( vao, config.positions.buffer, VertexAttribute_Position, config.positions_format );
-		SetupAttribute( vao, config.normals.buffer, VertexAttribute_Normal, config.normals_format );
-		SetupAttribute( vao, config.tex_coords.buffer, VertexAttribute_TexCoord, config.tex_coords_format );
-		SetupAttribute( vao, config.colors.buffer, VertexAttribute_Color, config.colors_format );
-		SetupAttribute( vao, config.joints.buffer, VertexAttribute_JointIndices, config.joints_format );
-		SetupAttribute( vao, config.weights.buffer, VertexAttribute_JointWeights, config.weights_format );
-	}
-	else {
-		Assert( config.stride != 0 );
+	for( size_t i = 0; i < ARRAY_COUNT( config.vertex_descriptor.attributes ); i++ ) {
+		if( !config.vertex_descriptor.attributes[ i ].exists )
+			continue;
 
-		GLuint buffer = config.unified_buffer.buffer;
-		SetupAttribute( vao, buffer, VertexAttribute_Position, config.positions_format, config.stride, config.positions_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_Normal, config.normals_format, config.stride, config.normals_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_TexCoord, config.tex_coords_format, config.stride, config.tex_coords_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_Color, config.colors_format, config.stride, config.colors_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_JointIndices, config.joints_format, config.stride, config.joints_offset );
-		SetupAttribute( vao, buffer, VertexAttribute_JointWeights, config.weights_format, config.stride, config.weights_offset );
+		const VertexAttribute & attribute = config.vertex_descriptor.attributes[ i ].value;
+
+		GLenum type;
+		int num_components;
+		bool integral;
+		GLboolean normalized;
+		u32 stride = config.vertex_descriptor.buffer_strides[ attribute.buffer ];
+		VertexFormatToGL( attribute.format, &type, &num_components, &integral, &normalized, stride == 0 ? &stride : NULL );
+
+		glEnableVertexArrayAttrib( vao, i );
+		glVertexArrayVertexBuffer( vao, i, config.vertex_buffers[ attribute.buffer ].buffer, 0, stride );
+
+		if( integral && !normalized ) {
+			/*
+			 * wintel driver ignores the type and treats everything as u32
+			 * non-DSA call works fine so fall back to that here
+			 *
+			 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
+			 *
+			 * glVertexArrayAttribIFormat( vao, attribute, num_components, type, attribute.offset );
+			 */
+
+			glBindVertexArray( vao );
+			glVertexAttribIFormat( i, num_components, type, attribute.offset );
+			glBindVertexArray( 0 );
+		}
+		else {
+			glVertexArrayAttribFormat( vao, i, num_components, type, normalized, attribute.offset );
+		}
 	}
 
-	if( config.indices.buffer != 0 ) {
-		glVertexArrayElementBuffer( vao, config.indices.buffer );
+	if( config.index_buffer.buffer != 0 ) {
+		glVertexArrayElementBuffer( vao, config.index_buffer.buffer );
 	}
 
 	Mesh mesh = { };
-	mesh.num_vertices = config.num_vertices;
-	mesh.ccw_winding = config.ccw_winding;
 	mesh.vao = vao;
-	if( config.unified_buffer.buffer == 0 ) {
-		mesh.positions = config.positions;
-		mesh.normals = config.normals;
-		mesh.tex_coords = config.tex_coords;
-		mesh.colors = config.colors;
-		mesh.joints = config.joints;
-		mesh.weights = config.weights;
+	mesh.index_format = config.index_format;
+	mesh.num_vertices = config.num_vertices;
+	mesh.cw_winding = config.cw_winding;
+
+	for( size_t i = 0; i < ARRAY_COUNT( mesh.vertex_buffers ); i++ ) {
+		mesh.vertex_buffers[ i ] = config.vertex_buffers[ i ];
 	}
-	else {
-		mesh.positions = config.unified_buffer;
-	}
-	mesh.indices = config.indices;
-	mesh.indices_format = config.indices_format;
+	mesh.index_buffer = config.index_buffer;
 
 	return mesh;
 }
@@ -1727,13 +1712,10 @@ void DeleteMesh( const Mesh & mesh ) {
 	if( mesh.vao == 0 )
 		return;
 
-	DeleteGPUBuffer( mesh.positions );
-	DeleteGPUBuffer( mesh.normals );
-	DeleteGPUBuffer( mesh.tex_coords );
-	DeleteGPUBuffer( mesh.colors );
-	DeleteGPUBuffer( mesh.joints );
-	DeleteGPUBuffer( mesh.weights );
-	DeleteGPUBuffer( mesh.indices );
+	for( GPUBuffer buffer : mesh.vertex_buffers ) {
+		DeleteGPUBuffer( buffer );
+	}
+	DeleteGPUBuffer( mesh.index_buffer );
 
 	glDeleteVertexArrays( 1, &mesh.vao );
 }

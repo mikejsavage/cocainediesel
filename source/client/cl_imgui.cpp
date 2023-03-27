@@ -179,15 +179,14 @@ static void SubmitDrawCalls() {
 			continue;
 		}
 
-		MeshConfig config;
+		MeshConfig config = { };
 		config.name = temp( "ImGui - {}", n );
-		config.unified_buffer = NewGPUBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ), temp( "ImGui vertices - {}", n ) );
-		config.positions_offset = offsetof( ImDrawVert, pos );
-		config.tex_coords_offset = offsetof( ImDrawVert, uv );
-		config.colors_offset = offsetof( ImDrawVert, col );
-		config.positions_format = VertexFormat_Floatx2;
-		config.stride = sizeof( ImDrawVert );
-		config.indices = NewGPUBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( u16 ), temp( "ImGui indices - {}", n ) );
+		config.vertex_buffers[ 0 ] = NewGPUBuffer( cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof( ImDrawVert ), temp( "ImGui vertices - {}", n ) );
+		config.vertex_descriptor.buffer_strides[ 0 ] = sizeof( ImDrawVert );
+		config.vertex_descriptor.attributes[ VertexAttribute_Position ] = { VertexFormat_Floatx2, 0, offsetof( ImDrawVert, pos ) };
+		config.set_attribute( VertexAttribute_TexCoord, 0, offsetof( ImDrawVert, uv ) );
+		config.set_attribute( VertexAttribute_Color, 0, offsetof( ImDrawVert, col ) );
+		config.index_buffer = NewGPUBuffer( cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof( u16 ), temp( "ImGui indices - {}", n ) );
 		Mesh mesh = NewMesh( config );
 		DeferDeleteMesh( mesh );
 

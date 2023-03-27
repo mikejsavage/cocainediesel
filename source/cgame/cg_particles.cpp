@@ -125,12 +125,11 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 
 		constexpr u16 indices[] = { 0, 1, 2, 2, 1, 3 };
 
-		MeshConfig mesh_config;
+		MeshConfig mesh_config = { };
 		mesh_config.name = "Particle quad";
-		mesh_config.positions = NewGPUBuffer( verts, sizeof( verts ) );
-		mesh_config.positions_format = VertexFormat_Floatx2;
-		mesh_config.tex_coords = NewGPUBuffer( uvs, sizeof( uvs ) );
-		mesh_config.indices = NewGPUBuffer( indices, sizeof( indices ) );
+		mesh_config.set_attribute( VertexAttribute_Position, NewGPUBuffer( verts, sizeof( verts ) ), VertexFormat_Floatx2 );
+		mesh_config.set_attribute( VertexAttribute_TexCoord, NewGPUBuffer( uvs, sizeof( uvs ) ) );
+		mesh_config.index_buffer = NewGPUBuffer( indices, sizeof( indices ) );
 		mesh_config.num_vertices = ARRAY_COUNT( indices );
 
 		ps->mesh = NewMesh( mesh_config );

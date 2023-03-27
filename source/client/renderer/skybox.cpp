@@ -29,13 +29,13 @@ void InitSkybox() {
 		0, 5, 1, 5, 0, 4,
 	};
 
-	MeshConfig mesh_config;
+	MeshConfig mesh_config = { };
 	mesh_config.name = "Skybox";
-	mesh_config.positions = NewGPUBuffer( verts, sizeof( verts ), "Skybox vertices" );
-	mesh_config.positions_format = VertexFormat_Floatx4;
-	mesh_config.indices = NewGPUBuffer( indices, sizeof( indices ), "Skybox indices" );
+	mesh_config.set_attribute( VertexAttribute_Position, NewGPUBuffer( verts, sizeof( verts ), "Skybox vertices" ) );
+	mesh_config.vertex_descriptor.attributes[ VertexAttribute_Position ].value.format = VertexFormat_Floatx4;
+	mesh_config.index_buffer = NewGPUBuffer( indices, sizeof( indices ), "Skybox indices" );
 	mesh_config.num_vertices = ARRAY_COUNT( indices );
-	mesh_config.ccw_winding = false;
+	mesh_config.cw_winding = true;
 
 	sky_mesh = NewMesh( mesh_config );
 }

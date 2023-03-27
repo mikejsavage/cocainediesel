@@ -132,7 +132,7 @@ const Model * FindModel( const char * name ) {
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline ) {
 	if( primitive->num_vertices != 0 ) {
-		u32 index_size = model->mesh.indices_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
+		u32 index_size = model->mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
 		DrawMesh( model->mesh, pipeline, primitive->num_vertices, primitive->first_index * index_size );
 	}
 	else {
@@ -142,7 +142,7 @@ void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive
 
 static void DrawModelPrimitiveInstanced( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline, GPUBuffer instance_data, u32 num_instances, InstanceType instance_type ) {
 	if( primitive->num_vertices != 0 ) {
-		u32 index_size = model->mesh.indices_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
+		u32 index_size = model->mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
 		DrawInstancedMesh( model->mesh, pipeline, instance_data, num_instances, instance_type, primitive->num_vertices, primitive->first_index * index_size );
 	}
 	else {

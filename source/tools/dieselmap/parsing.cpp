@@ -500,4 +500,3 @@ std::vector< ParsedEntity > ParseEntities( Span< char > map ) {
 
 	return entities;
 }
-

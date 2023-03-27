@@ -13,6 +13,26 @@ enum IndexFormat : u8 {
 	IndexFormat_U32,
 };
 
+enum VertexAttributeType : u32 {
+	VertexAttribute_Position,
+	VertexAttribute_Normal,
+	VertexAttribute_TexCoord,
+	VertexAttribute_Color,
+	VertexAttribute_JointIndices,
+	VertexAttribute_JointWeights,
+
+	VertexAttribute_Count,
+
+	// instance stuff
+	VertexAttribute_MaterialColor,
+	VertexAttribute_MaterialTextureMatrix0,
+	VertexAttribute_MaterialTextureMatrix1,
+	VertexAttribute_OutlineHeight,
+	VertexAttribute_ModelTransformRow0,
+	VertexAttribute_ModelTransformRow1,
+	VertexAttribute_ModelTransformRow2,
+};
+
 struct Shader {
 	u32 program;
 	u64 uniforms[ 8 ];
@@ -32,17 +52,13 @@ struct UniformBlock {
 };
 
 struct Mesh {
-	u32 num_vertices;
 	u32 vao;
-	GPUBuffer positions;
-	GPUBuffer normals;
-	GPUBuffer tex_coords;
-	GPUBuffer colors;
-	GPUBuffer joints;
-	GPUBuffer weights;
-	GPUBuffer indices;
-	IndexFormat indices_format;
-	bool ccw_winding;
+	GPUBuffer vertex_buffers[ VertexAttribute_Count ];
+	GPUBuffer index_buffer;
+
+	IndexFormat index_format;
+	u32 num_vertices;
+	bool cw_winding;
 };
 
 struct GPUParticle {

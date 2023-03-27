@@ -41,10 +41,6 @@ static Hashtable< MAX_CVARS * 2 > config_entries_hashtable;
 
 bool userinfo_modified;
 
-bool HasFlag( u64 bits, u64 bit ) {
-	return ( bits & bit ) != 0;
-}
-
 bool Cvar_CheatsAllowed() {
 	return Com_ClientState() < CA_CONNECTED || CL_DemoPlaying() || ( Com_ServerState() && Cvar_Bool( "sv_cheats" ) );
 }
@@ -96,7 +92,7 @@ void SetCvar( Cvar * cvar, const char * value ) {
 	cvar->integer = SpanToInt( MakeSpan( cvar->value ), 0 );
 	cvar->modified = true;
 
-	if( HasFlag( cvar->flags, CvarFlag_UserInfo ) ) {
+	if( HasBit( cvar->flags, CvarFlag_UserInfo ) ) {
 		userinfo_modified = true;
 	}
 }
@@ -108,7 +104,7 @@ void Cvar_SetInteger( const char * name, int value ) {
 }
 
 Cvar * NewCvar( const char * name, const char * value, CvarFlags flags ) {
-	if( HasFlag( flags, CvarFlag_UserInfo ) || HasFlag( flags, CvarFlag_ServerInfo ) ) {
+	if( HasBit( flags, CvarFlag_UserInfo ) || HasBit( flags, CvarFlag_ServerInfo ) ) {
 		Assert( Cvar_InfoValidate( name, true ) );
 		Assert( Cvar_InfoValidate( value, true ) );
 	}
@@ -133,7 +129,7 @@ Cvar * NewCvar( const char * name, const char * value, CvarFlags flags ) {
 	Assert( ok );
 
 	u64 idx;
-	if( !HasFlag( flags, CvarFlag_ReadOnly ) && config_entries_hashtable.get( hash, &idx ) ) {
+	if( !HasBit( flags, CvarFlag_ReadOnly ) && config_entries_hashtable.get( hash, &idx ) ) {
 		SetCvar( cvar, config_entries[ idx ].value );
 		cvar->from_config = true;
 	}
@@ -157,27 +153,27 @@ void Cvar_Set( const char * name, const char * value ) {
 		return;
 	}
 
-	if( HasFlag( cvar->flags, CvarFlag_UserInfo ) || HasFlag( cvar->flags, CvarFlag_ServerInfo ) ) {
+	if( HasBit( cvar->flags, CvarFlag_UserInfo ) || HasBit( cvar->flags, CvarFlag_ServerInfo ) ) {
 		if( !Cvar_InfoValidate( value, false ) ) {
 			Com_Printf( "invalid info cvar value\n" );
 			return;
 		}
 	}
 
-	bool read_only = HasFlag( cvar->flags, CvarFlag_ReadOnly ) || ( is_public_build && HasFlag( cvar->flags, CvarFlag_Developer ) );
+	bool read_only = HasBit( cvar->flags, CvarFlag_ReadOnly ) || ( is_public_build && HasBit( cvar->flags, CvarFlag_Developer ) );
 	if( read_only ) {
 		Com_Printf( "%s is write protected.\n", name );
 		return;
 	}
 
-	if( HasFlag( cvar->flags, CvarFlag_Cheat ) && !StrEqual( value, cvar->default_value ) ) {
+	if( HasBit( cvar->flags, CvarFlag_Cheat ) && !StrEqual( value, cvar->default_value ) ) {
 		if( !Cvar_CheatsAllowed() ) {
 			Com_Printf( "%s is cheat protected.\n", name );
 			return;
 		}
 	}
 
-	if( HasFlag( cvar->flags, CvarFlag_ServerReadOnly ) && Com_ServerState() ) {
+	if( HasBit( cvar->flags, CvarFlag_ServerReadOnly ) && Com_ServerState() ) {
 		Com_Printf( "Can't change %s while the server is running.\n", cvar->name );
 		return;
 	}
@@ -192,7 +188,7 @@ void ResetCheatCvars() {
 
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
 		Cvar * cvar = &cvars[ i ];
-		if( HasFlag( cvar->flags, CvarFlag_Cheat ) ) {
+		if( HasBit( cvar->flags, CvarFlag_Cheat ) ) {
 			SetCvar( cvar, cvar->default_value );
 		}
 	}
@@ -292,7 +288,7 @@ void Cvar_WriteVariables( DynamicString * config ) {
 
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
 		const Cvar * cvar = &cvars[ i ];
-		if( !HasFlag( cvar->flags, CvarFlag_Archive ) )
+		if( !HasBit( cvar->flags, CvarFlag_Archive ) )
 			continue;
 		if( !cvar->from_config && StrEqual( cvar->value, cvar->default_value ) )
 			continue;
@@ -319,7 +315,7 @@ static const char * MakeInfoString( CvarFlags flag ) {
 
 	for( size_t i = 0; i < cvars_hashtable.size(); i++ ) {
 		const Cvar * cvar = &cvars[ i ];
-		if( HasFlag( cvar->flags, flag ) ) {
+		if( HasBit( cvar->flags, flag ) ) {
 			Info_SetValueForKey( info, cvar->name, cvar->value );
 		}
 	}

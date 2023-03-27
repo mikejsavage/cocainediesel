@@ -454,8 +454,12 @@ static void W_Touch_Grenade( edict_t * ent, edict_t * other, Vec3 normal, SolidB
 	Explode( ent, other, normal );
 }
 
-static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
+static void W_Fire_Grenade( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, bool altfire ) {
 	edict_t * grenade = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_GrenadeLauncher ) );
+
+	if( altfire ) {
+		grenade->velocity *= 0.5;
+	}
 
 	grenade->s.type = ET_GRENADE;
 	grenade->classname = "grenade";
@@ -494,8 +498,16 @@ static void W_Touch_Rocket( edict_t * ent, edict_t * other, Vec3 normal, SolidBi
 	Explode( ent, other, normal );
 }
 
-static void W_Fire_Rocket( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
-	edict_t * rocket = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RocketLauncher ) );
+static void W_Fire_Rocket( edict_t * self, Vec3 start, Vec3 angles, int timeDelta, bool altfire ) {
+	edict_t * rocket;
+
+	if( altfire ) {
+		rocket = FireProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RocketLauncher ) );
+		rocket->movetype = MOVETYPE_BOUNCE;
+	}
+	else {
+		rocket = FireLinearProjectile( self, start, angles, timeDelta, WeaponProjectileStats( Weapon_RocketLauncher ) );
+	}
 
 	rocket->s.type = ET_ROCKET;
 	rocket->classname = "rocket";
@@ -865,8 +877,10 @@ void W_Fire_Blast( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 }
 
 static void W_Touch_Pistol( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
-	if( BouncingProjectile( ent, other, normal, solid_mask, 1, "weapons/pistol/bullet_impact", "weapons/pistol/bullet_impact" ) ) {
+	if( BouncingProjectile( ent, other, normal, solid_mask, 3, "weapons/pistol/bullet_impact", "weapons/pistol/bullet_impact" ) ) {
 		G_FreeEdict( ent );
+	} else {
+		ent->gravity_scale = GS_GetWeaponDef( Weapon_Pistol )->gravity_scale;
 	}
 }
 
@@ -880,6 +894,7 @@ void W_Fire_Pistol( edict_t * self, Vec3 start, Vec3 angles, int timeDelta ) {
 	bullet->s.sound = "weapons/bullet_whizz";
 	bullet->touch = W_Touch_Pistol;
 	bullet->stop = G_FreeEdict;
+	bullet->gravity_scale = 0.0;
 }
 
 static void W_Touch_Sawblade( edict_t * ent, edict_t * other, Vec3 normal, SolidBits solid_mask ) {
@@ -966,11 +981,11 @@ static void CallFireWeapon( edict_t * ent, u64 parm, bool alt ) {
 			break;
 
 		case Weapon_GrenadeLauncher:
-			W_Fire_Grenade( ent, origin, angles, timeDelta );
+			W_Fire_Grenade( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_RocketLauncher:
-			W_Fire_Rocket( ent, origin, angles, timeDelta );
+			W_Fire_Rocket( ent, origin, angles, timeDelta, alt );
 			break;
 
 		case Weapon_AssaultRifle:

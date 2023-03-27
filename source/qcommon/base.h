@@ -38,6 +38,11 @@ void FatalImpl( const char * file, int line, const char * format, ... ) __attrib
 #endif
 void FatalErrnoImpl( const char * msg, const char * file, int line );
 
+template< typename T >
+constexpr bool HasBit( T bits, T bit ) {
+	return ( bits & bit ) != 0;
+}
+
 /*
  * defer
  */

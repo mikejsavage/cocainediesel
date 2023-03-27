@@ -47,7 +47,7 @@ static void PM_HooliganWalljump( pmove_t * pm, pml_t * pml, const gs_state_t * p
 	float hspeed = Length( Vec3( pml->velocity.x, pml->velocity.y, 0 ) );
 	if( ( hspeed > pm_dashspeed && pml->velocity.z > 8 ) || trace.HitNothing() || !ISWALKABLEPLANE( trace.normal ) ) {
 		Vec3 normal( 0.0f );
-		PlayerTouchWall( pm, pml, pmove_gs, 0.3f, &normal, false );
+		PlayerTouchWall( pm, pml, pmove_gs, 0.3f, &normal, false, Solid_NotSolid );
 		if( !Length( normal ) )
 			return;
 

@@ -30,7 +30,7 @@ struct pml_t {
 	float airAccel;
 	float strafeBunnyAccel;
 
-	float friction;
+	float groundFriction;
 
 	void (*ability1Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool );
 	void (*ability2Callback)( pmove_t *, pml_t *, const gs_state_t *, SyncPlayerState *, bool );
@@ -46,7 +46,7 @@ constexpr float SLIDEMOVE_PLANEINTERACT_EPSILON = 0.05f;
 
 //shared
 float Normalize2D( Vec3 * v );
-void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, float maxZnormal, Vec3 * normal, bool z );
+void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, float maxZnormal, Vec3 * normal, bool z, SolidBits ignoreFlags );
 
 bool StaminaAvailable( SyncPlayerState * ps, pml_t * pml, float need );
 bool StaminaAvailableImmediate( SyncPlayerState * ps, float need );
@@ -65,5 +65,6 @@ void Dash( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, Vec3 dashdir,
 void PM_NinjaInit( pmove_t * pm, pml_t * pml );
 void PM_HooliganInit( pmove_t * pm, pml_t * pml );
 void PM_MidgetInit( pmove_t * pm, pml_t * pml );
+void PM_WheelInit( pmove_t * pm, pml_t * pml );
 void PM_JetpackInit( pmove_t * pm, pml_t * pml );
 void PM_BoomerInit( pmove_t * pm, pml_t * pml );

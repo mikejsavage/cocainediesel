@@ -134,7 +134,7 @@ const WeaponDef weapon_defs[] = {
 		/* category             */ WeaponCategory_Backup,
 
 		/* projectile count     */ 1,
-		/* clip size            */ 15,
+		/* clip size            */ 20,
 		/* reload time          */ 1500,
 		/* staged reload time   */ 0,
 
@@ -154,15 +154,15 @@ const WeaponDef weapon_defs[] = {
 		// damages
 		/* damage               */ 15,
 		/* self damage          */ 0.0f,
-		/* wallbang damage      */ 0.5f,
+		/* wallbang damage      */ 0.0f,
 		/* knockback            */ 30,
 		/* splash radius        */ 0,
 		/* splash min damage    */ 0,
 		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ 2000,
-		/* gravity scale        */ 0.0f,
+		/* speed                */ 4000,
+		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
 	},
 
@@ -431,6 +431,7 @@ const WeaponDef weapon_defs[] = {
 		/* speed                */ 1400,
 		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
+		/* has_altfire          */ true,
 	},
 
 	{
@@ -469,6 +470,7 @@ const WeaponDef weapon_defs[] = {
 		/* speed                */ 1400,
 		/* gravity scale        */ 1.0f,
 		/* spread               */ 0,
+		/* has_altfire          */ true,
 	},
 
 	{
@@ -478,33 +480,33 @@ const WeaponDef weapon_defs[] = {
 
 		/* projectile count     */ 1,
 		/* clip size            */ 30,
-		/* reload time          */ 2500,
+		/* reload time          */ 2000,
 		/* staged reload time   */ 0,
 
 		// timings (in msecs)
 		/* weapon up time       */ WEAPONUP_TIME_NORMAL,
 		/* weapon down time     */ WEAPONDOWN_TIME,
-		/* refire time          */ 50,
+		/* refire time          */ 40,
 		/* timeout / range      */ 10000,
-		/* max recoil           */ EulerDegrees2( 80.0f, 25.0f ),
-		/* min recoil           */ EulerDegrees2( 50.0f, -25.0f ),
-		/* recoil recovery      */ 1350.0f,
+		/* max recoil           */ EulerDegrees2( 65.0f, 15.0f ),
+		/* min recoil           */ EulerDegrees2( 45.0f, -15.0f ),
+		/* recoil recovery      */ 1250.0f,
 		/* firing mode          */ FiringMode_Auto,
 
 		/* zoom fov             */ 0.0f,
 		/* zoom inaccuracy      */ 0.0f,
 
 		// damages
-		/* damage               */ 8,
+		/* damage               */ 6,
 		/* self damage          */ 1,
 		/* wallbang damage      */ 1.0f, //not implemented
 		/* knockback            */ 30,
-		/* splash radius        */ 45,
-		/* splash min damage    */ 8,
-		/* splash min knockback */ 5,
+		/* splash radius        */ 0,
+		/* splash min damage    */ 0,
+		/* splash min knockback */ 0,
 
 		// projectile def
-		/* speed                */ 3500,
+		/* speed                */ 4500,
 		/* gravity scale        */ 1.0f,
 		/* spread               */ 0.0f,
 	},
@@ -1043,19 +1045,37 @@ const PerkDef perk_defs[] = {
 		/* weight           */ 1.0f,
 		/* max speed        */ 320.0f,
 		/* side speed       */ 320.0f,
-		/* max air speed    */ 800.0f,
+		/* ground accel     */ 16.0f,
+		/* air accel        */ 0.5f,
+		/* ground friction  */ 16.0f,
 	},
 
 	{
 		/* enabled          */ true,
 		/* name             */ "MIDGET",
 		/* short name       */ "midget",
-		/* health           */ 65,
-		/* scale            */ Vec3( 1.1f, 1.1f, 0.7f ),
-		/* weight           */ 0.8f,
-		/* max speed        */ 350.0f,
+		/* health           */ 70,
+		/* scale            */ Vec3( 0.8f, 0.8f, 0.6f ),
+		/* weight           */ 0.7f,
+		/* max speed        */ 400.0f,
 		/* side speed       */ 500.0f,
-		/* max air speed    */ 600.0f,
+		/* ground accel     */ 18.0f,
+		/* air accel        */ 0.5f,
+		/* ground friction  */ 16.0f,
+	},
+
+	{
+		/* enabled          */ true,
+		/* name             */ "WHEEL",
+		/* short name       */ "wheel",
+		/* health           */ 90,
+		/* scale            */ Vec3( 0.9f, 0.9f, 0.9f ),
+		/* weight           */ 0.9f,
+		/* max speed        */ 1000.0f,
+		/* side speed       */ 1000.0f,
+		/* ground accel     */ 1.9f,
+		/* air accel        */ 0.1f,
+		/* ground friction  */ 2.5f,
 	},
 
 	{
@@ -1067,7 +1087,9 @@ const PerkDef perk_defs[] = {
 		/* weight           */ 1.0f,
 		/* max speed        */ 320.0f,
 		/* side speed       */ 320.0f,
-		/* max air speed    */ 600.0f,
+		/* ground accel     */ 6.0f,
+		/* air accel        */ 0.5f,
+		/* ground friction  */ 6.0f,
 	},
 
 	{
@@ -1079,7 +1101,9 @@ const PerkDef perk_defs[] = {
 		/* weight           */ 1.0f,
 		/* max speed        */ 400.0f,
 		/* side speed       */ 320.0f,
-		/* max air speed    */ 600.0f,
+		/* ground accel     */ 16.0f,
+		/* air accel        */ 0.5f,
+		/* ground friction  */ 16.0f,
 	},
 
 	{
@@ -1091,7 +1115,9 @@ const PerkDef perk_defs[] = {
 		/* weight           */ 1.5f,
 		/* max speed        */ 300.0f,
 		/* side speed       */ 300.0f,
-		/* max air speed    */ 600.0f,
+		/* ground accel     */ 16.0f,
+		/* air accel        */ 1.0f,
+		/* ground friction  */ 16.0f,
 	}
 };
 

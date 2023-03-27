@@ -280,10 +280,7 @@ edict_t *G_Spawn() {
 }
 
 void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority ) {
-	if( !ent || ent == world || !ent->r.inuse ) {
-		return;
-	}
-	if( !event ) {
+	if( !ent || ent == world || !ent->r.inuse || !event ) {
 		return;
 	}
 
@@ -651,8 +648,9 @@ float LookAtKillerYAW( edict_t *self, edict_t *inflictor, edict_t *attacker ) {
 //
 //==============================================================================
 
-static void G_SpawnTeleportEffect( edict_t *ent, bool respawn, bool in ) {
-	edict_t *event;
+static void G_SpawnTeleportEffect( edict_t * ent, bool respawn, bool in ) {
+	constexpr StringHash tele_in = "sounds/world/tele_in";
+	constexpr StringHash tele_out = "sounds/world/tele_in";
 
 	if( !ent || !ent->r.client ) {
 		return;
@@ -663,7 +661,13 @@ static void G_SpawnTeleportEffect( edict_t *ent, bool respawn, bool in ) {
 	}
 
 	// add a teleportation effect
-	event = G_SpawnEvent( respawn ? EV_PLAYER_RESPAWN : ( in ? EV_PLAYER_TELEPORT_IN : EV_PLAYER_TELEPORT_OUT ), 0, &ent->s.origin );
+	edict_t * event;
+	if( respawn ) {
+		event = G_SpawnEvent( EV_PLAYER_RESPAWN, 0, &ent->s.origin );
+	}
+	else {
+		event = G_SpawnEvent( EV_SOUND_ORIGIN, in ? tele_in.hash : tele_out.hash, &ent->s.origin );
+	}
 	event->s.ownerNum = ENTNUM( ent );
 }
 

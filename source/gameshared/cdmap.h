@@ -16,7 +16,8 @@ enum MapSectionType {
 	MapSection_BrushPlanes,
 
 	MapSection_Meshes,
-	MapSection_Vertices,
+	MapSection_VertexPositions,
+	MapSection_VertexNormals,
 	MapSection_VertexIndices,
 
 	MapSection_Count
@@ -90,11 +91,6 @@ struct MapMesh {
 	u32 num_vertices;
 };
 
-struct MapVertex {
-	Vec3 position;
-	Vec3 normal;
-};
-
 struct MapData {
 	Span< const MapEntity > entities;
 	Span< const char > entity_data;
@@ -108,7 +104,8 @@ struct MapData {
 	Span< const Plane > brush_planes;
 
 	Span< const MapMesh > meshes;
-	Span< const MapVertex > vertices;
+	Span< const Vec3 > vertex_positions;
+	Span< const Vec3 > vertex_normals;
 	Span< const u32 > vertex_indices;
 };
 

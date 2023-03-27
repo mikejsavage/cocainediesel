@@ -140,20 +140,20 @@ void InitRenderer() {
 			Vec3( -1.0f, 3.0f, 0.0f ),
 		};
 
-		MeshConfig config;
+		MeshConfig config = { };
 		config.name = "Fullscreen triangle";
-		config.positions = NewGPUBuffer( positions, sizeof( positions ), "Fullscreen triangle vertices" );
+		config.set_attribute( VertexAttribute_Position, NewGPUBuffer( positions, sizeof( positions ), "Fullscreen triangle vertices" ) );
 		config.num_vertices = 3;
 		fullscreen_mesh = NewMesh( config );
 	}
 
 	{
-		MeshConfig config;
+		MeshConfig config = { };
 		config.name = "Dynamic geometry";
-		config.positions = NewGPUBuffer( sizeof( Vec3 ) * 4 * MaxDynamicVerts, "Dynamic geometry positions" );
-		config.tex_coords = NewGPUBuffer( sizeof( Vec2 ) * 4 * MaxDynamicVerts, "Dynamic geometry uvs" );
-		config.colors = NewGPUBuffer( sizeof( RGBA8 ) * 4 * MaxDynamicVerts, "Dynamic geometry colors" );
-		config.indices = NewGPUBuffer( sizeof( u16 ) * 6 * MaxDynamicVerts, "Dynamic geometry indices" );
+		config.set_attribute( VertexAttribute_Position, NewGPUBuffer( sizeof( Vec3 ) * 4 * MaxDynamicVerts, "Dynamic geometry positions" ) );
+		config.set_attribute( VertexAttribute_TexCoord, NewGPUBuffer( sizeof( Vec2 ) * 4 * MaxDynamicVerts, "Dynamic geometry uvs" ) );
+		config.set_attribute( VertexAttribute_Color, NewGPUBuffer( sizeof( RGBA8 ) * 4 * MaxDynamicVerts, "Dynamic geometry colors" ) );
+		config.index_buffer = NewGPUBuffer( sizeof( u16 ) * 6 * MaxDynamicVerts, "Dynamic geometry indices" );
 		dynamic_geometry_mesh = NewMesh( config );
 	}
 
@@ -467,8 +467,6 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 	frame_static.identity_material_static_uniforms = UploadMaterialStaticUniforms( Vec2( 0 ), 0.0f, 64.0f );
 	frame_static.identity_material_dynamic_uniforms = UploadMaterialDynamicUniforms( vec4_white );
 
-	frame_static.blue_noise_uniforms = UploadUniformBlock( Vec2( blue_noise.width, blue_noise.height ) );
-
 #define TRACY_HACK( name ) { name, __FUNCTION__, __FILE__, uint32_t( __LINE__ ), 0 }
 	static const tracy::SourceLocationData particle_update_tracy = TRACY_HACK( "Update particles" );
 	static const tracy::SourceLocationData particle_setup_indirect_tracy = TRACY_HACK( "Write particle indirect draw buffer" );
@@ -682,10 +680,10 @@ u16 DynamicMeshBaseIndex() {
 }
 
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh ) {
-	WriteGPUBuffer( dynamic_geometry_mesh.positions, mesh.positions, mesh.num_vertices * sizeof( mesh.positions[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.positions[ 0 ] ) );
-	WriteGPUBuffer( dynamic_geometry_mesh.tex_coords, mesh.uvs, mesh.num_vertices * sizeof( mesh.uvs[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.uvs[ 0 ] ) );
-	WriteGPUBuffer( dynamic_geometry_mesh.colors, mesh.colors, mesh.num_vertices * sizeof( mesh.colors[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.colors[ 0 ] ) );
-	WriteGPUBuffer( dynamic_geometry_mesh.indices, mesh.indices, mesh.num_indices * sizeof( mesh.indices[ 0 ] ), dynamic_geometry_num_indices * sizeof( mesh.indices[ 0 ] ) );
+	WriteGPUBuffer( dynamic_geometry_mesh.vertex_buffers[ VertexAttribute_Position ], mesh.positions, mesh.num_vertices * sizeof( mesh.positions[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.positions[ 0 ] ) );
+	WriteGPUBuffer( dynamic_geometry_mesh.vertex_buffers[ VertexAttribute_TexCoord ], mesh.uvs, mesh.num_vertices * sizeof( mesh.uvs[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.uvs[ 0 ] ) );
+	WriteGPUBuffer( dynamic_geometry_mesh.vertex_buffers[ VertexAttribute_Color ], mesh.colors, mesh.num_vertices * sizeof( mesh.colors[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.colors[ 0 ] ) );
+	WriteGPUBuffer( dynamic_geometry_mesh.index_buffer, mesh.indices, mesh.num_indices * sizeof( mesh.indices[ 0 ] ), dynamic_geometry_num_indices * sizeof( mesh.indices[ 0 ] ) );
 
 	DrawMesh( dynamic_geometry_mesh, pipeline, mesh.num_indices, dynamic_geometry_num_indices );
 

@@ -40,7 +40,8 @@ DecodeMapResult DecodeMap( MapData * map, Span< const u8 > data ) {
 	ok = ok && DecodeMapSection( &map->brush_indices, data, MapSection_BrushIndices );
 	ok = ok && DecodeMapSection( &map->brush_planes, data, MapSection_BrushPlanes );
 	ok = ok && DecodeMapSection( &map->meshes, data, MapSection_Meshes );
-	ok = ok && DecodeMapSection( &map->vertices, data, MapSection_Vertices );
+	ok = ok && DecodeMapSection( &map->vertex_positions, data, MapSection_VertexPositions );
+	ok = ok && DecodeMapSection( &map->vertex_normals, data, MapSection_VertexNormals );
 	ok = ok && DecodeMapSection( &map->vertex_indices, data, MapSection_VertexIndices );
 
 	return ok ? DecodeMapResult_Ok : DecodeMapResult_NotAMap;

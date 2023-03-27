@@ -86,10 +86,9 @@ RandomDistribution ParseRandomDistribution( Span< const char > * data, ParseStop
 
 void DeleteParticleSystem( Allocator * a, ParticleSystem * ps );
 
-struct ElementsIndirect {
+struct DrawArraysIndirect {
 	u32 count;
 	u32 primCount;
-	u32 firstIndex;
 	u32 baseVertex;
 	u32 baseInstance;
 };
@@ -109,34 +108,13 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	ps->compute_indirect = NewGPUBuffer( counts, sizeof( counts ), "compute_indirect" );
 
 	{
-		constexpr Vec2 verts[] = {
-			Vec2( -0.5f, -0.5f ),
-			Vec2( 0.5f, -0.5f ),
-			Vec2( -0.5f, 0.5f ),
-			Vec2( 0.5f, 0.5f ),
-		};
-
-		constexpr Vec2 uvs[] = {
-			Vec2( 0.0f, 1.0f ),
-			Vec2( 1.0f, 1.0f ),
-			Vec2( 0.0f, 0.0f ),
-			Vec2( 1.0f, 0.0f ),
-		};
-
-		constexpr u16 indices[] = { 0, 1, 2, 2, 1, 3 };
-
-		MeshConfig mesh_config;
+		MeshConfig mesh_config = { };
 		mesh_config.name = "Particle quad";
-		mesh_config.positions = NewGPUBuffer( verts, sizeof( verts ) );
-		mesh_config.positions_format = VertexFormat_Floatx2;
-		mesh_config.tex_coords = NewGPUBuffer( uvs, sizeof( uvs ) );
-		mesh_config.indices = NewGPUBuffer( indices, sizeof( indices ) );
-		mesh_config.num_vertices = ARRAY_COUNT( indices );
-
+		mesh_config.num_vertices = 6;
 		ps->mesh = NewMesh( mesh_config );
 
-		ElementsIndirect indirect = { };
-		indirect.count = ARRAY_COUNT( indices );
+		DrawArraysIndirect indirect = { };
+		indirect.count = 6;
 		ps->draw_indirect = NewGPUBuffer( &indirect, sizeof( indirect ), "draw_indirect" );
 	}
 
@@ -708,6 +686,7 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	pipeline.pass = frame_static.transparent_pass;
 	pipeline.shader = &shaders.particle;
 	pipeline.blend_func = ps->blend_func;
+	pipeline.cull_face = CullFace_Disabled;
 	pipeline.write_depth = false;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );

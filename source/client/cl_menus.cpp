@@ -1032,7 +1032,7 @@ static void InitCategory( const char * category_name, float padding ) {
 }
 
 static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 icon_size ) {
-	InitCategory( label, icon_size.y * 0.8 );
+	InitCategory( label, icon_size.y * 0.5 );
 
 	for( WeaponType i = Weapon_None; i < Weapon_Count; i++ ) {
 		const WeaponDef * def = GS_GetWeaponDef( i );
@@ -1048,7 +1048,7 @@ static void LoadoutCategory( const char * label, WeaponCategory category, Vec2 i
 }
 
 static void Perks( Vec2 icon_size ) {
-	InitCategory( "CLASS", icon_size.y * 0.8 );
+	InitCategory( "CLASS", icon_size.y * 0.5 );
 
 	for( PerkType i = PerkType( Perk_None + 1 ); i < Perk_Count; i++ ) {
 		if( !GetPerkDef( i )->enabled )
@@ -1064,7 +1064,7 @@ static void Perks( Vec2 icon_size ) {
 
 
 static void Gadgets( Vec2 icon_size ) {
-	InitCategory( "GADGET", icon_size.y * 0.8 );
+	InitCategory( "GADGET", icon_size.y * 0.5 );
 
 	for( GadgetType i = GadgetType( Gadget_None + 1 ); i < Gadget_Count; i++ ) {
 		const GadgetDef * def = GetGadgetDef( i );
@@ -1090,7 +1090,7 @@ static bool LoadoutMenu() {
 	ImGui::Begin( "Loadout", WindowZOrder_Menu, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_Interactive );
 
 	{
-		size_t title_height = displaySize.y * 0.15f;
+		size_t title_height = displaySize.y * 0.075f;
 		ImGui::PushStyleColor( ImGuiCol_ChildBg, Vec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
 		ImGui::BeginChild( "loadout title", ImVec2( -1, title_height ) );
 

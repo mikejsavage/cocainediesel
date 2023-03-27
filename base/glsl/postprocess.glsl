@@ -56,7 +56,7 @@ vec4 noise( vec2 p ) {
 	return texture( u_Noise, p );
 }
 
-float fnoise(vec2 v) {
+float fnoise( vec2 v ) {
 	return fract( sin( dot( v, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 );
 }
 
@@ -72,7 +72,7 @@ vec3 permute( vec3 x ) {
 	return mod289( ( ( x * 34.0 ) + 1.0 ) * x );
 }
 
-float snoise(vec2 v) {
+float snoise( vec2 v ) {
 	const vec4 C = vec4( 0.211324865405187,  // (3.0-sqrt(3.0))/6.0
 	                     0.366025403784439,  // 0.5*(sqrt(3.0)-1.0)
 	                     -0.577350269189626, // -1.0 + 2.0 * C.x

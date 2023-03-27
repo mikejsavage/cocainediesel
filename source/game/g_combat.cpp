@@ -171,10 +171,12 @@ static void G_KnockBackPush( edict_t *targ, edict_t *attacker, Vec3 basedir, int
 }
 
 void SpawnDamageEvents( const edict_t * attacker, edict_t * victim, float damage, bool headshot, Vec3 pos, Vec3 dir, bool showNumbers ) {
+	constexpr StringHash headshot_sound = "sounds/headshot/headshot";
+
 	u64 parm = HEALTH_TO_INT( damage ) << 1;
 	if( headshot ) {
 		parm |= 1;
-		G_SpawnEvent( EV_HEADSHOT, 0, &victim->s.origin );
+		G_SpawnEvent( EV_SOUND_ORIGIN, headshot_sound.hash, &victim->s.origin );
 	}
 
 	if( showNumbers ) {

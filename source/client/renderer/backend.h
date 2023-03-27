@@ -206,39 +206,53 @@ struct PipelineState {
 	}
 };
 
+struct VertexAttribute {
+	VertexFormat format;
+	size_t buffer;
+	size_t offset;
+};
+
+struct VertexDescriptor {
+	Optional< VertexAttribute > attributes[ VertexAttribute_Count ];
+	u32 buffer_strides[ VertexAttribute_Count ];
+};
+
 struct MeshConfig {
-	GPUBuffer positions = { };
-	GPUBuffer normals = { };
-	GPUBuffer tex_coords = { };
-	GPUBuffer colors = { };
-	GPUBuffer joints = { };
-	GPUBuffer weights = { };
+	const char * name;
 
-	struct {
-		GPUBuffer buffer = { };
-		u32 stride = 0;
-		Optional< u32 > positions_offset = NONE;
-		Optional< u32 > normals_offset = NONE;
-		Optional< u32 > tex_coords_offset = NONE;
-		Optional< u32 > colors_offset = NONE;
-		Optional< u32 > joints_offset = NONE;
-		Optional< u32 > weights_offset = NONE;
-	} unified;
+	VertexDescriptor vertex_descriptor;
+	GPUBuffer vertex_buffers[ VertexAttribute_Count ];
 
-	const char * name = NULL;
+	IndexFormat index_format;
+	GPUBuffer index_buffer;
+	u32 num_vertices;
 
-	VertexFormat positions_format = VertexFormat_Floatx3;
-	VertexFormat normals_format = VertexFormat_Floatx3;
-	VertexFormat tex_coords_format = VertexFormat_Floatx2;
-	VertexFormat colors_format = VertexFormat_U8x4_Norm;
-	VertexFormat joints_format = VertexFormat_U16x4;
-	VertexFormat weights_format = VertexFormat_Floatx4;
-	IndexFormat indices_format = IndexFormat_U16;
+	bool cw_winding;
 
-	GPUBuffer indices = { };
-	u32 num_vertices = 0;
+	static constexpr VertexFormat default_attribute_formats[] = {
+		VertexFormat_Floatx3,
+		VertexFormat_Floatx3,
+		VertexFormat_Floatx2,
+		VertexFormat_U8x4_Norm,
+		VertexFormat_U16x4,
+		VertexFormat_Floatx4,
+	};
 
-	bool ccw_winding = true;
+	void set_attribute( VertexAttributeType type, GPUBuffer buffer, Optional< VertexFormat > format = NONE ) {
+		VertexAttribute attribute = { };
+		attribute.format = format.exists ? format.value : default_attribute_formats[ type ];
+		attribute.buffer = type;
+		vertex_descriptor.attributes[ type ] = attribute;
+		vertex_buffers[ type ] = buffer;
+	}
+
+	void set_attribute( VertexAttributeType type, size_t buffer, size_t offset ) {
+		VertexAttribute attribute = { };
+		attribute.format = default_attribute_formats[ type ];
+		attribute.buffer = buffer;
+		attribute.offset = offset;
+		vertex_descriptor.attributes[ type ] = attribute;
+	}
 };
 
 struct TextureConfig {
@@ -356,7 +370,7 @@ bool NewShader( Shader * shader, const char * src, const char * name );
 bool NewComputeShader( Shader * shader, const char * src, const char * name );
 void DeleteShader( Shader shader );
 
-Mesh NewMesh( MeshConfig config );
+Mesh NewMesh( const MeshConfig & config );
 void DeleteMesh( const Mesh & mesh );
 void DeferDeleteMesh( const Mesh & mesh );
 

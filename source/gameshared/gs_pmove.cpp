@@ -34,9 +34,6 @@ static const gs_state_t * pmove_gs;
 
 // movement parameters
 
-constexpr float default_friction = 16; //  ( initially 6 )
-constexpr float default_accelerate = 16; // user intended acceleration when on ground or fly movement ( initially 10 )
-constexpr float default_airaccelerate = 0.5f; // user intended aceleration when on air
 constexpr float default_strafebunnyaccel = 60; // forward acceleration when strafe bunny hopping
 
 
@@ -299,7 +296,7 @@ static void PM_Friction() {
 	if( pm->groundentity != -1 || pml.ladder ) {
 		if( pm->playerState->pmove.knockback_time <= 0 ) {
 			float control = speed < pm_decelerate ? pm_decelerate : speed;
-			drop += control * pml.friction * pml.frametime;
+			drop += control * pml.groundFriction * pml.frametime;
 		}
 	}
 
@@ -642,11 +639,7 @@ static void PM_BeginMove() {
 	pml.forwardPush = pm->cmd.forwardmove / 127.0f;
 	pml.sidePush = pm->cmd.sidemove / 127.0f;
 
-	pml.groundAccel = default_accelerate;
-	pml.airAccel = default_airaccelerate;
 	pml.strafeBunnyAccel = default_strafebunnyaccel;
-
-	pml.friction = default_friction;
 }
 
 static void PM_EndMove() {
@@ -658,10 +651,10 @@ static void PM_InitPerk() {
 	switch( pm->playerState->perk ) {
 		case Perk_Hooligan: PM_HooliganInit( pm, &pml ); break;
 		case Perk_Midget: PM_MidgetInit( pm, &pml ); break;
+		case Perk_Wheel: PM_WheelInit( pm, &pml ); break;
 		case Perk_Jetpack: PM_JetpackInit( pm, &pml ); break;
 		case Perk_Ninja: PM_NinjaInit( pm, &pml ); break;
-		case Perk_Boomer: PM_BoomerInit( pm, &pml ); break;
-		default: PM_NinjaInit( pm, &pml ); break;
+		default: PM_BoomerInit( pm, &pml ); break;
 	}
 }
 

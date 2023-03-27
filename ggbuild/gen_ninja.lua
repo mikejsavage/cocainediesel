@@ -88,7 +88,9 @@ configs[ "linux-bench" ] = {
 
 configs[ "macos" ] = copy( configs[ "linux" ], {
 	cxx = "clang++",
-	cxxflags = configs[ "linux" ].cxxflags .. " -mmacosx-version-min=10.13",
+	-- -march=haswell on x86
+	cxxflags = configs[ "linux" ].cxxflags .. " -arch arm64 -mmacosx-version-min=10.13",
+	ldflags = "-arch arm64",
 } )
 configs[ "macos-debug" ] = {
 	cxxflags = "-O0 -g -fno-omit-frame-pointer",

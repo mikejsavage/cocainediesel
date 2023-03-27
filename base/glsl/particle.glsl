@@ -12,10 +12,21 @@ flat v2f vec4 v_Color;
 
 #if MODEL
 	in vec3 a_Position;
+	in vec2 a_TexCoord;
 #else
-	in vec2 a_Position;
+	const vec2 quad_positions[] = {
+		vec2( -0.5f, -0.5f ),
+		vec2( 0.5f, -0.5f ),
+		vec2( -0.5f, 0.5f ),
+		vec2( 0.5f, 0.5f ),
+	};
+
+	const int index_buffer[] = { 0, 1, 2, 2, 1, 3 };
+
+	vec2 PositionToTexCoord( vec2 p ) {
+		return p * vec2( 1.0, -1.0 ) + 0.5;
+	}
 #endif
-in vec2 a_TexCoord;
 
 layout( std430 ) readonly buffer b_Particles {
 	Particle particles[];
@@ -30,7 +41,8 @@ void main() {
 #if MODEL
 	v_TexCoord = a_TexCoord;
 #else
-	v_TexCoord = a_TexCoord * particle.uvwh.zw + particle.uvwh.xy;
+	vec2 position = quad_positions[ index_buffer[ gl_VertexID ] ];
+	v_TexCoord = PositionToTexCoord( position ) * particle.uvwh.zw + particle.uvwh.xy;
 	v_Layer = floor( particle.uvwh.x );
 #endif
 	float scale = mix( particle.start_size, particle.end_size, fage );
@@ -44,7 +56,7 @@ void main() {
 	// stretched billboards based on
 	// https://github.com/turanszkij/WickedEngine/blob/master/WickedEngine/emittedparticleVS.hlsl
 	vec3 view_velocity = ( u_V * vec4( particle.velocity * 0.01, 0.0 ) ).xyz;
-	vec3 quadPos = vec3( scale * a_Position, 0.0 );
+	vec3 quadPos = vec3( scale * position, 0.0 );
 	float angle = particle.angle;
 	if ( ( particle.flags & PARTICLE_ROTATE ) != 0u ) {
 		angle += atan( view_velocity.x, -view_velocity.y );

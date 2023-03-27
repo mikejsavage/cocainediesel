@@ -35,6 +35,11 @@ static void LogDebugInstructions() {
 	done_once = true;
 }
 
+struct InterleavedMapVertex {
+	Vec3 position;
+	Vec3 normal;
+};
+
 template< typename T >
 Span< const T > VectorToSpan( const std::vector< T > & v ) {
 	return Span< const T >( v.data(), v.size() );
@@ -42,7 +47,7 @@ Span< const T > VectorToSpan( const std::vector< T > & v ) {
 
 struct CompiledMesh {
 	u64 material = 0;
-	std::vector< MapVertex > vertices;
+	std::vector< InterleavedMapVertex > vertices;
 	std::vector< u32 > indices;
 };
 
@@ -189,7 +194,7 @@ static std::vector< CompiledMesh > BrushToCompiledMeshes( const ParsedBrush & br
 		std::vector< Vec3 > hull = BrushFaceToHull( VectorToSpan( planes ), i );
 		Vec3 normal = planes[ i ].normal;
 		for( Vec3 position : hull ) {
-			MapVertex v = { position, normal };
+			InterleavedMapVertex v = { position, normal };
 			material_mesh.vertices.push_back( v );
 		}
 
@@ -446,7 +451,7 @@ static CompiledMesh MergeMeshes( Span< const CompiledMesh > meshes ) {
 
 	for( const CompiledMesh & mesh : meshes ) {
 		size_t base_vertex = merged.vertices.size();
-		for( MapVertex v : mesh.vertices ) {
+		for( InterleavedMapVertex v : mesh.vertices ) {
 			merged.vertices.push_back( v );
 		}
 		for( u32 idx : mesh.indices ) {
@@ -503,24 +508,24 @@ static std::vector< CompiledMesh > GenerateRenderGeometry( const ParsedEntity & 
 		std::vector< u32 > remap( merged.indices.size() );
 		size_t unique_verts = meshopt_generateVertexRemap( remap.data(),
 			merged.indices.data(), merged.indices.size(),
-			merged.vertices.data(), merged.vertices.size(), sizeof( MapVertex ) );
+			merged.vertices.data(), merged.vertices.size(), sizeof( InterleavedMapVertex ) );
 
 		CompiledMesh optimized;
 		optimized.material = merged.material;
 		optimized.vertices.resize( unique_verts );
 		optimized.indices.resize( merged.indices.size() );
 
-		MapVertex * vertices = optimized.vertices.data();
+		InterleavedMapVertex * vertices = optimized.vertices.data();
 		size_t num_vertices = optimized.vertices.size();
 		u32 * indices = optimized.indices.data();
 		size_t num_indices = optimized.indices.size();
 
-		{ TracyZoneScopedN( "meshopt_remapVertexBuffer" ); meshopt_remapVertexBuffer( vertices, merged.vertices.data(), merged.vertices.size(), sizeof( MapVertex ), remap.data() ); }
+		{ TracyZoneScopedN( "meshopt_remapVertexBuffer" ); meshopt_remapVertexBuffer( vertices, merged.vertices.data(), merged.vertices.size(), sizeof( InterleavedMapVertex ), remap.data() ); }
 		{ TracyZoneScopedN( "meshopt_remapIndexBuffer" ); meshopt_remapIndexBuffer( indices, merged.indices.data(), merged.indices.size(), remap.data() ); }
 		// optimizeVertexCache is extremely slow so don't bother
 		// { TracyZoneScopedN( "meshopt_optimizeVertexCache" ); meshopt_optimizeVertexCache( indices, indices, num_indices, num_vertices ); }
-		{ TracyZoneScopedN( "meshopt_optimizeOverdraw" ); meshopt_optimizeOverdraw( indices, indices, num_indices, &vertices[ 0 ].position.x, num_vertices, sizeof( MapVertex ), 1.05f ); }
-		{ TracyZoneScopedN( "meshopt_optimizeVertexFetch" ); meshopt_optimizeVertexFetch( vertices, indices, num_indices, vertices, num_vertices, sizeof( MapVertex ) ); }
+		{ TracyZoneScopedN( "meshopt_optimizeOverdraw" ); meshopt_optimizeOverdraw( indices, indices, num_indices, &vertices[ 0 ].position.x, num_vertices, sizeof( InterleavedMapVertex ), 1.05f ); }
+		{ TracyZoneScopedN( "meshopt_optimizeVertexFetch" ); meshopt_optimizeVertexFetch( vertices, indices, num_indices, vertices, num_vertices, sizeof( InterleavedMapVertex ) ); }
 
 		optimized_meshes.push_back( optimized );
 	}
@@ -688,7 +693,8 @@ static void WriteCDMap( ArenaAllocator * arena, const char * path, const MapData
 	Pack( packed, &header, MapSection_Models, map->models, &last_alignment );
 	Pack( packed, &header, MapSection_Nodes, map->nodes, &last_alignment );
 	Pack( packed, &header, MapSection_BrushPlanes, map->brush_planes, &last_alignment );
-	Pack( packed, &header, MapSection_Vertices, map->vertices, &last_alignment );
+	Pack( packed, &header, MapSection_VertexPositions, map->vertex_positions, &last_alignment );
+	Pack( packed, &header, MapSection_VertexNormals, map->vertex_normals, &last_alignment );
 	Pack( packed, &header, MapSection_VertexIndices, map->vertex_indices, &last_alignment );
 	Pack( packed, &header, MapSection_BrushIndices, map->brush_indices, &last_alignment );
 	Pack( packed, &header, MapSection_Brushes, map->brushes, &last_alignment );
@@ -718,9 +724,9 @@ static void WriteObj( ArenaAllocator * arena, const char * path, const MapData *
 
 	const MapModel * model = &map->models[ 0 ];
 
-	for( size_t i = 0; i < map->vertices.n; i++ ) {
-		Vec3 p = map->vertices[ i ].position;
-		Vec3 n = map->vertices[ i ].normal;
+	for( size_t i = 0; i < map->vertex_positions.n; i++ ) {
+		Vec3 p = map->vertex_positions[ i ];
+		Vec3 n = map->vertex_normals[ i ];
 		obj.append( "v {} {} {}\n", p.x, p.y, p.z );
 		obj.append( "vn {} {} {}\n", n.x, n.y, n.z );
 	}
@@ -874,7 +880,8 @@ int main( int argc, char ** argv ) {
 	DynamicArray< u32 > flat_brush_indices( &arena );
 	DynamicArray< Plane > flat_brush_planes( &arena );
 	DynamicArray< MapMesh > flat_meshes( &arena );
-	DynamicArray< MapVertex > flat_vertices( &arena );
+	DynamicArray< Vec3 > flat_vertex_positions( &arena );
+	DynamicArray< Vec3 > flat_vertex_normals( &arena );
 	DynamicArray< u32 > flat_vertex_indices( &arena );
 
 	{
@@ -915,8 +922,11 @@ int main( int argc, char ** argv ) {
 				map_mesh.num_vertices = mesh.indices.size();
 				flat_meshes.add( map_mesh );
 
-				size_t base_vertex = flat_vertices.size();
-				flat_vertices.add_many( VectorToSpan( mesh.vertices ) );
+				size_t base_vertex = flat_vertex_positions.size();
+				for( const InterleavedMapVertex & v : mesh.vertices ) {
+					flat_vertex_positions.add( v.position );
+					flat_vertex_normals.add( v.normal );
+				}
 				for( u32 idx : mesh.indices ) {
 					flat_vertex_indices.add( base_vertex + idx );
 				}
@@ -954,7 +964,8 @@ int main( int argc, char ** argv ) {
 	flattened.brush_indices = flat_brush_indices.span();
 	flattened.brush_planes = flat_brush_planes.span();
 	flattened.meshes = flat_meshes.span();
-	flattened.vertices = flat_vertices.span();
+	flattened.vertex_positions = flat_vertex_positions.span();
+	flattened.vertex_normals = flat_vertex_normals.span();
 	flattened.vertex_indices = flat_vertex_indices.span();
 
 	const char * cdmap_path = arena( "{}.cdmap", StripExtension( src_path ) );

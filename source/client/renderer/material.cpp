@@ -1006,7 +1006,6 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		pipeline.pass = frame_static.world_opaque_pass;
 		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 		pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
-		pipeline.set_uniform( "u_BlueNoiseTextureParams", frame_static.blue_noise_uniforms );
 		color.x = material->rgbgen.args[ 0 ];
 		color.y = material->rgbgen.args[ 1 ];
 		color.z = material->rgbgen.args[ 2 ];

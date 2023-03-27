@@ -155,8 +155,9 @@ static void SubmitPostprocessPass() {
 
 	PipelineState pipeline;
 	pipeline.pass = frame_static.postprocess_pass;
-	pipeline.depth_func = DepthFunc_Disabled;
 	pipeline.shader = &shaders.postprocess;
+	pipeline.depth_func = DepthFunc_Disabled;
+	pipeline.write_depth = false;
 
 	const Framebuffer & fb = frame_static.postprocess_fb;
 	pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );

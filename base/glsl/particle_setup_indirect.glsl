@@ -22,16 +22,15 @@ layout( std430 ) writeonly buffer b_ComputeIndirect {
 	DispatchIndirectCommand compute_indirect;
 };
 
-struct DrawElementsIndirectCommand {
+struct DrawArraysIndirectCommand {
 	uint count;
 	uint instanceCount;
-	uint firstIndex;
 	uint baseVertex;
 	uint baseInstance;
 };
 
 layout( std430 ) writeonly buffer b_DrawIndirect {
-	DrawElementsIndirectCommand draw_indirect;
+	DrawArraysIndirectCommand draw_indirect;
 };
 
 void main() {

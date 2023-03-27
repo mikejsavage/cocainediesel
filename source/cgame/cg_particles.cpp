@@ -86,10 +86,9 @@ RandomDistribution ParseRandomDistribution( Span< const char > * data, ParseStop
 
 void DeleteParticleSystem( Allocator * a, ParticleSystem * ps );
 
-struct ElementsIndirect {
+struct DrawArraysIndirect {
 	u32 count;
 	u32 primCount;
-	u32 firstIndex;
 	u32 baseVertex;
 	u32 baseInstance;
 };
@@ -109,33 +108,13 @@ void InitParticleSystem( Allocator * a, ParticleSystem * ps ) {
 	ps->compute_indirect = NewGPUBuffer( counts, sizeof( counts ), "compute_indirect" );
 
 	{
-		constexpr Vec2 verts[] = {
-			Vec2( -0.5f, -0.5f ),
-			Vec2( 0.5f, -0.5f ),
-			Vec2( -0.5f, 0.5f ),
-			Vec2( 0.5f, 0.5f ),
-		};
-
-		constexpr Vec2 uvs[] = {
-			Vec2( 0.0f, 1.0f ),
-			Vec2( 1.0f, 1.0f ),
-			Vec2( 0.0f, 0.0f ),
-			Vec2( 1.0f, 0.0f ),
-		};
-
-		constexpr u16 indices[] = { 0, 1, 2, 2, 1, 3 };
-
 		MeshConfig mesh_config = { };
 		mesh_config.name = "Particle quad";
-		mesh_config.set_attribute( VertexAttribute_Position, NewGPUBuffer( verts, sizeof( verts ) ), VertexFormat_Floatx2 );
-		mesh_config.set_attribute( VertexAttribute_TexCoord, NewGPUBuffer( uvs, sizeof( uvs ) ) );
-		mesh_config.index_buffer = NewGPUBuffer( indices, sizeof( indices ) );
-		mesh_config.num_vertices = ARRAY_COUNT( indices );
-
+		mesh_config.num_vertices = 6;
 		ps->mesh = NewMesh( mesh_config );
 
-		ElementsIndirect indirect = { };
-		indirect.count = ARRAY_COUNT( indices );
+		DrawArraysIndirect indirect = { };
+		indirect.count = 6;
 		ps->draw_indirect = NewGPUBuffer( &indirect, sizeof( indirect ), "draw_indirect" );
 	}
 

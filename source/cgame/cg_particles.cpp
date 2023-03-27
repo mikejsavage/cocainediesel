@@ -686,6 +686,7 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	pipeline.pass = frame_static.transparent_pass;
 	pipeline.shader = &shaders.particle;
 	pipeline.blend_func = ps->blend_func;
+	pipeline.cull_face = CullFace_Disabled;
 	pipeline.write_depth = false;
 	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
 	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );

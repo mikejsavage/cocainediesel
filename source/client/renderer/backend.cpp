@@ -1382,7 +1382,7 @@ void DeleteFramebuffer( Framebuffer fb ) {
 	DeleteTexture( fb.depth_texture );
 }
 
-static GLuint CompileShader( GLenum type, const char * body ) {
+static GLuint CompileShader( GLenum type, const char * body, const char * name ) {
 	TempAllocator temp = cls.frame_arena.temp();
 
 	DynamicString src( &temp, "#version 450 core\n" );
@@ -1410,7 +1410,7 @@ static GLuint CompileShader( GLenum type, const char * body ) {
 	if( status == GL_FALSE ) {
 		char buf[ 1024 ];
 		glGetShaderInfoLog( shader, sizeof( buf ), NULL, buf );
-		Com_Printf( S_COLOR_YELLOW "Shader compilation failed: %s\n", buf );
+		Com_Printf( S_COLOR_YELLOW "Shader compilation failed %s: %s\n", name, buf );
 		glDeleteShader( shader );
 
 		// static char src[ 65536 ];
@@ -1501,22 +1501,24 @@ bool NewShader( Shader * shader, const char * src, const char * name ) {
 
 	*shader = { };
 
-	GLuint vs = CompileShader( GL_VERTEX_SHADER, src );
-	if( vs == 0 )
+	const char * vertex_shader_name = temp( "{} [VS]", name );
+	GLuint vertex_shader = CompileShader( GL_VERTEX_SHADER, src, vertex_shader_name );
+	if( vertex_shader == 0 )
 		return false;
-	DebugLabel( GL_SHADER, vs, temp( "{} [VS]", name ) );
-	defer { glDeleteShader( vs ); };
+	DebugLabel( GL_SHADER, vertex_shader, vertex_shader_name );
+	defer { glDeleteShader( vertex_shader ); };
 
-	GLuint fs = CompileShader( GL_FRAGMENT_SHADER, src );
-	if( fs == 0 )
+	const char * fragment_shader_name = temp( "{} [FS]", name );
+	GLuint fragment_shader = CompileShader( GL_FRAGMENT_SHADER, src, fragment_shader_name );
+	if( fragment_shader == 0 )
 		return false;
-	DebugLabel( GL_SHADER, fs, temp( "{} [FS]", name ) );
-	defer { glDeleteShader( fs ); };
+	DebugLabel( GL_SHADER, fragment_shader, fragment_shader_name );
+	defer { glDeleteShader( fragment_shader ); };
 
 	shader->program = glCreateProgram();
 	DebugLabel( GL_PROGRAM, shader->program, name );
-	glAttachShader( shader->program, vs );
-	glAttachShader( shader->program, fs );
+	glAttachShader( shader->program, vertex_shader );
+	glAttachShader( shader->program, fragment_shader );
 
 	glBindAttribLocation( shader->program, VertexAttribute_Position, "a_Position" );
 	glBindAttribLocation( shader->program, VertexAttribute_Normal, "a_Normal" );
@@ -1536,7 +1538,7 @@ bool NewComputeShader( Shader * shader, const char * src, const char * name ) {
 
 	*shader = { };
 
-	GLuint cs = CompileShader( GL_COMPUTE_SHADER, src );
+	GLuint cs = CompileShader( GL_COMPUTE_SHADER, src, name );
 	if( cs == 0 )
 		return false;
 	DebugLabel( GL_SHADER, cs, temp( "{} [CS]", name ) );

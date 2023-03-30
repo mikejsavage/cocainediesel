@@ -159,17 +159,6 @@ void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive
 	}
 }
 
-static void DrawModelPrimitiveInstanced( const Model * model, const Model::Primitive * primitive, PipelineState pipeline, GPUBuffer instance_data, u32 num_instances ) {
-	pipeline.set_buffer( "b_Instances", instance_data );
-
-	if( primitive->num_vertices != 0 ) {
-		DrawInstancedMesh( model->mesh, pipeline, num_instances, primitive->num_vertices, primitive->first_index );
-	}
-	else {
-		DrawInstancedMesh( primitive->mesh, pipeline, num_instances );
-	}
-}
-
 template< typename T >
 static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline, const T & instance, u64 hash ) {
 	u64 idx = collection.num_groups;
@@ -418,8 +407,17 @@ template< typename T >
 static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collection ) {
 	for( u32 i = 0; i < collection.num_groups; i++ ) {
 		ModelInstanceGroup< T > & group = collection.groups[ i ];
+
+		group.pipeline.set_buffer( "b_Instances", group.instance_data );
 		WriteGPUBuffer( group.instance_data, group.instances, sizeof( T ) * group.num_instances );
-		DrawModelPrimitiveInstanced( group.model, group.primitive, group.pipeline, group.instance_data, group.num_instances );
+
+		if( group.primitive->num_vertices != 0 ) {
+			DrawInstancedMesh( group.model->mesh, group.pipeline, group.num_instances, group.primitive->num_vertices, group.primitive->first_index );
+		}
+		else {
+			DrawInstancedMesh( group.primitive->mesh, group.pipeline, group.num_instances );
+		}
+
 		group.num_instances = 0;
 	}
 	collection.num_groups = 0;

@@ -621,7 +621,7 @@ typedef struct {
 static void GClip_ClipMoveToEntities( moveclip_t *clip, int timeDelta ) {
 	TracyZoneScoped;
 
-	Assert( clip->passent == -1 || ( clip->passent >= 0 && clip->passent < ARRAY_COUNT( game.edicts ) ) );
+	Assert( clip->passent == -1 || ( clip->passent >= 0 && size_t( clip->passent ) < ARRAY_COUNT( game.edicts ) ) );
 
 	int touchlist[MAX_EDICTS];
 	int num = GClip_AreaEdicts( clip->boxmins, clip->boxmaxs, touchlist, MAX_EDICTS, AREA_SOLID, timeDelta );

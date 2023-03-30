@@ -21,16 +21,7 @@ enum VertexAttributeType : u32 {
 	VertexAttribute_JointIndices,
 	VertexAttribute_JointWeights,
 
-	VertexAttribute_Count,
-
-	// instance stuff
-	VertexAttribute_MaterialColor,
-	VertexAttribute_MaterialTextureMatrix0,
-	VertexAttribute_MaterialTextureMatrix1,
-	VertexAttribute_OutlineHeight,
-	VertexAttribute_ModelTransformRow0,
-	VertexAttribute_ModelTransformRow1,
-	VertexAttribute_ModelTransformRow2,
+	VertexAttribute_Count
 };
 
 struct Shader {
@@ -98,39 +89,7 @@ struct ModelRenderData;
 struct DrawModelConfig;
 struct PipelineState;
 
-enum InstanceType {
-	InstanceType_None,
-	InstanceType_Particles,
-	InstanceType_Model,
-	InstanceType_ModelShadows,
-	InstanceType_ModelOutlines,
-	InstanceType_ModelSilhouette,
-
-	InstanceType_ComputeShader,
-	InstanceType_ComputeShaderIndirect,
-};
-
 struct GPUMaterial {
 	Vec4 color;
 	Vec3 tcmod[ 2 ];
-};
-
-struct GPUModelInstance {
-	GPUMaterial material;
-	Vec4 transform[ 3 ];
-};
-
-struct GPUModelShadowsInstance {
-	Vec4 transform[ 3 ];
-};
-
-struct GPUModelOutlinesInstance {
-	Vec4 transform[ 3 ];
-	Vec4 color;
-	float height;
-};
-
-struct GPUModelSilhouetteInstance {
-	Vec4 transform[ 3 ];
-	Vec4 color;
 };

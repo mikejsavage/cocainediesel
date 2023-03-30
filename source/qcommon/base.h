@@ -88,6 +88,18 @@ T Default( const Optional< T > & opt, const T & def ) {
 	return opt.exists ? opt.value : def;
 }
 
+// this is a template so implicit casts won't happen, i.e. we can't rely on an
+// implicit cast from Optional< T > to Optional< const T >
+template< typename T >
+bool operator==( Optional< T > & opt, const T & x ) {
+	return opt.exists && opt.value == x;
+}
+
+template< typename T >
+bool operator==( const T & x, Optional< T > & opt ) {
+	return opt == x;
+}
+
 /*
  * debug stuff
  */

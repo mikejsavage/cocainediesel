@@ -133,6 +133,7 @@ void HotloadGLTFModels() {
 		LoadGLTF( path );
 	}
 }
+
 const GLTFRenderData * FindGLTFRenderData( StringHash name ) {
 	u64 idx;
 	if( !gltf_models_hashtable.get( name.hash, &idx ) )

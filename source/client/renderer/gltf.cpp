@@ -32,6 +32,26 @@ struct ModelInstanceCollection {
 	u32 num_groups;
 };
 
+struct GPUModelInstance {
+	Mat4 transform;
+	GPUMaterial material;
+};
+
+struct GPUModelShadowsInstance {
+	Mat4 transform;
+};
+
+struct GPUModelOutlinesInstance {
+	Mat4 transform;
+	Vec4 color;
+	float height;
+};
+
+struct GPUModelSilhouetteInstance {
+	Mat4 transform;
+	Vec4 color;
+};
+
 static ModelInstanceCollection< GPUModelInstance > model_instance_collection;
 static ModelInstanceCollection< GPUModelShadowsInstance > model_shadows_instance_collection;
 static ModelInstanceCollection< GPUModelOutlinesInstance > model_outlines_instance_collection;
@@ -650,9 +670,7 @@ static void DrawModelNode( DrawModelConfig::DrawModel config, const Mesh & mesh,
 
 	GPUModelInstance instance = { };
 	instance.material = gpu_material;
-	instance.transform[ 0 ] = transform.row0();
-	instance.transform[ 1 ] = transform.row1();
-	instance.transform[ 2 ] = transform.row2();
+	instance.transform = transform;
 
 	AddInstanceToCollection( model_instance_collection, mesh, pipeline, instance, hash );
 }
@@ -678,9 +696,7 @@ static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Mesh & m
 		u64 hash = Hash64( &i, sizeof( i ), Hash64( mesh.vao ) );
 
 		GPUModelShadowsInstance instance = { };
-		instance.transform[ 0 ] = transform.row0();
-		instance.transform[ 1 ] = transform.row1();
-		instance.transform[ 2 ] = transform.row2();
+		instance.transform = transform;
 
 		AddInstanceToCollection( model_shadows_instance_collection, mesh, pipeline, instance, hash );
 	}
@@ -703,9 +719,7 @@ static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Mesh &
 	GPUModelOutlinesInstance instance = { };
 	instance.color = config.outline_color;
 	instance.height = config.outline_height;
-	instance.transform[ 0 ] = transform.row0();
-	instance.transform[ 1 ] = transform.row1();
-	instance.transform[ 2 ] = transform.row2();
+	instance.transform = transform;
 
 	u64 hash = Hash64( mesh.vao );
 	AddInstanceToCollection( model_outlines_instance_collection, mesh, pipeline, instance, hash );
@@ -727,9 +741,7 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Me
 
 	GPUModelSilhouetteInstance instance = { };
 	instance.color = config.silhouette_color;
-	instance.transform[ 0 ] = transform.row0();
-	instance.transform[ 1 ] = transform.row1();
-	instance.transform[ 2 ] = transform.row2();
+	instance.transform = transform;
 
 	u64 hash = Hash64( mesh.vao );
 	AddInstanceToCollection( model_silhouette_instance_collection, mesh, pipeline, instance, hash );
@@ -825,11 +837,12 @@ void ShutdownGLTFInstancing() {
 }
 
 template< typename T >
-static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collection, InstanceType instance_type ) {
+static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collection ) {
 	for( u32 i = 0; i < collection.num_groups; i++ ) {
 		ModelInstanceGroup< T > & group = collection.groups[ i ];
+		group.pipeline.set_buffer( "b_Instances", group.instance_data );
 		WriteGPUBuffer( group.instance_data, group.instances, sizeof( T ) * group.num_instances );
-		DrawInstancedMesh( group.mesh, group.pipeline, group.instance_data, group.num_instances, instance_type );
+		DrawInstancedMesh( group.mesh, group.pipeline, group.num_instances );
 		group.num_instances = 0;
 	}
 	collection.num_groups = 0;
@@ -839,8 +852,8 @@ static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collecti
 void DrawModelInstances() {
 	TracyZoneScoped;
 
-	DrawModelInstanceCollection( model_instance_collection, InstanceType_Model );
-	DrawModelInstanceCollection( model_shadows_instance_collection, InstanceType_ModelShadows );
-	DrawModelInstanceCollection( model_outlines_instance_collection, InstanceType_ModelOutlines );
-	DrawModelInstanceCollection( model_silhouette_instance_collection, InstanceType_ModelSilhouette );
+	DrawModelInstanceCollection( model_instance_collection );
+	DrawModelInstanceCollection( model_shadows_instance_collection );
+	DrawModelInstanceCollection( model_outlines_instance_collection );
+	DrawModelInstanceCollection( model_silhouette_instance_collection );
 }

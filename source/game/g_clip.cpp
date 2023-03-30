@@ -14,7 +14,7 @@ void G_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const ed
 	Ray ray = MakeRayStartEnd( start, end );
 	int passent = passedict == NULL ? -1 : ENTNUM( passedict );
 
-	Assert( passent == -1 || ( passent >= 0 && passent < ARRAY_COUNT( game.edicts ) ) );
+	Assert( passent == -1 || ( passent >= 0 && size_t( passent ) < ARRAY_COUNT( game.edicts ) ) );
 
 	MinMax3 bounds = MinMax3( mins, maxs );
 	Shape shape;

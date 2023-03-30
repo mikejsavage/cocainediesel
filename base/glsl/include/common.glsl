@@ -57,3 +57,8 @@ vec3 NormalToRGB( vec3 normal ) {
 float Unlerp( float lo, float x, float hi ) {
 	return ( x - lo ) / ( hi - lo );
 }
+
+mat4 AffineToMat4( mat4x3 m ) {
+	return mat4( m );
+	/* return mat4( m[ 0 ], m[ 1 ], m[ 2 ], vec4( 0.0, 0.0, 0.0, 1.0 ) ); */
+}

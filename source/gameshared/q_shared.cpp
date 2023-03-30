@@ -158,7 +158,7 @@ bool TrySpanToS64( Span< const char > str, s64 * x ) {
 
 	if( str[ 0 ] == '-' ) {
 		u64 u;
-		if( !TrySpanToU64( str + 1, &u ) || u > u64( -S64_MIN ) )
+		if( !TrySpanToU64( str + 1, &u ) || u > u64( S64_MAX ) + 1 )
 			return false;
 		*x = -s64( u );
 		return true;

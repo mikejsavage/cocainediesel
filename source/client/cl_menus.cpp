@@ -58,7 +58,7 @@ static MainMenuState mainmenu_state;
 static GameMenuState gamemenu_state;
 static DemoMenuState demomenu_state;
 
-static int selected_server;
+static Optional< size_t > selected_server;
 
 static bool yolodemo;
 
@@ -80,7 +80,7 @@ static void PushButtonColor( ImVec4 color ) {
 }
 
 static void ResetServerBrowser() {
-	selected_server = -1;
+	selected_server = NONE;
 }
 
 static void ClearMasksList() {

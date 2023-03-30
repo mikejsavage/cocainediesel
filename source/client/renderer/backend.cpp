@@ -24,16 +24,20 @@ STATIC_ASSERT( ( SameType< u32, GLuint >::value ) );
 
 static const u32 UNIFORM_BUFFER_SIZE = 64 * 1024;
 
+enum DrawCallType {
+	DrawCallType_Normal,
+	DrawCallType_Indirect,
+	DrawCallType_Compute,
+	DrawCallType_IndirectCompute,
+};
+
 struct DrawCall {
+	DrawCallType type;
 	PipelineState pipeline;
 	Mesh mesh;
 	u32 num_vertices;
-	u32 index_offset;
-
-	InstanceType instance_type;
 	u32 num_instances;
-	GPUBuffer instance_data;
-	GPUBuffer update_data;
+	u32 first_index;
 
 	u32 dispatch_size[ 3 ];
 	GPUBuffer indirect;
@@ -782,37 +786,6 @@ static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {
 	return a.pipeline.shader < b.pipeline.shader;
 }
 
-static void SetupAttribute( GLuint vao, GLuint buffer, VertexAttributeType attribute, VertexFormat format, u32 stride = 0, u32 offset = 0 ) {
-	if( buffer == 0 )
-		return;
-
-	GLenum type;
-	int num_components;
-	bool integral;
-	GLboolean normalized;
-	VertexFormatToGL( format, &type, &num_components, &integral, &normalized, stride == 0 ? &stride : NULL );
-
-	glEnableVertexArrayAttrib( vao, attribute );
-	glVertexArrayVertexBuffer( vao, attribute, buffer, 0, stride );
-	if( integral && !normalized ) {
-		/*
-		 * wintel driver ignores the type and treats everything as u32
-		 * non-DSA call works fine so fall back to that here
-		 *
-		 * see also https://doc.magnum.graphics/magnum/opengl-workarounds.html
-		 *
-		 * glVertexArrayAttribIFormat( vao, attribute, num_components, type, offset );
-		 */
-
-		glBindVertexArray( vao );
-		glVertexAttribIFormat( attribute, num_components, type, offset );
-		glBindVertexArray( 0 );
-	}
-	else {
-		glVertexArrayAttribFormat( vao, attribute, num_components, type, normalized, offset );
-	}
-}
-
 static void SubmitFramebufferBlit( const RenderPass & pass ) {
 	Framebuffer src = pass.blit_source;
 	Framebuffer target = pass.target;
@@ -910,95 +883,40 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 
 	SetPipelineState( dc.pipeline, dc.mesh.cw_winding );
 
-	GLenum index_type = dc.mesh.index_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-
-	if( dc.instance_type == InstanceType_ComputeShader ) {
+	if( dc.type == DrawCallType_Compute ) {
 		glDispatchCompute( dc.dispatch_size[ 0 ], dc.dispatch_size[ 1 ], dc.dispatch_size[ 2 ] );
 		return;
 	}
 
-	if( dc.instance_type == InstanceType_ComputeShaderIndirect ) {
+	if( dc.type == DrawCallType_IndirectCompute ) {
 		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, dc.indirect.buffer );
 		glDispatchComputeIndirect( 0 );
 		glBindBuffer( GL_DISPATCH_INDIRECT_BUFFER, 0 );
 		return;
 	}
 
+	GLenum gl_index_format = dc.mesh.index_format == IndexFormat_U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 	glBindVertexArray( dc.mesh.vao );
 
-	if( dc.instance_type == InstanceType_Particles ) {
+	if( dc.type == DrawCallType_Normal ) {
+		if( dc.mesh.index_buffer.buffer != 0 ) {
+			size_t index_size = dc.mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
+			const void * offset = ( const void * ) ( uintptr_t( dc.first_index ) * index_size );
+			glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, gl_index_format, offset, dc.num_instances );
+		}
+		else {
+			glDrawArraysInstanced( GL_TRIANGLES, dc.first_index, dc.num_vertices, dc.num_instances );
+		}
+	}
+	else if( dc.type == DrawCallType_Indirect ) {
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, dc.indirect.buffer );
-		glDrawArraysIndirect( GL_TRIANGLES, 0 );
+		if( dc.mesh.index_buffer.buffer != 0 ) {
+			glDrawElementsIndirect( GL_TRIANGLES, gl_index_format, 0 );
+		}
+		else {
+			glDrawArraysIndirect( GL_TRIANGLES, 0 );
+		}
 		glBindBuffer( GL_DRAW_INDIRECT_BUFFER, 0 );
-	}
-	else if( dc.instance_type == InstanceType_Model ) {
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.color ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialTextureMatrix0, VertexFormat_Floatx3, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.tcmod[ 0 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialTextureMatrix1, VertexFormat_Floatx3, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, material.tcmod[ 1 ] ) );
-
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 0 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 1 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelInstance ), offsetof( GPUModelInstance, transform[ 2 ] ) );
-
-		glVertexAttribDivisor( VertexAttribute_MaterialColor, 1 );
-		glVertexAttribDivisor( VertexAttribute_MaterialTextureMatrix0, 1 );
-		glVertexAttribDivisor( VertexAttribute_MaterialTextureMatrix1, 1 );
-
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow0, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
-
-		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, index_type, 0, dc.num_instances );
-	}
-	else if( dc.instance_type == InstanceType_ModelShadows ) {
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 0 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 1 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelShadowsInstance ), offsetof( GPUModelShadowsInstance, transform[ 2 ] ) );
-
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow0, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
-
-		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, index_type, 0, dc.num_instances );
-	}
-	else if( dc.instance_type == InstanceType_ModelOutlines ) {
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, color ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_OutlineHeight, VertexFormat_Floatx1, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, height ) );
-
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 0 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 1 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelOutlinesInstance ), offsetof( GPUModelOutlinesInstance, transform[ 2 ] ) );
-
-		glVertexAttribDivisor( VertexAttribute_MaterialColor, 1 );
-		glVertexAttribDivisor( VertexAttribute_OutlineHeight, 1 );
-
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow0, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
-
-		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, index_type, 0, dc.num_instances );
-	}
-	else if( dc.instance_type == InstanceType_ModelSilhouette ) {
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_MaterialColor, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, color ) );
-
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow0, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 0 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow1, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 1 ] ) );
-		SetupAttribute( dc.mesh.vao, dc.instance_data.buffer, VertexAttribute_ModelTransformRow2, VertexFormat_Floatx4, sizeof( GPUModelSilhouetteInstance ), offsetof( GPUModelSilhouetteInstance, transform[ 2 ] ) );
-
-		glVertexAttribDivisor( VertexAttribute_MaterialColor, 1 );
-
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow0, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow1, 1 );
-		glVertexAttribDivisor( VertexAttribute_ModelTransformRow2, 1 );
-
-		glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, index_type, 0, dc.num_instances );
-	}
-	else if( dc.mesh.index_buffer.buffer != 0 ) {
-		const void * offset = ( const void * ) uintptr_t( dc.index_offset );
-		glDrawElements( GL_TRIANGLES, dc.num_vertices, index_type, offset );
-	}
-	else {
-		glDrawArrays( GL_TRIANGLES, dc.index_offset, dc.num_vertices );
 	}
 
 	glBindVertexArray( 0 );
@@ -1606,13 +1524,6 @@ bool NewShader( Shader * shader, const char * src, const char * name ) {
 	glBindAttribLocation( shader->program, VertexAttribute_Color, "a_Color" );
 	glBindAttribLocation( shader->program, VertexAttribute_JointIndices, "a_JointIndices" );
 	glBindAttribLocation( shader->program, VertexAttribute_JointWeights, "a_JointWeights" );
-	glBindAttribLocation( shader->program, VertexAttribute_MaterialColor, "a_MaterialColor" );
-	glBindAttribLocation( shader->program, VertexAttribute_MaterialTextureMatrix0, "a_MaterialTextureMatrix0" );
-	glBindAttribLocation( shader->program, VertexAttribute_MaterialTextureMatrix1, "a_MaterialTextureMatrix1" );
-	glBindAttribLocation( shader->program, VertexAttribute_OutlineHeight, "a_OutlineHeight" );
-	glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow0, "a_ModelTransformRow0" );
-	glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow1, "a_ModelTransformRow1" );
-	glBindAttribLocation( shader->program, VertexAttribute_ModelTransformRow2, "a_ModelTransformRow2" );
 
 	glBindFragDataLocation( shader->program, 0, "f_Albedo" );
 	glBindFragDataLocation( shader->program, 1, "f_Mask" );
@@ -1724,33 +1635,34 @@ void DeferDeleteMesh( const Mesh & mesh ) {
 	deferred_mesh_deletes.add( mesh );
 }
 
-void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 index_offset ) {
+void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 first_index ) {
 	Assert( in_frame );
 	Assert( pipeline.pass != U8_MAX );
 	Assert( pipeline.shader != NULL );
 
 	DrawCall dc = { };
+	dc.type = DrawCallType_Normal;
 	dc.mesh = mesh;
 	dc.pipeline = pipeline;
 	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
-	dc.index_offset = index_offset;
+	dc.num_instances = 1;
+	dc.first_index = first_index;
 	draw_calls.add( dc );
 
 	num_vertices_this_frame += dc.num_vertices;
 }
 
-void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer instance_data, u32 num_instances, InstanceType instance_type, u32 num_vertices_override, u32 index_offset ) {
+void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override, u32 first_index ) {
 	Assert( in_frame );
 	Assert( pipeline.pass != U8_MAX );
 	Assert( pipeline.shader != NULL );
 
 	DrawCall dc = { };
+	dc.type = DrawCallType_Normal;
 	dc.mesh = mesh;
 	dc.pipeline = pipeline;
 	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
-	dc.index_offset = index_offset;
-	dc.instance_type = instance_type;
-	dc.instance_data = instance_data;
+	dc.first_index = first_index;
 	dc.num_instances = num_instances;
 	draw_calls.add( dc );
 
@@ -1811,8 +1723,8 @@ void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, Framebuffer sr
 
 void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {
 	DrawCall dc = { };
+	dc.type = DrawCallType_Compute;
 	dc.pipeline = pipeline;
-	dc.instance_type = InstanceType_ComputeShader;
 	dc.dispatch_size[ 0 ] = x;
 	dc.dispatch_size[ 1 ] = y;
 	dc.dispatch_size[ 2 ] = z;
@@ -1821,16 +1733,16 @@ void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {
 
 void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect ) {
 	DrawCall dc = { };
+	dc.type = DrawCallType_IndirectCompute;
 	dc.pipeline = pipeline;
-	dc.instance_type = InstanceType_ComputeShaderIndirect;
 	dc.indirect = indirect;
 	draw_calls.add( dc );
 }
 
 void DrawInstancedParticles( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer indirect ) {
 	DrawCall dc = { };
+	dc.type = DrawCallType_Indirect;
 	dc.pipeline = pipeline;
-	dc.instance_type = InstanceType_Particles;
 	dc.mesh = mesh;
 	dc.indirect = indirect;
 	draw_calls.add( dc );

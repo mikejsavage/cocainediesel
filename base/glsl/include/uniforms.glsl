@@ -1,3 +1,8 @@
+struct Material {
+	vec4 color;
+	vec3 texture_matrix[ 2 ];
+};
+
 layout( std140 ) uniform u_View {
 	mat4 u_V;
 	mat4 u_InverseV;

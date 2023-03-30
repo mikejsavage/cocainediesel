@@ -257,7 +257,7 @@ static float ParseFogStrength( const BSPSpans * bsp ) {
 
 struct BSPDrawCall {
 	u32 base_vertex;
-	u32 index_offset;
+	u32 first_index;
 	u32 num_vertices;
 	const Material * material;
 
@@ -349,7 +349,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 			BSPDrawCall dc;
 
 			dc.base_vertex = face->first_vertex;
-			dc.index_offset = face->first_index;
+			dc.first_index = face->first_index;
 			dc.num_vertices = face->num_indices;
 			if( bsp.materials[ face->material ].flags & CONTENTS_WALLBANGABLE ) {
 				dc.material = FindMaterial( bsp.materials[ face->material ].name, &wallbang_material );
@@ -371,7 +371,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 			BSPDrawCall dc;
 
 			dc.base_vertex = face->first_vertex;
-			dc.index_offset = face->first_index;
+			dc.first_index = face->first_index;
 			dc.num_vertices = face->num_indices;
 			if( bsp.materials[ face->material ].flags & CONTENTS_WALLBANGABLE ) {
 				dc.material = FindMaterial( bsp.materials[ face->material ].name, &wallbang_material );
@@ -473,7 +473,7 @@ static Model LoadBSPModel( const char * filename, DynamicArray< BSPModelVertex >
 		}
 		else {
 			for( u32 j = 0; j < dc.num_vertices; j++ ) {
-				u32 index = dc.base_vertex + bsp.indices[ j + dc.index_offset ];
+				u32 index = dc.base_vertex + bsp.indices[ j + dc.first_index ];
 				indices.add( index );
 			}
 

@@ -34,6 +34,26 @@ struct ModelInstanceCollection {
 	u32 num_groups;
 };
 
+struct GPUModelInstance {
+	Mat4 transform;
+	GPUMaterial material;
+};
+
+struct GPUModelShadowsInstance {
+	Mat4 transform;
+};
+
+struct GPUModelOutlinesInstance {
+	Mat4 transform;
+	Vec4 color;
+	float height;
+};
+
+struct GPUModelSilhouetteInstance {
+	Mat4 transform;
+	Vec4 color;
+};
+
 static ModelInstanceCollection< GPUModelInstance > model_instance_collection;
 static ModelInstanceCollection< GPUModelShadowsInstance > model_shadows_instance_collection;
 static ModelInstanceCollection< GPUModelOutlinesInstance > model_outlines_instance_collection;
@@ -132,26 +152,26 @@ const Model * FindModel( const char * name ) {
 
 void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline ) {
 	if( primitive->num_vertices != 0 ) {
-		u32 index_size = model->mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
-		DrawMesh( model->mesh, pipeline, primitive->num_vertices, primitive->first_index * index_size );
+		DrawMesh( model->mesh, pipeline, primitive->num_vertices, primitive->first_index );
 	}
 	else {
 		DrawMesh( primitive->mesh, pipeline );
 	}
 }
 
-static void DrawModelPrimitiveInstanced( const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline, GPUBuffer instance_data, u32 num_instances, InstanceType instance_type ) {
+static void DrawModelPrimitiveInstanced( const Model * model, const Model::Primitive * primitive, PipelineState pipeline, GPUBuffer instance_data, u32 num_instances ) {
+	pipeline.set_buffer( "b_Instances", instance_data );
+
 	if( primitive->num_vertices != 0 ) {
-		u32 index_size = model->mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
-		DrawInstancedMesh( model->mesh, pipeline, instance_data, num_instances, instance_type, primitive->num_vertices, primitive->first_index * index_size );
+		DrawInstancedMesh( model->mesh, pipeline, num_instances, primitive->num_vertices, primitive->first_index );
 	}
 	else {
-		DrawInstancedMesh( primitive->mesh, pipeline, instance_data, num_instances, instance_type );
+		DrawInstancedMesh( primitive->mesh, pipeline, num_instances );
 	}
 }
 
 template< typename T >
-static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, const Model * model, const Model::Primitive * primitive, PipelineState pipeline, T & instance, u64 hash ) {
+static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline, const T & instance, u64 hash ) {
 	u64 idx = collection.num_groups;
 	if( !collection.groups_hashtable.get( hash, &idx ) ) {
 		if( collection.num_groups == ARRAY_COUNT( collection.groups ) ) {
@@ -191,9 +211,7 @@ static void DrawModelNode( DrawModelConfig::DrawModel config, const Model * mode
 
 	GPUModelInstance instance = { };
 	instance.material = gpu_material;
-	instance.transform[ 0 ] = transform.row0();
-	instance.transform[ 1 ] = transform.row1();
-	instance.transform[ 2 ] = transform.row2();
+	instance.transform = transform;
 
 	AddInstanceToCollection( model_instance_collection, model, primitive, pipeline, instance, hash );
 }
@@ -219,9 +237,7 @@ static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Model * 
 		hash = Hash64( &i, sizeof( i ), hash );
 
 		GPUModelShadowsInstance instance = { };
-		instance.transform[ 0 ] = transform.row0();
-		instance.transform[ 1 ] = transform.row1();
-		instance.transform[ 2 ] = transform.row2();
+		instance.transform = transform;
 
 		AddInstanceToCollection( model_shadows_instance_collection, model, primitive, pipeline, instance, hash );
 	}
@@ -244,9 +260,7 @@ static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Model 
 	GPUModelOutlinesInstance instance = { };
 	instance.color = config.outline_color;
 	instance.height = config.outline_height;
-	instance.transform[ 0 ] = transform.row0();
-	instance.transform[ 1 ] = transform.row1();
-	instance.transform[ 2 ] = transform.row2();
+	instance.transform = transform;
 
 	AddInstanceToCollection( model_outlines_instance_collection, model, primitive, pipeline, instance, hash );
 }
@@ -268,9 +282,7 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mo
 
 	GPUModelSilhouetteInstance instance = { };
 	instance.color = config.silhouette_color;
-	instance.transform[ 0 ] = transform.row0();
-	instance.transform[ 1 ] = transform.row1();
-	instance.transform[ 2 ] = transform.row2();
+	instance.transform = transform;
 
 	AddInstanceToCollection( model_silhouette_instance_collection, model, primitive, pipeline, instance, hash );
 }
@@ -379,16 +391,16 @@ void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transf
 void InitModelInstances() {
 	TracyZoneScoped;
 	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
-		model_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelInstance ) * MAX_INSTANCES );
+		model_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( model_instance_collection.groups[ i ].instances ) );
 		model_instance_collection.num_groups = 0;
 
-		model_shadows_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelShadowsInstance ) * MAX_INSTANCES );
+		model_shadows_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( model_shadows_instance_collection.groups[ i ].instances ) );
 		model_shadows_instance_collection.num_groups = 0;
 
-		model_outlines_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelOutlinesInstance ) * MAX_INSTANCES );
+		model_outlines_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( model_outlines_instance_collection.groups[ i ].instances ) );
 		model_outlines_instance_collection.num_groups = 0;
 
-		model_silhouette_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( GPUModelSilhouetteInstance ) * MAX_INSTANCES );
+		model_silhouette_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( model_silhouette_instance_collection.groups[ i ].instances ) );
 		model_silhouette_instance_collection.num_groups = 0;
 	}
 }
@@ -403,11 +415,11 @@ void ShutdownModelInstances() {
 }
 
 template< typename T >
-static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collection, InstanceType instance_type ) {
+static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collection ) {
 	for( u32 i = 0; i < collection.num_groups; i++ ) {
 		ModelInstanceGroup< T > & group = collection.groups[ i ];
 		WriteGPUBuffer( group.instance_data, group.instances, sizeof( T ) * group.num_instances );
-		DrawModelPrimitiveInstanced( group.model, group.primitive, group.pipeline, group.instance_data, group.num_instances, instance_type );
+		DrawModelPrimitiveInstanced( group.model, group.primitive, group.pipeline, group.instance_data, group.num_instances );
 		group.num_instances = 0;
 	}
 	collection.num_groups = 0;
@@ -417,10 +429,10 @@ static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collecti
 void DrawModelInstances() {
 	TracyZoneScoped;
 
-	DrawModelInstanceCollection( model_instance_collection, InstanceType_Model );
-	DrawModelInstanceCollection( model_shadows_instance_collection, InstanceType_ModelShadows );
-	DrawModelInstanceCollection( model_outlines_instance_collection, InstanceType_ModelOutlines );
-	DrawModelInstanceCollection( model_silhouette_instance_collection, InstanceType_ModelSilhouette );
+	DrawModelInstanceCollection( model_instance_collection );
+	DrawModelInstanceCollection( model_shadows_instance_collection );
+	DrawModelInstanceCollection( model_outlines_instance_collection );
+	DrawModelInstanceCollection( model_silhouette_instance_collection );
 }
 
 template< typename T, typename F >

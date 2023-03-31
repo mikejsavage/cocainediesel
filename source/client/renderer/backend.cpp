@@ -1020,10 +1020,10 @@ void ReadGPUBuffer( GPUBuffer buf, void * data, u32 len, u32 offset ) {
 	glGetNamedBufferSubData( buf.buffer, offset, len, data );
 }
 
-GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name ) {
+GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name ) {
 	GPUBuffer buf = { };
 	glCreateBuffers( 1, &buf.buffer );
-	glNamedBufferStorage( buf.buffer, len, data, GL_DYNAMIC_STORAGE_BIT );
+	glNamedBufferStorage( buf.buffer, size, data, data == NULL ? GL_DYNAMIC_STORAGE_BIT : 0 );
 
 	if( name != NULL ) {
 		DebugLabel( GL_BUFFER, buf.buffer, name );
@@ -1032,12 +1032,12 @@ GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name ) {
 	return buf;
 }
 
-GPUBuffer NewGPUBuffer( u32 len, const char * name ) {
-	return NewGPUBuffer( NULL, len, name );
+GPUBuffer NewGPUBuffer( u32 size, const char * name ) {
+	return NewGPUBuffer( NULL, size, name );
 }
 
-void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 len, u32 offset ) {
-	glNamedBufferSubData( buf.buffer, offset, len, data );
+void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 size, u32 offset ) {
+	glNamedBufferSubData( buf.buffer, offset, size, data );
 }
 
 void DeleteGPUBuffer( GPUBuffer buf ) {
@@ -1050,20 +1050,20 @@ void DeferDeleteGPUBuffer( GPUBuffer buf ) {
 	deferred_buffer_deletes.add( buf );
 }
 
-StreamingBuffer NewStreamingBuffer( u32 len, const char * name ) {
+StreamingBuffer NewStreamingBuffer( u32 size, const char * name ) {
 	StreamingBuffer stream = { };
 
 	for( size_t i = 0; i < ARRAY_COUNT( stream.buffers ); i++ ) {
 		GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
 		glCreateBuffers( 1, &stream.buffers[ i ].buffer );
-		glNamedBufferStorage( stream.buffers[ i ].buffer, len, NULL, flags );
+		glNamedBufferStorage( stream.buffers[ i ].buffer, size, NULL, flags );
 
 		if( name != NULL ) {
 			TempAllocator temp = cls.frame_arena.temp();
 			DebugLabel( GL_BUFFER, stream.buffers[ i ].buffer, temp( "{} #{}", name, i ) );
 		}
 
-		stream.mappings[ i ] = glMapNamedBufferRange( stream.buffers[ i ].buffer, 0, len, flags );
+		stream.mappings[ i ] = glMapNamedBufferRange( stream.buffers[ i ].buffer, 0, size, flags );
 	}
 
 	return stream;

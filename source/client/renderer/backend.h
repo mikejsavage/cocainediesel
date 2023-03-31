@@ -332,9 +332,9 @@ void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, Framebuffer sr
 
 UniformBlock UploadUniforms( const void * data, size_t size );
 
-GPUBuffer NewGPUBuffer( const void * data, u32 len, const char * name = NULL );
-GPUBuffer NewGPUBuffer( u32 len, const char * name = NULL );
-void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 len, u32 offset = 0 );
+GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name = NULL );
+GPUBuffer NewGPUBuffer( u32 size, const char * name = NULL );
+void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 size, u32 offset = 0 );
 void ReadGPUBuffer( GPUBuffer buf, void * data, u32 len, u32 offset = 0 );
 void DeleteGPUBuffer( GPUBuffer buf );
 void DeferDeleteGPUBuffer( GPUBuffer buf );

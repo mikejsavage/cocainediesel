@@ -1006,7 +1006,7 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	block.size = AlignPow2( checked_cast< u32 >( size ), u32( 16 ) );
 
 	// memset so we don't leave any gaps. good for write combined memory!
-	u8 * mapping = GetStreamingBufferMapping( ubo->stream );
+	u8 * mapping = ( u8 * ) GetStreamingBufferMapping( ubo->stream );
 	memset( mapping + ubo->bytes_used, 0, offset - ubo->bytes_used );
 	memcpy( mapping + offset, data, size );
 	ubo->bytes_used = offset + size;
@@ -1061,13 +1061,13 @@ StreamingBuffer NewStreamingBuffer( u32 len, const char * name ) {
 			DebugLabel( GL_BUFFER, stream.buffers[ i ].buffer, temp( "{} #{}", name, i ) );
 		}
 
-		stream.mappings[ i ] = ( u8 * ) glMapNamedBufferRange( stream.buffers[ i ].buffer, 0, len, flags );
+		stream.mappings[ i ] = glMapNamedBufferRange( stream.buffers[ i ].buffer, 0, len, flags );
 	}
 
 	return stream;
 }
 
-u8 * GetStreamingBufferMapping( StreamingBuffer stream ) {
+void * GetStreamingBufferMapping( StreamingBuffer stream ) {
 	return stream.mappings[ frame_counter % ARRAY_COUNT( stream.mappings ) ];
 }
 

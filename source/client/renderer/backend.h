@@ -105,7 +105,7 @@ struct Framebuffer {
 
 struct StreamingBuffer {
 	GPUBuffer buffers[ 3 ];
-	u8 * mappings[ 3 ];
+	void * mappings[ 3 ];
 };
 
 struct PipelineState {
@@ -340,7 +340,7 @@ void DeleteGPUBuffer( GPUBuffer buf );
 void DeferDeleteGPUBuffer( GPUBuffer buf );
 
 StreamingBuffer NewStreamingBuffer( u32 len, const char * name = NULL );
-u8 * GetStreamingBufferMapping( StreamingBuffer stream );
+void * GetStreamingBufferMapping( StreamingBuffer stream );
 GPUBuffer GetStreamingBufferBuffer( StreamingBuffer stream );
 void DeleteStreamingBuffer( StreamingBuffer buf );
 void DeferDeleteStreamingBuffer( StreamingBuffer buf );

@@ -52,26 +52,6 @@ struct Mesh {
 	bool cw_winding;
 };
 
-struct GPUParticle {
-	Vec3 position;
-	float angle;
-	Vec3 velocity;
-	float angular_velocity;
-	float acceleration;
-	float drag;
-	float restitution;
-	float PADDING;
-	Vec4 uvwh;
-	RGBA8 start_color;
-	RGBA8 end_color;
-	float start_size;
-	float end_size;
-	float age;
-	float lifetime;
-	u32 flags;
-	u32 PADDING2;
-};
-
 struct TRS {
 	Quaternion rotation;
 	Vec3 translation;

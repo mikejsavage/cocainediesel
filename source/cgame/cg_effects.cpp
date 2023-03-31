@@ -61,8 +61,8 @@ void DrawBeam( Vec3 start, Vec3 end, float width, Vec4 color, StringHash materia
 	PipelineState pipeline = MaterialToPipelineState( material, color );
 	pipeline.shader = &shaders.standard_vertexcolors;
 	pipeline.blend_func = BlendFunc_Add;
-	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
+	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
 
 	DynamicMesh mesh = { };
 	mesh.positions = positions;

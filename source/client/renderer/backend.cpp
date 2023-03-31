@@ -46,9 +46,6 @@ struct DrawCall {
 static GLsync fences[ 3 ];
 static u64 frame_counter;
 
-STATIC_ASSERT( ARRAY_COUNT( fences ) == ARRAY_COUNT( &StreamingBuffer::buffers ) );
-STATIC_ASSERT( ARRAY_COUNT( fences ) == ARRAY_COUNT( &StreamingBuffer::mappings ) );
-
 static NonRAIIDynamicArray< RenderPass > render_passes;
 static NonRAIIDynamicArray< DrawCall > draw_calls;
 
@@ -82,7 +79,7 @@ static u32 prev_viewport_height;
 
 static struct {
 	UniformBlock uniforms[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
-	GPUBuffer buffers[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
+	PipelineState::BufferBinding buffers[ ARRAY_COUNT( &Shader::uniforms ) ] = { };
 	const Texture * textures[ ARRAY_COUNT( &Shader::textures ) ] = { };
 	TextureArray texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ] = { };
 } prev_bindings;
@@ -563,6 +560,70 @@ static bool operator!=( PipelineState::Scissor a, PipelineState::Scissor b ) {
 	return a.x != b.x || a.y != b.y || a.w != b.w || a.h != b.h;
 }
 
+void PipelineState::bind_uniform( StringHash name, UniformBlock block ) {
+	for( size_t i = 0; i < num_uniforms; i++ ) {
+		if( uniforms[ i ].name_hash == name.hash ) {
+			uniforms[ i ].block = block;
+			return;
+		}
+	}
+
+	Assert( num_uniforms < ARRAY_COUNT( uniforms ) );
+	uniforms[ num_uniforms ].name_hash = name.hash;
+	uniforms[ num_uniforms ].block = block;
+	num_uniforms++;
+}
+
+void PipelineState::bind_texture( StringHash name, const Texture * texture ) {
+	for( size_t i = 0; i < num_textures; i++ ) {
+		if( textures[ i ].name_hash == name.hash ) {
+			textures[ i ].texture = texture;
+			return;
+		}
+	}
+
+	Assert( num_textures < ARRAY_COUNT( textures ) );
+	textures[ num_textures ].name_hash = name.hash;
+	textures[ num_textures ].texture = texture;
+	num_textures++;
+}
+
+void PipelineState::bind_texture_array( StringHash name, TextureArray ta ) {
+	for( size_t i = 0; i < num_texture_arrays; i++ ) {
+		if( texture_arrays[ i ].name_hash == name.hash ) {
+			texture_arrays[ i ].ta = ta;
+			return;
+		}
+	}
+
+	Assert( num_texture_arrays < ARRAY_COUNT( texture_arrays ) );
+	texture_arrays[ num_texture_arrays ].name_hash = name.hash;
+	texture_arrays[ num_texture_arrays ].ta = ta;
+	num_texture_arrays++;
+}
+
+void PipelineState::bind_buffer( StringHash name, GPUBuffer buffer, u32 offset, u32 size ) {
+	for( size_t i = 0; i < num_buffers; i++ ) {
+		if( buffers[ i ].name_hash == name.hash ) {
+			buffers[ i ].buffer = buffer;
+			buffers[ i ].offset = offset;
+			return;
+		}
+	}
+
+	Assert( num_buffers < ARRAY_COUNT( buffers ) );
+	buffers[ num_buffers ].name_hash = name.hash;
+	buffers[ num_buffers ].buffer = buffer;
+	buffers[ num_buffers ].offset = offset;
+	buffers[ num_buffers ].size = size;
+	num_buffers++;
+}
+
+void PipelineState::bind_streaming_buffer( StringHash name, StreamingBuffer stream ) {
+	u32 offset = stream.size * ( frame_counter % ARRAY_COUNT( fences ) );
+	bind_buffer( name, stream.buffer, offset, stream.size );
+}
+
 static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) {
 	TracyGpuZone( "Set pipeline state" );
 
@@ -628,16 +689,21 @@ static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) 
 	// buffers
 	for( size_t i = 0; i < ARRAY_COUNT( pipeline.shader->buffers ); i++ ) {
 		u64 name_hash = pipeline.shader->buffers[ i ];
-		GPUBuffer prev_buffer = prev_bindings.buffers[ i ];
+		PipelineState::BufferBinding prev = prev_bindings.buffers[ i ];
 
-		bool should_unbind = prev_buffer.buffer != 0;
+		bool should_unbind = prev.buffer.buffer != 0;
 		if( name_hash != 0 ) {
 			for( size_t j = 0; j < pipeline.num_buffers; j++ ) {
-				if( pipeline.buffers[ j ].name_hash == name_hash ) {
-					GPUBuffer buffer = pipeline.buffers[ j ].buffer;
-					if( buffer.buffer != prev_buffer.buffer ) {
-						glBindBufferBase( GL_SHADER_STORAGE_BUFFER, i, buffer.buffer );
-						prev_bindings.buffers[ i ] = buffer;
+				const PipelineState::BufferBinding & binding = pipeline.buffers[ j ];
+				if( binding.name_hash == name_hash ) {
+					if( binding.buffer.buffer != prev.buffer.buffer || binding.offset != prev.offset || binding.size != prev.size ) {
+						if( binding.offset == 0 && binding.size == 0 ) {
+							glBindBufferBase( GL_SHADER_STORAGE_BUFFER, i, binding.buffer.buffer );
+						}
+						else {
+							glBindBufferRange( GL_SHADER_STORAGE_BUFFER, i, binding.buffer.buffer, binding.offset, binding.size );
+						}
+						prev_bindings.buffers[ i ] = binding;
 					}
 					should_unbind = false;
 					break;
@@ -1003,13 +1069,11 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 		Fatal( "Ran out of UBO space" );
 
 	UniformBlock block;
-	block.ubo = GetStreamingBufferBuffer( ubo->stream ).buffer;
-	block.offset = offset;
+	block.ubo = ubo->stream.buffer.buffer;
+	block.offset = offset + ubo->stream.size * ( frame_counter % ARRAY_COUNT( fences ) );
 	block.size = AlignPow2( checked_cast< u32 >( size ), u32( 16 ) );
 
-	// memset so we don't leave any gaps. good for write combined memory!
-	u8 * mapping = ( u8 * ) GetStreamingBufferMapping( ubo->stream );
-	memset( mapping + ubo->bytes_used, 0, offset - ubo->bytes_used );
+	u8 * mapping = ( u8 * ) GetStreamingBufferMemory( ubo->stream );
 	memcpy( mapping + offset, data, size );
 	ubo->bytes_used = offset + size;
 
@@ -1033,6 +1097,7 @@ GPUBuffer NewGPUBuffer( u32 size, const char * name ) {
 }
 
 void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 size, u32 offset ) {
+	// TODO: remove GL_DYNAMIC_STORAGE_BIT when we delete this
 	glNamedBufferSubData( buf.buffer, offset, size, data );
 }
 
@@ -1049,35 +1114,27 @@ void DeferDeleteGPUBuffer( GPUBuffer buf ) {
 StreamingBuffer NewStreamingBuffer( u32 size, const char * name ) {
 	StreamingBuffer stream = { };
 
-	for( size_t i = 0; i < ARRAY_COUNT( stream.buffers ); i++ ) {
-		GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
-		glCreateBuffers( 1, &stream.buffers[ i ].buffer );
-		glNamedBufferStorage( stream.buffers[ i ].buffer, size, NULL, flags );
+	GLbitfield flags = GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT;
+	glCreateBuffers( 1, &stream.buffer.buffer );
+	glNamedBufferStorage( stream.buffer.buffer, size * ARRAY_COUNT( fences ), NULL, flags );
 
-		if( name != NULL ) {
-			TempAllocator temp = cls.frame_arena.temp();
-			DebugLabel( GL_BUFFER, stream.buffers[ i ].buffer, temp( "{} #{}", name, i ) );
-		}
-
-		stream.mappings[ i ] = glMapNamedBufferRange( stream.buffers[ i ].buffer, 0, size, flags );
+	if( name != NULL ) {
+		DebugLabel( GL_BUFFER, stream.buffer.buffer, name );
 	}
+
+	stream.ptr = glMapNamedBufferRange( stream.buffer.buffer, 0, size, flags );
+	stream.size = size;
 
 	return stream;
 }
 
-void * GetStreamingBufferMapping( StreamingBuffer stream ) {
-	return stream.mappings[ frame_counter % ARRAY_COUNT( stream.mappings ) ];
-}
-
-GPUBuffer GetStreamingBufferBuffer( StreamingBuffer stream ) {
-	return stream.buffers[ frame_counter % ARRAY_COUNT( stream.buffers ) ];
+void * GetStreamingBufferMemory( StreamingBuffer stream ) {
+	return ( ( u8 * ) stream.ptr ) + stream.size * ( frame_counter % ARRAY_COUNT( fences ) );
 }
 
 void DeleteStreamingBuffer( StreamingBuffer stream ) {
-	for( GPUBuffer buf : stream.buffers ) {
-		glUnmapNamedBuffer( buf.buffer );
-		DeleteGPUBuffer( buf );
-	}
+	glUnmapNamedBuffer( stream.buffer.buffer );
+	DeleteGPUBuffer( stream.buffer );
 }
 
 void DeferDeleteStreamingBuffer( StreamingBuffer stream ) {

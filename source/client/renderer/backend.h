@@ -104,8 +104,9 @@ struct Framebuffer {
 };
 
 struct StreamingBuffer {
-	GPUBuffer buffers[ 3 ];
-	void * mappings[ 3 ];
+	GPUBuffer buffer;
+	void * ptr;
+	u32 size;
 };
 
 struct PipelineState {
@@ -124,9 +125,11 @@ struct PipelineState {
 		TextureArray ta;
 	};
 
-	struct GPUBufferBinding {
+	struct BufferBinding {
 		u64 name_hash;
 		GPUBuffer buffer;
+		u32 offset;
+		u32 size;
 	};
 
 	struct Scissor {
@@ -136,7 +139,7 @@ struct PipelineState {
 	UniformBinding uniforms[ ARRAY_COUNT( &Shader::uniforms ) ];
 	TextureBinding textures[ ARRAY_COUNT( &Shader::textures ) ];
 	TextureArrayBinding texture_arrays[ ARRAY_COUNT( &Shader::texture_arrays ) ];
-	GPUBufferBinding buffers[ ARRAY_COUNT( &Shader::buffers ) ];
+	BufferBinding buffers[ ARRAY_COUNT( &Shader::buffers ) ];
 	size_t num_uniforms = 0;
 	size_t num_textures = 0;
 	size_t num_texture_arrays = 0;
@@ -153,57 +156,11 @@ struct PipelineState {
 	bool view_weapon_depth_hack = false;
 	bool wireframe = false;
 
-	void set_uniform( StringHash name, UniformBlock block ) {
-		for( size_t i = 0; i < num_uniforms; i++ ) {
-			if( uniforms[ i ].name_hash == name.hash ) {
-				uniforms[ i ].block = block;
-				return;
-			}
-		}
-
-		uniforms[ num_uniforms ].name_hash = name.hash;
-		uniforms[ num_uniforms ].block = block;
-		num_uniforms++;
-	}
-
-	void set_texture( StringHash name, const Texture * texture ) {
-		for( size_t i = 0; i < num_textures; i++ ) {
-			if( textures[ i ].name_hash == name.hash ) {
-				textures[ i ].texture = texture;
-				return;
-			}
-		}
-
-		textures[ num_textures ].name_hash = name.hash;
-		textures[ num_textures ].texture = texture;
-		num_textures++;
-	}
-
-	void set_texture_array( StringHash name, TextureArray ta ) {
-		for( size_t i = 0; i < num_texture_arrays; i++ ) {
-			if( texture_arrays[ i ].name_hash == name.hash ) {
-				texture_arrays[ i ].ta = ta;
-				return;
-			}
-		}
-
-		texture_arrays[ num_texture_arrays ].name_hash = name.hash;
-		texture_arrays[ num_texture_arrays ].ta = ta;
-		num_texture_arrays++;
-	}
-
-	void set_buffer( StringHash name, GPUBuffer buffer ) {
-		for( size_t i = 0; i < num_buffers; i++ ) {
-			if( buffers[ i ].name_hash == name.hash ) {
-				buffers[ i ].buffer = buffer;
-				return;
-			}
-		}
-
-		buffers[ num_buffers ].name_hash = name.hash;
-		buffers[ num_buffers ].buffer = buffer;
-		num_buffers++;
-	}
+	void bind_uniform( StringHash name, UniformBlock block );
+	void bind_texture( StringHash name, const Texture * texture );
+	void bind_texture_array( StringHash name, TextureArray ta );
+	void bind_buffer( StringHash name, GPUBuffer buffer, u32 offset = 0, u32 size = 0 );
+	void bind_streaming_buffer( StringHash name, StreamingBuffer stream );
 };
 
 struct VertexAttribute {
@@ -338,9 +295,8 @@ void WriteGPUBuffer( GPUBuffer buf, const void * data, u32 size, u32 offset = 0 
 void DeleteGPUBuffer( GPUBuffer buf );
 void DeferDeleteGPUBuffer( GPUBuffer buf );
 
-StreamingBuffer NewStreamingBuffer( u32 len, const char * name = NULL );
-void * GetStreamingBufferMapping( StreamingBuffer stream );
-GPUBuffer GetStreamingBufferBuffer( StreamingBuffer stream );
+StreamingBuffer NewStreamingBuffer( u32 size, const char * name = NULL );
+void * GetStreamingBufferMemory( StreamingBuffer stream );
 void DeleteStreamingBuffer( StreamingBuffer buf );
 void DeferDeleteStreamingBuffer( StreamingBuffer buf );
 

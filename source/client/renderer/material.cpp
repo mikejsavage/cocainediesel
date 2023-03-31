@@ -1004,16 +1004,16 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		PipelineState pipeline;
 		pipeline.shader = &shaders.world;
 		pipeline.pass = frame_static.world_opaque_pass;
-		pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
-		pipeline.set_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
+		pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
+		pipeline.bind_texture( "u_BlueNoiseTexture", BlueNoiseTexture() );
 		color.x = material->rgbgen.args[ 0 ];
 		color.y = material->rgbgen.args[ 1 ];
 		color.z = material->rgbgen.args[ 2 ];
-		pipeline.set_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
-		pipeline.set_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
-		pipeline.set_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
-		pipeline.set_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
-		pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
+		pipeline.bind_uniform( "u_MaterialStatic", UploadMaterialStaticUniforms( Vec2( 0.0f ), material->specular, material->shininess ) );
+		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, Vec3( 0.0f ), Vec3( 0.0f ) ) );
+		pipeline.bind_texture_array( "u_ShadowmapTextureArray", frame_static.shadowmap_texture_array );
+		pipeline.bind_uniform( "u_ShadowMaps", frame_static.shadow_uniforms );
+		pipeline.bind_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
 		AddDynamicsToPipeline( &pipeline );
 		return pipeline;
 	}
@@ -1098,7 +1098,7 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 		pipeline.write_depth = false;
 	}
 
-	pipeline.set_texture( "u_BaseTexture", material->texture );
+	pipeline.bind_texture( "u_BaseTexture", material->texture );
 
 	{
 		u64 hash = Hash64( u64( material ) );
@@ -1111,11 +1111,11 @@ PipelineState MaterialToPipelineState( const Material * material, Vec4 color, bo
 			num_material_static_uniforms++;
 		}
 
-		pipeline.set_uniform( "u_MaterialStatic", material_static_uniforms[ idx ] );
+		pipeline.bind_uniform( "u_MaterialStatic", material_static_uniforms[ idx ] );
 	}
 
 	if( skinned || gpu_material == NULL ) {
-		pipeline.set_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, tcmod_row0, tcmod_row1 ) );
+		pipeline.bind_uniform( "u_MaterialDynamic", UploadMaterialDynamicUniforms( color, tcmod_row0, tcmod_row1 ) );
 	}
 	if( gpu_material != NULL ) {
 		// instanced matrial

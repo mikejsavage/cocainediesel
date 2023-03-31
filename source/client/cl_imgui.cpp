@@ -210,16 +210,16 @@ static void SubmitDrawCalls() {
 					pipeline.scissor.w = scissor.maxs.x - scissor.mins.x;
 					pipeline.scissor.h = scissor.maxs.y - scissor.mins.y;
 
-					pipeline.set_uniform( "u_View", frame_static.ortho_view_uniforms );
-					pipeline.set_uniform( "u_Model", frame_static.identity_model_uniforms );
-					pipeline.set_uniform( "u_MaterialStatic", frame_static.identity_material_static_uniforms );
-					pipeline.set_uniform( "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms );
+					pipeline.bind_uniform( "u_View", frame_static.ortho_view_uniforms );
+					pipeline.bind_uniform( "u_Model", frame_static.identity_model_uniforms );
+					pipeline.bind_uniform( "u_MaterialStatic", frame_static.identity_material_static_uniforms );
+					pipeline.bind_uniform( "u_MaterialDynamic", frame_static.identity_material_dynamic_uniforms );
 
 					if( pcmd->TextureId.uniform_name != EMPTY_HASH ) {
-						pipeline.set_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
+						pipeline.bind_uniform( pcmd->TextureId.uniform_name, pcmd->TextureId.uniform_block );
 					}
 
-					pipeline.set_texture( "u_BaseTexture", pcmd->TextureId.material->texture );
+					pipeline.bind_texture( "u_BaseTexture", pcmd->TextureId.material->texture );
 
 					DrawMesh( mesh, pipeline, pcmd->ElemCount, pcmd->IdxOffset );
 				}

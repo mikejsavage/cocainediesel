@@ -872,17 +872,17 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		PipelineState pipeline;
 		pipeline.pass = frame_static.particle_update_pass;
 		pipeline.shader = &shaders.particle_compute;
-		pipeline.set_buffer( "b_ParticlesIn", ps->gpu_particles1 );
-		pipeline.set_buffer( "b_ParticlesOut", ps->gpu_particles2 );
-		pipeline.set_buffer( "b_ComputeCountIn", ps->compute_count1 );
-		pipeline.set_buffer( "b_ComputeCountOut", ps->compute_count2 );
+		pipeline.bind_buffer( "b_ParticlesIn", ps->gpu_particles1 );
+		pipeline.bind_buffer( "b_ParticlesOut", ps->gpu_particles2 );
+		pipeline.bind_buffer( "b_ComputeCountIn", ps->compute_count1 );
+		pipeline.bind_buffer( "b_ComputeCountOut", ps->compute_count2 );
 		u32 collision = cl.map == NULL ? 0 : 1;
-		pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, ps->radius, dt, u32( ps->new_particles ) ) );
+		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( collision, ps->radius, dt, u32( ps->new_particles ) ) );
 		if( collision ) {
-			pipeline.set_buffer( "b_BSPNodeLinks", cl.map->nodeBuffer );
-			pipeline.set_buffer( "b_BSPLeaves", cl.map->leafBuffer );
-			pipeline.set_buffer( "b_BSPBrushes", cl.map->brushBuffer );
-			pipeline.set_buffer( "b_BSPPlanes", cl.map->planeBuffer );
+			pipeline.bind_buffer( "b_BSPNodeLinks", cl.map->nodeBuffer );
+			pipeline.bind_buffer( "b_BSPLeaves", cl.map->leafBuffer );
+			pipeline.bind_buffer( "b_BSPBrushes", cl.map->brushBuffer );
+			pipeline.bind_buffer( "b_BSPPlanes", cl.map->planeBuffer );
 		}
 		DispatchComputeIndirect( pipeline, ps->compute_indirect );
 	}
@@ -891,11 +891,11 @@ static void UpdateParticleSystem( ParticleSystem * ps, float dt ) {
 		PipelineState pipeline;
 		pipeline.pass = frame_static.particle_setup_indirect_pass;
 		pipeline.shader = &shaders.particle_setup_indirect;
-		pipeline.set_buffer( "b_NextComputeCount", ps->compute_count1 );
-		pipeline.set_buffer( "b_ComputeCount", ps->compute_count2 );
-		pipeline.set_buffer( "b_ComputeIndirect", ps->compute_indirect );
-		pipeline.set_buffer( "b_DrawIndirect", ps->draw_indirect );
-		pipeline.set_uniform( "u_ParticleUpdate", UploadUniformBlock( u32( ps->new_particles ) ) );
+		pipeline.bind_buffer( "b_NextComputeCount", ps->compute_count1 );
+		pipeline.bind_buffer( "b_ComputeCount", ps->compute_count2 );
+		pipeline.bind_buffer( "b_ComputeIndirect", ps->compute_indirect );
+		pipeline.bind_buffer( "b_DrawIndirect", ps->draw_indirect );
+		pipeline.bind_uniform( "u_ParticleUpdate", UploadUniformBlock( u32( ps->new_particles ) ) );
 		DispatchCompute( pipeline, 1, 1, 1 );
 	}
 
@@ -911,10 +911,10 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	pipeline.blend_func = ps->blend_func;
 	pipeline.cull_face = CullFace_Disabled;
 	pipeline.write_depth = false;
-	pipeline.set_uniform( "u_View", frame_static.view_uniforms );
-	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
-	pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
-	pipeline.set_buffer( "b_Particles", ps->gpu_particles2 );
+	pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
+	pipeline.bind_uniform( "u_Fog", frame_static.fog_uniforms );
+	pipeline.bind_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
+	pipeline.bind_buffer( "b_Particles", ps->gpu_particles2 );
 	DrawMeshIndirect( ps->mesh, pipeline, ps->draw_indirect );
 
 	Swap2( &ps->gpu_particles1, &ps->gpu_particles2 );

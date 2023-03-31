@@ -179,7 +179,7 @@ static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, 
 		return;
 	}
 
-	T * instances = ( T * ) GetStreamingBufferMapping( group->instance_data );
+	T * instances = ( T * ) GetStreamingBufferMemory( group->instance_data );
 	instances[ group->num_instances ] = instance;
 	group->num_instances++;
 }
@@ -217,7 +217,7 @@ static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Model * 
 
 	for( u32 i = 0; i < frame_static.shadow_parameters.entity_cascades; i++ ) {
 		pipeline.pass = frame_static.shadowmap_pass[ i ];
-		pipeline.set_uniform( "u_View", frame_static.shadowmap_view_uniforms[ i ] );
+		pipeline.bind_uniform( "u_View", frame_static.shadowmap_view_uniforms[ i ] );
 
 		if( skinned ) {
 			DrawModelPrimitive( model, primitive, pipeline );
@@ -242,7 +242,7 @@ static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Model 
 	pipeline.cull_face = CullFace_Front;
 
 	if( skinned ) {
-		pipeline.set_uniform( "u_Outline", outline_uniforms );
+		pipeline.bind_uniform( "u_Outline", outline_uniforms );
 		DrawModelPrimitive( model, primitive, pipeline );
 		return;
 	}
@@ -265,7 +265,7 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mo
 	pipeline.blend_func = BlendFunc_Disabled;
 
 	if( skinned ) {
-		pipeline.set_uniform( "u_Silhouette", silhouette_uniforms );
+		pipeline.bind_uniform( "u_Silhouette", silhouette_uniforms );
 		DrawModelPrimitive( model, primitive, pipeline );
 		return;
 	}
@@ -360,12 +360,12 @@ void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transf
 		const Model::Primitive * primitive = &model->primitives[ node->primitive ];
 		GPUMaterial gpu_material;
 		PipelineState pipeline = MaterialToPipelineState( primitive->material, color, skinned, &gpu_material );
-		pipeline.set_uniform( "u_View", frame_static.view_uniforms );
+		pipeline.bind_uniform( "u_View", frame_static.view_uniforms );
 
 		// skinned models can't be instanced
 		if( skinned ) {
-			pipeline.set_uniform( "u_Model", UploadModelUniforms( node_transform ) );
-			pipeline.set_uniform( "u_Pose", pose_uniforms );
+			pipeline.bind_uniform( "u_Model", UploadModelUniforms( node_transform ) );
+			pipeline.bind_uniform( "u_Pose", pose_uniforms );
 		}
 
 		u64 hash = Hash64( u64( model ) );
@@ -413,7 +413,7 @@ static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collecti
 	for( u32 i = 0; i < collection.groups_hashtable.size(); i++ ) {
 		ModelInstanceGroup< T > & group = collection.groups[ i ];
 
-		group.pipeline.set_buffer( "b_Instances", GetStreamingBufferBuffer( group.instance_data ) );
+		group.pipeline.bind_streaming_buffer( "b_Instances", group.instance_data );
 
 		if( group.primitive->num_vertices != 0 ) {
 			DrawInstancedMesh( group.model->mesh, group.pipeline, group.num_instances, group.primitive->num_vertices, group.primitive->first_index );

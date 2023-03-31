@@ -8,7 +8,7 @@ layout( std140 ) uniform u_Silhouette {
 
 #if INSTANCED
 struct Instance {
-	mat4 transform;
+	AffineTransform transform;
 	vec4 color;
 };
 
@@ -25,7 +25,7 @@ in vec4 a_Position;
 
 void main() {
 #if INSTANCED
-	mat4 u_M = instances[ gl_InstanceID ].transform;
+	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ].transform );
 	v_Instance = gl_InstanceID;
 #endif
 	vec4 Position = a_Position;

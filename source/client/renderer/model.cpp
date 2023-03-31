@@ -35,22 +35,22 @@ struct ModelInstanceCollection {
 };
 
 struct GPUModelInstance {
-	Mat4 transform;
+	Mat3x4 transform;
 	GPUMaterial material;
 };
 
 struct GPUModelShadowsInstance {
-	Mat4 transform;
+	Mat3x4 transform;
 };
 
 struct GPUModelOutlinesInstance {
-	Mat4 transform;
+	Mat3x4 transform;
 	Vec4 color;
 	float height;
 };
 
 struct GPUModelSilhouetteInstance {
-	Mat4 transform;
+	Mat3x4 transform;
 	Vec4 color;
 };
 
@@ -200,7 +200,7 @@ static void DrawModelNode( DrawModelConfig::DrawModel config, const Model * mode
 
 	GPUModelInstance instance = { };
 	instance.material = gpu_material;
-	instance.transform = transform;
+	instance.transform = Mat3x4( transform );
 
 	AddInstanceToCollection( model_instance_collection, model, primitive, pipeline, instance, hash );
 }
@@ -226,7 +226,7 @@ static void DrawShadowsNode( DrawModelConfig::DrawShadows config, const Model * 
 		hash = Hash64( &i, sizeof( i ), hash );
 
 		GPUModelShadowsInstance instance = { };
-		instance.transform = transform;
+		instance.transform = Mat3x4( transform );
 
 		AddInstanceToCollection( model_shadows_instance_collection, model, primitive, pipeline, instance, hash );
 	}
@@ -249,7 +249,7 @@ static void DrawOutlinesNode( DrawModelConfig::DrawOutlines config, const Model 
 	GPUModelOutlinesInstance instance = { };
 	instance.color = config.outline_color;
 	instance.height = config.outline_height;
-	instance.transform = transform;
+	instance.transform = Mat3x4( transform );
 
 	AddInstanceToCollection( model_outlines_instance_collection, model, primitive, pipeline, instance, hash );
 }
@@ -271,7 +271,7 @@ static void DrawSilhouetteNode( DrawModelConfig::DrawSilhouette config, const Mo
 
 	GPUModelSilhouetteInstance instance = { };
 	instance.color = config.silhouette_color;
-	instance.transform = transform;
+	instance.transform = Mat3x4( transform );
 
 	AddInstanceToCollection( model_silhouette_instance_collection, model, primitive, pipeline, instance, hash );
 }

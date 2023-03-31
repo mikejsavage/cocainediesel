@@ -18,7 +18,7 @@ in vec3 a_Normal;
 
 #if INSTANCED
 struct Instance {
-	mat4 transform;
+	AffineTransform transform;
 	vec4 outline_color;
 	float outline_height;
 };
@@ -30,7 +30,7 @@ layout( std430 ) readonly buffer b_Instances {
 
 void main() {
 #if INSTANCED
-	mat4 u_M = instances[ gl_InstanceID ].transform;
+	mat4 u_M = AffineToMat4( instances[ gl_InstanceID ].transform );
 #endif
 	vec4 Position = a_Position;
 	vec3 Normal = a_Normal;

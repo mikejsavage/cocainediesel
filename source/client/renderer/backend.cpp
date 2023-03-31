@@ -563,7 +563,7 @@ static bool operator!=( PipelineState::Scissor a, PipelineState::Scissor b ) {
 	return a.x != b.x || a.y != b.y || a.w != b.w || a.h != b.h;
 }
 
-static void SetPipelineState( PipelineState pipeline, bool cw_winding ) {
+static void SetPipelineState( const PipelineState & pipeline, bool cw_winding ) {
 	TracyGpuZone( "Set pipeline state" );
 
 	if( pipeline.shader != NULL && ( prev_pipeline.shader == NULL || pipeline.shader->program != prev_pipeline.shader->program ) ) {
@@ -710,19 +710,20 @@ static void SetPipelineState( PipelineState pipeline, bool cw_winding ) {
 	}
 
 	// backface culling
-	if( pipeline.cull_face != CullFace_Disabled && cw_winding ) {
-		pipeline.cull_face = pipeline.cull_face == CullFace_Front ? CullFace_Back : CullFace_Front;
+	CullFace cull_face = pipeline.cull_face;
+	if( cull_face != CullFace_Disabled && cw_winding ) {
+		cull_face = cull_face == CullFace_Front ? CullFace_Back : CullFace_Front;
 	}
 
-	if( pipeline.cull_face != prev_pipeline.cull_face ) {
-		if( pipeline.cull_face == CullFace_Disabled ) {
+	if( cull_face != prev_pipeline.cull_face ) {
+		if( cull_face == CullFace_Disabled ) {
 			glDisable( GL_CULL_FACE );
 		}
 		else {
 			if( prev_pipeline.cull_face == CullFace_Disabled ) {
 				glEnable( GL_CULL_FACE );
 			}
-			glCullFace( pipeline.cull_face == CullFace_Front ? GL_FRONT : GL_BACK );
+			glCullFace( cull_face == CullFace_Front ? GL_FRONT : GL_BACK );
 		}
 	}
 
@@ -776,6 +777,7 @@ static void SetPipelineState( PipelineState pipeline, bool cw_winding ) {
 	}
 
 	prev_pipeline = pipeline;
+	prev_pipeline.cull_face = cull_face;
 }
 
 static bool SortDrawCall( const DrawCall & a, const DrawCall & b ) {

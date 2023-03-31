@@ -1016,10 +1016,6 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 	return block;
 }
 
-void ReadGPUBuffer( GPUBuffer buf, void * data, u32 len, u32 offset ) {
-	glGetNamedBufferSubData( buf.buffer, offset, len, data );
-}
-
 GPUBuffer NewGPUBuffer( const void * data, u32 size, const char * name ) {
 	GPUBuffer buf = { };
 	glCreateBuffers( 1, &buf.buffer );

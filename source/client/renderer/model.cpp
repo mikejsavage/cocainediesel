@@ -19,10 +19,9 @@ constexpr u32 MAX_INSTANCE_GROUPS = 256;
 
 template< typename T >
 struct ModelInstanceGroup {
-	T instances[ MAX_INSTANCES ];
 	u32 num_instances;
 	PipelineState pipeline;
-	GPUBuffer instance_data;
+	StreamingBuffer instance_data;
 	const Model * model;
 	const Model::Primitive * primitive;
 };
@@ -31,7 +30,6 @@ template< typename T >
 struct ModelInstanceCollection {
 	ModelInstanceGroup< T > groups[ MAX_INSTANCE_GROUPS ];
 	Hashtable< MAX_INSTANCE_GROUPS * 2 > groups_hashtable;
-	u32 num_groups;
 };
 
 struct GPUModelInstance {
@@ -161,26 +159,29 @@ void DrawModelPrimitive( const Model * model, const Model::Primitive * primitive
 
 template< typename T >
 static void AddInstanceToCollection( ModelInstanceCollection< T > & collection, const Model * model, const Model::Primitive * primitive, const PipelineState & pipeline, const T & instance, u64 hash ) {
-	u64 idx = collection.num_groups;
+	u64 idx = collection.groups_hashtable.size();
 	if( !collection.groups_hashtable.get( hash, &idx ) ) {
-		if( collection.num_groups == ARRAY_COUNT( collection.groups ) ) {
+		if( collection.groups_hashtable.size() == ARRAY_COUNT( collection.groups ) ) {
 			Com_Printf( S_COLOR_YELLOW "Too many instancing groups!\n" );
 			return;
 		}
 
-		collection.groups_hashtable.add( hash, collection.num_groups );
+		collection.groups_hashtable.add( hash, idx );
 		collection.groups[ idx ].pipeline = pipeline;
 		collection.groups[ idx ].model = model;
 		collection.groups[ idx ].primitive = primitive;
-		collection.num_groups++;
 	}
 
-	if( collection.groups[ idx ].num_instances == ARRAY_COUNT( collection.groups[ idx ].instances ) ) {
+	ModelInstanceGroup< T > * group = &collection.groups[ idx ];
+
+	if( group->num_instances == MAX_INSTANCES ) {
 		Com_Printf( S_COLOR_YELLOW "Too many instanced draws!\n" );
 		return;
 	}
 
-	collection.groups[ idx ].instances[ collection.groups[ idx ].num_instances++ ] = instance;
+	T * instances = ( T * ) GetStreamingBufferMapping( group->instance_data );
+	instances[ group->num_instances ] = instance;
+	group->num_instances++;
 }
 
 static void DrawModelNode( DrawModelConfig::DrawModel config, const Model * model, const Model::Primitive * primitive, bool skinned, PipelineState pipeline, u64 hash, Mat4 & transform, GPUMaterial gpu_material ) {
@@ -377,39 +378,42 @@ void DrawModel( DrawModelConfig config, const Model * model, const Mat4 & transf
 	}
 }
 
+template< typename T >
+static void InitModelInstanceGroup( ModelInstanceGroup< T > * group ) {
+	group->instance_data = NewStreamingBuffer( MAX_INSTANCES * sizeof( T ) );
+}
+
 void InitModelInstances() {
 	TracyZoneScoped;
+
 	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
-		model_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( model_instance_collection.groups[ i ].instances ) );
-		model_instance_collection.num_groups = 0;
-
-		model_shadows_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( model_shadows_instance_collection.groups[ i ].instances ) );
-		model_shadows_instance_collection.num_groups = 0;
-
-		model_outlines_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( model_outlines_instance_collection.groups[ i ].instances ) );
-		model_outlines_instance_collection.num_groups = 0;
-
-		model_silhouette_instance_collection.groups[ i ].instance_data = NewGPUBuffer( sizeof( model_silhouette_instance_collection.groups[ i ].instances ) );
-		model_silhouette_instance_collection.num_groups = 0;
+		InitModelInstanceGroup( &model_instance_collection.groups[ i ] );
+		InitModelInstanceGroup( &model_shadows_instance_collection.groups[ i ] );
+		InitModelInstanceGroup( &model_outlines_instance_collection.groups[ i ] );
+		InitModelInstanceGroup( &model_silhouette_instance_collection.groups[ i ] );
 	}
+
+	model_instance_collection.groups_hashtable.clear();
+	model_shadows_instance_collection.groups_hashtable.clear();
+	model_outlines_instance_collection.groups_hashtable.clear();
+	model_silhouette_instance_collection.groups_hashtable.clear();
 }
 
 void ShutdownModelInstances() {
 	for( u32 i = 0; i < MAX_INSTANCE_GROUPS; i++ ) {
-		DeleteGPUBuffer( model_instance_collection.groups[ i ].instance_data );
-		DeleteGPUBuffer( model_shadows_instance_collection.groups[ i ].instance_data );
-		DeleteGPUBuffer( model_outlines_instance_collection.groups[ i ].instance_data );
-		DeleteGPUBuffer( model_silhouette_instance_collection.groups[ i ].instance_data );
+		DeleteStreamingBuffer( model_instance_collection.groups[ i ].instance_data );
+		DeleteStreamingBuffer( model_shadows_instance_collection.groups[ i ].instance_data );
+		DeleteStreamingBuffer( model_outlines_instance_collection.groups[ i ].instance_data );
+		DeleteStreamingBuffer( model_silhouette_instance_collection.groups[ i ].instance_data );
 	}
 }
 
 template< typename T >
 static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collection ) {
-	for( u32 i = 0; i < collection.num_groups; i++ ) {
+	for( u32 i = 0; i < collection.groups_hashtable.size(); i++ ) {
 		ModelInstanceGroup< T > & group = collection.groups[ i ];
 
-		group.pipeline.set_buffer( "b_Instances", group.instance_data );
-		WriteGPUBuffer( group.instance_data, group.instances, sizeof( T ) * group.num_instances );
+		group.pipeline.set_buffer( "b_Instances", GetStreamingBufferBuffer( group.instance_data ) );
 
 		if( group.primitive->num_vertices != 0 ) {
 			DrawInstancedMesh( group.model->mesh, group.pipeline, group.num_instances, group.primitive->num_vertices, group.primitive->first_index );
@@ -420,7 +424,6 @@ static void DrawModelInstanceCollection( ModelInstanceCollection< T > & collecti
 
 		group.num_instances = 0;
 	}
-	collection.num_groups = 0;
 	collection.groups_hashtable.clear();
 }
 

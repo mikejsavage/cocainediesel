@@ -913,7 +913,7 @@ static void DrawParticleSystem( ParticleSystem * ps, float dt ) {
 	pipeline.set_uniform( "u_Fog", frame_static.fog_uniforms );
 	pipeline.set_texture_array( "u_DecalAtlases", DecalAtlasTextureArray() );
 	pipeline.set_buffer( "b_Particles", ps->gpu_particles2 );
-	DrawInstancedParticles( ps->mesh, pipeline, ps->draw_indirect );
+	DrawMeshIndirect( ps->mesh, pipeline, ps->draw_indirect );
 
 	Swap2( &ps->gpu_particles1, &ps->gpu_particles2 );
 	Swap2( &ps->compute_count1, &ps->compute_count2 );

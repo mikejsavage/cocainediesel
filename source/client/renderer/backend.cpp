@@ -1637,40 +1637,6 @@ void DeferDeleteMesh( const Mesh & mesh ) {
 	deferred_mesh_deletes.add( mesh );
 }
 
-void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 first_index ) {
-	Assert( in_frame );
-	Assert( pipeline.pass != U8_MAX );
-	Assert( pipeline.shader != NULL );
-
-	DrawCall dc = { };
-	dc.type = DrawCallType_Normal;
-	dc.mesh = mesh;
-	dc.pipeline = pipeline;
-	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
-	dc.num_instances = 1;
-	dc.first_index = first_index;
-	draw_calls.add( dc );
-
-	num_vertices_this_frame += dc.num_vertices;
-}
-
-void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override, u32 first_index ) {
-	Assert( in_frame );
-	Assert( pipeline.pass != U8_MAX );
-	Assert( pipeline.shader != NULL );
-
-	DrawCall dc = { };
-	dc.type = DrawCallType_Normal;
-	dc.mesh = mesh;
-	dc.pipeline = pipeline;
-	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
-	dc.first_index = first_index;
-	dc.num_instances = num_instances;
-	draw_calls.add( dc );
-
-	num_vertices_this_frame += dc.num_vertices * num_instances;
-}
-
 static u8 AddRenderPass( const RenderPass & pass ) {
 	return checked_cast< u8 >( render_passes.add( pass ) );
 }
@@ -1723,6 +1689,36 @@ void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, Framebuffer sr
 	AddBlitPass( tracy, src, dst, clear_color, clear_depth );
 }
 
+void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 first_index ) {
+	DrawInstancedMesh( mesh, pipeline, 1, num_vertices_override, first_index );
+}
+
+void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override, u32 first_index ) {
+	Assert( in_frame );
+	Assert( pipeline.pass != U8_MAX );
+	Assert( pipeline.shader != NULL );
+
+	DrawCall dc = { };
+	dc.type = DrawCallType_Normal;
+	dc.mesh = mesh;
+	dc.pipeline = pipeline;
+	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
+	dc.first_index = first_index;
+	dc.num_instances = num_instances;
+	draw_calls.add( dc );
+
+	num_vertices_this_frame += dc.num_vertices * num_instances;
+}
+
+void DrawMeshIndirect( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer indirect ) {
+	DrawCall dc = { };
+	dc.type = DrawCallType_Indirect;
+	dc.pipeline = pipeline;
+	dc.mesh = mesh;
+	dc.indirect = indirect;
+	draw_calls.add( dc );
+}
+
 void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z ) {
 	DrawCall dc = { };
 	dc.type = DrawCallType_Compute;
@@ -1737,15 +1733,6 @@ void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect
 	DrawCall dc = { };
 	dc.type = DrawCallType_IndirectCompute;
 	dc.pipeline = pipeline;
-	dc.indirect = indirect;
-	draw_calls.add( dc );
-}
-
-void DrawInstancedParticles( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer indirect ) {
-	DrawCall dc = { };
-	dc.type = DrawCallType_Indirect;
-	dc.pipeline = pipeline;
-	dc.mesh = mesh;
 	dc.indirect = indirect;
 	draw_calls.add( dc );
 }

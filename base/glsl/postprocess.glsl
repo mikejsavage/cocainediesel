@@ -132,7 +132,7 @@ vec3 glitch( vec2 uv, float amount ) {
 		col = discolor( col );
 
 	// interleave lines in some blocks
-	if( blocknoise.g < block_thresh * MPEG_BLOCK_INTERLEAVE ||	linenoise.g < line_thresh * MPEG_LINE_INTERLEAVE ) {
+	if( blocknoise.g < block_thresh * MPEG_BLOCK_INTERLEAVE || linenoise.g < line_thresh * MPEG_LINE_INTERLEAVE ) {
 		col *= interleave( distorted_fragCoord );
 	}
 

@@ -4,8 +4,6 @@
 #include "qcommon/fpe.h"
 #include "qcommon/renderdoc.h"
 
-#include "glad/glad.h"
-
 #define GLFW_INCLUDE_NONE
 #include "glfw3/GLFW/glfw3.h"
 
@@ -369,13 +367,6 @@ void CreateWindow( WindowMode mode ) {
 	glfwSetCharCallback( window, OnCharTyped );
 
 	glfwMakeContextCurrent( window );
-
-	{
-		TracyZoneScopedN( "Load OpenGL" );
-		if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
-			Fatal( "Couldn't load GL" );
-		}
-	}
 }
 
 void DestroyWindow() {

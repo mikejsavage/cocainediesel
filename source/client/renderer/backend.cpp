@@ -3,6 +3,9 @@
 
 #include "glad/glad.h"
 
+#define GLFW_INCLUDE_NONE
+#include "glfw3/GLFW/glfw3.h"
+
 #include "tracy/Tracy.hpp"
 #include "tracy/TracyOpenGL.hpp"
 
@@ -409,6 +412,13 @@ static void RunDeferredDeletes() {
 void InitRenderBackend() {
 	TracyZoneScoped;
 	TracyGpuContext;
+
+	{
+		TracyZoneScopedN( "Load OpenGL" );
+		if( gladLoadGLLoader( ( GLADloadproc ) glfwGetProcAddress ) != 1 ) {
+			Fatal( "Couldn't load GL" );
+		}
+	}
 
 	{
 		struct {

@@ -12,7 +12,7 @@
 #include "qcommon/application.h"
 #include "qcommon/array.h"
 #include "qcommon/fs.h"
-#include "qcommon/sys_fs.h"
+#include "qcommon/platform/fs.h"
 
 static char * ReplaceBackslashes( char * path ) {
 	char * cursor = path;

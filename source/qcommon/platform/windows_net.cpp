@@ -8,7 +8,7 @@
 #include "qcommon/platform/windows_net_headers.h"
 
 #include "qcommon/base.h"
-#include "qcommon/sys_net.h"
+#include "qcommon/platform/net.h"
 
 static void FatalWSA( const char * name ) {
 	int err = WSAGetLastError();

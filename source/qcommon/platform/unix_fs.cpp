@@ -5,7 +5,7 @@
 #include "qcommon/base.h"
 #include "qcommon/application.h"
 #include "qcommon/fs.h"
-#include "qcommon/sys_fs.h"
+#include "qcommon/platform/fs.h"
 #include "gameshared/q_shared.h"
 
 // these must come after qcommon because both tracy and one of these defines BLOCK_SIZE

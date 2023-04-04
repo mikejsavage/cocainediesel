@@ -2,7 +2,6 @@
 #include "qcommon/fs.h"
 #include "qcommon/string.h"
 #include "qcommon/hash.h"
-#include "qcommon/sys_fs.h"
 #include "gameshared/q_shared.h"
 
 #include "qcommon/qfiles.h"

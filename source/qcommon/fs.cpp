@@ -1,7 +1,6 @@
 #include "qcommon/base.h"
 #include "qcommon/fs.h"
 #include "qcommon/utf8.h"
-#include "qcommon/string.h"
 #include "qcommon/platform/fs.h"
 #include "gameshared/q_shared.h"
 

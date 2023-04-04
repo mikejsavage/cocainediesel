@@ -38,4 +38,4 @@ int main( int argc, char ** argv ) {
 	return 0;
 }
 
-#endif // #ifdef PLATFORM_WINDOWS
+#endif // #if PLATFORM_WINDOWS

@@ -34,4 +34,4 @@ void Wait( Semaphore * sem ) {
 	dispatch_semaphore_wait( sem->sem, DISPATCH_TIME_FOREVER );
 }
 
-#endif // #ifdef PLATFORM_MACOS
+#endif // #if PLATFORM_MACOS

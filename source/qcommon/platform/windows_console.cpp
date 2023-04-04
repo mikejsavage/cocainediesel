@@ -172,4 +172,4 @@ void Sys_ConsoleOutput( const char * str ) {
 	SetConsoleTextAttribute( output, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE );
 }
 
-#endif // #ifdef PLATFORM_WINDOWS
+#endif // #if PLATFORM_WINDOWS

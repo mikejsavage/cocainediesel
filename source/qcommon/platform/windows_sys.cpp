@@ -19,4 +19,4 @@ void Sys_Init() {
 	SetConsoleOutputCP( CP_UTF8 );
 }
 
-#endif // #ifdef PLATFORM_WINDOWS
+#endif // #if PLATFORM_WINDOWS

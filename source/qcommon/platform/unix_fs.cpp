@@ -97,4 +97,4 @@ bool ListDirNext( ListDirHandle * opaque, const char ** path, bool * dir ) {
 	return false;
 }
 
-#endif // #ifdef PLATFORM_UNIX
+#endif // #if PLATFORM_UNIX

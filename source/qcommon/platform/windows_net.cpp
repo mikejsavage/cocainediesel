@@ -216,4 +216,4 @@ void WaitForSockets( TempAllocator * temp, const Socket * sockets, size_t num_so
 	}
 }
 
-#endif // #ifdef PLATFORM_WINDOWS
+#endif // #if PLATFORM_WINDOWS

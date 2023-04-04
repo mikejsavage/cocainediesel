@@ -22,4 +22,4 @@ bool FormatCurrentTime( char * buf, size_t buf_size, const char * fmt ) {
 	return FormatTimestamp( buf, buf_size, fmt, time( NULL ) );
 }
 
-#endif // #ifdef PLATFORM_WINDOWS
+#endif // #if PLATFORM_WINDOWS

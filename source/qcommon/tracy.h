@@ -7,7 +7,7 @@
 #define TracyZoneScopedN( name ) TracyCZoneN( ___tracy_scoped_zone, name, 1 ); defer { TracyCZoneEnd( ___tracy_scoped_zone ); }
 #define TracyZoneText( str, len ) TracyCZoneText( ___tracy_scoped_zone, str, len )
 
-#ifdef TRACY_ENABLE
+#if TRACY_ENABLE
 #define TracyPlotSample TracyCPlot
 #else
 #define TracyPlotSample( label, value ) ( void ) sizeof( value )

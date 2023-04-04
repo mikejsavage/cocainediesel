@@ -45,4 +45,4 @@ void Wait( Semaphore * sem ) {
 	}
 }
 
-#endif // #ifdef PLATFORM_LINUX
+#endif // #if PLATFORM_LINUX

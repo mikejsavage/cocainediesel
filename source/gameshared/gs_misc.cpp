@@ -74,7 +74,7 @@ DamageCategory DecodeDamageType( DamageType type, WeaponType * weapon, GadgetTyp
 		return DamageCategory_Weapon;
 	}
 
-	if( type.encoded < Weapon_Count + Gadget_Count ) {
+	if( type.encoded < u8( Weapon_Count ) + u8( Gadget_Count ) ) {
 		if( gadget != NULL ) {
 			*gadget = GadgetType( type.encoded - Weapon_Count );
 		}

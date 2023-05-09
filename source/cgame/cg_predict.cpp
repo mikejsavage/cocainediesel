@@ -21,7 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "cgame/cg_local.h"
 #include "gameshared/collision.h"
 
-static BVH cg_bvh;
+static SpatialHashGrid cg_grid;
 
 // static int cg_numSolids;
 // static SyncEntityState *cg_solidList[MAX_PARSE_ENTITIES];
@@ -102,19 +102,16 @@ void CG_CheckPredictionError() {
 void CG_BuildSolidList() {
 	// TODO: idk, this is ugly
 
-	ClearBVH( &cg_bvh );
+	ClearSpatialHashGrid( &cg_grid );
 
 	for( int i = 0; i < cg.frame.numEntities; i++ ) {
 		const SyncEntityState * ent = &cg.frame.parsedEntities[ i ];
 
-		if( ISEVENTENTITY( ent ) )
+		if( ent->number == 0 )
 			continue;
 
-		if( ent->override_collision_model.exists && ent->override_collision_model.value.type == CollisionModelType_GLTF ) {
-			PrepareEntity( &cg_bvh, ClientCollisionModelStorage(), ent );
-			// cg_solidList[cg_numSolids++] = &cg_entities[ ent->number ].current;
+		if( ISEVENTENTITY( ent ) )
 			continue;
-		}
 
 		MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), ent );
 		if( bounds.mins == MinMax3::Empty().mins && bounds.maxs == MinMax3::Empty().maxs )
@@ -138,18 +135,14 @@ void CG_BuildSolidList() {
 
 			case ET_JUMPPAD:
 			case ET_PAINKILLER_JUMPPAD:
-				LinkEntity( &cg_bvh, ClientCollisionModelStorage(), ent );
-				// cg_triggersList[cg_numTriggers++] = &cg_entities[ ent->number ].current;
+				LinkEntity( &cg_grid, ClientCollisionModelStorage(), ent, i );
 				break;
 
 			default:
-				LinkEntity( &cg_bvh, ClientCollisionModelStorage(), ent );
-				// cg_solidList[cg_numSolids++] = &cg_entities[ ent->number ].current;
+				LinkEntity( &cg_grid, ClientCollisionModelStorage(), ent, i );
 				break;
 		}
 	}
-
-	BuildBVH( &cg_bvh, ClientCollisionModelStorage() );
 }
 
 static bool CG_ClipEntityContact( Vec3 origin, Vec3 mins, Vec3 maxs, int entNum ) {
@@ -217,25 +210,22 @@ void CG_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ign
 
 	*tr = MakeMissedTrace( ray );
 
-	u32 bvh_total = 0;
-	u32 bvh_tested = 0;
+	u64 touchlist[ 1024 ];
+	size_t num = TraverseSpatialHashGridArr( &cg_grid, broadphase_bounds, touchlist );
 
-	TraverseBVH( &cg_bvh, broadphase_bounds, [&]( u32 entity, u32 total ) {
-		bvh_total = total;
-		bvh_tested++;
-		SyncEntityState * touch = &cg.frame.parsedEntities[ entity ];
+	for( size_t i = 0; i < num; i++ ) {
+		SyncEntityState * touch = &cg.frame.parsedEntities[ touchlist[ i ] ];
 		
 		if( touch->number == ignore )
-			return;
+			continue;
 		if( touch->type == ET_PLAYER && touch->team == cg_entities[ ignore ].current.team )
-			return;
+			continue;
 
 		trace_t trace = TraceVsEnt( ClientCollisionModelStorage(), ray, shape, touch, solid_mask );
 		if( trace.fraction < tr->fraction ) {
 			*tr = trace;
 		}
-	} );
-	// Com_GGPrint( "bounds: {} {}, tested {} out of {}", broadphase_bounds.mins, broadphase_bounds.maxs, bvh_tested, bvh_total );
+	}
 }
 
 static float predictedSteps[CMD_BACKUP]; // for step smoothing

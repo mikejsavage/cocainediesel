@@ -76,32 +76,28 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 
 
 constexpr size_t MAX_PRIMITIVES = MAX_EDICTS;
-constexpr size_t BVH_NODE_SIZE = 2;
-constexpr size_t BVH_NODES = ( MAX_PRIMITIVES - 1 ) / ( BVH_NODE_SIZE - 1 );
+constexpr size_t SHG_GRID_SIZE = 128 * 128;
+constexpr size_t SHG_CELL_DIMENSIONS[] = { 64, 64, 1024 };
 
-struct BVHNode {
-	u32 level;
-	u32 first_child_index;
-	MinMax3 bounds;
+struct SpatialHashBounds {
+	s32 x1, x2;
+	s32 y1, y2;
+	s32 z1, z2;
 };
 
-struct Primitive {
-	u32 entity_id;
-	u32 morton_id;
-	MinMax3 bounds;
-	Vec3 center;
+struct SpatialHashCell {
+	u64 active[ ( MAX_PRIMITIVES - 1 ) / 64 + 1 ];
 };
 
-struct BVH {
-	BVHNode nodes[ BVH_NODES ];
-	Primitive primitives[ MAX_PRIMITIVES ];
-	size_t num_primitives;
+struct SpatialHashGrid {
+	SpatialHashCell cells[ SHG_GRID_SIZE ];
+	SpatialHashBounds sbounds[ MAX_PRIMITIVES ];
 };
 
-void LinkEntity( BVH * bvh, const CollisionModelStorage * storage, const SyncEntityState * ent );
-void PrepareEntity( BVH * bvh, const CollisionModelStorage * storage, const SyncEntityState * ent );
-void BuildBVH( BVH * bvh, const CollisionModelStorage * storage );
-void UnlinkEntity( BVH * bvh, const CollisionModelStorage * storage, const SyncEntityState * ent );
+constexpr size_t foo = sizeof( SpatialHashGrid );
 
-void TraverseBVH( BVH * bvh, MinMax3 bounds, std::function< void ( u32 entity, u32 total ) > callback );
-void ClearBVH( BVH * bvh );
+void LinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, const SyncEntityState * ent, const u64 entity_id );
+void UnlinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, const SyncEntityState * ent, const u64 entity_id );
+void TraverseSpatialHashGrid( SpatialHashGrid * grid, MinMax3 bounds, std::function< void ( u32 entity ) > callback );
+void ClearSpatialHashGrid( SpatialHashGrid * grid );
+size_t TraverseSpatialHashGridArr( SpatialHashGrid * grid, MinMax3 bounds, u64 * arr );

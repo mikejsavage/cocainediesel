@@ -32,8 +32,8 @@ void G_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const ed
 
 	*tr = MakeMissedTrace( ray );
 
-	u64 touchlist[ 1024 ];
-	size_t num = TraverseSpatialHashGridArr( &g_grid, broadphase_bounds, touchlist );
+	int touchlist[ 1024 ];
+	size_t num = TraverseSpatialHashGrid( &g_grid, broadphase_bounds, touchlist, solid_mask );
 	
 	for( size_t i = 0; i < num; i++ ) {
 		edict_t * touch = &game.edicts[ touchlist[ i ] ];
@@ -62,16 +62,36 @@ void G_Trace4D( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const 
 
 void GClip_BackUpCollisionFrame() {
 }
+
 int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int timeDelta ) {
-	return 0;
+	// TODO: timedelta
+	MinMax3 bounds = MinMax3( org - rad, org + rad );
+	int touchlist[ MAX_EDICTS ];
+	size_t touchnum = TraverseSpatialHashGrid( &g_grid, bounds, touchlist, SolidMask_AnySolid );
+
+	size_t num = 0;
+	for( size_t i = 0; i < touchnum; i++ ) {
+		// TODO: actually check radius? whatever
+		if( true ) {
+			list[ num++ ] = touchlist[ i ];
+			if( num == maxcount )
+				return num;
+		}
+	}
+	return num;
 }
-void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage ) {}
+
+void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage ) {
+	// TODO: timedelta
+	G_SplashFrac( &ent->s, &ent->r, hitpoint, maxradius, pushdir, frac, selfdamage );
+}
+
 void GClip_ClearWorld() {
 	ClearSpatialHashGrid( &g_grid );
 }
 
 void GClip_LinkEntity( edict_t * ent ) {
-	if( ent->r.solid == SOLID_NOT ) return;
+	if( ent->s.solidity == Solid_NotSolid ) return;
 	LinkEntity( &g_grid, ServerCollisionModelStorage(), &ent->s, ENTNUM( ent ) );
 }
 
@@ -79,10 +99,79 @@ void GClip_UnlinkEntity( edict_t * ent ) {
 	UnlinkEntity( &g_grid, ServerCollisionModelStorage(), &ent->s, ENTNUM( ent ) );
 }
 
-void GClip_TouchTriggers( edict_t * ent ) {}
-void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {}
+void GClip_TouchTriggers( edict_t * ent ) {
+	// TODO: timedelta
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+	if( bounds.mins == MinMax3::Empty().mins && bounds.maxs == MinMax3::Empty().maxs )
+		return;
+
+	bounds.mins += ent->s.origin;
+	bounds.maxs += ent->s.origin;
+
+	int touchlist[ MAX_EDICTS ];
+	size_t touchnum = TraverseSpatialHashGrid( &g_grid, bounds, touchlist, Solid_Trigger );
+
+	for( size_t i = 0; i < touchnum; i++ ) {
+		if( !ent->r.inuse )
+			break;
+		
+		edict_t * hit = &game.edicts[ touchlist[ i ] ];
+		if( !hit->r.inuse )
+			continue;
+		if( hit->touch == NULL )
+			continue;
+		
+		G_CallTouch( hit, ent, Vec3( 0.0f ), SolidMask_AnySolid );
+	}
+}
+void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
+	if( pm->playerState->POVnum <= 0 || (int)pm->playerState->POVnum > MAX_CLIENTS )
+		return;
+	
+	edict_t * ent = game.edicts + pm->playerState->POVnum;
+	if( !ent->r.client || G_IsDead( ent ) )  // dead things don't activate triggers!
+		return;
+
+	ent->s.origin = pm->playerState->pmove.origin;
+	ent->velocity = pm->playerState->pmove.velocity;
+	ent->s.angles = pm->playerState->viewangles;
+	ent->viewheight = pm->playerState->viewheight;
+	ent->r.mins = pm->mins;
+	ent->r.maxs = pm->maxs;
+	if( pm->groundentity == -1 ) {
+		ent->groundentity = NULL;
+	} else {
+		ent->groundentity = &game.edicts[ pm->groundentity ];
+		ent->groundentity_linkcount = ent->groundentity->linkcount;
+	}
+
+	GClip_LinkEntity( ent );
+
+	MinMax3 bounds = MinMax3( pm->playerState->pmove.origin + pm->mins, pm->playerState->pmove.origin + pm->maxs );
+	bounds = Union( bounds, previous_origin + pm->mins );
+	bounds = Union( bounds, previous_origin + pm->maxs );
+
+	int touchlist[ MAX_EDICTS ];
+	size_t num = TraverseSpatialHashGrid( &g_grid, bounds, touchlist, Solid_Trigger );
+
+	for( size_t i = 0; i < num; i++ ) {
+		if( !ent->r.inuse )
+			break;
+		
+		edict_t * hit = &game.edicts[ touchlist[ i ] ];
+		if( !hit->r.inuse )
+			continue;
+		if( hit->touch == NULL )
+			continue;
+		if( !BoundsOverlap( bounds.mins, bounds.maxs, hit->r.mins + hit->s.origin, hit->r.maxs + hit->s.origin ) )
+			continue;
+		
+		G_CallTouch( hit, ent, Vec3( 0.0f ), SolidMask_AnySolid );
+	}
+}
+
 int GClip_FindInRadius( Vec3 org, float rad, int *list, int maxcount ) {
-	return 0;
+	return GClip_FindInRadius4D( org, rad, list, maxcount, 0 );
 }
 bool IsHeadshot( int entNum, Vec3 hit, int timeDelta ) {
 	return false;

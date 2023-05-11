@@ -18,6 +18,7 @@ struct GLTFCollisionBrush {
 
 struct GLTFCollisionData {
 	MinMax3 bounds;
+	SolidBits solidity;
 	Span< Vec3 > vertices;
 	Span< Plane > planes;
 	Span< GLTFCollisionBrush > brushes;
@@ -65,8 +66,9 @@ void LoadMapCollisionData( CollisionModelStorage * storage, const MapData * map,
 const MapSharedCollisionData * FindMapSharedCollisionData( const CollisionModelStorage * storage, StringHash name );
 const MapSubModelCollisionData * FindMapSubModelCollisionData( const CollisionModelStorage * storage, StringHash name );
 
-CollisionModel EntityCollisionModel( const SyncEntityState * ent );
+CollisionModel EntityCollisionModel( const CollisionModelStorage * storage, const SyncEntityState * ent );
 MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntityState * ent );
+SolidBits EntitySolidity( const CollisionModelStorage * storage, const SyncEntityState * ent );
 
 trace_t MakeMissedTrace( const Ray & ray );
 trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent, SolidBits solid_mask );

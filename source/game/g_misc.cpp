@@ -86,8 +86,6 @@ void SP_path_corner( edict_t * self, const spawn_temp_t * st ) {
 
 void SP_model( edict_t * ent, const spawn_temp_t * st ) {
 	ent->s.svflags &= ~SVF_NOCLIENT;
-	ent->s.override_collision_model = CollisionModelGLTF( ent->s.model );
-	// ent->r.solid = SOLID_YES;
 	GClip_LinkEntity( ent );
 }
 

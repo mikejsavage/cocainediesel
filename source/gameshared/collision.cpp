@@ -109,6 +109,8 @@ bool LoadGLTFCollisionData( CollisionModelStorage * storage, const cgltf_data * 
 		if( material == NULL )
 			continue;
 
+		data.solidity = SolidBits( data.solidity | material->solidity );
+
 		Mat4 transform;
 		cgltf_node_transform_world( node, transform.ptr() );
 
@@ -295,19 +297,31 @@ const MapSubModelCollisionData * FindMapSubModelCollisionData( const CollisionMo
 	return &storage->map_models[ idx ];
 }
 
-CollisionModel EntityCollisionModel( const SyncEntityState * ent ) {
+CollisionModel EntityCollisionModel( const CollisionModelStorage * storage, const SyncEntityState * ent ) {
 	if( ent->override_collision_model.exists ) {
 		return ent->override_collision_model.value;
 	}
 
+	if( ent->model == EMPTY_HASH ) {
+		return { };
+	}
+
 	CollisionModel model = { };
+
+	const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( storage, ent->model );
+	if( gltf != NULL ) {
+		model.type = CollisionModelType_GLTF;
+		model.gltf_model = ent->model;
+		return model;
+	}
+
 	model.type = CollisionModelType_MapModel;
 	model.map_model = ent->model;
 	return model;
 }
 
 MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntityState * ent ) {
-	CollisionModel model = EntityCollisionModel( ent );
+	CollisionModel model = EntityCollisionModel( storage, ent );
 
 	if( model.type == CollisionModelType_MapModel ) {
 		const MapSubModelCollisionData * map_model = FindMapSubModelCollisionData( storage, model.map_model );
@@ -334,6 +348,16 @@ MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntitySta
 	}
 
 	return model.aabb;
+}
+
+SolidBits EntitySolidity( const CollisionModelStorage * storage, const SyncEntityState * ent ) {
+	CollisionModel model = EntityCollisionModel( storage, ent );
+	if( model.type == CollisionModelType_GLTF ) {
+		return FindGLTFSharedCollisionData( storage, model.gltf_model )->solidity;
+	}
+	else {
+		return ent->solidity;
+	}
 }
 
 trace_t MakeMissedTrace( const Ray & ray ) {
@@ -369,7 +393,7 @@ static trace_t FUCKING_HELL( const Ray & ray, const Shape & shape, const Interse
 trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent, SolidBits solid_mask ) {
 	trace_t trace = MakeMissedTrace( ray );
 
-	CollisionModel collision_model = EntityCollisionModel( ent );
+	CollisionModel collision_model = EntityCollisionModel( storage, ent );
 
 	if( ent->type != ET_PLAYER && ent->type != ET_GHOST && collision_model.type != CollisionModelType_GLTF ) {
 		for( int i = 0; i < 3; i++ ) {

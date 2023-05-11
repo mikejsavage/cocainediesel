@@ -86,6 +86,10 @@ void LinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, 
 
 	UnlinkEntity( grid, entity_id );
 
+	SolidBits solidity = EntitySolidity( storage, ent );
+	if( solidity == Solid_NotSolid )
+		return;
+
 	MinMax3 bounds = EntityBounds( storage, ent );
 	if( bounds.mins == MinMax3::Empty().mins && bounds.maxs == MinMax3::Empty().maxs )
 		return;
@@ -94,7 +98,7 @@ void LinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, 
 	bounds.maxs += ent->origin;
 
 	SpatialHashBounds sbounds = GetSpatialHashBounds( bounds );
-	grid->primitives[ entity_id ].solidity = ent->solidity;
+	grid->primitives[ entity_id ].solidity = solidity;
 	grid->primitives[ entity_id ].sbounds = sbounds;
 
 	for( s32 x = sbounds.x1; x <= sbounds.x2; x++ ) {

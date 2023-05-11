@@ -97,6 +97,6 @@ struct SpatialHashGrid {
 };
 
 void LinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, const SyncEntityState * ent, const u64 entity_id );
-void UnlinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, const SyncEntityState * ent, const u64 entity_id );
+void UnlinkEntity( SpatialHashGrid * grid, const u64 entity_id );
 size_t TraverseSpatialHashGrid( const SpatialHashGrid * grid, const MinMax3 bounds, int * arr, const SolidBits solidity );
 void ClearSpatialHashGrid( SpatialHashGrid * grid );

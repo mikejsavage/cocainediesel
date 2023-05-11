@@ -91,12 +91,11 @@ void GClip_ClearWorld() {
 }
 
 void GClip_LinkEntity( edict_t * ent ) {
-	if( ent->s.solidity == Solid_NotSolid ) return;
 	LinkEntity( &g_grid, ServerCollisionModelStorage(), &ent->s, ENTNUM( ent ) );
 }
 
 void GClip_UnlinkEntity( edict_t * ent ) {
-	UnlinkEntity( &g_grid, ServerCollisionModelStorage(), &ent->s, ENTNUM( ent ) );
+	UnlinkEntity( &g_grid, ENTNUM( ent ) );
 }
 
 void GClip_TouchTriggers( edict_t * ent ) {

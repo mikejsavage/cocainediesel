@@ -62,7 +62,7 @@ size_t TraverseSpatialHashGrid( const SpatialHashGrid * grid, const MinMax3 boun
 	return num;
 }
 
-void UnlinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, const SyncEntityState * ent, const u64 entity_id ) {
+void UnlinkEntity( SpatialHashGrid * grid, const u64 entity_id ) {
 	TracyZoneScoped;
 
 	SpatialHashPrimitive primitive = grid->primitives[ entity_id ];
@@ -84,7 +84,7 @@ void UnlinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage
 void LinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, const SyncEntityState * ent, const u64 entity_id ) {
 	TracyZoneScoped;
 
-	UnlinkEntity( grid, storage, ent, entity_id );
+	UnlinkEntity( grid, entity_id );
 
 	MinMax3 bounds = EntityBounds( storage, ent );
 	if( bounds.mins == MinMax3::Empty().mins && bounds.maxs == MinMax3::Empty().maxs )

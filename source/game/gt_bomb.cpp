@@ -2,6 +2,7 @@
 #include "qcommon/array.h"
 
 #include "game/g_local.h"
+#include "gameshared/collision.h"
 
 enum BombState {
 	BombState_Carried,
@@ -207,7 +208,7 @@ static void SpawnBombSite( edict_t * ent ) {
 	site->hud = G_Spawn();
 	site->hud->classname = "hud_bomb_site";
 	site->hud->s.type = ET_BOMB_SITE;
-	site->hud->r.solid = SOLID_NOT;
+	site->hud->s.solidity = Solid_NotSolid;
 	site->hud->s.origin = bomb_state.sites[ i ].indicator->s.origin;
 	site->hud->s.svflags = SVF_BROADCAST;
 	site->hud->s.site_letter = letter;
@@ -247,7 +248,7 @@ static void PlantAreaTouch( edict_t * self, edict_t * other, Vec3 normal, SolidB
 static void SpawnPlantArea( edict_t * ent ) {
 	ent->think = PlantAreaThink;
 	ent->touch = PlantAreaTouch;
-	ent->r.solid = SOLID_TRIGGER;
+	ent->s.solidity = Solid_Trigger;
 	GClip_LinkEntity( ent );
 
 	ent->nextThink = level.time + 1;
@@ -299,7 +300,10 @@ static void SpawnBomb() {
 	bomb_state.bomb.model->s.team = AttackingTeam();
 	bomb_state.bomb.model->r.mins = bomb_bounds.mins;
 	bomb_state.bomb.model->r.maxs = bomb_bounds.maxs;
-	bomb_state.bomb.model->r.solid = SOLID_TRIGGER;
+
+	bomb_state.bomb.model->s.override_collision_model = CollisionModelAABB( MinMax3( bomb_bounds.mins, bomb_bounds.maxs ) );
+
+	bomb_state.bomb.model->s.solidity = Solid_Trigger;
 	bomb_state.bomb.model->s.model = model_bomb;
 	bomb_state.bomb.model->s.effects |= EF_TEAM_SILHOUETTE;
 	bomb_state.bomb.model->s.silhouetteColor = RGBA8( 255, 255, 255, 255 );
@@ -314,7 +318,7 @@ static void SpawnBombHUD() {
 	bomb_state.bomb.hud->classname = "hud_bomb";
 	bomb_state.bomb.hud->s.type = ET_BOMB;
 	bomb_state.bomb.hud->s.team = AttackingTeam();
-	bomb_state.bomb.hud->r.solid = SOLID_NOT;
+	bomb_state.bomb.hud->s.solidity = Solid_NotSolid;
 	bomb_state.bomb.hud->s.svflags |= SVF_BROADCAST;
 }
 

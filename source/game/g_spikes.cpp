@@ -38,7 +38,7 @@ static void SpikesTouched( edict_t * self, edict_t * other, Vec3 normal, SolidBi
 
 void SP_spike( edict_t * spike, const spawn_temp_t * st ) {
 	spike->s.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
-	spike->r.solid = SOLID_TRIGGER;
+	spike->s.solidity = Solid_Trigger;
 	spike->s.radius = spike->spawnflags & 1;
 
 	Vec3 forward, right, up;
@@ -69,7 +69,7 @@ void SP_spike( edict_t * spike, const spawn_temp_t * st ) {
 
 void SP_spikes( edict_t * spikes, const spawn_temp_t * st ) {
 	spikes->s.svflags &= ~SVF_NOCLIENT | SVF_PROJECTILE;
-	spikes->r.solid = SOLID_TRIGGER;
+	spikes->s.solidity = Solid_Trigger;
 	spikes->s.radius = spikes->spawnflags & 1;
 
 	Vec3 forward, right, up;

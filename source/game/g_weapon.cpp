@@ -208,7 +208,7 @@ static edict_t * GenEntity( edict_t * owner, Vec3 pos, Vec3 angles, int timeout 
 	ent->olds.origin = pos;
 	ent->s.angles = angles;
 
-	ent->r.solid = SOLID_NOT;
+	ent->s.solidity = Solid_NotSolid;
 
 	ent->r.owner = owner;
 	ent->s.ownerNum = owner->s.number;
@@ -243,7 +243,6 @@ static edict_t * FireProjectile(
 
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 
-	projectile->r.solid = SOLID_YES;
 	projectile->s.solidity = SolidMask_Shot;
 	projectile->s.svflags = SVF_PROJECTILE;
 	projectile->gravity_scale = stats.gravity_scale;
@@ -702,7 +701,7 @@ static edict_t * FindOrSpawnLaser( edict_t * owner ) {
 	laser->s.type = ET_LASERBEAM;
 	laser->s.ownerNum = ownerNum;
 	laser->movetype = MOVETYPE_NONE;
-	laser->r.solid = SOLID_NOT;
+	laser->s.solidity = Solid_NotSolid;
 	laser->s.svflags &= ~SVF_NOCLIENT;
 	return laser;
 }

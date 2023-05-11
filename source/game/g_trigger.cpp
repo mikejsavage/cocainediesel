@@ -37,7 +37,7 @@ bool G_TriggerWait( edict_t * ent ) {
 }
 
 void InitTrigger( edict_t * ent ) {
-	ent->r.solid = SOLID_TRIGGER;
+	ent->s.solidity = Solid_Trigger;
 	ent->movetype = MOVETYPE_NONE;
 	ent->s.svflags = SVF_NOCLIENT;
 }
@@ -139,10 +139,10 @@ void SP_trigger_push( edict_t * self, const spawn_temp_t * st ) {
 //==============================================================================
 
 static void hurt_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	if( self->r.solid == SOLID_NOT ) {
-		self->r.solid = SOLID_TRIGGER;
+	if( self->s.solidity = Solid_NotSolid ) {
+		self->s.solidity = Solid_Trigger;
 	} else {
-		self->r.solid = SOLID_NOT;
+		self->s.solidity = Solid_NotSolid;
 	}
 	GClip_LinkEntity( self );
 
@@ -196,9 +196,9 @@ void SP_trigger_hurt( edict_t * self, const spawn_temp_t * st ) {
 	}
 
 	if( self->spawnflags & 1 ) {
-		self->r.solid = SOLID_NOT;
+		self->s.solidity = Solid_NotSolid;
 	} else {
-		self->r.solid = SOLID_TRIGGER;
+		self->s.solidity = Solid_Trigger;
 	}
 
 	if( self->spawnflags & 2 ) {

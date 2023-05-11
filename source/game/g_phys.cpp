@@ -83,11 +83,11 @@ void SV_Impact( edict_t *e1, trace_t *trace ) {
 	if( trace->HitSomething() ) {
 		e2 = &game.edicts[trace->ent];
 
-		if( e1->r.solid != SOLID_NOT ) {
+		if( e1->s.solidity != Solid_NotSolid ) {
 			G_CallTouch( e1, e2, trace->normal, trace->solidity );
 		}
 
-		if( e2->r.solid != SOLID_NOT ) {
+		if( e2->s.solidity != Solid_NotSolid ) {
 			G_CallTouch( e2, e1, Vec3( 0.0f ), Solid_NotSolid );
 		}
 	}

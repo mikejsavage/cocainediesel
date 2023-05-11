@@ -27,38 +27,7 @@ static SpatialHashBounds GetSpatialHashBounds( MinMax3 bounds ) {
 	return sbounds;
 }
 
-void TraverseSpatialHashGrid( SpatialHashGrid * grid, MinMax3 bounds, std::function< void ( u32 entity ) > callback ) {
-	TracyZoneScoped;
-
-	callback( 0 );
-	SpatialHashBounds sbounds = GetSpatialHashBounds( bounds );
-	SpatialHashCell result = { 0 };
-
-	for( s32 x = sbounds.x1; x <= sbounds.x2; x++ ) {
-		for( s32 y = sbounds.y1; y <= sbounds.y2; y++ ) {
-			for( s32 z = sbounds.z1; z <= sbounds.z2; z++ ) {
-				u64 hash = GetCellHash( x, y, 0 );
-				u64 cell_idx = hash % SHG_GRID_SIZE;
-				for( size_t i = 0; i < ARRAY_COUNT( &SpatialHashCell::active ); i++ ) {
-					result.active[ i ] |= grid->cells[ cell_idx ].active[ i ];
-				}
-			}
-		}
-	}
-
-	for( size_t i = 0; i < ARRAY_COUNT( &SpatialHashCell::active ); i++ ) {
-		if( result.active[ i ] == 0 ) {
-			continue;
-		}
-		for( size_t j = 0; j < 64; j++ ) {
-			if( ( result.active[ i ] & ( 1ULL << j ) ) != 0 ) {
-				callback( i * 64 + j );
-			}
-		}
-	}
-}
-
-size_t TraverseSpatialHashGridArr( SpatialHashGrid * grid, MinMax3 bounds, u64 * touchlist ) {
+size_t TraverseSpatialHashGrid( const SpatialHashGrid * grid, const MinMax3 bounds, int * touchlist, const SolidBits solidity ) {
 	TracyZoneScoped;
 
 	size_t num = 0;
@@ -84,7 +53,9 @@ size_t TraverseSpatialHashGridArr( SpatialHashGrid * grid, MinMax3 bounds, u64 *
 		}
 		for( size_t j = 0; j < 64; j++ ) {
 			if( ( result.active[ i ] & ( 1ULL << j ) ) != 0 ) {
-				touchlist[ num++ ] = i * 64 + j;
+				size_t entity_id = i * 64 + j;
+				if( ( grid->primitives[ entity_id ].solidity & solidity ) != 0 )
+					touchlist[ num++ ] = entity_id;
 			}
 		}
 	}
@@ -94,12 +65,12 @@ size_t TraverseSpatialHashGridArr( SpatialHashGrid * grid, MinMax3 bounds, u64 *
 void UnlinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, const SyncEntityState * ent, const u64 entity_id ) {
 	TracyZoneScoped;
 
-	SpatialHashBounds sbounds = grid->sbounds[ entity_id ];
-	grid->sbounds[ entity_id ] = { 0 };
+	SpatialHashPrimitive primitive = grid->primitives[ entity_id ];
+	grid->primitives[ entity_id ] = { 0 };
 
-	for( s32 x = sbounds.x1; x <= sbounds.x2; x++ ) {
-		for( s32 y = sbounds.y1; y <= sbounds.y2; y++ ) {
-			for( s32 z = sbounds.z1; z <= sbounds.z2; z++ ) {
+	for( s32 x = primitive.sbounds.x1; x <= primitive.sbounds.x2; x++ ) {
+		for( s32 y = primitive.sbounds.y1; y <= primitive.sbounds.y2; y++ ) {
+			for( s32 z = primitive.sbounds.z1; z <= primitive.sbounds.z2; z++ ) {
 				u64 hash = GetCellHash( x, y, 0 );
 				u64 cell_idx = hash % SHG_GRID_SIZE;
 				SpatialHashCell & cell = grid->cells[ cell_idx ];
@@ -123,7 +94,8 @@ void LinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, 
 	bounds.maxs += ent->origin;
 
 	SpatialHashBounds sbounds = GetSpatialHashBounds( bounds );
-	grid->sbounds[ entity_id ] = sbounds;
+	grid->primitives[ entity_id ].solidity = ent->solidity;
+	grid->primitives[ entity_id ].sbounds = sbounds;
 
 	for( s32 x = sbounds.x1; x <= sbounds.x2; x++ ) {
 		for( s32 y = sbounds.y1; y <= sbounds.y2; y++ ) {

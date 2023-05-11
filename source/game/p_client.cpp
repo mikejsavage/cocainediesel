@@ -94,7 +94,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->velocity = ent->velocity;
 	body->r.maxs.z = body->r.mins.z + 8;
 
-	body->r.solid = SOLID_NOT;
+	body->s.solidity = Solid_NotSolid;
 	body->takedamage = DAMAGE_NO;
 	body->movetype = MOVETYPE_TOSS;
 
@@ -148,7 +148,7 @@ static void DropHeldItem( edict_t * ent ) {
 
 static void G_GhostClient( edict_t *ent ) {
 	ent->movetype = MOVETYPE_NONE;
-	ent->r.solid = SOLID_NOT;
+	ent->s.solidity = Solid_NotSolid;
 
 	memset( &ent->snap, 0, sizeof( ent->snap ) );
 	memset( &ent->r.client->resp.snap, 0, sizeof( ent->r.client->resp.snap ) );
@@ -177,7 +177,7 @@ void player_die( edict_t *ent, edict_t *inflictor, edict_t *attacker, int topAss
 	ent->s.angles.z = 0;
 	ent->s.sound = EMPTY_HASH;
 
-	ent->r.solid = SOLID_NOT;
+	ent->s.solidity = Solid_NotSolid;
 
 	// player death
 	ClientObituary( ent, inflictor, attacker, topAssistorEntNo, damage_type );
@@ -341,7 +341,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 			self->s.mask = StringHash( mask_name );
 		}
 		self->s.svflags |= SVF_FORCETEAM;
-		self->r.solid = SOLID_YES;
+		self->s.solidity = Solid_Player;
 		self->movetype = MOVETYPE_PLAYER;
 		client->ps.pmove.features = PMFEAT_ALL;
 	}
@@ -608,7 +608,7 @@ bool ClientConnect( edict_t *ent, char *userinfo, const NetAddress & address, bo
 	// they can connect
 
 	G_InitEdict( ent );
-	ent->r.solid = SOLID_NOT;
+	ent->s.solidity = Solid_NotSolid;
 	ent->r.client = game.clients + PLAYERNUM( ent );
 	ent->s.svflags = ( SVF_NOCLIENT | ( fakeClient ? SVF_FAKECLIENT : 0 ) );
 	memset( ent->r.client, 0, sizeof( gclient_t ) );

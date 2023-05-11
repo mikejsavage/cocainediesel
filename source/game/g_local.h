@@ -291,7 +291,7 @@ edict_t * G_PositionedSound( Vec3 origin, StringHash sound );
 void G_GlobalSound( StringHash sound );
 void G_LocalSound( edict_t * owner, StringHash sound );
 
-#define G_ISGHOSTING( x ) ( ( x )->r.solid == SOLID_NOT )
+constexpr bool G_ISGHOSTING( const edict_t * ent ) { return ent->s.solidity == Solid_NotSolid; }
 
 void G_TeleportEffect( edict_t * ent, bool in );
 void G_RespawnEffect( edict_t * ent );

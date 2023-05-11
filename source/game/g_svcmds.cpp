@@ -55,7 +55,7 @@ static void Cmd_ConsoleKill_f() {
 		return;
 	}
 
-	if( ent->r.solid == SOLID_NOT ) {
+	if( ent->s.solidity == Solid_NotSolid ) {
 		return;
 	}
 

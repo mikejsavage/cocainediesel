@@ -300,7 +300,7 @@ void G_AddEvent( edict_t *ent, int event, u64 parm, bool highPriority ) {
 edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
 	edict_t * ent = G_Spawn();
 	ent->s.type = ET_EVENT;
-	ent->r.solid = SOLID_NOT;
+	ent->s.solidity = Solid_NotSolid;
 	ent->s.svflags &= ~SVF_NOCLIENT;
 	if( origin ) {
 		ent->s.origin = *origin;
@@ -314,7 +314,7 @@ edict_t *G_SpawnEvent( int event, u64 parm, const Vec3 * origin ) {
 
 void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm ) {
 	ent->s.type = ET_EVENT;
-	ent->r.solid = SOLID_NOT;
+	ent->s.solidity = Solid_NotSolid;
 	ent->s.svflags &= ~SVF_PROJECTILE; // FIXME: Medar: should be remove all or remove this one elsewhere?
 	ent->s.linearMovement = false;
 	G_AddEvent( ent, event, parm, true );
@@ -323,7 +323,7 @@ void G_MorphEntityIntoEvent( edict_t *ent, int event, u64 parm ) {
 }
 
 void G_InitMover( edict_t *ent ) {
-	ent->r.solid = SOLID_YES;
+	// ent->r.solid = SOLID_YES;
 	ent->movetype = MOVETYPE_PUSH;
 	ent->s.svflags &= ~SVF_NOCLIENT;
 }
@@ -622,7 +622,7 @@ void KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
 		G_Damage( &game.edicts[tr.ent], ent, ent, knockback, Vec3( 0.0f ), ent->s.origin, 200, Length( knockback ), 0, damage_type );
 
 		// if we didn't kill it, fail
-		if( game.edicts[tr.ent].r.solid ) {
+		if( game.edicts[tr.ent].s.solidity != Solid_NotSolid ) {
 			break;
 		}
 	}
@@ -656,7 +656,7 @@ static void G_SpawnTeleportEffect( edict_t * ent, bool respawn, bool in ) {
 		return;
 	}
 
-	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED || ent->r.solid == SOLID_NOT ) {
+	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED || ent->s.solidity == Solid_NotSolid ) {
 		return;
 	}
 

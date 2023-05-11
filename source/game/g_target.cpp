@@ -113,7 +113,7 @@ static void target_laser_use( edict_t *self, edict_t *other, edict_t *activator 
 
 static void target_laser_start( edict_t *self ) {
 	self->movetype = MOVETYPE_NONE;
-	self->r.solid = SOLID_NOT;
+	self->s.solidity = Solid_NotSolid;
 	self->s.type = ET_LASER;
 	self->s.svflags = 0;
 	self->s.sound = "sounds/gladiator/laser_hum";

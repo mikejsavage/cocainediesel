@@ -8,8 +8,6 @@
 #include "gameshared/gs_synctypes.h"
 #include "gameshared/q_collision.h"
 
-#include <functional>
-
 struct GLTFCollisionBrush {
 	u32 first_plane;
 	u32 num_planes;
@@ -74,7 +72,6 @@ trace_t MakeMissedTrace( const Ray & ray );
 trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent, SolidBits solid_mask );
 
 
-
 constexpr size_t MAX_PRIMITIVES = MAX_EDICTS;
 constexpr size_t SHG_GRID_SIZE = 128 * 128;
 constexpr size_t SHG_CELL_DIMENSIONS[] = { 64, 64, 1024 };
@@ -85,19 +82,21 @@ struct SpatialHashBounds {
 	s32 z1, z2;
 };
 
+struct SpatialHashPrimitive {
+	SpatialHashBounds sbounds;
+	SolidBits solidity;
+};
+
 struct SpatialHashCell {
 	u64 active[ ( MAX_PRIMITIVES - 1 ) / 64 + 1 ];
 };
 
 struct SpatialHashGrid {
 	SpatialHashCell cells[ SHG_GRID_SIZE ];
-	SpatialHashBounds sbounds[ MAX_PRIMITIVES ];
+	SpatialHashPrimitive primitives[ MAX_PRIMITIVES ];
 };
-
-constexpr size_t foo = sizeof( SpatialHashGrid );
 
 void LinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, const SyncEntityState * ent, const u64 entity_id );
 void UnlinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, const SyncEntityState * ent, const u64 entity_id );
-void TraverseSpatialHashGrid( SpatialHashGrid * grid, MinMax3 bounds, std::function< void ( u32 entity ) > callback );
+size_t TraverseSpatialHashGrid( const SpatialHashGrid * grid, const MinMax3 bounds, int * arr, const SolidBits solidity );
 void ClearSpatialHashGrid( SpatialHashGrid * grid );
-size_t TraverseSpatialHashGridArr( SpatialHashGrid * grid, MinMax3 bounds, u64 * arr );

@@ -247,7 +247,7 @@ static void Think_SpawnDoorTrigger( edict_t *ent ) {
 	other->r.maxs = maxs;
 	other->r.owner = ent;
 	other->s.team = ent->s.team;
-	other->r.solid = SOLID_TRIGGER;
+	other->s.solidity = Solid_Trigger;
 	other->movetype = MOVETYPE_NONE;
 	other->touch = Touch_DoorTrigger;
 	GClip_LinkEntity( other );

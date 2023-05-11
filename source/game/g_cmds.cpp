@@ -86,7 +86,7 @@ static void Cmd_Noclip_f( edict_t * ent, msg_t args ) {
 }
 
 static void Cmd_Suicide_f( edict_t * ent, msg_t args ) {
-	if( ent->r.solid == SOLID_NOT ) {
+	if( G_ISGHOSTING( ent ) ) {
 		return;
 	}
 

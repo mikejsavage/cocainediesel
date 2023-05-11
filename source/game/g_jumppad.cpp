@@ -48,7 +48,7 @@ static void FindJumppadTarget( edict_t * ent ) {
 
 void SP_jumppad( edict_t * ent, const spawn_temp_t * st ) {
 	ent->s.svflags &= ~SVF_NOCLIENT;
-	ent->r.solid = SOLID_TRIGGER;
+	ent->s.solidity = Solid_Trigger;
 
 	Vec3 forward, right, up;
 	AngleVectors( ent->s.angles, &forward, &right, &up );

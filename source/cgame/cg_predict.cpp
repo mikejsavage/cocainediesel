@@ -210,8 +210,8 @@ void CG_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ign
 
 	*tr = MakeMissedTrace( ray );
 
-	u64 touchlist[ 1024 ];
-	size_t num = TraverseSpatialHashGridArr( &cg_grid, broadphase_bounds, touchlist );
+	int touchlist[ 1024 ];
+	size_t num = TraverseSpatialHashGrid( &cg_grid, broadphase_bounds, touchlist, SolidMask_AnySolid );
 
 	for( size_t i = 0; i < num; i++ ) {
 		SyncEntityState * touch = &cg.frame.parsedEntities[ touchlist[ i ] ];

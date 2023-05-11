@@ -28,13 +28,6 @@ struct client_shared_t {
 	int frags;
 };
 
-// edict->solid values
-enum solid_t {
-	SOLID_NOT,              // no interaction with other objects
-	SOLID_TRIGGER,          // only touch when inside, after moving
-	SOLID_YES               // touch on edge
-};
-
 struct entity_shared_t {
 	gclient_t *client;
 	bool inuse;
@@ -44,6 +37,5 @@ struct entity_shared_t {
 	// TODO: delete
 	Vec3 mins, maxs;
 	Vec3 absmin, absmax, size;
-	solid_t solid;
 	edict_t *owner;
 };

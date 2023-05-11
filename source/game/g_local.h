@@ -291,8 +291,6 @@ edict_t * G_PositionedSound( Vec3 origin, StringHash sound );
 void G_GlobalSound( StringHash sound );
 void G_LocalSound( edict_t * owner, StringHash sound );
 
-constexpr bool G_ISGHOSTING( const edict_t * ent ) { return ent->s.solidity == Solid_NotSolid; }
-
 void G_TeleportEffect( edict_t * ent, bool in );
 void G_RespawnEffect( edict_t * ent );
 SolidBits G_SolidMaskForEnt( edict_t * ent );
@@ -761,3 +759,5 @@ static inline int PLAYERNUM( const edict_t *x ) { return x - game.edicts - 1; }
 static inline int PLAYERNUM( const gclient_t *x ) { return x - game.clients; }
 
 static inline edict_t *PLAYERENT( int x ) { return game.edicts + x + 1; }
+
+static inline bool G_ISGHOSTING( const edict_t * ent ) { return ent->s.solidity == Solid_NotSolid; }

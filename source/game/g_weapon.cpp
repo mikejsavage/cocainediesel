@@ -136,7 +136,8 @@ static void G_ProjectileDistancePrestep( edict_t * projectile, float distance ) 
 	Vec3 dest = projectile->s.origin + dir * distance;
 
 	trace_t trace;
-	G_Trace4D( &trace, projectile->s.origin, projectile->r.mins, projectile->r.maxs, dest, projectile->r.owner, projectile->s.solidity, projectile->timeDelta );
+	SolidBits solid_mask = EntitySolidity( ServerCollisionModelStorage(), &projectile->s );
+	G_Trace4D( &trace, projectile->s.origin, projectile->r.mins, projectile->r.maxs, dest, projectile->r.owner, solid_mask, projectile->timeDelta );
 
 	projectile->s.origin = trace.endpos;
 	projectile->olds.origin = trace.endpos;

@@ -23,9 +23,11 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "qcommon/hash.h"
 #include "gameshared/gs_public.h"
 #include "gameshared/gs_weapons.h"
+#include "gameshared/collision.h"
 #include "game/g_public.h"
 #include "game/g_gametypes.h"
 #include "game/g_ai.h"
+#include "game/g_maps.h"
 #include "server/server.h"
 
 //==================================================================
@@ -293,7 +295,6 @@ void G_LocalSound( edict_t * owner, StringHash sound );
 
 void G_TeleportEffect( edict_t * ent, bool in );
 void G_RespawnEffect( edict_t * ent );
-SolidBits G_SolidMaskForEnt( edict_t * ent );
 void G_CheckGround( edict_t * ent );
 void G_ReleaseClientPSEvent( gclient_t *client );
 void G_AddPlayerStateEvent( gclient_t *client, int event, u64 parm );
@@ -760,4 +761,4 @@ static inline int PLAYERNUM( const gclient_t *x ) { return x - game.clients; }
 
 static inline edict_t *PLAYERENT( int x ) { return game.edicts + x + 1; }
 
-static inline bool G_ISGHOSTING( const edict_t * ent ) { return ent->s.solidity == Solid_NotSolid; }
+static inline bool G_ISGHOSTING( const edict_t * ent ) { return EntitySolidity( ServerCollisionModelStorage(), &ent->s ) == Solid_NotSolid; }

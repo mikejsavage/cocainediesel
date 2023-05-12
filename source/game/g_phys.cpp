@@ -38,7 +38,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 
 static bool EntityOverlapsAnything( edict_t *ent ) {
-	SolidBits mask = ent->s.solidity ? ent->s.solidity : SolidMask_AnySolid;
+	SolidBits mask = EntitySolidity( ServerCollisionModelStorage(), &ent->s );
 	trace_t trace;
 	G_Trace4D( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, ent, mask, ent->timeDelta );
 	return trace.GotNowhere();
@@ -81,13 +81,13 @@ void SV_Impact( edict_t *e1, trace_t *trace ) {
 	edict_t *e2;
 
 	if( trace->HitSomething() ) {
-		e2 = &game.edicts[trace->ent];
+		e2 = &game.edicts[ trace->ent ];
 
-		if( e1->s.solidity != Solid_NotSolid ) {
+		if( EntitySolidity( ServerCollisionModelStorage(), &e1->s ) != Solid_NotSolid ) {
 			G_CallTouch( e1, e2, trace->normal, trace->solidity );
 		}
 
-		if( e2->s.solidity != Solid_NotSolid ) {
+		if( EntitySolidity( ServerCollisionModelStorage(), &e2->s ) != Solid_NotSolid ) {
 			G_CallTouch( e2, e1, Vec3( 0.0f ), Solid_NotSolid );
 		}
 	}
@@ -113,9 +113,8 @@ static trace_t SV_PushEntity( edict_t *ent, Vec3 push ) {
 	Vec3 end = start + push;
 
 retry:
-	if( ent->s.solidity ) {
-		mask = ent->s.solidity;
-	} else {
+	mask = EntitySolidity( ServerCollisionModelStorage(), &ent->s );
+	if( mask == Solid_NotSolid ) {
 		mask = SolidMask_AnySolid;
 	}
 
@@ -473,7 +472,9 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	Vec3 start, end;
 	trace_t trace;
 
-	SolidBits mask = ( ent->s.solidity ) ? ent->s.solidity : SolidMask_AnySolid;
+	SolidBits mask = EntitySolidity( ServerCollisionModelStorage(), &ent->s );
+	if( mask == Solid_NotSolid )
+		mask = SolidMask_AnySolid;
 
 	// find its current position given the starting timeStamp
 	float endFlyTime = float( svs.gametime - ent->s.linearMovementTimeStamp ) * 0.001f;

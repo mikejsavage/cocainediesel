@@ -363,7 +363,7 @@ struct SyncEntityState {
 	StringHash mask;
 
 	Optional< CollisionModel > override_collision_model;
-	SolidBits solidity;
+	Optional< SolidBits > solidity;
 
 	bool animating;
 	float animation_time;

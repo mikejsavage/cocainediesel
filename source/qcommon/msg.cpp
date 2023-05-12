@@ -258,11 +258,43 @@ void DeltaEnum( DeltaBuffer * buf, E & x, E baseline, E count ) {
 }
 
 template< typename E >
+void DeltaEnum( DeltaBuffer * buf, Optional< E > & x, Optional< E > baseline, E count ) {
+	constexpr E null_baseline = E();
+
+	Delta( buf, x.exists, baseline.exists );
+
+	using T = typename std::underlying_type< E >::type;
+	const T & baseline_to_delta_against = baseline.exists ? baseline.value : null_baseline;
+	if( x.exists ) {
+		Delta( buf, ( T & ) x.value, ( const T & ) baseline.value );
+		if( x.value < 0 || x.value >= count ) {
+			buf->error = true;
+		}
+	}
+}
+
+template< typename E >
 void DeltaBitfieldEnum( DeltaBuffer * buf, E & x, E baseline, E mask ) {
 	using T = typename std::underlying_type< E >::type;
 	Delta( buf, ( T & ) x, ( const T & ) baseline );
 	if( ( x & ~mask ) != 0 ) {
 		buf->error = true;
+	}
+}
+
+template< typename E >
+void DeltaBitfieldEnum( DeltaBuffer * buf, Optional< E > & x, Optional< E > baseline, E mask ) {
+	constexpr E null_baseline = E();
+
+	Delta( buf, x.exists, baseline.exists );
+
+	using T = typename std::underlying_type< E >::type;
+	const T & baseline_to_delta_against = baseline.exists ? baseline.value : null_baseline;
+	if( x.exists ) {
+		Delta( buf, ( T & ) x.value, ( const T & ) baseline.value );
+		if( ( x.value & ~mask ) != 0 ) {
+			buf->error = true;
+		}
 	}
 }
 

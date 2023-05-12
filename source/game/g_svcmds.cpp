@@ -55,7 +55,7 @@ static void Cmd_ConsoleKill_f() {
 		return;
 	}
 
-	if( ent->s.solidity == Solid_NotSolid ) {
+	if( EntitySolidity( ServerCollisionModelStorage(), &ent->s ) == Solid_NotSolid ) {
 		return;
 	}
 

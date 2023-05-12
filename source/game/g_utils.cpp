@@ -622,7 +622,7 @@ void KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
 		G_Damage( &game.edicts[tr.ent], ent, ent, knockback, Vec3( 0.0f ), ent->s.origin, 200, Length( knockback ), 0, damage_type );
 
 		// if we didn't kill it, fail
-		if( game.edicts[tr.ent].s.solidity != Solid_NotSolid ) {
+		if( EntitySolidity( ServerCollisionModelStorage(), &game.edicts[ tr.ent ].s ) != Solid_NotSolid ) {
 			break;
 		}
 	}
@@ -656,7 +656,7 @@ static void G_SpawnTeleportEffect( edict_t * ent, bool respawn, bool in ) {
 		return;
 	}
 
-	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED || ent->s.solidity == Solid_NotSolid ) {
+	if( PF_GetClientState( PLAYERNUM( ent ) ) < CS_SPAWNED || EntitySolidity( ServerCollisionModelStorage(), &ent->s ) == Solid_NotSolid ) {
 		return;
 	}
 
@@ -679,16 +679,12 @@ void G_RespawnEffect( edict_t *ent ) {
 	G_SpawnTeleportEffect( ent, true, false );
 }
 
-SolidBits G_SolidMaskForEnt( edict_t *ent ) {
-	return ent->s.solidity ? ent->s.solidity : SolidMask_AnySolid;
-}
-
 void G_CheckGround( edict_t *ent ) {
 	float up_speed_limit = ent->r.client == NULL ? 1.0f : 180.0f;
 
 	trace_t trace;
 	Vec3 ground_point = ent->s.origin - Vec3( 0.0f, 0.0f, 0.25f );
-	G_Trace( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, ground_point, ent, G_SolidMaskForEnt( ent ) );
+	G_Trace( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, ground_point, ent, EntitySolidity( ServerCollisionModelStorage(), &ent->s ) );
 
 	if( ent->velocity.z > up_speed_limit || !ISWALKABLEPLANE( trace.normal ) ) {
 		ent->groundentity = NULL;

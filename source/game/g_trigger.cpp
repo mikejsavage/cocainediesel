@@ -139,7 +139,7 @@ void SP_trigger_push( edict_t * self, const spawn_temp_t * st ) {
 //==============================================================================
 
 static void hurt_use( edict_t *self, edict_t *other, edict_t *activator ) {
-	if( self->s.solidity = Solid_NotSolid ) {
+	if( EntitySolidity( ServerCollisionModelStorage(), &self->s ) == Solid_NotSolid ) {
 		self->s.solidity = Solid_Trigger;
 	} else {
 		self->s.solidity = Solid_NotSolid;

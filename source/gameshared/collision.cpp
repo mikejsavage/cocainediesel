@@ -351,13 +351,25 @@ MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntitySta
 }
 
 SolidBits EntitySolidity( const CollisionModelStorage * storage, const SyncEntityState * ent ) {
+	if( ent->solidity.exists ) {
+		return ent->solidity.value;
+	}
+
 	CollisionModel model = EntityCollisionModel( storage, ent );
-	if( model.type == CollisionModelType_GLTF ) {
-		return FindGLTFSharedCollisionData( storage, model.gltf_model )->solidity;
+	if( model.type == CollisionModelType_MapModel ) {
+		const MapSubModelCollisionData * map_model_data = FindMapSubModelCollisionData( storage, model.map_model );
+		if( map_model_data == NULL )
+			return Solid_NotSolid;
+		const MapSharedCollisionData * map = FindMapSharedCollisionData( storage, map_model_data->base_hash );
+		const MapModel * map_model = &map->data.models[ map_model_data->sub_model ];
+		return map_model == NULL ? Solid_NotSolid : map_model->solidity;
 	}
-	else {
-		return ent->solidity;
+	else if( model.type == CollisionModelType_GLTF ) {
+		const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( storage, model.gltf_model );
+		return gltf == NULL ? Solid_NotSolid : gltf->solidity;
 	}
+	
+	return Solid_NotSolid;
 }
 
 trace_t MakeMissedTrace( const Ray & ray ) {

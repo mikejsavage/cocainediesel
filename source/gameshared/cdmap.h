@@ -49,6 +49,7 @@ struct MapEntityKeyValue {
 
 struct MapModel {
 	MinMax3 bounds;
+	SolidBits solidity;
 	u32 root_node;
 	u32 first_mesh;
 	u32 num_meshes;

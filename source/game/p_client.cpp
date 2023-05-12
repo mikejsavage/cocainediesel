@@ -341,7 +341,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 			self->s.mask = StringHash( mask_name );
 		}
 		self->s.svflags |= SVF_FORCETEAM;
-		self->s.solidity = SolidMask_AnySolid;
+		self->s.solidity = Solid_PlayerClip;
 		self->movetype = MOVETYPE_PLAYER;
 		client->ps.pmove.features = PMFEAT_ALL;
 	}

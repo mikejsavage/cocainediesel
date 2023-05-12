@@ -406,12 +406,14 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 	trace_t trace = MakeMissedTrace( ray );
 
 	CollisionModel collision_model = EntityCollisionModel( storage, ent );
+	
+	SolidBits solidity = EntitySolidity( storage, ent );
+	if( collision_model.type != CollisionModelType_MapModel && ( solidity & solid_mask ) == 0 )
+		return trace;
 
-	if( ent->type != ET_PLAYER && ent->type != ET_GHOST && collision_model.type != CollisionModelType_GLTF ) {
-		for( int i = 0; i < 3; i++ ) {
-			Assert( PositiveMod( ent->angles[ i ], 90.0f ) == 0.0f );
-		}
-	}
+	// TODO: what to do about points?
+	if( collision_model.type == CollisionModelType_Point )
+		return trace;
 
 	// TODO: accomodate angles!!!!!!!!!
 	Vec3 object_space_origin = ( ray.origin - ent->origin ) / ent->scale;
@@ -464,7 +466,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 			case CollisionModelType_AABB: {
 				Intersection enter, leave;
 				if( RayVsAABB( object_space_ray, collision_model.aabb, &enter, &leave ) ) {
-					enter.solidity = ent->solidity;
+					enter.solidity = solidity;
 					trace = FUCKING_HELL( ray, shape, enter, ent->number );
 				}
 			} break;

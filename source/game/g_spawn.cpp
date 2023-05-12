@@ -361,6 +361,6 @@ static void SP_worldspawn( edict_t * ent, const spawn_temp_t * st ) {
 	ent->movetype = MOVETYPE_PUSH;
 	// ent->r.solid = SOLID_YES;
 
-	const char * model_name = "*0";
-	ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), server_gs.gameState.map.hash ) );
+	// const char * model_name = "*0";
+	// ent->s.model = StringHash( Hash64( model_name, strlen( model_name ), server_gs.gameState.map.hash ) );
 }

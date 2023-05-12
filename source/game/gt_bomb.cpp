@@ -303,7 +303,7 @@ static void SpawnBomb() {
 
 	bomb_state.bomb.model->s.override_collision_model = CollisionModelAABB( MinMax3( bomb_bounds.mins, bomb_bounds.maxs ) );
 
-	bomb_state.bomb.model->s.solidity = Solid_Trigger;
+	bomb_state.bomb.model->s.solidity = SolidBits( SolidMask_AnySolid | Solid_Trigger );
 	bomb_state.bomb.model->s.model = model_bomb;
 	bomb_state.bomb.model->s.effects |= EF_TEAM_SILHOUETTE;
 	bomb_state.bomb.model->s.silhouetteColor = RGBA8( 255, 255, 255, 255 );
@@ -330,6 +330,7 @@ static void BombPickup() {
 	Hide( bomb_state.bomb.hud );
 
 	bomb_state.bomb.model->movetype = MOVETYPE_NONE;
+	bomb_state.bomb.model->s.solidity = Solid_NotSolid;
 	bomb_state.bomb.state = BombState_Carried;
 }
 
@@ -395,6 +396,7 @@ static void DropBomb( BombDropReason reason ) {
 	bomb_state.bomb.model->r.owner = carrier_ent;
 	bomb_state.bomb.model->s.origin = tr.endpos;
 	bomb_state.bomb.model->velocity = velocity;
+	bomb_state.bomb.model->s.solidity = SolidBits( SolidMask_AnySolid | Solid_Trigger );
 	Show( bomb_state.bomb.model );
 	RemoveCarrier();
 	bomb_state.bomb.state = BombState_Dropped;

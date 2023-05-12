@@ -937,10 +937,24 @@ int main( int argc, char ** argv ) {
 				}
 			}
 
-			// TODO: set base node
 			size_t base_node = flat_nodes.size();
 			size_t base_brush = flat_brushes.size();
+			size_t base_brush_index = flat_brush_indices.size();
 			size_t base_brush_plane = flat_brush_planes.size();
+
+			for( MapKDTreeNode & node : entity.collision_geometry.nodes ) {
+				if( MapKDTreeNode::is_leaf( node ) )
+					node.leaf.first_brush += base_brush_index;
+				else
+					node.node.front_child += base_node;
+			}
+			for( MapBrush & brush : entity.collision_geometry.brushes ) {
+				brush.first_plane += base_brush_plane;
+			}
+			for( u32 & brush_index : entity.collision_geometry.brush_indices ) {
+				brush_index += base_brush;
+			}
+
 			flat_nodes.add_many( VectorToSpan( entity.collision_geometry.nodes ) );
 			flat_brushes.add_many( VectorToSpan( entity.collision_geometry.brushes ) );
 			flat_brush_planes.add_many( VectorToSpan( entity.collision_geometry.planes ) );
@@ -949,7 +963,8 @@ int main( int argc, char ** argv ) {
 			if( entity.render_geometry.size() > 0 || entity.collision_geometry.nodes.size() > 0 ) {
 				MapModel model = { };
 				model.bounds = entity.collision_geometry.bounds;
-				model.root_node = { }; // TODO
+				model.solidity = entity.collision_geometry.solidity;
+				model.root_node = base_node;
 				model.first_mesh = first_mesh;
 				model.num_meshes = entity.render_geometry.size();
 

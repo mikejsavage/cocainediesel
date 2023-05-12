@@ -53,6 +53,7 @@ struct CompiledMesh {
 
 struct CompiledKDTree {
 	MinMax3 bounds;
+	SolidBits solidity;
 	std::vector< MapBrush > brushes;
 	std::vector< Plane > planes;
 
@@ -548,6 +549,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 
 	CompiledKDTree kd_tree;
 	kd_tree.bounds = MinMax3::Empty();
+	kd_tree.solidity = Solid_NotSolid;
 
 	if( entity.brushes.size() == 0 ) {
 		return kd_tree;
@@ -623,6 +625,7 @@ static CompiledKDTree GenerateCollisionGeometry( const ParsedEntity & entity ) {
 
 		kd_tree.brushes.push_back( map_brush );
 		kd_tree.bounds = Union( kd_tree.bounds, bounds );
+		kd_tree.solidity = SolidBits( kd_tree.solidity | map_brush.solidity );
 	}
 
 	BuildKDTree( &kd_tree, VectorToSpan( brush_bounds ) );

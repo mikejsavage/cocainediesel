@@ -890,32 +890,9 @@ int main( int argc, char ** argv ) {
 	DynamicArray< u32 > flat_vertex_indices( &arena );
 
 	{
-		TracyZoneScopedN( "Flatten key-values" );
-
-		for( const CompiledEntity & entity : compiled_entities ) {
-			MapEntity map_entity;
-			map_entity.first_key_value = checked_cast< u32 >( flat_entity_key_values.size() );
-			map_entity.num_key_values = checked_cast< u32 >( entity.key_values.size() );
-
-			for( const ParsedKeyValue kv : entity.key_values ) {
-				MapEntityKeyValue map_kv;
-				map_kv.offset = flat_entity_data.size();
-				map_kv.key_size = kv.key.n;
-				map_kv.value_size = kv.value.n;
-				flat_entity_key_values.add( map_kv );
-
-				flat_entity_data.add_many( kv.key );
-				flat_entity_data.add_many( kv.value );
-			}
-
-			flat_entities.add( map_entity );
-		}
-	}
-
-	{
 		TracyZoneScopedN( "Flatten render/collision geometry" );
 
-		for( const CompiledEntity & entity : compiled_entities ) {
+		for( CompiledEntity & entity : compiled_entities ) {
 			size_t base_mesh = flat_meshes.size();
 
 			u32 first_mesh = checked_cast< u32 >( flat_meshes.size() );
@@ -968,8 +945,36 @@ int main( int argc, char ** argv ) {
 				model.first_mesh = first_mesh;
 				model.num_meshes = entity.render_geometry.size();
 
+				ParsedKeyValue kv = { };
+				kv.key = MakeSpan( "model" );
+				kv.value = MakeSpan( arena( "*{}", flat_models.size() ) );
+				entity.key_values.push_back( kv );
+
 				flat_models.add( model );
 			}
+		}
+	}
+
+	{
+		TracyZoneScopedN( "Flatten key-values" );
+
+		for( const CompiledEntity & entity : compiled_entities ) {
+			MapEntity map_entity;
+			map_entity.first_key_value = checked_cast< u32 >( flat_entity_key_values.size() );
+			map_entity.num_key_values = checked_cast< u32 >( entity.key_values.size() );
+
+			for( const ParsedKeyValue kv : entity.key_values ) {
+				MapEntityKeyValue map_kv;
+				map_kv.offset = flat_entity_data.size();
+				map_kv.key_size = kv.key.n;
+				map_kv.value_size = kv.value.n;
+				flat_entity_key_values.add( map_kv );
+
+				flat_entity_data.add_many( kv.key );
+				flat_entity_data.add_many( kv.value );
+			}
+
+			flat_entities.add( map_entity );
 		}
 	}
 

@@ -72,6 +72,7 @@ SolidBits EntitySolidity( const CollisionModelStorage * storage, const SyncEntit
 
 trace_t MakeMissedTrace( const Ray & ray );
 trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, const Shape & shape, const SyncEntityState * ent, SolidBits solid_mask );
+bool EntityOverlap( const CollisionModelStorage * storage, const SyncEntityState * ent_a, const SyncEntityState * ent_b, SolidBits solid_mask );
 
 
 constexpr size_t MAX_PRIMITIVES = MAX_EDICTS;

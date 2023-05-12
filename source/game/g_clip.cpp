@@ -119,6 +119,8 @@ void GClip_TouchTriggers( edict_t * ent ) {
 			continue;
 		if( hit->touch == NULL )
 			continue;
+		if( !EntityOverlap( ServerCollisionModelStorage(), &ent->s, &hit->s, SolidMask_Everything ) )
+			continue;
 		
 		G_CallTouch( hit, ent, Vec3( 0.0f ), SolidMask_AnySolid );
 	}
@@ -158,11 +160,17 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 			break;
 		
 		edict_t * hit = &game.edicts[ touchlist[ i ] ];
+		MinMax3 hit_bounds = EntityBounds( ServerCollisionModelStorage(), &hit->s );
+		hit_bounds.mins += hit->s.origin;
+		hit_bounds.maxs += hit->s.origin;
+
 		if( !hit->r.inuse )
 			continue;
 		if( hit->touch == NULL )
 			continue;
-		if( !BoundsOverlap( bounds.mins, bounds.maxs, hit->r.mins + hit->s.origin, hit->r.maxs + hit->s.origin ) )
+		if( !BoundsOverlap( bounds.mins, bounds.maxs, hit_bounds.mins, hit_bounds.maxs ) )
+			continue;
+		if( !EntityOverlap( ServerCollisionModelStorage(), &ent->s, &hit->s, SolidMask_Everything ) )
 			continue;
 		
 		G_CallTouch( hit, ent, Vec3( 0.0f ), SolidMask_AnySolid );

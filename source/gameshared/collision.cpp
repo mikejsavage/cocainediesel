@@ -487,3 +487,60 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 
 	return trace;
 }
+
+bool EntityOverlap( const CollisionModelStorage * storage, const SyncEntityState * ent_a, const SyncEntityState * ent_b, SolidBits solid_mask  ) {
+	CollisionModel collision_model_a = EntityCollisionModel( storage, ent_a );
+	CollisionModel collision_model_b = EntityCollisionModel( storage, ent_b );
+
+	Ray ray = MakeRayStartEnd( ent_a->origin, ent_a->origin );
+	Shape shape = { };
+	if( collision_model_a.type == CollisionModelType_Point ) {
+		shape.type = ShapeType_Ray;
+	}
+	else if( collision_model_a.type == CollisionModelType_AABB ) {
+		shape.type = ShapeType_AABB;
+		shape.aabb = ToCenterExtents( collision_model_a.aabb );
+	}
+	else {
+		Assert( false );
+	}
+
+	Vec3 object_space_origin = ( ent_a->origin - ent_b->origin ) / ent_b->scale;
+	Vec3 object_space_translation = ( ray.direction * ray.length ) / ent_b->scale;
+	Ray object_space_ray = MakeRayOriginDirection( object_space_origin, SafeNormalize( object_space_translation ), Length( object_space_translation ) );
+
+	if( collision_model_b.type == CollisionModelType_MapModel ) {
+		const MapSubModelCollisionData * map_model = FindMapSubModelCollisionData( storage, collision_model_b.map_model );
+		if( map_model == NULL )
+			return false;
+		const MapSharedCollisionData * map = FindMapSharedCollisionData( storage, map_model->base_hash );
+
+		Intersection intersection;
+		return SweptShapeVsMapModel( &map->data, &map->data.models[ map_model->sub_model ], object_space_ray, shape, solid_mask, &intersection );
+	}
+	else if( collision_model_b.type == CollisionModelType_GLTF ) {
+		const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( storage, collision_model_b.gltf_model );
+		if( gltf == NULL )
+			return false;
+
+		Mat4 transform = Mat4Translation( ent_b->origin ) * Mat4Rotation( EulerDegrees3( ent_b->angles ) ) * Mat4Scale( ent_b->scale );
+		
+		Intersection intersection;
+		return SweptShapeVsGLTF( gltf, transform, ray, shape, solid_mask, &intersection );
+	}
+	else if( collision_model_b.type == CollisionModelType_AABB ) {
+		Assert( shape.type == ShapeType_AABB );
+
+		MinMax3 object_space_aabb = ToMinMax( shape.aabb );
+		object_space_aabb.mins += object_space_origin;
+		object_space_aabb.maxs += object_space_origin;
+
+		Intersection intersection;
+		return SweptAABBVsAABB( object_space_aabb, ray.direction * ray.length, collision_model_b.aabb, Vec3( 0.0f ), &intersection );
+	}
+	else {
+		Assert( false );
+	}
+
+	return false;
+}

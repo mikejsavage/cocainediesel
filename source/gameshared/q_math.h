@@ -46,7 +46,7 @@ constexpr mat3_t axis_identity = { 1, 0, 0, 0, 1, 0, 0, 0, 1 };
 
 void ClearBounds( Vec3 * mins, Vec3 * maxs );
 void AddPointToBounds( Vec3 v, Vec3 * mins, Vec3 * maxs );
-float RadiusFromBounds( Vec3 mins, Vec3 maxs );
+float RadiusFromBounds( MinMax3 bounds );
 bool BoundsOverlap( const Vec3 & mins1, const Vec3 & maxs1, const Vec3 & mins2, const Vec3 & maxs2 );
 
 CenterExtents3 ToCenterExtents( const MinMax3 & bounds );

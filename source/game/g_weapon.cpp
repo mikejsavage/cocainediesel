@@ -71,7 +71,6 @@ static void W_Touch_ARBullet( edict_t * ent, edict_t * other, Vec3 normal, Solid
 
 static void W_ARBullet_Backtrace( edict_t * ent, Vec3 start ) {
 	trace_t tr;
-	Vec3 mins( -2.0f ), maxs( 2.0f );
 
 	Vec3 oldorigin = ent->s.origin;
 	ent->s.origin = start;
@@ -79,7 +78,7 @@ static void W_ARBullet_Backtrace( edict_t * ent, Vec3 start ) {
 	// workaround to stop this hanging when you shoot a teammate
 	int iter = 0;
 	do {
-		G_Trace4D( &tr, ent->s.origin, mins, maxs, oldorigin, ent, Solid_Player, ent->timeDelta );
+		G_Trace4D( &tr, ent->s.origin, MinMax3( 2.0f ), oldorigin, ent, Solid_Player, ent->timeDelta );
 
 		ent->s.origin = tr.endpos;
 
@@ -138,7 +137,7 @@ static void G_ProjectileDistancePrestep( edict_t * projectile, float distance ) 
 	trace_t trace;
 	SolidBits solid_mask = EntitySolidity( ServerCollisionModelStorage(), &projectile->s );
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &projectile->s );
-	G_Trace4D( &trace, projectile->s.origin, bounds.mins, bounds.maxs, dest, projectile->r.owner, solid_mask, projectile->timeDelta );
+	G_Trace4D( &trace, projectile->s.origin, bounds, dest, projectile->r.owner, solid_mask, projectile->timeDelta );
 
 	projectile->s.origin = trace.endpos;
 	projectile->olds.origin = trace.endpos;
@@ -294,7 +293,7 @@ static void HitWithSpread( edict_t * self, Vec3 start, Vec3 angles, float range,
 		Vec3 end = start + dir * range;
 
 		trace_t trace;
-		G_Trace4D( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, self, SolidMask_Shot, timeDelta );
+		G_Trace4D( &trace, start, MinMax3( 0.0f ), end, self, SolidMask_Shot, timeDelta );
 		if( trace.HitSomething() && game.edicts[ trace.ent ].takedamage ) {
 			G_Damage( &game.edicts[ trace.ent ], self, self, forward, forward, trace.endpos, damage, knockback, 0, weapon );
 			break;
@@ -592,7 +591,7 @@ static void W_Fire_Railgun( edict_t * self, Vec3 start, Vec3 angles, int timeDel
 	tr.ent = -1;
 
 	while( ignore ) {
-		G_Trace4D( &tr, from, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, SolidMask_WallbangShot, timeDelta );
+		G_Trace4D( &tr, from, MinMax3( 0.0f ), end, ignore, SolidMask_WallbangShot, timeDelta );
 
 		from = tr.endpos;
 		ignore = NULL;
@@ -1099,7 +1098,7 @@ static void ExplodeStunGrenade( edict_t * grenade ) {
 		Vec3 eye = other->s.origin + Vec3( 0.0f, 0.0f, ps->viewheight );
 
 		trace_t grenade_to_eye;
-		G_Trace4D( &grenade_to_eye, grenade->s.origin, Vec3( 0.0f ), Vec3( 0.0f ), eye, grenade, SolidMask_AnySolid, grenade->timeDelta );
+		G_Trace4D( &grenade_to_eye, grenade->s.origin, MinMax3( 0.0f ), eye, grenade, SolidMask_AnySolid, grenade->timeDelta );
 		if( grenade_to_eye.fraction == 1.0f ) {
 			float distance = Length( eye - grenade->s.origin );
 			u16 distance_flash = Lerp( u16( 0 ), Unlerp01( float( flash_distance ), distance, float( def->min_damage ) ), U16_MAX );

@@ -8,7 +8,7 @@
 
 static SpatialHashGrid g_grid;
 
-void G_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, SolidBits solid_mask ) {
+void G_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask ) {
 	TracyZoneScoped;
 
 	Ray ray = MakeRayStartEnd( start, end );
@@ -16,7 +16,6 @@ void G_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const ed
 
 	Assert( passent == -1 || ( passent >= 0 && size_t( passent ) < ARRAY_COUNT( game.edicts ) ) );
 
-	MinMax3 bounds = MinMax3( mins, maxs );
 	Shape shape;
 	if( bounds.mins == bounds.maxs ) {
 		Assert( bounds.mins == Vec3( 0.0f ) );
@@ -56,8 +55,8 @@ void G_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const ed
 	}
 }
 
-void G_Trace4D( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int timeDelta ) {
-	G_Trace( tr, start, mins, maxs, end, passedict, solid_mask );
+void G_Trace4D( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int timeDelta ) {
+	G_Trace( tr, start, bounds, end, passedict, solid_mask );
 }
 
 void GClip_BackUpCollisionFrame() {
@@ -146,9 +145,8 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 
 	GClip_LinkEntity( ent );
 
-	MinMax3 bounds = MinMax3( pm->playerState->pmove.origin + pm->mins, pm->playerState->pmove.origin + pm->maxs );
-	bounds = Union( bounds, previous_origin + pm->mins );
-	bounds = Union( bounds, previous_origin + pm->maxs );
+	MinMax3 bounds = pm->bounds + pm->playerState->pmove.origin;
+	bounds = Union( bounds, pm->bounds + previous_origin );
 
 	int touchlist[ MAX_EDICTS ];
 	size_t num = TraverseSpatialHashGrid( &g_grid, bounds, touchlist, Solid_Trigger );
@@ -168,8 +166,29 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 			continue;
 		if( !BoundsOverlap( bounds.mins, bounds.maxs, hit_bounds.mins, hit_bounds.maxs ) )
 			continue;
-		if( !EntityOverlap( ServerCollisionModelStorage(), &ent->s, &hit->s, SolidMask_Everything ) )
-			continue;
+
+		{
+			Ray ray = MakeRayStartEnd( ent->s.origin, hit->s.origin );
+			Shape shape = { };
+			CollisionModel collision_model = EntityCollisionModel( ServerCollisionModelStorage(), &ent->s );
+			if( collision_model.type == CollisionModelType_Point ) {
+				shape.type = ShapeType_Ray;
+			}
+			else if( collision_model.type == CollisionModelType_AABB ) {
+				shape.type = ShapeType_AABB;
+				shape.aabb = ToCenterExtents( collision_model.aabb );
+			}
+			else {
+				Assert( false );
+			}
+
+			trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &hit->s, SolidMask_Everything );
+			if( trace.GotSomewhere() )
+				continue;
+		}
+
+		// if( !EntityOverlap( ServerCollisionModelStorage(), &ent->s, &hit->s, SolidMask_Everything ) )
+		// 	continue;
 		
 		G_CallTouch( hit, ent, Vec3( 0.0f ), SolidMask_AnySolid );
 	}

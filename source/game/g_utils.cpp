@@ -551,7 +551,7 @@ edict_t * G_Sound( edict_t * owner, StringHash sound ) {
 	edict_t * ent = _G_SpawnSound( sound );
 	ent->s.ownerNum = owner->s.number;
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &owner->s );
-	ent->s.origin = owner->s.origin + ( bounds.mins + bounds.maxs ) * 0.5f;
+	ent->s.origin = owner->s.origin + Center( bounds );
 
 	GClip_LinkEntity( ent );
 	return ent;
@@ -611,7 +611,7 @@ void KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
 	while( true ) {
 		trace_t tr;
 		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-		G_Trace( &tr, ent->s.origin, bounds.mins, bounds.maxs, ent->s.origin, world, SolidMask_AnySolid );
+		G_Trace( &tr, ent->s.origin, bounds, ent->s.origin, world, SolidMask_AnySolid );
 		if( tr.HitNothing() ) {
 			break;
 		}
@@ -687,7 +687,7 @@ void G_CheckGround( edict_t *ent ) {
 	trace_t trace;
 	Vec3 ground_point = ent->s.origin - Vec3( 0.0f, 0.0f, 0.25f );
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-	G_Trace( &trace, ent->s.origin, bounds.mins, bounds.maxs, ground_point, ent, EntitySolidity( ServerCollisionModelStorage(), &ent->s ) );
+	G_Trace( &trace, ent->s.origin, bounds, ground_point, ent, EntitySolidity( ServerCollisionModelStorage(), &ent->s ) );
 
 	if( ent->velocity.z > up_speed_limit || !ISWALKABLEPLANE( trace.normal ) ) {
 		ent->groundentity = NULL;

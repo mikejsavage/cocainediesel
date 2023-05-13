@@ -312,7 +312,7 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 		self->classname = "player";
 	}
 
-	self->s.override_collision_model = CollisionModelAABB( MinMax3( playerbox_stand_mins, playerbox_stand_maxs ) );
+	self->s.override_collision_model = CollisionModelAABB( playerbox_stand );
 	self->velocity = Vec3( 0.0f );
 	self->avelocity = Vec3( 0.0f );
 

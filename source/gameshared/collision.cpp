@@ -447,8 +447,7 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 		Assert( collision_model.type == CollisionModelType_AABB );
 
 		MinMax3 object_space_aabb = ToMinMax( shape.aabb );
-		object_space_aabb.mins += object_space_origin;
-		object_space_aabb.maxs += object_space_origin;
+		object_space_aabb += object_space_origin;
 
 		Intersection intersection;
 		if( SweptAABBVsAABB( object_space_aabb, ray.direction * ray.length, collision_model.aabb, Vec3( 0.0f ), &intersection ) ) {
@@ -534,8 +533,7 @@ bool EntityOverlap( const CollisionModelStorage * storage, const SyncEntityState
 		Assert( shape.type == ShapeType_AABB );
 
 		MinMax3 object_space_aabb = ToMinMax( shape.aabb );
-		object_space_aabb.mins += object_space_origin;
-		object_space_aabb.maxs += object_space_origin;
+		object_space_aabb += object_space_origin;
 
 		Intersection intersection;
 		return SweptAABBVsAABB( object_space_aabb, ray.direction * ray.length, collision_model_b.aabb, Vec3( 0.0f ), &intersection );

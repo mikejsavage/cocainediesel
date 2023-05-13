@@ -39,8 +39,7 @@ static void target_laser_think( edict_t *self ) {
 		last_movedir = self->moveinfo.movedir;
 
 		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->enemy->s );
-		Vec3 size = bounds.maxs - bounds.mins;
-		point = self->enemy->s.origin + bounds.mins + size * 0.5f;
+		point = self->enemy->s.origin + Center( bounds );
 		self->moveinfo.movedir = point - self->s.origin;
 		self->moveinfo.movedir = Normalize( self->moveinfo.movedir );
 		if( self->moveinfo.movedir != last_movedir ) {
@@ -52,7 +51,7 @@ static void target_laser_think( edict_t *self ) {
 	Vec3 start = self->s.origin;
 	Vec3 end = start + self->moveinfo.movedir * 2048.0f;
 	while( true ) {
-		G_Trace( &tr, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ignore, SolidMask_Shot );
+		G_Trace( &tr, start, MinMax3( 0.0f ), end, ignore, SolidMask_Shot );
 		if( tr.HitNothing() ) {
 			break;
 		}

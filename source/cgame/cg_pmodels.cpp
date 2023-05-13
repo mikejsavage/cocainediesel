@@ -384,7 +384,7 @@ static PlayerModelAnimationSet CG_GetBaseAnims( const SyncEntityState * state, V
 	// the tracing size here to include small steps
 	Vec3 point = state->origin;
 	point.z -= 1.6f * STEPSIZE;
-	client_gs.api.Trace( &trace, state->origin, bounds.mins, bounds.maxs, point, state->number, Solid_PlayerClip, 0 );
+	client_gs.api.Trace( &trace, state->origin, bounds, point, state->number, Solid_PlayerClip, 0 );
 	if( trace.HitNothing() || ( trace.HitSomething() && !ISWALKABLEPLANE( trace.normal ) ) ) {
 		moveflags |= ANIMMOVE_AIR;
 	}

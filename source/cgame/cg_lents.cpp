@@ -31,7 +31,7 @@ void SpawnGibs( Vec3 origin, Vec3 velocity, int damage, Vec4 color ) {
 
 	int count = Min2( damage * 3 / 2, 60 );
 
-	float player_radius = playerbox_stand_maxs.x;
+	float player_radius = playerbox_stand.maxs.x;
 
 	const GLTFRenderData * model = FindGLTFRenderData( "models/gibs/gib" );
 	if( model == NULL )
@@ -103,7 +103,7 @@ void DrawGibs() {
 		MinMax3 bounds = model->bounds * size;
 
 		trace_t trace;
-		CG_Trace( &trace, gib->origin, bounds.mins, bounds.maxs, next_origin, 0, SolidMask_AnySolid );
+		CG_Trace( &trace, gib->origin, bounds, next_origin, 0, SolidMask_AnySolid );
 
 		if( trace.GotNowhere() ) {
 			gib->lifetime = 0;

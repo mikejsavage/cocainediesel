@@ -29,8 +29,6 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 	float thirdPersonRange = 60;
 	float thirdPersonAngle = 0;
 	trace_t trace;
-	Vec3 mins( -4.0f );
-	Vec3 maxs( 4.0f);
 	Vec3 v_forward, v_right, v_up;
 
 	AngleVectors( *viewangles, &v_forward, &v_right, &v_up );
@@ -46,7 +44,7 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 
 	// find the spot the player is looking at
 	Vec3 dest = *vieworg + v_forward * 512.0f;
-	G_Trace( &trace, *vieworg, mins, maxs, dest, passent, SolidMask_Opaque );
+	G_Trace( &trace, *vieworg, MinMax3( 4.0f ), dest, passent, SolidMask_Opaque );
 
 	// calculate pitch to look at the same spot from camera
 	Vec3 stop = trace.endpos - *vieworg;
@@ -59,12 +57,12 @@ static void G_ProjectThirdPersonView( Vec3 * vieworg, Vec3 * viewangles, edict_t
 	AngleVectors( *viewangles, &v_forward, &v_right, &v_up );
 
 	// move towards destination
-	G_Trace( &trace, *vieworg, mins, maxs, chase_dest, passent, SolidMask_Opaque );
+	G_Trace( &trace, *vieworg, MinMax3( 4.0f ), chase_dest, passent, SolidMask_Opaque );
 
 	if( trace.HitSomething() ) {
 		stop = trace.endpos;
 		stop.z += ( 1.0f - trace.fraction ) * 32;
-		G_Trace( &trace, *vieworg, mins, maxs, stop, passent, SolidMask_Opaque );
+		G_Trace( &trace, *vieworg, MinMax3( 4.0f ), stop, passent, SolidMask_Opaque );
 		chase_dest = trace.endpos;
 	}
 
@@ -88,7 +86,7 @@ static void G_Client_DeadView( edict_t *ent ) {
 	// see if our killer is still in view
 	if( body->enemy && ( body->enemy != ent ) ) {
 		trace_t trace;
-		G_Trace( &trace, ent->s.origin, Vec3( 0.0f ), Vec3( 0.0f ), body->enemy->s.origin, body, SolidMask_Opaque );
+		G_Trace( &trace, ent->s.origin, MinMax3( 0.0f ), body->enemy->s.origin, body, SolidMask_Opaque );
 		if( trace.HitSomething() ) {
 			body->enemy = NULL;
 		} else {

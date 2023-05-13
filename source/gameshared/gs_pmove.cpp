@@ -102,7 +102,7 @@ static int PM_SlideMove() {
 		Vec3 end = pml.origin + pml.velocity * remainingTime;
 
 		trace_t trace;
-		pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, end, pm->playerState->POVnum, pm->solid_mask, 0 );
+		pmove_gs->api.Trace( &trace, pml.origin, pm->bounds, end, pm->playerState->POVnum, pm->solid_mask, 0 );
 		if( trace.GotNowhere() ) { // trapped into a solid
 			pml.origin = last_valid_origin;
 			return SLIDEMOVEFLAG_TRAPPED;
@@ -227,7 +227,7 @@ static void PM_StepSlideMove() {
 
 	Vec3 up = start_o + Vec3( 0.0f, 0.0f, STEPSIZE );
 
-	pmove_gs->api.Trace( &trace, up, pm->mins, pm->maxs, up, pm->playerState->POVnum, pm->solid_mask, 0 );
+	pmove_gs->api.Trace( &trace, up, pm->bounds, up, pm->playerState->POVnum, pm->solid_mask, 0 );
 	if( trace.GotNowhere() ) // can't step up
 		return;
 
@@ -239,7 +239,7 @@ static void PM_StepSlideMove() {
 
 	// push down the final amount
 	Vec3 down = pml.origin - Vec3( 0.0f, 0.0f, STEPSIZE );
-	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, down, pm->playerState->POVnum, pm->solid_mask, 0 );
+	pmove_gs->api.Trace( &trace, pml.origin, pm->bounds, down, pm->playerState->POVnum, pm->solid_mask, 0 );
 	if( trace.GotSomewhere() )
 		pml.origin = trace.endpos;
 
@@ -468,11 +468,11 @@ static void PM_Move() {
 */
 static void PM_GroundTrace( trace_t *trace ) {
 	Vec3 point = pml.origin - Vec3( 0.0f, 0.0f, 0.25f );
-	pmove_gs->api.Trace( trace, pml.origin, pm->mins, pm->maxs, point, pm->playerState->POVnum, pm->solid_mask, 0 );
+	pmove_gs->api.Trace( trace, pml.origin, pm->bounds, point, pm->playerState->POVnum, pm->solid_mask, 0 );
 }
 
 static bool PM_GoodPosition( Vec3 origin, trace_t *trace ) {
-	pmove_gs->api.Trace( trace, origin, pm->mins, pm->maxs, origin, pm->playerState->POVnum, pm->solid_mask, 0 );
+	pmove_gs->api.Trace( trace, origin, pm->bounds, origin, pm->playerState->POVnum, pm->solid_mask, 0 );
 	return trace->GotSomewhere();
 }
 
@@ -545,7 +545,7 @@ static void PM_CheckSpecialMovement() {
 	// check for ladder
 	Vec3 spot = pml.origin + pml.forward;
 	trace_t trace;
-	pmove_gs->api.Trace( &trace, pml.origin, pm->mins, pm->maxs, spot, pm->playerState->POVnum, pm->solid_mask, 0 );
+	pmove_gs->api.Trace( &trace, pml.origin, pm->bounds, spot, pm->playerState->POVnum, pm->solid_mask, 0 );
 	if( trace.HitSomething() && ( trace.solidity & Solid_Ladder ) ) {
 		pml.ladder = Ladder_On;
 	}
@@ -583,8 +583,7 @@ static void PM_AdjustBBox() {
 		return;
 	}
 
-	pm->mins = pm->scale * playerbox_stand_mins;
-	pm->maxs = pm->scale * playerbox_stand_maxs;
+	pm->bounds = playerbox_stand * pm->scale;
 	pm->playerState->viewheight = pm->scale.z * playerbox_stand_viewheight;
 }
 

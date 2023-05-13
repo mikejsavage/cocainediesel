@@ -477,6 +477,9 @@ struct MinMax3 {
 
 	MinMax3() = default;
 	constexpr MinMax3( Vec3 mins_, Vec3 maxs_ ) : mins( mins_ ), maxs( maxs_ ) { }
+	// constexpr MinMax3( Vec3 size ) : mins( -size ), maxs( size ) { }
+	constexpr MinMax3( Vec3 size ) : mins( Vec3( -size.x, -size.y, -size.z ) ), maxs( size ) { }
+	constexpr MinMax3( float size ) : mins( Vec3( -size ) ), maxs( Vec3( size ) ) { }
 
 	static constexpr MinMax3 Empty() {
 		return MinMax3( Vec3( FLT_MAX ), Vec3( -FLT_MAX ) );

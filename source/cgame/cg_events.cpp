@@ -70,7 +70,7 @@ static void FireRailgun( Vec3 origin, Vec3 dir, int ownerNum, bool from_origin )
 	Vec4 color = CG_TeamColorVec4( owner->current.team );
 
 	trace_t trace;
-	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, cg.view.POVent, SolidMask_WallbangShot );
+	CG_Trace( &trace, origin, MinMax3( 0.0f ), end, cg.view.POVent, SolidMask_WallbangShot );
 	if( trace.HitSomething() ) {
 		RailgunImpact( trace.endpos, trace.normal, color );
 	}
@@ -293,7 +293,7 @@ static void CG_Event_FireShotgun( Vec3 origin, Vec3 dir, int owner, Vec4 team_co
 	Vec3 end = origin + dir * def->range;
 
 	trace_t trace;
-	CG_Trace( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), end, owner, SolidMask_Shot );
+	CG_Trace( &trace, origin, MinMax3( 0.0f ), end, owner, SolidMask_Shot );
 
 	if( trace.HitSomething() ) {
 		PlaySFX( "weapons/rg/hit", PlaySFXConfigPosition( trace.endpos ) );
@@ -854,7 +854,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 				Vec3 end = ent->origin + random_dir * 256.0f;
 
 				trace_t trace;
-				CG_Trace( &trace, ent->origin, Vec3( -4.0f ), Vec3( 4.0f ), end, 0, SolidMask_AnySolid );
+				CG_Trace( &trace, ent->origin, MinMax3( 4.0f ), end, 0, SolidMask_AnySolid );
 
 				if( trace.HitSomething() ) {
 					constexpr StringHash decals[] = {
@@ -905,7 +905,7 @@ void CG_EntityEvent( SyncEntityState * ent, int ev, u64 parm, bool predicted ) {
 		case EV_TRAIN_STOP:
 		case EV_TRAIN_START: {
 			MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), ent );
-			Vec3 origin = ent->origin + ( bounds.mins + bounds.maxs ) * 0.5f;
+			Vec3 origin = ent->origin + Center( bounds );
 			PlaySFX( StringHash( parm ), PlaySFXConfigPosition( origin ) );
 		} break;
 

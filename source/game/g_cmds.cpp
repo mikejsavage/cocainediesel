@@ -34,7 +34,7 @@ static bool G_Teleport( edict_t * ent, Vec3 origin, Vec3 angles ) {
 	if( ent->r.client->ps.pmove.pm_type != PM_SPECTATOR ) {
 		trace_t tr;
 		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-		G_Trace( &tr, origin, bounds.mins, bounds.maxs, origin, ent, SolidMask_AnySolid );
+		G_Trace( &tr, origin, bounds, origin, ent, SolidMask_AnySolid );
 		if( tr.fraction != 1.0f && game.edicts[ tr.ent ].s.team != ent->s.team ) {
 			return false;
 		}
@@ -294,7 +294,7 @@ static void Cmd_Spray_f( edict_t * ent, msg_t args ) {
 	Vec3 end = start + forward * range;
 
 	trace_t trace;
-	G_Trace( &trace, start, Vec3( 0.0f ), Vec3( 0.0f ), end, ent, SolidMask_Opaque );
+	G_Trace( &trace, start, MinMax3( 0.0f ), end, ent, SolidMask_Opaque );
 
 	if( trace.ent != 0 )
 		return;

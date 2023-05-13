@@ -33,8 +33,8 @@ static bool G_CanSplashDamage( const edict_t *targ, const edict_t *inflictor, Op
 	if( targ->movetype == MOVETYPE_PUSH ) {
 		// NOT FOR PLAYERS only for entities that can push the players
 		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &targ->s );
-		Vec3 dest = targ->s.origin + ( bounds.mins + bounds.maxs ) * 0.5f;
-		G_Trace4D( &trace, pos, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, SolidMask_AnySolid, timeDelta );
+		Vec3 dest = targ->s.origin + Center( bounds );
+		G_Trace4D( &trace, pos, MinMax3( 0.0f ), dest, inflictor, SolidMask_AnySolid, timeDelta );
 		if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 			return true;
 		}
@@ -54,7 +54,7 @@ static bool G_CanSplashDamage( const edict_t *targ, const edict_t *inflictor, Op
 	};
 
 	for( Vec3 offset : offsets ) {
-		G_Trace4D( &trace, origin, Vec3( 0.0f ), Vec3( 0.0f ), targ->s.origin + offset, inflictor, SolidMask_AnySolid, timeDelta );
+		G_Trace4D( &trace, origin, MinMax3( 0.0f ), targ->s.origin + offset, inflictor, SolidMask_AnySolid, timeDelta );
 		if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 			return true;
 		}
@@ -350,7 +350,7 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 	}
 	else {
 		// find real center of the box again
-		center_of_mass = origin + 0.5f * ( bounds.maxs + bounds.mins );
+		center_of_mass = origin + Center( bounds );
 	}
 
 	*pushdir = SafeNormalize( center_of_mass - point );

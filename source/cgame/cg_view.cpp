@@ -120,7 +120,7 @@ static void CG_CalcViewBob() {
 			Vec3 maxs = bounds.mins;
 			Vec3 mins = maxs - Vec3( 0.0f, 0.0f, 1.6f * STEPSIZE );
 
-			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, mins, maxs, cg.predictedPlayerState.pmove.origin, cg.view.POVent, SolidMask_Opaque );
+			CG_Trace( &trace, cg.predictedPlayerState.pmove.origin, bounds, cg.predictedPlayerState.pmove.origin, cg.view.POVent, SolidMask_Opaque );
 			if( trace.GotNowhere() ) {
 				bobScale = 2.5f;
 			}
@@ -197,8 +197,6 @@ static void CG_InterpolatePlayerState( SyncPlayerState * playerState ) {
 static void CG_ThirdPersonOffsetView( cg_viewdef_t *view, bool hold_angle ) {
 	float dist, f, r;
 	trace_t trace;
-	Vec3 mins( -4.0f );
-	Vec3 maxs( 4.0f );
 
 	// calc exact destination
 	Vec3 chase_dest = view->origin;
@@ -212,7 +210,7 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view, bool hold_angle ) {
 
 	// find the spot the player is looking at
 	Vec3 dest = view->origin + FromQFAxis( view->axis, AXIS_FORWARD ) * 512.0f;
-	CG_Trace( &trace, view->origin, mins, maxs, dest, view->POVent, SolidMask_AnySolid );
+	CG_Trace( &trace, view->origin, MinMax3( 4.0f ), dest, view->POVent, SolidMask_AnySolid );
 
 	// calculate pitch to look at the same spot from camera
 	Vec3 stop = trace.endpos - view->origin;
@@ -225,12 +223,12 @@ static void CG_ThirdPersonOffsetView( cg_viewdef_t *view, bool hold_angle ) {
 	Matrix3_FromAngles( view->angles, view->axis );
 
 	// move towards destination
-	CG_Trace( &trace, view->origin, mins, maxs, chase_dest, view->POVent, SolidMask_AnySolid );
+	CG_Trace( &trace, view->origin, MinMax3( 4.0f ), chase_dest, view->POVent, SolidMask_AnySolid );
 
 	if( trace.HitSomething() ) {
 		stop = trace.endpos;
 		stop.z += ( 1.0f - trace.fraction ) * 32;
-		CG_Trace( &trace, view->origin, mins, maxs, stop, view->POVent, SolidMask_AnySolid );
+		CG_Trace( &trace, view->origin, MinMax3( 4.0f ), stop, view->POVent, SolidMask_AnySolid );
 		chase_dest = trace.endpos;
 	}
 
@@ -655,7 +653,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		Ray ray = MakeRayStartEnd( start, end );
 		Shape ray_shape = { ShapeType_Ray };
 		// Shape aabb_shape = { ShapeType_AABB, { Vec3( -16.0f, -16.0f, -32.0f ), Vec3( 16.0f, 16.0f, 32.0f ) } };
-		Shape aabb_shape = { ShapeType_AABB, ToCenterExtents( MinMax3( playerbox_stand_mins, playerbox_stand_maxs ) ) };
+		Shape aabb_shape = { ShapeType_AABB, ToCenterExtents( playerbox_stand ) };
 
 		const bool aabb_or_ray = true;
 
@@ -685,7 +683,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		static Vec3 a_pos;
 		static Vec3 dir;
 
-		Shape a = { ShapeType_AABB, ToCenterExtents( MinMax3( playerbox_stand_mins, playerbox_stand_maxs ) ) };
+		Shape a = { ShapeType_AABB, ToCenterExtents( playerbox_stand ) };
 
 		if( break2 ) {
 			a_pos = cg.view.origin;
@@ -693,7 +691,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		}
 		Ray ray = MakeRayStartEnd( a_pos, a_pos + dir );
 
-		Shape b = { ShapeType_AABB, ToCenterExtents( MinMax3( playerbox_stand_mins, playerbox_stand_maxs ) ) };
+		Shape b = { ShapeType_AABB, ToCenterExtents( playerbox_stand ) };
 		Vec3 b_pos = Vec3( -180.0f, -400.0f, 24.0f );
 
 		MinMax3 a_object_space = ToMinMax( a.aabb );
@@ -736,7 +734,7 @@ void CG_RenderView( unsigned extrapolationTime ) {
 		Ray ray = MakeRayStartEnd( start, end );
 		Shape ray_shape = { ShapeType_Ray };
 		// Shape aabb_shape = { ShapeType_AABB, { Vec3( -16.0f, -16.0f, -32.0f ), Vec3( 16.0f, 16.0f, 32.0f ) } };
-		Shape aabb_shape = { ShapeType_AABB, ToCenterExtents( MinMax3( playerbox_stand_mins, playerbox_stand_maxs ) ) };
+		Shape aabb_shape = { ShapeType_AABB, ToCenterExtents( playerbox_stand ) };
 
 		DrawModelConfig config = { };
 		config.draw_model.enabled = true;

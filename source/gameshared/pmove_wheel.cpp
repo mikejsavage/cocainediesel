@@ -70,7 +70,7 @@ static void PM_WheelJump( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs
 	Vec3 point = pml->origin;
 	point.z -= floor_distance;
 
-	pmove_gs->api.Trace( &trace, pml->origin, pm->mins, pm->maxs, point, ps->POVnum, pm->solid_mask, 0 );
+	pmove_gs->api.Trace( &trace, pml->origin, pm->bounds, point, ps->POVnum, pm->solid_mask, 0 );
 
 	if( pm->groundentity == -1 && ps->pmove.stamina_state == Stamina_UsedAbility &&
 		!ISWALKABLEPLANE( trace.normal ) && !pml->ladder && trace.GotSomewhere() )

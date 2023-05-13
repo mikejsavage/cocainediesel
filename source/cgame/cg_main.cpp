@@ -50,9 +50,9 @@ void CG_LocalPrint( const char *format, ... ) {
 	CG_AddChat( msg );
 }
 
-static void CG_GS_Trace( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta ) {
+static void CG_GS_Trace( trace_t *t, Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta ) {
 	Assert( !timeDelta );
-	CG_Trace( t, start, mins, maxs, end, ignore, solid_mask );
+	CG_Trace( t, start, bounds, end, ignore, solid_mask );
 }
 
 static void CG_InitGameShared( int max_clients ) {

@@ -458,7 +458,7 @@ static void CG_DrawEntityNumbers() {
 			continue;
 		}
 
-		CG_Trace( &trace, cam_origin, Vec3( 0.0f ), Vec3( 0.0f ), eorigin, cent->current.number, SolidMask_Opaque );
+		CG_Trace( &trace, cam_origin, MinMax3( 0.0f ), eorigin, cent->current.number, SolidMask_Opaque );
 		if( trace.HitNothing() ) {
 			Vec2 coords = WorldToScreen( eorigin );
 			if( ( coords.x < 0 || coords.x > frame_static.viewport_width ) || ( coords.y < 0 || coords.y > frame_static.viewport_height ) ) {

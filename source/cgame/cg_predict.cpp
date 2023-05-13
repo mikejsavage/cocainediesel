@@ -145,14 +145,14 @@ void CG_BuildSolidList() {
 	}
 }
 
-static bool CG_ClipEntityContact( Vec3 origin, Vec3 mins, Vec3 maxs, int entNum ) {
+static bool CG_ClipEntityContact( Vec3 origin, MinMax3 bounds, int entNum ) {
 	const centity_t * cent = &cg_entities[ entNum ];
 
 	Ray ray = MakeRayStartEnd( origin, origin );
 
 	Shape shape = { };
 	shape.type = ShapeType_AABB;
-	shape.aabb = ToCenterExtents( MinMax3( mins, maxs ) );
+	shape.aabb = ToCenterExtents( bounds );
 
 	SyncEntityState interpolated = cent->prev;
 	interpolated.origin = cent->interpolated.origin;
@@ -184,7 +184,7 @@ void CG_Predict_TouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	// }
 }
 
-void CG_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, SolidBits solid_mask ) {
+void CG_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask ) {
 	TracyZoneScoped;
 
 	Ray ray = MakeRayStartEnd( start, end );
@@ -194,7 +194,6 @@ void CG_Trace( trace_t * tr, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ign
 		return;
 	}
 
-	MinMax3 bounds = MinMax3( mins, maxs );
 	Shape shape;
 	if( bounds.mins == bounds.maxs ) {
 		Assert( bounds.mins == Vec3( 0.0f ) );

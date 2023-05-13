@@ -231,14 +231,9 @@ static void Touch_DoorTrigger( edict_t *self, edict_t *other, Vec3 normal, Solid
 
 static void Think_SpawnDoorTrigger( edict_t *ent ) {
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-	Vec3 center = ent->s.origin + ( bounds.mins + bounds.maxs ) * 0.5f;
-
-	bounds.mins -= center;
-	bounds.maxs -= center;
-
-	constexpr float expand_size = 80.0f;
-	bounds.mins -= Vec3( expand_size, expand_size, 0.0f );
-	bounds.maxs += Vec3( expand_size, expand_size, 0.0f );
+	Vec3 center = ent->s.origin + Center( bounds );
+	bounds -= center;
+	bounds = Expand( bounds, Vec3( 80.0f, 80.0f, 0.0f ) );
 
 	edict_t * trigger = G_Spawn();
 	trigger->s.origin = center;
@@ -307,8 +302,7 @@ void SP_func_door( edict_t * ent, const spawn_temp_t * st ) {
 	abs_movedir.y = Abs( ent->moveinfo.movedir.y );
 	abs_movedir.z = Abs( ent->moveinfo.movedir.z );
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-	Vec3 size = bounds.maxs - bounds.mins;
-	ent->moveinfo.distance = Dot( abs_movedir, size ) - lip;
+	ent->moveinfo.distance = Dot( abs_movedir, Size( bounds ) ) - lip;
 	ent->moveinfo.end_origin = ent->moveinfo.start_origin + ent->moveinfo.movedir * ent->moveinfo.distance;
 
 	// if it starts open, switch the positions

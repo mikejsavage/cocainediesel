@@ -22,21 +22,20 @@ void PlayerTouchWall( pmove_t * pm, pml_t * pml, const gs_state_t * pmove_gs, fl
 	SolidBits ignoreFlags = SolidBits( extraIgnoreFlags | Solid_Player );
 	float dist = 1.0f;
 
-	Vec3 mins = Vec3( pm->mins.xy(), 0.0f );
-	Vec3 maxs = Vec3( pm->maxs.xy(), 0.0f );
+	MinMax3 bounds( Vec3( pm->bounds.mins.xy(), 0.0f ), Vec3( pm->bounds.maxs.xy(), 0.0f ) );
 
 	for( int i = 0; i < candidate_dirs; i++ ) {
 		float t = float( i ) / float( candidate_dirs );
 
 		Vec3 dir = Vec3(
-			pm->maxs.x * cosf( PI * 2.0f * t ) + pml->velocity.x * 0.015f,
-			pm->maxs.y * sinf( PI * 2.0f * t ) + pml->velocity.y * 0.015f,
-			z ? pm->maxs.z * cosf( PI * 2.0f * t ) + pml->velocity.z * 0.015f : 0.0f
+			pm->bounds.maxs.x * cosf( PI * 2.0f * t ) + pml->velocity.x * 0.015f,
+			pm->bounds.maxs.y * sinf( PI * 2.0f * t ) + pml->velocity.y * 0.015f,
+			z ? pm->bounds.maxs.z * cosf( PI * 2.0f * t ) + pml->velocity.z * 0.015f : 0.0f
 		);
 		Vec3 end = pml->origin + dir;
 
 		trace_t trace;
-		pmove_gs->api.Trace( &trace, pml->origin, mins, maxs, end, pm->playerState->POVnum, pm->solid_mask, 0 );
+		pmove_gs->api.Trace( &trace, pml->origin, bounds, end, pm->playerState->POVnum, pm->solid_mask, 0 );
 
 		if( trace.HitNothing() )
 			continue; // no wall in this direction

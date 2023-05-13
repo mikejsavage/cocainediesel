@@ -212,11 +212,11 @@ void AddPointToBounds( Vec3 v, Vec3 * mins, Vec3 * maxs ) {
 	}
 }
 
-float RadiusFromBounds( Vec3 mins, Vec3 maxs ) {
+float RadiusFromBounds( MinMax3 bounds ) {
 	Vec3 corner;
 
 	for( int i = 0; i < 3; i++ ) {
-		corner[ i ] = Max2( Abs( mins[ i ] ), Abs( maxs[ i ] ) );
+		corner[ i ] = Max2( Abs( bounds.mins[ i ] ), Abs( bounds.maxs[ i ] ) );
 	}
 
 	return Length( corner );

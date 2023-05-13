@@ -41,7 +41,7 @@ static bool EntityOverlapsAnything( edict_t *ent ) {
 	SolidBits mask = EntitySolidity( ServerCollisionModelStorage(), &ent->s );
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
 	trace_t trace;
-	G_Trace4D( &trace, ent->s.origin, bounds.mins, bounds.maxs, ent->s.origin, ent, mask, ent->timeDelta );
+	G_Trace4D( &trace, ent->s.origin, bounds, ent->s.origin, ent, mask, ent->timeDelta );
 	return trace.GotNowhere();
 }
 
@@ -120,7 +120,7 @@ retry:
 	}
 	
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-	G_Trace4D( &trace, start, bounds.mins, bounds.maxs, end, ent, mask, ent->timeDelta );
+	G_Trace4D( &trace, start, bounds, end, ent, mask, ent->timeDelta );
 	ent->s.origin = trace.endpos;
 
 	GClip_LinkEntity( ent );
@@ -174,8 +174,7 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 
 	// find the bounding box
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &pusher->s );
-	bounds.mins += pusher->s.origin + move;
-	bounds.maxs += pusher->s.origin + move;
+	bounds += pusher->s.origin + move;
 
 	// we need this for pushing things later
 	org = -amove;
@@ -217,8 +216,7 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 		if( check->groundentity != pusher ) {
 			// see if the ent needs to be tested
 			MinMax3 check_bounds = EntityBounds( ServerCollisionModelStorage(), &check->s );
-			check_bounds.mins += check->s.origin;
-			check_bounds.maxs += check->s.origin;
+			check_bounds += check->s.origin;
 			if( !BoundsOverlap( check_bounds.mins, check_bounds.maxs, bounds.mins, bounds.maxs ) ) {
 				continue;
 			}
@@ -489,7 +487,7 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	end = ent->s.linearMovementBegin + ent->s.linearMovementVelocity * endFlyTime;
 
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-	G_Trace4D( &trace, start, bounds.mins, bounds.maxs, end, ent, mask, ent->timeDelta );
+	G_Trace4D( &trace, start, bounds, end, ent, mask, ent->timeDelta );
 	ent->s.origin = trace.endpos;
 	GClip_LinkEntity( ent );
 	SV_Impact( ent, &trace );

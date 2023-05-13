@@ -29,12 +29,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //===============================================================
 //		WARSOW player AAboxes sizes
 
-constexpr Vec3 playerbox_stand_mins = Vec3( -16, -16, -24 );
-constexpr Vec3 playerbox_stand_maxs = Vec3( 16, 16, 40 );
+constexpr MinMax3 playerbox_stand = MinMax3( Vec3( -16, -16, -24 ), Vec3( 16, 16, 40 ) );
 constexpr int playerbox_stand_viewheight = 30;
 
-constexpr Vec3 playerbox_gib_mins = Vec3( -16, -16, 0 );
-constexpr Vec3 playerbox_gib_maxs = Vec3( 16, 16, 16 );
+constexpr MinMax3 playerbox_gib = MinMax3( Vec3( -16, -16, 0 ), Vec3( 16, 16, 16 ) );
 constexpr int playerbox_gib_viewheight = 8;
 
 constexpr float GRAVITY = 850.0f;
@@ -66,14 +64,14 @@ struct pmove_t {
 	int touchents[MAXTOUCH];
 	float step;                 // used for smoothing the player view
 
-	Vec3 mins, maxs;          // bounding box size
+	MinMax3 bounds;
 
 	int groundentity;
 	SolidBits solid_mask;
 };
 
 struct gs_module_api_t {
-	void ( *Trace )( trace_t *t, Vec3 start, Vec3 mins, Vec3 maxs, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta );
+	void ( *Trace )( trace_t *t, Vec3 start, MinMax3 bounds, Vec3 end, int ignore, SolidBits solid_mask, int timeDelta );
 	void ( *PredictedEvent )( int entNum, int ev, u64 parm );
 	void ( *PredictedFireWeapon )( int entNum, u64 parm );
 	void ( *PredictedAltFireWeapon )( int entNum, u64 parm );

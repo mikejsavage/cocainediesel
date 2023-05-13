@@ -373,7 +373,7 @@ static void CG_SetupViewDef( cg_viewdef_t *view, int type, UserCommand * cmd ) {
 
 			viewoffset = Vec3( 0.0f, 0.0f, cg.predictedPlayerState.viewheight );
 			view->origin = cg.predictedPlayerState.pmove.origin + viewoffset - ( 1.0f - cg.lerpfrac ) * cg.predictionError;
-			
+
 			view->angles = cg.predictedPlayerState.viewangles;
 
 			CG_Recoil( cg.predictedPlayerState.weapon );

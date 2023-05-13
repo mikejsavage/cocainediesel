@@ -86,13 +86,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	//copy player position and box size
 	body->s.origin = ent->s.origin;
 	body->olds.origin = ent->s.origin;
-	body->r.mins = ent->r.mins;
-	body->r.maxs = ent->r.maxs;
-	body->r.absmin = ent->r.absmin;
-	body->r.absmax = ent->r.absmax;
-	body->r.size = ent->r.size;
 	body->velocity = ent->velocity;
-	body->r.maxs.z = body->r.mins.z + 8;
 
 	body->s.solidity = Solid_NotSolid;
 	body->takedamage = DAMAGE_NO;
@@ -319,8 +313,6 @@ void G_ClientRespawn( edict_t *self, bool ghost ) {
 	}
 
 	self->s.override_collision_model = CollisionModelAABB( MinMax3( playerbox_stand_mins, playerbox_stand_maxs ) );
-	self->r.mins = playerbox_stand_mins;
-	self->r.maxs = playerbox_stand_maxs;
 	self->velocity = Vec3( 0.0f );
 	self->avelocity = Vec3( 0.0f );
 
@@ -852,8 +844,6 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 	ent->velocity = client->ps.pmove.velocity;
 	ent->s.angles = client->ps.viewangles;
 	ent->viewheight = client->ps.viewheight;
-	ent->r.mins = pm.mins;
-	ent->r.maxs = pm.maxs;
 
 	if( pm.groundentity == -1 ) {
 		ent->groundentity = NULL;

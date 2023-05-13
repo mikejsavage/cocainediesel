@@ -550,7 +550,8 @@ edict_t * G_Sound( edict_t * owner, StringHash sound ) {
 
 	edict_t * ent = _G_SpawnSound( sound );
 	ent->s.ownerNum = owner->s.number;
-	ent->s.origin = ( owner->r.absmin + owner->r.absmax ) * 0.5f;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &owner->s );
+	ent->s.origin = owner->s.origin + ( bounds.mins + bounds.maxs ) * 0.5f;
 
 	GClip_LinkEntity( ent );
 	return ent;
@@ -609,7 +610,8 @@ void G_LocalSound( edict_t * owner, StringHash sound ) {
 void KillBox( edict_t *ent, DamageType damage_type, Vec3 knockback ) {
 	while( true ) {
 		trace_t tr;
-		G_Trace( &tr, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, world, SolidMask_AnySolid );
+		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+		G_Trace( &tr, ent->s.origin, bounds.mins, bounds.maxs, ent->s.origin, world, SolidMask_AnySolid );
 		if( tr.HitNothing() ) {
 			break;
 		}
@@ -684,7 +686,8 @@ void G_CheckGround( edict_t *ent ) {
 
 	trace_t trace;
 	Vec3 ground_point = ent->s.origin - Vec3( 0.0f, 0.0f, 0.25f );
-	G_Trace( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, ground_point, ent, EntitySolidity( ServerCollisionModelStorage(), &ent->s ) );
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+	G_Trace( &trace, ent->s.origin, bounds.mins, bounds.maxs, ground_point, ent, EntitySolidity( ServerCollisionModelStorage(), &ent->s ) );
 
 	if( ent->velocity.z > up_speed_limit || !ISWALKABLEPLANE( trace.normal ) ) {
 		ent->groundentity = NULL;
@@ -697,16 +700,6 @@ void G_CheckGround( edict_t *ent ) {
 	if( ent->velocity.z < 0.0f ) {
 		ent->velocity.z = 0.0f;
 	}
-}
-
-void G_SetBoundsForSpanEntity( edict_t *ent, float size ) {
-	ClearBounds( &ent->r.absmin, &ent->r.absmax );
-	AddPointToBounds( ent->s.origin, &ent->r.absmin, &ent->r.absmax );
-	AddPointToBounds( ent->s.origin2, &ent->r.absmin, &ent->r.absmax );
-	ent->r.absmin -= size;
-	ent->r.absmax += size;
-	ent->r.mins = ent->r.absmin - ent->s.origin;
-	ent->r.maxs = ent->r.absmax - ent->s.origin;
 }
 
 void G_ReleaseClientPSEvent( gclient_t *client ) {

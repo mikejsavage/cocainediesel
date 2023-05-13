@@ -137,7 +137,8 @@ static void G_ProjectileDistancePrestep( edict_t * projectile, float distance ) 
 
 	trace_t trace;
 	SolidBits solid_mask = EntitySolidity( ServerCollisionModelStorage(), &projectile->s );
-	G_Trace4D( &trace, projectile->s.origin, projectile->r.mins, projectile->r.maxs, dest, projectile->r.owner, solid_mask, projectile->timeDelta );
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &projectile->s );
+	G_Trace4D( &trace, projectile->s.origin, bounds.mins, bounds.maxs, dest, projectile->r.owner, solid_mask, projectile->timeDelta );
 
 	projectile->s.origin = trace.endpos;
 	projectile->olds.origin = trace.endpos;
@@ -244,6 +245,7 @@ static edict_t * FireProjectile(
 
 	projectile->movetype = MOVETYPE_LINEARPROJECTILE;
 
+	projectile->s.override_collision_model = CollisionModelAABB( MinMax3( Vec3( 0.0f ), Vec3( 0.0f ) ) );
 	projectile->s.solidity = SolidMask_Shot;
 	projectile->s.svflags = SVF_PROJECTILE;
 	projectile->gravity_scale = stats.gravity_scale;
@@ -730,8 +732,14 @@ static void W_Fire_Lasergun( edict_t * self, Vec3 start, Vec3 angles, int timeDe
 	laser->think = G_Laser_Think;
 	laser->nextThink = level.time + 1;
 
-	// calculate laser's mins and maxs for linkEntity
-	G_SetBoundsForSpanEntity( laser, 8 );
+	MinMax3 bounds = MinMax3::Empty();
+	constexpr Vec3 size = Vec3( 8.0f );
+	bounds = Union( bounds, laser->s.origin - size );
+	bounds = Union( bounds, laser->s.origin + size );
+	bounds = Union( bounds, laser->s.origin2 - size );
+	bounds = Union( bounds, laser->s.origin2 + size );
+
+	laser->s.override_collision_model = CollisionModelAABB( bounds );
 
 	GClip_LinkEntity( laser );
 }

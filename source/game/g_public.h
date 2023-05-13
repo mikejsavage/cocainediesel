@@ -35,7 +35,5 @@ struct entity_shared_t {
 	//================================
 
 	// TODO: delete
-	Vec3 mins, maxs;
-	Vec3 absmin, absmax, size;
 	edict_t *owner;
 };

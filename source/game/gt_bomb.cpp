@@ -118,7 +118,8 @@ static void Hide( edict_t * ent ) {
 }
 
 static bool EntCanSee( edict_t * ent, Vec3 point ) {
-	Vec3 center = ent->s.origin + 0.5f * ( ent->r.mins + ent->r.maxs );
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+	Vec3 center = ent->s.origin + 0.5f * ( bounds.mins + bounds.maxs );
 	trace_t tr;
 	G_Trace( &tr, center, Vec3( 0.0f ), Vec3( 0.0f ), point, ent, SolidMask_AnySolid );
 	return tr.HitNothing();
@@ -298,8 +299,6 @@ static void SpawnBomb() {
 	bomb_state.bomb.model->classname = "bomb";
 	bomb_state.bomb.model->s.type = ET_GENERIC;
 	bomb_state.bomb.model->s.team = AttackingTeam();
-	bomb_state.bomb.model->r.mins = bomb_bounds.mins;
-	bomb_state.bomb.model->r.maxs = bomb_bounds.maxs;
 
 	bomb_state.bomb.model->s.override_collision_model = CollisionModelAABB( MinMax3( bomb_bounds.mins, bomb_bounds.maxs ) );
 
@@ -604,11 +603,10 @@ static bool BombCanPlant() {
 	Vec3 start = carrier_ent->s.origin;
 	Vec3 end = start;
 	end.z -= bomb_max_plant_height;
-	Vec3 mins = carrier_ent->r.mins;
-	Vec3 maxs = carrier_ent->r.maxs;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &carrier_ent->s );
 
 	trace_t tr;
-	G_Trace( &tr, start, mins, maxs, end, carrier_ent, SolidMask_AnySolid );
+	G_Trace( &tr, start, bounds.mins, bounds.maxs, end, carrier_ent, SolidMask_AnySolid );
 
 	return ISWALKABLEPLANE( tr.normal );
 }

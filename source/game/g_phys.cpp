@@ -39,8 +39,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 static bool EntityOverlapsAnything( edict_t *ent ) {
 	SolidBits mask = EntitySolidity( ServerCollisionModelStorage(), &ent->s );
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
 	trace_t trace;
-	G_Trace4D( &trace, ent->s.origin, ent->r.mins, ent->r.maxs, ent->s.origin, ent, mask, ent->timeDelta );
+	G_Trace4D( &trace, ent->s.origin, bounds.mins, bounds.maxs, ent->s.origin, ent, mask, ent->timeDelta );
 	return trace.GotNowhere();
 }
 
@@ -117,8 +118,9 @@ retry:
 	if( mask == Solid_NotSolid ) {
 		mask = SolidMask_AnySolid;
 	}
-
-	G_Trace4D( &trace, start, ent->r.mins, ent->r.maxs, end, ent, mask, ent->timeDelta );
+	
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+	G_Trace4D( &trace, start, bounds.mins, bounds.maxs, end, ent, mask, ent->timeDelta );
 	ent->s.origin = trace.endpos;
 
 	GClip_LinkEntity( ent );
@@ -166,14 +168,14 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 
 	int e;
 	edict_t *check;
-	Vec3 mins, maxs;
 	pushed_t *p;
 	mat3_t axis;
 	Vec3 org, org2, move2;
 
 	// find the bounding box
-	mins = pusher->r.absmin + move;
-	maxs = pusher->r.absmax + move;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &pusher->s );
+	bounds.mins += pusher->s.origin + move;
+	bounds.maxs += pusher->s.origin + move;
 
 	// we need this for pushing things later
 	org = -amove;
@@ -214,7 +216,10 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 		// if the entity is standing on the pusher, it will definitely be moved
 		if( check->groundentity != pusher ) {
 			// see if the ent needs to be tested
-			if( !BoundsOverlap( check->r.absmin, check->r.absmax, mins, maxs ) ) {
+			MinMax3 check_bounds = EntityBounds( ServerCollisionModelStorage(), &check->s );
+			check_bounds.mins += check->s.origin;
+			check_bounds.maxs += check->s.origin;
+			if( !BoundsOverlap( check_bounds.mins, check_bounds.maxs, bounds.mins, bounds.maxs ) ) {
 				continue;
 			}
 
@@ -483,7 +488,8 @@ static void SV_Physics_LinearProjectile( edict_t *ent ) {
 	start = ent->s.linearMovementBegin + ent->s.linearMovementVelocity * startFlyTime;
 	end = ent->s.linearMovementBegin + ent->s.linearMovementVelocity * endFlyTime;
 
-	G_Trace4D( &trace, start, ent->r.mins, ent->r.maxs, end, ent, mask, ent->timeDelta );
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+	G_Trace4D( &trace, start, bounds.mins, bounds.maxs, end, ent, mask, ent->timeDelta );
 	ent->s.origin = trace.endpos;
 	GClip_LinkEntity( ent );
 	SV_Impact( ent, &trace );

@@ -37,7 +37,10 @@ static void target_laser_think( edict_t *self ) {
 
 	if( self->enemy ) {
 		last_movedir = self->moveinfo.movedir;
-		point = self->enemy->r.absmin + self->enemy->r.size * 0.5f;
+
+		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->enemy->s );
+		Vec3 size = bounds.maxs - bounds.mins;
+		point = self->enemy->s.origin + bounds.mins + size * 0.5f;
 		self->moveinfo.movedir = point - self->s.origin;
 		self->moveinfo.movedir = Normalize( self->moveinfo.movedir );
 		if( self->moveinfo.movedir != last_movedir ) {
@@ -79,7 +82,15 @@ static void target_laser_think( edict_t *self ) {
 	}
 
 	self->s.origin2 = tr.endpos;
-	G_SetBoundsForSpanEntity( self, 8 );
+
+	MinMax3 bounds = MinMax3::Empty();
+	constexpr Vec3 size = Vec3( 8.0f );
+	bounds = Union( bounds, self->s.origin - size );
+	bounds = Union( bounds, self->s.origin + size );
+	bounds = Union( bounds, self->s.origin2 - size );
+	bounds = Union( bounds, self->s.origin2 + size );
+
+	self->s.override_collision_model = CollisionModelAABB( bounds );
 
 	GClip_LinkEntity( self );
 

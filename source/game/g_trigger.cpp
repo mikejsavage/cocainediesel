@@ -53,7 +53,8 @@ static void G_JumpPadSound( edict_t *ent ) {
 		return;
 	}
 
-	Vec3 org = ent->s.origin + 0.5f * ( ent->r.mins + ent->r.maxs );
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
+	Vec3 org = ent->s.origin + 0.5f * ( bounds.mins + bounds.maxs );
 
 	G_PositionedSound( org, ent->moveinfo.sound_start );
 }
@@ -93,7 +94,8 @@ static void trigger_push_setup( edict_t *self ) {
 		return;
 	}
 
-	Vec3 origin = ( self->r.absmin + self->r.absmax ) * 0.5f;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->s );
+	Vec3 origin = ( bounds.mins + bounds.maxs ) * 0.5f;
 	Vec3 velocity = target->s.origin - origin;
 
 	float height = target->s.origin.z - origin.z;
@@ -238,7 +240,8 @@ static void TeleporterTouch( edict_t *self, edict_t *other, Vec3 normal, SolidBi
 		Vec3 org;
 
 		if( self->s.model != EMPTY_HASH ) {
-			org = self->s.origin + 0.5f * ( self->r.mins + self->r.maxs );
+			MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &self->s );
+			org = self->s.origin + 0.5f * ( bounds.mins + bounds.maxs );
 		} else {
 			org = self->s.origin;
 		}

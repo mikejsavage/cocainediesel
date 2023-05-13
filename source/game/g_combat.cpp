@@ -32,7 +32,8 @@ static bool G_CanSplashDamage( const edict_t *targ, const edict_t *inflictor, Op
 	// bmodels need special checking because their origin is 0,0,0
 	if( targ->movetype == MOVETYPE_PUSH ) {
 		// NOT FOR PLAYERS only for entities that can push the players
-		Vec3 dest = ( targ->r.absmin + targ->r.absmax ) * 0.5f;
+		MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &targ->s );
+		Vec3 dest = targ->s.origin + ( bounds.mins + bounds.maxs ) * 0.5f;
 		G_Trace4D( &trace, pos, Vec3( 0.0f ), Vec3( 0.0f ), dest, inflictor, SolidMask_AnySolid, timeDelta );
 		if( trace.fraction >= 1.0f - SPLASH_DAMAGE_TRACE_FRAC_EPSILON || trace.ent == ENTNUM( targ ) ) {
 			return true;
@@ -311,15 +312,14 @@ void G_Damage( edict_t *targ, edict_t *inflictor, edict_t *attacker, Vec3 pushdi
 
 void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 point, float maxradius, Vec3 * pushdir, float *frac, bool selfdamage ) {
 	const Vec3 & origin = s->origin;
-	const Vec3 & mins = r->mins;
-	const Vec3 & maxs = r->maxs;
+	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), s );
 
-	float innerradius = ( maxs.x + maxs.y - mins.x - mins.y ) * 0.25f;
+	float innerradius = ( bounds.maxs.x + bounds.maxs.y - bounds.mins.x - bounds.mins.y ) * 0.25f;
 
 	// Find the distance to the closest point in the capsule contained in the player bbox
 	// modify the origin so the inner sphere acts as a capsule
 	Vec3 closest_point = origin;
-	closest_point.z = Clamp( ( origin.z + mins.z ) + innerradius, point.z, ( origin.z + maxs.z ) - innerradius );
+	closest_point.z = Clamp( ( origin.z + bounds.mins.z ) + innerradius, point.z, ( origin.z + bounds.maxs.z ) - innerradius );
 
 	// find push intensity
 	float distance = Length( point - closest_point );
@@ -350,7 +350,7 @@ void G_SplashFrac( const SyncEntityState *s, const entity_shared_t *r, Vec3 poin
 	}
 	else {
 		// find real center of the box again
-		center_of_mass = origin + 0.5f * ( maxs + mins );
+		center_of_mass = origin + 0.5f * ( bounds.maxs + bounds.mins );
 	}
 
 	*pushdir = SafeNormalize( center_of_mass - point );

@@ -137,8 +137,6 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	ent->velocity = pm->playerState->pmove.velocity;
 	ent->s.angles = pm->playerState->viewangles;
 	ent->viewheight = pm->playerState->viewheight;
-	ent->r.mins = pm->mins;
-	ent->r.maxs = pm->maxs;
 	if( pm->groundentity == -1 ) {
 		ent->groundentity = NULL;
 	} else {

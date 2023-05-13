@@ -48,7 +48,6 @@ static void FindJumppadTarget( edict_t * ent ) {
 
 void SP_jumppad( edict_t * ent, const spawn_temp_t * st ) {
 	ent->s.svflags &= ~SVF_NOCLIENT;
-	ent->s.solidity = Solid_Trigger;
 
 	Vec3 forward, right, up;
 	AngleVectors( ent->s.angles, &forward, &right, &up );
@@ -56,8 +55,8 @@ void SP_jumppad( edict_t * ent, const spawn_temp_t * st ) {
 	MinMax3 bounds = MinMax3::Empty();
 	bounds = Union( bounds, -( forward + right ) * 32.0f + up * 24.0f );
 	bounds = Union( bounds, ( forward + right ) * 32.0f );
-	ent->r.mins = bounds.mins;
-	ent->r.maxs = bounds.maxs;
+	ent->s.override_collision_model = CollisionModelAABB( bounds );
+	ent->s.solidity = Solid_Trigger;
 
 	ent->touch = TouchJumppad;
 	ent->think = FindJumppadTarget;

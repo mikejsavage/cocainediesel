@@ -304,8 +304,6 @@ void G_ClearPlayerStateEvents( gclient_t *client );
 void G_AnnouncerSound( edict_t *targ, StringHash sound, Team team, bool queued, edict_t *ignore );
 edict_t *G_PlayerForText( const char *text );
 
-void G_SetBoundsForSpanEntity( edict_t * ent, float size );
-
 void G_SunCycle( u64 time );
 
 //

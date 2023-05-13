@@ -2,7 +2,7 @@
   particles {
     material textures/vfx/glow1
     blendfunc add
-    
+
     position line 0
 
     speed 5
@@ -20,7 +20,7 @@
   particles {
     material textures/vfx/glow1
     blendfunc add
-    
+
     position line 0
 
     speed 0
@@ -38,7 +38,7 @@
   particles {
     material textures/vfx/glow1
     blendfunc blend
-    
+
     position line 0
 
     speed 0
@@ -56,7 +56,7 @@
   particles {
     material textures/vfx/flare1
     blendfunc add
-    
+
     position line 0
 
     speed 0
@@ -79,7 +79,7 @@
     material textures/vfx/smoke8
     material textures/vfx/smoke9
     blendfunc blend
-    
+
     position line 0
 
     speed 2
@@ -97,7 +97,7 @@
     blendfunc add
     stretch
     rotate
-    
+
     position line 0
 
     speed 200
@@ -109,5 +109,5 @@
     count 1
   }
 }
-  
+
 }

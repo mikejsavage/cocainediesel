@@ -9,7 +9,7 @@
     stretch
     rotate
 
-    position sphere 0 20 
+    position sphere 0 20
 
     color 1.0 1.0 1.0 1.0
     color_override

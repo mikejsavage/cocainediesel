@@ -49,7 +49,7 @@ void G_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t 
 			continue;
 
 		trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &touch->s, solid_mask );
-		if( trace.fraction < tr->fraction ) {
+		if( trace.fraction <= tr->fraction ) {
 			*tr = trace;
 		}
 	}
@@ -100,7 +100,7 @@ void GClip_UnlinkEntity( edict_t * ent ) {
 void GClip_TouchTriggers( edict_t * ent ) {
 	// TODO: timedelta
 	MinMax3 bounds = EntityBounds( ServerCollisionModelStorage(), &ent->s );
-	if( bounds.mins == MinMax3::Empty().mins && bounds.maxs == MinMax3::Empty().maxs )
+	if( bounds == MinMax3::Empty() )
 		return;
 
 	bounds.mins += ent->s.origin;
@@ -157,8 +157,7 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 		
 		edict_t * hit = &game.edicts[ touchlist[ i ] ];
 		MinMax3 hit_bounds = EntityBounds( ServerCollisionModelStorage(), &hit->s );
-		hit_bounds.mins += hit->s.origin;
-		hit_bounds.maxs += hit->s.origin;
+		hit_bounds += hit->s.origin;
 
 		if( !hit->r.inuse )
 			continue;

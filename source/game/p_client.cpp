@@ -88,6 +88,7 @@ static edict_t *CreateCorpse( edict_t *ent, edict_t *attacker, DamageType damage
 	body->olds.origin = ent->s.origin;
 	body->velocity = ent->velocity;
 
+	body->s.override_collision_model = ent->s.override_collision_model;
 	body->s.solidity = Solid_NotSolid;
 	body->takedamage = DAMAGE_NO;
 	body->movetype = MOVETYPE_TOSS;

@@ -360,23 +360,22 @@ inline Quaternion NLerp( Quaternion from, float t, Quaternion to ) {
  */
 
 constexpr MinMax3 operator*( MinMax3 bounds, float scale ) {
-	bounds.mins *= scale;
-	bounds.maxs *= scale;
-	return bounds;
+	return MinMax3( bounds.mins * scale, bounds.maxs * scale );
 }
 constexpr MinMax3 operator*( MinMax3 bounds, Vec3 scale ) {
-	bounds.mins *= scale;
-	bounds.maxs *= scale;
-	return bounds;
+	return MinMax3( bounds.mins * scale, bounds.maxs * scale );
 }
 
 constexpr MinMax3 operator+( MinMax3 bounds, Vec3 offset ) { return MinMax3( bounds.mins + offset, bounds.maxs + offset ); }
 constexpr MinMax3 operator-( MinMax3 bounds, Vec3 offset ) { return MinMax3( bounds.mins - offset, bounds.maxs - offset ); }
-constexpr void operator+=( MinMax3 bounds, Vec3 offset ) { bounds = bounds + offset; }
-constexpr void operator-=( MinMax3 bounds, Vec3 offset ) { bounds = bounds - offset; }
+constexpr void operator+=( MinMax3 & bounds, Vec3 offset ) { bounds = bounds + offset; }
+constexpr void operator-=( MinMax3 & bounds, Vec3 offset ) { bounds = bounds - offset; }
+
+constexpr bool operator==( MinMax3 lhs, MinMax3 rhs ) { return lhs.mins == rhs.mins && lhs.maxs == rhs.maxs; }
+constexpr bool operator!=( MinMax3 lhs, MinMax3 rhs ) { return !( lhs == rhs ); }
 
 constexpr Vec3 Size( MinMax3 bounds ) { return bounds.maxs - bounds.mins; }
-constexpr Vec3 Center( MinMax3 bounds ) { return 0.5f * ( bounds.mins + bounds.mins ); }
+constexpr Vec3 Center( MinMax3 bounds ) { return 0.5f * ( bounds.mins + bounds.maxs ); }
 
 constexpr MinMax3 Expand( MinMax3 bounds, Vec3 expand ) {
 	return MinMax3( bounds.mins - expand, bounds.maxs + expand );

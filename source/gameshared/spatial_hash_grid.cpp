@@ -91,7 +91,7 @@ void LinkEntity( SpatialHashGrid * grid, const CollisionModelStorage * storage, 
 		return;
 
 	MinMax3 bounds = EntityBounds( storage, ent );
-	if( bounds.mins == MinMax3::Empty().mins && bounds.maxs == MinMax3::Empty().maxs )
+	if( bounds == MinMax3::Empty() )
 		return;
 
 	bounds.mins += ent->origin;

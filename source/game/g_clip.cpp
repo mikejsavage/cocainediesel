@@ -140,7 +140,7 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 		ent->groundentity = NULL;
 	} else {
 		ent->groundentity = &game.edicts[ pm->groundentity ];
-		ent->groundentity_linkcount = ent->groundentity->linkcount;
+		// ent->groundentity_linkcount = ent->groundentity->linkcount;
 	}
 
 	GClip_LinkEntity( ent );

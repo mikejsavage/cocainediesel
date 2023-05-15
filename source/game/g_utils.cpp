@@ -696,7 +696,6 @@ void G_CheckGround( edict_t *ent ) {
 	}
 
 	ent->groundentity = &game.edicts[trace.ent];
-	ent->groundentity_linkcount = ent->groundentity->linkcount;
 	if( ent->velocity.z < 0.0f ) {
 		ent->velocity.z = 0.0f;
 	}

@@ -850,7 +850,6 @@ void ClientThink( edict_t *ent, UserCommand *ucmd, int timeDelta ) {
 		ent->groundentity = NULL;
 	} else {
 		ent->groundentity = &game.edicts[pm.groundentity];
-		ent->groundentity_linkcount = ent->groundentity->linkcount;
 	}
 
 	GClip_LinkEntity( ent );

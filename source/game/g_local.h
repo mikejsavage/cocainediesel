@@ -331,12 +331,6 @@ bool G_TriggerWait( edict_t * ent );
 //
 // g_clip.c
 //
-#define MAX_ENT_AREAS 16
-
-struct link_t {
-	link_t *prev, *next;
-	int entNum;
-};
 
 void G_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask );
 void G_Trace4D( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int timeDelta );
@@ -628,11 +622,6 @@ struct edict_t {
 	// EXPECTS THE FIELDS IN THAT ORDER!
 
 	//================================
-
-	int linkcount;
-
-	// physics grid areas this edict is linked into
-	link_t areagrid[MAX_ENT_AREAS];
 
 	SyncEntityState olds; // state in the last sent frame snap
 

@@ -208,10 +208,6 @@ static bool SV_Push( edict_t *pusher, Vec3 move, Vec3 amove ) {
 			continue;
 		}
 
-		if( !check->areagrid[0].prev ) {
-			continue; // not linked in anywhere
-		}
-
 		// if the entity is standing on the pusher, it will definitely be moved
 		if( check->groundentity != pusher ) {
 			// see if the ent needs to be tested
@@ -431,7 +427,6 @@ static void SV_Physics_Toss( edict_t *ent ) {
 				)
 			) {
 				ent->groundentity = &game.edicts[trace.ent];
-				ent->groundentity_linkcount = ent->groundentity->linkcount;
 				ent->velocity = Vec3( 0.0f );
 				ent->avelocity = Vec3( 0.0f );
 				G_CallStop( ent );
@@ -442,7 +437,6 @@ static void SV_Physics_Toss( edict_t *ent ) {
 			// walkable or trapped inside solid brush
 			if( trace.GotNowhere() || ISWALKABLEPLANE( trace.normal ) ) {
 				ent->groundentity = trace.HitNothing() ? world : &game.edicts[trace.ent];
-				ent->groundentity_linkcount = ent->groundentity->linkcount;
 				ent->velocity = Vec3( 0.0f );
 				ent->avelocity = Vec3( 0.0f );
 				G_CallStop( ent );

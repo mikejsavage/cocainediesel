@@ -386,7 +386,7 @@ trace_t MakeMissedTrace( const Ray & ray ) {
 
 static trace_t FUCKING_HELL( const Ray & ray, const Shape & shape, const Intersection & intersection, int ent ) {
 	trace_t trace = { };
-	trace.fraction = ray.length == 0.0f ? 1.0f : intersection.t / ray.length;
+	trace.fraction = ray.length == 0.0f ? 0.0f : intersection.t / ray.length;
 	trace.normal = intersection.normal;
 	trace.ent = ent;
 	trace.solidity = intersection.solidity;

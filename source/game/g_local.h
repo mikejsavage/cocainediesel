@@ -658,7 +658,6 @@ struct edict_t {
 	Vec3 velocity;
 	Vec3 avelocity;
 
-	float angle;                // set in qe3, -1 = up, -2 = down
 	float speed;
 
 	int64_t timeStamp;

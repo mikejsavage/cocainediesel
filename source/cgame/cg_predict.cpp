@@ -114,34 +114,36 @@ void CG_BuildSolidList() {
 			continue;
 
 		MinMax3 bounds = EntityBounds( ClientCollisionModelStorage(), ent );
-		if( bounds.mins == MinMax3::Empty().mins && bounds.maxs == MinMax3::Empty().maxs )
+		if( bounds == MinMax3::Empty() )
 			continue;
 
-		switch( ent->type ) {
-			// the following entities can never be solid
-			case ET_GHOST:
-			case ET_ROCKET:
-			case ET_GRENADE:
-			case ET_ARBULLET:
-			case ET_BUBBLE:
-			case ET_LASERBEAM:
-			case ET_BOMB:
-			case ET_BOMB_SITE:
-			case ET_LASER:
-			case ET_SPIKES:
-			case ET_STAKE:
-			case ET_BLAST:
-				break;
+		LinkEntity( &cg_grid, ClientCollisionModelStorage(), ent, i );
 
-			case ET_JUMPPAD:
-			case ET_PAINKILLER_JUMPPAD:
-				LinkEntity( &cg_grid, ClientCollisionModelStorage(), ent, i );
-				break;
+		// switch( ent->type ) {
+		// 	// the following entities can never be solid
+		// 	case ET_GHOST:
+		// 	case ET_ROCKET:
+		// 	case ET_GRENADE:
+		// 	case ET_ARBULLET:
+		// 	case ET_BUBBLE:
+		// 	case ET_LASERBEAM:
+		// 	case ET_BOMB:
+		// 	case ET_BOMB_SITE:
+		// 	case ET_LASER:
+		// 	case ET_SPIKES:
+		// 	case ET_STAKE:
+		// 	case ET_BLAST:
+		// 		break;
 
-			default:
-				LinkEntity( &cg_grid, ClientCollisionModelStorage(), ent, i );
-				break;
-		}
+		// 	case ET_JUMPPAD:
+		// 	case ET_PAINKILLER_JUMPPAD:
+		// 		LinkEntity( &cg_grid, ClientCollisionModelStorage(), ent, i );
+		// 		break;
+
+		// 	default:
+		// 		LinkEntity( &cg_grid, ClientCollisionModelStorage(), ent, i );
+		// 		break;
+		// }
 	}
 }
 

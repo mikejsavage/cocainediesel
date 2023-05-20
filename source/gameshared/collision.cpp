@@ -308,16 +308,19 @@ CollisionModel EntityCollisionModel( const CollisionModelStorage * storage, cons
 
 	CollisionModel model = { };
 
-	const GLTFCollisionData * gltf = FindGLTFSharedCollisionData( storage, ent->model );
-	if( gltf != NULL ) {
+	if( FindGLTFSharedCollisionData( storage, ent->model ) != NULL ) {
 		model.type = CollisionModelType_GLTF;
 		model.gltf_model = ent->model;
 		return model;
 	}
 
-	model.type = CollisionModelType_MapModel;
-	model.map_model = ent->model;
-	return model;
+	if( FindMapSubModelCollisionData( storage, ent->model ) != NULL ) {
+		model.type = CollisionModelType_MapModel;
+		model.map_model = ent->model;
+		return model;
+	}
+
+	return { };
 }
 
 MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntityState * ent ) {
@@ -344,7 +347,7 @@ MinMax3 EntityBounds( const CollisionModelStorage * storage, const SyncEntitySta
 	Assert( type == CollisionModelType_Point || type == CollisionModelType_AABB );
 
 	if( type == CollisionModelType_Point ) {
-		return MinMax3( Vec3( 0.0f ), Vec3( 0.0f ) );
+		return MinMax3( 0.0f );
 	}
 
 	return model.aabb;
@@ -492,6 +495,12 @@ trace_t TraceVsEnt( const CollisionModelStorage * storage, const Ray & ray, cons
 bool EntityOverlap( const CollisionModelStorage * storage, const SyncEntityState * ent_a, const SyncEntityState * ent_b, SolidBits solid_mask  ) {
 	CollisionModel collision_model_a = EntityCollisionModel( storage, ent_a );
 	CollisionModel collision_model_b = EntityCollisionModel( storage, ent_b );
+
+	// TODO: super hacky, please fix
+	if( collision_model_a.type > collision_model_b.type ) {
+		Swap2( &collision_model_a, &collision_model_b );
+		Swap2( &ent_a, &ent_b );
+	}
 
 	Ray ray = MakeRayStartEnd( ent_a->origin, ent_a->origin );
 	Shape shape = { };

@@ -185,9 +185,6 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 			if( trace.GotSomewhere() )
 				continue;
 		}
-
-		// if( !EntityOverlap( ServerCollisionModelStorage(), &ent->s, &hit->s, SolidMask_Everything ) )
-		// 	continue;
 		
 		G_CallTouch( hit, ent, Vec3( 0.0f ), SolidMask_AnySolid );
 	}

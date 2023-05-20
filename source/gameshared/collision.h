@@ -76,7 +76,7 @@ bool EntityOverlap( const CollisionModelStorage * storage, const SyncEntityState
 
 
 constexpr size_t MAX_PRIMITIVES = MAX_EDICTS;
-constexpr size_t SHG_GRID_SIZE = 128 * 128;
+constexpr size_t SHG_GRID_SIZE = 64 * 64;
 constexpr size_t SHG_CELL_DIMENSIONS[] = { 64, 64, 1024 };
 
 struct SpatialHashBounds {

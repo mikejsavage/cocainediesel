@@ -6,9 +6,175 @@
 
 #include <algorithm>
 
-static SpatialHashGrid g_grid;
+struct CollisionEntity {
+	EntityID id;
+	Vec3 origin;
+	Vec3 scale;
+	Vec3 angles;
+	Optional< CollisionModel > override_collision_model;
+	StringHash model;
+	int view_height;
+};
 
-void G_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask ) {
+struct CollisionFrame {
+	s64 timestamp;
+	SpatialHashGrid grid;
+	CollisionEntity entities[ MAX_EDICTS ];
+	size_t num_entities;
+};
+
+constexpr size_t NUM_COLLISION_FRAMES = 64;
+static CollisionFrame g_collision_frames[ NUM_COLLISION_FRAMES ];
+static size_t g_current_collision_frame = 0;
+
+static CollisionEntity GetCollisionEntity( edict_t * ent ) {
+	CollisionEntity cent;
+	cent.id = ent->s.id;
+	cent.origin = ent->s.origin;
+	cent.scale = ent->s.scale;
+	cent.angles = ent->s.angles;
+	cent.override_collision_model = ent->s.override_collision_model;
+	cent.model = ent->s.model;
+	cent.view_height = ent->viewheight;
+	return cent;
+}
+
+static void ApplyCollisionEntity( CollisionEntity cent, edict_t * ent ) {
+	ent->s.id = cent.id;
+	ent->s.origin = cent.origin;
+	ent->s.scale = cent.scale;
+	ent->s.angles = cent.angles;
+	ent->s.override_collision_model = cent.override_collision_model;
+	ent->s.model = cent.model;
+	ent->viewheight = cent.view_height;
+}
+
+void GClip_BackUpCollisionFrame() {
+	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	frame->timestamp = svs.gametime;
+	frame->num_entities = game.numentities;
+	g_current_collision_frame++;
+
+	CollisionFrame * newframe = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	newframe->grid = frame->grid;
+}
+
+static void GetCollisionFrames4D( CollisionFrame ** older, CollisionFrame ** newer, int time_delta ) {
+	if( time_delta == 0 ) {
+		*older = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+		*newer = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+		return;
+	}
+
+	s64 time = svs.gametime + time_delta;
+	for( size_t i = 1; i < NUM_COLLISION_FRAMES; i++ ) {
+		s64 index = ( g_current_collision_frame - i ) % NUM_COLLISION_FRAMES;
+		if( index < 0 ) {
+			break;
+		}
+		if( g_collision_frames[ index ].timestamp < time ) {
+			*older = &g_collision_frames[ index ];
+			*newer = &g_collision_frames[ ( index + 1 ) % NUM_COLLISION_FRAMES ];
+			return;
+		}
+	}
+
+	// timedelta too big, idk return current?
+	*older = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	*newer = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	return;
+}
+
+static CollisionEntity LerpCollisionEntity4D( CollisionEntity * older, float t, CollisionEntity * newer ) {
+	CollisionEntity ent = *newer;
+
+	ent.origin = Lerp( older->origin, t, newer->origin );
+	ent.scale = Lerp( older->scale, t, newer->scale );
+	ent.angles = LerpAngles( older->angles, t, newer->angles );
+	ent.view_height = Lerp( older->view_height, t, newer->view_height );
+	
+	switch( ent.override_collision_model.value.type ) {
+		case CollisionModelType_AABB: {
+			ent.override_collision_model.value.aabb.mins = Lerp( older->override_collision_model.value.aabb.mins, t, newer->override_collision_model.value.aabb.mins );
+			ent.override_collision_model.value.aabb.maxs = Lerp( older->override_collision_model.value.aabb.maxs, t, newer->override_collision_model.value.aabb.maxs );
+		} break;
+		case CollisionModelType_Sphere: {
+			ent.override_collision_model.value.sphere.center = Lerp( older->override_collision_model.value.sphere.center, t, newer->override_collision_model.value.sphere.center );
+			ent.override_collision_model.value.sphere.radius = Lerp( older->override_collision_model.value.sphere.radius, t, newer->override_collision_model.value.sphere.radius );
+		} break;
+		case CollisionModelType_Capsule: {
+			ent.override_collision_model.value.capsule.a = Lerp( older->override_collision_model.value.capsule.a, t, newer->override_collision_model.value.capsule.a );
+			ent.override_collision_model.value.capsule.b = Lerp( older->override_collision_model.value.capsule.b, t, newer->override_collision_model.value.capsule.b );
+			ent.override_collision_model.value.capsule.radius = Lerp( older->override_collision_model.value.capsule.radius, t, newer->override_collision_model.value.capsule.radius );
+		} break;
+		case CollisionModelType_MapModel: {
+			Assert( older->override_collision_model.value.map_model == newer->override_collision_model.value.map_model );
+		} break;
+		case CollisionModelType_GLTF: {
+			Assert( older->override_collision_model.value.gltf_model == newer->override_collision_model.value.gltf_model );
+		} break;
+
+		default: {
+			// Assert( false );
+		}
+	}
+
+	return ent;
+}
+
+static bool CheckSimilarCollisionEntities( CollisionEntity * older, CollisionEntity * newer ) {
+	if( older->id.id != newer->id.id )
+		return false;
+
+	if( older->override_collision_model.exists != newer->override_collision_model.exists )
+		return false;
+
+	if( newer->override_collision_model.exists ) {
+		if( older->override_collision_model.value.type != newer->override_collision_model.value.type )
+			return false;
+	}
+	else {
+		if( older->model != newer->model )
+			return false;
+	}
+
+	return true;
+}
+
+static bool CollisionEntity4D( int entity_id, int time_delta, edict_t * ent ) {
+	*ent = game.edicts[ entity_id ];
+	if( time_delta == 0 || entity_id == 0 ) // special case world...
+		return true;
+
+	CollisionEntity * newer = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ].entities[ entity_id ];
+	s64 newer_time = svs.gametime;
+	s64 target_time = svs.gametime + time_delta;
+	for( size_t i = 1; i < NUM_COLLISION_FRAMES; i++ ) {
+		s64 index = ( g_current_collision_frame - i ) % NUM_COLLISION_FRAMES;
+		CollisionEntity * older = &g_collision_frames[ index ].entities[ entity_id ];
+		if( !CheckSimilarCollisionEntities( older, newer ) ) {
+			// entity changed before this point, use most recent version
+			ApplyCollisionEntity( *newer, ent );
+			return true; 
+		}
+
+		s64 older_time = g_collision_frames[ index ].timestamp;
+
+		if( g_collision_frames[ index ].timestamp < target_time ) {
+			float t = Unlerp01( older_time, target_time, newer_time );
+			CollisionEntity lerped = LerpCollisionEntity4D( older, t, newer );
+			ApplyCollisionEntity( lerped, ent );
+			return true;
+		}
+
+		newer = older;
+		newer_time = older_time;
+	}
+
+	return false; // time_delta too big, can't find
+}
+
+void G_Trace4D( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int time_delta ) {
 	TracyZoneScoped;
 
 	Ray ray = MakeRayStartEnd( start, end );
@@ -31,42 +197,45 @@ void G_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t 
 
 	*tr = MakeMissedTrace( ray );
 
-	int touchlist[ 1024 ];
-	size_t num = TraverseSpatialHashGrid( &g_grid, broadphase_bounds, touchlist, solid_mask );
-	
+	CollisionFrame * a, * b;
+	GetCollisionFrames4D( &a, &b, time_delta );
+	int touchlist[ MAX_EDICTS ];
+	size_t num = TraverseSpatialHashGrid( &a->grid, &b->grid, broadphase_bounds, touchlist, solid_mask );
+
 	for( size_t i = 0; i < num; i++ ) {
-		edict_t * touch = &game.edicts[ touchlist[ i ] ];
-		if( touch->s.number == passent )
+		edict_t touch;
+		if( !CollisionEntity4D( touchlist[ i ], time_delta, &touch ) )
 			continue;
-		if( touch->r.owner && ( touch->r.owner->s.number == passent ) )
+		if( touch.s.number == passent )
 			continue;
-		if( game.edicts[passent].r.owner && ( game.edicts[passent].r.owner->s.number == touch->s.number ) ) 
+		if( touch.r.owner && ( touch.r.owner->s.number == passent ) )
+			continue;
+		if( game.edicts[passent].r.owner && ( game.edicts[passent].r.owner->s.number == touch.s.number ) ) 
 			continue;
 		// wsw : jal : never clipmove against SVF_PROJECTILE entities
-		if( touch->s.svflags & SVF_PROJECTILE )
+		if( touch.s.svflags & SVF_PROJECTILE )
 			continue;
-		if( touch->r.client != NULL && touch->s.team == game.edicts[ passent ].s.team )
+		if( touch.r.client != NULL && touch.s.team == game.edicts[ passent ].s.team )
 			continue;
 
-		trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &touch->s, solid_mask );
+		trace_t trace = TraceVsEnt( ServerCollisionModelStorage(), ray, shape, &touch.s, solid_mask );
 		if( trace.fraction <= tr->fraction ) {
 			*tr = trace;
 		}
 	}
 }
 
-void G_Trace4D( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask, int timeDelta ) {
-	G_Trace( tr, start, bounds, end, passedict, solid_mask );
+void G_Trace( trace_t * tr, Vec3 start, MinMax3 bounds, Vec3 end, const edict_t * passedict, SolidBits solid_mask ) {
+	G_Trace4D( tr, start, bounds, end, passedict, solid_mask, 0 );
 }
 
-void GClip_BackUpCollisionFrame() {
-}
-
-int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int timeDelta ) {
-	// TODO: timedelta
+int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int time_delta ) {
 	MinMax3 bounds = MinMax3( org - rad, org + rad );
+
+	CollisionFrame * a, * b;
+	GetCollisionFrames4D( &a, &b, time_delta );
 	int touchlist[ MAX_EDICTS ];
-	size_t touchnum = TraverseSpatialHashGrid( &g_grid, bounds, touchlist, SolidMask_AnySolid );
+	size_t touchnum = TraverseSpatialHashGrid( &a->grid, &b->grid, bounds, touchlist, SolidMask_AnySolid );
 
 	size_t num = 0;
 	for( size_t i = 0; i < touchnum; i++ ) {
@@ -80,21 +249,27 @@ int GClip_FindInRadius4D( Vec3 org, float rad, int *list, int maxcount, int time
 	return num;
 }
 
-void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int timeDelta, bool selfdamage ) {
-	// TODO: timedelta
-	G_SplashFrac( &ent->s, &ent->r, hitpoint, maxradius, pushdir, frac, selfdamage );
+void G_SplashFrac4D( const edict_t * ent, Vec3 hitpoint, float maxradius, Vec3 * pushdir, float *frac, int time_delta, bool selfdamage ) {
+	edict_t ent4d;
+	if( !CollisionEntity4D( ENTNUM( ent ), time_delta, &ent4d ) )
+		return;
+	G_SplashFrac( &ent4d.s, &ent4d.r, hitpoint, maxradius, pushdir, frac, selfdamage );
 }
 
 void GClip_ClearWorld() {
-	ClearSpatialHashGrid( &g_grid );
+	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	ClearSpatialHashGrid( &frame->grid );
 }
 
 void GClip_LinkEntity( edict_t * ent ) {
-	LinkEntity( &g_grid, ServerCollisionModelStorage(), &ent->s, ENTNUM( ent ) );
+	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	frame->entities[ ENTNUM( ent ) ] = GetCollisionEntity( ent );
+	LinkEntity( &frame->grid, ServerCollisionModelStorage(), &ent->s, ENTNUM( ent ) );
 }
 
 void GClip_UnlinkEntity( edict_t * ent ) {
-	UnlinkEntity( &g_grid, ENTNUM( ent ) );
+	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	UnlinkEntity( &frame->grid, ENTNUM( ent ) );
 }
 
 void GClip_TouchTriggers( edict_t * ent ) {
@@ -107,7 +282,8 @@ void GClip_TouchTriggers( edict_t * ent ) {
 	bounds.maxs += ent->s.origin;
 
 	int touchlist[ MAX_EDICTS ];
-	size_t touchnum = TraverseSpatialHashGrid( &g_grid, bounds, touchlist, Solid_Trigger );
+	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	size_t touchnum = TraverseSpatialHashGrid( &frame->grid, bounds, touchlist, Solid_Trigger );
 
 	for( size_t i = 0; i < touchnum; i++ ) {
 		if( !ent->r.inuse )
@@ -149,7 +325,8 @@ void G_PMoveTouchTriggers( pmove_t *pm, Vec3 previous_origin ) {
 	bounds = Union( bounds, pm->bounds + previous_origin );
 
 	int touchlist[ MAX_EDICTS ];
-	size_t num = TraverseSpatialHashGrid( &g_grid, bounds, touchlist, Solid_Trigger );
+	CollisionFrame * frame = &g_collision_frames[ g_current_collision_frame % NUM_COLLISION_FRAMES ];
+	size_t num = TraverseSpatialHashGrid( &frame->grid, bounds, touchlist, Solid_Trigger );
 
 	for( size_t i = 0; i < num; i++ ) {
 		if( !ent->r.inuse )

@@ -411,7 +411,6 @@ static void RunDeferredDeletes() {
 
 void InitRenderBackend() {
 	TracyZoneScoped;
-	TracyGpuContext;
 
 	{
 		TracyZoneScopedN( "Load OpenGL" );
@@ -419,6 +418,8 @@ void InitRenderBackend() {
 			Fatal( "Couldn't load GL" );
 		}
 	}
+
+	TracyGpuContext;
 
 	{
 		struct {

@@ -20,15 +20,26 @@
 #include "tracy/Tracy.hpp"
 
 FrameStatic frame_static;
+static u64 frame_counter;
 
 static Texture blue_noise;
 
 static Mesh fullscreen_mesh;
 
-static constexpr size_t MaxDynamicVerts = U16_MAX;
-static Mesh dynamic_geometry_mesh;
-static u16 dynamic_geometry_num_vertices;
-static u16 dynamic_geometry_num_indices;
+struct DynamicGeometry {
+	static constexpr size_t MaxVerts = U16_MAX;
+
+	StreamingBuffer positions_buffer;
+	StreamingBuffer uvs_buffer;
+	StreamingBuffer colors_buffer;
+	StreamingBuffer index_buffer;
+
+	Mesh mesh;
+	u16 num_vertices;
+	u16 num_indices;
+};
+
+static DynamicGeometry dynamic_geometry;
 
 static char last_screenshot_date[ 256 ];
 static int same_date_count;
@@ -110,6 +121,7 @@ void InitRenderer() {
 	r_shadow_quality = NewCvar( "r_shadow_quality", "1", CvarFlag_Archive );
 
 	frame_static = { };
+	frame_counter = 0;
 	last_viewport_width = 0;
 	last_viewport_height = 0;
 	last_msaa = 0;
@@ -145,13 +157,18 @@ void InitRenderer() {
 	}
 
 	{
+		dynamic_geometry.positions_buffer = NewStreamingBuffer( sizeof( Vec3 ) * DynamicGeometry::MaxVerts, "Dynamic geometry positions" );
+		dynamic_geometry.uvs_buffer = NewStreamingBuffer( sizeof( Vec2 ) * DynamicGeometry::MaxVerts, "Dynamic geometry uvs" );
+		dynamic_geometry.colors_buffer = NewStreamingBuffer( sizeof( RGBA8 ) * DynamicGeometry::MaxVerts, "Dynamic geometry colors" );
+		dynamic_geometry.index_buffer = NewStreamingBuffer( sizeof( u16 ) * DynamicGeometry::MaxVerts, "Dynamic geometry indices" );
+
 		MeshConfig config = { };
 		config.name = "Dynamic geometry";
-		config.set_attribute( VertexAttribute_Position, NewGPUBuffer( sizeof( Vec3 ) * 4 * MaxDynamicVerts, "Dynamic geometry positions" ) );
-		config.set_attribute( VertexAttribute_TexCoord, NewGPUBuffer( sizeof( Vec2 ) * 4 * MaxDynamicVerts, "Dynamic geometry uvs" ) );
-		config.set_attribute( VertexAttribute_Color, NewGPUBuffer( sizeof( RGBA8 ) * 4 * MaxDynamicVerts, "Dynamic geometry colors" ) );
-		config.index_buffer = NewGPUBuffer( sizeof( u16 ) * 6 * MaxDynamicVerts, "Dynamic geometry indices" );
-		dynamic_geometry_mesh = NewMesh( config );
+		config.set_attribute( VertexAttribute_Position, dynamic_geometry.positions_buffer.buffer );
+		config.set_attribute( VertexAttribute_TexCoord, dynamic_geometry.uvs_buffer.buffer );
+		config.set_attribute( VertexAttribute_Color, dynamic_geometry.colors_buffer.buffer );
+		config.index_buffer = dynamic_geometry.index_buffer.buffer;
+		dynamic_geometry.mesh = NewMesh( config );
 	}
 
 	AddCommand( "screenshot", TakeScreenshot );
@@ -192,8 +209,20 @@ void ShutdownRenderer() {
 
 	DeleteTexture( blue_noise );
 	DeleteMesh( fullscreen_mesh );
-	DeleteMesh( dynamic_geometry_mesh );
 	DeleteFramebuffers();
+
+	DeleteStreamingBuffer( dynamic_geometry.positions_buffer );
+	DeleteStreamingBuffer( dynamic_geometry.uvs_buffer );
+	DeleteStreamingBuffer( dynamic_geometry.colors_buffer );
+	DeleteStreamingBuffer( dynamic_geometry.index_buffer );
+
+	// this is a hack, ordinarily Mesh owns its vertex buffers but not here
+	for( GPUBuffer & buffer : dynamic_geometry.mesh.vertex_buffers ) {
+		buffer = { };
+	}
+	dynamic_geometry.mesh.index_buffer = { };
+
+	DeleteMesh( dynamic_geometry.mesh );
 
 	RemoveCommand( "screenshot" );
 
@@ -430,8 +459,8 @@ void RendererBeginFrame( u32 viewport_width, u32 viewport_height ) {
 
 	RenderBackendBeginFrame();
 
-	dynamic_geometry_num_vertices = 0;
-	dynamic_geometry_num_indices = 0;
+	dynamic_geometry.num_vertices = 0;
+	dynamic_geometry.num_indices = 0;
 
 	if( !IsPowerOf2( r_samples->integer ) || r_samples->integer > 16 || r_samples->integer == 1 ) {
 		Com_Printf( "Invalid r_samples value (%d), resetting\n", r_samples->integer );
@@ -664,6 +693,11 @@ void RendererSetView( Vec3 position, EulerDegrees3 angles, float vertical_fov ) 
 
 void RendererSubmitFrame() {
 	RenderBackendSubmitFrame();
+	frame_counter++;
+}
+
+size_t FrameSlot() {
+	return frame_counter % MAX_FRAMES_IN_FLIGHT;
 }
 
 const Texture * BlueNoiseTexture() {
@@ -674,20 +708,31 @@ void DrawFullscreenMesh( const PipelineState & pipeline ) {
 	DrawMesh( fullscreen_mesh, pipeline );
 }
 
-u16 DynamicMeshBaseIndex() {
-	return dynamic_geometry_num_vertices;
+template< typename T >
+static void FillDynamicGeometryBuffer( StreamingBuffer stream, const T * data, size_t n, size_t old_n ) {
+	T * stream_memory = ( T * ) GetStreamingBufferMemory( stream );
+	for( size_t i = 0; i < n; i++ ) {
+		stream_memory[ i + old_n ] = data[ i ];
+	}
 }
 
 void DrawDynamicMesh( const PipelineState & pipeline, const DynamicMesh & mesh ) {
-	WriteGPUBuffer( dynamic_geometry_mesh.vertex_buffers[ VertexAttribute_Position ], mesh.positions, mesh.num_vertices * sizeof( mesh.positions[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.positions[ 0 ] ) );
-	WriteGPUBuffer( dynamic_geometry_mesh.vertex_buffers[ VertexAttribute_TexCoord ], mesh.uvs, mesh.num_vertices * sizeof( mesh.uvs[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.uvs[ 0 ] ) );
-	WriteGPUBuffer( dynamic_geometry_mesh.vertex_buffers[ VertexAttribute_Color ], mesh.colors, mesh.num_vertices * sizeof( mesh.colors[ 0 ] ), dynamic_geometry_num_vertices * sizeof( mesh.colors[ 0 ] ) );
-	WriteGPUBuffer( dynamic_geometry_mesh.index_buffer, mesh.indices, mesh.num_indices * sizeof( mesh.indices[ 0 ] ), dynamic_geometry_num_indices * sizeof( mesh.indices[ 0 ] ) );
+	if( dynamic_geometry.num_vertices + mesh.num_vertices > DynamicGeometry::MaxVerts ) {
+		Com_Printf( S_COLOR_YELLOW "Too much dynamic geometry!\n" );
+		return;
+	}
 
-	DrawMesh( dynamic_geometry_mesh, pipeline, mesh.num_indices, dynamic_geometry_num_indices * sizeof( mesh.indices[ 0 ] ) );
+	FillDynamicGeometryBuffer( dynamic_geometry.positions_buffer, mesh.positions, mesh.num_vertices, dynamic_geometry.num_vertices );
+	FillDynamicGeometryBuffer( dynamic_geometry.uvs_buffer, mesh.uvs, mesh.num_vertices, dynamic_geometry.num_vertices );
+	FillDynamicGeometryBuffer( dynamic_geometry.colors_buffer, mesh.colors, mesh.num_vertices, dynamic_geometry.num_vertices );
+	FillDynamicGeometryBuffer( dynamic_geometry.index_buffer, mesh.indices, mesh.num_indices, dynamic_geometry.num_indices );
 
-	dynamic_geometry_num_vertices += mesh.num_vertices;
-	dynamic_geometry_num_indices += mesh.num_indices;
+	size_t first_index = dynamic_geometry.num_indices + FrameSlot() * DynamicGeometry::MaxVerts;
+	size_t base_vertex = dynamic_geometry.num_vertices + FrameSlot() * DynamicGeometry::MaxVerts;
+	DrawMesh( dynamic_geometry.mesh, pipeline, mesh.num_indices, first_index, base_vertex );
+
+	dynamic_geometry.num_vertices += mesh.num_vertices;
+	dynamic_geometry.num_indices += mesh.num_indices;
 }
 
 void Draw2DBox( float x, float y, float w, float h, const Material * material, Vec4 color ) {

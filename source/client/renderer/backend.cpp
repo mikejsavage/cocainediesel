@@ -41,13 +41,13 @@ struct DrawCall {
 	u32 num_vertices;
 	u32 num_instances;
 	u32 first_index;
+	u32 base_vertex;
 
 	u32 dispatch_size[ 3 ];
 	GPUBuffer indirect;
 };
 
-static GLsync fences[ 3 ];
-static u64 frame_counter;
+static GLsync fences[ MAX_FRAMES_IN_FLIGHT ];
 
 static NonRAIIDynamicArray< RenderPass > render_passes;
 static NonRAIIDynamicArray< DrawCall > draw_calls;
@@ -469,7 +469,6 @@ void InitRenderBackend() {
 	for( GLsync & fence : fences ) {
 		fence = 0;
 	}
-	frame_counter = 0;
 
 	render_passes.init( sys_allocator );
 	draw_calls.init( sys_allocator );
@@ -545,10 +544,11 @@ void RenderBackendBeginFrame() {
 	render_passes.clear();
 	draw_calls.clear();
 
-	if( fences[ frame_counter % ARRAY_COUNT( fences ) ] != 0 ) {
+	size_t fence_id = FrameSlot();
+	if( fences[ fence_id ] != 0 ) {
 		TracyZoneScopedN( "Wait on frame fence" );
-		glClientWaitSync( fences[ frame_counter % ARRAY_COUNT( fences ) ], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED );
-		glDeleteSync( fences[ frame_counter % ARRAY_COUNT( fences ) ] );
+		glClientWaitSync( fences[ fence_id ], GL_SYNC_FLUSH_COMMANDS_BIT, GL_TIMEOUT_IGNORED );
+		glDeleteSync( fences[ fence_id ] );
 	}
 
 	num_vertices_this_frame = 0;
@@ -630,7 +630,7 @@ void PipelineState::bind_buffer( StringHash name, GPUBuffer buffer, u32 offset, 
 }
 
 void PipelineState::bind_streaming_buffer( StringHash name, StreamingBuffer stream ) {
-	u32 offset = stream.size * ( frame_counter % ARRAY_COUNT( fences ) );
+	u32 offset = stream.size * FrameSlot();
 	bind_buffer( name, stream.buffer, offset, stream.size );
 }
 
@@ -980,7 +980,7 @@ static void SubmitDrawCall( const DrawCall & dc ) {
 		if( dc.mesh.index_buffer.buffer != 0 ) {
 			size_t index_size = dc.mesh.index_format == IndexFormat_U16 ? sizeof( u16 ) : sizeof( u32 );
 			const void * offset = ( const void * ) ( uintptr_t( dc.first_index ) * index_size );
-			glDrawElementsInstanced( GL_TRIANGLES, dc.num_vertices, gl_index_format, offset, dc.num_instances );
+			glDrawElementsInstancedBaseVertex( GL_TRIANGLES, dc.num_vertices, gl_index_format, offset, dc.num_instances, dc.base_vertex );
 		}
 		else {
 			glDrawArraysInstanced( GL_TRIANGLES, dc.first_index, dc.num_vertices, dc.num_instances );
@@ -1046,8 +1046,7 @@ void RenderBackendSubmitFrame() {
 
 	RunDeferredDeletes();
 
-	fences[ frame_counter % ARRAY_COUNT( fences ) ] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
-	frame_counter++;
+	fences[ FrameSlot() ] = glFenceSync( GL_SYNC_GPU_COMMANDS_COMPLETE, 0 );
 
 	u32 ubo_bytes_used = 0;
 	for( const UBO & ubo : ubos ) {
@@ -1080,7 +1079,7 @@ UniformBlock UploadUniforms( const void * data, size_t size ) {
 
 	UniformBlock block;
 	block.ubo = ubo->stream.buffer.buffer;
-	block.offset = offset + ubo->stream.size * ( frame_counter % ARRAY_COUNT( fences ) );
+	block.offset = offset + ubo->stream.size * FrameSlot();
 	block.size = AlignPow2( checked_cast< u32 >( size ), u32( 16 ) );
 
 	u8 * mapping = ( u8 * ) GetStreamingBufferMemory( ubo->stream );
@@ -1139,7 +1138,7 @@ StreamingBuffer NewStreamingBuffer( u32 size, const char * name ) {
 }
 
 void * GetStreamingBufferMemory( StreamingBuffer stream ) {
-	return ( ( u8 * ) stream.ptr ) + stream.size * ( frame_counter % ARRAY_COUNT( fences ) );
+	return ( ( u8 * ) stream.ptr ) + stream.size * FrameSlot();
 }
 
 void DeleteStreamingBuffer( StreamingBuffer stream ) {
@@ -1754,11 +1753,11 @@ void AddResolveMSAAPass( const tracy::SourceLocationData * tracy, Framebuffer sr
 	AddBlitPass( tracy, src, dst, clear_color, clear_depth );
 }
 
-void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 first_index ) {
-	DrawInstancedMesh( mesh, pipeline, 1, num_vertices_override, first_index );
+void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override, u32 first_index, u32 base_vertex ) {
+	DrawInstancedMesh( mesh, pipeline, 1, num_vertices_override, first_index, base_vertex );
 }
 
-void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override, u32 first_index ) {
+void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override, u32 first_index, u32 base_vertex ) {
 	Assert( in_frame );
 	Assert( pipeline.pass != U8_MAX );
 	Assert( pipeline.shader != NULL );
@@ -1769,6 +1768,7 @@ void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 n
 	dc.pipeline = pipeline;
 	dc.num_vertices = num_vertices_override == 0 ? mesh.num_vertices : num_vertices_override;
 	dc.first_index = first_index;
+	dc.base_vertex = base_vertex;
 	dc.num_instances = num_instances;
 	draw_calls.add( dc );
 

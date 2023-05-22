@@ -6,6 +6,8 @@
 #include "qcommon/hash.h"
 #include "client/renderer/types.h"
 
+constexpr size_t MAX_FRAMES_IN_FLIGHT = 3;
+
 enum CullFace : u8 {
 	CullFace_Back,
 	CullFace_Front,
@@ -297,6 +299,7 @@ void DeferDeleteGPUBuffer( GPUBuffer buf );
 
 StreamingBuffer NewStreamingBuffer( u32 size, const char * name = NULL );
 void * GetStreamingBufferMemory( StreamingBuffer stream );
+// void FlushStreamingBuffer( StreamingBuffer stream, size_t length, size_t offset = 0 );
 void DeleteStreamingBuffer( StreamingBuffer buf );
 void DeferDeleteStreamingBuffer( StreamingBuffer buf );
 
@@ -329,8 +332,8 @@ Mesh NewMesh( const MeshConfig & config );
 void DeleteMesh( const Mesh & mesh );
 void DeferDeleteMesh( const Mesh & mesh );
 
-void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0 );
-void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override = 0, u32 first_index = 0 );
+void DrawMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_vertices_override = 0, u32 first_index = 0, u32 base_vertex = 0 );
+void DrawInstancedMesh( const Mesh & mesh, const PipelineState & pipeline, u32 num_instances, u32 num_vertices_override = 0, u32 first_index = 0, u32 base_vertex = 0 );
 void DrawMeshIndirect( const Mesh & mesh, const PipelineState & pipeline, GPUBuffer indirect );
 void DispatchCompute( const PipelineState & pipeline, u32 x, u32 y, u32 z );
 void DispatchComputeIndirect( const PipelineState & pipeline, GPUBuffer indirect );

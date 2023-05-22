@@ -151,8 +151,6 @@ static void DrawActualTrail( Trail & trail ) {
 	Span< RGBA8 > colors = ALLOC_SPAN( &temp, RGBA8, trail.points.n * 2 );
 	Span< u16 > indices = ALLOC_SPAN( &temp, u16, ( trail.points.n - 1 ) * 6 );
 
-	u16 base_index = DynamicMeshBaseIndex();
-
 	const Material * material = FindMaterial( trail.material );
 	float texture_aspect_ratio = float( material->texture->width ) / float( material->texture->height );
 	float distance = trail.offset / trail.width / texture_aspect_ratio;
@@ -193,12 +191,12 @@ static void DrawActualTrail( Trail & trail ) {
 		colors[ i * 2 + 1 ] = RGBA8( 255, 255, 255, 255 * alpha );
 
 		if( i < trail.points.n - 1 ) {
-			indices[ i * 6 + 0 ] = base_index + i * 2 + 0;
-			indices[ i * 6 + 1 ] = base_index + i * 2 + 1;
-			indices[ i * 6 + 2 ] = base_index + i * 2 + 2;
-			indices[ i * 6 + 3 ] = base_index + i * 2 + 1;
-			indices[ i * 6 + 4 ] = base_index + i * 2 + 3;
-			indices[ i * 6 + 5 ] = base_index + i * 2 + 2;
+			indices[ i * 6 + 0 ] = i * 2 + 0;
+			indices[ i * 6 + 1 ] = i * 2 + 1;
+			indices[ i * 6 + 2 ] = i * 2 + 2;
+			indices[ i * 6 + 3 ] = i * 2 + 1;
+			indices[ i * 6 + 4 ] = i * 2 + 3;
+			indices[ i * 6 + 5 ] = i * 2 + 2;
 		}
 	}
 

@@ -251,7 +251,8 @@ static void CG_Event_FireBullet( Vec3 origin, Vec3 dir, u16 entropy, s16 zoom_ti
 				PlaySFX( "weapons/bullet_whizz", PlaySFXConfigLineSegment( origin, trace.endpos ) );
 			}
 		}
-
+	}
+	if( wallbang.HitSomething() ) {
 		WallbangImpact( &wallbang, team_color, 12 );
 	}
 
